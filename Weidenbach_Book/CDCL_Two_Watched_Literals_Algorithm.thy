@@ -390,8 +390,8 @@ definition skip_and_resolve_loop_inv where
       working_queue S = {#} \<and> pending S = {#} \<and>
           get_conflict S \<noteq> None \<and>
           (\<not>brk \<longrightarrow> get_trail S \<noteq> [] \<and> get_conflict S \<noteq> Some {#}) \<and>
-          (brk \<longrightarrow> no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state S) \<and>
-            no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state S)))\<close>
+          (brk \<longrightarrow> no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W S) \<and>
+            no_step cdcl\<^sub>W_restart_mset.resolve (state_of\<^sub>W S)))\<close>
 
 definition skip_and_resolve_loop :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
   \<open>skip_and_resolve_loop S\<^sub>0 =
@@ -424,8 +424,8 @@ lemma skip_and_resolve_loop_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>working_queue S = {#}\<close> and \<open>pending S = {#}\<close> and
     \<open>get_conflict S \<noteq> None\<close>
   shows \<open>skip_and_resolve_loop S \<le> SPEC(\<lambda>T. cdcl_twl_o\<^sup>*\<^sup>* S T \<and> twl_struct_invs T \<and> twl_stgy_invs T \<and>
-      no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state T) \<and>
-      no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state T) \<and>
+      no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W T) \<and>
+      no_step cdcl\<^sub>W_restart_mset.resolve (state_of\<^sub>W T) \<and>
       get_conflict T \<noteq> None \<and> working_queue T = {#} \<and> pending T = {#})\<close>
   unfolding skip_and_resolve_loop_def
 proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc (length (get_trail S) - If brk 1 0))\<close>];
@@ -540,19 +540,19 @@ next \<comment> \<open>Final properties\<close>
     using inv by (auto simp add: skip_and_resolve_loop_inv_def)
 
   { assume \<open>is_decided (hd (get_trail T))\<close>
-    then have \<open>no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state T)\<close> and
-      \<open>no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state T)\<close>
+    then have \<open>no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W T)\<close> and
+      \<open>no_step cdcl\<^sub>W_restart_mset.resolve (state_of\<^sub>W T)\<close>
       by (cases T;  auto simp add: cdcl\<^sub>W_restart_mset.skip.simps
           cdcl\<^sub>W_restart_mset.resolve.simps cdcl\<^sub>W_restart_mset_state)+
   }
   moreover
   { assume \<open>brk\<close>
-    then have \<open>no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state T)\<close> and
-      \<open>no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state T)\<close>
+    then have \<open>no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W T)\<close> and
+      \<open>no_step cdcl\<^sub>W_restart_mset.resolve (state_of\<^sub>W T)\<close>
       using inv by (auto simp: skip_and_resolve_loop_inv_def)
   }
-  ultimately show \<open>\<not> cdcl\<^sub>W_restart_mset.skip (convert_to_state T) U\<close> and
-    \<open>\<not> cdcl\<^sub>W_restart_mset.resolve (convert_to_state T) U\<close>
+  ultimately show \<open>\<not> cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W T) U\<close> and
+    \<open>\<not> cdcl\<^sub>W_restart_mset.resolve (state_of\<^sub>W T) U\<close>
     using brk unfolding prod.case by blast+
 
   show \<open>twl_struct_invs T\<close>
@@ -677,14 +677,14 @@ lemma remove1_mset_empty_iff: \<open>remove1_mset L N = {#} \<longleftrightarrow
 lemma backtrack_spec:
   assumes confl: \<open>get_conflict S \<noteq> None\<close> \<open>get_conflict S \<noteq> Some {#}\<close> and
     w_q: \<open>working_queue S = {#}\<close> and p: \<open>pending S = {#}\<close> and
-    ns_s: \<open>no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state S)\<close> and
-    ns_r: \<open>no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state S)\<close> and
+    ns_s: \<open>no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W S)\<close> and
+    ns_r: \<open>no_step cdcl\<^sub>W_restart_mset.resolve (state_of\<^sub>W S)\<close> and
     twl_struct: \<open>twl_struct_invs S\<close> and twl_stgy: \<open>twl_stgy_invs S\<close>
   shows \<open>backtrack S \<le> SPEC (\<lambda>T. cdcl_twl_o S T \<and> get_conflict T = None \<and> no_step cdcl_twl_o T \<and>
     twl_struct_invs T \<and> twl_stgy_invs T \<and> working_queue T = {#} \<and>
     pending T \<noteq> {#})\<close>
 proof -
-  let ?S = \<open>convert_to_state S\<close>
+  let ?S = \<open>state_of\<^sub>W S\<close>
   have inv_s: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant ?S\<close> and
     inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv ?S\<close>
     using twl_struct twl_stgy unfolding twl_struct_invs_def twl_stgy_invs_def by fast+
@@ -708,7 +708,7 @@ proof -
       S: \<open>S = (M, N, U, D, NP, UP, WS, Q)\<close> and
       \<open>get_level M (lit_of (hd M)) = count_decided M\<close>
 
-    let ?S = \<open>convert_to_state S\<close>
+    let ?S = \<open>state_of\<^sub>W S\<close>
     have inv_s: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant ?S\<close> and
       inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv ?S\<close>
       using twl_struct twl_stgy unfolding twl_struct_invs_def twl_stgy_invs_def by fast+
@@ -757,7 +757,7 @@ proof -
     next
       case (Propagated L C) note L'' = this(1)
       moreover {
-        have \<open>\<forall>L mark a b. a @ Propagated L mark # b = trail (convert_to_state S) \<longrightarrow>
+        have \<open>\<forall>L mark a b. a @ Propagated L mark # b = trail (state_of\<^sub>W S) \<longrightarrow>
           b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close>
           using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
             cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def

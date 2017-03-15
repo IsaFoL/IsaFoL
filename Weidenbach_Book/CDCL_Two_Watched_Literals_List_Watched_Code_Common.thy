@@ -57,7 +57,7 @@ abbreviation clause_ll_assn :: "nat clause_l \<Rightarrow> clause_wl \<Rightarro
   \<open>clause_ll_assn \<equiv> array_assn nat_lit_assn\<close>
 
 abbreviation clauses_ll_assn :: "nat clauses_l \<Rightarrow> clauses_wl \<Rightarrow> assn" where
-  \<open>clauses_ll_assn \<equiv> arrayO_raa (array_assn nat_lit_assn)\<close>
+  \<open>clauses_ll_assn \<equiv> arlO_assn (array_assn nat_lit_assn)\<close>
 
 abbreviation clause_l_assn :: "nat clause \<Rightarrow> nat list \<Rightarrow> assn" where
   \<open>clause_l_assn \<equiv> list_mset_assn nat_lit_assn\<close>
@@ -197,8 +197,8 @@ definition delete_index_and_swap_aa where
 lemma delete_index_and_swap_aa_ll_hnr[sepref_fr_rules]:
   assumes \<open>is_pure R\<close>
   shows \<open>(uncurry2 delete_index_and_swap_aa, uncurry2 (RETURN ooo delete_index_and_swap_ll))
-     \<in> [\<lambda>((l,i), j). i < length l \<and> j < length_ll l i]\<^sub>a (arrayO (arl_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k
-         \<rightarrow> (arrayO (arl_assn R))\<close>
+     \<in> [\<lambda>((l,i), j). i < length l \<and> j < length_ll l i]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k
+         \<rightarrow> (arrayO_assn (arl_assn R))\<close>
   using assms unfolding delete_index_and_swap_aa_def
   by sepref_to_hoare (sep_auto dest: le_length_ll_nemptyD
       simp: delete_index_and_swap_ll_def update_ll_def last_ll_def set_butlast_ll_def
@@ -994,8 +994,8 @@ lemma count_decided_butlast:
 lemma find_decomp_wl_code_find_decomp_wl:
   assumes D: \<open>D \<noteq> None\<close> \<open>D \<noteq> Some {#}\<close> and M\<^sub>0: \<open>M\<^sub>0 \<noteq> []\<close> and ex_decomp: \<open>ex_decomp_of_max_lvl M\<^sub>0 D L\<close> and
     L: \<open>L = lit_of (hd M\<^sub>0)\<close> and
-    no_r: \<open>no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close> and
-    no_s: \<open>no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close> and
+    no_r: \<open>no_step cdcl\<^sub>W_restart_mset.resolve (state_of\<^sub>W (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close> and
+    no_s: \<open>no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close> and
     struct: \<open>twl_struct_invs (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W))\<close> and
     E: \<open>E = the D\<close>
   shows
@@ -1045,9 +1045,9 @@ proof -
   have [iff]: \<open>convert_lits_l N M = [] \<longleftrightarrow> M = []\<close> for M
     by (cases M) auto
   have
-    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (convert_to_state (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close> and
-    confl: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (convert_to_state (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close> and
-    lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (convert_to_state (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close>
+    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state_of\<^sub>W (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close> and
+    confl: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state_of\<^sub>W (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close> and
+    lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state_of\<^sub>W (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close>
     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
   have dist_D: \<open>distinct_mset (the D)\<close>
     using D dist by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset'
@@ -1161,10 +1161,10 @@ definition find_decomp_wl'  where
           get_level M K = get_maximum_level M (D - {#-L#}) + 1))\<close>
 
 definition no_skip where
-  \<open>no_skip S = (no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of_wl None S)))\<close>
+  \<open>no_skip S = (no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W (twl_st_of_wl None S)))\<close>
 
 definition no_resolve where
-  \<open>no_resolve S = (no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of_wl None S)))\<close>
+  \<open>no_resolve S = (no_step cdcl\<^sub>W_restart_mset.resolve (state_of\<^sub>W (twl_st_of_wl None S)))\<close>
 
 lemma find_decomp_wl'_find_decomp_wl:
   \<open>find_decomp_wl' M N U (the D) NP UP Q WS L = find_decomp_wl (M, N, U, D, NP, UP, Q, WS) L\<close>
@@ -1244,7 +1244,7 @@ proof -
        (\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0)
        (\<lambda>_ ((l, i), j). i < length l \<and> j < length_ll l i)
        (\<lambda>_. True)]\<^sub>a hrp_comp
-                       ((arrayO (arl_assn nat_assn))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
+                       ((arrayO_assn (arl_assn nat_assn))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
                        ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r nat_lit_rel) \<times>\<^sub>r nat_rel) \<rightarrow>
                     hr_comp nat_assn nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
@@ -1280,7 +1280,7 @@ proof -
             (\<lambda>(W, L). L \<in> snd ` D\<^sub>0)
             (\<lambda>_ (xs, i). i < length xs)
             (\<lambda>_. True)]\<^sub>a hrp_comp
-                            ((arrayO (arl_assn nat_assn))\<^sup>k *\<^sub>a nat_assn\<^sup>k)
+                            ((arrayO_assn (arl_assn nat_assn))\<^sup>k *\<^sub>a nat_assn\<^sup>k)
                             (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r nat_lit_rel) \<rightarrow>
           hr_comp nat_assn nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
@@ -1328,9 +1328,9 @@ proof -
   \<in> [comp_PRE ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r nat_lit_rel) \<times>\<^sub>r nat_rel) (\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0)
        (\<lambda>x y. case y of (x, xa) \<Rightarrow> (case x of (l, i) \<Rightarrow> \<lambda>j. i < length l \<and> j < length_ll l i) xa)
        (\<lambda>x. nofail (uncurry2 (RETURN \<circ>\<circ>\<circ> delete_index_and_swap_update)
-                      x))]\<^sub>a hrp_comp ((arrayO (arl_assn nat_assn))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
+                      x))]\<^sub>a hrp_comp ((arrayO_assn (arl_assn nat_assn))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
                               ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r nat_lit_rel) \<times>\<^sub>r
-                               nat_rel) \<rightarrow> hr_comp (arrayO (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)
+                               nat_rel) \<rightarrow> hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)
 \<close>
     (is \<open>?a \<in> [?pre']\<^sub>a ?init' \<rightarrow> ?post'\<close>)
     using hfref_compI_PRE[OF delete_index_and_swap_aa_ll_hnr
@@ -1403,9 +1403,9 @@ proof -
        (\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0)
        (\<lambda>x y. case y of (x, xa) \<Rightarrow> (case x of (l, i) \<Rightarrow> \<lambda>x. i < length l) xa)
        (\<lambda>x. nofail (uncurry2 (RETURN \<circ>\<circ>\<circ> append_update) x))]\<^sub>a
-    hrp_comp ((arrayO (arl_assn nat_assn))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
+    hrp_comp ((arrayO_assn (arl_assn nat_assn))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
       ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r nat_lit_rel) \<times>\<^sub>r nat_rel) \<rightarrow>
-    hr_comp (arrayO (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)
+    hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)
 \<close>
     (is \<open>?a \<in> [?pre']\<^sub>a ?init' \<rightarrow> ?post'\<close>)
     using hfref_compI_PRE[OF append_aa_hnr
@@ -1453,7 +1453,7 @@ proof -
       using list_all2_reorder_left_invariance by fastforce
 qed
 
-lemmas [safe_constraint_rules] = CN_FALSEI[of is_pure "hr_comp (arrayO (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)"]
+lemmas [safe_constraint_rules] = CN_FALSEI[of is_pure "hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)"]
   CN_FALSEI[of is_pure "twl_st_l_assn"]
 
 definition get_conflict_wl_is_Nil :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
@@ -1650,7 +1650,7 @@ lemma [sepref_fr_rules]: \<open>(arl_length, RETURN o size) \<in> conflict_assn\
    (sep_auto simp: hr_comp_def arl_assn_def list_mset_rel_def br_def list_rel_def
       dest: list_all2_lengthD)
 
-lemma length_a_hnr[sepref_fr_rules]: \<open>(length_a, RETURN o op_list_length) \<in> (arrayO R)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+lemma length_a_hnr[sepref_fr_rules]: \<open>(length_a, RETURN o op_list_length) \<in> (arrayO_assn R)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   by sepref_to_hoare sep_auto
 
 definition (in -) single_of_mset_imp :: \<open>'a list \<Rightarrow> 'a nres\<close> where
@@ -1737,7 +1737,7 @@ proof -
   subgoal by (auto split: list.splits)
   subgoal for a aa ab ac ad ae af b ag ah ai aj ak al am ba x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m s an bb
     apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv
-      (convert_to_state (twl_st_of_wl None (ag, ah, ai, aj, ak, al, am, ba)))\<close>)
+      (state_of\<^sub>W (twl_st_of_wl None (ag, ah, ai, aj, ak, al, am, ba)))\<close>)
     subgoal by (simp add: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset_state)
     subgoal by (subst (asm)twl_struct_invs_def,
        subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def) fast
@@ -1769,7 +1769,7 @@ proof -
     have [simp]: \<open>M' = M\<close> \<open>N' = N\<close> \<open>U' = U\<close> \<open>D' = D\<close> \<open>NP' = NP\<close> \<open>UP' = UP\<close> \<open>WS' = WS\<close> \<open>Q' = Q\<close>
       \<open>x1 = M\<close> \<open>M'' = M\<close> \<open>N'' = N\<close> \<open>U'' = U\<close> \<open>D'' = D\<close> \<open>NP'' = NP\<close> \<open>UP'' = UP\<close> \<open>WS'' = WS\<close> \<open>Q'' = Q\<close>
       using st by auto
-    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q)))\<close> and
+    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state_of\<^sub>W (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q)))\<close> and
       unit: \<open>unit_clss_inv (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q))\<close>
       using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       by fast+
@@ -1832,7 +1832,7 @@ proof -
     have S[simp]: \<open>M' = M\<close> \<open>N' = N\<close> \<open>U' = U\<close> \<open>D' = D\<close> \<open>NP' = NP\<close> \<open>UP' = UP\<close> \<open>WS' = WS\<close> \<open>Q' = Q\<close>
       \<open>x1 = M\<close> \<open>M'' = M\<close> \<open>N'' = N\<close> \<open>U'' = U\<close> \<open>D'' = D\<close> \<open>NP'' = NP\<close> \<open>UP'' = UP\<close> \<open>WS'' = WS\<close> \<open>Q'' = Q\<close>
       using st by auto
-    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q)))\<close> and
+    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state_of\<^sub>W (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q)))\<close> and
       unit: \<open>unit_clss_inv (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q))\<close>
       using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       by fast+

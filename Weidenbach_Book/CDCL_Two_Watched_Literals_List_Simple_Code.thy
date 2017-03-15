@@ -785,7 +785,7 @@ lemma find_decomp_l_res_le_find_decomp:
     ex_decomp: \<open>ex_decomp_of_max_lvl M (map_option mset D) L\<close> and
     stgy_invs: \<open>twl_stgy_invs (twl_st_of None S')\<close> and
     struct_invs: \<open>twl_struct_invs (twl_st_of None S')\<close> and
-    ns_s: \<open>no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of None S'))\<close> and
+    ns_s: \<open>no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W (twl_st_of None S'))\<close> and
     M_not_empty: \<open>M \<noteq> []\<close>
  shows \<open>uncurry find_decomp_l_res T \<le> \<Down> Id (uncurry find_decomp T')\<close>
 proof -
@@ -808,11 +808,11 @@ proof -
   have lev_L: \<open>get_level M L = count_decided M\<close>
     using M_not_empty L by (cases M) auto
 
-  have \<open>conflicting (convert_to_state (twl_st_of None S')) = Some (mset D')\<close>
+  have \<open>conflicting (state_of\<^sub>W (twl_st_of None S')) = Some (mset D')\<close>
     by (auto simp: twl_struct_invs_def twl_stgy_invs_def cdcl\<^sub>W_restart_mset_state S')
   then have uhd_D': \<open>- L \<in> set D'\<close>
     using cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of
-        \<open>convert_to_state (twl_st_of None S')\<close>] D ns_s struct_invs stgy_invs
+        \<open>state_of\<^sub>W (twl_st_of None S')\<close>] D ns_s struct_invs stgy_invs
     by (auto simp: cdcl\<^sub>W_restart_mset_state S' hd_converts_L twl_struct_invs_def
         twl_stgy_invs_def)
 
@@ -856,7 +856,7 @@ lemma find_decomp_l_res_find_decomp:
        ex_decomp_of_max_lvl M D L \<and>
        twl_stgy_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)) \<and>
        twl_struct_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)) \<and>
-       no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of None (M, N, U, D, NP, UP, WS, Q))) \<and>
+       no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W (twl_st_of None (M, N, U, D, NP, UP, WS, Q))) \<and>
       M \<noteq> []]\<^sub>f
     {((S'::twl_st_ll), (S::nat twl_st_l)). S = twl_st_of_ll S'} \<times>\<^sub>r Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
   (is \<open>_ \<in> [\<lambda>(S, L). ?P S L]\<^sub>f _ \<rightarrow> _\<close>)
@@ -1038,7 +1038,7 @@ lemma find_decomp_l_hnr[sepref_fr_rules]:
       ex_decomp_of_max_lvl M D L \<and>
       twl_stgy_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)) \<and>
       twl_struct_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)) \<and>
-      no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of None (M, N, U, D, NP, UP, WS, Q))) \<and>
+      no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W (twl_st_of None (M, N, U, D, NP, UP, WS, Q))) \<and>
       M \<noteq> []]\<^sub>a
       twl_st_l_assn\<^sup>d *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> nat_ann_lits_assn\<close>
   apply (rule subst[of \<open>comp_PRE ({(S', S). S = twl_st_of_ll S'} \<times>\<^sub>r Id)
@@ -1050,7 +1050,7 @@ lemma find_decomp_l_hnr[sepref_fr_rules]:
            twl_stgy_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)) \<and>
            twl_struct_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)) \<and>
            (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.skip
-                     (convert_to_state
+                     (state_of\<^sub>W
                        (twl_st_of None (M, N, U, D, NP, UP, WS, Q)))
                      S') \<and>
            M \<noteq> [])
@@ -1307,9 +1307,9 @@ proof -
   have [simp]: \<open>(\<lambda>x. mset (take 2 x) + mset (drop 2 x)) = mset\<close>
     unfolding mset_append[symmetric] append_take_drop_id ..
   have learned_in_init: \<open>atms_of_mm
-     (learned_clss (convert_to_state (twl_st_of None S)))
+     (learned_clss (state_of\<^sub>W (twl_st_of None S)))
     \<subseteq> atms_of_mm
-        (init_clss (convert_to_state (twl_st_of None S)))\<close> and
+        (init_clss (state_of\<^sub>W (twl_st_of None S)))\<close> and
     unit_inv: \<open>unit_clss_inv (twl_st_of None S)\<close>
     using struct_inv unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.no_strange_atm_def by fast+

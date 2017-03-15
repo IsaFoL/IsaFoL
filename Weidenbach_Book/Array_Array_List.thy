@@ -107,15 +107,15 @@ lemma heap_list_all_nth_remove1: \<open>i \<in> set is \<Longrightarrow>
   using heap_list_all_nth_mset_eq[of \<open>is\<close> \<open>i # remove1 i is\<close>]
   by (auto simp: heap_list_all_nth_Cons)
 
-definition arrayO:: \<open>('a \<Rightarrow> 'b::heap \<Rightarrow> assn) \<Rightarrow> 'a list \<Rightarrow> 'b array \<Rightarrow> assn\<close> where
-  \<open>arrayO R' xs axs \<equiv> \<exists>\<^sub>A p. array_assn id_assn p axs * heap_list_all R' xs p\<close>
+definition arrayO_assn :: \<open>('a \<Rightarrow> 'b::heap \<Rightarrow> assn) \<Rightarrow> 'a list \<Rightarrow> 'b array \<Rightarrow> assn\<close> where
+  \<open>arrayO_assn R' xs axs \<equiv> \<exists>\<^sub>A p. array_assn id_assn p axs * heap_list_all R' xs p\<close>
 
-definition arrayO_except:: \<open>('a \<Rightarrow> 'b::heap \<Rightarrow> assn) \<Rightarrow> nat list \<Rightarrow> 'a list \<Rightarrow> 'b array \<Rightarrow> _ \<Rightarrow> assn\<close> where
-  \<open>arrayO_except R' is xs axs f \<equiv>
+definition arrayO_except_assn:: \<open>('a \<Rightarrow> 'b::heap \<Rightarrow> assn) \<Rightarrow> nat list \<Rightarrow> 'a list \<Rightarrow> 'b array \<Rightarrow> _ \<Rightarrow> assn\<close> where
+  \<open>arrayO_except_assn R' is xs axs f \<equiv>
      \<exists>\<^sub>A p. array_assn id_assn p axs * heap_list_all_nth R' (fold remove1 is [0..<length xs]) xs p *
     \<up> (length xs = length p) * f p\<close>
 
-lemma arrayO_except_array0: \<open>arrayO_except R [] xs asx (\<lambda>_. emp) = arrayO R xs asx\<close>
+lemma arrayO_except_assn_array0: \<open>arrayO_except_assn R [] xs asx (\<lambda>_. emp) = arrayO_assn R xs asx\<close>
 proof -
   have \<open>(h \<Turnstile> array_assn id_assn p asx * heap_list_all_nth R [0..<length xs] xs p \<and> length xs = length p) =
     (h \<Turnstile> array_assn id_assn p asx * heap_list_all R xs p)\<close> (is \<open>?a = ?b\<close>) for h p
@@ -132,22 +132,22 @@ proof -
         by (auto simp: heap_list_all_heap_list_all_nth)
     qed
   then show ?thesis
-    unfolding arrayO_except_def arrayO_def by (auto simp: ex_assn_def)
+    unfolding arrayO_except_assn_def arrayO_assn_def by (auto simp: ex_assn_def)
 qed
 
-lemma arrayO_except_array0_index:
-  \<open>i < length xs \<Longrightarrow> arrayO_except R [i] xs asx (\<lambda>p. R (xs ! i) (p ! i)) = arrayO R xs asx\<close>
-  unfolding arrayO_except_array0[symmetric] arrayO_except_def
+lemma arrayO_except_assn_array0_index:
+  \<open>i < length xs \<Longrightarrow> arrayO_except_assn R [i] xs asx (\<lambda>p. R (xs ! i) (p ! i)) = arrayO_assn R xs asx\<close>
+  unfolding arrayO_except_assn_array0[symmetric] arrayO_except_assn_def
   using heap_list_all_nth_remove1[of i \<open>[0..<length xs]\<close> R xs] by (auto simp: star_aci(2,3))
 
 lemma arrayO_nth_rule[sep_heap_rules]:
   assumes i: \<open>i < length a\<close>
-  shows \<open> <arrayO (arl_assn R) a ai> Array.nth ai i <\<lambda>r. arrayO_except (arl_assn R) [i] a ai
+  shows \<open> <arrayO_assn (arl_assn R) a ai> Array.nth ai i <\<lambda>r. arrayO_except_assn (arl_assn R) [i] a ai
    (\<lambda>r'. arl_assn R (a ! i) r * \<up>(r = r' ! i))>\<close>
 proof -
-  have i_le: \<open>i < Array.length h ai\<close> if \<open>(h, as) \<Turnstile> arrayO (arl_assn R) a ai\<close> for h as
-    using that i unfolding arrayO_def array_assn_def is_array_def
-    by (auto simp: run.simps tap_def arrayO_def
+  have i_le: \<open>i < Array.length h ai\<close> if \<open>(h, as) \<Turnstile> arrayO_assn (arl_assn R) a ai\<close> for h as
+    using that i unfolding arrayO_assn_def array_assn_def is_array_def
+    by (auto simp: run.simps tap_def arrayO_assn_def
         mod_star_conv array_assn_def is_array_def
         Abs_assn_inverse heap_list_add_same_length length_def snga_assn_def)
   have A: \<open>Array.get h ai ! i = p ! i\<close> if \<open>(h, as) \<Turnstile>
@@ -163,10 +163,10 @@ proof -
     apply (clarify, intro allI impI conjI)
     using assms A
        apply (auto simp: hoare_triple_def Let_def i_le execute_simps relH_def in_range.simps
-        arrayO_except_array0_index[of i, symmetric]
+        arrayO_except_assn_array0_index[of i, symmetric]
         elim!: run_elims
         intro!: norm_pre_ex_rule)
-    apply (auto simp: arrayO_except_def)
+    apply (auto simp: arrayO_except_assn_def)
     done
 qed
 
@@ -174,11 +174,11 @@ definition length_a :: \<open>'a::heap array \<Rightarrow> nat Heap\<close> wher
   \<open>length_a xs = Array.len xs\<close>
 
 lemma length_a_rule[sep_heap_rules]:
-   \<open><arrayO R x xi> length_a xi <\<lambda>r. arrayO R x xi * \<up>(r = length x)>\<^sub>t\<close>
-  by (sep_auto simp: arrayO_def length_a_def array_assn_def is_array_def mod_star_conv
+   \<open><arrayO_assn R x xi> length_a xi <\<lambda>r. arrayO_assn R x xi * \<up>(r = length x)>\<^sub>t\<close>
+  by (sep_auto simp: arrayO_assn_def length_a_def array_assn_def is_array_def mod_star_conv
       dest: heap_list_add_same_length)
 
-lemma length_a_hnr[sepref_fr_rules]: \<open>(length_a, RETURN o length) \<in> (arrayO R)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+lemma length_a_hnr[sepref_fr_rules]: \<open>(length_a, RETURN o length) \<in> (arrayO_assn R)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   by sepref_to_hoare sep_auto
 
 definition length_ll :: \<open>'a list list \<Rightarrow> nat \<Rightarrow> nat\<close> where
@@ -193,24 +193,24 @@ definition length_aa :: \<open>('a::heap array_list) array \<Rightarrow> nat \<R
     arl_length x}\<close>
 
 lemma length_aa_rule[sep_heap_rules]:
-  \<open>b < length xs \<Longrightarrow> <arrayO (arl_assn R) xs a> length_aa a b
-   <\<lambda>r. arrayO (arl_assn R) xs a * \<up> (r = length_ll xs b)>\<^sub>t\<close>
+  \<open>b < length xs \<Longrightarrow> <arrayO_assn (arl_assn R) xs a> length_aa a b
+   <\<lambda>r. arrayO_assn (arl_assn R) xs a * \<up> (r = length_ll xs b)>\<^sub>t\<close>
   unfolding length_aa_def
   apply sep_auto
-  apply (sep_auto simp: arrayO_except_def arl_length_def arl_assn_def(*  *)
+  apply (sep_auto simp: arrayO_except_assn_def arl_length_def arl_assn_def(*  *)
       eq_commute[of \<open>(_, _)\<close>] hr_comp_def length_ll_def)
-   apply (sep_auto simp: arrayO_except_def arl_length_def arl_assn_def(*  *)
+   apply (sep_auto simp: arrayO_except_assn_def arl_length_def arl_assn_def(*  *)
       eq_commute[of \<open>(_, _)\<close>] is_array_list_def hr_comp_def length_ll_def list_rel_def
       dest: list_all2_lengthD)[]
-  unfolding arrayO_def[symmetric] arl_assn_def[symmetric]
-  apply (subst arrayO_except_array0_index[symmetric, of b])
+  unfolding arrayO_assn_def[symmetric] arl_assn_def[symmetric]
+  apply (subst arrayO_except_assn_array0_index[symmetric, of b])
    apply simp
-  unfolding arrayO_except_def arl_assn_def hr_comp_def
+  unfolding arrayO_except_assn_def arl_assn_def hr_comp_def
   apply sep_auto
   done
 
 lemma length_aa_hnr[sepref_fr_rules]: \<open>(uncurry length_aa, uncurry (RETURN \<circ>\<circ> length_ll)) \<in>
-     [\<lambda>(xs, i). i < length xs]\<^sub>a (arrayO (arl_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
+     [\<lambda>(xs, i). i < length xs]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
   by sepref_to_hoare sep_auto
 
 definition nth_aa where
@@ -232,7 +232,7 @@ lemma nth_aa_hnr[sepref_fr_rules]:
   shows
     \<open>(uncurry2 nth_aa, uncurry2 (RETURN \<circ>\<circ>\<circ> nth_ll)) \<in>
        [\<lambda>((l,i),j). i < length l \<and> j < length_ll l i]\<^sub>a
-       (arrayO (arl_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
+       (arrayO_assn (arl_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
 proof -
   obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
     using p by fastforce
@@ -242,10 +242,10 @@ proof -
     by (auto simp add: ent_refl_true list_all2_conv_all_nth is_pure_alt_def pure_app_eq[symmetric])
   show ?thesis
   apply sepref_to_hoare
-  apply (subst (2) arrayO_except_array0_index[symmetric])
+  apply (subst (2) arrayO_except_assn_array0_index[symmetric])
     apply (solves \<open>auto\<close>)[]
   apply (sep_auto simp: nth_aa_def nth_ll_def length_ll_def)
-    apply (sep_auto simp: arrayO_except_def arrayO_def arl_assn_def hr_comp_def list_rel_def
+    apply (sep_auto simp: arrayO_except_assn_def arrayO_assn_def arl_assn_def hr_comp_def list_rel_def
         list_all2_lengthD
       star_aci(3) R R' pure_def H)
     done
@@ -294,20 +294,20 @@ lemma append_aa_hnr[sepref_fr_rules]:
   assumes p: \<open>is_pure R\<close>
   shows
     \<open>(uncurry2 append_el_aa, uncurry2 (RETURN \<circ>\<circ>\<circ> append_ll)) \<in>
-     [\<lambda>((l,i),x). i < length l]\<^sub>a (arrayO (arl_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arrayO (arl_assn R))\<close>
+     [\<lambda>((l,i),x). i < length l]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arrayO_assn (arl_assn R))\<close>
 proof -
   obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
     using p by fastforce
-  have [simp]: \<open>(\<exists>\<^sub>Ax. arrayO (arl_assn R) a ai * R x r * true * \<up> (x = a ! ba ! b)) =
-     (arrayO (arl_assn R) a ai * R (a ! ba ! b) r * true)\<close> for a ai ba b r
+  have [simp]: \<open>(\<exists>\<^sub>Ax. arrayO_assn (arl_assn R) a ai * R x r * true * \<up> (x = a ! ba ! b)) =
+     (arrayO_assn (arl_assn R) a ai * R (a ! ba ! b) r * true)\<close> for a ai ba b r
     by (auto simp: ex_assn_def)
   show ?thesis -- \<open>TODO tune proof\<close>
     apply sepref_to_hoare
     apply (sep_auto simp: append_el_aa_def)
-     apply (simp add: arrayO_except_def)
+     apply (simp add: arrayO_except_assn_def)
      apply (rule sep_auto_is_stupid[OF p])
     apply (sep_auto simp: array_assn_def is_array_def append_ll_def)
-    apply (simp add: arrayO_except_array0[symmetric] arrayO_except_def)
+    apply (simp add: arrayO_except_assn_array0[symmetric] arrayO_except_assn_def)
     apply (subst_tac (2) i = ba in heap_list_all_nth_remove1)
      apply (solves \<open>simp\<close>)
     apply (simp add: array_assn_def is_array_def)
@@ -356,37 +356,37 @@ proof -
 qed
 
 text \<open>TODO: is it possible to be more precise and not drop the \<^term>\<open>\<up> ((aa, bc) = r' ! bb)\<close>\<close>
-lemma arrayO_except_arl_set[sep_heap_rules]:
+lemma arrayO_except_assn_arl_set[sep_heap_rules]:
   fixes R :: \<open>'a \<Rightarrow> 'b :: {heap}\<Rightarrow> assn\<close>
   assumes p: \<open>is_pure R\<close> and \<open>bb < length a\<close> and
     \<open>ba < length_ll a bb\<close>
   shows \<open>
-       <arrayO_except (arl_assn R) [bb] a ai (\<lambda>r'. arl_assn R (a ! bb) (aa, bc) *
+       <arrayO_except_assn (arl_assn R) [bb] a ai (\<lambda>r'. arl_assn R (a ! bb) (aa, bc) *
          \<up> ((aa, bc) = r' ! bb)) * R b bi>
        arl_set (aa, bc) ba bi
-      <\<lambda>(aa, bc). arrayO_except (arl_assn R) [bb] a ai
+      <\<lambda>(aa, bc). arrayO_except_assn (arl_assn R) [bb] a ai
         (\<lambda>r'. arl_assn R ((a ! bb)[ba := b]) (aa, bc)) * R b bi * true>\<close>
 proof -
   obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
     using p by fastforce
   show ?thesis
     using assms
-    apply (sep_auto simp: arrayO_except_def arl_assn_def hr_comp_def list_rel_imp_same_length
+    apply (sep_auto simp: arrayO_except_assn_def arl_assn_def hr_comp_def list_rel_imp_same_length
         list_rel_update length_ll_def)
     done
 qed
 
 lemma update_aa_rule[sep_heap_rules]:
   assumes p: \<open>is_pure R\<close> and \<open>bb < length a\<close> and \<open>ba < length_ll a bb\<close>
-  shows \<open><R b bi * arrayO (arl_assn R) a ai> update_aa ai bb ba bi
-      <\<lambda>r. R b bi * (\<exists>\<^sub>Ax. arrayO (arl_assn R) x r * \<up> (x = update_ll a bb ba b))>\<^sub>t\<close>
+  shows \<open><R b bi * arrayO_assn (arl_assn R) a ai> update_aa ai bb ba bi
+      <\<lambda>r. R b bi * (\<exists>\<^sub>Ax. arrayO_assn (arl_assn R) x r * \<up> (x = update_ll a bb ba b))>\<^sub>t\<close>
     using assms
   apply (sep_auto simp add: update_aa_def update_ll_def p)
-  apply (sep_auto simp add: update_aa_def arrayO_except_def array_assn_def is_array_def hr_comp_def)
-  apply (subst_tac i=bb in arrayO_except_array0_index[symmetric])
+  apply (sep_auto simp add: update_aa_def arrayO_except_assn_def array_assn_def is_array_def hr_comp_def)
+  apply (subst_tac i=bb in arrayO_except_assn_array0_index[symmetric])
    apply (solves \<open>simp\<close>)
-  apply (subst arrayO_except_def)
-  apply (auto simp add: update_aa_def arrayO_except_def array_assn_def is_array_def hr_comp_def)
+  apply (subst arrayO_except_assn_def)
+  apply (auto simp add: update_aa_def arrayO_except_assn_def array_assn_def is_array_def hr_comp_def)
 
   apply (rule_tac x=\<open>p[bb := (aa, bc)]\<close> in ent_ex_postI)
   apply (subst_tac (2)xs'=a and ys'=p in heap_list_all_nth_cong)
@@ -398,7 +398,7 @@ lemma update_aa_rule[sep_heap_rules]:
 lemma update_aa_hnr[sepref_fr_rules]:
   assumes \<open>is_pure R\<close>
   shows \<open>(uncurry3 update_aa, uncurry3 (RETURN oooo update_ll)) \<in>
-     [\<lambda>(((l,i), j), x). i < length l \<and> j < length_ll l i]\<^sub>a (arrayO (arl_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arrayO (arl_assn R))\<close>
+     [\<lambda>(((l,i), j), x). i < length l \<and> j < length_ll l i]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arrayO_assn (arl_assn R))\<close>
   by sepref_to_hoare (sep_auto simp: assms)
 
 definition set_butlast_ll where
@@ -423,22 +423,22 @@ proof -
     by (induction xs ys rule: list_induct2) (auto split: nat.splits)
 qed
 
-lemma arrayO_except_arl_butlast:
+lemma arrayO_except_assn_arl_butlast:
   assumes \<open>b < length a\<close> and
     \<open>a ! b \<noteq> []\<close>
   shows
-    \<open><arrayO_except (arl_assn R) [b] a ai (\<lambda>r'. arl_assn R (a ! b) (aa, ba) *
+    \<open><arrayO_except_assn (arl_assn R) [b] a ai (\<lambda>r'. arl_assn R (a ! b) (aa, ba) *
          \<up> ((aa, ba) = r' ! b))>
        arl_butlast (aa, ba)
-     <\<lambda>(aa, ba). arrayO_except (arl_assn R) [b] a ai (\<lambda>r'. arl_assn R (butlast (a ! b)) (aa, ba)* true)>\<close>
+     <\<lambda>(aa, ba). arrayO_except_assn (arl_assn R) [b] a ai (\<lambda>r'. arl_assn R (butlast (a ! b)) (aa, ba)* true)>\<close>
 proof -
   show ?thesis
     using assms
-    apply (subst (1) arrayO_except_def)
+    apply (subst (1) arrayO_except_assn_def)
     apply (sep_auto simp: arl_assn_def hr_comp_def list_rel_imp_same_length
         list_rel_update
         intro: list_rel_butlast)
-    apply (subst (1) arrayO_except_def)
+    apply (subst (1) arrayO_except_assn_def)
     apply (rule_tac x=\<open>p\<close> in ent_ex_postI)
     apply (sep_auto intro: list_rel_butlast)
     done
@@ -448,10 +448,10 @@ lemma set_butlast_aa_rule[sep_heap_rules]:
   assumes \<open>is_pure R\<close> and
     \<open>b < length a\<close> and
     \<open>a ! b \<noteq> []\<close>
-  shows \<open><arrayO (arl_assn R) a ai> set_butlast_aa ai b
-       <\<lambda>r. (\<exists>\<^sub>Ax. arrayO (arl_assn R) x r * \<up> (x = set_butlast_ll a b))>\<^sub>t\<close>
+  shows \<open><arrayO_assn (arl_assn R) a ai> set_butlast_aa ai b
+       <\<lambda>r. (\<exists>\<^sub>Ax. arrayO_assn (arl_assn R) x r * \<up> (x = set_butlast_ll a b))>\<^sub>t\<close>
 proof -
-  note arrayO_except_arl_butlast[sep_heap_rules]
+  note arrayO_except_assn_arl_butlast[sep_heap_rules]
   note arl_butlast_rule[sep_heap_rules del]
   have \<open>\<And>b bi.
        b < length a \<Longrightarrow>
@@ -460,21 +460,21 @@ proof -
        b ::\<^sub>i TYPE(nat) \<Longrightarrow>
        nofail (RETURN (set_butlast_ll a b)) \<Longrightarrow>
        <\<up> ((bi, b) \<in> nat_rel) *
-        arrayO (arl_assn R) a
+        arrayO_assn (arl_assn R) a
          ai> set_butlast_aa ai
               bi <\<lambda>r. \<up> ((bi, b) \<in> nat_rel) *
                        true *
                        (\<exists>\<^sub>Ax.
-  arrayO (arl_assn R) x r *
+  arrayO_assn (arl_assn R) x r *
   \<up> (RETURN x \<le> RETURN (set_butlast_ll a b)))>\<^sub>t\<close>
     apply (sep_auto simp add: set_butlast_aa_def set_butlast_ll_def assms)
 
-    apply (sep_auto simp add: set_butlast_aa_def arrayO_except_def array_assn_def is_array_def
+    apply (sep_auto simp add: set_butlast_aa_def arrayO_except_assn_def array_assn_def is_array_def
         hr_comp_def)
-    apply (subst_tac i=b in arrayO_except_array0_index[symmetric])
+    apply (subst_tac i=b in arrayO_except_assn_array0_index[symmetric])
      apply (solves \<open>simp\<close>)
-    apply (subst arrayO_except_def)
-    apply (auto simp add: set_butlast_aa_def arrayO_except_def array_assn_def is_array_def hr_comp_def)
+    apply (subst arrayO_except_assn_def)
+    apply (auto simp add: set_butlast_aa_def arrayO_except_assn_def array_assn_def is_array_def hr_comp_def)
 
     apply (rule_tac x=\<open>p[b := (aa, ba)]\<close> in ent_ex_postI)
     apply (subst_tac (2)xs'=a and ys'=p in heap_list_all_nth_cong)
@@ -489,7 +489,7 @@ qed
 lemma set_butlast_aa_hnr[sepref_fr_rules]:
   assumes \<open>is_pure R\<close>
   shows \<open>(uncurry set_butlast_aa, uncurry (RETURN oo set_butlast_ll)) \<in>
-     [\<lambda>(l,i). i < length l \<and> l ! i \<noteq> []]\<^sub>a (arrayO (arl_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow> (arrayO (arl_assn R))\<close>
+     [\<lambda>(l,i). i < length l \<and> l ! i \<noteq> []]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow> (arrayO_assn (arl_assn R))\<close>
   using assms by sepref_to_hoare sep_auto
 
 definition last_aa :: "('a::heap array_list) array \<Rightarrow> nat \<Rightarrow> 'a Heap" where
@@ -507,28 +507,28 @@ lemma last_aa_rule[sep_heap_rules]:
    \<open>b < length a\<close> and
    \<open>a ! b \<noteq> []\<close>
    shows \<open>
-       <arrayO (arl_assn R) a ai>
+       <arrayO_assn (arl_assn R) a ai>
          last_aa ai b
-       <\<lambda>r. arrayO (arl_assn R) a ai * (\<exists>\<^sub>Ax. R x r * \<up> (x = last_ll a b))>\<^sub>t\<close>
+       <\<lambda>r. arrayO_assn (arl_assn R) a ai * (\<exists>\<^sub>Ax. R x r * \<up> (x = last_ll a b))>\<^sub>t\<close>
 proof -
   obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
     using p by fastforce
-  note arrayO_except_arl_butlast[sep_heap_rules]
+  note arrayO_except_assn_arl_butlast[sep_heap_rules]
   note arl_butlast_rule[sep_heap_rules del]
   have \<open>\<And>b.
        b < length a \<Longrightarrow>
        a ! b \<noteq> [] \<Longrightarrow>
-       <arrayO (arl_assn R) a ai>
+       <arrayO_assn (arl_assn R) a ai>
          last_aa ai b
-       <\<lambda>r. arrayO (arl_assn R) a ai * (\<exists>\<^sub>Ax. R x r * \<up> (x = last_ll a b))>\<^sub>t\<close>
+       <\<lambda>r. arrayO_assn (arl_assn R) a ai * (\<exists>\<^sub>Ax. R x r * \<up> (x = last_ll a b))>\<^sub>t\<close>
     apply (sep_auto simp add: last_aa_def last_ll_def assms)
 
-    apply (sep_auto simp add: last_aa_def arrayO_except_def array_assn_def is_array_def
+    apply (sep_auto simp add: last_aa_def arrayO_except_assn_def array_assn_def is_array_def
         hr_comp_def arl_assn_def)
-    apply (subst_tac i=b in arrayO_except_array0_index[symmetric])
+    apply (subst_tac i=b in arrayO_except_assn_array0_index[symmetric])
      apply (solves \<open>simp\<close>)
-    apply (subst arrayO_except_def)
-    apply (auto simp add: last_aa_def arrayO_except_def array_assn_def is_array_def hr_comp_def)
+    apply (subst arrayO_except_assn_def)
+    apply (auto simp add: last_aa_def arrayO_except_assn_def array_assn_def is_array_def hr_comp_def)
 
     apply (rule_tac x=\<open>p\<close> in ent_ex_postI)
     apply (subst_tac (2)xs'=a and ys'=p in heap_list_all_nth_cong)
@@ -546,11 +546,11 @@ qed
 lemma last_aa_hnr[sepref_fr_rules]:
   assumes p: \<open>is_pure R\<close>
   shows \<open>(uncurry last_aa, uncurry (RETURN oo last_ll)) \<in>
-     [\<lambda>(l,i). i < length l \<and> l ! i \<noteq> []]\<^sub>a (arrayO (arl_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
+     [\<lambda>(l,i). i < length l \<and> l ! i \<noteq> []]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
 proof -
   obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
     using p by fastforce
-  note arrayO_except_arl_butlast[sep_heap_rules]
+  note arrayO_except_assn_arl_butlast[sep_heap_rules]
   note arl_butlast_rule[sep_heap_rules del]
   show ?thesis
     using assms by sepref_to_hoare sep_auto
@@ -563,14 +563,14 @@ definition nth_a :: \<open>('a::heap array_list) array \<Rightarrow> nat \<Right
 
 lemma nth_a_hnr[sepref_fr_rules]:
   \<open>(uncurry nth_a, uncurry (RETURN oo op_list_get)) \<in>
-     [\<lambda>(xs, i). i < length xs]\<^sub>a (arrayO (arl_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> arl_assn R\<close>
+     [\<lambda>(xs, i). i < length xs]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> arl_assn R\<close>
   unfolding nth_a_def
   apply sepref_to_hoare
   subgoal for b b' xs a -- \<open>TODO proof\<close>
     apply (sep_auto)
-    apply (subst arrayO_except_array0_index[symmetric, of b])
+    apply (subst arrayO_except_assn_array0_index[symmetric, of b])
      apply simp
-    apply (sep_auto simp: arrayO_except_def arl_length_def arl_assn_def(*  *)
+    apply (sep_auto simp: arrayO_except_assn_def arl_length_def arl_assn_def(*  *)
         eq_commute[of \<open>(_, _)\<close>] (* is_array_list_def *) hr_comp_def length_ll_def)
     done
   done
@@ -590,18 +590,18 @@ definition swap_ll where
 lemma nth_aa_heap[sep_heap_rules]:
   assumes p: \<open>is_pure R\<close> and \<open>b < length aa\<close> and \<open>ba < length_ll aa b\<close>
   shows \<open>
-   <arrayO (arl_assn R) aa a>
+   <arrayO_assn (arl_assn R) aa a>
    nth_aa a b ba
-   <\<lambda>r. \<exists>\<^sub>Ax. arrayO (arl_assn R) aa a *
+   <\<lambda>r. \<exists>\<^sub>Ax. arrayO_assn (arl_assn R) aa a *
                (R x r *
                 \<up> (x = nth_ll aa b ba)) *
                true>\<close>
 proof -
-  have \<open><arrayO (arl_assn R) aa a *
+  have \<open><arrayO_assn (arl_assn R) aa a *
         nat_assn b b *
         nat_assn ba ba>
        nth_aa a b ba
-       <\<lambda>r. \<exists>\<^sub>Ax. arrayO (arl_assn R) aa a *
+       <\<lambda>r. \<exists>\<^sub>Ax. arrayO_assn (arl_assn R) aa a *
                    nat_assn b b *
                    nat_assn ba ba *
                    R x r *
@@ -618,9 +618,9 @@ lemma update_aa_rule_pure:
   assumes p: \<open>is_pure R\<close> and \<open>b < length aa\<close> and \<open>ba < length_ll aa b\<close> and
     b: \<open>(bb, be) \<in> the_pure R\<close>
   shows \<open>
-   <arrayO (arl_assn R) aa a>
+   <arrayO_assn (arl_assn R) aa a>
            update_aa a b ba bb
-           <\<lambda>r. \<exists>\<^sub>Ax. invalid_assn (arrayO (arl_assn R)) aa a * arrayO (arl_assn R) x r *
+           <\<lambda>r. \<exists>\<^sub>Ax. invalid_assn (arrayO_assn (arl_assn R)) aa a * arrayO_assn (arl_assn R) x r *
                        true *
                        \<up> (x = update_ll aa b ba be)>\<close>
 proof -
@@ -628,11 +628,11 @@ proof -
     using p by fastforce
   have bb: \<open>pure R' be bb = \<up>((bb, be) \<in> R')\<close>
     by (auto simp: pure_def)
-  have \<open> <arrayO (arl_assn R) aa a * nat_assn b b * nat_assn ba ba * R be bb>
+  have \<open> <arrayO_assn (arl_assn R) aa a * nat_assn b b * nat_assn ba ba * R be bb>
            update_aa a b ba bb
-           <\<lambda>r. \<exists>\<^sub>Ax. invalid_assn (arrayO (arl_assn R)) aa a * nat_assn b b * nat_assn ba ba *
+           <\<lambda>r. \<exists>\<^sub>Ax. invalid_assn (arrayO_assn (arl_assn R)) aa a * nat_assn b b * nat_assn ba ba *
                        R be bb *
-                       arrayO (arl_assn R) x r *
+                       arrayO_assn (arl_assn R) x r *
                        true *
                        \<up> (x = update_ll aa b ba be)>\<close>
     using p assms update_aa_hnr[of R] unfolding hfref_def hn_refine_def
@@ -653,7 +653,7 @@ lemma swap_aa_hnr[sepref_fr_rules]:
   assumes \<open>is_pure R\<close>
   shows \<open>(uncurry3 swap_aa, uncurry3 (RETURN oooo swap_ll)) \<in>
    [\<lambda>(((xs, k), i), j). k < length xs \<and> i < length_ll xs k \<and> j < length_ll xs k]\<^sub>a
-  (arrayO (arl_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> (arrayO (arl_assn R))\<close>
+  (arrayO_assn (arl_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> (arrayO_assn (arl_assn R))\<close>
 proof -
   note update_aa_rule_pure[sep_heap_rules]
   obtain R' where R': \<open>R' = the_pure R\<close> and RR': \<open>R = pure R'\<close>
@@ -663,7 +663,7 @@ proof -
   show ?thesis
     using assms unfolding R'[symmetric] unfolding RR'
     apply sepref_to_hoare
-    apply (sep_auto simp: swap_aa_def swap_ll_def (* arl_get_def *) arrayO_except_def
+    apply (sep_auto simp: swap_aa_def swap_ll_def (* arl_get_def *) arrayO_except_assn_def
         length_ll_update_ll)
     by (sep_auto simp: update_ll_def swap_def nth_ll_def list_update_swap)
 qed
@@ -680,9 +680,9 @@ lemma heap_list_all_list_assn: \<open>heap_list_all R x y = list_assn R x y\<clo
   by (induction R x y rule: heap_list_all.induct) auto
 
 lemma of_list_op_list_copy_arrayO[sepref_fr_rules]:
-   \<open>(Array.of_list, RETURN \<circ> op_list_copy) \<in> (list_assn (arl_assn R))\<^sup>d \<rightarrow>\<^sub>a arrayO (arl_assn R)\<close>
+   \<open>(Array.of_list, RETURN \<circ> op_list_copy) \<in> (list_assn (arl_assn R))\<^sup>d \<rightarrow>\<^sub>a arrayO_assn (arl_assn R)\<close>
   apply (sepref_to_hoare)
-  apply (sep_auto simp: arrayO_def array_assn_def)
+  apply (sep_auto simp: arrayO_assn_def array_assn_def)
   apply (rule_tac ?psi=\<open>xa \<mapsto>\<^sub>a xi * list_assn (arl_assn R) x xi \<Longrightarrow>\<^sub>A
        is_array xi xa * heap_list_all (arl_assn R) x xi * true\<close> in asm_rl)
   by (sep_auto simp: heap_list_all_list_assn is_array_def)
@@ -690,7 +690,7 @@ lemma of_list_op_list_copy_arrayO[sepref_fr_rules]:
 sepref_definition
   arrayO_ara_empty_sz_code
   is "RETURN o arrayO_ara_empty_sz"
-  :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a arrayO (arl_assn (R::'a \<Rightarrow> 'b::{heap, default} \<Rightarrow> assn))\<close>
+  :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a arrayO_assn (arl_assn (R::'a \<Rightarrow> 'b::{heap, default} \<Rightarrow> assn))\<close>
   unfolding arrayO_ara_empty_sz_def op_list_empty_def[symmetric]
   apply (rewrite at \<open>op # \<hole>\<close> op_arl_empty_def[symmetric])
   apply (rewrite at \<open>fold _ _ \<hole>\<close> op_HOL_list_empty_def[symmetric])

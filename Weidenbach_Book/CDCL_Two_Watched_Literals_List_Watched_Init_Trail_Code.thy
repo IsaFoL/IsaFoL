@@ -412,7 +412,7 @@ lemma init_dt_wl_init_dt_l:
 
 abbreviation twl_code_array_literals_are_N\<^sub>0 where
   \<open>twl_code_array_literals_are_N\<^sub>0 N\<^sub>0 S \<equiv>
-     twl_array_code.is_N\<^sub>1 N\<^sub>0 (lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S))))\<close>
+     twl_array_code.is_N\<^sub>1 N\<^sub>0 (lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W (twl_st_of_wl None S))))\<close>
 
 fun get_clauses_wl :: "'v twl_st_wl \<Rightarrow> 'v clauses_l" where
   \<open>get_clauses_wl (M, N, U, D, NP, UP, WS, Q) = N\<close>
@@ -449,7 +449,7 @@ lemma init_dt_init_dt_l_full:
     watch: \<open>correct_watching_init N\<^sub>1 S\<close> and
     clss: \<open>get_clauses_wl S \<noteq> []\<close> and
     S_N\<^sub>1: \<open>set_mset (lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses
-      (convert_to_state (twl_st_of None (st_l_of_wl None S))))) \<subseteq> set_mset N\<^sub>1\<close> and
+      (state_of\<^sub>W (twl_st_of None (st_l_of_wl None S))))) \<subseteq> set_mset N\<^sub>1\<close> and
     no_learned: \<open>get_unit_learned S = {#}\<close> and
     confl_in_clss: \<open>get_conflict_wl S \<noteq> None \<longrightarrow> the (get_conflict_wl S) \<in># mset `# mset CS\<close> and
     trail_in_NP: \<open>\<forall>L \<in> lits_of_l (get_trail_wl S). {#L#} \<in># get_unit_init_clss S\<close> and
@@ -457,13 +457,13 @@ lemma init_dt_init_dt_l_full:
   shows
     \<open>init_dt_wl N\<^sub>0 CS S \<le> SPEC(\<lambda>T.
        twl_array_code.is_N\<^sub>1 N\<^sub>0 (lits_of_atms_of_mm (mset `# mset CS +
-          cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of None (st_l_of_wl None S))))) \<and>
+          cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W (twl_st_of None (st_l_of_wl None S))))) \<and>
        twl_struct_invs (twl_st_of_wl None T) \<and> twl_stgy_invs (twl_st_of_wl None T) \<and>
        additional_WS_invs (st_l_of_wl None T) \<and>
        correct_watching_init N\<^sub>1 T \<and>
-       cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of None (st_l_of_wl None T))) =
+       cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W (twl_st_of None (st_l_of_wl None T))) =
          mset `# mset CS +
-         cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of None (st_l_of_wl None S))) \<and>
+         cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W (twl_st_of None (st_l_of_wl None S))) \<and>
       get_unit_learned T = {#} \<and>
       get_learned_wl T = length (get_clauses_wl T) - 1 \<and>
       count_decided (get_trail_wl T) = 0 \<and>
@@ -498,8 +498,8 @@ proof -
   note init = init_dt_full[of \<open>rev CS\<close> T, OF dist_T length_T taut_T struct_T w_q_T tr_T c_T
       add_invs_T le_T stgy_T ] init_dt_confl_in_clauses[OF confl_in_clss_T]
   have i: \<open>init_dt_l CS T \<le> \<Down> Id (SPEC(\<lambda>T. twl_struct_invs (twl_st_of None T) \<and> twl_stgy_invs (twl_st_of None T) \<and>
-      cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of None T)) =
-        mset `# mset CS + cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S)) \<and>
+      cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W (twl_st_of None T)) =
+        mset `# mset CS + cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W (twl_st_of_wl None S)) \<and>
       get_learned_l T = length (get_clauses_l T) - 1 \<and> additional_WS_invs T \<and>
       count_decided (get_trail_l T) = 0 \<and>
       (get_conflict_l T \<noteq> None \<longrightarrow> the (get_conflict_l T) \<in># mset `# mset CS)))
@@ -529,7 +529,7 @@ proof -
   have CS_N\<^sub>1': \<open>set_mset (lits_of_atms_of_mm (mset `# mset CS)) \<subseteq> set_mset N\<^sub>1\<close>
     using is_N\<^sub>1 unfolding twl_array_code.is_N\<^sub>1_def by (clarsimp simp: HH_def lits_of_atms_of_mm_union N\<^sub>0_N\<^sub>1)
   have \<open>set_mset (lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses
-      (convert_to_state (twl_st_of None (st_l_of_wl None S))))) \<subseteq>
+      (state_of\<^sub>W (twl_st_of None (st_l_of_wl None S))))) \<subseteq>
    set_mset N\<^sub>1\<close>
     using S_N\<^sub>1 unfolding twl_array_code.is_N\<^sub>1_def
     by (cases S)(clarsimp simp: mset_take_mset_drop_mset' clauses_def HH_def N\<^sub>0_N\<^sub>1 cl_T_S)
@@ -570,13 +570,13 @@ lemma init_dt_init_dt_l:
        get_unit_learned S = {#} \<and>
        count_decided (get_trail_wl S) = 0 \<and>
        get_learned_wl S = length (get_clauses_wl S) - 1 \<and>
-       cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of None (st_l_of_wl None S))) =
+       cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W (twl_st_of None (st_l_of_wl None S))) =
          mset `# mset CS \<and>
        (get_conflict_wl S \<noteq> None \<longrightarrow> the (get_conflict_wl S) \<in># mset `# mset CS) \<and>
        (\<forall>L\<in>lits_of_l (get_trail_wl S). {#L#} \<in># get_unit_init_clss S) \<and>
        (\<forall>L \<in> set (get_trail_wl S). \<exists>K. L = Propagated K 0))\<close>
 proof -
-  have clss_empty: \<open>cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of None (st_l_of_wl None S))) = {#}\<close>
+  have clss_empty: \<open>cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W (twl_st_of None (st_l_of_wl None S))) = {#}\<close>
     by (auto simp: S_def cdcl\<^sub>W_restart_mset.clauses_def cdcl\<^sub>W_restart_mset_state)
   have
     struct: \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and
@@ -588,7 +588,7 @@ proof -
     watch: \<open>correct_watching_init N\<^sub>1 S\<close> and
     clss: \<open>get_clauses_wl S \<noteq> []\<close> and
     S_N\<^sub>1: \<open>set_mset (lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses
-      (convert_to_state (twl_st_of None (st_l_of_wl None S))))) \<subseteq> set_mset N\<^sub>1\<close> and
+      (state_of\<^sub>W (twl_st_of None (st_l_of_wl None S))))) \<subseteq> set_mset N\<^sub>1\<close> and
     no_learned: \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). UP) S = {#}\<close> and
     learned_nil: \<open>get_unit_learned S = {#}\<close> and
     confl_nil: \<open>get_conflict_wl S = None\<close> and
@@ -708,13 +708,13 @@ lemma fold_cons_replicate: \<open>fold (\<lambda>_ xs. a # xs) [0..<n] xs = repl
   by (induction n) auto
 
 lemma arrayO_ara_empty_sz_code_rule:
-   \<open><emp> arrayO_ara_empty_sz_code m <\<lambda>r. arrayO (arl_assn R) (replicate m []) r * true>\<close>
+   \<open><emp> arrayO_ara_empty_sz_code m <\<lambda>r. arrayO_assn (arl_assn R) (replicate m []) r * true>\<close>
 proof -
-  have H: \<open>(\<exists>\<^sub>Ara. hn_val nat_rel n m * true * arrayO (arl_assn R) ra r * \<up> (ra = replicate n [])) =
-     (hn_val nat_rel n m * true * arrayO (arl_assn R) (replicate n []) r)\<close> for r n m
+  have H: \<open>(\<exists>\<^sub>Ara. hn_val nat_rel n m * true * arrayO_assn (arl_assn R) ra r * \<up> (ra = replicate n [])) =
+     (hn_val nat_rel n m * true * arrayO_assn (arl_assn R) (replicate n []) r)\<close> for r n m
     by (simp add: ex_assn_up_eq2)
   have \<open><hn_val nat_rel n m> arrayO_ara_empty_sz_code m
-     <\<lambda>r. \<exists>\<^sub>Ara. hn_val nat_rel n m * arrayO (arl_assn R) ra r * true * \<up> (ra = replicate n [])>\<close>
+     <\<lambda>r. \<exists>\<^sub>Ara. hn_val nat_rel n m * arrayO_assn (arl_assn R) ra r * true * \<up> (ra = replicate n [])>\<close>
     for n m :: nat
     by (rule imp_correctI[OF arrayO_ara_empty_sz_code.refine[to_hnr], simplified])
     (auto simp: arrayO_ara_empty_sz_def fold_cons_replicate)
@@ -748,7 +748,7 @@ proof -
         twl_array_code.N\<^sub>1_def twl_array_code.N\<^sub>0'_def twl_array_code.N\<^sub>0''_def empty_watched_def
         simp del: replicate.simps)
   have 0: \<open>(uncurry0 (arrayO_ara_empty_sz_code n), uncurry0 (RETURN (arrayO_ara_empty_sz n))) \<in>
-    unit_assn\<^sup>k \<rightarrow>\<^sub>a arrayO (arl_assn R)\<close> for R
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a arrayO_assn (arl_assn R)\<close> for R
     supply arrayO_ara_empty_sz_code_rule[sep_heap_rules]
     by sepref_to_hoare (sep_auto simp: arrayO_ara_empty_sz_def fold_cons_replicate)
 
@@ -789,7 +789,7 @@ proof -
   note imp_correctI[OF arrayO_ara_empty_sz_code_empty_watched[to_hnr] e, sep_heap_rules]
 
   have [sep_heap_rules]:
-      \<open><arrayO_raa clause_ll_assn l a * x \<mapsto>\<^sub>a []> arrayO_raa_append a x <arrayO_raa clause_ll_assn (l @ [[]])>\<^sub>t\<close>
+      \<open><arlO_assn clause_ll_assn l a * x \<mapsto>\<^sub>a []> arrayO_raa_append a x <arlO_assn clause_ll_assn (l @ [[]])>\<^sub>t\<close>
     for l a x
     using arrayO_raa_append_rule[of clause_ll_assn l a \<open>[]\<close> x, unfolded]
       apply (subst (asm)(2) array_assn_def)
@@ -979,7 +979,7 @@ export_code SAT_wl_code
   in SML_imp module_name SAT_Solver file "code/full_SAT_Cached_Trail.sml"
 
 definition TWL_to_clauses_state_conv :: \<open>(nat twl_st_wl \<times> nat cdcl\<^sub>W_restart_mset) set\<close> where
-  \<open>TWL_to_clauses_state_conv = {(S', S). S = convert_to_state (twl_st_of_wl None S')}\<close>
+  \<open>TWL_to_clauses_state_conv = {(S', S). S = state_of\<^sub>W (twl_st_of_wl None S')}\<close>
 
 lemma list_all2_eq_map_iff: \<open>list_all2 (\<lambda>x y. y = f x) xs ys \<longleftrightarrow> ys = map f xs\<close>
   apply (induction xs arbitrary: ys)
@@ -1025,7 +1025,7 @@ proof -
       show ?thesis
         unfolding confl if_False
         apply (rule RETURN_SPEC_refine)
-        apply (rule exI[of _ \<open>convert_to_state (twl_st_of None (st_l_of_wl None S\<^sub>0))\<close>])
+        apply (rule exI[of _ \<open>state_of\<^sub>W (twl_st_of None (st_l_of_wl None S\<^sub>0))\<close>])
         apply (intro conjI)
        subgoal using p confl by (cases S\<^sub>0, clarsimp_all simp: TWL_to_clauses_state_conv_def mset_take_mset_drop_mset'
             clauses_def get_unit_learned_def in_list_mset_rel in_list_mset_rel_mset_rel)
@@ -1070,12 +1070,12 @@ proof -
           done
         done
       then have 1: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state CS)
-         (convert_to_state (twl_st_of None (st_l_of_wl None S\<^sub>0)))\<close>
+         (state_of\<^sub>W (twl_st_of None (st_l_of_wl None S\<^sub>0)))\<close>
         using 0 by (auto simp: S\<^sub>0 CS mset_take_mset_drop_mset' N_NP init_state_def)
       have 2: \<open>twl_array_code.cdcl_twl_stgy_prog_wl_D (map nat_of_lit (extract_lits_clss CS' [])) S\<^sub>0
          \<le> SPEC (\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy
-                       (convert_to_state (twl_st_of None (st_l_of_wl None S\<^sub>0)))
-                       (convert_to_state (twl_st_of None (st_l_of_wl None T))))\<close>
+                       (state_of\<^sub>W (twl_st_of None (st_l_of_wl None S\<^sub>0)))
+                       (state_of\<^sub>W (twl_st_of None (st_l_of_wl None T))))\<close>
         using twl_array_code.cdcl_twl_stgy_prog_wl_spec_final2[of S\<^sub>0 \<open>(map nat_of_lit (extract_lits_clss CS' []))\<close>]
         using p 1 True by auto
 

@@ -90,9 +90,9 @@ proof -
          {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)). x \<in># mset (take ba (tl b))#},
          {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)). x \<in># mset (drop (Suc ba) b)#},
          Some bb, bc, bd, {#}, be)]\<^sub>a
-    pair_nat_ann_lits_assn\<^sup>d *\<^sub>a (arrayO_raa clause_ll_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
+    pair_nat_ann_lits_assn\<^sup>d *\<^sub>a (arlO_assn clause_ll_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
       conflict_assn\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a
-      (hr_comp (arrayO (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0))\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>
+      (hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0))\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>
    pair_nat_ann_lits_assn\<close>
     (is \<open> _ \<in> [?Q]\<^sub>a _ \<rightarrow> _\<close>)
     using find_decomp_wl_imp'_code.refine[unfolded find_decomp_wl_imp'_def PR_CONST_def, FCOMP
@@ -131,7 +131,7 @@ proof -
        (\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0)
        (\<lambda>_ ((l, i), j). i < length l \<and> j < length_ll l i)
        (\<lambda>_. True)]\<^sub>a hrp_comp
-                       ((arrayO (arl_assn nat_assn))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
+                       ((arrayO_assn (arl_assn nat_assn))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
                        ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r nat_lit_rel) \<times>\<^sub>r nat_rel) \<rightarrow>
                     hr_comp nat_assn nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
@@ -167,7 +167,7 @@ proof -
             (\<lambda>(W, L). L \<in> snd ` D\<^sub>0)
             (\<lambda>_ (xs, i). i < length xs)
             (\<lambda>_. True)]\<^sub>a hrp_comp
-                            ((arrayO (arl_assn nat_assn))\<^sup>k *\<^sub>a nat_assn\<^sup>k)
+                            ((arrayO_assn (arl_assn nat_assn))\<^sup>k *\<^sub>a nat_assn\<^sup>k)
                             (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r nat_lit_rel) \<rightarrow>
           hr_comp nat_assn nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
@@ -318,7 +318,7 @@ proof -
 qed
 
 
-lemmas [safe_constraint_rules] = CN_FALSEI[of is_pure "hr_comp (arrayO (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)"]
+lemmas [safe_constraint_rules] = CN_FALSEI[of is_pure "hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)"]
   CN_FALSEI[of is_pure "twl_st_l_assn"]
 
 lemmas hd_select_and_remove_from_pending_refine'[sepref_fr_rules] =

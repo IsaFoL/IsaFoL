@@ -311,7 +311,7 @@ proof -
     by (cases S) auto
 
   have inv: \<open>twl_st_inv S'\<close> and
-    cdcl_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state S')\<close> and
+    cdcl_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of\<^sub>W S')\<close> and
     valid: \<open>valid_annotation S'\<close>
     using struct_invs WS by (auto simp: twl_struct_invs_def)
   have
@@ -531,7 +531,7 @@ proof -
           tl_update_swap swap_def simp del: watched_l.simps unwatched_l.simps)
   qed
 
-  have \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (convert_to_state S')\<close>
+  have \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state_of\<^sub>W S')\<close>
     using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by fast
   then have \<open>distinct_mset (mset (take 2 (N!C)) + mset (drop 2 (N!C)))\<close>
@@ -610,7 +610,7 @@ proof -
         from split_list[OF propa'] obtain M1 M2 where
           M1: \<open>convert_lits_l N M = M2 @ Propagated K (mset C') # M1\<close>
           by blast
-        have \<open>\<forall>L mark a b. a @ Propagated L mark # b = trail (convert_to_state S') \<longrightarrow>
+        have \<open>\<forall>L mark a b. a @ Propagated L mark # b = trail (state_of\<^sub>W S') \<longrightarrow>
           b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close>
           using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
           unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def by fast
@@ -1119,8 +1119,8 @@ lemma skip_and_resolve_loop_l_spec:
        get_conflict (twl_st_of None S) \<noteq> None} \<rightarrow>
   \<langle>{(T, T'). T' = twl_st_of None T \<and> additional_WS_invs T \<and>
     (twl_struct_invs (twl_st_of None T) \<and> twl_stgy_invs (twl_st_of None T) \<and>
-    no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of None T)) \<and>
-    no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of None T)) \<and>
+    no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W (twl_st_of None T)) \<and>
+    no_step cdcl\<^sub>W_restart_mset.resolve (state_of\<^sub>W (twl_st_of None T)) \<and>
     pending (twl_st_of None T) = {#} \<and>
     working_queue_l T = {#} \<and> get_conflict (twl_st_of None T) \<noteq> None)}\<rangle> nres_rel\<close>
   (is \<open>_ \<in> ?R \<rightarrow> _\<close>)
@@ -1208,8 +1208,8 @@ proof -
          T' = twl_st_of None T \<and> (additional_WS_invs T \<and>
          working_queue_l T = {#}) \<and>
          twl_struct_invs (twl_st_of None T) \<and> twl_stgy_invs (twl_st_of None T) \<and>
-         (no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of None T))) \<and>
-         (no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of None T))) \<and>
+         (no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W (twl_st_of None T))) \<and>
+         (no_step cdcl\<^sub>W_restart_mset.resolve (state_of\<^sub>W (twl_st_of None T))) \<and>
          pending (twl_st_of None T) = {#} \<and>
          get_conflict (twl_st_of None T) \<noteq> None}\<rangle>nres_rel\<close>
     apply (rule refine_add_inv)
@@ -1258,8 +1258,8 @@ definition backtrack_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
       ASSERT(-L \<in># the D);
       ASSERT(twl_stgy_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)));
       ASSERT(twl_struct_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)));
-      ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of None (M, N, U, D, NP, UP, WS, Q))));
-      ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of None (M, N, U, D, NP, UP, WS, Q))));
+      ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W (twl_st_of None (M, N, U, D, NP, UP, WS, Q))));
+      ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (state_of\<^sub>W (twl_st_of None (M, N, U, D, NP, UP, WS, Q))));
       M1 \<leftarrow> find_decomp (M, N, U, D, NP, UP, WS, Q) L;
       let E = the D;
 
@@ -1307,8 +1307,8 @@ lemma backtrack_l_spec:
   \<open>(backtrack_l, backtrack) \<in>
     {(S::'v twl_st_l, S'). S' = twl_st_of None S \<and> get_conflict_l S \<noteq> None \<and> get_conflict_l S \<noteq> Some {#} \<and>
        working_queue_l S = {#} \<and> pending_l S = {#} \<and> additional_WS_invs S \<and>
-       no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of None S)) \<and>
-       no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of None S)) \<and>
+       no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W (twl_st_of None S)) \<and>
+       no_step cdcl\<^sub>W_restart_mset.resolve (state_of\<^sub>W (twl_st_of None S)) \<and>
        twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S)} \<rightarrow>
     \<langle>{(T::'v twl_st_l, T'). T' = twl_st_of None T \<and> get_conflict_l T = None \<and> additional_WS_invs T \<and>
        twl_struct_invs (twl_st_of None T) \<and> twl_stgy_invs (twl_st_of None T) \<and> working_queue_l T = {#} \<and>
@@ -1439,7 +1439,7 @@ proof -
 
       have uL''_E: \<open>- lit_of (hd (convert_lits_l N' M')) \<in># E\<close>
         using cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of
-            \<open>convert_to_state (twl_st_of None (M', N', U', D', NP', UP', WS', Q'))\<close>, simplified]
+            \<open>state_of\<^sub>W (twl_st_of None (M', N', U', D', NP', UP', WS', Q'))\<close>, simplified]
         using state confl L_hd uL_D by (auto simp: hd_M'_hd_M)
       have \<open>x \<in> set M1' \<Longrightarrow>
           convert_lit N' x =
@@ -1506,7 +1506,7 @@ proof -
         using M' add_invs by auto
       have uL''_E: \<open>- lit_of (hd (convert_lits_l N' M')) \<in># E\<close>
         using cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of
-            \<open>convert_to_state (twl_st_of None (M', N', U', D', NP', UP', WS', Q'))\<close>]
+            \<open>state_of\<^sub>W (twl_st_of None (M', N', U', D', NP', UP', WS', Q'))\<close>]
           state confl L_hd uL_D by (auto simp: hd_M'_hd_M)
       let ?fg = \<open>((Propagated (- ?L') 0 # M1', N', U', None, NP', add_mset (the D') UP', WS',
            unmark (hd M')),
@@ -1534,8 +1534,8 @@ proof -
                  (get_conflict_l S \<noteq> Some {#} \<and> additional_WS_invs S) \<and>
                  working_queue_l S = {#} \<and>
                  pending (twl_st_of None S) = {#} \<and>
-                 (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of None S)) S') \<and>
-                 (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of None S)) S') \<and>
+                 (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W (twl_st_of None S)) S') \<and>
+                 (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.resolve (state_of\<^sub>W (twl_st_of None S)) S') \<and>
                  twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S)}\<close>
     unfolding KK by fast
   have \<open>(backtrack_l, backtrack)
@@ -1543,8 +1543,8 @@ proof -
          get_conflict_l S \<noteq> None \<and> get_conflict_l S \<noteq> Some {#} \<and>
          working_queue_l S = {#} \<and> pending_l S = {#} \<and>
          additional_WS_invs S \<and>
-         (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of None S)) S') \<and>
-         (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of None S)) S') \<and>
+         (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W (twl_st_of None S)) S') \<and>
+         (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.resolve (state_of\<^sub>W (twl_st_of None S)) S') \<and>
          twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S)} \<rightarrow>
      \<langle>{(T, T'). (T' = twl_st_of None T \<and> working_queue_l T = {#} \<and> additional_WS_invs T) \<and>
          get_conflict T' = None \<and> twl_struct_invs T' \<and> twl_stgy_invs T' \<and> pending T' \<noteq> {#}}\<rangle>nres_rel\<close>

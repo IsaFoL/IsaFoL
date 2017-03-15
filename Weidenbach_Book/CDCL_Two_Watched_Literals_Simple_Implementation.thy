@@ -40,13 +40,13 @@ proof -
     S: \<open>S = (M, N, U, D, NP, UP, WS, Q)\<close>
     by (cases S) auto
   have 
-    \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (convert_to_state (twl_st_of S))\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_to_state (twl_st_of S))\<close>
+    \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state_of\<^sub>W (twl_st_of S))\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of\<^sub>W (twl_st_of S))\<close>
     using struct_invs unfolding twl_struct_invs_def by fast+
-  moreover have \<open>Suc 0 \<le> backtrack_lvl (convert_to_state (twl_st_of S))\<close>
+  moreover have \<open>Suc 0 \<le> backtrack_lvl (state_of\<^sub>W (twl_st_of S))\<close>
     using dec unfolding M S by (auto simp: cdcl\<^sub>W_restart_mset_state)
   ultimately show ?thesis
-    using cdcl\<^sub>W_restart_mset.hd_trail_level_ge_1_length_gt_1[of \<open>convert_to_state (twl_st_of S)\<close>]
+    using cdcl\<^sub>W_restart_mset.hd_trail_level_ge_1_length_gt_1[of \<open>state_of\<^sub>W (twl_st_of S)\<close>]
     proped
     by (cases M; cases \<open>hd M\<close>) (auto simp add: S cdcl\<^sub>W_restart_mset_state split: if_splits)
 qed

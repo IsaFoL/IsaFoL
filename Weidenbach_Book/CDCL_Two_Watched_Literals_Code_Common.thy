@@ -298,7 +298,7 @@ lemma init_dt_step_init_dt_step_l:
     struct_invs: \<open>twl_struct_invs (twl_st_of None S)\<close>
   shows \<open>RETURN (init_dt_step C S) = init_dt_step_l C S\<close>
 proof -
-  have \<open>no_dup (trail (convert_to_state (twl_st_of None S)))\<close>
+  have \<open>no_dup (trail (state_of\<^sub>W (twl_st_of None S)))\<close>
     using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by fast
   then have n_d: \<open>no_dup (get_trail_l S)\<close>

@@ -174,7 +174,7 @@ lemma length_ll_length_ll_f:
   by (fastforce simp: fref_def map_fun_rel_def prod_rel_def nres_rel_def p2rel_def lit_of_natP_def)
 
 abbreviation array_watched_assn :: "(nat literal \<Rightarrow> nat list) \<Rightarrow> (nat array_list) array \<Rightarrow> assn" where
-  \<open>array_watched_assn \<equiv> hr_comp (arrayO (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)\<close>
+  \<open>array_watched_assn \<equiv> hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)\<close>
 
 lemma ex_list_watched:
   fixes W :: \<open>nat literal \<Rightarrow> nat list\<close>
@@ -241,7 +241,7 @@ proof -
             (\<lambda>(W, L). L \<in> snd ` D\<^sub>0)
             (\<lambda>_ (xs, i). i < length xs)
             (\<lambda>_. True)]\<^sub>a hrp_comp
-                            ((arrayO (arl_assn nat_assn))\<^sup>k *\<^sub>a nat_assn\<^sup>k)
+                            ((arrayO_assn (arl_assn nat_assn))\<^sup>k *\<^sub>a nat_assn\<^sup>k)
                             (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r nat_lit_rel) \<rightarrow>
           hr_comp nat_assn nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
@@ -268,7 +268,7 @@ definition is_N\<^sub>1 :: "nat literal multiset \<Rightarrow> bool" where
 
 abbreviation literals_are_N\<^sub>0 where
   \<open>literals_are_N\<^sub>0 S \<equiv>
-     is_N\<^sub>1 (lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S))))\<close>
+     is_N\<^sub>1 (lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W (twl_st_of_wl None S))))\<close>
 
 definition literals_are_in_N\<^sub>0 :: \<open>nat clause \<Rightarrow> bool\<close> where
   \<open>literals_are_in_N\<^sub>0 C \<longleftrightarrow> set_mset (lits_of_atms_of_m C) \<subseteq> set_mset N\<^sub>1\<close>
@@ -284,7 +284,7 @@ lemma literals_are_in_N\<^sub>0_nth:
 proof -
   have \<open>(N!C) \<in> set (tl N)\<close>
     using assms(1,2) by (auto intro!: nth_in_set_tl)
-  then have \<open>mset (N!C) \<in># cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None (M, N, U, D', NP, UP, Q, W)))\<close>
+  then have \<open>mset (N!C) \<in># cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W (twl_st_of_wl None (M, N, U, D', NP, UP, Q, W)))\<close>
     using assms(1,2)
     by (subst (asm) append_take_drop_id[symmetric, of \<open>tl N\<close> U], subst (asm) set_append,
         subst (asm) Un_iff, subst (asm) drop_Suc[symmetric])
@@ -393,7 +393,7 @@ proof -
   have in_lits_of_atms_S: \<open>N' ! a ! b
     \<in># lits_of_atms_of_mm
          (cdcl\<^sub>W_restart_mset.clauses
-           (convert_to_state (twl_st_of_wl None S)))\<close>
+           (state_of\<^sub>W (twl_st_of_wl None S)))\<close>
     if \<open>a > 0\<close> and \<open>a < length N\<close> and \<open>b < length (N ! a)\<close> and \<open>N' = N\<close>
     for a b :: nat and N'
   proof -
@@ -423,7 +423,7 @@ proof -
     subgoal for M'' x2 N'' x2a U'' x2b D'' x2c NP'' x2d UP'' x2e WS'' Q'' M' x2g
       N' x2h U' x2i D' x2j NP' x2k UP' x2l WS' Q'
       apply (subgoal_tac \<open>N' ! (Q' K ! w) ! (1 - (if N' ! (Q' K ! w) ! 0 = K then 0 else 1)) \<in>#
-        lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S)))\<close>)
+        lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W (twl_st_of_wl None S)))\<close>)
       subgoal using eq_commute[THEN iffD1, OF N\<^sub>0[unfolded is_N\<^sub>1_def]]
         by (auto simp: image_image S clauses_def mset_take_mset_drop_mset' m is_N\<^sub>1_def
             lits_of_atms_of_mm_union)[]
@@ -485,7 +485,7 @@ proof -
                is_N\<^sub>1
                 (lits_of_atms_of_mm
                   (cdcl\<^sub>W_restart_mset.clauses
-                    (convert_to_state
+                    (state_of\<^sub>W
                       (twl_st_of None (st_l_of_wl None T)))))}\<rangle>nres_rel \<subseteq> \<langle>Id\<rangle> nres_rel\<close>
     (is \<open>\<langle>?R\<rangle> nres_rel \<subseteq> _\<close>)
     using "weaken_\<Down>"[of ?R Id]
@@ -579,7 +579,7 @@ definition unit_propagation_outer_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat 
       (\<lambda>S. do {
         ASSERT(pending_wl S \<noteq> {#});
         (S', L) \<leftarrow> select_and_remove_from_pending_wl S;
-        ASSERT(L \<in># lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state (twl_st_of_wl None S))));
+        ASSERT(L \<in># lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W (twl_st_of_wl None S))));
         unit_propagation_inner_loop_wl_D L S'
       })
       (S\<^sub>0 :: nat twl_st_wl)\<close>
@@ -707,13 +707,13 @@ private definition skip_and_resolve_loop_wl_D' :: "nat twl_st_wl \<Rightarrow> (
 lemma twl_struct_invs_is_N\<^sub>1_clauses_init_clss:
   fixes S\<^sub>0 :: \<open>nat twl_st_wl\<close>
   defines \<open>S \<equiv> twl_st_of_wl None S\<^sub>0\<close>
-  defines \<open>clss \<equiv> (lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (convert_to_state S)))\<close>
-  defines \<open>init \<equiv> (lits_of_atms_of_mm (init_clss (convert_to_state S)))\<close>
+  defines \<open>clss \<equiv> (lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W S)))\<close>
+  defines \<open>init \<equiv> (lits_of_atms_of_mm (init_clss (state_of\<^sub>W S)))\<close>
   assumes invs: \<open>twl_struct_invs (twl_st_of_wl None S\<^sub>0)\<close>
   shows \<open>is_N\<^sub>1 clss \<longleftrightarrow> is_N\<^sub>1 init\<close>
 proof -
 
-  have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state S)\<close>
+  have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state_of\<^sub>W S)\<close>
     using invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S_def
     by fast
   then have
@@ -734,12 +734,12 @@ lemma cdcl_twl_o_literals_are_N\<^sub>0_invs:
   shows \<open>literals_are_N\<^sub>0 T\<close>
 proof -
   let ?S = \<open>twl_st_of_wl None S\<^sub>0\<close> and ?T = \<open>twl_st_of_wl None T\<close>
-  have cdcl_stgy: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (convert_to_state ?S) (convert_to_state ?T)\<close>
+  have cdcl_stgy: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (state_of\<^sub>W ?S) (state_of\<^sub>W ?T)\<close>
     apply (rule rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy)
     subgoal using rtranclp_cdcl_twl_o_stgyD[OF cdcl] .
     subgoal using invs .
     done
-  have init: \<open>init_clss (convert_to_state ?S) = init_clss (convert_to_state ?T)\<close>
+  have init: \<open>init_clss (state_of\<^sub>W ?S) = init_clss (state_of\<^sub>W ?T)\<close>
     apply (rule cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_restart_init_clss)
     using cdcl_stgy by (blast dest: cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart)
   have invs_T: \<open>twl_struct_invs (twl_st_of_wl None T)\<close>
@@ -785,7 +785,7 @@ proof -
     subgoal by auto
     subgoal for brk'S' brkS brk S brk' S' M x2b N x2c U x2d D x2e NP x2f UP x2g WS
        Q M' x2i N' x2j U' x2k D' x2l NP' x2m UP' x2n WS' Q' L C L' C'
-      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None S))\<close>)
+      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state_of\<^sub>W (twl_st_of_wl None S))\<close>)
       subgoal
         apply clarify
         apply (subst (asm) twl_struct_invs_is_N\<^sub>1_clauses_init_clss)
@@ -831,7 +831,7 @@ proof -
       done
     subgoal for brk'S' brkS brk S brk' S' M x2b N x2c U x2d D x2e NP x2f UP x2g WS
        Q M' x2i N' x2j U' x2k D' x2l NP' x2m UP' x2n WS' Q' L C L' C'
-      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (convert_to_state (twl_st_of_wl None S))\<close>)
+      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state_of\<^sub>W (twl_st_of_wl None S))\<close>)
       subgoal
         by (cases M; cases \<open>hd M\<close>) (auto simp add: clauses_def
             cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
@@ -844,7 +844,7 @@ proof -
       done
     subgoal for brk'S' brkS brk S brk' S' M x2b N x2c U x2d D x2e NP x2f UP x2g WS
        Q M' x2i N' x2j U' x2k D' x2l NP' x2m UP' x2n WS' Q' L C L' C'
-      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (convert_to_state (twl_st_of_wl None S))\<close>)
+      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state_of\<^sub>W (twl_st_of_wl None S))\<close>)
       subgoal
         by (cases M; cases \<open>hd M\<close>) (auto simp add: clauses_def
             cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
@@ -933,8 +933,8 @@ definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" wh
         ASSERT(-L \<in># the D);
         ASSERT(twl_stgy_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
         ASSERT(twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
-        ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
-        ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
+        ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
+        ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (state_of\<^sub>W (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
         let E = the D;
         ASSERT(literals_are_in_N\<^sub>0 E);
         M1 \<leftarrow> find_decomp_wl (M, N, U, Some E, NP, UP, Q, W) L;
@@ -1041,7 +1041,7 @@ proof -
     subgoal by fast
     subgoal for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
        x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m
-      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None
+      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state_of\<^sub>W (twl_st_of_wl None
         (x1, x1a, x1b, x1c, x1d, x1e, x1f, x2f)))\<close>)
       subgoal using N\<^sub>0
         apply clarify
@@ -1076,7 +1076,7 @@ proof -
     subgoal by auto
     subgoal premises p for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
        x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m M1 M1a
-      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (convert_to_state (twl_st_of_wl None (x1, x1a, x1b, x1c, x1d, x1e, x1f, x2f)))\<close>)
+      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state_of\<^sub>W (twl_st_of_wl None (x1, x1a, x1b, x1c, x1d, x1e, x1f, x2f)))\<close>)
       subgoal
         using N\<^sub>0 p(1-18)
         by (auto simp: cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset_state)
@@ -1094,7 +1094,7 @@ proof -
     subgoal for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k x2k
       x1l x2l x1m x2m M1 M1a L' L'a
       apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state
-         (convert_to_state (twl_st_of_wl None (x1, x1a, x1b, x1c, x1d, x1e, x1f, x2f)))\<close>)
+         (state_of\<^sub>W (twl_st_of_wl None (x1, x1a, x1b, x1c, x1d, x1e, x1f, x2f)))\<close>)
       subgoal premises p
         using p(48-) p(1-19)
         by (auto simp: cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset_state
@@ -1106,7 +1106,7 @@ proof -
       done
     subgoal by auto
     subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
-      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M1, N, U, D, NP, UP, WS, W)))\<close>)
+      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state_of\<^sub>W (twl_st_of_wl None (M1, N, U, D, NP, UP, WS, W)))\<close>)
       subgoal
         using N\<^sub>0 p(53) p(33) p(1-16)
         apply (cases M1; cases \<open>hd M1\<close>)
@@ -1121,7 +1121,7 @@ proof -
        by fast
       done
     subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
-      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>)
+      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state_of\<^sub>W (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>)
       subgoal
         using N\<^sub>0 p(53) p(33) p(1-18) p(47)
         apply (auto simp: (* is_N\<^sub>1_def *) in_lits_of_atms_of_mm_ain_atms_of_iff mset_take_mset_drop_mset'
@@ -1138,7 +1138,7 @@ proof -
         by fast
       done
     subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
-      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>)
+      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state_of\<^sub>W (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>)
       subgoal
         using N\<^sub>0 p(53) p(33) p(1-18) p(47)
         by (auto simp: (* is_N\<^sub>1_def *) in_lits_of_atms_of_mm_ain_atms_of_iff mset_take_mset_drop_mset'
@@ -1152,7 +1152,7 @@ proof -
         by fast
       done
     subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M1 M1a L' L'a
-      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>)
+      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state_of\<^sub>W (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>)
       subgoal
         using N\<^sub>0 p(33) p(1-18) p(47) p(54)
         by (auto simp: in_lits_of_atms_of_mm_ain_atms_of_iff mset_take_mset_drop_mset'
@@ -1174,7 +1174,7 @@ proof -
       define F where \<open>F = c @ M2\<close>
       have \<open>M' = F @ Decided K # M'''\<close>
         using M' F_def by auto
-      moreover have \<open>no_dup (trail (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W))))\<close>
+      moreover have \<open>no_dup (trail (state_of\<^sub>W (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W))))\<close>
         using p(23) unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by fast
       ultimately show ?thesis
@@ -1190,7 +1190,7 @@ proof -
         and no_skip = p(32) and M1_M1a = p(36) and L'_La = p(47) and hd_uL' = p(49) and uhd_D' = p(50)
         and L'_D' = p(51) and EE' = p(52) and atm_hd = p(53) and atm_L = p(54) and S_expand = p(1-14)
         thm p(35-40)
-      have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>
+      have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state_of\<^sub>W (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>
         using struct_invs
         apply (subst (asm) twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
         apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
@@ -1291,7 +1291,7 @@ proof -
       define F where \<open>F = c @ M2\<close>
       have \<open>M' = F @ Decided K # M'''\<close>
         using M' F_def by auto
-      moreover have \<open>no_dup (trail (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W))))\<close>
+      moreover have \<open>no_dup (trail (state_of\<^sub>W (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W))))\<close>
         using p(23) unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by fast
       ultimately show ?thesis
@@ -1300,7 +1300,7 @@ proof -
     subgoal premises p for M SN N SU U SD D SNP NP SUP UP SWS WS W M' SN' N'
       SU' U' SD' D' SNP' NP' SUP' UP' SWS' WS' W' M''' M'' L L'
     proof -
-      have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>
+      have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state_of\<^sub>W (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>
         using p(23) unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
         by fast
       then show ?thesis
@@ -1320,7 +1320,7 @@ proof -
         D_not_Some_Nil = p(19) and ex_decomp = p(20) and stgy_invs = p(22) and struct_invs = p(23)
         and no_skip = p(33) and M1_M1a = p(36) and E_E' = p(39) and
         S_expand = p(1-14)
-      have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (convert_to_state (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>
+      have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state_of\<^sub>W (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W)))\<close>
         using struct_invs
         apply (subst (asm) twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
         apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
@@ -1544,8 +1544,8 @@ lemma cdcl_twl_stgy_prog_wl_D_spec_final2_Down:
   shows
     \<open>cdcl_twl_stgy_prog_wl_D S \<le>
       \<Down> {(S, S'). S' = st_l_of_wl None S}
-        (SPEC(\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (convert_to_state (twl_st_of_wl None S))
-          (convert_to_state (twl_st_of None T))))\<close>
+        (SPEC(\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state_of\<^sub>W (twl_st_of_wl None S))
+          (state_of\<^sub>W (twl_st_of None T))))\<close>
   apply (rule order.trans)
    apply (rule cdcl_twl_stgy_prog_wl_D_spec)
     using assms apply (solves \<open>simp\<close>)
@@ -1563,8 +1563,8 @@ theorem cdcl_twl_stgy_prog_wl_spec_final2:
     \<open>correct_watching S\<close> and \<open>literals_are_N\<^sub>0 S\<close>
   shows
     \<open>cdcl_twl_stgy_prog_wl_D S \<le>
-       SPEC(\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (convert_to_state (twl_st_of_wl None S))
-          (convert_to_state (twl_st_of_wl None T)))\<close>
+       SPEC(\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state_of\<^sub>W (twl_st_of_wl None S))
+          (state_of\<^sub>W (twl_st_of_wl None T)))\<close>
   using cdcl_twl_stgy_prog_wl_D_spec_final2_Down[OF assms] unfolding conc_fun_SPEC
   by auto
 

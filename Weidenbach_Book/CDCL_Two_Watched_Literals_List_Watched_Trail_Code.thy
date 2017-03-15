@@ -875,9 +875,9 @@ intro!: in_remove1_msetI)
             (\<exists>K\<in>#remove1_mset (- L) D. get_level M K = get_maximum_level M (remove1_mset (- L) D)) \<and>
              literals_are_in_N\<^sub>0 D)
        (\<lambda>_ ((((((((M, N), U), D), NP), UP), WS), Q), L). literals_are_in_N\<^sub>0 (mset D)) (\<lambda>_. True)]\<^sub>a
-    hrp_comp (trail_assn\<^sup>k *\<^sub>a (arrayO_raa clause_ll_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
+    hrp_comp (trail_assn\<^sup>k *\<^sub>a (arlO_assn clause_ll_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
           (arl_assn nat_lit_assn)\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a
-          (hr_comp (arrayO (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0))\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k)
+          (hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0))\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k)
        (Id \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f list_mset_rel \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id) \<rightarrow>
    hr_comp nat_lit_assn Id\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
@@ -955,9 +955,9 @@ proof -
            {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)). x \<in># mset (take ba (tl b))#},
            {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)). x \<in># mset (drop (Suc ba) b)#},
            Some bb, bc, bd, {#}, be) \<and> literals_are_in_N\<^sub>0 bb]\<^sub>a
-     (trail_assn)\<^sup>d *\<^sub>a (arrayO_raa clause_ll_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a
+     (trail_assn)\<^sup>d *\<^sub>a (arlO_assn clause_ll_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a
         clauses_l_assn\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a
-     (hr_comp (arrayO (arl_assn nat_assn))
+     (hr_comp (arrayO_assn (arl_assn nat_assn))
          (\<langle>Id\<rangle>map_fun_rel ((\<lambda>L. (nat_of_lit L, L)) ` set_mset N\<^sub>1)))\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>
      trail_assn\<close>
     (is \<open> _ \<in> [?Q]\<^sub>a _ \<rightarrow> _\<close>)
