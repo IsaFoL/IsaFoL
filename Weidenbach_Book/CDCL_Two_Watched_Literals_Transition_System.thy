@@ -4532,6 +4532,72 @@ lemma full_cdcl_twl_stgy_cdcl\<^sub>W_stgy:
   by (metis (no_types, hide_lams) assms(1) full_def no_step_cdcl_twl_stgy_no_step_cdcl\<^sub>W_stgy
       rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy rtranclp_cdcl_twl_stgy_twl_struct_invs twl)
 
+(* TODO: Move *)
+lemma remove1_empty_iff: \<open>remove1_mset L M = {#} \<longleftrightarrow> (M = {#L#} \<or> M = {#})\<close>
+  by (cases M) (auto simp: remove1_mset_add_mset_If)
+
+definition init_state_twl where
+  \<open>init_state_twl N \<equiv> ([], N, {#}, None, {#}, {#}, {#}, {#})\<close>
+lemma
+  assumes
+    struct: \<open>\<forall>C \<in># N. struct_wf_twl_cls C\<close> and
+    tauto: \<open>\<forall>C \<in># N. \<not>tautology (clause C)\<close>
+  shows
+    twl_stgy_invs_init_state_twl: \<open>twl_stgy_invs (init_state_twl N)\<close> and
+    twl_struct_invs_init_state_twl: \<open>twl_struct_invs (init_state_twl N)\<close>
+proof -
+  have [simp]: \<open>twl_lazy_update [] C\<close> \<open>twl_inv [] C\<close> \<open>watched_literals_false_of_max_level [] C\<close>
+    \<open>twl_exception_inv ([], N, {#}, None, {#}, {#}, {#}, {#}) C\<close> for C
+    by (cases C; solves \<open>auto simp: twl_exception_inv.simps\<close>)+
+  have [simp]: \<open>clause C \<noteq> {#}\<close> (is ?G1) and
+    [simp]: \<open>remove1_mset L (clause C) \<noteq> {#}\<close> (is ?G2) if \<open>C \<in># N\<close> for C L
+    using that struct by (cases C; auto simp: remove1_empty_iff size_ne_size_imp_ne[of _ \<open>{#_#}\<close>])+
+  have \<open>distinct_mset (clause C)\<close> if \<open>C \<in># N\<close> for C
+    using struct that by (cases C) (auto)
+  then have dist: \<open>distinct_mset_mset (clause `# N)\<close>
+    by (auto simp: distinct_mset_set_def)
+  then have [simp]: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv ([], clause `# N, {#}, None)\<close>
+    using struct unfolding init_state.simps[symmetric]
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+  have [simp]: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa ([], clause `# N, {#}, None)\<close>
+    by(auto simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def cdcl\<^sub>W_restart_mset_state)
+
+  show stgy_invs: \<open>twl_stgy_invs (init_state_twl N)\<close>
+    by (auto simp: twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+        cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.no_smaller_confl_def init_state_twl_def)
+  show \<open>twl_struct_invs (init_state_twl N)\<close>
+    using struct tauto
+    by (auto simp: twl_struct_invs_def twl_st_inv.simps working_queue_prop.simps
+        past_invs.simps cdcl\<^sub>W_restart_mset_state init_state_twl_def
+        cdcl\<^sub>W_restart_mset.no_strange_atm_def)
+qed
+
+lemma full_cdcl_twl_stgy_cdcl\<^sub>W_stgy_conclusive_from_init_state:
+  fixes N :: \<open>'v twl_clss\<close>
+  assumes
+    full_cdcl_twl_stgy: \<open>full cdcl_twl_stgy (init_state_twl N) T\<close> and
+    struct: \<open>\<forall>C \<in># N. struct_wf_twl_cls C\<close> and
+    no_tauto: \<open>\<forall>C \<in># N. \<not>tautology (clause C)\<close>
+  shows \<open>conflicting (convert_to_state T) = Some {#} \<and> unsatisfiable (set_mset (clause `# N)) \<or>
+     (conflicting (convert_to_state T) = None \<and> trail (convert_to_state T) \<Turnstile>asm clause `# N \<and>
+     satisfiable (set_mset (clause `# N)))\<close>
+proof -
+  have \<open>distinct_mset (clause C)\<close> if \<open>C \<in># N\<close> for C
+    using struct that by (cases C) auto
+  then have dist: \<open>distinct_mset_mset (clause `# N)\<close>
+    using struct by (auto simp: distinct_mset_set_def)
+
+  have \<open>twl_struct_invs (init_state_twl N)\<close>
+    using struct no_tauto by (rule twl_struct_invs_init_state_twl)
+  with full_cdcl_twl_stgy
+  have \<open>full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (convert_to_state (init_state_twl N)) (convert_to_state T)\<close>
+    by (rule full_cdcl_twl_stgy_cdcl\<^sub>W_stgy)
+  then have \<open>full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state (clause `# N)) (convert_to_state T)\<close>
+    by (simp add: init_state.simps init_state_twl_def)
+  then show ?thesis
+    by (rule cdcl\<^sub>W_restart_mset.full_cdcl\<^sub>W_stgy_final_state_conclusive_from_init_state)
+      (use dist in auto)
+qed
 
 lemma cdcl_twl_o_twl_stgy_invs:
   \<open>cdcl_twl_o S T \<Longrightarrow> twl_struct_invs S \<Longrightarrow> twl_stgy_invs S \<Longrightarrow> twl_stgy_invs T\<close>
