@@ -237,3 +237,11 @@ session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
   document_files
     "root.tex"
     "biblio.bib"
+
+session "CDCL_B" (Weidenbach_Book) = "CDCL_Base"  +
+  description \<open>This session contains Sophie Tourret's variants of Weidenbach's
+  CDCL calculus, where multiple decisions are done at the same time.
+  \<close>
+  options [document = false, document_output = "output_CDCL_B"]
+  theories[document = false, quick_and_dirty]
+    CDCL_B
