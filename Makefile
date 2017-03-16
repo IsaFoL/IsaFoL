@@ -35,7 +35,7 @@ Unordered_Resolution: HOL
 
 GRAT: HOL
 	$(RUN_ISABELLE2016-1) build -d '$$AFP' -b Refine_Imperative_HOL
-	$(RUN_ISABELLE2016-1) build -o browser_info -o "document=pdf" -v -D GRAT/gratchk
+	$(RUN_ISABELLE2016-1) build -d '$$AFP' -o browser_info -o "document=pdf" -v -D GRAT/gratchk
 
 FOL_Berghofer: HOL
 	$(RUN_ISABELLE2016-1) build -v -D FOL_Berghofer
