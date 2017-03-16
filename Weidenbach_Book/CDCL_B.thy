@@ -9,6 +9,17 @@ type_synonym ('v, 'mark) ann_bats = \<open>('v, 'mark) ann_bat list\<close>
 type_synonym 'v bat = \<open>'v literal list multiset\<close>
 type_synonym 'v bats = \<open>'v bat list\<close>
 
+
+fun lit_of\<^sub>B :: \<open>('v, 'mark) ann_bat \<Rightarrow> 'v literal set\<close> where
+  \<open>lit_of\<^sub>B (Decided L) = set L\<close> |
+  \<open>lit_of\<^sub>B (Propagated L _) = {L}\<close>
+
+definition lits_of\<^sub>B :: \<open>('v, 'mark) ann_bat set \<Rightarrow> 'v literal set\<close> where
+\<open>lits_of\<^sub>B Ls = \<Union>(lit_of\<^sub>B ` Ls)\<close>
+
+abbreviation lits_of_l\<^sub>B :: \<open>('v, 'mark) ann_bats \<Rightarrow> 'v literal set\<close> where
+\<open>lits_of_l\<^sub>B Ls \<equiv> lits_of\<^sub>B (set Ls)\<close>
+
 locale state\<^sub>B_ops =
   fixes
     state :: "'st \<Rightarrow> ('v, 'v clause) ann_bats \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
@@ -553,6 +564,7 @@ end \<comment> \<open>end of locale @{locale state\<^sub>B}\<close>
 
 
 subsection \<open>CDCL Rules\<close>
+
 text \<open>Because of the strategy we will later use, we distinguish propagate, conflict from the other
   rules\<close>
 locale conflict_driven_clause_learning\<^sub>B =
@@ -616,12 +628,12 @@ fun restrict_clause :: \<open>'v literal list \<Rightarrow> 'v clause \<Rightarr
 fun restrict :: \<open>'v literal list \<Rightarrow> 'v clauses \<Rightarrow> 'v clauses\<close> where
   \<open>restrict Ls Cs = image_mset (restrict_clause Ls) Cs\<close>
 
-definition valid_bats :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'v bat \<Rightarrow> bool\<close> where
+definition valid_bats :: \<open>('v, 'v clause) ann_bats \<Rightarrow> 'v clauses \<Rightarrow> 'v bat \<Rightarrow> bool\<close> where
   \<open>valid_bats M N B \<longleftrightarrow>
     (\<forall>Ls \<in># B. consistent_interp (set Ls)) \<and>
-    (\<forall>Ls \<in># B. \<forall>L \<in> set Ls. -L \<notin> lits_of_l M) \<and>
+    (\<forall>Ls \<in># B. \<forall>L \<in> set Ls. -L \<notin> lits_of_l\<^sub>B M) \<and>
     (\<forall>Ls \<in># B. \<exists>I. (set Ls \<subseteq> I \<and> I \<Turnstile>sm (restrict Ls N))) \<and> (* new constraint *)
-    (\<forall>I. I \<Turnstile>sm N \<longrightarrow> lits_of_l M \<subseteq> I \<longrightarrow> (\<exists>Ls \<in># B. set Ls \<subseteq> I))\<close>
+    (\<forall>I. I \<Turnstile>sm N \<longrightarrow> lits_of_l\<^sub>B M \<subseteq> I \<longrightarrow> (\<exists>Ls \<in># B. set Ls \<subseteq> I))\<close>
 
 inductive decide\<^sub>B :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
 decide\<^sub>B_rule:
