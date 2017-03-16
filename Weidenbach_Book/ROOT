@@ -75,7 +75,6 @@ session "CDCL_Base" (Weidenbach_Book) = "Imports"  +
   incremental).\<close>
   options [document = pdf, document_output = "output"]
   theories [document = false]
-  theories [document = false]
     "~~/src/HOL/Library/Code_Target_Numeral"
     "~~/src/HOL/Library/Multiset"
     "~~/src/HOL/Library/Multiset_Order"
