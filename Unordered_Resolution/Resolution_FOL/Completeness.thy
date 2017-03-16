@@ -394,26 +394,12 @@ lemma eval\<^sub>t_bij:
   assumes "bij (b_of_a::'a \<Rightarrow> 'b)"
   shows"eval\<^sub>t (E_conv b_of_a E) (F_conv b_of_a F) t = b_of_a (eval\<^sub>t E F t)"
 proof (induction t)
-  case (Fun x1 x2a)
-  then show ?case using assms unfolding E_conv_def F_conv_def 
-    apply auto
-  proof -
-    assume "(\<And>x2aa. x2aa \<in> set x2a \<Longrightarrow>
-             eval\<^sub>t (\<lambda>a. b_of_a (E a)) (\<lambda>a b. b_of_a (F a (map (inv b_of_a) b))) x2aa =
-             b_of_a (eval\<^sub>t E F x2aa))"
-    assume "bij b_of_a"
-    
-    have "map (inv b_of_a \<circ> eval\<^sub>t (\<lambda>a. b_of_a (E a)) (\<lambda>a b. b_of_a (F a (map (inv b_of_a) b)))) x2a
-           = (eval\<^sub>t\<^sub>s E F x2a)"
-      by (simp add: \<open>\<And>x2aa. x2aa \<in> set x2a \<Longrightarrow> eval\<^sub>t (\<lambda>a. b_of_a (E a)) (\<lambda>a b. b_of_a (F a (map (inv b_of_a) b))) x2aa = b_of_a (eval\<^sub>t E F x2aa)\<close> assms bij_is_inj) 
-    then have "F x1 (map (inv b_of_a \<circ> eval\<^sub>t (\<lambda>a. b_of_a (E a)) (\<lambda>a b. b_of_a (F a (map (inv b_of_a) b)))) x2a)
-           = F x1 (eval\<^sub>t\<^sub>s E F x2a)" 
-      by metis
-    then show "b_of_a
-     (F x1 (map (inv b_of_a \<circ> eval\<^sub>t (\<lambda>a. b_of_a (E a)) (\<lambda>a b. b_of_a (F a (map (inv b_of_a) b)))) x2a)) =
-    b_of_a (F x1 (eval\<^sub>t\<^sub>s E F x2a))"
-      by auto
-  qed
+  case (Fun f ts)
+  then have "map (inv b_of_a \<circ> eval\<^sub>t (E_conv b_of_a E) (F_conv b_of_a F)) ts = eval\<^sub>t\<^sub>s E F ts"
+    unfolding E_conv_def F_conv_def
+    using assms bij_is_inj by fastforce
+  then have "b_of_a (F f (map (inv b_of_a \<circ> eval\<^sub>t (E_conv b_of_a E) ((F_conv b_of_a F))) ts)) = b_of_a (F f (eval\<^sub>t\<^sub>s E F ts))" by metis
+  then show ?case using assms unfolding E_conv_def F_conv_def by auto
 next
   case (Var x)
   then show ?case using assms unfolding E_conv_def by auto
