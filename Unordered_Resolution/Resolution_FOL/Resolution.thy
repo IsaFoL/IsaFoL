@@ -909,19 +909,19 @@ section {* Herbrand Interpretations *}
 text {* @{const HFun} is the Herbrand function denotation in which terms are mapped to themselves. *}
 term HFun
 
-lemma eval_ground\<^sub>t: "ground\<^sub>t t \<Longrightarrow> (eval\<^sub>t E HFun t) = hterm_from_fterm t"
+lemma eval_ground\<^sub>t: "ground\<^sub>t t \<Longrightarrow> (eval\<^sub>t E HFun t) = hterm_of_fterm t"
   by (induction t) auto
 
 
-lemma eval_ground\<^sub>t\<^sub>s: "ground\<^sub>t\<^sub>s ts \<Longrightarrow> (eval\<^sub>t\<^sub>s E HFun ts) = hterms_from_fterms ts" 
-  unfolding hterms_from_fterms_def using eval_ground\<^sub>t by (induction ts) auto
+lemma eval_ground\<^sub>t\<^sub>s: "ground\<^sub>t\<^sub>s ts \<Longrightarrow> (eval\<^sub>t\<^sub>s E HFun ts) = hterms_of_fterms ts" 
+  unfolding hterms_of_fterms_def using eval_ground\<^sub>t by (induction ts) auto
 
 lemma eval\<^sub>l_ground\<^sub>t\<^sub>s:
   assumes asm: "ground\<^sub>t\<^sub>s ts"
-  shows "eval\<^sub>l E HFun G (Pos P ts) \<longleftrightarrow> G P (hterms_from_fterms ts)"
+  shows "eval\<^sub>l E HFun G (Pos P ts) \<longleftrightarrow> G P (hterms_of_fterms ts)"
 proof -
   have "eval\<^sub>l E HFun G (Pos P ts) = G P (eval\<^sub>t\<^sub>s E HFun ts)" by auto
-  also have "... = G P (hterms_from_fterms ts)" using asm eval_ground\<^sub>t\<^sub>s by simp 
+  also have "... = G P (hterms_of_fterms ts)" using asm eval_ground\<^sub>t\<^sub>s by simp 
   finally show ?thesis by auto
 qed
 
@@ -932,7 +932,7 @@ type_synonym partial_pred_denot = "bool list"
 definition falsifies\<^sub>l :: "partial_pred_denot \<Rightarrow> fterm literal \<Rightarrow> bool" where
   "falsifies\<^sub>l G l \<longleftrightarrow>
         ground\<^sub>l l
-     \<and> (let i = nat_from_fatom (get_atom l) in
+     \<and> (let i = nat_of_fatom (get_atom l) in
           i < length G \<and> G ! i = (\<not>sign l)
         )"
   
@@ -954,67 +954,67 @@ abbreviation falsifies\<^sub>c\<^sub>s :: "partial_pred_denot \<Rightarrow> fter
 
 abbreviation extend :: "(nat \<Rightarrow> partial_pred_denot) \<Rightarrow> hterm pred_denot" where
   "extend f P ts \<equiv> (
-     let n = nat_from_hatom (P, ts) in
+     let n = nat_of_hatom (P, ts) in
        f (Suc n) ! n
      )"
 
-fun sub_from_denot :: "hterm var_denot \<Rightarrow> substitution" where
-  "sub_from_denot E = fterm_from_hterm \<circ> E"
+fun sub_of_denot :: "hterm var_denot \<Rightarrow> substitution" where
+  "sub_of_denot E = fterm_of_hterm \<circ> E"
 
-lemma ground_sub_from_denott: "ground\<^sub>t (t \<cdot>\<^sub>t (sub_from_denot E))" 
-  by (induction t) (auto simp add: ground_fterm_from_hterm)
-
-
-lemma ground_sub_from_denotts: "ground\<^sub>t\<^sub>s (ts \<cdot>\<^sub>t\<^sub>s sub_from_denot E)"
-using ground_sub_from_denott by simp 
+lemma ground_sub_of_denott: "ground\<^sub>t (t \<cdot>\<^sub>t (sub_of_denot E))" 
+  by (induction t) (auto simp add: ground_fterm_of_hterm)
 
 
-lemma ground_sub_from_denotl: "ground\<^sub>l (l \<cdot>\<^sub>l sub_from_denot E)"
+lemma ground_sub_of_denotts: "ground\<^sub>t\<^sub>s (ts \<cdot>\<^sub>t\<^sub>s sub_of_denot E)"
+using ground_sub_of_denott by simp 
+
+
+lemma ground_sub_of_denotl: "ground\<^sub>l (l \<cdot>\<^sub>l sub_of_denot E)"
 proof -
-  have "ground\<^sub>t\<^sub>s (subs (get_terms l) (sub_from_denot E))" 
-    using ground_sub_from_denotts by auto
+  have "ground\<^sub>t\<^sub>s (subs (get_terms l) (sub_of_denot E))" 
+    using ground_sub_of_denotts by auto
   then show ?thesis by (cases l)  auto
 qed
 
-lemma sub_from_denot_equivx: "eval\<^sub>t E HFun (sub_from_denot E x) = E x"
+lemma sub_of_denot_equivx: "eval\<^sub>t E HFun (sub_of_denot E x) = E x"
 proof -
-  have "ground\<^sub>t (sub_from_denot E x)" using ground_fterm_from_hterm by simp
+  have "ground\<^sub>t (sub_of_denot E x)" using ground_fterm_of_hterm by simp
   then
-  have "eval\<^sub>t E HFun (sub_from_denot E x) = hterm_from_fterm (sub_from_denot E x)"
+  have "eval\<^sub>t E HFun (sub_of_denot E x) = hterm_of_fterm (sub_of_denot E x)"
     using eval_ground\<^sub>t(1) by auto
-  also have "... = hterm_from_fterm (fterm_from_hterm (E x))" by auto
+  also have "... = hterm_of_fterm (fterm_of_hterm (E x))" by auto
   also have "... = E x" by auto
   finally show ?thesis by auto
 qed
 
-lemma sub_from_denot_equivt:
-    "eval\<^sub>t E HFun (t \<cdot>\<^sub>t (sub_from_denot E)) = eval\<^sub>t E HFun t"
-using sub_from_denot_equivx  by (induction t) auto
+lemma sub_of_denot_equivt:
+    "eval\<^sub>t E HFun (t \<cdot>\<^sub>t (sub_of_denot E)) = eval\<^sub>t E HFun t"
+using sub_of_denot_equivx  by (induction t) auto
 
-lemma sub_from_denot_equivts: "eval\<^sub>t\<^sub>s E HFun (ts \<cdot>\<^sub>t\<^sub>s (sub_from_denot E)) = eval\<^sub>t\<^sub>s E HFun ts"
-using sub_from_denot_equivt by simp
+lemma sub_of_denot_equivts: "eval\<^sub>t\<^sub>s E HFun (ts \<cdot>\<^sub>t\<^sub>s (sub_of_denot E)) = eval\<^sub>t\<^sub>s E HFun ts"
+using sub_of_denot_equivt by simp
 
-lemma sub_from_denot_equivl: "eval\<^sub>l E HFun G (l \<cdot>\<^sub>l sub_from_denot E) \<longleftrightarrow> eval\<^sub>l E HFun G l"
+lemma sub_of_denot_equivl: "eval\<^sub>l E HFun G (l \<cdot>\<^sub>l sub_of_denot E) \<longleftrightarrow> eval\<^sub>l E HFun G l"
 proof (induction l)
   case (Pos p ts)
-  have "eval\<^sub>l E HFun G ((Pos p ts) \<cdot>\<^sub>l sub_from_denot E) \<longleftrightarrow> G p (eval\<^sub>t\<^sub>s E HFun (ts \<cdot>\<^sub>t\<^sub>s (sub_from_denot E)))" by auto
-  also have " ... \<longleftrightarrow> G p (eval\<^sub>t\<^sub>s E HFun ts)" using sub_from_denot_equivts[of E ts] by metis
+  have "eval\<^sub>l E HFun G ((Pos p ts) \<cdot>\<^sub>l sub_of_denot E) \<longleftrightarrow> G p (eval\<^sub>t\<^sub>s E HFun (ts \<cdot>\<^sub>t\<^sub>s (sub_of_denot E)))" by auto
+  also have " ... \<longleftrightarrow> G p (eval\<^sub>t\<^sub>s E HFun ts)" using sub_of_denot_equivts[of E ts] by metis
   also have " ... \<longleftrightarrow> eval\<^sub>l E HFun G (Pos p ts)" by simp
   finally
   show ?case by blast
 next
  case (Neg p ts)
-  have "eval\<^sub>l E HFun G ((Neg p ts) \<cdot>\<^sub>l sub_from_denot E) \<longleftrightarrow> \<not>G p (eval\<^sub>t\<^sub>s E HFun (ts \<cdot>\<^sub>t\<^sub>s (sub_from_denot E)))" by auto
-  also have " ... \<longleftrightarrow> \<not>G p (eval\<^sub>t\<^sub>s E HFun ts)" using sub_from_denot_equivts[of E ts] by metis
+  have "eval\<^sub>l E HFun G ((Neg p ts) \<cdot>\<^sub>l sub_of_denot E) \<longleftrightarrow> \<not>G p (eval\<^sub>t\<^sub>s E HFun (ts \<cdot>\<^sub>t\<^sub>s (sub_of_denot E)))" by auto
+  also have " ... \<longleftrightarrow> \<not>G p (eval\<^sub>t\<^sub>s E HFun ts)" using sub_of_denot_equivts[of E ts] by metis
   also have " ... = eval\<^sub>l E HFun G (Neg p ts)" by simp
   finally
   show ?case by blast
 qed
 
 text {* Under an Herbrand interpretation, an environment is equivalent to a substitution. *}
-lemma sub_from_denot_equiv_ground': 
-  "eval\<^sub>l E HFun G l = eval\<^sub>l E HFun G (l \<cdot>\<^sub>l sub_from_denot E) \<and> ground\<^sub>l (l \<cdot>\<^sub>l sub_from_denot E)"
-    using sub_from_denot_equivl ground_sub_from_denotl by auto
+lemma sub_of_denot_equiv_ground': 
+  "eval\<^sub>l E HFun G l = eval\<^sub>l E HFun G (l \<cdot>\<^sub>l sub_of_denot E) \<and> ground\<^sub>l (l \<cdot>\<^sub>l sub_of_denot E)"
+    using sub_of_denot_equivl ground_sub_of_denotl by auto
 
 text {* Under an Herbrand interpretation, an environment is similar to a substitution - also for partial interpretations. *}
 lemma partial_equiv_subst:
@@ -1028,10 +1028,10 @@ proof -
 qed
 
 text {* Under an Herbrand interpretation, an environment is equivalent to a substitution. *}
-lemma sub_from_denot_equiv_ground:
-  "((\<exists>l \<in> C. eval\<^sub>l E HFun G l) \<longleftrightarrow> (\<exists>l \<in> C \<cdot>\<^sub>l\<^sub>s sub_from_denot E. eval\<^sub>l E HFun G l))
-           \<and> ground\<^sub>l\<^sub>s (C \<cdot>\<^sub>l\<^sub>s sub_from_denot E)"
-  using sub_from_denot_equiv_ground' by auto
+lemma sub_of_denot_equiv_ground:
+  "((\<exists>l \<in> C. eval\<^sub>l E HFun G l) \<longleftrightarrow> (\<exists>l \<in> C \<cdot>\<^sub>l\<^sub>s sub_of_denot E. eval\<^sub>l E HFun G l))
+           \<and> ground\<^sub>l\<^sub>s (C \<cdot>\<^sub>l\<^sub>s sub_of_denot E)"
+  using sub_of_denot_equiv_ground' by auto
 
 lemma std\<^sub>1_falsifies: "falsifies\<^sub>c G C\<^sub>1 \<longleftrightarrow> falsifies\<^sub>c G (std\<^sub>1 C\<^sub>1)"
 proof 
@@ -1110,7 +1110,7 @@ lemma extend_preserves_model: (* only for ground *)
   assumes f_infpath: "wf_infpath (f :: nat \<Rightarrow> partial_pred_denot)" 
   assumes C_ground: "ground\<^sub>l\<^sub>s C"
   assumes C_sat: "\<not>falsifies\<^sub>c (f (Suc n)) C"
-  assumes n_max: "\<forall>l\<in>C. nat_from_fatom (get_atom l) \<le> n"
+  assumes n_max: "\<forall>l\<in>C. nat_of_fatom (get_atom l) \<le> n"
   shows "eval\<^sub>c HFun (extend f) C"
 proof -
   let ?F = "HFun" 
@@ -1120,7 +1120,7 @@ proof -
     from C_sat have "\<forall>C'. (\<not>instance_of\<^sub>l\<^sub>s C' C \<or> \<not>falsifies\<^sub>g (f (Suc n)) C')" by auto
     then have "\<not>falsifies\<^sub>g (f (Suc n)) C" using instance_of\<^sub>l\<^sub>s_self by auto
     then obtain l where l_p: "l\<in>C \<and> \<not>falsifies\<^sub>l (f (Suc n)) l" using C_ground by blast
-    let ?i = "nat_from_fatom (get_atom l)"
+    let ?i = "nat_of_fatom (get_atom l)"
      
     from l_p have i_n: "?i \<le> n" using n_max by auto
     then have j_n: "?i < length (f (Suc n))" using f_infpath infpath_length[of f] by auto
@@ -1137,7 +1137,7 @@ proof -
           using f_infpath i_n j_n infpath_length[of f] ith_in_extension[of f] by simp
         ultimately
         have "f (Suc ?i) ! ?i = True" using Pos by auto
-        then have "?G P (hterms_from_fterms ts)" using Pos by (simp add: nat_from_fatom_def) 
+        then have "?G P (hterms_of_fterms ts)" using Pos by (simp add: nat_of_fatom_def) 
         then show ?thesis using eval\<^sub>l_ground\<^sub>t\<^sub>s[of ts _ ?G P] ts_ground Pos by auto
       next
         case (Neg P ts) (* Symmetric *)
@@ -1150,7 +1150,7 @@ proof -
           using f_infpath i_n j_n infpath_length[of f] ith_in_extension[of f] by simp
         ultimately
         have "f (Suc ?i) ! ?i = False" using Neg by auto
-        then have "\<not>?G P (hterms_from_fterms ts)" using Neg by (simp add: nat_from_fatom_def) 
+        then have "\<not>?G P (hterms_of_fterms ts)" using Neg by (simp add: nat_of_fatom_def) 
         then show ?thesis using Neg eval\<^sub>l_ground\<^sub>t\<^sub>s[of ts _ ?G P] ts_ground by auto
       qed
     then have "\<exists>l \<in> C. eval\<^sub>l E HFun (extend f) l" using l_p by auto
@@ -1167,7 +1167,7 @@ lemma extend_preserves_model2: (* only for ground *)
   shows C_false: "eval\<^sub>c HFun (extend f) C"
 proof -
   -- {* Since C is finite, C has a largest index of a literal. *}
-  obtain n where largest: "\<forall>l \<in> C. nat_from_fatom (get_atom l) \<le> n" using fin_c maximum[of C "\<lambda>l. nat_from_fatom (get_atom l)"] by blast
+  obtain n where largest: "\<forall>l \<in> C. nat_of_fatom (get_atom l) \<le> n" using fin_c maximum[of C "\<lambda>l. nat_of_fatom (get_atom l)"] by blast
   moreover
   then have "\<not>falsifies\<^sub>c (f (Suc n)) C" using model_C by auto
   ultimately show ?thesis using model_C f_infpath C_ground extend_preserves_model[of f C n ] by blast
@@ -1181,10 +1181,10 @@ lemma extend_infpath:
 unfolding eval\<^sub>c_def proof 
   fix E
   let ?G = "extend f"
-  let ?\<sigma> = "sub_from_denot E"
+  let ?\<sigma> = "sub_of_denot E"
   
-  from fin_c have fin_c\<sigma>: "finite (C \<cdot>\<^sub>l\<^sub>s sub_from_denot E)" by auto
-  have groundc\<sigma>: "ground\<^sub>l\<^sub>s (C \<cdot>\<^sub>l\<^sub>s sub_from_denot E)" using sub_from_denot_equiv_ground by auto
+  from fin_c have fin_c\<sigma>: "finite (C \<cdot>\<^sub>l\<^sub>s sub_of_denot E)" by auto
+  have groundc\<sigma>: "ground\<^sub>l\<^sub>s (C \<cdot>\<^sub>l\<^sub>s sub_of_denot E)" using sub_of_denot_equiv_ground by auto
 
   -- {* Here starts the proof *}
   -- {* We go from syntactic FO world to syntactic ground world: *}
@@ -1194,7 +1194,7 @@ unfolding eval\<^sub>c_def proof
   -- {* Then from semantic ground world to semantic FO world: *}
   then have "\<forall>E. \<exists>l \<in> (C \<cdot>\<^sub>l\<^sub>s ?\<sigma>). eval\<^sub>l E HFun ?G l" unfolding eval\<^sub>c_def by auto
   then have "\<exists>l \<in> (C \<cdot>\<^sub>l\<^sub>s ?\<sigma>). eval\<^sub>l E HFun ?G l" by auto
-  then show "\<exists>l \<in> C. eval\<^sub>l E HFun ?G l" using sub_from_denot_equiv_ground[of C E "extend f"] by blast
+  then show "\<exists>l \<in> C. eval\<^sub>l E HFun ?G l" using sub_of_denot_equiv_ground[of C E "extend f"] by blast
 qed
 
 text {* If we have a infpath of partial models, then we have a model. *}
@@ -1248,7 +1248,7 @@ lemma longer_falsifies\<^sub>l:
   assumes "falsifies\<^sub>l ds l"
   shows "falsifies\<^sub>l (ds@d) l"
 proof - 
-  let ?i = "nat_from_fatom (get_atom l)"
+  let ?i = "nat_of_fatom (get_atom l)"
   from assms have i_p: "ground\<^sub>l l \<and>  ?i < length ds \<and> ds ! ?i = (\<not>sign l)" unfolding falsifies\<^sub>l_def by meson
   moreover
   from i_p have "?i < length (ds@d)" by auto
@@ -1323,10 +1323,10 @@ qed
 
 lemma shorter_falsifies\<^sub>l:
   assumes "falsifies\<^sub>l (ds@d) l"
-  assumes "nat_from_fatom (get_atom l) < length ds"
+  assumes "nat_of_fatom (get_atom l) < length ds"
   shows "falsifies\<^sub>l ds l"
 proof -
-  let ?i = "nat_from_fatom (get_atom l)"
+  let ?i = "nat_of_fatom (get_atom l)"
   from assms have i_p: "ground\<^sub>l l \<and>  ?i < length (ds@d) \<and> (ds@d) ! ?i = (\<not>sign l)" unfolding falsifies\<^sub>l_def by meson
   moreover
   then have "?i < length ds" using assms by auto
