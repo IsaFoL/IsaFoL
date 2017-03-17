@@ -76,7 +76,7 @@ lemma connective_cases_arity_2[case_names nullary unary binary]:
   using assms by (cases c, auto simp add: binary_connectives_def)
 
 
-text \<open>Our previous definition is not necessary correct (connective and list of arguments) , so we
+text \<open>Our previous definition is not necessary correct (connective and list of arguments), so we
   define an inductive predicate.\<close>
 inductive wf_conn :: "'v connective \<Rightarrow> 'v propo list \<Rightarrow> bool" for c :: "'v connective" where
 wf_conn_nullary[simp]: "(c = CT \<or> c = CF \<or> c = CVar v) \<Longrightarrow> wf_conn c []" |
