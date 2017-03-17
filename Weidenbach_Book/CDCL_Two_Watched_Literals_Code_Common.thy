@@ -110,7 +110,7 @@ sepref_decl_op lit_of: "lit_of :: (nat, nat) ann_lit \<Rightarrow> nat literal" 
 lemma [def_pat_rules]:
   "lit_of \<equiv> op_lit_of"
   by auto
-
+  
 sepref_decl_op option_bool_eq: "op = :: bool option \<Rightarrow> bool option \<Rightarrow> bool" ::
   "(Id :: ((bool option \<times> _) set)) \<rightarrow> (Id :: (bool option \<times> _) set) \<rightarrow> (Id :: (bool \<times> _) set)" .
 
@@ -154,20 +154,16 @@ abbreviation nat_ann_lit_assn :: "(nat, nat) ann_lit \<Rightarrow> (nat, nat) an
 
 type_synonym ann_lits_l = \<open>(nat, nat) ann_lits\<close>
 
-
 context
   notes [intro!] = hfrefI hn_refineI[THEN hn_refine_preI] frefI
   notes [simp] = pure_def hn_ctxt_def invalid_assn_def
 begin
 
 lemma nat_lit_eq_cases_refine[sepref_fr_rules]:
-  \<open>(uncurry (return oo nat_lit_eq_cases), uncurry (RETURN oo op_nat_lit_eq)) \<in>
+  \<open>(uncurry (return oo (op =)), uncurry (RETURN oo op_nat_lit_eq)) \<in>
     nat_lit_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding nat_lit_eq_cases_def
-  apply (sep_auto split: literal.split)
-  apply (rename_tac aa ba a b)
-  apply (case_tac aa; case_tac ba; sep_auto)
-  done
+  by (sep_auto split: literal.split)
 
 sepref_decl_impl nat_lit_eq_cases: nat_lit_eq_cases_refine .
 
@@ -190,7 +186,7 @@ lemma option_bool_eq_impl_option_op_bool_eq_impl: \<open>option_bool_eq_impl = o
   unfolding option_bool_eq_impl_def op_option_bool_eq_def by (auto split: option.splits intro!: ext)
 
 lemma option_bool_eq_refine[sepref_fr_rules]:
-  \<open>(uncurry (return oo option_bool_eq_impl), uncurry (RETURN oo op_option_bool_eq)) \<in>
+  \<open>(uncurry (return oo (op =)), uncurry (RETURN oo op_option_bool_eq)) \<in>
     (option_assn bool_assn)\<^sup>k *\<^sub>a (option_assn bool_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding option_bool_eq_impl_option_op_bool_eq_impl
   unfolding op_option_bool_eq_def

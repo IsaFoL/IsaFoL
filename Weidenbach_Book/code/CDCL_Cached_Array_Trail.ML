@@ -145,6 +145,16 @@ fun less_nat m n = IntInf.< (integer_of_nat m, integer_of_nat n);
 
 val ord_nat = {less_eq = less_eq_nat, less = less_nat} : nat ord;
 
+fun equal_boola p true = p
+  | equal_boola p false = not p
+  | equal_boola true p = p
+  | equal_boola false p = not p;
+
+type 'a equal = {equal : 'a -> 'a -> bool};
+val equal = #equal : 'a equal -> 'a -> 'a -> bool;
+
+val equal_bool = {equal = equal_boola} : bool equal;
+
 fun typerep_boola t = Typerep ("HOL.bool", []);
 
 val countable_bool = {} : bool countable;
@@ -194,6 +204,8 @@ val ord_integer =
 
 datatype int = Int_of_integer of IntInf.int;
 
+fun eq A_ a b = equal A_ a b;
+
 fun integer_of_int (Int_of_integer k) = k;
 
 fun max A_ a b = (if less_eq A_ a b then b else a);
@@ -226,6 +238,9 @@ fun hd (x21 :: x22) = x21;
 
 fun tl [] = []
   | tl (x21 :: x22) = x22;
+
+fun is_none (SOME x) = false
+  | is_none NONE = true;
 
 fun blit A_ src si dst di len =
   (fn () => 
@@ -544,14 +559,10 @@ fun bitAND_nat i j = nat (bitAND_int (int_of_nat i) (int_of_nat j));
 
 fun bitXOR_nat i j = nat (bitXOR_int (int_of_nat i) (int_of_nat j));
 
-fun equal_bool p true = p
-  | equal_bool p false = not p
-  | equal_bool true p = p
-  | equal_bool false p = not p;
-
-fun option_bool_eq_impl la l =
-  (if is_None la then (if is_None l then true else false)
-    else (if is_None l then false else equal_bool (the la) (the l)));
+fun equal_option A_ NONE (SOME x2) = false
+  | equal_option A_ (SOME x2) NONE = false
+  | equal_option A_ (SOME x2) (SOME y2) = eq A_ x2 y2
+  | equal_option A_ NONE NONE = true;
 
 fun decided l = (l, NONE);
 
@@ -849,14 +860,12 @@ x_g xc)
 
 fun find_unwatched_code x =
   (fn ai => fn bia => fn bi =>
-    heap_WHILET
-      (fn (a1, a2) => fn () =>
-        let
-          val xa = nth_rl heap_nat bia bi ();
-          val xb = len heap_nat xa ();
-        in
-          option_bool_eq_impl a1 NONE andalso less_nat a2 xb
-        end)
+    heap_WHILET (fn (a1, a2) => fn () => let
+   val xa = nth_rl heap_nat bia bi ();
+   val xb = len heap_nat xa ();
+ in
+   is_none a1 andalso less_nat a2 xb
+ end)
       (fn (_, a2) => fn () =>
         let
           val xa = nth_rl heap_nat bia bi ();
@@ -1094,15 +1103,15 @@ fun unit_propagation_inner_loop_body_wl_D_code x =
           (fn x_f =>
             (fn f_ => fn () => f_ ((valued_trail_code a1 x_f) ()) ())
               (fn x_h =>
-                (if option_bool_eq_impl x_h (SOME true)
+                (if equal_option equal_bool x_h (SOME true)
                   then (fn () =>
                          (plus_nat bia one_nat,
                            (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f, a2f)))))))))
                   else (fn f_ => fn () => f_ ((find_unwatched_code a1 a1a x_a)
                          ()) ())
                          (fn x_j =>
-                           (if option_bool_eq_impl (fst x_j) NONE
-                             then (if option_bool_eq_impl x_h (SOME false)
+                           (if is_none (fst x_j)
+                             then (if equal_option equal_bool x_h (SOME false)
                                     then (fn f_ => fn () => f_
    ((nth_rl heap_nat a1a x_a) ()) ())
    (fn xb =>
