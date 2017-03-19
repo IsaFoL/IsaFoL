@@ -76,19 +76,29 @@ end; (*struct Bits_Integer*)
 structure SAT_Solver : sig
   type nat
   val integer_of_nat : nat -> IntInf.int
+  val nat_of_integer : IntInf.int -> nat
   datatype int = Int_of_integer of IntInf.int
   val integer_of_int : int -> IntInf.int
-  val nat_of_integer : IntInf.int -> nat
+  type ('a, 'b) hashtable
   val sAT_wl_code : (nat list) list -> (unit -> bool)
 end = struct
+
+datatype nat = Nat of IntInf.int;
+
+fun integer_of_nat (Nat x) = x;
+
+fun equal_nata m n = (((integer_of_nat m) : IntInf.int) = (integer_of_nat n));
+
+type 'a equal = {equal : 'a -> 'a -> bool};
+val equal = #equal : 'a equal -> 'a -> 'a -> bool;
+
+val equal_nat = {equal = equal_nata} : nat equal;
 
 datatype typerepa = Typerep of string * typerepa list;
 
 datatype num = One | Bit0 of num | Bit1 of num;
 
 datatype char = Zero_char | Char of num;
-
-datatype nat = Nat of IntInf.int;
 
 datatype 'a itself = Type;
 
@@ -124,8 +134,6 @@ val default = #default : 'a default -> 'a;
 
 val default_nat = {default = default_nata} : nat default;
 
-fun integer_of_nat (Nat x) = x;
-
 fun less_eq_nat m n = IntInf.<= (integer_of_nat m, integer_of_nat n);
 
 type 'a ord = {less_eq : 'a -> 'a -> bool, less : 'a -> 'a -> bool};
@@ -136,13 +144,40 @@ fun less_nat m n = IntInf.< (integer_of_nat m, integer_of_nat n);
 
 val ord_nat = {less_eq = less_eq_nat, less = less_nat} : nat ord;
 
+fun max A_ a b = (if less_eq A_ a b then b else a);
+
+val ord_integer =
+  {less_eq = (fn a => fn b => IntInf.<= (a, b)),
+    less = (fn a => fn b => IntInf.< (a, b))}
+  : IntInf.int ord;
+
+fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
+
+fun def_hashmap_size_nat x = (fn _ => nat_of_integer (16 : IntInf.int)) x;
+
+type 'a hashable =
+  {hashcode : 'a -> Word32.word, def_hashmap_size : 'a itself -> nat};
+val hashcode = #hashcode : 'a hashable -> 'a -> Word32.word;
+val def_hashmap_size = #def_hashmap_size : 'a hashable -> 'a itself -> nat;
+
+datatype int = Int_of_integer of IntInf.int;
+
+fun int_of_nat n = Int_of_integer (integer_of_nat n);
+
+fun integer_of_int (Int_of_integer k) = k;
+
+fun uint32_of_int i = Word32.fromLargeInt (IntInf.toLarge (integer_of_int i));
+
+fun hashcode_nat n = uint32_of_int (int_of_nat n);
+
+val hashable_nat =
+  {hashcode = hashcode_nat, def_hashmap_size = def_hashmap_size_nat} :
+  nat hashable;
+
 fun equal_boola p true = p
   | equal_boola p false = not p
   | equal_boola true p = p
   | equal_boola false p = not p;
-
-type 'a equal = {equal : 'a -> 'a -> bool};
-val equal = #equal : 'a equal -> 'a -> 'a -> bool;
 
 val equal_bool = {equal = equal_boola} : bool equal;
 
@@ -154,6 +189,17 @@ val typerep_bool = {typerep = typerep_boola} : bool typerep;
 
 val heap_bool = {countable_heap = countable_bool, typerep_heap = typerep_bool} :
   bool heap;
+
+fun typerep_lista A_ t = Typerep ("List.list", [typerep A_ Type]);
+
+fun countable_list A_ = {} : ('a list) countable;
+
+fun typerep_list A_ = {typerep = typerep_lista A_} : ('a list) typerep;
+
+fun heap_list A_ =
+  {countable_heap = countable_list (countable_heap A_),
+    typerep_heap = typerep_list (typerep_heap A_)}
+  : ('a list) heap;
 
 fun typerep_arraya A_ t = Typerep ("Heap.array", [typerep A_ Type]);
 
@@ -188,18 +234,18 @@ fun heap_prod A_ B_ =
     typerep_heap = typerep_prod (typerep_heap A_) (typerep_heap B_)}
   : ('a * 'b) heap;
 
-val ord_integer =
-  {less_eq = (fn a => fn b => IntInf.<= (a, b)),
-    less = (fn a => fn b => IntInf.< (a, b))}
-  : IntInf.int ord;
+fun typerep_unita t = Typerep ("Product_Type.unit", []);
 
-datatype int = Int_of_integer of IntInf.int;
+val countable_unit = {} : unit countable;
+
+val typerep_unit = {typerep = typerep_unita} : unit typerep;
+
+val heap_unit = {countable_heap = countable_unit, typerep_heap = typerep_unit} :
+  unit heap;
+
+datatype ('a, 'b) hashtable = HashTable of (('a * 'b) list) array * nat;
 
 fun eq A_ a b = equal A_ a b;
-
-fun integer_of_int (Int_of_integer k) = k;
-
-fun max A_ a b = (if less_eq A_ a b then b else a);
 
 fun nat k = Nat (max ord_integer (0 : IntInf.int) (integer_of_int k));
 
@@ -208,17 +254,6 @@ fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
 val one_nat : nat = Nat (1 : IntInf.int);
 
 fun suc n = plus_nat n one_nat;
-
-fun minus_nat m n =
-  Nat (max ord_integer (0 : IntInf.int)
-        (IntInf.- (integer_of_nat m, integer_of_nat n)));
-
-fun equal_nat m n = (((integer_of_nat m) : IntInf.int) = (integer_of_nat n));
-
-fun nth (x :: xs) n =
-  (if equal_nat n zero_nata then x else nth xs (minus_nat n one_nat));
-
-fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
 
 fun len A_ a =
   (fn () => let
@@ -230,7 +265,7 @@ fun len A_ a =
 fun new A_ =
   (fn a => fn b => (fn () => Array.array (IntInf.toInt a, b))) o integer_of_nat;
 
-fun ntha A_ a n = (fn () => Array.sub (a, IntInf.toInt (integer_of_nat n)));
+fun nth A_ a n = (fn () => Array.sub (a, IntInf.toInt (integer_of_nat n)));
 
 fun upd A_ i x a =
   (fn () =>
@@ -252,6 +287,14 @@ fun hd (x21 :: x22) = x21;
 fun tl [] = []
   | tl (x21 :: x22) = x22;
 
+fun minus_nat m n =
+  Nat (max ord_integer (0 : IntInf.int)
+        (IntInf.- (integer_of_nat m, integer_of_nat n)));
+
+fun replicate n x =
+  (if equal_nata n zero_nata then []
+    else x :: replicate (minus_nat n one_nat) x);
+
 fun is_none (SOME x) = false
   | is_none NONE = true;
 
@@ -263,7 +306,172 @@ fun blit A_ src si dst di len =
 fun gen_length n (x :: xs) = gen_length (suc n) xs
   | gen_length n [] = n;
 
+fun ht_new_sz (A1_, A2_) B_ n =
+  let
+    val l = replicate n [];
+  in
+    (fn () => let
+                val a = (fn () => Array.fromList l) ();
+              in
+                HashTable (a, zero_nata)
+              end)
+  end;
+
+fun ht_new (A1_, A2_) B_ = ht_new_sz (A1_, A2_) B_ (def_hashmap_size A1_ Type);
+
+fun sgn_integer k =
+  (if ((k : IntInf.int) = (0 : IntInf.int)) then (0 : IntInf.int)
+    else (if IntInf.< (k, (0 : IntInf.int)) then (~1 : IntInf.int)
+           else (1 : IntInf.int)));
+
+fun apsnd f (x, y) = (x, f y);
+
+fun divmod_integer k l =
+  (if ((k : IntInf.int) = (0 : IntInf.int))
+    then ((0 : IntInf.int), (0 : IntInf.int))
+    else (if ((l : IntInf.int) = (0 : IntInf.int)) then ((0 : IntInf.int), k)
+           else (apsnd o (fn a => fn b => IntInf.* (a, b)) o sgn_integer) l
+                  (if (((sgn_integer k) : IntInf.int) = (sgn_integer l))
+                    then IntInf.divMod (IntInf.abs k, IntInf.abs l)
+                    else let
+                           val (r, s) =
+                             IntInf.divMod (IntInf.abs k, IntInf.abs l);
+                         in
+                           (if ((s : IntInf.int) = (0 : IntInf.int))
+                             then (IntInf.~ r, (0 : IntInf.int))
+                             else (IntInf.- (IntInf.~ r, (1 : IntInf.int)),
+                                    IntInf.- (IntInf.abs l, s)))
+                         end)));
+
+fun snd (x1, x2) = x2;
+
+fun modulo_integer k l = snd (divmod_integer k l);
+
+fun modulo_nat m n = Nat (modulo_integer (integer_of_nat m) (integer_of_nat n));
+
+fun nat_of_uint32 x =
+  nat_of_integer (IntInf.fromLarge (Word32.toLargeInt x) : IntInf.int);
+
+fun nat_of_hashcode x = nat_of_uint32 x;
+
+fun bounded_hashcode_nat A_ n x =
+  modulo_nat (nat_of_hashcode (hashcode A_ x)) n;
+
+fun fst (x1, x2) = x1;
+
+fun the_array (HashTable (a, uu)) = a;
+
+fun ls_update A_ k v [] = ([(k, v)], false)
+  | ls_update A_ k v ((l, w) :: ls) =
+    (if eq A_ k l then ((k, v) :: ls, true)
+      else let
+             val r = ls_update A_ k v ls;
+           in
+             ((l, w) :: fst r, snd r)
+           end);
+
+fun the_size (HashTable (uu, n)) = n;
+
+fun ht_upd (A1_, A2_, A3_) B_ k v ht =
+  (fn () =>
+    let
+      val m = len (heap_list (heap_prod A3_ B_)) (the_array ht) ();
+    in
+      let
+        val i = bounded_hashcode_nat A2_ m k;
+      in
+        (fn f_ => fn () => f_
+          ((nth (heap_list (heap_prod A3_ B_)) (the_array ht) i) ()) ())
+          (fn l =>
+            let
+              val la = ls_update A1_ k v l;
+            in
+              (fn f_ => fn () => f_
+                ((upd (heap_list (heap_prod A3_ B_)) i (fst la) (the_array ht))
+                ()) ())
+                (fn _ =>
+                  let
+                    val n = (if snd la then the_size ht else suc (the_size ht));
+                  in
+                    (fn () => (HashTable (the_array ht, n)))
+                  end)
+            end)
+      end
+        ()
+    end);
+
 fun the (SOME x2) = x2;
+
+fun ht_insls (A1_, A2_, A3_) B_ [] ht = (fn () => ht)
+  | ht_insls (A1_, A2_, A3_) B_ ((k, v) :: l) ht =
+    (fn () => let
+                val x = ht_upd (A1_, A2_, A3_) B_ k v ht ();
+              in
+                ht_insls (A1_, A2_, A3_) B_ l x ()
+              end);
+
+fun ht_copy (A1_, A2_, A3_) B_ n src dst =
+  (if equal_nata n zero_nata then (fn () => dst)
+    else (fn () =>
+           let
+             val l =
+               nth (heap_list (heap_prod A3_ B_)) (the_array src)
+                 (minus_nat n one_nat) ();
+             val x = ht_insls (A1_, A2_, A3_) B_ l dst ();
+           in
+             ht_copy (A1_, A2_, A3_) B_ (minus_nat n one_nat) src x ()
+           end));
+
+fun times_nat m n = Nat (IntInf.* (integer_of_nat m, integer_of_nat n));
+
+val load_factor : nat = nat_of_integer (75 : IntInf.int);
+
+fun ht_rehash (A1_, A2_, A3_) B_ ht =
+  (fn () =>
+    let
+      val n = len (heap_list (heap_prod A3_ B_)) (the_array ht) ();
+      val x =
+        ht_new_sz (A2_, A3_) B_ (times_nat (nat_of_integer (2 : IntInf.int)) n)
+          ();
+    in
+      ht_copy (A1_, A2_, A3_) B_ n ht x ()
+    end);
+
+fun ht_update (A1_, A2_, A3_) B_ k v ht =
+  (fn () =>
+    let
+      val m = len (heap_list (heap_prod A3_ B_)) (the_array ht) ();
+      val x =
+        (if less_eq_nat (times_nat m load_factor)
+              (times_nat (the_size ht) (nat_of_integer (100 : IntInf.int)))
+          then ht_rehash (A1_, A2_, A3_) B_ ht else (fn () => ht))
+          ();
+    in
+      ht_upd (A1_, A2_, A3_) B_ k v x ()
+    end);
+
+fun hs_ins (A1_, A2_, A3_) x ht = ht_update (A1_, A2_, A3_) heap_unit x () ht;
+
+fun hs_new (A1_, A2_) = ht_new (A1_, A2_) heap_unit;
+
+fun ls_lookup A_ x [] = NONE
+  | ls_lookup A_ x ((k, v) :: l) =
+    (if eq A_ x k then SOME v else ls_lookup A_ x l);
+
+fun ht_lookup (A1_, A2_, A3_) B_ x ht =
+  (fn () =>
+    let
+      val m = len (heap_list (heap_prod A3_ B_)) (the_array ht) ();
+    in
+      let
+        val i = bounded_hashcode_nat A2_ m x;
+      in
+        (fn f_ => fn () => f_
+          ((nth (heap_list (heap_prod A3_ B_)) (the_array ht) i) ()) ())
+          (fn l => (fn () => (ls_lookup A1_ x l)))
+      end
+        ()
+    end);
 
 fun op_list_hd x = hd x;
 
@@ -274,7 +482,7 @@ fun array_grow A_ a s x =
     let
       val l = len A_ a ();
     in
-      (if equal_nat l s then (fn () => a)
+      (if equal_nata l s then (fn () => a)
         else (fn f_ => fn () => f_ ((new A_ s x) ()) ())
                (fn aa =>
                  (fn f_ => fn () => f_ ((blit A_ a zero_nata aa zero_nata l) ())
@@ -283,19 +491,20 @@ fun array_grow A_ a s x =
         ()
     end);
 
-fun op_list_get x = nth x;
-
-fun fst (x1, x2) = x1;
-
-fun snd (x1, x2) = x2;
+fun hs_memb (A1_, A2_, A3_) x s =
+  (fn () => let
+              val r = ht_lookup (A1_, A2_, A3_) heap_unit x s ();
+            in
+              (case r of NONE => false | SOME _ => true)
+            end);
 
 fun array_copy A_ a =
   (fn () =>
     let
       val l = len A_ a ();
     in
-      (if equal_nat l zero_nata then (fn () => Array.fromList [])
-        else (fn f_ => fn () => f_ ((ntha A_ a zero_nata) ()) ())
+      (if equal_nata l zero_nata then (fn () => Array.fromList [])
+        else (fn f_ => fn () => f_ ((nth A_ a zero_nata) ()) ())
                (fn s =>
                  (fn f_ => fn () => f_ ((new A_ l s) ()) ())
                    (fn aa =>
@@ -305,12 +514,12 @@ fun array_copy A_ a =
         ()
     end);
 
-fun arl_get A_ = (fn (a, _) => ntha A_ a);
+fun arl_get A_ = (fn (a, _) => nth A_ a);
 
 fun nth_aa A_ xs i j =
   (fn () =>
     let
-      val x = ntha (heap_prod (heap_array (typerep_heap A_)) heap_nat) xs i ();
+      val x = nth (heap_prod (heap_array (typerep_heap A_)) heap_nat) xs i ();
       val xa = arl_get A_ x j ();
     in
       xa
@@ -321,9 +530,9 @@ fun array_shrink A_ a s =
     let
       val l = len A_ a ();
     in
-      (if equal_nat l s then (fn () => a)
-        else (if equal_nat l zero_nata then (fn () => Array.fromList [])
-               else (fn f_ => fn () => f_ ((ntha A_ a zero_nata) ()) ())
+      (if equal_nata l s then (fn () => a)
+        else (if equal_nata l zero_nata then (fn () => Array.fromList [])
+               else (fn f_ => fn () => f_ ((nth A_ a zero_nata) ()) ())
                       (fn x =>
                         (fn f_ => fn () => f_ ((new A_ s x) ()) ())
                           (fn aa =>
@@ -355,12 +564,12 @@ fun imp_for i u f s =
                      imp_for (plus_nat i one_nat) u f x ()
                    end));
 
-fun arl_last A_ = (fn (a, n) => ntha A_ a (minus_nat n one_nat));
+fun arl_last A_ = (fn (a, n) => nth A_ a (minus_nat n one_nat));
 
 fun last_aa A_ xs i =
   (fn () =>
     let
-      val x = ntha (heap_prod (heap_array (typerep_heap A_)) heap_nat) xs i ();
+      val x = nth (heap_prod (heap_array (typerep_heap A_)) heap_nat) xs i ();
     in
       arl_last A_ x ()
     end);
@@ -368,7 +577,7 @@ fun last_aa A_ xs i =
 fun nth_raa A_ xs i j =
   (fn () => let
               val x = arl_get (heap_array (typerep_heap A_)) xs i ();
-              val xa = ntha A_ x j ();
+              val xa = nth A_ x j ();
             in
               xa
             end);
@@ -426,7 +635,7 @@ fun arl_length A_ = (fn (_, a) => (fn () => a));
 fun length_aa A_ xs i =
   (fn () =>
     let
-      val x = ntha (heap_prod (heap_array (typerep_heap A_)) heap_nat) xs i ();
+      val x = nth (heap_prod (heap_array (typerep_heap A_)) heap_nat) xs i ();
     in
       arl_length A_ x ()
     end);
@@ -434,17 +643,13 @@ fun length_aa A_ xs i =
 fun update_aa A_ a i j y =
   (fn () =>
     let
-      val x = ntha (heap_prod (heap_array (typerep_heap A_)) heap_nat) a i ();
+      val x = nth (heap_prod (heap_array (typerep_heap A_)) heap_nat) a i ();
       val aa = arl_set A_ x j y ();
     in
       upd (heap_prod (heap_array (typerep_heap A_)) heap_nat) i aa a ()
     end);
 
 fun length_ra A_ xs = arl_length (heap_array (typerep_heap A_)) xs;
-
-fun int_of_nat n = Int_of_integer (integer_of_nat n);
-
-fun times_nat m n = Nat (IntInf.* (integer_of_nat m, integer_of_nat n));
 
 fun arl_append (A1_, A2_) =
   (fn (a, n) => fn x => fn () =>
@@ -508,7 +713,7 @@ fun arl_butlast A_ =
 
 fun is_None a = (case a of NONE => true | SOME _ => false);
 
-fun arl_is_empty A_ = (fn (_, n) => (fn () => (equal_nat n zero_nata)));
+fun arl_is_empty A_ = (fn (_, n) => (fn () => (equal_nata n zero_nata)));
 
 fun heap_WHILET b f s =
   (fn () =>
@@ -523,7 +728,7 @@ fun heap_WHILET b f s =
 fun append_el_aa (A1_, A2_) =
   (fn a => fn i => fn x => fn () =>
     let
-      val j = ntha (heap_prod (heap_array (typerep_heap A2_)) heap_nat) a i ();
+      val j = nth (heap_prod (heap_array (typerep_heap A2_)) heap_nat) a i ();
       val aa = arl_append (A1_, A2_) j x ();
     in
       upd (heap_prod (heap_array (typerep_heap A2_)) heap_nat) i aa a ()
@@ -532,7 +737,7 @@ fun append_el_aa (A1_, A2_) =
 fun set_butlast_aa A_ a i =
   (fn () =>
     let
-      val x = ntha (heap_prod (heap_array (typerep_heap A_)) heap_nat) a i ();
+      val x = nth (heap_prod (heap_array (typerep_heap A_)) heap_nat) a i ();
       val aa = arl_butlast A_ x ();
     in
       upd (heap_prod (heap_array (typerep_heap A_)) heap_nat) i aa a ()
@@ -625,7 +830,7 @@ fun is_in_arl_code x =
               (fn xa =>
                 (if less_nat s xa
                   then (fn f_ => fn () => f_ ((arl_get heap_nat bi s) ()) ())
-                         (fn xb => (fn () => (not (equal_nat xb ai))))
+                         (fn xb => (fn () => (not (equal_nata xb ai))))
                   else (fn () => false))))
           (fn s => (fn () => (plus_nat s one_nat))) zero_nata ();
       val x_a = arl_length heap_nat bi ();
@@ -645,7 +850,7 @@ fun find_first_eq_code x =
         in
           (if less_nat s xa
             then (fn f_ => fn () => f_ ((arl_get heap_nat bi s) ()) ())
-                   (fn xb => (fn () => (not (equal_nat xb ai))))
+                   (fn xb => (fn () => (not (equal_nata xb ai))))
             else (fn () => false))
             ()
         end)
@@ -658,12 +863,63 @@ fun remove1_wl_code x =
       val xa = find_first_eq_code ai bi ();
       val x_a = arl_length heap_nat bi ();
     in
-      (if equal_nat xa x_a then (fn () => bi)
+      (if equal_nata xa x_a then (fn () => bi)
         else (fn f_ => fn () => f_
                ((arl_swap heap_nat bi xa (minus_nat x_a one_nat)) ()) ())
                (arl_butlast heap_nat))
         ()
     end)
+    x;
+
+val extract_lits_clss_imp_empty_assn :
+  (unit -> ((nat, unit) hashtable * nat list))
+  = (fn () => let
+                val x = hs_new (hashable_nat, heap_nat) ();
+              in
+                (x, [])
+              end);
+
+fun nat_lit_lits_init_assn_assn_prepend x =
+  (fn ai => fn (a1, a2) => fn () =>
+    let
+      val xa =
+        hs_ins (equal_nat, hashable_nat, heap_nat)
+          ((nat_of_integer(IntInf.~>> (integer_of_nat(ai), Word.fromInt 1)))) a1
+          ();
+    in
+      (xa, op_list_prepend ai a2)
+    end)
+    x;
+
+fun nat_lit_lits_init_assn_assn_in x =
+  (fn ai => fn (a1, _) => hs_memb (equal_nat, hashable_nat, heap_nat) ai a1) x;
+
+fun extract_lits_cls_imp x =
+  (fn ai =>
+    imp_nfoldli ai (fn _ => (fn () => true))
+      (fn xa => fn sigma => fn () =>
+        let
+          val x_a =
+            nat_lit_lits_init_assn_assn_in
+              ((nat_of_integer(IntInf.~>> (integer_of_nat(xa),
+                Word.fromInt 1))))
+              sigma ();
+        in
+          (if x_a then (fn () => sigma)
+            else nat_lit_lits_init_assn_assn_prepend xa sigma)
+            ()
+        end))
+    x;
+
+fun extract_lits_clss_imp x =
+  (fn ai => imp_nfoldli ai (fn _ => (fn () => true)) extract_lits_cls_imp) x;
+
+fun extract_lits_clss_imp_list_assn x =
+  (fn ai => fn bi => fn () => let
+                                val xa = extract_lits_clss_imp ai bi ();
+                              in
+                                snd xa
+                              end)
     x;
 
 fun get_conflict_wl_is_None_code x =
@@ -686,7 +942,7 @@ fun cons_trail_Propagated_tr_code x =
       val xa =
         upd (heap_prod (heap_option heap_bool) heap_nat)
           ((nat_of_integer(IntInf.~>> (integer_of_nat(ai), Word.fromInt 1))))
-          (SOME (equal_nat (bitAND_nat ai one_nat) zero_nata), a2a) a1a ();
+          (SOME (equal_nata (bitAND_nat ai one_nat) zero_nata), a2a) a1a ();
     in
       (op_list_prepend (propagated ai bia) a1, (xa, a2a))
     end)
@@ -708,14 +964,14 @@ fun valued_trail_code x =
       (fn () =>
         let
           val xa =
-            ntha (heap_prod (heap_option heap_bool) heap_nat) a1a
+            nth (heap_prod (heap_option heap_bool) heap_nat) a1a
               ((nat_of_integer(IntInf.~>> (integer_of_nat(bi),
                 Word.fromInt 1))))
               ();
         in
           (case fst xa of NONE => NONE
             | SOME x_a =>
-              (if equal_nat (bitAND_nat bi one_nat) zero_nata then SOME x_a
+              (if equal_nata (bitAND_nat bi one_nat) zero_nata then SOME x_a
                 else SOME (not x_a)))
         end)
     end)
@@ -732,7 +988,7 @@ fun find_unwatched_code x =
       (fn (_, a2) => fn () =>
         let
           val xa = nth_rl heap_nat bia bi ();
-          val xb = ntha heap_nat xa a2 ();
+          val xb = nth heap_nat xa a2 ();
           val x_a = valued_trail_code ai xb ();
         in
           (case x_a of NONE => (SOME false, a2) | SOME true => (SOME true, a2)
@@ -749,7 +1005,7 @@ fun unit_propagation_inner_loop_body_wl_D_code x =
       val xa = nth_raa heap_nat a1a x_a zero_nata ();
     in
       let
-        val x_c = (if equal_nat xa ai then zero_nata else one_nat);
+        val x_c = (if equal_nata xa ai then zero_nata else one_nat);
       in
         (fn f_ => fn () => f_
           ((nth_raa heap_nat a1a x_a (minus_nat one_nat x_c)) ()) ())
@@ -888,7 +1144,7 @@ fun get_level_code_get_level_code x =
       (fn () =>
         let
           val xa =
-            ntha (heap_prod (heap_option heap_bool) heap_nat) a1a
+            nth (heap_prod (heap_option heap_bool) heap_nat) a1a
               ((nat_of_integer(IntInf.~>> (integer_of_nat(bi),
                 Word.fromInt 1))))
               ();
@@ -907,7 +1163,7 @@ fun maximum_level_remove_code x =
           (fn xb => fn (a1, a2) =>
             (fn f_ => fn () => f_ ((arl_get heap_nat bia xb) ()) ())
               (fn xc =>
-                (if equal_nat xc bi andalso not a1 then (fn () => (true, a2))
+                (if equal_nata xc bi andalso not a1 then (fn () => (true, a2))
                   else (fn f_ => fn () => f_ ((arl_get heap_nat bia xb) ()) ())
                          (fn xd =>
                            (fn f_ => fn () => f_
@@ -971,16 +1227,16 @@ fun skip_and_resolve_loop_wl_D_code x =
                                     (uminus_lit_imp a1h))
                                  ()) ())
                                  (fn xd =>
-                                   (if equal_nat xd let
-              val (_, (_, k)) = a1a;
-            in
-              k
-            end
+                                   (if equal_nata xd let
+               val (_, (_, k)) = a1a;
+             in
+               k
+             end
                                      then (fn f_ => fn () => f_
     ((remove1_wl_code (uminus_lit_imp a1h) x_b) ()) ())
     (fn x_h =>
       (fn f_ => fn () => f_
-        ((if equal_nat a2h zero_nata
+        ((if equal_nata a2h zero_nata
            then arl_empty (default_nat, heap_nat) zero_nat
            else (fn f_ => fn () => f_ ((nth_rl heap_nat a1b a2h) ()) ())
                   (fn xe =>
@@ -1038,7 +1294,7 @@ fun cons_trail_Decided_tr_code x =
       val xa =
         upd (heap_prod (heap_option heap_bool) heap_nat)
           ((nat_of_integer(IntInf.~>> (integer_of_nat(ai), Word.fromInt 1))))
-          (SOME (equal_nat (bitAND_nat ai one_nat) zero_nata),
+          (SOME (equal_nata (bitAND_nat ai one_nat) zero_nata),
             plus_nat a2a one_nat)
           a1a ();
     in
@@ -1084,8 +1340,8 @@ fun find_lit_of_max_level_wl_imp_code x =
                       ()) ())
                       (fn xba =>
                         (fn () =>
-                          (if not (equal_nat xaa (uminus_lit_imp bi))
-                            then not (equal_nat xba xa) else true))))))
+                          (if not (equal_nata xaa (uminus_lit_imp bi))
+                            then not (equal_nata xba xa) else true))))))
           (fn s => (fn () => (plus_nat s one_nat))) zero_nata ();
     in
       arl_get heap_nat bie xb ()
@@ -1100,7 +1356,7 @@ fun remove1_and_add_first_code x =
       val x_d = arl_swap heap_nat bi zero_nata xa ();
     in
       arl_swap heap_nat x_d one_nat
-        (if equal_nat x_b zero_nata then xa else x_b) ()
+        (if equal_nata x_b zero_nata then xa else x_b) ()
     end)
     x;
 
@@ -1252,39 +1508,6 @@ fun cdcl_twl_stgy_prog_wl_D_code n_0 =
         ()
     end);
 
-fun find_first_eq_map_atm_of_code x =
-  (fn ai => fn bi =>
-    heap_WHILET
-      (fn s =>
-        (fn () =>
-          (if less_nat s (op_list_length bi)
-            then not (equal_nat
-                       ((nat_of_integer(IntInf.~>>
-                         (integer_of_nat(op_list_get bi s), Word.fromInt 1))))
-                       ai)
-            else false)))
-      (fn s => (fn () => (plus_nat s one_nat))) zero_nata)
-    x;
-
-fun extract_lits_cls_code x =
-  (fn ai =>
-    imp_nfoldli ai (fn _ => (fn () => true))
-      (fn xa => fn sigma => fn () =>
-        let
-          val x_a =
-            find_first_eq_map_atm_of_code
-              ((nat_of_integer(IntInf.~>> (integer_of_nat(xa),
-                Word.fromInt 1))))
-              sigma ();
-        in
-          (if less_nat x_a (op_list_length sigma) then sigma
-            else op_list_prepend xa sigma)
-        end))
-    x;
-
-fun extract_lits_clss_code x =
-  (fn ai => imp_nfoldli ai (fn _ => (fn () => true)) extract_lits_cls_code) x;
-
 fun init_state_wl_D n l_Ns =
   let
     val na = suc (suc (fold (max ord_nat) n zero_nata));
@@ -1317,7 +1540,7 @@ fun init_dt_step_wl_code x =
   (fn _ => fn bia => fn a =>
     (case a
       of (a1, (a1a, (a1b, (NONE, (a1d, (a1e, (a1f, a2f))))))) =>
-        (if equal_nat (op_list_length bia) one_nat
+        (if equal_nata (op_list_length bia) one_nat
           then let
                  val x_b = op_list_hd bia;
                in
@@ -1360,7 +1583,7 @@ fun init_dt_step_wl_code x =
                    (a1, (xb, (x_b, (NONE, (a1d, (a1e, (a1f, x_f)))))))
                  end))
       | (a1, (a1a, (a1b, (SOME x_a, (a1d, (a1e, (_, a2f))))))) =>
-        (if equal_nat (op_list_length bia) one_nat
+        (if equal_nata (op_list_length bia) one_nat
           then (fn () =>
                  (a1, (a1a, (a1b, (SOME x_a,
                                     ([op_list_hd bia] :: a1d,
@@ -1389,7 +1612,8 @@ fun init_dt_wl_code x =
 fun sAT_wl_code x =
   (fn xi => fn () =>
     let
-      val x_b = extract_lits_clss_code xi [] ();
+      val xa = extract_lits_clss_imp_empty_assn ();
+      val x_b = extract_lits_clss_imp_list_assn xi xa ();
       val x_d = init_state_wl_D_code x_b (op_list_length xi) ();
       val x_f = init_dt_wl_code x_b xi x_d ();
       val x_g = get_conflict_wl_is_None_code x_f ();

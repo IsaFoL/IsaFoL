@@ -113,6 +113,13 @@ fun less_nat m n = IntInf.< (integer_of_nat m, integer_of_nat n);
 
 val ord_nat = {less_eq = less_eq_nat, less = less_nat} : nat ord;
 
+fun equal_boola p true = p
+  | equal_boola p false = not p
+  | equal_boola true p = p
+  | equal_boola false p = not p;
+
+val equal_bool = {equal = equal_boola} : bool equal;
+
 val ord_integer =
   {less_eq = (fn a => fn b => IntInf.<= (a, b)),
     less = (fn a => fn b => IntInf.< (a, b))}
@@ -192,6 +199,9 @@ fun dropWhile p [] = []
 fun removeAll A_ x [] = []
   | removeAll A_ x (y :: xs) =
     (if eq A_ x y then removeAll A_ x xs else y :: removeAll A_ x xs);
+
+fun is_none (SOME x) = false
+  | is_none NONE = true;
 
 fun gen_length n (x :: xs) = gen_length (suc n) xs
   | gen_length n [] = n;
@@ -301,10 +311,10 @@ fun bt_cut i (Propagated (uu, uv) :: ls) = bt_cut i ls
       else bt_cut i ls)
   | bt_cut i [] = NONE;
 
-fun equal_bool p true = p
-  | equal_bool p false = not p
-  | equal_bool true p = p
-  | equal_bool false p = not p;
+fun equal_option A_ NONE (SOME x2) = false
+  | equal_option A_ (SOME x2) NONE = false
+  | equal_option A_ (SOME x2) (SOME y2) = eq A_ x2 y2
+  | equal_option A_ NONE NONE = true;
 
 fun minus_multiset A_ (Mset xs) (Mset ys) = Mset (fold (remove1 A_) ys xs);
 
@@ -325,20 +335,12 @@ fun lit_of_impl l = (case l of Decided k => k | Propagated (k, _) => k);
 
 fun op_Decided x = Decided x;
 
-fun nat_lit_eq_cases k l =
-  (case (k, l) of (Pos ka, Pos a) => equal_nata ka a | (Pos _, Neg _) => false
-    | (Neg _, Pos _) => false | (Neg ka, Neg a) => equal_nata ka a);
-
-fun option_bool_eq_impl la l =
-  (if is_None la then (if is_None l then true else false)
-    else (if is_None l then false else equal_bool (the la) (the l)));
-
 fun valued_impl x =
   (fn ai => fn bi =>
-    imp_nfoldli ai (fn sigma => (fn () => (option_bool_eq_impl sigma NONE)))
+    imp_nfoldli ai (fn sigma => (fn () => (is_none sigma)))
       (fn xa => fn _ =>
         (fn () =>
-          (if nat_lit_eq_cases bi (lit_of_impl xa) then SOME true
+          (if equal_literala equal_nat bi (lit_of_impl xa) then SOME true
             else (if equal_nata (atm_of_impl bi) (atm_of_impl (lit_of_impl xa))
                    then SOME false else NONE))))
       NONE)
@@ -454,9 +456,7 @@ fun find_unwatched_impl x =
   (fn ai => fn bi =>
     heap_WHILET
       (fn (a1, a2) =>
-        (fn () =>
-          (option_bool_eq_impl a1 NONE andalso
-            less_nat a2 (op_list_length bi))))
+        (fn () => (is_none a1 andalso less_nat a2 (op_list_length bi))))
       (fn (_, a2) => fn () =>
         let
           val x_a = valued_impl ai (op_list_get bi a2) ();
@@ -491,7 +491,7 @@ fun find_unassigned_lit_l_impl x =
                        ()) ())
                        (fn x_b =>
                          (fn () =>
-                           (if option_bool_eq_impl x_b NONE
+                           (if is_none x_b
                              then (a1h, SOME
   (op_list_get (op_list_get a1a a1g) a1h))
                              else (plus_nat a1h one_nat, NONE)))))
@@ -637,7 +637,8 @@ fun unit_propagation_inner_loop_l_impl x =
           val (a1, a2) = (tl_of_working_queue_l s, hd_of_working_queue_l s);
           val (a1g, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f, a2f))))))) = a1;
           val x_a =
-            (if nat_lit_eq_cases (op_list_get (op_list_get a1a a2) zero_nat) ai
+            (if equal_literala equal_nat
+                  (op_list_get (op_list_get a1a a2) zero_nat) ai
               then zero_nat else one_nat);
           val x_e = op_list_get (op_list_get a1a a2) (minus_nat one_nat x_a);
         in
@@ -645,15 +646,15 @@ fun unit_propagation_inner_loop_l_impl x =
             let
               val x_g = valued_impl a1g x_e ();
             in
-              (if option_bool_eq_impl x_g (SOME true)
+              (if equal_option equal_bool x_g (SOME true)
                 then (fn () =>
                        (a1g, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f, a2f))))))))
                 else (fn f_ => fn () => f_
                        ((find_unwatched_impl a1g (op_list_get a1a a2)) ()) ())
                        (fn x_i =>
                          (fn () =>
-                           (if option_bool_eq_impl (fst x_i) NONE
-                             then (if option_bool_eq_impl x_g (SOME false)
+                           (if is_none (fst x_i)
+                             then (if equal_option equal_bool x_g (SOME false)
                                     then (a1g,
    (a1a, (a1b, (SOME (op_list_get a1a a2), (a1d, (a1e, ([], [])))))))
                                     else (op_list_prepend (op_Propagated x_e a2)
