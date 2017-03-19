@@ -16,7 +16,7 @@ qed
 text_raw {*}%EndSnippet*}
   
 text_raw {*\DefineSnippet{idexample}{*}
-theorem identities:
+lemma identities:
   assumes "\<forall>y. identity y = y"
   shows "identity (identity (identity x)) = x"
 proof -
