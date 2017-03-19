@@ -12,13 +12,13 @@ abbreviation nat_lits_trail_assn :: "ann_lits_l \<Rightarrow> (nat, nat) ann_lit
   \<open>nat_lits_trail_assn \<equiv> list_assn (nat_ann_lit_assn :: (nat, nat) ann_lit \<Rightarrow> _)\<close>
 
 abbreviation clause_ll_assn :: "nat clause_l \<Rightarrow> nat clause_l \<Rightarrow> assn" where
-  \<open>clause_ll_assn \<equiv> list_assn nat_lit_assn\<close>
+  \<open>clause_ll_assn \<equiv> list_assn nat_lit_assn_id\<close>
 
 abbreviation clauses_ll_assn :: "nat clauses_l \<Rightarrow> nat clauses_l \<Rightarrow> assn" where
   \<open>clauses_ll_assn \<equiv> list_assn clause_ll_assn\<close>
 
 abbreviation clause_l_assn :: "nat clause \<Rightarrow> nat clause_l \<Rightarrow> assn" where
-  \<open>clause_l_assn \<equiv> list_mset_assn nat_lit_assn\<close>
+  \<open>clause_l_assn \<equiv> list_mset_assn nat_lit_assn_id\<close>
 
 abbreviation clauses_l_assn :: "nat clauses \<Rightarrow> nat clauses_l \<Rightarrow> assn" where
   \<open>clauses_l_assn \<equiv> list_mset_assn clause_l_assn\<close>
@@ -40,7 +40,7 @@ fun twl_st_of_ll :: \<open>twl_st_ll \<Rightarrow> nat twl_st_l\<close> where
   \<open>twl_st_of_ll (M, N, U, D, NP, UP, WS, Q) = (M, N, U, map_option mset D, mset `# mset NP, mset `# mset UP, mset WS, mset Q)\<close>
 
 abbreviation cconflict_assn :: \<open>nat cconflict \<Rightarrow> nat cconflict_l \<Rightarrow> assn\<close> where
-  \<open>cconflict_assn \<equiv> option_assn (list_mset_assn nat_lit_assn)\<close>
+  \<open>cconflict_assn \<equiv> option_assn (list_mset_assn nat_lit_assn_id)\<close>
 
 notation prod_assn (infixr "*assn" 90)
 
@@ -58,7 +58,7 @@ abbreviation nat_ann_lits_assn :: "ann_lits_l \<Rightarrow> ann_lits_l \<Rightar
 
 sepref_definition defined_lit_map_impl' is
   \<open>uncurry (defined_lit_map_impl :: (nat, nat) ann_lit list \<Rightarrow> _)\<close> ::
-  \<open>(nat_ann_lits_assn)\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  \<open>(nat_ann_lits_assn)\<^sup>k *\<^sub>a nat_lit_assn_id\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding defined_lit_map_impl_def
   by sepref
 
@@ -77,7 +77,7 @@ lemma defined_lit_map_impl_spec: \<open>(uncurry defined_lit_map_impl, uncurry (
 
 lemma defined_lit_map_impl'_refine:
   \<open>(uncurry (defined_lit_map_impl'), uncurry (RETURN oo op_defined_lit_imp)) \<in>
-    (nat_ann_lits_assn)\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+    (nat_ann_lits_assn)\<^sup>k *\<^sub>a nat_lit_assn_id\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   using defined_lit_map_impl'.refine[FCOMP defined_lit_map_impl_spec]
   unfolding op_defined_lit_imp_def .
 
@@ -98,7 +98,7 @@ definition valued_impl :: "(nat, nat) ann_lits \<Rightarrow> nat literal \<Right
     None\<close>
 
 sepref_definition valued_impl' is \<open>uncurry valued_impl\<close> ::
-  \<open>(nat_ann_lits_assn)\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn\<close>
+  \<open>(nat_ann_lits_assn)\<^sup>k *\<^sub>a nat_lit_assn_id\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn\<close>
   unfolding valued_impl_def
   by sepref
 
@@ -143,7 +143,7 @@ lemma case_bool_if: "case_bool a b v = (if v then a else b)"
 
 lemma valued_impl'_refine:
   shows \<open>(uncurry valued_impl', uncurry (RETURN oo op_valued)) \<in>
-    [\<lambda>(M, _). no_dup M]\<^sub>a (nat_ann_lits_assn)\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> option_assn bool_assn\<close>
+    [\<lambda>(M, _). no_dup M]\<^sub>a (nat_ann_lits_assn)\<^sup>k *\<^sub>a nat_lit_assn_id\<^sup>k \<rightarrow> option_assn bool_assn\<close>
   using valued_impl'.refine[FCOMP valued_impl_spec]
   unfolding hrp_comp_Id2 valued'_def op_valued_def .
 
@@ -155,7 +155,7 @@ end
 sepref_definition find_unwatched_impl is
    "uncurry (find_unwatched :: (nat, nat) ann_lits
       \<Rightarrow> nat literal list \<Rightarrow> (bool option \<times> nat) nres)"
-  :: \<open>[\<lambda>(M, L). no_dup M]\<^sub>anat_ann_lits_assn\<^sup>k *\<^sub>a (list_assn nat_lit_assn)\<^sup>k \<rightarrow> prod_assn (option_assn bool_assn) nat_assn\<close>
+  :: \<open>[\<lambda>(M, L). no_dup M]\<^sub>anat_ann_lits_assn\<^sup>k *\<^sub>a (list_assn nat_lit_assn_id)\<^sup>k \<rightarrow> prod_assn (option_assn bool_assn) nat_assn\<close>
   unfolding find_unwatched_def
   supply [[goals_limit=1]]
   by sepref
@@ -177,7 +177,7 @@ lemma [def_pat_rules]:
 
 lemma op_Propagated_refine[sepref_fr_rules]:
   \<open>(uncurry (return oo op_Propagated), uncurry (RETURN oo op_Propagated)) \<in>
-     nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_ann_lit_assn\<close>
+     nat_lit_assn_id\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_ann_lit_assn\<close>
   apply (
     sep_auto
       simp: pure_def hn_ctxt_def invalid_assn_def list_assn_aux_eqlen_simp
@@ -203,7 +203,7 @@ lemma [def_pat_rules]:
 
 lemma op_uminus_lit_refine[sepref_fr_rules]:
   \<open>(return o op_uminus_lit, RETURN o op_uminus_lit) \<in>
-     nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_assn\<close>
+     nat_lit_assn_id\<^sup>k \<rightarrow>\<^sub>a nat_lit_assn_id\<close>
   apply (
     sep_auto
       simp: pure_def hn_ctxt_def invalid_assn_def list_assn_aux_eqlen_simp
@@ -213,7 +213,7 @@ lemma op_uminus_lit_refine[sepref_fr_rules]:
 
 lemma [sepref_fr_rules]:
   \<open>((return o op_Decided), (RETURN o op_Decided)) \<in>
-     nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_ann_lit_assn\<close>
+     nat_lit_assn_id\<^sup>k \<rightarrow>\<^sub>a nat_ann_lit_assn\<close>
   apply (
     sep_auto
       simp: pure_def hn_ctxt_def invalid_assn_def list_assn_aux_eqlen_simp
@@ -236,7 +236,7 @@ lemma id_mset_hnr[sepref_fr_rules]:
 
 sepref_definition unit_propagation_inner_loop_body_l_impl is \<open>uncurry2 (unit_propagation_inner_loop_body_l :: nat literal \<Rightarrow> nat \<Rightarrow>
   nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close> ::
-  \<open>nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
+  \<open>nat_lit_assn_id\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
   unfolding unit_propagation_inner_loop_body_l_def unfolding lms_fold_custom_empty
   supply [[goals_limit=1]]
   by sepref
@@ -503,7 +503,7 @@ lemma working_queue_l_refine[sepref_fr_rules]:
 
 sepref_definition unit_propagation_inner_loop_l_impl is
   \<open>uncurry (unit_propagation_inner_loop_l :: nat literal \<Rightarrow> nat twl_st_l \<Rightarrow> nat twl_st_l nres)\<close>
-  :: \<open>nat_lit_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
+  :: \<open>nat_lit_assn_id\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
   unfolding unit_propagation_inner_loop_l_def
   by sepref
 
@@ -567,7 +567,7 @@ text \<open>More assumption needed here. Probably relies on full invariant.\<clo
 lemma hd_select_and_remove_from_pending_refine[sepref_fr_rules]: (* TODO tune proof *)
   \<open>(return o (\<lambda>S. (tl_of_pending_l S, hd_of_pending_l S)),
       select_and_remove_from_pending) \<in>
-    [\<lambda>S. pending_l S \<noteq> {#} \<and> twl_struct_invs (twl_st_of None S)]\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow> prod_assn twl_st_l_assn nat_lit_assn\<close>
+    [\<lambda>S. pending_l S \<noteq> {#} \<and> twl_struct_invs (twl_st_of None S)]\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow> prod_assn twl_st_l_assn nat_lit_assn_id\<close>
 proof -
   have H: \<open>RETURN x \<le> select_and_remove_from_pending S\<close>
    if \<open>snd x \<in># pending_l S\<close> and
@@ -600,7 +600,7 @@ qed
 lemma pending_l_refine[sepref_fr_rules]:
   \<open>(return o ((snd o snd o snd o snd o snd o snd o snd) ::  twl_st_ll \<Rightarrow> _),
      RETURN o (pending_l :: nat twl_st_l \<Rightarrow> _)) \<in>
-   twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a list_mset_assn nat_lit_assn\<close>
+   twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a list_mset_assn nat_lit_assn_id\<close>
   by sepref_to_hoare sep_auto
 
 lemma get_trail_l_refine[sepref_fr_rules]:
@@ -644,7 +644,7 @@ lemma option_is_empty:
 
 lemma lit_and_ann_of_propagated_hnr[sepref_fr_rules]:
   \<open>(return o lit_and_ann_of_propagated, RETURN o lit_and_ann_of_propagated) \<in>
-     [\<lambda>L. is_proped L]\<^sub>a nat_ann_lit_assn\<^sup>k \<rightarrow> prod_assn nat_lit_assn nat_assn\<close>
+     [\<lambda>L. is_proped L]\<^sub>a nat_ann_lit_assn\<^sup>k \<rightarrow> prod_assn nat_lit_assn_id nat_assn\<close>
   apply sepref_to_hoare
   apply (case_tac x)
    apply sep_auto+
@@ -654,7 +654,7 @@ lemma lit_and_ann_of_propagated_hnr[sepref_fr_rules]:
 lemma get_maximum_level_hnr[sepref_fr_rules]:
   \<open>(uncurry (return oo (\<lambda>M D. maximum_level_code D M)),
       uncurry (RETURN oo (get_maximum_level :: (nat, nat) ann_lit list \<Rightarrow> _))) \<in>
-    nat_ann_lits_assn\<^sup>d *\<^sub>a (list_mset_assn nat_lit_assn)\<^sup>d \<rightarrow>\<^sub>a nat_assn\<close>
+    nat_ann_lits_assn\<^sup>d *\<^sub>a (list_mset_assn nat_lit_assn_id)\<^sup>d \<rightarrow>\<^sub>a nat_assn\<close>
   unfolding maximum_level_code_eq_get_maximum_level
   apply sepref_to_hoare
   by (sep_auto dest: entails_list_assn_eqD entails_list_mset_assn_eq_mset
@@ -663,7 +663,7 @@ lemma get_maximum_level_hnr[sepref_fr_rules]:
 lemma maximum_level_code_hnr[sepref_fr_rules]:
   \<open>(uncurry (return oo maximum_level_code),
       uncurry (RETURN oo (maximum_level_code :: _ \<Rightarrow> (nat, nat) ann_lit list \<Rightarrow> _))) \<in>
-    (list_assn nat_lit_assn)\<^sup>d *\<^sub>a nat_ann_lits_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn\<close>
+    (list_assn nat_lit_assn_id)\<^sup>d *\<^sub>a nat_ann_lits_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn\<close>
   unfolding maximum_level_code_eq_get_maximum_level
   apply sepref_to_hoare
   by (sep_auto dest: entails_list_assn_eqD entails_list_mset_assn_eq_mset
@@ -730,7 +730,7 @@ term list_mset_rel term mset_rel
 
 lemma union_mset_list_nat_lit_assn_hnr[sepref_fr_rules]:
   \<open>(uncurry (return \<circ>\<circ> union_mset_list), uncurry (RETURN \<circ>\<circ> op \<union>#))
-  \<in> (list_mset_assn nat_lit_assn)\<^sup>k *\<^sub>a (list_mset_assn nat_lit_assn)\<^sup>k \<rightarrow>\<^sub>a list_mset_assn nat_lit_assn\<close>
+  \<in> (list_mset_assn nat_lit_assn_id)\<^sup>k *\<^sub>a (list_mset_assn nat_lit_assn_id)\<^sup>k \<rightarrow>\<^sub>a list_mset_assn nat_lit_assn_id\<close>
   using union_mset_list_op_union_hnr .
 
 sepref_definition skip_and_resolve_loop_l_impl is
@@ -908,7 +908,7 @@ abbreviation twl_st_ll_assn :: \<open>twl_st_ll \<Rightarrow> twl_st_ll \<Righta
 \<close>
 
 lemma find_decomp_l_find_decomp_l_res: \<open>(uncurry find_decomp_l, uncurry find_decomp_l_res) \<in>
-   twl_st_ll_assn\<^sup>d *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_ann_lits_assn\<close>
+   twl_st_ll_assn\<^sup>d *\<^sub>a nat_lit_assn_id\<^sup>k \<rightarrow>\<^sub>a nat_ann_lits_assn\<close>
 proof -
   {
     fix M :: "(nat, nat) ann_lits" and N :: "nat clauses_l" and D :: "nat clause_l option" and
@@ -1040,7 +1040,7 @@ lemma find_decomp_l_hnr[sepref_fr_rules]:
       twl_struct_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)) \<and>
       no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W (twl_st_of None (M, N, U, D, NP, UP, WS, Q))) \<and>
       M \<noteq> []]\<^sub>a
-      twl_st_l_assn\<^sup>d *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> nat_ann_lits_assn\<close>
+      twl_st_l_assn\<^sup>d *\<^sub>a nat_lit_assn_id\<^sup>k \<rightarrow> nat_ann_lits_assn\<close>
   apply (rule subst[of \<open>comp_PRE ({(S', S). S = twl_st_of_ll S'} \<times>\<^sub>r Id)
        (\<lambda>((M, N, U, D, NP, UP, WS, Q), L).
            L = lit_of (hd M) \<and>
@@ -1060,7 +1060,7 @@ lemma find_decomp_l_hnr[sepref_fr_rules]:
   apply (rule subst[of \<open>hr_comp nat_lits_trail_assn Id\<close> _
         \<open>\<lambda>c. (uncurry find_decomp_l, uncurry find_decomp) \<in> [_]\<^sub>a _ \<rightarrow> c\<close>])
   subgoal by (auto simp: ; fail)[]
-  apply (rule subst[of \<open>hrp_comp (twl_st_ll_assn\<^sup>d *\<^sub>a nat_lit_assn\<^sup>k)
+  apply (rule subst[of \<open>hrp_comp (twl_st_ll_assn\<^sup>d *\<^sub>a nat_lit_assn_id\<^sup>k)
                        ({(S', S). S = twl_st_of_ll S'} \<times>\<^sub>r
                         Id)\<close> _
         \<open>\<lambda>c. (uncurry find_decomp_l, uncurry find_decomp) \<in> [_]\<^sub>a c \<rightarrow> _\<close>])
@@ -1117,7 +1117,7 @@ qed
 
 lemma find_lit_of_max_level_l_find_lit_of_max_level:
   \<open>(uncurry find_lit_of_max_level_l, uncurry find_lit_of_max_level_l_res) \<in>
-    twl_st_ll_assn\<^sup>d *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_assn\<close>
+    twl_st_ll_assn\<^sup>d *\<^sub>a nat_lit_assn_id\<^sup>k \<rightarrow>\<^sub>a nat_lit_assn_id\<close>
   unfolding find_lit_of_max_level_l_def find_lit_of_max_level_l_res_def
   by sepref_to_hoare
    (sep_auto elim!: mod_starE dest!: entails_list_assn_eqD entails_option_assn_assn_eqD)
@@ -1128,7 +1128,7 @@ lemma find_lit_of_max_level_l_hnr[sepref_fr_rules]:
     [\<lambda>((M, N, U, D, NP, UP, WS, Q), L::nat literal).
      D \<noteq> None \<and> D \<noteq> Some {#} \<and> 1 < size (the D) \<and>
      get_level M L > get_maximum_level M (remove1_mset (-L) (the D))]\<^sub>a
-    twl_st_l_assn\<^sup>d *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> nat_lit_assn\<close>
+    twl_st_l_assn\<^sup>d *\<^sub>a nat_lit_assn_id\<^sup>k \<rightarrow> nat_lit_assn_id\<close>
 proof -
   have pre: \<open>comp_PRE ({(S', S). S = twl_st_of_ll S'} \<times>\<^sub>r Id)
      (\<lambda>((M, N, U, D, NP, UP, WS, Q), L).
@@ -1140,12 +1140,12 @@ proof -
      get_level M L > get_maximum_level M (remove1_mset (-L) (the D)))\<close>
     by (auto simp: comp_PRE_def)
 
-  have args: \<open>hrp_comp (twl_st_ll_assn\<^sup>d *\<^sub>a nat_lit_assn\<^sup>k)
+  have args: \<open>hrp_comp (twl_st_ll_assn\<^sup>d *\<^sub>a nat_lit_assn_id\<^sup>k)
                      ({(S', S). S = twl_st_of_ll S'} \<times>\<^sub>r
-                      Id) = twl_st_l_assn\<^sup>d *\<^sub>a nat_lit_assn\<^sup>k\<close>
+                      Id) = twl_st_l_assn\<^sup>d *\<^sub>a nat_lit_assn_id\<^sup>k\<close>
     unfolding prod_hrp_comp hrp_comp_twl_st_ll_assn_twl_st_of_ll
     by simp
-  have out: \<open>hr_comp nat_lit_assn Id = nat_lit_assn\<close>
+  have out: \<open>hr_comp nat_lit_assn_id Id = nat_lit_assn_id\<close>
     by simp
   show ?thesis
     using hfref_compI_PRE_aux [OF find_lit_of_max_level_l_find_lit_of_max_level
@@ -1367,7 +1367,7 @@ proof -
 qed
 
 sepref_definition find_unassigned_lit_l_impl is find_unassigned_lit_l
-  :: \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a option_assn nat_lit_assn\<close>
+  :: \<open>twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a option_assn nat_lit_assn_id\<close>
   unfolding find_unassigned_lit_l_def find_unassigned_lit_clss_l_def
     find_unassigned_lit_cls_l_def
   by sepref
@@ -1387,7 +1387,7 @@ lemma find_unassigned_lit_l_impl_find_unassigned_lit_l[sepref_fr_rules]:
        twl_struct_invs (twl_st_of None S) \<and>
        twl_stgy_invs (twl_st_of None S) \<and>
        additional_WS_invs S \<and> get_conflict_l S = None]\<^sub>a
-    twl_st_l_assn\<^sup>d \<rightarrow> option_assn nat_lit_assn\<close>
+    twl_st_l_assn\<^sup>d \<rightarrow> option_assn nat_lit_assn_id\<close>
 proof -
   have pre: \<open>comp_PRE (Id \<times>\<^sub>r
         Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id)
@@ -1403,7 +1403,7 @@ proof -
       = twl_st_l_assn\<^sup>d\<close>
     unfolding prod_hrp_comp hrp_comp_twl_st_ll_assn_twl_st_of_ll
     by simp
-  have out: \<open>hr_comp (option_assn nat_lit_assn) (\<langle>Id\<rangle>option_rel) = option_assn nat_lit_assn\<close>
+  have out: \<open>hr_comp (option_assn nat_lit_assn_id) (\<langle>Id\<rangle>option_rel) = option_assn nat_lit_assn_id\<close>
     by simp
   show ?thesis
     using hfref_compI_PRE_aux [OF find_unassigned_lit_l_impl.refine

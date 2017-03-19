@@ -146,8 +146,8 @@ definition case_bool_impl :: \<open>bool \<Rightarrow> bool \<Rightarrow> bool \
 
 
 text \<open>Some functions and types:\<close>
-abbreviation nat_lit_assn :: "nat literal \<Rightarrow> nat literal \<Rightarrow> assn" where
-  \<open>nat_lit_assn \<equiv> (id_assn :: nat literal \<Rightarrow> _)\<close>
+abbreviation nat_lit_assn_id :: "nat literal \<Rightarrow> nat literal \<Rightarrow> assn" where
+  \<open>nat_lit_assn_id \<equiv> (id_assn :: nat literal \<Rightarrow> _)\<close>
 
 abbreviation nat_ann_lit_assn :: "(nat, nat) ann_lit \<Rightarrow> (nat, nat) ann_lit \<Rightarrow> assn" where
   \<open>nat_ann_lit_assn \<equiv> (id_assn :: (nat, nat) ann_lit \<Rightarrow> _)\<close>
@@ -161,7 +161,7 @@ begin
 
 lemma nat_lit_eq_cases_refine[sepref_fr_rules]:
   \<open>(uncurry (return oo (op =)), uncurry (RETURN oo op_nat_lit_eq)) \<in>
-    nat_lit_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+    nat_lit_assn_id\<^sup>k *\<^sub>a nat_lit_assn_id\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding nat_lit_eq_cases_def
   by (sep_auto split: literal.split)
 
@@ -169,14 +169,14 @@ sepref_decl_impl nat_lit_eq_cases: nat_lit_eq_cases_refine .
 
 
 lemma atom_of_impl_refine[sepref_fr_rules]:
-  \<open>(return o atm_of_impl, RETURN o op_atm_of) \<in> nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  \<open>(return o atm_of_impl, RETURN o op_atm_of) \<in> nat_lit_assn_id\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   unfolding op_atm_of_def atm_of_impl_def
   by (sep_auto split: literal.split)
 
 sepref_decl_impl atom_of_impl: atom_of_impl_refine .
 
 lemma lit_of_impl_refine[sepref_fr_rules]:
-  \<open>(return o lit_of_impl, RETURN o op_lit_of) \<in> nat_ann_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_assn\<close>
+  \<open>(return o lit_of_impl, RETURN o op_lit_of) \<in> nat_ann_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_assn_id\<close>
   unfolding op_lit_of_def lit_of_impl_def
   by (sep_auto split: annotated_lit.splits)
 

@@ -79,7 +79,7 @@ lemma literal_of_nat_literal_of_nat_eq[iff]: \<open>literal_of_nat x = literal_o
 definition lit_of_natP where
   \<open>lit_of_natP L L' \<longleftrightarrow> literal_of_nat L = L'\<close>
 
-abbreviation nat_lit_rel where
+abbreviation nat_lit_rel :: "(nat \<times> nat literal) set" where
   \<open>nat_lit_rel \<equiv> p2rel lit_of_natP\<close>
 
 abbreviation nat_lit_assn :: "nat literal \<Rightarrow> nat \<Rightarrow> assn" where
