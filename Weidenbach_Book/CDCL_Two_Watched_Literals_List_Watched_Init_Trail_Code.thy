@@ -115,12 +115,105 @@ sepref_definition init_dt_wl_code
   supply [[goals_limit = 1]]
   by sepref
 
+term nat_lit_assn
+term nat_lit_rel
+  term \<open>hs.assn\<close>
+definition nat_lit_list_hm_ref_rel :: "(('a set \<times> 'a literal list) \<times> 'a literal list) set" where
+  \<open>nat_lit_list_hm_ref_rel = {((s, xs), l). l = xs \<and> s = atm_of ` set l}\<close>
+
+abbreviation nat_lit_lits_init_ref_assn where
+  \<open>nat_lit_lits_init_ref_assn \<equiv> hs.assn nat_assn *assn list_assn nat_lit_assn\<close>
+
+abbreviation nat_lit_list_hm_assn where
+  \<open>nat_lit_list_hm_assn \<equiv> hr_comp nat_lit_lits_init_ref_assn nat_lit_list_hm_ref_rel\<close>
+
+definition in_map_atm_of :: "'a \<Rightarrow> 'a literal list \<Rightarrow> bool" where
+  \<open>in_map_atm_of L N \<longleftrightarrow> L \<in> set (map atm_of N)\<close>
+
+sepref_definition nat_lit_lits_init_assn_assn_in
+  is \<open>uncurry (RETURN oo (\<lambda>L (s, xs). L \<in> s))\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a nat_lit_lits_init_ref_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref
+
+lemma nat_lit_lits_init_assn_ref_in:
+  \<open>(uncurry (RETURN oo (\<lambda>L (s, xs). L \<in> s)), uncurry (RETURN oo in_map_atm_of)) \<in>
+    nat_rel \<times>\<^sub>r nat_lit_list_hm_ref_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI) (auto simp: nat_lit_list_hm_ref_rel_def in_map_atm_of_def)
+
+sepref_definition nat_lit_lits_init_assn_assn_prepend
+  is \<open>uncurry (RETURN oo (\<lambda>L (s, xs). (insert (atm_of L) s, L # xs)))\<close>
+  :: \<open>nat_lit_assn\<^sup>k *\<^sub>a nat_lit_lits_init_ref_assn\<^sup>d \<rightarrow>\<^sub>a nat_lit_lits_init_ref_assn\<close>
+  by sepref
+
+lemma nat_lit_lits_init_assn_ref_list_prepend:
+  \<open>(uncurry (RETURN oo (\<lambda>L (s, xs). (insert (atm_of L) s, L # xs))), uncurry (RETURN oo op_list_prepend)) \<in>
+    Id \<times>\<^sub>r nat_lit_list_hm_ref_rel \<rightarrow>\<^sub>f \<langle>nat_lit_list_hm_ref_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI) (auto simp: nat_lit_list_hm_ref_rel_def in_map_atm_of_def)
+
+lemma nat_lit_lits_init_assn_assn_prepend[sepref_fr_rules]:
+  \<open>(uncurry nat_lit_lits_init_assn_assn_prepend, uncurry (RETURN \<circ>\<circ> op_list_prepend))
+      \<in> nat_lit_assn\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow>\<^sub>a nat_lit_list_hm_assn\<close>
+  using nat_lit_lits_init_assn_assn_prepend.refine[FCOMP nat_lit_lits_init_assn_ref_list_prepend] .
+
+lemma nat_lit_lits_init_assn_assn_id[sepref_fr_rules]:
+  \<open>(return o snd, RETURN o id) \<in> nat_lit_list_hm_assn\<^sup>d \<rightarrow>\<^sub>a list_assn nat_lit_assn\<close>
+  by sepref_to_hoare (sep_auto simp: nat_lit_list_hm_ref_rel_def hr_comp_def)
+
+lemma in_map_atm_of_hnr[sepref_fr_rules]:
+  \<open>(uncurry nat_lit_lits_init_assn_assn_in, uncurry (RETURN \<circ>\<circ> in_map_atm_of))
+     \<in> nat_assn\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  using nat_lit_lits_init_assn_assn_in.refine[FCOMP nat_lit_lits_init_assn_ref_in] .
+
+
 definition extract_lits_cls :: \<open>'a clause_l \<Rightarrow> 'a literal list \<Rightarrow> 'a literal list\<close> where
   \<open>extract_lits_cls C N\<^sub>0 = fold (\<lambda>L N\<^sub>0. if atm_of L \<in> set (map atm_of N\<^sub>0) then N\<^sub>0 else L # N\<^sub>0) C N\<^sub>0\<close>
+
+sepref_definition extract_lits_cls_imp
+  is \<open>uncurry (RETURN oo extract_lits_cls)\<close>
+  :: \<open>(list_assn nat_lit_assn)\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow>\<^sub>a nat_lit_list_hm_assn\<close>
+  unfolding extract_lits_cls_def in_map_atm_of_def[symmetric] 
+  apply (subst fold_idx_conv)
+  by sepref
+
+declare extract_lits_cls_imp.refine[sepref_fr_rules]
 
 definition extract_lits_clss:: \<open>'a clauses_l \<Rightarrow> 'a literal list \<Rightarrow> 'a literal list\<close>  where
   \<open>extract_lits_clss N N\<^sub>0 = fold extract_lits_cls N N\<^sub>0\<close>
 
+sepref_definition extract_lits_clss_imp
+  is \<open>uncurry (RETURN oo extract_lits_clss)\<close>
+  :: \<open>(list_assn (list_assn nat_lit_assn))\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow>\<^sub>a nat_lit_list_hm_assn\<close>
+  unfolding extract_lits_clss_def in_map_atm_of_def[symmetric]
+  apply (subst fold_idx_conv)
+  by sepref
+
+lemma id_extract_lits_clss: \<open>extract_lits_clss = (\<lambda>a b. id (extract_lits_clss a b))\<close>
+  by auto
+
+sepref_definition extract_lits_clss_imp_list_assn
+  is \<open>uncurry (RETURN oo extract_lits_clss)\<close>
+  :: \<open>(list_assn (list_assn nat_lit_assn))\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow>\<^sub>a list_assn nat_lit_assn\<close>
+  supply extract_lits_clss_imp.refine[sepref_fr_rules]
+  apply (rewrite at \<open>extract_lits_clss\<close> id_extract_lits_clss)
+  by sepref
+
+lemma extract_lits_clss_imp_empty_rel:
+  \<open>(uncurry0 (RETURN ({}, [])), uncurry0 (RETURN op_HOL_list_empty)) \<in>
+     unit_rel \<rightarrow>\<^sub>f \<langle>nat_lit_list_hm_ref_rel\<rangle> nres_rel\<close>
+  by (intro frefI nres_relI) (auto simp: nat_lit_list_hm_ref_rel_def)
+
+sepref_definition extract_lits_clss_imp_empty_assn
+  is \<open>uncurry0 (RETURN ({}, []))\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_lits_init_ref_assn\<close>
+  unfolding hs.fold_custom_empty HOL_list.fold_custom_empty
+  by sepref
+
+lemma extract_lits_clss_imp_empty_assn[sepref_fr_rules]:
+  \<open>(uncurry0 extract_lits_clss_imp_empty_assn, uncurry0 (RETURN op_HOL_list_empty))
+    \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_list_hm_assn\<close>
+  using extract_lits_clss_imp_empty_assn.refine[FCOMP extract_lits_clss_imp_empty_rel] .
+
+declare extract_lits_clss_imp_list_assn.refine[sepref_fr_rules]
 declare atm_of_hnr[sepref_fr_rules]
 
 sepref_definition find_first_eq_map_atm_of_code
@@ -128,6 +221,7 @@ sepref_definition find_first_eq_map_atm_of_code
   :: \<open>nat_assn\<^sup>k *\<^sub>a (list_assn nat_lit_assn)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   unfolding find_first_eq_map_def short_circuit_conv
   by sepref
+
 definition index_atm_of where
   \<open>index_atm_of L N\<^sub>0 = index (map atm_of N\<^sub>0) L\<close>
 
@@ -908,7 +1002,7 @@ export_code SAT_wl_code
     integer_of_int
     integer_of_nat
     nat_of_integer
-  in SML_imp module_name SAT_Solver file "code/full_SAT_Cached_Trail.sml"
+  in Scala_imp module_name SAT_Solver file "code/full_SAT_Cached_Trail.scala"
 
 definition TWL_to_clauses_state_conv :: \<open>(nat twl_st_wl \<times> nat cdcl\<^sub>W_restart_mset) set\<close> where
   \<open>TWL_to_clauses_state_conv = {(S', S). S = state_of\<^sub>W (twl_st_of_wl None S')}\<close>
