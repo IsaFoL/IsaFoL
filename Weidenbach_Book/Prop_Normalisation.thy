@@ -24,11 +24,11 @@ lemma elim_equiv_transformation_consistent:
 lemma elim_equiv_explicit: "elim_equiv \<phi> \<psi> \<Longrightarrow> \<forall>A. A \<Turnstile> \<phi> \<longleftrightarrow> A \<Turnstile> \<psi>"
   by (induct rule: elim_equiv.induct, auto)
 
-lemma elim_equiv_consistent: "preserves_un_sat elim_equiv"
-  unfolding preserves_un_sat_def by (simp add: elim_equiv_explicit)
+lemma elim_equiv_consistent: "preserve_models elim_equiv"
+  unfolding preserve_models_def by (simp add: elim_equiv_explicit)
 
 lemma elimEquv_lifted_consistant:
-  "preserves_un_sat (full (propo_rew_step elim_equiv))"
+  "preserve_models (full (propo_rew_step elim_equiv))"
   by (simp add: elim_equiv_consistent)
 
 
@@ -118,11 +118,11 @@ lemma elim_imp_transformation_consistent:
 lemma elim_imp_explicit: "elim_imp \<phi> \<psi> \<Longrightarrow> \<forall>A. A \<Turnstile> \<phi> \<longleftrightarrow> A \<Turnstile> \<psi>"
   by (induct \<phi> \<psi> rule: elim_imp.induct, auto)
 
-lemma elim_imp_consistent: "preserves_un_sat elim_imp"
-  unfolding preserves_un_sat_def by (simp add: elim_imp_explicit)
+lemma elim_imp_consistent: "preserve_models elim_imp"
+  unfolding preserve_models_def by (simp add: elim_imp_explicit)
 
 lemma elim_imp_lifted_consistant:
-  "preserves_un_sat (full (propo_rew_step elim_imp))"
+  "preserve_models (full (propo_rew_step elim_imp))"
   by (simp add: elim_imp_consistent)
 
 fun no_imp_symb where
@@ -210,13 +210,13 @@ ElimTB5: "elimTB (FNot FT) FF" |
 ElimTB6: "elimTB (FNot FF) FT"
 
 
-lemma elimTB_consistent: "preserves_un_sat elimTB"
+lemma elimTB_consistent: "preserve_models elimTB"
 proof -
   {
     fix \<phi> \<psi>:: "'b propo"
     have "elimTB \<phi> \<psi> \<Longrightarrow> \<forall>A. A \<Turnstile> \<phi> \<longleftrightarrow> A \<Turnstile> \<psi>" by (induction rule: elimTB.inducts) auto
   }
-  then show ?thesis using preserves_un_sat_def by auto
+  then show ?thesis using preserve_models_def by auto
 qed
 
 inductive no_T_F_symb :: "'v propo \<Rightarrow> bool" where
@@ -536,12 +536,12 @@ lemma pushNeg_transformation_consistent:
 lemma pushNeg_explicit: "pushNeg \<phi> \<psi> \<Longrightarrow> \<forall>A. A \<Turnstile> \<phi> \<longleftrightarrow> A \<Turnstile> \<psi>"
   by (induct \<phi> \<psi> rule: pushNeg.induct, auto)
 
-lemma pushNeg_consistent: "preserves_un_sat pushNeg"
-  unfolding preserves_un_sat_def by (simp add: pushNeg_explicit)
+lemma pushNeg_consistent: "preserve_models pushNeg"
+  unfolding preserve_models_def by (simp add: pushNeg_explicit)
 
 
 lemma pushNeg_lifted_consistant:
-"preserves_un_sat (full (propo_rew_step pushNeg))"
+"preserve_models (full (propo_rew_step pushNeg))"
   by (simp add: pushNeg_consistent)
 
 fun simple where
@@ -795,8 +795,8 @@ push_conn_inside_r[simp]: "c = CAnd \<or> c = COr \<Longrightarrow> c' = CAnd \<
 lemma push_conn_inside_explicit: "push_conn_inside c c' \<phi> \<psi> \<Longrightarrow> \<forall>A. A\<Turnstile>\<phi> \<longleftrightarrow> A\<Turnstile>\<psi>"
   by (induct \<phi> \<psi> rule: push_conn_inside.induct, auto)
 
-lemma push_conn_inside_consistent: "preserves_un_sat (push_conn_inside c c')"
-  unfolding preserves_un_sat_def by (simp add: push_conn_inside_explicit)
+lemma push_conn_inside_consistent: "preserve_models (push_conn_inside c c')"
+  unfolding preserve_models_def by (simp add: push_conn_inside_explicit)
 
 lemma propo_rew_step_push_conn_inside[simp]:
  "\<not>propo_rew_step (push_conn_inside c c') FT \<psi>" "\<not>propo_rew_step (push_conn_inside c c') FF \<psi>"
@@ -1498,7 +1498,7 @@ subsubsection \<open>Push Conjunction\<close>
 
 definition pushConj where "pushConj = push_conn_inside CAnd COr"
 
-lemma pushConj_consistent: "preserves_un_sat pushConj"
+lemma pushConj_consistent: "preserve_models pushConj"
   unfolding pushConj_def by (simp add: push_conn_inside_consistent)
 
 definition and_in_or_symb where "and_in_or_symb = c_in_c'_symb CAnd COr"
@@ -1531,7 +1531,7 @@ lemma pushConj_full_propo_rew_step:
 subsubsection \<open>Push Disjunction\<close>
 definition pushDisj where "pushDisj = push_conn_inside COr CAnd"
 
-lemma pushDisj_consistent: "preserves_un_sat pushDisj"
+lemma pushDisj_consistent: "preserve_models pushDisj"
   unfolding pushDisj_def by (simp add: push_conn_inside_consistent)
 
 definition or_in_and_symb where "or_in_and_symb = c_in_c'_symb COr CAnd"
@@ -1727,9 +1727,9 @@ definition cnf_rew where "cnf_rew =
   (full (propo_rew_step pushNeg)) OO
   (full (propo_rew_step pushDisj))"
 
-lemma cnf_rew_consistent: "preserves_un_sat cnf_rew"
+lemma cnf_rew_equivalent: "preserve_models cnf_rew"
   by (simp add: cnf_rew_def elimEquv_lifted_consistant elim_imp_lifted_consistant elimTB_consistent
-    preserves_un_sat_OO pushDisj_consistent pushNeg_lifted_consistant)
+    preserve_models_OO pushDisj_consistent pushNeg_lifted_consistant)
 
 (*TODO Redo proof*)
 lemma cnf_rew_is_cnf: "cnf_rew \<phi> \<phi>' \<Longrightarrow> is_cnf \<phi>'"
@@ -1794,9 +1794,9 @@ definition dnf_rew where "dnf_rew \<equiv>
   (full (propo_rew_step pushNeg)) OO
   (full (propo_rew_step pushConj))"
 
-lemma dnf_rew_consistent: "preserves_un_sat dnf_rew"
+lemma dnf_rew_consistent: "preserve_models dnf_rew"
   by (simp add: dnf_rew_def elimEquv_lifted_consistant elim_imp_lifted_consistant elimTB_consistent
-    preserves_un_sat_OO pushConj_consistent pushNeg_lifted_consistant)
+    preserve_models_OO pushConj_consistent pushNeg_lifted_consistant)
 
 theorem dnf_transformation_correction:
     "dnf_rew \<phi> \<phi>' \<Longrightarrow> is_dnf \<phi>'"
@@ -1838,14 +1838,14 @@ ElimTBFull7_r[simp]: "elimTBFull (FEq \<phi> FT) \<phi>" |
 ElimTBFull7_r'[simp]: "elimTBFull (FEq \<phi> FF) (FNot \<phi>)"
 
 text \<open>The transformation is still consistent.\<close>
-lemma elimTBFull_consistent: "preserves_un_sat elimTBFull"
+lemma elimTBFull_consistent: "preserve_models elimTBFull"
 proof -
   {
     fix \<phi> \<psi>:: "'b propo"
     have "elimTBFull \<phi> \<psi> \<Longrightarrow> \<forall>A. A \<Turnstile> \<phi> \<longleftrightarrow> A \<Turnstile> \<psi>"
       by (induct_tac rule: elimTBFull.inducts, auto)
   }
-  then show ?thesis using preserves_un_sat_def by auto
+  then show ?thesis using preserve_models_def by auto
 qed
 
 text \<open>Contrary to the theorem @{thm [source] no_T_F_symb_except_toplevel_step_exists}, we do not
@@ -2148,9 +2148,9 @@ definition dnf_rew' :: "'a propo \<Rightarrow> 'a propo \<Rightarrow> bool" wher
   (full (propo_rew_step pushNeg)) OO
   (full (propo_rew_step pushConj))"
 
-lemma dnf_rew'_consistent: "preserves_un_sat dnf_rew'"
+lemma dnf_rew'_consistent: "preserve_models dnf_rew'"
   by (simp add: dnf_rew'_def elimEquv_lifted_consistant elim_imp_lifted_consistant
-    elimTBFull_consistent preserves_un_sat_OO pushConj_consistent pushNeg_lifted_consistant)
+    elimTBFull_consistent preserve_models_OO pushConj_consistent pushNeg_lifted_consistant)
 
 theorem cnf_transformation_correction:
     "dnf_rew' \<phi> \<phi>' \<Longrightarrow> is_dnf \<phi>'"
@@ -2169,9 +2169,9 @@ definition cnf_rew' :: "'a propo \<Rightarrow> 'a propo \<Rightarrow> bool" wher
   (full (propo_rew_step pushNeg)) OO
   (full (propo_rew_step pushDisj))"
 
-lemma cnf_rew'_consistent: "preserves_un_sat cnf_rew'"
+lemma cnf_rew'_consistent: "preserve_models cnf_rew'"
   by (simp add: cnf_rew'_def elimEquv_lifted_consistant elim_imp_lifted_consistant
-    elimTBFull_consistent preserves_un_sat_OO pushDisj_consistent pushNeg_lifted_consistant)
+    elimTBFull_consistent preserve_models_OO pushDisj_consistent pushNeg_lifted_consistant)
 
 theorem cnf'_transformation_correction:
   "cnf_rew' \<phi> \<phi>' \<Longrightarrow> is_cnf \<phi>'"

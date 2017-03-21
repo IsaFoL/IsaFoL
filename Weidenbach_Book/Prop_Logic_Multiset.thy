@@ -311,7 +311,7 @@ lemma no_T_F_formula_of_msets:
 
 lemma is_cnf_formula_of_msets:
   assumes \<open>finite \<phi>\<close> and \<open>{#} \<notin> \<phi>\<close>
-  shows \<open>is_cnf (formula_of_msets (\<phi>))\<close>
+  shows \<open>is_cnf (formula_of_msets \<phi>)\<close>
   using assms apply (induction \<open>card \<phi>\<close> arbitrary: \<phi>)
   subgoal by (subst formula_of_msets.simps) (auto simp: is_cnf_def is_conj_with_TF_def)[]
   subgoal
