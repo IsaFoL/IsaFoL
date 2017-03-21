@@ -20,6 +20,12 @@ definition lits_of\<^sub>B :: \<open>('v, 'mark) ann_bat set \<Rightarrow> 'v li
 abbreviation lits_of_l\<^sub>B :: \<open>('v, 'mark) ann_bats \<Rightarrow> 'v literal set\<close> where
 \<open>lits_of_l\<^sub>B Ls \<equiv> lits_of\<^sub>B (set Ls)\<close>
 
+definition true_annot\<^sub>B :: \<open>('v, 'mark) ann_bats \<Rightarrow> 'v clause \<Rightarrow> bool\<close> (infix "\<Turnstile>b" 49) where
+  \<open>I \<Turnstile>b C \<longleftrightarrow> (lits_of_l\<^sub>B I) \<Turnstile> C\<close>
+  
+definition true_annots\<^sub>B :: \<open>('v, 'mark) ann_bats \<Rightarrow> 'v clauses \<Rightarrow> bool\<close> (infix "\<Turnstile>bs" 49) where
+  \<open>I \<Turnstile>bs CC \<longleftrightarrow> (\<forall>C \<in> CC. I \<Turnstile>b C)\<close>  (* (set_mset CC). instead works *)
+
 locale state\<^sub>B_ops =
   fixes
     state :: "'st \<Rightarrow> ('v, 'v clause) ann_bats \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
@@ -607,8 +613,8 @@ inductive propagate\<^sub>B :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S 
 propagate_rule: "conflicting S = None \<Longrightarrow>
   E \<in># clauses S \<Longrightarrow>
   L \<in># E \<Longrightarrow>
-  trail\<^sub>W S \<Turnstile>as CNot (E - {#L#}) \<Longrightarrow>
-  undefined_lit (trail\<^sub>W S) L \<Longrightarrow>
+  (* trail\<^sub>B S \<Turnstile>as CNot (E - {#L#}) \<Longrightarrow> (* to adapt *) *)
+  (* undefined_lit (trail\<^sub>B S) L \<Longrightarrow> (* to adapt *) *)
   T \<sim> cons_trail\<^sub>B (Propagated L E) S \<Longrightarrow>
   propagate\<^sub>B S T"
 
@@ -647,7 +653,7 @@ inductive conflict\<^sub>B :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :
 conflict_rule: "
   conflicting S = None \<Longrightarrow>
   D \<in># clauses S \<Longrightarrow>
-  (* trail\<^sub>B S \<Turnstile>as CNot D  \<Longrightarrow> *) (* to adapt *)
+  trail\<^sub>B S \<Turnstile>as CNot D  \<Longrightarrow>  (* to adapt *)
   T \<sim> update_conflicting (Some D) S \<Longrightarrow>
   conflict\<^sub>B S T"
 
