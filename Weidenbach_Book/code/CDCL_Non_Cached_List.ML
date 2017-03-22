@@ -367,33 +367,6 @@ fun get_clauses_ll (m, (n, (u, (d, (np, (up, (ws, q))))))) = n;
 
 fun get_conflict_ll (uu, (uv, (uw, (d, (ux, (uy, (uz, va))))))) = d;
 
-fun hd_of_pending_l x = (fn (_, a) => let
-val (_, aa) = a;
-val (_, ab) = aa;
-val (_, ac) = ab;
-val (_, ad) = ac;
-val (_, ae) = ad;
-val (_, af) = ae;
-                                      in
-hd af
-                                      end)
-                          x;
-
-fun clause_to_update_l l s =
-  filter
-    (fn c =>
-      equal_literala equal_nat (nth (nth (get_clauses_ll s) c) zero_nat)
-        l orelse
-        equal_literala equal_nat (nth (nth (get_clauses_ll s) c) one_nat) l)
-    (upt one_nat (size_list (get_clauses_ll s)));
-
-fun tl_of_pending_l x =
-  (fn (m, (n, (u, (d, (np, (up, (ws, q))))))) =>
-    (m, (n, (u, (d, (np, (up, (clause_to_update_l (hd q)
-                                 (m, (n, (u, (d, (np, (up, (ws, q))))))),
-                                tl q))))))))
-    x;
-
 fun find_lit_of_max_level_l x =
   (fn (m, (_, (_, (d, (_, (_, (_, _))))))) => fn l =>
     (fn () =>
@@ -451,6 +424,14 @@ fun backtrack_l_impl x =
         end)
     end)
     x;
+
+fun clause_to_update_l l s =
+  filter
+    (fn c =>
+      equal_literala equal_nat (nth (nth (get_clauses_ll s) c) zero_nat)
+        l orelse
+        equal_literala equal_nat (nth (nth (get_clauses_ll s) c) one_nat) l)
+    (upt one_nat (size_list (get_clauses_ll s)));
 
 fun find_unwatched_impl x =
   (fn ai => fn bi =>
@@ -533,14 +514,6 @@ fun decide_l_or_skip_impl x =
         else (fn () => (true, xi)))
         ()
     end)
-    x;
-
-fun hd_of_working_queue_l x =
-  (fn (_, (_, (_, (_, (_, (_, (ws, _))))))) => hd ws) x;
-
-fun tl_of_working_queue_l x =
-  (fn (m, (n, (u, (d, (np, (up, (ws, q))))))) =>
-    (m, (n, (u, (d, (np, (up, (tl ws, q))))))))
     x;
 
 fun skip_and_resolve_loop_l_impl x =
@@ -627,6 +600,14 @@ fun cdcl_twl_o_prog_l_impl x =
              end)))
     x;
 
+fun tl_of_clauses_to_update_l x =
+  (fn (m, (n, (u, (d, (np, (up, (ws, q))))))) =>
+    (m, (n, (u, (d, (np, (up, (tl ws, q))))))))
+    x;
+
+fun hd_of_clauses_to_update_l x =
+  (fn (_, (_, (_, (_, (_, (_, (ws, _))))))) => hd ws) x;
+
 fun unit_propagation_inner_loop_l_impl x =
   (fn ai =>
     heap_WHILET
@@ -634,7 +615,8 @@ fun unit_propagation_inner_loop_l_impl x =
         (fn () => (not (is_Nil ((fst o snd o snd o snd o snd o snd o snd) s)))))
       (fn s =>
         let
-          val (a1, a2) = (tl_of_working_queue_l s, hd_of_working_queue_l s);
+          val (a1, a2) =
+            (tl_of_clauses_to_update_l s, hd_of_clauses_to_update_l s);
           val (a1g, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f, a2f))))))) = a1;
           val x_a =
             (if equal_literala equal_nat
@@ -668,15 +650,36 @@ fun unit_propagation_inner_loop_l_impl x =
         end))
     x;
 
+fun tl_of_literals_to_update_l x =
+  (fn (m, (n, (u, (d, (np, (up, (ws, q))))))) =>
+    (m, (n, (u, (d, (np, (up, (clause_to_update_l (hd q)
+                                 (m, (n, (u, (d, (np, (up, (ws, q))))))),
+                                tl q))))))))
+    x;
+
+fun hd_of_literals_to_update_l x = (fn (_, a) => let
+           val (_, aa) = a;
+           val (_, ab) = aa;
+           val (_, ac) = ab;
+           val (_, ad) = ac;
+           val (_, ae) = ad;
+           val (_, af) = ae;
+         in
+           hd af
+         end)
+                                     x;
+
 fun unit_propagation_outer_loop_l_impl x =
   heap_WHILET
     (fn s =>
       (fn () => (not (is_Nil ((snd o snd o snd o snd o snd o snd o snd) s)))))
-    (fn s => let
-               val (a1, a2) = (tl_of_pending_l s, hd_of_pending_l s);
-             in
-               unit_propagation_inner_loop_l_impl a2 a1
-             end)
+    (fn s =>
+      let
+        val (a1, a2) =
+          (tl_of_literals_to_update_l s, hd_of_literals_to_update_l s);
+      in
+        unit_propagation_inner_loop_l_impl a2 a1
+      end)
     x;
 
 fun cdcl_twl_stgy_prog_l_impl x =

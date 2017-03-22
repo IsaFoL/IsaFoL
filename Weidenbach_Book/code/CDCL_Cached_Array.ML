@@ -866,9 +866,6 @@ fun decide_wl_or_skip_D_code n_0 =
         ()
     end);
 
-fun pending_wll_empty x =
-  (fn (_, (_, (_, (_, (_, (_, (q, _))))))) => is_Nil q) x;
-
 fun union_mset_list_fold_code x =
   (fn ai => fn bi => fn () =>
     let
@@ -1021,7 +1018,7 @@ fun find_unwatched_impl x =
       (NONE, nat_of_integer (2 : IntInf.int)))
     x;
 
-fun select_and_remove_from_pending_wl x =
+fun select_and_remove_from_literals_to_update_wl x =
   (fn (m, (n, (u, (d, (np, (up, (q, w))))))) =>
     ((m, (n, (u, (d, (np, (up, (tl q, w))))))), hd q))
     x;
@@ -1111,10 +1108,13 @@ fun unit_propagation_inner_loop_wl_D_code x =
     end)
     x;
 
+fun literals_to_update_wll_empty x =
+  (fn (_, (_, (_, (_, (_, (_, (q, _))))))) => is_Nil q) x;
+
 fun unit_propagation_outer_loop_wl_D_code x =
-  heap_WHILET (fn s => (fn () => (not (pending_wll_empty s))))
+  heap_WHILET (fn s => (fn () => (not (literals_to_update_wll_empty s))))
     (fn s => let
-               val (a1, a2) = select_and_remove_from_pending_wl s;
+               val (a1, a2) = select_and_remove_from_literals_to_update_wl s;
              in
                unit_propagation_inner_loop_wl_D_code a2 a1
              end)

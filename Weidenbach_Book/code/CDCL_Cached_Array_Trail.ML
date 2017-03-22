@@ -635,11 +635,6 @@ fun tl_trail_tr_code x =
     end)
     x;
 
-fun pending_wll_empty x =
-  ((fn a => (fn () => a)) o
-    (fn (_, (_, (_, (_, (_, (_, (q, _))))))) => is_Nil q))
-    x;
-
 fun valued_trail_code x =
   (fn ai => fn bi =>
     let
@@ -1082,7 +1077,7 @@ fun cdcl_twl_o_prog_wl_D_code n_0 =
         ()
     end);
 
-fun hd_select_and_remove_from_pending_wl x =
+fun hd_select_and_remove_from_literals_to_update_wl x =
   ((fn a => (fn () => a)) o
     (fn (m, (n, (u, (d, (np, (up, (q, w))))))) =>
       ((m, (n, (u, (d, (np, (up, (tl q, w))))))), hd q)))
@@ -1168,22 +1163,28 @@ fun unit_propagation_inner_loop_wl_D_code x =
     end)
     x;
 
+fun literals_to_update_wll_empty x =
+  ((fn a => (fn () => a)) o
+    (fn (_, (_, (_, (_, (_, (_, (q, _))))))) => is_Nil q))
+    x;
+
 fun unit_propagation_outer_loop_wl_D_code x =
   heap_WHILET (fn s => fn () => let
-                                  val xa = pending_wll_empty s ();
+                                  val xa = literals_to_update_wll_empty s ();
                                 in
                                   not xa
                                 end)
-    (fn s => fn () => let
-                        val a = hd_select_and_remove_from_pending_wl s ();
-                      in
-                        let
-                          val (a1, a2) = a;
-                        in
-                          unit_propagation_inner_loop_wl_D_code a2 a1
-                        end
-                          ()
-                      end)
+    (fn s => fn () =>
+      let
+        val a = hd_select_and_remove_from_literals_to_update_wl s ();
+      in
+        let
+          val (a1, a2) = a;
+        in
+          unit_propagation_inner_loop_wl_D_code a2 a1
+        end
+          ()
+      end)
     x;
 
 fun cdcl_twl_stgy_prog_wl_D_code n_0 =
