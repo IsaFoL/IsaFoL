@@ -2884,111 +2884,214 @@ Herbrand model.
 
 theorem sat_consistency: "consistency {S. \<not> finite (- (\<Union>p\<in>S. params p)) \<and>
   (\<exists>f. \<forall>(p::('a, 'b)form)\<in>S. eval e f g p)}"
-  apply (unfold consistency_def)
-  apply (rule allI impI)+
-  apply (erule CollectE conjE)+
-  apply (rule conjI)
-  apply (rule allI notI)+
-  apply (erule conjE exE)+
-  apply (frule_tac x="Pred p ts" in bspec)
-  apply assumption
-  apply (frule_tac x="Neg (Pred p ts)" in bspec)
-  apply assumption
-  apply simp
-  apply (rule conjI)
-  apply fastforce
-  apply (rule conjI)
-  apply fastforce
-  apply (rule conjI)
-  apply force
-  apply (rule conjI)
-  apply force
-  apply (rule conjI)
-  apply force
-  apply (rule conjI)
-  apply (rule allI impI)+
-  apply (erule exE)+
-  apply (frule bspec)
-  apply assumption
-  apply simp
-  apply (erule disjE)
-  apply (rule disjI1)
-  apply (rule exI)+
-  apply (rule conjI)
-  apply assumption
-  apply assumption
-  apply (rule disjI2)
-  apply (rule exI)+
-  apply (rule conjI)
-  apply assumption
-  apply assumption
-  apply (rule conjI)
-  apply (rule allI impI)+
-  apply (erule exE)+
-  apply (frule bspec)
-  apply assumption
-  apply (simp del: disj_not1)
-  apply (erule disjE)
-  apply (rule disjI1)
-  apply (rule exI)+
-  apply (rule conjI)
-  apply assumption
-  apply assumption
-  apply (rule disjI2)
-  apply (rule exI)+
-  apply (rule conjI)
-  apply assumption
-  apply assumption
-  apply (rule conjI)
-  apply (rule allI impI)+
-  apply (erule exE)+
-  apply (frule bspec)
-  apply assumption
-  apply simp
-  apply (drule iffD1 [OF imp_conv_disj])
-  apply (erule disjE)
-  apply (rule disjI1)
-  apply (rule exI)+
-  apply (rule conjI)
-  apply assumption
-  apply assumption
-  apply (rule disjI2)
-  apply (rule exI)+
-  apply (rule conjI)
-  apply assumption
-  apply assumption
-  apply (rule conjI)
-  apply force
-  apply (rule conjI)
-  apply force
-  apply (rule conjI)
-  apply force
-  apply (rule conjI)
-  apply (rule allI impI)+
-  apply (erule exE)+
-  apply (frule bspec)
-  apply assumption
-  apply (frule_tac A="- S" for S in infinite_nonempty)
-  apply simp
-  apply (erule exE)+
-  apply (rule_tac x=x in exI)
-  apply (rule_tac x="f(x:=\<lambda>y. z)" in exI)
-  apply (frule_tac P="\<lambda>y. x \<notin> params y" in bspec)
-  apply assumption
-  apply simp
-  apply (rule allI impI)+
-  apply (erule exE)+
-  apply (frule bspec)
-  apply assumption
-  apply (frule_tac A="- S" for S in infinite_nonempty)
-  apply simp
-  apply (erule exE)+
-  apply (rule_tac x=x in exI)
-  apply (rule_tac x="f(x:=\<lambda>y. z)" in exI)
-  apply (frule_tac P="\<lambda>y. x \<notin> params y" in bspec)
-  apply assumption
-  apply simp
-  done
+  unfolding consistency_def
+proof (intro allI impI, elim CollectE conjE, intro conjI)
+  fix S :: "('a, 'b) form set"
+          
+  let ?C = "{S. infinite (- UNION S params) \<and> (\<exists>f. Ball S (eval e f g))}"
+ 
+  assume inf_params: "infinite (- UNION S params)"
+    and "\<exists>f. Ball S (eval e f g)"
+  then obtain f where *: "Ball S (eval e f g)" by blast
+
+  show "\<forall>p ts. \<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S)"
+  proof (intro allI notI)
+    fix p ts
+    assume "Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S"
+    then have "eval e f g (Pred p ts) \<and> eval e f g (Neg (Pred p ts))"
+      using * by blast
+    then show False by simp
+  qed
+    
+  show "FF \<notin> S"
+    using * by fastforce
+      
+  show "Neg TT \<notin> S"
+    using * by fastforce
+   
+  show "\<forall>Z. Neg (Neg Z) \<in> S \<longrightarrow> S \<union> {Z} \<in> ?C"
+  proof (intro allI impI)
+    fix Z
+    assume "Neg (Neg Z) \<in> S"
+    then have "Ball (S \<union> {Neg (Neg Z)}) (eval e f g)"
+      using * by blast
+    then have "Ball (S \<union> {Z}) (eval e f g)"
+      by simp
+    moreover have "infinite (- UNION (S \<union> {Z}) params)"
+      using inf_params by simp
+    ultimately show "S \<union> {Z} \<in> ?C"
+      by blast
+  qed
+    
+  show "\<forall>A B. And A B \<in> S \<longrightarrow> S \<union> {A, B} \<in> ?C"
+  proof (intro allI impI)
+    fix A B
+    assume "And A B \<in> S"
+    then have "Ball (S \<union> {And A B}) (eval e f g)"
+      using * by blast
+    then have "Ball (S \<union> {A, B}) (eval e f g)"
+      by simp
+    moreover have "infinite (- UNION (S \<union> {A, B}) params)"
+      using inf_params by simp
+    ultimately show "S \<union> {A, B} \<in> ?C"
+      by blast
+  qed
+    
+  show "\<forall>A B. Neg (Or A B) \<in> S \<longrightarrow> S \<union> {Neg A, Neg B} \<in> ?C"
+  proof (intro allI impI)
+    fix A B
+    assume "Neg (Or A B) \<in> S"
+    then have "Ball (S \<union> {Neg (Or A B)}) (eval e f g)"
+      using * by blast
+    then have "Ball (S \<union> {Neg A, Neg B}) (eval e f g)"
+      by simp
+    moreover have "infinite (- UNION (S \<union> {Neg A, Neg B}) params)"
+      using inf_params by simp
+    ultimately show "S \<union> {Neg A, Neg B} \<in> ?C"
+      by blast
+  qed
+      
+  show "\<forall>A B. Or A B \<in> S \<longrightarrow> S \<union> {A} \<in> ?C \<or> S \<union> {B} \<in> ?C"
+  proof (intro allI impI)
+    fix A B
+    assume "Or A B \<in> S"
+       then have "Ball (S \<union> {Or A B}) (eval e f g)"
+      using * by blast
+    then have "Ball (S \<union> {A}) (eval e f g) \<or> Ball (S \<union> {B}) (eval e f g)"
+      by simp
+    moreover have "infinite (- UNION (S \<union> {A}) params)"
+      and "infinite (- UNION (S \<union> {B}) params)"
+      using inf_params by simp_all
+    ultimately show "S \<union> {A} \<in> ?C \<or> S \<union> {B} \<in> ?C"
+      by blast
+  qed
+    
+  show "\<forall>A B. Neg (And A B) \<in> S \<longrightarrow> S \<union> {Neg A} \<in> ?C \<or> S \<union> {Neg B} \<in> ?C"
+  proof (intro allI impI)
+    fix A B
+    assume "Neg (And A B) \<in> S"
+       then have "Ball (S \<union> {Neg (And A B)}) (eval e f g)"
+      using * by blast
+    then have "Ball (S \<union> {Neg A}) (eval e f g) \<or> Ball (S \<union> {Neg B}) (eval e f g)"
+      by simp
+    moreover have "infinite (- UNION (S \<union> {Neg A}) params)"
+      and "infinite (- UNION (S \<union> {Neg B}) params)"
+      using inf_params by simp_all
+    ultimately show "S \<union> {Neg A} \<in> ?C \<or> S \<union> {Neg B} \<in> ?C"
+      by blast
+  qed
+    
+  show "\<forall>A B. Impl A B \<in> S \<longrightarrow> S \<union> {Neg A} \<in> ?C \<or> S \<union> {B} \<in> ?C"
+  proof (intro allI impI)
+    fix A B
+    assume "Impl A B \<in> S"
+       then have "Ball (S \<union> {Impl A B}) (eval e f g)"
+      using * by blast
+    then have "Ball (S \<union> {Neg A}) (eval e f g) \<or> Ball (S \<union> {B}) (eval e f g)"
+      by simp
+    moreover have "infinite (- UNION (S \<union> {Neg A}) params)"
+      and "infinite (- UNION (S \<union> {B}) params)"
+      using inf_params by simp_all
+    ultimately show "S \<union> {Neg A} \<in> ?C \<or> S \<union> {B} \<in> ?C"
+      by blast
+  qed
+    
+  show "\<forall>A B. Neg (Impl A B) \<in> S \<longrightarrow> S \<union> {A, Neg B} \<in> ?C"
+  proof (intro allI impI)
+    fix A B
+    assume "Neg (Impl A B) \<in> S"
+    then have "Ball (S \<union> {Neg (Impl A B)}) (eval e f g)"
+      using * by blast
+    then have "Ball (S \<union> {A, Neg B}) (eval e f g)"
+      by simp
+    moreover have "infinite (- UNION (S \<union> {A, Neg B}) params)"
+      using inf_params by simp
+    ultimately show "S \<union> {A, Neg B} \<in> ?C"
+      by blast
+  qed
+    
+  show "\<forall>P t. closedt 0 t \<longrightarrow> Forall P \<in> S \<longrightarrow> S \<union> {P[t/0]} \<in> ?C"
+  proof (intro allI impI)
+    fix P and t :: "'a term"
+    assume "Forall P \<in> S"
+    then have "Ball (S \<union> {Forall P}) (eval e f g)"
+      using * by blast
+    then have "Ball (S \<union> {P[t/0]}) (eval e f g)"
+      by simp
+    moreover have "infinite (- UNION (S \<union> {P[t/0]}) params)"
+      using inf_params by simp
+    ultimately show "S \<union> {P[t/0]} \<in> ?C"
+      by blast
+  qed
+    
+  show "\<forall>P t. closedt 0 t \<longrightarrow> Neg (Exists P) \<in> S \<longrightarrow> S \<union> {Neg (P[t/0])} \<in> ?C"
+  proof (intro allI impI)
+    fix P and t :: "'a term"
+    assume "Neg (Exists P) \<in> S"
+    then have "Ball (S \<union> {Neg (Exists P)}) (eval e f g)"
+      using * by blast
+    then have "Ball (S \<union> {Neg (P[t/0])}) (eval e f g)"
+      by simp
+    moreover have "infinite (- UNION (S \<union> {Neg (P[t/0])}) params)"
+      using inf_params by simp
+    ultimately show "S \<union> {Neg (P[t/0])} \<in> ?C"
+      by blast
+  qed
+    
+  show "\<forall>P. Exists P \<in> S \<longrightarrow> (\<exists>x. S \<union> {P[App x []/0]} \<in> ?C)"
+  proof (intro allI impI)
+    fix P
+    assume "Exists P \<in> S"
+    then have "Ball (S \<union> {Exists P}) (eval e f g)"
+      using * by blast
+    then have "eval e f g (Exists P)"
+      by blast
+    then obtain z where "eval (e\<langle>0:z\<rangle>) f g P"
+      by simp blast
+    moreover obtain x where "x \<in> - UNION S params"
+      using inf_params infinite_nonempty by blast
+    then have "x \<notin> params P"
+      using \<open>Exists P \<in> S\<close> by auto
+    ultimately have "eval (e\<langle>0:(f(x := \<lambda>y. z)) x []\<rangle>) (f(x := \<lambda>y. z)) g P"
+      by simp
+    moreover have "Ball S (eval e (f(x := \<lambda>y. z)) g)"
+      using * \<open>x \<in> - UNION S params\<close> by simp
+    moreover have "infinite (- UNION (S \<union> {P[App x []/0]}) params)"
+      using inf_params by simp
+    ultimately have "S \<union> {P[App x []/0]} \<in> {S. infinite (- UNION S params) \<and>
+                                               (Ball S (eval e (f(x := \<lambda>y. z)) g))}"
+      by simp
+    then show "\<exists>x. S \<union> {P[App x []/0]} \<in> ?C"
+      by blast
+  qed
+    
+  show "\<forall>P. Neg (Forall P) \<in> S \<longrightarrow> (\<exists>x. S \<union> {Neg (P[App x []/0])} \<in> ?C)"
+  proof (intro allI impI)
+    fix P
+    assume "Neg (Forall P) \<in> S"
+    then have "Ball (S \<union> {Neg (Forall P)}) (eval e f g)"
+      using * by blast
+    then have "eval e f g (Neg (Forall P))"
+      by blast
+    then obtain z where "\<not> eval (e\<langle>0:z\<rangle>) f g P"
+      by simp blast
+    moreover obtain x where "x \<in> - UNION S params"
+      using inf_params infinite_nonempty by blast
+    then have "x \<notin> params P"
+      using \<open>Neg (Forall P) \<in> S\<close> by auto
+    ultimately have "\<not> eval (e\<langle>0:(f(x := \<lambda>y. z)) x []\<rangle>) (f(x := \<lambda>y. z)) g P"
+      by simp
+    moreover have "Ball S (eval e (f(x := \<lambda>y. z)) g)"
+      using * \<open>x \<in> - UNION S params\<close> by simp
+    moreover have "infinite (- UNION (S \<union> {Neg (P[App x []/0])}) params)"
+      using inf_params by simp
+    ultimately have "S \<union> {Neg (P[App x []/0])} \<in> {S. infinite (- UNION S params) \<and>
+                                               (Ball S (eval e (f(x := \<lambda>y. z)) g))}"
+      by simp
+    then show "\<exists>x. S \<union> {Neg (P[App x []/0])} \<in> ?C"
+      by blast
+  qed
+qed
 
 theorem doublep_evalt [simp]:
   "evalt e f (psubstt (\<lambda>n::nat. 2 * n) t) = evalt e (\<lambda>n. f (2*n)) t"
