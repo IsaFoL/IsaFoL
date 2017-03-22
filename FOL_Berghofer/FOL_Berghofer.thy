@@ -3129,22 +3129,30 @@ theorem loewenheim_skolem: "\<forall>p\<in>S. eval e f g p \<Longrightarrow>
         (mk_finite_char (mk_alt_consistency (close
           {S. \<not> finite (- (\<Union>p\<in>S. params p)) \<and>
             (\<exists>f. \<forall>p\<in>S. eval e f g p)}))) diag_form') p"
-  apply (simp only: doublep_eval [symmetric])
-  apply (rule ballI impI)+
-  apply (rule model_existence)
-  apply (rule sat_consistency)
-  apply (rule CollectI)
-  apply (rule conjI)
-  apply (rule doublep_infinite_params)
-  apply (rule_tac x="\<lambda>n. f (n div 2)" in exI)
-  apply (rule ballI)
-  apply (erule imageE)
-  apply (drule_tac x=xa in bspec)
-  apply assumption
-  apply (simp add: doublep_eval)
-  apply (rule doublep_infinite_params)
-  apply simp
-  apply simp
-  done
+  (is "\<forall>_\<in>_. _ _ _ _ _ \<Longrightarrow> \<forall>_\<in>_. _ _ _ \<longrightarrow> eval _ _ ?g _")
+proof (intro ballI impI)
+  fix p
+  assume "\<forall>p\<in>S. eval e f g p"
+    and "p \<in> S"
+    and "closed 0 p"
+  then have "eval e f g p"
+    using \<open>\<forall>p\<in>S. eval e f g p\<close> \<open>p \<in> S\<close> by blast
+  then have "Ball S (eval e f g)"
+    using \<open>\<forall>p\<in>S. eval e f g p\<close> by blast
+  then have "Ball (psubst (op * 2) ` S) (eval e (\<lambda>n. f (n div 2)) g)"
+    by (simp add: doublep_eval)
+  then have "psubst (op * 2) ` S \<in> {S. infinite (- UNION S params) \<and> (\<exists>f. Ball S (eval e f g))}"
+    using doublep_infinite_params by blast
+  moreover have "psubst (op * 2) p \<in> psubst (op * 2) ` S"
+    using \<open>p \<in> S\<close> by blast
+  moreover have "closed 0 (psubst (op * 2) p)"
+    using \<open>closed 0 p\<close> by simp
+  moreover have "consistency {S. infinite (- UNION S params) \<and> (\<exists>f. Ball S (eval e f g))}"
+    using sat_consistency by blast
+  ultimately have "eval e' HApp ?g (psubst (op * 2) p)"
+    using model_existence by blast
+  then show "eval e' (\<lambda>n. HApp (2 * n)) ?g p"
+    using doublep_eval by blast
+qed
 
 end
