@@ -21,17 +21,17 @@ lemma in_atms_of_mset_takeD:
 
 subsection \<open>Access Functions\<close>
 
-fun working_queue_wl :: "'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> nat \<Rightarrow> working_queue_wl" where
-  \<open>working_queue_wl (_, _, _, _, _, _, _, W) L i = mset (drop i (W L))\<close>
+fun clauses_to_update_wl :: "'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> nat \<Rightarrow> clauses_to_update_wl" where
+  \<open>clauses_to_update_wl (_, _, _, _, _, _, _, W) L i = mset (drop i (W L))\<close>
 
 fun get_trail_wl :: "'v twl_st_wl \<Rightarrow> ('v, nat) ann_lit list" where
   \<open>get_trail_wl (M, _, _, _, _, _, _, _) = M\<close>
 
-fun pending_wl :: "'v twl_st_wl \<Rightarrow> 'v lit_queue_wl" where
-  \<open>pending_wl (_, _, _, _, _, _, Q, _) = Q\<close>
+fun literals_to_update_wl :: "'v twl_st_wl \<Rightarrow> 'v lit_queue_wl" where
+  \<open>literals_to_update_wl (_, _, _, _, _, _, Q, _) = Q\<close>
 
-fun set_pending_wl :: "'v lit_queue_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl" where
-  \<open>set_pending_wl Q (M, N, U, D, NP, UP, _, W) = (M, N, U, D, NP, UP, Q, W)\<close>
+fun set_literals_to_update_wl :: "'v lit_queue_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl" where
+  \<open>set_literals_to_update_wl Q (M, N, U, D, NP, UP, _, W) = (M, N, U, D, NP, UP, Q, W)\<close>
 
 fun get_conflict_wl :: "'v twl_st_wl \<Rightarrow> 'v cconflict" where
   \<open>get_conflict_wl (_, _, _, D, _, _, _, _) = D\<close>
@@ -89,7 +89,7 @@ lemma lits_of_atms_of_m_union:
 fun st_l_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_l\<close> where
   \<open>st_l_of_wl None (M, N, C, D, NP, UP, Q, W) = (M, N, C, D, NP, UP, {#}, Q)\<close>
 | \<open>st_l_of_wl (Some (L, j)) (M, N, C, D, NP, UP, Q, W) =
-    (M, N, C, D, NP, UP, (if D \<noteq> None then {#} else working_queue_wl (M, N, C, D, NP, UP, Q, W) L j,
+    (M, N, C, D, NP, UP, (if D \<noteq> None then {#} else clauses_to_update_wl (M, N, C, D, NP, UP, Q, W) L j,
       Q))\<close>
 
 fun twl_st_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st\<close> where
@@ -102,7 +102,7 @@ fun remove_one_lit_from_wq :: "nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v tw
   \<open>remove_one_lit_from_wq L (M, N, C, D, NP, UP, WS, Q) = (M, N, C, D, NP, UP, remove1_mset L WS, Q)\<close>
 
 lemma remove_one_lit_from_wq_def:
-  \<open>remove_one_lit_from_wq L S = set_working_queue_l (working_queue_l S - {#L#}) S\<close>
+  \<open>remove_one_lit_from_wq L S = set_clauses_to_update_l (clauses_to_update_l S - {#L#}) S\<close>
   by (cases S) auto
 
 lemma Collect_minus_single_Collect: \<open>{x. P x} - {a} = {x . P x \<and> x \<noteq> a}\<close>
@@ -130,20 +130,20 @@ proof -
   finally show ?thesis .
 qed
 
-lemma pending_wl_pending_l_iff: \<open>pending_l (st_l_of_wl L S) = pending_wl S\<close>
+lemma literals_to_update_wl_literals_to_update_l_iff: \<open>literals_to_update_l (st_l_of_wl L S) = literals_to_update_wl S\<close>
   by (cases S; cases L) auto
 
-lemma correct_watching_set_pending: \<open>correct_watching (set_pending_wl WS T') = correct_watching T'\<close>
+lemma correct_watching_set_literals_to_update: \<open>correct_watching (set_literals_to_update_wl WS T') = correct_watching T'\<close>
   by (cases T') (auto simp: correct_watching.simps)
 
-lemma get_conflict_wl_set_pending_wl: \<open>get_conflict_wl (set_pending_wl P S) = get_conflict_wl S\<close>
+lemma get_conflict_wl_set_literals_to_update_wl: \<open>get_conflict_wl (set_literals_to_update_wl P S) = get_conflict_wl S\<close>
   by (cases S) auto
 
 lemma get_conflict_twl_st_of_st_l_of_wl:
   \<open>get_conflict (twl_st_of L (st_l_of_wl L' T')) = get_conflict_wl T'\<close>
   by (cases T'; cases L; cases L') auto
 
-lemma pending_twl_st_of_st_l_of_wl: \<open>pending (twl_st_of L (st_l_of_wl L' T')) = pending_wl T'\<close>
+lemma literals_to_update_twl_st_of_st_l_of_wl: \<open>literals_to_update (twl_st_of L (st_l_of_wl L' T')) = literals_to_update_wl T'\<close>
   by (cases T'; cases L; cases L') auto
 
 lemma get_conflict_l_st_l_of_wl:
@@ -254,7 +254,7 @@ proof -
   have T'[unfolded T_def, unfolded S]: \<open>remove_one_lit_from_wq (watched_by S L ! w)
            (st_l_of_wl (Some (L, w)) (M, N, U, None, NP, UP, Q, W)) =
            (M, N, U, None, NP, UP,
-             remove1_mset (watched_by S L ! w) (working_queue_wl (M, N, U, None, NP, UP, Q, W) L w),
+             remove1_mset (watched_by S L ! w) (clauses_to_update_wl (M, N, U, None, NP, UP, Q, W) L w),
              Q)\<close>
     by auto
   have [simp]: \<open>remove1_mset (W L ! w) (mset (drop w (W L))) = mset (drop (Suc w) (W L))\<close>
@@ -269,16 +269,16 @@ proof -
         single_remove1_mset_eq)
 
   have inv: \<open>twl_st_inv S''\<close> and
-    cdcl_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of\<^sub>W S'')\<close> and
+    cdcl_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S'')\<close> and
     valid: \<open>valid_annotation S''\<close>
     using struct_invs by (auto simp: twl_struct_invs_def)
   have
-    w_q_inv: \<open>working_queue_inv S''\<close> and
+    w_q_inv: \<open>clauses_to_update_inv S''\<close> and
     dist: \<open>distinct_queued S''\<close> and
     no_dup: \<open>no_duplicate_queued S''\<close> and
     no_dup_queued: \<open>no_duplicate_queued S''\<close>
     using struct_invs unfolding twl_struct_invs_def by fast+
-  have n_d: \<open>no_dup M\<close> and alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state_of\<^sub>W S'')\<close>
+  have n_d: \<open>no_dup M\<close> and alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of S'')\<close>
     using cdcl_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
     by (auto simp: trail.simps comp_def S)
@@ -294,7 +294,7 @@ proof -
   let ?C' = \<open>twl_clause_of C''\<close>
   have WL_w_in_drop: \<open>W L ! w \<in> set (drop w (W L))\<close>
     using w_le by (auto simp: S in_set_drop_conv_nth)
-  then have WS: \<open>C' \<in># working_queue_l S'\<close>
+  then have WS: \<open>C' \<in># clauses_to_update_l S'\<close>
     using w_le by (auto simp: S)
   have C'_N_U_or: \<open>?C' \<in># twl_clause_of `# mset (take U (tl N)) \<or> ?C' \<in># twl_clause_of `# mset (drop (Suc U) N)\<close>
     using WS valid
@@ -316,7 +316,7 @@ proof -
         size_add_mset size_eq_0_iff_empty size_mset watched_C' watched_l.simps)
   have C_N_U: \<open>C' < length (get_clauses_l S')\<close>
     using WS add_inv by (auto simp: S additional_WS_invs_def)
-  obtain WS' where WS'_def: \<open>working_queue_l S' = add_mset C' WS'\<close>
+  obtain WS' where WS'_def: \<open>clauses_to_update_l S' = add_mset C' WS'\<close>
     using multi_member_split[OF WS] by (auto simp: S)
   have L: \<open>L \<in> set (watched_l C'')\<close>
     using valid S WL_w_in_drop by (auto simp: WS'_def)
@@ -469,10 +469,10 @@ proof -
     apply (rule refine_add_invariants'[where Q' = \<open>\<lambda>S S''. twl_st_of (Some L) S = S''\<close> and
           gS = \<open>(unit_propagation_inner_loop_body
       (L, twl_clause_of (get_clauses_l S' ! C'))
-      (set_working_queue
+      (set_clauses_to_update
         (remove1_mset
           (L, twl_clause_of (get_clauses_l S' ! C'))
-          (working_queue (twl_st_of (Some L) S')))
+          (clauses_to_update (twl_st_of (Some L) S')))
         (twl_st_of (Some L) S')))\<close>])
     subgoal
     proof -
@@ -521,10 +521,10 @@ lemma unit_propagation_inner_loop_wl_spec:
   shows \<open>(uncurry unit_propagation_inner_loop_wl, uncurry unit_propagation_inner_loop_l) \<in>
     {((L', T'::'v twl_st_wl), (L, T::'v twl_st_l)). L = L' \<and> st_l_of_wl (Some (L, 0)) T' = T \<and>
       correct_watching T' \<and>
-      twl_struct_invs (twl_st_of_wl2 (Some L) (set_pending_wl (add_mset L (pending_wl T')) T')) \<and>
-      twl_stgy_invs (twl_st_of_wl2 None (set_pending_wl (add_mset L (pending_wl T')) T')) \<and>
+      twl_struct_invs (twl_st_of_wl2 (Some L) (set_literals_to_update_wl (add_mset L (literals_to_update_wl T')) T')) \<and>
+      twl_stgy_invs (twl_st_of_wl2 None (set_literals_to_update_wl (add_mset L (literals_to_update_wl T')) T')) \<and>
       get_conflict_wl T' = None \<and>
-      additional_WS_invs (st_l_of_wl None (set_pending_wl (add_mset L (pending_wl T')) T'))} \<rightarrow>
+      additional_WS_invs (st_l_of_wl None (set_literals_to_update_wl (add_mset L (literals_to_update_wl T')) T'))} \<rightarrow>
     \<langle>{(T', T). st_l_of_wl None T' = T \<and>
         twl_struct_invs (twl_st_of_wl None T') \<and>
         twl_stgy_invs (twl_st_of_wl None T') \<and>
@@ -534,11 +534,11 @@ lemma unit_propagation_inner_loop_wl_spec:
 proof -
   {
     fix L :: \<open>'v literal\<close> and S :: \<open>'v twl_st_wl\<close>
-    let ?S = \<open>twl_st_of_wl2 (Some L) (set_pending_wl (add_mset L (pending_wl S)) S)\<close>
+    let ?S = \<open>twl_st_of_wl2 (Some L) (set_literals_to_update_wl (add_mset L (literals_to_update_wl S)) S)\<close>
     assume corr_w: \<open>correct_watching S\<close> and
       struct_invs: \<open>twl_struct_invs ?S\<close> and
       stgy_invs: \<open>twl_stgy_invs ?S\<close> and
-      add_invs: \<open>additional_WS_invs (st_l_of_wl None (set_pending_wl (add_mset L (pending_wl S)) S))\<close>
+      add_invs: \<open>additional_WS_invs (st_l_of_wl None (set_literals_to_update_wl (add_mset L (literals_to_update_wl S)) S))\<close>
     text \<open>To ease the finding the correspondence between the body of the loops, we introduce
       following function:\<close>
     define unit_propagation_body_wl_loop_fantom where
@@ -551,14 +551,14 @@ proof -
       if \<open>w <  length (watched_by S L)\<close> for w and S :: \<open>'v twl_st_wl\<close>
       using that unfolding unit_propagation_body_wl_loop_fantom_def
       by auto
-    have watched_by_select_from_working_queue: \<open>RETURN (watched_by T L ! i)
+    have watched_by_select_from_clauses_to_update: \<open>RETURN (watched_by T L ! i)
     \<le> \<Down> {(C', (S, C)). C' = C \<and> S = remove_one_lit_from_wq (watched_by T L ! i)
              (st_l_of_wl (Some (L, i)) T)}
-        (select_from_working_queue
+        (select_from_clauses_to_update
           (st_l_of_wl (Some (L, i)) T))\<close>
       if \<open>i < length (watched_by T L)\<close> and \<open>get_conflict_wl T = None\<close>
       for i :: nat and L :: \<open>'v literal\<close> and T :: \<open>'v twl_st_wl\<close>
-      unfolding select_from_working_queue_def
+      unfolding select_from_clauses_to_update_def
       apply (rule RETURN_SPEC_refine)
       by (cases T) (use that in \<open>auto simp: in_set_drop_conv_nth\<close>)
     have H: \<open>unit_propagation_body_wl_loop_fantom L i T'
@@ -570,7 +570,7 @@ proof -
           correct_watching T' \<and> i \<le> length (watched_by T' L)}
         (do {
            (S', C) \<leftarrow>
-             select_from_working_queue
+             select_from_clauses_to_update
               (st_l_of_wl (Some (L, i)) T');
            unit_propagation_inner_loop_body_l L C S'
          })\<close>
@@ -581,7 +581,7 @@ proof -
       \<open>additional_WS_invs (st_l_of_wl (Some (L, i)) T')\<close>
       for i T'
       unfolding unit_propagation_body_wl_loop_fantom_def
-      apply (refine_rcg watched_by_select_from_working_queue)
+      apply (refine_rcg watched_by_select_from_clauses_to_update)
       using that
         apply (auto intro!: unit_propagation_inner_loop_body_wl_spec)
       done
@@ -643,19 +643,19 @@ qed
 
 subsubsection \<open>Outer loop\<close>
 
-definition select_and_remove_from_pending_wl :: "'v twl_st_wl \<Rightarrow> ('v twl_st_wl \<times> 'v literal) nres" where
-  \<open>select_and_remove_from_pending_wl S = SPEC(\<lambda>(S', L). L \<in># pending_wl S \<and>
-     S' = set_pending_wl (pending_wl S - {#L#}) S)\<close>
+definition select_and_remove_from_literals_to_update_wl :: "'v twl_st_wl \<Rightarrow> ('v twl_st_wl \<times> 'v literal) nres" where
+  \<open>select_and_remove_from_literals_to_update_wl S = SPEC(\<lambda>(S', L). L \<in># literals_to_update_wl S \<and>
+     S' = set_literals_to_update_wl (literals_to_update_wl S - {#L#}) S)\<close>
 term init_clss
 definition unit_propagation_outer_loop_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
   \<open>unit_propagation_outer_loop_wl S\<^sub>0 =
     WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs (twl_st_of_wl None S) \<and> twl_stgy_invs (twl_st_of_wl None S) \<and>
       correct_watching S \<and> additional_WS_invs (st_l_of_wl None S)\<^esup>
-      (\<lambda>S. pending_wl S \<noteq> {#})
+      (\<lambda>S. literals_to_update_wl S \<noteq> {#})
       (\<lambda>S. do {
-        ASSERT(pending_wl S \<noteq> {#});
-        (S', L) \<leftarrow> select_and_remove_from_pending_wl S;
-        ASSERT(L \<in># lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W (twl_st_of_wl None S'))));
+        ASSERT(literals_to_update_wl S \<noteq> {#});
+        (S', L) \<leftarrow> select_and_remove_from_literals_to_update_wl S;
+        ASSERT(L \<in># lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None S'))));
         unit_propagation_inner_loop_wl L S'
       })
       (S\<^sub>0 :: 'v twl_st_wl)
@@ -675,17 +675,17 @@ lemma unit_propagation_outer_loop_wl_spec:
        twl_struct_invs (twl_st_of_wl None T') \<and>
        twl_stgy_invs (twl_st_of_wl None T') \<and>
        additional_WS_invs T \<and>
-       pending_wl T' = {#} \<and>
+       literals_to_update_wl T' = {#} \<and>
        no_step cdcl_twl_cp (twl_st_of None T) \<and>
        correct_watching T'}\<rangle>nres_rel\<close>
   (is \<open>?u \<in> ?A \<rightarrow> \<langle>?B\<rangle> nres_rel\<close>)
 proof -
-  have select_and_remove_from_pending_wl: \<open>select_and_remove_from_pending_wl S' \<le>
+  have select_and_remove_from_literals_to_update_wl: \<open>select_and_remove_from_literals_to_update_wl S' \<le>
      \<Down> {((T', L'), (T, L)). L = L' \<and> T = st_l_of_wl (Some (L, 0)) T' \<and>
-         T' = set_pending_wl (pending_wl S' - {#L#}) S' \<and> L \<in># pending_wl S' \<and>
-         L \<in># lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W (twl_st_of_wl None S')))
+         T' = set_literals_to_update_wl (literals_to_update_wl S' - {#L#}) S' \<and> L \<in># literals_to_update_wl S' \<and>
+         L \<in># lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None S')))
        }
-       (select_and_remove_from_pending S)\<close>
+       (select_and_remove_from_literals_to_update S)\<close>
     if S: \<open>S = st_l_of_wl None S'\<close> and \<open>get_conflict_wl S' = None\<close> and
       corr_w: \<open>correct_watching S'\<close> and
       struct_invs: \<open>twl_struct_invs (twl_st_of_wl None S')\<close>
@@ -696,7 +696,7 @@ proof -
       by (cases S') auto
     have
       no_dup_q: \<open>no_duplicate_queued (twl_st_of None (st_l_of_wl None S'))\<close> and
-      alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state_of\<^sub>W (twl_st_of None (st_l_of_wl None S')))\<close>
+      alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of None (st_l_of_wl None S')))\<close>
       using struct_invs that by (auto simp: twl_struct_invs_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
     then have H1: \<open>L \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP)\<close> if LQ: \<open>L \<in># Q\<close> for L
@@ -735,14 +735,14 @@ proof -
       apply (subst (2) append_take_drop_id[symmetric, of \<open>tl N\<close> U])
       unfolding mset_append by (auto simp: drop_Suc)
     show ?thesis
-      unfolding select_and_remove_from_pending_wl_def select_and_remove_from_pending_def
+      unfolding select_and_remove_from_literals_to_update_wl_def select_and_remove_from_literals_to_update_def
       apply (rule RES_refine)
-      using that S' by (auto 5 5 simp: pending_wl_pending_l_iff correct_watching.simps clauses_def
+      using that S' by (auto 5 5 simp: literals_to_update_wl_literals_to_update_l_iff correct_watching.simps clauses_def
           mset_take_mset_drop_mset' cdcl\<^sub>W_restart_mset_state m lits_of_atms_of_mm_union
           dest: H H1)
   qed
-  have set_pending_add_remove: \<open>(set_pending_wl (add_mset L (pending_wl (set_pending_wl (remove1_mset L (pending_wl T')) T'))) (set_pending_wl (remove1_mset L (pending_wl T')) T')) = T'\<close>
-    if \<open>L \<in># pending_wl T' \<close>for T' :: \<open>'v twl_st_wl\<close> and L
+  have set_literals_to_update_add_remove: \<open>(set_literals_to_update_wl (add_mset L (literals_to_update_wl (set_literals_to_update_wl (remove1_mset L (literals_to_update_wl T')) T'))) (set_literals_to_update_wl (remove1_mset L (literals_to_update_wl T')) T')) = T'\<close>
+    if \<open>L \<in># literals_to_update_wl T' \<close>for T' :: \<open>'v twl_st_wl\<close> and L
     using that by (cases T') auto
   have unit_propagation_outer_loop_wl: \<open>?u \<in> ?A \<rightarrow>
     \<langle>{(T', T).
@@ -752,22 +752,22 @@ proof -
        additional_WS_invs T \<and>
        correct_watching T'}\<rangle>nres_rel\<close>
     unfolding unit_propagation_outer_loop_wl_def unit_propagation_outer_loop_l_def
-    apply (refine_vcg select_and_remove_from_pending_wl)
+    apply (refine_vcg select_and_remove_from_literals_to_update_wl)
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal for T' T by (auto simp: pending_wl_pending_l_iff)
+    subgoal for T' T by (auto simp: literals_to_update_wl_literals_to_update_l_iff)
     subgoal by auto
     subgoal for S' S T' T
       apply (subgoal_tac \<open>get_conflict (twl_st_of None (st_l_of_wl None T')) \<noteq> None \<longrightarrow>
-    pending (twl_st_of None (st_l_of_wl None T')) = {#}\<close>)
+    literals_to_update (twl_st_of None (st_l_of_wl None T')) = {#}\<close>)
       subgoal by (cases T'; cases S') auto
       subgoal by (simp add: twl_struct_invs_def del: propa_cands_enqueued.simps
             confl_cands_enqueued.simps valid_annotation.simps no_duplicate_queued.simps
             twl_st_exception_inv.simps unit_clss_inv.simps
-            working_queue_inv.simps)
+            clauses_to_update_inv.simps)
       done
     subgoal by auto
     subgoal by auto
@@ -778,10 +778,10 @@ proof -
       apply (subst do_uncurry[of unit_propagation_inner_loop_l])
       apply (rule unit_propagation_inner_loop_wl_spec["to_\<Down>"])
       apply (subgoal_tac \<open>(get_conflict (twl_st_of None (st_l_of_wl None T')) \<noteq> None \<longrightarrow>
-         working_queue (twl_st_of None (st_l_of_wl None T')) = {#} \<and> pending (twl_st_of None (st_l_of_wl None T')) = {#})\<close>)
+         clauses_to_update (twl_st_of None (st_l_of_wl None T')) = {#} \<and> literals_to_update (twl_st_of None (st_l_of_wl None T')) = {#})\<close>)
           \<comment> \<open>this goal is extracted from the invariant\<close>
-       apply (auto simp: correct_watching_set_pending set_pending_add_remove get_conflict_wl_set_pending_wl
-          get_conflict_twl_st_of_st_l_of_wl pending_twl_st_of_st_l_of_wl; fail)
+       apply (auto simp: correct_watching_set_literals_to_update set_literals_to_update_add_remove get_conflict_wl_set_literals_to_update_wl
+          get_conflict_twl_st_of_st_l_of_wl literals_to_update_twl_st_of_st_l_of_wl; fail)
       apply (simp add: twl_struct_invs_def)
       done
     done
@@ -792,7 +792,7 @@ proof -
   proof -
     have A': \<open>(S, twl_st_of None S) \<in> {(S, S'). S' = twl_st_of None S \<and>
      twl_struct_invs (twl_st_of None S) \<and>  twl_stgy_invs (twl_st_of None S) \<and>
-      additional_WS_invs S \<and> working_queue_l S = {#} \<and> get_conflict_l S = None}\<close>
+      additional_WS_invs S \<and> clauses_to_update_l S = {#} \<and> get_conflict_l S = None}\<close>
       using A by (cases S') auto
     have SS': \<open>st_l_of_wl None S' = S\<close>
       using A by auto
@@ -928,16 +928,16 @@ lemma skip_and_resolve_loop_wl_spec:
        twl_struct_invs (twl_st_of_wl None T') \<and>
        twl_stgy_invs (twl_st_of_wl None T') \<and>
        get_conflict_wl T' \<noteq> None \<and>
-       pending_wl T' = {#} \<and>
+       literals_to_update_wl T' = {#} \<and>
        additional_WS_invs (st_l_of_wl None T')} \<rightarrow>
     \<langle>{(T', T).
        st_l_of_wl None T' = T \<and>
        twl_struct_invs (twl_st_of_wl None T') \<and>
        twl_stgy_invs (twl_st_of_wl None T') \<and>
        additional_WS_invs T \<and>
-       no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W (twl_st_of_wl None T')) \<and>
-       no_step cdcl\<^sub>W_restart_mset.resolve (state_of\<^sub>W (twl_st_of_wl None T')) \<and>
-       pending_wl T' = {#} \<and>
+       no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of_wl None T')) \<and>
+       no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None T')) \<and>
+       literals_to_update_wl T' = {#} \<and>
        get_conflict_wl T' \<noteq> None \<and>
        correct_watching T'}\<rangle>nres_rel\<close>
   (is \<open>?s \<in> ?A \<rightarrow> \<langle>?B\<rangle>nres_rel\<close>)
@@ -977,8 +977,8 @@ proof -
     \<in> {(S, S'). S' = twl_st_of None S \<and>
                  twl_struct_invs (twl_st_of None S) \<and>
                  twl_stgy_invs (twl_st_of None S) \<and> additional_WS_invs S \<and>
-                 working_queue_l S = {#} \<and>
-                 pending_l S = {#} \<and> get_conflict (twl_st_of None S) \<noteq> None}\<close>
+                 clauses_to_update_l S = {#} \<and>
+                 literals_to_update_l S = {#} \<and> get_conflict (twl_st_of None S) \<noteq> None}\<close>
       using A by (cases x, cases y) auto
     have nf: \<open>nofail (skip_and_resolve_loop (twl_st_of None y))\<close>
       apply (rule SPEC_nofail)
@@ -1025,8 +1025,8 @@ definition backtrack_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
         ASSERT(-L \<in># the D);
         ASSERT(twl_stgy_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
         ASSERT(twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
-        ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
-        ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (state_of\<^sub>W (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
+        ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
+        ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
         M1 \<leftarrow> find_decomp_wl (M, N, U, D, NP, UP, Q, W) L;
         let E = the D;
 
@@ -1137,9 +1137,9 @@ lemma backtrack_wl_spec:
        twl_stgy_invs (twl_st_of_wl None T') \<and>
        get_conflict_wl T' \<noteq> None \<and>
        get_conflict_wl T' \<noteq> Some {#} \<and>
-       pending_wl T' = {#} \<and>
-       no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W (twl_st_of_wl None T')) \<and>
-       no_step cdcl\<^sub>W_restart_mset.resolve (state_of\<^sub>W (twl_st_of_wl None T')) \<and>
+       literals_to_update_wl T' = {#} \<and>
+       no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of_wl None T')) \<and>
+       no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None T')) \<and>
        additional_WS_invs (st_l_of_wl None T')} \<rightarrow>
     \<langle>{(T', T).
        st_l_of_wl None T' = T \<and>
@@ -1147,7 +1147,7 @@ lemma backtrack_wl_spec:
        twl_stgy_invs (twl_st_of_wl None T') \<and>
        additional_WS_invs T \<and>
        get_conflict_wl T' = None \<and>
-       pending_wl T' \<noteq> {#} \<and>
+       literals_to_update_wl T' \<noteq> {#} \<and>
        correct_watching T'}\<rangle>nres_rel\<close>
   (is \<open>?bt \<in> ?A \<rightarrow> \<langle>?B\<rangle>nres_rel\<close>)
 proof -
@@ -1210,7 +1210,7 @@ proof -
     subgoal by auto
     subgoal for M N U E NP UP WS Q M' N' U' E' NP' UP' Q' W M''' M'''' L L'
       apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm
-      (state_of\<^sub>W (twl_st_of None (M, N, U, E, NP, UP, WS, Q)))\<close>)
+      (state\<^sub>W_of (twl_st_of None (M, N, U, E, NP, UP, WS, Q)))\<close>)
       subgoal by (cases M') (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
             mset_take_mset_drop_mset
             dest: in_atms_of_mset_takeD)
@@ -1219,7 +1219,7 @@ proof -
       done
     subgoal for M N U E NP UP WS Q M' N' U' E' NP' UP' Q' W M''' M'''' L L'
       apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm
-      (state_of\<^sub>W (twl_st_of None (M, N, U, E, NP, UP, WS, Q)))\<close>)
+      (state\<^sub>W_of (twl_st_of None (M, N, U, E, NP, UP, WS, Q)))\<close>)
       subgoal
         using in_set_image_subsetD[of atm_of \<open>set_mset (the E')\<close> \<open>atms_of_ms (mset ` set (tl N)) \<union> atms_of_mm NP\<close> L']
         by (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset
@@ -1235,7 +1235,7 @@ proof -
       subgoal for G H by auto
       subgoal for G H
         apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm
-      (state_of\<^sub>W (twl_st_of None (M, N, U, E, NP, UP, WS, Q)))\<close>)
+      (state\<^sub>W_of (twl_st_of None (M, N, U, E, NP, UP, WS, Q)))\<close>)
         subgoal by (auto 0 3 simp add: cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
               mset_take_mset_drop_mset
               dest!: H[of _ U N] atms_of_diffD)
@@ -1256,11 +1256,11 @@ proof -
       \<open>(T, twl_st_of None T) \<in> {(S, S'). S' = twl_st_of None S \<and>
                  get_conflict_l S \<noteq> None \<and>
                  get_conflict_l S \<noteq> Some {#} \<and>
-                 working_queue_l S = {#} \<and>
-                 pending_l S = {#} \<and>
+                 clauses_to_update_l S = {#} \<and>
+                 literals_to_update_l S = {#} \<and>
                  additional_WS_invs S \<and>
-                 (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W (twl_st_of None S)) S') \<and>
-                 (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.resolve (state_of\<^sub>W (twl_st_of None S)) S') \<and>
+                 (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of None S)) S') \<and>
+                 (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of None S)) S') \<and>
                  twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S)}\<close>
       using A by (cases S) auto
     have nf: \<open>nofail (backtrack (twl_st_of None T))\<close>
@@ -1314,7 +1314,7 @@ lemma set_Collect_Pair_to_fst_snd:
 lemma cdcl_twl_o_prog_wl_spec:
   \<open>(cdcl_twl_o_prog_wl, cdcl_twl_o_prog_l) \<in> {(S::'v twl_st_wl, S'::'v twl_st_l).
      S' = st_l_of_wl None S \<and>
-     pending_wl S = {#} \<and>
+     literals_to_update_wl S = {#} \<and>
      (\<forall>S'. \<not> cdcl_twl_cp (twl_st_of_wl None S) S') \<and>
      twl_struct_invs (twl_st_of_wl None S) \<and>
      twl_stgy_invs (twl_st_of_wl None S) \<and>
@@ -1364,8 +1364,8 @@ proof -
   proof -
     have A': \<open>(S', twl_st_of None S') \<in> {(S, S').
       S' = twl_st_of None S \<and>
-      working_queue_l S = {#} \<and>
-      pending_l S = {#} \<and>
+      clauses_to_update_l S = {#} \<and>
+      literals_to_update_l S = {#} \<and>
       (\<forall>S'. \<not> cdcl_twl_cp (twl_st_of None S) S') \<and>
       twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S) \<and> additional_WS_invs S}\<close>
       using A by (cases S) auto
@@ -1476,8 +1476,8 @@ lemma cdcl_twl_stgy_prog_wl_spec_final2_Down:
   shows
     \<open>cdcl_twl_stgy_prog_wl S \<le>
       \<Down> {(S, S'). S' = st_l_of_wl None S}
-        (SPEC(\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state_of\<^sub>W (twl_st_of_wl None S))
-          (state_of\<^sub>W (twl_st_of None T))))\<close>
+        (SPEC(\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state\<^sub>W_of (twl_st_of_wl None S))
+          (state\<^sub>W_of (twl_st_of None T))))\<close>
   apply (rule ref_two_step)
    apply (rule cdcl_twl_stgy_prog_wl_spec_final[OF assms])
   apply (rule weaken_SPEC)
@@ -1491,8 +1491,8 @@ theorem cdcl_twl_stgy_prog_wl_spec_final2:
     \<open>correct_watching S\<close>
   shows
     \<open>cdcl_twl_stgy_prog_wl S \<le>
-       SPEC(\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state_of\<^sub>W (twl_st_of_wl None S))
-          (state_of\<^sub>W (twl_st_of_wl None T)))\<close>
+       SPEC(\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state\<^sub>W_of (twl_st_of_wl None S))
+          (state\<^sub>W_of (twl_st_of_wl None T)))\<close>
   using cdcl_twl_stgy_prog_wl_spec_final2_Down[OF assms] unfolding conc_fun_SPEC
   by auto
 
@@ -1514,8 +1514,8 @@ theorem init_dt_wl:
     no_confl: \<open>get_conflict_wl S = None\<close>
   shows
     \<open>cdcl_twl_stgy_prog_wl S \<le> SPEC (\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy
-             (state_of\<^sub>W (twl_st_of_wl None S))
-             (state_of\<^sub>W (twl_st_of_wl None T)))\<close>
+             (state\<^sub>W_of (twl_st_of_wl None S))
+             (state\<^sub>W_of (twl_st_of_wl None T)))\<close>
 proof -
   obtain M N U D NP UP WS Q where
     init: \<open>init_dt CS S\<^sub>0 = (M, N, U, D, NP, UP, WS, Q)\<close>
@@ -1528,7 +1528,7 @@ proof -
         calculate_correct_watching[of _ _ _ M \<open>hd N\<close> U D NP UP])
   have
     \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W (twl_st_of_wl None S)) = mset `# mset CS\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None S)) = mset `# mset CS\<close> and
     \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
     \<open>additional_WS_invs (st_l_of_wl None S)\<close>
     unfolding S S\<^sub>0

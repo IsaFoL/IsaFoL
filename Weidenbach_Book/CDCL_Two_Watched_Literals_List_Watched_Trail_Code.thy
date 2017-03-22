@@ -404,7 +404,7 @@ sepref_thm unit_propagation_inner_loop_wl_D
   supply [[goals_limit=1]]
   apply (subst PR_CONST_def)
   unfolding twl_array_code.unit_propagation_inner_loop_wl_D_def twl_st_l_trail_assn_def
-    pending_wl_pending_wl_empty
+    literals_to_update_wl_literals_to_update_wl_empty
   by sepref
 
 concrete_definition (in -) unit_propagation_inner_loop_wl_D_code
@@ -417,29 +417,29 @@ lemmas unit_propagation_inner_loop_wl_D_code_refine[sepref_fr_rules] =
    unit_propagation_inner_loop_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
 
 
-lemma pending_wll_empty_hnr[unfolded twl_st_l_trail_assn_def, sepref_fr_rules]:
-  \<open>(return o (\<lambda>(M, N, U, D, NP, UP, Q, W). is_Nil Q), RETURN o pending_wl_empty) \<in> twl_st_l_trail_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+lemma literals_to_update_wll_empty_hnr[unfolded twl_st_l_trail_assn_def, sepref_fr_rules]:
+  \<open>(return o (\<lambda>(M, N, U, D, NP, UP, Q, W). is_Nil Q), RETURN o literals_to_update_wl_empty) \<in> twl_st_l_trail_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   apply sepref_to_hoare
   apply (rename_tac S' S)
   apply (case_tac \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). Q) S\<close>;
       case_tac \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). Q) S'\<close>)
-  by (sep_auto simp: twl_st_l_trail_assn_def pending_wll_empty_def pending_wl_empty_def
+  by (sep_auto simp: twl_st_l_trail_assn_def literals_to_update_wll_empty_def literals_to_update_wl_empty_def
       list_mset_assn_empty_Cons list_mset_assn_add_mset_Nil
       split: list.splits)+
 
-concrete_definition (in -) pending_wll_empty'
-   uses twl_array_code.pending_wll_empty_hnr
+concrete_definition (in -) literals_to_update_wll_empty'
+   uses twl_array_code.literals_to_update_wll_empty_hnr
    is "(?f,_)\<in>_"
 
-prepare_code_thms (in -) pending_wll_empty'_def
+prepare_code_thms (in -) literals_to_update_wll_empty'_def
 
-lemmas pending_wll_empty'_code[sepref_fr_rules] =
-   pending_wll_empty'.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+lemmas literals_to_update_wll_empty'_code[sepref_fr_rules] =
+   literals_to_update_wll_empty'.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
 
-lemma hd_select_and_remove_from_pending_wl''_refine:
+lemma hd_select_and_remove_from_literals_to_update_wl''_refine:
   \<open>(return o (\<lambda>(M, N, U, D, NP, UP, Q, W).  ((M, N, U, D, NP, UP, tl Q, W), hd Q)),
-       select_and_remove_from_pending_wl :: nat twl_st_wl \<Rightarrow> (nat twl_st_wl \<times> nat literal) nres) \<in>
-    [\<lambda>S. \<not>pending_wl_empty S]\<^sub>a
+       select_and_remove_from_literals_to_update_wl :: nat twl_st_wl \<Rightarrow> (nat twl_st_wl \<times> nat literal) nres) \<in>
+    [\<lambda>S. \<not>literals_to_update_wl_empty S]\<^sub>a
     twl_st_l_trail_assn\<^sup>d \<rightarrow> twl_st_l_trail_assn *assn nat_lit_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
@@ -449,7 +449,7 @@ proof -
      \<langle>Id\<rangle>option_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r list_mset_rel \<times>\<^sub>r Id\<close>
   have 1:
     \<open>(RETURN o ?int,
-       select_and_remove_from_pending_wl :: nat twl_st_wl \<Rightarrow> (nat twl_st_wl \<times> nat literal) nres) \<in>
+       select_and_remove_from_literals_to_update_wl :: nat twl_st_wl \<Rightarrow> (nat twl_st_wl \<times> nat literal) nres) \<in>
     [\<lambda>(_, _, _, _, _, _, Q, _). Q \<noteq> {#}]\<^sub>f
     twl_st_l_interm_rel_1 \<rightarrow> \<langle>twl_st_l_interm_rel_1 \<times>\<^sub>r Id\<rangle>nres_rel\<close>
     unfolding fref_def
@@ -457,7 +457,7 @@ proof -
     apply (rename_tac a aa ab ac ad ae af b ag ah ai aj ak al am ba)
     apply (case_tac af)
      apply (auto simp: fref_def nres_rel_def twl_st_l_interm_rel_1_def
-        select_and_remove_from_pending_wl_def RETURN_RES_refine_iff list_mset_rel_def br_def)
+        select_and_remove_from_literals_to_update_wl_def RETURN_RES_refine_iff list_mset_rel_def br_def)
     done
   define twl_st_l_interm_assn_2 :: \<open>_ \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
     \<open>twl_st_l_interm_assn_2 \<equiv>
@@ -477,7 +477,7 @@ proof -
     by (case_tac \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). Q) x\<close>;
         case_tac \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). Q) xi\<close>) sep_auto+
   have H: \<open>(return \<circ> (\<lambda>(M, N, U, D, NP, UP, Q, W). ((M, N, U, D, NP, UP, tl Q, W), hd Q)),
-             select_and_remove_from_pending_wl)
+             select_and_remove_from_literals_to_update_wl)
             \<in> [comp_PRE twl_st_l_interm_rel_1
                  (\<lambda>(_, _, _, _, _, _, Q, _). Q \<noteq> {#})
                  (\<lambda>_ (_, _, _, _, _, _, Q, _). Q \<noteq> [])
@@ -488,7 +488,7 @@ proof -
     using hfref_compI_PRE_aux[OF 2 1] .
   have pre: \<open>?pre' = ?pre\<close>
     by (auto simp: comp_PRE_def twl_st_l_interm_rel_1_def in_br_conv list_mset_rel_def
-        pending_wl_empty_def)
+        literals_to_update_wl_empty_def)
 
   have im: \<open>?im' = ?im\<close>
     unfolding twl_st_l_interm_assn_2_def twl_st_l_interm_rel_1_def prod_hrp_comp
@@ -502,14 +502,14 @@ proof -
   show ?thesis using H unfolding pre post im .
 qed
 
-concrete_definition (in -) hd_select_and_remove_from_pending_wl''
-   uses twl_array_code.hd_select_and_remove_from_pending_wl''_refine
+concrete_definition (in -) hd_select_and_remove_from_literals_to_update_wl''
+   uses twl_array_code.hd_select_and_remove_from_literals_to_update_wl''_refine
    is "(?f,_)\<in>_"
 
-prepare_code_thms (in -) hd_select_and_remove_from_pending_wl''_def
+prepare_code_thms (in -) hd_select_and_remove_from_literals_to_update_wl''_def
 
 lemmas [sepref_fr_rules] =
-   hd_select_and_remove_from_pending_wl''.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+   hd_select_and_remove_from_literals_to_update_wl''.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
 
 sepref_register unit_propagation_outer_loop_wl_D
 sepref_thm unit_propagation_outer_loop_wl_D
@@ -518,7 +518,7 @@ sepref_thm unit_propagation_outer_loop_wl_D
   supply [[goals_limit=1]]
   apply (subst PR_CONST_def)
   unfolding unit_propagation_outer_loop_wl_D_def twl_st_l_trail_assn_def
-    pending_wl_pending_wl_empty
+    literals_to_update_wl_literals_to_update_wl_empty
   supply [[goals_limit = 1]]
   by sepref
 
@@ -537,7 +537,7 @@ sepref_thm get_conflict_wll_is_Nil_code
   supply [[goals_limit=1]]
   apply (subst PR_CONST_def)
   unfolding get_conflict_wll_is_Nil_def twl_st_l_trail_assn_def
-    pending_wl_pending_wl_empty
+    literals_to_update_wl_literals_to_update_wl_empty
     short_circuit_conv the_is_empty_def[symmetric]
   by sepref
 
@@ -726,7 +726,7 @@ concrete_definition (in -) maximum_level_remove_code
 
 prepare_code_thms maximum_level_remove_code_def
 
-lemmas select_and_remove_from_pending_wl''_code_[sepref_fr_rules] =
+lemmas select_and_remove_from_literals_to_update_wl''_code_[sepref_fr_rules] =
    maximum_level_remove_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
 
 lemma maximum_level_remove_code_get_maximum_level_remove[sepref_fr_rules]:
@@ -789,7 +789,7 @@ sepref_thm skip_and_resolve_loop_wl_D
   apply (rewrite at \<open>\<not>_ \<and> \<not> _\<close> short_circuit_conv)
   apply (rewrite at \<open>If _ \<hole> _\<close> op_mset_arl_empty_def[symmetric])
   unfolding twl_st_l_trail_assn_def
-    pending_wl_pending_wl_empty
+    literals_to_update_wl_literals_to_update_wl_empty
     get_conflict_wl.simps get_trail_wl.simps get_conflict_wl_get_conflict_wl_is_Nil
     is_decided_hd_trail_wl_def[symmetric]
     skip_and_resolve_loop_inv_def
@@ -1132,14 +1132,14 @@ prepare_code_thms (in -) cdcl_twl_stgy_prog_wl_D_code_def
 lemmas cdcl_twl_stgy_prog_wl_D_code[sepref_fr_rules] =
    cdcl_twl_stgy_prog_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
 
-concrete_definition (in -) select_and_remove_from_pending_wl''_code
-   uses twl_array_code.hd_select_and_remove_from_pending_wl''_refine
+concrete_definition (in -) select_and_remove_from_literals_to_update_wl''_code
+   uses twl_array_code.hd_select_and_remove_from_literals_to_update_wl''_refine
    is "(?f,_)\<in>_"
 
-prepare_code_thms select_and_remove_from_pending_wl''_code_def
+prepare_code_thms select_and_remove_from_literals_to_update_wl''_code_def
 
-lemmas select_and_remove_from_pending_wl''_code_2[sepref_fr_rules] =
-   select_and_remove_from_pending_wl''_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+lemmas select_and_remove_from_literals_to_update_wl''_code_2[sepref_fr_rules] =
+   select_and_remove_from_literals_to_update_wl''_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
 
 end
 

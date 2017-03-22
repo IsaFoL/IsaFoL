@@ -6,7 +6,7 @@ section \<open>Third Refinement: Remembering watched\<close>
 
 subsection \<open>Types\<close>
 
-type_synonym working_queue_wl = "nat multiset"
+type_synonym clauses_to_update_wl = "nat multiset"
 type_synonym watched = "nat list"
 type_synonym 'v lit_queue_wl = "'v literal multiset"
 

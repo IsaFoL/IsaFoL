@@ -227,7 +227,7 @@ proof (induction Ls arbitrary: D)
 next
   case (Cons L' Ls) note IH = this(1) and H = this(2)
   (* heavily modified sledgehammer proof *)
-  def find \<equiv> "(if get_level M L' \<noteq> k \<or> \<not> get_maximum_level M (mset D + mset Ls) < get_level M L'
+  define find where "find \<equiv> (if get_level M L' \<noteq> k \<or> \<not> get_maximum_level M (mset D + mset Ls) < get_level M L'
     then find_level_decomp M Ls (L' # D) k
     else Some (L', get_maximum_level M (mset D + mset Ls)))"
   have a1: "\<And>D. find_level_decomp M Ls D k = Some (L, j) \<Longrightarrow>

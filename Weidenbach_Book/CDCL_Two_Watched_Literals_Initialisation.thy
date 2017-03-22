@@ -41,20 +41,20 @@ lemma init_dt_full:
     \<open>\<forall>C \<in> set CS. length C \<ge> 1\<close> and
     \<open>\<forall>C \<in> set CS. \<not>tautology (mset C)\<close> and
     \<open>twl_struct_invs (twl_st_of None S)\<close> and
-    \<open>working_queue_l S = {#}\<close> and
+    \<open>clauses_to_update_l S = {#}\<close> and
     \<open>\<forall>s\<in>set (get_trail_l S). \<not>is_decided s\<close> and
-    \<open>get_conflict_l S = None \<longrightarrow> pending_l S = uminus `# lit_of `# mset (get_trail_l S)\<close> and
+    \<open>get_conflict_l S = None \<longrightarrow> literals_to_update_l S = uminus `# lit_of `# mset (get_trail_l S)\<close> and
     \<open>additional_WS_invs S\<close> and
     \<open>get_learned_l S = length (get_clauses_l S) - 1\<close> and
     \<open>twl_stgy_invs (twl_st_of None S)\<close>
   shows
     \<open>twl_struct_invs (twl_st_of None S')\<close> and
-    \<open>working_queue_l S' = {#}\<close> and
+    \<open>clauses_to_update_l S' = {#}\<close> and
     \<open>\<forall>s\<in>set (get_trail_l S'). \<not>is_decided s\<close> and
-    \<open>get_conflict_l S' = None \<longrightarrow> pending_l S' = uminus `# lit_of `# mset (get_trail_l S')\<close> and
-    \<open>mset `# mset CS + cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W (twl_st_of None S)) =
-      cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W (twl_st_of None S'))\<close> and
-    \<open>learned_clss (state_of\<^sub>W (twl_st_of None S')) = learned_clss (state_of\<^sub>W (twl_st_of None S))\<close> and
+    \<open>get_conflict_l S' = None \<longrightarrow> literals_to_update_l S' = uminus `# lit_of `# mset (get_trail_l S')\<close> and
+    \<open>mset `# mset CS + cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None S)) =
+      cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None S'))\<close> and
+    \<open>learned_clss (state\<^sub>W_of (twl_st_of None S')) = learned_clss (state\<^sub>W_of (twl_st_of None S))\<close> and
     \<open>additional_WS_invs S'\<close> and
     \<open>get_learned_l S' = length (get_clauses_l S') - 1\<close> and
     \<open>twl_stgy_invs (twl_st_of None S')\<close>
@@ -74,23 +74,23 @@ next
   case (Cons a CS) note IH = this(1-)
   note init_dt_step_def[simp]
   case 2 note dist = this(1) and length = this(2) and no_taut_Cs = this(3) and inv = this(4) and
-    WS = this(5) and dec = this(6) and in_pending = this(7) and add_inv = this(8) and len = this(9)
+    WS = this(5) and dec = this(6) and in_literals_to_update = this(7) and add_inv = this(8) and len = this(9)
     and stgy_inv = this(10)
 
   have
     twl: \<open>twl_struct_invs (twl_st_of None (init_dt CS S))\<close> and
-    w_q: \<open>working_queue_l (init_dt CS S) = {#}\<close> and
+    w_q: \<open>clauses_to_update_l (init_dt CS S) = {#}\<close> and
     dec': \<open>\<forall>s\<in>set (get_trail_l (init_dt CS S)). \<not> is_decided s\<close> and
-    pending': \<open>get_conflict_l (init_dt CS S) = None \<longrightarrow> pending_l (init_dt CS S) = uminus `# lit_of `# mset (get_trail_l (init_dt CS S))\<close>
+    literals_to_update': \<open>get_conflict_l (init_dt CS S) = None \<longrightarrow> literals_to_update_l (init_dt CS S) = uminus `# lit_of `# mset (get_trail_l (init_dt CS S))\<close>
       and
-    clss': \<open>mset `# mset CS + cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W (twl_st_of None S)) =
-      cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W (twl_st_of None (init_dt CS S)))\<close>
+    clss': \<open>mset `# mset CS + cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None S)) =
+      cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None (init_dt CS S)))\<close>
       and
-    learned': \<open>learned_clss (state_of\<^sub>W (twl_st_of None (init_dt CS S))) = learned_clss (state_of\<^sub>W (twl_st_of None S))\<close>
+    learned': \<open>learned_clss (state\<^sub>W_of (twl_st_of None (init_dt CS S))) = learned_clss (state\<^sub>W_of (twl_st_of None S))\<close>
       and
     add_inv': \<open>additional_WS_invs (init_dt CS S)\<close> and
     U': \<open>get_learned_l (init_dt CS S) = length (get_clauses_l (init_dt CS S)) - 1\<close>
-    using IH[OF _ _ _inv WS dec in_pending add_inv len stgy_inv] dist length no_taut_Cs by auto
+    using IH[OF _ _ _inv WS dec in_literals_to_update add_inv len stgy_inv] dist length no_taut_Cs by auto
 
   obtain M N U D NP UP Q where
     S: \<open>init_dt CS S = (M, N, U, D, NP, UP, {#}, Q)\<close>
@@ -113,7 +113,7 @@ next
     using dec_M by (cases D) (auto simp: S Let_def)
   case 4
   show ?case
-    using pending' by (cases D) (auto simp: S Let_def)
+    using literals_to_update' by (cases D) (auto simp: S Let_def)
   have a_D: \<open>\<exists>x y a'. a = x # y # a'\<close> if \<open>\<forall>L. a \<noteq> [L]\<close>
     apply (case_tac a, (use length in simp; fail))
     apply (rename_tac aa list, case_tac list; use that in simp)
@@ -152,14 +152,14 @@ next
     lev: \<open>\<forall>C\<in>#twl_clause_of `# mset (tl N). D = None \<longrightarrow> watched_literals_false_of_max_level (convert_lits_l N M) C\<close> and
     valid: \<open>valid_annotation (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
       Q) \<close> and
-    all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of\<^sub>W
+    all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of
      (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
       Q))\<close> and
-    no_taut: \<open>\<forall>D\<in>#init_clss (state_of\<^sub>W
+    no_taut: \<open>\<forall>D\<in>#init_clss (state\<^sub>W_of
                     (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP,
                      {#}, Q)).
       \<not> tautology D\<close> and
-    no_smaller: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state_of\<^sub>W
+    no_smaller: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of
      (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
       Q))\<close> and
     excep: \<open>twl_st_exception_inv (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)),
@@ -174,13 +174,13 @@ next
     propa_cands: \<open>propa_cands_enqueued (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
     Q)\<close> and
     get_confl: \<open>get_conflict (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
-     Q) \<noteq> None \<longrightarrow> working_queue (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
+     Q) \<noteq> None \<longrightarrow> clauses_to_update (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
      Q) = {#} \<and>
-    pending (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP,
+    literals_to_update (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP,
             {#}, Q) = {#}\<close> and
     unit_clss: \<open>unit_clss_inv (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
     Q)\<close> and
-    w_q: \<open>working_queue_inv (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
+    w_q: \<open>clauses_to_update_inv (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
     Q)\<close> and
     past_invs: \<open>past_invs (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP,
              {#}, Q)\<close>
@@ -201,15 +201,15 @@ next
     by (metis (no_types, lifting) nm annotated_lit.disc(1)
           annotated_lit.distinct(1) append_eq_Cons_conv in_set_conv_decomp list_tail_coinc)
   have
-    alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state_of\<^sub>W ?S')\<close> and
-    lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state_of\<^sub>W ?S')\<close> and
-    learned_tauto: \<open>(\<forall>s\<in>#learned_clss (state_of\<^sub>W ?S').
+    alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of ?S')\<close> and
+    lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of ?S')\<close> and
+    learned_tauto: \<open>(\<forall>s\<in>#learned_clss (state\<^sub>W_of ?S').
         \<not> tautology s)\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state_of\<^sub>W ?S')\<close> and
-    confl: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state_of\<^sub>W ?S')\<close> and
-    all_decomp: \<open>all_decomposition_implies_m (cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W ?S'))
-     (get_all_ann_decomposition (trail (state_of\<^sub>W ?S')))\<close> and
-    learned: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause (state_of\<^sub>W ?S')\<close>
+    \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of ?S')\<close> and
+    confl: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of ?S')\<close> and
+    all_decomp: \<open>all_decomposition_implies_m (cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of ?S'))
+     (get_all_ann_decomposition (trail (state\<^sub>W_of ?S')))\<close> and
+    learned: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause (state\<^sub>W_of ?S')\<close>
     using all_struct unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S'[symmetric]
     by fast+
   have propagated_trail_decomp_iff[iff]: \<open>a @ Propagated La C # b = Propagated L D # M' \<longleftrightarrow>
@@ -226,7 +226,7 @@ next
   qed
 
   have in_M_IN_QD: \<open>- La \<in> lits_of_l M \<Longrightarrow> La \<in># Q\<close> if \<open>D = None\<close> for La
-    using S pending' that by (auto simp: lits_of_def uminus_lit_swap)
+    using S literals_to_update' that by (auto simp: lits_of_def uminus_lit_swap)
 
   have \<open>x \<in> set M \<Longrightarrow> convert_lit (N @ N') x = convert_lit N x\<close> for x N'
     using add_inv' by (cases x) (auto simp: nth_append additional_WS_invs_def S)
@@ -243,7 +243,7 @@ next
       case [simp]: None
       note in_M_IN_QD = in_M_IN_QD[OF this]
       have all_inv':
-        \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of\<^sub>W (M', N', U', D', NP', UP', WS', Q'))\<close>
+        \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of (M', N', U', D', NP', UP', WS', Q'))\<close>
         unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S'[symmetric]
         apply (intro conjI)
         subgoal
@@ -304,7 +304,7 @@ next
             twl_exception_inv.simps uminus_lit_swap
               cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
         subgoal
-          using S' dist_q pending' by (auto simp add: a S cdcl\<^sub>W_restart_mset_state
+          using S' dist_q literals_to_update' by (auto simp add: a S cdcl\<^sub>W_restart_mset_state
             twl_exception_inv.simps Decided_Propagated_in_iff_in_lits_of_l lits_of_def
               cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
         subgoal
@@ -330,7 +330,7 @@ next
         subgoal
           using S' w_q by (auto simp: a S cdcl\<^sub>W_restart_mset_state
               twl_exception_inv.simps uminus_lit_swap get_level_cons_if filter_mset_empty_conv
-              working_queue_prop.simps
+              clauses_to_update_prop.simps
               cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits
               dest: in_M_IN_QD)
         subgoal
@@ -340,7 +340,7 @@ next
     next
       case (Some D'') note [simp] = this
       have all_inv':
-        \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of\<^sub>W (M', N', U', D', NP', UP', WS', Q'))\<close>
+        \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of (M', N', U', D', NP', UP', WS', Q'))\<close>
         unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S'[symmetric]
         apply (intro conjI)
         subgoal
@@ -402,7 +402,7 @@ next
             twl_exception_inv.simps uminus_lit_swap
               cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
         subgoal
-          using S' dist_q in_pending by (auto simp add: a S cdcl\<^sub>W_restart_mset_state
+          using S' dist_q in_literals_to_update by (auto simp add: a S cdcl\<^sub>W_restart_mset_state
             twl_exception_inv.simps Decided_Propagated_in_iff_in_lits_of_l lits_of_def
               cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
         subgoal
@@ -424,7 +424,7 @@ next
         subgoal
           using S' w_q by (auto simp: a S cdcl\<^sub>W_restart_mset_state
               twl_exception_inv.simps uminus_lit_swap get_level_cons_if filter_mset_empty_conv
-              working_queue_prop.simps
+              clauses_to_update_prop.simps
               cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
         subgoal
           using S' past_invs by (auto simp: a S past_invs.simps
@@ -439,7 +439,7 @@ next
       apply (rename_tac aa list, case_tac list; simp)
       done
       have all_inv':
-        \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of\<^sub>W (M', N', U', D', NP', UP', WS', Q'))\<close>
+        \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of (M', N', U', D', NP', UP', WS', Q'))\<close>
         unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S'[symmetric]
         apply (intro conjI)
         subgoal
@@ -518,7 +518,7 @@ next
             cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
       subgoal
         apply (cases D)
-        using S' dist_q in_pending by (auto simp add: a S cdcl\<^sub>W_restart_mset_state
+        using S' dist_q in_literals_to_update by (auto simp add: a S cdcl\<^sub>W_restart_mset_state
             twl_exception_inv.simps Decided_Propagated_in_iff_in_lits_of_l lits_of_def
             cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
       subgoal
@@ -546,7 +546,7 @@ next
       subgoal
         using S' w_q in_M_IN_QD by (cases D) (auto simp: a S cdcl\<^sub>W_restart_mset_state
             twl_exception_inv.simps uminus_lit_swap get_level_cons_if filter_mset_empty_conv
-            working_queue_prop.simps
+            clauses_to_update_prop.simps
             cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def
             split: if_splits)
       subgoal
@@ -605,9 +605,9 @@ theorem init_dt:
     \<open>\<forall>C \<in> set CS. \<not>tautology (mset C)\<close>
   shows
     \<open>twl_struct_invs (twl_st_of None (init_dt CS S))\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W (twl_st_of None (init_dt CS S))) = mset `# mset CS\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None (init_dt CS S))) = mset `# mset CS\<close> and
     \<open>twl_stgy_invs (twl_st_of None (init_dt CS S))\<close> and
-    \<open>working_queue_l (init_dt CS S) = {#}\<close> and
+    \<open>clauses_to_update_l (init_dt CS S) = {#}\<close> and
     \<open>additional_WS_invs (init_dt CS S)\<close> and
     \<open>get_conflict_l (init_dt CS S) \<noteq> None \<longrightarrow> the (get_conflict_l (init_dt CS S)) \<in># mset `# mset CS\<close>
 proof -
@@ -619,10 +619,10 @@ proof -
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
         past_invs.simps
         cdcl\<^sub>W_restart_mset_state)
-  have [simp]: \<open>working_queue_l S = {#}\<close>
+  have [simp]: \<open>clauses_to_update_l S = {#}\<close>
     \<open>\<forall>s\<in>set (get_trail_l S). \<not> is_decided s\<close>
-    \<open>get_conflict_l S = None \<longrightarrow> pending_l S = {#- lit_of x. x \<in># mset (get_trail_l S)#}\<close>
-    \<open>cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W (twl_st_of None S)) = {#}\<close>
+    \<open>get_conflict_l S = None \<longrightarrow> literals_to_update_l S = {#- lit_of x. x \<in># mset (get_trail_l S)#}\<close>
+    \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None S)) = {#}\<close>
     unfolding S
     by (auto simp: twl_struct_invs_def twl_st_inv.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
         cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
@@ -641,9 +641,9 @@ proof -
     unfolding S by auto
   show
     \<open>twl_struct_invs (twl_st_of None (init_dt CS S))\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.clauses (state_of\<^sub>W (twl_st_of None (init_dt CS S))) = mset `# mset CS\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None (init_dt CS S))) = mset `# mset CS\<close> and
     \<open>twl_stgy_invs (twl_st_of None (init_dt CS S))\<close> and
-    \<open>working_queue_l (init_dt CS S) = {#}\<close> and
+    \<open>clauses_to_update_l (init_dt CS S) = {#}\<close> and
     \<open>additional_WS_invs (init_dt CS S)\<close> and
     \<open>get_conflict_l (init_dt CS S) \<noteq> None \<longrightarrow> the (get_conflict_l (init_dt CS S)) \<in># mset `# mset CS\<close>
     using init_dt_full[of CS S, OF assms(2-4)]

@@ -23,18 +23,18 @@ abbreviation clause_l_assn :: "nat clause \<Rightarrow> nat clause_l \<Rightarro
 abbreviation clauses_l_assn :: "nat clauses \<Rightarrow> nat clauses_l \<Rightarrow> assn" where
   \<open>clauses_l_assn \<equiv> list_mset_assn clause_l_assn\<close>
 
-abbreviation working_queue_l_assn :: "nat multiset \<Rightarrow> nat list \<Rightarrow> assn" where
-  \<open>working_queue_l_assn \<equiv> list_mset_assn nat_assn\<close>
+abbreviation clauses_to_update_l_assn :: "nat multiset \<Rightarrow> nat list \<Rightarrow> assn" where
+  \<open>clauses_to_update_l_assn \<equiv> list_mset_assn nat_assn\<close>
 
-abbreviation working_queue_ll_assn :: "nat list \<Rightarrow> nat list \<Rightarrow> assn" where
-  \<open>working_queue_ll_assn \<equiv> list_assn nat_assn\<close>
+abbreviation clauses_to_update_ll_assn :: "nat list \<Rightarrow> nat list \<Rightarrow> assn" where
+  \<open>clauses_to_update_ll_assn \<equiv> list_assn nat_assn\<close>
 
-type_synonym working_queue_ll = "nat list"
+type_synonym clauses_to_update_ll = "nat list"
 type_synonym lit_queue_l = "nat literal list"
 
 type_synonym twl_st_ll =
   "(nat, nat) ann_lits \<times> nat clauses_l \<times> nat \<times>
-    nat cconflict_l \<times> nat clauses_l \<times> nat clauses_l \<times> working_queue_ll \<times> lit_queue_l"
+    nat cconflict_l \<times> nat clauses_l \<times> nat clauses_l \<times> clauses_to_update_ll \<times> lit_queue_l"
 
 fun twl_st_of_ll :: \<open>twl_st_ll \<Rightarrow> nat twl_st_l\<close> where
   \<open>twl_st_of_ll (M, N, U, D, NP, UP, WS, Q) = (M, N, U, map_option mset D, mset `# mset NP, mset `# mset UP, mset WS, mset Q)\<close>
@@ -50,7 +50,7 @@ abbreviation twl_st_l_assn :: \<open>nat twl_st_l \<Rightarrow> twl_st_ll \<Righ
  cconflict_assn *assn
  clauses_l_assn *assn
  clauses_l_assn *assn
- working_queue_l_assn *assn
+ clauses_to_update_l_assn *assn
  clause_l_assn
 \<close>
 abbreviation nat_ann_lits_assn :: "ann_lits_l \<Rightarrow> ann_lits_l \<Rightarrow> assn" where
@@ -255,7 +255,7 @@ sepref_register \<open>unit_propagation_inner_loop_body_l :: nat literal \<Right
 
 declare unit_propagation_inner_loop_body_l_impl.refine_raw[sepref_fr_rules]
 
-sepref_register \<open>select_from_working_queue :: nat twl_st_l \<Rightarrow> (nat twl_st_l \<times> nat) nres\<close>
+sepref_register \<open>select_from_clauses_to_update :: nat twl_st_l \<Rightarrow> (nat twl_st_l \<times> nat) nres\<close>
 
 
 subsubsection \<open>The Inner Propagation Loop\<close>
@@ -297,14 +297,14 @@ proof -
     done
 qed
 
-definition select_from_working_queue2 :: \<open>'v twl_st_l \<Rightarrow> (nat) nres\<close> where
-  \<open>select_from_working_queue2 S = SPEC (\<lambda>C. C \<in># working_queue_l S)\<close>
+definition select_from_clauses_to_update2 :: \<open>'v twl_st_l \<Rightarrow> (nat) nres\<close> where
+  \<open>select_from_clauses_to_update2 S = SPEC (\<lambda>C. C \<in># clauses_to_update_l S)\<close>
 
-lemma hd_select_from_working_queue2_refine[sepref_fr_rules]: (* TODO tune proof *)
+lemma hd_select_from_clauses_to_update2_refine[sepref_fr_rules]: (* TODO tune proof *)
   \<open>(return o (\<lambda>(M, N, U, D, NP, UP, WS, Q). hd WS),
-      select_from_working_queue2) \<in>
-    [\<lambda>S. working_queue_l S \<noteq> {#}]\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow> nat_assn\<close>
-  unfolding select_from_working_queue2_def
+      select_from_clauses_to_update2) \<in>
+    [\<lambda>S. clauses_to_update_l S \<noteq> {#}]\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow> nat_assn\<close>
+  unfolding select_from_clauses_to_update2_def
   apply sepref_to_hoare
   apply sep_auto
   apply (case_tac \<open>af\<close>; case_tac am)
@@ -315,11 +315,11 @@ lemma hd_select_from_working_queue2_refine[sepref_fr_rules]: (* TODO tune proof 
       dest!: mod_starD; fail)+
   done
 
-definition hd_of_working_queue_l :: \<open>twl_st_ll \<Rightarrow> nat\<close> where
-  \<open>hd_of_working_queue_l = (\<lambda>(M, N, U, D, NP, UP, WS, Q). hd WS)\<close>
+definition hd_of_clauses_to_update_l :: \<open>twl_st_ll \<Rightarrow> nat\<close> where
+  \<open>hd_of_clauses_to_update_l = (\<lambda>(M, N, U, D, NP, UP, WS, Q). hd WS)\<close>
 
-definition tl_of_working_queue_l :: \<open>twl_st_ll \<Rightarrow> twl_st_ll\<close> where
-  \<open>tl_of_working_queue_l = (\<lambda>(M, N, U, D, NP, UP, WS, Q). (M, N, U, D, NP, UP, tl WS, Q))\<close>
+definition tl_of_clauses_to_update_l :: \<open>twl_st_ll \<Rightarrow> twl_st_ll\<close> where
+  \<open>tl_of_clauses_to_update_l = (\<lambda>(M, N, U, D, NP, UP, WS, Q). (M, N, U, D, NP, UP, tl WS, Q))\<close>
 
 lemma entails_list_mset_assn_eq_mset:
   assumes \<open>(ay, bm) \<Turnstile> list_mset_assn (\<lambda>a c. \<up> (c = a)) af am\<close>
@@ -456,21 +456,21 @@ proof -
       list_mset_rel_def br_def rel2p_dflt list.rel_eq rel2p_def[abs_def] rel_mset_def)
 qed
 
-lemma hd_select_from_working_queue_refine[sepref_fr_rules]: (* TODO tune proof *)
-  \<open>(return o (\<lambda>S. (tl_of_working_queue_l S, hd_of_working_queue_l S)),
-      select_from_working_queue) \<in>
-    [\<lambda>S. working_queue_l S \<noteq> {#}]\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow> prod_assn twl_st_l_assn nat_assn\<close>
+lemma hd_select_from_clauses_to_update_refine[sepref_fr_rules]: (* TODO tune proof *)
+  \<open>(return o (\<lambda>S. (tl_of_clauses_to_update_l S, hd_of_clauses_to_update_l S)),
+      select_from_clauses_to_update) \<in>
+    [\<lambda>S. clauses_to_update_l S \<noteq> {#}]\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow> prod_assn twl_st_l_assn nat_assn\<close>
 proof -
   have H: \<open>RETURN x
          \<le> SPEC (\<lambda>(S', C).
-                     C \<in># working_queue_l S \<and>
-                     S' = set_working_queue_l (remove1_mset C (working_queue_l S)) S)\<close>
-   if \<open>snd x \<in># working_queue_l S\<close> and
-   \<open>fst x = set_working_queue_l (remove1_mset (snd x) (working_queue_l S)) S\<close>
+                     C \<in># clauses_to_update_l S \<and>
+                     S' = set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S)\<close>
+   if \<open>snd x \<in># clauses_to_update_l S\<close> and
+   \<open>fst x = set_clauses_to_update_l (remove1_mset (snd x) (clauses_to_update_l S)) S\<close>
    for x :: \<open>nat twl_st_l \<times> nat\<close> and S :: \<open>nat twl_st_l\<close> and xi xi' :: twl_st_ll
      using that by auto
   show ?thesis
-    unfolding select_from_working_queue_def tl_of_working_queue_l_def hd_of_working_queue_l_def
+    unfolding select_from_clauses_to_update_def tl_of_clauses_to_update_l_def hd_of_clauses_to_update_l_def
     apply sepref_to_hoare
     apply (sep_auto (plain))
      apply (rule_tac psi = \<open>RETURN ((\<lambda>_ _ (S, C). (twl_st_of_ll S, C)) x xi xa) \<le> _\<close> in asm_rl)
@@ -491,14 +491,14 @@ proof -
         split: option.splits)
 qed
 
-lemma working_queue_l_abs_def:\<open>working_queue_l = (fst o snd o snd o snd o snd o snd o snd)\<close>
+lemma clauses_to_update_l_abs_def:\<open>clauses_to_update_l = (fst o snd o snd o snd o snd o snd o snd)\<close>
   by auto
 
-lemma working_queue_l_refine[sepref_fr_rules]:
+lemma clauses_to_update_l_refine[sepref_fr_rules]:
   \<open>(return o ((fst o snd o snd o snd o snd o snd o snd) ::  twl_st_ll \<Rightarrow> _),
-     RETURN o (working_queue_l :: nat twl_st_l \<Rightarrow> _)) \<in>
+     RETURN o (clauses_to_update_l :: nat twl_st_l \<Rightarrow> _)) \<in>
    twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a list_mset_assn nat_assn\<close>
-  unfolding working_queue_l_abs_def
+  unfolding clauses_to_update_l_abs_def
   by sepref_to_hoare sep_auto
 
 sepref_definition unit_propagation_inner_loop_l_impl is
@@ -515,24 +515,24 @@ declare unit_propagation_inner_loop_l_impl.refine[sepref_fr_rules]
 
 subsubsection \<open>The Outer Propagation Loop\<close>
 
-sepref_register \<open>select_and_remove_from_pending :: nat twl_st_l \<Rightarrow> (nat twl_st_l \<times> nat literal) nres\<close>
+sepref_register \<open>select_and_remove_from_literals_to_update :: nat twl_st_l \<Rightarrow> (nat twl_st_l \<times> nat literal) nres\<close>
 
-definition hd_of_pending_l :: \<open>twl_st_ll \<Rightarrow> nat literal\<close> where
-  \<open>hd_of_pending_l = (\<lambda>(M, N, U, D, NP, UP, WS, Q). hd Q)\<close>
+definition hd_of_literals_to_update_l :: \<open>twl_st_ll \<Rightarrow> nat literal\<close> where
+  \<open>hd_of_literals_to_update_l = (\<lambda>(M, N, U, D, NP, UP, WS, Q). hd Q)\<close>
 
 (* TODO Move to top *)
 fun get_clauses_ll :: "twl_st_ll \<Rightarrow> nat clauses_l" where
   \<open>get_clauses_ll (M, N, U, D, NP, UP, WS, Q) = N\<close>
 (* End move *)
 
-definition clause_to_update_l :: \<open>nat literal \<Rightarrow> twl_st_ll \<Rightarrow> working_queue_ll\<close> where
+definition clause_to_update_l :: \<open>nat literal \<Rightarrow> twl_st_ll \<Rightarrow> clauses_to_update_ll\<close> where
   \<open>clause_to_update_l L S =
     filter
       (\<lambda>C::nat. get_clauses_ll S ! C ! 0 = L \<or> get_clauses_ll S ! C ! 1 = L)
       ([1..<length (get_clauses_ll S)])\<close>
 
-definition tl_of_pending_l :: \<open>twl_st_ll \<Rightarrow> twl_st_ll\<close> where
-  \<open>tl_of_pending_l = (\<lambda>(M, N, U, D, NP, UP, WS, Q). (M, N, U, D, NP, UP,
+definition tl_of_literals_to_update_l :: \<open>twl_st_ll \<Rightarrow> twl_st_ll\<close> where
+  \<open>tl_of_literals_to_update_l = (\<lambda>(M, N, U, D, NP, UP, WS, Q). (M, N, U, D, NP, UP,
      clause_to_update_l (hd Q) (M, N, U, D, NP, UP, WS, Q),
      tl Q))\<close>
 
@@ -564,18 +564,18 @@ proof -
 qed
 
 text \<open>More assumption needed here. Probably relies on full invariant.\<close>
-lemma hd_select_and_remove_from_pending_refine[sepref_fr_rules]: (* TODO tune proof *)
-  \<open>(return o (\<lambda>S. (tl_of_pending_l S, hd_of_pending_l S)),
-      select_and_remove_from_pending) \<in>
-    [\<lambda>S. pending_l S \<noteq> {#} \<and> twl_struct_invs (twl_st_of None S)]\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow> prod_assn twl_st_l_assn nat_lit_assn_id\<close>
+lemma hd_select_and_remove_from_literals_to_update_refine[sepref_fr_rules]: (* TODO tune proof *)
+  \<open>(return o (\<lambda>S. (tl_of_literals_to_update_l S, hd_of_literals_to_update_l S)),
+      select_and_remove_from_literals_to_update) \<in>
+    [\<lambda>S. literals_to_update_l S \<noteq> {#} \<and> twl_struct_invs (twl_st_of None S)]\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow> prod_assn twl_st_l_assn nat_lit_assn_id\<close>
 proof -
-  have H: \<open>RETURN x \<le> select_and_remove_from_pending S\<close>
-   if \<open>snd x \<in># pending_l S\<close> and
-   \<open>fst x = set_working_queue_l (clause_to_update (snd x) S) (set_pending_l (pending_l S - {#snd x#}) S)\<close>
+  have H: \<open>RETURN x \<le> select_and_remove_from_literals_to_update S\<close>
+   if \<open>snd x \<in># literals_to_update_l S\<close> and
+   \<open>fst x = set_clauses_to_update_l (clause_to_update (snd x) S) (set_literals_to_update_l (literals_to_update_l S - {#snd x#}) S)\<close>
    for x :: \<open>nat twl_st_l \<times> nat literal\<close> and S :: \<open>nat twl_st_l\<close> and xi xi' :: twl_st_ll
-     using that by (auto simp: select_and_remove_from_pending_def)
+     using that by (auto simp: select_and_remove_from_literals_to_update_def)
   show ?thesis
-    unfolding tl_of_pending_l_def hd_of_pending_l_def
+    unfolding tl_of_literals_to_update_l_def hd_of_literals_to_update_l_def
     apply sepref_to_hoare
     apply (sep_auto (plain))
      apply (rule_tac psi = \<open>RETURN ((\<lambda>_ _ (S, C). (twl_st_of_ll S, C)) x xi xa) \<le> _\<close> in asm_rl)
@@ -597,9 +597,9 @@ proof -
    done
 qed
 
-lemma pending_l_refine[sepref_fr_rules]:
+lemma literals_to_update_l_refine[sepref_fr_rules]:
   \<open>(return o ((snd o snd o snd o snd o snd o snd o snd) ::  twl_st_ll \<Rightarrow> _),
-     RETURN o (pending_l :: nat twl_st_l \<Rightarrow> _)) \<in>
+     RETURN o (literals_to_update_l :: nat twl_st_l \<Rightarrow> _)) \<in>
    twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a list_mset_assn nat_lit_assn_id\<close>
   by sepref_to_hoare sep_auto
 
@@ -785,7 +785,7 @@ lemma find_decomp_l_res_le_find_decomp:
     ex_decomp: \<open>ex_decomp_of_max_lvl M (map_option mset D) L\<close> and
     stgy_invs: \<open>twl_stgy_invs (twl_st_of None S')\<close> and
     struct_invs: \<open>twl_struct_invs (twl_st_of None S')\<close> and
-    ns_s: \<open>no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W (twl_st_of None S'))\<close> and
+    ns_s: \<open>no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of None S'))\<close> and
     M_not_empty: \<open>M \<noteq> []\<close>
  shows \<open>uncurry find_decomp_l_res T \<le> \<Down> Id (uncurry find_decomp T')\<close>
 proof -
@@ -808,11 +808,11 @@ proof -
   have lev_L: \<open>get_level M L = count_decided M\<close>
     using M_not_empty L by (cases M) auto
 
-  have \<open>conflicting (state_of\<^sub>W (twl_st_of None S')) = Some (mset D')\<close>
+  have \<open>conflicting (state\<^sub>W_of (twl_st_of None S')) = Some (mset D')\<close>
     by (auto simp: twl_struct_invs_def twl_stgy_invs_def cdcl\<^sub>W_restart_mset_state S')
   then have uhd_D': \<open>- L \<in> set D'\<close>
     using cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of
-        \<open>state_of\<^sub>W (twl_st_of None S')\<close>] D ns_s struct_invs stgy_invs
+        \<open>state\<^sub>W_of (twl_st_of None S')\<close>] D ns_s struct_invs stgy_invs
     by (auto simp: cdcl\<^sub>W_restart_mset_state S' hd_converts_L twl_struct_invs_def
         twl_stgy_invs_def)
 
@@ -856,7 +856,7 @@ lemma find_decomp_l_res_find_decomp:
        ex_decomp_of_max_lvl M D L \<and>
        twl_stgy_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)) \<and>
        twl_struct_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)) \<and>
-       no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W (twl_st_of None (M, N, U, D, NP, UP, WS, Q))) \<and>
+       no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of None (M, N, U, D, NP, UP, WS, Q))) \<and>
       M \<noteq> []]\<^sub>f
     {((S'::twl_st_ll), (S::nat twl_st_l)). S = twl_st_of_ll S'} \<times>\<^sub>r Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
   (is \<open>_ \<in> [\<lambda>(S, L). ?P S L]\<^sub>f _ \<rightarrow> _\<close>)
@@ -903,7 +903,7 @@ abbreviation twl_st_ll_assn :: \<open>twl_st_ll \<Rightarrow> twl_st_ll \<Righta
  option_assn clause_ll_assn *assn
  clauses_ll_assn *assn
  clauses_ll_assn *assn
- working_queue_ll_assn *assn
+ clauses_to_update_ll_assn *assn
  clause_ll_assn
 \<close>
 
@@ -1005,8 +1005,8 @@ proof -
     done
 qed
 
-lemma hr_comp_working_queue_ll_assn_working_queue_l_assn:
-  \<open>hr_comp working_queue_ll_assn list_mset_rel = working_queue_l_assn\<close>
+lemma hr_comp_clauses_to_update_ll_assn_clauses_to_update_l_assn:
+  \<open>hr_comp clauses_to_update_ll_assn list_mset_rel = clauses_to_update_l_assn\<close>
 proof -
   have [abs_def, simp]: \<open>pure_assn_raw a h = (snd h = {} \<and> a)\<close> for a h
     by (cases h) auto
@@ -1030,7 +1030,7 @@ lemma hrp_comp_twl_st_ll_assn_twl_st_of_ll: \<open>hrp_comp (twl_st_ll_assn\<^su
     (twl_st_l_assn, invalid_assn twl_st_l_assn)\<close>
   unfolding set_eq_twl_st_of_ll
   by (auto simp: hrp_comp_def hr_comp_def hr_comp_list_mst_rel_clause_l_assn hr_comp_invalid
-      hr_comp_clauses_ll_assn_clauses_l_ass hr_comp_working_queue_ll_assn_working_queue_l_assn)
+      hr_comp_clauses_ll_assn_clauses_l_ass hr_comp_clauses_to_update_ll_assn_clauses_to_update_l_assn)
 
 lemma find_decomp_l_hnr[sepref_fr_rules]:
   \<open>(uncurry find_decomp_l, uncurry find_decomp) \<in>
@@ -1038,7 +1038,7 @@ lemma find_decomp_l_hnr[sepref_fr_rules]:
       ex_decomp_of_max_lvl M D L \<and>
       twl_stgy_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)) \<and>
       twl_struct_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)) \<and>
-      no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W (twl_st_of None (M, N, U, D, NP, UP, WS, Q))) \<and>
+      no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of None (M, N, U, D, NP, UP, WS, Q))) \<and>
       M \<noteq> []]\<^sub>a
       twl_st_l_assn\<^sup>d *\<^sub>a nat_lit_assn_id\<^sup>k \<rightarrow> nat_ann_lits_assn\<close>
   apply (rule subst[of \<open>comp_PRE ({(S', S). S = twl_st_of_ll S'} \<times>\<^sub>r Id)
@@ -1050,7 +1050,7 @@ lemma find_decomp_l_hnr[sepref_fr_rules]:
            twl_stgy_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)) \<and>
            twl_struct_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)) \<and>
            (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.skip
-                     (state_of\<^sub>W
+                     (state\<^sub>W_of
                        (twl_st_of None (M, N, U, D, NP, UP, WS, Q)))
                      S') \<and>
            M \<noteq> [])
@@ -1307,9 +1307,9 @@ proof -
   have [simp]: \<open>(\<lambda>x. mset (take 2 x) + mset (drop 2 x)) = mset\<close>
     unfolding mset_append[symmetric] append_take_drop_id ..
   have learned_in_init: \<open>atms_of_mm
-     (learned_clss (state_of\<^sub>W (twl_st_of None S)))
+     (learned_clss (state\<^sub>W_of (twl_st_of None S)))
     \<subseteq> atms_of_mm
-        (init_clss (state_of\<^sub>W (twl_st_of None S)))\<close> and
+        (init_clss (state\<^sub>W_of (twl_st_of None S)))\<close> and
     unit_inv: \<open>unit_clss_inv (twl_st_of None S)\<close>
     using struct_inv unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.no_strange_atm_def by fast+
@@ -1449,7 +1449,7 @@ lemma cdcl_twl_stgy_prog_l_spec_final:
   shows
     \<open>(cdcl_twl_stgy_prog_l, full_cdcl_twl_stgy) \<in>
     [\<lambda>S. twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S) \<and>
-      working_queue_l S = {#} \<and> get_conflict_l S = None \<and> additional_WS_invs S]\<^sub>f
+      clauses_to_update_l S = {#} \<and> get_conflict_l S = None \<and> additional_WS_invs S]\<^sub>f
     Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
   unfolding full_cdcl_twl_stgy_def
   using cdcl_twl_stgy_prog_l_spec_final
@@ -1459,14 +1459,14 @@ lemma cdcl_twl_stgy_prog_l_impl_spec_final:
   shows
     \<open>(cdcl_twl_stgy_prog_l_impl, full_cdcl_twl_stgy) \<in>
     [\<lambda>S. twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S) \<and>
-      working_queue_l S = {#} \<and> get_conflict_l S = None \<and> additional_WS_invs S]\<^sub>a
+      clauses_to_update_l S = {#} \<and> get_conflict_l S = None \<and> additional_WS_invs S]\<^sub>a
    twl_st_l_assn\<^sup>d \<rightarrow> twl_st_l_assn\<close>
 proof -
   have pre: \<open>comp_PRE (Id \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id)
-       (\<lambda>S. twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S) \<and> working_queue_l S = {#} \<and> get_conflict_l S = None \<and> additional_WS_invs S) (\<lambda>_ _. True)
+       (\<lambda>S. twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S) \<and> clauses_to_update_l S = {#} \<and> get_conflict_l S = None \<and> additional_WS_invs S) (\<lambda>_ _. True)
        (\<lambda>_. True)
         = (\<lambda>S. twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S) \<and>
-          working_queue_l S = {#} \<and> get_conflict_l S = None \<and> additional_WS_invs S)\<close>
+          clauses_to_update_l S = {#} \<and> get_conflict_l S = None \<and> additional_WS_invs S)\<close>
     by (auto simp: comp_PRE_def)
 
   have args: \<open> hrp_comp (twl_st_l_assn\<^sup>d) (Id \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id) =

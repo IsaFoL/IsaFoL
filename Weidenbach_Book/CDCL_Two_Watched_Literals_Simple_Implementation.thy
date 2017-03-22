@@ -2,27 +2,27 @@ theory CDCL_Two_Watched_Literals_Simple_Implementation
 imports CDCL_Two_Watched_Literals_List
 begin
 
-type_synonym working_queue_list = "(nat \<times> nat) list"
+type_synonym clauses_to_update_list = "(nat \<times> nat) list"
 type_synonym 'v lit_queue_list = "'v literal list"
 type_synonym 'v twl_st_ll =
   "('v, nat) ann_lits \<times> 'v clause_list list \<times> nat \<times>
-    'v clause_list option \<times> 'v clauses \<times> 'v clauses \<times> working_queue_list \<times> 'v lit_queue_list"
+    'v clause_list option \<times> 'v clauses \<times> 'v clauses \<times> clauses_to_update_list \<times> 'v lit_queue_list"
 
-fun working_queue_ll :: "'v twl_st_ll \<Rightarrow> working_queue_list" where
-  \<open>working_queue_ll (_, _, _, _, _, _, WS, _) = WS\<close>
+fun clauses_to_update_ll :: "'v twl_st_ll \<Rightarrow> clauses_to_update_list" where
+  \<open>clauses_to_update_ll (_, _, _, _, _, _, WS, _) = WS\<close>
 
 fun get_trail_ll :: "'v twl_st_ll \<Rightarrow> ('v, nat) ann_lits" where
   \<open>get_trail_ll (M, _, _, _, _, _, _, _) = M\<close>
 
-fun set_working_queue_ll :: "working_queue_list \<Rightarrow> 'v twl_st_ll \<Rightarrow>
+fun set_clauses_to_update_ll :: "clauses_to_update_list \<Rightarrow> 'v twl_st_ll \<Rightarrow>
   'v twl_st_ll" where
-  \<open>set_working_queue_ll WS (M, N, U, D, NP, UP, _, Q) = (M, N, U, D, NP, UP, WS, Q)\<close>
+  \<open>set_clauses_to_update_ll WS (M, N, U, D, NP, UP, _, Q) = (M, N, U, D, NP, UP, WS, Q)\<close>
 
-fun pending_ll :: "'v twl_st_ll \<Rightarrow> 'v literal list" where
-  \<open>pending_ll (_, _, _, _, _, _, _, Q) = Q\<close>
+fun literals_to_update_ll :: "'v twl_st_ll \<Rightarrow> 'v literal list" where
+  \<open>literals_to_update_ll (_, _, _, _, _, _, _, Q) = Q\<close>
 
-fun set_pending_ll :: "'v literal list \<Rightarrow> 'v twl_st_ll \<Rightarrow> 'v twl_st_ll" where
-  \<open>set_pending_ll Q (M, N, U, D, NP, UP, WS, _) = (M, N, U, D, NP, UP, WS, Q)\<close>
+fun set_literals_to_update_ll :: "'v literal list \<Rightarrow> 'v twl_st_ll \<Rightarrow> 'v twl_st_ll" where
+  \<open>set_literals_to_update_ll Q (M, N, U, D, NP, UP, WS, _) = (M, N, U, D, NP, UP, WS, Q)\<close>
 
 fun get_conflict_ll :: "'v twl_st_ll \<Rightarrow> 'v clause_list option" where
   \<open>get_conflict_ll (_, _, _, D, _, _, _, _) = D\<close>
@@ -40,13 +40,13 @@ proof -
     S: \<open>S = (M, N, U, D, NP, UP, WS, Q)\<close>
     by (cases S) auto
   have 
-    \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state_of\<^sub>W (twl_st_of S))\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of\<^sub>W (twl_st_of S))\<close>
+    \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of (twl_st_of S))\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of (twl_st_of S))\<close>
     using struct_invs unfolding twl_struct_invs_def by fast+
-  moreover have \<open>Suc 0 \<le> backtrack_lvl (state_of\<^sub>W (twl_st_of S))\<close>
+  moreover have \<open>Suc 0 \<le> backtrack_lvl (state\<^sub>W_of (twl_st_of S))\<close>
     using dec unfolding M S by (auto simp: cdcl\<^sub>W_restart_mset_state)
   ultimately show ?thesis
-    using cdcl\<^sub>W_restart_mset.hd_trail_level_ge_1_length_gt_1[of \<open>state_of\<^sub>W (twl_st_of S)\<close>]
+    using cdcl\<^sub>W_restart_mset.hd_trail_level_ge_1_length_gt_1[of \<open>state\<^sub>W_of (twl_st_of S)\<close>]
     proped
     by (cases M; cases \<open>hd M\<close>) (auto simp add: S cdcl\<^sub>W_restart_mset_state split: if_splits)
 qed

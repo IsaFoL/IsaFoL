@@ -65,11 +65,11 @@ abbreviation clause_l_assn :: "nat clause \<Rightarrow> nat list \<Rightarrow> a
 abbreviation clauses_l_assn :: "nat clauses \<Rightarrow> nat list list \<Rightarrow> assn" where
   \<open>clauses_l_assn \<equiv> list_mset_assn clause_l_assn\<close>
 
-abbreviation working_queue_l_assn :: "nat multiset \<Rightarrow> nat list \<Rightarrow> assn" where
-  \<open>working_queue_l_assn \<equiv> list_mset_assn nat_assn\<close>
+abbreviation clauses_to_update_l_assn :: "nat multiset \<Rightarrow> nat list \<Rightarrow> assn" where
+  \<open>clauses_to_update_l_assn \<equiv> list_mset_assn nat_assn\<close>
 
-abbreviation working_queue_ll_assn :: "nat list \<Rightarrow> nat list \<Rightarrow> assn" where
-  \<open>working_queue_ll_assn \<equiv> list_assn nat_assn\<close>
+abbreviation clauses_to_update_ll_assn :: "nat list \<Rightarrow> nat list \<Rightarrow> assn" where
+  \<open>clauses_to_update_ll_assn \<equiv> list_assn nat_assn\<close>
 
 abbreviation unit_lits_assn :: "nat clauses \<Rightarrow> unit_lits_wl \<Rightarrow> assn" where
   \<open>unit_lits_assn \<equiv> list_mset_assn (list_mset_assn nat_lit_assn)\<close>
@@ -242,17 +242,17 @@ subsection \<open>Code Generation\<close>
 
 subsubsection \<open>More Operations\<close>
 
-fun pending_wll :: \<open>twl_st_wll \<Rightarrow> nat list\<close> where
-  \<open>pending_wll (M, N, U, D, NP, UP, Q, W) = Q\<close>
+fun literals_to_update_wll :: \<open>twl_st_wll \<Rightarrow> nat list\<close> where
+  \<open>literals_to_update_wll (M, N, U, D, NP, UP, Q, W) = Q\<close>
 
-definition pending_wll_empty :: \<open>twl_st_wll \<Rightarrow> bool\<close> where
-  \<open>pending_wll_empty = (\<lambda>(M, N, U, D, NP, UP, Q, W). is_Nil Q)\<close>
+definition literals_to_update_wll_empty :: \<open>twl_st_wll \<Rightarrow> bool\<close> where
+  \<open>literals_to_update_wll_empty = (\<lambda>(M, N, U, D, NP, UP, Q, W). is_Nil Q)\<close>
 
-definition pending_wl_empty :: \<open>nat twl_st_wl \<Rightarrow> bool\<close>  where
-  \<open>pending_wl_empty = (\<lambda>(M, N, U, D, NP, UP, Q, W). Q = {#})\<close>
+definition literals_to_update_wl_empty :: \<open>nat twl_st_wl \<Rightarrow> bool\<close>  where
+  \<open>literals_to_update_wl_empty = (\<lambda>(M, N, U, D, NP, UP, Q, W). Q = {#})\<close>
 
-definition select_and_remove_from_pending_wl' :: \<open>twl_st_wll \<Rightarrow> twl_st_wll \<times> nat\<close> where
-  \<open>select_and_remove_from_pending_wl' =
+definition select_and_remove_from_literals_to_update_wl' :: \<open>twl_st_wll \<Rightarrow> twl_st_wll \<times> nat\<close> where
+  \<open>select_and_remove_from_literals_to_update_wl' =
     (\<lambda>(M, N, U, D, NP, UP, Q, W).  ((M, N, U, D, NP, UP, tl Q, W), hd Q))\<close>
 
 sepref_thm list_contains_WHILE_array
@@ -994,8 +994,8 @@ lemma count_decided_butlast:
 lemma find_decomp_wl_code_find_decomp_wl:
   assumes D: \<open>D \<noteq> None\<close> \<open>D \<noteq> Some {#}\<close> and M\<^sub>0: \<open>M\<^sub>0 \<noteq> []\<close> and ex_decomp: \<open>ex_decomp_of_max_lvl M\<^sub>0 D L\<close> and
     L: \<open>L = lit_of (hd M\<^sub>0)\<close> and
-    no_r: \<open>no_step cdcl\<^sub>W_restart_mset.resolve (state_of\<^sub>W (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close> and
-    no_s: \<open>no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close> and
+    no_r: \<open>no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close> and
+    no_s: \<open>no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close> and
     struct: \<open>twl_struct_invs (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W))\<close> and
     E: \<open>E = the D\<close>
   shows
@@ -1045,9 +1045,9 @@ proof -
   have [iff]: \<open>convert_lits_l N M = [] \<longleftrightarrow> M = []\<close> for M
     by (cases M) auto
   have
-    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state_of\<^sub>W (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close> and
-    confl: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state_of\<^sub>W (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close> and
-    lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state_of\<^sub>W (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close>
+    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close> and
+    confl: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close> and
+    lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close>
     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
   have dist_D: \<open>distinct_mset (the D)\<close>
     using D dist by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset'
@@ -1161,10 +1161,10 @@ definition find_decomp_wl'  where
           get_level M K = get_maximum_level M (D - {#-L#}) + 1))\<close>
 
 definition no_skip where
-  \<open>no_skip S = (no_step cdcl\<^sub>W_restart_mset.skip (state_of\<^sub>W (twl_st_of_wl None S)))\<close>
+  \<open>no_skip S = (no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of_wl None S)))\<close>
 
 definition no_resolve where
-  \<open>no_resolve S = (no_step cdcl\<^sub>W_restart_mset.resolve (state_of\<^sub>W (twl_st_of_wl None S)))\<close>
+  \<open>no_resolve S = (no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None S)))\<close>
 
 lemma find_decomp_wl'_find_decomp_wl:
   \<open>find_decomp_wl' M N U (the D) NP UP Q WS L = find_decomp_wl (M, N, U, D, NP, UP, Q, WS) L\<close>
@@ -1434,9 +1434,9 @@ proof -
     .
 qed
 
-lemma pending_wl_pending_wl_empty:
-  \<open>pending_wl S = {#} \<longleftrightarrow> pending_wl_empty S\<close>
-  by (cases S) (auto simp: pending_wl_empty_def)
+lemma literals_to_update_wl_literals_to_update_wl_empty:
+  \<open>literals_to_update_wl S = {#} \<longleftrightarrow> literals_to_update_wl_empty S\<close>
+  by (cases S) (auto simp: literals_to_update_wl_empty_def)
 
 lemma list_assn_list_mset_rel_eq_list_mset_assn:
   assumes p: \<open>is_pure R\<close>
@@ -1737,7 +1737,7 @@ proof -
   subgoal by (auto split: list.splits)
   subgoal for a aa ab ac ad ae af b ag ah ai aj ak al am ba x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m s an bb
     apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv
-      (state_of\<^sub>W (twl_st_of_wl None (ag, ah, ai, aj, ak, al, am, ba)))\<close>)
+      (state\<^sub>W_of (twl_st_of_wl None (ag, ah, ai, aj, ak, al, am, ba)))\<close>)
     subgoal by (simp add: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset_state)
     subgoal by (subst (asm)twl_struct_invs_def,
        subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def) fast
@@ -1769,7 +1769,7 @@ proof -
     have [simp]: \<open>M' = M\<close> \<open>N' = N\<close> \<open>U' = U\<close> \<open>D' = D\<close> \<open>NP' = NP\<close> \<open>UP' = UP\<close> \<open>WS' = WS\<close> \<open>Q' = Q\<close>
       \<open>x1 = M\<close> \<open>M'' = M\<close> \<open>N'' = N\<close> \<open>U'' = U\<close> \<open>D'' = D\<close> \<open>NP'' = NP\<close> \<open>UP'' = UP\<close> \<open>WS'' = WS\<close> \<open>Q'' = Q\<close>
       using st by auto
-    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state_of\<^sub>W (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q)))\<close> and
+    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q)))\<close> and
       unit: \<open>unit_clss_inv (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q))\<close>
       using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       by fast+
@@ -1832,7 +1832,7 @@ proof -
     have S[simp]: \<open>M' = M\<close> \<open>N' = N\<close> \<open>U' = U\<close> \<open>D' = D\<close> \<open>NP' = NP\<close> \<open>UP' = UP\<close> \<open>WS' = WS\<close> \<open>Q' = Q\<close>
       \<open>x1 = M\<close> \<open>M'' = M\<close> \<open>N'' = N\<close> \<open>U'' = U\<close> \<open>D'' = D\<close> \<open>NP'' = NP\<close> \<open>UP'' = UP\<close> \<open>WS'' = WS\<close> \<open>Q'' = Q\<close>
       using st by auto
-    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state_of\<^sub>W (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q)))\<close> and
+    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q)))\<close> and
       unit: \<open>unit_clss_inv (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q))\<close>
       using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       by fast+

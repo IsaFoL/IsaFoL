@@ -294,7 +294,7 @@ lemma init_dt_step_init_dt_step_l:
     struct_invs: \<open>twl_struct_invs (twl_st_of None S)\<close>
   shows \<open>RETURN (init_dt_step C S) = init_dt_step_l C S\<close>
 proof -
-  have \<open>no_dup (trail (state_of\<^sub>W (twl_st_of None S)))\<close>
+  have \<open>no_dup (trail (state\<^sub>W_of (twl_st_of None S)))\<close>
     using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by fast
   then have n_d: \<open>no_dup (get_trail_l S)\<close>
@@ -317,9 +317,9 @@ lemma init_dt_init_dt_l:
     \<open>\<forall>C \<in> set CS. length C \<ge> 1\<close> and
     \<open>\<forall>C \<in> set CS. \<not>tautology (mset C)\<close> and
     \<open>twl_struct_invs (twl_st_of None S)\<close> and
-    \<open>working_queue_l S = {#}\<close> and
+    \<open>clauses_to_update_l S = {#}\<close> and
     \<open>\<forall>s\<in>set (get_trail_l S). \<not>is_decided s\<close> and
-    \<open>get_conflict_l S = None \<longrightarrow> pending_l S = uminus `# lit_of `# mset (get_trail_l S)\<close> and
+    \<open>get_conflict_l S = None \<longrightarrow> literals_to_update_l S = uminus `# lit_of `# mset (get_trail_l S)\<close> and
     \<open>additional_WS_invs S\<close> and
     \<open>get_learned_l S = length (get_clauses_l S) - 1\<close> and
     \<open>twl_stgy_invs (twl_st_of None S)\<close>
