@@ -476,20 +476,27 @@ As an example, we show that the excluded middle, a commutation property
 for existential and universal quantifiers, the drinker principle, as well
 as Peirce's law are derivable in the calculus given above.
 *}
-
+  
 theorem tnd: "[] \<turnstile> Or (Pred p []) (Neg (Pred p []))" (is "_ \<turnstile> ?or")
-proof (rule Class)
-  show "[Neg ?or] \<turnstile> FF"
-  proof (rule NegE)
-    show "[Neg ?or] \<turnstile> Neg ?or" by (rule Assum) simp
-  next
-    have "[Pred p [], Neg ?or] \<turnstile> Neg ?or"
-      by (rule Assum) simp
-    moreover have "[Pred p [], Neg ?or] \<turnstile> ?or"
-      by (simp add: Assum OrI1)
-    ultimately show "[Neg ?or] \<turnstile> ?or"
-      by (simp add: OrI2 NegI NegE)
-  qed
+proof -
+  have "[Pred p [], Neg ?or] \<turnstile> Pred p []"
+    by (simp add: Assum)
+  then have "[Pred p [], Neg ?or] \<turnstile> ?or"
+    using OrI1 by blast
+  moreover have "[Pred p [], Neg ?or] \<turnstile> Neg ?or"
+    by (simp add: Assum)
+  ultimately have "[Pred p [], Neg ?or] \<turnstile> FF"
+    using NegE by blast
+  then have "[Neg ?or] \<turnstile> Neg (Pred p [])"
+    using NegI by blast
+  then have "[Neg ?or] \<turnstile> ?or"
+    using OrI2 by blast
+  moreover have "[Neg ?or] \<turnstile> Neg ?or"
+    by (simp add: Assum)
+  ultimately have "[Neg ?or] \<turnstile> FF"
+    using NegE by blast
+  then show ?thesis
+    using Class by blast
 qed
   
 theorem ex_all_commute:
