@@ -14,7 +14,6 @@ subsection \<open>Lifting of Rewrite Rules\<close>
 text \<open>We can lift a rewrite relation r over a full1 formula: the relation \<open>r\<close> works on terms,
   while \<open>propo_rew_step\<close> works on formulas.\<close>
 
-
 inductive propo_rew_step :: "('v propo \<Rightarrow> 'v propo \<Rightarrow> bool) \<Rightarrow> 'v propo \<Rightarrow> 'v propo \<Rightarrow> bool"
   for r :: "'v propo \<Rightarrow> 'v propo \<Rightarrow> bool" where
 global_rel: "r \<phi> \<psi> \<Longrightarrow> propo_rew_step r \<phi> \<psi>" |

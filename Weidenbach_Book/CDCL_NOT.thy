@@ -578,7 +578,7 @@ lemma dpll_bj_trail_mes_increasing_prop:
     > \<mu>\<^sub>C (1+card (atms_of_ms A)) (2+card (atms_of_ms A)) (trail_weight S)\<close>
   using assms(1,2)
 proof (induction rule: dpll_bj_all_induct)
-  case (propagate\<^sub>N\<^sub>O\<^sub>T C L) note CLN = this(1) and MC = this(2) and undef_L = this(3) and T = this(4)
+  case (propagate\<^sub>N\<^sub>O\<^sub>T C L T) note CLN = this(1) and MC = this(2) and undef_L = this(3) and T = this(4)
   have incl: \<open>atm_of ` lits_of_l (Propagated L () # trail S) \<subseteq> atms_of_ms A\<close>
     using propagate\<^sub>N\<^sub>O\<^sub>T dpll_bj_atms_in_trail_in_set bj_propagate\<^sub>N\<^sub>O\<^sub>T NA MA CLN
     by (auto simp: in_plus_implies_atm_of_on_atms_of_ms)
@@ -594,7 +594,7 @@ proof (induction rule: dpll_bj_all_induct)
   then have \<open>length (Propagated L () # trail S) \<le> card (atms_of_ms A)\<close>
     using incl finite unfolding no_dup_length_eq_card_atm_of_lits_of_l[OF no_dup]
     by (simp add: card_mono)
-  then have latm: \<open>unassigned_lit A b = Suc (unassigned_lit A (Propagated L d # b))\<close>
+  then have latm: \<open>unassigned_lit A b = Suc (unassigned_lit A (Propagated L () # b))\<close>
     using b_le_M by auto
   then show ?case using T undef_L by (auto simp: latm M \<mu>\<^sub>C_cons)
 next
