@@ -485,10 +485,11 @@ lemma ord_resolve_lifting:
     "CAi' \<cdot>cl \<eta> = CAi"
     "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>" 
       (* should this even be here? Probably not, but I'm not sure. I think it could instead look more like the weaker invariant hinted at in the assumptions of this lemma *)
+      (* Meh, I'm not even sure about that. I think maybe we need the strong assumption, but this should be more like the below one for DAi and DAi' *)
     
     "DAi' \<in> M" 
     "DAi = DAi' \<cdot> \<eta>" 
-    "S_M S M DAi = S DAi' \<cdot> \<eta>"
+    "\<And>x. S_M S M DAi = x \<cdot> \<eta> \<Longrightarrow> S DAi' = x" (* I think now that this is the (or at least one) correct way to formalize S_M, kind of at least *)
     
     "var_disjoint (DAi'#CAi')"
     "{DAi'} \<union> set CAi' \<subseteq> M"
@@ -508,7 +509,7 @@ lemma ord_resolve_lifting:
     
   have "Some \<sigma> = mgu (set_mset ` set (map2 add_mset Ai Aij))" using ord_resolve by -
   hence "is_unifiers \<sigma> (set_mset ` set (map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)))" using mgu_sound is_mgu_def unfolding prime_clauses2 by auto
-  hence \<eta>\<sigma>uni: "is_unifiers (\<eta> \<odot> \<sigma>) (set_mset ` set (map2 add_mset Ai' Aij'))" sorry
+  hence \<eta>\<sigma>uni: "is_unifiers (\<eta> \<odot> \<sigma>) (set_mset ` set (map2 add_mset Ai' Aij'))" sorry (* I guess it makes sense *)
   then obtain \<tau> where \<tau>_p: "Some \<tau> = mgu (set_mset ` set (map2 add_mset Ai' Aij'))" using mgu_complete
     by (metis (mono_tags, hide_lams) finite_imageI finite_set_mset image_iff set_mset_mset) (* should be simpler? *) 
   then obtain \<phi> where \<phi>_p: "\<tau> \<odot> \<phi> = \<eta> \<odot> \<sigma>"
@@ -537,23 +538,29 @@ lemma ord_resolve_lifting:
   hence "eligible S \<tau> Ai' (D' + negs (mset Ai'))"
   proof
     assume "S_M S M (D + negs (mset Ai)) = negs (mset Ai)"
-    hence "S (D' + negs (mset Ai')) = negs (mset Ai')" 
-      using prime_clauses(7) unfolding a[symmetric] ord_resolve(1) prime_clauses2(6)[symmetric] prime_clauses2(7)[symmetric]
-      (* this looks kind of BAD ... *) sorry
-    then show "eligible S \<tau> Ai' (D' + negs (mset Ai'))" unfolding eligible_simp by auto
+    hence "S_M S M (D' \<cdot> \<eta> + negs (mset (Ai' \<cdot>al \<eta>))) = negs (mset (Ai' \<cdot>al \<eta>))"
+      using prime_clauses2(6) prime_clauses2(7) by blast 
+    hence "S_M S M (D' \<cdot> \<eta> + negs (mset (Ai' \<cdot>al \<eta>))) = (negs (mset (Ai'))) \<cdot> \<eta>" sorry (* believable *)
+    hence "S_M S M (DAi) = (negs (mset (Ai'))) \<cdot> \<eta>" sorry (* believable *)
+    hence "S (D'  + negs (mset Ai')) = negs (mset Ai')"
+      using prime_clauses(7)[of ] unfolding a[symmetric] ord_resolve(1) prime_clauses2(6)[symmetric] prime_clauses2(7)[symmetric]
+       by auto
+    thus "eligible S \<tau> Ai' (D' + negs (mset Ai'))" unfolding eligible_simp by auto
   next
     assume asm: "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
     let ?A = "Ai ! 0"
     from asm have "S_M S M (D + negs (mset Ai)) = {#}" by auto
-    hence "S (D' + negs (mset Ai')) = {#}" using prime_clauses2(6)[symmetric] prime_clauses2(7)[symmetric] apply simp sorry
+    hence "S (D' + negs (mset Ai')) = {#}" using prime_clauses2(6)[symmetric] prime_clauses2(7)[symmetric] prime_clauses(7)
+        sorry (* believable *)
     moreover
     from asm have l: "length Ai = 1" by auto
     hence "length Ai' = 1" using prime_clauses2(7)[symmetric] by auto
     moreover
     from asm have "maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)" by auto
-    hence "maximal_in (Ai' ! 0 \<cdot>a \<tau> \<cdot>a \<phi>) ((D' + negs (mset Ai')) \<cdot> \<tau> \<cdot> \<phi>)" using prime_clauses2(6)[symmetric] prime_clauses2(7)[symmetric] prime_clauses2(3) l \<phi>_p sorry
+    hence "maximal_in (Ai' ! 0 \<cdot>a \<tau> \<cdot>a \<phi>) ((D' + negs (mset Ai')) \<cdot> \<tau> \<cdot> \<phi>)" 
+      using  prime_clauses2(3) l \<phi>_p unfolding prime_clauses2(7)[symmetric] prime_clauses2(6)[symmetric] sorry (* believable *)
     hence "maximal_in (Ai' ! 0 \<cdot>a \<tau>) ((D' + negs (mset Ai')) \<cdot> \<tau>)" using maximal_in_gen by blast
-    ultimately show "eligible S \<tau> Ai' (D' + negs (mset Ai'))" unfolding eligible_simp by auto (* believable *)
+    ultimately show "eligible S \<tau> Ai' (D' + negs (mset Ai'))" unfolding eligible_simp by auto 
   qed
   moreover
   from ord_resolve have "\<forall>i<n. str_maximal_in (Ai ! i \<cdot>a \<sigma>) (Ci ! i \<cdot> \<sigma>)" by -
