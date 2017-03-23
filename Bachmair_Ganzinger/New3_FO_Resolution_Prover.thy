@@ -536,7 +536,7 @@ lemma ord_resolve_lifting:
     "length CAi' = n" 
     "\<forall>i < n. CAi' ! i \<in> M" 
     "CAi' \<cdot>cl \<eta> = CAi"
-    "\<forall>i < n. S_M S M (CAi' ! i) \<cdot> \<eta> = S (CAi ! i)" 
+    "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>" 
       (* should this even be here? Probably not, but I'm not sure. I think it could instead look more like the weaker invariant hinted at in the assumptions of this lemma *)
       (* Meh, I'm not even sure about that. I think maybe we need the strong assumption, but this should be more like the below one for DAi and DAi' *)
     
