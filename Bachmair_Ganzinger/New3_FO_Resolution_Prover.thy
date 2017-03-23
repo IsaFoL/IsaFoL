@@ -453,10 +453,19 @@ qed
 lemma empty_subst: "C \<cdot> \<eta> = {#} \<Longrightarrow> C = {#}"
 unfolding subst_cls_def by auto
   
-      
+
+lemma uw: "\<forall>C\<sigma>. C\<sigma> \<in> grounding_of_clss M \<longrightarrow> (\<exists>D \<sigma>. D \<in> M \<and> C\<sigma> = D \<cdot> \<sigma> \<and> (\<forall>x. S_M S M D = x \<longrightarrow> S C\<sigma> = x \<cdot> \<sigma>))"
+  sorry
+    
+lemma uw2: "\<forall>C\<sigma>. C\<sigma> \<in> grounding_of_clss M \<longrightarrow> (\<exists>D \<sigma>. D \<in> M \<and> C\<sigma> = D \<cdot> \<sigma> \<and> S C\<sigma> = (S_M S M D) \<cdot> \<sigma>)"
+  using uw by simp
+
+(* A lemma that states that a list of clauses can be standardized apart. *)
+ thm make_var_disjoint
+    
 lemma ord_resolve_lifting: 
   fixes CAi
-  assumes resolve: "ord_resolve (S_M S M) CAi DAi E" 
+  assumes resolve: "ord_resolve (S_M S M) CAi DAi E" (* UHM (S_M S M) is FO, while S is GROUND. SO ITS BACKWARDS.. *)
     (* Isn't the definition of S_M kind of weird? It seems odd that we let hilbert make choices about our selection function. This is probably not how a prover works. He probably make the choice
        him self, clever or not. *)
     and select: "selection S"
@@ -479,11 +488,55 @@ lemma ord_resolve_lifting:
       
       (* 2. Choose the D' and the C' *)
       
+      have uuu: "\<forall>CA \<in> set CAi. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> (CA) = CA'' \<cdot> \<eta>c'' \<and> S (CA) = S_M S M CA'' \<cdot> \<eta>c''"
+        using grounding uw2 by auto
+        
+      hence "\<forall>i < n. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> (CAi ! i) = CA'' \<cdot> \<eta>c'' \<and> S (CAi ! i) = S_M S M CA'' \<cdot> \<eta>c''"
+        using ord_resolve(3) by auto
+          
+      then have "\<exists>\<eta>s''f CAi''f. \<forall>i < n. CAi''f i \<in> M \<and> (CAi ! i) = (CAi''f i) \<cdot> (\<eta>s''f i) \<and> S (CAi ! i) = S_M S M (CAi''f i) \<cdot> (\<eta>s''f i)"
+        by metis
+          
+      then obtain \<eta>s''f CAi''f where f_p: "\<forall>i < n. CAi''f i \<in> M \<and> (CAi ! i) = (CAi''f i) \<cdot> (\<eta>s''f i) \<and> S (CAi ! i) = S_M S M (CAi''f i) \<cdot> (\<eta>s''f i)"
+        by auto
+          
+      define \<eta>s'' where "\<eta>s'' = map \<eta>s''f [0 ..<n]"
+      define CAi'' where "CAi'' = map CAi''f [0 ..<n]"
+        
+      have \<eta>s''_ff: "\<forall>i < n. \<eta>s'' ! i = \<eta>s''f i"
+        unfolding \<eta>s''_def apply (induction n) apply auto
+        by (metis add.left_neutral diff_is_0_eq diff_zero length_map length_upt less_Suc_eq less_Suc_eq_le nth_Cons_0 nth_append nth_map_upt)
+          
+      have CAi''_ff: "\<forall>i < n. CAi'' ! i = CAi''f i"
+        unfolding CAi''_def apply (induction n) apply auto
+        by (metis add.left_neutral diff_is_0_eq diff_zero length_map length_upt less_Suc_eq less_Suc_eq_le nth_Cons_0 nth_append nth_map_upt)
+        
+      have COOL: "\<forall>i < n. CAi'' ! i \<in> M \<and> (CAi ! i) = (CAi'' ! i) \<cdot> (\<eta>s'' ! i) \<and> S (CAi ! i) = S_M S M (CAi'' ! i) \<cdot> (\<eta>s'' ! i)"
+        using f_p \<eta>s''_ff CAi''_ff by auto
+        
+          
+      have "\<exists>DAi'' \<sigma>. DAi'' \<in> M \<and> (DAi) = DAi'' \<cdot> \<sigma> \<and> S (DAi) = S_M S M DAi'' \<cdot> \<sigma>"
+        using grounding uw2 by auto
+      
+  have "length CAi'' = n" unfolding CAi''_def by auto
+  have "length \<eta>s'' = n" unfolding \<eta>s''_def by auto
+  have "\<forall>i < n. CAi'' ! i \<in> M" using COOL by auto
+  have "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi" using COOL
+    by (simp add: \<open>length CAi'' = n\<close> \<open>length \<eta>s'' = n\<close> local.ord_resolve(3)) 
+  have "(\<forall>i < n. S_M S M (CAi ! i) = S (CAi'' ! i) \<cdot> (\<eta>s'' ! i))" (* WHAT!? BAGLENS! ! ! ! ! *)
+    
+      
+(*    "DAi'' \<in> M" 
+    "DAi'' \<cdot> \<eta>d'' = DAi"
+    "\<And>x. S_M S M DAi = x \<cdot> \<eta>d'' \<Longrightarrow> S DAi'' = x"*)
+    using uw uw2 grounding
+      sorry
+      
   obtain CAi' DAi' \<eta> where prime_clauses: (* I need some lemma telling that these standardized apart clauses exist *) 
     "length CAi' = n" 
     "\<forall>i < n. CAi' ! i \<in> M" 
     "CAi' \<cdot>cl \<eta> = CAi"
-    "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>" 
+    "\<forall>i < n. S_M S M (CAi' ! i) \<cdot> \<eta> = S (CAi ! i)" 
       (* should this even be here? Probably not, but I'm not sure. I think it could instead look more like the weaker invariant hinted at in the assumptions of this lemma *)
       (* Meh, I'm not even sure about that. I think maybe we need the strong assumption, but this should be more like the below one for DAi and DAi' *)
     
@@ -572,7 +625,7 @@ lemma ord_resolve_lifting:
   moreover
   from ord_resolve have "\<forall>i < n. (S_M S M) (CAi ! i) = {#}" by -
   hence "\<forall>i < n. S (CAi' ! i)  \<cdot> \<eta> = {#}" using prime_clauses(3) prime_clauses(4) ord_resolve(3) by auto 
-  hence f: "\<forall>i < n. S (CAi' ! i) = {#}" using empty_subst by blast
+  hence ff: "\<forall>i < n. S (CAi' ! i) = {#}" using empty_subst by blast
   ultimately
   have res_e': "ord_resolve S CAi' DAi' E'" 
     using ord_resolve.intros[of CAi' n Ci' Aij' Ai' \<tau> S D', OF prime_clauses(1) prime_clauses2(1) prime_clauses2(2) prime_clauses2(3) ord_resolve(7) b c \<tau>_p] prime_clauses \<tau>_p 
