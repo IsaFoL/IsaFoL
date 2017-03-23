@@ -1295,7 +1295,7 @@ proof -
         list_all2_op_eq_map_map_right_iff simp del: literal_of_nat.simps)
 qed
 
-lemma \<open>(SAT_wl_code, SAT')
+lemma SAT_wl_code: \<open>(SAT_wl_code, SAT')
     \<in> [\<lambda>x. Multiset.Ball x distinct_mset \<and> (\<forall>C\<in>#x. Suc 0 \<le> size C) \<and> (\<forall>C\<in>#x. \<not> tautology C)]\<^sub>a
       clauses_l_assn\<^sup>d \<rightarrow> bool_assn\<close>
 proof -
@@ -1332,5 +1332,7 @@ proof -
   show ?thesis
     using SAT_wl_code.refine[FCOMP SAT_wl'_SAT] unfolding list_assn_list_mset_rel_clauses_l_assn .
 qed
+
+lemmas SAT_wl_code_full_correctness = SAT_wl_code[FCOMP SAT_is_SAT, unfolded is_SAT_def]
 
 end
