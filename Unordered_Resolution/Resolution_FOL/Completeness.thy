@@ -530,17 +530,6 @@ theorem completeness_nat:
   assumes unsat: "\<forall>(F::nat fun_denot) (G::nat pred_denot) . \<not>eval\<^sub>c\<^sub>s F G Cs"
   shows "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
   using assms completeness_countable by blast
-  
-theorem cooltheorem:
-  assumes iii: "infinite (UNIV :: ('u ::countable) set)"
-  assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
-  assumes unsat: "\<forall>(F\<^sub>1::'u fun_denot) (G\<^sub>1::'u pred_denot) . \<not>eval\<^sub>c\<^sub>s F\<^sub>1 G\<^sub>1 Cs"
-  shows "\<not>eval\<^sub>c\<^sub>s F\<^sub>2 G\<^sub>2 Cs"
-proof -
-  from assms have "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'" 
-    using completeness_countable by blast
-  then show ?thesis using derivation_sound_refute by auto
-qed
 
 end -- {* unification locale *}
 
