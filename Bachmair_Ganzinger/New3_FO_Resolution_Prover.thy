@@ -453,12 +453,13 @@ qed
 lemma empty_subst: "C \<cdot> \<eta> = {#} \<Longrightarrow> C = {#}"
 unfolding subst_cls_def by auto
   
-
+(*
 lemma uw: "\<forall>C\<sigma>. C\<sigma> \<in> grounding_of_clss M \<longrightarrow> (\<exists>D \<sigma>. D \<in> M \<and> C\<sigma> = D \<cdot> \<sigma> \<and> (\<forall>x. S_M S M D = x \<longrightarrow> S C\<sigma> = x \<cdot> \<sigma>))"
   sorry
-    
-lemma uw2: "\<forall>C\<sigma>. C\<sigma> \<in> grounding_of_clss M \<longrightarrow> (\<exists>D \<sigma>. D \<in> M \<and> C\<sigma> = D \<cdot> \<sigma> \<and> S C\<sigma> = (S_M S M D) \<cdot> \<sigma>)"
-  using uw by simp
+*)  
+  
+lemma uw2: "\<forall>C\<sigma>. C\<sigma> \<in> grounding_of_clss M \<longrightarrow> (\<exists>D \<sigma>. D \<in> M \<and> C\<sigma> = D \<cdot> \<sigma> \<and> (S D) \<cdot> \<sigma> = (S_M S M C\<sigma>))"
+  sorry
 
 (* A lemma that states that a list of clauses can be standardized apart. *)
  thm make_var_disjoint
@@ -488,16 +489,16 @@ lemma ord_resolve_lifting:
       
       (* 2. Choose the D' and the C' *)
       
-      have uuu: "\<forall>CA \<in> set CAi. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> (CA) = CA'' \<cdot> \<eta>c'' \<and> S (CA) = S_M S M CA'' \<cdot> \<eta>c''"
+      have uuu: "\<forall>CA \<in> set CAi. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> (CA) = CA'' \<cdot> \<eta>c'' \<and> S (CA'') \<cdot> \<eta>c'' = S_M S M CA "
         using grounding uw2 by auto
         
-      hence "\<forall>i < n. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> (CAi ! i) = CA'' \<cdot> \<eta>c'' \<and> S (CAi ! i) = S_M S M CA'' \<cdot> \<eta>c''"
+      hence "\<forall>i < n. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> (CAi ! i) = CA'' \<cdot> \<eta>c'' \<and> S CA'' \<cdot> \<eta>c'' = S_M S M ( (CAi ! i)) "
         using ord_resolve(3) by auto
           
-      then have "\<exists>\<eta>s''f CAi''f. \<forall>i < n. CAi''f i \<in> M \<and> (CAi ! i) = (CAi''f i) \<cdot> (\<eta>s''f i) \<and> S (CAi ! i) = S_M S M (CAi''f i) \<cdot> (\<eta>s''f i)"
+      then have "\<exists>\<eta>s''f CAi''f. \<forall>i < n. CAi''f i \<in> M \<and> (CAi ! i) = (CAi''f i) \<cdot> (\<eta>s''f i) \<and> S (CAi''f i) \<cdot> (\<eta>s''f i) = S_M S M (CAi ! i)"
         by metis
           
-      then obtain \<eta>s''f CAi''f where f_p: "\<forall>i < n. CAi''f i \<in> M \<and> (CAi ! i) = (CAi''f i) \<cdot> (\<eta>s''f i) \<and> S (CAi ! i) = S_M S M (CAi''f i) \<cdot> (\<eta>s''f i)"
+      then obtain \<eta>s''f CAi''f where f_p: "\<forall>i < n. CAi''f i \<in> M \<and> (CAi ! i) = (CAi''f i) \<cdot> (\<eta>s''f i) \<and> S (CAi''f i)  \<cdot> (\<eta>s''f i) = S_M S M  (CAi ! i)"
         by auto
           
       define \<eta>s'' where "\<eta>s'' = map \<eta>s''f [0 ..<n]"
@@ -511,19 +512,18 @@ lemma ord_resolve_lifting:
         unfolding CAi''_def apply (induction n) apply auto
         by (metis add.left_neutral diff_is_0_eq diff_zero length_map length_upt less_Suc_eq less_Suc_eq_le nth_Cons_0 nth_append nth_map_upt)
         
-      have COOL: "\<forall>i < n. CAi'' ! i \<in> M \<and> (CAi ! i) = (CAi'' ! i) \<cdot> (\<eta>s'' ! i) \<and> S (CAi ! i) = S_M S M (CAi'' ! i) \<cdot> (\<eta>s'' ! i)"
+      have COOL: "\<forall>i < n. CAi'' ! i \<in> M \<and> (CAi ! i) = (CAi'' ! i) \<cdot> (\<eta>s'' ! i) \<and> S (CAi'' ! i) \<cdot> (\<eta>s'' ! i) = S_M S M (CAi ! i)"
         using f_p \<eta>s''_ff CAi''_ff by auto
-        
-          
-      have "\<exists>DAi'' \<sigma>. DAi'' \<in> M \<and> (DAi) = DAi'' \<cdot> \<sigma> \<and> S (DAi) = S_M S M DAi'' \<cdot> \<sigma>"
-        using grounding uw2 by auto
       
   have "length CAi'' = n" unfolding CAi''_def by auto
   have "length \<eta>s'' = n" unfolding \<eta>s''_def by auto
   have "\<forall>i < n. CAi'' ! i \<in> M" using COOL by auto
   have "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi" using COOL
     by (simp add: \<open>length CAi'' = n\<close> \<open>length \<eta>s'' = n\<close> local.ord_resolve(3)) 
-  have "(\<forall>i < n. S_M S M (CAi ! i) = S (CAi'' ! i) \<cdot> (\<eta>s'' ! i))" (* WHAT!? BAGLENS! ! ! ! ! *)
+  have "(\<forall>i < n. S_M S M (CAi ! i) = S (CAi'' ! i) \<cdot> (\<eta>s'' ! i))"
+    using COOL by auto
+      
+     
     
       
 (*    "DAi'' \<in> M" 
