@@ -115,14 +115,14 @@ inductive cdcl_twl_o :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" w
   (M, N, U, Some (cdcl\<^sub>W_restart_mset.resolve_cls L D C), NP, UP, {#}, {#})\<close>
   if \<open>-L \<in># D\<close> and
     \<open>get_maximum_level (Propagated L C # M) (remove1_mset (-L) D) = count_decided M\<close>
-| backtrack_single_clause:
+| backtrack_unit_clause:
   \<open>cdcl_twl_o (M, N, U, Some {#L#}, NP, UP, {#}, {#})
   (Propagated L {#L#} # M1, N, U, None, NP, add_mset {#L#} UP, {#}, {#-L#})\<close>
   if
     \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
     \<open>get_level M L = count_decided M\<close> and
     \<open>get_level M K = 1\<close>
-| backtrack:
+| backtrack_nonunit_clause:
   \<open>cdcl_twl_o (M, N, U, Some D, NP, UP, {#}, {#})
   (Propagated L D # M1, N, add_mset (TWL_Clause {#L, L'#} (D - {#L, L'#})) U, None, NP, UP, {#}, {#-L#})\<close>
   if
@@ -2505,7 +2505,7 @@ next
      using lev apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
     by (simp add: state_eq_def cdcl\<^sub>W_restart_mset_state del: cdcl\<^sub>W_restart_mset.state_simp)
 next
-  case (backtrack_single_clause K M1 M2 M L N U NP UP) note decomp = this(1) and lev_L = this(2)
+  case (backtrack_unit_clause K M1 M2 M L N U NP UP) note decomp = this(1) and lev_L = this(2)
   and lev_K = this(3) and inv = this(6)
   let ?S = \<open>state\<^sub>W_of (M, N, U, Some {#L#}, NP, UP, {#}, {#})\<close>
   let ?T = \<open>state\<^sub>W_of (Propagated L {#L#} # M1, N, U, None, NP, add_mset {#L#} UP, {#}, {#L#})\<close>
@@ -2542,7 +2542,7 @@ next
     using decomp unfolding state_eq_def state_def prod.inject
     by (simp_all add: cdcl\<^sub>W_restart_mset_state)
 next
-  case (backtrack L D K M1 M2 M i L' N U NP UP) note LD = this(1) and decomp = this(2) and
+  case (backtrack_nonunit_clause L D K M1 M2 M i L' N U NP UP) note LD = this(1) and decomp = this(2) and
   lev_L = this(3) and max_lev = this(4) and i = this(5) and lev_K = this(6) and L' = this(8-9) and
   inv = this(12)
   let ?S = \<open>state\<^sub>W_of (M, N, U, Some D, NP, UP, {#}, {#})\<close>
@@ -2874,14 +2874,14 @@ next
   then show ?case
     by (auto simp: past_invs.simps twl_struct_invs_def)
 next
-  case (backtrack_single_clause K M1 M2 M K' N U NP UP) note decomp = this(1) and lev = this(2,3)
+  case (backtrack_unit_clause K M1 M2 M K' N U NP UP) note decomp = this(1) and lev = this(2,3)
 
   case 1 note invs = this(1)
   let ?S = \<open>(M, N, U, Some {#K'#}, NP, UP, {#}, {#})\<close>
   let ?T = \<open>(Propagated K' {#K'#} # M1, N, U, None, NP, add_mset {#K'#} UP, {#}, {#- K'#})\<close>
   let ?M1 = \<open>Propagated K' {#K'#} # M1\<close>
   have bt_twl: \<open>cdcl_twl_o ?S ?T\<close>
-    using cdcl_twl_o.backtrack_single_clause[OF backtrack_single_clause.hyps] .
+    using cdcl_twl_o.backtrack_unit_clause[OF backtrack_unit_clause.hyps] .
   then have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o (state\<^sub>W_of ?S)  (state\<^sub>W_of ?T)\<close>
     by (rule cdcl_twl_o_cdcl\<^sub>W_o) (use invs in \<open>simp_all add: twl_struct_invs_def\<close>)
   then have struct_inv_T: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of ?T)\<close>
@@ -3049,7 +3049,7 @@ next
       using past by (auto simp add: past_invs.simps M)
   qed
 next
-  case (backtrack K' D K M1 M2 M i K'' N U NP UP) note K'_D = this(1) and decomp = this(2) and
+  case (backtrack_nonunit_clause K' D K M1 M2 M i K'' N U NP UP) note K'_D = this(1) and decomp = this(2) and
     lev_K' = this(3) and i = this(5) and lev_K = this(6) and K'' = this(8) and lev_K'' = this(9)
   case 1 note invs = this(1)
   let ?S = \<open>(M, N, U, Some D, NP, UP, {#}, {#})\<close>
@@ -3057,7 +3057,7 @@ next
   let ?T = \<open>(?M1, N, add_mset (TWL_Clause {#K', K''#} (D - {#K', K''#})) U, None, NP, UP, {#}, {#- K'#})\<close>
   let ?D = \<open>TWL_Clause {#K', K''#} (D - {#K', K''#})\<close>
   have bt_twl: \<open>cdcl_twl_o ?S ?T\<close>
-    using cdcl_twl_o.backtrack[OF backtrack.hyps] .
+    using cdcl_twl_o.backtrack_nonunit_clause[OF backtrack_nonunit_clause.hyps] .
   then have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o (state\<^sub>W_of ?S)  (state\<^sub>W_of ?T)\<close>
     by (rule cdcl_twl_o_cdcl\<^sub>W_o) (use invs in \<open>simp_all add: twl_struct_invs_def\<close>)
   then have struct_inv_T: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of ?T)\<close>
@@ -3365,7 +3365,7 @@ next
   then show ?case
     unfolding twl_struct_invs_def by (auto simp: twl_exception_inv.simps)
 next
-  case (backtrack_single_clause K M1 M2 M L N U NP UP) note decomp = this(1) and invs = this(4)
+  case (backtrack_unit_clause K M1 M2 M L N U NP UP) note decomp = this(1) and invs = this(4)
   let ?S = \<open>(M, N, U, Some {#L#}, NP, UP, {#}, {#})\<close>
   let ?S' = \<open>state\<^sub>W_of S\<close>
   let ?T = \<open>(M1, N, U, None, NP, UP, {#}, {#})\<close>
@@ -3379,7 +3379,7 @@ next
   then show ?case
     by (auto simp: twl_exception_inv.simps)
 next
-  case (backtrack L D K M1 M2 M i L' N U NP UP) note decomp = this(2) and invs = this(10)
+  case (backtrack_nonunit_clause L D K M1 M2 M i L' N U NP UP) note decomp = this(2) and invs = this(10)
   let ?S = \<open>(M, N, U, Some D, NP, UP, {#}, {#})\<close>
   let ?D = \<open>TWL_Clause {#L, L'#} (D - {#L, L'#})\<close>
   let ?T = \<open>(M1, N, U, None, NP, UP, {#}, {#})\<close>
@@ -3393,7 +3393,7 @@ next
   moreover {
     have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o (state\<^sub>W_of ?S) (state\<^sub>W_of ?U)\<close>
       by (rule cdcl_twl_o_cdcl\<^sub>W_o)
-        (use cdcl_twl_o.backtrack[OF backtrack.hyps] invs in \<open>simp_all add: twl_struct_invs_def\<close>)
+        (use cdcl_twl_o.backtrack_nonunit_clause[OF backtrack_nonunit_clause.hyps] invs in \<open>simp_all add: twl_struct_invs_def\<close>)
     then have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of ?U)\<close>
       using cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_inv cdcl\<^sub>W_restart_mset.other invs twl_struct_invs_def
       by blast
@@ -3564,7 +3564,7 @@ next
   case 2 then show ?case by auto
   case 3 then show ?case by auto
 next
-  case (backtrack_single_clause K M1 M2 M L N U NP UP) note decomp = this(1)
+  case (backtrack_unit_clause K M1 M2 M L N U NP UP) note decomp = this(1)
   let ?S = \<open>(M, N, U, Some {#L#}, NP, UP, {#}, {#})\<close>
   let ?U = \<open>(Propagated L {#L#} # M1, N, U, None, NP, add_mset {#L#} UP, {#}, {#- L#})\<close>
   obtain M3 where
@@ -3587,7 +3587,7 @@ next
     using struct_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail.simps)
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o (state\<^sub>W_of ?S) (state\<^sub>W_of ?U)\<close>
-    using cdcl_twl_o.backtrack_single_clause[OF backtrack_single_clause.hyps]
+    using cdcl_twl_o.backtrack_unit_clause[OF backtrack_unit_clause.hyps]
     by (meson "1.prems" twl_struct_invs_def cdcl_twl_o_cdcl\<^sub>W_o)
   then have struct_inv_T: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of ?U)\<close>
     using struct_inv cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_inv cdcl\<^sub>W_restart_mset.other by blast
@@ -3744,7 +3744,7 @@ next
       using 3[of C K K'] by (auto simp add: clauses_to_update_prop.simps)
   qed
 next
-  case (backtrack L D K M1 M2 M i L' N U NP UP) note LD = this(1) and decomp = this(2) and
+  case (backtrack_nonunit_clause L D K M1 M2 M i L' N U NP UP) note LD = this(1) and decomp = this(2) and
     lev_L = this(3) and lev_max_L = this(4) and i = this(5) and lev_K = this(6) and lev_L' = this(9)
   let ?S = \<open>(M, N, U, Some D, NP, UP, {#}, {#})\<close>
   let ?D = \<open>TWL_Clause {#L, L'#} (D - {#L, L'#})\<close>
@@ -3777,7 +3777,8 @@ next
     using lev_L lev_L' lev_K unfolding M by (auto simp: image_Un)
 
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o (state\<^sub>W_of ?S) (state\<^sub>W_of ?U)\<close>
-    using cdcl_twl_o.backtrack[OF backtrack.hyps] by (meson "1.prems" twl_struct_invs_def cdcl_twl_o_cdcl\<^sub>W_o)
+    using cdcl_twl_o.backtrack_nonunit_clause[OF backtrack_nonunit_clause.hyps]
+    by (meson "1.prems" twl_struct_invs_def cdcl_twl_o_cdcl\<^sub>W_o)
   then have struct_inv_T: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of ?U)\<close>
     using struct_inv cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_inv cdcl\<^sub>W_restart_mset.other by blast
   then have n_d_L_M1: \<open>no_dup (Propagated L D # M1)\<close>
@@ -3800,7 +3801,7 @@ next
       C: \<open>C \<in># N + add_mset ?D U\<close> and
       LM_C: \<open>Propagated L D # M1 \<Turnstile>as CNot (clause C)\<close>
     have \<open>twl_st_inv ?U\<close>
-      using cdcl_twl_o.backtrack[OF backtrack.hyps] "1.prems" cdcl_twl_o_twl_st_inv by blast
+      using cdcl_twl_o.backtrack_nonunit_clause[OF backtrack_nonunit_clause.hyps] "1.prems" cdcl_twl_o_twl_st_inv by blast
     then have \<open>struct_wf_twl_cls ?D\<close>
       unfolding twl_st_inv.simps by auto
 
@@ -3942,7 +3943,7 @@ next
       ultimately have \<open>\<forall>K\<in>#D. defined_lit (Propagated L D # M1) K\<close>
         by (metis LD insert_DiffM insert_noteq_member)
       then have \<open>\<forall>K\<in>#clause ?D. defined_lit (Propagated L D # M1) K\<close>
-        by (metis \<open>defined_lit (Propagated L D # M1) L\<close> add_mset_remove_trivial backtrack.hyps(8)
+        by (metis \<open>defined_lit (Propagated L D # M1) L\<close> add_mset_remove_trivial backtrack_nonunit_clause.hyps(8)
             clause.simps in_diffD in_remove1_mset_neq insert_DiffM2 union_iff)
       then have False
         using K undef unfolding True by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
@@ -4069,7 +4070,7 @@ next
       using False by auto
   qed
 next
-  case (backtrack_single_clause K M1 M2 M L N U NP UP) note decomp = this(1) and lev_K = this(3) and
+  case (backtrack_unit_clause K M1 M2 M L N U NP UP) note decomp = this(1) and lev_K = this(3) and
     twl = this(4)
   let ?S = \<open>(M, N, U, Some {#L#}, NP, UP, {#}, {#})\<close>
   let ?T = \<open>(Propagated L {#L#} # M1, N, U, None, NP, add_mset {#L#} UP, {#}, {#- L#})\<close>
@@ -4122,7 +4123,7 @@ next
         unfolding M by auto
       moreover {
         have \<open>atm_of L \<noteq> atm_of K''\<close>
-          using backtrack_single_clause.hyps(2) lev_K'' lev_M by (auto simp: atm_of_eq_atm_of)
+          using backtrack_unit_clause.hyps(2) lev_K'' lev_M by (auto simp: atm_of_eq_atm_of)
         then have \<open>get_level ?M K'' = 0\<close>
           using count_dec_M1 count_decided_ge_get_level[of ?M K''] by auto }
       ultimately show ?thesis
@@ -4136,8 +4137,8 @@ next
     qed
   qed
 next
-  case (backtrack L D K M1 M2 M i L' N U NP UP) note decomp = this(2) and lev_K = this(6) and
-    twl = this(10)
+  case (backtrack_nonunit_clause L D K M1 M2 M i L' N U NP UP) note decomp = this(2) and 
+    lev_L_M = this(3) and lev_K = this(6) and twl = this(10)
   let ?S = \<open>(M, N, U, Some D, NP, UP, {#}, {#})\<close>
   let ?T = \<open>(Propagated L D # M1, N, add_mset (TWL_Clause {#L, L'#} (D - {#L, L'#})) U, None, NP, UP, {#}, {#-L#})\<close>
   let ?M = \<open>Propagated L D # M1\<close>
@@ -4192,7 +4193,7 @@ next
       then have \<open>get_level M1 K'' = 0\<close>
         using lev_K'' unfolding M by (auto simp: image_Un)
       moreover have \<open>atm_of L \<noteq> atm_of K''\<close>
-        using lev_K'' lev_M local.backtrack(3) by (metis atm_of_eq_atm_of get_level_uminus not_gr_zero)
+        using lev_K'' lev_M lev_L_M by (metis atm_of_eq_atm_of get_level_uminus not_gr_zero)
       ultimately have \<open>get_level ?M K'' = 0\<close>
         by auto }
     ultimately show \<open>\<exists>La. C = {#La#} \<and> (None = None \<or> 0 < count_decided ?M \<longrightarrow> get_level ?M La = 0 \<and>
@@ -4487,7 +4488,7 @@ proof (rule ccontr)
     proof (cases \<open>C = {#L#}\<close>)
       case True
       show ?thesis
-        using cdcl_twl_o.backtrack_single_clause[of K M1 M2 M L N U NP UP]
+        using cdcl_twl_o.backtrack_unit_clause[of K M1 M2 M L N U NP UP]
         decomp True lev_L_bt lev_L i lev_K ns_o confl unfolding S
         by (auto simp: cdcl\<^sub>W_restart_mset_state)
     next
@@ -4500,7 +4501,7 @@ proof (rule ccontr)
         by (auto simp: cdcl\<^sub>W_restart_mset_state S dest: in_diffD)
 
       show ?thesis
-        using cdcl_twl_o.backtrack[of L C K M1 M2 M i L' N U NP UP]
+        using cdcl_twl_o.backtrack_nonunit_clause[of L C K M1 M2 M i L' N U NP UP]
         using L_C decomp lev_L_bt lev_L i lev_K False L'_C lev_L' ns_o confl
         by (auto simp: cdcl\<^sub>W_restart_mset_state S dest: in_diffD)
     qed
