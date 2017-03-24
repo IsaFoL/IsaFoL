@@ -258,8 +258,8 @@ definition unit_propagation_inner_loop_body_l :: "'v literal \<Rightarrow> nat \
       if fst f = None
       then
         if val_L' = Some False
-        then do {RETURN (M, N, U, Some (mset (N!C)), NP, UP, {#}, {#})}
-        else do {RETURN (Propagated L' C # M, N, U, D, NP, UP, WS, add_mset (-L') Q)}
+        then RETURN (M, N, U, Some (mset (N!C)), NP, UP, {#}, {#})
+        else RETURN (Propagated L' C # M, N, U, D, NP, UP, WS, add_mset (-L') Q)
       else do {
         ASSERT(snd f < length (N!C));
         let K = (N!C) ! (snd f);
