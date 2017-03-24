@@ -839,7 +839,7 @@ proof -
         by simp_all
       have \<open>cdcl_twl_o (M, N, U, D, NP, UP, WS, Q) ?T'\<close>
         unfolding Q WS D' option.sel list.sel
-        apply (rule cdcl_twl_o.backtrack[of \<open>-lit_of (hd M)\<close> _ K M1 M2 _ i])
+        apply (rule cdcl_twl_o.backtrack_nonunit_clause[of \<open>-lit_of (hd M)\<close> _ K M1 M2 _ i])
         using L'_D decomp M apply (auto; fail)[2]
         using L'_D decomp M apply (auto; fail)[2]
               apply (simp add: M; fail)
@@ -885,7 +885,7 @@ proof -
         using i_def by (auto simp: D')
       have \<open>cdcl_twl_o (M, N, U, D, NP, UP, WS, Q) ?T'\<close>
         unfolding D' option.sel WS Q
-        apply (rule cdcl_twl_o.backtrack_single_clause[of K M1 M2])
+        apply (rule cdcl_twl_o.backtrack_unit_clause[of K M1 M2])
         using decomp apply (simp; fail)
         using M apply (simp; fail)
         using lev_K i_0 i_def apply simp

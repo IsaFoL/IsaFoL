@@ -1149,7 +1149,7 @@ proof -
         list_all2_op_eq_map_map_right_iff simp del: literal_of_nat.simps)
 qed
 
-lemma \<open>(SAT_wl_code, SAT')
+lemma SAT_wl_code_SAT': \<open>(SAT_wl_code, SAT')
     \<in> [\<lambda>N. Multiset.Ball N distinct_mset \<and> (\<forall>C\<in>#N. Suc 0 \<le> size C) \<and> (\<forall>C\<in>#N. \<not> tautology C)]\<^sub>a
       clauses_l_assn\<^sup>d \<rightarrow> bool_assn\<close>
 proof -
