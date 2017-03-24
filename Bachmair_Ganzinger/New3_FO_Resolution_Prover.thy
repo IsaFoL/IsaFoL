@@ -384,8 +384,16 @@ lemma maximal_in_gen:
 proof -
   from assms have "maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>)" by -
   hence "\<forall>B \<in> atms_of (C \<cdot> \<sigma>). \<not> less_atm (A \<cdot>a \<sigma>) B" unfolding maximal_in_def by -
-  hence "\<forall>B\<in>atms_of (C \<cdot> \<sigma>). \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma>'))" unfolding less_atm_iff by -
-  hence "\<forall>B\<in>atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma> \<cdot>a \<sigma>'))" sorry
+  hence ll: "\<forall>B\<in>atms_of (C \<cdot> \<sigma>). \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma>'))" unfolding less_atm_iff by -
+  have "\<forall>B\<in>atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma> \<cdot>a \<sigma>'))"
+  proof (* This proof should ideally not be necessary *)
+    fix B
+    assume "B \<in> atms_of C"
+    then have "B \<cdot>a \<sigma> \<in> (atms_of C) \<cdot>as \<sigma>" unfolding subst_atms_def by auto (* this should be automatic *)
+    then have "B \<cdot>a \<sigma> \<in> atms_of (C \<cdot> \<sigma>)" unfolding subst_cls_def subst_lit_def subst_atms_def atms_of_def
+      sorry
+    then show "\<not> (\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < (B \<cdot>a \<sigma>) \<cdot>a \<sigma>')" using ll by auto 
+  qed 
   hence "\<forall>B\<in>atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma>' < B \<cdot>a \<sigma>'))"
     using is_ground_comp_subst by fastforce
   hence "\<forall>B\<in>atms_of C. \<not> (less_atm A B)" unfolding less_atm_iff by -
@@ -416,6 +424,28 @@ lemma mk_ground_subst:
 using assms
   by (metis ex_ground_subst is_ground_comp_subst is_ground_subst_cls subst_cls_comp_subst) (* I'm very impressed sledgehammer managed to do this... *)
     
+lemma lololol:
+  assumes "length Ci = n"
+  assumes "length CAi = n"
+  assumes "\<forall>i<n.  Ci ! i \<subseteq># CAi ! i "
+  shows "\<Union>#mset Ci \<subseteq># \<Union>#(mset CAi)"
+  using assms proof (induction n arbitrary: Ci CAi)
+  case 0
+  then show ?case by auto
+next
+  case (Suc n)
+  from Suc have "\<forall>i<n. tl Ci ! i \<subseteq># tl CAi ! i"
+    by (simp add: nth_tl) 
+  hence "\<Union>#mset (tl Ci) \<subseteq># \<Union>#mset (tl CAi)" using Suc by auto
+  moreover
+  have "hd Ci \<subseteq># hd CAi" using Suc
+    by (metis Nitpick.size_list_simp(2) hd_conv_nth nat.simps(3) zero_less_Suc) 
+  ultimately
+  show "\<Union>#mset Ci \<subseteq># \<Union>#mset CAi"
+    apply auto
+    by (metis (no_types, hide_lams) One_nat_def Suc_pred Suc(2) Suc(3) length_tl list.exhaust list.sel(1) list.sel(2) list.sel(3) n_not_Suc_n subset_mset.add_mono sum_list.Cons zero_less_Suc)
+qed
+    
 lemma ground_resolvent_subset:
   assumes gr_c: "is_ground_cls_list CAi"
   assumes gr_d: "is_ground_cls DAi"
@@ -423,18 +453,23 @@ lemma ground_resolvent_subset:
   shows "E \<subseteq># (\<Union>#(mset CAi)) + DAi"
   using resolve proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Ci Aij Ai \<sigma> D)
-    
-  have cisucai: "\<Union>#mset Ci \<subseteq># \<Union>#(mset CAi)" sorry
-  hence gr_ci: "is_ground_cls_list Ci" sorry
+  hence "\<forall>i<n.  Ci ! i \<subseteq># CAi ! i " by auto
+  hence cisucai: "\<Union>#mset Ci \<subseteq># \<Union>#(mset CAi)"
+    using lololol ord_resolve(3) ord_resolve(4) by force
+  hence gr_ci: "is_ground_cls_list Ci" using gr_c
+    by (metis is_ground_cls_Union_mset is_ground_cls_list_def is_ground_cls_mono is_ground_cls_mset_def set_mset_mset)
   have dsudai :"D \<subseteq># DAi" by (simp add: local.ord_resolve(1)) 
-  then have gr_di: "is_ground_cls D" sorry    
-      
-  from ord_resolve have "E = (\<Union>#mset Ci + D) \<cdot> \<sigma>" by -
-  hence "E = (\<Union>#mset Ci + D)" using gr_ci gr_di sorry
+  hence gr_di: "is_ground_cls D"
+    using gr_d is_ground_cls_mono by auto     
+  
+  have "is_ground_cls (\<Union>#mset Ci + D)" using gr_ci gr_di
+    unfolding is_ground_cls_def is_ground_cls_list_def
+    by (metis in_Union_mset_iff set_mset_mset union_iff)
+  then have fffff: "(\<Union>#mset Ci + D) = (\<Union>#mset Ci + D) \<cdot> \<sigma>" by auto
+  from this ord_resolve have "E = (\<Union>#mset Ci + D) \<cdot> \<sigma>" by -
+  hence "E = (\<Union>#mset Ci + D)" using fffff by auto
   then show ?thesis using cisucai dsudai by (auto simp add: subset_mset.add_mono)
 qed
-  
-
     
 lemma ground_resolvent_ground: (* This proof should be more automatic I think... *)
   assumes "is_ground_cls_list CAi"
