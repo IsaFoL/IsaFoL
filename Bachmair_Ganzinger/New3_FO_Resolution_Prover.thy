@@ -462,11 +462,18 @@ lemma uw2: "\<forall>C\<sigma>. C\<sigma> \<in> grounding_of_clss M \<longrighta
   sorry
 
 (* A lemma that states that a list of clauses can be standardized apart. *)
- thm make_var_disjoint
+thm make_var_disjoint
+
+lemma mset_equals_size:
+  assumes "X \<subseteq># Y"
+  assumes "size (X) = size (Y)"
+  shows "X = Y"
+    using assms
+    using mset_subset_size subset_mset_def by fastforce 
     
 lemma ord_resolve_lifting: 
   fixes CAi
-  assumes resolve: "ord_resolve (S_M S M) CAi DAi E" (* UHM (S_M S M) is FO, while S is GROUND. SO ITS BACKWARDS.. *)
+  assumes resolve: "ord_resolve (S_M S M) CAi DAi E" 
     (* Isn't the definition of S_M kind of weird? It seems odd that we let hilbert make choices about our selection function. This is probably not how a prover works. He probably make the choice
        him self, clever or not. *)
     and select: "selection S"
@@ -523,14 +530,14 @@ lemma ord_resolve_lifting:
   have "(\<forall>i < n. S_M S M (CAi ! i) = S (CAi'' ! i) \<cdot> (\<eta>s'' ! i))"
     using COOL by auto
       
+      have "\<exists>DAi'' \<eta>d''. DAi'' \<in> M \<and> (DAi) = DAi'' \<cdot> \<eta>d'' \<and> S (DAi'') \<cdot> \<eta>d'' = S_M S M DAi"
+        using grounding uw2 by auto
+      then obtain DAi'' \<eta>d'' where COOL2: " DAi'' \<in> M \<and> (DAi) = DAi'' \<cdot> \<eta>d'' \<and> S (DAi'') \<cdot> \<eta>d'' = S_M S M DAi"
+        by auto
      
-    
-      
-(*    "DAi'' \<in> M" 
-    "DAi'' \<cdot> \<eta>d'' = DAi"
-    "\<And>x. S_M S M DAi = x \<cdot> \<eta>d'' \<Longrightarrow> S DAi'' = x"*)
-    using uw uw2 grounding
-      sorry
+      have "DAi'' \<in> M" using COOL2 by auto
+      have "DAi'' \<cdot> \<eta>d'' = DAi" using COOL2 by auto
+      have "S (DAi'') \<cdot> \<eta>d'' = S_M S M DAi" using COOL2 by auto
       
   obtain CAi' DAi' \<eta> where prime_clauses: (* I need some lemma telling that these standardized apart clauses exist *) 
     "length CAi' = n" 
@@ -542,7 +549,7 @@ lemma ord_resolve_lifting:
     
     "DAi' \<in> M" 
     "DAi = DAi' \<cdot> \<eta>" 
-    "\<And>x. S_M S M DAi = x \<cdot> \<eta> \<Longrightarrow> S DAi' = x" (* I think now that this is the (or at least one) correct way to formalize S_M, kind of at least *)
+    "S_M S M (DAi) = S (DAi') \<cdot> \<eta>" (* I think now that this is the (or at least one) correct way to formalize S_M, kind of at least *)
     
     "var_disjoint (DAi'#CAi')"
     "{DAi'} \<union> set CAi' \<subseteq> M"
@@ -558,6 +565,7 @@ lemma ord_resolve_lifting:
     "Aij' \<cdot>aml \<eta> = Aij"
     "D' \<cdot> \<eta> = D"
     "Ai' \<cdot>al \<eta> = Ai"
+    "DAi' = D' +  (negs (mset Ai'))"
     sorry
     
   have "Some \<sigma> = mgu (set_mset ` set (map2 add_mset Ai Aij))" using ord_resolve by -
@@ -594,10 +602,41 @@ lemma ord_resolve_lifting:
     hence "S_M S M (D' \<cdot> \<eta> + negs (mset (Ai' \<cdot>al \<eta>))) = negs (mset (Ai' \<cdot>al \<eta>))"
       using prime_clauses2(6) prime_clauses2(7) by blast 
     hence "S_M S M (D' \<cdot> \<eta> + negs (mset (Ai' \<cdot>al \<eta>))) = (negs (mset (Ai'))) \<cdot> \<eta>" sorry (* believable *)
-    hence "S_M S M (DAi) = (negs (mset (Ai'))) \<cdot> \<eta>" sorry (* believable *)
+    hence fff: "S_M S M (DAi) = (negs (mset (Ai'))) \<cdot> \<eta>" sorry (* believable *)
     hence "S (D'  + negs (mset Ai')) = negs (mset Ai')"
-      using prime_clauses(7)[of ] unfolding a[symmetric] ord_resolve(1) prime_clauses2(6)[symmetric] prime_clauses2(7)[symmetric]
-       by auto
+    proof -
+      have "S DAi' \<subseteq># DAi'" 
+        using select selection.S_selects_subseteq by auto
+      moreover
+      {
+        fix L
+        assume "L \<in># D'" "L \<in># S (DAi')"
+        have False sorry
+      }
+      ultimately
+      have "S DAi' \<subseteq># (negs (mset Ai'))"
+        unfolding prime_clauses2(8) sorry
+      moreover
+      {
+      have "size (S DAi') = size ((S DAi') \<cdot> \<eta>)" unfolding subst_cls_def by auto (* make a simp rule for this *)
+      also have "... = size (negs (mset Ai))"
+        using \<open>S_M S M (D + negs (mset Ai)) = negs (mset Ai)\<close> local.ord_resolve(1) prime_clauses(7) by auto 
+      also have "... = length Ai" by auto
+      also have "... = n"
+        by (simp add: local.ord_resolve(6)) 
+      also have "... = length Ai'"
+        by (simp add: prime_clauses2(3)) 
+      also have "... = size (negs (mset Ai'))" by auto
+      finally
+      have "size (S DAi') = size (negs (mset Ai'))"
+        by auto
+      }
+      ultimately
+      have "S (DAi') = negs (mset Ai')"
+        using mset_equals_size by blast
+      then show "S (D'  + negs (mset Ai')) = negs (mset Ai')"
+        unfolding prime_clauses2(8) by auto
+    qed
     thus "eligible S \<tau> Ai' (D' + negs (mset Ai'))" unfolding eligible_simp by auto
   next
     assume asm: "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
