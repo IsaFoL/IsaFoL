@@ -765,6 +765,101 @@ proof (rule wf_bounded_measure[of _
     by blast
 qed
 
+paragraph \<open>Alternative termination proof\<close>
+
+abbreviation DPLL_mes\<^sub>W where
+  \<open>DPLL_mes\<^sub>W A M \<equiv>
+    map (\<lambda>L. if is_decided L then 2::nat else 1) (rev M) @ replicate (card A - length M) 3\<close>
+
+lemma distinctcard_atm_of_lit_of_eq_length:
+  assumes "no_dup S"
+  shows "card (atm_of ` lits_of_l S) = length S"
+  using assms by (induct S) (auto simp add: image_image lits_of_def no_dup_def)
+
+lemma dpll_bj_trail_mes_decreasing_less_than:
+  assumes dpll: \<open>dpll_bj S T\<close> and inv: \<open>inv S\<close> and
+    N_A: \<open>atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<subseteq> atms_of_ms A\<close> and
+    M_A: \<open>atm_of ` lits_of_l (trail S) \<subseteq> atms_of_ms A\<close> and
+    nd: \<open>no_dup (trail S)\<close> and
+    fin_A: \<open>finite A\<close>
+  shows \<open>(DPLL_mes\<^sub>W (atms_of_ms A) (trail T), DPLL_mes\<^sub>W (atms_of_ms A) (trail S)) \<in>
+    lexn less_than (card ((atms_of_ms A)))\<close>
+  using assms(1,2)
+proof (induction rule: dpll_bj_all_induct)
+  case (decide\<^sub>N\<^sub>O\<^sub>T L T)
+  define n where
+    \<open>n = card (atms_of_ms A) - card (atm_of ` lits_of_l (trail S))\<close>
+
+  have [simp]: \<open>length (trail S) = card (atm_of ` lits_of_l (trail S))\<close>
+    using nd by (auto simp: no_dup_def lits_of_def image_image dest: distinct_card)
+  have \<open>atm_of L \<notin> atm_of ` lits_of_l (trail S)\<close>
+    by (metis decide\<^sub>N\<^sub>O\<^sub>T.hyps(1) defined_lit_map imageE in_lits_of_l_defined_litD)
+
+  have \<open>card (atms_of_ms A) > card (atm_of ` lits_of_l (trail S))\<close>
+    by (metis N_A \<open>atm_of L \<notin> atm_of ` lits_of_l (trail S)\<close> atms_of_ms_finite card_seteq decide\<^sub>N\<^sub>O\<^sub>T.hyps(2)
+        M_A fin_A not_le subsetCE)
+  then have
+    n_0: \<open>n > 0\<close> and
+    n_Suc: \<open>card (atms_of_ms A) - Suc (card (atm_of ` lits_of_l (trail S))) = n - 1\<close>
+    unfolding n_def by auto
+
+  show ?case
+    using fin_A decide\<^sub>N\<^sub>O\<^sub>T n_0 unfolding state_eq\<^sub>N\<^sub>O\<^sub>T_trail[OF decide\<^sub>N\<^sub>O\<^sub>T(3)]
+    by (cases n) (auto simp: prepend_same_lexn n_def[symmetric] n_Suc lexn_Suc
+        simp del: state_simp\<^sub>N\<^sub>O\<^sub>T lexn.simps)
+next
+  case (propagate\<^sub>N\<^sub>O\<^sub>T C L T) note C = this(1) and undef = this(3) and T = this(3)
+  then have \<open>card (atms_of_ms A) > length (trail S)\<close>
+  proof -
+    have f7: "atm_of L \<in> atms_of_ms A"
+      using N_A C in_m_in_literals by blast
+    have "undefined_lit (trail S) (- L)"
+      using undef by auto
+    then show ?thesis
+      using f7 nd fin_A M_A undef by (metis atm_of_in_atm_of_set_in_uminus atms_of_ms_finite
+          card_seteq in_lits_of_l_defined_litD leI no_dup_length_eq_card_atm_of_lits_of_l)
+  qed
+  then show ?case
+    using fin_A unfolding state_eq\<^sub>N\<^sub>O\<^sub>T_trail[OF propagate\<^sub>N\<^sub>O\<^sub>T(4)]
+    by (cases \<open>card (atms_of_ms A) - length (trail S)\<close>)
+      (auto simp: prepend_same_lexn lexn_Suc
+        simp del: state_simp\<^sub>N\<^sub>O\<^sub>T lexn.simps)
+next
+  case (backjump C F' K F L C' T) note tr_S = this(3)
+  have \<open>trail (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S) = F\<close>
+    by (simp add: tr_S)
+  have \<open>no_dup F\<close>
+    using nd tr_S by (auto dest: no_dup_appendD)
+  then have card_A_F: \<open>card (atms_of_ms A) > length F\<close>
+    using distinctcard_atm_of_lit_of_eq_length[of \<open>trail S\<close>] card_mono[OF _ M_A] fin_A nd tr_S
+    by auto
+  have \<open>no_dup (F' @ F)\<close>
+    using nd tr_S by (auto dest: no_dup_appendD)
+  then have \<open>no_dup F'\<close>
+    apply (subst (asm) no_dup_rev[symmetric])
+    using nd tr_S by (auto dest: no_dup_appendD)
+  then have card_A_F': \<open>card (atms_of_ms A) > length F' + length F\<close>
+    using distinctcard_atm_of_lit_of_eq_length[of \<open>trail S\<close>] card_mono[OF _ M_A] fin_A nd tr_S
+    by auto
+  show ?case
+    using card_A_F card_A_F'
+    unfolding state_eq\<^sub>N\<^sub>O\<^sub>T_trail[OF backjump(8)]
+    by (cases \<open>card (atms_of_ms A) - length F\<close>)
+      (auto simp: tr_S prepend_same_lexn lexn_Suc simp del: state_simp\<^sub>N\<^sub>O\<^sub>T lexn.simps)
+qed
+
+lemma
+  assumes fin[simp]: \<open>finite A\<close>
+  shows \<open>wf {(T, S). dpll_bj S T
+    \<and> atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<subseteq> atms_of_ms A \<and> atm_of ` lits_of_l (trail S) \<subseteq> atms_of_ms A
+    \<and> no_dup (trail S) \<and> inv S}\<close>
+    (is \<open>wf ?A\<close>)
+  unfolding conj_commute[of \<open>dpll_bj _ _\<close>]
+  apply (rule wf_wf_if_measure'[of _ _ _  \<open>\<lambda>S. DPLL_mes\<^sub>W ((atms_of_ms A)) (trail S)\<close>])
+   apply (rule wf_lexn)
+   apply (rule wf_less_than)
+  by (rule dpll_bj_trail_mes_decreasing_less_than; use fin in simp)
+
 
 subsubsection \<open>Normal Forms\<close>
 
