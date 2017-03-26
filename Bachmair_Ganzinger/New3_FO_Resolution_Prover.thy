@@ -488,13 +488,10 @@ qed
 lemma empty_subst: "C \<cdot> \<eta> = {#} \<Longrightarrow> C = {#}"
 unfolding subst_cls_def by auto
   
-(*
-lemma uw: "\<forall>C\<sigma>. C\<sigma> \<in> grounding_of_clss M \<longrightarrow> (\<exists>D \<sigma>. D \<in> M \<and> C\<sigma> = D \<cdot> \<sigma> \<and> (\<forall>x. S_M S M D = x \<longrightarrow> S C\<sigma> = x \<cdot> \<sigma>))"
-  sorry
-*)  
   
-lemma uw2: "\<forall>C\<sigma>. C\<sigma> \<in> grounding_of_clss M \<longrightarrow> (\<exists>D \<sigma>. D \<in> M \<and> C\<sigma> = D \<cdot> \<sigma> \<and> (S D) \<cdot> \<sigma> = (S_M S M C\<sigma>))"
-  sorry
+(* really just a reformulation of S_M_grounding_of_clss *)
+lemma uw2: "selection S \<longrightarrow> (\<forall>C\<sigma>. C\<sigma> \<in> grounding_of_clss M \<longrightarrow> (\<exists>D \<sigma>. D \<in> M \<and> C\<sigma> = D \<cdot> \<sigma> \<and> (S D) \<cdot> \<sigma> = (S_M S M C\<sigma>)))"
+   using S_M_grounding_of_clss by metis
 
 (* A lemma that states that a list of clauses can be standardized apart. *)
 thm make_var_disjoint
@@ -532,7 +529,7 @@ lemma ord_resolve_lifting:
       (* 2. Choose the D' and the C' *)
       
       have uuu: "\<forall>CA \<in> set CAi. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> (CA) = CA'' \<cdot> \<eta>c'' \<and> S (CA'') \<cdot> \<eta>c'' = S_M S M CA "
-        using grounding uw2 by auto
+        using grounding uw2 select by auto
         
       hence "\<forall>i < n. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> (CAi ! i) = CA'' \<cdot> \<eta>c'' \<and> S CA'' \<cdot> \<eta>c'' = S_M S M ( (CAi ! i)) "
         using ord_resolve(3) by auto
@@ -566,7 +563,7 @@ lemma ord_resolve_lifting:
     using COOL by auto
       
       have "\<exists>DAi'' \<eta>d''. DAi'' \<in> M \<and> (DAi) = DAi'' \<cdot> \<eta>d'' \<and> S (DAi'') \<cdot> \<eta>d'' = S_M S M DAi"
-        using grounding uw2 by auto
+        using grounding uw2 select by auto
       then obtain DAi'' \<eta>d'' where COOL2: " DAi'' \<in> M \<and> (DAi) = DAi'' \<cdot> \<eta>d'' \<and> S (DAi'') \<cdot> \<eta>d'' = S_M S M DAi"
         by auto
      
