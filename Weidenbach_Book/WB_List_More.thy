@@ -314,6 +314,117 @@ lemma lexn3_conv:
     (a, a') \<in> r \<or> (a = a' \<and> (b, b') \<in> r) \<or> (a = a' \<and> b = b' \<and> (c, c') \<in> r)\<close>
   by (auto simp: lexn_n simp del: lexn.simps(2))
 
+lemma prepend_same_lexn:
+  assumes irrefl: \<open>irrefl R\<close>
+  shows \<open>(A @ B, A @ C) \<in> lexn R n \<longleftrightarrow> (B, C) \<in> lexn R (n - length A)\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
+proof
+  assume ?A
+  then obtain xys x xs y ys where
+    len_B: \<open>length B = n - length A\<close> and
+    len_C: \<open>length C = n - length A\<close> and
+    AB: \<open>A @ B = xys @ x # xs\<close> and
+    AC: \<open>A @ C = xys @ y # ys\<close> and
+    xy: \<open>(x, y) \<in> R\<close>
+    by (auto simp: lexn_conv)
+  have x_neq_y: \<open>x \<noteq> y\<close>
+    using xy irrefl by (auto simp add: irrefl_def)
+  then have \<open>B = drop (length A) xys @ x # xs\<close>
+    using arg_cong[OF AB, of \<open>drop (length A)\<close>]
+    apply (cases \<open>length A - length xys\<close>)
+     apply (auto; fail)
+    by (metis AB AC nth_append nth_append_length zero_less_Suc zero_less_diff)
+
+  moreover have \<open>C = drop (length A) xys @ y # ys\<close>
+    using arg_cong[OF AC, of \<open>drop (length A)\<close>] x_neq_y
+    apply (cases \<open>length A - length xys\<close>)
+     apply (auto; fail)
+    by (metis AB AC nth_append nth_append_length zero_less_Suc zero_less_diff)
+  ultimately show ?B
+    using  len_B[symmetric] len_C[symmetric] xy
+    by (auto simp: lexn_conv)
+next
+  assume ?B
+  then obtain xys x xs y ys where
+    len_B: \<open>length B = n - length A\<close> and
+    len_C: \<open>length C = n - length A\<close> and
+    AB: \<open>B = xys @ x # xs\<close> and
+    AC: \<open>C = xys @ y # ys\<close> and
+    xy: \<open>(x, y) \<in> R\<close>
+    by (auto simp: lexn_conv)
+  define Axys where \<open>Axys = A @ xys\<close>
+
+  have \<open>A @ B = Axys @ x # xs\<close>
+    using AB Axys_def by auto
+
+  moreover have \<open>A @ C = Axys @ y # ys\<close>
+    using AC Axys_def by auto
+  moreover have \<open>Suc (length Axys + length xs) = n\<close> and
+    \<open>length ys = length xs\<close>
+    using len_B len_C AB AC Axys_def by auto
+  ultimately show ?A
+    using len_B[symmetric] len_C[symmetric] xy
+    by (auto simp: lexn_conv)
+qed
+
+lemma append_same_lexn:
+  assumes irrefl: \<open>irrefl R\<close>
+  shows \<open>(B  @ A , C @ A) \<in> lexn R n \<longleftrightarrow> (B, C) \<in> lexn R (n - length A)\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
+proof
+  assume ?A
+  then obtain xys x xs y ys where
+    len_B: \<open>n = length B + length A\<close> and
+    len_C: \<open>n = length C + length A\<close> and
+    AB: \<open>B @ A = xys @ x # xs\<close> and
+    AC: \<open>C @ A = xys @ y # ys\<close> and
+    xy: \<open>(x, y) \<in> R\<close>
+    by (auto simp: lexn_conv)
+  have x_neq_y: \<open>x \<noteq> y\<close>
+    using xy irrefl by (auto simp add: irrefl_def)
+  have len_C_B: \<open>length C = length B\<close>
+    using len_B len_C by simp
+  have len_B_xys: \<open>length B > length xys\<close>
+    apply (rule ccontr)
+    using arg_cong[OF AB, of \<open>take (length B)\<close>] arg_cong[OF AB, of \<open>drop (length B)\<close>]
+      arg_cong[OF AC, of \<open>drop (length C)\<close>]  x_neq_y len_C_B
+    by auto
+
+  then have B: \<open>B = xys @ x # take (length B - Suc (length xys)) xs\<close>
+    using arg_cong[OF AB, of \<open>take (length B)\<close>]
+    by (cases \<open>length B - length xys\<close>) simp_all
+
+  have C: \<open>C = xys @ y # take (length C - Suc (length xys)) ys\<close>
+    using arg_cong[OF AC, of \<open>take (length C)\<close>] x_neq_y len_B_xys unfolding len_C_B[symmetric]
+    by (cases \<open>length C - length xys\<close>)  auto
+  show ?B
+    using len_B[symmetric] len_C[symmetric] xy B C
+    by (auto simp: lexn_conv)
+next
+  assume ?B
+  then obtain xys x xs y ys where
+    len_B: \<open>length B = n - length A\<close> and
+    len_C: \<open>length C = n - length A\<close> and
+    AB: \<open>B = xys @ x # xs\<close> and
+    AC: \<open>C = xys @ y # ys\<close> and
+    xy: \<open>(x, y) \<in> R\<close>
+    by (auto simp: lexn_conv)
+  define Ays Axs where \<open>Ays = ys @ A\<close> and\<open>Axs = xs @ A\<close>
+
+  have \<open>B @ A = xys @ x # Axs\<close>
+    using AB Axs_def by auto
+
+  moreover have \<open>C @ A = xys @ y # Ays\<close>
+    using AC Ays_def by auto
+  moreover have \<open>Suc (length xys + length Axs) = n\<close> and
+    \<open>length Ays = length Axs\<close>
+    using len_B len_C AB AC Axs_def Ays_def by auto
+  ultimately show ?A
+    using len_B[symmetric] len_C[symmetric] xy
+    by (auto simp: lexn_conv)
+qed
+
+lemma irrefl_less_than [simp]: \<open>irrefl less_than\<close>
+  by (auto simp: irrefl_def)
+
 
 subsection \<open>Remove\<close>
 
@@ -656,7 +767,7 @@ qed
 
 subsection \<open>Product Case\<close>
 
-text \<open>The splitting of tuples is done for sizes strictly less than 8. As we want to manipulate 
+text \<open>The splitting of tuples is done for sizes strictly less than 8. As we want to manipulate
   tuples for size 8, here is some more setup for sizes up to 12.\<close>
 
 lemma prod_cases8 [cases type]:
