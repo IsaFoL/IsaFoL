@@ -391,7 +391,8 @@ proof -
     assume "B \<in> atms_of C"
     then have "B \<cdot>a \<sigma> \<in> (atms_of C) \<cdot>as \<sigma>" unfolding subst_atms_def by auto (* this should be automatic *)
     then have "B \<cdot>a \<sigma> \<in> atms_of (C \<cdot> \<sigma>)" unfolding subst_cls_def subst_lit_def subst_atms_def atms_of_def
-      sorry
+      apply auto
+      by (metis (mono_tags, lifting) imageI literal.map_sel(1) literal.map_sel(2))
     then show "\<not> (\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < (B \<cdot>a \<sigma>) \<cdot>a \<sigma>')" using ll by auto 
   qed 
   hence "\<forall>B\<in>atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma>' < B \<cdot>a \<sigma>'))"
@@ -400,6 +401,15 @@ proof -
   then show ?thesis unfolding less_eq_atm_def maximal_in_def by auto
 qed
     
+  
+lemma another_swap: "atms_of (C \<cdot> \<sigma>) = atms_of C \<cdot>as \<sigma>"
+  unfolding subst_cls_def subst_atms_def subst_lit_def 
+  apply auto
+   apply (smt atms_of_def image_iff literal.map_sel(1) literal.map_sel(2) set_image_mset)+
+  done
+    
+  
+  
 lemma str_maximal_in_gen: (* a better proof might reuse the lemma maximal_in_gen *)
   assumes "str_maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>)"
   shows "str_maximal_in A C"
@@ -408,7 +418,9 @@ proof -
   hence "\<forall>B \<in> atms_of (C \<cdot> \<sigma>). \<not> less_eq_atm (A \<cdot>a \<sigma>) B" by -
   hence "\<forall>B\<in>atms_of (C \<cdot> \<sigma>). \<not> (less_atm (A \<cdot>a \<sigma>) B \<or> A \<cdot>a \<sigma> = B)" unfolding less_eq_atm_def by -
   hence "\<forall>B\<in>atms_of (C \<cdot> \<sigma>). \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma>') \<or> A \<cdot>a \<sigma> = B)" unfolding less_atm_iff by -
-  hence "\<forall>B\<in>atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma> \<cdot>a \<sigma>') \<or> A \<cdot>a \<sigma> = B \<cdot>a \<sigma>)" sorry
+  hence "\<forall>B\<in>atms_of (C) \<cdot>as \<sigma>. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma>') \<or> A \<cdot>a \<sigma> = B)" using another_swap by auto
+  hence "\<forall>B\<in>atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma> \<cdot>a \<sigma>') \<or> A \<cdot>a \<sigma> = B \<cdot>a \<sigma>)" 
+    unfolding subst_atms_def by auto
   hence "\<forall>B\<in>atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma>' < B \<cdot>a \<sigma>') \<or> A = B)"
     using is_ground_comp_subst by fastforce
   hence "\<forall>B\<in>atms_of C. \<not> (less_atm A B \<or> A = B)" unfolding less_atm_iff by -
@@ -485,7 +497,14 @@ proof -
     by (metis assms(2) in_mset_sum_list2 is_ground_cls_def)    
 qed
   
-lemma empty_subst: "C \<cdot> \<eta> = {#} \<Longrightarrow> C = {#}"
+lemma empty_subst_for_atoms: "A \<cdot>am \<eta> = {#} \<longleftrightarrow> A = {#}"  
+  unfolding subst_atm_mset_def by auto
+    
+lemma empty_subst_for_atoms_right: "A \<cdot>am \<eta> = {#} \<Longrightarrow> A = {#}"  
+  unfolding subst_atm_mset_def by auto
+    
+
+lemma empty_subst: "C \<cdot> \<eta> = {#} \<longleftrightarrow> C = {#}"
 unfolding subst_cls_def by auto
   
   
@@ -502,6 +521,29 @@ lemma mset_equals_size:
   shows "X = Y"
     using assms
     using mset_subset_size subset_mset_def by fastforce 
+      
+      
+lemma swapii: "i < length Aij' \<Longrightarrow> (Aij' \<cdot>aml \<eta>) ! i = (Aij'  ! i)  \<cdot>am \<eta>"
+  unfolding subst_atm_mset_list_def
+    by auto
+    
+lemma something_intersection:
+  assumes "X \<subseteq># D' + T"
+  assumes "\<And>L2. L2 \<in># D' \<Longrightarrow> L2 \<in># X \<Longrightarrow> False"
+  shows "X \<subseteq># T"
+  using assms
+proof - (*Sledgehammer made this *)
+  obtain bb :: "'b multiset \<Rightarrow> 'b multiset \<Rightarrow> 'b" where
+    f1: "\<forall>m ma. m \<subseteq># ma \<or> count {#} (bb {#} (m - ma)) \<noteq> count (m - ma) (bb {#} (m - ma))"
+    by (metis Diff_eq_empty_iff_mset multiset_eqI)
+  have "X - T \<subseteq># D'"
+    by (simp add: assms(1) subset_eq_diff_conv)
+  then have "(\<exists>m ma. X - T \<subseteq># m \<and> bb {#} (X - T) \<notin># m \<and> bb {#} (X - T) \<notin># ma) \<or> count {#} (bb {#} (X - T)) = count (X - T) (bb {#} (X - T))"
+    by (metis (full_types) Diff_eq_empty_iff_mset assms(2) count_diff count_inI mset_subset_eqD subset_mset.zero_le)
+  then show ?thesis
+    using f1 by (metis (no_types) count_inI mset_subset_eqD subset_mset.zero_le)
+qed
+    
     
 lemma ord_resolve_lifting: 
   fixes CAi
@@ -598,6 +640,7 @@ lemma ord_resolve_lifting:
     "D' \<cdot> \<eta> = D"
     "Ai' \<cdot>al \<eta> = Ai"
     "DAi' = D' +  (negs (mset Ai'))"
+    "\<forall>i<n. CAi' ! i = Ci' ! i + poss (Aij' ! i)"
     sorry
     
   have "Some \<sigma> = mgu (set_mset ` set (map2 add_mset Ai Aij))" using ord_resolve by -
@@ -617,11 +660,15 @@ lemma ord_resolve_lifting:
   also have "... = E" using ord_resolve by auto
   finally have e'\<phi>e: "E' \<cdot> \<phi> = E" .
   
-  have a: "(D' + negs (mset Ai')) = DAi'" sorry (* Believable *)
+  have a: "(D' + negs (mset Ai')) = DAi'" using prime_clauses2 by auto
   moreover
-  have b: "\<forall>i<n. CAi' ! i = Ci' ! i + poss (Aij' ! i)" sorry (* Believable *)
+  have b: "\<forall>i<n. CAi' ! i = Ci' ! i + poss (Aij' ! i)" using prime_clauses2 by auto
   moreover
-  have c: "\<forall>i<n. Aij' ! i \<noteq> {#}" sorry (* Believable *)
+  have c: "\<forall>i<n. Aij' ! i \<noteq> {#}"
+    apply (rule allI)
+      apply rule
+     using prime_clauses2(2) ord_resolve(9) ord_resolve(5) unfolding prime_clauses2(5)[symmetric]
+     using empty_subst_for_atoms using swapii by metis
   moreover
   (* Lifting  *)
   have "eligible (S_M S M) \<sigma> Ai (D + negs (mset Ai))" using ord_resolve unfolding eligible_simp by -
@@ -633,8 +680,9 @@ lemma ord_resolve_lifting:
     assume "S_M S M (D + negs (mset Ai)) = negs (mset Ai)"
     hence "S_M S M (D' \<cdot> \<eta> + negs (mset (Ai' \<cdot>al \<eta>))) = negs (mset (Ai' \<cdot>al \<eta>))"
       using prime_clauses2(6) prime_clauses2(7) by blast 
-    hence "S_M S M (D' \<cdot> \<eta> + negs (mset (Ai' \<cdot>al \<eta>))) = (negs (mset (Ai'))) \<cdot> \<eta>" sorry (* believable *)
-    hence fff: "S_M S M (DAi) = (negs (mset (Ai'))) \<cdot> \<eta>" sorry (* believable *)
+    hence "S_M S M (D' \<cdot> \<eta> + negs (mset (Ai' \<cdot>al \<eta>))) = (negs (mset (Ai'))) \<cdot> \<eta>" by auto
+    hence fff: "S_M S M (DAi) = (negs (mset (Ai'))) \<cdot> \<eta>" 
+      using ord_resolve(1) prime_clauses2(6) prime_clauses2(7) by blast
     hence "S (D'  + negs (mset Ai')) = negs (mset Ai')"
     proof -
       have "S DAi' \<subseteq># DAi'" 
@@ -643,11 +691,12 @@ lemma ord_resolve_lifting:
       {
         fix L
         assume "L \<in># D'" "L \<in># S (DAi')"
+          (* I wrote this on that piece of paper. *)
         have False sorry
       }
       ultimately
       have "S DAi' \<subseteq># (negs (mset Ai'))"
-        unfolding prime_clauses2(8) sorry
+        unfolding prime_clauses2(8) using something_intersection by blast
       moreover
       {
       have "size (S DAi') = size ((S DAi') \<cdot> \<eta>)" unfolding subst_cls_def by auto (* make a simp rule for this *)
@@ -675,7 +724,9 @@ lemma ord_resolve_lifting:
     let ?A = "Ai ! 0"
     from asm have "S_M S M (D + negs (mset Ai)) = {#}" by auto
     hence "S (D' + negs (mset Ai')) = {#}" using prime_clauses2(6)[symmetric] prime_clauses2(7)[symmetric] prime_clauses(7)
-        sorry (* believable *)
+      using ord_resolve(1) 
+      apply auto
+      using a empty_subst by blast   
     moreover
     from asm have l: "length Ai = 1" by auto
     hence "length Ai' = 1" using prime_clauses2(7)[symmetric] by auto
