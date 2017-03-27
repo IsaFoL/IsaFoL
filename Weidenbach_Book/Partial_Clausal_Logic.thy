@@ -77,7 +77,7 @@ definition atms_of_ms :: "'a clause set \<Rightarrow> 'a set" where
 "atms_of_ms \<psi>s = \<Union>(atms_of ` \<psi>s)"
 
 definition atms_of_mms :: "'a clause multiset \<Rightarrow> 'a set" where
-  \<open>atms_of_mms \<psi>s = \<Union>(atms_of ` \<psi>s)\<close>
+  \<open>atms_of_mms \<psi>s = \<Union>(set_mset (image_mset atms_of \<psi>s))\<close>
 
 lemma atms_of_mmltiset[simp]:
   "atms_of (mset a) = atm_of ` set a"
@@ -186,14 +186,16 @@ subsubsection \<open>Totality\<close>
 definition total_over_set :: "'a interp \<Rightarrow> 'a set \<Rightarrow> bool" where
 "total_over_set I S = (\<forall>l\<in>S. Pos l \<in> I \<or> Neg l \<in> I)"
 
+(* S2MS *)
 definition total_over_mset :: "'a literal set => 'a multiset => bool" where
   "total_over_mset I S = (\<forall>l\<in>#S. Pos l \<in> I \<or> Neg l \<in> I)"
 
 definition total_over_m :: "'a literal set \<Rightarrow> 'a clause set \<Rightarrow> bool" where
 "total_over_m I \<psi>s = total_over_set I (atms_of_ms \<psi>s)"
 
+(* S2MS *)
 definition total_over_mm :: \<open>'a literal set \<Rightarrow> 'a clause multiset \<Rightarrow> bool\<close> where
-\<open>total_over_mm I \<psi>s = total_over_mset I (atms_of_mms \<psi>s)\<close>
+\<open>total_over_mm I \<psi>s = total_over_set I (atms_of_mms \<psi>s)\<close>
 
 lemma total_over_set_empty[simp]:
   "total_over_set I {}"
@@ -202,6 +204,11 @@ lemma total_over_set_empty[simp]:
 lemma total_over_m_empty[simp]:
   "total_over_m I {}"
   unfolding total_over_m_def by auto
+    
+(* S2MS *)
+lemma total_over_mm_empty[simp]:
+  "total_over_mm I {#}"
+  unfolding total_over_mm_def total_over_set_def by auto
 
 lemma total_over_set_single[iff]:
   "total_over_set I {L} \<longleftrightarrow> (Pos L \<in> I \<or> Neg L \<in> I)"
@@ -231,16 +238,17 @@ lemma total_over_m_insert[iff]:
   "total_over_m I (insert a A) \<longleftrightarrow> (total_over_set I (atms_of a) \<and> total_over_m I A)"
   unfolding total_over_m_def total_over_set_def by fastforce
 
+(* S2MS modif*)
 lemma total_over_m_extension:
   fixes I :: "'v literal set" and A :: "'v clauses"
-  assumes total: "total_over_m I A"
-  shows "\<exists>I'. total_over_m (I \<union> I') (A\<union>B)
-    \<and> (\<forall>x\<in>I'. atm_of x \<in> atms_of_ms B \<and> atm_of x \<notin> atms_of_ms A)"
+  assumes total: "total_over_mm I A"
+  shows "\<exists>I'. total_over_mm (I \<union> I') (A\<union>#B)
+    \<and> (\<forall>x\<in>I'. atm_of x \<in> atms_of_mms B \<and> atm_of x \<notin> atms_of_mms A)"
 proof -
-  let ?I' = "{Pos v |v. v\<in> atms_of_ms B \<and> v \<notin> atms_of_ms A}"
-  have "\<forall>x\<in>?I'. atm_of x \<in> atms_of_ms B \<and> atm_of x \<notin> atms_of_ms A" by auto
-  moreover have "total_over_m (I \<union> ?I') (A\<union>B)"
-    using total unfolding total_over_m_def total_over_set_def by auto
+  let ?I' = "{Pos v |v. v\<in> atms_of_mms B \<and> v \<notin> atms_of_mms A}"
+  have "\<forall>x\<in>?I'. atm_of x \<in> atms_of_mms B \<and> atm_of x \<notin> atms_of_mms A" by auto
+  moreover have "total_over_mm (I \<union> ?I') (A\<union>#B)"
+    using total unfolding total_over_mm_def total_over_set_def by auto
   ultimately show ?thesis by blast
 qed
 
