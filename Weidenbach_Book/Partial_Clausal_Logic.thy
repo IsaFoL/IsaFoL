@@ -254,7 +254,7 @@ lemma total_over_m_insert[iff]:
   "total_over_m I (insert a A) \<longleftrightarrow> (total_over_set I (atms_of a) \<and> total_over_m I A)"
   unfolding total_over_m_def total_over_set_def by fastforce
 
-(* S2MS modif*)
+(* S2MS modif *)
 lemma total_over_m_extension:
   fixes I :: "'v literal set" and A :: "'v clauses"
   assumes total: "total_over_mm I A"
@@ -267,19 +267,20 @@ proof -
     using total unfolding total_over_mm_def total_over_set_def by auto
   ultimately show ?thesis by blast
 qed
-
+  
+(* S2MS modif *)
 lemma total_over_m_consistent_extension:
   fixes I :: "'v literal set" and A :: "'v clauses"
   assumes
-    total: "total_over_m I A" and
+    total: "total_over_mm I A" and
     cons: "consistent_interp I"
-  shows "\<exists>I'. total_over_m (I \<union> I') (A \<union> B)
-    \<and> (\<forall>x\<in>I'. atm_of x \<in> atms_of_ms B \<and> atm_of x \<notin> atms_of_ms A) \<and> consistent_interp (I \<union> I')"
+  shows "\<exists>I'. total_over_mm (I \<union> I') (A \<union># B)
+    \<and> (\<forall>x\<in>I'. atm_of x \<in> atms_of_mms B \<and> atm_of x \<notin> atms_of_mms A) \<and> consistent_interp (I \<union> I')"
 proof -
-  let ?I' = "{Pos v |v. v\<in> atms_of_ms B \<and> v \<notin> atms_of_ms A \<and> Pos v \<notin> I \<and> Neg v \<notin> I}"
-  have "\<forall>x\<in>?I'. atm_of x \<in> atms_of_ms B \<and> atm_of x \<notin> atms_of_ms A" by auto
-  moreover have "total_over_m (I \<union> ?I') (A\<union>B)"
-    using total unfolding total_over_m_def total_over_set_def by auto
+  let ?I' = "{Pos v |v. v\<in> atms_of_mms B \<and> v \<notin> atms_of_mms A \<and> Pos v \<notin> I \<and> Neg v \<notin> I}"
+  have "\<forall>x\<in>?I'. atm_of x \<in> atms_of_mms B \<and> atm_of x \<notin> atms_of_mms A" by auto
+  moreover have "total_over_mm (I \<union> ?I') (A\<union>#B)"
+    using total unfolding total_over_mm_def total_over_set_def by auto
   moreover have "consistent_interp (I \<union> ?I')"
     using cons unfolding consistent_interp_def by (intro allI) (rename_tac L, case_tac L, auto)
   ultimately show ?thesis by blast
@@ -377,29 +378,36 @@ lemma true_cls_not_in_remove:
   shows "I \<Turnstile> \<chi>"
   using assms unfolding true_cls_def by auto
 
+(* M2MS modif *)
 definition true_clss :: "'a interp \<Rightarrow> 'a clauses \<Rightarrow> bool" (infix "\<Turnstile>s" 50) where
   "I \<Turnstile>s CC \<longleftrightarrow> (\<forall>C \<in># CC. I \<Turnstile> C)"
 
-lemma true_clss_empty[simp]: "I \<Turnstile>s {}"
-  unfolding true_clss_def by blast
+(* M2MS modif *)
+lemma true_clss_empty[simp]: "I \<Turnstile>s {#}"
+  unfolding true_clss_def by auto
 
-lemma true_clss_singleton[iff]: "I \<Turnstile>s {C} \<longleftrightarrow> I \<Turnstile> C"
-  unfolding true_clss_def by blast
+(* M2MS modif *)
+lemma true_clss_singleton[iff]: "I \<Turnstile>s {#C#} \<longleftrightarrow> I \<Turnstile> C"
+  unfolding true_clss_def by auto
 
-lemma true_clss_empty_entails_empty[iff]: "{} \<Turnstile>s N \<longleftrightarrow> N = {}"
+(* M2MS modif *)
+lemma true_clss_empty_entails_empty[iff]: "{} \<Turnstile>s N \<longleftrightarrow> N = {#}"
   unfolding true_clss_def by (auto simp add: true_cls_def)
 
 lemma true_cls_insert_l [simp]:
   "M \<Turnstile> A \<Longrightarrow> insert L M \<Turnstile> A"
   unfolding true_cls_def by auto
 
-lemma true_clss_union[iff]: "I \<Turnstile>s CC \<union> DD \<longleftrightarrow> I \<Turnstile>s CC \<and> I \<Turnstile>s DD"
-  unfolding true_clss_def by blast
+(* M2MS modif *)
+lemma true_clss_union[iff]: "I \<Turnstile>s CC \<union># DD \<longleftrightarrow> I \<Turnstile>s CC \<and> I \<Turnstile>s DD"
+  unfolding true_clss_def by auto
 
+(* M2MS modif *)
 lemma true_clss_insert[iff]: "I \<Turnstile>s insert C DD \<longleftrightarrow> I \<Turnstile> C \<and> I \<Turnstile>s DD"
   unfolding true_clss_def by blast
 
-lemma true_clss_mono: "DD \<subseteq> CC \<Longrightarrow> I \<Turnstile>s CC \<Longrightarrow> I \<Turnstile>s DD"
+(* M2MS modif *)
+lemma true_clss_mono: "DD \<subseteq># CC \<Longrightarrow> I \<Turnstile>s CC \<Longrightarrow> I \<Turnstile>s DD"
   unfolding true_clss_def by blast
 
 lemma true_clss_union_increase[simp]:
