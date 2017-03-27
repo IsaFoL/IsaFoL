@@ -23,7 +23,7 @@ Clauses are (finite) multisets of literals.
 \<close>
 
 type_synonym 'a clause = "'a literal multiset"
-type_synonym 'v clauses = "'v clause set"
+type_synonym 'v clauses = "'v clause multiset"
 
 subsection \<open>Partial Interpretations\<close>
 
@@ -75,6 +75,9 @@ text \<open>We define here various lifting of @{term atm_of} (applied to a singl
   multisets of literals.\<close>
 definition atms_of_ms :: "'a clause set \<Rightarrow> 'a set" where
 "atms_of_ms \<psi>s = \<Union>(atms_of ` \<psi>s)"
+
+definition atms_of_mms :: "'a clause multiset \<Rightarrow> 'a set" where
+  \<open>atms_of_mms \<psi>s = \<Union>(atms_of ` \<psi>s)\<close>
 
 lemma atms_of_mmltiset[simp]:
   "atms_of (mset a) = atm_of ` set a"
@@ -183,8 +186,14 @@ subsubsection \<open>Totality\<close>
 definition total_over_set :: "'a interp \<Rightarrow> 'a set \<Rightarrow> bool" where
 "total_over_set I S = (\<forall>l\<in>S. Pos l \<in> I \<or> Neg l \<in> I)"
 
+definition total_over_mset :: "'a literal set => 'a multiset => bool" where
+  "total_over_mset I S = (\<forall>l\<in>#S. Pos l \<in> I \<or> Neg l \<in> I)"
+
 definition total_over_m :: "'a literal set \<Rightarrow> 'a clause set \<Rightarrow> bool" where
 "total_over_m I \<psi>s = total_over_set I (atms_of_ms \<psi>s)"
+
+definition total_over_mm :: \<open>'a literal set \<Rightarrow> 'a clause multiset \<Rightarrow> bool\<close> where
+\<open>total_over_mm I \<psi>s = total_over_mset I (atms_of_mms \<psi>s)\<close>
 
 lemma total_over_set_empty[simp]:
   "total_over_set I {}"
@@ -345,7 +354,7 @@ lemma true_cls_not_in_remove:
   using assms unfolding true_cls_def by auto
 
 definition true_clss :: "'a interp \<Rightarrow> 'a clauses \<Rightarrow> bool" (infix "\<Turnstile>s" 50) where
-  "I \<Turnstile>s CC \<longleftrightarrow> (\<forall>C \<in> CC. I \<Turnstile> C)"
+  "I \<Turnstile>s CC \<longleftrightarrow> (\<forall>C \<in># CC. I \<Turnstile> C)"
 
 lemma true_clss_empty[simp]: "I \<Turnstile>s {}"
   unfolding true_clss_def by blast
