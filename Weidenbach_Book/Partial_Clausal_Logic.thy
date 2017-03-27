@@ -76,6 +76,7 @@ text \<open>We define here various lifting of @{term atm_of} (applied to a singl
 definition atms_of_ms :: "'a clause set \<Rightarrow> 'a set" where
 "atms_of_ms \<psi>s = \<Union>(atms_of ` \<psi>s)"
 
+(* M2MS *)
 definition atms_of_mms :: "'a clause multiset \<Rightarrow> 'a set" where
   \<open>atms_of_mms \<psi>s = \<Union>(set_mset (image_mset atms_of \<psi>s))\<close>
 
@@ -98,6 +99,16 @@ lemma atms_of_ms_memtpy[simp]:
   "atms_of_ms {{#}} = {}"
   unfolding atms_of_ms_def by auto
 
+(* M2MS *)    
+lemma atms_of_mms_empty[simp]:
+  \<open>atms_of_mms {#} = {}\<close>
+  unfolding atms_of_mms_def by auto
+
+(* M2MS *)     
+lemma atms_of_mms_mempty[simp]: 
+   \<open>atms_of_mms {#{#}#} = {}\<close>
+  unfolding atms_of_mms_def by auto
+    
 lemma atms_of_ms_mono:
   "A \<subseteq> B \<Longrightarrow> atms_of_ms A \<subseteq> atms_of_ms B"
   unfolding atms_of_ms_def by auto
@@ -109,6 +120,11 @@ lemma atms_of_ms_finite[simp]:
 lemma atms_of_ms_union[simp]:
   "atms_of_ms (\<psi>s \<union> \<chi>s) = atms_of_ms \<psi>s \<union> atms_of_ms \<chi>s"
   unfolding atms_of_ms_def by auto
+    
+(* M2MS *)
+lemma atms_of_mms_union[simp]:
+  "atms_of_mms (\<psi>s \<union># \<chi>s) = atms_of_mms \<psi>s \<union> atms_of_mms \<chi>s"
+  unfolding atms_of_mms_def by auto
 
 lemma atms_of_ms_insert[simp]:
   "atms_of_ms (insert \<psi>s \<chi>s) = atms_of \<psi>s \<union> atms_of_ms \<chi>s"
