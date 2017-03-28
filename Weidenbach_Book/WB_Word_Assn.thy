@@ -41,7 +41,47 @@ qed
 instance uint32 :: heap
   by standard (auto simp: inj_def exI[of _ nat_of_uint32])
 
-(* lemma \<open>(return o (\<lambda>n. shiftr n 1), RETURN o shiftr1) \<in> word_nat_assn\<^sup>k \<rightarrow>\<^sub>a word_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: shiftr1_def word_nat_rel_def unat_shiftr)
- *)
+instantiation uint32 :: hashable
+begin
+definition hashcode_uint32 :: \<open>uint32 \<Rightarrow> uint32\<close> where
+  \<open>hashcode_uint32 n = n\<close>
+
+definition def_hashmap_size_uint32 :: \<open>uint32 itself \<Rightarrow> nat\<close> where
+  \<open>def_hashmap_size_uint32 = (\<lambda>_. 16)\<close>
+  -- \<open>same as @{typ nat}\<close>
+instance
+  by standard (simp add: def_hashmap_size_uint32_def)
+end
+
+abbreviation uint32_rel :: \<open>(uint32 \<times> uint32) set\<close> where
+  \<open>uint32_rel \<equiv> Id\<close>
+
+abbreviation uint32_assn :: \<open>uint32 \<Rightarrow> uint32 \<Rightarrow> assn\<close> where
+  \<open>uint32_assn \<equiv> id_assn\<close>
+
+lemma op_eq_uint32:
+  \<open>(uncurry (return oo (op = :: uint32 \<Rightarrow> _)), uncurry (RETURN oo op =)) \<in>
+    uint32_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
+
+lemmas [id_rules] = 
+  itypeI[Pure.of 0 "TYPE (uint32)"]
+  itypeI[Pure.of 1 "TYPE (uint32)"]
+
+lemma param_uint32[param, sepref_import_param]:
+  "(0, 0::uint32) \<in> Id"
+  "(1, 1::uint32) \<in> Id"
+  by (rule IdI)+
+
+lemma param_max_uint32[param,sepref_import_param]:
+  "(max,max)\<in>uint32_rel \<rightarrow> uint32_rel \<rightarrow> uint32_rel" by auto
+
+lemma max_uint32:
+  \<open>(uncurry (return oo max), uncurry (RETURN oo max)) \<in>
+    uint32_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
+
+lemma 1: \<open>RETURN (fold max x 0) = RETURN $ (fold $ max $ x $ 0)\<close>
+  by auto
+
 end

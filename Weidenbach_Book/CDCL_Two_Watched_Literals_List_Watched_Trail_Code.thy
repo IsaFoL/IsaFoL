@@ -1170,9 +1170,9 @@ lemmas decide_wl_or_skip_D_code_def_refine[sepref_fr_rules] =
 
 
 subsubsection \<open>Combining Together: the Other Rules\<close>
-
+term get_conflict_wl_is_None
 sepref_register get_conflict_wl_is_None
-sepref_thm get_conflict_wl_is_None_code
+sepref_thm (in twl_array_code_ops) get_conflict_wl_is_None_code
   is \<open>RETURN o get_conflict_wl_is_None\<close>
   :: \<open>twl_st_l_trail_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding get_conflict_wl_is_None_def twl_st_l_trail_assn_def
@@ -1180,13 +1180,13 @@ sepref_thm get_conflict_wl_is_None_code
   by sepref
 
 concrete_definition (in -) get_conflict_wl_is_None_code
-   uses twl_array_code.get_conflict_wl_is_None_code.refine_raw
+   uses twl_array_code_ops.get_conflict_wl_is_None_code.refine_raw
    is "(?f,_)\<in>_"
 
 prepare_code_thms (in -) get_conflict_wl_is_None_code_def
 
-lemmas get_conflict_wl_is_None_code_refine[sepref_fr_rules] =
-   get_conflict_wl_is_None_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_l_trail_assn_def]
+lemmas (in twl_array_code_ops)get_conflict_wl_is_None_code_refine[sepref_fr_rules] =
+   get_conflict_wl_is_None_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
 
 sepref_register cdcl_twl_o_prog_wl_D
 sepref_thm cdcl_twl_o_prog_wl_D_code
@@ -1236,7 +1236,7 @@ lemmas select_and_remove_from_literals_to_update_wl''_code_2[sepref_fr_rules] =
    select_and_remove_from_literals_to_update_wl''_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
 
 end
-declare twl_array_code_ops.N\<^sub>0_code_def[code]
+
 export_code cdcl_twl_stgy_prog_wl_D_code in SML_imp module_name SAT_Solver
   file "code/CDCL_Cached_Array_Trail.ML"
 

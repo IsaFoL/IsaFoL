@@ -177,12 +177,12 @@ definition upperN :: nat where
 
 text \<open>We start in a context where we have an initial set of literals. \<close>
 locale twl_array_code_ops =
-  fixes N\<^sub>0 :: \<open>nat list\<close>
+  fixes N\<^sub>0 :: \<open>uint32 list\<close>
 begin
 
 text \<open>This is the \<^emph>\<open>completion\<close> of \<^term>\<open>N\<^sub>0\<close>, containing the positive and the negation of every
   literal of \<^term>\<open>N\<^sub>0\<close>:\<close>
-definition N\<^sub>0' where \<open>N\<^sub>0' = map literal_of_nat N\<^sub>0\<close>
+definition N\<^sub>0' where \<open>N\<^sub>0' = map (literal_of_nat o nat_of_uint32) N\<^sub>0\<close>
 definition N\<^sub>0'' where \<open>N\<^sub>0'' = mset N\<^sub>0'\<close>
 
 definition N\<^sub>1 where \<open>N\<^sub>1 = N\<^sub>0'' + uminus `# N\<^sub>0''\<close>
@@ -334,9 +334,6 @@ proof -
     using H unfolding 1 2 3 .
 qed
 
-definition N\<^sub>0_code :: \<open>uint32 list\<close> where
-  \<open>N\<^sub>0_code = map uint32_of_nat N\<^sub>0\<close>
-
 end
 
 text \<open>TODO Move\<close>
@@ -360,8 +357,8 @@ lemma nat_of_uint32_uint32_of_nat_id: \<open>n < 2 ^32 \<Longrightarrow> nat_of_
 
 locale twl_array_code =
   twl_array_code_ops N\<^sub>0
-  for N\<^sub>0 :: \<open>nat list\<close> +
-  assumes lits_less_upperN: \<open>\<forall>L \<in> set N\<^sub>0. L < upperN\<close>
+  for N\<^sub>0 :: \<open>uint32 list\<close> +
+  assumes lits_less_upperN: \<open>\<forall>L \<in> set N\<^sub>0. nat_of_uint32 L < upperN\<close>
 begin
 
 
@@ -371,30 +368,20 @@ lemma in_N1_less_than_upperN: \<open>L \<in># N\<^sub>1 \<Longrightarrow> nat_of
     apply (metis Suc_lessI even_Suc even_numeral even_power upperN_def zero_less_numeral)
   using less_imp_diff_less by blast
 
-  
-lemma map_nat_of_uint32_uint_32_of_nat_N\<^sub>0: \<open>map (nat_of_uint32 \<circ> uint32_of_nat) N\<^sub>0 = map id N\<^sub>0\<close>
-  by (rule map_cong)
-    (use lits_less_upperN in \<open>auto intro!: nat_of_uint32_uint32_of_nat_id simp: upperN_def\<close>)
-
-sepref_register N\<^sub>1
-lemma list_assn_N\<^sub>0: \<open>list_assn (\<lambda>a c. \<up> ((c, a) \<in> uint32_nat_rel)) N\<^sub>0 N\<^sub>0_code = emp\<close>
-  unfolding  N\<^sub>0_code_def
-    pure_def[symmetric] list_assn_pure_conv
-  by (auto simp: list_rel_def uint32_nat_rel_def br_def pure_def 
-      list_all2_op_eq_map_right_iff' map_nat_of_uint32_uint_32_of_nat_N\<^sub>0)
-
-lemma list_assn_N\<^sub>0': \<open>list_assn (\<lambda>a c. \<up> ((c, a) \<in> unat_lit_rel)) N\<^sub>0' N\<^sub>0_code = emp\<close>
-  unfolding  N\<^sub>0'_def N\<^sub>0_code_def
+lemma list_assn_N\<^sub>0': \<open>list_assn (\<lambda>a c. \<up> ((c, a) \<in> unat_lit_rel)) N\<^sub>0' N\<^sub>0 = emp\<close>
+  unfolding  N\<^sub>0'_def
     pure_def[symmetric] list_assn_pure_conv
     using lits_less_upperN
   by (auto simp: list_rel_def uint32_nat_rel_def br_def pure_def unat_lit_rel_def
         Collect_eq_comp nat_lit_rel_def lit_of_natP_def nat_of_uint32_uint32_of_nat_id upperN_def
-      list_all2_op_eq_map_right_iff map_nat_of_uint32_uint_32_of_nat_N\<^sub>0
+      list_all2_op_eq_map_right_iff
       simp del: literal_of_nat.simps )
 
 lemma N_hnr'[sepref_import_param]:
-  "(uncurry0 (return N\<^sub>0_code), uncurry0 (RETURN N\<^sub>0'))\<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a list_assn unat_lit_assn"
+  "(uncurry0 (return N\<^sub>0), uncurry0 (RETURN N\<^sub>0'))\<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a list_assn unat_lit_assn"
   by sepref_to_hoare (sep_auto simp: list_assn_N\<^sub>0')
+lemma [sepref_import_param]: "(N\<^sub>0, N\<^sub>0) \<in> \<langle>uint32_rel\<rangle>list_rel"
+  by auto
 
 definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> nat \<Rightarrow>
   nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres"  where
