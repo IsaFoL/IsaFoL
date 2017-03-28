@@ -5,10 +5,10 @@ begin
 notation prod_rel_syn (infixl "\<times>\<^sub>f" 70)
 
 type_synonym trail_int = \<open>(nat, nat) ann_lits \<times> (bool option \<times> nat) list \<times> nat\<close>
-type_synonym trail_assn = \<open>(nat \<times> nat option) list \<times> (bool option \<times> nat) array \<times> nat\<close>
+type_synonym trail_assn = \<open>(uint32 \<times> nat option) list \<times> (bool option \<times> nat) array \<times> nat\<close>
 
 type_synonym twl_st_wll_trail =
-  "trail_assn \<times> clauses_wl \<times> nat \<times> nat array_list option \<times>  unit_lits_wl \<times> unit_lits_wl \<times>
+  "trail_assn \<times> clauses_wl \<times> nat \<times> uint32 array_list option \<times> unit_lits_wl \<times> unit_lits_wl \<times>
     lit_queue_l \<times> watched_wl"
 
 context twl_array_code
@@ -48,16 +48,70 @@ lemma cons_trail_Propagated_tr:
     (auto simp: trail_ref_def valued_atm_on_trail_def cons_trail_Propagated_def
       cons_trail_Propagated_tr_def Decided_Propagated_in_iff_in_lits_of_l nth_list_update')
 
-lemma is_pos_hnr[sepref_fr_rules]:
+lemma is_pos_nat_lit_hnr:
   \<open>(return o (\<lambda>L. bitAND L 1 = 0), RETURN o is_pos) \<in> nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding bitAND_1_mod_2
   apply (sepref_to_hoare, rename_tac x xi, case_tac x)
-   apply (sep_auto simp: p2rel_def lit_of_natP_def)+
+   apply (sep_auto simp: p2rel_def lit_of_natP_def unat_lit_rel_def uint32_nat_rel_def nat_lit_rel_def br_def
+      split: if_splits)+
   by presburger
 
+text \<open>TODO Move\<close>
+lemma nat_of_uint32_0_iff: \<open>nat_of_uint32 xi = 0 \<longleftrightarrow> xi = 0\<close> for xi
+  by transfer  (auto simp: unat_def uint_0_iff)
+lemma nat_0_AND: \<open>0 AND n = 0\<close> for n :: nat
+  unfolding bitAND_nat_def by auto
+lemma uint32_0_AND: \<open>0 AND n = 0\<close> for n :: uint32
+  by transfer auto
+
+lemma nat_of_uint32_ao:
+  \<open>nat_of_uint32 n AND nat_of_uint32 m = nat_of_uint32 (n AND m)\<close>
+  \<open>nat_of_uint32 n OR nat_of_uint32 m = nat_of_uint32 (n OR m)\<close>
+  subgoal apply (transfer, unfold unat_def, transfer, unfold nat_bin_trunc_ao) ..
+  subgoal apply (transfer, unfold unat_def, transfer, unfold nat_bin_trunc_ao) ..
+  done
+
+lemma nat_of_uint32_012: \<open>nat_of_uint32 0 = 0\<close> \<open>nat_of_uint32 1 = 1\<close> \<open>nat_of_uint32 1 = 1\<close>
+  by (transfer, auto)+
+ 
+lemma is_pos_hnr[sepref_fr_rules]:
+  \<open>(return o (\<lambda>L. bitAND L 1 = 0), RETURN o is_pos) \<in> unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+proof -
+
+  have 1: \<open>(RETURN o (\<lambda>L. bitAND L 1 = 0), RETURN o is_pos) \<in> nat_lit_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
+    unfolding bitAND_1_mod_2
+    by (intro nres_relI frefI) (auto simp: nat_lit_rel_def lit_of_natP_def split: if_splits)
+  have 2: \<open>(return o (\<lambda>L. bitAND L 1 = 0), RETURN o (\<lambda>L. bitAND L 1 = 0)) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+    apply (sepref_to_hoare)
+    using nat_of_uint32_ao[of _ 1]
+    by (sep_auto simp: p2rel_def lit_of_natP_def unat_lit_rel_def uint32_nat_rel_def 
+        nat_lit_rel_def br_def nat_of_uint32_012
+        nat_of_uint32_0_iff nat_0_AND uint32_0_AND
+        split: if_splits)+
+  show ?thesis
+    using 2[FCOMP 1] unfolding unat_lit_rel_def .
+qed
+  
+lemma array_set_hnr_u[sepref_fr_rules]:
+    \<open>CONSTRAINT is_pure A \<Longrightarrow> 
+    (uncurry2 (\<lambda>xs i. heap_array_set xs (nat_of_uint32 i)), uncurry2 (RETURN \<circ>\<circ>\<circ> op_list_set)) \<in> 
+     [pre_list_set]\<^sub>a (array_assn A)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a A\<^sup>k \<rightarrow> array_assn A\<close>
+  by (sepref_to_hoare)
+    (sep_auto simp: uint32_nat_rel_def br_def ex_assn_up_eq2 array_assn_def is_array_def 
+      hr_comp_def list_rel_pres_length list_rel_update)
+
+lemma array_get_hnr_u[sepref_fr_rules]:
+    \<open>CONSTRAINT is_pure A \<Longrightarrow>
+(uncurry (\<lambda>xs i. Array.nth xs (nat_of_uint32 i)), uncurry (RETURN \<circ>\<circ> op_list_get))
+\<in> [pre_list_get]\<^sub>a (array_assn A)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> A\<close>
+  apply (sepref_to_hoare) -- \<open>TODO proof\<close>
+   apply  (sep_auto simp: uint32_nat_rel_def br_def ex_assn_up_eq2 array_assn_def is_array_def 
+       hr_comp_def list_rel_pres_length list_rel_update param_nth)
+  by (metis ent_pure_pre_iff ent_refl_true pair_in_Id_conv param_nth pure_app_eq pure_the_pure)
+ 
 sepref_thm cons_trail_Propagated_tr_code
   is \<open>uncurry2 (RETURN ooo cons_trail_Propagated_tr)\<close>
-  :: \<open>[\<lambda>((L, C), (M, xs, k)). atm_of L < length xs]\<^sub>a nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a trail_conc\<^sup>d\<rightarrow>
+  :: \<open>[\<lambda>((L, C), (M, xs, k)). atm_of L < length xs]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a trail_conc\<^sup>d\<rightarrow>
     trail_conc\<close>
   unfolding cons_trail_Propagated_tr_def
   supply [[goals_limit = 1]]
@@ -69,12 +123,12 @@ concrete_definition (in -) cons_trail_Propagated_tr_code
 
 prepare_code_thms (in -) cons_trail_Propagated_tr_code_def
 
-lemmas cons_trail_Propagated_tr_code[sepref_fr_rules] = cons_trail_Propagated_tr_code.refine
+lemmas cons_trail_Propagated_tr_code[sepref_fr_rules] = cons_trail_Propagated_tr_code.refine[OF twl_array_code_axioms]
 
 
 lemma cons_trail_Propagated_tr_code_cons_trail_Propagated_tr[sepref_fr_rules]:
   \<open>(uncurry2 cons_trail_Propagated_tr_code, uncurry2 (RETURN ooo cons_trail_Propagated)) \<in>
-    [\<lambda>((L, C), M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0]\<^sub>a nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a trail_assn\<^sup>d \<rightarrow>
+    [\<lambda>((L, C), M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a trail_assn\<^sup>d \<rightarrow>
     trail_assn\<close>
     (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
@@ -83,10 +137,11 @@ proof -
          (\<lambda>((L, C), M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0)
          (\<lambda>_ ((L, C), M, xs, k). atm_of L < length xs)
          (\<lambda>_. True)]\<^sub>a
-       hrp_comp (nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a trail_conc\<^sup>d) (Id \<times>\<^sub>f nat_rel \<times>\<^sub>f trail_ref) \<rightarrow>
+       hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a trail_conc\<^sup>d) (Id \<times>\<^sub>f nat_rel \<times>\<^sub>f trail_ref) \<rightarrow>
        hr_comp trail_conc trail_ref\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF cons_trail_Propagated_tr_code.refine cons_trail_Propagated_tr] .
+    using hfref_compI_PRE_aux[OF cons_trail_Propagated_tr_code.refine cons_trail_Propagated_tr,
+        OF twl_array_code_axioms] .
   have pre: \<open>?pre' = ?pre\<close>
     by (auto simp: comp_PRE_def trail_ref_def intro!: ext)
   have im: \<open>?im' = ?im\<close>
@@ -115,7 +170,7 @@ lemma cons_trail_Decided_tr:
 
 sepref_thm cons_trail_Decided_tr_code
   is \<open>uncurry (RETURN oo cons_trail_Decided_tr)\<close>
-  :: \<open>[\<lambda>(L, (M, xs, k)). atm_of L < length xs]\<^sub>a nat_lit_assn\<^sup>k *\<^sub>a trail_conc\<^sup>d \<rightarrow>
+  :: \<open>[\<lambda>(L, (M, xs, k)). atm_of L < length xs]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a trail_conc\<^sup>d \<rightarrow>
     trail_conc\<close>
   unfolding cons_trail_Decided_tr_def
   supply [[goals_limit = 1]]
@@ -127,21 +182,21 @@ concrete_definition (in -) cons_trail_Decided_tr_code
 
 prepare_code_thms (in -) cons_trail_Decided_tr_code_def
 
-lemmas cons_trail_Decided_tr_code[sepref_fr_rules] = cons_trail_Decided_tr_code.refine
+lemmas cons_trail_Decided_tr_code[sepref_fr_rules] = cons_trail_Decided_tr_code.refine[OF twl_array_code_axioms]
 
 lemma cons_trail_Decided_tr_code_cons_trail_Decided_tr[sepref_fr_rules]:
   \<open>(uncurry cons_trail_Decided_tr_code, uncurry (RETURN oo cons_trail_Decided)) \<in>
-    [\<lambda>(L, M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0]\<^sub>a nat_lit_assn\<^sup>k *\<^sub>a trail_assn\<^sup>d \<rightarrow> trail_assn\<close>
+    [\<lambda>(L, M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a trail_assn\<^sup>d \<rightarrow> trail_assn\<close>
     (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>(uncurry cons_trail_Decided_tr_code, uncurry (RETURN \<circ>\<circ> cons_trail_Decided))
 \<in> [comp_PRE (Id \<times>\<^sub>f trail_ref) (\<lambda>(L, M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0)
      (\<lambda>_ (L, M, xs, k). atm_of L < length xs)
      (\<lambda>_. True)]\<^sub>a
-   hrp_comp (nat_lit_assn\<^sup>k *\<^sub>a trail_conc\<^sup>d) (Id \<times>\<^sub>f trail_ref) \<rightarrow>
+   hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a trail_conc\<^sup>d) (Id \<times>\<^sub>f trail_ref) \<rightarrow>
     hr_comp trail_conc trail_ref\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF cons_trail_Decided_tr_code.refine cons_trail_Decided_tr] .
+    using hfref_compI_PRE_aux[OF cons_trail_Decided_tr_code.refine cons_trail_Decided_tr, OF twl_array_code_axioms] .
   have pre: \<open>?pre' = ?pre\<close>
     by (auto simp: comp_PRE_def trail_ref_def intro!: ext)
   have im: \<open>?im' = ?im\<close>
@@ -176,12 +231,21 @@ proof -
     done
 qed
 
-sepref_definition tl_trail_tr_code
+sepref_thm tl_trail_tr_code
   is \<open>RETURN o tl_trail_tr\<close>
   :: \<open>[\<lambda>(M, xs, k). M \<noteq> [] \<and> atm_of (lit_of (hd M)) < length xs]\<^sub>a trail_conc\<^sup>d \<rightarrow> trail_conc\<close>
   unfolding tl_trail_tr_def
   supply [[goals_limit = 1]]
   by sepref
+
+concrete_definition (in -) tl_trail_tr_code
+  uses twl_array_code.tl_trail_tr_code.refine_raw
+  is "(?f,_)\<in>_"
+
+prepare_code_thms (in -) tl_trail_tr_code_def
+
+lemmas tl_trail_tr_coded_refine[sepref_fr_rules] =
+   tl_trail_tr_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
 
 lemma tl_trail_tr_code_op_list_tl[sepref_fr_rules]:
   \<open>(tl_trail_tr_code, (RETURN o op_list_tl)) \<in>
@@ -193,7 +257,7 @@ proof -
        (\<lambda>_. True)]\<^sub>a hrp_comp (trail_conc\<^sup>d) trail_ref \<rightarrow>
       hr_comp trail_conc trail_ref\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF tl_trail_tr_code.refine tl_trail_tr] .
+    using hfref_compI_PRE_aux[OF tl_trail_tr_code.refine tl_trail_tr, OF twl_array_code_axioms] .
   have pre: \<open>?pre' = ?pre\<close>
     by (auto simp: comp_PRE_def trail_ref_def intro!: ext)
   have im: \<open>?im' = ?im\<close>
@@ -205,15 +269,6 @@ proof -
   show ?thesis
     using H unfolding im pre f by simp
 qed
-
-concrete_definition (in -) tl_trail_tr_code'
-  uses twl_array_code.tl_trail_tr_code_op_list_tl[unfolded twl_array_code.tl_trail_tr_code_def]
-  is "(?f,_)\<in>_"
-
-prepare_code_thms (in -) tl_trail_tr_code'_def
-
-lemmas tl_trail_tr_code'_refine[sepref_fr_rules] =
-   tl_trail_tr_code'.refine[of N\<^sub>0]
 
 definition twl_st_l_trail_assn :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>twl_st_l_trail_assn \<equiv>
@@ -234,16 +289,25 @@ definition valued_trail:: \<open>trail_int \<Rightarrow> nat literal \<Rightarro
        else RETURN (Some (\<not>v)))
   })\<close>
 
-sepref_definition valued_trail_code
+sepref_thm valued_trail_code
   is \<open>uncurry valued_trail\<close>
-  :: \<open>trail_conc\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn\<close>
+  :: \<open>trail_conc\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn\<close>
   unfolding valued_trail_def
   supply [[goals_limit = 1]]
   by sepref
 
+concrete_definition (in -) valued_trail_code
+   uses twl_array_code.valued_trail_code.refine_raw
+   is "(uncurry ?f,_)\<in>_"
+
+prepare_code_thms (in -) valued_trail_code_def
+
+lemmas valued_trail_code_valued_refine_code[sepref_fr_rules] =
+   valued_trail_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_l_trail_assn_def]
+
 lemma valued_trail_code_valued_refine[sepref_fr_rules]:
   \<open>(uncurry valued_trail_code, uncurry (RETURN oo valued)) \<in>
-     [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a trail_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> option_assn bool_assn\<close>
+     [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a trail_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn bool_assn\<close>
 proof -
   have [simp]: \<open>valued_atm_on_trail M (atm_of L) = (if is_pos L then valued M L else map_option uminus (valued M L))\<close>
     if \<open>no_dup M\<close>for M :: \<open>(nat, nat) ann_lits\<close> and L :: \<open>nat literal\<close>
@@ -256,18 +320,11 @@ proof -
         split: if_splits option.splits)
 
   show ?thesis
-    using valued_trail_code.refine[FCOMP 2, unfolded trail_assn_def[symmetric]] .
+    using valued_trail_code.refine[FCOMP 2, unfolded trail_assn_def[symmetric], 
+        OF twl_array_code_axioms] .
 qed
 
-concrete_definition (in -) valued_trail_code'
-   uses twl_array_code.valued_trail_code_valued_refine[unfolded twl_array_code.valued_trail_code_def]
-   is "(uncurry ?f,_)\<in>_"
-
-prepare_code_thms (in -) valued_trail_code'_def
-
-lemmas valued_trail_code_valued_refine_code[sepref_fr_rules] =
-   valued_trail_code'.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
-
+  
 definition find_unwatched'' :: "(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> (bool option \<times> nat) nres" where
 \<open>find_unwatched'' M N' C = do {
   WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> 2 \<and> i \<le> length (N'!C) \<and> (\<forall>j\<in>{2..<i}. -((N'!C)!j) \<in> lits_of_l M) \<and>
@@ -348,14 +405,14 @@ proof -
       subgoal by auto
       done
   show ?thesis
-    using find_unwatched''_code.refine[FCOMP 1 ] .
+    using find_unwatched''_code.refine[FCOMP 1, OF twl_array_code_axioms] .
 qed
-
+  
 sepref_register unit_propagation_inner_loop_body_wl_D
 sepref_thm unit_propagation_inner_loop_body_wl_D
   is \<open>uncurry2 ((PR_CONST unit_propagation_inner_loop_body_wl_D) :: nat literal \<Rightarrow> nat \<Rightarrow>
            nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
-  :: \<open>nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_l_trail_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_l_trail_assn\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_l_trail_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_l_trail_assn\<close>
   unfolding unit_propagation_inner_loop_body_wl_D_def length_rll_def[symmetric] PR_CONST_def
   unfolding watched_by_nth_watched_app' watched_app_def[symmetric]
   unfolding nth_rll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
@@ -371,14 +428,15 @@ concrete_definition (in -) unit_propagation_inner_loop_body_wl_D_code
 prepare_code_thms (in -) unit_propagation_inner_loop_body_wl_D_code_def
 
 lemmas unit_propagation_inner_loop_body_wl_D_code_refine[sepref_fr_rules] =
-   unit_propagation_inner_loop_body_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+   unit_propagation_inner_loop_body_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms,
+     unfolded twl_st_l_trail_assn_def]
 
 
 sepref_register unit_propagation_inner_loop_wl_loop_D
 sepref_thm unit_propagation_inner_loop_wl_loop_D
   is \<open>uncurry ((PR_CONST unit_propagation_inner_loop_wl_loop_D) :: nat literal \<Rightarrow>
            nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
-  :: \<open>nat_lit_assn\<^sup>k *\<^sub>a twl_st_l_trail_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_l_trail_assn\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a twl_st_l_trail_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_l_trail_assn\<close>
   unfolding unit_propagation_inner_loop_wl_loop_D_def length_ll_def[symmetric] PR_CONST_def
   unfolding watched_by_nth_watched_app watched_app_def[symmetric]
     length_ll_f_def[symmetric]
@@ -392,18 +450,20 @@ sepref_thm unit_propagation_inner_loop_wl_loop_D
 concrete_definition (in -) unit_propagation_inner_loop_wl_loop_D_code
    uses twl_array_code.unit_propagation_inner_loop_wl_loop_D.refine_raw
    is "(uncurry ?f,_)\<in>_"
+
 prepare_code_thms (in -) unit_propagation_inner_loop_wl_loop_D_code_def
 lemmas unit_propagation_inner_loop_wl_loop_D_code_refine[sepref_fr_rules] =
-   unit_propagation_inner_loop_wl_loop_D_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+   unit_propagation_inner_loop_wl_loop_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms,
+     unfolded twl_st_l_trail_assn_def]
 
 
 sepref_register unit_propagation_inner_loop_wl_D
 sepref_thm unit_propagation_inner_loop_wl_D
   is \<open>uncurry (PR_CONST unit_propagation_inner_loop_wl_D)\<close>
-  :: \<open>nat_lit_assn\<^sup>k *\<^sub>a twl_st_l_trail_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_trail_assn\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a twl_st_l_trail_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_trail_assn\<close>
   supply [[goals_limit=1]]
   apply (subst PR_CONST_def)
-  unfolding twl_array_code.unit_propagation_inner_loop_wl_D_def twl_st_l_trail_assn_def
+  unfolding unit_propagation_inner_loop_wl_D_def twl_st_l_trail_assn_def
     literals_to_update_wl_literals_to_update_wl_empty
   by sepref
 
@@ -414,7 +474,8 @@ concrete_definition (in -) unit_propagation_inner_loop_wl_D_code
 prepare_code_thms (in -) unit_propagation_inner_loop_wl_D_code_def
 
 lemmas unit_propagation_inner_loop_wl_D_code_refine[sepref_fr_rules] =
-   unit_propagation_inner_loop_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+   unit_propagation_inner_loop_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms, 
+     unfolded twl_st_l_trail_assn_def]
 
 
 lemma literals_to_update_wll_empty_hnr[unfolded twl_st_l_trail_assn_def, sepref_fr_rules]:
@@ -434,13 +495,14 @@ concrete_definition (in -) literals_to_update_wll_empty'
 prepare_code_thms (in -) literals_to_update_wll_empty'_def
 
 lemmas literals_to_update_wll_empty'_code[sepref_fr_rules] =
-   literals_to_update_wll_empty'.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+   literals_to_update_wll_empty'.refine[of N\<^sub>0, OF twl_array_code_axioms, 
+     unfolded twl_st_l_trail_assn_def]
 
 lemma hd_select_and_remove_from_literals_to_update_wl''_refine:
   \<open>(return o (\<lambda>(M, N, U, D, NP, UP, Q, W).  ((M, N, U, D, NP, UP, tl Q, W), hd Q)),
        select_and_remove_from_literals_to_update_wl :: nat twl_st_wl \<Rightarrow> (nat twl_st_wl \<times> nat literal) nres) \<in>
     [\<lambda>S. \<not>literals_to_update_wl_empty S]\<^sub>a
-    twl_st_l_trail_assn\<^sup>d \<rightarrow> twl_st_l_trail_assn *assn nat_lit_assn\<close>
+    twl_st_l_trail_assn\<^sup>d \<rightarrow> twl_st_l_trail_assn *assn unat_lit_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   let ?int = \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W).  ((M, N, U, D, NP, UP, tl Q, W), hd Q))\<close>
@@ -465,13 +527,13 @@ proof -
        conflict_option_assn *assn
        unit_lits_assn *assn
        unit_lits_assn *assn
-       list_assn nat_lit_assn *assn
+       list_assn unat_lit_assn *assn
        array_watched_assn
       )\<close>
   have 2:
     \<open>(return o (\<lambda>(M, N, U, D, NP, UP, Q, W). ((M, N, U, D, NP, UP, tl Q, W), hd Q)), RETURN o ?int) \<in>
     [\<lambda>(_, _, _, _, _, _, Q, _). Q \<noteq> []]\<^sub>a
-    twl_st_l_interm_assn_2\<^sup>d \<rightarrow> twl_st_l_interm_assn_2 *assn nat_lit_assn\<close>
+    twl_st_l_interm_assn_2\<^sup>d \<rightarrow> twl_st_l_interm_assn_2 *assn unat_lit_assn\<close>
     unfolding twl_st_l_interm_assn_2_def
     apply sepref_to_hoare
     by (case_tac \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). Q) x\<close>;
@@ -483,7 +545,7 @@ proof -
                  (\<lambda>_ (_, _, _, _, _, _, Q, _). Q \<noteq> [])
                  (\<lambda>_. True)]\<^sub>a
               hrp_comp (twl_st_l_interm_assn_2\<^sup>d) twl_st_l_interm_rel_1 \<rightarrow>
-              hr_comp (twl_st_l_interm_assn_2 *assn nat_lit_assn) (twl_st_l_interm_rel_1 \<times>\<^sub>r Id)\<close>
+              hr_comp (twl_st_l_interm_assn_2 *assn unat_lit_assn) (twl_st_l_interm_rel_1 \<times>\<^sub>r Id)\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF 2 1] .
   have pre: \<open>?pre' = ?pre\<close>
@@ -509,7 +571,8 @@ concrete_definition (in -) hd_select_and_remove_from_literals_to_update_wl''
 prepare_code_thms (in -) hd_select_and_remove_from_literals_to_update_wl''_def
 
 lemmas [sepref_fr_rules] =
-   hd_select_and_remove_from_literals_to_update_wl''.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+   hd_select_and_remove_from_literals_to_update_wl''.refine[of N\<^sub>0, OF twl_array_code_axioms, 
+     unfolded twl_st_l_trail_assn_def]
 
 sepref_register unit_propagation_outer_loop_wl_D
 sepref_thm unit_propagation_outer_loop_wl_D
@@ -529,7 +592,8 @@ concrete_definition (in -) unit_propagation_outer_loop_wl_D_code
 prepare_code_thms (in -) unit_propagation_outer_loop_wl_D_code_def
 
 lemmas unit_propagation_outer_loop_wl_D_code_refine[sepref_fr_rules] =
-   unit_propagation_outer_loop_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+   unit_propagation_outer_loop_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms,
+     unfolded twl_st_l_trail_assn_def]
 
 sepref_thm get_conflict_wll_is_Nil_code
   is \<open>(PR_CONST get_conflict_wll_is_Nil)\<close>
@@ -550,7 +614,6 @@ prepare_code_thms (in -) get_conflict_wll_is_Nil_code_def
 lemmas get_conflict_wll_is_Nil_code[sepref_fr_rules] =
   get_conflict_wll_is_Nil_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def,
     FCOMP get_conflict_wll_is_Nil_get_conflict_wl_is_Nil]
-
 
 lemma get_conflict_wll_is_Nil_hnr[unfolded twl_st_l_trail_assn_def, sepref_fr_rules]:
   \<open>(get_conflict_wll_is_Nil_code, RETURN o get_conflict_wl_is_Nil) \<in>
@@ -588,7 +651,8 @@ concrete_definition (in -) is_decided_hd_trail_wll_code
 prepare_code_thms (in -) is_decided_hd_trail_wll_code_def
 
 lemmas is_decided_hd_trail_wll_code_refine[sepref_fr_rules] =
-   is_decided_hd_trail_wll_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+   is_decided_hd_trail_wll_code.refine[of N\<^sub>0, OF twl_array_code_axioms,
+     unfolded twl_st_l_trail_assn_def]
 
 text \<open>Splitting in \<open>\<exists>\<^sub>A\<close> does not seem to work, leading to splitting by hand:\<close>
 lemma
@@ -650,44 +714,62 @@ lemma is_decided_hd_trail_wll_hnr[unfolded twl_st_l_trail_assn_def, sepref_fr_ru
       trail_assn_Cons_Propagated_None
       split: option.splits)+
 
-definition get_level_trail :: \<open>trail_int \<Rightarrow> nat \<Rightarrow> nat\<close> where
-  \<open>get_level_trail = (\<lambda>(M, xs, k) L. snd (xs! (shiftr1 L)))\<close>
+definition get_level_trail :: \<open>trail_int \<Rightarrow> uint32 \<Rightarrow> nat\<close> where
+  \<open>get_level_trail = (\<lambda>(M, xs, k) L. snd (xs! (nat_of_uint32 (L >> 1))))\<close>
 
 text \<open>TODO MOve\<close>
-lemma shiftr1[sepref_fr_rules]: \<open>(return o shiftr1, RETURN o shiftr1) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  by sepref_to_hoare (sep_auto)
+lemma shiftr1[sepref_fr_rules]: \<open>(uncurry (return oo (op >> )), uncurry (RETURN oo (op >>))) \<in>
+     uint32_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  by sepref_to_hoare (sep_auto simp: shiftr1_def uint32_nat_rel_def br_def)
 
 lemma shiftl1[sepref_fr_rules]: \<open>(return o shiftl1, RETURN o shiftl1) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   by sepref_to_hoare (sep_auto)
+lemma nat_of_uint32_rule[sepref_fr_rules]:
+  \<open>(return o nat_of_uint32, RETURN o nat_of_uint32) \<in> uint32_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare (sep_auto)
 
-sepref_definition get_level_code
+lemma \<open>nat_of_uint32 L >> 1 = nat_of_uint32 (L >> 1)\<close>
+  by (simp add: nat_of_uint32_shiftr)
+
+sepref_thm get_level_code
   is \<open>uncurry (RETURN oo get_level_trail)\<close>
-  :: \<open>[\<lambda>((M, xs, k), L). L div 2 < length xs]\<^sub>a trail_conc\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
-  unfolding get_level_trail_def shiftr1_def[symmetric] nat_shiftr_div2[symmetric]
+  :: \<open>[\<lambda>((M, xs, k), L). nat_of_uint32 L div 2 < length xs]\<^sub>a trail_conc\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  unfolding get_level_trail_def nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
   by sepref
+
+concrete_definition (in -) get_level_code
+   uses twl_array_code.get_level_code.refine_raw
+   is "(uncurry ?f,_)\<in>_"
+
+prepare_code_thms (in -) get_level_code_def
+
+lemmas get_level_code_get_level_code[sepref_fr_rules] =
+   get_level_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_l_trail_assn_def]
 
 lemma get_level_code_get_level:
   \<open>(uncurry get_level_code, uncurry (RETURN oo get_level)) \<in>
-   [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a trail_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
+   [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a trail_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
     (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have [simp]: \<open>(ba, bb) \<in> nat_lit_rel \<Longrightarrow> ba div 2 = atm_of bb\<close> for ba bb
-    by (auto simp: p2rel_def lit_of_natP_def atm_of_lit_of_nat simp del: literal_of_nat.simps)
+    by (auto simp: p2rel_def lit_of_natP_def atm_of_lit_of_nat nat_lit_rel_def
+        simp del: literal_of_nat.simps)
 
   have 1: \<open>(uncurry (RETURN oo get_level_trail), uncurry (RETURN oo get_level)) \<in>
-     [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>f trail_ref \<times>\<^sub>f nat_lit_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
+     [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>f trail_ref \<times>\<^sub>f unat_lit_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
     by (intro nres_relI frefI) (auto simp: image_image trail_ref_def get_level_trail_def
-        nat_shiftr_div2 shiftr1_def)
+        nat_shiftr_div2 shiftr1_def unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def
+        nat_of_uint32_shiftr)
 
   have H: \<open>(uncurry get_level_code, uncurry (RETURN \<circ>\<circ> get_level))
-  \<in> [comp_PRE (trail_ref \<times>\<^sub>f nat_lit_rel) (\<lambda>(M, L). L \<in> snd ` D\<^sub>0)
-       (\<lambda>_ ((M, xs, k), L). L div 2 < length xs)
-       (\<lambda>_. True)]\<^sub>a hrp_comp (trail_conc\<^sup>k *\<^sub>a nat_assn\<^sup>k) (trail_ref \<times>\<^sub>f nat_lit_rel) \<rightarrow>
-       hr_comp nat_assn nat_rel\<close>
+  \<in> [comp_PRE (trail_ref \<times>\<^sub>f unat_lit_rel) (\<lambda>(M, L). L \<in> snd ` D\<^sub>0) (\<lambda>_ ((M, xs, k), L). nat_of_uint32 L div 2 < length xs)
+       (\<lambda>_. True)]\<^sub>a hrp_comp ((pair_nat_ann_lits_assn *assn array_assn (option_assn bool_assn *assn nat_assn) *assn nat_assn)\<^sup>k *\<^sub>a uint32_assn\<^sup>k)
+                       (trail_ref \<times>\<^sub>f unat_lit_rel) \<rightarrow> hr_comp nat_assn nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF get_level_code.refine 1] .
+    using hfref_compI_PRE_aux[OF get_level_code.refine 1, OF twl_array_code_axioms] .
   have pre: \<open>?pre' = ?pre\<close>
-    by (auto simp: comp_PRE_def trail_ref_def intro!: ext)
+    by (auto simp: comp_PRE_def trail_ref_def unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def
+        intro!: ext)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
     by (auto simp: trail_assn_def hrp_comp_def hr_comp_def)
@@ -698,14 +780,7 @@ proof -
     using H unfolding im pre f by simp
 qed
 
-concrete_definition (in -) get_level_code_get_level_code
-   uses twl_array_code.get_level_code_get_level[unfolded twl_array_code.get_level_code_def]
-   is "(uncurry ?f,_)\<in>_"
-
-prepare_code_thms (in -) get_level_code_get_level_code_def
-
-lemmas get_level_code_get_level_code[sepref_fr_rules] =
-   get_level_code_get_level_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+declare get_level_code_get_level[sepref_fr_rules]
 
 lemma in_literals_are_in_N\<^sub>0_in_D\<^sub>0:
   assumes \<open>literals_are_in_N\<^sub>0 D\<close> and \<open>L \<in># D\<close>
@@ -715,7 +790,7 @@ lemma in_literals_are_in_N\<^sub>0_in_D\<^sub>0:
 
 sepref_thm maximum_level_remove_code
   is \<open>uncurry2 (RETURN ooo maximum_level_remove)\<close>
-  :: \<open>[\<lambda>((M, D), L). literals_are_in_N\<^sub>0 (mset D)]\<^sub>a trail_assn\<^sup>k *\<^sub>a (arl_assn nat_lit_assn)\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  :: \<open>[\<lambda>((M, D), L). literals_are_in_N\<^sub>0 (mset D)]\<^sub>a trail_assn\<^sup>k *\<^sub>a (arl_assn unat_lit_assn)\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
   unfolding maximum_level_remove_def[abs_def]
   supply in_literals_are_in_N\<^sub>0_in_D\<^sub>0[intro]
   by sepref
@@ -727,13 +802,14 @@ concrete_definition (in -) maximum_level_remove_code
 prepare_code_thms maximum_level_remove_code_def
 
 lemmas select_and_remove_from_literals_to_update_wl''_code_[sepref_fr_rules] =
-   maximum_level_remove_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+   maximum_level_remove_code.refine[of N\<^sub>0, OF twl_array_code_axioms,
+     unfolded twl_st_l_trail_assn_def]
 
 lemma maximum_level_remove_code_get_maximum_level_remove[sepref_fr_rules]:
   \<open>(uncurry2 (maximum_level_remove_code),
      uncurry2 (RETURN ooo get_maximum_level_remove)) \<in>
     [\<lambda>((M, D), L). literals_are_in_N\<^sub>0 D]\<^sub>a
-      trail_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
+      trail_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have 1:
@@ -747,11 +823,11 @@ proof -
   \<in> [comp_PRE (Id \<times>\<^sub>f list_mset_rel \<times>\<^sub>f Id) (\<lambda>_. True)
        (\<lambda>_ ((M, D), L). literals_are_in_N\<^sub>0 (mset D))
        (\<lambda>_. True)]\<^sub>a
-     hrp_comp (trail_assn\<^sup>k *\<^sub>a (arl_assn nat_lit_assn)\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k)
+     hrp_comp (trail_assn\<^sup>k *\<^sub>a (arl_assn unat_lit_assn)\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k)
        (Id \<times>\<^sub>f list_mset_rel \<times>\<^sub>f Id) \<rightarrow>
      hr_comp nat_assn nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux [OF maximum_level_remove_code.refine 1] .
+    using hfref_compI_PRE_aux [OF maximum_level_remove_code.refine 1, OF twl_array_code_axioms] .
   have 1: \<open>?pre' = ?pre\<close> -- \<open>TODO tune proof\<close>
     apply (auto simp: comp_PRE_def
         list_mset_rel_def br_def
@@ -805,15 +881,16 @@ concrete_definition (in -) skip_and_resolve_loop_wl_D_code
 prepare_code_thms (in -) skip_and_resolve_loop_wl_D_code_def
 
 lemmas skip_and_resolve_loop_wl_D_code_refine[sepref_fr_rules] =
-   skip_and_resolve_loop_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+   skip_and_resolve_loop_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms,
+     unfolded twl_st_l_trail_assn_def]
 
 
 sepref_thm find_lit_of_max_level_wl_imp_code
   is \<open>uncurry8 find_lit_of_max_level_wl_imp'\<close>
   :: \<open>[\<lambda>((((((((M, N), U), D), NP), UP), WS), Q), L). literals_are_in_N\<^sub>0 (mset D)]\<^sub>a
-       (trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn nat_lit_assn)\<^sup>k *\<^sub>a
+       (trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn unat_lit_assn)\<^sup>k *\<^sub>a
           unit_lits_assn\<^sup>k *\<^sub>a unit_lits_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k) *\<^sub>a
-    nat_lit_assn\<^sup>k \<rightarrow> nat_lit_assn\<close>
+    unat_lit_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   unfolding find_lit_of_max_level_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
     find_lit_of_max_level_wl_imp'_def
   supply in_literals_are_in_N\<^sub>0_in_D\<^sub>0[intro]
@@ -827,7 +904,7 @@ concrete_definition (in -) find_lit_of_max_level_wl_imp_code
 prepare_code_thms (in -) find_lit_of_max_level_wl_imp_code_def
 
 lemmas find_lit_of_max_level_wl_imp_code[sepref_fr_rules] =
-   find_lit_of_max_level_wl_imp_code.refine[of N\<^sub>0]
+   find_lit_of_max_level_wl_imp_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
 
 
 lemma find_lit_of_max_level_wl_imp_code_find_lit_of_max_level_wl'[sepref_fr_rules]:
@@ -837,8 +914,8 @@ lemma find_lit_of_max_level_wl_imp_code_find_lit_of_max_level_wl'[sepref_fr_rule
      literals_are_in_N\<^sub>0 D]\<^sub>a
    (trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a
        unit_lits_assn\<^sup>k *\<^sub>a unit_lits_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k) *\<^sub>a
-    nat_lit_assn\<^sup>k
-    \<rightarrow> nat_lit_assn\<close>
+    unat_lit_assn\<^sup>k
+    \<rightarrow> unat_lit_assn\<close>
     (is \<open>_ \<in> [?P]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have \<open>K \<in># remove1_mset (-L) (mset D) \<Longrightarrow> distinct D \<Longrightarrow>
@@ -870,18 +947,33 @@ intro!: in_remove1_msetI)
     unfolding find_lit_of_max_level_wl_imp'_def
     by (intro frefI nres_relI) (auto simp add: uncurry_def list_mset_rel_def br_def)
   have H: \<open>(uncurry8 find_lit_of_max_level_wl_imp_code, uncurry8 find_lit_of_max_level_wl')
-    \<in> [comp_PRE (Id \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f list_mset_rel \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id)
-         (\<lambda>((((((((M, N), U), D), NP), UP), WS), Q), L). distinct_mset D \<and>
-            (\<exists>K\<in>#remove1_mset (- L) D. get_level M K = get_maximum_level M (remove1_mset (- L) D)) \<and>
-             literals_are_in_N\<^sub>0 D)
-       (\<lambda>_ ((((((((M, N), U), D), NP), UP), WS), Q), L). literals_are_in_N\<^sub>0 (mset D)) (\<lambda>_. True)]\<^sub>a
-    hrp_comp (trail_assn\<^sup>k *\<^sub>a (arlO_assn clause_ll_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
-          (arl_assn nat_lit_assn)\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a
-          (hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0))\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k)
-       (Id \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f list_mset_rel \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id) \<rightarrow>
-   hr_comp nat_lit_assn Id\<close>
+    \<in> [comp_PRE
+     (Id \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f list_mset_rel \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f
+      Id \<times>\<^sub>f
+      Id)
+     (\<lambda>((((((((M, N), U), D), NP), UP), WS), Q), L).
+         distinct_mset D \<and>
+         (\<exists>K\<in>#remove1_mset (- L) D.
+             get_level M K = get_maximum_level M (remove1_mset (- L) D)) \<and>
+         literals_are_in_N\<^sub>0 D)
+     (\<lambda>_ ((((((((M, N), U), D), NP), UP), WS), Q), L).
+         literals_are_in_N\<^sub>0 (mset D))
+     (\<lambda>_. True)]\<^sub>a hrp_comp
+                     (trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
+                      (arl_assn unat_lit_assn)\<^sup>k *\<^sub>a
+                      clauses_l_assn\<^sup>k *\<^sub>a
+                      clauses_l_assn\<^sup>k *\<^sub>a
+                      clause_l_assn\<^sup>k *\<^sub>a
+                      (hr_comp (arrayO_assn (arl_assn nat_assn))
+                        (\<langle>Id\<rangle>map_fun_rel D\<^sub>0))\<^sup>k *\<^sub>a
+                      unat_lit_assn\<^sup>k)
+                     (Id \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f list_mset_rel \<times>\<^sub>f Id \<times>\<^sub>f
+                      Id \<times>\<^sub>f
+                      Id \<times>\<^sub>f
+                      Id \<times>\<^sub>f
+                      Id) \<rightarrow> hr_comp unat_lit_assn Id\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux [OF find_lit_of_max_level_wl_imp_code.refine 1] .
+    using hfref_compI_PRE_aux [OF find_lit_of_max_level_wl_imp_code.refine 1, OF twl_array_code_axioms] .
   have 1: \<open>?pre' = ?P\<close>
     by (auto simp: comp_PRE_def list_mset_rel_def br_def simp del: literal_of_nat.simps intro!: ext)
   have 2: \<open>?im' = ?im\<close>
@@ -896,7 +988,7 @@ qed
 sepref_thm find_decomp_wl_imp_code
   is \<open>uncurry2 (find_decomp_wl_imp)\<close>
   :: \<open>[\<lambda>((M, D), L). M \<noteq> [] \<and> literals_are_in_N\<^sub>0 D]\<^sub>a
-         trail_assn\<^sup>d *\<^sub>a conflict_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k
+         trail_assn\<^sup>d *\<^sub>a conflict_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k
     \<rightarrow> trail_assn\<close>
   unfolding find_decomp_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
   supply [[goals_limit=1]]
@@ -909,7 +1001,7 @@ concrete_definition (in -) find_decomp_wl_imp_code
 prepare_code_thms (in -) find_decomp_wl_imp_code_def
 
 lemmas find_decomp_wl_imp_code[sepref_fr_rules] =
-   find_decomp_wl_imp_code.refine[of N\<^sub>0]
+   find_decomp_wl_imp_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
 
 sepref_thm find_decomp_wl_imp'_code
   is \<open>uncurry8 (PR_CONST find_decomp_wl_imp')\<close>
@@ -917,7 +1009,7 @@ sepref_thm find_decomp_wl_imp'_code
         Q), W), L). D \<noteq> {#} \<and> M \<noteq> [] \<and>  literals_are_in_N\<^sub>0 D]\<^sub>a
       (trail_assn\<^sup>d *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a
          unit_lits_assn\<^sup>k *\<^sub>a unit_lits_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k) *\<^sub>a
-      nat_lit_assn\<^sup>k \<rightarrow> trail_assn\<close>
+      unat_lit_assn\<^sup>k \<rightarrow> trail_assn\<close>
   unfolding find_decomp_wl_imp'_def PR_CONST_def
   supply [[goals_limit = 1]]
   by sepref
@@ -927,7 +1019,8 @@ concrete_definition (in -) find_decomp_wl_imp'_code
    is "(uncurry8 ?f,_)\<in>_"
 
 prepare_code_thms (in -) find_decomp_wl_imp'_code_def
-thm find_decomp_wl_imp'_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+thm find_decomp_wl_imp'_code.refine[of N\<^sub>0, OF twl_array_code_axioms,
+    unfolded twl_st_l_trail_assn_def]
 
 
 lemma find_decomp_wl_code[sepref_fr_rules]:
@@ -941,7 +1034,7 @@ lemma find_decomp_wl_code[sepref_fr_rules]:
        literals_are_in_N\<^sub>0 D]\<^sub>a
     (trail_assn\<^sup>d *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a
        unit_lits_assn\<^sup>k *\<^sub>a unit_lits_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k) *\<^sub>a
-    nat_lit_assn\<^sup>k
+    unat_lit_assn\<^sup>k
     \<rightarrow> trail_assn\<close>
   (is \<open> _ \<in> [?P]\<^sub>a _ \<rightarrow> _\<close>)
 proof -
@@ -958,11 +1051,12 @@ proof -
      (trail_assn)\<^sup>d *\<^sub>a (arlO_assn clause_ll_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a
         clauses_l_assn\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a
      (hr_comp (arrayO_assn (arl_assn nat_assn))
-         (\<langle>Id\<rangle>map_fun_rel ((\<lambda>L. (nat_of_lit L, L)) ` set_mset N\<^sub>1)))\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>
+         (\<langle>Id\<rangle>map_fun_rel ((\<lambda>L. (nat_of_lit L, L)) ` set_mset N\<^sub>1)))\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>
      trail_assn\<close>
     (is \<open> _ \<in> [?Q]\<^sub>a _ \<rightarrow> _\<close>)
     using find_decomp_wl_imp'_code.refine[unfolded find_decomp_wl_imp'_def PR_CONST_def, FCOMP
-        find_decomp_wl_imp_find_decomp_wl'[unfolded find_decomp_wl_imp'_def]] .
+        find_decomp_wl_imp_find_decomp_wl'[unfolded find_decomp_wl_imp'_def], OF twl_array_code_axioms]
+      .
 
   have QP: \<open>?Q = ?P\<close>
     by (auto intro!: ext)
@@ -994,14 +1088,14 @@ concrete_definition (in -) backtrack_wl_D_code
 prepare_code_thms (in -) backtrack_wl_D_code_def
 
 lemmas backtrack_wl_D_code_refine[sepref_fr_rules] =
-   backtrack_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+   backtrack_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_l_trail_assn_def]
 
 lemma N\<^sub>0'_eq_append_in_D\<^sub>0: \<open>N\<^sub>0' = ys @ a2'g \<Longrightarrow>a2'g \<noteq> [] \<Longrightarrow> hd a2'g \<in> snd ` D\<^sub>0\<close>
   by (auto simp: image_image N\<^sub>1_def N\<^sub>0''_def)
 
 sepref_thm find_unassigned_lit_wl_D_code
   is \<open>PR_CONST find_unassigned_lit_wl_D\<close>
-  :: \<open>twl_st_l_trail_assn\<^sup>k \<rightarrow>\<^sub>a option_assn nat_lit_assn\<close>
+  :: \<open>twl_st_l_trail_assn\<^sup>k \<rightarrow>\<^sub>a option_assn unat_lit_assn\<close>
   unfolding find_unassigned_lit_wl_D_def PR_CONST_def twl_st_l_trail_assn_def
     is_None_def[symmetric]
   supply [[goals_limit = 1]]
@@ -1015,12 +1109,12 @@ concrete_definition (in -) find_unassigned_lit_wl_D_code
 prepare_code_thms (in -) find_unassigned_lit_wl_D_code_def
 
 lemmas find_unassigned_lit_wl_D_code[sepref_fr_rules] =
-   find_unassigned_lit_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+   find_unassigned_lit_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_l_trail_assn_def]
 
 lemma find_unassigned_lit_wl_D_code_find_unassigned_lit_wl[unfolded twl_st_l_trail_assn_def, sepref_fr_rules]:
   \<open>(find_unassigned_lit_wl_D_code N\<^sub>0, find_unassigned_lit_wl)
   \<in> [\<lambda>S. literals_are_N\<^sub>0 S \<and> twl_struct_invs (twl_st_of_wl None S) \<and> get_conflict_wl S = None]\<^sub>a
-     twl_st_l_trail_assn\<^sup>k \<rightarrow> option_assn nat_lit_assn\<close>
+     twl_st_l_trail_assn\<^sup>k \<rightarrow> option_assn unat_lit_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have P: \<open>is_pure nat_assn\<close>
@@ -1031,11 +1125,10 @@ proof -
        (\<lambda>_ _. True)
        (\<lambda>_. True)]\<^sub>a
      hrp_comp (twl_st_l_trail_assn\<^sup>k) (Id \<times>\<^sub>f (Id \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f Id))))))) \<rightarrow>
-     hr_comp (option_assn nat_lit_assn) (\<langle>Id\<rangle>option_rel)\<close>
+     hr_comp (option_assn unat_lit_assn) (\<langle>Id\<rangle>option_rel)\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF find_unassigned_lit_wl_D_code.refine[unfolded PR_CONST_def]
-       find_unassigned_lit_wl_D_find_unassigned_lit_wl]
-
+       find_unassigned_lit_wl_D_find_unassigned_lit_wl, OF twl_array_code_axioms]
     unfolding op_watched_app_def .
 
   have 1: \<open>?pre' = ?pre\<close>
@@ -1072,7 +1165,7 @@ concrete_definition (in -) decide_wl_or_skip_D_code
 prepare_code_thms (in -) decide_wl_or_skip_D_code_def
 
 lemmas decide_wl_or_skip_D_code_def_refine[sepref_fr_rules] =
-   decide_wl_or_skip_D_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+   decide_wl_or_skip_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_l_trail_assn_def]
 
 
 subsubsection \<open>Combining Together: the Other Rules\<close>
@@ -1092,7 +1185,7 @@ concrete_definition (in -) get_conflict_wl_is_None_code
 prepare_code_thms (in -) get_conflict_wl_is_None_code_def
 
 lemmas get_conflict_wl_is_None_code_refine[sepref_fr_rules] =
-   get_conflict_wl_is_None_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+   get_conflict_wl_is_None_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_l_trail_assn_def]
 
 sepref_register cdcl_twl_o_prog_wl_D
 sepref_thm cdcl_twl_o_prog_wl_D_code
@@ -1110,7 +1203,7 @@ concrete_definition (in -) cdcl_twl_o_prog_wl_D_code
 prepare_code_thms (in -) cdcl_twl_o_prog_wl_D_code_def
 
 lemmas cdcl_twl_o_prog_wl_D_code[sepref_fr_rules] =
-   cdcl_twl_o_prog_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+   cdcl_twl_o_prog_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_l_trail_assn_def]
 
 
 subsubsection \<open>Combining Together: Full Strategy\<close>

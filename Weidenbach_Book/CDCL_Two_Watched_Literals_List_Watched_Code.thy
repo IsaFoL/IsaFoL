@@ -38,7 +38,7 @@ concrete_definition (in -) get_conflict_wl_is_None_code
 prepare_code_thms (in -) get_conflict_wl_is_None_code_def
 
 lemmas get_conflict_wl_is_None_code_refine[sepref_fr_rules] =
-   get_conflict_wl_is_None_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+   get_conflict_wl_is_None_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_l_assn_def]
 
 lemma get_conflict_wl_is_None: \<open>get_conflict_wl S = None \<longleftrightarrow> get_conflict_wl_is_None S\<close>
   by (cases S) (auto simp: get_conflict_wl_is_None_def split: option.splits)
@@ -55,7 +55,7 @@ sepref_thm find_decomp_wl_imp'_code
   :: \<open>[\<lambda>((((((((M::(nat, nat) ann_lits, N), U::nat), D::nat clause), NP::nat clauses), UP:: nat clauses),
         Q), W), L). D \<noteq> {#} \<and> M \<noteq> []]\<^sub>a (pair_nat_ann_lits_assn\<^sup>d *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a
        unit_lits_assn\<^sup>k *\<^sub>a unit_lits_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k) *\<^sub>a
-    nat_lit_assn\<^sup>k \<rightarrow> pair_nat_ann_lits_assn\<close>
+    unat_lit_assn\<^sup>k \<rightarrow> pair_nat_ann_lits_assn\<close>
   unfolding find_decomp_wl_imp'_def PR_CONST_def
   supply [[goals_limit = 1]]
   by sepref
@@ -77,7 +77,7 @@ lemma find_decomp_wl_code[sepref_fr_rules]:
       twl_struct_invs (twl_st_of_wl None (M, N, U, Some D, NP, UP, Q, W))]\<^sub>a
     (pair_nat_ann_lits_assn\<^sup>d *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a
        unit_lits_assn\<^sup>k *\<^sub>a unit_lits_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k) *\<^sub>a
-    nat_lit_assn\<^sup>k
+    unat_lit_assn\<^sup>k
     \<rightarrow> pair_nat_ann_lits_assn\<close>
   (is \<open> _ \<in> [?P]\<^sub>a _ \<rightarrow> _\<close>)
 proof -
@@ -90,13 +90,14 @@ proof -
          {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)). x \<in># mset (take ba (tl b))#},
          {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)). x \<in># mset (drop (Suc ba) b)#},
          Some bb, bc, bd, {#}, be)]\<^sub>a
-    pair_nat_ann_lits_assn\<^sup>d *\<^sub>a (arlO_assn clause_ll_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
-      conflict_assn\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a
-      (hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0))\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>
-   pair_nat_ann_lits_assn\<close>
+pair_nat_ann_lits_assn\<^sup>d *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a unit_lits_assn\<^sup>k *\<^sub>a unit_lits_assn\<^sup>k *\<^sub>a
+                  clause_l_assn\<^sup>k *\<^sub>a
+                  (hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0))\<^sup>k *\<^sub>a
+                  unat_lit_assn\<^sup>k \<rightarrow> pair_nat_ann_lits_assn\<close>
     (is \<open> _ \<in> [?Q]\<^sub>a _ \<rightarrow> _\<close>)
     using find_decomp_wl_imp'_code.refine[unfolded find_decomp_wl_imp'_def PR_CONST_def, FCOMP
-        find_decomp_wl_imp_find_decomp_wl'[unfolded find_decomp_wl_imp'_def]] .
+        find_decomp_wl_imp_find_decomp_wl'[unfolded find_decomp_wl_imp'_def], of N\<^sub>0]
+      twl_array_code_axioms by blast
 
   have QP: \<open>?Q = ?P\<close>
     by auto
@@ -112,36 +113,57 @@ lemma (in -) id_mset_hnr[sepref_fr_rules]:
       arl_of_array_raa_def array_assn_def is_array_def arl_assn_def is_array_list_def)
 
 lemma nth_ll_watched_app:
-  \<open>(uncurry2 (RETURN ooo nth_ll), uncurry2 (RETURN ooo watched_app)) \<in>
-     [\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0) \<times>\<^sub>r p2rel lit_of_natP) \<times>\<^sub>r nat_rel \<rightarrow>
+  \<open>(uncurry2 (RETURN ooo (\<lambda>xs i j. nth_ll xs (nat_of_uint32 i) j)), uncurry2 (RETURN ooo watched_app)) \<in>
+     [\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0) \<times>\<^sub>r unat_lit_rel) \<times>\<^sub>r nat_rel \<rightarrow>
        \<langle>nat_rel\<rangle> nres_rel\<close>
   unfolding watched_app_def nth_ll_def
-  by (fastforce simp: fref_def map_fun_rel_def prod_rel_def nres_rel_def p2rel_def lit_of_natP_def)
+  by  (intro frefI nres_relI) (auto simp: fref_def map_fun_rel_def prod_rel_def nres_rel_def p2rel_def lit_of_natP_def
+      unat_lit_rel_def br_def uint32_nat_rel_def nat_lit_rel_def
+      simp del: literal_of_nat.simps)
+
+lemma nth_aa_hnr_nat_of_uint32:
+  assumes p: \<open>is_pure R\<close>
+  shows
+    \<open>(uncurry2 (\<lambda>xs i j. nth_aa xs (nat_of_uint32 i) j), uncurry2 (RETURN \<circ>\<circ>\<circ> (\<lambda>xs i j. nth_ll xs (nat_of_uint32 i) j))) \<in>
+       [\<lambda>((l,i),j). nat_of_uint32 i < length l \<and> j < length_ll l (nat_of_uint32 i)]\<^sub>a
+       (arrayO_assn (arl_assn R))\<^sup>k *\<^sub>a uint32_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
+  using assms by sepref_to_hoare sep_auto
+
+lemma bintrunc_int_id: \<open>L < 2^n \<Longrightarrow>  bintrunc n (int L) = int L\<close>
+  by (metis bintrunc_mod2p int_mod_eq' less_imp_of_nat_less of_nat_0_le_iff of_nat_power
+      transfer_int_nat_numerals(3))
+
+lemma ex_nat_of_uint32_eq_nat: \<open>L < upperN \<Longrightarrow> \<exists>b. nat_of_uint32 b = L\<close>
+  apply (rule exI[of _ \<open>uint32_of_nat L\<close>])
+  apply (auto simp: uint32_of_nat_def)
+  apply transfer
+  apply (auto simp: unat_def word_ubin.eq_norm bintrunc_int_id upperN_def)
+  done
 
 lemma nth_aa_watched_app[sepref_fr_rules]:
-  \<open>(uncurry2 nth_aa, uncurry2 (RETURN ooo op_watched_app)) \<in>
+  \<open>(uncurry2 (\<lambda>xs i j. nth_aa xs (nat_of_uint32 i) j), uncurry2 (RETURN ooo op_watched_app)) \<in>
    [\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0 \<and> i < length (W L)]\<^sub>a
-     array_watched_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
+     array_watched_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have P: \<open>is_pure nat_assn\<close>
     by auto
-  have H: \<open>(uncurry2 nth_aa, uncurry2 (RETURN \<circ>\<circ>\<circ> op_watched_app))
-  \<in> [comp_PRE ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r nat_lit_rel) \<times>\<^sub>r nat_rel)
-       (\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0)
-       (\<lambda>_ ((l, i), j). i < length l \<and> j < length_ll l i)
-       (\<lambda>_. True)]\<^sub>a hrp_comp
-                       ((arrayO_assn (arl_assn nat_assn))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
-                       ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r nat_lit_rel) \<times>\<^sub>r nat_rel) \<rightarrow>
-                    hr_comp nat_assn nat_rel\<close>
+  have H: \<open>(uncurry2 (\<lambda>xs i. nth_aa xs (nat_of_uint32 i)), uncurry2 (RETURN \<circ>\<circ>\<circ> watched_app))
+  \<in> [comp_PRE (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f unat_lit_rel \<times>\<^sub>f nat_rel) (\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0)
+       (\<lambda>_ ((l, i), j). nat_of_uint32 i < length l \<and> j < length_ll l (nat_of_uint32 i))
+       (\<lambda>_. True)]\<^sub>a hrp_comp ((arrayO_assn (arl_assn nat_assn))\<^sup>k *\<^sub>a uint32_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
+                       (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f unat_lit_rel \<times>\<^sub>f nat_rel) \<rightarrow> hr_comp nat_assn nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF nth_aa_hnr nth_ll_watched_app, OF P]
+    using hfref_compI_PRE_aux[OF nth_aa_hnr_nat_of_uint32 nth_ll_watched_app, OF P]
     unfolding op_watched_app_def .
 
   have 1: \<open>?pre' = ?pre\<close>
-    using ex_list_watched
-    by (fastforce simp: comp_PRE_def prod_rel_def_internal relAPP_def map_fun_rel_def[abs_def]
+    using ex_list_watched ex_nat_of_uint32_eq_nat
+    by (auto simp: comp_PRE_def prod_rel_def_internal relAPP_def map_fun_rel_def[abs_def]
         p2rel_def lit_of_natP_def literal_of_neq_eq_nat_of_lit_eq_iff length_ll_def
+        unat_lit_rel_def br_def uint32_nat_rel_def nat_lit_rel_def Collect_eq_comp
+        in_N1_less_than_upperN
+        intro!: ext
         simp del: literal_of_nat.simps)
 
   have 2: \<open>?im' = ?im\<close>
@@ -150,35 +172,47 @@ proof -
     by (auto simp: hrp_comp_def hr_comp_def)
 
   show ?thesis
-    using H unfolding 1 2 3  .
+    using H unfolding 1 2 3 op_watched_app_def . 
 qed
 
+lemma length_ll_length_ll_f_u:
+  \<open>(uncurry (RETURN oo (\<lambda>xs i. length_ll xs (nat_of_uint32 i))), uncurry (RETURN oo length_ll_f)) \<in>
+     [\<lambda>(W, L). L \<in> snd ` D\<^sub>0]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0) \<times>\<^sub>r unat_lit_rel) \<rightarrow>
+       \<langle>nat_rel\<rangle> nres_rel\<close>
+  unfolding length_ll_def length_ll_f_def
+  by (intro frefI nres_relI)
+    (fastforce simp: fref_def map_fun_rel_def prod_rel_def nres_rel_def p2rel_def lit_of_natP_def
+      nat_lit_rel_def unat_lit_rel_def uint32_nat_rel_def br_def)
+
+
+lemma length_aa_hnr_u: 
+  \<open>(uncurry (\<lambda>xs i. length_aa xs (nat_of_uint32 i)), uncurry (RETURN \<circ>\<circ> (\<lambda>xs i. length_ll xs (nat_of_uint32 i)))) \<in>
+     [\<lambda>(xs, i). nat_of_uint32 i < length xs]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
+
 lemma length_aa_length_ll_f[sepref_fr_rules]:
-  \<open>(uncurry length_aa, uncurry (RETURN oo length_ll_f)) \<in>
+  \<open>(uncurry (\<lambda>xs i. length_aa xs (nat_of_uint32 i)), uncurry (RETURN oo length_ll_f)) \<in>
    [\<lambda>(W, L). L \<in> snd ` D\<^sub>0]\<^sub>a
-     array_watched_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
+     array_watched_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have P: \<open>is_pure nat_assn\<close>
     by auto
-  have H: \<open>(uncurry length_aa, uncurry (RETURN \<circ>\<circ> length_ll_f))
-       \<in> [comp_PRE
-            (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r nat_lit_rel)
-            (\<lambda>(W, L). L \<in> snd ` D\<^sub>0)
-            (\<lambda>_ (xs, i). i < length xs)
-            (\<lambda>_. True)]\<^sub>a hrp_comp
-                            ((arrayO_assn (arl_assn nat_assn))\<^sup>k *\<^sub>a nat_assn\<^sup>k)
-                            (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>r nat_lit_rel) \<rightarrow>
-          hr_comp nat_assn nat_rel\<close>
+  have H: \<open>(uncurry (\<lambda>xs i. length_aa xs (nat_of_uint32 i)), uncurry (RETURN \<circ>\<circ> length_ll_f))
+  \<in> [comp_PRE (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f unat_lit_rel) (\<lambda>(W, L). L \<in> snd ` D\<^sub>0) (\<lambda>_ (xs, i). nat_of_uint32 i < length xs)
+       (\<lambda>_. True)]\<^sub>a hrp_comp ((arrayO_assn (arl_assn nat_assn))\<^sup>k *\<^sub>a uint32_assn\<^sup>k) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f unat_lit_rel) \<rightarrow> 
+   hr_comp nat_assn nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF length_aa_hnr length_ll_length_ll_f]
+    using hfref_compI_PRE_aux[OF length_aa_hnr_u length_ll_length_ll_f_u]
     unfolding op_watched_app_def .
 
   have 1: \<open>?pre' = ?pre\<close>
     using ex_list_watched
-    by (fastforce simp: comp_PRE_def prod_rel_def_internal relAPP_def map_fun_rel_def[abs_def]
+    by (auto simp: comp_PRE_def prod_rel_def_internal relAPP_def map_fun_rel_def[abs_def]
         p2rel_def lit_of_natP_def literal_of_neq_eq_nat_of_lit_eq_iff length_ll_def
-        simp del: literal_of_nat.simps)
+        unat_lit_rel_def uint32_nat_rel_def Collect_eq_comp br_def nat_lit_rel_def
+        simp del: literal_of_nat.simps
+        intro!: ext)
 
   have 2: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp by (auto simp: hrp_comp_def hr_comp_def)
@@ -186,7 +220,7 @@ proof -
     by (auto simp: hrp_comp_def hr_comp_def)
 
   show ?thesis
-    using H unfolding 1 2 3  .
+    using H unfolding 1 2 3 .
 qed
 
 
@@ -196,7 +230,7 @@ sepref_register unit_propagation_inner_loop_body_wl_D
 sepref_thm unit_propagation_inner_loop_body_wl_D
   is \<open>uncurry2 ((PR_CONST unit_propagation_inner_loop_body_wl_D) :: nat literal \<Rightarrow> nat \<Rightarrow>
            nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
-  :: \<open>nat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_l_assn\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_l_assn\<close>
   unfolding unit_propagation_inner_loop_body_wl_D_def length_rll_def[symmetric] PR_CONST_def
   unfolding watched_by_nth_watched_app' watched_app_def[symmetric]
   unfolding nth_rll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
@@ -211,16 +245,23 @@ concrete_definition (in -) unit_propagation_inner_loop_body_wl_D_code
 prepare_code_thms (in -) unit_propagation_inner_loop_body_wl_D_code_def
 
 lemmas unit_propagation_inner_loop_body_wl_D_code_refine[sepref_fr_rules] =
-   unit_propagation_inner_loop_body_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+   unit_propagation_inner_loop_body_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_l_assn_def]
 
+lemma nat_of_uint32_012[simp]:
+  \<open>nat_of_uint32 0 = 0\<close> \<open>nat_of_uint32 1 = 1\<close>  \<open>nat_of_uint32 2 = 2\<close>
+  by (transfer, auto)+
 
+lemma
+  \<open>(uncurry0 (return 0), uncurry0 (RETURN 0)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
+   
 subsubsection \<open>Unit Propagation: Inner Loop's Loop\<close>
 
 sepref_register unit_propagation_inner_loop_wl_loop_D
 sepref_thm unit_propagation_inner_loop_wl_loop_D
   is \<open>uncurry ((PR_CONST unit_propagation_inner_loop_wl_loop_D) :: nat literal \<Rightarrow>
            nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
-  :: \<open>nat_lit_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_l_assn\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_l_assn\<close>
   unfolding unit_propagation_inner_loop_wl_loop_D_def length_ll_def[symmetric] PR_CONST_def
   unfolding watched_by_nth_watched_app watched_app_def[symmetric]
     length_ll_f_def[symmetric]
@@ -236,7 +277,7 @@ concrete_definition (in -) unit_propagation_inner_loop_wl_loop_D_code
    is "(uncurry ?f,_)\<in>_"
 prepare_code_thms (in -) unit_propagation_inner_loop_wl_loop_D_code_def
 lemmas unit_propagation_inner_loop_wl_loop_D_code_refine[sepref_fr_rules] =
-   unit_propagation_inner_loop_wl_loop_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+   unit_propagation_inner_loop_wl_loop_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_l_assn_def]
 
 
 subsubsection \<open>Unit Propagation: Inner Loop\<close>
@@ -255,7 +296,7 @@ lemma hd_select_and_remove_from_literals_to_update_refine:
   \<open>(return o select_and_remove_from_literals_to_update_wl',
        select_and_remove_from_literals_to_update_wl :: nat twl_st_wl \<Rightarrow> (nat twl_st_wl \<times> nat literal) nres) \<in>
     [\<lambda>S. \<not>literals_to_update_wl_empty S]\<^sub>a
-    twl_st_l_assn\<^sup>d \<rightarrow> twl_st_l_assn *assn nat_lit_assn\<close>
+    twl_st_l_assn\<^sup>d \<rightarrow> twl_st_l_assn *assn unat_lit_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   let ?int = \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W).  ((M, N, U, D, NP, UP, tl Q, W), hd Q))\<close>
@@ -280,13 +321,13 @@ proof -
        conflict_option_assn *assn
        unit_lits_assn *assn
        unit_lits_assn *assn
-       list_assn nat_lit_assn *assn
+       list_assn unat_lit_assn *assn
        array_watched_assn
       )\<close>
   have 2:
     \<open>(return o select_and_remove_from_literals_to_update_wl', RETURN o ?int) \<in>
     [\<lambda>(_, _, _, _, _, _, Q, _). Q \<noteq> []]\<^sub>a
-    twl_st_l_interm_assn_2\<^sup>d \<rightarrow> twl_st_l_interm_assn_2 *assn nat_lit_assn\<close>
+    twl_st_l_interm_assn_2\<^sup>d \<rightarrow> twl_st_l_interm_assn_2 *assn unat_lit_assn\<close>
     unfolding select_and_remove_from_literals_to_update_wl'_def twl_st_l_interm_assn_2_def
     apply sepref_to_hoare
     by (case_tac \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). Q) x\<close>;
@@ -298,7 +339,7 @@ proof -
                  (\<lambda>_ (_, _, _, _, _, _, Q, _). Q \<noteq> [])
                  (\<lambda>_. True)]\<^sub>a 
                hrp_comp (twl_st_l_interm_assn_2\<^sup>d) twl_st_l_interm_rel_1 \<rightarrow> 
-             hr_comp (twl_st_l_interm_assn_2 *assn nat_lit_assn) (twl_st_l_interm_rel_1 \<times>\<^sub>r Id)\<close>
+             hr_comp (twl_st_l_interm_assn_2 *assn unat_lit_assn) (twl_st_l_interm_rel_1 \<times>\<^sub>r Id)\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF 2 1] .
   have pre: \<open>?pre' = ?pre\<close>
@@ -329,13 +370,14 @@ thm unit_propagation_inner_loop_wl_loop_D_code_refine[to_hnr]
 sepref_register unit_propagation_inner_loop_wl_D
 sepref_thm unit_propagation_inner_loop_wl_D
   is \<open>uncurry (PR_CONST unit_propagation_inner_loop_wl_D)\<close>
-  :: \<open>nat_lit_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a twl_st_l_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_assn\<close>
   supply [[goals_limit=1]]
   apply (subst PR_CONST_def)
-  unfolding twl_array_code.unit_propagation_inner_loop_wl_D_def twl_st_l_assn_def
+  unfolding unit_propagation_inner_loop_wl_D_def twl_st_l_assn_def
     literals_to_update_wl_literals_to_update_wl_empty
   by sepref
 
+thm unit_propagation_inner_loop_wl_loop_D_code_refine[to_hnr]
 concrete_definition (in -) unit_propagation_inner_loop_wl_D_code
    uses twl_array_code.unit_propagation_inner_loop_wl_D.refine_raw
    is "(uncurry ?f,_)\<in>_"
@@ -343,7 +385,8 @@ concrete_definition (in -) unit_propagation_inner_loop_wl_D_code
 prepare_code_thms (in -) unit_propagation_inner_loop_wl_D_code_def
 
 lemmas unit_propagation_inner_loop_wl_D_code_refine[sepref_fr_rules] =
-   unit_propagation_inner_loop_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+   unit_propagation_inner_loop_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms, 
+     unfolded twl_st_l_assn_def]
 
 
 subsubsection \<open>Unit Propagation: Outer Loop\<close>
@@ -365,7 +408,8 @@ concrete_definition (in -) unit_propagation_outer_loop_wl_D_code
 prepare_code_thms (in -) unit_propagation_outer_loop_wl_D_code_def
 
 lemmas unit_propagation_outer_loop_wl_D_code_refine[sepref_fr_rules] =
-   unit_propagation_outer_loop_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+   unit_propagation_outer_loop_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms, 
+     unfolded twl_st_l_assn_def]
 
 
 subsubsection \<open>Skip And Resolve\<close>
@@ -459,17 +503,18 @@ concrete_definition (in -) skip_and_resolve_loop_wl_D_code
 prepare_code_thms (in -) skip_and_resolve_loop_wl_D_code_def
 
 lemmas skip_and_resolve_loop_wl_D_code_refine[sepref_fr_rules] =
-   skip_and_resolve_loop_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+   skip_and_resolve_loop_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms, 
+     unfolded twl_st_l_assn_def]
 
 
 subsubsection \<open>Backtrack\<close>
 
 sepref_thm find_lit_of_max_level_wl_imp_code
   is \<open>uncurry8 find_lit_of_max_level_wl_imp'\<close>
-  :: \<open>(pair_nat_ann_lits_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn nat_lit_assn)\<^sup>k *\<^sub>a
+  :: \<open>(pair_nat_ann_lits_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn unat_lit_assn)\<^sup>k *\<^sub>a
        unit_lits_assn\<^sup>k *\<^sub>a unit_lits_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k) *\<^sub>a
-    nat_lit_assn\<^sup>k
-    \<rightarrow>\<^sub>a nat_lit_assn\<close>
+    unat_lit_assn\<^sup>k
+    \<rightarrow>\<^sub>a unat_lit_assn\<close>
   unfolding find_lit_of_max_level_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
     find_lit_of_max_level_wl_imp'_def
   supply [[goals_limit=1]]
@@ -490,8 +535,8 @@ lemma find_lit_of_max_level_wl_imp_code_find_lit_of_max_level_wl'[sepref_fr_rule
      (\<exists>K\<in>#remove1_mset (-L) D. get_level M K = get_maximum_level M (remove1_mset (- L) D))]\<^sub>a
    (pair_nat_ann_lits_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a
        unit_lits_assn\<^sup>k *\<^sub>a unit_lits_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k) *\<^sub>a
-    nat_lit_assn\<^sup>k
-    \<rightarrow> nat_lit_assn\<close>
+    unat_lit_assn\<^sup>k
+    \<rightarrow> unat_lit_assn\<close>
   (is \<open>_ \<in> [?P]\<^sub>a _ \<rightarrow> _\<close>)
 proof -
   have \<open>K \<in># remove1_mset (-L) (mset D) \<Longrightarrow> distinct D \<Longrightarrow>
@@ -523,7 +568,7 @@ intro!: in_remove1_msetI)
     unfolding find_lit_of_max_level_wl_imp'_def
     by (intro frefI nres_relI) (auto simp add: uncurry_def list_mset_rel_def br_def)
   show ?thesis
-    using find_lit_of_max_level_wl_imp_code.refine[FCOMP 1] .
+    using find_lit_of_max_level_wl_imp_code.refine[FCOMP 1, of N\<^sub>0, OF twl_array_code_axioms] .
 qed
 
 sepref_register backtrack_wl_D
@@ -548,14 +593,14 @@ concrete_definition (in -) backtrack_wl_D_code
 prepare_code_thms (in -) backtrack_wl_D_code_def
 
 lemmas backtrack_wl_D_code_refine[sepref_fr_rules] =
-   backtrack_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+   backtrack_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_l_assn_def]
 
 
 subsubsection \<open>Decide Or Skip\<close>
 
 sepref_thm find_unassigned_lit_wl_D_code
   is \<open>PR_CONST find_unassigned_lit_wl_D\<close>
-  :: \<open>twl_st_l_assn\<^sup>k \<rightarrow>\<^sub>a option_assn nat_lit_assn\<close>
+  :: \<open>twl_st_l_assn\<^sup>k \<rightarrow>\<^sub>a option_assn unat_lit_assn\<close>
   unfolding find_unassigned_lit_wl_D_def PR_CONST_def twl_st_l_assn_def
     is_None_def[symmetric]
   supply [[goals_limit = 1]]
@@ -568,28 +613,35 @@ concrete_definition (in -) find_unassigned_lit_wl_D_code
 prepare_code_thms (in -) find_unassigned_lit_wl_D_code_def
 
 lemmas find_unassigned_lit_wl_D_code[sepref_fr_rules] =
-   find_unassigned_lit_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+   find_unassigned_lit_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_l_assn_def]
 
 lemma find_unassigned_lit_wl_D_code_find_unassigned_lit_wl[unfolded twl_st_l_assn_def, sepref_fr_rules]:
   \<open>(find_unassigned_lit_wl_D_code N\<^sub>0, find_unassigned_lit_wl)
   \<in> [\<lambda>S. literals_are_N\<^sub>0 S \<and> twl_struct_invs (twl_st_of_wl None S) \<and> get_conflict_wl S = None]\<^sub>a
-     twl_st_l_assn\<^sup>k \<rightarrow> option_assn nat_lit_assn\<close>
+     twl_st_l_assn\<^sup>k \<rightarrow> option_assn unat_lit_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have P: \<open>is_pure nat_assn\<close>
     by auto
   have H: \<open>(find_unassigned_lit_wl_D_code N\<^sub>0, find_unassigned_lit_wl)
-  \<in> [comp_PRE (Id \<times>\<^sub>f (Id \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f Id)))))))
-      (\<lambda>S. literals_are_N\<^sub>0 S \<and> twl_struct_invs (twl_st_of_wl None S) \<and> get_conflict_wl S = None)
-       (\<lambda>_ _. True)
-       (\<lambda>_. True)]\<^sub>a
-     hrp_comp (twl_st_l_assn\<^sup>k) (Id \<times>\<^sub>f (Id \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f Id))))))) \<rightarrow>
-     hr_comp (option_assn nat_lit_assn) (\<langle>Id\<rangle>option_rel)\<close>
+\<in> [comp_PRE
+     (Id \<times>\<^sub>f (Id \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f Id)))))))
+     (\<lambda>S. literals_are_N\<^sub>0 S \<and>
+           twl_struct_invs (twl_st_of_wl None S) \<and> get_conflict_wl S = None)
+     (\<lambda>_ _. True)
+     (\<lambda>_. True)]\<^sub>a hrp_comp (twl_st_l_assn\<^sup>k)
+                     (Id \<times>\<^sub>f
+                      (Id \<times>\<^sub>f
+                       (nat_rel \<times>\<^sub>f
+                        (Id \<times>\<^sub>f
+                         (Id \<times>\<^sub>f
+                          (Id \<times>\<^sub>f
+                           (Id \<times>\<^sub>f
+                            Id))))))) \<rightarrow> hr_comp (option_assn unat_lit_assn)
+   (\<langle>Id\<rangle>option_rel)\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF find_unassigned_lit_wl_D_code.refine[unfolded PR_CONST_def]
-       find_unassigned_lit_wl_D_find_unassigned_lit_wl]
-
-    unfolding op_watched_app_def .
+       find_unassigned_lit_wl_D_find_unassigned_lit_wl, OF twl_array_code_axioms] .
 
   have 1: \<open>?pre' = ?pre\<close>
     using ex_list_watched
@@ -624,7 +676,7 @@ concrete_definition (in -) decide_wl_or_skip_D_code
 prepare_code_thms (in -) decide_wl_or_skip_D_code_def
 
 lemmas decide_wl_or_skip_D_code_def_refine[sepref_fr_rules] =
-   decide_wl_or_skip_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+   decide_wl_or_skip_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_l_assn_def]
 
 
 subsubsection \<open>Combining Together: the Other Rules\<close>
@@ -645,7 +697,7 @@ concrete_definition (in -) cdcl_twl_o_prog_wl_D_code
 prepare_code_thms (in -) cdcl_twl_o_prog_wl_D_code_def
 
 lemmas cdcl_twl_o_prog_wl_D_code[sepref_fr_rules] =
-   cdcl_twl_o_prog_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+   cdcl_twl_o_prog_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_l_assn_def]
 
 
 subsubsection \<open>Combining Together: Full Strategy\<close>
@@ -665,7 +717,7 @@ concrete_definition (in -) cdcl_twl_stgy_prog_wl_D_code
 prepare_code_thms (in -) cdcl_twl_stgy_prog_wl_D_code_def
 
 lemmas cdcl_twl_stgy_prog_wl_D_code[sepref_fr_rules] =
-   cdcl_twl_stgy_prog_wl_D_code.refine[of N\<^sub>0, unfolded twl_st_l_assn_def]
+   cdcl_twl_stgy_prog_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_l_assn_def]
 
 end
 
