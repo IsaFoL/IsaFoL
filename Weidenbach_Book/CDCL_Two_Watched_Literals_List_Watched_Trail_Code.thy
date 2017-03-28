@@ -11,50 +11,19 @@ type_synonym twl_st_wll_trail =
   "trail_assn \<times> clauses_wl \<times> nat \<times> uint32 array_list option \<times> unit_lits_wl \<times> unit_lits_wl \<times>
     lit_queue_l \<times> watched_wl"
 
-context twl_array_code
-begin
-
 definition valued_atm_on_trail where
   \<open>valued_atm_on_trail M L =
     (if Pos L \<in> lits_of_l M then Some True
     else if Neg L \<in> lits_of_l M then Some False
     else None)\<close>
 
-definition trail_ref :: \<open>(trail_int \<times> (nat, nat) ann_lits) set\<close> where
+definition (in twl_array_code_ops) trail_ref :: \<open>(trail_int \<times> (nat, nat) ann_lits) set\<close> where
   \<open>trail_ref = {((M', xs, k), M). M = M' \<and> no_dup M \<and>
     (\<forall>L \<in># N\<^sub>1. atm_of L < length xs \<and> fst (xs ! (atm_of L)) = valued_atm_on_trail M (atm_of L) \<and>
        snd (xs ! (atm_of L)) = get_level M L) \<and>
     k = count_decided M \<and>
     (\<forall>L\<in>set M. lit_of L \<in># N\<^sub>1)}\<close>
 
-abbreviation trail_conc :: \<open>trail_int \<Rightarrow> trail_assn \<Rightarrow> assn\<close> where
-  \<open>trail_conc \<equiv> pair_nat_ann_lits_assn *assn array_assn (option_assn bool_assn *assn nat_assn) *assn
-     nat_assn\<close>
-
-definition cons_trail_Propagated :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
-  \<open>cons_trail_Propagated L C M' = Propagated L C # M'\<close>
-
-definition cons_trail_Propagated_tr :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> trail_int \<Rightarrow> trail_int\<close> where
-  \<open>cons_trail_Propagated_tr = (\<lambda>L C (M', xs, k).
-     (Propagated L C # M', xs[atm_of L := (Some (is_pos L), k)], k))\<close>
-
-definition trail_assn :: "(nat, nat) ann_lits \<Rightarrow> trail_assn \<Rightarrow> assn" where
-  \<open>trail_assn = hr_comp trail_conc trail_ref\<close>
-
-lemma cons_trail_Propagated_tr:
-  \<open>(uncurry2 (RETURN ooo cons_trail_Propagated_tr), uncurry2 (RETURN ooo cons_trail_Propagated)) \<in>
-  [\<lambda>((L, C), M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f trail_ref \<rightarrow> \<langle>trail_ref\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI, rename_tac x y, case_tac \<open>fst (fst x)\<close>)
-    (auto simp: trail_ref_def valued_atm_on_trail_def cons_trail_Propagated_def
-      cons_trail_Propagated_tr_def Decided_Propagated_in_iff_in_lits_of_l nth_list_update')
-
-lemma is_pos_nat_lit_hnr:
-  \<open>(return o (\<lambda>L. bitAND L 1 = 0), RETURN o is_pos) \<in> nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding bitAND_1_mod_2
-  apply (sepref_to_hoare, rename_tac x xi, case_tac x)
-   apply (sep_auto simp: p2rel_def lit_of_natP_def unat_lit_rel_def uint32_nat_rel_def nat_lit_rel_def br_def
-      split: if_splits)+
-  by presburger
 
 text \<open>TODO Move\<close>
 lemma nat_of_uint32_0_iff: \<open>nat_of_uint32 xi = 0 \<longleftrightarrow> xi = 0\<close> for xi
@@ -73,7 +42,39 @@ lemma nat_of_uint32_ao:
 
 lemma nat_of_uint32_012: \<open>nat_of_uint32 0 = 0\<close> \<open>nat_of_uint32 1 = 1\<close> \<open>nat_of_uint32 1 = 1\<close>
   by (transfer, auto)+
- 
+
+context twl_array_code
+begin
+
+abbreviation (in twl_array_code_ops) trail_conc :: \<open>trail_int \<Rightarrow> trail_assn \<Rightarrow> assn\<close> where
+  \<open>trail_conc \<equiv> pair_nat_ann_lits_assn *assn array_assn (option_assn bool_assn *assn nat_assn) *assn
+     nat_assn\<close>
+
+definition cons_trail_Propagated :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
+  \<open>cons_trail_Propagated L C M' = Propagated L C # M'\<close>
+
+definition cons_trail_Propagated_tr :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> trail_int \<Rightarrow> trail_int\<close> where
+  \<open>cons_trail_Propagated_tr = (\<lambda>L C (M', xs, k).
+     (Propagated L C # M', xs[atm_of L := (Some (is_pos L), k)], k))\<close>
+
+definition (in twl_array_code_ops) trail_assn :: "(nat, nat) ann_lits \<Rightarrow> trail_assn \<Rightarrow> assn" where
+  \<open>trail_assn = hr_comp trail_conc trail_ref\<close>
+
+lemma cons_trail_Propagated_tr:
+  \<open>(uncurry2 (RETURN ooo cons_trail_Propagated_tr), uncurry2 (RETURN ooo cons_trail_Propagated)) \<in>
+  [\<lambda>((L, C), M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f trail_ref \<rightarrow> \<langle>trail_ref\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI, rename_tac x y, case_tac \<open>fst (fst x)\<close>)
+    (auto simp: trail_ref_def valued_atm_on_trail_def cons_trail_Propagated_def
+      cons_trail_Propagated_tr_def Decided_Propagated_in_iff_in_lits_of_l nth_list_update')
+
+lemma is_pos_nat_lit_hnr:
+  \<open>(return o (\<lambda>L. bitAND L 1 = 0), RETURN o is_pos) \<in> nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding bitAND_1_mod_2
+  apply (sepref_to_hoare, rename_tac x xi, case_tac x)
+   apply (sep_auto simp: p2rel_def lit_of_natP_def unat_lit_rel_def uint32_nat_rel_def nat_lit_rel_def br_def
+      split: if_splits)+
+  by presburger
+
 lemma is_pos_hnr[sepref_fr_rules]:
   \<open>(return o (\<lambda>L. bitAND L 1 = 0), RETURN o is_pos) \<in> unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
 proof -
@@ -270,7 +271,7 @@ proof -
     using H unfolding im pre f by simp
 qed
 
-definition twl_st_l_trail_assn :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
+definition (in twl_array_code_ops) twl_st_l_trail_assn :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>twl_st_l_trail_assn \<equiv>
   (trail_assn *assn clauses_ll_assn *assn nat_assn *assn
   conflict_option_assn *assn
@@ -280,7 +281,7 @@ definition twl_st_l_trail_assn :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_
   array_watched_assn
   )\<close>
 
-definition valued_trail:: \<open>trail_int \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close> where
+definition (in -) valued_trail :: \<open>trail_int \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close> where
   \<open>valued_trail = (\<lambda>(M, xs, k) L. do {
      ASSERT(atm_of L < length xs);
      (case fst (xs ! (atm_of L)) of
@@ -724,7 +725,7 @@ lemma shiftr1[sepref_fr_rules]: \<open>(uncurry (return oo (op >> )), uncurry (R
 
 lemma shiftl1[sepref_fr_rules]: \<open>(return o shiftl1, RETURN o shiftl1) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   by sepref_to_hoare (sep_auto)
-lemma nat_of_uint32_rule[sepref_fr_rules]:
+lemma (in -)nat_of_uint32_rule[sepref_fr_rules]:
   \<open>(return o nat_of_uint32, RETURN o nat_of_uint32) \<in> uint32_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   by sepref_to_hoare (sep_auto)
 
@@ -1235,7 +1236,7 @@ lemmas select_and_remove_from_literals_to_update_wl''_code_2[sepref_fr_rules] =
    select_and_remove_from_literals_to_update_wl''_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
 
 end
-
+declare twl_array_code_ops.N\<^sub>0_code_def[code]
 export_code cdcl_twl_stgy_prog_wl_D_code in SML_imp module_name SAT_Solver
   file "code/CDCL_Cached_Array_Trail.ML"
 

@@ -118,6 +118,10 @@ subsubsection \<open>Functions and Types:\<close>
 
 type_synonym clauses_wl = \<open>uint32 arrayO_raa\<close>
 
+text \<open>TODO Move\<close>
+abbreviation uint32_rel :: \<open>(uint32 \<times> uint32) set\<close> where
+  \<open>uint32_rel \<equiv> Id\<close>
+
 abbreviation uint32_assn :: \<open>uint32 \<Rightarrow> uint32 \<Rightarrow> assn\<close> where
   \<open>uint32_assn \<equiv> id_assn\<close>
 
@@ -1864,10 +1868,13 @@ definition find_unassigned_lit_wl_D :: \<open>_\<close> where
 sepref_register N\<^sub>0'
 declare N_hnr'[sepref_fr_rules]
 
-lemma N_hnr[sepref_import_param]: "(N\<^sub>0,N\<^sub>0')\<in>\<langle>unat_lit_rel\<rangle>list_rel"
-  unfolding N\<^sub>0'_def
-  by (induction N\<^sub>0) (auto simp del: literal_of_nat.simps simp: p2rel_def lit_of_natP_def
-      unat_lit_rel_def uint32_nat_rel_def nat_lit_rel_def br_def)
+lemma N_hnr[sepref_import_param]: "(N\<^sub>0_code,N\<^sub>0')\<in>\<langle>unat_lit_rel\<rangle>list_rel"
+  using lits_less_upperN unfolding N\<^sub>0'_def N\<^sub>0_code_def
+  by (auto simp del: literal_of_nat.simps simp: p2rel_def lit_of_natP_def
+      unat_lit_rel_def uint32_nat_rel_def nat_lit_rel_def br_def Collect_eq_comp
+      list_rel_def list_all2_op_eq_map_right_iff  
+      upperN_def nat_of_uint32_uint32_of_nat_id)
+    
 
 lemma set_mset_lits_of_atms_of_mm_atms_of_ms_iff:
   \<open>set_mset (lits_of_atms_of_mm A) = set_mset N\<^sub>1 \<longleftrightarrow> atms_of_ms (set_mset A) = atms_of N\<^sub>1\<close>
