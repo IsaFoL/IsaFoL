@@ -556,46 +556,33 @@ The correctness of the proof calculus introduced in \secref{sec:proof-calculus}
 can now be proved by induction on the derivation of @{term "G \<turnstile> p"}, using the
 substitution rules proved in \secref{sec:semantics}.
 *}
-  
-theorem correctness: "G \<turnstile> p \<Longrightarrow> \<forall>e f g. e,f,g,G \<Turnstile> p"
-  unfolding model_def
-proof (induct p rule: deriv.induct)
- case (Assum a G)
-  then show ?case by (simp add: list_all_iff)
-next
-  case (ForallI G a n)
-  show ?case proof (intro allI impI)
-    fix f g and e :: "nat \<Rightarrow> 'c"
-    assume prems: "list_all (eval e f g) G"
-      
-    { fix z
-      from ForallI(2)
-      have "e, (f(n := \<lambda>x. z)), g, G \<Turnstile> (a[App n []/0])"
-        unfolding model_def by (simp del: fun_upd_apply)
-      from this and ForallI prems
-      have "eval (e\<langle>0:z\<rangle>) f g a"
-        unfolding model_def by simp }
 
-    then show "eval e f g (Forall a)" by simp
-  qed
+theorem correctness: "G \<turnstile> p \<Longrightarrow> \<forall>e f g. e,f,g,G \<Turnstile> p"
+  proof (induct p rule: deriv.induct)
+    case (Assum a G)
+    then show ?case by (simp add: model_def list_all_iff)
+  next
+    case (ForallI G a n)
+    show ?case proof (intro allI)
+      fix f g and e :: "nat \<Rightarrow> 'c"
+      have "\<forall>z. e, (f(n := \<lambda>x. z)), g, G \<Turnstile> (a[App n []/0])"
+        using ForallI by blast
+      then have "\<forall>z. list_all (eval e f g) G \<longrightarrow> eval (e\<langle>0:z\<rangle>) f g a"
+        using ForallI unfolding model_def by simp
+      then show "e,f,g,G \<Turnstile> Forall a" unfolding model_def by simp
+    qed
 next
   case (ExistsE G a n b)
-  show ?case proof (intro allI impI)
+  show ?case proof (intro allI)
     fix f g and e :: "nat \<Rightarrow> 'c"
-    assume prems: "list_all (eval e f g) G"
-      
-    have "(\<exists>z. eval (e\<langle>0:z\<rangle>) f g a)"
-      using ExistsE prems by simp
-    then obtain z where "eval (e\<langle>0:z\<rangle>) f g a"
-      by blast
-    moreover have
-      "eval (e\<langle>0:(f(n := \<lambda>x. z)) n []\<rangle>) (f(n := \<lambda>x. z)) g a \<and>
-        e, (f(n := \<lambda>x. z)), g, G \<Turnstile> b"
-      using calculation ExistsE by (simp add: model_def)
-    ultimately show "eval e f g b"
-      using ExistsE prems by (simp add: model_def)
+    obtain z where "list_all (eval e f g) G \<longrightarrow> eval (e\<langle>0:z\<rangle>) f g a"
+      using ExistsE unfolding model_def by simp blast
+    then have "e, (f(n := \<lambda>x. z)), g, G \<Turnstile> b"
+      using ExistsE unfolding model_def by simp
+    then show "e,f,g,G \<Turnstile> b"
+      using ExistsE unfolding model_def by simp
   qed
-qed (simp_all, blast+)
+qed (simp_all add: model_def, blast+)
   
 section {* Completeness *}
 
