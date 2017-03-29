@@ -306,11 +306,10 @@ lemma shift_lt [simp]: "i < j \<Longrightarrow> (e\<langle>i:T\<rangle>) j = e (
   by (simp add: shift_def)
 
 lemma shift_commute [simp]: "e\<langle>i:U\<rangle>\<langle>0:T\<rangle> = e\<langle>0:T\<rangle>\<langle>Suc i:U\<rangle>"
-proof -
-  { fix x
-    have "(e\<langle>i:U\<rangle>\<langle>0:T\<rangle>) x = (e\<langle>0:T\<rangle>\<langle>Suc i:U\<rangle>) x"
-      by (cases x) (simp_all add: shift_def) }
-  then show ?thesis by (rule ext)
+proof
+  fix x
+  show "(e\<langle>i:U\<rangle>\<langle>0:T\<rangle>) x = (e\<langle>0:T\<rangle>\<langle>Suc i:U\<rangle>) x"
+    by (cases x) (simp_all add: shift_def)
 qed
   
 primrec
@@ -440,21 +439,18 @@ theorem cut': "A # G \<turnstile> B \<Longrightarrow> G \<turnstile> A \<Longrig
   by (rule ImplE) (rule ImplI)
 
 theorem Class': "Neg A # G \<turnstile> A \<Longrightarrow> G \<turnstile> A"
-proof (rule Class)
+proof -
   assume "Neg A # G \<turnstile> A"
-  show "Neg A # G \<turnstile> FF"
-  proof (rule cut')
-    from \<open>Neg A # G \<turnstile> A\<close> show "Neg A # G \<turnstile> A" .
-  next
-    show "A # Neg A # G \<turnstile> FF"
-    proof (rule NegE)
-      show "A # Neg A # G \<turnstile> Neg A"
-        by (rule Assum) simp
-    next
-      show "A # Neg A # G \<turnstile> A"
-        by (rule Assum) simp
-    qed
-  qed
+  have "A # Neg A # G \<turnstile> A"
+    by (simp add: Assum)
+  moreover have "A # Neg A # G \<turnstile> Neg A"
+    by (simp add: Assum)
+  ultimately have "A # Neg A # G \<turnstile> FF"
+    using NegE by blast
+  then have "Neg A # G \<turnstile> FF"
+    using cut' \<open>Neg A # G \<turnstile> A\<close> by blast
+  then show "G \<turnstile> A"
+    using Class by blast
 qed
 
 theorem ForallE': "G \<turnstile> Forall a \<Longrightarrow> subst a t 0 # G \<turnstile> B \<Longrightarrow> G \<turnstile> B"
