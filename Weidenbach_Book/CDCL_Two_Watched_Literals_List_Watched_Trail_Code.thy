@@ -85,20 +85,20 @@ proof -
   have 2: \<open>(return o (\<lambda>L. bitAND L 1 = 0), RETURN o (\<lambda>L. bitAND L 1 = 0)) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
     apply (sepref_to_hoare)
     using nat_of_uint32_ao[of _ 1]
-    by (sep_auto simp: p2rel_def lit_of_natP_def unat_lit_rel_def uint32_nat_rel_def 
+    by (sep_auto simp: p2rel_def lit_of_natP_def unat_lit_rel_def uint32_nat_rel_def
         nat_lit_rel_def br_def nat_of_uint32_012
         nat_of_uint32_0_iff nat_0_AND uint32_0_AND
         split: if_splits)+
   show ?thesis
     using 2[FCOMP 1] unfolding unat_lit_rel_def .
 qed
-  
+
 lemma array_set_hnr_u[sepref_fr_rules]:
-    \<open>CONSTRAINT is_pure A \<Longrightarrow> 
-    (uncurry2 (\<lambda>xs i. heap_array_set xs (nat_of_uint32 i)), uncurry2 (RETURN \<circ>\<circ>\<circ> op_list_set)) \<in> 
+    \<open>CONSTRAINT is_pure A \<Longrightarrow>
+    (uncurry2 (\<lambda>xs i. heap_array_set xs (nat_of_uint32 i)), uncurry2 (RETURN \<circ>\<circ>\<circ> op_list_set)) \<in>
      [pre_list_set]\<^sub>a (array_assn A)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a A\<^sup>k \<rightarrow> array_assn A\<close>
   by (sepref_to_hoare)
-    (sep_auto simp: uint32_nat_rel_def br_def ex_assn_up_eq2 array_assn_def is_array_def 
+    (sep_auto simp: uint32_nat_rel_def br_def ex_assn_up_eq2 array_assn_def is_array_def
       hr_comp_def list_rel_pres_length list_rel_update)
 
 lemma array_get_hnr_u[sepref_fr_rules]:
@@ -106,10 +106,10 @@ lemma array_get_hnr_u[sepref_fr_rules]:
 (uncurry (\<lambda>xs i. Array.nth xs (nat_of_uint32 i)), uncurry (RETURN \<circ>\<circ> op_list_get))
 \<in> [pre_list_get]\<^sub>a (array_assn A)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> A\<close>
   apply (sepref_to_hoare) -- \<open>TODO proof\<close>
-   apply  (sep_auto simp: uint32_nat_rel_def br_def ex_assn_up_eq2 array_assn_def is_array_def 
+   apply  (sep_auto simp: uint32_nat_rel_def br_def ex_assn_up_eq2 array_assn_def is_array_def
        hr_comp_def list_rel_pres_length list_rel_update param_nth)
   by (metis ent_pure_pre_iff ent_refl_true pair_in_Id_conv param_nth pure_app_eq pure_the_pure)
- 
+
 sepref_thm cons_trail_Propagated_tr_code
   is \<open>uncurry2 (RETURN ooo cons_trail_Propagated_tr)\<close>
   :: \<open>[\<lambda>((L, C), (M, xs, k)). atm_of L < length xs]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a trail_conc\<^sup>d\<rightarrow>
@@ -321,11 +321,11 @@ proof -
         split: if_splits option.splits)
 
   show ?thesis
-    using valued_trail_code.refine[FCOMP 2, unfolded trail_assn_def[symmetric], 
+    using valued_trail_code.refine[FCOMP 2, unfolded trail_assn_def[symmetric],
         OF twl_array_code_axioms] .
 qed
 
-  
+
 definition find_unwatched'' :: "(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> (bool option \<times> nat) nres" where
 \<open>find_unwatched'' M N' C = do {
   WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> 2 \<and> i \<le> length (N'!C) \<and> (\<forall>j\<in>{2..<i}. -((N'!C)!j) \<in> lits_of_l M) \<and>
@@ -408,7 +408,7 @@ proof -
   show ?thesis
     using find_unwatched''_code.refine[FCOMP 1, OF twl_array_code_axioms] .
 qed
-  
+
 sepref_register unit_propagation_inner_loop_body_wl_D
 sepref_thm unit_propagation_inner_loop_body_wl_D
   is \<open>uncurry2 ((PR_CONST unit_propagation_inner_loop_body_wl_D) :: nat literal \<Rightarrow> nat \<Rightarrow>
@@ -475,7 +475,7 @@ concrete_definition (in -) unit_propagation_inner_loop_wl_D_code
 prepare_code_thms (in -) unit_propagation_inner_loop_wl_D_code_def
 
 lemmas unit_propagation_inner_loop_wl_D_code_refine[sepref_fr_rules] =
-   unit_propagation_inner_loop_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms, 
+   unit_propagation_inner_loop_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms,
      unfolded twl_st_l_trail_assn_def]
 
 
@@ -496,7 +496,7 @@ concrete_definition (in -) literals_to_update_wll_empty'
 prepare_code_thms (in -) literals_to_update_wll_empty'_def
 
 lemmas literals_to_update_wll_empty'_code[sepref_fr_rules] =
-   literals_to_update_wll_empty'.refine[of N\<^sub>0, OF twl_array_code_axioms, 
+   literals_to_update_wll_empty'.refine[of N\<^sub>0, OF twl_array_code_axioms,
      unfolded twl_st_l_trail_assn_def]
 
 lemma hd_select_and_remove_from_literals_to_update_wl''_refine:
@@ -572,7 +572,7 @@ concrete_definition (in -) hd_select_and_remove_from_literals_to_update_wl''
 prepare_code_thms (in -) hd_select_and_remove_from_literals_to_update_wl''_def
 
 lemmas [sepref_fr_rules] =
-   hd_select_and_remove_from_literals_to_update_wl''.refine[of N\<^sub>0, OF twl_array_code_axioms, 
+   hd_select_and_remove_from_literals_to_update_wl''.refine[of N\<^sub>0, OF twl_array_code_axioms,
      unfolded twl_st_l_trail_assn_def]
 
 sepref_register unit_propagation_outer_loop_wl_D
