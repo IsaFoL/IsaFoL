@@ -137,13 +137,9 @@ session "Two_Watched_Literals" (Weidenbach_Book) = "CDCL_Base"  +
     Array_Array_List
     Array_List_Array
 
-    CDCL_Two_Watched_Literals_List_Watched_Code
-    CDCL_Two_Watched_Literals_List_Watched_Init_Code
-
     CDCL_Two_Watched_Literals_List_Watched_Domain
     CDCL_Two_Watched_Literals_List_Watched_Code_Common
     CDCL_Two_Watched_Literals_List_Watched_Trail_Code
-    CDCL_Two_Watched_Literals_List_Watched_Init_Code
     CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code
   document_files
     "root.tex"
