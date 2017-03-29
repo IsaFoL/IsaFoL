@@ -225,9 +225,6 @@ session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
     Array_List_Array
     Bits_Natural
 
-    CDCL_Two_Watched_Literals_List_Watched_Code
-    CDCL_Two_Watched_Literals_List_Watched_Init_Code
-
     CDCL_Two_Watched_Literals_List_Watched_Domain
     CDCL_Two_Watched_Literals_List_Watched_Code_Common
     CDCL_Two_Watched_Literals_List_Watched_Trail_Code
