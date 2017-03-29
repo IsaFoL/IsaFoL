@@ -13,24 +13,13 @@ Rules for manipulating goals where both the premises and the conclusion
 contain conjunctions of similar structure.
 *}
 
-theorem conjE': "P \<and> Q \<Longrightarrow> (P \<Longrightarrow> P') \<Longrightarrow> (Q \<Longrightarrow> Q') \<Longrightarrow> P' \<and> Q'"
-  by iprover
-
 theorem conjE'': "(\<forall>x. P x \<longrightarrow> Q x \<and> R x) \<Longrightarrow>
   ((\<forall>x. P x \<longrightarrow> Q x) \<Longrightarrow> Q') \<Longrightarrow> ((\<forall>x. P x \<longrightarrow> R x) \<Longrightarrow> R') \<Longrightarrow> Q' \<and> R'"
   by iprover
 
 text {* Some facts about (in)finite sets *}
 
-theorem [simp]: "- A \<inter> B = B - A" by blast
-
-theorem Compl_UNIV_eq: "- A = UNIV - A" by fast
-
-theorem infinite_nonempty: "\<not> finite A \<Longrightarrow> \<exists>x. x \<in> A"
-  using infinite_imp_nonempty by fastforce
-
-declare Diff_infinite_finite [simp]
-
+theorem set_inter_compl_diff [simp]: "- A \<inter> B = B - A" by blast
 
 section {* Terms and formulae *}
 
@@ -546,19 +535,19 @@ theorem drinker: "([]::(nat, 'b) form list) \<turnstile>
   apply (rule Assum, simp)
   apply (rule Assum, simp)
   done
-
+    
 theorem peirce:
   "[] \<turnstile> Impl (Impl (Impl (Pred P []) (Pred Q [])) (Pred P [])) (Pred P [])"
   apply (rule Class')
   apply (rule ImplI)
   apply (rule_tac a="Impl (Pred P []) (Pred Q [])" in ImplE)
-  apply (rule Assum, simp)
+   apply (rule Assum, simp)
   apply (rule ImplI)
   apply (rule FFE)
   apply (rule_tac
-    a="Impl (Impl (Impl (Pred P []) (Pred Q [])) (Pred P [])) (Pred P [])"
-    in NegE)
-  apply (rule Assum, simp)
+      a="Impl (Impl (Impl (Pred P []) (Pred Q [])) (Pred P [])) (Pred P [])"
+      in NegE)
+   apply (rule Assum, simp)
   apply (rule ImplI)
   apply (rule Assum, simp)
   done
@@ -1873,9 +1862,9 @@ next
     have "\<not> finite (- (\<Union>x\<in>extend S C f n \<union> {f n}. params x))"
       using calculation by simp
     then have "infinite (- (\<Union>x\<in>extend S C f n \<union> {f n}. params x))"
-      by simp
+      by blast
     then obtain x where "x \<in> - (\<Union>x\<in>extend S C f n \<union> {f n}. params x)"
-      using infinite_nonempty by blast
+      using infinite_imp_nonempty by blast
     moreover have "insert (Neg (dest_Forall (dest_Neg (f n))[App x []/0]))
                       (insert (f n) (extend S C f n)) \<in> C"
       using calculation by fastforce
@@ -1907,7 +1896,7 @@ next
     moreover have "infinite (- (\<Union>x\<in>extend S C f n \<union> {Exists p}. params x))"
       using calculation by simp
     then obtain x where *: "x \<in> - (\<Union>x\<in>extend S C f n \<union> {Exists p}. params x)"
-      using infinite_nonempty by blast
+      using infinite_imp_nonempty by blast
     have "\<forall>a\<in>insert (Exists p) (extend S C f n). 
           (SOME k. k \<notin> (\<Union>x\<in>extend S C f n \<union> {Exists p}. params x)) \<notin> params a"
     proof
@@ -2753,9 +2742,9 @@ next
   then have "infinite (UNIV - (UNION (set G) params \<union> params P))"
     using inf_param Diff_infinite_finite by blast
   then have "infinite (- ((\<Union>p\<in>set G. params p) \<union> params P))"
-    by (simp add: Compl_UNIV_eq)
+    by (simp add: Compl_eq_Diff_UNIV)
   then obtain x where *: "x \<in> - ((\<Union>p\<in>set G. params p) \<union> params P)"
-    using infinite_nonempty by blast
+    using infinite_imp_nonempty by blast
   
   have "{P[App x []/0]} \<union> (set G) = set (P[App x []/0] # G)"
     by simp
@@ -2785,9 +2774,9 @@ next
   then have "infinite (UNIV - (UNION (set G) params \<union> params P))"
     using inf_param Diff_infinite_finite by blast
   then have "infinite (- ((\<Union>p\<in>set G. params p) \<union> params P))"
-    by (simp add: Compl_UNIV_eq)
+    by (simp add: Compl_eq_Diff_UNIV)
   then obtain x where *: "x \<in> - ((\<Union>p\<in>set G. params p) \<union> params P)"
-    using infinite_nonempty by blast
+    using infinite_imp_nonempty by blast
       
   have "Neg (P[App x []/0]) # Neg (Exists (Neg P)) # G \<turnstile> Neg P[App x []/0]"
     by (simp add: Assum)
@@ -2864,7 +2853,7 @@ proof (rule Class, rule ccontr)
     moreover have "?S \<in> ?C"
       using \<open>\<not> Neg p # ps \<turnstile> FF\<close> by blast
     moreover have "infinite (- (\<Union>p\<in>?S. params p))"
-      by (simp add: Compl_UNIV_eq)
+      by (simp add: Compl_eq_Diff_UNIV)
     moreover note \<open>closed 0 p\<close> \<open>Ball (set ps) (closed 0)\<close> \<open>x \<in> ?S\<close>
     then have \<open>closed 0 x\<close> by auto
     ultimately show "eval e ?f ?g x"
@@ -3056,7 +3045,7 @@ proof (intro allI impI, elim CollectE conjE, intro conjI)
     then obtain z where "eval (e\<langle>0:z\<rangle>) f g P"
       by simp blast
     moreover obtain x where "x \<in> - UNION S params"
-      using inf_params infinite_nonempty by blast
+      using inf_params infinite_imp_nonempty by blast
     then have "x \<notin> params P"
       using \<open>Exists P \<in> S\<close> by auto
     ultimately have "eval (e\<langle>0:(f(x := \<lambda>y. z)) x []\<rangle>) (f(x := \<lambda>y. z)) g P"
@@ -3083,7 +3072,7 @@ proof (intro allI impI, elim CollectE conjE, intro conjI)
     then obtain z where "\<not> eval (e\<langle>0:z\<rangle>) f g P"
       by simp blast
     moreover obtain x where "x \<in> - UNION S params"
-      using inf_params infinite_nonempty by blast
+      using inf_params infinite_imp_nonempty by blast
     then have "x \<notin> params P"
       using \<open>Neg (Forall P) \<in> S\<close> by auto
     ultimately have "\<not> eval (e\<langle>0:(f(x := \<lambda>y. z)) x []\<rangle>) (f(x := \<lambda>y. z)) g P"
