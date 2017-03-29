@@ -257,17 +257,17 @@ theorem psubstt_upd [simp]:
 
 theorem psubst_upd [simp]: "x \<notin> params P \<Longrightarrow> psubst (f(x:=y)) P = psubst f P"
   by (induct P) (simp_all del: fun_upd_apply)
-
-theorem psubstt_id [simp]: "psubstt (\<lambda>x. x) (t::'a term) = t"
-  "psubstts (\<lambda>x. x) (ts::'a term list) = ts"
+  
+theorem psubstt_id:
+  fixes t :: "'a term" and ts :: "'a term list"
+  shows "psubstt id t = t" and "psubstts (\<lambda>x. x) ts = ts"
   by (induct t and ts rule: psubstt.induct psubstts.induct) simp_all
-
-theorem psubst_id [simp]: "psubst (\<lambda>x. x) = (\<lambda>p. p)"
-proof -
-  { fix x :: "('a, 'b) form"
-    have "psubst (\<lambda>x. x) x = (\<lambda>p. p) x"
-      by (induct x) simp_all }
-  then show ?thesis by (rule ext)
+    
+theorem psubst_id [simp]: "psubst id = id"
+proof
+  fix p :: "('a, 'b) form"
+  show "psubst id p = id p"
+    by (induct p) (simp_all add: psubstt_id)
 qed
 
 theorem psubstt_image [simp]:
@@ -914,7 +914,7 @@ theorem mk_alt_consistency_subset: "C \<subseteq> mk_alt_consistency C"
 proof
   fix x assume "x \<in> C"
   then have "psubst id ` x \<in> C"
-    by (simp add: id_def)
+    by simp
   then have "(\<exists>f. psubst f ` x \<in> C)"
     by blast
   then show "x \<in> {S. \<exists>f. psubst f ` S \<in> C}"
