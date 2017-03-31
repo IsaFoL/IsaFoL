@@ -467,6 +467,10 @@ lemma true_clss_commute_l:
 (* S2MS modif, to check: use removeAll or remove1?*)
 lemma model_remove[simp]: "I \<Turnstile>s N \<Longrightarrow> I \<Turnstile>s removeAll_mset {#a#} N"
   unfolding true_clss_def by auto
+    
+(* S2MS modif, to check: use removeAll or remove1?*)
+lemma model_remove1[simp]: "I \<Turnstile>s N \<Longrightarrow> I \<Turnstile>s remove1_mset {#a#} N" 
+  unfolding true_clss_def by (auto dest: in_diffD)
 
 lemma model_remove_minus[simp]: "I \<Turnstile>s N \<Longrightarrow> I \<Turnstile>s removeAll_mset A N"
   unfolding true_clss_def by auto
@@ -1406,9 +1410,9 @@ proof (intro allI impI)
     using tot unfolding total_over_mm_def total_over_set_def atms_of_mms_def
     apply clarify
     apply (rename_tac l a, case_tac "a \<in># N - {#C#}")
-      apply auto[]
+     apply auto[]
     using in_not_in_diff_equal atms_of_def atms_of_mms_def atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
-    by (auto simp add: union_iff)
+    by (fastforce simp: atms_of_def)
   ultimately have "?J \<Turnstile>s N"
     using assms unfolding true_clss_ext_def by blast
   then have "?J \<Turnstile>s N - {#C#}" by auto
