@@ -351,8 +351,8 @@ sepref_thm find_unwatched''_code
   is \<open>uncurry2 find_unwatched''\<close>
   :: \<open>[\<lambda>((M, N), C). C < length N]\<^sub>a trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> option_assn bool_assn *assn nat_assn\<close>
   unfolding find_unwatched''_def
+  unfolding nth_rll_def[symmetric] length_rll_def[symmetric]
   by sepref
-
 
 concrete_definition (in -) find_unwatched''_code
   uses "twl_array_code.find_unwatched''_code.refine_raw"
