@@ -33,39 +33,6 @@ lemma decided_hnr[sepref_fr_rules]:
 definition uminus_lit_imp :: \<open>nat \<Rightarrow> nat\<close> where
   \<open>uminus_lit_imp L = bitXOR L 1\<close>
 
-lemma nat_bin_trunc_ao:
-  \<open>nat (bintrunc n a) AND nat (bintrunc n b) = nat (bintrunc n (a AND b))\<close>
-  \<open>nat (bintrunc n a) OR nat (bintrunc n b) = nat (bintrunc n (a OR b))\<close>
-  unfolding bitAND_nat_def bitOR_nat_def
-  by (auto simp add: bin_trunc_ao bintr_ge0)
-
-lemma nat_uint_XOR: \<open>nat (uint (a XOR b)) = nat (uint a) XOR nat (uint b)\<close>
-  if len: \<open>LENGTH('a) > 0\<close>
-  for a b :: \<open>'a ::len0 Word.word\<close>
-proof -
-  have 1: \<open>uint ((word_of_int:: int \<Rightarrow> 'a Word.word)(uint a)) = uint a\<close>
-    by (subst (2) word_of_int_uint[of a, symmetric]) (rule refl)
-  have H: \<open>nat (bintrunc n (a XOR b)) = nat (bintrunc n a XOR bintrunc n b)\<close>
-    if \<open>n> 0\<close> for n and a :: int and b :: int
-    using that
-    apply (induction n arbitrary: a b)
-    subgoal by auto
-    subgoal for n a b
-      apply (cases n)
-       apply (auto simp: bintr_ge0) -- \<open>TODO tune proof\<close>
-      by (smt BIT_lt0 bintr_ge0 int_nat_eq int_xor_lt0)
-    done
-  have \<open>nat (bintrunc LENGTH('a) (a XOR b)) = nat (bintrunc LENGTH('a) a XOR bintrunc LENGTH('a) b)\<close> for a b
-    using len H[of \<open>LENGTH('a)\<close> a b] by (auto simp: bintrunc_minus_simps)
-  then have \<open>nat (uint (a XOR b)) = nat (uint a XOR uint b)\<close>
-    by transfer
-  then show ?thesis
-    unfolding bitXOR_nat_def by auto
-qed
-
-lemma nat_of_uint32_XOR: \<open>nat_of_uint32 (a XOR b) = nat_of_uint32 a XOR nat_of_uint32 b\<close>
-  by transfer (auto simp: unat_def nat_uint_XOR)
-
 lemma uminus_lit_imp_uminus:
   \<open>(RETURN o uminus_lit_imp, RETURN o uminus) \<in>
      nat_lit_rel \<rightarrow>\<^sub>f \<langle>nat_lit_rel\<rangle>nres_rel\<close>

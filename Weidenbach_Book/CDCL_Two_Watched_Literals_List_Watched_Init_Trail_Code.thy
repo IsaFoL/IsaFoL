@@ -830,8 +830,9 @@ definition (in twl_array_code_ops) init_state_wl_D :: \<open>nat \<Rightarrow> t
      e \<leftarrow> Array.new 0 0;
      N \<leftarrow> arrayO_raa_append N e;
      (WS) \<leftarrow> arrayO_ara_empty_sz_code n;
-     M \<leftarrow> Array.new (shiftr1 n) (None, 0::nat);
-     return (([], M, 0), N, 0, None, [], [], [], WS)
+     M \<leftarrow> Array.new (shiftr1 n) None;
+     M' \<leftarrow> Array.new (shiftr1 n) (0::uint32);
+     return (([], M, M', 0), N, 0, None, [], [], [], WS)
   }\<close>
 
 lemma fold_cons_replicate: \<open>fold (\<lambda>_ xs. a # xs) [0..<n] xs = replicate n a @ xs\<close>
@@ -906,7 +907,7 @@ qed
 context twl_array_code
 begin
 
-lemma atm_of_uminus_lit_of_nat: \<open>atm_of (- literal_of_nat x) = x div 2\<close>
+lemma (in -)atm_of_uminus_lit_of_nat: \<open>atm_of (- literal_of_nat x) = x div 2\<close>
   by (cases x) auto
 
 lemma (in twl_array_code_ops)in_atms_of_N\<^sub>1_iff:
@@ -927,7 +928,7 @@ lemma (in -) [sepref_fr_rules]:
   \<open>(uncurry (return oo max), uncurry (RETURN oo max)) \<in> uint32_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_max)
 
-
+text \<open>TODO: called on lists?\<close>
 definition (in -)find_max where
   \<open>find_max xs = do {
     i \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, m). (m = fold max (sublist xs {0..<i}) 0) \<and> i \<le> length xs\<^esup>
@@ -1019,10 +1020,16 @@ proof -
   have [simp]: \<open>L \<in># N\<^sub>1 \<Longrightarrow> atm_of L < n\<close> for L
     by (auto simp add: in_atms_of_N\<^sub>1_iff twl_array_code_ops.in_N\<^sub>1_atm_of_in_atms_of_iff
         dest!: H2)
-  have [intro!]: \<open>(([], replicate n (None, 0), 0), []) \<in> trail_ref\<close>
+  have [intro!]: \<open>(([], replicate n None, replicate n 0, 0), []) \<in> trail_ref\<close>
     by (auto simp: twl_array_code_ops.trail_ref_def valued_atm_on_trail_def)
-  have [simp]: \<open>the_pure (option_assn bool_assn *assn nat_assn) = Id\<close>
+  have [simp]: \<open>the_pure (option_assn bool_assn) = Id\<close>
     unfolding prod_assn_pure_conv option_assn_pure_conv by auto
+  have [simp]: \<open>uint32_nat_assn 0 0 = emp\<close> \<open>(0, 0) \<in> uint32_nat_rel\<close>
+    by (auto simp: uint32_nat_rel_def br_def pure_def nat_of_uint32_012)
+  have [simp]:
+    \<open>(replicate (nat_of_uint32 (fold max N\<^sub>0 0) div 2) 0, replicate (nat_of_uint32 (fold max N\<^sub>0 0) div 2) 0) \<in> \<langle>uint32_nat_rel\<rangle>list_rel\<close>
+    by (auto simp: list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
+        nat_of_uint32_012)
   show ?thesis
     supply arl_empty_sz_array_rule[sep_heap_rules del]
     supply arl_empty_sz_array_rule[of _ clause_ll_assn, sep_heap_rules]
@@ -1030,7 +1037,9 @@ proof -
     apply (sep_auto simp: init_state_wl_D_def init_state_wl_def twl_array_code_ops.twl_st_l_trail_assn_def
         twl_array_code_ops.trail_assn_def hr_comp_def n_def shiftr1_def nat_shiftr_div2
         empty_watched_def)
-     apply (auto simp: array_assn_def is_array_def hr_comp_def ac_simps)
+      apply (auto simp: array_assn_def is_array_def hr_comp_def
+          intro!: ent_ex_postI[of _ _ \<open>(0 # replicate (nat_of_uint32 (fold max N\<^sub>0 0) div 2) 0)\<close>])
+      apply (simp add: ac_simps)
     done
 qed
 
