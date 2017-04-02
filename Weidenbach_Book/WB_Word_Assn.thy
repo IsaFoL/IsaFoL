@@ -2,13 +2,14 @@ theory WB_Word_Assn
 imports
   "$AFP/Word/Word"
   IICF
+  Bits_Natural
 begin
 definition word_nat_rel :: "('a :: len0 Word.word \<times> nat) set" where
   \<open>word_nat_rel = br unat (\<lambda>_. True)\<close>
 
 abbreviation word_nat_assn :: "nat \<Rightarrow> 'a::len0 Word.word \<Rightarrow> assn" where
   \<open>word_nat_assn \<equiv> pure word_nat_rel\<close>
- 
+
 lemma op_eq_word_nat:
   \<open>(uncurry (return oo (op = :: 'a :: len Word.word \<Rightarrow> _)), uncurry (RETURN oo op =)) \<in>
     word_nat_assn\<^sup>k *\<^sub>a word_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
@@ -64,7 +65,7 @@ lemma op_eq_uint32:
     uint32_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
 
-lemmas [id_rules] = 
+lemmas [id_rules] =
   itypeI[Pure.of 0 "TYPE (uint32)"]
   itypeI[Pure.of 1 "TYPE (uint32)"]
 
@@ -81,7 +82,76 @@ lemma max_uint32:
     uint32_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
 
-lemma 1: \<open>RETURN (fold max x 0) = RETURN $ (fold $ max $ x $ 0)\<close>
-  by auto
+lemma nat_bin_trunc_ao:
+  \<open>nat (bintrunc n a) AND nat (bintrunc n b) = nat (bintrunc n (a AND b))\<close>
+  \<open>nat (bintrunc n a) OR nat (bintrunc n b) = nat (bintrunc n (a OR b))\<close>
+  unfolding bitAND_nat_def bitOR_nat_def
+  by (auto simp add: bin_trunc_ao bintr_ge0)
+
+lemma nat_of_uint32_ao:
+  \<open>nat_of_uint32 n AND nat_of_uint32 m = nat_of_uint32 (n AND m)\<close>
+  \<open>nat_of_uint32 n OR nat_of_uint32 m = nat_of_uint32 (n OR m)\<close>
+  subgoal apply (transfer, unfold unat_def, transfer, unfold nat_bin_trunc_ao) ..
+  subgoal apply (transfer, unfold unat_def, transfer, unfold nat_bin_trunc_ao) ..
+  done
+
+lemma nat_of_uint32_012: \<open>nat_of_uint32 0 = 0\<close> \<open>nat_of_uint32 2 = 2\<close> \<open>nat_of_uint32 1 = 1\<close>
+  by (transfer, auto)+
+
+lemma nat_uint_XOR: \<open>nat (uint (a XOR b)) = nat (uint a) XOR nat (uint b)\<close>
+  if len: \<open>LENGTH('a) > 0\<close>
+  for a b :: \<open>'a ::len0 Word.word\<close>
+proof -
+  have 1: \<open>uint ((word_of_int:: int \<Rightarrow> 'a Word.word)(uint a)) = uint a\<close>
+    by (subst (2) word_of_int_uint[of a, symmetric]) (rule refl)
+  have H: \<open>nat (bintrunc n (a XOR b)) = nat (bintrunc n a XOR bintrunc n b)\<close>
+    if \<open>n> 0\<close> for n and a :: int and b :: int
+    using that
+    apply (induction n arbitrary: a b)
+    subgoal by auto
+    subgoal for n a b
+      apply (cases n)
+       apply (auto simp: bintr_ge0) -- \<open>TODO tune proof\<close>
+      by (smt BIT_lt0 bintr_ge0 int_nat_eq int_xor_lt0)
+    done
+  have \<open>nat (bintrunc LENGTH('a) (a XOR b)) = nat (bintrunc LENGTH('a) a XOR bintrunc LENGTH('a) b)\<close> for a b
+    using len H[of \<open>LENGTH('a)\<close> a b] by auto
+  then have \<open>nat (uint (a XOR b)) = nat (uint a XOR uint b)\<close>
+    by transfer
+  then show ?thesis
+    unfolding bitXOR_nat_def by auto
+qed
+
+lemma nat_of_uint32_XOR: \<open>nat_of_uint32 (a XOR b) = nat_of_uint32 a XOR nat_of_uint32 b\<close>
+  by transfer (auto simp: unat_def nat_uint_XOR)
+
+lemma nat_of_uint32_0_iff: \<open>nat_of_uint32 xi = 0 \<longleftrightarrow> xi = 0\<close> for xi
+  by transfer  (auto simp: unat_def uint_0_iff)
+
+lemma nat_0_AND: \<open>0 AND n = 0\<close> for n :: nat
+  unfolding bitAND_nat_def by auto
+
+lemma uint32_0_AND: \<open>0 AND n = 0\<close> for n :: uint32
+  by transfer auto
+
+definition (in -) uint32_safe_minus where
+  \<open>uint32_safe_minus m n = (if m < n then 0 else m - n)\<close>
+
+lemma nat_of_uint32_le_minus: \<open>ai \<le> bi \<Longrightarrow>  0 = nat_of_uint32 ai - nat_of_uint32 bi\<close>
+  by transfer (auto simp: unat_def word_le_def)
+
+lemma nat_of_uint32_notle_minus:
+  \<open>\<not> ai < bi \<Longrightarrow>
+       nat_of_uint32 (ai - bi) = nat_of_uint32 ai - nat_of_uint32 bi\<close>
+  apply transfer
+  apply (auto simp: unat_def) -- \<open>TODO proof\<close>
+  by (metis nat_diff_distrib not_le uint_nonnegative uint_sub_lem word_le_def)
+
+lemma uint32_nat_assn_minus[sepref_fr_rules]:
+  \<open>(uncurry (return oo uint32_safe_minus), uncurry (RETURN oo op -)) \<in>
+     uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint32_nat_rel_def nat_of_uint32_le_minus
+      br_def uint32_safe_minus_def nat_of_uint32_012 nat_of_uint32_notle_minus)
 
 end
