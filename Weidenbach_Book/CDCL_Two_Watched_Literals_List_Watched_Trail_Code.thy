@@ -880,17 +880,47 @@ lemma in_literals_are_in_N\<^sub>0_in_D\<^sub>0:
   using assms
   by (cases L) (auto simp: image_image literals_are_in_N\<^sub>0_def lits_of_atms_of_m_def)
 
+definition (in -)
+  \<open>zero_uint32 = (0 :: nat)\<close>
+
+lemma (in -) uint32_nat_assn_zero_uint32:
+  \<open>(uncurry0 (return 0), uncurry0 (RETURN zero_uint32)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_012 zero_uint32_def)
+
+lemma (in -) nat_assn_zero:
+  \<open>(uncurry0 (return 0), uncurry0 (RETURN 0)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_012)
+
+lemma (in -)nat_of_uint32_le_iff:
+  \<open>nat_of_uint32 ai \<le> nat_of_uint32 bi \<longleftrightarrow> ai \<le> bi\<close>
+  by transfer  (auto simp add: word_le_nat_alt)
+
+lemma (in -)nat_of_uint32_less_iff:
+  \<open>nat_of_uint32 ai < nat_of_uint32 bi \<longleftrightarrow> ai < bi\<close>
+  by transfer(auto simp add: word_less_nat_alt)
+
+lemma (in -)max_uint32[sepref_fr_rules]:
+  \<open>(uncurry (return oo max), uncurry (RETURN oo max)) \<in>
+    uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def max_def
+      nat_of_uint32_le_iff)
+
+lemma (in -)uint32_nat_assn_less[sepref_fr_rules]:
+  \<open>(uncurry (return oo op <), uncurry (RETURN oo op <)) \<in>
+    uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def max_def
+      nat_of_uint32_less_iff)
+
 sepref_thm maximum_level_remove_code
   is \<open>uncurry2 (RETURN ooo maximum_level_remove)\<close>
   :: \<open>[\<lambda>((M, D), L). literals_are_in_N\<^sub>0 (mset D)]\<^sub>a
        trail_assn\<^sup>k *\<^sub>a (arl_assn unat_lit_assn)\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   unfolding maximum_level_remove_def[abs_def]
   supply in_literals_are_in_N\<^sub>0_in_D\<^sub>0[intro]
+  supply uint32_nat_assn_zero_uint32[sepref_fr_rules]
   supply [[goals_limit = 1]]
-  apply (rewrite in "(False, \<hole>)" annotate_assn[where A=uint32_nat_assn])
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_side_keep
+  apply (rewrite in "(False, \<hole>)" zero_uint32_def[symmetric])
+  apply (rewrite in "[\<hole>..<_]" annotate_assn[where A=nat_assn])
   by sepref
 
 concrete_definition (in -) maximum_level_remove_code
@@ -907,7 +937,7 @@ lemma maximum_level_remove_code_get_maximum_level_remove[sepref_fr_rules]:
   \<open>(uncurry2 (maximum_level_remove_code),
      uncurry2 (RETURN ooo get_maximum_level_remove)) \<in>
     [\<lambda>((M, D), L). literals_are_in_N\<^sub>0 D]\<^sub>a
-      trail_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
+      trail_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have 1:
@@ -919,7 +949,8 @@ proof -
   have H: \<open>(uncurry2 maximum_level_remove_code,
    uncurry2 (RETURN \<circ>\<circ>\<circ> get_maximum_level_remove))
   \<in> [comp_PRE (Id \<times>\<^sub>f list_mset_rel \<times>\<^sub>f Id) (\<lambda>_. True) (\<lambda>_ ((M, D), L). literals_are_in_N\<^sub>0 (mset D))
-       (\<lambda>_. True)]\<^sub>a hrp_comp (trail_assn\<^sup>k *\<^sub>a (arl_assn unat_lit_assn)\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k) (Id \<times>\<^sub>f list_mset_rel \<times>\<^sub>f Id) \<rightarrow> hr_comp nat_assn nat_rel\<close>
+       (\<lambda>_. True)]\<^sub>a hrp_comp (trail_assn\<^sup>k *\<^sub>a (arl_assn unat_lit_assn)\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k) (Id \<times>\<^sub>f list_mset_rel \<times>\<^sub>f Id) \<rightarrow>
+        hr_comp uint32_nat_assn nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux [OF maximum_level_remove_code.refine 1, OF twl_array_code_axioms] .
   have 1: \<open>?pre' = ?pre\<close> -- \<open>TODO tune proof\<close>
@@ -942,7 +973,7 @@ lemma count_decided_trail_ref:
   by (intro frefI nres_relI) (auto simp: trail_ref_def)
 
 lemma count_decided_trail:
-   \<open>(return o (\<lambda>(_, _, _, k). k), RETURN o (\<lambda>(_, _, _, k). k)) \<in> trail_conc\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+   \<open>(return o (\<lambda>(_, _, _, k). k), RETURN o (\<lambda>(_, _, _, k). k)) \<in> trail_conc\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   supply [[goals_limit = 1]]
   by sepref_to_hoare sep_auto
 
@@ -1083,6 +1114,7 @@ sepref_thm find_decomp_wl_imp_code
     \<rightarrow> trail_assn\<close>
   unfolding find_decomp_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
   supply [[goals_limit=1]]
+  supply uint32_nat_assn_one[sepref_fr_rules]
   by sepref
 
 concrete_definition (in -) find_decomp_wl_imp_code
