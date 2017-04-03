@@ -190,7 +190,7 @@ lemma in_map_atm_of_hnr[sepref_fr_rules]:
 
 
 definition extract_lits_cls :: \<open>'a clause_l \<Rightarrow> 'a literal list \<Rightarrow> 'a literal list\<close> where
-  \<open>extract_lits_cls C N\<^sub>0 = fold (\<lambda>L N\<^sub>0. if atm_of L \<in> set (map atm_of N\<^sub>0) then N\<^sub>0 else L # N\<^sub>0) C N\<^sub>0\<close>
+  \<open>extract_lits_cls C N\<^sub>0 = fold (\<lambda>L N\<^sub>0. if atm_of L \<in> set (map atm_of N\<^sub>0) then N\<^sub>0 else -L # N\<^sub>0) C N\<^sub>0\<close>
 
 sepref_definition extract_lits_cls_imp
   is \<open>uncurry (RETURN oo extract_lits_cls)\<close>
@@ -264,7 +264,7 @@ qed
 
 definition extract_lits_cls' :: \<open>'a clause_l \<Rightarrow> 'a literal list \<Rightarrow> 'a literal list\<close> where
   \<open>extract_lits_cls' C N\<^sub>0 =
-     fold (\<lambda>L N\<^sub>0. let i = index (map atm_of N\<^sub>0) (atm_of L) in if i < length N\<^sub>0 then N\<^sub>0 else L # N\<^sub>0) C N\<^sub>0\<close>
+     fold (\<lambda>L N\<^sub>0. let i = index (map atm_of N\<^sub>0) (atm_of L) in if i < length N\<^sub>0 then N\<^sub>0 else -L # N\<^sub>0) C N\<^sub>0\<close>
 
 sepref_definition extract_lits_cls_code
   is \<open>uncurry (RETURN oo extract_lits_cls')\<close>
@@ -281,8 +281,8 @@ declare extract_lits_cls_code.refine[sepref_fr_rules]
 
 lemma extract_lits_cls'_extract_lits_cls: \<open>extract_lits_cls' = extract_lits_cls\<close>
 proof -
-  have [simp]: \<open>(\<lambda>L N\<^sub>0. if index (map atm_of N\<^sub>0) (atm_of L) < length N\<^sub>0 then N\<^sub>0 else L # N\<^sub>0) =
-      (\<lambda>L N\<^sub>0. if atm_of L \<in> atm_of ` set N\<^sub>0 then N\<^sub>0 else L # N\<^sub>0)\<close>
+  have [simp]: \<open>(\<lambda>L N\<^sub>0. if index (map atm_of N\<^sub>0) (atm_of L) < length N\<^sub>0 then N\<^sub>0 else -L # N\<^sub>0) =
+      (\<lambda>L N\<^sub>0. if atm_of L \<in> atm_of ` set N\<^sub>0 then N\<^sub>0 else -L # N\<^sub>0)\<close>
     by (intro ext) (auto simp: extract_lits_cls'_def extract_lits_cls_def)
   then show ?thesis
     by (intro ext) (auto simp: extract_lits_cls'_def extract_lits_cls_def)
@@ -303,7 +303,7 @@ lemma lits_of_atms_of_m_empty[simp]: \<open>lits_of_atms_of_m {#} = {#}\<close>
   by (auto simp: lits_of_atms_of_m_def)
 
 lemma extract_lits_cls_Cons:
-  \<open>extract_lits_cls (L # C) N\<^sub>0 = extract_lits_cls C (if atm_of L \<in> atms_of (mset N\<^sub>0) then N\<^sub>0 else L # N\<^sub>0)\<close>
+  \<open>extract_lits_cls (L # C) N\<^sub>0 = extract_lits_cls C (if atm_of L \<in> atms_of (mset N\<^sub>0) then N\<^sub>0 else -L # N\<^sub>0)\<close>
   unfolding extract_lits_cls_def fold.simps by simp
 
 lemma extract_lits_cls_Nil[simp]:
@@ -318,7 +318,7 @@ lemma lits_of_atms_of_m_extract_lits_cls: \<open>set_mset (lits_of_atms_of_m (ms
    set_mset (lits_of_atms_of_m (mset C) + lits_of_atms_of_m (mset N\<^sub>0))\<close>
   apply (induction C arbitrary: N\<^sub>0)
   subgoal by simp
-  subgoal by (simp add: extract_lits_cls_Cons lits_of_atms_of_m_add_mset
+  subgoal by (auto simp add: extract_lits_cls_Cons lits_of_atms_of_m_add_mset
         in_lits_of_atms_of_m_ain_atms_of_iff insert_absorb)
   done
 
@@ -331,7 +331,7 @@ lemma in_extract_lits_clsD:
   apply (induction C arbitrary: N\<^sub>0)
   subgoal by auto
   subgoal premises IH for L' C N\<^sub>0
-    using IH(1)[of \<open>(if atm_of L' \<in> atm_of ` set N\<^sub>0 then N\<^sub>0 else L' # N\<^sub>0)\<close>] IH(2)
+    using IH(1)[of \<open>(if atm_of L' \<in> atm_of ` set N\<^sub>0 then N\<^sub>0 else -L' # N\<^sub>0)\<close>] IH(2)
     by (auto simp: extract_lits_cls_def split: if_splits)
   done
 

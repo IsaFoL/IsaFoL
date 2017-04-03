@@ -944,7 +944,8 @@ fun extract_lits_cls_imp x =
             nat_lit_lits_init_assn_assn_in (shiftr_uint32 xa one_nat) sigma ();
         in
           (if x_a then (fn () => sigma)
-            else nat_lit_lits_init_assn_assn_prepend xa sigma)
+            else nat_lit_lits_init_assn_assn_prepend
+                   (Word32.xorb (xa, (Word32.fromInt 1))) sigma)
             ()
         end))
     x;
