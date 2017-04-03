@@ -4,8 +4,6 @@ begin
 
 notation prod_rel_syn (infixl "\<times>\<^sub>f" 70)
 
-type_synonym trail_int = \<open>(nat, nat) ann_lits \<times> (bool option \<times> nat) list \<times> nat\<close>
-type_synonym trail_assn = \<open>(uint32 \<times> nat option) list \<times> (bool option \<times> nat) array \<times> nat\<close>
 type_synonym trail_int = \<open>(nat, nat) ann_lits \<times> bool option list \<times> nat list \<times> nat\<close>
 type_synonym trail_assn = \<open>(uint32 \<times> nat option) list \<times> bool option array \<times> uint32 array \<times> uint32\<close>
 

@@ -11,7 +11,7 @@ type_synonym 'a arrayO_raa = \<open>'a array array_list\<close>
 type_synonym 'a list_rll = \<open>'a list list\<close>
 
 definition arlO_assn :: \<open>('a \<Rightarrow> 'b::heap \<Rightarrow> assn) \<Rightarrow> 'a list \<Rightarrow> 'b array_list \<Rightarrow> assn\<close> where
-  \<open>arlO_assn R' xs axs \<equiv> \<exists>\<^sub>A p. arl_assn id_assn p axs * heap_list_all R' xs p\<close>
+  \<open>arlO_assn R' xs axs \<equiv> \<exists>\<^sub>Ap. arl_assn id_assn p axs * heap_list_all R' xs p\<close>
 
 definition arlO_assn_except :: \<open>('a \<Rightarrow> 'b::heap \<Rightarrow> assn) \<Rightarrow> nat list \<Rightarrow> 'a list \<Rightarrow> 'b array_list \<Rightarrow> _ \<Rightarrow> assn\<close> where
   \<open>arlO_assn_except R' is xs axs f \<equiv>
