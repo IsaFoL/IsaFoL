@@ -1417,20 +1417,46 @@ proof (intro allI impI)
     using assms unfolding true_clss_ext_def by blast
   then have "?J \<Turnstile>s N - {#C#}" by (meson in_diffD true_clss_def)
   have "{v \<in> ?J. atm_of v \<in> atms_of_mms (N - {#C#})} \<subseteq> J"
-    using tot unfolding total_over_m_def total_over_set_def
+    using tot
     by (smt Un_iff \<open>consistent_interp ?J\<close> atm_of_in_atm_of_set_in_uminus consistent_interp_def 
         mem_Collect_eq subsetI total_over_mm_def total_over_set_atm_of)
   then show "J \<Turnstile>s N - {#C#}"
     using true_clss_remove_unused[OF \<open>?J \<Turnstile>s N - {#C#}\<close>] unfolding true_clss_def
     by (meson true_cls_mono_set_mset_l)
 qed
+  
+lemma not_total_over_mm_lit:
+  assumes \<open>\<not>total_over_mm I A\<close>
+  shows \<open>\<exists>l. l \<notin> atm_of ` I \<and> l \<in> atms_of_mms A\<close>
+  using assms total_over_mm_def total_over_set_atm_of by blast
 
+lemma to_total_and_consistent_interp:
+  assumes \<open>consistent_interp I\<close>
+  and \<open>\<not>total_over_mm I A\<close>
+  shows \<open>\<exists>J. I \<subseteq> J \<and> total_over_mm J A \<and> consistent_interp J\<close>
+proof -
+  let ?J = "I \<union> {Pos (atm_of P)|P C. P \<in># C \<and> C \<in># A \<and> atm_of P \<notin> atm_of ` I}"
+  show ?thesis
+    proof -
+      have "I \<subseteq> ?J" by auto
+      moreover have "consistent_interp ?J"
+        using assms unfolding consistent_interp_def apply (intro allI)
+        by (rename_tac L, case_tac L) (fastforce simp add: image_iff)+
+      moreover have "total_over_mm ?J A"
+        using assms unfolding total_over_mm_def total_over_set_def atms_of_mms_def
+        by (smt UN_iff UnCI atm_imp_pos_or_neg_lit atms_of_s_def in_atms_of_s_decomp literal.sel(1) 
+        literal.sel(2) mem_Collect_eq set_image_mset)
+      ultimately have ?thesis by auto
+   qed
+qed
+
+  
 lemma consistent_true_clss_ext_satisfiable:
   assumes "consistent_interp I" and "I \<Turnstile>sext A"
   shows "satisfiable A"
-  by auto
-(*(metis Un_empty_left assms satisfiable_carac subset_Un_eq sup.left_idem
-    total_over_mm_consistent_extension total_over_mm_empty true_clss_ext_def)*)
+  using assms total_over_mm_consistent_extension
+  by (metis satisfiable_carac subset_mset.sup_bot_left sup.cobounded1 total_over_mm_empty true_clss_ext_def)
+
 
 lemma not_consistent_true_clss_ext:
   assumes "\<not>consistent_interp I"
