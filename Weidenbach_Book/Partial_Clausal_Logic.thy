@@ -303,7 +303,7 @@ proof -
 qed
   
 (* S2MS modif *)
-lemma total_over_m_consistent_extension:
+lemma total_over_mm_consistent_extension:
   fixes I :: "'v literal set" and A :: "'v clauses"
   assumes
     total: "total_over_mm I A" and
@@ -880,7 +880,7 @@ proof
           tot': "total_over_mm (I \<union> I') (A \<union># C \<union># D)" and
           cons': "consistent_interp (I \<union> I')" and
           H: "\<forall>x\<in>I'. atm_of x \<in> atms_of_mms D \<and> atm_of x \<notin> atms_of_mms (A \<union># C)"
-          using total_over_m_consistent_extension[OF _ cons, of "A \<union># C"] tot tot' by blast
+          using total_over_mm_consistent_extension[OF _ cons, of "A \<union># C"] tot tot' by blast
         moreover have "I \<union> I' \<Turnstile>s A" using I by simp
         ultimately have "I \<union> I' \<Turnstile>s C \<union># D" using A unfolding true_clss_clss_def by auto
         then have "I \<union> I' \<Turnstile>s C \<union># D" by auto
@@ -1411,14 +1411,15 @@ proof (intro allI impI)
     apply clarify
     apply (rename_tac l a, case_tac "a \<in># N - {#C#}")
      apply auto[]
-    using in_not_in_diff_equal atms_of_def atms_of_mms_def atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
-    by (fastforce simp: atms_of_def)
+    using in_not_in_diff_equal atms_of_def atms_of_mms_def 
+        atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set by (fastforce simp: atms_of_def)
   ultimately have "?J \<Turnstile>s N"
     using assms unfolding true_clss_ext_def by blast
-  then have "?J \<Turnstile>s N - {#C#}" by auto
+  then have "?J \<Turnstile>s N - {#C#}" by (meson in_diffD true_clss_def)
   have "{v \<in> ?J. atm_of v \<in> atms_of_mms (N - {#C#})} \<subseteq> J"
     using tot unfolding total_over_m_def total_over_set_def
-    by (auto intro!: rev_image_eqI)
+    by (smt Un_iff \<open>consistent_interp ?J\<close> atm_of_in_atm_of_set_in_uminus consistent_interp_def 
+        mem_Collect_eq subsetI total_over_mm_def total_over_set_atm_of)
   then show "J \<Turnstile>s N - {#C#}"
     using true_clss_remove_unused[OF \<open>?J \<Turnstile>s N - {#C#}\<close>] unfolding true_clss_def
     by (meson true_cls_mono_set_mset_l)
@@ -1427,8 +1428,9 @@ qed
 lemma consistent_true_clss_ext_satisfiable:
   assumes "consistent_interp I" and "I \<Turnstile>sext A"
   shows "satisfiable A"
-  by (metis Un_empty_left assms satisfiable_carac subset_Un_eq sup.left_idem
-    total_over_m_consistent_extension total_over_m_empty true_clss_ext_def)
+  by auto
+(*(metis Un_empty_left assms satisfiable_carac subset_Un_eq sup.left_idem
+    total_over_mm_consistent_extension total_over_mm_empty true_clss_ext_def)*)
 
 lemma not_consistent_true_clss_ext:
   assumes "\<not>consistent_interp I"
