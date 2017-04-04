@@ -73,6 +73,10 @@ abbreviation unmark_s where
 abbreviation unmark_l where
 \<open>unmark_l M \<equiv> unmark_s (set M)\<close>
 
+(* S2MS *)
+abbreviation unmark_m where
+\<open>unmark_m M \<equiv> image_mset unmark (mset M)\<close>
+
 lemma atms_of_ms_lambda_lit_of_is_atm_of_lit_of[simp]:
   \<open>atms_of_ms (unmark_l M') = atm_of ` lits_of_l M'\<close>
   unfolding atms_of_ms_def lits_of_def by auto
@@ -87,27 +91,32 @@ subsubsection \<open>Entailment\<close>
 definition true_annot :: \<open>('a, 'm) ann_lits \<Rightarrow> 'a clause \<Rightarrow> bool\<close> (infix "\<Turnstile>a" 49) where
   \<open>I \<Turnstile>a C \<longleftrightarrow> (lits_of_l I) \<Turnstile> C\<close>
 
+(* S2MS modif *)
 definition true_annots :: \<open>('a, 'm) ann_lits \<Rightarrow> 'a clauses \<Rightarrow> bool\<close> (infix "\<Turnstile>as" 49) where
-  \<open>I \<Turnstile>as CC \<longleftrightarrow> (\<forall>C \<in> CC. I \<Turnstile>a C)\<close>
+  \<open>I \<Turnstile>as CC \<longleftrightarrow> (\<forall>C \<in># CC. I \<Turnstile>a C)\<close>
 
 lemma true_annot_empty_model[simp]:
   \<open>\<not>[] \<Turnstile>a \<psi>\<close>
   unfolding true_annot_def true_cls_def by simp
 
+(* S2MS modif *)
 lemma true_annot_empty[simp]:
   \<open>\<not>I \<Turnstile>a {#}\<close>
   unfolding true_annot_def true_cls_def by simp
 
+(* S2MS modif *)
 lemma empty_true_annots_def[iff]:
-  \<open>[] \<Turnstile>as \<psi> \<longleftrightarrow> \<psi> = {}\<close>
+  \<open>[] \<Turnstile>as \<psi> \<longleftrightarrow> \<psi> = {#}\<close>
   unfolding true_annots_def by auto
 
+(* S2MS modif *)
 lemma true_annots_empty[simp]:
-  \<open>I \<Turnstile>as {}\<close>
+  \<open>I \<Turnstile>as {#}\<close>
   unfolding true_annots_def by auto
 
+(* S2MS modif *)
 lemma true_annots_single_true_annot[iff]:
-  \<open>I \<Turnstile>as {C} \<longleftrightarrow> I \<Turnstile>a C\<close>
+  \<open>I \<Turnstile>as {#C#} \<longleftrightarrow> I \<Turnstile>a C\<close>
   unfolding true_annots_def by auto
 
 lemma true_annot_insert_l[simp]:
@@ -118,12 +127,14 @@ lemma true_annots_insert_l [simp]:
   \<open>M \<Turnstile>as A \<Longrightarrow> L # M \<Turnstile>as A\<close>
   unfolding true_annots_def by auto
 
+(* S2MS modif *)
 lemma true_annots_union[iff]:
-  \<open>M \<Turnstile>as A \<union> B \<longleftrightarrow> (M \<Turnstile>as A \<and> M \<Turnstile>as B)\<close>
+  \<open>M \<Turnstile>as A \<union># B \<longleftrightarrow> (M \<Turnstile>as A \<and> M \<Turnstile>as B)\<close>
   unfolding true_annots_def by auto
 
+(* S2MS modif *)
 lemma true_annots_insert[iff]:
-  \<open>M \<Turnstile>as insert a A \<longleftrightarrow> (M \<Turnstile>a a \<and> M \<Turnstile>as A)\<close>
+  \<open>M \<Turnstile>as {#a#} \<union># A \<longleftrightarrow> (M \<Turnstile>a a \<and> M \<Turnstile>as A)\<close>
   unfolding true_annots_def by auto
 
 lemma true_annot_append_l:
@@ -139,6 +150,7 @@ lemma true_annots_true_cls:
   \<open>I \<Turnstile>as CC \<longleftrightarrow> lits_of_l I \<Turnstile>s CC\<close>
   unfolding true_annots_def Ball_def true_annot_def true_clss_def by auto
 
+(* S2MS modif *)
 lemma in_lit_of_true_annot:
   \<open>a \<in> lits_of_l M \<longleftrightarrow> M \<Turnstile>a {#a#}\<close>
   unfolding true_annot_def lits_of_def by auto
@@ -147,21 +159,23 @@ lemma true_annot_lit_of_notin_skip:
   \<open>L # M \<Turnstile>a A \<Longrightarrow> lit_of L \<notin># A \<Longrightarrow> M \<Turnstile>a A\<close>
   unfolding true_annot_def true_cls_def by auto
 
+(* S2MS modif *)
 lemma true_clss_singleton_lit_of_implies_incl:
-  \<open>I \<Turnstile>s unmark_l MLs \<Longrightarrow> lits_of_l MLs \<subseteq> I\<close>
+  \<open>I \<Turnstile>s unmark_m MLs \<Longrightarrow> lits_of_l MLs \<subseteq> I\<close>
   unfolding true_clss_def lits_of_def by auto
 
+(* S2MS modif *)
 lemma true_annot_true_clss_cls:
-  \<open>MLs \<Turnstile>a \<psi> \<Longrightarrow> set (map unmark MLs) \<Turnstile>p \<psi>\<close>
-  unfolding true_annot_def true_clss_cls_def true_cls_def
-  by (auto dest: true_clss_singleton_lit_of_implies_incl)
+  \<open>MLs \<Turnstile>a \<psi> \<Longrightarrow> mset (map unmark MLs) \<Turnstile>p \<psi>\<close>
+  unfolding true_annot_def true_clss_cls_def true_cls_def    
+  using true_clss_singleton_lit_of_implies_incl by fastforce
 
+(* S2MS modif *)
 lemma true_annots_true_clss_cls:
-  \<open>MLs \<Turnstile>as \<psi> \<Longrightarrow> set (map unmark MLs) \<Turnstile>ps \<psi>\<close>
-  by (auto
-    dest: true_clss_singleton_lit_of_implies_incl
-    simp add: true_clss_def true_annots_def true_annot_def lits_of_def true_cls_def
-    true_clss_clss_def)
+  \<open>MLs \<Turnstile>as \<psi> \<Longrightarrow> mset (map unmark MLs) \<Turnstile>ps \<psi>\<close>
+  unfolding true_annots_def true_clss_clss_def true_clss_def
+  by (metis (mono_tags, lifting) mset_map true_annot_def true_cls_mono_set_mset_l true_clss_def 
+      true_clss_singleton_lit_of_implies_incl)
 
 lemma true_annots_decided_true_cls[iff]:
   \<open>map Decided M \<Turnstile>as N \<longleftrightarrow> set M \<Turnstile>s N\<close>
@@ -174,7 +188,7 @@ lemma true_annot_singleton[iff]: \<open>M \<Turnstile>a {#L#} \<longleftrightarr
   unfolding true_annot_def lits_of_def by auto
 
 lemma true_annots_true_clss_clss:
-  \<open>A \<Turnstile>as \<Psi> \<Longrightarrow> unmark_l A \<Turnstile>ps \<Psi>\<close>
+  \<open>A \<Turnstile>as \<Psi> \<Longrightarrow> unmark_m A \<Turnstile>ps \<Psi>\<close>
   unfolding true_clss_clss_def true_annots_def true_clss_def
   by (auto dest!: true_clss_singleton_lit_of_implies_incl
     simp: lits_of_def true_annot_def true_cls_def)
@@ -600,16 +614,16 @@ next
 qed
 
 
-
-definition all_decomposition_implies :: \<open>'a clause set
+(* S2MS modif *)
+definition all_decomposition_implies :: \<open>'a clause multiset
   \<Rightarrow> (('a, 'm) ann_lits \<times> ('a, 'm) ann_lits) list \<Rightarrow> bool\<close> where
- \<open>all_decomposition_implies N S \<longleftrightarrow> (\<forall>(Ls, seen) \<in> set S. unmark_l Ls \<union> N \<Turnstile>ps unmark_l seen)\<close>
+ \<open>all_decomposition_implies N S \<longleftrightarrow> (\<forall>(Ls, seen) \<in> set S. unmark_m Ls \<union># N \<Turnstile>ps unmark_m seen)\<close>
 
 lemma all_decomposition_implies_empty[iff]:
   \<open>all_decomposition_implies N []\<close> unfolding all_decomposition_implies_def by auto
 
 lemma all_decomposition_implies_single[iff]:
-  \<open>all_decomposition_implies N [(Ls, seen)] \<longleftrightarrow> unmark_l Ls \<union> N \<Turnstile>ps unmark_l seen\<close>
+  \<open>all_decomposition_implies N [(Ls, seen)] \<longleftrightarrow> unmark_m Ls \<union># N \<Turnstile>ps unmark_m seen\<close>
   unfolding all_decomposition_implies_def by auto
 
 lemma all_decomposition_implies_append[iff]:
@@ -624,7 +638,7 @@ lemma all_decomposition_implies_cons_pair[iff]:
 
 lemma all_decomposition_implies_cons_single[iff]:
   \<open>all_decomposition_implies N (l # S') \<longleftrightarrow>
-    (unmark_l (fst l) \<union> N \<Turnstile>ps unmark_l (snd l) \<and>
+    (unmark_m (fst l) \<union># N \<Turnstile>ps unmark_m (snd l) \<and>
       all_decomposition_implies N S')\<close>
   unfolding all_decomposition_implies_def by auto
 

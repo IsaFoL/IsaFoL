@@ -1446,17 +1446,15 @@ proof -
         using assms unfolding total_over_mm_def total_over_set_def atms_of_mms_def
         by (smt UN_iff UnCI atm_imp_pos_or_neg_lit atms_of_s_def in_atms_of_s_decomp literal.sel(1) 
         literal.sel(2) mem_Collect_eq set_image_mset)
-      ultimately have ?thesis by auto
+      ultimately show ?thesis by auto
    qed
 qed
-
-  
+ 
 lemma consistent_true_clss_ext_satisfiable:
   assumes "consistent_interp I" and "I \<Turnstile>sext A"
   shows "satisfiable A"
-  using assms total_over_mm_consistent_extension
-  by (metis satisfiable_carac subset_mset.sup_bot_left sup.cobounded1 total_over_mm_empty true_clss_ext_def)
-
+  using assms total_over_mm_consistent_extension[of I \<open>{#}\<close> A]
+  by (auto simp: true_clss_ext_def)
 
 lemma not_consistent_true_clss_ext:
   assumes "\<not>consistent_interp I"
