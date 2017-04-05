@@ -704,26 +704,29 @@ definition
   
 theorem alt_consistency:
   assumes conc: "consistency C"
-  shows "alt_consistency (mk_alt_consistency C)"
-  using conc
-  unfolding consistency_def alt_consistency_def mk_alt_consistency_def
-proof (clarify, elim allE impE, simp, simp, simp, elim conj_forward)
+  shows "alt_consistency (mk_alt_consistency C)" (is "alt_consistency ?C'")
+  unfolding alt_consistency_def
+proof (intro allI impI conjI)
   fix f :: "'a \<Rightarrow> 'a" and S :: "('a, 'b) form set"
     
-  assume sc: "psubst f ` S \<in> C" (is "?S' \<in> C") 
-    
-  show "\<forall>p ts. \<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S)"
-  proof (intro allI, simp, intro impI)
-    fix p ts
-    assume "Pred p ts \<in> S"
+  assume "S \<in> mk_alt_consistency C"
+  then obtain f where sc: "psubst f ` S \<in> C" (is "?S' \<in> C")
+    unfolding mk_alt_consistency_def by blast
+      
+  fix p ts
+  show "\<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S)"
+  proof
+    assume *: "Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S"
     then have "psubst f (Pred p ts) \<in> ?S'"
       by blast
     then have "Pred p (psubstts f ts) \<in> ?S'"
       by simp
     then have "Neg (Pred p (psubstts f ts)) \<notin> ?S'"
       using conc sc by (simp add: consistency_def)
-    then show "Neg (Pred p ts) \<notin> S"
+    then have "Neg (Pred p ts) \<notin> S"
       by force
+    then show False
+      using * by blast
   qed
     
   have "FF \<notin> ?S'" and "Neg TT \<notin> ?S'"
@@ -731,128 +734,90 @@ proof (clarify, elim allE impE, simp, simp, simp, elim conj_forward)
   then show "FF \<notin> S" and "Neg TT \<notin> S"
     by (force, force)
       
-  show "\<forall>Z. Neg (Neg Z) \<in> S \<longrightarrow> S \<union> {Z} \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-  proof (intro allI impI)
-    fix Z
+  { fix Z
     assume "Neg (Neg Z) \<in> S"
     then have "psubst f (Neg (Neg Z)) \<in> ?S'"
       by blast
     then have "?S' \<union> {psubst f Z} \<in> C"
       using conc sc by (simp add: consistency_def)
-    then show "S \<union> {Z} \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-      by auto
-  qed
+    then show "S \<union> {Z} \<in> ?C'"
+      unfolding mk_alt_consistency_def by auto }
     
-  show "\<forall>A B. (And A B) \<in> S \<longrightarrow> S \<union> {A, B} \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-  proof (intro allI impI)
-    fix A B
+  { fix A B
     assume "And A B \<in> S"
     then have "psubst f (And A B) \<in> ?S'"
       by blast
     then have "?S' \<union> {psubst f A, psubst f B} \<in> C"
       using conc sc by (simp add: consistency_def)
-    then show "S \<union> {A, B} \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-      by auto
-  qed
+    then show "S \<union> {A, B} \<in> ?C'"
+      unfolding mk_alt_consistency_def by auto }
     
-  show "\<forall>A B. (Neg (Or A B)) \<in> S \<longrightarrow> S \<union> {Neg A, Neg B} \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-  proof (intro allI impI)
-    fix A B
+  { fix A B
     assume "Neg (Or A B) \<in> S"
     then have "psubst f (Neg (Or A B)) \<in> ?S'"
       by blast
     then have "?S' \<union> {Neg (psubst f A), Neg (psubst f B)} \<in> C"
       using conc sc by (simp add: consistency_def)
-    then show "S \<union> {Neg A, Neg B} \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-      by auto
-  qed
+    then show "S \<union> {Neg A, Neg B} \<in> ?C'"
+      unfolding mk_alt_consistency_def by auto }
     
-  show "\<forall>A B. (Or A B) \<in> S \<longrightarrow> S \<union> {A} \<in> {S. \<exists>f. psubst f ` S \<in> C}
-                             \<or> S \<union> {B} \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-  proof (intro allI impI)
-    fix A B
-    assume "Or A B \<in> S"
-    then have "psubst f (Or A B) \<in> ?S'"
-      by blast
-    then have "?S' \<union> {psubst f A} \<in> C \<or> ?S' \<union> {psubst f B} \<in> C"
-      using conc sc by (simp add: consistency_def)
-    then show "S \<union> {A} \<in> {S. \<exists>f. psubst f ` S \<in> C} \<or>
-               S \<union> {B} \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-      by auto
-  qed
-    
-  show "\<forall>A B. (Neg (And A B)) \<in> S \<longrightarrow> S \<union> {Neg A} \<in> {S. \<exists>f. psubst f ` S \<in> C}
-                                    \<or> S \<union> {Neg B} \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-  proof (intro allI impI)
-    fix A B
-    assume "Neg (And A B) \<in> S"
-    then have "psubst f (Neg (And A B)) \<in> ?S'"
-      by blast
-    then have "?S' \<union> {Neg (psubst f A)} \<in> C \<or> ?S' \<union> {Neg (psubst f B)} \<in> C"
-      using conc sc by (simp add: consistency_def)
-    then show "S \<union> {Neg A} \<in> {S. \<exists>f. psubst f ` S \<in> C} \<or>
-               S \<union> {Neg B} \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-      by auto
-  qed
-    
-  show "\<forall>A B. (Impl A B) \<in> S \<longrightarrow> S \<union> {Neg A} \<in> {S. \<exists>f. psubst f ` S \<in> C}
-                               \<or> S \<union> {B} \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-  proof (intro allI impI)
-    fix A B
-    assume "Impl A B \<in> S"
-    then have "psubst f (Impl A B) \<in> ?S'"
-      by blast
-    then have "?S' \<union> {Neg (psubst f A)} \<in> C \<or> ?S' \<union> {psubst f B} \<in> C"
-      using conc sc by (simp add: consistency_def)
-    then show "S \<union> {Neg A} \<in> {S. \<exists>f. psubst f ` S \<in> C} \<or>
-               S \<union> {B} \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-      by auto
-  qed
-    
-  show "\<forall>A B. (Neg (Impl A B)) \<in> S \<longrightarrow> S \<union> {A, Neg B} \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-  proof (intro allI impI)
-    fix A B
+  { fix A B
     assume "Neg (Impl A B) \<in> S"
     then have "psubst f (Neg (Impl A B)) \<in> ?S'"
       by blast
     then have "?S' \<union> {psubst f A, Neg (psubst f B)} \<in> C"
       using conc sc by (simp add: consistency_def)
-    then show "S \<union> {A, Neg B} \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-      by auto
-  qed
+    then show "S \<union> {A, Neg B} \<in> ?C'"
+      unfolding mk_alt_consistency_def by auto }
     
-  show "\<forall>P t. closedt 0 t \<longrightarrow> Forall P \<in> S \<longrightarrow>
-              S \<union> {P[t/0]} \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-  proof (intro allI impI)
-    fix P and t :: "'a term"
-    assume "closedt 0 t" and "Forall P \<in> S"
-    moreover have "psubst f (Forall P) \<in> ?S'"
-      using calculation by blast
-    ultimately have "?S' \<union> {psubst f P[psubstt f t/0]} \<in> C"
+  { fix A B
+    assume "Or A B \<in> S"
+    then have "psubst f (Or A B) \<in> ?S'"
+      by blast
+    then have "?S' \<union> {psubst f A} \<in> C \<or> ?S' \<union> {psubst f B} \<in> C"
       using conc sc by (simp add: consistency_def)
-    then show "S \<union> {P[t/0]} \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-      by auto
-  qed
+    then show "S \<union> {A} \<in> ?C' \<or> S \<union> {B} \<in> ?C'"
+      unfolding mk_alt_consistency_def by auto }
     
-  show "\<forall>P t. closedt 0 t \<longrightarrow> Neg (Exists P) \<in> S \<longrightarrow>
-              S \<union> {Neg (P[t/0])} \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-  proof (intro allI impI)  
-    fix P and t :: "'a term"
+  { fix A B
+    assume "Neg (And A B) \<in> S"
+    then have "psubst f (Neg (And A B)) \<in> ?S'"
+      by blast
+    then have "?S' \<union> {Neg (psubst f A)} \<in> C \<or> ?S' \<union> {Neg (psubst f B)} \<in> C"
+      using conc sc by (simp add: consistency_def)
+    then show "S \<union> {Neg A} \<in> ?C' \<or> S \<union> {Neg B} \<in> ?C'"
+      unfolding mk_alt_consistency_def by auto }
+    
+  { fix A B
+    assume "Impl A B \<in> S"
+    then have "psubst f (Impl A B) \<in> ?S'"
+      by blast
+    then have "?S' \<union> {Neg (psubst f A)} \<in> C \<or> ?S' \<union> {psubst f B} \<in> C"
+      using conc sc by (simp add: consistency_def)
+    then show "S \<union> {Neg A} \<in> ?C' \<or> S \<union> {B} \<in> ?C'"
+      unfolding mk_alt_consistency_def by auto }
+    
+  { fix P and t :: "'a term"
+    assume "closedt 0 t" and "Forall P \<in> S"
+    then have "psubst f (Forall P) \<in> ?S'"
+      by blast
+    then have "?S' \<union> {psubst f P[psubstt f t/0]} \<in> C"
+      using \<open>closedt 0 t\<close> conc sc by (simp add: consistency_def)
+    then show "S \<union> {P[t/0]} \<in> ?C'"
+      unfolding mk_alt_consistency_def by auto }
+    
+  { fix P and t :: "'a term"
     assume "closedt 0 t" and "Neg (Exists P) \<in> S"
     then have "psubst f (Neg (Exists P)) \<in> ?S'"
       by blast
     then have "?S' \<union> {Neg (psubst f P[psubstt f t/0])} \<in> C"
       using \<open>closedt 0 t\<close> conc sc by (simp add: consistency_def)
-    then show "S \<union> {Neg (P[t/0])} \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-      by auto
-  qed
+    then show "S \<union> {Neg (P[t/0])} \<in> ?C'"
+      unfolding mk_alt_consistency_def by auto }
     
-  show "\<forall>P x. (\<forall>a \<in> S. x \<notin> params a) \<longrightarrow> Exists P \<in> S \<longrightarrow>
-              S \<union> {P[App x []/0]} \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-  proof (intro allI impI)
-    fix P :: "('a, 'b) form" and x f'
+  { fix P :: "('a, 'b) form" and x f'
     assume "\<forall>a \<in> S. x \<notin> params a" and "Exists P \<in> S"
-    also have "psubst f (Exists P) \<in> ?S'"
+    moreover have "psubst f (Exists P) \<in> ?S'"
       using calculation by blast
     then have "\<exists>y. ?S' \<union> {psubst f P[App y []/0]} \<in> C"
       using conc sc by (simp add: consistency_def)
@@ -865,16 +830,12 @@ proof (clarify, elim allE impE, simp, simp, simp, elim conj_forward)
       using calculation by auto
     ultimately have "\<exists>f. psubst f ` S \<union> {psubst f P[App (f x) []/0]} \<in> C"
       by blast
-    then show "S \<union> {P[App x []/0]} \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-      by simp
-  qed
+    then show "S \<union> {P[App x []/0]} \<in> ?C'"
+      unfolding mk_alt_consistency_def by simp }
     
-  show "\<forall>P x. (\<forall>a \<in> S. x \<notin> params a) \<longrightarrow> Neg (Forall P) \<in> S \<longrightarrow>
-              S \<union> {Neg (P[App x []/0])} \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-  proof (intro allI impI)
-    fix P :: "('a, 'b) form" and x
+  { fix P :: "('a, 'b) form" and x
     assume "\<forall>a \<in> S. x \<notin> params a" and "Neg (Forall P) \<in> S"
-    also have "psubst f (Neg (Forall P)) \<in> ?S'"
+    moreover have "psubst f (Neg (Forall P)) \<in> ?S'"
       using calculation by blast
     then have "\<exists>y. ?S' \<union> {Neg (psubst f P[App y []/0])} \<in> C"
       using conc sc by (simp add: consistency_def)
@@ -887,9 +848,8 @@ proof (clarify, elim allE impE, simp, simp, simp, elim conj_forward)
       using calculation by auto
     ultimately have "\<exists>f. psubst f ` S \<union> {Neg (psubst f P[App (f x) []/0])} \<in> C"
       by blast
-    then show "S \<union> {Neg (P[App x []/0])} \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-      by simp
-  qed
+    then show "S \<union> {Neg (P[App x []/0])} \<in> ?C'"
+      unfolding mk_alt_consistency_def by simp }
 qed
 
 theorem mk_alt_consistency_subset: "C \<subseteq> mk_alt_consistency C"
