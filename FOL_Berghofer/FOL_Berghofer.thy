@@ -879,139 +879,140 @@ definition
 definition
   subset_closed :: "'a set set \<Rightarrow> bool" where
   "subset_closed C = (\<forall>S' \<in> C. \<forall>S. S \<subseteq> S' \<longrightarrow> S \<in> C)"
-
-theorem close_consistency: "consistency C \<Longrightarrow> consistency (close C)"
-  unfolding close_def consistency_def
-proof (intro allI impI, simp only: mem_Collect_eq,
-       elim allE impE bexE, assumption, elim conj_forward)
-  fix S x
-  assume "x \<in> C" and "S \<subseteq> x"
     
-  { assume "\<forall>p ts. \<not> (Pred p ts \<in> x \<and> Neg (Pred p ts) \<in> x)"
-    then show "\<forall>p ts. \<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S)"
+lemma subset_in_close:
+  assumes "S \<subseteq> S'"
+  shows "S' \<union> x \<in> C \<longrightarrow> S \<union> x \<in> close C"
+proof -
+  have "S' \<union> x \<in> close C \<longrightarrow> S \<union> x \<in> close C"
+    unfolding close_def using \<open>S \<subseteq> S'\<close> by blast
+  then show ?thesis unfolding close_def by blast
+qed
+
+theorem close_consistency:
+  assumes conc: "consistency C"
+  shows "consistency (close C)"
+  unfolding consistency_def
+proof (intro allI impI conjI)
+  fix S
+  assume "S \<in> close C"
+  then obtain x where "x \<in> C" and "S \<subseteq> x"
+    unfolding close_def by blast
+
+  { fix p ts
+    have "\<not> (Pred p ts \<in> x \<and> Neg (Pred p ts) \<in> x)"
+      using \<open>x \<in> C\<close> conc unfolding consistency_def by presburger
+    then show "\<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S)"
       using \<open>S \<subseteq> x\<close> by blast }
   
-  { assume "FF \<notin> x" then show "FF \<notin> S"
+  { have "FF \<notin> x"
+      using \<open>x \<in> C\<close> conc unfolding consistency_def by blast
+    then show "FF \<notin> S"
       using \<open>S \<subseteq> x\<close> by blast }
     
-  { assume "Neg TT \<notin> x" then show "Neg TT \<notin> S"
+  { have "Neg TT \<notin> x"
+      using \<open>x \<in> C\<close> conc unfolding consistency_def by blast
+    then show "Neg TT \<notin> S"
       using \<open>S \<subseteq> x\<close> by blast }
     
-  { assume "\<forall>Z. Neg (Neg Z) \<in> x \<longrightarrow> x \<union> {Z} \<in> C"
-    then show "\<forall>Z. Neg (Neg Z) \<in> S \<longrightarrow> Bex C (op \<subseteq> (S \<union> {Z}))"
-      using \<open>S \<subseteq> x\<close> by simp blast }
+  { fix Z
+    assume "Neg (Neg Z) \<in> S"
+    then have "Neg (Neg Z) \<in> x"
+      using \<open>S \<subseteq> x\<close> by blast
+    then have "x \<union> {Z} \<in> C"
+      using \<open>x \<in> C\<close> conc unfolding consistency_def by presburger
+    then show "S \<union> {Z} \<in> close C"
+      using \<open>S \<subseteq> x\<close> subset_in_close by blast }
     
-  { assume "\<forall>A B. And A B \<in> x \<longrightarrow> x \<union> {A, B} \<in> C"
-    then show "\<forall>A B. And A B \<in> S \<longrightarrow> Bex C (op \<subseteq> (S \<union> {A, B}))"
-      using \<open>S \<subseteq> x\<close> by simp blast }
+  { fix A B
+    assume "And A B \<in> S"
+    then have "And A B \<in> x"
+      using \<open>S \<subseteq> x\<close> by blast
+    then have "x \<union> {A, B} \<in> C"
+      using \<open>x \<in> C\<close> conc unfolding consistency_def by presburger
+    then show "S \<union> {A, B} \<in> close C"
+      using \<open>S \<subseteq> x\<close> subset_in_close by blast }
     
-  { assume "\<forall>A B. Neg (Or A B) \<in> x \<longrightarrow> x \<union> {Neg A, Neg B} \<in> C"
-    then show "\<forall>A B. Neg (Or A B) \<in> S \<longrightarrow> Bex C (op \<subseteq> (S \<union> {Neg A, Neg B}))"
-      using \<open>S \<subseteq> x\<close> by simp blast }
+  { fix A B
+    assume "Neg (Or A B) \<in> S"
+    then have "Neg (Or A B) \<in> x"
+      using \<open>S \<subseteq> x\<close> by blast
+    then have "x \<union> {Neg A, Neg B} \<in> C"
+      using \<open>x \<in> C\<close> conc unfolding consistency_def by presburger
+    then show "S \<union> {Neg A, Neg B} \<in> close C"
+      using \<open>S \<subseteq> x\<close> subset_in_close by blast }
+
+  { fix A B
+    assume "Or A B \<in> S"
+    then have "Or A B \<in> x"
+      using \<open>S \<subseteq> x\<close> by blast
+    then have "x \<union> {A} \<in> C \<or> x \<union> {B} \<in> C"
+      using \<open>x \<in> C\<close> conc unfolding consistency_def by presburger
+    then show "S \<union> {A} \<in> close C \<or> S \<union> {B} \<in> close C"
+      using \<open>S \<subseteq> x\<close> subset_in_close by blast }
     
-  { assume *: "\<forall>A B. Or A B \<in> x \<longrightarrow> x \<union> {A} \<in> C \<or> x \<union> {B} \<in> C"
-    show "\<forall>A B. Or A B \<in> S \<longrightarrow> Bex C (op \<subseteq> (S \<union> {A})) \<or> Bex C (op \<subseteq> (S \<union> {B}))"
-    proof (intro allI impI)
-      fix A B
-      assume "Or A B \<in> S"
-      then have "x \<union> {A} \<in> C \<or> x \<union> {B} \<in> C"
-        using * \<open>S \<subseteq> x\<close> by blast
-      then show "Bex C (op \<subseteq> (S \<union> {A})) \<or> Bex C (op \<subseteq> (S \<union> {B}))"
-      proof
-        assume "x \<union> {A} \<in> C"
-        then have "(x \<union> {A}) \<in> C \<and> (S \<union> {A}) \<subseteq> (x \<union> {A})"
-          using \<open>S \<subseteq> x\<close> \<open>x \<in> C\<close> by blast
-        then show ?thesis by blast
-      next
-        assume "x \<union> {B} \<in> C"
-        then have "(x \<union> {B}) \<in> C \<and> (S \<union> {B}) \<subseteq> (x \<union> {B})"
-          using \<open>S \<subseteq> x\<close> \<open>x \<in> C\<close> by blast
-        then show ?thesis by blast
-      qed
-    qed }
+  { fix A B
+    assume "Neg (And A B) \<in> S"
+    then have "Neg (And A B) \<in> x"
+      using \<open>S \<subseteq> x\<close> by blast
+    then have "x \<union> {Neg A} \<in> C \<or> x \<union> {Neg B} \<in> C"
+      using \<open>x \<in> C\<close> conc unfolding consistency_def by presburger
+    then show "S \<union> {Neg A} \<in> close C \<or> S \<union> {Neg B} \<in> close C"
+      using \<open>S \<subseteq> x\<close> subset_in_close by blast }
     
-  { assume *: "\<forall>A B. Neg (And A B) \<in> x \<longrightarrow> x \<union> {Neg A} \<in> C \<or> x \<union> {Neg B} \<in> C"
-    show "\<forall>A B. Neg (And A B) \<in> S \<longrightarrow> Bex C (op \<subseteq> (S \<union> {Neg A})) \<or> Bex C (op \<subseteq> (S \<union> {Neg B}))"
-    proof (intro allI impI)
-      fix A B
-      assume "Neg (And A B) \<in> S"
-      then have "x \<union> {Neg A} \<in> C \<or> x \<union> {Neg B} \<in> C"
-        using * \<open>S \<subseteq> x\<close> by blast
-      then show "Bex C (op \<subseteq> (S \<union> {Neg A})) \<or> Bex C (op \<subseteq> (S \<union> {Neg B}))"
-      proof
-        assume "x \<union> {Neg A} \<in> C"
-        then have "(x \<union> {Neg A}) \<in> C \<and> (S \<union> {Neg A}) \<subseteq> (x \<union> {Neg A})"
-          using \<open>S \<subseteq> x\<close> \<open>x \<in> C\<close> by blast
-        then show ?thesis by blast
-      next
-        assume "x \<union> {Neg B} \<in> C"
-        then have "(x \<union> {Neg B}) \<in> C \<and> (S \<union> {Neg B}) \<subseteq> (x \<union> {Neg B})"
-          using \<open>S \<subseteq> x\<close> \<open>x \<in> C\<close> by blast
-        then show ?thesis by blast
-      qed
-    qed }
+  { fix A B
+    assume "Impl A B \<in> S"
+    then have "Impl A B \<in> x"
+      using \<open>S \<subseteq> x\<close> by blast
+    then have "x \<union> {Neg A} \<in> C \<or> x \<union> {B} \<in> C"
+      using \<open>x \<in> C\<close> conc unfolding consistency_def by presburger
+    then show "S \<union> {Neg A} \<in> close C \<or> S \<union> {B} \<in> close C"
+      using \<open>S \<subseteq> x\<close> subset_in_close by blast }
     
-  { assume *: "\<forall>A B. Impl A B \<in> x \<longrightarrow> x \<union> {Neg A} \<in> C \<or> x \<union> {B} \<in> C"
-    show "\<forall>A B. Impl A B \<in> S \<longrightarrow> Bex C (op \<subseteq> (S \<union> {Neg A})) \<or> Bex C (op \<subseteq> (S \<union> {B}))"
-    proof (intro allI impI)
-      fix A B
-      assume "Impl A B \<in> S"
-      then have "x \<union> {Neg A} \<in> C \<or> x \<union> {B} \<in> C"
-        using * \<open>S \<subseteq> x\<close> by blast
-      then show "Bex C (op \<subseteq> (S \<union> {Neg A})) \<or> Bex C (op \<subseteq> (S \<union> {B}))"
-      proof
-        assume "x \<union> {Neg A} \<in> C"
-        then have "(x \<union> {Neg A}) \<in> C \<and> (S \<union> {Neg A}) \<subseteq> (x \<union> {Neg A})"
-          using \<open>S \<subseteq> x\<close> \<open>x \<in> C\<close> by blast
-        then show ?thesis by blast
-      next
-        assume "x \<union> {B} \<in> C"
-        then have "(x \<union> {B}) \<in> C \<and> (S \<union> {B}) \<subseteq> (x \<union> {B})"
-          using \<open>S \<subseteq> x\<close> \<open>x \<in> C\<close> by blast
-        then show ?thesis by blast
-      qed
-    qed }
+  { fix A B
+    assume "Neg (Impl A B) \<in> S"
+    then have "Neg (Impl A B) \<in> x"
+      using \<open>S \<subseteq> x\<close> by blast
+    then have "x \<union> {A, Neg B} \<in> C"
+      using \<open>x \<in> C\<close> conc unfolding consistency_def by blast
+    then show "S \<union> {A, Neg B} \<in> close C"
+      using \<open>S \<subseteq> x\<close> subset_in_close by blast }
     
-  { assume "\<forall>A B. Neg (Impl A B) \<in> x \<longrightarrow> x \<union> {A, Neg B} \<in> C"
-    then show "\<forall>A B. Neg (Impl A B) \<in> S \<longrightarrow> Bex C (op \<subseteq> (S \<union> {A, Neg B}))"
-      using \<open>S \<subseteq> x\<close> by simp blast }
+  { fix P and t :: "'a term"
+    assume "closedt 0 t" and "Forall P \<in> S"
+    then have "Forall P \<in> x"
+      using \<open>S \<subseteq> x\<close> by blast
+    then have "x \<union> {P[t/0]} \<in> C"
+      using \<open>closedt 0 t\<close> \<open>x \<in> C\<close> conc unfolding consistency_def by blast
+    then show "S \<union> {P[t/0]} \<in> close C"
+      using \<open>S \<subseteq> x\<close> subset_in_close by blast }
     
-  (* TODO: closedt 0 t is not needed for Forall and Neg Exists *)
-  { assume " \<forall>P t. closedt 0 t \<longrightarrow> Forall P \<in> x \<longrightarrow> x \<union> {P[t/0]} \<in> C"
-    then show "\<forall>P t. closedt 0 t \<longrightarrow> Forall P \<in> S \<longrightarrow> Bex C (op \<subseteq> (S \<union> {P[t/0]}))"
-      using \<open>S \<subseteq> x\<close> by simp blast }
+  { fix P and t :: "'a term"
+    assume "closedt 0 t" and "Neg (Exists P) \<in> S"
+    then have "Neg (Exists P) \<in> x"
+      using \<open>S \<subseteq> x\<close> by blast
+    then have "x \<union> {Neg (P[t/0])} \<in> C"
+      using \<open>closedt 0 t\<close> \<open>x \<in> C\<close> conc unfolding consistency_def by blast
+    then show "S \<union> {Neg (P[t/0])} \<in> close C"
+      using \<open>S \<subseteq> x\<close> subset_in_close by blast }
     
-  { assume " \<forall>P t. closedt 0 t \<longrightarrow> Neg (Exists P) \<in> x \<longrightarrow> x \<union> {Neg (P[t/0])} \<in> C"
-    then show "\<forall>P t. closedt 0 t \<longrightarrow> Neg (Exists P) \<in> S \<longrightarrow> Bex C (op \<subseteq> (S \<union> {Neg (P[t/0])}))"
-      using \<open>S \<subseteq> x\<close> by simp blast }
+  { fix P
+    assume "Exists P \<in> S"
+    then have "Exists P \<in> x"
+      using \<open>S \<subseteq> x\<close> by blast
+    then have "\<exists>c. x \<union> {P[App c []/0]} \<in> C"
+      using \<open>x \<in> C\<close> conc unfolding consistency_def by blast
+    then show "\<exists>c. S \<union> {P[App c []/0]} \<in> close C"
+      using \<open>S \<subseteq> x\<close> subset_in_close by blast }
     
-  { assume *: "\<forall>P. Exists P \<in> x \<longrightarrow> (\<exists>y. x \<union> {P[App y []/0]} \<in> C)"
-    then show "\<forall>P. Exists P \<in> S \<longrightarrow> (\<exists>y. Bex C (op \<subseteq> (S \<union> {P[App y []/0]})))"
-    proof (intro allI impI)
-      fix P
-      assume "Exists P \<in> S"
-      then have "Exists P \<in> x" using \<open>S \<subseteq> x\<close> by blast
-      then obtain y where "x \<union> {P[App y []/0]} \<in> C"
-        using * by blast
-      then have "Bex C (op \<subseteq> (S \<union> {P[App y []/0]}))"
-        using \<open>S \<subseteq> x\<close> by auto
-      then show "\<exists>y. Bex C (op \<subseteq> (S \<union> {P[App y []/0]}))"
-        by blast
-    qed }
-    
-  { assume *: "\<forall>P. Neg (Forall P) \<in> x \<longrightarrow> (\<exists>y. x \<union> {Neg (P[App y []/0])} \<in> C)"
-    then show "\<forall>P. Neg (Forall P) \<in> S \<longrightarrow> (\<exists>y. Bex C (op \<subseteq> (S \<union> {Neg (P[App y []/0])})))"
-    proof (intro allI impI)
-      fix P
-      assume "Neg (Forall P) \<in> S"
-      then have "Neg (Forall P) \<in> x" using \<open>S \<subseteq> x\<close> by blast
-      then obtain y where "x \<union> {Neg (P[App y []/0])} \<in> C"
-        using * by blast
-      then have "Bex C (op \<subseteq> (S \<union> {Neg (P[App y []/0])}))"
-        using \<open>S \<subseteq> x\<close> by auto
-      then show "\<exists>y. Bex C (op \<subseteq> (S \<union> {Neg (P[App y []/0])}))"
-        by blast
-    qed } 
+  { fix P
+    assume "Neg (Forall P) \<in> S"
+    then have "Neg (Forall P) \<in> x"
+      using \<open>S \<subseteq> x\<close> by blast
+    then have "\<exists>c. x \<union> {Neg (P[App c []/0])} \<in> C"
+      using \<open>x \<in> C\<close> conc unfolding consistency_def by presburger
+    then show "\<exists>c. S \<union> {Neg (P[App c []/0])} \<in> close C"
+      using \<open>S \<subseteq> x\<close> subset_in_close by blast }
 qed
 
 theorem close_closed: "subset_closed (close C)"
