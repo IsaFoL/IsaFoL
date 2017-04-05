@@ -690,9 +690,12 @@ lemma ord_resolve_lifting:
       moreover
       {
         fix L
-        assume "L \<in># D'" "L \<in># S (DAi')"
+        assume  "L \<in># D'" "L \<in># S (DAi')"
+        hence ld': "L \<cdot>l \<eta> \<in># D' \<cdot> \<eta>" "L \<cdot>l \<eta> \<in># S (DAi') \<cdot> \<eta>" by auto
+        hence "L \<cdot>l \<eta> \<in># S_M S M (DAi' \<cdot> \<eta>)"
+          using prime_clauses(6) prime_clauses(7) by auto
           (* I wrote this on that piece of paper. *)
-        have False sorry
+        hence False using ld'(1) sorry
       }
       ultimately
       have "S DAi' \<subseteq># (negs (mset Ai'))"
@@ -729,11 +732,15 @@ lemma ord_resolve_lifting:
       using a empty_subst by blast   
     moreover
     from asm have l: "length Ai = 1" by auto
-    hence "length Ai' = 1" using prime_clauses2(7)[symmetric] by auto
+    hence l': "length Ai' = 1" using prime_clauses2(7)[symmetric] by auto
     moreover
     from asm have "maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)" by auto
+    hence "maximal_in (Ai' ! 0 \<cdot>a (\<eta> \<odot> \<sigma>)) ((D' + negs (mset Ai')) \<cdot> (\<eta> \<odot> \<sigma>))" unfolding prime_clauses2(7)[symmetric] prime_clauses2(6)[symmetric]
+      using l' by auto  
+    hence "maximal_in (Ai' ! 0 \<cdot>a (\<tau> \<odot> \<phi>)) ((D' + negs (mset Ai')) \<cdot> (\<tau> \<odot> \<phi>))" unfolding prime_clauses2(7)[symmetric] prime_clauses2(6)[symmetric]
+      using \<phi>_p by auto
     hence "maximal_in (Ai' ! 0 \<cdot>a \<tau> \<cdot>a \<phi>) ((D' + negs (mset Ai')) \<cdot> \<tau> \<cdot> \<phi>)" 
-      using  prime_clauses2(3) l \<phi>_p unfolding prime_clauses2(7)[symmetric] prime_clauses2(6)[symmetric] sorry (* believable *)
+      by auto
     hence "maximal_in (Ai' ! 0 \<cdot>a \<tau>) ((D' + negs (mset Ai')) \<cdot> \<tau>)" using maximal_in_gen by blast
     ultimately show "eligible S \<tau> Ai' (D' + negs (mset Ai'))" unfolding eligible_simp by auto 
   qed
