@@ -8,15 +8,6 @@ begin
 
 section {* Miscellaneous Utilities *}
 
-text {*
-Rules for manipulating goals where both the premises and the conclusion
-contain conjunctions of similar structure.
-*}
-
-theorem conjE'': "(\<forall>x. P x \<longrightarrow> Q x \<and> R x) \<Longrightarrow>
-  ((\<forall>x. P x \<longrightarrow> Q x) \<Longrightarrow> Q') \<Longrightarrow> ((\<forall>x. P x \<longrightarrow> R x) \<Longrightarrow> R') \<Longrightarrow> Q' \<and> R'"
-  by iprover
-
 text {* Some facts about (in)finite sets *}
 
 theorem set_inter_compl_diff [simp]: "- A \<inter> B = B - A" by blast
