@@ -1027,22 +1027,23 @@ corresponding alternative consistency property:
 *}
 
 theorem mk_alt_consistency_closed:
-  "subset_closed C \<Longrightarrow> subset_closed (mk_alt_consistency C)"
-  unfolding mk_alt_consistency_def subset_closed_def
-  proof (intro ballI allI impI)
-    fix S S' :: "('a, 'b) form set"
-    assume "\<forall>S'\<in>C. \<forall>S\<subseteq>S'. S \<in> C"
-      and "S' \<in> {S. \<exists>f. psubst f ` S \<in> C}"
-      and "S \<subseteq> S'"
-    then obtain f :: "'a \<Rightarrow> 'a" where
-      *: "psubst f ` S' \<in> C" by blast
-    
-    have "psubst f ` S \<subseteq> psubst f ` S'" using \<open>S \<subseteq> S'\<close> by blast
-    also have "psubst f ` S' \<in> C" using * by blast
-    moreover note \<open>\<forall>S'\<in>C. \<forall>S\<subseteq>S'. S \<in> C\<close> and \<open>S \<subseteq> S'\<close>
-    ultimately have "psubst f ` S \<in> C" by blast
-    then show "S \<in> {S. \<exists>f. psubst f ` S \<in> C}" by blast
-  qed
+  assumes "subset_closed C"
+  shows "subset_closed (mk_alt_consistency C)"
+  unfolding subset_closed_def mk_alt_consistency_def
+proof (intro ballI allI impI)
+  fix S S' :: "('a, 'b) form set"
+  assume "S \<subseteq> S'" and "S' \<in> {S. \<exists>f. psubst f ` S \<in> C}"
+  then obtain f where *: "psubst f ` S' \<in> C"
+    by blast
+  moreover have "psubst f ` S \<subseteq> psubst f ` S'"
+    using \<open>S \<subseteq> S'\<close> by blast
+  moreover have "\<forall>S'\<in>C. \<forall>S\<subseteq>S'. S \<in> C"
+    using \<open>subset_closed C\<close> unfolding subset_closed_def by blast
+  ultimately have "psubst f ` S \<in> C"
+    by blast
+  then show "S \<in> {S. \<exists>f. psubst f ` S \<in> C}"
+    by blast
+qed
 
 subsection {* Finite character *}
 
