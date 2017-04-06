@@ -20,6 +20,9 @@ datatype ('v, 'w, 'mark) annotated_lit =
 type_synonym ('v, 'w, 'mark) annotated_lits = \<open>('v, 'w, 'mark) annotated_lit list\<close>
 type_synonym ('v, 'mark) ann_lit = \<open>('v literal, 'v literal, 'mark) annotated_lit\<close>
 
+lemma Decided_is_decided:
+  \<open>(\<exists>L. u = Decided L) \<longleftrightarrow> (is_decided u)\<close> by (simp add: is_decided_def)
+  
 lemma ann_lit_list_induct[case_names Nil Decided Propagated]:
   assumes
     \<open>P []\<close> and
@@ -620,6 +623,45 @@ next
   then show ?case by (cases \<open>(get_all_ann_decomposition M)\<close>) auto
 qed
 
+(* S2MS *)
+lemma is_decided_in_set:
+  \<open>{u |u. is_decided u \<and> (u = Decided L \<or> u \<in> set M)} = 
+    {Decided L} \<union> {u |u. is_decided u \<and> u \<in> set M}\<close> by auto
+  
+(* S2MS *)
+lemma add_mset_both_side_of_union:
+  assumes \<open>a \<notin># A\<close> and \<open>a \<notin># B\<close>
+  shows \<open>add_mset a A \<union># B = A \<union># add_mset a B\<close> using assms by simp
+  
+(* S2MS *)
+lemma get_all_ann_decomposition_snd_mset_union:
+  assumes \<open>distinct M\<close>
+  shows \<open>mset M = \<Union>#image_mset mset (image_mset snd (mset (get_all_ann_decomposition M))) \<union>#
+         mset_set {L |L. is_decided L \<and> L \<in> set M}\<close>
+  (is \<open>?M M = ?U M \<union># ?Ls M\<close>)
+proof (induct M rule: ann_lit_list_induct)
+  case Nil
+  then show ?case by simp
+next
+  case (Decided L M') note IH = this(1)
+  then have \<open>?Ls (Decided L # M') = mset_set ({Decided L} \<union> {L |L. is_decided L \<and> L \<in> set M'})\<close> 
+    using arg_cong[OF is_decided_in_set[of L M']] by auto
+  moreover have \<open>?U (Decided L # M') = ?U M'\<close> by auto
+  moreover have \<open>Decided L \<notin># ?U M'\<close> using assms by auto
+  moreover have \<open>Decided L \<notin># ?Ls M'\<close> using assms by by auto
+  moreover have \<open>?M M' = ?U M' \<union># ?Ls M'\<close> using IH by auto
+  ultimately show ?case by auto
+next
+  case (Propagated L m M)
+  then show ?case 
+  proof (cases \<open>(get_all_ann_decomposition M)\<close>)
+    case Nil
+    then show ?thesis by auto
+  next
+    case (Cons a list)
+    then show ?thesis by auto
+  qed 
+qed
 
 (* S2MS modif *)
 definition all_decomposition_implies :: \<open>'a clause multiset
@@ -724,7 +766,7 @@ next
 
         have LSM: \<open>seen1 @ Ls1 = M'\<close> using get_all_ann_decomposition_decomp[of M'] Ls1 by auto
         have M': \<open>mset M' = ?d \<union># mset_set {L |L. is_decided L \<and> L \<in> set M'}\<close>
-          using get_all_ann_decomposition_snd_union by auto
+          using get_all_ann_decomposition_snd_mset_union by auto
 
         {
           assume \<open>Ls0 \<noteq> []\<close>
@@ -806,18 +848,25 @@ subsection \<open>Negation of a Clause\<close>
 text \<open>
   We define the negation of a @{typ \<open>'a clause\<close>}: it converts a single clause to a set of clauses,
   where each clause is a single literal (whose negation is in the original clause).\<close>
+(* S2MS modif *)
 definition CNot :: \<open>'v clause \<Rightarrow> 'v clauses\<close> where
-\<open>CNot \<psi> = { {#-L#} | L. L \<in># \<psi> }\<close>
+\<open>CNot \<psi> = mset_set { {#-L#} | L. L \<in># \<psi> }\<close>
 
+(* S2MS modif *)
 lemma in_CNot_uminus[iff]:
-  shows \<open>{#L#} \<in> CNot \<psi> \<longleftrightarrow> -L \<in># \<psi>\<close>
+  shows \<open>{#L#} \<in># CNot \<psi> \<longleftrightarrow> -L \<in># \<psi>\<close>
   unfolding CNot_def by force
 
-lemma
-  shows
-    CNot_add_mset[simp]: \<open>CNot (add_mset L \<psi>) = insert {#-L#} (CNot \<psi>)\<close> and
-    CNot_empty[simp]: \<open>CNot {#} = {}\<close> and
-    CNot_plus[simp]: \<open>CNot (A + B) = CNot A \<union> CNot B\<close>
+(* S2MS modif *)
+lemma CNot_add_mset[simp]: \<open>CNot (add_mset L \<psi>) = {#{#-L#}#} \<union># (CNot \<psi>)\<close>
+unfolding CNot_def by auto    
+    
+(* S2MS modif *)
+lemma CNot_empty[simp]: \<open>CNot {#} = {#}\<close> 
+  unfolding CNot_def by auto
+
+(* S2MS modif *)
+lemma CNot_plus[simp]: \<open>CNot (A + B) = CNot A \<union># CNot B\<close>
   unfolding CNot_def by auto
 
 lemma CNot_eq_empty[iff]:
