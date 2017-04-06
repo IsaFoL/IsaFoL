@@ -204,6 +204,11 @@ lemma lit_of_hnr[sepref_fr_rules]:
       simp: hoare_triple_def snga_assn_def Let_def new_addrs_def relH_def in_range.simps mod_emp)
   done
 
+text \<open>This lemma is present in Isabelle repository:\<close>
+lemma (in semidom_divide) dvd_div_eq_iff:
+  "c dvd a \<Longrightarrow> c dvd b \<Longrightarrow> a div c = b div c \<longleftrightarrow> a = b"
+  by (elim dvdE, cases "c = 0") simp_all
+
 lemma op_eq_op_nat_lit_eq[sepref_fr_rules]:
   \<open>(uncurry (return oo (op =)), uncurry (RETURN oo op_nat_lit_eq)) \<in>
     (pure unat_lit_rel)\<^sup>k *\<^sub>a (pure unat_lit_rel)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
@@ -223,7 +228,6 @@ qed
 
 text \<open>TODO Move to declaration\<close>
 declare op_eq_uint32_nat[sepref_fr_rules]
-
 
 sepref_definition valued_impl' is \<open>uncurry valued_impl\<close>
   :: \<open>pair_nat_ann_lits_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn\<close>

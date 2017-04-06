@@ -40,7 +40,7 @@ proof -
 qed
 
 instance uint32 :: heap
-  by standard (auto simp: inj_def exI[of _ nat_of_uint32])
+  by standard (auto simp: inj_on_def exI[of _ nat_of_uint32])
 
 instantiation uint32 :: hashable
 begin
