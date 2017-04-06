@@ -2,7 +2,9 @@
 *)
 
 theory FOL_Berghofer
-imports Main
+  imports
+    Main
+    "~~/src/HOL/Library/Countable"
 begin
 
 
@@ -1352,7 +1354,7 @@ qed
 
 theorem finite_char: "finite_char (mk_finite_char C)"
   unfolding finite_char_def mk_finite_char_def by blast
-
+    
 theorem finite_char_closed: "finite_char C \<Longrightarrow> subset_closed C"
   unfolding finite_char_def subset_closed_def
 proof (intro ballI allI impI)
@@ -1621,10 +1623,20 @@ definition
   undiag_form' :: "(nat, nat) form \<Rightarrow> nat" where
   "undiag_form' = undiag_form (\<lambda>n. n) (\<lambda>n. n)"
 
-theorem diag_undiag_form' [simp]: "diag_form' (undiag_form' f) = f"
+theorem diag_undiag_form': "diag_form' (undiag_form' f) = f"
   by (simp add: diag_form'_def undiag_form'_def)
 
 
+subsection {* Enumerating datatypes via countable *}
+
+instantiation "term" :: (countable) countable begin
+instance by countable_datatype
+end
+  
+instantiation form :: (countable, countable) countable begin
+instance by countable_datatype
+end
+    
 subsection {* Extension to maximal consistent sets *}
 
 text {*
@@ -2350,15 +2362,15 @@ theorem model_existence:
     and "p \<in> S"
     and "closed 0 p"
   shows "eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> Extend S
-        (mk_finite_char (mk_alt_consistency (close C))) diag_form') p"
+        (mk_finite_char (mk_alt_consistency (close C))) from_nat) p"
 proof (rule hintikka_model [THEN conjunct1, THEN mp, THEN mp])
   have "finite_char (mk_finite_char (mk_alt_consistency (close C)))"
     by (simp add: finite_char)
   moreover have "closed 0 p \<Longrightarrow> infinite (- (\<Union>p\<in>S. params p))"
     using \<open>infinite (- (\<Union>p \<in> S. params p))\<close> by blast
-  moreover have "\<forall>y. y = diag_form' (undiag_form' y)"
+  moreover have "\<forall>y. y = from_nat (to_nat y)"
     by simp
-  then have "\<forall>y. \<exists>n. y = diag_form' n"
+  then have "\<forall>y. \<exists>n. y = from_nat n"
     by blast
   moreover have "alt_consistency (mk_finite_char (mk_alt_consistency (close C)))"
     using alt_consistency close_closed close_consistency
@@ -2370,10 +2382,10 @@ proof (rule hintikka_model [THEN conjunct1, THEN mp, THEN mp])
     using mk_alt_consistency_subset by blast
   then have "S \<in> mk_finite_char (mk_alt_consistency (close C))"
     using close_closed finite_char_subset mk_alt_consistency_closed by blast
-  ultimately show "hintikka (Extend S (mk_finite_char (mk_alt_consistency (close C))) diag_form')"
+  ultimately show "hintikka (Extend S (mk_finite_char (mk_alt_consistency (close C))) from_nat)"
     using extend_hintikka \<open>infinite (- (\<Union>p \<in> S. params p))\<close> by blast
 next
-  show "p \<in> Extend S (mk_finite_char (mk_alt_consistency (close C))) diag_form'"
+  show "p \<in> Extend S (mk_finite_char (mk_alt_consistency (close C))) from_nat"
     using Extend_subset \<open>p \<in> S\<close> by blast
 next
   show "closed 0 p"
@@ -2763,7 +2775,7 @@ proof (rule Class, rule ccontr)
   let ?C = "{set (G :: (nat, nat) form list) | G. \<not> G \<turnstile> FF}"
   let ?f = HApp
   let ?g = "(\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> Extend ?S
-              (mk_finite_char (mk_alt_consistency (close ?C))) diag_form')"
+              (mk_finite_char (mk_alt_consistency (close ?C))) from_nat)"
 
   from \<open>list_all (closed 0) ps\<close>
   have "Ball (set ps) (closed 0)"
@@ -2782,7 +2794,7 @@ proof (rule Class, rule ccontr)
     moreover note \<open>closed 0 p\<close> \<open>Ball (set ps) (closed 0)\<close> \<open>x \<in> ?S\<close>
     then have \<open>closed 0 x\<close> by auto
     ultimately show "eval e ?f ?g x"
-      using model_existence by simp
+      using model_existence by blast
   qed
   moreover have "eval e ?f ?g (Neg p)"
     using calculation by simp 
@@ -3049,7 +3061,7 @@ theorem loewenheim_skolem: "\<forall>p\<in>S. eval e f g p \<Longrightarrow>
       Pred a (terms_of_hterms ts) \<in> Extend (psubst (\<lambda>n. 2 * n) ` S)
         (mk_finite_char (mk_alt_consistency (close
           {S. \<not> finite (- (\<Union>p\<in>S. params p)) \<and>
-            (\<exists>f. \<forall>p\<in>S. eval e f g p)}))) diag_form') p"
+            (\<exists>f. \<forall>p\<in>S. eval e f g p)}))) from_nat) p"
   (is "\<forall>_\<in>_. _ _ _ _ _ \<Longrightarrow> \<forall>_\<in>_. _ _ _ \<longrightarrow> eval _ _ ?g _")
 proof (intro ballI impI)
   fix p
