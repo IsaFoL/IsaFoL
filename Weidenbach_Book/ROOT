@@ -141,6 +141,7 @@ session "Two_Watched_Literals" (Weidenbach_Book) = "CDCL_Base"  +
     CDCL_Two_Watched_Literals_List_Watched_Code_Common
     CDCL_Two_Watched_Literals_List_Watched_Trail_Code
     CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code
+    CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code_UInt32
   document_files
     "root.tex"
     "biblio.bib"
@@ -225,15 +226,8 @@ session "Full" (Weidenbach_Book) = "Refine_Imperative_HOL"  +
     CDCL_Two_Watched_Literals_List_Watched_Code_Common
     CDCL_Two_Watched_Literals_List_Watched_Trail_Code
     CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code
+    CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code_UInt32
     Weidenbach_Book
   document_files
     "root.tex"
     "biblio.bib"
-
-session "CDCL_B" (Weidenbach_Book) = "CDCL_Base"  +
-  description \<open>This session contains Sophie Tourret's variants of Weidenbach's
-  CDCL calculus, where multiple decisions are done at the same time.
-  \<close>
-  options [document = false, document_output = "output_CDCL_B"]
-  theories[document = false, quick_and_dirty]
-    CDCL_B
