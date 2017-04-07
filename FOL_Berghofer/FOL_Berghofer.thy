@@ -1774,93 +1774,95 @@ theorem finite_params [simp]: "finite (params p)"
 theorem finite_params_extend [simp]:
   "\<not> finite (\<Inter>p \<in> S. - params p) \<Longrightarrow> \<not> finite (\<Inter>p \<in> extend S C f n. - params p)"
   by (induct n) simp_all
+    
+lemma infinite_params_available:
+  assumes "infinite (- (\<Union>p \<in> S. params p))"
+  shows "\<exists>x. x \<notin> (\<Union>p\<in>extend S C f n \<union> {f n}. params p)"
+proof -
+  let ?S' = "extend S C f n \<union> {f n}"
+
+  have "infinite (- (\<Union>x\<in>?S'. params x))"
+    using assms by simp
+  then obtain x where "x \<in> - (\<Union>x\<in>?S'. params x)"
+    using infinite_imp_nonempty by blast   
+  then have "\<forall>a\<in>?S'. x \<notin> params a"
+    by blast
+  then show ?thesis
+    by blast
+qed
+    
+lemma extend_in_C_Exists:
+  assumes "alt_consistency C"
+    and "infinite (- (\<Union>p \<in> S. params p))"
+    and "extend S C f n \<union> {f n} \<in> C" (is "?S' \<in> C")
+    and "\<exists>p. f n = Exists p"
+  shows "extend S C f (Suc n) \<in> C"
+proof -
+  obtain p where *: "f n = Exists p"
+    using \<open>\<exists>p. f n = Exists p\<close> by blast
+  have "\<exists>x. x \<notin> (\<Union>p\<in>?S'. params p)"
+    using \<open>infinite (- (\<Union>p \<in> S. params p))\<close> infinite_params_available
+    by blast
+  moreover have "Exists p \<in> ?S'"
+    using * by simp
+  then have "\<forall>x. x \<notin> (\<Union>p\<in>?S'. params p) \<longrightarrow> ?S' \<union> {p[App x []/0]} \<in> C"
+    using \<open>?S' \<in> C\<close> \<open>alt_consistency C\<close>
+    unfolding alt_consistency_def by simp
+  ultimately have "(?S' \<union> {p[App (SOME k. k \<notin> (\<Union>p \<in> ?S'. params p)) []/0]}) \<in> C"
+    by (metis (mono_tags, lifting) someI2)
+  then show ?thesis
+    using assms * by simp
+qed
+    
+lemma extend_in_C_Neg_Forall:
+  assumes "alt_consistency C"
+    and "\<not> finite (- (\<Union>p \<in> S. params p))"
+    and "extend S C f n \<union> {f n} \<in> C" (is "?S' \<in> C")
+    and "\<forall>p. f n \<noteq> Exists p"
+    and "\<exists>p. f n = Neg (Forall p)"
+  shows "extend S C f (Suc n) \<in> C"
+  proof -
+  obtain p where *: "f n = Neg (Forall p)"
+    using \<open>\<exists>p. f n = Neg (Forall p)\<close> by blast
+  have "\<exists>x. x \<notin> (\<Union>p\<in>?S'. params p)"
+    using \<open>infinite (- (\<Union>p \<in> S. params p))\<close> infinite_params_available
+    by blast
+  moreover have "Neg (Forall p) \<in> ?S'"
+    using * by simp
+  then have "\<forall>x. x \<notin> (\<Union>p\<in>?S'. params p) \<longrightarrow> ?S' \<union> {Neg (p[App x []/0])} \<in> C"
+    using \<open>?S' \<in> C\<close> \<open>alt_consistency C\<close>
+    unfolding alt_consistency_def by simp
+  ultimately have "(?S' \<union> {Neg (p[App (SOME k. k \<notin> (\<Union>p \<in> ?S'. params p)) []/0])}) \<in> C"
+    by (metis (mono_tags, lifting) someI2)
+  then show ?thesis
+    using assms * by simp
+qed
+    
+lemma extend_in_C_no_delta:
+  assumes "extend S C f n \<union> {f n} \<in> C"
+    and "\<forall>p. f n \<noteq> Exists p"
+    and "\<forall>p. f n \<noteq> Neg (Forall p)"
+  shows "extend S C f (Suc n) \<in> C"
+  using assms by simp
+    
+lemma extend_in_C_stop:
+  assumes "extend S C f n \<in> C"
+    and "extend S C f n \<union> {f n} \<notin> C"
+  shows "extend S C f (Suc n) \<in> C"
+  using assms by simp
 
 theorem extend_in_C: "alt_consistency C \<Longrightarrow>
-  S \<in> C \<Longrightarrow> \<not> finite (- (\<Union>p \<in> S. params p)) \<Longrightarrow> extend S C f n \<in> C"
-proof (induct n)
-  case 0
-  then show ?case by simp
-next
-  case (Suc n)
-  then show ?case proof (simp, intro conjI impI)
-    assume "\<exists>p. f n = Neg (Forall p)" and "\<exists>p. f n = Exists p"
-    then show "insert (dest_Exists (f n)[App
-                (SOME k. k \<notin> params (f n) \<and> (\<forall>x\<in>extend S C f n. k \<notin> params x)) []/0])
-                (insert (f n) (extend S C f n)) \<in> C"
-      by auto
+  S \<in> C \<Longrightarrow> infinite (- (\<Union>p \<in> S. params p)) \<Longrightarrow> extend S C f n \<in> C"
+  proof (induct n)
+    case 0
+    then show ?case by simp
   next
-    fix p
-    assume "alt_consistency C"
-      and "infinite (\<Inter>x\<in>S. - params x)"
-      and "\<exists>p. f n = Neg (Forall p)"
-      and "\<forall>p. f n \<noteq> Exists p"
-      and "insert (f n) (extend S C f n) \<in> C"
-    moreover have "\<forall>P x.
-          (\<forall>a\<in>insert (f n) (extend S C f n). x \<notin> params a) \<longrightarrow>
-          Neg (Forall P) \<in> insert (f n) (extend S C f n) \<longrightarrow>
-          insert (Neg (P[App x []/0])) (insert (f n) (extend S C f n)) \<in> C"
-      using calculation by (simp add: alt_consistency_def)
-    moreover have "f n \<noteq> Exists p" using \<open>\<forall>p. f n \<noteq> Exists p\<close> by blast
-    have "\<not> finite (- (\<Union>x\<in>extend S C f n \<union> {f n}. params x))"
-      using calculation by simp
-    then have "infinite (- (\<Union>x\<in>extend S C f n \<union> {f n}. params x))"
-      by blast
-    then obtain x where "x \<in> - (\<Union>x\<in>extend S C f n \<union> {f n}. params x)"
-      using infinite_imp_nonempty by blast
-    moreover have "insert (Neg (dest_Forall (dest_Neg (f n))[App x []/0]))
-                      (insert (f n) (extend S C f n)) \<in> C"
-      using calculation by fastforce
-    show "insert (Neg (dest_Forall (dest_Neg (f n))[
-            App (SOME k. k \<notin> params (f n) \<and> (\<forall>x\<in>extend S C f n. k \<notin> params x)) []/0]))
-           (insert (f n) (extend S C f n)) \<in> C"
-    proof (rule someI2)
-      show "x \<notin> params (f n) \<and> (\<forall>x'\<in>extend S C f n. x \<notin> params x')"
-        using calculation(7) by blast
-    next
-      fix x
-      assume "x \<notin> params (f n) \<and> (\<forall>x'\<in>extend S C f n. x \<notin> params x')"
-      then show "insert (Neg (dest_Forall (dest_Neg (f n))[App x []/0]))
-                  (insert (f n) (extend S C f n)) \<in> C"
-        using calculation(3) calculation(6) by auto
-    qed
-  next
-    assume "alt_consistency C"
-      and "infinite (\<Inter>x\<in>S. - params x)"
-      and "\<forall>p. f n \<noteq> Neg (Forall p)"
-      and "\<exists>p. f n = Exists p"
-      and "insert (f n) (extend S C f n) \<in> C"
-    moreover obtain p where "f n = Exists p"
-      using \<open>\<exists>p. f n = Exists p\<close> by blast
-    moreover have "(\<forall>a\<in>insert (Exists p) (extend S C f n). (SOME k. k \<notin> (\<Union>x\<in>extend S C f n \<union> {Exists p}. params x)) \<notin> params a) \<longrightarrow>
-           Exists p \<in> insert (Exists p) (extend S C f n) \<longrightarrow>
-           insert (p[App (SOME k. k \<notin> (\<Union>x\<in>extend S C f n \<union> {Exists p}. params x)) []/0]) (insert (Exists p) (extend S C f n)) \<in> C"
-      using calculation by (simp add: alt_consistency_def)
-    moreover have "infinite (- (\<Union>x\<in>extend S C f n \<union> {Exists p}. params x))"
-      using calculation by simp
-    then obtain x where *: "x \<in> - (\<Union>x\<in>extend S C f n \<union> {Exists p}. params x)"
-      using infinite_imp_nonempty by blast
-    have "\<forall>a\<in>insert (Exists p) (extend S C f n). 
-          (SOME k. k \<notin> (\<Union>x\<in>extend S C f n \<union> {Exists p}. params x)) \<notin> params a"
-    proof
-      fix a
-      assume "a \<in> insert (Exists p) (extend S C f n)"
-      show "(SOME k. k \<notin> (\<Union>x\<in>extend S C f n \<union> {Exists p}. params x)) \<notin> params a" 
-      proof (rule someI2)
-        show "x \<notin> (\<Union>x\<in>extend S C f n \<union> {Exists p}. params x)"
-          using * by blast
-      next
-        fix x
-        assume "x \<notin> (\<Union>x\<in>extend S C f n \<union> {Exists p}. params x)"
-        then show "x \<notin> params a"
-          using \<open>a \<in> insert (Exists p) (extend S C f n)\<close> by blast
-      qed
-    qed
-    ultimately show "insert (dest_Exists (f n)[App (SOME k.
-                  k \<notin> params (f n) \<and> (\<forall>x\<in>extend S C f n. k \<notin> params x))
-              []/0]) (insert (f n) (extend S C f n)) \<in> C"
-      by simp
+    case (Suc n)
+    then show ?case
+      using extend_in_C_Exists extend_in_C_Neg_Forall
+        extend_in_C_no_delta extend_in_C_stop
+      by metis
   qed
-qed
 
 text {*
 The main theorem about @{text Extend} says that if @{text C} is an
