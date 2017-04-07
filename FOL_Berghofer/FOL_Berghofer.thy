@@ -1653,11 +1653,14 @@ definition
 theorem is_chainD: "is_chain f \<Longrightarrow> x \<in> f m \<Longrightarrow> x \<in> f (m + n)"
   by (induct n) (auto simp: is_chain_def)
 
-theorem is_chainD': "is_chain f \<Longrightarrow> x \<in> f m \<Longrightarrow> m \<le> k \<Longrightarrow> x \<in> f k"
+theorem is_chainD':
+  assumes "is_chain f" and "x \<in> f m" and "m \<le> k"
+  shows "x \<in> f k"
 proof -
-  assume "is_chain f" and "x \<in> f m" and "m \<le> k"
-  then have "\<exists>n. k = m + n" by arith
-  then obtain n where "k = m + n" by blast
+  have "\<exists>n. k = m + n"
+    using \<open>m \<le> k\<close> by presburger
+  then obtain n where "k = m + n"
+    by blast
   then show "x \<in> f k"
     using \<open>is_chain f\<close> \<open>x \<in> f m\<close>
     by (simp add: is_chainD)
@@ -1675,10 +1678,11 @@ next
     using ch by simp_all
   then obtain n and m where "F \<subseteq> f n" and "x \<in> f m"
     by blast
-  have "m \<le> max n m" and "n \<le> max n m" by simp_all
+  have "m \<le> max n m" and "n \<le> max n m"
+    by simp_all
   have "x \<in> f (max n m)"
     using is_chainD' ch \<open>x \<in> f m\<close> \<open>m \<le> max n m\<close> by fast
-  also have "F \<subseteq> f (max n m)"
+  moreover have "F \<subseteq> f (max n m)"
     using is_chainD' ch \<open>F \<subseteq> f n\<close> \<open>n \<le> max n m\<close> by fast
   moreover have "x \<in> f (max n m) \<and> F \<subseteq> f (max n m)"
     using calculation by blast
@@ -1687,13 +1691,14 @@ qed
 
 lemma chain_union_closed':
   assumes "is_chain f" and "(\<forall>n. f n \<in> C)" and "\<forall>S'\<in>C. \<forall>S\<subseteq>S'. S \<in> C"
-  shows "\<forall>S'. finite S' \<longrightarrow> S' \<subseteq> (\<Union>n. f n) \<longrightarrow> S' \<in> C" 
-proof (intro allI impI)
-  fix S'
-  assume "finite S'" and "S' \<subseteq> (\<Union>n. f n)"
+    and "finite S'" and "S' \<subseteq> (\<Union>n. f n)"
+  shows "S' \<in> C" 
+proof -
+  note \<open>finite S'\<close> and \<open>S' \<subseteq> (\<Union>n. f n)\<close>
   then obtain n where "S' \<subseteq> f n"
-    using chain_index \<open>is_chain f\<close> by blast
-  also have "f n \<in> C" using \<open>\<forall>n. f n \<in> C\<close> by blast
+    using chain_index \<open>is_chain f\<close>  by blast
+  moreover have "f n \<in> C"
+    using \<open>\<forall>n. f n \<in> C\<close> by blast
   ultimately show "S' \<in> C"
     using \<open>\<forall>S'\<in>C. \<forall>S\<subseteq>S'. S \<in> C\<close> by blast
 qed
