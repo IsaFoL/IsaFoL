@@ -723,7 +723,7 @@ proof (intro allI impI conjI)
   qed
     
   have "FF \<notin> ?S'" and "Neg TT \<notin> ?S'"
-    using conc sc by (simp_all add: consistency_def)
+    using conc sc unfolding consistency_def by presburger+
   then show "FF \<notin> S" and "Neg TT \<notin> S"
     by (force, force)
       
@@ -1323,7 +1323,7 @@ proof (intro allI impI conjI)
       moreover have "\<forall>a\<in>?S'. x \<notin> params a"
         using \<open>\<forall>a\<in>S. x \<notin> params a\<close> \<open>?S' \<subseteq> S\<close> by blast
       ultimately have "?S' \<union> {P[App x []/0]} \<in> C"
-        using altconc \<open>\<forall>a\<in>S. x \<notin> params a\<close> unfolding alt_consistency_def by simp
+        using altconc \<open>\<forall>a\<in>S. x \<notin> params a\<close> unfolding alt_consistency_def by blast
       then show "S' \<in> C"
         using sc by blast
     qed }
@@ -2327,14 +2327,14 @@ proof (intro allI impI conjI)
   { fix A B
     assume "Neg (And A B) \<in> ?H"
     then have "?H \<union> {Neg A} \<in> C \<or> ?H \<union> {Neg B} \<in> C"
-      using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by fast
+      using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by presburger
     then show "Neg A \<in> ?H \<or> Neg B \<in> ?H"
       using \<open>maximal ?H C\<close> unfolding maximal_def by fast }
     
   { fix A B
     assume "Impl A B \<in> ?H"
     then have "?H \<union> {Neg A} \<in> C \<or> ?H \<union> {B} \<in> C"
-      using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by fast
+      using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by presburger
     then show "Neg A \<in> ?H \<or> B \<in> ?H"
       using \<open>maximal ?H C\<close> unfolding maximal_def by fast }
     
@@ -2429,7 +2429,7 @@ proof -
     using close_closed finite_char_subset mk_alt_consistency_closed by blast
   ultimately show ?thesis
     using extend_hintikka \<open>infinite (- (\<Union>p \<in> S. params p))\<close>
-    by blast
+    by metis
 qed
     
 theorem model_existence:
