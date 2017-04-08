@@ -2830,10 +2830,8 @@ proof (rule Class, rule ccontr)
   from \<open>list_all (closed 0) ps\<close>
   have "Ball (set ps) (closed 0)"
     by (simp add: Ball_set_list_all)
-      
-  have "list_all (eval e ?f ?g) (Neg p # ps)"
-  proof (simp only: list_all_iff, intro exI ballI)
-    fix x
+
+  { fix x
     assume "x \<in> ?S"
     moreover have "consistency ?C"
       using deriv_consistency by blast
@@ -2843,9 +2841,10 @@ proof (rule Class, rule ccontr)
       by (simp add: Compl_eq_Diff_UNIV)
     moreover note \<open>closed 0 p\<close> \<open>Ball (set ps) (closed 0)\<close> \<open>x \<in> ?S\<close>
     then have \<open>closed 0 x\<close> by auto
-    ultimately show "eval e ?f ?g x"
-      using model_existence by blast
-  qed
+    ultimately have "eval e ?f ?g x"
+      using model_existence by blast }
+  then have "list_all (eval e ?f ?g) (Neg p # ps)"
+    by (simp add: list_all_iff)
   moreover have "eval e ?f ?g (Neg p)"
     using calculation by simp 
   moreover have "list_all (eval e ?f ?g) ps"
