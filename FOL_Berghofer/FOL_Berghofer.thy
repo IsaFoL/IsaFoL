@@ -2221,137 +2221,181 @@ Using the maximality of @{term "Extend S C f"}, we can show
 that @{term "Extend S C f"} yields Hintikka sets:
 *}
 
+lemma Exists_in_extend:
+  assumes "extend S C f n \<union> {f n} \<in> C" (is "?S' \<in> C")
+    and "Exists P = f n"
+  shows "P[(App (SOME k. k \<notin> (\<Union>p\<in>extend S C f n \<union> {f n}. params p)) [])/0] \<in> extend S C f (Suc n)"
+    (is "subst P ?t 0 \<in> extend S C f (Suc n)")
+proof -
+  have "\<exists>p. f n = Exists p"
+    using \<open>Exists P = f n\<close> by metis
+  then have "extend S C f (Suc n) = (?S' \<union> {(dest_Exists (f n))[?t/0]})"
+    using \<open>?S' \<in> C\<close> by simp
+  also have "\<dots> = (?S' \<union> {(dest_Exists (Exists P))[?t/0]})"
+    using \<open>Exists P = f n\<close> by presburger
+  also have "\<dots> = (?S' \<union> {P[?t/0]})"
+    by simp
+  finally show ?thesis
+    by blast
+qed
+  
+lemma Neg_Forall_in_extend:
+  assumes "extend S C f n \<union> {f n} \<in> C" (is "?S' \<in> C")
+    and "Neg (Forall P) = f n"
+  shows "Neg (P[(App (SOME k. k \<notin> (\<Union>p\<in>extend S C f n \<union> {f n}. params p)) [])/0]) \<in> extend S C f (Suc n)"
+    (is "Neg (subst P ?t 0) \<in> extend S C f (Suc n)")
+proof -
+  have "f n \<noteq> Exists P"
+    using \<open>Neg (Forall P) = f n\<close> by auto
+  
+  have "\<exists>p. f n = Neg (Forall p)"
+    using \<open>Neg (Forall P) = f n\<close> by metis
+  then have "extend S C f (Suc n) = (?S' \<union> {Neg (dest_Forall (dest_Neg (f n))[?t/0])})"
+    using \<open>?S' \<in> C\<close> \<open>f n \<noteq> Exists P\<close> by auto
+  also have "\<dots> = (?S' \<union> {Neg (dest_Forall (dest_Neg (Neg (Forall P)))[?t/0])})"
+    using \<open>Neg (Forall P) = f n\<close> by presburger
+  also have "\<dots> = (?S' \<union> {Neg (P[?t/0])})"
+    by simp
+  finally show ?thesis
+    by blast
+qed
+    
 theorem extend_hintikka:
   assumes fin_ch: "finite_char C"
     and infin_p: "infinite (- (\<Union>p\<in>S. params p))"
     and surj: "\<forall>y. \<exists>n. y = f n"
     and altc: "alt_consistency C"
     and "S \<in> C"
-  shows "hintikka (Extend S C f)"
-proof -
-  have "maximal (Extend S C f) C"
+  shows "hintikka (Extend S C f)" (is "hintikka ?H")
+  unfolding hintikka_def
+proof (intro allI impI conjI)
+  have "maximal ?H C"
     by (simp add: extend_maximal fin_ch surj)
 
-  have "Extend S C f \<in> C"
+  have "?H \<in> C"
     using Extend_in_C assms by blast
       
-  have "\<forall>S'\<in>C. Extend S C f \<subseteq> S' \<longrightarrow> Extend S C f = S'"
-    using \<open>maximal (Extend S C f) C\<close> unfolding maximal_def by blast
+  have "\<forall>S'\<in>C. ?H \<subseteq> S' \<longrightarrow> ?H = S'"
+    using \<open>maximal ?H C\<close>
+    unfolding maximal_def by blast
+  
+  { fix p ts
+    show "\<not> (Pred p ts \<in> ?H \<and> Neg (Pred p ts) \<in> ?H)"
+    using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by fast }
+  
+  show "FF \<notin> ?H"
+    using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by blast
+  
+  show "Neg TT \<notin> ?H"
+    using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by blast
       
-  have "(\<forall>p ts. \<not> (Pred p ts \<in> Extend S C f \<and> Neg (Pred p ts) \<in> Extend S C f))"
-    using \<open>Extend S C f \<in> C\<close> altc unfolding alt_consistency_def by fast
-  
-  moreover have "FF \<notin> Extend S C f"
-    using \<open>Extend S C f \<in> C\<close> altc unfolding alt_consistency_def by blast
- 
-  moreover have "Neg TT \<notin> Extend S C f"
-    using \<open>Extend S C f \<in> C\<close> altc unfolding alt_consistency_def by blast
-
-  moreover have "\<forall>Z. Neg (Neg Z) \<in> Extend S C f \<longrightarrow> Extend S C f \<union> {Z} \<in> C"
-    using \<open>Extend S C f \<in> C\<close> altc unfolding alt_consistency_def by fast
-  then have "\<forall>Z. Neg (Neg Z) \<in> Extend S C f \<longrightarrow> Z \<in> Extend S C f"
-    using \<open>maximal (Extend S C f) C\<close> unfolding maximal_def by fast
+  { fix Z
+    assume "Neg (Neg Z) \<in> ?H"
+    then have "?H \<union> {Z} \<in> C"
+      using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by fast
+    then show "Z \<in> ?H"
+      using \<open>maximal ?H C\<close> unfolding maximal_def by fast }
+      
+  { fix A B
+    assume "And A B \<in> ?H"
+    then have "?H \<union> {A, B} \<in> C"
+      using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by fast
+    then show "A \<in> ?H" and "B \<in> ?H"
+      using \<open>maximal ?H C\<close> unfolding maximal_def by fast+ }
     
-  moreover have "\<forall>A B. And A B \<in> Extend S C f \<longrightarrow> Extend S C f \<union> {A, B} \<in> C"
-    using \<open>Extend S C f \<in> C\<close> altc unfolding alt_consistency_def by simp
-  then have "\<forall>A B. And A B \<in> Extend S C f \<longrightarrow> A \<in> Extend S C f \<and> B \<in> Extend S C f"
-    using \<open>maximal (Extend S C f) C\<close> unfolding maximal_def by fast
+  { fix A B
+    assume "Neg (Or A B) \<in> ?H"
+    then have "?H \<union> {Neg A, Neg B} \<in> C"
+      using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by fast
+    then show "Neg A \<in> ?H" and "Neg B \<in> ?H"
+      using \<open>maximal ?H C\<close> unfolding maximal_def by fast+ }
     
-  moreover have "\<forall>A B. Neg (Or A B) \<in> Extend S C f \<longrightarrow> Extend S C f \<union> {Neg A, Neg B} \<in> C"
-    using \<open>Extend S C f \<in> C\<close> altc unfolding alt_consistency_def by fast
-  then have "\<forall>A B. Neg (Or A B) \<in> Extend S C f \<longrightarrow> Neg A \<in> Extend S C f \<and> Neg B \<in> Extend S C f"
-    using \<open>maximal (Extend S C f) C\<close> unfolding maximal_def by fast
+  { fix A B
+    assume "Neg (Impl A B) \<in> ?H"
+    then have "?H \<union> {A, Neg B} \<in> C"
+      using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by blast
+    then show "A \<in> ?H" and "Neg B \<in> ?H"
+      using \<open>maximal ?H C\<close> unfolding maximal_def by fast+ }
     
-  moreover have "\<forall>A B. Or A B \<in> Extend S C f \<longrightarrow> Extend S C f \<union> {A} \<in> C \<or> Extend S C f \<union> {B} \<in> C"
-    using \<open>Extend S C f \<in> C\<close> altc unfolding alt_consistency_def by simp
-  then have "\<forall>A B. Or A B \<in> Extend S C f \<longrightarrow> A \<in> Extend S C f \<or> B \<in> Extend S C f"
-    using \<open>maximal (Extend S C f) C\<close> unfolding maximal_def by fast
-  
-  moreover have "\<forall>A B. Neg (And A B) \<in> Extend S C f \<longrightarrow>
-              Extend S C f \<union> {Neg A} \<in> C \<or> Extend S C f \<union> {Neg B} \<in> C"
-    using \<open>Extend S C f \<in> C\<close> altc unfolding alt_consistency_def by simp
-  then have "\<forall>A B. Neg (And A B) \<in> Extend S C f \<longrightarrow> Neg A \<in> Extend S C f \<or> Neg B \<in> Extend S C f"
-    using \<open>maximal (Extend S C f) C\<close> unfolding maximal_def by fast
-  
-  moreover have "\<forall>A B. Impl A B \<in> Extend S C f \<longrightarrow>
-                       Extend S C f \<union> {Neg A} \<in> C \<or> Extend S C f \<union> {B} \<in> C"
-    using \<open>Extend S C f \<in> C\<close> altc unfolding alt_consistency_def by simp
-  then have "\<forall>A B. Impl A B \<in> Extend S C f \<longrightarrow> Neg A \<in> Extend S C f \<or> B \<in> Extend S C f"
-    using \<open>maximal (Extend S C f) C\<close> unfolding maximal_def by fast
- 
-  moreover have "\<forall>A B. Neg (Impl A B) \<in> Extend S C f \<longrightarrow> Extend S C f \<union> {A, Neg B} \<in> C"
-    using \<open>Extend S C f \<in> C\<close> altc unfolding alt_consistency_def hintikka_def by simp
-  then have "\<forall>A B. Neg (Impl A B) \<in> Extend S C f \<longrightarrow> A \<in> Extend S C f \<and> Neg B \<in> Extend S C f"
-    using \<open>maximal (Extend S C f) C\<close> unfolding maximal_def by fast
- 
-  moreover have "\<forall>P t. closedt 0 t \<longrightarrow> Forall P \<in> Extend S C f \<longrightarrow> Extend S C f \<union> {P[t/0]} \<in> C"
-    using \<open>Extend S C f \<in> C\<close> altc unfolding alt_consistency_def hintikka_def by simp
-  then have "\<forall>P t. closedt 0 t \<longrightarrow> Forall P \<in> Extend S C f \<longrightarrow> P[t/0] \<in> Extend S C f"
-    using \<open>maximal (Extend S C f) C\<close> unfolding maximal_def by fast
- 
-  moreover have "\<forall>P t. closedt 0 t \<longrightarrow> Neg (Exists P) \<in> Extend S C f \<longrightarrow>
-                       Extend S C f \<union> {Neg (P[t/0])} \<in> C"
-    using \<open>Extend S C f \<in> C\<close> altc unfolding alt_consistency_def hintikka_def by simp
-  then have "\<forall>P t. closedt 0 t \<longrightarrow> Neg (Exists P) \<in> Extend S C f \<longrightarrow> Neg (P[t/0]) \<in> Extend S C f"
-    using \<open>maximal (Extend S C f) C\<close> unfolding maximal_def by fast
- 
-  moreover have "\<forall>P. Exists P \<in> Extend S C f \<longrightarrow> (\<exists>t. closedt 0 t \<and> P[t/0] \<in> Extend S C f)"
-  proof (intro allI impI)
-    fix P
-    obtain n where *: "Exists P = f n" using surj by blast
-    assume "Exists P \<in> Extend S C f"
-    then have "Exists P \<in> (\<Union>n. extend S C f n)"
-      using Extend_def by blast
-    then have "extend S C f n \<union> {f n} \<subseteq> (\<Union>n. extend S C f n)"
-      using * by (simp add: UN_upper)
-    then have "extend S C f n \<union> {f n} \<in> C"
-      using Extend_def \<open>Extend S C f \<in> C\<close> fin_ch finite_char_closed
-      unfolding subset_closed_def by metis
+  { fix A B
+    assume "Or A B \<in> ?H"
+    then have "?H \<union> {A} \<in> C \<or> ?H \<union> {B} \<in> C"
+      using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by fast
+    then show "A \<in> ?H \<or> B \<in> ?H"
+      using \<open>maximal ?H C\<close> unfolding maximal_def by fast }
     
+  { fix A B
+    assume "Neg (And A B) \<in> ?H"
+    then have "?H \<union> {Neg A} \<in> C \<or> ?H \<union> {Neg B} \<in> C"
+      using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by fast
+    then show "Neg A \<in> ?H \<or> Neg B \<in> ?H"
+      using \<open>maximal ?H C\<close> unfolding maximal_def by fast }
+    
+  { fix A B
+    assume "Impl A B \<in> ?H"
+    then have "?H \<union> {Neg A} \<in> C \<or> ?H \<union> {B} \<in> C"
+      using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by fast
+    then show "Neg A \<in> ?H \<or> B \<in> ?H"
+      using \<open>maximal ?H C\<close> unfolding maximal_def by fast }
+    
+  { fix P and t :: "nat term"
+    assume "Forall P \<in> ?H" and "closedt 0 t"
+    then have "?H \<union> {P[t/0]} \<in> C"
+      using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by blast
+    then show "P[t/0] \<in> ?H"
+      using \<open>maximal ?H C\<close> unfolding maximal_def by fast }
+    
+  { fix P and t :: "nat term"
+    assume "Neg (Exists P) \<in> ?H" and "closedt 0 t"
+    then have "?H \<union> {Neg (P[t/0])} \<in> C"
+      using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by blast
+    then show "Neg (P[t/0]) \<in> ?H"
+      using \<open>maximal ?H C\<close> unfolding maximal_def by fast }
+    
+  { fix P
+    assume "Exists P \<in> ?H"
+    obtain n where *: "Exists P = f n"
+      using surj by blast
+        
     let ?t = "App (SOME k. k \<notin> (\<Union>p\<in>extend S C f n \<union> {f n}. params p)) []"
-
     have "closedt 0 ?t" by simp
-
-    have "P[?t/0] \<in> extend S C f (Suc n)"
-      using * \<open>extend S C f n \<union> {f n} \<in> C\<close>
-      by simp (metis (no_types, lifting) dest_Exists.simps)
-    then have "P[?t/0] \<in> Extend S C f"
-      using Extend_def by blast
-    then show "\<exists>t. closedt 0 t \<and> P[t/0] \<in> Extend S C f"
-      using \<open>closedt 0 ?t\<close> by blast
-  qed
-    
-  moreover have "\<forall>P. Neg (Forall P) \<in> Extend S C f \<longrightarrow>
-                     (\<exists>t. closedt 0 t \<and> Neg (P[t/0]) \<in> Extend S C f)"
-  proof (intro allI impI)
-    fix P
-    obtain n where *: "Neg (Forall P) = f n" using surj by blast
-    assume "Neg (Forall P) \<in> Extend S C f"
-    then have "Neg (Forall P) \<in> (\<Union>n. extend S C f n)"
-      using Extend_def by blast
+        
+    have "Exists P \<in> (\<Union>n. extend S C f n)"
+      using \<open>Exists P \<in> ?H\<close> Extend_def by blast
     then have "extend S C f n \<union> {f n} \<subseteq> (\<Union>n. extend S C f n)"
       using * by (simp add: UN_upper)
     then have "extend S C f n \<union> {f n} \<in> C"
       using Extend_def \<open>Extend S C f \<in> C\<close> fin_ch finite_char_closed
       unfolding subset_closed_def by metis
-      
-    let ?t = "App (SOME k. k \<notin> (\<Union>p \<in> extend S C f n \<union> {f n}. params p)) []"
-
-    have "closedt 0 ?t" by simp
-
-    from * \<open>extend S C f n \<union> {f n} \<in> C\<close>
-    have "Neg (P[?t/0]) \<in> extend S C f (Suc n)"
-      by simp (metis (no_types, lifting) dest_Forall.simps dest_Neg.simps form.distinct(69))     
-    then have "Neg (P[?t/0]) \<in> Extend S C f"
+    then have "P[?t/0] \<in> extend S C f (Suc n)"
+      using * Exists_in_extend by blast
+    then have "P[?t/0] \<in> ?H"
       using Extend_def by blast
-    then show "\<exists>t. closedt 0 t \<and> Neg (P[t/0]) \<in> Extend S C f"
-      using \<open>closedt 0 ?t\<close> by blast
-  qed
-
-  ultimately show ?thesis
-    unfolding hintikka_def by blast
+    then show "\<exists>t. closedt 0 t \<and> P[t/0] \<in> ?H"
+      using \<open>closedt 0 ?t\<close> by blast }
+    
+  { fix P
+    assume "Neg (Forall P) \<in> ?H"
+    obtain n where *: "Neg (Forall P) = f n"
+      using surj by blast
+   
+    let ?t = "App (SOME k. k \<notin> (\<Union>p\<in>extend S C f n \<union> {f n}. params p)) []"
+    have "closedt 0 ?t" by simp
+        
+    have "Neg (Forall P) \<in> (\<Union>n. extend S C f n)"
+      using \<open>Neg (Forall P) \<in> ?H\<close> Extend_def by blast
+    then have "extend S C f n \<union> {f n} \<subseteq> (\<Union>n. extend S C f n)"
+      using * by (simp add: UN_upper)
+    then have "extend S C f n \<union> {f n} \<in> C"
+      using Extend_def \<open>Extend S C f \<in> C\<close> fin_ch finite_char_closed
+      unfolding subset_closed_def by metis
+    then have "Neg (P[?t/0]) \<in> extend S C f (Suc n)"
+      using * Neg_Forall_in_extend by blast
+    then have "Neg (P[?t/0]) \<in> ?H"
+      using Extend_def by blast
+    then show "\<exists>t. closedt 0 t \<and> Neg (P[t/0]) \<in> ?H"
+      using \<open>closedt 0 ?t\<close> by blast }
 qed
-
 
 subsection {* Model existence theorem *}
 
