@@ -3076,31 +3076,34 @@ as natural numbers and multiply each parameter occurring in the
 set @{text S} by @{text 2}.
 *}
 
-theorem loewenheim_skolem: "\<forall>p\<in>S. eval e f g p \<Longrightarrow>
-  \<forall>p\<in>S. closed 0 p \<longrightarrow> eval e' (\<lambda>n. HApp (2*n)) (\<lambda>a ts.
+theorem loewenheim_skolem:
+  assumes evalS: "\<forall>p\<in>S. eval e f g p"
+  shows "\<forall>p\<in>S. closed 0 p \<longrightarrow> eval e' (\<lambda>n. HApp (2*n)) (\<lambda>a ts.
       Pred a (terms_of_hterms ts) \<in> Extend (psubst (\<lambda>n. 2 * n) ` S)
         (mk_finite_char (mk_alt_consistency (close
-          {S. \<not> finite (- (\<Union>p\<in>S. params p)) \<and>
-            (\<exists>f. \<forall>p\<in>S. eval e f g p)}))) from_nat) p"
-  (is "\<forall>_\<in>_. _ _ _ _ _ \<Longrightarrow> \<forall>_\<in>_. _ _ _ \<longrightarrow> eval _ _ ?g _")
+          {S. infinite (- (\<Union>p\<in>S. params p)) \<and> (\<exists>f. \<forall>p\<in>S. eval e f g p)}))) from_nat) p"
+  (is "\<forall>_\<in>_. _ _ _ \<longrightarrow> eval _ _ ?g _")
+  using evalS
 proof (intro ballI impI)
   fix p
-  assume "\<forall>p\<in>S. eval e f g p"
-    and "p \<in> S"
+    
+  let ?C = "{S. infinite (- (\<Union>p \<in> S. params p)) \<and> (\<exists>f. \<forall>x \<in> S. eval e f g x)}"
+    
+  assume "p \<in> S"
     and "closed 0 p"
   then have "eval e f g p"
-    using \<open>\<forall>p\<in>S. eval e f g p\<close> \<open>p \<in> S\<close> by blast
-  then have "Ball S (eval e f g)"
-    using \<open>\<forall>p\<in>S. eval e f g p\<close> by blast
+    using evalS by blast
+  then have "\<forall>x \<in> S. eval e f g x"
+    using evalS by blast
   then have "Ball (psubst (op * 2) ` S) (eval e (\<lambda>n. f (n div 2)) g)"
     by (simp add: doublep_eval)
-  then have "psubst (op * 2) ` S \<in> {S. infinite (- UNION S params) \<and> (\<exists>f. Ball S (eval e f g))}"
+  then have "psubst (op * 2) ` S \<in> ?C"
     using doublep_infinite_params by blast
   moreover have "psubst (op * 2) p \<in> psubst (op * 2) ` S"
     using \<open>p \<in> S\<close> by blast
   moreover have "closed 0 (psubst (op * 2) p)"
     using \<open>closed 0 p\<close> by simp
-  moreover have "consistency {S. infinite (- UNION S params) \<and> (\<exists>f. Ball S (eval e f g))}"
+  moreover have "consistency ?C"
     using sat_consistency by blast
   ultimately have "eval e' HApp ?g (psubst (op * 2) p)"
     using model_existence by blast
