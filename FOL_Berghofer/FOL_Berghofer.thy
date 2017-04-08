@@ -2405,6 +2405,33 @@ Since the result of extending @{text S} is a superset of @{text S},
 it follows that each consistent set @{text S} has a Herbrand model:
 *}
 
+lemma hintikka_Extend_S:
+  assumes "consistency C" and "S \<in> C"
+    and "infinite (- (\<Union>p \<in> S. params p))"
+  shows "hintikka (Extend S (mk_finite_char (mk_alt_consistency (close C))) from_nat)"
+    (is "hintikka (Extend S ?C' from_nat)")
+proof -
+  have "finite_char ?C'"
+    using finite_char by blast
+  moreover have "\<forall>y. y = from_nat (to_nat y)"
+    by simp
+  then have "\<forall>y. \<exists>n. y = from_nat n"
+    by blast
+  moreover have "alt_consistency ?C'"
+    using alt_consistency close_closed close_consistency \<open>consistency C\<close>
+      finite_alt_consistency mk_alt_consistency_closed
+    by blast
+  moreover have "S \<in> close C"
+    using close_subset \<open>S \<in> C\<close> by blast
+  then have "S \<in> mk_alt_consistency (close C)"
+    using mk_alt_consistency_subset by blast
+  then have "S \<in> ?C'"
+    using close_closed finite_char_subset mk_alt_consistency_closed by blast
+  ultimately show ?thesis
+    using extend_hintikka \<open>infinite (- (\<Union>p \<in> S. params p))\<close>
+    by blast
+qed
+    
 theorem model_existence:
   assumes "consistency C"
     and "S \<in> C"
@@ -2413,35 +2440,8 @@ theorem model_existence:
     and "closed 0 p"
   shows "eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> Extend S
         (mk_finite_char (mk_alt_consistency (close C))) from_nat) p"
-proof (rule hintikka_model [THEN conjunct1, THEN mp, THEN mp])
-  have "finite_char (mk_finite_char (mk_alt_consistency (close C)))"
-    by (simp add: finite_char)
-  moreover have "closed 0 p \<Longrightarrow> infinite (- (\<Union>p\<in>S. params p))"
-    using \<open>infinite (- (\<Union>p \<in> S. params p))\<close> by blast
-  moreover have "\<forall>y. y = from_nat (to_nat y)"
-    by simp
-  then have "\<forall>y. \<exists>n. y = from_nat n"
-    by blast
-  moreover have "alt_consistency (mk_finite_char (mk_alt_consistency (close C)))"
-    using alt_consistency close_closed close_consistency
-      \<open>consistency C\<close> finite_alt_consistency mk_alt_consistency_closed
-    by blast
-  moreover have "S \<in> close C"
-    using close_subset \<open>S \<in> C\<close> by blast
-  then have "S \<in> mk_alt_consistency (close C)"
-    using mk_alt_consistency_subset by blast
-  then have "S \<in> mk_finite_char (mk_alt_consistency (close C))"
-    using close_closed finite_char_subset mk_alt_consistency_closed by blast
-  ultimately show "hintikka (Extend S (mk_finite_char (mk_alt_consistency (close C))) from_nat)"
-    using extend_hintikka \<open>infinite (- (\<Union>p \<in> S. params p))\<close> by blast
-next
-  show "p \<in> Extend S (mk_finite_char (mk_alt_consistency (close C))) from_nat"
-    using Extend_subset \<open>p \<in> S\<close> by blast
-next
-  show "closed 0 p"
-    using \<open>closed 0 p\<close> by simp
-qed
-
+  using assms hintikka_model hintikka_Extend_S Extend_subset 
+  by blast
 
 subsection {* Completeness for Natural Deduction *}
 
