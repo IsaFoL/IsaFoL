@@ -1895,14 +1895,14 @@ definition
   "maximal S C = (\<forall>S'\<in>C. S \<subseteq> S' \<longrightarrow> S = S')"
 
 theorem extend_maximal:
-  "\<forall>y. \<exists>n. y = f n \<Longrightarrow> finite_char C \<Longrightarrow> maximal (Extend S C f) C"
+  assumes "\<forall>y. \<exists>n. y = f n"
+    and "finite_char C"
+  shows "maximal (Extend S C f) C"
   unfolding maximal_def Extend_def
 proof (intro ballI impI)
   fix S'
-  assume "\<forall>y. \<exists>n. y = f n"
-    and "finite_char C"
-    and "S' \<in> C"
-    and "UNION UNIV (extend S C f) \<subseteq> S'"
+  assume "S' \<in> C"
+    and "(\<Union>x. extend S C f x) \<subseteq> S'"
   moreover have "S' \<subseteq> (\<Union>x. extend S C f x)"
   proof (rule ccontr)
     assume "\<not> S' \<subseteq> (\<Union>x. extend S C f x)"
@@ -2023,8 +2023,7 @@ next
   let ?pos = "eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) x"
   let ?neg = "eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) (Neg x)"
     
-  show "(x \<in> H \<longrightarrow> closed 0 x \<longrightarrow> ?pos) \<and>
-         (Neg x \<in> H \<longrightarrow> closed 0 x \<longrightarrow> ?neg)"
+  show "(x \<in> H \<longrightarrow> closed 0 x \<longrightarrow> ?pos) \<and> (Neg x \<in> H \<longrightarrow> closed 0 x \<longrightarrow> ?neg)"
   proof (cases x)
     case FF
     show ?thesis proof (intro conjI impI)
