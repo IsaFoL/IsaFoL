@@ -7,7 +7,7 @@ Current Build Directory Index=1
 ProjectRootRelative=./
 
 [CMake][CMake Build Directory 0]
-Build Directory Path=file:///home/lammich/devel/isabelle/isafol/DRAT/gratgen/debug
+Build Directory Path=file:///home/lammich/devel/isabelle/isafol/GRAT/gratgen/debug
 Build Type=Debug
 CMake Binary=file:///usr/bin/cmake
 Environment Profile=
@@ -15,7 +15,7 @@ Extra Arguments=
 Install Directory=file:///usr/local
 
 [CMake][CMake Build Directory 1]
-Build Directory Path=file:///home/lammich/devel/isabelle/isafol/DRAT/gratgen/release
+Build Directory Path=file:///home/lammich/devel/isabelle/isafol/GRAT/gratgen/release
 Build Type=Release
 CMake Binary=file:///usr/bin/cmake
 Environment Profile=

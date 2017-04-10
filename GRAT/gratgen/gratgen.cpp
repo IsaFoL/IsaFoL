@@ -573,7 +573,7 @@ private:
   ///// This data is set by friend Parser
   size_t num_clauses=0;
   size_t max_var=0;
-  vector<lit_t> pivots;   // Map from clause ids to pivot literals
+  vector<lit_t> pivots;   // Map from clause ids to pivot literals. Empty clauses have pivot 0.
   vector<item_t> items;   // List of items in DB
   size_t fst_prf_item=0;  // Index of first proof item
   size_t fst_lemma_id=0;  // Id of first lemma
@@ -620,13 +620,17 @@ public:
   /// Check whether we are in after-parsing phase
   bool is_after_parsing() const {return after_parsing;}
   
-  /// Get the pivot element associated to a clause
+  /// Get the pivot literal associated to a clause. Empty clauses have pivot 0.
   lit_t get_pivot(lit_t *cl) const {assert(cl); return pivots[clid(cl)];}
   
   /// Get the first item of the DRAT certificate
   size_t get_fst_prf_item() const {return fst_prf_item;}
   /// Get the total number of items
   size_t get_num_items() const {return items.size();}
+  
+  /// Truncate items, discarding the tail. @pre New number of items must be less or equal to current number of items.
+  void truncate_items(size_t _num_items);
+  
   /// Get item by index
   item_t &get_item(size_t i) {return items[i];}
   
@@ -661,6 +665,13 @@ public:
   
   
 };
+
+
+void Global_Data::truncate_items(size_t _num_items) {
+  assert(_num_items <= items.size());
+  items.erase(items.begin() + _num_items,items.end());
+}
+
 
 
 void Global_Data::init_after_fwd(pos_t cn_pos, vector<trail_item_t> const &tr) {
@@ -817,7 +828,7 @@ pos_t Parser::parse_clause(istream &in) {
   auto cl = glb.db.p2i(pos);                  // pos indicates first literal
   auto cle = glb.db.p2i(glb.db.current())-1;  // set cle one past last literal (Current position is one past terminating zero)
 
-  set_resize<lit_t>(glb.pivots,id,*cl);         // Remember pivot as first literal of clause
+  set_resize<lit_t>(glb.pivots,id,*cl);         // Remember pivot as first literal of clause. Note: If clause is empty, we store 0 as pivot.
   sort(cl,cle);                                 // Sort literals by ascending numerical value
 
   if (!cfg_assume_nodup) {
@@ -1112,9 +1123,9 @@ public:
    */
   
   /// Query wether literal is assigned to true
-  inline bool is_true(lit_t l) {return assignment[l]!=0;}
+  inline bool is_true(lit_t l) {assert(l != 0); return assignment[l]!=0;}
   /// Query wether literal is assigned to false
-  inline bool is_false(lit_t l) {return assignment[-l]!=0;}
+  inline bool is_false(lit_t l) {assert(l != 0); return assignment[-l]!=0;}
 
   /// Assign literal to true
   inline void assign_true(lit_t l, lit_t* reason) {
@@ -1567,7 +1578,7 @@ void Verifier::verify(lit_t *cl) {
   
   size_t orig_pos = trail_pos();
   lit_t pivot = glb.get_pivot(cl);
-  bool pivot_false = is_false(pivot);
+  bool pivot_false = (pivot!=0) && is_false(pivot);
 
   // Set current size of forward trail. Subsequent clause marking will remember markings set on current forward trail.
   fwd_trail_size = orig_pos;
@@ -1596,7 +1607,8 @@ void Verifier::verify(lit_t *cl) {
     vector<cdb_t> rat_prf;
     push_clause_ids rpci (rat_prf);
     // RUP-check failed, do RAT check
-    if (pivot_false) {fail("RAT check failed due to false pivot");}
+    if (pivot == 0) {fail("RUP check failed on empty clause");}     // Cannot do RAT check on empty clause.
+    if (pivot_false) {fail("RAT check failed due to false pivot");} // Must not do RAT check if pivot literal is false.
     sdata->inc_rat_counts(pivot);
     
     // Gather clauses containing pivot
@@ -1698,13 +1710,17 @@ pos_t Verifier::fwd_pass_aux() {
         size_t trpos = trail_pos();
         switch (add_clause(cl)) {
           case acres_t::TAUT: item.erase(); break;
-          case acres_t::CONFLICT: mark_clause(cl); return db->c2p(cl);
+          case acres_t::CONFLICT: 
+            mark_clause(cl); 
+            glb.truncate_items(i+1); // Remaining items not required for proof.
+            return db->c2p(cl);
 
           case acres_t::UNIT: item.set_trpos(trpos);
           case acres_t::NORMAL: {
             conflict = propagate_units();
             if (conflict) {
               mark_clause(conflict);
+              glb.truncate_items(i+1);  // Remaining items not required for proof.
               return db->c2p(conflict);
             }
           }
