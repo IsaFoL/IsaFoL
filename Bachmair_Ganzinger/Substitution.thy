@@ -35,6 +35,9 @@ definition comp_substs(infixl "\<odot>s" 67) where
 definition subst_atms :: "'a set \<Rightarrow> 's \<Rightarrow> 'a set" (infixl "\<cdot>as" 67) where
   "AA \<cdot>as \<sigma> = (\<lambda>A. A \<cdot>a \<sigma>) ` AA"
   
+definition subst_atmss :: "'a set set \<Rightarrow> 's \<Rightarrow> 'a set set" (infixl "\<cdot>ass" 67) where
+  "AAA \<cdot>ass \<sigma> = (\<lambda>AA. AA \<cdot>as \<sigma>) ` AAA"
+  
 definition subst_atm_list :: "'a list \<Rightarrow> 's \<Rightarrow> 'a list" (infixl "\<cdot>al" 67) where
   "As \<cdot>al \<sigma> = map (\<lambda>A. A \<cdot>a \<sigma>) As"
 
