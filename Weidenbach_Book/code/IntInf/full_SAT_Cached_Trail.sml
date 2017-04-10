@@ -834,7 +834,7 @@ fun get_level_code x =
     in
       nth heap_nat a1b
         ((nat_of_integer(IntInf.~>> (integer_of_nat(bi),
-          Word.fromInt (integer_of_nat(one_nat))))))
+          Word.fromLargeInt (integer_of_nat(one_nat))))))
     end)
     x;
 
@@ -901,7 +901,7 @@ fun nat_lit_lits_init_assn_assn_prepend x =
       val xa =
         hs_ins (equal_nat, hashable_nat, heap_nat)
           ((nat_of_integer(IntInf.~>> (integer_of_nat(ai),
-            Word.fromInt (integer_of_nat(one_nat))))))
+            Word.fromLargeInt (integer_of_nat(one_nat))))))
           a1 ();
     in
       (xa, op_list_prepend ai a2)
@@ -919,7 +919,7 @@ fun extract_lits_cls_imp x =
           val x_a =
             nat_lit_lits_init_assn_assn_in
               ((nat_of_integer(IntInf.~>> (integer_of_nat(xa),
-                Word.fromInt (integer_of_nat(one_nat))))))
+                Word.fromLargeInt (integer_of_nat(one_nat))))))
               sigma ();
         in
           (if x_a then (fn () => sigma)
@@ -960,12 +960,12 @@ fun cons_trail_Propagated_tr_code x =
       val xa =
         upd (heap_option heap_bool)
           ((nat_of_integer(IntInf.~>> (integer_of_nat(ai),
-            Word.fromInt (integer_of_nat(one_nat))))))
+            Word.fromLargeInt (integer_of_nat(one_nat))))))
           (SOME (equal_nata (bitAND_nat ai one_nat) zero_nata)) a1a ();
       val xaa =
         upd heap_nat
           ((nat_of_integer(IntInf.~>> (integer_of_nat(ai),
-            Word.fromInt (integer_of_nat(one_nat))))))
+            Word.fromLargeInt (integer_of_nat(one_nat))))))
           a2b a1b ();
     in
       (op_list_prepend (propagated ai bia) a1, (xa, (xaa, a2b)))
@@ -990,7 +990,7 @@ fun valued_trail_code x =
           val xa =
             nth (heap_option heap_bool) a1a
               ((nat_of_integer(IntInf.~>> (integer_of_nat(bi),
-                Word.fromInt (integer_of_nat(one_nat))))))
+                Word.fromLargeInt (integer_of_nat(one_nat))))))
               ();
         in
           (case xa of NONE => NONE
@@ -1186,12 +1186,12 @@ fun tl_trail_tr_code x =
       val xa =
         upd (heap_option heap_bool)
           ((nat_of_integer(IntInf.~>> (integer_of_nat(fst (op_list_hd a1)),
-            Word.fromInt (integer_of_nat(one_nat))))))
+            Word.fromLargeInt (integer_of_nat(one_nat))))))
           NONE a1a ();
       val xaa =
         upd heap_nat
           ((nat_of_integer(IntInf.~>> (integer_of_nat(fst (op_list_hd a1)),
-            Word.fromInt (integer_of_nat(one_nat))))))
+            Word.fromLargeInt (integer_of_nat(one_nat))))))
           zero_nata a1b ();
       val xb = is_decided_wl_code (op_list_hd a1) ();
     in
@@ -1305,12 +1305,12 @@ fun cons_trail_Decided_tr_code x =
       val xa =
         upd (heap_option heap_bool)
           ((nat_of_integer(IntInf.~>> (integer_of_nat(ai),
-            Word.fromInt (integer_of_nat(one_nat))))))
+            Word.fromLargeInt (integer_of_nat(one_nat))))))
           (SOME (equal_nata (bitAND_nat ai one_nat) zero_nata)) a1a ();
       val xaa =
         upd heap_nat
           ((nat_of_integer(IntInf.~>> (integer_of_nat(ai),
-            Word.fromInt (integer_of_nat(one_nat))))))
+            Word.fromLargeInt (integer_of_nat(one_nat))))))
           (plus_nat a2b one_nat) a1b ();
     in
       (op_list_prepend (decided ai) a1, (xa, (xaa, plus_nat a2b one_nat)))

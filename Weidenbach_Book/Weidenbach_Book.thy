@@ -30,9 +30,7 @@ imports
   CDCL_Two_Watched_Literals_List_Watched_Initialisation
   CDCL_Two_Watched_Literals_List_Watched
   CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code
-  CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code_UInt32
-
-
+  CDCL_Two_Watched_Literals_List_Watched_Native_Init_Code
 begin
 text \<open>This theory imports all the other theories (and is not needed in the documentation).\<close>
 
