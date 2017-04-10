@@ -26,5 +26,7 @@ lemma inj_map2[iff]: "inj (map2 f) = inj f" oops
 lemma map2_nth: "length t = length s \<Longrightarrow> i < length s \<Longrightarrow> (map2 f s t) ! i = f (s!i) (t!i)"
   unfolding map2_def by (induction t arbitrary: s) auto
     
+
+    
     
 end

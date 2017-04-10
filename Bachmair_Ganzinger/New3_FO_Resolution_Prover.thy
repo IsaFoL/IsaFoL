@@ -538,6 +538,65 @@ lemma image_mset_Diff':
  "Y \<in># X \<Longrightarrow> image_mset f (X - {#Y#}) = (image_mset f X) - {#f Y#}"
   by (simp add: image_mset_Diff)
     
+lemma map2_add_mset_map:
+  assumes "length Aij' = n"
+  assumes "length Ai' = n"
+  shows "(map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)) = (map2 add_mset Ai' Aij' \<cdot>aml \<eta>)"
+  using assms proof (induction n arbitrary: Aij' Ai')
+  case (Suc n)
+  then have "map2 add_mset (tl Ai' \<cdot>al \<eta>) (tl Aij' \<cdot>aml \<eta>) = map2 add_mset (tl Ai') (tl Aij') \<cdot>aml \<eta>"
+    by simp
+  then have "map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>)) = map2 add_mset (tl Ai') (tl Aij') \<cdot>aml \<eta>"
+    unfolding subst_atm_list_def subst_atm_mset_list_def
+    by (simp add: map_tl)
+      
+  moreover 
+  have "length (Ai' \<cdot>al \<eta>) = Suc n" "length (Aij' \<cdot>aml \<eta>) = Suc n"
+     apply -
+    using Suc(3) apply auto[]
+    using Suc(2) unfolding subst_atm_mset_list_def apply auto[] (* unfolding should not be necessary  *)
+    done
+  then have "length (tl (Ai' \<cdot>al \<eta>)) = n" "length (tl (Aij' \<cdot>aml \<eta>)) = n"
+     apply -
+     apply auto
+      done
+  then have "length (map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>))) = n" 
+    "length (map2 add_mset (tl Ai') (tl Aij') \<cdot>aml \<eta>) = n"
+     apply -
+     apply auto[]
+    using Suc(3) Suc (2)
+    unfolding subst_atm_mset_list_def
+    apply auto
+      done
+  ultimately
+  have "\<forall>i < n. (map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>))) ! i = (map2 add_mset (tl Ai') (tl Aij') \<cdot>aml \<eta>) ! i"
+    by auto
+  then have "\<forall>i < n. tl (map2 add_mset ( (Ai' \<cdot>al \<eta>)) ((Aij' \<cdot>aml \<eta>))) ! i = tl (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) ! i"
+    sorry
+  moreover have nn: "length (map2 add_mset ( (Ai' \<cdot>al \<eta>)) ((Aij' \<cdot>aml \<eta>))) = Suc n"
+    "length (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) = Suc n"
+     sorry
+  ultimately have "\<forall>i. i < Suc n \<longrightarrow> i > 0 \<longrightarrow> (map2 add_mset ((Ai' \<cdot>al \<eta>)) ((Aij' \<cdot>aml \<eta>))) ! i = (map2 add_mset ( Ai') (Aij') \<cdot>aml \<eta>) ! i"
+    apply auto
+    by (smt Suc_length_conv gr_implies_not0 less_Suc_eq_0_disj list.sel(3) nth_Cons_Suc)
+      moreover
+  have "add_mset (hd Ai' \<cdot>a \<eta>) (hd Aij' \<cdot>am \<eta>) = add_mset (hd Ai') (hd Aij') \<cdot>am \<eta>"
+    sorry
+  then have "(map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)) ! 0  = (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) ! 0"
+    using Suc sorry
+  ultimately
+  have "\<forall>i < Suc n. (map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)) ! i  = (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) ! i"
+    using Suc by auto
+  then show ?case 
+    using nn list_eq_iff_nth_eq by metis
+next
+  case 0 then show ?case 
+    apply auto
+    unfolding subst_atm_mset_list_def
+    apply auto
+    done
+qed
+    
 lemma ord_resolve_lifting: 
   fixes CAi
   assumes resolve: "ord_resolve (S_M S M) CAi DAi E" 
@@ -646,7 +705,7 @@ lemma ord_resolve_lifting:
   proof -
     term "(map2 add_mset Ai' Aij')"
     have "is_unifiers \<sigma> (set_mset ` set (map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)))" using uu by -
-    then have "is_unifiers \<sigma> (set_mset ` set ((map2 add_mset (Ai') (Aij')) \<cdot>aml \<eta>))" sorry
+    then have "is_unifiers \<sigma> (set_mset ` set ((map2 add_mset Ai' Aij') \<cdot>aml \<eta>))" using prime_clauses2(2) prime_clauses2(3) map2_add_mset_map by auto
     then have "is_unifiers \<sigma> (set_mset ` set ((map2 add_mset Ai' Aij')) \<cdot>ass \<eta>)" sorry
     then show ?thesis 
       sorry
