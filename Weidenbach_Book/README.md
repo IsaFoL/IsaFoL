@@ -2,30 +2,9 @@
 
 [This directory](https://bitbucket.org/isafol/isafol/src/master/Weidenbach_Book/) contains an ongoing Isabelle formalization of Christoph Weidenbach's forthcoming book _Automated Reasoning―The Art of Generic Problem Solving_.
 
-## Organisation of the Development ##
-* The branch [master](https://bitbucket.org/isafol/isafol/src/master/Weidenbach_Book/) contains the latest development and is based on Isabelle's repository version.
-* The branch [IJCAR2016](https://bitbucket.org/isafol/isafol/src/IJCAR2016/Weidenbach_Book/) contains the version of the development related to the paper. Please refer to [this page](https://bitbucket.org/isafol/isafol/src/IJCAR2016/Weidenbach_Book/Readme.md).
+This branch contains the version of the development related to the paper A Verified SAT Solver with Two Watched Literals Using Imperative HOL (submitted to ITP 2017).
 
-## Documentation ##
-
-A recent version of the documentation the theory files is also available [here](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/current/Weidenbach_Book).
-
-## Authors ##
-
-* [Mathias Fleury](mailto:mathias.fleury shtrudel mpi-inf.mpg.de)
-* [Jasmin Christian Blanchette](mailto:jasmin.blanchette shtrudel inria.fr)
-
-## Additional Collaborators ##
-
-* [Dmitriy Traytel](mailto:traytel shtrudel inf.ethz.ch)
-* [Christoph Weidenbach](mailto:weidenbach shtrudel mpi-inf.mpg.de)
-
-## Publications ##
-
-* [A Verified SAT Solver Framework with Learn, Forget, Restart, and Incrementality](http://people.mpi-inf.mpg.de/~jblanche/sat.pdf).
-  J. C. Blanchette, M. Fleury, and C. Weidenbach.
-  In Olivetti, N., Tiwari, A. (eds.) 8th International Joint Conference on Automated Reasoning (IJCAR 2016), LNCS, Springer, 2016.
-
-* [Formalisation of Ground Inference Systems in a Proof Assistant](http://www.mpi-inf.mpg.de/fileadmin/inf/rg1/Documents/fleury_master_thesis.pdf).
-  M. Fleury.
-  M.Sc. thesis, École normale supérieure Rennes, 2015.
+## Execution ##
+1. [Isabelle2016-1](http://isabelle.in.tum.de/website-Isabelle2016-1/) is required to process the files
+2. The [Archive Of Formal Proofs](https://www.isa-afp.org) is needed for the Refinement Framework. Please refer to the [installation instructions](https://www.isa-afp.org/using.shtml).
+3. To process all the theory files, simply load ``Weidenbach_Book.thy'' in Isabelle2016-1.
