@@ -526,24 +526,63 @@ lemma mset_equals_size:
 lemma swapii: "i < length Aij' \<Longrightarrow> (Aij' \<cdot>aml \<eta>) ! i = (Aij'  ! i)  \<cdot>am \<eta>"
   unfolding subst_atm_mset_list_def
     by auto
-    
+      
 lemma something_intersection:
   assumes "X \<subseteq># D' + T"
-  assumes "\<And>L2. L2 \<in># D' \<Longrightarrow> L2 \<in># X \<Longrightarrow> False"
+  assumes "\<And>L2. count L2 D' + count L2 T = count L2 (D' + T)"
   shows "X \<subseteq># T"
   using assms
-proof - (*Sledgehammer made this *)
-  obtain bb :: "'b multiset \<Rightarrow> 'b multiset \<Rightarrow> 'b" where
-    f1: "\<forall>m ma. m \<subseteq># ma \<or> count {#} (bb {#} (m - ma)) \<noteq> count (m - ma) (bb {#} (m - ma))"
-    by (metis Diff_eq_empty_iff_mset multiset_eqI)
-  have "X - T \<subseteq># D'"
-    by (simp add: assms(1) subset_eq_diff_conv)
-  then have "(\<exists>m ma. X - T \<subseteq># m \<and> bb {#} (X - T) \<notin># m \<and> bb {#} (X - T) \<notin># ma) \<or> count {#} (bb {#} (X - T)) = count (X - T) (bb {#} (X - T))"
-    by (metis (full_types) Diff_eq_empty_iff_mset assms(2) count_diff count_inI mset_subset_eqD subset_mset.zero_le)
-  then show ?thesis
-    using f1 by (metis (no_types) count_inI mset_subset_eqD subset_mset.zero_le)
-qed
+  oops
     
+lemma image_mset_Diff':
+ "Y \<in># X \<Longrightarrow> image_mset f (X - {#Y#}) = (image_mset f X) - {#f Y#}"
+  by (simp add: image_mset_Diff)
+  
+    
+lemma that_stuff_i_wrote_on_papers:
+  (* Det her er vidst noget rod... *)
+  fixes \<eta> :: "'s"
+  
+  assumes "S_MDA\<eta> = A\<eta>"
+    
+  assumes "lS_MDA\<eta> = lA \<cdot>al \<eta>"
+  assumes "mset lS_MDA\<eta> = S_MDA\<eta>"
+  
+  assumes "lSDA\<eta> = lA \<cdot>al \<eta>"
+  assumes "negs (mset lSDA\<eta>) = SDA \<cdot> \<eta>"
+    
+  assumes "lSDA = (lA :: 'a list)"
+  shows "negs (mset (lSDA)) = SDA"
+using assms proof (induction lSDA arbitrary: SDA lA S_MDA\<eta> lS_MDA\<eta> lSDA\<eta> A\<eta>)
+  case Nil
+  then have "lA \<cdot>al \<eta> = []" by auto
+  then have "lS_MDA\<eta> = []" using Nil by auto
+  then have "lSDA\<eta> = []" using Nil by auto
+  then have "SDA \<cdot> \<eta> = {#}" using Nil by auto
+  then have "SDA = {#}" unfolding subst_cls_def by auto
+  then show ?case by auto
+  next
+    case (Cons a lSDA)
+    thm Cons(1)[of "S_MDA\<eta> - {#a \<cdot>a \<eta> #}" _ "tl lS_MDA\<eta>" "tl lA" "tl lSDA\<eta>" "remove1_mset (Neg a) SDA"]
+     
+    have jaja: "Neg a \<in># SDA"
+      sorry
+      
+    have "tl lS_MDA\<eta> = tl lA \<cdot>al \<eta>" using Cons by auto
+    have "mset (tl lS_MDA\<eta>) = remove1_mset (a \<cdot>a \<eta>) S_MDA\<eta>" using Cons
+      by force 
+    have "tl lSDA\<eta> = tl lA \<cdot>al \<eta>" using Cons by auto
+    have "negs (mset (tl lSDA\<eta>)) = remove1_mset (Neg a) SDA \<cdot> \<eta>" using jaja Cons(6)
+      by (smt Cons.prems(2) Cons.prems(3) Cons.prems(4) Cons.prems(6) \<open>mset (tl lS_MDA\<eta>) = remove1_mset (a \<cdot>a \<eta>) S_MDA\<eta>\<close> image_mset_Diff' image_mset_single list.sel(3) mset.simps(2) single_remove1_mset_eq subst_atm_list_Cons subst_atm_mset_single subst_cls_def subst_cls_negs)
+          
+    have "lSDA = tl lA" using Cons by auto  
+        
+      
+      
+    have "negs (mset lSDA) = remove1_mset (Neg a) SDA" sorry
+    then show ?case
+      using Cons.prems(4) Cons.prems(5) Cons.prems(6) single_remove1_mset_eq by fastforce 
+qed
     
 lemma ord_resolve_lifting: 
   fixes CAi
@@ -690,16 +729,12 @@ lemma ord_resolve_lifting:
       moreover
       {
         fix L
-        assume  "L \<in># D'" "L \<in># S (DAi')"
-        hence ld': "L \<cdot>l \<eta> \<in># D' \<cdot> \<eta>" "L \<cdot>l \<eta> \<in># S (DAi') \<cdot> \<eta>" by auto
-        hence "L \<cdot>l \<eta> \<in># S_M S M (DAi' \<cdot> \<eta>)"
-          using prime_clauses(6) prime_clauses(7) by auto
-          (* I wrote this on that piece of paper. *)
-        hence False using ld'(1) sorry
+        have "count L D' + count L (S DAi') = count L DAi'" sorry
       }
       ultimately
-      have "S DAi' \<subseteq># (negs (mset Ai'))"
-        unfolding prime_clauses2(8) using something_intersection by blast
+      (* have "S DAi' \<subseteq># (negs (mset Ai'))"
+        oops*)
+      have True by auto
       moreover
       {
       have "size (S DAi') = size ((S DAi') \<cdot> \<eta>)" unfolding subst_cls_def by auto (* make a simp rule for this *)
@@ -716,8 +751,11 @@ lemma ord_resolve_lifting:
         by auto
       }
       ultimately
+      have "True" by auto
+      let ?lSDA' = "Ai'"
+      
       have "S (DAi') = negs (mset Ai')"
-        using mset_equals_size by blast
+        by auto
       then show "S (D'  + negs (mset Ai')) = negs (mset Ai')"
         unfolding prime_clauses2(8) by auto
     qed
