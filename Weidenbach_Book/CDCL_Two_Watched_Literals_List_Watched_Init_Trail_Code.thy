@@ -1120,6 +1120,14 @@ code_printing constant "shiftl :: nat \<Rightarrow> nat \<Rightarrow> nat" \<rig
 code_printing constant "shiftr :: nat \<Rightarrow> nat \<Rightarrow> nat" \<rightharpoonup>
   (SML) "(nat'_of'_integer(IntInf.~>>/ (integer'_of'_nat((_)),/ Word.fromLargeInt (integer'_of'_nat((_))))))"
 
+(* code_printing constant "shiftr1 :: nat \<Rightarrow> nat" \<rightharpoonup>
+  (SML) "(nat'_of'_integer(IntInf.~>>/ (integer'_of'_nat((_)),/ Word.fromInt 1)))" and
+  (SML_imp) "(nat'_of'_integer(IntInf.~>>/ (integer'_of'_nat((_)),/ Word.fromLargeInt 1)))"
+
+code_printing constant "shiftl1 :: nat \<Rightarrow> nat" \<rightharpoonup>
+  (SML) "(nat'_of'_integer(IntInf.<</ (integer'_of'_nat((_)),/ Word.fromInt 1)))" and
+  (SML_imp) "(nat'_of'_integer(IntInf.<</ (integer'_of'_nat((_)),/ Word.fromLargeInt 1)))" *)
+
 export_code SAT_wl_code checking SML_imp
 export_code SAT_wl_code
     int_of_integer

@@ -422,6 +422,10 @@ fun ht_copy (A1_, A2_, A3_) B_ n src dst =
              ht_copy (A1_, A2_, A3_) B_ (minus_nat n one_nat) src x ()
            end));
 
+fun shiftr1 n =
+  (nat_of_integer(IntInf.~>> (integer_of_nat(n),
+    Word.fromLargeInt (integer_of_nat(one_nat)))));
+
 fun times_nat m n = Nat (IntInf.* (integer_of_nat m, integer_of_nat n));
 
 val load_factor : nat = nat_of_integer (75 : IntInf.int);
@@ -1533,14 +1537,8 @@ fun init_state_wl_D n_0 l_Ns =
         val e = new heap_nat zero_nata zero_nata ();
         val naa = arrayO_raa_append (default_nat, heap_nat) na e ();
         val ws = arrayO_ara_empty_sz_code (default_nat, heap_nat) n ();
-        val m =
-          new (heap_option heap_bool)
-            ((nat_of_integer(IntInf.~>> (integer_of_nat(n), Word.fromInt 1))))
-            NONE ();
-        val ma =
-          new heap_nat
-            ((nat_of_integer(IntInf.~>> (integer_of_nat(n), Word.fromInt 1))))
-            zero_nata ();
+        val m = new (heap_option heap_bool) (shiftr1 n) NONE ();
+        val ma = new heap_nat (shiftr1 n) zero_nata ();
       in
         (([], (m, (ma, zero_nata))),
           (naa, (zero_nata, (NONE, ([], ([], ([], ws)))))))

@@ -76,15 +76,6 @@ definition shiftl1 :: \<open>nat \<Rightarrow> nat\<close> where
 definition shiftr1 :: \<open>nat \<Rightarrow> nat\<close> where
   \<open>shiftr1 n = n >> 1\<close>
 
-code_printing constant "shiftr1 :: nat \<Rightarrow> nat" \<rightharpoonup>
-  (SML) "(nat'_of'_integer(IntInf.~>>/ (integer'_of'_nat((_)),/ Word.fromInt 1)))" and
-  (SML_imp) "(nat'_of'_integer(IntInf.~>>/ (integer'_of'_nat((_)),/ Word.fromInt 1)))"
-
-code_printing constant "shiftl1 :: nat \<Rightarrow> nat" \<rightharpoonup>
-  (SML) "(nat'_of'_integer(IntInf.<</ (integer'_of'_nat((_)),/ Word.fromInt 1)))" and
-  (SML_imp) "(nat'_of'_integer(IntInf.<</ (integer'_of'_nat((_)),/ Word.fromInt 1)))"
-
-
 instantiation natural :: bits
 begin
 
