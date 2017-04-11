@@ -551,7 +551,7 @@ lemma map2_add_mset_map:
     by (simp add: map_tl)
       
   moreover 
-  have "length (Ai' \<cdot>al \<eta>) = Suc n" "length (Aij' \<cdot>aml \<eta>) = Suc n"
+  have Succ: "length (Ai' \<cdot>al \<eta>) = Suc n" "length (Aij' \<cdot>aml \<eta>) = Suc n"
      apply -
     using Suc(3) apply auto[]
     using Suc(2) unfolding subst_atm_mset_list_def apply auto[] (* unfolding should not be necessary  *)
@@ -572,18 +572,23 @@ lemma map2_add_mset_map:
   have "\<forall>i < n. (map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>))) ! i = (map2 add_mset (tl Ai') (tl Aij') \<cdot>aml \<eta>) ! i"
     by auto
   then have "\<forall>i < n. tl (map2 add_mset ( (Ai' \<cdot>al \<eta>)) ((Aij' \<cdot>aml \<eta>))) ! i = tl (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) ! i"
-    sorry
-  moreover have nn: "length (map2 add_mset ( (Ai' \<cdot>al \<eta>)) ((Aij' \<cdot>aml \<eta>))) = Suc n"
+    using  Suc(2) Suc(3) Succ
+    by (simp add: map2_tl map_tl subst_atm_mset_list_def) 
+
+  moreover have nn: "length (map2 add_mset ((Ai' \<cdot>al \<eta>)) ((Aij' \<cdot>aml \<eta>))) = Suc n"
     "length (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) = Suc n"
-     sorry
+     apply -
+    using Succ apply auto
+      using Suc unfolding subst_atm_mset_list_def by auto (* I should not have to unfold *)
   ultimately have "\<forall>i. i < Suc n \<longrightarrow> i > 0 \<longrightarrow> (map2 add_mset ((Ai' \<cdot>al \<eta>)) ((Aij' \<cdot>aml \<eta>))) ! i = (map2 add_mset ( Ai') (Aij') \<cdot>aml \<eta>) ! i"
     apply auto
     by (smt Suc_length_conv gr_implies_not0 less_Suc_eq_0_disj list.sel(3) nth_Cons_Suc)
       moreover
   have "add_mset (hd Ai' \<cdot>a \<eta>) (hd Aij' \<cdot>am \<eta>) = add_mset (hd Ai') (hd Aij') \<cdot>am \<eta>"
-    sorry
+    unfolding subst_atm_mset_def by auto
   then have "(map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)) ! 0  = (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) ! 0"
-    using Suc sorry
+    using Suc
+    by (simp add: Succ(2) map2_nth substitution_ops.subst_atm_mset_def swapii) 
   ultimately
   have "\<forall>i < Suc n. (map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)) ! i  = (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) ! i"
     using Suc by auto
@@ -596,6 +601,10 @@ next
     apply auto
     done
 qed
+  
+theorem is_unifiers_comp: "is_unifiers \<sigma> (set_mset ` set (map2 add_mset Ai' Aij') \<cdot>ass \<eta>) \<longleftrightarrow> is_unifiers (\<eta> \<odot> \<sigma>) (set_mset ` set (map2 add_mset Ai' Aij'))"
+  unfolding is_unifiers_def is_unifier_def subst_atmss_def
+    by auto
     
 lemma ord_resolve_lifting: 
   fixes CAi
@@ -703,12 +712,15 @@ lemma ord_resolve_lifting:
   hence uu: "is_unifiers \<sigma> (set_mset ` set (map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)))" using mgu_sound is_mgu_def unfolding prime_clauses2 by auto
   have \<eta>\<sigma>uni: "is_unifiers (\<eta> \<odot> \<sigma>) (set_mset ` set (map2 add_mset Ai' Aij'))"
   proof -
-    term "(map2 add_mset Ai' Aij')"
+    have eq: "(set_mset ` set (map2 add_mset Ai' Aij' \<cdot>aml \<eta>)) = (set_mset ` set (map2 add_mset Ai' Aij') \<cdot>ass \<eta>)"
+      unfolding subst_atmss_def
+        subst_atm_mset_list_def
+      using subst_atm_mset_def subst_atms_def by auto
     have "is_unifiers \<sigma> (set_mset ` set (map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)))" using uu by -
     then have "is_unifiers \<sigma> (set_mset ` set ((map2 add_mset Ai' Aij') \<cdot>aml \<eta>))" using prime_clauses2(2) prime_clauses2(3) map2_add_mset_map by auto
-    then have "is_unifiers \<sigma> (set_mset ` set ((map2 add_mset Ai' Aij')) \<cdot>ass \<eta>)" sorry
+    then have "is_unifiers \<sigma> (set_mset ` set ((map2 add_mset Ai' Aij')) \<cdot>ass \<eta>)" using eq by auto
     then show ?thesis 
-      sorry
+      using is_unifiers_comp by auto
   qed
   then obtain \<tau> where \<tau>_p: "Some \<tau> = mgu (set_mset ` set (map2 add_mset Ai' Aij'))" using mgu_complete
     by (metis (mono_tags, hide_lams) finite_imageI finite_set_mset image_iff set_mset_mset) (* should be simpler? *) 

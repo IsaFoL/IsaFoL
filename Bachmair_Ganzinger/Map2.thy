@@ -26,6 +26,12 @@ lemma inj_map2[iff]: "inj (map2 f) = inj f" oops
 lemma map2_nth: "length t = length s \<Longrightarrow> i < length s \<Longrightarrow> (map2 f s t) ! i = f (s!i) (t!i)"
   unfolding map2_def by (induction t arbitrary: s) auto
     
+    
+lemma map2_tl: "length t = length s \<Longrightarrow> (map2 f (tl t) (tl s)) = tl (map2 f (t) (s))"  
+  unfolding map2_def apply (induction t arbitrary: s)
+   apply auto
+  by (smt Suc_length_conv list.sel(3) list.simps(9) zip_Cons_Cons)
+    
 
     
     
