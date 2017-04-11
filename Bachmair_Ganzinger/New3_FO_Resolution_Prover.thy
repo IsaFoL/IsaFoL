@@ -676,6 +676,11 @@ lemma ord_resolve_lifting:
       
       (* Choose the D' and the C', i.e. the first-order clauses standardized apart *)
       
+  have "\<exists>\<rho>s \<rho>. length \<rho>s = length CAi'' \<and> (\<forall>\<rho>i \<in> set (\<rho>#\<rho>s). is_renaming \<rho>) \<and> var_disjoint ((DAi''#CAi'') \<cdot>\<cdot>cl (\<rho>#\<rho>s))"
+    using make_var_disjoint[of "DAi'' # CAi''"]
+    apply auto
+      sorry
+      
   obtain CAi' DAi' \<eta> where prime_clauses: (* I need some lemma telling that these standardized apart clauses exist *) 
     "length CAi' = n" 
     "\<forall>i < n. CAi' ! i \<in> M" 
@@ -693,6 +698,8 @@ lemma ord_resolve_lifting:
     
     "is_ground_subst \<eta>"
     sorry
+      
+
       
   obtain Ci' Aij' D' Ai' where prime_clauses2:
     "length Ci' = n"
