@@ -30,6 +30,7 @@ install(TARGETS gratgen RUNTIME DESTINATION bin)
 
 
 
+
 option(BUILD_DOCUMENTATION "Use Doxygen to create the HTML based API documentation" OFF)
 if(BUILD_DOCUMENTATION)
   FIND_PACKAGE(Doxygen)
