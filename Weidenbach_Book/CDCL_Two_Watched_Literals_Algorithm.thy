@@ -192,6 +192,36 @@ qed
 
 declare unit_propagation_inner_loop_body(1)[THEN order_trans, refine_vcg]
 
+lemma unit_propagation_inner_loop_body_add:
+  fixes S :: \<open>'v twl_st\<close>
+  assumes
+    inv: \<open>twl_struct_invs (set_clauses_to_update (add_mset x (clauses_to_update S)) S)\<close> and
+    inv_s: \<open>twl_stgy_invs (set_clauses_to_update (add_mset x (clauses_to_update S)) S)\<close> and
+    confl: \<open>get_conflict S = None\<close>
+  shows \<open>unit_propagation_inner_loop_body x S
+    \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> twl_stgy_invs S' \<and>
+     cdcl_twl_cp\<^sup>*\<^sup>* (set_clauses_to_update (add_mset x (clauses_to_update S)) S) S')\<close>
+    (is \<open>unit_propagation_inner_loop_body _ ?S \<le> _\<close>)
+proof -
+  have S: \<open>S = (set_clauses_to_update
+   (remove1_mset x (clauses_to_update (set_clauses_to_update (add_mset x (clauses_to_update S)) S)))
+   (set_clauses_to_update (add_mset x (clauses_to_update S)) S))\<close>
+    by (cases S) auto
+
+  note H = unit_propagation_inner_loop_body(1)[of \<open>(set_clauses_to_update (add_mset x (clauses_to_update ?S)) ?S)\<close> x]
+
+  show ?thesis
+    apply (rule order.trans)
+     apply (rule H[unfolded S[symmetric]])
+    subgoal using assms by (cases S) auto
+    subgoal by (cases S) auto
+    subgoal using inv .
+    subgoal using inv_s .
+    subgoal using confl by (cases S) auto
+    subgoal by auto
+    done
+qed
+
 lemma unit_propagation_inner_loop:
   assumes \<open>twl_struct_invs S\<close> and inv: \<open>twl_stgy_invs S\<close>
   shows \<open>unit_propagation_inner_loop S \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> twl_stgy_invs S' \<and>
