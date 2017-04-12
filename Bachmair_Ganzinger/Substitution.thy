@@ -7,7 +7,7 @@
 section {* Abstract Substitutions *}
 
 theory Substitution
-imports Clauses
+imports Clauses Map2
 begin
 
 text {*
@@ -30,7 +30,7 @@ abbreviation comp_subst_syntax (infixl "\<odot>" 67) where
   "comp_subst_syntax \<equiv> comp_subst"
 
 definition comp_substs(infixl "\<odot>s" 67) where
-  "\<sigma>s \<odot>s \<tau>s = map (\<lambda>(\<sigma>, \<tau>). \<sigma> \<odot> \<tau>) (zip \<sigma>s \<tau>s)"
+  "\<sigma>s \<odot>s \<tau>s = map2 comp_subst \<sigma>s \<tau>s"
 
 definition subst_atms :: "'a set \<Rightarrow> 's \<Rightarrow> 'a set" (infixl "\<cdot>as" 67) where
   "AA \<cdot>as \<sigma> = (\<lambda>A. A \<cdot>a \<sigma>) ` AA"
@@ -60,7 +60,7 @@ definition subst_cls_list :: "'a clause list \<Rightarrow> 's \<Rightarrow> 'a c
   "CC \<cdot>cl \<sigma> = map (\<lambda>A. A \<cdot> \<sigma>) CC"
 
 definition subst_cls_lists :: "'a clause list \<Rightarrow> 's list \<Rightarrow> 'a clause list" (infixl "\<cdot>\<cdot>cl" 67) where
-  "CC \<cdot>\<cdot>cl \<sigma>s = map (\<lambda>(A, \<sigma>). A \<cdot> \<sigma>) (zip CC \<sigma>s)"
+  "CC \<cdot>\<cdot>cl \<sigma>s = map2 subst_cls CC \<sigma>s"
 
 definition subst_cls_mset :: "'a clause multiset \<Rightarrow> 's \<Rightarrow> 'a clause multiset" (infixl "\<cdot>cm" 67) where
   "CC \<cdot>cm \<sigma> = image_mset (\<lambda>A. A \<cdot> \<sigma>) CC"
@@ -330,8 +330,8 @@ lemma map_zip_assoc: "map f (zip (zip xs ys) zs) = map (\<lambda>(x,y,z). f ((x,
   by (induct zs arbitrary: xs ys) (auto simp add: zip.simps(2) split: list.splits)
 
 lemma subst_cls_lists_comp_substs[simp]: "Cs \<cdot>\<cdot>cl (\<tau>s \<odot>s \<sigma>s) = Cs \<cdot>\<cdot>cl \<tau>s \<cdot>\<cdot>cl \<sigma>s"
-  unfolding subst_cls_lists_def comp_substs_def map_zip_map map_zip_map2 map_zip_assoc 
-  by (simp add: split_def)
+  unfolding map2_def subst_cls_lists_def comp_substs_def map_zip_map map_zip_map2 map_zip_assoc   
+     by (simp add: split_def)
 
 lemma subst_clsscomp_subst[simp]: "CC \<cdot>cs (\<tau> \<odot> \<sigma>) = CC \<cdot>cs \<tau> \<cdot>cs \<sigma>"
   unfolding subst_clss_def by auto
@@ -428,7 +428,7 @@ lemma ground_subst_ground_cls_list[simp]: "is_ground_subst \<sigma> \<Longrighta
 
 lemma ground_subst_ground_cls_lists[simp]:
   "\<forall>\<sigma> \<in> set \<sigma>s. is_ground_subst \<sigma> \<Longrightarrow> is_ground_cls_list (CC \<cdot>\<cdot>cl \<sigma>s)"
-  unfolding is_ground_cls_list_def subst_cls_lists_def by (auto simp: set_zip)
+  unfolding  is_ground_cls_list_def subst_cls_lists_def map2_def by (auto simp: set_zip)
 
 lemma ground_subst_ground_cls_mset[simp]: "is_ground_subst \<sigma> \<Longrightarrow> is_ground_cls_mset (CC \<cdot>cm \<sigma>)"
   unfolding is_ground_cls_mset_def subst_cls_mset_def by auto
@@ -473,9 +473,20 @@ lemma is_ground_subst_cls_iff: "is_ground_cls C \<longleftrightarrow> (\<forall>
   using is_ground_subst_lit_iff apply (auto simp add: is_ground_cls_def subst_cls_def)[]
   apply (metis ex_ground_subst ground_subst_ground_cls)
   done
-lemma is_ground_subst_cls_list[simp]: "length P = length CAi \<Longrightarrow> is_ground_cls_list CAi \<Longrightarrow> CAi \<cdot>\<cdot>cl P = CAi"
-  unfolding is_ground_cls_list_def subst_cls_lists_def using is_ground_subst_cls nth_equalityI[of "map _ _" CAi]
-  by (metis in_set_conv_nth subst_cls_len subst_cls_lists_def subst_cls_lists_nth)
+lemma is_ground_subst_cls_list[simp]:
+  assumes "length P = length CAi"
+  assumes "is_ground_cls_list CAi"
+  shows "CAi \<cdot>\<cdot>cl P = CAi"
+proof -
+  {
+    fix i
+    assume "i < length P"
+    then have "(CAi \<cdot>\<cdot>cl P) ! i = CAi !i "
+      using assms unfolding is_ground_cls_list_def by auto
+  }
+  then show ?thesis using nth_equalityI[of _ CAi] assms by auto
+qed
+   
     
 (* similar to but stronger than is_ground_subst_cls_list *)
   

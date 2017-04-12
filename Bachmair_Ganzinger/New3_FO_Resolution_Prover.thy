@@ -117,7 +117,7 @@ proof -
     assume i: "i < n"
     then have "is_unifier \<sigma> (set_mset (add_mset (Ai ! i) (Aij ! i)))"
       using ailen aijlen uni  unfolding is_unifiers_def
-      by (auto simp add: map2_nth[symmetric]) 
+      by (auto simp del: map2_nth simp add: map2_nth[symmetric]) 
     then show "\<forall>A\<in>#Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>" using ailen aijlen i
       by (metis finite_set_mset insertCI is_unifier_subst_atm_eqI set_mset_add_mset_insert)
   qed
@@ -267,7 +267,9 @@ proof -
     then have "x \<in> set (CAi \<cdot>\<cdot>cl P)" by auto
     then obtain i where i_x: "i < length (CAi \<cdot>\<cdot>cl P) \<and> x = (CAi \<cdot>\<cdot>cl P) ! i"
       using in_set_conv_nth by metis
-    then show "I \<Turnstile>fo x" using true_cp unfolding subst_cls_lists_def by auto
+    then show "I \<Turnstile>fo x" using true_cp unfolding subst_cls_lists_def
+      by (simp add: len)
+        
   qed
 qed
   
@@ -582,13 +584,14 @@ lemma map2_add_mset_map:
       using Suc unfolding subst_atm_mset_list_def by auto (* I should not have to unfold *)
   ultimately have "\<forall>i. i < Suc n \<longrightarrow> i > 0 \<longrightarrow> (map2 add_mset ((Ai' \<cdot>al \<eta>)) ((Aij' \<cdot>aml \<eta>))) ! i = (map2 add_mset ( Ai') (Aij') \<cdot>aml \<eta>) ! i"
     apply auto
-    by (smt Suc_length_conv gr_implies_not0 less_Suc_eq_0_disj list.sel(3) nth_Cons_Suc)
+    by (metis (no_types, lifting) Suc.prems(1) Suc.prems(2) Succ(1) Succ(2) \<open>length (map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>))) = n\<close> 
+         \<open>map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>)) = map2 add_mset (tl Ai') (tl Aij') \<cdot>aml \<eta>\<close> less_Suc_eq_0_disj map2_tl map_tl neq0_conv nth_tl subst_atm_mset_list_def)
       moreover
   have "add_mset (hd Ai' \<cdot>a \<eta>) (hd Aij' \<cdot>am \<eta>) = add_mset (hd Ai') (hd Aij') \<cdot>am \<eta>"
     unfolding subst_atm_mset_def by auto
   then have "(map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)) ! 0  = (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) ! 0"
     using Suc
-    by (simp add: Succ(2) map2_nth substitution_ops.subst_atm_mset_def swapii) 
+    by (simp add: Succ(2) substitution_ops.subst_atm_mset_def swapii) 
   ultimately
   have "\<forall>i < Suc n. (map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)) ! i  = (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) ! i"
     using Suc by auto
@@ -623,6 +626,7 @@ theorem tl_subst: "length Cs = length \<rho>s \<Longrightarrow> tl (Cs \<cdot>\<
   apply (induction Cs arbitrary: \<rho>s)
    apply auto
   unfolding subst_cls_lists_def
+    unfolding map2_def
   by (metis (no_types, lifting) list.exhaust_sel list.sel(3) list.size(3) map_tl nat.simps(3) zip_Cons_Cons)
     
     
@@ -687,7 +691,7 @@ lemma ord_resolve_lifting:
   have "\<forall>i < n. CAi'' ! i \<in> M" using COOL by auto
   have cai''_to_cai: "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi" using COOL
     by (simp add: \<open>length CAi'' = n\<close> \<open>length \<eta>s'' = n\<close> local.ord_resolve(3)) 
-  have "(\<forall>i < n. S_M S M (CAi ! i) = S (CAi'' ! i) \<cdot> (\<eta>s'' ! i))"
+  have selelele: "(\<forall>i < n. S_M S M (CAi ! i) = S (CAi'' ! i) \<cdot> (\<eta>s'' ! i))"
     using COOL by auto
       
   have "\<exists>DAi'' \<eta>''. DAi'' \<in> M \<and> (DAi) = DAi'' \<cdot> \<eta>'' \<and> S (DAi'') \<cdot> \<eta>'' = S_M S M DAi"
@@ -724,7 +728,7 @@ lemma ord_resolve_lifting:
   obtain \<rho>_inv where "\<rho> \<odot> \<rho>_inv = id_subst" using \<rho>_ren unfolding is_renaming_def by auto
       
   define inv_sub where "inv_sub = (\<lambda>s. SOME s_inv. if is_renaming s then s \<odot> s_inv = id_subst else undefined)"
-  have "\<forall>s. is_renaming s \<longrightarrow> s \<odot> (inv_sub s) = id_subst"
+  have inv_sub_p: "\<forall>s. is_renaming s \<longrightarrow> s \<odot> (inv_sub s) = id_subst"
     unfolding inv_sub_def
     unfolding is_renaming_def
       apply auto
@@ -740,14 +744,14 @@ lemma ord_resolve_lifting:
   have "length CAi' = n" sorry
     
   define \<eta>' where "\<eta>' = \<rho>_inv \<odot> \<eta>''"
-  define \<eta>s' where "\<eta>s' = map2 (op \<odot>) \<rho>s_inv \<eta>s''"
+  define \<eta>s' where "\<eta>s' = \<rho>s_inv \<odot>s \<eta>s''"
     
   have "length \<eta>s' = n" sorry
   
   note n = \<open>length \<rho>s_inv = n\<close> \<open>length CAi' = n\<close> \<open>length \<eta>s' = n\<close> n
     
   have \<rho>_i_inv_id: "\<forall>i<n.  \<rho>s!i \<odot> \<rho>s_inv !i = id_subst"
-    sorry
+    using n \<rho>s_inv_def inv_sub_p \<rho>s_ren by auto
     
   have lenlen: "length CAi' = n"
     by (simp add: \<open>CAi' \<equiv> CAi'' \<cdot>\<cdot>cl \<rho>s\<close> l\<rho>s lcai'')  
@@ -778,12 +782,30 @@ lemma ord_resolve_lifting:
         using n by auto
       then show "CAi'' \<cdot>\<cdot>cl \<rho>s \<cdot>\<cdot>cl \<rho>s_inv \<cdot>\<cdot>cl \<eta>s'' = CAi" using n by auto
     qed
-    then have "CAi'' \<cdot>\<cdot>cl \<rho>s \<cdot>\<cdot>cl map2 op \<odot> \<rho>s_inv \<eta>s'' = CAi" sorry
+    then have "CAi'' \<cdot>\<cdot>cl \<rho>s \<cdot>\<cdot>cl (\<rho>s_inv \<odot>s \<eta>s'') = CAi" using n by auto
     then show ?thesis
       unfolding CAi'_def \<eta>s'_def by auto
   qed
-  have "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>s' ! i" sorry
-      
+  have "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>s' ! i"
+  proof (rule, rule)
+    fix i
+    assume a: "i < n"
+    then have "S_M S M (CAi ! i) = S (CAi'' ! i) \<cdot> \<eta>s'' ! i" using selelele by auto
+    also have "... = S (((CAi'' ! i) \<cdot> (\<rho>s ! i)) \<cdot> (\<rho>s_inv ! i)) \<cdot> \<eta>s'' ! i"
+      using \<rho>_i_inv_id using a
+        apply (auto simp del: subst_cls_comp_subst
+            simp add: subst_cls_comp_subst[symmetric]) done
+    also have "... = S (((CAi'' ! i) \<cdot> (\<rho>s ! i))) \<cdot> (\<rho>s_inv ! i) \<cdot> \<eta>s'' ! i"
+      (* since (\<rho>s_inv ! i) is a renaming. *) sorry
+    also have "... = S (CAi' ! i) \<cdot> \<eta>s' ! i"
+      unfolding CAi'_def \<eta>s'_def
+      using n a apply auto
+        sorry (* simp rule needed *)
+    finally show "S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>s' ! i" by auto
+  qed
+    
+  (* Now I just need to replace the \<eta>s' ! i with a single substitution... Lol... *)
+  
   obtain CAi' DAi' \<eta> where prime_clauses: (* I need some lemma telling that these standardized apart clauses exist *) 
     "length CAi' = n" 
     "\<forall>i < n. CAi' ! i \<in> M" 
@@ -802,6 +824,8 @@ lemma ord_resolve_lifting:
     "is_ground_subst \<eta>"
     sorry
 
+  (* Now I need to find all these Ci' Aij' D' Ai' *)
+      
   obtain Ci' Aij' D' Ai' where prime_clauses2:
     "length Ci' = n"
     "length Aij' = n"
