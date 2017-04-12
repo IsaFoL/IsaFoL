@@ -316,9 +316,6 @@ fun replicate n x =
   (if equal_nat n zero_nata then []
     else x :: replicate (minus_nat n one_nat) x);
 
-fun is_none (SOME x) = false
-  | is_none NONE = true;
-
 fun blit A_ src si dst di len =
   (fn () => 
     array_blit src (integer_of_nat
@@ -442,6 +439,10 @@ fun ht_copy (A1_, A2_, A3_) B_ n src dst =
            in
              ht_copy (A1_, A2_, A3_) B_ (minus_nat n one_nat) src x ()
            end));
+
+fun shiftr1 n =
+  (nat_of_integer(IntInf.~>> (integer_of_nat(n),
+    Word.fromInt (integer_of_nat(one_nat)))));
 
 fun times_nat m n = Nat (IntInf.* (integer_of_nat m, integer_of_nat n));
 
@@ -1019,22 +1020,26 @@ fun valued_trail_code x =
     x;
 
 fun find_unwatched_code x =
-  (fn ai => fn bia => fn bi =>
-    heap_WHILET
-      (fn (a1, a2) => fn () => let
-                                 val xa = length_raa heap_uint32 bia bi ();
-                               in
-                                 is_none a1 andalso less_nat a2 xa
-                               end)
-      (fn (_, a2) => fn () =>
-        let
-          val xa = nth_raa heap_uint32 bia bi a2 ();
-          val x_a = valued_trail_code ai xa ();
-        in
-          (case x_a of NONE => (SOME false, a2) | SOME true => (SOME true, a2)
-            | SOME false => (NONE, plus_nat a2 one_nat))
-        end)
-      (NONE, nat_of_integer (2 : IntInf.int)))
+  (fn ai => fn bia => fn bi => fn () =>
+    let
+      val xa =
+        heap_WHILET
+          (fn (a1, a2) =>
+            (fn f_ => fn () => f_ ((length_raa heap_uint32 bia bi) ()) ())
+              (fn xa => (fn () => (is_None a1 andalso less_nat a2 xa))))
+          (fn (_, a2) =>
+            (fn f_ => fn () => f_ ((nth_raa heap_uint32 bia bi a2) ()) ())
+              (fn xa =>
+                (fn f_ => fn () => f_ ((valued_trail_code ai xa) ()) ())
+                  (fn x_a =>
+                    (fn () =>
+                      (case x_a of NONE => (SOME a2, a2)
+                        | SOME true => (SOME a2, a2)
+                        | SOME false => (NONE, plus_nat a2 one_nat))))))
+          (NONE, nat_of_integer (2 : IntInf.int)) ();
+    in
+      fst xa
+    end)
     x;
 
 fun unit_propagation_inner_loop_body_wl_D_code x =
@@ -1059,7 +1064,7 @@ fun unit_propagation_inner_loop_body_wl_D_code x =
                   else (fn f_ => fn () => f_ ((find_unwatched_code a1 a1a x_a)
                          ()) ())
                          (fn x_j =>
-                           (if is_none (fst x_j)
+                           (if is_None x_j
                              then (if equal_option equal_bool x_h (SOME false)
                                     then (fn f_ => fn () => f_
    ((nth_rl heap_uint32 a1a x_a) ()) ())
@@ -1077,11 +1082,11 @@ fun unit_propagation_inner_loop_body_wl_D_code x =
          (xb, (a1a, (a1b, (a1c, (a1d, (a1e,
 (Word32.xorb (x_f, (Word32.fromInt 1)) :: a1f, a2f)))))))))))
                              else (fn f_ => fn () => f_
-                                    ((nth_raa heap_uint32 a1a x_a (snd x_j)) ())
+                                    ((nth_raa heap_uint32 a1a x_a (the x_j)) ())
                                     ())
                                     (fn x_l =>
                                       (fn f_ => fn () => f_
-((swap_aa (default_uint32, heap_uint32) a1a x_a x_c (snd x_j)) ()) ())
+((swap_aa (default_uint32, heap_uint32) a1a x_a x_c (the x_j)) ()) ())
 (fn x_n =>
   (fn f_ => fn () => f_
     ((delete_index_and_swap_aa heap_nat a2f (nat_of_uint32 ai) bia) ()) ())
@@ -1575,14 +1580,8 @@ fun init_state_wl_D n_0 l_Ns =
         val e = new heap_uint32 zero_nata (Word32.fromInt 0) ();
         val naa = arrayO_raa_append (default_uint32, heap_uint32) na e ();
         val ws = arrayO_ara_empty_sz_code (default_nat, heap_nat) n ();
-        val m =
-          new (heap_option heap_bool)
-            ((nat_of_integer(IntInf.~>> (integer_of_nat(n), Word.fromInt 1))))
-            NONE ();
-        val ma =
-          new heap_uint32
-            ((nat_of_integer(IntInf.~>> (integer_of_nat(n), Word.fromInt 1))))
-            (Word32.fromInt 0) ();
+        val m = new (heap_option heap_bool) (shiftr1 n) NONE ();
+        val ma = new heap_uint32 (shiftr1 n) (Word32.fromInt 0) ();
       in
         (([], (m, (ma, (Word32.fromInt 0)))),
           (naa, (zero_nata, (NONE, ([], ([], ([], ws)))))))

@@ -228,24 +228,23 @@ lemma delete_index_and_swap_aa_ll_hnr[sepref_fr_rules]:
       simp: delete_index_and_swap_ll_def update_ll_def last_ll_def set_butlast_ll_def
       length_ll_def[symmetric])
 
-definition find_unwatched' :: "(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> (bool option \<times> nat) nres" where
+definition find_unwatched' :: "(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> (nat option) nres" where
 \<open>find_unwatched' M N' C = do {
-  WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> 2 \<and> i \<le> length (N'!C) \<and> (\<forall>j\<in>{2..<i}. -((N'!C)!j) \<in> lits_of_l M) \<and>
-    (found = Some False \<longrightarrow> (undefined_lit M ((N'!C)!i) \<and> i < length (N'!C))) \<and>
-    (found = Some True \<longrightarrow> ((N'!C)!i \<in> lits_of_l M \<and> i < length (N'!C)))\<^esup>
+   S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> 2 \<and> i \<le> length (N'!C) \<and> (\<forall>j\<in>{2..<i}. -((N'!C)!j) \<in> lits_of_l M) \<and>
+    (\<forall>j. found = Some j \<longrightarrow> (i = j \<and> (undefined_lit M ((N'!C)!j) \<or> (N'!C)!j \<in> lits_of_l M) \<and> j < length (N'!C) \<and> j \<ge> 2))\<^esup>
     (\<lambda>(found, i). found = None \<and> i < length (N'!C))
     (\<lambda>(_, i). do {
       ASSERT(i < length (N'!C));
       case valued M ((N'!C)!i) of
-        None \<Rightarrow> do { RETURN (Some False, i)}
+        None \<Rightarrow> do { RETURN (Some i, i)}
       | Some v \<Rightarrow>
-         (if v then do { RETURN (Some True, i)} else do { RETURN (None, i+1)})
+         (if v then do { RETURN (Some i, i)} else do { RETURN (None, i+1)})
       }
     )
-    (None, 2::nat)
+    (None, 2::nat);
+   RETURN (fst S)
   }
 \<close>
-
 lemma find_unwatched'_find_unwatched: \<open>find_unwatched' M N' C = find_unwatched M (N'!C)\<close>
   unfolding find_unwatched'_def find_unwatched_def
   by auto
@@ -254,7 +253,7 @@ sepref_definition find_unwatched'_impl
   is \<open>uncurry2 find_unwatched'\<close>
   :: \<open>[\<lambda>((M, N'), C). no_dup M \<and> C < length N']\<^sub>a
         pair_nat_ann_lits_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>
-        option_assn bool_assn *assn nat_assn\<close>
+        option_assn nat_assn\<close>
   unfolding find_unwatched'_def nth_rll_def[symmetric] length_rll_def[symmetric]
   supply [[goals_limit=1]]
   by sepref
