@@ -294,18 +294,18 @@ definition unit_propagation_inner_loop_body_l :: "'v literal \<Rightarrow> nat \
     else do {
       f \<leftarrow> find_unwatched M (N!C);
       ASSERT (f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l (N!C)). - L \<in> lits_of_l M));
-      if f = None
-      then
-        if val_L' = Some False
-        then RETURN (M, N, U, Some (mset (N!C)), NP, UP, {#}, {#})
-        else RETURN (Propagated L' C # M, N, U, D, NP, UP, WS, add_mset (-L') Q)
-      else do {
-        ASSERT(the f < length (N!C));
-        let K = (N!C) ! (the f);
-        let N' = list_update N C (swap (N!C) i (the f));
-        ASSERT (K \<in># mset (unwatched_l (N!C)) \<and> -K \<notin> lits_of_l M);
-        RETURN (M, N', U, D, NP, UP, WS, Q)
-      }
+      case f of
+         None \<Rightarrow>
+           if val_L' = Some False
+           then RETURN (M, N, U, Some (mset (N!C)), NP, UP, {#}, {#})
+           else RETURN (Propagated L' C # M, N, U, D, NP, UP, WS, add_mset (-L') Q)
+      | Some f \<Rightarrow> do {
+           ASSERT(f < length (N!C));
+           let K = (N!C) ! f;
+           let N' = list_update N C (swap (N!C) i f);
+           ASSERT (K \<in># mset (unwatched_l (N!C)) \<and> -K \<notin> lits_of_l M);
+           RETURN (M, N', U, D, NP, UP, WS, Q)
+        }
     }
    }
 \<close>
@@ -587,7 +587,7 @@ proof -
     \<Down> {(S, S'). twl_st_of (Some L) S = S' \<and> additional_WS_invs S} (unit_propagation_inner_loop_body
     (?L, twl_clause_of C') (twl_st_of (Some L) ?S))\<close>
     unfolding unit_propagation_inner_loop_body_l_def unit_propagation_inner_loop_body_def
-      S'_S[unfolded S] S' st_of_S' S
+      S'_S[unfolded S] S' st_of_S' S option.case_eq_if
     apply (rewrite at \<open>let _ =  _ ! _ in _\<close> Let_def)
     apply (rewrite at \<open>let _ = if _ ! _ = _then _ else _ in _\<close> Let_def)
     apply (rewrite at \<open>let _ =  (_ ! _, _) in _\<close> Let_def)
