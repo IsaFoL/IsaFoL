@@ -804,7 +804,7 @@ lemma ord_resolve_lifting:
     finally show "S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>s' ! i" by auto
   qed
     
-  (* Now I just need to replace the \<eta>s' ! i with a single substitution... Lol... *)
+  (* Now I just need to replace the (\<eta>s' ! i) and (\<rho>') with a single substitution... *)
   
   obtain CAi' DAi' \<eta> where prime_clauses: (* I need some lemma telling that these standardized apart clauses exist *) 
     "length CAi' = n" 
