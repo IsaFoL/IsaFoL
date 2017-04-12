@@ -411,24 +411,24 @@ definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> n
       ASSERT(literals_are_in_N\<^sub>0 (mset (N!C)));
       f \<leftarrow> find_unwatched M (N!C);
       ASSERT (f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l (N!C)). - L \<in> lits_of_l M));
-      if f = None
-      then
-        if val_L' = Some False
-        then do {RETURN (w+1, (M, N, U, Some (mset (N!C)), NP, UP, {#}, W))}
-        else do {
-          ASSERT(undefined_lit M L');
-          RETURN (w+1, (Propagated L' C # M, N, U, D', NP, UP, add_mset (-L') Q, W))}
-      else do {
-        ASSERT(the f < length (N!C));
-        let K' = (N!C) ! (the f);
-        ASSERT(K' \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP));
-        ASSERT(K' \<in> snd ` D\<^sub>0);
-        let N' = list_update N C (swap (N!C) i (the f));
-        let W = W(L := delete_index_and_swap (W L) w);
-        let W = W(K':= W K' @ [C]);
-        ASSERT(K \<noteq> K');
-        RETURN (w, (M, N', U, D', NP, UP, Q, W))
-      }
+      case f of
+        None \<Rightarrow>
+          if val_L' = Some False
+          then do {RETURN (w+1, (M, N, U, Some (mset (N!C)), NP, UP, {#}, W))}
+          else do {
+            ASSERT(undefined_lit M L');
+            RETURN (w+1, (Propagated L' C # M, N, U, D', NP, UP, add_mset (-L') Q, W))}
+      | Some f \<Rightarrow> do {
+          ASSERT(f < length (N!C));
+          let K' = (N!C) ! f;
+          ASSERT(K' \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP));
+          ASSERT(K' \<in> snd ` D\<^sub>0);
+          let N' = list_update N C (swap (N!C) i f);
+          let W = W(L := delete_index_and_swap (W L) w);
+          let W = W(K':= W K' @ [C]);
+          ASSERT(K \<noteq> K');
+          RETURN (w, (M, N', U, D', NP, UP, Q, W))
+       }
     }
    }
 \<close>
@@ -527,7 +527,6 @@ proof -
       using N\<^sub>0 by (simp add: S clauses_def mset_take_mset_drop_mset
           mset_take_mset_drop_mset' m)
     subgoal by (rule literals_are_in_N\<^sub>0_nth) fast+
-    subgoal by simp
     subgoal by simp
     subgoal by simp
     subgoal by simp
