@@ -632,13 +632,15 @@ lemma is_decided_in_set:
 lemma add_mset_both_side_of_union:
   assumes \<open>a \<notin># A\<close> and \<open>a \<notin># B\<close>
   shows \<open>add_mset a A \<union># B = A \<union># add_mset a B\<close> using assms by simp
-  
+
+
 (* S2MS *)
 lemma get_all_ann_decomposition_snd_mset_union:
   assumes \<open>distinct M\<close>
   shows \<open>mset M = \<Union>#image_mset mset (image_mset snd (mset (get_all_ann_decomposition M))) \<union>#
          mset_set {L |L. is_decided L \<and> L \<in> set M}\<close>
   (is \<open>?M M = ?U M \<union># ?Ls M\<close>)
+  using assms
 proof (induct M rule: ann_lit_list_induct)
   case Nil
   then show ?case by simp
@@ -647,9 +649,9 @@ next
   then have \<open>?Ls (Decided L # M') = mset_set ({Decided L} \<union> {L |L. is_decided L \<and> L \<in> set M'})\<close> 
     using arg_cong[OF is_decided_in_set[of L M']] by auto
   moreover have \<open>?U (Decided L # M') = ?U M'\<close> by auto
-  moreover have \<open>Decided L \<notin># ?U M'\<close> using assms by auto
-  moreover have \<open>Decided L \<notin># ?Ls M'\<close> using assms by by auto
-  moreover have \<open>?M M' = ?U M' \<union># ?Ls M'\<close> using IH by auto
+  moreover have \<open>Decided L \<notin># ?U M'\<close>  using Decided.prems by auto
+  moreover have \<open>Decided L \<notin># ?Ls M'\<close> using Decided.prems by auto
+  moreover have \<open>?M M' = ?U M' \<union># ?Ls M'\<close> using IH Decided.prems by auto
   ultimately show ?case by auto
 next
   case (Propagated L m M)
@@ -659,7 +661,9 @@ next
     then show ?thesis by auto
   next
     case (Cons a list)
-    then show ?thesis by auto
+    then have \<open>{u. is_decided u \<and> (u = Propagated L m \<or> u \<in> set M)} = {u. is_decided u \<and> u \<in> set M}\<close>
+      by auto
+    then show ?thesis using Propagated.prems by auto
   qed 
 qed
 
