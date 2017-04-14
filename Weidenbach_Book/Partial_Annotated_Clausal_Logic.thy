@@ -144,8 +144,9 @@ lemma true_annots_union[iff]:
 
 (* S2MS modif *)
 lemma true_annots_insert[iff]:
-  \<open>M \<Turnstile>as {#a#} \<union># A \<longleftrightarrow> (M \<Turnstile>a a \<and> M \<Turnstile>as A)\<close>
+  \<open>M \<Turnstile>as add_mset a A \<longleftrightarrow> (M \<Turnstile>a a \<and> M \<Turnstile>as A)\<close>
   unfolding true_annots_def by auto
+
 
 lemma true_annot_append_l:
   \<open>M \<Turnstile>a A \<Longrightarrow> M' @ M \<Turnstile>a A\<close>
@@ -633,29 +634,29 @@ lemma add_mset_both_side_of_union:
   assumes \<open>a \<notin># A\<close> and \<open>a \<notin># B\<close>
   shows \<open>add_mset a A \<union># B = A \<union># add_mset a B\<close> using assms by simp
 
-
 (* S2MS *)
 lemma get_all_ann_decomposition_snd_mset_union:
-  assumes \<open>distinct M\<close>
-  shows \<open>mset M = \<Union>#image_mset mset (image_mset snd (mset (get_all_ann_decomposition M))) \<union>#
-         mset_set {L |L. is_decided L \<and> L \<in> set M}\<close>
-  (is \<open>?M M = ?U M \<union># ?Ls M\<close>)
-  using assms
+  shows \<open>mset M = \<Union>#image_mset mset (image_mset snd (mset
+(get_all_ann_decomposition M))) \<union>#
+         {#L| L \<in># mset M. (is_decided L)#}\<close>
+    (is \<open>?M M = ?U M \<union># ?Ls M\<close>)
 proof (induct M rule: ann_lit_list_induct)
   case Nil
   then show ?case by simp
 next
   case (Decided L M') note IH = this(1)
-  then have \<open>?Ls (Decided L # M') = mset_set ({Decided L} \<union> {L |L. is_decided L \<and> L \<in> set M'})\<close> 
-    using arg_cong[OF is_decided_in_set[of L M']] by auto
+  then have \<open>?Ls (Decided L # M') = {#Decided L#} + {#L| L \<in># mset M'.
+(is_decided L)#}\<close>
+    by auto
   moreover have \<open>?U (Decided L # M') = ?U M'\<close> by auto
-  moreover have \<open>Decided L \<notin># ?U M'\<close>  using Decided.prems by auto
-  moreover have \<open>Decided L \<notin># ?Ls M'\<close> using Decided.prems by auto
   moreover have \<open>?M M' = ?U M' \<union># ?Ls M'\<close> using IH Decided.prems by auto
-  ultimately show ?case by auto
+  ultimately show ?case
+    apply (cases \<open>Decided L \<in>#  \<Union>#{#mset (snd x). x \<in># mset (get_all_ann_decomposition M')#}\<close>)
+      apply auto
+    by (meson annotated_lit.disc(1) get_all_ann_decomposition_snd_not_decided)
 next
   case (Propagated L m M)
-  then show ?case 
+  then show ?case
   proof (cases \<open>(get_all_ann_decomposition M)\<close>)
     case Nil
     then show ?thesis by auto
@@ -663,8 +664,11 @@ next
     case (Cons a list)
     then have \<open>{u. is_decided u \<and> (u = Propagated L m \<or> u \<in> set M)} = {u. is_decided u \<and> u \<in> set M}\<close>
       by auto
-    then show ?thesis using Propagated.prems by auto
-  qed 
+    then show ?thesis using Propagated.prems Propagated
+      apply (cases \<open>get_all_ann_decomposition M\<close>)
+       apply auto
+      done
+  qed
 qed
 
 (* S2MS modif *)
@@ -695,14 +699,34 @@ lemma all_decomposition_implies_cons_single[iff]:
       all_decomposition_implies N S')\<close>
   unfolding all_decomposition_implies_def by auto
 
+(* S2MS *)
 lemma mset_union_inclusion:
   assumes \<open>A\<subseteq>#B\<close>
   shows   \<open>(C \<union># A) \<subseteq># (C \<union># B)\<close> using assms
   by (metis subset_mset.le_sup_iff subset_mset.sup.absorb_iff2 subset_mset.sup.cobounded2)
 
+(* S2MS *)
+lemma [simp]: \<open>I \<Turnstile>m A \<union># B \<longleftrightarrow> I \<Turnstile>m A + B\<close>
+  unfolding true_cls_mset_def by auto
+(* S2MS *)
+lemma [simp]: \<open>atms_of_mms (A + B) = atms_of_mms A \<union> atms_of_mms B\<close>
+  by (auto simp: atms_of_mms_def)
+   
+(* S2MS *)
+lemma [simp]: \<open>total_over_mm I (A + B) \<longleftrightarrow> total_over_mm I A \<and>
+total_over_mm I B\<close>
+  unfolding total_over_mm_def
+  by auto
+
+(* S2MS *)
+lemma \<open>A + B \<Turnstile>ps C \<longleftrightarrow> A \<union># B \<Turnstile>ps C\<close>
+  unfolding true_clss_clss_def
+  by auto    
+
+(* S2MS modif*)
 lemma all_decomposition_implies_trail_is_implied:
   assumes \<open>all_decomposition_implies N (get_all_ann_decomposition M)\<close>
-  shows \<open>N \<union># mset_set {unmark L |L. is_decided L \<and> L \<in> set M}
+  shows \<open>N + {#unmark L |L \<in># mset M. is_decided L#}
     \<Turnstile>ps image_mset unmark (\<Union>#(image_mset mset (image_mset snd (mset (get_all_ann_decomposition M)))))\<close>
 using assms
 proof (induct \<open>length (get_all_ann_decomposition M)\<close> arbitrary: M)
