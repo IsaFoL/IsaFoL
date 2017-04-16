@@ -71,6 +71,9 @@ lemma subst_cls_mset_add_mset[iff]:
 
 definition is_renaming :: "'s \<Rightarrow> bool" where
   "is_renaming \<sigma> = (\<exists>\<tau>. \<sigma> \<odot> \<tau> = id_subst)"
+  
+definition inv_ren :: "'s \<Rightarrow> 's" where
+  "inv_ren \<sigma> = (SOME \<tau>. \<sigma> \<odot> \<tau> = id_subst)"
 
 definition is_ground_atm :: "'a \<Rightarrow> bool" where
   "is_ground_atm A \<longleftrightarrow> (\<forall>\<sigma>. A = A \<cdot>a \<sigma>)"
@@ -503,7 +506,79 @@ lemma[simp]: "mset (Ai \<cdot>al \<sigma>) = mset (Ai) \<cdot>am \<sigma>"
   unfolding subst_atm_list_def subst_atm_mset_def by auto
     
 lemma[simp]: "sum_list (Ci' \<cdot>cl \<eta>) = sum_list Ci' \<cdot> \<eta>" 
-    unfolding subst_cls_list_def by (induction Ci') auto
+  unfolding subst_cls_list_def by (induction Ci') auto
+ 
+lemma[simp]: "length \<tau>s = length \<sigma>s \<Longrightarrow> i < length \<tau>s \<Longrightarrow> (\<tau>s \<odot>s \<sigma>s) ! i = (\<tau>s ! i) \<odot> (\<sigma>s ! i)"
+  unfolding comp_substs_def 
+  by auto
+      
+(* This is a mess: *)   
+   
+lemma is_renaming_inj:
+   "is_renaming \<sigma> \<Longrightarrow> (\<forall>x y. x \<cdot>a \<sigma> = y \<cdot>a \<sigma> \<longrightarrow> x = y)" (* I don't think the other direction is true *)
+  by (metis is_renaming_def subst_atm_comp_subst subst_atm_id_subst)
+    
+lemma "is_renaming \<sigma> \<Longrightarrow> range (\<lambda>x. x \<cdot>a \<sigma>) = UNIV"
+  oops
+    
+lemma "is_renaming r1 \<Longrightarrow> is_renaming r2 \<Longrightarrow> \<tau> \<odot> r1 = r2 \<Longrightarrow> is_renaming \<tau>"
+  by (metis comp_subst_assoc is_renaming_def)
+    
+lemma "is_renaming r1 \<Longrightarrow> is_renaming r2 \<Longrightarrow> r1 \<odot> \<tau> = r2 \<Longrightarrow> is_renaming \<tau>"
+  oops
+  
+
+(* The substitutions, and renamings in particular,  form a semigroup: *)
+thm comp_subst_assoc
+  
+(* The renamings form a group I think, but I have not been able to prove it. *) 
+thm id_subst_comp_subst
+  
+lemma inv_ren_cancel_r[simp]: "is_renaming s \<Longrightarrow> s \<odot> (inv_ren s) = id_subst"
+  unfolding inv_ren_def is_renaming_def by (metis (mono_tags, lifting) someI_ex)
+    
+lemma inv_ren_cancel_l[simp]: "is_renaming s \<Longrightarrow> (inv_ren s) \<odot> s = id_subst"
+  oops
+    
+lemma xxid: "is_renaming x \<Longrightarrow> x \<odot> x = x \<Longrightarrow> x = id_subst"
+  by (metis comp_subst_assoc comp_subst_id_subst inv_ren_cancel_r) 
+
+lemma xyidyxid: "is_renaming x \<Longrightarrow> is_renaming y \<Longrightarrow> x \<odot> y = id_subst \<Longrightarrow> y \<odot> x = id_subst"
+  by (metis comp_subst_assoc comp_subst_id_subst is_renaming_def)  
+    
+(* Closure *)
+lemma "is_renaming a \<Longrightarrow> is_renaming b \<Longrightarrow> is_renaming (a \<odot> b)"
+  unfolding is_renaming_def by (metis comp_subst_assoc comp_subst_id_subst)
+    
+(* Associativity *)    
+  (* Holds in general for substitutions and thus in particular for renamings. *)
+thm comp_subst_assoc
+
+(* Identity element *)
+thm is_renaming_id_subst
+  
+  (* We can remove id_subst on lhs for substitutions and thus in particular for renamings *)
+thm id_subst_comp_subst
+  
+  (* We can remove id_subst on rhs for substitutions and thus in particular for renamings *)
+thm comp_subst_id_subst
+
+(* inverse element *)      
+  
+  (* s and (inv_ren s) cancel out *)
+
+ 
+lemma inv_ren_is_renaming[simp]:
+  assumes "is_renaming s"
+  shows "is_renaming (inv_ren s)"
+  using assms
+    oops 
+   
+thm Groups.Let_0
+      
+lemma inv_ren_p2[simp]: "is_renaming s \<Longrightarrow> (inv_ren s) \<odot> s = id_subst"
+  oops
+
 end
 
 locale unification = substitution subst_atm id_subst comp_subst

@@ -237,16 +237,14 @@ lemma ord_resolve_sound:
   qed
 qed
 
-lemma rename_sound:
-  assumes "is_renaming \<rho>"
+lemma subst_sound:
   assumes "I \<Turnstile>fo C"
   shows "I \<Turnstile>fo (C \<cdot> \<rho>)"
 using assms
   by (metis is_ground_comp_subst subst_cls_comp_subst true_fo_cls true_fo_cls_inst)
 
-lemma rename_sound_scl:
+lemma subst_sound_scl:
   assumes len: "length P = length CAi"
-  assumes ren: "\<forall>\<rho> \<in> set P. is_renaming \<rho>"
   assumes true_cas: "I \<Turnstile>fom mset CAi"
   shows "I \<Turnstile>fom mset (CAi \<cdot>\<cdot>cl P)"
 proof -
@@ -256,7 +254,7 @@ proof -
   then have "\<forall>i. i < length CAi \<longrightarrow> (I \<Turnstile>fo  (CAi ! i))"
     using in_set_conv_nth[of _ CAi] by blast
   then have "\<forall>i. i < length CAi \<longrightarrow> (I \<Turnstile>fo  (CAi ! i) \<cdot> P ! i)"
-    using ren rename_sound len by auto
+    using subst_sound len by auto
   then have true_cp: "\<forall>i. i < length CAi \<longrightarrow> (I \<Turnstile>fo (CAi ! i \<cdot> P ! i))" 
     by auto
   show ?thesis unfolding true_fo_cls_mset_def2
@@ -281,12 +279,10 @@ lemma ord_resolve_rename_sound:
   shows "I \<Turnstile>fo E"
   using res_e proof (cases rule: ord_resolve_rename.cases)
   case (ord_resolve_rename \<rho> P)
-  have ren: "is_renaming \<rho>" using ord_resolve_rename by -
-  have rens: "Ball (set P) is_renaming" using ord_resolve_rename by -
   have len: "length P = length CAi" using ord_resolve_rename by -
   have res: "ord_resolve (CAi \<cdot>\<cdot>cl P) (DAi \<cdot> \<rho>) E" using ord_resolve_rename by -
   have "I \<Turnstile>fom (mset (CAi \<cdot>\<cdot>cl P)) + {#DAi \<cdot> \<rho>#}"
-    using rename_sound_scl[OF len rens , of I] rename_sound[OF ren, of I DAi]
+    using subst_sound_scl[OF len , of I] subst_sound[of I DAi]
     cc_d_true by (simp add: true_fo_cls_mset_def2)
     
   then show "I \<Turnstile>fo E"
@@ -796,11 +792,10 @@ lemma ord_resolve_lifting:
         apply (auto simp del: subst_cls_comp_subst
             simp add: subst_cls_comp_subst[symmetric]) done
     also have "... = S (((CAi'' ! i) \<cdot> (\<rho>s ! i))) \<cdot> (\<rho>s_inv ! i) \<cdot> \<eta>s'' ! i"
-      (* since (\<rho>s_inv ! i) is a renaming. *) sorry
+      (* since (\<rho>s_inv ! i) is a renaming. *) using selection_renaming_invariant[of "\<rho>s_inv ! i" "CAi'' ! i \<cdot> \<rho>s ! i"] sorry
     also have "... = S (CAi' ! i) \<cdot> \<eta>s' ! i"
       unfolding CAi'_def \<eta>s'_def
-      using n a apply auto
-        sorry (* simp rule needed *)
+      using n a by auto
     finally show "S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>s' ! i" by auto
   qed
     
