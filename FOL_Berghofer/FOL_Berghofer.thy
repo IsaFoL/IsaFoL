@@ -2457,355 +2457,396 @@ theorem deriv_consistency:
   assumes inf_param: "infinite (UNIV :: 'a set)"
   shows "consistency {S::('a, 'b) form set. \<exists>G. S = set G \<and> \<not> G \<turnstile> FF}"
   unfolding consistency_def
-proof (clarsimp, intro conjI allI impI notI)
-  fix G :: "('a, 'b) form list" and p ts
-  assume "\<not> G \<turnstile> FF"
-    and "Pred p ts \<in> set G" and "Neg (Pred p ts) \<in> set G"
-  then have "G \<turnstile> Neg (Pred p ts)" and "G \<turnstile> Pred p ts"
-    using Assum by (blast, blast)
-  then have "G \<turnstile> FF" using NegE by blast
-  then show False using \<open>\<not> G \<turnstile> FF\<close> by blast
-next
-  fix G :: "('a, 'b) form list"
-  assume "\<not> G \<turnstile> FF" and "FF \<in> set G"
-  then have "G \<turnstile> FF" using Assum by blast
-  then show False using \<open>\<not> G \<turnstile> FF\<close> by blast
-next
-  fix G :: "('a, 'b) form list"
-  assume "\<not> G \<turnstile> FF" and "Neg TT \<in> set G"
-  then have "G \<turnstile> Neg TT" using Assum by blast
-  moreover have "G \<turnstile> TT" using TTI by blast
-  ultimately have "G \<turnstile> FF" using NegE by blast
-  then show False using \<open>\<not> G \<turnstile> FF\<close> by blast
-next
-  fix G :: "('a, 'b) form list" and Z
-  assume "\<not> G \<turnstile> FF" and "Neg (Neg Z) \<in> set G"
-
-  then have "G \<turnstile> Neg (Neg Z)"
-    using Assum by blast
-    
-  have "{Z} \<union> set G = set (Z # G)"
-    by simp
-  moreover have "\<not> Z # G \<turnstile> FF"
-  proof
-    assume "Z # G \<turnstile> FF"
-    then have "G \<turnstile> Neg Z" using NegI by blast
-    then have "G \<turnstile> FF" using NegE \<open>G \<turnstile> Neg (Neg Z)\<close> by blast
-    then show False using \<open>\<not> G \<turnstile> FF\<close> by blast
-  qed
-  ultimately show "\<exists>G'. insert Z (set G) = set G' \<and> \<not> G' \<turnstile> FF"
+proof (intro conjI allI impI notI)
+  fix S :: "('a, 'b) form set"
+  assume "S \<in> {set G |G. \<not> G \<turnstile> FF}" (is "S \<in> ?C")
+  then obtain G :: "('a, 'b) form list"
+    where *: "S = set G" and "\<not> G \<turnstile> FF"
     by blast
-next
-  fix G :: "('a, 'b) form list" and A B
-  assume "\<not> G \<turnstile> FF" and "And A B \<in> set G"
-    
-  then have "G \<turnstile> And A B"
-    using Assum by blast
-  then have "G \<turnstile> A" and "G \<turnstile> B"
-    using AndE1 AndE2 by blast+
-
-  have "{A, B} \<union> set G = set (A # B # G)"
-    by simp
-  moreover have "\<not> A # B # G \<turnstile> FF"
-  proof
-    assume "A # B # G \<turnstile> FF"
-    then have "B # G \<turnstile> Neg A" using NegI by blast
-    then have "G \<turnstile> Neg A" using cut' \<open>G \<turnstile> B\<close> by blast
-    then have "G \<turnstile> FF" using NegE \<open>G \<turnstile> A\<close> by blast
-    then show False using \<open>\<not> G \<turnstile> FF\<close> by blast
-  qed
-  ultimately show "\<exists>G'. insert A (insert B (set G)) = set G' \<and> \<not> G' \<turnstile> FF"
-    by blast
-next
-  fix G :: "('a, 'b) form list" and A B
-  assume "\<not> G \<turnstile> FF" and "Neg (Or A B) \<in> set G"
-  
-  have "A \<in> set (A # Neg B # G)" by simp
-  then have "A # Neg B # G \<turnstile> A" using Assum by blast
-  then have "A # Neg B # G \<turnstile> Or A B" using OrI1 by blast
-  moreover have "A # Neg B # G \<turnstile> Neg (Or A B)"
-    by (simp add: Assum \<open>Neg (Or A B) \<in> set G\<close>)
-  ultimately have "A # Neg B # G \<turnstile> FF"
-    using NegE \<open>A # Neg B # G \<turnstile> Neg (Or A B)\<close> by blast
-  then have "Neg B # G \<turnstile> Neg A" using NegI by blast
-             
-  have "B \<in> set (B # G)" by simp
-  then have "B # G \<turnstile> B" using Assum by blast
-  then have "B # G \<turnstile> Or A B" using OrI2 by blast
-  moreover have "B # G \<turnstile> Neg (Or A B)"
-    by (simp add: Assum \<open>Neg (Or A B) \<in> set G\<close>)
-  ultimately have "B # G \<turnstile> FF"
-    using NegE \<open>B # G \<turnstile> Neg (Or A B)\<close> by blast
-  then have "G \<turnstile> Neg B" using NegI by blast
-
-  have "{Neg A, Neg B} \<union> set G = set (Neg A # Neg B # G)"
-    by simp
-  moreover have "\<not> Neg A # Neg B # G \<turnstile> FF"
-  proof
-    assume "Neg A # Neg B # G \<turnstile> FF"
-    then have "Neg B # G \<turnstile> Neg (Neg A)"
-      using NegI by blast
-    then have "Neg B # G \<turnstile> FF"
-      using NegE \<open>Neg B # G \<turnstile> Neg A\<close> by blast
-    then have "G \<turnstile> FF"
-      using cut' \<open>G \<turnstile> Neg B\<close> by blast
-    then show False using \<open>\<not> G \<turnstile> FF\<close> by blast
-  qed
-  ultimately show "\<exists>G'. insert (Neg A) (insert (Neg B) (set G)) = set G' \<and> \<not> G' \<turnstile> FF"
-    by blast
-next
-  fix G :: "('a, 'b) form list" and A B
-  assume "\<not> G \<turnstile> FF" and "Or A B \<in> set G"
-  
-  then have "G \<turnstile> Or A B"
-    using Assum by blast
-    
-  show "(\<exists>G'. insert A (set G) = set G' \<and> \<not> G' \<turnstile> FF) \<or>
-        (\<exists>G'. insert B (set G) = set G' \<and> \<not> G' \<turnstile> FF)"
-  proof (rule ccontr, simp)
-    assume "(\<forall>G'. insert A (set G) = set G' \<longrightarrow> G' \<turnstile> FF) \<and>
-            (\<forall>G'. insert B (set G) = set G' \<longrightarrow> G' \<turnstile> FF)"
-    then have "A # G \<turnstile> FF" and "B # G \<turnstile> FF"
-      by simp_all
-    then have "G \<turnstile> FF"
-      using OrE \<open>G \<turnstile> Or A B\<close> by blast
-    then show False using \<open>\<not> G \<turnstile> FF\<close> by blast
-  qed
-next
-  fix G :: "('a, 'b) form list" and A B
-  assume "\<not> G \<turnstile> FF" and "Neg (And A B) \<in> set G"
-   
-  have  "B # A # Neg (Or (Neg A) (Neg B)) # G \<turnstile> A"
-    and "B # A # Neg (Or (Neg A) (Neg B)) # G \<turnstile> B"
-    by (simp_all add: Assum)
-  then have "B # A # Neg (Or (Neg A) (Neg B)) # G \<turnstile> And A B"
-    using AndI by blast
-  moreover have "B # A # Neg (Or (Neg A) (Neg B)) # G \<turnstile> Neg (And A B)"
-    by (simp add: Assum \<open>Neg (And A B) \<in> set G\<close>)
-  ultimately have "B # A # Neg (Or (Neg A) (Neg B)) # G \<turnstile> FF"
-    using NegE by blast
-  then have "A # Neg (Or (Neg A) (Neg B)) # G \<turnstile> Neg B"
-    using NegI by blast
-  then have "A # Neg (Or (Neg A) (Neg B)) # G \<turnstile> Or (Neg A) (Neg B)"
-    using OrI2 by blast
-  moreover have "A # Neg (Or (Neg A) (Neg B)) # G \<turnstile> Neg (Or (Neg A) (Neg B))"
-    by (simp add: Assum)
-  ultimately have "A # Neg (Or (Neg A) (Neg B)) # G \<turnstile> FF"
-    using NegE by blast
-  then have "Neg (Or (Neg A) (Neg B)) # G \<turnstile> Neg A"
-    using NegI by blast
-  then have "Neg (Or (Neg A) (Neg B)) # G \<turnstile> Or (Neg A) (Neg B)"
-    using OrI1 by blast
-  then have "G \<turnstile> Or (Neg A) (Neg B)"
-    using Class' by blast
-    
-  show "(\<exists>G'. insert (Neg A) (set G) = set G' \<and> \<not> G' \<turnstile> FF) \<or>
-        (\<exists>G'. insert (Neg B) (set G) = set G' \<and> \<not> G' \<turnstile> FF)"
-  proof (rule ccontr, simp)
-    assume "(\<forall>G'. insert (Neg A) (set G) = set G' \<longrightarrow> G' \<turnstile> FF) \<and>
-            (\<forall>G'. insert (Neg B) (set G) = set G' \<longrightarrow> G' \<turnstile> FF)"
-    then have "Neg A # G \<turnstile> FF" and "Neg B # G \<turnstile> FF"
-      by simp_all
-    then have "G \<turnstile> FF"
-      using OrE \<open>G \<turnstile> Or (Neg A) (Neg B)\<close> by blast
-    then show False
-      using \<open>\<not> G \<turnstile> FF\<close> by blast
-  qed
-next
-  fix G :: "('a, 'b) form list" and A B
-  assume "\<not> G \<turnstile> FF" and "Impl A B \<in> set G"
       
-  have "A # Neg (Or (Neg A) B) # G \<turnstile> A"
-    by (simp add: Assum)
-  moreover have "A # Neg (Or (Neg A) B) # G \<turnstile> Impl A B"
-    by (simp add: Assum \<open>Impl A B \<in> set G\<close>)
-  ultimately have "A # Neg (Or (Neg A) B) # G \<turnstile> B"
-    using ImplE by blast
-  then have "A # Neg (Or (Neg A) B) # G \<turnstile> Or (Neg A) B"
-    using OrI2 by blast
-  moreover have "A # Neg (Or (Neg A) B) # G \<turnstile> Neg (Or (Neg A) B)"
-    by (simp add: Assum)
-  ultimately have "A # Neg (Or (Neg A) B) # G \<turnstile> FF"
-    using NegE by blast
-  then have "Neg (Or (Neg A) B) # G \<turnstile> Neg A"
-    using NegI by blast
-  then have "Neg (Or (Neg A) B) # G \<turnstile> Or (Neg A) B"
-    using OrI1 by blast
-  then have "G \<turnstile> Or (Neg A) B"
-    using Class' by blast
-   
-  show "(\<exists>G'. insert (Neg A) (set G) = set G' \<and> \<not> G' \<turnstile> FF) \<or>
-        (\<exists>G'. insert B       (set G) = set G' \<and> \<not> G' \<turnstile> FF)"
-  proof (rule ccontr, simp)
-    assume "(\<forall>G'. insert (Neg A) (set G) = set G' \<longrightarrow> G' \<turnstile> FF) \<and>
-            (\<forall>G'. insert B (set G) = set G' \<longrightarrow> G' \<turnstile> FF)"
-    then have "Neg A # G \<turnstile> FF" and "B # G \<turnstile> FF"
-      by simp_all
+  { fix p ts
+    assume "Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S"
+    then have "G \<turnstile> Pred p ts" and "G \<turnstile> Neg (Pred p ts)"
+      using Assum * by blast+
     then have "G \<turnstile> FF"
-      using OrE \<open>G \<turnstile> Or (Neg A) B\<close> by blast
+      using NegE by blast
     then show False
-      using \<open>\<not> G \<turnstile> FF\<close> by blast
-  qed
-next
-  fix G :: "('a, 'b) form list" and A B
-  assume "\<not> G \<turnstile> FF" and "Neg (Impl A B) \<in> set G"
-         
-  have "A # Neg A # Neg B # G \<turnstile> A" by (simp add: Assum)
-  moreover have "A # Neg A # Neg B # G \<turnstile> Neg A" by (simp add: Assum)
-  ultimately have "A # Neg A # Neg B # G \<turnstile> FF" using NegE by blast
-  then have "A # Neg A # Neg B # G \<turnstile> B" using FFE by blast
-  then have "Neg A # Neg B # G \<turnstile> Impl A B" using ImplI by blast
-  moreover have "Neg A # Neg B # G \<turnstile> Neg (Impl A B)"
-    by (simp add: Assum \<open>Neg (Impl A B) \<in> set G\<close>)
-  ultimately have "Neg A # Neg B # G \<turnstile> FF" using NegE by blast
-  then have "Neg B # G \<turnstile> A" using Class by blast
-  
-  have "A # B # G \<turnstile> B" by (simp add: Assum)
-  then have "B # G \<turnstile> Impl A B" using ImplI by blast
-  moreover have "B # G \<turnstile> Neg (Impl A B)"
-    by (simp add: Assum \<open>Neg (Impl A B) \<in> set G\<close>)
-  ultimately have "B # G \<turnstile> FF" using NegE by blast
-  then have "G \<turnstile> Neg B" using NegI by blast
-      
-  have "{A, Neg B} \<union> set G = set (A # Neg B # G)"
-    by simp
-  moreover have "\<not> A # Neg B # G \<turnstile> FF"
-  proof
-    assume "A # Neg B # G \<turnstile> FF"
+      using \<open>\<not> G \<turnstile> FF\<close> by blast }
+    
+  { assume "FF \<in> S"
+    then have "G \<turnstile> FF"
+      using Assum * by blast
+    then show False
+      using \<open>\<not> G \<turnstile> FF\<close> by blast }
+    
+  { assume "Neg TT \<in> S"
+    then have "G \<turnstile> Neg TT"
+      using Assum * by blast
+    moreover have "G \<turnstile> TT"
+      using TTI by blast
+    ultimately have "G \<turnstile> FF"
+      using NegE by blast
+    then show False
+      using \<open>\<not> G \<turnstile> FF\<close> by blast }
+    
+  { fix Z
+    assume "Neg (Neg Z) \<in> S"
+    then have "G \<turnstile> Neg (Neg Z)"
+      using Assum * by blast
+        
+    { assume "Z # G \<turnstile> FF"
+      then have "G \<turnstile> Neg Z"
+        using NegI by blast
+      then have "G \<turnstile> FF"
+        using NegE \<open>G \<turnstile> Neg (Neg Z)\<close> by blast
+      then have False
+        using \<open>\<not> G \<turnstile> FF\<close> by blast }
+    then have "\<not> Z # G \<turnstile> FF"
+      by blast
+    moreover have "S \<union> {Z} = set (Z # G)"
+      using * by simp
+    ultimately show "S \<union> {Z} \<in> ?C"
+      by blast }
+    
+  { fix A B
+    assume "And A B \<in> S"
+    then have "G \<turnstile> And A B"
+      using Assum * by blast
+    then have "G \<turnstile> A" and "G \<turnstile> B"
+      using AndE1 AndE2 by blast+
+        
+    { assume "A # B # G \<turnstile> FF"
+      then have "B # G \<turnstile> Neg A"
+        using NegI by blast
+      then have "G \<turnstile> Neg A"
+        using cut' \<open>G \<turnstile> B\<close> by blast
+      then have "G \<turnstile> FF"
+        using NegE \<open>G \<turnstile> A\<close> by blast
+      then have False
+        using \<open>\<not> G \<turnstile> FF\<close> by blast }
+    then have "\<not> A # B # G \<turnstile> FF"
+      by blast
+    moreover have "S \<union> {A, B} = set (A # B # G)"
+      using * by simp
+    ultimately show "S \<union> {A, B} \<in> ?C"
+      by blast }
+    
+  { fix A B
+    assume "Neg (Or A B) \<in> S"
+    then have "G \<turnstile> Neg (Or A B)"
+      using Assum * by blast
+        
+    have "A # Neg B # G \<turnstile> A"
+      by (simp add: Assum)
+    then have "A # Neg B # G \<turnstile> Or A B"
+      using OrI1 by blast
+    moreover have "A # Neg B # G \<turnstile> Neg (Or A B)"
+      using * \<open>Neg (Or A B) \<in> S\<close> by (simp add: Assum)
+    ultimately have "A # Neg B # G \<turnstile> FF"
+      using NegE \<open>A # Neg B # G \<turnstile> Neg (Or A B)\<close> by blast
     then have "Neg B # G \<turnstile> Neg A"
       using NegI by blast
-    then have "Neg B # G \<turnstile> FF"
-      using NegE \<open>Neg B # G \<turnstile> A\<close> by blast
-    then have "G \<turnstile> FF"
-      using cut' \<open>G \<turnstile> Neg B\<close> by blast
-    then show False using \<open>\<not> G \<turnstile> FF\<close> by blast
-  qed
-  ultimately show "\<exists>G'. insert A (insert (Neg B) (set G)) = set G' \<and> \<not> G' \<turnstile> FF"
-    by blast
-next
-  fix G :: "('a, 'b) form list" and P and t :: "'a term" 
-  assume "\<not> G \<turnstile> FF" and "closedt 0 t" and "Forall P \<in> set G"
-  
-  then have "G \<turnstile> Forall P" using Assum by blast
-  then have "G \<turnstile> P[t/0]" using ForallE by blast
-  
-  have "{P[t/0]} \<union> (set G) = set (P[t/0] # G)" by simp
-  moreover have "\<not> P[t/0] # G \<turnstile> FF"
-  proof
-    assume "P[t/0] # G \<turnstile> FF"
-    then have "G \<turnstile> FF" using cut' \<open>G \<turnstile> P[t/0]\<close> by blast
-    then show False using \<open>\<not> G \<turnstile> FF\<close> by blast
-  qed
-  ultimately show "\<exists>G'. insert (P[t/0]) (set G) = set G' \<and> \<not> G' \<turnstile> FF"
-    by blast
-next
-  fix G :: "('a, 'b) form list" and P and t :: "'a term" 
-  assume "\<not> G \<turnstile> FF" and "closedt 0 t" and "Neg (Exists P) \<in> set G"
- 
-  then have "P[t/0] \<in> set (P[t/0] # G)" by (simp add: Assum)
-  then have "P[t/0] # G \<turnstile> P[t/0]" using Assum by blast
-  then have "P[t/0] # G \<turnstile> Exists P" using ExistsI by blast
-  moreover have "P[t/0] # G \<turnstile> Neg (Exists P)"
-    by (simp add: Assum \<open>Neg (Exists P) \<in> set G\<close>)
-  ultimately have "P[t/0] # G \<turnstile> FF" using NegE by blast
-  then have "G \<turnstile> Neg (P[t/0])" using NegI by blast
+        
+    have "B # G \<turnstile> B"
+      by (simp add: Assum)
+    then have "B # G \<turnstile> Or A B"
+      using OrI2 by blast
+    moreover have "B # G \<turnstile> Neg (Or A B)"
+      using * \<open>Neg (Or A B) \<in> S\<close> by (simp add: Assum)
+    ultimately have "B # G \<turnstile> FF"
+      using NegE \<open>B # G \<turnstile> Neg (Or A B)\<close> by blast
+    then have "G \<turnstile> Neg B"
+      using NegI by blast
+        
+    { assume "Neg A # Neg B # G \<turnstile> FF"
+      then have "Neg B # G \<turnstile> Neg (Neg A)"
+        using NegI by blast
+      then have "Neg B # G \<turnstile> FF"
+        using NegE \<open>Neg B # G \<turnstile> Neg A\<close> by blast
+      then have "G \<turnstile> FF"
+        using cut' \<open>G \<turnstile> Neg B\<close> by blast
+      then have False
+        using \<open>\<not> G \<turnstile> FF\<close> by blast }
+    then have "\<not> Neg A # Neg B # G \<turnstile> FF"
+      by blast
+    moreover have "S \<union> {Neg A, Neg B} = set (Neg A # Neg B # G)"
+      using * by simp
+    ultimately show "S \<union> {Neg A, Neg B} \<in> ?C"
+      by blast }
     
-  have "{Neg (P[t/0])} \<union> (set G) = set (Neg (P[t/0]) # G)" by simp
-  moreover have "\<not> (Neg (P[t/0])) # G \<turnstile> FF"
-  proof
-    assume "Neg (P[t/0]) # G \<turnstile> FF"
-    then have "G \<turnstile> FF" using cut' \<open>G \<turnstile> Neg (P[t/0])\<close> by blast
-    then show False using \<open>\<not> G \<turnstile> FF\<close> by blast
-  qed
-  ultimately show "\<exists>G'. insert (Neg (P[t/0])) (set G) = set G' \<and> \<not> G' \<turnstile> FF"
-    by blast
-next
-  fix G :: "('a, 'b) form list" and P
-  assume "\<not> G \<turnstile> FF" and "Exists P \<in> set G"
-  
-  then have "G \<turnstile> Exists P" using Assum by blast
- 
-  have "finite ((\<Union>p \<in> set G. params p) \<union> params P)" by simp
-  then have "infinite (- ((\<Union>p \<in> set G. params p) \<union> params P))"
-    using inf_param Diff_infinite_finite finite_compl by blast
-  then have "infinite (- ((\<Union>p \<in> set G. params p) \<union> params P))"
-    by (simp add: Compl_eq_Diff_UNIV)
-  then obtain x where *: "x \<in> - ((\<Union>p \<in> set G. params p) \<union> params P)"
-    using infinite_imp_nonempty by blast
-  
-  have "{P[App x []/0]} \<union> (set G) = set (P[App x []/0] # G)"
-    by simp
-  moreover have "\<not> P[App x []/0] # G \<turnstile> FF"
-  proof
-    assume "P[App x []/0] # G \<turnstile> FF"
-    moreover note \<open>G \<turnstile> Exists P\<close>
-    moreover have "list_all (\<lambda>p. x \<notin> params p) G"
-      using * by (simp add: list_all_iff)
+  { fix A B
+    assume "Neg (Impl A B) \<in> S"
+      
+    have "A # Neg A # Neg B # G \<turnstile> A"
+      by (simp add: Assum)
+    moreover have "A # Neg A # Neg B # G \<turnstile> Neg A"
+      by (simp add: Assum)
+    ultimately have "A # Neg A # Neg B # G \<turnstile> FF"
+      using NegE by blast
+    then have "A # Neg A # Neg B # G \<turnstile> B"
+      using FFE by blast
+    then have "Neg A # Neg B # G \<turnstile> Impl A B"
+      using ImplI by blast
+    moreover have "Neg A # Neg B # G \<turnstile> Neg (Impl A B)"
+      using * \<open>Neg (Impl A B) \<in> S\<close> by (simp add: Assum)
+    ultimately have "Neg A # Neg B # G \<turnstile> FF"
+      using NegE by blast
+    then have "Neg B # G \<turnstile> A"
+      using Class by blast
+        
+    have "A # B # G \<turnstile> B"
+      by (simp add: Assum)
+    then have "B # G \<turnstile> Impl A B"
+      using ImplI by blast
+    moreover have "B # G \<turnstile> Neg (Impl A B)"
+      using * \<open>Neg (Impl A B) \<in> S\<close> by (simp add: Assum)
+    ultimately have "B # G \<turnstile> FF"
+      using NegE by blast
+    then have "G \<turnstile> Neg B"
+      using NegI by blast
+        
+    { assume "A # Neg B # G \<turnstile> FF"
+      then have "Neg B # G \<turnstile> Neg A"
+        using NegI by blast
+      then have "Neg B # G \<turnstile> FF"
+        using NegE \<open>Neg B # G \<turnstile> A\<close> by blast
+      then have "G \<turnstile> FF"
+        using cut' \<open>G \<turnstile> Neg B\<close> by blast
+      then have False using \<open>\<not> G \<turnstile> FF\<close>
+        by blast }
+    then have "\<not> A # Neg B # G \<turnstile> FF"
+      by blast
+    moreover have "{A, Neg B} \<union> S = set (A # Neg B # G)"
+      using * by simp
+    ultimately show "S \<union> {A, Neg B} \<in> ?C"
+      by blast }
+    
+  { fix A B
+    assume  "Or A B \<in> S"
+    then have "G \<turnstile> Or A B"
+      using * Assum by blast
+        
+    { assume "(\<forall>G'. set G' = S \<union> {A} \<longrightarrow> G' \<turnstile> FF)"
+        and "(\<forall>G'. set G' = S \<union> {B} \<longrightarrow> G' \<turnstile> FF)"
+      then have "A # G \<turnstile> FF" and "B # G \<turnstile> FF"
+        using * by simp_all
+      then have "G \<turnstile> FF"
+        using OrE \<open>G \<turnstile> Or A B\<close> by blast
+      then have False
+        using \<open>\<not> G \<turnstile> FF\<close> by blast }
+    then show "S \<union> {A} \<in> ?C \<or> S \<union> {B} \<in> ?C"
+      by blast }
+    
+  { fix A B
+    assume "Neg (And A B) \<in> S"
+      
+    let ?x = "Or (Neg A) (Neg B)"
+      
+    have "B # A # Neg ?x # G \<turnstile> A" and "B # A # Neg ?x # G \<turnstile> B"
+      by (simp_all add: Assum)
+    then have "B # A # Neg ?x # G \<turnstile> And A B"
+      using AndI by blast
+    moreover have "B # A # Neg ?x # G \<turnstile> Neg (And A B)"
+      using * \<open>Neg (And A B) \<in> S\<close> by (simp add: Assum)
+    ultimately have "B # A # Neg ?x # G \<turnstile> FF"
+      using NegE by blast
+    then have "A # Neg ?x # G \<turnstile> Neg B"
+      using NegI by blast
+    then have "A # Neg ?x # G \<turnstile> ?x"
+      using OrI2 by blast
+    moreover have "A # Neg ?x # G \<turnstile> Neg ?x"
+      by (simp add: Assum)
+    ultimately have "A # Neg ?x # G \<turnstile> FF"
+      using NegE by blast
+    then have "Neg ?x # G \<turnstile> Neg A"
+      using NegI by blast
+    then have "Neg ?x # G \<turnstile> ?x"
+      using OrI1 by blast
+    then have "G \<turnstile> Or (Neg A) (Neg B)"
+      using Class' by blast
+        
+    { assume "(\<forall>G'. set G' = S \<union> {Neg A} \<longrightarrow> G' \<turnstile> FF)"
+        and "(\<forall>G'. set G' = S \<union> {Neg B} \<longrightarrow> G' \<turnstile> FF)"
+      then have "Neg A # G \<turnstile> FF" and "Neg B # G \<turnstile> FF"
+        using * by simp_all
+      then have "G \<turnstile> FF"
+        using OrE \<open>G \<turnstile> Or (Neg A) (Neg B)\<close> by blast
+      then have False
+        using \<open>\<not> G \<turnstile> FF\<close> by blast }
+    then show "S \<union> {Neg A} \<in> ?C \<or> S \<union> {Neg B} \<in> ?C"
+      by blast }
+    
+  { fix A B
+    assume "Impl A B \<in> S"
+      
+    let ?x = "Or (Neg A) B"
+      
+    have "A # Neg ?x # G \<turnstile> A"
+      by (simp add: Assum)
+    moreover have "A # Neg ?x # G \<turnstile> Impl A B"
+      using * \<open>Impl A B \<in> S\<close> by (simp add: Assum)
+    ultimately have "A # Neg ?x # G \<turnstile> B"
+      using ImplE by blast
+    then have "A # Neg ?x # G \<turnstile> ?x"
+      using OrI2 by blast
+    moreover have "A # Neg ?x # G \<turnstile> Neg ?x"
+      by (simp add: Assum)
+    ultimately have "A # Neg ?x # G \<turnstile> FF"
+      using NegE by blast
+    then have "Neg ?x # G \<turnstile> Neg A"
+      using NegI by blast
+    then have "Neg ?x # G \<turnstile> ?x"
+      using OrI1 by blast
+    then have "G \<turnstile> Or (Neg A) B"
+      using Class' by blast
+        
+    { assume "(\<forall>G'. set G' = S \<union> {Neg A} \<longrightarrow> G' \<turnstile> FF)"
+        and "(\<forall>G'. set G' = S \<union> {B} \<longrightarrow> G' \<turnstile> FF)"
+      then have "Neg A # G \<turnstile> FF" and "B # G \<turnstile> FF"
+        using * by simp_all
+      then have "G \<turnstile> FF"
+        using OrE \<open>G \<turnstile> Or (Neg A) B\<close> by blast
+      then have False
+        using \<open>\<not> G \<turnstile> FF\<close> by blast }
+    then show "S \<union> {Neg A} \<in> ?C \<or> S \<union> {B} \<in> ?C"
+      by blast }
+    
+  { fix P and t :: "'a term"
+    assume "closedt 0 t" and "Forall P \<in> S"
+    then have "G \<turnstile> Forall P"
+      using Assum * by blast
+    then have "G \<turnstile> P[t/0]"
+      using ForallE by blast
+        
+    { assume "P[t/0] # G \<turnstile> FF"
+      then have "G \<turnstile> FF"
+        using cut' \<open>G \<turnstile> P[t/0]\<close> by blast
+      then have False
+        using \<open>\<not> G \<turnstile> FF\<close> by blast }
+    then have "\<not> P[t/0] # G \<turnstile> FF"
+      by blast
+    moreover have "S \<union> {P[t/0]} = set (P[t/0] # G)"
+      using * by simp
+    ultimately show "S \<union> {P[t/0]} \<in> ?C"
+      by blast }
+    
+  { fix P and t :: "'a term"
+    assume "closedt 0 t" and "Neg (Exists P) \<in> S"
+    then have "G \<turnstile> Neg (Exists P)"
+      using Assum * by blast
+    then have "P[t/0] \<in> set (P[t/0] # G)"
+      by (simp add: Assum)
+    then have "P[t/0] # G \<turnstile> P[t/0]"
+      using Assum by blast
+    then have "P[t/0] # G \<turnstile> Exists P"
+      using ExistsI by blast
+    moreover have "P[t/0] # G \<turnstile> Neg (Exists P)"
+      using * \<open>Neg (Exists P) \<in> S\<close> by (simp add: Assum)
+    ultimately have "P[t/0] # G \<turnstile> FF"
+      using NegE by blast
+    then have "G \<turnstile> Neg (P[t/0])"
+      using NegI by blast
+        
+    { assume "Neg (P[t/0]) # G \<turnstile> FF"
+      then have "G \<turnstile> FF"
+        using cut' \<open>G \<turnstile> Neg (P[t/0])\<close> by blast
+      then have False
+        using \<open>\<not> G \<turnstile> FF\<close> by blast }
+    then have "\<not> Neg (P[t/0]) # G \<turnstile> FF"
+      by blast
+    moreover have "S \<union> {Neg (P[t/0])} = set (Neg (P[t/0]) # G)"
+      using * by simp
+    ultimately show "S \<union> {Neg (P[t/0])} \<in> ?C"
+      by blast }
+    
+  { fix P
+    assume "Exists P \<in> S"
+    then have "G \<turnstile> Exists P"
+      using * Assum by blast
+        
+    have "finite ((\<Union>p \<in> set G. params p) \<union> params P)"
+      by simp
+    then have "infinite (- ((\<Union>p \<in> set G. params p) \<union> params P))"
+      using inf_param Diff_infinite_finite finite_compl by blast
+    then have "infinite (- ((\<Union>p \<in> set G. params p) \<union> params P))"
+      by (simp add: Compl_eq_Diff_UNIV)
+    then obtain x where **: "x \<in> - ((\<Union>p \<in> set G. params p) \<union> params P)"
+      using infinite_imp_nonempty by blast
+        
+    { assume "P[App x []/0] # G \<turnstile> FF"
+      moreover have "list_all (\<lambda>p. x \<notin> params p) G"
+        using ** by (simp add: list_all_iff)
+      moreover have "x \<notin> params P"
+        using ** by simp
+      moreover have "x \<notin> params FF"
+        by simp
+      ultimately have "G \<turnstile> FF"
+        using ExistsE \<open>G \<turnstile> Exists P\<close> by fast
+      then have False using \<open>\<not> G \<turnstile> FF\<close>
+        by blast}
+    then have "\<not> P[App x []/0] # G \<turnstile> FF"
+      by blast
+    moreover have "S \<union> {P[App x []/0]} = set (P[App x []/0] # G)"
+      using * by simp
+    ultimately show "\<exists>x. S \<union> {P[App x []/0]} \<in> ?C"
+      by blast }
+    
+  { fix P
+    assume "Neg (Forall P) \<in> S"
+    then have "G \<turnstile> Neg (Forall P)"
+      using * Assum by blast
+        
+    have "finite ((\<Union>p \<in> set G. params p) \<union> params P)"
+      by simp
+    then have "infinite (- ((\<Union>p \<in> set G. params p) \<union> params P))"
+      using inf_param Diff_infinite_finite finite_compl by blast
+    then have "infinite (- ((\<Union>p \<in> set G. params p) \<union> params P))"
+      by (simp add: Compl_eq_Diff_UNIV)
+    then obtain x where **: "x \<in> - ((\<Union>p \<in> set G. params p) \<union> params P)"
+      using infinite_imp_nonempty by blast
+        
+    let ?x = "Neg (Exists (Neg P))"
+        
+    have "Neg (P[App x []/0]) # ?x # G \<turnstile> Neg P[App x []/0]"
+      by (simp add: Assum)
+    then have "Neg (P[App x []/0]) # ?x # G \<turnstile> Exists (Neg P)"
+      using ExistsI by blast
+    moreover have "Neg (P[App x []/0]) # ?x # G \<turnstile> ?x"
+      by (simp add: Assum)
+    ultimately have "Neg (P[App x []/0]) # ?x # G \<turnstile> FF"
+      using NegE by blast
+    then have "?x # G \<turnstile> P[App x []/0]"
+      using Class by blast
+    moreover have "list_all (\<lambda>p. x \<notin> params p) (?x # G)"
+      using ** by (simp add: list_all_iff)
     moreover have "x \<notin> params P"
+      using ** by simp
+    ultimately have "?x # G \<turnstile> Forall P"
+      using ForallI by fast
+    moreover have "?x # G \<turnstile> Neg (Forall P)"
+      using * \<open>Neg (Forall P) \<in> S\<close> by (simp add: Assum)
+    ultimately have "?x # G \<turnstile> FF"
+      using NegE by blast
+    then have "G \<turnstile> Exists (Neg P)"
+      using Class by blast
+        
+    { assume "Neg (P[App x []/0]) # G \<turnstile> FF"
+      moreover have "list_all (\<lambda>p. x \<notin> params p) G"
+        using ** by (simp add: list_all_iff)
+      moreover have "x \<notin> params P"
+        using ** by simp
+      moreover have "x \<notin> params FF"
+        by simp
+      ultimately have "G \<turnstile> FF"
+        using ExistsE \<open>G \<turnstile> Exists (Neg P)\<close> by fastforce
+      then have False using \<open>\<not> G \<turnstile> FF\<close>
+        by blast}
+    then have "\<not> Neg (P[App x []/0]) # G \<turnstile> FF"
+      by blast
+    moreover have "S \<union> {Neg (P[App x []/0])} = set (Neg (P[App x []/0]) # G)"
       using * by simp
-    moreover have "x \<notin> params FF"
-      by simp
-    ultimately have "G \<turnstile> FF"
-      using ExistsE by fast
-    then show False using \<open>\<not> G \<turnstile> FF\<close> by blast
-  qed
-  ultimately show "\<exists>x G'. insert (P[App x []/0]) (set G) = set G' \<and> \<not> G' \<turnstile> FF"
-    by blast
-next
-  fix G :: "('a, 'b) form list" and P
-  assume "\<not> G \<turnstile> FF" and "Neg (Forall P) \<in> set G"
-  
-  then have "G \<turnstile> Neg (Forall P)" using Assum by blast
- 
-  have "finite ((\<Union>p \<in> set G. params p) \<union> params P)" by simp
-  then have "infinite (- (\<Union>p \<in> set G. params p) \<union> params P)"
-    using inf_param Diff_infinite_finite finite_compl by blast
-  then have "infinite (- ((\<Union>p \<in> set G. params p) \<union> params P))"
-    by (simp add: Compl_eq_Diff_UNIV)
-  then obtain x where *: "x \<in> - ((\<Union>p \<in> set G. params p) \<union> params P)"
-    using infinite_imp_nonempty by blast
-      
-  have "Neg (P[App x []/0]) # Neg (Exists (Neg P)) # G \<turnstile> Neg P[App x []/0]"
-    by (simp add: Assum)
-  then have "Neg (P[App x []/0]) # Neg (Exists (Neg P)) # G \<turnstile> Exists (Neg P)"
-    using ExistsI by blast
-  moreover have "Neg (P[App x []/0]) # Neg (Exists (Neg P)) # G \<turnstile> Neg (Exists (Neg P))"
-    by (simp add: Assum)
-  ultimately have "Neg (P[App x []/0]) # Neg (Exists (Neg P)) # G \<turnstile> FF"
-    using NegE by blast
-  then have "Neg (Exists (Neg P)) # G \<turnstile> P[App x []/0]"
-    using Class by blast
-  moreover have "list_all (\<lambda>p. x \<notin> params p) (Neg (Exists (Neg P)) # G)"
-    using * by (simp add: list_all_iff)
-  moreover have "x \<notin> params P"
-    using * by simp
-  ultimately have "Neg (Exists (Neg P)) # G \<turnstile> Forall P"
-    using ForallI by fast
-  moreover have "Neg (Exists (Neg P)) # G \<turnstile> Neg (Forall P)"
-    by (simp add: Assum \<open>Neg (Forall P) \<in> set G\<close>)
-  ultimately have "Neg (Exists (Neg P)) # G \<turnstile> FF"
-    using NegE by blast
-  then have "G \<turnstile> Exists (Neg P)"
-    using Class by blast
-      
-  have "{Neg (P[App x []/0])} \<union> (set G) = set (Neg (P[App x []/0]) # G)"
-    by simp
-  moreover have "\<not> Neg (P[App x []/0]) # G \<turnstile> FF"
-  proof
-    assume "Neg (P[App x []/0]) # G \<turnstile> FF"
-    moreover note \<open>G \<turnstile> Exists (Neg P)\<close>
-    moreover have "list_all (\<lambda>p. x \<notin> params p) G"
-      using * by (simp add: list_all_iff)
-    moreover have "x \<notin> params (Neg P)"
-      using * by simp
-    moreover have "x \<notin> params FF"
-      by simp
-    ultimately have "G \<turnstile> FF"
-      using ExistsE by fastforce
-    then show False using \<open>\<not> G \<turnstile> FF\<close> by blast
-  qed
-  ultimately show "\<exists>x G'. insert (Neg (P[App x []/0])) (set G) = set G' \<and> \<not> G' \<turnstile> FF"
-    by blast
+    ultimately show "\<exists>x. S \<union> {Neg (P[App x []/0])} \<in> ?C"
+      by blast }
 qed
 
 text {*
