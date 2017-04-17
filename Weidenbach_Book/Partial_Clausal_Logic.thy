@@ -283,6 +283,11 @@ lemma total_over_m_union[iff]:
 lemma total_over_mm_union[iff]:
   shows "total_over_mm I (C \<union># D) \<longleftrightarrow> (total_over_mm I C \<and> total_over_mm I D)"
   unfolding total_over_mm_def total_over_set_def by auto
+    
+(* S2MS *)
+lemma total_over_mm_addition[iff]:
+  shows "total_over_mm I (C + D) \<longleftrightarrow> (total_over_mm I C \<and> total_over_mm I D)"
+  unfolding total_over_mm_def total_over_set_def atms_of_mms_def by auto
 
 lemma total_over_m_insert[iff]:
   "total_over_m I (insert a A) \<longleftrightarrow> (total_over_set I (atms_of a) \<and> total_over_m I A)"
@@ -440,6 +445,10 @@ lemma true_cls_insert_l [simp]:
 
 (* S2MS modif *)
 lemma true_clss_union[iff]: "I \<Turnstile>s CC \<union># DD \<longleftrightarrow> I \<Turnstile>s CC \<and> I \<Turnstile>s DD"
+  unfolding true_clss_def by auto
+    
+(* S2MS *)
+lemma true_clss_addition[iff]: "I \<Turnstile>s CC + DD \<longleftrightarrow> I \<Turnstile>s CC \<and> I \<Turnstile>s DD"
   unfolding true_clss_def by auto
 
 (* S2MS modif *)
@@ -839,6 +848,11 @@ lemma true_clss_cls_mono_add_mset[simp]:
 lemma true_clss_clss_union_l[simp]:
   "A \<Turnstile>ps CC \<Longrightarrow> A \<union># B \<Turnstile>ps CC"
   unfolding true_clss_clss_def total_over_mm_union using true_clss_union by auto
+    
+(* S2MS *)
+lemma true_clss_clss_addition_l[simp]:
+  "A \<Turnstile>ps CC \<Longrightarrow> A + B \<Turnstile>ps CC"
+  unfolding true_clss_clss_def total_over_mm_union using true_clss_addition by auto
 
 (* S2MS modif *)
 lemma true_clss_clss_union_l_r[simp]:
