@@ -360,8 +360,12 @@ using resolve proof (atomize_elim, cases rule: ord_resolve_raw.cases)
 
   moreover from pick have "?Cs = Cs \<cdot>\<cdot>cl \<sigma>s"
     unfolding subst_cls_lists_def Cs_def \<sigma>s_def
-    by (auto simp only: set_map length_map length_zip nth_map nth_zip nth_mem list_eq_iff_nth_eq
+    apply (auto simp only: set_map length_map length_zip nth_map nth_zip nth_mem list_eq_iff_nth_eq
       set_sorted_list_of_multiset[symmetric])
+     apply simp
+    using nth_mem by fastforce
+      
+    
 
   then have "mset ?Cs = mset (Cs \<cdot>\<cdot>cl \<sigma>s)"
     by simp
