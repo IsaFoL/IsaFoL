@@ -705,7 +705,7 @@ proof (intro allI impI conjI)
   assume "S \<in> mk_alt_consistency C"
   then obtain f where sc: "psubst f ` S \<in> C" (is "?S' \<in> C")
     unfolding mk_alt_consistency_def by blast
-      
+ 
   fix p ts
   show "\<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S)"
   proof
@@ -2454,7 +2454,7 @@ consistency property:
 *}
 
 theorem deriv_consistency:
-  assumes inf_param: "infinite (UNIV::'a set)"
+  assumes inf_param: "infinite (UNIV :: 'a set)"
   shows "consistency {S::('a, 'b) form set. \<exists>G. S = set G \<and> \<not> G \<turnstile> FF}"
   unfolding consistency_def
 proof (clarsimp, intro conjI allI impI notI)
@@ -2725,12 +2725,12 @@ next
   
   then have "G \<turnstile> Exists P" using Assum by blast
  
-  have "finite (UNION (set G) params \<union> params P)" by simp
-  then have "infinite (UNIV - (UNION (set G) params \<union> params P))"
-    using inf_param Diff_infinite_finite by blast
-  then have "infinite (- ((\<Union>p\<in>set G. params p) \<union> params P))"
+  have "finite ((\<Union>p \<in> set G. params p) \<union> params P)" by simp
+  then have "infinite (- ((\<Union>p \<in> set G. params p) \<union> params P))"
+    using inf_param Diff_infinite_finite finite_compl by blast
+  then have "infinite (- ((\<Union>p \<in> set G. params p) \<union> params P))"
     by (simp add: Compl_eq_Diff_UNIV)
-  then obtain x where *: "x \<in> - ((\<Union>p\<in>set G. params p) \<union> params P)"
+  then obtain x where *: "x \<in> - ((\<Union>p \<in> set G. params p) \<union> params P)"
     using infinite_imp_nonempty by blast
   
   have "{P[App x []/0]} \<union> (set G) = set (P[App x []/0] # G)"
@@ -2757,12 +2757,12 @@ next
   
   then have "G \<turnstile> Neg (Forall P)" using Assum by blast
  
-  have "finite (UNION (set G) params \<union> params P)" by simp
-  then have "infinite (UNIV - (UNION (set G) params \<union> params P))"
-    using inf_param Diff_infinite_finite by blast
-  then have "infinite (- ((\<Union>p\<in>set G. params p) \<union> params P))"
+  have "finite ((\<Union>p \<in> set G. params p) \<union> params P)" by simp
+  then have "infinite (- (\<Union>p \<in> set G. params p) \<union> params P)"
+    using inf_param Diff_infinite_finite finite_compl by blast
+  then have "infinite (- ((\<Union>p \<in> set G. params p) \<union> params P))"
     by (simp add: Compl_eq_Diff_UNIV)
-  then obtain x where *: "x \<in> - ((\<Union>p\<in>set G. params p) \<union> params P)"
+  then obtain x where *: "x \<in> - ((\<Union>p \<in> set G. params p) \<union> params P)"
     using infinite_imp_nonempty by blast
       
   have "Neg (P[App x []/0]) # Neg (Exists (Neg P)) # G \<turnstile> Neg P[App x []/0]"
@@ -2828,7 +2828,7 @@ proof (rule Class, rule ccontr)
               (mk_finite_char (mk_alt_consistency (close ?C))) from_nat)"
 
   from \<open>list_all (closed 0) ps\<close>
-  have "Ball (set ps) (closed 0)"
+  have "\<forall>p \<in> set ps. closed 0 p"
     by (simp add: Ball_set_list_all)
 
   { fix x
@@ -2839,7 +2839,7 @@ proof (rule Class, rule ccontr)
       using \<open>\<not> Neg p # ps \<turnstile> FF\<close> by blast
     moreover have "infinite (- (\<Union>p\<in>?S. params p))"
       by (simp add: Compl_eq_Diff_UNIV)
-    moreover note \<open>closed 0 p\<close> \<open>Ball (set ps) (closed 0)\<close> \<open>x \<in> ?S\<close>
+    moreover note \<open>closed 0 p\<close> \<open>\<forall>p \<in> set ps. closed 0 p\<close> \<open>x \<in> ?S\<close>
     then have \<open>closed 0 x\<close> by auto
     ultimately have "eval e ?f ?g x"
       using model_existence by blast }
@@ -2868,12 +2868,12 @@ theorem sat_consistency:
   "consistency {S. \<not> finite (- (\<Union>p\<in>S. params p)) \<and> (\<exists>f. \<forall>(p::('a, 'b)form)\<in>S. eval e f g p)}"
   unfolding consistency_def
 proof (intro allI impI conjI)
-  let ?C = "{S. infinite (- (\<Union>p\<in>S. params p)) \<and> (\<exists>f. Ball S (eval e f g))}"
+  let ?C = "{S. infinite (- (\<Union>p\<in>S. params p)) \<and> (\<exists>f. \<forall>p \<in> S. eval e f g p)}"
   
   fix S :: "('a, 'b) form set"
   assume "S \<in> ?C"
   then have inf_params: "infinite (- (\<Union>p\<in>S. params p))"
-    and "\<exists>f. Ball S (eval e f g)"
+    and "\<exists>f. \<forall>p \<in> S. eval e f g p"
     by blast+
   then obtain f where *: "\<forall>x \<in> S. eval e f g x" by blast
     
@@ -3016,7 +3016,7 @@ proof (intro allI impI conjI)
     moreover have "infinite (- (\<Union>p \<in> S \<union> {P[App x []/0]}. params p))"
       using inf_params by simp
     ultimately have "S \<union> {P[App x []/0]} \<in>
-                      {S. infinite (- UNION S params) \<and> (Ball S (eval e (f(x := \<lambda>y. z)) g))}"
+                      {S. infinite (- (\<Union>p \<in> S. params p)) \<and> (\<forall>p \<in> S. eval e (f(x := \<lambda>y. z)) g p)}"
       by simp
     then show "\<exists>x. S \<union> {P[App x []/0]} \<in> ?C"
       by blast }
@@ -3040,7 +3040,7 @@ proof (intro allI impI conjI)
     moreover have "infinite (- (\<Union>p \<in> S \<union> {P[App x []/0]}. params p))"
       using inf_params by simp
     ultimately have "S \<union> {Neg (P[App x []/0])} \<in>
-                      {S. infinite (- UNION S params) \<and> (Ball S (eval e (f(x := \<lambda>y. z)) g))}"
+                      {S. infinite (- (\<Union>p \<in> S. params p)) \<and> (\<forall>p \<in> S. eval e (f(x := \<lambda>y. z)) g p)}"
       by simp
     then show "\<exists>x. S \<union> {Neg (P[App x []/0])} \<in> ?C"
       by blast }
@@ -3095,7 +3095,7 @@ proof (intro ballI impI)
     using evalS by blast
   then have "\<forall>x \<in> S. eval e f g x"
     using evalS by blast
-  then have "Ball (psubst (op * 2) ` S) (eval e (\<lambda>n. f (n div 2)) g)"
+  then have "\<forall>p \<in> psubst (op * 2) ` S. eval e (\<lambda>n. f (n div 2)) g p"
     by (simp add: doublep_eval)
   then have "psubst (op * 2) ` S \<in> ?C"
     using doublep_infinite_params by blast
