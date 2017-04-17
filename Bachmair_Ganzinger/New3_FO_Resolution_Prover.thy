@@ -628,7 +628,79 @@ theorem tl_subst: "length Cs = length \<rho>s \<Longrightarrow> tl (Cs \<cdot>\<
 
 lemma inv_ren_ren: "is_renaming s \<Longrightarrow> is_renaming (inv_ren s)"
   sorry    
+  
+lemma usf: "mset (map f (list_of_mset M)) = image_mset f M"
+  by auto
+  
+lemma uuu: "set (list_of_mset S) = set_mset S"
+  by (metis (full_types) ex_mset list_of_mset_def set_mset_mset someI_ex)
     
+lemma
+  assumes "image_mset f M = image_mset g M"
+  assumes "S \<subseteq># M"
+  shows "image_mset f S = image_mset g S"
+proof -
+  define R where "R = M - S"
+    
+  have rm: "R \<subseteq># M" unfolding R_def using assms(2)
+      by auto
+    
+  define Sl where "Sl = list_of_mset S"
+  define Rl where "Rl = list_of_mset R"
+  
+  define Ml where "Ml = Sl @ Rl"
+    
+  from assms(1) have gg: "\<forall>x \<in># M. f x = g x"
+    sorry
+   
+    
+  have "map f Ml = map g Ml"
+    using assms(2) rm unfolding Ml_def Sl_def Rl_def
+    apply (auto simp add: uuu)
+      sorry
+    
+      
+    
+  moreover
+  have "map f (Sl@Rl) = map f Ml"
+    unfolding Ml_def by auto
+  moreover
+  have "map g (Sl@Rl) = map g Ml"
+    unfolding Ml_def by auto
+  ultimately
+  have "map f (Sl@Rl) = map g (Sl@Rl)"
+    by auto
+  then have "map f Sl = map g Sl"
+    by auto
+  then have "mset (map f Sl) = mset (map g Sl)"
+    by metis
+  then show ?thesis
+    unfolding Sl_def using usf by auto
+  oops
+    
+lemma 
+  assumes "C \<cdot> \<eta>' = C \<cdot> \<eta>"
+  assumes "S \<subseteq># C"
+  shows "S \<cdot> \<eta>' = S \<cdot> \<eta>"
+  using assms unfolding local.subst_cls_def
+    oops
+    
+thm var_disjoint_def
+      
+(* A more useful definition of variable disjointness *)
+definition var_disjoint_2 :: "'a clause list \<Rightarrow> bool" where
+  "var_disjoint_2 Cs = 
+    (\<forall>\<sigma>s. length \<sigma>s = length Cs \<longrightarrow> 
+      (\<exists>\<tau>. 
+        (\<forall>i < length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma>s ! i = S \<cdot> \<tau>)
+      )
+    )"
+ 
+lemma var_var2: "var_disjoint Cs \<longrightarrow> var_disjoint_2 Cs"
+  sorry
+
+  
+      
 lemma ord_resolve_lifting: 
   fixes CAi
   assumes resolve: "ord_resolve (S_M S M) CAi DAi E" 
@@ -751,7 +823,7 @@ lemma ord_resolve_lifting:
     unfolding CAi'_def using \<rho>s_ren M_renaming_invariant
       lcai'' l\<rho>s
     by (simp add: \<open>\<forall>i<n. CAi'' ! i \<in> M\<close>)
-  have "CAi' \<cdot>\<cdot>cl \<eta>s' = CAi"
+  have cai'_cai: "CAi' \<cdot>\<cdot>cl \<eta>s' = CAi"
   proof -
     have asdf: "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi"
       using cai''_to_cai by auto
@@ -778,7 +850,9 @@ lemma ord_resolve_lifting:
     then show ?thesis
       unfolding CAi'_def \<eta>s'_def by auto
   qed
-  have "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>s' ! i"
+  then have cai'_cai2: "\<forall>i<n. (CAi' ! i) \<cdot> (\<eta>s' ! i) = CAi ! i"
+    using n by auto
+  have sel_cai'_cai: "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>s' ! i"
   proof (rule, rule)
     fix i
     assume a: "i < n"
@@ -826,49 +900,122 @@ lemma ord_resolve_lifting:
     
     
   (* Now I just need to replace the (\<eta>s' ! i) and (\<rho>') with a single substitution... *)
-  have "var_disjoint ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>s'')"
+  have vv: "var_disjoint ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>s'')"
     using \<rho>s''_p by blast
-  then have "\<forall>\<sigma>s. length \<sigma>s = length ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>s'') \<longrightarrow>
+  {
+    (* Old track of replacing. Did not work for the selections.  *)
+    then have "\<forall>\<sigma>s. length \<sigma>s = length ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>s'') \<longrightarrow>
        (\<exists>\<tau>. (DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>s'' \<cdot>\<cdot>cl \<sigma>s = (DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>s'' \<cdot>cl \<tau>)"
-    unfolding var_disjoint_def by auto
-  then have "\<exists>\<eta>. (DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>s'' \<cdot>\<cdot>cl (\<eta>' # \<eta>s') = (DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>s'' \<cdot>cl \<eta>"
-    using n by auto
-  then have "\<exists>\<eta>. (DAi' # CAi') \<cdot>\<cdot>cl (\<eta>' # \<eta>s') = (DAi' # CAi') \<cdot>cl \<eta>"
-    unfolding DAi'_def CAi'_def \<rho>s_def \<rho>_def
-    using n
-    by (metis length_greater_0_conv list.exhaust_sel subst_cls_lists_Cons zero_less_Suc)
-  then have "\<exists>\<eta>. DAi' \<cdot> \<eta>' = DAi' \<cdot> \<eta> \<and> CAi' \<cdot>\<cdot>cl \<eta>s' = CAi' \<cdot>cl \<eta>"
-    by auto
-  then obtain \<eta> where \<eta>_p: "DAi' \<cdot> \<eta>' = DAi' \<cdot> \<eta> \<and> CAi' \<cdot>\<cdot>cl \<eta>s' = CAi' \<cdot>cl \<eta>"
-    by auto
-  then have "\<forall>i < n. (CAi' \<cdot>\<cdot>cl \<eta>s') ! i = (CAi' \<cdot>cl \<eta>) ! i "
-    by auto
-  then have "\<forall>i < n. (CAi' ! i) \<cdot> (\<eta>s' ! i) = (CAi'! i) \<cdot> \<eta>"
-    using n by auto
+      unfolding var_disjoint_def by auto
+    then have "\<exists>\<eta>. (DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>s'' \<cdot>\<cdot>cl (\<eta>' # \<eta>s') = (DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>s'' \<cdot>cl \<eta>"
+      using n by auto
+    then have "\<exists>\<eta>. (DAi' # CAi') \<cdot>\<cdot>cl (\<eta>' # \<eta>s') = (DAi' # CAi') \<cdot>cl \<eta>"
+      unfolding DAi'_def CAi'_def \<rho>s_def \<rho>_def
+      using n
+      by (metis length_greater_0_conv list.exhaust_sel subst_cls_lists_Cons zero_less_Suc)
+    then have "\<exists>\<eta>. DAi' \<cdot> \<eta>' = DAi' \<cdot> \<eta> \<and> CAi' \<cdot>\<cdot>cl \<eta>s' = CAi' \<cdot>cl \<eta>"
+      by auto
+    then obtain \<eta> where \<eta>_p: "DAi' \<cdot> \<eta>' = DAi' \<cdot> \<eta> \<and> CAi' \<cdot>\<cdot>cl \<eta>s' = CAi' \<cdot>cl \<eta>"
+      by auto
+    then have "\<forall>i < n. (CAi' \<cdot>\<cdot>cl \<eta>s') ! i = (CAi' \<cdot>cl \<eta>) ! i "
+      by auto
+    then have "\<forall>i < n. (CAi' ! i) \<cdot> (\<eta>s' ! i) = (CAi'! i) \<cdot> \<eta>"
+      using n by auto
+    then have "True" by simp
+  }
   
-  have "DAi = DAi' \<cdot> \<eta>" using \<eta>_p dai'_dai by auto
-  have "S_M S M DAi = S (DAi') \<cdot> \<eta>" using \<eta>_p sel_dai'_dai
-      sorry
+  (* New track of replacing *)
+  from vv have "var_disjoint_2 ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>s'')"
+    using var_var2 by auto
+  then obtain \<eta> where "(\<forall>i<Suc n. \<forall>S. S \<subseteq># ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>s'') ! i \<longrightarrow> S \<cdot> (\<eta>' # \<eta>s') ! i = S \<cdot> \<eta>)" unfolding var_disjoint_2_def
+    using n by force
+  then have \<eta>_p: "(\<forall>i<Suc n. \<forall>S. S \<subseteq># ((DAi'' \<cdot> \<rho>) # (CAi'' \<cdot>\<cdot>cl \<rho>s)) ! i \<longrightarrow> S \<cdot> (\<eta>' # \<eta>s') ! i = S \<cdot> \<eta>)" unfolding var_disjoint_2_def
+    by (metis \<rho>_def \<rho>s_def gr_implies_not0 list.exhaust_sel list.size(3) n(4) subst_cls_lists_Cons)
+  then have "\<forall>S. S \<subseteq># (DAi'' \<cdot> \<rho>) \<longrightarrow> S \<cdot> \<eta>' = S \<cdot> \<eta>" 
+    by auto
+  then have s_dai'_\<eta>: "\<forall>S. S \<subseteq># DAi' \<longrightarrow> S \<cdot> \<eta>' = S \<cdot> \<eta>" 
+    unfolding DAi'_def by auto
+  then have dai'_\<eta>: "DAi' \<cdot> \<eta>' = DAi' \<cdot> \<eta>" by auto
       
+  from \<eta>_p have "(\<forall>i<n. \<forall>S. S \<subseteq># (CAi'' \<cdot>\<cdot>cl \<rho>s) ! i \<longrightarrow> S \<cdot> \<eta>s' ! i = S \<cdot> \<eta>)" 
+    by auto
+  then have s_cai'_\<eta>: "(\<forall>i<n. \<forall>S. S \<subseteq># CAi' ! i \<longrightarrow> S \<cdot> \<eta>s' ! i = S \<cdot> \<eta>)" 
+    unfolding CAi'_def by auto
+  then have cai'_\<eta>: "\<forall>i < n. (CAi' ! i) \<cdot> (\<eta>s' ! i) = (CAi'! i) \<cdot> \<eta>"
+    by auto
       
+  
+      
+  have "DAi = DAi' \<cdot> \<eta>" using dai'_dai dai'_\<eta> by auto
+  have "S_M S M DAi = S (DAi') \<cdot> \<eta>"
+  proof -
+    have "S_M S M DAi = S (DAi'' \<cdot> \<rho>) \<cdot> \<rho>_inv \<cdot> \<eta>''"
+      using sel_dai'_dai unfolding DAi'_def \<eta>'_def by auto
+    also have "... = S (DAi'' \<cdot> \<rho>) \<cdot> \<eta>"
+      using s_dai'_\<eta> unfolding DAi'_def \<eta>'_def
+      by (simp add: S.S_selects_subseteq)
+    also have "... = S (DAi') \<cdot> \<eta>"
+      unfolding DAi'_def by auto
+    finally show ?thesis by auto
+  qed
     
-  obtain CAi' DAi' \<eta> where prime_clauses: (* I need some lemma telling that these standardized apart clauses exist *) 
-    "length CAi' = n" 
-    "\<forall>i < n. CAi' ! i \<in> M" 
-    "CAi' \<cdot>cl \<eta> = CAi"
-    "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>" 
-    (* should this even be here? Probably not, but I'm not sure. I think it could instead look more like the weaker invariant hinted at in the assumptions of this lemma *)
-    (* Meh, I'm not even sure about that. I think maybe we need the strong assumption, but this should be more like the below one for DAi and DAi' *)
+  have "CAi = CAi' \<cdot>cl \<eta>"
+  proof -
+    {
+      fix i
+      assume "i<n"
+      then have "CAi ! i = (CAi' \<cdot>cl \<eta>) ! i" using n cai'_cai2 cai'_\<eta> by auto
+    }
+    then show ?thesis using n by auto
+  qed
+  have "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>"
+  proof (rule, rule)
+    fix i
+    assume "i < n"
+    then have "S_M S M (CAi ! i) = S (CAi'' ! i \<cdot> \<rho>s ! i) \<cdot> (\<rho>s_inv ! i) \<cdot> \<eta>s'' ! i"
+      using sel_cai'_cai unfolding CAi'_def \<eta>s'_def
+      using n by simp
+    also have "... = S (CAi'' ! i \<cdot> \<rho>s ! i) \<cdot> \<eta>"
+      using s_cai'_\<eta> unfolding CAi'_def \<eta>s'_def
+       S.S_selects_subseteq
+      by (metis \<open>i < n\<close> calculation empty_subst ord_resolve(13)) (* There must be a better, more local proof *)
+    also have "... = S (CAi' ! i) \<cdot> \<eta>"
+      unfolding CAi'_def
+      by (simp add: \<open>i < n\<close> n) 
+    finally show "S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>"
+      by auto
+  qed
+      
+  have prime_clauses_1: "length CAi' = n"
+    using n by auto
+  have prime_clauses_2: "\<forall>i < n. CAi' ! i \<in> M"
+    using n
+    using \<open>\<forall>i<n. CAi' ! i \<in> M\<close> by blast 
+  have prime_clauses_3: "CAi' \<cdot>cl \<eta> = CAi"
+    using \<open>CAi = CAi' \<cdot>cl \<eta> \<close> by auto
+  have prime_clauses_4: "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>"
+    using \<open>\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>\<close> by auto
+  have prime_clauses_5: "DAi' \<in> M"
+    using DAi'_def M_renaming_invariant \<open>DAi'' \<in> M\<close> \<rho>_ren by blast
     
-    "DAi' \<in> M" 
-    "DAi = DAi' \<cdot> \<eta>" 
-    "S_M S M (DAi) = S (DAi') \<cdot> \<eta>" (* I think now that this is the (or at least one) correct way to formalize S_M, kind of at least *)
+  have prime_clauses_6: "DAi = DAi' \<cdot> \<eta>"
+    using \<open>DAi = DAi' \<cdot> \<eta>\<close> by auto
+  have prime_clauses_7: "S_M S M (DAi) = S (DAi') \<cdot> \<eta>"
+    using \<open>S_M S M (DAi) = S (DAi') \<cdot> \<eta>\<close> by auto
     
-    "var_disjoint (DAi'#CAi')"
-    "{DAi'} \<union> set CAi' \<subseteq> M"
+  have prime_clauses_8: "var_disjoint (DAi'#CAi')"
+    using CAi'_def DAi'_def \<open>var_disjoint ((DAi'' # CAi'') \<cdot>\<cdot>cl (\<rho> # \<rho>s))\<close> by auto
     
-    "is_ground_subst \<eta>"
-    sorry
+  have prime_clauses_9: "{DAi'} \<union> set CAi' \<subseteq> M"
+    apply auto
+    apply (auto simp add: \<open>DAi' \<in> M\<close>)
+    using n \<open>\<forall>i<n. CAi' ! i \<in> M\<close>
+    by (metis in_set_conv_nth) 
+    
+  have prime_clauses_10: "is_ground_subst \<eta>" sorry
+      
+  note prime_clauses = prime_clauses_1 prime_clauses_2 prime_clauses_3 prime_clauses_4
+    prime_clauses_5 prime_clauses_6 prime_clauses_7 prime_clauses_8 prime_clauses_9 prime_clauses_10 
 
   (* Now I need to find all these Ci' Aij' D' Ai' *)
       
@@ -949,7 +1096,7 @@ lemma ord_resolve_lifting:
     assume asm: "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
     let ?A = "Ai ! 0"
     from asm have "S_M S M (D + negs (mset Ai)) = {#}" by auto
-    hence "S (D' + negs (mset Ai')) = {#}" using prime_clauses2(6)[symmetric] prime_clauses2(7)[symmetric] prime_clauses(7)
+    hence "S (D' + negs (mset Ai')) = {#}" using prime_clauses2(6)[symmetric] prime_clauses2(7)[symmetric] prime_clauses_7
       using ord_resolve(1) 
       apply auto
       using a empty_subst by blast   
@@ -976,7 +1123,7 @@ lemma ord_resolve_lifting:
   hence e: "\<forall>i<n. str_maximal_in (Ai' ! i \<cdot>a \<tau>) (Ci' ! i \<cdot> \<tau>)" using str_maximal_in_gen \<phi>_p by blast
   moreover
   from ord_resolve have "\<forall>i < n. (S_M S M) (CAi ! i) = {#}" by -
-  hence "\<forall>i < n. S (CAi' ! i)  \<cdot> \<eta> = {#}" using prime_clauses(3) prime_clauses(4) ord_resolve(3) by auto 
+  hence "\<forall>i < n. S (CAi' ! i)  \<cdot> \<eta> = {#}" using prime_clauses_3 prime_clauses_4 ord_resolve(3) by auto 
   hence ff: "\<forall>i < n. S (CAi' ! i) = {#}" using empty_subst by blast
   ultimately
   have res_e': "ord_resolve S CAi' DAi' E'" 
@@ -984,7 +1131,7 @@ lemma ord_resolve_lifting:
     unfolding E'_def by auto
       
   have "is_ground_cls_list CAi" "is_ground_cls DAi"
-    using prime_clauses prime_clauses by auto 
+    using prime_clauses by auto 
   hence "is_ground_cls E" using resolve ground_resolvent_ground by auto
   then obtain \<eta>2 where ground_\<eta>2: "is_ground_subst \<eta>2" "E' \<cdot> \<eta>2 = E" using e'\<phi>e mk_ground_subst by blast
       
