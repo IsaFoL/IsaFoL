@@ -20,3 +20,26 @@ A CNF is included in the repository. It takes less than 15 seconds to answer `UN
 
     ./IsaSAT ../eq.atree.braun.7.unsat.cnf
 
+
+## Theorems, Formalization, and Paper ##
+
+Theorem, function  | Real name                             | File
+------------------ | --------------------------------------|-------
+      `PCUI_algo`  | `unit_propagation_inner_loop_body`    | `CDCL_Two_Watched_Literals_Algorithm`
+	  Lemma 4      | `unit_propagation_inner_loop_body_add`| `CDCL_Two_Watched_Literals_Algorithm`
+	  Theorem 5    | `cdcl_twl_stgy_prog_spec`             | `CDCL_Two_Watched_Literals_Algorithm`
+-------------------|---------------------------------------|--------------------------------------
+      `PCUI_list`  | `unit_propagation_inner_loop_body_l`  | `CDCL_Two_Watched_Literals_List`
+-------------------|---------------------------------------|--------------------------------------
+     `PCUI_wlist`  | `unit_propagation_inner_loop_body_wl` | `CDCL_Two_Watched_Literals_List_Watched`
+-------------------|---------------------------------------|----------------------------------------
+`polarity_listpair`| `valued_trail`                        | `CDCL_Two_Watched_Literals_List_Watched_Trail_Code`
+ Theorem 6         | `SAT_wl_code_full_correctness`        | `CDCL_Two_Watched_Literals_List_Watched_Trail_Code` and `CDCL_Two_Watched_Literals_List_Watched_Trail_Code_UInt32`
+ 
+ 
+ For technical reasons, the code generation for native integers (suffix `UInt32`) and for unbounded integers (no suffix) are separated.
+	 
+	  
+
+
+
