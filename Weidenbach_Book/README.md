@@ -7,7 +7,7 @@ This branch contains the version of the development related to the paper A Verif
 ## Execution ##
 1. [Isabelle2016-1](http://isabelle.in.tum.de/website-Isabelle2016-1/) is required to process the files
 2. The [Archive Of Formal Proofs](https://www.isa-afp.org) is needed for the Refinement Framework. Please refer to the [installation instructions](https://www.isa-afp.org/using.shtml).
-3. To process all the theory files, simply load `Weidenbach_Book.thy'` in Isabelle2016-1.
+3. To process all the theory files, simply load `Weidenbach_Book.thy` in Isabelle2016-1.
 
 
 ## Testing the code ##
