@@ -696,11 +696,52 @@ definition var_disjoint_2 :: "'a clause list \<Rightarrow> bool" where
       )
     )"
  
-lemma var_var2: "var_disjoint Cs \<longrightarrow> var_disjoint_2 Cs"
+lemma var_var2: "var_disjoint Cs \<Longrightarrow> var_disjoint_2 Cs"
   sorry
-
+    
+term is_ground_cls
   
-      
+lemma very_specific_lemma:
+  assumes "negs (mset Ai) = SDAi' \<cdot> \<eta>"
+  assumes "\<forall>L \<in># SDAi'. is_neg L"
+  shows "\<exists>Ai'. negs (mset Ai') = SDAi' \<and> Ai' \<cdot>al \<eta> = Ai"
+using assms proof (induction Ai arbitrary: SDAi')
+  case Nil
+  then have "negs (mset []) = SDAi' \<and> [] \<cdot>al \<eta> = []"
+    by (simp add: empty_subst) 
+  then show ?case by blast
+next
+  case (Cons a Ai)
+  then have "\<exists>aa. aa \<in># SDAi' \<and> (atm_of aa) \<cdot>a \<eta> = a"
+    by (metis (no_types, lifting) add_mset_remove_trivial add_mset_remove_trivial_eq another_swap atms_of_def atms_of_negg imageE mset.simps(2) subst_atms_def)
+  then obtain aa where aa_p: "aa \<in># SDAi' \<and> (atm_of aa) \<cdot>a \<eta> = a" 
+    by blast
+  then have aa_p2: "aa = Neg ((atm_of aa))" using Cons by auto
+  
+  have "negs (mset (a # Ai)) = SDAi' \<cdot> \<eta>"
+    using Cons by auto
+  then have "(negs (mset (a # Ai))) - {# Neg a#} = (SDAi' \<cdot> \<eta> ) - {# Neg a#}"
+    by metis
+  then have "(negs (mset (Ai))) = (SDAi' \<cdot> \<eta> ) - {# Neg a#}"
+    by auto
+  then have "(negs (mset (Ai))) = (SDAi' \<cdot> \<eta> ) - {# Neg ((atm_of aa) \<cdot>a \<eta>)#}"
+    using aa_p by auto
+  then have "(negs (mset (Ai))) = (SDAi' \<cdot> \<eta> ) - {# Neg ((atm_of aa))#} \<cdot> \<eta>"
+    by (metis image_mset_single subst_atm_mset_single subst_cls_negs)
+  then have "(negs (mset (Ai))) = ((SDAi') - {# Neg ((atm_of aa))#}) \<cdot> \<eta>"
+    using aa_p aa_p2
+    by (metis (mono_tags, lifting) image_mset_Diff' image_mset_single subst_cls_def)
+  then have "\<exists>Ai'. negs (mset Ai') = remove1_mset (Neg (atm_of aa)) SDAi' \<and> Ai' \<cdot>al \<eta> = Ai" using Cons(1)[of "((SDAi') - {# Neg ((atm_of aa))#})"]
+    using Cons(3)
+    by (meson in_diffD)
+  then obtain Ai' where "negs (mset Ai') = remove1_mset (Neg (atm_of aa)) SDAi' \<and> Ai' \<cdot>al \<eta> = Ai"
+    by blast
+  then have "negs (mset (atm_of aa#Ai')) = SDAi' \<and> (atm_of aa#Ai') \<cdot>al \<eta> = a # Ai"
+    using aa_p aa_p2 by auto
+  then show ?case by blast
+qed
+  
+    
 lemma ord_resolve_lifting: 
   fixes CAi
   assumes resolve: "ord_resolve (S_M S M) CAi DAi E" 
@@ -1018,6 +1059,47 @@ lemma ord_resolve_lifting:
     prime_clauses_5 prime_clauses_6 prime_clauses_7 prime_clauses_8 prime_clauses_9 prime_clauses_10 
 
   (* Now I need to find all these Ci' Aij' D' Ai' *)
+
+    
+      
+  (* There I should use \<or> elemination to get the two cases *)
+  from ord_resolve(11) have "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> (negs (mset Ai')) \<subseteq># DAi'"
+    unfolding eligible_simp
+    proof
+      assume "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
+      then have "length Ai = 1" by auto
+      then have "mset Ai = {# Ai ! 0 #}" by auto
+      then have "negs (mset Ai) = {# Neg (Ai ! 0) #}"
+        by (simp add: \<open>mset Ai = {#Ai ! 0#}\<close>)
+      then have "DAi = D + {#Neg (Ai ! 0)#}" using ord_resolve(1) by auto
+      then obtain L where "L \<in># DAi' \<and> L \<cdot>l \<eta> = Neg (Ai ! 0)" using prime_clauses_6
+        by (metis Melem_subst_cls mset_subset_eq_add_right single_subset_iff)
+      then have "Neg (atm_of L) \<in># DAi' \<and> Neg (atm_of L) \<cdot>l \<eta> = Neg (Ai ! 0) "
+        by (metis Neg_atm_of_iff literal.sel(2) subst_lit_is_pos)
+      then have "[atm_of L] \<cdot>al \<eta> = Ai \<and> negs (mset [atm_of L]) \<subseteq># DAi'"
+        using \<open>mset Ai = {#Ai ! 0#}\<close> subst_lit_def by auto
+      then show "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> negs (mset Ai') \<subseteq># DAi'" by blast
+    next
+      assume "S_M S M (D + negs (mset Ai)) = negs (mset Ai)" 
+      then have "negs (mset Ai) = S DAi' \<cdot> \<eta>" using prime_clauses_7 ord_resolve(1) by auto
+      then have "\<exists>Ai'. negs (mset Ai') = S DAi' \<and> Ai' \<cdot>al \<eta> = Ai"
+        using very_specific_lemma[of Ai "S DAi'" \<eta>] using S.S_selects_neg_lits by auto
+      then show "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> negs (mset Ai') \<subseteq># DAi'" using S.S_selects_subseteq by auto
+  qed
+  then obtain Ai' where Ai'_p: "Ai' \<cdot>al \<eta> = Ai \<and> (negs (mset Ai')) \<subseteq># DAi'" by blast
+    
+  then have "length Ai' = n"
+    using local.ord_resolve(6) by auto
+    
+  have "negs (mset Ai') \<cdot> \<eta> = negs (mset Ai)"
+    using Ai'_p unfolding subst_atm_list_def subst_cls_def
+      sorry
+      
+  define D' where "D' = DAi' - (negs (mset Ai'))"
+  then have "DAi' = D' +  (negs (mset Ai'))" using Ai'_p by auto
+    
+  then have "D' \<cdot> \<eta> = D" using \<open>DAi = DAi' \<cdot> \<eta>\<close> ord_resolve(1)
+    sorry
       
   obtain Ci' Aij' D' Ai' where prime_clauses2:
     "length Ci' = n"
