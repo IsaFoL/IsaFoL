@@ -25,6 +25,11 @@ A CNF is included in the repository. It takes less than 15 seconds to answer `UN
 
 Section |Theorem, function  | Real name                             | File
 --------|------------------ | --------------------------------------|---------------------------------------
+2       |                   |                                       |
+        | Theorem 1         | `full_cdclW_stgy_final_state_conclusive_from_init_state`| `CDCL_W`
+3       |                   |                                       |
+        | Theorem 2         | `cdcl_twl_stgy_twl_struct_invs`       | `CDCL_Two_Watched_Literals_Transition_System`
+        | Theorem 3         | `full_cdcl_twl_stgy_cdclW_stgys`      | `CDCL_Two_Watched_Literals_Transition_System`
 4       |                   |                                       |
         | `PCUI_algo`       | `unit_propagation_inner_loop_body`    | `CDCL_Two_Watched_Literals_Algorithm`
         | Lemma 4           | `unit_propagation_inner_loop_body_add`| `CDCL_Two_Watched_Literals_Algorithm`
