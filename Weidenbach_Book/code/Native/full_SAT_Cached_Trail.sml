@@ -442,7 +442,7 @@ fun ht_copy (A1_, A2_, A3_) B_ n src dst =
 
 fun shiftr1 n =
   (nat_of_integer(IntInf.~>> (integer_of_nat(n),
-    Word.fromInt (integer_of_nat(one_nat)))));
+    Word.fromLargeInt (integer_of_nat(one_nat)))));
 
 fun times_nat m n = Nat (IntInf.* (integer_of_nat m, integer_of_nat n));
 
