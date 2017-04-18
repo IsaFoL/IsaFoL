@@ -1190,10 +1190,10 @@ sepref_definition SAT_wl_code
 declare twl_array_code_ops.init_state_wl_D_def[code]
 
 code_printing constant "shiftl :: nat \<Rightarrow> nat \<Rightarrow> nat" \<rightharpoonup>
-  (SML) "(nat'_of'_integer(IntInf.<</ (integer'_of'_nat((_)),/ Word.fromInt (integer'_of'_nat((_))))))"
+  (SML) "(nat'_of'_integer(IntInf.<</ (integer'_of'_nat((_)),/ Word.fromLargeInt (integer'_of'_nat((_))))))"
 
 code_printing constant "shiftr :: nat \<Rightarrow> nat \<Rightarrow> nat" \<rightharpoonup>
-  (SML) "(nat'_of'_integer(IntInf.~>>/ (integer'_of'_nat((_)),/ Word.fromInt (integer'_of'_nat((_))))))"
+  (SML) "(nat'_of'_integer(IntInf.~>>/ (integer'_of'_nat((_)),/ Word.fromLargeInt (integer'_of'_nat((_))))))"
 
 export_code SAT_wl_code checking SML_imp
 export_code SAT_wl_code
