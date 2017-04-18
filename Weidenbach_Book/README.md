@@ -7,12 +7,12 @@ This branch contains the version of the development related to the paper A Verif
 ## Execution ##
 1. [Isabelle2016-1](http://isabelle.in.tum.de/website-Isabelle2016-1/) is required to process the files
 2. The [Archive Of Formal Proofs](https://www.isa-afp.org) is needed for the Refinement Framework. Please refer to the [installation instructions](https://www.isa-afp.org/using.shtml).
-3. To process all the theory files, simply load ``Weidenbach_Book.thy'' in Isabelle2016-1.
+3. To process all the theory files, simply load `Weidenbach_Book.thy'` in Isabelle2016-1.
 
 
 ## Testing the code ##
 
-The generated code can be found in `code/IntInf` (infinite integer) or `code/Native`.
+The generated code can be found in `code/IntInf` (infinite integer) or `code/Native` (32-bits integers).
 
 If [MLton](http://mlton.org) is in your path, you can compile the code with `make`.
 
@@ -44,6 +44,9 @@ Section |Theorem, function  | Real name                             | File
  
  
  For technical reasons, the code generation for native integers (suffix `UInt32`) and for unbounded integers (no suffix) are separated.
+ 
+The code generation can be found in the files `CDCL_Two_Watched_Literals_List_Watched_Trail_Code` and `CDCL_Two_Watched_Literals_List_Watched_Trail_Code_UInt32` (search for `export_code`).
+
 
 ## More Benchmarks ##
 
