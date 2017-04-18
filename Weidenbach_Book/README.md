@@ -44,8 +44,7 @@ Section |Theorem, function  | Real name                             | File
  
  
  For technical reasons, the code generation for native integers (suffix `UInt32`) and for unbounded integers (no suffix) are separated.
-	 
-	  
 
+## More Benchmarks ##
 
-
+[The results can be found here](https://bitbucket.org/isafol/isafol/wiki/ITP%202017)
