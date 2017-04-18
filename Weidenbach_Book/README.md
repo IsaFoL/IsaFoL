@@ -14,9 +14,9 @@ This branch contains the version of the development related to the paper A Verif
 
 The generated code can be found in `code/IntInf` (infinite integer) or `code/Native`.
 
-If [MLton](http://mlton.org) is in your path, you can compile the code with `make'.
+If [MLton](http://mlton.org) is in your path, you can compile the code with `make`.
 
 A CNF is included in the repository. It takes less than 15 seconds to answer `UNSAT`. The program can be run with:
 
-    ./full_SAT_Trail ../eq.atree.braun.7.unsat.cnf
+    ./IsaSAT ../eq.atree.braun.7.unsat.cnf
 
