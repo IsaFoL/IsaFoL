@@ -721,7 +721,7 @@ total_over_mm I B\<close>
 (* S2MS *)
 lemma \<open>A + B \<Turnstile>ps C \<longleftrightarrow> A \<union># B \<Turnstile>ps C\<close>
   unfolding true_clss_clss_def
-  by auto    
+  by auto
 
 (* S2MS modif*)
 lemma all_decomposition_implies_trail_is_implied:
@@ -749,13 +749,14 @@ next
       }
       moreover {
         assume l: \<open>length a = 1\<close> and m: \<open>is_decided (hd a)\<close> and hd: \<open>hd a \<in> set M\<close>
-        then have \<open>unmark (hd a) \<in> {unmark L |L. is_decided L \<and> L \<in> set M}\<close> by auto
-        then have H: \<open>unmark_lm a \<union># N \<subseteq># N \<union># mset_set {unmark L |L. is_decided L \<and> L \<in> set M}\<close>
+        then have \<open>unmark (hd a) \<in># {#unmark L |L\<in># mset M. is_decided L#}\<close> by auto
+        then have H: \<open>unmark_lm a \<union># N \<subseteq># N + {# unmark L |L\<in># mset M. is_decided L #}\<close>
           using l by (cases a) auto
         have f1: \<open>unmark_lm a \<union># N \<Turnstile>ps unmark_lm b\<close>
           using decomp unfolding all_decomposition_implies_def g by simp
         have ?thesis
-          apply (rule true_clss_clss_subset) using f1 H g by auto
+          apply (rule true_clss_clss_subset) 
+          using f1 H g by auto
       }
       ultimately show ?thesis
         using get_all_ann_decomposition_length_1_fst_empty_or_length_1 by blast
@@ -764,11 +765,11 @@ next
       then obtain Ls0 seen0 M' where
         Ls0: \<open>get_all_ann_decomposition M = (Ls0, seen0) # get_all_ann_decomposition M'\<close> and
         length': \<open>length (get_all_ann_decomposition M') = n\<close> and
-        M'_in_M: \<open>set M' \<subseteq> set M\<close>
+        M'_in_M: \<open>mset M' \<subseteq># mset M\<close>
         using length by (induct M rule: ann_lit_list_induct) (auto simp: subset_insertI2)
       let ?d = \<open>\<Union>#(image_mset mset (image_mset snd (mset (get_all_ann_decomposition M'))))\<close>
-      let ?unM = \<open>mset_set {unmark L |L. is_decided L \<and> L \<in> set M}\<close>
-      let ?unM' = \<open>mset_set {unmark L |L. is_decided L \<and> L \<in> set M'}\<close>
+      let ?unM = \<open>{#unmark L |L\<in># mset M. is_decided L#}\<close>
+      let ?unM' = \<open>{#unmark L |L\<in># mset M'. is_decided L#}\<close>
       {
         assume \<open>n = 0\<close>
         then have \<open>get_all_ann_decomposition M' = []\<close> using length' by auto
@@ -782,9 +783,10 @@ next
 
         have \<open>all_decomposition_implies N (get_all_ann_decomposition M')\<close>
           using decomp unfolding Ls0 by auto
-        then have N: \<open>N \<union># ?unM' \<Turnstile>ps unmark_m ?d\<close>
+        then have N: \<open>N + ?unM' \<Turnstile>ps unmark_m ?d\<close>
           using IH length' by auto
-        have \<open>?unM' \<subseteq># ?unM\<close> using M'_in_M by auto
+        have \<open>?unM' \<subseteq># ?unM\<close> using M'_in_M multiset_filter_mono[of \<open>mset M'\<close> \<open>mset M\<close> is_decided] 
+            image_mset_subseteq_mono by auto
         then have l: \<open>N \<union># ?unM' \<subseteq># N \<union># ?unM\<close>
           using mset_union_inclusion[of ?unM' ?unM N] by auto         
         from true_clss_clss_subset[OF this N]
@@ -793,7 +795,7 @@ next
           using get_all_ann_decomposition_hd_hd[of M] unfolding Ls0 Ls1 by auto
 
         have LSM: \<open>seen1 @ Ls1 = M'\<close> using get_all_ann_decomposition_decomp[of M'] Ls1 by auto
-        have M': \<open>mset M' = ?d \<union># mset_set {L |L. is_decided L \<and> L \<in> set M'}\<close>
+        have M': \<open>mset M' = ?d \<union># {#L |L\<in># mset M'. is_decided L#}\<close>
           using get_all_ann_decomposition_snd_mset_union by auto
 
         {
@@ -801,19 +803,18 @@ next
           then have \<open>hd Ls0 \<in> set M\<close>
             using get_all_ann_decomposition_fst_empty_or_hd_in_M Ls0 by blast
           then have \<open>N \<union># ?unM \<Turnstile>p unmark (hd Ls0)\<close>
-            using \<open>is_decided (hd Ls0)\<close> by (metis (mono_tags, lifting) UnCI mem_Collect_eq
-              true_clss_cls_in)
+            using \<open>is_decided (hd Ls0)\<close> by simp
         } note hd_Ls0 = this
 
-        have l: \<open>unmark ` (?d \<union># mset_set {L |L. is_decided L \<and> L \<in> set M'}) = unmark_m ?d \<union># ?unM'\<close>
+        have l: \<open>image_mset unmark (?d \<union># {#L |L\<in># mset M'. is_decided L #}) = unmark_m ?d \<union># ?unM'\<close>
           by auto
-        have \<open>N \<union> ?unM' \<Turnstile>ps unmark ` (?d \<union> {L |L. is_decided L \<and> L \<in> set M'})\<close>
+        have \<open>N \<union># ?unM' \<Turnstile>ps image_mset unmark (?d \<union># {#L |L\<in># mset M'. is_decided L#})\<close>
           unfolding l using N by (auto simp: all_in_true_clss_clss)
-        then have t: \<open>N \<union> ?unM' \<Turnstile>ps unmark_l (tl Ls0)\<close>
+        then have t: \<open>N \<union># ?unM' \<Turnstile>ps unmark_lm (tl Ls0)\<close>
           using M' unfolding LS LSM by auto
-        then have \<open>N \<union> ?unM \<Turnstile>ps unmark_l (tl Ls0)\<close>
-          using M'_in_M true_clss_clss_subset[OF _ t, of \<open>N \<union> ?unM\<close>] by auto
-        then have \<open>N \<union> ?unM \<Turnstile>ps unmark_l Ls0\<close>
+        then have \<open>N \<union># ?unM \<Turnstile>ps unmark_lm (tl Ls0)\<close>
+          using M'_in_M true_clss_clss_subset[OF _ t, of \<open>N \<union># ?unM\<close>] by auto
+        then have \<open>N \<union># ?unM \<Turnstile>ps unmark_lm Ls0\<close>
           using hd_Ls0 by (cases Ls0) auto
 
         moreover have \<open>unmark_l Ls0 \<union> N \<Turnstile>ps unmark_l seen0\<close>
