@@ -2000,62 +2000,77 @@ substitution does not change the size of formulae, the theorem can
 be proved by well-founded induction on the size of the formula @{text p}.
 *}
   
-(* TODO: look at the need for measure size_form, wf_induct
-  consider showing each conjunct separately
-*)
-
 theorem hintikka_model:
   assumes hin: "hintikka H"
   shows "(p \<in> H \<longrightarrow> closed 0 p \<longrightarrow>
     eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) p) \<and>
   (Neg p \<in> H \<longrightarrow> closed 0 p \<longrightarrow>
     eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) (Neg p))"
-  using hin unfolding hintikka_def
 proof (rule_tac r="measure size_form" and a=p in wf_induct)
   show "wf (measure size_form)"
     by blast
 next
+  let ?eval = "eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H)"
+    
   fix x
   assume wf: "\<forall>y. (y, x) \<in> measure size_form \<longrightarrow>
-             (y \<in> H \<longrightarrow> closed 0 y \<longrightarrow> eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) y) \<and>
-             (Neg y \<in> H \<longrightarrow> closed 0 y \<longrightarrow> eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) (Neg y))"
+                  (y \<in> H \<longrightarrow> closed 0 y \<longrightarrow> ?eval y) \<and>
+              (Neg y \<in> H \<longrightarrow> closed 0 y \<longrightarrow> ?eval (Neg y))"
     
-  let ?pos = "eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) x"
-  let ?neg = "eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) (Neg x)"
-    
-  show "(x \<in> H \<longrightarrow> closed 0 x \<longrightarrow> ?pos) \<and> (Neg x \<in> H \<longrightarrow> closed 0 x \<longrightarrow> ?neg)"
+  show "(x \<in> H \<longrightarrow> closed 0 x \<longrightarrow> ?eval x) \<and> (Neg x \<in> H \<longrightarrow> closed 0 x \<longrightarrow> ?eval (Neg x))"
   proof (cases x)
     case FF
     show ?thesis proof (intro conjI impI)
       assume "x \<in> H"
-      then show ?pos using FF hin by (simp add: hintikka_def)
+      then show "?eval x"
+        using FF hin by (simp add: hintikka_def)
     next
       assume "Neg x \<in> H"
-      then show ?neg using FF by simp
+      then show "?eval (Neg x)" using FF by simp
     qed
   next
     case TT
-    then show ?thesis proof (intro conjI impI)
+    show ?thesis proof (intro conjI impI)
       assume "x \<in> H"
-      then show ?pos using TT by simp
+      then show "?eval x"
+        using TT by simp
     next
       assume "Neg x \<in> H"
-      then show ?neg using TT hin by (simp add: hintikka_def)
+      then show "?eval (Neg x)"
+        using TT hin by (simp add: hintikka_def)
     qed
   next
     case (Pred p ts)
-    then show ?thesis proof (intro conjI impI)
+    show ?thesis proof (intro conjI impI)
       assume "x \<in> H" and "closed 0 x"
-      then show ?pos using Pred by simp
+      then show "?eval x" using Pred by simp
     next
       assume "Neg x \<in> H" and "closed 0 x"
-      then have "Neg (Pred p ts) \<in> H" and "closed 0 (Pred p ts)"
-        using Pred by simp_all
+      then have "Neg (Pred p ts) \<in> H"
+        using Pred by simp
       then have "Pred p ts \<notin> H"
         using hin unfolding hintikka_def by fast
-      then show ?neg
-        using Pred \<open>closed 0 (Pred p ts)\<close> by simp
-    qed   
+      then show "?eval (Neg x)"
+        using Pred \<open>closed 0 x\<close> by simp
+    qed
+  next
+    case (Neg Z)
+    then show ?thesis proof (intro conjI impI)
+      assume "x \<in> H" and "closed 0 x"
+      then show "?eval x"
+        using Neg wf by simp
+    next
+      assume "Neg x \<in> H"
+      then have "Z \<in> H"
+        using Neg hin unfolding hintikka_def by blast
+      moreover assume "closed 0 x"
+      then have "closed 0 Z"
+        using Neg by simp
+      ultimately have "?eval Z"
+        using Neg wf by simp
+      then show "?eval (Neg x)"
+        using Neg by simp
+    qed
   next
     case (And A B)
     then show ?thesis proof (intro conjI impI)
@@ -2064,7 +2079,7 @@ next
         using And by simp_all
       then have "A \<in> H \<and> B \<in> H"
         using And hin unfolding hintikka_def by blast
-      then show ?pos
+      then show "?eval x"
         using And wf \<open>closed 0 (And A B)\<close> by simp 
     next
       assume "Neg x \<in> H" and "closed 0 x"
@@ -2072,7 +2087,7 @@ next
         using And by simp_all
       then have "Neg A \<in> H \<or> Neg B \<in> H"
         using hin unfolding hintikka_def by blast
-      then show ?neg
+      then show "?eval (Neg x)"
         using And wf \<open>closed 0 (And A B)\<close> by fastforce
     qed
   next
@@ -2083,7 +2098,7 @@ next
         using Or by simp_all
       then have "A \<in> H \<or> B \<in> H"
         using hin unfolding hintikka_def by blast
-      then show ?pos
+      then show "?eval x"
         using Or wf \<open>closed 0 (Or A B)\<close> by fastforce
     next
       assume "Neg x \<in> H" and "closed 0 x"
@@ -2091,7 +2106,7 @@ next
         using Or by simp_all
       then have "Neg A \<in> H \<and> Neg B \<in> H"
         using hin unfolding hintikka_def by blast
-      then show ?neg
+      then show "?eval (Neg x)"
         using Or wf \<open>closed 0 (Or A B)\<close> by simp
     qed   
   next
@@ -2102,7 +2117,7 @@ next
         using Impl by simp_all
       then have "Neg A \<in> H \<or> B \<in> H"
         using hin unfolding hintikka_def by blast
-      then show ?pos
+      then show "?eval x"
         using Impl wf \<open>closed 0 (Impl A B)\<close> by fastforce
     next
       assume "Neg x \<in> H" and "closed 0 x"
@@ -2110,22 +2125,8 @@ next
         using Impl by simp_all
       then have "A \<in> H \<and> Neg B \<in> H"
         using hin unfolding hintikka_def by blast
-      then show ?neg
+      then show "?eval (Neg x)"
         using Impl wf \<open>closed 0 (Impl A B)\<close> by simp
-    qed
-  next
-    case (Neg Z)
-    then show ?thesis proof (intro conjI impI)
-      assume "x \<in> H" and "closed 0 x"
-      then show ?pos using Neg wf by simp
-    next
-      assume "Neg x \<in> H" and "closed 0 x"
-      then have "Neg (Neg Z) \<in> H" and "closed 0 (Neg (Neg Z))"
-        using Neg by simp_all
-      then have "Z \<in> H"
-        using hin unfolding hintikka_def by blast
-      then show ?neg
-        using Neg wf \<open>closed 0 (Neg (Neg Z))\<close> by simp
     qed
   next
     case (Forall P)
@@ -2144,12 +2145,13 @@ next
             
         have "(P[term_of_hterm z/0], Forall P) \<in> measure size_form \<longrightarrow>
               (P[term_of_hterm z/0] \<in> H \<longrightarrow> closed 0 (P[term_of_hterm z/0]) \<longrightarrow>
-              eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) (P[term_of_hterm z/0]))"
+              ?eval (P[term_of_hterm z/0]))"
           using Forall wf by blast
         then show "eval (e\<langle>0:z\<rangle>) HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) P"
           using * \<open>Forall P \<in> H\<close> \<open>closed (Suc 0) P\<close> by simp
       qed
-      then show ?pos using Forall by simp
+      then show "?eval x"
+        using Forall by simp
     next
       assume "Neg x \<in> H" and "closed 0 x"
       then have "Neg (Forall P) \<in> H"
@@ -2163,13 +2165,14 @@ next
           
       have "(subst P t 0, Forall P) \<in> measure size_form \<longrightarrow>
               (Neg (subst P t 0) \<in> H \<longrightarrow> closed 0 (subst P t 0) \<longrightarrow>
-              eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) (Neg (subst P t 0)))"
+              ?eval (Neg (subst P t 0)))"
         using Forall wf by blast   
-      then have "eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) (Neg (P[t/0]))"
+      then have "?eval (Neg (P[t/0]))"
         using Forall * \<open>closed 0 (P[t/0])\<close> by simp
       then have "\<exists>z. \<not> eval (e\<langle>0:z\<rangle>) HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) P"
         by auto
-      then show ?neg using Forall by simp
+      then show "?eval (Neg x)"
+        using Forall by simp
     qed 
   next
     case (Exists P)
@@ -2184,13 +2187,14 @@ next
           
       have "(subst P t 0, Exists P) \<in> measure size_form \<longrightarrow>
               ((subst P t 0) \<in> H \<longrightarrow> closed 0 (subst P t 0) \<longrightarrow>
-              eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) (subst P t 0))"
+              ?eval (subst P t 0))"
         using Exists wf by blast   
-      then have "eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) (P[t/0])"
+      then have "?eval (P[t/0])"
         using Exists * \<open>closed 0 (P[t/0])\<close> by simp
       then have "\<exists>z. eval (e\<langle>0:z\<rangle>) HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) P"
         by auto
-      then show ?pos using Exists by simp
+      then show "?eval x"
+        using Exists by simp
     next
       assume "Neg x \<in> H" and "closed 0 x"
       have "\<forall>z. \<not> eval (e\<langle>0:z\<rangle>) HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) P"
@@ -2206,12 +2210,13 @@ next
             
         have "(P[term_of_hterm z/0], Exists P) \<in> measure size_form \<longrightarrow>
               (Neg (P[term_of_hterm z/0]) \<in> H \<longrightarrow> closed 0 (P[term_of_hterm z/0]) \<longrightarrow>
-              eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) (Neg (P[term_of_hterm z/0])))"
+              ?eval (Neg (P[term_of_hterm z/0])))"
           using Exists wf by blast
         then show "\<not> eval (e\<langle>0:z\<rangle>) HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) P"
           using * \<open>Neg (Exists P) \<in> H\<close> \<open>closed (Suc 0) P\<close> by simp
       qed
-      then show ?neg using Exists by simp
+      then show "?eval (Neg x)"
+        using Exists by simp
     qed
   qed
 qed
