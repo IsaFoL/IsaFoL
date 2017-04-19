@@ -2900,6 +2900,258 @@ proof (rule Class, rule ccontr)
   ultimately show False by simp
 qed
 
+subsection {* Completeness without closed restriction *}
+  
+primrec
+  free_levels\<^sub>t :: "nat \<Rightarrow> 'a term \<Rightarrow> nat" and
+  free_levels\<^sub>t\<^sub>s :: "nat \<Rightarrow> 'a term list \<Rightarrow> nat"
+where
+  "free_levels\<^sub>t m (Var n) = (if n < m then 0 else n - m + 1)"
+| "free_levels\<^sub>t m (App a ts) = free_levels\<^sub>t\<^sub>s m ts"
+| "free_levels\<^sub>t\<^sub>s m [] = 0"
+| "free_levels\<^sub>t\<^sub>s m (t # ts) = max (free_levels\<^sub>t m t) (free_levels\<^sub>t\<^sub>s m ts)"
+
+primrec
+  free_levels :: "nat \<Rightarrow> ('a, 'b) form \<Rightarrow> nat"
+where
+  "free_levels m FF = 0"
+| "free_levels m TT = 0"
+| "free_levels m (Pred b ts) = free_levels\<^sub>t\<^sub>s m ts"
+| "free_levels m (And p q) = max (free_levels m p) (free_levels m q)"
+| "free_levels m (Or p q) = max (free_levels m p) (free_levels m q)"
+| "free_levels m (Impl p q) = max (free_levels m p) (free_levels m q)"
+| "free_levels m (Neg p) = free_levels m p"
+| "free_levels m (Forall p) = free_levels (Suc m) p"
+| "free_levels m (Exists p) = free_levels (Suc m) p"
+
+lemma closedt_free_levels:
+  "free_levels\<^sub>t 0 (t :: 'a term) \<le> k \<Longrightarrow> closedt k t"
+  "free_levels\<^sub>t\<^sub>s 0 (ts :: 'a term list) \<le> k \<Longrightarrow> closedts k ts"
+  by (induct t and ts rule: free_levels\<^sub>t.induct free_levels\<^sub>t\<^sub>s.induct) simp_all
+    
+lemma piecewise_sub: "(if (x :: nat) < m then 0 else x - m + 1) \<le> k \<Longrightarrow> x < k + m"
+  by (cases \<open>x < m\<close>) simp_all
+  
+lemma free_levels_closed_terms:
+  "free_levels\<^sub>t m (t :: 'a term) \<le> k \<Longrightarrow> closedt (k + m) t"
+  "free_levels\<^sub>t\<^sub>s m (ts :: 'a term list) \<le> k \<Longrightarrow> closedts (k + m) ts"
+  using piecewise_sub
+  by (induct t and ts rule: free_levels\<^sub>t.induct free_levels\<^sub>t\<^sub>s.induct) auto
+
+lemma free_levels_closed: "free_levels m p \<le> k \<Longrightarrow> closed (k + m) p"
+  by (induct p arbitrary: m k) (force simp add: free_levels_closed_terms)+
+    
+lemma free_levels_closed_zero: "free_levels 0 p = 0 \<Longrightarrow> closed 0 p"
+  using free_levels_closed by fastforce
+    
+lemma free_levels_terms_suc:
+  "free_levels\<^sub>t m (t :: 'a term) \<le> Suc k \<Longrightarrow> free_levels\<^sub>t (Suc m) t \<le> k"
+  "free_levels\<^sub>t\<^sub>s m (ts :: 'a term list) \<le> Suc k \<Longrightarrow> free_levels\<^sub>t\<^sub>s (Suc m) ts \<le> k"
+  by (induct t and ts rule: free_levels\<^sub>t.induct free_levels\<^sub>t\<^sub>s.induct) auto
+    
+lemma free_levels_Forall: "free_levels m p \<le> Suc k \<Longrightarrow> free_levels m (Forall p) \<le> k"
+  by (induct p arbitrary: m k) (simp_all add: free_levels_terms_suc)
+    
+lemma free_levels_terms_suc_eq:
+  "free_levels\<^sub>t m (t :: 'a term) = Suc k \<Longrightarrow> free_levels\<^sub>t (Suc m) t = k"
+  "free_levels\<^sub>t\<^sub>s m (ts :: 'a term list) = Suc k \<Longrightarrow> free_levels\<^sub>t\<^sub>s (Suc m) ts = k"
+  proof (induct and ts rule: free_levels\<^sub>t.induct free_levels\<^sub>t\<^sub>s.induct)
+    case (Var x)
+    then show ?case proof (induct x)
+      case 0
+      then show ?case by (cases \<open>0 < m\<close>) simp_all
+    next
+      case (Suc x)
+      have "(if Suc x < m then 0 else Suc x - m + 1) = Suc k \<Longrightarrow> x < m \<Longrightarrow> k = 0"
+        by (metis Suc_eq_plus1 Suc_inject Suc_lessI diff_self_eq_0 nat.distinct(1))
+      then show ?case
+        using Suc by auto
+    qed
+  next
+    case (App t ts)
+    then show ?case by simp
+  next
+    case Nil_term
+    then show ?case by simp
+  next
+    case (Cons_term t ts)
+    then show ?case
+      by (metis free_levels\<^sub>t\<^sub>s.simps(2) free_levels_terms_suc(2) le_refl max_absorb1 max_def)
+  qed
+    
+lemma free_levels_suc: "free_levels m p = (Suc k) \<Longrightarrow> free_levels m (Forall p) = k"
+  proof (induct p arbitrary: m k)
+    case FF
+    then show ?case by simp
+  next
+    case TT
+    then show ?case by simp
+  next
+    case (Pred p ts)
+    then show ?case
+      using free_levels_terms_suc_eq by simp
+  next
+    case (And A B)
+    then have 1: "Suc k = max (free_levels m A) (free_levels m B)"
+      by simp
+    have 2: "max (free_levels (Suc m) A) (free_levels (Suc m) B) =
+              free_levels m (Forall (And A B))"
+      by simp
+    then have "free_levels m (Forall (And A B)) = k \<or>
+               max (free_levels m A) (free_levels m B) = free_levels m A"
+      by (metis And.hyps(2) 1 free_levels.simps(8) free_levels_Forall max_def)
+    then show ?case
+      by (metis And.hyps(1) And.prems 1 2 free_levels.simps(8) free_levels_Forall
+          max.cobounded1 max_absorb1 max_def)
+  next
+    case (Or A B)
+       then have 1: "Suc k = max (free_levels m A) (free_levels m B)"
+      by simp
+    have 2: "max (free_levels (Suc m) A) (free_levels (Suc m) B) =
+              free_levels m (Forall (Or A B))"
+      by simp
+    then have "free_levels m (Forall (Or A B)) = k \<or>
+               max (free_levels m A) (free_levels m B) = free_levels m A"
+      by (metis Or.hyps(2) 1 free_levels.simps(8) free_levels_Forall max_def)
+    then show ?case
+      by (metis Or.hyps(1) Or.prems 1 2 free_levels.simps(8) free_levels_Forall
+          max.cobounded1 max_absorb1 max_def)
+  next
+    case (Impl A B)
+    then have 1: "Suc k = max (free_levels m A) (free_levels m B)"
+      by simp
+    have 2: "max (free_levels (Suc m) A) (free_levels (Suc m) B) =
+              free_levels m (Forall (Impl A B))"
+      by simp
+    then have "free_levels m (Forall (Impl A B)) = k \<or>
+               max (free_levels m A) (free_levels m B) = free_levels m A"
+      by (metis Impl.hyps(2) 1 free_levels.simps(8) free_levels_Forall max_def)
+    then show ?case
+      by (metis Impl.hyps(1) Impl.prems 1 2 free_levels.simps(8) free_levels_Forall
+          max.cobounded1 max_absorb1 max_def)
+  next
+    case (Neg Z)
+    then show ?case by simp
+  next
+    case (Forall P)
+    then show ?case by simp
+  next
+    case (Exists P)
+    then show ?case by simp
+  qed 
+    
+lemma free_levels_terms_dec:
+  "free_levels\<^sub>t 0 t > 0 \<Longrightarrow> free_levels\<^sub>t (Suc 0) t < free_levels\<^sub>t 0 t"
+  "free_levels\<^sub>t\<^sub>s 0 ts > 0 \<Longrightarrow> free_levels\<^sub>t\<^sub>s (Suc 0) ts < free_levels\<^sub>t\<^sub>s 0 ts"
+proof (induct and ts rule: free_levels\<^sub>t.induct free_levels\<^sub>t\<^sub>s.induct)
+  case (Var x)
+  then show ?case
+    by (metis free_levels_terms_suc_eq(1) gr0_implies_Suc less_Suc_eq)
+next
+  case (App t ts)
+  then show ?case
+    by (metis Suc_pred free_levels_terms_suc_eq(1) less_Suc_eq)
+next
+  case Nil_term
+  then show ?case by simp
+next
+  case (Cons_term t ts)
+  then show ?case
+    by (metis Suc_n_not_le_n free_levels_terms_suc_eq(2) gr0_implies_Suc linorder_not_less)
+qed
+    
+lemma free_levels_dec: "free_levels 0 p > 0 \<Longrightarrow> free_levels (Suc 0) p < free_levels 0 p"
+proof (induct p)
+  case FF
+  then show ?case by simp
+next
+  case TT
+  then show ?case by simp
+next
+  case (Pred p ts)
+  then show ?case
+    using free_levels_terms_dec by simp
+next
+  case (And A B)
+  then show ?case
+    by (metis Suc_inject free_levels.simps(8) free_levels_suc gr0_implies_Suc
+        lessI less_Suc_eq_0_disj less_not_refl2)
+next
+  case (Or A B)
+  then show ?case
+    by (metis Suc_inject free_levels.simps(8) free_levels_suc gr0_implies_Suc
+        lessI less_Suc_eq_0_disj less_not_refl2)
+next
+  case (Impl A B)
+  then show ?case
+    by (metis Suc_inject free_levels.simps(8) free_levels_suc gr0_implies_Suc
+        lessI less_Suc_eq_0_disj less_not_refl2)
+next
+  case (Neg Z)
+  then show ?case by simp
+next
+  case (Forall P)
+  then show ?case
+    by (metis Suc_n_not_le_n Suc_pred' free_levels.simps(8) free_levels_suc linorder_not_less)
+next
+  case (Exists P)
+  then show ?case
+    by (metis Suc_n_not_le_n Suc_pred' free_levels.simps(8) free_levels_suc linorder_not_less)
+qed
+    
+function uni_close :: "('a, 'b) form \<Rightarrow> ('a, 'b) form" where
+  "uni_close p = (if free_levels 0 p = 0 then p else uni_close (Forall p))"
+by pat_completeness auto
+termination by (relation "measure (\<lambda>p. free_levels 0 p)") (simp_all add: free_levels_dec)
+  
+lemma uni_close_closed: "closed 0 (uni_close p)"
+proof (induct p rule: uni_close.induct)
+  case (1 p)
+  then show ?case
+    using free_levels_closed_zero by auto
+qed
+
+lemma valid_implies_forall_no_prems:
+  assumes mod: "\<forall>e f g. e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> p"
+  shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> Forall p"
+  using mod eval.simps(8) list.pred_inject(1) unfolding model_def by simp_all
+
+lemma valid_uni_close:
+  assumes mod: "\<forall>e f g. e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> p"
+  shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> uni_close p"
+  using mod
+  by (induct p rule: uni_close.induct) (simp add: valid_implies_forall_no_prems)
+    
+lemma model_impl_premise: "(e,f,g,ps \<Turnstile> (Impl p a)) = (e,f,g,(p#ps) \<Turnstile> a)"
+  unfolding model_def by auto
+    
+primrec build_impl :: "('a, 'b) form list \<Rightarrow> ('a, 'b) form \<Rightarrow> ('a, 'b) form" where
+  "build_impl [] a = a"
+| "build_impl (p#ps) a = Impl p (build_impl ps a)"
+  
+lemma model_build_impl_premises:
+  "(e,f,g,ps' \<Turnstile> build_impl ps a) = (e,f,g,(ps@ps') \<Turnstile> a)"
+  using model_impl_premise
+  unfolding model_def by (induct ps) auto
+    
+lemma valid_uni_close_build_impl:
+  assumes mod: "\<forall>e f g. e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,ps \<Turnstile> p"
+  shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> uni_close (build_impl ps p)"
+  using mod by (metis append_self_conv model_build_impl_premises valid_uni_close)
+    
+theorem natded_complete':
+  assumes mod: "\<forall>e f g. e,(f :: nat \<Rightarrow> nat hterm list \<Rightarrow> nat hterm),
+                          (g :: nat \<Rightarrow> nat hterm list \<Rightarrow> bool),ps \<Turnstile> p"
+  shows "[] \<turnstile> uni_close (build_impl ps p)"
+proof -
+  have "\<forall>e f g. e,(f :: nat \<Rightarrow> nat hterm list \<Rightarrow> nat hterm),(g :: nat \<Rightarrow> nat hterm list \<Rightarrow> bool),
+          [] \<Turnstile> uni_close (build_impl ps p)"
+    using mod valid_uni_close_build_impl by blast
+  moreover have "closed 0 (uni_close (build_impl ps p))"
+    using uni_close_closed by blast
+  ultimately show "[] \<turnstile> uni_close (build_impl ps p)"
+    using natded_complete by simp
+qed
 section {* L\"owenheim-Skolem theorem *}
 
 text {*
