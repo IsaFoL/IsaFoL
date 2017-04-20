@@ -478,7 +478,7 @@ proof -
     unfolding 1 .
 qed
 
-text \<open>TODO: as levels are less than the numbers of literals, change to \<^typ>\<open>uint32\<close>?\<close>
+text \<open>TODO: as levels are less than the numbers of literals, change to \<^typ>\<open>uint32\<close>?\<close>
 sepref_definition get_level_wl_code
   is \<open>uncurry (RETURN oo get_level_wl)\<close>
   :: \<open>pair_nat_ann_lits_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
