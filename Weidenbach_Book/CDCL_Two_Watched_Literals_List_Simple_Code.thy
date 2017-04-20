@@ -154,14 +154,14 @@ end
 
 sepref_definition find_unwatched_impl is
    "uncurry (find_unwatched :: (nat, nat) ann_lits
-      \<Rightarrow> nat literal list \<Rightarrow> (bool option \<times> nat) nres)"
+      \<Rightarrow> nat literal list \<Rightarrow> nat option nres)"
   :: \<open>[\<lambda>(M, L). no_dup M]\<^sub>anat_ann_lits_assn\<^sup>k *\<^sub>a (list_assn nat_lit_assn_id)\<^sup>k \<rightarrow> prod_assn (option_assn bool_assn) nat_assn\<close>
   unfolding find_unwatched_def
   supply [[goals_limit=1]]
   by sepref
 
 sepref_register "find_unwatched :: (nat, nat) ann_lits
-      \<Rightarrow> nat literal list \<Rightarrow> (bool option \<times> nat) nres"
+      \<Rightarrow> nat literal list \<Rightarrow> nat option nres"
 declare find_unwatched_impl.refine[sepref_fr_rules]
 thm HOL_list_prepend_hnr_mop
 term op_list_empty
