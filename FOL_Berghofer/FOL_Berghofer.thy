@@ -2000,62 +2000,77 @@ substitution does not change the size of formulae, the theorem can
 be proved by well-founded induction on the size of the formula @{text p}.
 *}
   
-(* TODO: look at the need for measure size_form, wf_induct
-  consider showing each conjunct separately
-*)
-
 theorem hintikka_model:
   assumes hin: "hintikka H"
   shows "(p \<in> H \<longrightarrow> closed 0 p \<longrightarrow>
     eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) p) \<and>
   (Neg p \<in> H \<longrightarrow> closed 0 p \<longrightarrow>
     eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) (Neg p))"
-  using hin unfolding hintikka_def
 proof (rule_tac r="measure size_form" and a=p in wf_induct)
   show "wf (measure size_form)"
     by blast
 next
+  let ?eval = "eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H)"
+    
   fix x
   assume wf: "\<forall>y. (y, x) \<in> measure size_form \<longrightarrow>
-             (y \<in> H \<longrightarrow> closed 0 y \<longrightarrow> eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) y) \<and>
-             (Neg y \<in> H \<longrightarrow> closed 0 y \<longrightarrow> eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) (Neg y))"
+                  (y \<in> H \<longrightarrow> closed 0 y \<longrightarrow> ?eval y) \<and>
+              (Neg y \<in> H \<longrightarrow> closed 0 y \<longrightarrow> ?eval (Neg y))"
     
-  let ?pos = "eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) x"
-  let ?neg = "eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) (Neg x)"
-    
-  show "(x \<in> H \<longrightarrow> closed 0 x \<longrightarrow> ?pos) \<and> (Neg x \<in> H \<longrightarrow> closed 0 x \<longrightarrow> ?neg)"
+  show "(x \<in> H \<longrightarrow> closed 0 x \<longrightarrow> ?eval x) \<and> (Neg x \<in> H \<longrightarrow> closed 0 x \<longrightarrow> ?eval (Neg x))"
   proof (cases x)
     case FF
     show ?thesis proof (intro conjI impI)
       assume "x \<in> H"
-      then show ?pos using FF hin by (simp add: hintikka_def)
+      then show "?eval x"
+        using FF hin by (simp add: hintikka_def)
     next
       assume "Neg x \<in> H"
-      then show ?neg using FF by simp
+      then show "?eval (Neg x)" using FF by simp
     qed
   next
     case TT
-    then show ?thesis proof (intro conjI impI)
+    show ?thesis proof (intro conjI impI)
       assume "x \<in> H"
-      then show ?pos using TT by simp
+      then show "?eval x"
+        using TT by simp
     next
       assume "Neg x \<in> H"
-      then show ?neg using TT hin by (simp add: hintikka_def)
+      then show "?eval (Neg x)"
+        using TT hin by (simp add: hintikka_def)
     qed
   next
     case (Pred p ts)
-    then show ?thesis proof (intro conjI impI)
+    show ?thesis proof (intro conjI impI)
       assume "x \<in> H" and "closed 0 x"
-      then show ?pos using Pred by simp
+      then show "?eval x" using Pred by simp
     next
       assume "Neg x \<in> H" and "closed 0 x"
-      then have "Neg (Pred p ts) \<in> H" and "closed 0 (Pred p ts)"
-        using Pred by simp_all
+      then have "Neg (Pred p ts) \<in> H"
+        using Pred by simp
       then have "Pred p ts \<notin> H"
         using hin unfolding hintikka_def by fast
-      then show ?neg
-        using Pred \<open>closed 0 (Pred p ts)\<close> by simp
-    qed   
+      then show "?eval (Neg x)"
+        using Pred \<open>closed 0 x\<close> by simp
+    qed
+  next
+    case (Neg Z)
+    then show ?thesis proof (intro conjI impI)
+      assume "x \<in> H" and "closed 0 x"
+      then show "?eval x"
+        using Neg wf by simp
+    next
+      assume "Neg x \<in> H"
+      then have "Z \<in> H"
+        using Neg hin unfolding hintikka_def by blast
+      moreover assume "closed 0 x"
+      then have "closed 0 Z"
+        using Neg by simp
+      ultimately have "?eval Z"
+        using Neg wf by simp
+      then show "?eval (Neg x)"
+        using Neg by simp
+    qed
   next
     case (And A B)
     then show ?thesis proof (intro conjI impI)
@@ -2064,7 +2079,7 @@ next
         using And by simp_all
       then have "A \<in> H \<and> B \<in> H"
         using And hin unfolding hintikka_def by blast
-      then show ?pos
+      then show "?eval x"
         using And wf \<open>closed 0 (And A B)\<close> by simp 
     next
       assume "Neg x \<in> H" and "closed 0 x"
@@ -2072,7 +2087,7 @@ next
         using And by simp_all
       then have "Neg A \<in> H \<or> Neg B \<in> H"
         using hin unfolding hintikka_def by blast
-      then show ?neg
+      then show "?eval (Neg x)"
         using And wf \<open>closed 0 (And A B)\<close> by fastforce
     qed
   next
@@ -2083,7 +2098,7 @@ next
         using Or by simp_all
       then have "A \<in> H \<or> B \<in> H"
         using hin unfolding hintikka_def by blast
-      then show ?pos
+      then show "?eval x"
         using Or wf \<open>closed 0 (Or A B)\<close> by fastforce
     next
       assume "Neg x \<in> H" and "closed 0 x"
@@ -2091,7 +2106,7 @@ next
         using Or by simp_all
       then have "Neg A \<in> H \<and> Neg B \<in> H"
         using hin unfolding hintikka_def by blast
-      then show ?neg
+      then show "?eval (Neg x)"
         using Or wf \<open>closed 0 (Or A B)\<close> by simp
     qed   
   next
@@ -2102,7 +2117,7 @@ next
         using Impl by simp_all
       then have "Neg A \<in> H \<or> B \<in> H"
         using hin unfolding hintikka_def by blast
-      then show ?pos
+      then show "?eval x"
         using Impl wf \<open>closed 0 (Impl A B)\<close> by fastforce
     next
       assume "Neg x \<in> H" and "closed 0 x"
@@ -2110,22 +2125,8 @@ next
         using Impl by simp_all
       then have "A \<in> H \<and> Neg B \<in> H"
         using hin unfolding hintikka_def by blast
-      then show ?neg
+      then show "?eval (Neg x)"
         using Impl wf \<open>closed 0 (Impl A B)\<close> by simp
-    qed
-  next
-    case (Neg Z)
-    then show ?thesis proof (intro conjI impI)
-      assume "x \<in> H" and "closed 0 x"
-      then show ?pos using Neg wf by simp
-    next
-      assume "Neg x \<in> H" and "closed 0 x"
-      then have "Neg (Neg Z) \<in> H" and "closed 0 (Neg (Neg Z))"
-        using Neg by simp_all
-      then have "Z \<in> H"
-        using hin unfolding hintikka_def by blast
-      then show ?neg
-        using Neg wf \<open>closed 0 (Neg (Neg Z))\<close> by simp
     qed
   next
     case (Forall P)
@@ -2144,12 +2145,13 @@ next
             
         have "(P[term_of_hterm z/0], Forall P) \<in> measure size_form \<longrightarrow>
               (P[term_of_hterm z/0] \<in> H \<longrightarrow> closed 0 (P[term_of_hterm z/0]) \<longrightarrow>
-              eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) (P[term_of_hterm z/0]))"
+              ?eval (P[term_of_hterm z/0]))"
           using Forall wf by blast
         then show "eval (e\<langle>0:z\<rangle>) HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) P"
           using * \<open>Forall P \<in> H\<close> \<open>closed (Suc 0) P\<close> by simp
       qed
-      then show ?pos using Forall by simp
+      then show "?eval x"
+        using Forall by simp
     next
       assume "Neg x \<in> H" and "closed 0 x"
       then have "Neg (Forall P) \<in> H"
@@ -2163,13 +2165,14 @@ next
           
       have "(subst P t 0, Forall P) \<in> measure size_form \<longrightarrow>
               (Neg (subst P t 0) \<in> H \<longrightarrow> closed 0 (subst P t 0) \<longrightarrow>
-              eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) (Neg (subst P t 0)))"
+              ?eval (Neg (subst P t 0)))"
         using Forall wf by blast   
-      then have "eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) (Neg (P[t/0]))"
+      then have "?eval (Neg (P[t/0]))"
         using Forall * \<open>closed 0 (P[t/0])\<close> by simp
       then have "\<exists>z. \<not> eval (e\<langle>0:z\<rangle>) HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) P"
         by auto
-      then show ?neg using Forall by simp
+      then show "?eval (Neg x)"
+        using Forall by simp
     qed 
   next
     case (Exists P)
@@ -2184,13 +2187,14 @@ next
           
       have "(subst P t 0, Exists P) \<in> measure size_form \<longrightarrow>
               ((subst P t 0) \<in> H \<longrightarrow> closed 0 (subst P t 0) \<longrightarrow>
-              eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) (subst P t 0))"
+              ?eval (subst P t 0))"
         using Exists wf by blast   
-      then have "eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) (P[t/0])"
+      then have "?eval (P[t/0])"
         using Exists * \<open>closed 0 (P[t/0])\<close> by simp
       then have "\<exists>z. eval (e\<langle>0:z\<rangle>) HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) P"
         by auto
-      then show ?pos using Exists by simp
+      then show "?eval x"
+        using Exists by simp
     next
       assume "Neg x \<in> H" and "closed 0 x"
       have "\<forall>z. \<not> eval (e\<langle>0:z\<rangle>) HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) P"
@@ -2206,12 +2210,13 @@ next
             
         have "(P[term_of_hterm z/0], Exists P) \<in> measure size_form \<longrightarrow>
               (Neg (P[term_of_hterm z/0]) \<in> H \<longrightarrow> closed 0 (P[term_of_hterm z/0]) \<longrightarrow>
-              eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) (Neg (P[term_of_hterm z/0])))"
+              ?eval (Neg (P[term_of_hterm z/0])))"
           using Exists wf by blast
         then show "\<not> eval (e\<langle>0:z\<rangle>) HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) P"
           using * \<open>Neg (Exists P) \<in> H\<close> \<open>closed (Suc 0) P\<close> by simp
       qed
-      then show ?neg using Exists by simp
+      then show "?eval (Neg x)"
+        using Exists by simp
     qed
   qed
 qed
@@ -2895,6 +2900,258 @@ proof (rule Class, rule ccontr)
   ultimately show False by simp
 qed
 
+subsection {* Completeness without closed restriction *}
+  
+primrec
+  free_levels\<^sub>t :: "nat \<Rightarrow> 'a term \<Rightarrow> nat" and
+  free_levels\<^sub>t\<^sub>s :: "nat \<Rightarrow> 'a term list \<Rightarrow> nat"
+where
+  "free_levels\<^sub>t m (Var n) = (if n < m then 0 else n - m + 1)"
+| "free_levels\<^sub>t m (App a ts) = free_levels\<^sub>t\<^sub>s m ts"
+| "free_levels\<^sub>t\<^sub>s m [] = 0"
+| "free_levels\<^sub>t\<^sub>s m (t # ts) = max (free_levels\<^sub>t m t) (free_levels\<^sub>t\<^sub>s m ts)"
+
+primrec
+  free_levels :: "nat \<Rightarrow> ('a, 'b) form \<Rightarrow> nat"
+where
+  "free_levels m FF = 0"
+| "free_levels m TT = 0"
+| "free_levels m (Pred b ts) = free_levels\<^sub>t\<^sub>s m ts"
+| "free_levels m (And p q) = max (free_levels m p) (free_levels m q)"
+| "free_levels m (Or p q) = max (free_levels m p) (free_levels m q)"
+| "free_levels m (Impl p q) = max (free_levels m p) (free_levels m q)"
+| "free_levels m (Neg p) = free_levels m p"
+| "free_levels m (Forall p) = free_levels (Suc m) p"
+| "free_levels m (Exists p) = free_levels (Suc m) p"
+
+lemma closedt_free_levels:
+  "free_levels\<^sub>t 0 (t :: 'a term) \<le> k \<Longrightarrow> closedt k t"
+  "free_levels\<^sub>t\<^sub>s 0 (ts :: 'a term list) \<le> k \<Longrightarrow> closedts k ts"
+  by (induct t and ts rule: free_levels\<^sub>t.induct free_levels\<^sub>t\<^sub>s.induct) simp_all
+    
+lemma piecewise_sub: "(if (x :: nat) < m then 0 else x - m + 1) \<le> k \<Longrightarrow> x < k + m"
+  by (cases \<open>x < m\<close>) simp_all
+  
+lemma free_levels_closed_terms:
+  "free_levels\<^sub>t m (t :: 'a term) \<le> k \<Longrightarrow> closedt (k + m) t"
+  "free_levels\<^sub>t\<^sub>s m (ts :: 'a term list) \<le> k \<Longrightarrow> closedts (k + m) ts"
+  using piecewise_sub
+  by (induct t and ts rule: free_levels\<^sub>t.induct free_levels\<^sub>t\<^sub>s.induct) auto
+
+lemma free_levels_closed: "free_levels m p \<le> k \<Longrightarrow> closed (k + m) p"
+  by (induct p arbitrary: m k) (force simp add: free_levels_closed_terms)+
+    
+lemma free_levels_closed_zero: "free_levels 0 p = 0 \<Longrightarrow> closed 0 p"
+  using free_levels_closed by fastforce
+    
+lemma free_levels_terms_suc:
+  "free_levels\<^sub>t m (t :: 'a term) \<le> Suc k \<Longrightarrow> free_levels\<^sub>t (Suc m) t \<le> k"
+  "free_levels\<^sub>t\<^sub>s m (ts :: 'a term list) \<le> Suc k \<Longrightarrow> free_levels\<^sub>t\<^sub>s (Suc m) ts \<le> k"
+  by (induct t and ts rule: free_levels\<^sub>t.induct free_levels\<^sub>t\<^sub>s.induct) auto
+    
+lemma free_levels_Forall: "free_levels m p \<le> Suc k \<Longrightarrow> free_levels m (Forall p) \<le> k"
+  by (induct p arbitrary: m k) (simp_all add: free_levels_terms_suc)
+    
+lemma free_levels_terms_suc_eq:
+  "free_levels\<^sub>t m (t :: 'a term) = Suc k \<Longrightarrow> free_levels\<^sub>t (Suc m) t = k"
+  "free_levels\<^sub>t\<^sub>s m (ts :: 'a term list) = Suc k \<Longrightarrow> free_levels\<^sub>t\<^sub>s (Suc m) ts = k"
+  proof (induct and ts rule: free_levels\<^sub>t.induct free_levels\<^sub>t\<^sub>s.induct)
+    case (Var x)
+    then show ?case proof (induct x)
+      case 0
+      then show ?case by (cases \<open>0 < m\<close>) simp_all
+    next
+      case (Suc x)
+      have "(if Suc x < m then 0 else Suc x - m + 1) = Suc k \<Longrightarrow> x < m \<Longrightarrow> k = 0"
+        by (metis Suc_eq_plus1 Suc_inject Suc_lessI diff_self_eq_0 nat.distinct(1))
+      then show ?case
+        using Suc by auto
+    qed
+  next
+    case (App t ts)
+    then show ?case by simp
+  next
+    case Nil_term
+    then show ?case by simp
+  next
+    case (Cons_term t ts)
+    then show ?case
+      by (metis free_levels\<^sub>t\<^sub>s.simps(2) free_levels_terms_suc(2) le_refl max_absorb1 max_def)
+  qed
+    
+lemma free_levels_suc: "free_levels m p = (Suc k) \<Longrightarrow> free_levels m (Forall p) = k"
+  proof (induct p arbitrary: m k)
+    case FF
+    then show ?case by simp
+  next
+    case TT
+    then show ?case by simp
+  next
+    case (Pred p ts)
+    then show ?case
+      using free_levels_terms_suc_eq by simp
+  next
+    case (And A B)
+    then have 1: "Suc k = max (free_levels m A) (free_levels m B)"
+      by simp
+    have 2: "max (free_levels (Suc m) A) (free_levels (Suc m) B) =
+              free_levels m (Forall (And A B))"
+      by simp
+    then have "free_levels m (Forall (And A B)) = k \<or>
+               max (free_levels m A) (free_levels m B) = free_levels m A"
+      by (metis And.hyps(2) 1 free_levels.simps(8) free_levels_Forall max_def)
+    then show ?case
+      by (metis And.hyps(1) And.prems 1 2 free_levels.simps(8) free_levels_Forall
+          max.cobounded1 max_absorb1 max_def)
+  next
+    case (Or A B)
+       then have 1: "Suc k = max (free_levels m A) (free_levels m B)"
+      by simp
+    have 2: "max (free_levels (Suc m) A) (free_levels (Suc m) B) =
+              free_levels m (Forall (Or A B))"
+      by simp
+    then have "free_levels m (Forall (Or A B)) = k \<or>
+               max (free_levels m A) (free_levels m B) = free_levels m A"
+      by (metis Or.hyps(2) 1 free_levels.simps(8) free_levels_Forall max_def)
+    then show ?case
+      by (metis Or.hyps(1) Or.prems 1 2 free_levels.simps(8) free_levels_Forall
+          max.cobounded1 max_absorb1 max_def)
+  next
+    case (Impl A B)
+    then have 1: "Suc k = max (free_levels m A) (free_levels m B)"
+      by simp
+    have 2: "max (free_levels (Suc m) A) (free_levels (Suc m) B) =
+              free_levels m (Forall (Impl A B))"
+      by simp
+    then have "free_levels m (Forall (Impl A B)) = k \<or>
+               max (free_levels m A) (free_levels m B) = free_levels m A"
+      by (metis Impl.hyps(2) 1 free_levels.simps(8) free_levels_Forall max_def)
+    then show ?case
+      by (metis Impl.hyps(1) Impl.prems 1 2 free_levels.simps(8) free_levels_Forall
+          max.cobounded1 max_absorb1 max_def)
+  next
+    case (Neg Z)
+    then show ?case by simp
+  next
+    case (Forall P)
+    then show ?case by simp
+  next
+    case (Exists P)
+    then show ?case by simp
+  qed 
+    
+lemma free_levels_terms_dec:
+  "free_levels\<^sub>t 0 t > 0 \<Longrightarrow> free_levels\<^sub>t (Suc 0) t < free_levels\<^sub>t 0 t"
+  "free_levels\<^sub>t\<^sub>s 0 ts > 0 \<Longrightarrow> free_levels\<^sub>t\<^sub>s (Suc 0) ts < free_levels\<^sub>t\<^sub>s 0 ts"
+proof (induct and ts rule: free_levels\<^sub>t.induct free_levels\<^sub>t\<^sub>s.induct)
+  case (Var x)
+  then show ?case
+    by (metis free_levels_terms_suc_eq(1) gr0_implies_Suc less_Suc_eq)
+next
+  case (App t ts)
+  then show ?case
+    by (metis Suc_pred free_levels_terms_suc_eq(1) less_Suc_eq)
+next
+  case Nil_term
+  then show ?case by simp
+next
+  case (Cons_term t ts)
+  then show ?case
+    by (metis Suc_n_not_le_n free_levels_terms_suc_eq(2) gr0_implies_Suc linorder_not_less)
+qed
+    
+lemma free_levels_dec: "free_levels 0 p > 0 \<Longrightarrow> free_levels (Suc 0) p < free_levels 0 p"
+proof (induct p)
+  case FF
+  then show ?case by simp
+next
+  case TT
+  then show ?case by simp
+next
+  case (Pred p ts)
+  then show ?case
+    using free_levels_terms_dec by simp
+next
+  case (And A B)
+  then show ?case
+    by (metis Suc_inject free_levels.simps(8) free_levels_suc gr0_implies_Suc
+        lessI less_Suc_eq_0_disj less_not_refl2)
+next
+  case (Or A B)
+  then show ?case
+    by (metis Suc_inject free_levels.simps(8) free_levels_suc gr0_implies_Suc
+        lessI less_Suc_eq_0_disj less_not_refl2)
+next
+  case (Impl A B)
+  then show ?case
+    by (metis Suc_inject free_levels.simps(8) free_levels_suc gr0_implies_Suc
+        lessI less_Suc_eq_0_disj less_not_refl2)
+next
+  case (Neg Z)
+  then show ?case by simp
+next
+  case (Forall P)
+  then show ?case
+    by (metis Suc_n_not_le_n Suc_pred' free_levels.simps(8) free_levels_suc linorder_not_less)
+next
+  case (Exists P)
+  then show ?case
+    by (metis Suc_n_not_le_n Suc_pred' free_levels.simps(8) free_levels_suc linorder_not_less)
+qed
+    
+function uni_close :: "('a, 'b) form \<Rightarrow> ('a, 'b) form" where
+  "uni_close p = (if free_levels 0 p = 0 then p else uni_close (Forall p))"
+by pat_completeness auto
+termination by (relation "measure (\<lambda>p. free_levels 0 p)") (simp_all add: free_levels_dec)
+  
+lemma uni_close_closed: "closed 0 (uni_close p)"
+proof (induct p rule: uni_close.induct)
+  case (1 p)
+  then show ?case
+    using free_levels_closed_zero by auto
+qed
+
+lemma valid_implies_forall_no_prems:
+  assumes mod: "\<forall>e f g. e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> p"
+  shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> Forall p"
+  using mod eval.simps(8) list.pred_inject(1) unfolding model_def by simp_all
+
+lemma valid_uni_close:
+  assumes mod: "\<forall>e f g. e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> p"
+  shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> uni_close p"
+  using mod
+  by (induct p rule: uni_close.induct) (simp add: valid_implies_forall_no_prems)
+    
+lemma model_impl_premise: "(e,f,g,ps \<Turnstile> (Impl p a)) = (e,f,g,(p#ps) \<Turnstile> a)"
+  unfolding model_def by auto
+    
+primrec build_impl :: "('a, 'b) form list \<Rightarrow> ('a, 'b) form \<Rightarrow> ('a, 'b) form" where
+  "build_impl [] a = a"
+| "build_impl (p#ps) a = Impl p (build_impl ps a)"
+  
+lemma model_build_impl_premises:
+  "(e,f,g,ps' \<Turnstile> build_impl ps a) = (e,f,g,(ps@ps') \<Turnstile> a)"
+  using model_impl_premise
+  unfolding model_def by (induct ps) auto
+    
+lemma valid_uni_close_build_impl:
+  assumes mod: "\<forall>e f g. e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,ps \<Turnstile> p"
+  shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> uni_close (build_impl ps p)"
+  using mod by (metis append_self_conv model_build_impl_premises valid_uni_close)
+    
+theorem natded_complete':
+  assumes mod: "\<forall>e f g. e,(f :: nat \<Rightarrow> nat hterm list \<Rightarrow> nat hterm),
+                          (g :: nat \<Rightarrow> nat hterm list \<Rightarrow> bool),ps \<Turnstile> p"
+  shows "[] \<turnstile> uni_close (build_impl ps p)"
+proof -
+  have "\<forall>e f g. e,(f :: nat \<Rightarrow> nat hterm list \<Rightarrow> nat hterm),(g :: nat \<Rightarrow> nat hterm list \<Rightarrow> bool),
+          [] \<Turnstile> uni_close (build_impl ps p)"
+    using mod valid_uni_close_build_impl by blast
+  moreover have "closed 0 (uni_close (build_impl ps p))"
+    using uni_close_closed by blast
+  ultimately show "[] \<turnstile> uni_close (build_impl ps p)"
+    using natded_complete by simp
+qed
 section {* L\"owenheim-Skolem theorem *}
 
 text {*
