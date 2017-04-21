@@ -750,7 +750,65 @@ proof -
   then show ?thesis
     by simp
 qed
+
+lemma nice_theorem_about_msets_and_lists: (* The proof looks suspiciously like very_specific_lemma *)
+  assumes "mset lC = C"
+  assumes "image_mset \<eta> C' = C"
+  shows "\<exists>qC'. map \<eta> qC' = lC \<and> mset qC' = C'"
+using assms proof (induction lC arbitrary: C C')
+  case Nil
+  then show ?case by auto
+next
+  case (Cons a lC)
+  from Cons have "mset lC = C - {# a #}" by auto 
+  moreover
+  from Cons obtain aa where aa_p: "aa \<in># C' \<and> \<eta> aa = a"
+    by (metis msed_map_invR mset.simps(2) union_single_eq_member)
+  from Cons this have "image_mset \<eta> (C' - {# aa #}) = C - {# a #}"
+    by (simp add: image_mset_Diff')
+  ultimately
+  have "\<exists>qC'. map \<eta> qC' = lC \<and> mset qC' = C' - {# aa #}" 
+    using Cons(1) by simp
+  then obtain qC' where "map \<eta> qC' = lC \<and> mset qC' = C' - {# aa #}"
+    by blast
+  then have "map \<eta> (aa # qC') = a # lC \<and> mset (aa # qC') = C'"
+    using aa_p Cons(2) by auto
+  then show ?case
+    by metis    
+qed
   
+lemma obviously: 
+  assumes "image_mset \<eta> C' = C"
+  assumes "A \<subseteq># C"
+  shows "\<exists>A'. image_mset \<eta> A' = A \<and> A' \<subseteq># C'"
+  using assms
+proof -
+  define lA where "lA = list_of_mset A"
+  define lD where "lD = list_of_mset (C-A)"
+  define lC where "lC = lA @ lD"
+    
+  have "mset lC = C"
+    using assms(2) unfolding lD_def lC_def lA_def by auto
+  then have "\<exists>qC'. map \<eta> qC' = lC \<and> mset qC' = C'"
+    using assms(1) nice_theorem_about_msets_and_lists[of lC C \<eta> C'] by blast
+  then obtain qC' where qC'_p: "map \<eta> qC' = lC \<and> mset qC' = C'"
+    by auto
+  let ?lA' = "take (length lA) qC'"
+  have m: "map \<eta> ?lA' = lA"
+    using qC'_p lC_def
+    by (metis append_eq_conv_conj take_map)
+  let ?A' = "mset ?lA'"    
+  
+  have "image_mset \<eta> ?A' = A"
+    using m using lA_def
+    by (metis (full_types) ex_mset list_of_mset_def mset_map someI_ex)
+  moreover
+  have "?A' \<subseteq># C'"  
+    using qC'_p  assms(2) unfolding lA_def
+    using mset_take_subseteq by blast
+  ultimately show ?thesis by blast
+qed
+      
     
 lemma ord_resolve_lifting: 
   fixes CAi
@@ -1070,10 +1128,10 @@ lemma ord_resolve_lifting:
 
   (* Now I need to find all these Ci' Aij' D' Ai' *)
 
-  from ord_resolve(11) have "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> (negs (mset Ai')) \<subseteq># DAi'"
+  from ord_resolve(11) have "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> (negs (mset Ai')) \<subseteq># DAi' \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DAi')"
     unfolding eligible_simp
     proof
-      assume "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
+      assume a: "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
       then have "length Ai = 1" by auto
       then have "mset Ai = {# Ai ! 0 #}" by auto
       then have "negs (mset Ai) = {# Neg (Ai ! 0) #}"
@@ -1085,18 +1143,18 @@ lemma ord_resolve_lifting:
         by (metis Neg_atm_of_iff literal.sel(2) subst_lit_is_pos)
       then have "[atm_of L] \<cdot>al \<eta> = Ai \<and> negs (mset [atm_of L]) \<subseteq># DAi'"
         using \<open>mset Ai = {#Ai ! 0#}\<close> subst_lit_def by auto
-      then show "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> negs (mset Ai') \<subseteq># DAi'" by blast
+      then show "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> negs (mset Ai') \<subseteq># DAi' \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DAi')" using a by blast
     next
       assume "S_M S M (D + negs (mset Ai)) = negs (mset Ai)" 
       then have "negs (mset Ai) = S DAi' \<cdot> \<eta>" using prime_clauses(7) ord_resolve(1) by auto
       then have "\<exists>Ai'. negs (mset Ai') = S DAi' \<and> Ai' \<cdot>al \<eta> = Ai"
         using very_specific_lemma[of Ai "S DAi'" \<eta>] using S.S_selects_neg_lits by auto
-      then show "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> negs (mset Ai') \<subseteq># DAi'" using S.S_selects_subseteq by auto
+      then show "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> negs (mset Ai') \<subseteq># DAi'  \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DAi')" using S.S_selects_subseteq by auto
   qed
-  then obtain Ai' where Ai'_p: "Ai' \<cdot>al \<eta> = Ai \<and> (negs (mset Ai')) \<subseteq># DAi'" by blast
-    
+  then obtain Ai' where Ai'_p: "Ai' \<cdot>al \<eta> = Ai \<and> (negs (mset Ai')) \<subseteq># DAi' \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DAi')" by blast
   then have "length Ai' = n"
     using local.ord_resolve(6) by auto
+  note n = n \<open>length Ai' = n\<close>
     
   have useful: "negs (mset Ai') \<cdot> \<eta> = negs (mset Ai)"
     using Ai'_p 
@@ -1108,15 +1166,78 @@ lemma ord_resolve_lifting:
   then have "D' \<cdot> \<eta> = D" using \<open>DAi = DAi' \<cdot> \<eta>\<close> ord_resolve(1) useful
     by auto
       
-  have "\<forall>i<n. \<exists>Aiji'. Aiji' \<cdot>am \<eta> = Aij ! i \<and> (negs (Aiji')) \<subseteq># CAi' ! i"
+  have "\<forall>i<n. \<exists>Aiji'. Aiji' \<cdot>am \<eta> = Aij ! i \<and> (poss (Aiji')) \<subseteq># CAi' ! i"
   proof (rule, rule)
     fix i
     assume "i<n"
-    show "\<exists>Aiji'. Aiji' \<cdot>am \<eta> = Aij ! i \<and> negs Aiji' \<subseteq># CAi' ! i"  
-      sorry
+    have "CAi' ! i \<cdot> \<eta> = CAi ! i"
+      using \<open>i < n\<close> cai'_\<eta> cai'_cai2 by auto
+    moreover
+    have "poss (Aij ! i) \<subseteq># CAi !i"
+      using \<open>i<n\<close> ord_resolve(8) by auto
+    ultimately
+    have "\<exists>NAiji'.  NAiji' \<cdot> \<eta> = poss (Aij ! i) \<and> NAiji' \<subseteq># CAi' ! i"
+      using obviously unfolding subst_cls_def by auto
+    then obtain NAiji' where nn: "NAiji' \<cdot> \<eta> = poss (Aij ! i) \<and> NAiji' \<subseteq># CAi' ! i"
+      by auto
+    have l: "\<forall>L \<in># NAiji'. is_pos L"
+    proof
+      fix L
+      assume LL: "L \<in># NAiji'"
+      have asdfasdf: "\<forall>L' \<in># poss (Aij ! i). is_pos L'"
+        by auto
+      then have "\<exists>L' \<in># poss (Aij ! i). L  \<cdot>l \<eta> = L'"
+        using nn LL
+        by (metis Melem_subst_cls) 
+      then have "\<exists>L'. is_pos L' \<and> L  \<cdot>l \<eta> = L'"
+        using asdfasdf by metis
+      then show "is_pos L"
+        by auto
+    qed
+    define Aiji' where "Aiji' = image_mset atm_of NAiji'"
+    have na: "poss Aiji' = NAiji'"
+      using l unfolding Aiji'_def by auto
+    then have "Aiji' \<cdot>am \<eta> = Aij ! i" using nn
+      by (metis literal.inject(1) multiset.inj_map_strong subst_cls_poss)
+    moreover
+    have "poss Aiji' \<subseteq># CAi' ! i"
+      using na nn by auto
+    ultimately
+    show "\<exists>Aiji'. Aiji' \<cdot>am \<eta> = Aij ! i \<and> poss Aiji' \<subseteq># CAi' ! i" 
+      by blast 
   qed
+
+  then obtain Aij'f where Aij'f_p: "\<forall>i<n. Aij'f i \<cdot>am \<eta> = Aij ! i \<and> (poss (Aij'f i)) \<subseteq># CAi' ! i"
+    by metis
+  define Aij' where "Aij' = map Aij'f [0 ..<n]"
+  then have "\<forall>i<n. Aij' ! i \<cdot>am \<eta> = Aij ! i \<and> (poss (Aij' ! i)) \<subseteq># CAi' ! i"
+    using Aij'f_p by auto
+  then have "\<forall>i<n. Aij' ! i \<cdot>am \<eta> = Aij ! i"
+    by auto
+  then have "Aij' \<cdot>aml \<eta> = Aij"
+    using n nth_equalityI
+      sorry
       
-  obtain Ci' Aij' D' Ai' where prime_clauses2:
+  have "\<And>i. i < n \<Longrightarrow> S (CAi' ! i) = negs (Aij' ! i)"
+    sorry
+      
+  have "length Aij' = n" unfolding Aij'_def by auto
+      
+  note n = n \<open>length Aij' = n\<close>
+    
+  define Ci' where "Ci' = map2 (op -) CAi' (map poss Aij') "
+    
+  have "length Ci' = n"
+    using Ci'_def n by auto
+  note n = n \<open>length Ci' = n\<close>
+    
+  have "Ci' \<cdot>cl \<eta> = Ci"
+    sorry
+      
+  have "\<And>i. i < n \<Longrightarrow> CAi' ! i = Ci' ! i + poss (Aij' ! i)"
+    sorry
+      
+  have prime_clauses2:
     "length Ci' = n"
     "length Aij' = n"
     "length Ai' = n"
@@ -1127,7 +1248,21 @@ lemma ord_resolve_lifting:
     "DAi' = D' +  (negs (mset Ai'))"
     "\<forall>i<n. CAi' ! i = Ci' ! i + poss (Aij' ! i)"
     "\<forall>i<n. S (CAi' ! i) = negs (Aij' ! i)"
-    sorry
+             apply auto
+    using n apply simp
+    using n apply simp
+    using n apply simp
+    using \<open>Ci' \<cdot>cl \<eta> = Ci\<close> apply simp
+    using \<open>Aij' \<cdot>aml \<eta> = Aij\<close> apply simp
+    using \<open>D' \<cdot> \<eta> = D\<close> apply simp
+    using Ai'_p apply simp
+    using \<open>DAi' = D' + negs (mset Ai')\<close> apply simp
+    using \<open>\<And>i. i < n \<Longrightarrow> CAi' ! i = Ci' ! i + poss (Aij' ! i)\<close> apply simp
+    using \<open>\<And>i. i < n \<Longrightarrow> S (CAi' ! i) = negs (Aij' ! i)\<close> apply simp
+    done
+        
+      
+      
       
   have "Some \<sigma> = mgu (set_mset ` set (map2 add_mset Ai Aij))" using ord_resolve by -
   hence uu: "is_unifiers \<sigma> (set_mset ` set (map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)))" using mgu_sound is_mgu_def unfolding prime_clauses2(5) prime_clauses2(7) by auto
@@ -1174,20 +1309,11 @@ lemma ord_resolve_lifting:
     unfolding eligible_simp by -
   hence "eligible S \<tau> Ai' (D' + negs (mset Ai'))"
   proof
-    assume "S_M S M (D + negs (mset Ai)) = negs (mset Ai)"
-    hence "S_M S M (D' \<cdot> \<eta> + negs (mset (Ai' \<cdot>al \<eta>))) = negs (mset (Ai' \<cdot>al \<eta>))"
-      using prime_clauses2(6) prime_clauses2(7) by blast 
-    hence "S_M S M (D' \<cdot> \<eta> + negs (mset (Ai' \<cdot>al \<eta>))) = (negs (mset (Ai'))) \<cdot> \<eta>" by auto
-    hence fff: "S_M S M (DAi) = (negs (mset (Ai'))) \<cdot> \<eta>" 
-      using ord_resolve(1) prime_clauses2(6) prime_clauses2(7) by blast
-    hence "S (D'  + negs (mset Ai')) = negs (mset Ai')"
-    proof -
-      have "S (DAi') = negs (mset Ai')" 
-        using sel_dai'_dai prime_clauses2(7) fff
-        by auto
-      then show "S (D'  + negs (mset Ai')) = negs (mset Ai')"
-        unfolding prime_clauses2(8) by auto
-    qed
+    assume as: "S_M S M (D + negs (mset Ai)) = negs (mset Ai)"
+    then have "S_M S M (D + negs (mset Ai)) \<noteq> {#}"
+      using n ord_resolve(7) by force
+    then have "negs (mset Ai') = S DAi'" using Ai'_p by auto
+    hence "S (D'  + negs (mset Ai')) = negs (mset Ai')" using a by auto
     thus "eligible S \<tau> Ai' (D' + negs (mset Ai'))" unfolding eligible_simp by auto
   next
     assume asm: "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
