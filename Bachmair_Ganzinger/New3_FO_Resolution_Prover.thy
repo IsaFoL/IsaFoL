@@ -789,77 +789,69 @@ lemma ord_resolve_lifting:
     
   interpret S: selection S by (rule select)
       
-      (* Choose the D'' and the C'', i.e. the first-order clauses before being standardized apart *)
-      
-  have uuu: "\<forall>CA \<in> set CAi. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> (CA) = CA'' \<cdot> \<eta>c'' \<and> S (CA'') \<cdot> \<eta>c'' = S_M S M CA "
-    using grounding uw2 select by auto
-      
+  (* Choose the D'' and the C'', i.e. the first-order clauses before being standardized apart *)    
+  have uuu: "\<forall>CA \<in> set CAi. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> CA = CA'' \<cdot> \<eta>c'' \<and> S CA'' \<cdot> \<eta>c'' = S_M S M CA"
+    using grounding uw2 select by auto   
   hence "\<forall>i < n. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> (CAi ! i) = CA'' \<cdot> \<eta>c'' \<and> S CA'' \<cdot> \<eta>c'' = S_M S M ( (CAi ! i)) "
     using ord_resolve(3) by auto
-      
   then have "\<exists>\<eta>s''f CAi''f. \<forall>i < n. CAi''f i \<in> M \<and> (CAi ! i) = (CAi''f i) \<cdot> (\<eta>s''f i) \<and> S (CAi''f i) \<cdot> (\<eta>s''f i) = S_M S M (CAi ! i)"
     by metis
-      
   then obtain \<eta>s''f CAi''f where f_p: "\<forall>i < n. CAi''f i \<in> M \<and> (CAi ! i) = (CAi''f i) \<cdot> (\<eta>s''f i) \<and> S (CAi''f i)  \<cdot> (\<eta>s''f i) = S_M S M  (CAi ! i)"
     by auto
       
   define \<eta>s'' where "\<eta>s'' = map \<eta>s''f [0 ..<n]"
   define CAi'' where "CAi'' = map CAi''f [0 ..<n]"
-    
-  have "length \<eta>s'' = n" "length CAi'' = n" 
+
+  have "length \<eta>s'' = n" "length CAi'' = n"
     unfolding \<eta>s''_def CAi''_def by auto
   note n = \<open>length \<eta>s'' = n\<close> \<open>length CAi'' = n\<close> n
-    
+
   have \<eta>s''_ff: "\<forall>i < n. \<eta>s'' ! i = \<eta>s''f i"
     unfolding \<eta>s''_def apply (induction n) apply auto
     by (metis add.left_neutral diff_is_0_eq diff_zero length_map length_upt less_Suc_eq less_Suc_eq_le nth_Cons_0 nth_append nth_map_upt)
-      
   have CAi''_ff: "\<forall>i < n. CAi'' ! i = CAi''f i"
     unfolding CAi''_def apply (induction n) apply auto
     by (metis add.left_neutral diff_is_0_eq diff_zero length_map length_upt less_Suc_eq less_Suc_eq_le nth_Cons_0 nth_append nth_map_upt)
-      
   have COOL: "\<forall>i < n. CAi'' ! i \<in> M \<and> (CAi ! i) = (CAi'' ! i) \<cdot> (\<eta>s'' ! i) \<and> S (CAi'' ! i) \<cdot> (\<eta>s'' ! i) = S_M S M (CAi ! i)"
     using f_p \<eta>s''_ff CAi''_ff by auto
       
-  have lcai'': "length CAi'' = n" unfolding CAi''_def by auto
-  have "length \<eta>s'' = n" unfolding \<eta>s''_def by auto
   have "\<forall>i < n. CAi'' ! i \<in> M" using COOL by auto
   have cai''_to_cai: "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi" using COOL
-    by (simp add: \<open>length CAi'' = n\<close> \<open>length \<eta>s'' = n\<close> local.ord_resolve(3)) 
+    by (simp add: n)
   have selelele: "(\<forall>i < n. S_M S M (CAi ! i) = S (CAi'' ! i) \<cdot> (\<eta>s'' ! i))"
     using COOL by auto
-      
+
   have "\<exists>DAi'' \<eta>''. DAi'' \<in> M \<and> (DAi) = DAi'' \<cdot> \<eta>'' \<and> S (DAi'') \<cdot> \<eta>'' = S_M S M DAi"
     using grounding uw2 select by auto
-  then obtain DAi'' \<eta>'' where COOL2: " DAi'' \<in> M \<and> (DAi) = DAi'' \<cdot> \<eta>'' \<and> S (DAi'') \<cdot> \<eta>'' = S_M S M DAi"
+  then obtain DAi'' \<eta>'' where COOL2: "DAi'' \<in> M \<and> DAi = DAi'' \<cdot> \<eta>'' \<and> S (DAi'') \<cdot> \<eta>'' = S_M S M DAi"
     by auto
       
   have "DAi'' \<in> M" using COOL2 by auto
   have "DAi'' \<cdot> \<eta>'' = DAi" using COOL2 by auto
-  have "S (DAi'') \<cdot> \<eta>'' = S_M S M DAi" using COOL2 by auto
+  have "S DAi'' \<cdot> \<eta>'' = S_M S M DAi" using COOL2 by auto
       
-      (* Choose the D' and the C', i.e. the first-order clauses standardized apart *)
-  obtain \<rho>s'' where \<rho>s''_p: "length \<rho>s'' = length (DAi'' # CAi'') \<and> Ball (set \<rho>s'') is_renaming \<and> var_disjoint ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>s'')"
+  (* Choose the D' and the C', i.e. the first-order clauses standardized apart *)
+  obtain \<rho>\<rho>s where \<rho>\<rho>s_p: "length \<rho>\<rho>s = length (DAi'' # CAi'') \<and> Ball (set \<rho>\<rho>s) is_renaming \<and> var_disjoint ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s)"
     using make_var_disjoint[of "DAi'' # CAi''"] by auto (* TODO remove Ball noatation *)
-  define \<rho> where "\<rho> = hd \<rho>s''"
-  define \<rho>s where "\<rho>s = tl \<rho>s''"
+  define \<rho> where "\<rho> = hd \<rho>\<rho>s"
+  define \<rho>s where "\<rho>s = tl \<rho>\<rho>s"
     
-  have "length \<rho>s'' = Suc n" "length \<rho>s = n" 
-    using \<rho>s''_p n \<rho>s_def
+  have "length \<rho>\<rho>s = Suc n" "length \<rho>s = n" 
+    using \<rho>\<rho>s_p n \<rho>s_def
       apply auto done
   
-  note n = \<open>length \<rho>s'' = Suc n\<close> \<open>length \<rho>s = n\<close> n
+  note n = \<open>length \<rho>\<rho>s = Suc n\<close> \<open>length \<rho>s = n\<close> n
     
   have l\<rho>s: "length \<rho>s = length CAi''"
-    using \<rho>s''_p unfolding \<rho>s_def apply auto done
+    using \<rho>\<rho>s_p unfolding \<rho>s_def apply auto done
   have \<rho>_ren: "is_renaming \<rho>"
-    using \<rho>s''_p unfolding \<rho>_def
+    using \<rho>\<rho>s_p unfolding \<rho>_def
     by (metis hd_Cons_tl length_greater_0_conv list.simps(3) nth_Cons_0 nth_mem)
   have \<rho>s_ren: "\<forall>\<rho>i \<in> set \<rho>s. is_renaming \<rho>i"
-    using \<rho>s''_p unfolding \<rho>s_def
+    using \<rho>\<rho>s_p unfolding \<rho>s_def
     by (metis list.sel(2) list.set_sel(2))
   have "var_disjoint ((DAi'' # CAi'') \<cdot>\<cdot>cl (\<rho> # \<rho>s))"
-    using \<rho>s''_p unfolding \<rho>_def \<rho>s_def
+    using \<rho>\<rho>s_p unfolding \<rho>_def \<rho>s_def
     by (metis length_greater_0_conv list.exhaust_sel list.simps(3))
       
   define \<rho>_inv where \<rho>_inv_p: "\<rho>_inv = inv_ren \<rho>" 
@@ -887,10 +879,10 @@ lemma ord_resolve_lifting:
     using n \<rho>s_inv_def \<rho>s_ren by auto
     
   have lenlen: "length CAi' = n"
-    by (simp add: \<open>CAi' \<equiv> CAi'' \<cdot>\<cdot>cl \<rho>s\<close> l\<rho>s lcai'')  
+    by (simp add: \<open>CAi' \<equiv> CAi'' \<cdot>\<cdot>cl \<rho>s\<close> l\<rho>s n)  
   have "\<forall>i < n. CAi' ! i \<in> M" 
     unfolding CAi'_def using \<rho>s_ren M_renaming_invariant
-      lcai'' l\<rho>s
+      n l\<rho>s
     by (simp add: \<open>\<forall>i<n. CAi'' ! i \<in> M\<close>)
   have cai'_cai: "CAi' \<cdot>\<cdot>cl \<eta>s' = CAi"
   proof -
@@ -905,7 +897,7 @@ lemma ord_resolve_lifting:
       then have "\<forall>i < n. (CAi'' \<cdot>\<cdot>cl \<eta>s'') ! i = CAi ! i" 
         by simp
       then have "\<forall>i < n. (CAi''  ! i \<cdot> \<eta>s'' ! i) = CAi ! i" 
-        using subst_cls_lists_nth asdf lcai'' n by auto 
+        using subst_cls_lists_nth asdf n by auto 
       then have "\<forall>i < n. (CAi''  ! i \<cdot> \<rho>s ! i \<cdot> \<rho>s_inv ! i \<cdot> \<eta>s'' ! i) = CAi ! i"
         using \<rho>_i_inv_id subst_cls_comp_subst comp_subst_assoc
         apply (auto simp del: subst_cls_comp_subst
@@ -969,14 +961,14 @@ lemma ord_resolve_lifting:
     
     
   (* Now I just need to replace the (\<eta>s' ! i) and (\<rho>') with a single substitution... *)
-  have vv: "var_disjoint ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>s'')"
-    using \<rho>s''_p by blast
+  have vv: "var_disjoint ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s)"
+    using \<rho>\<rho>s_p by blast
   {
     (* Old track of replacing. Did not work for the selections.  *)
-    then have "\<forall>\<sigma>s. length \<sigma>s = length ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>s'') \<longrightarrow>
-       (\<exists>\<tau>. (DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>s'' \<cdot>\<cdot>cl \<sigma>s = (DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>s'' \<cdot>cl \<tau>)"
+    then have "\<forall>\<sigma>s. length \<sigma>s = length ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s) \<longrightarrow>
+       (\<exists>\<tau>. (DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s \<cdot>\<cdot>cl \<sigma>s = (DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s \<cdot>cl \<tau>)"
       unfolding var_disjoint_def by auto
-    then have "\<exists>\<eta>. (DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>s'' \<cdot>\<cdot>cl (\<eta>' # \<eta>s') = (DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>s'' \<cdot>cl \<eta>"
+    then have "\<exists>\<eta>. (DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s \<cdot>\<cdot>cl (\<eta>' # \<eta>s') = (DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s \<cdot>cl \<eta>"
       using n by auto
     then have "\<exists>\<eta>. (DAi' # CAi') \<cdot>\<cdot>cl (\<eta>' # \<eta>s') = (DAi' # CAi') \<cdot>cl \<eta>"
       unfolding DAi'_def CAi'_def \<rho>s_def \<rho>_def
@@ -994,9 +986,9 @@ lemma ord_resolve_lifting:
   }
   
   (* New track of replacing *)
-  from vv have "var_disjoint_2 ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>s'')"
+  from vv have "var_disjoint_2 ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s)"
     using var_var2 by auto
-  then obtain \<eta> where "(\<forall>i<Suc n. \<forall>S. S \<subseteq># ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>s'') ! i \<longrightarrow> S \<cdot> (\<eta>' # \<eta>s') ! i = S \<cdot> \<eta>)" unfolding var_disjoint_2_def
+  then obtain \<eta> where "(\<forall>i<Suc n. \<forall>S. S \<subseteq># ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s) ! i \<longrightarrow> S \<cdot> (\<eta>' # \<eta>s') ! i = S \<cdot> \<eta>)" unfolding var_disjoint_2_def
     using n by force
   then have \<eta>_p: "(\<forall>i<Suc n. \<forall>S. S \<subseteq># ((DAi'' \<cdot> \<rho>) # (CAi'' \<cdot>\<cdot>cl \<rho>s)) ! i \<longrightarrow> S \<cdot> (\<eta>' # \<eta>s') ! i = S \<cdot> \<eta>)" unfolding var_disjoint_2_def
     by (metis \<rho>_def \<rho>s_def gr_implies_not0 list.exhaust_sel list.size(3) n(4) subst_cls_lists_Cons)
@@ -1016,7 +1008,7 @@ lemma ord_resolve_lifting:
   
       
   have "DAi = DAi' \<cdot> \<eta>" using dai'_dai dai'_\<eta> by auto
-  have "S_M S M DAi = S (DAi') \<cdot> \<eta>"
+  have "S_M S M DAi = S DAi' \<cdot> \<eta>"
   proof -
     have "S_M S M DAi = S (DAi'' \<cdot> \<rho>) \<cdot> \<rho>_inv \<cdot> \<eta>''"
       using sel_dai'_dai unfolding DAi'_def \<eta>'_def by auto
