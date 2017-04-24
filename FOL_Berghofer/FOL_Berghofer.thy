@@ -3116,11 +3116,10 @@ lemma valid_implies_forall_no_prems:
   shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> Forall p"
   using mod eval.simps(8) list.pred_inject(1) unfolding model_def by simp_all
 
-lemma valid_uni_close:
+lemma valid_uni_close_no_prems:
   assumes mod: "\<forall>e f g. e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> p"
   shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> uni_close p"
-  using mod
-  by (induct p rule: uni_close.induct) (simp add: valid_implies_forall_no_prems)
+  using mod by (induct p rule: uni_close.induct) (simp add: valid_implies_forall_no_prems)
     
 lemma model_impl_premise: "(e,f,g,ps \<Turnstile> (Impl p a)) = (e,f,g,(p#ps) \<Turnstile> a)"
   unfolding model_def by auto
@@ -3129,15 +3128,112 @@ primrec build_impl :: "('a, 'b) form list \<Rightarrow> ('a, 'b) form \<Rightarr
   "build_impl [] a = a"
 | "build_impl (p#ps) a = Impl p (build_impl ps a)"
   
-lemma model_build_impl_premises:
+theorem model_build_impl_premises:
   "(e,f,g,ps' \<Turnstile> build_impl ps a) = (e,f,g,(ps@ps') \<Turnstile> a)"
   using model_impl_premise
   unfolding model_def by (induct ps) auto
     
-lemma valid_uni_close_build_impl:
+theorem valid_uni_close_build_impl:
   assumes mod: "\<forall>e f g. e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,ps \<Turnstile> p"
   shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> uni_close (build_impl ps p)"
-  using mod by (metis append_self_conv model_build_impl_premises valid_uni_close)
+  using mod by (metis append_self_conv model_build_impl_premises valid_uni_close_no_prems)
+    
+theorem deriv_permute_assumptions: "ps' \<turnstile> q \<Longrightarrow> set ps' = set ps \<Longrightarrow> ps \<turnstile> q"
+proof (induct q arbitrary: ps rule: deriv.induct)
+  case (Assum a G)
+  then show ?case
+    using deriv.Assum by blast
+next
+  case (TTI G)
+  then show ?case
+    using deriv.TTI by blast
+next
+  case (FFE G a)
+  then show ?case
+    using deriv.FFE by blast
+next
+  case (NegI a G)
+  then have "set (a # ps) = set (a # G)"
+    by simp
+  then have "a # ps \<turnstile> FF"
+    using NegI by blast
+  then show ?case
+    using deriv.NegI by blast
+next
+  case (NegE G a)
+  then have "ps \<turnstile> a" and "ps \<turnstile> Neg a"
+    by blast+
+  then show ?case
+    using deriv.NegE by blast
+next
+  case (Class a G)
+  then have "set (Neg a # ps) = set (Neg a # G)"
+    by simp
+  then have "Neg a # ps \<turnstile> FF"
+    using Class by blast
+  then show ?case
+    using deriv.Class by blast
+next
+  case (AndI G a b)
+  then have "ps \<turnstile> a" and "ps \<turnstile> b"
+    by blast+
+  then show ?case
+    using deriv.AndI by blast
+next
+  case (AndE1 G a b)
+  then show ?case
+    using deriv.AndE1 by blast
+next
+  case (AndE2 G a b)
+  then show ?case
+     using deriv.AndE2 by blast
+next
+  case (OrI1 G a b)
+  then show ?case
+    using deriv.OrI1 by blast
+next
+  case (OrI2 G b a)
+  then show ?case
+    using deriv.OrI2 by blast
+next
+  case (OrE G a b c)
+  then have "ps \<turnstile> Or a b" and "a # ps \<turnstile> c" and "b # ps \<turnstile> c"
+   by simp_all
+  then show ?case
+    using deriv.OrE by blast
+next
+  case (ImplI a G b)
+  then have "a # ps \<turnstile> b"
+    by simp
+  then show ?case
+    using deriv.ImplI by blast
+next
+  case (ImplE G a b)
+  then have "ps \<turnstile> Impl a b" and "ps \<turnstile> a"
+    by simp_all
+  then show ?case
+    using deriv.ImplE by blast
+next
+  case (ForallI G a n)
+  then have "ps \<turnstile> a[App n []/0]" and "list_all (\<lambda>p. n \<notin> params p) ps"
+    by (simp_all add: list_all_iff)
+  then show ?case
+    using ForallI deriv.ForallI by fast
+next
+  case (ForallE G a t)
+  then show ?case
+    using deriv.ForallE by blast
+next
+  case (ExistsI G a t)
+  then show ?case
+    using deriv.ExistsI by blast
+next
+  case (ExistsE G a n b)
+  then have "ps \<turnstile> Exists a" and "(a[App n []/0] # ps) \<turnstile> b" and "list_all (\<lambda>p. n \<notin> params p) ps"
+    by (simp_all add: list_all_iff)
+  then show ?case
+    using ExistsE deriv.ExistsE by fast
+qed
     
 theorem natded_complete':
   assumes mod: "\<forall>e f g. e,(f :: nat \<Rightarrow> nat hterm list \<Rightarrow> nat hterm),
