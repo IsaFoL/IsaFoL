@@ -782,13 +782,13 @@ lemma ord_resolve_lifting:
       (* In the chapter, \<eta> and \<eta>2 are the same since they can ensure E' automatically variable disjoint from CAi' DAi', 
          our calculus differs in this respect. *)
     "{DAi'} \<union> set CAi' \<subseteq> M" (* I'm not sure E' should be here. I think not *)
-  using resolve proof ((*atomize_elim, *)cases rule: ord_resolve.cases)
+  using resolve proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Ci Aij Ai \<sigma> D)
     
   note n = \<open>length CAi = n\<close> \<open>length Ci = n\<close> \<open>length Aij = n\<close> \<open>length Ai = n\<close>
     
   interpret S: selection S by (rule select)
-      
+
   (* Choose the D'' and the C'', i.e. the first-order clauses before being standardized apart *)    
   have uuu: "\<forall>CA \<in> set CAi. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> CA = CA'' \<cdot> \<eta>c'' \<and> S CA'' \<cdot> \<eta>c'' = S_M S M CA"
     using grounding uw2 select by auto   
@@ -814,36 +814,37 @@ lemma ord_resolve_lifting:
     by (metis add.left_neutral diff_is_0_eq diff_zero length_map length_upt less_Suc_eq less_Suc_eq_le nth_Cons_0 nth_append nth_map_upt)
   have COOL: "\<forall>i < n. CAi'' ! i \<in> M \<and> (CAi ! i) = (CAi'' ! i) \<cdot> (\<eta>s'' ! i) \<and> S (CAi'' ! i) \<cdot> (\<eta>s'' ! i) = S_M S M (CAi ! i)"
     using f_p \<eta>s''_ff CAi''_ff by auto
-      
-  have "\<forall>i < n. CAi'' ! i \<in> M" using COOL by auto
+
+    (* The properties we need of CAi'' *)
+  have CAi''_in_M: "\<forall>i < n. CAi'' ! i \<in> M" using COOL by auto
   have cai''_to_cai: "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi" using COOL
     by (simp add: n)
   have selelele: "(\<forall>i < n. S_M S M (CAi ! i) = S (CAi'' ! i) \<cdot> (\<eta>s'' ! i))"
     using COOL by auto
 
-  have "\<exists>DAi'' \<eta>''. DAi'' \<in> M \<and> (DAi) = DAi'' \<cdot> \<eta>'' \<and> S (DAi'') \<cdot> \<eta>'' = S_M S M DAi"
+  have "\<exists>DAi'' \<eta>''. DAi'' \<in> M \<and> (DAi) = DAi'' \<cdot> \<eta>'' \<and> S DAi'' \<cdot> \<eta>'' = S_M S M DAi"
     using grounding uw2 select by auto
-  then obtain DAi'' \<eta>'' where COOL2: "DAi'' \<in> M \<and> DAi = DAi'' \<cdot> \<eta>'' \<and> S (DAi'') \<cdot> \<eta>'' = S_M S M DAi"
+  then obtain DAi'' \<eta>'' where COOL2: "DAi'' \<in> M \<and> DAi = DAi'' \<cdot> \<eta>'' \<and> S DAi'' \<cdot> \<eta>'' = S_M S M DAi"
     by auto
-      
-  have "DAi'' \<in> M" using COOL2 by auto
-  have "DAi'' \<cdot> \<eta>'' = DAi" using COOL2 by auto
-  have "S DAi'' \<cdot> \<eta>'' = S_M S M DAi" using COOL2 by auto
-      
+    (* The properties we need of DAi'' *)
+  have DAi''_in_M: "DAi'' \<in> M" using COOL2 by auto
+  have dai''_to_dai: "DAi'' \<cdot> \<eta>'' = DAi" using COOL2 by auto
+  have selelele_d: "S DAi'' \<cdot> \<eta>'' = S_M S M DAi" using COOL2 by auto
+
   (* Choose the D' and the C', i.e. the first-order clauses standardized apart *)
-  obtain \<rho>\<rho>s where \<rho>\<rho>s_p: "length \<rho>\<rho>s = length (DAi'' # CAi'') \<and> Ball (set \<rho>\<rho>s) is_renaming \<and> var_disjoint ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s)"
-    using make_var_disjoint[of "DAi'' # CAi''"] by auto (* TODO remove Ball noatation *)
+  obtain \<rho>\<rho>s where \<rho>\<rho>s_p: "length \<rho>\<rho>s = length (DAi'' # CAi'') \<and> (\<forall>\<rho>i \<in> set \<rho>\<rho>s. is_renaming \<rho>i) \<and> var_disjoint ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s)"
+    using make_var_disjoint[of "DAi'' # CAi''"] by auto
   define \<rho> where "\<rho> = hd \<rho>\<rho>s"
   define \<rho>s where "\<rho>s = tl \<rho>\<rho>s"
-    
+
   have "length \<rho>\<rho>s = Suc n" "length \<rho>s = n" 
     using \<rho>\<rho>s_p n \<rho>s_def
       apply auto done
-  
   note n = \<open>length \<rho>\<rho>s = Suc n\<close> \<open>length \<rho>s = n\<close> n
     
-  have l\<rho>s: "length \<rho>s = length CAi''"
-    using \<rho>\<rho>s_p unfolding \<rho>s_def apply auto done
+  have vv: "var_disjoint ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s)"
+    using \<rho>\<rho>s_p by blast
+
   have \<rho>_ren: "is_renaming \<rho>"
     using \<rho>\<rho>s_p unfolding \<rho>_def
     by (metis hd_Cons_tl length_greater_0_conv list.simps(3) nth_Cons_0 nth_mem)
@@ -853,36 +854,33 @@ lemma ord_resolve_lifting:
   have "var_disjoint ((DAi'' # CAi'') \<cdot>\<cdot>cl (\<rho> # \<rho>s))"
     using \<rho>\<rho>s_p unfolding \<rho>_def \<rho>s_def
     by (metis length_greater_0_conv list.exhaust_sel list.simps(3))
-      
+
   define \<rho>_inv where \<rho>_inv_p: "\<rho>_inv = inv_ren \<rho>" 
-         
   define \<rho>s_inv where "\<rho>s_inv = map inv_ren \<rho>s"
-    
+
   have "length \<rho>s_inv = n" 
     using \<rho>s_inv_def n by auto
-      
+
   define CAi' where "CAi' = CAi'' \<cdot>\<cdot>cl \<rho>s"
   define DAi' where "DAi' = DAi'' \<cdot> \<rho>"
-    
+
   have "length CAi' = n" 
     unfolding CAi'_def using n by auto
-    
+
   define \<eta>' where "\<eta>' = \<rho>_inv \<odot> \<eta>''"
   define \<eta>s' where "\<eta>s' = \<rho>s_inv \<odot>s \<eta>s''"
     
   have "length \<eta>s' = n"
     unfolding \<eta>s'_def using n sorry
-  
+
   note n = \<open>length \<rho>s_inv = n\<close> \<open>length CAi' = n\<close> \<open>length \<eta>s' = n\<close> n
     
-  have \<rho>_i_inv_id: "\<forall>i<n.  \<rho>s!i \<odot> \<rho>s_inv !i = id_subst"
+  have \<rho>_i_inv_id: "\<forall>i<n. \<rho>s ! i \<odot> \<rho>s_inv ! i = id_subst"
     using n \<rho>s_inv_def \<rho>s_ren by auto
-    
-  have lenlen: "length CAi' = n"
-    by (simp add: \<open>CAi' \<equiv> CAi'' \<cdot>\<cdot>cl \<rho>s\<close> l\<rho>s n)  
-  have "\<forall>i < n. CAi' ! i \<in> M" 
+
+  have CAi'_in_M: "\<forall>i < n. CAi' ! i \<in> M" 
     unfolding CAi'_def using \<rho>s_ren M_renaming_invariant
-      n l\<rho>s
+      n
     by (simp add: \<open>\<forall>i<n. CAi'' ! i \<in> M\<close>)
   have cai'_cai: "CAi' \<cdot>\<cdot>cl \<eta>s' = CAi"
   proof -
@@ -933,15 +931,16 @@ lemma ord_resolve_lifting:
       using n a by auto
     finally show "S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>s' ! i" by auto
   qed
-    
+
+  have DAi'_in_M: "DAi' \<in> M"
+    using M_renaming_invariant unfolding DAi'_def using \<rho>_ren DAi''_in_M by auto
   have dai'_dai: "DAi' \<cdot> \<eta>' = DAi"
     using DAi'_def \<eta>'_def \<open>DAi'' \<cdot> \<eta>'' = DAi\<close> subst_cls_id_subst
-    by (metis \<rho>_inv_p \<rho>_ren inv_ren_cancel_r subst_cls_comp_subst) 
-    
+    by (metis \<rho>_inv_p \<rho>_ren inv_ren_cancel_r subst_cls_comp_subst)
   have sel_dai'_dai: "S_M S M DAi = S DAi' \<cdot> \<eta>'"
   proof -
     have "S_M S M DAi = S DAi'' \<cdot> \<eta>''"
-      by (simp add: COOL2) 
+      by (simp add: selelele_d) 
     also have "... = S (((DAi'') \<cdot> (\<rho>)) \<cdot> (\<rho>_inv)) \<cdot> \<eta>''"
        using \<rho>_inv_p
        by (metis \<rho>_ren inv_ren_cancel_r subst_cls_comp_subst subst_cls_id_subst)
@@ -958,34 +957,10 @@ lemma ord_resolve_lifting:
       by auto
     finally show "S_M S M (DAi) = S (DAi') \<cdot> \<eta>'" by auto
    qed
-    
-    
+
+
   (* Now I just need to replace the (\<eta>s' ! i) and (\<rho>') with a single substitution... *)
-  have vv: "var_disjoint ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s)"
-    using \<rho>\<rho>s_p by blast
-  {
-    (* Old track of replacing. Did not work for the selections.  *)
-    then have "\<forall>\<sigma>s. length \<sigma>s = length ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s) \<longrightarrow>
-       (\<exists>\<tau>. (DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s \<cdot>\<cdot>cl \<sigma>s = (DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s \<cdot>cl \<tau>)"
-      unfolding var_disjoint_def by auto
-    then have "\<exists>\<eta>. (DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s \<cdot>\<cdot>cl (\<eta>' # \<eta>s') = (DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s \<cdot>cl \<eta>"
-      using n by auto
-    then have "\<exists>\<eta>. (DAi' # CAi') \<cdot>\<cdot>cl (\<eta>' # \<eta>s') = (DAi' # CAi') \<cdot>cl \<eta>"
-      unfolding DAi'_def CAi'_def \<rho>s_def \<rho>_def
-      using n
-      by (metis length_greater_0_conv list.exhaust_sel subst_cls_lists_Cons zero_less_Suc)
-    then have "\<exists>\<eta>. DAi' \<cdot> \<eta>' = DAi' \<cdot> \<eta> \<and> CAi' \<cdot>\<cdot>cl \<eta>s' = CAi' \<cdot>cl \<eta>"
-      by auto
-    then obtain \<eta> where \<eta>_p: "DAi' \<cdot> \<eta>' = DAi' \<cdot> \<eta> \<and> CAi' \<cdot>\<cdot>cl \<eta>s' = CAi' \<cdot>cl \<eta>"
-      by auto
-    then have "\<forall>i < n. (CAi' \<cdot>\<cdot>cl \<eta>s') ! i = (CAi' \<cdot>cl \<eta>) ! i "
-      by auto
-    then have "\<forall>i < n. (CAi' ! i) \<cdot> (\<eta>s' ! i) = (CAi'! i) \<cdot> \<eta>"
-      using n by auto
-    then have "True" by simp
-  }
-  
-  (* New track of replacing *)
+
   from vv have "var_disjoint_2 ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s)"
     using var_var2 by auto
   then obtain \<eta> where "(\<forall>i<Suc n. \<forall>S. S \<subseteq># ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s) ! i \<longrightarrow> S \<cdot> (\<eta>' # \<eta>s') ! i = S \<cdot> \<eta>)" unfolding var_disjoint_2_def
@@ -997,29 +972,15 @@ lemma ord_resolve_lifting:
   then have s_dai'_\<eta>: "\<forall>S. S \<subseteq># DAi' \<longrightarrow> S \<cdot> \<eta>' = S \<cdot> \<eta>" 
     unfolding DAi'_def by auto
   then have dai'_\<eta>: "DAi' \<cdot> \<eta>' = DAi' \<cdot> \<eta>" by auto
-      
-  from \<eta>_p have "(\<forall>i<n. \<forall>S. S \<subseteq># (CAi'' \<cdot>\<cdot>cl \<rho>s) ! i \<longrightarrow> S \<cdot> \<eta>s' ! i = S \<cdot> \<eta>)" 
+
+  from \<eta>_p have "\<forall>i<n. \<forall>S. S \<subseteq># (CAi'' \<cdot>\<cdot>cl \<rho>s) ! i \<longrightarrow> S \<cdot> \<eta>s' ! i = S \<cdot> \<eta>" 
     by auto
-  then have s_cai'_\<eta>: "(\<forall>i<n. \<forall>S. S \<subseteq># CAi' ! i \<longrightarrow> S \<cdot> \<eta>s' ! i = S \<cdot> \<eta>)" 
+  then have s_cai'_\<eta>: "\<forall>i<n. \<forall>S. S \<subseteq># CAi' ! i \<longrightarrow> S \<cdot> \<eta>s' ! i = S \<cdot> \<eta>" 
     unfolding CAi'_def by auto
   then have cai'_\<eta>: "\<forall>i < n. (CAi' ! i) \<cdot> (\<eta>s' ! i) = (CAi'! i) \<cdot> \<eta>"
     by auto
-      
   
-      
-  have "DAi = DAi' \<cdot> \<eta>" using dai'_dai dai'_\<eta> by auto
-  have "S_M S M DAi = S DAi' \<cdot> \<eta>"
-  proof -
-    have "S_M S M DAi = S (DAi'' \<cdot> \<rho>) \<cdot> \<rho>_inv \<cdot> \<eta>''"
-      using sel_dai'_dai unfolding DAi'_def \<eta>'_def by auto
-    also have "... = S (DAi'' \<cdot> \<rho>) \<cdot> \<eta>"
-      using s_dai'_\<eta> unfolding DAi'_def \<eta>'_def
-      by (simp add: S.S_selects_subseteq)
-    also have "... = S (DAi') \<cdot> \<eta>"
-      unfolding DAi'_def by auto
-    finally show ?thesis by auto
-  qed
-    
+  have "\<forall>i < n. CAi' ! i \<in> M" using CAi'_in_M by auto
   have "CAi = CAi' \<cdot>cl \<eta>"
   proof -
     {
@@ -1046,37 +1007,22 @@ lemma ord_resolve_lifting:
     finally show "S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>"
       by auto
   qed
-      
-  have prime_clauses_1: "length CAi' = n"
-    using n by auto
-  have prime_clauses_2: "\<forall>i < n. CAi' ! i \<in> M"
-    using n
-    using \<open>\<forall>i<n. CAi' ! i \<in> M\<close> by blast 
-  have prime_clauses_3: "CAi' \<cdot>cl \<eta> = CAi"
-    using \<open>CAi = CAi' \<cdot>cl \<eta> \<close> by auto
-  have prime_clauses_4: "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>"
-    using \<open>\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>\<close> by auto
-  have prime_clauses_5: "DAi' \<in> M"
-    using DAi'_def M_renaming_invariant \<open>DAi'' \<in> M\<close> \<rho>_ren by blast
-    
-  have prime_clauses_6: "DAi = DAi' \<cdot> \<eta>"
-    using \<open>DAi = DAi' \<cdot> \<eta>\<close> by auto
-  have prime_clauses_7: "S_M S M (DAi) = S (DAi') \<cdot> \<eta>"
-    using \<open>S_M S M (DAi) = S (DAi') \<cdot> \<eta>\<close> by auto
-    
-  have prime_clauses_8: "var_disjoint (DAi'#CAi')"
-    using CAi'_def DAi'_def \<open>var_disjoint ((DAi'' # CAi'') \<cdot>\<cdot>cl (\<rho> # \<rho>s))\<close> by auto
-    
-  have prime_clauses_9: "{DAi'} \<union> set CAi' \<subseteq> M"
-    apply auto
-    apply (auto simp add: \<open>DAi' \<in> M\<close>)
-    using n \<open>\<forall>i<n. CAi' ! i \<in> M\<close>
-    by (metis in_set_conv_nth) 
+
+  have "DAi' \<in> M" using DAi'_in_M by auto
+  have "DAi = DAi' \<cdot> \<eta>" using dai'_dai dai'_\<eta> by auto
+  have "S_M S M DAi = S DAi' \<cdot> \<eta>"
+  proof -
+    have "S_M S M DAi = S (DAi'' \<cdot> \<rho>) \<cdot> \<rho>_inv \<cdot> \<eta>''"
+      using sel_dai'_dai unfolding DAi'_def \<eta>'_def by auto
+    also have "... = S (DAi'' \<cdot> \<rho>) \<cdot> \<eta>"
+      using s_dai'_\<eta> unfolding DAi'_def \<eta>'_def
+      by (simp add: S.S_selects_subseteq)
+    also have "... = S (DAi') \<cdot> \<eta>"
+      unfolding DAi'_def by auto
+    finally show ?thesis by auto
+  qed
     
   have prime_clauses_10: "is_ground_subst \<eta>" sorry
-      
-  note prime_clauses = prime_clauses_1 prime_clauses_2 prime_clauses_3 prime_clauses_4
-    prime_clauses_5 prime_clauses_6 prime_clauses_7 prime_clauses_8 prime_clauses_9 prime_clauses_10 
 
   (* Now I need to find all these Ci' Aij' D' Ai' *)
 
@@ -1089,7 +1035,7 @@ lemma ord_resolve_lifting:
       then have "negs (mset Ai) = {# Neg (Ai ! 0) #}"
         by (simp add: \<open>mset Ai = {#Ai ! 0#}\<close>)
       then have "DAi = D + {#Neg (Ai ! 0)#}" using ord_resolve(1) by auto
-      then obtain L where "L \<in># DAi' \<and> L \<cdot>l \<eta> = Neg (Ai ! 0)" using prime_clauses(6)
+      then obtain L where "L \<in># DAi' \<and> L \<cdot>l \<eta> = Neg (Ai ! 0)" using \<open>DAi = DAi' \<cdot> \<eta>\<close>
         by (metis Melem_subst_cls mset_subset_eq_add_right single_subset_iff)
       then have "Neg (atm_of L) \<in># DAi' \<and> Neg (atm_of L) \<cdot>l \<eta> = Neg (Ai ! 0) "
         by (metis Neg_atm_of_iff literal.sel(2) subst_lit_is_pos)
@@ -1098,7 +1044,7 @@ lemma ord_resolve_lifting:
       then show "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> negs (mset Ai') \<subseteq># DAi' \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DAi')" using a by blast
     next
       assume "S_M S M (D + negs (mset Ai)) = negs (mset Ai)" 
-      then have "negs (mset Ai) = S DAi' \<cdot> \<eta>" using prime_clauses(7) ord_resolve(1) by auto
+      then have "negs (mset Ai) = S DAi' \<cdot> \<eta>" using ord_resolve(1) \<open>S_M S M (DAi) = S (DAi') \<cdot> \<eta>\<close> by auto
       then have "\<exists>Ai'. negs (mset Ai') = S DAi' \<and> Ai' \<cdot>al \<eta> = Ai"
         using very_specific_lemma[of Ai "S DAi'" \<eta>] using S.S_selects_neg_lits by auto
       then show "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> negs (mset Ai') \<subseteq># DAi'  \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DAi')" using S.S_selects_subseteq by auto
@@ -1107,15 +1053,17 @@ lemma ord_resolve_lifting:
   then have "length Ai' = n"
     using local.ord_resolve(6) by auto
   note n = n \<open>length Ai' = n\<close>
+  
+  have "Ai' \<cdot>al \<eta> = Ai" using Ai'_p by auto
     
+  define D' where "D' = DAi' - (negs (mset Ai'))"
+  then have dai'_u: "DAi' = D' +  (negs (mset Ai'))" using Ai'_p by auto
+      
   have useful: "negs (mset Ai') \<cdot> \<eta> = negs (mset Ai)"
     using Ai'_p 
-      using atomlist_to_negs_equality by auto
-      
-  define D' where "D' = DAi' - (negs (mset Ai'))"
-  then have "DAi' = D' +  (negs (mset Ai'))" using Ai'_p by auto
-    
-  then have "D' \<cdot> \<eta> = D" using \<open>DAi = DAi' \<cdot> \<eta>\<close> ord_resolve(1) useful
+    using atomlist_to_negs_equality by auto
+            
+  then have "D' \<cdot> \<eta> = D" using \<open>DAi = DAi' \<cdot> \<eta>\<close> ord_resolve(1) dai'_u
     by auto
       
   have "\<forall>i<n. \<exists>Aiji'. Aiji' \<cdot>am \<eta> = Aij ! i \<and> (poss (Aiji')) \<subseteq># CAi' ! i"
@@ -1200,7 +1148,7 @@ lemma ord_resolve_lifting:
     
   have "Ci' \<cdot>cl \<eta> = Ci"
   proof -
-    thm \<open>Aij' \<cdot>aml \<eta> = Aij\<close> Ci'_def prime_clauses(3) ord_resolve(8)
+    thm \<open>Aij' \<cdot>aml \<eta> = Aij\<close> Ci'_def ord_resolve(8)
     {
       fix i 
       assume a: "i<n"
@@ -1221,35 +1169,11 @@ lemma ord_resolve_lifting:
     }
     then show ?thesis using n by auto
   qed
-      
-  have prime_clauses2:
-    "length Ci' = n"
-    "length Aij' = n"
-    "length Ai' = n"
-    "Ci' \<cdot>cl \<eta> = Ci"
-    "Aij' \<cdot>aml \<eta> = Aij"
-    "D' \<cdot> \<eta> = D"
-    "Ai' \<cdot>al \<eta> = Ai"
-    "DAi' = D' +  (negs (mset Ai'))"
-    "\<forall>i<n. CAi' ! i = Ci' ! i + poss (Aij' ! i)"
-    "True"
-             apply auto
-    using n apply simp
-    using n apply simp
-    using n apply simp
-    using \<open>Ci' \<cdot>cl \<eta> = Ci\<close> apply simp
-    using \<open>Aij' \<cdot>aml \<eta> = Aij\<close> apply simp
-    using \<open>D' \<cdot> \<eta> = D\<close> apply simp
-    using Ai'_p apply simp
-    using \<open>DAi' = D' + negs (mset Ai')\<close> apply simp
-    using \<open>\<forall>i < n. CAi' ! i = Ci' ! i + poss (Aij' ! i)\<close> apply simp
-    done
         
-      
-      
-      
+  (* Obtain mgu *)    
   have "Some \<sigma> = mgu (set_mset ` set (map2 add_mset Ai Aij))" using ord_resolve by -
-  hence uu: "is_unifiers \<sigma> (set_mset ` set (map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)))" using mgu_sound is_mgu_def unfolding prime_clauses2(5) prime_clauses2(7) by auto
+  hence uu: "is_unifiers \<sigma> (set_mset ` set (map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)))" 
+    using mgu_sound is_mgu_def unfolding \<open>Aij' \<cdot>aml \<eta> = Aij\<close> using Ai'_p by auto
   have \<eta>\<sigma>uni: "is_unifiers (\<eta> \<odot> \<sigma>) (set_mset ` set (map2 add_mset Ai' Aij'))"
   proof -
     have eq: "(set_mset ` set (map2 add_mset Ai' Aij' \<cdot>aml \<eta>)) = (set_mset ` set (map2 add_mset Ai' Aij') \<cdot>ass \<eta>)"
@@ -1257,7 +1181,7 @@ lemma ord_resolve_lifting:
         subst_atm_mset_list_def
       using subst_atm_mset_def subst_atms_def by auto
     have "is_unifiers \<sigma> (set_mset ` set (map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)))" using uu by -
-    then have "is_unifiers \<sigma> (set_mset ` set ((map2 add_mset Ai' Aij') \<cdot>aml \<eta>))" using prime_clauses2(2) prime_clauses2(3) map2_add_mset_map by auto
+    then have "is_unifiers \<sigma> (set_mset ` set ((map2 add_mset Ai' Aij') \<cdot>aml \<eta>))" using n map2_add_mset_map by auto
     then have "is_unifiers \<sigma> (set_mset ` set ((map2 add_mset Ai' Aij')) \<cdot>ass \<eta>)" using eq by auto
     then show ?thesis 
       using is_unifiers_comp by auto
@@ -1267,26 +1191,27 @@ lemma ord_resolve_lifting:
   then obtain \<phi> where \<phi>_p: "\<tau> \<odot> \<phi> = \<eta> \<odot> \<sigma>"
     by (metis (mono_tags, hide_lams) List.finite_set \<eta>\<sigma>uni finite_imageI finite_set_mset image_iff mgu_sound set_mset_mset substitution_ops.is_mgu_def that) (* should be simpler *)
       
+  (* Prove we get the desired resolvent *)
   define E' where "E' = ((\<Union># (mset Ci')) + D') \<cdot> \<tau>"
     
   have "E' \<cdot> \<phi> = ((\<Union># (mset Ci')) + D') \<cdot> (\<tau> \<odot> \<phi>)" unfolding E'_def by auto
   also have "... = ((\<Union># (mset Ci')) + D') \<cdot> (\<eta> \<odot> \<sigma>)" using \<phi>_p by auto
   also have "... = ((\<Union># (mset (Ci' \<cdot>cl \<eta>))) + (D' \<cdot> \<eta>)) \<cdot> \<sigma>" by simp
-  also have "... = ((\<Union># (mset Ci)) + D) \<cdot> \<sigma>" using prime_clauses2(4) prime_clauses2(6) by auto
+  also have "... = ((\<Union># (mset Ci)) + D) \<cdot> \<sigma>" using  \<open>Ci' \<cdot>cl \<eta> = Ci\<close> \<open>D' \<cdot> \<eta> = D\<close> by auto
   also have "... = E" using ord_resolve by auto
   finally have e'\<phi>e: "E' \<cdot> \<phi> = E" .
       
-  have a: "(D' + negs (mset Ai')) = DAi'" using prime_clauses2(8) by auto
+  have a: "(D' + negs (mset Ai')) = DAi'" using \<open>DAi' = D' + negs (mset Ai')\<close> by auto
   moreover
-  have b: "\<forall>i<n. CAi' ! i = Ci' ! i + poss (Aij' ! i)" using prime_clauses2(9) by auto
+  have b: "\<forall>i<n. CAi' ! i = Ci' ! i + poss (Aij' ! i)" using \<open>\<forall>i < n. CAi' ! i = Ci' ! i + poss (Aij' ! i)\<close> by auto
   moreover
   have c: "\<forall>i<n. Aij' ! i \<noteq> {#}"
     apply (rule allI)
     apply rule
-    using prime_clauses2(2) ord_resolve(9) ord_resolve(5) unfolding prime_clauses2(5)[symmetric]
+    using n ord_resolve(9) ord_resolve(5) unfolding \<open>Aij' \<cdot>aml \<eta> = Aij\<close>[symmetric]
     using empty_subst_for_atoms using swapii by metis
   moreover
-    (* Lifting  *)
+    (* Lifting eligibility *)
   have "eligible (S_M S M) \<sigma> Ai (D + negs (mset Ai))" using ord_resolve unfolding eligible_simp by -
   hence "S_M S M (D + negs (mset Ai)) = negs (mset Ai) \<or>
     S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)" 
@@ -1303,18 +1228,18 @@ lemma ord_resolve_lifting:
     assume asm: "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
     let ?A = "Ai ! 0"
     from asm have "S_M S M (D + negs (mset Ai)) = {#}" by auto
-    hence "S (D' + negs (mset Ai')) = {#}" using prime_clauses2(6)[symmetric] prime_clauses2(7)[symmetric] prime_clauses(7)
+    hence "S (D' + negs (mset Ai')) = {#}" using \<open>D' \<cdot> \<eta> = D\<close>[symmetric] \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] \<open>S_M S M (DAi) = S (DAi') \<cdot> \<eta>\<close>
       using ord_resolve(1) 
       apply auto
       using a empty_subst by blast   
     moreover
     from asm have l: "length Ai = 1" by auto
-    hence l': "length Ai' = 1" using prime_clauses2(7)[symmetric] by auto
+    hence l': "length Ai' = 1" using \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] by auto
     moreover
     from asm have "maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)" by auto
-    hence "maximal_in (Ai' ! 0 \<cdot>a (\<eta> \<odot> \<sigma>)) ((D' + negs (mset Ai')) \<cdot> (\<eta> \<odot> \<sigma>))" unfolding prime_clauses2(7)[symmetric] prime_clauses2(6)[symmetric]
+    hence "maximal_in (Ai' ! 0 \<cdot>a (\<eta> \<odot> \<sigma>)) ((D' + negs (mset Ai')) \<cdot> (\<eta> \<odot> \<sigma>))" unfolding \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] \<open>D' \<cdot> \<eta> = D\<close>[symmetric]
       using l' by auto  
-    hence "maximal_in (Ai' ! 0 \<cdot>a (\<tau> \<odot> \<phi>)) ((D' + negs (mset Ai')) \<cdot> (\<tau> \<odot> \<phi>))" unfolding prime_clauses2(7)[symmetric] prime_clauses2(6)[symmetric]
+    hence "maximal_in (Ai' ! 0 \<cdot>a (\<tau> \<odot> \<phi>)) ((D' + negs (mset Ai')) \<cdot> (\<tau> \<odot> \<phi>))" unfolding \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] \<open>D' \<cdot> \<eta> = D\<close>[symmetric]
       using \<phi>_p by auto
     hence "maximal_in (Ai' ! 0 \<cdot>a \<tau> \<cdot>a \<phi>) ((D' + negs (mset Ai')) \<cdot> \<tau> \<cdot> \<phi>)" 
       by auto
@@ -1322,38 +1247,45 @@ lemma ord_resolve_lifting:
     ultimately show "eligible S \<tau> Ai' (D' + negs (mset Ai'))" unfolding eligible_simp by auto 
   qed
   moreover
+    (* Lifting maximality *)
   from ord_resolve have "\<forall>i<n. str_maximal_in (Ai ! i \<cdot>a \<sigma>) (Ci ! i \<cdot> \<sigma>)" by -
-  hence "\<forall>i<n. str_maximal_in ((Ai' \<cdot>al \<eta>) ! i \<cdot>a \<sigma>) ((Ci' \<cdot>cl \<eta>) ! i \<cdot> \<sigma>)" using prime_clauses2 by simp
-  hence "\<forall>i<n. str_maximal_in ((Ai' ! i) \<cdot>a (\<eta> \<odot> \<sigma>)) ((Ci' ! i) \<cdot> (\<eta> \<odot> \<sigma>))" using prime_clauses2 by auto
+  hence "\<forall>i<n. str_maximal_in ((Ai' \<cdot>al \<eta>) ! i \<cdot>a \<sigma>) ((Ci' \<cdot>cl \<eta>) ! i \<cdot> \<sigma>)" using \<open>Ai' \<cdot>al \<eta> = Ai\<close>  \<open>Ci' \<cdot>cl \<eta> = Ci\<close> by simp
+  hence "\<forall>i<n. str_maximal_in ((Ai' ! i) \<cdot>a (\<eta> \<odot> \<sigma>)) ((Ci' ! i) \<cdot> (\<eta> \<odot> \<sigma>))" using n by auto
   hence "\<forall>i<n. str_maximal_in ((Ai' ! i) \<cdot>a (\<tau> \<odot> \<phi>)) ((Ci' ! i) \<cdot> (\<tau> \<odot> \<phi>))" using \<phi>_p by auto
   hence "\<forall>i<n. str_maximal_in ((Ai' ! i \<cdot>a \<tau>) \<cdot>a \<phi>) ((Ci' ! i \<cdot> \<tau>) \<cdot> \<phi>)" by auto
   hence e: "\<forall>i<n. str_maximal_in (Ai' ! i \<cdot>a \<tau>) (Ci' ! i \<cdot> \<tau>)" using str_maximal_in_gen \<phi>_p by blast
   moreover
+    (* Lifting nothing selected *)
   from ord_resolve have "\<forall>i < n. (S_M S M) (CAi ! i) = {#}" by -
-  hence "\<forall>i < n. S (CAi' ! i)  \<cdot> \<eta> = {#}" using prime_clauses(3) prime_clauses(4) ord_resolve(3) by auto 
+  hence "\<forall>i < n. S (CAi' ! i)  \<cdot> \<eta> = {#}" using ord_resolve(3) \<open>\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>\<close> by auto 
   hence ff: "\<forall>i < n. S (CAi' ! i) = {#}" using empty_subst by blast
   ultimately
+    (* Resolve the lifted clauses *)
   have res_e': "ord_resolve S CAi' DAi' E'" 
-    using ord_resolve.intros[of CAi' n Ci' Aij' Ai' \<tau> S D', OF prime_clauses(1) prime_clauses2(1) prime_clauses2(2) prime_clauses2(3) ord_resolve(7) b c \<tau>_p] \<tau>_p 
+    using n ord_resolve.intros[of CAi' n Ci' Aij' Ai' \<tau> S D', OF _ _ _ _ ord_resolve(7) b c \<tau>_p] \<tau>_p 
     unfolding E'_def by auto
       
   have "is_ground_cls_list CAi" "is_ground_cls DAi"
-    using prime_clauses(3) prime_clauses(6) prime_clauses(10) by auto 
+    using \<open>DAi = DAi' \<cdot> \<eta>\<close> prime_clauses_10 \<open>CAi = CAi' \<cdot>cl \<eta> \<close> by auto 
   hence "is_ground_cls E" using resolve ground_resolvent_ground by auto
   then obtain \<eta>2 where ground_\<eta>2: "is_ground_subst \<eta>2" "E' \<cdot> \<eta>2 = E" using e'\<phi>e mk_ground_subst by blast
       
-  have instsC: "CAi = CAi' \<cdot>cl \<eta>" using prime_clauses(3) by auto
-  have instsD: "DAi = DAi' \<cdot> \<eta>"  using prime_clauses(6) by auto
+  have instsC: "CAi = CAi' \<cdot>cl \<eta>" using \<open>CAi = CAi' \<cdot>cl \<eta> \<close> by auto
+  have instsD: "DAi = DAi' \<cdot> \<eta>"  using \<open>DAi = DAi' \<cdot> \<eta>\<close> by auto
   have instsE: "E = E' \<cdot> \<eta>2" using ground_\<eta>2 by auto
       
       
-  hence inM: "{DAi'} \<union> set CAi' \<subseteq> M" using prime_clauses(9) by auto
+  hence inM: "{DAi'} \<union> set CAi' \<subseteq> M"
+    apply auto
+    apply (auto simp add: \<open>DAi' \<in> M\<close>)
+    using n \<open>\<forall>i<n. CAi' ! i \<in> M\<close>
+    by (metis in_set_conv_nth) 
       
-  from res_e' instsC instsD instsE inM e'\<phi>e prime_clauses(10) ground_\<eta>2 show ?thesis
+  from res_e' instsC instsD instsE inM e'\<phi>e prime_clauses_10 ground_\<eta>2 show ?thesis
     using that[of \<eta> \<eta>2 CAi' DAi' E'] by blast
 qed
-  
-  
+
+
 end
 
 (* lifting lemma:
