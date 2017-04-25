@@ -769,7 +769,6 @@ qed
 lemma grounding_ground: "C \<in> grounding_of_clss M \<Longrightarrow> is_ground_cls C"
    by (smt ground_subst_ground_cls grounding_of_clss_def image_iff mem_Collect_eq mem_simps(9) substitution_ops.grounding_of_cls_def)
   (* There is also an Isar proof. *)
-  
     
 lemma ord_resolve_lifting: 
   fixes CAi
@@ -867,6 +866,8 @@ lemma ord_resolve_lifting:
 
   have "length \<rho>s_inv = n" 
     using \<rho>s_inv_def n by auto
+      
+  note n = \<open>length \<rho>s_inv = n\<close> n
 
   define CAi' where "CAi' = CAi'' \<cdot>\<cdot>cl \<rho>s"
   define DAi' where "DAi' = DAi'' \<cdot> \<rho>"
@@ -878,7 +879,7 @@ lemma ord_resolve_lifting:
   define \<eta>s' where "\<eta>s' = \<rho>s_inv \<odot>s \<eta>s''"
     
   have "length \<eta>s' = n"
-    unfolding \<eta>s'_def using n sorry
+    unfolding \<eta>s'_def using n by auto
 
   note n = \<open>length \<rho>s_inv = n\<close> \<open>length CAi' = n\<close> \<open>length \<eta>s' = n\<close> n
     
