@@ -649,9 +649,11 @@ definition var_disjoint_2 :: "'a clause list \<Rightarrow> bool" where
 lemma var_var2: "var_disjoint Cs \<Longrightarrow> var_disjoint_2 Cs"
   sorry
     
+    thm make_ground_subst
+    
 lemma make_ground_subst2: 
   "is_ground_cls_list (CC \<cdot>cl \<sigma>) \<Longrightarrow>
-       \<exists>\<tau>. (\<forall>i < length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)"
+       \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)"
   sorry
     
 term is_ground_cls
@@ -963,66 +965,73 @@ lemma ord_resolve_lifting:
 
   from vv have "var_disjoint_2 ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s)"
     using var_var2 by auto
-  then obtain \<eta> where "(\<forall>i<Suc n. \<forall>S. S \<subseteq># ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s) ! i \<longrightarrow> S \<cdot> (\<eta>' # \<eta>s') ! i = S \<cdot> \<eta>)" unfolding var_disjoint_2_def
+  then obtain \<eta>_fo where "(\<forall>i<Suc n. \<forall>S. S \<subseteq># ((DAi'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s) ! i \<longrightarrow> S \<cdot> (\<eta>' # \<eta>s') ! i = S \<cdot> \<eta>_fo)" unfolding var_disjoint_2_def
     using n by force
-  then have \<eta>_p: "(\<forall>i<Suc n. \<forall>S. S \<subseteq># ((DAi'' \<cdot> \<rho>) # (CAi'' \<cdot>\<cdot>cl \<rho>s)) ! i \<longrightarrow> S \<cdot> (\<eta>' # \<eta>s') ! i = S \<cdot> \<eta>)" unfolding var_disjoint_2_def
+  then have \<eta>_p: "(\<forall>i<Suc n. \<forall>S. S \<subseteq># ((DAi'' \<cdot> \<rho>) # (CAi'' \<cdot>\<cdot>cl \<rho>s)) ! i \<longrightarrow> S \<cdot> (\<eta>' # \<eta>s') ! i = S \<cdot> \<eta>_fo)" unfolding var_disjoint_2_def
     by (metis \<rho>_def \<rho>s_def gr_implies_not0 list.exhaust_sel list.size(3) n(4) subst_cls_lists_Cons)
-  then have "\<forall>S. S \<subseteq># (DAi'' \<cdot> \<rho>) \<longrightarrow> S \<cdot> \<eta>' = S \<cdot> \<eta>" 
+  then have "\<forall>S. S \<subseteq># (DAi'' \<cdot> \<rho>) \<longrightarrow> S \<cdot> \<eta>' = S \<cdot> \<eta>_fo" 
     by auto
-  then have s_dai'_\<eta>: "\<forall>S. S \<subseteq># DAi' \<longrightarrow> S \<cdot> \<eta>' = S \<cdot> \<eta>" 
+  then have s_dai'_\<eta>: "\<forall>S. S \<subseteq># DAi' \<longrightarrow> S \<cdot> \<eta>' = S \<cdot> \<eta>_fo" 
     unfolding DAi'_def by auto
-  then have dai'_\<eta>: "DAi' \<cdot> \<eta>' = DAi' \<cdot> \<eta>" by auto
+  then have dai'_\<eta>: "DAi' \<cdot> \<eta>' = DAi' \<cdot> \<eta>_fo" by auto
 
-  from \<eta>_p have "\<forall>i<n. \<forall>S. S \<subseteq># (CAi'' \<cdot>\<cdot>cl \<rho>s) ! i \<longrightarrow> S \<cdot> \<eta>s' ! i = S \<cdot> \<eta>" 
+  from \<eta>_p have "\<forall>i<n. \<forall>S. S \<subseteq># (CAi'' \<cdot>\<cdot>cl \<rho>s) ! i \<longrightarrow> S \<cdot> \<eta>s' ! i = S \<cdot> \<eta>_fo" 
     by auto
-  then have s_cai'_\<eta>: "\<forall>i<n. \<forall>S. S \<subseteq># CAi' ! i \<longrightarrow> S \<cdot> \<eta>s' ! i = S \<cdot> \<eta>" 
+  then have s_cai'_\<eta>: "\<forall>i<n. \<forall>S. S \<subseteq># CAi' ! i \<longrightarrow> S \<cdot> \<eta>s' ! i = S \<cdot> \<eta>_fo" 
     unfolding CAi'_def by auto
-  then have cai'_\<eta>: "\<forall>i < n. (CAi' ! i) \<cdot> (\<eta>s' ! i) = (CAi'! i) \<cdot> \<eta>"
+  then have cai'_\<eta>: "\<forall>i < n. (CAi' ! i) \<cdot> (\<eta>s' ! i) = (CAi'! i) \<cdot> \<eta>_fo"
     by auto
   
   have "\<forall>i < n. CAi' ! i \<in> M" using CAi'_in_M by auto
-  have "CAi = CAi' \<cdot>cl \<eta>"
+  have "CAi = CAi' \<cdot>cl \<eta>_fo"
   proof -
     {
       fix i
       assume "i<n"
-      then have "CAi ! i = (CAi' \<cdot>cl \<eta>) ! i" using n cai'_cai2 cai'_\<eta> by auto
+      then have "CAi ! i = (CAi' \<cdot>cl \<eta>_fo) ! i" using n cai'_cai2 cai'_\<eta> by auto
     }
     then show ?thesis using n by auto
   qed
-  have "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>"
+  have "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>_fo"
   proof (rule, rule)
     fix i
     assume "i < n"
     then have "S_M S M (CAi ! i) = S (CAi'' ! i \<cdot> \<rho>s ! i) \<cdot> (\<rho>s_inv ! i) \<cdot> \<eta>s'' ! i"
       using sel_cai'_cai unfolding CAi'_def \<eta>s'_def
       using n by simp
-    also have "... = S (CAi'' ! i \<cdot> \<rho>s ! i) \<cdot> \<eta>"
+    also have "... = S (CAi'' ! i \<cdot> \<rho>s ! i) \<cdot> \<eta>_fo"
       using s_cai'_\<eta> unfolding CAi'_def \<eta>s'_def
        S.S_selects_subseteq
       by (metis \<open>i < n\<close> calculation empty_subst ord_resolve(13)) (* There must be a better, more local proof *)
-    also have "... = S (CAi' ! i) \<cdot> \<eta>"
+    also have "... = S (CAi' ! i) \<cdot> \<eta>_fo"
       unfolding CAi'_def
       by (simp add: \<open>i < n\<close> n) 
-    finally show "S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>"
+    finally show "S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>_fo"
       by auto
   qed
 
   have "DAi' \<in> M" using DAi'_in_M by auto
-  have "DAi = DAi' \<cdot> \<eta>" using dai'_dai dai'_\<eta> by auto
-  have "S_M S M DAi = S DAi' \<cdot> \<eta>"
+  have "DAi = DAi' \<cdot> \<eta>_fo" using dai'_dai dai'_\<eta> by auto
+  have "S_M S M DAi = S DAi' \<cdot> \<eta>_fo"
   proof -
     have "S_M S M DAi = S (DAi'' \<cdot> \<rho>) \<cdot> \<rho>_inv \<cdot> \<eta>''"
       using sel_dai'_dai unfolding DAi'_def \<eta>'_def by auto
-    also have "... = S (DAi'' \<cdot> \<rho>) \<cdot> \<eta>"
+    also have "... = S (DAi'' \<cdot> \<rho>) \<cdot> \<eta>_fo"
       using s_dai'_\<eta> unfolding DAi'_def \<eta>'_def
       by (simp add: S.S_selects_subseteq)
-    also have "... = S (DAi') \<cdot> \<eta>"
+    also have "... = S (DAi') \<cdot> \<eta>_fo"
       unfolding DAi'_def by auto
     finally show ?thesis by auto
   qed
+
+  (* Replace \<eta>_fo with a ground substitution *)
+  thm  make_ground_subst2[of "DAi' # CAi'" \<eta>_fo]
     
+  have "DAi' \<in> M" using DAi'_in_M by auto
+  have "DAi = DAi' \<cdot> \<eta>" using dai'_dai dai'_\<eta> by auto
+  have "S_M S M DAi = S DAi' \<cdot> \<eta>"
   have prime_clauses_10: "is_ground_subst \<eta>" sorry
+      
 
   (* Now I need to find all these Ci' Aij' D' Ai' *)
 
@@ -1127,8 +1136,7 @@ lemma ord_resolve_lifting:
   have pay11: "\<forall>i<n. (poss (Aij' ! i)) \<subseteq># CAi' ! i"
     using tdddd by auto
  
-  
-    
+
   define Ci' where "Ci' = map2 (op -) CAi' (map poss Aij')"
     
   have "length Ci' = n"
