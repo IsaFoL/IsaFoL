@@ -881,7 +881,7 @@ lemma ord_resolve_lifting:
   have "length \<eta>s' = n"
     unfolding \<eta>s'_def using n by auto
 
-  note n = \<open>length \<rho>s_inv = n\<close> \<open>length CAi' = n\<close> \<open>length \<eta>s' = n\<close> n
+  note n = \<open>length CAi' = n\<close> \<open>length \<eta>s' = n\<close> n
     
   have \<rho>_i_inv_id: "\<forall>i<n. \<rho>s ! i \<odot> \<rho>s_inv ! i = id_subst"
     using n \<rho>s_inv_def \<rho>s_ren by auto
@@ -933,7 +933,7 @@ lemma ord_resolve_lifting:
       (* since (\<rho>s_inv ! i) is a renaming. *) 
       using selection_renaming_invariant
       using \<rho>s_ren unfolding \<rho>s_inv_def
-      by (simp add: a n(5)) 
+      by (simp add: a n) 
     also have "... = S (CAi' ! i) \<cdot> \<eta>s' ! i"
       unfolding CAi'_def \<eta>s'_def
       using n a by auto
@@ -1066,7 +1066,7 @@ lemma ord_resolve_lifting:
 
     
   have cai'_\<eta>: "\<forall>i<n. CAi' ! i \<cdot> \<eta>s' ! i = CAi' ! i \<cdot> \<eta>" using cai'_\<eta>_fo \<eta>_p
-    by (metis Suc_less_eq add.right_neutral add_Suc_right list.size(4) n(2) nth_Cons_Suc subset_mset.order.refl) 
+    by (metis Suc_less_eq add.right_neutral add_Suc_right list.size(4) n(1) nth_Cons_Suc subset_mset.order.refl) 
       
 
   (* Now I need to find all these Ci' Aij' D' Ai' *)
