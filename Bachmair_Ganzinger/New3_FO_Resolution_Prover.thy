@@ -765,6 +765,11 @@ proof -
     using mset_take_subseteq by blast
   ultimately show ?thesis by blast
 qed
+  
+lemma grounding_ground: "C \<in> grounding_of_clss M \<Longrightarrow> is_ground_cls C"
+   by (smt ground_subst_ground_cls grounding_of_clss_def image_iff mem_Collect_eq mem_simps(9) substitution_ops.grounding_of_cls_def)
+  (* There is also an Isar proof. *)
+  
     
 lemma ord_resolve_lifting: 
   fixes CAi
@@ -979,7 +984,7 @@ lemma ord_resolve_lifting:
     by auto
   then have s_cai'_\<eta>: "\<forall>i<n. \<forall>S. S \<subseteq># CAi' ! i \<longrightarrow> S \<cdot> \<eta>s' ! i = S \<cdot> \<eta>_fo" 
     unfolding CAi'_def by auto
-  then have cai'_\<eta>: "\<forall>i < n. (CAi' ! i) \<cdot> (\<eta>s' ! i) = (CAi'! i) \<cdot> \<eta>_fo"
+  then have cai'_\<eta>_fo: "\<forall>i < n. (CAi' ! i) \<cdot> (\<eta>s' ! i) = (CAi'! i) \<cdot> \<eta>_fo"
     by auto
   
   have "\<forall>i < n. CAi' ! i \<in> M" using CAi'_in_M by auto
@@ -988,7 +993,7 @@ lemma ord_resolve_lifting:
     {
       fix i
       assume "i<n"
-      then have "CAi ! i = (CAi' \<cdot>cl \<eta>_fo) ! i" using n cai'_cai2 cai'_\<eta> by auto
+      then have "CAi ! i = (CAi' \<cdot>cl \<eta>_fo) ! i" using n cai'_cai2 cai'_\<eta>_fo by auto
     }
     then show ?thesis using n by auto
   qed
@@ -1025,12 +1030,42 @@ lemma ord_resolve_lifting:
   qed
 
   (* Replace \<eta>_fo with a ground substitution *)
-  thm  make_ground_subst2[of "DAi' # CAi'" \<eta>_fo]
+  obtain \<eta> where \<eta>_p: "is_ground_subst \<eta> \<and> (\<forall>i<length (DAi' # CAi'). \<forall>S. S \<subseteq># (DAi' # CAi') ! i \<longrightarrow> S \<cdot> \<eta>_fo = S \<cdot> \<eta>)"
+    using make_ground_subst2[of "DAi' # CAi'" \<eta>_fo] grounding \<open>CAi = CAi' \<cdot>cl \<eta>_fo\<close> \<open>DAi = DAi' \<cdot> \<eta>_fo\<close> grounding_ground
+    by (metis Un_insert_left is_ground_cls_list_def list.simps(15) subsetCE subst_cls_list_Cons sup_bot.left_neutral) 
+     
+    
+  have "\<forall>i < n. CAi' ! i \<in> M" using CAi'_in_M by auto
+  have "CAi = CAi' \<cdot>cl \<eta>"
+  proof -
+    {
+      fix i
+      assume "i<n"
+      then have "CAi ! i = (CAi' \<cdot>cl \<eta>_fo) ! i" using \<open>CAi = CAi' \<cdot>cl \<eta>_fo\<close> by auto
+      then have "CAi ! i = (CAi' \<cdot>cl \<eta>) ! i" using n \<eta>_p \<open>i<n\<close> by auto
+    }
+    then show ?thesis using n by auto
+  qed
+  have "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>"
+  proof -
+    {
+      fix i
+      assume "i<n"
+      then have "S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>_fo" using \<open>\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>_fo\<close> by auto
+      then have "S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>" using n \<eta>_p \<open>i<n\<close> S.S_selects_subseteq by auto
+    }
+    then show ?thesis using n by auto
+  qed
     
   have "DAi' \<in> M" using DAi'_in_M by auto
-  have "DAi = DAi' \<cdot> \<eta>" using dai'_dai dai'_\<eta> by auto
+  have "DAi = DAi' \<cdot> \<eta>" using \<open>DAi = DAi' \<cdot> \<eta>_fo\<close> \<eta>_p by auto
   have "S_M S M DAi = S DAi' \<cdot> \<eta>"
-  have prime_clauses_10: "is_ground_subst \<eta>" sorry
+    using \<open>S_M S M DAi = S DAi' \<cdot> \<eta>_fo\<close> using \<eta>_p S.S_selects_subseteq by auto
+  have prime_clauses_10: "is_ground_subst \<eta>" using \<eta>_p by auto
+
+    
+  have cai'_\<eta>: "\<forall>i<n. CAi' ! i \<cdot> \<eta>s' ! i = CAi' ! i \<cdot> \<eta>" using cai'_\<eta>_fo \<eta>_p
+    by (metis Suc_less_eq add.right_neutral add_Suc_right list.size(4) n(2) nth_Cons_Suc subset_mset.order.refl) 
       
 
   (* Now I need to find all these Ci' Aij' D' Ai' *)
