@@ -967,7 +967,7 @@ lemma ord_resolve_lifting:
    qed
 
 
-  (* Now I just need to replace the (\<eta>s' ! i) and (\<rho>') with a single substitution... *)
+  (* Now I just need to replace the (\<eta>s' ! i) and (\<eta>') with a single substitution... *)
 
   from vv have "var_disjoint_2 ((DA'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s)"
     using var_var2 by auto

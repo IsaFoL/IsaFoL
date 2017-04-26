@@ -401,13 +401,59 @@ lemma ord_resolve_lifting:
     "DA'' \<cdot> \<eta>'' = DA"
     "S DA'' \<cdot> \<eta>'' = S_M S M DA"
     
-    "\<forall>i < n. CAi'' ! i \<in> M"
-      "\<forall>CA \<in> set CAi''. CA \<in> M"
+
+    "\<forall>CA \<in> set CAi''. CA \<in> M"
     "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi"
-    "\<forall>i < n. S_M S M (CAi ! i) = S (CAi'' ! i) \<cdot> (\<eta>s'' ! i)"
-      "map (S_M S M) CAi = map S (CAi'' \<cdot>\<cdot>cl \<eta>s'')"
+    "map (S_M S M) CAi = map S (CAi'' \<cdot>\<cdot>cl \<eta>s'')"
     sorry
+      
+  obtain DA'' \<eta>'' CAi'' \<eta>s'' where
+    "DA'' \<in> M"
+    "DA'' \<cdot> \<eta>'' = DA"
+    "S DA'' \<cdot> \<eta>'' = S_M S M DA"
+
+    "\<forall>CA \<in> set CAi''. CA \<in> M"
+    "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi"
+    "map (S_M S M) CAi = map S (CAi'' \<cdot>\<cdot>cl \<eta>s'')"
+    sorry
+      
+  obtain DA' \<eta>' CAi' \<eta>s' where
+    "DA' \<in> M"
+    "DA' \<cdot> \<eta>' = DA"
+    "S DA' \<cdot> \<eta>' = S_M S M DA"
+
+    "\<forall>CA \<in> set CAi'. CA \<in> M"
+    "CAi' \<cdot>\<cdot>cl \<eta>s'' = CAi"
+    "map (S_M S M) CAi = map S (CAi' \<cdot>\<cdot>cl \<eta>s')"
     
+    "var_disjoint (DA' # CAi'')"
+    sorry
+      
+  obtain \<eta>_fo where
+    "DA' \<in> M"
+    "DA' \<cdot> \<eta>_fo = DA"
+    "S DA' \<cdot> \<eta>_fo = S_M S M DA"
+    
+    "\<forall>CA \<in> set CAi'. CA \<in> M"
+    "CAi' \<cdot>cl \<eta>_fo = CAi"
+    "map (S_M S M) CAi = map S (CAi' \<cdot>cl \<eta>_fo)"
+    
+    "var_disjoint (DA' # CAi'')"
+    sorry
+      
+  obtain \<eta> where
+    "DA' \<in> M"
+    "DA' \<cdot> \<eta> = DA"
+    "S DA' \<cdot> \<eta> = S_M S M DA"
+    
+    "\<forall>CA \<in> set CAi'. CA \<in> M"
+    "CAi' \<cdot>cl \<eta> = CAi"
+    "map (S_M S M) CAi = map S (CAi' \<cdot>cl \<eta>)"
+    
+    "is_ground_subst \<eta>"
+    "var_disjoint (DA' # CAi'')"
+    sorry
+      
   show ?thesis sorry
 qed
 
