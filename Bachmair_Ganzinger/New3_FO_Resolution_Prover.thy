@@ -506,9 +506,6 @@ lemma empty_subst: "C \<cdot> \<eta> = {#} \<longleftrightarrow> C = {#}"
 unfolding subst_cls_def by auto
   
   
-(* really just a reformulation of S_M_grounding_of_clss *)
-lemma uw2: "selection S \<longrightarrow> (\<forall>C\<sigma>. C\<sigma> \<in> grounding_of_clss M \<longrightarrow> (\<exists>D \<sigma>. D \<in> M \<and> C\<sigma> = D \<cdot> \<sigma> \<and> (S D) \<cdot> \<sigma> = (S_M S M C\<sigma>)))"
-   using S_M_grounding_of_clss by metis
 
 (* A lemma that states that a list of clauses can be standardized apart. *)
 thm make_var_disjoint
@@ -797,7 +794,8 @@ lemma ord_resolve_lifting:
 
   (* Choose the D'' and the C'', i.e. the first-order clauses before being standardized apart *)    
   have uuu: "\<forall>CA \<in> set CAi. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> CA = CA'' \<cdot> \<eta>c'' \<and> S CA'' \<cdot> \<eta>c'' = S_M S M CA"
-    using grounding uw2 select by auto   
+    using grounding S_M_grounding_of_clss select
+    by (metis le_supE subset_iff)    
   hence "\<forall>i < n. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> (CAi ! i) = CA'' \<cdot> \<eta>c'' \<and> S CA'' \<cdot> \<eta>c'' = S_M S M ( (CAi ! i)) "
     using ord_resolve(3) by auto
   then have "\<exists>\<eta>s''f CAi''f. \<forall>i < n. CAi''f i \<in> M \<and> (CAi ! i) = (CAi''f i) \<cdot> (\<eta>s''f i) \<and> S (CAi''f i) \<cdot> (\<eta>s''f i) = S_M S M (CAi ! i)"
@@ -825,11 +823,13 @@ lemma ord_resolve_lifting:
   have CAi''_in_M: "\<forall>i < n. CAi'' ! i \<in> M" using COOL by auto
   have cai''_to_cai: "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi" using COOL
     by (simp add: n)
-  have selelele: "(\<forall>i < n. S_M S M (CAi ! i) = S (CAi'' ! i) \<cdot> (\<eta>s'' ! i))"
+  have selelele: "(\<forall>i < n. S_M S M (CAi ! i) = (S (CAi'' ! i)) \<cdot> (\<eta>s'' ! i))"
     using COOL by auto
 
   have "\<exists>DA'' \<eta>''. DA'' \<in> M \<and> (DA) = DA'' \<cdot> \<eta>'' \<and> S DA'' \<cdot> \<eta>'' = S_M S M DA"
-    using grounding uw2 select by auto
+    using grounding S_M_grounding_of_clss select
+    by (metis le_supE singletonI subsetCE)
+     
   then obtain DA'' \<eta>'' where COOL2: "DA'' \<in> M \<and> DA = DA'' \<cdot> \<eta>'' \<and> S DA'' \<cdot> \<eta>'' = S_M S M DA"
     by auto
     (* The properties we need of DA'' *)
