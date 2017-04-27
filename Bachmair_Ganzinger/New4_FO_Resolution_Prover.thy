@@ -388,6 +388,15 @@ lemma var_disjoint_def_2:
     )"
   sorry
     
+lemma make_ground_subst2: 
+  "is_ground_cls_list (CC \<cdot>cl \<sigma>) \<Longrightarrow>
+       \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)"
+  sorry
+    
+lemma grounding_ground: "C \<in> grounding_of_clss M \<Longrightarrow> is_ground_cls C"
+   by (smt ground_subst_ground_cls grounding_of_clss_def image_iff mem_Collect_eq mem_simps(9) substitution_ops.grounding_of_cls_def)
+  (* There is also an Isar proof. *)
+    
 lemma ord_resolve_lifting: 
   fixes CAi
   assumes resolve: "ord_resolve (S_M S M) CAi DA E" 
@@ -675,7 +684,7 @@ lemma ord_resolve_lifting:
       
   note n = \<open>length CAi' = n\<close> \<open>length \<eta>s' = n\<close> n
       
-  obtain \<eta>_fo where
+  obtain \<eta>_fo where clauses': (* Overwriting the old clauses' *)
     "DA' \<in> M"
     "DA' \<cdot> \<eta>_fo = DA"
     "S DA' \<cdot> \<eta>_fo = S_M S M DA"
@@ -774,8 +783,64 @@ lemma ord_resolve_lifting:
     "map (S_M S M) CAi = (map S CAi') \<cdot>cl \<eta>"
     
     "is_ground_subst \<eta>"
-    "var_disjoint (DA' # CAi'')"
-    sorry
+    "var_disjoint (DA' # CAi')"
+  proof -
+    obtain \<eta> where \<eta>_p: "is_ground_subst \<eta> \<and> (\<forall>i<length (DA' # CAi'). \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> \<eta>_fo = S \<cdot> \<eta>)"
+      using make_ground_subst2[of "DA' # CAi'" \<eta>_fo] grounding \<open>CAi' \<cdot>cl \<eta>_fo = CAi\<close> \<open>DA' \<cdot> \<eta>_fo = DA\<close> grounding_ground
+      by (metis Un_insert_left is_ground_cls_list_def list.simps(15) subsetCE subst_cls_list_Cons sup_bot.left_neutral) 
+        
+        
+    have "\<forall>i < n. CAi' ! i \<in> M" using clauses' n by auto
+    have "CAi = CAi' \<cdot>cl \<eta>"
+    proof -
+      {
+        fix i
+        assume "i<n"
+        then have "CAi ! i = (CAi' \<cdot>cl \<eta>_fo) ! i" using \<open>CAi' \<cdot>cl \<eta>_fo = CAi\<close> by auto
+        then have "CAi ! i = (CAi' \<cdot>cl \<eta>) ! i" using n \<eta>_p \<open>i<n\<close> by auto
+      }
+      then show ?thesis using n by auto
+    qed
+    have "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>"
+    proof -
+      {
+        fix i
+        assume "i<n"
+        have "S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>_fo"
+        proof -
+          have "map (S_M S M) CAi = map S CAi' \<cdot>cl \<eta>_fo" using clauses' by auto
+          then have "(map (S_M S M) CAi) ! i = (map S CAi' \<cdot>cl \<eta>_fo) ! i" by auto
+          then have "S_M S M (CAi ! i) = ((map S CAi') \<cdot>cl \<eta>_fo) ! i" using n \<open>i<n\<close> by auto
+          then show "S_M S M (CAi ! i) = (S (CAi' ! i)) \<cdot> \<eta>_fo" using n \<open>i<n\<close> by auto
+        qed
+        then have "S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>" using n \<eta>_p \<open>i<n\<close> S.S_selects_subseteq by auto
+      }
+      then show ?thesis using n by auto
+    qed
+      
+    have "DA' \<in> M" using clauses' by auto
+    have "DA = DA' \<cdot> \<eta>" using \<open>DA' \<cdot> \<eta>_fo = DA\<close> \<eta>_p by auto
+    have "S_M S M DA = S DA' \<cdot> \<eta>"
+      using \<open>S DA' \<cdot> \<eta>_fo = S_M S M DA\<close> using \<eta>_p S.S_selects_subseteq by auto
+    have prime_clauses_10: "is_ground_subst \<eta>" using \<eta>_p by auto
+       
+    have "map (S_M S M) CAi = (map S CAi') \<cdot>cl \<eta>"
+      using \<open>\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>\<close>
+        n by auto
+        
+    show ?thesis using that 
+    \<open>DA' \<in> M\<close>
+    \<open>DA = DA' \<cdot> \<eta>\<close>
+    \<open>S_M S M DA = S DA' \<cdot> \<eta>\<close>
+    
+    \<open>\<forall>CA \<in> set CAi'. CA \<in> M\<close>
+    \<open>CAi = CAi' \<cdot>cl \<eta>\<close>
+    \<open>map (S_M S M) CAi = (map S CAi') \<cdot>cl \<eta>\<close>
+    
+    \<open>is_ground_subst \<eta>\<close>
+    \<open>var_disjoint (DA' # CAi')\<close>
+    by auto 
+  qed
       
   show ?thesis sorry
 qed
