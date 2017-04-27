@@ -379,6 +379,15 @@ lemma (in linorder) multiset_mset_sorted_list_of_multiset[simp]:
 lemma inv_ren_ren: "is_renaming s \<Longrightarrow> is_renaming (inv_ren s)"
   sorry    
     
+lemma var_disjoint_def_2:
+  "var_disjoint Cs = 
+    (\<forall>\<sigma>s. length \<sigma>s = length Cs \<longrightarrow> 
+      (\<exists>\<tau>. 
+        (\<forall>i < length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma>s ! i = S \<cdot> \<tau>)
+      )
+    )"
+  sorry
+    
 lemma ord_resolve_lifting: 
   fixes CAi
   assumes resolve: "ord_resolve (S_M S M) CAi DA E" 
