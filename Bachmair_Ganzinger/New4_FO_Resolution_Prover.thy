@@ -776,7 +776,7 @@ lemma ord_resolve_lifting:
   qed
       
   (* Instantiate with ground substitution *)
-  obtain \<eta> where
+  obtain \<eta> where clauses': (* Overwriting the old clauses' *)
     "DA' \<in> M"
     "DA' \<cdot> \<eta> = DA"
     "S DA' \<cdot> \<eta> = S_M S M DA"
@@ -851,13 +851,108 @@ lemma ord_resolve_lifting:
     "D' \<cdot> \<eta> = D"
     "DA' = D' +  (negs (mset Ai'))"
     "S_M S M (D + negs (mset Ai)) \<noteq> {#} \<Longrightarrow> negs (mset Ai') = S DA'"
-    sorry
+  proof -
+    from ord_resolve(11) have "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> (negs (mset Ai')) \<subseteq># DA' \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')"
+      unfolding eligible_simp
+    proof
+      assume a: "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
+      then have "length Ai = 1" by auto
+      then have "mset Ai = {# Ai ! 0 #}" by auto
+      then have "negs (mset Ai) = {# Neg (Ai ! 0) #}"
+        by (simp add: \<open>mset Ai = {#Ai ! 0#}\<close>)
+      then have "DA = D + {#Neg (Ai ! 0)#}" using ord_resolve(1) by auto
+      then obtain L where "L \<in># DA' \<and> L \<cdot>l \<eta> = Neg (Ai ! 0)" using \<open>DA' \<cdot> \<eta> = DA\<close>
+        by (metis Melem_subst_cls mset_subset_eq_add_right single_subset_iff)
+      then have "Neg (atm_of L) \<in># DA' \<and> Neg (atm_of L) \<cdot>l \<eta> = Neg (Ai ! 0) "
+        by (metis Neg_atm_of_iff literal.sel(2) subst_lit_is_pos)
+      then have "[atm_of L] \<cdot>al \<eta> = Ai \<and> negs (mset [atm_of L]) \<subseteq># DA'"
+        using \<open>mset Ai = {#Ai ! 0#}\<close> subst_lit_def by auto
+      then show "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> negs (mset Ai') \<subseteq># DA' \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')" using a by blast
+    next
+      assume "S_M S M (D + negs (mset Ai)) = negs (mset Ai)" 
+      then have "negs (mset Ai) = S DA' \<cdot> \<eta>" using ord_resolve(1) \<open>S DA' \<cdot> \<eta> = S_M S M DA\<close> by auto
+      then have "\<exists>Ai'. negs (mset Ai') = S DA' \<and> Ai' \<cdot>al \<eta> = Ai"
+        using very_specific_lemma[of Ai "S DA'" \<eta>] using S.S_selects_neg_lits by auto
+      then show "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> negs (mset Ai') \<subseteq># DA'  \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')" using S.S_selects_subseteq by auto
+    qed
+    then obtain Ai' where Ai'_p: "Ai' \<cdot>al \<eta> = Ai \<and> (negs (mset Ai')) \<subseteq># DA' \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')" by blast
+    then have "length Ai' = n"
+      using local.ord_resolve(6) by auto
+    note n = n \<open>length Ai' = n\<close>
+      
+    have "Ai' \<cdot>al \<eta> = Ai" using Ai'_p by auto
+        
+    define D' where "D' = DA' - (negs (mset Ai'))"
+    then have DA'_u: "DA' = D' +  (negs (mset Ai'))" using Ai'_p by auto
+        
+    have useful: "negs (mset Ai') \<cdot> \<eta> = negs (mset Ai)"
+      using Ai'_p 
+      using atomlist_to_negs_equality by auto
+        
+    then have "D' \<cdot> \<eta> = D" using \<open>DA' \<cdot> \<eta> = DA\<close> ord_resolve(1) DA'_u
+      by auto
+        
+    have "\<forall>i<n. \<exists>Aiji'. Aiji' \<cdot>am \<eta> = Aij ! i \<and> (poss (Aiji')) \<subseteq># CAi' ! i"
+    proof (rule, rule)
+      fix i
+      assume "i<n"
+      have "CAi' ! i \<cdot> \<eta> = CAi ! i"
+      proof -
+        have "CAi' \<cdot>cl \<eta> = CAi" 
+          using clauses'(5) by -
+        then have "(CAi' \<cdot>cl \<eta>) ! i = CAi ! i" 
+          by auto
+        then show "CAi' ! i \<cdot> \<eta> = CAi ! i" 
+          using \<open>i<n\<close> n by auto
+      qed
+      moreover
+      have "poss (Aij ! i) \<subseteq># CAi !i"
+        using \<open>i<n\<close> ord_resolve(8) by auto
+      ultimately
+      have "\<exists>NAiji'.  NAiji' \<cdot> \<eta> = poss (Aij ! i) \<and> NAiji' \<subseteq># CAi' ! i"
+        using obviously unfolding subst_cls_def by auto
+      then obtain NAiji' where nn: "NAiji' \<cdot> \<eta> = poss (Aij ! i) \<and> NAiji' \<subseteq># CAi' ! i"
+        by auto
+      have l: "\<forall>L \<in># NAiji'. is_pos L"
+      proof
+        fix L
+        assume LL: "L \<in># NAiji'"
+        have asdfasdf: "\<forall>L' \<in># poss (Aij ! i). is_pos L'"
+          by auto
+        then have "\<exists>L' \<in># poss (Aij ! i). L  \<cdot>l \<eta> = L'"
+          using nn LL
+          by (metis Melem_subst_cls) 
+        then have "\<exists>L'. is_pos L' \<and> L  \<cdot>l \<eta> = L'"
+          using asdfasdf by metis
+        then show "is_pos L"
+          by auto
+      qed
+      define Aiji' where "Aiji' = image_mset atm_of NAiji'"
+      have na: "poss Aiji' = NAiji'"
+        using l unfolding Aiji'_def by auto
+      then have "Aiji' \<cdot>am \<eta> = Aij ! i" using nn
+        by (metis literal.inject(1) multiset.inj_map_strong subst_cls_poss)
+      moreover
+      have "poss Aiji' \<subseteq># CAi' ! i"
+        using na nn by auto
+      ultimately
+      show "\<exists>Aiji'. Aiji' \<cdot>am \<eta> = Aij ! i \<and> poss Aiji' \<subseteq># CAi' ! i" 
+        by blast 
+    qed
+      
+    then obtain Aij'f where Aij'f_p: "\<forall>i<n. Aij'f i \<cdot>am \<eta> = Aij ! i \<and> (poss (Aij'f i)) \<subseteq># CAi' ! i"
+      by metis
+    define Aij' where "Aij' = map Aij'f [0 ..<n]"
+      
+    then have "length Aij' = n" by auto
+    note n = n \<open>length Aij' = n\<close>
+  qed
       
   (* Split in to C's and A's *)
   obtain Aij' Ci'  where
     "Aij' \<cdot>aml \<eta> = Aij"
     "Ci' \<cdot>cl \<eta> = Ci"
-    "\<forall>i < n. CAi' ! i = Ci' ! i + poss (Aij' ! i)" (* Write in list notation *)
+    "\<forall>i < n. CAi' ! i = Ci' ! i + poss (Aij' ! i)" (* Write in list notation? *)
     sorry
       
   (* Obtain mgu and substitution *)

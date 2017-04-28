@@ -734,7 +734,7 @@ qed
 lemma obviously: 
   assumes "image_mset \<eta> C' = C"
   assumes "A \<subseteq># C"
-  shows "\<exists>A'. image_mset \<eta> A' = A \<and> A' \<subseteq># C'"
+  shows "\<exists>A'. A' \<subseteq># C' \<and> image_mset \<eta> A' = A "
   using assms
 proof -
   define lA where "lA = list_of_mset A"
