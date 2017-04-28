@@ -1089,7 +1089,7 @@ lemma ord_resolve_lifting:
       then show "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> negs (mset Ai') \<subseteq># DA' \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')" using a by blast
     next
       assume "S_M S M (D + negs (mset Ai)) = negs (mset Ai)" 
-      then have "negs (mset Ai) = S DA' \<cdot> \<eta>" using ord_resolve(1) \<open>S_M S M (DA) = S (DA') \<cdot> \<eta>\<close> by auto
+      then have "negs (mset Ai) = S DA' \<cdot> \<eta>" using ord_resolve(1) \<open>S_M S M DA = S DA' \<cdot> \<eta>\<close> by auto
       then have "\<exists>Ai'. negs (mset Ai') = S DA' \<and> Ai' \<cdot>al \<eta> = Ai"
         using very_specific_lemma[of Ai "S DA'" \<eta>] using S.S_selects_neg_lits by auto
       then show "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> negs (mset Ai') \<subseteq># DA'  \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')" using S.S_selects_subseteq by auto
@@ -1216,7 +1216,7 @@ lemma ord_resolve_lifting:
         
   (* Obtain mgu *)    
   have "Some \<sigma> = mgu (set_mset ` set (map2 add_mset Ai Aij))" using ord_resolve by -
-  hence uu: "is_unifiers \<sigma> (set_mset ` set (map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)))" 
+  hence uu: "is_unifiers \<sigma> (set_mset ` set (map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)))"
     using mgu_sound is_mgu_def unfolding \<open>Aij' \<cdot>aml \<eta> = Aij\<close> using Ai'_p by auto
   have \<eta>\<sigma>uni: "is_unifiers (\<eta> \<odot> \<sigma>) (set_mset ` set (map2 add_mset Ai' Aij'))"
   proof -

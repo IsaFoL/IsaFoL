@@ -845,28 +845,48 @@ lemma ord_resolve_lifting:
     by auto 
   qed
   
-  (* Split in to D's and A's; Split in to C's and A's; Obtain mgu and substitution *)
-  obtain Ai' D' Aij' Ci' \<tau>  \<phi> where
+  (* Split in to D's and A's *)
+  obtain Ai' D' where
     "Ai' \<cdot>al \<eta> = Ai"
     "D' \<cdot> \<eta> = D"
     "DA' = D' +  (negs (mset Ai'))"
-    
+    "S_M S M (D + negs (mset Ai)) \<noteq> {#} \<Longrightarrow> negs (mset Ai') = S DA'"
+    sorry
+      
+  (* Split in to C's and A's *)
+  obtain Aij' Ci'  where
     "Aij' \<cdot>aml \<eta> = Aij"
     "Ci' \<cdot>cl \<eta> = Ci"
     "\<forall>i < n. CAi' ! i = Ci' ! i + poss (Aij' ! i)" (* Write in list notation *)
-    
+    sorry
+      
+  (* Obtain mgu and substitution *)
+  obtain \<tau>  \<phi> where
     "Some \<tau> = mgu (set_mset ` set (map2 add_mset Ai' Aij'))"
     "\<tau> \<odot> \<phi> = \<eta> \<odot> \<sigma>"
     sorry
     
-    
   (* Lifting eligibility *)
-  
+  have "eligible S \<tau> Ai' (D' + negs (mset Ai'))" 
+    sorry
       
   (* Lifting maximality *)
+  have "\<forall>i<n. str_maximal_in (Ai' ! i \<cdot>a \<tau>) (Ci' ! i \<cdot> \<tau>)" 
+    sorry
+      (* Reformulate in list notation *)
+
   (* Lifting nothing selected *)
-  (* Resolve the lifted clauses *)  
+  have "\<forall>i < n. S (CAi' ! i) = {#}"
+    sorry
+  (* Resolve the lifted clauses *)
+  define E' where "E' = ((\<Union># (mset Ci')) + D') \<cdot> \<tau>"   
+      
+  have "ord_resolve S CAi' DA' E'" 
+    sorry
+      
   (* Prove resolvent instantiates to ground resolvent *)
+  have e'\<phi>e: "E' \<cdot> \<phi> = E" 
+    sorry
     
   show ?thesis sorry
 qed
