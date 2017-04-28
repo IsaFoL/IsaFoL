@@ -1311,7 +1311,14 @@ lemma ord_resolve_lifting:
       
   (* Prove resolvent instantiates to ground resolvent *)
   have e'\<phi>e: "E' \<cdot> \<phi> = E" 
-    sorry
+  proof -
+    have "E' \<cdot> \<phi> = ((\<Union># (mset Ci')) + D') \<cdot> (\<tau> \<odot> \<phi>)" unfolding E'_def by auto
+    also have "... = ((\<Union># (mset Ci')) + D') \<cdot> (\<eta> \<odot> \<sigma>)" using \<tau>\<phi> by auto
+    also have "... = ((\<Union># (mset (Ci' \<cdot>cl \<eta>))) + (D' \<cdot> \<eta>)) \<cdot> \<sigma>" by simp
+    also have "... = ((\<Union># (mset Ci)) + D) \<cdot> \<sigma>" using  \<open>Ci' \<cdot>cl \<eta> = Ci\<close> \<open>D' \<cdot> \<eta> = D\<close> by auto
+    also have "... = E" using ord_resolve by auto
+    finally show e'\<phi>e: "E' \<cdot> \<phi> = E" .
+  qed
   
   (* Replace \<phi> with ground substitution *)
   obtain \<eta>2 where ground_\<eta>2: "is_ground_subst \<eta>2" "E' \<cdot> \<eta>2 = E"
@@ -1322,7 +1329,6 @@ lemma ord_resolve_lifting:
     then obtain \<eta>2 where ground_\<eta>2: "is_ground_subst \<eta>2" "E' \<cdot> \<eta>2 = E" using e'\<phi>e make_single_ground_subst by blast
     then show ?thesis using that by auto
   qed
-    
     
   show ?thesis using that
       ground_\<eta>2 res_e clauses' by blast
