@@ -910,7 +910,7 @@ lemma ord_resolve_lifting:
         using \<open>i<n\<close> ord_resolve(8) by auto
       ultimately
       have "\<exists>NAiji'.  NAiji' \<cdot> \<eta> = poss (Aij ! i) \<and> NAiji' \<subseteq># CAi' ! i"
-        using obviously unfolding subst_cls_def by auto
+        using image_mset_of_subset unfolding subst_cls_def by metis
       then obtain NAiji' where nn: "NAiji' \<cdot> \<eta> = poss (Aij ! i) \<and> NAiji' \<subseteq># CAi' ! i"
         by auto
       have l: "\<forall>L \<in># NAiji'. is_pos L"

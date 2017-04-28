@@ -691,18 +691,6 @@ next
   then show ?case by blast
 qed
   
-lemma atomlist_to_negs_equality:
-  assumes "Ai' \<cdot>al \<eta> = Ai"
-  shows "negs (mset Ai') \<cdot> \<eta> = negs (mset Ai)"
-proof -
-  from assms have "map Neg (Ai' \<cdot>al \<eta>) = map Neg Ai" by auto
-  then have "mset (map Neg (Ai' \<cdot>al \<eta>)) = mset (map Neg Ai)" by auto
-  then show ?thesis
-    by simp
-qed
-
-
-  
 lemma grounding_ground: "C \<in> grounding_of_clss M \<Longrightarrow> is_ground_cls C"
    by (smt ground_subst_ground_cls grounding_of_clss_def image_iff mem_Collect_eq mem_simps(9) substitution_ops.grounding_of_cls_def)
   (* There is also an Isar proof. *)
@@ -1260,7 +1248,6 @@ lemma ord_resolve_lifting:
       
       
   hence inM: "{DA'} \<union> set CAi' \<subseteq> M"
-    apply auto
     apply (auto simp add: \<open>DA' \<in> M\<close>)
     using n \<open>\<forall>i<n. CAi' ! i \<in> M\<close>
     by (metis in_set_conv_nth) 
