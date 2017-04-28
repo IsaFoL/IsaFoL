@@ -529,10 +529,6 @@ lemma something_intersection:
   using assms
   oops
     
-lemma image_mset_Diff':
- "Y \<in># X \<Longrightarrow> image_mset f (X - {#Y#}) = (image_mset f X) - {#f Y#}"
-  by (simp add: image_mset_Diff)
-    
 lemma map2_add_mset_map:
   assumes "length Aij' = n"
   assumes "length Ai' = n"
@@ -683,8 +679,8 @@ next
   then have "(negs (mset (Ai))) = (SDA' \<cdot> \<eta> ) - {# Neg ((atm_of aa))#} \<cdot> \<eta>"
     by (metis image_mset_single subst_atm_mset_single subst_cls_negs)
   then have "(negs (mset (Ai))) = ((SDA') - {# Neg ((atm_of aa))#}) \<cdot> \<eta>"
-    using aa_p aa_p2
-    by (metis (mono_tags, lifting) image_mset_Diff' image_mset_single subst_cls_def)
+    using aa_p aa_p2 
+    by (metis (mono_tags, lifting) image_mset_remove1_mset_if image_mset_single subst_cls_def) 
   then have "\<exists>Ai'. negs (mset Ai') = remove1_mset (Neg (atm_of aa)) SDA' \<and> Ai' \<cdot>al \<eta> = Ai" using Cons(1)[of "((SDA') - {# Neg ((atm_of aa))#})"]
     using Cons(3)
     by (meson in_diffD)
@@ -705,63 +701,7 @@ proof -
     by simp
 qed
 
-lemma nice_theorem_about_msets_and_lists: (* The proof looks suspiciously like very_specific_lemma *)
-  assumes "mset lC = C"
-  assumes "image_mset \<eta> C' = C"
-  shows "\<exists>qC'. map \<eta> qC' = lC \<and> mset qC' = C'"
-using assms proof (induction lC arbitrary: C C')
-  case Nil
-  then show ?case by auto
-next
-  case (Cons a lC)
-  from Cons have "mset lC = C - {# a #}" by auto 
-  moreover
-  from Cons obtain aa where aa_p: "aa \<in># C' \<and> \<eta> aa = a"
-    by (metis msed_map_invR mset.simps(2) union_single_eq_member)
-  from Cons this have "image_mset \<eta> (C' - {# aa #}) = C - {# a #}"
-    by (simp add: image_mset_Diff')
-  ultimately
-  have "\<exists>qC'. map \<eta> qC' = lC \<and> mset qC' = C' - {# aa #}" 
-    using Cons(1) by simp
-  then obtain qC' where "map \<eta> qC' = lC \<and> mset qC' = C' - {# aa #}"
-    by blast
-  then have "map \<eta> (aa # qC') = a # lC \<and> mset (aa # qC') = C'"
-    using aa_p Cons(2) by auto
-  then show ?case
-    by metis    
-qed
-  
-lemma obviously: 
-  assumes "image_mset \<eta> C' = C"
-  assumes "A \<subseteq># C"
-  shows "\<exists>A'. image_mset \<eta> A' = A \<and> A' \<subseteq># C'"
-  using assms
-proof -
-  define lA where "lA = list_of_mset A"
-  define lD where "lD = list_of_mset (C-A)"
-  define lC where "lC = lA @ lD"
-    
-  have "mset lC = C"
-    using assms(2) unfolding lD_def lC_def lA_def by auto
-  then have "\<exists>qC'. map \<eta> qC' = lC \<and> mset qC' = C'"
-    using assms(1) nice_theorem_about_msets_and_lists[of lC C \<eta> C'] by blast
-  then obtain qC' where qC'_p: "map \<eta> qC' = lC \<and> mset qC' = C'"
-    by auto
-  let ?lA' = "take (length lA) qC'"
-  have m: "map \<eta> ?lA' = lA"
-    using qC'_p lC_def
-    by (metis append_eq_conv_conj take_map)
-  let ?A' = "mset ?lA'"    
-  
-  have "image_mset \<eta> ?A' = A"
-    using m using lA_def
-    by (metis (full_types) ex_mset list_of_mset_def mset_map someI_ex)
-  moreover
-  have "?A' \<subseteq># C'"  
-    using qC'_p  assms(2) unfolding lA_def
-    using mset_take_subseteq by blast
-  ultimately show ?thesis by blast
-qed
+
   
 lemma grounding_ground: "C \<in> grounding_of_clss M \<Longrightarrow> is_ground_cls C"
    by (smt ground_subst_ground_cls grounding_of_clss_def image_iff mem_Collect_eq mem_simps(9) substitution_ops.grounding_of_cls_def)
@@ -1122,7 +1062,7 @@ lemma ord_resolve_lifting:
       using \<open>i<n\<close> ord_resolve(8) by auto
     ultimately
     have "\<exists>NAiji'.  NAiji' \<cdot> \<eta> = poss (Aij ! i) \<and> NAiji' \<subseteq># CAi' ! i"
-      using obviously unfolding subst_cls_def by auto
+      using image_mset_of_subset unfolding subst_cls_def by metis
     then obtain NAiji' where nn: "NAiji' \<cdot> \<eta> = poss (Aij ! i) \<and> NAiji' \<subseteq># CAi' ! i"
       by auto
     have l: "\<forall>L \<in># NAiji'. is_pos L"
