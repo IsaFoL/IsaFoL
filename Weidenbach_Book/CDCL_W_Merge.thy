@@ -304,7 +304,7 @@ next
     have "atm_of L' \<notin> atms_of ((remove1_mset L D))"
       by (metis DE LE \<open>L' \<notin># (remove1_mset L D)\<close>
         atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set atms_of_def in_remove1_mset_neq
-        in_atms_of_remove1_mset_in_atms_of)
+        in_atms_of_minusD)
     have "i = get_maximum_level ?M ((remove1_mset L D))"
       using max_D \<open>atm_of L' \<notin> atms_of ((remove1_mset L D))\<close> MV by auto }
   moreover have "atm_of L' \<noteq> atm_of K"
