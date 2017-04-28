@@ -650,6 +650,45 @@ lemma make_ground_subst2:
   sorry
     
 term is_ground_cls
+
+lemma eql_neg_lit_eql_atm[simp]: "(Neg A' \<cdot>l \<eta>) = Neg A \<longleftrightarrow> A' \<cdot>a \<eta> = A"
+  by (simp add: subst_lit_def)
+
+lemma eql_pos_lit_eql_atm[simp]: "(Pos A' \<cdot>l \<eta>) = Pos A \<longleftrightarrow> A' \<cdot>a \<eta> = A"
+  by (simp add: subst_lit_def)
+  
+lemma eql_map_neg_lit_eql_atm:
+  assumes "map (\<lambda>x. x \<cdot>l \<eta>) (map Neg Ai') = map Neg Ai"
+  shows "Ai' \<cdot>al \<eta> = Ai"
+  using assms 
+by (induction Ai' arbitrary: Ai) auto
+  
+lemma very_specific_lemma:
+  assumes "negs (mset Ai) = SDA' \<cdot> \<eta>"
+  shows "\<exists>Ai'. negs (mset Ai') = SDA' \<and> Ai' \<cdot>al \<eta> = Ai"
+proof - 
+  from assms(1) have negL: "\<forall>L \<in># SDA'. is_neg L"
+    by (metis image_iff literal.disc(2) set_image_mset subst_lit_is_pos substitution_ops.subst_cls_def)
+    
+  from assms(1) have "{#x \<cdot>l \<eta>. x \<in># SDA'#} = mset (map Neg Ai)"
+    using subst_cls_def by auto
+  then have "\<exists>NAi'. map (\<lambda>x. x \<cdot>l \<eta>) NAi' = map Neg Ai \<and> mset NAi' = SDA'"  
+   using image_mset_of_subset_list[of "\<lambda>x. x \<cdot>l \<eta>" SDA' "map Neg Ai"]
+   by auto
+  then obtain Ai' where Ai'_p:
+    "map (\<lambda>x. x \<cdot>l \<eta>) (map Neg Ai') = map Neg Ai \<and> mset (map Neg Ai') = SDA'"
+    by (metis (no_types, lifting) Neg_atm_of_iff negL ex_map_conv set_mset_mset)
+  
+  have "negs (mset Ai') = SDA'" 
+    using Ai'_p by auto
+  moreover
+  have "map (\<lambda>x. x \<cdot>l \<eta>) (map Neg Ai') = map Neg Ai"
+    using Ai'_p by auto
+  then have "Ai' \<cdot>al \<eta> = Ai"
+    using eql_map_neg_lit_eql_atm by auto
+  ultimately
+  show ?thesis by auto
+qed
   
 lemma very_specific_lemma:
   assumes "negs (mset Ai) = SDA' \<cdot> \<eta>"
@@ -1034,7 +1073,7 @@ lemma ord_resolve_lifting:
       
   have useful: "negs (mset Ai') \<cdot> \<eta> = negs (mset Ai)"
     using Ai'_p 
-    using atomlist_to_negs_equality by auto
+     by auto
             
   then have "D' \<cdot> \<eta> = D" using \<open>DA = DA' \<cdot> \<eta>\<close> ord_resolve(1) DA'_u
     by auto
