@@ -513,6 +513,15 @@ lemma[simp]: "length \<tau>s = length \<sigma>s \<Longrightarrow> i < length \<t
   by auto
       
 (* This is a mess: *)   
+
+lemma eql_neg_lit_eql_atm[simp]: "(Neg A' \<cdot>l \<eta>) = Neg A \<longleftrightarrow> A' \<cdot>a \<eta> = A"
+  by (simp add: subst_lit_def)
+
+lemma eql_pos_lit_eql_atm[simp]: "(Pos A' \<cdot>l \<eta>) = Pos A \<longleftrightarrow> A' \<cdot>a \<eta> = A"
+  by (simp add: subst_lit_def)    
+    
+    
+    
    
 lemma is_renaming_inj:
    "is_renaming \<sigma> \<Longrightarrow> (\<forall>x y. x \<cdot>a \<sigma> = y \<cdot>a \<sigma> \<longrightarrow> x = y)" (* I don't think the other direction is true *)

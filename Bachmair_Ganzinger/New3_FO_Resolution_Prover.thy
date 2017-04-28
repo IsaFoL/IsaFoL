@@ -650,12 +650,6 @@ lemma make_ground_subst2:
   sorry
     
 term is_ground_cls
-
-lemma eql_neg_lit_eql_atm[simp]: "(Neg A' \<cdot>l \<eta>) = Neg A \<longleftrightarrow> A' \<cdot>a \<eta> = A"
-  by (simp add: subst_lit_def)
-
-lemma eql_pos_lit_eql_atm[simp]: "(Pos A' \<cdot>l \<eta>) = Pos A \<longleftrightarrow> A' \<cdot>a \<eta> = A"
-  by (simp add: subst_lit_def)
   
 lemma eql_map_neg_lit_eql_atm:
   assumes "map (\<lambda>x. x \<cdot>l \<eta>) (map Neg Ai') = map Neg Ai"
