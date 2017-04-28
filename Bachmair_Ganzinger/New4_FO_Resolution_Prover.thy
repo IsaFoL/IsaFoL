@@ -979,6 +979,17 @@ lemma ord_resolve_lifting:
       
     then have "length Aij' = n" by auto
     note n = n \<open>length Aij' = n\<close>
+      
+    have "S_M S M (D + negs (mset Ai)) \<noteq> {#} \<Longrightarrow> negs (mset Ai') = S DA'"
+      using Ai'_p by blast
+      
+      
+    show ?thesis using that
+     \<open>Ai' \<cdot>al \<eta> = Ai\<close>
+    \<open>D' \<cdot> \<eta> = D\<close>
+    \<open>DA' = D' +  (negs (mset Ai'))\<close>
+    \<open>S_M S M (D + negs (mset Ai)) \<noteq> {#} \<Longrightarrow> negs (mset Ai') = S DA'\<close>
+    by metis
   qed
       
   (* Split in to C's and A's *)
@@ -986,7 +997,110 @@ lemma ord_resolve_lifting:
     "Aij' \<cdot>aml \<eta> = Aij"
     "Ci' \<cdot>cl \<eta> = Ci"
     "\<forall>i < n. CAi' ! i = Ci' ! i + poss (Aij' ! i)" (* Write in list notation? *)
-    sorry
+  proof -
+    have "\<forall>i<n. \<exists>Aiji'. Aiji' \<cdot>am \<eta> = Aij ! i \<and> (poss (Aiji')) \<subseteq># CAi' ! i"
+    proof (rule, rule)
+      fix i
+      assume "i<n"
+      have "CAi' ! i \<cdot> \<eta> = CAi ! i"
+        using \<open>i < n\<close> clauses' n by auto
+      moreover
+      have "poss (Aij ! i) \<subseteq># CAi !i"
+        using \<open>i<n\<close> ord_resolve(8) by auto
+      ultimately
+      have "\<exists>NAiji'.  NAiji' \<cdot> \<eta> = poss (Aij ! i) \<and> NAiji' \<subseteq># CAi' ! i"
+        using image_mset_of_subset unfolding subst_cls_def by metis
+      then obtain NAiji' where nn: "NAiji' \<cdot> \<eta> = poss (Aij ! i) \<and> NAiji' \<subseteq># CAi' ! i"
+        by auto
+      have l: "\<forall>L \<in># NAiji'. is_pos L"
+      proof
+        fix L
+        assume LL: "L \<in># NAiji'"
+        have asdfasdf: "\<forall>L' \<in># poss (Aij ! i). is_pos L'"
+          by auto
+        then have "\<exists>L' \<in># poss (Aij ! i). L  \<cdot>l \<eta> = L'"
+          using nn LL
+          by (metis Melem_subst_cls) 
+        then have "\<exists>L'. is_pos L' \<and> L  \<cdot>l \<eta> = L'"
+          using asdfasdf by metis
+        then show "is_pos L"
+          by auto
+      qed
+      define Aiji' where "Aiji' = image_mset atm_of NAiji'"
+      have na: "poss Aiji' = NAiji'"
+        using l unfolding Aiji'_def by auto
+      then have "Aiji' \<cdot>am \<eta> = Aij ! i" using nn
+        by (metis literal.inject(1) multiset.inj_map_strong subst_cls_poss)
+      moreover
+      have "poss Aiji' \<subseteq># CAi' ! i"
+        using na nn by auto
+      ultimately
+      show "\<exists>Aiji'. Aiji' \<cdot>am \<eta> = Aij ! i \<and> poss Aiji' \<subseteq># CAi' ! i" 
+        by blast 
+    qed
+      
+    then obtain Aij'f where Aij'f_p: "\<forall>i<n. Aij'f i \<cdot>am \<eta> = Aij ! i \<and> (poss (Aij'f i)) \<subseteq># CAi' ! i"
+      by metis
+    define Aij' where "Aij' = map Aij'f [0 ..<n]"
+      
+    then have "length Aij' = n" by auto
+    note n = n \<open>length Aij' = n\<close>
+      
+    from Aij'_def have tdddd: "\<forall>i<n. Aij' ! i \<cdot>am \<eta> = Aij ! i \<and> (poss (Aij' ! i)) \<subseteq># CAi' ! i"
+      using Aij'f_p by auto
+    then have "\<forall>i<n. Aij' ! i \<cdot>am \<eta> = Aij ! i"
+      by auto
+    then have "\<forall>i<n. (Aij' \<cdot>aml  \<eta>) ! i = Aij ! i"
+      by (simp add: n swapii)
+    then have "Aij' \<cdot>aml \<eta> = Aij"
+      using n(10) n(13) unfolding subst_atm_mset_list_def by auto (* unfolding should not be necessary *)
+        
+        
+    have pay11: "\<forall>i<n. (poss (Aij' ! i)) \<subseteq># CAi' ! i"
+      using tdddd by auto
+        
+        
+    define Ci' where "Ci' = map2 (op -) CAi' (map poss Aij')"
+      
+    have "length Ci' = n"
+      using Ci'_def n by auto
+    note n = n \<open>length Ci' = n\<close>
+      
+    have rtsts: "\<forall>i<n. Ci' ! i =  CAi' ! i - (poss (Aij' ! i))"
+      using Ci'_def n by auto
+        
+    have "\<forall>i < n. CAi' ! i = Ci' ! i + poss (Aij' ! i)"
+    proof (rule, rule)
+      fix i 
+      assume "i < n"
+      then show "CAi' ! i = Ci' ! i + poss (Aij' ! i)"
+        using rtsts pay11 by auto
+    qed
+      
+    have "Ci' \<cdot>cl \<eta> = Ci"
+    proof -
+      thm \<open>Aij' \<cdot>aml \<eta> = Aij\<close> Ci'_def ord_resolve(8)
+      {
+        fix i 
+        assume a: "i<n"
+        have "(poss ((Aij' !i) )) \<cdot> \<eta> = poss (Aij ! i)"
+          by (simp add: \<open>\<forall>i<n. Aij' ! i \<cdot>am \<eta> = Aij ! i\<close> a)
+        moreover
+        have "CAi ! i = Ci ! i + poss (Aij ! i)"
+          using ord_resolve(8) a by auto
+        moreover
+        have "CAi' ! i = Ci' ! i + poss (Aij' ! i)"
+          using \<open>\<forall>i < n. CAi' ! i = Ci' ! i + poss (Aij' ! i)\<close>
+          using a by auto
+        ultimately
+        have "(Ci' ! i) \<cdot> \<eta> = Ci ! i"
+          using a cai'_\<eta> cai'_cai2 by auto
+        then have "(Ci' \<cdot>cl \<eta>) ! i = Ci ! i"
+          using a n by auto
+      }
+      then show ?thesis using n by auto
+    qed
+  qed
       
   (* Obtain mgu and substitution *)
   obtain \<tau>  \<phi> where
