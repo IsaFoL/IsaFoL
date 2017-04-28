@@ -663,7 +663,7 @@ lemma eql_map_neg_lit_eql_atm:
   using assms 
 by (induction Ai' arbitrary: Ai) auto
   
-lemma very_specific_lemma:
+lemma instance_list:
   assumes "negs (mset Ai) = SDA' \<cdot> \<eta>"
   shows "\<exists>Ai'. negs (mset Ai') = SDA' \<and> Ai' \<cdot>al \<eta> = Ai"
 proof - 
@@ -688,46 +688,6 @@ proof -
     using eql_map_neg_lit_eql_atm by auto
   ultimately
   show ?thesis by auto
-qed
-  
-lemma very_specific_lemma:
-  assumes "negs (mset Ai) = SDA' \<cdot> \<eta>"
-  assumes "\<forall>L \<in># SDA'. is_neg L"
-  shows "\<exists>Ai'. negs (mset Ai') = SDA' \<and> Ai' \<cdot>al \<eta> = Ai"
-using assms proof (induction Ai arbitrary: SDA')
-  case Nil
-  then have "negs (mset []) = SDA' \<and> [] \<cdot>al \<eta> = []"
-    by (simp add: empty_subst) 
-  then show ?case by blast
-next
-  case (Cons a Ai)
-  then have "\<exists>aa. aa \<in># SDA' \<and> (atm_of aa) \<cdot>a \<eta> = a"
-    by (metis (no_types, lifting) add_mset_remove_trivial add_mset_remove_trivial_eq another_swap atms_of_def atms_of_negg imageE mset.simps(2) subst_atms_def)
-  then obtain aa where aa_p: "aa \<in># SDA' \<and> (atm_of aa) \<cdot>a \<eta> = a" 
-    by blast
-  then have aa_p2: "aa = Neg ((atm_of aa))" using Cons by auto
-  
-  have "negs (mset (a # Ai)) = SDA' \<cdot> \<eta>"
-    using Cons by auto
-  then have "(negs (mset (a # Ai))) - {# Neg a#} = (SDA' \<cdot> \<eta> ) - {# Neg a#}"
-    by metis
-  then have "(negs (mset (Ai))) = (SDA' \<cdot> \<eta> ) - {# Neg a#}"
-    by auto
-  then have "(negs (mset (Ai))) = (SDA' \<cdot> \<eta> ) - {# Neg ((atm_of aa) \<cdot>a \<eta>)#}"
-    using aa_p by auto
-  then have "(negs (mset (Ai))) = (SDA' \<cdot> \<eta> ) - {# Neg ((atm_of aa))#} \<cdot> \<eta>"
-    by (metis image_mset_single subst_atm_mset_single subst_cls_negs)
-  then have "(negs (mset (Ai))) = ((SDA') - {# Neg ((atm_of aa))#}) \<cdot> \<eta>"
-    using aa_p aa_p2 
-    by (metis (mono_tags, lifting) image_mset_remove1_mset_if image_mset_single subst_cls_def) 
-  then have "\<exists>Ai'. negs (mset Ai') = remove1_mset (Neg (atm_of aa)) SDA' \<and> Ai' \<cdot>al \<eta> = Ai" using Cons(1)[of "((SDA') - {# Neg ((atm_of aa))#})"]
-    using Cons(3)
-    by (meson in_diffD)
-  then obtain Ai' where "negs (mset Ai') = remove1_mset (Neg (atm_of aa)) SDA' \<and> Ai' \<cdot>al \<eta> = Ai"
-    by blast
-  then have "negs (mset (atm_of aa#Ai')) = SDA' \<and> (atm_of aa#Ai') \<cdot>al \<eta> = a # Ai"
-    using aa_p aa_p2 by auto
-  then show ?case by blast
 qed
   
 lemma grounding_ground: "C \<in> grounding_of_clss M \<Longrightarrow> is_ground_cls C"
@@ -1058,7 +1018,7 @@ lemma ord_resolve_lifting:
       assume "S_M S M (D + negs (mset Ai)) = negs (mset Ai)" 
       then have "negs (mset Ai) = S DA' \<cdot> \<eta>" using ord_resolve(1) \<open>S_M S M DA = S DA' \<cdot> \<eta>\<close> by auto
       then have "\<exists>Ai'. negs (mset Ai') = S DA' \<and> Ai' \<cdot>al \<eta> = Ai"
-        using very_specific_lemma[of Ai "S DA'" \<eta>] using S.S_selects_neg_lits by auto
+        using instance_list[of Ai "S DA'" \<eta>] using S.S_selects_neg_lits by auto
       then show "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> negs (mset Ai') \<subseteq># DA'  \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')" using S.S_selects_subseteq by auto
   qed
   then obtain Ai' where Ai'_p: "Ai' \<cdot>al \<eta> = Ai \<and> (negs (mset Ai')) \<subseteq># DA' \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')" by blast
