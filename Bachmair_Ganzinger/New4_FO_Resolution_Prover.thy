@@ -429,6 +429,159 @@ proof -
   ultimately
   show ?thesis by auto
 qed
+  
+lemma map2_add_mset_map:
+  assumes "length Aij' = n"
+  assumes "length Ai' = n"
+  shows "(map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)) = (map2 add_mset Ai' Aij' \<cdot>aml \<eta>)"
+  using assms proof (induction n arbitrary: Aij' Ai')
+  case (Suc n)
+  then have "map2 add_mset (tl Ai' \<cdot>al \<eta>) (tl Aij' \<cdot>aml \<eta>) = map2 add_mset (tl Ai') (tl Aij') \<cdot>aml \<eta>"
+    by simp
+  then have "map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>)) = map2 add_mset (tl Ai') (tl Aij') \<cdot>aml \<eta>"
+    unfolding subst_atm_list_def subst_atm_mset_list_def
+    by (simp add: map_tl)
+      
+  moreover 
+  have Succ: "length (Ai' \<cdot>al \<eta>) = Suc n" "length (Aij' \<cdot>aml \<eta>) = Suc n"
+     apply -
+    using Suc(3) apply auto[]
+    using Suc(2) unfolding subst_atm_mset_list_def apply auto[] (* unfolding should not be necessary  *)
+    done
+  then have "length (tl (Ai' \<cdot>al \<eta>)) = n" "length (tl (Aij' \<cdot>aml \<eta>)) = n"
+     apply -
+     apply auto
+      done
+  then have "length (map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>))) = n" 
+    "length (map2 add_mset (tl Ai') (tl Aij') \<cdot>aml \<eta>) = n"
+     apply -
+     apply auto[]
+    using Suc(3) Suc (2)
+    unfolding subst_atm_mset_list_def
+    apply auto
+      done
+  ultimately
+  have "\<forall>i < n. (map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>))) ! i = (map2 add_mset (tl Ai') (tl Aij') \<cdot>aml \<eta>) ! i"
+    by auto
+  then have "\<forall>i < n. tl (map2 add_mset ( (Ai' \<cdot>al \<eta>)) ((Aij' \<cdot>aml \<eta>))) ! i = tl (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) ! i"
+    using  Suc(2) Suc(3) Succ
+    by (simp add: map2_tl map_tl subst_atm_mset_list_def) 
+
+  moreover have nn: "length (map2 add_mset ((Ai' \<cdot>al \<eta>)) ((Aij' \<cdot>aml \<eta>))) = Suc n"
+    "length (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) = Suc n"
+     apply -
+    using Succ apply auto
+      using Suc unfolding subst_atm_mset_list_def by auto (* I should not have to unfold *)
+  ultimately have "\<forall>i. i < Suc n \<longrightarrow> i > 0 \<longrightarrow> (map2 add_mset ((Ai' \<cdot>al \<eta>)) ((Aij' \<cdot>aml \<eta>))) ! i = (map2 add_mset ( Ai') (Aij') \<cdot>aml \<eta>) ! i"
+    apply auto
+    by (metis (no_types, lifting) Suc.prems(1) Suc.prems(2) Succ(1) Succ(2) \<open>length (map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>))) = n\<close> 
+         \<open>map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>)) = map2 add_mset (tl Ai') (tl Aij') \<cdot>aml \<eta>\<close> less_Suc_eq_0_disj map2_tl map_tl neq0_conv nth_tl subst_atm_mset_list_def)
+      moreover
+  have "add_mset (hd Ai' \<cdot>a \<eta>) (hd Aij' \<cdot>am \<eta>) = add_mset (hd Ai') (hd Aij') \<cdot>am \<eta>"
+    unfolding subst_atm_mset_def by auto
+  then have "(map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)) ! 0  = (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) ! 0"
+    using Suc
+    by (simp add: Succ(2) substitution_ops.subst_atm_mset_def) 
+  ultimately
+  have "\<forall>i < Suc n. (map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)) ! i  = (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) ! i"
+    using Suc by auto
+  then show ?case 
+    using nn list_eq_iff_nth_eq by metis
+next
+  case 0 then show ?case 
+    apply auto
+    unfolding subst_atm_mset_list_def
+    apply auto
+    done
+qed
+  
+lemma maximal_in_gen:
+  assumes "maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>)"
+  shows "maximal_in A C"
+proof -
+  from assms have "maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>)" by -
+  hence "\<forall>B \<in> atms_of (C \<cdot> \<sigma>). \<not> less_atm (A \<cdot>a \<sigma>) B" unfolding maximal_in_def by -
+  hence ll: "\<forall>B\<in>atms_of (C \<cdot> \<sigma>). \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma>'))" unfolding less_atm_iff by -
+  have "\<forall>B\<in>atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma> \<cdot>a \<sigma>'))"
+  proof (* This proof should ideally not be necessary *)
+    fix B
+    assume "B \<in> atms_of C"
+    then have "B \<cdot>a \<sigma> \<in> (atms_of C) \<cdot>as \<sigma>" unfolding subst_atms_def by auto (* this should be automatic *)
+    then have "B \<cdot>a \<sigma> \<in> atms_of (C \<cdot> \<sigma>)" unfolding subst_cls_def subst_lit_def subst_atms_def atms_of_def
+      apply auto
+      by (metis (mono_tags, lifting) imageI literal.map_sel(1) literal.map_sel(2))
+    then show "\<not> (\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < (B \<cdot>a \<sigma>) \<cdot>a \<sigma>')" using ll by auto 
+  qed 
+  hence "\<forall>B\<in>atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma>' < B \<cdot>a \<sigma>'))"
+    using is_ground_comp_subst by fastforce
+  hence "\<forall>B\<in>atms_of C. \<not> (less_atm A B)" unfolding less_atm_iff by -
+  then show ?thesis unfolding less_eq_atm_def maximal_in_def by auto
+qed
+    
+  
+lemma another_swap: "atms_of (C \<cdot> \<sigma>) = atms_of C \<cdot>as \<sigma>"
+  unfolding subst_cls_def subst_atms_def subst_lit_def 
+  apply auto
+   apply (smt atms_of_def image_iff literal.map_sel(1) literal.map_sel(2) set_image_mset)+
+  done
+    
+  
+  
+lemma str_maximal_in_gen: (* a better proof might reuse the lemma maximal_in_gen *)
+  assumes "str_maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>)"
+  shows "str_maximal_in A C"
+proof -
+  from assms have "str_maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>)" by -
+  hence "\<forall>B \<in> atms_of (C \<cdot> \<sigma>). \<not> less_eq_atm (A \<cdot>a \<sigma>) B" by -
+  hence "\<forall>B\<in>atms_of (C \<cdot> \<sigma>). \<not> (less_atm (A \<cdot>a \<sigma>) B \<or> A \<cdot>a \<sigma> = B)" unfolding less_eq_atm_def by -
+  hence "\<forall>B\<in>atms_of (C \<cdot> \<sigma>). \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma>') \<or> A \<cdot>a \<sigma> = B)" unfolding less_atm_iff by -
+  hence "\<forall>B\<in>atms_of (C) \<cdot>as \<sigma>. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma>') \<or> A \<cdot>a \<sigma> = B)" using another_swap by auto
+  hence "\<forall>B\<in>atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma> \<cdot>a \<sigma>') \<or> A \<cdot>a \<sigma> = B \<cdot>a \<sigma>)" 
+    unfolding subst_atms_def by auto
+  hence "\<forall>B\<in>atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma>' < B \<cdot>a \<sigma>') \<or> A = B)"
+    using is_ground_comp_subst by fastforce
+  hence "\<forall>B\<in>atms_of C. \<not> (less_atm A B \<or> A = B)" unfolding less_atm_iff by -
+  then show ?thesis unfolding less_eq_atm_def by auto
+qed
+  
+lemma ground_resolvent_subset:
+  assumes gr_c: "is_ground_cls_list CAi"
+  assumes gr_d: "is_ground_cls DA"
+  assumes resolve: "ord_resolve SSS CAi DA E"
+  shows "E \<subseteq># (\<Union>#(mset CAi)) + DA"
+  using resolve proof (cases rule: ord_resolve.cases)
+  case (ord_resolve n Ci Aij Ai \<sigma> D)
+  hence "\<forall>i<n.  Ci ! i \<subseteq># CAi ! i " by auto
+  hence cisucai: "\<Union>#mset Ci \<subseteq># \<Union>#(mset CAi)"
+    using subseteq_list_Union_mset ord_resolve(3) ord_resolve(4) by force
+  hence gr_ci: "is_ground_cls_list Ci" using gr_c
+    by (metis is_ground_cls_Union_mset is_ground_cls_list_def is_ground_cls_mono is_ground_cls_mset_def set_mset_mset)
+  have dsuDA :"D \<subseteq># DA" by (simp add: local.ord_resolve(1)) 
+  hence gr_di: "is_ground_cls D"
+    using gr_d is_ground_cls_mono by auto     
+  
+  have "is_ground_cls (\<Union>#mset Ci + D)" using gr_ci gr_di
+    unfolding is_ground_cls_def is_ground_cls_list_def
+    by (metis in_Union_mset_iff set_mset_mset union_iff)
+  then have fffff: "(\<Union>#mset Ci + D) = (\<Union>#mset Ci + D) \<cdot> \<sigma>" by auto
+  from this ord_resolve have "E = (\<Union>#mset Ci + D) \<cdot> \<sigma>" by -
+  hence "E = (\<Union>#mset Ci + D)" using fffff by auto
+  then show ?thesis using cisucai dsuDA by (auto simp add: subset_mset.add_mono)
+qed
+  
+lemma ground_resolvent_ground: (* This proof should be more automatic I think... *)
+  assumes "is_ground_cls_list CAi"
+  assumes "is_ground_cls DA"
+  assumes "ord_resolve SSS CAi DA E"
+  shows "is_ground_cls E"
+proof -
+  from assms have "E \<subseteq># (\<Union>#(mset CAi)) + DA" using ground_resolvent_subset by auto
+  then have "\<forall>e \<in># E. e \<in># \<Union>#(mset CAi) \<or> e \<in># DA" by auto
+  then show "is_ground_cls E" unfolding is_ground_cls_def
+    apply auto
+    using assms(1) unfolding is_ground_cls_list_def is_ground_cls_def
+    by (metis assms(2) in_mset_sum_list2 is_ground_cls_def)    
+qed
     
 lemma ord_resolve_lifting: 
   fixes CAi
@@ -792,8 +945,6 @@ lemma ord_resolve_lifting:
       then show "map (S_M S M) CAi = (map S CAi') \<cdot>cl \<eta>_fo" using n by auto
     qed    
           
-        
-      
     show ?thesis
       using that
             \<open>DA' \<in> M\<close>
@@ -814,7 +965,7 @@ lemma ord_resolve_lifting:
     "DA' \<cdot> \<eta> = DA"
     "S DA' \<cdot> \<eta> = S_M S M DA"
     
-    "\<forall>CA \<in> set CAi'. CA \<in> M"
+    "\<forall>CA \<in> set CAi'. CA \<in> M" (* Better expressed with subset maybe *)
     "CAi' \<cdot>cl \<eta> = CAi"
     "map (S_M S M) CAi = (map S CAi') \<cdot>cl \<eta>"
     
@@ -879,7 +1030,9 @@ lemma ord_resolve_lifting:
   qed  
     
   (* Split in to D's and A's *)
-  obtain Ai' D' where
+  obtain Ai' D' where ai':
+    "length Ai' = n"
+    
     "Ai' \<cdot>al \<eta> = Ai"
     "D' \<cdot> \<eta> = D"
     "DA' = D' +  (negs (mset Ai'))"
@@ -924,61 +1077,6 @@ lemma ord_resolve_lifting:
         
     then have "D' \<cdot> \<eta> = D" using \<open>DA' \<cdot> \<eta> = DA\<close> ord_resolve(1) DA'_u
       by auto
-        
-    have "\<forall>i<n. \<exists>Aiji'. Aiji' \<cdot>am \<eta> = Aij ! i \<and> (poss (Aiji')) \<subseteq># CAi' ! i"
-    proof (rule, rule)
-      fix i
-      assume "i<n"
-      have "CAi' ! i \<cdot> \<eta> = CAi ! i"
-      proof -
-        have "CAi' \<cdot>cl \<eta> = CAi" 
-          using clauses'(5) by -
-        then have "(CAi' \<cdot>cl \<eta>) ! i = CAi ! i" 
-          by auto
-        then show "CAi' ! i \<cdot> \<eta> = CAi ! i" 
-          using \<open>i<n\<close> n by auto
-      qed
-      moreover
-      have "poss (Aij ! i) \<subseteq># CAi !i"
-        using \<open>i<n\<close> ord_resolve(8) by auto
-      ultimately
-      have "\<exists>NAiji'.  NAiji' \<cdot> \<eta> = poss (Aij ! i) \<and> NAiji' \<subseteq># CAi' ! i"
-        using image_mset_of_subset unfolding subst_cls_def by metis
-      then obtain NAiji' where nn: "NAiji' \<cdot> \<eta> = poss (Aij ! i) \<and> NAiji' \<subseteq># CAi' ! i"
-        by auto
-      have l: "\<forall>L \<in># NAiji'. is_pos L"
-      proof
-        fix L
-        assume LL: "L \<in># NAiji'"
-        have asdfasdf: "\<forall>L' \<in># poss (Aij ! i). is_pos L'"
-          by auto
-        then have "\<exists>L' \<in># poss (Aij ! i). L  \<cdot>l \<eta> = L'"
-          using nn LL
-          by (metis Melem_subst_cls) 
-        then have "\<exists>L'. is_pos L' \<and> L  \<cdot>l \<eta> = L'"
-          using asdfasdf by metis
-        then show "is_pos L"
-          by auto
-      qed
-      define Aiji' where "Aiji' = image_mset atm_of NAiji'"
-      have na: "poss Aiji' = NAiji'"
-        using l unfolding Aiji'_def by auto
-      then have "Aiji' \<cdot>am \<eta> = Aij ! i" using nn
-        by (metis literal.inject(1) multiset.inj_map_strong subst_cls_poss)
-      moreover
-      have "poss Aiji' \<subseteq># CAi' ! i"
-        using na nn by auto
-      ultimately
-      show "\<exists>Aiji'. Aiji' \<cdot>am \<eta> = Aij ! i \<and> poss Aiji' \<subseteq># CAi' ! i" 
-        by blast 
-    qed
-      
-    then obtain Aij'f where Aij'f_p: "\<forall>i<n. Aij'f i \<cdot>am \<eta> = Aij ! i \<and> (poss (Aij'f i)) \<subseteq># CAi' ! i"
-      by metis
-    define Aij' where "Aij' = map Aij'f [0 ..<n]"
-      
-    then have "length Aij' = n" by auto
-    note n = n \<open>length Aij' = n\<close>
       
     have "S_M S M (D + negs (mset Ai)) \<noteq> {#} \<Longrightarrow> negs (mset Ai') = S DA'"
       using Ai'_p by blast
@@ -989,11 +1087,17 @@ lemma ord_resolve_lifting:
     \<open>D' \<cdot> \<eta> = D\<close>
     \<open>DA' = D' +  (negs (mset Ai'))\<close>
     \<open>S_M S M (D + negs (mset Ai)) \<noteq> {#} \<Longrightarrow> negs (mset Ai') = S DA'\<close>
+    \<open>length Ai' = n\<close>
     by metis
   qed
+  
+  note n = n \<open>length Ai' = n\<close>
       
   (* Split in to C's and A's *)
-  obtain Aij' Ci'  where
+  obtain Aij' Ci'  where aij':
+    "length Aij' = n"
+    "length Ci' = n"
+    
     "Aij' \<cdot>aml \<eta> = Aij"
     "Ci' \<cdot>cl \<eta> = Ci"
     "\<forall>i < n. CAi' ! i = Ci' ! i + poss (Aij' ! i)" (* Write in list notation? *)
@@ -1105,38 +1209,123 @@ lemma ord_resolve_lifting:
         \<open>Aij' \<cdot>aml \<eta> = Aij\<close>
         \<open>Ci' \<cdot>cl \<eta> = Ci\<close>
         \<open>\<forall>i < n. CAi' ! i = Ci' ! i + poss (Aij' ! i)\<close>
+        \<open>length Aij' = n\<close>
+        \<open>length Ci' = n\<close>
       by blast
   qed
+    
+  note n = n \<open>length Aij' = n\<close> \<open>length Ci' = n\<close>
       
   (* Obtain mgu and substitution *)
-  obtain \<tau>  \<phi> where
+  obtain \<tau>  \<phi> where \<tau>\<phi>:
     "Some \<tau> = mgu (set_mset ` set (map2 add_mset Ai' Aij'))"
     "\<tau> \<odot> \<phi> = \<eta> \<odot> \<sigma>"
-    sorry
+  proof -
+    have "Some \<sigma> = mgu (set_mset ` set (map2 add_mset Ai Aij))" using ord_resolve by -
+    hence uu: "is_unifiers \<sigma> (set_mset ` set (map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)))"
+      using mgu_sound is_mgu_def unfolding \<open>Aij' \<cdot>aml \<eta> = Aij\<close> using ai' by auto
+    have \<eta>\<sigma>uni: "is_unifiers (\<eta> \<odot> \<sigma>) (set_mset ` set (map2 add_mset Ai' Aij'))"
+    proof -
+      have eq: "(set_mset ` set (map2 add_mset Ai' Aij' \<cdot>aml \<eta>)) = (set_mset ` set (map2 add_mset Ai' Aij') \<cdot>ass \<eta>)"
+        unfolding subst_atmss_def
+          subst_atm_mset_list_def
+        using subst_atm_mset_def subst_atms_def by auto
+      have "is_unifiers \<sigma> (set_mset ` set (map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)))" using uu by -
+      then have "is_unifiers \<sigma> (set_mset ` set ((map2 add_mset Ai' Aij') \<cdot>aml \<eta>))" using n map2_add_mset_map by auto
+      then have "is_unifiers \<sigma> (set_mset ` set ((map2 add_mset Ai' Aij')) \<cdot>ass \<eta>)" using eq by auto
+      then show ?thesis 
+        using is_unifiers_comp by auto
+    qed
+    then obtain \<tau> where \<tau>_p: "Some \<tau> = mgu (set_mset ` set (map2 add_mset Ai' Aij'))" using mgu_complete
+      by (metis (mono_tags, hide_lams) finite_imageI finite_set_mset image_iff set_mset_mset) (* should be simpler? *) 
+    moreover
+    then obtain \<phi> where \<phi>_p: "\<tau> \<odot> \<phi> = \<eta> \<odot> \<sigma>"
+      by (metis (mono_tags, hide_lams) List.finite_set \<eta>\<sigma>uni finite_imageI finite_set_mset image_iff mgu_sound set_mset_mset substitution_ops.is_mgu_def that) (* should be simpler *)
+    ultimately show ?thesis using that by auto 
+  qed
+    
     
   (* Lifting eligibility *)
-  have "eligible S \<tau> Ai' (D' + negs (mset Ai'))" 
+  have eligibility: "eligible S \<tau> Ai' (D' + negs (mset Ai'))" 
     sorry
       
   (* Lifting maximality *)
-  have "\<forall>i<n. str_maximal_in (Ai' ! i \<cdot>a \<tau>) (Ci' ! i \<cdot> \<tau>)" 
-    sorry
-      (* Reformulate in list notation *)
-
+  have maximality: "\<forall>i<n. str_maximal_in (Ai' ! i \<cdot>a \<tau>) (Ci' ! i \<cdot> \<tau>)" 
+      (* Reformulate in list notation? *)
+  proof -
+    from ord_resolve have "\<forall>i<n. str_maximal_in (Ai ! i \<cdot>a \<sigma>) (Ci ! i \<cdot> \<sigma>)" by -
+    hence "\<forall>i<n. str_maximal_in ((Ai' \<cdot>al \<eta>) ! i \<cdot>a \<sigma>) ((Ci' \<cdot>cl \<eta>) ! i \<cdot> \<sigma>)" using \<open>Ai' \<cdot>al \<eta> = Ai\<close>  \<open>Ci' \<cdot>cl \<eta> = Ci\<close> by simp
+    hence "\<forall>i<n. str_maximal_in ((Ai' ! i) \<cdot>a (\<eta> \<odot> \<sigma>)) ((Ci' ! i) \<cdot> (\<eta> \<odot> \<sigma>))" using n by auto
+    hence "\<forall>i<n. str_maximal_in ((Ai' ! i) \<cdot>a (\<tau> \<odot> \<phi>)) ((Ci' ! i) \<cdot> (\<tau> \<odot> \<phi>))" using \<tau>\<phi> by auto
+    hence "\<forall>i<n. str_maximal_in ((Ai' ! i \<cdot>a \<tau>) \<cdot>a \<phi>) ((Ci' ! i \<cdot> \<tau>) \<cdot> \<phi>)" by auto
+    then show e: "\<forall>i<n. str_maximal_in (Ai' ! i \<cdot>a \<tau>) (Ci' ! i \<cdot> \<tau>)" using str_maximal_in_gen \<tau>\<phi> by blast
+  qed
+    
   (* Lifting nothing selected *)
-  have "\<forall>i < n. S (CAi' ! i) = {#}"
-    sorry
+  have nothing_selected: "\<forall>i < n. S (CAi' ! i) = {#}"
+  proof -
+    have "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>"
+    proof (rule, rule)
+      fix i
+      assume "i<n"
+      have "(map (S_M S M) CAi) ! i = (map S CAi' \<cdot>cl \<eta>) ! i"
+        using clauses' by metis
+      then show "S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>"
+        using \<open>i<n\<close> n by auto
+    qed
+        
+    from ord_resolve have "\<forall>i < n. (S_M S M) (CAi ! i) = {#}" by -
+    hence "\<forall>i < n. S (CAi' ! i)  \<cdot> \<eta> = {#}" using ord_resolve(3) \<open>\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>\<close> by auto 
+    then show ff: "\<forall>i < n. S (CAi' ! i) = {#}" using empty_subst by blast
+  qed
+    
+  (* Lifting Aij's non-empty *)
+  have "\<forall>i<n. Aij' ! i \<noteq> {#}"
+    apply (rule allI)
+    apply rule
+    using n ord_resolve(9) ord_resolve(5) unfolding \<open>Aij' \<cdot>aml \<eta> = Aij\<close>[symmetric]
+    using empty_subst_for_atoms subst_atm_mset_list_nth by metis  
+    
   (* Resolve the lifted clauses *)
   define E' where "E' = ((\<Union># (mset Ci')) + D') \<cdot> \<tau>"   
       
-  have "ord_resolve S CAi' DA' E'" 
-    sorry
+  have res_e: "ord_resolve S CAi' DA' E'" 
+    using ord_resolve n \<tau>\<phi> eligibility maximality nothing_selected
+    using ord_resolve.intros[of CAi' n Ci' Aij' Ai' \<tau> S D', 
+      OF 
+        \<open>length CAi' = n\<close>
+        \<open>length Ci' = n\<close> 
+        \<open>length Aij' = n\<close> 
+        \<open>length Ai' = n\<close> 
+        \<open>n \<noteq> 0\<close>
+        \<open>\<forall>i<n. CAi' ! i = Ci' ! i + poss (Aij' ! i)\<close>
+        \<open>\<forall>i<n. Aij' ! i \<noteq> {#}\<close> 
+        \<open> Some \<tau> = mgu (set_mset ` set (map2 add_mset Ai' Aij'))\<close>
+        \<open>eligible S \<tau> Ai' (D' + negs (mset Ai'))\<close>
+        \<open>\<forall>i<n. str_maximal_in (Ai' ! i \<cdot>a \<tau>) (Ci' ! i \<cdot> \<tau>)\<close>
+        \<open>\<forall>i<n. S (CAi' ! i) = {#}\<close>
+        ] 
+    unfolding E'_def using ai'
+      by blast
+    
       
   (* Prove resolvent instantiates to ground resolvent *)
   have e'\<phi>e: "E' \<cdot> \<phi> = E" 
     sorry
+  
+  (* Replace \<phi> with ground substitution *)
+  obtain \<eta>2 where ground_\<eta>2: "is_ground_subst \<eta>2" "E' \<cdot> \<eta>2 = E"
+  proof -
+    have "is_ground_cls_list CAi" "is_ground_cls DA"
+      using grounding grounding_ground unfolding is_ground_cls_list_def by auto 
+    hence "is_ground_cls E" using resolve ground_resolvent_ground by auto
+    then obtain \<eta>2 where ground_\<eta>2: "is_ground_subst \<eta>2" "E' \<cdot> \<eta>2 = E" using e'\<phi>e make_single_ground_subst by blast
+    then show ?thesis using that by auto
+  qed
     
-  show ?thesis sorry
+    
+  show ?thesis using that
+      ground_\<eta>2 res_e clauses' by blast
 qed
 
 

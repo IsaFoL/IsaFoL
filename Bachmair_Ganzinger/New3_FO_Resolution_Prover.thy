@@ -424,38 +424,7 @@ proof -
   hence "\<forall>B\<in>atms_of C. \<not> (less_atm A B \<or> A = B)" unfolding less_atm_iff by -
   then show ?thesis unfolding less_eq_atm_def by auto
 qed
-  
-lemma mk_ground_subst:
-  assumes "is_ground_cls C"
-  assumes "C' \<cdot> \<sigma> = C"
-  obtains \<tau> where
-    "is_ground_subst \<tau>"
-    "C' \<cdot> \<tau> = C"
-using assms
-  by (metis ex_ground_subst is_ground_comp_subst is_ground_subst_cls subst_cls_comp_subst) (* I'm very impressed sledgehammer managed to do this... *)
-    
-lemma lololol:
-  assumes "length Ci = n"
-  assumes "length CAi = n"
-  assumes "\<forall>i<n.  Ci ! i \<subseteq># CAi ! i "
-  shows "\<Union>#mset Ci \<subseteq># \<Union>#(mset CAi)"
-  using assms proof (induction n arbitrary: Ci CAi)
-  case 0
-  then show ?case by auto
-next
-  case (Suc n)
-  from Suc have "\<forall>i<n. tl Ci ! i \<subseteq># tl CAi ! i"
-    by (simp add: nth_tl) 
-  hence "\<Union>#mset (tl Ci) \<subseteq># \<Union>#mset (tl CAi)" using Suc by auto
-  moreover
-  have "hd Ci \<subseteq># hd CAi" using Suc
-    by (metis Nitpick.size_list_simp(2) hd_conv_nth nat.simps(3) zero_less_Suc) 
-  ultimately
-  show "\<Union>#mset Ci \<subseteq># \<Union>#mset CAi"
-    apply auto
-    by (metis (no_types, hide_lams) One_nat_def Suc_pred Suc(2) Suc(3) length_tl list.exhaust list.sel(1) list.sel(2) list.sel(3) n_not_Suc_n subset_mset.add_mono sum_list.Cons zero_less_Suc)
-qed
-    
+      
 lemma ground_resolvent_subset:
   assumes gr_c: "is_ground_cls_list CAi"
   assumes gr_d: "is_ground_cls DA"
@@ -465,7 +434,7 @@ lemma ground_resolvent_subset:
   case (ord_resolve n Ci Aij Ai \<sigma> D)
   hence "\<forall>i<n.  Ci ! i \<subseteq># CAi ! i " by auto
   hence cisucai: "\<Union>#mset Ci \<subseteq># \<Union>#(mset CAi)"
-    using lololol ord_resolve(3) ord_resolve(4) by force
+    using subseteq_list_Union_mset ord_resolve(3) ord_resolve(4) by force
   hence gr_ci: "is_ground_cls_list Ci" using gr_c
     by (metis is_ground_cls_Union_mset is_ground_cls_list_def is_ground_cls_mono is_ground_cls_mset_def set_mset_mset)
   have dsuDA :"D \<subseteq># DA" by (simp add: local.ord_resolve(1)) 
@@ -494,17 +463,6 @@ proof -
     using assms(1) unfolding is_ground_cls_list_def is_ground_cls_def
     by (metis assms(2) in_mset_sum_list2 is_ground_cls_def)    
 qed
-  
-lemma empty_subst_for_atoms: "A \<cdot>am \<eta> = {#} \<longleftrightarrow> A = {#}"  
-  unfolding subst_atm_mset_def by auto
-    
-lemma empty_subst_for_atoms_right: "A \<cdot>am \<eta> = {#} \<Longrightarrow> A = {#}"  
-  unfolding subst_atm_mset_def by auto
-    
-
-lemma empty_subst: "C \<cdot> \<eta> = {#} \<longleftrightarrow> C = {#}"
-unfolding subst_cls_def by auto
-  
   
 
 (* A lemma that states that a list of clauses can be standardized apart. *)
@@ -588,10 +546,6 @@ next
     apply auto
     done
 qed
-  
-theorem is_unifiers_comp: "is_unifiers \<sigma> (set_mset ` set (map2 add_mset Ai' Aij') \<cdot>ass \<eta>) \<longleftrightarrow> is_unifiers (\<eta> \<odot> \<sigma>) (set_mset ` set (map2 add_mset Ai' Aij'))"
-  unfolding is_unifiers_def is_unifier_def subst_atmss_def
-  by auto
     
 theorem var_disjoint_Cons: (* Not used. Still kind of nice, I guess *)
   assumes "var_disjoint (C#Cs)"
@@ -1228,7 +1182,7 @@ lemma ord_resolve_lifting:
   have "is_ground_cls_list CAi" "is_ground_cls DA"
     using \<open>DA = DA' \<cdot> \<eta>\<close> prime_clauses_10 \<open>CAi = CAi' \<cdot>cl \<eta> \<close> by auto 
   hence "is_ground_cls E" using resolve ground_resolvent_ground by auto
-  then obtain \<eta>2 where ground_\<eta>2: "is_ground_subst \<eta>2" "E' \<cdot> \<eta>2 = E" using e'\<phi>e mk_ground_subst by blast
+  then obtain \<eta>2 where ground_\<eta>2: "is_ground_subst \<eta>2" "E' \<cdot> \<eta>2 = E" using e'\<phi>e make_single_ground_subst by blast
       
   have instsC: "CAi = CAi' \<cdot>cl \<eta>" using \<open>CAi = CAi' \<cdot>cl \<eta> \<close> by auto
   have instsD: "DA = DA' \<cdot> \<eta>"  using \<open>DA = DA' \<cdot> \<eta>\<close> by auto
@@ -1242,6 +1196,7 @@ lemma ord_resolve_lifting:
       
   from res_e' instsC instsD instsE inM e'\<phi>e prime_clauses_10 ground_\<eta>2 show ?thesis
     using that[of \<eta> \<eta>2 CAi' DA' E'] by blast
+     
 qed
 
 

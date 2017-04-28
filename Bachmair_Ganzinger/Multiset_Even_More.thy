@@ -78,6 +78,28 @@ theorem in_mset_sum_list2:
     "L \<in># LL"
   using assms by (induction Ci) auto
     
+lemma subseteq_list_Union_mset:
+  assumes "length Ci = n"
+  assumes "length CAi = n"
+  assumes "\<forall>i<n.  Ci ! i \<subseteq># CAi ! i "
+  shows "\<Union>#mset Ci \<subseteq># \<Union>#mset CAi"
+  using assms proof (induction n arbitrary: Ci CAi)
+  case 0
+  then show ?case by auto
+next
+  case (Suc n)
+  from Suc have "\<forall>i<n. tl Ci ! i \<subseteq># tl CAi ! i"
+    by (simp add: nth_tl) 
+  hence "\<Union>#mset (tl Ci) \<subseteq># \<Union>#mset (tl CAi)" using Suc by auto
+  moreover
+  have "hd Ci \<subseteq># hd CAi" using Suc
+    by (metis Nitpick.size_list_simp(2) hd_conv_nth nat.simps(3) zero_less_Suc) 
+  ultimately
+  show "\<Union>#mset Ci \<subseteq># \<Union>#mset CAi"
+    apply auto
+    by (metis (no_types, hide_lams) One_nat_def Suc_pred Suc(2) Suc(3) length_tl list.exhaust list.sel(1) list.sel(2) list.sel(3) n_not_Suc_n subset_mset.add_mono sum_list.Cons zero_less_Suc)
+qed    
+    
 subsection \<open>More on multisets and functions\<close>
 
 lemma image_mset_of_subset_list: (* The proof looks suspiciously like very_specific_lemma *)
