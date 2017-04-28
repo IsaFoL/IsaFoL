@@ -416,7 +416,8 @@ lemma ord_resolve_lifting:
   note n = \<open>length CAi = n\<close> \<open>length Ci = n\<close> \<open>length Aij = n\<close> \<open>length Ai = n\<close>
   
   interpret S: selection S by (rule select)
-    
+  
+  (* Obtain FO clauses *)
   obtain DA'' \<eta>'' CAi'' \<eta>s'' where clauses'':
     "length CAi'' = n"
     "length \<eta>s'' = n"
@@ -499,6 +500,7 @@ lemma ord_resolve_lifting:
     
   note n = \<open>length CAi'' = n\<close> \<open>length \<eta>s'' = n\<close> n
     
+  (* Standardize FO clauses apart *)
   obtain DA' \<eta>' CAi' \<eta>s' where clauses':
     "length CAi' = n"
     "length \<eta>s' = n"
@@ -680,10 +682,10 @@ lemma ord_resolve_lifting:
     \<open>var_disjoint (DA' # CAi')\<close>
     by metis
   qed
-  
-      
+       
   note n = \<open>length CAi' = n\<close> \<open>length \<eta>s' = n\<close> n
-      
+  
+  (* Instantiate with a single substitution *)  
   obtain \<eta>_fo where clauses': (* Overwriting the old clauses' *)
     "DA' \<in> M"
     "DA' \<cdot> \<eta>_fo = DA"
@@ -773,6 +775,7 @@ lemma ord_resolve_lifting:
     by auto  
   qed
       
+  (* Instantiate with ground substitution *)
   obtain \<eta> where
     "DA' \<in> M"
     "DA' \<cdot> \<eta> = DA"
@@ -841,7 +844,30 @@ lemma ord_resolve_lifting:
     \<open>var_disjoint (DA' # CAi')\<close>
     by auto 
   qed
+  
+  (* Split in to D's and A's; Split in to C's and A's; Obtain mgu and substitution *)
+  obtain Ai' D' Aij' Ci' \<tau>  \<phi> where
+    "Ai' \<cdot>al \<eta> = Ai"
+    "D' \<cdot> \<eta> = D"
+    "DA' = D' +  (negs (mset Ai'))"
+    
+    "Aij' \<cdot>aml \<eta> = Aij"
+    "Ci' \<cdot>cl \<eta> = Ci"
+    "\<forall>i < n. CAi' ! i = Ci' ! i + poss (Aij' ! i)" (* Write in list notation *)
+    
+    "Some \<tau> = mgu (set_mset ` set (map2 add_mset Ai' Aij'))"
+    "\<tau> \<odot> \<phi> = \<eta> \<odot> \<sigma>"
+    sorry
+    
+    
+  (* Lifting eligibility *)
+  
       
+  (* Lifting maximality *)
+  (* Lifting nothing selected *)
+  (* Resolve the lifted clauses *)  
+  (* Prove resolvent instantiates to ground resolvent *)
+    
   show ?thesis sorry
 qed
 
