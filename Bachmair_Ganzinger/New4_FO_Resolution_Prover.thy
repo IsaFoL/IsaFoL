@@ -1051,9 +1051,9 @@ lemma ord_resolve_lifting:
     then have "\<forall>i<n. Aij' ! i \<cdot>am \<eta> = Aij ! i"
       by auto
     then have "\<forall>i<n. (Aij' \<cdot>aml  \<eta>) ! i = Aij ! i"
-      by (simp add: n swapii)
+      by (simp add: n)
     then have "Aij' \<cdot>aml \<eta> = Aij"
-      using n(10) n(13) unfolding subst_atm_mset_list_def by auto (* unfolding should not be necessary *)
+      using n unfolding subst_atm_mset_list_def by auto (* unfolding should not be necessary *)
         
         
     have pay11: "\<forall>i<n. (poss (Aij' ! i)) \<subseteq># CAi' ! i"
@@ -1094,12 +1094,18 @@ lemma ord_resolve_lifting:
           using a by auto
         ultimately
         have "(Ci' ! i) \<cdot> \<eta> = Ci ! i"
-          using a cai'_\<eta> cai'_cai2 by auto
+          using a clauses' n by auto
         then have "(Ci' \<cdot>cl \<eta>) ! i = Ci ! i"
           using a n by auto
       }
       then show ?thesis using n by auto
     qed
+      
+    show ?thesis using that 
+        \<open>Aij' \<cdot>aml \<eta> = Aij\<close>
+        \<open>Ci' \<cdot>cl \<eta> = Ci\<close>
+        \<open>\<forall>i < n. CAi' ! i = Ci' ! i + poss (Aij' ! i)\<close>
+      by blast
   qed
       
   (* Obtain mgu and substitution *)

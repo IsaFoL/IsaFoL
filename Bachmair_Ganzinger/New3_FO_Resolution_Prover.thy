@@ -517,11 +517,6 @@ lemma mset_equals_size:
     using assms
     using mset_subset_size subset_mset_def by fastforce 
       
-      
-lemma swapii: "i < length Aij' \<Longrightarrow> (Aij' \<cdot>aml \<eta>) ! i = (Aij'  ! i)  \<cdot>am \<eta>"
-  unfolding subst_atm_mset_list_def
-    by auto
-      
 lemma something_intersection:
   assumes "X \<subseteq># D' + T"
   assumes "\<And>L2. count L2 D' + count L2 T = count L2 (D' + T)"
@@ -580,7 +575,7 @@ lemma map2_add_mset_map:
     unfolding subst_atm_mset_def by auto
   then have "(map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)) ! 0  = (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) ! 0"
     using Suc
-    by (simp add: Succ(2) substitution_ops.subst_atm_mset_def swapii) 
+    by (simp add: Succ(2) substitution_ops.subst_atm_mset_def) 
   ultimately
   have "\<forall>i < Suc n. (map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)) ! i  = (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) ! i"
     using Suc by auto
@@ -1085,7 +1080,7 @@ lemma ord_resolve_lifting:
   then have "\<forall>i<n. Aij' ! i \<cdot>am \<eta> = Aij ! i"
     by auto
   then have "\<forall>i<n. (Aij' \<cdot>aml  \<eta>) ! i = Aij ! i"
-    by (simp add: n swapii)
+    by (simp add: n)
   then have "Aij' \<cdot>aml \<eta> = Aij"
     using n(10) n(13) unfolding subst_atm_mset_list_def by auto (* unfolding should not be necessary *)
     
@@ -1174,7 +1169,7 @@ lemma ord_resolve_lifting:
     apply (rule allI)
     apply rule
     using n ord_resolve(9) ord_resolve(5) unfolding \<open>Aij' \<cdot>aml \<eta> = Aij\<close>[symmetric]
-    using empty_subst_for_atoms using swapii by metis
+    using empty_subst_for_atoms subst_atm_mset_list_nth by metis
   moreover
     (* Lifting eligibility *)
   have "eligible (S_M S M) \<sigma> Ai (D + negs (mset Ai))" using ord_resolve unfolding eligible_simp by -
