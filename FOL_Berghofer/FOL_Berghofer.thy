@@ -191,7 +191,7 @@ where
 | "params (Impl p q) = params p \<union> params q"
 | "params (Neg p) = params p"
 | "params (Forall p) = params p"
-| "params (Exists p) = params p"
+| "params (Exists p) = params p" 
 
 text{*
 We also define parameter substitution functions on terms and formulae
@@ -1980,7 +1980,7 @@ theorem herbrand_evalt [simp]:
   "closedt 0 t \<Longrightarrow> term_of_hterm (evalt e HApp t) = t"
   "closedts 0 ts \<Longrightarrow> terms_of_hterms (evalts e HApp ts) = ts"
   by (induct t and ts rule: closedt.induct closedts.induct) simp_all
-
+    
 theorem herbrand_evalt' [simp]:
   "evalt e HApp (term_of_hterm ht) = ht"
   "evalts e HApp (terms_of_hterms hts) = hts"
@@ -1990,7 +1990,7 @@ theorem closed_hterm [simp]:
   "closedt 0 (term_of_hterm (ht::'a hterm))"
   "closedts 0 (terms_of_hterms (hts::'a hterm list))"
   by (induct ht and hts rule: term_of_hterm.induct terms_of_hterms.induct) simp_all
-
+    
 text {*
 We can prove that Hintikka sets are satisfiable in Herbrand models.
 Note that this theorem cannot be proved by a simple structural induction
@@ -2401,7 +2401,7 @@ proof (intro allI impI conjI)
     then show "\<exists>t. closedt 0 t \<and> Neg (P[t/0]) \<in> ?H"
       using \<open>closedt 0 ?t\<close> by blast }
 qed
-
+  
 subsection {* Model existence theorem *}
 
 text {*
@@ -2436,7 +2436,7 @@ proof -
     using extend_hintikka \<open>infinite (- (\<Union>p \<in> S. params p))\<close>
     by metis
 qed
-    
+
 theorem model_existence:
   assumes "consistency C"
     and "S \<in> C"
@@ -2900,7 +2900,7 @@ proof (rule Class, rule ccontr)
   ultimately show False by simp
 qed
 
-subsection {* Completeness without closed restriction *}
+subsection {* Work on completeness without closed restriction *}
   
 primrec
   free_levels\<^sub>t :: "nat \<Rightarrow> 'a term \<Rightarrow> nat" and
@@ -2941,8 +2941,22 @@ lemma free_levels_closed_terms:
 lemma free_levels_closed: "free_levels m p \<le> k \<Longrightarrow> closed (k + m) p"
   by (induct p arbitrary: m k) (force simp add: free_levels_closed_terms)+
     
-lemma free_levels_closed_zero: "free_levels 0 p = 0 \<Longrightarrow> closed 0 p"
-  using free_levels_closed by fastforce
+lemma closed_terms_free_levels:
+  "closedt (k + m) t \<Longrightarrow> free_levels\<^sub>t m (t :: 'a term) \<le> k"
+  "closedts (k + m) ts \<Longrightarrow> free_levels\<^sub>t\<^sub>s m (ts :: 'a term list) \<le> k"
+  by (induct t and ts rule: free_levels\<^sub>t.induct free_levels\<^sub>t\<^sub>s.induct) auto
+
+lemma closed_free_levels: "closed (k + m) p \<Longrightarrow> free_levels m p \<le> k"
+  by (induct p arbitrary: m k) (simp_all add: closed_terms_free_levels)
+
+lemma free_levels_closed_zero: "(free_levels 0 p = 0) = closed 0 p"
+proof
+  show "free_levels 0 p = 0 \<Longrightarrow> closed 0 p"
+    using free_levels_closed by fastforce
+next
+  show "closed 0 p \<Longrightarrow> free_levels 0 p = 0"
+    using closed_free_levels by force
+qed 
     
 lemma free_levels_terms_suc:
   "free_levels\<^sub>t m (t :: 'a term) \<le> Suc k \<Longrightarrow> free_levels\<^sub>t (Suc m) t \<le> k"
@@ -2978,7 +2992,7 @@ lemma free_levels_terms_suc_eq:
     then show ?case
       by (metis free_levels\<^sub>t\<^sub>s.simps(2) free_levels_terms_suc(2) le_refl max_absorb1 max_def)
   qed
-    
+
 lemma free_levels_suc: "free_levels m p = (Suc k) \<Longrightarrow> free_levels m (Forall p) = k"
   proof (induct p arbitrary: m k)
     case FF
@@ -3040,87 +3054,11 @@ lemma free_levels_suc: "free_levels m p = (Suc k) \<Longrightarrow> free_levels 
     then show ?case by simp
   qed 
     
-lemma free_levels_terms_dec:
-  "free_levels\<^sub>t 0 t > 0 \<Longrightarrow> free_levels\<^sub>t (Suc 0) t < free_levels\<^sub>t 0 t"
-  "free_levels\<^sub>t\<^sub>s 0 ts > 0 \<Longrightarrow> free_levels\<^sub>t\<^sub>s (Suc 0) ts < free_levels\<^sub>t\<^sub>s 0 ts"
-proof (induct and ts rule: free_levels\<^sub>t.induct free_levels\<^sub>t\<^sub>s.induct)
-  case (Var x)
-  then show ?case
-    by (metis free_levels_terms_suc_eq(1) gr0_implies_Suc less_Suc_eq)
-next
-  case (App t ts)
-  then show ?case
-    by (metis Suc_pred free_levels_terms_suc_eq(1) less_Suc_eq)
-next
-  case Nil_term
-  then show ?case by simp
-next
-  case (Cons_term t ts)
-  then show ?case
-    by (metis Suc_n_not_le_n free_levels_terms_suc_eq(2) gr0_implies_Suc linorder_not_less)
-qed
-    
-lemma free_levels_dec: "free_levels 0 p > 0 \<Longrightarrow> free_levels (Suc 0) p < free_levels 0 p"
-proof (induct p)
-  case FF
-  then show ?case by simp
-next
-  case TT
-  then show ?case by simp
-next
-  case (Pred p ts)
-  then show ?case
-    using free_levels_terms_dec by simp
-next
-  case (And A B)
-  then show ?case
-    by (metis Suc_inject free_levels.simps(8) free_levels_suc gr0_implies_Suc
-        lessI less_Suc_eq_0_disj less_not_refl2)
-next
-  case (Or A B)
-  then show ?case
-    by (metis Suc_inject free_levels.simps(8) free_levels_suc gr0_implies_Suc
-        lessI less_Suc_eq_0_disj less_not_refl2)
-next
-  case (Impl A B)
-  then show ?case
-    by (metis Suc_inject free_levels.simps(8) free_levels_suc gr0_implies_Suc
-        lessI less_Suc_eq_0_disj less_not_refl2)
-next
-  case (Neg Z)
-  then show ?case by simp
-next
-  case (Forall P)
-  then show ?case
-    by (metis Suc_n_not_le_n Suc_pred' free_levels.simps(8) free_levels_suc linorder_not_less)
-next
-  case (Exists P)
-  then show ?case
-    by (metis Suc_n_not_le_n Suc_pred' free_levels.simps(8) free_levels_suc linorder_not_less)
-qed
-    
-function uni_close :: "('a, 'b) form \<Rightarrow> ('a, 'b) form" where
-  "uni_close p = (if free_levels 0 p = 0 then p else uni_close (Forall p))"
-by pat_completeness auto
-termination by (relation "measure (\<lambda>p. free_levels 0 p)") (simp_all add: free_levels_dec)
-  
-lemma uni_close_closed: "closed 0 (uni_close p)"
-proof (induct p rule: uni_close.induct)
-  case (1 p)
-  then show ?case
-    using free_levels_closed_zero by auto
-qed
-
 lemma valid_implies_forall_no_prems:
   assumes mod: "\<forall>e f g. e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> p"
   shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> Forall p"
   using mod eval.simps(8) list.pred_inject(1) unfolding model_def by simp_all
-
-lemma valid_uni_close_no_prems:
-  assumes mod: "\<forall>e f g. e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> p"
-  shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> uni_close p"
-  using mod by (induct p rule: uni_close.induct) (simp add: valid_implies_forall_no_prems)
-    
+      
 lemma model_impl_premise: "(e,f,g,ps \<Turnstile> (Impl p a)) = (e,f,g,(p#ps) \<Turnstile> a)"
   unfolding model_def by auto
     
@@ -3133,10 +3071,106 @@ theorem model_build_impl_premises:
   using model_impl_premise
   unfolding model_def by (induct ps) auto
     
-theorem valid_uni_close_build_impl:
+primrec put_Foralls :: "nat \<Rightarrow> ('a, 'b) form \<Rightarrow> ('a, 'b) form" where
+  "put_Foralls (Suc m) p = Forall (put_Foralls m p)"
+| "put_Foralls 0 p = p"
+  
+lemma free_levels_put_Foralls_diff: "free_levels m (put_Foralls k p) = free_levels m p - k"
+proof (induct k)
+  case 0
+  then show ?case
+    by simp
+next
+  case (Suc k)
+  then show ?case
+    using free_levels_Forall free_levels_suc
+    by force
+qed
+  
+lemma free_levels_put_Foralls_zero: "free_levels 0 (put_Foralls (free_levels 0 p) p) = 0"
+  by (simp add: free_levels_put_Foralls_diff)
+  
+lemma closed_put_Foralls_free_levels: "closed 0 (put_Foralls (free_levels 0 p) p)"
+  using free_levels_put_Foralls_zero free_levels_closed_zero by blast
+  
+definition univ_close :: "('a, 'b) form \<Rightarrow> ('a, 'b) form" where
+  "univ_close p = put_Foralls (free_levels 0 p) p"
+  
+lemma closed_univ_close: "closed 0 (univ_close p)"
+  unfolding univ_close_def using closed_put_Foralls_free_levels by blast
+  
+lemma valid_put_Forall_no_prems:
+  assumes mod: "\<forall>e f g. e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> p"
+  shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> put_Foralls m p"
+  using mod by (induct m arbitrary: e f g) (simp_all add: valid_implies_forall_no_prems)
+    
+lemma valid_univ_close_no_prems:
+  assumes mod: "\<forall>e f g. e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> p"
+  shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> univ_close p"
+  unfolding univ_close_def using mod valid_put_Forall_no_prems by blast
+
+theorem valid_univ_close_build_impl:
   assumes mod: "\<forall>e f g. e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,ps \<Turnstile> p"
-  shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> uni_close (build_impl ps p)"
-  using mod by (metis append_self_conv model_build_impl_premises valid_uni_close_no_prems)
+  shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> univ_close (build_impl ps p)"
+  using mod by (metis append_self_conv model_build_impl_premises valid_univ_close_no_prems)
+
+subsubsection {* Deriving the original formula from the universal closure *}
+
+text {*
+This function is modelled on the ForallE rule, removing a universal quantifier
+and then substituting something for zero.
+We pattern match on the number of quantifiers we have added to form the universal
+closure which is then the number we need to peel off again.
+Every time we do so, we substitute @{text "Var m"} for 0, as @{text m} is
+the variable that is no longer within scope after removing the quantifier.
+But because we substitute under binders we actually end up substituting
+@{text "Var (m+m)"} for @{text m}. This is correct however, because
+we recurse on the result of the substitution and continue to substitute @{text m}
+more variables, each smaller than @{text m}, so the @{text "+m"} factor will be
+eliminated.
+ *}
+primrec remove_univ_close :: "nat \<Rightarrow> ('a, 'b) form \<Rightarrow> ('a, 'b) form" where
+  "remove_univ_close (Suc m) p = remove_univ_close m ((dest_Forall p)[Var m/0])"
+| "remove_univ_close 0 p = p"
+
+lemma put_Foralls_subst:
+  "(put_Foralls m p)[Var k/l] = put_Foralls m (p[Var (m+k)/m+l])"
+  by (induct m arbitrary: k l) simp_all
+    
+lemma put_Foralls_subst_zero:
+  "(put_Foralls m p)[Var m/0] = put_Foralls m (p[Var (m+m)/m])"
+  by (simp add: put_Foralls_subst)
+
+lemma put_Foralls_suc: "put_Foralls m (Forall p) = put_Foralls (Suc m) p"
+  by (induct m) simp_all
+     
+lemma remove_univ_close_cancels:
+  "m = free_levels 0 p \<Longrightarrow> remove_univ_close m (put_Foralls m p) = p"
+  sorry
+      
+lemma deriv_remove_univ_close':
+  "ps \<turnstile> put_Foralls m p \<Longrightarrow> ps \<turnstile> remove_univ_close m (put_Foralls m p)"
+proof (induct m arbitrary: p)
+  case 0
+  then show ?case by simp
+next
+  case (Suc m)
+  then show ?case
+    using ForallE put_Foralls_subst
+    by (metis dest_Forall.simps put_Foralls.simps(1) remove_univ_close.simps(1))
+qed
+    
+theorem deriv_remove_univ_close: "ps \<turnstile> univ_close p \<Longrightarrow> ps \<turnstile> p"
+proof -
+  assume "ps \<turnstile> univ_close p"
+  then have "ps \<turnstile> remove_univ_close (free_levels 0 p) (univ_close p)"
+    unfolding univ_close_def using deriv_remove_univ_close' by blast
+  then show ?thesis
+    unfolding univ_close_def
+      using remove_univ_close_cancels by metis
+qed
+
+subsubsection {* Deriving under assumptions from an implication *}
     
 theorem deriv_permute_assumptions: "ps' \<turnstile> q \<Longrightarrow> set ps' = set ps \<Longrightarrow> ps \<turnstile> q"
 proof (induct q arbitrary: ps rule: deriv.induct)
@@ -3235,19 +3269,468 @@ next
     using ExistsE deriv.ExistsE by fast
 qed
     
+theorem deriv_assum_subset: "ps' \<turnstile> q \<Longrightarrow> set ps' \<subseteq> set ps \<Longrightarrow>
+  (\<Union>p \<in> set ps. params p) = (\<Union>p \<in> set ps'. params p) \<Longrightarrow> ps \<turnstile> q"
+proof (induct q arbitrary: ps rule: deriv.induct)
+  case (Assum a G)
+  then show ?case
+    using deriv.Assum by blast
+next
+  case (TTI G)
+  then show ?case
+    using deriv.TTI by blast
+next
+  case (FFE G a)
+  then show ?case
+    using deriv.FFE by blast
+next
+  case (NegI a G)
+  then have "a # ps \<turnstile> FF"
+    by (simp add: subset_iff)
+  then show ?case
+    using deriv.NegI by blast
+next
+  case (NegE G a)
+  then have "ps \<turnstile> a" and "ps \<turnstile> Neg a"
+    by simp_all
+  then show ?case
+    using deriv.NegE by blast
+next
+  case (Class a G)
+  then have "set (Neg a # G) \<subseteq> set (Neg a # ps)"
+    by auto
+  then have "Neg a # ps \<turnstile> FF"
+    using Class by simp
+  then show ?case
+    using deriv.Class by blast
+next
+  case (AndI G a b)
+  then show ?case
+    using deriv.AndI by metis
+next
+  case (AndE1 G a b)
+  then show ?case
+    using deriv.AndE1 by metis
+next
+  case (AndE2 G a b)
+  then show ?case
+    using deriv.AndE2 by metis
+next
+  case (OrI1 G a b)
+  then show ?case
+    using deriv.OrI1 by metis
+next
+  case (OrI2 G b a)
+  then show ?case
+    using deriv.OrI2 by metis
+next
+  case (OrE G a b c)
+  then have "set (a # G) \<subseteq> set (a # ps)" and "set (b # G) \<subseteq> set (b # ps)"
+    by auto
+  then have "ps \<turnstile> Or a b" and "a # ps \<turnstile> c" and "b # ps \<turnstile> c"
+    using OrE by auto
+  then show ?case
+    using deriv.OrE by blast
+next
+  case (ImplI a G b)
+  then have "set (a # G) \<subseteq> set (a # ps)"
+    by auto
+  then have "a # ps \<turnstile> b"
+    using ImplI by simp
+  then show ?case
+    using deriv.ImplI by blast
+next
+  case (ImplE G a b)
+  then show ?case
+    using deriv.ImplE by metis
+next
+  case (ForallI G a n)
+  then have "list_all (\<lambda>p. n \<notin> params p) ps"
+    by (metis (mono_tags, lifting) list_all_iff UN_E UN_I)
+  moreover have "ps \<turnstile> a[App n []/0]"
+    using ForallI by simp
+  moreover note \<open>n \<notin> params a\<close>
+  ultimately show ?case
+    using deriv.ForallI by fast
+next
+  case (ForallE G a t)
+  then show ?case
+    using deriv.ForallE by metis
+next
+  case (ExistsI G a t)
+  then show ?case
+    using deriv.ExistsI by metis
+next
+  case (ExistsE G a n b)
+  then have "list_all (\<lambda>p. n \<notin> params p) ps"
+    by (metis (mono_tags, lifting) list_all_iff UN_E UN_I)
+  moreover have "ps \<turnstile> Exists a"
+    using ExistsE by blast
+  moreover have "set ps \<subseteq> insert (a[App n []/0]) (set ps)"
+    by blast
+  then have "a[App n []/0] # ps \<turnstile> b"
+    using ExistsE by simp
+  moreover note \<open>n \<notin> params a\<close> and \<open>n \<notin> params b\<close>
+  ultimately show ?case
+    using deriv.ExistsE by fast
+qed
+  
+lemma deriv_psubst:
+   "ps \<turnstile> q \<Longrightarrow> (\<forall>x y. x \<noteq> y \<longrightarrow> f x \<noteq> f y) \<Longrightarrow> map (psubst f) ps \<turnstile> psubst f q"
+proof (induct q rule: deriv.induct)
+  case (Assum a G)
+  then show ?case
+    by (simp add: deriv.Assum)
+next
+  case (TTI G)
+  then show ?case
+    using deriv.TTI by simp
+next
+  case (FFE G a)
+  then show ?case
+    using deriv.FFE by simp
+next
+  case (NegI a G)
+  then show ?case
+    using deriv.NegI by simp
+next
+  case (NegE G a)
+  then show ?case
+    using deriv.NegE by simp
+next
+  case (Class a G)
+  then show ?case
+    using deriv.Class by simp
+next
+  case (AndI G a b)
+  then show ?case
+    using deriv.AndI by simp
+next
+  case (AndE1 G a b)
+  then show ?case
+    using deriv.AndE1 by simp
+next
+  case (AndE2 G a b)
+  then show ?case
+    using deriv.AndE2 by simp
+next
+  case (OrI1 G a b)
+  then show ?case
+    using deriv.OrI1 by simp
+next
+  case (OrI2 G b a)
+  then show ?case
+    using deriv.OrI2 by simp
+next
+  case (OrE G a b c)
+  then show ?case
+    using deriv.OrE by simp
+next
+  case (ImplI a G b)
+  then show ?case
+    using deriv.ImplI by simp
+next
+  case (ImplE G a b)
+  then show ?case
+    using deriv.ImplE by simp
+next
+  case (ForallI G a n)
+  then have "f n \<notin> params (psubst f a)"
+    by force   
+  moreover note \<open>list_all (\<lambda>p. n \<notin> params p) G\<close> and \<open>\<forall>a b. a \<noteq> b \<longrightarrow> f a \<noteq> f b\<close>
+  then have "list_all (\<lambda>p. f n \<notin> params p) (map (psubst f) G)"
+    by (force simp add: list_all_iff)
+  moreover have "map (psubst f) G \<turnstile> psubst f (a[App n []/0])"
+    using ForallI by blast
+  ultimately show ?case
+    using deriv.ForallI by fastforce
+next
+  case (ForallE G a t)
+  then show ?case
+    using deriv.ForallE by simp
+next
+  case (ExistsI G a t)
+  then show ?case
+    using deriv.ExistsI by simp
+next
+  case (ExistsE G a n b)
+  then have "map (psubst f) G \<turnstile> psubst f (Exists a)"
+    by blast
+  moreover have "f n \<notin> params (psubst f a)" and "f n \<notin> params (psubst f b)"
+    using ExistsE by force+  
+  moreover note \<open>list_all (\<lambda>p. n \<notin> params p) G\<close> and \<open>\<forall>a b. a \<noteq> b \<longrightarrow> f a \<noteq> f b\<close>
+  then have "list_all (\<lambda>p. f n \<notin> params p) (map (psubst f) G)"
+    by (force simp add: list_all_iff)
+  moreover have "map (psubst f) (a[App n []/0] # G) \<turnstile> psubst f b"
+    using ExistsE by blast
+  ultimately show ?case
+    using deriv.ExistsE by fastforce
+qed    
+
+lemma psubstt_fresh_free:
+  "x \<noteq> n \<Longrightarrow> n \<notin> paramst (psubstt (id(n := x)) t)"
+  "x \<noteq> n \<Longrightarrow> n \<notin> paramsts (psubstts (id(n := x)) ts)"
+  by (induct t and ts rule: psubstt.induct psubstts.induct) simp_all
+
+    
+lemma psubst_fresh_free: "x \<noteq> n \<Longrightarrow> n \<notin> params (psubst (id(n := x)) p)"
+proof (induct p)
+  case (Pred b ts)
+  then show ?case
+    using psubstt_fresh_free by auto
+qed simp_all
+    
+lemma map_psubst_fresh_free:
+  "x \<noteq> n \<Longrightarrow> n \<notin> (\<Union>p \<in> set (map (psubst (id(n := x))) ps). params p)"
+proof (induct ps)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a ps)
+  then show ?case
+    using psubst_fresh_free by auto
+qed
+  
+lemma psubst_free_id: "n \<notin> params p \<Longrightarrow> p = psubst (id(n := x)) p"
+  by auto
+    
+lemma psubst_free_id_set:
+  "n \<notin> (\<Union>a\<in>G. params a) \<Longrightarrow> G \<subseteq> ps \<Longrightarrow> (\<forall>p\<in>ps. p \<in> G \<longrightarrow> psubst (id(n := x)) p \<in> G)"
+  using psubst_free_id by simp
+  
+lemma psubst_fresh_subset:
+  assumes "set G \<subseteq> set ps"
+    and "n \<noteq> x"
+    and "n \<notin> (\<Union>a\<in>set G. params a)"
+  shows "set G \<subseteq> set (map (psubst (id(n := x))) ps)"
+  using assms by (force simp add: psubst_free_id_set)
+  
+lemma deriv_rename:
+  "ps \<turnstile> q \<Longrightarrow>
+  n \<notin> (\<Union>p \<in> set ps. params p) \<union> params q \<Longrightarrow>
+  map (psubst (id(x := n))) ps \<turnstile> psubst (id(x := n)) q"
+sorry
+  
+  
+lemma psubstt_fresh_away:
+ "fresh \<notin> paramst t \<Longrightarrow> psubstt (id(fresh := n)) (psubstt (id(n := fresh)) t) = t"
+ "fresh \<notin> paramsts ts \<Longrightarrow> psubstts (id(fresh := n)) (psubstts (id(n := fresh)) ts) = ts"
+  by (induct t and ts rule: psubstt.induct psubstts.induct) auto
+    
+lemma psubst_fresh_away:
+  "fresh \<notin> params p \<Longrightarrow> psubst (id(fresh := n)) (psubst (id(n := fresh)) p) = p"
+proof (induct p)
+  case (Pred b ts)
+  then show ?case
+    by (metis params.simps(3) psubst.simps(3) psubstt_fresh_away(2))
+qed simp_all
+  
+lemma map_psubst_fresh_away:
+  "fresh \<notin> (\<Union>p \<in> set ps. params p) \<Longrightarrow>
+   map (psubst (id(fresh := n))) (map (psubst (id(n := fresh))) ps) = ps"
+  using psubst_fresh_away by (induct ps) auto
+  
+lemma deriv_weaken_assumptions:
+  assumes inf_param: "infinite (UNIV :: 'a set)"
+  shows "ps' \<turnstile> q \<Longrightarrow> set ps' \<subseteq> set ps \<Longrightarrow> ps \<turnstile> (q :: ('a, 'b) form)"
+proof (induct q arbitrary: ps rule: deriv.induct)
+  case (Assum a G)
+  then have "a \<in> set ps"
+    by auto
+  then show ?case
+    using deriv.Assum by blast
+next
+  case (TTI G)
+  then show ?case
+    using deriv.TTI by blast
+next
+  case (FFE G a)
+  then show ?case
+    using deriv.FFE by blast
+next
+  case (NegI a G)
+  then have "set (a # G) \<subseteq> set (a # ps)"
+    by auto
+  then have "a # ps \<turnstile> FF"
+    using NegI by blast
+  then show ?case
+    using deriv.NegI by blast
+next
+  case (NegE G a)
+  then show ?case
+    using deriv.NegE by blast
+next
+  case (Class a G)
+  then have "set (Neg a # G) \<subseteq> set (Neg a # ps)"
+    by auto
+  then have "Neg a # ps \<turnstile> FF"
+    using Class by blast
+  then show ?case
+    using deriv.Class by blast
+next
+  case (AndI G a b)
+  then show ?case
+    using deriv.AndI by blast
+next
+  case (AndE1 G a b)
+  then show ?case
+    using deriv.AndE1 by blast
+next
+  case (AndE2 G a b)
+  then show ?case
+    using deriv.AndE2 by blast
+next
+  case (OrI1 G a b)
+  then show ?case
+    using deriv.OrI1 by blast
+next
+  case (OrI2 G b a)
+  then show ?case
+    using deriv.OrI2 by blast
+next
+  case (OrE G a b c)
+  then have "set G \<subseteq> set ps" and "set G \<subseteq> set (a # ps)" and "set G \<subseteq> set (b # ps)"
+    by auto
+  then have "ps \<turnstile> Or a b" and "a # ps \<turnstile> c" and "b # ps \<turnstile> c"
+    using OrE by simp_all
+  then show ?case
+    using deriv.OrE by blast
+next
+  case (ImplI a G b)
+  then have "set (a # G) \<subseteq> set (a # ps)"
+    by auto
+  then have "a # ps \<turnstile> b"
+    using ImplI by blast
+  then show ?case
+    using deriv.ImplI by blast
+next
+  case (ImplE G a b)
+  then show ?case
+    using deriv.ImplE by blast
+next
+  case (ForallI G a n)
+  obtain fresh where *: "fresh \<notin> (\<Union>a\<in>set ps. params a) \<union> params a \<union> {n}"
+    using inf_param finite_params
+    by (metis List.finite_set ex_new_if_finite finite.emptyI finite.insertI finite_UN finite_Un)
+  
+  let ?ps_fresh = "map (psubst (id(n := fresh))) ps"
+  have "n \<noteq> fresh"
+    using * by blast
+  then have **: "n \<notin> (\<Union>a\<in>set ?ps_fresh. params a)"
+    using map_psubst_fresh_free * by metis
+  then have "set G \<subseteq> set ?ps_fresh"
+    using ForallI \<open>n \<noteq> fresh\<close> by (metis (no_types, lifting) list_all_iff psubst_fresh_subset UN_E)
+  then have "?ps_fresh \<turnstile> a[App n []/0]"
+    using ForallI by blast
+
+  moreover have "list_all (\<lambda>p. n \<notin> params p) ?ps_fresh"
+    using ** by (simp add: list_all_iff)
+  ultimately have "?ps_fresh \<turnstile> Forall a"
+    using \<open>n \<notin> params a\<close> deriv.ForallI by fast
+      
+  then have "map (psubst (id(fresh := n))) ?ps_fresh \<turnstile> psubst (id(fresh := n)) (Forall a)"
+    using deriv_rename ** ForallI Un_iff by fastforce
+  moreover have "map (psubst (id(fresh := n))) ?ps_fresh = ps"
+    using * map_psubst_fresh_away by fast
+  moreover have  "psubst (id(fresh := n)) (Forall a) = Forall a"
+    using * by simp
+  ultimately show "ps \<turnstile> Forall a"
+    by simp
+next
+  case (ForallE G a t)
+  then show ?case
+    using deriv.ForallE by blast
+next
+  case (ExistsI G a t)
+  then show ?case
+    using deriv.ExistsI by blast
+next
+  case (ExistsE G a n b)
+  obtain fresh where *: "fresh \<notin> (\<Union>a\<in>set ps. params a) \<union> params a \<union> params b \<union> {n}"
+    using inf_param finite_params
+    by (metis List.finite_set ex_new_if_finite finite.emptyI finite.insertI finite_UN finite_Un)
+  
+  let ?ps_fresh = "map (psubst (id(n := fresh))) ps"
+  have "n \<noteq> fresh"
+    using * by blast
+  then have **: "n \<notin> (\<Union>a\<in>set ?ps_fresh. params a)"
+    using map_psubst_fresh_free * by metis
+  then have "set G \<subseteq> set ?ps_fresh"
+    using ExistsE \<open>n \<noteq> fresh\<close> by (metis (no_types, lifting) list_all_iff psubst_fresh_subset UN_E)
+  then have "?ps_fresh \<turnstile> Exists a"
+    using ExistsE by blast
+      
+  moreover have "set (a[App n []/0] # G) \<subseteq> set (a[App n []/0] # ?ps_fresh)"
+    using \<open>set G \<subseteq> set ?ps_fresh\<close> by auto
+  then have "a[App n []/0] # ?ps_fresh \<turnstile> b"
+    using ExistsE by blast
+      
+  moreover have "list_all (\<lambda>p. n \<notin> params p) ?ps_fresh"
+    using ** by (simp add: list_all_iff)
+  ultimately have "?ps_fresh \<turnstile> b"
+    using \<open>n \<notin> params a\<close> \<open>n \<notin> params b\<close> deriv.ExistsE by fast
+      
+  then have "map (psubst (id(fresh := n))) ?ps_fresh \<turnstile> psubst (id(fresh := n)) b"
+    using deriv_rename ** ExistsE Un_iff by fastforce
+  moreover have "map (psubst (id(fresh := n))) ?ps_fresh = ps"
+    using * map_psubst_fresh_away by fast
+  moreover have  "psubst (id(fresh := n)) b = b"
+    using * by simp
+  ultimately show "ps \<turnstile> b"
+    by simp
+qed
+  
+lemma shift_impl_assum:
+  assumes "ps \<turnstile> (Impl p q :: ('a, 'b) form)"
+    and "infinite (UNIV :: 'a set)"
+  shows "p#ps \<turnstile> q"
+proof -
+  have "set ps \<subseteq> set (p#ps)"
+    by auto
+  then have "p#ps \<turnstile> Impl p q"
+    using assms deriv_weaken_assumptions by blast
+  moreover have "p#ps \<turnstile> p"
+    by (simp add: Assum)
+  ultimately show "p#ps \<turnstile> q"
+    using ImplE by blast
+qed
+
+lemma shift_build_impl_assums:
+  assumes "ps' \<turnstile> build_impl ps (q :: ('a, 'b) form)"
+    and "infinite (UNIV :: 'a set)"
+  shows "ps @ ps' \<turnstile> q"
+proof -
+  have "rev ps @ ps' \<turnstile> q"
+    using assms
+    by (induct ps arbitrary: ps') (simp_all add: shift_impl_assum)
+  then show ?thesis
+    by (simp add: deriv_permute_assumptions)
+qed
+  
+theorem deriv_build_impl_assums:
+  assumes "infinite (UNIV :: 'a set)"
+  shows "[] \<turnstile> build_impl ps q \<Longrightarrow> ps \<turnstile> (q :: ('a, 'b) form)"
+  using assms shift_build_impl_assums by fastforce
+    
 theorem natded_complete':
   assumes mod: "\<forall>e f g. e,(f :: nat \<Rightarrow> nat hterm list \<Rightarrow> nat hterm),
-                          (g :: nat \<Rightarrow> nat hterm list \<Rightarrow> bool),ps \<Turnstile> p"
-  shows "[] \<turnstile> uni_close (build_impl ps p)"
+    (g :: nat \<Rightarrow> nat hterm list \<Rightarrow> bool), ps \<Turnstile> p"
+  shows "ps \<turnstile> p"
 proof -
   have "\<forall>e f g. e,(f :: nat \<Rightarrow> nat hterm list \<Rightarrow> nat hterm),(g :: nat \<Rightarrow> nat hterm list \<Rightarrow> bool),
-          [] \<Turnstile> uni_close (build_impl ps p)"
-    using mod valid_uni_close_build_impl by blast
-  moreover have "closed 0 (uni_close (build_impl ps p))"
-    using uni_close_closed by blast
-  ultimately show "[] \<turnstile> uni_close (build_impl ps p)"
+          [] \<Turnstile> univ_close (build_impl ps p)"
+    using mod valid_univ_close_build_impl by blast
+  moreover have "closed 0 (univ_close (build_impl ps p))"
+    using closed_univ_close by blast
+  ultimately have "[] \<turnstile> univ_close (build_impl ps p)"
     using natded_complete by simp
+  then have "[] \<turnstile> build_impl ps p"
+    using deriv_remove_univ_close by blast
+  then show "ps \<turnstile> p"
+    using deriv_build_impl_assums by blast
 qed
+
+  
 section {* L\"owenheim-Skolem theorem *}
 
 text {*
