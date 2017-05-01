@@ -3504,14 +3504,11 @@ lemma psubst_fresh_subset:
     and "n \<notin> (\<Union>a\<in>set G. params a)"
   shows "set G \<subseteq> set (map (psubst (id(n := x))) ps)"
   using assms by (force simp add: psubst_free_id_set)
-  
-lemma deriv_rename:
-  "ps \<turnstile> q \<Longrightarrow>
-  n \<notin> (\<Union>p \<in> set ps. params p) \<union> params q \<Longrightarrow>
-  map (psubst (id(x := n))) ps \<turnstile> psubst (id(x := n)) q"
-sorry
-  
-  
+
+lemma deriv_swap_param:
+  "ps \<turnstile> q \<Longrightarrow> map (psubst (id(x := n, n := x))) ps \<turnstile> psubst (id(x := n, n := x)) q"
+  by (simp add: deriv_psubst)
+ 
 lemma psubstt_fresh_away:
  "fresh \<notin> paramst t \<Longrightarrow> psubstt (id(fresh := n)) (psubstt (id(n := fresh)) t) = t"
  "fresh \<notin> paramsts ts \<Longrightarrow> psubstts (id(fresh := n)) (psubstts (id(n := fresh)) ts) = ts"
@@ -3627,13 +3624,16 @@ next
     using ** by (simp add: list_all_iff)
   ultimately have "?ps_fresh \<turnstile> Forall a"
     using \<open>n \<notin> params a\<close> deriv.ForallI by fast
-      
-  then have "map (psubst (id(fresh := n))) ?ps_fresh \<turnstile> psubst (id(fresh := n)) (Forall a)"
-    using deriv_rename ** ForallI Un_iff by fastforce
+  
+  then have "map (psubst (id(fresh := n, n := fresh))) ?ps_fresh
+              \<turnstile> psubst (id(fresh := n, n := fresh)) (Forall a)"
+    using deriv_swap_param by fast
   moreover have "map (psubst (id(fresh := n))) ?ps_fresh = ps"
     using * map_psubst_fresh_away by fast
-  moreover have  "psubst (id(fresh := n)) (Forall a) = Forall a"
-    using * by simp
+  then have "map (psubst (id(fresh := n, n := fresh))) ?ps_fresh = ps"
+    by (metis (mono_tags, lifting) ** UN_iff map_eq_conv psubst_upd)
+  moreover have  "psubst (id(fresh := n, n := fresh)) (Forall a) = Forall a"
+    using * ForallI.hyps(4) by simp
   ultimately show "ps \<turnstile> Forall a"
     by simp
 next
@@ -3669,13 +3669,16 @@ next
     using ** by (simp add: list_all_iff)
   ultimately have "?ps_fresh \<turnstile> b"
     using \<open>n \<notin> params a\<close> \<open>n \<notin> params b\<close> deriv.ExistsE by fast
-      
-  then have "map (psubst (id(fresh := n))) ?ps_fresh \<turnstile> psubst (id(fresh := n)) b"
-    using deriv_rename ** ExistsE Un_iff by fastforce
-  moreover have "map (psubst (id(fresh := n))) ?ps_fresh = ps"
+  
+  then have "map (psubst (id(fresh := n, n := fresh))) ?ps_fresh
+              \<turnstile> psubst (id(fresh := n, n := fresh)) b"
+    using deriv_swap_param by fast
+   moreover have "map (psubst (id(fresh := n))) ?ps_fresh = ps"
     using * map_psubst_fresh_away by fast
-  moreover have  "psubst (id(fresh := n)) b = b"
-    using * by simp
+  then have "map (psubst (id(fresh := n, n := fresh))) ?ps_fresh = ps"
+    by (metis (mono_tags, lifting) ** UN_iff map_eq_conv psubst_upd)
+  moreover have  "psubst (id(fresh := n, n := fresh)) b = b"
+    using * ExistsE.hyps(7) by simp
   ultimately show "ps \<turnstile> b"
     by simp
 qed
