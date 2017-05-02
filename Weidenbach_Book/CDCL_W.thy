@@ -3813,7 +3813,8 @@ qed
 
 subsection \<open>Additional Invariant: No Smaller Propagation\<close>
 
-definition "no_smaller_propa (S ::'st) \<equiv>
+definition no_smaller_propa :: \<open>'st \<Rightarrow> bool\<close> where
+"no_smaller_propa (S ::'st) \<equiv>
   (\<forall>M K M' D L. trail S = M' @ Decided K # M \<longrightarrow> D + {#L#} \<in># clauses S \<longrightarrow> undefined_lit M L
     \<longrightarrow> \<not>M \<Turnstile>as CNot D)"
 
@@ -3879,22 +3880,22 @@ next
 next
   case decide note n_s = this(1,2) and dec = this(3)
   show ?thesis
-      unfolding no_smaller_propa_def
-    proof clarify
-      fix M K M' D L
-      assume
-        tr: \<open>trail T = M' @ Decided K # M\<close> and
-        D: \<open>D+{#L#} \<in># clauses T\<close> and
-        undef: \<open>undefined_lit M L\<close> and
-        M: \<open>M \<Turnstile>as CNot D\<close>
-      then have "Ex (propagate S)"
-        apply (cases M')
-        using propagate_rule[of S "D+{#L#}" L "cons_trail (Propagated L (D + {#L#})) S"] dec
+    unfolding no_smaller_propa_def
+  proof clarify
+    fix M K M' D L
+    assume
+      tr: \<open>trail T = M' @ Decided K # M\<close> and
+      D: \<open>D+{#L#} \<in># clauses T\<close> and
+      undef: \<open>undefined_lit M L\<close> and
+      M: \<open>M \<Turnstile>as CNot D\<close>
+    then have "Ex (propagate S)"
+      apply (cases M')
+      using propagate_rule[of S "D+{#L#}" L "cons_trail (Propagated L (D + {#L#})) S"] dec
         smaller_propa
-        by (auto simp: no_smaller_propa_def elim!: rulesE)
-      then show False
-        using n_s by blast
-    qed
+      by (auto simp: no_smaller_propa_def elim!: rulesE)
+    then show False
+      using n_s by blast
+  qed
 next
   case backtrack note n_s = this(1,2) and o = this(3)
   have inv_T: "cdcl\<^sub>W_all_struct_inv T"
@@ -3941,7 +3942,8 @@ next
       D: \<open>D'+{#L'#} \<in># clauses T\<close> and
       undef: \<open>undefined_lit M L'\<close> and
       M: \<open>M \<Turnstile>as CNot D'\<close>
-    { assume D: \<open>D = D' + {#L'#}\<close> and M_D: \<open>M \<Turnstile>as CNot D'\<close>
+    have False if D: \<open>D = D' + {#L'#}\<close> and M_D: \<open>M \<Turnstile>as CNot D'\<close>
+    proof -
       have \<open>i \<noteq> 0\<close>
         using i_lvl tr T by auto
       then have "D - {#L#} \<noteq> {#}"
@@ -3969,9 +3971,8 @@ next
           by (auto dest: in_lits_of_l_defined_litD dest: defined_lit_no_dupD simp: atm_of_eq_atm_of)
         then have "get_level (tl M' @ Decided K' # M) L_max < i"
           apply (subst get_level_skip)
-           apply (cases M'; auto simp add: atm_of_eq_atm_of lits_of_def)
-          using count_dec_M count_decided_ge_get_level[of M L_max]
-          by auto
+           apply (cases M'; auto simp add: atm_of_eq_atm_of lits_of_def; fail)
+          using count_dec_M count_decided_ge_get_level[of M L_max] by auto
         then show False
           using lev_L_max tr unfolding tr_T by (auto simp: propagated_cons_eq_append_decide_cons)
       qed
@@ -3991,13 +3992,12 @@ next
       qed
       moreover have "L_max \<in># D' \<or> L \<in># D'"
         using D L_max_in LD by (auto split: if_splits)
-      ultimately have False
+      ultimately show False
         using M_D by (auto simp: true_annots_true_cls true_clss_def)
-    }
+    qed
     then show False
-      apply (cases M')
       using M'' smaller_propa tr D undef M T
-      by (auto simp: no_smaller_propa_def elim!: rulesE)
+      by (cases M') (auto simp: no_smaller_propa_def elim!: rulesE)
   qed
 qed
 
@@ -4008,9 +4008,10 @@ lemma rtranclp_cdcl\<^sub>W_stgy_no_smaller_propa:
     inv: \<open>cdcl\<^sub>W_all_struct_inv S\<close>
   shows \<open>no_smaller_propa T\<close>
   using cdcl apply (induction rule: rtranclp_induct)
-    using smaller_propa apply (simp; fail)
-  using inv by (auto intro: rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv
+  subgoal using smaller_propa by simp
+  subgoal using inv by (auto intro: rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv
       cdcl\<^sub>W_stgy_no_smaller_propa)
+  done
 
 lemma hd_trail_level_ge_1_length_gt_1:
   fixes S :: 'st
@@ -4104,9 +4105,8 @@ lemma rtranclp_cdcl\<^sub>W_restart_conflict_non_zero_unless_level_0:
   using assms by (induction rule: rtranclp_induct)
     (auto intro: rtranclp_cdcl\<^sub>W_restart_no_false_clause cdcl\<^sub>W_restart_conflict_non_zero_unless_level_0)
 
-definition propagated_clauses_clauses where
-\<open>propagated_clauses_clauses S \<equiv>
-  \<forall>L K. Propagated L K \<in> set (trail S) \<longrightarrow> K \<in># clauses S\<close>
+definition propagated_clauses_clauses :: "'st \<Rightarrow> bool" where
+\<open>propagated_clauses_clauses S \<equiv> \<forall>L K. Propagated L K \<in> set (trail S) \<longrightarrow> K \<in># clauses S\<close>
 
 lemma propagate_single_literal_clause_get_level_is_0:
   assumes
