@@ -180,7 +180,7 @@ lemma valued_spec:
   \<open>RETURN (valued M L) \<le> SPEC(\<lambda>v. (v = None \<longleftrightarrow> undefined_lit M L) \<and>
     (v = Some True \<longleftrightarrow> L \<in> lits_of_l M) \<and> (v = Some False \<longleftrightarrow> -L \<in> lits_of_l M))\<close>
   unfolding valued_def
-  by (refine_vcg)
+  by refine_vcg
     (use assms in \<open>auto simp: defined_lit_map lits_of_def atm_of_eq_atm_of uminus_lit_swap
       no_dup_cannot_not_lit_and_uminus
       split: option.splits\<close>)

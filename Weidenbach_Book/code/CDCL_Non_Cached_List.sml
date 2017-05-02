@@ -434,18 +434,23 @@ fun clause_to_update_l l s =
     (upt one_nat (size_list (get_clauses_ll s)));
 
 fun find_unwatched_impl x =
-  (fn ai => fn bi =>
-    heap_WHILET
-      (fn (a1, a2) =>
-        (fn () => (is_none a1 andalso less_nat a2 (op_list_length bi))))
-      (fn (_, a2) => fn () =>
-        let
-          val x_a = valued_impl ai (op_list_get bi a2) ();
-        in
-          (case x_a of NONE => (SOME false, a2) | SOME true => (SOME true, a2)
-            | SOME false => (NONE, plus_nat a2 one_nat))
-        end)
-      (NONE, nat_of_integer (2 : IntInf.int)))
+  (fn ai => fn bi => fn () =>
+    let
+      val xa =
+        heap_WHILET
+          (fn (a1, a2) =>
+            (fn () => (is_None a1 andalso less_nat a2 (op_list_length bi))))
+          (fn (_, a2) =>
+            (fn f_ => fn () => f_ ((valued_impl ai (op_list_get bi a2)) ()) ())
+              (fn x_a =>
+                (fn () =>
+                  (case x_a of NONE => (SOME a2, a2)
+                    | SOME true => (SOME a2, a2)
+                    | SOME false => (NONE, plus_nat a2 one_nat)))))
+          (NONE, nat_of_integer (2 : IntInf.int)) ();
+    in
+      fst xa
+    end)
     x;
 
 fun find_unassigned_lit_l_impl x =
@@ -635,16 +640,19 @@ fun unit_propagation_inner_loop_l_impl x =
                        ((find_unwatched_impl a1g (op_list_get a1a a2)) ()) ())
                        (fn x_i =>
                          (fn () =>
-                           (if is_none (fst x_i)
-                             then (if equal_option equal_bool x_g (SOME false)
-                                    then (a1g,
-   (a1a, (a1b, (SOME (op_list_get a1a a2), (a1d, (a1e, ([], [])))))))
-                                    else (op_list_prepend (op_Propagated x_e a2)
-    a1g,
-   (a1a, (a1b, (a1c, (a1d, (a1e, (a1f, op_uminus_lit x_e :: a2f))))))))
-                             else (a1g, (op_list_set a1a a2
-   (op_list_swap (op_list_get a1a a2) x_a (snd x_i)),
-  (a1b, (a1c, (a1d, (a1e, (a1f, a2f)))))))))))
+                           (case x_i
+                             of NONE =>
+                               (if equal_option equal_bool x_g (SOME false)
+                                 then (a1g,
+(a1a, (a1b, (SOME (op_list_get a1a a2), (a1d, (a1e, ([], [])))))))
+                                 else (op_list_prepend (op_Propagated x_e a2)
+ a1g,
+(a1a, (a1b, (a1c, (a1d, (a1e, (a1f, op_uminus_lit x_e :: a2f))))))))
+                             | SOME x_j =>
+                               (a1g, (op_list_set a1a a2
+(op_list_swap (op_list_get a1a a2) x_a x_j),
+                                       (a1b,
+ (a1c, (a1d, (a1e, (a1f, a2f)))))))))))
                 ()
             end)
         end))

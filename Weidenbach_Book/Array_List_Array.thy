@@ -429,7 +429,7 @@ proof -
     apply (subst 1)
     unfolding arl_assn_def is_array_list_def hr_comp_def
     apply (cases a)
-    apply (sep_auto)
+    apply sep_auto
        apply (rule_tac psi=\<open>Suc (length l) \<le> length (l'[length l := x])\<close> in asm_rl)
        apply simp
       apply simp

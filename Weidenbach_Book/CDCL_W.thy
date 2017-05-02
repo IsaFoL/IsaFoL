@@ -4111,5 +4111,49 @@ lemma rtranclp_cdcl\<^sub>W_restart_conflict_non_zero_unless_level_0:
   using assms by (induction rule: rtranclp_induct)
     (auto intro: rtranclp_cdcl\<^sub>W_restart_no_false_clause cdcl\<^sub>W_restart_conflict_non_zero_unless_level_0)
 
+definition propagated_clauses_clauses where
+\<open>propagated_clauses_clauses S \<equiv>
+  \<forall>L K. Propagated L K \<in> set (trail S) \<longrightarrow> K \<in># clauses S\<close>
+
+lemma propagate_single_literal_clause_get_level_is_0:
+  assumes
+    smaller: \<open>no_smaller_propa S\<close> and
+    propa_tr: \<open>Propagated L {#L#} \<in> set (trail S)\<close> and
+    n_d: \<open>no_dup (trail S)\<close> and
+    propa: \<open>propagated_clauses_clauses S\<close>
+  shows \<open>get_level (trail S) L = 0\<close>
+proof (rule ccontr)
+  assume H: \<open>\<not> ?thesis\<close>
+  then obtain M M' K where
+    tr: \<open>trail S = M' @ Decided K # M\<close> and
+    nm: \<open>\<forall>m \<in> set M. \<not>is_decided m\<close>
+    using split_list_last_prop[of "trail S" is_decided]
+    by (auto simp: filter_empty_conv is_decided_def get_level_def dest!: List.set_dropWhileD)
+  have uL: \<open>-L \<notin> lits_of_l (trail S)\<close>
+    using n_d propa_tr unfolding lits_of_def by (fastforce simp: no_dup_cannot_not_lit_and_uminus)
+  then have [iff]: \<open>defined_lit M' L \<longleftrightarrow> L \<in> lits_of_l M'\<close>
+    by (auto simp add: tr Decided_Propagated_in_iff_in_lits_of_l)
+  have \<open>get_level M L = 0\<close> for L
+    using nm by auto
+  have [simp]: \<open>L \<noteq> -K\<close>
+    using tr propa_tr n_d unfolding lits_of_def by (fastforce simp: no_dup_cannot_not_lit_and_uminus
+        in_set_conv_decomp)
+  have \<open>L \<in> lits_of_l (M' @ [Decided K])\<close>
+    apply (rule ccontr)
+    using H unfolding tr
+    apply (subst (asm) get_level_skip)
+    using uL tr apply (auto simp: atm_of_eq_atm_of Decided_Propagated_in_iff_in_lits_of_l; fail)[]
+    apply (subst (asm) get_level_skip_beginning)
+    using \<open>get_level M L = 0\<close> by (auto simp: atm_of_eq_atm_of uminus_lit_swap lits_of_def)
+  then have \<open>undefined_lit M L\<close>
+    using n_d unfolding tr by (auto simp: defined_lit_map lits_of_def image_Un no_dup_def)
+  moreover have "{#} + {#L#} \<in># clauses S"
+    using propa propa_tr unfolding propagated_clauses_clauses_def by auto
+  moreover have "M \<Turnstile>as CNot {#}"
+    by auto
+  ultimately show False
+    using smaller tr unfolding no_smaller_propa_def by blast
+qed
+
 end
 end
