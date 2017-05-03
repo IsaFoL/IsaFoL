@@ -614,10 +614,11 @@ lemma ord_resolve_obtain_clauses:
     by (metis le_supE subset_iff)    
   hence "\<forall>i < n. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> (CAi ! i) = CA'' \<cdot> \<eta>c'' \<and> S CA'' \<cdot> \<eta>c'' = S_M S M ( (CAi ! i)) "
     using n by auto
-  then have "\<exists>\<eta>s''f CAi''f. \<forall>i < n. CAi''f i \<in> M \<and> (CAi ! i) = (CAi''f i) \<cdot> (\<eta>s''f i) \<and> S (CAi''f i) \<cdot> (\<eta>s''f i) = S_M S M (CAi ! i)"
+  then obtain \<eta>s''f CAi''f where f_p: 
+    "\<forall>i < n. CAi''f i \<in> M" 
+    "\<forall>i < n. (CAi ! i) = (CAi''f i) \<cdot> (\<eta>s''f i)"
+    "\<forall>i < n. S (CAi''f i)  \<cdot> (\<eta>s''f i) = S_M S M (CAi ! i)"
     by metis
-  then obtain \<eta>s''f CAi''f where f_p: "\<forall>i < n. CAi''f i \<in> M \<and> (CAi ! i) = (CAi''f i) \<cdot> (\<eta>s''f i) \<and> S (CAi''f i)  \<cdot> (\<eta>s''f i) = S_M S M  (CAi ! i)"
-    by auto
       
   define \<eta>s'' where "\<eta>s'' = map \<eta>s''f [0 ..<n]"
   define CAi'' where "CAi'' = map CAi''f [0 ..<n]"
@@ -625,22 +626,13 @@ lemma ord_resolve_obtain_clauses:
   have "length \<eta>s'' = n" "length CAi'' = n"
     unfolding \<eta>s''_def CAi''_def by auto
   note n = \<open>length \<eta>s'' = n\<close> \<open>length CAi'' = n\<close> n
-    
-  have \<eta>s''_ff: "\<forall>i < n. \<eta>s'' ! i = \<eta>s''f i"
-    unfolding \<eta>s''_def apply (induction n) apply auto
-    by (metis add.left_neutral diff_is_0_eq diff_zero length_map length_upt less_Suc_eq less_Suc_eq_le nth_Cons_0 nth_append nth_map_upt)
-  have CAi''_ff: "\<forall>i < n. CAi'' ! i = CAi''f i"
-    unfolding CAi''_def apply (induction n) apply auto
-    by (metis add.left_neutral diff_is_0_eq diff_zero length_map length_upt less_Suc_eq less_Suc_eq_le nth_Cons_0 nth_append nth_map_upt)
-  have COOL: "\<forall>i < n. CAi'' ! i \<in> M \<and> (CAi ! i) = (CAi'' ! i) \<cdot> (\<eta>s'' ! i) \<and> S (CAi'' ! i) \<cdot> (\<eta>s'' ! i) = S_M S M (CAi ! i)"
-    using f_p \<eta>s''_ff CAi''_ff by auto
       
       (* The properties we need of CAi'' *)
-  have CAi''_in_M: "\<forall>i < n. CAi'' ! i \<in> M" using COOL by auto
-  have cai''_to_cai: "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi" using COOL
+  have CAi''_in_M: "\<forall>i < n. CAi'' ! i \<in> M" unfolding CAi''_def using f_p by auto
+  have cai''_to_cai: "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi" unfolding CAi''_def \<eta>s''_def using f_p
     by (simp add: n)
-  have selelele: "(\<forall>i < n. S_M S M (CAi ! i) = S (CAi'' ! i) \<cdot> (\<eta>s'' ! i))"
-    using COOL by auto
+  have selelele: " \<forall>i < n. S_M S M (CAi ! i) = S (CAi'' ! i) \<cdot> (\<eta>s'' ! i) "
+    unfolding CAi''_def \<eta>s''_def using f_p(3) by auto
       
   have "\<exists>DA'' \<eta>''. DA'' \<in> M \<and> (DA) = DA'' \<cdot> \<eta>'' \<and> S DA'' \<cdot> \<eta>'' = S_M S M DA"
     using grounding S_M_grounding_of_clss select
