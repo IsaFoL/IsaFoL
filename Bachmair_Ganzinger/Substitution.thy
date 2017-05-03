@@ -17,7 +17,7 @@ text {*
 *}
 
 subsection {* Substitution operators *}
-  
+
 locale substitution_ops =
   fixes
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
@@ -146,6 +146,50 @@ locale substitution = substitution_ops subst_atm id_subst comp_subst
     make_var_disjoint: "\<And>Cs. \<exists>\<rho>s. length \<rho>s = length Cs \<and> (\<forall>\<rho> \<in> set \<rho>s. is_renaming \<rho>) \<and>
        var_disjoint (Cs \<cdot>\<cdot>cl \<rho>s)"
 begin
+  
+subsubsection {* On atoms *}
+  
+lemma subst_ext_iff: "\<sigma> = \<tau> \<longleftrightarrow> (\<forall>A. A \<cdot>a \<sigma> = A \<cdot>a \<tau>)"
+  by (auto intro: subst_ext)
+    
+subsubsection {* Composition *}
+  
+lemma id_subst_comp_subst[simp]: "id_subst \<odot> \<sigma> = \<sigma>"
+  by (rule subst_ext) simp
+
+lemma comp_subst_id_subst[simp]: "\<sigma> \<odot> id_subst = \<sigma>"
+  by (rule subst_ext) simp
+
+lemma comp_subst_assoc[simp]: "\<sigma> \<odot> (\<tau> \<odot> \<gamma>) = \<sigma> \<odot> \<tau> \<odot> \<gamma>"
+  by (rule subst_ext) simp
+    
+subsubsection {* Composition in lists *}
+  
+lemma comp_substs_length[simp]: "length (\<tau>s \<odot>s \<sigma>s) = min (length \<tau>s) (length \<sigma>s)"
+  unfolding comp_substs_def by auto
+    
+lemma[simp]: "length \<tau>s = length \<sigma>s \<Longrightarrow> i < length \<tau>s \<Longrightarrow> (\<tau>s \<odot>s \<sigma>s) ! i = (\<tau>s ! i) \<odot> (\<sigma>s ! i)"
+  unfolding comp_substs_def 
+  by auto
+    
+lemma[simp]: "[] \<odot>s s = []"
+  unfolding comp_substs_def by auto
+
+lemma[simp]: "s \<odot>s [] = []"
+  unfolding comp_substs_def by auto
+    
+subsubsection {* On sets of atoms *}
+  
+lemma subst_atms_empty[simp]: "{} \<cdot>as \<sigma> = {}"
+  unfolding subst_atms_def by auto
+
+lemma subst_atms_union[simp]: "(A \<union> B) \<cdot>as \<sigma> = A \<cdot>as \<sigma> \<union> B \<cdot>as \<sigma>"
+  unfolding subst_atms_def by auto
+
+lemma subst_atms_single[simp]: "{A} \<cdot>as \<sigma> = {A \<cdot>a \<sigma>}"
+  unfolding subst_atms_def by auto
+    
+subsubsection {* The rest *}
 
 lemma var_disjoint_ground:
   assumes "var_disjoint Cs" "length \<sigma>s = length Cs"
@@ -166,14 +210,7 @@ qed
 lemma ex_ground_subst: "\<exists>\<sigma>. is_ground_subst \<sigma>"
   using make_ground_subst[of "[]"] by (auto simp: subst_cls_list_def is_ground_cls_list_def)
 
-lemma id_subst_comp_subst[simp]: "id_subst \<odot> \<sigma> = \<sigma>"
-  by (rule subst_ext) simp
 
-lemma comp_subst_id_subst[simp]: "\<sigma> \<odot> id_subst = \<sigma>"
-  by (rule subst_ext) simp
-
-lemma comp_subst_assoc[simp]: "\<sigma> \<odot> (\<tau> \<odot> \<gamma>) = \<sigma> \<odot> \<tau> \<odot> \<gamma>"
-  by (rule subst_ext) simp
 
 lemma Melem_subst_atm_mset[simp]: "A \<in># AA \<cdot>am \<sigma> \<longleftrightarrow> (\<exists>B. B \<in># AA \<and> A = B \<cdot>a \<sigma>)"
   unfolding subst_atm_mset_def by auto
@@ -203,15 +240,6 @@ lemma subst_cls_lists_nth[simp]: "length CC = length \<sigma>s \<Longrightarrow>
 (* Another nice lemma *)
 lemma subst_cls_len[simp]: "length CC = length \<sigma>s \<Longrightarrow> length (CC \<cdot>\<cdot>cl \<sigma>s) = length CC"
   unfolding subst_cls_lists_def by auto
-
-lemma subst_atms_empty[simp]: "{} \<cdot>as \<sigma> = {}"
-  unfolding subst_atms_def by auto
-
-lemma subst_atms_union[simp]: "(A \<union> B) \<cdot>as \<sigma> = A \<cdot>as \<sigma> \<union> B \<cdot>as \<sigma>"
-  unfolding subst_atms_def by auto
-
-lemma subst_atms_single[simp]: "{A} \<cdot>as \<sigma> = {A \<cdot>a \<sigma>}"
-  unfolding subst_atms_def by auto
 
 lemma subst_atm_list_length[simp]: "length (As \<cdot>al \<sigma>) = length As"
   unfolding subst_atm_list_def by auto
@@ -260,9 +288,6 @@ lemma subst_cls_list_Nil[simp]: "[] \<cdot>cl \<sigma> = []"
 
 lemma subst_cls_list_Cons[simp]: "(C # CC) \<cdot>cl \<sigma> = C \<cdot> \<sigma> # CC \<cdot>cl \<sigma>"
   unfolding subst_cls_list_def by auto
-
-lemma comp_substs_length[simp]: "length (\<tau>s \<odot>s \<sigma>s) = min (length \<tau>s) (length \<sigma>s)"
-  unfolding comp_substs_def by auto
 
 lemma subst_cls_lists_length[simp]: "length (CC \<cdot>\<cdot>cl \<sigma>s) = min (length CC) (length \<sigma>s)"
   unfolding subst_cls_lists_def by auto
@@ -467,8 +492,7 @@ lemma is_unifiers_subst_atm_eqI:
   shows "A \<cdot>a \<sigma> = B \<cdot>a \<sigma>"
   by (metis assms is_unifiers_def is_unifier_subst_atm_eqI)
 
-lemma subst_ext_iff: "\<sigma> = \<tau> \<longleftrightarrow> (\<forall>A. A \<cdot>a \<sigma> = A \<cdot>a \<tau>)"
-  by (auto intro: subst_ext)
+
 
 (* Put these in the appropriate place above: *)
   
@@ -514,10 +538,6 @@ lemma[simp]: "mset (Ai \<cdot>al \<sigma>) = mset (Ai) \<cdot>am \<sigma>"
     
 lemma[simp]: "sum_list (Ci' \<cdot>cl \<eta>) = sum_list Ci' \<cdot> \<eta>" 
   unfolding subst_cls_list_def by (induction Ci') auto
- 
-lemma[simp]: "length \<tau>s = length \<sigma>s \<Longrightarrow> i < length \<tau>s \<Longrightarrow> (\<tau>s \<odot>s \<sigma>s) ! i = (\<tau>s ! i) \<odot> (\<sigma>s ! i)"
-  unfolding comp_substs_def 
-  by auto
       
 (* This is a mess: *)
 lemma make_single_ground_subst: 
@@ -574,12 +594,6 @@ thm id_subst_comp_subst
   
 lemma inv_ren_cancel_r[simp]: "is_renaming s \<Longrightarrow> s \<odot> (inv_ren s) = id_subst"
   unfolding inv_ren_def is_renaming_def by (metis (mono_tags, lifting) someI_ex)
-    
-lemma[simp]: "[] \<odot>s s = []"
-  unfolding comp_substs_def by auto
-    
-lemma[simp]: "s \<odot>s [] = []"
-  unfolding comp_substs_def by auto
     
 lemma inv_ren_cancel_r_list[simp]: "is_renaming_list s \<Longrightarrow> s \<odot>s (map inv_ren s) = replicate (length s) id_subst" 
   unfolding is_renaming_list_def
