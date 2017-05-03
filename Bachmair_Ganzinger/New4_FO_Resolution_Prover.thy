@@ -1329,7 +1329,7 @@ lemma ord_resolve_lifting:
       from asm have "S_M S M (D + negs (mset Ai)) = {#}" by auto
       hence "S (D' + negs (mset Ai')) = {#}" using \<open>D' \<cdot> \<eta> = D\<close>[symmetric] \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] \<open> S (DA') \<cdot> \<eta> = S_M S M (DA)\<close>
         using ord_resolve(1) 
-        using ai' empty_subst by metis   
+        using ai' subst_cls_empty_iff by metis   
       moreover
       from asm have l: "length Ai = 1" by auto
       hence l': "length Ai' = 1" using \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] by auto
@@ -1373,7 +1373,7 @@ lemma ord_resolve_lifting:
       
     from ord_resolve have "\<forall>i < n. (S_M S M) (CAi ! i) = {#}" by -
     hence "\<forall>i < n. S (CAi' ! i)  \<cdot> \<eta> = {#}" using ord_resolve(3) \<open>\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>\<close> by auto 
-    then show ff: "\<forall>i < n. S (CAi' ! i) = {#}" using empty_subst by blast
+    then show ff: "\<forall>i < n. S (CAi' ! i) = {#}" using subst_cls_empty_iff by blast
   qed
     
     (* Lifting Aij's non-empty *)
@@ -1381,7 +1381,7 @@ lemma ord_resolve_lifting:
     apply (rule allI)
     apply rule
     using n ord_resolve(9) ord_resolve(5) unfolding \<open>Aij' \<cdot>aml \<eta> = Aij\<close>[symmetric]
-    using empty_subst_for_atoms subst_atm_mset_list_nth by metis  
+    using subst_atm_mset_empty_iff subst_atm_mset_list_nth by metis  
       
       (* Resolve the lifted clauses *)
   define E' where "E' = ((\<Union># (mset Ci')) + D') \<cdot> \<tau>"   

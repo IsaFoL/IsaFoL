@@ -878,7 +878,7 @@ lemma ord_resolve_lifting:
     also have "... = S (CAi'' ! i \<cdot> \<rho>s ! i) \<cdot> \<eta>_fo"
       using s_cai'_\<eta> unfolding CAi'_def \<eta>s'_def
        S.S_selects_subseteq
-      by (metis \<open>i < n\<close> calculation empty_subst ord_resolve(13)) (* There must be a better, more local proof *)
+      by (metis \<open>i < n\<close> calculation subst_cls_empty_iff ord_resolve(13)) (* There must be a better, more local proof *)
     also have "... = S (CAi' ! i) \<cdot> \<eta>_fo"
       unfolding CAi'_def
       by (simp add: \<open>i < n\<close> n) 
@@ -1123,7 +1123,7 @@ lemma ord_resolve_lifting:
     apply (rule allI)
     apply rule
     using n ord_resolve(9) ord_resolve(5) unfolding \<open>Aij' \<cdot>aml \<eta> = Aij\<close>[symmetric]
-    using empty_subst_for_atoms subst_atm_mset_list_nth by metis
+    using subst_atm_mset_empty_iff subst_atm_mset_list_nth by metis
   moreover
     (* Lifting eligibility *)
   have "eligible (S_M S M) \<sigma> Ai (D + negs (mset Ai))" using ord_resolve unfolding eligible_simp by -
@@ -1145,7 +1145,7 @@ lemma ord_resolve_lifting:
     hence "S (D' + negs (mset Ai')) = {#}" using \<open>D' \<cdot> \<eta> = D\<close>[symmetric] \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] \<open>S_M S M (DA) = S (DA') \<cdot> \<eta>\<close>
       using ord_resolve(1) 
       apply auto
-      using a empty_subst by blast   
+      using a subst_cls_empty_iff by blast   
     moreover
     from asm have l: "length Ai = 1" by auto
     hence l': "length Ai' = 1" using \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] by auto
@@ -1172,7 +1172,7 @@ lemma ord_resolve_lifting:
     (* Lifting nothing selected *)
   from ord_resolve have "\<forall>i < n. (S_M S M) (CAi ! i) = {#}" by -
   hence "\<forall>i < n. S (CAi' ! i)  \<cdot> \<eta> = {#}" using ord_resolve(3) \<open>\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>\<close> by auto 
-  hence ff: "\<forall>i < n. S (CAi' ! i) = {#}" using empty_subst by blast
+  hence ff: "\<forall>i < n. S (CAi' ! i) = {#}" using subst_cls_empty_iff by blast
   ultimately
     (* Resolve the lifted clauses *)
   have res_e': "ord_resolve S CAi' DA' E'" 
