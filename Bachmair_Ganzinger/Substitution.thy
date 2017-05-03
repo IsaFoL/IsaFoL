@@ -16,6 +16,8 @@ text {*
     'a atoms
 *}
 
+subsection {* Substitution operators *}
+  
 locale substitution_ops =
   fixes
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
@@ -72,6 +74,9 @@ lemma subst_cls_mset_add_mset[iff]:
 definition is_renaming :: "'s \<Rightarrow> bool" where
   "is_renaming \<sigma> = (\<exists>\<tau>. \<sigma> \<odot> \<tau> = id_subst)"
   
+definition is_renaming_list :: "'s list \<Rightarrow> bool" where
+  "is_renaming_list \<sigma>s = (\<forall>\<sigma> \<in> set \<sigma>s. is_renaming \<sigma>)"
+  
 definition inv_ren :: "'s \<Rightarrow> 's" where
   "inv_ren \<sigma> = (SOME \<tau>. \<sigma> \<odot> \<tau> = id_subst)"
 
@@ -125,6 +130,8 @@ definition var_disjoint :: "'a clause list \<Rightarrow> bool" where
 
 end
 
+subsection {* Substitution theorems *}
+  
 locale substitution = substitution_ops subst_atm id_subst comp_subst
   for
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
@@ -568,6 +575,16 @@ thm id_subst_comp_subst
 lemma inv_ren_cancel_r[simp]: "is_renaming s \<Longrightarrow> s \<odot> (inv_ren s) = id_subst"
   unfolding inv_ren_def is_renaming_def by (metis (mono_tags, lifting) someI_ex)
     
+lemma[simp]: "[] \<odot>s s = []"
+  unfolding comp_substs_def by auto
+    
+lemma[simp]: "s \<odot>s [] = []"
+  unfolding comp_substs_def by auto
+    
+lemma inv_ren_cancel_r_list[simp]: "is_renaming_list s \<Longrightarrow> s \<odot>s (map inv_ren s) = replicate (length s) id_subst" 
+  unfolding is_renaming_list_def
+  by (induction s) (auto simp add: comp_substs_def)
+    
 lemma inv_ren_cancel_l[simp]: "is_renaming s \<Longrightarrow> (inv_ren s) \<odot> s = id_subst"
   oops
     
@@ -612,6 +629,7 @@ lemma inv_ren_p2[simp]: "is_renaming s \<Longrightarrow> (inv_ren s) \<odot> s =
 
 end
 
+subsection {* Unification *}
 locale unification = substitution subst_atm id_subst comp_subst
   for
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and 

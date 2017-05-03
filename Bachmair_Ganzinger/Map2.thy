@@ -13,15 +13,13 @@ where
 lemma map2_length[simp]: "length (map2 f as bs) = min (length as) (length bs)"
   unfolding map2_def by auto
 
-lemma map2_empty_r[simp]: "map2 f [] ys = []"
+lemma map2_empty_l[simp]: "map2 f [] ys = []"
   unfolding map2_def by auto
     
-lemma map2_empty_l[simp]: "map2 f [] xs = []"
+lemma map2_empty_r[simp]: "map2 f xs [] = []"
   unfolding map2_def by auto
    
-lemma length_map2[simp]:
-  "length t = length s \<Longrightarrow> length (map2 f s t) = length s"
-  unfolding map2_def by (induction t arbitrary: s) auto
+
       
 lemma image_map2: "length t = length s \<Longrightarrow> 
          g ` set (map2 f t s) = set (map2 (\<lambda>a b. g (f a b)) t s)"
