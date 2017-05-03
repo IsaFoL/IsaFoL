@@ -1313,40 +1313,40 @@ lemma ord_resolve_lifting:
   have eligibility: "eligible S \<tau> Ai' (D' + negs (mset Ai'))" 
   proof -
     have "eligible (S_M S M) \<sigma> Ai (D + negs (mset Ai))" using ord_resolve unfolding eligible_simp by -
-  hence "S_M S M (D + negs (mset Ai)) = negs (mset Ai) \<or>
+    hence "S_M S M (D + negs (mset Ai)) = negs (mset Ai) \<or>
     S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)" 
-    unfolding eligible_simp by -
-  hence "eligible S \<tau> Ai' (D' + negs (mset Ai'))"
-  proof
-    assume as: "S_M S M (D + negs (mset Ai)) = negs (mset Ai)"
-    then have "S_M S M (D + negs (mset Ai)) \<noteq> {#}"
-      using n ord_resolve(7) by force
-    then have "negs (mset Ai') = S DA'" using ai' by auto
-    hence "S (D'  + negs (mset Ai')) = negs (mset Ai')" using ai' by auto
-    thus "eligible S \<tau> Ai' (D' + negs (mset Ai'))" unfolding eligible_simp by auto
-  next
-    assume asm: "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
-    let ?A = "Ai ! 0"
-    from asm have "S_M S M (D + negs (mset Ai)) = {#}" by auto
-    hence "S (D' + negs (mset Ai')) = {#}" using \<open>D' \<cdot> \<eta> = D\<close>[symmetric] \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] \<open> S (DA') \<cdot> \<eta> = S_M S M (DA)\<close>
-      using ord_resolve(1) 
-      apply auto
-      using ai' empty_subst by blast   
-    moreover
-    from asm have l: "length Ai = 1" by auto
-    hence l': "length Ai' = 1" using \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] by auto
-    moreover
-    from asm have "maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)" by auto
-    hence "maximal_in (Ai' ! 0 \<cdot>a (\<eta> \<odot> \<sigma>)) ((D' + negs (mset Ai')) \<cdot> (\<eta> \<odot> \<sigma>))" unfolding \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] \<open>D' \<cdot> \<eta> = D\<close>[symmetric]
-      using l' by auto  
-    hence "maximal_in (Ai' ! 0 \<cdot>a (\<tau> \<odot> \<phi>)) ((D' + negs (mset Ai')) \<cdot> (\<tau> \<odot> \<phi>))" unfolding \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] \<open>D' \<cdot> \<eta> = D\<close>[symmetric]
-      using \<tau>\<phi> by auto
-    hence "maximal_in (Ai' ! 0 \<cdot>a \<tau> \<cdot>a \<phi>) ((D' + negs (mset Ai')) \<cdot> \<tau> \<cdot> \<phi>)" 
-      by auto
-    hence "maximal_in (Ai' ! 0 \<cdot>a \<tau>) ((D' + negs (mset Ai')) \<cdot> \<tau>)" using maximal_in_gen by blast
-    ultimately show "eligible S \<tau> Ai' (D' + negs (mset Ai'))" unfolding eligible_simp by auto 
+      unfolding eligible_simp by -
+    thus "eligible S \<tau> Ai' (D' + negs (mset Ai'))"
+    proof
+      assume as: "S_M S M (D + negs (mset Ai)) = negs (mset Ai)"
+      then have "S_M S M (D + negs (mset Ai)) \<noteq> {#}"
+        using n ord_resolve(7) by force
+      then have "negs (mset Ai') = S DA'" using ai' by auto
+      hence "S (D'  + negs (mset Ai')) = negs (mset Ai')" using ai' by auto
+      thus "eligible S \<tau> Ai' (D' + negs (mset Ai'))" unfolding eligible_simp by auto
+    next
+      assume asm: "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
+      let ?A = "Ai ! 0"
+      from asm have "S_M S M (D + negs (mset Ai)) = {#}" by auto
+      hence "S (D' + negs (mset Ai')) = {#}" using \<open>D' \<cdot> \<eta> = D\<close>[symmetric] \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] \<open> S (DA') \<cdot> \<eta> = S_M S M (DA)\<close>
+        using ord_resolve(1) 
+        apply auto
+        using ai' empty_subst by blast   
+      moreover
+      from asm have l: "length Ai = 1" by auto
+      hence l': "length Ai' = 1" using \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] by auto
+      moreover
+      from asm have "maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)" by auto
+      hence "maximal_in (Ai' ! 0 \<cdot>a (\<eta> \<odot> \<sigma>)) ((D' + negs (mset Ai')) \<cdot> (\<eta> \<odot> \<sigma>))" unfolding \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] \<open>D' \<cdot> \<eta> = D\<close>[symmetric]
+        using l' by auto  
+      hence "maximal_in (Ai' ! 0 \<cdot>a (\<tau> \<odot> \<phi>)) ((D' + negs (mset Ai')) \<cdot> (\<tau> \<odot> \<phi>))" unfolding \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] \<open>D' \<cdot> \<eta> = D\<close>[symmetric]
+        using \<tau>\<phi> by auto
+      hence "maximal_in (Ai' ! 0 \<cdot>a \<tau> \<cdot>a \<phi>) ((D' + negs (mset Ai')) \<cdot> \<tau> \<cdot> \<phi>)" 
+        by auto
+      hence "maximal_in (Ai' ! 0 \<cdot>a \<tau>) ((D' + negs (mset Ai')) \<cdot> \<tau>)" using maximal_in_gen by blast
+      ultimately show "eligible S \<tau> Ai' (D' + negs (mset Ai'))" unfolding eligible_simp by auto 
+    qed
   qed
-  
       
   (* Lifting maximality *)
   have maximality: "\<forall>i<n. str_maximal_in (Ai' ! i \<cdot>a \<tau>) (Ci' ! i \<cdot> \<tau>)" 
