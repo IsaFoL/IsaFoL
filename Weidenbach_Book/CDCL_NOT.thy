@@ -8,13 +8,6 @@ subsection \<open>Auxiliary Lemmas and Measure\<close>
 
 text \<open>We define here some more simplification rules, or rules that have been useful as help
   for some tactic\<close>
-lemma no_dup_cannot_not_lit_and_uminus:
-  \<open>no_dup M \<Longrightarrow> - lit_of xa = lit_of x \<Longrightarrow> x \<in> set M \<Longrightarrow> xa \<notin> set M\<close>
-  by (metis atm_of_uminus distinct_map inj_on_eq_iff uminus_not_id' no_dup_def)
-
-lemma atms_of_ms_single_atm_of[simp]:
-  \<open>atms_of_ms {unmark L |L. P L} = atm_of ` {lit_of L |L. P L}\<close>
-  unfolding atms_of_ms_def by force
 
 lemma atms_of_uminus_lit_atm_of_lit_of:
   \<open>atms_of {# -lit_of x. x \<in># A#} = atm_of ` (lit_of ` (set_mset A))\<close>
@@ -1246,7 +1239,7 @@ lemma tranclp_dpll_bj_trail_mes_decreasing_prop:
             < (2+card (atms_of_ms A)) ^ (1+card (atms_of_ms A))
                - \<mu>\<^sub>C (1+card (atms_of_ms A)) (2+card (atms_of_ms A)) (trail_weight S)\<close>
   using dpll
-proof (induction)
+proof induction
   case base
   then show ?case
     using N_A M_A n_d dpll_bj_trail_mes_decreasing_prop fin_A inv by blast

@@ -151,10 +151,10 @@ definition nat_ann_lits_rel :: "(ann_lits_wl \<times> (nat, nat) ann_lits) set" 
   \<open>nat_ann_lits_rel = \<langle>nat_ann_lit_rel\<rangle>list_rel\<close>
 
 abbreviation pair_nat_ann_lit_assn :: "(nat, nat) ann_lit \<Rightarrow> ann_lit_wl \<Rightarrow> assn" where
-  \<open>pair_nat_ann_lit_assn \<equiv> pure (nat_ann_lit_rel)\<close>
+  \<open>pair_nat_ann_lit_assn \<equiv> pure nat_ann_lit_rel\<close>
 
 abbreviation pair_nat_ann_lits_assn :: "(nat, nat) ann_lits \<Rightarrow> ann_lits_wl \<Rightarrow> assn" where
-  \<open>pair_nat_ann_lits_assn \<equiv> list_assn (pair_nat_ann_lit_assn)\<close>
+  \<open>pair_nat_ann_lits_assn \<equiv> list_assn pair_nat_ann_lit_assn\<close>
 
 lemma nat_ann_lits_rel_Cons[iff]:
   \<open>(x # xs, y # ys) \<in> nat_ann_lits_rel \<longleftrightarrow> (x, y) \<in> nat_ann_lit_rel \<and> (xs, ys) \<in> nat_ann_lits_rel\<close>
@@ -341,7 +341,7 @@ text \<open>TODO Move\<close>
 lemma list_all2_op_eq_map_right_iff': \<open>list_all2 (\<lambda>L L'. L' = (f L)) a aa \<longleftrightarrow> aa = map f a \<close>
   apply (induction a arbitrary: aa)
    apply (auto; fail)
-  by (rename_tac aa, case_tac aa) (auto)
+  by (rename_tac aa, case_tac aa) auto
 
 lemma less_upper_bintrunc_id: \<open>n < 2 ^b \<Longrightarrow> n \<ge> 0 \<Longrightarrow> bintrunc b n = n\<close>
   unfolding uint32_of_nat_def

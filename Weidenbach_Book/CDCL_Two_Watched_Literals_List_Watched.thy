@@ -195,9 +195,9 @@ definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat 
 
 lemma refine_add_invariants':
   assumes
-    \<open>(f S) \<le> \<Down> {(S, S'). Q' S S' \<and> Q S} (gS)\<close> and
+    \<open>f S \<le> \<Down> {(S, S'). Q' S S' \<and> Q S} gS\<close> and
     \<open>y \<le> \<Down> {((i, S), S'). P i S S'} (f S)\<close> and
-    \<open>nofail (gS)\<close>
+    \<open>nofail gS\<close>
   shows \<open>y \<le> \<Down> {((i, S), S'). P i S S' \<and> Q S'} (f S)\<close>
   using assms unfolding pw_le_iff pw_conc_inres pw_conc_nofail
   by force
