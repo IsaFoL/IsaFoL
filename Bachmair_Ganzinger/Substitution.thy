@@ -512,7 +512,38 @@ lemma[simp]: "length \<tau>s = length \<sigma>s \<Longrightarrow> i < length \<t
   unfolding comp_substs_def 
   by auto
       
-(* This is a mess: *)   
+(* This is a mess: *)
+lemma make_single_ground_subst: 
+  (* Makes me wonder if I can also prove make_ground_subst... But do I really want to?  *)
+  assumes "is_ground_cls C"
+  assumes "C' \<cdot> \<sigma> = C"
+  obtains \<tau> where
+    "is_ground_subst \<tau>"
+    "C' \<cdot> \<tau> = C"
+using assms
+  by (metis ex_ground_subst is_ground_comp_subst is_ground_subst_cls subst_cls_comp_subst) (* I'm very impressed sledgehammer managed to do this... *)
+
+    
+theorem is_unifiers_comp: "is_unifiers \<sigma> (set_mset ` set (map2 add_mset Ai' Aij') \<cdot>ass \<eta>) \<longleftrightarrow> is_unifiers (\<eta> \<odot> \<sigma>) (set_mset ` set (map2 add_mset Ai' Aij'))"
+  unfolding is_unifiers_def is_unifier_def subst_atmss_def
+  by auto    
+    
+lemma subst_atm_mset_list_nth[simp]: "i < length Aij' \<Longrightarrow> (Aij' \<cdot>aml \<eta>) ! i = (Aij'  ! i)  \<cdot>am \<eta>"
+  unfolding subst_atm_mset_list_def
+    by auto
+
+lemma eql_neg_lit_eql_atm[simp]: "(Neg A' \<cdot>l \<eta>) = Neg A \<longleftrightarrow> A' \<cdot>a \<eta> = A"
+  by (simp add: subst_lit_def)
+
+lemma eql_pos_lit_eql_atm[simp]: "(Pos A' \<cdot>l \<eta>) = Pos A \<longleftrightarrow> A' \<cdot>a \<eta> = A"
+  by (simp add: subst_lit_def)    
+    
+lemma empty_subst[simp]: "C \<cdot> \<eta> = {#} \<longleftrightarrow> C = {#}"
+  unfolding subst_cls_def by auto 
+    
+lemma empty_subst_for_atoms[simp]: "A \<cdot>am \<eta> = {#} \<longleftrightarrow> A = {#}"  
+  unfolding subst_atm_mset_def by auto
+    
    
 lemma is_renaming_inj:
    "is_renaming \<sigma> \<Longrightarrow> (\<forall>x y. x \<cdot>a \<sigma> = y \<cdot>a \<sigma> \<longrightarrow> x = y)" (* I don't think the other direction is true *)
