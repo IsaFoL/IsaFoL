@@ -458,9 +458,7 @@ lemma inv_ren_is_renaming[simp]:
    
 thm Groups.Let_0
       
-lemma inv_ren_p2: "is_renaming s \<Longrightarrow> (inv_ren s) \<odot> s = id_subst"
-  by simp
-  
+thm inv_ren_cancel_l
     
 subsubsection {* Monotonicity *}
 
