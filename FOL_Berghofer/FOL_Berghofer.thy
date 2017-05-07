@@ -3376,7 +3376,7 @@ next
 qed
   
 lemma deriv_psubst:
-   "ps \<turnstile> q \<Longrightarrow> (\<forall>x y. x \<noteq> y \<longrightarrow> f x \<noteq> f y) \<Longrightarrow> map (psubst f) ps \<turnstile> psubst f q"
+   "ps \<turnstile> q \<Longrightarrow> inj f \<Longrightarrow> map (psubst f) ps \<turnstile> psubst f q"
 proof (induct q rule: deriv.induct)
   case (Assum a G)
   then show ?case
@@ -3436,10 +3436,10 @@ next
 next
   case (ForallI G a n)
   then have "f n \<notin> params (psubst f a)"
-    by force   
-  moreover note \<open>list_all (\<lambda>p. n \<notin> params p) G\<close> and \<open>\<forall>a b. a \<noteq> b \<longrightarrow> f a \<noteq> f b\<close>
+    by (simp add: inj_image_mem_iff)
+  moreover note \<open>list_all (\<lambda>p. n \<notin> params p) G\<close> and \<open>inj f\<close>
   then have "list_all (\<lambda>p. f n \<notin> params p) (map (psubst f) G)"
-    by (force simp add: list_all_iff)
+    by (simp add: list_all_iff inj_image_mem_iff)
   moreover have "map (psubst f) G \<turnstile> psubst f (a[App n []/0])"
     using ForallI by blast
   ultimately show ?case
@@ -3457,10 +3457,10 @@ next
   then have "map (psubst f) G \<turnstile> psubst f (Exists a)"
     by blast
   moreover have "f n \<notin> params (psubst f a)" and "f n \<notin> params (psubst f b)"
-    using ExistsE by force+  
-  moreover note \<open>list_all (\<lambda>p. n \<notin> params p) G\<close> and \<open>\<forall>a b. a \<noteq> b \<longrightarrow> f a \<noteq> f b\<close>
+    using ExistsE by (simp_all add: inj_image_mem_iff)
+  moreover note \<open>list_all (\<lambda>p. n \<notin> params p) G\<close> and \<open>inj f\<close>
   then have "list_all (\<lambda>p. f n \<notin> params p) (map (psubst f) G)"
-    by (force simp add: list_all_iff)
+    by (simp add: list_all_iff inj_image_mem_iff)
   moreover have "map (psubst f) (a[App n []/0] # G) \<turnstile> psubst f b"
     using ExistsE by blast
   ultimately show ?case
@@ -3507,7 +3507,7 @@ lemma psubst_fresh_subset:
 
 lemma deriv_swap_param:
   "ps \<turnstile> q \<Longrightarrow> map (psubst (id(x := n, n := x))) ps \<turnstile> psubst (id(x := n, n := x)) q"
-  by (simp add: deriv_psubst)
+  by (simp add: deriv_psubst inj_on_def)
  
 lemma psubstt_fresh_away:
  "fresh \<notin> paramst t \<Longrightarrow> psubstt (id(fresh := n)) (psubstt (id(n := fresh)) t) = t"
@@ -3526,7 +3526,7 @@ lemma map_psubst_fresh_away:
   "fresh \<notin> (\<Union>p \<in> set ps. params p) \<Longrightarrow>
    map (psubst (id(fresh := n))) (map (psubst (id(n := fresh))) ps) = ps"
   using psubst_fresh_away by (induct ps) auto
-  
+    
 lemma deriv_weaken_assumptions:
   assumes inf_param: "infinite (UNIV :: 'a set)"
   shows "ps' \<turnstile> q \<Longrightarrow> set ps' \<subseteq> set ps \<Longrightarrow> ps \<turnstile> (q :: ('a, 'b) form)"
