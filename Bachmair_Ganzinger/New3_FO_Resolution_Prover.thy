@@ -567,10 +567,6 @@ theorem tl_subst: "length Cs = length \<rho>s \<Longrightarrow> tl (Cs \<cdot>\<
   unfolding subst_cls_lists_def
     unfolding map2_def
   by (metis (no_types, lifting) list.exhaust_sel list.sel(3) list.size(3) map_tl nat.simps(3) zip_Cons_Cons)
-
-
-lemma inv_ren_ren: "is_renaming s \<Longrightarrow> is_renaming (inv_ren s)"
-  sorry    
   
 lemma usf: "mset (map f (list_of_mset M)) = image_mset f M"
   by auto
@@ -800,7 +796,7 @@ lemma ord_resolve_lifting:
         apply (auto simp del: subst_cls_comp_subst
             simp add: subst_cls_comp_subst[symmetric]) done
     also have "... = S (((CAi'' ! i) \<cdot> (\<rho>s ! i))) \<cdot> (\<rho>s_inv ! i) \<cdot> \<eta>s'' ! i"
-      using inv_ren_ren
+      using inv_ren_is_renaming
       (* since (\<rho>s_inv ! i) is a renaming. *) 
       using selection_renaming_invariant
       using \<rho>s_ren unfolding \<rho>s_inv_def
@@ -825,7 +821,7 @@ lemma ord_resolve_lifting:
        by (metis \<rho>_ren inv_ren_cancel_r subst_cls_comp_subst subst_cls_id_subst)
         
     also have "... = S (((DA'') \<cdot> (\<rho>))) \<cdot> (\<rho>_inv) \<cdot> \<eta>''"
-      using inv_ren_ren
+      using inv_ren_is_renaming
       (* since (\<rho>s_inv ! i) is a renaming. *) 
       using selection_renaming_invariant
       using \<rho>_ren using \<rho>_inv_p

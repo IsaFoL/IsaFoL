@@ -72,7 +72,7 @@ lemma subst_cls_mset_add_mset[iff]:
   unfolding subst_cls_mset_def by auto
 
 definition is_renaming :: "'s \<Rightarrow> bool" where
-  "is_renaming \<sigma> = (\<exists>\<tau>. \<sigma> \<odot> \<tau> = id_subst)"
+  "is_renaming \<sigma> = (\<exists>\<tau>. \<sigma> \<odot> \<tau> = id_subst \<and> \<tau> \<odot> \<sigma> = id_subst)"
   
 definition is_renaming_list :: "'s list \<Rightarrow> bool" where
   "is_renaming_list \<sigma>s = (\<forall>\<sigma> \<in> set \<sigma>s. is_renaming \<sigma>)"
@@ -390,13 +390,14 @@ lemma is_renaming_inj:
   by (metis is_renaming_def subst_atm_comp_subst subst_atm_id_subst)
     
 lemma "is_renaming \<sigma> \<Longrightarrow> range (\<lambda>x. x \<cdot>a \<sigma>) = UNIV"
-  oops
+  by (metis subst_atm_comp_subst subst_atm_id_subst substitution_ops.is_renaming_def surj_def)
     
 lemma "is_renaming r1 \<Longrightarrow> is_renaming r2 \<Longrightarrow> \<tau> \<odot> r1 = r2 \<Longrightarrow> is_renaming \<tau>"
-  by (metis comp_subst_assoc is_renaming_def)
+  by (metis comp_subst_assoc comp_subst_id_subst is_renaming_def)
     
 lemma "is_renaming r1 \<Longrightarrow> is_renaming r2 \<Longrightarrow> r1 \<odot> \<tau> = r2 \<Longrightarrow> is_renaming \<tau>"
-  oops
+  by (metis comp_subst_assoc id_subst_comp_subst is_renaming_def)
+  
 
 (* The substitutions, and renamings in particular,  form a semigroup: *)
 thm comp_subst_assoc
@@ -418,7 +419,8 @@ lemma inv_ren_cancel_r_list[simp]: "is_renaming_list s \<Longrightarrow> s \<odo
   by (induction s) (auto simp add: comp_substs_def)
     
 lemma inv_ren_cancel_l[simp]: "is_renaming s \<Longrightarrow> (inv_ren s) \<odot> s = id_subst"
-  oops
+  by (metis comp_subst_assoc id_subst_comp_subst inv_ren_cancel_r is_renaming_def substitution.comp_subst_id_subst substitution_axioms)
+  
     
 lemma xxid: "is_renaming x \<Longrightarrow> x \<odot> x = x \<Longrightarrow> x = id_subst"
   by (metis comp_subst_assoc comp_subst_id_subst inv_ren_cancel_r) 
@@ -452,12 +454,14 @@ lemma inv_ren_is_renaming[simp]:
   assumes "is_renaming s"
   shows "is_renaming (inv_ren s)"
   using assms
-    oops 
+  using inv_ren_cancel_l inv_ren_cancel_r is_renaming_def by blast
+     
    
 thm Groups.Let_0
       
-lemma inv_ren_p2[simp]: "is_renaming s \<Longrightarrow> (inv_ren s) \<odot> s = id_subst"
-  oops
+lemma inv_ren_p2: "is_renaming s \<Longrightarrow> (inv_ren s) \<odot> s = id_subst"
+  by simp
+  
     
 subsubsection {* Monotonicity *}
 
@@ -713,13 +717,13 @@ lemmas is_unifiers_mgu = mgu_sound[unfolded is_mgu_def, THEN conjunct1]
 lemmas is_mgu_most_general = mgu_sound[unfolded is_mgu_def, THEN conjunct2]
 
 lemma mgu_empty: "mgu {} = Some \<rho> \<Longrightarrow> is_renaming \<rho>"
-  using mgu_sound[of "{}", unfolded is_mgu_def is_unifiers_def, simplified]
-  by (metis is_renaming_def)
+  using mgu_sound is_mgu_def is_unifiers_def 
+  oops
 
 lemma mgu_singleton: "mgu {{x}} = Some \<rho> \<Longrightarrow> is_renaming \<rho>"
-  using is_unifier_def[simp]
-    mgu_sound[of "{{x}}", unfolded is_mgu_def is_unifiers_def, simplified]
-  by (metis is_renaming_def)
+  using is_unifier_def
+    mgu_sound  is_mgu_def is_unifiers_def
+  oops
 
 lemma mgu_eq_id_subst:
   "finite AAA \<Longrightarrow> (\<forall>AA \<in> AAA. finite AA \<and> card AA \<le> 1) \<Longrightarrow> \<exists>\<rho>. mgu AAA = Some \<rho> \<and> is_renaming \<rho>"
@@ -728,7 +732,8 @@ proof (induct AAA rule: finite_induct)
   have "is_unifiers id_subst {}"
     unfolding is_unifiers_def by simp
   then show ?case
-    using mgu_complete mgu_empty by blast
+    using mgu_complete 
+      sorry
 next
   case (insert AA AAA)
   then obtain \<rho> where "mgu AAA = Some \<rho>" "is_renaming \<rho>"
@@ -744,10 +749,11 @@ next
   moreover then have "is_mgu \<rho>' (insert AA AAA)"
     using mgu_sound insert(1,4) by force
   with \<open>is_mgu \<rho> (insert AA AAA)\<close> \<open>is_renaming \<rho>\<close>  have "is_renaming \<rho>'"
-    unfolding is_mgu_def is_renaming_def by (metis comp_subst_assoc)
+    unfolding is_mgu_def is_renaming_def 
+      sorry
   ultimately show ?case
     by blast
-qed                                                                  
+  oops       
 
 end
   

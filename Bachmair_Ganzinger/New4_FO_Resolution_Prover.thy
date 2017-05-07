@@ -376,9 +376,6 @@ lemma (in linorder) multiset_mset_sorted_list_of_multiset[simp]:
   "mset (sorted_list_of_multiset M) = M"
   by (induct M) (simp_all add: ac_simps)
 
-lemma inv_ren_ren: "is_renaming s \<Longrightarrow> is_renaming (inv_ren s)"
-  sorry    
-
 lemma make_ground_subst2: 
   "is_ground_cls_list (CC \<cdot>cl \<sigma>) \<Longrightarrow>
        \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)"
@@ -810,7 +807,7 @@ lemma ord_resolve_obtain_clauses_std_apart':
       apply (auto simp del: subst_cls_comp_subst
           simp add: subst_cls_comp_subst[symmetric]) done
     also have "... = S (((CAi'' ! i) \<cdot> (\<rho>s ! i))) \<cdot> (\<rho>s_inv ! i) \<cdot> \<eta>s'' ! i"
-      using inv_ren_ren
+      using inv_ren_is_renaming
         (* since (\<rho>s_inv ! i) is a renaming. *) 
       using selection_renaming_invariant
       using \<rho>s_ren unfolding \<rho>s_inv_def
@@ -835,7 +832,7 @@ lemma ord_resolve_obtain_clauses_std_apart':
       by (metis \<rho>_ren inv_ren_cancel_r subst_cls_comp_subst subst_cls_id_subst)
         
     also have "... = S (((DA'') \<cdot> (\<rho>))) \<cdot> (\<rho>_inv) \<cdot> \<eta>''"
-      using inv_ren_ren
+      using inv_ren_is_renaming
         (* since (\<rho>s_inv ! i) is a renaming. *) 
       using selection_renaming_invariant
       using \<rho>_ren using \<rho>_inv_p
