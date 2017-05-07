@@ -547,18 +547,19 @@ next
     done
 qed
     
-theorem var_disjoint_Cons: (* Not used. Still kind of nice, I guess *)
+theorem var_disjoint_Cons: (* Not used. Still kind of nice, I guess. Could be adapted to new var_disjoint definition. *)
   assumes "var_disjoint (C#Cs)"
   shows "var_disjoint Cs"
   unfolding var_disjoint_def proof (rule, rule)
   fix \<sigma>s :: "'s list"
   assume "length \<sigma>s = length Cs"
   then have "length (undefined # \<sigma>s) = length (C # Cs)" by auto
-  then obtain \<tau> where "(C # Cs) \<cdot>\<cdot>cl (undefined # \<sigma>s) = (C # Cs) \<cdot>cl \<tau>" using assms unfolding var_disjoint_def by blast
+  then obtain \<tau> where "(C # Cs) \<cdot>\<cdot>cl (undefined # \<sigma>s) = (C # Cs) \<cdot>cl \<tau>" using assms using var_disjoint_clauses by blast
   then have "Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>"
     by simp
-  then show "\<exists>\<tau>. Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>" by blast  
-qed
+  then show "\<exists>\<tau>. \<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma>s ! i = S \<cdot> \<tau>" 
+    sorry
+oops
 
 theorem tl_subst: "length Cs = length \<rho>s \<Longrightarrow> tl (Cs \<cdot>\<cdot>cl \<rho>s) = (tl Cs) \<cdot>\<cdot>cl (tl \<rho>s)"
   apply (induction Cs arbitrary: \<rho>s)
