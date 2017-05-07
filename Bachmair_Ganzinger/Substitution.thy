@@ -730,12 +730,12 @@ lemmas is_mgu_most_general = mgu_sound[unfolded is_mgu_def, THEN conjunct2]
 
 lemma mgu_empty: "mgu {} = Some \<rho> \<Longrightarrow> is_renaming \<rho>"
   using mgu_sound is_mgu_def is_unifiers_def 
-  oops
+  oops (* Proof broke when I changed is_renaming_def *)
 
 lemma mgu_singleton: "mgu {{x}} = Some \<rho> \<Longrightarrow> is_renaming \<rho>"
   using is_unifier_def
     mgu_sound  is_mgu_def is_unifiers_def
-  oops
+  oops (* Proof broke when I changed is_renaming_def *)
 
 lemma mgu_eq_id_subst:
   "finite AAA \<Longrightarrow> (\<forall>AA \<in> AAA. finite AA \<and> card AA \<le> 1) \<Longrightarrow> \<exists>\<rho>. mgu AAA = Some \<rho> \<and> is_renaming \<rho>"
@@ -765,7 +765,7 @@ next
       sorry
   ultimately show ?case
     by blast
-  oops       
+  oops (* Proof broke when I changed is_renaming_def *)
 
 end
   
