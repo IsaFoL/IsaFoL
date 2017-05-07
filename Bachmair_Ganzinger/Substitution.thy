@@ -144,8 +144,7 @@ locale substitution = substitution_ops subst_atm id_subst comp_subst
     subst_atm_id_subst[simp]: "subst_atm A id_subst = A" and
     subst_atm_comp_subst[simp]: "subst_atm A (comp_subst \<tau> \<sigma>) = subst_atm (subst_atm A \<tau>) \<sigma>" and
     subst_ext: "(\<And>A. subst_atm A \<sigma> = subst_atm A \<tau>) \<Longrightarrow> \<sigma> = \<tau>" and
-    make_ground_subst: "is_ground_cls_list (CC \<cdot>cl \<sigma>) \<Longrightarrow>
-       \<exists>\<tau>. is_ground_subst \<tau> \<and> CC \<cdot>cl \<sigma> = CC \<cdot>cl \<tau>" and
+    make_ground_subst: "\<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)" and
     make_var_disjoint: "\<And>Cs. \<exists>\<rho>s. length \<rho>s = length Cs \<and> (\<forall>\<rho> \<in> set \<rho>s. is_renaming \<rho>) \<and>
        var_disjoint (Cs \<cdot>\<cdot>cl \<rho>s)"
 begin
@@ -510,6 +509,19 @@ lemma is_ground_cls_list_Cons[simp]:
   "is_ground_cls_list (C # CC) = (is_ground_cls C \<and> is_ground_cls_list CC)"
   unfolding is_ground_cls_list_def by auto
     
+lemma make_ground_subst_clauses:
+  assumes "is_ground_cls_list (CC \<cdot>cl \<sigma>)"
+  shows "\<exists>\<tau>. is_ground_subst \<tau> \<and> CC \<cdot>cl \<sigma> = CC \<cdot>cl \<tau>"
+proof -
+  from assms obtain \<tau> where "is_ground_subst \<tau> \<and> (\<forall>i<length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)" 
+    using make_ground_subst by blast
+  then have "is_ground_subst \<tau> \<and> (\<forall>i<length CC. (CC ! i) \<cdot> \<sigma> = (CC ! i) \<cdot> \<tau>)"
+    by auto
+  then have "is_ground_subst \<tau> \<and> CC \<cdot>cl \<sigma> = CC \<cdot>cl \<tau>"
+    by (simp add: list_eq_iff_nth_eq) 
+  then show ?thesis 
+    by blast
+qed  
 
 lemma var_disjoint_ground:
   assumes "var_disjoint Cs" "length \<sigma>s = length Cs"
@@ -521,7 +533,7 @@ proof -
   with assms(3) have "is_ground_cls_list (Cs \<cdot>cl \<tau>)"
     by simp
   then obtain \<tau>' where "is_ground_subst \<tau>'" "Cs \<cdot>cl \<tau> = Cs \<cdot>cl \<tau>'"
-    using make_ground_subst by blast
+    using make_ground_subst_clauses by blast
   with assms(2) * have "is_ground_subst \<tau>' \<and> Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>'"
     by simp
   then show ?thesis ..

@@ -375,11 +375,6 @@ lemma (in linorder) set_sorted_list_of_multiset[simp]:
 lemma (in linorder) multiset_mset_sorted_list_of_multiset[simp]:
   "mset (sorted_list_of_multiset M) = M"
   by (induct M) (simp_all add: ac_simps)
-
-lemma make_ground_subst2: 
-  "is_ground_cls_list (CC \<cdot>cl \<sigma>) \<Longrightarrow>
-       \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)"
-  sorry
     
 lemma grounding_ground: "C \<in> grounding_of_clss M \<Longrightarrow> is_ground_cls C"
    by (smt ground_subst_ground_cls grounding_of_clss_def image_iff mem_Collect_eq mem_simps(9) substitution_ops.grounding_of_cls_def)
@@ -985,7 +980,7 @@ lemma ord_resolve_obtain_clauses_std_apart:
     (* Obtain ground substitution *)
     
   obtain \<eta> where \<eta>_p: "is_ground_subst \<eta> \<and> (\<forall>i<length (DA' # CAi'). \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> \<eta>_fo = S \<cdot> \<eta>)"
-    using make_ground_subst2[of "DA' # CAi'" \<eta>_fo] grounding \<open>CAi = CAi' \<cdot>cl \<eta>_fo\<close> \<open>DA = DA' \<cdot> \<eta>_fo\<close> grounding_ground
+    using make_ground_subst[of "DA' # CAi'" \<eta>_fo] grounding \<open>CAi = CAi' \<cdot>cl \<eta>_fo\<close> \<open>DA = DA' \<cdot> \<eta>_fo\<close> grounding_ground
     by (metis Un_insert_left is_ground_cls_list_def list.simps(15) subsetCE subst_cls_list_Cons sup_bot.left_neutral) 
       
       
