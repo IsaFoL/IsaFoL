@@ -126,8 +126,11 @@ definition is_mgu :: "'s \<Rightarrow> 'a set set \<Rightarrow> bool" where
   "is_mgu \<sigma> AAA \<longleftrightarrow> is_unifiers \<sigma> AAA \<and> (\<forall>\<tau>. is_unifiers \<tau> AAA \<longrightarrow> (\<exists>\<gamma>. \<tau> = \<sigma> \<odot> \<gamma>))"
 
 definition var_disjoint :: "'a clause list \<Rightarrow> bool" where
-  "var_disjoint Cs = (\<forall>\<sigma>s. length \<sigma>s = length Cs \<longrightarrow> (\<exists>\<tau>. Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>))" 
-
+  "var_disjoint Cs = (\<forall>\<sigma>s. length \<sigma>s = length Cs \<longrightarrow> 
+      (\<exists>\<tau>. 
+        (\<forall>i < length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma>s ! i = S \<cdot> \<tau>)
+      ))"  
+  
 end
 
 subsection {* Substitution theorems *}
@@ -479,6 +482,24 @@ lemma comp_substs_length[simp]: "length (\<tau>s \<odot>s \<sigma>s) = min (leng
 lemma subst_cls_lists_length[simp]: "length (CC \<cdot>\<cdot>cl \<sigma>s) = min (length CC) (length \<sigma>s)"
   unfolding subst_cls_lists_def by auto
     
+subsubsection {* Variable disjointness *}
+  
+lemma var_disjoint_clauses:
+  assumes "var_disjoint Cs"
+  shows "\<forall>\<sigma>s. length \<sigma>s = length Cs \<longrightarrow> (\<exists>\<tau>. Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>)"
+proof (rule, rule)
+  fix \<sigma>s :: "'s list"
+  assume a: "length \<sigma>s = length Cs"  
+  then obtain \<tau> where "\<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma>s ! i = S \<cdot> \<tau>" 
+    using assms unfolding var_disjoint_def by blast
+  then have "\<forall>i<length Cs. (Cs ! i) \<cdot> \<sigma>s ! i = (Cs ! i) \<cdot> \<tau>" 
+    by auto
+  then have "Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>"
+    using a by (simp add: nth_equalityI) 
+  then show "\<exists>\<tau>. Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>" by auto
+qed
+  
+    
 subsubsection {* Ground expressions and substitutions *}
     
 lemma is_ground_cls_list_Cons[simp]:
@@ -492,7 +513,7 @@ lemma var_disjoint_ground:
   shows "\<exists>\<tau>. is_ground_subst \<tau> \<and> Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>"
 proof -
   from assms(1,2) obtain \<tau> where *: "Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>"
-    unfolding var_disjoint_def by auto
+    using var_disjoint_clauses by auto
   with assms(3) have "is_ground_cls_list (Cs \<cdot>cl \<tau>)"
     by simp
   then obtain \<tau>' where "is_ground_subst \<tau>'" "Cs \<cdot>cl \<tau> = Cs \<cdot>cl \<tau>'"

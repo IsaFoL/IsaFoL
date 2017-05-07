@@ -378,16 +378,7 @@ lemma (in linorder) multiset_mset_sorted_list_of_multiset[simp]:
 
 lemma inv_ren_ren: "is_renaming s \<Longrightarrow> is_renaming (inv_ren s)"
   sorry    
-    
-lemma var_disjoint_def_2:
-  "var_disjoint Cs = 
-    (\<forall>\<sigma>s. length \<sigma>s = length Cs \<longrightarrow> 
-      (\<exists>\<tau>. 
-        (\<forall>i < length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma>s ! i = S \<cdot> \<tau>)
-      )
-    )"
-  sorry
-    
+
 lemma make_ground_subst2: 
   "is_ground_cls_list (CC \<cdot>cl \<sigma>) \<Longrightarrow>
        \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)"
@@ -934,7 +925,7 @@ lemma ord_resolve_obtain_clauses_std_apart:
     
   from clauses' have "var_disjoint ((DA' # CAi'))"
     by auto
-  then obtain \<eta>_fo where \<eta>_p: "(\<forall>i<Suc n. \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> (\<eta>' # \<eta>s') ! i = S \<cdot> \<eta>_fo)" unfolding var_disjoint_def_2
+  then obtain \<eta>_fo where \<eta>_p: "(\<forall>i<Suc n. \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> (\<eta>' # \<eta>s') ! i = S \<cdot> \<eta>_fo)" unfolding var_disjoint_def
     using n by force
   then have DA'_\<eta>_fo_sel: "\<forall>S. S \<subseteq># DA' \<longrightarrow> S \<cdot> \<eta>' = S \<cdot> \<eta>_fo" 
     by auto
