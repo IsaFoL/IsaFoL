@@ -3114,6 +3114,186 @@ theorem valid_univ_close_build_impl:
   shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> univ_close (build_impl ps p)"
   using mod by (metis append_self_conv model_build_impl_premises valid_univ_close_no_prems)
 
+
+subsection {* Substitute fresh constants to close formula *}
+
+(* substs for m so probably useless *)
+primrec subst_free' :: "nat \<Rightarrow> nat \<Rightarrow> (nat, 'b) form \<Rightarrow> (nat, 'b) form" where
+  "subst_free' (Suc m) n p = subst_free' m (Suc n) (p[App n []/m])"
+| "subst_free' 0 n p = p"
+  
+  
+primrec
+  max_paramt  :: "nat term \<Rightarrow> nat"
+  and max_paramts :: "nat term list \<Rightarrow> nat"
+where
+  "max_paramt (Var n) = 0"
+| "max_paramt (App a ts) = max a (max_paramts ts)"
+| "max_paramts [] = 0"
+| "max_paramts (t # ts) = max (max_paramt t) (max_paramts ts)"
+
+primrec
+  max_param :: "(nat, 'b) form \<Rightarrow> nat"
+where
+  "max_param FF = 0"
+| "max_param TT = 0"
+| "max_param (Pred b ts) = max_paramts ts"
+| "max_param (And p q) = max (max_param p) (max_param q)"
+| "max_param (Or p q) = max (max_param p) (max_param q)"
+| "max_param (Impl p q) = max (max_param p) (max_param q)"
+| "max_param (Neg p) = max_param p"
+| "max_param (Forall p) = max_param p"
+| "max_param (Exists p) = max_param p"
+
+definition fresh_param :: "(nat, 'b) form \<Rightarrow> nat" where
+  "fresh_param p \<equiv> Suc (max_param p)"
+
+definition subst_free :: "(nat, 'b) form \<Rightarrow> (nat, 'b) form" where
+  "subst_free p = subst_free' (free_levels 0 p) (fresh_param p) p"
+  
+lemma free_levels_dec_subst_max_var:
+  "free_levels 0 p \<le> Suc m \<Longrightarrow> free_levels 0 (p[App x []/m]) \<le> m"
+  by (metis add.right_neutral closed_free_levels closedt.simps(2)
+      closedts.simps(1) free_levels_closed subst_closed)
+      
+lemma free_levels_subst_free':
+  "free_levels 0 p \<le> m \<Longrightarrow> free_levels 0 (subst_free' m x p) = 0"
+proof (induct m arbitrary: p x rule: less_induct)
+  case (less k)
+  then show ?case proof (cases k)
+    case 0
+    then show ?thesis
+      using less by simp
+  next
+    case (Suc k')
+    then have "free_levels 0 (p[App x []/k']) \<le> k'"
+      using less by (simp add: free_levels_dec_subst_max_var le_imp_less_Suc)
+    then have "free_levels 0 (subst_free' k' (Suc x) (p[App x []/k'])) = 0"
+      using Suc less by blast
+    moreover have "subst_free' k x p = subst_free' k' (Suc x) (p[App x []/k'])"
+      using Suc by simp
+    ultimately show ?thesis
+      by simp
+  qed
+qed
+
+lemma closed_subst_free: "closed 0 (subst_free p)"
+  unfolding subst_free_def
+  using free_levels_subst_free' free_levels_closed_zero by blast
+
+lemma valid_subst_const:
+  assumes mod: "\<forall>e f g. e,(f :: nat \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> p"
+  shows "e,(f :: nat \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> p[App x []/m]"
+  using mod unfolding model_def by simp
+
+lemma valid_subst_free':
+  assumes mod: "\<forall>e f g. e,(f :: nat \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> p"
+  shows "e,(f :: nat \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> subst_free' m x p"
+  using mod by (induct m arbitrary: x p) (simp_all add: valid_subst_const)
+  
+primrec subst_free'' :: "nat \<Rightarrow> nat \<Rightarrow> (nat, 'b) form \<Rightarrow> (nat, 'b) form" where
+  "subst_free'' (Suc m) x p = subst_free'' m (Suc x) (p[App x []/0])"
+| "subst_free'' 0 x p = p"
+  
+value "subst_free'' 2 (Suc 2) (Forall (Pred 0 [Var 0, Var 1, Var 2]))"
+
+primrec subst_free''' :: "nat \<Rightarrow> nat \<Rightarrow> (nat, 'b) form \<Rightarrow> (nat, 'b) form" where
+  "subst_free''' (Suc m) x p = (subst_free''' m (Suc x) p)[App x []/0]"
+| "subst_free''' 0 x p = p"
+
+value "subst_free''' 2 (Suc 2) (Forall (Pred 0 [Var 0, Var 1, Var 2]))"
+
+  
+lemma valid_subst_free'':
+  assumes mod: "\<forall>e f g. e,(f :: nat \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> p"
+  shows "e,(f :: nat \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> subst_free'' m x p"
+  using mod by (induct m arbitrary: x p) (simp_all add: valid_subst_const)
+
+lemma "free_levels 0 (subst_free'' (free_levels 0 p) x p) = 0"
+  sorry
+    
+value "let p = Pred 0 [Var 0, App 0 [], App 1 []]
+  in (max_param p, max_param (p[App (Suc (max_param p)) []/0]))"
+
+lemma max_paramt_subst:
+  "max_paramt t \<le> x \<Longrightarrow> max_paramt (t[App x []/m]) < Suc x"
+  "max_paramts ts \<le> x \<Longrightarrow> max_paramts (ts[App x []/m]) < Suc x"
+  by (induct t and ts rule: max_paramt.induct max_paramts.induct) simp_all
+  
+lemma max_param_subst:
+  "max_param p < x \<Longrightarrow> max_param (p[App x []/m]) < Suc x"
+  using max_paramt_subst
+  by (induct p arbitrary: m) simp_all
+    
+lemma max_paramt_max:
+  "\<forall>a \<in> paramst t. max_paramt t \<ge> a"
+  "\<forall>a \<in> paramsts ts. max_paramts ts \<ge> a"
+  by (induct t and ts rule: max_paramt.induct max_paramts.induct) auto
+    
+lemma max_param_max: "\<forall>a \<in> params p. max_param p \<ge> a"
+  using max_paramt_max by (induct p) auto
+    
+lemma max_param_gt_fresh: "max_param p < x \<Longrightarrow> x \<notin> params p"
+  using max_param_max by (induct p) fastforce+  
+    
+lemma "max_param p < x \<Longrightarrow> [] \<turnstile> subst_free'' m x p \<Longrightarrow> [] \<turnstile> p"
+proof (induct m arbitrary: x p)
+  case 0
+  then show ?case
+    by simp
+next
+  case (Suc m)
+  then have "[] \<turnstile> subst_free'' m (Suc x) (p[App x []/0])"
+    by simp
+  moreover have "max_param (p[App x []/0]) < Suc x"
+    using max_param_subst Suc by blast
+  then have "[] \<turnstile> p[App x []/0]"
+    using Suc by simp
+  moreover have "x \<notin> params p"
+    using max_param_gt_fresh Suc by blast
+  moreover have "list_all (\<lambda>p. x \<notin> params p) []"
+    by simp
+  ultimately have "[] \<turnstile> Forall p"
+    using ForallI by fast
+  then have "\<forall>t. [] \<turnstile> p[t/0]"
+    using ForallE by blast
+  then show ?case
+    sorry
+qed
+  
+(* some other stuff *)
+    
+primrec
+  varst  :: "nat \<Rightarrow> 'a term \<Rightarrow> nat list"
+  and varsts :: "nat \<Rightarrow> 'a term list \<Rightarrow> nat list"
+where
+  "varst m (Var n) = (if n \<ge> m then [n-m] else [])"
+| "varst m (App a ts) = varsts m ts"
+| "varsts m [] = []"
+| "varsts m (t # ts) = (varst m t @ varsts m ts)"
+
+primrec
+  vars :: "nat \<Rightarrow> ('a, 'b) form \<Rightarrow> nat list"
+where
+  "vars m FF = []"
+| "vars m TT = []"
+| "vars m (Pred b ts) = varsts m ts"
+| "vars m (And p q) = vars m p @ vars m q"
+| "vars m (Or p q) = vars m p @ vars m q"
+| "vars m (Impl p q) = vars m p @ vars m q"
+| "vars m (Neg p) = vars m p"
+| "vars m (Forall p) = vars (Suc m) p"
+| "vars m (Exists p) = vars (Suc m) p" 
+  
+value "vars 0 ((Forall (Forall (Pred 0 [Var 0, Var 1, Var 2, Var 3])))[App x []/0])"
+
+  
+lemma free_levels_terms_dec_subst_zero:
+  "free_levels\<^sub>t 0 t \<le> Suc m \<Longrightarrow> free_levels\<^sub>t 0 (t[App x []/0]) \<le> m"
+  "free_levels\<^sub>t\<^sub>s 0 ts \<le> Suc m \<Longrightarrow> free_levels\<^sub>t\<^sub>s 0 (ts[App x []/0]) \<le> m"
+by (induct t and ts rule: free_levels\<^sub>t.induct free_levels\<^sub>t\<^sub>s.induct) simp_all
+      
+  
 subsubsection {* Deriving the original formula from the universal closure *}
 
 text {*
