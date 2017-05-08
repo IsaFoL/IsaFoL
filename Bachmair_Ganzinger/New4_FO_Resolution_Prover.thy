@@ -375,23 +375,6 @@ lemma (in linorder) set_sorted_list_of_multiset[simp]:
 lemma (in linorder) multiset_mset_sorted_list_of_multiset[simp]:
   "mset (sorted_list_of_multiset M) = M"
   by (induct M) (simp_all add: ac_simps)
-
-lemma inv_ren_ren: "is_renaming s \<Longrightarrow> is_renaming (inv_ren s)"
-  sorry    
-    
-lemma var_disjoint_def_2:
-  "var_disjoint Cs = 
-    (\<forall>\<sigma>s. length \<sigma>s = length Cs \<longrightarrow> 
-      (\<exists>\<tau>. 
-        (\<forall>i < length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma>s ! i = S \<cdot> \<tau>)
-      )
-    )"
-  sorry
-    
-lemma make_ground_subst2: 
-  "is_ground_cls_list (CC \<cdot>cl \<sigma>) \<Longrightarrow>
-       \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)"
-  sorry
     
 lemma grounding_ground: "C \<in> grounding_of_clss M \<Longrightarrow> is_ground_cls C"
    by (smt ground_subst_ground_cls grounding_of_clss_def image_iff mem_Collect_eq mem_simps(9) substitution_ops.grounding_of_cls_def)
@@ -819,7 +802,7 @@ lemma ord_resolve_obtain_clauses_std_apart':
       apply (auto simp del: subst_cls_comp_subst
           simp add: subst_cls_comp_subst[symmetric]) done
     also have "... = S (((CAi'' ! i) \<cdot> (\<rho>s ! i))) \<cdot> (\<rho>s_inv ! i) \<cdot> \<eta>s'' ! i"
-      using inv_ren_ren
+      using inv_ren_is_renaming
         (* since (\<rho>s_inv ! i) is a renaming. *) 
       using selection_renaming_invariant
       using \<rho>s_ren unfolding \<rho>s_inv_def
@@ -844,7 +827,7 @@ lemma ord_resolve_obtain_clauses_std_apart':
       by (metis \<rho>_ren inv_ren_cancel_r subst_cls_comp_subst subst_cls_id_subst)
         
     also have "... = S (((DA'') \<cdot> (\<rho>))) \<cdot> (\<rho>_inv) \<cdot> \<eta>''"
-      using inv_ren_ren
+      using inv_ren_is_renaming
         (* since (\<rho>s_inv ! i) is a renaming. *) 
       using selection_renaming_invariant
       using \<rho>_ren using \<rho>_inv_p
@@ -934,7 +917,7 @@ lemma ord_resolve_obtain_clauses_std_apart:
     
   from clauses' have "var_disjoint ((DA' # CAi'))"
     by auto
-  then obtain \<eta>_fo where \<eta>_p: "(\<forall>i<Suc n. \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> (\<eta>' # \<eta>s') ! i = S \<cdot> \<eta>_fo)" unfolding var_disjoint_def_2
+  then obtain \<eta>_fo where \<eta>_p: "(\<forall>i<Suc n. \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> (\<eta>' # \<eta>s') ! i = S \<cdot> \<eta>_fo)" unfolding var_disjoint_def
     using n by force
   then have DA'_\<eta>_fo_sel: "\<forall>S. S \<subseteq># DA' \<longrightarrow> S \<cdot> \<eta>' = S \<cdot> \<eta>_fo" 
     by auto
@@ -997,7 +980,7 @@ lemma ord_resolve_obtain_clauses_std_apart:
     (* Obtain ground substitution *)
     
   obtain \<eta> where \<eta>_p: "is_ground_subst \<eta> \<and> (\<forall>i<length (DA' # CAi'). \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> \<eta>_fo = S \<cdot> \<eta>)"
-    using make_ground_subst2[of "DA' # CAi'" \<eta>_fo] grounding \<open>CAi = CAi' \<cdot>cl \<eta>_fo\<close> \<open>DA = DA' \<cdot> \<eta>_fo\<close> grounding_ground
+    using make_ground_subst[of "DA' # CAi'" \<eta>_fo] grounding \<open>CAi = CAi' \<cdot>cl \<eta>_fo\<close> \<open>DA = DA' \<cdot> \<eta>_fo\<close> grounding_ground
     by (metis Un_insert_left is_ground_cls_list_def list.simps(15) subsetCE subst_cls_list_Cons sup_bot.left_neutral) 
       
       

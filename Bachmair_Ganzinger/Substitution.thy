@@ -72,7 +72,7 @@ lemma subst_cls_mset_add_mset[iff]:
   unfolding subst_cls_mset_def by auto
 
 definition is_renaming :: "'s \<Rightarrow> bool" where
-  "is_renaming \<sigma> = (\<exists>\<tau>. \<sigma> \<odot> \<tau> = id_subst)"
+  "is_renaming \<sigma> = (\<exists>\<tau>. \<sigma> \<odot> \<tau> = id_subst \<and> \<tau> \<odot> \<sigma> = id_subst)"
   
 definition is_renaming_list :: "'s list \<Rightarrow> bool" where
   "is_renaming_list \<sigma>s = (\<forall>\<sigma> \<in> set \<sigma>s. is_renaming \<sigma>)"
@@ -126,8 +126,11 @@ definition is_mgu :: "'s \<Rightarrow> 'a set set \<Rightarrow> bool" where
   "is_mgu \<sigma> AAA \<longleftrightarrow> is_unifiers \<sigma> AAA \<and> (\<forall>\<tau>. is_unifiers \<tau> AAA \<longrightarrow> (\<exists>\<gamma>. \<tau> = \<sigma> \<odot> \<gamma>))"
 
 definition var_disjoint :: "'a clause list \<Rightarrow> bool" where
-  "var_disjoint Cs = (\<forall>\<sigma>s. length \<sigma>s = length Cs \<longrightarrow> (\<exists>\<tau>. Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>))" 
-
+  "var_disjoint Cs = (\<forall>\<sigma>s. length \<sigma>s = length Cs \<longrightarrow> 
+      (\<exists>\<tau>. 
+        (\<forall>i < length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma>s ! i = S \<cdot> \<tau>)
+      ))"  
+  
 end
 
 subsection {* Substitution theorems *}
@@ -141,8 +144,7 @@ locale substitution = substitution_ops subst_atm id_subst comp_subst
     subst_atm_id_subst[simp]: "subst_atm A id_subst = A" and
     subst_atm_comp_subst[simp]: "subst_atm A (comp_subst \<tau> \<sigma>) = subst_atm (subst_atm A \<tau>) \<sigma>" and
     subst_ext: "(\<And>A. subst_atm A \<sigma> = subst_atm A \<tau>) \<Longrightarrow> \<sigma> = \<tau>" and
-    make_ground_subst: "is_ground_cls_list (CC \<cdot>cl \<sigma>) \<Longrightarrow>
-       \<exists>\<tau>. is_ground_subst \<tau> \<and> CC \<cdot>cl \<sigma> = CC \<cdot>cl \<tau>" and
+    make_ground_subst: "\<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)" and
     make_var_disjoint: "\<And>Cs. \<exists>\<rho>s. length \<rho>s = length Cs \<and> (\<forall>\<rho> \<in> set \<rho>s. is_renaming \<rho>) \<and>
        var_disjoint (Cs \<cdot>\<cdot>cl \<rho>s)"
 begin
@@ -387,13 +389,14 @@ lemma is_renaming_inj:
   by (metis is_renaming_def subst_atm_comp_subst subst_atm_id_subst)
     
 lemma "is_renaming \<sigma> \<Longrightarrow> range (\<lambda>x. x \<cdot>a \<sigma>) = UNIV"
-  oops
+  by (metis subst_atm_comp_subst subst_atm_id_subst substitution_ops.is_renaming_def surj_def)
     
 lemma "is_renaming r1 \<Longrightarrow> is_renaming r2 \<Longrightarrow> \<tau> \<odot> r1 = r2 \<Longrightarrow> is_renaming \<tau>"
-  by (metis comp_subst_assoc is_renaming_def)
+  by (metis comp_subst_assoc comp_subst_id_subst is_renaming_def)
     
 lemma "is_renaming r1 \<Longrightarrow> is_renaming r2 \<Longrightarrow> r1 \<odot> \<tau> = r2 \<Longrightarrow> is_renaming \<tau>"
-  oops
+  by (metis comp_subst_assoc id_subst_comp_subst is_renaming_def)
+  
 
 (* The substitutions, and renamings in particular,  form a semigroup: *)
 thm comp_subst_assoc
@@ -415,7 +418,8 @@ lemma inv_ren_cancel_r_list[simp]: "is_renaming_list s \<Longrightarrow> s \<odo
   by (induction s) (auto simp add: comp_substs_def)
     
 lemma inv_ren_cancel_l[simp]: "is_renaming s \<Longrightarrow> (inv_ren s) \<odot> s = id_subst"
-  oops
+  by (metis comp_subst_assoc id_subst_comp_subst inv_ren_cancel_r is_renaming_def substitution.comp_subst_id_subst substitution_axioms)
+  
     
 lemma xxid: "is_renaming x \<Longrightarrow> x \<odot> x = x \<Longrightarrow> x = id_subst"
   by (metis comp_subst_assoc comp_subst_id_subst inv_ren_cancel_r) 
@@ -449,12 +453,12 @@ lemma inv_ren_is_renaming[simp]:
   assumes "is_renaming s"
   shows "is_renaming (inv_ren s)"
   using assms
-    oops 
+  using inv_ren_cancel_l inv_ren_cancel_r is_renaming_def by blast
+     
    
 thm Groups.Let_0
       
-lemma inv_ren_p2[simp]: "is_renaming s \<Longrightarrow> (inv_ren s) \<odot> s = id_subst"
-  oops
+thm inv_ren_cancel_l
     
 subsubsection {* Monotonicity *}
 
@@ -479,12 +483,43 @@ lemma comp_substs_length[simp]: "length (\<tau>s \<odot>s \<sigma>s) = min (leng
 lemma subst_cls_lists_length[simp]: "length (CC \<cdot>\<cdot>cl \<sigma>s) = min (length CC) (length \<sigma>s)"
   unfolding subst_cls_lists_def by auto
     
+subsubsection {* Variable disjointness *}
+  
+lemma var_disjoint_clauses:
+  assumes "var_disjoint Cs"
+  shows "\<forall>\<sigma>s. length \<sigma>s = length Cs \<longrightarrow> (\<exists>\<tau>. Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>)"
+proof (rule, rule)
+  fix \<sigma>s :: "'s list"
+  assume a: "length \<sigma>s = length Cs"  
+  then obtain \<tau> where "\<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma>s ! i = S \<cdot> \<tau>" 
+    using assms unfolding var_disjoint_def by blast
+  then have "\<forall>i<length Cs. (Cs ! i) \<cdot> \<sigma>s ! i = (Cs ! i) \<cdot> \<tau>" 
+    by auto
+  then have "Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>"
+    using a by (simp add: nth_equalityI) 
+  then show "\<exists>\<tau>. Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>" by auto
+qed
+  
+    
 subsubsection {* Ground expressions and substitutions *}
     
 lemma is_ground_cls_list_Cons[simp]:
   "is_ground_cls_list (C # CC) = (is_ground_cls C \<and> is_ground_cls_list CC)"
   unfolding is_ground_cls_list_def by auto
     
+lemma make_ground_subst_clauses:
+  assumes "is_ground_cls_list (CC \<cdot>cl \<sigma>)"
+  shows "\<exists>\<tau>. is_ground_subst \<tau> \<and> CC \<cdot>cl \<sigma> = CC \<cdot>cl \<tau>"
+proof -
+  from assms obtain \<tau> where "is_ground_subst \<tau> \<and> (\<forall>i<length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)" 
+    using make_ground_subst by blast
+  then have "is_ground_subst \<tau> \<and> (\<forall>i<length CC. (CC ! i) \<cdot> \<sigma> = (CC ! i) \<cdot> \<tau>)"
+    by auto
+  then have "is_ground_subst \<tau> \<and> CC \<cdot>cl \<sigma> = CC \<cdot>cl \<tau>"
+    by (simp add: list_eq_iff_nth_eq) 
+  then show ?thesis 
+    by blast
+qed  
 
 lemma var_disjoint_ground:
   assumes "var_disjoint Cs" "length \<sigma>s = length Cs"
@@ -492,11 +527,11 @@ lemma var_disjoint_ground:
   shows "\<exists>\<tau>. is_ground_subst \<tau> \<and> Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>"
 proof -
   from assms(1,2) obtain \<tau> where *: "Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>"
-    unfolding var_disjoint_def by auto
+    using var_disjoint_clauses by auto
   with assms(3) have "is_ground_cls_list (Cs \<cdot>cl \<tau>)"
     by simp
   then obtain \<tau>' where "is_ground_subst \<tau>'" "Cs \<cdot>cl \<tau> = Cs \<cdot>cl \<tau>'"
-    using make_ground_subst by blast
+    using make_ground_subst_clauses by blast
   with assms(2) * have "is_ground_subst \<tau>' \<and> Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>'"
     by simp
   then show ?thesis ..
@@ -692,13 +727,13 @@ lemmas is_unifiers_mgu = mgu_sound[unfolded is_mgu_def, THEN conjunct1]
 lemmas is_mgu_most_general = mgu_sound[unfolded is_mgu_def, THEN conjunct2]
 
 lemma mgu_empty: "mgu {} = Some \<rho> \<Longrightarrow> is_renaming \<rho>"
-  using mgu_sound[of "{}", unfolded is_mgu_def is_unifiers_def, simplified]
-  by (metis is_renaming_def)
+  using mgu_sound is_mgu_def is_unifiers_def 
+  oops (* Proof broke when I changed is_renaming_def *)
 
 lemma mgu_singleton: "mgu {{x}} = Some \<rho> \<Longrightarrow> is_renaming \<rho>"
-  using is_unifier_def[simp]
-    mgu_sound[of "{{x}}", unfolded is_mgu_def is_unifiers_def, simplified]
-  by (metis is_renaming_def)
+  using is_unifier_def
+    mgu_sound  is_mgu_def is_unifiers_def
+  oops (* Proof broke when I changed is_renaming_def *)
 
 lemma mgu_eq_id_subst:
   "finite AAA \<Longrightarrow> (\<forall>AA \<in> AAA. finite AA \<and> card AA \<le> 1) \<Longrightarrow> \<exists>\<rho>. mgu AAA = Some \<rho> \<and> is_renaming \<rho>"
@@ -707,7 +742,8 @@ proof (induct AAA rule: finite_induct)
   have "is_unifiers id_subst {}"
     unfolding is_unifiers_def by simp
   then show ?case
-    using mgu_complete mgu_empty by blast
+    using mgu_complete 
+      sorry
 next
   case (insert AA AAA)
   then obtain \<rho> where "mgu AAA = Some \<rho>" "is_renaming \<rho>"
@@ -723,10 +759,11 @@ next
   moreover then have "is_mgu \<rho>' (insert AA AAA)"
     using mgu_sound insert(1,4) by force
   with \<open>is_mgu \<rho> (insert AA AAA)\<close> \<open>is_renaming \<rho>\<close>  have "is_renaming \<rho>'"
-    unfolding is_mgu_def is_renaming_def by (metis comp_subst_assoc)
+    unfolding is_mgu_def is_renaming_def 
+      sorry
   ultimately show ?case
     by blast
-qed                                                                  
+  oops (* Proof broke when I changed is_renaming_def *)
 
 end
   
