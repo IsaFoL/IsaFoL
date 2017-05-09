@@ -3353,6 +3353,9 @@ next
     using free_levels_Forall by blast
   then show ?case
     sorry
+next
+  case (Exists P)
+  then show ?case sorry
 qed simp_all
   
 lemma "free_levels m p = length cs \<Longrightarrow> free_levels m (subst_consts cs p) = 0"
@@ -3403,6 +3406,8 @@ next
     using ForallI by fast
   then have "[] \<turnstile> (subst_consts cs p)[t/0]"
     using ForallE by blast
+  then show ?case 
+    sorry
 qed
   
 (* some other stuff *)
