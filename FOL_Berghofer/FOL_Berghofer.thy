@@ -3261,6 +3261,150 @@ next
     sorry
 qed
   
+(* different approach *)
+  
+primrec subst_consts :: "'a list \<Rightarrow> ('a, 'b) form \<Rightarrow> ('a, 'b) form" where
+  "subst_consts [] p = p"
+| "subst_consts (c#cs) p = (subst_consts cs p)[App c []/0]"
+
+lemma closedt_weaken:
+  "closedt 0 (t :: 'a term) \<Longrightarrow> closedt i t"
+  "closedts 0 (ts :: 'a term list) \<Longrightarrow> closedts i ts"
+  by (induct t and ts rule: closedt.induct closedts.induct) simp_all
+  
+lemma closedt_substt_zero:
+  "closedt 0 c \<Longrightarrow> closedt (Suc i) t \<Longrightarrow> closedt i (t[c/0])"
+  "closedt 0 c \<Longrightarrow> closedts (Suc i) ts \<Longrightarrow> closedts i (ts[c/0])"
+  using closedt_weaken
+  by (induct t and ts rule: closedt.induct closedts.induct) auto
+  
+lemma closed_Forall:
+  "closed (Suc i) p = closed i (Forall p)"
+  by (induct p) simp_all
+  
+lemma closed_Exists:
+  "closed (Suc i) p \<Longrightarrow> closed i (Exists p)"
+  by (induct p) simp_all
+
+     
+lemma lift_closed_weaken: "closedt 0 c \<Longrightarrow> closedt (Suc i) (liftt c)"
+  using closedt_weaken(1) lift_closed(1) by blast
+    
+lemma lift_closed_subst_zero:
+  "closedt 0 c \<Longrightarrow> closedt (Suc i) (t[c/0]) \<Longrightarrow> closedt (Suc i) (t[liftt c/Suc 0])"
+  "closedt 0 c \<Longrightarrow> closedts (Suc i) (ts[c/0]) \<Longrightarrow> closedts (Suc i) (ts[liftt c/Suc 0])"
+  by (induct t and ts rule: closedt.induct closedts.induct)
+    (auto simp add: lift_closed_weaken)
+  
+lemma
+  "closed i (Forall (p[App c []/0])) \<Longrightarrow> closed i ((Forall p)[App c []/0])"
+proof (induct p arbitrary: i)
+  case (Pred b ts)
+  have "closedt 0 (App c [])"
+    by simp
+  then show ?case
+    using Pred lift_closed_subst_zero
+      by fastforce
+next
+  case (Forall P)
+  then show ?case
+    sorry
+next
+  case (Exists P)
+  then show ?case sorry
+qed simp_all
+    
+
+lemma "closed (Suc i) p \<Longrightarrow> closed i (p[App c []/0])"
+proof (induct p arbitrary: i)
+  case (Pred b ts)
+  then show ?case
+    by (simp add: closedt_substt_zero)
+next
+  case (Forall P)
+  then have "closed (Suc i) (P[App c []/0])"
+    by simp
+  then have "closed i (Forall (P[App c []/0]))"
+    using closed_Forall by blast
+  then show ?case sorry
+next
+  case (Exists P)
+  then show ?case sorry
+qed simp_all
+  
+lemma free_levels_substt_zero:
+  "free_levels\<^sub>t 0 t \<le> Suc m \<Longrightarrow> free_levels\<^sub>t 0 (t[App x []/0]) \<le> m"
+  "free_levels\<^sub>t\<^sub>s 0 ts \<le> Suc m \<Longrightarrow> free_levels\<^sub>t\<^sub>s 0 (ts[App x []/0]) \<le> m"
+  by (induct t and ts rule: free_levels\<^sub>t.induct free_levels\<^sub>t\<^sub>s.induct) simp_all
+    
+lemma
+  "free_levels 0 p \<le> Suc m \<Longrightarrow> free_levels 0 (p[App x []/0]) \<le> m"
+proof (induct p arbitrary: m)
+  case (Pred b ts)
+  then show ?case
+    by (simp add: free_levels_substt_zero)
+next
+  case (Forall P)
+  then have "free_levels 0 P \<le> Suc (Suc m)"
+    by (metis closed.simps(8) closed_free_levels free_levels_closed plus_nat.simps(2))
+  then have "free_levels 0 (P[App x []/0]) \<le> Suc m"
+    using Forall by blast
+  then have "free_levels 0 (Forall (P[App x []/0])) \<le> m"
+    using free_levels_Forall by blast
+  then show ?case
+    sorry
+qed simp_all
+  
+lemma "free_levels m p = length cs \<Longrightarrow> free_levels m (subst_consts cs p) = 0"
+proof (induct cs arbitrary: m p)
+  case Nil
+  then show ?case
+    by simp
+next
+  case (Cons c cs)
+  then show ?case sorry
+qed
+ 
+  
+lemma paramst_subst_const:
+  "paramst (t[App c []/m]) \<subseteq> {c} \<union> (paramst t)"
+  "paramsts (ts[App c []/m]) \<subseteq> {c} \<union> (paramsts ts)"
+  by (induct t and ts rule: paramst.induct paramsts.induct) auto
+  
+lemma params_subst: "params (p[App c []/m]) \<subseteq>  {c} \<union> params p"
+proof (induct p arbitrary: m)
+  case (Pred b ts)
+  then show ?case
+    using paramst_subst_const by fastforce
+qed auto
+  
+lemma params_subst_consts: "params (subst_consts cs p) \<subseteq> set cs \<union> params p"
+  using params_subst by (induct cs) fastforce+
+  
+lemma subst_consts_free_head:
+  "distinct (c#cs) \<Longrightarrow> \<forall>c \<in> set (c#cs). c \<notin> params p \<Longrightarrow> c \<notin> params (subst_consts cs p)"
+  using params_subst by (induct cs) fastforce+
+  
+lemma
+  "distinct cs \<Longrightarrow> \<forall>c \<in> set cs. c \<notin> params p \<Longrightarrow> [] \<turnstile> subst_consts cs p \<Longrightarrow> [] \<turnstile> p"
+proof (induct cs arbitrary: p)
+  case Nil
+  then show ?case
+    by simp
+next
+  case (Cons c cs)
+  then have "[] \<turnstile> (subst_consts cs p)[App c []/0]"
+    by simp
+  moreover have "c \<notin> params (subst_consts cs p)"
+    using Cons subst_consts_free_head by fast
+  moreover have "list_all (\<lambda>p. c \<notin> params p) []"
+    by simp
+  ultimately have "[] \<turnstile> Forall (subst_consts cs p)"
+    using ForallI by fast
+  then have "[] \<turnstile> (subst_consts cs p)[t/0]"
+    using ForallE by blast
+qed
+  
 (* some other stuff *)
     
 primrec
@@ -3287,12 +3431,6 @@ where
   
 value "vars 0 ((Forall (Forall (Pred 0 [Var 0, Var 1, Var 2, Var 3])))[App x []/0])"
 
-  
-lemma free_levels_terms_dec_subst_zero:
-  "free_levels\<^sub>t 0 t \<le> Suc m \<Longrightarrow> free_levels\<^sub>t 0 (t[App x []/0]) \<le> m"
-  "free_levels\<^sub>t\<^sub>s 0 ts \<le> Suc m \<Longrightarrow> free_levels\<^sub>t\<^sub>s 0 (ts[App x []/0]) \<le> m"
-by (induct t and ts rule: free_levels\<^sub>t.induct free_levels\<^sub>t\<^sub>s.induct) simp_all
-      
   
 subsubsection {* Deriving the original formula from the universal closure *}
 
