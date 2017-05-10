@@ -417,10 +417,11 @@ where
 | ForallI: "G \<turnstile> a[App n []/0] \<Longrightarrow> list_all (\<lambda>p. n \<notin> params p) G \<Longrightarrow>
     n \<notin> params a \<Longrightarrow> G \<turnstile> Forall a"
 | ForallE: "G \<turnstile> Forall a \<Longrightarrow> G \<turnstile> a[t/0]"
+| ForallE': "[] \<turnstile> Forall a \<Longrightarrow> G \<turnstile> a"
 | ExistsI: "G \<turnstile> a[t/0] \<Longrightarrow> G \<turnstile> Exists a"
 | ExistsE: "G \<turnstile> Exists a \<Longrightarrow> a[App n []/0] # G \<turnstile> b \<Longrightarrow>
     list_all (\<lambda>p. n \<notin> params p) G \<Longrightarrow> n \<notin> params a \<Longrightarrow> n \<notin> params b \<Longrightarrow> G \<turnstile> b"
-
+  
 text {*
 The following derived inference rules are sometimes useful in applications.
 *}
@@ -446,7 +447,7 @@ proof -
     using Class by blast
 qed
 
-theorem ForallE': "G \<turnstile> Forall a \<Longrightarrow> subst a t 0 # G \<turnstile> B \<Longrightarrow> G \<turnstile> B"
+theorem ForallE'': "G \<turnstile> Forall a \<Longrightarrow> subst a t 0 # G \<turnstile> B \<Longrightarrow> G \<turnstile> B"
   by (rule cut) (rule ForallE)
 
 text {*
@@ -496,7 +497,7 @@ theorem ex_all_commute:
    prefer 2
    apply simp
   apply (rule_tac t="App 1 []" in ExistsI)
-  apply (rule_tac t="App 0 []" and a="Pred p [App (Suc 0) [], Var 0]" in ForallE')
+  apply (rule_tac t="App 0 []" and a="Pred p [App (Suc 0) [], Var 0]" in ForallE'')
    apply (rule Assum, simp)
   apply (rule Assum, simp)
   done
@@ -549,21 +550,43 @@ The correctness of the proof calculus introduced in \secref{sec:proof-calculus}
 can now be proved by induction on the derivation of @{term "G \<turnstile> p"}, using the
 substitution rules proved in \secref{sec:semantics}.
 *}
+ 
+lemma remove_shift: "\<forall>e z. g a ((e\<langle>0:z\<rangle>) n) \<Longrightarrow> g a (e n)"
+  by (induct n) auto
 
+lemma evalts_shift:
+  "\<forall>e (f :: 'b \<Rightarrow> 'a list \<Rightarrow> 'a) (g :: 'c \<Rightarrow> 'a list \<Rightarrow> bool) z.
+    g a (evalts (e\<langle>0:z\<rangle>) f ts) \<Longrightarrow>
+  (g :: 'c \<Rightarrow> 'a list \<Rightarrow> bool) a (evalts e (f :: 'b \<Rightarrow> 'a list \<Rightarrow> 'a) ts)"
+  by meson
+ 
+lemma eval_shift:
+  "\<forall>e (f :: 'b \<Rightarrow> 'a list \<Rightarrow> 'a) (g :: 'c \<Rightarrow> 'a list \<Rightarrow> bool) z.
+    eval (e\<langle>0:z\<rangle>) f g p \<Longrightarrow>
+  eval e (f :: 'b \<Rightarrow> 'a list \<Rightarrow> 'a) (g :: 'c \<Rightarrow> 'a list \<Rightarrow> bool) p"
+  using evalts_shift
+  sorry
+    
+lemma
+  assumes mod: "\<forall>e (f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b) g. e,f,g,[] \<Turnstile> Forall p"
+  shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,ps \<Turnstile> p"
+  using mod unfolding model_def by (simp add: eval_shift)
+  
+  
 theorem correctness: "G \<turnstile> p \<Longrightarrow> \<forall>e f g. e,f,g,G \<Turnstile> p"
-  proof (induct p rule: deriv.induct)
-    case (Assum a G)
-    then show ?case by (simp add: model_def list_all_iff)
-  next
-    case (ForallI G a n)
-    show ?case proof (intro allI)
-      fix f g and e :: "nat \<Rightarrow> 'c"
-      have "\<forall>z. e, (f(n := \<lambda>x. z)), g, G \<Turnstile> (a[App n []/0])"
-        using ForallI by blast
-      then have "\<forall>z. list_all (eval e f g) G \<longrightarrow> eval (e\<langle>0:z\<rangle>) f g a"
-        using ForallI unfolding model_def by simp
-      then show "e,f,g,G \<Turnstile> Forall a" unfolding model_def by simp
-    qed
+proof (induct p rule: deriv.induct)
+  case (Assum a G)
+  then show ?case by (simp add: model_def list_all_iff)
+next
+  case (ForallI G a n)
+  show ?case proof (intro allI)
+    fix f g and e :: "nat \<Rightarrow> 'c"
+    have "\<forall>z. e, (f(n := \<lambda>x. z)), g, G \<Turnstile> (a[App n []/0])"
+      using ForallI by blast
+    then have "\<forall>z. list_all (eval e f g) G \<longrightarrow> eval (e\<langle>0:z\<rangle>) f g a"
+      using ForallI unfolding model_def by simp
+    then show "e,f,g,G \<Turnstile> Forall a" unfolding model_def by simp
+  qed
 next
   case (ExistsE G a n b)
   show ?case proof (intro allI)
@@ -575,8 +598,12 @@ next
     then show "e,f,g,G \<Turnstile> b"
       using ExistsE unfolding model_def by simp
   qed
+next
+  case (ForallE' a)
+  then show ?case
+    unfolding model_def by (simp add: eval_shift)
 qed (simp_all add: model_def, blast+)
-  
+    
 section {* Completeness *}
 
 text {*
@@ -3180,16 +3207,21 @@ qed
 lemma closed_subst_free: "closed 0 (subst_free p)"
   unfolding subst_free_def
   using free_levels_subst_free' free_levels_closed_zero by blast
-
-lemma valid_subst_const:
-  assumes mod: "\<forall>e f g. e,(f :: nat \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> p"
-  shows "e,(f :: nat \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> p[App x []/m]"
-  using mod unfolding model_def by simp
+    
+lemma valid_subst:
+  assumes mod: "\<forall>e f g. e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,ps \<Turnstile> p"
+  shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,(map (\<lambda>p. subst p t m) ps) \<Turnstile> subst p t m"
+  using mod by (simp add: model_def list_all_iff)
+    
+lemma valid_subst_const_no_prems:
+  assumes mod: "\<forall>e f g. e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> p"
+  shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> p[App x []/m]"
+    using mod unfolding model_def valid_subst by simp
 
 lemma valid_subst_free':
   assumes mod: "\<forall>e f g. e,(f :: nat \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> p"
   shows "e,(f :: nat \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> subst_free' m x p"
-  using mod by (induct m arbitrary: x p) (simp_all add: valid_subst_const)
+  using mod by (induct m arbitrary: x p) (simp_all add: valid_subst_const_no_prems)
   
 primrec subst_free'' :: "nat \<Rightarrow> nat \<Rightarrow> (nat, 'b) form \<Rightarrow> (nat, 'b) form" where
   "subst_free'' (Suc m) x p = subst_free'' m (Suc x) (p[App x []/0])"
@@ -3207,7 +3239,7 @@ value "subst_free''' 2 (Suc 2) (Forall (Pred 0 [Var 0, Var 1, Var 2]))"
 lemma valid_subst_free'':
   assumes mod: "\<forall>e f g. e,(f :: nat \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> p"
   shows "e,(f :: nat \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> subst_free'' m x p"
-  using mod by (induct m arbitrary: x p) (simp_all add: valid_subst_const)
+  using mod by (induct m arbitrary: x p) (simp_all add: valid_subst_const_no_prems)
 
 lemma "free_levels 0 (subst_free'' (free_levels 0 p) x p) = 0"
   sorry
@@ -3467,7 +3499,7 @@ lemma put_Foralls_subst_zero:
 lemma put_Foralls_suc: "put_Foralls m (Forall p) = put_Foralls (Suc m) p"
   by (induct m) simp_all
      
-lemma remove_univ_close_cancels:
+lemma (* remove_univ_close_cancels: *)
   "m = free_levels 0 p \<Longrightarrow> remove_univ_close m (put_Foralls m p) = p"
   sorry
       
@@ -3482,7 +3514,14 @@ next
     using ForallE put_Foralls_subst
     by (metis dest_Forall.simps put_Foralls.simps(1) remove_univ_close.simps(1))
 qed
-    
+
+theorem deriv_remove_put_Foralls: "[] \<turnstile> put_Foralls m p \<Longrightarrow> [] \<turnstile> p"
+  using ForallE' by (induct m) auto
+ 
+theorem deriv_remove_univ_close: "[] \<turnstile> univ_close p \<Longrightarrow> [] \<turnstile> p"
+  unfolding univ_close_def using deriv_remove_put_Foralls by blast
+  
+(*
 theorem deriv_remove_univ_close: "ps \<turnstile> univ_close p \<Longrightarrow> ps \<turnstile> p"
 proof -
   assume "ps \<turnstile> univ_close p"
@@ -3492,6 +3531,7 @@ proof -
     unfolding univ_close_def
       using remove_univ_close_cancels by metis
 qed
+*)
 
 subsubsection {* Deriving under assumptions from an implication *}
     
@@ -3580,6 +3620,10 @@ next
   case (ForallE G a t)
   then show ?case
     using deriv.ForallE by blast
+next
+  case (ForallE' a)
+  then show ?case
+    using deriv.ForallE' by blast
 next
   case (ExistsI G a t)
   then show ?case
@@ -3680,6 +3724,10 @@ next
   then show ?case
     using deriv.ForallE by metis
 next
+  case (ForallE' a)
+  then show ?case
+    using deriv.ForallE' by metis
+next
   case (ExistsI G a t)
   then show ?case
     using deriv.ExistsI by metis
@@ -3771,6 +3819,10 @@ next
   case (ForallE G a t)
   then show ?case
     using deriv.ForallE by simp
+next
+  case (ForallE' a)
+  then show ?case
+    using deriv.ForallE' by simp
 next
   case (ExistsI G a t)
   then show ?case
@@ -3963,6 +4015,10 @@ next
   case (ForallE G a t)
   then show ?case
     using deriv.ForallE by blast
+next
+  case (ForallE' a)
+  then show ?case
+    using deriv.ForallE' by blast
 next
   case (ExistsI G a t)
   then show ?case
