@@ -417,7 +417,7 @@ where
 | ForallI: "G \<turnstile> a[App n []/0] \<Longrightarrow> list_all (\<lambda>p. n \<notin> params p) G \<Longrightarrow>
     n \<notin> params a \<Longrightarrow> G \<turnstile> Forall a"
 | ForallE: "G \<turnstile> Forall a \<Longrightarrow> G \<turnstile> a[t/0]"
-| ForallE': "[] \<turnstile> Forall a \<Longrightarrow> G \<turnstile> a"
+| ForallE': "G \<turnstile> Forall a \<Longrightarrow> G \<turnstile> a"
 | ExistsI: "G \<turnstile> a[t/0] \<Longrightarrow> G \<turnstile> Exists a"
 | ExistsE: "G \<turnstile> Exists a \<Longrightarrow> a[App n []/0] # G \<turnstile> b \<Longrightarrow>
     list_all (\<lambda>p. n \<notin> params p) G \<Longrightarrow> n \<notin> params a \<Longrightarrow> n \<notin> params b \<Longrightarrow> G \<turnstile> b"
@@ -560,17 +560,12 @@ lemma evalts_shift:
   (g :: 'c \<Rightarrow> 'a list \<Rightarrow> bool) a (evalts e (f :: 'b \<Rightarrow> 'a list \<Rightarrow> 'a) ts)"
   by meson
  
-lemma eval_shift:
+lemma
   "\<forall>e (f :: 'b \<Rightarrow> 'a list \<Rightarrow> 'a) (g :: 'c \<Rightarrow> 'a list \<Rightarrow> bool) z.
     eval (e\<langle>0:z\<rangle>) f g p \<Longrightarrow>
   eval e (f :: 'b \<Rightarrow> 'a list \<Rightarrow> 'a) (g :: 'c \<Rightarrow> 'a list \<Rightarrow> bool) p"
   using evalts_shift
   sorry
-    
-lemma
-  assumes mod: "\<forall>e (f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b) g. e,f,g,[] \<Turnstile> Forall p"
-  shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,ps \<Turnstile> p"
-  using mod unfolding model_def by (simp add: eval_shift)
   
   
 theorem correctness: "G \<turnstile> p \<Longrightarrow> \<forall>e f g. e,f,g,G \<Turnstile> p"
@@ -599,9 +594,9 @@ next
       using ExistsE unfolding model_def by simp
   qed
 next
-  case (ForallE' a)
+  case (ForallE' G a)
   then show ?case
-    unfolding model_def by (simp add: eval_shift)
+    sorry
 qed (simp_all add: model_def, blast+)
     
 section {* Completeness *}
@@ -3623,7 +3618,7 @@ next
 next
   case (ForallE' a)
   then show ?case
-    using deriv.ForallE' by blast
+    using deriv.ForallE' by auto
 next
   case (ExistsI G a t)
   then show ?case
@@ -3634,116 +3629,6 @@ next
     by (simp_all add: list_all_iff)
   then show ?case
     using ExistsE deriv.ExistsE by fast
-qed
-    
-theorem deriv_assum_subset: "ps' \<turnstile> q \<Longrightarrow> set ps' \<subseteq> set ps \<Longrightarrow>
-  (\<Union>p \<in> set ps. params p) = (\<Union>p \<in> set ps'. params p) \<Longrightarrow> ps \<turnstile> q"
-proof (induct q arbitrary: ps rule: deriv.induct)
-  case (Assum a G)
-  then show ?case
-    using deriv.Assum by blast
-next
-  case (TTI G)
-  then show ?case
-    using deriv.TTI by blast
-next
-  case (FFE G a)
-  then show ?case
-    using deriv.FFE by blast
-next
-  case (NegI a G)
-  then have "a # ps \<turnstile> FF"
-    by (simp add: subset_iff)
-  then show ?case
-    using deriv.NegI by blast
-next
-  case (NegE G a)
-  then have "ps \<turnstile> a" and "ps \<turnstile> Neg a"
-    by simp_all
-  then show ?case
-    using deriv.NegE by blast
-next
-  case (Class a G)
-  then have "set (Neg a # G) \<subseteq> set (Neg a # ps)"
-    by auto
-  then have "Neg a # ps \<turnstile> FF"
-    using Class by simp
-  then show ?case
-    using deriv.Class by blast
-next
-  case (AndI G a b)
-  then show ?case
-    using deriv.AndI by metis
-next
-  case (AndE1 G a b)
-  then show ?case
-    using deriv.AndE1 by metis
-next
-  case (AndE2 G a b)
-  then show ?case
-    using deriv.AndE2 by metis
-next
-  case (OrI1 G a b)
-  then show ?case
-    using deriv.OrI1 by metis
-next
-  case (OrI2 G b a)
-  then show ?case
-    using deriv.OrI2 by metis
-next
-  case (OrE G a b c)
-  then have "set (a # G) \<subseteq> set (a # ps)" and "set (b # G) \<subseteq> set (b # ps)"
-    by auto
-  then have "ps \<turnstile> Or a b" and "a # ps \<turnstile> c" and "b # ps \<turnstile> c"
-    using OrE by auto
-  then show ?case
-    using deriv.OrE by blast
-next
-  case (ImplI a G b)
-  then have "set (a # G) \<subseteq> set (a # ps)"
-    by auto
-  then have "a # ps \<turnstile> b"
-    using ImplI by simp
-  then show ?case
-    using deriv.ImplI by blast
-next
-  case (ImplE G a b)
-  then show ?case
-    using deriv.ImplE by metis
-next
-  case (ForallI G a n)
-  then have "list_all (\<lambda>p. n \<notin> params p) ps"
-    by (metis (mono_tags, lifting) list_all_iff UN_E UN_I)
-  moreover have "ps \<turnstile> a[App n []/0]"
-    using ForallI by simp
-  moreover note \<open>n \<notin> params a\<close>
-  ultimately show ?case
-    using deriv.ForallI by fast
-next
-  case (ForallE G a t)
-  then show ?case
-    using deriv.ForallE by metis
-next
-  case (ForallE' a)
-  then show ?case
-    using deriv.ForallE' by metis
-next
-  case (ExistsI G a t)
-  then show ?case
-    using deriv.ExistsI by metis
-next
-  case (ExistsE G a n b)
-  then have "list_all (\<lambda>p. n \<notin> params p) ps"
-    by (metis (mono_tags, lifting) list_all_iff UN_E UN_I)
-  moreover have "ps \<turnstile> Exists a"
-    using ExistsE by blast
-  moreover have "set ps \<subseteq> insert (a[App n []/0]) (set ps)"
-    by blast
-  then have "a[App n []/0] # ps \<turnstile> b"
-    using ExistsE by simp
-  moreover note \<open>n \<notin> params a\<close> and \<open>n \<notin> params b\<close>
-  ultimately show ?case
-    using deriv.ExistsE by fast
 qed
   
 lemma deriv_psubst:
