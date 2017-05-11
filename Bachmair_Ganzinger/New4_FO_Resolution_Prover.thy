@@ -581,7 +581,7 @@ lemma ord_resolve_obtain_clauses:
     
     "\<forall>CA \<in> set CAi''. CA \<in> M" (* Could also use subseteq *)
     "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi"
-    "map (S_M S M) CAi = (map S CAi'') \<cdot>\<cdot>cl \<eta>s''"
+    "(map S CAi'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAi"
   using resolve proof (cases rule: ord_resolve.cases)
   case (ord_resolve nn Ci Aij Ai \<sigma> D)
   then have "nn = n"
@@ -592,14 +592,15 @@ lemma ord_resolve_obtain_clauses:
     
   interpret S: selection S by (rule select)
       
-  have "\<forall>CA \<in> set CAi. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> CA = CA'' \<cdot> \<eta>c'' \<and> S CA'' \<cdot> \<eta>c'' = S_M S M CA"
+    (* Obtain CAi'' *)
+  have "\<forall>CA \<in> set CAi. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> CA'' \<cdot> \<eta>c'' = CA \<and> S CA'' \<cdot> \<eta>c'' = S_M S M CA"
     using grounding using grounding S_M_grounding_of_clss select
     by (metis le_supE subset_iff)    
-  hence "\<forall>i < n. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> (CAi ! i) = CA'' \<cdot> \<eta>c'' \<and> S CA'' \<cdot> \<eta>c'' = S_M S M (CAi ! i)"
+  hence "\<forall>i < n. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> CA'' \<cdot> \<eta>c'' = (CAi ! i) \<and> S CA'' \<cdot> \<eta>c'' = S_M S M (CAi ! i)"
     using n by auto
   then obtain \<eta>s''f CAi''f where f_p: 
     "\<forall>i < n. CAi''f i \<in> M" 
-    "\<forall>i < n. (CAi ! i) = (CAi''f i) \<cdot> (\<eta>s''f i)"
+    "\<forall>i < n. (CAi''f i) \<cdot> (\<eta>s''f i) = (CAi ! i)"
     "\<forall>i < n. S (CAi''f i)  \<cdot> (\<eta>s''f i) = S_M S M (CAi ! i)"
     using n by metis
       
@@ -611,30 +612,26 @@ lemma ord_resolve_obtain_clauses:
   note n = \<open>length \<eta>s'' = n\<close> \<open>length CAi'' = n\<close> n
     
     (* The properties we need of CAi'' *)
-  have CAi''_in_M: "\<forall>CA'' \<in> set CAi''. CA'' \<in> M" unfolding CAi''_def using f_p by auto
-  have CACAi''_to_cai: "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi" unfolding CAi''_def \<eta>s''_def using f_p
-    by (simp add: n)
-  have selelele: " \<forall>i < n. S_M S M (CAi ! i) = S (CAi'' ! i) \<cdot> (\<eta>s'' ! i) "
-    unfolding CAi''_def \<eta>s''_def using f_p(3) by auto
+  have CAi''_in_M: "\<forall>CA'' \<in> set CAi''. CA'' \<in> M" 
+    unfolding CAi''_def using f_p(1) by auto
+  have CAi''_to_CAi: "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi" 
+    unfolding CAi''_def \<eta>s''_def using f_p(2) by (simp add: n)
+  have "(map S CAi'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAi"
+   unfolding CAi''_def \<eta>s''_def using f_p(3) n by auto
       
-  have "\<exists>DA'' \<eta>''. DA'' \<in> M \<and> (DA) = DA'' \<cdot> \<eta>'' \<and> S DA'' \<cdot> \<eta>'' = S_M S M DA"
+    (* Obtain DA''  *) 
+  have "\<exists>DA'' \<eta>''. DA'' \<in> M \<and> DA = DA'' \<cdot> \<eta>'' \<and> S DA'' \<cdot> \<eta>'' = S_M S M DA"
     using grounding S_M_grounding_of_clss select
     by (metis le_supE singletonI subsetCE)
-  then obtain DA'' \<eta>'' where COOL2: "DA'' \<in> M \<and> DA = DA'' \<cdot> \<eta>'' \<and> S DA'' \<cdot> \<eta>'' = S_M S M DA"
+  then obtain DA'' \<eta>'' where DA''_\<eta>''_p: "DA'' \<in> M \<and> DA = DA'' \<cdot> \<eta>'' \<and> S DA'' \<cdot> \<eta>'' = S_M S M DA"
     by auto
       (* The properties we need of DA'' *)
-  have DA''_in_M: "DA'' \<in> M" using COOL2 by auto
-  have DA''_to_DA: "DA'' \<cdot> \<eta>'' = DA" using COOL2 by auto
-  have selelele_d: "S DA'' \<cdot> \<eta>'' = S_M S M DA" using COOL2 by auto
-      
-  have "map (S_M S M) CAi = (map S CAi'') \<cdot>\<cdot>cl \<eta>s''"
-  proof -
-    have "\<forall>i<n. S_M S M (CAi ! i) = S (CAi'' ! i) \<cdot> \<eta>s'' ! i" using selelele by -
-    then have "\<forall>i<n. (map (S_M S M) CAi) ! i = ((map S CAi'') ! i) \<cdot> \<eta>s'' ! i"
-      using n by auto
-    then show "map (S_M S M) CAi = (map S CAi'') \<cdot>\<cdot>cl \<eta>s''"
-      using n by auto
-  qed    
+  have DA''_in_M: "DA'' \<in> M" 
+    using DA''_\<eta>''_p by auto
+  have DA''_to_DA: "DA'' \<cdot> \<eta>'' = DA" 
+    using DA''_\<eta>''_p by auto
+  have SDA''_to_SMDA: "S DA'' \<cdot> \<eta>'' = S_M S M DA" 
+    using DA''_\<eta>''_p by auto  
     
   show ?thesis
     using
@@ -644,7 +641,7 @@ lemma ord_resolve_obtain_clauses:
       \<open>S DA'' \<cdot> \<eta>'' = S_M S M DA\<close>
       \<open>\<forall>CA \<in> set CAi''. CA \<in> M\<close>
       \<open>CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi\<close>
-      \<open>map (S_M S M) CAi = (map S CAi'') \<cdot>\<cdot>cl \<eta>s''\<close>
+      \<open>(map S CAi'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAi\<close>
       n
     by blast
 qed
@@ -666,7 +663,7 @@ lemma ord_resolve_obtain_clauses_std_apart':
     
     "\<forall>CA \<in> set CAi'. CA \<in> M"
     "CAi' \<cdot>\<cdot>cl \<eta>s' = CAi"
-    "map (S_M S M) CAi = (map S CAi') \<cdot>\<cdot>cl \<eta>s'"
+    "(map S CAi') \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi"
     
     "var_disjoint (DA' # CAi')"
   using resolve proof (cases rule: ord_resolve.cases)
@@ -690,7 +687,7 @@ lemma ord_resolve_obtain_clauses_std_apart':
     
     "\<forall>CA \<in> set CAi''. CA \<in> M"
     "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi"
-    "map (S_M S M) CAi = (map S CAi'') \<cdot>\<cdot>cl \<eta>s''"
+    "(map S CAi'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAi"
     using resolve grounding select ord_resolve_obtain_clauses n by metis
       
   note n = \<open>length CAi'' = n\<close> \<open>length \<eta>s'' = n\<close> n
@@ -784,8 +781,8 @@ lemma ord_resolve_obtain_clauses_std_apart':
   proof (rule, rule)
     have selelele: "(\<forall>i < n. S_M S M (CAi ! i) = (S (CAi'' ! i)) \<cdot> (\<eta>s'' ! i))"
     proof -
-      have "\<forall>i<n. map (S_M S M) CAi ! i = ((map S CAi'') \<cdot>\<cdot>cl \<eta>s'') ! i"
-        using \<open>map (S_M S M) CAi = (map S CAi'') \<cdot>\<cdot>cl \<eta>s''\<close> n by auto
+      have "\<forall>i<n. ((map S CAi'') \<cdot>\<cdot>cl \<eta>s'') ! i = map (S_M S M) CAi ! i"
+        using \<open>(map S CAi'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAi\<close> n by auto
       then have "\<forall>i<n. S_M S M (CAi ! i) = ((map S CAi'') \<cdot>\<cdot>cl \<eta>s'') ! i"
         using n
         by (simp add: \<open>length \<eta>s'' = n\<close>) 
@@ -793,7 +790,7 @@ lemma ord_resolve_obtain_clauses_std_apart':
         using n by auto
     qed
       
-    fix i
+    fix i (* TODO: This proof should go in the other direction... *)
     assume a: "i < n"
     then have "S_M S M (CAi ! i) = S (CAi'' ! i) \<cdot> \<eta>s'' ! i" 
       using \<open>(\<forall>i < n. S_M S M (CAi ! i) = (S (CAi'' ! i)) \<cdot> (\<eta>s'' ! i))\<close> by auto
@@ -818,8 +815,8 @@ lemma ord_resolve_obtain_clauses_std_apart':
   have DA'_DA: "DA' \<cdot> \<eta>' = DA"
     using DA'_def \<eta>'_def \<open>DA'' \<cdot> \<eta>'' = DA\<close> subst_cls_id_subst
     by (metis \<rho>_inv_p \<rho>_ren inv_ren_cancel_r subst_cls_comp_subst)
-  have sel_DA'_DA: "S_M S M DA = S DA' \<cdot> \<eta>'"
-  proof -
+  have sel_DA'_DA: "S DA' \<cdot> \<eta>' = S_M S M DA"
+  proof - (* TODO: This proof should go in the other direction... *)
     have "S_M S M DA = S DA'' \<cdot> \<eta>''"
       by (simp add: clauses'') 
     also have "... = S (((DA'') \<cdot> (\<rho>)) \<cdot> (\<rho>_inv)) \<cdot> \<eta>''"
@@ -836,15 +833,13 @@ lemma ord_resolve_obtain_clauses_std_apart':
     also have "... = S DA' \<cdot> \<eta>'"
       unfolding DA'_def \<eta>'_def
       by auto
-    finally show "S_M S M DA = S DA' \<cdot> \<eta>'" by auto
+    finally show "S DA' \<cdot> \<eta>' = S_M S M DA" by auto
   qed
     
   have "\<forall>CA \<in> set CAi'. CA \<in> M"
-    using CAi'_in_M n
-    by (metis in_set_conv_nth) 
-  have "map (S_M S M) CAi = (map S CAi') \<cdot>\<cdot>cl \<eta>s'"
-    using sel_cai'_cai n
-    by auto
+    using CAi'_in_M n by metis 
+  have "(map S CAi') \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi"
+    using sel_cai'_cai n by auto
       
   have "var_disjoint (DA' # CAi')"
     using DA'_def \<open>CAi' \<equiv> CAi'' \<cdot>\<cdot>cl \<rho>s\<close> \<open>var_disjoint ((DA'' # CAi'') \<cdot>\<cdot>cl (\<rho> # \<rho>s))\<close> by auto
@@ -857,11 +852,11 @@ lemma ord_resolve_obtain_clauses_std_apart':
       
       \<open>DA' \<in> M\<close>
       \<open>DA' \<cdot> \<eta>' = DA\<close>
-      \<open>S_M S M DA = S DA' \<cdot> \<eta>'\<close>
+      \<open>S DA' \<cdot> \<eta>' = S_M S M DA\<close>
       
       \<open>\<forall>CA \<in> set CAi'. CA \<in> M\<close>
       \<open>CAi' \<cdot>\<cdot>cl \<eta>s' = CAi\<close>
-      \<open>map (S_M S M) CAi = (map S CAi') \<cdot>\<cdot>cl \<eta>s'\<close>
+      \<open>(map S CAi') \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi\<close>
       
       \<open>var_disjoint (DA' # CAi')\<close>
     by metis
@@ -883,7 +878,7 @@ lemma ord_resolve_obtain_clauses_std_apart:
     
     "\<forall>CA \<in> set CAi'. CA \<in> M"
     "CAi' \<cdot>cl \<eta> = CAi"
-    "map (S_M S M) CAi = (map S CAi') \<cdot>cl \<eta>"
+    "(map S CAi') \<cdot>cl \<eta> = map (S_M S M) CAi"
     
     "is_ground_subst \<eta>"
     "var_disjoint (DA' # CAi')"
@@ -908,7 +903,7 @@ lemma ord_resolve_obtain_clauses_std_apart:
     
     "\<forall>CA \<in> set CAi'. CA \<in> M"
     "CAi' \<cdot>\<cdot>cl \<eta>s' = CAi"
-    "map (S_M S M) CAi = (map S CAi') \<cdot>\<cdot>cl \<eta>s'"
+    "(map S CAi') \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi"
     
     "var_disjoint (DA' # CAi')"
     using selection_renaming_invariant M_renaming_invariant resolve grounding select ord_resolve_obtain_clauses_std_apart'[of S M] n by blast
@@ -929,18 +924,18 @@ lemma ord_resolve_obtain_clauses_std_apart:
     by auto
       
   have "\<forall>i < n. CAi' ! i \<in> M" using clauses' by auto
-  have "CAi = CAi' \<cdot>cl \<eta>_fo"
+  have "CAi' \<cdot>cl \<eta>_fo = CAi"
   proof -
     {
       fix i
       assume "i<n"
-      then have "CAi ! i = (CAi' \<cdot>cl \<eta>_fo) ! i" using n(1-2) clauses' cai'_\<eta>_fo by auto
+      then have "(CAi' \<cdot>cl \<eta>_fo) ! i = CAi ! i" using n(1-2) clauses' cai'_\<eta>_fo by auto
     }
     then show ?thesis using n by auto
   qed
-  have "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>_fo"
+  have "\<forall>i < n. S (CAi' ! i) \<cdot> \<eta>_fo = S_M S M (CAi ! i)"
   proof (rule, rule)
-    fix i
+    fix i (* TODO: Turn proof around*)
     assume "i < n"
     have "S_M S M (CAi ! i) = (S (CAi' ! i)) \<cdot> (\<eta>s' ! i)"
     proof -
@@ -949,17 +944,16 @@ lemma ord_resolve_obtain_clauses_std_apart:
       then show "S_M S M (CAi ! i)  = (S (CAi' ! i)) \<cdot> (\<eta>s' ! i)"
         using n \<open>i < n\<close> by auto
     qed
-      
     also have "... = (S (CAi' ! i)) \<cdot> \<eta>_fo"
       using S.S_selects_subseteq cai'_\<eta>_fo_sel \<open>i<n\<close> by auto
-    finally show "S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>_fo"
+    finally show "S (CAi' ! i) \<cdot> \<eta>_fo = S_M S M (CAi ! i)"
       by auto
   qed
     
   have "DA' \<in> M" using clauses' by auto
-  have "DA = DA' \<cdot> \<eta>_fo" using  DA'_\<eta>
-    using clauses' by blast 
-  have "S_M S M DA = S DA' \<cdot> \<eta>_fo"
+  have "DA' \<cdot> \<eta>_fo = DA" using DA'_\<eta>
+    using clauses' by auto 
+  have "S DA' \<cdot> \<eta>_fo = S_M S M DA"
   proof -
     have "S_M S M DA = S DA' \<cdot> \<eta>'"
       using clauses' by auto
@@ -968,69 +962,68 @@ lemma ord_resolve_obtain_clauses_std_apart:
     finally show ?thesis by auto
   qed
     
-  have "map (S_M S M) CAi = (map S CAi') \<cdot>cl \<eta>_fo"
+  have "(map S CAi') \<cdot>cl \<eta>_fo = map (S_M S M) CAi"
   proof -
-    have "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>_fo"
-      using \<open>\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>_fo\<close> by -
-    then have "\<forall>i < n. (map (S_M S M) CAi) ! i = ((map S CAi') \<cdot>cl \<eta>_fo) ! i"
+    have "\<forall>i < n. S (CAi' ! i) \<cdot> \<eta>_fo =  S_M S M (CAi ! i)"
+      using \<open>\<forall>i < n. S (CAi' ! i) \<cdot> \<eta>_fo = S_M S M (CAi ! i)\<close> by -
+    then have "\<forall>i < n. ((map S CAi') \<cdot>cl \<eta>_fo) ! i =  (map (S_M S M) CAi) ! i"
       using n by auto
-    then show "map (S_M S M) CAi = (map S CAi') \<cdot>cl \<eta>_fo" using n by auto
+    then show "(map S CAi') \<cdot>cl \<eta>_fo = map (S_M S M) CAi" using n by auto
   qed
     
     (* Obtain ground substitution *)
     
   obtain \<eta> where \<eta>_p: "is_ground_subst \<eta> \<and> (\<forall>i<length (DA' # CAi'). \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> \<eta>_fo = S \<cdot> \<eta>)"
-    using make_ground_subst[of "DA' # CAi'" \<eta>_fo] grounding \<open>CAi = CAi' \<cdot>cl \<eta>_fo\<close> \<open>DA = DA' \<cdot> \<eta>_fo\<close> grounding_ground
-    by (metis Un_insert_left is_ground_cls_list_def list.simps(15) subsetCE subst_cls_list_Cons sup_bot.left_neutral) 
-      
+    using make_ground_subst[of "DA' # CAi'" \<eta>_fo] grounding \<open>CAi' \<cdot>cl \<eta>_fo = CAi\<close> \<open>DA' \<cdot> \<eta>_fo = DA\<close> grounding_ground by metis
+                                                                                             
       
   have "\<forall>i < n. CAi' ! i \<in> M" using clauses' n by auto
-  have "CAi = CAi' \<cdot>cl \<eta>"
+  have "CAi' \<cdot>cl \<eta> = CAi"
   proof -
     {
       fix i
       assume "i<n"
-      then have "CAi ! i = (CAi' \<cdot>cl \<eta>_fo) ! i" using \<open>CAi = CAi' \<cdot>cl \<eta>_fo\<close> by auto
-      then have "CAi ! i = (CAi' \<cdot>cl \<eta>) ! i" using n \<eta>_p \<open>i<n\<close> by auto
+      then have "(CAi' \<cdot>cl \<eta>_fo) ! i = CAi ! i" using \<open>CAi' \<cdot>cl \<eta>_fo = CAi\<close> by auto
+      then have "(CAi' \<cdot>cl \<eta>) ! i = CAi ! i" using n \<eta>_p \<open>i<n\<close> by auto
     }
     then show ?thesis using n by auto
   qed
-  have "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>"
+  have "\<forall>i < n. S (CAi' ! i) \<cdot> \<eta> = S_M S M (CAi ! i)"
   proof -
     {
       fix i
       assume "i<n"
-      have "S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>_fo"
+      have "S (CAi' ! i) \<cdot> \<eta>_fo = S_M S M (CAi ! i)"
       proof -
-        have "map (S_M S M) CAi = map S CAi' \<cdot>cl \<eta>_fo"
-          using \<open>map (S_M S M) CAi = map S CAi' \<cdot>cl \<eta>_fo\<close> .
-        then have "(map (S_M S M) CAi) ! i = (map S CAi' \<cdot>cl \<eta>_fo) ! i" by auto
-        then have "S_M S M (CAi ! i) = ((map S CAi') \<cdot>cl \<eta>_fo) ! i" using n \<open>i<n\<close> by auto
-        then show "S_M S M (CAi ! i) = (S (CAi' ! i)) \<cdot> \<eta>_fo" using n \<open>i<n\<close> by auto
+        have "map S CAi' \<cdot>cl \<eta>_fo = map (S_M S M) CAi"
+          using \<open>map S CAi' \<cdot>cl \<eta>_fo = map (S_M S M) CAi\<close> .
+        then have "(map S CAi' \<cdot>cl \<eta>_fo) ! i = (map (S_M S M) CAi) ! i" by auto
+        then have "((map S CAi') \<cdot>cl \<eta>_fo) ! i = S_M S M (CAi ! i)" using n \<open>i<n\<close> by auto
+        then show "S (CAi' ! i) \<cdot> \<eta>_fo = S_M S M (CAi ! i)" using n \<open>i<n\<close> by auto
       qed
-      then have "S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>" using n \<eta>_p \<open>i<n\<close> S.S_selects_subseteq by auto
+      then have "S (CAi' ! i) \<cdot> \<eta> = S_M S M (CAi ! i)" using n \<eta>_p \<open>i<n\<close> S.S_selects_subseteq by auto
     }
     then show ?thesis using n by auto
   qed
     
   have "DA' \<in> M" using clauses' by auto
-  have "DA = DA' \<cdot> \<eta>" using \<open>DA = DA' \<cdot> \<eta>_fo\<close> \<eta>_p by auto
-  have "S_M S M DA = S DA' \<cdot> \<eta>"
-    using \<open>S_M S M DA = S DA' \<cdot> \<eta>_fo\<close> using \<eta>_p S.S_selects_subseteq by auto
+  have "DA' \<cdot> \<eta> = DA" using \<open>DA' \<cdot> \<eta>_fo = DA\<close> \<eta>_p by auto
+  have "S DA' \<cdot> \<eta> = S_M S M DA"
+    using \<open>S DA' \<cdot> \<eta>_fo = S_M S M DA\<close> using \<eta>_p S.S_selects_subseteq by auto
   have prime_clauses_10: "is_ground_subst \<eta>" using \<eta>_p by auto
       
-  have "map (S_M S M) CAi = (map S CAi') \<cdot>cl \<eta>"
-    using \<open>\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>\<close>
+  have "(map S CAi') \<cdot>cl \<eta> = map (S_M S M) CAi"
+    using \<open>\<forall>i < n. S (CAi' ! i) \<cdot> \<eta> = S_M S M (CAi ! i)\<close>
       n by auto
       
   show ?thesis using that
-      \<open>DA' \<in> M\<close>
-      \<open>DA = DA' \<cdot> \<eta>\<close>
-      \<open>S_M S M DA = S DA' \<cdot> \<eta>\<close>
+      \<open>DA' \<in> M\<close>                                              
+      \<open>DA' \<cdot> \<eta> = DA\<close>
+      \<open>S DA' \<cdot> \<eta> = S_M S M DA\<close>
       
       \<open>\<forall>CA \<in> set CAi'. CA \<in> M\<close>
-      \<open>CAi = CAi' \<cdot>cl \<eta>\<close>
-      \<open>map (S_M S M) CAi = (map S CAi') \<cdot>cl \<eta>\<close>
+      \<open>CAi' \<cdot>cl \<eta> = CAi\<close>
+      \<open>(map S CAi') \<cdot>cl \<eta> = map (S_M S M) CAi\<close>
       
       \<open>is_ground_subst \<eta>\<close>
       \<open>var_disjoint (DA' # CAi')\<close>
@@ -1049,7 +1042,7 @@ lemma ord_resolve_lifting:
     "is_ground_subst \<eta>"
     "is_ground_subst \<eta>2"
     "ord_resolve S CAi' DA' E'" 
-    "CAi = CAi' \<cdot>cl \<eta>" "DA = DA' \<cdot> \<eta>" "E = E' \<cdot> \<eta>2" 
+    "CAi = CAi' \<cdot>cl \<eta>" "DA = DA' \<cdot> \<eta>" "E = E' \<cdot> \<eta>2" (* In the previous proofs I have CAi and DA on lfs of equality... *)
     "{DA'} \<union> set CAi' \<subseteq> M"
   using resolve proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Ci Aij Ai \<sigma> D)
