@@ -119,6 +119,11 @@ lemma get_maximum_level_plus:
   "get_maximum_level M (D + D') = max (get_maximum_level M D) (get_maximum_level M D')"
   by (induction D) (simp_all add: get_maximum_level_add_mset)
 
+lemma get_maximum_level_cong:
+  assumes \<open>\<forall>L \<in># D. get_level M L = get_level M' L\<close>
+  shows \<open>get_maximum_level M D = get_maximum_level M' D\<close>
+  using assms by (induction D) (auto simp: get_maximum_level_add_mset)
+
 lemma get_maximum_level_exists_lit:
   assumes n: "n > 0"
   and max: "get_maximum_level M D = n"

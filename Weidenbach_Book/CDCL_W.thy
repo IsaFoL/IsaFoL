@@ -19,8 +19,8 @@ text \<open>The organisation of the development is the following:
 
 We have some variants build on the top of Weidenbach's CDCL calculus:
   \<^item> @{file CDCL_W_Incremental.thy} adds incrementality on the top of @{file CDCL_W.thy}. The way we
-  are doing it is not compatible with @{file CDCL_W_Merge.thy} , because we add conflicts and the
-  @{file CDCL_W_Merge.thy} cannot analyse conflicts added externally, because the conflict and
+  are doing it is not compatible with @{file CDCL_W_Merge.thy}, because we add conflicts and the
+  @{file CDCL_W_Merge.thy} cannot analyse conflicts added externally, since the conflict and
   analyse are merged.
   \<^item> @{file CDCL_W_Restart.thy} adds restart and forget while restarting. It is built on the top of
   @{file CDCL_W_Merge.thy}.
@@ -1484,7 +1484,7 @@ lemma atms_of_ms_learned_clss_restart_state_in_atms_of_ms_learned_clssI:
 
 lemma (in -) atms_of_subset_mset_mono: \<open>D' \<subseteq># D \<Longrightarrow> atms_of D' \<subseteq> atms_of D\<close>
   by (auto simp: atms_of_def)
-  
+
 lemma cdcl\<^sub>W_restart_no_strange_atm_explicit:
   assumes
     "cdcl\<^sub>W_restart S S'" and
@@ -1660,7 +1660,7 @@ lemma rtanclp_distinct_cdcl\<^sub>W_state_inv:
   using distinct_cdcl\<^sub>W_state_inv rtranclp_cdcl\<^sub>W_restart_consistent_inv by blast+
 
 term \<open>0::'a::comm_monoid_add\<close>
-  
+
 subsubsection \<open>Conflicts and Annotations\<close>
 
 text \<open>This invariant shows that each mark contains a contradiction only related to the previously
@@ -1675,26 +1675,30 @@ definition cdcl\<^sub>W_conflicting :: "'st \<Rightarrow> bool" where
     (\<forall>T. conflicting S = Some T \<longrightarrow> trail S \<Turnstile>as CNot T) \<and> every_mark_is_a_conflict S"
 
 lemma backtrack_atms_of_D_in_M1:
-  fixes M1 :: "('v, 'v clause) ann_lits"
+  fixes S T :: 'st and D D' :: \<open>'v clause\<close> and K L :: \<open>'v literal\<close> and i :: nat and
+    M1 M2:: \<open>('v, 'v clause) ann_lits\<close>
   assumes
     inv: "cdcl\<^sub>W_M_level_inv S" and
-    i: "get_maximum_level (trail S) ((remove1_mset L D)) \<equiv> i" and
+    i: "get_maximum_level (trail S) D' \<equiv> i" and
     decomp: "(Decided K # M1, M2)
        \<in> set (get_all_ann_decomposition (trail S))" and
-    S_lvl: "backtrack_lvl S = get_maximum_level (trail S) D" and
+    S_lvl: "backtrack_lvl S = get_maximum_level (trail S) (add_mset L D')" and
     S_confl: "conflicting S = Some D" and
     lev_K: "get_level (trail S) K = Suc i" and
-    T: "T \<sim> cons_trail (Propagated L D')
+    T: "T \<sim> cons_trail K''
                 (reduce_trail_to M1
-                  (add_learned_cls D'
+                  (add_learned_cls (add_mset L D')
                     (update_conflicting None S)))" and
-    confl: "\<forall>T. conflicting S = Some T \<longrightarrow> trail S \<Turnstile>as CNot T"
-  shows "atms_of (remove1_mset L D) \<subseteq> atm_of ` lits_of_l (tl (trail T))"
+    confl: "\<forall>T. conflicting S = Some T \<longrightarrow> trail S \<Turnstile>as CNot T" and
+    D_D': \<open>D' \<subseteq># D\<close>
+  shows "atms_of D' \<subseteq> atm_of ` lits_of_l (tl (trail T))"
 proof (rule ccontr)
-  let ?k = "get_maximum_level (trail S) D"
-  let ?D' = "remove1_mset L D"
+  let ?k = "get_maximum_level (trail S) (add_mset L D')"
+
   have "trail S \<Turnstile>as CNot D" using confl S_confl by auto
-  then have vars_of_D: "atms_of D \<subseteq> atm_of ` lits_of_l (trail S)" unfolding atms_of_def
+  then have "trail S \<Turnstile>as CNot D'"
+    using D_D' by (auto simp: true_annots_true_cls_def_iff_negation_in_model)
+  then have vars_of_D: "atms_of D' \<subseteq> atm_of ` lits_of_l (trail S)" unfolding atms_of_def
     by (meson image_subsetI true_annots_CNot_all_atms_defined)
 
   obtain M0 where M: "trail S = M0 @ M2 @ Decided K # M1"
@@ -1704,12 +1708,12 @@ proof (rule ccontr)
     using S_lvl unfolding M by simp
   assume a: "\<not> ?thesis"
   then obtain L' where
-    L': "L' \<in> atms_of ?D'" and
+    L': "L' \<in> atms_of D'" and
     L'_notin_M1: "L' \<notin> atm_of ` lits_of_l M1"
     using T decomp inv by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
 
   obtain L'' where
-    "L'' \<in># ?D'" and
+    "L'' \<in># D'" and
     L'': "L' = atm_of L''"
     using L' L'_notin_M1 unfolding atms_of_def by auto
   then have L'_in: "defined_lit (M0 @ M2 @ Decided K # []) L''"
@@ -1753,10 +1757,15 @@ proof (rule ccontr)
     qed }
   ultimately have "get_level (trail S) L'' \<ge> i + 1"
     using lev_L'' unfolding M by simp
-  then have "get_maximum_level (trail S) ?D' \<ge> i + 1"
-    using get_maximum_level_ge_get_level[OF \<open>L'' \<in># ?D'\<close>, of "trail S"] by auto
+  then have "get_maximum_level (trail S) D' \<ge> i + 1"
+    using get_maximum_level_ge_get_level[OF \<open>L'' \<in># D'\<close>, of "trail S"] by auto
   then show False using i by auto
 qed
+
+(* TODO Move *)
+lemma subset_mset_trans_add_mset:
+  \<open>D \<subseteq># D' \<Longrightarrow> D \<subseteq># add_mset L D'\<close>
+  by (metis add_mset_remove_trivial diff_subset_eq_self subset_mset.dual_order.trans)
 
 lemma distinct_atms_of_incl_not_in_other:
   assumes
@@ -1765,7 +1774,6 @@ lemma distinct_atms_of_incl_not_in_other:
     a3: "x \<in> atms_of D"
   shows "x \<notin> atm_of ` lits_of_l M"
   using assms by (auto simp: atms_of_def no_dup_def atm_of_eq_atm_of lits_of_def)
-
 
 text \<open>\cwref{prop:prop:cdclPropLitsUnsat}{Item 5 page 81}\<close>
 lemma cdcl\<^sub>W_restart_propagate_is_conclusion:
@@ -1864,7 +1872,7 @@ next
     using M unm_ay ay by auto
 next
   case (backtrack L D K i M1 M2 T D') note conf = this(1) and decomp' = this(2) and
-    lev_L = this(3) and lev_K = this(6) and D_D' = this(7) and M1_D' = this(8) and NU_LD' = this(9) 
+    lev_L = this(3) and lev_K = this(6) and D_D' = this(7) and M1_D' = this(8) and NU_LD' = this(9)
     and T = this(10)
   let ?D' = "remove1_mset L D"
   have "\<forall>l \<in> set M2. \<not>is_decided l"
@@ -1908,9 +1916,9 @@ next
         using decomp unfolding all_decomposition_implies_def by auto
 
       have vars_of_D: "atms_of D' \<subseteq> atm_of ` lits_of_l M1"
-        using backtrack_atms_of_D_in_M1[of S ?D L i K M1 M2 T ?D'] backtrack.hyps inv conf confl
-          atms_of_subset_mset_mono[OF D_D']
-        by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
+        using backtrack_atms_of_D_in_M1[of S D' \<open>i\<close> K M1 M2 L \<open>add_mset L D\<close> T \<open>Propagated L (add_mset L D')\<close>] backtrack.hyps inv conf confl
+          atms_of_subset_mset_mono[OF D_D'] D_D'
+        by (auto simp: cdcl\<^sub>W_M_level_inv_decomp subset_mset_trans_add_mset)
       have "no_dup (trail S)" using inv by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
       then have vars_in_M1: "\<forall>x \<in> atms_of D'. x \<notin> atm_of ` lits_of_l (M0 @ M2 @ Decided K # [])"
         using vars_of_D distinct_atms_of_incl_not_in_other[of "M0 @M2 @ Decided K # []" M1]
@@ -1954,8 +1962,8 @@ proof (induct rule: cdcl\<^sub>W_restart_all_induct)
     fix L' mark a b
     assume "a @ Propagated L' mark # b = trail T"
     then consider
-      (hd) "a = []" and "L = L'" and "mark = C" and "b = trail S"
-      | (tl) "tl a @ Propagated L' mark # b = trail S"
+      (hd) "a = []" and "L = L'" and "mark = C" and "b = trail S" |
+      (tl) "tl a @ Propagated L' mark # b = trail S"
       using T undef by (cases a) fastforce+
     then show "b \<Turnstile>as CNot (mark - {#L'#}) \<and> L' \<in># mark"
       using mark_confl confl LC by cases auto
@@ -2321,7 +2329,7 @@ subsubsection \<open>No tautology is learned\<close>
 (* TODO Move *)
 lemma (in -)not_tautology_mono: \<open>D' \<subseteq># D \<Longrightarrow> \<not>tautology D \<Longrightarrow> \<not>tautology D'\<close>
   by (meson tautology_imp_tautology true_cls_add_mset true_cls_mono_leD)
-  
+
 text \<open>This is a simple consequence of all we have shown previously. It is not strictly necessary,
   but helps finding a better bound on the number of learned clauses.\<close>
 lemma learned_clss_are_not_tautologies:
@@ -2335,8 +2343,8 @@ lemma learned_clss_are_not_tautologies:
 proof (induct rule: cdcl\<^sub>W_restart_all_induct)
   case (backtrack L D K i M1 M2 T D') note confl = this(1) and D_D' = this(7) and M1_D' = this(8) and
     NU_LD' = this(9)
-  let ?D = \<open>add_mset L D\<close> 
-  let ?D' = \<open>add_mset L D'\<close> 
+  let ?D = \<open>add_mset L D\<close>
+  let ?D' = \<open>add_mset L D'\<close>
   have "consistent_interp (lits_of_l (trail S))" using lev by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
   moreover {
     have "trail S \<Turnstile>as CNot ?D"
@@ -2575,9 +2583,9 @@ proof -
   have trail_S_D: \<open>trail S \<Turnstile>as CNot ?D\<close>
     using conf S unfolding cdcl\<^sub>W_conflicting_def by auto
   then have atms_E_M1: \<open>atms_of E \<subseteq> atm_of ` lits_of_l M1\<close>
-    using backtrack_atms_of_D_in_M1[OF lev_inv _ K bt, of L ?i 
-      \<open>cons_trail (Propagated L ?D) (reduce_trail_to M1 (add_learned_cls ?D (update_conflicting None S)))\<close>
-      ?D] S lev_K K
+    using backtrack_atms_of_D_in_M1[OF lev_inv _ K bt, of ?i ?D
+      \<open>cons_trail (Propagated L ?D) (reduce_trail_to M1 (add_learned_cls ?D (update_conflicting None S)))\<close>]
+    S lev_K K
     by auto
   have n_d: \<open>no_dup (M3 @ M2 @ Decided K # M1)\<close>
     using lev_inv no_dup_rev[of \<open>rev M1 @ rev M2 @ rev M3\<close>, unfolded rev_append]
@@ -2591,7 +2599,7 @@ proof -
   have \<open>La \<noteq> L\<close>\<open>- La \<notin> lits_of_l M3\<close> \<open>- La \<notin> lits_of_l M2\<close> \<open>-La \<noteq>K\<close> if \<open>La\<in>#E\<close> for La
   proof -
     have \<open>-La \<in> lits_of_l (trail S)\<close>
-      using trail_S_D that by (auto simp: true_annots_true_cls_def_iff_negation_in_model 
+      using trail_S_D that by (auto simp: true_annots_true_cls_def_iff_negation_in_model
           dest!: get_all_ann_decomposition_exists_prepend)
     moreover have \<open>defined_lit M1 La\<close>
       using atms_E_M1 that by (auto simp: Decided_Propagated_in_iff_in_lits_of_l atms_of_def
@@ -2600,17 +2608,17 @@ proof -
       by (rule same_mset_no_dup_iff[THEN iffD1, OF _ n_d']) auto
     moreover have  \<open>no_dup (rev M3 @ rev M2 @ rev M1)\<close>
       by (rule same_mset_no_dup_iff[THEN iffD1, OF _ n_d']) auto
-    ultimately show \<open>La \<noteq> L\<close>\<open>- La \<notin> lits_of_l M3\<close> \<open>- La \<notin> lits_of_l M2\<close>  \<open>-La \<noteq> K\<close> 
+    ultimately show \<open>La \<noteq> L\<close>\<open>- La \<notin> lits_of_l M3\<close> \<open>- La \<notin> lits_of_l M2\<close>  \<open>-La \<noteq> K\<close>
       using defined_lit_no_dupD(2-3)[of \<open>rev M1\<close> La \<open>rev M3\<close> \<open>rev M2\<close>]
         defined_lit_no_dupD(1)[of \<open>rev M1\<close> La \<open>rev M3 @ rev M2\<close>] atm_L_M1 n_d
-        by (auto simp: M3 Decided_Propagated_in_iff_in_lits_of_l atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
-    qed
+      by (auto simp: M3 Decided_Propagated_in_iff_in_lits_of_l atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
+  qed
 
   then have M1_E: \<open>M1 \<Turnstile>as CNot E\<close>
-    using M3 trail_S_D by (auto simp: true_annots_true_cls_def_iff_negation_in_model 
+    using M3 trail_S_D by (auto simp: true_annots_true_cls_def_iff_negation_in_model
         dest!: get_all_ann_decomposition_exists_prepend)
   show "\<exists>S'. cdcl\<^sub>W_o S S'" and "\<exists>S'. backtrack S S'"
-    using backtrack_rule[OF S K, of ?i E \<open>cons_trail (Propagated L (add_mset L E))
+    using backtrack_rule[OF S K, of E ?i \<open>cons_trail (Propagated L (add_mset L E))
            (reduce_trail_to M1
              (add_learned_cls (add_mset L E)
                (update_conflicting None S)))\<close>] bt L lev_K bj learned M1_E S
@@ -4125,10 +4133,10 @@ next
     "conflicting S = Some (add_mset L D)" and
     decomp: "(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))" and
     "get_level (trail S) L = backtrack_lvl S" and
-    "get_level (trail S) L = get_maximum_level (trail S) (add_mset L D)" and
-    i: "get_maximum_level (trail S) D \<equiv> i" and
+    "get_level (trail S) L = get_maximum_level (trail S) (add_mset L D')" and
+    i: "get_maximum_level (trail S) D' \<equiv> i" and
     lev_K: "get_level (trail S) K = i + 1" and
-    \<open>D' \<subseteq># D\<close> and
+    D_D': \<open>D' \<subseteq># D\<close> and
     M1_D': \<open>M1 \<Turnstile>as CNot D'\<close> and
     T: "T \<sim> cons_trail (Propagated L (add_mset L D'))
         (reduce_trail_to M1
@@ -4164,7 +4172,7 @@ next
       E: \<open>E'+{#L'#} \<in># clauses T\<close> and
       undef: \<open>undefined_lit M L'\<close> and
       M: \<open>M \<Turnstile>as CNot E'\<close>
-    have False if D: \<open>D = E'\<close> and M_D: \<open>M \<Turnstile>as CNot D'\<close>
+    have False if D: \<open>add_mset L D' = add_mset L' E'\<close> and M_D: \<open>M \<Turnstile>as CNot E'\<close>
     proof -
       have \<open>i \<noteq> 0\<close>
         using i_lvl tr T by auto
@@ -4173,14 +4181,14 @@ next
           using inv_T tr_T unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def
           by force
         then have "get_maximum_level M1 D' = i"
-          using T i n_d unfolding M'' tr_T
+          using T i n_d D_D' unfolding M'' tr_T
           by (subst (asm) get_maximum_level_skip_beginning)
             (auto dest: defined_lit_no_dupD dest!: true_annots_CNot_definedD) }
       ultimately obtain L_max where
-        L_max_in: "L_max \<in># remove1_mset L D" and
+        L_max_in: "L_max \<in># D'" and
         lev_L_max: "get_level M1 L_max = i"
-        using i get_maximum_level_exists_lit_of_max_level[of "remove1_mset L D"]
-        by auto
+        using i get_maximum_level_exists_lit_of_max_level[of D' M1]
+        by (cases D') auto
       have count_dec_M: "count_decided M < i"
         using T i_lvl unfolding tr by auto
       have "- L_max \<notin> lits_of_l M"
@@ -4213,11 +4221,11 @@ next
       moreover have "L_max \<in># D' \<or> L \<in># D'"
         using D L_max_in by (auto split: if_splits)
       ultimately show False
-        using M_D by (auto simp: true_annots_true_cls true_clss_def)
+        using M_D D by (auto simp: true_annots_true_cls true_clss_def add_mset_eq_add_mset)
     qed
-    show False
-      using M'' smaller_propa tr  undef M T
-      by (cases M') (auto simp: no_smaller_propa_def elim!: rulesE)
+    then show False
+      using M'' smaller_propa tr undef M T E
+      by (cases M') (auto simp: no_smaller_propa_def trivial_add_mset_remove_iff elim!: rulesE)
   qed
 qed
 
