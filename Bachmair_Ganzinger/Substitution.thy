@@ -225,7 +225,7 @@ lemma subst_cls_mset_comp_subst[simp]: "CC \<cdot>cm (\<tau> \<odot> \<sigma>) =
   unfolding subst_cls_mset_def by auto
 
     
-subsubsection {* Melem_subst_set *}
+subsubsection {* \<^text>\<open>Melem_subst_set\<close> *}
 
 lemma Melem_subst_atm_mset[simp]: "A \<in># AA \<cdot>am \<sigma> \<longleftrightarrow> (\<exists>B. B \<in># AA \<and> A = B \<cdot>a \<sigma>)"
   unfolding subst_atm_mset_def by auto
@@ -374,7 +374,7 @@ subsubsection {* Substitute on the mset function*}
 lemma[simp]: "mset (Ai \<cdot>al \<sigma>) = mset (Ai) \<cdot>am \<sigma>"
   unfolding subst_atm_list_def subst_atm_mset_def by auto
     
-subsubsection {* Substitute on sum_list *}
+subsubsection {* Substitute on \<^text>\<open>sum_list\<close> *}
     
 lemma[simp]: "sum_list (Ci' \<cdot>cl \<eta>) = sum_list Ci' \<cdot> \<eta>" 
   unfolding subst_cls_list_def by (induction Ci') auto
@@ -670,9 +670,9 @@ lemma is_ground_subst_cls_iff: "is_ground_cls C \<longleftrightarrow> (\<forall>
   apply (metis ex_ground_subst ground_subst_ground_cls)
   done    
 
-paragraph {* make_single_ground_subst *}
+paragraph {* \<^text>\<open>make_single_ground_subst\<close> *}
 lemma make_single_ground_subst: 
-  (* Makes me wonder if I can also prove make_ground_subst... But do I really want to?  *)
+  (* Makes me wonder if I can also prove \<^text>\<open>make_ground_subst\<close>... But do I really want to?  *)
   assumes "is_ground_cls C"
   assumes "C' \<cdot> \<sigma> = C"
   obtains \<tau> where
@@ -734,7 +734,6 @@ lemma mgu_singleton: "mgu {{x}} = Some \<rho> \<Longrightarrow> is_renaming \<rh
   using is_unifier_def
     mgu_sound  is_mgu_def is_unifiers_def
   oops (* Proof broke when I changed is_renaming_def *)
-
 lemma mgu_eq_id_subst:
   "finite AAA \<Longrightarrow> (\<forall>AA \<in> AAA. finite AA \<and> card AA \<le> 1) \<Longrightarrow> \<exists>\<rho>. mgu AAA = Some \<rho> \<and> is_renaming \<rho>"
 proof (induct AAA rule: finite_induct)
@@ -763,7 +762,7 @@ next
       sorry
   ultimately show ?case
     by blast
-  oops (* Proof broke when I changed is_renaming_def *)
+  oops (* Proof broke when I changed \<^text>\<open>is_renaming_def\<close> *)
 
 end
   
