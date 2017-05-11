@@ -428,9 +428,6 @@ The following derived inference rules are sometimes useful in applications.
 theorem cut: "G \<turnstile> A \<Longrightarrow> A # G \<turnstile> B \<Longrightarrow> G \<turnstile> B"
   by (rule ImplE) (rule ImplI)
 
-theorem cut': "A # G \<turnstile> B \<Longrightarrow> G \<turnstile> A \<Longrightarrow> G \<turnstile> B"
-  by (rule ImplE) (rule ImplI)
-
 theorem Class': "Neg A # G \<turnstile> A \<Longrightarrow> G \<turnstile> A"
 proof -
   assume "Neg A # G \<turnstile> A"
@@ -441,7 +438,7 @@ proof -
   ultimately have "A # Neg A # G \<turnstile> FF"
     using NegE by blast
   then have "Neg A # G \<turnstile> FF"
-    using cut' \<open>Neg A # G \<turnstile> A\<close> by blast
+    using cut \<open>Neg A # G \<turnstile> A\<close> by blast
   then show "G \<turnstile> A"
     using Class by blast
 qed
@@ -832,7 +829,8 @@ proof (intro allI impI conjI)
         
     moreover have "psubst (f(x := y)) ` S = ?S'"
       using calculation by (simp cong add: image_cong)
-    moreover have "psubst (f(x := y)) ` S \<union> {psubst (f(x := y)) P[App ((f(x := y)) x) []/0]} \<in> C"
+    moreover have "psubst (f(x := y)) `
+        S \<union> {psubst (f(x := y)) P[App ((f(x := y)) x) []/0]} \<in> C"
       using calculation by auto
     ultimately have "\<exists>f. psubst f ` S \<union> {psubst f P[App (f x) []/0]} \<in> C"
       by blast
@@ -850,7 +848,8 @@ proof (intro allI impI conjI)
         
     moreover have "psubst (f(x := y)) ` S = ?S'"
       using calculation by (simp cong add: image_cong)
-    moreover have "psubst (f(x := y)) ` S \<union> {Neg (psubst (f(x := y)) P[App ((f(x := y)) x) []/0])} \<in> C"
+    moreover have "psubst (f(x := y)) `
+    S \<union> {Neg (psubst (f(x := y)) P[App ((f(x := y)) x) []/0])} \<in> C"
       using calculation by auto
     ultimately have "\<exists>f. psubst f ` S \<union> {Neg (psubst f P[App (f x) []/0])} \<in> C"
       by blast
@@ -1785,7 +1784,7 @@ theorem finite_params [simp]: "finite (params p)"
   by (induct p) simp_all
 
 theorem finite_params_extend [simp]:
-  "\<not> finite (\<Inter>p \<in> S. - params p) \<Longrightarrow> \<not> finite (\<Inter>p \<in> extend S C f n. - params p)"
+  "infinite (\<Inter>p \<in> S. - params p) \<Longrightarrow> infinite (\<Inter>p \<in> extend S C f n. - params p)"
   by (induct n) simp_all
     
 lemma infinite_params_available:
@@ -1829,7 +1828,7 @@ qed
     
 lemma extend_in_C_Neg_Forall:
   assumes "alt_consistency C"
-    and "\<not> finite (- (\<Union>p \<in> S. params p))"
+    and "infinite (- (\<Union>p \<in> S. params p))"
     and "extend S C f n \<union> {f n} \<in> C" (is "?S' \<in> C")
     and "\<forall>p. f n \<noteq> Exists p"
     and "\<exists>p. f n = Neg (Forall p)"
@@ -1885,7 +1884,7 @@ parameters, then @{text "Extend S C f"} is again consistent.
 *}
 
 theorem Extend_in_C: "alt_consistency C \<Longrightarrow> finite_char C \<Longrightarrow>
-  S \<in> C \<Longrightarrow> \<not> finite (- (\<Union>p \<in> S. params p)) \<Longrightarrow> Extend S C f \<in> C"
+  S \<in> C \<Longrightarrow> infinite (- (\<Union>p \<in> S. params p)) \<Longrightarrow> Extend S C f \<in> C"
   unfolding Extend_def
   using chain_union_closed is_chain_extend extend_in_C
   by blast
@@ -2260,7 +2259,8 @@ qed
 lemma Neg_Forall_in_extend:
   assumes "extend S C f n \<union> {f n} \<in> C" (is "?S' \<in> C")
     and "Neg (Forall P) = f n"
-  shows "Neg (P[(App (SOME k. k \<notin> (\<Union>p\<in>extend S C f n \<union> {f n}. params p)) [])/0]) \<in> extend S C f (Suc n)"
+  shows "Neg (P[(App (SOME k. k \<notin> (\<Union>p\<in>extend S C f n \<union> {f n}. params p)) [])/0]) \<in>
+          extend S C f (Suc n)"
     (is "Neg (subst P ?t 0) \<in> extend S C f (Suc n)")
 proof -
   have "f n \<noteq> Exists P"
@@ -2537,7 +2537,7 @@ proof (intro conjI allI impI notI)
       then have "B # G \<turnstile> Neg A"
         using NegI by blast
       then have "G \<turnstile> Neg A"
-        using cut' \<open>G \<turnstile> B\<close> by blast
+        using cut \<open>G \<turnstile> B\<close> by blast
       then have "G \<turnstile> FF"
         using NegE \<open>G \<turnstile> A\<close> by blast
       then have False
@@ -2582,7 +2582,7 @@ proof (intro conjI allI impI notI)
       then have "Neg B # G \<turnstile> FF"
         using NegE \<open>Neg B # G \<turnstile> Neg A\<close> by blast
       then have "G \<turnstile> FF"
-        using cut' \<open>G \<turnstile> Neg B\<close> by blast
+        using cut \<open>G \<turnstile> Neg B\<close> by blast
       then have False
         using \<open>\<not> G \<turnstile> FF\<close> by blast }
     then have "\<not> Neg A # Neg B # G \<turnstile> FF"
@@ -2629,7 +2629,7 @@ proof (intro conjI allI impI notI)
       then have "Neg B # G \<turnstile> FF"
         using NegE \<open>Neg B # G \<turnstile> A\<close> by blast
       then have "G \<turnstile> FF"
-        using cut' \<open>G \<turnstile> Neg B\<close> by blast
+        using cut \<open>G \<turnstile> Neg B\<close> by blast
       then have False using \<open>\<not> G \<turnstile> FF\<close>
         by blast }
     then have "\<not> A # Neg B # G \<turnstile> FF"
@@ -2738,7 +2738,7 @@ proof (intro conjI allI impI notI)
         
     { assume "P[t/0] # G \<turnstile> FF"
       then have "G \<turnstile> FF"
-        using cut' \<open>G \<turnstile> P[t/0]\<close> by blast
+        using cut \<open>G \<turnstile> P[t/0]\<close> by blast
       then have False
         using \<open>\<not> G \<turnstile> FF\<close> by blast }
     then have "\<not> P[t/0] # G \<turnstile> FF"
@@ -2767,7 +2767,7 @@ proof (intro conjI allI impI notI)
         
     { assume "Neg (P[t/0]) # G \<turnstile> FF"
       then have "G \<turnstile> FF"
-        using cut' \<open>G \<turnstile> Neg (P[t/0])\<close> by blast
+        using cut \<open>G \<turnstile> Neg (P[t/0])\<close> by blast
       then have False
         using \<open>\<not> G \<turnstile> FF\<close> by blast }
     then have "\<not> Neg (P[t/0]) # G \<turnstile> FF"
@@ -2874,7 +2874,8 @@ Hence, by contradiction, we have completeness of natural deduction:
 theorem natded_complete:
   assumes "closed 0 p"
     and "list_all (closed 0) ps"
-    and mod: "\<forall>e f g. e,(f :: nat \<Rightarrow> nat hterm list \<Rightarrow> nat hterm),(g :: nat \<Rightarrow> nat hterm list \<Rightarrow> bool),ps \<Turnstile> p"
+    and mod: "\<forall>e f g. e,(f :: nat \<Rightarrow> nat hterm list \<Rightarrow> nat hterm),
+              (g :: nat \<Rightarrow> nat hterm list \<Rightarrow> bool),ps \<Turnstile> p"
   shows "ps \<turnstile> p"
 proof (rule Class, rule ccontr)
   fix e
@@ -2888,7 +2889,7 @@ proof (rule Class, rule ccontr)
 
   from \<open>list_all (closed 0) ps\<close>
   have "\<forall>p \<in> set ps. closed 0 p"
-    by (simp add: Ball_set_list_all)
+    by (simp add: list_all_iff)
 
   { fix x
     assume "x \<in> ?S"
@@ -3606,7 +3607,7 @@ Herbrand model.
 *}
   
 theorem sat_consistency:
-  "consistency {S. \<not> finite (- (\<Union>p\<in>S. params p)) \<and> (\<exists>f. \<forall>(p::('a, 'b)form)\<in>S. eval e f g p)}"
+  "consistency {S. infinite (- (\<Union>p\<in>S. params p)) \<and> (\<exists>f. \<forall>(p::('a, 'b)form)\<in>S. eval e f g p)}"
   unfolding consistency_def
 proof (intro allI impI conjI)
   let ?C = "{S. infinite (- (\<Union>p\<in>S. params p)) \<and> (\<exists>f. \<forall>p \<in> S. eval e f g p)}"
@@ -3797,7 +3798,7 @@ theorem doublep_eval: "\<And>e. eval e f g (psubst (\<lambda>n::nat. 2 * n) p) =
   by (induct p) simp_all
 
 theorem doublep_infinite_params:
-  "\<not> finite (- (\<Union>p \<in> psubst (\<lambda>n::nat. 2 * n) ` S. params p))"
+  "infinite (- (\<Union>p \<in> psubst (\<lambda>n::nat. 2 * n) ` S. params p))"
 proof (rule infinite_super)
   show "infinite (range (\<lambda>n::nat. 2 * n + 1))"
     using inj_onI Suc_1 Suc_mult_cancel1 add_right_imp_eq finite_imageD infinite_UNIV_char_0
