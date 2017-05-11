@@ -21,13 +21,13 @@ text {*
 The datatypes of terms and formulae in {\em de Bruijn notation}
 are defined as follows:
 *}
-  
-datatype 'a "term" =
-    Var nat
+
+datatype 'a "term"
+  = Var nat
   | App 'a "'a term list"
 
-datatype ('a, 'b) form =
-    FF
+datatype ('a, 'b) form
+  = FF
   | TT
   | Pred 'b "'a term list"
   | And "('a, 'b) form" "('a, 'b) form"
@@ -73,16 +73,14 @@ indices smaller than @{text i}.
 
 primrec
   closedt :: "nat \<Rightarrow> 'a term \<Rightarrow> bool"
-  and closedts :: "nat \<Rightarrow> 'a term list \<Rightarrow> bool"
-where
+  and closedts :: "nat \<Rightarrow> 'a term list \<Rightarrow> bool" where
   "closedt m (Var n) = (n < m)"
 | "closedt m (App a ts) = closedts m ts"
 | "closedts m [] = True"
 | "closedts m (t # ts) = (closedt m t \<and> closedts m ts)"
 
 primrec
-  closed :: "nat \<Rightarrow> ('a, 'b) form \<Rightarrow> bool"
-where
+  closed :: "nat \<Rightarrow> ('a, 'b) form \<Rightarrow> bool" where
   "closed m FF = True"
 | "closed m TT = True"
 | "closed m (Pred b ts) = closedts m ts"
@@ -95,9 +93,9 @@ where
 
 theorem closedt_mono: assumes le: "i \<le> j"
   shows "closedt i (t::'a term) \<Longrightarrow> closedt j t"
-  and "closedts i (ts::'a term list) \<Longrightarrow> closedts j ts" using le
+    and "closedts i (ts::'a term list) \<Longrightarrow> closedts j ts" using le
   by (induct t and ts rule: closedt.induct closedts.induct) simp_all
-    
+
 subsection {* Substitution *}
 
 text {*
@@ -109,8 +107,7 @@ position.
 
 primrec
   substt :: "'a term \<Rightarrow> 'a term \<Rightarrow> nat \<Rightarrow> 'a term" ("_[_'/_]" [300, 0, 0] 300)
-  and substts :: "'a term list \<Rightarrow> 'a term \<Rightarrow> nat \<Rightarrow> 'a term list" ("_[_'/_]" [300, 0, 0] 300)
-where
+  and substts :: "'a term list \<Rightarrow> 'a term \<Rightarrow> nat \<Rightarrow> 'a term list" ("_[_'/_]" [300, 0, 0] 300) where
   "(Var i)[s/k] = (if k < i then Var (i - 1) else if i = k then s else Var i)"
 | "(App a ts)[s/k] = App a (ts[s/k])"
 | "[][s/k] = []"
@@ -118,16 +115,14 @@ where
 
 primrec
   liftt :: "'a term \<Rightarrow> 'a term"
-  and liftts :: "'a term list \<Rightarrow> 'a term list"
-where
+  and liftts :: "'a term list \<Rightarrow> 'a term list"  where
   "liftt (Var i) = Var (Suc i)"
 | "liftt (App a ts) = App a (liftts ts)"
 | "liftts [] = []"
 | "liftts (t # ts) = liftt t # liftts ts"
 
 primrec
-  subst :: "('a, 'b) form \<Rightarrow> 'a term \<Rightarrow> nat \<Rightarrow> ('a, 'b) form" ("_[_'/_]" [300, 0, 0] 300)
-where
+  subst :: "('a, 'b) form \<Rightarrow> 'a term \<Rightarrow> nat \<Rightarrow> ('a, 'b) form" ("_[_'/_]" [300, 0, 0] 300) where
   "FF[s/k] = FF"
 | "TT[s/k] = TT"
 | "(Pred b ts)[s/k] = Pred b (ts[s/k])"
@@ -146,7 +141,7 @@ theorem lift_closed [simp]:
 theorem subst_closedt [simp]:
   assumes u: "closedt 0 u"
   shows "closedt (Suc i) t \<Longrightarrow> closedt i (t[u/i])"
-  and "closedts (Suc i) ts \<Longrightarrow> closedts i (ts[u/i])"
+    and "closedts (Suc i) ts \<Longrightarrow> closedts i (ts[u/i])"
   using u closedt_mono(1)
   by (induct t and ts rule: closedt.induct closedts.induct) auto
 
@@ -156,7 +151,7 @@ theorem subst_closed [simp]:
 
 theorem subst_size_form [simp]: "size_form (subst p t i) = size_form p"
   by (induct p arbitrary: i t) simp_all
-  
+
 
 subsection {* Parameters *}
 
@@ -172,16 +167,14 @@ for collecting all function symbols occurring in a term or formula.
 
 primrec
   paramst  :: "'a term \<Rightarrow> 'a set"
-  and paramsts :: "'a term list \<Rightarrow> 'a set"
-where
+  and paramsts :: "'a term list \<Rightarrow> 'a set" where
   "paramst (Var n) = {}"
 | "paramst (App a ts) = {a} \<union> paramsts ts"
 | "paramsts [] = {}"
 | "paramsts (t # ts) = (paramst t \<union> paramsts ts)"
 
 primrec
-  params :: "('a, 'b) form \<Rightarrow> 'a set"
-where
+  params :: "('a, 'b) form \<Rightarrow> 'a set"  where
   "params FF = {}"
 | "params TT = {}"
 | "params (Pred b ts) = paramsts ts"
@@ -190,7 +183,7 @@ where
 | "params (Impl p q) = params p \<union> params q"
 | "params (Neg p) = params p"
 | "params (Forall p) = params p"
-| "params (Exists p) = params p" 
+| "params (Exists p) = params p"
 
 text{*
 We also define parameter substitution functions on terms and formulae
@@ -199,16 +192,14 @@ that apply a function @{text f} to all function symbols.
 
 primrec
   psubstt :: "('a \<Rightarrow> 'c) \<Rightarrow> 'a term \<Rightarrow> 'c term"
-  and psubstts :: "('a \<Rightarrow> 'c) \<Rightarrow> 'a term list \<Rightarrow> 'c term list"
-where
+  and psubstts :: "('a \<Rightarrow> 'c) \<Rightarrow> 'a term list \<Rightarrow> 'c term list" where
   "psubstt f (Var i) = Var i"
 | "psubstt f (App x ts) = App (f x) (psubstts f ts)"
 | "psubstts f [] = []"
 | "psubstts f (t # ts) = psubstt f t # psubstts f ts"
 
 primrec
-  psubst :: "('a \<Rightarrow> 'c) \<Rightarrow> ('a, 'b) form \<Rightarrow> ('c, 'b) form"
-where
+  psubst :: "('a \<Rightarrow> 'c) \<Rightarrow> ('a, 'b) form \<Rightarrow> ('c, 'b) form" where
   "psubst f FF = FF"
 | "psubst f TT = TT"
 | "psubst f (Pred b ts) = Pred b (psubstts f ts)"
@@ -249,12 +240,12 @@ theorem psubstt_upd [simp]:
 
 theorem psubst_upd [simp]: "x \<notin> params P \<Longrightarrow> psubst (f(x:=y)) P = psubst f P"
   by (induct P) (simp_all del: fun_upd_apply)
-  
+
 theorem psubstt_id:
   fixes t :: "'a term" and ts :: "'a term list"
   shows "psubstt id t = t" and "psubstts (\<lambda>x. x) ts = ts"
   by (induct t and ts rule: psubstt.induct psubstts.induct) simp_all
-    
+
 theorem psubst_id [simp]: "psubst id = id"
 proof
   fix p :: "('a, 'b) form"
@@ -303,11 +294,10 @@ proof
   show "(e\<langle>i:U\<rangle>\<langle>0:T\<rangle>) x = (e\<langle>0:T\<rangle>\<langle>Suc i:U\<rangle>) x"
     by (cases x) (simp_all add: shift_def)
 qed
-  
+
 primrec
   evalt :: "(nat \<Rightarrow> 'c) \<Rightarrow> ('a \<Rightarrow> 'c list \<Rightarrow> 'c) \<Rightarrow> 'a term \<Rightarrow> 'c"
-  and evalts :: "(nat \<Rightarrow> 'c) \<Rightarrow> ('a \<Rightarrow> 'c list \<Rightarrow> 'c) \<Rightarrow> 'a term list \<Rightarrow> 'c list"
-where
+  and evalts :: "(nat \<Rightarrow> 'c) \<Rightarrow> ('a \<Rightarrow> 'c list \<Rightarrow> 'c) \<Rightarrow> 'a term list \<Rightarrow> 'c list" where
   "evalt e f (Var n) = e n"
 | "evalt e f (App a ts) = f a (evalts e f ts)"
 | "evalts e f [] = []"
@@ -315,8 +305,7 @@ where
 
 primrec
   eval :: "(nat \<Rightarrow> 'c) \<Rightarrow> ('a \<Rightarrow> 'c list \<Rightarrow> 'c) \<Rightarrow>
-    ('b \<Rightarrow> 'c list \<Rightarrow> bool) \<Rightarrow> ('a, 'b) form \<Rightarrow> bool"
-where
+    ('b \<Rightarrow> 'c list \<Rightarrow> bool) \<Rightarrow> ('a, 'b) form \<Rightarrow> bool" where
   "eval e f g FF = False"
 | "eval e f g TT = True"
 | "eval e f g (Pred a ts) = g a (evalts e f ts)"
@@ -379,7 +368,7 @@ theorem ex_all_commute_eval:
   "eval e f g (Impl (Exists (Forall (Pred p [Var 1, Var 0])))
     (Forall (Exists (Pred p [Var 0, Var 1]))))"
   apply simp
-txt {*
+  txt {*
 Simplification yields the following proof state:
 @{subgoals [display]}
 This is easily proved using intuitionistic logic:
@@ -397,8 +386,7 @@ The derivability judgement @{text "G \<turnstile> a"} is defined as an inductive
 *}
 
 inductive
-  deriv :: "('a, 'b) form list \<Rightarrow> ('a, 'b) form \<Rightarrow> bool" ("_ \<turnstile> _" [50,50] 50)
-where
+  deriv :: "('a, 'b) form list \<Rightarrow> ('a, 'b) form \<Rightarrow> bool" ("_ \<turnstile> _" [50,50] 50) where
   Assum: "a \<in> set G \<Longrightarrow> G \<turnstile> a"
 | TTI: "G \<turnstile> TT"
 | FFE: "G \<turnstile> FF \<Longrightarrow> G \<turnstile> a"
@@ -420,7 +408,7 @@ where
 | ExistsI: "G \<turnstile> a[t/0] \<Longrightarrow> G \<turnstile> Exists a"
 | ExistsE: "G \<turnstile> Exists a \<Longrightarrow> a[App n []/0] # G \<turnstile> b \<Longrightarrow>
     list_all (\<lambda>p. n \<notin> params p) G \<Longrightarrow> n \<notin> params a \<Longrightarrow> n \<notin> params b \<Longrightarrow> G \<turnstile> b"
-  
+
 text {*
 The following derived inference rules are sometimes useful in applications.
 *}
@@ -451,7 +439,7 @@ As an example, we show that the excluded middle, a commutation property
 for existential and universal quantifiers, the drinker principle, as well
 as Peirce's law are derivable in the calculus given above.
 *}
-  
+
 theorem tnd: "[] \<turnstile> Or (Pred p []) (Neg (Pred p []))" (is "_ \<turnstile> ?or")
 proof -
   have "[Pred p [], Neg ?or] \<turnstile> Pred p []"
@@ -473,7 +461,7 @@ proof -
   then show ?thesis
     using Class by blast
 qed
-  
+
 theorem ex_all_commute:
   "([]::(nat, 'b) form list) \<turnstile> Impl (Exists (Forall (Pred p [Var 1, Var 0])))
      (Forall (Exists (Pred p [Var 0, Var 1])))"
@@ -505,23 +493,23 @@ theorem drinker: "([]::(nat, 'b) form list) \<turnstile>
   apply simp
   apply (rule ImplI)
   apply (rule_tac n=0 in ForallI)
-  prefer 2
-  apply simp
-  prefer 2
-  apply simp
+    prefer 2
+    apply simp
+   prefer 2
+   apply simp
   apply simp
   apply (rule Class)
   apply (rule_tac a="Exists (Impl (Pred P [Var 0]) (Forall (Pred P [Var 0])))" in NegE)
-  apply (rule Assum, simp)
+   apply (rule Assum, simp)
   apply (rule_tac t="App 0 []" in ExistsI)
   apply simp
   apply (rule ImplI)
   apply (rule FFE)
   apply (rule_tac a="Pred P [App 0 []]" in NegE)
-  apply (rule Assum, simp)
+   apply (rule Assum, simp)
   apply (rule Assum, simp)
   done
-    
+
 theorem peirce:
   "[] \<turnstile> Impl (Impl (Impl (Pred P []) (Pred Q [])) (Pred P [])) (Pred P [])"
   apply (rule Class')
@@ -546,7 +534,7 @@ The correctness of the proof calculus introduced in \secref{sec:proof-calculus}
 can now be proved by induction on the derivation of @{term "G \<turnstile> p"}, using the
 substitution rules proved in \secref{sec:semantics}.
 *}
- 
+
 lemma remove_shift: "\<forall>e z. g a ((e\<langle>0:z\<rangle>) n) \<Longrightarrow> g a (e n)"
   by (induct n) auto
 
@@ -555,7 +543,7 @@ lemma evalts_shift:
     g a (evalts (e\<langle>0:z\<rangle>) f ts) \<Longrightarrow>
   (g :: 'c \<Rightarrow> 'a list \<Rightarrow> bool) a (evalts e (f :: 'b \<Rightarrow> 'a list \<Rightarrow> 'a) ts)"
   by meson
-  
+
 theorem correctness: "G \<turnstile> p \<Longrightarrow> \<forall>e f g. e,f,g,G \<Turnstile> p"
 proof (induct p rule: deriv.induct)
   case (Assum a G)
@@ -586,7 +574,7 @@ next
   then show ?case
     sorry
 qed (simp_all add: model_def, blast+)
-    
+
 section {* Completeness *}
 
 text {*
@@ -704,18 +692,18 @@ substitution:
 definition
   mk_alt_consistency :: "('a, 'b) form set set \<Rightarrow> ('a, 'b) form set set" where
   "mk_alt_consistency C = {S. \<exists>f. psubst f ` S \<in> C}"
-  
+
 theorem alt_consistency:
   assumes conc: "consistency C"
   shows "alt_consistency (mk_alt_consistency C)" (is "alt_consistency ?C'")
   unfolding alt_consistency_def
 proof (intro allI impI conjI)
   fix f :: "'a \<Rightarrow> 'a" and S :: "('a, 'b) form set"
-    
+
   assume "S \<in> mk_alt_consistency C"
   then obtain f where sc: "psubst f ` S \<in> C" (is "?S' \<in> C")
     unfolding mk_alt_consistency_def by blast
- 
+
   fix p ts
   show "\<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S)"
   proof
@@ -731,12 +719,12 @@ proof (intro allI impI conjI)
     then show False
       using * by blast
   qed
-    
+
   have "FF \<notin> ?S'" and "Neg TT \<notin> ?S'"
     using conc sc unfolding consistency_def by presburger+
   then show "FF \<notin> S" and "Neg TT \<notin> S"
     by (force, force)
-      
+
   { fix Z
     assume "Neg (Neg Z) \<in> S"
     then have "psubst f (Neg (Neg Z)) \<in> ?S'"
@@ -745,7 +733,7 @@ proof (intro allI impI conjI)
       using conc sc by (simp add: consistency_def)
     then show "S \<union> {Z} \<in> ?C'"
       unfolding mk_alt_consistency_def by auto }
-    
+
   { fix A B
     assume "And A B \<in> S"
     then have "psubst f (And A B) \<in> ?S'"
@@ -754,7 +742,7 @@ proof (intro allI impI conjI)
       using conc sc by (simp add: consistency_def)
     then show "S \<union> {A, B} \<in> ?C'"
       unfolding mk_alt_consistency_def by auto }
-    
+
   { fix A B
     assume "Neg (Or A B) \<in> S"
     then have "psubst f (Neg (Or A B)) \<in> ?S'"
@@ -763,7 +751,7 @@ proof (intro allI impI conjI)
       using conc sc by (simp add: consistency_def)
     then show "S \<union> {Neg A, Neg B} \<in> ?C'"
       unfolding mk_alt_consistency_def by auto }
-    
+
   { fix A B
     assume "Neg (Impl A B) \<in> S"
     then have "psubst f (Neg (Impl A B)) \<in> ?S'"
@@ -772,7 +760,7 @@ proof (intro allI impI conjI)
       using conc sc by (simp add: consistency_def)
     then show "S \<union> {A, Neg B} \<in> ?C'"
       unfolding mk_alt_consistency_def by auto }
-    
+
   { fix A B
     assume "Or A B \<in> S"
     then have "psubst f (Or A B) \<in> ?S'"
@@ -781,7 +769,7 @@ proof (intro allI impI conjI)
       using conc sc by (simp add: consistency_def)
     then show "S \<union> {A} \<in> ?C' \<or> S \<union> {B} \<in> ?C'"
       unfolding mk_alt_consistency_def by auto }
-    
+
   { fix A B
     assume "Neg (And A B) \<in> S"
     then have "psubst f (Neg (And A B)) \<in> ?S'"
@@ -790,7 +778,7 @@ proof (intro allI impI conjI)
       using conc sc by (simp add: consistency_def)
     then show "S \<union> {Neg A} \<in> ?C' \<or> S \<union> {Neg B} \<in> ?C'"
       unfolding mk_alt_consistency_def by auto }
-    
+
   { fix A B
     assume "Impl A B \<in> S"
     then have "psubst f (Impl A B) \<in> ?S'"
@@ -799,7 +787,7 @@ proof (intro allI impI conjI)
       using conc sc by (simp add: consistency_def)
     then show "S \<union> {Neg A} \<in> ?C' \<or> S \<union> {B} \<in> ?C'"
       unfolding mk_alt_consistency_def by auto }
-    
+
   { fix P and t :: "'a term"
     assume "closedt 0 t" and "Forall P \<in> S"
     then have "psubst f (Forall P) \<in> ?S'"
@@ -808,7 +796,7 @@ proof (intro allI impI conjI)
       using \<open>closedt 0 t\<close> conc sc by (simp add: consistency_def)
     then show "S \<union> {P[t/0]} \<in> ?C'"
       unfolding mk_alt_consistency_def by auto }
-    
+
   { fix P and t :: "'a term"
     assume "closedt 0 t" and "Neg (Exists P) \<in> S"
     then have "psubst f (Neg (Exists P)) \<in> ?S'"
@@ -817,7 +805,7 @@ proof (intro allI impI conjI)
       using \<open>closedt 0 t\<close> conc sc by (simp add: consistency_def)
     then show "S \<union> {Neg (P[t/0])} \<in> ?C'"
       unfolding mk_alt_consistency_def by auto }
-    
+
   { fix P :: "('a, 'b) form" and x f'
     assume "\<forall>a \<in> S. x \<notin> params a" and "Exists P \<in> S"
     moreover have "psubst f (Exists P) \<in> ?S'"
@@ -826,7 +814,7 @@ proof (intro allI impI conjI)
       using conc sc by (simp add: consistency_def)
     then obtain y where "?S' \<union> {psubst f P[App y []/0]} \<in> C"
       by blast
-        
+
     moreover have "psubst (f(x := y)) ` S = ?S'"
       using calculation by (simp cong add: image_cong)
     moreover have "psubst (f(x := y)) `
@@ -836,7 +824,7 @@ proof (intro allI impI conjI)
       by blast
     then show "S \<union> {P[App x []/0]} \<in> ?C'"
       unfolding mk_alt_consistency_def by simp }
-    
+
   { fix P :: "('a, 'b) form" and x
     assume "\<forall>a \<in> S. x \<notin> params a" and "Neg (Forall P) \<in> S"
     moreover have "psubst f (Neg (Forall P)) \<in> ?S'"
@@ -845,7 +833,7 @@ proof (intro allI impI conjI)
       using conc sc by (simp add: consistency_def)
     then obtain y where "?S' \<union> {Neg (psubst f P[App y []/0])} \<in> C"
       by blast
-        
+
     moreover have "psubst (f(x := y)) ` S = ?S'"
       using calculation by (simp cong add: image_cong)
     moreover have "psubst (f(x := y)) `
@@ -884,7 +872,7 @@ definition
 definition
   subset_closed :: "'a set set \<Rightarrow> bool" where
   "subset_closed C = (\<forall>S' \<in> C. \<forall>S. S \<subseteq> S' \<longrightarrow> S \<in> C)"
-    
+
 lemma subset_in_close:
   assumes "S \<subseteq> S'"
   shows "S' \<union> x \<in> C \<longrightarrow> S \<union> x \<in> close C"
@@ -909,17 +897,17 @@ proof (intro allI impI conjI)
       using \<open>x \<in> C\<close> conc unfolding consistency_def by presburger
     then show "\<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S)"
       using \<open>S \<subseteq> x\<close> by blast }
-  
+
   { have "FF \<notin> x"
       using \<open>x \<in> C\<close> conc unfolding consistency_def by blast
     then show "FF \<notin> S"
       using \<open>S \<subseteq> x\<close> by blast }
-    
+
   { have "Neg TT \<notin> x"
       using \<open>x \<in> C\<close> conc unfolding consistency_def by blast
     then show "Neg TT \<notin> S"
       using \<open>S \<subseteq> x\<close> by blast }
-    
+
   { fix Z
     assume "Neg (Neg Z) \<in> S"
     then have "Neg (Neg Z) \<in> x"
@@ -928,7 +916,7 @@ proof (intro allI impI conjI)
       using \<open>x \<in> C\<close> conc unfolding consistency_def by presburger
     then show "S \<union> {Z} \<in> close C"
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
-    
+
   { fix A B
     assume "And A B \<in> S"
     then have "And A B \<in> x"
@@ -937,7 +925,7 @@ proof (intro allI impI conjI)
       using \<open>x \<in> C\<close> conc unfolding consistency_def by presburger
     then show "S \<union> {A, B} \<in> close C"
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
-    
+
   { fix A B
     assume "Neg (Or A B) \<in> S"
     then have "Neg (Or A B) \<in> x"
@@ -955,7 +943,7 @@ proof (intro allI impI conjI)
       using \<open>x \<in> C\<close> conc unfolding consistency_def by presburger
     then show "S \<union> {A} \<in> close C \<or> S \<union> {B} \<in> close C"
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
-    
+
   { fix A B
     assume "Neg (And A B) \<in> S"
     then have "Neg (And A B) \<in> x"
@@ -964,7 +952,7 @@ proof (intro allI impI conjI)
       using \<open>x \<in> C\<close> conc unfolding consistency_def by presburger
     then show "S \<union> {Neg A} \<in> close C \<or> S \<union> {Neg B} \<in> close C"
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
-    
+
   { fix A B
     assume "Impl A B \<in> S"
     then have "Impl A B \<in> x"
@@ -973,7 +961,7 @@ proof (intro allI impI conjI)
       using \<open>x \<in> C\<close> conc unfolding consistency_def by presburger
     then show "S \<union> {Neg A} \<in> close C \<or> S \<union> {B} \<in> close C"
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
-    
+
   { fix A B
     assume "Neg (Impl A B) \<in> S"
     then have "Neg (Impl A B) \<in> x"
@@ -982,7 +970,7 @@ proof (intro allI impI conjI)
       using \<open>x \<in> C\<close> conc unfolding consistency_def by blast
     then show "S \<union> {A, Neg B} \<in> close C"
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
-    
+
   { fix P and t :: "'a term"
     assume "closedt 0 t" and "Forall P \<in> S"
     then have "Forall P \<in> x"
@@ -991,7 +979,7 @@ proof (intro allI impI conjI)
       using \<open>closedt 0 t\<close> \<open>x \<in> C\<close> conc unfolding consistency_def by blast
     then show "S \<union> {P[t/0]} \<in> close C"
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
-    
+
   { fix P and t :: "'a term"
     assume "closedt 0 t" and "Neg (Exists P) \<in> S"
     then have "Neg (Exists P) \<in> x"
@@ -1000,7 +988,7 @@ proof (intro allI impI conjI)
       using \<open>closedt 0 t\<close> \<open>x \<in> C\<close> conc unfolding consistency_def by blast
     then show "S \<union> {Neg (P[t/0])} \<in> close C"
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
-    
+
   { fix P
     assume "Exists P \<in> S"
     then have "Exists P \<in> x"
@@ -1009,7 +997,7 @@ proof (intro allI impI conjI)
       using \<open>x \<in> C\<close> conc unfolding consistency_def by blast
     then show "\<exists>c. S \<union> {P[App c []/0]} \<in> close C"
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
-    
+
   { fix P
     assume "Neg (Forall P) \<in> S"
     then have "Neg (Forall P) \<in> x"
@@ -1078,12 +1066,12 @@ proof (intro allI impI conjI)
   assume "S \<in> mk_finite_char C"
   then have finc: "\<forall>S'\<subseteq>S. finite S' \<longrightarrow> S' \<in> C"
     unfolding mk_finite_char_def by blast
-    
+
   have "\<forall>S'\<in>C. \<forall>S\<subseteq>S'. S \<in> C"
     using \<open>subset_closed C\<close> unfolding subset_closed_def by blast
   then have sc: "\<forall>S' x. S' \<union> x \<in> C \<longrightarrow> (\<forall>S \<subseteq> S' \<union> x. S \<in> C)"
     by blast
-      
+
   { fix p ts
     show "\<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S)"
     proof
@@ -1093,7 +1081,7 @@ proof (intro allI impI conjI)
       then show False
         using altconc unfolding alt_consistency_def by fast
     qed }
-    
+
   show "FF \<notin> S"
   proof
     assume "FF \<in> S"
@@ -1102,7 +1090,7 @@ proof (intro allI impI conjI)
     then show False
       using altconc unfolding alt_consistency_def by fast
   qed
-  
+
   show "Neg TT \<notin> S"
   proof
     assume "Neg TT \<in> S"
@@ -1119,7 +1107,7 @@ proof (intro allI impI conjI)
     proof (intro allI impI CollectI)
       fix S'
       let ?S' = "S' - {Z} \<union> {Neg (Neg Z)}"
-    
+
       assume "S' \<subseteq> S \<union> {Z}" and "finite S'"
       then have "?S' \<subseteq> S"
         using * by blast
@@ -1132,7 +1120,7 @@ proof (intro allI impI conjI)
       then show "S' \<in> C"
         using sc by blast
     qed }
-    
+
   { fix A B
     assume *: "And A B \<in> S"
     show "S \<union> {A, B} \<in> mk_finite_char C"
@@ -1140,7 +1128,7 @@ proof (intro allI impI conjI)
     proof (intro allI impI CollectI)
       fix S'
       let ?S' = "S' - {A, B} \<union> {And A B}"
-    
+
       assume "S' \<subseteq> S \<union> {A, B}" and "finite S'"
       then have "?S' \<subseteq> S"
         using * by blast
@@ -1153,7 +1141,7 @@ proof (intro allI impI conjI)
       then show "S' \<in> C"
         using sc by blast
     qed }
-    
+
   { fix A B
     assume *: "Neg (Or A B) \<in> S"
     show "S \<union> {Neg A, Neg B} \<in> mk_finite_char C"
@@ -1161,7 +1149,7 @@ proof (intro allI impI conjI)
     proof (intro allI impI CollectI)
       fix S'
       let ?S' = "S' - {Neg A, Neg B} \<union> {Neg (Or A B)}"
-    
+
       assume "S' \<subseteq> S \<union> {Neg A, Neg B}" and "finite S'"
       then have "?S' \<subseteq> S"
         using * by blast
@@ -1174,7 +1162,7 @@ proof (intro allI impI conjI)
       then show "S' \<in> C"
         using sc by blast
     qed }
-    
+
   { fix A B
     assume *: "Neg (Impl A B) \<in> S"
     show "S \<union> {A, Neg B} \<in> mk_finite_char C"
@@ -1182,7 +1170,7 @@ proof (intro allI impI conjI)
     proof (intro allI impI CollectI)
       fix S'
       let ?S' = "S' - {A, Neg B} \<union> {Neg (Impl A B)}"
-    
+
       assume "S' \<subseteq> S \<union> {A, Neg B}" and "finite S'"
       then have "?S' \<subseteq> S"
         using * by blast
@@ -1195,7 +1183,7 @@ proof (intro allI impI conjI)
       then show "S' \<in> C"
         using sc by blast
     qed }
-    
+
   { fix A B
     assume *: "Or A B \<in> S"
     show "S \<union> {A} \<in> mk_finite_char C \<or> S \<union> {B} \<in> mk_finite_char C"
@@ -1205,9 +1193,9 @@ proof (intro allI impI conjI)
         where "Sa \<subseteq> S \<union> {A}" and "finite Sa" and "Sa \<notin> C"
           and "Sb \<subseteq> S \<union> {B}" and "finite Sb" and "Sb \<notin> C"
         unfolding mk_finite_char_def by blast
-          
+
       let ?S' = "(Sa - {A}) \<union> (Sb - {B}) \<union> {Or A B}"
-          
+
       have "?S' \<subseteq> S"
         using \<open>Sa \<subseteq> S \<union> {A}\<close> \<open>Sb \<subseteq> S \<union> {B}\<close> * by blast
       moreover have "finite ?S'"
@@ -1221,7 +1209,7 @@ proof (intro allI impI conjI)
       then show False
         using \<open>Sa \<notin> C\<close> \<open>Sb \<notin> C\<close> by blast
     qed }
-    
+
   { fix A B
     assume *: "Neg (And A B) \<in> S"
     show "S \<union> {Neg A} \<in> mk_finite_char C \<or> S \<union> {Neg B} \<in> mk_finite_char C"
@@ -1231,9 +1219,9 @@ proof (intro allI impI conjI)
         where "Sa \<subseteq> S \<union> {Neg A}" and "finite Sa" and "Sa \<notin> C"
           and "Sb \<subseteq> S \<union> {Neg B}" and "finite Sb" and "Sb \<notin> C"
         unfolding mk_finite_char_def by blast
-          
+
       let ?S' = "(Sa - {Neg A}) \<union> (Sb - {Neg B}) \<union> {Neg (And A B)}"
-          
+
       have "?S' \<subseteq> S"
         using \<open>Sa \<subseteq> S \<union> {Neg A}\<close> \<open>Sb \<subseteq> S \<union> {Neg B}\<close> * by blast
       moreover have "finite ?S'"
@@ -1247,7 +1235,7 @@ proof (intro allI impI conjI)
       then show False
         using \<open>Sa \<notin> C\<close> \<open>Sb \<notin> C\<close> by blast
     qed }
-    
+
   { fix A B
     assume *: "Impl A B \<in> S"
     show "S \<union> {Neg A} \<in> mk_finite_char C \<or> S \<union> {B} \<in> mk_finite_char C"
@@ -1257,9 +1245,9 @@ proof (intro allI impI conjI)
         where "Sa \<subseteq> S \<union> {Neg A}" and "finite Sa" and "Sa \<notin> C"
           and "Sb \<subseteq> S \<union> {B}" and "finite Sb" and "Sb \<notin> C"
         unfolding mk_finite_char_def by blast
-          
+
       let ?S' = "(Sa - {Neg A}) \<union> (Sb - {B}) \<union> {Impl A B}"
-          
+
       have "?S' \<subseteq> S"
         using \<open>Sa \<subseteq> S \<union> {Neg A}\<close> \<open>Sb \<subseteq> S \<union> {B}\<close> * by blast
       moreover have "finite ?S'"
@@ -1273,8 +1261,8 @@ proof (intro allI impI conjI)
       then show False
         using \<open>Sa \<notin> C\<close> \<open>Sb \<notin> C\<close> by blast
     qed }
-    
-    
+
+
   { fix P and t :: "'a term"
     assume *: "Forall P \<in> S" and "closedt 0 t"
     show "S \<union> {P[t/0]} \<in> mk_finite_char C"
@@ -1282,7 +1270,7 @@ proof (intro allI impI conjI)
     proof (intro allI impI CollectI)
       fix S'
       let ?S' = "S' - {P[t/0]} \<union> {Forall P}"
-    
+
       assume "S' \<subseteq> S \<union> {P[t/0]}" and "finite S'"
       then have "?S' \<subseteq> S"
         using * by blast
@@ -1295,7 +1283,7 @@ proof (intro allI impI conjI)
       then show "S' \<in> C"
         using sc by blast
     qed }
-    
+
   { fix P and t :: "'a term"
     assume *: "Neg (Exists P) \<in> S" and "closedt 0 t"
     show "S \<union> {Neg (P[t/0])} \<in> mk_finite_char C"
@@ -1303,7 +1291,7 @@ proof (intro allI impI conjI)
     proof (intro allI impI CollectI)
       fix S'
       let ?S' = "S' - {Neg (P[t/0])} \<union> {Neg (Exists P)}"
-    
+
       assume "S' \<subseteq> S \<union> {Neg (P[t/0])}" and "finite S'"
       then have "?S' \<subseteq> S"
         using * by blast
@@ -1316,7 +1304,7 @@ proof (intro allI impI conjI)
       then show "S' \<in> C"
         using sc by blast
     qed }
-    
+
   { fix P x
     assume *: "Exists P \<in> S" and "\<forall>a\<in>S. x \<notin> params a"
     show "S \<union> {P[App x []/0]} \<in> mk_finite_char C"
@@ -1324,7 +1312,7 @@ proof (intro allI impI conjI)
     proof (intro allI impI CollectI)
       fix S'
       let ?S' = "S' - {P[App x []/0]} \<union> {Exists P}"
-    
+
       assume "S' \<subseteq> S \<union> {P[App x []/0]}" and "finite S'"
       then have "?S' \<subseteq> S"
         using * by blast
@@ -1339,7 +1327,7 @@ proof (intro allI impI conjI)
       then show "S' \<in> C"
         using sc by blast
     qed }
-    
+
   { fix P x
     assume *: "Neg (Forall P) \<in> S" and "\<forall>a\<in>S. x \<notin> params a"
     show "S \<union> {Neg (P[App x []/0])} \<in> mk_finite_char C"
@@ -1347,7 +1335,7 @@ proof (intro allI impI conjI)
     proof (intro allI impI CollectI)
       fix S'
       let ?S' = "S' - {Neg (P[App x []/0])} \<union> {Neg (Forall P)}"
-    
+
       assume "S' \<subseteq> S \<union> {Neg (P[App x []/0])}" and "finite S'"
       then have "?S' \<subseteq> S"
         using * by blast
@@ -1366,7 +1354,7 @@ qed
 
 theorem finite_char: "finite_char (mk_finite_char C)"
   unfolding finite_char_def mk_finite_char_def by blast
-    
+
 theorem finite_char_closed: "finite_char C \<Longrightarrow> subset_closed C"
   unfolding finite_char_def subset_closed_def
 proof (intro ballI allI impI)
@@ -1404,9 +1392,7 @@ For this purpose, we use a method due to Cantor, which is illustrated in
 natural numbers can be characterized recursively as follows:
 *}
 
-primrec
-  diag :: "nat \<Rightarrow> (nat \<times> nat)"
-where
+primrec diag :: "nat \<Rightarrow> (nat \<times> nat)" where
   "diag 0 = (0, 0)"
 | "diag (Suc n) =
      (let (x, y) = diag n
@@ -1432,7 +1418,7 @@ next
       by (simp add: Let_def split_def split: nat.split)
   qed
 qed
-  
+
 theorem diag_le3: "fst (diag n) = Suc x \<Longrightarrow> snd (diag n) < n"
 proof (induct n)
   case 0
@@ -1459,9 +1445,7 @@ next
   then show ?case using Suc by simp
 qed
 
-function
-  undiag :: "nat \<times> nat \<Rightarrow> nat"
-where
+function undiag :: "nat \<times> nat \<Rightarrow> nat" where
   "undiag (0, 0) = 0"
 | "undiag (0, Suc y) = Suc (undiag (y, 0))"
 | "undiag (Suc x, y) = Suc (undiag (x, Suc y))"
@@ -1484,9 +1468,7 @@ functions for converting between trees and concrete datatypes.
 
 datatype btree = Leaf nat | Branch btree btree
 
-function
-  diag_btree :: "nat \<Rightarrow> btree"
-where
+function diag_btree :: "nat \<Rightarrow> btree"  where
   "diag_btree n = (case fst (diag n) of
        0 \<Rightarrow> Leaf (snd (diag n))
      | Suc x \<Rightarrow> Branch (diag_btree x) (diag_btree (snd (diag n))))"
@@ -1494,9 +1476,7 @@ where
 termination
   by (relation "measure id") (auto intro: diag_le3 diag_le4)
 
-primrec
-  undiag_btree :: "btree \<Rightarrow> nat"
-where
+primrec undiag_btree :: "btree \<Rightarrow> nat" where
   "undiag_btree (Leaf n) = undiag (0, n)"
 | "undiag_btree (Branch t1 t2) =
      undiag (Suc (undiag_btree t1), undiag_btree t2)"
@@ -1509,15 +1489,11 @@ declare diag_btree.simps [simp del] undiag_btree.simps [simp del]
 
 subsubsection {* Enumerating lists *}
 
-fun
-  list_of_btree :: "(nat \<Rightarrow> 'a) \<Rightarrow> btree \<Rightarrow> 'a list"
-where
+fun list_of_btree :: "(nat \<Rightarrow> 'a) \<Rightarrow> btree \<Rightarrow> 'a list" where
   "list_of_btree f (Leaf x) = []"
 | "list_of_btree f (Branch (Leaf n) t) = f n # list_of_btree f t"
 
-primrec
-  btree_of_list :: "('a \<Rightarrow> nat) \<Rightarrow> 'a list \<Rightarrow> btree"
-where
+primrec btree_of_list :: "('a \<Rightarrow> nat) \<Rightarrow> 'a list \<Rightarrow> btree" where
   "btree_of_list f [] = Leaf 0"
 | "btree_of_list f (x # xs) = Branch (Leaf (f x)) (btree_of_list f xs)"
 
@@ -1536,10 +1512,8 @@ theorem diag_undiag_list [simp]:
 
 subsubsection {* Enumerating terms *}
 
-fun
-  term_of_btree :: "(nat \<Rightarrow> 'a) \<Rightarrow> btree \<Rightarrow> 'a term"
-  and term_list_of_btree :: "(nat \<Rightarrow> 'a) \<Rightarrow> btree \<Rightarrow> 'a term list"
-where
+fun term_of_btree :: "(nat \<Rightarrow> 'a) \<Rightarrow> btree \<Rightarrow> 'a term"
+  and term_list_of_btree :: "(nat \<Rightarrow> 'a) \<Rightarrow> btree \<Rightarrow> 'a term list" where
   "term_of_btree f (Leaf m) = Var m"
 | "term_of_btree f (Branch (Leaf m) t) =
      App (f m) (term_list_of_btree f t)"
@@ -1547,10 +1521,8 @@ where
 | "term_list_of_btree f (Branch t1 t2) =
      term_of_btree f t1 # term_list_of_btree f t2"
 
-primrec
-  btree_of_term :: "('a \<Rightarrow> nat) \<Rightarrow> 'a term \<Rightarrow> btree"
-  and btree_of_term_list :: "('a \<Rightarrow> nat) \<Rightarrow> 'a term list \<Rightarrow> btree"
-where
+primrec btree_of_term :: "('a \<Rightarrow> nat) \<Rightarrow> 'a term \<Rightarrow> btree"
+  and btree_of_term_list :: "('a \<Rightarrow> nat) \<Rightarrow> 'a term list \<Rightarrow> btree" where
   "btree_of_term f (Var m) = Leaf m"
 | "btree_of_term f (App m ts) = Branch (Leaf (f m)) (btree_of_term_list f ts)"
 | "btree_of_term_list f [] = Leaf 0"
@@ -1558,7 +1530,7 @@ where
 
 theorem term_btree: assumes "\<And>x. d (u x) = x"
   shows "term_of_btree d (btree_of_term u t) = t"
-  and "term_list_of_btree d (btree_of_term_list u ts) = ts"
+    and "term_list_of_btree d (btree_of_term_list u ts) = ts"
   by (induct t and ts rule: btree_of_term.induct btree_of_term_list.induct) (simp_all add: assms)
 
 definition
@@ -1573,9 +1545,7 @@ theorem diag_undiag_term [simp]:
   "(\<And>x. d (u x) = x) \<Longrightarrow> diag_term d (undiag_term u t) = t"
   by (simp add: diag_term_def undiag_term_def term_btree)
 
-fun
-  form_of_btree :: "(nat \<Rightarrow> 'a) \<Rightarrow> (nat \<Rightarrow> 'b) \<Rightarrow> btree \<Rightarrow> ('a, 'b) form"
-where
+fun form_of_btree :: "(nat \<Rightarrow> 'a) \<Rightarrow> (nat \<Rightarrow> 'b) \<Rightarrow> btree \<Rightarrow> ('a, 'b) form" where
   "form_of_btree f g (Leaf 0) = FF"
 | "form_of_btree f g (Leaf (Suc 0)) = TT"
 | "form_of_btree f g (Branch (Leaf 0) (Branch (Leaf m) (Leaf n))) =
@@ -1593,9 +1563,7 @@ where
 | "form_of_btree f g (Branch (Leaf (Suc (Suc (Suc (Suc (Suc (Suc 0))))))) t) =
      Exists (form_of_btree f g t)"
 
-primrec
-  btree_of_form :: "('a \<Rightarrow> nat) \<Rightarrow> ('b \<Rightarrow> nat) \<Rightarrow> ('a, 'b) form \<Rightarrow> btree"
-where
+primrec btree_of_form :: "('a \<Rightarrow> nat) \<Rightarrow> ('b \<Rightarrow> nat) \<Rightarrow> ('a, 'b) form \<Rightarrow> btree" where
   "btree_of_form f g FF = Leaf 0"
 | "btree_of_form f g TT = Leaf (Suc 0)"
 | "btree_of_form f g (Pred b ts) = Branch (Leaf 0)
@@ -1644,11 +1612,11 @@ subsection {* Enumerating datatypes via countable *}
 instantiation "term" :: (countable) countable begin
 instance by countable_datatype
 end
-  
+
 instantiation form :: (countable, countable) countable begin
 instance by countable_datatype
 end
-    
+
 subsection {* Extension to maximal consistent sets *}
 
 text {*
@@ -1704,7 +1672,7 @@ qed
 lemma chain_union_closed':
   assumes "is_chain f" and "(\<forall>n. f n \<in> C)" and "\<forall>S'\<in>C. \<forall>S\<subseteq>S'. S \<in> C"
     and "finite S'" and "S' \<subseteq> (\<Union>n. f n)"
-  shows "S' \<in> C" 
+  shows "S' \<in> C"
 proof -
   note \<open>finite S'\<close> and \<open>S' \<subseteq> (\<Union>n. f n)\<close>
   then obtain n where "S' \<subseteq> f n"
@@ -1714,7 +1682,7 @@ proof -
   ultimately show "S' \<in> C"
     using \<open>\<forall>S'\<in>C. \<forall>S\<subseteq>S'. S \<in> C\<close> by blast
 qed
-  
+
 theorem chain_union_closed:
   assumes "finite_char C" and "is_chain f" and "\<forall>n. f n \<in> C"
   shows "(\<Union>n. f n) \<in> C"
@@ -1723,7 +1691,7 @@ proof -
     using finite_char_closed \<open>finite_char C\<close> by blast
   then have "\<forall>S'\<in>C. \<forall>S\<subseteq>S'. S \<in> C"
     using subset_closed_def by blast
-  then have "\<forall>S'. finite S' \<longrightarrow> S' \<subseteq> (\<Union>n. f n) \<longrightarrow> S' \<in> C" 
+  then have "\<forall>S'. finite S' \<longrightarrow> S' \<subseteq> (\<Union>n. f n) \<longrightarrow> S' \<in> C"
     using chain_union_closed' assms by blast
   moreover have "((\<Union>n. f n) \<in> C) = (\<forall>S'. finite S' \<longrightarrow> S' \<subseteq> (\<Union>n. f n) \<longrightarrow> S' \<in> C)"
     using \<open>finite_char C\<close> unfolding finite_char_def by blast
@@ -1739,24 +1707,24 @@ consistent sets.
 
 primrec (nonexhaustive)
   dest_Neg :: "('a, 'b) form \<Rightarrow> ('a, 'b) form"
-where
-  "dest_Neg (Neg p) = p"
+  where
+    "dest_Neg (Neg p) = p"
 
 primrec (nonexhaustive)
   dest_Forall :: "('a, 'b) form \<Rightarrow> ('a, 'b) form"
-where
-  "dest_Forall (Forall p) = p"
+  where
+    "dest_Forall (Forall p) = p"
 
 primrec (nonexhaustive)
   dest_Exists :: "('a, 'b) form \<Rightarrow> ('a, 'b) form"
-where
-  "dest_Exists (Exists p) = p"
+  where
+    "dest_Exists (Exists p) = p"
 
 primrec
   extend :: "(nat, 'b) form set \<Rightarrow> (nat, 'b) form set set \<Rightarrow>
     (nat \<Rightarrow> (nat, 'b) form) \<Rightarrow> nat \<Rightarrow> (nat, 'b) form set"
-where
-  "extend S C f 0 = S"
+  where
+    "extend S C f 0 = S"
   | "extend S C f (Suc n) = (if extend S C f n \<union> {f n} \<in> C
      then
        (if (\<exists>p. f n = Exists p)
@@ -1786,7 +1754,7 @@ theorem finite_params [simp]: "finite (params p)"
 theorem finite_params_extend [simp]:
   "infinite (\<Inter>p \<in> S. - params p) \<Longrightarrow> infinite (\<Inter>p \<in> extend S C f n. - params p)"
   by (induct n) simp_all
-    
+
 lemma infinite_params_available:
   assumes "infinite (- (\<Union>p \<in> S. params p))"
   shows "\<exists>x. x \<notin> (\<Union>p\<in>extend S C f n \<union> {f n}. params p)"
@@ -1796,13 +1764,13 @@ proof -
   have "infinite (- (\<Union>x\<in>?S'. params x))"
     using assms by simp
   then obtain x where "x \<in> - (\<Union>x\<in>?S'. params x)"
-    using infinite_imp_nonempty by blast   
+    using infinite_imp_nonempty by blast
   then have "\<forall>a\<in>?S'. x \<notin> params a"
     by blast
   then show ?thesis
     by blast
 qed
-    
+
 lemma extend_in_C_Exists:
   assumes "alt_consistency C"
     and "infinite (- (\<Union>p \<in> S. params p))"
@@ -1825,7 +1793,7 @@ proof -
   then show ?thesis
     using assms * by simp
 qed
-    
+
 lemma extend_in_C_Neg_Forall:
   assumes "alt_consistency C"
     and "infinite (- (\<Union>p \<in> S. params p))"
@@ -1833,7 +1801,7 @@ lemma extend_in_C_Neg_Forall:
     and "\<forall>p. f n \<noteq> Exists p"
     and "\<exists>p. f n = Neg (Forall p)"
   shows "extend S C f (Suc n) \<in> C"
-  proof -
+proof -
   obtain p where *: "f n = Neg (Forall p)"
     using \<open>\<exists>p. f n = Neg (Forall p)\<close> by blast
   have "\<exists>x. x \<notin> (\<Union>p\<in>?S'. params p)"
@@ -1849,14 +1817,14 @@ lemma extend_in_C_Neg_Forall:
   then show ?thesis
     using assms * by simp
 qed
-    
+
 lemma extend_in_C_no_delta:
   assumes "extend S C f n \<union> {f n} \<in> C"
     and "\<forall>p. f n \<noteq> Exists p"
     and "\<forall>p. f n \<noteq> Neg (Forall p)"
   shows "extend S C f (Suc n) \<in> C"
   using assms by simp
-    
+
 lemma extend_in_C_stop:
   assumes "extend S C f n \<in> C"
     and "extend S C f n \<union> {f n} \<notin> C"
@@ -1865,16 +1833,16 @@ lemma extend_in_C_stop:
 
 theorem extend_in_C: "alt_consistency C \<Longrightarrow>
   S \<in> C \<Longrightarrow> infinite (- (\<Union>p \<in> S. params p)) \<Longrightarrow> extend S C f n \<in> C"
-  proof (induct n)
-    case 0
-    then show ?case by simp
-  next
-    case (Suc n)
-    then show ?case
-      using extend_in_C_Exists extend_in_C_Neg_Forall
-        extend_in_C_no_delta extend_in_C_stop
-      by metis
-  qed
+proof (induct n)
+  case 0
+  then show ?case by simp
+next
+  case (Suc n)
+  then show ?case
+    using extend_in_C_Exists extend_in_C_Neg_Forall
+      extend_in_C_no_delta extend_in_C_stop
+    by metis
+qed
 
 text {*
 The main theorem about @{text Extend} says that if @{text C} is an
@@ -1924,7 +1892,7 @@ proof (intro ballI impI)
       by blast
     then obtain n where "z = f n"
       using \<open>\<forall>y. \<exists>n. y = f n\<close> by blast
-    
+
     from \<open>(\<Union>x. extend S C f x) \<subseteq> S'\<close> \<open>z = f n\<close> \<open>z \<in> S'\<close>
     have "extend S C f n \<union> {f n} \<subseteq> S'" by blast
 
@@ -1980,10 +1948,8 @@ closed terms and Herbrand terms.
 
 datatype 'a hterm = HApp 'a "'a hterm list"
 
-primrec
-  term_of_hterm :: "'a hterm \<Rightarrow> 'a term"
-  and terms_of_hterms :: "'a hterm list \<Rightarrow> 'a term list"
-where
+primrec term_of_hterm :: "'a hterm \<Rightarrow> 'a term"
+  and terms_of_hterms :: "'a hterm list \<Rightarrow> 'a term list" where
   "term_of_hterm (HApp a hts) = App a (terms_of_hterms hts)"
 | "terms_of_hterms [] = []"
 | "terms_of_hterms (ht # hts) = term_of_hterm ht # terms_of_hterms hts"
@@ -1992,7 +1958,7 @@ theorem herbrand_evalt [simp]:
   "closedt 0 t \<Longrightarrow> term_of_hterm (evalt e HApp t) = t"
   "closedts 0 ts \<Longrightarrow> terms_of_hterms (evalts e HApp ts) = ts"
   by (induct t and ts rule: closedt.induct closedts.induct) simp_all
-    
+
 theorem herbrand_evalt' [simp]:
   "evalt e HApp (term_of_hterm ht) = ht"
   "evalts e HApp (terms_of_hterms hts) = hts"
@@ -2002,7 +1968,7 @@ theorem closed_hterm [simp]:
   "closedt 0 (term_of_hterm (ht::'a hterm))"
   "closedts 0 (terms_of_hterms (hts::'a hterm list))"
   by (induct ht and hts rule: term_of_hterm.induct terms_of_hterms.induct) simp_all
-    
+
 text {*
 We can prove that Hintikka sets are satisfiable in Herbrand models.
 Note that this theorem cannot be proved by a simple structural induction
@@ -2011,7 +1977,7 @@ to be applied in the cases for quantifiers. However, since parameter
 substitution does not change the size of formulae, the theorem can
 be proved by well-founded induction on the size of the formula @{text p}.
 *}
-  
+
 theorem hintikka_model:
   assumes hin: "hintikka H"
   shows "(p \<in> H \<longrightarrow> closed 0 p \<longrightarrow>
@@ -2023,12 +1989,12 @@ proof (rule_tac r="measure size_form" and a=p in wf_induct)
     by blast
 next
   let ?eval = "eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H)"
-    
+
   fix x
   assume wf: "\<forall>y. (y, x) \<in> measure size_form \<longrightarrow>
                   (y \<in> H \<longrightarrow> closed 0 y \<longrightarrow> ?eval y) \<and>
               (Neg y \<in> H \<longrightarrow> closed 0 y \<longrightarrow> ?eval (Neg y))"
-    
+
   show "(x \<in> H \<longrightarrow> closed 0 x \<longrightarrow> ?eval x) \<and> (Neg x \<in> H \<longrightarrow> closed 0 x \<longrightarrow> ?eval (Neg x))"
   proof (cases x)
     case FF
@@ -2092,7 +2058,7 @@ next
       then have "A \<in> H \<and> B \<in> H"
         using And hin unfolding hintikka_def by blast
       then show "?eval x"
-        using And wf \<open>closed 0 (And A B)\<close> by simp 
+        using And wf \<open>closed 0 (And A B)\<close> by simp
     next
       assume "Neg x \<in> H" and "closed 0 x"
       then have "Neg (And A B) \<in> H" and "closed 0 (And A B)"
@@ -2120,7 +2086,7 @@ next
         using hin unfolding hintikka_def by blast
       then show "?eval (Neg x)"
         using Or wf \<open>closed 0 (Or A B)\<close> by simp
-    qed   
+    qed
   next
     case (Impl A B)
     then show ?thesis proof (intro conjI impI)
@@ -2154,7 +2120,7 @@ next
           using hin unfolding hintikka_def by blast
         from \<open>closed 0 (Forall P)\<close>
         have "closed (Suc 0) P" by simp
-            
+
         have "(P[term_of_hterm z/0], Forall P) \<in> measure size_form \<longrightarrow>
               (P[term_of_hterm z/0] \<in> H \<longrightarrow> closed 0 (P[term_of_hterm z/0]) \<longrightarrow>
               ?eval (P[term_of_hterm z/0]))"
@@ -2169,38 +2135,38 @@ next
       then have "Neg (Forall P) \<in> H"
         using Forall by simp
       then have "\<exists>t. closedt 0 t \<and> Neg (P[t/0]) \<in> H"
-        using Forall hin unfolding hintikka_def by blast  
+        using Forall hin unfolding hintikka_def by blast
       then obtain t where *: "closedt 0 t \<and> Neg (P[t/0]) \<in> H"
         by blast
       then have "closed 0 (P[t/0])"
         using Forall \<open>closed 0 x\<close> by simp
-          
+
       have "(subst P t 0, Forall P) \<in> measure size_form \<longrightarrow>
               (Neg (subst P t 0) \<in> H \<longrightarrow> closed 0 (subst P t 0) \<longrightarrow>
               ?eval (Neg (subst P t 0)))"
-        using Forall wf by blast   
+        using Forall wf by blast
       then have "?eval (Neg (P[t/0]))"
         using Forall * \<open>closed 0 (P[t/0])\<close> by simp
       then have "\<exists>z. \<not> eval (e\<langle>0:z\<rangle>) HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) P"
         by auto
       then show "?eval (Neg x)"
         using Forall by simp
-    qed 
+    qed
   next
     case (Exists P)
     then show ?thesis proof (intro conjI impI allI)
       assume "x \<in> H" and "closed 0 x"
       then have "\<exists>t. closedt 0 t \<and> (P[t/0]) \<in> H"
-        using Exists hin unfolding hintikka_def by blast  
+        using Exists hin unfolding hintikka_def by blast
       then obtain t where *: "closedt 0 t \<and> (P[t/0]) \<in> H"
         by blast
       then have "closed 0 (P[t/0])"
         using Exists \<open>closed 0 x\<close> by simp
-          
+
       have "(subst P t 0, Exists P) \<in> measure size_form \<longrightarrow>
               ((subst P t 0) \<in> H \<longrightarrow> closed 0 (subst P t 0) \<longrightarrow>
               ?eval (subst P t 0))"
-        using Exists wf by blast   
+        using Exists wf by blast
       then have "?eval (P[t/0])"
         using Exists * \<open>closed 0 (P[t/0])\<close> by simp
       then have "\<exists>z. eval (e\<langle>0:z\<rangle>) HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) P"
@@ -2219,7 +2185,7 @@ next
           using hin unfolding hintikka_def by blast
         from \<open>closed 0 (Neg (Exists P))\<close>
         have "closed (Suc 0) P" by simp
-            
+
         have "(P[term_of_hterm z/0], Exists P) \<in> measure size_form \<longrightarrow>
               (Neg (P[term_of_hterm z/0]) \<in> H \<longrightarrow> closed 0 (P[term_of_hterm z/0]) \<longrightarrow>
               ?eval (Neg (P[term_of_hterm z/0])))"
@@ -2255,7 +2221,7 @@ proof -
   finally show ?thesis
     by blast
 qed
-  
+
 lemma Neg_Forall_in_extend:
   assumes "extend S C f n \<union> {f n} \<in> C" (is "?S' \<in> C")
     and "Neg (Forall P) = f n"
@@ -2265,7 +2231,7 @@ lemma Neg_Forall_in_extend:
 proof -
   have "f n \<noteq> Exists P"
     using \<open>Neg (Forall P) = f n\<close> by auto
-  
+
   have "\<exists>p. f n = Neg (Forall p)"
     using \<open>Neg (Forall P) = f n\<close> by metis
   then have "extend S C f (Suc n) = (?S' \<union> {Neg (dest_Forall (dest_Neg (f n))[?t/0])})"
@@ -2277,7 +2243,7 @@ proof -
   finally show ?thesis
     by blast
 qed
-    
+
 theorem extend_hintikka:
   assumes fin_ch: "finite_char C"
     and infin_p: "infinite (- (\<Union>p\<in>S. params p))"
@@ -2292,92 +2258,92 @@ proof (intro allI impI conjI)
 
   have "?H \<in> C"
     using Extend_in_C assms by blast
-      
+
   have "\<forall>S'\<in>C. ?H \<subseteq> S' \<longrightarrow> ?H = S'"
     using \<open>maximal ?H C\<close>
     unfolding maximal_def by blast
-  
+
   { fix p ts
     show "\<not> (Pred p ts \<in> ?H \<and> Neg (Pred p ts) \<in> ?H)"
-    using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by fast }
-  
+      using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by fast }
+
   show "FF \<notin> ?H"
     using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by blast
-  
+
   show "Neg TT \<notin> ?H"
     using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by blast
-      
+
   { fix Z
     assume "Neg (Neg Z) \<in> ?H"
     then have "?H \<union> {Z} \<in> C"
       using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by fast
     then show "Z \<in> ?H"
       using \<open>maximal ?H C\<close> unfolding maximal_def by fast }
-      
+
   { fix A B
     assume "And A B \<in> ?H"
     then have "?H \<union> {A, B} \<in> C"
       using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by fast
     then show "A \<in> ?H" and "B \<in> ?H"
       using \<open>maximal ?H C\<close> unfolding maximal_def by fast+ }
-    
+
   { fix A B
     assume "Neg (Or A B) \<in> ?H"
     then have "?H \<union> {Neg A, Neg B} \<in> C"
       using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by fast
     then show "Neg A \<in> ?H" and "Neg B \<in> ?H"
       using \<open>maximal ?H C\<close> unfolding maximal_def by fast+ }
-    
+
   { fix A B
     assume "Neg (Impl A B) \<in> ?H"
     then have "?H \<union> {A, Neg B} \<in> C"
       using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by blast
     then show "A \<in> ?H" and "Neg B \<in> ?H"
       using \<open>maximal ?H C\<close> unfolding maximal_def by fast+ }
-    
+
   { fix A B
     assume "Or A B \<in> ?H"
     then have "?H \<union> {A} \<in> C \<or> ?H \<union> {B} \<in> C"
       using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by fast
     then show "A \<in> ?H \<or> B \<in> ?H"
       using \<open>maximal ?H C\<close> unfolding maximal_def by fast }
-    
+
   { fix A B
     assume "Neg (And A B) \<in> ?H"
     then have "?H \<union> {Neg A} \<in> C \<or> ?H \<union> {Neg B} \<in> C"
       using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by presburger
     then show "Neg A \<in> ?H \<or> Neg B \<in> ?H"
       using \<open>maximal ?H C\<close> unfolding maximal_def by fast }
-    
+
   { fix A B
     assume "Impl A B \<in> ?H"
     then have "?H \<union> {Neg A} \<in> C \<or> ?H \<union> {B} \<in> C"
       using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by presburger
     then show "Neg A \<in> ?H \<or> B \<in> ?H"
       using \<open>maximal ?H C\<close> unfolding maximal_def by fast }
-    
+
   { fix P and t :: "nat term"
     assume "Forall P \<in> ?H" and "closedt 0 t"
     then have "?H \<union> {P[t/0]} \<in> C"
       using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by blast
     then show "P[t/0] \<in> ?H"
       using \<open>maximal ?H C\<close> unfolding maximal_def by fast }
-    
+
   { fix P and t :: "nat term"
     assume "Neg (Exists P) \<in> ?H" and "closedt 0 t"
     then have "?H \<union> {Neg (P[t/0])} \<in> C"
       using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by blast
     then show "Neg (P[t/0]) \<in> ?H"
       using \<open>maximal ?H C\<close> unfolding maximal_def by fast }
-    
+
   { fix P
     assume "Exists P \<in> ?H"
     obtain n where *: "Exists P = f n"
       using surj by blast
-        
+
     let ?t = "App (SOME k. k \<notin> (\<Union>p\<in>extend S C f n \<union> {f n}. params p)) []"
     have "closedt 0 ?t" by simp
-        
+
     have "Exists P \<in> (\<Union>n. extend S C f n)"
       using \<open>Exists P \<in> ?H\<close> Extend_def by blast
     then have "extend S C f n \<union> {f n} \<subseteq> (\<Union>n. extend S C f n)"
@@ -2391,15 +2357,15 @@ proof (intro allI impI conjI)
       using Extend_def by blast
     then show "\<exists>t. closedt 0 t \<and> P[t/0] \<in> ?H"
       using \<open>closedt 0 ?t\<close> by blast }
-    
+
   { fix P
     assume "Neg (Forall P) \<in> ?H"
     obtain n where *: "Neg (Forall P) = f n"
       using surj by blast
-   
+
     let ?t = "App (SOME k. k \<notin> (\<Union>p\<in>extend S C f n \<union> {f n}. params p)) []"
     have "closedt 0 ?t" by simp
-        
+
     have "Neg (Forall P) \<in> (\<Union>n. extend S C f n)"
       using \<open>Neg (Forall P) \<in> ?H\<close> Extend_def by blast
     then have "extend S C f n \<union> {f n} \<subseteq> (\<Union>n. extend S C f n)"
@@ -2414,7 +2380,7 @@ proof (intro allI impI conjI)
     then show "\<exists>t. closedt 0 t \<and> Neg (P[t/0]) \<in> ?H"
       using \<open>closedt 0 ?t\<close> by blast }
 qed
-  
+
 subsection {* Model existence theorem *}
 
 text {*
@@ -2458,7 +2424,7 @@ theorem model_existence:
     and "closed 0 p"
   shows "eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> Extend S
         (mk_finite_char (mk_alt_consistency (close C))) from_nat) p"
-  using assms hintikka_model hintikka_Extend_S Extend_subset 
+  using assms hintikka_model hintikka_Extend_S Extend_subset
   by blast
 
 subsection {* Completeness for Natural Deduction *}
@@ -2481,7 +2447,7 @@ proof (intro conjI allI impI notI)
   then obtain G :: "('a, 'b) form list"
     where *: "S = set G" and "\<not> G \<turnstile> FF"
     by blast
-      
+
   { fix p ts
     assume "Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S"
     then have "G \<turnstile> Pred p ts" and "G \<turnstile> Neg (Pred p ts)"
@@ -2490,13 +2456,13 @@ proof (intro conjI allI impI notI)
       using NegE by blast
     then show False
       using \<open>\<not> G \<turnstile> FF\<close> by blast }
-    
+
   { assume "FF \<in> S"
     then have "G \<turnstile> FF"
       using Assum * by blast
     then show False
       using \<open>\<not> G \<turnstile> FF\<close> by blast }
-    
+
   { assume "Neg TT \<in> S"
     then have "G \<turnstile> Neg TT"
       using Assum * by blast
@@ -2506,12 +2472,12 @@ proof (intro conjI allI impI notI)
       using NegE by blast
     then show False
       using \<open>\<not> G \<turnstile> FF\<close> by blast }
-    
+
   { fix Z
     assume "Neg (Neg Z) \<in> S"
     then have "G \<turnstile> Neg (Neg Z)"
       using Assum * by blast
-        
+
     { assume "Z # G \<turnstile> FF"
       then have "G \<turnstile> Neg Z"
         using NegI by blast
@@ -2525,14 +2491,14 @@ proof (intro conjI allI impI notI)
       using * by simp
     ultimately show "S \<union> {Z} \<in> ?C"
       by blast }
-    
+
   { fix A B
     assume "And A B \<in> S"
     then have "G \<turnstile> And A B"
       using Assum * by blast
     then have "G \<turnstile> A" and "G \<turnstile> B"
       using AndE1 AndE2 by blast+
-        
+
     { assume "A # B # G \<turnstile> FF"
       then have "B # G \<turnstile> Neg A"
         using NegI by blast
@@ -2548,12 +2514,12 @@ proof (intro conjI allI impI notI)
       using * by simp
     ultimately show "S \<union> {A, B} \<in> ?C"
       by blast }
-    
+
   { fix A B
     assume "Neg (Or A B) \<in> S"
     then have "G \<turnstile> Neg (Or A B)"
       using Assum * by blast
-        
+
     have "A # Neg B # G \<turnstile> A"
       by (simp add: Assum)
     then have "A # Neg B # G \<turnstile> Or A B"
@@ -2564,7 +2530,7 @@ proof (intro conjI allI impI notI)
       using NegE \<open>A # Neg B # G \<turnstile> Neg (Or A B)\<close> by blast
     then have "Neg B # G \<turnstile> Neg A"
       using NegI by blast
-        
+
     have "B # G \<turnstile> B"
       by (simp add: Assum)
     then have "B # G \<turnstile> Or A B"
@@ -2575,7 +2541,7 @@ proof (intro conjI allI impI notI)
       using NegE \<open>B # G \<turnstile> Neg (Or A B)\<close> by blast
     then have "G \<turnstile> Neg B"
       using NegI by blast
-        
+
     { assume "Neg A # Neg B # G \<turnstile> FF"
       then have "Neg B # G \<turnstile> Neg (Neg A)"
         using NegI by blast
@@ -2591,10 +2557,10 @@ proof (intro conjI allI impI notI)
       using * by simp
     ultimately show "S \<union> {Neg A, Neg B} \<in> ?C"
       by blast }
-    
+
   { fix A B
     assume "Neg (Impl A B) \<in> S"
-      
+
     have "A # Neg A # Neg B # G \<turnstile> A"
       by (simp add: Assum)
     moreover have "A # Neg A # Neg B # G \<turnstile> Neg A"
@@ -2611,7 +2577,7 @@ proof (intro conjI allI impI notI)
       using NegE by blast
     then have "Neg B # G \<turnstile> A"
       using Class by blast
-        
+
     have "A # B # G \<turnstile> B"
       by (simp add: Assum)
     then have "B # G \<turnstile> Impl A B"
@@ -2622,7 +2588,7 @@ proof (intro conjI allI impI notI)
       using NegE by blast
     then have "G \<turnstile> Neg B"
       using NegI by blast
-        
+
     { assume "A # Neg B # G \<turnstile> FF"
       then have "Neg B # G \<turnstile> Neg A"
         using NegI by blast
@@ -2638,12 +2604,12 @@ proof (intro conjI allI impI notI)
       using * by simp
     ultimately show "S \<union> {A, Neg B} \<in> ?C"
       by blast }
-    
+
   { fix A B
     assume  "Or A B \<in> S"
     then have "G \<turnstile> Or A B"
       using * Assum by blast
-        
+
     { assume "(\<forall>G'. set G' = S \<union> {A} \<longrightarrow> G' \<turnstile> FF)"
         and "(\<forall>G'. set G' = S \<union> {B} \<longrightarrow> G' \<turnstile> FF)"
       then have "A # G \<turnstile> FF" and "B # G \<turnstile> FF"
@@ -2654,12 +2620,12 @@ proof (intro conjI allI impI notI)
         using \<open>\<not> G \<turnstile> FF\<close> by blast }
     then show "S \<union> {A} \<in> ?C \<or> S \<union> {B} \<in> ?C"
       by blast }
-    
+
   { fix A B
     assume "Neg (And A B) \<in> S"
-      
+
     let ?x = "Or (Neg A) (Neg B)"
-      
+
     have "B # A # Neg ?x # G \<turnstile> A" and "B # A # Neg ?x # G \<turnstile> B"
       by (simp_all add: Assum)
     then have "B # A # Neg ?x # G \<turnstile> And A B"
@@ -2682,7 +2648,7 @@ proof (intro conjI allI impI notI)
       using OrI1 by blast
     then have "G \<turnstile> Or (Neg A) (Neg B)"
       using Class' by blast
-        
+
     { assume "(\<forall>G'. set G' = S \<union> {Neg A} \<longrightarrow> G' \<turnstile> FF)"
         and "(\<forall>G'. set G' = S \<union> {Neg B} \<longrightarrow> G' \<turnstile> FF)"
       then have "Neg A # G \<turnstile> FF" and "Neg B # G \<turnstile> FF"
@@ -2693,12 +2659,12 @@ proof (intro conjI allI impI notI)
         using \<open>\<not> G \<turnstile> FF\<close> by blast }
     then show "S \<union> {Neg A} \<in> ?C \<or> S \<union> {Neg B} \<in> ?C"
       by blast }
-    
+
   { fix A B
     assume "Impl A B \<in> S"
-      
+
     let ?x = "Or (Neg A) B"
-      
+
     have "A # Neg ?x # G \<turnstile> A"
       by (simp add: Assum)
     moreover have "A # Neg ?x # G \<turnstile> Impl A B"
@@ -2717,7 +2683,7 @@ proof (intro conjI allI impI notI)
       using OrI1 by blast
     then have "G \<turnstile> Or (Neg A) B"
       using Class' by blast
-        
+
     { assume "(\<forall>G'. set G' = S \<union> {Neg A} \<longrightarrow> G' \<turnstile> FF)"
         and "(\<forall>G'. set G' = S \<union> {B} \<longrightarrow> G' \<turnstile> FF)"
       then have "Neg A # G \<turnstile> FF" and "B # G \<turnstile> FF"
@@ -2728,14 +2694,14 @@ proof (intro conjI allI impI notI)
         using \<open>\<not> G \<turnstile> FF\<close> by blast }
     then show "S \<union> {Neg A} \<in> ?C \<or> S \<union> {B} \<in> ?C"
       by blast }
-    
+
   { fix P and t :: "'a term"
     assume "closedt 0 t" and "Forall P \<in> S"
     then have "G \<turnstile> Forall P"
       using Assum * by blast
     then have "G \<turnstile> P[t/0]"
       using ForallE by blast
-        
+
     { assume "P[t/0] # G \<turnstile> FF"
       then have "G \<turnstile> FF"
         using cut \<open>G \<turnstile> P[t/0]\<close> by blast
@@ -2747,7 +2713,7 @@ proof (intro conjI allI impI notI)
       using * by simp
     ultimately show "S \<union> {P[t/0]} \<in> ?C"
       by blast }
-    
+
   { fix P and t :: "'a term"
     assume "closedt 0 t" and "Neg (Exists P) \<in> S"
     then have "G \<turnstile> Neg (Exists P)"
@@ -2764,7 +2730,7 @@ proof (intro conjI allI impI notI)
       using NegE by blast
     then have "G \<turnstile> Neg (P[t/0])"
       using NegI by blast
-        
+
     { assume "Neg (P[t/0]) # G \<turnstile> FF"
       then have "G \<turnstile> FF"
         using cut \<open>G \<turnstile> Neg (P[t/0])\<close> by blast
@@ -2776,12 +2742,12 @@ proof (intro conjI allI impI notI)
       using * by simp
     ultimately show "S \<union> {Neg (P[t/0])} \<in> ?C"
       by blast }
-    
+
   { fix P
     assume "Exists P \<in> S"
     then have "G \<turnstile> Exists P"
       using * Assum by blast
-        
+
     have "finite ((\<Union>p \<in> set G. params p) \<union> params P)"
       by simp
     then have "infinite (- ((\<Union>p \<in> set G. params p) \<union> params P))"
@@ -2790,7 +2756,7 @@ proof (intro conjI allI impI notI)
       by (simp add: Compl_eq_Diff_UNIV)
     then obtain x where **: "x \<in> - ((\<Union>p \<in> set G. params p) \<union> params P)"
       using infinite_imp_nonempty by blast
-        
+
     { assume "P[App x []/0] # G \<turnstile> FF"
       moreover have "list_all (\<lambda>p. x \<notin> params p) G"
         using ** by (simp add: list_all_iff)
@@ -2808,12 +2774,12 @@ proof (intro conjI allI impI notI)
       using * by simp
     ultimately show "\<exists>x. S \<union> {P[App x []/0]} \<in> ?C"
       by blast }
-    
+
   { fix P
     assume "Neg (Forall P) \<in> S"
     then have "G \<turnstile> Neg (Forall P)"
       using * Assum by blast
-        
+
     have "finite ((\<Union>p \<in> set G. params p) \<union> params P)"
       by simp
     then have "infinite (- ((\<Union>p \<in> set G. params p) \<union> params P))"
@@ -2822,9 +2788,9 @@ proof (intro conjI allI impI notI)
       by (simp add: Compl_eq_Diff_UNIV)
     then obtain x where **: "x \<in> - ((\<Union>p \<in> set G. params p) \<union> params P)"
       using infinite_imp_nonempty by blast
-        
+
     let ?x = "Neg (Exists (Neg P))"
-        
+
     have "Neg (P[App x []/0]) # ?x # G \<turnstile> Neg P[App x []/0]"
       by (simp add: Assum)
     then have "Neg (P[App x []/0]) # ?x # G \<turnstile> Exists (Neg P)"
@@ -2847,7 +2813,7 @@ proof (intro conjI allI impI notI)
       using NegE by blast
     then have "G \<turnstile> Exists (Neg P)"
       using Class by blast
-        
+
     { assume "Neg (P[App x []/0]) # G \<turnstile> FF"
       moreover have "list_all (\<lambda>p. x \<notin> params p) G"
         using ** by (simp add: list_all_iff)
@@ -2870,7 +2836,7 @@ qed
 text {*
 Hence, by contradiction, we have completeness of natural deduction:
 *}
-      
+
 theorem natded_complete:
   assumes "closed 0 p"
     and "list_all (closed 0) ps"
@@ -2880,7 +2846,7 @@ theorem natded_complete:
 proof (rule Class, rule ccontr)
   fix e
   assume "\<not> Neg p # ps \<turnstile> FF"
-    
+
   let ?S = "set (Neg p # ps)"
   let ?C = "{set (G :: (nat, nat) form list) | G. \<not> G \<turnstile> FF}"
   let ?f = HApp
@@ -2906,7 +2872,7 @@ proof (rule Class, rule ccontr)
   then have "list_all (eval e ?f ?g) (Neg p # ps)"
     by (simp add: list_all_iff)
   moreover have "eval e ?f ?g (Neg p)"
-    using calculation by simp 
+    using calculation by simp
   moreover have "list_all (eval e ?f ?g) ps"
     using calculation by simp
   then have "eval e ?f ?g p"
@@ -2915,19 +2881,16 @@ proof (rule Class, rule ccontr)
 qed
 
 subsection {*Completeness for open formulas *}
-  
+
 primrec
   free_levels\<^sub>t :: "nat \<Rightarrow> 'a term \<Rightarrow> nat" and
-  free_levels\<^sub>t\<^sub>s :: "nat \<Rightarrow> 'a term list \<Rightarrow> nat"
-where
+  free_levels\<^sub>t\<^sub>s :: "nat \<Rightarrow> 'a term list \<Rightarrow> nat" where
   "free_levels\<^sub>t m (Var n) = (if n < m then 0 else n - m + 1)"
 | "free_levels\<^sub>t m (App a ts) = free_levels\<^sub>t\<^sub>s m ts"
 | "free_levels\<^sub>t\<^sub>s m [] = 0"
 | "free_levels\<^sub>t\<^sub>s m (t # ts) = max (free_levels\<^sub>t m t) (free_levels\<^sub>t\<^sub>s m ts)"
 
-primrec
-  free_levels :: "nat \<Rightarrow> ('a, 'b) form \<Rightarrow> nat"
-where
+primrec free_levels :: "nat \<Rightarrow> ('a, 'b) form \<Rightarrow> nat" where
   "free_levels m FF = 0"
 | "free_levels m TT = 0"
 | "free_levels m (Pred b ts) = free_levels\<^sub>t\<^sub>s m ts"
@@ -2942,10 +2905,10 @@ lemma closedt_free_levels:
   "free_levels\<^sub>t 0 (t :: 'a term) \<le> k \<Longrightarrow> closedt k t"
   "free_levels\<^sub>t\<^sub>s 0 (ts :: 'a term list) \<le> k \<Longrightarrow> closedts k ts"
   by (induct t and ts rule: free_levels\<^sub>t.induct free_levels\<^sub>t\<^sub>s.induct) simp_all
-    
+
 lemma piecewise_sub: "(if (x :: nat) < m then 0 else x - m + 1) \<le> k \<Longrightarrow> x < k + m"
   by (cases \<open>x < m\<close>) simp_all
-  
+
 lemma free_levels_closed_terms:
   "free_levels\<^sub>t m (t :: 'a term) \<le> k \<Longrightarrow> closedt (k + m) t"
   "free_levels\<^sub>t\<^sub>s m (ts :: 'a term list) \<le> k \<Longrightarrow> closedts (k + m) ts"
@@ -2954,7 +2917,7 @@ lemma free_levels_closed_terms:
 
 lemma free_levels_closed: "free_levels m p \<le> k \<Longrightarrow> closed (k + m) p"
   by (induct p arbitrary: m k) (force simp add: free_levels_closed_terms)+
-    
+
 lemma closed_terms_free_levels:
   "closedt (k + m) t \<Longrightarrow> free_levels\<^sub>t m (t :: 'a term) \<le> k"
   "closedts (k + m) ts \<Longrightarrow> free_levels\<^sub>t\<^sub>s m (ts :: 'a term list) \<le> k"
@@ -2970,43 +2933,43 @@ proof
 next
   show "closed 0 p \<Longrightarrow> free_levels 0 p = 0"
     using closed_free_levels by force
-qed 
-    
+qed
+
 lemma free_levels_terms_suc:
   "free_levels\<^sub>t m (t :: 'a term) \<le> Suc k \<Longrightarrow> free_levels\<^sub>t (Suc m) t \<le> k"
   "free_levels\<^sub>t\<^sub>s m (ts :: 'a term list) \<le> Suc k \<Longrightarrow> free_levels\<^sub>t\<^sub>s (Suc m) ts \<le> k"
   by (induct t and ts rule: free_levels\<^sub>t.induct free_levels\<^sub>t\<^sub>s.induct) auto
-    
+
 lemma free_levels_Forall: "free_levels m p \<le> Suc k \<Longrightarrow> free_levels m (Forall p) \<le> k"
   by (induct p arbitrary: m k) (simp_all add: free_levels_terms_suc)
-    
+
 lemma free_levels_terms_suc_eq:
   "free_levels\<^sub>t m (t :: 'a term) = Suc k \<Longrightarrow> free_levels\<^sub>t (Suc m) t = k"
   "free_levels\<^sub>t\<^sub>s m (ts :: 'a term list) = Suc k \<Longrightarrow> free_levels\<^sub>t\<^sub>s (Suc m) ts = k"
-  proof (induct and ts rule: free_levels\<^sub>t.induct free_levels\<^sub>t\<^sub>s.induct)
-    case (Var x)
-    then show ?case proof (induct x)
-      case 0
-      then show ?case
-        by (cases \<open>0 < m\<close>) simp_all
-    next
-      case (Suc x)
-      have "(if Suc x < m then 0 else Suc x - m + 1) = Suc k \<Longrightarrow> x < m \<Longrightarrow> k = 0"
-        by (metis Suc_eq_plus1 Suc_inject Suc_lessI diff_self_eq_0 nat.distinct(1))
-      then show ?case
-        using Suc by auto
-    qed
-  next
-    case (App t ts)
-    then show ?case by simp
-  next
-    case Nil_term
-    then show ?case by simp
-  next
-    case (Cons_term t ts)
+proof (induct and ts rule: free_levels\<^sub>t.induct free_levels\<^sub>t\<^sub>s.induct)
+  case (Var x)
+  then show ?case proof (induct x)
+    case 0
     then show ?case
-      by (metis free_levels\<^sub>t\<^sub>s.simps(2) free_levels_terms_suc(2) le_refl max_absorb1 max_def)
+      by (cases \<open>0 < m\<close>) simp_all
+  next
+    case (Suc x)
+    have "(if Suc x < m then 0 else Suc x - m + 1) = Suc k \<Longrightarrow> x < m \<Longrightarrow> k = 0"
+      by (metis Suc_eq_plus1 Suc_inject Suc_lessI diff_self_eq_0 nat.distinct(1))
+    then show ?case
+      using Suc by auto
   qed
+next
+  case (App t ts)
+  then show ?case by simp
+next
+  case Nil_term
+  then show ?case by simp
+next
+  case (Cons_term t ts)
+  then show ?case
+    by (metis free_levels\<^sub>t\<^sub>s.simps(2) free_levels_terms_suc(2) le_refl max_absorb1 max_def)
+qed
 
 lemma free_levels_suc: "free_levels m p = (Suc k) \<Longrightarrow> free_levels m (Forall p) = k"
 proof (induct p arbitrary: m k)
@@ -3050,49 +3013,49 @@ next
     by (metis Impl.hyps(1) Impl.prems 1 2 free_levels.simps(8) free_levels_Forall
         max.cobounded1 max_absorb1 max_def)
 qed simp_all
-    
+
 lemma model_impl_premise: "(e,f,g,ps \<Turnstile> (Impl p a)) = (e,f,g,(p#ps) \<Turnstile> a)"
   unfolding model_def by auto
-    
+
 primrec build_impl :: "('a, 'b) form list \<Rightarrow> ('a, 'b) form \<Rightarrow> ('a, 'b) form" where
   "build_impl [] a = a"
 | "build_impl (p#ps) a = Impl p (build_impl ps a)"
-  
+
 theorem model_build_impl_premises:
   "(e,f,g,ps' \<Turnstile> build_impl ps a) = (e,f,g,(ps@ps') \<Turnstile> a)"
   using model_impl_premise
   unfolding model_def by (induct ps) auto
-    
+
 primrec put_Foralls :: "nat \<Rightarrow> ('a, 'b) form \<Rightarrow> ('a, 'b) form" where
   "put_Foralls (Suc m) p = Forall (put_Foralls m p)"
 | "put_Foralls 0 p = p"
-  
+
 lemma free_levels_put_Foralls_diff:
   "free_levels m (put_Foralls k p) = free_levels m p - k"
   using free_levels_Forall free_levels_suc by (induct k) force+
-  
+
 lemma free_levels_put_Foralls_zero: "free_levels 0 (put_Foralls (free_levels 0 p) p) = 0"
   by (simp add: free_levels_put_Foralls_diff)
-  
+
 lemma closed_put_Foralls_free_levels: "closed 0 (put_Foralls (free_levels 0 p) p)"
   using free_levels_put_Foralls_zero free_levels_closed_zero by blast
-  
+
 definition univ_close :: "('a, 'b) form \<Rightarrow> ('a, 'b) form" where
   "univ_close p = put_Foralls (free_levels 0 p) p"
-  
+
 lemma closed_univ_close: "closed 0 (univ_close p)"
   unfolding univ_close_def using closed_put_Foralls_free_levels by blast
- 
+
 lemma valid_implies_forall_no_prems:
   assumes mod: "\<forall>e f g. e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> p"
   shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> Forall p"
   using mod eval.simps(8) list.pred_inject(1) unfolding model_def by simp_all
-    
+
 lemma valid_put_Forall_no_prems:
   assumes mod: "\<forall>e f g. e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> p"
   shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> put_Foralls m p"
   using mod by (induct m arbitrary: e f g) (simp_all add: valid_implies_forall_no_prems)
-    
+
 lemma valid_univ_close_no_prems:
   assumes mod: "\<forall>e f g. e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> p"
   shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,[] \<Turnstile> univ_close p"
@@ -3107,13 +3070,13 @@ theorem valid_subst:
   assumes mod: "\<forall>e f g. e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,ps \<Turnstile> p"
   shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,(map (\<lambda>p. subst p t m) ps) \<Turnstile> subst p t m"
   using mod by (simp add: model_def list_all_iff)
-  
+
 subsubsection {* Deriving the original formula from the universal closure *}
 
 lemma put_Foralls_subst:
   "(put_Foralls m p)[Var k/l] = put_Foralls m (p[Var (m+k)/m+l])"
   by (induct m arbitrary: k l) simp_all
-    
+
 lemma put_Foralls_subst_zero:
   "(put_Foralls m p)[Var m/0] = put_Foralls m (p[Var (m+m)/m])"
   by (simp add: put_Foralls_subst)
@@ -3123,12 +3086,12 @@ lemma put_Foralls_suc: "put_Foralls m (Forall p) = put_Foralls (Suc m) p"
 
 theorem deriv_remove_put_Foralls: "[] \<turnstile> put_Foralls m p \<Longrightarrow> [] \<turnstile> p"
   using ForallE' by (induct m) auto
- 
+
 theorem deriv_remove_univ_close: "[] \<turnstile> univ_close p \<Longrightarrow> [] \<turnstile> p"
   unfolding univ_close_def using deriv_remove_put_Foralls by blast
 
 subsubsection {* Deriving under assumptions from an implication *}
-    
+
 theorem deriv_permute_assumptions: "ps' \<turnstile> q \<Longrightarrow> set ps' = set ps \<Longrightarrow> ps \<turnstile> q"
 proof (induct q arbitrary: ps rule: deriv.induct)
   case (Assum a G)
@@ -3177,7 +3140,7 @@ next
 next
   case (AndE2 G a b)
   then show ?case
-     using deriv.AndE2 by blast
+    using deriv.AndE2 by blast
 next
   case (OrI1 G a b)
   then show ?case
@@ -3189,7 +3152,7 @@ next
 next
   case (OrE G a b c)
   then have "ps \<turnstile> Or a b" and "a # ps \<turnstile> c" and "b # ps \<turnstile> c"
-   by simp_all
+    by simp_all
   then show ?case
     using deriv.OrE by blast
 next
@@ -3229,9 +3192,9 @@ next
   then show ?case
     using ExistsE deriv.ExistsE by fast
 qed
-  
+
 lemma deriv_psubst:
-   "ps \<turnstile> q \<Longrightarrow> inj f \<Longrightarrow> map (psubst f) ps \<turnstile> psubst f q"
+  "ps \<turnstile> q \<Longrightarrow> inj f \<Longrightarrow> map (psubst f) ps \<turnstile> psubst f q"
 proof (induct q rule: deriv.induct)
   case (Assum a G)
   then show ?case
@@ -3324,7 +3287,7 @@ next
     using ExistsE by blast
   ultimately show ?case
     using deriv.ExistsE by fastforce
-qed    
+qed
 
 lemma psubstt_fresh_free:
   "x \<noteq> n \<Longrightarrow> n \<notin> paramst (psubstt (id(n := x)) t)"
@@ -3337,7 +3300,7 @@ proof (induct p)
   then show ?case
     using psubstt_fresh_free by auto
 qed simp_all
-    
+
 lemma map_psubst_fresh_free:
   "x \<noteq> n \<Longrightarrow> n \<notin> (\<Union>p \<in> set (map (psubst (id(n := x))) ps). params p)"
 proof (induct ps)
@@ -3348,14 +3311,14 @@ next
   then show ?case
     using psubst_fresh_free by auto
 qed
-  
+
 lemma psubst_free_id: "n \<notin> params p \<Longrightarrow> p = psubst (id(n := x)) p"
   by auto
-    
+
 lemma psubst_free_id_set:
   "n \<notin> (\<Union>a\<in>G. params a) \<Longrightarrow> G \<subseteq> ps \<Longrightarrow> (\<forall>p\<in>ps. p \<in> G \<longrightarrow> psubst (id(n := x)) p \<in> G)"
   using psubst_free_id by simp
-  
+
 lemma psubst_fresh_subset:
   assumes "set G \<subseteq> set ps"
     and "n \<noteq> x"
@@ -3366,12 +3329,12 @@ lemma psubst_fresh_subset:
 lemma deriv_swap_param:
   "ps \<turnstile> q \<Longrightarrow> map (psubst (id(x := n, n := x))) ps \<turnstile> psubst (id(x := n, n := x)) q"
   by (simp add: deriv_psubst inj_on_def)
- 
+
 lemma psubstt_fresh_away:
- "fresh \<notin> paramst t \<Longrightarrow> psubstt (id(fresh := n)) (psubstt (id(n := fresh)) t) = t"
- "fresh \<notin> paramsts ts \<Longrightarrow> psubstts (id(fresh := n)) (psubstts (id(n := fresh)) ts) = ts"
+  "fresh \<notin> paramst t \<Longrightarrow> psubstt (id(fresh := n)) (psubstt (id(n := fresh)) t) = t"
+  "fresh \<notin> paramsts ts \<Longrightarrow> psubstts (id(fresh := n)) (psubstts (id(n := fresh)) ts) = ts"
   by (induct t and ts rule: psubstt.induct psubstts.induct) auto
-    
+
 lemma psubst_fresh_away:
   "fresh \<notin> params p \<Longrightarrow> psubst (id(fresh := n)) (psubst (id(n := fresh)) p) = p"
 proof (induct p)
@@ -3379,12 +3342,12 @@ proof (induct p)
   then show ?case
     by (metis params.simps(3) psubst.simps(3) psubstt_fresh_away(2))
 qed simp_all
-  
+
 lemma map_psubst_fresh_away:
   "fresh \<notin> (\<Union>p \<in> set ps. params p) \<Longrightarrow>
    map (psubst (id(fresh := n))) (map (psubst (id(n := fresh))) ps) = ps"
   using psubst_fresh_away by (induct ps) auto
-    
+
 lemma deriv_weaken_assumptions:
   assumes inf_param: "infinite (UNIV :: 'a set)"
   shows "ps' \<turnstile> q \<Longrightarrow> set ps' \<subseteq> set ps \<Longrightarrow> ps \<turnstile> (q :: ('a, 'b) form)"
@@ -3467,7 +3430,7 @@ next
   obtain fresh where *: "fresh \<notin> (\<Union>a\<in>set ps. params a) \<union> params a \<union> {n}"
     using inf_param finite_params
     by (metis List.finite_set ex_new_if_finite finite.emptyI finite.insertI finite_UN finite_Un)
-  
+
   let ?ps_fresh = "map (psubst (id(n := fresh))) ps"
   have "n \<noteq> fresh"
     using * by blast
@@ -3482,7 +3445,7 @@ next
     using ** by (simp add: list_all_iff)
   ultimately have "?ps_fresh \<turnstile> Forall a"
     using \<open>n \<notin> params a\<close> deriv.ForallI by fast
-  
+
   then have "map (psubst (id(fresh := n, n := fresh))) ?ps_fresh
               \<turnstile> psubst (id(fresh := n, n := fresh)) (Forall a)"
     using deriv_swap_param by fast
@@ -3511,7 +3474,7 @@ next
   obtain fresh where *: "fresh \<notin> (\<Union>a\<in>set ps. params a) \<union> params a \<union> params b \<union> {n}"
     using inf_param finite_params
     by (metis List.finite_set ex_new_if_finite finite.emptyI finite.insertI finite_UN finite_Un)
-  
+
   let ?ps_fresh = "map (psubst (id(n := fresh))) ps"
   have "n \<noteq> fresh"
     using * by blast
@@ -3521,21 +3484,21 @@ next
     using ExistsE \<open>n \<noteq> fresh\<close> by (metis (no_types, lifting) list_all_iff psubst_fresh_subset UN_E)
   then have "?ps_fresh \<turnstile> Exists a"
     using ExistsE by blast
-      
+
   moreover have "set (a[App n []/0] # G) \<subseteq> set (a[App n []/0] # ?ps_fresh)"
     using \<open>set G \<subseteq> set ?ps_fresh\<close> by auto
   then have "a[App n []/0] # ?ps_fresh \<turnstile> b"
     using ExistsE by blast
-      
+
   moreover have "list_all (\<lambda>p. n \<notin> params p) ?ps_fresh"
     using ** by (simp add: list_all_iff)
   ultimately have "?ps_fresh \<turnstile> b"
     using \<open>n \<notin> params a\<close> \<open>n \<notin> params b\<close> deriv.ExistsE by fast
-  
+
   then have "map (psubst (id(fresh := n, n := fresh))) ?ps_fresh
               \<turnstile> psubst (id(fresh := n, n := fresh)) b"
     using deriv_swap_param by fast
-   moreover have "map (psubst (id(fresh := n))) ?ps_fresh = ps"
+  moreover have "map (psubst (id(fresh := n))) ?ps_fresh = ps"
     using * map_psubst_fresh_away by fast
   then have "map (psubst (id(fresh := n, n := fresh))) ?ps_fresh = ps"
     by (metis (mono_tags, lifting) ** UN_iff map_eq_conv psubst_upd)
@@ -3544,7 +3507,7 @@ next
   ultimately show "ps \<turnstile> b"
     by simp
 qed
-  
+
 lemma shift_impl_assum:
   assumes "ps \<turnstile> (Impl p q :: ('a, 'b) form)"
     and "infinite (UNIV :: 'a set)"
@@ -3571,12 +3534,12 @@ proof -
   then show ?thesis
     by (simp add: deriv_permute_assumptions)
 qed
-  
+
 theorem deriv_build_impl_assums:
   assumes "infinite (UNIV :: 'a set)"
   shows "[] \<turnstile> build_impl ps q \<Longrightarrow> ps \<turnstile> (q :: ('a, 'b) form)"
   using assms shift_build_impl_assums by fastforce
-    
+
 theorem natded_complete':
   assumes mod: "\<forall>e f g. e,(f :: nat \<Rightarrow> nat hterm list \<Rightarrow> nat hterm),
     (g :: nat \<Rightarrow> nat hterm list \<Rightarrow> bool), ps \<Turnstile> p"
@@ -3595,7 +3558,7 @@ proof -
     using deriv_build_impl_assums by blast
 qed
 
-  
+
 section {* L\"owenheim-Skolem theorem *}
 
 text {*
@@ -3605,20 +3568,20 @@ is the L\"owenheim-Skolem theorem. It says that a set of formulae that is satisf
 proof is to show that satisfiable sets are consistent, hence they must be satisfiable in a
 Herbrand model.
 *}
-  
+
 theorem sat_consistency:
   "consistency {S. infinite (- (\<Union>p\<in>S. params p)) \<and> (\<exists>f. \<forall>(p::('a, 'b)form)\<in>S. eval e f g p)}"
   unfolding consistency_def
 proof (intro allI impI conjI)
   let ?C = "{S. infinite (- (\<Union>p\<in>S. params p)) \<and> (\<exists>f. \<forall>p \<in> S. eval e f g p)}"
-  
+
   fix S :: "('a, 'b) form set"
   assume "S \<in> ?C"
   then have inf_params: "infinite (- (\<Union>p\<in>S. params p))"
     and "\<exists>f. \<forall>p \<in> S. eval e f g p"
     by blast+
   then obtain f where *: "\<forall>x \<in> S. eval e f g x" by blast
-    
+
   { fix p ts
     show "\<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S)"
     proof
@@ -3627,13 +3590,13 @@ proof (intro allI impI conjI)
         using * by blast
       then show False by simp
     qed }
-    
+
   show "FF \<notin> S"
     using * by fastforce
-      
+
   show "Neg TT \<notin> S"
     using * by fastforce
-      
+
   { fix Z
     assume "Neg (Neg Z) \<in> S"
     then have "\<forall>x \<in> S \<union> {Neg (Neg Z)}. eval e f g x"
@@ -3644,7 +3607,7 @@ proof (intro allI impI conjI)
       using inf_params by simp
     ultimately show "S \<union> {Z} \<in> ?C"
       by blast }
-    
+
   { fix A B
     assume "And A B \<in> S"
     then have "\<forall>x \<in> S \<union> {And A B}. eval e f g x"
@@ -3655,7 +3618,7 @@ proof (intro allI impI conjI)
       using inf_params by simp
     ultimately show "S \<union> {A, B} \<in> ?C"
       by blast }
-    
+
   { fix A B
     assume "Neg (Or A B) \<in> S"
     then have "\<forall>x \<in> S \<union> {Neg (Or A B)}. eval e f g x"
@@ -3666,7 +3629,7 @@ proof (intro allI impI conjI)
       using inf_params by simp
     ultimately show "S \<union> {Neg A, Neg B} \<in> ?C"
       by blast }
-    
+
   { fix A B
     assume "Neg (Impl A B) \<in> S"
     then have "\<forall>x \<in> S \<union> {Neg (Impl A B)}. eval e f g x"
@@ -3677,7 +3640,7 @@ proof (intro allI impI conjI)
       using inf_params by simp
     ultimately show "S \<union> {A, Neg B} \<in> ?C"
       by blast }
-    
+
   { fix A B
     assume "Or A B \<in> S"
     then have "\<forall>x \<in> S \<union> {Or A B}. eval e f g x"
@@ -3690,7 +3653,7 @@ proof (intro allI impI conjI)
       using inf_params by simp_all
     ultimately show "S \<union> {A} \<in> ?C \<or> S \<union> {B} \<in> ?C"
       by blast }
-    
+
   { fix A B
     assume "Neg (And A B) \<in> S"
     then have "\<forall>x \<in> S \<union> {Neg (And A B)}. eval e f g x"
@@ -3703,7 +3666,7 @@ proof (intro allI impI conjI)
       using inf_params by simp_all
     ultimately show "S \<union> {Neg A} \<in> ?C \<or> S \<union> {Neg B} \<in> ?C"
       by blast }
-    
+
   { fix A B
     assume "Impl A B \<in> S"
     then have "\<forall>x \<in> S \<union> {Impl A B}. eval e f g x"
@@ -3727,7 +3690,7 @@ proof (intro allI impI conjI)
       using inf_params by simp
     ultimately show "S \<union> {P[t/0]} \<in> ?C"
       by blast }
-    
+
   { fix P and t :: "'a term"
     assume "Neg (Exists P) \<in> S"
     then have "\<forall>x \<in> S \<union> {Neg (Exists P)}. eval e f g x"
@@ -3738,7 +3701,7 @@ proof (intro allI impI conjI)
       using inf_params by simp
     ultimately show "S \<union> {Neg (P[t/0])} \<in> ?C"
       by blast }
-    
+
   { fix P
     assume "Exists P \<in> S"
     then have "\<forall>x \<in> S \<union> {Exists P}. eval e f g x"
@@ -3762,7 +3725,7 @@ proof (intro allI impI conjI)
       by simp
     then show "\<exists>x. S \<union> {P[App x []/0]} \<in> ?C"
       by blast }
-    
+
   { fix P
     assume "Neg (Forall P) \<in> S"
     then have "\<forall>x \<in> S \<union> {Neg (Forall P)}. eval e f g x"
@@ -3824,13 +3787,13 @@ theorem loewenheim_skolem:
       Pred a (terms_of_hterms ts) \<in> Extend (psubst (\<lambda>n. 2 * n) ` S)
         (mk_finite_char (mk_alt_consistency (close
           {S. infinite (- (\<Union>p\<in>S. params p)) \<and> (\<exists>f. \<forall>p\<in>S. eval e f g p)}))) from_nat) p"
-  (is "\<forall>_\<in>_. _ _ _ \<longrightarrow> eval _ _ ?g _")
+    (is "\<forall>_\<in>_. _ _ _ \<longrightarrow> eval _ _ ?g _")
   using evalS
 proof (intro ballI impI)
   fix p
-    
+
   let ?C = "{S. infinite (- (\<Union>p \<in> S. params p)) \<and> (\<exists>f. \<forall>x \<in> S. eval e f g x)}"
-    
+
   assume "p \<in> S"
     and "closed 0 p"
   then have "eval e f g p"
