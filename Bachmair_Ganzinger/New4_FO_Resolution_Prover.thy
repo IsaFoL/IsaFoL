@@ -1042,7 +1042,7 @@ lemma ord_resolve_lifting:
     "is_ground_subst \<eta>"
     "is_ground_subst \<eta>2"
     "ord_resolve S CAi' DA' E'" 
-    "CAi = CAi' \<cdot>cl \<eta>" "DA = DA' \<cdot> \<eta>" "E = E' \<cdot> \<eta>2" (* In the previous proofs I have CAi and DA on lfs of equality... *)
+    "CAi' \<cdot>cl \<eta> = CAi" "DA' \<cdot> \<eta> = DA" "E' \<cdot> \<eta>2 = E" (* In the previous proofs I have CAi and DA on lfs of equality... *)
     "{DA'} \<union> set CAi' \<subseteq> M"
   using resolve proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Ci Aij Ai \<sigma> D)
@@ -1060,7 +1060,7 @@ lemma ord_resolve_lifting:
     
     "\<forall>CA \<in> set CAi'. CA \<in> M"
     "CAi' \<cdot>cl \<eta> = CAi"
-    "map (S_M S M) CAi = (map S CAi') \<cdot>cl \<eta>"
+    "(map S CAi') \<cdot>cl \<eta> = map (S_M S M) CAi"
     
     "is_ground_subst \<eta>"
     "var_disjoint (DA' # CAi')"
@@ -1303,7 +1303,7 @@ lemma ord_resolve_lifting:
       assume asm: "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
       let ?A = "Ai ! 0"
       from asm have "S_M S M (D + negs (mset Ai)) = {#}" by auto
-      hence "S (D' + negs (mset Ai')) = {#}" using \<open>D' \<cdot> \<eta> = D\<close>[symmetric] \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] \<open> S (DA') \<cdot> \<eta> = S_M S M (DA)\<close>
+      hence "S (D' + negs (mset Ai')) = {#}" using \<open>D' \<cdot> \<eta> = D\<close>[symmetric] \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] \<open>S (DA') \<cdot> \<eta> = S_M S M (DA)\<close>
         using ord_resolve(1) 
         using ai' subst_cls_empty_iff by metis   
       moreover
@@ -1337,18 +1337,18 @@ lemma ord_resolve_lifting:
     (* Lifting nothing selected *)
   have nothing_selected: "\<forall>i < n. S (CAi' ! i) = {#}"
   proof -
-    have "\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>"
+    have "\<forall>i < n. S (CAi' ! i) \<cdot> \<eta> = S_M S M (CAi ! i)"
     proof (rule, rule)
       fix i
       assume "i<n"
-      have "(map (S_M S M) CAi) ! i = (map S CAi' \<cdot>cl \<eta>) ! i"
+      have "(map S CAi' \<cdot>cl \<eta>) ! i = (map (S_M S M) CAi) ! i"
         using clauses' by metis
-      then show "S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>"
+      then show "S (CAi' ! i) \<cdot> \<eta> = S_M S M (CAi ! i)"
         using \<open>i<n\<close> n by auto
     qed
       
     from ord_resolve have "\<forall>i < n. (S_M S M) (CAi ! i) = {#}" by -
-    hence "\<forall>i < n. S (CAi' ! i)  \<cdot> \<eta> = {#}" using ord_resolve(3) \<open>\<forall>i < n. S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>\<close> by auto 
+    hence "\<forall>i < n. S (CAi' ! i)  \<cdot> \<eta> = {#}" using ord_resolve(3) \<open>\<forall>i < n.  S (CAi' ! i) \<cdot> \<eta> = S_M S M (CAi ! i)\<close> by auto 
     then show ff: "\<forall>i < n. S (CAi' ! i) = {#}" using subst_cls_empty_iff by blast
   qed
     
