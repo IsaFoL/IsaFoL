@@ -895,7 +895,8 @@ lemma ord_resolve_obtain_clauses_std_apart:
   from clauses' have "var_disjoint ((DA' # CAi'))"
     by auto
   then obtain \<eta>_fo where \<eta>_p: "(\<forall>i<Suc n. \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> (\<eta>' # \<eta>s') ! i = S \<cdot> \<eta>_fo)" unfolding var_disjoint_def
-    using n by force
+    using n
+    by (metis length_Cons) 
   then have DA'_\<eta>_fo_sel: "\<forall>S. S \<subseteq># DA' \<longrightarrow> S \<cdot> \<eta>' = S \<cdot> \<eta>_fo" 
     by auto
   then have DA'_\<eta>: "DA' \<cdot> \<eta>' = DA' \<cdot> \<eta>_fo" by auto
