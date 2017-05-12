@@ -586,16 +586,15 @@ lemma ord_resolve_obtain_clauses:
   case (ord_resolve nn Ci Aij Ai \<sigma> D)
   then have "nn = n"
     using n by auto
-  then have "length Ci = n" "length Aij = n" "length Ai = n" using ord_resolve by auto
+  then have "n \<noteq> 0" "length Ci = n" "length Aij = n" "length Ai = n" using ord_resolve by auto
       
-  note n = \<open>length CAi = n\<close> \<open>length Ci = n\<close> \<open>length Aij = n\<close> \<open>length Ai = n\<close>
+  note n = \<open>n \<noteq> 0\<close> \<open>length CAi = n\<close> \<open>length Ci = n\<close> \<open>length Aij = n\<close> \<open>length Ai = n\<close>
     
   interpret S: selection S by (rule select)
       
     (* Obtain CAi'' *)
   have "\<forall>CA \<in> set CAi. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> CA'' \<cdot> \<eta>c'' = CA \<and> S CA'' \<cdot> \<eta>c'' = S_M S M CA"
-    using grounding using grounding S_M_grounding_of_clss select
-    by (metis le_supE subset_iff)    
+    using grounding using grounding S_M_grounding_of_clss select by (metis le_supE subset_iff)    
   hence "\<forall>i < n. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> CA'' \<cdot> \<eta>c'' = (CAi ! i) \<and> S CA'' \<cdot> \<eta>c'' = S_M S M (CAi ! i)"
     using n by auto
   then obtain \<eta>s''f CAi''f where f_p: 
@@ -616,13 +615,12 @@ lemma ord_resolve_obtain_clauses:
     unfolding CAi''_def using f_p(1) by auto
   have CAi''_to_CAi: "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi" 
     unfolding CAi''_def \<eta>s''_def using f_p(2) by (simp add: n)
-  have "(map S CAi'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAi"
+  have SCAi''_to_SMCAi: "(map S CAi'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAi"
    unfolding CAi''_def \<eta>s''_def using f_p(3) n by auto
       
     (* Obtain DA''  *) 
   have "\<exists>DA'' \<eta>''. DA'' \<in> M \<and> DA = DA'' \<cdot> \<eta>'' \<and> S DA'' \<cdot> \<eta>'' = S_M S M DA"
-    using grounding S_M_grounding_of_clss select
-    by (metis le_supE singletonI subsetCE)
+    using grounding S_M_grounding_of_clss select by (metis le_supE singletonI subsetCE)
   then obtain DA'' \<eta>'' where DA''_\<eta>''_p: "DA'' \<in> M \<and> DA = DA'' \<cdot> \<eta>'' \<and> S DA'' \<cdot> \<eta>'' = S_M S M DA"
     by auto
       (* The properties we need of DA'' *)
@@ -634,16 +632,7 @@ lemma ord_resolve_obtain_clauses:
     using DA''_\<eta>''_p by auto  
     
   show ?thesis
-    using
-      that[of CAi'' \<eta>s'' DA'' \<eta>'']
-      \<open>DA'' \<in> M\<close> 
-      \<open>DA'' \<cdot> \<eta>'' = DA\<close>
-      \<open>S DA'' \<cdot> \<eta>'' = S_M S M DA\<close>
-      \<open>\<forall>CA \<in> set CAi''. CA \<in> M\<close>
-      \<open>CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi\<close>
-      \<open>(map S CAi'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAi\<close>
-      n
-    by blast
+    using that DA''_in_M DA''_to_DA SDA''_to_SMDA CAi''_in_M CAi''_to_CAi SCAi''_to_SMCAi n by blast
 qed
   
 lemma ord_resolve_obtain_clauses_std_apart':
@@ -670,9 +659,9 @@ lemma ord_resolve_obtain_clauses_std_apart':
   case (ord_resolve nn Ci Aij Ai \<sigma> D)
   then have "nn = n"
     using n by auto
-  then have "length Ci = n" "length Aij = n" "length Ai = n" using ord_resolve by auto
+  then have "n \<noteq> 0" "length Ci = n" "length Aij = n" "length Ai = n" using ord_resolve by auto
       
-  note n = \<open>length CAi = n\<close> \<open>length Ci = n\<close> \<open>length Aij = n\<close> \<open>length Ai = n\<close>
+  note n = \<open>n \<noteq> 0\<close> \<open>length CAi = n\<close> \<open>length Ci = n\<close> \<open>length Aij = n\<close> \<open>length Ai = n\<close>
     
   interpret S: selection S by (rule select)
       
@@ -690,32 +679,25 @@ lemma ord_resolve_obtain_clauses_std_apart':
     "(map S CAi'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAi"
     using resolve grounding select ord_resolve_obtain_clauses n by metis
       
-  note n = \<open>length CAi'' = n\<close> \<open>length \<eta>s'' = n\<close> n
+  note n = \<open>length CAi'' = n\<close> \<open>length \<eta>s'' = n\<close> \<open>length CAi = n\<close> n
     
-  note n = \<open>length CAi'' = n\<close> \<open>length \<eta>s'' = n\<close> \<open>length CAi = n\<close>
-    
+     (* Obtain renamings to standardize apart *)
   obtain \<rho>\<rho>s where \<rho>\<rho>s_p: "length \<rho>\<rho>s = length (DA'' # CAi'') \<and> (\<forall>\<rho>i \<in> set \<rho>\<rho>s. is_renaming \<rho>i) \<and> var_disjoint ((DA'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s)"
     using make_var_disjoint[of "DA'' # CAi''"] by auto
   define \<rho> where "\<rho> = hd \<rho>\<rho>s"
   define \<rho>s where "\<rho>s = tl \<rho>\<rho>s"
     
   have "length \<rho>\<rho>s = Suc n" "length \<rho>s = n" 
-    using \<rho>\<rho>s_p n \<rho>s_def
-     apply auto done
+    using \<rho>\<rho>s_p n \<rho>s_def by auto
   note n = \<open>length \<rho>\<rho>s = Suc n\<close> \<open>length \<rho>s = n\<close> n
-    
-  have vv: "var_disjoint ((DA'' # CAi'') \<cdot>\<cdot>cl \<rho>\<rho>s)"
-    using \<rho>\<rho>s_p by blast
+
       
   have \<rho>_ren: "is_renaming \<rho>"
-    using \<rho>\<rho>s_p unfolding \<rho>_def
-    by (metis hd_Cons_tl length_greater_0_conv list.simps(3) nth_Cons_0 nth_mem)
+    using \<rho>\<rho>s_p n unfolding \<rho>_def by (metis Suc_length_conv list.sel(1) list.set_intros(1)) 
   have \<rho>s_ren: "\<forall>\<rho>i \<in> set \<rho>s. is_renaming \<rho>i"
-    using \<rho>\<rho>s_p unfolding \<rho>s_def
-    by (metis list.sel(2) list.set_sel(2))
+    using \<rho>\<rho>s_p unfolding \<rho>s_def by (metis list.sel(2) list.set_sel(2))
   have "var_disjoint ((DA'' # CAi'') \<cdot>\<cdot>cl (\<rho> # \<rho>s))"
-    using \<rho>\<rho>s_p unfolding \<rho>_def \<rho>s_def
-    by (metis length_greater_0_conv list.exhaust_sel list.simps(3))
+    using \<rho>\<rho>s_p unfolding \<rho>_def \<rho>s_def by (metis length_greater_0_conv list.exhaust_sel list.simps(3))
       
   define \<rho>_inv where \<rho>_inv_p: "\<rho>_inv = inv_ren \<rho>" 
   define \<rho>s_inv where "\<rho>s_inv = map inv_ren \<rho>s"
@@ -724,13 +706,14 @@ lemma ord_resolve_obtain_clauses_std_apart':
     using \<rho>s_inv_def n by auto
       
   note n = \<open>length \<rho>s_inv = n\<close> n
-    
+    (* Define new FO clauses *)
   define CAi' where "CAi' = CAi'' \<cdot>\<cdot>cl \<rho>s"
   define DA' where "DA' = DA'' \<cdot> \<rho>"
     
   have "length CAi' = n" 
     unfolding CAi'_def using n by auto
-      
+
+    (* Define new ground instantiating clauses *)      
   define \<eta>' where "\<eta>' = \<rho>_inv \<odot> \<eta>''"
   define \<eta>s' where "\<eta>s' = \<rho>s_inv \<odot>s \<eta>s''"
     
@@ -885,9 +868,9 @@ lemma ord_resolve_obtain_clauses_std_apart:
   case (ord_resolve nn Ci Aij Ai \<sigma> D)
   then have "nn = n"
     using n by auto
-  then have "length Ci = n" "length Aij = n" "length Ai = n" using ord_resolve by auto
+  then have"n \<noteq> 0" "length Ci = n" "length Aij = n" "length Ai = n" using ord_resolve by auto
       
-  note n = \<open>length CAi = n\<close> \<open>length Ci = n\<close> \<open>length Aij = n\<close> \<open>length Ai = n\<close>
+  note n = \<open>n \<noteq> 0\<close> \<open>length CAi = n\<close> \<open>length Ci = n\<close> \<open>length Aij = n\<close> \<open>length Ai = n\<close>
     
   interpret S: selection S by (rule select)
       
@@ -1047,7 +1030,7 @@ lemma ord_resolve_lifting:
   using resolve proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Ci Aij Ai \<sigma> D)
     
-  note n = \<open>length CAi = n\<close> \<open>length Ci = n\<close> \<open>length Aij = n\<close> \<open>length Ai = n\<close>
+  note n = \<open>n \<noteq> 0\<close> \<open>length CAi = n\<close> \<open>length Ci = n\<close> \<open>length Aij = n\<close> \<open>length Ai = n\<close>
     
   interpret S: selection S by (rule select)
       
