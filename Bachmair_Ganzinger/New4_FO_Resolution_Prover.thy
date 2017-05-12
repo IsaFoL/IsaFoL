@@ -790,25 +790,26 @@ lemma ord_resolve_obtain_clauses_std_apart':
         using n by auto
     qed
       
-    fix i (* TODO: This proof should go in the other direction... *)
+    fix i
     assume a: "i < n"
-    then have "S_M S M (CAi ! i) = S (CAi'' ! i) \<cdot> \<eta>s'' ! i" 
-      using \<open>(\<forall>i < n. S_M S M (CAi ! i) = (S (CAi'' ! i)) \<cdot> (\<eta>s'' ! i))\<close> by auto
+    have "S (CAi' ! i) \<cdot> \<eta>s' ! i = S (((CAi'' ! i) \<cdot> (\<rho>s ! i))) \<cdot> (\<rho>s_inv ! i) \<cdot> \<eta>s'' ! i"
+      unfolding CAi'_def \<eta>s'_def
+      using n a by auto
     also have "... = S (((CAi'' ! i) \<cdot> (\<rho>s ! i)) \<cdot> (\<rho>s_inv ! i)) \<cdot> \<eta>s'' ! i"
-      using \<rho>_i_inv_id using a
-      apply (auto simp del: subst_cls_comp_subst
-          simp add: subst_cls_comp_subst[symmetric]) done
-    also have "... = S (((CAi'' ! i) \<cdot> (\<rho>s ! i))) \<cdot> (\<rho>s_inv ! i) \<cdot> \<eta>s'' ! i"
       using inv_ren_is_renaming
         (* since (\<rho>s_inv ! i) is a renaming. *) 
       using selection_renaming_invariant
       using \<rho>s_ren unfolding \<rho>s_inv_def
       by (simp add: a n) 
-    also have "... = S (CAi' ! i) \<cdot> \<eta>s' ! i"
-      unfolding CAi'_def \<eta>s'_def
-      using n a by auto
+    also have "... = S (CAi'' ! i) \<cdot> \<eta>s'' ! i"
+      using \<rho>_i_inv_id using a
+      apply (auto simp del: subst_cls_comp_subst
+          simp add: subst_cls_comp_subst[symmetric]) done
+    also have "... = S_M S M (CAi ! i)"
+      using \<open>(\<forall>i < n. S_M S M (CAi ! i) = (S (CAi'' ! i)) \<cdot> (\<eta>s'' ! i))\<close> a by auto     
     finally show "S_M S M (CAi ! i) = S (CAi' ! i) \<cdot> \<eta>s' ! i" by auto
   qed
+    
     
   have DA'_in_M: "DA' \<in> M"
     using M_renaming_invariant unfolding DA'_def using \<rho>_ren clauses'' by auto
@@ -816,23 +817,21 @@ lemma ord_resolve_obtain_clauses_std_apart':
     using DA'_def \<eta>'_def \<open>DA'' \<cdot> \<eta>'' = DA\<close> subst_cls_id_subst
     by (metis \<rho>_inv_p \<rho>_ren inv_ren_cancel_r subst_cls_comp_subst)
   have sel_DA'_DA: "S DA' \<cdot> \<eta>' = S_M S M DA"
-  proof - (* TODO: This proof should go in the other direction... *)
-    have "S_M S M DA = S DA'' \<cdot> \<eta>''"
-      by (simp add: clauses'') 
+  proof -
+    have "S DA' \<cdot> \<eta>' = S (((DA'') \<cdot> (\<rho>))) \<cdot> (\<rho>_inv) \<cdot> \<eta>''"
+      unfolding DA'_def \<eta>'_def
+      by auto
     also have "... = S (((DA'') \<cdot> (\<rho>)) \<cdot> (\<rho>_inv)) \<cdot> \<eta>''"
-      using \<rho>_inv_p
-      by (metis \<rho>_ren inv_ren_cancel_r subst_cls_comp_subst subst_cls_id_subst)
-        
-    also have "... = S (((DA'') \<cdot> (\<rho>))) \<cdot> (\<rho>_inv) \<cdot> \<eta>''"
       using inv_ren_is_renaming
         (* since (\<rho>s_inv ! i) is a renaming. *) 
       using selection_renaming_invariant
       using \<rho>_ren using \<rho>_inv_p
       by auto
-        
-    also have "... = S DA' \<cdot> \<eta>'"
-      unfolding DA'_def \<eta>'_def
-      by auto
+    also have "... = S DA'' \<cdot> \<eta>''"
+      using \<rho>_inv_p
+      by (metis \<rho>_ren inv_ren_cancel_r subst_cls_comp_subst subst_cls_id_subst)
+    also have "... = S_M S M DA"
+      by (simp add: clauses'') 
     finally show "S DA' \<cdot> \<eta>' = S_M S M DA" by auto
   qed
     
@@ -933,19 +932,20 @@ lemma ord_resolve_obtain_clauses_std_apart:
     }
     then show ?thesis using n by auto
   qed
+  
   have "\<forall>i < n. S (CAi' ! i) \<cdot> \<eta>_fo = S_M S M (CAi ! i)"
   proof (rule, rule)
-    fix i (* TODO: Turn proof around*)
+    fix i
     assume "i < n"
-    have "S_M S M (CAi ! i) = (S (CAi' ! i)) \<cdot> (\<eta>s' ! i)"
-    proof -
-      have "(map (S_M S M) CAi) ! i  = ((map S CAi') \<cdot>\<cdot>cl \<eta>s') ! i"
+    have "(S (CAi' ! i)) \<cdot> \<eta>_fo = (S (CAi' ! i)) \<cdot> (\<eta>s' ! i)"
+      using S.S_selects_subseteq cai'_\<eta>_fo_sel \<open>i<n\<close> by auto
+    also have "... = S_M S M (CAi ! i)"
+          proof -
+      have "((map S CAi') \<cdot>\<cdot>cl \<eta>s') ! i = (map (S_M S M) CAi) ! i"
         using clauses' by auto
-      then show "S_M S M (CAi ! i)  = (S (CAi' ! i)) \<cdot> (\<eta>s' ! i)"
+      then show "(S (CAi' ! i)) \<cdot> (\<eta>s' ! i) = S_M S M (CAi ! i)"
         using n \<open>i < n\<close> by auto
     qed
-    also have "... = (S (CAi' ! i)) \<cdot> \<eta>_fo"
-      using S.S_selects_subseteq cai'_\<eta>_fo_sel \<open>i<n\<close> by auto
     finally show "S (CAi' ! i) \<cdot> \<eta>_fo = S_M S M (CAi ! i)"
       by auto
   qed
