@@ -553,7 +553,7 @@ thm inv_ren_cancel_l
 lemma[simp]: "is_renaming \<rho> \<Longrightarrow> C  \<cdot> \<rho> \<cdot> (inv_ren \<rho>) = C"
   by (metis inv_ren_cancel_r subst_cls_comp_subst subst_cls_id_subst)
     
-lemma[simp]: "length CC = length \<rho>s \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> CC \<cdot>\<cdot>cl \<rho>s \<cdot>\<cdot>cl (map inv_ren \<rho>s) = CC"
+lemma drdrdrdrdrdrdrdrdrdrdrdr[simp]: "length CC = length \<rho>s \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> CC \<cdot>\<cdot>cl \<rho>s \<cdot>\<cdot>cl (map inv_ren \<rho>s) = CC"
   apply (induction \<rho>s)
     unfolding is_renaming_list_def
      apply auto
