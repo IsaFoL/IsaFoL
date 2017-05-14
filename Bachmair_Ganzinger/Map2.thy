@@ -19,7 +19,9 @@ lemma map2_empty_l[simp]: "map2 f [] ys = []"
 lemma map2_empty_r[simp]: "map2 f xs [] = []"
   unfolding map2_def by auto
    
-
+lemma map2_empty_iff[simp]: "(map2 f xs ys = []) \<longleftrightarrow> (xs = [] \<or> ys = [])"
+  unfolding map2_def
+  by (metis list.exhaust list.simps(3) list.simps(9) map2_def map2_empty_l map2_empty_r zip_Cons_Cons) 
       
 lemma image_map2: "length t = length s \<Longrightarrow> 
          g ` set (map2 f t s) = set (map2 (\<lambda>a b. g (f a b)) t s)"
@@ -39,9 +41,5 @@ lemma map2_tl: "length t = length s \<Longrightarrow> (map2 f (tl t) (tl s)) = t
 lemma map2_Cons[simp]: "map2 f (x # xs) (y # ys) = f x y # map2 f xs ys"
   unfolding map2_def
     by auto
-
-
-
-    
     
 end

@@ -473,8 +473,6 @@ lemma map2_add_mset_map:
 next
   case 0 then show ?case 
     apply auto
-    unfolding subst_atm_mset_list_def
-    apply auto
     done
 qed
   
@@ -691,8 +689,8 @@ lemma ord_resolve_obtain_clauses_std_apart':
 
   have \<rho>_ren: "is_renaming \<rho>"
     using \<rho>\<rho>s_p n unfolding \<rho>_def by (metis Suc_length_conv list.sel(1) list.set_intros(1)) 
-  have \<rho>s_ren: "\<forall>\<rho>i \<in> set \<rho>s. is_renaming \<rho>i"
-    using \<rho>\<rho>s_p unfolding \<rho>s_def by (metis list.sel(2) list.set_sel(2))
+  have \<rho>s_ren: "is_renaming_list \<rho>s"
+    unfolding is_renaming_list_def using \<rho>\<rho>s_p unfolding \<rho>s_def by (metis list.sel(2) list.set_sel(2))
   have "var_disjoint ((DA'' # CAi'') \<cdot>\<cdot>cl (\<rho> # \<rho>s))"
     using \<rho>\<rho>s_p unfolding \<rho>_def \<rho>s_def by (metis length_greater_0_conv list.exhaust_sel list.simps(3))
       
@@ -719,19 +717,18 @@ lemma ord_resolve_obtain_clauses_std_apart':
   note n = \<open>length CAi' = n\<close> \<open>length \<eta>s' = n\<close> n
     
   have \<rho>_i_inv_id': "\<forall>i<n. \<rho>s ! i \<odot> \<rho>s_inv ! i = id_subst"
-    using n \<rho>s_inv_def \<rho>s_ren by auto
+    using n \<rho>s_inv_def \<rho>s_ren unfolding is_renaming_list_def by auto
   then have \<rho>_i_inv_id: "\<rho>s \<odot>s \<rho>s_inv = replicate n id_subst"
     using n \<rho>s_inv_def \<rho>s_ren by auto
   
   have CAi'_in_M: "\<forall>i < n. CAi' ! i \<in> M" (* TODO: For some reason this is not easy to change to \<forall>\<in>set *)
-    unfolding CAi'_def using \<rho>s_ren M_renaming_invariant clauses''(6) n by simp
+    unfolding CAi'_def using \<rho>s_ren M_renaming_invariant clauses''(6) n unfolding is_renaming_list_def by simp
   then have CAi'_in_M: "\<forall>CA' \<in> set CAi'. CA' \<in> M"
     using n by (metis in_set_conv_nth)
   have CAi'_CAi: "CAi' \<cdot>\<cdot>cl \<eta>s' = CAi"
     using \<open>CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi\<close>  n unfolding CAi'_def \<eta>s'_def
     apply auto 
-    apply (auto simp del: subst_cls_lists_comp_substs
-                    simp add: \<rho>_i_inv_id subst_cls_lists_comp_substs[symmetric]) (* Weird proof... *)
+    unfolding \<rho>s_inv_def using \<rho>s_ren apply (simp only: drdrdrdrdrdrdrdrdrdrdrdr) (* This is a weird proof... *)
     done
         
   have "(map S) CAi' \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi"
@@ -746,7 +743,7 @@ lemma ord_resolve_obtain_clauses_std_apart':
     have "map S (CAi') \<cdot>\<cdot>cl \<eta>s' = (map S) (((CAi'') \<cdot>\<cdot>cl (\<rho>s))) \<cdot>\<cdot>cl (\<rho>s_inv) \<cdot>\<cdot>cl \<eta>s''"
       unfolding CAi'_def \<eta>s'_def by auto
     also have "... = map S (((CAi'') \<cdot>\<cdot>cl (\<rho>s)) \<cdot>\<cdot>cl (\<rho>s_inv)) \<cdot>\<cdot>cl \<eta>s''"
-      using inv_ren_is_renaming selection_renaming_invariant n \<rho>s_ren unfolding \<rho>s_inv_def
+      using inv_ren_is_renaming selection_renaming_invariant n \<rho>s_ren unfolding \<rho>s_inv_def is_renaming_list_def
         (* since (\<rho>s_inv ! i) is a renaming. *) 
       by simp
     also have "... = map S (CAi'') \<cdot>\<cdot>cl \<eta>s''"
