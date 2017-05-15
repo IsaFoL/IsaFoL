@@ -632,6 +632,7 @@ lemma ord_resolve_obtain_clauses:
     using that DA''_in_M DA''_to_DA SDA''_to_SMDA CAi''_in_M CAi''_to_CAi SCAi''_to_SMCAi n by blast
 qed
   
+  
 lemma ord_resolve_obtain_clauses_std_apart':
   assumes resolve: "ord_resolve (S_M S M) CAi DA E" 
     and select: "selection S"
@@ -658,6 +659,12 @@ lemma ord_resolve_obtain_clauses_std_apart':
     using n by auto
   then have "n \<noteq> 0" "length Ci = n" "length Aij = n" "length Ai = n" using ord_resolve by auto
   note n = \<open>n \<noteq> 0\<close> \<open>length CAi = n\<close> \<open>length Ci = n\<close> \<open>length Aij = n\<close> \<open>length Ai = n\<close>
+    
+  have selection_renaming_list_invariant: "\<And>\<rho>s Ci. length \<rho>s = length Ci \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> map S (Ci \<cdot>\<cdot>cl \<rho>s) = (map S Ci) \<cdot>\<cdot>cl \<rho>s"
+    apply (rule nth_equalityI)
+    using selection_renaming_invariant unfolding is_renaming_list_def apply auto
+    done
+      
     
   interpret S: selection S by (rule select)
       
@@ -691,10 +698,10 @@ lemma ord_resolve_obtain_clauses_std_apart':
     using \<rho>\<rho>s_p n unfolding \<rho>_def by (metis Suc_length_conv list.sel(1) list.set_intros(1)) 
   have \<rho>s_ren: "is_renaming_list \<rho>s"
     unfolding is_renaming_list_def using \<rho>\<rho>s_p unfolding \<rho>s_def by (metis list.sel(2) list.set_sel(2))
-  have "var_disjoint ((DA'' # CAi'') \<cdot>\<cdot>cl (\<rho> # \<rho>s))"
+  have var_disj_DA''_CAi''_\<rho>_\<rho>s: "var_disjoint ((DA'' # CAi'') \<cdot>\<cdot>cl (\<rho> # \<rho>s))"
     using \<rho>\<rho>s_p unfolding \<rho>_def \<rho>s_def by (metis length_greater_0_conv list.exhaust_sel list.simps(3))
       
-  define \<rho>_inv where \<rho>_inv_p: "\<rho>_inv = inv_ren \<rho>" 
+  define \<rho>_inv where "\<rho>_inv = inv_ren \<rho>" 
   define \<rho>s_inv where "\<rho>s_inv = map inv_ren \<rho>s"
     
   have "length \<rho>s_inv = n" 
@@ -721,84 +728,41 @@ lemma ord_resolve_obtain_clauses_std_apart':
   then have \<rho>_i_inv_id: "\<rho>s \<odot>s \<rho>s_inv = replicate n id_subst"
     using n \<rho>s_inv_def \<rho>s_ren by auto
   
+  
+      
   have CAi'_in_M: "\<forall>i < n. CAi' ! i \<in> M" (* TODO: For some reason this is not easy to change to \<forall>\<in>set *)
     unfolding CAi'_def using \<rho>s_ren M_renaming_invariant clauses''(6) n unfolding is_renaming_list_def by simp
   then have CAi'_in_M: "\<forall>CA' \<in> set CAi'. CA' \<in> M"
     using n by (metis in_set_conv_nth)
   have CAi'_CAi: "CAi' \<cdot>\<cdot>cl \<eta>s' = CAi"
-    using \<open>CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi\<close>  n unfolding CAi'_def \<eta>s'_def
-    apply auto 
-    unfolding \<rho>s_inv_def using \<rho>s_ren apply (simp only: drdrdrdrdrdrdrdrdrdrdrdr) (* This is a weird proof... *)
-    done
+    unfolding CAi'_def \<eta>s'_def \<rho>s_inv_def using \<rho>s_ren \<open>CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi\<close> n by simp
         
-  have "(map S) CAi' \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi"
+  have sel_cai'_cai: "(map S) CAi' \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi"
     using \<open>(map S CAi'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAi\<close> unfolding CAi'_def \<eta>s'_def
-    using inv_ren_is_renaming selection_renaming_invariant \<rho>s_ren unfolding \<rho>s_inv_def 
-    apply auto
-      (* TODO: I need to simulate the previous proof. But if it has to work, I must lift inv_ren_is_renaming selection_renaming_invariant to map *)
-    sorry
-      
-  have sel_cai'_cai: "(map S) CAi' \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi"   
-  proof -
-    have "map S (CAi') \<cdot>\<cdot>cl \<eta>s' = (map S) (((CAi'') \<cdot>\<cdot>cl (\<rho>s))) \<cdot>\<cdot>cl (\<rho>s_inv) \<cdot>\<cdot>cl \<eta>s''"
-      unfolding CAi'_def \<eta>s'_def by auto
-    also have "... = map S (((CAi'') \<cdot>\<cdot>cl (\<rho>s)) \<cdot>\<cdot>cl (\<rho>s_inv)) \<cdot>\<cdot>cl \<eta>s''"
-      using inv_ren_is_renaming selection_renaming_invariant n \<rho>s_ren unfolding \<rho>s_inv_def is_renaming_list_def
-        (* since (\<rho>s_inv ! i) is a renaming. *) 
-      by simp
-    also have "... = map S (CAi'') \<cdot>\<cdot>cl \<eta>s''"
-      using \<rho>_i_inv_id n
-      by (auto simp del: subst_cls_lists_comp_substs
-                    simp add: \<rho>_i_inv_id subst_cls_lists_comp_substs[symmetric])
-    also have "... = map (S_M S M) CAi"
-      using \<open>(map S CAi'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAi\<close> by auto
-    finally show "(map S) CAi' \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi" by auto
-  qed
+    using inv_ren_is_renaming_list selection_renaming_list_invariant \<rho>s_ren n unfolding \<rho>s_inv_def 
+    by auto
     
   have DA'_in_M: "DA' \<in> M"
     using M_renaming_invariant unfolding DA'_def using \<rho>_ren clauses'' by auto
   have DA'_DA: "DA' \<cdot> \<eta>' = DA"
     using DA'_def \<eta>'_def \<open>DA'' \<cdot> \<eta>'' = DA\<close> subst_cls_id_subst
-    by (metis \<rho>_inv_p \<rho>_ren inv_ren_cancel_r subst_cls_comp_subst)
-  have sel_DA'_DA: "S DA' \<cdot> \<eta>' = S_M S M DA"
-  proof -
-    have "S DA' \<cdot> \<eta>' = S ((DA'' \<cdot> \<rho>) \<cdot> \<rho>_inv) \<cdot> \<eta>''"
-      unfolding DA'_def \<eta>'_def
-      using inv_ren_is_renaming selection_renaming_invariant \<rho>_ren \<rho>_inv_p
-        (* since (\<rho>s_inv ! i) is a renaming. *) 
-      by auto
-    also have "... = S DA'' \<cdot> \<eta>''"
-      using \<rho>_inv_p
-      by (metis \<rho>_ren inv_ren_cancel_r subst_cls_comp_subst subst_cls_id_subst)
-    also have "... = S_M S M DA"
-      by (simp add: clauses'') 
-    finally show "S DA' \<cdot> \<eta>' = S_M S M DA" 
-      by auto
-  qed
+    by (metis \<rho>_inv_def \<rho>_ren inv_ren_cancel_r subst_cls_comp_subst)
+  have SDA'_SMDA: "S DA' \<cdot> \<eta>' = S_M S M DA"
+    using \<open>(S DA'') \<cdot> \<eta>'' = (S_M S M) DA\<close> unfolding DA'_def \<eta>'_def
+    using inv_ren_is_renaming selection_renaming_invariant \<rho>_ren n unfolding \<rho>_inv_def 
+    by auto
     
-  have "\<forall>CA \<in> set CAi'. CA \<in> M"
+  have CAi'_in_M: "\<forall>CA \<in> set CAi'. CA \<in> M"
     using CAi'_in_M n by metis 
-  have "(map S CAi') \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi"
+  have SCAi'_SMCAi: "(map S CAi') \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi"
     using sel_cai'_cai n by auto
       
-  have "var_disjoint (DA' # CAi')"
-    using DA'_def \<open>CAi' \<equiv> CAi'' \<cdot>\<cdot>cl \<rho>s\<close> \<open>var_disjoint ((DA'' # CAi'') \<cdot>\<cdot>cl (\<rho> # \<rho>s))\<close> by auto
-      
+  have var_disj_DA'_CAi': "var_disjoint (DA' # CAi')"
+    using DA'_def CAi'_def var_disj_DA''_CAi''_\<rho>_\<rho>s by auto
       
   show ?thesis
     using that
-      \<open>length CAi' = n\<close>
-      \<open>length \<eta>s' = n\<close>
-      
-      \<open>DA' \<in> M\<close>
-      \<open>DA' \<cdot> \<eta>' = DA\<close>
-      \<open>S DA' \<cdot> \<eta>' = S_M S M DA\<close>
-      
-      \<open>\<forall>CA \<in> set CAi'. CA \<in> M\<close>
-      \<open>CAi' \<cdot>\<cdot>cl \<eta>s' = CAi\<close>
-      \<open>(map S CAi') \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi\<close>
-      
-      \<open>var_disjoint (DA' # CAi')\<close>
+      n DA'_in_M DA'_DA SDA'_SMDA CAi'_in_M CAi'_CAi SCAi'_SMCAi var_disj_DA'_CAi'
     by metis
 qed
   

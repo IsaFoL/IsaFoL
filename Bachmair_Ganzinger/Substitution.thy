@@ -542,6 +542,11 @@ lemma inv_ren_is_renaming[simp]:
   shows "is_renaming (inv_ren s)"
   using assms
   using inv_ren_cancel_l inv_ren_cancel_r is_renaming_def by blast
+    
+lemma inv_ren_is_renaming_list[simp]:
+  assumes "is_renaming_list s"
+  shows "is_renaming_list (map inv_ren s)"
+  using assms unfolding is_renaming_list_def by (induction s) auto
      
    
 thm Groups.Let_0
