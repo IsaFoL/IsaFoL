@@ -737,7 +737,7 @@ lemma ord_resolve_obtain_clauses_std_apart':
   have CAi'_CAi: "CAi' \<cdot>\<cdot>cl \<eta>s' = CAi"
     unfolding CAi'_def \<eta>s'_def \<rho>s_inv_def using \<rho>s_ren \<open>CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi\<close> n by simp
         
-  have sel_cai'_cai: "(map S) CAi' \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi"
+  have SCAi'_\<eta>s'_SMCAi: "(map S) CAi' \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi"
     using \<open>(map S CAi'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAi\<close> unfolding CAi'_def \<eta>s'_def
     using inv_ren_is_renaming_list selection_renaming_list_invariant \<rho>s_ren n unfolding \<rho>s_inv_def 
     by auto
@@ -755,7 +755,7 @@ lemma ord_resolve_obtain_clauses_std_apart':
   have CAi'_in_M: "\<forall>CA \<in> set CAi'. CA \<in> M"
     using CAi'_in_M n by metis 
   have SCAi'_SMCAi: "(map S CAi') \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi"
-    using sel_cai'_cai n by auto
+    using SCAi'_\<eta>s'_SMCAi n by auto
       
   have var_disj_DA'_CAi': "var_disjoint (DA' # CAi')"
     using DA'_def CAi'_def var_disj_DA''_CAi''_\<rho>_\<rho>s by auto
@@ -814,127 +814,71 @@ lemma ord_resolve_obtain_clauses_std_apart:
       
   note n = \<open>length CAi' = n\<close> \<open>length \<eta>s' = n\<close> n
     
-  from clauses' have "var_disjoint ((DA' # CAi'))"
+    (* Obtain FO substitution that replaces (\<eta>' # \<eta>s') *)
+  from clauses' have var_disj_DA'_CAi': "var_disjoint ((DA' # CAi'))"
     by auto
   then obtain \<eta>_fo where \<eta>_p: "(\<forall>i<Suc n. \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> (\<eta>' # \<eta>s') ! i = S \<cdot> \<eta>_fo)" unfolding var_disjoint_def
-    using n
-    by (metis length_Cons) 
-  then have DA'_\<eta>_fo_sel: "\<forall>S. S \<subseteq># DA' \<longrightarrow> S \<cdot> \<eta>' = S \<cdot> \<eta>_fo" 
-    by auto
-  then have DA'_\<eta>: "DA' \<cdot> \<eta>' = DA' \<cdot> \<eta>_fo" by auto
-      
-  from \<eta>_p have cai'_\<eta>_fo_sel: "\<forall>i<n. \<forall>S. S \<subseteq># (CAi') ! i \<longrightarrow> S \<cdot> \<eta>s' ! i = S \<cdot> \<eta>_fo" 
-    by auto
-  then have cai'_\<eta>_fo: "\<forall>i < n. (CAi' ! i) \<cdot> (\<eta>s' ! i) = (CAi'! i) \<cdot> \<eta>_fo"
+    using n by (metis length_Cons) 
+  from \<eta>_p have DA'_\<eta>_fo_sel: "(S DA') \<cdot> \<eta>' = (S DA') \<cdot> \<eta>_fo" 
+    using S.S_selects_subseteq by auto
+  from \<eta>_p have DA'_\<eta>: "DA' \<cdot> \<eta>' = DA' \<cdot> \<eta>_fo" 
     by auto
       
-  have "\<forall>i < n. CAi' ! i \<in> M" using clauses' by auto
-  have "CAi' \<cdot>cl \<eta>_fo = CAi"
-  proof -
-    {
-      fix i
-      assume "i<n"
-      then have "(CAi' \<cdot>cl \<eta>_fo) ! i = CAi ! i" using n(1-2) clauses' cai'_\<eta>_fo by auto
-    }
-    then show ?thesis using n by auto
-  qed
+  from \<eta>_p have "\<forall>i<n. (S ((CAi') ! i)) \<cdot> \<eta>s' ! i = (S ((CAi') ! i)) \<cdot> \<eta>_fo" 
+    using S.S_selects_subseteq by auto
+  then have cai'_\<eta>_fo_sel: "(map S CAi') \<cdot>\<cdot>cl \<eta>s' = (map S CAi') \<cdot>cl \<eta>_fo"
+    using n by auto
+  from \<eta>_p have "\<forall>i < n. (CAi' ! i) \<cdot> (\<eta>s' ! i) = (CAi'! i) \<cdot> \<eta>_fo"
+    by auto
+  then have cai'_\<eta>_fo: "CAi' \<cdot>\<cdot>cl \<eta>s' = CAi' \<cdot>cl \<eta>_fo"
+    using n by auto
+      
+  have CAi'_in_M: "\<forall>i < n. CAi' ! i \<in> M" using clauses' by auto
+  have CAi'_\<eta>_fo_CAi: "CAi' \<cdot>cl \<eta>_fo = CAi"
+    using clauses' cai'_\<eta>_fo by auto
   
-  have "\<forall>i < n. S (CAi' ! i) \<cdot> \<eta>_fo = S_M S M (CAi ! i)"
-  proof (rule, rule)
-    fix i
-    assume "i < n"
-    have "(S (CAi' ! i)) \<cdot> \<eta>_fo = (S (CAi' ! i)) \<cdot> (\<eta>s' ! i)"
-      using S.S_selects_subseteq cai'_\<eta>_fo_sel \<open>i<n\<close> by auto
-    also have "... = S_M S M (CAi ! i)"
-          proof -
-      have "((map S CAi') \<cdot>\<cdot>cl \<eta>s') ! i = (map (S_M S M) CAi) ! i"
-        using clauses' by auto
-      then show "(S (CAi' ! i)) \<cdot> (\<eta>s' ! i) = S_M S M (CAi ! i)"
-        using n \<open>i < n\<close> by auto
-    qed
-    finally show "S (CAi' ! i) \<cdot> \<eta>_fo = S_M S M (CAi ! i)"
-      by auto
-  qed
+  have SCAi'_\<eta>_fo_SMCAi: "(map S CAi') \<cdot>cl \<eta>_fo = map (S_M S M) CAi"
+    using cai'_\<eta>_fo_sel clauses' by auto
     
   have "DA' \<in> M" using clauses' by auto
   have "DA' \<cdot> \<eta>_fo = DA" using DA'_\<eta>
     using clauses' by auto 
   have "S DA' \<cdot> \<eta>_fo = S_M S M DA"
-  proof -
-    have "S_M S M DA = S DA' \<cdot> \<eta>'"
-      using clauses' by auto
-    also have "... = S DA' \<cdot> \<eta>_fo"
-      using S.S_selects_subseteq DA'_\<eta>_fo_sel by auto
-    finally show ?thesis by auto
-  qed
-    
-  have "(map S CAi') \<cdot>cl \<eta>_fo = map (S_M S M) CAi"
-  proof -
-    have "\<forall>i < n. S (CAi' ! i) \<cdot> \<eta>_fo =  S_M S M (CAi ! i)"
-      using \<open>\<forall>i < n. S (CAi' ! i) \<cdot> \<eta>_fo = S_M S M (CAi ! i)\<close> by -
-    then have "\<forall>i < n. ((map S CAi') \<cdot>cl \<eta>_fo) ! i =  (map (S_M S M) CAi) ! i"
-      using n by auto
-    then show "(map S CAi') \<cdot>cl \<eta>_fo = map (S_M S M) CAi" using n by auto
-  qed
+   using clauses' DA'_\<eta>_fo_sel by auto
     
     (* Obtain ground substitution *)
     
   obtain \<eta> where \<eta>_p: "is_ground_subst \<eta> \<and> (\<forall>i<length (DA' # CAi'). \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> \<eta>_fo = S \<cdot> \<eta>)"
     using make_ground_subst[of "DA' # CAi'" \<eta>_fo] grounding \<open>CAi' \<cdot>cl \<eta>_fo = CAi\<close> \<open>DA' \<cdot> \<eta>_fo = DA\<close> grounding_ground by metis
-                                                                                             
+      
+  from \<eta>_p have DA'_\<eta>_fo_sel: "(S DA') \<cdot> \<eta>_fo = (S DA') \<cdot> \<eta>" 
+    using S.S_selects_subseteq by auto
+  from \<eta>_p have DA'_\<eta>: "DA' \<cdot> \<eta>_fo = DA' \<cdot> \<eta>" 
+    by auto
+      
+  from \<eta>_p have "\<forall>i<n. (S ((CAi') ! i)) \<cdot> \<eta>_fo = (S ((CAi') ! i)) \<cdot> \<eta>" 
+    using n S.S_selects_subseteq by auto
+  then have cai'_\<eta>_fo_sel: "(map S CAi') \<cdot>cl \<eta>_fo = (map S CAi') \<cdot>cl \<eta>"
+    using n by auto
+  from \<eta>_p have "\<forall>i < n. (CAi' ! i) \<cdot> (\<eta>_fo) = (CAi'! i) \<cdot> \<eta>"
+    using n by auto
+  then have cai'_\<eta>_fo: "CAi' \<cdot>cl \<eta>_fo = CAi' \<cdot>cl \<eta>"
+    using n by auto
       
   have "\<forall>i < n. CAi' ! i \<in> M" using clauses' n by auto
-  have "CAi' \<cdot>cl \<eta> = CAi"
-  proof -
-    {
-      fix i
-      assume "i<n"
-      then have "(CAi' \<cdot>cl \<eta>_fo) ! i = CAi ! i" using \<open>CAi' \<cdot>cl \<eta>_fo = CAi\<close> by auto
-      then have "(CAi' \<cdot>cl \<eta>) ! i = CAi ! i" using n \<eta>_p \<open>i<n\<close> by auto
-    }
-    then show ?thesis using n by auto
-  qed
-  have "\<forall>i < n. S (CAi' ! i) \<cdot> \<eta> = S_M S M (CAi ! i)"
-  proof -
-    {
-      fix i
-      assume "i<n"
-      have "S (CAi' ! i) \<cdot> \<eta>_fo = S_M S M (CAi ! i)"
-      proof -
-        have "map S CAi' \<cdot>cl \<eta>_fo = map (S_M S M) CAi"
-          using \<open>map S CAi' \<cdot>cl \<eta>_fo = map (S_M S M) CAi\<close> .
-        then have "(map S CAi' \<cdot>cl \<eta>_fo) ! i = (map (S_M S M) CAi) ! i" by auto
-        then have "((map S CAi') \<cdot>cl \<eta>_fo) ! i = S_M S M (CAi ! i)" using n \<open>i<n\<close> by auto
-        then show "S (CAi' ! i) \<cdot> \<eta>_fo = S_M S M (CAi ! i)" using n \<open>i<n\<close> by auto
-      qed
-      then have "S (CAi' ! i) \<cdot> \<eta> = S_M S M (CAi ! i)" using n \<eta>_p \<open>i<n\<close> S.S_selects_subseteq by auto
-    }
-    then show ?thesis using n by auto
-  qed
+  have CAi'_CAi: "CAi' \<cdot>cl \<eta> = CAi"
+    using cai'_\<eta>_fo CAi'_\<eta>_fo_CAi by simp
+      
+  have SCAi'_SMCAi: "map S (CAi') \<cdot>cl \<eta> = map (S_M S M) CAi"
+    using cai'_\<eta>_fo_sel SCAi'_\<eta>_fo_SMCAi by auto
     
-  have "DA' \<in> M" using clauses' by auto
-  have "DA' \<cdot> \<eta> = DA" using \<open>DA' \<cdot> \<eta>_fo = DA\<close> \<eta>_p by auto
-  have "S DA' \<cdot> \<eta> = S_M S M DA"
+  have DA'_in_M: "DA' \<in> M" using clauses' by auto
+  have DA'_DA: "DA' \<cdot> \<eta> = DA" using \<open>DA' \<cdot> \<eta>_fo = DA\<close> \<eta>_p by auto
+  have SDA'_SMDA: "S DA' \<cdot> \<eta> = S_M S M DA"
     using \<open>S DA' \<cdot> \<eta>_fo = S_M S M DA\<close> using \<eta>_p S.S_selects_subseteq by auto
-  have prime_clauses_10: "is_ground_subst \<eta>" using \<eta>_p by auto
-      
-  have "(map S CAi') \<cdot>cl \<eta> = map (S_M S M) CAi"
-    using \<open>\<forall>i < n. S (CAi' ! i) \<cdot> \<eta> = S_M S M (CAi ! i)\<close>
-      n by auto
-      
+
   show ?thesis using that
-      \<open>DA' \<in> M\<close>                                              
-      \<open>DA' \<cdot> \<eta> = DA\<close>
-      \<open>S DA' \<cdot> \<eta> = S_M S M DA\<close>
-      
-      \<open>\<forall>CA \<in> set CAi'. CA \<in> M\<close>
-      \<open>CAi' \<cdot>cl \<eta> = CAi\<close>
-      \<open>(map S CAi') \<cdot>cl \<eta> = map (S_M S M) CAi\<close>
-      
-      \<open>is_ground_subst \<eta>\<close>
-      \<open>var_disjoint (DA' # CAi')\<close>
-      n
-    by auto  
+      DA'_in_M  DA'_DA SDA'_SMDA clauses' CAi'_CAi SCAi'_SMCAi \<eta>_p var_disj_DA'_CAi' n by auto  
 qed
   
 lemma ord_resolve_lifting: 
