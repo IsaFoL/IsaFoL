@@ -2558,34 +2558,38 @@ lemma (in -)same_mset_no_dup_iff:
   \<open>mset M = mset M' \<Longrightarrow> no_dup M \<longleftrightarrow> no_dup M'\<close>
   by (auto simp: no_dup_def same_mset_distinct_iff)
 
-lemma backtrack_no_decomp:
-  assumes
-    S: "conflicting S = Some (add_mset L E)" and
-    L: "get_level (trail S) L = backtrack_lvl S" and
-    D: "get_maximum_level (trail S) E < backtrack_lvl S" and
-    bt: "backtrack_lvl S = get_maximum_level (trail S) (add_mset L E)" and
+lemma backtrack\<^sub>W_rule:
+  assumes 
+    confl: \<open>conflicting S = Some (add_mset L D)\<close> and
+    decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))\<close> and
+    lev_L: \<open>get_level (trail S) L = backtrack_lvl S\<close> and
+    max_lev: \<open>get_level (trail S) L = get_maximum_level (trail S) (add_mset L D)\<close> and
+    max_D: \<open>get_maximum_level (trail S) D \<equiv> i\<close> and
+    lev_K: \<open>get_level (trail S) K = i + 1\<close> and
+    T: \<open>T \<sim> cons_trail (Propagated L (add_mset L D))
+        (reduce_trail_to M1
+          (add_learned_cls (add_mset L D)
+            (update_conflicting None S)))\<close> and
     lev_inv: "cdcl\<^sub>W_M_level_inv S" and
     conf: \<open>cdcl\<^sub>W_conflicting S\<close> and
     learned: \<open>cdcl\<^sub>W_learned_clause S\<close>
-  shows "\<exists>S'. cdcl\<^sub>W_o S S'" "\<exists>S'. backtrack S S'"
-proof -
-  have L_D: "get_level (trail S) L = get_maximum_level (trail S) (add_mset L E)"
-    using L D bt by (simp add: get_maximum_level_plus)
-  let ?i = "get_maximum_level (trail S) E"
-  let ?D = \<open>add_mset L E\<close>
-  obtain K M1 M2 where
-    K: "(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))" and
-    lev_K: "get_level (trail S) K = Suc ?i"
-    using backtrack_ex_decomp[OF lev_inv, of ?i] D S by auto
+  shows \<open>backtrack S T\<close>
+  using confl decomp lev_L max_lev max_D lev_K
+proof (rule backtrack_rule)
+  let ?i = "get_maximum_level (trail S) D"
+  let ?D = \<open>add_mset L D\<close>
+  show \<open>D \<subseteq># D\<close>
+    by simp
   obtain M3 where
     M3: \<open>trail S = M3 @ M2 @ Decided K # M1\<close>
-    using K by auto
+    using decomp by auto
   have trail_S_D: \<open>trail S \<Turnstile>as CNot ?D\<close>
-    using conf S unfolding cdcl\<^sub>W_conflicting_def by auto
-  then have atms_E_M1: \<open>atms_of E \<subseteq> atm_of ` lits_of_l M1\<close>
-    using backtrack_atms_of_D_in_M1[OF lev_inv _ K bt, of ?i ?D
-      \<open>cons_trail (Propagated L ?D) (reduce_trail_to M1 (add_learned_cls ?D (update_conflicting None S)))\<close>]
-    S lev_K K
+    using conf confl unfolding cdcl\<^sub>W_conflicting_def by auto
+  then have atms_E_M1: \<open>atms_of D \<subseteq> atm_of ` lits_of_l M1\<close>
+    using backtrack_atms_of_D_in_M1[OF lev_inv _ decomp, of D ?i L ?D 
+      \<open>cons_trail (Propagated L ?D) (reduce_trail_to M1 (add_learned_cls ?D (update_conflicting None S)))\<close>
+      \<open>Propagated L (add_mset L D)\<close>]
+    conf lev_K decomp max_lev lev_L confl T max_D
     by auto
   have n_d: \<open>no_dup (M3 @ M2 @ Decided K # M1)\<close>
     using lev_inv no_dup_rev[of \<open>rev M1 @ rev M2 @ rev M3\<close>, unfolded rev_append]
@@ -2593,10 +2597,11 @@ proof -
   then have n_d': \<open>no_dup (M3 @ M2 @ M1)\<close>
     by auto
   have atm_L_M1: \<open>atm_of L \<notin> atm_of ` lits_of_l M1\<close>
-    using L n_d defined_lit_no_dupD(2-3)[of M1 L M3 M2] count_decided_ge_get_level[of \<open>Decided K # M1\<close> L]
-    unfolding bt M3
+    using lev_L n_d defined_lit_no_dupD(2-3)[of M1 L M3 M2] count_decided_ge_get_level[of \<open>Decided K # M1\<close> L]
+    unfolding M3
     by (auto simp: atm_of_eq_atm_of Decided_Propagated_in_iff_in_lits_of_l get_level_cons_if split: if_splits)
-  have \<open>La \<noteq> L\<close>\<open>- La \<notin> lits_of_l M3\<close> \<open>- La \<notin> lits_of_l M2\<close> \<open>-La \<noteq>K\<close> if \<open>La\<in>#E\<close> for La
+
+  have \<open>La \<noteq> L\<close>\<open>- La \<notin> lits_of_l M3\<close> \<open>- La \<notin> lits_of_l M2\<close> \<open>-La \<noteq>K\<close> if \<open>La\<in>#D\<close> for La
   proof -
     have \<open>-La \<in> lits_of_l (trail S)\<close>
       using trail_S_D that by (auto simp: true_annots_true_cls_def_iff_negation_in_model
@@ -2614,15 +2619,40 @@ proof -
       by (auto simp: M3 Decided_Propagated_in_iff_in_lits_of_l atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
   qed
 
-  then have M1_E: \<open>M1 \<Turnstile>as CNot E\<close>
+  then show M1_E: \<open>M1 \<Turnstile>as CNot D\<close>
     using M3 trail_S_D by (auto simp: true_annots_true_cls_def_iff_negation_in_model
         dest!: get_all_ann_decomposition_exists_prepend)
-  show "\<exists>S'. cdcl\<^sub>W_o S S'" and "\<exists>S'. backtrack S S'"
-    using backtrack_rule[OF S K, of E ?i \<open>cons_trail (Propagated L (add_mset L E))
-           (reduce_trail_to M1
-             (add_learned_cls (add_mset L E)
-               (update_conflicting None S)))\<close>] bt L lev_K bj learned M1_E S
-    unfolding cdcl\<^sub>W_learned_clause_def by (auto simp: cdcl\<^sub>W_bj.simps)
+   
+  show \<open>clauses S \<Turnstile>pm add_mset L D\<close>
+    using cdcl\<^sub>W_learned_clause_def confl learned by blast
+      
+  show \<open>T \<sim> cons_trail (Propagated L (add_mset L D)) (reduce_trail_to M1 (add_learned_cls (add_mset L D) (update_conflicting None S)))\<close>
+    using T by blast
+qed
+  
+lemma backtrack_no_decomp:
+  assumes
+    S: "conflicting S = Some (add_mset L E)" and
+    L: "get_level (trail S) L = backtrack_lvl S" and
+    D: "get_maximum_level (trail S) E < backtrack_lvl S" and
+    bt: "backtrack_lvl S = get_maximum_level (trail S) (add_mset L E)" and
+    lev_inv: "cdcl\<^sub>W_M_level_inv S" and
+    conf: \<open>cdcl\<^sub>W_conflicting S\<close> and
+    learned: \<open>cdcl\<^sub>W_learned_clause S\<close>
+  shows "\<exists>S'. cdcl\<^sub>W_o S S'" "\<exists>S'. backtrack S S'"
+proof -
+  have L_D: "get_level (trail S) L = get_maximum_level (trail S) (add_mset L E)"
+    using L D bt by (simp add: get_maximum_level_plus)
+  let ?i = "get_maximum_level (trail S) E"
+  let ?D = \<open>add_mset L E\<close>
+  obtain K M1 M2 where
+    K: "(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))" and
+    lev_K: "get_level (trail S) K = ?i + 1"
+    using backtrack_ex_decomp[OF lev_inv, of ?i] D S by auto
+  show \<open>Ex (backtrack S)\<close>
+    using backtrack\<^sub>W_rule[OF S K L L_D _ lev_K] lev_inv conf learned by auto
+  then show \<open>Ex (cdcl\<^sub>W_o S)\<close>
+    using bj by (auto simp: cdcl\<^sub>W_bj.simps)
 qed
 
 
@@ -2677,7 +2707,7 @@ proof -
     ultimately have "get_level (hd (trail S) # M') L = get_level (tl ?M) L"
       using cdcl\<^sub>W_M_level_inv_decomp(1)[OF level_inv] M unfolding consistent_interp_def
       by (simp add: atm_of_eq_atm_of L' M'[symmetric])
-    moreover{
+    moreover {
       have "count_decided (trail S) = ?k"
         using level_inv unfolding cdcl\<^sub>W_M_level_inv_def by auto
       then have count: "count_decided M' = ?k - 1"
