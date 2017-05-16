@@ -454,11 +454,13 @@ lemma do_resolve_step_no:
     simp: get_maximum_level_map_convert[symmetric] count_decided_def)
 
 lemma rough_state_of_state_of_resolve[simp]:
-  "cdcl\<^sub>W_all_struct_inv (toS S) \<Longrightarrow> rough_state_of (state_of (do_resolve_step S)) = do_resolve_step S"
+  "cdcl\<^sub>W_all_struct_inv (toS S) \<Longrightarrow>
+    rough_state_of (state_of (do_resolve_step S)) = do_resolve_step S"
   apply (rule state_of_inverse)
   apply (cases "do_resolve_step S = S")
-   apply simp
-  by (blast dest: other resolve bj do_resolve_step cdcl\<^sub>W_all_struct_inv_inv)
+   apply (simp; fail)
+  by (metis (mono_tags, lifting) bj cdcl\<^sub>W_all_struct_inv_inv do_resolve_step mem_Collect_eq other
+        resolve)
 
 lemma do_resolve_step_raw_trail_is_None[iff]:
   "do_resolve_step S = (a, b, c, None) \<longleftrightarrow> S = (a, b, c, None)"
@@ -584,26 +586,19 @@ proof (rule ccontr, cases S, cases "raw_conflicting S", goal_cases)
   then show ?case using db by (auto split: option.splits elim: backtrackE)
 next
   case (2 M N U E C) note bt = this(1) and S = this(2) and confl = this(3)
-(*   have \<open>conflict_is_false_with_level (toS S)\<close>
-    sorry
-  then have \<open>C = [] \<or> Ex(backtrack (toS S))\<close>
-    using conflicting_no_false_can_do_step[of \<open>toS S\<close> \<open>mset C\<close>] inv confl ns
-    unfolding S
-    by (cases C) (auto simp: cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_stgy.simps conflict.simps propagate.simps
-        cdcl\<^sub>W_o.simps decide.simps cdcl\<^sub>W_bj.simps) *)
-      
-  obtain K j M1 M2 L D D' where
+  have E: "E = Some C" using S confl by auto
+  obtain T' where \<open>simple_backtrack (toS S) T'\<close>
+    using no_analyse_backtrack_Ex_simple_backtrack[of \<open>toS S\<close>]
+      bt inv ns unfolding cdcl\<^sub>W_all_struct_inv_def by meson
+  then obtain K j M1 M2 L D where
     CE: "map_option mset (raw_conflicting S) = Some (add_mset L D)" and
     decomp: "(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (raw_trail S))" and
     levL: "get_level (raw_trail S) L =  count_decided (raw_trail (toS S))" and
-    k: "get_level (raw_trail S) L = get_maximum_level (raw_trail S) (add_mset L D')" and
-    j: "get_maximum_level (raw_trail S) D' \<equiv> j" and
-    lev_K: "get_level (raw_trail S) K = Suc j" and
-    DD': \<open>D' \<subseteq># D\<close> and
-    \<open>M1 \<Turnstile>as CNot D'\<close> and
-    \<open>clauses (toS S) \<Turnstile>pm add_mset L D'\<close>
-    using bt apply clarsimp
-    apply (elim backtrackE)
+    k: "get_level (raw_trail S) L = get_maximum_level (raw_trail S) (add_mset L D)" and
+    j: "get_maximum_level (raw_trail S) D \<equiv> j" and
+    lev_K: "get_level (raw_trail S) K = Suc j"
+    apply clarsimp
+    apply (elim simple_backtrackE)
     apply (cases S)
     by (auto simp add: get_all_ann_decomposition_map_convert reduce_trail_to
       Decided_convert_iff)
@@ -613,72 +608,34 @@ next
     using inv S unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
     by (auto simp: comp_def)
   then have "count_decided (raw_trail (toS S)) > j"
-    using j count_decided_ge_get_maximum_level[of "raw_trail S" "D'"]
+    using j count_decided_ge_get_maximum_level[of "raw_trail S" "D"]
     count_decided_ge_get_level[of "raw_trail S" K] decomp lev_K
     unfolding k S by (auto simp: get_all_ann_decomposition_map_convert)
-
-  then have max_D_le_M: \<open>get_maximum_level M D' < count_decided M\<close>
-    unfolding j[symmetric] S by auto
-
-  have CD: "mset C = add_mset L D"
+  have CD: "mset C =  add_mset L D"
     using CE confl by auto
-  have M_ne_nil: \<open>M \<noteq> []\<close>
-    using c S by auto
-
-  have \<open>-lit_of (hd M) \<in># add_mset L D\<close> if \<open>is_proped (hd M)\<close>
-    using ns(1) S confl CD M_ne_nil that
-      skip_rule[of \<open>toS S\<close> \<open>lit_of (hd M)\<close> \<open>mset (mark_of (hd M))\<close> \<open>tl (map convert M)\<close> \<open>add_mset L D\<close>
-        \<open>raw_tl_trail (toS S)\<close>]
-    by (cases M; cases \<open>hd M\<close>) (auto elim!: rulesE simp: S 
-        simp del: get_maximum_level_map_convert)
-  moreover have \<open>lit_of (hd M) \<in># mset (mark_of (hd M))\<close>if \<open>is_proped (hd M)\<close>
-    
-    sorry
-  ultimately have \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) (add_mset L D)) \<noteq> count_decided M\<close> if \<open>is_proped (hd M)\<close>
-    using ns(2) S confl CD M_ne_nil that
-      resolve_rule[of \<open>toS S\<close> \<open>lit_of (hd M)\<close> \<open>mset (mark_of (hd M))\<close> \<open>add_mset L D\<close>
-        \<open>raw_update_conflicting (Some (remove1_mset (- lit_of (hd M)) (add_mset L D) \<union>#
-              (mset (mark_of (hd M)) - unmark (hd M)))) (raw_tl_trail (toS S))\<close>]
-    by (cases M; cases \<open>hd M\<close>) (auto elim!: rulesE simp: S  get_maximum_level_map_convert[symmetric]
-        simp del: get_maximum_level_map_convert)
-  
-  
-      oops
-  moreover have \<open>lit_of (hd M) = L\<close> if \<open>is_proped (hd M)\<close>
-    using ns(2) S confl CD M_ne_nil that
-    apply (cases M; cases \<open>hd M\<close>)
-       apply (auto elim!: rulesE simp: S skip.simps resolve.simps 
-        simp del: get_maximum_level_map_convert)
-    sorry
-  then have \<open>get_maximum_level M D < count_decided M\<close> if \<open>is_proped (hd M)\<close>
-    using ns(2) that S confl count_decided_ge_get_maximum_level[of M D] CD
-    apply (cases M; cases \<open>hd M\<close>)
-       apply (auto elim!: rulesE simp: S skip.simps resolve.simps 
-        get_maximum_level_map_convert[symmetric]
-        simp del: get_maximum_level_map_convert)
-      try0
-   thm    find_level_decomp_none
+  then have L_C: \<open>L \<in> set C\<close>
+    using set_mset_mset by fastforce
   have "find_level_decomp M C [] (count_decided (raw_trail (toS S))) \<noteq> None"
     apply rule
     apply (drule find_level_decomp_none[of _ _ _ _ L \<open>remove1 L C\<close>])
-    using DD' \<open>count_decided (raw_trail (toS S)) > j\<close> mset_eq_setD S levL max_D_le_M
-    unfolding k[symmetric] j[symmetric]
-     apply (auto simp: ac_simps CD)
-    by (smt CD add_mset_remove_trivial diff_single_trivial in_multiset_in_set multi_self_add_other_not_self)
+    using L_C CD \<open>count_decided (raw_trail (toS S)) > j\<close> mset_eq_setD S levL unfolding k[symmetric] j[symmetric]
+    by (auto simp: ac_simps)
+
   then obtain L' j' where fd_some: "find_level_decomp M C [] (count_decided (raw_trail (toS S))) = Some (L', j')"
     by (cases "find_level_decomp M C [] (count_decided (raw_trail (toS S)))") auto
   have L': "L' = L"
   proof (rule ccontr)
     assume "\<not> ?thesis"
     then have "L' \<in># D"
-      by (metis CD fd_some find_level_decomp_some insert_iff set_mset_add_mset_insert set_mset_mset)
+      using fd_some find_level_decomp_some set_mset_mset
+      by (metis CD insert_iff set_mset_add_mset_insert)
     then have "get_level M L' \<le> get_maximum_level M D"
       using get_maximum_level_ge_get_level by blast
-    then show False 
-      using \<open>count_decided (raw_trail (toS S)) > j\<close> j find_level_decomp_some[OF fd_some] S DD' CD
-        max_D_le_M by auto
+    then show False
+      using \<open>count_decided (raw_trail (toS S)) > j\<close> j
+        find_level_decomp_some[OF fd_some] S by auto
   qed
-  then have j': "j' = j" using find_level_decomp_some[OF fd_some] j S DD' by auto
+  then have j': "j' = j" using find_level_decomp_some[OF fd_some] j S CD by auto
 
   obtain c' M1' where cM: "M = c' @ Decided K # M1'"
     apply (rule map_mmset_of_mlit_eq_cons[of M "map convert (c @ M2)"

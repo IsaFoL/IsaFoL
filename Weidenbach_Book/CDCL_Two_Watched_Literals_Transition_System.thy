@@ -2531,16 +2531,18 @@ next
   show ?case
     apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.bj)
     apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.backtrack)
-    apply (rule cdcl\<^sub>W_restart_mset.backtrack_rule)
-          apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
-         apply simp
-        using decomp apply (simp add: trail.simps; fail)
-        using lev_L apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
-       using lev_L apply (simp add: cdcl\<^sub>W_restart_mset_state get_maximum_level_add_mset; fail)
-      apply (simp; fail)
-     using lev_K apply (simp add: trail.simps; fail)
-    using decomp unfolding state_eq_def state_def prod.inject
-    by (simp_all add: cdcl\<^sub>W_restart_mset_state)
+    apply (rule cdcl\<^sub>W_restart_mset.simple_backtrack_backtrack)
+       apply (rule cdcl\<^sub>W_restart_mset.simple_backtrack_rule)
+              apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+             apply simp
+            using decomp apply (simp add: trail.simps; fail)
+           using lev_L apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+          using lev_L apply (simp add: cdcl\<^sub>W_restart_mset_state get_maximum_level_add_mset; fail)
+         apply (simp; fail)
+        using lev_K apply (simp add: trail.simps; fail)
+       using decomp unfolding state_eq_def state_def prod.inject
+       apply (simp add: cdcl\<^sub>W_restart_mset_state)
+      using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
 next
   case (backtrack_nonunit_clause L D K M1 M2 M i L' N U NP UP) note LD = this(1) and decomp = this(2) and
   lev_L = this(3) and max_lev = this(4) and i = this(5) and lev_K = this(6) and L' = this(8-9) and
@@ -2570,19 +2572,24 @@ next
     using L' lev_L lev_K count_decided_ge_get_level[of M K] by auto
   then have D: \<open>add_mset L (add_mset L' (D - {#L, L'#})) = D\<close>
     using L' LD by (metis add_mset_diff_bothsides diff_single_eq_union insert_noteq_member mset_add)
+  have D': \<open>remove1_mset L D = add_mset L' (D - {#L, L'#})\<close>
+    by (subst D[symmetric]) auto
   show ?case
+    apply (subst D[symmetric])
     apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.bj)
     apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.backtrack)
-    apply (rule cdcl\<^sub>W_restart_mset.backtrack_rule)
-          apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
-         using LD apply simp
-        using decomp apply (simp add: trail.simps; fail)
-        using lev_L apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
-       using max_lev apply (simp add: cdcl\<^sub>W_restart_mset_state get_maximum_level_add_mset; fail)
-      apply (simp; fail)
-     using lev_K i apply (simp add: trail.simps; fail)
-     using decomp unfolding state_eq_def state_def prod.inject
-     using i lev_K count_M1 by (simp_all add: cdcl\<^sub>W_restart_mset_state D)
+    apply (rule cdcl\<^sub>W_restart_mset.simple_backtrack_backtrack)
+       apply (rule cdcl\<^sub>W_restart_mset.simple_backtrack_rule)
+             apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+            using LD apply simp
+           using decomp apply (simp add: trail.simps; fail)
+          using lev_L apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
+         using max_lev D apply (simp add: cdcl\<^sub>W_restart_mset_state get_maximum_level_add_mset; fail)
+        apply (simp; fail)
+       using lev_K i unfolding D' apply (simp add: trail.simps; fail)
+      using decomp unfolding state_eq_def state_def prod.inject
+     using i lev_K count_M1 apply (simp add: cdcl\<^sub>W_restart_mset_state D; fail)
+    using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def D by fast+
 qed
 
 lemma cdcl_twl_cp_cdcl\<^sub>W_stgy:
@@ -4137,7 +4144,7 @@ next
     qed
   qed
 next
-  case (backtrack_nonunit_clause L D K M1 M2 M i L' N U NP UP) note decomp = this(2) and 
+  case (backtrack_nonunit_clause L D K M1 M2 M i L' N U NP UP) note decomp = this(2) and
     lev_L_M = this(3) and lev_K = this(6) and twl = this(10)
   let ?S = \<open>(M, N, U, Some D, NP, UP, {#}, {#})\<close>
   let ?T = \<open>(Propagated L D # M1, N, add_mset (TWL_Clause {#L, L'#} (D - {#L, L'#})) U, None, NP, UP, {#}, {#-L#})\<close>
@@ -4482,28 +4489,28 @@ proof (rule ccontr)
       using cdcl_twl_o.resolve[of L D E M' N U NP UP] M L_E ns_o max_lvl uL_D confl unfolding S
       by (auto simp: cdcl\<^sub>W_restart_mset_state)
   next
-    case (backtrack L C K i M1 M2 T) note confl = this(1) and L_C = this(2) and decomp = this(3) and
-    lev_L_bt = this(4) and lev_L = this(5) and i = this(6) and lev_K = this(7)
+    case (backtrack L C K i M1 M2 T) note confl = this(1) and decomp = this(2) and
+    lev_L_bt = this(3) and lev_L = this(4) and i = this(5) and lev_K = this(6) and D'_C = this(7)
     show ?thesis
-    proof (cases \<open>C = {#L#}\<close>)
+    proof (cases \<open>C = {#}\<close>)
       case True
       show ?thesis
         using cdcl_twl_o.backtrack_unit_clause[of K M1 M2 M L N U NP UP]
-        decomp True lev_L_bt lev_L i lev_K ns_o confl unfolding S
+        decomp True lev_L_bt lev_L i lev_K ns_o confl backtrack unfolding S
         by (auto simp: cdcl\<^sub>W_restart_mset_state)
     next
       case False
-      then have \<open>remove1_mset L C \<noteq> {#}\<close>
-        by (simp add: L_C diff_single_eq_union)
-      then obtain L' where
+      then (* obtain L' where
         L'_C: \<open>L' \<in># C\<close> and lev_L': \<open>get_level M L' = i\<close>
         using i get_maximum_level_exists_lit_of_max_level[of \<open>remove1_mset L C\<close> M]
-        by (auto simp: cdcl\<^sub>W_restart_mset_state S dest: in_diffD)
+        by (auto simp: cdcl\<^sub>W_restart_mset_state S dest: in_diffD) *)
 
       show ?thesis
-        using cdcl_twl_o.backtrack_nonunit_clause[of L C K M1 M2 M i L' N U NP UP]
-        using L_C decomp lev_L_bt lev_L i lev_K False L'_C lev_L' ns_o confl
-        by (auto simp: cdcl\<^sub>W_restart_mset_state S dest: in_diffD)
+        using cdcl_twl_o.backtrack_nonunit_clause[of L \<open>add_mset L C\<close> K M1 M2 M i L N U NP UP]
+        using decomp lev_L_bt lev_L i lev_K False (* L'_C *) (* lev_L' *) ns_o confl backtrack
+        apply (auto simp: cdcl\<^sub>W_restart_mset_state S dest: in_diffD)
+
+        sorry
     qed
   qed
 qed
