@@ -282,6 +282,27 @@ lemma subst_cls_negs[simp]: "(negs AA) \<cdot> \<sigma> = negs (AA \<cdot>am \<s
 
 lemma subst_cls_poss[simp]: "(poss AA) \<cdot> \<sigma> = poss (AA \<cdot>am \<sigma>)"
   unfolding subst_cls_def subst_lit_def subst_atm_mset_def by auto
+    
+lemma atms_of_subst_atms: "atms_of C \<cdot>as \<sigma> = atms_of (C \<cdot> \<sigma>)"
+proof -
+  have "atms_of (C \<cdot> \<sigma>) = atm_of ` set_mset (image_mset (map_literal (\<lambda>A. A \<cdot>a \<sigma>)) C)" unfolding subst_cls_def subst_atms_def subst_lit_def atms_of_def by auto
+  also have "... = set_mset (image_mset atm_of (image_mset (map_literal (\<lambda>A. A \<cdot>a \<sigma>)) C))"
+    by auto
+  also have "... = set_mset (image_mset ((\<lambda>A. A \<cdot>a \<sigma>)) (image_mset atm_of C))"
+    apply (rule arg_cong[of _ _ set_mset])
+    apply auto
+    apply (meson literal.map_sel(1) literal.map_sel(2))
+    done
+  also have "... =  (image ((\<lambda>A. A \<cdot>a \<sigma>)) (set_mset (image_mset atm_of C)))"
+    by auto
+  also have "... =  (image ((\<lambda>A. A \<cdot>a \<sigma>)) ((image atm_of (set_mset C))))"
+    by auto
+  also have "... =  atms_of C \<cdot>as \<sigma>"
+    unfolding subst_atms_def  atms_of_def by auto
+  finally
+  show "atms_of C \<cdot>as \<sigma> = atms_of (C \<cdot> \<sigma>)"
+    by auto
+qed
 
 subsubsection {* Substitute on empty *}
     
