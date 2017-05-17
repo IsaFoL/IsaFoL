@@ -722,6 +722,9 @@ total_over_mm I B\<close>
 lemma \<open>A + B \<Turnstile>ps C \<longleftrightarrow> A \<union># B \<Turnstile>ps C\<close>
   unfolding true_clss_clss_def
   by auto
+    
+lemma subset_insert_msetI2: "A \<subseteq># B \<Longrightarrow> A \<subseteq># add_mset b B"
+  by (metis add_mset_remove_trivial diff_subset_eq_self subset_mset.inf.absorb_iff2 subset_mset.inf.coboundedI1)
 
 (* S2MS modif*)
 lemma all_decomposition_implies_trail_is_implied:
@@ -766,7 +769,7 @@ next
         Ls0: \<open>get_all_ann_decomposition M = (Ls0, seen0) # get_all_ann_decomposition M'\<close> and
         length': \<open>length (get_all_ann_decomposition M') = n\<close> and
         M'_in_M: \<open>mset M' \<subseteq># mset M\<close>
-        using length by (induct M rule: ann_lit_list_induct) (auto simp: subset_insertI2)
+        using length by (induct M rule: ann_lit_list_induct) (auto simp: subset_insert_msetI2)
       let ?d = \<open>\<Union>#(image_mset mset (image_mset snd (mset (get_all_ann_decomposition M'))))\<close>
       let ?unM = \<open>{#unmark L |L\<in># mset M. is_decided L#}\<close>
       let ?unM' = \<open>{#unmark L |L\<in># mset M'. is_decided L#}\<close>
@@ -787,10 +790,10 @@ next
           using IH length' by auto
         have \<open>?unM' \<subseteq># ?unM\<close> using M'_in_M multiset_filter_mono[of \<open>mset M'\<close> \<open>mset M\<close> is_decided] 
             image_mset_subseteq_mono by auto
-        then have l: \<open>N \<union># ?unM' \<subseteq># N \<union># ?unM\<close>
+        then have l: \<open>N + ?unM' \<subseteq># N + ?unM\<close>
           using mset_union_inclusion[of ?unM' ?unM N] by auto         
         from true_clss_clss_subset[OF this N]
-        have \<Psi>N: \<open>N \<union># ?unM \<Turnstile>ps unmark_m ?d\<close> by auto
+        have \<Psi>N: \<open>N + ?unM \<Turnstile>ps unmark_m ?d\<close> .
         have \<open>is_decided (hd Ls0)\<close> and LS: \<open>tl Ls0 = seen1 @ Ls1\<close>
           using get_all_ann_decomposition_hd_hd[of M] unfolding Ls0 Ls1 by auto
 
