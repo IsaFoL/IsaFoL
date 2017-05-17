@@ -133,6 +133,8 @@ inductive cdcl_twl_o :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" w
     \<open>get_maximum_level M (D - {#L#}) \<equiv> i\<close> and
     \<open>get_level M K = i + 1\<close>
     \<open>D \<noteq> {#L#}\<close> and
+    \<open>D' \<subseteq># D\<close> and
+    \<open>N + U \<Turnstile>as D'\<close>
     \<open>L' \<in># D\<close> and \<comment> \<open>\<^term>\<open>L'\<close> is the new watched literal\<close>
     \<open>get_level M L' = i\<close>
 
