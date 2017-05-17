@@ -576,7 +576,6 @@ backtrack_rule: "
   get_level (trail S) K = i + 1 \<Longrightarrow>
   D' \<subseteq># D \<Longrightarrow>
   clauses S \<Turnstile>pm add_mset L D' \<Longrightarrow>
-  M1 \<Turnstile>as CNot D' \<Longrightarrow>
   T \<sim> cons_trail (Propagated L (add_mset L D'))
         (reduce_trail_to M1
           (add_learned_cls (add_mset L D')
@@ -799,7 +798,7 @@ lemma cdcl\<^sub>W_restart_all_induct[consumes 1, case_names propagate conflict 
       get_maximum_level (trail S) D' \<equiv> i \<Longrightarrow>
       get_level (trail S) K = i+1 \<Longrightarrow>
       D' \<subseteq># D \<Longrightarrow>
-      M1 \<Turnstile>as CNot D' \<Longrightarrow>
+(*       M1 \<Turnstile>as CNot D' \<Longrightarrow> *)
       clauses S \<Turnstile>pm add_mset L D' \<Longrightarrow>
       T \<sim> cons_trail (Propagated L (add_mset L D'))
             (reduce_trail_to M1
@@ -870,7 +869,7 @@ lemma cdcl\<^sub>W_o_induct[consumes 1, case_names decide skip resolve backtrack
       get_maximum_level (trail S) D' \<equiv> i \<Longrightarrow>
       get_level (trail S) K = i+1 \<Longrightarrow>
       D' \<subseteq># D \<Longrightarrow>
-      M1 \<Turnstile>as CNot D' \<Longrightarrow>
+(*       M1 \<Turnstile>as CNot D' \<Longrightarrow> *)
       clauses S \<Turnstile>pm add_mset L D' \<Longrightarrow>
       T \<sim> cons_trail (Propagated L (add_mset L D'))
             (reduce_trail_to M1
@@ -952,10 +951,10 @@ lemma cdcl\<^sub>W_restart_distinctinv_1:
     "cdcl\<^sub>W_restart S S'" and
     n_d: "no_dup (trail S)"
   shows "no_dup (trail S')"
-  using assms
+  using assms(1)
 proof (induct rule: cdcl\<^sub>W_restart_all_induct)
   case (backtrack L D K i M1 M2 T D') note decomp = this(2) and L = this(3) and lev_K = this(6) and
-    T = this(10)
+    T = this(9)
   obtain c where Mc: "trail S = c @ M2 @ Decided K # M1"
     using decomp by auto
   have "no_dup (M2 @ Decided K # M1)"
@@ -964,7 +963,7 @@ proof (induct rule: cdcl\<^sub>W_restart_all_induct)
     using backtrack_lit_skiped[of S L K M1 M2 i] L decomp lev_K n_d
     unfolding defined_lit_map lits_of_def by fast
   ultimately show ?case using decomp T n_d by (auto dest: no_dup_appendD)
-qed auto
+qed (use n_d in auto)
 
 text \<open>\cwref{prop:prop:cdclconsis}{Item 1 page 81}\<close>
 lemma cdcl\<^sub>W_restart_consistent_inv_2:
@@ -1111,7 +1110,6 @@ proof -
     max_D: "get_maximum_level (trail S) D' \<equiv> i" and
     lev_K: "get_level (trail S) K = Suc i" and
     D'_D: \<open>D' \<subseteq># D\<close> and
-    M1_CNot_D: \<open>M1 \<Turnstile>as CNot D'\<close> and
     NU_DL: \<open>clauses S \<Turnstile>pm add_mset L D'\<close> and
     T: "T \<sim> cons_trail (Propagated L (add_mset L D'))
                 (reduce_trail_to M1
@@ -1143,7 +1141,6 @@ proof -
     subgoal using lev_K TT' SS' by auto
     subgoal by (rule D'_D)
     subgoal using NU_DL TT' SS' by auto
-    subgoal by (rule M1_CNot_D)
     subgoal by (rule T')
     done
 qed
@@ -1389,7 +1386,7 @@ lemma cdcl\<^sub>W_restart_learned_clss:
   using assms(1)
 proof (induct rule: cdcl\<^sub>W_restart_all_induct)
   case (backtrack L D K i M1 M2 T D') note decomp = this(2) and confl = this(1) and lev_K = this (6)
-    and T = this(10)
+    and T = this(9)
   show ?case
     using decomp learned confl T unfolding cdcl\<^sub>W_learned_clause_def
     by (auto dest!: get_all_ann_decomposition_exists_prepend)
@@ -1517,7 +1514,7 @@ lemma cdcl\<^sub>W_restart_no_strange_atm_explicit:
     atms_of_mm (learned_clss S') \<subseteq> atms_of_mm (init_clss S') \<and>
     atm_of ` (lits_of_l (trail S')) \<subseteq> atms_of_mm (init_clss S')"
     (is "?C S' \<and> ?M S' \<and> ?U S' \<and> ?V S'")
-  using assms(1,2)
+  using assms(1)
 proof (induct rule: cdcl\<^sub>W_restart_all_induct)
   case (propagate C L T) note confl = this(1) and C_L = this(2) and tr = this(3) and undef = this(4)
   and T = this(5)
@@ -1567,7 +1564,7 @@ next
    done
 next
   case (backtrack L D K i M1 M2 T D') note confl = this(1) and decomp = this(2) and
-    lev_K = this(6) and D_D' = this(7) and M1_D' = this(8) and T = this(10)
+    lev_K = this(6) and D_D' = this(7) and M1_D' = this(8) and T = this(9)
   have "?C T"
     using conf T decomp lev lev_K by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
   moreover have "set M1 \<subseteq> set (trail S)"
@@ -1802,7 +1799,7 @@ lemma cdcl\<^sub>W_restart_propagate_is_conclusion:
     confl: "\<forall>T. conflicting S = Some T \<longrightarrow> trail S \<Turnstile>as CNot T" and
     alien: "no_strange_atm S"
   shows "all_decomposition_implies_m (clauses S') (get_all_ann_decomposition (trail S'))"
-  using assms(1,2)
+  using assms(1)
 proof (induct rule: cdcl\<^sub>W_restart_all_induct)
   case restart
   then show ?case by auto
@@ -1889,8 +1886,8 @@ next
     using M unm_ay ay by auto
 next
   case (backtrack L D K i M1 M2 T D') note conf = this(1) and decomp' = this(2) and
-    lev_L = this(3) and lev_K = this(6) and D_D' = this(7) and M1_D' = this(8) and NU_LD' = this(9)
-    and T = this(10)
+    lev_L = this(3) and lev_K = this(6) and D_D' = this(7) and NU_LD' = this(8)
+    and T = this(9)
   let ?D' = "remove1_mset L D"
   have "\<forall>l \<in> set M2. \<not>is_decided l"
     using get_all_ann_decomposition_snd_not_decided decomp' by blast
@@ -1943,8 +1940,9 @@ next
       have "trail S \<Turnstile>as CNot D"
         using conf confl unfolding M true_annots_true_cls_def_iff_negation_in_model
         by (auto dest!: in_diffD)
+      then have "trail S \<Turnstile>as CNot D'"
+        using D_D' unfolding true_annots_true_cls_def_iff_negation_in_model by auto
       then have "M1 \<Turnstile>as CNot D'"
-        using M1_D'
         using true_annots_remove_if_notin_vars[of "M0 @ M2 @ Decided K # []" M1 "CNot D'"]
         vars_in_M1 conf confl unfolding M lits_of_def by simp
       have "M1 = M1'' @ M1'" by (simp add: M1 get_all_ann_decomposition_decomp)
@@ -1952,8 +1950,7 @@ next
         using true_annots_true_clss_cls[OF \<open>M1 \<Turnstile>as CNot D'\<close>] true_clss_clss_left_right[OF 1]
         unfolding \<open>M1 = M1'' @ M1'\<close> by (auto simp add: inf_sup_aci(5,7))
       have T': "unmark_l M1' \<union> set_mset (clauses S) \<Turnstile>p ?D'" using NU_LD' by auto
-      moreover
-        have "unmark_l M1' \<union> set_mset (clauses S) \<Turnstile>p {#L#}"
+      moreover have "unmark_l M1' \<union> set_mset (clauses S) \<Turnstile>p {#L#}"
           using true_clss_cls_plus_CNot[OF T' TT] by auto
       ultimately show ?thesis
         using T' T decomp' inv 1 unfolding x' by (simp add: cdcl\<^sub>W_M_level_inv_decomp)
@@ -1971,7 +1968,7 @@ lemma cdcl\<^sub>W_restart_propagate_is_false:
     alien: "no_strange_atm S" and
     mark_confl: "every_mark_is_a_conflict S"
   shows "every_mark_is_a_conflict S'"
-  using assms(1,2)
+  using assms(1)
 proof (induct rule: cdcl\<^sub>W_restart_all_induct)
   case (propagate C L T) note LC = this(3) and confl = this(4) and undef = this(5) and T = this(6)
   show ?case
@@ -2027,7 +2024,7 @@ next
   then show ?case using mark_confl by auto
 next
   case (backtrack L D K i M1 M2 T D') note conf = this(1) and decomp = this(2) and
-    lev_K = this(6) and DD' = this(7) and M1_D' = this(8) and T = this(10)
+    lev_K = this(6) and D_D' = this(7) and M1_D' = this(8) and T = this(9)
   have "\<forall>l \<in> set M2. \<not>is_decided l"
     using get_all_ann_decomposition_snd_not_decided decomp by blast
   obtain M0 where M: "trail S = M0 @ M2 @ Decided K # M1"
@@ -2036,6 +2033,24 @@ next
     using decomp lev by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
   let ?D = "add_mset L D"
   let ?D' = "add_mset L D'"
+    (* TODO this should be shared *)
+  have vars_of_D: "atms_of D' \<subseteq> atm_of ` lits_of_l M1"
+    using backtrack_atms_of_D_in_M1[of S D' \<open>i\<close> K M1 M2 L \<open>add_mset L D\<close> T \<open>Propagated L (add_mset L D')\<close>]
+      backtrack.hyps lev conf confl atms_of_subset_mset_mono[OF D_D'] D_D'
+    by (auto simp: cdcl\<^sub>W_M_level_inv_decomp subset_mset_trans_add_mset)
+  have "no_dup (trail S)" using lev by (auto simp: cdcl\<^sub>W_M_level_inv_decomp)
+  then have vars_in_M1: "\<forall>x \<in> atms_of D'. x \<notin> atm_of ` lits_of_l (M0 @ M2 @ Decided K # [])"
+    using vars_of_D distinct_atms_of_incl_not_in_other[of "M0 @M2 @ Decided K # []" M1]
+    unfolding M by auto
+  have "trail S \<Turnstile>as CNot D"
+    using conf confl unfolding M true_annots_true_cls_def_iff_negation_in_model
+    by (auto dest!: in_diffD)
+  then have "trail S \<Turnstile>as CNot D'"
+    using D_D' unfolding true_annots_true_cls_def_iff_negation_in_model by auto
+  then have M1_D': "M1 \<Turnstile>as CNot D'"
+    using true_annots_remove_if_notin_vars[of "M0 @ M2 @ Decided K # []" M1 "CNot D'"]
+      vars_in_M1 conf confl unfolding M lits_of_def by simp
+  (* end shared *)
   show ?case
   proof (intro allI impI)
     fix La :: "'v literal" and mark :: "'v clause" and a b :: "('v, 'v clause) ann_lits"
@@ -2636,10 +2651,6 @@ proof (rule backtrack_rule)
       by (auto simp: M3 Decided_Propagated_in_iff_in_lits_of_l atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
   qed
 
-  then show M1_E: \<open>M1 \<Turnstile>as CNot D\<close>
-    using M3 trail_S_D by (auto simp: true_annots_true_cls_def_iff_negation_in_model
-        dest!: get_all_ann_decomposition_exists_prepend)
-
   show \<open>clauses S \<Turnstile>pm add_mset L D\<close>
     using cdcl\<^sub>W_learned_clause_def confl learned by blast
 
@@ -2701,7 +2712,6 @@ proof -
     max_D: "get_maximum_level (trail S) D' \<equiv> i" and
     lev_K: "get_level (trail S) K = Suc i" and
     D'_D: \<open>D' \<subseteq># D\<close> and
-    M1_CNot_D: \<open>M1 \<Turnstile>as CNot D'\<close> and
     NU_DL: \<open>clauses S \<Turnstile>pm add_mset L D'\<close> and
     T: "T \<sim> cons_trail (Propagated L (add_mset L D'))
                 (reduce_trail_to M1
@@ -3723,7 +3733,7 @@ next
   then show ?case using smaller max_lev unfolding no_smaller_confl_def by auto
 next
   case (backtrack L D K i M1 M2 T D') note confl = this(1) and decomp = this(2) and
-    T = this(10)
+    T = this(9)
   obtain c where M: "trail S = c @ M2 @ Decided K # M1"
     using decomp by auto
 
@@ -3754,7 +3764,7 @@ next
           by auto
         moreover
         have "backtrack S ?S'"
-          using backtrack_rule[OF backtrack.hyps(1-7,9,8) T] backtrack_state_eq_compatible[of S T S] T
+          using backtrack_rule[OF backtrack.hyps(1-8) T] backtrack_state_eq_compatible[of S T S] T
           by force
         then have "cdcl\<^sub>W_M_level_inv ?S'"
           using cdcl\<^sub>W_restart_consistent_inv[OF _ lev] other[OF bj]
@@ -4313,7 +4323,6 @@ next
     i: "get_maximum_level (trail S) D' \<equiv> i" and
     lev_K: "get_level (trail S) K = i + 1" and
     D_D': \<open>D' \<subseteq># D\<close> and
-    M1_D': \<open>M1 \<Turnstile>as CNot D'\<close> and
     T: "T \<sim> cons_trail (Propagated L (add_mset L D'))
         (reduce_trail_to M1
           (add_learned_cls (add_mset L D')
