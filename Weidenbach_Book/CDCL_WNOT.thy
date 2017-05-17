@@ -363,7 +363,6 @@ next
                     (add_learned_cls (add_mset L D')
                       (update_conflicting None T')))" and
       D_D': \<open>D' \<subseteq># D\<close> and
-      M1_D': \<open>M1 \<Turnstile>as CNot D'\<close> and
       T'_L_D': \<open>clauses T' \<Turnstile>pm add_mset L D'\<close>
       using bt by (auto elim: backtrackE)
     let ?D' = \<open>add_mset L D'\<close>
@@ -1167,15 +1166,14 @@ proof -
     M1 M2 :: "('v, 'v clause) ann_lit list" and i :: nat where
     confl_D: "conflicting U = Some (add_mset L D)" and
     decomp: "(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail U))" and
-    "get_level (trail U) L = backtrack_lvl U" and
-    "get_level (trail U) L = get_maximum_level (trail U) (add_mset L D')" and
+    lev_L_U: "get_level (trail U) L = backtrack_lvl U" and
+    max_D_L_U: "get_level (trail U) L = get_maximum_level (trail U) (add_mset L D')" and
     i: "get_maximum_level (trail U) D' \<equiv> i" and
-    "get_level (trail U) K = i + 1" and
+    lev_K_U: "get_level (trail U) K = i + 1" and
     V: "V \<sim> cons_trail (Propagated L (add_mset L D'))
         (reduce_trail_to M1
           (add_learned_cls (add_mset L D')
             (update_conflicting None U)))" and
-    M1_D': \<open>M1 \<Turnstile>as CNot D'\<close> and
     U_L_D': \<open>clauses U \<Turnstile>pm add_mset L D'\<close> and
     D_D': \<open>D' \<subseteq># D\<close>
     using bt by (auto elim!: rulesE)
@@ -1222,6 +1220,11 @@ proof -
       \<open>L \<notin># D'\<close> V T
     by (auto)
 
+  have M1_D': "M1 \<Turnstile>as CNot D'"
+    using backtrack_M1_CNot_D'[of U D' \<open>i\<close> K M1 M2 L \<open>add_mset L D\<close> V \<open>Propagated L (add_mset L D')\<close>]
+      inv_U  confl_D decomp lev_L_U max_D_L_U i lev_K_U V U_L_D' D_D'
+    unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def
+    by (auto simp: subset_mset_trans_add_mset)
   show ?thesis
     apply (rule cdcl\<^sub>W_with_strategy.backjump_l.intros[of S _ K
           "convert_trail_from_W M1" _ L _ C D'])
@@ -1233,7 +1236,7 @@ proof -
         using atm_L apply (simp; fail)
        using U_L_D' init_clss_VU_S apply (simp add: clauses_def; fail)
       apply (simp; fail)
-     using M1_D' apply (simp; fail)
+     using M1_D' apply (simp; fail)   
     using bj \<open>distinct_mset ?D'\<close> \<open>\<not> tautology ?D'\<close> by auto
 qed
 

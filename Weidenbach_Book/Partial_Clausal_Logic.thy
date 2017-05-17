@@ -658,7 +658,12 @@ proof (intro allI HOL.impI)
   ultimately show "I \<Turnstile> \<chi>'" unfolding true_cls_def by auto
 qed
 
+lemma not_tautology_mono: \<open>D' \<subseteq># D \<Longrightarrow> \<not>tautology D \<Longrightarrow> \<not>tautology D'\<close>
+  by (meson tautology_imp_tautology true_cls_add_mset true_cls_mono_leD)
+
+
 subsubsection \<open>Entailment for clauses and propositions\<close>
+
 text \<open>We also need entailment of clauses by other clauses.\<close>
 definition true_cls_cls :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>f" 49) where
 "\<psi> \<Turnstile>f \<chi> \<longleftrightarrow> (\<forall>I. total_over_m I ({\<psi>} \<union> {\<chi>}) \<longrightarrow> consistent_interp I \<longrightarrow> I \<Turnstile> \<psi> \<longrightarrow> I \<Turnstile> \<chi>)"

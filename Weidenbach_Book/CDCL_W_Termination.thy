@@ -27,16 +27,15 @@ proof (rule ccontr)
     M1 M2 :: "('v, 'v clause) ann_lit list" and i :: nat and D D' where
     confl_S: "conflicting S = Some (add_mset L D)" and
     decomp: "(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))" and
-    "get_level (trail S) L = backtrack_lvl S" and
-    "get_level (trail S) L = get_maximum_level (trail S) (add_mset L D')" and
+    lev_L: "get_level (trail S) L = backtrack_lvl S" and
+    max_D_L: "get_level (trail S) L = get_maximum_level (trail S) (add_mset L D')" and
     i: "get_maximum_level (trail S) D' \<equiv> i" and
-    "get_level (trail S) K = i + 1" and
+    lev_K: "get_level (trail S) K = i + 1" and
     T: "T \<sim> cons_trail (Propagated L (add_mset L D'))
         (reduce_trail_to M1
           (add_learned_cls (add_mset L D')
             (update_conflicting None S)))" and
     D_D': \<open>D' \<subseteq># D\<close> and
-    M1_D': \<open>M1 \<Turnstile>as CNot D'\<close> and
     \<open>clauses S \<Turnstile>pm add_mset L D'\<close>
     using cdcl confl by (auto elim!: rulesE)
   have E_L_D: \<open>E = add_mset L D\<close>
@@ -47,6 +46,11 @@ proof (rule ccontr)
     using cdcl cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv inv W_other backtrack bj
       cdcl\<^sub>W_all_struct_inv_inv cdcl\<^sub>W_cdcl\<^sub>W_restart by blast
 
+  have M1_D': "M1 \<Turnstile>as CNot D'"
+    using backtrack_M1_CNot_D'[of S D' \<open>i\<close> K M1 M2 L \<open>add_mset L D\<close> T \<open>Propagated L (add_mset L D')\<close>]
+      confl inv confl_S decomp i T D_D' lev_K lev_L max_D_L
+    unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def
+    by (auto simp: subset_mset_trans_add_mset)
   have \<open>undefined_lit M1 L\<close>
     using inv_T T decomp unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
     by (auto simp: defined_lit_map)
@@ -161,7 +165,7 @@ lemma cdcl\<^sub>W_restart_measure_decreasing:
     no_dup: "distinct_cdcl\<^sub>W_state S" and
     confl: "cdcl\<^sub>W_conflicting S"
   shows "(cdcl\<^sub>W_restart_measure S', cdcl\<^sub>W_restart_measure S) \<in> lexn less_than 3"
-  using assms(1) M_level assms(2,3)
+  using assms(1) assms(2,3)
 proof (induct rule: cdcl\<^sub>W_restart_all_induct)
   case (propagate C L) note conf = this(1) and undef = this(5) and T = this(6)
   have propa: "propagate S (cons_trail (Propagated L C) S)"
@@ -215,10 +219,10 @@ next
   then show ?case using finite by (simp add: lexn3_conv)
 next
   case (backtrack L D K i M1 M2 T D') note conf = this(1) and decomp = this(3) and D_D' = this(7) and
-    T = this(10) and lev = this(9)
+    T = this(9)
   let ?D' = \<open>add_mset L D'\<close>
   have bt: "backtrack S T"
-    using backtrack_rule[OF backtrack.hyps(1-7,9,8,10)] by auto
+    using backtrack_rule[OF backtrack.hyps] by auto
   have "?D' \<notin># learned_clss S"
     using no_relearn[OF bt] conf T by auto
   then have card_T:
@@ -252,7 +256,7 @@ next
   case restart
   then show ?case using alien by auto
 next
-  case (forget C T) note no_forget = this(10)
+  case (forget C T) note no_forget = this(9)
   then have "C \<in># learned_clss S" and "C \<notin># learned_clss T"
     using forget.hyps by auto
   then have "\<not> learned_clss S \<subseteq># learned_clss T"

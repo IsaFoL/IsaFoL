@@ -228,8 +228,7 @@ next
                   (add_learned_cls (add_mset L D')
                     (update_conflicting None V)))" and
     D_D': \<open>D' \<subseteq># D\<close> and
-    NU_D': \<open>clauses V \<Turnstile>pm add_mset L D'\<close> and
-    M1_D': \<open>M1 \<Turnstile>as CNot D'\<close>
+    NU_D': \<open>clauses V \<Turnstile>pm add_mset L D'\<close>
     using bt inv by (elim backtrackE) metis
   obtain L' C' M E where
     tr: "trail T = Propagated L' C' # M" and
@@ -319,7 +318,6 @@ next
     subgoal using lev_k tr unfolding MV[symmetric] by (auto; fail)[]
     subgoal using D_D' by (simp; fail)
     subgoal using NU_D' V_T by (simp; fail)
-    subgoal using M1_D' by (simp; fail)
     subgoal using W_S lev_k by (auto; fail)[]
     done
   then show ?thesis using IH inv by blast
@@ -349,8 +347,7 @@ proof -
                   (add_learned_cls (add_mset L D')
                     (update_conflicting None S)))" and
     D_D': \<open>D' \<subseteq># D\<close> and
-    NU_D': \<open>clauses S \<Turnstile>pm add_mset L D'\<close> and
-    M1_D': \<open>M1 \<Turnstile>as CNot D'\<close>
+    NU_D': \<open>clauses S \<Turnstile>pm add_mset L D'\<close>
     using bt by (elim backtrackE) metis
   let ?D = "add_mset L D"
   let ?D' = "add_mset L D'"
@@ -438,7 +435,6 @@ proof -
     subgoal using lev_K unfolding M\<^sub>T[symmetric] clss_S_T by auto
     subgoal using D_D' .
     subgoal using NU_D' unfolding clss_S_T .
-    subgoal using M1_D' .
     subgoal using W unfolding i'[symmetric] by auto
     done
 qed
