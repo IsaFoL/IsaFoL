@@ -282,6 +282,10 @@ next
     using Cons[of 0] Cons by (auto simp: nth_Cons drop_Cons H mset_case_Suc *)
 qed
 
+lemma last_list_update_to_last:
+  \<open>last (xs[x := last xs]) = last xs\<close>
+  by (metis last_list_update list_update.simps(1))
+
 
 subsection \<open>Lexicographic Ordering\<close>
 
@@ -546,9 +550,13 @@ lemma mset_butlast_remove1_mset: \<open>xs \<noteq> [] \<Longrightarrow> mset (b
   apply (simp only: mset_append)
   by auto
 
-lemma last_list_update_to_last:
-  \<open>last (xs[x := last xs]) = last xs\<close>
-  by (metis last_list_update list_update.simps(1))
+lemma distinct_mset_mono: \<open>D' \<subseteq># D \<Longrightarrow> distinct_mset D \<Longrightarrow> distinct_mset D'\<close>
+  by (metis distinct_mset_union subset_mset.le_iff_add)
+
+lemma subset_mset_trans_add_mset:
+  \<open>D \<subseteq># D' \<Longrightarrow> D \<subseteq># add_mset L D'\<close>
+  by (metis add_mset_remove_trivial diff_subset_eq_self subset_mset.dual_order.trans)
+
 
 subsection \<open>Sorting\<close>
 
