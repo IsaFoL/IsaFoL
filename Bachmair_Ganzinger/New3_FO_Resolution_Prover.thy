@@ -542,8 +542,6 @@ lemma map2_add_mset_map:
 next
   case 0 then show ?case 
     apply auto
-    unfolding subst_atm_mset_list_def
-    apply auto
     done
 qed
     
