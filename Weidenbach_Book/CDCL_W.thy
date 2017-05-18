@@ -878,11 +878,12 @@ lemma cdcl\<^sub>W_o_induct[consumes 1, case_names decide skip resolve backtrack
        P S T"
   shows "P S T"
   using cdcl\<^sub>W_restart apply (induct T rule: cdcl\<^sub>W_o.induct)
-   using assms(2) apply (auto elim: decideE)[1]
-  apply (elim cdcl\<^sub>W_bjE skipE resolveE backtrackE)
+  subgoal using assms(2) by (auto elim: decideE; fail)
+  subgoal apply (elim cdcl\<^sub>W_bjE skipE resolveE backtrackE)
     apply (frule skipH; simp; fail)
     apply (cases "trail S"; auto elim!: resolveE intro!: resolveH; fail)
-  apply (frule backtrackH; simp; fail)
+    apply (frule backtrackH; simp; fail)
+    done
   done
 
 lemma cdcl\<^sub>W_o_all_rules_induct[consumes 1, case_names decide backtrack skip resolve]:
