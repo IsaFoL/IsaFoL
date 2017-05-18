@@ -83,6 +83,11 @@ abbreviation unmark_l where
 abbreviation unmark_lm where
 \<open>unmark_lm M \<equiv> image_mset unmark (mset M)\<close>
 
+(* S2MS *)
+lemma atms_of_ms_lambda_lit_of_ms_is_atm_of_lit_of[simp]:
+  \<open>atms_of_mms (unmark_m M') = atm_of ` lit_of `(set_mset M')\<close>
+  unfolding atms_of_mms_def by auto 
+
 lemma atms_of_ms_lambda_lit_of_is_atm_of_lit_of[simp]:
   \<open>atms_of_ms (unmark_l M') = atm_of ` lits_of_l M'\<close>
   unfolding atms_of_ms_def lits_of_def by auto
@@ -671,6 +676,42 @@ next
   qed
 qed
 
+(* S2MS *)
+lemma get_all_ann_decomposition_snd_mset_add:
+  shows \<open>mset M = \<Union>#image_mset mset (image_mset snd (mset
+(get_all_ann_decomposition M))) +
+         {#L| L \<in># mset M. (is_decided L)#}\<close>
+    (is \<open>?M M = ?U M + ?Ls M\<close>)
+proof (induct M rule: ann_lit_list_induct)
+  case Nil
+  then show ?case by simp
+next
+  case (Decided L M') note IH = this(1)
+  then have \<open>?Ls (Decided L # M') = {#Decided L#} + {#L| L \<in># mset M'.
+(is_decided L)#}\<close>
+    by auto
+  moreover have \<open>?U (Decided L # M') = ?U M'\<close> by auto
+  moreover have \<open>?M M' = ?U M' + ?Ls M'\<close> using IH Decided.prems by auto
+  ultimately show ?case
+    apply (cases \<open>Decided L \<in>#  \<Union>#{#mset (snd x). x \<in># mset (get_all_ann_decomposition M')#}\<close>)
+     by auto
+next
+  case (Propagated L m M)
+  then show ?case
+  proof (cases \<open>(get_all_ann_decomposition M)\<close>)
+    case Nil
+    then show ?thesis by auto
+  next
+    case (Cons a list)
+    then have \<open>{u. is_decided u \<and> (u = Propagated L m \<or> u \<in> set M)} = {u. is_decided u \<and> u \<in> set M}\<close>
+      by auto
+    then show ?thesis using Propagated.prems Propagated
+      apply (cases \<open>get_all_ann_decomposition M\<close>)
+       apply auto
+      done
+  qed
+qed
+  
 (* S2MS modif *)
 definition all_decomposition_implies :: \<open>'a clause multiset
   \<Rightarrow> (('a, 'm) ann_lits \<times> ('a, 'm) ann_lits) list \<Rightarrow> bool\<close> where
@@ -719,13 +760,41 @@ total_over_mm I B\<close>
   by auto
 
 (* S2MS *)
-lemma \<open>A + B \<Turnstile>ps C \<longleftrightarrow> A \<union># B \<Turnstile>ps C\<close>
+lemma add_union_entail_iff: \<open>A + B \<Turnstile>ps C \<longleftrightarrow> A \<union># B \<Turnstile>ps C\<close>
   unfolding true_clss_clss_def
   by auto
     
+(* S2MS *)    
 lemma subset_insert_msetI2: "A \<subseteq># B \<Longrightarrow> A \<subseteq># add_mset b B"
   by (metis add_mset_remove_trivial diff_subset_eq_self subset_mset.inf.absorb_iff2 subset_mset.inf.coboundedI1)
 
+(*S2MS*)
+lemma union_add_entailed_equiv: \<open>A \<Turnstile>ps B \<union># C \<longleftrightarrow> A \<Turnstile>ps B + C\<close>
+  by (simp add: true_clss_clss_def)
+    
+(* S2MS modif *)
+lemma true_clss_clss_union_and_add:
+  "A \<Turnstile>ps C + D \<longleftrightarrow> (A \<Turnstile>ps C \<and> A \<Turnstile>ps D)" 
+  using  union_add_entailed_equiv true_clss_clss_union_and by auto
+    
+(* S2MS *)
+lemma entail_add_mset: \<open>A \<Turnstile>ps B \<Longrightarrow> A \<Turnstile>ps C \<Longrightarrow> A \<Turnstile>ps B + C\<close>
+  using union_add_entailed_equiv by auto
+    
+(* S2MS *)
+lemma add_entail_added: \<open>A + B \<Turnstile>ps B\<close>
+  by (simp add: true_clss_clss_def)
+   
+(* S2MS *)
+lemma subset_apply_unmark_filter_decided: 
+  \<open>mset A \<subseteq># mset B \<Longrightarrow> 
+  unmark_m (filter_mset is_decided (mset A)) \<subseteq># unmark_m (filter_mset is_decided (mset B))\<close>
+  using image_mset_subseteq_mono multiset_filter_mono[of \<open>mset A\<close> \<open>mset B\<close> is_decided] by auto
+    
+(* S2MS *)
+lemma entailed_add_mset: \<open>A \<Turnstile>ps B \<Longrightarrow> A \<Turnstile>p b \<Longrightarrow> A \<Turnstile>ps add_mset b B\<close>
+  using entail_add_mset by force
+      
 (* S2MS modif*)
 lemma all_decomposition_implies_trail_is_implied:
   assumes \<open>all_decomposition_implies N (get_all_ann_decomposition M)\<close>
@@ -798,38 +867,41 @@ next
           using get_all_ann_decomposition_hd_hd[of M] unfolding Ls0 Ls1 by auto
 
         have LSM: \<open>seen1 @ Ls1 = M'\<close> using get_all_ann_decomposition_decomp[of M'] Ls1 by auto
-        have M': \<open>mset M' = ?d \<union># {#L |L\<in># mset M'. is_decided L#}\<close>
-          using get_all_ann_decomposition_snd_mset_union by auto
+        have M': \<open>mset M' = ?d + {#L |L\<in># mset M'. is_decided L#}\<close>
+          using get_all_ann_decomposition_snd_mset_add by auto
 
         {
           assume \<open>Ls0 \<noteq> []\<close>
           then have \<open>hd Ls0 \<in> set M\<close>
             using get_all_ann_decomposition_fst_empty_or_hd_in_M Ls0 by blast
-          then have \<open>N \<union># ?unM \<Turnstile>p unmark (hd Ls0)\<close>
+          then have \<open>N + ?unM \<Turnstile>p unmark (hd Ls0)\<close>
             using \<open>is_decided (hd Ls0)\<close> by simp
         } note hd_Ls0 = this
 
-        have l: \<open>image_mset unmark (?d \<union># {#L |L\<in># mset M'. is_decided L #}) = unmark_m ?d \<union># ?unM'\<close>
+        have l: \<open>image_mset unmark (?d + {#L |L\<in># mset M'. is_decided L #}) = unmark_m ?d + ?unM'\<close>
           by auto
-        have \<open>N \<union># ?unM' \<Turnstile>ps image_mset unmark (?d \<union># {#L |L\<in># mset M'. is_decided L#})\<close>
-          unfolding l using N by (auto simp: all_in_true_clss_clss)
-        then have t: \<open>N \<union># ?unM' \<Turnstile>ps unmark_lm (tl Ls0)\<close>
-          using M' unfolding LS LSM by auto
-        then have \<open>N \<union># ?unM \<Turnstile>ps unmark_lm (tl Ls0)\<close>
-          using M'_in_M true_clss_clss_subset[OF _ t, of \<open>N \<union># ?unM\<close>] by auto
-        then have \<open>N \<union># ?unM \<Turnstile>ps unmark_lm Ls0\<close>
-          using hd_Ls0 by (cases Ls0) auto
+        have \<open>N + ?unM' \<Turnstile>ps image_mset unmark (?d + {#L |L\<in># mset M'. is_decided L#})\<close>
+          unfolding l using N entail_add_mset[of \<open>N + ?unM'\<close>] add_entail_added[of N ?unM'] 
+          by (auto simp: all_in_true_clss_clss)
+        then have t: \<open>N + ?unM' \<Turnstile>ps unmark_lm (tl Ls0)\<close>
+          using M' l unfolding LS LSM by auto
+        then have \<open>N + ?unM \<Turnstile>ps unmark_lm (tl Ls0)\<close>
+          using M'_in_M true_clss_clss_subset[OF _ t, of \<open>N + ?unM\<close>] 
+            subset_apply_unmark_filter_decided by auto
+        then have \<open>N + ?unM \<Turnstile>ps unmark_lm Ls0\<close>
+          using hd_Ls0 entailed_add_mset by (cases Ls0) auto
 
-        moreover have \<open>unmark_l Ls0 \<union> N \<Turnstile>ps unmark_l seen0\<close>
-          using decomp unfolding Ls0 by simp
-        moreover have \<open>\<And>M Ma. (M::'a clause set) \<union> Ma \<Turnstile>ps M\<close>
+        moreover have \<open>unmark_lm Ls0 + N \<Turnstile>ps unmark_lm seen0\<close>
+          using decomp add_union_entail_iff[of \<open>unmark_lm Ls0\<close>] unfolding Ls0 by simp
+        moreover have \<open>\<And>M Ma. (M::'a clause multiset) + Ma \<Turnstile>ps M\<close>
           by (simp add: all_in_true_clss_clss)
-        ultimately have \<Psi>: \<open>N \<union> ?unM \<Turnstile>ps unmark_l seen0\<close>
-          by (meson true_clss_clss_left_right true_clss_clss_union_and true_clss_clss_union_l_r)
+        ultimately have \<Psi>: \<open>N + ?unM \<Turnstile>ps unmark_lm seen0\<close>
+          by (meson true_clss_clss_left_right_add 
+              true_clss_clss_union_and_add true_clss_clss_union_l_r_add)
 
-        moreover have \<open>unmark ` (set seen0 \<union> ?d) = unmark_l seen0 \<union> unmark_s ?d\<close>
+        moreover have \<open>unmark_m (mset seen0 + ?d) = unmark_lm seen0 + unmark_m ?d\<close>
           by auto
-        ultimately have ?thesis using \<Psi>N unfolding Ls0 by simp
+        ultimately have ?thesis using \<Psi>N entail_add_mset unfolding Ls0 by simp
       }
       ultimately show ?thesis by auto
     qed

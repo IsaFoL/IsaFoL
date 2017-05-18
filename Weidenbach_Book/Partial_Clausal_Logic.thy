@@ -858,6 +858,11 @@ lemma true_clss_clss_addition_l[simp]:
 lemma true_clss_clss_union_l_r[simp]:
   "B \<Turnstile>ps CC \<Longrightarrow> A \<union># B \<Turnstile>ps CC"
   unfolding true_clss_clss_def total_over_m_union using true_clss_union by auto
+    
+(* S2MS *)
+lemma true_clss_clss_union_l_r_add[simp]:
+  "B \<Turnstile>ps CC \<Longrightarrow> A + B \<Turnstile>ps CC"
+  unfolding true_clss_clss_def by auto
 
 (* S2MS modif *)
 lemma true_clss_cls_in[simp]:
@@ -873,7 +878,7 @@ lemma true_clss_cls_insert_l[simp]:
 lemma true_clss_clss_insert_l[simp]:
   "A \<Turnstile>ps C \<Longrightarrow> {#a#} \<union># A \<Turnstile>ps C"
   using true_clss_clss_union_l_r by auto
-
+  
 (* S2MS modif *)
 lemma true_clss_clss_union_and[iff]:
   "A \<Turnstile>ps C \<union># D \<longleftrightarrow> (A \<Turnstile>ps C \<and> A \<Turnstile>ps D)"
@@ -954,6 +959,14 @@ lemma true_clss_clss_left_right:
   shows "A \<Turnstile>ps M \<union># B"
   using assms unfolding true_clss_clss_def 
   by (metis total_over_mm_union true_clss_union)
+    
+(* S2MS *)
+lemma true_clss_clss_left_right_add:
+  assumes "A \<Turnstile>ps B"
+  and "A + B \<Turnstile>ps M"
+  shows "A \<Turnstile>ps M + B"
+  using assms unfolding true_clss_clss_def 
+  by simp
 
 (* S2MS modif *)
 lemma true_clss_clss_generalise_true_clss_clss:
