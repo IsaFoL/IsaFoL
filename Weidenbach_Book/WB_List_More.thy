@@ -557,6 +557,8 @@ lemma subset_mset_trans_add_mset:
   \<open>D \<subseteq># D' \<Longrightarrow> D \<subseteq># add_mset L D'\<close>
   by (metis add_mset_remove_trivial diff_subset_eq_self subset_mset.dual_order.trans)
 
+lemma remove1_mset_empty_iff: \<open>remove1_mset L N = {#} \<longleftrightarrow> N = {#L#} \<or> N = {#}\<close>
+  by (cases \<open>L \<in># N\<close>; cases N) auto
 
 subsection \<open>Sorting\<close>
 

@@ -582,25 +582,25 @@ definition backtrack :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
       do {
         ASSERT(M \<noteq> []);
         L \<leftarrow> SPEC(\<lambda>L. L = lit_of (hd M));
+        D' \<leftarrow> SPEC(\<lambda>D'. D' \<subseteq># the D \<and> clause `# (N + U) + NP + UP \<Turnstile>pm D' \<and> -L \<in># D');
         ASSERT(get_level M L = count_decided M);
-        ASSERT(-L \<in># the D);
         ASSERT(\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
-          get_level M K = get_maximum_level M (the D - {#-L#}) + 1);
+          get_level M K = get_maximum_level M (D' - {#-L#}) + 1);
         M1 \<leftarrow> SPEC(\<lambda>M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
-          get_level M K = get_maximum_level M (the D - {#-L#}) + 1);
+          get_level M K = get_maximum_level M (D' - {#-L#}) + 1);
 
-        if size (the D) > 1
+        if size D' > 1
         then do {
-          ASSERT(\<forall>L' \<in># the D - {#-L#}. get_level M L' = get_level M1 L');
-          ASSERT(\<exists>L' \<in># the D - {#-L#}. get_level M L' = get_maximum_level M (the D - {#-L#}));
-          ASSERT(get_level M L > get_maximum_level M (the D - {#-L#}));
-          L' \<leftarrow> SPEC(\<lambda>L'. L' \<in># the D - {#-L#} \<and> get_level M L' = get_maximum_level M (the D - {#-L#}));
+          ASSERT(\<forall>L' \<in># D' - {#-L#}. get_level M L' = get_level M1 L');
+          ASSERT(\<exists>L' \<in># D' - {#-L#}. get_level M L' = get_maximum_level M (D' - {#-L#}));
+          ASSERT(get_level M L > get_maximum_level M (D' - {#-L#}));
+          L' \<leftarrow> SPEC(\<lambda>L'. L' \<in># D' - {#-L#} \<and> get_level M L' = get_maximum_level M (D' - {#-L#}));
           ASSERT(L \<noteq> -L');
-          RETURN (Propagated (-L) (the D) #  M1, N, add_mset (TWL_Clause {#-L, L'#} (the D - {#-L, L'#})) U,
+          RETURN (Propagated (-L) (D') #  M1, N, add_mset (TWL_Clause {#-L, L'#} (D' - {#-L, L'#})) U,
             None, NP, UP, WS, {#L#})
         }
         else do {
-          RETURN (Propagated (-L) (the D) # M1, N, U, None, NP, add_mset (the D) UP, WS, {#L#})
+          RETURN (Propagated (-L) D' # M1, N, U, None, NP, add_mset D' UP, WS, {#L#})
         }
       }
     }
@@ -670,9 +670,9 @@ lemma get_level_last_decided_ge:
    \<open>defined_lit (c @ [Decided K]) L' \<Longrightarrow> 0 < get_level (c @ [Decided K]) L'\<close>
   by (induction c) (auto simp: defined_lit_cons get_level_cons_if)
 
-(* TODO Move *)
-lemma remove1_mset_empty_iff: \<open>remove1_mset L N = {#} \<longleftrightarrow> N = {#L#} \<or> N = {#}\<close>
-  by (cases \<open>L \<in># N\<close>; cases N) auto
+lemma get_maximum_level_mono:
+  \<open>D \<subseteq># D' \<Longrightarrow> get_maximum_level M D \<le> get_maximum_level M D'\<close>
+  unfolding get_maximum_level_def by auto
 
 lemma backtrack_spec:
   assumes confl: \<open>get_conflict S \<noteq> None\<close> \<open>get_conflict S \<noteq> Some {#}\<close> and
@@ -688,14 +688,13 @@ proof -
   have inv_s: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant ?S\<close> and
     inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv ?S\<close>
     using twl_struct twl_stgy unfolding twl_struct_invs_def twl_stgy_invs_def by fast+
-  obtain D' where D': \<open>conflicting ?S = Some D'\<close>
-    using confl by (cases S) (auto simp: conflicting.simps)
-  have M_CNot_D': \<open>trail ?S \<Turnstile>as CNot D'\<close>
-    using inv D' unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+  let ?D' = \<open>the (conflicting ?S)\<close>
+  have M_CNot_D': \<open>trail ?S \<Turnstile>as CNot ?D'\<close>
+    using inv confl unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-    by (auto simp: cdcl\<^sub>W_restart_mset_state)
+    by (cases \<open>conflicting ?S\<close>; cases S) (auto simp: cdcl\<^sub>W_restart_mset_state)
   then have trail: \<open>get_trail S \<noteq> []\<close>
-    using D' confl unfolding true_annots_true_cls_def_iff_negation_in_model
+    using confl unfolding true_annots_true_cls_def_iff_negation_in_model
     by (cases S) (auto simp: cdcl\<^sub>W_restart_mset_state)
   show ?thesis
     unfolding backtrack_def
@@ -703,30 +702,31 @@ proof -
     subgoal for M using trail by auto
     subgoal for M by (cases M) auto
   proof -
-    fix M N U D NP UP WS Q M1
+    fix M N U D D' NP UP WS Q M1
     assume
       S: \<open>S = (M, N, U, D, NP, UP, WS, Q)\<close> and
-      \<open>get_level M (lit_of (hd M)) = count_decided M\<close>
+      \<open>get_level M (lit_of (hd M)) = count_decided M\<close> and
+      D'_D: \<open>D' \<subseteq># the D\<close> and
+      L_D': \<open>-lit_of (hd M) \<in># D'\<close> and
+      N_U_NP_UP_D': \<open>clause `# (N + U) + NP + UP \<Turnstile>pm D'\<close>
 
+    have D_Some_the: \<open>D = Some (the D)\<close>
+      using confl S by auto
     let ?S = \<open>state\<^sub>W_of S\<close>
     have inv_s: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant ?S\<close> and
       inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv ?S\<close>
       using twl_struct twl_stgy unfolding twl_struct_invs_def twl_stgy_invs_def by fast+
-    have D': \<open>D = Some D'\<close>
-      using D' unfolding S by (auto simp: cdcl\<^sub>W_restart_mset_state)
     have Q: \<open>Q = {#}\<close> and WS: \<open>WS = {#}\<close>
       using w_q p unfolding S by auto
     have M_CNot_D': \<open>M \<Turnstile>as CNot D'\<close>
-      using M_CNot_D' S
-      by (auto simp: cdcl\<^sub>W_restart_mset_state)
+      using M_CNot_D' S D'_D
+      by (auto simp: cdcl\<^sub>W_restart_mset_state true_annots_true_cls_def_iff_negation_in_model)
     obtain L'' M' where M: \<open>M = L'' # M'\<close>
       using trail S by (cases M) auto
     have D'_empty: \<open>D' \<noteq> {#}\<close>
-      using confl S by (cases D') (auto simp: D')
+      using L_D' by auto
     have L'_D: \<open>-lit_of L'' \<in># D'\<close>
-      using cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of ?S] ns_s inv inv_s D' D'_empty S
-      by (auto simp: cdcl\<^sub>W_restart_mset_state M)
-
+      using L_D' by (auto simp: cdcl\<^sub>W_restart_mset_state M)
     have lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv ?S\<close>
       using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast
     then have n_d: \<open>no_dup M\<close> and dec: \<open>backtrack_lvl ?S = count_decided M\<close>
@@ -734,25 +734,27 @@ proof -
       by (auto simp: cdcl\<^sub>W_restart_mset_state)
     then have uL''_M: \<open>-lit_of L'' \<notin> lits_of_l M\<close>
       by (auto simp: Decided_Propagated_in_iff_in_lits_of_l M)
-    show \<open>get_maximum_level M (remove1_mset (-lit_of (hd M)) (the D)) < count_decided M\<close>
+    show \<open>get_maximum_level M (remove1_mset (-lit_of (hd M)) D') < count_decided M\<close>
     proof (cases L'')
       case (Decided x1) note L'' = this(1)
       have \<open>distinct_mset (the D)\<close>
-        using inv D' S unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+        using inv S confl unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
           cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
         by (auto simp: cdcl\<^sub>W_restart_mset_state)
+      then have \<open>distinct_mset D'\<close>
+        using D'_D by (blast intro: distinct_mset_mono)
       then have \<open>- x1 \<notin># remove1_mset (- x1) D'\<close>
-        using D' distinct_mem_diff_mset by force
-      then have H: \<open>\<forall>x\<in>#remove1_mset (- lit_of (hd M)) (the D). undefined_lit [L''] x\<close>
+        using L'_D L'' D'_D by (auto dest: distinct_mem_diff_mset)
+      then have H: \<open>\<forall>x\<in>#remove1_mset (- lit_of (hd M)) D'. undefined_lit [L''] x\<close>
         using L'' M_CNot_D' uL''_M
-        by (fastforce simp: D' atms_of_def atm_of_eq_atm_of M true_annots_true_cls_def_iff_negation_in_model
+        by (fastforce simp: atms_of_def atm_of_eq_atm_of M true_annots_true_cls_def_iff_negation_in_model
             dest: in_diffD)
-      have \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D)) =
-        get_maximum_level M' (remove1_mset (- lit_of (hd M)) (the D))\<close>
+      have \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) D') =
+        get_maximum_level M' (remove1_mset (- lit_of (hd M)) D')\<close>
         using get_maximum_level_skip_beginning[OF H, of M'] M
         by auto
       then show ?thesis
-        using count_decided_ge_get_maximum_level[of M' \<open>remove1_mset (-lit_of (hd M)) (the D)\<close>] M L''
+        using count_decided_ge_get_maximum_level[of M' \<open>remove1_mset (-lit_of (hd M)) D'\<close>] M L''
         by simp
     next
       case (Propagated L C) note L'' = this(1)
@@ -764,36 +766,44 @@ proof -
           by blast
         then have \<open>L \<in># C\<close>
           by (force simp: S M cdcl\<^sub>W_restart_mset_state L'') }
-      ultimately show ?thesis
-        using ns_r L'_D count_decided_ge_get_maximum_level[of M \<open>remove1_mset (-lit_of (hd M)) (the D)\<close>]
-        by (fastforce simp add: cdcl\<^sub>W_restart_mset.resolve.simps S M D'
+      moreover have D_empty: \<open>the D \<noteq> {#}\<close>
+        using D'_D D'_empty by auto
+      moreover have \<open>-L \<in># the D\<close>
+        using ns_s L'' confl D_empty 
+        by (force simp: cdcl\<^sub>W_restart_mset.skip.simps S M cdcl\<^sub>W_restart_mset_state)
+      ultimately have \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D)) < count_decided M\<close>
+        using ns_r confl count_decided_ge_get_maximum_level[of M \<open>remove1_mset (-lit_of (hd M)) (the D)\<close>]
+        by (fastforce simp add: cdcl\<^sub>W_restart_mset.resolve.simps S M
             cdcl\<^sub>W_restart_mset_state)
+          
+      moreover have \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) D') \<le>
+              get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D))\<close> 
+        by (rule get_maximum_level_mono) (use D'_D in \<open>auto intro: mset_le_subtract\<close>)
+      ultimately show ?thesis
+        by simp
     qed
 
     then show \<open>\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
-      get_level M K = get_maximum_level M (remove1_mset (-lit_of (hd M)) (the D)) + 1\<close>
+      get_level M K = get_maximum_level M (remove1_mset (-lit_of (hd M)) D') + 1\<close>
       using cdcl\<^sub>W_restart_mset.backtrack_ex_decomp[OF lev_inv]
       by (auto simp: cdcl\<^sub>W_restart_mset_state S)
 
-    show \<open>-lit_of (hd M) \<in># the D\<close>
-      using L'_D unfolding M D' by simp
-
     assume
       decomp: \<open>\<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
-      get_level M K = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D)) + 1\<close>
-    define i where \<open>i = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D))\<close>
+      get_level M K = get_maximum_level M (remove1_mset (- lit_of (hd M)) D') + 1\<close>
+    define i where \<open>i = get_maximum_level M (remove1_mset (- lit_of (hd M)) D')\<close>
 
     obtain K M2 where
       decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
-      lev_K: \<open>get_level M K = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D)) + 1\<close>
+      lev_K: \<open>get_level M K = get_maximum_level M (remove1_mset (- lit_of (hd M)) D') + 1\<close>
       using decomp by auto
 
     fix L'
-    let ?T =  \<open>(Propagated (-lit_of (hd M)) (the D) # M1, N,
-      add_mset (TWL_Clause {#-lit_of (hd M), L'#} (the D - {#-lit_of (hd M), L'#})) U,
+    let ?T =  \<open>(Propagated (-lit_of (hd M)) D' # M1, N,
+      add_mset (TWL_Clause {#-lit_of (hd M), L'#} (D' - {#-lit_of (hd M), L'#})) U,
       None, NP, UP, WS, {#lit_of (hd M)#})\<close>
-    let ?T' = \<open>(Propagated (-lit_of (hd M)) (the D) # M1, N,
-      add_mset (TWL_Clause {#-lit_of (hd M), L'#} (the D - {#-lit_of (hd M), L'#})) U,
+    let ?T' = \<open>(Propagated (-lit_of (hd M)) D' # M1, N,
+      add_mset (TWL_Clause {#-lit_of (hd M), L'#} (D' - {#-lit_of (hd M), L'#})) U,
       None, NP, UP, WS, {#- (-lit_of (hd M))#})\<close>
 
     have lev_D': \<open>count_decided M = get_maximum_level (L'' # M') D'\<close>
@@ -801,10 +811,10 @@ proof -
         get_maximum_level_ge_get_level[of \<open>-lit_of L''\<close> D' M] unfolding M
       by (auto split: if_splits)
     { \<comment> \<open>conflict clause > 1 literal\<close>
-      assume size_D: \<open>1 < size (the D)\<close>
-      have \<open>\<forall>L' \<in># the D. -L' \<in> lits_of_l M\<close>
+      assume size_D: \<open>1 < size D'\<close>
+      have \<open>\<forall>L' \<in># D'. -L' \<in> lits_of_l M\<close>
         using M_CNot_D' uL''_M
-        by (fastforce simp: D' atms_of_def atm_of_eq_atm_of M true_annots_true_cls_def_iff_negation_in_model
+        by (fastforce simp: atms_of_def atm_of_eq_atm_of M true_annots_true_cls_def_iff_negation_in_model
             dest: in_diffD)
       obtain c where c: \<open>M = c @ M2 @ Decided K # M1\<close>
         using get_all_ann_decomposition_exists_prepend[OF decomp] by blast
@@ -812,10 +822,10 @@ proof -
         using n_d unfolding c by auto
       then have i: \<open>i = count_decided M1\<close>
         using lev_K unfolding i_def[symmetric] by auto
-      show \<open>\<forall>L' \<in># the D - {#-lit_of (hd M)#}. get_level M L' = get_level M1 L'\<close>
+      show \<open>\<forall>L' \<in># D' - {#-lit_of (hd M)#}. get_level M L' = get_level M1 L'\<close>
       proof
         fix L'
-        assume L': \<open>L' \<in># the D - {#-lit_of (hd M)#}\<close>
+        assume L': \<open>L' \<in># D' - {#-lit_of (hd M)#}\<close>
         have \<open>get_level M L' > count_decided M1\<close> if \<open>defined_lit (c @ M2 @ Decided K # []) L'\<close>
           using get_level_skip_end[OF that, of M1] n_d that get_level_last_decided_ge[of \<open>c @ M2\<close>]
           by (auto simp: c)
@@ -825,30 +835,34 @@ proof -
           using n_d c L' i by (cases \<open>defined_lit (c @ M2 @ Decided K # []) L'\<close>) auto
       qed
       assume
-        lev_M_M1: \<open>\<forall>L'\<in>#remove1_mset (- lit_of (hd M)) (the D). get_level M L' = get_level M1 L'\<close>
-      show \<open>\<exists>L' \<in># remove1_mset (-lit_of (hd M)) (the D).
-           get_level M L' = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D))\<close>
+        lev_M_M1: \<open>\<forall>L'\<in>#remove1_mset (- lit_of (hd M)) D'. get_level M L' = get_level M1 L'\<close>
+      show \<open>\<exists>L' \<in># remove1_mset (-lit_of (hd M)) D'.
+           get_level M L' = get_maximum_level M (remove1_mset (- lit_of (hd M)) D')\<close>
         by (rule get_maximum_level_exists_lit_of_max_level)
           (use size_D in \<open>auto simp: remove1_mset_empty_iff\<close>)
-      assume L_D: \<open>L' \<in># remove1_mset (-lit_of (hd M)) (the D)\<close> and
-        lev_L: \<open>get_level M1 L' = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D))\<close>
+      assume L'_D': \<open>L' \<in># remove1_mset (-lit_of (hd M)) D'\<close> and
+        lev_L: \<open>get_level M1 L' = get_maximum_level M (remove1_mset (- lit_of (hd M)) D')\<close>
       have D'_ne_single: \<open>D' \<noteq> {#- lit_of (hd M)#}\<close>
-        using size_D D' apply (cases D', simp)
+        using size_D apply (cases D', simp)
         apply (rename_tac L D'')
         apply (case_tac D'')
         by simp_all
       have \<open>cdcl_twl_o (M, N, U, D, NP, UP, WS, Q) ?T'\<close>
-        unfolding Q WS D' option.sel list.sel
-        apply (rule cdcl_twl_o.backtrack_nonunit_clause[of \<open>-lit_of (hd M)\<close> _ K M1 M2 _ i])
-        using L'_D decomp M apply (auto; fail)[2]
-        using L'_D decomp M apply (auto; fail)[2]
-              apply (simp add: M; fail)
-        using lev_D' apply (simp add: M; fail)
-        using i_def D' apply (simp; fail)
-        using lev_K unfolding i_def D' apply (simp; fail)
-        using D'_ne_single apply (simp; fail)
-        using L_D D' apply (auto dest: in_diffD; fail)
-        using D' lev_L lev_M_M1 L_D apply (simp; fail)
+        unfolding Q WS option.sel list.sel
+        apply (subst D_Some_the)
+        apply (rule cdcl_twl_o.backtrack_nonunit_clause[of \<open>-lit_of (hd M)\<close> _ K M1 M2 _ _ i])
+        subgoal using D'_D L_D' by blast
+        subgoal using L'_D decomp M by auto
+        subgoal using L'_D decomp M by auto
+        subgoal using L'_D M lev_D' by auto
+        subgoal using i lev_D' i_def by auto
+        subgoal using lev_K i_def by linarith
+        subgoal using D'_ne_single .
+        subgoal using D'_D .
+        subgoal using N_U_NP_UP_D' .
+        subgoal using L_D' .
+        subgoal using L'_D' by (auto dest: in_diffD)
+        subgoal using lev_L lev_M_M1 L'_D' by (simp add: i_def)
         done
       then show cdcl: \<open>cdcl_twl_o (M, N, U, D, NP, UP, WS, Q) ?T\<close>
         by simp
@@ -868,27 +882,34 @@ proof -
         by auto
       show \<open>lit_of (hd M) \<noteq> -L'\<close>
         using \<open>get_level M (lit_of (hd M)) = count_decided M\<close>
-          \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D)) < count_decided M\<close> lev_L
-        lev_M_M1 L_D by auto
+          \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) D') < count_decided M\<close> lev_L
+        lev_M_M1 L'_D' by auto
     }
 
     { \<comment> \<open>conflict clause < 1 literal\<close>
-      assume \<open>\<not> 1 < size (the D)\<close>
-      then have D': \<open>D = Some {#-lit_of (hd M)#}\<close>
-        using D' L'_D confl S by (cases D') (auto simp: M)
-      let ?T = \<open>(Propagated (- lit_of (hd M)) (the D) # M1, N, U, None, NP, add_mset (the D) UP, WS,
+      assume \<open>\<not> 1 < size D'\<close>
+      then have D': \<open>D' = {#-lit_of (hd M)#}\<close>
+        using L'_D confl S by (cases D') (auto simp: M)
+      let ?T = \<open>(Propagated (- lit_of (hd M)) D' # M1, N, U, None, NP, add_mset D' UP, WS,
         unmark (hd M))\<close>
-      let ?T' = \<open>(Propagated (- lit_of (hd M)) (the D) # M1, N, U, None, NP, add_mset (the D) UP, WS,
+      let ?T' = \<open>(Propagated (- lit_of (hd M)) D' # M1, N, U, None, NP, add_mset D' UP, WS,
         {#- (-lit_of (hd M))#})\<close>
 
       have i_0: \<open>i = 0\<close>
         using i_def by (auto simp: D')
+          
       have \<open>cdcl_twl_o (M, N, U, D, NP, UP, WS, Q) ?T'\<close>
-        unfolding D' option.sel WS Q
-        apply (rule cdcl_twl_o.backtrack_unit_clause[of K M1 M2])
-        using decomp apply (simp; fail)
-        using M apply (simp; fail)
-        using lev_K i_0 i_def apply simp
+        unfolding D' option.sel WS Q apply (subst D_Some_the)
+        apply (rule cdcl_twl_o.backtrack_unit_clause[of _ \<open>the D\<close> K M1 M2 _ D' i])
+        subgoal using D'_D D' by auto
+        subgoal using decomp by simp
+        subgoal using \<open>get_level M (lit_of (hd M)) = count_decided M\<close> by simp
+        subgoal using D' by (auto simp: get_maximum_level_add_mset)
+        subgoal using i_def by simp
+        subgoal using lev_K unfolding i_def[symmetric] .
+        subgoal using D' .
+        subgoal using D'_D .
+        subgoal using N_U_NP_UP_D' .
         done
       then show cdcl: \<open>cdcl_twl_o (M, N, U, D, NP, UP, WS, Q) ?T\<close>
         by simp
@@ -916,6 +937,7 @@ declare backtrack_spec[THEN order_trans, refine_vcg]
 
 
 subsubsection \<open>Full loop\<close>
+
 definition cdcl_twl_o_prog :: "'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres" where
   \<open>cdcl_twl_o_prog S =
     do {
