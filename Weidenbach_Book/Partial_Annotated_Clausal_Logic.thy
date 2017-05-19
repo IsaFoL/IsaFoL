@@ -715,7 +715,7 @@ qed
 (* S2MS modif *)
 definition all_decomposition_implies :: \<open>'a clause multiset
   \<Rightarrow> (('a, 'm) ann_lits \<times> ('a, 'm) ann_lits) list \<Rightarrow> bool\<close> where
- \<open>all_decomposition_implies N S \<longleftrightarrow> (\<forall>(Ls, seen) \<in> set S. unmark_lm Ls \<union># N \<Turnstile>ps unmark_lm seen)\<close>
+ \<open>all_decomposition_implies N S \<longleftrightarrow> (\<forall>(Ls, seen) \<in># mset S. unmark_lm Ls \<union># N \<Turnstile>ps unmark_lm seen)\<close>
 
 lemma all_decomposition_implies_empty[iff]:
   \<open>all_decomposition_implies N []\<close> unfolding all_decomposition_implies_def by auto
@@ -909,33 +909,48 @@ qed
 
 lemma all_decomposition_implies_propagated_lits_are_implied:
   assumes \<open>all_decomposition_implies N (get_all_ann_decomposition M)\<close>
-  shows \<open>N \<union> {unmark L |L. is_decided L \<and> L \<in> set M} \<Turnstile>ps unmark_l M\<close>
+  shows \<open>N + {#unmark L |L\<in># mset M. is_decided L #} \<Turnstile>ps unmark_lm M\<close>
     (is \<open>?I \<Turnstile>ps ?A\<close>)
 proof -
-  have \<open>?I \<Turnstile>ps unmark_s {L |L. is_decided L \<and> L \<in> set M}\<close>
+  have \<open>?I \<Turnstile>ps unmark_m {#L |L\<in># mset M. is_decided L #}\<close>
     by (auto intro: all_in_true_clss_clss)
-  moreover have \<open>?I \<Turnstile>ps unmark ` \<Union>(set ` snd ` set (get_all_ann_decomposition M))\<close>
+  moreover have \<open>?I 
+    \<Turnstile>ps image_mset unmark (\<Union>#(image_mset mset (image_mset snd (mset (get_all_ann_decomposition M)))))\<close>
     using all_decomposition_implies_trail_is_implied assms by blast
-  ultimately have \<open>N \<union> {unmark m |m. is_decided m \<and> m \<in> set M}
-    \<Turnstile>ps unmark ` \<Union>(set ` snd ` set (get_all_ann_decomposition M))
-      \<union> unmark ` {m |m. is_decided m \<and> m \<in> set M}\<close>
-      by blast
+  ultimately have \<open>N + {#unmark m |m \<in># mset M. is_decided m #}
+    \<Turnstile>ps image_mset unmark (\<Union>#(image_mset mset (image_mset snd (mset (get_all_ann_decomposition M)))))
+      + image_mset unmark {#m |m \<in># mset M. is_decided m #}\<close>
+      using entail_add_mset by blast
   then show ?thesis
-    by (metis (no_types) get_all_ann_decomposition_snd_union[of M] image_Un)
+    by (metis get_all_ann_decomposition_snd_mset_add image_mset_union) 
 qed
 
+(* S2MS modif *)
 lemma all_decomposition_implies_insert_single:
-  \<open>all_decomposition_implies N M \<Longrightarrow> all_decomposition_implies (insert C N) M\<close>
-  unfolding all_decomposition_implies_def by auto
+  \<open>all_decomposition_implies N M \<Longrightarrow> all_decomposition_implies (add_mset C N) M\<close>
+  unfolding all_decomposition_implies_def
+  by (smt add_mset_add_single case_prod_beta' 
+      subset_mset.sup_left_idem true_clss_clss_generalise_true_clss_clss true_clss_clss_union_and 
+      union_add_entailed_equiv union_trus_clss_clss)
 
+(* S2MS modif *)
 lemma all_decomposition_implies_union:
-  \<open>all_decomposition_implies N M \<Longrightarrow> all_decomposition_implies (N \<union> N') M\<close>
-  unfolding all_decomposition_implies_def sup.assoc[symmetric] by (auto intro: true_clss_clss_union_l)
+  \<open>all_decomposition_implies N M \<Longrightarrow> all_decomposition_implies (N + N') M\<close>
+  unfolding all_decomposition_implies_def sup.assoc[symmetric]
+  by (smt case_prod_beta' subset_mset.sup_left_idem true_clss_clss_generalise_true_clss_clss 
+      true_clss_clss_union_and_add union_trus_clss_clss)
 
+(* S2MS *)
+lemma superset_entails: \<open> B \<subseteq># B' \<Longrightarrow> A \<union># B \<Turnstile>ps C \<Longrightarrow> A \<union># B' \<Turnstile>ps C \<close>
+  by (metis subset_mset.le_iff_sup true_clss_clss_generalise_true_clss_clss true_clss_clss_union_and 
+      union_trus_clss_clss)
+    
+(* S2MS modif *)    
 lemma all_decomposition_implies_mono:
-  \<open>N \<subseteq> N' \<Longrightarrow> all_decomposition_implies N M \<Longrightarrow> all_decomposition_implies N' M\<close>
-  by (metis all_decomposition_implies_union le_iff_sup)
+  \<open>N \<subseteq># N' \<Longrightarrow> all_decomposition_implies N M \<Longrightarrow> all_decomposition_implies N' M\<close>
+  unfolding all_decomposition_implies_def using superset_entails[of N N'] by auto
 
+(* S2MS modif *)    
 lemma all_decomposition_implies_mono_right:
   \<open>all_decomposition_implies I (get_all_ann_decomposition (M' @ M)) \<Longrightarrow>
     all_decomposition_implies I (get_all_ann_decomposition M)\<close>
@@ -943,7 +958,8 @@ lemma all_decomposition_implies_mono_right:
   subgoal by auto
   subgoal by auto
   subgoal for L C M' M
-    by (cases \<open>get_all_ann_decomposition (M' @ M)\<close>) auto
+    apply (cases \<open>get_all_ann_decomposition (M' @ M)\<close>)       
+      by auto
   done
 
 
