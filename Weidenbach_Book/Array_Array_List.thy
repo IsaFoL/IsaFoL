@@ -567,7 +567,7 @@ lemma nth_a_hnr[sepref_fr_rules]:
   unfolding nth_a_def
   apply sepref_to_hoare
   subgoal for b b' xs a -- \<open>TODO proof\<close>
-    apply (sep_auto)
+    apply sep_auto
     apply (subst arrayO_except_assn_array0_index[symmetric, of b])
      apply simp
     apply (sep_auto simp: arrayO_except_assn_def arl_length_def arl_assn_def(*  *)
@@ -681,7 +681,7 @@ lemma heap_list_all_list_assn: \<open>heap_list_all R x y = list_assn R x y\<clo
 
 lemma of_list_op_list_copy_arrayO[sepref_fr_rules]:
    \<open>(Array.of_list, RETURN \<circ> op_list_copy) \<in> (list_assn (arl_assn R))\<^sup>d \<rightarrow>\<^sub>a arrayO_assn (arl_assn R)\<close>
-  apply (sepref_to_hoare)
+  apply sepref_to_hoare
   apply (sep_auto simp: arrayO_assn_def array_assn_def)
   apply (rule_tac ?psi=\<open>xa \<mapsto>\<^sub>a xi * list_assn (arl_assn R) x xi \<Longrightarrow>\<^sub>A
        is_array xi xa * heap_list_all (arl_assn R) x xi * true\<close> in asm_rl)

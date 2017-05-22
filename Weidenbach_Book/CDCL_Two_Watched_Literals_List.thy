@@ -180,27 +180,27 @@ lemma valued_spec:
   \<open>RETURN (valued M L) \<le> SPEC(\<lambda>v. (v = None \<longleftrightarrow> undefined_lit M L) \<and>
     (v = Some True \<longleftrightarrow> L \<in> lits_of_l M) \<and> (v = Some False \<longleftrightarrow> -L \<in> lits_of_l M))\<close>
   unfolding valued_def
-  by (refine_vcg)
+  by refine_vcg
     (use assms in \<open>auto simp: defined_lit_map lits_of_def atm_of_eq_atm_of uminus_lit_swap
       no_dup_cannot_not_lit_and_uminus
       split: option.splits\<close>)
 
-definition find_unwatched :: "('a, 'b) ann_lits \<Rightarrow> 'a clause_l \<Rightarrow> (bool option \<times> nat) nres" where
+definition find_unwatched :: "('a, 'b) ann_lits \<Rightarrow> 'a clause_l \<Rightarrow> (nat option) nres" where
 \<open>find_unwatched M C = do {
-  WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> 2 \<and> i \<le> length C \<and> (\<forall>j\<in>{2..<i}. -(C!j) \<in> lits_of_l M) \<and>
-    (found = Some False \<longrightarrow> (undefined_lit M (C!i) \<and> i < length C)) \<and>
-    (found = Some True \<longrightarrow> (C!i \<in> lits_of_l M \<and> i < length C)) \<^esup>
+   S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> 2 \<and> i \<le> length C \<and> (\<forall>j\<in>{2..<i}. -(C!j) \<in> lits_of_l M) \<and>
+    (\<forall>j. found = Some j \<longrightarrow> (i = j \<and> (undefined_lit M (C!j) \<or> C!j \<in> lits_of_l M) \<and> j < length C \<and> j \<ge> 2))\<^esup>
     (\<lambda>(found, i). found = None \<and> i < length C)
     (\<lambda>(_, i). do {
       ASSERT(i < length C);
       case valued M (C!i) of
-        None \<Rightarrow> do { RETURN (Some False, i)}
+        None \<Rightarrow> do { RETURN (Some i, i)}
       | Some v \<Rightarrow>
-         (if v then do { RETURN (Some True, i)} else do { RETURN (None, i+1)})
+         (if v then do { RETURN (Some i, i)} else do { RETURN (None, i+1)})
 
       }
     )
-    (None, 2::nat)
+    (None, 2::nat);
+  RETURN (fst S)
   }
 \<close>
 
@@ -217,22 +217,61 @@ export_code find_unwatched_impl in SML *)
 
 lemma find_unwatched:
   assumes \<open>no_dup M\<close> and \<open>length C \<ge> 2\<close>
-  shows \<open>find_unwatched M C \<le> SPEC (\<lambda>(found, i). i \<ge> 2 \<and>
+  shows \<open>find_unwatched M C \<le> SPEC (\<lambda>(found). 
       (found = None \<longleftrightarrow> (\<forall>L\<in>set (unwatched_l C). -L \<in> lits_of_l M)) \<and>
-      (found = Some False \<longleftrightarrow> (i < length C \<and> undefined_lit M (C!i))) \<and>
-      (found = Some True \<longleftrightarrow> (i < length C \<and> C!i \<in> lits_of_l M)))\<close>
+      (\<forall>j. found = Some j \<longrightarrow> (j < length C \<and> (undefined_lit M (C!j) \<or> C!j \<in> lits_of_l M) \<and> j \<ge> 2)))\<close>
   unfolding find_unwatched_def
-  apply (rule WHILEIT_rule[where R = \<open>measure (\<lambda>(found, i). Suc (length C) - i +
+  apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(found, i). Suc (length C) - i +
         If (found = None) 1 0)\<close>])
-     apply (simp_all add: assms)[2]
-
-  subgoal for s unfolding valued_def
-    by refine_vcg (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq
-        split: if_splits)
+  subgoal by auto
+  subgoal by auto
+  subgoal using assms by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal for s
+    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq valued_def
+        split: if_splits intro!: exI[of _ \<open>snd s - 2\<close>])
+  subgoal for s
+    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq 
+        split: if_splits intro: exI[of _ \<open>snd s - 2\<close>])
+  subgoal for s
+    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq valued_def
+        split: if_splits intro: exI[of _ \<open>snd s - 2\<close>])
+  subgoal by (auto simp: valued_def split: if_splits)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by (auto simp: valued_def split: if_splits)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
   subgoal for s using distinct_consistent_interp[OF assms(1)]
+    apply (auto simp: Decided_Propagated_in_iff_in_lits_of_l consistent_interp_def all_set_conv_nth
+       valued_def split: if_splits intro: exI[of _ \<open>snd s - 2\<close>])
+    by (metis atLeastLessThan_iff less_antisym)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal for s using no_dup_consistentD[OF assms(1)]
     by (cases s, cases \<open>fst s\<close>)
-      (auto simp: Decided_Propagated_in_iff_in_lits_of_l consistent_interp_def all_set_conv_nth
+      (auto simp: Decided_Propagated_in_iff_in_lits_of_l all_set_conv_nth
         intro!: exI[of _ \<open>snd s - 2\<close>])
+  subgoal by auto
+  subgoal for s j by auto
+  subgoal by auto
   done
 
 definition unit_propagation_inner_loop_body_l :: "'v literal \<Rightarrow> nat \<Rightarrow>
@@ -254,19 +293,19 @@ definition unit_propagation_inner_loop_body_l :: "'v literal \<Rightarrow> nat \
     then RETURN (M, N, U, D, NP, UP, WS, Q)
     else do {
       f \<leftarrow> find_unwatched M (N!C);
-      ASSERT (fst f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l (N!C)). - L \<in> lits_of_l M));
-      if fst f = None
-      then
-        if val_L' = Some False
-        then RETURN (M, N, U, Some (mset (N!C)), NP, UP, {#}, {#})
-        else RETURN (Propagated L' C # M, N, U, D, NP, UP, WS, add_mset (-L') Q)
-      else do {
-        ASSERT(snd f < length (N!C));
-        let K = (N!C) ! (snd f);
-        let N' = list_update N C (swap (N!C) i (snd f));
-        ASSERT (K \<in># mset (unwatched_l (N!C)) \<and> -K \<notin> lits_of_l M);
-        RETURN (M, N', U, D, NP, UP, WS, Q)
-      }
+      ASSERT (f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l (N!C)). - L \<in> lits_of_l M));
+      case f of
+         None \<Rightarrow>
+           if val_L' = Some False
+           then RETURN (M, N, U, Some (mset (N!C)), NP, UP, {#}, {#})
+           else RETURN (Propagated L' C # M, N, U, D, NP, UP, WS, add_mset (-L') Q)
+      | Some f \<Rightarrow> do {
+           ASSERT(f < length (N!C));
+           let K = (N!C) ! f;
+           let N' = list_update N C (swap (N!C) i f);
+           ASSERT (K \<in># mset (unwatched_l (N!C)) \<and> -K \<notin> lits_of_l M);
+           RETURN (M, N', U, D, NP, UP, WS, Q)
+        }
     }
    }
 \<close>
@@ -548,7 +587,7 @@ proof -
     \<Down> {(S, S'). twl_st_of (Some L) S = S' \<and> additional_WS_invs S} (unit_propagation_inner_loop_body
     (?L, twl_clause_of C') (twl_st_of (Some L) ?S))\<close>
     unfolding unit_propagation_inner_loop_body_l_def unit_propagation_inner_loop_body_def
-      S'_S[unfolded S] S' st_of_S' S
+      S'_S[unfolded S] S' st_of_S' S option.case_eq_if
     apply (rewrite at \<open>let _ =  _ ! _ in _\<close> Let_def)
     apply (rewrite at \<open>let _ = if _ ! _ = _then _ else _ in _\<close> Let_def)
     apply (rewrite at \<open>let _ =  (_ ! _, _) in _\<close> Let_def)
@@ -597,10 +636,11 @@ proof -
     subgoal by (auto simp: Decided_Propagated_in_iff_in_lits_of_l dest: consistent)
     subgoal premises q for L' val_L f K N' U'
     proof -
+      thm q
       note val_L'_not_True = q(10) and L'_notin_trail = q(11) and case_f_of = q(12) and
         not_forall_unwatched_defined = q(13) and fst_F_not_None = q(14) and
-        not_forall_unwatched_in_trail = q(15) and snd_le_length = q(16) and N_C_K = q(17) and
-        upd_spec = q(18)
+        not_forall_unwatched_in_trail = q(19) and snd_le_length = q(15) and N_C_K = q(21) and
+        upd_spec = q(17-24)
       have \<open>Propagated K C \<notin> set M\<close> for K
       proof (rule ccontr)
         assume propa: \<open>\<not> ?thesis\<close>
@@ -630,26 +670,26 @@ proof -
           by (metis in_remove1_mset_neq in_set_dropD set_mset_mset unwatched_l.elims
               unwatched_twl_clause_of)
         then show False
-          using not_forall_unwatched_in_trail by fast
+          using not_forall_unwatched_in_trail by (auto simp: N_C_C')
       qed
-      then have \<open>additional_WS_invs (M, N[C := swap (N ! C) i (snd f)], U, D, NP, UP, remove1_mset C WS, Q)\<close>
+      then have \<open>additional_WS_invs (M, N[C := swap (N ! C) i (the f)], U, D, NP, UP, remove1_mset C WS, Q)\<close>
         using add_inv S by (auto simp add: additional_WS_invs_def N_C_C' nth_list_update'
              dest: in_diffD)
       moreover {
-        have \<open>snd f < length C'\<close>
+        have \<open>the f < length C'\<close>
           using snd_le_length by (auto simp: N_C_C')
-        then have \<open>convert_lit N x = convert_lit (N[C := swap (N ! C) i (snd f)]) x\<close> if \<open>x \<in> set M\<close>for x
+        then have \<open>convert_lit N x = convert_lit (N[C := swap (N ! C) i (the f)]) x\<close> if \<open>x \<in> set M\<close>for x
           apply (cases x)
           using i two_le_length_C by (auto simp: nth_list_update' swap_def N_C_C' mset_update
               simp del: C'_i)
-        then have \<open>convert_lits_l N M = convert_lits_l (N[C := swap (N ! C) i (snd f)]) M\<close>
+        then have \<open>convert_lits_l N M = convert_lits_l (N[C := swap (N ! C) i (the f)]) M\<close>
           unfolding convert_lits_l_def by auto }
       moreover have \<open>{#(L, TWL_Clause (mset (take 2 (N ! j))) (mset (drop 2 (N ! j)))).
           j \<in># remove1_mset C WS#} =
         {#(L,
           TWL_Clause
-           (mset (take 2 (N[C := swap (N ! C) i (snd f)] ! j)))
-           (mset (drop 2 (N[C := swap (N ! C) i (snd f)] ! j)))).
+           (mset (take 2 (N[C := swap (N ! C) i (the f)] ! j)))
+           (mset (drop 2 (N[C := swap (N ! C) i (the f)] ! j)))).
           j \<in># remove1_mset C WS#}\<close>
         by (rule image_mset_cong) (use jC_notin_WS in \<open>auto simp: nth_list_update' swap_def\<close>)
       ultimately show ?thesis

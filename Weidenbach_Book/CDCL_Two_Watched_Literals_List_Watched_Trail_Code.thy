@@ -405,31 +405,29 @@ proof -
         OF twl_array_code_axioms] .
 qed
 
-
-definition find_unwatched'' :: "(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> (bool option \<times> nat) nres" where
+definition find_unwatched'' :: "(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> (nat option) nres" where
 \<open>find_unwatched'' M N' C = do {
-  WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> 2 \<and> i \<le> length (N'!C) \<and> (\<forall>j\<in>{2..<i}. -((N'!C)!j) \<in> lits_of_l M) \<and>
-    (found = Some False \<longrightarrow> (undefined_lit M ((N'!C)!i) \<and> i < length (N'!C))) \<and>
-    (found = Some True \<longrightarrow> ((N'!C)!i \<in> lits_of_l M \<and> i < length (N'!C))) \<and>
+   S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> 2 \<and> i \<le> length (N'!C) \<and> (\<forall>j\<in>{2..<i}. -((N'!C)!j) \<in> lits_of_l M) \<and>
+    (\<forall>j. found = Some j \<longrightarrow> (i = j \<and> (undefined_lit M ((N'!C)!j) \<or> (N'!C)!j \<in> lits_of_l M) \<and> j < length (N'!C) \<and> j \<ge> 2)) \<and>
     literals_are_in_N\<^sub>0 (mset (N'!C))\<^esup>
     (\<lambda>(found, i). found = None \<and> i < length (N'!C))
     (\<lambda>(_, i). do {
       ASSERT(i < length (N'!C));
       ASSERT((N'!C)!i \<in> snd ` D\<^sub>0);
       case valued M ((N'!C)!i) of
-        None \<Rightarrow> do { RETURN (Some False, i)}
+        None \<Rightarrow> do { RETURN (Some i, i)}
       | Some v \<Rightarrow>
-         (if v then do { RETURN (Some True, i)} else do { RETURN (None, i+1)})
+         (if v then do { RETURN (Some i, i)} else do { RETURN (None, i+1)})
       }
     )
-    (None, 2::nat)
+    (None, 2::nat);
+   RETURN (fst S)
   }
 \<close>
-
 sepref_thm find_unwatched''_code
   is \<open>uncurry2 find_unwatched''\<close>
   :: \<open>[\<lambda>((M, N), C). C < length N]\<^sub>a trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>
-        option_assn bool_assn *assn nat_assn\<close>
+        option_assn nat_assn\<close>
   unfolding find_unwatched''_def
   unfolding nth_rll_def[symmetric] length_rll_def[symmetric]
   by sepref
@@ -459,15 +457,15 @@ qed
 lemma find_unwatched''_code_hnr[sepref_fr_rules]:
   \<open>(uncurry2 find_unwatched''_code, uncurry2 find_unwatched') \<in>
      [\<lambda>((M, N), C). literals_are_in_N\<^sub>0 (mset (N!C)) \<and> C < length N]\<^sub>a
-     trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> option_assn bool_assn *assn nat_assn\<close>
+     trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> option_assn nat_assn\<close>
 proof -
-    have 1: \<open>(uncurry2 find_unwatched'', uncurry2 find_unwatched') \<in>
+  have 0: \<open>((None, 2), None, 2) \<in> Id\<close>
+    by auto
+  have 1: \<open>(uncurry2 find_unwatched'', uncurry2 find_unwatched') \<in>
        [\<lambda>((M, N), C). literals_are_in_N\<^sub>0 (mset (N!C))]\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
       unfolding find_unwatched''_def find_unwatched'_def uncurry_def
       apply (intro frefI nres_relI)
-      apply clarify
-      apply refine_vcg
-      subgoal by simp
+      apply (refine_vcg 0)
       subgoal by auto
       subgoal by auto
       subgoal by auto
@@ -479,6 +477,7 @@ proof -
       subgoal by auto
       subgoal by auto
       subgoal by (auto simp: image_image literals_are_in_N\<^sub>0_in_N\<^sub>1)
+      subgoal by auto
       subgoal by auto
       subgoal by auto
       subgoal by auto

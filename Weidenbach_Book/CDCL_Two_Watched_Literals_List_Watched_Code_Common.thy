@@ -256,24 +256,23 @@ lemma delete_index_and_swap_aa_ll_hnr[sepref_fr_rules]:
       simp: delete_index_and_swap_ll_def update_ll_def last_ll_def set_butlast_ll_def
       length_ll_def[symmetric])
 
-definition find_unwatched' :: "(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> (bool option \<times> nat) nres" where
+definition find_unwatched' :: "(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> (nat option) nres" where
 \<open>find_unwatched' M N' C = do {
-  WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> 2 \<and> i \<le> length (N'!C) \<and> (\<forall>j\<in>{2..<i}. -((N'!C)!j) \<in> lits_of_l M) \<and>
-    (found = Some False \<longrightarrow> (undefined_lit M ((N'!C)!i) \<and> i < length (N'!C))) \<and>
-    (found = Some True \<longrightarrow> ((N'!C)!i \<in> lits_of_l M \<and> i < length (N'!C)))\<^esup>
+   S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> 2 \<and> i \<le> length (N'!C) \<and> (\<forall>j\<in>{2..<i}. -((N'!C)!j) \<in> lits_of_l M) \<and>
+    (\<forall>j. found = Some j \<longrightarrow> (i = j \<and> (undefined_lit M ((N'!C)!j) \<or> (N'!C)!j \<in> lits_of_l M) \<and> j < length (N'!C) \<and> j \<ge> 2))\<^esup>
     (\<lambda>(found, i). found = None \<and> i < length (N'!C))
     (\<lambda>(_, i). do {
       ASSERT(i < length (N'!C));
       case valued M ((N'!C)!i) of
-        None \<Rightarrow> do { RETURN (Some False, i)}
+        None \<Rightarrow> do { RETURN (Some i, i)}
       | Some v \<Rightarrow>
-         (if v then do { RETURN (Some True, i)} else do { RETURN (None, i+1)})
+         (if v then do { RETURN (Some i, i)} else do { RETURN (None, i+1)})
       }
     )
-    (None, 2::nat)
+    (None, 2::nat);
+   RETURN (fst S)
   }
 \<close>
-
 lemma find_unwatched'_find_unwatched: \<open>find_unwatched' M N' C = find_unwatched M (N'!C)\<close>
   unfolding find_unwatched'_def find_unwatched_def
   by auto
@@ -282,7 +281,7 @@ sepref_definition find_unwatched'_impl
   is \<open>uncurry2 find_unwatched'\<close>
   :: \<open>[\<lambda>((M, N'), C). no_dup M \<and> C < length N']\<^sub>a
         pair_nat_ann_lits_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>
-        option_assn bool_assn *assn nat_assn\<close>
+        option_assn nat_assn\<close>
   unfolding find_unwatched'_def nth_rll_def[symmetric] length_rll_def[symmetric]
   supply [[goals_limit=1]]
   by sepref
@@ -308,7 +307,7 @@ definition select_and_remove_from_literals_to_update_wl' :: \<open>twl_st_wll \<
     (\<lambda>(M, N, U, D, NP, UP, Q, W).  ((M, N, U, D, NP, UP, tl Q, W), hd Q))\<close>
 
 lemma nat_lit_eq[sepref_fr_rules]: \<open>(uncurry (return oo op =), uncurry (RETURN oo op =)) \<in>
-   (nat_lit_assn)\<^sup>k *\<^sub>a (nat_lit_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+   nat_lit_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare (sep_auto simp: p2rel_def nat_lit_rel_def
       dest: lit_of_natP_same_rightD lit_of_natP_same_leftD)
 
@@ -385,7 +384,7 @@ lemma in_nat_list_rel_list_all2_in_set_iff:
 lemma list_contains_WHILE_code_op_list_contains[sepref_fr_rules]:
   \<open>(uncurry list_contains_WHILE_array_code,
     uncurry (RETURN oo op_list_contains)) \<in>
-    unat_lit_assn\<^sup>k *\<^sub>a (clause_ll_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+    unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
 proof -
   have 1: \<open>(uncurry (RETURN oo op_list_contains), uncurry (RETURN oo op_list_contains)) \<in>
          nat_lit_rel \<times>\<^sub>r \<langle>nat_lit_rel\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
@@ -473,7 +472,7 @@ proof -
     unfolding 1 .
 qed
 
-text \<open>TODO: as levels are less than the numbers of literals, change to \<^typ>\<open>uint32\<close>?\<close>
+text \<open>TODO: as levels are less than the numbers of literals, change to \<^typ>\<open>uint32\<close>?\<close>
 sepref_definition get_level_wl_code
   is \<open>uncurry (RETURN oo get_level_wl)\<close>
   :: \<open>pair_nat_ann_lits_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
@@ -534,7 +533,7 @@ definition get_maximum_level_remove where
   \<open>get_maximum_level_remove M D L =  get_maximum_level M (remove1_mset L D)\<close>
 
 lemma maximum_level_remove_code_get_maximum_level_remove[sepref_fr_rules]:
-  \<open>(uncurry2 (maximum_level_remove_code),
+  \<open>(uncurry2 maximum_level_remove_code,
      uncurry2 (RETURN ooo get_maximum_level_remove)) \<in>
     pair_nat_ann_lits_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
 proof -
@@ -688,7 +687,7 @@ lemma
 
 sepref_definition is_in_arl_code
   is \<open>uncurry is_in_arl\<close>
-  :: \<open>(pure unat_lit_rel)\<^sup>k *\<^sub>a (arl_assn (unat_lit_assn))\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  :: \<open>(pure unat_lit_rel)\<^sup>k *\<^sub>a (arl_assn unat_lit_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding is_in_arl_def find_first_eq_def short_circuit_conv
   supply [[goals_limit = 1]]
   by sepref
@@ -828,7 +827,7 @@ lemma remove1_remove1_mset: \<open>(uncurry (RETURN oo remove1), uncurry (RETURN
 lemma list_all2_op_eq_map_right_iff': \<open>list_all2 (\<lambda>L L'. L' = (f L)) a aa \<longleftrightarrow> aa = map f a \<close>
   apply (induction a arbitrary: aa)
    apply (auto; fail)
-  by (rename_tac aa, case_tac aa) (auto)
+  by (rename_tac aa, case_tac aa) auto
 
 lemma ex_assn_def_pure_eq_middle3:
   \<open>(\<exists>\<^sub>Aba b bb. f b ba bb * \<up> (ba = h b bb) * P b ba bb) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * P b (h b bb) bb)\<close>
@@ -1035,7 +1034,7 @@ lemma union_mset_list_fold_code_op_union_mset[sepref_fr_rules]:
   using union_mset_list_fold_code.refine[FCOMP union_mset_list_fold_op_union_mset] .
 
 lemma arl_is_empty_is_empty[sepref_fr_rules]: \<open>(arl_is_empty, RETURN o Multiset.is_empty) \<in> conflict_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  by (sepref_to_hoare) (sep_auto simp: Multiset.is_empty_def hr_comp_def list_mset_rel_def br_def arl_assn_def)
+  by sepref_to_hoare (sep_auto simp: Multiset.is_empty_def hr_comp_def list_mset_rel_def br_def arl_assn_def)
 
 definition find_decomp_wl_imp :: "(nat, nat) ann_lits \<Rightarrow> nat clause \<Rightarrow> nat literal \<Rightarrow> (nat, nat) ann_lits nres" where
   \<open>find_decomp_wl_imp = (\<lambda>M\<^sub>0 D L. do {
@@ -1280,7 +1279,7 @@ context twl_array_code
 begin
 
 sepref_definition (in -) find_decomp_wl_imp_code
-  is \<open>uncurry2 (find_decomp_wl_imp)\<close>
+  is \<open>uncurry2 find_decomp_wl_imp\<close>
   :: \<open>[\<lambda>((M, D), L). M \<noteq> []]\<^sub>a
          pair_nat_ann_lits_assn\<^sup>d *\<^sub>a conflict_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k
     \<rightarrow> pair_nat_ann_lits_assn\<close>

@@ -58,7 +58,7 @@ abbreviation nat_ann_lits_assn :: "ann_lits_l \<Rightarrow> ann_lits_l \<Rightar
 
 sepref_definition defined_lit_map_impl' is
   \<open>uncurry (defined_lit_map_impl :: (nat, nat) ann_lit list \<Rightarrow> _)\<close> ::
-  \<open>(nat_ann_lits_assn)\<^sup>k *\<^sub>a nat_lit_assn_id\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  \<open>nat_ann_lits_assn\<^sup>k *\<^sub>a nat_lit_assn_id\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding defined_lit_map_impl_def
   by sepref
 
@@ -77,7 +77,7 @@ lemma defined_lit_map_impl_spec: \<open>(uncurry defined_lit_map_impl, uncurry (
 
 lemma defined_lit_map_impl'_refine:
   \<open>(uncurry (defined_lit_map_impl'), uncurry (RETURN oo op_defined_lit_imp)) \<in>
-    (nat_ann_lits_assn)\<^sup>k *\<^sub>a nat_lit_assn_id\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+    nat_ann_lits_assn\<^sup>k *\<^sub>a nat_lit_assn_id\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   using defined_lit_map_impl'.refine[FCOMP defined_lit_map_impl_spec]
   unfolding op_defined_lit_imp_def .
 
@@ -98,7 +98,7 @@ definition valued_impl :: "(nat, nat) ann_lits \<Rightarrow> nat literal \<Right
     None\<close>
 
 sepref_definition valued_impl' is \<open>uncurry valued_impl\<close> ::
-  \<open>(nat_ann_lits_assn)\<^sup>k *\<^sub>a nat_lit_assn_id\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn\<close>
+  \<open>nat_ann_lits_assn\<^sup>k *\<^sub>a nat_lit_assn_id\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn\<close>
   unfolding valued_impl_def
   by sepref
 
@@ -143,7 +143,7 @@ lemma case_bool_if: "case_bool a b v = (if v then a else b)"
 
 lemma valued_impl'_refine:
   shows \<open>(uncurry valued_impl', uncurry (RETURN oo op_valued)) \<in>
-    [\<lambda>(M, _). no_dup M]\<^sub>a (nat_ann_lits_assn)\<^sup>k *\<^sub>a nat_lit_assn_id\<^sup>k \<rightarrow> option_assn bool_assn\<close>
+    [\<lambda>(M, _). no_dup M]\<^sub>a nat_ann_lits_assn\<^sup>k *\<^sub>a nat_lit_assn_id\<^sup>k \<rightarrow> option_assn bool_assn\<close>
   using valued_impl'.refine[FCOMP valued_impl_spec]
   unfolding hrp_comp_Id2 valued'_def op_valued_def .
 
@@ -153,19 +153,15 @@ sepref_decl_impl valued: valued_impl'_refine
 end
 
 sepref_definition find_unwatched_impl is
-   "uncurry (find_unwatched :: (nat, nat) ann_lits
-      \<Rightarrow> nat literal list \<Rightarrow> (bool option \<times> nat) nres)"
-  :: \<open>[\<lambda>(M, L). no_dup M]\<^sub>anat_ann_lits_assn\<^sup>k *\<^sub>a (list_assn nat_lit_assn_id)\<^sup>k \<rightarrow> prod_assn (option_assn bool_assn) nat_assn\<close>
+   "uncurry (find_unwatched :: (nat, nat) ann_lits \<Rightarrow> nat literal list \<Rightarrow> nat option nres)"
+  :: \<open>[\<lambda>(M, L). no_dup M]\<^sub>anat_ann_lits_assn\<^sup>k *\<^sub>a (list_assn nat_lit_assn_id)\<^sup>k \<rightarrow> option_assn nat_assn\<close>
   unfolding find_unwatched_def
   supply [[goals_limit=1]]
   by sepref
 
 sepref_register "find_unwatched :: (nat, nat) ann_lits
-      \<Rightarrow> nat literal list \<Rightarrow> (bool option \<times> nat) nres"
+      \<Rightarrow> nat literal list \<Rightarrow> nat option nres"
 declare find_unwatched_impl.refine[sepref_fr_rules]
-thm HOL_list_prepend_hnr_mop
-term op_list_empty
-
 
 sepref_decl_op Propagated : "Propagated :: nat literal \<Rightarrow> nat \<Rightarrow> (nat, nat) ann_lit"
   :: "((Id :: (nat literal \<times> _) set) \<rightarrow> (Id :: (nat \<times> _) set) \<rightarrow> (Id :: ((nat, nat) ann_lit \<times> _) set))"
@@ -214,17 +210,17 @@ lemma op_uminus_lit_refine[sepref_fr_rules]:
 lemma [sepref_fr_rules]:
   \<open>((return o op_Decided), (RETURN o op_Decided)) \<in>
      nat_lit_assn_id\<^sup>k \<rightarrow>\<^sub>a nat_ann_lit_assn\<close>
-  apply (
+  by (
     sep_auto
       simp: pure_def hn_ctxt_def invalid_assn_def list_assn_aux_eqlen_simp
       intro!: hn_refineI[THEN hn_refine_preI] hfrefI
       intro: Assertions.mod_emp_simp)
-  done
 
 
 subsection \<open>Code Generation\<close>
 
 subsubsection \<open>The Body of the Inner Propagation\<close>
+
 lemma Collect_eq_comp: \<open>{(c, a). a = f c} O {(x, y). P x y} = {(c, y). P (f c) y}\<close>
   by auto
 
@@ -297,7 +293,7 @@ proof -
     done
 qed
 
-definition select_from_clauses_to_update2 :: \<open>'v twl_st_l \<Rightarrow> (nat) nres\<close> where
+definition select_from_clauses_to_update2 :: \<open>'v twl_st_l \<Rightarrow> nat nres\<close> where
   \<open>select_from_clauses_to_update2 S = SPEC (\<lambda>C. C \<in># clauses_to_update_l S)\<close>
 
 lemma hd_select_from_clauses_to_update2_refine[sepref_fr_rules]: (* TODO tune proof *)
@@ -309,7 +305,7 @@ lemma hd_select_from_clauses_to_update2_refine[sepref_fr_rules]: (* TODO tune pr
   apply sep_auto
   apply (case_tac \<open>af\<close>; case_tac am)
     apply sep_auto
-  apply (sep_auto)
+  apply sep_auto
      apply (auto simp: mod_pure_star_dist list_mst_assn_add_mset_empty_false
     dest!: list_mset_assn_add_mset_cons_in list_mset_assn_add_mset_cons_in
       dest!: mod_starD; fail)+
@@ -348,7 +344,7 @@ proof -
     by auto
   have [simp]: \<open>list_all2 (\<lambda>x y. y = mset x) xs ys \<Longrightarrow> mset ys = mset `# mset xs\<close> for xs ys
     apply (subgoal_tac \<open>length xs = length ys\<close>)
-    apply (rotate_tac)
+    apply rotate_tac
     subgoal by (induction xs ys rule: list_induct2) auto
     subgoal by (simp add: list_all2_iff)
     done
@@ -415,6 +411,7 @@ proof -
     by (auto simp: list_mset_assn_def mset_rel_def p2rel_def pure_def
       list_mset_rel_def br_def rel2p_dflt list.rel_eq rel2p_def[abs_def] rel_mset_def)
 qed
+
 lemma recomp_set_eq_simp: \<open>{(c, a). a = f c} O {(x, y). P x y} = {(c, y). P (f c) y}\<close>
   by auto
 
@@ -1179,7 +1176,7 @@ proof -
 qed
 
 lemma list_of_mset_hnr[sepref_fr_rules]:
-  \<open>(return o id, list_of_mset) \<in> (clause_l_assn)\<^sup>k \<rightarrow>\<^sub>a clause_ll_assn\<close>
+  \<open>(return o id, list_of_mset) \<in> clause_l_assn\<^sup>k \<rightarrow>\<^sub>a clause_ll_assn\<close>
 proof -
   have I: \<open>(\<lambda>a c. \<up> (c = a)) = id_assn\<close>
     by (auto simp: pure_def)
@@ -1199,7 +1196,7 @@ qed
 
 lemma length_size[sepref_fr_rules]:
   \<open>(return o length, RETURN o size) \<in> (list_mset_assn R)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  by (sepref_to_hoare)
+  by sepref_to_hoare
     (sep_auto simp: list_of_mset_def list_mset_assn_def mset_rel_def p2rel_def
         list_mset_rel_def rel2p_def[abs_def] br_def rel_mset_def list.rel_eq Collect_eq_comp
         size_mset[symmetric]
@@ -1484,7 +1481,7 @@ text \<open>This is the least worst version:\<close>
 thm cdcl_twl_stgy_prog_l_impl_spec_final[unfolded full_cdcl_twl_stgy_def]
 
 export_code cdcl_twl_stgy_prog_l_impl in SML_imp module_name CDCL_Non_Cached_List
-  file "code/CDCL_Non_Cached_List.ML"
+  file "code/CDCL_Non_Cached_List.sml"
 
 
 section \<open>Code for the initialisation of the Data Structure\<close>

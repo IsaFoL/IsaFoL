@@ -151,10 +151,10 @@ definition nat_ann_lits_rel :: "(ann_lits_wl \<times> (nat, nat) ann_lits) set" 
   \<open>nat_ann_lits_rel = \<langle>nat_ann_lit_rel\<rangle>list_rel\<close>
 
 abbreviation pair_nat_ann_lit_assn :: "(nat, nat) ann_lit \<Rightarrow> ann_lit_wl \<Rightarrow> assn" where
-  \<open>pair_nat_ann_lit_assn \<equiv> pure (nat_ann_lit_rel)\<close>
+  \<open>pair_nat_ann_lit_assn \<equiv> pure nat_ann_lit_rel\<close>
 
 abbreviation pair_nat_ann_lits_assn :: "(nat, nat) ann_lits \<Rightarrow> ann_lits_wl \<Rightarrow> assn" where
-  \<open>pair_nat_ann_lits_assn \<equiv> list_assn (pair_nat_ann_lit_assn)\<close>
+  \<open>pair_nat_ann_lits_assn \<equiv> list_assn pair_nat_ann_lit_assn\<close>
 
 lemma nat_ann_lits_rel_Cons[iff]:
   \<open>(x # xs, y # ys) \<in> nat_ann_lits_rel \<longleftrightarrow> (x, y) \<in> nat_ann_lit_rel \<and> (xs, ys) \<in> nat_ann_lits_rel\<close>
@@ -341,7 +341,7 @@ text \<open>TODO Move\<close>
 lemma list_all2_op_eq_map_right_iff': \<open>list_all2 (\<lambda>L L'. L' = (f L)) a aa \<longleftrightarrow> aa = map f a \<close>
   apply (induction a arbitrary: aa)
    apply (auto; fail)
-  by (rename_tac aa, case_tac aa) (auto)
+  by (rename_tac aa, case_tac aa) auto
 
 lemma less_upper_bintrunc_id: \<open>n < 2 ^b \<Longrightarrow> n \<ge> 0 \<Longrightarrow> bintrunc b n = n\<close>
   unfolding uint32_of_nat_def
@@ -410,25 +410,25 @@ definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> n
     else do {
       ASSERT(literals_are_in_N\<^sub>0 (mset (N!C)));
       f \<leftarrow> find_unwatched M (N!C);
-      ASSERT (fst f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l (N!C)). - L \<in> lits_of_l M));
-      if fst f = None
-      then
-        if val_L' = Some False
-        then do {RETURN (w+1, (M, N, U, Some (mset (N!C)), NP, UP, {#}, W))}
-        else do {
-          ASSERT(undefined_lit M L');
-          RETURN (w+1, (Propagated L' C # M, N, U, D', NP, UP, add_mset (-L') Q, W))}
-      else do {
-        ASSERT(snd f < length (N!C));
-        let K' = (N!C) ! (snd f);
-        ASSERT(K' \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP));
-        ASSERT(K' \<in> snd ` D\<^sub>0);
-        let N' = list_update N C (swap (N!C) i (snd f));
-        let W = W(L := delete_index_and_swap (W L) w);
-        let W = W(K':= W K' @ [C]);
-        ASSERT(K \<noteq> K');
-        RETURN (w, (M, N', U, D', NP, UP, Q, W))
-      }
+      ASSERT (f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l (N!C)). - L \<in> lits_of_l M));
+      case f of
+        None \<Rightarrow>
+          if val_L' = Some False
+          then do {RETURN (w+1, (M, N, U, Some (mset (N!C)), NP, UP, {#}, W))}
+          else do {
+            ASSERT(undefined_lit M L');
+            RETURN (w+1, (Propagated L' C # M, N, U, D', NP, UP, add_mset (-L') Q, W))}
+      | Some f \<Rightarrow> do {
+           ASSERT(f < length (N!C));
+           let K' = (N!C) ! f;
+           ASSERT(K' \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP));
+           ASSERT(K' \<in> snd ` D\<^sub>0);
+           let N' = list_update N C (swap (N!C) i f);
+           let W = W(L := delete_index_and_swap (W L) w);
+           let W = W(K':= W K' @ [C]);
+           ASSERT(K \<noteq> K');
+           RETURN (w, (M, N', U, D', NP, UP, Q, W))
+       }
     }
    }
 \<close>
@@ -527,7 +527,6 @@ proof -
       using N\<^sub>0 by (simp add: S clauses_def mset_take_mset_drop_mset
           mset_take_mset_drop_mset' m)
     subgoal by (rule literals_are_in_N\<^sub>0_nth) fast+
-    subgoal by simp
     subgoal by simp
     subgoal by simp
     subgoal by simp

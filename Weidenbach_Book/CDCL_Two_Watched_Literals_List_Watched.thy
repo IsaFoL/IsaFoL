@@ -175,29 +175,29 @@ definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat 
     then RETURN (w+1, S)
     else do {
       f \<leftarrow> find_unwatched M (N!C);
-      ASSERT (fst f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l (N!C)). - L \<in> lits_of_l M));
-      if fst f = None
-      then
-        if val_L' = Some False
-        then do {RETURN (w+1, (M, N, U, Some (mset (N!C)), NP, UP, {#}, W))}
-        else do {RETURN (w+1, (Propagated L' C # M, N, U, D, NP, UP, add_mset (-L') Q, W))}
-      else do {
-        ASSERT(snd f < length (N!C));
-        let K' = (N!C) ! (snd f);
-        ASSERT(K' \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP));
-        let N' = list_update N C (swap (N!C) i (snd f));
-        ASSERT(K \<noteq> K');
-        RETURN (w, (M, N', U, D, NP, UP, Q, W(K := delete_index_and_swap (watched_by S L) w, K':= W K' @ [C])))
-      }
+      ASSERT (f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l (N!C)). - L \<in> lits_of_l M));
+      case f of
+        None \<Rightarrow>
+          if val_L' = Some False
+          then do {RETURN (w+1, (M, N, U, Some (mset (N!C)), NP, UP, {#}, W))}
+          else do {RETURN (w+1, (Propagated L' C # M, N, U, D, NP, UP, add_mset (-L') Q, W))}
+      | Some f \<Rightarrow> do {
+          ASSERT(f < length (N!C));
+          let K' = (N!C) ! f;
+          ASSERT(K' \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP));
+          let N' = list_update N C (swap (N!C) i f);
+          ASSERT(K \<noteq> K');
+          RETURN (w, (M, N', U, D, NP, UP, Q, W(K := delete_index_and_swap (watched_by S L) w, K':= W K' @ [C])))
+        }
     }
    }
 \<close>
 
 lemma refine_add_invariants':
   assumes
-    \<open>(f S) \<le> \<Down> {(S, S'). Q' S S' \<and> Q S} (gS)\<close> and
+    \<open>f S \<le> \<Down> {(S, S'). Q' S S' \<and> Q S} gS\<close> and
     \<open>y \<le> \<Down> {((i, S), S'). P i S S'} (f S)\<close> and
-    \<open>nofail (gS)\<close>
+    \<open>nofail gS\<close>
   shows \<open>y \<le> \<Down> {((i, S), S'). P i S S' \<and> Q S'} (f S)\<close>
   using assms unfolding pw_le_iff pw_conc_inres pw_conc_nofail
   by force
@@ -372,14 +372,14 @@ proof -
           intro!: nth_in_set_tl
           intro!: bexI[of _ \<open>N ! (W L ! w)\<close>])
     subgoal using uL_M by auto
-    subgoal premises p for val_L' val_L f' f
+    subgoal premises p for val_L' val_L f' f thef
     proof -
-      let ?K = \<open>N ! (W L ! w) ! snd f'\<close>
+      let ?K = \<open>N ! (W L ! w) ! f\<close>
       thm p[unfolded S[symmetric], unfolded C'_def[symmetric], unfolded C''_def[symmetric]]
       note C'_le_length = p(8) and le_length_C'' = p(9) and i_le_C'' = p(13) and
         one_minus_i_le_C'' = p(14) and C''_i_eq_L = p(17) and mset_watched_C' = p(19) and
         val_L'_val_L = p(21) and val_L'_not_Some_True = p(22) and val_L_not_Some_True = p(23) and
-        f'_f = p(24) and fst_f'_not_None = p(26) and fst_f'_not_None = p(27) and
+        f'_f = p(24,27) and fst_f'_not_None = p(26) and fst_f'_not_None = p(27) and
         snd_f_le_C'' = p(28) and snd_f'_le_C'' = p(29) and L_ne_C''_snd_f = p(31) and
         C''_snd_f_unwatched = p(32) and uC''_snd_f_notin_M = p(33)
       have K_notin_watched[iff]: \<open>?K \<notin> set (watched_l (N ! (W L ! w)))\<close>
@@ -388,12 +388,12 @@ proof -
         apply (subst (asm) distinct_append)
         using C''_snd_f_unwatched f'_f
         by (auto simp: S)
-      have snd_f'_ge_2: \<open>snd f' \<ge> 2\<close>
+      have snd_f'_ge_2: \<open>f \<ge> 2\<close>
       proof (rule ccontr)
         assume \<open>\<not> ?thesis\<close>
         then have \<open>?K \<in> set (watched_l (N ! (W L ! w)))\<close>
           using two_le_length_C f'_f by (auto simp add: S take_set
-              intro!: exI[of _ \<open>snd f'\<close>])
+              intro!: exI[of _ \<open>the f'\<close>])
         then show False
           using K_notin_watched f'_f by (auto simp: S)
       qed
@@ -402,7 +402,7 @@ proof -
         apply (subst (asm) append_take_drop_id[of 2 \<open>C''\<close>, symmetric])
         apply (subst (asm) distinct_append)
         by (auto simp: S take_2_if split: if_splits)
-      then have [simp]: \<open>L \<notin> set (take 2 (swap (N ! x) i (snd f')))\<close> if \<open>W L ! w = x\<close> for x
+      then have [simp]: \<open>L \<notin> set (take 2 (swap (N ! x) i f))\<close> if \<open>W L ! w = x\<close> for x
         using snd_f'_le_C'' le_length_C'' C''_snd_f_unwatched snd_f'_ge_2 L_ne_C''_snd_f that f'_f
         by (auto simp: take_2_if i_def take_set S)
       have C'_N: \<open>W L ! w < length N\<close> \<open>0 < W L ! w\<close>
@@ -415,9 +415,9 @@ proof -
         using add_inv WL_w_in_drop by (auto simp: S additional_WS_invs_def)
       have [simp]: \<open>L \<in> set (take 2 (N ! (W L ! w)))\<close>
         using struct_invs valid WL_w_in_drop by (auto simp: S)
-      have [simp]: \<open>N ! (W L ! w) ! snd f' \<in> set (take 2 (swap (N ! (W L ! w)) i (snd f')))\<close>
+      have [simp]: \<open>N ! (W L ! w) ! f \<in> set (take 2 (swap (N ! (W L ! w)) i f))\<close>
         using w_le snd_f'_ge_2 snd_f_le_C'' f'_f
-        by (auto simp: i_def swap_def take_2_if)
+        by (auto simp: i_def swap_def take_2_if split: nat.splits)
       have [simp]: \<open>{x. (y = x \<longrightarrow> P x) \<and> (y \<noteq> x \<longrightarrow> Q x)} =
          (if P y then insert y {x. Q x} else {x. x \<noteq>  y \<and> Q x})\<close>
         for y :: 'a and P Q :: \<open>'a \<Rightarrow> bool\<close>
@@ -426,8 +426,8 @@ proof -
         using two_le_length_C i_def S by auto
       have [iff]: \<open>?K \<in> set (take 2 (N ! (W L ! w))) \<longleftrightarrow> False\<close>
         using f'_f[symmetric] K_notin_watched by auto
-      have [simp]: \<open>set (take 2 (swap (N ! (W L ! w)) i (snd f'))) = {C''!(1-i), ?K}\<close>
-        using snd_f'_ge_2 two_le_length_C by (auto simp: take_2_if S i_def swap_def)
+      have [simp]: \<open>set (take 2 (swap (N ! (W L ! w)) i f)) = {C''!(1-i), ?K}\<close>
+        using snd_f'_ge_2 two_le_length_C f'_f by (auto simp: take_2_if S i_def swap_def)
       have [simp]: \<open>set (take 2 (N ! (W L ! w))) = {?L, ?L'}\<close>
         using snd_f'_ge_2 two_le_length_C by (auto simp: take_2_if S i_def)
       have [simp]: \<open>N ! (W L ! w) ! (Suc 0 - i) \<in> set (take 2 (N ! (W L ! w)))\<close>
@@ -438,8 +438,8 @@ proof -
         using dist_C'' that by (auto simp: S distinct_conv_nth)
       have \<open>N ! (W L ! w) \<in> set (tl N)\<close>
         by (metis C'_N(1) KK drop_0 drop_Suc in_set_drop_conv_nth)
-      then have [simp]: \<open>mset `# mset (tl N[W L ! w - Suc 0 := swap (N ! (W L ! w)) i (snd f')]) = mset `# mset (tl N)\<close>
-        using corr_w C_N_U C'_N i_le_C'' snd_f'_le_C''
+      then have [simp]: \<open>mset `# mset (tl N[W L ! w - Suc 0 := swap (N ! (W L ! w)) i f]) = mset `# mset (tl N)\<close>
+        using corr_w C_N_U C'_N i_le_C'' snd_f'_le_C'' f'_f
         by (auto simp: S mset_update tl_update_swap image_mset_remove1_mset_if
             add_mset_remove_trivial_If nth_tl)
       show ?thesis
