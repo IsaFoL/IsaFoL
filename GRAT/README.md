@@ -11,9 +11,19 @@ then checked against the original formula by the verified <code>gratchk</code> t
 ## Features ##
 
 * Strong formal correctness guarantees
-* Single-threaded mode: As fast as the standard tool DRAT-trim
-* Multi-threaded mode: Up to nine times faster
+* More than twice as fast as drat-trim thanks to novel heuristics (sepWL, RAT-run)
+* Multi-threaded mode
 * Small certificates thanks to backward checking and core-first unit propagation
+* Memory efficient checking with split certificates
+
+## News ##
+### Version 1.1 ###
+  * Support for split certificates
+
+### Version 1.2 ###
+  * Separate watchlists (sepWL): More efficient implementation of core-first unit propagation.
+  * RAT-run heuristics: Reduction of expensive RAT candidate queries.
+
 
 ## Author ##
 

@@ -123,7 +123,7 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 <tr class="separator:ad5af9064bb20c8e7a270412e0c6e5b01"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a351dde3fbf51b839ff3b8ffa3db1ec54"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a351dde3fbf51b839ff3b8ffa3db1ec54"></a>
 <a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classGlobal__Data.html#a351dde3fbf51b839ff3b8ffa3db1ec54">get_pivot</a> (<a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a> *cl) const </td></tr>
-<tr class="memdesc:a351dde3fbf51b839ff3b8ffa3db1ec54"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the pivot element associated to a clause. <br /></td></tr>
+<tr class="memdesc:a351dde3fbf51b839ff3b8ffa3db1ec54"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the pivot literal associated to a clause. Empty clauses have pivot 0. <br /></td></tr>
 <tr class="separator:a351dde3fbf51b839ff3b8ffa3db1ec54"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a01cd350097244ff3050a43a93ea9450b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a01cd350097244ff3050a43a93ea9450b"></a>
 size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classGlobal__Data.html#a01cd350097244ff3050a43a93ea9450b">get_fst_prf_item</a> () const </td></tr>
@@ -133,6 +133,9 @@ size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="cl
 size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classGlobal__Data.html#a4488fef5502a6e290fdca955237ed488">get_num_items</a> () const </td></tr>
 <tr class="memdesc:a4488fef5502a6e290fdca955237ed488"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the total number of items. <br /></td></tr>
 <tr class="separator:a4488fef5502a6e290fdca955237ed488"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab3a0f417b96a9e07470fccf6a6261e37"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classGlobal__Data.html#ab3a0f417b96a9e07470fccf6a6261e37">truncate_items</a> (size_t _num_items)</td></tr>
+<tr class="memdesc:ab3a0f417b96a9e07470fccf6a6261e37"><td class="mdescLeft">&#160;</td><td class="mdescRight">Truncate items, discarding the tail.  <a href="#ab3a0f417b96a9e07470fccf6a6261e37">More...</a><br /></td></tr>
+<tr class="separator:ab3a0f417b96a9e07470fccf6a6261e37"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a39e6cdfd161e7845b846683a456d7601"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a39e6cdfd161e7845b846683a456d7601"></a>
 <a class="el" href="classitem__t.html">item_t</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classGlobal__Data.html#a39e6cdfd161e7845b846683a456d7601">get_item</a> (size_t i)</td></tr>
 <tr class="memdesc:a39e6cdfd161e7845b846683a456d7601"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get item by index. <br /></td></tr>
@@ -219,6 +222,25 @@ Related Functions</h2></td></tr>
 
 <p>Join marking information for forward trail with provided information. </p>
 <p>This is used after the concurrent backwards phase to join the information computed by the different threads. </p>
+
+</div>
+</div>
+<a class="anchor" id="ab3a0f417b96a9e07470fccf6a6261e37"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void Global_Data::truncate_items </td>
+          <td>(</td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>_num_items</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Truncate items, discarding the tail. </p>
+<dl class="section pre"><dt>Precondition</dt><dd>New number of items must be less or equal to current number of items. </dd></dl>
 
 </div>
 </div>

@@ -14,7 +14,7 @@ var searchData=
   ['print_5finfo',['print_info',['../gratgen_8cpp.html#a1243268c621c2049a41956ccfc934fd5',1,'gratgen.cpp']]],
   ['print_5fusage',['print_usage',['../gratgen_8cpp.html#ae5ad5cbeccaedc03a48d3c7eaa803e79',1,'gratgen.cpp']]],
   ['proof_5fof',['proof_of',['../classSynch__Data.html#a5617d994548ed904cd06fa13d694de3f',1,'Synch_Data']]],
+  ['proof_5fwriter',['Proof_Writer',['../classProof__Writer.html',1,'Proof_Writer&lt; binary &gt;'],['../classProof__Writer.html#a4172f25ff68ea65e9a6f88fef1bed448',1,'Proof_Writer::Proof_Writer()']]],
   ['propagate_5funits',['propagate_units',['../classVerifier.html#a3877123d6158632c874fb54daf5a7d0e',1,'Verifier']]],
-  ['propagate_5funits_5faux',['propagate_units_aux',['../classVerifier.html#ac4c78131e225c13f997f4521a30b623c',1,'Verifier']]],
   ['push_5fclause_5fids',['push_clause_ids',['../structpush__clause__ids.html',1,'push_clause_ids'],['../structpush__clause__ids.html#a80e23fffb6d2a283f2ae84610b375d3a',1,'push_clause_ids::push_clause_ids()']]]
 ];

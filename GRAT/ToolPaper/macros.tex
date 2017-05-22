@@ -1,0 +1,122 @@
+% General
+\newcommand{\ie}{i.\,e.\ }
+\newcommand{\eg}{e.\,g.\ }
+\newcommand{\wrt}{wrt.\ }
+\newcommand{\cf}{cf.\ }
+\newcommand{\etc}{etc.\ }
+
+
+%Isabelle/HOL
+\newcommand{\SOME}{\varepsilon}
+\newcommand{\union}{\cup}
+\newcommand{\inter}{\cap}
+\renewcommand{\and}{\land}
+
+\newcommand{\set}{{\sf set}}
+
+\newcommand{\Sup}{\bigsqcup}
+\newcommand{\sle}{\sqsubseteq}
+
+\newcommand{\la}{{\sf \gets}}
+
+\newcommand{\True}{{\sf True}}
+\newcommand{\False}{{\sf False}}
+\newcommand{\nat}{{\mathbb N}}
+\newcommand{\bool}{{\mathbb B}}
+\newcommand{\unit}{{\sf unit}}
+\newcommand{\last}{{\sf last}}
+\newcommand{\butlast}{{\sf butlast}}
+
+\newcommand{\V}{V}
+
+\renewcommand{\implies}{\Longrightarrow}
+
+\newcommand{\isaconst}[1]{\textsl{#1}}
+\newcommand{\isakeyw}[1]{\textsf{\bf #1}}
+\newcommand{\isalem}[1]{\textsf{#1}}
+
+\newcommand{\locale}{\isakeyw{locale}}
+
+\newcommand{\lrec}{\mathopen{(\!|}}
+\newcommand{\rrec}{\mathclose{|\!)}}
+
+\newcommand{\lsem}{\ensuremath{\mathopen{[\![}}}
+\newcommand{\rsem}{\ensuremath{\mathclose{]\!]}}}
+
+\newcommand{\up}{\uparrow}
+
+% Refinement Framework
+\newcommand{\SUCCEED}{{\sf\bf succeed}}
+\newcommand{\FAIL}{{\sf\bf fail}}
+\newcommand{\fail}{{\sf\bf fail}}
+\newcommand{\RES}{{\sf\bf res}}
+\newcommand{\SPEC}{{\sf\bf spec}}
+\newcommand{\return}{\RETURN}
+\newcommand{\bind}{\BIND}
+\newcommand{\RETURN}{{\sf\bf return}}
+\newcommand{\BIND}{{\sf\bf bind}}
+\newcommand{\assert}{\ASSERT}
+\newcommand{\ASSERT}{{\sf\bf assert}}
+\renewcommand{\do}{\DO}
+\newcommand{\DO}{{\sf\bf do}}
+\newcommand{\IN}{{\sf\bf in}}
+\newcommand{\IF}{{\sf\bf if}}
+\newcommand{\THEN}{{\sf\bf then}}
+\newcommand{\ELSE}{{\sf\bf else}}
+\newcommand{\LET}{{\sf\bf let}}
+\newcommand{\WHILE}{{\sf\bf while}}
+\newcommand{\WHILET}{\WHILE_{\sf\bf T}}
+\newcommand{\FOREACH}{{\sf\bf foreach}}
+\newcommand{\FOREACHC}{\FOREACH_{\sf\bf C}}
+\newcommand{\REC}{{\sf\bf rec}}
+\newcommand{\RECT}{{\sf\bf rec_T}}
+
+\newcommand{\Up}{{\Uparrow}}
+\newcommand{\Down}{{\Downarrow}}
+
+\newcommand{\lfp}{{\sf lfp}}
+\newcommand{\gfp}{{\sf gfp}}
+\newcommand{\body}{{\sf B}}
+\newcommand{\htrip}[3]{{\models\{#1\}~{#2}~\{#3\}}}
+
+\newcommand{\mono}{{\sf mono}}
+\newcommand{\wf}{{\sf wf}}
+
+%LTL
+\newcommand{\Prop}{\mathsf{Prop}}
+\newcommand{\Next}{\mathord{\mathsf{X}}}
+\newcommand{\Finally}{\mathord{\mathsf{F}}}
+\newcommand{\Globally}{\mathord{\mathsf{G}}}
+\renewcommand{\Until}{\mathbin{\mathsf{U}}}
+\newcommand{\Release}{\mathbin{\mathsf{V}}}
+
+%Automata
+\newcommand{\GBA}{\mathord{\mathsf{GBA}}}
+\newcommand{\LGBA}{\mathord{\mathsf{LGBA}}}
+
+\newcommand{\QGBA}{{{Q\_GBA}}}
+\newcommand{\DGBA}{{{\Delta\_GBA}}}
+\newcommand{\IGBA}{{{I\_GBA}}}
+\newcommand{\FGBA}{{{F\_GBA}}}
+\newcommand{\LLGBA}{{{L}}}
+
+\newcommand{\BAtrans}{\mathsf{trans}}
+\newcommand{\BAinitial}{\mathsf{initial}}
+\newcommand{\BAaccept}{\mathsf{accept}}
+
+%Misc
+\newcommand{\equivalent}{\leftrightarrow}
+
+\newcommand{\expand}{\mathbin{\mathsf{expand}}}
+\newcommand{\expandbody}{\mathbin{\mathsf{expand\_body}}}
+\def\by#1{\mathop{{\hbox{\setbox0=\hbox{$\scriptstyle{#1\quad}$}{$\buildrel{\>#1\>}\over{\hbox to \wd0{\rightarrowfill}}$}}}}}
+
+%personalized comments
+\newcommand{\as}[1]{\textcolor{blue}{\sf AS: #1}}
+\newcommand{\AS}[1]{\marginpar{\footnotesize\textcolor{blue}{\sf AS: #1}}}
+\newcommand{\RN}[1]{\marginpar{\footnotesize\textcolor{green}{\sf RN: #1}}}
+\newcommand{\JE}[1]{\marginpar{\footnotesize\textcolor{green}{\sf JE: #1}}}
+\newcommand{\PL}[1]{\marginpar{\footnotesize\textcolor{red}{\sf PL: #1}}}
+\newcommand{\jgs}[1]{\textcolor{magenta}{\sf jgs: #1}}
+\newcommand{\JGS}[1]{\marginpar{\footnotesize\textcolor{magenta}{\sf JGS: #1}}}
+

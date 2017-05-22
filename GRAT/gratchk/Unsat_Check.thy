@@ -41,17 +41,6 @@ end
   
 subsection \<open>Abstract level\<close>
   
-datatype item_type = 
-    INVALID 
-  | UNIT_PROP 
-  | DELETION 
-  | RUP_LEMMA 
-  | RAT_LEMMA 
-  | CONFLICT 
-  | RAT_COUNTS
-  
-type_synonym id = nat
-  
 context unsat_input begin
     
   definition "parse_id it\<^sub>0 \<equiv> doE {
@@ -112,6 +101,25 @@ definition resolve_id :: "clausemap \<Rightarrow> id \<Rightarrow> ('it error,va
 definition remove_id :: "id \<Rightarrow> clausemap \<Rightarrow> (_, clausemap) enres"
   where "remove_id \<equiv> \<lambda>i (CM,RL). ERETURN (CM(i:=None),RL)"
   
+definition "remove_ids CMRL\<^sub>0 it \<equiv> doE {
+  check_not_end it;
+  (CMRL,it) \<leftarrow> EWHILEIT 
+    (\<lambda>(CMRL,it). it_invar it \<and> \<not>at_end it \<and> cm_invar CMRL
+                \<and> cm_F CMRL \<subseteq> cm_F CMRL\<^sub>0 
+                \<and> cm_ids CMRL \<subseteq> cm_ids CMRL\<^sub>0) 
+    (\<lambda>(_,it). \<not>at_Z it) 
+    (\<lambda>(CMRL,it). doE {
+      (i,it) \<leftarrow> parse_id it;
+      check_not_end it;
+      CMRL \<leftarrow> remove_id i CMRL;
+      ERETURN (CMRL,it)
+    }) (CMRL\<^sub>0,it);
+  it \<leftarrow> skip it;
+  ERETURN CMRL
+}"
+    
+    
+    
 definition add_clause 
   :: "id \<Rightarrow> var clause \<Rightarrow> clausemap \<Rightarrow> (_, clausemap) enres"  
   where "add_clause \<equiv> \<lambda>i C (CM,RL). doE {
@@ -165,6 +173,17 @@ lemma remove_id_correct[THEN ESPEC_trans,refine_vcg]:
   apply fastforce
   done
 
+lemma remove_ids_correct[THEN ESPEC_trans,refine_vcg]:
+  "\<lbrakk>cm_invar CMRL; it_invar it\<rbrakk>
+  \<Longrightarrow> remove_ids CMRL it
+      \<le> ESPEC 
+          (\<lambda>_. True) 
+          (\<lambda>CMRL'. cm_invar CMRL' 
+                \<and> cm_F CMRL' \<subseteq> cm_F CMRL 
+                \<and> cm_ids CMRL' \<subseteq> cm_ids CMRL)"
+  unfolding remove_ids_def  
+  by (refine_vcg EWHILEIT_rule[where R="inv_image (WF\<^sup>+) snd"]) auto  
+    
 lemma add_clause_correct[THEN ESPEC_trans,refine_vcg]:
   "\<lbrakk>cm_invar CM; i\<notin>cm_ids CM; \<not>is_syn_taut C\<rbrakk> \<Longrightarrow> 
     add_clause i C CM \<le> ESPEC (\<lambda>_. False) (\<lambda>CM'. 
@@ -524,8 +543,7 @@ definition check_item :: "state \<Rightarrow> 'it \<Rightarrow> (_, state option
         ERETURN (Some (last_id,CM,A))
       }
     | DELETION \<Rightarrow> doE {
-        (i,it) \<leftarrow> parse_id it;
-        CM \<leftarrow> remove_id i CM;
+        CM \<leftarrow> remove_ids CM it;
         ERETURN (Some (last_id,CM,A))
       }
     | RUP_LEMMA \<Rightarrow> doE {
@@ -1164,8 +1182,7 @@ definition check_item_bt :: "state \<Rightarrow> 'it \<Rightarrow> (_, state opt
         ERETURN (Some (last_id,CM,A))
       }
     | DELETION \<Rightarrow> doE {
-        (i,it) \<leftarrow> parse_id it;
-        CM \<leftarrow> remove_id i CM;
+        CM \<leftarrow> remove_ids CM it;
         ERETURN (Some (last_id,CM,A))
       }
     | RUP_LEMMA \<Rightarrow> doE {
@@ -1760,12 +1777,6 @@ context unsat_input begin
     apply (refine_vcg FOREACH_rule[where I="\<lambda>it A'. A' = backtrack A (T-it)"])
     apply (vc_solve simp: backtrack_def)
     by (auto simp:  it_step_insert_iff restrict_map_def intro!: ext)
-
-  
-  definition (in -) abs_cr_register 
-    :: "'a literal \<Rightarrow> 'id \<Rightarrow> ('a literal \<rightharpoonup> 'id list) \<Rightarrow> ('a literal \<rightharpoonup> 'id list)" 
-    where "abs_cr_register l cid cr \<equiv> case cr l of 
-      None \<Rightarrow> cr | Some s \<Rightarrow> cr(l \<mapsto> mbhd_insert cid s)"
   
   definition "register_clause1 cid cref RL \<equiv> doE {
       iterate_clause cref (\<lambda>_. True) (\<lambda>l RL. doE {
@@ -2002,6 +2013,33 @@ context unsat_input begin
         split: prod.split
         )
   
+  definition remove_ids1
+      :: "('cref) clausemap1 \<Rightarrow> 'it \<Rightarrow> (_,('cref) clausemap1) enres"
+    where    
+    "remove_ids1 CM it \<equiv> doE {
+    check_not_end it;
+    (CM,it) \<leftarrow> EWHILEIT 
+      (\<lambda>(CM,it). it_invar it \<and> \<not>at_end it) 
+      (\<lambda>(_,it). \<not>at_Z it) 
+      (\<lambda>(CM,it). doE {
+        (i,it) \<leftarrow> parse_id it;
+        check_not_end it;
+        CM \<leftarrow> remove_id1 i CM;
+        ERETURN (CM,it)
+      }) (CM,it);
+    it \<leftarrow> skip it;
+    ERETURN CM
+  }"
+      
+  lemma remove_ids1_refine[refine]: 
+    "\<lbrakk> (CMi,CM)\<in>clausemap1_rel; (iti,it)\<in>Id \<rbrakk> 
+      \<Longrightarrow> remove_ids1 CMi iti \<le>\<Down>\<^sub>E UNIV clausemap1_rel (remove_ids CM it)"
+    unfolding remove_ids1_def remove_ids_def
+    supply RELATESI[of clausemap1_rel, refine_dref_RELATES]
+    apply refine_rcg
+    apply refine_dref_type
+    apply vc_solve
+    done  
   
   definition check_item1 
     :: "('it) state1 \<Rightarrow> 'it \<Rightarrow> (_,('it) state1 option) enres"
@@ -2015,8 +2053,7 @@ context unsat_input begin
           ERETURN (Some (last_id,CM,A))
         }
       | DELETION \<Rightarrow> doE {
-          (i,it) \<leftarrow> parse_id it;
-          CM \<leftarrow> remove_id1 i CM;
+          CM \<leftarrow> remove_ids1 CM it;
           ERETURN (Some (last_id,CM,A))
         }
       | RUP_LEMMA \<Rightarrow> doE {
@@ -2060,8 +2097,7 @@ context unsat_input begin
           ERETURN (Some (last_id,CM,A))
         }
       else if ty=2 then doE {
-          (i,it) \<leftarrow> parse_id it;
-          CM \<leftarrow> remove_id1 i CM;
+          CM \<leftarrow> remove_ids1 CM it;
           ERETURN (Some (last_id,CM,A))
         }
       else if ty=3 then doE {
@@ -2397,7 +2433,6 @@ begin
     apply (rule CNV_I)
     done
   
-  
   synth_definition apply_unit1_bt_bd 
     is [enres_unfolds]: "apply_unit1_bt i CM A T = \<hole>"
     apply (rule CNV_eqD)
@@ -2430,6 +2465,14 @@ begin
     apply (rule CNV_I)
     done
   
+  synth_definition remove_ids1_bd 
+    is [enres_unfolds]: "remove_ids1 CM it = \<hole>"
+    apply (rule CNV_eqD)
+    unfolding remove_ids1_def remove_id1_def
+    apply opt_enres_unfold
+    apply (rule CNV_I)
+    done
+      
   synth_definition parse_check_blocked1_bd 
     is [enres_unfolds]: "parse_check_blocked1 A cref = \<hole>"
     apply (rule CNV_eqD)
@@ -2504,7 +2547,7 @@ begin
 
   synth_definition check_item1_bd is [enres_unfolds]: "check_item1 s it = \<hole>"
     apply (rule CNV_eqD)
-    unfolding check_item1_deforest remove_id1_def
+    unfolding check_item1_deforest
     apply opt_enres_unfold
     apply (rule CNV_I)
     done
@@ -2562,178 +2605,8 @@ begin
       
       
 end
-  
-subsubsection \<open>Clausemap\<close>  
 
-
-(* Hacking 'a literal \<rightharpoonup> 'id list by hand \<dots> 
-  Operations:
-    empty
-    initialize l m = m(l\<mapsto>[])
-    add l c m = if l\<in>dom m then m( l \<mapsto> insert c (m l))
-
-    get l m = m l
-*)
-
-type_synonym creg = "(nat list option) array"
-
-term int_encode term int_decode
-term map_option
-
-
-definition is_creg :: "(nat literal \<rightharpoonup> nat list) \<Rightarrow> creg \<Rightarrow> assn" where
-  "is_creg cr a \<equiv> \<exists>\<^sub>Af. is_nff None f a 
-  * \<up>(cr = f o int_encode o lit_\<gamma>)"
-
-lemmas [intf_of_assn] 
-  = intf_of_assnI[where R=is_creg and 'a="(nat literal,nat list) i_map"]
-  
-definition "creg_dflt_size \<equiv> 16::nat"
-definition creg_empty :: "creg Heap" 
-  where "creg_empty \<equiv> dyn_array_new_sz None creg_dflt_size"
-
-lemma creg_empty_rule[sep_heap_rules]: "<emp> creg_empty <is_creg Map.empty>"
-  unfolding creg_empty_def by (sep_auto simp: is_creg_def)
-    
-definition [simp]: "op_creg_empty \<equiv> op_map_empty :: nat literal \<rightharpoonup> nat list"
-interpretation creg: map_custom_empty op_creg_empty by unfold_locales simp    
-lemma creg_empty_hnr[sepref_fr_rules]: 
-  "(uncurry0 creg_empty, uncurry0 (RETURN op_creg_empty)) 
-  \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a is_creg"
-  apply sepref_to_hoare
-  apply sep_auto
-  done  
-    
-definition creg_initialize :: "int \<Rightarrow> creg \<Rightarrow> creg Heap" where
-  "creg_initialize l cr = do {
-    cr \<leftarrow> array_set_dyn None cr (int_encode l) (Some []);
-    return cr
-  }"
-  
-lemma creg_initialize_rule[sep_heap_rules]: 
-  "\<lbrakk> (i,l)\<in>lit_rel \<rbrakk> 
-  \<Longrightarrow> <is_creg cr a> creg_initialize i a <\<lambda>r. is_creg (cr(l \<mapsto> [])) r>\<^sub>t"
-  unfolding creg_initialize_def is_creg_def
-  by (sep_auto intro!: ext simp: lit_rel_def in_br_conv int_encode_eq)
-
-definition "creg_register l cid cr \<equiv> do {
-  x \<leftarrow> array_get_dyn None cr (int_encode l);
-  case x of
-    None \<Rightarrow> return cr
-  | Some s \<Rightarrow> array_set_dyn None cr (int_encode l) (Some (mbhd_insert cid s))
-}"
-
-lemma creg_register_rule[sep_heap_rules]: 
-  "\<lbrakk> (i,l) \<in> lit_rel \<rbrakk> 
-  \<Longrightarrow> <is_creg cr a> 
-        creg_register i cid a 
-      <is_creg (abs_cr_register l cid cr)>\<^sub>t"
-  unfolding creg_register_def is_creg_def abs_cr_register_def
-  by (sep_auto intro!: ext simp: lit_rel_def in_br_conv int_encode_eq)
-
-lemma creg_register_hnr[sepref_fr_rules]: 
-  "(uncurry2 creg_register, uncurry2 (RETURN ooo abs_cr_register)) 
-    \<in> (pure lit_rel)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a is_creg\<^sup>d \<rightarrow>\<^sub>a is_creg"
-  unfolding list_assn_pure_conv option_assn_pure_conv
-  apply sepref_to_hoare
-  apply sep_auto
-  done
-
-definition op_creg_initialize :: "nat literal \<Rightarrow> (nat literal \<rightharpoonup> nat list) \<Rightarrow> _"
-  where [simp]: "op_creg_initialize l cr \<equiv> cr(l \<mapsto> [])"
-    
-lemma creg_initialize_hnr[sepref_fr_rules]: 
-  "(uncurry creg_initialize, uncurry (RETURN oo op_creg_initialize)) 
-  \<in> (pure lit_rel)\<^sup>k *\<^sub>a is_creg\<^sup>d \<rightarrow>\<^sub>a is_creg"
-  apply sepref_to_hoare
-  apply sep_auto
-  done
-    
-sepref_register op_creg_initialize 
-  :: "nat literal \<Rightarrow> (nat literal,nat list) i_map 
-      \<Rightarrow> (nat literal,nat list) i_map"
-    
-sepref_register "abs_cr_register :: nat literal \<Rightarrow> nat \<Rightarrow> _" 
-  :: "nat literal \<Rightarrow> nat \<Rightarrow> (nat literal,nat list) i_map 
-      \<Rightarrow> (nat literal,nat list) i_map"
-    
-term op_map_lookup
-definition "op_creg_lookup i a \<equiv> array_get_dyn None a (int_encode i)"
-
-
-lemma creg_lookup_rule[sep_heap_rules]:
-  "\<lbrakk> (i,l) \<in> lit_rel \<rbrakk> 
-  \<Longrightarrow> <is_creg cr a> op_creg_lookup i a <\<lambda>r. is_creg cr a * \<up>( r = cr l)>"
-  unfolding is_creg_def op_creg_lookup_def
-  by (sep_auto intro!: ext simp: lit_rel_def in_br_conv)
-
-lemma creg_lookup_hnr[sepref_fr_rules]: 
-  "(uncurry op_creg_lookup, uncurry (RETURN oo op_map_lookup)) 
-  \<in> (pure lit_rel)\<^sup>k *\<^sub>a is_creg\<^sup>k \<rightarrow>\<^sub>a option_assn (list_assn id_assn)"
-  unfolding list_assn_pure_conv option_assn_pure_conv
-  apply sepref_to_hoare
-  apply sep_auto
-  done
-
-    
-subsubsection \<open>Clause Database\<close>
-
-context   
-  fixes DB :: clausedb2
-  fixes frml_end :: nat
-begin
-  definition "item_next it \<equiv> 
-    let sz = DB!(it-1) in
-    if sz > 0 \<and> nat (sz) + 1 < it then
-      Some (it - nat (sz) - 1)
-    else 
-      None
-  "
-  
-  definition "at_item_end it \<equiv> it \<le> frml_end"
-
-  definition "peek_int it \<equiv> DB!it"
-end
-  
-context DB2_def_loc
-begin
-  abbreviation "cm_assn \<equiv> prod_assn (amd_assn 0 nat_assn liti.it_assn) is_creg"
-  type_synonym i_cm = "(nat,nat) i_map \<times> (nat literal, nat list) i_map"
-      
-  abbreviation "state_assn \<equiv> nat_assn \<times>\<^sub>a cm_assn \<times>\<^sub>a assignment_assn"
-  type_synonym i_state = "nat \<times> i_cm \<times> i_assignment"  
-   
-    
-  definition "item_next_impl a it \<equiv> do {
-    sz \<leftarrow> Array.nth a (it-1);
-    if sz > 0 \<and> nat (sz) + 1 < it then
-      return (it - nat (sz) - 1)
-    else 
-      return 0
-  }"
-      
-  lemma item_next_hnr[sepref_fr_rules]: 
-    "(uncurry item_next_impl, uncurry (RETURN oo item_next)) 
-    \<in> liti.a_assn\<^sup>k *\<^sub>a liti.it_assn\<^sup>k \<rightarrow>\<^sub>a dflt_option_assn 0 liti.it_assn"  
-    unfolding liti.it_assn_def liti.a_assn_def dflt_option_assn_def
-    apply (simp add: b_assn_pure_conv)  
-    apply (sepref_to_hoare)
-    unfolding item_next_impl_def
-    by (sep_auto simp: liti.I_def item_next_def dflt_option_rel_aux_def)  
-
-  lemma at_item_end_hnr[sepref_fr_rules]: 
-    "(uncurry (return oo at_item_end), uncurry (RETURN oo at_item_end)) 
-    \<in> nat_assn\<^sup>k *\<^sub>a liti.it_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn"
-    unfolding liti.it_assn_def liti.a_assn_def dflt_option_assn_def
-    apply (simp add: b_assn_pure_conv)  
-    apply (sepref_to_hoare)
-    apply sep_auto
-    done  
-    
-      
-    
-end  
-  
+subsubsection \<open>Instantiating Input Locale\<close>  
 context DB2_loc
 begin
   sublocale unsat_input liti.next liti.peek liti.end liti.I less_than 
@@ -2781,6 +2654,12 @@ declare (in DB2_loc) apply_units2_bt_loc.refine[extrloc_unfolds]
 concrete_definition apply_units2_bt uses DB2_loc.apply_units2_bt_loc_def[unfolded extrloc_unfolds]
 declare (in DB2_loc) apply_units2_bt.refine[OF DB2_loc_axioms, extrloc_unfolds]
 
+concrete_definition (in DB2_loc) remove_ids2_loc 
+  uses remove_ids1_bd_def[unfolded extrloc_unfolds]
+declare (in DB2_loc) remove_ids2_loc.refine[extrloc_unfolds]
+concrete_definition remove_ids2 uses DB2_loc.remove_ids2_loc_def[unfolded extrloc_unfolds]
+declare (in DB2_loc) remove_ids2.refine[OF DB2_loc_axioms, extrloc_unfolds]
+  
 concrete_definition (in DB2_loc) check_conflict_clause2_loc 
   uses check_conflict_clause1_bd_def[unfolded extrloc_unfolds]
 declare (in DB2_loc) check_conflict_clause2_loc.refine[extrloc_unfolds]
@@ -3016,7 +2895,18 @@ begin
         \<Rightarrow> (nat error + (i_assignment \<times> nat set) \<times> nat) nres"
   lemmas [sepref_fr_rules] = apply_units3_bt.refine
       
+  term remove_ids2
+  sepref_definition remove_ids3 is "uncurry2 remove_ids2"
+    :: "liti.a_assn\<^sup>k *\<^sub>a cm_assn\<^sup>d *\<^sub>a liti.it_assn\<^sup>k 
+        \<rightarrow>\<^sub>a error_assn +\<^sub>a cm_assn"
+    unfolding remove_ids2_def
+    supply [[id_debug, goals_limit = 1]]
+    by sepref
+  sepref_register "remove_ids2 :: _ \<Rightarrow> (nat) clausemap1 \<Rightarrow> _"
+    :: "int list \<Rightarrow> i_cm \<Rightarrow> nat \<Rightarrow> (nat error + i_cm) nres"
+  lemmas [sepref_fr_rules] = remove_ids3.refine
 
+    
   term check_conflict_clause2
   sepref_definition check_conflict_clause3 is "uncurry3 check_conflict_clause2"
     :: "liti.a_assn\<^sup>k *\<^sub>a liti.it_assn\<^sup>k *\<^sub>a assignment_assn\<^sup>k *\<^sub>a liti.it_assn\<^sup>k 
@@ -3269,100 +3159,6 @@ context DB2_loc begin
 end    
     
 
-text \<open>We present two different correctness specifications, and show that they 
-  are equivalent.
-
-  In both cases, the input is specified by a list of integers @{term DB}, 
-  and an index @{term F_end}. The formula is contained in the list from 
-  index @{term 1} (inclusive) to index @{term F_end} exclusive.
-  (Index zero is not used for implementation reasons).
-
-  Literals are represented by integers as specified by @{term lit_\<alpha>} 
-  and @{term lit_\<gamma>}, zero is  not a valid literal.
-
-  Each clause of the formula is represented by a sequence of non-zero integers, 
-  terminated by a zero. The formula is simply the concatenation of all clause 
-  representations.
-
-  Both specifications express that @{term F_end} is in range.
-\<close>  
-
-text \<open>The first specification uses the abstraction function @{const F_\<alpha>}, 
-  which, in turn, uses @{const tokenize} to read the list as list of 
-  zero-terminated lists.
-  It also specifies that the input list is either empty, or ends with 
-  a zero.
-\<close>  
-definition "formula_unsat_spec DB F_end \<equiv> let lst = tl (take F_end DB) in
-      F_end \<le> length DB \<and> F_end \<ge> 1
-    \<and> (F_end > 1 \<longrightarrow> last lst = 0)
-    \<and> \<not>sat (F_\<alpha> lst)"
-  
-text \<open>The second specification specifies that the input can be obtained 
-  by mapping the literals to integers, and then concatenating the clauses, 
-  appending a zero to each clause. It also specifies that the literals do not 
-  contain a zero variable.
-\<close>
-definition "formula_unsat_spec' DB F_end \<equiv> 
-  \<exists>lst. 
-      F_end \<le> length DB \<and> F_end \<ge> 1 \<and> 0 \<notin> var_of_lit ` set (concat lst)
-    \<and> concat_sep 0 (map (map lit_\<gamma>) lst) = tl (take F_end DB) 
-    \<and> \<not>sat (set (map set lst))"
-
-text \<open>We show both specifications to be equivalent\<close>  
-lemma formula_unsat_spec_equiv: 
-  "formula_unsat_spec' DB F_end \<longleftrightarrow> formula_unsat_spec DB F_end"
-proof -
-  {
-    fix ll l
-    assume EQ: "concat_sep 0 (map (map lit_\<gamma>) ll) = l"
-    assume NZ: "0 \<notin> var_of_lit ` (\<Union>x\<in>set ll. set x)"
-    have "set ` set ll = F_\<alpha> l"
-    proof -    
-      from NZ have 1: "0 \<notin> \<Union>set (map set (map (map lit_\<gamma>) ll))"
-        apply (clarsimp simp: lit_\<gamma>_def var_of_lit_alt split: literal.splits)
-        apply force+  
-        done  
-      
-      show ?thesis
-        unfolding EQ[symmetric] F_\<alpha>_def 
-        apply (rewrite tokenize_concat_id[OF 1])
-        unfolding clause_\<alpha>_def 
-        proof (safe; clarsimp)
-          fix lc
-          assume A: "lc \<in> set ll"  
-          
-          from A have [simp]: "\<forall>l\<in>set lc. var_of_lit l \<noteq> 0" using NZ by auto
-              
-          have [simp]: "lit_\<alpha> ` lit_\<gamma> ` set lc = set lc"    
-            by (force)
-            
-          from A have "((\<lambda>l. lit_\<alpha> ` set l) \<circ>\<circ> map) lit_\<gamma> lc 
-            \<in> ((\<lambda>l. lit_\<alpha> ` set l) \<circ>\<circ> map) lit_\<gamma> ` set ll" 
-            by blast
-          also have "((\<lambda>l. lit_\<alpha> ` set l) \<circ>\<circ> map) lit_\<gamma> lc = set lc" by auto
-          finally show "set lc \<in> ((\<lambda>l. lit_\<alpha> ` set l) \<circ>\<circ> map) lit_\<gamma> ` set ll" .
-          from A show "lit_\<alpha> ` lit_\<gamma> ` set lc \<in> set ` set ll" by auto
-        qed
-    qed      
-  } note AUX = this
-    
-  show ?thesis  
-    unfolding formula_unsat_spec'_def formula_unsat_spec_def
-    apply (rule iffI)
-    subgoal by (auto simp: Let_def AUX intro: concat_sep_last_sep)  
-    subgoal    
-      apply (rule exI[
-              where x="(map (map lit_\<alpha>)) (tokenize litZ (tl (take F_end DB)))"])
-      apply (clarsimp simp: Let_def tl_take; intro conjI)  
-      subgoal using tokenize_complete_set by fastforce  
-      subgoal 
-        by (simp 
-              add: map_map_lit_\<gamma>_\<alpha>_eq[OF tokenize_complete] concat_tokenize_id)  
-      subgoal by (auto simp: F_\<alpha>_def clause_\<alpha>_def[abs_def] set_oo_map_alt)  
-      done    
-    done
-qed    
 
 text \<open>Main correctness theorem:
   Given an array @{term DBi} that contains the integers @{term DB}, 
@@ -3414,72 +3210,6 @@ proof -
     by (sep_auto simp: formula_unsat_spec_def clause_\<alpha>_def[abs_def])
 qed      
 
-subsubsection \<open>Alternative Correctness Statement\<close>  
-text \<open>We also specify a correctness statement that uses only elementary
-  concepts, in order to reduce the dependencies of the correctness statement.
-\<close>  
-
-type_synonym assn = "int \<Rightarrow> bool"
-definition assn_consistent :: "assn \<Rightarrow> bool" 
-  where "assn_consistent \<sigma> = (\<forall>x. x\<noteq>0 \<longrightarrow> \<not> \<sigma> (-x) = \<sigma> x)"
-definition "alt_sat F \<equiv> \<exists>\<sigma>. assn_consistent \<sigma> \<and> (\<forall>C\<in>set F. \<exists>l\<in>set C. \<sigma> l)"
-  
-lemma alt_sat_Nil[simp]: "alt_sat []" 
-  unfolding alt_sat_def 
-  apply (rule exI[where x = "\<lambda>x::int. x>0"])  
-  unfolding assn_consistent_def 
-  by auto  
-    
-    
-  
-(* TODO: Move *)  
-lemma lit_\<alpha>_uminus_conv[simp]: "x\<noteq>0 \<Longrightarrow> lit_\<alpha> (-x) = neg_lit (lit_\<alpha> x)" 
-  unfolding lit_\<alpha>_def by auto
-  
-lemma tl_take_Suc[simp]: "tl (take (Suc 0) l) = []" by (cases l) auto   
-    
-lemma alt_sat_sat_eq:
-  assumes "0 \<notin>\<Union>set (map set F)"  
-  shows "sat (clause_\<alpha> ` set F) \<longleftrightarrow> alt_sat F"
-  unfolding sat_def alt_sat_def sem_cnf_def
-proof (safe; clarsimp)
-  fix \<sigma>
-  assume A: "\<forall>C\<in>set F. sem_clause (clause_\<alpha> C) \<sigma>"  
-  let ?a = "\<lambda>i. sem_lit (lit_\<alpha> i) \<sigma>"
-    
-  have "assn_consistent ?a"  
-    unfolding assn_consistent_def by auto  
-  moreover have "\<forall>C\<in>set F. \<exists>l\<in>set C. ?a l"
-    using A by (auto simp: sem_clause_def clause_\<alpha>_def)
-  ultimately show "\<exists>\<sigma>. assn_consistent \<sigma> \<and> (\<forall>C\<in>set F. \<exists>l\<in>set C. \<sigma> l)" by blast
-next
-  fix a
-  assume CONS: "assn_consistent a" and SAT: "\<forall>C\<in>set F. \<exists>l\<in>set C. a l"  
-
-  let ?\<sigma> = "a o int"  
-    
-  have [simp]: "sem_lit (lit_\<alpha> x) (a \<circ> int) = a x" for x using CONS
-    unfolding lit_\<alpha>_def assn_consistent_def by auto
-    
-  from SAT have "\<forall>C\<in>set F. sem_clause (clause_\<alpha> C) ?\<sigma>"
-    by (auto simp: sem_clause_def clause_\<alpha>_def)
-  thus "\<exists>\<sigma>. \<forall>C\<in>set F. sem_clause (clause_\<alpha> C) \<sigma>" by blast
-qed    
-  
-lemma formula_unsat_spec_alt: 
-  "formula_unsat_spec DB F_end \<longleftrightarrow> (let lst = tl (take F_end DB) in
-    1 < F_end \<and> F_end \<le> length DB \<and> last lst = 0 \<and> \<not>alt_sat (tokenize 0 lst))"  
-  unfolding formula_unsat_spec_def
-  by (cases "F_end = Suc 0") 
-     (auto simp: Let_def F_\<alpha>_def alt_sat_sat_eq[OF tokenize_complete]) 
-  
-lemma formula_unsat_spec_alt': "formula_unsat_spec DB F_end \<longleftrightarrow> (
-  let lst = tl (take F_end DB) in
-    1 < F_end \<and> F_end \<le> length DB \<and> last lst = 0 
-    \<and> (\<nexists>\<sigma>. assn_consistent \<sigma> \<and> (\<forall>C\<in>set (tokenize 0 lst). \<exists>l\<in>set C. \<sigma> l)))"
-  unfolding formula_unsat_spec_alt 
-  unfolding alt_sat_def 
-  by auto  
     
   
 end  

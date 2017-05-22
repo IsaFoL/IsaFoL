@@ -248,12 +248,12 @@ definition [enres_unfolds]: "EWHILET \<equiv> EWHILEIT (\<lambda>_. True)"
 
 lemma EWHILEIT_rule[refine_vcg]:
   assumes WF: "wf R"
-    and I0: "I s"
-    and IS: "\<And>s. \<lbrakk>I s; b s\<rbrakk> \<Longrightarrow> f s \<le> ESPEC E (\<lambda>s'. I s' \<and> (s', s) \<in> R)"
-    and IMP: "\<And>s. \<lbrakk>I s; \<not> b s\<rbrakk> \<Longrightarrow> \<Phi> s"
-  shows "EWHILEIT I b f s \<le> ESPEC E \<Phi>"
+    and I0: "I s\<^sub>0"
+    and IS: "\<And>s. \<lbrakk>I s; b s; (s,s\<^sub>0)\<in>R\<^sup>*\<rbrakk> \<Longrightarrow> f s \<le> ESPEC E (\<lambda>s'. I s' \<and> (s', s) \<in> R)"
+    and IMP: "\<And>s. \<lbrakk>I s; \<not> b s; (s,s\<^sub>0)\<in>R\<^sup>*\<rbrakk> \<Longrightarrow> \<Phi> s"
+  shows "EWHILEIT I b f s\<^sub>0 \<le> ESPEC E \<Phi>"
   unfolding EWHILEIT_def ESPEC_def
-  apply (rule order_trans[OF WHILEIT_weaken[where I="\<lambda>Inl e \<Rightarrow> E e | Inr s \<Rightarrow> I s"]])
+  apply (rule order_trans[OF WHILEIT_weaken[where I="\<lambda>Inl e \<Rightarrow> E e | Inr s \<Rightarrow> I s \<and> (s,s\<^sub>0)\<in>R\<^sup>*"]])
   apply (auto split: sum.splits) []
   apply (rule WHILEIT_rule[where R="inv_image (less_than <*lex*> R) (\<lambda>Inl e \<Rightarrow> (0,undefined) | Inr s \<Rightarrow> (1,s))"])
   subgoal using WF by auto
@@ -268,12 +268,12 @@ lemma EWHILEIT_rule[refine_vcg]:
   
 lemma EWHILET_rule:
   assumes WF: "wf R"
-    and I0: "I s"
-    and IS: "\<And>s. \<lbrakk>I s; b s\<rbrakk> \<Longrightarrow> f s \<le> ESPEC E (\<lambda>s'. I s' \<and> (s', s) \<in> R)"
-    and IMP: "\<And>s. \<lbrakk>I s; \<not> b s\<rbrakk> \<Longrightarrow> \<Phi> s"
-  shows "EWHILET b f s \<le> ESPEC E \<Phi>"
+    and I0: "I s\<^sub>0"
+    and IS: "\<And>s. \<lbrakk>I s; b s; (s,s\<^sub>0)\<in>R\<^sup>*\<rbrakk> \<Longrightarrow> f s \<le> ESPEC E (\<lambda>s'. I s' \<and> (s', s) \<in> R)"
+    and IMP: "\<And>s. \<lbrakk>I s; \<not> b s; (s,s\<^sub>0)\<in>R\<^sup>*\<rbrakk> \<Longrightarrow> \<Phi> s"
+  shows "EWHILET b f s\<^sub>0 \<le> ESPEC E \<Phi>"
   unfolding EWHILET_def EWHILEIT_def ESPEC_def
-  apply (rule order_trans[OF WHILEIT_weaken[where I="\<lambda>Inl e \<Rightarrow> E e | Inr s \<Rightarrow> I s"]])
+  apply (rule order_trans[OF WHILEIT_weaken[where I="\<lambda>Inl e \<Rightarrow> E e | Inr s \<Rightarrow> I s \<and> (s,s\<^sub>0)\<in>R\<^sup>*"]])
   apply (auto split: sum.splits) []
   apply (rule WHILEIT_rule[where R="inv_image (less_than <*lex*> R) (\<lambda>Inl e \<Rightarrow> (0,undefined) | Inr s \<Rightarrow> (1,s))"])
   subgoal using WF by auto
@@ -296,11 +296,11 @@ lemma EWHILEIT_weaken:
 text \<open>Explicitly specify a different invariant. \<close>    
 lemma EWHILEIT_expinv_rule:
   assumes WF: "wf R"
-    and I0: "I s"
-    and IS: "\<And>s. \<lbrakk>I s; b s\<rbrakk> \<Longrightarrow> f s \<le> ESPEC E (\<lambda>s'. I s' \<and> (s', s) \<in> R)"
-    and IMP: "\<And>s. \<lbrakk>I s; \<not> b s\<rbrakk> \<Longrightarrow> \<Phi> s"
+    and I0: "I s\<^sub>0"
+    and IS: "\<And>s. \<lbrakk>I s; b s; (s,s\<^sub>0)\<in>R\<^sup>*\<rbrakk> \<Longrightarrow> f s \<le> ESPEC E (\<lambda>s'. I s' \<and> (s', s) \<in> R)"
+    and IMP: "\<And>s. \<lbrakk>I s; \<not> b s; (s,s\<^sub>0)\<in>R\<^sup>*\<rbrakk> \<Longrightarrow> \<Phi> s"
     and INVIMP: "\<And>s. I s \<Longrightarrow> I' s"
-  shows "EWHILEIT I' b f s \<le> ESPEC E \<Phi>"
+  shows "EWHILEIT I' b f s\<^sub>0 \<le> ESPEC E \<Phi>"
   apply (rule order_trans[OF EWHILEIT_weaken])
   using INVIMP apply assumption
   apply (rule EWHILEIT_rule; fact+)

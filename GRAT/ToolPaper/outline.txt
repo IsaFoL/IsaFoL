@@ -1,0 +1,142 @@
+
+
+Motivation:
+
+  drat: 
+  Sat solver are highly optimized and complex, thus prone to bugs.
+  However, sat-solvers are often used to verify other systems, so they are "trust multipliers".
+  Main idea: Certification of result. For satisfiable formulas: SAT solver outputs valuation of the variables, certification is easy.
+  
+  More complex for unsatisfiable formulas. Here, the de-facto standard are DRAT certificates: It is a list of redundant clauses (called lemmas), such that
+  redundancy of a lemma can be proved from the clauses of the formula and the previous lemmas by checking for the resolution assymetric tautology property [drat-trim]. 
+  The last lemma of the list is the empty clause, which witnesses unsatisfiability.
+  Moreover, it supports deletion of clauses and lemmas that are not required for the remaining proof.
+
+  Checking of a DRAT certificate requires an efficient unit-propagation algorithm with backtracking. 
+  The standard (only?) tool that currently supports checking of drat certificates is drat-trim [drat-trim]. 
+  It uses a two-watched literals unit-propagation algorithm, along with various other optimizations, the most 
+  important one being backward checking: The lemmas are checked from back to front, and whenever a lemma is 
+  actually used in a proof, it is marked. When now encountering an unmarked lemma, its proof can be skipped 
+  as it was not required to prove anything afterwards. This can greatly reduce the runtime of the checker.
+  Moreover, the core-first optimization modifies the unit-propagation algorithm to prefer already marked lemmas, 
+  thus reducing the number of newly marked lemmas.
+  
+  drat-trim is a highly optimized C program, supporting both forward and backward checking, as well as some form of 
+  satisfiability checking. However, the optimizations and its wealth of features come at the cost of readability of 
+  the code, and creates more opportunities to have bugs overseen. 
+  
+  And indeed, during evaluating the version of drat-trim from April 2016, which was the most recent version when the 
+  work for this paper started, we found several problems: The most severe was a missing check for drat-proofs, 
+  such that drat-trim could "prove" unsatisfiable almost every satisfiable formula. This bug has been confirmed by the 
+  authors of drat-trim, and is, by now, fixed.
+  
+  Other bugs we found are problems with the parser, silently overflowing on literals $\ge 2^{31}$, and buffer overflows
+  if the header of the dimacs-file contains wrong information on the number of clauses and variables\footnote{It's very easy to run into this bug if writing small cnf files by hand for testing purposes.}.
+  
+  formal verification:
+  Although less complex than a fully-fledged sat-solver, the example of drat-trim shows that the required complexity 
+  to check drat-files (efficiently) is still high enough for overlooking non-trivial bugs in implementations. 
+  (Note, that drat-trim has been used in various sat-competitions without discovering the wrong drat-check implementation.)
+  Formal verification of software can help to eliminate bugs. To get the best possible trustworthiness, the state of the art is 
+  to show functional correctness of the implementation using theorem provers. This way, trusting the correctness of the software can 
+  be reduced to trusting its specification in the logic of the theorem prover, and the theorem prover itself. 
+  
+  However, the required complexity for an (efficient) drat-checker also makes its formal verification harder. 
+  While the author was working on formally verifiying an efficient drat-checker, he heard about the GRIT-format [arxive-paper],
+  that uses a modified drat-trim to generate an enriched certificate which is much simpler to check. They limit themselves to 
+  the DRUP-fragment of DRAT, and present a prototype for a verified checker in Coq.
+  Coq can extract OCaml code from the formalization, which is then linked with an (unverified) parser that parses the certificate into the internal data 
+  structures used by the verified checker.
+
+  They also present an unverified checker written in C.
+  Comparing the efficiency of the verified and unverified checker shows that the verified checker is roughly two orders of magnitudes slower, taking a similar amount of time as
+  is required to run the modified drat-trim, thus doubling the required verification time.
+  The reason is that they trade efficiency for simplicity of proofs in their formalization.
+  
+  At this point, the contributions of our paper start: Building on the same idea of enriched certificates, we develop the GRAT format, 
+  an enriched certificate format that supports full DRAT, not only the DRUP fragment. 
+  
+  Moreover, we present an efficient formally verified checker. It is roughly 25 times faster than it takes to generate the enriched certificates, such that
+  its runtime is negligible compared to certificate generation time. Moreover, our formal verification goes down to the representation of the cnf-formula as a 
+  list of integers as done in the Dimacs format, such that our unverified parser is of low complexity: It reads a file of whitespace separated decimal integer 
+  numbers and comment lines, and produces an array of integers. Being implemented in StandardML, it is also immune to numeric and buffer overflows.
+  
+  Having a verified checker takes the certificate generator out of the trusted code base, such that we can put more focus on optimizing it:
+  We present a multithreaded certificate generator: On reasonable hardware, we can check a drat proof and generate a certificate 4 to 5 times faster 
+  than drat-trim needs for checking only on the same hardware. In single-threaded mode, our checker is as fast as drat-trim (with outliers to both sides).
+  
+  Finally, we also have formally verified a satisfiability checker, to obtain a complete formally verified sat-solver certification tool chain.
+  
+  
+  
+
+
+# Contributions:
+#   Extension of GRIT to support RAT proofs --> GRAT
+#   Formally verified, efficient checker for GRAT
+#   Multithreaded generator for GRAT (replaces drat-trim, faster!)
+#   Also verified SAT-checker, to make it a complete SAT certification tool
+
+
+
+Outline
+
+Preliminaries
+  DRAT certificates
+    * Enriched certificates
+  
+  The Isabelle Refinement Framework
+    * nres-monad, data refinement
+    * Imperative/HOL + Separation Logic
+    * Imperative Collection Framework
+    * Semi-Automatic refinement to Imperative/HOL
+    * Adding exceptions to nres-monad
+
+  
+Formally verified GRAT-checker
+  The abstract version
+  * partial assignments
+  * unit-propagation
+  * formalization of rup/rat properties
+  * formalization of rup/rat checker
+  
+  Refinement to efficient data structures
+  * Encoding of literals, clause-database, id-map, partial assignments
+  
+  Adding an unverified parser
+  SAT-checker
+  * Reusing many developments from unsat-checker, easy!
+
+Multithreaded certificate generation
+  Preliminaries: Checking DRAT-certificates
+    * Basics: Trail, two-watched literals data structure
+    * The forward algorithm
+    * Backwards checking and core-first unit propagation
+      * Marking of clauses, and of trail entries
+
+  Generating enriched certificates  
+    * Straightforward from data already available in backwards mode
+  
+  Parallelization 
+    * Verify lemmas in parallel
+    * Multiple instances of trail and two-watched literals data structure
+    * Synchronization on marked clauses and processed lemmas
+    * Required changes to the algorithm:
+      * core-first unit propagation: Cannot rely on marked clauses being already considered
+      * drat-candidates: cannot safely ignore unmarked candidates
+    
+    
+
+Benchmarks
+  Benchmarked on unsat-problems that cmsat solved in 2016 sat competition.
+  Comparing checking time of drat-trim (in Nov-2016 version) against complete verification time using our tool chain, single-threaded: Same!
+  Only checking, without enriched certificate generation: Slightly faster!
+  Multi-threaded: On average, we come up with a certificate 4.2 times faster than drat-trim needs to only check. Only checking: ???TODO times faster.
+  Speedup against number of cores: TODO: On reduced test set!
+
+
+Conclusions
+
+
+
+

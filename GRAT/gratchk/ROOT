@@ -16,7 +16,11 @@ session Grat_Check = Grat_Check_Base +
     SAT_Basic
     Unit_Propagation 
     Grat_Basic
+    
+  theories [document = false]
     Unsat_Check
+  theories
+    Unsat_Check_Split
     Sat_Check
     Grat_Check_Code_Exporter
     

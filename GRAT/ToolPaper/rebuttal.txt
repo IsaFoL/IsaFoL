@@ -1,0 +1,73 @@
+Rebuttal for Paper #36: 
+Efficient Verified (UN)SAT Certificate Checking
+by Peter Lammich
+
+Dear reviewers,
+
+first of all, thank you very much for the good reviews that contain many helpful comments.
+In the following, I will try to answer the questions posed in the reviews, sorted by reviewer:
+
+
+@Reviewer 2:
+
+Q: GRAT as a DRAT replacement?
+A: Interesting point! The goal of this project was to build a verified DRAT checker, as DRAT is the de-facto standard certificate format
+supported by most SAT solvers. For DRAT, we have to do some heavy computations, and we managed to be as fast as 
+drat-trim, (or faster in multi-threaded mode) but with the additional benefit of a strong formal correctness guarantee.
+
+Generating an enriched format from SAT solvers directly would be a logical next step in this line of research.
+This would drastically reduce the certificate processing time.
+However, this probably requires heavy solver-specific modifications, and may also decrease solver performance.
+
+In case the paper is accepted, I will add a brief discussion of this point to the "future work" section.
+
+
+Q: Effect of #threads on certificate size?
+A: The GRAT certificate sizes generated with different numbers of threads vary by roughly 1 percent. 
+Due to multiple threads interacting via core-first unit propagation and concurrently adding new lemmas to the core, 
+the program behavior and the generated GRAT certificates are non-deterministic. Fortunately, this seems not to impair the 
+effectiveness of core-first unit propagation. (which is aimed at reducing certificate size)
+
+
+@Reviewer 3:
+
+Q: How complicated would be the completeness proof? What is the main obstacle?
+A: Certification cannot guarantee completeness of the SAT-solver, and completeness against DRAT-certificates may still be impaired by the unverified gratgen tool,
+even if we proved completeness of gratchk. Thus, a completeness proof had no priority in this project.
+
+A completeness proof of gratchk would require some restructuring of the overall proof design.
+In the current checker, we may always abort without any formal reasoning why we aborted. If we write something like "check P; program", we get for free 
+that P holds throughout the execution of "program" (or the checker aborts, and we have to show nothing). This simplifies the proof.
+
+To show completeness, we first have to formally specify what a valid GRAT certificate is, and then justify every abort against this formal specification.
+
+
+@Reviewer 4:
+
+Q: What about the 6 proofs that drat-trim rejected?
+A: I intentionally excluded these 6 examples.
+On my faster testing machine, drat-trim still times out on 2 examples, crashes on 1, 
+and solves 3 (in >10,000 seconds each). 
+gratgen with 4 threads certifies all 6 examples in less than 7,000 seconds each.
+However, gratchk only verifies 4 of the generated GRAT certificates, and fails on 2 (probably out-of-memory, both the DRAT and GRAT files are huge (>20GB) ).
+
+
+Q: What are the prospects for improving reliability of the conversion to GRAT? (Apart from several impls or complete formalization)
+A: I plan to make available the gratgen/gratchk tool in an open source repository (similarly as for drat-trim on github), which has an issue-tracker, etc.,
+and maintain it there.
+
+
+Q: Forward checking mode for gratgen?
+A: I intentionally implemented only a single checking mode, as I observed that drat-trim's code readability and structure suffers from supporting multiple checking modes.
+I think adding a forward checking mode in gratgen, even multi-threaded, should require only moderate effort, but may be, like in drat-trim, a trade-off between code duplication
+and clean structure.
+
+
+Q: table of results on the website?
+A: The benchmark results are linked on the website, in sections "Benchmarks". Here are the direct links: 
+http://www21.in.tum.de/~lammich/grat/sat.csv
+http://www21.in.tum.de/~lammich/grat/unsat.csv
+
+
+!: Thank you very much for the patch to gratgen!
+
