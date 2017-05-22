@@ -8,6 +8,9 @@ The tool chain consists of two programs: The unverified certificate generator <c
 converts a DRAT certificate (as output by many modern SAT solvers) to a GRAT certificate, which is
 then checked against the original formula by the verified <code>gratchk</code> tool.
 
+## Getting Started ##
+See index.md!
+
 ## Features ##
 
 * Strong formal correctness guarantees
