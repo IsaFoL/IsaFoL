@@ -358,6 +358,15 @@ theorem upd_lemma [simp]:
 theorem list_upd_lemma [simp]: "list_all (\<lambda>p. n \<notin> params p) G \<Longrightarrow>
   list_all (eval e (f(n:=x)) g) G = list_all (eval e f g) G"
   by (induct G) simp_all
+    
+theorem psubst_eval' [simp]:
+  "evalt e f (psubstt h t) = evalt e (\<lambda>p. f (h p)) t"
+  "evalts e f (psubstts h ts) = evalts e (\<lambda>p. f (h p)) ts"
+  by (induct t and ts rule: evalt.induct evalts.induct) simp_all
+
+theorem psubst_eval:
+  "eval e f g (psubst h p) = eval e (\<lambda>p. f (h p)) g p"
+  by (induct p arbitrary: e) simp_all
 
 text {*
 In order to test the evaluation function defined above, we apply it
@@ -3751,15 +3760,6 @@ proof (intro allI impI conjI)
       by blast }
 qed
 
-theorem doublep_evalt [simp]:
-  "evalt e f (psubstt (\<lambda>n::nat. 2 * n) t) = evalt e (\<lambda>n. f (2*n)) t"
-  "evalts e f (psubstts (\<lambda>n::nat. 2 * n) ts) = evalts e (\<lambda>n. f (2*n)) ts"
-  by (induct t and ts rule: evalt.induct evalts.induct) simp_all
-
-theorem doublep_eval: "\<And>e. eval e f g (psubst (\<lambda>n::nat. 2 * n) p) =
-  eval e (\<lambda>n. f (2*n)) g p"
-  by (induct p) simp_all
-
 theorem doublep_infinite_params:
   "infinite (- (\<Union>p \<in> psubst (\<lambda>n::nat. 2 * n) ` S. params p))"
 proof (rule infinite_super)
@@ -3801,7 +3801,7 @@ proof (intro ballI impI)
   then have "\<forall>x \<in> S. eval e f g x"
     using evalS by blast
   then have "\<forall>p \<in> psubst (op * 2) ` S. eval e (\<lambda>n. f (n div 2)) g p"
-    by (simp add: doublep_eval)
+    by (simp add: psubst_eval)
   then have "psubst (op * 2) ` S \<in> ?C"
     using doublep_infinite_params by blast
   moreover have "psubst (op * 2) p \<in> psubst (op * 2) ` S"
@@ -3813,7 +3813,7 @@ proof (intro ballI impI)
   ultimately have "eval e' HApp ?g (psubst (op * 2) p)"
     using model_existence by blast
   then show "eval e' (\<lambda>n. HApp (2 * n)) ?g p"
-    using doublep_eval by blast
+    using psubst_eval by blast
 qed
 
 end
