@@ -72,15 +72,14 @@ indices smaller than @{text i}.
 *}
 
 primrec
-  closedt :: "nat \<Rightarrow> 'a term \<Rightarrow> bool"
-  and closedts :: "nat \<Rightarrow> 'a term list \<Rightarrow> bool" where
+  closedt :: "nat \<Rightarrow> 'a term \<Rightarrow> bool" and
+  closedts :: "nat \<Rightarrow> 'a term list \<Rightarrow> bool" where
   "closedt m (Var n) = (n < m)"
 | "closedt m (App a ts) = closedts m ts"
 | "closedts m [] = True"
 | "closedts m (t # ts) = (closedt m t \<and> closedts m ts)"
 
-primrec
-  closed :: "nat \<Rightarrow> ('a, 'b) form \<Rightarrow> bool" where
+primrec closed :: "nat \<Rightarrow> ('a, 'b) form \<Rightarrow> bool" where
   "closed m FF = True"
 | "closed m TT = True"
 | "closed m (Pred b ts) = closedts m ts"
@@ -106,8 +105,8 @@ position.
 *}
 
 primrec
-  substt :: "'a term \<Rightarrow> 'a term \<Rightarrow> nat \<Rightarrow> 'a term" ("_[_'/_]" [300, 0, 0] 300)
-  and substts :: "'a term list \<Rightarrow> 'a term \<Rightarrow> nat \<Rightarrow> 'a term list" ("_[_'/_]" [300, 0, 0] 300) where
+  substt :: "'a term \<Rightarrow> 'a term \<Rightarrow> nat \<Rightarrow> 'a term" ("_[_'/_]" [300, 0, 0] 300) and
+  substts :: "'a term list \<Rightarrow> 'a term \<Rightarrow> nat \<Rightarrow> 'a term list" ("_[_'/_]" [300, 0, 0] 300) where
   "(Var i)[s/k] = (if k < i then Var (i - 1) else if i = k then s else Var i)"
 | "(App a ts)[s/k] = App a (ts[s/k])"
 | "[][s/k] = []"
@@ -121,8 +120,8 @@ primrec
 | "liftts [] = []"
 | "liftts (t # ts) = liftt t # liftts ts"
 
-primrec
-  subst :: "('a, 'b) form \<Rightarrow> 'a term \<Rightarrow> nat \<Rightarrow> ('a, 'b) form" ("_[_'/_]" [300, 0, 0] 300) where
+primrec subst :: "('a, 'b) form \<Rightarrow> 'a term \<Rightarrow> nat \<Rightarrow> ('a, 'b) form"
+  ("_[_'/_]" [300, 0, 0] 300) where
   "FF[s/k] = FF"
 | "TT[s/k] = TT"
 | "(Pred b ts)[s/k] = Pred b (ts[s/k])"
@@ -173,8 +172,7 @@ primrec
 | "paramsts [] = {}"
 | "paramsts (t # ts) = (paramst t \<union> paramsts ts)"
 
-primrec
-  params :: "('a, 'b) form \<Rightarrow> 'a set" where
+primrec params :: "('a, 'b) form \<Rightarrow> 'a set" where
   "params FF = {}"
 | "params TT = {}"
 | "params (Pred b ts) = paramsts ts"
@@ -198,8 +196,7 @@ primrec
 | "psubstts f [] = []"
 | "psubstts f (t # ts) = psubstt f t # psubstts f ts"
 
-primrec
-  psubst :: "('a \<Rightarrow> 'c) \<Rightarrow> ('a, 'b) form \<Rightarrow> ('c, 'b) form" where
+primrec psubst :: "('a \<Rightarrow> 'c) \<Rightarrow> ('a, 'b) form \<Rightarrow> ('c, 'b) form" where
   "psubst f FF = FF"
 | "psubst f TT = TT"
 | "psubst f (Pred b ts) = Pred b (psubstts f ts)"
@@ -275,8 +272,7 @@ values of variables with indices greater or equal than @{text i} are shifted one
 position up.
 *}
 
-definition
-  shift :: "(nat \<Rightarrow> 'a) \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> nat \<Rightarrow> 'a"  ("_\<langle>_:_\<rangle>" [90, 0, 0] 91) where
+definition shift :: "(nat \<Rightarrow> 'a) \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> nat \<Rightarrow> 'a" ("_\<langle>_:_\<rangle>" [90, 0, 0] 91) where
   "e\<langle>i:a\<rangle> = (\<lambda>j. if j < i then e j else if j = i then a else e (j - 1))"
 
 lemma shift_eq [simp]: "i = j \<Longrightarrow> (e\<langle>i:T\<rangle>) j = T"
@@ -303,9 +299,8 @@ primrec
 | "evalts e f [] = []"
 | "evalts e f (t # ts) = evalt e f t # evalts e f ts"
 
-primrec
-  eval :: "(nat \<Rightarrow> 'c) \<Rightarrow> ('a \<Rightarrow> 'c list \<Rightarrow> 'c) \<Rightarrow>
-    ('b \<Rightarrow> 'c list \<Rightarrow> bool) \<Rightarrow> ('a, 'b) form \<Rightarrow> bool" where
+primrec eval :: "(nat \<Rightarrow> 'c) \<Rightarrow> ('a \<Rightarrow> 'c list \<Rightarrow> 'c) \<Rightarrow>
+  ('b \<Rightarrow> 'c list \<Rightarrow> bool) \<Rightarrow> ('a, 'b) form \<Rightarrow> bool" where
   "eval e f g FF = False"
 | "eval e f g TT = True"
 | "eval e f g (Pred a ts) = g a (evalts e f ts)"
@@ -323,9 +318,8 @@ environment @{text e} and interpretations @{text f} and @{text g} for
 function and predicate symbols, respectively.
 *}
 
-definition
-  model :: "(nat \<Rightarrow> 'c) \<Rightarrow> ('a \<Rightarrow> 'c list \<Rightarrow> 'c) \<Rightarrow> ('b \<Rightarrow> 'c list \<Rightarrow> bool) \<Rightarrow>
-    ('a, 'b) form list \<Rightarrow> ('a, 'b) form \<Rightarrow> bool"  ("_,_,_,_ \<Turnstile> _" [50,50] 50) where
+definition model :: "(nat \<Rightarrow> 'c) \<Rightarrow> ('a \<Rightarrow> 'c list \<Rightarrow> 'c) \<Rightarrow> ('b \<Rightarrow> 'c list \<Rightarrow> bool) \<Rightarrow>
+    ('a, 'b) form list \<Rightarrow> ('a, 'b) form \<Rightarrow> bool" ("_,_,_,_ \<Turnstile> _" [50,50] 50) where
   "(e,f,g,ps \<Turnstile> p) = (list_all (eval e f g) ps \<longrightarrow> eval e f g p)"
 
 text {*
@@ -394,8 +388,7 @@ We now introduce a natural deduction proof calculus for first order logic.
 The derivability judgement @{text "G \<turnstile> a"} is defined as an inductive predicate.
 *}
 
-inductive
-  deriv :: "('a, 'b) form list \<Rightarrow> ('a, 'b) form \<Rightarrow> bool" ("_ \<turnstile> _" [50,50] 50) where
+inductive deriv :: "('a, 'b) form list \<Rightarrow> ('a, 'b) form \<Rightarrow> bool" ("_ \<turnstile> _" [50,50] 50) where
   Assum: "a \<in> set G \<Longrightarrow> G \<turnstile> a"
 | TTI: "G \<turnstile> TT"
 | FFE: "G \<turnstile> FF \<Longrightarrow> G \<turnstile> a"
@@ -630,8 +623,7 @@ A set of sets of formulae is called a {\em consistency property}, if the
 following holds:
 *}
 
-definition
-  consistency :: "('a, 'b) form set set \<Rightarrow> bool" where
+definition consistency :: "('a, 'b) form set set \<Rightarrow> bool" where
   "consistency C = (\<forall>S. S \<in> C \<longrightarrow>
      (\<forall>p ts. \<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S)) \<and>
      FF \<notin> S \<and> Neg TT \<notin> S \<and>
@@ -656,8 +648,7 @@ a problem with the treatment of formulae of the form @{text "Exists P"} and
 consistency property} as follows:
 *}
 
-definition
-  alt_consistency :: "('a, 'b) form set set \<Rightarrow> bool" where
+definition alt_consistency :: "('a, 'b) form set set \<Rightarrow> bool" where
   "alt_consistency C = (\<forall>S. S \<in> C \<longrightarrow>
      (\<forall>p ts. \<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S)) \<and>
      FF \<notin> S \<and> Neg TT \<notin> S \<and>
@@ -684,8 +675,7 @@ turned into an alternative consistency property by applying a suitable parameter
 substitution:
 *}
 
-definition
-  mk_alt_consistency :: "('a, 'b) form set set \<Rightarrow> ('a, 'b) form set set" where
+definition mk_alt_consistency :: "('a, 'b) form set set \<Rightarrow> ('a, 'b) form set set" where
   "mk_alt_consistency C = {S. \<exists>f. psubst f ` S \<in> C}"
 
 theorem alt_consistency:
@@ -860,12 +850,10 @@ We now show that a consistency property can be extended to one
 that is closed under subsets.
 *}
 
-definition
-  close :: "('a, 'b) form set set \<Rightarrow> ('a, 'b) form set set" where
+definition close :: "('a, 'b) form set set \<Rightarrow> ('a, 'b) form set set" where
   "close C = {S. \<exists>S' \<in> C. S \<subseteq> S'}"
 
-definition
-  subset_closed :: "'a set set \<Rightarrow> bool" where
+definition subset_closed :: "'a set set \<Rightarrow> bool" where
   "subset_closed C = (\<forall>S' \<in> C. \<forall>S. S \<subseteq> S' \<longrightarrow> S \<in> C)"
 
 lemma subset_in_close:
@@ -1043,12 +1031,10 @@ to be of finite character, provided that @{text S} is a member of @{text C}
 if and only if every subset of @{text S} is.
 *}
 
-definition
-  finite_char :: "'a set set \<Rightarrow> bool" where
+definition finite_char :: "'a set set \<Rightarrow> bool" where
   "finite_char C = (\<forall>S. S \<in> C = (\<forall>S'. finite S' \<longrightarrow> S' \<subseteq> S \<longrightarrow> S' \<in> C))"
 
-definition
-  mk_finite_char :: "'a set set \<Rightarrow> 'a set set" where
+definition mk_finite_char :: "'a set set \<Rightarrow> 'a set set" where
   "mk_finite_char C = {S. \<forall>S'. S' \<subseteq> S \<longrightarrow> finite S' \<longrightarrow> S' \<in> C}"
 
 theorem finite_alt_consistency:
@@ -1492,12 +1478,10 @@ primrec btree_of_list :: "('a \<Rightarrow> nat) \<Rightarrow> 'a list \<Rightar
   "btree_of_list f [] = Leaf 0"
 | "btree_of_list f (x # xs) = Branch (Leaf (f x)) (btree_of_list f xs)"
 
-definition
-  diag_list :: "(nat \<Rightarrow> 'a) \<Rightarrow> nat \<Rightarrow> 'a list" where
+definition diag_list :: "(nat \<Rightarrow> 'a) \<Rightarrow> nat \<Rightarrow> 'a list" where
   "diag_list f n = list_of_btree f (diag_btree n)"
 
-definition
-  undiag_list :: "('a \<Rightarrow> nat) \<Rightarrow> 'a list \<Rightarrow> nat" where
+definition undiag_list :: "('a \<Rightarrow> nat) \<Rightarrow> 'a list \<Rightarrow> nat" where
   "undiag_list f xs = undiag_btree (btree_of_list f xs)"
 
 theorem diag_undiag_list [simp]:
@@ -1530,12 +1514,10 @@ theorem term_btree: assumes "\<And>x. d (u x) = x"
     and "term_list_of_btree d (btree_of_term_list u ts) = ts"
   by (induct t and ts rule: btree_of_term.induct btree_of_term_list.induct) (simp_all add: assms)
 
-definition
-  diag_term :: "(nat \<Rightarrow> 'a) \<Rightarrow> nat \<Rightarrow> 'a term" where
+definition diag_term :: "(nat \<Rightarrow> 'a) \<Rightarrow> nat \<Rightarrow> 'a term" where
   "diag_term f n = term_of_btree f (diag_btree n)"
 
-definition
-  undiag_term :: "('a \<Rightarrow> nat) \<Rightarrow> 'a term \<Rightarrow> nat" where
+definition undiag_term :: "('a \<Rightarrow> nat) \<Rightarrow> 'a term \<Rightarrow> nat" where
   "undiag_term f t = undiag_btree (btree_of_term f t)"
 
 theorem diag_undiag_term [simp]:
@@ -1579,12 +1561,10 @@ primrec btree_of_form :: "('a \<Rightarrow> nat) \<Rightarrow> ('b \<Rightarrow>
      (Leaf (Suc (Suc (Suc (Suc (Suc (Suc 0)))))))
      (btree_of_form f g a)"
 
-definition
-  diag_form :: "(nat \<Rightarrow> 'a) \<Rightarrow> (nat \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> ('a, 'b) form" where
+definition diag_form :: "(nat \<Rightarrow> 'a) \<Rightarrow> (nat \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> ('a, 'b) form" where
   "diag_form f g n = form_of_btree f g (diag_btree n)"
 
-definition
-  undiag_form :: "('a \<Rightarrow> nat) \<Rightarrow> ('b \<Rightarrow> nat) \<Rightarrow> ('a, 'b) form \<Rightarrow> nat" where
+definition undiag_form :: "('a \<Rightarrow> nat) \<Rightarrow> ('b \<Rightarrow> nat) \<Rightarrow> ('a, 'b) form \<Rightarrow> nat" where
   "undiag_form f g x = undiag_btree (btree_of_form f g x)"
 
 theorem diag_undiag_form [simp]:
@@ -1592,12 +1572,10 @@ theorem diag_undiag_form [simp]:
   diag_form d d' (undiag_form u u' f) = f"
   by (induct f) (simp_all add: diag_form_def undiag_form_def)
 
-definition
-  diag_form' :: "nat \<Rightarrow> (nat, nat) form" where
+definition diag_form' :: "nat \<Rightarrow> (nat, nat) form" where
   "diag_form' = diag_form (\<lambda>n. n) (\<lambda>n. n)"
 
-definition
-  undiag_form' :: "(nat, nat) form \<Rightarrow> nat" where
+definition undiag_form' :: "(nat, nat) form \<Rightarrow> nat" where
   "undiag_form' = undiag_form (\<lambda>n. n) (\<lambda>n. n)"
 
 theorem diag_undiag_form': "diag_form' (undiag_form' f) = f"
@@ -1623,8 +1601,7 @@ the least upper bound of a chain of sets that are elements
 of @{text C} is again an element of @{text C}.
 *}
 
-definition
-  is_chain :: "(nat \<Rightarrow> 'a set) \<Rightarrow> bool" where
+definition is_chain :: "(nat \<Rightarrow> 'a set) \<Rightarrow> bool" where
   "is_chain f = (\<forall>n. f n \<subseteq> f (Suc n))"
 
 theorem is_chainD: "is_chain f \<Longrightarrow> x \<in> f m \<Longrightarrow> x \<in> f (m + n)"
@@ -1702,20 +1679,16 @@ function @{text extend} that produces the elements of an ascending chain of
 consistent sets.
 *}
 
-primrec (nonexhaustive)
-  dest_Neg :: "('a, 'b) form \<Rightarrow> ('a, 'b) form" where
+primrec (nonexhaustive) dest_Neg :: "('a, 'b) form \<Rightarrow> ('a, 'b) form" where
   "dest_Neg (Neg p) = p"
 
-primrec (nonexhaustive)
-  dest_Forall :: "('a, 'b) form \<Rightarrow> ('a, 'b) form" where
+primrec (nonexhaustive) dest_Forall :: "('a, 'b) form \<Rightarrow> ('a, 'b) form" where
   "dest_Forall (Forall p) = p"
 
-primrec (nonexhaustive)
-  dest_Exists :: "('a, 'b) form \<Rightarrow> ('a, 'b) form" where
+primrec (nonexhaustive) dest_Exists :: "('a, 'b) form \<Rightarrow> ('a, 'b) form" where
   "dest_Exists (Exists p) = p"
 
-primrec
-  extend :: "(nat, 'b) form set \<Rightarrow> (nat, 'b) form set set \<Rightarrow>
+primrec extend :: "(nat, 'b) form set \<Rightarrow> (nat, 'b) form set set \<Rightarrow>
     (nat \<Rightarrow> (nat, 'b) form) \<Rightarrow> nat \<Rightarrow> (nat, 'b) form set" where
   "extend S C f 0 = S"
 | "extend S C f (Suc n) = (if extend S C f n \<union> {f n} \<in> C
@@ -1729,8 +1702,7 @@ primrec
         else extend S C f n \<union> {f n})
      else extend S C f n)"
 
-definition
-  Extend :: "(nat, 'b) form set \<Rightarrow> (nat, 'b) form set set \<Rightarrow>
+definition Extend :: "(nat, 'b) form set \<Rightarrow> (nat, 'b) form set set \<Rightarrow>
     (nat \<Rightarrow> (nat, 'b) form) \<Rightarrow> (nat, 'b) form set" where
   "Extend S C f = (\<Union>n. extend S C f n)"
 
@@ -1863,8 +1835,7 @@ text {*
 The @{text Extend} function yields a maximal set:
 *}
 
-definition
-  maximal :: "'a set \<Rightarrow> 'a set set \<Rightarrow> bool" where
+definition maximal :: "'a set \<Rightarrow> 'a set set \<Rightarrow> bool" where
   "maximal S C = (\<forall>S'\<in>C. S \<subseteq> S' \<longrightarrow> S = S')"
 
 theorem extend_maximal:
@@ -1914,8 +1885,7 @@ text {*
 A Hintikka set is defined as follows:
 *}
 
-definition
-  hintikka :: "('a, 'b) form set \<Rightarrow> bool" where
+definition hintikka :: "('a, 'b) form set \<Rightarrow> bool" where
   "hintikka H =
      ((\<forall>p ts. \<not> (Pred p ts \<in> H \<and> Neg (Pred p ts) \<in> H)) \<and>
      FF \<notin> H \<and> Neg TT \<notin> H \<and>
@@ -3124,7 +3094,7 @@ proof (intro ballI impI)
 qed
 
 
-section {*Completeness for open formulas *}
+section {* Completeness for open formulas *}
 
 primrec
   free_levels\<^sub>t :: "nat \<Rightarrow> 'a term \<Rightarrow> nat" and
