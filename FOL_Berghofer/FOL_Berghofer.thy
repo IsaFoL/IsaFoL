@@ -114,8 +114,8 @@ primrec
 | "(t # ts)[s/k] = t[s/k] # ts[s/k]"
 
 primrec
-  liftt :: "'a term \<Rightarrow> 'a term"
-  and liftts :: "'a term list \<Rightarrow> 'a term list"  where
+  liftt :: "'a term \<Rightarrow> 'a term" and
+  liftts :: "'a term list \<Rightarrow> 'a term list" where
   "liftt (Var i) = Var (Suc i)"
 | "liftt (App a ts) = App a (liftts ts)"
 | "liftts [] = []"
@@ -166,15 +166,15 @@ for collecting all function symbols occurring in a term or formula.
 *}
 
 primrec
-  paramst  :: "'a term \<Rightarrow> 'a set"
-  and paramsts :: "'a term list \<Rightarrow> 'a set" where
+  paramst  :: "'a term \<Rightarrow> 'a set" and
+  paramsts :: "'a term list \<Rightarrow> 'a set" where
   "paramst (Var n) = {}"
 | "paramst (App a ts) = {a} \<union> paramsts ts"
 | "paramsts [] = {}"
 | "paramsts (t # ts) = (paramst t \<union> paramsts ts)"
 
 primrec
-  params :: "('a, 'b) form \<Rightarrow> 'a set"  where
+  params :: "('a, 'b) form \<Rightarrow> 'a set" where
   "params FF = {}"
 | "params TT = {}"
 | "params (Pred b ts) = paramsts ts"
@@ -191,8 +191,8 @@ that apply a function @{text f} to all function symbols.
 *}
 
 primrec
-  psubstt :: "('a \<Rightarrow> 'c) \<Rightarrow> 'a term \<Rightarrow> 'c term"
-  and psubstts :: "('a \<Rightarrow> 'c) \<Rightarrow> 'a term list \<Rightarrow> 'c term list" where
+  psubstt :: "('a \<Rightarrow> 'c) \<Rightarrow> 'a term \<Rightarrow> 'c term" and
+  psubstts :: "('a \<Rightarrow> 'c) \<Rightarrow> 'a term list \<Rightarrow> 'c term list" where
   "psubstt f (Var i) = Var i"
 | "psubstt f (App x ts) = App (f x) (psubstts f ts)"
 | "psubstts f [] = []"
@@ -276,7 +276,7 @@ position up.
 *}
 
 definition
-  shift :: "(nat \<Rightarrow> 'a) \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> nat \<Rightarrow> 'a"  ("_\<langle>_:_\<rangle>" [90, 0, 0] 91)  where
+  shift :: "(nat \<Rightarrow> 'a) \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> nat \<Rightarrow> 'a"  ("_\<langle>_:_\<rangle>" [90, 0, 0] 91) where
   "e\<langle>i:a\<rangle> = (\<lambda>j. if j < i then e j else if j = i then a else e (j - 1))"
 
 lemma shift_eq [simp]: "i = j \<Longrightarrow> (e\<langle>i:T\<rangle>) j = T"
@@ -296,8 +296,8 @@ proof
 qed
 
 primrec
-  evalt :: "(nat \<Rightarrow> 'c) \<Rightarrow> ('a \<Rightarrow> 'c list \<Rightarrow> 'c) \<Rightarrow> 'a term \<Rightarrow> 'c"
-  and evalts :: "(nat \<Rightarrow> 'c) \<Rightarrow> ('a \<Rightarrow> 'c list \<Rightarrow> 'c) \<Rightarrow> 'a term list \<Rightarrow> 'c list" where
+  evalt :: "(nat \<Rightarrow> 'c) \<Rightarrow> ('a \<Rightarrow> 'c list \<Rightarrow> 'c) \<Rightarrow> 'a term \<Rightarrow> 'c" and
+  evalts :: "(nat \<Rightarrow> 'c) \<Rightarrow> ('a \<Rightarrow> 'c list \<Rightarrow> 'c) \<Rightarrow> 'a term list \<Rightarrow> 'c list" where
   "evalt e f (Var n) = e n"
 | "evalt e f (App a ts) = f a (evalts e f ts)"
 | "evalts e f [] = []"
@@ -358,7 +358,7 @@ theorem upd_lemma [simp]:
 theorem list_upd_lemma [simp]: "list_all (\<lambda>p. n \<notin> params p) G \<Longrightarrow>
   list_all (eval e (f(n:=x)) g) G = list_all (eval e f g) G"
   by (induct G) simp_all
-    
+
 theorem psubst_eval' [simp]:
   "evalt e f (psubstt h t) = evalt e (\<lambda>p. f (h p)) t"
   "evalts e f (psubstts h ts) = evalts e (\<lambda>p. f (h p)) ts"
@@ -542,7 +542,7 @@ The correctness of the proof calculus introduced in \secref{sec:proof-calculus}
 can now be proved by induction on the derivation of @{term "G \<turnstile> p"}, using the
 substitution rules proved in \secref{sec:semantics}.
 *}
-  
+
 theorem correctness: "G \<turnstile> p \<Longrightarrow> \<forall>e f g. e,f,g,G \<Turnstile> p"
 proof (induct p rule: deriv.induct)
   case (Assum a G)
@@ -1463,7 +1463,7 @@ functions for converting between trees and concrete datatypes.
 
 datatype btree = Leaf nat | Branch btree btree
 
-function diag_btree :: "nat \<Rightarrow> btree"  where
+function diag_btree :: "nat \<Rightarrow> btree" where
   "diag_btree n = (case fst (diag n) of
        0 \<Rightarrow> Leaf (snd (diag n))
      | Suc x \<Rightarrow> Branch (diag_btree x) (diag_btree (snd (diag n))))"
@@ -1507,8 +1507,9 @@ theorem diag_undiag_list [simp]:
 
 subsubsection {* Enumerating terms *}
 
-fun term_of_btree :: "(nat \<Rightarrow> 'a) \<Rightarrow> btree \<Rightarrow> 'a term"
-  and term_list_of_btree :: "(nat \<Rightarrow> 'a) \<Rightarrow> btree \<Rightarrow> 'a term list" where
+fun
+  term_of_btree :: "(nat \<Rightarrow> 'a) \<Rightarrow> btree \<Rightarrow> 'a term" and
+  term_list_of_btree :: "(nat \<Rightarrow> 'a) \<Rightarrow> btree \<Rightarrow> 'a term list" where
   "term_of_btree f (Leaf m) = Var m"
 | "term_of_btree f (Branch (Leaf m) t) =
      App (f m) (term_list_of_btree f t)"
@@ -1516,8 +1517,9 @@ fun term_of_btree :: "(nat \<Rightarrow> 'a) \<Rightarrow> btree \<Rightarrow> '
 | "term_list_of_btree f (Branch t1 t2) =
      term_of_btree f t1 # term_list_of_btree f t2"
 
-primrec btree_of_term :: "('a \<Rightarrow> nat) \<Rightarrow> 'a term \<Rightarrow> btree"
-  and btree_of_term_list :: "('a \<Rightarrow> nat) \<Rightarrow> 'a term list \<Rightarrow> btree" where
+primrec
+  btree_of_term :: "('a \<Rightarrow> nat) \<Rightarrow> 'a term \<Rightarrow> btree" and
+  btree_of_term_list :: "('a \<Rightarrow> nat) \<Rightarrow> 'a term list \<Rightarrow> btree" where
   "btree_of_term f (Var m) = Leaf m"
 | "btree_of_term f (App m ts) = Branch (Leaf (f m)) (btree_of_term_list f ts)"
 | "btree_of_term_list f [] = Leaf 0"
@@ -1701,26 +1703,22 @@ consistent sets.
 *}
 
 primrec (nonexhaustive)
-  dest_Neg :: "('a, 'b) form \<Rightarrow> ('a, 'b) form"
-  where
-    "dest_Neg (Neg p) = p"
+  dest_Neg :: "('a, 'b) form \<Rightarrow> ('a, 'b) form" where
+  "dest_Neg (Neg p) = p"
 
 primrec (nonexhaustive)
-  dest_Forall :: "('a, 'b) form \<Rightarrow> ('a, 'b) form"
-  where
-    "dest_Forall (Forall p) = p"
+  dest_Forall :: "('a, 'b) form \<Rightarrow> ('a, 'b) form" where
+  "dest_Forall (Forall p) = p"
 
 primrec (nonexhaustive)
-  dest_Exists :: "('a, 'b) form \<Rightarrow> ('a, 'b) form"
-  where
-    "dest_Exists (Exists p) = p"
+  dest_Exists :: "('a, 'b) form \<Rightarrow> ('a, 'b) form" where
+  "dest_Exists (Exists p) = p"
 
 primrec
   extend :: "(nat, 'b) form set \<Rightarrow> (nat, 'b) form set set \<Rightarrow>
-    (nat \<Rightarrow> (nat, 'b) form) \<Rightarrow> nat \<Rightarrow> (nat, 'b) form set"
-  where
-    "extend S C f 0 = S"
-  | "extend S C f (Suc n) = (if extend S C f n \<union> {f n} \<in> C
+    (nat \<Rightarrow> (nat, 'b) form) \<Rightarrow> nat \<Rightarrow> (nat, 'b) form set" where
+  "extend S C f 0 = S"
+| "extend S C f (Suc n) = (if extend S C f n \<union> {f n} \<in> C
      then
        (if (\<exists>p. f n = Exists p)
         then extend S C f n \<union> {f n} \<union> {subst (dest_Exists (f n))
@@ -1943,8 +1941,9 @@ closed terms and Herbrand terms.
 
 datatype 'a hterm = HApp 'a "'a hterm list"
 
-primrec term_of_hterm :: "'a hterm \<Rightarrow> 'a term"
-  and terms_of_hterms :: "'a hterm list \<Rightarrow> 'a term list" where
+primrec
+  term_of_hterm :: "'a hterm \<Rightarrow> 'a term" and
+  terms_of_hterms :: "'a hterm list \<Rightarrow> 'a term list" where
   "term_of_hterm (HApp a hts) = App a (terms_of_hterms hts)"
 | "terms_of_hterms [] = []"
 | "terms_of_hterms (ht # hts) = term_of_hterm ht # terms_of_hterms hts"
@@ -3123,9 +3122,9 @@ proof (intro ballI impI)
   then show "eval e' (\<lambda>n. HApp (2 * n)) ?g p"
     using psubst_eval by blast
 qed
-  
- 
-subsection {*Completeness for open formulas *}
+
+
+section {*Completeness for open formulas *}
 
 primrec
   free_levels\<^sub>t :: "nat \<Rightarrow> 'a term \<Rightarrow> nat" and
@@ -3332,11 +3331,11 @@ lemma put_Foralls_suc: "put_Foralls m (Forall p) = put_Foralls (Suc m) p"
 primrec remove_univ_close :: "nat \<Rightarrow> ('a, 'b) form \<Rightarrow> ('a, 'b) form" where
   "remove_univ_close (Suc m) p = remove_univ_close m ((dest_Forall p)[Var m/0])"
 | "remove_univ_close 0 p = p"
-  
+
 lemma remove_univ_close_cancels:
   "m = free_levels 0 p \<Longrightarrow> remove_univ_close m (put_Foralls m p) = p"
   sorry
-      
+
 lemma deriv_remove_univ_close':
   "ps \<turnstile> put_Foralls m p \<Longrightarrow> ps \<turnstile> remove_univ_close m (put_Foralls m p)"
 proof (induct m arbitrary: p)
@@ -3348,7 +3347,7 @@ next
     using ForallE put_Foralls_subst
     by (metis dest_Forall.simps put_Foralls.simps(1) remove_univ_close.simps(1))
 qed
-    
+
 theorem deriv_remove_put_Foralls:
   "m = free_levels 0 p \<Longrightarrow> [] \<turnstile> put_Foralls m p \<Longrightarrow> [] \<turnstile> p"
   using deriv_remove_univ_close' remove_univ_close_cancels by metis
