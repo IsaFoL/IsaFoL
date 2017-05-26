@@ -371,8 +371,7 @@ Simplification yields the following proof state:
 @{subgoals [display]}
 This is easily proved using intuitionistic logic:
 *}
-  apply iprover
-  done
+  by iprover
 
 
 section {* Proof calculus *}
@@ -409,9 +408,6 @@ text {*
 The following derived inference rules are sometimes useful in applications.
 *}
 
-theorem cut: "G \<turnstile> A \<Longrightarrow> A # G \<turnstile> B \<Longrightarrow> G \<turnstile> B"
-  by (rule ImplE) (rule ImplI)
-
 theorem Class': "Neg A # G \<turnstile> A \<Longrightarrow> G \<turnstile> A"
 proof -
   assume "Neg A # G \<turnstile> A"
@@ -421,13 +417,18 @@ proof -
     by (simp add: Assum)
   ultimately have "A # Neg A # G \<turnstile> FF"
     using NegE by blast
+  then have "Neg A # G \<turnstile> Neg A"
+    using NegI by blast
   then have "Neg A # G \<turnstile> FF"
-    using cut \<open>Neg A # G \<turnstile> A\<close> by blast
+    using \<open>Neg A # G \<turnstile> A\<close> NegE by blast
   then show "G \<turnstile> A"
     using Class by blast
 qed
 
-theorem ForallE'': "G \<turnstile> Forall a \<Longrightarrow> subst a t 0 # G \<turnstile> B \<Longrightarrow> G \<turnstile> B"
+theorem cut: "G \<turnstile> A \<Longrightarrow> A # G \<turnstile> B \<Longrightarrow> G \<turnstile> B"
+  by (rule ImplE) (rule ImplI)
+
+theorem ForallE': "G \<turnstile> Forall a \<Longrightarrow> subst a t 0 # G \<turnstile> B \<Longrightarrow> G \<turnstile> B"
   by (rule cut) (rule ForallE)
 
 text {*
@@ -461,66 +462,105 @@ qed
 theorem ex_all_commute:
   "([]::(nat, 'b) form list) \<turnstile> Impl (Exists (Forall (Pred p [Var 1, Var 0])))
      (Forall (Exists (Pred p [Var 0, Var 1])))"
-  apply (rule ImplI)
-  apply (rule_tac n=0 in ForallI)
-    prefer 2
-    apply simp
-   prefer 2
-   apply simp
-  apply simp
-  apply (rule_tac n=1 and a="Forall (Pred p [Var 1, Var 0])" in ExistsE)
-      apply (rule Assum, simp)
-     prefer 2
-     apply simp
-    prefer 2
-    apply simp
-   prefer 2
-   apply simp
-  apply (rule_tac t="App 1 []" in ExistsI)
-  apply (rule_tac t="App 0 []" and a="Pred p [App (Suc 0) [], Var 0]" in ForallE'')
-   apply (rule Assum, simp)
-  apply (rule Assum, simp)
-  done
+proof -
+  let ?forall = "Forall (Pred p [Var 1, Var 0]) :: (nat, 'b) form"
+
+  have "[Pred p [App 1 [], Var 0][App 0 []/0], ?forall[App 1 []/0],
+     Exists ?forall] \<turnstile> Pred p [Var 0, App 0 []][App 1 []/0]"
+    by (simp add: Assum)
+  moreover have "[?forall[App 1 []/0], Exists ?forall] \<turnstile> Forall (Pred p [App 1 [], Var 0])"
+    by (simp add: Assum)
+  ultimately have "[?forall[App 1 []/0], Exists ?forall] \<turnstile> (Pred p [Var 0, App 0 []])[App 1 []/0]"
+    using ForallE' by blast
+  then have "[?forall[App 1 []/0], Exists ?forall] \<turnstile> Exists (Pred p [Var 0, App 0 []])"
+    using ExistsI by blast
+  moreover have "list_all (\<lambda>p. 1 \<notin> params p) [Exists ?forall]"
+    by simp
+  moreover have "1 \<notin> params ?forall"
+    by simp
+  moreover have "1 \<notin> params (Exists (Pred p [Var 0, App (0 :: nat) []]))"
+    by simp
+  moreover have "[Exists ?forall] \<turnstile> Exists ?forall"
+    by (simp add: Assum)
+  ultimately have "[Exists ?forall] \<turnstile> Exists (Pred p [Var 0, App 0 []])"
+    using ExistsE by fast
+  then have "[Exists ?forall] \<turnstile> (Exists (Pred p [Var 0, Var 1]))[App 0 []/0]"
+    by simp
+  moreover have "0 \<notin> params (Exists (Pred p [Var 0, Var 1]))"
+    by simp
+  moreover have "list_all (\<lambda>p. 0 \<notin> params p) [Exists ?forall]"
+    by simp
+  ultimately have "[Exists ?forall] \<turnstile> Forall (Exists (Pred p [Var 0, Var 1]))"
+    using ForallI by fast
+  then show ?thesis
+    using ImplI by blast
+qed
 
 theorem drinker: "([]::(nat, 'b) form list) \<turnstile>
   Exists (Impl (Pred P [Var 0]) (Forall (Pred P [Var 0])))"
-  apply (rule Class')
-  apply (rule_tac t="Var 0" in ExistsI)
-  apply simp
-  apply (rule ImplI)
-  apply (rule_tac n=0 in ForallI)
-    prefer 2
-    apply simp
-   prefer 2
-   apply simp
-  apply simp
-  apply (rule Class)
-  apply (rule_tac a="Exists (Impl (Pred P [Var 0]) (Forall (Pred P [Var 0])))" in NegE)
-   apply (rule Assum, simp)
-  apply (rule_tac t="App 0 []" in ExistsI)
-  apply simp
-  apply (rule ImplI)
-  apply (rule FFE)
-  apply (rule_tac a="Pred P [App 0 []]" in NegE)
-   apply (rule Assum, simp)
-  apply (rule Assum, simp)
-  done
+proof -
+  let ?impl = "(Impl (Pred P [Var 0]) (Forall (Pred P [Var 0]))) :: (nat, 'b) form"
+  let ?G' = "[Pred P [Var 0], Neg (Exists ?impl)]"
+  let ?G = "Neg (Pred P [App 0 []]) # ?G'"
+
+  have "Pred P [App 0 []] # ?G \<turnstile> Neg (Pred P [App 0 []])"
+    and "Pred P [App 0 []] # ?G \<turnstile> Pred P [App 0 []]"
+    by (simp_all add: Assum)
+  then have "Pred P [App 0 []] # ?G \<turnstile> FF"
+    using NegE by blast
+  then have "Pred P [App 0 []] # ?G \<turnstile> Forall (Pred P [Var 0])"
+    using FFE by blast
+  then have "?G \<turnstile> ?impl[App 0 []/0]"
+    using ImplI by simp
+  then have "?G \<turnstile> Exists ?impl"
+    using ExistsI by blast
+  moreover have "?G \<turnstile> Neg (Exists ?impl)"
+    by (simp add: Assum)
+  ultimately have "?G \<turnstile> FF"
+    using NegE by blast
+  then have "?G' \<turnstile> Pred P [Var 0][App 0 []/0]"
+    using Class by simp
+  moreover have "(0 :: nat) \<notin> params (Pred P [Var 0])"
+    by simp
+  moreover have "list_all (\<lambda>p. (0 :: nat) \<notin> params p) ?G'"
+    by simp
+  ultimately have "?G' \<turnstile> Forall (Pred P [Var 0])"
+    using ForallI by fast
+  then have "[Neg (Exists ?impl)] \<turnstile> ?impl[Var 0/0]"
+    using ImplI by simp
+  then have "[Neg (Exists ?impl)] \<turnstile> Exists ?impl"
+    using ExistsI by blast
+  then show ?thesis
+    using Class' by blast
+qed
 
 theorem peirce:
   "[] \<turnstile> Impl (Impl (Impl (Pred P []) (Pred Q [])) (Pred P [])) (Pred P [])"
-  apply (rule Class')
-  apply (rule ImplI)
-  apply (rule_tac a="Impl (Pred P []) (Pred Q [])" in ImplE)
-   apply (rule Assum, simp)
-  apply (rule ImplI)
-  apply (rule FFE)
-  apply (rule_tac
-      a="Impl (Impl (Impl (Pred P []) (Pred Q [])) (Pred P [])) (Pred P [])"
-      in NegE)
-   apply (rule Assum, simp)
-  apply (rule ImplI)
-  apply (rule Assum, simp)
-  done
+  (is "[] \<turnstile> Impl ?PQP (Pred P [])")
+proof -
+  let ?PQPP = "Impl ?PQP (Pred P [])"
+
+  have "[?PQP, Pred P [], ?PQP, Neg ?PQPP] \<turnstile> Pred P []"
+    by (simp add: Assum)
+  then have "[Pred P [], ?PQP, Neg ?PQPP] \<turnstile> ?PQPP"
+    using ImplI by blast
+  moreover have "[Pred P [], ?PQP, Neg ?PQPP] \<turnstile> Neg ?PQPP"
+    by (simp add: Assum)
+  ultimately have "[Pred P [], ?PQP, Neg ?PQPP] \<turnstile> FF"
+    using NegE by blast
+  then have "[Pred P [], ?PQP, Neg ?PQPP] \<turnstile> Pred Q []"
+    using FFE by blast
+  then have "[?PQP, Neg ?PQPP] \<turnstile> Impl (Pred P []) (Pred Q [])"
+    using ImplI by blast
+  moreover have "[?PQP, Neg ?PQPP] \<turnstile> ?PQP"
+    by (simp add: Assum)
+  ultimately have "[?PQP, Neg ?PQPP] \<turnstile> Pred P []"
+    using ImplE by blast
+  then have "[Neg ?PQPP] \<turnstile> ?PQPP"
+    using ImplI by blast
+  then show "[] \<turnstile> ?PQPP"
+    using Class' by blast
+qed
 
 
 section {* Correctness *}
@@ -3273,7 +3313,7 @@ theorem valid_subst:
   shows "e,(f :: 'a \<Rightarrow> 'b list \<Rightarrow> 'b),g,(map (\<lambda>p. subst p t m) ps) \<Turnstile> subst p t m"
   using mod by (simp add: model_def list_all_iff)
 
-subsubsection {* Deriving the original formula from the universal closure *}
+subsection {* Deriving the original formula from the universal closure *}
 
 lemma put_Foralls_subst:
   "(put_Foralls m p)[Var k/l] = put_Foralls m (p[Var (m+k)/m+l])"
@@ -3313,7 +3353,7 @@ theorem deriv_remove_put_Foralls:
 theorem deriv_remove_univ_close: "[] \<turnstile> univ_close p \<Longrightarrow> [] \<turnstile> p"
   unfolding univ_close_def using deriv_remove_put_Foralls by blast
 
-subsubsection {* Deriving under assumptions from an implication *}
+subsection {* Deriving under assumptions from an implication *}
 
 theorem deriv_permute_assumptions: "ps' \<turnstile> q \<Longrightarrow> set ps' = set ps \<Longrightarrow> ps \<turnstile> q"
 proof (induct q arbitrary: ps rule: deriv.induct)
