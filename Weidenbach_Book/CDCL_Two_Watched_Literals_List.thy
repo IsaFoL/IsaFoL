@@ -1183,6 +1183,18 @@ definition skip_and_resolve_loop_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nre
     }
   \<close>
 
+lemma skip_and_resolve_loop_l_index_le_length_N':
+  \<open>additional_WS_invs (M, N, U, D, NP, UP, WS, Q) \<Longrightarrow>
+    ((brk''', M'', N'', U'', D'', NP'', UP'', WS'', Q''), brk'', M''', N''', U''', D''', NP''', UP''', WS''', Q''')
+    \<in> {((brk, S), brk', S'). brk = brk' \<and> S' = twl_st_of None S \<and> additional_WS_invs S \<and> clauses_to_update_l S = {#}} \<Longrightarrow>
+    case (brk'', M''', N''', U''', D''', NP''', UP''', WS''', Q''') of (brk, S) \<Rightarrow> \<not> brk \<and> \<not> is_decided (hd (get_trail S)) \<Longrightarrow>
+    M'' \<noteq> [] \<Longrightarrow>
+    ((L', C'), L, C) \<in> {((L, C), L', C'). L = L' \<and> C' = (if C = 0 then {#L#}
+       else mset (get_clauses_l (M'', N'', U'', D'', NP'', UP'', WS'', Q'') ! C))} \<Longrightarrow>
+    lit_and_ann_of_propagated (hd (get_trail_l (M'', N'', U'', D'', NP'', UP'', WS'', Q''))) = (L', C') \<Longrightarrow>
+    C' < length N''\<close>
+  by (cases \<open>hd M''\<close>) (auto elim!: list_not_emptyE simp add: additional_WS_invs_def)
+
 lemma skip_and_resolve_loop_l_spec:
   \<open>(skip_and_resolve_loop_l, skip_and_resolve_loop) \<in>
     {(S::'v twl_st_l, S'). S' = twl_st_of None S \<and> twl_struct_invs (twl_st_of None S) \<and>
@@ -1241,10 +1253,7 @@ proof -
       \<comment> \<open>state equality\<close>
     subgoal by (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def)
       \<comment> \<open>trail not empty\<close>
-    subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk'' brk'''
-      M''' N''' U''' D''' NP''' UP''' WS''' Q'''
-      M'' N'' U'' D'' NP'' UP'' WS'' Q'' L C L' C'
-      by (cases \<open>M''\<close>; cases \<open>hd M''\<close>) (clarsimp simp add: additional_WS_invs_def)+
+    subgoal by (rule skip_and_resolve_loop_l_index_le_length_N') assumption
       \<comment> \<open>annotation of the valid\<close>
     subgoal for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E brk'' brk'''
       M''' N''' U''' D''' NP''' UP''' WS''' Q'''
@@ -1296,6 +1305,10 @@ proof -
     apply (match_spec; (match_fun_rel; match_fun_rel?)+)
     by blast+
 qed
+lemma not_is_decidedE:
+  \<open>\<not>is_decided E \<Longrightarrow> (\<And>K C. E = Propagated K C \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
+  by (cases E) auto
+
 
 definition find_decomp :: "'v twl_st_l \<Rightarrow> 'v literal \<Rightarrow> ('v, nat) ann_lits nres" where
   \<open>find_decomp =  (\<lambda>(M, N, U, D, NP, UP, WS, Q) L.
