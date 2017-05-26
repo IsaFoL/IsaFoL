@@ -9,14 +9,10 @@ no_notation Ref.update ("_ := _" 62)
 lemma nth_in_set_tl: \<open>i > 0 \<Longrightarrow> i < length xs \<Longrightarrow> xs ! i \<in> set (tl xs)\<close>
   by (cases xs) auto
 
-lemma mset_take_mset_drop_mset: \<open>(\<lambda>x. mset (take 2 x) + mset (drop 2 x)) = mset\<close>
-  unfolding mset_append[symmetric] append_take_drop_id ..
-lemma mset_take_mset_drop_mset': \<open>mset (take 2 x) + mset (drop 2 x) = mset x\<close>
-  unfolding mset_append[symmetric] append_take_drop_id ..
-
 lemma in_atms_of_mset_takeD:
   \<open>x \<in> atms_of_ms (mset ` set (take U (tl N))) \<Longrightarrow> x \<in> atms_of_ms (mset ` set ((tl N)))\<close>
   by (auto dest: in_set_takeD simp:atms_of_ms_def)
+(* End Move *)
 
 
 subsection \<open>Access Functions\<close>
