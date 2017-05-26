@@ -166,6 +166,7 @@ lemma
 
 subsubsection \<open>Inversion Tactics\<close>
 
+  by (meson pw_ref_iff subsetCE)
 lemma mem_set_trans:
   \<open>A \<subseteq> B \<Longrightarrow> a \<in> A \<Longrightarrow> a \<in> B\<close>
   by auto

@@ -877,7 +877,6 @@ proof -
       apply (rule order_trans[OF ])
        apply clarsimp
        apply (rule unit_propagation_inner_loop_body_l[of \<open>iC\<close>, unfolded prod.collapse])
-          apply ((auto; fail)+)[4]
       apply (cases T)
       apply (auto simp: pw_conc_inres pw_conc_nofail pw_ords_iff(1))
       done
