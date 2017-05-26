@@ -409,13 +409,13 @@ The following derived inference rules are sometimes useful in applications.
 *}
 
 theorem Class': "Neg A # G \<turnstile> A \<Longrightarrow> G \<turnstile> A"
-  by (rule Class, rule NegE, rule Assum) auto
+  by (rule Class, rule NegE, rule Assum) (simp, iprover)
 
 theorem cut: "G \<turnstile> A \<Longrightarrow> A # G \<turnstile> B \<Longrightarrow> G \<turnstile> B"
-  by (rule ImplE) (rule ImplI)
+  by (rule ImplE, rule ImplI)
 
 theorem ForallE': "G \<turnstile> Forall a \<Longrightarrow> subst a t 0 # G \<turnstile> B \<Longrightarrow> G \<turnstile> B"
-  by (rule cut) (rule ForallE)
+  by (rule cut, rule ForallE)
 
 text {*
 As an example, we show that the excluded middle, a commutation property
