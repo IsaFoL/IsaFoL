@@ -49,12 +49,12 @@ primrec size_form :: "('a, 'b) form \<Rightarrow> nat" where
   "size_form FF = 0"
 | "size_form TT = 0"
 | "size_form (Pred _ _) = 0"
-| "size_form (And phi psi) = size_form phi + size_form psi + 1"
-| "size_form (Or phi psi) = size_form phi + size_form psi + 1"
-| "size_form (Impl phi psi) = size_form phi + size_form psi + 1"
-| "size_form (Neg phi) = size_form phi + 1"
-| "size_form (Forall phi) = size_form phi + 1"
-| "size_form (Exists phi) = size_form phi + 1"
+| "size_form (And p q) = size_form p + size_form q + 1"
+| "size_form (Or p q) = size_form p + size_form q + 1"
+| "size_form (Impl p q) = size_form p + size_form q + 1"
+| "size_form (Neg p) = size_form p + 1"
+| "size_form (Forall p) = size_form p + 1"
+| "size_form (Exists p) = size_form p + 1"
 
 
 subsection {* Closed terms and formulae *}
@@ -409,21 +409,7 @@ The following derived inference rules are sometimes useful in applications.
 *}
 
 theorem Class': "Neg A # G \<turnstile> A \<Longrightarrow> G \<turnstile> A"
-proof -
-  assume "Neg A # G \<turnstile> A"
-  have "A # Neg A # G \<turnstile> A"
-    by (simp add: Assum)
-  moreover have "A # Neg A # G \<turnstile> Neg A"
-    by (simp add: Assum)
-  ultimately have "A # Neg A # G \<turnstile> FF"
-    using NegE by blast
-  then have "Neg A # G \<turnstile> Neg A"
-    using NegI by blast
-  then have "Neg A # G \<turnstile> FF"
-    using \<open>Neg A # G \<turnstile> A\<close> NegE by blast
-  then show "G \<turnstile> A"
-    using Class by blast
-qed
+  by (rule Class, rule NegE, rule Assum) auto
 
 theorem cut: "G \<turnstile> A \<Longrightarrow> A # G \<turnstile> B \<Longrightarrow> G \<turnstile> B"
   by (rule ImplE) (rule ImplI)
@@ -1616,9 +1602,24 @@ definition undiag_form' :: "(nat, nat) form \<Rightarrow> nat" where
 theorem diag_undiag_form' [simp]: "diag_form' (undiag_form' f) = f"
   by (simp add: diag_form'_def undiag_form'_def)
 
+text \<open>
+As an alternative to the definitions in this section,
+one can use the countable type class by importing "~~/src/HOL/Library/Countable",
+omitting the next two abbreviations and adding the commented instantiations instead.
+\<close>
+
 abbreviation \<open>from_nat \<equiv> diag_form'\<close>
 abbreviation \<open>to_nat \<equiv> undiag_form'\<close>
 
+(*
+instantiation "term" :: (countable) countable begin
+instance by countable_datatype
+end
+
+instantiation form :: (countable, countable) countable begin
+instance by countable_datatype
+end
+*)
 
 subsection {* Extension to maximal consistent sets *}
 
