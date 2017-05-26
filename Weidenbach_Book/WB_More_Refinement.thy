@@ -166,7 +166,10 @@ lemma
 
 subsubsection \<open>Inversion Tactics\<close>
 
+lemma refinement_trans_long:
+  \<open>A = A' \<Longrightarrow> B = B' \<Longrightarrow> R \<subseteq> R' \<Longrightarrow> A \<le> \<Down> R B \<Longrightarrow> A' \<le> \<Down> R' B'\<close>
   by (meson pw_ref_iff subsetCE)
+
 lemma mem_set_trans:
   \<open>A \<subseteq> B \<Longrightarrow> a \<in> A \<Longrightarrow> a \<in> B\<close>
   by auto

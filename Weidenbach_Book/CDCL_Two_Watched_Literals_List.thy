@@ -217,7 +217,7 @@ export_code find_unwatched_impl in SML *)
 
 lemma find_unwatched:
   assumes \<open>no_dup M\<close> and \<open>length C \<ge> 2\<close>
-  shows \<open>find_unwatched M C \<le> SPEC (\<lambda>(found). 
+  shows \<open>find_unwatched M C \<le> SPEC (\<lambda>(found).
       (found = None \<longleftrightarrow> (\<forall>L\<in>set (unwatched_l C). -L \<in> lits_of_l M)) \<and>
       (\<forall>j. found = Some j \<longrightarrow> (j < length C \<and> (undefined_lit M (C!j) \<or> C!j \<in> lits_of_l M) \<and> j \<ge> 2)))\<close>
   unfolding find_unwatched_def
@@ -237,7 +237,7 @@ lemma find_unwatched:
     by (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq valued_def
         split: if_splits intro!: exI[of _ \<open>snd s - 2\<close>])
   subgoal for s
-    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq 
+    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq
         split: if_splits intro: exI[of _ \<open>snd s - 2\<close>])
   subgoal for s
     by (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq valued_def
@@ -874,11 +874,14 @@ proof -
     subgoal by simp
     subgoal by simp
     subgoal for T T' LC S'' iC
-      apply (rule order_trans[OF ])
-       apply clarsimp
-       apply (rule unit_propagation_inner_loop_body_l[of \<open>iC\<close>, unfolded prod.collapse])
-      apply (cases T)
-      apply (auto simp: pw_conc_inres pw_conc_nofail pw_ords_iff(1))
+      apply (rule refinement_trans_long[OF _ _ _ unit_propagation_inner_loop_body_l[of \<open>iC\<close> T L, unfolded prod.collapse]])
+      subgoal by auto
+      subgoal by (cases T) auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
       done
     subgoal by auto
     done
@@ -1051,7 +1054,7 @@ proof -
     using that unfolding select_and_remove_from_literals_to_update_def
     apply (cases x; cases x')
     unfolding conc_fun_def by (clarsimp simp add: conc_fun_def)
-  have
+  have H:
     \<open>(unit_propagation_outer_loop_l, unit_propagation_outer_loop) \<in>?R \<rightarrow>
       \<langle>{(S, S').
           S' = twl_st_of None S \<and>
@@ -1078,7 +1081,6 @@ proof -
       by (auto simp add: twl_st_of_clause_to_update
           intro: cdcl_twl_cp_twl_struct_invs cdcl_twl_cp_twl_stgy_invs)
     done
-  note H = this
   show ?thesis
     apply (rule refine_add_inv)
     subgoal using H apply -
@@ -1593,32 +1595,30 @@ proof -
     unfolding ex_decomp_of_max_lvl_def find_decomp_def
     apply (refine_vcg H list_of_mset; remove_dummy_vars)
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q'
-      by (cases M) auto
+      by auto
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q'
-      by (cases M) (auto simp: convert_lits_l_def)
+      by (auto simp: convert_lits_l_def elim: list_not_emptyE)
     subgoal by simp
     subgoal by simp
     subgoal by simp
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
       apply (subgoal_tac \<open>lit_of (hd (convert_lits_l N' M')) = lit_of (hd M')\<close>)
-      using obtain_decom[of N' M' E] apply (simp; fail)
-      by (cases M') simp_all
+      using obtain_decom[of N' M' E] by (auto elim!: list_not_emptyE)
     subgoal by simp
     subgoal by simp
     subgoal by simp
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
-      by (cases M') simp_all
+      by (auto elim!: list_not_emptyE)
     subgoal by simp
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
-      by (cases M') simp_all
+      by (auto elim!: list_not_emptyE)
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
-      by (cases M') simp_all
+      by (auto elim!: list_not_emptyE)
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
       by simp
     subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
       by simp
-    subgoal for E M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' L
-      by simp
+    subgoal by simp
     subgoal by simp
     subgoal by simp
     subgoal by (simp add: find_lit_of_max_level_def)
@@ -1737,19 +1737,16 @@ proof -
   have H:
     \<open>RETURN S'
        \<le> \<Down> {(S', S).
-              S = (Decided (the L) # M, N, E, None, NP, UP, WS, {#- (the L)#}) \<and>
-              (\<exists>Q. twl_st_of None S' = (M, N, E, None, NP, UP, WS, Q))}
+              S = (Decided L # M, N, U, D, NP, UP, WS, {#- L#}) \<and>
+              (\<exists>Q. twl_st_of None S' = (M, N, U, D, NP, UP, WS, Q))}
            (do {
-              L \<leftarrow> SPEC
-                    (\<lambda>L. undefined_lit M L \<and>
-                          atm_of L \<in> atms_of_mm (clause `# N));
-              RETURN
-               (Decided L # M, N, E, None, NP, UP, WS, {#- L#})})\<close>
-    if \<open>L \<noteq> None\<close> and \<open>undefined_lit M (the L)\<close> and
-      \<open>atm_of (the L) \<in> atms_of_mm (clause `# N)\<close> and
-      \<open>\<exists>Q. twl_st_of None S' = (M, N, E, None, NP, UP, WS, Q)\<close>
-    for M N E NP UP WS L and S'
-    using that by (cases \<open>the L\<close>) (auto intro!: rhs_step_bind_SPEC)
+              L \<leftarrow> SPEC (\<lambda>L. undefined_lit M L \<and> atm_of L \<in> atms_of_mm (clause `# N));
+              RETURN (Decided L # M, N, U, D, NP, UP, WS, {#- L#})})\<close>
+    if \<open>undefined_lit M L\<close> and
+      \<open>atm_of L \<in> atms_of_mm (clause `# N)\<close> and
+      \<open>\<exists>Q. twl_st_of None S' = (M, N, U, D, NP, UP, WS, Q)\<close>
+    for M N U NP UP WS L and S' and D
+    using that by (cases \<open>L\<close>) (auto intro!: rhs_step_bind_SPEC)
   have twl_prog:
     \<open>(cdcl_twl_o_prog_l, cdcl_twl_o_prog) \<in> ?R \<rightarrow>
       \<langle>{(S, S').
@@ -1761,17 +1758,13 @@ proof -
       find_unassigned_lit_def decide_def
     apply (refine_vcg decide_l_spec[THEN refine_pair_to_SPEC]
         skip_and_resolve_loop_l_spec[THEN refine_pair_to_SPEC]
-        backtrack_l_spec[THEN refine_pair_to_SPEC]; remove_dummy_vars)
+        backtrack_l_spec[THEN refine_pair_to_SPEC] H; remove_dummy_vars)
     subgoal by simp
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
       by auto
-        (* supply [[unify_trace_failure]] *)
-                   apply (rule H)
-      apply auto[]
+      apply (auto; fail) -- \<open>the variable L have to be guessed, so no subgoal\<close>
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
       by auto
-    subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
-      by simp
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
       by simp
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' T
@@ -1785,10 +1778,9 @@ proof -
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
       by (cases T) (auto)
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
-      apply (cases M; cases T)
       by (auto simp add: additional_WS_invs_def)
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
-      by (cases T) (auto)
+      by (cases T) auto
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
       by (auto simp add: get_conflict_l_Some_nil_iff)
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
@@ -1796,16 +1788,14 @@ proof -
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
       by fast
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
-      by (cases T) (auto)
+      by auto
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T T'
       by fast
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
       by fast
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
-      apply (cases M; cases T)
       by (auto simp add: additional_WS_invs_def)
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q' _ _ T
-      apply (cases M; cases T)
       by (auto simp add: additional_WS_invs_def)
     done
   have KK:
