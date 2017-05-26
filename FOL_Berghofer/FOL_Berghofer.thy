@@ -1,12 +1,7 @@
 (* Authors: Stefan Berghofer, TU Muenchen, 2003 / Andreas Halkjær From, DTU Compute, 2017
 *)
 
-theory FOL_Berghofer
-  imports
-    Main
-    "~~/src/HOL/Library/Countable"
-begin
-
+theory FOL_Berghofer imports Main begin
 
 section {* Miscellaneous Utilities *}
 
@@ -1578,19 +1573,12 @@ definition diag_form' :: "nat \<Rightarrow> (nat, nat) form" where
 definition undiag_form' :: "(nat, nat) form \<Rightarrow> nat" where
   "undiag_form' = undiag_form (\<lambda>n. n) (\<lambda>n. n)"
 
-theorem diag_undiag_form': "diag_form' (undiag_form' f) = f"
+theorem diag_undiag_form' [simp]: "diag_form' (undiag_form' f) = f"
   by (simp add: diag_form'_def undiag_form'_def)
 
+abbreviation \<open>from_nat \<equiv> diag_form'\<close>
+abbreviation \<open>to_nat \<equiv> undiag_form'\<close>
 
-subsection {* Enumerating datatypes via countable *}
-
-instantiation "term" :: (countable) countable begin
-instance by countable_datatype
-end
-
-instantiation form :: (countable, countable) countable begin
-instance by countable_datatype
-end
 
 subsection {* Extension to maximal consistent sets *}
 
