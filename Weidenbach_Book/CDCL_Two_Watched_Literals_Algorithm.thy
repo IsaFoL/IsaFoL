@@ -575,6 +575,11 @@ declare skip_and_resolve_loop_spec[THEN order_trans, refine_vcg]
 
 subsubsection \<open>Backtrack\<close>
 
+definition extract_shorter_conflict :: ‹'v twl_clss ⇒ 'v clauses ⇒ 'v clauses ⇒ 
+    'v clause option ⇒ 'v literal ⇒ 'v clause nres› 
+   where
+  ‹extract_shorter_conflict N NP UP D L = SPEC(\<lambda>D'. D' ⊆# the D \<and> clause `# N + NP + UP \<Turnstile>pm D' \<and> -L \<in># D')›
+
 definition backtrack :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
   \<open>backtrack S\<^sub>0 =
     do {
@@ -582,7 +587,7 @@ definition backtrack :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
       do {
         ASSERT(M \<noteq> []);
         L \<leftarrow> SPEC(\<lambda>L. L = lit_of (hd M));
-        D' \<leftarrow> SPEC(\<lambda>D'. D' \<subseteq># the D \<and> clause `# (N + U) + NP + UP \<Turnstile>pm D' \<and> -L \<in># D');
+        D' \<leftarrow> extract_shorter_conflict (N + U) NP UP D L;
         ASSERT(get_level M L = count_decided M);
         ASSERT(\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
           get_level M K = get_maximum_level M (D' - {#-L#}) + 1);
@@ -596,7 +601,7 @@ definition backtrack :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
           ASSERT(get_level M L > get_maximum_level M (D' - {#-L#}));
           L' \<leftarrow> SPEC(\<lambda>L'. L' \<in># D' - {#-L#} \<and> get_level M L' = get_maximum_level M (D' - {#-L#}));
           ASSERT(L \<noteq> -L');
-          RETURN (Propagated (-L) (D') #  M1, N, add_mset (TWL_Clause {#-L, L'#} (D' - {#-L, L'#})) U,
+          RETURN (Propagated (-L) D' #  M1, N, add_mset (TWL_Clause {#-L, L'#} (D' - {#-L, L'#})) U,
             None, NP, UP, WS, {#L#})
         }
         else do {
@@ -697,7 +702,7 @@ proof -
     using confl unfolding true_annots_true_cls_def_iff_negation_in_model
     by (cases S) (auto simp: cdcl\<^sub>W_restart_mset_state)
   show ?thesis
-    unfolding backtrack_def
+    unfolding backtrack_def extract_shorter_conflict_def
     apply (refine_vcg; remove_dummy_vars)
     subgoal for M using trail by auto
     subgoal for M by (cases M) auto
