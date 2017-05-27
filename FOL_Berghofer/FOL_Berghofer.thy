@@ -56,7 +56,6 @@ primrec size_form :: "('a, 'b) form \<Rightarrow> nat" where
 | "size_form (Forall p) = size_form p + 1"
 | "size_form (Exists p) = size_form p + 1"
 
-
 subsection {* Closed terms and formulae *}
 
 text {*
@@ -145,7 +144,6 @@ theorem subst_closed [simp]:
 
 theorem subst_size_form [simp]: "size_form (subst p t i) = size_form p"
   by (induct p arbitrary: i t) simp_all
-
 
 subsection {* Parameters *}
 
@@ -252,7 +250,6 @@ theorem psubstt_image [simp]:
 
 theorem psubst_image [simp]: "params (psubst f p) = f ` params p"
   by (induct p) (simp_all add: image_Un)
-
 
 section {* Semantics *}
 
@@ -372,7 +369,6 @@ Simplification yields the following proof state:
 This is easily proved using intuitionistic logic:
 *}
   by iprover
-
 
 section {* Proof calculus *}
 
@@ -548,7 +544,6 @@ proof -
     using Class' by blast
 qed
 
-
 section {* Correctness *}
 
 text {*
@@ -633,7 +628,6 @@ It can be shown that a maximal consistent set is a {\em Hintikka set}
 (see \secref{sec:hintikka}). Hintikka sets are satisfiable in {\em Herbrand}
 models, where closed terms coincide with their interpretation.
 *}
-
 
 subsection {* Consistent sets *}
 
@@ -1264,7 +1258,6 @@ proof (intro allI impI conjI)
         using \<open>Sa \<notin> C\<close> \<open>Sb \<notin> C\<close> by blast
     qed }
 
-
   { fix P and t :: "'a term"
     assume *: "Forall P \<in> S" and "closedt 0 t"
     show "S \<union> {P[t/0]} \<in> mk_finite_char C"
@@ -1488,7 +1481,6 @@ theorem diag_undiag_btree [simp]: "diag_btree (undiag_btree t) = t"
 
 declare diag_btree.simps [simp del] undiag_btree.simps [simp del]
 
-
 subsubsection {* Enumerating lists *}
 
 fun list_of_btree :: "(nat \<Rightarrow> 'a) \<Rightarrow> btree \<Rightarrow> 'a list" where
@@ -1508,7 +1500,6 @@ definition undiag_list :: "('a \<Rightarrow> nat) \<Rightarrow> 'a list \<Righta
 theorem diag_undiag_list [simp]:
   "(\<And>x. d (u x) = x) \<Longrightarrow> diag_list d (undiag_list u xs) = xs"
   by (induct xs) (simp_all add: diag_list_def undiag_list_def)
-
 
 subsubsection {* Enumerating terms *}
 
@@ -1602,16 +1593,14 @@ definition undiag_form' :: "(nat, nat) form \<Rightarrow> nat" where
 theorem diag_undiag_form' [simp]: "diag_form' (undiag_form' f) = f"
   by (simp add: diag_form'_def undiag_form'_def)
 
-text \<open>
-As an alternative to the definitions in this section,
-one can use the countable type class by importing "~~/src/HOL/Library/Countable",
-omitting the next two abbreviations and adding the commented instantiations instead.
-\<close>
-
 abbreviation \<open>from_nat \<equiv> diag_form'\<close>
 abbreviation \<open>to_nat \<equiv> undiag_form'\<close>
 
-(*
+text \<open>
+As an alternative to the enumerations in this section, one can delete the above abbreviations and
+use the countable type class by importing "~~/src/HOL/Library/Countable" and adding the following
+two instantiation commands:
+
 instantiation "term" :: (countable) countable begin
 instance by countable_datatype
 end
@@ -1619,7 +1608,7 @@ end
 instantiation form :: (countable, countable) countable begin
 instance by countable_datatype
 end
-*)
+\<close>
 
 subsection {* Extension to maximal consistent sets *}
 
@@ -2873,7 +2862,6 @@ proof (rule Class, rule ccontr)
   ultimately show False by simp
 qed
 
-
 section {* L\"owenheim-Skolem theorem *}
 
 text {*
@@ -3121,7 +3109,6 @@ proof (intro ballI impI)
   then show "eval e' (\<lambda>n. HApp (2 * n)) ?g p"
     using psubst_eval by blast
 qed
-
 
 section {* Completeness for open formulas *}
 
