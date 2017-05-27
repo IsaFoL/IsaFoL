@@ -727,7 +727,7 @@ proof (intro allI impI conjI)
   qed
 
   have "FF \<notin> ?S'" and "Neg TT \<notin> ?S'"
-    using conc sc unfolding consistency_def by presburger+
+    using conc sc unfolding consistency_def by simp_all
   then show "FF \<notin> S" and "Neg TT \<notin> S"
     by (force, force)
 
@@ -898,7 +898,7 @@ proof (intro allI impI conjI)
 
   { fix p ts
     have "\<not> (Pred p ts \<in> x \<and> Neg (Pred p ts) \<in> x)"
-      using \<open>x \<in> C\<close> conc unfolding consistency_def by presburger
+      using \<open>x \<in> C\<close> conc unfolding consistency_def by simp
     then show "\<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S)"
       using \<open>S \<subseteq> x\<close> by blast }
 
@@ -917,7 +917,7 @@ proof (intro allI impI conjI)
     then have "Neg (Neg Z) \<in> x"
       using \<open>S \<subseteq> x\<close> by blast
     then have "x \<union> {Z} \<in> C"
-      using \<open>x \<in> C\<close> conc unfolding consistency_def by presburger
+      using \<open>x \<in> C\<close> conc unfolding consistency_def by simp
     then show "S \<union> {Z} \<in> close C"
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
 
@@ -926,7 +926,7 @@ proof (intro allI impI conjI)
     then have "And A B \<in> x"
       using \<open>S \<subseteq> x\<close> by blast
     then have "x \<union> {A, B} \<in> C"
-      using \<open>x \<in> C\<close> conc unfolding consistency_def by presburger
+      using \<open>x \<in> C\<close> conc unfolding consistency_def by simp
     then show "S \<union> {A, B} \<in> close C"
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
 
@@ -935,7 +935,7 @@ proof (intro allI impI conjI)
     then have "Neg (Or A B) \<in> x"
       using \<open>S \<subseteq> x\<close> by blast
     then have "x \<union> {Neg A, Neg B} \<in> C"
-      using \<open>x \<in> C\<close> conc unfolding consistency_def by presburger
+      using \<open>x \<in> C\<close> conc unfolding consistency_def by simp
     then show "S \<union> {Neg A, Neg B} \<in> close C"
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
 
@@ -944,7 +944,7 @@ proof (intro allI impI conjI)
     then have "Or A B \<in> x"
       using \<open>S \<subseteq> x\<close> by blast
     then have "x \<union> {A} \<in> C \<or> x \<union> {B} \<in> C"
-      using \<open>x \<in> C\<close> conc unfolding consistency_def by presburger
+      using \<open>x \<in> C\<close> conc unfolding consistency_def by simp
     then show "S \<union> {A} \<in> close C \<or> S \<union> {B} \<in> close C"
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
 
@@ -953,7 +953,7 @@ proof (intro allI impI conjI)
     then have "Neg (And A B) \<in> x"
       using \<open>S \<subseteq> x\<close> by blast
     then have "x \<union> {Neg A} \<in> C \<or> x \<union> {Neg B} \<in> C"
-      using \<open>x \<in> C\<close> conc unfolding consistency_def by presburger
+      using \<open>x \<in> C\<close> conc unfolding consistency_def by simp
     then show "S \<union> {Neg A} \<in> close C \<or> S \<union> {Neg B} \<in> close C"
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
 
@@ -962,7 +962,7 @@ proof (intro allI impI conjI)
     then have "Impl A B \<in> x"
       using \<open>S \<subseteq> x\<close> by blast
     then have "x \<union> {Neg A} \<in> C \<or> x \<union> {B} \<in> C"
-      using \<open>x \<in> C\<close> conc unfolding consistency_def by presburger
+      using \<open>x \<in> C\<close> conc unfolding consistency_def by simp
     then show "S \<union> {Neg A} \<in> close C \<or> S \<union> {B} \<in> close C"
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
 
@@ -1007,7 +1007,7 @@ proof (intro allI impI conjI)
     then have "Neg (Forall P) \<in> x"
       using \<open>S \<subseteq> x\<close> by blast
     then have "\<exists>c. x \<union> {Neg (P[App c []/0])} \<in> C"
-      using \<open>x \<in> C\<close> conc unfolding consistency_def by presburger
+      using \<open>x \<in> C\<close> conc unfolding consistency_def by simp
     then show "\<exists>c. S \<union> {Neg (P[App c []/0])} \<in> close C"
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
 qed
@@ -1641,7 +1641,7 @@ theorem is_chainD':
   shows "x \<in> f k"
 proof -
   have "\<exists>n. k = m + n"
-    using \<open>m \<le> k\<close> by presburger
+    using \<open>m \<le> k\<close> by (simp add: le_iff_add)
   then obtain n where "k = m + n"
     by blast
   then show "x \<in> f k"
@@ -2208,7 +2208,7 @@ proof -
   then have "extend S C f (Suc n) = (?S' \<union> {(dest_Exists (f n))[?t/0]})"
     using \<open>?S' \<in> C\<close> by simp
   also have "\<dots> = (?S' \<union> {(dest_Exists (Exists P))[?t/0]})"
-    using \<open>Exists P = f n\<close> by presburger
+    using \<open>Exists P = f n\<close> by simp
   also have "\<dots> = (?S' \<union> {P[?t/0]})"
     by simp
   finally show ?thesis
@@ -2230,7 +2230,7 @@ proof -
   then have "extend S C f (Suc n) = (?S' \<union> {Neg (dest_Forall (dest_Neg (f n))[?t/0])})"
     using \<open>?S' \<in> C\<close> \<open>f n \<noteq> Exists P\<close> by auto
   also have "\<dots> = (?S' \<union> {Neg (dest_Forall (dest_Neg (Neg (Forall P)))[?t/0])})"
-    using \<open>Neg (Forall P) = f n\<close> by presburger
+    using \<open>Neg (Forall P) = f n\<close> by simp
   also have "\<dots> = (?S' \<union> {Neg (P[?t/0])})"
     by simp
   finally show ?thesis
@@ -2304,14 +2304,14 @@ proof (intro allI impI conjI)
   { fix A B
     assume "Neg (And A B) \<in> ?H"
     then have "?H \<union> {Neg A} \<in> C \<or> ?H \<union> {Neg B} \<in> C"
-      using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by presburger
+      using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by simp
     then show "Neg A \<in> ?H \<or> Neg B \<in> ?H"
       using \<open>maximal ?H C\<close> unfolding maximal_def by fast }
 
   { fix A B
     assume "Impl A B \<in> ?H"
     then have "?H \<union> {Neg A} \<in> C \<or> ?H \<union> {B} \<in> C"
-      using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by presburger
+      using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by simp
     then show "Neg A \<in> ?H \<or> B \<in> ?H"
       using \<open>maximal ?H C\<close> unfolding maximal_def by fast }
 
