@@ -2287,13 +2287,13 @@ lemma conflict_with_false_implies_unsat:
   using assms
 proof -
   have "cdcl\<^sub>W_learned_clause S'" using cdcl\<^sub>W_restart_learned_clss cdcl\<^sub>W_restart learned lev by auto
-  then have "clauses S' \<Turnstile>pm {#}" using assms(3) unfolding cdcl\<^sub>W_learned_clause_def by auto
-  moreover have \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S'\<close>
+  then have entail_false: "clauses S' \<Turnstile>pm {#}" using assms(3) unfolding cdcl\<^sub>W_learned_clause_def by auto
+  have entailed: \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S'\<close>
     using cdcl\<^sub>W_learned_clauses_entailed[OF cdcl\<^sub>W_restart learned learned_entailed] .
   then have "clauses S \<Turnstile>pm {#}"
   proof -
     have "set_mset (init_clss S') \<union> set_mset (learned_clss S') \<Turnstile>ps {{#}}"
-      by (metis (no_types) calculation clauses_def set_mset_union true_clss_clss_true_clss_cls)
+      by (metis (no_types) entail_false clauses_def set_mset_union true_clss_clss_true_clss_cls)
     then have "set_mset (init_clss S') \<Turnstile>ps {{#}}"
       using \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S'\<close> cdcl\<^sub>W_learned_clauses_entailed_by_init_def true_clss_clss_left_right by blast (* 3 ms *)
     then show ?thesis
@@ -2361,9 +2361,9 @@ lemma cdcl\<^sub>W_restart_can_do_step:
   using assms
 proof (induct M)
   case Nil
-  then show ?case apply - by (rule exI[of _ "init_state N"]) auto
+  then show ?case apply - by (auto intro!: exI[of _ "init_state N"])
 next
-  case (Cons L M) note IH = this(1)
+  case (Cons L M) note IH = this(1) and dist = this(2)
   have "consistent_interp (set M)" and "distinct M" and "atm_of ` set M \<subseteq> atms_of_mm N"
     using Cons.prems(1-3) unfolding consistent_interp_def by auto
   then obtain S where
@@ -2371,13 +2371,13 @@ next
     S: "state_butlast S = (map (\<lambda>L. Decided L) M, N, {#}, None)"
     using IH by blast
   let ?S\<^sub>0 = "cons_trail (Decided L) S"
-  have "undefined_lit (map (\<lambda>L. Decided L) M) L"
+  have undef: "undefined_lit (map (\<lambda>L. Decided L) M) L"
     using Cons.prems(1,2) unfolding defined_lit_def consistent_interp_def by fastforce
   moreover have "init_clss S = N"
     using S by blast
   moreover have "atm_of L \<in> atms_of_mm N" using Cons.prems(3) by auto
   moreover have undef: "undefined_lit (trail S) L"
-    using S \<open>distinct (L#M)\<close> calculation(1) by (auto simp: defined_lit_map)
+    using S dist undef by (auto simp: defined_lit_map)
   ultimately have "cdcl\<^sub>W_restart S ?S\<^sub>0"
     using cdcl\<^sub>W_restart.other[OF cdcl\<^sub>W_o.decide[OF decide_rule[of S L ?S\<^sub>0]]] S
     by auto
