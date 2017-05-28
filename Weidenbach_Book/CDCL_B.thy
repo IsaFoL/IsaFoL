@@ -22,9 +22,12 @@ abbreviation lits_of_l\<^sub>B :: \<open>('v, 'mark) ann_bats \<Rightarrow> 'v l
 
 definition true_annot\<^sub>B :: \<open>('v, 'mark) ann_bats \<Rightarrow> 'v clause \<Rightarrow> bool\<close> (infix "\<Turnstile>b" 49) where
   \<open>I \<Turnstile>b C \<longleftrightarrow> (lits_of_l\<^sub>B I) \<Turnstile> C\<close>
-  
-definition true_annots\<^sub>B :: \<open>('v, 'mark) ann_bats \<Rightarrow> 'v clauses \<Rightarrow> bool\<close> (infix "\<Turnstile>bs" 49) where
+
+definition true_annots\<^sub>B :: \<open>('v, 'mark) ann_bats \<Rightarrow> 'v clause set \<Rightarrow> bool\<close> (infix "\<Turnstile>bs" 49) where
   \<open>I \<Turnstile>bs CC \<longleftrightarrow> (\<forall>C \<in> CC. I \<Turnstile>b C)\<close>  (* (set_mset CC). instead works *)
+
+abbreviation true_annots\<^sub>B_mset :: \<open>('v, 'mark) ann_bats \<Rightarrow> 'v clauses \<Rightarrow> bool\<close> (infix "\<Turnstile>bsm" 49) where
+  \<open>I \<Turnstile>bsm C \<equiv> I \<Turnstile>bs set_mset C\<close>
 
 locale state\<^sub>B_ops =
   fixes
@@ -653,7 +656,7 @@ inductive conflict\<^sub>B :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :
 conflict_rule: "
   conflicting S = None \<Longrightarrow>
   D \<in># clauses S \<Longrightarrow>
-  trail\<^sub>B S \<Turnstile>as CNot D  \<Longrightarrow>  (* to adapt *)
+  trail\<^sub>B S \<Turnstile>bs CNot D  \<Longrightarrow>  (* to adapt *)
   T \<sim> update_conflicting (Some D) S \<Longrightarrow>
   conflict\<^sub>B S T"
 
