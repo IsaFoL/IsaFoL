@@ -62,7 +62,7 @@ fun lits_of_bats :: \<open>('v, 'v clause) ann_bats \<Rightarrow> ('v, 'v clause
 
 fun trail\<^sub>W :: \<open>'st \<Rightarrow> ('v, 'v clause) ann_lits\<close> where
   \<open>trail\<^sub>W S = lits_of_bats (trail\<^sub>B S)\<close>
-  
+
 definition state\<^sub>W :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times>
   'v clause option \<times> 'v bats \<times> 'b" where
 "state\<^sub>W S \<equiv> (trail\<^sub>W S, init_clss S, learned_clss S, conflicting S, bats S, additional_info\<^sub>B S)"
@@ -95,7 +95,7 @@ lemma lits_of_bats_append[simp]:
 
 abbreviation backtrack_lvl\<^sub>B :: "'st \<Rightarrow> nat" where
 \<open>backtrack_lvl\<^sub>B S \<equiv> count_decided (trail\<^sub>B S)\<close>
-  
+
 end
 
 locale state\<^sub>B_no_state =
@@ -623,17 +623,17 @@ propagate_rule: "conflicting S = None \<Longrightarrow>
 
 inductive_cases propagate\<^sub>BE: "propagate\<^sub>B S T"
 thm propagate\<^sub>BE
-  
+
 fun is_in :: \<open>'v literal list \<Rightarrow> 'v literal \<Rightarrow> bool\<close> where
   \<open>is_in [] l = False\<close> |
   \<open>is_in (ls # Ls) l = ((ls = l) \<or> (is_in Ls l))\<close>
-  
+
 fun restrict_clause_2fold :: \<open>'v literal list \<Rightarrow> 'v literal \<Rightarrow> 'v clause \<Rightarrow> 'v clause\<close> where
   \<open>restrict_clause_2fold Ls l C = (if (is_in Ls l) then add_mset l C else C)\<close>
-  
+
 fun restrict_clause :: \<open>'v literal list \<Rightarrow> 'v clause \<Rightarrow> 'v clause\<close> where
   \<open>restrict_clause Ls C = fold_mset (restrict_clause_2fold Ls) {#} C\<close>
-  
+
 fun restrict :: \<open>'v literal list \<Rightarrow> 'v clauses \<Rightarrow> 'v clauses\<close> where
   \<open>restrict Ls Cs = image_mset (restrict_clause Ls) Cs\<close>
 
@@ -651,7 +651,7 @@ decide\<^sub>B_rule:
     \<open>T \<sim> cons_trail\<^sub>B (Decision B ()) (cons_bat (remove1_mset B Bs) S)\<close> and
     \<open>B \<in># Bs\<close> and
     \<open>valid_bats (trail\<^sub>B S) (clauses S) Bs\<close>
-    
+
 inductive conflict\<^sub>B :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
 conflict_rule: "
   conflicting S = None \<Longrightarrow>
@@ -661,7 +661,7 @@ conflict_rule: "
   conflict\<^sub>B S T"
 
 inductive_cases conflict\<^sub>BE: \<open>conflict\<^sub>B S T\<close>
-  
+
 inductive skip\<^sub>B :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
 skip_rule:
   "trail\<^sub>B S = Propagated L C' # M \<Longrightarrow>
@@ -685,7 +685,7 @@ resolve_rule: "trail\<^sub>B S \<noteq> [] \<Longrightarrow>
   resolve\<^sub>B S T"
 
 inductive_cases resolve\<^sub>BE: "resolve\<^sub>B S T"
-  
+
 end
 
 end
