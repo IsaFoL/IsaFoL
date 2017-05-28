@@ -645,7 +645,7 @@ inductive decide\<^sub>B :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<clo
 decide\<^sub>B_rule:
   \<open>decide\<^sub>B S T\<close>
   if
-    \<open>T \<sim> cons_trail\<^sub>B (Decision B ()) (cons_bat (remove1_mset B Bs) S)\<close> and
+    \<open>T \<sim> cons_trail\<^sub>B (Decided B) (cons_bat (remove1_mset B Bs) S)\<close> and
     \<open>B \<in># Bs\<close> and
     \<open>valid_bats (trail\<^sub>B S) (clauses S) Bs\<close>
 
