@@ -86,8 +86,8 @@ primrec closed :: "nat \<Rightarrow> ('a, 'b) form \<Rightarrow> bool" where
 
 theorem closedt_mono: assumes le: "i \<le> j"
   shows "closedt i (t::'a term) \<Longrightarrow> closedt j t"
-    and "closedts i (ts::'a term list) \<Longrightarrow> closedts j ts" using le
-  by (induct t and ts rule: closedt.induct closedts.induct) simp_all
+    and "closedts i (ts::'a term list) \<Longrightarrow> closedts j ts"
+  using le by (induct t and ts rule: closedt.induct closedts.induct) simp_all
 
 subsection {* Substitution *}
 
@@ -1409,8 +1409,8 @@ next
     then show ?case by simp
   next
     case (Suc _)
-    then show ?case using diag_le1
-      by (simp add: Let_def split_def split: nat.split)
+    then show ?case
+      using diag_le1 by (simp add: Let_def split_def split: nat.split)
   qed
 qed
 
@@ -2579,7 +2579,8 @@ proof (intro conjI allI impI notI)
         using NegE \<open>Neg B # G \<turnstile> A\<close> by blast
       then have "G \<turnstile> FF"
         using cut \<open>G \<turnstile> Neg B\<close> by blast
-      then have False using \<open>\<not> G \<turnstile> FF\<close>
+      then have False
+        using \<open>\<not> G \<turnstile> FF\<close>
         by blast }
     then have "\<not> A # Neg B # G \<turnstile> FF"
       by blast
@@ -2749,7 +2750,8 @@ proof (intro conjI allI impI notI)
         by simp
       ultimately have "G \<turnstile> FF"
         using ExistsE \<open>G \<turnstile> Exists P\<close> by fast
-      then have False using \<open>\<not> G \<turnstile> FF\<close>
+      then have False
+        using \<open>\<not> G \<turnstile> FF\<close>
         by blast}
     then have "\<not> P[App x []/0] # G \<turnstile> FF"
       by blast
@@ -2806,7 +2808,8 @@ proof (intro conjI allI impI notI)
         by simp
       ultimately have "G \<turnstile> FF"
         using ExistsE \<open>G \<turnstile> Exists (Neg P)\<close> by fastforce
-      then have False using \<open>\<not> G \<turnstile> FF\<close>
+      then have False
+        using \<open>\<not> G \<turnstile> FF\<close>
         by blast}
     then have "\<not> Neg (P[App x []/0]) # G \<turnstile> FF"
       by blast
