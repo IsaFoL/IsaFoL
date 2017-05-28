@@ -624,12 +624,9 @@ propagate_rule: "conflicting S = None \<Longrightarrow>
 inductive_cases propagate\<^sub>BE: "propagate\<^sub>B S T"
 thm propagate\<^sub>BE
 
-fun is_in :: \<open>'v literal list \<Rightarrow> 'v literal \<Rightarrow> bool\<close> where
-  \<open>is_in [] l = False\<close> |
-  \<open>is_in (ls # Ls) l = ((ls = l) \<or> (is_in Ls l))\<close>
 
 fun restrict_clause_2fold :: \<open>'v literal list \<Rightarrow> 'v literal \<Rightarrow> 'v clause \<Rightarrow> 'v clause\<close> where
-  \<open>restrict_clause_2fold Ls l C = (if (is_in Ls l) then add_mset l C else C)\<close>
+  \<open>restrict_clause_2fold Ls l C = (if l \<in> set Ls then add_mset l C else C)\<close>
 
 fun restrict_clause :: \<open>'v literal list \<Rightarrow> 'v clause \<Rightarrow> 'v clause\<close> where
   \<open>restrict_clause Ls C = fold_mset (restrict_clause_2fold Ls) {#} C\<close>
