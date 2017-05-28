@@ -158,7 +158,7 @@ for collecting all function symbols occurring in a term or formula.
 *}
 
 primrec
-  paramst  :: "'a term \<Rightarrow> 'a set" and
+  paramst :: "'a term \<Rightarrow> 'a set" and
   paramsts :: "'a term list \<Rightarrow> 'a set" where
   "paramst (Var n) = {}"
 | "paramst (App a ts) = {a} \<union> paramsts ts"
@@ -224,11 +224,11 @@ theorem psubst_subst [simp]:
   by (induct P arbitrary: i t) simp_all
 
 theorem psubstt_upd [simp]:
-  "x \<notin> paramst (t::'a term) \<Longrightarrow> psubstt (f(x:=y)) t = psubstt f t"
-  "x \<notin> paramsts (ts::'a term list) \<Longrightarrow> psubstts (f(x:=y)) ts = psubstts f ts"
+  "x \<notin> paramst (t::'a term) \<Longrightarrow> psubstt (f(x := y)) t = psubstt f t"
+  "x \<notin> paramsts (ts::'a term list) \<Longrightarrow> psubstts (f(x := y)) ts = psubstts f ts"
   by (induct t and ts rule: psubstt.induct psubstts.induct) (auto split: sum.split)
 
-theorem psubst_upd [simp]: "x \<notin> params P \<Longrightarrow> psubst (f(x:=y)) P = psubst f P"
+theorem psubst_upd [simp]: "x \<notin> params P \<Longrightarrow> psubst (f(x := y)) P = psubst f P"
   by (induct P) (simp_all del: fun_upd_apply)
 
 theorem psubstt_id:
@@ -333,16 +333,16 @@ theorem subst_lemma [simp]:
   by (induct a arbitrary: e i t) simp_all
 
 theorem upd_lemma' [simp]:
-  "n \<notin> paramst t \<Longrightarrow> evalt e (f(n:=x)) t = evalt e f t"
-  "n \<notin> paramsts ts \<Longrightarrow> evalts e (f(n:=x)) ts = evalts e f ts"
+  "n \<notin> paramst t \<Longrightarrow> evalt e (f(n := x)) t = evalt e f t"
+  "n \<notin> paramsts ts \<Longrightarrow> evalts e (f(n := x)) ts = evalts e f ts"
   by (induct t and ts rule: evalt.induct evalts.induct) auto
 
 theorem upd_lemma [simp]:
-  "n \<notin> params p \<Longrightarrow> eval e (f(n:=x)) g p = eval e f g p"
+  "n \<notin> params p \<Longrightarrow> eval e (f(n := x)) g p = eval e f g p"
   by (induct p arbitrary: e) simp_all
 
 theorem list_upd_lemma [simp]: "list_all (\<lambda>p. n \<notin> params p) G \<Longrightarrow>
-  list_all (eval e (f(n:=x)) g) G = list_all (eval e f g) G"
+  list_all (eval e (f(n := x)) g) G = list_all (eval e f g) G"
   by (induct G) simp_all
 
 theorem psubst_eval' [simp]:
@@ -676,9 +676,9 @@ definition alt_consistency :: "('a, 'b) form set set \<Rightarrow> bool" where
      (\<forall>A B. Neg (Impl A B) \<in> S \<longrightarrow> S \<union> {A, Neg B} \<in> C) \<and>
      (\<forall>P t. closedt 0 t \<longrightarrow> Forall P \<in> S \<longrightarrow> S \<union> {P[t/0]} \<in> C) \<and>
      (\<forall>P t. closedt 0 t \<longrightarrow> Neg (Exists P) \<in> S \<longrightarrow> S \<union> {Neg (P[t/0])} \<in> C) \<and>
-     (\<forall>P x. (\<forall>a\<in>S. x \<notin> params a) \<longrightarrow> Exists P \<in> S \<longrightarrow>
+     (\<forall>P x. (\<forall>a \<in> S. x \<notin> params a) \<longrightarrow> Exists P \<in> S \<longrightarrow>
        S \<union> {P[App x []/0]} \<in> C) \<and>
-     (\<forall>P x. (\<forall>a\<in>S. x \<notin> params a) \<longrightarrow> Neg (Forall P) \<in> S \<longrightarrow>
+     (\<forall>P x. (\<forall>a \<in> S. x \<notin> params a) \<longrightarrow> Neg (Forall P) \<in> S \<longrightarrow>
        S \<union> {Neg (P[App x []/0])} \<in> C))"
 
 text {*
@@ -1028,7 +1028,7 @@ proof (intro ballI allI impI)
     by blast
   moreover have "psubst f ` S \<subseteq> psubst f ` S'"
     using \<open>S \<subseteq> S'\<close> by blast
-  moreover have "\<forall>S'\<in>C. \<forall>S\<subseteq>S'. S \<in> C"
+  moreover have "\<forall>S' \<in> C. \<forall>S \<subseteq> S'. S \<in> C"
     using \<open>subset_closed C\<close> unfolding subset_closed_def by blast
   ultimately have "psubst f ` S \<in> C"
     by blast
@@ -1060,10 +1060,10 @@ theorem finite_alt_consistency:
 proof (intro allI impI conjI)
   fix S
   assume "S \<in> mk_finite_char C"
-  then have finc: "\<forall>S'\<subseteq>S. finite S' \<longrightarrow> S' \<in> C"
+  then have finc: "\<forall>S' \<subseteq> S. finite S' \<longrightarrow> S' \<in> C"
     unfolding mk_finite_char_def by blast
 
-  have "\<forall>S'\<in>C. \<forall>S\<subseteq>S'. S \<in> C"
+  have "\<forall>S' \<in> C. \<forall>S \<subseteq> S'. S \<in> C"
     using \<open>subset_closed C\<close> unfolding subset_closed_def by blast
   then have sc: "\<forall>S' x. S' \<union> x \<in> C \<longrightarrow> (\<forall>S \<subseteq> S' \<union> x. S \<in> C)"
     by blast
@@ -1301,7 +1301,7 @@ proof (intro allI impI conjI)
     qed }
 
   { fix P x
-    assume *: "Exists P \<in> S" and "\<forall>a\<in>S. x \<notin> params a"
+    assume *: "Exists P \<in> S" and "\<forall>a \<in> S. x \<notin> params a"
     show "S \<union> {P[App x []/0]} \<in> mk_finite_char C"
       unfolding mk_finite_char_def
     proof (intro allI impI CollectI)
@@ -1315,16 +1315,16 @@ proof (intro allI impI conjI)
         using \<open>finite S'\<close> by blast
       ultimately have "?S' \<in> C"
         using finc by blast
-      moreover have "\<forall>a\<in>?S'. x \<notin> params a"
-        using \<open>\<forall>a\<in>S. x \<notin> params a\<close> \<open>?S' \<subseteq> S\<close> by blast
+      moreover have "\<forall>a \<in> ?S'. x \<notin> params a"
+        using \<open>\<forall>a \<in> S. x \<notin> params a\<close> \<open>?S' \<subseteq> S\<close> by blast
       ultimately have "?S' \<union> {P[App x []/0]} \<in> C"
-        using altconc \<open>\<forall>a\<in>S. x \<notin> params a\<close> unfolding alt_consistency_def by blast
+        using altconc \<open>\<forall>a \<in> S. x \<notin> params a\<close> unfolding alt_consistency_def by blast
       then show "S' \<in> C"
         using sc by blast
     qed }
 
   { fix P x
-    assume *: "Neg (Forall P) \<in> S" and "\<forall>a\<in>S. x \<notin> params a"
+    assume *: "Neg (Forall P) \<in> S" and "\<forall>a \<in> S. x \<notin> params a"
     show "S \<union> {Neg (P[App x []/0])} \<in> mk_finite_char C"
       unfolding mk_finite_char_def
     proof (intro allI impI CollectI)
@@ -1338,10 +1338,10 @@ proof (intro allI impI conjI)
         using \<open>finite S'\<close> by blast
       ultimately have "?S' \<in> C"
         using finc by blast
-      moreover have "\<forall>a\<in>?S'. x \<notin> params a"
-        using \<open>\<forall>a\<in>S. x \<notin> params a\<close> \<open>?S' \<subseteq> S\<close> by blast
+      moreover have "\<forall>a \<in> ?S'. x \<notin> params a"
+        using \<open>\<forall>a \<in> S. x \<notin> params a\<close> \<open>?S' \<subseteq> S\<close> by blast
       ultimately have "?S' \<union> {Neg (P[App x []/0])} \<in> C"
-        using altconc \<open>\<forall>a\<in>S. x \<notin> params a\<close> unfolding alt_consistency_def by simp
+        using altconc \<open>\<forall>a \<in> S. x \<notin> params a\<close> unfolding alt_consistency_def by simp
       then show "S' \<in> C"
         using sc by blast
     qed }
@@ -1662,17 +1662,17 @@ next
 qed
 
 lemma chain_union_closed':
-  assumes "is_chain f" and "(\<forall>n. f n \<in> C)" and "\<forall>S'\<in>C. \<forall>S\<subseteq>S'. S \<in> C"
+  assumes "is_chain f" and "(\<forall>n. f n \<in> C)" and "\<forall>S' \<in> C. \<forall>S \<subseteq> S'. S \<in> C"
     and "finite S'" and "S' \<subseteq> (\<Union>n. f n)"
   shows "S' \<in> C"
 proof -
   note \<open>finite S'\<close> and \<open>S' \<subseteq> (\<Union>n. f n)\<close>
   then obtain n where "S' \<subseteq> f n"
-    using chain_index \<open>is_chain f\<close>  by blast
+    using chain_index \<open>is_chain f\<close> by blast
   moreover have "f n \<in> C"
     using \<open>\<forall>n. f n \<in> C\<close> by blast
   ultimately show "S' \<in> C"
-    using \<open>\<forall>S'\<in>C. \<forall>S\<subseteq>S'. S \<in> C\<close> by blast
+    using \<open>\<forall>S' \<in> C. \<forall>S \<subseteq> S'. S \<in> C\<close> by blast
 qed
 
 theorem chain_union_closed:
@@ -1681,7 +1681,7 @@ theorem chain_union_closed:
 proof -
   have "subset_closed C"
     using finite_char_closed \<open>finite_char C\<close> by blast
-  then have "\<forall>S'\<in>C. \<forall>S\<subseteq>S'. S \<in> C"
+  then have "\<forall>S' \<in> C. \<forall>S \<subseteq> S'. S \<in> C"
     using subset_closed_def by blast
   then have "\<forall>S'. finite S' \<longrightarrow> S' \<subseteq> (\<Union>n. f n) \<longrightarrow> S' \<in> C"
     using chain_union_closed' assms by blast
@@ -1740,15 +1740,15 @@ theorem finite_params_extend [simp]:
 
 lemma infinite_params_available:
   assumes "infinite (- (\<Union>p \<in> S. params p))"
-  shows "\<exists>x. x \<notin> (\<Union>p\<in>extend S C f n \<union> {f n}. params p)"
+  shows "\<exists>x. x \<notin> (\<Union>p \<in> extend S C f n \<union> {f n}. params p)"
 proof -
   let ?S' = "extend S C f n \<union> {f n}"
 
-  have "infinite (- (\<Union>x\<in>?S'. params x))"
+  have "infinite (- (\<Union>x \<in> ?S'. params x))"
     using assms by simp
-  then obtain x where "x \<in> - (\<Union>x\<in>?S'. params x)"
+  then obtain x where "x \<in> - (\<Union>x \<in> ?S'. params x)"
     using infinite_imp_nonempty by blast
-  then have "\<forall>a\<in>?S'. x \<notin> params a"
+  then have "\<forall>a \<in> ?S'. x \<notin> params a"
     by blast
   then show ?thesis
     by blast
@@ -1763,12 +1763,12 @@ lemma extend_in_C_Exists:
 proof -
   obtain p where *: "f n = Exists p"
     using \<open>\<exists>p. f n = Exists p\<close> by blast
-  have "\<exists>x. x \<notin> (\<Union>p\<in>?S'. params p)"
+  have "\<exists>x. x \<notin> (\<Union>p \<in> ?S'. params p)"
     using \<open>infinite (- (\<Union>p \<in> S. params p))\<close> infinite_params_available
     by blast
   moreover have "Exists p \<in> ?S'"
     using * by simp
-  then have "\<forall>x. x \<notin> (\<Union>p\<in>?S'. params p) \<longrightarrow> ?S' \<union> {p[App x []/0]} \<in> C"
+  then have "\<forall>x. x \<notin> (\<Union>p \<in> ?S'. params p) \<longrightarrow> ?S' \<union> {p[App x []/0]} \<in> C"
     using \<open>?S' \<in> C\<close> \<open>alt_consistency C\<close>
     unfolding alt_consistency_def by simp
   ultimately have "(?S' \<union> {p[App (SOME k. k \<notin> (\<Union>p \<in> ?S'. params p)) []/0]}) \<in> C"
@@ -1787,12 +1787,12 @@ lemma extend_in_C_Neg_Forall:
 proof -
   obtain p where *: "f n = Neg (Forall p)"
     using \<open>\<exists>p. f n = Neg (Forall p)\<close> by blast
-  have "\<exists>x. x \<notin> (\<Union>p\<in>?S'. params p)"
+  have "\<exists>x. x \<notin> (\<Union>p \<in> ?S'. params p)"
     using \<open>infinite (- (\<Union>p \<in> S. params p))\<close> infinite_params_available
     by blast
   moreover have "Neg (Forall p) \<in> ?S'"
     using * by simp
-  then have "\<forall>x. x \<notin> (\<Union>p\<in>?S'. params p) \<longrightarrow> ?S' \<union> {Neg (p[App x []/0])} \<in> C"
+  then have "\<forall>x. x \<notin> (\<Union>p \<in> ?S'. params p) \<longrightarrow> ?S' \<union> {Neg (p[App x []/0])} \<in> C"
     using \<open>?S' \<in> C\<close> \<open>alt_consistency C\<close>
     unfolding alt_consistency_def by simp
   ultimately have "(?S' \<union> {Neg (p[App (SOME k. k \<notin> (\<Union>p \<in> ?S'. params p)) []/0])}) \<in> C"
@@ -1854,7 +1854,7 @@ The @{text Extend} function yields a maximal set:
 *}
 
 definition maximal :: "'a set \<Rightarrow> 'a set set \<Rightarrow> bool" where
-  "maximal S C = (\<forall>S'\<in>C. S \<subseteq> S' \<longrightarrow> S = S')"
+  "maximal S C = (\<forall>S' \<in> C. S \<subseteq> S' \<longrightarrow> S = S')"
 
 theorem extend_maximal:
   assumes "\<forall>y. \<exists>n. y = f n"
@@ -1880,9 +1880,9 @@ proof (intro ballI impI)
 
     from \<open>finite_char C\<close>
     have "subset_closed C" using finite_char_closed by blast
-    then have "\<forall>S'\<in>C. \<forall>S\<subseteq>S'. S \<in> C"
+    then have "\<forall>S' \<in> C. \<forall>S \<subseteq> S'. S \<in> C"
       unfolding subset_closed_def by simp
-    then have "\<forall>S\<subseteq>S'. S \<in> C"
+    then have "\<forall>S \<subseteq> S'. S \<in> C"
       using \<open>S' \<in> C\<close> by blast
     then have "extend S C f n \<union> {f n} \<in> C"
       using \<open>extend S C f n \<union> {f n} \<subseteq> S'\<close>
@@ -2189,7 +2189,8 @@ that @{term "Extend S C f"} yields Hintikka sets:
 lemma Exists_in_extend:
   assumes "extend S C f n \<union> {f n} \<in> C" (is "?S' \<in> C")
     and "Exists P = f n"
-  shows "P[(App (SOME k. k \<notin> (\<Union>p\<in>extend S C f n \<union> {f n}. params p)) [])/0] \<in> extend S C f (Suc n)"
+  shows "P[(App (SOME k. k \<notin> (\<Union>p \<in> extend S C f n \<union> {f n}. params p)) [])/0] \<in>
+          extend S C f (Suc n)"
     (is "subst P ?t 0 \<in> extend S C f (Suc n)")
 proof -
   have "\<exists>p. f n = Exists p"
@@ -2207,7 +2208,7 @@ qed
 lemma Neg_Forall_in_extend:
   assumes "extend S C f n \<union> {f n} \<in> C" (is "?S' \<in> C")
     and "Neg (Forall P) = f n"
-  shows "Neg (P[(App (SOME k. k \<notin> (\<Union>p\<in>extend S C f n \<union> {f n}. params p)) [])/0]) \<in>
+  shows "Neg (P[(App (SOME k. k \<notin> (\<Union>p \<in> extend S C f n \<union> {f n}. params p)) [])/0])  \<in>
           extend S C f (Suc n)"
     (is "Neg (subst P ?t 0) \<in> extend S C f (Suc n)")
 proof -
@@ -2228,7 +2229,7 @@ qed
 
 theorem extend_hintikka:
   assumes fin_ch: "finite_char C"
-    and infin_p: "infinite (- (\<Union>p\<in>S. params p))"
+    and infin_p: "infinite (- (\<Union>p \<in> S. params p))"
     and surj: "\<forall>y. \<exists>n. y = f n"
     and altc: "alt_consistency C"
     and "S \<in> C"
@@ -2241,7 +2242,7 @@ proof (intro allI impI conjI)
   have "?H \<in> C"
     using Extend_in_C assms by blast
 
-  have "\<forall>S'\<in>C. ?H \<subseteq> S' \<longrightarrow> ?H = S'"
+  have "\<forall>S' \<in> C. ?H \<subseteq> S' \<longrightarrow> ?H = S'"
     using \<open>maximal ?H C\<close>
     unfolding maximal_def by blast
 
@@ -2323,7 +2324,7 @@ proof (intro allI impI conjI)
     obtain n where *: "Exists P = f n"
       using surj by blast
 
-    let ?t = "App (SOME k. k \<notin> (\<Union>p\<in>extend S C f n \<union> {f n}. params p)) []"
+    let ?t = "App (SOME k. k \<notin> (\<Union>p \<in> extend S C f n \<union> {f n}. params p)) []"
     have "closedt 0 ?t" by simp
 
     have "Exists P \<in> (\<Union>n. extend S C f n)"
@@ -2345,7 +2346,7 @@ proof (intro allI impI conjI)
     obtain n where *: "Neg (Forall P) = f n"
       using surj by blast
 
-    let ?t = "App (SOME k. k \<notin> (\<Union>p\<in>extend S C f n \<union> {f n}. params p)) []"
+    let ?t = "App (SOME k. k \<notin> (\<Union>p \<in> extend S C f n \<union> {f n}. params p)) []"
     have "closedt 0 ?t" by simp
 
     have "Neg (Forall P) \<in> (\<Union>n. extend S C f n)"
@@ -2588,7 +2589,7 @@ proof (intro conjI allI impI notI)
       by blast }
 
   { fix A B
-    assume  "Or A B \<in> S"
+    assume "Or A B \<in> S"
     then have "G \<turnstile> Or A B"
       using * Assum by blast
 
@@ -2845,7 +2846,7 @@ proof (rule Class, rule ccontr)
       using deriv_consistency by blast
     moreover have "?S \<in> ?C"
       using \<open>\<not> Neg p # ps \<turnstile> FF\<close> by blast
-    moreover have "infinite (- (\<Union>p\<in>?S. params p))"
+    moreover have "infinite (- (\<Union>p \<in> ?S. params p))"
       by (simp add: Compl_eq_Diff_UNIV)
     moreover note \<open>closed 0 p\<close> \<open>\<forall>p \<in> set ps. closed 0 p\<close> \<open>x \<in> ?S\<close>
     then have \<open>closed 0 x\<close> by auto
@@ -2873,14 +2874,14 @@ Herbrand model.
 *}
 
 theorem sat_consistency:
-  "consistency {S. infinite (- (\<Union>p\<in>S. params p)) \<and> (\<exists>f. \<forall>(p::('a, 'b)form)\<in>S. eval e f g p)}"
+  "consistency {S. infinite (- (\<Union>p \<in> S. params p)) \<and> (\<exists>f. \<forall>(p::('a, 'b)form) \<in> S. eval e f g p)}"
   unfolding consistency_def
 proof (intro allI impI conjI)
-  let ?C = "{S. infinite (- (\<Union>p\<in>S. params p)) \<and> (\<exists>f. \<forall>p \<in> S. eval e f g p)}"
+  let ?C = "{S. infinite (- (\<Union>p \<in> S. params p)) \<and> (\<exists>f. \<forall>p \<in> S. eval e f g p)}"
 
   fix S :: "('a, 'b) form set"
   assume "S \<in> ?C"
-  then have inf_params: "infinite (- (\<Union>p\<in>S. params p))"
+  then have inf_params: "infinite (- (\<Union>p \<in> S. params p))"
     and "\<exists>f. \<forall>p \<in> S. eval e f g p"
     by blast+
   then obtain f where *: "\<forall>x \<in> S. eval e f g x" by blast
@@ -3023,7 +3024,7 @@ proof (intro allI impI conjI)
       using * ** by simp
     moreover have "infinite (- (\<Union>p \<in> S \<union> {P[App x []/0]}. params p))"
       using inf_params by simp
-    ultimately have "S \<union> {P[App x []/0]} \<in>
+    ultimately have "S \<union> {P[App x []/0]}  \<in>
                       {S. infinite (- (\<Union>p \<in> S. params p)) \<and> (\<forall>p \<in> S. eval e (f(x := \<lambda>y. z)) g p)}"
       by simp
     then show "\<exists>x. S \<union> {P[App x []/0]} \<in> ?C"
@@ -3047,7 +3048,7 @@ proof (intro allI impI conjI)
       using * ** by simp
     moreover have "infinite (- (\<Union>p \<in> S \<union> {P[App x []/0]}. params p))"
       using inf_params by simp
-    ultimately have "S \<union> {Neg (P[App x []/0])} \<in>
+    ultimately have "S \<union> {Neg (P[App x []/0])}  \<in>
                       {S. infinite (- (\<Union>p \<in> S. params p)) \<and> (\<forall>p \<in> S. eval e (f(x := \<lambda>y. z)) g p)}"
       by simp
     then show "\<exists>x. S \<union> {Neg (P[App x []/0])} \<in> ?C"
@@ -3063,7 +3064,7 @@ proof (rule infinite_super)
 next
   have "\<And>m n. Suc (2 * m) \<noteq> 2 * n" by arith
   then show "range (\<lambda>n::nat. (2::nat) * n + (1::nat))
-    \<subseteq> - (\<Union>p::(nat, 'a) form\<in>psubst (op * (2::nat)) ` S. params p)"
+    \<subseteq> - (\<Union>p::(nat, 'a) form \<in> psubst (op * (2::nat)) ` S. params p)"
     by auto
 qed
 
@@ -3076,12 +3077,12 @@ set @{text S} by @{text 2}.
 *}
 
 theorem loewenheim_skolem:
-  assumes evalS: "\<forall>p\<in>S. eval e f g p"
-  shows "\<forall>p\<in>S. closed 0 p \<longrightarrow> eval e' (\<lambda>n. HApp (2*n)) (\<lambda>a ts.
+  assumes evalS: "\<forall>p \<in> S. eval e f g p"
+  shows "\<forall>p \<in> S. closed 0 p \<longrightarrow> eval e' (\<lambda>n. HApp (2*n)) (\<lambda>a ts.
       Pred a (terms_of_hterms ts) \<in> Extend (psubst (\<lambda>n. 2 * n) ` S)
         (mk_finite_char (mk_alt_consistency (close
-          {S. infinite (- (\<Union>p\<in>S. params p)) \<and> (\<exists>f. \<forall>p\<in>S. eval e f g p)}))) from_nat) p"
-    (is "\<forall>_\<in>_. _ _ _ \<longrightarrow> eval _ _ ?g _")
+          {S. infinite (- (\<Union>p \<in> S. params p)) \<and> (\<exists>f. \<forall>p \<in> S. eval e f g p)}))) from_nat) p"
+    (is "\<forall>_ \<in> _. _ _ _ \<longrightarrow> eval _ _ ?g _")
   using evalS
 proof (intro ballI impI)
   fix p
@@ -3559,13 +3560,13 @@ lemma psubst_free_id: "n \<notin> params p \<Longrightarrow> p = psubst (id(n :=
   by auto
 
 lemma psubst_free_id_set:
-  "n \<notin> (\<Union>a\<in>G. params a) \<Longrightarrow> G \<subseteq> ps \<Longrightarrow> (\<forall>p\<in>ps. p \<in> G \<longrightarrow> psubst (id(n := x)) p \<in> G)"
+  "n \<notin> (\<Union>a \<in> G. params a) \<Longrightarrow> G \<subseteq> ps \<Longrightarrow> (\<forall>p \<in> ps. p \<in> G \<longrightarrow> psubst (id(n := x)) p \<in> G)"
   using psubst_free_id by simp
 
 lemma psubst_fresh_subset:
   assumes "set G \<subseteq> set ps"
     and "n \<noteq> x"
-    and "n \<notin> (\<Union>a\<in>set G. params a)"
+    and "n \<notin> (\<Union>a \<in> set G. params a)"
   shows "set G \<subseteq> set (map (psubst (id(n := x))) ps)"
   using assms by (force simp add: psubst_free_id_set)
 
@@ -3670,14 +3671,14 @@ next
     using deriv.ImplE by blast
 next
   case (ForallI G a n)
-  obtain fresh where *: "fresh \<notin> (\<Union>a\<in>set ps. params a) \<union> params a \<union> {n}"
+  obtain fresh where *: "fresh \<notin> (\<Union>a \<in> set ps. params a) \<union> params a \<union> {n}"
     using inf_param finite_params
     by (metis List.finite_set ex_new_if_finite finite.emptyI finite.insertI finite_UN finite_Un)
 
   let ?ps_fresh = "map (psubst (id(n := fresh))) ps"
   have "n \<noteq> fresh"
     using * by blast
-  then have **: "n \<notin> (\<Union>a\<in>set ?ps_fresh. params a)"
+  then have **: "n \<notin> (\<Union>a \<in> set ?ps_fresh. params a)"
     using map_psubst_fresh_free * by metis
   then have "set G \<subseteq> set ?ps_fresh"
     using ForallI \<open>n \<noteq> fresh\<close> by (metis (no_types, lifting) list_all_iff psubst_fresh_subset UN_E)
@@ -3696,7 +3697,7 @@ next
     using * map_psubst_fresh_away by fast
   then have "map (psubst (id(fresh := n, n := fresh))) ?ps_fresh = ps"
     by (metis (mono_tags, lifting) ** UN_iff map_eq_conv psubst_upd)
-  moreover have  "psubst (id(fresh := n, n := fresh)) (Forall a) = Forall a"
+  moreover have "psubst (id(fresh := n, n := fresh)) (Forall a) = Forall a"
     using * ForallI.hyps(4) by simp
   ultimately show "ps \<turnstile> Forall a"
     by simp
@@ -3710,14 +3711,14 @@ next
     using deriv.ExistsI by blast
 next
   case (ExistsE G a n b)
-  obtain fresh where *: "fresh \<notin> (\<Union>a\<in>set ps. params a) \<union> params a \<union> params b \<union> {n}"
+  obtain fresh where *: "fresh \<notin> (\<Union>a \<in> set ps. params a) \<union> params a \<union> params b \<union> {n}"
     using inf_param finite_params
     by (metis List.finite_set ex_new_if_finite finite.emptyI finite.insertI finite_UN finite_Un)
 
   let ?ps_fresh = "map (psubst (id(n := fresh))) ps"
   have "n \<noteq> fresh"
     using * by blast
-  then have **: "n \<notin> (\<Union>a\<in>set ?ps_fresh. params a)"
+  then have **: "n \<notin> (\<Union>a \<in> set ?ps_fresh. params a)"
     using map_psubst_fresh_free * by metis
   then have "set G \<subseteq> set ?ps_fresh"
     using ExistsE \<open>n \<noteq> fresh\<close> by (metis (no_types, lifting) list_all_iff psubst_fresh_subset UN_E)
@@ -3741,7 +3742,7 @@ next
     using * map_psubst_fresh_away by fast
   then have "map (psubst (id(fresh := n, n := fresh))) ?ps_fresh = ps"
     by (metis (mono_tags, lifting) ** UN_iff map_eq_conv psubst_upd)
-  moreover have  "psubst (id(fresh := n, n := fresh)) b = b"
+  moreover have "psubst (id(fresh := n, n := fresh)) b = b"
     using * ExistsE.hyps(7) by simp
   ultimately show "ps \<turnstile> b"
     by simp
