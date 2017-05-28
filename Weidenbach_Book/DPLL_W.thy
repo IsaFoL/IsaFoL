@@ -487,37 +487,46 @@ lemma distinctcard_atm_of_lit_of_eq_length:
   shows "card (atm_of ` lits_of_l S) = length S"
   using assms by (induct S) (auto simp add: image_image lits_of_def no_dup_def)
 
+lemma Cons_lexn_iff:
+  shows \<open>(x # xs, y # ys) \<in> lexn R n \<longleftrightarrow> (length (x # xs) = n \<and> length (y # ys) = n \<and> 
+         ((x,y) \<in> R \<or> (x = y \<and> (xs, ys) \<in> lexn R (n - 1))))\<close>
+  unfolding lexn_conv apply (rule iffI; clarify)
+  subgoal for xys xa ya xs' ys'
+    by (cases xys) (auto simp: lexn_conv)
+  subgoal by (auto 5 5 simp: lexn_conv simp del: append_Cons simp: append_Cons[symmetric])
+  done
+declare append_same_lexn[simp] prepend_same_lexn[simp] Cons_lexn_iff[simp]
+declare lexn.simps(2)[simp del]
+  
 lemma dpll\<^sub>W_card_decrease:
-  assumes dpll: "dpll\<^sub>W S S'" and "length (trail S') \<le> card vars"
-  and "length (trail S) \<le> card vars"
-  shows "(dpll\<^sub>W_mes (trail S') (card vars), dpll\<^sub>W_mes (trail S) (card vars))
-    \<in> lexn less_than (card vars)"
+  assumes 
+    dpll: "dpll\<^sub>W S S'" and 
+    [simp]: "length (trail S') \<le> card vars" and
+    "length (trail S) \<le> card vars"
+  shows 
+    "(dpll\<^sub>W_mes (trail S') (card vars), dpll\<^sub>W_mes (trail S) (card vars)) \<in> lexn less_than (card vars)"
   using assms
 proof (induct rule: dpll\<^sub>W.induct)
   case (propagate C L S)
-  have m: "map (\<lambda>l. if is_decided l then 2 else 1) (rev (trail S))
-       @ replicate (card vars - length (trail S)) 3
-     =  map (\<lambda>l. if is_decided l then 2 else 1) (rev (trail S)) @ 3
-         # replicate (card vars - Suc (length (trail S))) 3"
-     using propagate.prems[simplified] using Suc_diff_le by fastforce
-  then show ?case
-    using propagate.prems(1) unfolding dpll\<^sub>W_mes_def by (fastforce simp add: lexn_conv assms(2))
+  then have m: "card vars - length (trail S) = Suc (card vars - Suc (length (trail S)))"
+    by fastforce
+  then show \<open>(dpll\<^sub>W_mes (trail (Propagated C () # trail S, clauses S)) (card vars), 
+         dpll\<^sub>W_mes (trail S) (card vars)) \<in> lexn less_than (card vars)\<close>
+     unfolding dpll\<^sub>W_mes_def by auto
 next
   case (decided S L)
-  have m: "map (\<lambda>l. if is_decided l then 2 else 1) (rev (trail S))
-      @ replicate (card vars - length (trail S)) 3
-    =  map (\<lambda>l. if is_decided l then 2 else 1) (rev (trail S)) @ 3
-      # replicate (card vars - Suc (length (trail S))) 3"
+  have m: "card vars - length (trail S) = Suc (card vars - Suc (length (trail S)))"
     using decided.prems[simplified] using Suc_diff_le by fastforce
-  then show ?case
-    using decided.prems unfolding dpll\<^sub>W_mes_def by (force simp add: lexn_conv assms(2))
+  then show \<open>(dpll\<^sub>W_mes (trail (Decided L # trail S, clauses S)) (card vars), 
+         dpll\<^sub>W_mes (trail S) (card vars)) \<in> lexn less_than (card vars)\<close>
+     unfolding dpll\<^sub>W_mes_def by auto
 next
   case (backtrack S M' L M D)
-  have L: "is_decided L" using backtrack.hyps(2) by auto
-  have S: "trail S = M' @ L # M"
+  moreover have S: "trail S = M' @ L # M"
     using backtrack.hyps(1) backtrack_split_list_eq[of "trail S"] by auto
-  show ?case
-    using backtrack.prems L unfolding dpll\<^sub>W_mes_def S by (fastforce simp add: lexn_conv assms(2))
+  ultimately show \<open>(dpll\<^sub>W_mes (trail (Propagated (- lit_of L) () # M, clauses S)) (card vars),
+         dpll\<^sub>W_mes (trail S) (card vars)) \<in> lexn less_than (card vars)\<close>
+    using backtrack_split_list_eq[of "trail S"] unfolding dpll\<^sub>W_mes_def by fastforce
 qed
 
 text \<open>\cwref{prop:prop:dpllterminating}{theorem 2.8.7 page 74}\<close>
