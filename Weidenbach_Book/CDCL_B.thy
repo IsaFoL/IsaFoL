@@ -574,8 +574,33 @@ end \<comment> \<open>end of locale @{locale state\<^sub>B}\<close>
 
 subsection \<open>CDCL Rules\<close>
 
-text \<open>Because of the strategy we will later use, we distinguish propagate, conflict from the other
-  rules\<close>
+fun restrict_clause_2fold :: \<open>'a list \<Rightarrow> 'a \<Rightarrow> 'a multiset \<Rightarrow> 'a multiset\<close> where
+  \<open>restrict_clause_2fold Ls l C = (if l \<in> set Ls then add_mset l C else C)\<close>
+
+definition restrict_clause :: \<open>'a list \<Rightarrow> 'a multiset \<Rightarrow> 'a multiset\<close> where
+  \<open>restrict_clause Ls C = fold_mset (restrict_clause_2fold Ls) {#} C\<close>
+
+lemma restrict_clause_filter_mset: \<open>restrict_clause Ls C = filter_mset (\<lambda>L. L \<in># mset Ls) C\<close>
+proof -
+  have [simp]: \<open>comp_fun_commute (restrict_clause_2fold Ls)\<close> for Ls
+    unfolding comp_fun_commute_def by auto
+  show ?thesis
+    unfolding restrict_clause_def
+    apply (induction C arbitrary: Ls)
+    subgoal for C by auto
+    subgoal for L C Ls
+      by (auto simp del: restrict_clause_2fold.simps simp: comp_fun_commute.fold_mset_add_mset
+          restrict_clause_2fold.simps)
+    done
+qed
+
+fun restrict :: \<open>'v list \<Rightarrow> 'v multiset multiset \<Rightarrow> 'v multiset multiset\<close> where
+  \<open>restrict Ls Cs = image_mset (restrict_clause Ls) Cs\<close>
+
+lemma restrict_filter_mset: \<open>restrict Ls Cs = {#filter_mset (\<lambda>L. L \<in># mset Ls) C. C \<in># Cs #}\<close>
+  unfolding restrict.simps restrict_clause_filter_mset ..
+
+
 locale conflict_driven_clause_learning\<^sub>B =
   state\<^sub>B
     state_eq
@@ -623,16 +648,6 @@ propagate_rule: "conflicting S = None \<Longrightarrow>
 
 inductive_cases propagate\<^sub>BE: "propagate\<^sub>B S T"
 thm propagate\<^sub>BE
-
-
-fun restrict_clause_2fold :: \<open>'v literal list \<Rightarrow> 'v literal \<Rightarrow> 'v clause \<Rightarrow> 'v clause\<close> where
-  \<open>restrict_clause_2fold Ls l C = (if l \<in> set Ls then add_mset l C else C)\<close>
-
-fun restrict_clause :: \<open>'v literal list \<Rightarrow> 'v clause \<Rightarrow> 'v clause\<close> where
-  \<open>restrict_clause Ls C = fold_mset (restrict_clause_2fold Ls) {#} C\<close>
-
-fun restrict :: \<open>'v literal list \<Rightarrow> 'v clauses \<Rightarrow> 'v clauses\<close> where
-  \<open>restrict Ls Cs = image_mset (restrict_clause Ls) Cs\<close>
 
 definition valid_bats :: \<open>('v, 'v clause) ann_bats \<Rightarrow> 'v clauses \<Rightarrow> 'v bat \<Rightarrow> bool\<close> where
   \<open>valid_bats M N B \<longleftrightarrow>
