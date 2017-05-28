@@ -616,7 +616,7 @@ inductive propagate\<^sub>B :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S 
 propagate_rule: "conflicting S = None \<Longrightarrow>
   E \<in># clauses S \<Longrightarrow>
   L \<in># E \<Longrightarrow>
-  (* trail\<^sub>B S \<Turnstile>as CNot (E - {#L#}) \<Longrightarrow> (* to adapt *) *)
+  trail\<^sub>B S \<Turnstile>bs CNot (E - {#L#}) \<Longrightarrow> (* to adapt *)
   (* undefined_lit (trail\<^sub>B S) L \<Longrightarrow> (* to adapt *) *)
   T \<sim> cons_trail\<^sub>B (Propagated L E) S \<Longrightarrow>
   propagate\<^sub>B S T"
