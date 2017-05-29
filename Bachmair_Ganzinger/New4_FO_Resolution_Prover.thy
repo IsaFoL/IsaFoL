@@ -964,7 +964,7 @@ lemma ord_resolve_lifting:
   note n = n \<open>length Ai' = n\<close>
     
     (* Split in to C's and A's *)
-  obtain Aij' Ci'  where aij':
+  obtain Aij' Ci'  where Aij'_Ci'_p:
     "length Aij' = n"
     "length Ci' = n"
     
@@ -1134,19 +1134,16 @@ lemma ord_resolve_lifting:
   have res_e: "ord_resolve S CAi' DA' E'" 
     using ord_resolve.intros[of CAi' n Ci' Aij' Ai' \<tau> S D', 
         OF 
-        \<open>length CAi' = n\<close>
-        \<open>length Ci' = n\<close> 
-        \<open>length Aij' = n\<close> 
-        \<open>length Ai' = n\<close> 
-        \<open>n \<noteq> 0\<close>
-        \<open>\<forall>i<n. CAi' ! i = Ci' ! i + poss (Aij' ! i)\<close>
+        _ _ _ _
+        _
+        _
         \<open>\<forall>i<n. Aij' ! i \<noteq> {#}\<close> 
-        \<open> Some \<tau> = mgu (set_mset ` set (map2 add_mset Ai' Aij'))\<close>
-        \<open>eligible S \<tau> Ai' (D' + negs (mset Ai'))\<close>
+        \<tau>\<phi>(1)
+        eligibility
         \<open>\<forall>i<n. str_maximal_in (Ai' ! i \<cdot>a \<tau>) (Ci' ! i \<cdot> \<tau>)\<close>
         \<open>\<forall>i<n. S (CAi' ! i) = {#}\<close>
         ] 
-    unfolding E'_def using ai'
+    unfolding E'_def using ai' n Aij'_Ci'_p
     by blast
       
       
@@ -1161,7 +1158,7 @@ lemma ord_resolve_lifting:
     finally show e'\<phi>e: "E' \<cdot> \<phi> = E" .
   qed
     
-    (* Replace \<phi> with ground substitution *)
+    (* Replace \<eta> with ground substitution *)
   obtain \<eta>2 where ground_\<eta>2: "is_ground_subst \<eta>2" "E' \<cdot> \<eta>2 = E"
   proof -
     have "is_ground_cls_list CAi" "is_ground_cls DA"
