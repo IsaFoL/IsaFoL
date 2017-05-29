@@ -715,13 +715,13 @@ qed
 (* S2MS modif *)
 definition all_decomposition_implies :: \<open>'a clause multiset
   \<Rightarrow> (('a, 'm) ann_lits \<times> ('a, 'm) ann_lits) list \<Rightarrow> bool\<close> where
- \<open>all_decomposition_implies N S \<longleftrightarrow> (\<forall>(Ls, seen) \<in># mset S. unmark_lm Ls \<union># N \<Turnstile>ps unmark_lm seen)\<close>
+ \<open>all_decomposition_implies N S \<longleftrightarrow> (\<forall>(Ls, seen) \<in># mset S. unmark_lm Ls + N \<Turnstile>ps unmark_lm seen)\<close>
 
 lemma all_decomposition_implies_empty[iff]:
   \<open>all_decomposition_implies N []\<close> unfolding all_decomposition_implies_def by auto
 
 lemma all_decomposition_implies_single[iff]:
-  \<open>all_decomposition_implies N [(Ls, seen)] \<longleftrightarrow> unmark_lm Ls \<union># N \<Turnstile>ps unmark_lm seen\<close>
+  \<open>all_decomposition_implies N [(Ls, seen)] \<longleftrightarrow> unmark_lm Ls + N \<Turnstile>ps unmark_lm seen\<close>
   unfolding all_decomposition_implies_def by auto
 
 lemma all_decomposition_implies_append[iff]:
@@ -736,7 +736,7 @@ lemma all_decomposition_implies_cons_pair[iff]:
 
 lemma all_decomposition_implies_cons_single[iff]:
   \<open>all_decomposition_implies N (l # S') \<longleftrightarrow>
-    (unmark_lm (fst l) \<union># N \<Turnstile>ps unmark_lm (snd l) \<and>
+    (unmark_lm (fst l) + N \<Turnstile>ps unmark_lm (snd l) \<and>
       all_decomposition_implies N S')\<close>
   unfolding all_decomposition_implies_def by auto
 
@@ -822,9 +822,9 @@ next
       moreover {
         assume l: \<open>length a = 1\<close> and m: \<open>is_decided (hd a)\<close> and hd: \<open>hd a \<in> set M\<close>
         then have \<open>unmark (hd a) \<in># {#unmark L |L\<in># mset M. is_decided L#}\<close> by auto
-        then have H: \<open>unmark_lm a \<union># N \<subseteq># N + {# unmark L |L\<in># mset M. is_decided L #}\<close>
+        then have H: \<open>unmark_lm a + N \<subseteq># N + {# unmark L |L\<in># mset M. is_decided L #}\<close>
           using l by (cases a) auto
-        have f1: \<open>unmark_lm a \<union># N \<Turnstile>ps unmark_lm b\<close>
+        have f1: \<open>unmark_lm a + N \<Turnstile>ps unmark_lm b\<close>
           using decomp unfolding all_decomposition_implies_def g by simp
         have ?thesis
           apply (rule true_clss_clss_subset) 
@@ -929,27 +929,28 @@ qed
 lemma all_decomposition_implies_insert_single:
   \<open>all_decomposition_implies N M \<Longrightarrow> all_decomposition_implies (add_mset C N) M\<close>
   unfolding all_decomposition_implies_def
-  by (smt add_mset_add_single case_prod_beta' 
-      subset_mset.sup_left_idem true_clss_clss_generalise_true_clss_clss true_clss_clss_union_and 
-      union_add_entailed_equiv union_trus_clss_clss)
+  by (metis (no_types, lifting) add_entail_added add_mset_add_single case_prod_beta' 
+      true_clss_clss_generalise_true_clss_clss_add union_commute)
 
 (* S2MS modif *)
 lemma all_decomposition_implies_union:
   \<open>all_decomposition_implies N M \<Longrightarrow> all_decomposition_implies (N + N') M\<close>
   unfolding all_decomposition_implies_def sup.assoc[symmetric]
-  by (smt case_prod_beta' subset_mset.sup_left_idem true_clss_clss_generalise_true_clss_clss 
-      true_clss_clss_union_and_add union_trus_clss_clss)
+  by (metis (no_types, lifting) case_prod_beta' true_clss_clss_addition_l union_assoc)
 
 (* S2MS *)
-lemma superset_entails: \<open> B \<subseteq># B' \<Longrightarrow> A \<union># B \<Turnstile>ps C \<Longrightarrow> A \<union># B' \<Turnstile>ps C \<close>
-  by (metis subset_mset.le_iff_sup true_clss_clss_generalise_true_clss_clss true_clss_clss_union_and 
-      union_trus_clss_clss)
+lemma superset_entails: \<open> B \<subseteq># B' \<Longrightarrow> A + B \<Turnstile>ps C \<Longrightarrow> A + B' \<Turnstile>ps C \<close>
+  by (metis add_entail_added subset_mset.diff_add true_clss_clss_generalise_true_clss_clss_add)
     
 (* S2MS modif *)    
 lemma all_decomposition_implies_mono:
   \<open>N \<subseteq># N' \<Longrightarrow> all_decomposition_implies N M \<Longrightarrow> all_decomposition_implies N' M\<close>
   unfolding all_decomposition_implies_def using superset_entails[of N N'] by auto
 
+(* S2MS *)
+lemma implies_remove_added: \<open>A \<Turnstile>ps add_mset X B \<Longrightarrow> A \<Turnstile>ps B\<close>
+  using true_clss_clss_union_and_add by force
+    
 (* S2MS modif *)    
 lemma all_decomposition_implies_mono_right:
   \<open>all_decomposition_implies I (get_all_ann_decomposition (M' @ M)) \<Longrightarrow>
@@ -958,8 +959,10 @@ lemma all_decomposition_implies_mono_right:
   subgoal by auto
   subgoal by auto
   subgoal for L C M' M
-    apply (cases \<open>get_all_ann_decomposition (M' @ M)\<close>)       
-      by auto
+    apply (cases \<open>get_all_ann_decomposition (M' @ M)\<close>)
+      using get_all_ann_decomposition_never_empty
+      apply auto     
+    using implies_remove_added by force
   done
 
 
@@ -970,7 +973,8 @@ text \<open>
   where each clause is a single literal (whose negation is in the original clause).\<close>
 (* S2MS modif *)
 definition CNot :: \<open>'v clause \<Rightarrow> 'v clauses\<close> where
-\<open>CNot \<psi> = mset_set { {#-L#} | L. L \<in># \<psi> }\<close>
+\<open>CNot \<psi> = {# {#-L#} |L\<in># \<psi>. True  #}\<close> (* bof?! *)
+(*\<open>CNot \<psi> = mset_set { {#-L#} | L. L \<in># \<psi> }\<close>*)
 
 (* S2MS modif *)
 lemma in_CNot_uminus[iff]:
@@ -978,19 +982,19 @@ lemma in_CNot_uminus[iff]:
   unfolding CNot_def by force
 
 (* S2MS modif *)
-lemma CNot_add_mset[simp]: \<open>CNot (add_mset L \<psi>) = {#{#-L#}#} \<union># (CNot \<psi>)\<close>
-unfolding CNot_def by auto    
+lemma CNot_add_mset[simp]: \<open>CNot (add_mset L \<psi>) = {#{#-L#}#} + (CNot \<psi>)\<close>
+  unfolding CNot_def by auto
     
 (* S2MS modif *)
 lemma CNot_empty[simp]: \<open>CNot {#} = {#}\<close> 
   unfolding CNot_def by auto
 
 (* S2MS modif *)
-lemma CNot_plus[simp]: \<open>CNot (A + B) = CNot A \<union># CNot B\<close>
+lemma CNot_plus[simp]: \<open>CNot (A + B) = CNot A + CNot B\<close>
   unfolding CNot_def by auto
 
 lemma CNot_eq_empty[iff]:
-  \<open>CNot D = {} \<longleftrightarrow> D = {#}\<close>
+  \<open>CNot D = {#} \<longleftrightarrow> D = {#}\<close>
   unfolding CNot_def by (auto simp add: multiset_eqI)
 
 lemma in_CNot_implies_uminus:
@@ -998,12 +1002,13 @@ lemma in_CNot_implies_uminus:
   shows \<open>M \<Turnstile>a {#-L#}\<close> and \<open>-L \<in> lits_of_l M\<close>
   using assms by (auto simp: true_annots_def true_annot_def CNot_def)
 
-lemma CNot_remdups_mset[simp]:
+(* not true anymore in S2MS *)
+(*lemma CNot_remdups_mset[simp]:
   \<open>CNot (remdups_mset A) = CNot A\<close>
-  unfolding CNot_def by auto
+  unfolding CNot_def by auto *)
 
 lemma Ball_CNot_Ball_mset[simp]:
-  \<open>(\<forall>x\<in>CNot D. P x) \<longleftrightarrow> (\<forall>L\<in># D. P {#-L#})\<close>
+  \<open>(\<forall>x\<in># CNot D. P x) \<longleftrightarrow> (\<forall>L\<in># D. P {#-L#})\<close>
  unfolding CNot_def by auto
 
 lemma consistent_CNot_not:
@@ -1023,15 +1028,16 @@ lemma total_not_CNot:
   shows \<open>I \<Turnstile> \<phi>\<close>
   using assms total_not_true_cls_true_clss_CNot by auto
 
+(* S2MS modif *)
 lemma atms_of_ms_CNot_atms_of[simp]:
-  \<open>atms_of_ms (CNot C) = atms_of C\<close>
-  unfolding atms_of_ms_def atms_of_def CNot_def by fastforce
+  \<open>atms_of_mms (CNot C) = atms_of C\<close>
+  unfolding atms_of_mms_def atms_of_def CNot_def by auto
 
+(* S2MS modif *)
 lemma true_clss_clss_contradiction_true_clss_cls_false:
-  \<open>C \<in> D \<Longrightarrow> D \<Turnstile>ps CNot C \<Longrightarrow> D \<Turnstile>p {#}\<close>
-  unfolding true_clss_clss_def true_clss_cls_def total_over_m_def
-  by (metis Un_commute atms_of_empty atms_of_ms_CNot_atms_of atms_of_ms_insert atms_of_ms_union
-    consistent_CNot_not insert_absorb sup_bot.left_neutral true_clss_def)
+  \<open>C \<in># D \<Longrightarrow> D \<Turnstile>ps CNot C \<Longrightarrow> D \<Turnstile>p {#}\<close>
+  unfolding true_clss_clss_def true_clss_cls_def total_over_mm_def
+  by auto
 
 lemma true_annots_CNot_all_atms_defined:
   assumes \<open>M \<Turnstile>as CNot T\<close> and a1: \<open>L \<in># T\<close>

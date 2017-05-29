@@ -982,6 +982,19 @@ proof -
     using f2 by (metis subset_mset.sup.commute true_clss_clss_left_right true_clss_clss_union_and)
 qed
 
+(* S2MS *)
+lemma true_clss_clss_generalise_true_clss_clss_add:
+  "A + C \<Turnstile>ps D \<Longrightarrow> B \<Turnstile>ps C \<Longrightarrow> A + B \<Turnstile>ps D"
+proof -
+  assume a1: "A + C \<Turnstile>ps D"
+  assume "B \<Turnstile>ps C"
+  then have f1: \<open>A + B \<Turnstile>ps A + C\<close>
+    by (simp add: true_clss_clss_def)
+  then show ?thesis
+    using a1 by (metis subset_mset.sup_bot.right_neutral subset_mset.sup_left_idem 
+        true_clss_clss_generalise_true_clss_clss union_trus_clss_clss)
+qed
+  
 (* S2MS modif *)
 lemma true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or:
   assumes D: "N \<Turnstile>p add_mset (-L) D"
