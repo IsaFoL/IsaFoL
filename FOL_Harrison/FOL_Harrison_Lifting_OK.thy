@@ -28,7 +28,7 @@ datatype 'a fm = Truth | Falsity | Atom 'a | Imp "'a fm" "'a fm" | Iff "'a fm" "
 
 datatype fol = Rl id "tm list"
 
-subsection \<open>Definition of rules and axioms\<close>
+subsection \<open>Definition of rules and axioms on formulas\<close>
 
 abbreviation (input) "fail_thm \<equiv> Truth"
 
