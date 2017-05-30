@@ -1036,8 +1036,10 @@ lemma atms_of_ms_CNot_atms_of[simp]:
 (* S2MS modif *)
 lemma true_clss_clss_contradiction_true_clss_cls_false:
   \<open>C \<in># D \<Longrightarrow> D \<Turnstile>ps CNot C \<Longrightarrow> D \<Turnstile>p {#}\<close>
-  unfolding true_clss_clss_def true_clss_cls_def total_over_mm_def
-  by auto
+  unfolding true_clss_clss_def true_clss_cls_def total_over_mm_def atms_of_mms_def
+  by (smt add_mset_union atms_of_mms_def atms_of_mms_empty atms_of_mms_mempty atms_of_mms_singleton 
+      atms_of_mms_union atms_of_ms_CNot_atms_of consistent_CNot_not empty_iff insert_DiffM 
+      set_mset_empty sup_union_left1 true_clss_def)
 
 lemma true_annots_CNot_all_atms_defined:
   assumes \<open>M \<Turnstile>as CNot T\<close> and a1: \<open>L \<in># T\<close>
@@ -1050,21 +1052,22 @@ lemma true_annots_CNot_all_uminus_atms_defined:
   by (metis assms atm_of_uminus image_eqI in_CNot_implies_uminus(1) true_annot_singleton)
 
 lemma true_clss_clss_false_left_right:
-  assumes \<open>{{#L#}} \<union> B \<Turnstile>p {#}\<close>
+  assumes \<open>{#{#L#}#} + B \<Turnstile>p {#}\<close>
   shows \<open>B \<Turnstile>ps CNot {#L#}\<close>
   unfolding true_clss_clss_def true_clss_cls_def
 proof (intro allI impI)
   fix I
   assume
-    tot: \<open>total_over_m I (B \<union> CNot {#L#})\<close> and
+    tot: \<open>total_over_mm I (B + CNot {#L#})\<close> and
     cons: \<open>consistent_interp I\<close> and
     I: \<open>I \<Turnstile>s B\<close>
-  have \<open>total_over_m I ({{#L#}} \<union> B)\<close> using tot by auto
-  then have \<open>\<not>I \<Turnstile>s insert {#L#} B\<close>
-    using assms cons unfolding true_clss_cls_def by simp
+  have \<open>total_over_mm I ({#{#L#}#} + B)\<close> using tot unfolding total_over_mm_def atms_of_mms_def 
+    by auto
+  then have \<open>\<not>I \<Turnstile>s add_mset {#L#} B\<close>
+    using assms cons unfolding true_clss_cls_def total_over_mm_def atms_of_mms_def by simp
   then show \<open>I \<Turnstile>s CNot {#L#}\<close>
     using tot I by (cases L) auto
-qed
+oops
 
 lemma true_annots_true_cls_def_iff_negation_in_model:
   \<open>M \<Turnstile>as CNot C \<longleftrightarrow> (\<forall>L \<in># C. -L \<in> lits_of_l M)\<close>
@@ -1079,22 +1082,25 @@ lemma true_annots_CNot_definedD:
 lemma true_annot_CNot_diff:
   \<open>I \<Turnstile>as CNot C \<Longrightarrow> I \<Turnstile>as CNot (C - C')\<close>
   by (auto simp: true_annots_true_cls_def_iff_negation_in_model dest: in_diffD)
-
-lemma CNot_mset_replicate[simp]:
-  \<open>CNot (mset (replicate n L)) = (if n = 0 then {} else {{#-L#}})\<close>
-  by (induction n) auto
+    
+(* S2MS modif: not true anymore *)
+(*lemma CNot_mset_replicate[simp]:
+  \<open>CNot (mset (replicate n L)) = (if n = 0 then {#} else {#{#-L#}#})\<close>
+  by (induction n) auto *)
 
 lemma consistent_CNot_not_tautology:
   \<open>consistent_interp M \<Longrightarrow> M \<Turnstile>s CNot D \<Longrightarrow> \<not>tautology D\<close>
-  by (metis atms_of_ms_CNot_atms_of consistent_CNot_not satisfiable_carac' satisfiable_def
-    tautology_def total_over_m_def)
+  by (metis atms_of_ms_CNot_atms_of consistent_CNot_not satisfiable_carac' satisfiable_def 
+      tautology_def total_over_mm_def)
 
-lemma atms_of_ms_CNot_atms_of_ms: \<open>atms_of_ms (CNot CC) = atms_of_ms {CC}\<close>
+(* S2MS modif *)
+lemma atms_of_mms_CNot_atms_of_ms: \<open>atms_of_mms (CNot CC) = atms_of_ms {CC}\<close>
   by simp
 
-lemma total_over_m_CNot_toal_over_m[simp]:
-  \<open>total_over_m I (CNot C) = total_over_set I (atms_of C)\<close>
-  unfolding total_over_m_def total_over_set_def by auto
+(* S2MS modif *)
+lemma total_over_mm_CNot_toal_over_m[simp]:
+  \<open>total_over_mm I (CNot C) = total_over_set I (atms_of C)\<close>
+  unfolding total_over_mm_def total_over_set_def by auto
 
 text \<open>The following lemma is very useful when in the goal appears an axioms like @{term \<open>-L = K\<close>}:
   this lemma allows the simplifier to rewrite L.\<close>
@@ -1110,7 +1116,7 @@ lemma true_clss_cls_plus_CNot:
 proof (intro allI impI)
   fix I
   assume
-    tot: \<open>total_over_set I (atms_of_ms (A \<union> {{#L#}}))\<close> and
+    tot: \<open>total_over_set I (atms_of_mms (A + {#{#L#}#}))\<close> and
     cons: \<open>consistent_interp I\<close> and
     I: \<open>I \<Turnstile>s A\<close>
   let ?I = \<open>I \<union> {Pos P|P. P \<in> atms_of CC \<and> P \<notin> atm_of ` I}\<close>
@@ -1118,24 +1124,29 @@ proof (intro allI impI)
     using cons unfolding consistent_interp_def
     by (auto simp: uminus_lit_swap atms_of_def rev_image_eqI)
   have I': \<open>?I \<Turnstile>s A\<close>
-    using I true_clss_union_increase by blast
-  have tot_CNot: \<open>total_over_m ?I (A \<union> CNot CC)\<close>
-    using tot atms_of_s_def by (fastforce simp: total_over_m_def total_over_set_def)
+    using I true_clss_union_increase by auto
+  have tot_CNot: \<open>total_over_mm ?I (A + CNot CC)\<close>
+    using tot atms_of_s_def unfolding atms_of_mms_def total_over_mm_def total_over_set_def
+    by (smt CollectI Un_iff atm_of_in_atm_of_set_in_uminus atms_of_mms_def atms_of_ms_CNot_atms_of 
+        image_mset_union literal.sel(2) mem_simps(9) set_mset_union tot total_over_set_def
+        uminus_Neg) 
 
-  then have tot_I_A_CC_L: \<open>total_over_m ?I (A \<union> {add_mset L CC})\<close>
-    using tot unfolding total_over_m_def total_over_set_atm_of by auto
+  then have tot_I_A_CC_L: \<open>total_over_mm ?I (A + {#add_mset L CC#})\<close>
+    using tot unfolding total_over_mm_def total_over_set_atm_of atms_of_mms_def
+    by (smt CollectI Un_iff add_mset_add_single atms_of_plus image_iff image_mset_add_mset insert_iff 
+        literal.sel(1) mem_simps(9) set_mset_add_mset_insert)
   then have \<open>?I \<Turnstile> add_mset L CC\<close> using CC_L cons' I' unfolding true_clss_cls_def by blast
   moreover
     have \<open>?I \<Turnstile>s CNot CC\<close> using CNot_CC cons' I' tot_CNot unfolding true_clss_clss_def by auto
     then have \<open>\<not>A \<Turnstile>p CC\<close>
-      by (metis (no_types, lifting) I' atms_of_ms_CNot_atms_of_ms atms_of_ms_union cons'
+      by (metis (no_types, lifting) I' atms_of_mms_CNot_atms_of_ms atms_of_ms_union cons'
         consistent_CNot_not tot_CNot total_over_m_def true_clss_cls_def)
     then have \<open>\<not>?I \<Turnstile> CC\<close> using \<open>?I \<Turnstile>s CNot CC\<close> cons' consistent_CNot_not by blast
   ultimately have \<open>?I \<Turnstile> {#L#}\<close> by blast
   then show \<open>I \<Turnstile> {#L#}\<close>
     by (metis (no_types, lifting) atms_of_ms_union cons' consistent_CNot_not tot total_not_CNot
       total_over_m_def total_over_set_union true_clss_union_increase)
-qed
+oops
 
 lemma true_annots_CNot_lit_of_notin_skip:
   assumes LM: \<open>L # M \<Turnstile>as CNot A\<close> and LA: \<open>lit_of L \<notin># A\<close> \<open>-lit_of L \<notin># A\<close>
@@ -1143,15 +1154,16 @@ lemma true_annots_CNot_lit_of_notin_skip:
   using LM unfolding true_annots_def Ball_def
 proof (intro allI impI)
   fix l
-  assume H: \<open>\<forall>x. x \<in> CNot A \<longrightarrow> L # M \<Turnstile>a x \<close> and l: \<open>l \<in> CNot A\<close>
+  assume H: \<open>\<forall>x. x \<in># CNot A \<longrightarrow> L # M \<Turnstile>a x \<close> and l: \<open>l \<in># CNot A\<close>
   then have \<open>L # M \<Turnstile>a l\<close> by auto
   then show \<open>M \<Turnstile>a l\<close> using LA l by (cases L) (auto simp: CNot_def)
  qed
 
-lemma true_clss_clss_union_false_true_clss_clss_cnot:
-  \<open>A \<union> {B} \<Turnstile>ps {{#}} \<longleftrightarrow> A \<Turnstile>ps CNot B\<close>
-  using total_not_CNot consistent_CNot_not unfolding total_over_m_def true_clss_clss_def
-  by fastforce
+(* S2MS: to do after the othe correction *)
+(* lemma true_clss_clss_union_false_true_clss_clss_cnot:
+  \<open>A + {#B#} \<Turnstile>ps {#{#}#} \<longleftrightarrow> A \<Turnstile>ps CNot B\<close>
+  using total_not_CNot consistent_CNot_not unfolding total_over_set_def total_over_mm_def true_clss_clss_def atms_of_mms_def
+  by fastforce *)
 
 lemma true_annot_remove_hd_if_notin_vars:
   assumes \<open>a # M'\<Turnstile>a D\<close> and \<open>atm_of (lit_of a) \<notin> atms_of D\<close>
@@ -1164,9 +1176,9 @@ lemma true_annot_remove_if_notin_vars:
   using assms by (induct M) (auto dest: true_annot_remove_hd_if_notin_vars)
 
 lemma true_annots_remove_if_notin_vars:
-  assumes \<open>M @ M'\<Turnstile>as D\<close> and \<open>\<forall>x\<in>atms_of_ms D. x \<notin> atm_of ` lits_of_l M\<close>
+  assumes \<open>M @ M'\<Turnstile>as D\<close> and \<open>\<forall>x\<in>atms_of_mms D. x \<notin> atm_of ` lits_of_l M\<close>
   shows \<open>M' \<Turnstile>as D\<close> unfolding true_annots_def
-  using assms unfolding true_annots_def atms_of_ms_def
+  using assms unfolding true_annots_def atms_of_mms_def
   by (force dest: true_annot_remove_if_notin_vars)
 
 lemma all_variables_defined_not_imply_cnot:
@@ -1186,11 +1198,12 @@ proof (clarify, rule ccontr)
   then show False
     using LB assms(2) unfolding true_annot_def true_lit_def true_cls_def Bex_def
     by blast
-qed
+oops
 
-lemma CNot_union_mset[simp]:
-  \<open>CNot (A \<union># B) = CNot A \<union> CNot B\<close>
-  unfolding CNot_def by auto
+(* S2MS: not useful anymore? *)
+(* lemma CNot_union_mset[simp]:
+  \<open>CNot (A \<union># B) = CNot A \<union># CNot B\<close>
+  unfolding CNot_def by auto *)
 
 
 subsection \<open>Other\<close>
@@ -1300,24 +1313,24 @@ text \<open>We have defined previous entailment with respect to sets, but we als
   depending on the context. The conversion is simple using the function @{term set_mset} (in this
   direction, there is no loss of information).\<close>
 abbreviation true_annots_mset (infix "\<Turnstile>asm" 50) where
-\<open>I \<Turnstile>asm C \<equiv> I \<Turnstile>as (set_mset C)\<close>
+\<open>I \<Turnstile>asm C \<equiv> I \<Turnstile>as C\<close>
 
 abbreviation true_clss_clss_m :: \<open>'v clause multiset \<Rightarrow> 'v clause multiset \<Rightarrow> bool\<close> (infix "\<Turnstile>psm" 50)
   where
-\<open>I \<Turnstile>psm C \<equiv> set_mset I \<Turnstile>ps (set_mset C)\<close>
+\<open>I \<Turnstile>psm C \<equiv> I \<Turnstile>ps C\<close>
 
 text \<open>Analog of theorem @{thm [source] true_clss_clss_subsetE}\<close>
 lemma true_clss_clssm_subsetE: \<open>N \<Turnstile>psm B \<Longrightarrow> A \<subseteq># B \<Longrightarrow> N \<Turnstile>psm A\<close>
   using set_mset_mono true_clss_clss_subsetE by blast
 
 abbreviation true_clss_cls_m:: \<open>'a clause multiset \<Rightarrow> 'a clause \<Rightarrow> bool\<close> (infix "\<Turnstile>pm" 50) where
-\<open>I \<Turnstile>pm C \<equiv> set_mset I \<Turnstile>p C\<close>
+\<open>I \<Turnstile>pm C \<equiv> I \<Turnstile>p C\<close>
 
 abbreviation distinct_mset_mset :: \<open>'a multiset multiset \<Rightarrow> bool\<close> where
 \<open>distinct_mset_mset \<Sigma> \<equiv> distinct_mset_set (set_mset \<Sigma>)\<close>
 
 abbreviation all_decomposition_implies_m where
-\<open>all_decomposition_implies_m A B \<equiv> all_decomposition_implies (set_mset A) B\<close>
+\<open>all_decomposition_implies_m A B \<equiv> all_decomposition_implies A B\<close>
 
 abbreviation atms_of_mm :: \<open>'a clause multiset \<Rightarrow> 'a set\<close> where
 \<open>atms_of_mm U \<equiv> atms_of_ms (set_mset U)\<close>
@@ -1327,10 +1340,10 @@ lemma \<open>atms_of_mm U \<equiv> set_mset (\<Union># image_mset (image_mset at
   unfolding atms_of_ms_def by (auto simp: atms_of_def)
 
 abbreviation true_clss_m:: \<open>'a interp \<Rightarrow> 'a clause multiset \<Rightarrow> bool\<close> (infix "\<Turnstile>sm" 50) where
-\<open>I \<Turnstile>sm C \<equiv> I \<Turnstile>s set_mset C\<close>
+\<open>I \<Turnstile>sm C \<equiv> I \<Turnstile>s C\<close>
 
 abbreviation true_clss_ext_m (infix "\<Turnstile>sextm" 49) where
-\<open>I \<Turnstile>sextm C \<equiv> I \<Turnstile>sext set_mset C\<close>
+\<open>I \<Turnstile>sextm C \<equiv> I \<Turnstile>sext C\<close>
 
 type_synonym 'v clauses = \<open>'v clause multiset\<close>
 
