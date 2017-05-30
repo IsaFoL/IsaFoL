@@ -8,265 +8,242 @@
   Handbook of Practical Logic and Automated Reasoning, Cambridge University Press, 2009
 *)
 
+chapter \<open>FOL-Harrison\<close>
 
 theory FOL_Harrison_Lifting_OK
 imports
   "~~/src/HOL/Library/Code_Char"
 begin
 
-  
 section \<open>Module Proven\<close>
 
-  
 subsection \<open>Syntax of first-order logic\<close>
 
 type_synonym id = String.literal
 
-datatype tm = Var id | Fn id \<open>tm list\<close>
+datatype tm = Var id | Fn id "tm list"
 
-datatype 'a fm = Truth | Falsity | Atom 'a | 
-    Imp \<open>'a fm\<close> \<open>'a fm\<close> | Iff \<open>'a fm\<close> \<open>'a fm\<close> | 
-    And \<open>'a fm\<close> \<open>'a fm\<close> | Or \<open>'a fm\<close> \<open>'a fm\<close> |
-    Not \<open>'a fm\<close> | Exists id \<open>'a fm\<close> | Forall id \<open>'a fm\<close>
+datatype 'a fm = Truth | Falsity | Atom 'a | Imp "'a fm" "'a fm" | Iff "'a fm" "'a fm" |
+    And "'a fm" "'a fm" | Or "'a fm" "'a fm" | Not "'a fm" | Exists id "'a fm" | Forall id "'a fm"
 
-datatype fol = Rl id \<open>tm list\<close>
+datatype fol = Rl id "tm list"
 
-  
 subsection \<open>Definition of rules and axioms\<close>
 
 abbreviation (input) "fail_thm \<equiv> Truth"
 
 definition fol_equal :: "fol fm \<Rightarrow> fol fm \<Rightarrow> bool"
 where
- "fol_equal p q \<equiv> p = q"
+  "fol_equal p q \<equiv> p = q"
 
 definition zip_eq :: "tm list \<Rightarrow> tm list \<Rightarrow> fol fm list"
 where
- "zip_eq l l' \<equiv> map (\<lambda>(t, t'). Atom (Rl (STR ''='') [t, t'])) 
-                        (zip l l')"
+  "zip_eq l l' \<equiv> map (\<lambda>(t, t'). Atom (Rl (STR ''='') [t, t'])) (zip l l')"
 
-primrec 
-  occurs_in :: "id \<Rightarrow> tm \<Rightarrow> bool" 
-and 
-  occurs_in_list :: "id \<Rightarrow> tm list \<Rightarrow> bool"
+primrec occurs_in :: "id \<Rightarrow> tm \<Rightarrow> bool" and occurs_in_list :: "id \<Rightarrow> tm list \<Rightarrow> bool"
 where
- "occurs_in i (Var x) = (i = x)" |
- "occurs_in i (Fn _ l) = occurs_in_list i l" |
- "occurs_in_list _ [] = False" |
- "occurs_in_list i (h # t) = 
-    (occurs_in i h \<or> occurs_in_list i t)"
+  "occurs_in i (Var x) = (i = x)" |
+  "occurs_in i (Fn _ l) = occurs_in_list i l" |
+  "occurs_in_list _ [] = False" |
+  "occurs_in_list i (h # t) = (occurs_in i h \<or> occurs_in_list i t)"
 
 primrec free_in :: "id \<Rightarrow> fol fm \<Rightarrow> bool"
 where
- "free_in _ Truth = False" |
- "free_in _ Falsity = False" |
- "free_in i (Atom a) = 
-    (case a of Rl _ l \<Rightarrow> occurs_in_list i l)" |
- "free_in i (Imp p q) = (free_in i p \<or> free_in i q)" |
- "free_in i (Iff p q) = (free_in i p \<or> free_in i q)" |
- "free_in i (And p q) = (free_in i p \<or> free_in i q)" |
- "free_in i (Or p q) = (free_in i p \<or> free_in i q)" |
- "free_in i (Not p) = free_in i p" |
- "free_in i (Exists x p) = (i \<noteq> x \<and> free_in i p)" |
- "free_in i (Forall x p) = (i \<noteq> x \<and> free_in i p)"
+  "free_in _ Truth = False" |
+  "free_in _ Falsity = False" |
+  "free_in i (Atom a) = (case a of Rl _ l \<Rightarrow> occurs_in_list i l)" |
+  "free_in i (Imp p q) = (free_in i p \<or> free_in i q)" |
+  "free_in i (Iff p q) = (free_in i p \<or> free_in i q)" |
+  "free_in i (And p q) = (free_in i p \<or> free_in i q)" |
+  "free_in i (Or p q) = (free_in i p \<or> free_in i q)" |
+  "free_in i (Not p) = free_in i p" |
+  "free_in i (Exists x p) = (i \<noteq> x \<and> free_in i p)" |
+  "free_in i (Forall x p) = (i \<noteq> x \<and> free_in i p)"
 
 primrec equal_length :: "tm list \<Rightarrow> tm list \<Rightarrow> bool"
 where
- "equal_length l [] = (case l of [] \<Rightarrow> True | _ # _ \<Rightarrow> False)" |
- "equal_length l (_ # r') = (case l of [] \<Rightarrow> False | _ # l' \<Rightarrow> equal_length l' r')"
+  "equal_length l [] = (case l of [] \<Rightarrow> True | _ # _ \<Rightarrow> False)" |
+  "equal_length l (_ # r') = (case l of [] \<Rightarrow> False | _ # l' \<Rightarrow> equal_length l' r')"
 
 definition modusponens_fm :: "fol fm \<Rightarrow> fol fm \<Rightarrow> fol fm"
 where
- "modusponens_fm s s' \<equiv> case s of Imp p q \<Rightarrow>
-     let p' = s' in if fol_equal p p' then q else fail_thm | _ \<Rightarrow> fail_thm"
+  "modusponens_fm s s' \<equiv> case s of Imp p q \<Rightarrow>
+      let p' = s' in if fol_equal p p' then q else fail_thm | _ \<Rightarrow> fail_thm"
 
 definition gen_fm :: "id \<Rightarrow> fol fm \<Rightarrow> fol fm"
 where
- "gen_fm x s \<equiv>  (Forall x ( s))"
+  "gen_fm x s \<equiv> Forall x s"
 
 definition axiom_addimp_fm :: "fol fm \<Rightarrow> fol fm \<Rightarrow> fol fm"
 where
- "axiom_addimp_fm p q \<equiv>  (Imp p (Imp q p))"
+  "axiom_addimp_fm p q \<equiv> Imp p (Imp q p)"
 
 definition axiom_distribimp_fm :: "fol fm \<Rightarrow> fol fm \<Rightarrow> fol fm \<Rightarrow> fol fm"
 where
- "axiom_distribimp_fm p q r \<equiv> (Imp (Imp p (Imp q r)) (Imp (Imp p q) (Imp p r)))"
+  "axiom_distribimp_fm p q r \<equiv> Imp (Imp p (Imp q r)) (Imp (Imp p q) (Imp p r))"
 
 definition axiom_doubleneg_fm :: "fol fm \<Rightarrow> fol fm"
 where
- "axiom_doubleneg_fm p \<equiv>  (Imp (Imp (Imp p Falsity) Falsity) p)"
+  "axiom_doubleneg_fm p \<equiv> Imp (Imp (Imp p Falsity) Falsity) p"
 
 definition axiom_allimp_fm :: "id \<Rightarrow> fol fm \<Rightarrow> fol fm \<Rightarrow> fol fm"
 where
- "axiom_allimp_fm x p q \<equiv> (Imp (Forall x (Imp p q)) (Imp (Forall x p) (Forall x q)))"
+  "axiom_allimp_fm x p q \<equiv> Imp (Forall x (Imp p q)) (Imp (Forall x p) (Forall x q))"
 
 definition axiom_impall_fm :: "id \<Rightarrow> fol fm \<Rightarrow> fol fm"
 where
- "axiom_impall_fm x p \<equiv> 
-    if \<not> free_in x p then (Imp p (Forall x p)) 
-    else fail_thm"
+  "axiom_impall_fm x p \<equiv> if \<not> free_in x p then (Imp p (Forall x p)) else fail_thm"
 
 definition axiom_existseq_fm :: "id \<Rightarrow> tm \<Rightarrow> fol fm"
 where
- "axiom_existseq_fm x t \<equiv> if \<not> occurs_in x t
-     then  (Exists x (Atom (Rl (STR ''='') [Var x, t]))) else fail_thm"
+  "axiom_existseq_fm x t \<equiv> if \<not> occurs_in x t
+      then Exists x (Atom (Rl (STR ''='') [Var x, t])) else fail_thm"
 
 definition axiom_eqrefl_fm :: "tm \<Rightarrow> fol fm"
 where
- "axiom_eqrefl_fm t \<equiv> (Atom (Rl (STR ''='') [t, t]))"
+  "axiom_eqrefl_fm t \<equiv> Atom (Rl (STR ''='') [t, t])"
 
 definition axiom_funcong_fm :: "id \<Rightarrow> tm list \<Rightarrow> tm list \<Rightarrow> fol fm"
 where
- "axiom_funcong_fm i l l' \<equiv> 
-    if equal_length l l' then
-       (foldr Imp (zip_eq l l') 
-                 (Atom (Rl (STR ''='') [Fn i l, Fn i l']))) 
-    else fail_thm"
+  "axiom_funcong_fm i l l' \<equiv> if equal_length l l'
+      then foldr Imp (zip_eq l l') (Atom (Rl (STR ''='') [Fn i l, Fn i l'])) else fail_thm"
 
 definition axiom_predcong_fm :: "id \<Rightarrow> tm list \<Rightarrow> tm list \<Rightarrow> fol fm"
 where
- "axiom_predcong_fm i l l' \<equiv> 
-    if equal_length l l' then 
-       (foldr Imp (zip_eq l l') 
-                 (Imp (Atom (Rl i l)) (Atom (Rl i l')))) 
-    else fail_thm"
+  "axiom_predcong_fm i l l' \<equiv> if equal_length l l'
+      then foldr Imp (zip_eq l l') (Imp (Atom (Rl i l)) (Atom (Rl i l'))) else fail_thm"
 
 definition axiom_iffimp1_fm :: "fol fm \<Rightarrow> fol fm \<Rightarrow> fol fm"
 where
- "axiom_iffimp1_fm p q \<equiv>  (Imp (Iff p q) (Imp p q))"
+  "axiom_iffimp1_fm p q \<equiv> Imp (Iff p q) (Imp p q)"
 
 definition axiom_iffimp2_fm :: "fol fm \<Rightarrow> fol fm \<Rightarrow> fol fm"
 where
- "axiom_iffimp2_fm p q \<equiv>  (Imp (Iff p q) (Imp q p))"
+  "axiom_iffimp2_fm p q \<equiv> Imp (Iff p q) (Imp q p)"
 
 definition axiom_impiff_fm :: "fol fm \<Rightarrow> fol fm \<Rightarrow> fol fm"
 where
- "axiom_impiff_fm p q \<equiv>  (Imp (Imp p q) (Imp (Imp q p) (Iff p q)))"
+  "axiom_impiff_fm p q \<equiv> Imp (Imp p q) (Imp (Imp q p) (Iff p q))"
 
 definition axiom_true_fm :: "fol fm"
 where
- "axiom_true_fm \<equiv>  (Iff Truth (Imp Falsity Falsity))"
+  "axiom_true_fm \<equiv> Iff Truth (Imp Falsity Falsity)"
 
 definition axiom_not_fm :: "fol fm \<Rightarrow> fol fm"
 where
- "axiom_not_fm p \<equiv> (Iff (Not p) (Imp p Falsity))"
+  "axiom_not_fm p \<equiv> Iff (Not p) (Imp p Falsity)"
 
 definition axiom_and_fm :: "fol fm \<Rightarrow> fol fm \<Rightarrow> fol fm"
 where
- "axiom_and_fm p q \<equiv> (Iff (And p q) (Imp (Imp p (Imp q Falsity)) Falsity))"
+  "axiom_and_fm p q \<equiv> Iff (And p q) (Imp (Imp p (Imp q Falsity)) Falsity)"
 
 definition axiom_or_fm :: "fol fm \<Rightarrow> fol fm \<Rightarrow> fol fm"
 where
- "axiom_or_fm p q \<equiv> (Iff (Or p q) (Not (And (Not p) (Not q))))"
+  "axiom_or_fm p q \<equiv> Iff (Or p q) (Not (And (Not p) (Not q)))"
 
 definition axiom_exists_fm :: "id \<Rightarrow> fol fm \<Rightarrow> fol fm"
 where
- "axiom_exists_fm x p \<equiv> (Iff (Exists x p) (Not (Forall x (Not p))))"
+  "axiom_exists_fm x p \<equiv> Iff (Exists x p) (Not (Forall x (Not p)))"
 
- 
 subsection \<open>Semantics of first-order logic\<close>
 
 definition length2 :: "tm list \<Rightarrow> bool"
 where
- "length2 l \<equiv> case l of [_,_] \<Rightarrow> True | _ \<Rightarrow> False"
+  "length2 l \<equiv> case l of [_,_] \<Rightarrow> True | _ \<Rightarrow> False"
 
 primrec \<comment> \<open>Semantics of terms\<close>
-  semantics_term :: 
-   "(id \<Rightarrow> 'a) \<Rightarrow> (id \<Rightarrow> 'a list \<Rightarrow> 'a) \<Rightarrow> tm \<Rightarrow> 'a" 
-and
-  semantics_list :: 
-   "(id \<Rightarrow> 'a) \<Rightarrow> (id \<Rightarrow> 'a list \<Rightarrow> 'a) \<Rightarrow> tm list \<Rightarrow> 'a list"
+  semantics_term :: "(id \<Rightarrow> 'a) \<Rightarrow> (id \<Rightarrow> 'a list \<Rightarrow> 'a) \<Rightarrow> tm \<Rightarrow> 'a" and
+  semantics_list :: "(id \<Rightarrow> 'a) \<Rightarrow> (id \<Rightarrow> 'a list \<Rightarrow> 'a) \<Rightarrow> tm list \<Rightarrow> 'a list"
 where
- "semantics_term e _ (Var x) = e x" |
- "semantics_term e f (Fn i l) = f i (semantics_list e f l)" |
- "semantics_list _ _ [] = []" |
- "semantics_list e f (t # l) = 
-    semantics_term e f t # semantics_list e f l"
+  "semantics_term e _ (Var x) = e x" |
+  "semantics_term e f (Fn i l) = f i (semantics_list e f l)" |
+  "semantics_list _ _ [] = []" |
+  "semantics_list e f (t # l) = semantics_term e f t # semantics_list e f l"
 
 primrec \<comment> \<open>Semantics of formulas\<close>
-  semantics 
-    :: "(id \<Rightarrow> 'a) \<Rightarrow> (id \<Rightarrow> 'a list \<Rightarrow> 'a) \<Rightarrow> 
-                   (id \<Rightarrow> 'a list \<Rightarrow> bool) \<Rightarrow> fol fm \<Rightarrow> bool"
+  semantics :: "(id \<Rightarrow> 'a) \<Rightarrow> (id \<Rightarrow> 'a list \<Rightarrow> 'a) \<Rightarrow> (id \<Rightarrow> 'a list \<Rightarrow> bool) \<Rightarrow> fol fm \<Rightarrow> bool"
 where
- "semantics _ _ _ Truth = True" |
- "semantics _ _ _ Falsity = False" |
- "semantics e f g (Atom a) = 
-    (case a of Rl i l \<Rightarrow> 
-       if i = STR ''='' \<and> length2 l then 
-         (semantics_term e f (hd l) = 
-          semantics_term e f (hd (tl l)))
-       else g i (semantics_list e f l))" |
- "semantics e f g (Imp p q) = 
-    (semantics e f g p \<longrightarrow> semantics e f g q)" |
- "semantics e f g (Iff p q) = 
-    (semantics e f g p \<longleftrightarrow> semantics e f g q)" |
- "semantics e f g (And p q) = 
-    (semantics e f g p \<and> semantics e f g q)" |
- "semantics e f g (Or p q) = 
-    (semantics e f g p \<or> semantics e f g q)" |
- "semantics e f g (Not p) = (\<not> semantics e f g p)" |
- "semantics e f g (Exists x p) = 
-    (\<exists>v. semantics (e(x := v)) f g p)" |
- "semantics e f g (Forall x p) = 
-    (\<forall>v. semantics (e(x := v)) f g p)"
-
+  "semantics _ _ _ Truth = True" |
+  "semantics _ _ _ Falsity = False" |
+  "semantics e f g (Atom a) = (case a of Rl i l \<Rightarrow> if i = STR ''='' \<and> length2 l
+      then (semantics_term e f (hd l) = semantics_term e f (hd (tl l)))
+      else g i (semantics_list e f l))" |
+  "semantics e f g (Imp p q) = (semantics e f g p \<longrightarrow> semantics e f g q)" |
+  "semantics e f g (Iff p q) = (semantics e f g p \<longleftrightarrow> semantics e f g q)" |
+  "semantics e f g (And p q) = (semantics e f g p \<and> semantics e f g q)" |
+  "semantics e f g (Or p q) = (semantics e f g p \<or> semantics e f g q)" |
+  "semantics e f g (Not p) = (\<not> semantics e f g p)" |
+  "semantics e f g (Exists x p) = (\<exists>v. semantics (e(x := v)) f g p)" |
+  "semantics e f g (Forall x p) = (\<forall>v. semantics (e(x := v)) f g p)"
 
 subsection \<open>Definition of proof system\<close>
 
 inductive OK :: "fol fm \<Rightarrow> bool" ("\<turnstile> _" 0)
 where
   modusponens:
-   "\<turnstile> s \<Longrightarrow> \<turnstile> s' \<Longrightarrow>
-                                   \<turnstile> (modusponens_fm s s')" |
-  gen: "\<turnstile> s \<Longrightarrow> 
-                                   \<turnstile> (gen_fm _ s)" | (* Arguably indent more left *)
-  axiom_addimp:      "\<turnstile> (axiom_addimp_fm _ _)" |
-  axiom_distribimp: "\<turnstile> (axiom_distribimp_fm _ _ _)" |
-  axiom_doubleneg: "\<turnstile> (axiom_doubleneg_fm _)" |
-  axiom_allimp:       "\<turnstile> (axiom_allimp_fm _ _ _)" |
-  axiom_impall:       "\<turnstile> (axiom_impall_fm _ _)" |
-  axiom_existseq:     "\<turnstile> (axiom_existseq_fm _ _)" |
-  axiom_eqrefl:         "\<turnstile> (axiom_eqrefl_fm _)" |
-  axiom_funcong:     "\<turnstile> (axiom_funcong_fm _ _ _)" |
-  axiom_predcong:   "\<turnstile> (axiom_predcong_fm _ _ _)" |
-  axiom_iffimp1:       "\<turnstile> (axiom_iffimp1_fm _ _)" |
-  axiom_iffimp2:       "\<turnstile> (axiom_iffimp2_fm _ _)" |
-  axiom_impiff:        "\<turnstile> (axiom_impiff_fm _ _)" |
-  axiom_true:            "\<turnstile> axiom_true_fm" |
-  axiom_not:             "\<turnstile> (axiom_not_fm _)" |
-  axiom_and:            "\<turnstile> (axiom_and_fm _ _)" |
-  axiom_or:               "\<turnstile> (axiom_or_fm _ _)" |
-  axiom_exists:          "\<turnstile> (axiom_exists_fm _ _)"
-
+                    "\<turnstile> s \<Longrightarrow> \<turnstile> s' \<Longrightarrow> \<turnstile> modusponens_fm s s'" |
+  gen:
+                    "\<turnstile> s \<Longrightarrow> \<turnstile> gen_fm _ s" |
+  axiom_addimp:
+                    "\<turnstile> axiom_addimp_fm _ _" |
+  axiom_distribimp:
+                    "\<turnstile> (axiom_distribimp_fm _ _ _)" |
+  axiom_doubleneg:
+                    "\<turnstile> (axiom_doubleneg_fm _)" |
+  axiom_allimp:
+                    "\<turnstile> (axiom_allimp_fm _ _ _)" |
+  axiom_impall:
+                    "\<turnstile> (axiom_impall_fm _ _)" |
+  axiom_existseq:
+                    "\<turnstile> (axiom_existseq_fm _ _)" |
+  axiom_eqrefl:
+                    "\<turnstile> (axiom_eqrefl_fm _)" |
+  axiom_funcong:
+                    "\<turnstile> (axiom_funcong_fm _ _ _)" |
+  axiom_predcong:
+                    "\<turnstile> (axiom_predcong_fm _ _ _)" |
+  axiom_iffimp1:
+                    "\<turnstile> (axiom_iffimp1_fm _ _)" |
+  axiom_iffimp2:
+                    "\<turnstile> (axiom_iffimp2_fm _ _)" |
+  axiom_impiff:
+                    "\<turnstile> (axiom_impiff_fm _ _)" |
+  axiom_true:
+                    "\<turnstile> axiom_true_fm" |
+  axiom_not:
+                    "\<turnstile> (axiom_not_fm _)" |
+  axiom_and:
+                    "\<turnstile> (axiom_and_fm _ _)" |
+  axiom_or:
+                    "\<turnstile> (axiom_or_fm _ _)" |
+  axiom_exists:
+                    "\<turnstile> (axiom_exists_fm _ _)"
 
 (* Example *)
 
-
 proposition "\<turnstile> Imp p p"
-
-
 proof -
-  have 1: "\<turnstile> ((Imp (Imp p (Imp (Imp p p) p)) (Imp (Imp p (Imp p p)) (Imp p p))))"
+  have 1: "\<turnstile> Imp (Imp p (Imp (Imp p p) p)) (Imp (Imp p (Imp p p)) (Imp p p))"
   using axiom_distribimp
   unfolding axiom_distribimp_fm_def
   by simp
 
-  have 2: "\<turnstile> ( (Imp p (Imp (Imp p p) p)))"
+  have 2: "\<turnstile> Imp p (Imp (Imp p p) p)"
   using axiom_addimp
   unfolding axiom_addimp_fm_def
   by simp
 
-  have 3: "\<turnstile>  ( (Imp (Imp p (Imp p p)) (Imp p p)))"
+  have 3: "\<turnstile> Imp (Imp p (Imp p p)) (Imp p p)"
   using 1 2 modusponens
   unfolding modusponens_fm_def fol_equal_def
   by fastforce
 
-  have 4: "\<turnstile>  ( (Imp p (Imp p p)))"
+  have 4: "\<turnstile> Imp p (Imp p p)"
   using axiom_addimp
   unfolding axiom_addimp_fm_def
   by simp
 
-  have 5: "\<turnstile>  ( (Imp p p))"
+  have 5: "\<turnstile> Imp p p"
   using 3 4 modusponens
   unfolding modusponens_fm_def fol_equal_def
   by fastforce
@@ -276,19 +253,15 @@ proof -
   by simp
 qed
 
-
 subsection \<open>Soundness of proof system\<close>
 
 lemma map':
- "\<not> occurs_in x t \<Longrightarrow> 
-      semantics_term e f t = semantics_term (e(x := v)) f t"
- "\<not> occurs_in_list x l \<Longrightarrow> 
-      semantics_list e f l = semantics_list (e(x := v)) f l"
+  "\<not> occurs_in x t \<Longrightarrow> semantics_term e f t = semantics_term (e(x := v)) f t"
+  "\<not> occurs_in_list x l \<Longrightarrow> semantics_list e f l = semantics_list (e(x := v)) f l"
 by (induct t and l rule: semantics_term.induct semantics_list.induct) simp_all
 
 lemma map:
-"\<not> free_in x p \<Longrightarrow> 
-       semantics e f g p \<longleftrightarrow> semantics (e(x := v)) f g p"
+  "\<not> free_in x p \<Longrightarrow> semantics e f g p \<longleftrightarrow> semantics (e(x := v)) f g p"
 proof (induct p arbitrary: e)
   fix e
   show "\<not> free_in x Truth \<Longrightarrow> semantics e f g Truth \<longleftrightarrow> semantics (e(x := v)) f g Truth"
@@ -387,7 +360,7 @@ next
 qed
 
 lemma length2_equiv:
- "length2 l \<longleftrightarrow> [hd l, hd (tl l)] = l"
+  "length2 l \<longleftrightarrow> [hd l, hd (tl l)] = l"
 proof -
   have "length2 l \<Longrightarrow> [hd l, hd (tl l)] = l"
   unfolding length2_def
@@ -400,7 +373,7 @@ proof -
 qed
 
 lemma equal_length_sym:
- "equal_length l l' \<Longrightarrow> equal_length l' l"
+  "equal_length l l' \<Longrightarrow> equal_length l' l"
 proof (induct l' arbitrary: l)
   fix l
   assume "equal_length l []"
@@ -417,7 +390,7 @@ next
 qed
 
 lemma equal_length2:
- "equal_length l l' \<Longrightarrow> length2 l \<longleftrightarrow> length2 l'"
+  "equal_length l l' \<Longrightarrow> length2 l \<longleftrightarrow> length2 l'"
 proof -
   assume assm: "equal_length l l'"
   have "equal_length l [t, t'] \<Longrightarrow> length2 l" for t t'
@@ -434,16 +407,14 @@ proof -
 qed
 
 lemma imp_chain_equiv:
- "semantics e f g (foldr Imp l p) \<longleftrightarrow> 
-    (\<forall>q \<in> set l. semantics e f g q) \<longrightarrow> semantics e f g p"
+  "semantics e f g (foldr Imp l p) \<longleftrightarrow> (\<forall>q \<in> set l. semantics e f g q) \<longrightarrow> semantics e f g p"
 using imp_conjL
 by (induct l) simp_all
 
 lemma imp_chain_zip_eq:
- "equal_length l l' \<Longrightarrow>
-     semantics e f g (foldr Imp (zip_eq l l') p) \<longleftrightarrow>
-         semantics_list e f l = semantics_list e f l' \<longrightarrow> 
-              semantics e f g p"
+  "equal_length l l' \<Longrightarrow>
+      semantics e f g (foldr Imp (zip_eq l l') p) \<longleftrightarrow>
+      semantics_list e f l = semantics_list e f l' \<longrightarrow> semantics e f g p"
 proof -
   assume "equal_length l l'"
   then have "(\<forall>q \<in> set (zip_eq l l'). semantics e f g q) \<longleftrightarrow>
@@ -457,9 +428,8 @@ proof -
 qed
 
 lemma funcong:
- "equal_length l l' \<Longrightarrow>
-     semantics e f g (foldr Imp (zip_eq l l') 
-                                (Atom (Rl (STR ''='') [Fn i l, Fn i l'])))"
+  "equal_length l l' \<Longrightarrow>
+      semantics e f g (foldr Imp (zip_eq l l') (Atom (Rl (STR ''='') [Fn i l, Fn i l'])))"
 proof -
   assume assm: "equal_length l l'"
   show ?thesis
@@ -480,9 +450,8 @@ proof -
 qed
 
 lemma predcong:
- "equal_length l l' \<Longrightarrow>
-     semantics e f g (foldr Imp (zip_eq l l') 
-                               (Imp (Atom (Rl i l)) (Atom (Rl i l'))))"
+  "equal_length l l' \<Longrightarrow>
+      semantics e f g (foldr Imp (zip_eq l l') (Imp (Atom (Rl i l)) (Atom (Rl i l'))))"
 proof -
   assume assm: "equal_length l l'"
   show ?thesis
@@ -527,108 +496,108 @@ proof -
 qed
 
 theorem soundness_fm:
- "\<turnstile> p \<Longrightarrow> semantics e f g p"
+  "\<turnstile> p \<Longrightarrow> semantics e f g p"
 proof (induct arbitrary: e rule: OK.induct)
   fix e s s'
-  assume "semantics e f g (  s)" "semantics e f g (  s')" for e
-  then show "semantics e f g (  (modusponens_fm s s'))"
+  assume "semantics e f g s" "semantics e f g s'" for e
+  then show "semantics e f g (modusponens_fm s s')"
     unfolding modusponens_fm_def fol_equal_def
     apply (cases s)
       by auto
 next
   fix e x s
-  assume "semantics e f g (  s)" for e
-  then show "semantics e f g (  (gen_fm x s))"
+  assume "semantics e f g s" for e
+  then show "semantics e f g (gen_fm x s)"
   unfolding gen_fm_def
   by simp
 next
   fix e p q
-  show "semantics e f g (  (axiom_addimp_fm p q))"
+  show "semantics e f g (axiom_addimp_fm p q)"
   unfolding axiom_addimp_fm_def
   by simp
 next
   fix e p q r
-  show "semantics e f g (  (axiom_distribimp_fm p q r))"
+  show "semantics e f g (axiom_distribimp_fm p q r)"
   unfolding axiom_distribimp_fm_def
   by simp
 next
   fix e g p
-  show "semantics e f g (  (axiom_doubleneg_fm p))"
+  show "semantics e f g (axiom_doubleneg_fm p)"
   unfolding axiom_doubleneg_fm_def
   by simp
 next
   fix e x p q
-  show "semantics e f g (  (axiom_allimp_fm x p q))"
+  show "semantics e f g (axiom_allimp_fm x p q)"
   unfolding axiom_allimp_fm_def
   by simp
 next
   fix e x p
-  show "semantics e f g (  (axiom_impall_fm x p))"
+  show "semantics e f g (axiom_impall_fm x p)"
   unfolding axiom_impall_fm_def
   using map
   by simp iprover
 next
   fix e x t
-  show "semantics e f g (  (axiom_existseq_fm x t))"
+  show "semantics e f g (axiom_existseq_fm x t)"
   unfolding axiom_existseq_fm_def
   using map'(1) length2_def
   by simp iprover
 next
   fix e t
-  show "semantics e f g (  (axiom_eqrefl_fm t))"
+  show "semantics e f g (axiom_eqrefl_fm t)"
   unfolding axiom_eqrefl_fm_def
   using length2_def
   by simp
 next
   fix e i l l'
-  show "semantics e f g (  (axiom_funcong_fm i l l'))"
+  show "semantics e f g (axiom_funcong_fm i l l')"
   unfolding axiom_funcong_fm_def
   using funcong
   by simp standard
 next
   fix e i l l'
-  show "semantics e f g (  (axiom_predcong_fm i l l'))"
+  show "semantics e f g (axiom_predcong_fm i l l')"
   unfolding axiom_predcong_fm_def
   using predcong
   by simp standard
 next
   fix e p q
-  show "semantics e f g (  (axiom_iffimp1_fm p q))"
+  show "semantics e f g (axiom_iffimp1_fm p q)"
   unfolding axiom_iffimp1_fm_def
   by simp
 next
   fix e p q
-  show "semantics e f g (  (axiom_iffimp2_fm p q))"
+  show "semantics e f g (axiom_iffimp2_fm p q)"
   unfolding axiom_iffimp2_fm_def
   by simp
 next
   fix e p q
-  show "semantics e f g (  (axiom_impiff_fm p q))"
+  show "semantics e f g (axiom_impiff_fm p q)"
   unfolding axiom_impiff_fm_def
   by simp (rule iff)
 next
   fix e
-  show "semantics e f g (  (axiom_true_fm))"
+  show "semantics e f g (axiom_true_fm)"
   unfolding axiom_true_fm_def
   by simp
 next
   fix e p
-  show "semantics e f g (  (axiom_not_fm p))"
+  show "semantics e f g (axiom_not_fm p)"
   unfolding axiom_not_fm_def
   by simp
 next
   fix e p q
-  show "semantics e f g (  (axiom_and_fm p q))"
+  show "semantics e f g (axiom_and_fm p q)"
   unfolding axiom_and_fm_def
   by simp
 next
   fix e p q
-  show "semantics e f g (  (axiom_or_fm p q))"
+  show "semantics e f g (axiom_or_fm p q)"
   unfolding axiom_or_fm_def
   by simp
 next
   fix e x p
-  show "semantics e f g (  (axiom_exists_fm x p))"
+  show "semantics e f g (axiom_exists_fm x p)"
   unfolding axiom_exists_fm_def
   by simp
 qed
@@ -636,7 +605,6 @@ qed
 corollary consistency_fm: "\<not> (\<turnstile> Falsity)"
 using soundness_fm
 by fastforce
-
   
 subsection \<open>Definition of theorems as a type\<close>
   
@@ -652,7 +620,6 @@ declare concl_def[simp]
   
 setup_lifting type_definition_thm
 
-  
 subsection \<open>Soundness of proof system as a type\<close>
   
 theorem soundness: "semantics e f g (concl p)"
@@ -662,7 +629,6 @@ theorem consistency: "concl p \<noteq> Falsity"
   using consistency_fm
   by (metis Rep_thm concl_def mem_Collect_eq) 
  
-    
 subsection \<open>Definition of rules and axioms on theorems\<close>
 
 lift_definition modusponens :: "thm \<Rightarrow> thm \<Rightarrow> thm" is "modusponens_fm"
@@ -721,7 +687,6 @@ lift_definition axiom_or :: "fol fm \<Rightarrow> fol fm \<Rightarrow> thm" is a
 
 lift_definition axiom_exists :: "id \<Rightarrow> fol fm \<Rightarrow> thm" is axiom_exists_fm
   using OK.intros by -
-  
     
 subsection \<open>Code generation for rules and axioms\<close>
 
@@ -749,26 +714,20 @@ export_code
   axiom_impiff axiom_true axiom_not axiom_and axiom_or axiom_exists concl
 in SML module_name Proven
 
-
-section \<open>ML code reflection\<close>
+section \<open>ML Code Reflection\<close>
 
 code_reflect
   Proven
 datatypes
-  fm = Falsity | Truth | Atom | Imp | Iff |
-       And | Or | Not | Exists | Forall
+  fm = Falsity | Truth | Atom | Imp | Iff | And | Or | Not | Exists | Forall
 and
   tm = Var | Fn
 and
   fol = Rl
 functions
-  modusponens gen axiom_addimp axiom_distribimp 
-  axiom_doubleneg axiom_allimp axiom_impall
-  axiom_existseq axiom_eqrefl axiom_funcong 
-  axiom_predcong axiom_iffimp1 axiom_iffimp2
-  axiom_impiff axiom_true axiom_not axiom_and 
-  axiom_or axiom_exists concl
-
+  modusponens gen axiom_addimp axiom_distribimp axiom_doubleneg axiom_allimp axiom_impall
+  axiom_existseq axiom_eqrefl axiom_funcong axiom_predcong axiom_iffimp1 axiom_iffimp2
+  axiom_impiff axiom_true axiom_not axiom_and axiom_or axiom_exists concl
 
 ML {* open Proven *}
 
@@ -2367,7 +2326,8 @@ fun imp_trans2 th1 th2 =
 (* ------------------------------------------------------------------------- *)
 
 fun imp_trans_chain ths th =
-  itlist (fn a => fn b => imp_unduplicate (imp_trans a (imp_swap b))) (List.rev(List.tl ths)) (imp_trans (List.hd ths) th);
+  itlist (fn a => fn b => imp_unduplicate (imp_trans a (imp_swap b)))
+    (List.rev(List.tl ths)) (imp_trans (List.hd ths) th);
 
 (* ------------------------------------------------------------------------- *)
 (* |- (q ==> false) ==> p ==> (p ==> q) ==> false                            *)
@@ -3635,7 +3595,6 @@ prove (<!("(forall x. p(x) ==> q(x)) ==> (forall x. q(x) ==> p(x)) " ^
 
 *}
 
-  
 section \<open>Main Examples\<close>
 
 ML_val {* (* Hoare's Exercise ewd1062_1 & ewd1062_2 (Harrison has only a proof with tactics) *)
@@ -3662,69 +3621,38 @@ prove
 
 *}
 
-
 ML_val {* (* Pelletier p43 (Harrison has it in a comment but the proof seems not to finish) *)
 
 prove
- (<!"(forall x y. Q(x,y) <=> forall z. P(z,x) <=> P(z,y)) ==> forall x y. Q(x,y) <=> Q(y,x)"!>)
- [
-  assume [("A", <!"forall x y. Q(x,y) <=> forall z. P(z,x) <=> P(z,y)"!>)],
-  conclude (<!"forall x y. Q(x,y) <=> Q(y,x)"!>) proof
+  (<!"(forall x y. Q(x,y) <=> forall z. P(z,x) <=> P(z,y)) ==> forall x y. Q(x,y) <=> Q(y,x)"!>)
   [
-   fix "x", fix "y",
-   conclude (<!"Q(x,y) <=> Q(y,x)"!>) proof
-   [
-    have (<!"(Q(x,y) ==> Q(y,x)) /\\ (Q(y,x) ==> Q(x,y))"!>) proof
+    assume [("A", <!"forall x y. Q(x,y) <=> forall z. P(z,x) <=> P(z,y)"!>)],
+    conclude (<!"forall x y. Q(x,y) <=> Q(y,x)"!>) proof
     [
-     conclude (<!"Q(x,y) ==> Q(y,x)"!>) proof
-     [
-      assume [("", <!"Q(x,y)"!>)],
-      so have (<!"forall z. P(z,x) <=> P(z,y)"!>) by ["A"],
-      so have (<!"forall z. P(z,y) <=> P(z,x)"!>) at once,
-      so conclude (<!"Q(y,x)"!>) by ["A"],
-      qed
-     ],
-     conclude (<!"Q(y,x) ==> Q(x,y)"!>) proof
-     [
-      assume [("", <!"Q(y,x)"!>)],
-      so have (<!"forall z. P(z,y) <=> P(z,x)"!>) by ["A"],
-      so have (<!"forall z. P(z,x) <=> P(z,y)"!>) at once,
-      so conclude (<!"Q(x,y)"!>) by ["A"],
-      qed
-     ],
-     qed
-    ],
-    so our thesis at once,
-    qed
-   ],
-   qed
-  ],
-  qed
- ]
-
-*}
-
-
-ML_val {* (* Pelletier p46 (Harrison does not consider it and 'by ["A","B"]' seems not to finish) *)
-
-prove
-  (<!("(forall x. P(x) /\\ (forall y. P(y) /\\ H(y,x) ==> G(y)) ==> G(x)) /\\ " ^
-        "((exists x. P(x) /\\ ~G(x)) ==> " ^
-          "(exists x. P(x) /\\ ~G(x) /\\ (forall y. P(y) /\\ ~G(y) ==> J(x,y)))) /\\ " ^
-        "(forall x y. P(x) /\\ P(y) /\\ H(x,y) ==> ~J(y,x)) ==> " ^
-        "(forall x. P(x) ==> G(x))")!>)
-  [
-    assume [("A", <!("(forall x. P(x) /\\ (forall y. P(y) /\\ H(y,x) ==> G(y)) ==> G(x)) /\\ " ^
-        "((exists x. P(x) /\\ ~G(x)) ==> " ^
-          "(exists x. P(x) /\\ ~G(x) /\\ (forall y. P(y) /\\ ~G(y) ==> J(x,y)))) /\\ " ^
-        "(forall x y. P(x) /\\ P(y) /\\ H(x,y) ==> ~J(y,x))")!>)],
-    conclude (<!"(forall x. P(x) ==> G(x))"!>) proof
-    [
-      fix "x",
-      conclude (<!"P(x) ==> G(x)"!>) proof
+      fix "x", fix "y",
+      conclude (<!"Q(x,y) <=> Q(y,x)"!>) proof
       [
-        assume [("B", <!"P(x)"!>)],
-        conclude (<!"G(x)"!>) by ["B","A"],
+        have (<!"(Q(x,y) ==> Q(y,x)) /\\ (Q(y,x) ==> Q(x,y))"!>) proof
+        [
+          conclude (<!"Q(x,y) ==> Q(y,x)"!>) proof
+          [
+            assume [("", <!"Q(x,y)"!>)],
+            so have (<!"forall z. P(z,x) <=> P(z,y)"!>) by ["A"],
+            so have (<!"forall z. P(z,y) <=> P(z,x)"!>) at once,
+            so conclude (<!"Q(y,x)"!>) by ["A"],
+            qed
+          ],
+          conclude (<!"Q(y,x) ==> Q(x,y)"!>) proof
+          [
+            assume [("", <!"Q(y,x)"!>)],
+            so have (<!"forall z. P(z,y) <=> P(z,x)"!>) by ["A"],
+            so have (<!"forall z. P(z,x) <=> P(z,y)"!>) at once,
+            so conclude (<!"Q(x,y)"!>) by ["A"],
+            qed
+          ],
+          qed
+        ],
+        so our thesis at once,
         qed
       ],
       qed
@@ -3733,6 +3661,34 @@ prove
   ]
 
 *}
+
+ML_val {* (* Pelletier p46 (Harrison does not have it) *)
+
+  prove
+    (<!("(forall x. P(x) /\\ (forall y. P(y) /\\ H(y,x) ==> G(y)) ==> G(x)) /\\ " ^
+          "((exists x. P(x) /\\ ~G(x)) ==> " ^
+            "(exists x. P(x) /\\ ~G(x) /\\ (forall y. P(y) /\\ ~G(y) ==> J(x,y)))) /\\ " ^
+          "(forall x y. P(x) /\\ P(y) /\\ H(x,y) ==> ~J(y,x)) ==> " ^
+          "(forall x. P(x) ==> G(x))")!>)
+    [
+      assume [("A", <!("(forall x. P(x) /\\ (forall y. P(y) /\\ H(y,x) ==> G(y)) ==> G(x)) /\\ " ^
+          "((exists x. P(x) /\\ ~G(x)) ==> " ^
+            "(exists x. P(x) /\\ ~G(x) /\\ (forall y. P(y) /\\ ~G(y) ==> J(x,y)))) /\\ " ^
+          "(forall x y. P(x) /\\ P(y) /\\ H(x,y) ==> ~J(y,x))")!>)],
+      conclude (<!"(forall x. P(x) ==> G(x))"!>) proof
+      [
+        fix "x",
+        conclude (<!"P(x) ==> G(x)"!>) proof
+        [
+          assume [("B", <!"P(x)"!>)],
+          conclude (<!"G(x)"!>) by ["B","A"], qed
+        ], qed
+      ], qed
+    ]
+
+*}
+
+section \<open>Other Examples\<close>
 
 (* Function auto as a basic declarative proof *)
 
@@ -4260,32 +4216,6 @@ auto ("exists x y. forall z. (F(x,z) <=> F(z,y)) /\\ (F(z,y) <=> F(z,z)) /\\ (F(
 
 *}
 
-lemma "\<exists>x y. \<forall>z. (F(x,z) \<longleftrightarrow> F(z,y)) \<and> (F(z,y) \<longleftrightarrow> F(z,z)) \<and> (F(x,y) \<longleftrightarrow> F(y,x)) \<longrightarrow> (F(x,y) \<longleftrightarrow> F(x,z))"
-nitpick
-
-Nitpick found a counterexample for card 'a = 8:
-
-  Free variable:
-    F = (\<lambda>x. _)((a\<^sub>1, a\<^sub>1) := False, (a\<^sub>1, a\<^sub>2) := False, (a\<^sub>1, a\<^sub>3) := False, (a\<^sub>1, a\<^sub>4) := False, (a\<^sub>1, a\<^sub>5) := False, (a\<^sub>1, a\<^sub>6) := True, (a\<^sub>1, a\<^sub>7) := True,
-                 (a\<^sub>1, a\<^sub>8) := True, (a\<^sub>2, a\<^sub>1) := False, (a\<^sub>2, a\<^sub>2) := False, (a\<^sub>2, a\<^sub>3) := False, (a\<^sub>2, a\<^sub>4) := True, (a\<^sub>2, a\<^sub>5) := True, (a\<^sub>2, a\<^sub>6) := False,
-                 (a\<^sub>2, a\<^sub>7) := False, (a\<^sub>2, a\<^sub>8) := True, (a\<^sub>3, a\<^sub>1) := False, (a\<^sub>3, a\<^sub>2) := False, (a\<^sub>3, a\<^sub>3) := True, (a\<^sub>3, a\<^sub>4) := True, (a\<^sub>3, a\<^sub>5) := True,
-                 (a\<^sub>3, a\<^sub>6) := True, (a\<^sub>3, a\<^sub>7) := True, (a\<^sub>3, a\<^sub>8) := False, (a\<^sub>4, a\<^sub>1) := False, (a\<^sub>4, a\<^sub>2) := True, (a\<^sub>4, a\<^sub>3) := True, (a\<^sub>4, a\<^sub>4) := False,
-                 (a\<^sub>4, a\<^sub>5) := False, (a\<^sub>4, a\<^sub>6) := False, (a\<^sub>4, a\<^sub>7) := True, (a\<^sub>4, a\<^sub>8) := False, (a\<^sub>5, a\<^sub>1) := False, (a\<^sub>5, a\<^sub>2) := True, (a\<^sub>5, a\<^sub>3) := True,
-                 (a\<^sub>5, a\<^sub>4) := False, (a\<^sub>5, a\<^sub>5) := True, (a\<^sub>5, a\<^sub>6) := True, (a\<^sub>5, a\<^sub>7) := False, (a\<^sub>5, a\<^sub>8) := True, (a\<^sub>6, a\<^sub>1) := True, (a\<^sub>6, a\<^sub>2) := False,
-                 (a\<^sub>6, a\<^sub>3) := True, (a\<^sub>6, a\<^sub>4) := False, (a\<^sub>6, a\<^sub>5) := True, (a\<^sub>6, a\<^sub>6) := False, (a\<^sub>6, a\<^sub>7) := False, (a\<^sub>6, a\<^sub>8) := False, (a\<^sub>7, a\<^sub>1) := True,
-                 (a\<^sub>7, a\<^sub>2) := False, (a\<^sub>7, a\<^sub>3) := True, (a\<^sub>7, a\<^sub>4) := True, (a\<^sub>7, a\<^sub>5) := False, (a\<^sub>7, a\<^sub>6) := False, (a\<^sub>7, a\<^sub>7) := True, (a\<^sub>7, a\<^sub>8) := True,
-                 (a\<^sub>8, a\<^sub>1) := True, (a\<^sub>8, a\<^sub>2) := True, (a\<^sub>8, a\<^sub>3) := False, (a\<^sub>8, a\<^sub>4) := False, (a\<^sub>8, a\<^sub>5) := True, (a\<^sub>8, a\<^sub>6) := False, (a\<^sub>8, a\<^sub>7) := True,
-                 (a\<^sub>8, a\<^sub>8) := True)
-  Skolem constant:
-    \<lambda>x y. z = (\<lambda>x. _)(a\<^sub>1 := (\<lambda>x. _)(a\<^sub>1 := a\<^sub>8, a\<^sub>2 := a\<^sub>8, a\<^sub>3 := a\<^sub>7, a\<^sub>4 := a\<^sub>7, a\<^sub>5 := a\<^sub>8, a\<^sub>6 := a\<^sub>2, a\<^sub>7 := a\<^sub>2, a\<^sub>8 := a\<^sub>4),
-                       a\<^sub>2 := (\<lambda>x. _)(a\<^sub>1 := a\<^sub>8, a\<^sub>2 := a\<^sub>8, a\<^sub>3 := a\<^sub>5, a\<^sub>4 := a\<^sub>6, a\<^sub>5 := a\<^sub>1, a\<^sub>6 := a\<^sub>5, a\<^sub>7 := a\<^sub>8, a\<^sub>8 := a\<^sub>6),
-                       a\<^sub>3 := (\<lambda>x. _)(a\<^sub>1 := a\<^sub>7, a\<^sub>2 := a\<^sub>5, a\<^sub>3 := a\<^sub>2, a\<^sub>4 := a\<^sub>1, a\<^sub>5 := a\<^sub>1, a\<^sub>6 := a\<^sub>2, a\<^sub>7 := a\<^sub>2, a\<^sub>8 := a\<^sub>7),
-                       a\<^sub>4 := (\<lambda>x. _)(a\<^sub>1 := a\<^sub>7, a\<^sub>2 := a\<^sub>6, a\<^sub>3 := a\<^sub>1, a\<^sub>4 := a\<^sub>7, a\<^sub>5 := a\<^sub>3, a\<^sub>6 := a\<^sub>3, a\<^sub>7 := a\<^sub>6, a\<^sub>8 := a\<^sub>7),
-                       a\<^sub>5 := (\<lambda>x. _)(a\<^sub>1 := a\<^sub>8, a\<^sub>2 := a\<^sub>1, a\<^sub>3 := a\<^sub>1, a\<^sub>4 := a\<^sub>3, a\<^sub>5 := a\<^sub>1, a\<^sub>6 := a\<^sub>4, a\<^sub>7 := a\<^sub>8, a\<^sub>8 := a\<^sub>4),
-                       a\<^sub>6 := (\<lambda>x. _)(a\<^sub>1 := a\<^sub>4, a\<^sub>2 := a\<^sub>5, a\<^sub>3 := a\<^sub>2, a\<^sub>4 := a\<^sub>3, a\<^sub>5 := a\<^sub>4, a\<^sub>6 := a\<^sub>5, a\<^sub>7 := a\<^sub>3, a\<^sub>8 := a\<^sub>5),
-                       a\<^sub>7 := (\<lambda>x. _)(a\<^sub>1 := a\<^sub>2, a\<^sub>2 := a\<^sub>8, a\<^sub>3 := a\<^sub>2, a\<^sub>4 := a\<^sub>6, a\<^sub>5 := a\<^sub>8, a\<^sub>6 := a\<^sub>3, a\<^sub>7 := a\<^sub>6, a\<^sub>8 := a\<^sub>6),
-                       a\<^sub>8 := (\<lambda>x. _)(a\<^sub>1 := a\<^sub>4, a\<^sub>2 := a\<^sub>6, a\<^sub>3 := a\<^sub>7, a\<^sub>4 := a\<^sub>7, a\<^sub>5 := a\<^sub>4, a\<^sub>6 := a\<^sub>5, a\<^sub>7 := a\<^sub>6, a\<^sub>8 := a\<^sub>6))
 *)
-
 
 end
