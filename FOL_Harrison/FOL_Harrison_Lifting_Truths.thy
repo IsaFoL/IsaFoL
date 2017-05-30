@@ -1,5 +1,5 @@
 (*
-  FOL-Harrison - Verification of an LCF-Style First-Order Prover with Equality. Lifting the true propositions to a type of theorems.
+  FOL-Harrison - Verification of an LCF-Style First-Order Prover with Equality. Lifting the truths to a type of theorems.
 
   Author: Anders Schlichtkrull
   Adapted from: https://www.isa-afp.org/entries/FOL_Harrison.shtml by Alexander Birch Jensen, Anders Schlichtkrull, Jørgen Villadsen
@@ -10,7 +10,7 @@
 
 chapter \<open>FOL-Harrison\<close>
 
-theory FOL_Harrison_Lifting_True_Props
+theory FOL_Harrison_Lifting_Truths
 imports
   "~~/src/HOL/Library/Code_Char"
 begin
