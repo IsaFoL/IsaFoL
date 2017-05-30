@@ -178,7 +178,7 @@ where
 
 subsection \<open>Definition of theorems\<close>
 
-(* An arbritrary type *)
+(* An arbitrary type *)
 typedecl U
   
 typedef "thm" = "{p :: fol fm. \<forall>(e :: id \<Rightarrow> U) f g. semantics e f g p}"
