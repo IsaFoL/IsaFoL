@@ -31,7 +31,7 @@ datatype 'a fm = Truth | Falsity | Atom 'a |
 datatype fol = Rl id \<open>tm list\<close>
 
   
-subsection \<open>Helper functions for rules and axioms\<close>
+subsection \<open>Definition of rules and axioms on formulas\<close>
 
 abbreviation (input) "fail_thm \<equiv> Truth"
 
@@ -477,7 +477,7 @@ proof -
   qed
 qed
 
-subsection \<open>Definition of axioms and rules\<close>
+subsection \<open>Definition of axioms and rules on theorems\<close>
 lift_definition modusponens :: "thm \<Rightarrow> thm \<Rightarrow> thm" is "modusponens_fm"
   unfolding modusponens_fm_def fol_equal_def
   by (auto split: fm.split)
