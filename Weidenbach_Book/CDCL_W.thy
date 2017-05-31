@@ -2348,7 +2348,6 @@ proof -
     by (auto simp: clauses_def dest: true_clss_clss_left_right)
   then have "clauses S \<Turnstile>pm {#}"
     by (simp add: cdcl\<^sub>W_restart_init_clss[OF assms(1)] clauses_def)
-
   then show ?thesis unfolding satisfiable_def true_clss_cls_def by auto
 qed
 
@@ -2416,9 +2415,9 @@ lemma cdcl\<^sub>W_restart_can_do_step:
   using assms
 proof (induct M)
   case Nil
-  then show ?case apply - by (rule exI[of _ "init_state N"]) auto
+  then show ?case apply - by (auto intro!: exI[of _ "init_state N"])
 next
-  case (Cons L M) note IH = this(1)
+  case (Cons L M) note IH = this(1) and dist = this(2)
   have "consistent_interp (set M)" and "distinct M" and "atm_of ` set M \<subseteq> atms_of_mm N"
     using Cons.prems(1-3) unfolding consistent_interp_def by auto
   then obtain S where
@@ -2426,13 +2425,13 @@ next
     S: "state_butlast S = (map (\<lambda>L. Decided L) M, N, {#}, None)"
     using IH by blast
   let ?S\<^sub>0 = "cons_trail (Decided L) S"
-  have "undefined_lit (map (\<lambda>L. Decided L) M) L"
+  have undef: "undefined_lit (map (\<lambda>L. Decided L) M) L"
     using Cons.prems(1,2) unfolding defined_lit_def consistent_interp_def by fastforce
   moreover have "init_clss S = N"
     using S by blast
   moreover have "atm_of L \<in> atms_of_mm N" using Cons.prems(3) by auto
   moreover have undef: "undefined_lit (trail S) L"
-    using S \<open>distinct (L#M)\<close> calculation(1) by (auto simp: defined_lit_map)
+    using S dist undef by (auto simp: defined_lit_map)
   ultimately have "cdcl\<^sub>W_restart S ?S\<^sub>0"
     using cdcl\<^sub>W_restart.other[OF cdcl\<^sub>W_o.decide[OF decide_rule[of S L ?S\<^sub>0]]] S
     by auto
@@ -3490,6 +3489,153 @@ next
       qed
   }
   ultimately show ?case by blast
+qed
+
+lemma cdcl\<^sub>W_stgy_strong_completeness':
+  assumes
+    MN: "set M \<Turnstile>s set_mset N" and
+    cons: "consistent_interp (set M)" and
+    tot: "total_over_m (set M) (set_mset N)" and
+    atm_incl: "atm_of ` (set M) \<subseteq> atms_of_mm N" and
+    distM: "distinct M"
+  shows
+    "\<exists>M' S. lits_of_l M' = set M \<and>
+      state_butlast S = (M', N, {#}, None) \<and>
+      cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) S"
+proof -
+  have \<open>\<exists>M' S. lits_of_l M' \<subseteq> set M \<and>
+      no_dup M' \<and> length M' = n \<and>
+      state_butlast S = (M', N, {#}, None) \<and>
+      cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) S\<close>
+    if \<open>n \<le> length M\<close> for n :: nat
+    using that
+  proof (induction n)
+    case 0
+    then show ?case by (auto intro!: exI[of _ \<open>init_state N\<close>])
+  next
+    case (Suc n) note IH = this(1) and n_le_M = this(2)
+    then obtain M' S where
+      M': "lits_of_l M' \<subseteq> set M" and
+      n_d[simp]: "no_dup M'" and
+      S: "state_butlast S = (M', N, {#}, None)" and
+      st: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) S" and 
+      l_M': \<open>length M' = n\<close>
+      by auto
+    have
+      M: "cdcl\<^sub>W_M_level_inv S" and
+      alien: "no_strange_atm S"
+      using cdcl\<^sub>W_M_level_inv_S0_cdcl\<^sub>W_restart rtranclp_cdcl\<^sub>W_stgy_consistent_inv st apply blast
+      using cdcl\<^sub>W_M_level_inv_S0_cdcl\<^sub>W_restart no_strange_atm_S0 rtranclp_cdcl\<^sub>W_restart_no_strange_atm_inv
+        rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart st by blast
+        
+    { assume no_step: "\<not>no_step propagate S"
+      then obtain S' where S': "propagate S S'"
+        by auto
+      have lev: "cdcl\<^sub>W_M_level_inv S'"
+        using M S' rtranclp_cdcl\<^sub>W_restart_consistent_inv rtranclp_propagate_is_rtranclp_cdcl\<^sub>W_restart by blast
+      then have n_d'[simp]: "no_dup (trail S')"
+        unfolding cdcl\<^sub>W_M_level_inv_def by auto
+      have "length (trail S) \<le> length (trail S') \<and> lits_of_l (trail S') \<subseteq> set M"
+        using S' cdcl\<^sub>W_propagate_conflict_completeness[OF assms(1-3), of S] M' S
+        by (auto simp: comp_def)
+      moreover have "cdcl\<^sub>W_stgy S S'" using S' by (simp add: cdcl\<^sub>W_stgy.propagate')
+      moreover {
+        have "trail S = M'"
+          using S by (auto simp: comp_def rev_map)
+        then have "length (trail S') = Suc n"
+          using S' l_M' by (auto elim: propagateE) }
+      moreover {
+        have stS': "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) S'"
+          using st cdcl\<^sub>W_stgy.propagate'[OF S'] by (auto simp: r_into_rtranclp)
+        then have "init_clss S' = N"
+          using rtranclp_cdcl\<^sub>W_stgy_no_more_init_clss by fastforce}
+      moreover {
+        have
+          [simp]:"learned_clss S' = {#}" and
+          [simp]: "init_clss S' = init_clss S" and
+          [simp]: "conflicting S' = None"
+          using S S' by (auto elim: propagateE)
+        have "state_butlast S' = (trail S', N, {#}, None)"
+          using S by auto }
+      moreover
+      have "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) S'"
+        apply (rule rtranclp.rtrancl_into_rtrancl)
+        using st apply simp
+        using \<open>cdcl\<^sub>W_stgy S S'\<close> by simp
+      ultimately have ?case
+        apply -
+        apply (rule exI[of _ "trail S'"], rule exI[of _ S'])
+        by auto
+    }
+    moreover { assume no_step: "no_step propagate S"
+      have no_confl: "no_step conflict S"
+      proof -
+        { fix D
+          assume "D \<in># N" and "M' \<Turnstile>as CNot D"
+          then have "set M \<Turnstile> D" using MN unfolding true_clss_def by auto
+          moreover have "set M \<Turnstile>s CNot D"
+            using \<open>M' \<Turnstile>as CNot D\<close> M'
+            by (metis le_iff_sup true_annots_true_cls true_clss_union_increase)
+          ultimately have False using cons consistent_CNot_not by blast
+        }
+        then show ?thesis
+          using S by (auto simp: true_clss_def comp_def rev_map
+              clauses_def elim!: conflictE)
+      qed
+      have lenM: "length M = card (set M)" using distM by (induction M) auto
+      have "no_dup M'" using S M unfolding cdcl\<^sub>W_M_level_inv_def by auto
+      then have "card (lits_of_l M') = length M'"
+        by (induction M') (auto simp add: lits_of_def card_insert_if defined_lit_map)
+      then have "lits_of_l M' \<subset> set M"
+        using M' l_M' lenM n_le_M by auto
+      then obtain L where L: "L \<in> set M" and undef_m: "L \<notin> lits_of_l M'" by auto
+      moreover have undef: "undefined_lit M' L"
+        using M' Decided_Propagated_in_iff_in_lits_of_l calculation(1,2) cons
+          consistent_interp_def by (metis (no_types, lifting) subset_eq)
+      moreover have "atm_of L \<in> atms_of_mm (init_clss S)"
+        using atm_incl calculation S by auto
+      ultimately have dec: "decide S (cons_trail (Decided L) S)"
+        using decide_rule[of S _ "cons_trail (Decided L) S"] S by auto
+      let ?S' = "cons_trail (Decided L) S"
+      have "lits_of_l (trail ?S') \<subseteq> set M" using L M' S undef by auto
+      moreover have "no_strange_atm ?S'"
+        using alien dec M by (meson cdcl\<^sub>W_restart_no_strange_atm_inv decide other)
+      have "cdcl\<^sub>W_M_level_inv ?S'"
+        using M dec rtranclp_mono[of decide cdcl\<^sub>W_restart] by (meson cdcl\<^sub>W_restart_consistent_inv
+            decide other)
+      then have lev'': "cdcl\<^sub>W_M_level_inv ?S'"
+        using S rtranclp_cdcl\<^sub>W_restart_consistent_inv rtranclp_propagate_is_rtranclp_cdcl\<^sub>W_restart
+        by blast
+      then have n_d'': "no_dup (trail ?S')"
+        unfolding cdcl\<^sub>W_M_level_inv_def by auto
+      have "Suc (length (trail S)) = length (trail ?S') \<and> lits_of_l (trail ?S') \<subseteq> set M"
+        using S L M' S undef by simp
+      then have "Suc n = length (trail ?S') \<and> lits_of_l (trail ?S') \<subseteq> set M"
+        using l_M' S undef by auto
+      moreover have S'': "state_butlast ?S' = (trail ?S', N, {#}, None)"
+        using S undef n_d'' lev'' by auto
+      moreover have "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) ?S'"
+        using S'' no_step no_confl st dec by (auto dest: decide cdcl\<^sub>W_stgy.intros)
+      ultimately have ?case using n_d'' L M' by (auto intro!: exI[of _ \<open>Decided L # trail S\<close>] exI[of _ \<open>?S'\<close>])
+    }
+    ultimately show ?case by blast
+  qed
+  from this[of \<open>length M\<close>] obtain M' S where
+    M'_M: \<open>lits_of_l M' \<subseteq> set M\<close> and
+    n_d: \<open>no_dup M'\<close> and
+    \<open>length M' = length M\<close> and
+    \<open>state_butlast S = (M', N, {#}, None) \<and> cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) S\<close>
+    by auto
+  moreover have \<open>lits_of_l M' = set M\<close>
+    apply (rule card_subset_eq)
+    subgoal by auto
+    subgoal using M'_M .
+    subgoal using M'_M n_d no_dup_length_eq_card_atm_of_lits_of_l[OF n_d] M'_M \<open>finite (set M)\<close> distinct_card[OF distM] calculation(3)
+        card_image_le[of \<open> lits_of_l M'\<close> atm_of] card_seteq[OF \<open>finite (set M)\<close>, of \<open>lits_of_l M'\<close>]
+      by auto
+    done
+  ultimately show ?thesis
+    by (auto intro!: exI[of _ S])
 qed
 
 text \<open>\cwref{cdcl:completeness}{theorem 2.9.11 page 84} (with strategy)\<close>

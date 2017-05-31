@@ -331,13 +331,13 @@ concrete_definition list_contains_WHILE_array_code
    is "(uncurry ?f,_)\<in>_"
 
 lemma list_contains_WHILE_in_set: \<open>list_contains_WHILE l xs \<le>
-      \<Down> ({((b', i), b, ys). b' = b \<and>  ys = sublist xs {i..<length xs} \<and> i \<le> length xs} O
+      \<Down> ({((b', i), b, ys). b' = b \<and>  ys = nths xs {i..<length xs} \<and> i \<le> length xs} O
           Collect (case_prod (\<lambda>(b', ys). op = b')))
         (RETURN (l \<in> set xs))\<close>
   (is \<open>_ \<le> \<Down> ?A _\<close>)
 proof -
   show \<open>list_contains_WHILE l xs \<le>
-      \<Down> ({((b', i), b, ys). b' = b \<and>  ys = sublist xs {i..<length xs} \<and> i \<le> length xs} O
+      \<Down> ({((b', i), b, ys). b' = b \<and>  ys = nths xs {i..<length xs} \<and> i \<le> length xs} O
           Collect (case_prod (\<lambda>(b', ys). op = b')))
         (RETURN (l \<in> set xs))\<close>
     (is \<open>_ \<le> \<Down> ?B _\<close>)
@@ -600,7 +600,7 @@ proof -
        (\<lambda>i. RETURN (i+1))
        k
      \<le> \<Down> nat_rel
-       (RETURN (k + index (sublist xs {k..<length xs}) x))\<close>
+       (RETURN (k + index (nths xs {k..<length xs}) x))\<close>
     if \<open>k < length xs\<close> for k
     using that
   proof (cases xs)
@@ -608,28 +608,28 @@ proof -
     then show ?thesis using that by simp
   next
     case xs: (Cons a xs')
-    have index_first: \<open>index (sublist (a # xs') {n..<Suc (length xs')}) ((a # xs') ! n) = 0\<close>
+    have index_first: \<open>index (nths (a # xs') {n..<Suc (length xs')}) ((a # xs') ! n) = 0\<close>
       if \<open>n < length xs'\<close> for n
-      using that by (metis index_Cons length_Cons less_SucI sublist_upt_Suc)
-    have [simp]: "sublist (a # xs') {n..<Suc (length xs')} =
-    (a # xs') ! n # sublist (a # xs') {Suc n..<Suc (length xs')}"
+      using that by (metis index_Cons length_Cons less_SucI nths_upt_Suc)
+    have [simp]: "nths (a # xs') {n..<Suc (length xs')} =
+    (a # xs') ! n # nths (a # xs') {Suc n..<Suc (length xs')}"
       if a2: "n < length xs'" for n -- \<open>auto is not able to derive it automatically
       because of @{thm length_Cons}\<close>
-      using a2 by (metis length_Cons less_SucI sublist_upt_Suc)
+      using a2 by (metis length_Cons less_SucI nths_upt_Suc)
 
     have \<open>k < Suc (length xs')\<close>
       using that xs by auto
     then show ?thesis
       unfolding find_first_eq_def less_eq_Suc_le Suc_le_mono xs
       apply (induction rule: inc_induct)
-      subgoal by (auto simp: sublist_single_if WHILEIT_unfold)[]
-      subgoal by (subst WHILEIT_unfold) (auto simp: sublist_single_if index_first sublist_upt_Suc)
+      subgoal by (auto simp: nths_single_if WHILEIT_unfold)[]
+      subgoal by (subst WHILEIT_unfold) (auto simp: nths_single_if index_first nths_upt_Suc)
       done
   qed
   have [simp]: \<open>find_first_eq x [] \<le> RETURN 0\<close>
     unfolding find_first_eq_def by (auto simp: WHILEIT_unfold)[]
-  have [simp]: \<open>sublist xs {0..<length xs} = xs\<close>
-    by (simp add: sublist_id_iff)
+  have [simp]: \<open>nths xs {0..<length xs} = xs\<close>
+    by (simp add: nths_id_iff)
   show ?thesis
     apply (cases \<open>xs = []\<close>)
      apply (solves simp)
@@ -2052,7 +2052,7 @@ proof -
        (\<lambda>i. RETURN (i+1))
        k
      \<le> \<Down> nat_rel
-       (RETURN (k + index (sublist (map f xs) {k..<length xs}) x))\<close>
+       (RETURN (k + index (nths (map f xs) {k..<length xs}) x))\<close>
     if \<open>k < length xs\<close> for k
     using that
   proof (cases xs)
@@ -2060,17 +2060,17 @@ proof -
     then show ?thesis using that by simp
   next
     case xs: (Cons a xs')
-    have index_first: \<open>index (sublist (a # xs') {n..<Suc (length xs')}) ((a # xs') ! n) = 0\<close>
+    have index_first: \<open>index (nths (a # xs') {n..<Suc (length xs')}) ((a # xs') ! n) = 0\<close>
       if \<open>n < length xs'\<close> for n
-      using that by (metis index_Cons length_Cons less_SucI sublist_upt_Suc)
-    have [simp]: "sublist (f a # map f xs') {n..<Suc (length xs')} =
-    (f a # map f xs') ! n # sublist (f a # map f xs') {Suc n..<Suc (length xs')}"
+      using that by (metis index_Cons length_Cons less_SucI nths_upt_Suc)
+    have [simp]: "nths (f a # map f xs') {n..<Suc (length xs')} =
+    (f a # map f xs') ! n # nths (f a # map f xs') {Suc n..<Suc (length xs')}"
       if a2: "n < length xs'" for n -- \<open>auto is not able to derive it automatically
       because of @{thm length_Cons}\<close>
       using a2
       apply (subst length_Cons[of a, symmetric])+
       apply (subst length_map[of f \<open>a # xs'\<close>, symmetric])+
-      by (metis length_Cons length_map less_SucI sublist_upt_Suc)
+      by (metis length_Cons length_map less_SucI nths_upt_Suc)
     have [simp]: \<open>(f a # map f xs') ! n = f ((a # xs') ! n)\<close> if \<open>n < length (a#xs')\<close> for n
       unfolding list.map[symmetric]
       by (subst nth_map) (use that in auto)
@@ -2080,14 +2080,14 @@ proof -
     then show ?thesis
       unfolding find_first_eq_def less_eq_Suc_le Suc_le_mono xs
       apply (induction rule: inc_induct)
-      subgoal by (auto simp: sublist_single_if WHILEIT_unfold )[]
-      subgoal by (subst WHILEIT_unfold) (auto simp: sublist_single_if index_first sublist_upt_Suc)
+      subgoal by (auto simp: nths_single_if WHILEIT_unfold )[]
+      subgoal by (subst WHILEIT_unfold) (auto simp: nths_single_if index_first nths_upt_Suc)
       done
   qed
   have [simp]: \<open>find_first_eq_map f x [] \<le> RETURN 0\<close>
     unfolding find_first_eq_map_def by (auto simp: WHILEIT_unfold)[]
-  have [simp]: \<open>sublist (map f xs) {0..<length xs} = map f xs\<close>
-    by (simp add: sublist_id_iff)
+  have [simp]: \<open>nths (map f xs) {0..<length xs} = map f xs\<close>
+    by (simp add: nths_id_iff)
   show ?thesis
     apply (cases \<open>xs = []\<close>)
      apply (solves simp)

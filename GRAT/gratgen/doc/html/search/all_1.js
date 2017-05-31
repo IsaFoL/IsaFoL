@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['bwd_5fpass',['bwd_pass',['../classVerifier.html#a9d152bc6015be397a498ab8277cb90f5',1,'Verifier']]]
+  ['bulk_5fmark_5fclauses',['bulk_mark_clauses',['../classSynch__Data.html#a3a17aa28e527717c4177a4257720b1ea',1,'Synch_Data']]],
+  ['bwd_5fpass',['bwd_pass',['../classVerifier.html#a9bb6babc7ea467c7a63a79825f539a2c',1,'Verifier']]]
 ];

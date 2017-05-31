@@ -22,9 +22,12 @@ abbreviation lits_of_l\<^sub>B :: \<open>('v, 'mark) ann_bats \<Rightarrow> 'v l
 
 definition true_annot\<^sub>B :: \<open>('v, 'mark) ann_bats \<Rightarrow> 'v clause \<Rightarrow> bool\<close> (infix "\<Turnstile>b" 49) where
   \<open>I \<Turnstile>b C \<longleftrightarrow> (lits_of_l\<^sub>B I) \<Turnstile> C\<close>
-  
-definition true_annots\<^sub>B :: \<open>('v, 'mark) ann_bats \<Rightarrow> 'v clauses \<Rightarrow> bool\<close> (infix "\<Turnstile>bs" 49) where
+
+definition true_annots\<^sub>B :: \<open>('v, 'mark) ann_bats \<Rightarrow> 'v clause set \<Rightarrow> bool\<close> (infix "\<Turnstile>bs" 49) where
   \<open>I \<Turnstile>bs CC \<longleftrightarrow> (\<forall>C \<in> CC. I \<Turnstile>b C)\<close>  (* (set_mset CC). instead works *)
+
+abbreviation true_annots\<^sub>B_mset :: \<open>('v, 'mark) ann_bats \<Rightarrow> 'v clauses \<Rightarrow> bool\<close> (infix "\<Turnstile>bsm" 49) where
+  \<open>I \<Turnstile>bsm C \<equiv> I \<Turnstile>bs set_mset C\<close>
 
 locale state\<^sub>B_ops =
   fixes
@@ -59,7 +62,7 @@ fun lits_of_bats :: \<open>('v, 'v clause) ann_bats \<Rightarrow> ('v, 'v clause
 
 fun trail\<^sub>W :: \<open>'st \<Rightarrow> ('v, 'v clause) ann_lits\<close> where
   \<open>trail\<^sub>W S = lits_of_bats (trail\<^sub>B S)\<close>
-  
+
 definition state\<^sub>W :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times>
   'v clause option \<times> 'v bats \<times> 'b" where
 "state\<^sub>W S \<equiv> (trail\<^sub>W S, init_clss S, learned_clss S, conflicting S, bats S, additional_info\<^sub>B S)"
@@ -92,7 +95,7 @@ lemma lits_of_bats_append[simp]:
 
 abbreviation backtrack_lvl\<^sub>B :: "'st \<Rightarrow> nat" where
 \<open>backtrack_lvl\<^sub>B S \<equiv> count_decided (trail\<^sub>B S)\<close>
-  
+
 end
 
 locale state\<^sub>B_no_state =
@@ -571,8 +574,33 @@ end \<comment> \<open>end of locale @{locale state\<^sub>B}\<close>
 
 subsection \<open>CDCL Rules\<close>
 
-text \<open>Because of the strategy we will later use, we distinguish propagate, conflict from the other
-  rules\<close>
+fun restrict_clause_2fold :: \<open>'a list \<Rightarrow> 'a \<Rightarrow> 'a multiset \<Rightarrow> 'a multiset\<close> where
+  \<open>restrict_clause_2fold Ls l C = (if l \<in> set Ls then add_mset l C else C)\<close>
+
+definition restrict_clause :: \<open>'a list \<Rightarrow> 'a multiset \<Rightarrow> 'a multiset\<close> where
+  \<open>restrict_clause Ls C = fold_mset (restrict_clause_2fold Ls) {#} C\<close>
+
+lemma restrict_clause_filter_mset: \<open>restrict_clause Ls C = filter_mset (\<lambda>L. L \<in># mset Ls) C\<close>
+proof -
+  have [simp]: \<open>comp_fun_commute (restrict_clause_2fold Ls)\<close> for Ls
+    unfolding comp_fun_commute_def by auto
+  show ?thesis
+    unfolding restrict_clause_def
+    apply (induction C arbitrary: Ls)
+    subgoal for C by auto
+    subgoal for L C Ls
+      by (auto simp del: restrict_clause_2fold.simps simp: comp_fun_commute.fold_mset_add_mset
+          restrict_clause_2fold.simps)
+    done
+qed
+
+fun restrict :: \<open>'v list \<Rightarrow> 'v multiset multiset \<Rightarrow> 'v multiset multiset\<close> where
+  \<open>restrict Ls Cs = image_mset (restrict_clause Ls) Cs\<close>
+
+lemma restrict_filter_mset: \<open>restrict Ls Cs = {#filter_mset (\<lambda>L. L \<in># mset Ls) C. C \<in># Cs #}\<close>
+  unfolding restrict.simps restrict_clause_filter_mset ..
+
+
 locale conflict_driven_clause_learning\<^sub>B =
   state\<^sub>B
     state_eq
@@ -613,26 +641,13 @@ inductive propagate\<^sub>B :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S 
 propagate_rule: "conflicting S = None \<Longrightarrow>
   E \<in># clauses S \<Longrightarrow>
   L \<in># E \<Longrightarrow>
-  (* trail\<^sub>B S \<Turnstile>as CNot (E - {#L#}) \<Longrightarrow> (* to adapt *) *)
+  trail\<^sub>B S \<Turnstile>bs CNot (E - {#L#}) \<Longrightarrow> (* to adapt *)
   (* undefined_lit (trail\<^sub>B S) L \<Longrightarrow> (* to adapt *) *)
   T \<sim> cons_trail\<^sub>B (Propagated L E) S \<Longrightarrow>
   propagate\<^sub>B S T"
 
 inductive_cases propagate\<^sub>BE: "propagate\<^sub>B S T"
 thm propagate\<^sub>BE
-  
-fun is_in :: \<open>'v literal list \<Rightarrow> 'v literal \<Rightarrow> bool\<close> where
-  \<open>is_in [] l = False\<close> |
-  \<open>is_in (ls # Ls) l = ((ls = l) \<or> (is_in Ls l))\<close>
-  
-fun restrict_clause_2fold :: \<open>'v literal list \<Rightarrow> 'v literal \<Rightarrow> 'v clause \<Rightarrow> 'v clause\<close> where
-  \<open>restrict_clause_2fold Ls l C = (if (is_in Ls l) then add_mset l C else C)\<close>
-  
-fun restrict_clause :: \<open>'v literal list \<Rightarrow> 'v clause \<Rightarrow> 'v clause\<close> where
-  \<open>restrict_clause Ls C = fold_mset (restrict_clause_2fold Ls) {#} C\<close>
-  
-fun restrict :: \<open>'v literal list \<Rightarrow> 'v clauses \<Rightarrow> 'v clauses\<close> where
-  \<open>restrict Ls Cs = image_mset (restrict_clause Ls) Cs\<close>
 
 definition valid_bats :: \<open>('v, 'v clause) ann_bats \<Rightarrow> 'v clauses \<Rightarrow> 'v bat \<Rightarrow> bool\<close> where
   \<open>valid_bats M N B \<longleftrightarrow>
@@ -645,20 +660,20 @@ inductive decide\<^sub>B :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<clo
 decide\<^sub>B_rule:
   \<open>decide\<^sub>B S T\<close>
   if
-    \<open>T \<sim> cons_trail\<^sub>B (Decision B ()) (cons_bat (remove1_mset B Bs) S)\<close> and
+    \<open>T \<sim> cons_trail\<^sub>B (Decided B) (cons_bat (remove1_mset B Bs) S)\<close> and
     \<open>B \<in># Bs\<close> and
     \<open>valid_bats (trail\<^sub>B S) (clauses S) Bs\<close>
-    
+
 inductive conflict\<^sub>B :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
 conflict_rule: "
   conflicting S = None \<Longrightarrow>
   D \<in># clauses S \<Longrightarrow>
-  trail\<^sub>B S \<Turnstile>as CNot D  \<Longrightarrow>  (* to adapt *)
+  trail\<^sub>B S \<Turnstile>bs CNot D  \<Longrightarrow>  (* to adapt *)
   T \<sim> update_conflicting (Some D) S \<Longrightarrow>
   conflict\<^sub>B S T"
 
 inductive_cases conflict\<^sub>BE: \<open>conflict\<^sub>B S T\<close>
-  
+
 inductive skip\<^sub>B :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
 skip_rule:
   "trail\<^sub>B S = Propagated L C' # M \<Longrightarrow>
@@ -682,7 +697,7 @@ resolve_rule: "trail\<^sub>B S \<noteq> [] \<Longrightarrow>
   resolve\<^sub>B S T"
 
 inductive_cases resolve\<^sub>BE: "resolve\<^sub>B S T"
-  
+
 end
 
 end

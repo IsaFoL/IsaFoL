@@ -1,6 +1,6 @@
 section \<open>Code Generation and Summary of Correctness Theorems\<close>
 theory Grat_Check_Code_Exporter
-imports Unsat_Check Sat_Check
+imports Unsat_Check Unsat_Check_Split Sat_Check
 begin
   subsection \<open>Code Generation\<close>
   text \<open>We generate code for @{const verify_unsat_impl_wrapper} 
@@ -15,17 +15,22 @@ begin
     the checker's result.
   \<close>
   
-  export_code verify_unsat_impl_wrapper verify_sat_impl_wrapper checking SML_imp  
+  export_code 
+    verify_unsat_impl_wrapper 
+    verify_unsat_split_impl_wrapper 
+    verify_sat_impl_wrapper 
+    checking SML_imp  
     
   export_code 
     verify_sat_impl_wrapper 
     verify_unsat_impl_wrapper 
+    verify_unsat_split_impl_wrapper 
     int_of_integer
     integer_of_int
     integer_of_nat
     nat_of_integer    
     
-    isl projl projr Inr Inl
+    isl projl projr Inr Inl Pair
   in SML_imp module_name Grat_Check file "code/gratchk_export.sml"
 
   subsection \<open>Summary of Correctness Theorems\<close> text_raw \<open>\label{sec:correctness_summary}\<close>
@@ -214,7 +219,7 @@ begin
   theorem verify_unsat_impl_wrapper_sound: 
     shows "
       <DBi \<mapsto>\<^sub>a DB> 
-        verify_unsat_impl_wrapper DBi F_end it 
+        verify_unsat_impl_wrapper DBi F_end it
       <\<lambda>result. DBi \<mapsto>\<^sub>a DB * \<up>(\<not>isl result \<longrightarrow> DBF_unsat DB F_end) >\<^sub>t"
     apply (rule cons_post_rule)
     apply (rule verify_unsat_impl_wrapper_correct)
@@ -223,5 +228,16 @@ begin
         simp: intlist_repr_unsat_def intlist_invar_def intset_sat_def parse_intlist_def)
     done
     
+  theorem verify_unsat_split_impl_wrapper_sound: 
+    shows "
+      <DBi \<mapsto>\<^sub>a DB> 
+        verify_unsat_split_impl_wrapper DBi prf_next F_end it prf
+      <\<lambda>result. DBi \<mapsto>\<^sub>a DB * \<up>(\<not>isl result \<longrightarrow> DBF_unsat DB F_end) >\<^sub>t"
+    apply (rule cons_post_rule)
+    apply (rule verify_unsat_split_impl_wrapper_correct)
+    apply (sep_auto 
+        simp: formula_unsat_spec_alt' Let_def DBF_unsat_def
+        simp: intlist_repr_unsat_def intlist_invar_def intset_sat_def parse_intlist_def)
+    done
       
 end

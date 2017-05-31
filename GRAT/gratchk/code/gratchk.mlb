@@ -12,4 +12,5 @@ in
 end
 
 dimacs_parser.sml
+bin_reader.sml
 gratchk.sml

@@ -637,30 +637,30 @@ lemma distinct_mset_set_distinct: \<open>distinct_mset_set (mset ` set Cs) \<lon
 
 subsection \<open>Sublists\<close>
 
-lemma sublist_single_if: \<open>sublist l {n} = (if n < length l then [l!n] else [])\<close>
+lemma nths_single_if: \<open>nths l {n} = (if n < length l then [l!n] else [])\<close>
 proof -
   have [simp]: \<open>0 < n \<Longrightarrow> {j. Suc j = n} = {n-1}\<close> for n
     by auto
   show ?thesis
   apply (induction l arbitrary: n)
-  subgoal by (auto simp: sublist_def)
-  subgoal by (auto simp: sublist_Cons)
+  subgoal by (auto simp: nths_def)
+  subgoal by (auto simp: nths_Cons)
   done
 qed
 
 lemma atLeastLessThan_Collect: \<open>{a..<b} = {j. j \<ge> a \<and> j < b}\<close>
   by auto
 
-lemma mset_sublist_subset_mset: \<open>mset (sublist xs A) \<subseteq># mset xs\<close>
+lemma mset_nths_subset_mset: \<open>mset (nths xs A) \<subseteq># mset xs\<close>
   apply (induction xs arbitrary: A)
   subgoal by auto
   subgoal for a xs A
-    using subset_mset.add_increasing2[of \<open>add_mset _ {#}\<close> \<open>mset (sublist xs {j. Suc j \<in> A})\<close>  \<open>mset xs\<close>]
-    by (auto simp: sublist_Cons)
+    using subset_mset.add_increasing2[of \<open>add_mset _ {#}\<close> \<open>mset (nths xs {j. Suc j \<in> A})\<close>  \<open>mset xs\<close>]
+    by (auto simp: nths_Cons)
   done
 
-lemma sublist_id_iff:
-  \<open>sublist xs A = xs \<longleftrightarrow> {0..<length xs} \<subseteq> A \<close>
+lemma nths_id_iff:
+  \<open>nths xs A = xs \<longleftrightarrow> {0..<length xs} \<subseteq> A \<close>
 proof -
   have \<open>{j. Suc j \<in> A} =  (\<lambda>j. j-1) ` (A - {0})\<close> for A
     using DiffI by (fastforce simp: image_iff)
@@ -670,16 +670,16 @@ proof -
   have [simp]: \<open>{0..<b} \<subseteq> {j. Suc j \<in> A} \<longleftrightarrow> (\<forall>x. x-1 < b \<longrightarrow> x \<in> A)\<close>
     if \<open>0 \<in> A\<close> for A :: \<open>nat set\<close> and b :: nat
     using that unfolding 1 by auto
-  have [simp]: \<open>sublist xs {j. Suc j \<in> A} = a # xs \<longleftrightarrow> False\<close>
+  have [simp]: \<open>nths xs {j. Suc j \<in> A} = a # xs \<longleftrightarrow> False\<close>
     for a :: 'a and xs :: \<open>'a list\<close> and A :: \<open>nat set\<close>
-    using mset_sublist_subset_mset[of xs \<open>{j. Suc j \<in> A}\<close>] by auto
+    using mset_nths_subset_mset[of xs \<open>{j. Suc j \<in> A}\<close>] by auto
   show ?thesis -- \<open>TODO tune proof\<close>
     apply (induction xs arbitrary: A)
-     apply (auto simp: sublist_Cons less_Suc_eq)
+     apply (auto simp: nths_Cons less_Suc_eq)
     by (fastforce simp: less_Suc_eq)+
 qed
 
-lemma sublist_shift_lemma':
+lemma nths_shift_lemma':
   \<open>map fst [p<-zip xs [i..<i + n]. snd p + b : A] = map fst [p<-zip xs [0..<n]. snd p + b + i : A]\<close>
 proof (induct xs arbitrary: i n b)
   case Nil
@@ -725,15 +725,15 @@ next
   qed
 qed
 
-lemma sublist_Cons_upt_Suc: \<open>sublist (a # xs) {0..<Suc n} = a # sublist xs {0..<n}\<close>
-  unfolding sublist_def
+lemma nths_Cons_upt_Suc: \<open>nths (a # xs) {0..<Suc n} = a # nths xs {0..<n}\<close>
+  unfolding nths_def
   apply (subst upt_conv_Cons)
    apply simp
-  using sublist_shift_lemma'[of 0 \<open>{0..<Suc n}\<close> \<open>xs\<close> 1 \<open>length xs\<close>]
+  using nths_shift_lemma'[of 0 \<open>{0..<Suc n}\<close> \<open>xs\<close> 1 \<open>length xs\<close>]
   by (simp_all add: ac_simps)
 
 
-lemma sublist_empty_iff: \<open>sublist xs A = [] \<longleftrightarrow> {..<length xs} \<inter> A = {}\<close>
+lemma nths_empty_iff: \<open>nths xs A = [] \<longleftrightarrow> {..<length xs} \<inter> A = {}\<close>
 proof (induction xs arbitrary: A)
   case Nil
   then show ?case by auto
@@ -746,17 +746,17 @@ next
   show ?case
   proof (cases \<open>0 \<in> A\<close>)
     case True
-    then show ?thesis by (subst sublist_Cons) auto
+    then show ?thesis by (subst nths_Cons) auto
   next
     case False
     then show ?thesis
-      by (subst sublist_Cons) (use less_Suc_eq_0_disj IH in auto)
+      by (subst nths_Cons) (use less_Suc_eq_0_disj IH in auto)
   qed
 qed
 
-lemma sublist_upt_Suc:
+lemma nths_upt_Suc:
   assumes \<open>i < length xs\<close>
-  shows \<open>sublist xs {i..<length xs} = xs!i # sublist xs {Suc i..<length xs}\<close>
+  shows \<open>nths xs {i..<length xs} = xs!i # nths xs {Suc i..<length xs}\<close>
 proof -
   have upt: \<open>{i..<k} = {j. i \<le> j \<and> j < k}\<close> for i k :: nat
     by auto
@@ -771,7 +771,7 @@ proof -
       using that by auto
     show ?case
       using IH[of \<open>i-1\<close>] i_le
-      by (auto simp add: sublist_Cons upt)
+      by (auto simp add: nths_Cons upt)
   qed
 qed
 

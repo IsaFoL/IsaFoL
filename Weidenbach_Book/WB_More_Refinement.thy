@@ -166,6 +166,10 @@ lemma
 
 subsubsection \<open>Inversion Tactics\<close>
 
+lemma refinement_trans_long:
+  \<open>A = A' \<Longrightarrow> B = B' \<Longrightarrow> R \<subseteq> R' \<Longrightarrow> A \<le> \<Down> R B \<Longrightarrow> A' \<le> \<Down> R' B'\<close>
+  by (meson pw_ref_iff subsetCE)
+
 lemma mem_set_trans:
   \<open>A \<subseteq> B \<Longrightarrow> a \<in> A \<Longrightarrow> a \<in> B\<close>
   by auto
@@ -315,7 +319,7 @@ text \<open>
   via induction: this is the target of a first refinement.
 \<close>
 lemma WHILE\<^sub>T_nth_WHILE\<^sub>T_list:
-  \<open>WHILE\<^sub>T\<^bsup>\<lambda>(brk, i). P (sublist xs {i..<length xs}) \<and> i \<le> length xs\<^esup>
+  \<open>WHILE\<^sub>T\<^bsup>\<lambda>(brk, i). P (nths xs {i..<length xs}) \<and> i \<le> length xs\<^esup>
      (\<lambda>(brk, i). \<not>brk \<and> i < length xs)
      (\<lambda>(brk, i).
         do {
@@ -323,7 +327,7 @@ lemma WHILE\<^sub>T_nth_WHILE\<^sub>T_list:
           RETURN (f (xs!i), i+1)
         })
      (False, 0)
-   \<le> \<Down> {((b', i), (b, ys)). b' = b \<and> ys = sublist xs {i..<length xs} \<and> i \<le> length xs}
+   \<le> \<Down> {((b', i), (b, ys)). b' = b \<and> ys = nths xs {i..<length xs} \<and> i \<le> length xs}
     (WHILE\<^sub>T\<^bsup>\<lambda>(brk, ys). P ys\<^esup>
       (\<lambda>(brk, ys). \<not>brk \<and> ys \<noteq> [])
       (\<lambda>(brk, ys). RETURN (f (hd ys), tl ys))
@@ -333,9 +337,9 @@ lemma WHILE\<^sub>T_nth_WHILE\<^sub>T_list:
   subgoal by (simp add: atLeast0LessThan)
   subgoal by auto
   subgoal by auto
-  subgoal by (auto simp: sublist_empty_iff)
-  subgoal by (auto simp: sublist_upt_Suc)
-  subgoal by (auto simp: sublist_upt_Suc)
+  subgoal by (auto simp: nths_empty_iff)
+  subgoal by (auto simp: nths_upt_Suc)
+  subgoal by (auto simp: nths_upt_Suc)
   done
 
 lemma op_list_contains:
@@ -374,13 +378,13 @@ definition list_contains_WHILE where
        (False, 0)\<close>
 
 lemma \<open>list_contains_WHILE l xs \<le>
-      \<Down> ({((b', i), b, ys). b' = b \<and>  ys = sublist xs {i..<length xs} \<and> i \<le> length xs} O
+      \<Down> ({((b', i), b, ys). b' = b \<and>  ys = nths xs {i..<length xs} \<and> i \<le> length xs} O
           Collect (case_prod (\<lambda>(b', ys). op = b')))
         (RETURN (l \<in> set xs))\<close>
   (is \<open>_ \<le> \<Down> ?A _\<close>)
 proof -
   show \<open>list_contains_WHILE l xs \<le>
-      \<Down> ({((b', i), b, ys). b' = b \<and>  ys = sublist xs {i..<length xs} \<and> i \<le> length xs} O
+      \<Down> ({((b', i), b, ys). b' = b \<and>  ys = nths xs {i..<length xs} \<and> i \<le> length xs} O
           Collect (case_prod (\<lambda>(b', ys). op = b')))
         (RETURN (l \<in> set xs))\<close>
     (is \<open>_ \<le> \<Down> ?B _\<close>)

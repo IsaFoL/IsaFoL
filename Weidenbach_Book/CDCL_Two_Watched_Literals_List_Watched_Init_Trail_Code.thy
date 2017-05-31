@@ -931,14 +931,14 @@ lemma (in -) [sepref_fr_rules]:
 text \<open>TODO: called on lists?\<close>
 definition (in -)find_max where
   \<open>find_max xs = do {
-    i \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, m). (m = fold max (sublist xs {0..<i}) 0) \<and> i \<le> length xs\<^esup>
+    i \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, m). (m = fold max (nths xs {0..<i}) 0) \<and> i \<le> length xs\<^esup>
      (\<lambda>(i, _). i < length xs)
      (\<lambda>(i, m). do {ASSERT (i < length xs); RETURN (i + 1, max m (xs ! i))})
      (0::nat, 0);
     RETURN (snd i)
    }\<close>
 
-lemma (in -)sublist_upt_Suc: \<open>aa < length xs \<Longrightarrow> sublist xs {0..<Suc aa} = sublist xs {0..<aa} @ [xs ! aa]\<close>
+lemma (in -)nths_upt_Suc: \<open>aa < length xs \<Longrightarrow> nths xs {0..<Suc aa} = nths xs {0..<aa} @ [xs ! aa]\<close>
   by (simp add: atLeast0LessThan take_Suc_conv_app_nth)
 
 lemma (in -) \<open>find_max xs \<le> RETURN (fold max xs (0::nat))\<close>
@@ -958,8 +958,8 @@ proof -
   show ?thesis
     unfolding find_max_def
     apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i, _). length xs - i)\<close>])
-           apply (auto simp: sublist_upt_Suc )
-    by (metis order_mono_setup.refl sublist_id_iff)
+           apply (auto simp: nths_upt_Suc )
+    by (metis order_mono_setup.refl nths_id_iff)
 
 qed
 

@@ -542,23 +542,22 @@ lemma map2_add_mset_map:
 next
   case 0 then show ?case 
     apply auto
-    unfolding subst_atm_mset_list_def
-    apply auto
     done
 qed
     
-theorem var_disjoint_Cons: (* Not used. Still kind of nice, I guess *)
+theorem var_disjoint_Cons: (* Not used. Still kind of nice, I guess. Could be adapted to new var_disjoint definition. *)
   assumes "var_disjoint (C#Cs)"
   shows "var_disjoint Cs"
   unfolding var_disjoint_def proof (rule, rule)
   fix \<sigma>s :: "'s list"
   assume "length \<sigma>s = length Cs"
   then have "length (undefined # \<sigma>s) = length (C # Cs)" by auto
-  then obtain \<tau> where "(C # Cs) \<cdot>\<cdot>cl (undefined # \<sigma>s) = (C # Cs) \<cdot>cl \<tau>" using assms unfolding var_disjoint_def by blast
+  then obtain \<tau> where "(C # Cs) \<cdot>\<cdot>cl (undefined # \<sigma>s) = (C # Cs) \<cdot>cl \<tau>" using assms using var_disjoint_clauses by blast
   then have "Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>"
     by simp
-  then show "\<exists>\<tau>. Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>" by blast  
-qed
+  then show "\<exists>\<tau>. \<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma>s ! i = S \<cdot> \<tau>" 
+    sorry
+oops
 
 theorem tl_subst: "length Cs = length \<rho>s \<Longrightarrow> tl (Cs \<cdot>\<cdot>cl \<rho>s) = (tl Cs) \<cdot>\<cdot>cl (tl \<rho>s)"
   apply (induction Cs arbitrary: \<rho>s)
@@ -566,10 +565,6 @@ theorem tl_subst: "length Cs = length \<rho>s \<Longrightarrow> tl (Cs \<cdot>\<
   unfolding subst_cls_lists_def
     unfolding map2_def
   by (metis (no_types, lifting) list.exhaust_sel list.sel(3) list.size(3) map_tl nat.simps(3) zip_Cons_Cons)
-
-
-lemma inv_ren_ren: "is_renaming s \<Longrightarrow> is_renaming (inv_ren s)"
-  sorry    
   
 lemma usf: "mset (map f (list_of_mset M)) = image_mset f M"
   by auto
@@ -799,7 +794,7 @@ lemma ord_resolve_lifting:
         apply (auto simp del: subst_cls_comp_subst
             simp add: subst_cls_comp_subst[symmetric]) done
     also have "... = S (((CAi'' ! i) \<cdot> (\<rho>s ! i))) \<cdot> (\<rho>s_inv ! i) \<cdot> \<eta>s'' ! i"
-      using inv_ren_ren
+      using inv_ren_is_renaming
       (* since (\<rho>s_inv ! i) is a renaming. *) 
       using selection_renaming_invariant
       using \<rho>s_ren unfolding \<rho>s_inv_def
@@ -824,7 +819,7 @@ lemma ord_resolve_lifting:
        by (metis \<rho>_ren inv_ren_cancel_r subst_cls_comp_subst subst_cls_id_subst)
         
     also have "... = S (((DA'') \<cdot> (\<rho>))) \<cdot> (\<rho>_inv) \<cdot> \<eta>''"
-      using inv_ren_ren
+      using inv_ren_is_renaming
       (* since (\<rho>s_inv ! i) is a renaming. *) 
       using selection_renaming_invariant
       using \<rho>_ren using \<rho>_inv_p

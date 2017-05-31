@@ -94,6 +94,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
       <li><a href="#index_s"><span>s</span></a></li>
       <li><a href="#index_t"><span>t</span></a></li>
       <li><a href="#index_v"><span>v</span></a></li>
+      <li><a href="#index_w"><span>w</span></a></li>
       <li class="current"><a href="#index_0x7e"><span>~</span></a></li>
     </ul>
   </div>
@@ -117,7 +118,8 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 
 <h3><a class="anchor" id="index_a"></a>- a -</h3><ul>
 <li>acquire()
-: <a class="el" href="classSynch__Data.html#ac92efe9a2939a7e306c07f416e79b05d">Synch_Data</a>
+: <a class="el" href="classspinlock.html#a2a6d78068341ffdb7620e5e0a88a52a8">spinlock</a>
+, <a class="el" href="classSynch__Data.html#ac92efe9a2939a7e306c07f416e79b05d">Synch_Data</a>
 </li>
 <li>add_clause()
 : <a class="el" href="classVerifier.html#a6645719782bbe3501ec467d733b91169">Verifier</a>
@@ -132,8 +134,11 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 
 
 <h3><a class="anchor" id="index_b"></a>- b -</h3><ul>
+<li>bulk_mark_clauses()
+: <a class="el" href="classSynch__Data.html#a3a17aa28e527717c4177a4257720b1ea">Synch_Data</a>
+</li>
 <li>bwd_pass()
-: <a class="el" href="classVerifier.html#a9d152bc6015be397a498ab8277cb90f5">Verifier</a>
+: <a class="el" href="classVerifier.html#a9bb6babc7ea467c7a63a79825f539a2c">Verifier</a>
 </li>
 </ul>
 
@@ -148,6 +153,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <li>clid()
 : <a class="el" href="classClauseDB.html#a398ba26454100ee10a8dfdfaeb73ae0f">ClauseDB</a>
 </li>
+<li>close()
+: <a class="el" href="classProof__Writer.html#ae3c8a116017211e54eea8aa058b21fff">Proof_Writer&lt; binary &gt;</a>
+</li>
 <li>clw1()
 : <a class="el" href="classClauseDB.html#a465d36e141a2d244a864b384bf3cfae7">ClauseDB</a>
 </li>
@@ -161,17 +169,14 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 
 
 <h3><a class="anchor" id="index_d"></a>- d -</h3><ul>
-<li>dbg_check_uprop()
-: <a class="el" href="classVerifier.html#a258190d5ecf4fb74fedf30c2f5a1c2ea">Verifier</a>
-</li>
-<li>do_parsing()
-: <a class="el" href="classVController.html#a27e72177b9168a1cd7f6fa3cc5d1d591">VController</a>
-</li>
 <li>do_verification()
 : <a class="el" href="classVController.html#a6b65ba1a75951783cc38f91afeeebec0">VController</a>
 </li>
 <li>dump_proof()
 : <a class="el" href="classVController.html#a0780142cf26f45e895bfc0d8d948faf0">VController</a>
+</li>
+<li>dump_split_proof()
+: <a class="el" href="classVController.html#a1edc15628c777fe36dd9ea2ae090277e">VController</a>
 </li>
 </ul>
 
@@ -194,6 +199,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 
 
 <h3><a class="anchor" id="index_g"></a>- g -</h3><ul>
+<li>get_cnt_verified()
+: <a class="el" href="classVerifier.html#a5d885c6884ed1a25559c49fe609a1587">Verifier</a>
+</li>
 <li>get_conflict()
 : <a class="el" href="classGlobal__Data.html#af185ed7602d945c046759b75af6e5b69">Global_Data</a>
 </li>
@@ -213,6 +221,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <li>get_fwd_vmarked()
 : <a class="el" href="classVerifier.html#a277c007766fdcc122da0e620004fffe4">Verifier</a>
 </li>
+<li>get_incoming()
+: <a class="el" href="classSynch__Data.html#aea888bec09816403f3c8060e14808caf">Synch_Data</a>
+</li>
 <li>get_item()
 : <a class="el" href="classGlobal__Data.html#a39e6cdfd161e7845b846683a456d7601">Global_Data</a>
 </li>
@@ -231,9 +242,6 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </li>
 <li>get_pos()
 : <a class="el" href="classitem__t.html#aad951a2834110edbf86cedc57e2086bc">item_t</a>
-</li>
-<li>get_rat_candidates()
-: <a class="el" href="classVerifier.html#ae999894dcc6bb313b81306e6fc182a39">Verifier</a>
 </li>
 <li>get_rat_counts()
 : <a class="el" href="classSynch__Data.html#a1e5ba5aa5022182deae29733a4baeef9">Synch_Data</a>
@@ -313,8 +321,10 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 
 <h3><a class="anchor" id="index_m"></a>- m -</h3><ul>
 <li>mark_clause()
-: <a class="el" href="classSynch__Data.html#a023af3c79d4618efec7271b01b36ff9f">Synch_Data</a>
-, <a class="el" href="classVerifier.html#ac0d4d56e1dce70d5aa88e9d8783fc252">Verifier</a>
+: <a class="el" href="classVerifier.html#ac0d4d56e1dce70d5aa88e9d8783fc252">Verifier</a>
+</li>
+<li>mark_clause_single_threaded()
+: <a class="el" href="classSynch__Data.html#a95c51ad5378eb87cbcb5e1e2497ddf48">Synch_Data</a>
 </li>
 <li>mark_var()
 : <a class="el" href="classVerifier.html#a38eb63fca984901cf62592f201c90f80">Verifier</a>
@@ -338,7 +348,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 : <a class="el" href="structpos__t.html#ac8352e6a54b6ab93217fdaa925bfa410">pos_t</a>
 </li>
 <li>operator[]()
-: <a class="el" href="classlit__map.html#aae77740f976bed8047a732d8f3a92edf">lit_map&lt; T &gt;</a>
+: <a class="el" href="classlit__map.html#a140882808734807991e3eab72f86281e">lit_map&lt; T &gt;</a>
 </li>
 </ul>
 
@@ -348,7 +358,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 : <a class="el" href="classClauseDB.html#a4ceb667e2d6436f1810c51f9588f6fd0">ClauseDB</a>
 </li>
 <li>p2i()
-: <a class="el" href="classClauseDB.html#ad1b343c35d7d37a57a8af070f4d27f7a">ClauseDB</a>
+: <a class="el" href="classClauseDB.html#a76533116bae5848ecdb63b67a0261f79">ClauseDB</a>
 </li>
 <li>parse_clause()
 : <a class="el" href="classParser.html#a255b91f86d20de3fb538f3d43a5f3358">Parser</a>
@@ -374,11 +384,11 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <li>proof_of()
 : <a class="el" href="classSynch__Data.html#a5617d994548ed904cd06fa13d694de3f">Synch_Data</a>
 </li>
+<li>Proof_Writer()
+: <a class="el" href="classProof__Writer.html#a4172f25ff68ea65e9a6f88fef1bed448">Proof_Writer&lt; binary &gt;</a>
+</li>
 <li>propagate_units()
 : <a class="el" href="classVerifier.html#a3877123d6158632c874fb54daf5a7d0e">Verifier</a>
-</li>
-<li>propagate_units_aux()
-: <a class="el" href="classVerifier.html#ac4c78131e225c13f997f4521a30b623c">Verifier</a>
 </li>
 <li>push_clause_ids()
 : <a class="el" href="structpush__clause__ids.html#a80e23fffb6d2a283f2ae84610b375d3a">push_clause_ids</a>
@@ -389,6 +399,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <h3><a class="anchor" id="index_r"></a>- r -</h3><ul>
 <li>readd_clause()
 : <a class="el" href="classVerifier.html#a4a24b94116d990d1a9108747942fab67">Verifier</a>
+</li>
+<li>release()
+: <a class="el" href="classspinlock.html#af1f2e2a0713952b445c8a0754e318c6e">spinlock</a>
 </li>
 <li>rem_clause()
 : <a class="el" href="classVerifier.html#a920f17f69b934a34999e78206f674a3b">Verifier</a>
@@ -409,6 +422,18 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <li>shrink_to()
 : <a class="el" href="classClauseDB.html#a7de50f4b8dd784a1c188e5b5260bb839">ClauseDB</a>
 </li>
+<li>spinlock()
+: <a class="el" href="classspinlock.html#a2398277bfffe2e811ccc5af30e8d557b">spinlock</a>
+</li>
+<li>start_ty()
+: <a class="el" href="classProof__Writer.html#ac5cd7016d29e3d843a0ecd8630b85394">Proof_Writer&lt; binary &gt;</a>
+</li>
+<li>sync_incoming_marked()
+: <a class="el" href="classVerifier.html#a044dbbc8f6417376fda72cc1d4b239da">Verifier</a>
+</li>
+<li>sync_marked()
+: <a class="el" href="classVerifier.html#aa85672e8c60fb1cac3636d1a878e53e3">Verifier</a>
+</li>
 <li>Synch_Data()
 : <a class="el" href="classSynch__Data.html#a9baafb3b3f399cdb3dc914bd717b6e9b">Synch_Data</a>
 </li>
@@ -418,6 +443,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <h3><a class="anchor" id="index_t"></a>- t -</h3><ul>
 <li>trail_pos()
 : <a class="el" href="classVerifier.html#a1fdb7c7821ddad320875958eb98b40e8">Verifier</a>
+</li>
+<li>truncate_items()
+: <a class="el" href="classGlobal__Data.html#ab3a0f417b96a9e07470fccf6a6261e37">Global_Data</a>
 </li>
 </ul>
 
@@ -429,8 +457,27 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <li>Verifier()
 : <a class="el" href="classVerifier.html#a3f4d2f9dac7c8df5ae0e8bd5a871bd97">Verifier</a>
 </li>
-<li>verify()
-: <a class="el" href="classVerifier.html#a2653db0b3cb50f5378a9f238e834c017">Verifier</a>
+</ul>
+
+
+<h3><a class="anchor" id="index_w"></a>- w -</h3><ul>
+<li>write_cnt()
+: <a class="el" href="classProof__Writer.html#ae9c2bc5add3e0593c9bc0b67b47e1471">Proof_Writer&lt; binary &gt;</a>
+</li>
+<li>write_del()
+: <a class="el" href="classProof__Writer.html#addb491557e96428d0b92e8e56eaafaf9">Proof_Writer&lt; binary &gt;</a>
+</li>
+<li>write_id()
+: <a class="el" href="classProof__Writer.html#a4c1c7d91a252243f4ca8a9ad8e1c02e3">Proof_Writer&lt; binary &gt;</a>
+</li>
+<li>write_lit()
+: <a class="el" href="classProof__Writer.html#ae85a42cbf33f6ca2e7bfc9116c1706b1">Proof_Writer&lt; binary &gt;</a>
+</li>
+<li>write_uprop()
+: <a class="el" href="classProof__Writer.html#a0b4bda8e20f88e4dcf468127059b63bd">Proof_Writer&lt; binary &gt;</a>
+</li>
+<li>write_Z()
+: <a class="el" href="classProof__Writer.html#ad3f196e452090c752455dec74ba3f49f">Proof_Writer&lt; binary &gt;</a>
 </li>
 </ul>
 
