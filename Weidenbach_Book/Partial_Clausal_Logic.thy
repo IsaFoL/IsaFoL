@@ -135,6 +135,11 @@ lemma atms_of_ms_union[simp]:
 lemma atms_of_mms_union[simp]:
   "atms_of_mms (\<psi>s \<union># \<chi>s) = atms_of_mms \<psi>s \<union> atms_of_mms \<chi>s"
   unfolding atms_of_mms_def by auto
+    
+(* S2MS *)
+lemma atms_of_mms_add[simp]:
+  "atms_of_mms (\<psi>s + \<chi>s) = atms_of_mms \<psi>s \<union> atms_of_mms \<chi>s"
+  unfolding atms_of_mms_def by auto
 
 lemma atms_of_ms_insert[simp]:
   "atms_of_ms (insert \<psi>s \<chi>s) = atms_of \<psi>s \<union> atms_of_ms \<chi>s"
@@ -143,6 +148,11 @@ lemma atms_of_ms_insert[simp]:
 (* S2MS *)    
 lemma atms_of_mms_insert[simp]:
   "atms_of_mms ({#\<psi>s#} \<union># \<chi>s) = atms_of \<psi>s \<union> atms_of_mms \<chi>s"
+  unfolding atms_of_mms_def atms_of_def by auto
+    
+(* S2MS *)    
+lemma atms_of_mms_insert_add[simp]:
+  "atms_of_mms ({#\<psi>s#} + \<chi>s) = atms_of \<psi>s \<union> atms_of_mms \<chi>s"
   unfolding atms_of_mms_def atms_of_def by auto
 
 lemma atms_of_ms_singleton[simp]: "atms_of_ms {L} = atms_of L"
@@ -294,7 +304,7 @@ lemma total_over_m_insert[iff]:
   unfolding total_over_m_def total_over_set_def by fastforce
 
 (* S2MS modif *)
-lemma total_over_m_extension:
+lemma total_over_mm_extension:
   fixes I :: "'v literal set" and A :: "'v clauses"
   assumes total: "total_over_mm I A"
   shows "\<exists>I'. total_over_mm (I \<union> I') (A\<union>#B)
@@ -306,7 +316,21 @@ proof -
     using total unfolding total_over_mm_def total_over_set_def by auto
   ultimately show ?thesis by blast
 qed
-  
+
+(* S2MS *)
+lemma total_over_mm_extension_add:
+  fixes I :: "'v literal set" and A :: "'v clauses"
+  assumes total: "total_over_mm I A"
+  shows "\<exists>I'. total_over_mm (I \<union> I') (A + B)
+    \<and> (\<forall>x\<in>I'. atm_of x \<in> atms_of_mms B \<and> atm_of x \<notin> atms_of_mms A)"
+proof -
+  let ?I' = "{Pos v |v. v\<in> atms_of_mms B \<and> v \<notin> atms_of_mms A}"
+  have "\<forall>x\<in>?I'. atm_of x \<in> atms_of_mms B \<and> atm_of x \<notin> atms_of_mms A" by auto
+  moreover have "total_over_mm (I \<union> ?I') (A\<union>#B)"
+    using total unfolding total_over_mm_def total_over_set_def by auto
+  ultimately show ?thesis by blast
+qed 
+
 (* S2MS modif *)
 lemma total_over_mm_consistent_extension:
   fixes I :: "'v literal set" and A :: "'v clauses"
@@ -319,6 +343,24 @@ proof -
   let ?I' = "{Pos v |v. v\<in> atms_of_mms B \<and> v \<notin> atms_of_mms A \<and> Pos v \<notin> I \<and> Neg v \<notin> I}"
   have "\<forall>x\<in>?I'. atm_of x \<in> atms_of_mms B \<and> atm_of x \<notin> atms_of_mms A" by auto
   moreover have "total_over_mm (I \<union> ?I') (A\<union>#B)"
+    using total unfolding total_over_mm_def total_over_set_def by auto
+  moreover have "consistent_interp (I \<union> ?I')"
+    using cons unfolding consistent_interp_def by (intro allI) (rename_tac L, case_tac L, auto)
+  ultimately show ?thesis by blast
+qed
+
+(* S2MS *)
+lemma total_over_mm_consistent_extension_add:
+  fixes I :: "'v literal set" and A :: "'v clauses"
+  assumes
+    total: "total_over_mm I A" and
+    cons: "consistent_interp I"
+  shows "\<exists>I'. total_over_mm (I \<union> I') (A + B)
+    \<and> (\<forall>x\<in>I'. atm_of x \<in> atms_of_mms B \<and> atm_of x \<notin> atms_of_mms A) \<and> consistent_interp (I \<union> I')"
+proof -
+  let ?I' = "{Pos v |v. v\<in> atms_of_mms B \<and> v \<notin> atms_of_mms A \<and> Pos v \<notin> I \<and> Neg v \<notin> I}"
+  have "\<forall>x\<in>?I'. atm_of x \<in> atms_of_mms B \<and> atm_of x \<notin> atms_of_mms A" by auto
+  moreover have "total_over_mm (I \<union> ?I') (A+B)"
     using total unfolding total_over_mm_def total_over_set_def by auto
   moreover have "consistent_interp (I \<union> ?I')"
     using cons unfolding consistent_interp_def by (intro allI) (rename_tac L, case_tac L, auto)
@@ -520,6 +562,12 @@ abbreviation unsatisfiable :: "'a clause multiset \<Rightarrow> bool" where
 (* S2MS modif *)
 lemma satisfiable_decreasing:
   assumes "satisfiable (\<psi> \<union># \<psi>')"
+  shows "satisfiable \<psi>"
+  using assms total_over_m_union unfolding satisfiable_def by auto
+    
+(* S2MS modif *)
+lemma satisfiable_decreasing_add:
+  assumes "satisfiable (\<psi> + \<psi>')"
   shows "satisfiable \<psi>"
   using assms total_over_m_union unfolding satisfiable_def by auto
 
@@ -770,15 +818,15 @@ definition true_cls_cls :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool
 
 (* S2MS modif *)
 definition true_cls_clss :: "'a clause \<Rightarrow> 'a clauses \<Rightarrow> bool" (infix "\<Turnstile>fs" 49) where
-"\<psi> \<Turnstile>fs \<chi> \<longleftrightarrow> (\<forall>I. total_over_mm I ({#\<psi>#} \<union># \<chi>) \<longrightarrow> consistent_interp I \<longrightarrow> I \<Turnstile> \<psi> \<longrightarrow> I \<Turnstile>s \<chi>)"
+"\<psi> \<Turnstile>fs \<chi> \<longleftrightarrow> (\<forall>I. total_over_mm I ({#\<psi>#} + \<chi>) \<longrightarrow> consistent_interp I \<longrightarrow> I \<Turnstile> \<psi> \<longrightarrow> I \<Turnstile>s \<chi>)"
 
 (* S2MS modif *)
 definition true_clss_cls :: "'a clauses \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>p" 49) where
-"N \<Turnstile>p \<chi> \<longleftrightarrow> (\<forall>I. total_over_mm I (N \<union># {#\<chi>#}) \<longrightarrow> consistent_interp I \<longrightarrow> I \<Turnstile>s N \<longrightarrow> I \<Turnstile> \<chi>)"
+"N \<Turnstile>p \<chi> \<longleftrightarrow> (\<forall>I. total_over_mm I (N + {#\<chi>#}) \<longrightarrow> consistent_interp I \<longrightarrow> I \<Turnstile>s N \<longrightarrow> I \<Turnstile> \<chi>)"
 
 (* S2MS modif *)
 definition true_clss_clss :: "'a clauses \<Rightarrow> 'a clauses \<Rightarrow> bool" (infix "\<Turnstile>ps" 49) where
-"N \<Turnstile>ps N' \<longleftrightarrow> (\<forall>I. total_over_mm I (N \<union># N') \<longrightarrow> consistent_interp I \<longrightarrow> I \<Turnstile>s N \<longrightarrow> I \<Turnstile>s N')"
+"N \<Turnstile>ps N' \<longleftrightarrow> (\<forall>I. total_over_mm I (N + N') \<longrightarrow> consistent_interp I \<longrightarrow> I \<Turnstile>s N \<longrightarrow> I \<Turnstile>s N')"
 
 lemma true_cls_cls_refl[simp]:
   "A \<Turnstile>f A"
@@ -786,8 +834,11 @@ lemma true_cls_cls_refl[simp]:
 
 (* S2MS modif *)
 lemma true_cls_cls_insert_l[simp]:
-  "a \<Turnstile>f C \<Longrightarrow> {#a#} \<union># A \<Turnstile>p C"
-  unfolding true_cls_cls_def true_clss_cls_def true_clss_def by (simp add: total_over_mm_def)
+  "a \<Turnstile>f C \<Longrightarrow> {#a#} + A \<Turnstile>p C"
+  unfolding true_cls_cls_def true_clss_cls_def true_clss_def
+  by (metis atms_of_mms_empty atms_of_mms_singleton atms_of_ms_emtpy_set empty_neutral(2) 
+      multi_member_this total_over_m_def total_over_m_insert total_over_m_union 
+      total_over_mm_addition total_over_mm_def)
 
 (* S2MS modif *)
 lemma true_cls_clss_empty[iff]:
@@ -797,8 +848,9 @@ lemma true_cls_clss_empty[iff]:
 (* S2MS modif *)
 lemma true_prop_true_clause[iff]:
   "{#\<phi>#} \<Turnstile>p \<psi> \<longleftrightarrow> \<phi> \<Turnstile>f \<psi>"
-  unfolding true_cls_cls_def true_clss_cls_def 
-  by (metis atms_of_mms_singleton atms_of_mms_union atms_of_ms_singleton atms_of_ms_union total_over_m_def total_over_mm_def true_clss_singleton)
+  unfolding true_cls_cls_def true_clss_cls_def
+  by (metis atms_of_mms_add atms_of_mms_singleton atms_of_ms_singleton atms_of_ms_union 
+      total_over_m_def total_over_mm_def true_clss_singleton)
 
 (* S2MS modif *)
 lemma true_clss_clss_true_clss_cls[iff]:
@@ -826,19 +878,30 @@ lemma true_clss_cs_mono_l[simp]:
   by (meson subset_mset.sup_ge1 true_clss_cls_subset)
 
 (* S2MS modif *)
+lemma true_clss_cs_mono_l_add[simp]:
+  "A \<Turnstile>p CC \<Longrightarrow> A + B \<Turnstile>p CC"
+  by (metis total_over_mm_addition true_clss_addition true_clss_cls_def)
+
+(* S2MS modif *)
 lemma true_clss_cs_mono_l2[simp]:
   "B \<Turnstile>p CC \<Longrightarrow> A \<union># B \<Turnstile>p CC"
   by (metis subset_mset.sup.commute true_clss_cs_mono_l)
+    
+(* S2MS modif *)
+lemma true_clss_cs_mono_l2_add[simp]:
+  "B \<Turnstile>p CC \<Longrightarrow> A + B \<Turnstile>p CC"
+  by (metis true_clss_cs_mono_l_add union_commute)
 
 (* S2MS modif *)
 lemma true_clss_cls_mono_r[simp]:
   "A \<Turnstile>p CC \<Longrightarrow> A \<Turnstile>p CC + CC'"
-  by (simp add: total_over_mm_def true_clss_cls_def)
+  by (metis atms_of_mms_singleton atms_of_plus total_over_mm_addition total_over_mm_def 
+      total_over_set_union true_cls_union true_clss_cls_def)
 
 (* S2MS modif *)
 lemma true_clss_cls_mono_r'[simp]:
   "A \<Turnstile>p CC' \<Longrightarrow> A \<Turnstile>p CC + CC'"
-  by (simp add: total_over_mm_def true_clss_cls_def)
+  by (metis true_clss_cls_mono_r union_commute)
 
 lemma true_clss_cls_mono_add_mset[simp]:
   "A \<Turnstile>p CC \<Longrightarrow> A \<Turnstile>p add_mset L CC"
@@ -881,65 +944,78 @@ lemma true_clss_clss_insert_l[simp]:
   
 (* S2MS modif *)
 lemma true_clss_clss_union_and[iff]:
-  "A \<Turnstile>ps C \<union># D \<longleftrightarrow> (A \<Turnstile>ps C \<and> A \<Turnstile>ps D)"
+  "A \<Turnstile>ps C + D \<longleftrightarrow> (A \<Turnstile>ps C \<and> A \<Turnstile>ps D)"
 proof
   {
     fix A C D :: "'a clauses"
-    assume A: "A \<Turnstile>ps C \<union># D"
+    assume A: "A \<Turnstile>ps C + D"
     have "A \<Turnstile>ps C"
         unfolding true_clss_clss_def true_clss_cls_def total_over_m_insert
       proof (intro allI impI)
         fix I
         assume
-          totAC: "total_over_mm I (A \<union># C)" and
+          totAC: "total_over_mm I (A + C)" and
           cons: "consistent_interp I" and
           I: "I \<Turnstile>s A"
         then have tot: "total_over_mm I A" and tot': "total_over_mm I C" by auto
         obtain I' where
-          tot': "total_over_mm (I \<union> I') (A \<union># C \<union># D)" and
+          tot': "total_over_mm (I \<union> I') (A + C + D)" and
           cons': "consistent_interp (I \<union> I')" and
-          H: "\<forall>x\<in>I'. atm_of x \<in> atms_of_mms D \<and> atm_of x \<notin> atms_of_mms (A \<union># C)"
-          using total_over_mm_consistent_extension[OF _ cons, of "A \<union># C"] tot tot' by blast
+          H: "\<forall>x\<in>I'. atm_of x \<in> atms_of_mms D \<and> atm_of x \<notin> atms_of_mms (A + C)"
+          using total_over_mm_consistent_extension[OF _ cons, of "A + C"] tot tot' by blast
         moreover have "I \<union> I' \<Turnstile>s A" using I by simp
-        ultimately have "I \<union> I' \<Turnstile>s C \<union># D" using A unfolding true_clss_clss_def by auto
-        then have "I \<union> I' \<Turnstile>s C \<union># D" by auto
+        ultimately have "I \<union> I' \<Turnstile>s C + D" using A unfolding true_clss_clss_def by auto
+        then have "I \<union> I' \<Turnstile>s C + D" by auto
         then show "I \<Turnstile>s C" using notin_vars_union_true_clss_true_clss[of I'] H
-        by (metis atms_of_mms_union sup.cobounded2 true_clss_union)
+        by auto
       qed
    } note H = this
-  assume "A \<Turnstile>ps C \<union># D"
+  assume "A \<Turnstile>ps C + D"
   then show "A \<Turnstile>ps C \<and> A \<Turnstile>ps D" using H[of A] union_commute[of C D]
-  by (metis subset_mset.sup.commute)
+  by metis
 next
   assume "A \<Turnstile>ps C \<and> A \<Turnstile>ps D"
-  then show "A \<Turnstile>ps C \<union># D"
+  then show "A \<Turnstile>ps C + D"
     unfolding true_clss_clss_def
-    by (meson total_over_mm_union true_clss_clss_def true_clss_union)
+    by simp
 qed
 
 (* S2MS modif *)
 lemma true_clss_clss_insert[iff]:
   "A \<Turnstile>ps {#L#} \<union># Ls \<longleftrightarrow> (A \<Turnstile>p L \<and> A \<Turnstile>ps Ls)"
-  using true_clss_clss_union_and[of A "{#L#}" "Ls"] by auto
+  using true_clss_clss_union_and[of A "{#L#}" "Ls"] 
+  by (smt insert_DiffM monoid.left_neutral subset_mset.add_diff_inverse 
+      subset_mset.sup_bot.monoid_axioms subset_mset.sup_ge1 sup_union_left1 sup_union_left2 
+      true_clss_clss_true_clss_cls true_clss_clss_union_and union_mset_add_mset_left)
+    
+(* S2MS modif *)
+lemma true_clss_clss_insert_add[iff]:
+  "A \<Turnstile>ps {#L#} + Ls \<longleftrightarrow> (A \<Turnstile>p L \<and> A \<Turnstile>ps Ls)"
+  using true_clss_clss_union_and[of A "{#L#}" "Ls"]
+    by auto
 
 (* S2MS modif *)
 lemma true_clss_clss_subset:
   "A \<subseteq># B \<Longrightarrow> A \<Turnstile>ps CC \<Longrightarrow> B \<Turnstile>ps CC"
-  by (smt total_over_mm_subset total_over_mm_union true_clss_clss_def true_clss_mono)
+  by (smt total_over_mm_subset total_over_mm_addition true_clss_clss_def true_clss_mono)
 
 (* S2MS modif *)
 lemma union_trus_clss_clss[simp]: "A \<union># B \<Turnstile>ps B"
   unfolding true_clss_clss_def using true_clss_union by auto
 
 (* S2MS modif *)
+lemma union_trus_clss_clss_add[simp]: "A + B \<Turnstile>ps B"
+  unfolding true_clss_clss_def using true_clss_union by auto
+
+(* S2MS modif *)
 lemma true_clss_clss_remove[simp]:
   "A \<Turnstile>ps B \<Longrightarrow> A \<Turnstile>ps B - C"
-  by (metis diff_subset_eq_self subset_mset.le_iff_sup true_clss_clss_union_and)
+  by (metis diff_subset_eq_self subset_mset.add_diff_inverse true_clss_clss_union_and)
 
 (* S2MS modif *)
 lemma true_clss_clss_subsetE:
   "N \<Turnstile>ps B \<Longrightarrow> A \<subseteq># B \<Longrightarrow> N \<Turnstile>ps A"
-  by (metis subset_mset.le_iff_sup true_clss_clss_union_and)
+  by (metis subset_mset.add_diff_inverse true_clss_clss_union_and)
 
 (* S2MS modif *)
 lemma true_clss_clss_in_imp_true_clss_cls:
@@ -957,8 +1033,8 @@ lemma true_clss_clss_left_right:
   assumes "A \<Turnstile>ps B"
   and "A \<union># B \<Turnstile>ps M"
   shows "A \<Turnstile>ps M \<union># B"
-  using assms unfolding true_clss_clss_def 
-  by (metis total_over_mm_union true_clss_union)
+  using assms unfolding true_clss_clss_def
+  by (metis total_over_mm_addition total_over_mm_union true_clss_union)
     
 (* S2MS *)
 lemma true_clss_clss_left_right_add:
@@ -967,8 +1043,31 @@ lemma true_clss_clss_left_right_add:
   shows "A \<Turnstile>ps M + B"
   using assms unfolding true_clss_clss_def 
   by simp
-
-(* S2MS modif *)
+    
+(* S2MS *)
+lemma [simp]: \<open>I \<Turnstile>m A \<union># B \<longleftrightarrow> I \<Turnstile>m A + B\<close>
+  unfolding true_cls_mset_def by auto
+    
+(* S2MS *)
+lemma [simp]: \<open>atms_of_mms (A + B) = atms_of_mms A \<union> atms_of_mms B\<close>
+  by (auto simp: atms_of_mms_def)
+   
+(* S2MS *)
+lemma [simp]: \<open>total_over_mm I (A + B) \<longleftrightarrow> total_over_mm I A \<and>
+total_over_mm I B\<close>
+  unfolding total_over_mm_def
+  by auto
+    
+(* S2MS *)
+lemma add_union_entail_iff: \<open>A + B \<Turnstile>ps C \<longleftrightarrow> A \<union># B \<Turnstile>ps C\<close>
+  unfolding true_clss_clss_def
+  by auto    
+    
+(*S2MS*)
+lemma union_add_entailed_equiv: \<open>A \<Turnstile>ps B \<union># C \<longleftrightarrow> A \<Turnstile>ps B + C\<close>
+  by (simp add: true_clss_clss_def)
+    
+    (* S2MS modif *)
 lemma true_clss_clss_generalise_true_clss_clss:
   "A \<union># C \<Turnstile>ps D \<Longrightarrow> B \<Turnstile>ps C \<Longrightarrow> A \<union># B \<Turnstile>ps D"
 proof -
@@ -979,7 +1078,8 @@ proof -
   have "\<And>M. C \<union># (M \<union># A) \<Turnstile>ps D"
     using a1 by (simp add: subset_mset.sup.commute subset_mset.sup.left_commute)
   then show ?thesis
-    using f2 by (metis subset_mset.sup.commute true_clss_clss_left_right true_clss_clss_union_and)
+    using f2 by (metis add_union_entail_iff true_clss_clss_left_right_add true_clss_clss_union_and 
+        union_ac(2))
 qed
 
 (* S2MS *)
@@ -1004,21 +1104,28 @@ lemma true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or:
 proof (intro allI impI)
   fix I
   assume
-    tot: "total_over_mm I (N \<union># {#D + C#})" and
+    tot: "total_over_mm I (N + {#D + C#})" and
     "consistent_interp I" and
     "I \<Turnstile>s N"
   {
     assume L: "L \<in> I \<or> -L \<in> I"
     then have "total_over_mm I {#D + {#- L#}#}"
-      using tot unfolding total_over_mm_def by (cases L) auto
+      using tot unfolding total_over_mm_def
+      by (metis Neg_atm_of_iff add_mset_add_single atm_of_uminus atms_of_add_mset 
+          atms_of_mms_singleton atms_of_plus literal.collapse(1) tot total_over_mm_addition 
+          total_over_mm_def total_over_set_insert total_over_set_union)
     then have "I \<Turnstile> D + {#- L#}" using D \<open>I \<Turnstile>s N\<close> tot \<open>consistent_interp I\<close>
-      unfolding true_clss_cls_def by auto
+      unfolding true_clss_cls_def by fastforce
     moreover
       have "total_over_m I {C + {#L#}}"
-        using L tot unfolding total_over_mm_def by (cases L) auto
+        using L tot unfolding total_over_mm_def 
+        by (smt Un_iff \<open>total_over_mm I {#D + {#- L#}#}\<close> atm_of_uminus atms_of_add_mset 
+            atms_of_mms_singleton atms_of_ms_singleton atms_of_plus total_over_m_def 
+            total_over_mm_addition total_over_mm_def total_over_set_def)
       then have "I \<Turnstile> C + {#L#}"
         using C \<open>I \<Turnstile>s N\<close> tot \<open>consistent_interp I\<close> unfolding true_clss_cls_def total_over_mm_def 
-        by auto
+        by (metis C add_mset_add_single atms_of_mms_singleton atms_of_ms_singleton tot 
+            total_over_m_def total_over_mm_addition total_over_mm_def true_clss_cls_def)
     ultimately have "I \<Turnstile> D + C" using \<open>consistent_interp I\<close> consistent_interp_def by fastforce
   }
   moreover {
@@ -1026,14 +1133,18 @@ proof (intro allI impI)
     let ?I' = "I \<union> {L}"
     have "consistent_interp ?I'" using L \<open>consistent_interp I\<close> by auto
     moreover have "total_over_mm ?I' {#add_mset (-L) D#}"
-      using tot unfolding total_over_mm_def total_over_set_def by (auto simp add: atms_of_def)
-    moreover have "total_over_mm ?I' N" using tot by (metis tot total_over_mm_union total_union_m)
+      using tot unfolding total_over_mm_def total_over_set_def
+      by (metis Neg_atm_of_iff UnCI atm_of_uminus atms_of_add_mset 
+          atms_of_mms_singleton atms_of_plus insert_iff literal.collapse(1) tot 
+          total_over_mm_addition total_over_mm_def total_over_set_def)
+    moreover have "total_over_mm ?I' N" using tot by (meson total_over_mm_addition total_union_m)
     moreover have "?I' \<Turnstile>s N" using \<open>I \<Turnstile>s N\<close> using true_clss_union_increase by metis
     ultimately have "?I' \<Turnstile> add_mset (-L) D"
       using D unfolding true_clss_cls_def by blast
     then have "?I' \<Turnstile> D" using L by auto
     moreover
-      have "total_over_set I (atms_of (D + C))" using tot unfolding total_over_mm_def by auto
+      have "total_over_set I (atms_of (D + C))" using tot
+        by (metis atms_of_mms_singleton total_over_mm_addition total_over_mm_def)
       then have "L \<notin># D \<and> -L \<notin># D"
         using L unfolding total_over_set_def atms_of_def by (cases L) force+
     ultimately have "I \<Turnstile> D + C" unfolding true_cls_def by auto
@@ -1042,10 +1153,11 @@ proof (intro allI impI)
 qed
 
 lemma true_cls_union_mset[iff]: "I \<Turnstile> C \<union># D \<longleftrightarrow> I \<Turnstile> C \<or> I \<Turnstile> D"
-  unfolding true_cls_def by force
+  unfolding true_cls_def by force 
 
 lemma true_clss_cls_sup_iff_add: "N \<Turnstile>p C \<union># D \<longleftrightarrow> N \<Turnstile>p C + D"
-  by (simp add: total_over_mm_def true_clss_cls_def)
+  by (smt atms_of_mms_singleton atms_of_plus atms_of_union_mset total_over_mm_addition 
+      total_over_mm_def true_cls_union true_cls_union_mset true_clss_cls_def)
 
 lemma true_clss_cls_union_mset_true_clss_cls_or_not_true_clss_cls_or:
   assumes
@@ -1054,7 +1166,6 @@ lemma true_clss_cls_union_mset_true_clss_cls_or_not_true_clss_cls_or:
   shows "N \<Turnstile>p D \<union># C"
   using true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or[OF assms]
   by (subst true_clss_cls_sup_iff_add)
-
 
 subsection \<open>Subsumptions\<close>
 lemma subsumption_total_over_m:
@@ -1136,7 +1247,8 @@ lemma true_cls_remdups_mset[iff]: "I \<Turnstile> remdups_mset C \<longleftright
   unfolding true_cls_def by auto
 
 lemma true_clss_cls_remdups_mset[iff]: "A \<Turnstile>p remdups_mset C \<longleftrightarrow> A \<Turnstile>p C"
-  unfolding true_clss_cls_def total_over_mm_def by auto
+  unfolding true_clss_cls_def total_over_mm_def
+  by (metis atms_of_mms_add atms_of_mms_singleton atms_of_remdups_mset true_cls_remdups_mset)
 
 
 subsection \<open>Set of all Simple Clauses\<close>

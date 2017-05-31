@@ -746,31 +746,15 @@ lemma mset_union_inclusion:
   shows   \<open>(C \<union># A) \<subseteq># (C \<union># B)\<close> using assms
   by (metis subset_mset.le_sup_iff subset_mset.sup.absorb_iff2 subset_mset.sup.cobounded2)
 
-(* S2MS *)
-lemma [simp]: \<open>I \<Turnstile>m A \<union># B \<longleftrightarrow> I \<Turnstile>m A + B\<close>
-  unfolding true_cls_mset_def by auto
-(* S2MS *)
-lemma [simp]: \<open>atms_of_mms (A + B) = atms_of_mms A \<union> atms_of_mms B\<close>
-  by (auto simp: atms_of_mms_def)
-   
-(* S2MS *)
-lemma [simp]: \<open>total_over_mm I (A + B) \<longleftrightarrow> total_over_mm I A \<and>
-total_over_mm I B\<close>
-  unfolding total_over_mm_def
-  by auto
 
-(* S2MS *)
-lemma add_union_entail_iff: \<open>A + B \<Turnstile>ps C \<longleftrightarrow> A \<union># B \<Turnstile>ps C\<close>
-  unfolding true_clss_clss_def
-  by auto
+
+
     
 (* S2MS *)    
 lemma subset_insert_msetI2: "A \<subseteq># B \<Longrightarrow> A \<subseteq># add_mset b B"
   by (metis add_mset_remove_trivial diff_subset_eq_self subset_mset.inf.absorb_iff2 subset_mset.inf.coboundedI1)
 
-(*S2MS*)
-lemma union_add_entailed_equiv: \<open>A \<Turnstile>ps B \<union># C \<longleftrightarrow> A \<Turnstile>ps B + C\<close>
-  by (simp add: true_clss_clss_def)
+
     
 (* S2MS modif *)
 lemma true_clss_clss_union_and_add:
@@ -793,7 +777,7 @@ lemma subset_apply_unmark_filter_decided:
     
 (* S2MS *)
 lemma entailed_add_mset: \<open>A \<Turnstile>ps B \<Longrightarrow> A \<Turnstile>p b \<Longrightarrow> A \<Turnstile>ps add_mset b B\<close>
-  using entail_add_mset by force
+  using entail_add_mset by (metis add_mset_add_single true_clss_clss_true_clss_cls)
       
 (* S2MS modif*)
 lemma all_decomposition_implies_trail_is_implied:
@@ -948,8 +932,9 @@ lemma all_decomposition_implies_mono:
   unfolding all_decomposition_implies_def using superset_entails[of N N'] by auto
 
 (* S2MS *)
-lemma implies_remove_added: \<open>A \<Turnstile>ps add_mset X B \<Longrightarrow> A \<Turnstile>ps B\<close>
-  using true_clss_clss_union_and_add by force
+lemma implies_remove_added[simp]: \<open>A \<Turnstile>ps add_mset X B \<longleftrightarrow> A \<Turnstile>p X \<and> A \<Turnstile>ps B\<close> 
+  by (metis add.right_neutral entailed_add_mset subset_insert_msetI2 subset_mset.le_iff_add 
+      true_clss_clss_in_imp_true_clss_cls true_clss_clss_subsetE union_single_eq_member)
     
 (* S2MS modif *)    
 lemma all_decomposition_implies_mono_right:
@@ -961,8 +946,7 @@ lemma all_decomposition_implies_mono_right:
   subgoal for L C M' M
     apply (cases \<open>get_all_ann_decomposition (M' @ M)\<close>)
       using get_all_ann_decomposition_never_empty
-      apply auto     
-    using implies_remove_added by force
+      by auto
   done
 
 
@@ -973,8 +957,8 @@ text \<open>
   where each clause is a single literal (whose negation is in the original clause).\<close>
 (* S2MS modif *)
 definition CNot :: \<open>'v clause \<Rightarrow> 'v clauses\<close> where
-\<open>CNot \<psi> = {# {#-L#} |L\<in># \<psi>. True  #}\<close> (* bof?! *)
-(*\<open>CNot \<psi> = mset_set { {#-L#} | L. L \<in># \<psi> }\<close>*)
+\<open>CNot \<psi> = {# {#-L#}.L\<in># \<psi> #}\<close>
+
 
 (* S2MS modif *)
 lemma in_CNot_uminus[iff]:
@@ -1002,10 +986,10 @@ lemma in_CNot_implies_uminus:
   shows \<open>M \<Turnstile>a {#-L#}\<close> and \<open>-L \<in> lits_of_l M\<close>
   using assms by (auto simp: true_annots_def true_annot_def CNot_def)
 
-(* not true anymore in S2MS *)
-(*lemma CNot_remdups_mset[simp]:
-  \<open>CNot (remdups_mset A) = CNot A\<close>
-  unfolding CNot_def by auto *)
+(* S2MS modif *)
+lemma CNot_remdups_mset[simp]:
+  \<open>CNot (remdups_mset A) = remdups_mset (CNot A)\<close>
+  unfolding CNot_def by (induct A) auto
 
 lemma Ball_CNot_Ball_mset[simp]:
   \<open>(\<forall>x\<in># CNot D. P x) \<longleftrightarrow> (\<forall>L\<in># D. P {#-L#})\<close>
@@ -1037,9 +1021,9 @@ lemma atms_of_ms_CNot_atms_of[simp]:
 lemma true_clss_clss_contradiction_true_clss_cls_false:
   \<open>C \<in># D \<Longrightarrow> D \<Turnstile>ps CNot C \<Longrightarrow> D \<Turnstile>p {#}\<close>
   unfolding true_clss_clss_def true_clss_cls_def total_over_mm_def atms_of_mms_def
-  by (smt add_mset_union atms_of_mms_def atms_of_mms_empty atms_of_mms_mempty atms_of_mms_singleton 
-      atms_of_mms_union atms_of_ms_CNot_atms_of consistent_CNot_not empty_iff insert_DiffM 
-      set_mset_empty sup_union_left1 true_clss_def)
+  by (smt add_mset_add_single atms_of_mms_def atms_of_mms_singleton atms_of_ms_CNot_atms_of 
+      consistent_CNot_not multi_member_split satisfiable_def total_over_mm_addition 
+      total_over_mm_def total_over_mm_union true_clss_cls_def true_clss_cls_in)
 
 lemma true_annots_CNot_all_atms_defined:
   assumes \<open>M \<Turnstile>as CNot T\<close> and a1: \<open>L \<in># T\<close>
@@ -1066,8 +1050,10 @@ proof (intro allI impI)
   then have \<open>\<not>I \<Turnstile>s add_mset {#L#} B\<close>
     using assms cons unfolding true_clss_cls_def total_over_mm_def atms_of_mms_def by simp
   then show \<open>I \<Turnstile>s CNot {#L#}\<close>
-    using tot I by (cases L) auto
-oops
+    using tot I
+    by (metis add_mset_add_single atms_of_ms_CNot_atms_of total_not_CNot total_over_m_empty 
+        total_over_m_insert total_over_mm_addition total_over_mm_def true_clss_insert union_commute)
+qed
 
 lemma true_annots_true_cls_def_iff_negation_in_model:
   \<open>M \<Turnstile>as CNot C \<longleftrightarrow> (\<forall>L \<in># C. -L \<in> lits_of_l M)\<close>
@@ -1083,10 +1069,10 @@ lemma true_annot_CNot_diff:
   \<open>I \<Turnstile>as CNot C \<Longrightarrow> I \<Turnstile>as CNot (C - C')\<close>
   by (auto simp: true_annots_true_cls_def_iff_negation_in_model dest: in_diffD)
     
-(* S2MS modif: not true anymore *)
-(*lemma CNot_mset_replicate[simp]:
-  \<open>CNot (mset (replicate n L)) = (if n = 0 then {#} else {#{#-L#}#})\<close>
-  by (induction n) auto *)
+(* S2MS modif *)
+lemma CNot_mset_replicate[simp]:
+  \<open>CNot (mset (replicate n L)) = replicate_mset n {#-L#}\<close>
+      by (induction n) auto
 
 lemma consistent_CNot_not_tautology:
   \<open>consistent_interp M \<Longrightarrow> M \<Turnstile>s CNot D \<Longrightarrow> \<not>tautology D\<close>
@@ -1098,7 +1084,7 @@ lemma atms_of_mms_CNot_atms_of_ms: \<open>atms_of_mms (CNot CC) = atms_of_ms {CC
   by simp
 
 (* S2MS modif *)
-lemma total_over_mm_CNot_toal_over_m[simp]:
+lemma total_over_mm_CNot_total_over_m[simp]:
   \<open>total_over_mm I (CNot C) = total_over_set I (atms_of C)\<close>
   unfolding total_over_mm_def total_over_set_def by auto
 
@@ -1159,7 +1145,7 @@ proof (intro allI impI)
   then show \<open>M \<Turnstile>a l\<close> using LA l by (cases L) (auto simp: CNot_def)
  qed
 
-(* S2MS: to do after the othe correction *)
+(* S2MS: to do after the other correction *)
 (* lemma true_clss_clss_union_false_true_clss_clss_cnot:
   \<open>A + {#B#} \<Turnstile>ps {#{#}#} \<longleftrightarrow> A \<Turnstile>ps CNot B\<close>
   using total_not_CNot consistent_CNot_not unfolding total_over_set_def total_over_mm_def true_clss_clss_def atms_of_mms_def
@@ -1200,10 +1186,10 @@ proof (clarify, rule ccontr)
     by blast
 oops
 
-(* S2MS: not useful anymore? *)
-(* lemma CNot_union_mset[simp]:
+(* S2MS: to keep, usefull!! *)
+ lemma CNot_union_mset[simp]:
   \<open>CNot (A \<union># B) = CNot A \<union># CNot B\<close>
-  unfolding CNot_def by auto *)
+  unfolding CNot_def by auto
 
 
 subsection \<open>Other\<close>
