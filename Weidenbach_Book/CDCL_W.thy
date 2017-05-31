@@ -2348,7 +2348,6 @@ proof -
     by (auto simp: clauses_def dest: true_clss_clss_left_right)
   then have "clauses S \<Turnstile>pm {#}"
     by (simp add: cdcl\<^sub>W_restart_init_clss[OF assms(1)] clauses_def)
-
   then show ?thesis unfolding satisfiable_def true_clss_cls_def by auto
 qed
 
