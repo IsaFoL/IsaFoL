@@ -2341,9 +2341,9 @@ lemma conflict_with_false_implies_unsat:
 proof -
   have "cdcl\<^sub>W_learned_clause S'" using cdcl\<^sub>W_restart_learned_clss cdcl\<^sub>W_restart learned lev by auto
   then have entail_false: "clauses S' \<Turnstile>pm {#}" using assms(3) unfolding cdcl\<^sub>W_learned_clause_def by auto
-  have entailed: \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S'\<close>
+  moreover have entailed: \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S'\<close>
     using cdcl\<^sub>W_learned_clauses_entailed[OF cdcl\<^sub>W_restart learned learned_entailed] .
-  ultimately  have "set_mset (init_clss S') \<Turnstile>ps {{#}}"
+  ultimately have "set_mset (init_clss S') \<Turnstile>ps {{#}}"
     unfolding cdcl\<^sub>W_learned_clauses_entailed_by_init_def
     by (auto simp: clauses_def dest: true_clss_clss_left_right)
   then have "clauses S \<Turnstile>pm {#}"
