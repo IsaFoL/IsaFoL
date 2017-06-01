@@ -1200,7 +1200,9 @@ definition skip_and_resolve_loop_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nre
     }
   \<close>
 
-lemma skip_and_resolve_loop_l_index_le_length_N':
+context
+begin
+private lemma skip_and_resolve_loop_l_index_le_length_N':
   \<open>additional_WS_invs (M, N, U, D, NP, UP, WS, Q) \<Longrightarrow>
     ((brk''', M'', N'', U'', D'', NP'', UP'', WS'', Q''), brk'', M''', N''', U''', D''', NP''', UP''', WS''', Q''')
     \<in> {((brk, S), brk', S'). brk = brk' \<and> S' = twl_st_of None S \<and> additional_WS_invs S \<and> clauses_to_update_l S = {#}} \<Longrightarrow>
@@ -1212,7 +1214,7 @@ lemma skip_and_resolve_loop_l_index_le_length_N':
     C' < length N''\<close>
   by (cases \<open>hd M''\<close>) (auto elim!: list_not_emptyE simp add: additional_WS_invs_def)
 
-lemma skip_and_resolve_l_refines:
+private lemma skip_and_resolve_l_refines:
   \<open>((brk''', M'', N'', U'', D'', NP'', UP'', WS'', Q''), brk'', M''', N''', U''', D''', NP''', UP''', WS''', Q''')
     \<in> {((brk, S), brk', S'). brk = brk' \<and> S' = twl_st_of None S \<and> additional_WS_invs S \<and> clauses_to_update_l S = {#}} \<Longrightarrow>
     M''' \<noteq> [] \<Longrightarrow>
@@ -1225,7 +1227,7 @@ lemma skip_and_resolve_l_refines:
   by (cases M'') (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def
       resolve_cls_l_nil_iff)
 
-lemma skip_and_resolve_l_count_decided:
+private lemma skip_and_resolve_l_count_decided:
   \<open>((brk''', M'', N'', U'', D'', NP'', UP'', WS'', Q''), brk'', M''', N''', U''', D''', NP''', UP''', WS''', Q''')
      \<in> {((brk, S), brk', S'). brk = brk' \<and> S' = twl_st_of None S \<and> additional_WS_invs S \<and> clauses_to_update_l S = {#}} \<Longrightarrow>
   skip_and_resolve_loop_inv (twl_st_of None (M, N, U, D, NP, UP, WS, Q))
@@ -1238,7 +1240,7 @@ lemma skip_and_resolve_l_count_decided:
     (the (get_conflict (M''', N''', U''', D''', NP''', UP''', WS''', Q''')))) = count_decided M''')\<close>
   by (auto simp: skip_and_resolve_loop_inv_def)
 
-lemma skip_and_resolve_skip_refine:
+private lemma skip_and_resolve_skip_refine:
   \<open>((brk''', M'', N'', U'', D'', NP'', UP'', WS'', Q''),
      brk'', M''', N''', U''', D''', NP''', UP''', WS''', Q''')
     \<in> {((brk, S), brk', S'). brk = brk' \<and> S' = twl_st_of None S \<and> additional_WS_invs S \<and>
@@ -1251,7 +1253,7 @@ lemma skip_and_resolve_skip_refine:
   by (cases \<open>M''\<close>) (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def
           resolve_cls_l_nil_iff)
 
-lemma skip_and_resolve_l_not_conflict_iff:
+private lemma skip_and_resolve_l_not_conflict_iff:
   \<open>(M', N', U', D', NP', UP', WS', Q') = twl_st_of None (M, N, U, D, NP, UP, WS, Q) \<Longrightarrow>
    additional_WS_invs (M, N, U, D, NP, UP, WS, Q) \<Longrightarrow>
    ((brk''', M'', N'', U'', D'', NP'', UP'', WS'', Q''), brk'', M''', N''', U''', D''', NP''', UP''', WS''', Q''')
@@ -1353,6 +1355,10 @@ proof -
     apply (match_spec; (match_fun_rel; match_fun_rel?)+)
     by blast+
 qed
+
+end
+
+
 lemma not_is_decidedE:
   \<open>\<not>is_decided E \<Longrightarrow> (\<And>K C. E = Propagated K C \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
   by (cases E) auto
@@ -1941,7 +1947,7 @@ proof -
          (\<not>fst U \<longrightarrow> literals_to_update (twl_st_of (snd U)) \<noteq> {#}) *)}\<close>
 
   have J: \<open>?J = ?J'\<close>
-    by auto
+    by (standard; standard) force+
   show bt': ?thesis
     unfolding J
     apply (rule refine_add_inv_pair)
@@ -1950,9 +1956,11 @@ proof -
       apply (match_spec; (match_fun_rel; match_fun_rel?)+)
       by auto
     subgoal for S
-      by (rule weaken_SPEC[OF cdcl_twl_o_prog_spec[of \<open>twl_st_of None S\<close>]]) (auto simp: KK(2))
+      by (rule weaken_SPEC[OF cdcl_twl_o_prog_spec[of \<open>twl_st_of None S\<close>]])
+        (force simp: KK(2))+
     done
 qed
+
 
 subsection \<open>Full Strategy\<close>
 
