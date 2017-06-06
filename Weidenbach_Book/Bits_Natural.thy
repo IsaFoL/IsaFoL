@@ -71,6 +71,7 @@ lemma nat_shiftr_div: \<open>m << n = m * (2^n)\<close> for m :: nat
   by (induction n arbitrary: m) (auto simp: div_mult2_eq)
 
 export_code \<open>shiftl::nat \<Rightarrow> nat \<Rightarrow> nat\<close> checking SML
+
 value [nbe] \<open>shiftr (4::nat) 1\<close>
 
 definition shiftl1 :: \<open>nat \<Rightarrow> nat\<close> where
