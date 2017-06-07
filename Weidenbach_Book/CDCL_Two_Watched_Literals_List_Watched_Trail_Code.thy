@@ -1188,6 +1188,76 @@ proof -
     using H unfolding QP .
 qed
 
+definition (in -) extract_shorter_conflict_l_trivial :: ‹'v clauses_l \<Rightarrow> 'v clauses \<Rightarrow> 'v clauses \<Rightarrow>
+    'v clause option \<Rightarrow> 'v literal \<Rightarrow> 'v clause nres\<close> where
+‹extract_shorter_conflict_l_trivial N NP UP D L = 
+  do {ASSERT ((\<lambda>_. True) N); RETURN (the D)}›
+
+thm twl_st_l_trail_assn_def
+sepref_register extract_shorter_conflict_l_trivial
+sepref_thm (in -) extract_shorter_conflict_l_trivial_code
+  is \<open>(uncurry4 extract_shorter_conflict_l_trivial)\<close>
+  :: \<open>[\<lambda>((((N, NP), UP), D), L). D ~= None]\<^sub>a 
+    (clauses_ll_assn\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a conflict_option_assn\<^sup>d *\<^sub>a nat_lit_assn\<^sup>k)  \<rightarrow>
+    conflict_assn\<close>
+  unfolding extract_shorter_conflict_l_trivial_def PR_CONST_def
+  by sepref
+
+
+lemma
+  assumes 
+    struct_invs: ‹twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))›
+    ‹-L \<in># the D›
+    ‹D ~= None›
+  shows
+    ‹extract_shorter_conflict_l_trivial N NP UP D L <= \<Down> Id
+       (extract_shorter_conflict_l N NP UP D L)›
+proof -
+  have H:
+    ‹uncurry4 extract_shorter_conflict_l_trivial x <= \<Down> Id
+       (uncurry4 extract_shorter_conflict_l y)›
+    if
+      struct_invs: ‹twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))›
+      ‹-L \<in># the D›
+      ‹D ~= None› and
+      ‹x = ((((N, NP), UP), D), L)› and
+      ‹y = ((((N, NP), UP), D), L)›
+  for N NP UP D L M U Q W x y
+  proof -
+    have ‹cdcl⇩W_restart_mset.cdcl⇩W_learned_clause
+        (state⇩W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)))›
+      using struct_invs unfolding twl_struct_invs_def cdcl⇩W_restart_mset.cdcl⇩W_all_struct_inv_def
+      by fast
+      then have ‹mset ` set (take U (tl N)) ∪ set_mset NP ∪ 
+        (mset ` set (drop (Suc U) N) ∪ set_mset UP) ⊨p the D›
+      using that(2-)
+      by (auto simp: cdcl\<^sub>W_restart_mset_state clauses_def mset_take_mset_drop_mset'
+        cdcl⇩W_restart_mset.cdcl⇩W_learned_clause_def)
+    moreover have ‹mset ` set (take U (tl N)) ∪ set_mset NP ∪ 
+        (mset ` set (drop (Suc U) N) ∪ set_mset UP) = 
+          mset ` set (tl N) ∪ set_mset NP ∪ set_mset UP›
+          apply (subst (2) append_take_drop_id[of U ‹tl N›, symmetric])
+          unfolding set_append drop_Suc
+          by auto
+    ultimately show ?thesis
+      unfolding extract_shorter_conflict_l_trivial_def
+      extract_shorter_conflict_l_def using that(2-)
+      by (auto simp: cdcl\<^sub>W_restart_mset_state clauses_def mset_take_mset_drop_mset')
+  qed
+
+  have ‹(uncurry4 extract_shorter_conflict_l_trivial, uncurry4 extract_shorter_conflict_l) \<in>
+     [\<lambda>((((N, NP), UP), D), L). twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)) \<and> 
+        D ~= None \<and> -L \<in># the D]\<^sub>f
+      Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+      apply (intro nres_relI frefI)
+      apply (cases x; cases y)
+      apply clarify
+      apply (rule H)
+      apply assumption+
+      apply (auto intro!:)
+      done
+  oops
+
 sepref_register backtrack_wl_D
 sepref_thm backtrack_wl_D
   is \<open>PR_CONST backtrack_wl_D\<close>
