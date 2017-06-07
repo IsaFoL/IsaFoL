@@ -1396,16 +1396,18 @@ definition backtrack_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
       let (M, N, U, D, NP, UP, WS, Q) = S\<^sub>0;
       ASSERT(M \<noteq> []);
       let L = lit_of (hd M);
+      ASSERT(twl_stgy_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)));
+      ASSERT(twl_struct_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)));
+      ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of None (M, N, U, D, NP, UP, WS, Q))));
+      ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of None (M, N, U, D, NP, UP, WS, Q))));
+      ASSERT(D ~= None);
+      ASSERT(-L \<in># the D);
       D' \<leftarrow> extract_shorter_conflict_l N NP UP D L;
 
       ASSERT(get_level M L = count_decided M);
       ASSERT(D' \<noteq> {#});
       ASSERT(ex_decomp_of_max_lvl M (Some D') L);
       ASSERT(-L \<in># D');
-      ASSERT(twl_stgy_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)));
-      ASSERT(twl_struct_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)));
-      ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of None (M, N, U, D, NP, UP, WS, Q))));
-      ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of None (M, N, U, D, NP, UP, WS, Q))));
       M1 \<leftarrow> find_decomp (M, N, U, Some D', NP, UP, WS, Q) L;
 
       if size D' > 1
@@ -1716,6 +1718,24 @@ proof -
     for N NP UP D M NU' NP' UP' D' L' D\<^sub>0
     using that unfolding extract_shorter_conflict_l_def extract_shorter_conflict_def NU'
     by (auto intro!: SPEC_refine)
+
+  have uhd_in_D: \<open>L \<in># the D\<close>
+    if
+      inv_s: "twl_stgy_invs (twl_st_of None S)" and
+      inv: "twl_struct_invs (twl_st_of None S)" and
+      ns: \<open>no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of None S))\<close> and
+      confl: \<open>conflicting (state\<^sub>W_of (twl_st_of None S)) \<noteq> None\<close> 
+         \<open>conflicting (state\<^sub>W_of (twl_st_of None S)) \<noteq> Some {#}\<close> and
+      M_nempty: ‹get_trail_l S ~= []› and
+      D: ‹D = get_conflict_l S›
+         ‹L = - lit_of (hd (get_trail_l S))›
+    for L M D and S :: ‹'v twl_st_l›
+    unfolding D
+    using cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of ‹state\<^sub>W_of (twl_st_of None S)›,
+      OF _ _ ns confl]
+    by (cases S; cases ‹fst S›) (use that in ‹auto simp: cdcl\<^sub>W_restart_mset_state twl_stgy_invs_def
+       twl_struct_invs_def›)
+
   have bt:
     \<open>(backtrack_l, backtrack) \<in> ?R \<rightarrow>
     \<langle>{(T::'v twl_st_l, T'). T' = twl_st_of None T \<and> clauses_to_update_l T = {#} \<and> additional_WS_invs T}\<rangle> nres_rel\<close>
@@ -1725,17 +1745,19 @@ proof -
 
     unfolding backtrack_l_def backtrack_def'
     apply (refine_vcg H list_of_mset ext; remove_dummy_vars)
-    subgoal
-      by auto
-    subgoal
-      by (auto simp: convert_lits_l_def elim: list_not_emptyE)
+    subgoal by auto
+    subgoal by (auto simp: convert_lits_l_def elim: list_not_emptyE)
     subgoal by simp
     subgoal by simp
     subgoal by simp
+    subgoal by (rule uhd_in_D) (assumption, assumption, auto simp: cdcl\<^sub>W_restart_mset_state)
     subgoal by simp
     subgoal by simp
     subgoal by simp
-    subgoal by simp
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     subgoal unfolding ex_decomp_of_max_lvl_def
       by (rule obtain_decom) auto
@@ -1745,12 +1767,7 @@ proof -
     subgoal by simp
     subgoal by simp
     subgoal by simp
-    subgoal
-      by simp
-    subgoal
-      by simp
-    subgoal
-      by simp
+    subgoal by simp
     subgoal by simp
     subgoal by simp
     subgoal by (simp add: find_lit_of_max_level_def)

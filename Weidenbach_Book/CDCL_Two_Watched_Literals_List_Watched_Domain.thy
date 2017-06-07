@@ -1026,15 +1026,16 @@ definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" wh
       do {
         ASSERT(M \<noteq> []);
         let L = lit_of (hd M);
+        ASSERT(twl_stgy_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
+        ASSERT(twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
+        ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
+        ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
+        ASSERT(D ~= None);
         D' \<leftarrow> extract_shorter_conflict_l N NP UP D L;
         ASSERT(get_level M L = count_decided M);
         ASSERT(D' \<noteq> {#});
         ASSERT(ex_decomp_of_max_lvl M (Some D') L);
         ASSERT(-L \<in># D');
-        ASSERT(twl_stgy_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
-        ASSERT(twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
-        ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
-        ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
         ASSERT(literals_are_in_N\<^sub>0 D');
         ASSERT(\<forall>L\<in># D'. defined_lit M L);
         M1 \<leftarrow> find_decomp_wl (M, N, U, Some D', NP, UP, Q, W) L;
@@ -1081,8 +1082,8 @@ proof -
   then show ?thesis
      using N unfolding literals_are_in_N⇩0_def by fast
 qed
-(*TODO: Move*)
 
+(*TODO: Move*)
 lemma lits_of_atms_of_m_mono:
   "D \<subseteq># D' ⟹ lits_of_atms_of_m D \<subseteq># lits_of_atms_of_m D'"
   by (auto elim!: mset_le_addE simp: lits_of_atms_of_m_union)
@@ -1615,10 +1616,11 @@ have lits_in_N\<^sub>0: ‹literals_are_in_N⇩0 D›
     subgoal by fast
     subgoal by auto
     subgoal by auto
+    subgoal by fast
+    subgoal by fast
     subgoal by auto
     subgoal by auto
-    subgoal by auto
-    subgoal by auto
+    subgoal by fast
     subgoal by fast
     subgoal by fast
     subgoal by fast

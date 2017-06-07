@@ -1034,15 +1034,17 @@ definition backtrack_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
       do {
         ASSERT(M \<noteq> []);
         let L = lit_of (hd M);
+        ASSERT(twl_stgy_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
+        ASSERT(twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
+        ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
+        ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
+        ASSERT(D ~= None);
+        ASSERT(-L \<in># the D);
         D' \<leftarrow> extract_shorter_conflict_l N NP UP D L;
         ASSERT(get_level M L = count_decided M);
         ASSERT(D' \<noteq> {#});
         ASSERT(ex_decomp_of_max_lvl M (Some D') L);
         ASSERT(-L \<in># D');
-        ASSERT(twl_stgy_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
-        ASSERT(twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
-        ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
-        ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
         M1 \<leftarrow> find_decomp_wl (M, N, U, Some D', NP, UP, Q, W) L;
 
         if size D' > 1
@@ -1352,6 +1354,7 @@ proof -
     subgoal by simp
     subgoal by simp
     subgoal by simp
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
