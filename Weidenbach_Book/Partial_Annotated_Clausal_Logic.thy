@@ -1125,8 +1125,9 @@ proof (intro allI impI)
   moreover
     have \<open>?I \<Turnstile>s CNot CC\<close> using CNot_CC cons' I' tot_CNot unfolding true_clss_clss_def by auto
     then have \<open>\<not>A \<Turnstile>p CC\<close>
-      by (metis (no_types, lifting) I' atms_of_mms_CNot_atms_of_ms atms_of_ms_union cons'
-        consistent_CNot_not tot_CNot total_over_m_def true_clss_cls_def)
+      using I by (metis (no_types, lifting) I' atms_of_mms_add atms_of_mms_singleton 
+          atms_of_ms_CNot_atms_of cons' consistent_CNot_not tot_CNot total_over_mm_def
+          true_clss_cls_def)
     then have \<open>\<not>?I \<Turnstile> CC\<close> using \<open>?I \<Turnstile>s CNot CC\<close> cons' consistent_CNot_not by blast
   ultimately have \<open>?I \<Turnstile> {#L#}\<close> by blast
   then show \<open>I \<Turnstile> {#L#}\<close>
@@ -1189,7 +1190,7 @@ oops
 (* S2MS: to keep, usefull!! *)
  lemma CNot_union_mset[simp]:
   \<open>CNot (A \<union># B) = CNot A \<union># CNot B\<close>
-  unfolding CNot_def by auto
+  unfolding CNot_def sup_subset_mset_def by auto
 
 
 subsection \<open>Other\<close>
