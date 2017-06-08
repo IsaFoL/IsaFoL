@@ -1027,6 +1027,15 @@ definition find_lit_of_max_level_wl :: "'v twl_st_wl \<Rightarrow> 'v literal \<
   \<open>find_lit_of_max_level_wl =  (\<lambda>(M, N, U, D, NP, UP, Q, W) L.
     SPEC(\<lambda>L'. L' \<in># remove1_mset (-L) (the D) \<and> get_level M L' = get_maximum_level M (the D - {#-L#})))\<close>
 
+
+fun extract_shorter_conflict_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clause nres\<close>
+   where
+  \<open>extract_shorter_conflict_wl (M, N, U, D, NP, UP, WS, Q) = SPEC(\<lambda>D'. D' \<subseteq># the D \<and>
+     clause `# twl_clause_of `# mset (tl N) + NP + UP \<Turnstile>pm D' \<and> -(lit_of (hd M)) \<in># D')\<close>
+
+declare extract_shorter_conflict_wl.simps[simp del]
+lemmas extract_shorter_conflict_wl_def = extract_shorter_conflict_wl.simps
+
 definition backtrack_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
   \<open>backtrack_wl S\<^sub>0 =
     do {
@@ -1040,7 +1049,7 @@ definition backtrack_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
         ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
         ASSERT(D ~= None);
         ASSERT(-L \<in># the D);
-        D' \<leftarrow> extract_shorter_conflict_l N NP UP D L;
+        D' \<leftarrow> extract_shorter_conflict_wl (M, N, U, D, NP, UP, Q, W);
         ASSERT(get_level M L = count_decided M);
         ASSERT(D' \<noteq> {#});
         ASSERT(ex_decomp_of_max_lvl M (Some D') L);
@@ -1198,11 +1207,13 @@ proof -
     if \<open>D = D'\<close> for D D'
     using that by (auto simp: list_of_mset_def intro!: RES_refine)
 
-  have ext: \<open>extract_shorter_conflict_l N NP UP D L \<le> \<Down> {(D', D''). D' = D'' \<and> -L \<in># D' \<and> D' \<subseteq># the D}
-    (extract_shorter_conflict_l N' NP' UP' D' L')\<close>
-    if \<open>D \<noteq> None\<close> \<open>N = N'\<close> \<open>NP' = NP\<close> \<open>UP' = UP\<close> \<open>D = D'\<close> \<open>L = L'\<close> for N NP UP D L N' NP' UP' D' L'
-    using that unfolding extract_shorter_conflict_l_def
-    by (auto intro!: SPEC_refine)
+  have ext: \<open>extract_shorter_conflict_wl T' \<le> \<Down> {(D', D''). D' = D'' \<and> 
+      -lit_of (hd (get_trail_wl T')) \<in># D' \<and> D' \<subseteq># the D}
+    (extract_shorter_conflict_l T)\<close>
+    if ‹st_l_of_wl None T' = T› ‹D = get_conflict_wl T'› for T T' D
+    using that 
+    by (cases T; cases T') 
+      (auto intro!: SPEC_refine simp: extract_shorter_conflict_l_def extract_shorter_conflict_wl_def)
 
   have hd_not_alien:
     \<open>atm_of (lit_of (hd M')) \<in> atms_of_mm (mset `# mset (tl N') + NP')\<close>
@@ -1236,7 +1247,8 @@ proof -
     if
       stuct_invs: "twl_struct_invs (twl_st_of_wl None (M', N', U', E', NP', UP', Q', W))" and
       L': "(L', L'a) \<in> {(L, L'). L = L' \<and> L \<in># the (Some D')}" and
-      D_D': "(D', D) \<in> {(D, D'). D = D' \<and> L'' \<in># D \<and> D \<subseteq># the E'}" and
+      D_D': "(D', D) \<in> {(D, D'). D = D' \<and> L'' \<in># D \<and> 
+        D \<subseteq># the (get_conflict_wl (M', N', U', E', NP', UP', Q', W))}" and
       E': "((a, b, c, E', S'), T')
          \<in> {(T', T).
              st_l_of_wl None T' = T \<and>
@@ -1287,7 +1299,9 @@ proof -
                      additional_WS_invs (st_l_of_wl None T')}\<close>
         (is \<open>(?U, ?V) \<in> _\<close>)and
         M'_empty: \<open>M' \<noteq> []\<close> and
-        M: \<open>(M''', M'''') \<in> {(D', D''). D' = D'' \<and> - lit_of (hd M') \<in># D' \<and> D' \<subseteq># the E'}\<close> and
+        M: \<open>(M''', M'''') \<in> {(D', D''). D' = D'' \<and> 
+               - lit_of (hd (get_trail_wl (M', N', U', E', NP', UP', Q', W))) \<in># D' \<and>
+               D' \<subseteq># the (get_conflict_wl (M', N', U', E', NP', UP', Q', W))}\<close> and
         M''''_nempty: \<open>M'''' \<noteq> {#}\<close> and
         struct_invs: \<open>twl_struct_invs (twl_st_of_wl None (M', N', U', E', NP', UP', Q', W))\<close> and
         L_M1a: \<open>(L, M1a) \<in> Id\<close> and
@@ -1322,7 +1336,7 @@ proof -
       subgoal using atm_hd by simp
       subgoal using atm .
       subgoal using atms_D by (fastforce dest: atms_of_diffD)
-      subgoal using corr by (auto simp add: correct_watching.simps clause_to_update_def)[]
+      subgoal using corr by (auto simp add: correct_watching.simps clause_to_update_def)
       done
     show ?thesis
       using corr conv by blast
@@ -1335,16 +1349,6 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
     subgoal by fast
     subgoal by fast
     subgoal by simp
@@ -1354,6 +1358,12 @@ proof -
     subgoal by simp
     subgoal by simp
     subgoal by simp
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -1365,7 +1375,6 @@ proof -
     subgoal by auto
     subgoal by (auto simp: correct_watching.simps clause_to_update_def)
     done
-
   have bt: \<open>backtrack_wl S \<le> \<Down> ?B (backtrack_l T)\<close>
     if A: \<open>(S, T) \<in> ?A\<close>
     for S :: \<open>'v twl_st_wl\<close> and T :: \<open>'v twl_st_l\<close>

@@ -1384,11 +1384,13 @@ fun add_mset_list :: "'a list \<Rightarrow> 'a multiset multiset \<Rightarrow> '
 definition (in -)list_of_mset :: \<open>'v clause \<Rightarrow> 'v clause_l nres\<close> where
   \<open>list_of_mset D = SPEC(\<lambda>D'. D = mset D')\<close>
 
-definition extract_shorter_conflict_l :: \<open>'v clauses_l \<Rightarrow> 'v clauses \<Rightarrow> 'v clauses \<Rightarrow>
-    'v clause option \<Rightarrow> 'v literal \<Rightarrow> 'v clause nres\<close>
+fun extract_shorter_conflict_l :: \<open>'v twl_st_l \<Rightarrow> 'v clause nres\<close>
    where
-  \<open>extract_shorter_conflict_l N NP UP D L = SPEC(\<lambda>D'. D' \<subseteq># the D \<and>
-     clause `# twl_clause_of `# mset (tl N) + NP + UP \<Turnstile>pm D' \<and> -L \<in># D')\<close>
+  \<open>extract_shorter_conflict_l (M, N, U, D, NP, UP, WS, Q) = SPEC(\<lambda>D'. D' \<subseteq># the D \<and>
+     clause `# twl_clause_of `# mset (tl N) + NP + UP \<Turnstile>pm D' \<and> -(lit_of (hd M)) \<in># D')\<close>
+
+declare extract_shorter_conflict_l.simps[simp del]
+lemmas extract_shorter_conflict_l_def = extract_shorter_conflict_l.simps
 
 definition backtrack_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
   \<open>backtrack_l S\<^sub>0 =
@@ -1402,7 +1404,7 @@ definition backtrack_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
       ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of None (M, N, U, D, NP, UP, WS, Q))));
       ASSERT(D ~= None);
       ASSERT(-L \<in># the D);
-      D' \<leftarrow> extract_shorter_conflict_l N NP UP D L;
+      D' \<leftarrow> extract_shorter_conflict_l  (M, N, U, D, NP, UP, WS, Q);
 
       ASSERT(get_level M L = count_decided M);
       ASSERT(D' \<noteq> {#});
@@ -1462,6 +1464,8 @@ lemma image_filter_mset_take_drep_tl_id[simp]:
 lemma backtrak_l_ge1_rule_refinement:
   assumes
     state: \<open>(M, N, U, D\<^sub>0, NP, UP, WS, Q) = twl_st_of None (M', N', U', D\<^sub>0', NP', UP', WS', Q')\<close> and
+    D: \<open>(D'', D) \<in> {(D, D'). D = D' \<and> -lit_of (hd (get_trail_l  (M', N', U', D\<^sub>0', NP', UP', WS', Q'))) \<in># D \<and>
+         D \<subseteq># the (Some E\<^sub>0)}\<close>and
     confl: \<open>get_conflict_l (M', N', U', D\<^sub>0', NP', UP', WS', Q') = Some E\<^sub>0\<close> and
     E\<^sub>0: \<open>Some E\<^sub>0 \<noteq> Some {#}\<close> and
     wq: \<open>clauses_to_update_l (M', N', U', D\<^sub>0', NP', UP', WS', Q') = {#}\<close> and
@@ -1473,15 +1477,15 @@ lemma backtrak_l_ge1_rule_refinement:
     M1'_M1: \<open>(M1', M1) \<in> {(M1', M1). M1 = convert_lits_l N' M1' \<and>
        (\<exists>K M2. (Decided K # M1', M2) \<in> set (get_all_ann_decomposition M') \<and>
           get_level M' K = get_maximum_level M' (D - {#-lit_of (hd M')#}) + 1)}\<close> and
-    M1': \<open>M1 \<in> {M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and> get_level M K =
-       get_maximum_level M (remove1_mset (- L) D) + 1}\<close> and
+    M1': \<open>M1 \<in> {M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and> 
+       get_level M K = get_maximum_level M (remove1_mset (- L) D) + 1}\<close> and
     L''_L''': \<open>(L'', L''') \<in> Id\<close> and
-    L''': \<open>L''' \<in> {L'. L' \<in># remove1_mset (- L) D \<and> get_level M L' = get_maximum_level M (remove1_mset (- L) D)}\<close> and
+    L''': \<open>L''' \<in> {L'. L' \<in># remove1_mset (- L) D \<and> 
+        get_level M L' = get_maximum_level M (remove1_mset (- L) D)}\<close> and
     L_uL''': \<open>L \<noteq> - L'''\<close> and
     no_clause_to_upd: \<open>clauses_to_update_l (M', N', U', D\<^sub>0', NP', UP', WS', Q') = {#}\<close> and
     L_uL'': \<open>lit_of (hd M') \<noteq> - L''\<close> and
-    E'_D\<^sub>0': \<open>(E', D) \<in> {(c, D). D = mset c}\<close> and
-    D: \<open>(D'', D) \<in> {(D, D'). D = D' \<and> - L \<in># D \<and> D \<subseteq># the D\<^sub>0'}\<close>
+    E'_D\<^sub>0': \<open>(E', D) \<in> {(c, D). D = mset c}\<close> 
   shows
     \<open>((Propagated (- lit_of (hd M')) (length N') # M1', N' @ [[- lit_of (hd M'), L''] @ remove1 (- lit_of (hd M')) (remove1 L'' E')], U', None, NP', UP', WS', unmark (hd M')),
       Propagated (- L) D # M1, N, add_mset (TWL_Clause {#- L, L'''#} (D - {#- L, L'''#})) U, None, NP, UP, WS, {#L#})
@@ -1575,7 +1579,9 @@ lemma backtrack_l_size0_rule_refinement:
     M1': \<open>M1 \<in> {M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and> get_level M K =
        get_maximum_level M (remove1_mset (- L) D) + 1}\<close> and
     no_clause_to_upd: \<open>clauses_to_update_l (M', N', U', D\<^sub>0', NP', UP', WS', Q') = {#}\<close> and
-    D: \<open>(D'', D) \<in> {(D, D'). D = D' \<and> - L \<in># D \<and> D \<subseteq># the D\<^sub>0'}\<close> and
+    D: \<open>(D'', D) \<in> {(D, D'). D = D' \<and> 
+          -lit_of (hd (get_trail_l (M', N', U', D\<^sub>0', NP', UP', WS', Q'))) \<in># D \<and>
+          D \<subseteq># the (Some E\<^sub>0)}\<close> and
     length_D'_ge_1:\<open>\<not> 1 < size D''\<close> and
     size_D_ge_1: \<open>\<not> 1 < size D\<close>
   shows
@@ -1631,7 +1637,7 @@ proof -
       do {
         ASSERT(M \<noteq> []);
         L \<leftarrow> SPEC(\<lambda>L. L = lit_of (hd M));
-        D' \<leftarrow> extract_shorter_conflict (N + U) NP UP D L;
+        D' \<leftarrow> extract_shorter_conflict (M, N, U, D, NP, UP, WS, Q);
         ASSERT(get_level M L = count_decided M);
         ASSERT(\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
           get_level M K = get_maximum_level M (D' - {#-L#}) + 1);
@@ -1711,13 +1717,15 @@ proof -
   have list_of_mset: \<open>list_of_mset D' \<le> SPEC (\<lambda>c. (c, D'') \<in> {(c, D). D = mset c})\<close>
     if \<open>D' = D''\<close> for D' :: \<open>'v clause\<close> and D''
     using that by (cases D'') (auto simp: list_of_mset_def)
-  have ext: \<open>extract_shorter_conflict_l N NP UP D\<^sub>0 (lit_of (hd M))
-    \<le> \<Down> {(D, D'). D = D' \<and> -L' \<in># D \<and> D \<subseteq># the D\<^sub>0} (extract_shorter_conflict NU' NP' UP' D' L')\<close>
-    if \<open>L' = (lit_of (hd M))\<close> and \<open>NP = NP'\<close> and \<open>UP = UP'\<close> and \<open>D\<^sub>0 = D'\<close> and \<open>lit_of (hd M) = L'\<close> and
-    NU': \<open>clause `# NU' = clause `# twl_clause_of `# mset (tl N)\<close>
-    for N NP UP D M NU' NP' UP' D' L' D\<^sub>0
-    using that unfolding extract_shorter_conflict_l_def extract_shorter_conflict_def NU'
-    by (auto intro!: SPEC_refine)
+  have ext: \<open>extract_shorter_conflict_l S
+    \<le> \<Down> {(D, D'). D = D' \<and> -lit_of (hd (get_trail_l S)) \<in># D \<and> D \<subseteq># the D\<^sub>0} (extract_shorter_conflict S')\<close>
+    if \<open>S' = twl_st_of None S \<close> and
+      ‹D\<^sub>0 = get_conflict_l S› and
+      ‹get_trail_l S ~= []›
+    for S S' and D\<^sub>0
+    using that
+    by (cases S; cases S'; cases ‹get_trail_l S›; cases ‹get_trail S'›)
+     (auto intro!: SPEC_refine simp: extract_shorter_conflict_l_def extract_shorter_conflict_def)
 
   have uhd_in_D: \<open>L \<in># the D\<close>
     if
@@ -1753,11 +1761,6 @@ proof -
     subgoal by (rule uhd_in_D) (assumption, assumption, auto simp: cdcl\<^sub>W_restart_mset_state)
     subgoal by simp
     subgoal by simp
-    subgoal by simp
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
     subgoal by auto
     subgoal unfolding ex_decomp_of_max_lvl_def
       by (rule obtain_decom) auto

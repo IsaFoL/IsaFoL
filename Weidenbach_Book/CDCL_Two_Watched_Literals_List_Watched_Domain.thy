@@ -1031,7 +1031,7 @@ definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" wh
         ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
         ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
         ASSERT(D ~= None);
-        D' \<leftarrow> extract_shorter_conflict_l N NP UP D L;
+        D' \<leftarrow> extract_shorter_conflict_wl (M, N, U, D, NP, UP, Q, W);
         ASSERT(get_level M L = count_decided M);
         ASSERT(D' \<noteq> {#});
         ASSERT(ex_decomp_of_max_lvl M (Some D') L);
@@ -1135,11 +1135,12 @@ proof -
   have single_of_mset: \<open>single_of_mset D \<le> \<Down> {(L, E). E = [L] \<and> D = mset E} (list_of_mset D')\<close>
     if \<open>D = D'\<close> for D D' :: \<open>'a clause\<close>
     using that by (auto simp: single_of_mset_def list_of_mset_def intro!: RES_refine)
-  have ext: \<open>extract_shorter_conflict_l N NP UP D L \<le> \<Down> {(D', D''). D' = D'' \<and> -L \<in># D' \<and> D' \<subseteq># the D}
-    (extract_shorter_conflict_l N' NP' UP' D' L')\<close>
-    if \<open>N = N'\<close> \<open>NP' = NP\<close> \<open>UP' = UP\<close> \<open>D = D'\<close> \<open>L = L'\<close> for N NP UP D L N' NP' UP' D' L'
-    using that unfolding extract_shorter_conflict_l_def
-    by (auto intro!: SPEC_refine)
+  have ext: \<open>extract_shorter_conflict_wl T \<le> \<Down> {(D', D''). D' = D'' \<and> 
+      -lit_of (hd (get_trail_wl T)) \<in># D' \<and> 
+      D' \<subseteq># the (get_conflict_wl T)}
+    (extract_shorter_conflict_wl T')\<close>
+    if \<open>T = T'\<close> for T T'
+    using that by (cases T; cases T') (auto intro!: SPEC_refine simp: extract_shorter_conflict_wl_def)
 
 have lits_in_N\<^sub>0: ‹literals_are_in_N⇩0 D›
   if
@@ -1150,7 +1151,8 @@ have lits_in_N\<^sub>0: ‹literals_are_in_N⇩0 D›
     ‹x2j = (NP, x2k)› and
     ‹x2k = (UP, x2l)› and
     ‹x2l = (W, Q)› and
-    D: ‹(D, D') ∈ {(D', D''). D' = D'' ∧ - lit_of (hd M) ∈# D' ∧ D' ⊆# the D⇩0}› and
+    D: ‹(D, D') ∈ {(D', D''). D' = D'' ∧ - lit_of (hd (get_trail_wl (M, N, U, D⇩0, NP, UP, W, Q))) ∈# D' ∧
+       D' ⊆# the (get_conflict_wl (M, N, U, D⇩0, NP, UP, W, Q))}› and
     struct_invs: ‹twl_struct_invs (twl_st_of_wl None (M, N, U, D⇩0, NP, UP, W, Q))›
   for D D' M x2g N x2h U x2j x2i D\<^sub>0 NP x2k UP x2l W Q
   proof -
@@ -1170,7 +1172,8 @@ have lits_in_N\<^sub>0: ‹literals_are_in_N⇩0 D›
   qed
   have defined_D: ‹Multiset.Ball D (defined_lit M)›
     if
-      D: ‹(D, D') ∈ {(D', D''). D' = D'' ∧ - lit_of (hd M) ∈# D' ∧ D' ⊆# the D⇩0}› and
+      D: ‹(D, D') ∈ {(D', D''). D' = D'' ∧ L ∈# D' ∧
+         D' ⊆# the (get_conflict_wl (M, N, U, D⇩0, NP, UP, W, Q))}› and
       struct_invs: ‹twl_struct_invs (twl_st_of_wl None (M, N, U, D⇩0, NP, UP, W, Q))›
       ‹S = (M, x2g)› and
       ‹x2g = (N, x2h)› and
@@ -1179,7 +1182,7 @@ have lits_in_N\<^sub>0: ‹literals_are_in_N⇩0 D›
       ‹x2j = (NP, x2k)› and
       ‹x2k = (UP, x2l)› and
       ‹x2l = (W, Q)›
-      for M N U D\<^sub>0 NP UP W Q D D' x2g x2h x2i x2j x2k x2l
+      for M N U D\<^sub>0 NP UP W Q D D' x2g x2h x2i x2j x2k x2l L
   proof -
     have ‹cdcl⇩W_restart_mset.cdcl⇩W_conflicting
             (state⇩W_of (twl_st_of_wl None (M, N, U, D⇩0, NP, UP, W, Q)))›
@@ -1227,7 +1230,9 @@ have lits_in_N\<^sub>0: ‹literals_are_in_N⇩0 D›
   qed
   have distinct_D: ‹distinct_mset D›
     if
-      D: ‹(D, D') ∈ {(D', D''). D' = D'' ∧ - lit_of (hd M) ∈# D' ∧ D' ⊆# the D⇩0}› and
+      D: ‹(D, D') ∈ {(D', D''). D' = D'' ∧
+         - lit_of (hd (get_trail_wl (M, N, U, D⇩0, NP, UP, W, Q))) ∈# D' ∧ 
+        D' ⊆# the (get_conflict_wl (M, N, U, D⇩0, NP, UP, W, Q))}› and
       struct_invs: ‹twl_struct_invs (twl_st_of_wl None (M, N, U, D⇩0, NP, UP, W, Q))› and
       ‹S = (M, x2g)› and
       ‹x2g = (N, x2h)› and
@@ -1369,7 +1374,8 @@ have lits_in_N\<^sub>0: ‹literals_are_in_N⇩0 D›
           ‹S = (M', SN')› and
         M_not_Nil: ‹M ≠ []› and
         D_D': ‹(M''', M'')
-        ∈ {(D'a, D''). D'a = D'' ∧ - lit_of (hd M') ∈# D'a ∧ D'a ⊆# the D'}› and
+        ∈ {(D'a, D''). D'a = D'' ∧ - lit_of (hd (get_trail_wl (M', N', U', D', NP', UP', WS', W'))) ∈# D'a ∧
+           D'a ⊆# the (get_conflict_wl (M', N', U', D', NP', UP', WS', W'))}› and
         struct_invs: ‹twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W))› and
         M1_M1a: ‹(L, L')
         ∈ {(M1, M1').
@@ -1431,8 +1437,6 @@ have lits_in_N\<^sub>0: ‹literals_are_in_N⇩0 D›
       have is_N\<^sub>1_add: \<open>is_N\<^sub>1 (A + B) \<longleftrightarrow> set_mset A \<subseteq> set_mset N\<^sub>1\<close> if \<open>is_N\<^sub>1 B\<close> for A B
         using that unfolding is_N\<^sub>1_def by auto
 
-      (*have LL: \<open>xa \<in> set D'b \<longleftrightarrow> xa \<in> set D'c\<close> for xa
-        using mset_E_D' E_E' by auto*)
       have atms_take_U_N: \<open>atms_of_ms (mset ` set (take U (tl N))) \<subseteq> atms_of_ms (mset ` set (tl N))\<close>
         by (auto simp: atms_of_ms_def dest: in_set_takeD)
       have D_not_None: ‹D ~= None›
@@ -1538,7 +1542,9 @@ have lits_in_N\<^sub>0: ‹literals_are_in_N⇩0 D›
     if
         M_not_Nil: ‹M ≠ []› and
         D: ‹(M''', M'')
-        ∈ {(D'a, D''). D'a = D'' ∧ - lit_of (hd M') ∈# D'a ∧ D'a ⊆# the D'}› and
+        ∈ {(D'a, D''). D'a = D'' ∧ 
+           - lit_of (hd (get_trail_wl (M', N', U', D', NP', UP', WS', W'))) ∈# D'a ∧ 
+           D'a ⊆# the (get_conflict_wl (M', N', U', D', NP', UP', WS', W'))}› and
         struct_invs: ‹twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W))› and
         M1_M1a: ‹(E, E')
         ∈ {(M1, M1').
@@ -1624,10 +1630,6 @@ have lits_in_N\<^sub>0: ‹literals_are_in_N⇩0 D›
     subgoal by fast
     subgoal by fast
     subgoal by fast
-    subgoal by fast
-    subgoal by fast
-    subgoal by fast
-    subgoal by fast
     subgoal by (rule lits_in_N\<^sub>0) assumption+
     subgoal by (rule defined_D) assumption+
     subgoal by auto
@@ -1643,7 +1645,7 @@ have lits_in_N\<^sub>0: ‹literals_are_in_N⇩0 D›
     subgoal by auto
     subgoal by (auto dest: in_diffD)
     subgoal by fast
-    subgoal by auto
+    subgoal by fastforce
     subgoal by (rule hd_not_alien) assumption+
     subgoal by (rule L_not_alien) assumption+
     subgoal by (rule hd_in_N\<^sub>0) assumption+
