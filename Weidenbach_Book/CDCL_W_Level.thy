@@ -176,6 +176,14 @@ lemma count_decided_ge_get_maximum_level:
   using get_maximum_level_exists_lit_of_max_level unfolding Bex_def
   by (metis get_maximum_level_empty count_decided_ge_get_level le0)
 
+lemma get_level_last_decided_ge:
+   \<open>defined_lit (c @ [Decided K]) L' \<Longrightarrow> 0 < get_level (c @ [Decided K]) L'\<close>
+  by (induction c) (auto simp: defined_lit_cons get_level_cons_if)
+
+lemma get_maximum_level_mono:
+  \<open>D \<subseteq># D' \<Longrightarrow> get_maximum_level M D \<le> get_maximum_level M D'\<close>
+  unfolding get_maximum_level_def by auto
+
 fun get_all_mark_of_propagated where
 "get_all_mark_of_propagated [] = []" |
 "get_all_mark_of_propagated (Decided _ # L) = get_all_mark_of_propagated L" |

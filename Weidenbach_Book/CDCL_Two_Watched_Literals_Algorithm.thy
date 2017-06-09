@@ -673,15 +673,6 @@ qed
 
 end
 
-(*TODO: Move*)
-lemma get_level_last_decided_ge:
-   \<open>defined_lit (c @ [Decided K]) L' \<Longrightarrow> 0 < get_level (c @ [Decided K]) L'\<close>
-  by (induction c) (auto simp: defined_lit_cons get_level_cons_if)
-
-lemma get_maximum_level_mono:
-  \<open>D \<subseteq># D' \<Longrightarrow> get_maximum_level M D \<le> get_maximum_level M D'\<close>
-  unfolding get_maximum_level_def by auto
-(*END Move*)
 
 lemma backtrack_spec:
   assumes confl: \<open>get_conflict S \<noteq> None\<close> \<open>get_conflict S \<noteq> Some {#}\<close> and
