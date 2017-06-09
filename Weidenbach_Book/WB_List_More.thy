@@ -775,6 +775,38 @@ proof -
   qed
 qed
 
+lemma nths_upt_Suc':
+  assumes \<open>i < b\<close> and ‹b <= length xs›
+  shows \<open>nths xs {i..<b} = xs!i # nths xs {Suc i..<b}\<close>
+proof -
+  have S1: ‹{j. i ≤ Suc j ∧ j < b - Suc 0}  = {j. i ≤ Suc j ∧ Suc j < b}› for i b
+    by auto
+  have S2: ‹{j. i ≤ j ∧ j < b - Suc 0}  = {j. i ≤ j ∧ Suc j < b}› for i b
+    by auto
+  have upt: \<open>{i..<k} = {j. i \<le> j \<and> j < k}\<close> for i k :: nat
+    by auto
+  show ?thesis
+    using assms
+  proof (induction xs arbitrary: i b)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a xs i) note IH = this(1) and i_le = this(2,3)
+    have [simp]: \<open>i - Suc 0 \<le> j \<longleftrightarrow> i \<le> Suc j\<close> if \<open>i > 0\<close> for j
+      using that by auto
+    have ‹i - Suc 0 < b - Suc 0 \<or> (i = 0)›
+      using i_le by linarith
+    moreover have ‹b - Suc 0 ≤ length xs \<or> xs = []›
+      using i_le by auto
+    ultimately show ?case
+      using IH[of \<open>i-1\<close> ‹b-1›] i_le
+      apply (subst nths_Cons)
+      apply (subst nths_Cons)
+      by (auto simp: upt S1 S2)
+  qed
+qed
+
+
 subsection \<open>Product Case\<close>
 
 text \<open>The splitting of tuples is done for sizes strictly less than 8. As we want to manipulate
