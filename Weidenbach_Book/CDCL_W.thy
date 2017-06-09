@@ -4559,5 +4559,146 @@ proof (rule ccontr)
     using smaller tr unfolding no_smaller_propa_def by blast
 qed
 
+
+subsubsection ‹Conflict Minimisation›
+
+paragraph ‹Remove Literals of Level 0›
+(*TODO Move*)
+lemma (in -) length_get_all_ann_decomposition: ‹length (get_all_ann_decomposition M) = 1+count_decided M›
+  by (induction M rule: ann_lit_list_induct) auto
+(*End Move*)
+
+lemma conflict_minimisation_level_0:
+  fixes S :: 'st
+  defines D[simp]: ‹D \<equiv> the (conflicting S)›
+  defines [simp]: ‹M \<equiv> trail S›
+  defines ‹D' \<equiv> filter_mset (\<lambda>L. get_level M L > 0) D›
+  assumes
+    ns_s: ‹no_step skip S› and
+    ns_r: ‹no_step resolve S› and
+    inv_s: "cdcl\<^sub>W_stgy_invariant S" and
+    inv: "cdcl\<^sub>W_all_struct_inv S" and
+    conf: ‹conflicting S ~= None› ‹conflicting S ~= Some {#}› and
+    M_nempty: ‹M ~= []›
+  shows
+      "clauses S \<Turnstile>pm D'" and
+      ‹- lit_of (hd M) \<in># D'›
+proof -
+  define D0 where D0: ‹D0 = filter_mset (\<lambda>L. get_level M L = 0) D›
+  have D_D0_D': ‹D = D0 + D'›
+    using multiset_partition[of D ‹(\<lambda>L. get_level M L = 0)›]
+    unfolding D0 D'_def by auto
+  have
+    confl: ‹cdcl⇩W_conflicting S› and
+    decomp: ‹all_decomposition_implies_m (clauses S) (get_all_ann_decomposition (trail S))› and
+    learned: ‹cdcl⇩W_learned_clause S› and
+    M_lev: ‹cdcl⇩W_M_level_inv S› and
+    alien: ‹no_strange_atm S›
+    using inv unfolding cdcl\<^sub>W_all_struct_inv_def by fast+
+  have clss_D: ‹clauses S ⊨pm D›
+    using learned conf unfolding cdcl⇩W_learned_clause_def by auto
+  have M_CNot_D: ‹trail S \<Turnstile>as CNot D› and m_confl: ‹every_mark_is_a_conflict S›
+    using conf confl unfolding cdcl⇩W_conflicting_def by auto
+  have n_d: ‹no_dup M›
+    using M_lev unfolding cdcl⇩W_M_level_inv_def by auto
+  have uhd_D: ‹- lit_of (hd M) \<in># D›
+    using ns_s ns_r conf M_nempty inv_s M_CNot_D n_d
+    unfolding cdcl\<^sub>W_stgy_invariant_def conflict_is_false_with_level_def
+    by (cases ‹trail S›; cases ‹hd (trail S)›) (auto simp: skip.simps resolve.simps
+      get_level_cons_if atm_of_eq_atm_of true_annots_true_cls_def_iff_negation_in_model
+      uminus_lit_swap Decided_Propagated_in_iff_in_lits_of_l split: if_splits)
+
+  have count_dec_ge_0: ‹count_decided M > 0›
+  proof (rule ccontr)
+    assume H: ‹~ ?thesis›
+    then have ‹get_maximum_level M D = 0› for D
+      by (metis (full_types) count_decided_ge_get_maximum_level gr0I le_0_eq)
+    then show False
+      using ns_s ns_r conf M_nempty m_confl uhd_D H
+      by (cases ‹trail S›; cases ‹hd (trail S)›)
+        (auto 5 5 simp: skip.simps resolve.simps intro!: state_eq_ref)
+  qed
+  then obtain M0 K M1 where
+    M: ‹M = M1 @ Decided K # M0› and
+    lev_K: ‹get_level (trail S) K = Suc 0›
+    using backtrack_ex_decomp[of S 0, OF M_lev]
+    apply (auto dest!: get_all_ann_decomposition_exists_prepend)
+    by (metis append.assoc)
+
+  have count_M0: ‹count_decided M0 = 0›
+    using n_d lev_K unfolding M_def[symmetric] M by auto
+  have [simp]: ‹get_all_ann_decomposition M0 = [([], M0)]›
+    using count_M0 by (induction M0 rule: ann_lit_list_induct) auto
+  have [simp]: ‹get_all_ann_decomposition (M1 @ Decided K # M0) ~= [([], M0)]› for M1 K M0
+    using length_get_all_ann_decomposition[of ‹M1 @ Decided K # M0›]
+    unfolding M by auto
+  have ‹last (get_all_ann_decomposition (M1 @ Decided K # M0)) = ([], M0)›
+    apply (induction M1 rule: ann_lit_list_induct)
+    subgoal by auto
+    subgoal by auto
+    subgoal for L m M1
+      by (cases ‹get_all_ann_decomposition (M1 @ Decided K # M0)›) auto
+    done
+  then have clss_S_M0: ‹set_mset (clauses S) ⊨ps unmark_l M0›
+    using decomp unfolding M_def[symmetric] M
+    by (cases ‹get_all_ann_decomposition (M1 @ Decided K # M0)› rule: rev_cases)
+      (auto simp: all_decomposition_implies_def)
+  have H: ‹total_over_m I (set_mset (clauses S) ∪ unmark_l M0) = total_over_m I (set_mset (clauses S))›
+    for I
+    using alien unfolding no_strange_atm_def total_over_m_def total_over_set_def
+    M_def[symmetric] M
+    by (auto simp: clauses_def)
+  have uL_M0_D0: ‹-L \<in> lits_of_l M0› if ‹L \<in># D0› for L
+  proof (rule ccontr)
+    assume L_M0: ‹~ ?thesis›
+    have ‹L \<in># D› and lev_L: ‹get_level M L = 0›
+      using that unfolding D_D0_D' unfolding D0 by auto
+    then have ‹-L \<in> lits_of_l M›
+      using M_CNot_D that by (auto simp: true_annots_true_cls_def_iff_negation_in_model)
+    then have ‹-L \<in> lits_of_l (M1 @ [Decided K])›
+      using L_M0 unfolding M by auto
+    then have ‹0 < get_level (M1 @ [Decided K]) L› and ‹defined_lit (M1 @ [Decided K]) L›
+      using get_level_last_decided_ge[of M1 K L] unfolding Decided_Propagated_in_iff_in_lits_of_l
+      by fast+
+    then show False
+      using n_d lev_L get_level_skip_end[of ‹M1 @ [Decided K]› L M0]
+      unfolding M by auto
+  qed
+  have clss_D0: ‹clauses S \<Turnstile>pm {#- L#}› if ‹L \<in># D0› for L
+    using that clss_S_M0 uL_M0_D0[of L] unfolding true_clss_clss_def H true_clss_cls_def
+      true_clss_def lits_of_def
+    by auto
+  have lD0D': ‹l ∈ atms_of D0 \<Longrightarrow> l ∈ atms_of D› ‹l ∈ atms_of D' \<Longrightarrow> l ∈ atms_of D› for l
+    unfolding D_D0_D' by auto
+  have
+    H1: ‹total_over_m I (set_mset (clauses S) ∪ {{#-L#}}) = total_over_m I (set_mset (clauses S))›
+    if ‹L \<in># D0› for L
+    using alien conf atm_of_lit_in_atms_of[OF that]
+    unfolding no_strange_atm_def total_over_m_def total_over_set_def
+    M_def[symmetric] M that by (auto 5 5 simp: clauses_def dest!: lD0D')
+  then have I_D0: ‹total_over_m I (set_mset (clauses S)) ⟶
+            consistent_interp I ⟶
+            Multiset.Ball (clauses S) (op ⊨ I) ⟶ ~I ⊨ D0› for I
+    using clss_D0 unfolding true_clss_cls_def true_cls_def consistent_interp_def
+    true_cls_def true_cls_mset_def -- ‹TODO tune proof›
+    apply auto
+    by (metis atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set literal.sel(1)
+    true_cls_def true_cls_mset_def true_lit_def uminus_Pos)
+
+  have
+    H1: ‹total_over_m I (set_mset (clauses S) ∪ {D0 + D'}) = total_over_m I (set_mset (clauses S))› and
+    H2: ‹total_over_m I (set_mset (clauses S) ∪ {D'}) = total_over_m I (set_mset (clauses S))› for I
+    using alien conf unfolding no_strange_atm_def total_over_m_def total_over_set_def
+    M_def[symmetric] M by (auto 5 5 simp: clauses_def dest!: lD0D')
+  show ‹clauses S ⊨pm D'›
+    using clss_D clss_D0 I_D0 unfolding D_D0_D' true_clss_cls_def true_clss_def H1 H2
+    by auto
+  have ‹0 < get_level (trail S) (lit_of (hd_trail S))›
+    apply (cases ‹trail S›)
+    using M_nempty count_dec_ge_0 by auto
+  then show ‹- lit_of (hd M) \<in># D'›
+    using uhd_D unfolding D'_def by auto
+qed
+
 end
 end
