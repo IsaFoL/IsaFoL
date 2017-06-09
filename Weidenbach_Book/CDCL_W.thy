@@ -1670,7 +1670,6 @@ lemma rtanclp_distinct_cdcl\<^sub>W_state_inv:
   using assms apply (induct rule: rtranclp_induct)
   using distinct_cdcl\<^sub>W_state_inv rtranclp_cdcl\<^sub>W_restart_consistent_inv by blast+
 
-term \<open>0::'a::comm_monoid_add\<close>
 
 subsubsection \<open>Conflicts and Annotations\<close>
 
@@ -3518,7 +3517,7 @@ proof -
       M': "lits_of_l M' \<subseteq> set M" and
       n_d[simp]: "no_dup M'" and
       S: "state_butlast S = (M', N, {#}, None)" and
-      st: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) S" and 
+      st: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state N) S" and
       l_M': \<open>length M' = n\<close>
       by auto
     have
@@ -3527,7 +3526,7 @@ proof -
       using cdcl\<^sub>W_M_level_inv_S0_cdcl\<^sub>W_restart rtranclp_cdcl\<^sub>W_stgy_consistent_inv st apply blast
       using cdcl\<^sub>W_M_level_inv_S0_cdcl\<^sub>W_restart no_strange_atm_S0 rtranclp_cdcl\<^sub>W_restart_no_strange_atm_inv
         rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart st by blast
-        
+
     { assume no_step: "\<not>no_step propagate S"
       then obtain S' where S': "propagate S S'"
         by auto
