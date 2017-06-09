@@ -6,12 +6,16 @@ fun println x = print (x ^ "\n")
 val int_of_gi = IntInf.toInt o SAT_Solver.integer_of_int
 val gi_of_int = SAT_Solver.Int_of_integer o IntInf.fromInt
 val int_of_gn = IntInf.toInt o SAT_Solver.integer_of_nat
-val gn_of_int = SAT_Solver.nat_of_integer o IntInf.fromInt
+val gn_of_int = SAT_Solver.uint32_of_nat o SAT_Solver.nat_of_integer o IntInf.fromInt
+
+exception LitTooLarge of Int.int
 
 fun nat_of_lit n =
   let val m = if n < 0 then (2*(~n-1)+1) else (2*(n-1))
   in
-    gn_of_int m
+    if IntInf.fromInt m >= 2147483648 (* = 2^31*)
+    then (print (IntInf.toString (IntInf.fromInt m)); raise (LitTooLarge m))
+    else gn_of_int m
   end
 
 fun natotostr NONE = ""

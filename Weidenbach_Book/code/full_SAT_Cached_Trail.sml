@@ -1370,6 +1370,14 @@ fun decide_wl_or_skip_D_code n_0 =
         ()
     end);
 
+fun extract_shorter_conflict_l_trivial_code x =
+  (fn _ => fn _ => fn _ => fn bid => fn _ => fn _ => fn _ => fn _ =>
+    (fn () => (the bid)))
+    x;
+
+fun extract_shorter_conflict_l_trivial_code_wl x =
+  extract_shorter_conflict_l_trivial_code x;
+
 fun find_lit_of_max_level_wl_imp_code x =
   (fn ai => fn _ => fn _ => fn bie => fn _ => fn _ => fn _ => fn _ => fn bi =>
     fn () =>
@@ -1463,68 +1471,73 @@ fun backtrack_wl_D_code x =
     in
       let
         val x_a = fst xa;
-        val x_c = the a1c;
       in
         (fn f_ => fn () => f_
-          ((find_decomp_wl_imp_codea a1 a1a a1b x_c a1d a1e a1f a2f x_a) ()) ())
-          (fn x_e =>
-            (fn f_ => fn () => f_ ((arl_length heap_uint32 x_c) ()) ())
-              (fn xb =>
-                (if less_nat one_nat xb
-                  then (fn f_ => fn () => f_
-                         ((find_lit_of_max_level_wl_imp_code x_e a1a a1b x_c a1d
-                            a1e a1f a2f x_a)
-                         ()) ())
-                         (fn x_g =>
-                           (fn f_ => fn () => f_
-                             ((remove1_and_add_first_code
-                                (Word32.xorb (x_a, (Word32.fromInt 1))) x_g x_c)
+          ((extract_shorter_conflict_l_trivial_code_wl a1 a1a a1b a1c a1d a1e
+             a1f a2f)
+          ()) ())
+          (fn x_c =>
+            (fn f_ => fn () => f_
+              ((find_decomp_wl_imp_codea a1 a1a a1b x_c a1d a1e a1f a2f x_a) ())
+              ())
+              (fn x_d =>
+                (fn f_ => fn () => f_ ((arl_length heap_uint32 x_c) ()) ())
+                  (fn xb =>
+                    (if less_nat one_nat xb
+                      then (fn f_ => fn () => f_
+                             ((find_lit_of_max_level_wl_imp_code x_d a1a a1b x_c
+                                a1d a1e a1f a2f x_a)
                              ()) ())
-                             (fn x_j =>
+                             (fn x_f =>
                                (fn f_ => fn () => f_
-                                 ((length_ra heap_uint32 a1a) ()) ())
-                                 (fn xc =>
+                                 ((remove1_and_add_first_code
+                                    (Word32.xorb (x_a, (Word32.fromInt 1))) x_f
+                                    x_c)
+                                 ()) ())
+                                 (fn x_i =>
                                    (fn f_ => fn () => f_
-                                     ((append_el_aa (default_nat, heap_nat) a2f
-(nat_of_uint32 x_g) xc)
-                                     ()) ())
-                                     (fn x_k =>
+                                     ((length_ra heap_uint32 a1a) ()) ())
+                                     (fn xc =>
                                        (fn f_ => fn () => f_
- ((length_ra heap_uint32 a1a) ()) ())
- (fn xd =>
-   (fn f_ => fn () => f_
-     ((append_el_aa (default_nat, heap_nat) x_k
-        (nat_of_uint32 (Word32.xorb (x_a, (Word32.fromInt 1)))) xd)
-     ()) ())
-     (fn x_m =>
-       (fn f_ => fn () => f_ ((length_ra heap_uint32 a1a) ()) ())
-         (fn xe =>
-           (fn f_ => fn () => f_
-             ((cons_trail_Propagated_tr_code
-                (Word32.xorb (x_a, (Word32.fromInt 1))) xe x_e)
-             ()) ())
-             (fn x_o =>
-               (fn f_ => fn () => f_ ((array_of_arl_raa heap_uint32 x_j) ()) ())
-                 (fn xf =>
-                   (fn f_ => fn () => f_
-                     ((arrayO_raa_append (default_uint32, heap_uint32) a1a xf)
-                     ()) ())
-                     (fn xg =>
-                       (fn () =>
-                         (x_o, (xg, (a1b, (NONE,
-    (a1d, (a1e, ([x_a], x_m))))))))))))))))))
-                  else (fn f_ => fn () => f_ ((single_of_mset_imp_code x_c) ())
-                         ())
-                         (fn x_g =>
-                           (fn f_ => fn () => f_
-                             ((cons_trail_Propagated_tr_code
-                                (Word32.xorb (x_a, (Word32.fromInt 1)))
-                                zero_nata x_e)
+ ((append_el_aa (default_nat, heap_nat) a2f (nat_of_uint32 x_f) xc) ()) ())
+ (fn x_j =>
+   (fn f_ => fn () => f_ ((length_ra heap_uint32 a1a) ()) ())
+     (fn xd =>
+       (fn f_ => fn () => f_
+         ((append_el_aa (default_nat, heap_nat) x_j
+            (nat_of_uint32 (Word32.xorb (x_a, (Word32.fromInt 1)))) xd)
+         ()) ())
+         (fn x_l =>
+           (fn f_ => fn () => f_ ((length_ra heap_uint32 a1a) ()) ())
+             (fn xe =>
+               (fn f_ => fn () => f_
+                 ((cons_trail_Propagated_tr_code
+                    (Word32.xorb (x_a, (Word32.fromInt 1))) xe x_d)
+                 ()) ())
+                 (fn x_n =>
+                   (fn f_ => fn () => f_ ((array_of_arl_raa heap_uint32 x_i) ())
+                     ())
+                     (fn xf =>
+                       (fn f_ => fn () => f_
+                         ((arrayO_raa_append (default_uint32, heap_uint32) a1a
+                            xf)
+                         ()) ())
+                         (fn xg =>
+                           (fn () =>
+                             (x_n, (xg, (a1b,
+  (NONE, (a1d, (a1e, ([x_a], x_l))))))))))))))))))
+                      else (fn f_ => fn () => f_ ((single_of_mset_imp_code x_c)
                              ()) ())
-                             (fn x_h =>
-                               (fn () =>
-                                 (x_h, (a1a,
- (a1b, (NONE, (a1d, ([x_g] :: a1e, ([x_a], a2f)))))))))))))
+                             (fn x_f =>
+                               (fn f_ => fn () => f_
+                                 ((cons_trail_Propagated_tr_code
+                                    (Word32.xorb (x_a, (Word32.fromInt 1)))
+                                    zero_nata x_d)
+                                 ()) ())
+                                 (fn x_g =>
+                                   (fn () =>
+                                     (x_g, (a1a,
+     (a1b, (NONE, (a1d, ([x_f] :: a1e, ([x_a], a2f))))))))))))))
       end
         ()
     end)
