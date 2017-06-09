@@ -1031,10 +1031,12 @@ definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" wh
         ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
         ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
         ASSERT(D ~= None);
+        ASSERT(-L \<in># the D);
         D' \<leftarrow> extract_shorter_conflict_wl (M, N, U, D, NP, UP, Q, W);
         ASSERT(get_level M L = count_decided M);
         ASSERT(D' \<noteq> {#});
         ASSERT(ex_decomp_of_max_lvl M (Some D') L);
+        ASSERT(D' \<subseteq># the D);
         ASSERT(-L \<in># D');
         ASSERT(literals_are_in_N\<^sub>0 D');
         ASSERT(\<forall>L\<in># D'. defined_lit M L);
@@ -1087,6 +1089,7 @@ qed
 lemma lits_of_atms_of_m_mono:
   "D \<subseteq># D' ⟹ lits_of_atms_of_m D \<subseteq># lits_of_atms_of_m D'"
   by (auto elim!: mset_le_addE simp: lits_of_atms_of_m_union)
+(*END: Move*)
 
 lemma backtrack_wl_D_spec:
   assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close> and confl: ‹get_conflict_wl S ~= None›
@@ -1630,6 +1633,8 @@ have lits_in_N\<^sub>0: ‹literals_are_in_N⇩0 D›
     subgoal by fast
     subgoal by fast
     subgoal by fast
+    subgoal by auto
+    subgoal by auto
     subgoal by (rule lits_in_N\<^sub>0) assumption+
     subgoal by (rule defined_D) assumption+
     subgoal by auto
@@ -1731,16 +1736,14 @@ definition cdcl_twl_o_prog_wl_D :: "nat twl_st_wl \<Rightarrow> (bool \<times> n
       ASSERT(twl_struct_invs (twl_st_of_wl None S));
       ASSERT(twl_stgy_invs (twl_st_of_wl None S));
       ASSERT(additional_WS_invs (st_l_of_wl None S));
-      do {
-        if get_conflict_wl S = None
-        then decide_wl_or_skip_D S
-        else do {
-          T \<leftarrow> skip_and_resolve_loop_wl_D S;
-          ASSERT(get_conflict_wl T \<noteq> None);
-          if get_conflict_wl T \<noteq> Some {#}
-          then do {U \<leftarrow> backtrack_wl_D T; RETURN (False, U)}
-          else do {RETURN (True, T)}
-        }
+      if get_conflict_wl S = None
+      then decide_wl_or_skip_D S
+      else do {
+        T \<leftarrow> skip_and_resolve_loop_wl_D S;
+        ASSERT(get_conflict_wl T \<noteq> None);
+        if get_conflict_wl T \<noteq> Some {#}
+        then do {U \<leftarrow> backtrack_wl_D T; RETURN (False, U)}
+        else do {RETURN (True, T)}
       }
     }
   \<close>

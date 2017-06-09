@@ -1071,10 +1071,10 @@ lemma count_decided_butlast:
 lemma find_decomp_wl_code_find_decomp_wl:
   assumes D: \<open>D \<noteq> None\<close> \<open>D \<noteq> Some {#}\<close> and M\<^sub>0: \<open>M\<^sub>0 \<noteq> []\<close> and ex_decomp: \<open>ex_decomp_of_max_lvl M\<^sub>0 D L\<close> and
     L: \<open>L = lit_of (hd M\<^sub>0)\<close> and
-    no_r: \<open>no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close> and
-    no_s: \<open>no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close> and
-    struct: \<open>twl_struct_invs (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W))\<close> and
-    E: \<open>E = the D\<close>
+    struct: \<open>twl_struct_invs (twl_st_of_wl None (M\<^sub>0, N, U, D\<^sub>0, NP, UP, Q, W))\<close> and
+    E: \<open>E = the D\<close> and
+    E_D\<^sub>0: ‹E \<subseteq># the D\<^sub>0› and
+    D\<^sub>0: \<open>D\<^sub>0 \<noteq> None›
   shows
    \<open>find_decomp_wl_imp M\<^sub>0 E L \<le> find_decomp_wl (M\<^sub>0, N, U, D, NP, UP, Q, WS) L\<close>
 proof -
@@ -1122,17 +1122,21 @@ proof -
   have [iff]: \<open>convert_lits_l N M = [] \<longleftrightarrow> M = []\<close> for M
     by (cases M) auto
   have
-    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close> and
-    confl: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close> and
-    lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close>
+    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of (twl_st_of_wl None (M\<^sub>0, N, U, D\<^sub>0, NP, UP, Q, W)))\<close> and
+    confl: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of (twl_st_of_wl None (M\<^sub>0, N, U, D\<^sub>0, NP, UP, Q, W)))\<close> and
+    lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of (twl_st_of_wl None (M\<^sub>0, N, U, D\<^sub>0, NP, UP, Q, W)))\<close>
     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
-  have dist_D: \<open>distinct_mset (the D)\<close>
-    using D dist by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset'
+  have \<open>distinct_mset (the D\<^sub>0)\<close>
+    using D\<^sub>0 dist by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset'
         cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def)
-
-  have M\<^sub>0_CNot_D: \<open>M\<^sub>0 \<Turnstile>as CNot (the D)\<close>
-    using D confl by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset'
+  then have dist_D: \<open>distinct_mset (the D)\<close>
+    using distinct_mset_mono[OF E_D\<^sub>0] E by fast
+  have \<open>M\<^sub>0 \<Turnstile>as CNot (the D\<^sub>0)\<close>
+    using D\<^sub>0 confl by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset'
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def)
+  then have M\<^sub>0_CNot_D: \<open>M\<^sub>0 \<Turnstile>as CNot (the D)\<close>
+    using E_D\<^sub>0 unfolding E by (simp add: mset_subset_eqD true_annots_true_cls_def_iff_negation_in_model)
+    
   have n_d: \<open>no_dup M\<^sub>0\<close>
     using lev_inv by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset'
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def)
@@ -1154,15 +1158,6 @@ proof -
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
     by (cases M\<^sub>0; cases \<open>hd M\<^sub>0\<close>) (auto 5 5 simp: cdcl\<^sub>W_restart_mset_state
         split: if_splits)
-  ultimately have \<open>count_decided M\<^sub>0 \<noteq> get_maximum_level M\<^sub>0 (remove1_mset (- L) (the D))\<close>
-    using count_decided_ge_get_maximum_level[of \<open>tl M\<^sub>0\<close> \<open>remove1_mset (- L) (the D)\<close>]
-    using no_r no_s M\<^sub>0 L D get_maximum_level_convert_lits_l[of N M\<^sub>0]
-    by (cases M\<^sub>0; cases \<open>hd M\<^sub>0\<close>)
-      (auto 5 5 simp: cdcl\<^sub>W_restart_mset.resolve.simps cdcl\<^sub>W_restart_mset.skip.simps
-        cdcl\<^sub>W_restart_mset_state split: if_splits)
-  then have count_max: \<open>count_decided M\<^sub>0 > get_maximum_level M\<^sub>0 (remove1_mset (- L) (the D))\<close>
-    using count_decided_ge_get_maximum_level[of M\<^sub>0 \<open>remove1_mset (- L) (the D)\<close>]
-    by linarith
   have count_decided_not_Nil[simp]:  \<open>0 < count_decided M \<Longrightarrow> M \<noteq> []\<close> for M :: \<open>(nat, nat) ann_lits\<close>
     by auto
   have get_lev_last: \<open>get_level (M' @ M) (lit_of (last M')) = Suc (count_decided M)\<close>
@@ -1185,9 +1180,10 @@ proof -
           eq_commute[of \<open>[_]\<close>] intro: butlast
           cong: if_cong split: if_splits)
     subgoal
-      using ex_decomp count_max
-      by (auto simp: count_decided_butlast butlast_nil_iff eq_commute[of \<open>[_]\<close>] ex_decomp_of_max_lvl_def
+      using ex_decomp get_level_Succ_count_decided_neq (*TODO Proof*)
+      apply (auto simp: count_decided_butlast butlast_nil_iff eq_commute[of \<open>[_]\<close>] ex_decomp_of_max_lvl_def
           intro: butlast)
+      by (metis get_level_Succ_count_decided_neq)
     subgoal for s D M'
       apply clarsimp
       apply (intro conjI impI)
@@ -1205,15 +1201,14 @@ proof -
       subgoal by (cases M') auto
       done
     subgoal for s D M
-      using count_max
       apply (auto simp: count_decided_ge_get_maximum_level ex_decomp_get_ann_decomposition_iff
           get_lev_last)
        apply (rule_tac x=\<open>lit_of (last M')\<close> in exI)
        apply auto
         apply (rule_tac x=\<open>butlast M'\<close> in exI)
         apply (case_tac \<open>last M'\<close>)
-         apply (auto simp: nth_append)
-        apply (metis append_butlast_last_id count_decided_nil neq0_conv)
+         apply (auto simp: nth_append simp del: append_butlast_last_id)
+        apply (metis append_butlast_last_id)
        defer
        apply (rule_tac x=\<open>lit_of (last M')\<close> in exI)
        apply auto
@@ -1248,14 +1243,16 @@ lemma find_decomp_wl'_find_decomp_wl:
   \<open>find_decomp_wl' M N U D' NP UP Q WS L = find_decomp_wl (M, N, U, Some D', NP, UP, Q, WS) L\<close>
   by (auto simp: find_decomp_wl'_def find_decomp_wl_def)
 
+(*TODO Move*)
 notation prod_rel_syn (infixl "\<times>\<^sub>f" 70)
-  thm frefI
+(*END Move*)
+
 lemma find_decomp_wl_imp_find_decomp_wl':
   \<open>(uncurry8 (\<lambda>M N U D NP UP Q W L. find_decomp_wl_imp M D L), uncurry8 find_decomp_wl') \<in>
-  [\<lambda>((((((((M, N), U), D), NP), UP), Q), W), L). D \<noteq> {#} \<and> M \<noteq> [] \<and> ex_decomp_of_max_lvl M (Some D) L \<and>
-     L = lit_of (hd M) \<and> no_resolve (M, N, U, Some D, NP, UP, Q, W) \<and>
-       no_skip (M, N, U, Some D, NP, UP, Q, W) \<and>
-      twl_struct_invs (twl_st_of_wl None (M, N, U, Some D, NP, UP, Q, W))]\<^sub>f
+  [\<lambda>((((((((M, N), U), D), NP), UP), Q), W), L). \<exists> D\<^sub>0. D \<noteq> {#} \<and> M \<noteq> [] \<and> ex_decomp_of_max_lvl M (Some D) L \<and>
+     L = lit_of (hd M) \<and>
+      twl_struct_invs (twl_st_of_wl None (M, N, U, D\<^sub>0, NP, UP, Q, W)) \<and>
+      D \<subseteq>#  the D\<^sub>0 \<and> D\<^sub>0 ≠ None]\<^sub>f
    (Id \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id) \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
   unfolding find_decomp_wl'_find_decomp_wl no_resolve_def no_skip_def
   apply (intro frefI nres_relI)
@@ -1837,7 +1834,7 @@ lemma N_hnr[sepref_import_param]: "(N\<^sub>0,N\<^sub>0')\<in>\<langle>unat_lit_
 lemma set_mset_lits_of_atms_of_mm_atms_of_ms_iff:
   \<open>set_mset (lits_of_atms_of_mm A) = set_mset N\<^sub>1 \<longleftrightarrow> atms_of_ms (set_mset A) = atms_of N\<^sub>1\<close>
   apply (auto simp: atms_of_s_def in_lits_of_atms_of_mm_ain_atms_of_iff atms_of_ms_def
-      atms_of_def atm_of_eq_atm_of in_N\<^sub>1_iff)
+      atms_of_def atm_of_eq_atm_of in_N⇩1_atm_of_in_atms_of_iff)
   apply (auto simp: in_lits_of_atms_of_mm_ain_atms_of_iff in_implies_atm_of_on_atms_of_ms)
   done -- \<open>TODO tune proof\<close>
 
@@ -1922,7 +1919,7 @@ proof -
       by (subst (2) append_take_drop_id[symmetric, of \<open>tl N\<close> U], subst mset_append)
         (simp add: drop_Suc)
     have in_N\<^sub>1: \<open>Neg x \<in># N\<^sub>1 \<longleftrightarrow> x \<in> atms_of N\<^sub>1\<close>\<open>Pos x \<in># N\<^sub>1 \<longleftrightarrow> x \<in> atms_of N\<^sub>1\<close> for x
-      using in_N\<^sub>1_iff[of \<open>Neg x\<close>] in_N\<^sub>1_iff[of \<open>Pos x\<close>] by simp_all
+      using in_N⇩1_atm_of_in_atms_of_iff[of \<open>Neg x\<close>] in_N⇩1_atm_of_in_atms_of_iff[of \<open>Pos x\<close>] by simp_all
     have tl_N_NP_N\<^sub>1: \<open>atms_of_ms (mset ` set (tl N) \<union> set_mset NP) = atms_of_s (set_mset N\<^sub>1)\<close>
       using lit_N\<^sub>0 0 UP_NP unfolding is_N\<^sub>1_def
       by (subst (asm) set_mset_lits_of_atms_of_mm_atms_of_ms_iff)
@@ -1985,7 +1982,7 @@ proof -
       by (subst (2) append_take_drop_id[symmetric, of \<open>tl N\<close> U], subst mset_append)
         (simp add: drop_Suc)
     have in_N\<^sub>1: \<open>Neg x \<in># N\<^sub>1 \<longleftrightarrow> x \<in> atms_of N\<^sub>1\<close>\<open>Pos x \<in># N\<^sub>1 \<longleftrightarrow> x \<in> atms_of N\<^sub>1\<close> for x
-      using in_N\<^sub>1_iff[of \<open>Neg x\<close>] in_N\<^sub>1_iff[of \<open>Pos x\<close>] by simp_all
+      using in_N⇩1_atm_of_in_atms_of_iff[of \<open>Neg x\<close>] in_N⇩1_atm_of_in_atms_of_iff[of \<open>Pos x\<close>] by simp_all
     have tl_N_NP_N\<^sub>1: \<open>atms_of_ms (mset ` set (tl N) \<union> set_mset NP) = atms_of_s (set_mset N\<^sub>1)\<close>
       using lit_N\<^sub>0 0 UP_NP unfolding is_N\<^sub>1_def
       by (subst (asm) set_mset_lits_of_atms_of_mm_atms_of_ms_iff)

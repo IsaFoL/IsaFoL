@@ -1147,11 +1147,9 @@ lemma find_decomp_wl_code[sepref_fr_rules]:
   \<open>(uncurry8 find_decomp_wl_imp'_code,
       uncurry8 find_decomp_wl')
   \<in> [\<lambda>((((((((M::(nat, nat) ann_lits, N), U::nat), D::nat clause), NP::nat clauses), UP:: nat clauses),
-        Q), W), L). D \<noteq> {#} \<and> M \<noteq> [] \<and> ex_decomp_of_max_lvl M (Some D) L \<and> L = lit_of (hd M) \<and>
-       (no_skip (M, N, U, Some D, NP, UP, Q, W))  \<and>
-       no_resolve (M, N, U, Some D, NP, UP, Q, W) \<and>
-       twl_struct_invs (twl_st_of_wl None (M, N, U, Some D, NP, UP, Q, W)) \<and>
-       literals_are_in_N\<^sub>0 D]\<^sub>a
+        Q), W), L). \<exists>D\<^sub>0. D \<noteq> {#} \<and> M \<noteq> [] \<and> ex_decomp_of_max_lvl M (Some D) L \<and> L = lit_of (hd M) \<and>
+       (twl_struct_invs (twl_st_of_wl None (M, N, U, D\<^sub>0, NP, UP, Q, W)) \<and>
+       literals_are_in_N\<^sub>0 D \<and> D \<subseteq># the D\<^sub>0 \<and> D\<^sub>0 ≠ None)]\<^sub>a
     (trail_assn\<^sup>d *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a
        unit_lits_assn\<^sup>k *\<^sub>a unit_lits_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k) *\<^sub>a
     unat_lit_assn\<^sup>k
@@ -1159,19 +1157,21 @@ lemma find_decomp_wl_code[sepref_fr_rules]:
   (is \<open> _ \<in> [?P]\<^sub>a _ \<rightarrow> _\<close>)
 proof -
   have H: \<open>(uncurry8 find_decomp_wl_imp'_code, uncurry8 find_decomp_wl')
-    \<in> [\<lambda>((((((((a, b), ba), bb), bc), bd), be), bf), bg).
-         bb \<noteq> {#} \<and>
-         a \<noteq> [] \<and>
-         ex_decomp_of_max_lvl a (Some bb) bg \<and>
-         bg = lit_of (hd a) \<and>
-         no_resolve (a, b, ba, Some bb, bc, bd, be, bf) \<and>
-         no_skip (a, b, ba, Some bb, bc, bd, be, bf) \<and>
-         twl_struct_invs
-          (convert_lits_l b a,
-           {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)) . x \<in># mset (take ba (tl b))#},
-           {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)) . x \<in># mset (drop (Suc ba) b)#},
-           Some bb, bc, bd, {#}, be) \<and>
-         literals_are_in_N\<^sub>0 bb]\<^sub>a
+    \<in> [λ((((((((a, b), ba), bb), bc), bd), be), bf), bg).
+        bb ≠ {#} ∧
+        a ≠ []∧
+        ex_decomp_of_max_lvl a (Some bb) bg ∧
+        bg = lit_of (hd a) ∧
+        (∃D⇩0. twl_struct_invs
+                (convert_lits_l b a,
+                 {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x))
+                 . x ∈# mset (take ba (tl b))#},
+                 {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x))
+                 . x ∈# mset (drop (Suc ba) b)#},
+                 D⇩0, bc, bd, {#}, be) ∧
+               bb ⊆# the D⇩0 ∧ (∃y. D⇩0 = Some y)) ∧
+        literals_are_in_N⇩0
+         bb]⇩a
      (trail_assn)\<^sup>d *\<^sub>a (arlO_assn clause_ll_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a
         clauses_l_assn\<^sup>k *\<^sub>a clauses_l_assn\<^sup>k *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a
      (hr_comp (arrayO_assn (arl_assn nat_assn))
@@ -1231,7 +1231,7 @@ notation (in -)
   comp7  (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>" 55) and
   comp8  (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>" 55)
 (*End Move*)
-ML ‹let val s: cte list = [] in s end›
+
 thm extract_shorter_conflict_l_trivial'.refine_raw[]
 
 concrete_definition (in -) extract_shorter_conflict_l_trivial_code
@@ -1244,26 +1244,32 @@ lemmas extract_shorter_conflict_l_trivial_code_wl_D[sepref_fr_rules] =
   extract_shorter_conflict_l_trivial_code.refine[of N\<^sub>0, unfolded PR_CONST_def,
       OF twl_array_code_axioms]
 
-lemma extract_shorter_conflict_l_trivial_code_wl:
-  ‹(uncurry7 extract_shorter_conflict_l_trivial_code, extract_shorter_conflict_wl)
-    ∈ [(λS. twl_struct_invs (twl_st_of_wl None S) ∧
-          get_conflict_wl S ≠ None ∧
-          - lit_of (hd (get_trail_wl S)) ∈# the (get_conflict_wl S))]⇩a 
-      trail_assn\<^sup>k *⇩a (clauses_ll_assn\<^sup>k *⇩a (nat_assn\<^sup>k 
-      *⇩a (conflict_option_assn\<^sup>d *⇩a (unit_lits_assn\<^sup>k 
-      *⇩a (unit_lits_assn\<^sup>k 
-      *⇩a (clause_l_assn\<^sup>k *⇩a array_watched_assn\<^sup>k)))))) → 
+definition (in -) extract_shorter_conflict_wl' where
+‹extract_shorter_conflict_wl' M N U D NP UP W Q = 
+  extract_shorter_conflict_wl (M, N, U, D, NP, UP, W, Q)›
+
+lemma extract_shorter_conflict_l_trivial_code_wl':
+  ‹(uncurry7 extract_shorter_conflict_l_trivial_code, uncurry7 extract_shorter_conflict_wl')
+    ∈ [λ(((((((M, N), U), D), NP), UP), Q), W). 
+         twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)) ∧
+          get_conflict_wl (M, N, U, D, NP, UP, Q, W) ≠ None ∧
+          - lit_of (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W))) 
+            ∈# the (get_conflict_wl (M, N, U, D, NP, UP, Q, W))]⇩a 
+      trail_assn\<^sup>k *⇩a clauses_ll_assn\<^sup>k *⇩a nat_assn\<^sup>k 
+      *⇩a conflict_option_assn\<^sup>d *⇩a unit_lits_assn\<^sup>k 
+      *⇩a unit_lits_assn\<^sup>k 
+      *⇩a clause_l_assn\<^sup>k *⇩a array_watched_assn\<^sup>k → 
       conflict_assn›
     (is ‹ _ \<in> [?cond]\<^sub>a ?pre \<rightarrow> ?post›)
 proof -
-   have H: ‹extract_shorter_conflict_l_trivial x <= \<Down> Id
-       (extract_shorter_conflict_wl y)›
+   have H: ‹uncurry7 extract_shorter_conflict_l_trivial x <= \<Down> Id
+       (uncurry7 extract_shorter_conflict_wl' y)›
     if
       struct_invs: ‹twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))›
       ‹-lit_of (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W))) \<in># the (get_conflict_wl (M, N, U, D, NP, UP, Q, W))›
       ‹get_conflict_wl (M, N, U, D, NP, UP, Q, W) ~= None› and
-      ‹x = (M, N, U, D, NP, UP, Q, W)› and
-      ‹y = (M, N, U, D, NP, UP, Q, W)›
+      ‹x = (((((((M, N), U), D), NP), UP), Q), W)› and
+      ‹y = (((((((M, N), U), D), NP), UP), Q), W)›
   for N NP UP D L M U Q W x y
   proof -
     have ‹cdcl⇩W_restart_mset.cdcl⇩W_learned_clause
@@ -1284,13 +1290,14 @@ proof -
     ultimately show ?thesis
       using that(2-)
       by (auto simp: cdcl\<^sub>W_restart_mset_state clauses_def mset_take_mset_drop_mset' 
-        extract_shorter_conflict_l_trivial_def extract_shorter_conflict_wl_def)
+        extract_shorter_conflict_l_trivial_def extract_shorter_conflict_wl_def
+        extract_shorter_conflict_wl'_def)
   qed
 
-  have R: ‹(extract_shorter_conflict_l_trivial, extract_shorter_conflict_wl) \<in>
-     [\<lambda>S::'v twl_st_wl. twl_struct_invs (twl_st_of_wl None S) \<and> 
-        get_conflict_wl S ~= None \<and> -lit_of (hd (get_trail_wl S)) \<in># the (get_conflict_wl S)]\<^sub>f
-      (Id \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id) \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  have R: ‹(uncurry7 extract_shorter_conflict_l_trivial, uncurry7 extract_shorter_conflict_wl') \<in>
+     [uncurried_swap8 (\<lambda>S::'v twl_st_wl. twl_struct_invs (twl_st_of_wl None S) \<and> 
+        get_conflict_wl S ~= None \<and> -lit_of (hd (get_trail_wl S)) \<in># the (get_conflict_wl S))]\<^sub>f
+      (Id \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id) \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
     apply (intro nres_relI frefI)
     apply clarify
     apply (rule H)
@@ -1298,29 +1305,24 @@ proof -
     apply auto
     done
 
-  have H: ‹(extract_shorter_conflict_l_trivial_code, extract_shorter_conflict_wl)
-    ∈ [comp_PRE
-        (Id ×⇩f (Id ×⇩f (nat_rel ×⇩f (Id ×⇩f (Id ×⇩f (Id ×⇩f (Id ×⇩f Id)))))))
-        (λS. twl_struct_invs (twl_st_of_wl None S) ∧
-            get_conflict_wl S ≠ None ∧
-            - lit_of (hd (get_trail_wl S)) ∈# the (get_conflict_wl S))
-        (λ_ S. get_conflict_wl S ≠ None)
-        (λ_. True)]⇩a hrp_comp
-                      (trail_assn⇧k *⇩a
-                        (clauses_ll_assn⇧k *⇩a
-                        (nat_assn⇧k *⇩a
-                          (conflict_option_assn⇧d *⇩a
-                          (clauses_l_assn⇧k *⇩a
-                            (clauses_l_assn⇧k *⇩a
-                            (clause_l_assn⇧k *⇩a
-                              (hr_comp (arrayO_assn (arl_assn nat_assn))
-                                (⟨Id⟩map_fun_rel D⇩0))⇧k)))))))
-                      (Id ×⇩f
-                        (Id ×⇩f
-                        (nat_rel ×⇩f
-                          (Id ×⇩f
-                          (Id ×⇩f
-                            (Id ×⇩f (Id ×⇩f Id))))))) → hr_comp conflict_assn Id›
+  have H: ‹(uncurry7 extract_shorter_conflict_l_trivial_code, uncurry7 extract_shorter_conflict_wl')
+    ∈ [comp_PRE (Id ×⇩f Id ×⇩f nat_rel ×⇩f Id ×⇩f Id ×⇩f Id ×⇩f Id ×⇩f Id)
+    (λ(((((((M, N), U), D), NP), UP), Q), W).
+        twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)) ∧
+        get_conflict_wl (M, N, U, D, NP, UP, Q, W) ≠ None ∧
+        - lit_of (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W)))
+        ∈# the (get_conflict_wl (M, N, U, D, NP, UP, Q, W)))
+    (λ_ S. uncurried_swap8 get_conflict_wl S ≠ None)
+    (λ_. True)]⇩a hrp_comp
+                   (trail_assn⇧k *⇩a clauses_ll_assn⇧k *⇩a nat_assn⇧k *⇩a
+                    conflict_option_assn⇧d *⇩a
+                    clauses_l_assn⇧k *⇩a
+                    clauses_l_assn⇧k *⇩a
+                    clause_l_assn⇧k *⇩a
+                    (hr_comp (arrayO_assn (arl_assn nat_assn))
+                      (⟨Id⟩map_fun_rel D⇩0))⇧k)
+                   (Id ×⇩f Id ×⇩f nat_rel ×⇩f Id ×⇩f Id ×⇩f Id ×⇩f Id ×⇩f
+                    Id) → hr_comp conflict_assn Id›
       (is ‹ _ \<in> [?cond']\<^sub>a ?pre' \<rightarrow> ?post'›)
       using hfref_compI_PRE_aux[OF extract_shorter_conflict_l_trivial_code.refine R, 
       OF twl_array_code_axioms] .
@@ -1335,54 +1337,22 @@ proof -
      using H unfolding cond pre im . 
 qed
 
-concrete_definition (in -) extract_shorter_conflict_l_trivial_code_wl
-   uses twl_array_code.extract_shorter_conflict_l_trivial_code_wl
-   is "(?f,_)\<in>_"
+concrete_definition (in -) extract_shorter_conflict_l_trivial_code_wl'
+   uses twl_array_code.extract_shorter_conflict_l_trivial_code_wl'
+   is "(uncurry7 ?f,_)\<in>_"
 
-prepare_code_thms (in -) extract_shorter_conflict_l_trivial_code_wl_def
+prepare_code_thms (in -) extract_shorter_conflict_l_trivial_code_wl'_def
+
+lemmas extract_shorter_conflict_l_trivial_code_wl'_D[sepref_fr_rules] = 
+  extract_shorter_conflict_l_trivial_code_wl'.refine[of N\<^sub>0, unfolded PR_CONST_def,
+      OF twl_array_code_axioms]
+
+(*TODO Move*)
 lemma (in -) hn_ctxt_prod_assn_prod:
   ‹hn_ctxt (R *assn S) (a, b) (a', b') = hn_ctxt R a a' * hn_ctxt S b b'›
   unfolding hn_ctxt_def
   by auto
-
-text ‹TODO: less ugly way to generate the rule?›
-theorem extract_shorter_conflict_l_trivial_code_wl_D[sep_heap_rules]:
-  assumes
-    ‹twl_struct_invs (twl_st_of_wl None (a, b, c, d, e, f, g, h))› and
-    ‹get_conflict_wl (a, b, c, d, e, f, g, h) ~= None› and
-    ‹ - lit_of (hd (get_trail_wl (a, b, c, d, e, f, g, h))) 
-        ∈# the (get_conflict_wl (a, b, c, d, e, f, g, h))›
-  shows
-      ‹hn_refine
-     (hn_ctxt clauses_ll_assn b bi *
-      hn_ctxt nat_assn c ci *
-      hn_ctxt conflict_option_assn d di *
-      hn_ctxt clauses_l_assn e ei *
-      hn_ctxt clauses_l_assn f fi *
-      hn_ctxt clause_l_assn g gi *
-      hn_ctxt (hr_comp (arrayO_assn (arl_assn nat_assn)) (⟨Id⟩map_fun_rel D⇩0))
-       h hi *
-      hn_ctxt trail_assn a ai)
-     (extract_shorter_conflict_l_trivial_code_wl (ai, bi, ci, di, ei, fi, gi, hi))
-     (hn_ctxt clauses_ll_assn b bi *
-      hn_ctxt nat_assn c ci *
-      hn_invalid conflict_option_assn d di *
-      hn_ctxt clauses_l_assn e ei *
-      hn_ctxt clauses_l_assn f fi *
-      hn_ctxt clause_l_assn g gi *
-      hn_ctxt (hr_comp (arrayO_assn (arl_assn nat_assn)) (⟨Id⟩map_fun_rel D⇩0))
-       h hi *
-      hn_ctxt trail_assn a ai)
-     conflict_assn (extract_shorter_conflict_wl 
-        (Pair $ a $ (Pair b $ (Pair $ c $ (Pair d $ (Pair $ e $ (Pair f $ (Pair $ g $ h))))))))›
-  using extract_shorter_conflict_l_trivial_code_wl.refine[of N\<^sub>0, 
-      OF twl_array_code_axioms, to_hnr, of a ‹(b, c, d, e, f, g, h)›
-        ‹(bi, ci, di, ei, fi, gi, hi)› ai, OF assms(1,2,3)]
-  by (sep_auto simp: hn_ctxt_prod_assn_prod assn_aci(9))
-thm find_decomp_wl_code[to_hnr]
-lemmas extract_shorter_conflict_l_trivial_code_wl_D[sepref_fr_rules] =
-   extract_shorter_conflict_l_trivial_code_wl.refine[of N\<^sub>0, 
-      OF twl_array_code_axioms]
+(*END Move*)
 
 sepref_register backtrack_wl_D
 sepref_thm backtrack_wl_D
@@ -1392,15 +1362,13 @@ sepref_thm backtrack_wl_D
   unfolding twl_st_l_trail_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] (* lms_fold_custom_empty *)
+    extract_shorter_conflict_wl'_def[symmetric]
     cons_trail_Propagated_def[symmetric]
   apply (rewrite at \<open>(_, add_mset _ \<hole>, _)\<close> lms_fold_custom_empty)+
   apply (rewrite at \<open>(_, add_mset (add_mset _ \<hole>) _, _)\<close> lms_fold_custom_empty)
   unfolding no_skip_def[symmetric] no_resolve_def[symmetric]
     find_decomp_wl'_find_decomp_wl[symmetric] option.sel add_mset_list.simps
   supply [[goals_limit=1]]
-    apply sepref_dbg_keep
-    apply sepref_dbg_trans_keep
-    apply sepref_dbg_trans_step_keep
   by sepref
 
 
@@ -1509,6 +1477,7 @@ prepare_code_thms (in -) get_conflict_wl_is_None_code_def
 
 lemmas (in twl_array_code_ops)get_conflict_wl_is_None_code_refine[sepref_fr_rules] =
    get_conflict_wl_is_None_code.refine[of N\<^sub>0, unfolded twl_st_l_trail_assn_def]
+
 
 sepref_register cdcl_twl_o_prog_wl_D
 sepref_thm cdcl_twl_o_prog_wl_D_code
