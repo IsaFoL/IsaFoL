@@ -1073,8 +1073,8 @@ lemma find_decomp_wl_code_find_decomp_wl:
     L: \<open>L = lit_of (hd M\<^sub>0)\<close> and
     struct: \<open>twl_struct_invs (twl_st_of_wl None (M\<^sub>0, N, U, D\<^sub>0, NP, UP, Q, W))\<close> and
     E: \<open>E = the D\<close> and
-    E_D\<^sub>0: ‹E \<subseteq># the D\<^sub>0› and
-    D\<^sub>0: \<open>D\<^sub>0 \<noteq> None›
+    E_D\<^sub>0: <open>E \<subseteq># the D\<^sub>0<close> and
+    D\<^sub>0: \<open>D\<^sub>0 \<noteq> None<close>
   shows
    \<open>find_decomp_wl_imp M\<^sub>0 E L \<le> find_decomp_wl (M\<^sub>0, N, U, D, NP, UP, Q, WS) L\<close>
 proof -
