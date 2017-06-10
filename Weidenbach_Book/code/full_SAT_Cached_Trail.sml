@@ -503,6 +503,22 @@ fun int_of_nat n = Int_of_integer (integer_of_nat n);
 
 fun uint32_of_nat x = (uint32_of_int o int_of_nat) x;
 
+fun array_copy A_ a =
+  (fn () =>
+    let
+      val l = len A_ a ();
+    in
+      (if equal_nat l zero_nata then (fn () => Array.fromList [])
+        else (fn f_ => fn () => f_ ((nth A_ a zero_nata) ()) ())
+               (fn s =>
+                 (fn f_ => fn () => f_ ((new A_ l s) ()) ())
+                   (fn aa =>
+                     (fn f_ => fn () => f_ ((blit A_ a zero_nata aa zero_nata l)
+                       ()) ())
+                       (fn _ => (fn () => aa)))))
+        ()
+    end);
+
 fun array_grow A_ a s x =
   (fn () =>
     let
@@ -523,22 +539,6 @@ fun hs_memb (A1_, A2_, A3_) x s =
             in
               (case r of NONE => false | SOME _ => true)
             end);
-
-fun array_copy A_ a =
-  (fn () =>
-    let
-      val l = len A_ a ();
-    in
-      (if equal_nat l zero_nata then (fn () => Array.fromList [])
-        else (fn f_ => fn () => f_ ((nth A_ a zero_nata) ()) ())
-               (fn s =>
-                 (fn f_ => fn () => f_ ((new A_ l s) ()) ())
-                   (fn aa =>
-                     (fn f_ => fn () => f_ ((blit A_ a zero_nata aa zero_nata l)
-                       ()) ())
-                       (fn _ => (fn () => aa)))))
-        ()
-    end);
 
 fun arl_get A_ = (fn (a, _) => nth A_ a);
 
