@@ -1212,7 +1212,7 @@ private lemma skip_and_resolve_loop_l_index_le_length_N':
        else mset (get_clauses_l (M'', N'', U'', D'', NP'', UP'', WS'', Q'') ! C))} \<Longrightarrow>
     lit_and_ann_of_propagated (hd (get_trail_l (M'', N'', U'', D'', NP'', UP'', WS'', Q''))) = (L', C') \<Longrightarrow>
     C' < length N''\<close>
-  by (cases \<open>hd M''\<close>) (auto elim!: list_not_emptyE simp add: additional_WS_invs_def)
+  by (cases \<open>hd M''\<close>) (auto elim!: neq_NilE simp add: additional_WS_invs_def)
 
 private lemma skip_and_resolve_l_refines:
   \<open>((brk''', M'', N'', U'', D'', NP'', UP'', WS'', Q''), brk'', M''', N''', U''', D''', NP''', UP''', WS''', Q''')
@@ -1754,7 +1754,7 @@ proof -
     unfolding backtrack_l_def backtrack_def'
     apply (refine_vcg H list_of_mset ext; remove_dummy_vars)
     subgoal by auto
-    subgoal by (auto simp: convert_lits_l_def elim: list_not_emptyE)
+    subgoal by (auto simp: convert_lits_l_def elim: neq_NilE)
     subgoal by simp
     subgoal by simp
     subgoal by simp
