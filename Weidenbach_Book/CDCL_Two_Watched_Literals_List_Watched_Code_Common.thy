@@ -1252,7 +1252,7 @@ lemma find_decomp_wl_imp_find_decomp_wl':
   [\<lambda>((((((((M, N), U), D), NP), UP), Q), W), L). \<exists> D\<^sub>0. D \<noteq> {#} \<and> M \<noteq> [] \<and> ex_decomp_of_max_lvl M (Some D) L \<and>
      L = lit_of (hd M) \<and>
       twl_struct_invs (twl_st_of_wl None (M, N, U, D\<^sub>0, NP, UP, Q, W)) \<and>
-      D \<subseteq>#  the D\<^sub>0 \<and> D\<^sub>0 ≠ None]\<^sub>f
+      D \<subseteq>#  the D\<^sub>0 \<and> D\<^sub>0 \<noteq> None]\<^sub>f
    (Id \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id) \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
   unfolding find_decomp_wl'_find_decomp_wl no_resolve_def no_skip_def
   apply (intro frefI nres_relI)
@@ -1834,7 +1834,7 @@ lemma N_hnr[sepref_import_param]: "(N\<^sub>0,N\<^sub>0')\<in>\<langle>unat_lit_
 lemma set_mset_lits_of_atms_of_mm_atms_of_ms_iff:
   \<open>set_mset (lits_of_atms_of_mm A) = set_mset N\<^sub>1 \<longleftrightarrow> atms_of_ms (set_mset A) = atms_of N\<^sub>1\<close>
   apply (auto simp: atms_of_s_def in_lits_of_atms_of_mm_ain_atms_of_iff atms_of_ms_def
-      atms_of_def atm_of_eq_atm_of in_N⇩1_atm_of_in_atms_of_iff)
+      atms_of_def atm_of_eq_atm_of in_N\<^sub>1_atm_of_in_atms_of_iff)
   apply (auto simp: in_lits_of_atms_of_mm_ain_atms_of_iff in_implies_atm_of_on_atms_of_ms)
   done -- \<open>TODO tune proof\<close>
 
@@ -1919,7 +1919,7 @@ proof -
       by (subst (2) append_take_drop_id[symmetric, of \<open>tl N\<close> U], subst mset_append)
         (simp add: drop_Suc)
     have in_N\<^sub>1: \<open>Neg x \<in># N\<^sub>1 \<longleftrightarrow> x \<in> atms_of N\<^sub>1\<close>\<open>Pos x \<in># N\<^sub>1 \<longleftrightarrow> x \<in> atms_of N\<^sub>1\<close> for x
-      using in_N⇩1_atm_of_in_atms_of_iff[of \<open>Neg x\<close>] in_N⇩1_atm_of_in_atms_of_iff[of \<open>Pos x\<close>] by simp_all
+      using in_N\<^sub>1_atm_of_in_atms_of_iff[of \<open>Neg x\<close>] in_N\<^sub>1_atm_of_in_atms_of_iff[of \<open>Pos x\<close>] by simp_all
     have tl_N_NP_N\<^sub>1: \<open>atms_of_ms (mset ` set (tl N) \<union> set_mset NP) = atms_of_s (set_mset N\<^sub>1)\<close>
       using lit_N\<^sub>0 0 UP_NP unfolding is_N\<^sub>1_def
       by (subst (asm) set_mset_lits_of_atms_of_mm_atms_of_ms_iff)
@@ -1982,7 +1982,7 @@ proof -
       by (subst (2) append_take_drop_id[symmetric, of \<open>tl N\<close> U], subst mset_append)
         (simp add: drop_Suc)
     have in_N\<^sub>1: \<open>Neg x \<in># N\<^sub>1 \<longleftrightarrow> x \<in> atms_of N\<^sub>1\<close>\<open>Pos x \<in># N\<^sub>1 \<longleftrightarrow> x \<in> atms_of N\<^sub>1\<close> for x
-      using in_N⇩1_atm_of_in_atms_of_iff[of \<open>Neg x\<close>] in_N⇩1_atm_of_in_atms_of_iff[of \<open>Pos x\<close>] by simp_all
+      using in_N\<^sub>1_atm_of_in_atms_of_iff[of \<open>Neg x\<close>] in_N\<^sub>1_atm_of_in_atms_of_iff[of \<open>Pos x\<close>] by simp_all
     have tl_N_NP_N\<^sub>1: \<open>atms_of_ms (mset ` set (tl N) \<union> set_mset NP) = atms_of_s (set_mset N\<^sub>1)\<close>
       using lit_N\<^sub>0 0 UP_NP unfolding is_N\<^sub>1_def
       by (subst (asm) set_mset_lits_of_atms_of_mm_atms_of_ms_iff)

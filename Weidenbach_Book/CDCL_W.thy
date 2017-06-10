@@ -4588,18 +4588,18 @@ proof -
     using multiset_partition[of D \<open>(\<lambda>L. get_level M L = 0)\<close>]
     unfolding D0 D'_def by auto
   have
-    confl: \<open>cdcl⇩W_conflicting S\<close> and
+    confl: \<open>cdcl\<^sub>W_conflicting S\<close> and
     decomp: \<open>all_decomposition_implies_m (clauses S) (get_all_ann_decomposition (trail S))\<close> and
-    learned: \<open>cdcl⇩W_learned_clause S\<close> and
-    M_lev: \<open>cdcl⇩W_M_level_inv S\<close> and
+    learned: \<open>cdcl\<^sub>W_learned_clause S\<close> and
+    M_lev: \<open>cdcl\<^sub>W_M_level_inv S\<close> and
     alien: \<open>no_strange_atm S\<close>
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def by fast+
-  have clss_D: \<open>clauses S ⊨pm D\<close>
-    using learned conf unfolding cdcl⇩W_learned_clause_def by auto
+  have clss_D: \<open>clauses S \<Turnstile>pm D\<close>
+    using learned conf unfolding cdcl\<^sub>W_learned_clause_def by auto
   have M_CNot_D: \<open>trail S \<Turnstile>as CNot D\<close> and m_confl: \<open>every_mark_is_a_conflict S\<close>
-    using conf confl unfolding cdcl⇩W_conflicting_def by auto
+    using conf confl unfolding cdcl\<^sub>W_conflicting_def by auto
   have n_d: \<open>no_dup M\<close>
-    using M_lev unfolding cdcl⇩W_M_level_inv_def by auto
+    using M_lev unfolding cdcl\<^sub>W_M_level_inv_def by auto
   have uhd_D: \<open>- lit_of (hd M) \<in># D\<close>
     using ns_s ns_r conf M_nempty inv_s M_CNot_D n_d
     unfolding cdcl\<^sub>W_stgy_invariant_def conflict_is_false_with_level_def
@@ -4638,11 +4638,11 @@ proof -
     subgoal for L m M1
       by (cases \<open>get_all_ann_decomposition (M1 @ Decided K # M0)\<close>) auto
     done
-  then have clss_S_M0: \<open>set_mset (clauses S) ⊨ps unmark_l M0\<close>
+  then have clss_S_M0: \<open>set_mset (clauses S) \<Turnstile>ps unmark_l M0\<close>
     using decomp unfolding M_def[symmetric] M
     by (cases \<open>get_all_ann_decomposition (M1 @ Decided K # M0)\<close> rule: rev_cases)
       (auto simp: all_decomposition_implies_def)
-  have H: \<open>total_over_m I (set_mset (clauses S) ∪ unmark_l M0) = total_over_m I (set_mset (clauses S))\<close>
+  have H: \<open>total_over_m I (set_mset (clauses S) \<union> unmark_l M0) = total_over_m I (set_mset (clauses S))\<close>
     for I
     using alien unfolding no_strange_atm_def total_over_m_def total_over_set_def
     M_def[symmetric] M
@@ -4667,17 +4667,17 @@ proof -
     using that clss_S_M0 uL_M0_D0[of L] unfolding true_clss_clss_def H true_clss_cls_def
       true_clss_def lits_of_def
     by auto
-  have lD0D': \<open>l ∈ atms_of D0 \<Longrightarrow> l ∈ atms_of D\<close> \<open>l ∈ atms_of D' \<Longrightarrow> l ∈ atms_of D\<close> for l
+  have lD0D': \<open>l \<in> atms_of D0 \<Longrightarrow> l \<in> atms_of D\<close> \<open>l \<in> atms_of D' \<Longrightarrow> l \<in> atms_of D\<close> for l
     unfolding D_D0_D' by auto
   have
-    H1: \<open>total_over_m I (set_mset (clauses S) ∪ {{#-L#}}) = total_over_m I (set_mset (clauses S))\<close>
+    H1: \<open>total_over_m I (set_mset (clauses S) \<union> {{#-L#}}) = total_over_m I (set_mset (clauses S))\<close>
     if \<open>L \<in># D0\<close> for L
     using alien conf atm_of_lit_in_atms_of[OF that]
     unfolding no_strange_atm_def total_over_m_def total_over_set_def
     M_def[symmetric] M that by (auto 5 5 simp: clauses_def dest!: lD0D')
-  then have I_D0: \<open>total_over_m I (set_mset (clauses S)) ⟶
-            consistent_interp I ⟶
-            Multiset.Ball (clauses S) (op ⊨ I) ⟶ ~I ⊨ D0\<close> for I
+  then have I_D0: \<open>total_over_m I (set_mset (clauses S)) \<longrightarrow>
+            consistent_interp I \<longrightarrow>
+            Multiset.Ball (clauses S) (op \<Turnstile> I) \<longrightarrow> ~I \<Turnstile> D0\<close> for I
     using clss_D0 unfolding true_clss_cls_def true_cls_def consistent_interp_def
     true_cls_def true_cls_mset_def -- \<open>TODO tune proof\<close>
     apply auto
@@ -4685,11 +4685,11 @@ proof -
     true_cls_def true_cls_mset_def true_lit_def uminus_Pos)
 
   have
-    H1: \<open>total_over_m I (set_mset (clauses S) ∪ {D0 + D'}) = total_over_m I (set_mset (clauses S))\<close> and
-    H2: \<open>total_over_m I (set_mset (clauses S) ∪ {D'}) = total_over_m I (set_mset (clauses S))\<close> for I
+    H1: \<open>total_over_m I (set_mset (clauses S) \<union> {D0 + D'}) = total_over_m I (set_mset (clauses S))\<close> and
+    H2: \<open>total_over_m I (set_mset (clauses S) \<union> {D'}) = total_over_m I (set_mset (clauses S))\<close> for I
     using alien conf unfolding no_strange_atm_def total_over_m_def total_over_set_def
     M_def[symmetric] M by (auto 5 5 simp: clauses_def dest!: lD0D')
-  show \<open>clauses S ⊨pm D'\<close>
+  show \<open>clauses S \<Turnstile>pm D'\<close>
     using clss_D clss_D0 I_D0 unfolding D_D0_D' true_clss_cls_def true_clss_def H1 H2
     by auto
   have \<open>0 < get_level (trail S) (lit_of (hd_trail S))\<close>

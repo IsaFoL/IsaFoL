@@ -199,14 +199,6 @@ method match_spec_trans =
     \<open>print_term f; match premises in I: \<open>_ \<Longrightarrow> _ \<Longrightarrow> f' \<le> SPEC R'\<close> for f' :: \<open>'a nres\<close> and R' :: \<open>'a \<Rightarrow> bool\<close>
        \<Rightarrow> \<open>print_term f'; rule weaken_SPEC2[of f' R' f R]\<close>\<close>)
 
-subsection \<open>More Theorems\<close>
-
-abbreviation "uncurry6 f \<equiv> uncurry (uncurry5 f)"
-abbreviation "uncurry7 f \<equiv> uncurry (uncurry6 f)"
-abbreviation "uncurry8 f \<equiv> uncurry (uncurry7 f)"
-abbreviation "uncurry9 f \<equiv> uncurry (uncurry8 f)"
-
-
 subsection \<open>More Theorems for Refinement\<close>
 
 lemma bind_refine_spec: \<open>(\<And>x. \<Phi> x \<Longrightarrow> f x \<le> \<Down> R M) \<Longrightarrow> M' \<le> SPEC \<Phi> \<Longrightarrow> M' \<bind> f \<le> \<Down> R M\<close>
