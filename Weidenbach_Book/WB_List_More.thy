@@ -776,12 +776,12 @@ proof -
 qed
 
 lemma nths_upt_Suc':
-  assumes \<open>i < b\<close> and \<open>b <= length xs<close>
+  assumes \<open>i < b\<close> and \<open>b <= length xs\<close>
   shows \<open>nths xs {i..<b} = xs!i # nths xs {Suc i..<b}\<close>
 proof -
-  have S1: \<open>{j. i ≤ Suc j ∧ j < b - Suc 0}  = {j. i ≤ Suc j ∧ Suc j < b}<close> for i b
+  have S1: \<open>{j. i \<le> Suc j \<and> j < b - Suc 0}  = {j. i \<le> Suc j \<and> Suc j < b}\<close> for i b
     by auto
-  have S2: \<open>{j. i ≤ j ∧ j < b - Suc 0}  = {j. i ≤ j ∧ Suc j < b}<close> for i b
+  have S2: \<open>{j. i \<le> j \<and> j < b - Suc 0}  = {j. i \<le> j \<and> Suc j < b}\<close> for i b
     by auto
   have upt: \<open>{i..<k} = {j. i \<le> j \<and> j < k}\<close> for i k :: nat
     by auto
@@ -794,12 +794,12 @@ proof -
     case (Cons a xs i) note IH = this(1) and i_le = this(2,3)
     have [simp]: \<open>i - Suc 0 \<le> j \<longleftrightarrow> i \<le> Suc j\<close> if \<open>i > 0\<close> for j
       using that by auto
-    have \<open>i - Suc 0 < b - Suc 0 \<or> (i = 0)<close>
+    have \<open>i - Suc 0 < b - Suc 0 \<or> (i = 0)\<close>
       using i_le by linarith
-    moreover have \<open>b - Suc 0 ≤ length xs \<or> xs = []<close>
+    moreover have \<open>b - Suc 0 \<le> length xs \<or> xs = []\<close>
       using i_le by auto
     ultimately show ?case
-      using IH[of \<open>i-1\<close> \<open>b-1<close>] i_le
+      using IH[of \<open>i-1\<close> \<open>b-1\<close>] i_le
       apply (subst nths_Cons)
       apply (subst nths_Cons)
       by (auto simp: upt S1 S2)

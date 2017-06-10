@@ -1720,11 +1720,11 @@ proof -
   have ext: \<open>extract_shorter_conflict_l S
     \<le> \<Down> {(D, D'). D = D' \<and> -lit_of (hd (get_trail_l S)) \<in># D \<and> D \<subseteq># the D\<^sub>0} (extract_shorter_conflict S')\<close>
     if \<open>S' = twl_st_of None S \<close> and
-      \<open>D\<^sub>0 = get_conflict_l S<close> and
-      \<open>get_trail_l S ~= []<close>
+      \<open>D\<^sub>0 = get_conflict_l S\<close> and
+      \<open>get_trail_l S ~= []\<close>
     for S S' and D\<^sub>0
     using that
-    by (cases S; cases S'; cases \<open>get_trail_l S<close>; cases \<open>get_trail S'<close>)
+    by (cases S; cases S'; cases \<open>get_trail_l S\<close>; cases \<open>get_trail S'\<close>)
      (auto intro!: SPEC_refine simp: extract_shorter_conflict_l_def extract_shorter_conflict_def)
 
   have uhd_in_D: \<open>L \<in># the D\<close>
@@ -1734,15 +1734,15 @@ proof -
       ns: \<open>no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of None S))\<close> and
       confl: \<open>conflicting (state\<^sub>W_of (twl_st_of None S)) \<noteq> None\<close> 
          \<open>conflicting (state\<^sub>W_of (twl_st_of None S)) \<noteq> Some {#}\<close> and
-      M_nempty: \<open>get_trail_l S ~= []<close> and
-      D: \<open>D = get_conflict_l S<close>
-         \<open>L = - lit_of (hd (get_trail_l S))<close>
-    for L M D and S :: \<open>'v twl_st_l<close>
+      M_nempty: \<open>get_trail_l S ~= []\<close> and
+      D: \<open>D = get_conflict_l S\<close>
+         \<open>L = - lit_of (hd (get_trail_l S))\<close>
+    for L M D and S :: \<open>'v twl_st_l\<close>
     unfolding D
-    using cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of \<open>state\<^sub>W_of (twl_st_of None S)<close>,
+    using cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of \<open>state\<^sub>W_of (twl_st_of None S)\<close>,
       OF _ _ ns confl]
-    by (cases S; cases \<open>fst S<close>) (use that in \<open>auto simp: cdcl\<^sub>W_restart_mset_state twl_stgy_invs_def
-       twl_struct_invs_def<close>)
+    by (cases S; cases \<open>fst S\<close>) (use that in \<open>auto simp: cdcl\<^sub>W_restart_mset_state twl_stgy_invs_def
+       twl_struct_invs_def\<close>)
 
   have bt:
     \<open>(backtrack_l, backtrack) \<in> ?R \<rightarrow>

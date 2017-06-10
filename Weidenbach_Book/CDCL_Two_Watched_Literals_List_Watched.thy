@@ -1210,7 +1210,7 @@ proof -
   have ext: \<open>extract_shorter_conflict_wl T' \<le> \<Down> {(D', D''). D' = D'' \<and> 
       -lit_of (hd (get_trail_wl T')) \<in># D' \<and> D' \<subseteq># the D}
     (extract_shorter_conflict_l T)\<close>
-    if \<open>st_l_of_wl None T' = T<close> \<open>D = get_conflict_wl T'<close> for T T' D
+    if \<open>st_l_of_wl None T' = T\<close> \<open>D = get_conflict_wl T'\<close> for T T' D
     using that 
     by (cases T; cases T') 
       (auto intro!: SPEC_refine simp: extract_shorter_conflict_l_def extract_shorter_conflict_wl_def)
