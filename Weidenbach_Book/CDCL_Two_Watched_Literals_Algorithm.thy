@@ -575,8 +575,8 @@ declare skip_and_resolve_loop_spec[THEN order_trans, refine_vcg]
 
 subsubsection \<open>Backtrack\<close>
 
-fun extract_shorter_conflict :: <open>'v twl_st ⇒ 'v clause nres<close> where
-  <open>extract_shorter_conflict (M, N, U, D, NP, UP, WS, Q) = 
+fun extract_shorter_conflict :: \<open>'v twl_st ⇒ 'v clause nres<close> where
+  \<open>extract_shorter_conflict (M, N, U, D, NP, UP, WS, Q) = 
     SPEC(\<lambda>D'. D' ⊆# the D \<and> clause `# (N + U) + NP + UP \<Turnstile>pm D' \<and> -lit_of (hd M) \<in># D')<close>
 
 declare extract_shorter_conflict.simps[simp del]
