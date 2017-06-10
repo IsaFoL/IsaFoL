@@ -440,7 +440,9 @@ proof -
       subgoal using w_le by (auto simp: S)
       done
   qed
-
+  have f': \<open>(f, f') \<in> \<langle>Id\<rangle>option_rel\<close>
+    if \<open>f = f'\<close> for f f'
+    using that by auto
   have 1: \<open>unit_propagation_inner_loop_body_wl L w S
     \<le> \<Down> {((i, T'), T).
           T = st_l_of_wl (Some (L, i)) T' \<and> correct_watching T' \<and>
@@ -452,7 +454,7 @@ proof -
       C'_def
     supply [[goals_limit=1]]
     apply (rewrite at \<open>let _ = watched_by _ _ ! _ in _\<close> Let_def)
-    apply (refine_vcg val f; remove_dummy_vars)
+    apply (refine_vcg val f f'; remove_dummy_vars)
     unfolding i_def[symmetric]
     subgoal using L_in_N_NP .
     subgoal using zero_le_W_L_w by simp
@@ -461,17 +463,16 @@ proof -
     subgoal by simp
     subgoal by simp
     subgoal by simp
-    subgoal by (simp add: clause_to_update_def correct_watching.simps)
-    subgoal by (simp add: clause_to_update_def correct_watching.simps)
     subgoal by simp
-
+    subgoal by (simp add: clause_to_update_def correct_watching.simps)
+    subgoal by (simp add: clause_to_update_def correct_watching.simps)
+    subgoal by auto
     subgoal
       using zero_le_W_L_w
       by (auto simp: in_lits_of_atms_of_mm_ain_atms_of_iff atms_of_ms_def correct_watching.simps
           intro!: nth_in_set_tl
           intro!: bexI[of _ \<open>N ! (W L ! w)\<close>])
     subgoal using uL_M by auto
-
     subgoal by (rule ref) assumption+
     done
 
@@ -1207,12 +1208,12 @@ proof -
     if \<open>D = D'\<close> for D D'
     using that by (auto simp: list_of_mset_def intro!: RES_refine)
 
-  have ext: \<open>extract_shorter_conflict_wl T' \<le> \<Down> {(D', D''). D' = D'' \<and> 
+  have ext: \<open>extract_shorter_conflict_wl T' \<le> \<Down> {(D', D''). D' = D'' \<and>
       -lit_of (hd (get_trail_wl T')) \<in># D' \<and> D' \<subseteq># the D}
     (extract_shorter_conflict_l T)\<close>
     if \<open>st_l_of_wl None T' = T\<close> \<open>D = get_conflict_wl T'\<close> for T T' D
-    using that 
-    by (cases T; cases T') 
+    using that
+    by (cases T; cases T')
       (auto intro!: SPEC_refine simp: extract_shorter_conflict_l_def extract_shorter_conflict_wl_def)
 
   have hd_not_alien:
@@ -1247,7 +1248,7 @@ proof -
     if
       stuct_invs: "twl_struct_invs (twl_st_of_wl None (M', N', U', E', NP', UP', Q', W))" and
       L': "(L', L'a) \<in> {(L, L'). L = L' \<and> L \<in># the (Some D')}" and
-      D_D': "(D', D) \<in> {(D, D'). D = D' \<and> L'' \<in># D \<and> 
+      D_D': "(D', D) \<in> {(D, D'). D = D' \<and> L'' \<in># D \<and>
         D \<subseteq># the (get_conflict_wl (M', N', U', E', NP', UP', Q', W))}" and
       E': "((a, b, c, E', S'), T')
          \<in> {(T', T).
@@ -1299,7 +1300,7 @@ proof -
                      additional_WS_invs (st_l_of_wl None T')}\<close>
         (is \<open>(?U, ?V) \<in> _\<close>)and
         M'_empty: \<open>M' \<noteq> []\<close> and
-        M: \<open>(M''', M'''') \<in> {(D', D''). D' = D'' \<and> 
+        M: \<open>(M''', M'''') \<in> {(D', D''). D' = D'' \<and>
                - lit_of (hd (get_trail_wl (M', N', U', E', NP', UP', Q', W))) \<in># D' \<and>
                D' \<subseteq># the (get_conflict_wl (M', N', U', E', NP', UP', Q', W))}\<close> and
         M''''_nempty: \<open>M'''' \<noteq> {#}\<close> and
@@ -1529,7 +1530,9 @@ definition cdcl_twl_stgy_prog_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nre
           twl_stgy_invs (twl_st_of_wl None T) \<and>
           (brk \<longrightarrow> no_step cdcl_twl_stgy (twl_st_of_wl None T)) \<and>
           cdcl_twl_stgy\<^sup>*\<^sup>* (twl_st_of_wl None S\<^sub>0) (twl_st_of_wl None T) \<and>
-          (\<not>brk \<longrightarrow> get_conflict_wl T = None)\<^esup>
+          (\<not>brk \<longrightarrow> get_conflict_wl T = None) \<and>
+          additional_WS_invs (st_l_of_wl None T) \<and>
+          correct_watching T\<^esup>
         (\<lambda>(brk, _). \<not>brk)
         (\<lambda>(brk, S).
         do {
@@ -1552,14 +1555,17 @@ theorem cdcl_twl_stgy_prog_wl_spec:
     \<langle>{(S, S'). S' = st_l_of_wl None S }\<rangle>nres_rel\<close>
    (is \<open>?o \<in> ?A \<rightarrow> \<langle>?B\<rangle> nres_rel\<close>)
 proof -
-  have H: \<open>((False, S'), False, S) \<in> {((brk', T'), (brk, T)). brk = brk' \<and> T = st_l_of_wl None T'}\<close>
-    if \<open>S = st_l_of_wl None S'\<close>
+  have H: \<open>((False, S'), False, S) \<in> {((brk', T'), (brk, T)). brk = brk' \<and> T = st_l_of_wl None T' \<and>
+       correct_watching T' \<and> additional_WS_invs (st_l_of_wl None T')}\<close>
+    if \<open>S = st_l_of_wl None S'\<close> and \<open>correct_watching S'\<close> and \<open>additional_WS_invs (st_l_of_wl None S')\<close>
     for S' :: \<open>'v twl_st_wl\<close> and S :: \<open>'v twl_st_l\<close>
     using that by auto
   show ?thesis
     unfolding cdcl_twl_stgy_prog_wl_def cdcl_twl_stgy_prog_l_def
-    apply (refine_rcg H unit_propagation_outer_loop_wl_spec["to_\<Down>"] cdcl_twl_o_prog_wl_spec["to_\<Down>"])
+    apply (refine_rcg H unit_propagation_outer_loop_wl_spec["to_\<Down>"])
     subgoal for S' S by (cases S') auto
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal for S' S brk'T' brkT brk' T' SS' by (cases SS') auto
@@ -1567,7 +1573,10 @@ proof -
     subgoal by (auto simp: get_conflict_l_st_l_of_wl)
     subgoal by auto
     subgoal by auto
-    subgoal for S' S brk'T' brkT brk' T' brk T U' U by (cases U') auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (rule cdcl_twl_o_prog_wl_spec["to_\<Down>", THEN order_trans])
+        (auto intro!: conc_fun_R_mono)
     subgoal by auto
     done
 qed

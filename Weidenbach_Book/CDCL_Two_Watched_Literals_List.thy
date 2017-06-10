@@ -2027,9 +2027,10 @@ proof -
     \<open>literals_to_update_l T = {#} \<longleftrightarrow> literals_to_update (twl_st_of None T) = {#}\<close>
     for T :: \<open>'v twl_st_l\<close>
     by (cases T; auto)+
+      thm cdcl_twl_o_prog_l_spec[THEN refine_pair_to_SPEC_fst_pair2]
   show ?thesis
     unfolding cdcl_twl_stgy_prog_l_def cdcl_twl_stgy_prog_def cdcl_twl_o_prog_l_spec
-    apply (refine_rcg R cdcl_twl_o_prog_l_spec[THEN refine_pair_to_SPEC_fst_pair2]
+    apply (refine_rcg R cdcl_twl_o_prog_l_spec[THEN refine_pair_to_SPEC_fst_pair2, THEN order_trans]
         unit_propagation_outer_loop_l_spec[THEN refine_pair_to_SPEC]; remove_dummy_vars)
     subgoal unfolding KK by auto
     subgoal by auto
@@ -2046,12 +2047,11 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal unfolding KK by auto
-    subgoal by (auto simp: literals_to_update_l_literals_to_update)
     subgoal by fast
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by auto
+    subgoal by (auto intro!: conc_fun_R_mono)
     subgoal by auto
     done
 qed

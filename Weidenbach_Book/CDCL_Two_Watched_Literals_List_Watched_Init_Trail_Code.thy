@@ -425,6 +425,8 @@ lemma init_dt_step_wl_init_dt_step_l:
     \<open>distinct C\<close>
   shows \<open>init_dt_step_wl N\<^sub>0 C S' \<le> \<Down> (HH N\<^sub>1) (init_dt_step_l C S)\<close>
 proof -
+  have val: \<open>(val, val') \<in> \<langle>Id\<rangle>option_rel\<close> if \<open>val = val'\<close> for val val'
+    using that by auto
   have [simp]: \<open>N\<^sub>1 = twl_array_code_ops.N\<^sub>1 N\<^sub>0\<close>
     by (auto simp: twl_array_code_ops.N\<^sub>1_def N\<^sub>1_def twl_array_code_ops.N\<^sub>0''_def twl_array_code_ops.N\<^sub>0'_def
         N\<^sub>0'_def
@@ -441,7 +443,7 @@ proof -
     supply literal_of_nat.simps[simp del]
     using assms(2-)
     unfolding init_dt_step_wl_def init_dt_step_l_def N\<^sub>0'_def
-    apply refine_rcg
+    apply (refine_rcg val)
     subgoal by (auto simp: HH_def)
     subgoal by fast
     subgoal by (auto simp: HH_def)

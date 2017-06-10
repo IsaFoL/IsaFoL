@@ -457,7 +457,8 @@ proof -
   obtain M N U D NP UP Q W where
     S: \<open>S = (M, N, U, D, NP, UP, Q, W)\<close>
     by (cases S)
-
+  have f': \<open>(f, f') \<in> \<langle>Id\<rangle>option_rel\<close> if \<open>(f, f') \<in> Id\<close> for f f'
+    using that by auto
   have valued: \<open>(valued M L,
      valued M' L') \<in>
     {(val, val'). val = val' \<and>
@@ -498,7 +499,7 @@ proof -
     unfolding unit_propagation_inner_loop_body_wl_D_def unit_propagation_inner_loop_body_wl_def S
       watched_by.simps
     supply [[goals_limit=1]]
-    apply (refine_vcg valued find_unwatched)
+    apply (refine_vcg valued find_unwatched f')
     subgoal using assms unfolding S by fast
     subgoal by simp
     subgoal using K .
@@ -1138,8 +1139,8 @@ proof -
   have single_of_mset: \<open>single_of_mset D \<le> \<Down> {(L, E). E = [L] \<and> D = mset E} (list_of_mset D')\<close>
     if \<open>D = D'\<close> for D D' :: \<open>'a clause\<close>
     using that by (auto simp: single_of_mset_def list_of_mset_def intro!: RES_refine)
-  have ext: \<open>extract_shorter_conflict_wl T \<le> \<Down> {(D', D''). D' = D'' \<and> 
-      -lit_of (hd (get_trail_wl T)) \<in># D' \<and> 
+  have ext: \<open>extract_shorter_conflict_wl T \<le> \<Down> {(D', D''). D' = D'' \<and>
+      -lit_of (hd (get_trail_wl T)) \<in># D' \<and>
       D' \<subseteq># the (get_conflict_wl T)}
     (extract_shorter_conflict_wl T')\<close>
     if \<open>T = T'\<close> for T T'
@@ -1234,7 +1235,7 @@ have lits_in_N\<^sub>0: \<open>literals_are_in_N\<^sub>0 D\<close>
   have distinct_D: \<open>distinct_mset D\<close>
     if
       D: \<open>(D, D') \<in> {(D', D''). D' = D'' \<and>
-         - lit_of (hd (get_trail_wl (M, N, U, D\<^sub>0, NP, UP, W, Q))) \<in># D' \<and> 
+         - lit_of (hd (get_trail_wl (M, N, U, D\<^sub>0, NP, UP, W, Q))) \<in># D' \<and>
         D' \<subseteq># the (get_conflict_wl (M, N, U, D\<^sub>0, NP, UP, W, Q))}\<close> and
       struct_invs: \<open>twl_struct_invs (twl_st_of_wl None (M, N, U, D\<^sub>0, NP, UP, W, Q))\<close> and
       \<open>S = (M, x2g)\<close> and
@@ -1545,8 +1546,8 @@ have lits_in_N\<^sub>0: \<open>literals_are_in_N\<^sub>0 D\<close>
     if
         M_not_Nil: \<open>M \<noteq> []\<close> and
         D: \<open>(M''', M'')
-        \<in> {(D'a, D''). D'a = D'' \<and> 
-           - lit_of (hd (get_trail_wl (M', N', U', D', NP', UP', WS', W'))) \<in># D'a \<and> 
+        \<in> {(D'a, D''). D'a = D'' \<and>
+           - lit_of (hd (get_trail_wl (M', N', U', D', NP', UP', WS', W'))) \<in># D'a \<and>
            D'a \<subseteq># the (get_conflict_wl (M', N', U', D', NP', UP', WS', W'))}\<close> and
         struct_invs: \<open>twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, WS, W))\<close> and
         M1_M1a: \<open>(E, E')
@@ -1792,6 +1793,8 @@ definition cdcl_twl_stgy_prog_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl
           (brk \<longrightarrow> no_step cdcl_twl_stgy (twl_st_of_wl None T)) \<and>
           cdcl_twl_stgy\<^sup>*\<^sup>* (twl_st_of_wl None S\<^sub>0) (twl_st_of_wl None T) \<and>
           (\<not>brk \<longrightarrow> get_conflict_wl T = None) \<and>
+          additional_WS_invs (st_l_of_wl None T) \<and>
+          correct_watching T \<and>
           literals_are_N\<^sub>0 T\<^esup>
         (\<lambda>(brk, _). \<not>brk)
         (\<lambda>(brk, S).
@@ -1810,7 +1813,8 @@ theorem cdcl_twl_stgy_prog_wl_D_spec:
   shows \<open>cdcl_twl_stgy_prog_wl_D S \<le> \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}
      (cdcl_twl_stgy_prog_wl S)\<close>
 proof -
-  have 1: \<open>((False, S), False, S) \<in> Id\<close> by fast
+  have 1: \<open>((False, S), False, S) \<in> {((brk', T'), brk, T). brk = brk' \<and> T = T' \<and> literals_are_N\<^sub>0 T}\<close>
+    using assms by fast
   have 2: \<open>unit_propagation_outer_loop_wl_D S \<le> \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}
        (unit_propagation_outer_loop_wl T)\<close> if \<open>S = T\<close> \<open>literals_are_N\<^sub>0 S\<close> for S T
     using unit_propagation_outer_loop_wl_D_spec[of S] that by fast
@@ -1818,14 +1822,13 @@ proof -
     (cdcl_twl_o_prog_wl T)\<close> if \<open>S = T\<close> \<open>literals_are_N\<^sub>0 S\<close> for S T
     using cdcl_twl_o_prog_wl_D_spec[of S] that by fast
   show ?thesis
-    using assms
     unfolding cdcl_twl_stgy_prog_wl_D_def cdcl_twl_stgy_prog_wl_def
     apply (refine_vcg 1 2 3)
     subgoal by auto
     subgoal by auto
+    subgoal by fast
     subgoal by auto
-    subgoal for x x' x1 x2 S'
-      by (cases x') fast
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
