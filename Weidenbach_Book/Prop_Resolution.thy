@@ -1731,9 +1731,7 @@ next
       by (auto intro!: sum_mset_mono)
     show ?thesis
       using *[of "{#La \<in># A. L \<noteq> La \<and> 2 \<le> count A La#}"]
-      by (auto simp: mset_decomp mset_decomp2 filter_mset_eq cong: )
-      apply simp
-      sorry
+      by (auto simp: mset_decomp mset_decomp2 filter_mset_eq)
   qed
   have "\<Xi> ?N' < \<Xi> N"
     proof cases
@@ -2253,8 +2251,7 @@ theorem resolution_soundness_and_completeness':
     finite: "finite (fst \<psi>)"and
     snd: "snd \<psi> = {}"
   shows "(\<exists>a_u_v. (resolution\<^sup>*\<^sup>* \<psi> ({{#}}, a_u_v))) \<longleftrightarrow> unsatisfiable (fst \<psi>)"
-    using assms resolution_completeness resolution_soundness resolution_falsity_get_falsity_alone
-    by metis
-lemma \<open>add_mset a (add_mset b A) = add_mset b (\<Sum>L\<in>#A. (if b then ({#L#}+ A) else {#}))\<close>
-  apply simp
+  using assms resolution_completeness resolution_soundness resolution_falsity_get_falsity_alone
+  by metis
+
 end
