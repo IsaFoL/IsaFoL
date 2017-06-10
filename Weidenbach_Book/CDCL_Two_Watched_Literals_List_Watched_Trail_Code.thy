@@ -1189,13 +1189,13 @@ proof -
 qed
 
 definition (in -) extract_shorter_conflict_l_trivial :: \<open>_ \<Rightarrow>_ \<Rightarrow>_ \<Rightarrow>_ \<Rightarrow>_ \<Rightarrow>_ \<Rightarrow>_ \<Rightarrow>_ \<Rightarrow> 'v clause nres\<close> where
-<open>extract_shorter_conflict_l_trivial M N U D NP UP W Q == RETURN (the D)\<close>
+\<open>extract_shorter_conflict_l_trivial M N U D NP UP W Q == RETURN (the D)\<close>
 
 abbreviation (in -) uncurry_swap3 where
-<open>uncurry_swap3 f \<equiv> \<lambda> ((a, b), c). f (a, b, c)\<close>
+\<open>uncurry_swap3 f \<equiv> \<lambda> ((a, b), c). f (a, b, c)\<close>
 
 abbreviation (in -) uncurried_swap8 where
-<open>uncurried_swap8 f \<equiv> \<lambda> (((((((M, N), U), D), NP), UP), Q), W). f (M, N, U, D, NP, UP, Q, W)\<close>
+\<open>uncurried_swap8 f \<equiv> \<lambda> (((((((M, N), U), D), NP), UP), Q), W). f (M, N, U, D, NP, UP, Q, W)\<close>
 
 thm twl_st_l_trail_assn_def
 sepref_register (in -) extract_shorter_conflict_l_trivial
@@ -1245,7 +1245,7 @@ lemmas extract_shorter_conflict_l_trivial_code_wl_D[sepref_fr_rules] =
       OF twl_array_code_axioms]
 
 definition (in -) extract_shorter_conflict_wl' where
-<open>extract_shorter_conflict_wl' M N U D NP UP W Q = 
+\<open>extract_shorter_conflict_wl' M N U D NP UP W Q =
   extract_shorter_conflict_wl (M, N, U, D, NP, UP, W, Q)\<close>
 
 lemma extract_shorter_conflict_l_trivial_code_wl':
