@@ -439,63 +439,176 @@ proof -
     if \<open>N = N'\<close>
     for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' and L :: \<open>nat literal\<close>
     by (auto simp: clause_to_update_def that)
+  note N\<^sub>1_def[simp] literal_of_nat.simps[simp del]
+  have hd_C: \<open>hd C \<in> snd ` (\<lambda>L. (nat_of_lit L, L)) ` set_mset (twl_array_code_ops.N\<^sub>1 N\<^sub>0)\<close>
+    if \<open>C \<noteq> []\<close>
+    using assms(3-) that
+    by (cases C) (auto simp: HH_def correct_watching.simps clause_to_update_def
+        lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset twl_array_code_ops.N\<^sub>1_def
+        twl_array_code_ops.N\<^sub>0''_def twl_array_code_ops.N\<^sub>0'_def
+        twl_array_code_ops.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
+  have hd_tl_C: \<open>hd (tl C) \<in> snd ` (\<lambda>L. (nat_of_lit L, L)) ` set_mset (twl_array_code_ops.N\<^sub>1 N\<^sub>0)\<close>
+    if \<open>C \<noteq> []\<close> and \<open>tl C \<noteq> []\<close>
+    using assms(3-) that by (cases C; cases \<open>tl C\<close>) (auto simp: HH_def Let_def clause_to_update_append
+        clauses_def mset_take_mset_drop_mset' image_image lits_of_atms_of_m_add_mset
+        twl_array_code_ops.literals_are_in_N\<^sub>0_def)
+
+  have add_unit_clause_ref:
+    \<open>((M', N', U', None, add_mset {#hd C#} NP', UP', W', Q'), M, N, U, None, add_mset {#hd C#} NP, UP, W, Q) \<in> HH N\<^sub>1\<close>
+    if
+      \<open>SUP' = (W, Q)\<close> and
+      \<open>SNP = (UP, SUP')\<close> and
+      \<open>SD = (NP, SNP)\<close> and
+      \<open>SU = (D, SD)\<close> and
+      \<open>SN = (U, SU)\<close> and
+      \<open>SM = (N, SN)\<close> and
+      \<open>S = (M, SM)\<close> and
+      \<open>SUP'' = (W', Q')\<close> and
+      \<open>SNP' = (UP', SUP'')\<close> and
+      \<open>SD' = (NP', SNP')\<close> and
+      \<open>SU' = (D', SD')\<close> and
+      \<open>SN' = (U', SU')\<close> and
+      \<open>SM' = (N', SN')\<close> and
+      \<open>S' = (M', SM')\<close> and
+      \<open>length C = 1\<close>
+    for M SM N SN U SU D SD NP SNP UP SUP' W Q M' SM' N' SN' U' SU' D' SD' NP' SNP' UP'
+      SUP'' W' Q'
+    using assms(3-) that hd_C by (cases C)
+      (auto simp: HH_def lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset)
+  have add_unit_clause_confl_ref:
+    \<open>((M', N', U', Some (mset C), add_mset {#hd C#} NP', UP', {#}, Q'),
+       M, N, U, Some (mset C), add_mset {#hd C#} NP, UP, {#}, {#}) \<in> HH N\<^sub>1\<close>
+    if
+      \<open>SUP' = (W, Q)\<close> and
+      \<open>SNP = (UP, SUP')\<close> and
+      \<open>SD = (NP, SNP)\<close> and
+      \<open>SU = (D, SD)\<close> and
+      \<open>SN = (U, SU)\<close> and
+      \<open>SM = (N, SN)\<close> and
+      \<open>S = (M, SM)\<close> and
+      \<open>SUP'' = (W', Q')\<close> and
+      \<open>SNP' = (UP', SUP'')\<close> and
+      \<open>SD' = (NP', SNP')\<close> and
+      \<open>SU' = (D', SD')\<close> and
+      \<open>SN' = (U', SU')\<close> and
+      \<open>SM' = (N', SN')\<close> and
+      \<open>S' = (M', SM')\<close> and
+      \<open>length C = 1\<close>
+    for M SM N SN U SU D SD NP SNP UP SUP' W Q M' SM' N' SN' U' SU' D' SD' NP' SNP' UP'
+      SUP'' W' Q'
+    using that assms(2-) hd_C by (cases C)
+        (auto simp: HH_def lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset)
+  have add_nonunit_clause_ref:
+   \<open>SUP' = (W, Q) \<Longrightarrow>
+    SNP = (UP, SUP') \<Longrightarrow>
+    SD = (NP, SNP) \<Longrightarrow>
+    SU = (D, SD) \<Longrightarrow>
+    SN = (U, SU) \<Longrightarrow>
+    SM = (N, SN) \<Longrightarrow>
+    S = (M, SM) \<Longrightarrow>
+    SUP'' = (W', Q') \<Longrightarrow>
+    SNP' = (UP', SUP'') \<Longrightarrow>
+    SD' = (NP', SNP') \<Longrightarrow>
+    SU' = (D', SD') \<Longrightarrow>
+    SN' = (U', SU') \<Longrightarrow>
+    SM' = (N', SN') \<Longrightarrow>
+    S' = (M', SM') \<Longrightarrow>
+    D' = None \<Longrightarrow>
+    length C \<noteq> 1 \<Longrightarrow>
+    C \<noteq> [] \<Longrightarrow>
+    tl C \<noteq> [] \<Longrightarrow>
+    (let U = length N'; WS = Q'(hd C := Q' (hd C) @ [U]); WS = WS(hd (tl C) := WS (hd (tl C)) @ [U]) in RETURN (M', N' @ [op_array_of_list C], U, None, NP', UP', W', WS))
+    \<le> SPEC (\<lambda>c. (c, M, N @ [C], length N, None, NP, UP, W, Q) \<in> HH N\<^sub>1)\<close>
+    for M SM N SN U SU D SD NP SNP UP SUP' W Q M' SM' N' SN' U' SU' D' SD' NP' SNP' UP'
+    SUP'' W' Q'
+    using assms(3-)
+    apply (cases C; cases \<open>tl C\<close>)
+       apply ((fast; fail)+ )[3]
+    by (auto simp: HH_def Let_def clause_to_update_append lits_of_atms_of_m_add_mset
+        lits_of_atms_of_mm_add_mset literals_are_in_N\<^sub>0_add_mset
+        twl_array_code_ops.literals_are_in_N\<^sub>0_def)[]
+  have add_unit_clause_conflict:
+    \<open>SUP' = (W, Q) \<Longrightarrow>
+    SNP = (UP, SUP') \<Longrightarrow>
+    SD = (NP, SNP) \<Longrightarrow>
+    SU = (D, SD) \<Longrightarrow>
+    SN = (U, SU) \<Longrightarrow>
+    SM = (N, SN) \<Longrightarrow>
+    S = (M, SM) \<Longrightarrow>
+    SUP'' = (W', Q') \<Longrightarrow>
+    SNP' = (UP', SUP'') \<Longrightarrow>
+    SD' = (NP', SNP') \<Longrightarrow>
+    SU' = (D', SD') \<Longrightarrow>
+    SN' = (U', SU') \<Longrightarrow>
+    SM' = (N', SN') \<Longrightarrow>
+    S' = (M', SM') \<Longrightarrow>
+    D' = Some E \<Longrightarrow>
+    D = Some E' \<Longrightarrow>
+    (E, E') \<in> Id \<Longrightarrow> length C = 1 \<Longrightarrow> C \<noteq> [] \<Longrightarrow>
+    ((M', N', U', Some E, add_mset {#hd C#} NP', UP', {#}, Q'), M, N, U, Some E', add_mset {#hd C#} NP, UP, {#}, {#}) \<in> HH N\<^sub>1\<close>
+    for M SM N SN U SU D SD NP SNP UP SUP' W Q M' SM' N' SN' U' SU' D' SD' NP' SNP' UP'
+      SUP'' W' Q' E E'
+    using assms(3-)
+    by (cases C; cases \<open>tl C\<close>) (auto simp: HH_def lits_of_atms_of_mm_add_mset
+        lits_of_atms_of_m_add_mset twl_array_code_ops.literals_are_in_N\<^sub>0_def)
+  have add_nonunit_clause_conflict:
+    \<open>SUP' = (W, Q) \<Longrightarrow>
+    SNP = (UP, SUP') \<Longrightarrow>
+    SD = (NP, SNP) \<Longrightarrow>
+    SU = (D, SD) \<Longrightarrow>
+    SN = (U, SU) \<Longrightarrow>
+    SM = (N, SN) \<Longrightarrow>
+    S = (M, SM) \<Longrightarrow>
+    SUP'' = (W', Q') \<Longrightarrow>
+    SNP' = (UP', SUP'') \<Longrightarrow>
+    SD' = (NP', SNP') \<Longrightarrow>
+    SU' = (D', SD') \<Longrightarrow>
+    SN' = (U', SU') \<Longrightarrow>
+    SM' = (N', SN') \<Longrightarrow>
+    S' = (M', SM') \<Longrightarrow>
+    D' = Some E \<Longrightarrow>
+    D = Some E' \<Longrightarrow>
+    (E, E') \<in> Id \<Longrightarrow>
+    length C \<noteq> 1 \<Longrightarrow>
+    C \<noteq> [] \<Longrightarrow>
+    tl C \<noteq> [] \<Longrightarrow>
+    C \<noteq> [] \<Longrightarrow>
+    tl C \<noteq> [] \<Longrightarrow>
+    (let U = length N'; WS = Q'(hd C := Q' (hd C) @ [U]); WS = WS(hd (tl C) := WS (hd (tl C)) @ [U])
+    in RETURN (M', N' @ [op_array_of_list C], U, Some E, NP', UP', {#}, WS))
+    \<le> SPEC (\<lambda>c. (c, M, N @ [C], length N, Some E', NP, UP, {#}, {#}) \<in> HH N\<^sub>1)\<close>
+    for M SM N SN U SU D SD NP SNP UP SUP' W Q M' SM' N' SN' U' SU' D' SD' NP' SNP' UP'
+      SUP'' W' Q' E E'
+    using assms(3-)
+    by (cases C; cases \<open>tl C\<close>)
+     (auto simp: HH_def Let_def clause_to_update_append
+        lits_of_atms_of_m_add_mset
+        lits_of_atms_of_mm_add_mset literals_are_in_N\<^sub>0_add_mset
+        twl_array_code_ops.literals_are_in_N\<^sub>0_def)
+
   show ?thesis
     supply literal_of_nat.simps[simp del]
-    using assms(2-)
+    using assms(3-)
     unfolding init_dt_step_wl_def init_dt_step_l_def N\<^sub>0'_def
     apply (refine_rcg val)
     subgoal by (auto simp: HH_def)
     subgoal by fast
     subgoal by (auto simp: HH_def)
-    subgoal by (cases C) (auto simp: HH_def correct_watching.simps clause_to_update_def
-          lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset twl_array_code_ops.N\<^sub>1_def
-          twl_array_code_ops.N\<^sub>0''_def twl_array_code_ops.N\<^sub>0'_def
-          twl_array_code_ops.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
+    subgoal by (rule hd_C) assumption
     subgoal by (auto simp: HH_def)
     subgoal by (cases C)
         (auto simp: HH_def lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset)
     subgoal by (auto simp only: HH_def)
-    subgoal by (cases C)
-        (auto simp: HH_def lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset)
-    subgoal by (cases C; cases \<open>tl C\<close>)
-        (auto simp: HH_def lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset)
-    subgoal by (cases C) (clarsimp_all simp: HH_def correct_watching.simps clause_to_update_def
-          lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset twl_array_code_ops.N\<^sub>1_def
-          twl_array_code_ops.N\<^sub>0''_def twl_array_code_ops.N\<^sub>0'_def image_image
-          twl_array_code_ops.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
-    subgoal by (cases C; cases \<open>tl C\<close>) (auto simp: HH_def Let_def clause_to_update_append
-          clauses_def mset_take_mset_drop_mset' image_image lits_of_atms_of_m_add_mset
-          twl_array_code_ops.literals_are_in_N\<^sub>0_def)
-    subgoal apply (cases C; cases \<open>tl C\<close>)
-         apply (auto simp: )[3]
-      apply (clarsimp simp: HH_def Let_def clause_to_update_append
-          clauses_def mset_take_mset_drop_mset')[]
-      by (auto simp: HH_def Let_def clause_to_update_append
-          clauses_def mset_take_mset_drop_mset' lits_of_atms_of_m_add_mset
-          lits_of_atms_of_mm_add_mset literals_are_in_N\<^sub>0_add_mset
-          twl_array_code_ops.literals_are_in_N\<^sub>0_def)[]
-    subgoal by (cases C; cases \<open>tl C\<close>) (auto simp: HH_def Let_def clause_to_update_append
-          clauses_def mset_take_mset_drop_mset' lits_of_atms_of_m_add_mset
-          lits_of_atms_of_mm_add_mset (* literals_are_in_N\<^sub>0_add_mset *)
-          twl_array_code_ops.literals_are_in_N\<^sub>0_def)
-    subgoal by (cases C; cases \<open>tl C\<close>) (clarsimp_all simp: HH_def
-          lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset image_image
-          twl_array_code_ops.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
-    subgoal by (cases C; cases \<open>tl C\<close>) (clarsimp_all simp: HH_def
-          lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset image_image
-          twl_array_code_ops.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
-    subgoal by (cases C; cases \<open>tl C\<close>) (clarsimp_all simp: HH_def
-          lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset image_image
-          twl_array_code_ops.literals_are_in_N\<^sub>0_def clauses_def mset_take_mset_drop_mset')
-    subgoal apply (cases C; cases \<open>tl C\<close>)
-         apply (auto simp: )[3]
-      apply (clarsimp simp: HH_def Let_def clause_to_update_append
-          clauses_def mset_take_mset_drop_mset')[]
-      apply (auto simp:  HH_def Let_def clause_to_update_append
-          clauses_def mset_take_mset_drop_mset' lits_of_atms_of_m_add_mset
-          lits_of_atms_of_mm_add_mset literals_are_in_N\<^sub>0_add_mset
-          twl_array_code_ops.literals_are_in_N\<^sub>0_def)[]
-      done
+    subgoal by (rule add_unit_clause_ref) assumption+
+    subgoal by (rule add_unit_clause_confl_ref)
+    subgoal by (rule hd_C) assumption+
+    subgoal by (rule hd_tl_C) assumption+
+    subgoal by (rule add_nonunit_clause_ref) assumption+
+    subgoal by fast
+    subgoal by (rule add_unit_clause_conflict) assumption+
+    subgoal by (rule hd_C) assumption+
+    subgoal by (rule hd_tl_C) assumption+
+    subgoal by (rule add_nonunit_clause_conflict) assumption+
     done
 qed
 
