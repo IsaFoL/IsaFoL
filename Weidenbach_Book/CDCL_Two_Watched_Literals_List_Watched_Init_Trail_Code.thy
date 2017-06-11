@@ -1235,107 +1235,124 @@ proof -
      mset `# mset (tl af) + ai\<close> for ag af aj ai
     by (subst (2) append_take_drop_id[symmetric, of \<open>tl af\<close> ag], subst mset_append)
       (auto simp: drop_Suc)
+  have if_no_confl_ref:
+    \<open>(if get_conflict_wl S\<^sub>0 = None then twl_array_code.cdcl_twl_stgy_prog_wl_D (map (uint32_of_nat \<circ> nat_of_lit) (extract_lits_clss CS' [])) S\<^sub>0 else RETURN S\<^sub>0)
+    \<le> \<Down> TWL_to_clauses_state_conv
+        (SPEC (\<lambda>U. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code.init_state CS) U \<or>
+                    cdcl\<^sub>W_restart_mset.clauses U = CS \<and> learned_clss U = {#} \<and> conflicting U \<noteq> None \<and> backtrack_lvl U = 0 \<and> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv U))\<close>
+    if
+      CS_p: \<open>Multiset.Ball CS distinct_mset \<and> (\<forall>C\<in>#CS. 1 \<le> size C) \<and> (\<forall>C\<in>#CS. \<not> tautology C) \<and> (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L < upperN)\<close> and
+      CS'_CS: \<open>(CS', CS) \<in> list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel\<close> and
+      N\<^sub>1: \<open>twl_array_code_ops.is_N\<^sub>1 (map (uint32_of_nat \<circ> nat_of_lit) (extract_lits_clss CS' [])) (lits_of_atms_of_mm (mset `# mset CS'))\<close> and
+      struct_invs: \<open>twl_struct_invs (twl_st_of_wl None S\<^sub>0)\<close> and
+      stgy_invs: \<open>twl_stgy_invs (twl_st_of_wl None S\<^sub>0)\<close> and
+      corr_w: \<open>correct_watching S\<^sub>0\<close> and
+      add_invs: \<open>additional_WS_invs (st_l_of_wl None S\<^sub>0)\<close> and
+      UP: \<open>get_unit_learned S\<^sub>0 = {#}\<close> and
+      count_dec: \<open>count_decided (get_trail_wl S\<^sub>0) = 0\<close> and
+      U: \<open>get_learned_wl S\<^sub>0 = length (get_clauses_wl S\<^sub>0) - 1\<close> and
+      clss: \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None (st_l_of_wl None S\<^sub>0))) = mset `# mset CS'\<close> and
+      trail: \<open>(\<forall>L\<in>lits_of_l (get_trail_wl S\<^sub>0). {#L#} \<in># get_unit_init_clss S\<^sub>0) \<and> (\<forall>L\<in>set (get_trail_wl S\<^sub>0). \<exists>K. L = Propagated K 0)\<close>
+    for CS CS' S\<^sub>0
+  proof (cases \<open>get_conflict_wl S\<^sub>0 = None\<close>)
+    case False
+    then have confl: \<open>get_conflict_wl S\<^sub>0 = None \<longleftrightarrow> False\<close>
+      by auto
+    have CS: \<open>CS = mset `# mset CS'\<close>
+      using CS'_CS by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
+    show ?thesis
+      unfolding confl if_False
+      apply (rule RETURN_SPEC_refine)
+      apply (rule exI[of _ \<open>state\<^sub>W_of (twl_st_of None (st_l_of_wl None S\<^sub>0))\<close>])
+      apply (intro conjI)
+     subgoal by (cases S\<^sub>0) (clarsimp_all simp: TWL_to_clauses_state_conv_def mset_take_mset_drop_mset'
+          clauses_def get_unit_learned_def in_list_mset_rel in_list_mset_rel_mset_rel)
+     subgoal
+       apply (rule disjI2)
+       using N\<^sub>1 struct_invs stgy_invs corr_w UP count_dec U clss trail False
+       by (cases S\<^sub>0) (clarsimp simp: twl_struct_invs_def CS init_state_def full_def
+           cdcl\<^sub>W_restart_mset_state get_unit_learned_def)
+      done
+  next
+    case True
+    then have confl: \<open>get_conflict_wl S\<^sub>0 = None \<longleftrightarrow> True\<close>
+      by auto
+    obtain M N NP Q W where
+      S\<^sub>0: \<open>S\<^sub>0 = (M, N, length N - 1, None, NP, {#}, Q, W)\<close>
+      using stgy_invs UP U True by (cases S\<^sub>0) (auto simp: clauses_def mset_take_mset_drop_mset' get_unit_learned_def)
+    have N_NP: \<open>mset `# mset (tl N) + NP = mset `# mset CS'\<close>
+      using clss by (auto simp: clauses_def mset_take_mset_drop_mset' S\<^sub>0)
+    have trail_in_NP: \<open>\<forall>L\<in>lits_of_l M. {#L#} \<in># NP\<close>
+      using trail unfolding S\<^sub>0 by (auto simp: get_unit_init_clss_def)
+    have n_d: \<open>no_dup M\<close>
+      using struct_invs by (auto simp: twl_struct_invs_def S\<^sub>0
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+          cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def)
+    have prop_M: \<open>\<forall>L\<in> set M. \<exists>K. L = Propagated K 0\<close>
+      using trail by (auto simp: S\<^sub>0)
+    have CS: \<open>CS = mset `# mset CS'\<close>
+      using CS'_CS by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
+    have 0: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* ([], CS, {#}, None)
+       (convert_lits_l N M, mset `# mset CS', {#}, None)\<close>
+      using trail_in_NP prop_M n_d
+      apply (induction M)
+      subgoal by (auto simp: CS)
+      subgoal for L M
+        apply (rule rtranclp.rtrancl_into_rtrancl)
+         apply (simp; fail)
+        apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.propagate')
+         apply (auto simp: cdcl\<^sub>W_restart_mset.propagate.simps cdcl\<^sub>W_restart_mset_state clauses_def CS
+            N_NP[symmetric])
+        done
+      done
+    then have 1: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state CS)
+       (state\<^sub>W_of (twl_st_of None (st_l_of_wl None S\<^sub>0)))\<close>
+      using 0 by (auto simp: S\<^sub>0 CS mset_take_mset_drop_mset' N_NP init_state_def)
+
+    have \<open>twl_array_code (map (uint32_of_nat \<circ> nat_of_lit) (extract_lits_clss CS' []))\<close>
+      unfolding twl_array_code_def
+    proof
+      fix L
+      assume \<open>L \<in> set (map (uint32_of_nat \<circ> nat_of_lit) (extract_lits_clss CS' []))\<close>
+      then obtain x where
+        L: \<open>L = uint32_of_nat (nat_of_lit x)\<close> and
+        xa: \<open>(\<exists>xa\<in>set CS'. x \<in> set xa) \<or> (\<exists>xa\<in>set CS'. - x \<in> set xa)\<close>
+        by (clarsimp dest!: in_extract_lits_clssD simp: upperN_def nat_of_uint32_uint32_of_nat_id)
+      have \<open>\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L < upperN\<close>
+        using CS_p by auto
+      then have \<open>nat_of_lit x < upperN\<close>
+        using xa nat_of_lit_upperN_nat_of_lit_uminus_upperN unfolding CS
+        by auto
+      then show \<open> nat_of_uint32 L < upperN\<close>
+        using L
+        by (clarsimp dest!: in_extract_lits_clssD simp: upperN_def nat_of_uint32_uint32_of_nat_id)
+    qed
+    then have 2: \<open>twl_array_code.cdcl_twl_stgy_prog_wl_D (map (uint32_of_nat o nat_of_lit) (extract_lits_clss CS' [])) S\<^sub>0
+       \<le> SPEC (\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy
+                     (state\<^sub>W_of (twl_st_of None (st_l_of_wl None S\<^sub>0)))
+                     (state\<^sub>W_of (twl_st_of None (st_l_of_wl None T))))\<close>
+      using twl_array_code.cdcl_twl_stgy_prog_wl_spec_final2[of
+              \<open>(map (uint32_of_nat o nat_of_lit) (extract_lits_clss CS' []))\<close> S\<^sub>0]  CS_p N\<^sub>1
+            struct_invs stgy_invs corr_w add_invs clss 1 True by auto
+
+    have \<open>twl_array_code.cdcl_twl_stgy_prog_wl_D (map (uint32_of_nat o nat_of_lit) (extract_lits_clss CS' [])) S\<^sub>0
+      \<le> \<Down> TWL_to_clauses_state_conv
+      (SPEC (full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state CS)))\<close>
+      by (auto simp: TWL_to_clauses_state_conv_def conc_fun_RES rtranclp_fullI
+          intro!: weaken_SPEC[OF SPEC_add_information[OF 1 2]])
+    then show ?thesis
+      unfolding confl if_True by (rule ref_two_step) auto
+  qed
+
   show ?thesis
     unfolding SAT_wl_def SAT_def twl_array_code_ops.init_state_wl_def empty_watched_def
-  apply (intro frefI nres_relI)
+    apply (intro frefI nres_relI)
     apply (refine_vcg bind_refine_spec init_dt_init_dt_l)
-       defer
+    subgoal by (rule if_no_confl_ref) fast+
     subgoal by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
     subgoal by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
     subgoal by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
     subgoal by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
-    subgoal premises p for CS' CS S\<^sub>0
-    proof (cases \<open>get_conflict_wl S\<^sub>0 = None\<close>)
-      case False
-      then have confl: \<open>get_conflict_wl S\<^sub>0 = None \<longleftrightarrow> False\<close>
-        by auto
-      have CS: \<open>CS = mset `# mset CS'\<close>
-        using p by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
-      show ?thesis
-        unfolding confl if_False
-        apply (rule RETURN_SPEC_refine)
-        apply (rule exI[of _ \<open>state\<^sub>W_of (twl_st_of None (st_l_of_wl None S\<^sub>0))\<close>])
-        apply (intro conjI)
-       subgoal using p confl by (cases S\<^sub>0, clarsimp_all simp: TWL_to_clauses_state_conv_def mset_take_mset_drop_mset'
-            clauses_def get_unit_learned_def in_list_mset_rel in_list_mset_rel_mset_rel)
-       subgoal
-         apply (rule disjI2)
-         using p False by (cases S\<^sub>0) (clarsimp simp: twl_struct_invs_def CS init_state_def full_def
-             cdcl\<^sub>W_restart_mset_state get_unit_learned_def)
-        done
-    next
-      case True
-      then have confl: \<open>get_conflict_wl S\<^sub>0 = None \<longleftrightarrow> True\<close>
-        by auto
-      obtain M N NP Q W where
-        S\<^sub>0: \<open>S\<^sub>0 = (M, N, length N - 1, None, NP, {#}, Q, W)\<close>
-        using p True by (cases S\<^sub>0) (auto simp: clauses_def mset_take_mset_drop_mset' get_unit_learned_def)
-      have N_NP: \<open>mset `# mset (tl N) + NP = mset `# mset CS'\<close>
-        using p by (auto simp: clauses_def mset_take_mset_drop_mset' S\<^sub>0)
-      have trail_in_NP: \<open>\<forall>L\<in>lits_of_l M. {#L#} \<in># NP\<close> and
-        struct: \<open>twl_struct_invs (twl_st_of_wl None S\<^sub>0)\<close>
-        using p unfolding S\<^sub>0 by (auto simp: get_unit_init_clss_def)
-      have n_d: \<open>no_dup M\<close>
-        using struct by (auto simp: twl_struct_invs_def S\<^sub>0
-            cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-            cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def)
-      have prop_M: \<open>\<forall>L\<in> set M. \<exists>K. L = Propagated K 0\<close>
-        using p by (auto simp: S\<^sub>0)
-      have CS: \<open>CS = mset `# mset CS'\<close>
-        using p by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
-      have 0: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* ([], CS, {#}, None)
-         (convert_lits_l N M, mset `# mset CS', {#}, None)\<close>
-        using trail_in_NP prop_M n_d
-        apply (induction M)
-        subgoal by (auto simp: CS)
-        subgoal for L M
-          apply simp
-          apply (rule rtranclp.rtrancl_into_rtrancl)
-           apply assumption
-          apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.propagate')
-            apply (cases L)
-           apply (auto simp: cdcl\<^sub>W_restart_mset.propagate.simps cdcl\<^sub>W_restart_mset_state clauses_def CS
-              N_NP[symmetric])
-          done
-        done
-      then have 1: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state CS)
-         (state\<^sub>W_of (twl_st_of None (st_l_of_wl None S\<^sub>0)))\<close>
-        using 0 by (auto simp: S\<^sub>0 CS mset_take_mset_drop_mset' N_NP init_state_def)
-
-      have \<open>twl_array_code (map (uint32_of_nat \<circ> nat_of_lit) (extract_lits_clss CS' []))\<close>
-        unfolding twl_array_code_def
-      proof
-        fix L
-        assume \<open>L \<in> set (map (uint32_of_nat \<circ> nat_of_lit) (extract_lits_clss CS' []))\<close>
-        then obtain x where
-          L: \<open>L = uint32_of_nat (nat_of_lit x)\<close> and
-          xa: \<open>(\<exists>xa\<in>set CS'. x \<in> set xa) \<or> (\<exists>xa\<in>set CS'. - x \<in> set xa)\<close>
-          by (clarsimp dest!: in_extract_lits_clssD simp: upperN_def nat_of_uint32_uint32_of_nat_id)
-        have \<open>\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L < upperN\<close>
-          using p(1) by auto
-        then have \<open>nat_of_lit x < upperN\<close>
-          using xa nat_of_lit_upperN_nat_of_lit_uminus_upperN unfolding CS
-          by auto
-        then show \<open> nat_of_uint32 L < upperN\<close>
-          using L
-          by (clarsimp dest!: in_extract_lits_clssD simp: upperN_def nat_of_uint32_uint32_of_nat_id)
-      qed
-      then have 2: \<open>twl_array_code.cdcl_twl_stgy_prog_wl_D (map (uint32_of_nat o nat_of_lit) (extract_lits_clss CS' [])) S\<^sub>0
-         \<le> SPEC (\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy
-                       (state\<^sub>W_of (twl_st_of None (st_l_of_wl None S\<^sub>0)))
-                       (state\<^sub>W_of (twl_st_of None (st_l_of_wl None T))))\<close>
-        using twl_array_code.cdcl_twl_stgy_prog_wl_spec_final2[of
-                \<open>(map (uint32_of_nat o nat_of_lit) (extract_lits_clss CS' []))\<close>  S\<^sub>0]
-        using p 1 True by auto
-
-      have \<open>twl_array_code.cdcl_twl_stgy_prog_wl_D (map (uint32_of_nat o nat_of_lit) (extract_lits_clss CS' [])) S\<^sub>0
-        \<le> \<Down> TWL_to_clauses_state_conv
-        (SPEC (full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state CS)))\<close>
-        by (auto simp: TWL_to_clauses_state_conv_def conc_fun_RES rtranclp_fullI
-            intro!: weaken_SPEC[OF SPEC_add_information[OF 1 2]])
-      then show ?thesis
-        unfolding confl if_True by (rule ref_two_step) auto
-    qed
     done
 qed
 
