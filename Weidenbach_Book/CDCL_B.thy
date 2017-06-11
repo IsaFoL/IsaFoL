@@ -668,7 +668,7 @@ inductive conflict\<^sub>B :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :
 conflict_rule: "
   conflicting S = None \<Longrightarrow>
   D \<in># clauses S \<Longrightarrow>
-  trail\<^sub>B S \<Turnstile>bs CNot D  \<Longrightarrow>  (* to adapt *)
+  trail\<^sub>B S \<Turnstile>bs CNot D \<Longrightarrow>  (* to adapt *)
   T \<sim> update_conflicting (Some D) S \<Longrightarrow>
   conflict\<^sub>B S T"
 

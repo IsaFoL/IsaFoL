@@ -331,7 +331,7 @@ definition update_ll :: "'a list list \<Rightarrow> nat \<Rightarrow> nat \<Righ
 abbreviation comp4 (infixl "oooo" 55) where "f oooo g \<equiv> \<lambda>x. f ooo (g x)"
 
 notation
-  comp4  (infixl "\<circ>\<circ>\<circ>\<circ>" 55)
+  comp4 (infixl "\<circ>\<circ>\<circ>\<circ>" 55)
 
 declare nth_rule[sep_heap_rules del]
 declare arrayO_nth_rule[sep_heap_rules]

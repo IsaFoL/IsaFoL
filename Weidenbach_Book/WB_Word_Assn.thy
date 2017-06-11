@@ -126,7 +126,7 @@ lemma nat_of_uint32_XOR: \<open>nat_of_uint32 (a XOR b) = nat_of_uint32 a XOR na
   by transfer (auto simp: unat_def nat_uint_XOR)
 
 lemma nat_of_uint32_0_iff: \<open>nat_of_uint32 xi = 0 \<longleftrightarrow> xi = 0\<close> for xi
-  by transfer  (auto simp: unat_def uint_0_iff)
+  by transfer (auto simp: unat_def uint_0_iff)
 
 lemma nat_0_AND: \<open>0 AND n = 0\<close> for n :: nat
   unfolding bitAND_nat_def by auto

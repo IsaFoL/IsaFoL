@@ -372,7 +372,7 @@ qed
 
 lemma append_same_lexn:
   assumes irrefl: \<open>irrefl R\<close>
-  shows \<open>(B  @ A , C @ A) \<in> lexn R n \<longleftrightarrow> (B, C) \<in> lexn R (n - length A)\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
+  shows \<open>(B @ A , C @ A) \<in> lexn R n \<longleftrightarrow> (B, C) \<in> lexn R (n - length A)\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
 proof
   assume ?A
   then obtain xys x xs y ys where

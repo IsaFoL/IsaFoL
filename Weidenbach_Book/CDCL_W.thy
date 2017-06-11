@@ -2119,7 +2119,7 @@ next
     then have "-L \<notin># ?D" using \<open>distinct_mset (?D + {#- L#})\<close> by auto
     have "Propagated L (?C + {#L#}) # M \<Turnstile>as CNot ?D \<union> CNot {#- L#}"
       using confl tr confl_inv LC by (metis CNot_plus LD insert_DiffM2)
-    then have  "M \<Turnstile>as CNot ?D"
+    then have "M \<Turnstile>as CNot ?D"
       using M_lev \<open>- L \<notin># ?D\<close> tr
       unfolding cdcl\<^sub>W_M_level_inv_def by (force intro: true_annots_lit_of_notin_skip)
     moreover assume "conflicting T = Some T'"
@@ -2640,7 +2640,7 @@ proof (rule backtrack_rule)
           dest!: atm_of_in_atm_of_set_in_uminus)
     moreover have n_d': \<open>no_dup (rev M1 @ rev M2 @ rev M3)\<close>
       by (rule same_mset_no_dup_iff[THEN iffD1, OF _ n_d']) auto
-    moreover have  \<open>no_dup (rev M3 @ rev M2 @ rev M1)\<close>
+    moreover have \<open>no_dup (rev M3 @ rev M2 @ rev M1)\<close>
       by (rule same_mset_no_dup_iff[THEN iffD1, OF _ n_d']) auto
     ultimately show \<open>La \<noteq> L\<close>\<open>- La \<notin> lits_of_l M3\<close> \<open>- La \<notin> lits_of_l M2\<close>  \<open>-La \<noteq> K\<close>
       using defined_lit_no_dupD(2-3)[of \<open>rev M1\<close> La \<open>rev M3\<close> \<open>rev M2\<close>]
@@ -2772,7 +2772,7 @@ proof -
           (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
     qed
     ultimately have \<open>atm_of (lit_of (Decided (- L'))) \<notin> atms_of (remove1_mset L' (add_mset L D))\<close>
-      using  \<open>- L' \<notin># add_mset L D\<close> by (auto simp: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
+      using \<open>- L' \<notin># add_mset L D\<close> by (auto simp: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
           atms_of_def dest: in_diffD)
     then have \<open>get_maximum_level (Decided (-L') # tl (trail S)) (remove1_mset L' (add_mset L D)) =
            get_maximum_level (tl (trail S)) (remove1_mset L' (add_mset L D))\<close>

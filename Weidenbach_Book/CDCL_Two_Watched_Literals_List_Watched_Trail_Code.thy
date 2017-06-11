@@ -91,7 +91,7 @@ lemma (in -)array_get_hnr_u[sepref_fr_rules]:
 (uncurry (\<lambda>xs i. Array.nth xs (nat_of_uint32 i)), uncurry (RETURN \<circ>\<circ> op_list_get))
 \<in> [pre_list_get]\<^sub>a (array_assn A)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> A\<close>
   apply (sepref_to_hoare) -- \<open>TODO proof\<close>
-   apply  (sep_auto simp: uint32_nat_rel_def br_def ex_assn_up_eq2 array_assn_def is_array_def
+   apply (sep_auto simp: uint32_nat_rel_def br_def ex_assn_up_eq2 array_assn_def is_array_def
        hr_comp_def list_rel_pres_length list_rel_update param_nth)
   by (metis ent_pure_pre_iff ent_refl_true pair_in_Id_conv param_nth pure_app_eq pure_the_pure)
 
@@ -807,13 +807,11 @@ lemma (in -)shiftr1[sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: shiftr1_def uint32_nat_rel_def br_def)
 
 lemma shiftl1[sepref_fr_rules]: \<open>(return o shiftl1, RETURN o shiftl1) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  by sepref_to_hoare (sep_auto)
+  by sepref_to_hoare sep_auto
+
 lemma (in -)nat_of_uint32_rule[sepref_fr_rules]:
   \<open>(return o nat_of_uint32, RETURN o nat_of_uint32) \<in> uint32_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   by sepref_to_hoare (sep_auto)
-
-lemma \<open>nat_of_uint32 L >> 1 = nat_of_uint32 (L >> 1)\<close>
-  by (simp add: nat_of_uint32_shiftr)
 
 sepref_thm get_level_code
   is \<open>uncurry (RETURN oo get_level_trail)\<close>
@@ -892,7 +890,7 @@ lemma (in -) nat_assn_zero:
 
 lemma (in -)nat_of_uint32_le_iff:
   \<open>nat_of_uint32 ai \<le> nat_of_uint32 bi \<longleftrightarrow> ai \<le> bi\<close>
-  by transfer  (auto simp add: word_le_nat_alt)
+  by transfer (auto simp add: word_le_nat_alt)
 
 lemma (in -)nat_of_uint32_less_iff:
   \<open>nat_of_uint32 ai < nat_of_uint32 bi \<longleftrightarrow> ai < bi\<close>
@@ -964,7 +962,7 @@ proof -
     by (auto simp: hrp_comp_def hr_comp_def)
 
   show ?thesis
-    using H unfolding 1 2 3  .
+    using H unfolding 1 2 3 .
 qed
 
 lemma count_decided_trail_ref:
@@ -1103,7 +1101,7 @@ intro!: in_remove1_msetI)
     by (auto simp: hrp_comp_def hr_comp_def)
 
   show ?thesis
-    using H unfolding 1 2 3  .
+    using H unfolding 1 2 3 .
 qed
 
 sepref_thm find_decomp_wl_imp_code
@@ -1207,7 +1205,7 @@ sepref_thm extract_shorter_conflict_l_trivial'
    trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k
         *\<^sub>a conflict_option_assn\<^sup>d *\<^sub>a unit_lits_assn\<^sup>k
         *\<^sub>a unit_lits_assn\<^sup>k
-        *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k  \<rightarrow> conflict_assn\<close>
+        *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k \<rightarrow> conflict_assn\<close>
   unfolding extract_shorter_conflict_l_trivial_def PR_CONST_def twl_st_l_trail_assn_def
   by sepref
 
@@ -1224,10 +1222,10 @@ abbreviation (in -) comp7 (infixl "ooooooo" 55) where "f ooooooo g \<equiv> \<la
 abbreviation (in -) comp8 (infixl "oooooooo" 55) where "f oooooooo g \<equiv> \<lambda>x. f oooo (g x)"
 
 notation (in -)
-  comp5  (infixl "\<circ>\<circ>\<circ>\<circ>" 55) and
-  comp6  (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>" 55) and
-  comp7  (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>" 55) and
-  comp8  (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>" 55)
+  comp5 (infixl "\<circ>\<circ>\<circ>\<circ>" 55) and
+  comp6 (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>" 55) and
+  comp7 (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>" 55) and
+  comp8 (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>" 55)
 (*End Move*)
 
 thm extract_shorter_conflict_l_trivial'.refine_raw[]
@@ -1434,7 +1432,7 @@ proof -
     by (auto simp: hrp_comp_def hr_comp_def)
 
   show ?thesis
-    using H unfolding 1 2 3  .
+    using H unfolding 1 2 3 .
 qed
 
 sepref_register decide_wl_or_skip_D

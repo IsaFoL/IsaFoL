@@ -1175,9 +1175,9 @@ Shared by the second layer of type 'a \<Rightarrow> 'b set \<Rightarrow> bool:
 * A \<subseteq> B \<Longrightarrow> I \<Turnstile>s B \<Longrightarrow> I \<Turnstile>s A
 * I \<Turnstile>s {}
 
-*   true_lit   \<Turnstile>   'a interp \<Rightarrow> 'a literal \<Rightarrow> bool
-*   true_cls   \<Turnstile>l 'a interp \<Rightarrow> 'a clause \<Rightarrow> bool
-\<longrightarrow> true_clss  \<Turnstile>s 'a interp \<Rightarrow> 'a clauses \<Rightarrow> bool
+*   true_lit  \<Turnstile>   'a interp \<Rightarrow> 'a literal \<Rightarrow> bool
+*   true_cls  \<Turnstile>l 'a interp \<Rightarrow> 'a clause \<Rightarrow> bool
+\<longrightarrow> true_clss \<Turnstile>s 'a interp \<Rightarrow> 'a clauses \<Rightarrow> bool
 
 *   true_annot \<Turnstile>a ann_lits \<Rightarrow> 'a clause \<Rightarrow> bool
 \<longrightarrow> true_annots \<Turnstile>as ann_lits \<Rightarrow> 'a clauses \<Rightarrow> bool

@@ -839,10 +839,10 @@ lemma ex_assn_def_pure_eq_middle3:
   by (subst ex_assn_def, subst (3) ex_assn_def, auto)+
 
 lemma ex_assn_def_pure_eq_middle2:
-  \<open>(\<exists>\<^sub>Aba b. f b ba  * \<up> (ba = h b) * P b ba) = (\<exists>\<^sub>Ab . f b (h b) * P b (h b))\<close>
-  \<open>(\<exists>\<^sub>Ab ba. f b ba  * \<up> (ba = h b) * P b ba) = (\<exists>\<^sub>Ab . f b (h b) * P b (h b))\<close>
-  \<open>(\<exists>\<^sub>Ab ba. f b ba  * \<up> (ba = h b \<and> Q b ba)) = (\<exists>\<^sub>Ab. f b (h b) * \<up>(Q b (h b)))\<close>
-  \<open>(\<exists>\<^sub>A ba b. f b ba  * \<up> (ba = h b \<and> Q b ba)) = (\<exists>\<^sub>Ab. f b (h b) * \<up>(Q b (h b)))\<close>
+  \<open>(\<exists>\<^sub>Aba b. f b ba * \<up> (ba = h b) * P b ba) = (\<exists>\<^sub>Ab . f b (h b) * P b (h b))\<close>
+  \<open>(\<exists>\<^sub>Ab ba. f b ba * \<up> (ba = h b) * P b ba) = (\<exists>\<^sub>Ab . f b (h b) * P b (h b))\<close>
+  \<open>(\<exists>\<^sub>Ab ba. f b ba * \<up> (ba = h b \<and> Q b ba)) = (\<exists>\<^sub>Ab. f b (h b) * \<up>(Q b (h b)))\<close>
+  \<open>(\<exists>\<^sub>A ba b. f b ba * \<up> (ba = h b \<and> Q b ba)) = (\<exists>\<^sub>Ab. f b (h b) * \<up>(Q b (h b)))\<close>
   by (subst ex_assn_def, subst (2) ex_assn_def, auto)+
 
 lemma ex_assn_skip_first2:
@@ -1827,7 +1827,7 @@ lemma N_hnr[sepref_import_param]: "(N\<^sub>0,N\<^sub>0')\<in>\<langle>unat_lit_
   using lits_less_upperN unfolding N\<^sub>0'_def
   by (auto simp del: literal_of_nat.simps simp: p2rel_def lit_of_natP_def
       unat_lit_rel_def uint32_nat_rel_def nat_lit_rel_def br_def Collect_eq_comp
-      list_rel_def list_all2_op_eq_map_right_iff  
+      list_rel_def list_all2_op_eq_map_right_iff 
       upperN_def nat_of_uint32_uint32_of_nat_id)
     
 

@@ -470,7 +470,7 @@ proof -
          apply (auto simp: )[3]
       apply (clarsimp simp: HH_def Let_def clause_to_update_append
           clauses_def mset_take_mset_drop_mset')[]
-      by (auto simp:  HH_def Let_def clause_to_update_append
+      by (auto simp: HH_def Let_def clause_to_update_append
           clauses_def mset_take_mset_drop_mset' lits_of_atms_of_m_add_mset
           lits_of_atms_of_mm_add_mset literals_are_in_N\<^sub>0_add_mset
           twl_array_code_ops.literals_are_in_N\<^sub>0_def)[]
@@ -890,7 +890,7 @@ proof -
     by (simp_all del: Max_ge)
 
   have 1: \<open>(uncurry0 (RETURN (arrayO_ara_empty_sz n)),
-     uncurry0  (RETURN (empty_watched N)))\<in>
+     uncurry0 (RETURN (empty_watched N)))\<in>
    unit_rel \<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>map_fun_rel (twl_array_code_ops.D\<^sub>0 N)\<rangle> nres_rel\<close>
     by (intro nres_relI frefI)
        (auto simp: map_fun_rel_def arrayO_ara_empty_sz_def fold_cons_replicate
@@ -1017,7 +1017,7 @@ proof -
     subgoal
       by (auto simp: N\<^sub>0'_def)
     done
-  have nat_of_lit_div2_atm_of[simp]: \<open>nat_of_lit L div 2  = atm_of L\<close> for L
+  have nat_of_lit_div2_atm_of[simp]: \<open>nat_of_lit L div 2 = atm_of L\<close> for L
     by (cases L) auto
   have [simp]: \<open>L \<in># N\<^sub>1 \<Longrightarrow> atm_of L < n\<close> for L
     by (auto simp add: in_atms_of_N\<^sub>1_iff twl_array_code_ops.in_N\<^sub>1_atm_of_in_atms_of_iff
@@ -1143,7 +1143,7 @@ code_printing constant Array.upd' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.up
 *)
 code_printing code_module "array_blit" \<rightharpoonup> (SML)
   {*
-  (* Locally patched version  *)
+  (* Locally patched version *)
   fun array_blit src si dst di len = (
     src=dst andalso raise Fail ("array_blit: Same arrays");
     ArraySlice.copy {
@@ -1352,6 +1352,7 @@ definition SAT' :: \<open>nat clauses \<Rightarrow> bool nres\<close> where
 lemma SPEC_RETURN_RES: \<open>SPEC \<Phi> \<bind> (\<lambda>T. RETURN (f T)) = RES (f ` {T. \<Phi> T})\<close>
   by (simp add: bind_RES_RETURN_eq setcompr_eq_image)
 
+(* TODO Move *)
 lemma true_clss_clss_true_clss_cls_true_clss_clss:
   assumes
     \<open>A \<Turnstile>ps unmark_l M\<close> and \<open>M \<Turnstile>as D\<close>
@@ -1368,6 +1369,7 @@ lemma true_clss_clss_CNot_true_clss_cls_unsatisfiable:
       atms_of_ms_emtpy_set total_over_m_def total_over_m_insert total_over_m_union
       true_cls_empty true_clss_cls_def true_clss_clss_generalise_true_clss_clss
       true_clss_clss_true_clss_cls true_clss_clss_union_false_true_clss_clss_cnot)
+(* End Move *)
 
 context conflict_driven_clause_learning\<^sub>W
 begin

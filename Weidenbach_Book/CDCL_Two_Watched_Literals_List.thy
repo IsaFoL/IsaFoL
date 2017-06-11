@@ -1404,7 +1404,7 @@ definition backtrack_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
       ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of None (M, N, U, D, NP, UP, WS, Q))));
       ASSERT(D ~= None);
       ASSERT(-L \<in># the D);
-      D' \<leftarrow> extract_shorter_conflict_l  (M, N, U, D, NP, UP, WS, Q);
+      D' \<leftarrow> extract_shorter_conflict_l (M, N, U, D, NP, UP, WS, Q);
 
       ASSERT(get_level M L = count_decided M);
       ASSERT(D' \<noteq> {#});
@@ -1464,7 +1464,7 @@ lemma image_filter_mset_take_drep_tl_id[simp]:
 lemma backtrak_l_ge1_rule_refinement:
   assumes
     state: \<open>(M, N, U, D\<^sub>0, NP, UP, WS, Q) = twl_st_of None (M', N', U', D\<^sub>0', NP', UP', WS', Q')\<close> and
-    D: \<open>(D'', D) \<in> {(D, D'). D = D' \<and> -lit_of (hd (get_trail_l  (M', N', U', D\<^sub>0', NP', UP', WS', Q'))) \<in># D \<and>
+    D: \<open>(D'', D) \<in> {(D, D'). D = D' \<and> -lit_of (hd (get_trail_l (M', N', U', D\<^sub>0', NP', UP', WS', Q'))) \<in># D \<and>
          D \<subseteq># the (Some E\<^sub>0)}\<close>and
     confl: \<open>get_conflict_l (M', N', U', D\<^sub>0', NP', UP', WS', Q') = Some E\<^sub>0\<close> and
     E\<^sub>0: \<open>Some E\<^sub>0 \<noteq> Some {#}\<close> and
