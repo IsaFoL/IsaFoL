@@ -688,9 +688,8 @@ proof -
     apply (rewrite at \<open>let _ = if _ ! _ = _then _ else _ in _\<close> Let_def)
     apply (rewrite at \<open>let _ =  (_ ! _, _) in _\<close> Let_def)
     apply (refine_rcg bind_refine_spec[where M' = \<open>find_unwatched _ _\<close>, OF _ find_unwatched]
-        bind_refine_spec[where M' = \<open>RETURN (valued _ _)\<close>, OF _ valued_spec[]]
-        update_clause_ll_spec
-        case_prod_bind[of _ \<open>If _ _\<close>]; remove_dummy_vars)
+        bind_refine_spec[where M' = \<open>RETURN (valued _ _)\<close>, OF _ valued_spec]
+        update_clause_ll_spec case_prod_bind[of _ \<open>If _ _\<close>]; remove_dummy_vars)
     unfolding i_def'
     subgoal using n_d by simp
     subgoal using C_le_N by fast
@@ -714,8 +713,8 @@ proof -
           consistent split: option.splits bool.splits)
     subgoal using add_inv S stgy_inv struct_invs add_mset_C'_i
       by (vc_solve simp: mset_watched_C watched_C' in_set_unwatched_conv consistent
-        Decided_Propagated_in_iff_in_lits_of_l
-          additional_WS_invs_def C'[symmetric] N_C_C' split: option.splits bool.splits)
+        Decided_Propagated_in_iff_in_lits_of_l additional_WS_invs_def C'[symmetric] N_C_C'
+        split: option.splits bool.splits)
     subgoal using init_invs S C_le_N add_mset_C'_i dist_WS by (vc_solve simp: mset_watched_C
           in_set_unwatched_conv set_take_2_watched watched_C' consistent additional_WS_invs_def
           N_C_C' split: option.splits bool.splits dest: in_diffD)
@@ -726,7 +725,7 @@ proof -
           N_C_C'\<close>)
       by (meson in_set_drop_conv_nth)
     subgoal using C'_N_U S by (auto simp add: C'[symmetric] N_C_C')
-    subgoal by (simp; fail)
+    subgoal by simp
     subgoal by auto
     subgoal by (auto simp: in_set_drop_conv_nth)
     subgoal for L' f D K N' by (rule new_lit_not_defined) assumption+
@@ -870,7 +869,6 @@ proof -
   \<langle>{(T, T'). T' = twl_st_of None T \<and> clauses_to_update_l T = {#} \<and> additional_WS_invs T}\<rangle> nres_rel\<close>
     (is \<open>_ \<in> ?A \<rightarrow> \<langle>?B\<rangle>nres_rel\<close>)
     unfolding unit_propagation_inner_loop_l_def unit_propagation_inner_loop_def uncurry_def
-      (* select_from_clauses_to_update_def *)
     apply clarify
     subgoal for L M' N' U' C' NP' UP' WS' Q' M N U C NP UP WS Q
     apply (refine_vcg set_mset_clauses_to_update_l_set_mset_clauses_to_update_spec
@@ -888,7 +886,7 @@ proof -
       apply (rule refinement_trans_long[OF _ _ _ unit_propagation_inner_loop_body_l[of \<open>iC\<close> T L,
         unfolded prod.collapse]])
       subgoal by auto
-      subgoal by (cases T) auto
+      subgoal by (cases T) force
       subgoal by auto
       subgoal by auto
       subgoal by auto
@@ -1131,7 +1129,6 @@ proof -
   have
     \<open>(decide_l, decide) \<in> ?R \<rightarrow> \<langle>{(T, T'). T' = twl_st_of None T \<and> (additional_WS_invs T \<and>
     clauses_to_update_l T = {#})}\<rangle> nres_rel\<close>
-    apply clarify
     unfolding decide_l_def decide_def
     by refine_vcg (auto simp: additional_WS_invs_def)
   then have
@@ -1477,15 +1474,15 @@ lemma backtrak_l_ge1_rule_refinement:
     M1'_M1: \<open>(M1', M1) \<in> {(M1', M1). M1 = convert_lits_l N' M1' \<and>
        (\<exists>K M2. (Decided K # M1', M2) \<in> set (get_all_ann_decomposition M') \<and>
           get_level M' K = get_maximum_level M' (D - {#-lit_of (hd M')#}) + 1)}\<close> and
-    M1': \<open>M1 \<in> {M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and> 
+    M1': \<open>M1 \<in> {M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
        get_level M K = get_maximum_level M (remove1_mset (- L) D) + 1}\<close> and
     L''_L''': \<open>(L'', L''') \<in> Id\<close> and
-    L''': \<open>L''' \<in> {L'. L' \<in># remove1_mset (- L) D \<and> 
+    L''': \<open>L''' \<in> {L'. L' \<in># remove1_mset (- L) D \<and>
         get_level M L' = get_maximum_level M (remove1_mset (- L) D)}\<close> and
     L_uL''': \<open>L \<noteq> - L'''\<close> and
     no_clause_to_upd: \<open>clauses_to_update_l (M', N', U', D\<^sub>0', NP', UP', WS', Q') = {#}\<close> and
     L_uL'': \<open>lit_of (hd M') \<noteq> - L''\<close> and
-    E'_D\<^sub>0': \<open>(E', D) \<in> {(c, D). D = mset c}\<close> 
+    E'_D\<^sub>0': \<open>(E', D) \<in> {(c, D). D = mset c}\<close>
   shows
     \<open>((Propagated (- lit_of (hd M')) (length N') # M1', N' @ [[- lit_of (hd M'), L''] @ remove1 (- lit_of (hd M')) (remove1 L'' E')], U', None, NP', UP', WS', unmark (hd M')),
       Propagated (- L) D # M1, N, add_mset (TWL_Clause {#- L, L'''#} (D - {#- L, L'''#})) U, None, NP, UP, WS, {#L#})
@@ -1579,7 +1576,7 @@ lemma backtrack_l_size0_rule_refinement:
     M1': \<open>M1 \<in> {M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and> get_level M K =
        get_maximum_level M (remove1_mset (- L) D) + 1}\<close> and
     no_clause_to_upd: \<open>clauses_to_update_l (M', N', U', D\<^sub>0', NP', UP', WS', Q') = {#}\<close> and
-    D: \<open>(D'', D) \<in> {(D, D'). D = D' \<and> 
+    D: \<open>(D'', D) \<in> {(D, D'). D = D' \<and>
           -lit_of (hd (get_trail_l (M', N', U', D\<^sub>0', NP', UP', WS', Q'))) \<in># D \<and>
           D \<subseteq># the (Some E\<^sub>0)}\<close> and
     length_D'_ge_1:\<open>\<not> 1 < size D''\<close> and
@@ -1732,7 +1729,7 @@ proof -
       inv_s: "twl_stgy_invs (twl_st_of None S)" and
       inv: "twl_struct_invs (twl_st_of None S)" and
       ns: \<open>no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of None S))\<close> and
-      confl: \<open>conflicting (state\<^sub>W_of (twl_st_of None S)) \<noteq> None\<close> 
+      confl: \<open>conflicting (state\<^sub>W_of (twl_st_of None S)) \<noteq> None\<close>
          \<open>conflicting (state\<^sub>W_of (twl_st_of None S)) \<noteq> Some {#}\<close> and
       M_nempty: \<open>get_trail_l S ~= []\<close> and
       D: \<open>D = get_conflict_l S\<close>

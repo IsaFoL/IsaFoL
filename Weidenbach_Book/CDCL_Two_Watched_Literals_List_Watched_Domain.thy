@@ -518,8 +518,7 @@ proof -
       subgoal using eq_commute[THEN iffD1, OF N\<^sub>0[unfolded is_N\<^sub>1_def]]
         by (auto simp: image_image S clauses_def mset_take_mset_drop_mset' m is_N\<^sub>1_def
             lits_of_atms_of_mm_union)[]
-      subgoal
-        by (rule in_lits_of_atms_S) auto
+      subgoal by (rule in_lits_of_atms_S) blast+
       done
     subgoal by simp
     subgoal by simp
@@ -914,6 +913,7 @@ proof -
         apply (subgoal_tac \<open>x1j ! x2q \<in> set (tl x1c)\<close>)
          apply (solves \<open>auto\<close>)
         apply (cases x1b; cases \<open>hd x1b\<close>)
+
         by (auto intro!: nth_in_set_tl simp: additional_WS_invs_def all_conj_distrib)
       subgoal
         apply (simp del: struct_wf_twl_cls.simps)

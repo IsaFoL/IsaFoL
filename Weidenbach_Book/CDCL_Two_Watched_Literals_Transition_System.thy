@@ -101,6 +101,9 @@ update_clause:
     \<open>update_clauses (N, U) D L K (N', U')\<close>
     \<comment> \<open>The condition \<^term>\<open>-L \<in> lits_of_l M\<close> is already implied by \<^term>\<open>valid\<close> invariant.\<close>
 
+inductive_cases cdcl_twl_cpE: \<open>cdcl_twl_cp S T\<close>
+
+
 text \<open>We do not care about the \<^term>\<open>literals_to_update\<close> literals.\<close>
 inductive cdcl_twl_o :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" where
   decide:
@@ -145,9 +148,13 @@ inductive cdcl_twl_o :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" w
     \<open>L' \<in># D'\<close> and \<comment> \<open>\<^term>\<open>L'\<close> is the new watched literal\<close>
     \<open>get_level M L' = i\<close>
 
+inductive_cases cdcl_twl_oE: \<open>cdcl_twl_o S T\<close>
+
 inductive cdcl_twl_stgy :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" for S :: \<open>'v twl_st\<close> where
 cp: "cdcl_twl_cp S S' \<Longrightarrow> cdcl_twl_stgy S S'" |
 other': "cdcl_twl_o S S' \<Longrightarrow> cdcl_twl_stgy S S'"
+
+inductive_cases cdcl_twl_stgyE: \<open>cdcl_twl_stgy S T\<close>
 
 
 subsection \<open>Definition of the Two-watched literals Invariants\<close>
@@ -1542,9 +1549,9 @@ proof (induction rule: cdcl_twl_cp.induct)
       using C by auto
   qed
 next
-  case (propagate D L L' M N U NP UP WS Q) note watched = this(1) and twl = this(4) and
-    valid = this(5) and inv = this(6) and no_taut = this(7) and excep = this(8) and no_dup = this(9)
-    and cands = this(10)
+  case (propagate D L L' M N U NP UP WS Q) note watched = this(1) and undef = this(2) and
+    twl = this(4) and valid = this(5) and inv = this(6) and no_taut = this(7) and excep = this(8)
+    and no_dup = this(9) and cands = this(10)
   have uL'_M: \<open>- L' \<notin> lits_of_l M\<close>
     using Decided_Propagated_in_iff_in_lits_of_l propagate.hyps(2) by blast
   have D_N_U: \<open>D \<in># N + U\<close>
@@ -1574,8 +1581,8 @@ next
     have undef_K_M: \<open>undefined_lit M K\<close>
       using undef_K by (simp add: Decided_Propagated_in_iff_in_lits_of_l)
     consider
-      (no_L') \<open>M \<Turnstile>as CNot (remove1_mset K (clause C))\<close>
-      | (L') \<open>-L' \<in># remove1_mset K (clause C)\<close>
+      (no_L') \<open>M \<Turnstile>as CNot (remove1_mset K (clause C))\<close> |
+      (L') \<open>-L' \<in># remove1_mset K (clause C)\<close>
       using L'_M_C \<open>- L' \<notin> lits_of_l M\<close>
       by (metis insertE list.simps(15) lit_of.simps(2) lits_of_insert
           true_annots_CNot_lit_of_notin_skip true_annots_true_cls_def_iff_negation_in_model)
@@ -1598,9 +1605,9 @@ next
       have ?thesis if \<open>L' \<in># watched C\<close>
       proof -
         have "K = L'"
-          using that L'_M_C \<open>- L' \<notin> lits_of_l M\<close> L' (* TODO Tune metis call *)
+          using that L'_M_C \<open>- L' \<notin> lits_of_l M\<close> L' undef
           by (metis clause.simps in_CNot_implies_uminus(2) in_lits_of_l_defined_litD
-              in_remove1_mset_neq insert_iff list.simps(15) lits_of_insert propagate.hyps(2)
+              in_remove1_mset_neq insert_iff list.simps(15) lits_of_insert
               twl_clause.exhaust_sel uminus_not_id' uminus_of_uminus_id union_iff)
         then have False
           using Decided_Propagated_in_iff_in_lits_of_l undef_K by force
@@ -4553,10 +4560,6 @@ lemma full_cdcl_twl_stgy_cdcl\<^sub>W_stgy:
   by (metis (no_types, hide_lams) assms(1) full_def no_step_cdcl_twl_stgy_no_step_cdcl\<^sub>W_stgy
       rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy rtranclp_cdcl_twl_stgy_twl_struct_invs twl)
 
-(* TODO: Move *)
-lemma remove1_empty_iff: \<open>remove1_mset L M = {#} \<longleftrightarrow> (M = {#L#} \<or> M = {#})\<close>
-  by (cases M) (auto simp: remove1_mset_add_mset_If)
-
 definition init_state_twl where
   \<open>init_state_twl N \<equiv> ([], N, {#}, None, {#}, {#}, {#}, {#})\<close>
 lemma
@@ -4570,9 +4573,19 @@ proof -
   have [simp]: \<open>twl_lazy_update [] C\<close> \<open>twl_inv [] C\<close> \<open>watched_literals_false_of_max_level [] C\<close>
     \<open>twl_exception_inv ([], N, {#}, None, {#}, {#}, {#}, {#}) C\<close> for C
     by (cases C; solves \<open>auto simp: twl_exception_inv.simps\<close>)+
-  have [simp]: \<open>clause C \<noteq> {#}\<close> (is ?G1) and
+
+  have size_C: \<open>size (clause C) \<ge> 2\<close> if \<open>C \<in># N\<close> for C
+  proof -
+    have \<open>struct_wf_twl_cls C\<close>
+      using that struct by auto
+    then show ?thesis by (cases C) auto
+  qed
+  have
+    [simp]: \<open>clause C \<noteq> {#}\<close> (is ?G1) and
     [simp]: \<open>remove1_mset L (clause C) \<noteq> {#}\<close> (is ?G2) if \<open>C \<in># N\<close> for C L
-    using that struct by (cases C; auto simp: remove1_empty_iff size_ne_size_imp_ne[of _ \<open>{#_#}\<close>])+
+    by (rule size_ne_size_imp_ne[of _ \<open>{#}\<close>]; use size_C[OF that] in
+        \<open>auto simp: remove1_mset_empty_iff union_is_single\<close>)+
+
   have \<open>distinct_mset (clause C)\<close> if \<open>C \<in># N\<close> for C
     using struct that by (cases C) (auto)
   then have dist: \<open>distinct_mset_mset (clause `# N)\<close>

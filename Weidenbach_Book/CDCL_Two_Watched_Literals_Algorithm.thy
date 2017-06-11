@@ -63,12 +63,12 @@ proof -
     using inv WS unfolding twl_struct_invs_def twl_st_inv.simps S x by auto
   show ?fail
     unfolding unit_propagation_inner_loop_body_def Let_def
-    by (cases C, use struct L_C in \<open>auto simp:refine_pw_simps S x size_2_iff\<close>)
+    by (cases C) (use struct L_C in \<open>auto simp: refine_pw_simps S x size_2_iff\<close>)
   note [[goals_limit=3]]
   show ?spec
     using assms unfolding unit_propagation_inner_loop_body_def S
-  proof (refine_vcg; (unfold prod.inject clauses_to_update.simps set_clauses_to_update.simps ball_simps)?;
-      clarify?; unfold triv_forall_equality)
+  proof (refine_vcg; (unfold prod.inject clauses_to_update.simps set_clauses_to_update.simps
+        ball_simps)?; clarify?; unfold triv_forall_equality)
     fix C :: \<open>'v twl_cls\<close> and L L' :: \<open>'v literal\<close>
     assume
       \<open>WS \<noteq> {#}\<close> and
@@ -77,7 +77,7 @@ proof -
       L': \<open>L' \<in># remove1_mset L (watched C)\<close> and
       \<open>x = (L, C)\<close>
     have \<open>C \<in># N + U\<close> and struct: \<open>struct_wf_twl_cls C\<close> and L_C: \<open>L \<in># watched C\<close>
-      using twl_inv WS unfolding twl_struct_invs_def twl_st_inv.simps by fastforce+
+      using twl_inv WS unfolding twl_struct_invs_def twl_st_inv.simps by auto
     show watched: \<open>watched C = {#L, L'#}\<close>
       by (cases C) (use struct L_C L' in \<open>auto simp: size_2_iff\<close>)
 
@@ -576,7 +576,7 @@ declare skip_and_resolve_loop_spec[THEN order_trans, refine_vcg]
 subsubsection \<open>Backtrack\<close>
 
 fun extract_shorter_conflict :: \<open>'v twl_st \<Rightarrow> 'v clause nres\<close> where
-  \<open>extract_shorter_conflict (M, N, U, D, NP, UP, WS, Q) = 
+  \<open>extract_shorter_conflict (M, N, U, D, NP, UP, WS, Q) =
     SPEC(\<lambda>D'. D' \<subseteq># the D \<and> clause `# (N + U) + NP + UP \<Turnstile>pm D' \<and> -lit_of (hd M) \<in># D')\<close>
 
 declare extract_shorter_conflict.simps[simp del]
@@ -769,15 +769,15 @@ proof -
       moreover have D_empty: \<open>the D \<noteq> {#}\<close>
         using D'_D D'_empty by auto
       moreover have \<open>-L \<in># the D\<close>
-        using ns_s L'' confl D_empty 
+        using ns_s L'' confl D_empty
         by (force simp: cdcl\<^sub>W_restart_mset.skip.simps S M cdcl\<^sub>W_restart_mset_state)
       ultimately have \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D)) < count_decided M\<close>
         using ns_r confl count_decided_ge_get_maximum_level[of M \<open>remove1_mset (-lit_of (hd M)) (the D)\<close>]
         by (fastforce simp add: cdcl\<^sub>W_restart_mset.resolve.simps S M
             cdcl\<^sub>W_restart_mset_state)
-          
+
       moreover have \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) D') \<le>
-              get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D))\<close> 
+              get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D))\<close>
         by (rule get_maximum_level_mono) (use D'_D in \<open>auto intro: mset_le_subtract\<close>)
       ultimately show ?thesis
         by simp
@@ -897,7 +897,7 @@ proof -
 
       have i_0: \<open>i = 0\<close>
         using i_def by (auto simp: D')
-          
+
       have \<open>cdcl_twl_o (M, N, U, D, NP, UP, WS, Q) ?T'\<close>
         unfolding D' option.sel WS Q apply (subst D_Some_the)
         apply (rule cdcl_twl_o.backtrack_unit_clause[of _ \<open>the D\<close> K M1 M2 _ D' i])
@@ -978,24 +978,24 @@ lemma cdcl_twl_o_prog_spec:
   subgoal using assms by auto
   subgoal using assms by auto
   \<comment> \<open>decision, if false\<close>
-  subgoal using assms by (auto simp: cdcl_twl_o.simps)
+  subgoal using assms by (auto elim!: cdcl_twl_oE)
   subgoal using assms by auto
-  subgoal using assms by (auto simp: cdcl_twl_o.simps)
+  subgoal using assms by (auto elim!: cdcl_twl_oE)
   subgoal using assms by auto
-  subgoal using assms by (auto simp: cdcl_twl_o.simps)
+  subgoal using assms by (auto elim!: cdcl_twl_oE)
   subgoal for M N D NP UP WS Q brk T
-    by (cases T) (use ns_cp in \<open>auto simp: cdcl_twl_stgy.simps cdcl_twl_o.simps\<close>)
+    by (cases T) (use ns_cp in \<open>auto elim!: cdcl_twl_stgyE cdcl_twl_oE\<close>)
   subgoal using assms by auto
   subgoal using assms by auto
   subgoal using assms by auto
   subgoal using assms by auto
-  subgoal by (auto simp: cdcl_twl_o.simps)
+  subgoal by (auto elim!: cdcl_twl_oE)
 
   \<comment> \<open>\<^term>\<open>skip_and_resolve_loop\<close> part, if true\<close>
     \<comment> \<open>initial conditions\<close>
   subgoal using assms by auto
   subgoal using assms by auto
-  subgoal using assms by (auto simp: cdcl_twl_o.simps)
+  subgoal using assms by (auto elim!: cdcl_twl_oE)
   subgoal using assms by auto
 
     \<comment> \<open>initial of backtrack part\<close>
@@ -1004,18 +1004,15 @@ lemma cdcl_twl_o_prog_spec:
   subgoal by auto
 
     \<comment> \<open>final properties\<close>
-  subgoal by (auto simp: cdcl_twl_o.simps)
+  subgoal by (auto elim!: cdcl_twl_oE)
   subgoal by auto
   subgoal by auto
-  subgoal by (auto simp: cdcl_twl_o.simps)
-
-  \<comment> \<open>\<^term>\<open>skip_and_resolve_loop\<close>, if false: final properties\<close>
-  subgoal by (auto simp: cdcl_twl_stgy.simps cdcl_twl_o.simps cdcl_twl_cp.simps)
-  subgoal by (auto simp: cdcl_twl_stgy.simps cdcl_twl_o.simps)
-  subgoal by (auto simp: cdcl_twl_stgy.simps cdcl_twl_o.simps cdcl_twl_cp.simps)
-  subgoal by (auto intro: cdcl_twl_o_twl_struct_invs cdcl_twl_o_twl_stgy_invs)
-  subgoal for M N U D NP UP WS Q T
-    by (auto simp: cdcl_twl_stgy.simps cdcl_twl_o.simps rtranclp_unfold)
+  subgoal by blast
+  subgoal by fast
+  subgoal by (auto elim!: cdcl_twl_oE)
+  subgoal by (auto elim!: cdcl_twl_stgyE cdcl_twl_oE cdcl_twl_cpE)
+  subgoal by fast
+  subgoal by (auto simp: rtranclp_unfold elim!: cdcl_twl_oE)
   done
 
 declare cdcl_twl_o_prog_spec[THEN order_trans, refine_vcg]

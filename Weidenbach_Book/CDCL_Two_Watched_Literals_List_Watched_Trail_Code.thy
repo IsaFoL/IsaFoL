@@ -1209,27 +1209,6 @@ sepref_thm extract_shorter_conflict_l_trivial'
   unfolding extract_shorter_conflict_l_trivial_def PR_CONST_def twl_st_l_trail_assn_def
   by sepref
 
-(*TODO Move*)
-lemma (in -) fr_refl': \<open>A \<Longrightarrow>\<^sub>A B \<Longrightarrow> C * A \<Longrightarrow>\<^sub>A C * B\<close>
-  unfolding assn_times_comm[of C]
-  by (rule Automation.fr_refl)
-
-abbreviation (in -) "curry8' fc \<equiv> (\<lambda> (a, b, c, d, e, f, g, h). fc a b c d e f g)"
-
-abbreviation (in -) comp5 (infixl "ooooo" 55) where "f ooooo g \<equiv> \<lambda>x. f oooo (g x)"
-abbreviation (in -) comp6 (infixl "oooooo" 55) where "f oooooo g \<equiv> \<lambda>x. f oooo (g x)"
-abbreviation (in -) comp7 (infixl "ooooooo" 55) where "f ooooooo g \<equiv> \<lambda>x. f oooo (g x)"
-abbreviation (in -) comp8 (infixl "oooooooo" 55) where "f oooooooo g \<equiv> \<lambda>x. f oooo (g x)"
-
-notation (in -)
-  comp5 (infixl "\<circ>\<circ>\<circ>\<circ>" 55) and
-  comp6 (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>" 55) and
-  comp7 (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>" 55) and
-  comp8 (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>\<circ>" 55)
-(*End Move*)
-
-thm extract_shorter_conflict_l_trivial'.refine_raw[]
-
 concrete_definition (in -) extract_shorter_conflict_l_trivial_code
    uses twl_array_code.extract_shorter_conflict_l_trivial'.refine_raw
    is "(uncurry7 ?f,_)\<in>_"
