@@ -95,18 +95,7 @@ lemma (in -)array_get_hnr_u[sepref_fr_rules]:
        hr_comp_def list_rel_pres_length list_rel_update param_nth)
   by (metis ent_pure_pre_iff ent_refl_true pair_in_Id_conv param_nth pure_app_eq pure_the_pure)
 
-lemma (in -) distinct_subseteq_iff :
-  assumes dist: "distinct_mset M" and fin: "distinct_mset N"
-  shows "set_mset M \<subseteq> set_mset N \<longleftrightarrow> M \<subseteq># N"
-proof
-  assume "set_mset M \<subseteq> set_mset N"
-  then show "M \<subseteq># N"
-    using dist fin by auto
-next
-  assume "M \<subseteq># N"
-  then show "set_mset M \<subseteq> set_mset N"
-    by (metis set_mset_mono)
-qed
+
 lemma (in -) nat_of_uint32_add_less_upperN:
   \<open>nat_of_uint32 ai + nat_of_uint32 bi < 2 ^32 \<Longrightarrow>
     nat_of_uint32 (ai + bi) = nat_of_uint32 ai + nat_of_uint32 bi\<close>
@@ -120,7 +109,7 @@ lemma (in -) uint32_nat_assn_plus[sepref_fr_rules]:
 
 lemma undefined_lit_count_decided_upperN:
   assumes
-    M_N\<^sub>1: \<open>(\<forall>L\<in>set M. lit_of L \<in># N\<^sub>1)\<close> and n_d: \<open>no_dup M\<close> and
+    M_N\<^sub>1: \<open>\<forall>L\<in>set M. lit_of L \<in># N\<^sub>1\<close> and n_d: \<open>no_dup M\<close> and
     \<open>L \<in> snd ` D\<^sub>0\<close> and \<open>undefined_lit M L\<close>
   shows \<open>Suc (count_decided M) < upperN\<close>
 proof -

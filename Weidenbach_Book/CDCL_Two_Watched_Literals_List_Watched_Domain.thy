@@ -338,22 +338,7 @@ end
 
 text \<open>TODO Move\<close>
 
-lemma list_all2_op_eq_map_right_iff': \<open>list_all2 (\<lambda>L L'. L' = (f L)) a aa \<longleftrightarrow> aa = map f a \<close>
-  apply (induction a arbitrary: aa)
-   apply (auto; fail)
-  by (rename_tac aa, case_tac aa) auto
 
-lemma less_upper_bintrunc_id: \<open>n < 2 ^b \<Longrightarrow> n \<ge> 0 \<Longrightarrow> bintrunc b n = n\<close>
-  unfolding uint32_of_nat_def
-  by (simp add: no_bintr_alt1 semiring_numeral_div_class.mod_less)
-
-lemma nat_of_uint32_uint32_of_nat_id: \<open>n < 2 ^32 \<Longrightarrow> nat_of_uint32 (uint32_of_nat n) = n\<close>
-  unfolding uint32_of_nat_def
-  apply simp
-  apply transfer
-  apply (auto simp: unat_def)
-  apply transfer
-  by (auto simp: less_upper_bintrunc_id)
 
 locale twl_array_code =
   twl_array_code_ops N\<^sub>0

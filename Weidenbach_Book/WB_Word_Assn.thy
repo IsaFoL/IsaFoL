@@ -4,6 +4,11 @@ imports
   IICF
   Bits_Natural
 begin
+
+lemma less_upper_bintrunc_id: \<open>n < 2 ^b \<Longrightarrow> n \<ge> 0 \<Longrightarrow> bintrunc b n = n\<close>
+  unfolding uint32_of_nat_def
+  by (simp add: no_bintr_alt1 semiring_numeral_div_class.mod_less)
+
 definition word_nat_rel :: "('a :: len0 Word.word \<times> nat) set" where
   \<open>word_nat_rel = br unat (\<lambda>_. True)\<close>
 
@@ -34,9 +39,8 @@ proof -
   have [simp]: \<open>nat (2 * 2 ^ n) =  2 * 2 ^ n\<close> for n :: nat
     by (metis nat_numeral nat_power_eq power_Suc rel_simps(27))
   show ?thesis
-  unfolding unat_def
-  by (induction n arbitrary: xi)
-     (auto simp: shiftr_div_2n nat_div_distrib)
+    unfolding unat_def
+    by (induction n arbitrary: xi) (auto simp: shiftr_div_2n nat_div_distrib)
 qed
 
 instance uint32 :: heap
@@ -107,13 +111,38 @@ proof -
   have H: \<open>nat (bintrunc n (a XOR b)) = nat (bintrunc n a XOR bintrunc n b)\<close>
     if \<open>n> 0\<close> for n and a :: int and b :: int
     using that
-    apply (induction n arbitrary: a b)
-    subgoal by auto
-    subgoal for n a b
-      apply (cases n)
-       apply (auto simp: bintr_ge0) -- \<open>TODO tune proof\<close>
-      by (smt BIT_lt0 bintr_ge0 int_nat_eq int_xor_lt0)
-    done
+  proof (induction n arbitrary: a b)
+    case 0
+    then show ?case by auto
+  next
+    case (Suc n) note IH = this(1) and Suc = this(2)
+    then show ?case
+    proof (cases n)
+      case (Suc m)
+      moreover have
+        \<open>nat (bintrunc m (bin_rest (bin_rest a) XOR bin_rest (bin_rest b)) BIT
+            ((bin_last (bin_rest a) \<or> bin_last (bin_rest b)) \<and>
+             (bin_last (bin_rest a) \<longrightarrow> \<not> bin_last (bin_rest b))) BIT
+            ((bin_last a \<or> bin_last b) \<and> (bin_last a \<longrightarrow> \<not> bin_last b))) =
+         nat ((bintrunc m (bin_rest (bin_rest a)) XOR bintrunc m (bin_rest (bin_rest b))) BIT
+              ((bin_last (bin_rest a) \<or> bin_last (bin_rest b)) \<and>
+               (bin_last (bin_rest a) \<longrightarrow> \<not> bin_last (bin_rest b))) BIT
+              ((bin_last a \<or> bin_last b) \<and> (bin_last a \<longrightarrow> \<not> bin_last b)))\<close>
+        (is \<open>nat (?n1 BIT ?b) = nat (?n2 BIT ?b)\<close>)
+      proof - (* Sledgehammer proof changed to use the more readable ?n1 and ?n2 *)
+        have a1:  "nat ?n1 = nat ?n2"
+          using IH Suc by auto
+        have f2: "0 \<le> ?n2"
+          by (simp add: bintr_ge0)
+        have "0 \<le> ?n1"
+          using bintr_ge0 by auto
+        then have "?n2 = ?n1"
+          using f2 a1 by presburger
+        then show ?thesis by simp
+      qed
+      ultimately show ?thesis by simp
+    qed simp
+  qed
   have \<open>nat (bintrunc LENGTH('a) (a XOR b)) = nat (bintrunc LENGTH('a) a XOR bintrunc LENGTH('a) b)\<close> for a b
     using len H[of \<open>LENGTH('a)\<close> a b] by auto
   then have \<open>nat (uint (a XOR b)) = nat (uint a XOR uint b)\<close>
@@ -137,15 +166,16 @@ lemma uint32_0_AND: \<open>0 AND n = 0\<close> for n :: uint32
 definition (in -) uint32_safe_minus where
   \<open>uint32_safe_minus m n = (if m < n then 0 else m - n)\<close>
 
-lemma nat_of_uint32_le_minus: \<open>ai \<le> bi \<Longrightarrow>  0 = nat_of_uint32 ai - nat_of_uint32 bi\<close>
+lemma nat_of_uint32_le_minus: \<open>ai \<le> bi \<Longrightarrow> 0 = nat_of_uint32 ai - nat_of_uint32 bi\<close>
   by transfer (auto simp: unat_def word_le_def)
 
 lemma nat_of_uint32_notle_minus:
   \<open>\<not> ai < bi \<Longrightarrow>
        nat_of_uint32 (ai - bi) = nat_of_uint32 ai - nat_of_uint32 bi\<close>
   apply transfer
-  apply (auto simp: unat_def) -- \<open>TODO proof\<close>
-  by (metis nat_diff_distrib not_le uint_nonnegative uint_sub_lem word_le_def)
+  unfolding unat_def
+  by (subst uint_sub_lem[THEN iffD1])
+    (auto simp: unat_def uint_nonnegative nat_diff_distrib word_le_def[symmetric] intro: leI)
 
 lemma uint32_nat_assn_minus[sepref_fr_rules]:
   \<open>(uncurry (return oo uint32_safe_minus), uncurry (RETURN oo op -)) \<in>
@@ -153,5 +183,18 @@ lemma uint32_nat_assn_minus[sepref_fr_rules]:
   by sepref_to_hoare
     (sep_auto simp: uint32_nat_rel_def nat_of_uint32_le_minus
       br_def uint32_safe_minus_def nat_of_uint32_012 nat_of_uint32_notle_minus)
+
+lemma [safe_constraint_rules]:
+  \<open>CONSTRAINT IS_LEFT_UNIQUE uint32_nat_rel\<close>
+  \<open>CONSTRAINT IS_RIGHT_UNIQUE uint32_nat_rel\<close>
+  by (auto simp: IS_LEFT_UNIQUE_def single_valued_def uint32_nat_rel_def br_def)
+
+lemma nat_of_uint32_uint32_of_nat_id: \<open>n < 2 ^32 \<Longrightarrow> nat_of_uint32 (uint32_of_nat n) = n\<close>
+  unfolding uint32_of_nat_def
+  apply simp
+  apply transfer
+  apply (auto simp: unat_def)
+  apply transfer
+  by (auto simp: less_upper_bintrunc_id)
 
 end

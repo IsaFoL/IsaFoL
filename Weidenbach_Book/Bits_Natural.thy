@@ -158,6 +158,7 @@ lemma bitAND_1_mod_2: \<open>bitAND L 1 = L mod 2\<close> for L :: nat
   apply transfer
   apply (subst int_int_eq[symmetric])
   apply (subst bitAND_nat_def)
-   by (auto simp: zmod_int bin_rest_def bin_last_def bitval_bin_last[symmetric])
+  by (auto simp: zmod_int bin_rest_def bin_last_def bitval_bin_last[symmetric])
+
 
 end

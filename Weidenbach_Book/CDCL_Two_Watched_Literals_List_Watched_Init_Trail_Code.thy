@@ -148,12 +148,6 @@ abbreviation nat_lit_list_hm_assn where
 definition in_map_atm_of :: "'a \<Rightarrow> 'a literal list \<Rightarrow> bool" where
   \<open>in_map_atm_of L N \<longleftrightarrow> L \<in> set (map atm_of N)\<close>
 
-text \<open>TODO Move\<close>
-lemma [safe_constraint_rules]:
-  \<open>CONSTRAINT IS_LEFT_UNIQUE uint32_nat_rel\<close>
-  \<open>CONSTRAINT IS_RIGHT_UNIQUE uint32_nat_rel\<close>
-  by (auto simp: IS_LEFT_UNIQUE_def single_valued_def uint32_nat_rel_def br_def)
-
 sepref_definition nat_lit_lits_init_assn_assn_in
   is \<open>uncurry (RETURN oo (\<lambda>L (s, xs). L \<in> s))\<close>
   :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a nat_lit_lits_init_ref_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>

@@ -286,6 +286,28 @@ lemma last_list_update_to_last:
   \<open>last (xs[x := last xs]) = last xs\<close>
   by (metis last_list_update list_update.simps(1))
 
+lemma take_map_nth_alt_def: \<open>take n xs = map (op! xs) [0..<min n (length xs)]\<close>
+proof (induction xs rule: rev_induct)
+  case Nil
+  then show ?case by auto
+next
+  case (snoc x xs) note IH = this
+  show ?case
+  proof (cases \<open>n < length (xs @ [x])\<close>)
+    case True
+    then show ?thesis
+      using IH by (auto simp: min_def nth_append)
+  next
+    case False
+    have [simp]:
+      \<open>map (\<lambda>a. if a < length xs then xs ! a else [x] ! (a - length xs)) [0..<length xs] =
+       map (\<lambda>a. xs ! a) [0..<length xs]\<close> for xs x
+     by (rule map_cong) auto
+    show ?thesis
+      using IH False by (auto simp: nth_append min_def)
+  qed
+qed
+
 
 subsection \<open>Lexicographic Ordering\<close>
 
@@ -559,6 +581,20 @@ lemma subset_mset_trans_add_mset:
 
 lemma remove1_mset_empty_iff: \<open>remove1_mset L N = {#} \<longleftrightarrow> N = {#L#} \<or> N = {#}\<close>
   by (cases \<open>L \<in># N\<close>; cases N) auto
+
+lemma distinct_subseteq_iff :
+  assumes dist: "distinct_mset M" and fin: "distinct_mset N"
+  shows "set_mset M \<subseteq> set_mset N \<longleftrightarrow> M \<subseteq># N"
+proof
+  assume "set_mset M \<subseteq> set_mset N"
+  then show "M \<subseteq># N"
+    using dist fin by auto
+next
+  assume "M \<subseteq># N"
+  then show "set_mset M \<subseteq> set_mset N"
+    by (metis set_mset_mono)
+qed
+
 
 subsection \<open>Sorting\<close>
 
@@ -860,6 +896,11 @@ lemma list_all2_op_eq_map_right_iff: \<open>list_all2 (\<lambda>L. op = (f L)) a
    apply (auto; fail)
   by (rename_tac aa, case_tac aa) (auto)
 
+lemma list_all2_op_eq_map_right_iff': \<open>list_all2 (\<lambda>L L'. L' = f L) a aa \<longleftrightarrow> aa = map f a\<close>
+  apply (induction a arbitrary: aa)
+   apply (auto; fail)
+  by (rename_tac aa, case_tac aa) auto
+
 lemma list_all2_op_eq_map_left_iff: \<open>list_all2 (\<lambda>L' L. L'  = (f L)) a aa \<longleftrightarrow> a = map f aa\<close>
   apply (induction a arbitrary: aa)
    apply (auto; fail)
@@ -878,5 +919,6 @@ lemma list_all2_op_eq_map_map_left_iff:
      apply (auto; fail)
     apply (rename_tac x, case_tac x)
   by (auto simp: list_all2_op_eq_map_left_iff)
+
 
 end
