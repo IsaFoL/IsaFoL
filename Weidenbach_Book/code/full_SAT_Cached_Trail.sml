@@ -30,19 +30,18 @@ fun test_bit x n =
 end; (* struct Uint32 *)
 
 
-  (* Locally patched version  *)
-  fun array_blit src si dst di len = (
-    src=dst andalso raise Fail ("array_blit: Same arrays");
-    ArraySlice.copy {
-      di = IntInf.toInt di,
-      src = ArraySlice.slice (src,IntInf.toInt si,SOME (IntInf.toInt len)),
-      dst = dst})
+   fun array_blit src si dst di len = (
+      src=dst andalso raise Fail ("array_blit: Same arrays");
+      ArraySlice.copy {
+        di = IntInf.toInt di,
+        src = ArraySlice.slice (src,IntInf.toInt si,SOME (IntInf.toInt len)),
+        dst = dst})
 
-  fun array_nth_oo v a i () = Array.sub(a,IntInf.toInt i) handle Subscript => v | Overflow => v
-  fun array_upd_oo f i x a () =
-    (Array.update(a,IntInf.toInt i,x); a) handle Subscript => f () | Overflow => f ()
+    fun array_nth_oo v a i () = Array.sub(a,IntInf.toInt i) handle Subscript => v | Overflow => v
+    fun array_upd_oo f i x a () = 
+      (Array.update(a,IntInf.toInt i,x); a) handle Subscript => f () | Overflow => f ()
 
-  
+    
 
 structure Bits_Integer : sig
   val set_bit : IntInf.int -> IntInf.int -> bool -> IntInf.int
