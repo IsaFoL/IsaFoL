@@ -63,12 +63,11 @@ lemma is_pos_nat_lit_hnr:
 lemma is_pos_hnr[sepref_fr_rules]:
   \<open>(return o (\<lambda>L. bitAND L 1 = 0), RETURN o is_pos) \<in> unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
 proof -
-
   have 1: \<open>(RETURN o (\<lambda>L. bitAND L 1 = 0), RETURN o is_pos) \<in> nat_lit_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
     unfolding bitAND_1_mod_2
     by (intro nres_relI frefI) (auto simp: nat_lit_rel_def lit_of_natP_def split: if_splits)
   have 2: \<open>(return o (\<lambda>L. bitAND L 1 = 0), RETURN o (\<lambda>L. bitAND L 1 = 0)) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-    apply (sepref_to_hoare)
+    apply sepref_to_hoare
     using nat_of_uint32_ao[of _ 1]
     by (sep_auto simp: p2rel_def lit_of_natP_def unat_lit_rel_def uint32_nat_rel_def
         nat_lit_rel_def br_def nat_of_uint32_012
@@ -82,7 +81,7 @@ lemma (in -) array_set_hnr_u[sepref_fr_rules]:
     \<open>CONSTRAINT is_pure A \<Longrightarrow>
     (uncurry2 (\<lambda>xs i. heap_array_set xs (nat_of_uint32 i)), uncurry2 (RETURN \<circ>\<circ>\<circ> op_list_set)) \<in>
      [pre_list_set]\<^sub>a (array_assn A)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a A\<^sup>k \<rightarrow> array_assn A\<close>
-  by (sepref_to_hoare)
+  by sepref_to_hoare
     (sep_auto simp: uint32_nat_rel_def br_def ex_assn_up_eq2 array_assn_def is_array_def
       hr_comp_def list_rel_pres_length list_rel_update)
 
@@ -90,7 +89,7 @@ lemma (in -)array_get_hnr_u[sepref_fr_rules]:
     \<open>CONSTRAINT is_pure A \<Longrightarrow>
 (uncurry (\<lambda>xs i. Array.nth xs (nat_of_uint32 i)), uncurry (RETURN \<circ>\<circ> op_list_get))
 \<in> [pre_list_get]\<^sub>a (array_assn A)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> A\<close>
-  apply (sepref_to_hoare) -- \<open>TODO proof\<close>
+  apply sepref_to_hoare -- \<open>TODO proof\<close>
    apply (sep_auto simp: uint32_nat_rel_def br_def ex_assn_up_eq2 array_assn_def is_array_def
        hr_comp_def list_rel_pres_length list_rel_update param_nth)
   by (metis ent_pure_pre_iff ent_refl_true pair_in_Id_conv param_nth pure_app_eq pure_the_pure)
@@ -790,17 +789,6 @@ lemma is_decided_hd_trail_wll_hnr[unfolded twl_st_l_trail_assn_def, sepref_fr_ru
 definition get_level_trail :: \<open>trail_int \<Rightarrow> uint32 \<Rightarrow> nat\<close> where
   \<open>get_level_trail = (\<lambda>(M, xs, lvls, k) L. lvls! (nat_of_uint32 (L >> 1)))\<close>
 
-text \<open>TODO MOve\<close>
-lemma (in -)shiftr1[sepref_fr_rules]:
-   \<open>(uncurry (return oo (op >> )), uncurry (RETURN oo (op >>))) \<in> uint32_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
-  by sepref_to_hoare (sep_auto simp: shiftr1_def uint32_nat_rel_def br_def)
-
-lemma shiftl1[sepref_fr_rules]: \<open>(return o shiftl1, RETURN o shiftl1) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  by sepref_to_hoare sep_auto
-
-lemma (in -)nat_of_uint32_rule[sepref_fr_rules]:
-  \<open>(return o nat_of_uint32, RETURN o nat_of_uint32) \<in> uint32_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  by sepref_to_hoare (sep_auto)
 
 sepref_thm get_level_code
   is \<open>uncurry (RETURN oo get_level_trail)\<close>
@@ -920,7 +908,7 @@ lemmas select_and_remove_from_literals_to_update_wl''_code_[sepref_fr_rules] =
      unfolded twl_st_l_trail_assn_def]
 
 lemma maximum_level_remove_code_get_maximum_level_remove[sepref_fr_rules]:
-  \<open>(uncurry2 (maximum_level_remove_code),
+  \<open>(uncurry2 maximum_level_remove_code,
      uncurry2 (RETURN ooo get_maximum_level_remove)) \<in>
     [\<lambda>((M, D), L). literals_are_in_N\<^sub>0 D]\<^sub>a
       trail_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
@@ -1094,7 +1082,7 @@ intro!: in_remove1_msetI)
 qed
 
 sepref_thm find_decomp_wl_imp_code
-  is \<open>uncurry2 (find_decomp_wl_imp)\<close>
+  is \<open>uncurry2 find_decomp_wl_imp\<close>
   :: \<open>[\<lambda>((M, D), L). M \<noteq> [] \<and> literals_are_in_N\<^sub>0 D]\<^sub>a
          trail_assn\<^sup>d *\<^sub>a conflict_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k
     \<rightarrow> trail_assn\<close>
@@ -1310,13 +1298,6 @@ prepare_code_thms (in -) extract_shorter_conflict_l_trivial_code_wl'_def
 lemmas extract_shorter_conflict_l_trivial_code_wl'_D[sepref_fr_rules] =
   extract_shorter_conflict_l_trivial_code_wl'.refine[of N\<^sub>0, unfolded PR_CONST_def,
       OF twl_array_code_axioms]
-
-(*TODO Move*)
-lemma (in -) hn_ctxt_prod_assn_prod:
-  \<open>hn_ctxt (R *assn S) (a, b) (a', b') = hn_ctxt R a a' * hn_ctxt S b b'\<close>
-  unfolding hn_ctxt_def
-  by auto
-(*END Move*)
 
 sepref_register backtrack_wl_D
 sepref_thm backtrack_wl_D

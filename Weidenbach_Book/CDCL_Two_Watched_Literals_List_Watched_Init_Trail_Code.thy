@@ -2,15 +2,6 @@ theory CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code
 imports CDCL_Two_Watched_Literals_List_Watched_Trail_Code
 begin
 
-text \<open>TODO Move\<close>
-type_synonym 'v twl_st_wl' =
-  "('v, nat) ann_lits \<times> 'v clause_l list \<times> nat \<times>
-    'v cconflict \<times> 'v clauses \<times> 'v clauses \<times> 'v lit_queue_wl"
-
-type_synonym twl_st_wll' =
-  "trail_assn \<times> clauses_wl \<times> nat \<times> nat array_list option \<times> unit_lits_wl \<times> unit_lits_wl \<times>
-    lit_queue_l"
-
 definition init_dt_step_wl :: \<open>uint32 list \<Rightarrow> nat clause_l \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close> where
   \<open>init_dt_step_wl N\<^sub>0 C S = do {
      let (M, N, U, D, NP, UP, Q, WS) = S in
@@ -86,11 +77,11 @@ declare twl_array_code.append_el_aa_hnr[sepref_fr_rules]
 declare twl_array_code.valued_trail_code_valued_refine_code[sepref_fr_rules]
   twl_array_code.cons_trail_Propagated_tr_code_cons_trail_Propagated_tr[sepref_fr_rules]
 
-sepref_thm (in twl_array_code)  init_dt_step_wl_code
-  is \<open>uncurry2 (init_dt_step_wl)\<close>
+sepref_thm (in twl_array_code) init_dt_step_wl_code
+  is \<open>uncurry2 init_dt_step_wl\<close>
   :: \<open>[\<lambda>((N, _), _). N = N\<^sub>0]\<^sub>a
        (list_assn uint32_assn)\<^sup>k *\<^sub>a (list_assn unat_lit_assn)\<^sup>d *\<^sub>a twl_st_l_trail_assn\<^sup>d \<rightarrow>
-       (twl_st_l_trail_assn)\<close>
+       twl_st_l_trail_assn\<close>
   supply valued_None_undefined_lit[simp]
   unfolding init_dt_step_wl_def twl_st_l_trail_assn_def lms_fold_custom_empty
   unfolding watched_app_def[symmetric]
@@ -231,9 +222,6 @@ lemma extract_lits_clss_imp_empty_assn[sepref_fr_rules]:
 
 declare extract_lits_clss_imp_list_assn.refine[sepref_fr_rules]
 declare atm_of_hnr[sepref_fr_rules]
-
-text \<open>TODO declaration to source\<close>
-declare op_eq_uint32_nat[sepref_fr_rules]
 
 sepref_definition find_first_eq_map_atm_of_code
   is \<open>uncurry (find_first_eq_map atm_of)\<close>
@@ -924,14 +912,6 @@ definition SAT_wl' :: \<open>nat clauses_l \<Rightarrow> bool nres\<close> where
     else RETURN False
   }\<close>
 
-text \<open>TODO Move\<close>
-lemma list_assn_map_list_assn: \<open>list_assn g (map f x) xi = list_assn (\<lambda>a c. g (f a) c) x xi\<close>
-  apply (induction x arbitrary: xi)
-  subgoal by auto
-  subgoal for a x xi
-    by (cases xi) auto
-  done
-
 definition (in twl_array_code_ops) init_state_wl_D :: \<open>nat \<Rightarrow> twl_st_wll_trail Heap\<close> where
   \<open>init_state_wl_D l_Ns = do {
      let n = Suc (Suc (nat_of_uint32 (fold max N\<^sub>0 0)));
@@ -962,17 +942,8 @@ proof -
     by (simp add: ex_assn_up_eq2 hn_ctxt_def pure_def)
 qed
 
-text \<open>TODO:is uint32 a \<open>canonically_ordered_monoid_add\<close>? \<close>
-lemma (in-) uint32_less_than_0[iff]: \<open>(a::uint32) \<le> 0 \<longleftrightarrow> a= 0\<close>
-  by transfer auto
-lemma (in -) nat_of_uint32_less_iff: \<open>nat_of_uint32 a < nat_of_uint32 b \<longleftrightarrow> a < b\<close>
-  apply transfer
-  apply (auto simp: unat_def word_less_def)
-  apply transfer
-  by (smt bintr_ge0)
-lemma (in -) nat_of_uint32_le_iff: \<open>nat_of_uint32 a \<le> nat_of_uint32 b \<longleftrightarrow> a \<le> b\<close>
-  apply transfer
-  by (auto simp: unat_def word_less_def nat_le_iff word_le_def)
+
+
 
 
 lemma (in twl_array_code_ops) arrayO_ara_empty_sz_code_empty_watched:
@@ -1425,27 +1396,6 @@ definition SAT' :: \<open>nat clauses \<Rightarrow> bool nres\<close> where
   }
 \<close>
 
-lemma SPEC_RETURN_RES: \<open>SPEC \<Phi> \<bind> (\<lambda>T. RETURN (f T)) = RES (f ` {T. \<Phi> T})\<close>
-  by (simp add: bind_RES_RETURN_eq setcompr_eq_image)
-
-(* TODO Move *)
-lemma true_clss_clss_true_clss_cls_true_clss_clss:
-  assumes
-    \<open>A \<Turnstile>ps unmark_l M\<close> and \<open>M \<Turnstile>as D\<close>
-  shows \<open>A \<Turnstile>ps D\<close>
-  by (meson assms total_over_m_union true_annots_true_cls true_annots_true_clss_clss
-      true_clss_clss_def true_clss_clss_left_right true_clss_clss_union_and
-      true_clss_clss_union_l_r)
-
-lemma true_clss_clss_CNot_true_clss_cls_unsatisfiable:
-  assumes \<open>A \<Turnstile>ps CNot D\<close> and \<open>A \<Turnstile>p D\<close>
-  shows \<open>unsatisfiable A\<close>
-  using assms(2) unfolding true_clss_clss_def true_clss_cls_def satisfiable_def
-  by (metis (full_types) Un_absorb Un_empty_right assms(1) atms_of_empty
-      atms_of_ms_emtpy_set total_over_m_def total_over_m_insert total_over_m_union
-      true_cls_empty true_clss_cls_def true_clss_clss_generalise_true_clss_clss
-      true_clss_clss_true_clss_cls true_clss_clss_union_false_true_clss_clss_cnot)
-(* End Move *)
 
 context conflict_driven_clause_learning\<^sub>W
 begin
@@ -1457,7 +1407,7 @@ lemma rtranclp_cdcl\<^sub>W_restart_learned_clauses_entailed:
     \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
   shows \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init T\<close>
   using assms(1)
-proof (induction)
+proof induction
   case base
   then show ?case using assms by fast
 next

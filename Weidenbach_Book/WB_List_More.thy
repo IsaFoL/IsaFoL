@@ -79,7 +79,18 @@ qed
 section \<open>More Lists\<close>
 
 lemma tl_drop_def: \<open>tl N = drop 1 N\<close>
-  by (cases N)  auto
+  by (cases N) auto
+
+lemma take_2_if:
+  \<open>take 2 C = (if C = [] then [] else if length C = 1 then [hd C] else [C!0, C!1])\<close>
+  by (cases C; cases \<open>tl C\<close>) auto
+
+lemma tl_update_swap:
+  \<open>i \<ge> 1 \<Longrightarrow> tl (N[i := C]) = tl N[i-1 := C]\<close>
+  by (auto simp:  drop_Suc[of 0, symmetric, simplified] drop_update_swap)
+
+lemma nth_in_set_tl: \<open>i > 0 \<Longrightarrow> i < length xs \<Longrightarrow> xs ! i \<in> set (tl xs)\<close>
+  by (cases xs) auto
 
 
 subsection \<open>@{term upt}\<close>
@@ -543,6 +554,9 @@ proof -
     by (induct xs arbitrary: ys) (simp_all add: multiset_eq_iff)
   then show ?thesis by (simp add: union_mset_list_def)
 qed
+
+lemma union_mset_list_Nil[simp]: \<open>union_mset_list [] bi = bi\<close>
+  by (auto simp: union_mset_list_def)
 
 lemma size_le_Suc_0_iff: \<open>size M \<le> Suc 0 \<longleftrightarrow> ((\<exists>a b. M = {#a#}) \<or> M = {#})\<close>
    using size_1_singleton_mset by (auto simp: le_Suc_eq)

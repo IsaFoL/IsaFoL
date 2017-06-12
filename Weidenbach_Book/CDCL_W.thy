@@ -4157,8 +4157,8 @@ lemma rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant:
    inv: "cdcl\<^sub>W_all_struct_inv S"
   shows
     "cdcl\<^sub>W_stgy_invariant T"
-  using assms apply (induction)
-    apply simp
+  using assms apply induction
+    apply (simp; fail)
   using cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant rtranclp_cdcl\<^sub>W_all_struct_inv_inv
   rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart by blast
 
@@ -4562,10 +4562,6 @@ qed
 subsubsection \<open>Conflict Minimisation\<close>
 
 paragraph \<open>Remove Literals of Level 0\<close>
-(*TODO Move*)
-lemma (in -) length_get_all_ann_decomposition: \<open>length (get_all_ann_decomposition M) = 1+count_decided M\<close>
-  by (induction M rule: ann_lit_list_induct) auto
-(*End Move*)
 
 lemma conflict_minimisation_level_0:
   fixes S :: 'st

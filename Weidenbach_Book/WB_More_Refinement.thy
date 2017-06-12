@@ -237,21 +237,61 @@ lemma (in transfer) transfer_bool[refine_transfer]:
 lemma hrp_comp_Id2[simp]: \<open>hrp_comp A Id = A\<close>
   unfolding hrp_comp_def by auto
 
-
-subsection \<open>Some Refinement\<close>
-
-lemma (in -) fr_refl': \<open>A \<Longrightarrow>\<^sub>A B \<Longrightarrow> C * A \<Longrightarrow>\<^sub>A C * B\<close>
-  unfolding assn_times_comm[of C]
-  by (rule Automation.fr_refl)
-
-lemma Collect_eq_comp: \<open>{(c, a). a = f c} O {(x, y). P x y} = {(c, y). P (f c) y}\<close>
+lemma hn_ctxt_prod_assn_prod:
+  \<open>hn_ctxt (prod_assn R S) (a, b) (a', b') = hn_ctxt R a a' * hn_ctxt S b b'\<close>
+  unfolding hn_ctxt_def
   by auto
+
+lemma list_assn_map_list_assn: \<open>list_assn g (map f x) xi = list_assn (\<lambda>a c. g (f a) c) x xi\<close>
+  apply (induction x arbitrary: xi)
+  subgoal by auto
+  subgoal for a x xi
+    by (cases xi) auto
+  done
+
+
+subsubsection \<open>More Ssimplification Theorems\<close>
 
 lemma ex_assn_swap: \<open>(\<exists>\<^sub>Aa b. P a b) = (\<exists>\<^sub>Ab a. P a b)\<close>
   by (meson ent_ex_postI ent_ex_preI ent_iffI ent_refl)
 
 lemma ent_ex_up_swap: \<open>(\<exists>\<^sub>Aaa. \<up> (P aa)) = (\<up>(\<exists>aa. P aa))\<close>
   by (smt ent_ex_postI ent_ex_preI ent_iffI ent_pure_pre_iff ent_refl mult.left_neutral)
+
+lemma ex_assn_def_pure_eq_middle3:
+  \<open>(\<exists>\<^sub>Aba b bb. f b ba bb * \<up> (ba = h b bb) * P b ba bb) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * P b (h b bb) bb)\<close>
+  \<open>(\<exists>\<^sub>Ab ba bb. f b ba bb * \<up> (ba = h b bb) * P b ba bb) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * P b (h b bb) bb)\<close>
+  \<open>(\<exists>\<^sub>Ab bb ba. f b ba bb * \<up> (ba = h b bb) * P b ba bb) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * P b (h b bb) bb)\<close>
+  \<open>(\<exists>\<^sub>Aba b bb. f b ba bb * \<up> (ba = h b bb \<and> Q b ba bb)) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * \<up>(Q b (h b bb) bb))\<close>
+  \<open>(\<exists>\<^sub>Ab ba bb. f b ba bb * \<up> (ba = h b bb \<and> Q b ba bb)) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * \<up>(Q b (h b bb) bb))\<close>
+  \<open>(\<exists>\<^sub>Ab bb ba. f b ba bb * \<up> (ba = h b bb \<and> Q b ba bb)) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * \<up>(Q b (h b bb) bb))\<close>
+  by (subst ex_assn_def, subst (3) ex_assn_def, auto)+
+
+lemma ex_assn_def_pure_eq_middle2:
+  \<open>(\<exists>\<^sub>Aba b. f b ba * \<up> (ba = h b) * P b ba) = (\<exists>\<^sub>Ab . f b (h b) * P b (h b))\<close>
+  \<open>(\<exists>\<^sub>Ab ba. f b ba * \<up> (ba = h b) * P b ba) = (\<exists>\<^sub>Ab . f b (h b) * P b (h b))\<close>
+  \<open>(\<exists>\<^sub>Ab ba. f b ba * \<up> (ba = h b \<and> Q b ba)) = (\<exists>\<^sub>Ab. f b (h b) * \<up>(Q b (h b)))\<close>
+  \<open>(\<exists>\<^sub>A ba b. f b ba * \<up> (ba = h b \<and> Q b ba)) = (\<exists>\<^sub>Ab. f b (h b) * \<up>(Q b (h b)))\<close>
+  by (subst ex_assn_def, subst (2) ex_assn_def, auto)+
+
+lemma ex_assn_skip_first2:
+  \<open>(\<exists>\<^sub>Aba bb. f bb * \<up>(P ba bb)) = (\<exists>\<^sub>Abb. f bb * \<up>(\<exists>ba. P ba bb))\<close>
+  \<open>(\<exists>\<^sub>Abb ba. f bb * \<up>(P ba bb)) = (\<exists>\<^sub>Abb. f bb * \<up>(\<exists>ba. P ba bb))\<close>
+  apply (subst ex_assn_swap)
+  by (subst ex_assn_def, subst (2) ex_assn_def, auto)+
+
+
+subsection \<open>Some Refinement\<close>
+
+lemma SPEC_RETURN_RES: \<open>SPEC \<Phi> \<bind> (\<lambda>T. RETURN (f T)) = RES (f ` {T. \<Phi> T})\<close>
+  by (simp add: bind_RES_RETURN_eq setcompr_eq_image)
+
+lemma fr_refl': \<open>A \<Longrightarrow>\<^sub>A B \<Longrightarrow> C * A \<Longrightarrow>\<^sub>A C * B\<close>
+  unfolding assn_times_comm[of C]
+  by (rule Automation.fr_refl)
+
+lemma Collect_eq_comp: \<open>{(c, a). a = f c} O {(x, y). P x y} = {(c, y). P (f c) y}\<close>
+  by auto
 
 lemma
   shows list_mset_assn_add_mset_Nil:
@@ -430,7 +470,7 @@ lemma union_mset_list_union_mset_list: \<open>(uncurry (return oo union_mset_lis
    id_assn\<^sup>k *\<^sub>a id_assn\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
   by sepref_to_hoare sep_auto
 
-lemma union_mset_list_op_union_hnr:
+lemma union_mset_list_op_union_hnr[sepref_fr_rules]:
   \<open>(uncurry (return \<circ>\<circ> union_mset_list), uncurry (RETURN \<circ>\<circ> op \<union>#))
   \<in> (list_mset_assn id_assn)\<^sup>k *\<^sub>a (list_mset_assn id_assn)\<^sup>k \<rightarrow>\<^sub>a list_mset_assn id_assn\<close>
 proof -
@@ -440,5 +480,80 @@ proof -
     using union_mset_list_union_mset_list[FCOMP union_mset_list_op_union,
         unfolded list_mset_assn_def[symmetric] I] .
 qed
+
+
+subsection \<open>More declarations\<close>
+
+(* TODO: only input notation? *)
+notation prod_rel_syn (infixl "\<times>\<^sub>f" 70)
+
+lemma is_Nil_is_empty[sepref_fr_rules]:
+  \<open>(return o is_Nil, RETURN o Multiset.is_empty) \<in> (list_mset_assn R)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  apply sepref_to_hoare
+  apply (rename_tac x xi)
+    apply (case_tac x)
+   by (sep_auto simp: Multiset.is_empty_def list_mset_assn_empty_Cons list_mset_assn_add_mset_Nil
+      split: list.splits)+
+
+lemma diff_add_mset_remove1: \<open>NO_MATCH {#} N \<Longrightarrow> M - add_mset a N = remove1_mset a (M - N)\<close>
+  by auto
+
+lemma list_all2_remove:
+  assumes
+    uniq: \<open>IS_RIGHT_UNIQUE (p2rel R)\<close> \<open>IS_LEFT_UNIQUE (p2rel R)\<close> and
+    Ra: \<open>R a aa\<close> and
+    all: \<open>list_all2 R xs ys\<close>
+  shows
+  \<open>\<exists>xs'. mset xs' = remove1_mset a (mset xs) \<and>
+            (\<exists>ys'. mset ys' = remove1_mset aa (mset ys) \<and> list_all2 R xs' ys')\<close>
+  using all
+proof (induction xs ys rule: list_all2_induct)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons x y xs ys) note IH = this(3) and p = this(1, 2)
+
+  have ax: \<open>{#a, x#} = {#x, a#}\<close>
+    by auto
+  have rem1: \<open>remove1_mset a (remove1_mset x M) = remove1_mset x (remove1_mset a M)\<close> for M
+    by (auto simp: ax)
+  have H: \<open>x = a \<longleftrightarrow> y = aa\<close>
+    using uniq Ra p unfolding single_valued_def IS_LEFT_UNIQUE_def p2rel_def by blast
+
+  obtain xs' ys' where
+   \<open>mset xs' = remove1_mset a (mset xs)\<close> and
+   \<open>mset ys' = remove1_mset aa (mset ys)\<close> and
+   \<open>list_all2 R xs' ys'\<close>
+   using IH p by auto
+  then show ?case
+   apply (cases \<open>x \<noteq> a\<close>)
+   subgoal
+     using p
+     by (auto intro!: exI[of _ \<open>x#xs'\<close>] exI[of _ \<open>y#ys'\<close>]
+         simp: diff_add_mset_remove1 rem1 add_mset_remove_trivial_If in_remove1_mset_neq H
+         simp del: diff_diff_add_mset)
+   subgoal
+     using p
+     by (fastforce simp: diff_add_mset_remove1 rem1 add_mset_remove_trivial_If in_remove1_mset_neq
+         remove_1_mset_id_iff_notin H
+         simp del: diff_diff_add_mset)
+   done
+qed
+
+lemma remove1_remove1_mset:
+  assumes uniq: \<open>IS_RIGHT_UNIQUE R\<close> \<open>IS_LEFT_UNIQUE R\<close>
+  shows \<open>(uncurry (RETURN oo remove1), uncurry (RETURN oo remove1_mset)) \<in>
+    R \<times>\<^sub>r (list_mset_rel O \<langle>R\<rangle> mset_rel) \<rightarrow>\<^sub>f
+    \<langle>list_mset_rel O \<langle>R\<rangle> mset_rel\<rangle> nres_rel\<close>
+  using list_all2_remove[of \<open>rel2p R\<close>] assms
+  by (intro frefI nres_relI) (fastforce simp: list_mset_rel_def br_def mset_rel_def p2rel_def
+      rel2p_def[abs_def] rel_mset_def Collect_eq_comp)
+
+lemma
+  Nil_list_mset_rel_iff:
+    \<open>([], aaa) \<in> list_mset_rel \<longleftrightarrow> aaa = {#}\<close> and
+  empty_list_mset_rel_iff:
+    \<open>(a, {#}) \<in> list_mset_rel \<longleftrightarrow> a = []\<close>
+  by (auto simp: list_mset_rel_def br_def)
 
 end

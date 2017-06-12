@@ -6,9 +6,6 @@ text \<open>Less ambiguities in the notations (TODO: using a bundle would probab
 no_notation Ref.update ("_ := _" 62)
 
 (* TODO Move somewhere *)
-lemma nth_in_set_tl: \<open>i > 0 \<Longrightarrow> i < length xs \<Longrightarrow> xs ! i \<in> set (tl xs)\<close>
-  by (cases xs) auto
-
 lemma in_atms_of_mset_takeD:
   \<open>x \<in> atms_of_ms (mset ` set (take U (tl N))) \<Longrightarrow> x \<in> atms_of_ms (mset ` set ((tl N)))\<close>
   by (auto dest: in_set_takeD simp:atms_of_ms_def)
@@ -81,6 +78,10 @@ lemma lits_of_atms_of_m_add_mset:
 lemma lits_of_atms_of_m_union:
   \<open>lits_of_atms_of_m (A + B) = lits_of_atms_of_m A + lits_of_atms_of_m B\<close>
   by (auto simp: lits_of_atms_of_m_def)
+
+lemma lits_of_atms_of_m_mono:
+  "D \<subseteq># D' \<Longrightarrow> lits_of_atms_of_m D \<subseteq># lits_of_atms_of_m D'"
+  by (auto elim!: mset_le_addE simp: lits_of_atms_of_m_union)
 
 fun st_l_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_l\<close> where
   \<open>st_l_of_wl None (M, N, C, D, NP, UP, Q, W) = (M, N, C, D, NP, UP, {#}, Q)\<close>

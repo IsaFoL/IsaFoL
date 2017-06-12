@@ -221,10 +221,6 @@ proof -
       word_nat_of_uint32_Rep_inject by blast
 qed
 
-text \<open>TODO Move to declaration\<close>
-declare op_eq_uint32_nat[sepref_fr_rules]
-
-
 sepref_definition valued_impl' is \<open>uncurry valued_impl\<close>
   :: \<open>pair_nat_ann_lits_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn\<close>
   unfolding valued_impl_def Let_def
@@ -316,9 +312,6 @@ lemma unat_lit_eq[sepref_fr_rules]: \<open>(uncurry (return oo op =), uncurry (R
   by sepref_to_hoare (sep_auto simp: p2rel_def unat_lit_rel_def
       uint32_nat_rel_def br_def nat_lit_rel_def
       dest: lit_of_natP_same_rightD lit_of_natP_same_leftD)
-
-text \<open>TODO Move declaration to definition\<close>
-declare op_eq_uint32_nat [sepref_fr_rules]
 
 sepref_thm list_contains_WHILE_array
   is \<open>uncurry (\<lambda>(l::nat) xs. do{ b \<leftarrow> list_contains_WHILE l xs; RETURN (fst b)})\<close>
@@ -771,86 +764,6 @@ proof -
     by (intro frefI nres_relI) (clarsimp simp: remove1_wl_def)
 qed
 
-(* TODO Move *)
-lemma diff_add_mset_remove1: \<open>NO_MATCH {#} N \<Longrightarrow> M - add_mset a N = remove1_mset a (M - N)\<close>
-  by auto
-
-lemma list_all2_remove: \<open>lit_of_natP a aa \<Longrightarrow>
-       list_all2 lit_of_natP xs ys \<Longrightarrow>
-       \<exists>xs'. mset xs' = remove1_mset a (mset xs) \<and>
-            (\<exists>ys'. mset ys' = remove1_mset aa (mset ys) \<and> list_all2 lit_of_natP xs' ys')\<close>
-  apply (rotate_tac 1)
-proof (induction xs ys rule: list_all2_induct)
-  case Nil
-  then show ?case by auto
-next
-  case (Cons x y xs ys) note IH = this(3) and p = this(1, 2, 4)
-
-  have ax: \<open>{#a, x#} = {#x, a#}\<close>
-    by auto
-  have rem1: \<open>remove1_mset a (remove1_mset x M) = remove1_mset x (remove1_mset a M)\<close> for M
-    by (auto simp: ax)
-  have H: \<open>x = a \<longleftrightarrow> y = aa\<close>
-    using lit_of_natP_same_leftD lit_of_natP_same_rightD p(1) p(3) by blast
-   obtain xs' ys' where
-    \<open>mset xs' = remove1_mset a (mset xs)\<close> and
-    \<open>mset ys' = remove1_mset aa (mset ys)\<close> and
-    \<open>list_all2 lit_of_natP xs' ys'\<close>
-    using IH p by auto
-   then show ?case
-    apply (cases \<open>x \<noteq> a\<close>)
-    subgoal
-      using p
-      by (auto intro!: exI[of _ \<open>x#xs'\<close>] exI[of _ \<open>y#ys'\<close>]
-          simp: diff_add_mset_remove1 rem1 add_mset_remove_trivial_If in_remove1_mset_neq H
-          simp del: diff_diff_add_mset)
-    subgoal
-      using p
-      apply simp
-      apply (auto
-          simp: diff_add_mset_remove1 rem1 add_mset_remove_trivial_If in_remove1_mset_neq
-          remove_1_mset_id_iff_notin H
-          simp del: diff_diff_add_mset)
-      done
-    done
-qed
-
-lemma remove1_remove1_mset: \<open>(uncurry (RETURN oo remove1), uncurry (RETURN oo remove1_mset)) \<in>
-    nat_lit_rel \<times>\<^sub>r (list_mset_rel O \<langle>nat_lit_rel\<rangle> mset_rel) \<rightarrow>\<^sub>f
-    \<langle>list_mset_rel O \<langle>nat_lit_rel\<rangle> mset_rel\<rangle> nres_rel\<close>
-  apply (intro frefI nres_relI)
-  using list_all2_remove
-  by (fastforce simp: remove1_wl_def list_mset_rel_def br_def mset_rel_def p2rel_def
-      rel2p_def[abs_def] rel_mset_def Collect_eq_comp nat_lit_rel_def)
-
-
-lemma list_all2_op_eq_map_right_iff': \<open>list_all2 (\<lambda>L L'. L' = (f L)) a aa \<longleftrightarrow> aa = map f a \<close>
-  apply (induction a arbitrary: aa)
-   apply (auto; fail)
-  by (rename_tac aa, case_tac aa) auto
-
-lemma ex_assn_def_pure_eq_middle3:
-  \<open>(\<exists>\<^sub>Aba b bb. f b ba bb * \<up> (ba = h b bb) * P b ba bb) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * P b (h b bb) bb)\<close>
-  \<open>(\<exists>\<^sub>Ab ba bb. f b ba bb * \<up> (ba = h b bb) * P b ba bb) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * P b (h b bb) bb)\<close>
-  \<open>(\<exists>\<^sub>Ab bb ba. f b ba bb * \<up> (ba = h b bb) * P b ba bb) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * P b (h b bb) bb)\<close>
-  \<open>(\<exists>\<^sub>Aba b bb. f b ba bb * \<up> (ba = h b bb \<and> Q b ba bb)) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * \<up>(Q b (h b bb) bb))\<close>
-  \<open>(\<exists>\<^sub>Ab ba bb. f b ba bb * \<up> (ba = h b bb \<and> Q b ba bb)) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * \<up>(Q b (h b bb) bb))\<close>
-  \<open>(\<exists>\<^sub>Ab bb ba. f b ba bb * \<up> (ba = h b bb \<and> Q b ba bb)) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * \<up>(Q b (h b bb) bb))\<close>
-  by (subst ex_assn_def, subst (3) ex_assn_def, auto)+
-
-lemma ex_assn_def_pure_eq_middle2:
-  \<open>(\<exists>\<^sub>Aba b. f b ba * \<up> (ba = h b) * P b ba) = (\<exists>\<^sub>Ab . f b (h b) * P b (h b))\<close>
-  \<open>(\<exists>\<^sub>Ab ba. f b ba * \<up> (ba = h b) * P b ba) = (\<exists>\<^sub>Ab . f b (h b) * P b (h b))\<close>
-  \<open>(\<exists>\<^sub>Ab ba. f b ba * \<up> (ba = h b \<and> Q b ba)) = (\<exists>\<^sub>Ab. f b (h b) * \<up>(Q b (h b)))\<close>
-  \<open>(\<exists>\<^sub>A ba b. f b ba * \<up> (ba = h b \<and> Q b ba)) = (\<exists>\<^sub>Ab. f b (h b) * \<up>(Q b (h b)))\<close>
-  by (subst ex_assn_def, subst (2) ex_assn_def, auto)+
-
-lemma ex_assn_skip_first2:
-  \<open>(\<exists>\<^sub>Aba bb. f bb * \<up>(P ba bb)) = (\<exists>\<^sub>Abb. f bb * \<up>(\<exists>ba. P ba bb))\<close>
-  \<open>(\<exists>\<^sub>Abb ba. f bb * \<up>(P ba bb)) = (\<exists>\<^sub>Abb. f bb * \<up>(\<exists>ba. P ba bb))\<close>
-  apply (subst ex_assn_swap)
-  by (subst ex_assn_def, subst (2) ex_assn_def, auto)+
-
 lemma remove1_wl_code_op_mset_delete[sepref_fr_rules]:
   \<open>(uncurry (remove1_wl_code), uncurry (RETURN oo op_mset_delete)) \<in>
      unat_lit_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>d \<rightarrow>\<^sub>a conflict_assn\<close>
@@ -864,7 +777,8 @@ proof -
     (hr_comp (arl_assn uint32_nat_assn) {(l, l'). mset l = mset l'})
      (list_mset_rel O \<langle>nat_lit_rel\<rangle>mset_rel)\<close>
   (is \<open>_ \<in> _ *\<^sub>a ?c'\<^sup>d \<rightarrow>\<^sub>a ?o'\<close>)
-    using remove1_wl_code.refine[FCOMP remove1_wl_remove1, FCOMP remove1_remove1_mset] .
+    using remove1_wl_code.refine[FCOMP remove1_wl_remove1, FCOMP remove1_remove1_mset,
+      OF nat_lit_rel_right_unique nat_lit_rel_left_unique] .
   have a_eq_ex_iff: \<open>(a = {#literal_of_nat (nat_of_uint32 x). x \<in># mset ba#})\<longleftrightarrow>
          (\<exists>xs. mset xs = nat_of_uint32 `# mset ba \<and> a = literal_of_nat `# mset xs)\<close>
        for a ba
@@ -1003,24 +917,11 @@ proof -
     using is_in_arl_code.refine[FCOMP 1] unfolding 2 .
 qed
 
-lemma [safe_constraint_rules]: \<open>is_pure (unat_lit_assn)\<close>
-  by auto
-
-text \<open>TODO Move\<close>
-instantiation uint32 :: default
-begin
-definition default_uint32 :: uint32 where
-  \<open>default_uint32 = 0\<close>
-instance
-  ..
-end
-
 sepref_definition union_mset_list_fold_code
   is \<open>uncurry (RETURN oo union_mset_list_fold)\<close>
   :: \<open>(arl_assn unat_lit_assn)\<^sup>d *\<^sub>a (arl_assn unat_lit_assn)\<^sup>k \<rightarrow>\<^sub>a arl_assn unat_lit_assn\<close>
   unfolding union_mset_list_fold_def
   by sepref
-
 
 lemma union_mset_list_fold_op_union_mset:
   \<open>(uncurry (RETURN oo union_mset_list_fold), uncurry (RETURN oo op \<union>#)) \<in>
@@ -1242,10 +1143,6 @@ lemma find_decomp_wl'_find_decomp_wl:
   \<open>find_decomp_wl' M N U (the D) NP UP Q WS L = find_decomp_wl (M, N, U, D, NP, UP, Q, WS) L\<close>
   \<open>find_decomp_wl' M N U D' NP UP Q WS L = find_decomp_wl (M, N, U, Some D', NP, UP, Q, WS) L\<close>
   by (auto simp: find_decomp_wl'_def find_decomp_wl_def)
-
-(*TODO Move*)
-notation prod_rel_syn (infixl "\<times>\<^sub>f" 70)
-(*END Move*)
 
 lemma find_decomp_wl_imp_find_decomp_wl':
   \<open>(uncurry8 (\<lambda>M N U D NP UP Q W L. find_decomp_wl_imp M D L), uncurry8 find_decomp_wl') \<in>
@@ -1599,13 +1496,6 @@ lemma get_conflict_wll_is_Nil_get_conflict_wl_is_Nil:
   by (intro nres_relI frefI) (auto simp: get_conflict_wll_is_Nil_def get_conflict_wl_is_Nil_def
       split: option.splits)
 
-lemma
-  Nil_list_mset_rel_iff:
-    \<open>([], aaa) \<in> list_mset_rel \<longleftrightarrow> aaa = {#}\<close> and
-  empty_list_mset_rel_iff:
-    \<open>(a, {#}) \<in> list_mset_rel \<longleftrightarrow> a = []\<close>
-  by (auto simp: list_mset_rel_def br_def)
-
 text \<open>The important point in the following theorem is the \<^term>\<open>hfkeep\<close>.\<close>
 lemma (in -) the_is_empty[sepref_fr_rules]:
   \<open>((arl_is_empty o the), RETURN o the_is_empty) \<in> [\<lambda>D. D \<noteq> None]\<^sub>a (conflict_option_assn)\<^sup>k \<rightarrow> bool_assn\<close>
@@ -1663,11 +1553,6 @@ lemma arl_empty_op_mset_arl_empy[sepref_fr_rules]:
   by sepref_to_hoare
     (use lms_empty_aref in \<open>sep_auto simp: op_mset_arl_empty_def hr_comp_def arl_assn_def\<close>)
 
-text \<open>TODO move upper\<close>
-lemma (in -) id_list_of_mset[sepref_fr_rules]:
-  \<open>(return o id, list_of_mset) \<in> conflict_assn\<^sup>d \<rightarrow>\<^sub>a arl_assn unat_lit_assn\<close>
-  by sepref_to_hoare (sep_auto simp: hr_comp_def list_of_mset_def arl_assn_def list_mset_rel_def
-      br_def)
 
 definition (in -) find_lit_of_max_level_wl_imp where
   \<open>find_lit_of_max_level_wl_imp M D L = do {
@@ -1743,6 +1628,11 @@ sepref_definition (in -)remove1_and_add_first_code
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (arl_assn unat_lit_assn)\<^sup>d \<rightarrow>\<^sub>a (arl_assn unat_lit_assn)\<close>
   unfolding remove1_and_add_first_def
   by sepref
+
+lemma (in -) id_list_of_mset[sepref_fr_rules]:
+  \<open>(return o id, list_of_mset) \<in> conflict_assn\<^sup>d \<rightarrow>\<^sub>a arl_assn unat_lit_assn\<close>
+  by sepref_to_hoare (sep_auto simp: hr_comp_def list_of_mset_def arl_assn_def list_mset_rel_def
+      br_def)
 
 lemma (in -)remove1_and_add_first_code_list_of_mset2[sepref_fr_rules]:
   \<open>(uncurry2 remove1_and_add_first_code, uncurry2 (list_of_mset2))

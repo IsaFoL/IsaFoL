@@ -261,4 +261,7 @@ lemma get_level_Succ_count_decided_neq[simp]:
   \<open>get_level M L \<noteq> Suc (count_decided M)\<close>
   using Suc_count_decided_gt_get_level[of M L] by auto
 
+lemma length_get_all_ann_decomposition: \<open>length (get_all_ann_decomposition M) = 1+count_decided M\<close>
+  by (induction M rule: ann_lit_list_induct) auto
+
 end

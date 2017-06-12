@@ -68,6 +68,9 @@ lemma consistent_interp_insert_not_in:
 lemma consistent_interp_unionD: \<open>consistent_interp (I \<union> I') \<Longrightarrow> consistent_interp I'\<close>
   unfolding consistent_interp_def by auto
 
+lemma consistent_interp_insert_iff: \<open>consistent_interp (insert L C) \<longleftrightarrow> consistent_interp C \<and> -L \<notin> C\<close>
+  by (metis consistent_interp_def consistent_interp_insert_pos insert_absorb)
+
 
 subsubsection \<open>Atoms\<close>
 

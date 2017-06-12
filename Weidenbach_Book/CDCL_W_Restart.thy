@@ -178,7 +178,7 @@ lemma cdcl\<^sub>W_merge_with_restart_distinct_mset_clauses:
   R: \<open>no_smaller_propa (fst R)\<close>
   shows "distinct_mset (clauses (fst S))"
   using assms(2,1,3,4)
-proof (induction)
+proof induction
   case (restart_full S T)
   then show ?case using rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses[of S T] unfolding full1_def
     by (auto dest: tranclp_into_rtranclp)

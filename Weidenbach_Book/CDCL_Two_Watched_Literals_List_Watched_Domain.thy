@@ -106,7 +106,6 @@ lemma ann_lit_of_pair_pair_of_ann_lit: \<open>ann_lit_of_pair (pair_of_ann_lit L
 lemma pair_of_ann_lit_ann_lit_of_pair: \<open>pair_of_ann_lit (ann_lit_of_pair L) = L\<close>
   by (cases L; cases \<open>snd L\<close>) auto
 
-
 lemma literal_of_neq_eq_nat_of_lit_eq_iff: \<open>literal_of_nat b = L \<longleftrightarrow> b = nat_of_lit L\<close>
   by (auto simp del: literal_of_nat.simps)
 
@@ -115,6 +114,12 @@ lemma nat_of_lit_eq_iff[iff]: \<open>nat_of_lit xa = nat_of_lit x \<longleftrigh
 
 lemma lit_of_natP_nat_of_lit_iff: \<open>lit_of_natP c a \<longleftrightarrow> c = nat_of_lit a\<close>
   by (cases a) (auto simp: lit_of_natP_def)
+
+lemma
+   nat_lit_rel_right_unique: \<open>IS_RIGHT_UNIQUE nat_lit_rel\<close> and
+   nat_lit_rel_left_unique: \<open>IS_LEFT_UNIQUE nat_lit_rel\<close>
+  unfolding single_valued_def nat_lit_rel_def IS_LEFT_UNIQUE_def
+  by (auto simp: lit_of_natP_nat_of_lit_iff)
 
 term \<open>\<lambda>R R'. {(a, b). \<exists>c d. (fst a, c) \<in> R \<and> (snd a, d) \<in> R' \<and>
       b = ann_lit_of_pair (literal_of_nat c, d)}\<close>
@@ -335,9 +340,6 @@ proof -
 qed
 
 end
-
-text \<open>TODO Move\<close>
-
 
 
 locale twl_array_code =
@@ -1070,12 +1072,6 @@ proof -
   then show ?thesis
      using N unfolding literals_are_in_N\<^sub>0_def by fast
 qed
-
-(*TODO: Move*)
-lemma lits_of_atms_of_m_mono:
-  "D \<subseteq># D' \<Longrightarrow> lits_of_atms_of_m D \<subseteq># lits_of_atms_of_m D'"
-  by (auto elim!: mset_le_addE simp: lits_of_atms_of_m_union)
-(*END: Move*)
 
 lemma backtrack_wl_D_spec:
   assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close> and confl: \<open>get_conflict_wl S ~= None\<close>

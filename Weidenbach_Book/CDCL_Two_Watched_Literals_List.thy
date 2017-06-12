@@ -41,6 +41,9 @@ fun set_literals_to_update_l :: "'v clause \<Rightarrow> 'v twl_st_l \<Rightarro
 fun get_conflict_l :: "'v twl_st_l \<Rightarrow> 'v cconflict" where
   \<open>get_conflict_l (_, _, _, D, _, _, _, _) = D\<close>
 
+definition get_clauses_ll :: "nat twl_st_l \<Rightarrow> nat clauses_l" where
+  \<open>get_clauses_ll = (\<lambda>(M, N, U, D, NP, UP, WS, Q). N)\<close>
+
 fun watched_l where
   \<open>watched_l l = take 2 l\<close>
 
@@ -313,16 +316,6 @@ definition unit_propagation_inner_loop_body_l :: "'v literal \<Rightarrow> nat \
     }
    }
 \<close>
-
-(* TOVO Move to WB_List_More *)
-lemma take_2_if:
-  \<open>take 2 C = (if C = [] then [] else if length C = 1 then [hd C] else [C!0, C!1])\<close>
-  by (cases C; cases \<open>tl C\<close>) auto
-
-lemma tl_update_swap:
-  \<open>i \<ge> 1 \<Longrightarrow> tl (N[i := C]) = tl N[i-1 := C]\<close>
-  by (auto simp:  drop_Suc[of 0, symmetric, simplified] drop_update_swap)
-(* End Move *)
 
 lemma refine_add_invariants:
   assumes

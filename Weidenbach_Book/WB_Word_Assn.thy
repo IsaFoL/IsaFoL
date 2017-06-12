@@ -29,7 +29,7 @@ abbreviation uint32_nat_assn :: "nat \<Rightarrow> uint32 \<Rightarrow> assn" wh
 lemma word_nat_of_uint32_Rep_inject[simp]: \<open>nat_of_uint32 ai = nat_of_uint32 bi \<longleftrightarrow> ai = bi\<close>
   by transfer simp
 
-lemma op_eq_uint32_nat:
+lemma op_eq_uint32_nat[sepref_fr_rules]:
   \<open>(uncurry (return oo (op = :: uint32 \<Rightarrow> _)), uncurry (RETURN oo op =)) \<in>
     uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
@@ -42,6 +42,14 @@ proof -
     unfolding unat_def
     by (induction n arbitrary: xi) (auto simp: shiftr_div_2n nat_div_distrib)
 qed
+
+instantiation uint32 :: default
+begin
+definition default_uint32 :: uint32 where
+  \<open>default_uint32 = 0\<close>
+instance
+  ..
+end
 
 instance uint32 :: heap
   by standard (auto simp: inj_def exI[of _ nat_of_uint32])
@@ -81,7 +89,7 @@ lemma param_uint32[param, sepref_import_param]:
 lemma param_max_uint32[param,sepref_import_param]:
   "(max,max)\<in>uint32_rel \<rightarrow> uint32_rel \<rightarrow> uint32_rel" by auto
 
-lemma max_uint32:
+lemma max_uint32[sepref_fr_rules]:
   \<open>(uncurry (return oo max), uncurry (RETURN oo max)) \<in>
     uint32_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
@@ -196,5 +204,38 @@ lemma nat_of_uint32_uint32_of_nat_id: \<open>n < 2 ^32 \<Longrightarrow> nat_of_
   apply (auto simp: unat_def)
   apply transfer
   by (auto simp: less_upper_bintrunc_id)
+
+lemma shiftr1[sepref_fr_rules]:
+   \<open>(uncurry (return oo (op >> )), uncurry (RETURN oo (op >>))) \<in> uint32_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  by sepref_to_hoare (sep_auto simp: shiftr1_def uint32_nat_rel_def br_def)
+
+lemma shiftl1[sepref_fr_rules]: \<open>(return o shiftl1, RETURN o shiftl1) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare sep_auto
+
+lemma nat_of_uint32_rule[sepref_fr_rules]:
+  \<open>(return o nat_of_uint32, RETURN o nat_of_uint32) \<in> uint32_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare sep_auto
+
+text \<open>TODO:is uint32 a \<open>canonically_ordered_monoid_add\<close>? \<close>
+lemma uint32_less_than_0[iff]: \<open>(a::uint32) \<le> 0 \<longleftrightarrow> a= 0\<close>
+  by transfer auto
+
+lemma nat_of_uint32_less_iff: \<open>nat_of_uint32 a < nat_of_uint32 b \<longleftrightarrow> a < b\<close>
+  apply transfer
+  apply (auto simp: unat_def word_less_def)
+  apply transfer
+  by (smt bintr_ge0)
+
+lemma nat_of_uint32_le_iff: \<open>nat_of_uint32 a \<le> nat_of_uint32 b \<longleftrightarrow> a \<le> b\<close>
+  apply transfer
+  by (auto simp: unat_def word_less_def nat_le_iff word_le_def)
+
+lemma nat_of_uint32_max:
+  \<open>nat_of_uint32 (max ai bi) = max (nat_of_uint32 ai) (nat_of_uint32 bi)\<close>
+  by (auto simp: max_def nat_of_uint32_le_iff split: if_splits)
+
+lemma max_uint32_nat[sepref_fr_rules]:
+  \<open>(uncurry (return oo max), uncurry (RETURN oo max)) \<in> uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_max)
 
 end
