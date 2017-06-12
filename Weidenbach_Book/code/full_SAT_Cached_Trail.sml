@@ -1370,8 +1370,39 @@ fun decide_wl_or_skip_D_code n_0 =
     end);
 
 fun extract_shorter_conflict_l_trivial_code x =
-  (fn _ => fn _ => fn _ => fn bid => fn _ => fn _ => fn _ => fn _ =>
-    (fn () => (the bid)))
+  (fn ai => fn _ => fn _ => fn bid => fn _ => fn _ => fn _ => fn _ =>
+    let
+      val xa = the bid;
+    in
+      (fn () =>
+        let
+          val xaa = arl_empty (default_uint32, heap_uint32) zero_nat ();
+          val x_b =
+            heap_WHILET
+              (fn (a1, _) =>
+                (fn f_ => fn () => f_ ((arl_length heap_uint32 xa) ()) ())
+                  (fn x_c => (fn () => (less_nat a1 x_c))))
+              (fn (a1, a2) =>
+                (fn f_ => fn () => f_ ((arl_get heap_uint32 xa a1) ()) ())
+                  (fn xab =>
+                    (fn f_ => fn () => f_ ((get_level_code ai xab) ()) ())
+                      (fn xac =>
+                        (if less_nat zero_nata (nat_of_uint32 xac)
+                          then (fn f_ => fn () => f_
+                                 ((arl_get heap_uint32 xa a1) ()) ())
+                                 (fn xb =>
+                                   (fn f_ => fn () => f_
+                                     ((arl_append (default_uint32, heap_uint32)
+a2 xb)
+                                     ()) ())
+                                     (fn x_e =>
+                                       (fn () => (plus_nat a1 one_nat, x_e))))
+                          else (fn () => (plus_nat a1 one_nat, a2))))))
+              (zero_nata, xaa) ();
+        in
+          snd x_b
+        end)
+    end)
     x;
 
 fun extract_shorter_conflict_l_trivial_code_wl x =
