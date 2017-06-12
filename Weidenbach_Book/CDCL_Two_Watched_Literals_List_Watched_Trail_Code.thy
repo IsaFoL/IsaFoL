@@ -1165,8 +1165,52 @@ proof -
     using H unfolding QP .
 qed
 
-definition (in -) extract_shorter_conflict_l_trivial :: \<open>_ \<Rightarrow>_ \<Rightarrow>_ \<Rightarrow>_ \<Rightarrow>_ \<Rightarrow>_ \<Rightarrow>_ \<Rightarrow>_ \<Rightarrow> 'v clause nres\<close> where
-\<open>extract_shorter_conflict_l_trivial M N U D NP UP W Q == RETURN (the D)\<close>
+definition (in -) extract_shorter_conflict_l_trivial :: \<open>_ \<Rightarrow>_ \<Rightarrow>_ \<Rightarrow>_ \<Rightarrow>_ \<Rightarrow>_ \<Rightarrow>_ \<Rightarrow>_ \<Rightarrow>
+'v clause nres\<close> where
+\<open>extract_shorter_conflict_l_trivial M N U D NP UP W Q \<equiv> SPEC(op = (filter_mset (\<lambda>L. get_level M L > 0) D))\<close>
+
+definition extract_shorter_conflict_list where
+\<open>extract_shorter_conflict_list M N U D NP UP W Q == do {
+   let D = the D;
+   S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, D'). i \<le> length D \<and> mset D' = filter_mset (\<lambda>L. get_level M L > 0) (mset (take i D))\<^esup>
+     (\<lambda>(i, _). i < length D)
+     (\<lambda>(i, D'). do {
+          ASSERT(i < length D);
+          ASSERT(D!i \<in> snd ` D\<^sub>0);
+          if get_level M (D!i) > 0 then RETURN (i+1, D' @ [D!i]) else RETURN (i+1, D')
+        })
+     (0, []);
+    RETURN (snd S)
+  }\<close>
+
+
+lemma extract_shorter_conflict_list_SPEC:
+  assumes N\<^sub>0: \<open>literals_are_in_N\<^sub>0 (mset (the D))\<close>
+  shows \<open>extract_shorter_conflict_list M N U D NP UP W Q \<le> \<Down> Id
+    (SPEC (\<lambda>D'. mset D' = filter_mset (\<lambda>L. get_level M L > 0) (mset (the D))))\<close>
+proof -
+  have take_Suc: \<open>take (Suc n) xs = take n xs @ [xs ! n]\<close> if \<open>n < length xs\<close> for n xs
+    using that unfolding take_map_nth_alt_def by auto
+  show ?thesis
+    unfolding extract_shorter_conflict_l_trivial_def extract_shorter_conflict_list_def
+    Let_def
+    apply (refine_vcg WHILEIT_rule[where R=\<open>measure (\<lambda>(i, _). Suc (length (the D)) - i)\<close>])
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal using N\<^sub>0  by (auto simp: image_image literals_are_in_N\<^sub>0_def literals_are_in_N\<^sub>0_in_N\<^sub>1)
+    subgoal by auto
+    subgoal by (auto simp: nths_upt_Suc' take_Suc)
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: nths_upt_Suc' take_Suc)
+    subgoal by auto
+    subgoal for s
+      by (cases \<open>fst s < length (the D)\<close>) auto
+    done
+qed
+
 
 abbreviation (in -) uncurry_swap3 where
 \<open>uncurry_swap3 f \<equiv> \<lambda> ((a, b), c). f (a, b, c)\<close>
@@ -1174,17 +1218,45 @@ abbreviation (in -) uncurry_swap3 where
 abbreviation (in -) uncurried_swap8 where
 \<open>uncurried_swap8 f \<equiv> \<lambda> (((((((M, N), U), D), NP), UP), Q), W). f (M, N, U, D, NP, UP, Q, W)\<close>
 
-thm twl_st_l_trail_assn_def
+text \<open>Do NOT declare this theorem as \<open>sepref_fr_rules\<close> to avoid bad unexpected conversions.\<close>
+lemma (in -) le_uint32_nat_hnr:
+  \<open>(uncurry (return oo (\<lambda>a b. nat_of_uint32 a < b)), uncurry (RETURN oo op <)) \<in>
+   uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
+
+lemma (in -)arl_get_hnr_u[sepref_fr_rules]:
+    \<open>CONSTRAINT is_pure A \<Longrightarrow>
+(uncurry (\<lambda>xs i. arl_get xs (nat_of_uint32 i)), uncurry (RETURN \<circ>\<circ> op_list_get))
+\<in> [pre_list_get]\<^sub>a (arl_assn A)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> A\<close>
+  apply sepref_to_hoare -- \<open>TODO proof\<close>
+   apply (sep_auto simp: uint32_nat_rel_def br_def ex_assn_up_eq2 array_assn_def is_array_def
+       hr_comp_def list_rel_pres_length list_rel_update param_nth arl_assn_def)
+  by (metis ent_pure_pre_iff ent_refl_true pair_in_Id_conv param_nth pure_app_eq pure_the_pure)
+ 
 sepref_register (in -) extract_shorter_conflict_l_trivial
 sepref_thm extract_shorter_conflict_l_trivial'
-  is \<open>uncurry7 extract_shorter_conflict_l_trivial\<close>
-  :: \<open>[\<lambda>S. uncurried_swap8 get_conflict_wl S \<noteq> None]\<^sub>a
+  is \<open>uncurry7 extract_shorter_conflict_list\<close>
+  :: \<open>[\<lambda>S. uncurried_swap8 (\<lambda>(_, _, _, D, _, _, _, _). D) S \<noteq> None]\<^sub>a
    trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k
-        *\<^sub>a conflict_option_assn\<^sup>d *\<^sub>a unit_lits_assn\<^sup>k
+        *\<^sub>a (option_assn (arl_assn unat_lit_assn))\<^sup>d *\<^sub>a unit_lits_assn\<^sup>k
         *\<^sub>a unit_lits_assn\<^sup>k
-        *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k \<rightarrow> conflict_assn\<close>
-  unfolding extract_shorter_conflict_l_trivial_def PR_CONST_def twl_st_l_trail_assn_def
-  by sepref
+        *\<^sub>a clause_l_assn\<^sup>k *\<^sub>a array_watched_assn\<^sup>k \<rightarrow> arl_assn unat_lit_assn\<close>
+  supply [[goals_limit = 1]]
+  unfolding extract_shorter_conflict_list_def PR_CONST_def twl_st_l_trail_assn_def
+  array.fold_custom_empty op_list_empty_def[symmetric] zero_uint32_def[symmetric]
+  one_uint32_def[symmetric]
+  supply uint32_nat_assn_zero_uint32[sepref_fr_rules] le_uint32_nat_hnr[sepref_fr_rules]
+    thm array_get_hnr_u
+  apply (rewrite in "(\<hole>, op_array_empty)" annotate_assn[where A=uint32_nat_assn])
+  apply (rewrite in "If _ _ (RETURN (_ + \<hole>, _))" annotate_assn[where A=uint32_nat_assn])
+  apply (rewrite in "If _ (RETURN (_ + \<hole>, _))" annotate_assn[where A=uint32_nat_assn])
+    apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+    apply sepref_dbg_trans_step_keep
+                      apply (sepref_dbg_side_keep)
+      apply (rule array_get_hnr_u[to_hnr])
+      thm array_get_hnr_u[to_hnr]
+  oops
 
 concrete_definition (in -) extract_shorter_conflict_l_trivial_code
    uses twl_array_code.extract_shorter_conflict_l_trivial'.refine_raw
