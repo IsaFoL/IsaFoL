@@ -1178,7 +1178,7 @@ thm twl_st_l_trail_assn_def
 sepref_register (in -) extract_shorter_conflict_l_trivial
 sepref_thm extract_shorter_conflict_l_trivial'
   is \<open>uncurry7 extract_shorter_conflict_l_trivial\<close>
-  :: \<open>[\<lambda>S. uncurried_swap8 get_conflict_wl S ~= None]\<^sub>a
+  :: \<open>[\<lambda>S. uncurried_swap8 get_conflict_wl S \<noteq> None]\<^sub>a
    trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k
         *\<^sub>a conflict_option_assn\<^sup>d *\<^sub>a unit_lits_assn\<^sup>k
         *\<^sub>a unit_lits_assn\<^sup>k
@@ -1219,7 +1219,7 @@ proof -
     if
       struct_invs: \<open>twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))\<close>
       \<open>-lit_of (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W))) \<in># the (get_conflict_wl (M, N, U, D, NP, UP, Q, W))\<close>
-      \<open>get_conflict_wl (M, N, U, D, NP, UP, Q, W) ~= None\<close> and
+      \<open>get_conflict_wl (M, N, U, D, NP, UP, Q, W) \<noteq> None\<close> and
       \<open>x = (((((((M, N), U), D), NP), UP), Q), W)\<close> and
       \<open>y = (((((((M, N), U), D), NP), UP), Q), W)\<close>
   for N NP UP D L M U Q W x y
@@ -1248,7 +1248,7 @@ proof -
 
   have R: \<open>(uncurry7 extract_shorter_conflict_l_trivial, uncurry7 extract_shorter_conflict_wl') \<in>
      [uncurried_swap8 (\<lambda>S::'v twl_st_wl. twl_struct_invs (twl_st_of_wl None S) \<and>
-        get_conflict_wl S ~= None \<and> -lit_of (hd (get_trail_wl S)) \<in># the (get_conflict_wl S))]\<^sub>f
+        get_conflict_wl S \<noteq> None \<and> -lit_of (hd (get_trail_wl S)) \<in># the (get_conflict_wl S))]\<^sub>f
       (Id \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id) \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
     apply (intro nres_relI frefI)
     apply clarify
@@ -1306,7 +1306,7 @@ sepref_thm backtrack_wl_D
   unfolding backtrack_wl_D_def PR_CONST_def
   unfolding twl_st_l_trail_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
-    append_ll_def[symmetric] (* lms_fold_custom_empty *)
+    append_ll_def[symmetric]
     extract_shorter_conflict_wl'_def[symmetric]
     cons_trail_Propagated_def[symmetric]
   apply (rewrite at \<open>(_, add_mset _ \<hole>, _)\<close> lms_fold_custom_empty)+
