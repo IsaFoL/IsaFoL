@@ -1019,6 +1019,7 @@ definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" wh
         ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
         ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
         ASSERT(D ~= None);
+        ASSERT(literals_are_in_N\<^sub>0 (the D));
         ASSERT(-L \<in># the D);
         D' \<leftarrow> extract_shorter_conflict_wl (M, N, U, D, NP, UP, Q, W);
         ASSERT(get_level M L = count_decided M);
@@ -1126,20 +1127,43 @@ proof -
     (extract_shorter_conflict_wl T')\<close>
     if \<open>T = T'\<close> for T T'
     using that by (cases T; cases T') (auto intro!: SPEC_refine simp: extract_shorter_conflict_wl_def)
-
-have lits_in_N\<^sub>0: \<open>literals_are_in_N\<^sub>0 D\<close>
-  if
-    \<open>S = (M, x2g)\<close> and
-    \<open>x2g = (N, x2h)\<close> and
-    \<open>x2h = (U, x2i)\<close> and
-    \<open>x2i = (D\<^sub>0, x2j)\<close> and
-    \<open>x2j = (NP, x2k)\<close> and
-    \<open>x2k = (UP, x2l)\<close> and
-    \<open>x2l = (W, Q)\<close> and
-    D: \<open>(D, D') \<in> {(D', D''). D' = D'' \<and> - lit_of (hd (get_trail_wl (M, N, U, D\<^sub>0, NP, UP, W, Q))) \<in># D' \<and>
-       D' \<subseteq># the (get_conflict_wl (M, N, U, D\<^sub>0, NP, UP, W, Q))}\<close> and
-    struct_invs: \<open>twl_struct_invs (twl_st_of_wl None (M, N, U, D\<^sub>0, NP, UP, W, Q))\<close>
-  for D D' M x2g N x2h U x2j x2i D\<^sub>0 NP x2k UP x2l W Q
+have D_lits_in_N\<^sub>0: \<open>literals_are_in_N\<^sub>0 (the D\<^sub>0)\<close>
+    if
+      \<open>S = (M, x2g)\<close> and
+      \<open>x2g = (N, x2h)\<close> and
+      \<open>x2h = (U, x2i)\<close> and
+      \<open>x2i = (D\<^sub>0, x2j)\<close> and
+      \<open>x2j = (NP, x2k)\<close> and
+      \<open>x2k = (UP, x2l)\<close> and
+      \<open>x2l = (W, Q)\<close> and
+      struct_invs: \<open>twl_struct_invs (twl_st_of_wl None (M, N, U, D\<^sub>0, NP, UP, W, Q))\<close>
+    for D D' M x2g N x2h U x2j x2i D\<^sub>0 NP x2k UP x2l W Q
+  proof -
+    have no_alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl None
+        (M, N, U, D\<^sub>0, NP, UP, W, Q)))\<close>
+      using struct_invs that unfolding twl_struct_invs_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def that by fast
+    then show \<open>literals_are_in_N\<^sub>0 (the D\<^sub>0)\<close>
+        using N\<^sub>0 apply (subst (asm) twl_struct_invs_is_N\<^sub>1_clauses_init_clss)
+          using struct_invs unfolding that apply (solves \<open>simp\<close>)
+        using confl no_alien unfolding that
+          by (fastforce simp add: literals_are_in_N\<^sub>0_def is_N\<^sub>1_alt_def
+            cdcl\<^sub>W_restart_mset.no_strange_atm_def in_N\<^sub>1_atm_of_in_atms_of_iff
+            cdcl\<^sub>W_restart_mset_state in_lits_of_atms_of_m_ain_atms_of_iff)
+  qed
+  have lits_in_N\<^sub>0: \<open>literals_are_in_N\<^sub>0 D\<close>
+    if
+      \<open>S = (M, x2g)\<close> and
+      \<open>x2g = (N, x2h)\<close> and
+      \<open>x2h = (U, x2i)\<close> and
+      \<open>x2i = (D\<^sub>0, x2j)\<close> and
+      \<open>x2j = (NP, x2k)\<close> and
+      \<open>x2k = (UP, x2l)\<close> and
+      \<open>x2l = (W, Q)\<close> and
+      D: \<open>(D, D') \<in> {(D', D''). D' = D'' \<and> - lit_of (hd (get_trail_wl (M, N, U, D\<^sub>0, NP, UP, W, Q))) \<in># D' \<and>
+        D' \<subseteq># the (get_conflict_wl (M, N, U, D\<^sub>0, NP, UP, W, Q))}\<close> and
+      struct_invs: \<open>twl_struct_invs (twl_st_of_wl None (M, N, U, D\<^sub>0, NP, UP, W, Q))\<close>
+    for D D' M x2g N x2h U x2j x2i D\<^sub>0 NP x2k UP x2l W Q
   proof -
     have no_alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl None
         (M, N, U, D\<^sub>0, NP, UP, W, Q)))\<close>
@@ -1610,6 +1634,7 @@ have lits_in_N\<^sub>0: \<open>literals_are_in_N\<^sub>0 D\<close>
     subgoal by fast
     subgoal by fast
     subgoal by auto
+    subgoal by (rule D_lits_in_N\<^sub>0) assumption+
     subgoal by auto
     subgoal by fast
     subgoal by fast
