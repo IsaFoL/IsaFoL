@@ -439,7 +439,7 @@ proof -
     using trail_cut_trail_wrt_clause by blast
   consider
       (false) "\<forall>L\<in>#C. - L \<notin> lits_of_l (trail T)" and
-        "trail (cut_trail_wrt_clause C (trail T) T) = []"
+        "trail (cut_trail_wrt_clause C (trail T) T) = []" |
       (not_false)
         "- lit_of (hd (trail (cut_trail_wrt_clause C (trail T) T))) \<in># C" and
         "1 \<le> length (trail (cut_trail_wrt_clause C (trail T) T))"
