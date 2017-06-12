@@ -30,7 +30,6 @@ imports
   CDCL_Two_Watched_Literals_List_Watched_Initialisation
   CDCL_Two_Watched_Literals_List_Watched
   CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code
-
 begin
 text \<open>This theory imports all the other theories (and is not needed in the documentation).\<close>
 
