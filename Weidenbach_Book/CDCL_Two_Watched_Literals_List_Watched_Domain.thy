@@ -339,6 +339,9 @@ proof -
     using H unfolding 1 2 3 .
 qed
 
+lemma (in twl_array_code_ops) atms_of_N\<^sub>1_N\<^sub>0: \<open>atms_of N\<^sub>1 = atms_of N\<^sub>0''\<close>
+  unfolding N\<^sub>1_def by (auto simp: atms_of_def)
+
 end
 
 
@@ -369,6 +372,20 @@ lemma N_hnr'[sepref_import_param]:
   by sepref_to_hoare (sep_auto simp: list_assn_N\<^sub>0')
 lemma [sepref_import_param]: "(N\<^sub>0, N\<^sub>0) \<in> \<langle>uint32_rel\<rangle>list_rel"
   by auto
+
+text \<open>The strict equality does not hold\<close>
+lemma card_set_N\<^sub>0_upperN: \<open>card (set N\<^sub>0) \<le> upperN\<close>
+proof -
+  have \<open>card (set N\<^sub>0) = card (nat_of_uint32 ` set N\<^sub>0)\<close>
+      using lits_less_upperN  by (induction N\<^sub>0) (auto simp: card_insert_if)
+  moreover {
+    have \<open>nat_of_uint32 ` set N\<^sub>0 \<subseteq> set [0..< upperN]\<close>
+      using lits_less_upperN  by (induction N\<^sub>0) auto
+    from card_mono[OF _ this] have \<open>card (nat_of_uint32 ` set N\<^sub>0) \<le> upperN\<close>
+      by auto
+    }
+  ultimately show ?thesis by presburger
+qed
 
 definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> nat \<Rightarrow>
   nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres"  where
