@@ -33,6 +33,7 @@ abbreviation is_neg :: "'a literal \<Rightarrow> bool" where "is_neg L \<equiv> 
 lemma Pos_atm_of_iff[simp]: "Pos (atm_of L) = L \<longleftrightarrow> is_pos L"
   by (cases L) auto
 
+(* TODO: remove from [simp] *)
 lemma Neg_atm_of_iff[simp]: "Neg (atm_of L) = L \<longleftrightarrow> is_neg L"
   by (cases L) auto
 
@@ -214,7 +215,7 @@ definition atms_of :: "'a clause \<Rightarrow> 'a set" where
 lemma atms_of_empty[simp]: "atms_of {#} = {}"
   unfolding atms_of_def by simp
 
-lemma atms_of_singleton[simp]: "atms_of {#L#} = {atm_of L}"
+lemma atms_of_singleton: "atms_of {#L#} = {atm_of L}"
   unfolding atms_of_def by auto
 
 lemma atms_of_add_mset[simp]:
@@ -225,6 +226,10 @@ lemma atms_of_union_mset[simp]:
   "atms_of (A \<union># B) = atms_of A \<union> atms_of B"
   unfolding atms_of_def by (auto simp: max_def split: if_split_asm)
 
+lemma atms_of_plus_mset[simp]:
+  "atms_of (A + B) = atms_of A \<union> atms_of B"
+  unfolding atms_of_def by (auto simp: max_def split: if_split_asm)
+ 
 lemma finite_atms_of[iff]: "finite (atms_of C)"
   unfolding atms_of_def by simp
 

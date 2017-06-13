@@ -1102,7 +1102,7 @@ lemma true_clss_cls_plus_CNot:
 proof (intro allI impI)
   fix I
   assume
-    tot: \<open>total_over_set I (atms_of_mms (A + {#{#L#}#}))\<close> and
+    tot: \<open>total_over_mm I (A + {#{#L#}#})\<close> and
     cons: \<open>consistent_interp I\<close> and
     I: \<open>I \<Turnstile>s A\<close>
   let ?I = \<open>I \<union> {Pos P|P. P \<in> atms_of CC \<and> P \<notin> atm_of ` I}\<close>
@@ -1121,16 +1121,29 @@ proof (intro allI impI)
     using tot unfolding total_over_mm_def total_over_set_atm_of atms_of_mms_def
     by (smt CollectI Un_iff add_mset_add_single atms_of_plus image_iff image_mset_add_mset insert_iff 
         literal.sel(1) mem_simps(9) set_mset_add_mset_insert)
-  then have \<open>?I \<Turnstile> add_mset L CC\<close> using CC_L cons' I' unfolding true_clss_cls_def by blast
-  moreover
+  then have I_L_CC:  \<open>?I \<Turnstile> add_mset L CC\<close> using CC_L cons' I' unfolding true_clss_cls_def by blast
+  moreover {
     have \<open>?I \<Turnstile>s CNot CC\<close> using CNot_CC cons' I' tot_CNot unfolding true_clss_clss_def by auto
     then have \<open>\<not>A \<Turnstile>p CC\<close>
       using I by (metis (no_types, lifting) I' atms_of_mms_add atms_of_mms_singleton 
           atms_of_ms_CNot_atms_of cons' consistent_CNot_not tot_CNot total_over_mm_def
           true_clss_cls_def)
-    then have \<open>\<not>?I \<Turnstile> CC\<close> using \<open>?I \<Turnstile>s CNot CC\<close> cons' consistent_CNot_not by blast
+    then have \<open>\<not>?I \<Turnstile> CC\<close> using \<open>?I \<Turnstile>s CNot CC\<close> cons' consistent_CNot_not by blast }
+    note I_L_CC' = this
   ultimately have \<open>?I \<Turnstile> {#L#}\<close> by blast
   then show \<open>I \<Turnstile> {#L#}\<close>
+    using I_L_CC I_L_CC' unfolding true_cls_def
+    apply (auto simp: atms_of_def)
+      by (metis CNot_add_mset CNot_empty atm_of_uminus atms_of_add_mset 
+          atms_of_empty atms_of_s_def empty_neutral(2) in_atms_of_s_decomp
+          literal.sel(1) tot total_over_mm_CNot_total_over_m total_over_mm_addition 
+          total_over_set_single uminus_Neg)
+      oops
+    by (smt CNot_add_mset CNot_empty Un_iff I_L_CC I_L_CC'
+    atm_of_eq_atm_of atms_of_add_mset atms_of_empty cons' consistent_interp_def
+     literal.exhaust_sel single_is_union singletonD tot total_over_mm_CNot_total_over_m
+     total_over_mm_addition total_over_set_def true_cls_add_mset true_clss_union_decrease)
+      sorry
     by (metis (no_types, lifting) atms_of_ms_union cons' consistent_CNot_not tot total_not_CNot
       total_over_m_def total_over_set_union true_clss_union_increase)
 oops
