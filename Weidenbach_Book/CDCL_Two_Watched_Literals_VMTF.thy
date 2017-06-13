@@ -154,4 +154,57 @@ end
 
 subsubsection \<open>Implementation\<close>
 
+datatype (in-) 'v vmtf_atm = VMTF_ATM (stamp : nat) (get_prev: \<open>nat option\<close>) (get_next: \<open>nat option\<close>)
+
+type_synonym (in -) 'v vmtf_atms = \<open>'v vmtf_atm list \<times> nat \<times> nat\<close>
+
+abbreviation vmtf_fst :: \<open>'v vmtf_atms \<Rightarrow> nat\<close> where
+\<open>vmtf_fst \<equiv> \<lambda>(a, b, c). b\<close>
+
+abbreviation vmtf_last :: \<open>'v vmtf_atms \<Rightarrow> nat\<close> where
+\<open>vmtf_last \<equiv> \<lambda>(a, b, c). c\<close>
+
+abbreviation vmtf_get :: \<open>'v vmtf_atms \<Rightarrow> nat \<Rightarrow> 'v vmtf_atm\<close> where
+\<open>vmtf_get \<equiv> \<lambda>(a, b, c) i. a!i\<close>
+
+fun  (in -) option_pred where
+\<open>option_pred P None = True\<close> |
+\<open>option_pred P (Some a) = P a\<close>
+
+definition vtmf_atms_invs :: \<open>'v vmtf_atms \<Rightarrow> bool\<close> where
+\<open>vtmf_atms_invs == \<lambda>(atms, fst, last). 
+   (\<forall>i<length atms. option_pred (\<lambda>j. j < length atms) (get_prev (atms!i))) \<and>
+   (\<forall>i<length atms. option_pred (\<lambda>j. j < length atms) (get_next (atms!i))) \<and>
+
+   (\<forall>i<length atms. option_pred (\<lambda>j. get_next (atms!j) = Some i) (get_prev (atms!i))) \<and>
+   (\<forall>i<length atms. option_pred (\<lambda>j. get_prev (atms!j) = Some i) (get_next (atms!i))) 
+\<close>
+
+inductive_set vmtf_accessible :: \<open>('v vmtf_atms \<Rightarrow> nat \<Rightarrow> nat option) \<Rightarrow> 'v vmtf_atms \<Rightarrow> nat \<Rightarrow> nat set\<close> 
+for f :: \<open>('v vmtf_atms \<Rightarrow> nat \<Rightarrow> nat option)\<close> and vm :: \<open>'v vmtf_atms\<close> and i :: nat where
+ init: ‹f vm i \<noteq> None \<Longrightarrow> the (f vm i) \<in> vmtf_accessible f vm i›
+| step: ‹L \<in> vmtf_accessible f vm i \<Longrightarrow> f vm L \<noteq> None \<Longrightarrow> the (f vm L) \<in> vmtf_accessible f vm i›
+
+
+lemma
+  assumes \<open>vtmf_atms_invs vm\<close> and
+    \<open>\<forall>i. i \<notin> vmtf_accessible (\<lambda>vm i. get_prev (vmtf_get vm i)) vm i\<close>
+      (is \<open>\<forall>i. i \<notin> ?acc i\<close> is \<open>\<forall>i. i \<notin> vmtf_accessible ?next vm i\<close>)
+  shows ‹wf {(j, i). Some j = get_prev (vmtf_get vm i)}›
+proof (rule ccontr)
+  assume \<open>\<not> ?thesis\<close>
+  then obtain f where
+    f: \<open>(f (Suc i), f i) ∈ {(j, i). Some j = get_prev (vmtf_get vm i)}\<close> for i
+    unfolding wf_iff_no_infinite_down_chain by blast
+  have \<open>f (Suc n) \<in> ?acc (f (n - i))\<close> for n i
+  apply (induction i)
+  subgoal using f[of n] 
+  vmtf_accessible.intros(1)[of ?next vm n]
+  apply (auto intro!: vmtf_accessible.intros(1))
+  sledgehammer
+  thm vmtf_accessible.intros(1)
+  unfolding wf_def
+  apply auto
+  apply (induction rule: wf_induct)
+
 end
