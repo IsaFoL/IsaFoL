@@ -527,10 +527,66 @@ qed
   
 theorem completeness_nat:
   assumes finite_cs: "finite Cs" "\<forall>C\<in>Cs. finite C"
-  assumes unsat: "\<forall>(F::nat fun_denot) (G::nat pred_denot) . \<not>eval\<^sub>c\<^sub>s F G Cs"
+  assumes unsat: "\<forall>(F::nat fun_denot) (G::nat pred_denot). \<not>eval\<^sub>c\<^sub>s F G Cs"
   shows "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
   using assms completeness_countable by blast
 
+
+section {* NEW! correspondence between resolution and oresolution *}
+  
+lemma
+  assumes "mgu\<^sub>l\<^sub>s (a \<cdot> b) L"
+  shows "mgu\<^sub>l\<^sub>s b (L \<cdot>\<^sub>l\<^sub>s a)"
+proof -
+  have "unifier\<^sub>l\<^sub>s b (L \<cdot>\<^sub>l\<^sub>s a)"
+  proof - (* by sledgehammer -- i should probably have some lemma tbh *)
+    have "\<And>f. unifier\<^sub>l\<^sub>s f {}"
+      by (simp add: unifier\<^sub>l\<^sub>s_def)
+    then have "L = {} \<longrightarrow> unifier\<^sub>l\<^sub>s b (L \<cdot>\<^sub>l\<^sub>s a)"
+      by simp
+    then show ?thesis
+      using assms composition_conseq2ls mgu\<^sub>l\<^sub>s_def unifier\<^sub>l\<^sub>s_def2 by force
+  qed   
+  moreover
+  {
+    fix u
+    assume "unifier\<^sub>l\<^sub>s u (L \<cdot>\<^sub>l\<^sub>s a)"
+    then have "unifier\<^sub>l\<^sub>s (a \<cdot> u) L"
+      by (simp add: composition_conseq2l unifier\<^sub>l\<^sub>s_def)
+    then obtain i where "a \<cdot> u = a \<cdot> b \<cdot> i"
+      using assms unfolding mgu\<^sub>l\<^sub>s_def by auto
+    then have "u = b \<cdot> i"
+      sorry
+    then have "\<exists>i. u = b \<cdot> i"
+      by auto
+  }
+  ultimately
+  show ?thesis unfolding mgu\<^sub>l\<^sub>s_def by auto
+qed
+  
+lemma "resolution_step Cs Cs' \<Longrightarrow> oresolution_deriv Cs Cs'"
+proof (induction rule: resolution_step.induct)
+  case (resolution_rule C\<^sub>1 Cs C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>)
+  then obtain l\<^sub>1 l\<^sub>2 where "l\<^sub>1 \<in> L\<^sub>1 \<and> l\<^sub>2 \<in> L\<^sub>2\<^sup>C"
+    unfolding applicable_def by auto
+  then have "unifier\<^sub>l\<^sub>s \<sigma> {l\<^sub>1,l\<^sub>2}"
+    using resolution_rule unfolding applicable_def mgu\<^sub>l\<^sub>s_def unifier\<^sub>l\<^sub>s_def by auto
+  then obtain \<tau> where "mgu\<^sub>l\<^sub>s \<tau> {l\<^sub>1,l\<^sub>2}"
+    using unification[of "{l\<^sub>1, l\<^sub>2}"] resolution_rule by blast
+      
+  (* from here my proof might not really make sense *)
+  have "\<exists>\<eta>. unifier\<^sub>l\<^sub>s \<eta> ((L\<^sub>1 \<union> L\<^sub>2) \<cdot>\<^sub>l\<^sub>s \<tau>)"
+    sorry
+  then obtain \<eta> where "mgu\<^sub>l\<^sub>s \<eta> ((L\<^sub>1 \<union> L\<^sub>2) \<cdot>\<^sub>l\<^sub>s \<tau>)"
+    using unification sorry
+  have "resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = factoring (oresolution C\<^sub>1 C\<^sub>2 l\<^sub>1 l\<^sub>2 \<tau>) \<eta>"
+    sorry
+  then show ?case sorry
+next
+  case (standardize_apart C Cs C')
+  then show ?case using ostandardize_apart unfolding oresolution_deriv_def by auto
+qed
+  
 end -- {* unification locale *}
 
 end

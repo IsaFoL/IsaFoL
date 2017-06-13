@@ -680,18 +680,39 @@ definition applicable :: "   fterm clause \<Rightarrow> fterm clause
 definition mresolution :: "   fterm clause \<Rightarrow> fterm clause 
                           \<Rightarrow> fterm literal set \<Rightarrow> fterm literal set 
                           \<Rightarrow> substitution \<Rightarrow> fterm clause" where
-  "mresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = ((C\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<sigma>)- (L\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<sigma>)) \<union> ((C\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<sigma>) - (L\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<sigma>))"
+  "mresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = ((C\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<sigma>) - (L\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<sigma>)) \<union> ((C\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<sigma>) - (L\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<sigma>))"
 
 definition resolution :: "   fterm clause \<Rightarrow> fterm clause 
                           \<Rightarrow> fterm literal set \<Rightarrow> fterm literal set 
                           \<Rightarrow> substitution \<Rightarrow> fterm clause" where
   "resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = ((C\<^sub>1 - L\<^sub>1) \<union> (C\<^sub>2 - L\<^sub>2)) \<cdot>\<^sub>l\<^sub>s \<sigma>"
 
+definition oapplicable :: "   fterm clause \<Rightarrow> fterm clause 
+                          \<Rightarrow> fterm literal \<Rightarrow> fterm literal 
+                          \<Rightarrow> substitution \<Rightarrow> bool" where
+  "oapplicable C\<^sub>1 C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma> \<longleftrightarrow> 
+       C\<^sub>1 \<noteq> {} \<and> C\<^sub>2 \<noteq> {}
+     \<and> vars\<^sub>l\<^sub>s C\<^sub>1 \<inter> vars\<^sub>l\<^sub>s C\<^sub>2 = {} 
+     \<and> l\<^sub>1 \<in> C\<^sub>1 \<and> l\<^sub>2 \<in> C\<^sub>2 
+     \<and> mgu\<^sub>l\<^sub>s \<sigma> {l\<^sub>1,l\<^sub>2\<^sup>c}"
+  
+definition oresolution :: "   fterm clause \<Rightarrow> fterm clause 
+                          \<Rightarrow> fterm literal \<Rightarrow> fterm literal 
+                          \<Rightarrow> substitution \<Rightarrow> fterm clause" where
+  "oresolution C\<^sub>1 C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma> = ((C\<^sub>1 \<cdot>\<^sub>l\<^sub>s \<sigma>) - {l\<^sub>1 \<cdot>\<^sub>l \<sigma>}) \<union> ((C\<^sub>2 \<cdot>\<^sub>l\<^sub>s \<sigma>) - {l\<^sub>2 \<cdot>\<^sub>l \<sigma>})"
+  
+definition factoring_applicable :: "  fterm clause \<Rightarrow> fterm literal set \<Rightarrow> substitution 
+                                   \<Rightarrow> bool" where
+  "factoring_applicable C L \<sigma> \<longleftrightarrow> L \<subseteq> C \<and> mgu\<^sub>l\<^sub>s \<sigma> L"
+  
+definition factoring :: "fterm clause \<Rightarrow> substitution \<Rightarrow> fterm clause" where
+  "factoring C \<sigma> = C \<cdot>\<^sub>l\<^sub>s \<sigma>"
+
 inductive mresolution_step :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   mresolution_rule: 
     "C\<^sub>1 \<in> Cs \<Longrightarrow> C\<^sub>2 \<in> Cs \<Longrightarrow> applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> \<Longrightarrow> 
        mresolution_step Cs (Cs \<union> {mresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>})"
-| standardize_apart:
+| mstandardize_apart: (* renaming *)
     "C \<in> Cs \<Longrightarrow> var_renaming_of C C' \<Longrightarrow> mresolution_step Cs (Cs \<union> {C'})"
 
 inductive resolution_step :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
@@ -700,13 +721,26 @@ inductive resolution_step :: "fterm clause set \<Rightarrow> fterm clause set \<
        resolution_step Cs (Cs \<union> {resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>})"
 | standardize_apart: (* renaming *)
     "C \<in> Cs \<Longrightarrow> var_renaming_of C C' \<Longrightarrow> resolution_step Cs (Cs \<union> {C'})"
+    
+inductive oresolution_step ::"fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
+  oresolution_rule: 
+    "C\<^sub>1 \<in> Cs \<Longrightarrow> C\<^sub>2 \<in> Cs \<Longrightarrow> oapplicable C\<^sub>1 C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma> \<Longrightarrow> 
+       oresolution_step Cs (Cs \<union> {oresolution C\<^sub>1 C\<^sub>2 l\<^sub>1 l\<^sub>2 \<sigma>})"
+| factoring_rule:
+    "C \<in> Cs \<Longrightarrow> factoring_applicable C L \<sigma> \<Longrightarrow> oresolution_step Cs (Cs \<union> {factoring C \<sigma>})"
+| ostandardize_apart: (* renaming *)
+    "C \<in> Cs \<Longrightarrow> var_renaming_of C C' \<Longrightarrow> oresolution_step Cs (Cs \<union> {C'})"    
 
 definition mresolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "mresolution_deriv = rtranclp mresolution_step"
 
 definition resolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
   "resolution_deriv = rtranclp resolution_step"
-
+  
+definition oresolution_deriv :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
+  "oresolution_deriv = rtranclp oresolution_step"
+  
+  
 section {* Soundness *}
 
 definition evalsub :: "'u var_denot \<Rightarrow> 'u fun_denot \<Rightarrow> substitution \<Rightarrow> 'u var_denot" where
