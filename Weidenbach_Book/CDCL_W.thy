@@ -1780,7 +1780,7 @@ next
   proof (intro allI, clarify)
     fix a b
     assume "(a, b) \<in> set (get_all_ann_decomposition (trail T))"
-    then have "unmark_l a \<union> set_mset (clauses S) \<Turnstile>ps unmark_l b"
+    then have "unmark_l a \<union> set_mset (clauses S) \<Turnstile>ps mset_set (unmark_l b)"
       using decomp T by (auto simp add: all_decomposition_implies_def)
     moreover {
       have a1:"C \<in># clauses S"
