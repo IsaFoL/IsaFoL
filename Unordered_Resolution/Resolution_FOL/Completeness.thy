@@ -533,6 +533,40 @@ theorem completeness_nat:
 
 
 section {* NEW! correspondence between resolution and oresolution *}
+
+lemma lol: (* Nice, but seems useless*)
+  assumes l1: "l1 \<in> L1"
+  assumes l2: "l2 \<in> L2"
+  assumes l5: "mgu\<^sub>l\<^sub>s \<sigma> {l1,l2}"
+  assumes l6: "mgu\<^sub>l\<^sub>s \<tau> ((L1 \<union> L2) \<cdot>\<^sub>l\<^sub>s \<sigma>)"
+  shows "mgu\<^sub>l\<^sub>s (\<sigma> \<cdot> \<tau>) (L1 \<union> L2)"
+proof -
+  have "unifier\<^sub>l\<^sub>s (\<sigma> \<cdot> \<tau>) (L1 \<union> L2)"
+    using assms unfolding mgu\<^sub>l\<^sub>s_def unifier\<^sub>l\<^sub>s_def
+    by (simp add: composition_conseq2l) 
+  moreover
+  have "\<forall>u. unifier\<^sub>l\<^sub>s u (L1 \<union> L2) \<longrightarrow> (\<exists>i. u = \<sigma> \<cdot> \<tau> \<cdot> i)"
+  proof (rule, rule)
+    fix u
+    assume a: "unifier\<^sub>l\<^sub>s u (L1 \<union> L2)"
+    then have "unifier\<^sub>l\<^sub>s u {l1,l2}"
+      unfolding unifier\<^sub>l\<^sub>s_def using l1 l2 by auto
+    then obtain j where "u = \<sigma> \<cdot> j"
+      using l5 unfolding mgu\<^sub>l\<^sub>s_def by metis
+    then have "unifier\<^sub>l\<^sub>s (\<sigma> \<cdot> j) (L1 \<union> L2)" 
+      using a by auto
+    then have "unifier\<^sub>l\<^sub>s j ((L1 \<union> L2) \<cdot>\<^sub>l\<^sub>s \<sigma>)"
+      unfolding unifier\<^sub>l\<^sub>s_def using composition_conseq2l by simp
+    then obtain k where "j = \<tau> \<cdot> k"
+      using l6 mgu\<^sub>l\<^sub>s_def by blast
+    then have "u = \<sigma> \<cdot> \<tau> \<cdot> k"
+      by (simp add: \<open>u = \<sigma> \<cdot> j\<close> composition_assoc)
+    then show "\<exists>i. u = \<sigma> \<cdot> \<tau> \<cdot> i"
+      by blast
+  qed
+  ultimately
+  show ?thesis unfolding mgu\<^sub>l\<^sub>s_def by auto
+qed
   
 lemma
   assumes "mgu\<^sub>l\<^sub>s (a \<cdot> b) L"
