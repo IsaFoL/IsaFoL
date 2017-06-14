@@ -31,6 +31,7 @@ session Bachmair_Ganzinger = Bachmair_Ganzinger_Base +
     FO_Resolution_Prover
     New3_FO_Resolution_Prover
     New4_FO_Resolution_Prover
+    New5_FO_Resolution_Prover
   document_files
     "bib.bib"
     "root.tex"
