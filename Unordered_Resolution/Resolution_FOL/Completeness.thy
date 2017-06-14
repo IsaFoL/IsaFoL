@@ -615,7 +615,8 @@ proof (induction rule: resolution_step.induct)
     using unification sorry
   have "resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = factoring (oresolution C\<^sub>1 C\<^sub>2 l\<^sub>1 l\<^sub>2 \<tau>) \<eta>"
     sorry
-  then show ?case sorry
+  then show ?case 
+    sorry
 next
   case (standardize_apart C Cs C')
   then show ?case using ostandardize_apart unfolding oresolution_deriv_def by auto
