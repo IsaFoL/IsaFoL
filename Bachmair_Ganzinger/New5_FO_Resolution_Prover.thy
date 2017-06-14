@@ -65,6 +65,8 @@ definition "maximal_in A DAs \<equiv> (\<forall>B \<in> atms_of DAs. \<not> less
      there it was defined as THE maximum instead of SOME upper bound. *)
 abbreviation "str_maximal_in A CAis \<equiv> (\<forall>B \<in> atms_of CAis. \<not> less_eq_atm A B)"
 
+
+  
 (* Inspiration from supercalc *)
 inductive eligible :: "'s \<Rightarrow> 'a list \<Rightarrow> 'a clause \<Rightarrow> bool" where
   eligible:
@@ -122,20 +124,33 @@ proof -
       by (metis finite_set_mset insertCI is_unifier_subst_atm_eqI set_mset_add_mset_insert)
   qed
 qed
-    
-   
+
+definition mk_var_dis where "mk_var_dis Cs = (SOME \<rho>s. length \<rho>s = length Cs \<and> (\<forall>\<rho> \<in> set \<rho>s. is_renaming \<rho>) \<and>
+       var_disjoint (Cs \<cdot>\<cdot>cl \<rho>s))"
+  
+lemma mk_var_dis_jaja: "length (mk_var_dis Cs) = length Cs \<and> (\<forall>\<rho> \<in> set (mk_var_dis Cs). is_renaming \<rho>) \<and>
+       var_disjoint (Cs \<cdot>\<cdot>cl (mk_var_dis Cs))"
+proof -
+  define Q where "Q = (\<lambda>\<rho>s. length \<rho>s = length Cs \<and> (\<forall>\<rho> \<in> set \<rho>s. is_renaming \<rho>) \<and>
+       var_disjoint (Cs \<cdot>\<cdot>cl \<rho>s))" 
+  have "mk_var_dis Cs = (SOME \<rho>s. Q \<rho>s)"
+    unfolding mk_var_dis_def Q_def by auto
+  moreover
+  have "\<exists>\<rho>s. Q \<rho>s"
+    using make_var_disjoint unfolding Q_def by metis
+  ultimately
+  have "Q (mk_var_dis Cs)" using someI by metis
+  then show ?thesis unfolding Q_def by auto
+qed  
+ 
 inductive ord_resolve_rename :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve_rename:
-  "is_renaming \<rho> \<Longrightarrow>
-   (\<forall>\<rho> \<in> set P. is_renaming \<rho>) \<Longrightarrow>
-   length P = length CAi \<Longrightarrow>
-   ord_resolve (CAi \<cdot>\<cdot>cl P) (DA \<cdot> \<rho>) E \<Longrightarrow>
+  "\<rho> = hd (mk_var_dis (DA#CAi)) \<Longrightarrow>
+   \<rho>s = tl (mk_var_dis (DA#CAi)) \<Longrightarrow>
+   ord_resolve (CAi \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) E \<Longrightarrow>
    ord_resolve_rename CAi DA E"
   
-lemma ord_resolve_raw_imp_ord_resolve: "ord_resolve CAs D E \<Longrightarrow> ord_resolve_rename CAs D E"
-  apply (rule ord_resolve_rename[of id_subst "replicate (length CAs) id_subst"])
-  apply auto
-  done
+
 
 lemma ground_prems_ord_resolve_rename_imp_ord_resolve:
   assumes 
@@ -145,9 +160,10 @@ lemma ground_prems_ord_resolve_rename_imp_ord_resolve:
   shows "ord_resolve CAi DA E"
   using res_e_re proof (cases rule: ord_resolve_rename.cases)
   case (ord_resolve_rename \<rho> P)
-  have rename_P: "\<forall>\<rho> \<in> set P. is_renaming \<rho>" using ord_resolve_rename(2) .
-  have len: "length P = length CAi" using ord_resolve_rename(3) .
-  have res_e: "ord_resolve (CAi \<cdot>\<cdot>cl P) (DA \<cdot> \<rho>) E" using ord_resolve_rename(4) .
+  then have rename_P: "\<forall>\<rho> \<in> set P. is_renaming \<rho>" using mk_var_dis_jaja
+    by (metis list.sel(2) list.set_sel(2)) 
+  from ord_resolve_rename have len: "length P = length CAi" using mk_var_dis_jaja by auto
+  have res_e: "ord_resolve (CAi \<cdot>\<cdot>cl P) (DA \<cdot> \<rho>) E" using ord_resolve_rename by auto
   
   have "CAi \<cdot>\<cdot>cl P = CAi" using len gr_cc by auto
   moreover
@@ -279,7 +295,7 @@ lemma ord_resolve_rename_sound:
   shows "I \<Turnstile>fo E"
   using res_e proof (cases rule: ord_resolve_rename.cases)
   case (ord_resolve_rename \<rho> P)
-  have len: "length P = length CAi" using ord_resolve_rename by -
+  then have len: "length P = length CAi" using ord_resolve_rename mk_var_dis_jaja by auto
   have res: "ord_resolve (CAi \<cdot>\<cdot>cl P) (DA \<cdot> \<rho>) E" using ord_resolve_rename by -
   have "I \<Turnstile>fom (mset (CAi \<cdot>\<cdot>cl P)) + {#DA \<cdot> \<rho>#}"
     using subst_sound_scl[OF len , of I] subst_sound[of I DA]
