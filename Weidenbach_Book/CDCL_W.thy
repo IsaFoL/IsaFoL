@@ -1759,6 +1759,12 @@ proof -
     using ff3 ff2 a3 by (simp add: atm_lit_of_set_lits_of_l)
 qed
 
+lemma (in -) multi_member_split_removeAll:
+  \<open>a \<in># A \<Longrightarrow> \<exists>B n. A = B + replicate_mset n a\<close>
+  by (rule exI[of _ \<open>removeAll_mset a A\<close>])
+    (metis Diff_eq_empty_iff_mset diff_add_zero filter_mset_eq multiset_partition
+      subset_mset.diff_add)
+
 text \<open>\cwref{prop:prop:cdclPropLitsUnsat}{Item 5 page 81}\<close>
 lemma cdcl\<^sub>W_restart_propagate_is_conclusion:
   assumes
@@ -1780,15 +1786,27 @@ next
   proof (intro allI, clarify)
     fix a b
     assume "(a, b) \<in> set (get_all_ann_decomposition (trail T))"
-    then have "unmark_l a \<union> set_mset (clauses S) \<Turnstile>ps mset_set (unmark_l b)"
+    then have "unmark_m (mset a) + (clauses S) \<Turnstile>ps  unmark_m (mset b)"
       using decomp T by (auto simp add: all_decomposition_implies_def)
     moreover {
+      define B n where \<open>B = removeAll_mset C (clauses S)\<close> and \<open>n = count (clauses S) C\<close>
+      then have clss_S_B: \<open>clauses S = B + replicate_mset n C\<close>
+        by (metis count_le_replicate_mset_subset_eq order_refl subset_mset.diff_add)
       have a1:"C \<in># clauses S"
         using C by (auto simp: clauses_def)
       have "clauses T = clauses (remove_cls C S)"
         using T by auto
       then have "clauses T \<Turnstile>psm clauses S"
-        using a1 by (metis (no_types) clauses_remove_cls cls_C insert_Diff order_refl
+        using  cls_C
+          apply simp
+        unfolding B_def[symmetric] (* TODO MF: proper proof + simp rule *)
+        apply (auto dest!: simp: clss_S_B B_def[symmetric])
+        using true_clss_clss_def apply blast
+        by (metis (mono_tags, hide_lams) add_mset_add_single all_in_true_clss_clss 
+         in_replicate_mset true_clss_clss_left_right_add true_clss_clss_true_clss_cls 
+         true_clss_clss_union_and_add union_single_eq_member)
+          sorry
+        by (metis (no_types) clauses_remove_cls cls_C insert_Diff order_refl
             set_mset_minus_replicate_mset(1) true_clss_clss_def true_clss_clss_insert) }
     ultimately show "unmark_l a \<union> set_mset (clauses T) \<Turnstile>ps unmark_l b"
       using true_clss_clss_generalise_true_clss_clss by blast
