@@ -99,6 +99,26 @@ lemma vmtf_stamp_increase: \<open>vmtf xs p ys \<Longrightarrow> p \<le> p' \<Lo
   subgoal by (auto intro: vmtf.intros)
   done
 
+lemma vmtf_singe_iff: \<open>vmtf [a] m xs \<longleftrightarrow> (a < length xs \<and> m \<ge> stamp (xs ! a) \<and> xs ! a = VMTF_ATM (stamp (xs ! a)) None None)\<close>
+  by (auto 5 5 elim!: vmtfE intro: vmtf.intros)
+
+lemma
+  \<open>vmtf (xs @ [x, y] @ zs) n A \<longleftrightarrow>
+    (vmtf (xs @ [x]) n (A[x:= VMTF_ATM (stamp (A!x)) (get_prev (A!x)) None]) \<and>
+    vmtf (y # zs) (stamp (A!y)) (A[y:= VMTF_ATM (stamp (A!y)) None (get_next (A!y))]) \<and>
+    stamp (A!x) > stamp (A!y))\<close> (is \<open>?A \<longleftrightarrow> ?B \<and> ?C\<close>)
+proof
+  assume ?A
+  then show \<open>?B \<and> ?C\<close>
+    apply (induction \<open>xs @ [x, y] @ zs\<close> n A arbitrary: xs x y zs rule: vmtf.induct)
+    subgoal by simp
+    subgoal for a xsa m n
+      by auto
+    subgoal for b l m xsa a n xs' n' xs x y zs
+      apply (cases xs)
+      subgoal apply (auto simp: vmtf_singe_iff)
+oops
+
 definition vmtf_dequeue where
 \<open>vmtf_dequeue xs x =
   (let x = xs ! x;
