@@ -14,7 +14,7 @@ datatype 'v vmtf_atm = VMTF_ATM (stamp : nat) (get_prev: \<open>nat option\<clos
 
 inductive vmtf :: \<open>nat list \<Rightarrow> nat \<Rightarrow> nat vmtf_atm list \<Rightarrow> bool\<close> where
 Nil: \<open>vmtf [] st xs\<close> |
-Cons1: \<open>a < length xs \<Longrightarrow> m >= n \<Longrightarrow> xs ! a = VMTF_ATM (n::nat) None None \<Longrightarrow> vmtf [a] m xs\<close> |
+Cons1: \<open>a < length xs \<Longrightarrow> m \<ge> n \<Longrightarrow> xs ! a = VMTF_ATM (n::nat) None None \<Longrightarrow> vmtf [a] m xs\<close> |
 Cons: \<open>vmtf (b # l) m xs \<Longrightarrow> a < length xs \<Longrightarrow> xs ! a = VMTF_ATM n None (Some b) \<Longrightarrow>
   a \<noteq> b \<Longrightarrow> a \<notin> set l \<Longrightarrow> n > m \<Longrightarrow> xs' = xs[b := VMTF_ATM (stamp (xs!b)) (Some a) (get_next (xs!b))] \<Longrightarrow>
     n' >= n \<Longrightarrow>
@@ -92,7 +92,7 @@ proof -
     using assms by metis
 qed
 
-lemma vmtf_stamp_increase: \<open>vmtf xs p ys \<Longrightarrow> p <= p' \<Longrightarrow> vmtf xs p' ys\<close>
+lemma vmtf_stamp_increase: \<open>vmtf xs p ys \<Longrightarrow> p \<le> p' \<Longrightarrow> vmtf xs p' ys\<close>
   apply (induction rule: vmtf.induct)
   subgoal by (auto intro: vmtf.intros)
   subgoal by (rule vmtf.Cons1) (auto intro!: vmtf.intros)
