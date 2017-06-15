@@ -1292,8 +1292,8 @@ lemma ord_resolve_rename_lifting:
   obtain Ai' D' where ai':
     "length Ai' = n"
     
-    "Ai' \<cdot>al \<eta>' = Ai"
-    "D' \<cdot> \<eta>' = D"
+    "Ai' \<cdot>al \<eta> = Ai"
+    "D' \<cdot> \<eta> = D"
     "DA' = D' + (negs (mset Ai'))"
     "S_M S M (D + negs (mset Ai)) \<noteq> {#} \<Longrightarrow> negs (mset Ai') = S DA'"
   proof -
@@ -1307,36 +1307,36 @@ lemma ord_resolve_rename_lifting:
         by (simp add: \<open>mset Ai = {# Ai ! 0 #}\<close>)
       then have "DA = D + {#Neg (Ai ! 0)#}" 
         using ord_resolve(1) by auto
-      then obtain L where "L \<in># DA' \<and> L \<cdot>l \<eta>' = Neg (Ai ! 0)" 
-        using \<open>DA' \<cdot> \<eta>' = DA\<close> by (metis Melem_subst_cls mset_subset_eq_add_right single_subset_iff)
-      then have "Neg (atm_of L) \<in># DA' \<and> Neg (atm_of L) \<cdot>l \<eta>' = Neg (Ai ! 0)"
+      then obtain L where "L \<in># DA' \<and> L \<cdot>l \<eta> = Neg (Ai ! 0)" 
+        using \<open>DA' \<cdot> \<eta> = DA\<close> by (metis Melem_subst_cls mset_subset_eq_add_right single_subset_iff)
+      then have "Neg (atm_of L) \<in># DA' \<and> Neg (atm_of L) \<cdot>l \<eta> = Neg (Ai ! 0)"
         by (metis Neg_atm_of_iff literal.sel(2) subst_lit_is_pos)
-      then have "[atm_of L] \<cdot>al \<eta>' = Ai \<and> negs (mset [atm_of L]) \<subseteq># DA'"
+      then have "[atm_of L] \<cdot>al \<eta> = Ai \<and> negs (mset [atm_of L]) \<subseteq># DA'"
         using \<open>mset Ai = {#Ai ! 0#}\<close> subst_lit_def by auto
-      then show "\<exists>Ai'. Ai' \<cdot>al \<eta>' = Ai \<and> negs (mset Ai') \<subseteq># DA' \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')" 
+      then show "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> negs (mset Ai') \<subseteq># DA' \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')" 
         using a by blast
     next
       assume "S_M S M (D + negs (mset Ai)) = negs (mset Ai)" 
-      then have "negs (mset Ai) = S DA' \<cdot> \<eta>'" 
-        using ord_resolve(1) \<open>S DA' \<cdot> \<eta>' = S_M S M DA\<close> by auto
-      then have "\<exists>Ai'. negs (mset Ai') = S DA' \<and> Ai' \<cdot>al \<eta>' = Ai"
-        using instance_list[of Ai "S DA'" \<eta>'] using S.S_selects_neg_lits by auto
-      then show "\<exists>Ai'. Ai' \<cdot>al \<eta>' = Ai \<and> negs (mset Ai') \<subseteq># DA'  \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')" 
+      then have "negs (mset Ai) = S DA' \<cdot> \<eta>" 
+        using ord_resolve(1) \<open>S DA' \<cdot> \<eta> = S_M S M DA\<close> by auto
+      then have "\<exists>Ai'. negs (mset Ai') = S DA' \<and> Ai' \<cdot>al \<eta> = Ai"
+        using instance_list[of Ai "S DA'" \<eta>] using S.S_selects_neg_lits by auto
+      then show "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> negs (mset Ai') \<subseteq># DA'  \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')" 
         using S.S_selects_subseteq by auto
     qed
-    then obtain Ai' where Ai'_p: "Ai' \<cdot>al \<eta>' = Ai \<and> (negs (mset Ai')) \<subseteq># DA' \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')" 
+    then obtain Ai' where Ai'_p: "Ai' \<cdot>al \<eta> = Ai \<and> (negs (mset Ai')) \<subseteq># DA' \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')" 
       by blast
     then have "length Ai' = n"
       using local.ord_resolve(6) by auto
     note n = n \<open>length Ai' = n\<close>
       
-    have "Ai' \<cdot>al \<eta>' = Ai" using Ai'_p by auto
+    have "Ai' \<cdot>al \<eta> = Ai" using Ai'_p by auto
         
     define D' where "D' = DA' - (negs (mset Ai'))"
     then have DA'_u: "DA' = D' +  (negs (mset Ai'))" using Ai'_p by auto
         
-    have "D' \<cdot> \<eta>' = D" 
-      using \<open>DA' \<cdot> \<eta>' = DA\<close> ord_resolve(1) DA'_u Ai'_p by auto
+    have "D' \<cdot> \<eta> = D" 
+      using \<open>DA' \<cdot> \<eta> = DA\<close> ord_resolve(1) DA'_u Ai'_p by auto
         
     have "S_M S M (D + negs (mset Ai)) \<noteq> {#} \<Longrightarrow> negs (mset Ai') = S DA'"
       using Ai'_p by blast
