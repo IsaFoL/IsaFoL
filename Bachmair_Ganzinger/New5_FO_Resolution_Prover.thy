@@ -1265,28 +1265,48 @@ lemma ord_resolve_rename_lifting:
   have "length \<eta>s' = n"
     using ff(2) n unfolding \<eta>s'_def by auto   
   note n = \<open>length CAi' = n\<close> \<open>length \<eta>s' = n\<close> n
-  have "DA' \<cdot> \<eta>' = DA"
+  have DA'_DA: "DA' \<cdot> \<eta>' = DA"
     using ff(4) unfolding \<eta>'_def DA'_def using mk_var_dis_jaja n
     by (metis inv_ren_cancel_r length_greater_0_conv list.exhaust_sel list.set_intros(1) subst_cls_comp_subst subst_cls_id_subst zero_less_Suc) 
   have "S DA' \<cdot> \<eta>' = S_M S M DA" 
-    using ff(5)     using ff(4) unfolding \<eta>'_def DA'_def using mk_var_dis_jaja n
+    using ff(5) using ff(4) unfolding \<eta>'_def DA'_def using mk_var_dis_jaja n
     by (smt inv_ren_cancel_r length_greater_0_conv list.exhaust_sel list.set_intros(1) selection_renaming_invariant subst_cls_comp_subst subst_cls_id_subst zero_less_Suc)
     (* There is also a sledgehammer proof *)
-  have "CAi' \<cdot>\<cdot>cl \<eta>s' = CAi"
+  have CAi'_CAi: "CAi' \<cdot>\<cdot>cl \<eta>s' = CAi"
     using ff(7) selection_renaming_list_invariant unfolding CAi'_def \<eta>s'_def using n unfolding is_renaming_list_def
       using mk_var_dis_jaja
       by (metis drdrdrdrdrdrdrdrdrdrdrdr is_renaming_list_def length_greater_0_conv length_tl list.sel(3) list.set_sel(2) subst_cls_lists_comp_substs zero_less_Suc) 
-      
   have "(map S CAi') \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi"
     using ff(8) unfolding CAi'_def \<eta>s'_def using selection_renaming_list_invariant using n
     by (smt drdrdrdrdrdrdrdrdrdrdrdr inv_ren_is_renaming_list is_renaming_list_def length_greater_0_conv length_map length_tl list.sel(3) list.set_sel(2) mk_var_dis_jaja subst_cls_lists_comp_substs zero_less_Suc)
      (* no isar proof :-0 *) 
       
-  have "var_disjoint (DA' # CAi')" unfolding DA'_def CAi'_def
+  have vd: "var_disjoint (DA' # CAi')" unfolding DA'_def CAi'_def
     using mk_var_dis_jaja[of "DA'' # CAi''"]
     by (metis length_greater_0_conv list.exhaust_sel n(3) substitution.subst_cls_lists_Cons substitution_axioms zero_less_Suc)
       
   (* CONTINUE HERE *)
+      
+  (* Introduce \<eta> *)
+  from vd DA'_DA CAi'_CAi have "\<exists>\<eta>. \<forall>i<length (DA' # CAi'). \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> (\<eta>'#\<eta>s') ! i = S \<cdot> \<eta>" unfolding var_disjoint_def
+    using n by auto
+  then obtain \<eta>_fo where \<eta>_p: "\<forall>i<length (DA' # CAi'). \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> (\<eta>'#\<eta>s') ! i = S \<cdot> \<eta>_fo" 
+    by auto
+      
+  have DA'_DA: "DA' \<cdot> \<eta>_fo = DA"
+    using DA'_DA \<eta>_p by auto
+  have "S DA' \<cdot> \<eta>_fo = S_M S M DA" 
+    using \<open>S DA' \<cdot> \<eta>' = S_M S M DA\<close> \<eta>_p S.S_selects_subseteq by auto
+  have CAi'_CAi: "CAi' \<cdot>\<cdot>cl \<eta>s' = CAi"
+    using CAi'_CAi \<eta>_p by auto
+      
+  from \<eta>_p have "\<forall>i<n. (S ((CAi') ! i)) \<cdot> \<eta>s' ! i = (S ((CAi') ! i)) \<cdot> \<eta>_fo" 
+    using S.S_selects_subseteq n by auto
+  then have cai'_\<eta>_fo_sel: "(map S CAi') \<cdot>\<cdot>cl \<eta>s' = (map S CAi') \<cdot>cl \<eta>_fo"
+    using n by auto
+  then have "(map S CAi') \<cdot>cl \<eta>_fo = map (S_M S M) CAi"
+    using \<open>(map S CAi') \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi\<close> by auto
+    
     
     (* Split in to D's and A's *)
   obtain Ai' D' where ai':
