@@ -486,18 +486,8 @@ proof -
     assume J_NP: \<open>C \<le> U\<close>
 
     have L_L'_UW_N: \<open>C' \<in> set (take U (tl N))\<close>
-    proof -
-      have f1: "\<And>ls lss. length ((ls::'v clause_l) # lss) = Suc (length lss)"
-        by simp
-      have f2: "\<And>ls lsa lss. (ls::'v clause_l) \<noteq> lsa \<or> lsa \<in> set (ls # lss)"
-        by simp
-      have "\<And>ls lss. take (Suc 0) ((ls::'v clause_l) # lss) = [] @ [ls]"
-        by simp
-      then show ?thesis
-        using f2 f1 by (metis (no_types) C_le_N(1) C_le_N(2) J_NP N_C_C' drop_all_conc in_set_dropD
-            length_0_conv set_take_subset_set_take subset_code(1) take_Suc_conv_app_nth take_eq_Nil
-            take_tl tl_append2)
-    qed
+      using C_le_N(1) C_le_N(2) J_NP N_C_C' unfolding N_C_C'[symmetric] take_set
+      by (auto simp: nth_tl intro!: exI[of _ \<open>C - 1\<close>])
     have TWL_L_L'_UW_N: \<open>TWL_Clause {#?L, ?L'#} (mset ?UW) \<in># twl_clause_of `# mset (take U (tl N))\<close>
       using imageI[OF L_L'_UW_N, of twl_clause_of] watched_C' by auto
     have C_le_U: \<open>C - Suc 0 < length (take U (tl N))\<close>
