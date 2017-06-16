@@ -147,7 +147,7 @@ locale substitution = substitution_ops subst_atm id_subst comp_subst
     subst_atm_id_subst[simp]: "subst_atm A id_subst = A" and
     subst_atm_comp_subst[simp]: "subst_atm A (comp_subst \<tau> \<sigma>) = subst_atm (subst_atm A \<tau>) \<sigma>" and
     subst_ext: "(\<And>A. subst_atm A \<sigma> = subst_atm A \<tau>) \<Longrightarrow> \<sigma> = \<tau>" and
-    make_ground_subst: "\<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)" and
+    make_ground_subst: "is_ground_cls_list (CC \<cdot>cl \<sigma>) \<Longrightarrow> \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)" and
     make_var_disjoint: "\<And>Cs. \<exists>\<rho>s. length \<rho>s = length Cs \<and> (\<forall>\<rho> \<in> set \<rho>s. is_renaming \<rho>) \<and>
        var_disjoint (Cs \<cdot>\<cdot>cl \<rho>s)"
 begin
