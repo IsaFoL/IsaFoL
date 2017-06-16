@@ -815,10 +815,10 @@ lemma ord_resolve_obtain_clauses_std_apart:
       
   have CAi'_in_M: "\<forall>i < n. CAi' ! i \<in> M" using clauses' by auto
   have CAi'_\<eta>_fo_CAi: "CAi' \<cdot>cl \<eta>_fo = CAi"
-    using clauses' cai'_\<eta>_fo by auto
+    using clauses'(7) cai'_\<eta>_fo by auto
   
   have SCAi'_\<eta>_fo_SMCAi: "(map S CAi') \<cdot>cl \<eta>_fo = map (S_M S M) CAi"
-    using cai'_\<eta>_fo_sel clauses' by auto
+    using cai'_\<eta>_fo_sel clauses'(8) by auto
     
   have "DA' \<in> M" using clauses' by auto
   have "DA' \<cdot> \<eta>_fo = DA" using DA'_\<eta>
@@ -836,7 +836,7 @@ lemma ord_resolve_obtain_clauses_std_apart:
   from \<eta>_p have DA'_\<eta>: "DA' \<cdot> \<eta>_fo = DA' \<cdot> \<eta>" 
     by auto
       
-  from \<eta>_p have "\<forall>i<n. (S ((CAi') ! i)) \<cdot> \<eta>_fo = (S ((CAi') ! i)) \<cdot> \<eta>" 
+  from \<eta>_p have "\<forall>i<n. (S (CAi' ! i)) \<cdot> \<eta>_fo = (S (CAi' ! i)) \<cdot> \<eta>" 
     using n S.S_selects_subseteq by auto
   then have cai'_\<eta>_fo_sel: "(map S CAi') \<cdot>cl \<eta>_fo = (map S CAi') \<cdot>cl \<eta>"
     using n by auto
@@ -845,11 +845,11 @@ lemma ord_resolve_obtain_clauses_std_apart:
   then have cai'_\<eta>_fo: "CAi' \<cdot>cl \<eta>_fo = CAi' \<cdot>cl \<eta>"
     using n by auto
       
-  have "\<forall>i < n. CAi' ! i \<in> M" using clauses' n by auto
+  have "\<forall>i < n. CAi' ! i \<in> M" using clauses'(6) n by auto
   have CAi'_CAi: "CAi' \<cdot>cl \<eta> = CAi"
     using cai'_\<eta>_fo CAi'_\<eta>_fo_CAi by simp
       
-  have SCAi'_SMCAi: "map S (CAi') \<cdot>cl \<eta> = map (S_M S M) CAi"
+  have SCAi'_SMCAi: "(map S CAi') \<cdot>cl \<eta> = map (S_M S M) CAi"
     using cai'_\<eta>_fo_sel SCAi'_\<eta>_fo_SMCAi by auto
     
   have DA'_in_M: "DA' \<in> M" using clauses' by auto
@@ -977,13 +977,13 @@ lemma ord_resolve_lifting:
       fix i
       assume "i<n"
       have "CAi' ! i \<cdot> \<eta> = CAi ! i"
-        using \<open>i < n\<close> clauses'(1,6) n by auto
+        using \<open>i < n\<close> clauses'(6) using n by auto
       moreover
       have "poss (Aij ! i) \<subseteq># CAi !i"
         using \<open>i<n\<close> ord_resolve(8) by auto
       ultimately
       obtain NAiji' where nn: "NAiji' \<cdot> \<eta> = poss (Aij ! i) \<and> NAiji' \<subseteq># CAi' ! i"
-        using clauses' ord_resolve(8) image_mset_of_subset unfolding subst_cls_def by metis
+        using ord_resolve(8) image_mset_of_subset unfolding subst_cls_def by metis
       then have l: "\<forall>L \<in># NAiji'. is_pos L"
         unfolding subst_cls_def by (metis Melem_subst_cls imageE literal.disc(1) literal.map_disc_iff set_image_mset subst_cls_def subst_lit_def) 
       define Aiji' where "Aiji' = image_mset atm_of NAiji'"
@@ -1021,7 +1021,7 @@ lemma ord_resolve_lifting:
     have "\<forall>i < n. CAi' ! i = Ci' ! i + poss (Aij' ! i)"
      using Aij'_in_CAi' using Ci'_def n by auto
     then have "Ci' \<cdot>cl \<eta> = Ci"
-      using nth_equalityI clauses' n Aij'_Aij ord_resolve(8) by auto
+      using clauses'(6) Aij'_Aij ord_resolve(8) using n by auto
       
     show ?thesis using that 
         \<open>Aij' \<cdot>aml \<eta> = Aij\<close>

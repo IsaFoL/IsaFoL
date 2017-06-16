@@ -1287,26 +1287,61 @@ lemma ord_resolve_rename_lifting:
       
   (* CONTINUE HERE *)
       
-  (* Introduce \<eta> *)
-  from vd DA'_DA CAi'_CAi have "\<exists>\<eta>. \<forall>i<length (DA' # CAi'). \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> (\<eta>'#\<eta>s') ! i = S \<cdot> \<eta>" unfolding var_disjoint_def
+  (* Introduce \<eta>_fo *)
+  from vd DA'_DA CAi'_CAi have "\<exists>\<eta>. \<forall>i<Suc n. \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> (\<eta>'#\<eta>s') ! i = S \<cdot> \<eta>" unfolding var_disjoint_def
     using n by auto
-  then obtain \<eta>_fo where \<eta>_p: "\<forall>i<length (DA' # CAi'). \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> (\<eta>'#\<eta>s') ! i = S \<cdot> \<eta>_fo" 
+  then obtain \<eta>_fo where \<eta>_p: "\<forall>i<Suc n. \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> (\<eta>'#\<eta>s') ! i = S \<cdot> \<eta>_fo" 
     by auto
       
   have DA'_DA: "DA' \<cdot> \<eta>_fo = DA"
     using DA'_DA \<eta>_p by auto
   have "S DA' \<cdot> \<eta>_fo = S_M S M DA" 
     using \<open>S DA' \<cdot> \<eta>' = S_M S M DA\<close> \<eta>_p S.S_selects_subseteq by auto
-  have CAi'_CAi: "CAi' \<cdot>\<cdot>cl \<eta>s' = CAi"
-    using CAi'_CAi \<eta>_p by auto
+      
+  from \<eta>_p have "\<forall>i < n. (CAi' ! i) \<cdot> (\<eta>s' ! i) = (CAi'! i) \<cdot> \<eta>_fo"
+    using n
+    by auto
+  then have cai'_\<eta>_fo: "CAi' \<cdot>\<cdot>cl \<eta>s' = CAi' \<cdot>cl \<eta>_fo"
+    using n by auto
+  then have CAi'_\<eta>_fo_CAi: "CAi' \<cdot>cl \<eta>_fo = CAi"
+    using CAi'_CAi \<eta>_p n by auto
       
   from \<eta>_p have "\<forall>i<n. (S ((CAi') ! i)) \<cdot> \<eta>s' ! i = (S ((CAi') ! i)) \<cdot> \<eta>_fo" 
     using S.S_selects_subseteq n by auto
   then have cai'_\<eta>_fo_sel: "(map S CAi') \<cdot>\<cdot>cl \<eta>s' = (map S CAi') \<cdot>cl \<eta>_fo"
     using n by auto
-  then have "(map S CAi') \<cdot>cl \<eta>_fo = map (S_M S M) CAi"
+  then have SCAi'_\<eta>_fo_SMCAi: "(map S CAi') \<cdot>cl \<eta>_fo = map (S_M S M) CAi"
     using \<open>(map S CAi') \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi\<close> by auto
     
+      
+    (* Obtain ground substitution *)
+    
+  obtain \<eta> where \<eta>_p: "is_ground_subst \<eta> \<and> (\<forall>i<length (DA' # CAi'). \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> \<eta>_fo = S \<cdot> \<eta>)"
+    using make_ground_subst[of "DA' # CAi'" \<eta>_fo] grounding \<open>CAi' \<cdot>cl \<eta>_fo = CAi\<close> \<open>DA' \<cdot> \<eta>_fo = DA\<close> grounding_ground by metis
+      
+  from \<eta>_p have DA'_\<eta>_fo_sel: "(S DA') \<cdot> \<eta>_fo = (S DA') \<cdot> \<eta>" 
+    using S.S_selects_subseteq by auto
+  from \<eta>_p have DA'_\<eta>: "DA' \<cdot> \<eta>_fo = DA' \<cdot> \<eta>" 
+    by auto
+      
+  from \<eta>_p have "\<forall>i<n. (S (CAi' ! i)) \<cdot> \<eta>_fo = (S (CAi' ! i)) \<cdot> \<eta>" 
+    using n S.S_selects_subseteq by auto
+  then have cai'_\<eta>_fo_sel: "(map S CAi') \<cdot>cl \<eta>_fo = (map S CAi') \<cdot>cl \<eta>"
+    using n by auto
+  from \<eta>_p have "\<forall>i < n. (CAi' ! i) \<cdot> (\<eta>_fo) = (CAi'! i) \<cdot> \<eta>"
+    using n by auto
+  then have cai'_\<eta>_fo: "CAi' \<cdot>cl \<eta>_fo = CAi' \<cdot>cl \<eta>"
+    using n by auto
+      
+  have CAi'_CAi: "CAi' \<cdot>cl \<eta> = CAi"
+    using cai'_\<eta>_fo CAi'_\<eta>_fo_CAi by simp
+      
+  have SCAi'_SMCAi: "(map S CAi') \<cdot>cl \<eta> = map (S_M S M) CAi"
+    using cai'_\<eta>_fo_sel SCAi'_\<eta>_fo_SMCAi by auto
+    
+  have DA'_DA: "DA' \<cdot> \<eta> = DA" using \<open>DA' \<cdot> \<eta>_fo = DA\<close> \<eta>_p by auto
+  have SDA'_SMDA: "S DA' \<cdot> \<eta> = S_M S M DA"
+    using \<open>S DA' \<cdot> \<eta>_fo = S_M S M DA\<close> using \<eta>_p S.S_selects_subseteq by auto
     
     (* Split in to D's and A's *)
   obtain Ai' D' where ai':
@@ -1317,7 +1352,7 @@ lemma ord_resolve_rename_lifting:
     "DA' = D' + (negs (mset Ai'))"
     "S_M S M (D + negs (mset Ai)) \<noteq> {#} \<Longrightarrow> negs (mset Ai') = S DA'"
   proof -
-    from ord_resolve(11) have "\<exists>Ai'. Ai' \<cdot>al \<eta>' = Ai \<and> (negs (mset Ai')) \<subseteq># DA' \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')"
+    from ord_resolve(11) have "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> (negs (mset Ai')) \<subseteq># DA' \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')"
       unfolding eligible_simp
     proof
       assume a: "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
@@ -1363,8 +1398,8 @@ lemma ord_resolve_rename_lifting:
         
         
     show ?thesis using that
-        \<open>Ai' \<cdot>al \<eta>' = Ai\<close>
-        \<open>D' \<cdot> \<eta>' = D\<close>
+        \<open>Ai' \<cdot>al \<eta> = Ai\<close>
+        \<open>D' \<cdot> \<eta> = D\<close>
         \<open>DA' = D' +  (negs (mset Ai'))\<close>
         \<open>S_M S M (D + negs (mset Ai)) \<noteq> {#} \<Longrightarrow> negs (mset Ai') = S DA'\<close>
         \<open>length Ai' = n\<close>
@@ -1387,13 +1422,13 @@ lemma ord_resolve_rename_lifting:
       fix i
       assume "i<n"
       have "CAi' ! i \<cdot> \<eta> = CAi ! i"
-        using \<open>i < n\<close> clauses'(1,6) n by auto
+        using \<open>i < n\<close> \<open>CAi' \<cdot>cl \<eta> = CAi\<close> n by auto
       moreover
       have "poss (Aij ! i) \<subseteq># CAi !i"
         using \<open>i<n\<close> ord_resolve(8) by auto
       ultimately
       obtain NAiji' where nn: "NAiji' \<cdot> \<eta> = poss (Aij ! i) \<and> NAiji' \<subseteq># CAi' ! i"
-        using clauses' ord_resolve(8) image_mset_of_subset unfolding subst_cls_def by metis
+        using ord_resolve(8) image_mset_of_subset unfolding subst_cls_def by metis
       then have l: "\<forall>L \<in># NAiji'. is_pos L"
         unfolding subst_cls_def by (metis Melem_subst_cls imageE literal.disc(1) literal.map_disc_iff set_image_mset subst_cls_def subst_lit_def) 
       define Aiji' where "Aiji' = image_mset atm_of NAiji'"
@@ -1431,7 +1466,7 @@ lemma ord_resolve_rename_lifting:
     have "\<forall>i < n. CAi' ! i = Ci' ! i + poss (Aij' ! i)"
      using Aij'_in_CAi' using Ci'_def n by auto
     then have "Ci' \<cdot>cl \<eta> = Ci"
-      using nth_equalityI clauses' n Aij'_Aij ord_resolve(8) by auto
+      using \<open>CAi' \<cdot>cl \<eta> = CAi\<close> Aij'_Aij ord_resolve(8) using n by auto
       
     show ?thesis using that 
         \<open>Aij' \<cdot>aml \<eta> = Aij\<close>
@@ -1577,9 +1612,23 @@ lemma ord_resolve_rename_lifting:
     then obtain \<eta>2 where ground_\<eta>2: "is_ground_subst \<eta>2" "E' \<cdot> \<eta>2 = E" using e'\<phi>e make_single_ground_subst by blast
     then show ?thesis using that by auto
   qed
+    
+  have res_r_e: "ord_resolve_rename S CAi'' DA'' E'"
+    using ord_resolve_rename[of "hd (mk_var_dis (DA''#CAi''))" DA'' CAi'' "tl (mk_var_dis (DA''#CAi''))" S E']
+    res_e unfolding CAi'_def DA'_def by auto
 
   show ?thesis using that
-      ground_\<eta>2 res_e clauses' by blast
+       ground_\<eta>2 res_r_e
+    \<open>length CAi' = n\<close>
+    \<open>DA'' \<in> M\<close>
+    \<open>DA' \<cdot> \<eta> = DA\<close>
+    \<open>S DA' \<cdot> \<eta> = S_M S M DA\<close>
+    \<open>\<forall>CA\<in>set CAi''. CA \<in> M\<close>
+    \<open>CAi' \<cdot>cl \<eta> = CAi\<close>
+    \<open>map S CAi' \<cdot>cl \<eta> = map (S_M S M) CAi\<close>
+    \<eta>_p
+    \<open>var_disjoint (DA' # CAi')\<close>
+    by blast
 qed
   
 end
