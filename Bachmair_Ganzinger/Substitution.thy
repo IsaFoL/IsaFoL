@@ -644,8 +644,10 @@ subsubsection {* Ground expressions and substitutions *}
   
 lemma ex_ground_subst: "\<exists>\<sigma>. is_ground_subst \<sigma>"
   using make_ground_subst[of "[]"] by (auto simp: subst_cls_list_def is_ground_cls_list_def)
-
-thm make_ground_subst
+    
+lemma is_ground_cls_list_Cons[simp]:
+  "is_ground_cls_list (C # CC) = (is_ground_cls C \<and> is_ground_cls_list CC)"
+  unfolding is_ground_cls_list_def by auto
     
 lemma make_single_ground_subst: 
   assumes "is_ground_cls (C \<cdot> \<sigma>)"
@@ -654,12 +656,18 @@ lemma make_single_ground_subst:
     "\<forall>S. S \<subseteq># C \<longrightarrow> S \<cdot> \<tau> = S \<cdot> \<sigma>"
 using assms
   using make_ground_subst[of "[C]" \<sigma>] unfolding is_ground_cls_list_def by auto
-    
-lemma is_ground_cls_list_Cons[simp]:
-  "is_ground_cls_list (C # CC) = (is_ground_cls C \<and> is_ground_cls_list CC)"
-  unfolding is_ground_cls_list_def by auto
-    
+
 lemma make_ground_subst_clauses:
+  assumes "is_ground_cls_list (CC \<cdot>cl \<sigma>)"
+  shows "\<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length CC. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)"
+proof -
+  from assms obtain \<tau> where "is_ground_subst \<tau> \<and> (\<forall>i<length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)" 
+    using make_ground_subst by blast
+  then show ?thesis 
+    by blast
+qed
+    
+lemma make_ground_subst_clauses':
   assumes "is_ground_cls_list (CC \<cdot>cl \<sigma>)"
   shows "\<exists>\<tau>. is_ground_subst \<tau> \<and> CC \<cdot>cl \<sigma> = CC \<cdot>cl \<tau>"
 proof -
@@ -674,6 +682,26 @@ proof -
 qed
   
 lemma make_ground_subst_list_clauses:
+  assumes "length CC = length \<sigma>s"
+  assumes "is_ground_cls_list (CC \<cdot>\<cdot>cl \<sigma>s)"
+  shows "\<exists>\<tau>s. is_ground_subst_list \<tau>s \<and> length \<tau>s = length CC \<and> (\<forall>i<length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> (\<sigma>s ! i) = S \<cdot> (\<tau>s ! i))"
+proof -
+  have "\<forall>i < length CC. \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>S. S \<subseteq># (CC ! i) \<longrightarrow> S \<cdot> \<tau> = S \<cdot> \<sigma>s ! i)"
+    using assms make_single_ground_subst[of "CC ! _" "\<sigma>s ! _"] unfolding is_ground_cls_list_def
+    by (metis min.idem nth_mem subst_cls_lists_length subst_cls_lists_nth)
+  then obtain f where f_p:
+    "\<forall>i < length CC. is_ground_subst (f i) \<and> (\<forall>S. S \<subseteq># (CC ! i) \<longrightarrow> S \<cdot> (f i) = S \<cdot> \<sigma>s ! i)"
+    by metis
+  let ?\<tau>s = "map f [0 ..< length CC]"
+  have \<tau>s_p: "\<forall>i < length CC. is_ground_subst (?\<tau>s ! i) \<and> (\<forall>S. S \<subseteq># (CC ! i) \<longrightarrow> S \<cdot> (?\<tau>s ! i) = S \<cdot> \<sigma>s ! i)"
+    using f_p by auto 
+  then have "is_ground_subst_list ?\<tau>s \<and> length ?\<tau>s = length CC \<and> (\<forall>i<length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> (\<sigma>s ! i) = S \<cdot> (?\<tau>s ! i))"
+    unfolding is_ground_subst_list_def by auto
+  then show ?thesis
+    by metis
+qed
+  
+lemma make_ground_subst_list_clauses':
   assumes "length CC = length \<sigma>s"
   assumes "is_ground_cls_list (CC \<cdot>\<cdot>cl \<sigma>s)"
   shows "\<exists>\<tau>s. is_ground_subst_list \<tau>s \<and> CC \<cdot>\<cdot>cl \<sigma>s = CC \<cdot>\<cdot>cl \<tau>s"
@@ -707,7 +735,7 @@ proof -
   with assms(3) have "is_ground_cls_list (Cs \<cdot>cl \<tau>)"
     by simp
   then obtain \<tau>' where "is_ground_subst \<tau>'" "Cs \<cdot>cl \<tau> = Cs \<cdot>cl \<tau>'"
-    using make_ground_subst_clauses by blast
+    using make_ground_subst_clauses' by blast
   with assms(2) * have "is_ground_subst \<tau>' \<and> Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>'"
     by simp
   then show ?thesis ..

@@ -648,11 +648,48 @@ lemma ord_resolve_obtain_clauses:
   have SDA''_to_SMDA: "S DA'' \<cdot> \<eta>'' = S_M S M DA" 
     using DA''_\<eta>''_p by auto
       
+    (* Obtain ground substitutions *)
       
+  have "is_ground_cls_list (CAi'' \<cdot>\<cdot>cl \<eta>s'')"
+    using CAi''_to_CAi grounding grounding_ground is_ground_cls_list_def by auto 
+  then obtain \<eta>s''g where \<eta>s''g_p:
+    "is_ground_subst_list \<eta>s''g"
+    "length \<eta>s''g = n"
+    "\<forall>i<n. \<forall>S. S \<subseteq># CAi'' ! i \<longrightarrow> S \<cdot> \<eta>s'' ! i = S \<cdot> \<eta>s''g ! i"
+    using make_ground_subst_list_clauses[of CAi'' \<eta>s''] using n by metis
+      
+  note n = \<open>length \<eta>s''g = n\<close> n
+    
+  from \<eta>s''g_p have CAi''_to_CAi: "CAi'' \<cdot>\<cdot>cl \<eta>s''g = CAi" 
+    using CAi''_to_CAi using  n by auto
+  {
+    fix i
+    assume a: "i<n"
+    then have "(map S CAi'' \<cdot>\<cdot>cl \<eta>s'') ! i = (map (S_M S M) CAi) ! i"
+      using SCAi''_to_SMCAi by simp      
+    then have "((map S CAi'') \<cdot>\<cdot>cl \<eta>s''g) ! i = (map (S_M S M) CAi) ! i"
+      using \<eta>s''g_p S.S_selects_subseteq using a n by auto
+  }
+  then have SCAi''_to_SMCAi: "(map S CAi'') \<cdot>\<cdot>cl \<eta>s''g = map (S_M S M) CAi"
+    using n by auto
+      
+  
+  have "is_ground_cls (DA'' \<cdot> \<eta>'')"
+    using DA''_to_DA grounding grounding_ground by auto
+  then obtain \<eta>''g where \<eta>''g_p:
+    "is_ground_subst \<eta>''g"
+    "\<forall>S. S \<subseteq># DA'' \<longrightarrow> S \<cdot> \<eta>'' = S \<cdot> \<eta>''g"
+    using DA''_to_DA make_single_ground_subst by metis
+      
+  have DA''_to_DA: "DA'' \<cdot> \<eta>''g = DA" 
+    using DA''_\<eta>''_p \<eta>''g_p by auto
+  have SDA''_to_SMDA: "S DA'' \<cdot> \<eta>''g = S_M S M DA" 
+    using SDA''_to_SMDA \<eta>''g_p S.S_selects_subseteq by auto
     
   show ?thesis
     using that DA''_in_M DA''_to_DA SDA''_to_SMDA CAi''_in_M CAi''_to_CAi SCAi''_to_SMCAi n 
-    sorry
+      \<eta>''g_p \<eta>s''g_p
+    by auto
 qed
   
   
@@ -1223,7 +1260,7 @@ lemma ord_resolve_rename_lifting:
     and select: "selection S"
     and selection_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" 
     and grounding: "{DA} \<union> (set CAi) \<subseteq> grounding_of_clss M"
-  obtains \<eta> \<eta>2 CAi'' DA'' E'' where
+  obtains \<eta>s \<eta> \<eta>2 CAi'' DA'' E'' where
     "is_ground_subst \<eta>"
     "\<forall>s \<in> set \<eta>s. is_ground_subst s"
     "is_ground_subst \<eta>2"
@@ -1641,7 +1678,9 @@ lemma ord_resolve_rename_lifting:
     \<open>map S CAi' \<cdot>cl \<eta> = map (S_M S M) CAi\<close>
     \<eta>_p
     \<open>var_disjoint (DA' # CAi')\<close>
-    sorry
+    \<open>is_ground_subst \<eta>''\<close>
+    \<open>is_ground_subst_list \<eta>s''\<close>
+    by metis
 qed
   
 end
