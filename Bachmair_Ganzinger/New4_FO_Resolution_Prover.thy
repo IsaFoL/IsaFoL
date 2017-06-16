@@ -829,7 +829,9 @@ lemma ord_resolve_obtain_clauses_std_apart:
     (* Obtain ground substitution *)
     
   obtain \<eta> where \<eta>_p: "is_ground_subst \<eta> \<and> (\<forall>i<length (DA' # CAi'). \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> \<eta>_fo = S \<cdot> \<eta>)"
-    using make_ground_subst[of "DA' # CAi'" \<eta>_fo] grounding \<open>CAi' \<cdot>cl \<eta>_fo = CAi\<close> \<open>DA' \<cdot> \<eta>_fo = DA\<close> grounding_ground by metis
+    using make_ground_subst[of "DA' # CAi'" \<eta>_fo] grounding \<open>CAi' \<cdot>cl \<eta>_fo = CAi\<close> \<open>DA' \<cdot> \<eta>_fo = DA\<close> grounding_ground
+    by (metis Un_insert_left is_ground_cls_list_def list.simps(15) subsetCE subst_cls_list_Cons sup_bot.left_neutral) 
+      
       
   from \<eta>_p have DA'_\<eta>_fo_sel: "(S DA') \<cdot> \<eta>_fo = (S DA') \<cdot> \<eta>" 
     using S.S_selects_subseteq by auto

@@ -599,7 +599,7 @@ lemma ord_resolve_obtain_clauses:
     "(map S CAi'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAi"
     
     "is_ground_subst \<eta>''"
-    "is_ground_subst_list  s"
+    "is_ground_subst_list \<eta>s''"
   using resolve proof (cases rule: ord_resolve.cases)
   case (ord_resolve nn Ci Aij Ai \<sigma> D)
   then have "nn = n"
@@ -651,7 +651,8 @@ lemma ord_resolve_obtain_clauses:
       
     
   show ?thesis
-    using that DA''_in_M DA''_to_DA SDA''_to_SMDA CAi''_in_M CAi''_to_CAi SCAi''_to_SMCAi n by blast
+    using that DA''_in_M DA''_to_DA SDA''_to_SMDA CAi''_in_M CAi''_to_CAi SCAi''_to_SMCAi n 
+    sorry
 qed
   
   
@@ -871,7 +872,9 @@ lemma ord_resolve_obtain_clauses_std_apart:
     (* Obtain ground substitution *)
     
   obtain \<eta> where \<eta>_p: "is_ground_subst \<eta> \<and> (\<forall>i<length (DA' # CAi'). \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> \<eta>_fo = S \<cdot> \<eta>)"
-    using make_ground_subst[of "DA' # CAi'" \<eta>_fo] grounding \<open>CAi' \<cdot>cl \<eta>_fo = CAi\<close> \<open>DA' \<cdot> \<eta>_fo = DA\<close> grounding_ground by metis
+    using make_ground_subst[of "DA' # CAi'" \<eta>_fo] grounding \<open>CAi' \<cdot>cl \<eta>_fo = CAi\<close> \<open>DA' \<cdot> \<eta>_fo = DA\<close> grounding_ground
+    by (metis Un_insert_left is_ground_cls_list_def list.simps(15) subsetCE subst_cls_list_Cons sup_bot.left_neutral)
+      
       
   from \<eta>_p have DA'_\<eta>_fo_sel: "(S DA') \<cdot> \<eta>_fo = (S DA') \<cdot> \<eta>" 
     using S.S_selects_subseteq by auto
@@ -1252,8 +1255,9 @@ lemma ord_resolve_rename_lifting:
     "(map S CAi'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAi"
     
     "is_ground_subst \<eta>''"
-    "\<forall>s \<in> set \<eta>s''. is_ground_subst s"
-    using resolve grounding select ord_resolve_obtain_clauses[of S M CAi DA E n] n by metis
+    "is_ground_subst_list \<eta>s''"
+    using resolve grounding select ord_resolve_obtain_clauses[of S M CAi DA E n] n 
+      by metis
   
   note n = \<open>length CAi'' = n\<close> \<open>length \<eta>s'' = n\<close> n
       
@@ -1322,10 +1326,11 @@ lemma ord_resolve_rename_lifting:
     using \<open>(map S CAi') \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi\<close> by auto
     
       
-    (* Obtain ground substitution *)
+    (* Obtain ground substitution *) (* Doing this is not nescessary actually *)
     
   obtain \<eta> where \<eta>_p: "is_ground_subst \<eta> \<and> (\<forall>i<length (DA' # CAi'). \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> \<eta>_fo = S \<cdot> \<eta>)"
-    using make_ground_subst[of "DA' # CAi'" \<eta>_fo] grounding \<open>CAi' \<cdot>cl \<eta>_fo = CAi\<close> \<open>DA' \<cdot> \<eta>_fo = DA\<close> grounding_ground by metis
+    using make_ground_subst[of "DA' # CAi'" \<eta>_fo] grounding \<open>CAi' \<cdot>cl \<eta>_fo = CAi\<close> \<open>DA' \<cdot> \<eta>_fo = DA\<close> grounding_ground
+    by (metis ff(10) ff(4) ff(7) ff(9) ground_subst_ground_cls ground_subst_ground_cls_lists is_ground_cls_list_Cons is_ground_subst_list_def subst_cls_list_Cons)   
       
   from \<eta>_p have DA'_\<eta>_fo_sel: "(S DA') \<cdot> \<eta>_fo = (S DA') \<cdot> \<eta>" 
     using S.S_selects_subseteq by auto
@@ -1570,7 +1575,7 @@ lemma ord_resolve_rename_lifting:
   have nothing_selected: "\<forall>i < n. S (CAi' ! i) = {#}"
   proof -
     have "\<forall>i < n. (map S CAi' \<cdot>cl \<eta>) ! i = (map (S_M S M) CAi) ! i"
-      using clauses'(7) by auto
+      by (simp add: SCAi'_SMCAi)
     then have "\<forall>i < n. S (CAi' ! i) \<cdot> \<eta> = S_M S M (CAi ! i)"
       using n by auto
     hence "\<forall>i < n. S (CAi' ! i)  \<cdot> \<eta> = {#}" using ord_resolve(13) \<open>\<forall>i < n.  S (CAi' ! i) \<cdot> \<eta> = S_M S M (CAi ! i)\<close> by auto 
@@ -1636,7 +1641,7 @@ lemma ord_resolve_rename_lifting:
     \<open>map S CAi' \<cdot>cl \<eta> = map (S_M S M) CAi\<close>
     \<eta>_p
     \<open>var_disjoint (DA' # CAi')\<close>
-    by blast
+    sorry
 qed
   
 end
