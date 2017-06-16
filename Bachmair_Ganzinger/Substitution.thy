@@ -109,6 +109,9 @@ definition is_ground_cls_mset :: "'a clause multiset \<Rightarrow> bool" where
   
 definition is_ground_subst :: "'s \<Rightarrow> bool" where
   "is_ground_subst \<sigma> \<longleftrightarrow> (\<forall>A. is_ground_atm (A \<cdot>a \<sigma>))"
+  
+definition is_ground_subst_list :: "'s list \<Rightarrow> bool" where
+  "is_ground_subst_list \<sigma>s \<longleftrightarrow>  (\<forall>\<sigma> \<in> set \<sigma>s. is_ground_subst \<sigma>)"
 
 definition grounding_of_cls :: "'a clause \<Rightarrow> 'a clause set" where
   "grounding_of_cls C = {C \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>}"
@@ -638,6 +641,20 @@ qed
   
     
 subsubsection {* Ground expressions and substitutions *}
+
+thm make_ground_subst
+  
+lemma ex_ground_subst: "\<exists>\<sigma>. is_ground_subst \<sigma>"
+  using make_ground_subst[of "[]"] by (auto simp: subst_cls_list_def is_ground_cls_list_def)
+
+lemma make_single_ground_subst: 
+  assumes "is_ground_cls C"
+  assumes "C' \<cdot> \<sigma> = C"
+  obtains \<tau> where
+    "is_ground_subst \<tau>"
+    "C' \<cdot> \<tau> = C"
+using assms
+  using make_ground_subst[of ]
     
 lemma is_ground_cls_list_Cons[simp]:
   "is_ground_cls_list (C # CC) = (is_ground_cls C \<and> is_ground_cls_list CC)"
@@ -648,6 +665,20 @@ lemma make_ground_subst_clauses:
   shows "\<exists>\<tau>. is_ground_subst \<tau> \<and> CC \<cdot>cl \<sigma> = CC \<cdot>cl \<tau>"
 proof -
   from assms obtain \<tau> where "is_ground_subst \<tau> \<and> (\<forall>i<length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)" 
+    using make_ground_subst by blast
+  then have "is_ground_subst \<tau> \<and> (\<forall>i<length CC. (CC ! i) \<cdot> \<sigma> = (CC ! i) \<cdot> \<tau>)"
+    by auto
+  then have "is_ground_subst \<tau> \<and> CC \<cdot>cl \<sigma> = CC \<cdot>cl \<tau>"
+    by (simp add: list_eq_iff_nth_eq) 
+  then show ?thesis 
+    by blast
+qed
+  
+lemma make_ground_subst_list_clauses:
+  assumes "is_ground_cls_list (CC \<cdot>\<cdot>cl \<sigma>s)"
+  shows "\<exists>\<tau>. is_ground_subst_list \<tau>s \<and> CC \<cdot>\<cdot>cl \<sigma>s = CC \<cdot>\<cdot>cl \<tau>s"
+proof -
+  from assms obtain \<tau>s where "is_ground_subst_list \<tau>s \<and> (\<forall>i<length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> (\<sigma>s ! i) = S \<cdot> (\<tau>s!i))" 
     using make_ground_subst by blast
   then have "is_ground_subst \<tau> \<and> (\<forall>i<length CC. (CC ! i) \<cdot> \<sigma> = (CC ! i) \<cdot> \<tau>)"
     by auto
@@ -673,8 +704,7 @@ proof -
   then show ?thesis ..
 qed
 
-lemma ex_ground_subst: "\<exists>\<sigma>. is_ground_subst \<sigma>"
-  using make_ground_subst[of "[]"] by (auto simp: subst_cls_list_def is_ground_cls_list_def)
+
   
 paragraph {* Ground union *}
   
@@ -806,16 +836,6 @@ lemma is_ground_subst_cls_iff: "is_ground_cls C \<longleftrightarrow> (\<forall>
   apply (metis ex_ground_subst ground_subst_ground_cls)
   done    
 
-paragraph {* \<^text>\<open>make_single_ground_subst\<close> *}
-lemma make_single_ground_subst: 
-  (* Makes me wonder if I can also prove \<^text>\<open>make_ground_subst\<close>... But do I really want to?  *)
-  assumes "is_ground_cls C"
-  assumes "C' \<cdot> \<sigma> = C"
-  obtains \<tau> where
-    "is_ground_subst \<tau>"
-    "C' \<cdot> \<tau> = C"
-using assms
-  by (metis ex_ground_subst is_ground_comp_subst is_ground_subst_cls subst_cls_comp_subst) (* I'm very impressed sledgehammer managed to do this... *)
 
     
 subsubsection {* Unifiers *}

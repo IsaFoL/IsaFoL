@@ -597,6 +597,9 @@ lemma ord_resolve_obtain_clauses:
     "\<forall>CA \<in> set CAi''. CA \<in> M" (* Could also use subseteq *)
     "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi"
     "(map S CAi'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAi"
+    
+    "is_ground_subst \<eta>''"
+    "is_ground_subst_list  s"
   using resolve proof (cases rule: ord_resolve.cases)
   case (ord_resolve nn Ci Aij Ai \<sigma> D)
   then have "nn = n"
@@ -643,7 +646,9 @@ lemma ord_resolve_obtain_clauses:
   have DA''_to_DA: "DA'' \<cdot> \<eta>'' = DA" 
     using DA''_\<eta>''_p by auto
   have SDA''_to_SMDA: "S DA'' \<cdot> \<eta>'' = S_M S M DA" 
-    using DA''_\<eta>''_p by auto  
+    using DA''_\<eta>''_p by auto
+      
+      
     
   show ?thesis
     using that DA''_in_M DA''_to_DA SDA''_to_SMDA CAi''_in_M CAi''_to_CAi SCAi''_to_SMCAi n by blast
@@ -1245,6 +1250,9 @@ lemma ord_resolve_rename_lifting:
     "\<forall>CA \<in> set CAi''. CA \<in> M" (* Could also use subseteq *)
     "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi"
     "(map S CAi'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAi"
+    
+    "is_ground_subst \<eta>''"
+    "\<forall>s \<in> set \<eta>s''. is_ground_subst s"
     using resolve grounding select ord_resolve_obtain_clauses[of S M CAi DA E n] n by metis
   
   note n = \<open>length CAi'' = n\<close> \<open>length \<eta>s'' = n\<close> n
