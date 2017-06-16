@@ -1262,9 +1262,9 @@ lemma ord_resolve_rename_lifting:
     and grounding: "{DA} \<union> (set CAi) \<subseteq> grounding_of_clss M"
   obtains \<eta>s \<eta> \<eta>2 CAi'' DA'' E'' where
     "is_ground_subst \<eta>"
-    "\<forall>s \<in> set \<eta>s. is_ground_subst s"
+    "is_ground_subst_list \<eta>s"
     "is_ground_subst \<eta>2"
-    "ord_resolve_rename S CAi'' DA'' E'"
+    "ord_resolve_rename S CAi'' DA'' E''"
     "CAi'' \<cdot>\<cdot>cl \<eta>s = CAi" "DA'' \<cdot> \<eta> = DA" "E'' \<cdot> \<eta>2 = E" (* In the previous proofs I have CAi and DA on lfs of equality... *)
     "{DA''} \<union> set CAi'' \<subseteq> M"
   using resolve proof (cases rule: ord_resolve.cases)
@@ -1666,25 +1666,22 @@ lemma ord_resolve_rename_lifting:
   have res_r_e: "ord_resolve_rename S CAi'' DA'' E'"
     using ord_resolve_rename[of "hd (mk_var_dis (DA''#CAi''))" DA'' CAi'' "tl (mk_var_dis (DA''#CAi''))" S E']
     res_e unfolding CAi'_def DA'_def by auto
-
-  show ?thesis using that
-       ground_\<eta>2 res_r_e
-    \<open>length CAi' = n\<close>
-    \<open>DA'' \<in> M\<close>
-    \<open>DA' \<cdot> \<eta> = DA\<close>
-    \<open>S DA' \<cdot> \<eta> = S_M S M DA\<close>
-    \<open>\<forall>CA\<in>set CAi''. CA \<in> M\<close>
-    \<open>CAi' \<cdot>cl \<eta> = CAi\<close>
-    \<open>map S CAi' \<cdot>cl \<eta> = map (S_M S M) CAi\<close>
-    \<eta>_p
-    \<open>var_disjoint (DA' # CAi')\<close>
-    \<open>is_ground_subst \<eta>''\<close>
-    \<open>is_ground_subst_list \<eta>s''\<close>
-    by metis
+      
+  show ?thesis using that[of \<eta>'' \<eta>s'' \<eta>2 CAi'' DA'' E']
+      \<open>is_ground_subst \<eta>''\<close>
+      \<open>is_ground_subst_list \<eta>s''\<close>
+      \<open>is_ground_subst \<eta>2\<close> 
+      res_r_e
+      \<open> CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi\<close>
+      \<open>DA'' \<cdot> \<eta>'' = DA\<close>
+      \<open>E' \<cdot> \<eta>2 = E\<close>      
+      
+      \<open>DA'' \<in> M\<close>
+      \<open>\<forall>CA\<in>set CAi''. CA \<in> M\<close>
+    by blast
 qed
   
 end
-  
 
   
 locale FO_resolution_with_selection =
