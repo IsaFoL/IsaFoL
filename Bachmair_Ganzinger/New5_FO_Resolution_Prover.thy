@@ -1077,7 +1077,9 @@ find_theorems name: src
 thm src.saturated_upto_refute_complete
 *)
 
-  
+
+(* The extension of ordered resolution mentioned in 4.10. Following Uwe's recommendation I make it enormous, 
+   i.e. consisting of all satisfiability preserving rules *)
 (* A huge extension like Uwe suggested. *)
 definition "gd_ord_\<Gamma>' = {Infer a b c | a b c. (\<exists>I. I \<Turnstile>m a \<and> I \<Turnstile> b) \<longrightarrow> (\<exists>I. I \<Turnstile> c)}" 
 
@@ -1152,20 +1154,35 @@ term "src_ext_derive"
 term gd_ord_\<Gamma> 
   
 
-  
-(* The extension of ordered resolution mentioned in 4.10. Following Uwe's recommendation I make it enormous, 
-   i.e. consisting of all satisfiability preserving rules *)
-  
-(* I need to interpret derive with \<Gamma>' and R as the standard extension wrt Os of standard redundancy *)
-  
+lemma subst_subset_mono: "D \<subset># C \<Longrightarrow> D \<cdot> \<sigma> \<subset># C \<cdot> \<sigma>"
+  unfolding subst_cls_def
+  by (simp add: image_mset_subset_mono) 
+
 lemma resolution_prover_rtc_deriv:
   assumes "St \<leadsto> St'"
-  shows "rtranclp src_ext.derive (grounding_of_state St) (grounding_of_state St')"
+  shows "src_ext.derive (grounding_of_state St) (grounding_of_state St')"
 using assms proof (induction rule: resolution_prover.induct)
-  case (tautology_deletion C N P Q)
-  then show ?case 
-    using src.tautology_redundant
-    sorry
+  case (tautology_deletion A C N P Q)
+  {
+    fix C\<sigma>
+    assume "C\<sigma> \<in> grounding_of_cls C"
+    then obtain \<sigma> where "C\<sigma> = C \<cdot> \<sigma>"
+      unfolding grounding_of_cls_def by auto
+    then have "Neg (A \<cdot>a \<sigma>) \<in># C\<sigma> \<and> Pos (A \<cdot>a \<sigma>) \<in># C\<sigma>" 
+      using tautology_deletion
+      by (metis Melem_subst_cls eql_neg_lit_eql_atm eql_pos_lit_eql_atm) (* seems a bit complicated... *)
+    then have "C\<sigma> \<in> src.Rf (grounding_of_state (N, P, Q))"
+      using src.tautology_redundant by auto
+  }
+  then have "grounding_of_state (N \<union> {C}, P, Q) - grounding_of_state (N, P, Q) \<subseteq> src.Rf (grounding_of_state (N, P, Q))"
+    unfolding clss_of_state_def grounding_of_clss_def by auto
+  moreover
+  have "grounding_of_state (N, P, Q) - grounding_of_state (N \<union> {C}, P, Q) = {}"
+    unfolding clss_of_state_def grounding_of_clss_def by auto
+  ultimately
+  show ?case 
+    using src_ext.derive.intros[of "grounding_of_state (N, P, Q)" "grounding_of_state (N \<union> {C}, P, Q)"]
+      by auto
 next
   case (forward_subsumption P Q C N)
   then obtain D where D_p: "D\<in>P \<union> Q \<and> subsumes D C"
@@ -1178,21 +1195,69 @@ next
   then show ?case
   proof
     assume "D \<cdot> \<sigma> = C"
+    then have gC_gD: "grounding_of_cls C \<subseteq> grounding_of_cls D"
+      unfolding grounding_of_cls_def
+      by (smt Collect_mono is_ground_comp_subst subst_cls_comp_subst) 
+    have "grounding_of_state (N \<union> {C}, P, Q) = grounding_of_state (N, P, Q)"
+    proof (rule; rule)
+      fix x
+      assume "x \<in> grounding_of_state (N \<union> {C}, P, Q)"
+      then show "x \<in> grounding_of_state (N, P, Q)"
+        using gC_gD D_p unfolding clss_of_state_def grounding_of_clss_def by auto
+    next
+      fix x
+      assume "x \<in> grounding_of_state (N, P, Q)"
+      then show "x \<in> grounding_of_state (N \<union> {C}, P, Q)"
+        unfolding clss_of_state_def grounding_of_clss_def by auto
+    qed  
     then show ?case 
-      sorry
+      using src_ext.derive.intros[of "grounding_of_state (N, P, Q)" "grounding_of_state (N, P, Q)"] 
+        by auto
   next
-    assume "D \<cdot> \<sigma> \<subset># C"
+    assume a: "D \<cdot> \<sigma> \<subset># C"
     have "grounding_of_cls C \<subseteq> src.Rf (grounding_of_cls D)"
-      sorry
+    proof
+      fix C\<mu>
+      assume "C\<mu> \<in> grounding_of_cls C"
+      then obtain \<mu> where \<mu>_p: "C\<mu> = C \<cdot> \<mu> \<and> is_ground_subst \<mu>"
+        unfolding grounding_of_cls_def by auto
+      have D\<sigma>\<mu>C\<mu>: "D \<cdot> \<sigma> \<cdot> \<mu> \<subset># C \<cdot> \<mu>"
+        using a subst_subset_mono by auto
+      then have "\<forall>I. I \<Turnstile> D \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>"
+        unfolding true_cls_def by blast
+      moreover
+      have "C \<cdot> \<mu> > D \<cdot> \<sigma> \<cdot> \<mu>"
+        using D\<sigma>\<mu>C\<mu>
+        by (simp add: subset_imp_less_mset) 
+      moreover
+      have "D \<cdot> \<sigma> \<cdot> \<mu> \<in> grounding_of_cls D"
+        by (metis (mono_tags, lifting) \<mu>_p is_ground_comp_subst mem_Collect_eq subst_cls_comp_subst substitution_ops.grounding_of_cls_def)        
+      ultimately
+      have "set_mset {#D \<cdot> \<sigma> \<cdot> \<mu>#} \<subseteq> grounding_of_cls D \<and> (\<forall>I. I \<Turnstile>m {#D \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>) \<and> (\<forall>D'. D' \<in># {#D \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> D' < C \<cdot> \<mu>)"
+        by auto
+      then have "C \<cdot> \<mu> \<in> src.Rf (grounding_of_cls D)"
+        using src.Rf_def[of "grounding_of_cls D"] by blast
+      then show "C\<mu> \<in> src.Rf (grounding_of_cls D)"
+        using \<mu>_p by auto
+    qed
+    moreover 
+    have "(grounding_of_cls D) \<subseteq> (grounding_of_state (N, P, Q))"
+      using D_p unfolding clss_of_state_def grounding_of_clss_def by auto
+    then have "src.Rf (grounding_of_cls D) \<subseteq> src.Rf (grounding_of_state (N, P, Q))"
+      using src_ext.Rf_mono by auto
+    ultimately
+    have "grounding_of_cls C \<subseteq> src.Rf (grounding_of_state (N, P, Q))"
+      by auto
     then show ?case
-      sorry
+      using src_ext.derive.intros[of "grounding_of_state (N, P, Q)" "grounding_of_state (N \<union> {C}, P, Q)"]
+      unfolding clss_of_state_def grounding_of_clss_def by blast
   qed
 next
   case (backward_subsumption_P N C P Q)
-  then show ?case sorry
+  then show ?case sorry (* adapt previous proof *)
 next
   case (backward_subsumption_Q N C P Q)
-  then show ?case sorry
+  then show ?case sorry (* adapt previous proof *)
 next
   case (forward_reduction P Q L \<sigma> C N)
   then show ?case sorry
@@ -1204,7 +1269,8 @@ next
   then show ?case sorry
 next
   case (clause_processing N C P Q)
-  then show ?case sorry
+  then show ?case
+    unfolding clss_of_state_def  using src_ext.derive.intros by auto
 next
   case (inference_computation N Q C P)
   then show ?case sorry
