@@ -15,8 +15,16 @@ declare nth_list_update[simp]
 
 definition option_hd :: \<open>'a list \<Rightarrow> 'a option\<close> where
   \<open>option_hd xs = (if xs = [] then None else Some (hd xs))\<close>
-lemma option_hd_None_iff[iff]: \<open>option_hd ys = None \<longleftrightarrow> ys = []\<close>
+
+lemma option_hd_None_iff[iff]: \<open>option_hd zs = None \<longleftrightarrow> zs = []\<close>
   by (auto simp: option_hd_def)
+
+lemma option_hd_Some_iff[iff]: \<open>option_hd zs = Some y \<longleftrightarrow> (zs \<noteq> [] \<and> y = hd zs)\<close>
+  by (auto simp: option_hd_def)
+
+lemma option_hd_Some_hd[simp]: \<open>zs \<noteq> [] \<Longrightarrow> option_hd zs = Some (hd zs)\<close>
+  by (auto simp: option_hd_def)
+
 inductive vmtf :: \<open>nat list \<Rightarrow> nat \<Rightarrow> nat vmtf_atm list \<Rightarrow> bool\<close> where
 Nil: \<open>vmtf [] st xs\<close> |
 Cons1: \<open>a < length xs \<Longrightarrow> m \<ge> n \<Longrightarrow> xs ! a = VMTF_ATM (n::nat) None None \<Longrightarrow> vmtf [a] m xs\<close> |
@@ -25,7 +33,7 @@ Cons: \<open>vmtf (b # l) m xs \<Longrightarrow> a < length xs \<Longrightarrow>
     n' \<ge> n \<Longrightarrow>
   vmtf (a # b # l) n' xs'\<close>
 
-inductive_cases vmtfE: \<open>vmtf xs st ys\<close>
+inductive_cases vmtfE: \<open>vmtf xs st zs\<close>
 
 lemma vmtf_le_length: \<open>vmtf l m xs \<Longrightarrow> i \<in> set l \<Longrightarrow> i < length xs\<close>
   apply (induction rule: vmtf.induct)
@@ -43,16 +51,16 @@ lemma vmtf_distinct: \<open>vmtf l m xs \<Longrightarrow> distinct l\<close>
 
 lemma vmtf_eq_iff:
   assumes
-    \<open>\<forall>i \<in> set l. xs ! i = ys ! i\<close> and
-    \<open>\<forall>i \<in> set l. i < length xs \<and> i < length ys\<close>
-  shows \<open>vmtf l m ys \<longleftrightarrow> vmtf l m xs\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
+    \<open>\<forall>i \<in> set l. xs ! i = zs ! i\<close> and
+    \<open>\<forall>i \<in> set l. i < length xs \<and> i < length zs\<close>
+  shows \<open>vmtf l m zs \<longleftrightarrow> vmtf l m xs\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
 proof -
   have \<open>vmtf l m xs\<close>
     if
-      \<open>vmtf l m ys\<close> and
-      \<open>(\<forall>i \<in> set l. xs ! i = ys ! i)\<close> and
-      \<open>(\<forall>i \<in> set l. i < length xs \<and> i < length ys)\<close>
-    for xs ys
+      \<open>vmtf l m zs\<close> and
+      \<open>(\<forall>i \<in> set l. xs ! i = zs ! i)\<close> and
+      \<open>(\<forall>i \<in> set l. i < length xs \<and> i < length zs)\<close>
+    for xs zs
     using that
   proof (induction arbitrary: xs rule: vmtf.induct)
     case (Nil st xs zs)
@@ -61,9 +69,9 @@ proof -
     case (Cons1 a xs n zs)
     show ?case by (rule vmtf.Cons1) (use Cons1 in \<open>auto intro!: intro: vmtf.intros\<close>)
   next
-    case (Cons b l m xs c n ys n' zs) note vmtf = this(1) and a_le_y = this(2) and ys_a = this(3) and
+    case (Cons b l m xs c n zs n' zs') note vmtf = this(1) and a_le_y = this(2) and zs_a = this(3) and
       ab = this(4) and a_l = this(5) and mn = this(6) and xs' = this(7) and nn' = this(8) and IH = this(9) and H = this(10-)
-    have \<open>vmtf (c # b # l) n' ys\<close>
+    have \<open>vmtf (c # b # l) n' zs\<close>
       by (rule vmtf.Cons[OF Cons.hyps])
     have [simp]: \<open>b < length xs\<close>  \<open>b < length zs\<close>
       using H xs' by auto
@@ -77,19 +85,22 @@ proof -
       using vmtf unfolding that by (auto simp: elim!: vmtfE)
     have prev_xs_b: \<open>get_prev (xs ! b) = None\<close>
       using vmtf by (auto elim: vmtfE)
-    have vmtf_zs: \<open>vmtf (b # l) m (zs[b := xs!b])\<close>
+    have vmtf_zs: \<open>vmtf (b # l) m (zs'[b := xs!b])\<close>
       apply (rule IH)
-      subgoal using H(1) ab next_xs_b prev_xs_b unfolding xs' by (auto simp: nth_list_update K)
+      subgoal using H(1) ab next_xs_b prev_xs_b H unfolding xs' by (auto simp: nth_list_update K)
       subgoal using H(2) ab next_xs_b prev_xs_b unfolding xs' by (auto simp: nth_list_update K)
       done
+    have \<open>zs' ! b = VMTF_ATM (stamp (xs ! b)) (Some c) (get_next (xs ! b))\<close>
+      using H(1) unfolding xs' by auto
     show ?case
       apply (rule vmtf.Cons[OF vmtf_zs, of _ n])
       subgoal using a_le_y xs' H(2) by auto
-      subgoal using ab ys_a xs' H(1) by (auto simp: nth_list_update K)
+      subgoal using ab zs_a xs' H(1) by (auto simp: nth_list_update K)
       subgoal using ab .
       subgoal using a_l .
       subgoal using mn .
-      subgoal using ab xs' H(1) by (cases \<open>xs ! b\<close>)  (auto simp: nth_list_update eq_commute[of \<open>zs ! b\<close>])
+      subgoal using ab xs' H(1)
+        by (metis H(2) insert_iff list.set(2) list_update_id list_update_overwrite nth_list_update_eq)
       subgoal using nn' .
       done
   qed
@@ -97,7 +108,7 @@ proof -
     using assms by metis
 qed
 
-lemma vmtf_stamp_increase: \<open>vmtf xs p ys \<Longrightarrow> p \<le> p' \<Longrightarrow> vmtf xs p' ys\<close>
+lemma vmtf_stamp_increase: \<open>vmtf xs p zs \<Longrightarrow> p \<le> p' \<Longrightarrow> vmtf xs p' zs\<close>
   apply (induction rule: vmtf.induct)
   subgoal by (auto intro: vmtf.intros)
   subgoal by (rule vmtf.Cons1) (auto intro!: vmtf.intros)
@@ -120,7 +131,7 @@ next
   case (Cons1 a xs m n)
   then show ?case by auto
 next
-  case (Cons b l m xs a n xs' n') note vmtf = this(1) and IH = this(2) and a_le_y = this(3) and ys_a = this(4) and
+  case (Cons b l m xs a n xs' n') note vmtf = this(1) and IH = this(2) and a_le_y = this(3) and zs_a = this(4) and
     ab = this(5) and a_l = this(6) and mn = this(7) and xs' = this(8) and nn' = this(9) and decomp = this(10-)
   have b_le_xs: \<open>b < length xs\<close>
     using vmtf by (auto intro: vmtf_le_length simp: xs')
@@ -132,7 +143,7 @@ next
     show ?thesis
     proof (cases l)
       case Nil
-      then show ?thesis using vmtf xs' a_le_y ys_a ab a_l mn nn' by (cases \<open>xs ! b\<close>) (auto simp: vmtf_single_iff)
+      then show ?thesis using vmtf xs' a_le_y zs_a ab a_l mn nn' by (cases \<open>xs ! b\<close>) (auto simp: vmtf_single_iff)
     next
       case (Cons al als) note l = this
       have vmtf_b: \<open>vmtf [b] m (xs[b := VMTF_ATM (stamp (xs ! b)) (get_prev (xs ! b)) None])\<close> and
@@ -140,7 +151,7 @@ next
         stamp_al_b: \<open>stamp (xs ! al) < stamp (xs ! b)\<close>
         using IH[of Nil b al als] unfolding l by auto
       have \<open>vmtf [a] n' (xs'[a := VMTF_ATM (stamp (xs' ! a)) (get_prev (xs' ! a)) None])\<close>
-          using a_le_y xs' ab mn nn' ys_a by (auto simp: vmtf_single_iff nth_list_update)
+          using a_le_y xs' ab mn nn' zs_a by (auto simp: vmtf_single_iff nth_list_update)
       have al_b[simp]: \<open>al \<noteq> b\<close> and b_als: \<open>b \<notin> set als\<close>
         using vmtf unfolding l by (auto dest: vmtf_distinct)
       have al_le_xs: \<open>al < length xs\<close>
@@ -161,9 +172,9 @@ next
         subgoal by simp
         done
       moreover have \<open>vmtf [a] n' (xs'[a := VMTF_ATM (stamp (xs' ! a)) (get_prev (xs' ! a)) None])\<close>
-        using ab a_le_y mn nn' ys_a by (auto simp: vmtf_single_iff xs')
+        using ab a_le_y mn nn' zs_a by (auto simp: vmtf_single_iff xs')
       moreover have \<open>stamp (xs' ! b) < stamp (xs' ! a)\<close>
-        using b_le_xs ab mn vmtf_b ys_a by (auto simp add: xs' vmtf_single_iff)
+        using b_le_xs ab mn vmtf_b zs_a by (auto simp add: xs' vmtf_single_iff)
       ultimately show ?thesis
         unfolding l by (simp add: l)
     qed
@@ -196,11 +207,11 @@ next
       then have \<open>vmtf (aaxs # ax # []) n' (xs'[ax := VMTF_ATM (stamp (xs' ! ax)) (get_prev (xs' ! ax)) None])\<close>
         apply (rule vmtf.Cons[of _ _ _ _ _ n])
         subgoal using a_le_y by auto
-        subgoal using ys_a a_le_y ab by auto
+        subgoal using zs_a a_le_y ab by auto
         subgoal using ab by auto
         subgoal by simp
         subgoal using mn .
-        subgoal using ys_a a_le_y ab xs' b_le_xs  by auto
+        subgoal using zs_a a_le_y ab xs' b_le_xs  by auto
         subgoal using nn' .
         done
       then show ?thesis
@@ -214,11 +225,11 @@ next
       then have \<open>vmtf (a # aaaxs' # axs'' @ [ax]) n' (xs'[ax := VMTF_ATM (stamp (xs' ! ax)) (get_prev (xs' ! ax)) None])\<close>
         apply (rule vmtf.Cons[of _ _ _ _ _ n])
         subgoal using a_le_y by auto
-        subgoal using ys_a a_le_y a_ax ab by (subst nth_list_update_neq) (auto simp: nth_list_update_neq simp del: \<open>a \<noteq> ax\<close>)
+        subgoal using zs_a a_le_y a_ax ab by (subst nth_list_update_neq) (auto simp: nth_list_update_neq simp del: \<open>a \<noteq> ax\<close>)
         subgoal using ab by auto
         subgoal using a_l bl unfolding Cons by simp
         subgoal using mn .
-        subgoal using ys_a a_le_y ab xs' b_le_xs  by (auto simp: list_update_swap nth_list_update)
+        subgoal using zs_a a_le_y ab xs' b_le_xs  by (auto simp: list_update_swap nth_list_update)
         subgoal using nn' .
         done
       then show ?thesis
@@ -277,7 +288,7 @@ next
     using a_ax a xs_a by auto
 next
   case (Cons b l m xs a n xs' n') note vmtf = this(1) and IH = this(2) and a_le_y = this(3) and
-    ys_a = this(4) and ab = this(5) and a_l = this(6) and mn = this(7) and xs' = this(8) and
+    zs_a = this(4) and ab = this(5) and a_l = this(6) and mn = this(7) and xs' = this(8) and
     nn' = this(9) and decomp = this(10) and vmtf_ay = this(11) and stamp = this(12) and
     dist = this(13)
 
@@ -317,13 +328,13 @@ next
           ay := VMTF_ATM (stamp (xs' ! ay)) (Some ax) (get_next (xs' ! ay))])\<close>
     apply (rule vmtf.Cons[of _ _ _ _ _ \<open>stamp (xs ! a)\<close>])
     subgoal using a_le_y by simp
-    subgoal using ys_a a_le_y a_ax a_ay by (auto simp: nth_list_update)
+    subgoal using zs_a a_le_y a_ax a_ay by (auto simp: nth_list_update)
     subgoal using ab .
     subgoal using dist_b by auto
-    subgoal using mn by (simp add: ys_a)
-    subgoal using ys_a a_le_y a_ax a_ay b_ay b_le_xs unfolding xs'
+    subgoal using mn by (simp add: zs_a)
+    subgoal using zs_a a_le_y a_ax a_ay b_ay b_le_xs unfolding xs'
       by (auto simp: list_update_swap)
-    subgoal using stamp xs' nn' b_ay b_le_xs ys_a by auto
+    subgoal using stamp xs' nn' b_ay b_le_xs zs_a by auto
     done
   then show ?case
     by (metis append.assoc append_Cons append_Nil decomp)
@@ -358,17 +369,17 @@ lemma vmtf_last_next:
       self_append_conv2 tl_append2 vmtf_atm.sel(3) vmtf_le_length)
 
 lemma vmtf_last_mid_get_next:
-  \<open>vmtf (xs @ [x, y] @ ys) m A \<Longrightarrow> get_next (A ! x) = Some y\<close>
-  apply (induction "xs @ [x, y] @ ys" m A arbitrary: xs x rule: vmtf.induct) (* TODO Proof *)
+  \<open>vmtf (xs @ [x, y] @ zs) m A \<Longrightarrow> get_next (A ! x) = Some y\<close>
+  apply (induction "xs @ [x, y] @ zs" m A arbitrary: xs x rule: vmtf.induct) (* TODO Proof *)
     apply auto
   by (metis list.sel(1) list.sel(3) list.set_intros(1) nth_list_update_eq nth_list_update_neq
       self_append_conv2 tl_append2 vmtf_atm.sel(3) vmtf_le_length)
 
 lemma vmtf_last_mid_get_prev:
-  assumes \<open>vmtf (xs @ [x, y] @ ys) m A\<close>
+  assumes \<open>vmtf (xs @ [x, y] @ zs) m A\<close>
   shows \<open>get_prev (A ! y) = Some x\<close>
     using assms
-proof (induction "xs @ [x, y] @ ys" m A arbitrary: xs x rule: vmtf.induct)
+proof (induction "xs @ [x, y] @ zs" m A arbitrary: xs x rule: vmtf.induct)
   case (Nil st xs)
   then show ?case by auto
 next
@@ -376,7 +387,7 @@ next
   then show ?case by auto
 next
   case (Cons b l m xxs a n xxs' n') note vmtf = this(1) and IH = this(2) and a_le_y = this(3) and
-    ys_a = this(4) and ab = this(5) and a_l = this(6) and mn = this(7) and xs' = this(8) and
+    zs_a = this(4) and ab = this(5) and a_l = this(6) and mn = this(7) and xs' = this(8) and
     nn' = this(9) and decomp = this(10)
   show ?case
   proof (cases xs)
@@ -384,7 +395,7 @@ next
     then show ?thesis using Cons vmtf_le_length by auto
   next
     case (Cons aaxs axs')
-    then have b_l: \<open>b # l = tl xs @ [x, y] @ ys\<close>
+    then have b_l: \<open>b # l = tl xs @ [x, y] @ zs\<close>
       using decomp by auto
     then have \<open>get_prev (xxs ! y) = Some x\<close>
       by (rule IH)
@@ -403,8 +414,8 @@ lemma length_vmtf_dequeue[simp]: \<open>length (vmtf_dequeue A x) = length A\<cl
   unfolding vmtf_dequeue_def by (auto simp: Let_def split: option.splits)
 
 lemma vmtf_skip_fst:
-  assumes vmtf: \<open>vmtf (x # y' # ys') m A\<close>
-  shows \<open>\<exists>n. vmtf (y' # ys') n (A[y' := VMTF_ATM (stamp (A ! y')) None (get_next (A ! y'))]) \<and>
+  assumes vmtf: \<open>vmtf (x # y' # zs') m A\<close>
+  shows \<open>\<exists>n. vmtf (y' # zs') n (A[y' := VMTF_ATM (stamp (A ! y')) None (get_next (A ! y'))]) \<and>
      m \<ge> n\<close>
   using assms
 proof (rule vmtfE, goal_cases)
@@ -446,7 +457,7 @@ lemma vmtf_stamp_sorted:
   using assms
 proof (induction rule: vmtf.induct)
   case (Cons b l m xs a n xs' n') note vmtf = this(1) and IH = this(9) and a_le_y = this(2) and
-    ys_a = this(3) and ab = this(4) and a_l = this(5) and mn = this(6) and xs' = this(7) and
+    zs_a = this(3) and ab = this(4) and a_l = this(5) and mn = this(6) and xs' = this(7) and
     nn' = this(8)
   have H:
    \<open>map (\<lambda>aa. stamp (xs[b := VMTF_ATM (stamp (xs ! b)) (Some a) (get_next (xs ! b))] ! aa)) (rev l) =
@@ -502,85 +513,83 @@ proof (cases \<open>x \<in> set l\<close>)
     done
 next
   case True
-  then obtain xs ys where
-    l: \<open>l = xs @ x # ys\<close>
+  then obtain xs zs where
+    l: \<open>l = xs @ x # zs\<close>
     by (meson split_list)
-  have r_l: \<open>remove1 x l = xs @ ys\<close>
+  have r_l: \<open>remove1 x l = xs @ zs\<close>
     using vmtf_distinct[OF vmtf] unfolding l by (simp add: remove1_append)
 
   consider
-    (xs_ys_empty) \<open>xs = []\<close> and \<open>ys = []\<close> |
-    (xs_nempty_ys_empty) x' xs' where \<open>xs = xs' @ [x']\<close> and \<open>ys = []\<close> |
-    (xs_empty_ys_nempty) y' ys' where \<open>xs = []\<close> and \<open>ys = y' # ys'\<close> |
-    (xs_ys_nempty) x' y' xs' ys' where  \<open>xs = xs' @ [x']\<close> and \<open>ys = y' # ys'\<close>
-    by (cases xs rule: rev_cases; cases ys)
+    (xs_zs_empty) \<open>xs = []\<close> and \<open>zs = []\<close> |
+    (xs_nempty_zs_empty) x' xs' where \<open>xs = xs' @ [x']\<close> and \<open>zs = []\<close> |
+    (xs_empty_zs_nempty) y' zs' where \<open>xs = []\<close> and \<open>zs = y' # zs'\<close> |
+    (xs_zs_nempty) x' y' xs' zs' where  \<open>xs = xs' @ [x']\<close> and \<open>zs = y' # zs'\<close>
+    by (cases xs rule: rev_cases; cases zs)
   then show ?thesis
   proof cases
-    case xs_ys_empty
+    case xs_zs_empty
     then show ?thesis
       using vmtf by (auto simp: r_l intro: vmtf.intros)
   next
-    case xs_empty_ys_nempty note xs = this(1) and ys = this(1)
-    have prev_next: \<open>get_prev (A ! x) = None\<close> \<open>get_next (A ! x) = option_hd ys\<close>
-      using vmtf unfolding l xs ys
-      by (cases ys; auto 5 5 simp: option_hd_def elim: vmtfE)+
+    case xs_empty_zs_nempty note xs = this(1) and zs = this(1)
+    have prev_next: \<open>get_prev (A ! x) = None\<close> \<open>get_next (A ! x) = option_hd zs\<close>
+      using vmtf unfolding l xs zs
+      by (cases zs; auto 5 5 simp: option_hd_def elim: vmtfE; fail)+
 
     then show ?thesis
-      using vmtf unfolding r_l unfolding l xs ys -- \<open>TODO proof\<close>
-      apply (auto simp: vmtf_dequeue_def Let_def split: option.splits
-          intro: vmtf.intros)
-      by (smt list.sel(1) list.simps(3) option.inject option_hd_def vmtf_skip_fst
-          vmtf_stamp_increase xs_empty_ys_nempty(2))
+      using vmtf unfolding r_l unfolding l xs zs -- \<open>TODO proof\<close>
+      by (cases zs) (auto simp: vmtf_dequeue_def Let_def split: option.splits
+          intro: vmtf.intros vmtf_stamp_increase dest: vmtf_skip_fst)
   next
-    case xs_nempty_ys_empty note xs = this(1) and ys = this(2)
+    case xs_nempty_zs_empty note xs = this(1) and zs = this(2)
     have prev_next: \<open>get_prev (A ! x) = Some x'\<close> \<open>get_next (A ! x) = None\<close>
-      using vmtf vmtf_append_decomp[of xs' x' x ys m A] unfolding l xs ys
+      using vmtf vmtf_append_decomp[of xs' x' x zs m A] unfolding l xs zs
       by (auto simp: vmtf_single_iff intro: vmtf_last_mid_get_prev)
     then show ?thesis
-      using vmtf unfolding r_l unfolding l xs ys
+      using vmtf unfolding r_l unfolding l xs zs
       by (auto simp: vmtf_dequeue_def Let_def vmtf_append_decomp split: option.splits
           intro: vmtf.intros)
   next
-    case xs_ys_nempty note xs = this(1) and ys = this(2)
-    have vmtf_x'_x: \<open>vmtf (xs' @ [x', x] @ (y' #  ys')) m A\<close> and vmtf_x_y: \<open>vmtf ((xs' @ [x']) @ [x, y'] @ ys') m A\<close>
-      using vmtf unfolding l xs ys by simp_all
+    case xs_zs_nempty note xs = this(1) and zs = this(2)
+    have vmtf_x'_x: \<open>vmtf (xs' @ [x', x] @ (y' #  zs')) m A\<close> and vmtf_x_y: \<open>vmtf ((xs' @ [x']) @ [x, y'] @ zs') m A\<close>
+      using vmtf unfolding l xs zs by simp_all
     from vmtf_append_decomp[OF vmtf_x'_x] have
       vmtf_xs: \<open>vmtf (xs' @ [x']) m (A[x' := VMTF_ATM (stamp (A ! x')) (get_prev (A ! x')) None])\<close> and
-      vmtf_ys: \<open>vmtf (x # y' # ys') (stamp (A ! x)) (A[x := VMTF_ATM (stamp (A ! x)) None (get_next (A ! x))])\<close> and
+      vmtf_zs: \<open>vmtf (x # y' # zs') (stamp (A ! x)) (A[x := VMTF_ATM (stamp (A ! x)) None (get_next (A ! x))])\<close> and
       stamp: \<open>stamp (A ! x) < stamp (A ! x')\<close>
       by fast+
     have [simp]: \<open>y' < length A\<close> \<open>x < length A\<close> \<open>x \<noteq> y'\<close> \<open>x' \<noteq> y'\<close> \<open>x' < length A\<close> \<open>y' \<noteq> x'\<close>
-      and x_ys': \<open>x \<notin> set ys'\<close> and x'_ys': \<open>x' \<notin> set ys'\<close> and y'_xs': \<open>y' \<notin> set xs'\<close>
-      using vmtf_distinct[OF vmtf] vmtf_le_length[OF vmtf] unfolding l xs ys
+      and x_zs': \<open>x \<notin> set zs'\<close> and x'_zs': \<open>x' \<notin> set zs'\<close> and y'_xs': \<open>y' \<notin> set xs'\<close>
+      using vmtf_distinct[OF vmtf] vmtf_le_length[OF vmtf] unfolding l xs zs
       by auto
     obtain n where
-      vmtf_ys': \<open>vmtf (y' # ys') n (A[x := VMTF_ATM (stamp (A ! x)) None (get_next (A ! x)),
+      vmtf_zs': \<open>vmtf (y' # zs') n (A[x := VMTF_ATM (stamp (A ! x)) None (get_next (A ! x)),
           y' := VMTF_ATM (stamp (A[x := VMTF_ATM (stamp (A ! x)) None (get_next (A ! x))] ! y')) None
        (get_next (A[x := VMTF_ATM (stamp (A ! x)) None (get_next (A ! x))] ! y'))])\<close> and
       \<open>n \<le> stamp (A ! x)\<close>
-      using vmtf_skip_fst[OF vmtf_ys] by blast
-    then have vmtf_y'_ys'_x_y': \<open>vmtf (y' # ys') n (A[x := VMTF_ATM (stamp (A ! x)) None (get_next (A ! x)),
+      using vmtf_skip_fst[OF vmtf_zs] by blast
+    then have vmtf_y'_zs'_x_y': \<open>vmtf (y' # zs') n (A[x := VMTF_ATM (stamp (A ! x)) None (get_next (A ! x)),
           y' := VMTF_ATM (stamp (A ! y')) None (get_next (A ! y'))])\<close>
       by auto
 
     define A' where \<open>A' = A[x' := VMTF_ATM (stamp (A ! x')) (get_prev (A ! x')) None,
          y' := VMTF_ATM (stamp (A ! y')) None (get_next (A ! y'))]\<close>
-    have vmtf_y'_ys'_y': \<open>vmtf (y' # ys') n (A[y' := VMTF_ATM (stamp (A ! y')) None (get_next (A ! y'))])\<close>
-      apply (rule vmtf_eq_iff[THEN iffD1, OF _ _ vmtf_y'_ys'_x_y'])
-      subgoal using x_ys' by auto
-      subgoal using vmtf_le_length[OF vmtf] unfolding l xs ys by auto
+    have vmtf_y'_zs'_y': \<open>vmtf (y' # zs') n (A[y' := VMTF_ATM (stamp (A ! y')) None (get_next (A ! y'))])\<close>
+      apply (rule vmtf_eq_iff[THEN iffD1, OF _ _ vmtf_y'_zs'_x_y'])
+      subgoal using x_zs' by auto
+      subgoal using vmtf_le_length[OF vmtf] unfolding l xs zs by auto
       done
     moreover have stamp_y'_n: \<open>stamp (A[x' := VMTF_ATM (stamp (A ! x')) (get_prev (A ! x')) None] ! y') \<le> n\<close>
-      using vmtf_stamp_sorted[OF vmtf_y'_ys'_y'] stamp unfolding l xs ys
+      using vmtf_stamp_sorted[OF vmtf_y'_zs'_y'] stamp unfolding l xs zs
       by (auto simp: sorted_append)
-    ultimately have vmtf_y'_ys'_y': \<open>vmtf (y' # ys') (stamp (A' ! y'))
+    ultimately have vmtf_y'_zs'_y': \<open>vmtf (y' # zs') (stamp (A' ! y'))
        (A[y' := VMTF_ATM (stamp (A ! y')) None (get_next (A ! y'))])\<close>
-      using l vmtf vmtf_append_decomp xs_ys_nempty(2) A'_def by auto
-    have vmtf_y'_ys'_x'_y': \<open>vmtf (y' # ys') (stamp (A' ! y')) A'\<close>
-      apply (rule vmtf_eq_iff[THEN iffD1, OF _ _ vmtf_y'_ys'_y'])
-      subgoal using vmtf_distinct[OF vmtf_y'_ys'_y'] vmtf_le_length[OF vmtf_y'_ys'_y'] x'_ys' A'_def
+      using l vmtf vmtf_append_decomp xs_zs_nempty(2) A'_def by auto
+    have vmtf_y'_zs'_x'_y': \<open>vmtf (y' # zs') (stamp (A' ! y')) A'\<close>
+      apply (rule vmtf_eq_iff[THEN iffD1, OF _ _ vmtf_y'_zs'_y'])
+      subgoal using vmtf_distinct[OF vmtf_y'_zs'_y'] vmtf_le_length[OF vmtf_y'_zs'_y'] x'_zs' A'_def
         by auto
-      subgoal using vmtf_distinct[OF vmtf_y'_ys'_y'] vmtf_le_length[OF vmtf_y'_ys'_y'] x'_ys' A'_def
+      subgoal using vmtf_distinct[OF vmtf_y'_zs'_y'] vmtf_le_length[OF vmtf_y'_zs'_y'] x'_zs' A'_def
         by auto
       done
     have vmtf_xs': \<open>vmtf (xs' @ [x']) m A'\<close>
@@ -588,15 +597,15 @@ next
       subgoal using y'_xs' A'_def by auto
       subgoal using vmtf_le_length[OF vmtf_xs] A'_def by auto
       done
-    have \<open>vmtf (xs' @ [x', y'] @ ys') m
+    have \<open>vmtf (xs' @ [x', y'] @ zs') m
        (A'[x' := VMTF_ATM (stamp (A' ! x')) (get_prev (A' ! x')) (Some y'),
          y' := VMTF_ATM (stamp (A' ! y')) (Some x') (get_next (A' ! y'))])\<close>
-      apply (rule vmtf_append_rebuild[OF vmtf_xs' vmtf_y'_ys'_x'_y'])
-      subgoal using stamp_y'_n vmtf_xs vmtf_ys stamp \<open>n \<le> stamp (A ! x)\<close> unfolding A'_def by auto
-      subgoal by (metis append.assoc append_Cons distinct_remove1 r_l self_append_conv2 vmtf vmtf_distinct xs ys)
+      apply (rule vmtf_append_rebuild[OF vmtf_xs' vmtf_y'_zs'_x'_y'])
+      subgoal using stamp_y'_n vmtf_xs vmtf_zs stamp \<open>n \<le> stamp (A ! x)\<close> unfolding A'_def by auto
+      subgoal by (metis append.assoc append_Cons distinct_remove1 r_l self_append_conv2 vmtf vmtf_distinct xs zs)
       done
-    moreover have \<open>xs' @ [x', y'] @ ys' = remove1 x l\<close>
-      unfolding r_l xs ys by auto
+    moreover have \<open>xs' @ [x', y'] @ zs' = remove1 x l\<close>
+      unfolding r_l xs zs by auto
     moreover have \<open>A'[x' := VMTF_ATM (stamp (A' ! x')) (get_prev (A' ! x')) (Some y'),
          y' := VMTF_ATM (stamp (A' ! y')) (Some x') (get_next (A' ! y'))] = vmtf_dequeue A x\<close>
       using vmtf_last_mid_get_next[OF vmtf_x_y] vmtf_last_mid_get_prev[OF vmtf_x'_x]
@@ -708,21 +717,21 @@ begin
 paragraph \<open>Invariants\<close>
 
 text \<open>Invariants
-  \<^item> The atoms are always disjoint.
-  \<^item> The atoms of \<^term>\<open>ys\<close> are \<^emph>\<open>always\<close> set.
-  \<^item> The atoms of \<^term>\<open>zs\<close> are \<^emph>\<open>never\<close> set and have been remove from \<^term>\<open>xs\<close> and \<^term>\<open>ys\<close>.
+  \<^item> The atoms are alwazs disjoint.
+  \<^item> The atoms of \<^term>\<open>zs\<close> are \<^emph>\<open>alwazs\<close> set.
+  \<^item> The atoms of \<^term>\<open>zs\<close> are \<^emph>\<open>never\<close> set and have been remove from \<^term>\<open>xs\<close> and \<^term>\<open>zs\<close>.
   \<^item> The atoms of \<^term>\<open>xs\<close> \<^emph>\<open>can be\<close> set but do not have to.
 \<close>
 
 definition abs_vmtf_remove_inv :: \<open>(nat, nat) ann_lits \<Rightarrow> nat abs_vmtf_remove \<Rightarrow> bool\<close> where
-\<open>abs_vmtf_remove_inv M \<equiv> \<lambda>((xs, ys), zs).
-  (\<forall>L\<in>ys. L \<in> atm_of ` lits_of_l M) \<and>
-  xs \<inter> ys = {} \<and>
-  xs \<inter> zs = {} \<and>
-  ys \<inter> zs = {} \<and>
-  xs \<union> ys \<union> zs = atms_of N\<^sub>1 \<and>
+\<open>abs_vmtf_remove_inv M \<equiv> \<lambda>((xs, zs), zs).
   (\<forall>L\<in>zs. L \<in> atm_of ` lits_of_l M) \<and>
-  finite xs \<and> finite ys \<and> finite zs
+  xs \<inter> zs = {} \<and>
+  xs \<inter> zs = {} \<and>
+  zs \<inter> zs = {} \<and>
+  xs \<union> zs \<union> zs = atms_of N\<^sub>1 \<and>
+  (\<forall>L\<in>zs. L \<in> atm_of ` lits_of_l M) \<and>
+  finite xs \<and> finite zs \<and> finite zs
   \<close>
 
 abbreviation abs_vmtf_inv :: \<open>(nat, nat) ann_lits \<Rightarrow> nat abs_vmtf \<Rightarrow> bool\<close> where
@@ -732,10 +741,10 @@ abbreviation abs_vmtf_inv :: \<open>(nat, nat) ann_lits \<Rightarrow> nat abs_vm
 paragraph \<open>Operations\<close>
 
 fun abs_vmtf_bump :: \<open>nat literal \<Rightarrow> nat abs_vmtf_remove \<Rightarrow> nat abs_vmtf_remove\<close> where [simp del]:
-\<open>abs_vmtf_bump L ((xs, ys), zs) = ((xs - {atm_of L}, ys - {atm_of L}), insert (atm_of L) zs)\<close>
+\<open>abs_vmtf_bump L ((xs, zs), zs) = ((xs - {atm_of L}, zs - {atm_of L}), insert (atm_of L) zs)\<close>
 
 fun abs_vmtf_bump_flush :: \<open>nat abs_vmtf_remove \<Rightarrow> nat abs_vmtf_remove\<close> where [simp del]:
-\<open>abs_vmtf_bump_flush ((xs, ys), zs) = ((xs, ys \<union> zs), {})\<close>
+\<open>abs_vmtf_bump_flush ((xs, zs), zs) = ((xs, zs \<union> zs), {})\<close>
 
 lemmas abs_vmtf_bump_flush_def = abs_vmtf_bump_flush.simps
 lemmas abs_vmtf_bump_def = abs_vmtf_bump.simps
@@ -755,13 +764,13 @@ lemma abs_vmtf_remove_inv_abs_vmtf_bump_flush:
 
 
 definition abs_vmtf_unset :: \<open>nat literal \<Rightarrow> nat abs_vmtf \<Rightarrow> nat abs_vmtf nres\<close> where
-\<open>abs_vmtf_unset L \<equiv> \<lambda>(xs, ys). do {
-    if atm_of L \<in> ys
+\<open>abs_vmtf_unset L \<equiv> \<lambda>(xs, zs). do {
+    if atm_of L \<in> zs
     then do {
-        ys' \<leftarrow> SPEC (\<lambda>ys'. ys' \<subseteq> ys \<and> atm_of L \<in> ys');
-        RETURN (xs \<union> ys', ys-ys')
+        zs' \<leftarrow> SPEC (\<lambda>zs'. zs' \<subseteq> zs \<and> atm_of L \<in> zs');
+        RETURN (xs \<union> zs', zs-zs')
     }
-    else RETURN (xs, ys)
+    else RETURN (xs, zs)
   }\<close>
 
 lemma abs_vmtf_remove_inv_abs_vmtf_unset:
@@ -779,12 +788,12 @@ definition abs_vmtf_find_next :: \<open>(nat, nat) ann_lits \<Rightarrow> nat ab
     WHILE\<^sub>T\<^bsup>\<lambda>(L, vm).
        (L = None \<longrightarrow> abs_vmtf_inv M vm) \<and>
        (L \<noteq> None \<longrightarrow> (abs_vmtf_inv (Decided (Pos (the L)) # M) vm \<and> undefined_lit M (Pos (the L))))\<^esup>
-      (\<lambda>(x, (xs, ys)). x = None \<and> xs \<noteq> {})
-      (\<lambda>(x, (xs, ys)). do {
+      (\<lambda>(x, (xs, zs)). x = None \<and> xs \<noteq> {})
+      (\<lambda>(x, (xs, zs)). do {
           ASSERT(xs \<noteq> {});
           x \<leftarrow> SPEC(\<lambda>x. x \<in> xs);
-          if undefined_lit M (Pos x) then RETURN (Some x, (xs - {x}, insert x ys))
-          else RETURN (None, (xs - {x}, insert x ys))
+          if undefined_lit M (Pos x) then RETURN (Some x, (xs - {x}, insert x zs))
+          else RETURN (None, (xs - {x}, insert x zs))
       })
       (None, vm)
   }\<close>
@@ -797,11 +806,11 @@ lemma abs_vmtf_remove_inv_abs_vmtf_find_next:
 proof -
   have body_defined_abs: \<open>abs_vmtf_inv M' vm'\<close>
     if  \<open>abs_vmtf_inv M vm\<close> and \<open>M' = M\<close> and
-        \<open>vm' = (xs - {L}, insert L ys)\<close> and
-        \<open>vm = (xs, ys)\<close> and
+        \<open>vm' = (xs - {L}, insert L zs)\<close> and
+        \<open>vm = (xs, zs)\<close> and
         def_L: \<open>\<not>undefined_lit M (Pos L)\<close> and
         \<open>L \<in> xs\<close>
-    for vm vm' xs ys M M' L
+    for vm vm' xs zs M M' L
     proof -
         have \<open>L \<in> atm_of ` lits_of_l M\<close>
         using def_L by (metis (full_types) Decided_Propagated_in_iff_in_lits_of_l atm_of_uminus
@@ -813,7 +822,7 @@ proof -
     using assms unfolding abs_vmtf_find_next_def
     apply (cases vm)
     apply clarify
-    apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(x, (xs, ys)). card xs)\<close>])
+    apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(x, (xs, zs)). card xs)\<close>])
     subgoal by auto -- \<open>well-foundedness\<close>
     subgoal by auto -- \<open>WHILE inital round\<close>
     subgoal by fast
