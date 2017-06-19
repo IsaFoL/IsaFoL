@@ -67,7 +67,11 @@ definition subst_cls_lists :: "'a clause list \<Rightarrow> 's list \<Rightarrow
 definition subst_cls_mset :: "'a clause multiset \<Rightarrow> 's \<Rightarrow> 'a clause multiset" (infixl "\<cdot>cm" 67) where
   "CC \<cdot>cm \<sigma> = image_mset (\<lambda>A. A \<cdot> \<sigma>) CC"
 
-lemma subst_cls_mset_add_mset[iff]:
+lemma subst_cls_add_mset[simp]:
+  "add_mset L C \<cdot> \<sigma> = add_mset (L \<cdot>l \<sigma>) (C \<cdot> \<sigma>)"
+  unfolding subst_cls_def by auto
+  
+lemma subst_cls_mset_add_mset[simp]:
   "add_mset C CC \<cdot>cm \<sigma> = add_mset (C \<cdot> \<sigma>) (CC \<cdot>cm \<sigma>)"
   unfolding subst_cls_mset_def by auto
 
@@ -263,7 +267,7 @@ lemma Melem_subst_cls_mset[simp]: "AA \<in># CC \<cdot>cm \<sigma> \<longleftrig
   unfolding subst_cls_mset_def by auto
 
     
-subsubsection {* Sign of substitution *}
+subsubsection {* Signs and substitutions *}
   
 lemma subst_lit_is_neg[simp]: "is_neg (L \<cdot>l \<sigma>) = is_neg L"
   unfolding subst_lit_def by auto
@@ -271,6 +275,9 @@ lemma subst_lit_is_neg[simp]: "is_neg (L \<cdot>l \<sigma>) = is_neg L"
 lemma subst_lit_is_pos[simp]: "is_pos (L \<cdot>l \<sigma>) = is_pos L"
   unfolding subst_lit_def by auto
     
+lemma subst_minus[simp]: "(- (L)) \<cdot>l \<mu> = - (L  \<cdot>l \<mu>)"
+  by (simp add: literal.map_sel(1) literal.map_sel(2) subst_lit_def uminus_literal_def)   
+  
     
 subsubsection {* Substitute on literal or literals *}
   
