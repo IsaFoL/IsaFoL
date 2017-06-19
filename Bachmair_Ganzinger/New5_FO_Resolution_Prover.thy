@@ -1187,8 +1187,6 @@ next
   case (forward_subsumption P Q C N)
   then obtain D where D_p: "D\<in>P \<union> Q \<and> subsumes D C"
     by auto
-  let ?S = "(N \<union> {C}, P, Q)"
-  let ?S' = "(N, P, Q)"
   from D_p obtain \<sigma> where \<sigma>_p: "D \<cdot> \<sigma> \<subseteq># C" unfolding subsumes_def by auto
   then have "D \<cdot> \<sigma> = C \<or> D \<cdot> \<sigma> \<subset># C"
     by (simp add: subset_mset_def) 
@@ -1253,11 +1251,139 @@ next
       unfolding clss_of_state_def grounding_of_clss_def by blast
   qed
 next
-  case (backward_subsumption_P N C P Q)
-  then show ?case sorry (* adapt previous proof *)
+  case (backward_subsumption_P N C P Q) (* Adapted from previous proof *)
+   then obtain D where D_p: "D\<in>N \<and> properly_subsumes D C"
+    by auto
+  from D_p obtain \<sigma> where \<sigma>_p: "D \<cdot> \<sigma> \<subseteq># C" unfolding properly_subsumes_def subsumes_def by auto
+  then have "D \<cdot> \<sigma> = C \<or> D \<cdot> \<sigma> \<subset># C"
+    by (simp add: subset_mset_def) 
+  then show ?case
+  proof
+    assume "D \<cdot> \<sigma> = C"
+    then have gC_gD: "grounding_of_cls C \<subseteq> grounding_of_cls D"
+      unfolding grounding_of_cls_def
+      by (smt Collect_mono is_ground_comp_subst subst_cls_comp_subst) 
+    have "grounding_of_state (N, P \<union> {C}, Q) = grounding_of_state (N, P, Q)"
+    proof (rule; rule)
+      fix x
+      assume "x \<in> grounding_of_state (N, P \<union> {C}, Q)"
+      then show "x \<in> grounding_of_state (N, P, Q)"
+        using gC_gD D_p unfolding clss_of_state_def grounding_of_clss_def by auto
+    next
+      fix x
+      assume "x \<in> grounding_of_state (N, P, Q)"
+      then show "x \<in> grounding_of_state (N, P  \<union> {C}, Q)"
+        unfolding clss_of_state_def grounding_of_clss_def by auto
+    qed  
+    then show ?case 
+      using src_ext.derive.intros[of "grounding_of_state (N, P, Q)" "grounding_of_state (N, P, Q)"] 
+        by auto
+  next
+    assume a: "D \<cdot> \<sigma> \<subset># C"
+    have "grounding_of_cls C \<subseteq> src.Rf (grounding_of_cls D)"
+    proof
+      fix C\<mu>
+      assume "C\<mu> \<in> grounding_of_cls C"
+      then obtain \<mu> where \<mu>_p: "C\<mu> = C \<cdot> \<mu> \<and> is_ground_subst \<mu>"
+        unfolding grounding_of_cls_def by auto
+      have D\<sigma>\<mu>C\<mu>: "D \<cdot> \<sigma> \<cdot> \<mu> \<subset># C \<cdot> \<mu>"
+        using a subst_subset_mono by auto
+      then have "\<forall>I. I \<Turnstile> D \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>"
+        unfolding true_cls_def by blast
+      moreover
+      have "C \<cdot> \<mu> > D \<cdot> \<sigma> \<cdot> \<mu>"
+        using D\<sigma>\<mu>C\<mu>
+        by (simp add: subset_imp_less_mset) 
+      moreover
+      have "D \<cdot> \<sigma> \<cdot> \<mu> \<in> grounding_of_cls D"
+        by (metis (mono_tags, lifting) \<mu>_p is_ground_comp_subst mem_Collect_eq subst_cls_comp_subst substitution_ops.grounding_of_cls_def)        
+      ultimately
+      have "set_mset {#D \<cdot> \<sigma> \<cdot> \<mu>#} \<subseteq> grounding_of_cls D \<and> (\<forall>I. I \<Turnstile>m {#D \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>) \<and> (\<forall>D'. D' \<in># {#D \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> D' < C \<cdot> \<mu>)"
+        by auto
+      then have "C \<cdot> \<mu> \<in> src.Rf (grounding_of_cls D)"
+        using src.Rf_def[of "grounding_of_cls D"] by blast
+      then show "C\<mu> \<in> src.Rf (grounding_of_cls D)"
+        using \<mu>_p by auto
+    qed
+    moreover 
+    have "(grounding_of_cls D) \<subseteq> (grounding_of_state (N, P, Q))"
+      using D_p unfolding clss_of_state_def grounding_of_clss_def by auto
+    then have "src.Rf (grounding_of_cls D) \<subseteq> src.Rf (grounding_of_state (N, P, Q))"
+      using src_ext.Rf_mono by auto
+    ultimately
+    have "grounding_of_cls C \<subseteq> src.Rf (grounding_of_state (N, P, Q))"
+      by auto
+    then show ?case
+      using src_ext.derive.intros[of "grounding_of_state (N, P, Q)" "grounding_of_state (N, P \<union> {C}, Q)"]
+      unfolding clss_of_state_def grounding_of_clss_def by blast
+  qed
 next
-  case (backward_subsumption_Q N C P Q)
-  then show ?case sorry (* adapt previous proof *)
+  case (backward_subsumption_Q N C P Q) (* Adapted from previous proof *)
+     then obtain D where D_p: "D\<in>N \<and> properly_subsumes D C"
+    by auto
+  from D_p obtain \<sigma> where \<sigma>_p: "D \<cdot> \<sigma> \<subseteq># C" unfolding properly_subsumes_def subsumes_def by auto
+  then have "D \<cdot> \<sigma> = C \<or> D \<cdot> \<sigma> \<subset># C"
+    by (simp add: subset_mset_def) 
+  then show ?case
+  proof
+    assume "D \<cdot> \<sigma> = C"
+    then have gC_gD: "grounding_of_cls C \<subseteq> grounding_of_cls D"
+      unfolding grounding_of_cls_def
+      by (smt Collect_mono is_ground_comp_subst subst_cls_comp_subst) 
+    have "grounding_of_state (N, P, Q \<union> {C}) = grounding_of_state (N, P, Q)"
+    proof (rule; rule)
+      fix x
+      assume "x \<in> grounding_of_state (N, P, Q \<union> {C})"
+      then show "x \<in> grounding_of_state (N, P, Q)"
+        using gC_gD D_p unfolding clss_of_state_def grounding_of_clss_def by auto
+    next
+      fix x
+      assume "x \<in> grounding_of_state (N, P, Q)"
+      then show "x \<in> grounding_of_state (N, P, Q  \<union> {C})"
+        unfolding clss_of_state_def grounding_of_clss_def by auto
+    qed  
+    then show ?case 
+      using src_ext.derive.intros[of "grounding_of_state (N, P, Q)" "grounding_of_state (N, P, Q)"] 
+        by auto
+  next
+    assume a: "D \<cdot> \<sigma> \<subset># C"
+    have "grounding_of_cls C \<subseteq> src.Rf (grounding_of_cls D)"
+    proof
+      fix C\<mu>
+      assume "C\<mu> \<in> grounding_of_cls C"
+      then obtain \<mu> where \<mu>_p: "C\<mu> = C \<cdot> \<mu> \<and> is_ground_subst \<mu>"
+        unfolding grounding_of_cls_def by auto
+      have D\<sigma>\<mu>C\<mu>: "D \<cdot> \<sigma> \<cdot> \<mu> \<subset># C \<cdot> \<mu>"
+        using a subst_subset_mono by auto
+      then have "\<forall>I. I \<Turnstile> D \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>"
+        unfolding true_cls_def by blast
+      moreover
+      have "C \<cdot> \<mu> > D \<cdot> \<sigma> \<cdot> \<mu>"
+        using D\<sigma>\<mu>C\<mu>
+        by (simp add: subset_imp_less_mset) 
+      moreover
+      have "D \<cdot> \<sigma> \<cdot> \<mu> \<in> grounding_of_cls D"
+        by (metis (mono_tags, lifting) \<mu>_p is_ground_comp_subst mem_Collect_eq subst_cls_comp_subst substitution_ops.grounding_of_cls_def)        
+      ultimately
+      have "set_mset {#D \<cdot> \<sigma> \<cdot> \<mu>#} \<subseteq> grounding_of_cls D \<and> (\<forall>I. I \<Turnstile>m {#D \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>) \<and> (\<forall>D'. D' \<in># {#D \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> D' < C \<cdot> \<mu>)"
+        by auto
+      then have "C \<cdot> \<mu> \<in> src.Rf (grounding_of_cls D)"
+        using src.Rf_def[of "grounding_of_cls D"] by blast
+      then show "C\<mu> \<in> src.Rf (grounding_of_cls D)"
+        using \<mu>_p by auto
+    qed
+    moreover 
+    have "(grounding_of_cls D) \<subseteq> (grounding_of_state (N, P, Q))"
+      using D_p unfolding clss_of_state_def grounding_of_clss_def by auto
+    then have "src.Rf (grounding_of_cls D) \<subseteq> src.Rf (grounding_of_state (N, P, Q))"
+      using src_ext.Rf_mono by auto
+    ultimately
+    have "grounding_of_cls C \<subseteq> src.Rf (grounding_of_state (N, P, Q))"
+      by auto
+    then show ?case
+      using src_ext.derive.intros[of "grounding_of_state (N, P, Q)" "grounding_of_state (N, P, Q \<union> {C})"]
+      unfolding clss_of_state_def grounding_of_clss_def by blast
+  qed
 next
   case (forward_reduction P Q L \<sigma> C N)
   then show ?case sorry
