@@ -352,51 +352,6 @@ using assms proof cases
 qed (simp add: S_M_not_grounding_of_clss S_selects_neg_lits)
 
 
-interpretation gd: ground_resolution_with_selection S_M
-  by unfold_locales (auto simp: S_M_selects_subseteq S_M_selects_neg_lits)
-
-(*"grounding_of_clss N0"*)
-
-interpretation src: standard_redundancy_criterion gd.ord_\<Gamma>
-  "ground_resolution_with_selection.INTERP S_M"
-  by unfold_locales
-(*
-find_theorems name: src
-thm src.saturated_upto_refute_complete
-*)
-
-definition "gd_ord_\<Gamma> = gd.ord_\<Gamma>" (* Hack to expose *)
-  
-lemma gd_ord_\<Gamma>_gd_ord_\<Gamma>: "P gd_ord_\<Gamma> \<longleftrightarrow> P gd.ord_\<Gamma>" (* One more hack *)
-  unfolding gd_ord_\<Gamma>_def by auto
-  
-  
-(* A huge extension like Uwe suggested. *)
-definition "gd_ord_\<Gamma>' = {Infer a b c | a b c. (\<exists>I. I \<Turnstile>m a \<and> I \<Turnstile> b) \<longrightarrow> (\<exists>I. I \<Turnstile> c)}" 
-
-lemma gd_ord_\<Gamma>_ngd_ord_\<Gamma>: "gd.ord_\<Gamma> \<subseteq> gd_ord_\<Gamma>'"
-  unfolding gd_ord_\<Gamma>'_def
-  using gd.ord_\<Gamma>_def gd.ord_resolve_sound by fastforce 
-
-interpretation src_ext:
-  redundancy_criterion "gd_ord_\<Gamma>'" "src.Rf" "(\<lambda>N. src.Ri N \<union> (gd_ord_\<Gamma>' - gd.ord_\<Gamma>))"
-  by (rule standard_redundancy_criterion_extension[OF gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redudancy_criterion])
-(*find_theorems name: src_ext*)
-
-definition "src_ext_derive \<equiv> src_ext.derive" (* Hack to expose *)
-lemma src_ext_derive_src_ext_derive: "P src_ext_derive \<longleftrightarrow> P src_ext.derive" (* One more hack *)
-  unfolding src_ext_derive_def by auto
-    
-definition "src_Rf \<equiv> src.Rf" (* Hack to expose *)
-lemma src_Rf_src_Rf: "P src_Rf \<longleftrightarrow> P src.Rf" (* One more hack *)
-  unfolding src_Rf_def by auto
-  
-  
-definition "src_derive \<equiv> src.derive" (* Hack to expose src.derive such that I can later reach in to this context *)
-  
-lemma src_derive_src_derive: "P src_derive \<longleftrightarrow> P src.derive" (* One more hack *)
-  unfolding src_derive_def by auto
-
 end
 
 end
@@ -1108,8 +1063,33 @@ locale FO_resolution_with_selection =
     finite_N0: "finite N0"
 begin
 
-interpretation ground_resolution_with_S: ground_resolution_with_selection S
+interpretation gd: ground_resolution_with_selection S
   by unfold_locales
+    
+
+(*"grounding_of_clss N0"*)
+
+interpretation src: standard_redundancy_criterion gd.ord_\<Gamma>
+  "ground_resolution_with_selection.INTERP S"
+  by unfold_locales
+(*
+find_theorems name: src
+thm src.saturated_upto_refute_complete
+*)
+
+  
+(* A huge extension like Uwe suggested. *)
+definition "gd_ord_\<Gamma>' = {Infer a b c | a b c. (\<exists>I. I \<Turnstile>m a \<and> I \<Turnstile> b) \<longrightarrow> (\<exists>I. I \<Turnstile> c)}" 
+
+(* This corresponds to the part of 4.10 that claims we are extending resolution *)
+lemma gd_ord_\<Gamma>_ngd_ord_\<Gamma>: "gd.ord_\<Gamma> \<subseteq> gd_ord_\<Gamma>'"
+  unfolding gd_ord_\<Gamma>'_def
+  using gd.ord_\<Gamma>_def gd.ord_resolve_sound by fastforce 
+
+interpretation src_ext:
+  redundancy_criterion "gd_ord_\<Gamma>'" "src.Rf" "(\<lambda>N. src.Ri N \<union> (gd_ord_\<Gamma>' - gd.ord_\<Gamma>))"
+  by (rule standard_redundancy_criterion_extension[OF gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redudancy_criterion])
+
 
 definition ord_FO_\<Gamma> :: "'a inference set" where
   "ord_FO_\<Gamma> = {Infer CC D E | CC D E Cl. ord_resolve S Cl D E \<and> mset Cl = CC}"
@@ -1152,7 +1132,7 @@ text {*
 The following corresponds to Lemma 4.10:
 *}
   
-term "ground_resolution_with_S.ord_resolve"
+term "gd.ord_resolve"
 term rtrancl
 term src_derive
 term "src_derive S" (* Should this constant really take an S? I don't think so when looking in the book.  *)
@@ -1160,7 +1140,6 @@ term "src_derive S" (* Should this constant really take an S? I don't think so w
      an extension of Os and the standard extension of std redundancy wrt the extension of Os. *)
 term "src_ext_derive"
   
-thm src_derive_src_derive
 (* That src derive up there seems rather strange. Let's do it down here. MAybe... *)
 (* Actually, the whole file is structured a bit strange I think. *)
 (* Another thing that is kind of weird is S_M. I mean: We start by having a selection function S for FOL.
@@ -1171,24 +1150,17 @@ thm src_derive_src_derive
    But why not just assume that S has this property to begin with instead of modifying it?
  *)
 term gd_ord_\<Gamma> 
-thm gd_ord_\<Gamma>_gd_ord_\<Gamma>
   
 
   
 (* The extension of ordered resolution mentioned in 4.10. Following Uwe's recommendation I make it enormous, 
    i.e. consisting of all satisfiability preserving rules *)
   
-context (* In order to do lemma 4.10 I introduce an arbitrary M and an arbitrary S because the theorem is independent of this choice *)
-  fixes M_arb :: "'a clause set"
-  fixes S_arb :: "'a literal multiset \<Rightarrow> 'a literal multiset"
-  assumes select: "selection S_arb"
-begin
-  
 (* I need to interpret derive with \<Gamma>' and R as the standard extension wrt Os of standard redundancy *)
   
 lemma resolution_prover_rtc_deriv:
   assumes "St \<leadsto> St'"
-  shows "rtranclp src_ext_derive (grounding_of_state St) (grounding_of_state St')"
+  shows "rtranclp src_ext.derive (grounding_of_state St) (grounding_of_state St')"
 using assms proof (induction rule: resolution_prover.induct)
   case (tautology_deletion C N P Q)
   then show ?case sorry
@@ -1204,21 +1176,12 @@ next
   then show ?case
   proof
     assume "D \<cdot> \<sigma> = C"
-    then show ?case sorry
+    then show ?case 
+      sorry
   next
     assume "D \<cdot> \<sigma> \<subset># C"
-    have "grounding_of_cls C \<subseteq> src_Rf (grounding_of_cls D)"
-      apply rule
-      unfolding grounding_of_cls_def
-      unfolding src_Rf_def[of S_arb, OF select] 
-      using standard_redundancy_criterion.Rf_def
-        (* Look at this weird stuff... Probably you should be doing all this stuff in a context where those things are avaiable
-           I.e. up where src.ext_derive was defined. Or maybe put its definition and the relevant interpretations down here.
-           That might actually make more sense. Yes. Even pull the lifting lemma down here. And then don't assume that you have
-           that finite N0. Instead put N0 on the prover as an argument. And when you do a lemma where you need that N0 is finite
-           then just assume it there.
-         *)
-        sorry
+    have "grounding_of_cls C \<subseteq> src.Rf (grounding_of_cls D)"
+      sorry
     then show ?case
       sorry
   qed
@@ -1244,9 +1207,6 @@ next
   case (inference_computation N Q C P)
   then show ?case sorry
 oops
-  
-
-end
 
 text {*
 The following corresponds to (one direction of) Theorem 4.13:
