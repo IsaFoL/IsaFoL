@@ -149,7 +149,12 @@ next
       then show ?case using deletion 
         by auto
     qed
-qed
+  qed
+    
+lemma "rtranclp derive = rtranclp derive2"
+  apply (rule, rule)
+  using derive_derive2 derive2_derive 
+    by auto
 
 end
 
