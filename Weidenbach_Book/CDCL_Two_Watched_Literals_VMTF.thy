@@ -423,8 +423,12 @@ next
     by (cases \<open>xs ! b\<close>) (auto simp: eq_commute[of \<open>xs ! b\<close>])
 qed
 
+abbreviation none_or_notin_list where
+\<open>none_or_notin_list m l \<equiv> m = None \<or> the m \<notin> set l\<close>
+
 definition vmtf_notin where
-  \<open>vmtf_notin l m xs \<longleftrightarrow> (\<forall>i<length xs. i\<notin>set l \<longrightarrow> (get_prev (xs ! i) = None \<and> get_next (xs ! i) = None))\<close>
+  \<open>vmtf_notin l m xs \<longleftrightarrow> (\<forall>i<length xs. i\<notin>set l \<longrightarrow> (none_or_notin_list (get_prev (xs ! i)) l \<and>
+      none_or_notin_list (get_next (xs ! i)) l))\<close>
 
 lemma stamp_vmtf_dequeue:
   \<open>axs < length zs \<Longrightarrow> stamp (vmtf_dequeue zs x ! axs) = stamp (zs ! axs)\<close>
@@ -463,6 +467,16 @@ proof (induction rule: vmtf.induct)
     using Cons by (auto simp: H sorted_many_eq_append)
 qed auto
 
+
+text \<open>
+  This a version of @{thm nth_list_update} with a different condition (\<^term>\<open>j\<close>
+  instead of \<^term>\<open>i\<close>). This is more useful here.
+  \<close>
+(* TODO: Move*)
+lemma nth_list_update'[simp]:
+"j < length xs \<Longrightarrow> (xs[i:=x])!j = (if i = j then x else xs!j)"
+  by (induct xs arbitrary: i j) (auto simp add: nth_Cons split: nat.split)
+
 lemma vmtf_vmtf_dequeue:
   assumes vmtf: \<open>vmtf l m A\<close> and notin: \<open>vmtf_notin l m A\<close> and valid: \<open>x < length A\<close>
   shows \<open>vmtf (remove1 x l) m (vmtf_dequeue A x)\<close>
@@ -470,13 +484,21 @@ proof (cases \<open>x \<in> set l\<close>)
   case False
   then have H: \<open>remove1 x l = l\<close>
     by (simp add: remove1_idem)
-  have vmtf_eq: \<open>vmtf_dequeue A x = A\<close>
-    using notin False valid unfolding vmtf_notin_def vmtf_dequeue_def by (auto simp: Let_def)
+  have simp_is_stupid[simp]: ‹a ∈ set l ⟹ x ∉ set l \<Longrightarrow> a \<noteq> x› ‹a ∈ set l ⟹ x ∉ set l \<Longrightarrow> x \<noteq> a›  for a x
+    by auto
+  have
+      \<open>none_or_notin_list (get_prev (A ! x)) l\<close> and
+      \<open>none_or_notin_list (get_next (A ! x)) l\<close>
+    using notin False valid unfolding vmtf_notin_def by auto
+  then have vmtf_eq: \<open>(vmtf_dequeue A x) ! a = A ! a\<close> if \<open>a \<in> set l\<close> for a
+    using that False valid unfolding vmtf_notin_def vmtf_dequeue_def
+    by (cases \<open>A ! (the (get_prev (A ! x)))\<close>; cases \<open>A ! (the (get_next (A ! x)))\<close>)
+      (auto simp: Let_def split: option.splits)
   show ?thesis
     unfolding H
     apply (rule vmtf_eq_iff[THEN iffD1, OF _ _ vmtf])
-    subgoal unfolding vmtf_eq by blast
-    subgoal using vmtf_le_length[OF vmtf] unfolding vmtf_eq by blast
+    subgoal using vmtf_eq by blast
+    subgoal using vmtf_le_length[OF vmtf] by auto
     done
 next
   case True
