@@ -692,23 +692,63 @@ lemma vmtf_rescale:
     \<open>\<forall>a \<in> set l. get_prev (zs ! a) = get_prev (xs ! a)\<close> and
     \<open>\<forall>a \<in> set l. get_next (zs ! a) = get_next (xs ! a)\<close> and
     \<open>\<forall>a \<in> set l. stamp (zs ! a) = st ! a\<close> and
-    \<open>length xs = length zs\<close> and
+    \<open>length xs \<le> length zs\<close> and
     ‹\<forall>a\<in>set l. a < length st›
   shows \<open>vmtf l (Max (set st)) zs\<close>
   using assms
-proof (induction rule: vmtf.induct)
+proof (induction arbitrary: zs rule: vmtf.induct)
   case (Nil st xs)
   then show ?case by (auto intro: vmtf.intros)
 next
   case (Cons1 a xs m n)
   then show ?case by (cases \<open>zs ! a\<close>) (auto simp: vmtf_single_iff intro!: Max_ge nth_mem)
 next
-  case (Cons b l m xs a n xs' n')note vmtf = this(1) and a_le_y = this(2) and
+  case (Cons b l m xs a n xs' n' zs) note vmtf = this(1) and a_le_y = this(2) and
     zs_a = this(3) and ab = this(4) and a_l = this(5) and mn = this(6) and xs' = this(7) and
     nn' = this(8) and IH = this(9) and H = this(10-)
-  thm IH
-  show ?case
-   sorry
+  have [simp]: \<open>b < length xs\<close> \<open>b \<noteq> a\<close> \<open>a \<noteq> b\<close> \<open>b \<notin> set l\<close> \<open>b < length zs\<close> \<open>a < length zs\<close> 
+    using vmtf_distinct[OF vmtf] vmtf_le_length[OF vmtf] ab H(6) a_le_y unfolding xs'
+    by force+
+
+  have simp_is_stupid[simp]: ‹a ∈ set l ⟹ x ∉ set l \<Longrightarrow> a \<noteq> x› ‹a ∈ set l ⟹ x ∉ set l \<Longrightarrow> x \<noteq> a›  for a x
+    by auto
+  define zs' where \<open>zs' \<equiv> (zs[b := VMTF_ATM (st ! b) (get_prev (xs ! b)) (get_next (xs ! b)),
+          a := VMTF_ATM (st ! a) None (Some b)])\<close>
+  have zs_upd_zs: \<open>zs = zs
+    [b := VMTF_ATM (st ! b) (get_prev (xs ! b)) (get_next (xs ! b)),
+     a := VMTF_ATM (st ! a) None (Some b),
+     b := VMTF_ATM (st ! b) (Some a) (get_next (xs ! b))]
+    \<close>
+    using H(2-5) xs' zs_a ‹b < length xs› 
+    by (metis list.set_intros(1) list.set_intros(2) list_update_id list_update_overwrite 
+      nth_list_update_eq nth_list_update_neq vmtf_atm.collapse vmtf_atm.sel(2,3))
+
+  have vtmf_b_l: \<open>vmtf (b # l) (Max (set st)) zs'\<close>
+    unfolding zs'_def
+    apply (rule IH)
+    subgoal using H(1) by (simp add: sorted_many_eq_append)
+    subgoal using H(2) by auto
+    subgoal using H(3,4,5) xs' zs_a a_l ab by (auto split: if_splits)
+    subgoal using H(4) xs' zs_a a_l ab by auto
+    subgoal using H(5) xs' a_l ab by auto
+    subgoal using H(6) xs' by auto
+    subgoal using H(7) xs' by auto
+    done
+  then have \<open>vmtf (b # l) (stamp (zs' ! b)) zs'\<close>    
+    by (rule vmtf_thighten_stamp)
+      (use vmtf_stamp_sorted[OF vtmf_b_l] in \<open>auto simp: sorted_append\<close>)
+
+  then show ?case
+    apply (rule vmtf.Cons[of _ _ _ _ _ \<open>st ! a\<close>])
+    unfolding zs'_def
+    subgoal using a_le_y H(6) xs' by auto 
+    subgoal using a_le_y by auto
+    subgoal using ab.
+    subgoal using a_l .
+    subgoal using nn' mn H(1,2) by (auto simp: sorted_many_eq_append)
+    subgoal using zs_upd_zs by auto
+    subgoal using H by (auto intro!: Max_ge nth_mem)
+    done
 qed
 
 context twl_array_code_ops
