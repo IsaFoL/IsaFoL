@@ -1386,7 +1386,40 @@ next
   qed
 next
   case (forward_reduction P Q L \<sigma> C N)
-  then show ?case sorry
+  then obtain D L' where DL'_p: "D + {#L'#} \<in> P \<union> Q \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C"
+    by auto
+  {
+    fix C\<mu>
+    assume "C\<mu> \<in> grounding_of_cls C"
+    then obtain \<mu> where \<mu>_p: "C\<mu> = C \<cdot> \<mu> \<and> is_ground_subst \<mu>"
+      unfolding grounding_of_cls_def by auto
+        
+    define \<gamma> where "\<gamma> = Infer {# (D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> #} ((C + {#L#})\<cdot> \<mu>) (C \<cdot> \<mu>)"
+        
+    have "(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> \<in> grounding_of_state (N \<union> {C + {#L#}}, P, Q)"
+      using DL'_p sorry
+    moreover
+    have "(C + {#L#}) \<cdot> \<mu> \<in> grounding_of_state (N \<union> {C + {#L#}}, P, Q)"
+      using forward_reduction sorry
+    moreover
+    have "\<forall>I. I \<Turnstile> (D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow> I \<Turnstile> D \<cdot> \<sigma> \<cdot> \<mu> + C \<cdot> \<mu>"
+      using DL'_p sorry
+    then have "\<forall>I. I \<Turnstile> (D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>"
+      sorry
+    then have "(\<exists>I. I \<Turnstile>m {#(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>#} \<and> I \<Turnstile> (C + {#L#}) \<cdot> \<mu>) \<longrightarrow> (\<exists>I. I \<Turnstile> C \<cdot> \<mu>)"
+      sorry
+    ultimately
+    have "\<gamma> \<in> src_ext.inferences_from (grounding_of_state (N \<union> {C + {#L#}}, P, Q))"
+      unfolding src_ext.inferences_from_def unfolding gd_ord_\<Gamma>'_def infer_from_def \<gamma>_def by simp      
+    then have "C \<cdot> \<mu> \<in> concls_of (src_ext.inferences_from (grounding_of_state (N \<union> {C + {#L#}}, P, Q)))"
+      using image_iff unfolding \<gamma>_def by fastforce
+    then have "C\<mu> \<in> concls_of (src_ext.inferences_from (grounding_of_state (N \<union> {C + {#L#}}, P, Q)))"
+      using \<mu>_p by auto
+  }
+    
+  then show ?case
+    using src_ext.derive.intros[of "grounding_of_state (N \<union> {C}, P, Q)" "grounding_of_state (N \<union> {C + {#L#}}, P, Q)"]
+    sorry
 next
   case (backward_reduction_P N L \<sigma> C P Q)
   then show ?case sorry
