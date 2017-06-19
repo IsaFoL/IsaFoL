@@ -99,8 +99,11 @@ definition saturated_upto :: "'a clause set \<Rightarrow> bool" where
   "saturated_upto N \<longleftrightarrow> inferences_from (N - Rf N) \<subseteq> Ri N"
 
 inductive "derive" :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<triangleright>" 50) where
-  deduction: "M \<subseteq> concls_of (inferences_from N) \<Longrightarrow> N \<triangleright> N \<union> M"
-| deletion: "M \<subseteq> Rf N \<Longrightarrow> N \<union> M \<triangleright> N"
+  deduction_deletion: "M - N \<subseteq> concls_of (inferences_from N) \<Longrightarrow> N - M \<subseteq> Rf M \<Longrightarrow> N \<triangleright> M"
+  
+inductive "derive2" :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<triangleright>\<triangleright>" 50) where
+  deduction: "M \<subseteq> concls_of (inferences_from N) \<Longrightarrow> N \<triangleright>\<triangleright> N \<union> M"
+| deletion: "M \<subseteq> Rf N \<Longrightarrow> N \<union> M \<triangleright>\<triangleright> N"
 
 lemma derive_subset: "M \<triangleright> N \<Longrightarrow> N \<subseteq> M \<union> concls_of (inferences_from M)"
   by (cases rule: derive.cases) auto
