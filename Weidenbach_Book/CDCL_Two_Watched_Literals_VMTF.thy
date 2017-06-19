@@ -608,7 +608,99 @@ next
   qed
 qed
 
+lemma vmtf_stamp_distinct:
+  assumes \<open>vmtf l m A\<close>
+  shows \<open>distinct (map (\<lambda>a. stamp (A!a)) l)\<close>
+  using assms
+proof (induction rule: vmtf.induct)
+  case (Cons b l m xs a n xs' n') note vmtf = this(1) and IH = this(9) and a_le_y = this(2) and
+    zs_a = this(3) and ab = this(4) and a_l = this(5) and mn = this(6) and xs' = this(7) and
+    nn' = this(8)
+  have [simp]: \<open>map (λaa. stamp
+                 (if b = aa
+                  then VMTF_ATM (stamp (xs ! aa)) (Some a) (get_next (xs ! aa))
+                  else xs ! aa)) l =
+        map (λaa. stamp (xs ! aa)) l
+       \<close> for a
+    apply (rule map_cong)
+    subgoal ..
+    subgoal using vmtf_distinct[OF vmtf] by auto
+    done
+  show ?case
+    using Cons vmtf_distinct[OF vmtf] vmtf_le_length[OF vmtf]
+    by (auto simp: sorted_many_eq_append leD vmtf_stamp_sorted cong: if_cong)
+qed auto
 
+lemma vmtf_thighten_stamp:
+  assumes vmtf: ‹vmtf l m xs› and n: ‹\<forall>a\<in>set l. stamp (xs ! a) \<le> n›
+  shows ‹vmtf l n xs›
+proof -
+  consider
+    (empty) \<open>l = []\<close> |
+    (single) x where \<open>l = [x]\<close> |
+    (more_than_two) x y ys where \<open>l = x # y # ys\<close>
+    by (cases l; cases \<open>tl l\<close>) auto
+  then show ?thesis
+  proof cases
+    case empty
+    then show ?thesis by (auto intro: vmtf.intros)
+  next
+    case (single x)
+    then show ?thesis using n vmtf by (auto simp: vmtf_single_iff)
+  next
+    case (more_than_two x y ys) note l = this
+    then have vmtf': \<open>vmtf ([] @ [x, y] @ ys) m xs\<close>
+      using vmtf by auto
+    from vmtf_append_decomp[OF this] have
+      \<open>vmtf ([x]) m (xs[x := VMTF_ATM (stamp (xs ! x)) (get_prev (xs ! x)) None])\<close> and
+      vmtf_y_ys: \<open>vmtf (y # ys) (stamp (xs ! y)) (xs[y := VMTF_ATM (stamp (xs ! y)) None (get_next (xs ! y))])\<close> and
+      \<open>stamp (xs ! y) < stamp (xs ! x)\<close>
+      by auto
+    have [simp]: \<open>x \<noteq> y\<close> \<open>x \<notin> set ys\<close> \<open>x < length xs\<close> \<open>y < length xs\<close>
+      using vmtf_distinct[OF vmtf] vmtf_le_length[OF vmtf] unfolding l by auto
+    show ?thesis
+      unfolding l
+      apply (rule vmtf.Cons[OF vmtf_y_ys, of _ \<open>stamp (xs ! x)\<close>])
+      subgoal using vmtf_le_length[OF vmtf] unfolding l by auto
+      subgoal using vmtf unfolding l by (cases \<open>xs ! x\<close>) (auto elim: vmtfE)
+      subgoal by simp
+      subgoal by simp
+      subgoal using vmtf_stamp_sorted[OF vmtf] vmtf_stamp_distinct[OF vmtf]
+       by (auto simp: l sorted_many_eq_append)
+      subgoal
+        using vmtf vmtf_last_mid_get_prev[OF vmtf']
+        apply (cases ‹xs ! y›)
+        by simp (auto simp: l eq_commute[of \<open>xs ! y\<close>])
+      subgoal using n unfolding l by auto
+      done
+  qed
+qed
+
+lemma vmtf_rescale:
+  assumes
+    \<open>vmtf l m xs\<close> and
+    \<open>sorted (map (\<lambda>a. st ! a) (rev l))\<close> and \<open>distinct (map (\<lambda>a. st ! a) l)\<close>
+    \<open>\<forall>a \<in> set l. get_prev (zs ! a) = get_prev (xs ! a)\<close> and
+    \<open>\<forall>a \<in> set l. get_next (zs ! a) = get_next (xs ! a)\<close> and
+    \<open>\<forall>a \<in> set l. stamp (zs ! a) = st ! a\<close> and
+    \<open>length xs = length zs\<close> and
+    ‹\<forall>a\<in>set l. a < length st›
+  shows \<open>vmtf l (Max (set st)) zs\<close>
+  using assms
+proof (induction rule: vmtf.induct)
+  case (Nil st xs)
+  then show ?case by (auto intro: vmtf.intros)
+next
+  case (Cons1 a xs m n)
+  then show ?case by (cases \<open>zs ! a\<close>) (auto simp: vmtf_single_iff intro!: Max_ge nth_mem)
+next
+  case (Cons b l m xs a n xs' n')note vmtf = this(1) and a_le_y = this(2) and
+    zs_a = this(3) and ab = this(4) and a_l = this(5) and mn = this(6) and xs' = this(7) and
+    nn' = this(8) and IH = this(9) and H = this(10-)
+  thm IH
+  show ?case
+   sorry
+qed
 
 context twl_array_code_ops
 begin
