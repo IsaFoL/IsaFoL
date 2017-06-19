@@ -107,6 +107,49 @@ inductive "derive2" :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> 
 
 lemma derive_subset: "M \<triangleright> N \<Longrightarrow> N \<subseteq> M \<union> concls_of (inferences_from M)"
   by (cases rule: derive.cases) auto
+    
+lemma derive_derive2: "rtranclp derive N1 N2 \<Longrightarrow> rtranclp derive2 N1 N2"
+proof (induction rule: rtranclp_induct)
+  case base
+  then show ?case by auto
+next
+  case (step y z)
+  from \<open>y \<triangleright> z\<close> step show ?case
+    proof (induction rule: derive.induct)
+      case (deduction_deletion M N)
+      moreover
+      from deduction_deletion have "N \<triangleright>\<triangleright> N \<union> (M - N)"
+        using derive2.intros(1)[of "M - N" N] by auto
+      moreover
+      from deduction_deletion have "N \<union> (M - N) \<triangleright>\<triangleright> M"
+        using derive2.intros(2)[of _ _]
+        by (metis Un_Diff_cancel2 sup_commute) 
+      ultimately
+      show ?case using deduction_deletion by auto
+    qed
+  qed
+    
+lemma derive2_derive: "rtranclp derive2 N1 N2 \<Longrightarrow> rtranclp derive N1 N2"
+proof (induction rule: rtranclp_induct)
+  case base
+  then show ?case by auto
+next
+  case (step y z)
+  from \<open>y \<triangleright>\<triangleright> z\<close> step show ?case
+    proof (induction rule: derive2.induct)
+      case (deduction M N)
+      then have "N \<triangleright> N \<union> M"
+        using derive.intros[of "N \<union> M" N] by blast
+      then show ?case 
+        using deduction by auto 
+    next
+      case (deletion M N)
+      then have "N \<union> M \<triangleright> N"
+        using derive.intros[of N] by blast
+      then show ?case using deletion 
+        by auto
+    qed
+qed
 
 end
 
