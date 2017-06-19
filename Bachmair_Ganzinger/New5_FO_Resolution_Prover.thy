@@ -1163,7 +1163,9 @@ lemma resolution_prover_rtc_deriv:
   shows "rtranclp src_ext.derive (grounding_of_state St) (grounding_of_state St')"
 using assms proof (induction rule: resolution_prover.induct)
   case (tautology_deletion C N P Q)
-  then show ?case sorry
+  then show ?case 
+    using src.tautology_redundant
+    sorry
 next
   case (forward_subsumption P Q C N)
   then obtain D where D_p: "D\<in>P \<union> Q \<and> subsumes D C"
