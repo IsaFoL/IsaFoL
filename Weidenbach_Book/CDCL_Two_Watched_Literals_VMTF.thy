@@ -696,6 +696,100 @@ next
   qed
 qed
 
+lemma
+   none_or_notin_list_None[simp]: \<open>none_or_notin_list None l\<close> and
+   none_or_notin_list_Some[simp]: \<open>none_or_notin_list (Some a) l \<longleftrightarrow> a \<notin> set l\<close>
+  by (auto simp: none_or_notin_list_def)
+
+lemma l_vmtf_notin_dequeue:
+  assumes l_vmtf: \<open>l_vmtf l m A\<close> and notin: \<open>l_vmtf_notin l m A\<close> and valid: \<open>x < length A\<close>
+  shows \<open>l_vmtf_notin (remove1 x l) m (l_vmtf_dequeue A x)\<close>
+proof (cases \<open>x \<in> set l\<close>)
+  case False
+  then have H: \<open>remove1 x l = l\<close>
+    by (simp add: remove1_idem)
+  have simp_is_stupid[simp]: \<open>a \<in> set l \<Longrightarrow> x \<notin> set l \<Longrightarrow> a \<noteq> x\<close> \<open>a \<in> set l \<Longrightarrow> x \<notin> set l \<Longrightarrow> x \<noteq> a\<close>  for a x
+    by auto
+  have
+    \<open>none_or_notin_list (get_prev (A ! x)) l\<close> and
+    \<open>none_or_notin_list (get_next (A ! x)) l\<close>
+    using notin False valid unfolding l_vmtf_notin_def by auto
+  show ?thesis
+    using notin valid False unfolding l_vmtf_notin_def
+    by (auto simp: l_vmtf_notin_def l_vmtf_dequeue_def Let_def H split: option.splits)
+next
+  case True
+  then obtain xs zs where
+    l: \<open>l = xs @ x # zs\<close>
+    by (meson split_list)
+  have r_l: \<open>remove1 x l = xs @ zs\<close>
+    using l_vmtf_distinct[OF l_vmtf] unfolding l by (simp add: remove1_append)
+
+  consider
+    (xs_zs_empty) \<open>xs = []\<close> and \<open>zs = []\<close> |
+    (xs_nempty_zs_empty) x' xs' where \<open>xs = xs' @ [x']\<close> and \<open>zs = []\<close> |
+    (xs_empty_zs_nempty) y' zs' where \<open>xs = []\<close> and \<open>zs = y' # zs'\<close> |
+    (xs_zs_nempty) x' y' xs' zs' where  \<open>xs = xs' @ [x']\<close> and \<open>zs = y' # zs'\<close>
+    by (cases xs rule: rev_cases; cases zs)
+  then show ?thesis
+  proof cases
+    case xs_zs_empty
+    then show ?thesis
+      using notin l_vmtf unfolding l apply (cases \<open>A ! x\<close>)
+        by (auto simp: l_vmtf_notin_def l_vmtf_dequeue_def Let_def l_vmtf_single_iff
+          none_or_notin_list_def split: option.splits)
+  next
+    case xs_empty_zs_nempty note xs = this(1) and zs = this(1)
+    have prev_next: \<open>get_prev (A ! x) = None\<close> \<open>get_next (A ! x) = option_hd zs\<close>
+      using l_vmtf unfolding l xs zs
+      by (cases zs; auto 5 5 simp: option_hd_def elim: l_vmtfE; fail)+
+    show ?thesis
+      apply (rule l_vmtf_notinI)
+      apply (case_tac \<open>i = x\<close>)
+      subgoal
+        using l_vmtf prev_next unfolding r_l unfolding l xs zs
+        by (cases zs) (auto simp: l_vmtf_dequeue_def Let_def
+            l_vmtf_notin_def l_vmtf_single_iff
+            split: option.splits
+            simp del: none_or_notin_list_Some)
+      subgoal
+        using l_vmtf notin prev_next unfolding r_l unfolding l xs zs
+        by (auto simp: l_vmtf_dequeue_def Let_def
+            l_vmtf_notin_def l_vmtf_single_iff none_or_notin_list_def
+            simp del: none_or_notin_list_None none_or_notin_list_Some
+            split: option.splits
+            intro: l_vmtf.intros l_vmtf_stamp_increase dest: l_vmtf_skip_fst)
+       done
+  next
+    case xs_nempty_zs_empty note xs = this(1) and zs = this(2)
+    have prev_next: \<open>get_prev (A ! x) = Some x'\<close> \<open>get_next (A ! x) = None\<close>
+      using l_vmtf l_vmtf_append_decomp[of xs' x' x zs m A] unfolding l xs zs
+      by (auto simp: l_vmtf_single_iff intro: l_vmtf_last_mid_get_prev)
+    then show ?thesis
+      using l_vmtf notin unfolding r_l unfolding l xs zs
+      by (auto simp: l_vmtf_dequeue_def Let_def l_vmtf_append_decomp l_vmtf_notin_def
+          none_or_notin_list_def
+          split: option.splits
+          intro: l_vmtf.intros)
+  next
+    case xs_zs_nempty note xs = this(1) and zs = this(2)
+    have l_vmtf_x'_x: \<open>l_vmtf (xs' @ [x', x] @ (y' #  zs')) m A\<close> and
+      l_vmtf_x_y: \<open>l_vmtf ((xs' @ [x']) @ [x, y'] @ zs') m A\<close>
+      using l_vmtf unfolding l xs zs by simp_all
+    have [simp]: \<open>y' < length A\<close> \<open>x < length A\<close> \<open>x \<noteq> y'\<close> \<open>x' \<noteq> y'\<close> \<open>x' < length A\<close> \<open>y' \<noteq> x'\<close>
+      \<open>y' \<noteq> x\<close> \<open>y' \<notin> set xs\<close>  \<open>y' \<notin> set zs'\<close>
+      and x_zs': \<open>x \<notin> set zs'\<close> and x'_zs': \<open>x' \<notin> set zs'\<close> and y'_xs': \<open>y' \<notin> set xs'\<close>
+      using l_vmtf_distinct[OF l_vmtf] l_vmtf_le_length[OF l_vmtf] unfolding l xs zs
+      by auto
+    have \<open>get_next (A!x) = Some y'\<close> \<open>get_prev (A!x) = Some x'\<close>
+      using l_vmtf_last_mid_get_prev[OF l_vmtf_x'_x] l_vmtf_last_mid_get_next[OF l_vmtf_x_y]
+      by fast+
+    then show ?thesis
+      using notin x_zs' x'_zs' y'_xs' unfolding l xs zs
+      by (auto simp: l_vmtf_notin_def l_vmtf_dequeue_def none_or_notin_list_def)
+  qed
+qed
+
 lemma l_vmtf_stamp_distinct:
   assumes \<open>l_vmtf l m A\<close>
   shows \<open>distinct (map (\<lambda>a. stamp (A!a)) l)\<close>
