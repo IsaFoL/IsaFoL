@@ -2,16 +2,13 @@ theory CDCL_Two_Watched_Literals_VMTF
 imports CDCL_Two_Watched_Literals_List_Watched_Domain
 begin
 
-type_synonym 'v abs_l_vmtf = \<open>'v set \<times> 'v set\<close>
-type_synonym 'v abs_l_vmtf_remove = \<open>'v abs_l_vmtf \<times> 'v set\<close>
+
+declare nth_list_update[simp]
+
 
 subsection \<open>Variable-Move-to-Front\<close>
 
-subsubsection \<open>Specification\<close>
-
-datatype 'v l_vmtf_atm = l_vmtf_ATM (stamp : nat) (get_prev: \<open>nat option\<close>) (get_next: \<open>nat option\<close>)
-
-declare nth_list_update[simp]
+subsubsection \<open>Variants around head and last\<close>
 
 definition option_hd :: \<open>'a list \<Rightarrow> 'a option\<close> where
   \<open>option_hd xs = (if xs = [] then None else Some (hd xs))\<close>
@@ -27,6 +24,34 @@ lemma option_hd_Some_hd[simp]: \<open>zs \<noteq> [] \<Longrightarrow> option_hd
 
 lemma option_hd_Nil[simp]: \<open>option_hd [] = None\<close>
   by (auto simp: option_hd_def)
+
+definition option_last where
+\<open>option_last l = (if l = [] then None else Some (last l))\<close>
+
+lemma
+  option_last_None_iff[iff]: \<open>option_last l = None \<longleftrightarrow> l = []\<close> \<open>None = option_last l \<longleftrightarrow> l = []\<close> and
+  option_last_Some_iff[iff]: \<open>option_last l = Some a \<longleftrightarrow> l \<noteq> [] \<and> a = last l\<close>
+    \<open>Some a = option_last l \<longleftrightarrow> l \<noteq> [] \<and> a = last l\<close>
+  by (auto simp: option_last_def)
+
+lemma option_last_Some[simp]: \<open>l \<noteq> [] \<Longrightarrow> option_last l = Some (last l)\<close>
+  by (auto simp: option_last_def)
+
+lemma option_last_Nil[simp]: \<open>option_last [] = None\<close>
+  by (auto simp: option_last_def)
+
+lemma option_last_remove1_not_last:
+  \<open>x \<noteq> last xs \<Longrightarrow> option_last xs = option_last (remove1 x xs)\<close>
+  by (cases xs rule: rev_cases)
+    (auto simp: option_last_def remove1_Nil_iff remove1_append)
+
+
+subsubsection \<open>Specification\<close>
+
+type_synonym 'v abs_l_vmtf = \<open>'v set \<times> 'v set\<close>
+type_synonym 'v abs_l_vmtf_remove = \<open>'v abs_l_vmtf \<times> 'v set\<close>
+
+datatype 'v l_vmtf_atm = l_vmtf_ATM (stamp : nat) (get_prev: \<open>nat option\<close>) (get_next: \<open>nat option\<close>)
 
 inductive l_vmtf :: \<open>nat list \<Rightarrow> nat \<Rightarrow> nat l_vmtf_atm list \<Rightarrow> bool\<close> where
 Nil: \<open>l_vmtf [] st xs\<close> |
@@ -84,22 +109,22 @@ proof -
     then have K: \<open>\<forall>i\<in>set l. zs ! i = (if b = i then x else xs ! i) =
        (\<forall>i\<in>set l. zs ! i = xs ! i)\<close> for x
        using H(2)
-       by (simp add: H(1) nth_list_update xs')
+       by (simp add: H(1) xs')
     have next_xs_b: \<open>get_next (xs ! b) = None\<close> if \<open>l = []\<close>
       using l_vmtf unfolding that by (auto simp: elim!: l_vmtfE)
     have prev_xs_b: \<open>get_prev (xs ! b) = None\<close>
       using l_vmtf by (auto elim: l_vmtfE)
     have l_vmtf_zs: \<open>l_vmtf (b # l) m (zs'[b := xs!b])\<close>
       apply (rule IH)
-      subgoal using H(1) ab next_xs_b prev_xs_b H unfolding xs' by (auto simp: nth_list_update K)
-      subgoal using H(2) ab next_xs_b prev_xs_b unfolding xs' by (auto simp: nth_list_update K)
+      subgoal using H(1) ab next_xs_b prev_xs_b H unfolding xs' by (auto simp: K)
+      subgoal using H(2) ab next_xs_b prev_xs_b unfolding xs' by (auto simp: K)
       done
     have \<open>zs' ! b = l_vmtf_ATM (stamp (xs ! b)) (Some c) (get_next (xs ! b))\<close>
       using H(1) unfolding xs' by auto
     show ?case
       apply (rule l_vmtf.Cons[OF l_vmtf_zs, of _ n])
       subgoal using a_le_y xs' H(2) by auto
-      subgoal using ab zs_a xs' H(1) by (auto simp: nth_list_update K)
+      subgoal using ab zs_a xs' H(1) by (auto simp: K)
       subgoal using ab .
       subgoal using a_l .
       subgoal using mn .
@@ -162,7 +187,7 @@ next
         stamp_al_b: \<open>stamp (xs ! al) < stamp (xs ! b)\<close>
         using IH[of Nil b al als] unfolding l by auto
       have \<open>l_vmtf [a] n' (xs'[a := l_vmtf_ATM (stamp (xs' ! a)) (get_prev (xs' ! a)) None])\<close>
-          using a_le_y xs' ab mn nn' zs_a by (auto simp: l_vmtf_single_iff nth_list_update)
+          using a_le_y xs' ab mn nn' zs_a by (auto simp: l_vmtf_single_iff)
       have al_b[simp]: \<open>al \<noteq> b\<close> and b_als: \<open>b \<notin> set als\<close>
         using l_vmtf unfolding l by (auto dest: l_vmtf_distinct)
       have al_le_xs: \<open>al < length xs\<close>
@@ -170,8 +195,7 @@ next
       have xs_al: \<open>xs ! al = l_vmtf_ATM (stamp (xs ! al)) (Some b) (get_next (xs ! al))\<close>
         using l_vmtf unfolding l by (auto 5 5 elim: l_vmtfE)
       have xs_b: \<open>xs ! b = l_vmtf_ATM (stamp (xs ! b)) None (get_next (xs ! b))\<close>
-        using l_vmtf_b l_vmtf xs' by (cases \<open>xs ! b\<close>) (auto elim: l_vmtfE simp: l nth_list_update
-            l_vmtf_single_iff)
+        using l_vmtf_b l_vmtf xs' by (cases \<open>xs ! b\<close>) (auto elim: l_vmtfE simp: l l_vmtf_single_iff)
 
       have \<open>l_vmtf (b # al # als) (stamp (xs' ! b))
           (xs'[b := l_vmtf_ATM (stamp (xs' ! b)) None (get_next (xs' ! b))])\<close>
@@ -181,9 +205,9 @@ next
             (auto elim: l_vmtfE simp: l l_vmtf_single_iff)
         subgoal using al_b by blast
         subgoal using b_als .
-        subgoal using xs' b_le_xs stamp_al_b by (simp add: nth_list_update)
-        subgoal using ab unfolding xs' by (simp add: b_le_xs nth_list_update al_le_xs
-              xs_al[symmetric] xs_b[symmetric])
+        subgoal using xs' b_le_xs stamp_al_b by (simp add:)
+        subgoal using ab unfolding xs' by (simp add: b_le_xs al_le_xs xs_al[symmetric]
+              xs_b[symmetric])
         subgoal by simp
         done
       moreover have \<open>l_vmtf [a] n'
@@ -248,12 +272,11 @@ next
           (xs'[ax := l_vmtf_ATM (stamp (xs' ! ax)) (get_prev (xs' ! ax)) None])\<close>
         apply (rule l_vmtf.Cons[of _ _ _ _ _ n])
         subgoal using a_le_y by auto
-        subgoal using zs_a a_le_y a_ax ab by (subst nth_list_update_neq)
-            (auto simp: nth_list_update_neq simp del: \<open>a \<noteq> ax\<close>)
+        subgoal using zs_a a_le_y a_ax ab by (auto simp del: \<open>a \<noteq> ax\<close>)
         subgoal using ab by auto
         subgoal using a_l bl unfolding Cons by simp
         subgoal using mn .
-        subgoal using zs_a a_le_y ab xs' b_le_xs  by (auto simp: list_update_swap nth_list_update)
+        subgoal using zs_a a_le_y ab xs' b_le_xs  by (auto simp: list_update_swap)
         subgoal using nn' .
         done
       then show ?thesis
@@ -293,7 +316,7 @@ next
 
   have l_vmtf_ay': \<open>l_vmtf (ay # azs) (stamp (xs ! ay)) (xs[ax := l_vmtf_ATM n None (Some ay)])\<close>
     apply (rule l_vmtf_eq_iffI[OF _ _ l_vmtf])
-    subgoal using dist a_ax a_le_xs by (auto simp: nth_list_update)
+    subgoal using dist a_ax a_le_xs by auto
     subgoal using l_vmtf l_vmtf_le_length by auto
     done
 
@@ -326,9 +349,9 @@ next
     using dist_b decomp dist by (cases axs; auto)+
   have l_vmtf_ay': \<open>l_vmtf (ay # azs) (stamp (xs ! ay)) xs\<close>
     apply (rule l_vmtf_eq_iffI[of _ _ xs'])
-    subgoal using xs' b_ay dist_b  b_le_xs by (auto simp: nth_list_update)
+    subgoal using xs' b_ay dist_b  b_le_xs by auto
     subgoal using l_vmtf_le_length[OF l_vmtf_ay] xs' by auto
-    subgoal using xs' b_ay dist_b  b_le_xs l_vmtf_ay xs' by (auto simp: nth_list_update)
+    subgoal using xs' b_ay dist_b  b_le_xs l_vmtf_ay xs' by auto
     done
 
   have \<open>l_vmtf (tl axs @ [ax, ay] @ azs) m
@@ -352,7 +375,7 @@ next
           ay := l_vmtf_ATM (stamp (xs' ! ay)) (Some ax) (get_next (xs' ! ay))])\<close>
     apply (rule l_vmtf.Cons[of _ _ _ _ _ \<open>stamp (xs ! a)\<close>])
     subgoal using a_le_y by simp
-    subgoal using zs_a a_le_y a_ax a_ay by (auto simp: nth_list_update)
+    subgoal using zs_a a_le_y a_ax a_ay by auto
     subgoal using ab .
     subgoal using dist_b by auto
     subgoal using mn by (simp add: zs_a)
@@ -925,22 +948,6 @@ next
     done
 qed
 
-definition option_last where
-\<open>option_last l = (if l = [] then None else Some (last l))\<close>
-
-lemma
-  option_last_None_iff[iff]: \<open>option_last l = None \<longleftrightarrow> l = []\<close> \<open>None = option_last l \<longleftrightarrow> l = []\<close> and
-  option_last_Some_iff[iff]: \<open>option_last l = Some a \<longleftrightarrow> l \<noteq> [] \<and> a = last l\<close>
-    \<open>Some a = option_last l \<longleftrightarrow> l \<noteq> [] \<and> a = last l\<close>
-  by (auto simp: option_last_def)
-
-lemma option_last_Some[simp]: \<open>l \<noteq> [] \<Longrightarrow> option_last l = Some (last l)\<close>
-  by (auto simp: option_last_def)
-
-lemma option_last_Nil[simp]: \<open>option_last [] = None\<close>
-  by (auto simp: option_last_def)
-
-
 lemma l_vmtf_last_prev:
   assumes vmtf: \<open>l_vmtf (xs @ [x]) m A\<close>
   shows \<open>get_prev (A ! x) = option_last xs\<close>
@@ -1074,13 +1081,13 @@ proof -
     subgoal by (auto simp: abs_l_vmtf_remove_inv_def) -- \<open>body if undefined\<close>
     subgoal by (auto simp: abs_l_vmtf_remove_inv_def)
     subgoal by auto
-    subgoal by (simp add:  abs_l_vmtf_remove_inv_def abs_l_vmtf_remove_inv_def card_Diff1_less
-        del: card_Diff_singleton card_Diff_subset card_Diff_singleton card_Diff_insert) -- \<open>Termination\<close>
+    subgoal by (simp add: abs_l_vmtf_remove_inv_def card_Diff1_less del:  card_Diff_insert)
+      -- \<open>Termination\<close>
     subgoal by (rule body_defined_abs) simp_all+ -- \<open>body if defined\<close>
     subgoal by (auto simp: abs_l_vmtf_remove_inv_def)
     subgoal by (auto simp: abs_l_vmtf_remove_inv_def)
-    subgoal by (simp add:  abs_l_vmtf_remove_inv_def abs_l_vmtf_remove_inv_def card_Diff1_less
-        del: card_Diff_singleton card_Diff_subset card_Diff_singleton card_Diff_insert)-- \<open>Termination\<close>
+    subgoal by (simp add:  abs_l_vmtf_remove_inv_def card_Diff1_less
+        del: card_Diff_insert)-- \<open>Termination\<close>
     subgoal by (auto simp: abs_l_vmtf_remove_inv_def) --\<open>final theorem\<close>
     subgoal by (auto simp: abs_l_vmtf_remove_inv_def Decided_Propagated_in_iff_in_lits_of_l
         atm_of_in_atm_of_set_in_uminus atms_of_def dest!: atm_of_in_atm_of_set_in_uminus)
@@ -1109,21 +1116,7 @@ definition vmtf_dequeue where
      if next_search = Some L then get_prev (A ! L) else next_search))
 \<close>
 
-lemma distinct_remove1_last_butlast:
-  \<open>distinct xs \<Longrightarrow> xs \<noteq> [] \<Longrightarrow> remove1 (last xs) xs = butlast xs\<close>
-  by (metis append_Nil2 append_butlast_last_id distinct_butlast not_distinct_conv_prefix
-      remove1.simps(2) remove1_append)
-
-lemma remove1_Nil_iff:
-  \<open>remove1 x xs = [] \<longleftrightarrow> xs = [] \<or> xs = [x]\<close>
-  by (cases xs) auto
-
-lemma option_last_remove1_not_last:
-  \<open>x \<noteq> last xs \<Longrightarrow> option_last xs = option_last (remove1 x xs)\<close>
-  by (cases xs rule: rev_cases)
-    (auto simp: option_last_def remove1_Nil_iff remove1_append)
-
-lemma
+lemma abs_l_vmtf_bump_vmtf_dequeue:
   assumes \<open>(vm, (A, m, lst, next_search)) \<in> vmtf_imp M\<close> and
     L: \<open>L \<in># N\<^sub>1\<close> and
     def_L: \<open>defined_lit M L\<close> and
