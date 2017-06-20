@@ -467,9 +467,15 @@ subsection \<open>Remove\<close>
 
 subsubsection \<open>More lemmas about remove\<close>
 
-lemma remove1_Nil:
-  \<open>remove1 (- L) W = [] \<longleftrightarrow> (W = [] \<or> W = [-L])\<close>
-  by (cases W) auto
+  
+lemma distinct_remove1_last_butlast:
+  \<open>distinct xs \<Longrightarrow> xs \<noteq> [] \<Longrightarrow> remove1 (last xs) xs = butlast xs\<close>
+  by (metis append_Nil2 append_butlast_last_id distinct_butlast not_distinct_conv_prefix
+      remove1.simps(2) remove1_append)
+
+lemma remove1_Nil_iff:
+  \<open>remove1 x xs = [] \<longleftrightarrow> xs = [] \<or> xs = [x]\<close>
+  by (cases xs) auto
 
 lemma removeAll_upt:
   \<open>removeAll k [a..<b] = (if k \<ge> a \<and> k < b then [a..<k] @ [Suc k..<b] else [a..<b])\<close>
