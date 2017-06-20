@@ -1104,16 +1104,19 @@ lemma abs_l_vmtf_remove_inv_change_hd:
 
 subsubsection \<open>Implementation\<close>
 
-definition vmtf_imp where
-\<open>vmtf_imp M = {(((xs, ys), zs), (A, m, lst, next_search)). (\<exists>xs' ys' zs'. xs = set xs' \<and> ys = set ys' \<and> zs = set zs'
+type_synonym vmtf_imp = \<open>nat l_vmtf_atm list × nat × nat option × nat option × nat list\<close>
+
+definition vmtf_imp :: \<open>(nat, nat) ann_lits \<Rightarrow> (nat abs_l_vmtf_remove \<times> vmtf_imp) set\<close> where
+\<open>vmtf_imp M = {(((xs, ys), zs), (A, m, lst, next_search, removed)). 
+   (\<exists>xs' ys'. xs = set xs' \<and> ys = set ys' \<and> zs = set removed
    \<and> l_vmtf (rev ys' @ rev xs') m A \<and> lst = option_last (xs' @ ys') \<and> next_search = option_last xs'
    \<and> abs_l_vmtf_remove_inv M ((xs, ys), zs) \<and> l_vmtf_notin (rev ys' @ rev xs') m A
   )}\<close>
 
-definition vmtf_dequeue where
-\<open>vmtf_dequeue \<equiv> (\<lambda>(A, m, lst, next_search) L.
+definition vmtf_dequeue :: \<open>vmtf_imp \<Rightarrow> nat \<Rightarrow> vmtf_imp\<close> where
+\<open>vmtf_dequeue \<equiv> (\<lambda>(A, m, lst, next_search, removed) L.
   (l_vmtf_dequeue A L, m, if lst = Some L then get_next (A ! L) else lst,
-     if next_search = Some L then get_next (A ! L) else next_search))
+     if next_search = Some L then get_next (A ! L) else next_search, L # removed))
 \<close>
 
 (* TODO Move *)
@@ -1122,25 +1125,27 @@ lemma (in -) distinct_remove1_rev: \<open>distinct xs \<Longrightarrow> remove1 
   by (cases \<open>x \<in> set xs\<close>) (auto simp: remove1_append remove1_idem)
 
 lemma abs_l_vmtf_bump_vmtf_dequeue:
-  assumes \<open>(vm, (A, m, lst, next_search)) \<in> vmtf_imp M\<close> and
+  assumes \<open>(vm, (A, m, lst, next_search, removed)) \<in> vmtf_imp M\<close> and
     L: \<open>L \<in># N\<^sub>1\<close> and
     def_L: \<open>defined_lit M L\<close> and
     atm_L_A: \<open>atm_of L < length A\<close>
-  shows \<open>(abs_l_vmtf_bump L vm, vmtf_dequeue (A, m, lst, next_search) (atm_of L)) \<in> vmtf_imp M\<close>
+  shows \<open>(abs_l_vmtf_bump L vm, vmtf_dequeue (A, m, lst, next_search, removed) (atm_of L)) \<in> vmtf_imp M\<close>
   unfolding vmtf_imp_def abs_l_vmtf_bump_def
 proof clarify
-  fix xxs yys zzs A' m' lst' next_search'
+  fix xxs yys zzs A' m' lst' next_search' removed'
   assume
     dump: \<open>((xxs, yys), zzs) = abs_l_vmtf_bump L vm\<close> and
-    dequeue: \<open>vmtf_dequeue (A, m, lst, next_search) (atm_of L) = (A', m', lst', next_search')\<close>
+    dequeue: \<open>vmtf_dequeue (A, m, lst, next_search, removed) (atm_of L) = (A', m', lst', next_search', removed')\<close>
   have A': \<open>A' = l_vmtf_dequeue A (atm_of L)\<close> and
     lst': \<open>lst' = (if lst = Some (atm_of L) then get_next (A ! (atm_of L)) else lst)\<close> and
-    m'm: \<open>m' = m\<close>
+    m'm: \<open>m' = m\<close> and
+    removed: \<open>removed' = atm_of L # removed\<close>
     using dequeue unfolding vmtf_dequeue_def by auto
   obtain xs ys zs where
     xs: \<open>set xs = fst (fst vm)\<close> and
     ys: \<open>set ys = snd (fst vm)\<close> and
     zs: \<open>set zs = snd vm\<close> and
+    zs': \<open>set zs = set removed\<close> and
     vmtf: \<open>l_vmtf (rev ys @ rev xs) m A\<close> and
     notin: \<open>l_vmtf_notin (rev ys @ rev xs) m A\<close> and
     next_search: \<open>next_search = option_last xs\<close> and
@@ -1221,10 +1226,10 @@ proof clarify
     subgoal using notin unfolding m'm .
     subgoal using atm_L_A .
     done
-  ultimately show \<open>\<exists>xs' ys' zs'.
+  ultimately show \<open>\<exists>xs' ys'.
        xxs = set xs' \<and>
        yys = set ys' \<and>
-       zzs = set zs' \<and>
+       zzs = set removed' \<and>
        l_vmtf (rev ys' @ rev xs') m' A' \<and>
        lst' = option_last (xs' @ ys') \<and>
        next_search' = option_last xs' \<and>
@@ -1233,10 +1238,28 @@ proof clarify
     apply -
     apply (rule exI[of _ \<open>remove1 (atm_of L) xs\<close>])
     apply (rule exI[of _ \<open>remove1 (atm_of L) ys\<close>])
-    apply (rule exI[of _ \<open>atm_of L # zs\<close>])
-    unfolding xs_ys remove_xs_ys remove_rev_xs_ys by blast
+    unfolding xs_ys remove_xs_ys remove_rev_xs_ys removed 
+    by (clarsimp simp: zs')
 qed
 
+definition vmtf_add_one :: \<open>_ \<Rightarrow> nat \<Rightarrow> _\<close> where
+\<open>vmtf_add_one = (\<lambda>(A, m, lst, next_search) L.
+  (A[L := l_vmtf_ATM m lst None], m+1, Some L, next_search))\<close>
+
+definition vmtf_flush :: \<open>vmtf_imp \<Rightarrow> nat \<Rightarrow> vmtf_imp nres\<close> where
+\<open>vmtf_flush \<equiv> (\<lambda>(A, m, lst, next_search, removed) L. do {
+    removed' \<leftarrow> SPEC (\<lambda>removed'. mset removed' = mset removed);
+    (_, (A, m, lst, next_search)) \<leftarrow> WHILE\<^sub>T
+      (\<lambda>(i,(A, m, lst, next_search)). i < length removed)
+      (\<lambda>(i,(A, m, lst, next_search)). do {
+         ASSERT(i < length removed);
+         RETURN (i+1, vmtf_add_one (A, m, lst, next_search) L)})
+      (0, (A, m, lst, next_search));
+    RETURN (A, m, lst, next_search, [])
+  })\<close>
+      
+
+  
 end
 
 end
