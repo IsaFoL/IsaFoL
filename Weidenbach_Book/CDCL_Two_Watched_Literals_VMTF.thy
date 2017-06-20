@@ -25,6 +25,9 @@ lemma option_hd_Some_iff[iff]: \<open>option_hd zs = Some y \<longleftrightarrow
 lemma option_hd_Some_hd[simp]: \<open>zs \<noteq> [] \<Longrightarrow> option_hd zs = Some (hd zs)\<close>
   by (auto simp: option_hd_def)
 
+lemma option_hd_Nil[simp]: \<open>option_hd [] = None\<close>
+  by (auto simp: option_hd_def)
+
 inductive l_vmtf :: \<open>nat list \<Rightarrow> nat \<Rightarrow> nat l_vmtf_atm list \<Rightarrow> bool\<close> where
 Nil: \<open>l_vmtf [] st xs\<close> |
 Cons1: \<open>a < length xs \<Longrightarrow> m \<ge> n \<Longrightarrow> xs ! a = l_vmtf_ATM (n::nat) None None \<Longrightarrow> l_vmtf [a] m xs\<close> |
@@ -108,6 +111,8 @@ proof -
   then show ?thesis
     using assms by metis
 qed
+
+lemmas l_vmtf_eq_iffI = l_vmtf_eq_iff[THEN iffD1]
 
 lemma l_vmtf_stamp_increase: \<open>l_vmtf xs p zs \<Longrightarrow> p \<le> p' \<Longrightarrow> l_vmtf xs p' zs\<close>
   apply (induction rule: l_vmtf.induct)
@@ -256,7 +261,7 @@ next
     qed
     moreover have \<open>l_vmtf (ay # azs) (stamp (xs' ! ay))
         (xs'[ay := l_vmtf_ATM (stamp (xs' ! ay)) None (get_next (xs' ! ay))])\<close>
-      apply (rule l_vmtf_eq_iff[THEN iffD1, OF _ _ l_vmtf_ay'])
+      apply (rule l_vmtf_eq_iffI[OF _ _ l_vmtf_ay'])
       subgoal using l_vmtf_distinct[OF l_vmtf] bl b_le_xs in_azs_noteq_b by (auto simp: xs' b_ay)
       subgoal using l_vmtf_le_length[OF l_vmtf] bl unfolding xs' by auto
       done
@@ -287,7 +292,7 @@ next
     using a by simp
 
   have l_vmtf_ay': \<open>l_vmtf (ay # azs) (stamp (xs ! ay)) (xs[ax := l_vmtf_ATM n None (Some ay)])\<close>
-    apply (rule l_vmtf_eq_iff[THEN iffD1, OF _ _ l_vmtf])
+    apply (rule l_vmtf_eq_iffI[OF _ _ l_vmtf])
     subgoal using dist a_ax a_le_xs by (auto simp: nth_list_update)
     subgoal using l_vmtf l_vmtf_le_length by auto
     done
@@ -320,7 +325,7 @@ next
   have a_ax: \<open>a \<noteq> ax\<close> and a_ay: \<open>a \<noteq> ay\<close>
     using dist_b decomp dist by (cases axs; auto)+
   have l_vmtf_ay': \<open>l_vmtf (ay # azs) (stamp (xs ! ay)) xs\<close>
-    apply (rule l_vmtf_eq_iff[THEN iffD1, of _ _ xs'])
+    apply (rule l_vmtf_eq_iffI[of _ _ xs'])
     subgoal using xs' b_ay dist_b  b_le_xs by (auto simp: nth_list_update)
     subgoal using l_vmtf_le_length[OF l_vmtf_ay] xs' by auto
     subgoal using xs' b_ay dist_b  b_le_xs l_vmtf_ay xs' by (auto simp: nth_list_update)
