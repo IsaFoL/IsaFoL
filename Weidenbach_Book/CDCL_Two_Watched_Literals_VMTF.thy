@@ -1107,7 +1107,7 @@ subsubsection \<open>Implementation\<close>
 type_synonym vmtf_imp = \<open>nat l_vmtf_atm list × nat × nat option × nat option × nat list\<close>
 
 definition vmtf_imp :: \<open>(nat, nat) ann_lits \<Rightarrow> (nat abs_l_vmtf_remove \<times> vmtf_imp) set\<close> where
-\<open>vmtf_imp M = {(((xs, ys), zs), (A, m, lst, next_search, removed)). 
+\<open>vmtf_imp M = {(((xs, ys), zs), (A, m, lst, next_search, removed)).
    (\<exists>xs' ys'. xs = set xs' \<and> ys = set ys' \<and> zs = set removed
    \<and> l_vmtf (rev ys' @ rev xs') m A \<and> lst = option_last (xs' @ ys') \<and> next_search = option_last xs'
    \<and> abs_l_vmtf_remove_inv M ((xs, ys), zs) \<and> l_vmtf_notin (rev ys' @ rev xs') m A
@@ -1238,14 +1238,14 @@ proof clarify
     apply -
     apply (rule exI[of _ \<open>remove1 (atm_of L) xs\<close>])
     apply (rule exI[of _ \<open>remove1 (atm_of L) ys\<close>])
-    unfolding xs_ys remove_xs_ys remove_rev_xs_ys removed 
+    unfolding xs_ys remove_xs_ys remove_rev_xs_ys removed
     by (clarsimp simp: zs')
 qed
 
 text \<open>This operation only makes sens hen \<^term>\<open>removed = []\<close>. \<close>
 definition vmtf_unset :: \<open>nat literal \<Rightarrow> _ \<Rightarrow> _\<close> where
 \<open>vmtf_unset = (\<lambda>L (A, m, lst, next_search, removed).
-  (if next_search = None \<or> stamp (A ! (the next_search)) < stamp (A ! atm_of L) 
+  (if next_search = None \<or> stamp (A ! (the next_search)) < stamp (A ! atm_of L)
   then (A, m, lst, Some (atm_of L), removed)
   else (A, m, lst, Some (the next_search), removed)))\<close>
 
@@ -1266,9 +1266,9 @@ definition vmtf_flush :: \<open>nat literal \<Rightarrow> vmtf_imp \<Rightarrow>
   })\<close>
 
 definition abs_l_vmtf_unset' :: \<open>nat literal \<Rightarrow> nat abs_l_vmtf_remove \<Rightarrow> nat abs_l_vmtf_remove nres\<close> where
- \<open>abs_l_vmtf_unset' L vm \<equiv> do { 
-     S \<leftarrow> abs_l_vmtf_unset L (fst vm); 
-     RETURN (S, snd vm)}\<close>  
+ \<open>abs_l_vmtf_unset' L vm \<equiv> do {
+     S \<leftarrow> abs_l_vmtf_unset L (fst vm);
+     RETURN (S, snd vm)}\<close>
 
 lemma vmtf_imp_atm_of_ys_iff:
   assumes vmtf: \<open>(((xs, ys), zs), (A, m, lst, next_search, removed)) \<in> vmtf_imp M\<close> and
@@ -1287,18 +1287,18 @@ proof -
     \<open>l_vmtf_notin (rev ys' @ rev xs') m A\<close>
     using vmtf unfolding vmtf_imp_def by fast
   have L_xs_ys: \<open>atm_of L \<in> xs \<union> ys\<close>
-    using abs_vmtf zs L unfolding abs_l_vmtf_remove_inv_def removed 
+    using abs_vmtf zs L unfolding abs_l_vmtf_remove_inv_def removed
     by (auto simp: in_N⇩1_atm_of_in_atms_of_iff)
   have dist: \<open>distinct (xs' @ ys')\<close>
     using l_vmtf_distinct[OF l_vmtf] by auto
 
   have sorted: \<open>sorted (map (λa. stamp (A ! a)) (xs' @ ys'))\<close> and
     distinct: \<open>distinct (map (λa. stamp (A ! a)) (xs' @ ys'))\<close>
-    using l_vmtf_stamp_sorted[OF l_vmtf] l_vmtf_stamp_distinct[OF l_vmtf] 
+    using l_vmtf_stamp_sorted[OF l_vmtf] l_vmtf_stamp_distinct[OF l_vmtf]
     by (auto simp: rev_map[symmetric])
   have next_search_xs: \<open>xs = {} \<longleftrightarrow> next_search = None\<close>
     using next_search xs by auto
-  
+
   have \<open>stamp (A ! (the next_search)) < stamp (A ! atm_of L) \<Longrightarrow> atm_of L \<notin> xs\<close>
     if \<open>xs' \<noteq> []\<close>
     using that sorted distinct L_xs_ys unfolding xs next_search ys
@@ -1315,7 +1315,7 @@ proof -
       by (cases xs' rule: rev_cases) (auto simp: rev_map[symmetric] next_search)
     ultimately show ?thesis
       by arith
-  qed      
+  qed
   ultimately show ?thesis
     using H L_xs_ys next_search_xs dist by (auto simp: xs ys)
 qed
@@ -1325,7 +1325,7 @@ lemma abs_l_vmtf_bump_vmtf_dequeue:
     L: \<open>L \<in># N\<^sub>1\<close> and
     def_L: \<open>defined_lit M L\<close> and
     atm_L_A: \<open>atm_of L < length A\<close>
-  shows \<open>(uncurry abs_l_vmtf_unset', uncurry (RETURN oo vmtf_unset)) \<in> 
+  shows \<open>(uncurry abs_l_vmtf_unset', uncurry (RETURN oo vmtf_unset)) \<in>
     [\<lambda>(L, (A, m, lst, next_search, removed)). L \<in># N\<^sub>1 \<and> defined_lit M L \<and> removed = [] \<and> atm_of L < length A]\<^sub>f
      Id \<times>\<^sub>r vmtf_imp M \<rightarrow> \<langle>vmtf_imp M\<rangle> nres_rel\<close>
     apply (intro nres_relI frefI)
