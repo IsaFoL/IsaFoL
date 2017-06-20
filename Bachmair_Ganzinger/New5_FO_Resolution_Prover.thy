@@ -1158,6 +1158,30 @@ lemma subst_subset_mono: "D \<subset># C \<Longrightarrow> D \<cdot> \<sigma> \<
   unfolding subst_cls_def
   by (simp add: image_mset_subset_mono) 
 
+fun subst_inf :: "'a inference \<Rightarrow> 's \<Rightarrow> 'a inference" (infixl "\<cdot>i" 67) where
+  "(Infer CC C E) \<cdot>i \<sigma> = Infer (CC \<cdot>cm \<sigma>) (C \<cdot> \<sigma>) (E \<cdot> \<sigma>)"
+  
+lemma ord_FO_\<Gamma>_gd_ord_\<Gamma>':
+  assumes "\<gamma> \<in> ord_FO_\<Gamma>"
+    assumes "is_ground_subst \<eta>"
+  shows "\<gamma> \<cdot>i \<eta> \<in> gd_ord_\<Gamma>'"
+  sorry
+    
+lemma eee: "(prems_of (\<gamma> \<cdot>i \<mu>)) = ((prems_of \<gamma>) \<cdot>cm \<mu>)"
+  apply auto
+  apply (induction \<gamma>)
+  apply auto
+  done
+    
+    
+lemma fff: "set_mset (X \<cdot>cm \<mu>) = (set_mset X)  \<cdot>cs \<mu>"
+  by (simp add: subst_cls_mset_def subst_clss_def)
+  
+    
+lemma ggg: "infer_from x y \<Longrightarrow> z \<supseteq> x \<Longrightarrow> infer_from z y"
+  by (meson infer_from_def lfp.leq_trans)
+  
+    
 lemma resolution_prover_rtc_deriv:
   assumes "St \<leadsto> St'"
   shows "src_ext.derive (grounding_of_state St) (grounding_of_state St')"
@@ -1604,14 +1628,55 @@ next
 next
   case (inference_computation N Q C P)
   {
-    fix E
-    assume "E \<in> grounding_of_clss N"
-    
-    have "E \<in> concls_of (src_ext.inferences_from (grounding_of_state ({}, P \<union> {C}, Q)))"
-      sorry
+    fix E\<mu>
+    assume "E\<mu> \<in> grounding_of_clss N"
+    then obtain \<mu> E where E_\<mu>_p: "E\<mu> = E \<cdot> \<mu> \<and> E \<in> N \<and> is_ground_subst \<mu>"
+      unfolding grounding_of_clss_def grounding_of_cls_def by auto
+    then have E_concl: "E \<in> concls_of (ord_FO_resolution.inferences_between Q C)" 
+      using inference_computation by auto
+    then obtain \<gamma> where \<gamma>_p: "\<gamma> \<in> ord_FO_\<Gamma> \<and> infer_from (Q \<union> {C}) \<gamma> \<and> C \<in># prems_of \<gamma> \<and> concl_of \<gamma> = E"
+      unfolding ord_FO_resolution.inferences_between_def by auto
+    have tt: "\<gamma> \<cdot>i \<mu> \<in> gd_ord_\<Gamma>' \<and> infer_from ((Q \<union> {C}) \<cdot>cs \<mu>) (\<gamma> \<cdot>i \<mu>) \<and> concl_of (\<gamma> \<cdot>i \<mu>) = E \<cdot> \<mu>"
+      apply (rule conjI)
+       defer
+       apply (rule conjI)
+        prefer 3
+      using ord_FO_\<Gamma>_gd_ord_\<Gamma>' \<gamma>_p E_\<mu>_p apply simp
+       defer
+      using \<gamma>_p
+       apply (metis inference.collapse inference.simps(1) subst_inf.simps)
+      using \<gamma>_p
+      unfolding infer_from_def
+      using eee fff
+      by (metis subset_Un_eq subst_clss_union)
+    have "\<gamma> \<cdot>i \<mu> \<in> gd_ord_\<Gamma>' \<and> infer_from (grounding_of_state ({}, P \<union> {C}, Q)) (\<gamma> \<cdot>i \<mu>) \<and> concl_of (\<gamma> \<cdot>i \<mu>) = E \<cdot> \<mu>"
+      apply (rule conjI)
+      using tt apply simp
+      apply (rule conjI)
+      defer
+      using tt apply simp
+      apply (subgoal_tac "(Q \<union> {C}) \<cdot>cs \<mu> \<subseteq> grounding_of_state ({}, P \<union> {C}, Q)")
+      using ggg[of "((Q \<union> {C}) \<cdot>cs \<mu>)" " (\<gamma> \<cdot>i \<mu>) " "grounding_of_state ({}, P \<union> {C}, Q)"] tt
+       apply simp
+        using E_\<mu>_p
+        unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def
+        using subst_clss_def by auto
+    then have "E \<cdot> \<mu> \<in> concls_of (src_ext.inferences_from (grounding_of_state ({}, P \<union> {C}, Q)))"
+      unfolding src_ext.inferences_from_def 
+      by (metis (no_types, lifting) image_eqI mem_Collect_eq)
+        
+    then have "E\<mu> \<in> concls_of (src_ext.inferences_from (grounding_of_state ({}, P \<union> {C}, Q)))"
+      using E_\<mu>_p by auto
   }
-  then show ?case sorry
-oops
+  then have "grounding_of_state (N, P, Q \<union> {C}) - grounding_of_state ({}, P \<union> {C}, Q) \<subseteq> concls_of (src_ext.inferences_from (grounding_of_state ({}, P \<union> {C}, Q)))"
+    unfolding clss_of_state_def grounding_of_clss_def by auto
+  moreover
+  have "grounding_of_state ({}, P \<union> {C}, Q) - grounding_of_state (N, P, Q \<union> {C}) = {}"
+    unfolding clss_of_state_def grounding_of_clss_def by auto
+  ultimately
+  show ?case
+    using src_ext.derive.intros[of "(grounding_of_state (N, P, Q \<union> {C}))" "(grounding_of_state ({}, P \<union> {C}, Q))"] by auto
+qed
 
 text {*
 The following corresponds to (one direction of) Theorem 4.13:
