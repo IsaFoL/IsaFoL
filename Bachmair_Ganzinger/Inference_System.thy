@@ -33,7 +33,7 @@ abbreviation concls_of :: "'a inference set \<Rightarrow> 'a clause set" where
   "concls_of \<Gamma> \<equiv> concl_of ` \<Gamma>"
 
 definition infer_from :: "'a clause set \<Rightarrow> 'a inference \<Rightarrow> bool" where
-  "infer_from CC \<gamma> \<longleftrightarrow> set_mset (side_prems_of \<gamma>) \<subseteq> CC \<and> main_prem_of \<gamma> \<in> CC"
+  "infer_from CC \<gamma> \<longleftrightarrow> set_mset (prems_of \<gamma>) \<subseteq> CC"
 
 locale inference_system =
   fixes \<Gamma> :: "'a inference set"
