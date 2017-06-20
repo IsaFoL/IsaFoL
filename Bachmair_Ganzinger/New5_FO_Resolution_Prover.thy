@@ -1603,6 +1603,13 @@ next
     unfolding clss_of_state_def  using src_ext.derive.intros by auto
 next
   case (inference_computation N Q C P)
+  {
+    fix E
+    assume "E \<in> grounding_of_clss N"
+    
+    have "E \<in> concls_of (src_ext.inferences_from (grounding_of_state ({}, P \<union> {C}, Q)))"
+      sorry
+  }
   then show ?case sorry
 oops
 
