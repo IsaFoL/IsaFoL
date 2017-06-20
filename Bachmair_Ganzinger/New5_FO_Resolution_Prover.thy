@@ -1118,7 +1118,7 @@ inductive resolution_prover :: "('a clause set \<times> 'a clause set \<times> '
     (N, P, Q \<union> {C + {#L#}}) \<leadsto> (N, P \<union> {C}, Q)"
 | clause_processing: "(N \<union> {C}, P, Q) \<leadsto> (N, P \<union> {C}, Q)"
 | inference_computation:
-    "N = concls_of (ord_FO_resolution.inferences_from (Q \<union> {C})) \<Longrightarrow>
+    "N = concls_of (ord_FO_resolution.inferences_between Q C) \<Longrightarrow>
      ({}, P \<union> {C}, Q) \<leadsto> (N, P, Q \<union> {C})"
 
 definition limit_state ::
