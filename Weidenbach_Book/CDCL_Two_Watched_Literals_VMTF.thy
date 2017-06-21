@@ -1331,11 +1331,7 @@ lemma (in -) take_length_takeWhile_eq_takeWhile:
   by (induction xs) auto
 
 lemma abs_l_vmtf_unset_vmtf_unset:
-  assumes vmtf: \<open>((A, m, lst, next_search, removed), vm) \<in> vmtf_imp M\<close> and
-    L: \<open>L \<in># N\<^sub>1\<close> and
-    def_L: \<open>defined_lit M L\<close> and
-    atm_L_A: \<open>atm_of L < length A\<close>
-  shows \<open>(uncurry (RETURN oo vmtf_unset), uncurry abs_l_vmtf_unset') \<in>
+  \<open>(uncurry (RETURN oo vmtf_unset), uncurry abs_l_vmtf_unset') \<in>
     [\<lambda>(L, ((xs, ys), zs)). L \<in># N\<^sub>1 \<and> zs = {}]\<^sub>f
      Id \<times>\<^sub>r vmtf_imp M \<rightarrow> \<langle>vmtf_imp M\<rangle> nres_rel\<close>
 proof -
