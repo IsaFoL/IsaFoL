@@ -1094,7 +1094,7 @@ interpretation src_ext:
 
 
 definition ord_FO_\<Gamma> :: "'a inference set" where
-  "ord_FO_\<Gamma> = {Infer CC D E | CC D E Cl. ord_resolve S Cl D E \<and> mset Cl = CC}"
+  "ord_FO_\<Gamma> = {Infer CC D E | CC D E Cl. ord_resolve_rename S Cl D E \<and> mset Cl = CC}"
 
 interpretation ord_FO_resolution: inference_system ord_FO_\<Gamma> .
 
@@ -1161,11 +1161,19 @@ lemma subst_subset_mono: "D \<subset># C \<Longrightarrow> D \<cdot> \<sigma> \<
 fun subst_inf :: "'a inference \<Rightarrow> 's \<Rightarrow> 'a inference" (infixl "\<cdot>i" 67) where
   "(Infer CC C E) \<cdot>i \<sigma> = Infer (CC \<cdot>cm \<sigma>) (C \<cdot> \<sigma>) (E \<cdot> \<sigma>)"
   
-lemma ord_FO_\<Gamma>_gd_ord_\<Gamma>':
+lemma ord_FO_\<Gamma>_gd_ord_\<Gamma>': (* I have my doubts about this... *)
   assumes "\<gamma> \<in> ord_FO_\<Gamma>"
-    assumes "is_ground_subst \<eta>"
+  assumes "is_ground_subst \<eta>"
   shows "\<gamma> \<cdot>i \<eta> \<in> gd_ord_\<Gamma>'"
-  sorry
+proof -
+  from assms obtain CC D E Cl where "\<gamma> = Infer CC D E \<and> ord_resolve_rename S Cl D E \<and> mset Cl = CC" unfolding ord_FO_\<Gamma>_def by auto
+  then have "\<forall>I. I \<Turnstile>fom CC + {#D#} \<longrightarrow> I \<Turnstile>fo E" using ord_resolve_rename_sound[of S _ ] by auto
+  then have "\<forall>I. (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile>m ((CC + {#D#}) \<cdot>cm \<sigma>)) \<longrightarrow> (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile> E \<cdot> \<sigma>)"
+    using true_fo_cls.cases
+    by (meson true_fo_cls_mset) 
+  then show ?thesis
+    sorry
+qed
     
 lemma eee: "(prems_of (\<gamma> \<cdot>i \<mu>)) = ((prems_of \<gamma>) \<cdot>cm \<mu>)"
   apply auto
