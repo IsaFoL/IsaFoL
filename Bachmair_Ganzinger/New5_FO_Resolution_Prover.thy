@@ -89,7 +89,7 @@ lemma eligible_simp:
    ))"
   using eligible.simps by blast
 
-inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 's \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve:
   "length (CAi :: 'a clause list) = n \<Longrightarrow>
    length (Ci  :: 'a clause list) = n \<Longrightarrow>
@@ -98,11 +98,11 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
    n \<noteq> 0 \<Longrightarrow>
    \<forall>i < n. (CAi ! i) = (Ci ! i + (poss (Aij ! i))) \<Longrightarrow> (* could be written with map *)
    \<forall>i < n. Aij ! i \<noteq> {#} \<Longrightarrow>
-   Some \<sigma> = mgu (set_mset ` (set (map2 add_mset Ai Aij))) \<Longrightarrow> (* This states \<sigma> is a unifier, but! it should be an mgu! *)
+   Some \<sigma> = mgu (set_mset ` (set (map2 add_mset Ai Aij))) \<Longrightarrow> 
    eligible \<sigma> Ai (D + negs (mset Ai)) \<Longrightarrow>
    \<forall>i. i < n \<longrightarrow> str_maximal_in (Ai ! i \<cdot>a \<sigma>) ((Ci ! i) \<cdot> \<sigma>) \<Longrightarrow>
    \<forall>i < n. S (CAi ! i) = {#} \<Longrightarrow> (* Use the ! style instead maybe, or maybe us the \<forall>\<in>. style above *)
-   ord_resolve CAi (D + negs (mset Ai)) (((\<Union># (mset Ci)) + D) \<cdot> \<sigma>)"    
+   ord_resolve CAi (D + negs (mset Ai)) \<sigma> (((\<Union># (mset Ci)) + D) \<cdot> \<sigma>)"    
   
 lemma mgu_unifier:
   assumes ailen: "length Ai = n"
@@ -143,12 +143,12 @@ proof -
   then show ?thesis unfolding Q_def by auto
 qed  
  
-inductive ord_resolve_rename :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+inductive ord_resolve_rename :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 's \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve_rename:
   "\<rho> = hd (mk_var_dis (DA#CAi)) \<Longrightarrow>
    \<rho>s = tl (mk_var_dis (DA#CAi)) \<Longrightarrow>
-   ord_resolve (CAi \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) E \<Longrightarrow>
-   ord_resolve_rename CAi DA E"
+   ord_resolve (CAi \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) \<sigma> E \<Longrightarrow>
+   ord_resolve_rename CAi DA \<sigma> E"
   
 
 
@@ -156,14 +156,14 @@ lemma ground_prems_ord_resolve_rename_imp_ord_resolve:
   assumes 
     gr_cc: "is_ground_cls_list CAi" and
     gr_d: "is_ground_cls DA" and
-    res_e_re: "ord_resolve_rename CAi DA E"
-  shows "ord_resolve CAi DA E"
+    res_e_re: "ord_resolve_rename CAi DA \<sigma> E"
+  shows "ord_resolve CAi DA \<sigma> E"
   using res_e_re proof (cases rule: ord_resolve_rename.cases)
   case (ord_resolve_rename \<rho> P)
   then have rename_P: "\<forall>\<rho> \<in> set P. is_renaming \<rho>" using mk_var_dis_jaja
     by (metis list.sel(2) list.set_sel(2)) 
   from ord_resolve_rename have len: "length P = length CAi" using mk_var_dis_jaja by auto
-  have res_e: "ord_resolve (CAi \<cdot>\<cdot>cl P) (DA \<cdot> \<rho>) E" using ord_resolve_rename by auto
+  have res_e: "ord_resolve (CAi \<cdot>\<cdot>cl P) (DA \<cdot> \<rho>) \<sigma> E" using ord_resolve_rename by auto
   
   have "CAi \<cdot>\<cdot>cl P = CAi" using len gr_cc by auto
   moreover
@@ -191,13 +191,13 @@ lemma true_fo_cls_mset_def2: "I \<Turnstile>fom CC \<longleftrightarrow> (\<fora
   
 lemma ord_resolve_sound:
   assumes
-    res_e: "ord_resolve CAi DA E" and
+    res_e: "ord_resolve CAi DA \<tau> E" and
     cc_d_true: "I \<Turnstile>fom mset CAi + {#DA#}"
   shows "I \<Turnstile>fo E"
   apply (rule true_fo_cls) using assms proof (cases rule: ord_resolve.cases)
   fix \<sigma>
   assume ground_subst_\<sigma>: "is_ground_subst \<sigma>"
-  case (ord_resolve n Ci Aij Ai \<tau> D)
+  case (ord_resolve n Ci Aij Ai D)
   have DA: "DA = D + negs (mset Ai)" using ord_resolve by -
   have e: "E = (\<Union>#mset Ci + D) \<cdot> \<tau>" using ord_resolve by -
   have ci_len: "length Ci = n" using ord_resolve by -
@@ -290,19 +290,19 @@ qed
 
 lemma ord_resolve_rename_sound:
   assumes
-    res_e: "ord_resolve_rename CAi DA E" and
+    res_e: "ord_resolve_rename CAi DA \<sigma> E" and
     cc_d_true: "I \<Turnstile>fom (mset CAi) + {#DA#}"
   shows "I \<Turnstile>fo E"
   using res_e proof (cases rule: ord_resolve_rename.cases)
   case (ord_resolve_rename \<rho> P)
   then have len: "length P = length CAi" using ord_resolve_rename mk_var_dis_jaja by auto
-  have res: "ord_resolve (CAi \<cdot>\<cdot>cl P) (DA \<cdot> \<rho>) E" using ord_resolve_rename by -
+  have res: "ord_resolve (CAi \<cdot>\<cdot>cl P) (DA \<cdot> \<rho>) \<sigma> E" using ord_resolve_rename by -
   have "I \<Turnstile>fom (mset (CAi \<cdot>\<cdot>cl P)) + {#DA \<cdot> \<rho>#}"
     using subst_sound_scl[OF len , of I] subst_sound[of I DA]
     cc_d_true by (simp add: true_fo_cls_mset_def2)
     
   then show "I \<Turnstile>fo E"
-    using ord_resolve_sound[of "CAi \<cdot>\<cdot>cl P" "DA \<cdot> \<rho>" E I, OF res]
+    using ord_resolve_sound[of "CAi \<cdot>\<cdot>cl P" "DA \<cdot> \<rho>" \<sigma> E I, OF res]
     by simp
 qed
 
@@ -500,10 +500,10 @@ qed
 lemma ground_resolvent_subset:
   assumes gr_c: "is_ground_cls_list CAi"
   assumes gr_d: "is_ground_cls DA"
-  assumes resolve: "ord_resolve SSS CAi DA E"
+  assumes resolve: "ord_resolve SSS CAi DA \<sigma> E"
   shows "E \<subseteq># (\<Union>#(mset CAi)) + DA"
   using resolve proof (cases rule: ord_resolve.cases)
-  case (ord_resolve n Ci Aij Ai \<sigma> D)
+  case (ord_resolve n Ci Aij Ai D)
   hence "\<forall>i<n.  Ci ! i \<subseteq># CAi ! i " by auto
   hence cisucai: "\<Union>#mset Ci \<subseteq># \<Union>#(mset CAi)"
     using subseteq_list_Union_mset ord_resolve(3) ord_resolve(4) by force
@@ -525,7 +525,7 @@ qed
 lemma ground_resolvent_ground: (* This proof should be more automatic I think... *)
   assumes "is_ground_cls_list CAi"
   assumes "is_ground_cls DA"
-  assumes "ord_resolve SSS CAi DA E"
+  assumes "ord_resolve SSS CAi DA \<sigma> E"
   shows "is_ground_cls E"
 proof -
   from assms have "E \<subseteq># (\<Union>#(mset CAi)) + DA" using ground_resolvent_subset by auto
@@ -537,7 +537,7 @@ proof -
 qed
   
 lemma ord_resolve_obtain_clauses: 
-  assumes resolve: "ord_resolve (S_M S M) CAi DA E" 
+  assumes resolve: "ord_resolve (S_M S M) CAi DA \<sigma> E" 
     and select: "selection S"
     and grounding: "{DA} \<union> (set CAi) \<subseteq> grounding_of_clss M"
     and n: "length CAi = n"
@@ -556,7 +556,7 @@ lemma ord_resolve_obtain_clauses:
     "is_ground_subst \<eta>''"
     "is_ground_subst_list \<eta>s''"
   using resolve proof (cases rule: ord_resolve.cases)
-  case (ord_resolve nn Ci Aij Ai \<sigma> D)
+  case (ord_resolve nn Ci Aij Ai D)
   then have "nn = n"
     using n by auto
   then have "n \<noteq> 0" "length Ci = n" "length Aij = n" "length Ai = n" using ord_resolve by auto
@@ -651,19 +651,19 @@ qed
   
 lemma ord_resolve_rename_lifting: 
   fixes CAi
-  assumes resolve: "ord_resolve (S_M S M) CAi DA E" 
+  assumes resolve: "ord_resolve (S_M S M) CAi DA \<sigma> E" 
     and select: "selection S"
     and selection_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" 
     and grounding: "{DA} \<union> (set CAi) \<subseteq> grounding_of_clss M"
-  obtains \<eta>s \<eta> \<eta>2 CAi'' DA'' E'' where
+  obtains \<eta>s \<eta> \<eta>2 CAi'' DA'' E'' \<tau> where
     "is_ground_subst \<eta>"
     "is_ground_subst_list \<eta>s"
     "is_ground_subst \<eta>2"
-    "ord_resolve_rename S CAi'' DA'' E''"
+    "ord_resolve_rename S CAi'' DA'' \<tau> E''"
     "CAi'' \<cdot>\<cdot>cl \<eta>s = CAi" "DA'' \<cdot> \<eta> = DA" "E'' \<cdot> \<eta>2 = E" (* In the previous proofs I have CAi and DA on lfs of equality... *)
     "{DA''} \<union> set CAi'' \<subseteq> M"
   using resolve proof (cases rule: ord_resolve.cases)
-  case (ord_resolve n Ci Aij Ai \<sigma> D)
+  case (ord_resolve n Ci Aij Ai D)
     
   have selection_renaming_list_invariant: "\<And>\<rho>s Ci. length \<rho>s = length Ci \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> map S (Ci \<cdot>\<cdot>cl \<rho>s) = (map S Ci) \<cdot>\<cdot>cl \<rho>s"
     apply (rule nth_equalityI)
@@ -688,7 +688,7 @@ lemma ord_resolve_rename_lifting:
     
     "is_ground_subst \<eta>''"
     "is_ground_subst_list \<eta>s''"
-    using resolve grounding select ord_resolve_obtain_clauses[of S M CAi DA E n] n 
+    using resolve grounding select ord_resolve_obtain_clauses[of S M CAi DA] n 
       by metis
   
   note n = \<open>length CAi'' = n\<close> \<open>length \<eta>s'' = n\<close> n
@@ -989,7 +989,7 @@ lemma ord_resolve_rename_lifting:
     (* Resolve the lifted clauses *)
   define E' where "E' = ((\<Union># (mset Ci')) + D') \<cdot> \<tau>"   
     
-  have res_e: "ord_resolve S CAi' DA' E'" 
+  have res_e: "ord_resolve S CAi' DA' \<tau> E'" 
     using ord_resolve.intros[of CAi' n Ci' Aij' Ai' \<tau> S D', 
         OF 
         _ _ _ _
@@ -1026,11 +1026,11 @@ lemma ord_resolve_rename_lifting:
     then show ?thesis using that by auto
   qed
     
-  have res_r_e: "ord_resolve_rename S CAi'' DA'' E'"
-    using ord_resolve_rename[of "hd (mk_var_dis (DA''#CAi''))" DA'' CAi'' "tl (mk_var_dis (DA''#CAi''))" S E']
+  have res_r_e: "ord_resolve_rename S CAi'' DA'' \<tau> E'"
+    using ord_resolve_rename[of "hd (mk_var_dis (DA''#CAi''))" DA'' CAi'' "tl (mk_var_dis (DA''#CAi''))" S]
     res_e unfolding CAi'_def DA'_def by auto
       
-  show ?thesis using that[of \<eta>'' \<eta>s'' \<eta>2 CAi'' DA'' E']
+  show ?thesis using that[of \<eta>'' \<eta>s'' \<eta>2 CAi'' DA'']
       \<open>is_ground_subst \<eta>''\<close>
       \<open>is_ground_subst_list \<eta>s''\<close>
       \<open>is_ground_subst \<eta>2\<close> 
@@ -1065,7 +1065,6 @@ begin
 
 interpretation gd: ground_resolution_with_selection S
   by unfold_locales
-    
 
 (*"grounding_of_clss N0"*)
 
@@ -1094,7 +1093,7 @@ interpretation src_ext:
 
 
 definition ord_FO_\<Gamma> :: "'a inference set" where
-  "ord_FO_\<Gamma> = {Infer CC D E | CC D E Cl. ord_resolve_rename S Cl D E \<and> mset Cl = CC}"
+  "ord_FO_\<Gamma> = {Infer CC D E | CC D E Cl \<sigma>. ord_resolve_rename S Cl D \<sigma> E \<and> mset Cl = CC}"
 
 interpretation ord_FO_resolution: inference_system ord_FO_\<Gamma> .
 
@@ -1166,7 +1165,7 @@ lemma ord_FO_\<Gamma>_gd_ord_\<Gamma>': (* I have my doubts about this... *)
   assumes "is_ground_subst \<eta>"
   shows "\<gamma> \<cdot>i \<eta> \<in> gd_ord_\<Gamma>'"
 proof -
-  from assms obtain CC D E Cl where "\<gamma> = Infer CC D E \<and> ord_resolve_rename S Cl D E \<and> mset Cl = CC" unfolding ord_FO_\<Gamma>_def by auto
+  from assms obtain CC D E Cl \<sigma> where "\<gamma> = Infer CC D E \<and> ord_resolve_rename S Cl D \<sigma> E \<and> mset Cl = CC" unfolding ord_FO_\<Gamma>_def by auto
   then have "\<forall>I. I \<Turnstile>fom CC + {#D#} \<longrightarrow> I \<Turnstile>fo E" using ord_resolve_rename_sound[of S _ ] by auto
   then have "\<forall>I. (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile>m ((CC + {#D#}) \<cdot>cm \<sigma>)) \<longrightarrow> (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile> E \<cdot> \<sigma>)"
     using true_fo_cls.cases
@@ -1174,6 +1173,27 @@ proof -
   then show ?thesis
     sorry
 qed
+  
+lemma somethingIneed: (* Probably better than the above... *)
+  assumes resolve_ren: "ord_resolve_rename S CAi DA \<sigma> E"
+  assumes "\<rho> = hd (mk_var_dis (DA#CAi))"
+  assumes "\<rho>s = tl (mk_var_dis (DA#CAi))"
+  assumes "is_ground_subst \<eta>"
+  shows "\<forall>I. I \<Turnstile>m (mset ((CAi \<cdot>\<cdot>cl \<rho>s) \<cdot>cl \<sigma> \<cdot>cl \<eta>)) \<longrightarrow> I \<Turnstile> (DA \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<eta>) \<longrightarrow> I \<Turnstile> E \<cdot> \<sigma> \<cdot> \<eta>"
+using resolve_ren proof (cases rule: ord_resolve_rename.cases)
+  case (ord_resolve_rename \<rho> \<rho>s)
+  note resolve = \<open>ord_resolve S (CAi \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) \<sigma> E\<close>
+  show ?thesis
+    using resolve proof (cases rule:ord_resolve.cases)
+    case (ord_resolve n Ci Aij Ai D)
+    then show ?thesis sorry
+  qed
+qed
+
+(* Somehow it seems more tempting to show that we can do unordered ground resolution... 
+   And then use soundness of that... 
+   
+*)
     
 lemma eee: "(prems_of (\<gamma> \<cdot>i \<mu>)) = ((prems_of \<gamma>) \<cdot>cm \<mu>)"
   apply auto
