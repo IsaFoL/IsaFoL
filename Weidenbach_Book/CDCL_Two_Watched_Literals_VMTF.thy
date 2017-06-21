@@ -1061,13 +1061,13 @@ proof -
         def_L: \<open>\<not>undefined_lit M (Pos L)\<close> and
         \<open>L \<in> xs\<close>
     for vm vm' xs zs M M' L
-    proof -
-        have \<open>L \<in> atm_of ` lits_of_l M\<close>
-        using def_L by (metis (full_types) Decided_Propagated_in_iff_in_lits_of_l atm_of_uminus
-            image_iff literal.sel(1))
-        then show ?thesis
-        using that by (auto simp: abs_l_vmtf_remove_inv_def)
-    qed
+  proof -
+      have \<open>L \<in> atm_of ` lits_of_l M\<close>
+      using def_L by (metis (full_types) Decided_Propagated_in_iff_in_lits_of_l atm_of_uminus
+          image_iff literal.sel(1))
+      then show ?thesis
+      using that by (auto simp: abs_l_vmtf_remove_inv_def)
+  qed
   show ?thesis
     using assms unfolding abs_l_vmtf_find_next_def
     apply (cases vm)
@@ -1254,22 +1254,6 @@ definition vmtf_unset :: \<open>nat literal \<Rightarrow> _ \<Rightarrow> _\<clo
   (if next_search = None \<or> stamp (A ! (the next_search)) < stamp (A ! atm_of L)
   then (A, m, lst, Some (atm_of L), removed)
   else (A, m, lst, Some (the next_search), removed)))\<close>
-
-definition vmtf_add_one :: \<open>nat literal \<Rightarrow> _ \<Rightarrow>  _\<close> where
-\<open>vmtf_add_one = (\<lambda>L (A, m, lst, next_search).
-  (A[atm_of L := l_vmtf_ATM m lst None], m+1, Some (atm_of L), next_search))\<close>
-
-definition vmtf_flush :: \<open>nat literal \<Rightarrow> vmtf_imp \<Rightarrow> vmtf_imp nres\<close> where
-\<open>vmtf_flush \<equiv> (\<lambda>L (A, m, lst, next_search, removed). do {
-    removed' \<leftarrow> SPEC (\<lambda>removed'. mset removed' = mset removed);
-    (_, (A, m, lst, next_search)) \<leftarrow> WHILE\<^sub>T
-      (\<lambda>(i, (A, m, lst, next_search)). i < length removed)
-      (\<lambda>(i, (A, m, lst, next_search)). do {
-         ASSERT(i < length removed);
-         RETURN (i+1, vmtf_add_one L (A, m, lst, next_search))})
-      (0, (A, m, lst, next_search));
-    RETURN (A, m, lst, next_search, [])
-  })\<close>
 
 definition abs_l_vmtf_unset' :: \<open>nat literal \<Rightarrow> nat abs_l_vmtf_remove \<Rightarrow> nat abs_l_vmtf_remove nres\<close> where
  \<open>abs_l_vmtf_unset' L vm \<equiv> do {
@@ -1461,6 +1445,22 @@ proof -
     apply standard
     done
 qed
+
+definition vmtf_add_one :: \<open>nat \<Rightarrow> _ \<Rightarrow>  _\<close> where
+\<open>vmtf_add_one = (\<lambda>L (A, m, lst, next_search).
+  (A[L := l_vmtf_ATM m lst None], m+1, Some L, next_search))\<close>
+
+definition vmtf_flush :: \<open>vmtf_imp \<Rightarrow> vmtf_imp nres\<close> where
+\<open>vmtf_flush \<equiv> (\<lambda>(A, m, lst, next_search, removed). do {
+    removed' \<leftarrow> SPEC (\<lambda>removed'. mset removed' = mset removed);
+    (_, (A, m, lst, next_search)) \<leftarrow> WHILE\<^sub>T
+      (\<lambda>(i, (A, m, lst, next_search)). i < length removed)
+      (\<lambda>(i, (A, m, lst, next_search)). do {
+         ASSERT(i < length removed);
+         RETURN (i+1, vmtf_add_one (removed!i) (A, m, lst, next_search))})
+      (0, (A, m, lst, next_search));
+    RETURN (A, m, lst, next_search, [])
+  })\<close>
 
 end
 
