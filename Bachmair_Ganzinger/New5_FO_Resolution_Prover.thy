@@ -1080,17 +1080,37 @@ thm src.saturated_upto_refute_complete
 (* The extension of ordered resolution mentioned in 4.10. Following Uwe's recommendation I make it enormous, 
    i.e. consisting of all satisfiability preserving rules *)
 (* A huge extension like Uwe suggested. *)
-definition "gd_ord_\<Gamma>' = {Infer a b c | a b c. (\<exists>I. I \<Turnstile>m a \<and> I \<Turnstile> b) \<longrightarrow> (\<exists>I. I \<Turnstile> c)}" 
+(* Uwe suggested the set of sound rules, and later the set of consistency preserving rules. 
+   But we need the whole set to be consistency preserving, and that does not follow from the rules being consistency preserving.
+   It does follow from soundness however, so lets just go with that.
+ *)
+definition gd_ord_\<Gamma>':: "'a inference set" where 
+  "gd_ord_\<Gamma>' = {Infer a b c | a b c. (\<forall>I. I \<Turnstile>m a \<longrightarrow>  I \<Turnstile> b \<longrightarrow> I \<Turnstile> c)}" 
 
 (* This corresponds to the part of 4.10 that claims we are extending resolution *)
 lemma gd_ord_\<Gamma>_ngd_ord_\<Gamma>: "gd.ord_\<Gamma> \<subseteq> gd_ord_\<Gamma>'"
   unfolding gd_ord_\<Gamma>'_def
   using gd.ord_\<Gamma>_def gd.ord_resolve_sound by fastforce 
 
+lemma nice: "sat_preserving_inference_system gd_ord_\<Gamma>'" (* Altough maybe it would be nice to prove it was a sound_inference_system *)
+  unfolding sat_preserving_inference_system_def gd_ord_\<Gamma>'_def
+  apply auto
+  subgoal for N I
+    unfolding inference_system.inferences_from_def
+    unfolding infer_from_def
+    unfolding true_clss_def
+    apply (rule_tac x=I in exI)
+    apply auto
+    apply (simp add: set_rev_mp true_cls_mset_def) 
+    done
+  done
+    
 interpretation src_ext:
-  redundancy_criterion "gd_ord_\<Gamma>'" "src.Rf" "(\<lambda>N. src.Ri N \<union> (gd_ord_\<Gamma>' - gd.ord_\<Gamma>))"
+  sat_preserving_redundancy_criterion "gd_ord_\<Gamma>'" "src.Rf" "(\<lambda>N. src.Ri N \<union> (gd_ord_\<Gamma>' - gd.ord_\<Gamma>))"
+  unfolding sat_preserving_redundancy_criterion_def
+  apply(rule conjI)
+  using nice apply simp
   by (rule standard_redundancy_criterion_extension[OF gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redudancy_criterion])
-
 
 definition ord_FO_\<Gamma> :: "'a inference set" where
   "ord_FO_\<Gamma> = {Infer CC D E | CC D E Cl \<sigma>. ord_resolve_rename S Cl D \<sigma> E \<and> mset Cl = CC}"
@@ -1209,6 +1229,11 @@ lemma fff: "set_mset (X \<cdot>cm \<mu>) = (set_mset X)  \<cdot>cs \<mu>"
 lemma ggg: "infer_from x y \<Longrightarrow> z \<supseteq> x \<Longrightarrow> infer_from z y"
   by (meson infer_from_def lfp.leq_trans)
   
+    
+
+text {*
+The following corresponds to Lemma 4.10:
+*}
     
 lemma resolution_prover_rtc_deriv:
   assumes "St \<leadsto> St'"
@@ -1463,11 +1488,11 @@ next
       by (metis add_mset_add_single subst_cls_add_mset subst_cls_union subst_minus) 
     then have "\<forall>I. I \<Turnstile> (D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>"
       using DL'_p by (metis (no_types, lifting) subset_mset.le_iff_add subst_cls_union true_cls_union)
-    then have "(\<exists>I. I \<Turnstile>m {#(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>#} \<and> I \<Turnstile> (C + {#L#}) \<cdot> \<mu>) \<longrightarrow> (\<exists>I. I \<Turnstile> C \<cdot> \<mu>)"
+    then have "(\<forall>I. I \<Turnstile>m {#(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>)"
       by (meson true_cls_mset_singleton)
     ultimately
     have "\<gamma> \<in> src_ext.inferences_from (grounding_of_state (N \<union> {C + {#L#}}, P, Q))"
-      unfolding src_ext.inferences_from_def unfolding gd_ord_\<Gamma>'_def infer_from_def \<gamma>_def by simp      
+      unfolding src_ext.inferences_from_def unfolding gd_ord_\<Gamma>'_def infer_from_def \<gamma>_def by auto
     then have "C \<cdot> \<mu> \<in> concls_of (src_ext.inferences_from (grounding_of_state (N \<union> {C + {#L#}}, P, Q)))"
       using image_iff unfolding \<gamma>_def by fastforce
     then have "C\<mu> \<in> concls_of (src_ext.inferences_from (grounding_of_state (N \<union> {C + {#L#}}, P, Q)))"
@@ -1534,7 +1559,7 @@ next
       by (metis add_mset_add_single subst_cls_add_mset subst_cls_union subst_minus) 
     then have "\<forall>I. I \<Turnstile> (D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>"
       using DL'_p by (metis (no_types, lifting) subset_mset.le_iff_add subst_cls_union true_cls_union)
-    then have "(\<exists>I. I \<Turnstile>m {#(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>#} \<and> I \<Turnstile> (C + {#L#}) \<cdot> \<mu>) \<longrightarrow> (\<exists>I. I \<Turnstile> C \<cdot> \<mu>)"
+    then have "\<forall>I. I \<Turnstile>m {#(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow>  I \<Turnstile> C \<cdot> \<mu>"
       by (meson true_cls_mset_singleton)
     ultimately
     have "\<gamma> \<in> src_ext.inferences_from (grounding_of_state (N, P \<union> {C + {#L#}}, Q))"
@@ -1605,7 +1630,7 @@ next
       by (metis add_mset_add_single subst_cls_add_mset subst_cls_union subst_minus) 
     then have "\<forall>I. I \<Turnstile> (D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>"
       using DL'_p by (metis (no_types, lifting) subset_mset.le_iff_add subst_cls_union true_cls_union)
-    then have "(\<exists>I. I \<Turnstile>m {#(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>#} \<and> I \<Turnstile> (C + {#L#}) \<cdot> \<mu>) \<longrightarrow> (\<exists>I. I \<Turnstile> C \<cdot> \<mu>)"
+    then have "\<forall>I. I \<Turnstile>m {#(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>"
       by (meson true_cls_mset_singleton)
     ultimately
     have "\<gamma> \<in> src_ext.inferences_from (grounding_of_state (N, P, Q \<union> {C + {#L#}}))"
@@ -1704,6 +1729,155 @@ next
   ultimately
   show ?case
     using src_ext.derive.intros[of "(grounding_of_state (N, P, Q \<union> {C}))" "(grounding_of_state ({}, P \<union> {C}, Q))"] by auto
+qed
+  
+  
+text {*
+The following corresponds to Lemma 4.11:
+*}
+  
+fun getN :: "'a state \<Rightarrow> 'a clause set" where
+  "getN (N,P,Q) = N"
+  
+fun getP :: "'a state \<Rightarrow> 'a clause set" where
+  "getP (N,P,Q) = P"
+  
+fun getQ :: "'a state \<Rightarrow> 'a clause set" where
+  "getQ (N,P,Q) = Q"
+  
+definition is_least :: "(nat \<Rightarrow> bool) \<Rightarrow> nat \<Rightarrow> bool" where
+  "is_least P n \<longleftrightarrow> P n \<and> (\<forall>n' < n. \<not>P n)"
+  
+  
+lemma fair_imp_limit_minus_Rf_subset_ground_limit_state:
+  assumes
+    deriv: "derivation (op \<leadsto>) Sts" and
+    fair: "fair_state_seq Sts" and
+    ns: "Ns = lmap grounding_of_state Sts"
+  shows "llimit Ns - src.Rf (llimit Ns) \<subseteq> grounding_of_state (limit_state Sts)"
+proof
+  let ?Ns = "\<lambda>i. getN (lnth Sts i)"
+  let ?Ps = "\<lambda>i. getP (lnth Sts i)"
+  let ?Qs = "\<lambda>i. getQ (lnth Sts i)"
+  fix C
+  assume C_p: "C \<in> llimit Ns - src.Rf (llimit Ns)"
+  then have "is_ground_cls C" 
+    using ns sorry
+  from C_p have no_taut: "\<not>(\<exists>A. Pos A \<in># C \<and> Neg A \<in># C)" 
+    using src.tautology_redundant sorry
+      
+  from deriv have four_ten: "derivation src_ext.derive Ns" 
+    using resolution_prover_rtc_deriv sorry
+     
+  obtain i where "\<forall>j. j \<ge> i \<longrightarrow> enat j < llength Ns \<longrightarrow> C \<in> lnth Ns j"
+    using llimit_def C_p sorry
+  then obtain D \<sigma> where D_p: "D \<in> clss_of_state (lnth Sts i) \<and> D \<cdot> \<sigma> = C"
+    using ns sorry
+  then have "D \<in> ?Ns i \<or> D \<in> ?Ps i \<or> D \<in> ?Qs i"
+    sorry
+  moreover
+  {
+    assume "D \<in> ?Ns i"
+    then obtain l where l_p: "is_least (\<lambda>l. D\<notin>?Ns l \<and> l\<ge>i) l"
+      sorry
+    then have D_in_out: "D \<in> ?Ns (l-1) \<and> D \<notin> ?Ns l"
+      sorry
+    have "lnth Sts (l-1) \<leadsto> lnth Sts l"
+      sorry
+    then have "\<exists>l D' \<tau>. l \<ge> i \<and> C = D' \<cdot> \<tau> \<and> D' \<in> (?Ps l \<union> ?Qs l)"
+    proof (induction rule: resolution_prover.cases)
+      case (tautology_deletion A D_twin N P Q)
+      then have "D_twin = D" 
+        using D_in_out by auto
+      then have "Pos (A \<cdot>a \<sigma>) \<in># C \<and> Neg (A \<cdot>a \<sigma>) \<in># C"
+        sorry
+      then have False 
+        using no_taut by metis
+      then show ?case
+        by blast
+    next
+      case (forward_subsumption P Q D_twin N)
+      then have twins: "D_twin = D" "?Ps (l - 1) = P" "?Ps l = P" "?Qs (l - 1) = Q" "?Qs l = Q" 
+        using D_in_out by auto
+      then obtain \<tau> D' where \<tau>_D'_p: "D' \<cdot> \<tau> \<subseteq># D \<and> D' \<in> P \<union> Q"
+        using forward_subsumption unfolding subsumes_def by auto
+      then have "D = D' \<cdot> \<tau> \<or> D' \<cdot> \<tau> \<subset># D"
+        sorry
+      then show ?case 
+      proof
+        assume "D = D' \<cdot> \<tau>"
+        then have "D' \<cdot> (\<tau> \<odot> \<sigma>) = C"
+          using D_p
+          by auto
+        then show ?case
+          using twins \<tau>_D'_p l_p unfolding is_least_def
+            by metis
+      next
+        assume "D' \<cdot> \<tau> \<subset># D"
+        then have "D' \<cdot> \<tau> \<cdot> \<sigma> \<subset># D \<cdot> \<sigma>"
+          sorry
+        then have D'_C: "D' \<cdot> \<tau> \<cdot> \<sigma> \<subset># C"
+          using D_p by auto
+        then have "(\<forall>I. I \<Turnstile> D' \<cdot> \<tau> \<cdot> \<sigma>) \<longrightarrow> (\<forall>I. I \<Turnstile> C)"
+          sorry
+        moreover
+        from D'_C have "C > D' \<cdot> \<tau> \<cdot> \<sigma>"
+          sorry
+        ultimately
+        have "C \<in> src.Rf (grounding_of_cls D')"
+          sorry (* I also need that "\<tau> \<cdot> \<sigma>" is ground *)
+        then have "C \<in> src.Rf (grounding_of_state (lnth Sts l))"
+          using \<tau>_D'_p twins src.Rf_mono sorry
+        then have "C \<in> src.Rf (lnth Ns l)"
+          using ns sorry
+        then have "C \<in> src.Rf (lSup Ns)" using  src.Rf_mono
+          sorry
+        then have "derivation src_ext.derive Ns" using four_ten src_ext.derivation_supremum_llimit_satisfiable(1)[of Ns]
+          by auto
+        then show ?case
+          sorry
+      qed
+    next
+      case (backward_subsumption_P N D_twin P Q)
+      then show ?case sorry
+    next
+      case (backward_subsumption_Q N D_twin P Q)
+      then show ?case sorry
+    next
+      case (forward_reduction P Q L \<sigma> D_twin N)
+      then show ?case sorry
+    next
+      case (backward_reduction_P N L \<sigma> D_twin P Q)
+      then show ?case sorry
+    next
+      case (backward_reduction_Q N L \<sigma> D_twin P Q)
+      then show ?case sorry
+    next
+      case (clause_processing N D_twin P Q)
+      then show ?case sorry
+    next
+      case (inference_computation N Q D_twin P)
+      then show ?case sorry
+    qed
+  }
+  moreover
+  {
+    assume "D \<in> ?Ps i"
+    have "\<exists>l D' \<tau>. l \<ge> i \<and> C = D' \<cdot> \<tau> \<and> D' \<in> ?Qs i"
+      sorry
+  }
+  moreover
+  {
+    assume "D \<in> ?Qs i"
+    have "\<exists>l D' \<tau>. l \<ge> i \<and> C = D' \<cdot> \<tau> \<and> D' \<in> ?Qs i"
+      sorry
+  }
+  ultimately
+  have "\<exists>l D' \<tau>. l \<ge> i \<and> C = D' \<cdot> \<tau> \<and> D' \<in> ?Qs i"
+    sorry
+      
+  show "C \<in> grounding_of_state (limit_state Sts)"
+    sorry
 qed
 
 text {*
