@@ -488,6 +488,10 @@ lemma remove1_upt:
 lemma sorted_removeAll: \<open>sorted C \<Longrightarrow> sorted (removeAll k C)\<close>
   by (metis map_ident removeAll_filter_not_eq sorted_filter)
 
+lemma distinct_remove1_rev: \<open>distinct xs \<Longrightarrow> remove1 x (rev xs) = rev (remove1 x xs)\<close>
+  using split_list[of x xs]
+  by (cases \<open>x \<in> set xs\<close>) (auto simp: remove1_append remove1_idem)
+
 
 subsubsection \<open>Remove under condition\<close>
 
