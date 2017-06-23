@@ -1731,6 +1731,17 @@ next
     using src_ext.derive.intros[of "(grounding_of_state (N, P, Q \<union> {C}))" "(grounding_of_state ({}, P \<union> {C}, Q))"] by auto
 qed
   
+text {*
+Another formulation of the last part of lemma 4.10
+ *}
+  
+lemma four_ten:
+  assumes "derivation op \<leadsto> Sts"
+  shows "derivation src_ext.derive (lmap grounding_of_state Sts)"
+sorry
+      
+  thm resolution_prover_rtc_deriv
+  
   
 text {*
 The following corresponds to Lemma 4.11:
@@ -1747,7 +1758,46 @@ fun getQ :: "'a state \<Rightarrow> 'a clause set" where
   
 definition is_least :: "(nat \<Rightarrow> bool) \<Rightarrow> nat \<Rightarrow> bool" where
   "is_least P n \<longleftrightarrow> P n \<and> (\<forall>n' < n. \<not>P n)"
+
+lemma in_lSup_in_nth:
+  assumes "C \<in> lSup Ns"
+  shows "\<exists>j. enat j < llength Ns \<and> C \<in> lnth Ns j"
+  using assms unfolding lSup_def by auto
+    
+lemma lSup_grounding_of_state_ground:
+  assumes "C \<in> lSup (lmap grounding_of_state Sts)"
+  shows "is_ground_cls C"
+proof -
+  from assms have "\<exists>j. enat j < llength (lmap grounding_of_state Sts) \<and> (C \<in> (lnth (lmap grounding_of_state Sts) j))"
+    using in_lSup_in_nth by metis
+  then obtain j where
+    "enat j < llength (lmap grounding_of_state Sts)"
+    "C \<in> lnth (lmap grounding_of_state Sts) j"
+    by blast
+  then have "C \<in> grounding_of_state (lnth Sts j)"
+    by auto
+  then show ?thesis unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def
+    by auto
+qed
   
+lemma llimit_grounding_of_state_ground:
+  assumes "C \<in> llimit (lmap grounding_of_state Sts)"
+  shows "is_ground_cls C"
+proof -
+  from assms have "C \<in> lSup (lmap grounding_of_state Sts)" 
+    using llimit_subset_lSup[of "lmap grounding_of_state Sts"] by blast
+  then show ?thesis using lSup_grounding_of_state_ground by auto
+qed 
+ 
+lemma llimit_eventually_always:
+  assumes "C \<in> llimit Ns"
+  shows "\<exists>i. enat i < llength Ns \<and>(\<forall>j\<ge>i. enat j < llength Ns \<longrightarrow> C \<in> lnth Ns j)"
+proof -
+  have "\<exists>i. enat i < llength Ns \<and> C \<in> INTER {j. i \<le> j \<and> enat j < llength Ns} (lnth Ns)" using assms unfolding llimit_def by auto
+  then show ?thesis
+    by auto
+qed
+
   
 lemma fair_imp_limit_minus_Rf_subset_ground_limit_state:
   assumes
@@ -1762,17 +1812,19 @@ proof
   fix C
   assume C_p: "C \<in> llimit Ns - src.Rf (llimit Ns)"
   then have "is_ground_cls C" 
-    using ns sorry
+    using ns using llimit_grounding_of_state_ground by auto
   from C_p have no_taut: "\<not>(\<exists>A. Pos A \<in># C \<and> Neg A \<in># C)" 
-    using src.tautology_redundant sorry
+    using src.tautology_redundant by auto
       
   from deriv have four_ten: "derivation src_ext.derive Ns" 
-    using resolution_prover_rtc_deriv sorry
-     
-  obtain i where "\<forall>j. j \<ge> i \<longrightarrow> enat j < llength Ns \<longrightarrow> C \<in> lnth Ns j"
-    using llimit_def C_p sorry
+    using four_ten ns by auto
+   
+  obtain i where "enat i < llength Ns \<and> (\<forall>j. j \<ge> i \<longrightarrow> enat j < llength Ns \<longrightarrow> C \<in> lnth Ns j)"
+    using C_p llimit_eventually_always by fastforce
+  then have "C \<in> lnth Ns i" 
+    by auto
   then obtain D \<sigma> where D_p: "D \<in> clss_of_state (lnth Sts i) \<and> D \<cdot> \<sigma> = C"
-    using ns sorry
+    unfolding ns sorry
   then have "D \<in> ?Ns i \<or> D \<in> ?Ps i \<or> D \<in> ?Qs i"
     sorry
   moreover

@@ -236,7 +236,7 @@ text {*
 This corresponds to Lemma 4.2:
 *}
 
-lemma
+lemma derivation_supremum_llimit_satisfiable:
   assumes deriv: "derivation (op \<triangleright>) Ns"
   shows
     Rf_lSup_subset_Rf_llimit: "Rf (lSup Ns) \<subseteq> Rf (llimit Ns)" and
