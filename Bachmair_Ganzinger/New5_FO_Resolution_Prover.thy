@@ -89,7 +89,7 @@ lemma eligible_simp:
    ))"
   using eligible.simps by blast
 
-inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 's \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve:
   "length (CAi :: 'a clause list) = n \<Longrightarrow>
    length (Ci  :: 'a clause list) = n \<Longrightarrow>
@@ -98,11 +98,11 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
    n \<noteq> 0 \<Longrightarrow>
    \<forall>i < n. (CAi ! i) = (Ci ! i + (poss (Aij ! i))) \<Longrightarrow> (* could be written with map *)
    \<forall>i < n. Aij ! i \<noteq> {#} \<Longrightarrow>
-   Some \<sigma> = mgu (set_mset ` (set (map2 add_mset Ai Aij))) \<Longrightarrow> (* This states \<sigma> is a unifier, but! it should be an mgu! *)
+   Some \<sigma> = mgu (set_mset ` (set (map2 add_mset Ai Aij))) \<Longrightarrow> 
    eligible \<sigma> Ai (D + negs (mset Ai)) \<Longrightarrow>
    \<forall>i. i < n \<longrightarrow> str_maximal_in (Ai ! i \<cdot>a \<sigma>) ((Ci ! i) \<cdot> \<sigma>) \<Longrightarrow>
    \<forall>i < n. S (CAi ! i) = {#} \<Longrightarrow> (* Use the ! style instead maybe, or maybe us the \<forall>\<in>. style above *)
-   ord_resolve CAi (D + negs (mset Ai)) (((\<Union># (mset Ci)) + D) \<cdot> \<sigma>)"    
+   ord_resolve CAi (D + negs (mset Ai)) \<sigma> (((\<Union># (mset Ci)) + D) \<cdot> \<sigma>)"    
   
 lemma mgu_unifier:
   assumes ailen: "length Ai = n"
@@ -143,12 +143,12 @@ proof -
   then show ?thesis unfolding Q_def by auto
 qed  
  
-inductive ord_resolve_rename :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+inductive ord_resolve_rename :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 's \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve_rename:
   "\<rho> = hd (mk_var_dis (DA#CAi)) \<Longrightarrow>
    \<rho>s = tl (mk_var_dis (DA#CAi)) \<Longrightarrow>
-   ord_resolve (CAi \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) E \<Longrightarrow>
-   ord_resolve_rename CAi DA E"
+   ord_resolve (CAi \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) \<sigma> E \<Longrightarrow>
+   ord_resolve_rename CAi DA \<sigma> E"
   
 
 
@@ -156,14 +156,14 @@ lemma ground_prems_ord_resolve_rename_imp_ord_resolve:
   assumes 
     gr_cc: "is_ground_cls_list CAi" and
     gr_d: "is_ground_cls DA" and
-    res_e_re: "ord_resolve_rename CAi DA E"
-  shows "ord_resolve CAi DA E"
+    res_e_re: "ord_resolve_rename CAi DA \<sigma> E"
+  shows "ord_resolve CAi DA \<sigma> E"
   using res_e_re proof (cases rule: ord_resolve_rename.cases)
   case (ord_resolve_rename \<rho> P)
   then have rename_P: "\<forall>\<rho> \<in> set P. is_renaming \<rho>" using mk_var_dis_jaja
     by (metis list.sel(2) list.set_sel(2)) 
   from ord_resolve_rename have len: "length P = length CAi" using mk_var_dis_jaja by auto
-  have res_e: "ord_resolve (CAi \<cdot>\<cdot>cl P) (DA \<cdot> \<rho>) E" using ord_resolve_rename by auto
+  have res_e: "ord_resolve (CAi \<cdot>\<cdot>cl P) (DA \<cdot> \<rho>) \<sigma> E" using ord_resolve_rename by auto
   
   have "CAi \<cdot>\<cdot>cl P = CAi" using len gr_cc by auto
   moreover
@@ -191,13 +191,13 @@ lemma true_fo_cls_mset_def2: "I \<Turnstile>fom CC \<longleftrightarrow> (\<fora
   
 lemma ord_resolve_sound:
   assumes
-    res_e: "ord_resolve CAi DA E" and
+    res_e: "ord_resolve CAi DA \<tau> E" and
     cc_d_true: "I \<Turnstile>fom mset CAi + {#DA#}"
   shows "I \<Turnstile>fo E"
   apply (rule true_fo_cls) using assms proof (cases rule: ord_resolve.cases)
   fix \<sigma>
   assume ground_subst_\<sigma>: "is_ground_subst \<sigma>"
-  case (ord_resolve n Ci Aij Ai \<tau> D)
+  case (ord_resolve n Ci Aij Ai D)
   have DA: "DA = D + negs (mset Ai)" using ord_resolve by -
   have e: "E = (\<Union>#mset Ci + D) \<cdot> \<tau>" using ord_resolve by -
   have ci_len: "length Ci = n" using ord_resolve by -
@@ -290,19 +290,19 @@ qed
 
 lemma ord_resolve_rename_sound:
   assumes
-    res_e: "ord_resolve_rename CAi DA E" and
+    res_e: "ord_resolve_rename CAi DA \<sigma> E" and
     cc_d_true: "I \<Turnstile>fom (mset CAi) + {#DA#}"
   shows "I \<Turnstile>fo E"
   using res_e proof (cases rule: ord_resolve_rename.cases)
   case (ord_resolve_rename \<rho> P)
   then have len: "length P = length CAi" using ord_resolve_rename mk_var_dis_jaja by auto
-  have res: "ord_resolve (CAi \<cdot>\<cdot>cl P) (DA \<cdot> \<rho>) E" using ord_resolve_rename by -
+  have res: "ord_resolve (CAi \<cdot>\<cdot>cl P) (DA \<cdot> \<rho>) \<sigma> E" using ord_resolve_rename by -
   have "I \<Turnstile>fom (mset (CAi \<cdot>\<cdot>cl P)) + {#DA \<cdot> \<rho>#}"
     using subst_sound_scl[OF len , of I] subst_sound[of I DA]
     cc_d_true by (simp add: true_fo_cls_mset_def2)
     
   then show "I \<Turnstile>fo E"
-    using ord_resolve_sound[of "CAi \<cdot>\<cdot>cl P" "DA \<cdot> \<rho>" E I, OF res]
+    using ord_resolve_sound[of "CAi \<cdot>\<cdot>cl P" "DA \<cdot> \<rho>" \<sigma> E I, OF res]
     by simp
 qed
 
@@ -500,10 +500,10 @@ qed
 lemma ground_resolvent_subset:
   assumes gr_c: "is_ground_cls_list CAi"
   assumes gr_d: "is_ground_cls DA"
-  assumes resolve: "ord_resolve SSS CAi DA E"
+  assumes resolve: "ord_resolve SSS CAi DA \<sigma> E"
   shows "E \<subseteq># (\<Union>#(mset CAi)) + DA"
   using resolve proof (cases rule: ord_resolve.cases)
-  case (ord_resolve n Ci Aij Ai \<sigma> D)
+  case (ord_resolve n Ci Aij Ai D)
   hence "\<forall>i<n.  Ci ! i \<subseteq># CAi ! i " by auto
   hence cisucai: "\<Union>#mset Ci \<subseteq># \<Union>#(mset CAi)"
     using subseteq_list_Union_mset ord_resolve(3) ord_resolve(4) by force
@@ -525,7 +525,7 @@ qed
 lemma ground_resolvent_ground: (* This proof should be more automatic I think... *)
   assumes "is_ground_cls_list CAi"
   assumes "is_ground_cls DA"
-  assumes "ord_resolve SSS CAi DA E"
+  assumes "ord_resolve SSS CAi DA \<sigma> E"
   shows "is_ground_cls E"
 proof -
   from assms have "E \<subseteq># (\<Union>#(mset CAi)) + DA" using ground_resolvent_subset by auto
@@ -537,7 +537,7 @@ proof -
 qed
   
 lemma ord_resolve_obtain_clauses: 
-  assumes resolve: "ord_resolve (S_M S M) CAi DA E" 
+  assumes resolve: "ord_resolve (S_M S M) CAi DA \<sigma> E" 
     and select: "selection S"
     and grounding: "{DA} \<union> (set CAi) \<subseteq> grounding_of_clss M"
     and n: "length CAi = n"
@@ -556,7 +556,7 @@ lemma ord_resolve_obtain_clauses:
     "is_ground_subst \<eta>''"
     "is_ground_subst_list \<eta>s''"
   using resolve proof (cases rule: ord_resolve.cases)
-  case (ord_resolve nn Ci Aij Ai \<sigma> D)
+  case (ord_resolve nn Ci Aij Ai D)
   then have "nn = n"
     using n by auto
   then have "n \<noteq> 0" "length Ci = n" "length Aij = n" "length Ai = n" using ord_resolve by auto
@@ -651,19 +651,19 @@ qed
   
 lemma ord_resolve_rename_lifting: 
   fixes CAi
-  assumes resolve: "ord_resolve (S_M S M) CAi DA E" 
+  assumes resolve: "ord_resolve (S_M S M) CAi DA \<sigma> E" 
     and select: "selection S"
     and selection_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" 
     and grounding: "{DA} \<union> (set CAi) \<subseteq> grounding_of_clss M"
-  obtains \<eta>s \<eta> \<eta>2 CAi'' DA'' E'' where
+  obtains \<eta>s \<eta> \<eta>2 CAi'' DA'' E'' \<tau> where
     "is_ground_subst \<eta>"
     "is_ground_subst_list \<eta>s"
     "is_ground_subst \<eta>2"
-    "ord_resolve_rename S CAi'' DA'' E''"
+    "ord_resolve_rename S CAi'' DA'' \<tau> E''"
     "CAi'' \<cdot>\<cdot>cl \<eta>s = CAi" "DA'' \<cdot> \<eta> = DA" "E'' \<cdot> \<eta>2 = E" (* In the previous proofs I have CAi and DA on lfs of equality... *)
     "{DA''} \<union> set CAi'' \<subseteq> M"
   using resolve proof (cases rule: ord_resolve.cases)
-  case (ord_resolve n Ci Aij Ai \<sigma> D)
+  case (ord_resolve n Ci Aij Ai D)
     
   have selection_renaming_list_invariant: "\<And>\<rho>s Ci. length \<rho>s = length Ci \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> map S (Ci \<cdot>\<cdot>cl \<rho>s) = (map S Ci) \<cdot>\<cdot>cl \<rho>s"
     apply (rule nth_equalityI)
@@ -688,7 +688,7 @@ lemma ord_resolve_rename_lifting:
     
     "is_ground_subst \<eta>''"
     "is_ground_subst_list \<eta>s''"
-    using resolve grounding select ord_resolve_obtain_clauses[of S M CAi DA E n] n 
+    using resolve grounding select ord_resolve_obtain_clauses[of S M CAi DA] n 
       by metis
   
   note n = \<open>length CAi'' = n\<close> \<open>length \<eta>s'' = n\<close> n
@@ -989,7 +989,7 @@ lemma ord_resolve_rename_lifting:
     (* Resolve the lifted clauses *)
   define E' where "E' = ((\<Union># (mset Ci')) + D') \<cdot> \<tau>"   
     
-  have res_e: "ord_resolve S CAi' DA' E'" 
+  have res_e: "ord_resolve S CAi' DA' \<tau> E'" 
     using ord_resolve.intros[of CAi' n Ci' Aij' Ai' \<tau> S D', 
         OF 
         _ _ _ _
@@ -1026,11 +1026,11 @@ lemma ord_resolve_rename_lifting:
     then show ?thesis using that by auto
   qed
     
-  have res_r_e: "ord_resolve_rename S CAi'' DA'' E'"
-    using ord_resolve_rename[of "hd (mk_var_dis (DA''#CAi''))" DA'' CAi'' "tl (mk_var_dis (DA''#CAi''))" S E']
+  have res_r_e: "ord_resolve_rename S CAi'' DA'' \<tau> E'"
+    using ord_resolve_rename[of "hd (mk_var_dis (DA''#CAi''))" DA'' CAi'' "tl (mk_var_dis (DA''#CAi''))" S]
     res_e unfolding CAi'_def DA'_def by auto
       
-  show ?thesis using that[of \<eta>'' \<eta>s'' \<eta>2 CAi'' DA'' E']
+  show ?thesis using that[of \<eta>'' \<eta>s'' \<eta>2 CAi'' DA'']
       \<open>is_ground_subst \<eta>''\<close>
       \<open>is_ground_subst_list \<eta>s''\<close>
       \<open>is_ground_subst \<eta>2\<close> 
@@ -1065,7 +1065,6 @@ begin
 
 interpretation gd: ground_resolution_with_selection S
   by unfold_locales
-    
 
 (*"grounding_of_clss N0"*)
 
@@ -1081,20 +1080,40 @@ thm src.saturated_upto_refute_complete
 (* The extension of ordered resolution mentioned in 4.10. Following Uwe's recommendation I make it enormous, 
    i.e. consisting of all satisfiability preserving rules *)
 (* A huge extension like Uwe suggested. *)
-definition "gd_ord_\<Gamma>' = {Infer a b c | a b c. (\<exists>I. I \<Turnstile>m a \<and> I \<Turnstile> b) \<longrightarrow> (\<exists>I. I \<Turnstile> c)}" 
+(* Uwe suggested the set of sound rules, and later the set of consistency preserving rules. 
+   But we need the whole set to be consistency preserving, and that does not follow from the rules being consistency preserving.
+   It does follow from soundness however, so lets just go with that.
+ *)
+definition gd_ord_\<Gamma>':: "'a inference set" where 
+  "gd_ord_\<Gamma>' = {Infer a b c | a b c. (\<forall>I. I \<Turnstile>m a \<longrightarrow>  I \<Turnstile> b \<longrightarrow> I \<Turnstile> c)}" 
 
 (* This corresponds to the part of 4.10 that claims we are extending resolution *)
 lemma gd_ord_\<Gamma>_ngd_ord_\<Gamma>: "gd.ord_\<Gamma> \<subseteq> gd_ord_\<Gamma>'"
   unfolding gd_ord_\<Gamma>'_def
   using gd.ord_\<Gamma>_def gd.ord_resolve_sound by fastforce 
 
+lemma nice: "sat_preserving_inference_system gd_ord_\<Gamma>'" (* Altough maybe it would be nice to prove it was a sound_inference_system *)
+  unfolding sat_preserving_inference_system_def gd_ord_\<Gamma>'_def
+  apply auto
+  subgoal for N I
+    unfolding inference_system.inferences_from_def
+    unfolding infer_from_def
+    unfolding true_clss_def
+    apply (rule_tac x=I in exI)
+    apply auto
+    apply (simp add: set_rev_mp true_cls_mset_def) 
+    done
+  done
+    
 interpretation src_ext:
-  redundancy_criterion "gd_ord_\<Gamma>'" "src.Rf" "(\<lambda>N. src.Ri N \<union> (gd_ord_\<Gamma>' - gd.ord_\<Gamma>))"
+  sat_preserving_redundancy_criterion "gd_ord_\<Gamma>'" "src.Rf" "(\<lambda>N. src.Ri N \<union> (gd_ord_\<Gamma>' - gd.ord_\<Gamma>))"
+  unfolding sat_preserving_redundancy_criterion_def
+  apply(rule conjI)
+  using nice apply simp
   by (rule standard_redundancy_criterion_extension[OF gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redudancy_criterion])
 
-
 definition ord_FO_\<Gamma> :: "'a inference set" where
-  "ord_FO_\<Gamma> = {Infer CC D E | CC D E Cl. ord_resolve_rename S Cl D E \<and> mset Cl = CC}"
+  "ord_FO_\<Gamma> = {Infer CC D E | CC D E Cl \<sigma>. ord_resolve_rename S Cl D \<sigma> E \<and> mset Cl = CC}"
 
 interpretation ord_FO_resolution: inference_system ord_FO_\<Gamma> .
 
@@ -1166,7 +1185,7 @@ lemma ord_FO_\<Gamma>_gd_ord_\<Gamma>': (* I have my doubts about this... *)
   assumes "is_ground_subst \<eta>"
   shows "\<gamma> \<cdot>i \<eta> \<in> gd_ord_\<Gamma>'"
 proof -
-  from assms obtain CC D E Cl where "\<gamma> = Infer CC D E \<and> ord_resolve_rename S Cl D E \<and> mset Cl = CC" unfolding ord_FO_\<Gamma>_def by auto
+  from assms obtain CC D E Cl \<sigma> where "\<gamma> = Infer CC D E \<and> ord_resolve_rename S Cl D \<sigma> E \<and> mset Cl = CC" unfolding ord_FO_\<Gamma>_def by auto
   then have "\<forall>I. I \<Turnstile>fom CC + {#D#} \<longrightarrow> I \<Turnstile>fo E" using ord_resolve_rename_sound[of S _ ] by auto
   then have "\<forall>I. (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile>m ((CC + {#D#}) \<cdot>cm \<sigma>)) \<longrightarrow> (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile> E \<cdot> \<sigma>)"
     using true_fo_cls.cases
@@ -1174,6 +1193,27 @@ proof -
   then show ?thesis
     sorry
 qed
+  
+lemma somethingIneed: (* Probably better than the above... *)
+  assumes resolve_ren: "ord_resolve_rename S CAi DA \<sigma> E"
+  assumes "\<rho> = hd (mk_var_dis (DA#CAi))"
+  assumes "\<rho>s = tl (mk_var_dis (DA#CAi))"
+  assumes "is_ground_subst \<eta>"
+  shows "\<forall>I. I \<Turnstile>m (mset ((CAi \<cdot>\<cdot>cl \<rho>s) \<cdot>cl \<sigma> \<cdot>cl \<eta>)) \<longrightarrow> I \<Turnstile> (DA \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<eta>) \<longrightarrow> I \<Turnstile> E \<cdot> \<sigma> \<cdot> \<eta>"
+using resolve_ren proof (cases rule: ord_resolve_rename.cases)
+  case (ord_resolve_rename \<rho> \<rho>s)
+  note resolve = \<open>ord_resolve S (CAi \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) \<sigma> E\<close>
+  show ?thesis
+    using resolve proof (cases rule:ord_resolve.cases)
+    case (ord_resolve n Ci Aij Ai D)
+    then show ?thesis sorry
+  qed
+qed
+
+(* Somehow it seems more tempting to show that we can do unordered ground resolution... 
+   And then use soundness of that... 
+   
+*)
     
 lemma eee: "(prems_of (\<gamma> \<cdot>i \<mu>)) = ((prems_of \<gamma>) \<cdot>cm \<mu>)"
   apply auto
@@ -1189,6 +1229,11 @@ lemma fff: "set_mset (X \<cdot>cm \<mu>) = (set_mset X)  \<cdot>cs \<mu>"
 lemma ggg: "infer_from x y \<Longrightarrow> z \<supseteq> x \<Longrightarrow> infer_from z y"
   by (meson infer_from_def lfp.leq_trans)
   
+    
+
+text {*
+The following corresponds to Lemma 4.10:
+*}
     
 lemma resolution_prover_rtc_deriv:
   assumes "St \<leadsto> St'"
@@ -1443,11 +1488,11 @@ next
       by (metis add_mset_add_single subst_cls_add_mset subst_cls_union subst_minus) 
     then have "\<forall>I. I \<Turnstile> (D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>"
       using DL'_p by (metis (no_types, lifting) subset_mset.le_iff_add subst_cls_union true_cls_union)
-    then have "(\<exists>I. I \<Turnstile>m {#(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>#} \<and> I \<Turnstile> (C + {#L#}) \<cdot> \<mu>) \<longrightarrow> (\<exists>I. I \<Turnstile> C \<cdot> \<mu>)"
+    then have "(\<forall>I. I \<Turnstile>m {#(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>)"
       by (meson true_cls_mset_singleton)
     ultimately
     have "\<gamma> \<in> src_ext.inferences_from (grounding_of_state (N \<union> {C + {#L#}}, P, Q))"
-      unfolding src_ext.inferences_from_def unfolding gd_ord_\<Gamma>'_def infer_from_def \<gamma>_def by simp      
+      unfolding src_ext.inferences_from_def unfolding gd_ord_\<Gamma>'_def infer_from_def \<gamma>_def by auto
     then have "C \<cdot> \<mu> \<in> concls_of (src_ext.inferences_from (grounding_of_state (N \<union> {C + {#L#}}, P, Q)))"
       using image_iff unfolding \<gamma>_def by fastforce
     then have "C\<mu> \<in> concls_of (src_ext.inferences_from (grounding_of_state (N \<union> {C + {#L#}}, P, Q)))"
@@ -1514,7 +1559,7 @@ next
       by (metis add_mset_add_single subst_cls_add_mset subst_cls_union subst_minus) 
     then have "\<forall>I. I \<Turnstile> (D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>"
       using DL'_p by (metis (no_types, lifting) subset_mset.le_iff_add subst_cls_union true_cls_union)
-    then have "(\<exists>I. I \<Turnstile>m {#(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>#} \<and> I \<Turnstile> (C + {#L#}) \<cdot> \<mu>) \<longrightarrow> (\<exists>I. I \<Turnstile> C \<cdot> \<mu>)"
+    then have "\<forall>I. I \<Turnstile>m {#(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow>  I \<Turnstile> C \<cdot> \<mu>"
       by (meson true_cls_mset_singleton)
     ultimately
     have "\<gamma> \<in> src_ext.inferences_from (grounding_of_state (N, P \<union> {C + {#L#}}, Q))"
@@ -1585,7 +1630,7 @@ next
       by (metis add_mset_add_single subst_cls_add_mset subst_cls_union subst_minus) 
     then have "\<forall>I. I \<Turnstile> (D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>"
       using DL'_p by (metis (no_types, lifting) subset_mset.le_iff_add subst_cls_union true_cls_union)
-    then have "(\<exists>I. I \<Turnstile>m {#(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>#} \<and> I \<Turnstile> (C + {#L#}) \<cdot> \<mu>) \<longrightarrow> (\<exists>I. I \<Turnstile> C \<cdot> \<mu>)"
+    then have "\<forall>I. I \<Turnstile>m {#(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>"
       by (meson true_cls_mset_singleton)
     ultimately
     have "\<gamma> \<in> src_ext.inferences_from (grounding_of_state (N, P, Q \<union> {C + {#L#}}))"
@@ -1684,6 +1729,207 @@ next
   ultimately
   show ?case
     using src_ext.derive.intros[of "(grounding_of_state (N, P, Q \<union> {C}))" "(grounding_of_state ({}, P \<union> {C}, Q))"] by auto
+qed
+  
+text {*
+Another formulation of the last part of lemma 4.10
+ *}
+  
+lemma four_ten:
+  assumes "derivation op \<leadsto> Sts"
+  shows "derivation src_ext.derive (lmap grounding_of_state Sts)"
+sorry
+      
+  thm resolution_prover_rtc_deriv
+  
+  
+text {*
+The following corresponds to Lemma 4.11:
+*}
+  
+fun getN :: "'a state \<Rightarrow> 'a clause set" where
+  "getN (N,P,Q) = N"
+  
+fun getP :: "'a state \<Rightarrow> 'a clause set" where
+  "getP (N,P,Q) = P"
+  
+fun getQ :: "'a state \<Rightarrow> 'a clause set" where
+  "getQ (N,P,Q) = Q"
+  
+definition is_least :: "(nat \<Rightarrow> bool) \<Rightarrow> nat \<Rightarrow> bool" where
+  "is_least P n \<longleftrightarrow> P n \<and> (\<forall>n' < n. \<not>P n)"
+
+lemma in_lSup_in_nth:
+  assumes "C \<in> lSup Ns"
+  shows "\<exists>j. enat j < llength Ns \<and> C \<in> lnth Ns j"
+  using assms unfolding lSup_def by auto
+    
+lemma lSup_grounding_of_state_ground:
+  assumes "C \<in> lSup (lmap grounding_of_state Sts)"
+  shows "is_ground_cls C"
+proof -
+  from assms have "\<exists>j. enat j < llength (lmap grounding_of_state Sts) \<and> (C \<in> (lnth (lmap grounding_of_state Sts) j))"
+    using in_lSup_in_nth by metis
+  then obtain j where
+    "enat j < llength (lmap grounding_of_state Sts)"
+    "C \<in> lnth (lmap grounding_of_state Sts) j"
+    by blast
+  then have "C \<in> grounding_of_state (lnth Sts j)"
+    by auto
+  then show ?thesis unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def
+    by auto
+qed
+  
+lemma llimit_grounding_of_state_ground:
+  assumes "C \<in> llimit (lmap grounding_of_state Sts)"
+  shows "is_ground_cls C"
+proof -
+  from assms have "C \<in> lSup (lmap grounding_of_state Sts)" 
+    using llimit_subset_lSup[of "lmap grounding_of_state Sts"] by blast
+  then show ?thesis using lSup_grounding_of_state_ground by auto
+qed 
+ 
+lemma llimit_eventually_always:
+  assumes "C \<in> llimit Ns"
+  shows "\<exists>i. enat i < llength Ns \<and>(\<forall>j\<ge>i. enat j < llength Ns \<longrightarrow> C \<in> lnth Ns j)"
+proof -
+  have "\<exists>i. enat i < llength Ns \<and> C \<in> INTER {j. i \<le> j \<and> enat j < llength Ns} (lnth Ns)" using assms unfolding llimit_def by auto
+  then show ?thesis
+    by auto
+qed
+
+  
+lemma fair_imp_limit_minus_Rf_subset_ground_limit_state:
+  assumes
+    deriv: "derivation (op \<leadsto>) Sts" and
+    fair: "fair_state_seq Sts" and
+    ns: "Ns = lmap grounding_of_state Sts"
+  shows "llimit Ns - src.Rf (llimit Ns) \<subseteq> grounding_of_state (limit_state Sts)"
+proof
+  let ?Ns = "\<lambda>i. getN (lnth Sts i)"
+  let ?Ps = "\<lambda>i. getP (lnth Sts i)"
+  let ?Qs = "\<lambda>i. getQ (lnth Sts i)"
+  fix C
+  assume C_p: "C \<in> llimit Ns - src.Rf (llimit Ns)"
+  then have "is_ground_cls C" 
+    using ns using llimit_grounding_of_state_ground by auto
+  from C_p have no_taut: "\<not>(\<exists>A. Pos A \<in># C \<and> Neg A \<in># C)" 
+    using src.tautology_redundant by auto
+      
+  from deriv have four_ten: "derivation src_ext.derive Ns" 
+    using four_ten ns by auto
+   
+  obtain i where "enat i < llength Ns \<and> (\<forall>j. j \<ge> i \<longrightarrow> enat j < llength Ns \<longrightarrow> C \<in> lnth Ns j)"
+    using C_p llimit_eventually_always by fastforce
+  then have "C \<in> lnth Ns i" 
+    by auto
+  then obtain D \<sigma> where D_p: "D \<in> clss_of_state (lnth Sts i) \<and> D \<cdot> \<sigma> = C"
+    unfolding ns sorry
+  then have "D \<in> ?Ns i \<or> D \<in> ?Ps i \<or> D \<in> ?Qs i"
+    sorry
+  moreover
+  {
+    assume "D \<in> ?Ns i"
+    then obtain l where l_p: "is_least (\<lambda>l. D\<notin>?Ns l \<and> l\<ge>i) l"
+      sorry
+    then have D_in_out: "D \<in> ?Ns (l-1) \<and> D \<notin> ?Ns l"
+      sorry
+    have "lnth Sts (l-1) \<leadsto> lnth Sts l"
+      sorry
+    then have "\<exists>l D' \<tau>. l \<ge> i \<and> C = D' \<cdot> \<tau> \<and> D' \<in> (?Ps l \<union> ?Qs l)"
+    proof (induction rule: resolution_prover.cases)
+      case (tautology_deletion A D_twin N P Q)
+      then have "D_twin = D" 
+        using D_in_out by auto
+      then have "Pos (A \<cdot>a \<sigma>) \<in># C \<and> Neg (A \<cdot>a \<sigma>) \<in># C"
+        sorry
+      then have False 
+        using no_taut by metis
+      then show ?case
+        by blast
+    next
+      case (forward_subsumption P Q D_twin N)
+      then have twins: "D_twin = D" "?Ps (l - 1) = P" "?Ps l = P" "?Qs (l - 1) = Q" "?Qs l = Q" 
+        using D_in_out by auto
+      then obtain \<tau> D' where \<tau>_D'_p: "D' \<cdot> \<tau> \<subseteq># D \<and> D' \<in> P \<union> Q"
+        using forward_subsumption unfolding subsumes_def by auto
+      then have "D = D' \<cdot> \<tau> \<or> D' \<cdot> \<tau> \<subset># D"
+        sorry
+      then show ?case 
+      proof
+        assume "D = D' \<cdot> \<tau>"
+        then have "D' \<cdot> (\<tau> \<odot> \<sigma>) = C"
+          using D_p
+          by auto
+        then show ?case
+          using twins \<tau>_D'_p l_p unfolding is_least_def
+            by metis
+      next
+        assume "D' \<cdot> \<tau> \<subset># D"
+        then have "D' \<cdot> \<tau> \<cdot> \<sigma> \<subset># D \<cdot> \<sigma>"
+          sorry
+        then have D'_C: "D' \<cdot> \<tau> \<cdot> \<sigma> \<subset># C"
+          using D_p by auto
+        then have "(\<forall>I. I \<Turnstile> D' \<cdot> \<tau> \<cdot> \<sigma>) \<longrightarrow> (\<forall>I. I \<Turnstile> C)"
+          sorry
+        moreover
+        from D'_C have "C > D' \<cdot> \<tau> \<cdot> \<sigma>"
+          sorry
+        ultimately
+        have "C \<in> src.Rf (grounding_of_cls D')"
+          sorry (* I also need that "\<tau> \<cdot> \<sigma>" is ground *)
+        then have "C \<in> src.Rf (grounding_of_state (lnth Sts l))"
+          using \<tau>_D'_p twins src.Rf_mono sorry
+        then have "C \<in> src.Rf (lnth Ns l)"
+          using ns sorry
+        then have "C \<in> src.Rf (lSup Ns)" using  src.Rf_mono
+          sorry
+        then have "derivation src_ext.derive Ns" using four_ten src_ext.derivation_supremum_llimit_satisfiable(1)[of Ns]
+          by auto
+        then show ?case
+          sorry
+      qed
+    next
+      case (backward_subsumption_P N D_twin P Q)
+      then show ?case sorry
+    next
+      case (backward_subsumption_Q N D_twin P Q)
+      then show ?case sorry
+    next
+      case (forward_reduction P Q L \<sigma> D_twin N)
+      then show ?case sorry
+    next
+      case (backward_reduction_P N L \<sigma> D_twin P Q)
+      then show ?case sorry
+    next
+      case (backward_reduction_Q N L \<sigma> D_twin P Q)
+      then show ?case sorry
+    next
+      case (clause_processing N D_twin P Q)
+      then show ?case sorry
+    next
+      case (inference_computation N Q D_twin P)
+      then show ?case sorry
+    qed
+  }
+  moreover
+  {
+    assume "D \<in> ?Ps i"
+    have "\<exists>l D' \<tau>. l \<ge> i \<and> C = D' \<cdot> \<tau> \<and> D' \<in> ?Qs i"
+      sorry
+  }
+  moreover
+  {
+    assume "D \<in> ?Qs i"
+    have "\<exists>l D' \<tau>. l \<ge> i \<and> C = D' \<cdot> \<tau> \<and> D' \<in> ?Qs i"
+      sorry
+  }
+  ultimately
+  have "\<exists>l D' \<tau>. l \<ge> i \<and> C = D' \<cdot> \<tau> \<and> D' \<in> ?Qs i"
+    sorry
+      
+  show "C \<in> grounding_of_state (limit_state Sts)"
+    sorry
 qed
 
 text {*
