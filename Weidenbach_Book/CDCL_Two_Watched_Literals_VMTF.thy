@@ -1447,11 +1447,18 @@ definition vmtf_flush :: \<open>vmtf_imp_remove \<Rightarrow> vmtf_imp_remove nr
     RETURN ((A, m, lst, next_search), [])
   })\<close>
 
+lemma vmtf_imp_swap_removed:
+  assumes
+    vmtf: \<open>((A, m, lst, next_search), removed) \<in> vmtf_imp M\<close> and
+    mset: \<open>mset removed = mset removed'\<close>
+  shows \<open>((A, m, lst, next_search), removed') \<in> vmtf_imp M\<close>
+  using assms unfolding vmtf_imp_def by (fastforce dest: mset_eq_setD)
+
 lemma vmtf_imp_change_removed_order:
   assumes
     vmtf: \<open>((A, m, lst, next_search), removed) \<in> vmtf_imp M\<close> and
     mset: \<open>mset removed = mset removed'\<close>
-  shows \<open>vmtf_flush ((A, m, lst, next_search), removed') \<le> RES (vmtf_imp M)\<close>
+  shows \<open>vmtf_flush ((A, m, lst, next_search), removed') \<le> \<Down> Id (RES (vmtf_imp M))\<close>
 proof -
   obtain xs' ys' where
     l_vmtf: \<open>l_vmtf (ys' @ xs') m A\<close> and
@@ -1461,122 +1468,79 @@ proof -
     notin: \<open>l_vmtf_notin (ys' @ xs') m A\<close> and
     atm_A: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length A\<close>
     using vmtf unfolding vmtf_imp_def by fast
-  moreover have \<open>set removed = set removed'\<close>
+  have \<open>set removed = set removed'\<close>
     using mset by (metis set_mset_mset)
-    note H =  WHILET_rule[where R = \<open>measure (\<lambda>(i, (A, m, lst, next_search)). Suc (length removed) - i)\<close> and
-      I = \<open>\<lambda>(i, (A, m, lst, next_search)). i \<le> length removed \<and> 
-            ((A, m, lst, next_search), drop i removed) \<in> vmtf_imp M\<close>]
-  have \<open>do {
+  note H =  WHILET_rule[where R = \<open>measure (\<lambda>(i, (A, m, lst, next_search)). Suc (length removed') - i)\<close> and
+      I = \<open>\<lambda>(i, (A, m, lst, next_search)). i \<le> length removed' \<and> 
+            ((A, m, lst, next_search), drop i removed') \<in> vmtf_imp M\<close>]
+  have H': \<open>((A', m', lst', next_search'), drop j removed') \<in> vmtf_imp M\<close>
+    if 
+      s: \<open>case s of (i, A, m, lst, next_search) \<Rightarrow> i \<le> length removed' \<and> 
+            ((A, m, lst, next_search), drop i removed') \<in> vmtf_imp M\<close> and
+      i: \<open>case s of (i, A, m, lst, next_search) \<Rightarrow> i < length removed'\<close> and
+      \<open>s = (i, b)\<close> and
+      \<open>b = (A, ba)\<close> and
+      \<open>ba = (m, bb)\<close> and
+      \<open>bb = (lst, next_search)\<close> and
+      i_le_rem: \<open>i < length removed'\<close> and
+      \<open>x2b = (lst', next_search')\<close> and
+      \<open>x2a = (m', x2b)\<close> and
+      \<open>x2 = (A', x2a)\<close> and
+      \<open>(i + 1, vmtf_en_dequeue (removed' ! i) (A, m, lst, next_search)) = (j, x2)\<close>
+    for s i b A ba m bb lst next_search  j x2 A' x2a m' x2b lst' next_search'
+  proof -
+    have l_vmtf: \<open>((A, m, lst, next_search), drop i removed') \<in> vmtf_imp M\<close>
+      using s that by auto
+    have \<open>removed' ! i \<in> set removed'\<close>
+      using i_le_rem by auto
+    then have L: \<open>removed' ! i \<in> atms_of N\<^sub>1\<close>
+      using vmtf mset \<open>set removed = set removed'\<close> unfolding vmtf_imp_def abs_l_vmtf_remove_inv_def
+      by auto
+    have mset: \<open>mset (drop (Suc i) removed') \<subseteq># remove1_mset (removed' ! i) (mset (drop i removed'))\<close>
+      by (cases \<open>drop i removed'\<close>) (auto simp: drop_eq_ConsD nth_via_drop)
+    have \<open>(vmtf_en_dequeue (removed' ! i) (A, m, lst, next_search), drop (Suc i) removed') \<in> vmtf_imp M\<close>
+      using abs_l_vmtf_bump_vmtf_en_dequeue[OF l_vmtf L mset] .
+    then show ?thesis
+      using that by auto
+  qed
+  have H: \<open>do {
       WHILE\<^sub>T
-        (\<lambda>(i, (A, m, lst, next_search)). i < length removed)
+        (\<lambda>(i, (A, m, lst, next_search)). i < length removed')
         (\<lambda>(i, (A, m, lst, next_search)). do {
-          ASSERT(i < length removed);
-          RETURN (i+1, vmtf_en_dequeue (removed!i) (A, m, lst, next_search))})
+          ASSERT(i < length removed');
+          RETURN (i+1, vmtf_en_dequeue (removed'!i) (A, m, lst, next_search))})
         (0, (A, m, lst, next_search))
-    }  \<le> (RES ({(0, a)|a. (a, []) \<in> vmtf_imp M}))\<close>
+    } \<le> (RES ({(length removed', a)|a. (a, []) \<in> vmtf_imp M}))\<close>
     unfolding vmtf_flush_def
     apply (refine_vcg H)
     subgoal by auto
     subgoal using vmtf by auto
-    subgoal using vmtf by auto
+    subgoal using vmtf mset  by (auto intro: vmtf_imp_swap_removed)
     subgoal by simp
     subgoal by auto
-    subgoal apply auto sorry
+    subgoal by (rule H'; assumption)
     subgoal by auto
-    subgoal apply auto sorry
+    subgoal by auto
     done
-
-    thm H
+  have RES: \<open>RES (vmtf_imp M) = do {
+        removed' \<leftarrow> SPEC (\<lambda>removed'. mset removed' = mset removed'); 
+        a \<leftarrow> RES (vmtf_imp M); 
+        RETURN a}\<close>
+    by auto
+  have K: \<open>SPEC (\<lambda>uu. \<exists>a. uu = (length removed', a) \<and> (a, []) \<in> vmtf_imp M) \<le> 
+      \<Down> {(a', a). snd a' = fst a \<and> fst a'= length removed' \<and> snd a = []} (RES (vmtf_imp M))\<close>
+    by (force intro!: RES_refine)
+  show ?thesis
+    unfolding vmtf_flush_def
+    apply (subst RES)
+    apply clarify
+    apply (refine_rcg H[THEN order_trans] K)
+    subgoal by auto
+    subgoal for r r' a a' x1 x2 x1a x2a x1b x2b x1c x2c
+      by (cases a') auto
+    done
 qed
 
-
-lemma
-  assumes
-    \<open>(A', m', lst', next_search') = vmtf_add_one (hd removed) (A, m, lst, next_search)\<close> and
-    vmtf: \<open>((A, m, lst, next_search, removed), ((xs, ys), zs)) \<in> vmtf_imp M\<close> and
-    removed: \<open>removed \<noteq> []\<close>
-  shows \<open>((A', m', lst', next_searched', tl removed),
-    ((xs, insert (hd removed) ys), zs - {hd removed})) \<in> vmtf_imp M\<close>
-proof -
-  obtain xs' ys' where
-    xs: \<open>xs = set xs'\<close> and
-    ys: \<open>ys = set ys'\<close> and
-    zs: \<open>zs = set removed\<close> and
-    l_vmtf: \<open>l_vmtf (rev ys' @ rev xs') m A\<close> and
-    lst: \<open>lst = option_last (xs' @ ys')\<close> and
-    next_search: \<open>next_search = option_last xs'\<close> and
-    abs_vmtf: \<open>abs_l_vmtf_remove_inv M ((xs, ys), zs)\<close> and
-    notin: \<open>l_vmtf_notin (rev ys' @ rev xs') m A\<close> and
-    atm_A: \<open>\<forall>L\<in>#N\<^sub>1. atm_of L < length A\<close>
-    using vmtf unfolding vmtf_imp_def by fast
-
-  show ?thesis
-    unfolding vmtf_imp_def
-    apply clarify
-    apply (rule exI[of _ xs'])
-    apply (rule exI[of _ \<open>ys' @ [hd removed]\<close>])
-    apply (intro conjI)
-    subgoal using xs .
-    subgoal using ys by auto
-    subgoal using zs
-      using removed apply (cases removed)
-      apply auto
-oops
-
-
-lemma
-  \<open>(vmtf_flush, RETURN o abs_l_vmtf_bump_flush) \<in>
-    [\<lambda>((xs, ys), zs). True]\<^sub>f
-     vmtf_imp M \<rightarrow> \<langle>vmtf_imp M\<rangle> nres_rel\<close>
-proof -
-  have H: \<open>WHILE\<^sub>T (\<lambda>(i, A, m, lst, next_search). i < length removed)
-     (\<lambda>(i, A, m, lst, next_search).
-         ASSERT (i < length removed) \<bind>
-         (\<lambda>_. RETURN
-               (Suc i, vmtf_add_one (removed ! i) (A, m, lst, next_search))))
-     (0, A, m, lst, next_search)
-    \<le> SPEC (\<lambda>x. (case x of
-                 (uu_, A, m, lst, next_search) \<Rightarrow>
-                   RETURN (A, m, lst, next_search, []))
-                \<le> SPEC (\<lambda>c. (c, abs_l_vmtf_bump_flush ((xs, ys), zs))
-                            \<in> vmtf_imp M))\<close>
-    if
-      vmtf: \<open>((A, m, lst, next_search, removed), (xs, ys), zs) \<in> vmtf_imp M\<close> and
-      removed: \<open>removed' \<in> {removed'. mset removed' = mset removed}\<close>
-    for A m lst next_search removed xs ys zs removed'
-  proof -
-    have [simp]: \<open>length removed' = length removed\<close>
-      using removed by (metis (mono_tags, lifting) mem_Collect_eq size_mset)
-    have zs_removed: \<open>zs = set removed\<close>
-      using vmtf unfolding vmtf_imp_def by fast
-    have set_removed: \<open>set removed = set removed'\<close>
-      using removed by (blast dest: mset_eq_setD)
-    show ?thesis
-      unfolding vmtf_flush_def abs_l_vmtf_bump_flush_def
-      apply (refine_vcg
-        WHILET_rule[where R=\<open>measure (\<lambda>(i, _). Suc (length removed') - i)\<close> and
-            I = \<open>\<lambda>(i, A, m, lst, next_search). i \<le> length removed' \<and>
-              ((A, m, lst, next_search, drop i removed'),
-                (xs, ys \<union> set (take i removed')), set (drop i removed')) \<in>
-                  vmtf_imp M\<close>])
-      subgoal by auto -- \<open>Termination\<close>
-      subgoal by auto -- \<open>Initial invariant\<close>
-      subgoal by (rule vmtf_imp_change_removed_order) (use vmtf removed in auto)
-      subgoal by fast -- \<open>Loop assertion\<close>
-      subgoal by auto
-      subgoal apply auto sorry
-      subgoal by auto
-      subgoal by (auto simp: zs_removed set_removed)
-      done
-  qed
-  show ?thesis
-    unfolding vmtf_flush_def abs_l_vmtf_bump_flush_def
-    apply (intro frefI nres_relI)
-    apply clarify
-    apply simp
-    apply (refine_vcg H)
-    by assumption
-  oops
 end
 
 end
