@@ -1541,6 +1541,21 @@ proof -
     done
 qed
 
+
+definition vmtf_find_next_undef :: \<open>vmtf_imp_remove \<Rightarrow> _ \<Rightarrow> nat option nres\<close> where
+\<open>vmtf_find_next_undef \<equiv> (\<lambda>((A, m, lst, next_search), removed) M. do {
+    WHILE\<^sub>T
+      (\<lambda>next_search. next_search \<noteq> None)
+      (\<lambda>next_search. do {
+         ASSERT(next_search \<noteq> None);
+         let n = the next_search;
+         if undefined_lit M (Pos n)
+         then RETURN (Some n)
+         else RETURN (get_next (A!n))
+      })
+      next_search
+  })\<close>
+
 end
 
 end
