@@ -1188,7 +1188,7 @@ proof clarify
     by (auto simp add: vmtf_enqueue_def split: option.splits)
   have abs': \<open>abs_l_vmtf_remove_inv M ((set (L # ys' @ xs'), set []), set removed')\<close>
     using abs_l removed unfolding abs_l_vmtf_remove_inv_def
-    by (auto 5 5 dest: mset_subset_eqD in_diffD)
+    by (auto 5 5 dest: in_diffD)
   have [simp]: \<open>length A' = length A\<close>  \<open>length Ad = length A\<close>
     using dequeue de unfolding vmtf_en_dequeue_def comp_def vmtf_dequeue_def
     by (auto simp add: vmtf_enqueue_def split: option.splits)
