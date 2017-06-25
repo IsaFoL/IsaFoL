@@ -1528,8 +1528,7 @@ proof -
     done
 qed
 
-
-definition vmtf_find_next_undef :: \<open>vmtf_imp_remove \<Rightarrow> _ \<Rightarrow> nat option nres\<close> where
+definition vmtf_find_next_undef :: \<open>vmtf_imp_remove \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> nat option nres\<close> where
 \<open>vmtf_find_next_undef \<equiv> (\<lambda>((A, m, lst, next_search), removed) M. do {
     WHILE\<^sub>T
       (\<lambda>next_search. next_search \<noteq> None)
@@ -1539,9 +1538,88 @@ definition vmtf_find_next_undef :: \<open>vmtf_imp_remove \<Rightarrow> _ \<Righ
          if undefined_lit M (Pos n)
          then RETURN (Some n)
          else RETURN (get_next (A!n))
-      })
+        }
+      )
       next_search
   })\<close>
+
+lemma wf_vmtf_get_next:
+  assumes vmtf: \<open>((A, m, lst, next_search), removed) \<in> vmtf_imp M\<close>
+  shows \<open>wf {(get_next (A ! the a), a) |a. a \<noteq> None \<and> the a \<in> atms_of N\<^sub>1}\<close> (is \<open>wf ?R\<close>)
+proof (rule ccontr)
+  assume \<open>\<not> ?thesis\<close>
+  then obtain f where
+    f: \<open>(f (Suc i), f i) \<in> ?R\<close> for i
+    unfolding wf_iff_no_infinite_down_chain by blast
+
+  obtain xs' ys' where
+    l_vmtf: \<open>l_vmtf (ys' @ xs') m A\<close> and
+    lst: \<open>lst = option_hd (ys' @ xs')\<close> and
+    next_search: \<open>next_search = option_hd xs'\<close> and
+    abs_vmtf: \<open>abs_l_vmtf_remove_inv M ((set xs', set ys'), set removed)\<close> and
+    notin: \<open>l_vmtf_notin (ys' @ xs') m A\<close> and
+    atm_A: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length A\<close>
+    using vmtf unfolding vmtf_imp_def by fast
+  let ?f0 = \<open>the (f 0)\<close>
+  have f_None: \<open>f i \<noteq> None\<close> for i
+    using f[of i] by fast
+  have f_Suc : \<open>f (Suc n) = get_next (A ! the (f n))\<close> for n
+    using f[of n] by auto
+  have f0_length: \<open>?f0 < length A\<close>
+    using f[of 0] atm_A
+    by auto
+  have \<open>?f0 \<in> set (ys' @ xs')\<close>
+    apply (rule ccontr)
+    using notin f_Suc[of 0] f0_length unfolding l_vmtf_notin_def
+    by (auto simp: f_None)
+  then obtain i0 where
+    i0: \<open>(ys' @ xs') ! i0 = ?f0\<close> \<open>i0 < length (ys' @ xs')\<close>
+    by (meson in_set_conv_nth)
+  define zs where \<open>zs = ys' @ xs'\<close>
+  have H: \<open>ys' @ xs' = take m (ys' @ xs') @ [(ys' @ xs') ! m, (ys' @ xs') ! (m+1)] @
+     drop (m+2) (ys' @ xs')\<close>
+    if \<open>m+1 < length (ys' @ xs')\<close>
+    for m
+    using that
+    unfolding zs_def[symmetric]
+    apply -
+    apply (subst id_take_nth_drop[of m])
+    by (auto simp: Cons_nth_drop_Suc simp del: append_take_drop_id)
+
+  have \<open>the (f n) = (ys' @ xs') ! (i0 + n) \<and> i0 + n < length (ys' @ xs')\<close> for n
+  proof (induction n)
+    case 0
+    then show ?case using i0 by simp
+  next
+    case (Suc n')
+    have i0_le:  \<open>i0 + n' + 1 < length (ys' @ xs')\<close>
+    proof (rule ccontr)
+      assume \<open>\<not> ?thesis\<close>
+      then have \<open>i0 + n' + 1 = length (ys' @ xs')\<close>
+        using Suc by auto
+      then have \<open>ys' @ xs' = butlast (ys' @ xs') @ [the (f n')]\<close>
+        using Suc by (metis add_diff_cancel_right' append_butlast_last_id length_0_conv
+            length_butlast less_one not_add_less2 nth_append_length)
+      then show False
+        using l_vmtf_last_next[of \<open>butlast (ys' @ xs')\<close> \<open>the (f n')\<close> m A] l_vmtf
+         f_Suc[of n'] by (auto simp: f_None)
+    qed
+    have get_next: \<open>get_next (A ! ((ys' @ xs') ! (i0 + n'))) = Some ((ys' @ xs') ! (i0 + n' + 1))\<close>
+      apply(rule l_vmtf_last_mid_get_next[of \<open>take (i0 + n') (ys' @ xs')\<close>
+        \<open>(ys' @ xs') ! (i0 + n')\<close>
+        \<open>(ys' @ xs') ! ((i0 + n') + 1)\<close>
+        \<open>drop ((i0 + n') + 2) (ys' @ xs')\<close>
+        m A])
+      apply (subst H[symmetric])
+      subgoal using i0_le .
+      subgoal using l_vmtf by simp
+      done
+    then show ?case
+      using f_Suc[of n'] Suc i0_le by auto
+  qed
+  then show False
+    by blast
+qed
 
 end
 
