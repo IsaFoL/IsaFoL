@@ -486,16 +486,13 @@ next
     by (cases \<open>xs ! b\<close>) (auto simp: eq_commute[of \<open>xs ! b\<close>])
 qed
 
-definition none_or_notin_list where
-\<open>none_or_notin_list m l \<equiv> m = None \<or> the m \<notin> set l\<close>
-
 definition l_vmtf_notin where
-  \<open>l_vmtf_notin l m xs \<longleftrightarrow> (\<forall>i<length xs. i\<notin>set l \<longrightarrow> (none_or_notin_list (get_prev (xs ! i)) l \<and>
-      none_or_notin_list (get_next (xs ! i)) l))\<close>
+  \<open>l_vmtf_notin l m xs \<longleftrightarrow> (\<forall>i<length xs. i\<notin>set l \<longrightarrow> (get_prev (xs ! i) = None \<and>
+      get_next (xs ! i) = None))\<close>
 
 lemma l_vmtf_notinI:
-  \<open>(\<And>i. i <length xs \<Longrightarrow> i\<notin>set l \<Longrightarrow> (none_or_notin_list (get_prev (xs ! i)) l \<and>
-      none_or_notin_list (get_next (xs ! i)) l)) \<Longrightarrow> l_vmtf_notin l m xs\<close>
+  \<open>(\<And>i. i <length xs \<Longrightarrow> i\<notin>set l \<Longrightarrow> get_prev (xs ! i) = None \<and>
+      get_next (xs ! i) = None) \<Longrightarrow> l_vmtf_notin l m xs\<close>
   by (auto simp: l_vmtf_notin_def)
 
 lemma stamp_l_vmtf_dequeue:
@@ -556,13 +553,13 @@ proof (cases \<open>x \<in> set l\<close>)
   have simp_is_stupid[simp]: \<open>a \<in> set l \<Longrightarrow> x \<notin> set l \<Longrightarrow> a \<noteq> x\<close> \<open>a \<in> set l \<Longrightarrow> x \<notin> set l \<Longrightarrow> x \<noteq> a\<close>  for a x
     by auto
   have
-      \<open>none_or_notin_list (get_prev (A ! x)) l\<close> and
-      \<open>none_or_notin_list (get_next (A ! x)) l\<close>
+      \<open>get_prev (A ! x) = None \<close> and
+      \<open>get_next (A ! x) = None\<close>
     using notin False valid unfolding l_vmtf_notin_def by auto
   then have l_vmtf_eq: \<open>(l_vmtf_dequeue x A) ! a = A ! a\<close> if \<open>a \<in> set l\<close> for a
     using that False valid unfolding l_vmtf_notin_def l_vmtf_dequeue_def
     by (cases \<open>A ! (the (get_prev (A ! x)))\<close>; cases \<open>A ! (the (get_next (A ! x)))\<close>)
-      (auto simp: Let_def none_or_notin_list_def split: option.splits)
+      (auto simp: Let_def split: option.splits)
   show ?thesis
     unfolding H
     apply (rule l_vmtf_eq_iffI[OF _ _ l_vmtf])
@@ -719,10 +716,9 @@ next
   qed
 qed
 
-lemma
-   none_or_notin_list_None[simp]: \<open>none_or_notin_list None l\<close> and
-   none_or_notin_list_Some[simp]: \<open>none_or_notin_list (Some a) l \<longleftrightarrow> a \<notin> set l\<close>
-  by (auto simp: none_or_notin_list_def)
+lemma l_vmtf_hd_next:
+   \<open>l_vmtf (x # a # list) m A \<Longrightarrow> get_next (A ! x) = Some a\<close>
+  by (auto 5 5 elim: l_vmtfE)
 
 lemma l_vmtf_notin_dequeue:
   assumes l_vmtf: \<open>l_vmtf l m A\<close> and notin: \<open>l_vmtf_notin l m A\<close> and valid: \<open>x < length A\<close>
@@ -734,8 +730,8 @@ proof (cases \<open>x \<in> set l\<close>)
   have simp_is_stupid[simp]: \<open>a \<in> set l \<Longrightarrow> x \<notin> set l \<Longrightarrow> a \<noteq> x\<close> \<open>a \<in> set l \<Longrightarrow> x \<notin> set l \<Longrightarrow> x \<noteq> a\<close>  for a x
     by auto
   have
-    \<open>none_or_notin_list (get_prev (A ! x)) l\<close> and
-    \<open>none_or_notin_list (get_next (A ! x)) l\<close>
+    \<open>get_prev (A ! x) = None\<close> and
+    \<open>get_next (A ! x) = None\<close>
     using notin False valid unfolding l_vmtf_notin_def by auto
   show ?thesis
     using notin valid False unfolding l_vmtf_notin_def
@@ -760,12 +756,12 @@ next
     then show ?thesis
       using notin l_vmtf unfolding l apply (cases \<open>A ! x\<close>)
         by (auto simp: l_vmtf_notin_def l_vmtf_dequeue_def Let_def l_vmtf_single_iff
-          none_or_notin_list_def split: option.splits)
+           split: option.splits)
   next
     case xs_empty_zs_nempty note xs = this(1) and zs = this(1)
     have prev_next: \<open>get_prev (A ! x) = None\<close> \<open>get_next (A ! x) = option_hd zs\<close>
       using l_vmtf unfolding l xs zs
-      by (cases zs; auto 5 5 simp: option_hd_def elim: l_vmtfE; fail)+
+      by (cases zs; auto simp: option_hd_def elim: l_vmtfE dest: l_vmtf_hd_next)+
     show ?thesis
       apply (rule l_vmtf_notinI)
       apply (case_tac \<open>i = x\<close>)
@@ -773,13 +769,11 @@ next
         using l_vmtf prev_next unfolding r_l unfolding l xs zs
         by (cases zs) (auto simp: l_vmtf_dequeue_def Let_def
             l_vmtf_notin_def l_vmtf_single_iff
-            split: option.splits
-            simp del: none_or_notin_list_Some)
+            split: option.splits)
       subgoal
         using l_vmtf notin prev_next unfolding r_l unfolding l xs zs
         by (auto simp: l_vmtf_dequeue_def Let_def
-            l_vmtf_notin_def l_vmtf_single_iff none_or_notin_list_def
-            simp del: none_or_notin_list_None none_or_notin_list_Some
+            l_vmtf_notin_def l_vmtf_single_iff
             split: option.splits
             intro: l_vmtf.intros l_vmtf_stamp_increase dest: l_vmtf_skip_fst)
        done
@@ -791,7 +785,6 @@ next
     then show ?thesis
       using l_vmtf notin unfolding r_l unfolding l xs zs
       by (auto simp: l_vmtf_dequeue_def Let_def l_vmtf_append_decomp l_vmtf_notin_def
-          none_or_notin_list_def
           split: option.splits
           intro: l_vmtf.intros)
   next
@@ -809,7 +802,7 @@ next
       by fast+
     then show ?thesis
       using notin x_zs' x'_zs' y'_xs' unfolding l xs zs
-      by (auto simp: l_vmtf_notin_def l_vmtf_dequeue_def none_or_notin_list_def)
+      by (auto simp: l_vmtf_notin_def l_vmtf_dequeue_def)
   qed
 qed
 
@@ -1134,11 +1127,6 @@ proof -
     by blast
 qed
 
-lemma none_or_notin_list_Cons_iff: \<open>none_or_notin_list b (L # xs) \<longleftrightarrow>
-  none_or_notin_list b xs \<and> (b = None \<or> the b \<noteq> L)\<close>
-  unfolding none_or_notin_list_def
-  by auto
-
 lemma l_vmtf_get_prev_not_itself:
   \<open>l_vmtf xs m A \<Longrightarrow> L \<in> set xs \<Longrightarrow> L < length A \<Longrightarrow> get_prev (A ! L) \<noteq> Some L\<close>
   apply (induction rule: l_vmtf.induct)
@@ -1200,7 +1188,6 @@ proof clarify
     by (auto simp add: vmtf_enqueue_def split: option.splits)
   have Ad: \<open>Ad = l_vmtf_dequeue L A\<close>
     using de unfolding vmtf_dequeue_def by auto
-  note [simp] = none_or_notin_list_Cons_iff[of _ _ \<open>_ @ _\<close>, simplified]
   have \<open>get_prev (Ad ! i) \<noteq> Some L\<close>  (is ?prev) and
     \<open>get_next (Ad ! i) \<noteq> Some L\<close> (is ?next)
     if
@@ -1214,15 +1201,15 @@ proof clarify
       using i_ys' i_xs' abs_l abs_inv i_L unfolding abs_l_vmtf_remove_inv_def
       by auto
     then have
-      \<open>none_or_notin_list (get_next (A ! i)) (ys @ xs)\<close>
-      \<open>none_or_notin_list (get_prev (A ! i)) (ys @ xs)\<close>
+      \<open>get_next (A ! i) = None\<close>
+      \<open>get_prev (A ! i) = None\<close>
       using notin i_le_A unfolding Ad l_vmtf_notin_def l_vmtf_dequeue_def
       by (auto simp: Let_def split: option.splits)
     moreover have \<open>get_prev (A ! L) \<noteq> Some L\<close> and \<open>get_next (A ! L) \<noteq> Some L\<close>
       using l_vmtf_get_prev_not_itself[OF l_vmtf, of L] L_xs_ys atm_L_A
       l_vmtf_get_next_not_itself[OF l_vmtf, of L] by auto
     ultimately show ?next and ?prev
-      using i_le_A L_xs_ys unfolding Ad none_or_notin_list_def l_vmtf_dequeue_def l_vmtf_notin_def
+      using i_le_A L_xs_ys unfolding Ad l_vmtf_dequeue_def l_vmtf_notin_def
       by (auto simp: Let_def split: option.splits)
   qed
   then have l_vmtf_notin': \<open>l_vmtf_notin (L # ys' @ xs') m' A'\<close>
