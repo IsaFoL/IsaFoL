@@ -1535,7 +1535,7 @@ proof -
     done
 qed
 
-definition vmtf_find_next_undef :: \<open>vmtf_imp_remove \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> nat option nres\<close> where
+definition vmtf_find_next_undef :: \<open>vmtf_imp_remove \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat option) nres\<close> where
 \<open>vmtf_find_next_undef \<equiv> (\<lambda>((A, m, lst, next_search), removed) M. do {
     WHILE\<^sub>T
       (\<lambda>next_search. next_search \<noteq> None \<and> defined_lit M (Pos (the next_search)))
@@ -1628,7 +1628,6 @@ proof (rule ccontr)
     by blast
 qed
 
-
 lemma wf_vmtf_next_search_take_next:
   assumes
     vmtf: \<open>((A, m, lst, next_search), removed) \<in> vmtf_imp M\<close> and
@@ -1678,7 +1677,7 @@ lemma vmtf_find_next_undef_ref:
   assumes
     vmtf: \<open>((A, m, lst, next_search), removed) \<in> vmtf_imp M\<close>
   shows \<open>vmtf_find_next_undef ((A, m, lst, next_search), removed) M
-     \<le> \<Down> Id (SPEC (\<lambda>L.
+     \<le> \<Down> Id (SPEC (\<lambda>L. ((A, m, lst, L), removed) \<in> vmtf_imp M \<and>
         (L = None \<longrightarrow> (\<forall>L\<in>#N\<^sub>1. defined_lit M L)) \<and>
         (L \<noteq> None \<longrightarrow> undefined_lit M (Pos (the L)))))\<close>
 proof -
@@ -1699,7 +1698,7 @@ proof -
         defined_lit_map lits_of_def)
   have next_search_N\<^sub>1:
     \<open>((A', m', lst', Some y), remove) \<in> vmtf_imp M \<Longrightarrow> y \<in> atms_of N\<^sub>1\<close>
-    for x A' m' lst' remove y
+    for A' m' lst' remove y
     by (auto simp: vmtf_imp_def abs_l_vmtf_remove_inv_def in_N\<^sub>1_atm_of_in_atms_of_iff
         defined_lit_map lits_of_def)
 
