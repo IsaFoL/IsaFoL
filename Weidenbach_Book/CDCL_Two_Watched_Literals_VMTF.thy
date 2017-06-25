@@ -427,6 +427,12 @@ lemma l_vmtf_last_mid_get_next:
   by (metis list.sel(1) list.sel(3) list.set_intros(1) nth_list_update_eq nth_list_update_neq
       self_append_conv2 tl_append2 l_vmtf_atm.sel(3) l_vmtf_le_length)
 
+lemma l_vmtf_last_mid_get_next_option_hd:
+  \<open>l_vmtf (xs @ x # zs) m A \<Longrightarrow> get_next (A ! x) = option_hd zs\<close>
+  using l_vmtf_last_mid_get_next[of xs x \<open>hd zs\<close> \<open>tl zs\<close> m A]
+  l_vmtf_last_next[of xs x]
+  by (cases zs) auto
+
 lemma l_vmtf_last_mid_get_prev:
   assumes \<open>l_vmtf (xs @ [x, y] @ zs) m A\<close>
   shows \<open>get_prev (A ! y) = Some x\<close>
@@ -1619,6 +1625,53 @@ proof (rule ccontr)
   qed
   then show False
     by blast
+qed
+
+
+lemma wf_vmtf_next_search_take_next:
+  assumes
+    vmtf: \<open>((A, m, lst, next_search), removed) \<in> vmtf_imp M\<close> and
+    n: \<open>next_search \<noteq> None\<close> and
+    def_n: \<open>defined_lit M (Pos (the next_search))\<close>
+  shows \<open>((A, m, lst, get_next (A!the next_search)), removed) \<in> vmtf_imp M\<close>
+  unfolding vmtf_imp_def
+proof clarify
+  obtain xs' ys' where
+    l_vmtf: \<open>l_vmtf (ys' @ xs') m A\<close> and
+    lst: \<open>lst = option_hd (ys' @ xs')\<close> and
+    next_search: \<open>next_search = option_hd xs'\<close> and
+    abs_vmtf: \<open>abs_l_vmtf_remove_inv M ((set xs', set ys'), set removed)\<close> and
+    notin: \<open>l_vmtf_notin (ys' @ xs') m A\<close> and
+    atm_A: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length A\<close>
+    using vmtf unfolding vmtf_imp_def by fast
+  let ?xs' = \<open>tl xs'\<close>
+  let ?ys' = \<open>ys' @ [hd xs']\<close>
+  have [simp]: \<open>xs' \<noteq> []\<close>
+    using next_search n by auto
+  have \<open>l_vmtf (?ys' @ ?xs') m A\<close>
+    using l_vmtf by (cases xs') auto
+  moreover have \<open>lst = option_hd (?ys' @ ?xs')\<close>
+    using lst by auto
+  moreover have \<open>get_next (A ! the next_search) = option_hd ?xs'\<close>
+    using next_search n l_vmtf
+    by (cases xs') (auto dest: l_vmtf_last_mid_get_next_option_hd)
+  moreover {
+    have [dest]: \<open>defined_lit M (Pos a) \<Longrightarrow> a \<in> atm_of ` lits_of_l M\<close> for a
+      by (auto simp: defined_lit_map lits_of_def)
+
+    have \<open>abs_l_vmtf_remove_inv M ((set ?xs', set ?ys'), set removed)\<close>
+      using abs_vmtf def_n next_search n l_vmtf_distinct[OF l_vmtf]
+      unfolding abs_l_vmtf_remove_inv_def
+      by (cases xs') auto }
+  moreover have \<open>l_vmtf_notin (?ys' @ ?xs') m A\<close>
+    using notin by auto
+  ultimately show \<open> \<exists>xs' ys'. l_vmtf (ys' @ xs') m A \<and>
+          lst = option_hd (ys' @ xs') \<and>
+          get_next (A ! the next_search) = option_hd xs' \<and>
+          abs_l_vmtf_remove_inv M ((set xs', set ys'), set removed) \<and>
+          l_vmtf_notin (ys' @ xs') m A \<and>
+         (\<forall>L\<in>atms_of N\<^sub>1. L < length A)\<close>
+    using atm_A by blast
 qed
 
 end
