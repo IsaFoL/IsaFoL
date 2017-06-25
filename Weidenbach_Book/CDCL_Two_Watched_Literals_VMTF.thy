@@ -13,10 +13,11 @@ subsubsection \<open>Variants around head and last\<close>
 definition option_hd :: \<open>'a list \<Rightarrow> 'a option\<close> where
   \<open>option_hd xs = (if xs = [] then None else Some (hd xs))\<close>
 
-lemma option_hd_None_iff[iff]: \<open>option_hd zs = None \<longleftrightarrow> zs = []\<close>
+lemma option_hd_None_iff[iff]: \<open>option_hd zs = None \<longleftrightarrow> zs = []\<close>  \<open>None = option_hd zs \<longleftrightarrow> zs = []\<close>
   by (auto simp: option_hd_def)
 
 lemma option_hd_Some_iff[iff]: \<open>option_hd zs = Some y \<longleftrightarrow> (zs \<noteq> [] \<and> y = hd zs)\<close>
+  \<open>Some y = option_hd zs \<longleftrightarrow> (zs \<noteq> [] \<and> y = hd zs)\<close>
   by (auto simp: option_hd_def)
 
 lemma option_hd_Some_hd[simp]: \<open>zs \<noteq> [] \<Longrightarrow> option_hd zs = Some (hd zs)\<close>
@@ -1537,7 +1538,7 @@ qed
 definition vmtf_find_next_undef :: \<open>vmtf_imp_remove \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> nat option nres\<close> where
 \<open>vmtf_find_next_undef \<equiv> (\<lambda>((A, m, lst, next_search), removed) M. do {
     WHILE\<^sub>T
-      (\<lambda>next_search. next_search \<noteq> None)
+      (\<lambda>next_search. next_search \<noteq> None \<and> defined_lit M (Pos (the next_search)))
       (\<lambda>next_search. do {
          ASSERT(next_search \<noteq> None);
          let n = the next_search;
@@ -1658,20 +1659,66 @@ proof clarify
   moreover {
     have [dest]: \<open>defined_lit M (Pos a) \<Longrightarrow> a \<in> atm_of ` lits_of_l M\<close> for a
       by (auto simp: defined_lit_map lits_of_def)
-
     have \<open>abs_l_vmtf_remove_inv M ((set ?xs', set ?ys'), set removed)\<close>
       using abs_vmtf def_n next_search n l_vmtf_distinct[OF l_vmtf]
       unfolding abs_l_vmtf_remove_inv_def
       by (cases xs') auto }
   moreover have \<open>l_vmtf_notin (?ys' @ ?xs') m A\<close>
     using notin by auto
-  ultimately show \<open> \<exists>xs' ys'. l_vmtf (ys' @ xs') m A \<and>
+  ultimately show \<open>\<exists>xs' ys'. l_vmtf (ys' @ xs') m A \<and>
           lst = option_hd (ys' @ xs') \<and>
           get_next (A ! the next_search) = option_hd xs' \<and>
           abs_l_vmtf_remove_inv M ((set xs', set ys'), set removed) \<and>
           l_vmtf_notin (ys' @ xs') m A \<and>
          (\<forall>L\<in>atms_of N\<^sub>1. L < length A)\<close>
     using atm_A by blast
+qed
+
+lemma vmtf_find_next_undef_ref:
+  assumes
+    vmtf: \<open>((A, m, lst, next_search), removed) \<in> vmtf_imp M\<close>
+  shows \<open>vmtf_find_next_undef ((A, m, lst, next_search), removed) M
+     \<le> \<Down> Id (SPEC (\<lambda>L.
+        (L = None \<longrightarrow> (\<forall>L\<in>#N\<^sub>1. defined_lit M L)) \<and>
+        (L \<noteq> None \<longrightarrow> undefined_lit M (Pos (the L)))))\<close>
+proof -
+  obtain xs' ys' where
+    l_vmtf: \<open>l_vmtf (ys' @ xs') m A\<close> and
+    lst: \<open>lst = option_hd (ys' @ xs')\<close> and
+    next_search: \<open>next_search = option_hd xs'\<close> and
+    abs_vmtf: \<open>abs_l_vmtf_remove_inv M ((set xs', set ys'), set removed)\<close> and
+    notin: \<open>l_vmtf_notin (ys' @ xs') m A\<close> and
+    atm_A: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length A\<close>
+    using vmtf unfolding vmtf_imp_def by fast
+  have [simp]: \<open>index xs' (hd xs') = 0\<close> if \<open>xs' \<noteq> []\<close> for xs' :: \<open>'a list\<close>
+    using that by (cases xs') auto
+  have no_next_search_all_defined:
+    \<open>((A', m', lst', None), remove) \<in> vmtf_imp M \<Longrightarrow>  x \<in># N\<^sub>1 \<Longrightarrow> defined_lit M x\<close>
+    for x A' m' lst' remove
+    by (auto simp: vmtf_imp_def abs_l_vmtf_remove_inv_def in_N\<^sub>1_atm_of_in_atms_of_iff
+        defined_lit_map lits_of_def)
+  have next_search_N\<^sub>1:
+    \<open>((A', m', lst', Some y), remove) \<in> vmtf_imp M \<Longrightarrow> y \<in> atms_of N\<^sub>1\<close>
+    for x A' m' lst' remove y
+    by (auto simp: vmtf_imp_def abs_l_vmtf_remove_inv_def in_N\<^sub>1_atm_of_in_atms_of_iff
+        defined_lit_map lits_of_def)
+
+  show ?thesis
+    unfolding vmtf_find_next_undef_def
+    apply (refine_vcg
+       WHILET_rule[where R=\<open>{(get_next (A ! the a), a) |a. a \<noteq> None \<and> the a \<in> atms_of N\<^sub>1}\<close> and
+        I=\<open>\<lambda>next_search. ((A, m, lst, next_search), removed) \<in> vmtf_imp M\<close>])
+    subgoal using vmtf by (rule wf_vmtf_get_next)
+    subgoal using next_search vmtf by auto
+    subgoal by auto
+    subgoal for x1 A' x2 m' x2a lst' next_search' x2c s
+      by (auto dest: no_next_search_all_defined next_search_N\<^sub>1)
+    subgoal by (auto dest: wf_vmtf_next_search_take_next)
+    subgoal by (auto dest: next_search_N\<^sub>1 no_next_search_all_defined wf_vmtf_next_search_take_next)
+    subgoal by (auto dest: no_next_search_all_defined next_search_N\<^sub>1)
+    subgoal by (auto dest: no_next_search_all_defined)
+    subgoal by auto
+    done
 qed
 
 end
