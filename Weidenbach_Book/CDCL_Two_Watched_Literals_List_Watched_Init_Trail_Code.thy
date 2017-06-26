@@ -53,7 +53,7 @@ definition arl_of_list_raa :: "'a::heap list \<Rightarrow> ('a array_list) Heap"
     arl_of_array_raa ys }\<close>
 
 lemma arl_of_list_raa_mset[sepref_fr_rules]:
-  \<open>(arl_of_list_raa, RETURN o mset) \<in> [\<lambda>C. C \<noteq> []]\<^sub>a(list_assn unat_lit_assn)\<^sup>d \<rightarrow> conflict_assn\<close>
+  \<open>(arl_of_list_raa, RETURN o mset) \<in> [\<lambda>C. C \<noteq> []]\<^sub>a (list_assn unat_lit_assn)\<^sup>d \<rightarrow> conflict_assn\<close>
 proof -
   define R where \<open>R = unat_lit_rel\<close>
   have [simp]: \<open>x \<noteq> [] \<Longrightarrow> pure (\<langle>R\<rangle>list_rel) x [] = false\<close> for x
@@ -918,10 +918,12 @@ definition (in twl_array_code_ops) init_state_wl_D :: \<open>nat \<Rightarrow> t
      N \<leftarrow> arrayO_raa_empty_sz l_Ns;
      e \<leftarrow> Array.new 0 0;
      N \<leftarrow> arrayO_raa_append N e;
-     (WS) \<leftarrow> arrayO_ara_empty_sz_code n;
+     WS \<leftarrow> arrayO_ara_empty_sz_code n;
      M \<leftarrow> Array.new (shiftr1 n) None;
      M' \<leftarrow> Array.new (shiftr1 n) (0::uint32);
-     return (([], M, M', 0), N, 0, None, [], [], [], WS)
+     A \<leftarrow> Array.new (shiftr1 n) (l_vmtf_ATM 0 None None);
+     \<phi> \<leftarrow> Array.new (shiftr1 n) False;
+     return ((([], M, M', 0), ((A, 0::nat, None, None), []), \<phi>), N, 0, None, [], [], [], WS)
   }\<close>
 
 lemma fold_cons_replicate: \<open>fold (\<lambda>_ xs. a # xs) [0..<n] xs = replicate n a @ xs\<close>
@@ -941,9 +943,6 @@ proof -
   then show ?thesis
     by (simp add: ex_assn_up_eq2 hn_ctxt_def pure_def)
 qed
-
-
-
 
 
 lemma (in twl_array_code_ops) arrayO_ara_empty_sz_code_empty_watched:
@@ -994,11 +993,6 @@ lemma (in twl_array_code_ops)in_atms_of_N\<^sub>1_iff:
    \<open>atm_of L \<in> atms_of (N\<^sub>1) \<longleftrightarrow> L \<in> set N\<^sub>0' \<or> -L \<in> set N\<^sub>0'\<close>
   by (auto simp: N\<^sub>1_def N\<^sub>0''_def atm_of_eq_atm_of atms_of_def
       atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
-
-text \<open>TODO Move\<close>
-lemma (in -) nat_of_uint32_max:
-  \<open>nat_of_uint32 (max ai bi) = max (nat_of_uint32 ai) (nat_of_uint32 bi)\<close>
-  by (auto simp: max_def nat_of_uint32_le_iff split: if_splits)
 
 lemma (in -) [sepref_fr_rules]:
   \<open>(uncurry (return oo max), uncurry (RETURN oo max)) \<in> uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
@@ -1574,7 +1568,7 @@ proof -
     ultimately have \<open>nat_of_lit xa < upperN\<close>
       using xa nat_of_lit_upperN_nat_of_lit_uminus_upperN unfolding CS
       by auto
-    then show \<open> nat_of_uint32 L < upperN\<close>
+    then show \<open>nat_of_uint32 L < upperN\<close>
       using L
       by (clarsimp dest!: in_extract_lits_clssD simp: upperN_def nat_of_uint32_uint32_of_nat_id)
   qed
