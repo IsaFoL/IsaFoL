@@ -1921,7 +1921,7 @@ lemma from_P_to_Q:
     c: "C \<in> llimit Ns - src.Rf (llimit Ns)" and
     d: "D \<in> getP (lnth Sts i)" "enat i < llength Sts" and
     \<sigma>: "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
-  shows "D \<in> getQ (lnth Sts l)"
+  shows "D \<in> getQ (lnth Sts l) \<and> enat l < llength Sts"
 proof -
   let ?Ns = "\<lambda>i. getN (lnth Sts i)"
   let ?Ps = "\<lambda>i. getP (lnth Sts i)"
@@ -1946,7 +1946,7 @@ proof
   obtain i where i_p: "enat i < llength Ns" "(\<forall>j. j \<ge> i \<longrightarrow> enat j < llength Ns \<longrightarrow> C \<in> lnth Ns j)"
     using C_p llimit_eventually_always by fastforce (* Do I need that it stays there forever? I somehow doubt it. *)
   then have i_sts: "enat i < llength Sts"
-    sorry
+    by (simp add: ns)
   from i_p have "C \<in> lnth Ns i" 
     by auto
   then obtain D \<sigma> where D_p: "D \<in> clss_of_state (lnth Sts i)" "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
@@ -1959,7 +1959,7 @@ proof
     then obtain D' \<sigma>' l where D'_p: "D' \<in> ?Ps l" "D' \<cdot> \<sigma>' = C" "enat l < llength Sts" "is_ground_subst \<sigma>'" (* Do I also need that l is later than i? Probably not. *)
       sorry
     then obtain l' where l'_p: "D' \<in> ?Qs l'" "l' < llength Sts" (* Do I also need that l is later than l'? Probably not*)
-      sorry
+      using from_P_to_Q[OF deriv fair ns C_p D'_p(1) D'_p(3) D'_p(2) D'_p(4)] by auto
     then have "D' \<in> getQ (limit_state Sts)"
       using from_Q_to_Q_inf[OF deriv fair ns C_p _ l'_p(2) D'_p(2) D'_p(4)] by auto
     then have "\<exists>D' \<sigma>'. D' \<in> getQ (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
@@ -1967,9 +1967,9 @@ proof
   }
   moreover
   {
-    assume "D \<in> ?Ps i"
+    assume a: "D \<in> ?Ps i"
     then obtain l' where l'_p: "D \<in> ?Qs l'" "l' < llength Sts" (* Do I also need that l is later than l'? Probably not*)
-      sorry
+      using from_P_to_Q[OF deriv fair ns C_p a i_sts D_p(2) D_p(3)] D_p by auto
     then have "D \<in> getQ (limit_state Sts)"
       using from_Q_to_Q_inf[OF deriv fair ns C_p _ l'_p(2) D_p(2) D_p(3)] by auto
     then have "\<exists>D' \<sigma>'. D' \<in> getQ (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
