@@ -1720,6 +1720,28 @@ proof -
     done
 qed
 
+definition vmtf_dump :: \<open>nat \<Rightarrow> vmtf_imp_remove \<Rightarrow> vmtf_imp_remove\<close> where
+\<open>vmtf_dump L = (\<lambda>((A, m, lst, next_search), removed). ((A, m, lst, next_search), L # removed))\<close>
+
+lemma vmtf_dump:
+  assumes L: \<open>L \<in>atms_of N\<^sub>1\<close> and vmtf: \<open>((A, m, lst, next_search), removed) \<in> vmtf_imp M\<close>
+  shows \<open>vmtf_dump L ((A, m, lst, next_search), removed) \<in> vmtf_imp M\<close>
+proof -
+  obtain xs' ys' where
+    l_vmtf: \<open>l_vmtf (ys' @ xs') m A\<close> and
+    lst: \<open>lst = option_hd (ys' @ xs')\<close> and
+    next_search: \<open>next_search = option_hd xs'\<close> and
+    abs_vmtf: \<open>abs_l_vmtf_remove_inv M ((set xs', set ys'), set removed)\<close> and
+    notin: \<open>l_vmtf_notin (ys' @ xs') m A\<close> and
+    atm_A: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length A\<close>
+    using vmtf unfolding vmtf_imp_def by fast
+  moreover have \<open>abs_l_vmtf_remove_inv M ((set xs', set ys'), set (L # removed))\<close>
+    using abs_vmtf L unfolding abs_l_vmtf_remove_inv_def
+    by auto
+  ultimately show ?thesis
+    unfolding vmtf_imp_def vmtf_dump_def by fast
+qed
+
 end
 
 end
