@@ -1870,8 +1870,70 @@ proof (rule ccontr)
   then show False using fair unfolding fair_state_seq_def 
     by (simp add: jajajajadxgetN)
 qed
-  
+
 lemma fair_imp_limit_minus_Rf_subset_ground_limit_state:
+  assumes
+    deriv: "derivation (op \<leadsto>) Sts" and
+    fair: "fair_state_seq Sts" and
+    ns: "Ns = lmap grounding_of_state Sts"
+  shows "llimit Ns - src.Rf (llimit Ns) \<subseteq> grounding_of_state (limit_state Sts)"
+proof
+  let ?Ns = "\<lambda>i. getN (lnth Sts i)"
+  let ?Ps = "\<lambda>i. getP (lnth Sts i)"
+  let ?Qs = "\<lambda>i. getQ (lnth Sts i)"
+  fix C
+  assume C_p: "C \<in> llimit Ns - src.Rf (llimit Ns)"
+  obtain i where i_p: "enat i < llength Ns \<and> (\<forall>j. j \<ge> i \<longrightarrow> enat j < llength Ns \<longrightarrow> C \<in> lnth Ns j)"
+    using C_p llimit_eventually_always by fastforce (* Do I need that it stays there forever? I somehow doubt it. *)
+  then have "C \<in> lnth Ns i" 
+    by auto
+  then obtain D \<sigma> where D_p: "D \<in> clss_of_state (lnth Sts i) \<and> D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
+    using i_p unfolding ns using hmm by blast
+  then have "D \<in> ?Ns i \<or> D \<in> ?Ps i \<or> D \<in> ?Qs i"
+    unfolding clss_of_state_def by auto
+  moreover
+  {
+    assume "D \<in> ?Ns i"
+    then obtain D' \<sigma>' l where "D' \<in> ?Ps l \<and> D' \<cdot> \<sigma>' = C \<and> enat l < llength Sts \<and> is_ground_subst \<sigma>'" (* Do I also need that l is later than i? Probably not. *)
+      sorry
+    then obtain l' where "D' \<in> ?Qs l' \<and> l' < llength Sts" (* Do I also need that l is later than l'? Probably not*)
+      sorry
+    then have "D' \<in> getQ (limit_state Sts)"
+      sorry
+    then have "\<exists>D' \<sigma>'. D' \<in> getQ (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
+      sorry
+  }
+  moreover
+  {
+    assume "D \<in> ?Ps i"
+    then obtain l' where "D \<in> ?Qs l' \<and> l' < llength Sts" (* Do I also need that l is later than l'? Probably not*)
+      sorry
+    then have "D \<in> getQ (limit_state Sts)"
+      sorry
+    then have "\<exists>D' \<sigma>'. D' \<in> getQ (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
+      sorry
+  }
+  moreover
+  {
+    assume "D \<in> ?Qs i"
+    then have "D \<in> getQ (limit_state Sts)"
+      sorry
+    then have "\<exists>D' \<sigma>'. D' \<in> getQ (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
+      sorry
+  }
+  ultimately
+  have "\<exists>D' \<sigma>'. D' \<in> getQ (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
+    by auto
+  then obtain D' \<sigma>' where D'_p: "D' \<in> getQ (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
+    by blast
+  then have "D' \<in> clss_of_state (limit_state Sts)"
+    by (simp add: clss_of_state_def)
+  then show "C \<in> grounding_of_state (limit_state Sts)"
+    unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def using D'_p by auto
+qed
+
+
+lemma fair_imp_limit_minus_Rf_subset_ground_limit_state_old_version:
   assumes
     deriv: "derivation (op \<leadsto>) Sts" and
     fair: "fair_state_seq Sts" and
