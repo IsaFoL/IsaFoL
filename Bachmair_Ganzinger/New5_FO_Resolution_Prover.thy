@@ -1746,15 +1746,16 @@ text {*
 Another formulation of the last part of lemma 4.10
  *}
   
+lemma derivation_sim:
+  assumes "R x y \<Longrightarrow> R' (P x) (P y)"
+  assumes "derivation R Sts"
+  shows "derivation R' (lmap P Sts)"
+    sorry
+  
 lemma four_ten:
   assumes "derivation op \<leadsto> Sts"
   shows "derivation src_ext.derive (lmap grounding_of_state Sts)"
-using assms proof (coinduction rule: derivation.coinduct)
-  case derivation
-  then show ?case sorry
-qed
-  
-  
+  sorry
   
 text {*
 The following corresponds to Lemma 4.11:
