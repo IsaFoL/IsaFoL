@@ -1871,6 +1871,18 @@ proof (rule ccontr)
     by (simp add: jajajajadxgetN)
 qed
 
+lemma from_Q_to_Q_inf:
+  assumes 
+    deriv: "derivation (op \<leadsto>) Sts" and
+    fair: "fair_state_seq Sts" and
+    ns: "Ns = lmap grounding_of_state Sts" and
+
+    c: "C \<in> llimit Ns - src.Rf (llimit Ns)" and
+    d: "D \<in> getQ (lnth Sts i)" "enat i < llength Sts" and
+    \<sigma>: "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
+  shows "D \<in> getQ (limit_state Sts)"
+  sorry
+
 lemma fair_imp_limit_minus_Rf_subset_ground_limit_state:
   assumes
     deriv: "derivation (op \<leadsto>) Sts" and
@@ -1883,43 +1895,45 @@ proof
   let ?Qs = "\<lambda>i. getQ (lnth Sts i)"
   fix C
   assume C_p: "C \<in> llimit Ns - src.Rf (llimit Ns)"
-  obtain i where i_p: "enat i < llength Ns \<and> (\<forall>j. j \<ge> i \<longrightarrow> enat j < llength Ns \<longrightarrow> C \<in> lnth Ns j)"
+  obtain i where i_p: "enat i < llength Ns" "(\<forall>j. j \<ge> i \<longrightarrow> enat j < llength Ns \<longrightarrow> C \<in> lnth Ns j)"
     using C_p llimit_eventually_always by fastforce (* Do I need that it stays there forever? I somehow doubt it. *)
-  then have "C \<in> lnth Ns i" 
+  then have i_sts: "enat i < llength Sts"
+    sorry
+  from i_p have "C \<in> lnth Ns i" 
     by auto
-  then obtain D \<sigma> where D_p: "D \<in> clss_of_state (lnth Sts i) \<and> D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
+  then obtain D \<sigma> where D_p: "D \<in> clss_of_state (lnth Sts i)" "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
     using i_p unfolding ns using hmm by blast
   then have "D \<in> ?Ns i \<or> D \<in> ?Ps i \<or> D \<in> ?Qs i"
     unfolding clss_of_state_def by auto
   moreover
   {
     assume "D \<in> ?Ns i"
-    then obtain D' \<sigma>' l where "D' \<in> ?Ps l \<and> D' \<cdot> \<sigma>' = C \<and> enat l < llength Sts \<and> is_ground_subst \<sigma>'" (* Do I also need that l is later than i? Probably not. *)
+    then obtain D' \<sigma>' l where D'_p: "D' \<in> ?Ps l" "D' \<cdot> \<sigma>' = C" "enat l < llength Sts" "is_ground_subst \<sigma>'" (* Do I also need that l is later than i? Probably not. *)
       sorry
-    then obtain l' where "D' \<in> ?Qs l' \<and> l' < llength Sts" (* Do I also need that l is later than l'? Probably not*)
+    then obtain l' where l'_p: "D' \<in> ?Qs l'" "l' < llength Sts" (* Do I also need that l is later than l'? Probably not*)
       sorry
     then have "D' \<in> getQ (limit_state Sts)"
-      sorry
+      using from_Q_to_Q_inf[OF deriv fair ns C_p _ l'_p(2) D'_p(2) D'_p(4)] by auto
     then have "\<exists>D' \<sigma>'. D' \<in> getQ (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
-      sorry
+      using D'_p by auto
   }
   moreover
   {
     assume "D \<in> ?Ps i"
-    then obtain l' where "D \<in> ?Qs l' \<and> l' < llength Sts" (* Do I also need that l is later than l'? Probably not*)
+    then obtain l' where l'_p: "D \<in> ?Qs l'" "l' < llength Sts" (* Do I also need that l is later than l'? Probably not*)
       sorry
     then have "D \<in> getQ (limit_state Sts)"
-      sorry
+      using from_Q_to_Q_inf[OF deriv fair ns C_p _ l'_p(2) D_p(2) D_p(3)] by auto
     then have "\<exists>D' \<sigma>'. D' \<in> getQ (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
-      sorry
+      using D_p by auto
   }
   moreover
   {
     assume "D \<in> ?Qs i"
     then have "D \<in> getQ (limit_state Sts)"
-      sorry
+      using from_Q_to_Q_inf[OF deriv fair ns C_p _ i_sts D_p(2) D_p(3)] by auto
     then have "\<exists>D' \<sigma>'. D' \<in> getQ (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
-      sorry
+      using D_p by auto
   }
   ultimately
   have "\<exists>D' \<sigma>'. D' \<in> getQ (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
