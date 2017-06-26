@@ -1823,6 +1823,10 @@ qed
 lemma jajajajadxgetN:
   "getN (limit_state Sts) = llimit (lmap getN Sts)"
   unfolding limit_state_def by auto
+
+lemma jajajajadxgetP:
+  "getP (limit_state Sts) = llimit (lmap getP Sts)"
+  unfolding limit_state_def by auto
     
 lemma getN_subset:
  assumes "enat l < llength Sts"
@@ -1860,7 +1864,7 @@ proof (rule ccontr)
       apply (induction ll)
        apply auto
       using assms(1) apply blast
-      by (metis Suc_ile_eq assms(1) le_SucE less_imp_le| blast)
+      by (metis Suc_ile_eq assms(1) le_SucE less_imp_le)
     done
   then have "\<forall>l. i \<le> l \<longrightarrow> enat l < llength Sts \<longrightarrow> D \<in> (lnth (lmap getN Sts) l)"
     by auto
@@ -1869,6 +1873,31 @@ proof (rule ccontr)
     using i_Sts by blast
   then show False using fair unfolding fair_state_seq_def 
     by (simp add: jajajajadxgetN)
+qed
+
+lemma eventually_deleted_P:
+  assumes "D \<in> getP (lnth Sts i)"
+  assumes fair: "fair_state_seq Sts"
+  assumes i_Sts: "enat i < llength Sts"
+  shows "\<exists>l. D \<in> getP (lnth Sts l) \<and> D \<notin> getP (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
+proof (rule ccontr)
+  assume "\<nexists>l. D \<in> getP (lnth Sts l) \<and> D \<notin> getP (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
+  then have "\<forall>l. i \<le> l \<longrightarrow> enat l < llength Sts \<longrightarrow> D \<in> getP (lnth Sts l)"
+    apply -
+    apply auto
+    subgoal for ll
+      apply (induction ll)
+       apply auto
+      using assms(1) apply blast
+      by (metis Suc_ile_eq assms(1) le_SucE less_imp_le)
+    done
+  then have "\<forall>l. i \<le> l \<longrightarrow> enat l < llength Sts \<longrightarrow> D \<in> (lnth (lmap getP Sts) l)"
+    by auto
+  then have "D \<in> llimit (lmap getP Sts) "
+    unfolding llimit_def apply auto
+    using i_Sts by blast
+  then show False using fair unfolding fair_state_seq_def 
+    by (simp add: jajajajadxgetP)
 qed
 
 lemma from_Q_to_Q_inf:
@@ -1881,7 +1910,26 @@ lemma from_Q_to_Q_inf:
     d: "D \<in> getQ (lnth Sts i)" "enat i < llength Sts" and
     \<sigma>: "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
   shows "D \<in> getQ (limit_state Sts)"
-  sorry
+  sorry (* I'm not sure how to do this. Some kind of (co?)induction maybe? *)
+
+lemma from_P_to_Q:
+  assumes 
+    deriv: "derivation (op \<leadsto>) Sts" and
+    fair: "fair_state_seq Sts" and
+    ns: "Ns = lmap grounding_of_state Sts" and
+
+    c: "C \<in> llimit Ns - src.Rf (llimit Ns)" and
+    d: "D \<in> getP (lnth Sts i)" "enat i < llength Sts" and
+    \<sigma>: "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
+  shows "D \<in> getQ (lnth Sts l)"
+proof -
+  let ?Ns = "\<lambda>i. getN (lnth Sts i)"
+  let ?Ps = "\<lambda>i. getP (lnth Sts i)"
+  let ?Qs = "\<lambda>i. getQ (lnth Sts i)"
+  have "\<exists>l. D \<in> getP (lnth Sts l) \<and> D \<notin> getP (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
+    using fair using eventually_deleted_P[of D Sts i] d unfolding ns by auto
+  then show ?thesis sorry
+qed
 
 lemma fair_imp_limit_minus_Rf_subset_ground_limit_state:
   assumes
