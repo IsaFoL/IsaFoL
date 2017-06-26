@@ -1823,6 +1823,28 @@ qed
 lemma jajajajadxgetN:
   "getN (limit_state Sts) = llimit (lmap getN Sts)"
   unfolding limit_state_def by auto
+    
+lemma getN_subset:
+ assumes "enat l < llength Sts"
+ shows "getN (lnth Sts l) \<subseteq> clss_of_state (lnth Sts l)"
+  using assms unfolding clss_of_state_def by auto  
+    
+lemma getP_subset:
+ assumes "enat l < llength Sts"
+ shows "getP (lnth Sts l) \<subseteq> clss_of_state (lnth Sts l)"
+   using assms unfolding clss_of_state_def by auto
+  
+lemma getQ_subset:
+ assumes "enat l < llength Sts"
+ shows "getQ (lnth Sts l) \<subseteq> clss_of_state (lnth Sts l)"
+  using assms unfolding clss_of_state_def by auto
+    
+lemma grounding_of_clss_mono: "X \<subseteq> Y \<Longrightarrow> grounding_of_clss X \<subseteq> grounding_of_clss Y"
+  unfolding grounding_of_clss_def by auto
+    
+lemma grounding_of_clss_mono2: "X \<in> Y \<Longrightarrow> grounding_of_cls X \<subseteq> grounding_of_clss Y"
+  using grounding_of_clss_def grounding_of_cls_def by auto
+  
   
 lemma eventually_deleted:
   assumes "D \<in> getN (lnth Sts i)"
@@ -1838,7 +1860,7 @@ proof (rule ccontr)
       apply (induction ll)
        apply auto
       using assms(1) apply blast
-      by (metis Suc_ile_eq assms(1) le_SucE less_imp_le)
+      by (metis Suc_ile_eq assms(1) le_SucE less_imp_le| blast)
     done
   then have "\<forall>l. i \<le> l \<longrightarrow> enat l < llength Sts \<longrightarrow> D \<in> (lnth (lmap getN Sts) l)"
     by auto
@@ -1903,7 +1925,7 @@ proof
         by blast
     next
       case (forward_subsumption P Q D_twin N)
-      then have twins: "D_twin = D" "?Ps l = P" "?Ps l = P" "?Qs (Suc l) = Q" "?Qs l = Q" 
+      then have twins: "D_twin = D" "?Ps (Suc l) = P" "?Ps l = P" "?Qs (Suc l) = Q" "?Qs l = Q" 
         using D_in_out by auto
       then obtain \<tau> D' where \<tau>_D'_p: "D' \<cdot> \<tau> \<subseteq># D \<and> D' \<in> P \<union> Q"
         using forward_subsumption unfolding subsumes_def by auto
@@ -1940,8 +1962,10 @@ proof
           apply (rule_tac x="{#D' \<cdot> \<tau> \<cdot> \<sigma>#}" in exI)
             by simp
         then have "C \<in> src.Rf (grounding_of_state (lnth Sts (Suc l)))"
-          using \<tau>_D'_p  src.Rf_mono[of "grounding_of_cls D'" "grounding_of_state (lnth Sts (Suc l))"] 
-          using twins sorry
+          using \<tau>_D'_p  src.Rf_mono 
+          unfolding twins(2)[symmetric] twins(4)[symmetric] 
+          using getP_subset[of "Suc l" Sts] getQ_subset[of "Suc l" Sts] l_p grounding_of_clss_mono grounding_of_clss_mono2[of D']
+          by (metis Un_iff subset_Un_eq)
         then have "C \<in> src.Rf (lnth Ns (Suc l))"
            using l_p unfolding ns by auto
         then have "C \<in> src.Rf (lSup Ns)" 
