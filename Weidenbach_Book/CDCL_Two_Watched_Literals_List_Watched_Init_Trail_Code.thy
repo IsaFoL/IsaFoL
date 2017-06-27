@@ -252,7 +252,7 @@ sepref_definition extract_lits_cls_code
   is \<open>uncurry (RETURN oo extract_lits_cls')\<close>
   :: \<open>(list_assn unat_lit_assn)\<^sup>d *\<^sub>a (list_assn unat_lit_assn)\<^sup>d \<rightarrow>\<^sub>a (list_assn unat_lit_assn)\<close>
   unfolding extract_lits_cls'_def twl_array_code_ops.twl_st_l_trail_assn_def lms_fold_custom_empty
-      unfolding watched_app_def[symmetric]
+  unfolding watched_app_def[symmetric]
   unfolding nth_rll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
   unfolding lms_fold_custom_empty swap_ll_def[symmetric]
   unfolding twl_array_code_ops.append_update_def[symmetric] index_atm_of_def[symmetric]
@@ -898,6 +898,246 @@ lemma (in -) map_uint32_of_lit[sepref_fr_rules]:
       lit_of_natP_def map_uint32_of_lit_def list_rel_def list_all2_op_eq_map_right_iff comp_def
       simp del: literal_of_nat.simps)
 
+definition vmtf_cons where
+\<open>vmtf_cons A L cnext st =
+  (let
+    A = A[L := l_vmtf_ATM (Suc st) None cnext];
+    A = (case cnext of None \<Rightarrow> A
+        | Some cnext \<Rightarrow> A[cnext := l_vmtf_ATM (stamp (A!cnext)) (Some L) (get_next (A!cnext))]) in
+  A)
+\<close>
+
+(* TODO: Move + use (search for l_vmtf_eq_iff/l_vmtf_eq_iffI in VMTF)*)
+lemma l_vmtf_Cons:
+  assumes
+    vmtf: \<open>l_vmtf (b # l) m xs\<close> and
+    a_xs: \<open>a < length xs\<close> and
+    ab: \<open>a \<noteq> b\<close> and
+    a_l: \<open>a \<notin> set l\<close> and
+    nm: \<open>n > m\<close> and
+    xs': \<open>xs' = xs[a := l_vmtf_ATM n None (Some b),
+         b := l_vmtf_ATM (stamp (xs!b)) (Some a) (get_next (xs!b))]\<close> and
+    nn': \<open>n' \<ge> n\<close>
+  shows \<open>l_vmtf (a # b # l) n' xs'\<close>
+proof -
+  have \<open>l_vmtf (b # l) m (xs[a := l_vmtf_ATM n None (Some b)])\<close>
+    apply (rule l_vmtf_eq_iffI[OF _ _ vmtf])
+    subgoal using ab a_l a_xs by auto
+    subgoal using a_xs l_vmtf_le_length[OF vmtf] by auto
+    done
+  then show ?thesis
+    apply (rule l_vmtf.Cons[of _ _ _ _ _ n])
+    subgoal using a_xs by simp
+    subgoal using a_xs by simp
+    subgoal using ab .
+    subgoal using a_l .
+    subgoal using nm .
+    subgoal using xs' ab a_xs by (cases \<open>xs ! b\<close>) auto
+    subgoal using nn' .
+    done
+qed
+
+lemma vmtf_notin_vmtf_cons:
+  assumes
+    l_vmtf: \<open>l_vmtf_notin xs m A\<close> and
+    cnext: \<open>cnext = option_hd xs\<close> and
+    L_xs: \<open>L \<notin> set xs\<close>
+  shows
+    \<open>l_vmtf_notin (L # xs) (Suc m) (vmtf_cons A L cnext m)\<close>
+proof (cases xs)
+  case Nil
+  then show ?thesis
+    using assms by (auto simp: l_vmtf_notin_def vmtf_cons_def elim: l_vmtfE)
+next
+  case (Cons L' xs') note xs = this
+  thm l_vmtf.Cons
+  show ?thesis
+    using assms
+    unfolding xs l_vmtf_notin_def xs vmtf_cons_def
+    by auto
+qed
+
+lemma vmtf_cons:
+  assumes
+    l_vmtf: \<open>l_vmtf xs m A\<close> and
+    cnext: \<open>cnext = option_hd xs\<close> and
+    L_A: \<open>L < length A\<close> and
+    L_xs: \<open>L \<notin> set xs\<close>
+  shows
+    \<open>l_vmtf (L # xs) (Suc m) (vmtf_cons A L cnext m)\<close>
+proof (cases xs)
+  case Nil
+  then show ?thesis
+    using assms by (auto simp: l_vmtf_single_iff vmtf_cons_def elim: l_vmtfE)
+next
+  case (Cons L' xs') note xs = this
+  thm l_vmtf.Cons
+  show ?thesis
+    unfolding xs
+    apply (rule l_vmtf_Cons[OF l_vmtf[unfolded xs], of _ \<open>Suc m\<close>])
+    subgoal using L_A .
+    subgoal using L_xs unfolding xs by simp
+    subgoal using L_xs unfolding xs by simp
+    subgoal by simp
+    subgoal using cnext L_xs
+      by (auto simp: vmtf_cons_def Let_def xs)
+    subgoal by linarith
+    done
+qed
+
+lemma length_vmtf_cons[simp]: \<open>length (vmtf_cons A L n m) = length A\<close>
+  by (auto simp: vmtf_cons_def Let_def split: option.splits)
+
+lemma option_hd_rev: \<open>option_hd (rev xs) = option_last xs\<close>
+  by (cases xs rule: rev_cases) auto
+
+lemma map_option_option_last:
+  \<open>map_option f (option_last xs) = option_last (map f xs)\<close>
+  by (cases xs rule: rev_cases) auto
+
+(* End Move *)
+
+definition initialise_VMTF :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> (vmtf_imp_remove) nres\<close> where
+\<open>initialise_VMTF N n = do {
+   let A = replicate n (l_vmtf_ATM 0 None None);
+   (_, A, n, cnext) \<leftarrow> WHILE\<^sub>T
+      (\<lambda>(N, A, st, cnext). N \<noteq> [])
+      (\<lambda>(N, A, st, cnext). do {
+        let L = nat_of_uint32 ((hd N) >> 1);
+        RETURN (tl N, vmtf_cons A L cnext st, st+1, Some L)
+      })
+      (N, A, 0::nat, None);
+   RETURN ((A, n, cnext, cnext), [])
+  }\<close>
+
+
+lemma
+  assumes L_N: \<open>\<forall>L\<in>set N. nat_of_uint32 (L >> 1) < n\<close> and
+    dist: \<open>distinct (map ((\<lambda>x. x >> 1) o nat_of_uint32) N)\<close>
+  shows \<open>initialise_VMTF N n \<le> \<Down> Id (RES (twl_array_code_ops.vmtf_imp N []))\<close> (is \<open>?init \<le> \<Down> _ ?R\<close>)
+proof -
+  have l_vmtf_notin_empty: \<open>l_vmtf_notin [] 0 (replicate n (l_vmtf_ATM 0 None None))\<close>
+    unfolding l_vmtf_notin_def
+    by auto
+  have take_Suc_append: \<open>take (Suc a) c = (take a c @ [c ! a])\<close>
+    if  \<open>a < length c\<close> for a b c
+    using that by (auto simp: take_Suc_conv_app_nth)
+  have K1:  \<open>distinct (map ((\<lambda>x. x div 2) \<circ> nat_of_uint32) N) \<Longrightarrow> lst < length N \<Longrightarrow>
+     nat_of_uint32 (N ! lst) div 2 = nat_of_uint32 x div 2 \<Longrightarrow> x \<in> set N \<Longrightarrow> x = N!lst\<close>
+    for lst x
+    apply (induction N arbitrary: lst x)
+     apply auto
+    apply (case_tac lst)
+      apply (auto simp: nth_Cons)
+    apply (metis (mono_tags, lifting) comp_apply image_iff nth_mem)
+    by (smt Nitpick.case_nat_unfold comp_apply diff_Suc_1 image_iff less_Suc_eq_0_disj)
+    have K2: \<open>distinct (map ((\<lambda>x. x div 2) \<circ> nat_of_uint32) N) \<Longrightarrow> lst < length N \<Longrightarrow>
+     nat_of_uint32 (N ! lst) div 2 = nat_of_uint32 x div 2 \<Longrightarrow> x \<in> set (take lst N) \<Longrightarrow> False\<close>
+       for lst x
+      using K1[of lst x, OF _ _ _ in_set_takeD[of _ lst]] apply (auto 5 5 dest: )
+      by (metis (no_types, lifting) distinct_Ex1 distinct_mapI distinct_take length_take
+          less_not_refl min_less_iff_conj nth_eq_iff_index_eq nth_take)
+  let ?sh = \<open>\<lambda>x. x >> 1\<close>
+  have W_ref: \<open>WHILE\<^sub>T (\<lambda>(N, A, st, cnext). N \<noteq> [])
+         (\<lambda>(N, A, st, cnext). RETURN (tl N, vmtf_cons A (nat_of_uint32 (hd N >> 1)) cnext st, st + 1, Some (nat_of_uint32 (hd N >> 1))))
+         (N, replicate n (l_vmtf_ATM 0 None None), 0, None)
+    \<le> SPEC(\<lambda>(N', A', st, cnext). l_vmtf (rev (map (?sh o nat_of_uint32) (take (length N - length N') N))) st A'
+      \<and> cnext = map_option (?sh o nat_of_uint32) (option_last (take (length N - length N') N)) \<and>
+    N' = drop st N \<and> length N' \<le> length N \<and> st \<le> length N \<and>
+    length A' = n \<and> N' = [] \<and> l_vmtf_notin (rev (map (?sh o nat_of_uint32) (take (length N - length N') N))) st A'
+      )\<close>
+    apply (refine_rcg WHILET_rule[where R = \<open>measure (\<lambda>(N, _). length N)\<close> and
+     I = \<open>\<lambda>(N', A', st, cnext). l_vmtf (rev (map (?sh o nat_of_uint32) (take (length N - length N') N))) st A'
+      \<and> cnext = map_option (?sh o nat_of_uint32) (option_last (take (length N - length N') N)) \<and>
+    N' = drop st N \<and> length N' \<le> length N \<and> st \<le> length N \<and> (N' \<noteq> [] \<longrightarrow> st < length N) \<and>
+    length A' = n \<and> l_vmtf_notin (rev (map (?sh o nat_of_uint32) (take (length N - length N') N))) st A'\<close>])
+    subgoal by auto
+    subgoal by (auto intro: l_vmtf.intros)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: l_vmtf_notin_empty)
+    subgoal for S N' x2 A' x2a lst cnext
+      apply (clarify intro!: RETURN_rule)
+      apply (intro conjI)
+      subgoal
+        using L_N dist
+        by (auto 5 5 simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+            option_last_def hd_rev last_map intro!: vmtf_cons dest: K2)
+      subgoal
+        using L_N dist
+        by (auto simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+            option_last_def hd_rev last_map intro!: vmtf_cons)
+      subgoal by (auto simp: drop_Suc tl_drop)
+      subgoal by auto
+      subgoal by auto
+      subgoal by (auto simp: tl_drop)
+      subgoal by auto
+      subgoal
+        using L_N dist
+        by (auto 5 5 simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+            option_last_def hd_rev last_map intro!: vmtf_notin_vmtf_cons dest: K2)
+      subgoal by auto
+      done
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+  have [simp]: \<open>twl_array_code_ops.abs_l_vmtf_remove_inv N []
+     ((((\<lambda>xs'. xs' div 2) \<circ> nat_of_uint32) ` set N,
+       {}),
+      {})\<close>
+    unfolding twl_array_code_ops.abs_l_vmtf_remove_inv_def
+    by (auto simp: twl_array_code_ops.N\<^sub>1_def twl_array_code_ops.N\<^sub>0''_def
+      twl_array_code_ops.N\<^sub>0'_def atms_of_def image_image image_Un)
+  have in_N_in_N1: \<open>L \<in> set N \<Longrightarrow>
+         nat_of_uint32 L div 2
+         \<in> atms_of (twl_array_code_ops.N\<^sub>1 N)\<close> for L
+    by (auto simp: twl_array_code_ops.N\<^sub>1_def twl_array_code_ops.N\<^sub>0''_def
+      twl_array_code_ops.N\<^sub>0'_def atms_of_def image_image image_Un)
+
+  have length_ba: \<open>\<forall>L\<in>set N. nat_of_uint32 (L >> Suc 0) < length ba \<Longrightarrow> L \<in> atms_of (twl_array_code_ops.N\<^sub>1 N) \<Longrightarrow> L < length ba\<close>
+    for L ba
+    by (auto simp: twl_array_code_ops.N\<^sub>1_def twl_array_code_ops.N\<^sub>0''_def nat_shiftr_div2 nat_of_uint32_shiftr
+      twl_array_code_ops.N\<^sub>0'_def atms_of_def image_image image_Un split: if_splits)
+  have \<open>?init \<le> ?R\<close>
+    unfolding initialise_VMTF_def Let_def
+    apply (rule specify_left)
+     apply (rule W_ref)
+    apply (case_tac x)
+    apply (clarify)
+    apply (unfold nres_order_simps)
+    apply (unfold twl_array_code_ops.vmtf_imp_def)
+    apply (clarify)
+    apply (rule exI[of _ \<open>map ((\<lambda>x. x div 2) \<circ> nat_of_uint32) (rev N)\<close>])
+    apply (rule_tac exI[of _ \<open>[]\<close>])
+    apply (intro conjI)
+    subgoal by (auto simp: rev_map[symmetric] twl_array_code_ops.vmtf_imp_def option_hd_rev
+        map_option_option_last)
+    subgoal by (auto simp: rev_map[symmetric] twl_array_code_ops.vmtf_imp_def option_hd_rev
+        map_option_option_last)
+    subgoal by (auto simp: rev_map[symmetric] twl_array_code_ops.vmtf_imp_def option_hd_rev
+        map_option_option_last)
+    subgoal by (auto simp: rev_map[symmetric] twl_array_code_ops.vmtf_imp_def option_hd_rev
+        map_option_option_last)
+    subgoal by (auto simp: rev_map[symmetric] twl_array_code_ops.vmtf_imp_def option_hd_rev
+        map_option_option_last)
+    subgoal using L_N by (auto simp: rev_map[symmetric] twl_array_code_ops.vmtf_imp_def option_hd_rev
+        map_option_option_last dest: length_ba)
+    subgoal using L_N by (auto simp: rev_map[symmetric] twl_array_code_ops.vmtf_imp_def option_hd_rev
+        map_option_option_last dest: in_N_in_N1)
+    done
+  then show ?thesis by auto
+qed
+
 definition SAT_wl' :: \<open>nat clauses_l \<Rightarrow> bool nres\<close> where
   \<open>SAT_wl' CS = do{
     let n = length CS;
@@ -943,7 +1183,6 @@ proof -
   then show ?thesis
     by (simp add: ex_assn_up_eq2 hn_ctxt_def pure_def)
 qed
-
 
 lemma (in twl_array_code_ops) arrayO_ara_empty_sz_code_empty_watched:
   \<open>(uncurry0 (arrayO_ara_empty_sz_code (Suc (Suc (nat_of_uint32 (fold max N 0))))),
@@ -1012,8 +1251,10 @@ definition (in -)find_max where
     RETURN (snd i)
    }\<close>
 
+(*TODO Move*)
 lemma (in -)nths_upt_Suc: \<open>aa < length xs \<Longrightarrow> nths xs {0..<Suc aa} = nths xs {0..<aa} @ [xs ! aa]\<close>
   by (simp add: atLeast0LessThan take_Suc_conv_app_nth)
+(*END Move*)
 
 lemma (in -) \<open>find_max xs \<le> RETURN (fold max xs (0::nat))\<close>
 proof -
