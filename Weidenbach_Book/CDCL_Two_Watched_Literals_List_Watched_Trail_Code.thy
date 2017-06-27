@@ -62,9 +62,12 @@ abbreviation (in -) trailt_conc :: \<open>trailt \<Rightarrow> trailt_assn \<Rig
 abbreviation (in -)  l_vmtf_atm_assn where
 \<open>l_vmtf_atm_assn \<equiv> id_assn :: l_vmtf_atm \<Rightarrow> _\<close>
 
+abbreviation (in -) vmtf_conc where
+  \<open>vmtf_conc \<equiv> (array_assn l_vmtf_atm_assn *assn nat_assn *assn option_assn nat_assn
+    *assn option_assn nat_assn)\<close>
+
 abbreviation (in -) vmtf_remove_conc where
-  \<open>vmtf_remove_conc \<equiv> (array_assn l_vmtf_atm_assn *assn nat_assn *assn option_assn nat_assn
-    *assn option_assn nat_assn) *assn clauses_to_update_ll_assn\<close>
+  \<open>vmtf_remove_conc \<equiv> vmtf_conc *assn clauses_to_update_ll_assn\<close>
 
 
 abbreviation (in -) phase_saver_conc where
@@ -351,7 +354,7 @@ qed
 lemma (in -) bind_ref_tag_False_True: \<open>bind_ref_tag a (RETURN b) \<longleftrightarrow> a=b\<close>
   unfolding bind_ref_tag_def by auto
 
-lemma stamp_ref[sepref_fr_rules]: \<open>(return o stamp, RETURN o stamp) \<in> l_vmtf_atm_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn\<close>
+lemma (in -)stamp_ref[sepref_fr_rules]: \<open>(return o stamp, RETURN o stamp) \<in> l_vmtf_atm_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn\<close>
   apply sepref_to_hoare
   apply (case_tac x)
   by (auto simp: ex_assn_move_out(2)[symmetric] return_cons_rule ent_ex_up_swap simp del: ex_assn_move_out)

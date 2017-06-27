@@ -1003,13 +1003,34 @@ definition initialise_VMTF :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow>
    (_, A, n, cnext) \<leftarrow> WHILE\<^sub>T
       (\<lambda>(N, A, st, cnext). N \<noteq> [])
       (\<lambda>(N, A, st, cnext). do {
+        ASSERT(N \<noteq> []);
         let L = nat_of_uint32 ((hd N) >> 1);
+        ASSERT(L < length A);
+        ASSERT(cnext \<noteq> None \<longrightarrow> the cnext < length A);
         RETURN (tl N, vmtf_cons A L cnext st, st+1, Some L)
       })
       (N, A, 0::nat, None);
    RETURN ((A, n, cnext, cnext), [])
   }\<close>
 
+lemma l_vmtf_ATM[sepref_fr_rules]:
+  \<open>(uncurry2 (return ooo l_vmtf_ATM), uncurry2 (RETURN ooo l_vmtf_ATM)) \<in> nat_assn\<^sup>k *\<^sub>a
+    (option_assn nat_assn)\<^sup>k *\<^sub>a (option_assn nat_assn)\<^sup>k \<rightarrow>\<^sub>a l_vmtf_atm_assn\<close>
+  by sepref_to_hoare (sep_auto simp: option_assn_alt_def split: option.splits)
+
+lemma (in -)get_next_ref[sepref_fr_rules]:
+  \<open>(return o get_next, RETURN o get_next) \<in> l_vmtf_atm_assn\<^sup>d \<rightarrow>\<^sub>a option_assn nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: option_assn_alt_def split: option.splits)
+
+sepref_definition initialise_VMTF_code
+  is \<open>uncurry initialise_VMTF\<close>
+  :: \<open>(list_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
+  unfolding initialise_VMTF_def vmtf_cons_def
+  apply (rewrite in "((_, _, _, _), \<hole>)" annotate_assn[where A=\<open>list_assn nat_assn\<close>])
+  apply (rewrite in \<open>((_, _, _, _), ASSN_ANNOT _ \<hole>)\<close> HOL_list.fold_custom_empty op_list_empty_def[symmetric])
+  apply (rewrite in \<open>let _ = \<hole> in _ \<close> array_fold_custom_replicate op_list_replicate_def[symmetric])
+  supply [[goals_limit = 1]]
+  by sepref
 
 lemma initialise_VMTF:
   assumes L_N: \<open>\<forall>L\<in>set N. nat_of_uint32 (L >> 1) < n\<close> and
