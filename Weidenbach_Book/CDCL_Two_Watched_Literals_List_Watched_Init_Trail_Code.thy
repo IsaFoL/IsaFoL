@@ -1032,12 +1032,16 @@ sepref_definition initialise_VMTF_code
   supply [[goals_limit = 1]]
   by sepref
 
+declare initialise_VMTF_code.refine[sepref_fr_rules]
+
 lemma initialise_VMTF:
-  assumes L_N: \<open>\<forall>L\<in>set N. nat_of_uint32 (L >> 1) < n\<close> and
-    dist: \<open>distinct (map ((\<lambda>x. x >> 1) o nat_of_uint32) N)\<close>
-  shows \<open>initialise_VMTF N n \<le> \<Down> Id (RES (twl_array_code_ops.vmtf_imp N []))\<close> (is \<open>?init \<le> \<Down> _ ?R\<close>)
+  shows \<open>(uncurry initialise_VMTF, uncurry (\<lambda>N n. RES (twl_array_code_ops.vmtf_imp N []))) \<in>
+      [\<lambda>(N,n). (\<forall>L\<in>set N. nat_of_uint32 (L >> 1) < n) \<and>
+        (distinct (map ((\<lambda>x. x >> 1) o nat_of_uint32) N))
+     ]\<^sub>f Id \<times>\<^sub>f nat_rel \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+    (is \<open>(?init, ?R) \<in> _\<close>)
 proof -
-  have l_vmtf_notin_empty: \<open>l_vmtf_notin [] 0 (replicate n (l_vmtf_ATM 0 None None))\<close>
+  have l_vmtf_notin_empty: \<open>l_vmtf_notin [] 0 (replicate n (l_vmtf_ATM 0 None None))\<close> for n
     unfolding l_vmtf_notin_def
     by auto
   have take_Suc_append: \<open>take (Suc a) c = (take a c @ [c ! a])\<close>
@@ -1045,7 +1049,7 @@ proof -
     using that by (auto simp: take_Suc_conv_app_nth)
   have K1:  \<open>distinct (map ((\<lambda>x. x div 2) \<circ> nat_of_uint32) N) \<Longrightarrow> lst < length N \<Longrightarrow>
      nat_of_uint32 (N ! lst) div 2 = nat_of_uint32 x div 2 \<Longrightarrow> x \<in> set N \<Longrightarrow> x = N!lst\<close>
-    for lst x
+    for lst x N
     apply (induction N arbitrary: lst x)
     subgoal by auto
     subgoal for a N lst x
@@ -1053,8 +1057,8 @@ proof -
     done
   have K2: \<open>distinct (map ((\<lambda>x. x div 2) \<circ> nat_of_uint32) N) \<Longrightarrow> lst < length N \<Longrightarrow>
      nat_of_uint32 (N ! lst) div 2 = nat_of_uint32 x div 2 \<Longrightarrow> x \<in> set (take lst N) \<Longrightarrow> False\<close>
-    for lst x
-    using K1[of lst x, OF _ _ _ in_set_takeD[of _ lst]]
+    for lst x N
+    using K1[of N lst x, OF _ _ _ in_set_takeD[of _ lst]]
     by (metis (no_types, lifting) distinct_mapI in_set_conv_nth length_take less_not_refl
         min_less_iff_conj nth_eq_iff_index_eq nth_take)
   let ?sh = \<open>\<lambda>x. x >> 1\<close>
@@ -1070,6 +1074,9 @@ proof -
     N' = drop st N \<and> length N' \<le> length N \<and> st \<le> length N \<and>
     length A' = n \<and> N' = [] \<and> l_vmtf_notin (rev (map (?sh o nat_of_uint32) (take (length N - length N') N))) st A'
       )\<close>
+    if L_N: \<open>\<forall>L\<in>set N. nat_of_uint32 (L >> 1) < n\<close> and
+       dist: \<open>distinct (map ((\<lambda>x. x >> 1) o nat_of_uint32) N)\<close>
+     for N n
     apply (refine_rcg WHILET_rule[where R = \<open>measure (\<lambda>(N, _). length N)\<close> and
      I = \<open>\<lambda>(N', A', st, cnext). l_vmtf (rev (map (?sh o nat_of_uint32) (take (length N - length N') N))) st A'
       \<and> cnext = map_option (?sh o nat_of_uint32) (option_last (take (length N - length N') N)) \<and>
@@ -1138,49 +1145,60 @@ proof -
   have [simp]: \<open>twl_array_code_ops.abs_l_vmtf_remove_inv N []
      ((((\<lambda>xs'. xs' div 2) \<circ> nat_of_uint32) ` set N,
        {}),
-      {})\<close>
+      {})\<close> for N
     unfolding twl_array_code_ops.abs_l_vmtf_remove_inv_def
     by (auto simp: twl_array_code_ops.N\<^sub>1_def twl_array_code_ops.N\<^sub>0''_def
       twl_array_code_ops.N\<^sub>0'_def atms_of_def image_image image_Un)
   have in_N_in_N1: \<open>L \<in> set N \<Longrightarrow>
          nat_of_uint32 L div 2
-         \<in> atms_of (twl_array_code_ops.N\<^sub>1 N)\<close> for L
+         \<in> atms_of (twl_array_code_ops.N\<^sub>1 N)\<close> for L N
     by (auto simp: twl_array_code_ops.N\<^sub>1_def twl_array_code_ops.N\<^sub>0''_def
       twl_array_code_ops.N\<^sub>0'_def atms_of_def image_image image_Un)
 
   have length_ba: \<open>\<forall>L\<in>set N. nat_of_uint32 (L >> Suc 0) < length ba \<Longrightarrow> L \<in> atms_of (twl_array_code_ops.N\<^sub>1 N) \<Longrightarrow> L < length ba\<close>
-    for L ba
+    for L ba N
     by (auto simp: twl_array_code_ops.N\<^sub>1_def twl_array_code_ops.N\<^sub>0''_def nat_shiftr_div2 nat_of_uint32_shiftr
       twl_array_code_ops.N\<^sub>0'_def atms_of_def image_image image_Un split: if_splits)
-  have \<open>?init \<le> ?R\<close>
-    unfolding initialise_VMTF_def Let_def
+  show ?thesis
+    apply (intro frefI nres_relI)
+    unfolding initialise_VMTF_def Let_def uncurry_def conc_Id id_def
+    apply clarify
     apply (rule specify_left)
      apply (rule W_ref)
-    apply (case_tac x)
-    apply (clarify)
-    apply (unfold nres_order_simps)
-    apply (unfold twl_array_code_ops.vmtf_imp_def)
-    apply (clarify)
-    apply (rule exI[of _ \<open>map ((\<lambda>x. x div 2) \<circ> nat_of_uint32) (rev N)\<close>])
-    apply (rule_tac exI[of _ \<open>[]\<close>])
-    apply (intro conjI)
-    subgoal by (auto simp: rev_map[symmetric] twl_array_code_ops.vmtf_imp_def option_hd_rev
-        map_option_option_last)
-    subgoal by (auto simp: rev_map[symmetric] twl_array_code_ops.vmtf_imp_def option_hd_rev
-        map_option_option_last)
-    subgoal by (auto simp: rev_map[symmetric] twl_array_code_ops.vmtf_imp_def option_hd_rev
-        map_option_option_last)
-    subgoal by (auto simp: rev_map[symmetric] twl_array_code_ops.vmtf_imp_def option_hd_rev
-        map_option_option_last)
-    subgoal by (auto simp: rev_map[symmetric] twl_array_code_ops.vmtf_imp_def option_hd_rev
-        map_option_option_last)
-    subgoal using L_N by (auto simp: rev_map[symmetric] twl_array_code_ops.vmtf_imp_def option_hd_rev
-        map_option_option_last dest: length_ba)
-    subgoal using L_N by (auto simp: rev_map[symmetric] twl_array_code_ops.vmtf_imp_def option_hd_rev
-        map_option_option_last dest: in_N_in_N1)
+    subgoal by auto
+    subgoal by auto
+    subgoal for ab aa N x st
+      apply (case_tac st)
+      apply (clarify)
+      apply (unfold nres_order_simps)
+      apply (unfold twl_array_code_ops.vmtf_imp_def)
+      apply (clarify)
+      apply (rule exI[of _ \<open>map ((\<lambda>x. x div 2) \<circ> nat_of_uint32) (rev N)\<close>])
+      apply (rule_tac exI[of _ \<open>[]\<close>])
+      apply (intro conjI)
+      subgoal by (auto simp: rev_map[symmetric] twl_array_code_ops.vmtf_imp_def option_hd_rev
+            map_option_option_last)
+      subgoal by (auto simp: rev_map[symmetric] twl_array_code_ops.vmtf_imp_def option_hd_rev
+            map_option_option_last)
+      subgoal by (auto simp: rev_map[symmetric] twl_array_code_ops.vmtf_imp_def option_hd_rev
+            map_option_option_last)
+      subgoal by (auto simp: rev_map[symmetric] twl_array_code_ops.vmtf_imp_def option_hd_rev
+            map_option_option_last)
+      subgoal by (auto simp: rev_map[symmetric] twl_array_code_ops.vmtf_imp_def option_hd_rev
+            map_option_option_last)
+      subgoal by (auto simp: rev_map[symmetric] twl_array_code_ops.vmtf_imp_def option_hd_rev
+            map_option_option_last dest: length_ba)
+      subgoal by (auto simp: rev_map[symmetric] twl_array_code_ops.vmtf_imp_def option_hd_rev
+            map_option_option_last dest: in_N_in_N1)
+      done
     done
-  then show ?thesis by auto
 qed
+
+lemma initialise_VMTF_href:
+  \<open>(uncurry initialise_VMTF_code, uncurry (\<lambda>N (_::nat). RES (twl_array_code_ops.vmtf_imp N []))) \<in>
+   [\<lambda>(N, n). (\<forall>L\<in>set N. nat_of_uint32 (L >> 1) < n) \<and> distinct (map ((\<lambda>x. x >> 1) o nat_of_uint32) N)]\<^sub>a
+   (list_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> vmtf_remove_conc\<close>
+  using initialise_VMTF_code.refine[FCOMP initialise_VMTF] unfolding nat_shiftr_div2 by simp
 
 definition SAT_wl' :: \<open>nat clauses_l \<Rightarrow> bool nres\<close> where
   \<open>SAT_wl' CS = do{
@@ -1205,9 +1223,9 @@ definition (in twl_array_code_ops) init_state_wl_D :: \<open>nat \<Rightarrow> t
      WS \<leftarrow> arrayO_ara_empty_sz_code n;
      M \<leftarrow> Array.new (shiftr1 n) None;
      M' \<leftarrow> Array.new (shiftr1 n) (0::uint32);
-     A \<leftarrow> Array.new (shiftr1 n) (l_vmtf_ATM 0 None None);
+     vm \<leftarrow> initialise_VMTF_code N\<^sub>0 n;
      \<phi> \<leftarrow> Array.new (shiftr1 n) False;
-     return ((([], M, M', 0), ((A, 0::nat, None, None), []), \<phi>), N, 0, None, [], [], [], WS)
+     return ((([], M, M', 0), vm, \<phi>), N, 0, None, [], [], [], WS)
   }\<close>
 
 lemma fold_cons_replicate: \<open>fold (\<lambda>_ xs. a # xs) [0..<n] xs = replicate n a @ xs\<close>
