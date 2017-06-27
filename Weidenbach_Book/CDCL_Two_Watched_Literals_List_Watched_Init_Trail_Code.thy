@@ -1011,7 +1011,7 @@ definition initialise_VMTF :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow>
   }\<close>
 
 
-lemma
+lemma initialise_VMTF:
   assumes L_N: \<open>\<forall>L\<in>set N. nat_of_uint32 (L >> 1) < n\<close> and
     dist: \<open>distinct (map ((\<lambda>x. x >> 1) o nat_of_uint32) N)\<close>
   shows \<open>initialise_VMTF N n \<le> \<Down> Id (RES (twl_array_code_ops.vmtf_imp N []))\<close> (is \<open>?init \<le> \<Down> _ ?R\<close>)
@@ -1026,17 +1026,16 @@ proof -
      nat_of_uint32 (N ! lst) div 2 = nat_of_uint32 x div 2 \<Longrightarrow> x \<in> set N \<Longrightarrow> x = N!lst\<close>
     for lst x
     apply (induction N arbitrary: lst x)
-     apply auto
-    apply (case_tac lst)
-      apply (auto simp: nth_Cons)
-    apply (metis (mono_tags, lifting) comp_apply image_iff nth_mem)
-    by (smt Nitpick.case_nat_unfold comp_apply diff_Suc_1 image_iff less_Suc_eq_0_disj)
-    have K2: \<open>distinct (map ((\<lambda>x. x div 2) \<circ> nat_of_uint32) N) \<Longrightarrow> lst < length N \<Longrightarrow>
+    subgoal by auto
+    subgoal for a N lst x
+       using nth_mem by (case_tac lst) (fastforce simp: nth_Cons comp_def image_iff)+
+    done
+  have K2: \<open>distinct (map ((\<lambda>x. x div 2) \<circ> nat_of_uint32) N) \<Longrightarrow> lst < length N \<Longrightarrow>
      nat_of_uint32 (N ! lst) div 2 = nat_of_uint32 x div 2 \<Longrightarrow> x \<in> set (take lst N) \<Longrightarrow> False\<close>
-       for lst x
-      using K1[of lst x, OF _ _ _ in_set_takeD[of _ lst]] apply (auto 5 5 dest: )
-      by (metis (no_types, lifting) distinct_Ex1 distinct_mapI distinct_take length_take
-          less_not_refl min_less_iff_conj nth_eq_iff_index_eq nth_take)
+    for lst x
+    using K1[of lst x, OF _ _ _ in_set_takeD[of _ lst]]
+    by (metis (no_types, lifting) distinct_mapI in_set_conv_nth length_take less_not_refl
+        min_less_iff_conj nth_eq_iff_index_eq nth_take)
   let ?sh = \<open>\<lambda>x. x >> 1\<close>
   have W_ref: \<open>WHILE\<^sub>T (\<lambda>(N, A, st, cnext). N \<noteq> [])
          (\<lambda>(N, A, st, cnext). RETURN (tl N, vmtf_cons A (nat_of_uint32 (hd N >> 1)) cnext st, st + 1, Some (nat_of_uint32 (hd N >> 1))))
@@ -1275,7 +1274,6 @@ proof -
     apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i, _). length xs - i)\<close>])
            apply (auto simp: nths_upt_Suc )
     by (metis order_mono_setup.refl nths_id_iff)
-
 qed
 
 sepref_register init_state_wl
