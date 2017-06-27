@@ -1058,9 +1058,13 @@ proof -
     by (metis (no_types, lifting) distinct_mapI in_set_conv_nth length_take less_not_refl
         min_less_iff_conj nth_eq_iff_index_eq nth_take)
   let ?sh = \<open>\<lambda>x. x >> 1\<close>
-  have W_ref: \<open>WHILE\<^sub>T (\<lambda>(N, A, st, cnext). N \<noteq> [])
-         (\<lambda>(N, A, st, cnext). RETURN (tl N, vmtf_cons A (nat_of_uint32 (hd N >> 1)) cnext st, st + 1, Some (nat_of_uint32 (hd N >> 1))))
-         (N, replicate n (l_vmtf_ATM 0 None None), 0, None)
+  have W_ref: \<open> WHILE\<^sub>T (\<lambda>(N, A, st, cnext). N \<noteq> [])
+     (\<lambda>(N, A, st, cnext).
+         ASSERT (N \<noteq> []) \<bind>
+         (\<lambda>_. ASSERT (nat_of_uint32 (hd N >> 1) < length A) \<bind>
+               (\<lambda>_. ASSERT (cnext \<noteq> None \<longrightarrow> the cnext < length A) \<bind>
+                     (\<lambda>_. RETURN (tl N, vmtf_cons A (nat_of_uint32 (hd N >> 1)) cnext st, st + 1, Some (nat_of_uint32 (hd N >> 1)))))))
+     (N, replicate n (l_vmtf_ATM 0 None None), 0, None)
     \<le> SPEC(\<lambda>(N', A', st, cnext). l_vmtf (rev (map (?sh o nat_of_uint32) (take (length N - length N') N))) st A'
       \<and> cnext = map_option (?sh o nat_of_uint32) (option_last (take (length N - length N') N)) \<and>
     N' = drop st N \<and> length N' \<le> length N \<and> st \<le> length N \<and>
@@ -1081,7 +1085,7 @@ proof -
     subgoal by auto
     subgoal by (auto simp: l_vmtf_notin_empty)
     subgoal for S N' x2 A' x2a lst cnext
-      apply (clarify intro!: RETURN_rule)
+      unfolding assert_bind_spec_conv
       apply (intro conjI)
       subgoal
         using L_N dist
@@ -1089,18 +1093,38 @@ proof -
             option_last_def hd_rev last_map intro!: vmtf_cons dest: K2)
       subgoal
         using L_N dist
-        by (auto simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
-            option_last_def hd_rev last_map intro!: vmtf_cons)
-      subgoal by (auto simp: drop_Suc tl_drop)
-      subgoal by auto
-      subgoal by auto
-      subgoal by (auto simp: tl_drop)
-      subgoal by auto
-      subgoal
-        using L_N dist
         by (auto 5 5 simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
-            option_last_def hd_rev last_map intro!: vmtf_notin_vmtf_cons dest: K2)
-      subgoal by auto
+            option_last_def hd_rev last_map intro!: vmtf_cons dest: K2)
+      subgoal
+        using L_N dist  List.last_in_set[of \<open>take lst N\<close>] set_take_subset[of lst N]
+        by (auto 5 5 simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+            option_last_def hd_rev last_map)
+      subgoal
+        apply (rule RETURN_rule)
+        apply (clarify intro!: RETURN_rule)
+        apply (intro conjI)
+        subgoal
+          using L_N dist
+          by (auto 5 5 simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+              option_last_def hd_rev last_map intro!: vmtf_cons dest: K2)
+        subgoal
+          using L_N dist
+          by (auto 5 5 simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+              option_last_def hd_rev last_map intro!: vmtf_cons dest: K2)
+        subgoal by (auto simp: drop_Suc tl_drop)
+        subgoal by auto
+        subgoal by auto
+        subgoal by (auto simp: tl_drop)
+        subgoal by auto
+        subgoal
+          using L_N dist
+          by (auto 5 5 simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+              option_last_def hd_rev last_map intro!: vmtf_notin_vmtf_cons dest: K2)
+        subgoal
+          using L_N dist
+          by (auto 5 5 simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+              option_last_def hd_rev last_map intro!: vmtf_notin_vmtf_cons dest: K2)
+        done
       done
     subgoal by auto
     subgoal by auto
