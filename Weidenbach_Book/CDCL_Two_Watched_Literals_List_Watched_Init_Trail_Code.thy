@@ -1236,73 +1236,29 @@ lemma (in -)arrayO_raa_empty_sz_init_lrl[sepref_fr_rules]:
   \<open>(arrayO_ara_empty_sz_code, RETURN o init_lrl) \<in>
     nat_assn\<^sup>k \<rightarrow>\<^sub>a arrayO_assn (arl_assn R)\<close>
   using arrayO_ara_empty_sz_code.refine unfolding arrayO_ara_empty_sz_init_lrl .
-term arrayO_raa_append
-term arrayO_ara_empty_sz
-
-thm initialise_VMTF_code.refine
-
 
 lemma shiftr1_fref[sepref_fr_rules]: \<open>(return o shiftr1, RETURN o shiftr1) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   by sepref_to_hoare sep_auto
+
 sepref_register initialise_VMTF
 
-
-context twl_array_code_ops
-begin
-
-lemma N\<^sub>0_hnr'[sepref_import_param]:
-  "(N\<^sub>0, N\<^sub>0)\<in> \<langle>uint32_rel\<rangle> list_rel"
-  by (sep_auto simp: )
-definition initialise_VMTF' :: \<open>nat \<Rightarrow> (vmtf_imp_remove) nres\<close> where
-\<open>initialise_VMTF' n = (initialise_VMTF N\<^sub>0) n\<close>
-
-sepref_register initialise_VMTF'
-
-lemma initialise_VMTF'[sepref_fr_rules]: \<open>(initialise_VMTF_code N\<^sub>0, (PR_CONST initialise_VMTF')) \<in> 
-    nat_assn\<^sup>k \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
-proof -
-  have [symmetric, simp]: \<open>nat_assn = hn_val nat_rel\<close>
-    unfolding hn_ctxt_def ..
-  have [simp]: \<open>uint32_assn a a = emp\<close> for a
-    unfolding pure_def
-    by (sep_auto)
-  have [simp]: \<open>hn_ctxt (list_assn uint32_assn) N\<^sub>0 N\<^sub>0 = emp\<close>
-    unfolding hn_ctxt_def by (induction N\<^sub>0) sep_auto+
-  show ?thesis
-    unfolding PR_CONST_def initialise_VMTF'_def hfref_def
-    apply sep_auto
-    subgoal for c a
-      using initialise_VMTF_code.refine[to_hnr, of a c N\<^sub>0 N\<^sub>0]
-      by sep_auto
-    done
-qed
-
-concrete_definition (in -) initialise_VMTF'_code
-  uses "twl_array_code_ops.initialise_VMTF'"
-  is "(?f,_)\<in>_"
-
-prepare_code_thms (in -) initialise_VMTF'_code_def
-
-lemmas (in twl_array_code_ops)init_state_wl_D_code_refine[sepref_fr_rules] =
-    initialise_VMTF'_code.refine[of N\<^sub>0]
-
-definition init_trail_D :: \<open>nat \<Rightarrow> trail_int nres\<close> where
-  \<open>init_trail_D n = do {
+definition init_trail_D :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> trail_int nres\<close> where
+  \<open>init_trail_D N\<^sub>0 n = do {
      let M = replicate (shiftr1 n) None;
      let M' = replicate (shiftr1 n) zero_uint32;
      let \<phi> = replicate (shiftr1 n) False;
-     vm \<leftarrow> initialise_VMTF' n; 
+     vm \<leftarrow> initialise_VMTF N\<^sub>0 n;
      RETURN (([], M, M', zero_uint32), vm, \<phi>)
   }\<close>
 
-sepref_thm init_trail_D_code
-  is \<open>PR_CONST init_trail_D\<close>
-  :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_conc\<close>
+sepref_definition init_trail_D_code
+  is \<open>uncurry init_trail_D\<close>
+  :: \<open>(list_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_conc\<close>
   unfolding init_trail_D_def PR_CONST_def
   supply uint32_nat_assn_zero_uint32[sepref_fr_rules]
   apply (rewrite in "((\<hole>, _, _, _), _, _)" HOL_list.fold_custom_empty)
   apply (rewrite in "((\<hole>, _, _, _), _, _)" annotate_assn[where A=pair_nat_ann_lits_assn])
-  
+
   apply (rewrite in "let _ = \<hole> in _" annotate_assn[where A=phase_saver_conc])
   apply (rewrite in "let _ = \<hole> in _" annotate_assn[where A=\<open>array_assn (option_assn bool_assn)\<close>])
   apply (rewrite in "let _ = \<hole> in _" annotate_assn[where A=\<open>array_assn uint32_nat_assn\<close>])
@@ -1312,26 +1268,81 @@ sepref_thm init_trail_D_code
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) init_trail_D_code
-  uses "twl_array_code_ops.init_trail_D_code.refine_raw"
-  is "(?f,_)\<in>_"
+declare init_trail_D_code.refine[sepref_fr_rules]
 
-prepare_code_thms (in -) init_trail_D_code_def
-
-lemmas (in twl_array_code_ops) init_trail_D_code_refine[sepref_fr_rules] =
-    init_trail_D_code.refine[of N\<^sub>0]
-
-definition init_state_wl_D' :: \<open>nat \<Rightarrow> (trail_int \<times> _ list list \<times>
+definition init_state_wl_D' :: \<open>uint32 list \<Rightarrow>  (trail_int \<times> _ list list \<times>
      nat \<times> _) nres\<close> where
-  \<open>init_state_wl_D' l_Ns = do {
+  \<open>init_state_wl_D' N\<^sub>0 = do {
      let n = Suc (Suc (nat_of_uint32 (fold max N\<^sub>0 0)));
-     M \<leftarrow> init_trail_D n;
+     M \<leftarrow> init_trail_D N\<^sub>0 n;
      let e = [];
      let N = init_rll n;
      let N = N @ [e];
-     let WS = init_rll n;
+     let WS = init_lrl n;
      RETURN (M, N, 0, None, [], [], [], WS)
   }\<close>
+
+lemma (in -)atm_of_uminus_lit_of_nat: \<open>atm_of (- literal_of_nat x) = x div 2\<close>
+  by (cases x) auto
+
+lemma (in twl_array_code_ops)in_atms_of_N\<^sub>1_iff:
+   \<open>atm_of L \<in> atms_of (N\<^sub>1) \<longleftrightarrow> L \<in> set N\<^sub>0' \<or> -L \<in> set N\<^sub>0'\<close>
+  by (auto simp: N\<^sub>1_def N\<^sub>0''_def atm_of_eq_atm_of atms_of_def
+      atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
+
+(*TODO Move*)
+lemma (in -)nths_upt_Suc: \<open>aa < length xs \<Longrightarrow> nths xs {0..<Suc aa} = nths xs {0..<aa} @ [xs ! aa]\<close>
+  by (simp add: atLeast0LessThan take_Suc_conv_app_nth)
+(*END Move*)
+
+term twl_array_code_ops.twl_st_l_trail_assn
+sepref_definition init_state_wl_D'_code
+  is \<open>init_state_wl_D'\<close>
+  :: \<open>(list_assn uint32_assn)\<^sup>k \<rightarrow>\<^sub>a trail_conc *assn clauses_ll_assn *assn nat_assn *assn
+    option_assn (arl_assn unat_lit_assn) *assn
+    list_assn (list_assn unat_lit_assn) *assn
+    list_assn (list_assn unat_lit_assn) *assn
+    list_assn unat_lit_assn *assn
+    (arrayO_assn (arl_assn nat_assn))\<close>
+  unfolding init_state_wl_D'_def
+  apply (rewrite at \<open>(_, _, _, _, \<hole>, _, _, _)\<close> HOL_list.fold_custom_empty)
+  apply (rewrite at \<open>(_, _, _, _, \<hole>, _, _, _)\<close> annotate_assn[where A=\<open>list_assn (list_assn unat_lit_assn)\<close>])
+  apply (rewrite at \<open>(_, _, _, _, _, \<hole>, _, _)\<close> HOL_list.fold_custom_empty)
+  apply (rewrite at \<open>(_, _, _, _, _, \<hole>, _, _)\<close> annotate_assn[where A=\<open>list_assn (list_assn unat_lit_assn)\<close>])
+  apply (rewrite at \<open>(_, _, _, _, _, _, \<hole>, _)\<close> HOL_list.fold_custom_empty)
+  apply (rewrite at \<open>(_, _, _, _, _, _, \<hole>, _)\<close> annotate_assn[where A=\<open>list_assn unat_lit_assn\<close>])
+  apply (rewrite at \<open>(_, _, _, \<hole>, _, _, _, _)\<close> annotate_assn[where A=\<open>option_assn (arl_assn unat_lit_assn)\<close>])
+  apply (rewrite at \<open>let _ = \<hole> in _\<close> array.fold_custom_empty)
+  apply (rewrite at "let _ = \<hole> in _" annotate_assn[where A=\<open>array_assn unat_lit_assn\<close>])
+  apply (rewrite at "let _ = _; _ = \<hole> in _" annotate_assn[where A=\<open>clauses_ll_assn\<close>])
+  apply (rewrite at "let _ = _ @ _; _= \<hole> in _" annotate_assn[where A=\<open>(arrayO_assn (arl_assn nat_assn))\<close>])
+  supply [[goals_limit = 1]]
+  supply max_uint32[sepref_fr_rules]
+  by sepref
+
+lemma \<open>(uncurry init_trail_D, uncurry (RETURN oo (\<lambda> _ _. []))) \<in>[\<lambda>(N, _). N = N\<^sub>0]\<^sub>f \<langle>Id\<rangle>list_rel \<times>\<^sub>r nat_rel \<rightarrow>
+   \<langle>twl_array_code_ops.trail_ref N\<^sub>0\<rangle> nres_rel\<close>
+  unfolding init_trail_D_def
+  oops
+
+lemma
+  \<open>(init_state_wl_D', RETURN o twl_array_code_ops.init_state_wl) \<in>
+    [\<lambda>N. N = N\<^sub>0]\<^sub>f \<langle>Id\<rangle>list_rel \<rightarrow> \<langle>twl_array_code_ops.trail_ref N\<^sub>0 \<times>\<^sub>r \<langle>\<langle>nat_lit_rel\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r
+        \<langle>list_mset_rel\<rangle>option_rel \<times>\<^sub>r list_mset_rel O
+        \<langle>list_mset_rel O \<langle>unat_lit_rel\<rangle>mset_rel\<rangle>mset_rel \<times>\<^sub>r
+        list_mset_rel O \<langle>list_mset_rel O \<langle>unat_lit_rel\<rangle>mset_rel\<rangle>mset_rel \<times>\<^sub>r list_mset_rel O \<langle>unat_lit_rel\<rangle>mset_rel \<times>\<^sub>r (\<langle>Id\<rangle>map_fun_rel (twl_array_code_ops.D\<^sub>0 N\<^sub>0))\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  unfolding init_state_wl_D'_def twl_array_code_ops.init_state_wl_def
+  apply refine_rcg
+  apply (auto)
+  oops
+
+lemma
+  \<open>(init_state_wl_D'_code, RETURN o twl_array_code_ops.init_state_wl) \<in>
+    [\<lambda>N. N = N\<^sub>0]\<^sub>a(list_assn uint32_assn)\<^sup>k \<rightarrow> twl_array_code_ops.twl_st_l_trail_assn N\<^sub>0\<close>
+  using init_state_wl_D'_code.refine
+  oops
+
 definition (in twl_array_code_ops) init_state_wl_D :: \<open>nat \<Rightarrow> twl_st_wll_trail Heap\<close> where
   \<open>init_state_wl_D l_Ns = do {
      let n = Suc (Suc (nat_of_uint32 (fold max N\<^sub>0 0)));
