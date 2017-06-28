@@ -9,6 +9,8 @@ theory New5_FO_Resolution_Prover
 imports New3_Ordered_Ground_Resolution Standard_Redundancy Substitution Clauses 
 begin
 
+(* locale_deps *)
+
 type_synonym 'a state = "'a clause set \<times> 'a clause set \<times> 'a clause set"
               
 locale FO_resolution =
@@ -1074,6 +1076,15 @@ begin
 
 interpretation gd: ground_resolution_with_selection S
   by unfold_locales
+
+(*
+locale_deps
+*)
+
+(*
+interpretation gd_unord: ground_resolution_without_selection
+*)
+                       
 
 (*"grounding_of_clss N0"*)
 
