@@ -902,105 +902,6 @@ lemma (in -) map_uint32_of_lit[sepref_fr_rules]:
       lit_of_natP_def map_uint32_of_lit_def list_rel_def list_all2_op_eq_map_right_iff comp_def
       simp del: literal_of_nat.simps)
 
-definition vmtf_cons where
-\<open>vmtf_cons A L cnext st =
-  (let
-    A = A[L := l_vmtf_ATM (Suc st) None cnext];
-    A = (case cnext of None \<Rightarrow> A
-        | Some cnext \<Rightarrow> A[cnext := l_vmtf_ATM (stamp (A!cnext)) (Some L) (get_next (A!cnext))]) in
-  A)
-\<close>
-
-(* TODO: Move + use (search for l_vmtf_eq_iff/l_vmtf_eq_iffI in VMTF)*)
-lemma l_vmtf_Cons:
-  assumes
-    vmtf: \<open>l_vmtf (b # l) m xs\<close> and
-    a_xs: \<open>a < length xs\<close> and
-    ab: \<open>a \<noteq> b\<close> and
-    a_l: \<open>a \<notin> set l\<close> and
-    nm: \<open>n > m\<close> and
-    xs': \<open>xs' = xs[a := l_vmtf_ATM n None (Some b),
-         b := l_vmtf_ATM (stamp (xs!b)) (Some a) (get_next (xs!b))]\<close> and
-    nn': \<open>n' \<ge> n\<close>
-  shows \<open>l_vmtf (a # b # l) n' xs'\<close>
-proof -
-  have \<open>l_vmtf (b # l) m (xs[a := l_vmtf_ATM n None (Some b)])\<close>
-    apply (rule l_vmtf_eq_iffI[OF _ _ vmtf])
-    subgoal using ab a_l a_xs by auto
-    subgoal using a_xs l_vmtf_le_length[OF vmtf] by auto
-    done
-  then show ?thesis
-    apply (rule l_vmtf.Cons[of _ _ _ _ _ n])
-    subgoal using a_xs by simp
-    subgoal using a_xs by simp
-    subgoal using ab .
-    subgoal using a_l .
-    subgoal using nm .
-    subgoal using xs' ab a_xs by (cases \<open>xs ! b\<close>) auto
-    subgoal using nn' .
-    done
-qed
-
-lemma vmtf_notin_vmtf_cons:
-  assumes
-    l_vmtf: \<open>l_vmtf_notin xs m A\<close> and
-    cnext: \<open>cnext = option_hd xs\<close> and
-    L_xs: \<open>L \<notin> set xs\<close>
-  shows
-    \<open>l_vmtf_notin (L # xs) (Suc m) (vmtf_cons A L cnext m)\<close>
-proof (cases xs)
-  case Nil
-  then show ?thesis
-    using assms by (auto simp: l_vmtf_notin_def vmtf_cons_def elim: l_vmtfE)
-next
-  case (Cons L' xs') note xs = this
-  thm l_vmtf.Cons
-  show ?thesis
-    using assms
-    unfolding xs l_vmtf_notin_def xs vmtf_cons_def
-    by auto
-qed
-
-lemma vmtf_cons:
-  assumes
-    l_vmtf: \<open>l_vmtf xs m A\<close> and
-    cnext: \<open>cnext = option_hd xs\<close> and
-    L_A: \<open>L < length A\<close> and
-    L_xs: \<open>L \<notin> set xs\<close>
-  shows
-    \<open>l_vmtf (L # xs) (Suc m) (vmtf_cons A L cnext m)\<close>
-proof (cases xs)
-  case Nil
-  then show ?thesis
-    using assms by (auto simp: l_vmtf_single_iff vmtf_cons_def elim: l_vmtfE)
-next
-  case (Cons L' xs') note xs = this
-  thm l_vmtf.Cons
-  show ?thesis
-    unfolding xs
-    apply (rule l_vmtf_Cons[OF l_vmtf[unfolded xs], of _ \<open>Suc m\<close>])
-    subgoal using L_A .
-    subgoal using L_xs unfolding xs by simp
-    subgoal using L_xs unfolding xs by simp
-    subgoal by simp
-    subgoal using cnext L_xs
-      by (auto simp: vmtf_cons_def Let_def xs)
-    subgoal by linarith
-    done
-qed
-
-lemma length_vmtf_cons[simp]: \<open>length (vmtf_cons A L n m) = length A\<close>
-  by (auto simp: vmtf_cons_def Let_def split: option.splits)
-
-lemma option_hd_rev: \<open>option_hd (rev xs) = option_last xs\<close>
-  by (cases xs rule: rev_cases) auto
-
-lemma map_option_option_last:
-  \<open>map_option f (option_last xs) = option_last (map f xs)\<close>
-  by (cases xs rule: rev_cases) auto
-
-(* End Move *)
-
 definition initialise_VMTF :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> (vmtf_imp_remove) nres\<close> where
 \<open>initialise_VMTF N n = do {
    let A = replicate n (l_vmtf_ATM 0 None None);
@@ -1289,11 +1190,6 @@ lemma (in twl_array_code_ops)in_atms_of_N\<^sub>1_iff:
    \<open>atm_of L \<in> atms_of (N\<^sub>1) \<longleftrightarrow> L \<in> set N\<^sub>0' \<or> -L \<in> set N\<^sub>0'\<close>
   by (auto simp: N\<^sub>1_def N\<^sub>0''_def atm_of_eq_atm_of atms_of_def
       atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
-
-(*TODO Move*)
-lemma (in -)nths_upt_Suc: \<open>aa < length xs \<Longrightarrow> nths xs {0..<Suc aa} = nths xs {0..<aa} @ [xs ! aa]\<close>
-  by (simp add: atLeast0LessThan take_Suc_conv_app_nth)
-(*END Move*)
 
 term twl_array_code_ops.twl_st_l_trail_assn
 sepref_definition init_state_wl_D'_code

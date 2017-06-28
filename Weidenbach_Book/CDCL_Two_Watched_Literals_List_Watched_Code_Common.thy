@@ -603,12 +603,12 @@ proof -
     case xs: (Cons a xs')
     have index_first: \<open>index (nths (a # xs') {n..<Suc (length xs')}) ((a # xs') ! n) = 0\<close>
       if \<open>n < length xs'\<close> for n
-      using that by (metis index_Cons length_Cons less_SucI nths_upt_Suc)
+      using that by (simp add: less_SucI nths_upt_Suc')
     have [simp]: "nths (a # xs') {n..<Suc (length xs')} =
     (a # xs') ! n # nths (a # xs') {Suc n..<Suc (length xs')}"
       if a2: "n < length xs'" for n -- \<open>auto is not able to derive it automatically
       because of @{thm length_Cons}\<close>
-      using a2 by (metis length_Cons less_SucI nths_upt_Suc)
+      using a2 by (simp add: less_SucI nths_upt_Suc')
 
     have \<open>k < Suc (length xs')\<close>
       using that xs by auto
@@ -1949,15 +1949,12 @@ proof -
     case xs: (Cons a xs')
     have index_first: \<open>index (nths (a # xs') {n..<Suc (length xs')}) ((a # xs') ! n) = 0\<close>
       if \<open>n < length xs'\<close> for n
-      using that by (metis index_Cons length_Cons less_SucI nths_upt_Suc)
+      using that by (simp add: nths_upt_Suc')
     have [simp]: "nths (f a # map f xs') {n..<Suc (length xs')} =
     (f a # map f xs') ! n # nths (f a # map f xs') {Suc n..<Suc (length xs')}"
       if a2: "n < length xs'" for n -- \<open>auto is not able to derive it automatically
       because of @{thm length_Cons}\<close>
-      using a2
-      apply (subst length_Cons[of a, symmetric])+
-      apply (subst length_map[of f \<open>a # xs'\<close>, symmetric])+
-      by (metis length_Cons length_map less_SucI nths_upt_Suc)
+      using a2 by (simp add: nths_upt_Suc')
     have [simp]: \<open>(f a # map f xs') ! n = f ((a # xs') ! n)\<close> if \<open>n < length (a#xs')\<close> for n
       unfolding list.map[symmetric]
       by (subst nth_map) (use that in auto)

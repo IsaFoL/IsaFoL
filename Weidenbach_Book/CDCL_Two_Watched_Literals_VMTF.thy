@@ -46,6 +46,13 @@ lemma option_last_remove1_not_last:
   by (cases xs rule: rev_cases)
     (auto simp: option_last_def remove1_Nil_iff remove1_append)
 
+lemma option_hd_rev: \<open>option_hd (rev xs) = option_last xs\<close>
+  by (cases xs rule: rev_cases) auto
+
+lemma map_option_option_last:
+  \<open>map_option f (option_last xs) = option_last (map f xs)\<close>
+  by (cases xs rule: rev_cases) auto
+
 
 subsubsection \<open>Specification\<close>
 
@@ -1889,11 +1896,100 @@ proof -
     by fast
 qed
 
+end
+
+
+lemma l_vmtf_Cons:
+  assumes
+    vmtf: \<open>l_vmtf (b # l) m xs\<close> and
+    a_xs: \<open>a < length xs\<close> and
+    ab: \<open>a \<noteq> b\<close> and
+    a_l: \<open>a \<notin> set l\<close> and
+    nm: \<open>n > m\<close> and
+    xs': \<open>xs' = xs[a := l_vmtf_ATM n None (Some b),
+         b := l_vmtf_ATM (stamp (xs!b)) (Some a) (get_next (xs!b))]\<close> and
+    nn': \<open>n' \<ge> n\<close>
+  shows \<open>l_vmtf (a # b # l) n' xs'\<close>
+proof -
+  have \<open>l_vmtf (b # l) m (xs[a := l_vmtf_ATM n None (Some b)])\<close>
+    apply (rule l_vmtf_eq_iffI[OF _ _ vmtf])
+    subgoal using ab a_l a_xs by auto
+    subgoal using a_xs l_vmtf_le_length[OF vmtf] by auto
+    done
+  then show ?thesis
+    apply (rule l_vmtf.Cons[of _ _ _ _ _ n])
+    subgoal using a_xs by simp
+    subgoal using a_xs by simp
+    subgoal using ab .
+    subgoal using a_l .
+    subgoal using nm .
+    subgoal using xs' ab a_xs by (cases \<open>xs ! b\<close>) auto
+    subgoal using nn' .
+    done
+qed
+
+definition (in -) vmtf_cons where
+\<open>vmtf_cons A L cnext st =
+  (let
+    A = A[L := l_vmtf_ATM (Suc st) None cnext];
+    A = (case cnext of None \<Rightarrow> A
+        | Some cnext \<Rightarrow> A[cnext := l_vmtf_ATM (stamp (A!cnext)) (Some L) (get_next (A!cnext))]) in
+  A)
+\<close>
+
+lemma vmtf_notin_vmtf_cons:
+  assumes
+    l_vmtf: \<open>l_vmtf_notin xs m A\<close> and
+    cnext: \<open>cnext = option_hd xs\<close> and
+    L_xs: \<open>L \<notin> set xs\<close>
+  shows
+    \<open>l_vmtf_notin (L # xs) (Suc m) (vmtf_cons A L cnext m)\<close>
+proof (cases xs)
+  case Nil
+  then show ?thesis
+    using assms by (auto simp: l_vmtf_notin_def vmtf_cons_def elim: l_vmtfE)
+next
+  case (Cons L' xs') note xs = this
+  show ?thesis
+    using assms unfolding xs l_vmtf_notin_def xs vmtf_cons_def by auto
+qed
+
+lemma vmtf_cons:
+  assumes
+    l_vmtf: \<open>l_vmtf xs m A\<close> and
+    cnext: \<open>cnext = option_hd xs\<close> and
+    L_A: \<open>L < length A\<close> and
+    L_xs: \<open>L \<notin> set xs\<close>
+  shows
+    \<open>l_vmtf (L # xs) (Suc m) (vmtf_cons A L cnext m)\<close>
+proof (cases xs)
+  case Nil
+  then show ?thesis
+    using assms by (auto simp: l_vmtf_single_iff vmtf_cons_def elim: l_vmtfE)
+next
+  case (Cons L' xs') note xs = this
+  show ?thesis
+    unfolding xs
+    apply (rule l_vmtf_Cons[OF l_vmtf[unfolded xs], of _ \<open>Suc m\<close>])
+    subgoal using L_A .
+    subgoal using L_xs unfolding xs by simp
+    subgoal using L_xs unfolding xs by simp
+    subgoal by simp
+    subgoal using cnext L_xs
+      by (auto simp: vmtf_cons_def Let_def xs)
+    subgoal by linarith
+    done
+qed
+
+lemma length_vmtf_cons[simp]: \<open>length (vmtf_cons A L n m) = length A\<close>
+  by (auto simp: vmtf_cons_def Let_def split: option.splits)
+
 
 subsection \<open>Phase saving\<close>
 
-type_synonym (in -) phase_saver = \<open>bool list\<close>
-definition phase_saving :: \<open>phase_saver \<Rightarrow> bool\<close> where
+type_synonym phase_saver = \<open>bool list\<close>
+
+definition (in twl_array_code_ops) phase_saving :: \<open>phase_saver \<Rightarrow> bool\<close> where
 \<open>phase_saving \<phi> \<longleftrightarrow> (\<forall>L\<in>atms_of N\<^sub>1. L < length \<phi>)\<close>
 
 definition get_saved_lit :: \<open>phase_saver \<Rightarrow> nat \<Rightarrow> nat literal\<close> where
@@ -1901,7 +1997,5 @@ definition get_saved_lit :: \<open>phase_saver \<Rightarrow> nat \<Rightarrow> n
 
 definition save_phase :: \<open>nat literal \<Rightarrow> phase_saver \<Rightarrow> phase_saver\<close> where
 \<open>save_phase L \<phi> = \<phi>[atm_of L := is_pos L]\<close>
-
-end
 
 end
