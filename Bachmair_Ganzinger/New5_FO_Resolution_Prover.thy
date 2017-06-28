@@ -1191,7 +1191,7 @@ lemma subst_subset_mono: "D \<subset># C \<Longrightarrow> D \<cdot> \<sigma> \<
 fun subst_inf :: "'a inference \<Rightarrow> 's \<Rightarrow> 'a inference" (infixl "\<cdot>i" 67) where
   "(Infer CC C E) \<cdot>i \<sigma> = Infer (CC \<cdot>cm \<sigma>) (C \<cdot> \<sigma>) (E \<cdot> \<sigma>)"
   
-lemma ord_FO_\<Gamma>_gd_ord_\<Gamma>': (* I have my doubts about this... *)
+lemma ord_FO_\<Gamma>_gd_ord_\<Gamma>'_bad: (* I have my doubts about this... *)
   assumes "\<gamma> \<in> ord_FO_\<Gamma>"
   assumes "is_ground_subst \<eta>"
   shows "\<gamma> \<cdot>i \<eta> \<in> gd_ord_\<Gamma>'"
@@ -1205,7 +1205,7 @@ proof -
     sorry
 qed
   
-lemma somethingIneed: (* Probably better than the above... *)
+lemma ord_FO_\<Gamma>_gd_ord_\<Gamma>': (* Probably better than the above... *)
   assumes resolve_ren: "ord_resolve_rename S CAi DA \<sigma> E"
   assumes "\<rho> = hd (mk_var_dis (DA#CAi))"
   assumes "\<rho>s = tl (mk_var_dis (DA#CAi))"
@@ -1226,18 +1226,18 @@ qed
    
 *)
     
-lemma eee: "(prems_of (\<gamma> \<cdot>i \<mu>)) = ((prems_of \<gamma>) \<cdot>cm \<mu>)"
+lemma prems_of_subst_inf_subst_cls_mset: "(prems_of (\<gamma> \<cdot>i \<mu>)) = ((prems_of \<gamma>) \<cdot>cm \<mu>)"
   apply auto
   apply (induction \<gamma>)
   apply auto
   done
     
     
-lemma fff: "set_mset (X \<cdot>cm \<mu>) = (set_mset X)  \<cdot>cs \<mu>"
+lemma set_mset_subst_cls_mset_subst_clss: "set_mset (X \<cdot>cm \<mu>) = (set_mset X)  \<cdot>cs \<mu>"
   by (simp add: subst_cls_mset_def subst_clss_def)
   
     
-lemma ggg: "infer_from x y \<Longrightarrow> z \<supseteq> x \<Longrightarrow> infer_from z y"
+lemma infer_from_superset: "infer_from x y \<Longrightarrow> z \<supseteq> x \<Longrightarrow> infer_from z y"
   by (meson infer_from_def lfp.leq_trans)
   
     
@@ -1705,13 +1705,13 @@ next
        defer
        apply (rule conjI)
         prefer 3
-      using ord_FO_\<Gamma>_gd_ord_\<Gamma>' \<gamma>_p E_\<mu>_p apply simp
+      using ord_FO_\<Gamma>_gd_ord_\<Gamma>'_bad \<gamma>_p E_\<mu>_p apply simp
        defer
       using \<gamma>_p
        apply (metis inference.collapse inference.simps(1) subst_inf.simps)
       using \<gamma>_p
       unfolding infer_from_def
-      using eee fff
+      using prems_of_subst_inf_subst_cls_mset set_mset_subst_cls_mset_subst_clss
       by (metis subset_Un_eq subst_clss_union)
     have "\<gamma> \<cdot>i \<mu> \<in> gd_ord_\<Gamma>' \<and> infer_from (grounding_of_state ({}, P \<union> {C}, Q)) (\<gamma> \<cdot>i \<mu>) \<and> concl_of (\<gamma> \<cdot>i \<mu>) = E \<cdot> \<mu>"
       apply (rule conjI)
@@ -1720,7 +1720,7 @@ next
       defer
       using tt apply simp
       apply (subgoal_tac "(Q \<union> {C}) \<cdot>cs \<mu> \<subseteq> grounding_of_state ({}, P \<union> {C}, Q)")
-      using ggg[of "((Q \<union> {C}) \<cdot>cs \<mu>)" " (\<gamma> \<cdot>i \<mu>) " "grounding_of_state ({}, P \<union> {C}, Q)"] tt
+      using infer_from_superset[of "((Q \<union> {C}) \<cdot>cs \<mu>)" " (\<gamma> \<cdot>i \<mu>) " "grounding_of_state ({}, P \<union> {C}, Q)"] tt
        apply simp
         using E_\<mu>_p
         unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def
@@ -1766,7 +1766,7 @@ The following corresponds to Lemma 4.11:
 definition is_least :: "(nat \<Rightarrow> bool) \<Rightarrow> nat \<Rightarrow> bool" where
   "is_least P n \<longleftrightarrow> P n \<and> (\<forall>n' < n. \<not>P n')"
   
-lemma least_yesyes: 
+lemma least_exists: 
   assumes "P n"
   shows "\<exists>n. is_least P n"
     using assms  exists_least_iff unfolding is_least_def by auto
@@ -1811,7 +1811,7 @@ proof -
     by auto
 qed
  
-lemma hmm:
+lemma in_lnth_grounding_in_lnth:
   assumes C_in: "C \<in> lnth (lmap grounding_of_state Sts) i"
   assumes i_p: "enat i < llength (lmap grounding_of_state Sts)"
   shows "\<exists>D \<sigma>. D \<in> clss_of_state (lnth Sts i) \<and> D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
@@ -1820,12 +1820,16 @@ proof -
   then show ?thesis unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def by auto
 qed
     
-lemma jajajajadxgetN:
+lemma getN_limit_state_llimit_getN:
   "getN (limit_state Sts) = llimit (lmap getN Sts)"
   unfolding limit_state_def by auto
 
-lemma jajajajadxgetP:
+lemma getP_limit_state_llimit_getP:
   "getP (limit_state Sts) = llimit (lmap getP Sts)"
+  unfolding limit_state_def by auto
+
+lemma getQ_limit_state_llimit_getQ:
+  "getQ (limit_state Sts) = llimit (lmap getQ Sts)"
   unfolding limit_state_def by auto
     
 lemma getN_subset:
@@ -1872,7 +1876,7 @@ proof (rule ccontr)
     unfolding llimit_def apply auto
     using i_Sts by blast
   then show False using fair unfolding fair_state_seq_def 
-    by (simp add: jajajajadxgetN)
+    by (simp add: getN_limit_state_llimit_getN)
 qed
 
 lemma eventually_deleted_P:
@@ -1897,7 +1901,7 @@ proof (rule ccontr)
     unfolding llimit_def apply auto
     using i_Sts by blast
   then show False using fair unfolding fair_state_seq_def 
-    by (simp add: jajajajadxgetP)
+    by (simp add: getP_limit_state_llimit_getP)
 qed
 
 lemma from_Q_to_Q_inf:
@@ -1950,7 +1954,7 @@ proof
   from i_p have "C \<in> lnth Ns i" 
     by auto
   then obtain D \<sigma> where D_p: "D \<in> clss_of_state (lnth Sts i)" "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
-    using i_p unfolding ns using hmm by blast
+    using i_p unfolding ns using in_lnth_grounding_in_lnth by blast
   then have "D \<in> ?Ns i \<or> D \<in> ?Ps i \<or> D \<in> ?Qs i"
     unfolding clss_of_state_def by auto
   moreover
@@ -2020,7 +2024,7 @@ proof
   then have "C \<in> lnth Ns i" 
     by auto
   then obtain D \<sigma> where D_p: "D \<in> clss_of_state (lnth Sts i) \<and> D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
-    using i_p unfolding ns using hmm by blast
+    using i_p unfolding ns using in_lnth_grounding_in_lnth by blast
   then have "D \<in> ?Ns i \<or> D \<in> ?Ps i \<or> D \<in> ?Qs i"
     unfolding clss_of_state_def by auto
   moreover
