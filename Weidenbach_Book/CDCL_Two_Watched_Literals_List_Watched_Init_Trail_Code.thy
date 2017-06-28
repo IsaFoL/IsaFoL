@@ -1174,12 +1174,13 @@ declare init_trail_D_code.refine[sepref_fr_rules]
 definition init_state_wl_D' :: \<open>uint32 list \<Rightarrow>  (trail_int \<times> _ list list \<times>
      nat \<times> _) nres\<close> where
   \<open>init_state_wl_D' N\<^sub>0 = do {
-     let n = Suc (Suc (nat_of_uint32 (fold max N\<^sub>0 0)));
+     let n = Suc (shiftr1 (nat_of_uint32 (fold max N\<^sub>0 0)));
+     let m = Suc (Suc (nat_of_uint32 (fold max N\<^sub>0 0)));
      M \<leftarrow> init_trail_D N\<^sub>0 n;
      let e = [];
      let N = init_rll n;
      let N = N @ [e];
-     let WS = init_lrl n;
+     let WS = init_lrl m;
      RETURN (M, N, 0, None, [], [], [], WS)
   }\<close>
 
@@ -1216,7 +1217,7 @@ sepref_definition init_state_wl_D'_code
   supply max_uint32[sepref_fr_rules]
   by sepref
 
-lemma bind_refine_res: \<open>(\<And>x. x \<in>\<Phi> \<Longrightarrow> f x \<le> \<Down> R M) \<Longrightarrow> M' \<le> RES \<Phi> \<Longrightarrow> M' \<bind> f \<le> \<Down> R M\<close>
+lemma bind_refine_res: \<open>(\<And>x. x \<in> \<Phi> \<Longrightarrow> f x \<le> \<Down> R M) \<Longrightarrow> M' \<le> RES \<Phi> \<Longrightarrow> M' \<bind> f \<le> \<Down> R M\<close>
   by (auto simp add: pw_le_iff refine_pw_simps)
 
 lemma (in twl_array_code_ops) in_atms_of_N\<^sub>1_N\<^sub>0''_def:
@@ -1250,21 +1251,87 @@ proof -
         twl_array_code_ops.phase_saving_def twl_array_code_ops.in_atms_of_N\<^sub>1_N\<^sub>0''_def)
 qed
 
-lemma
+lemma init_state_wl_D':
   \<open>(init_state_wl_D', RETURN o twl_array_code_ops.init_state_wl) \<in>
-    [\<lambda>N. N = N\<^sub>0]\<^sub>f \<langle>Id\<rangle>list_rel \<rightarrow> \<langle>twl_array_code_ops.trail_ref N\<^sub>0 \<times>\<^sub>r \<langle>\<langle>nat_lit_rel\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r
+    [\<lambda>N. N = N\<^sub>0 \<and> distinct (map ((\<lambda>x. x div 2) \<circ> nat_of_uint32) N)]\<^sub>f \<langle>Id\<rangle>list_rel \<rightarrow> 
+      \<langle>twl_array_code_ops.trail_ref N\<^sub>0 \<times>\<^sub>r \<langle>\<langle>nat_lit_rel\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r
         \<langle>list_mset_rel\<rangle>option_rel \<times>\<^sub>r list_mset_rel O
         \<langle>list_mset_rel O \<langle>unat_lit_rel\<rangle>mset_rel\<rangle>mset_rel \<times>\<^sub>r
-        list_mset_rel O \<langle>list_mset_rel O \<langle>unat_lit_rel\<rangle>mset_rel\<rangle>mset_rel \<times>\<^sub>r list_mset_rel O \<langle>unat_lit_rel\<rangle>mset_rel \<times>\<^sub>r (\<langle>Id\<rangle>map_fun_rel (twl_array_code_ops.D\<^sub>0 N\<^sub>0))\<rangle>nres_rel\<close>
-  apply (intro frefI nres_relI)
-  unfolding init_state_wl_D'_def twl_array_code_ops.init_state_wl_def
-  apply refine_rcg
-  apply (auto)
-  oops
+        list_mset_rel O \<langle>list_mset_rel O \<langle>unat_lit_rel\<rangle>mset_rel\<rangle>mset_rel \<times>\<^sub>r 
+        list_mset_rel O \<langle>unat_lit_rel\<rangle>mset_rel \<times>\<^sub>r
+        (\<langle>Id\<rangle>map_fun_rel (twl_array_code_ops.D\<^sub>0 N\<^sub>0))\<rangle>nres_rel\<close>
+proof -
+  have init_state_wl_alt_def: \<open>RETURN o twl_array_code_ops.init_state_wl = 
+       (\<lambda> N\<^sub>0. do {M \<leftarrow> RETURN []; RETURN ([], [[]], 0, None, {#}, {#}, {#}, empty_watched N\<^sub>0)})\<close>
+    unfolding twl_array_code_ops.init_state_wl_def by auto
+  have tr: \<open>distinct (map ((\<lambda>x. x div 2) \<circ> nat_of_uint32) N\<^sub>0) \<and> (\<forall>L\<in>set N\<^sub>0. nat_of_uint32 (L >> Suc 0) < b) \<Longrightarrow>
+      init_trail_D N\<^sub>0 b \<le> \<Down> (twl_array_code_ops.trail_ref N\<^sub>0) (RETURN [])\<close> for b N\<^sub>0 x
+    using init_trail_D_ref[unfolded fref_def nres_rel_def, unfolded conc_fun_RETURN, simplified]
+    by blast
+  have [simp]: \<open>comp_fun_idem (max :: 'a::linorder \<Rightarrow> _)\<close>
+    unfolding comp_fun_idem_def comp_fun_commute_def comp_fun_idem_axioms_def
+    by (auto simp: max_def[abs_def] intro!: ext)
+  have [simp]: \<open>fold max x a = Max (insert a (set x))\<close> for x and a :: \<open>'a :: linorder\<close>
+    by (auto simp: Max.eq_fold comp_fun_idem.fold_set_fold)
+  have [dest]: \<open>L \<in> set N\<^sub>0 \<Longrightarrow> nat_of_uint32 L div 2 < Suc (nat_of_uint32 (Max (insert 0 (set N\<^sub>0))) div 2)\<close> 
+    for L N\<^sub>0
+    using Max_ge[of \<open>insert 0 (set N\<^sub>0)\<close> L]
+    apply (auto simp del: Max_ge simp: nat_shiftr_div2 nat_of_uint32_shiftr)
+    using div_le_mono le_imp_less_Suc nat_of_uint32_le_iff by blast
+  define P where \<open>P x = {(a, b). b = [] \<and> (a, b) \<in> twl_array_code_ops.trail_ref x}\<close> for x
+  have P: \<open>(c, []) \<in> P x \<longleftrightarrow> (c, []) \<in> twl_array_code_ops.trail_ref x\<close> for c x
+    unfolding P_def by auto
+  have init: \<open>init_trail_D x (Suc (shiftr1 (nat_of_uint32 (fold max x 0)))) \<le> 
+     SPEC (\<lambda>c. (c, []) \<in> P x)\<close> 
+    if \<open>distinct (map ((\<lambda>x. x div 2) \<circ> nat_of_uint32) N\<^sub>0)\<close> and x: \<open>x = N\<^sub>0\<close>
+    for x N\<^sub>0
+    unfolding x P
+    apply (rule tr[unfolded conc_fun_RETURN])
+    using that by (auto simp: shiftr1_def nat_shiftr_div2 nat_of_uint32_shiftr)
+  have [simp]: \<open>([], {#}) \<in> list_mset_rel O \<langle>list_mset_rel O \<langle>unat_lit_rel\<rangle>mset_rel\<rangle>mset_rel\<close> 
+     \<open>([], {#}) \<in> list_mset_rel O \<langle>unat_lit_rel\<rangle>mset_rel\<close>
+    unfolding list_mset_rel_def mset_rel_def p2rel_def rel2p_def br_def rel_mset_def 
+    by auto
+  have tr: \<open>(xa, []) \<in> twl_array_code_ops.trail_ref x \<and> True \<Longrightarrow> (xa, []) \<in> P x\<close>
+    for x xa unfolding P_def by simp
+  have [simp]: \<open>xa \<in> set N\<^sub>0 \<Longrightarrow> nat_of_uint32 xa < Suc (nat_of_uint32 (Max (insert 0 (set N\<^sub>0))))\<close>
+    for xa N\<^sub>0
+    by (metis List.finite_set Max_insert insert_absorb insert_not_empty less_nat_zero_code 
+        nat_of_uint32_012(1) nat_of_uint32_less_iff not_le not_less_eq less_not_refl max_def)
+  then have [simp]: \<open>xa \<in> set N\<^sub>0 \<Longrightarrow> nat_of_uint32 xa - Suc 0 < Suc (nat_of_uint32 (Max (insert 0 (set N\<^sub>0))))\<close>
+    for xa N\<^sub>0
+    by force
+  then have [simp]: \<open>xa \<in> set N\<^sub>0 \<Longrightarrow> nat_of_uint32 xa - Suc 0 < Suc (Suc (nat_of_uint32 (Max (insert 0 (set N\<^sub>0)))))\<close>
+    for xa N\<^sub>0
+    by force
+    
+  have [simp]: \<open>(replicate (Suc (Suc (nat_of_uint32 (Max (insert 0 (set N\<^sub>0)))))) [], empty_watched N\<^sub>0)
+    \<in> \<langle>Id\<rangle>map_fun_rel ((\<lambda>L. (nat_of_lit L, L)) ` set_mset (twl_array_code_ops.N\<^sub>1 N\<^sub>0))\<close>
+    for N\<^sub>0
+    unfolding map_fun_rel_def
+    by (auto simp: empty_watched_def twl_array_code_ops.N\<^sub>1_def twl_array_code_ops.N\<^sub>0''_def
+     twl_array_code_ops.N\<^sub>0'_def intro!: nth_replicate
+     simp del: replicate.simps)
+
+  show ?thesis
+    apply (intro frefI nres_relI)
+    subgoal for x y
+    unfolding init_state_wl_D'_def
+    apply (rewrite in \<open>let _ = Suc _in _\<close> Let_def)
+    apply (rewrite in \<open>let _ = Suc _in _\<close> Let_def)
+    apply (rewrite in \<open>\<hole>\<close> init_state_wl_alt_def)
+    apply (refine_vcg init[of x])
+    subgoal by auto
+    subgoal ..
+    subgoal by (auto simp: init_rll_def init_lrl_def image_image P_def simp del: replicate.simps)
+    done
+  done
+qed
 
 lemma
   \<open>(init_state_wl_D'_code, RETURN o twl_array_code_ops.init_state_wl) \<in>
-    [\<lambda>N. N = N\<^sub>0]\<^sub>a(list_assn uint32_assn)\<^sup>k \<rightarrow> twl_array_code_ops.twl_st_l_trail_assn N\<^sub>0\<close>
+    [\<lambda>N. N = N\<^sub>0 \<and> distinct (map ((\<lambda>x. x div 2) \<circ> nat_of_uint32) N)]\<^sub>a (list_assn uint32_assn)\<^sup>k \<rightarrow>
+      twl_array_code_ops.twl_st_l_trail_assn N\<^sub>0\<close>
   using init_state_wl_D'_code.refine
   oops
 
@@ -1341,8 +1408,6 @@ qed
 context twl_array_code
 begin
 
-
-
 lemma (in -) [sepref_fr_rules]:
   \<open>(uncurry (return oo max), uncurry (RETURN oo max)) \<in> uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_max)
@@ -1351,43 +1416,8 @@ lemma (in -) [sepref_fr_rules]:
   \<open>(uncurry (return oo max), uncurry (RETURN oo max)) \<in> uint32_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_max)
 
-text \<open>TODO: called on lists?\<close>
-definition (in -)find_max where
-  \<open>find_max xs = do {
-    i \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, m). (m = fold max (nths xs {0..<i}) 0) \<and> i \<le> length xs\<^esup>
-     (\<lambda>(i, _). i < length xs)
-     (\<lambda>(i, m). do {ASSERT (i < length xs); RETURN (i + 1, max m (xs ! i))})
-     (0::nat, 0);
-    RETURN (snd i)
-   }\<close>
-
-(*TODO Move*)
-lemma (in -)nths_upt_Suc: \<open>aa < length xs \<Longrightarrow> nths xs {0..<Suc aa} = nths xs {0..<aa} @ [xs ! aa]\<close>
-  by (simp add: atLeast0LessThan take_Suc_conv_app_nth)
-(*END Move*)
-
-lemma (in -) \<open>find_max xs \<le> RETURN (fold max xs (0::nat))\<close>
-proof -
-  have H[simp]: \<open>max (fold max l (0::nat)) n = fold max l n\<close> for l n
-    apply (induction l arbitrary: n)
-    subgoal by auto
-    subgoal premises IH for a l n
-      using IH[of \<open>max a n\<close>]
-      using IH[of \<open>a\<close>]
-      by (auto simp: split: if_splits)[]
-    done
-
-  have max_com: \<open>max a b = max b a\<close> for a b :: nat
-    by simp
-  note H[unfolded max_com[of \<open>fold _ _ _\<close>], simp]
-  show ?thesis
-    unfolding find_max_def
-    apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i, _). length xs - i)\<close>])
-           apply (auto simp: nths_upt_Suc )
-    by (metis order_mono_setup.refl nths_id_iff)
-qed
-
 sepref_register init_state_wl
+
 lemma (in twl_array_code_ops)init_state_wl_D_init_state_wl:
   \<open>(init_state_wl_D, RETURN o (PR_CONST init_state_wl)) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a twl_st_l_trail_assn\<close>
 proof -
