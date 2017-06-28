@@ -1246,7 +1246,7 @@ text {*
 The following corresponds to Lemma 4.10:
 *}
     
-lemma resolution_prover_rtc_deriv:
+lemma resolution_prover_ground_derive:
   assumes "St \<leadsto> St'"
   shows "src_ext.derive (grounding_of_state St) (grounding_of_state St')"
 using assms proof (induction rule: resolution_prover.induct)
@@ -1746,22 +1746,16 @@ text {*
 Another formulation of the last part of lemma 4.10
  *}
   
-lemma derivation_sim:
-  assumes "R x y \<Longrightarrow> R' (P x) (P y)"
-  assumes "derivation R Sts"
-  shows "derivation R' (lmap P Sts)"
-    sorry
+
   
-lemma four_ten:
+lemma resolution_prover_ground_derivation:
   assumes "derivation op \<leadsto> Sts"
   shows "derivation src_ext.derive (lmap grounding_of_state Sts)"
-  sorry
+  using assms resolution_prover_ground_derive sorry
   
 text {*
-The following corresponds to Lemma 4.11:
+The following is used prove to Lemma 4.11:
 *}
-  
-
   
 definition is_least :: "(nat \<Rightarrow> bool) \<Rightarrow> nat \<Rightarrow> bool" where
   "is_least P n \<longleftrightarrow> P n \<and> (\<forall>n' < n. \<not>P n')"
@@ -1935,6 +1929,11 @@ proof -
   then show ?thesis sorry
 qed
 
+
+text {*
+The following corresponds to Lemma 4.11:
+*}
+
 lemma fair_imp_limit_minus_Rf_subset_ground_limit_state:
   assumes
     deriv: "derivation (op \<leadsto>) Sts" and
@@ -2017,7 +2016,7 @@ proof
     using src.tautology_redundant by auto
       
   from deriv have four_ten: "derivation src_ext.derive Ns" 
-    using four_ten ns by auto
+    using resolution_prover_ground_derivation ns by auto
    
   obtain i where i_p: "enat i < llength Ns \<and> (\<forall>j. j \<ge> i \<longrightarrow> enat j < llength Ns \<longrightarrow> C \<in> lnth Ns j)"
     using C_p llimit_eventually_always by fastforce
