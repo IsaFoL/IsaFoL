@@ -1214,6 +1214,120 @@ definition SAT_wl' :: \<open>nat clauses_l \<Rightarrow> bool nres\<close> where
     else RETURN False
   }\<close>
 
+definition init_rll :: \<open>nat \<Rightarrow> 'a list list\<close> where
+  \<open>init_rll n = []\<close>
+
+lemma (in -)arrayO_raa_empty_sz_init_rll[sepref_fr_rules]:
+  \<open>(arrayO_raa_empty_sz, RETURN o init_rll) \<in>
+    nat_assn\<^sup>k \<rightarrow>\<^sub>a arlO_assn R\<close>
+  by sepref_to_hoare (sep_auto simp: init_rll_def)
+
+definition init_lrl :: \<open>nat \<Rightarrow> 'a list list\<close> where
+  \<open>init_lrl n = replicate n []\<close>
+
+lemma arrayO_ara_empty_sz_init_lrl: \<open>arrayO_ara_empty_sz n = init_lrl n\<close>
+  by (induction n) (auto simp: arrayO_ara_empty_sz_def init_lrl_def)
+
+lemma (in -)arrayO_raa_empty_sz_init_lrl[sepref_fr_rules]:
+  \<open>(arrayO_ara_empty_sz_code, RETURN o init_lrl) \<in>
+    nat_assn\<^sup>k \<rightarrow>\<^sub>a arrayO_assn (arl_assn R)\<close>
+  using arrayO_ara_empty_sz_code.refine unfolding arrayO_ara_empty_sz_init_lrl .
+term arrayO_raa_append
+term arrayO_ara_empty_sz
+
+thm initialise_VMTF_code.refine
+
+
+lemma shiftr1_fref[sepref_fr_rules]: \<open>(return o shiftr1, RETURN o shiftr1) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare sep_auto
+sepref_register initialise_VMTF
+
+
+context twl_array_code_ops
+begin
+
+lemma N\<^sub>0_hnr'[sepref_import_param]:
+  "(N\<^sub>0, N\<^sub>0)\<in> \<langle>uint32_rel\<rangle> list_rel"
+  by (sep_auto simp: )
+definition initialise_VMTF' :: \<open>nat \<Rightarrow> (vmtf_imp_remove) nres\<close> where
+\<open>initialise_VMTF' n = (initialise_VMTF N\<^sub>0) n\<close>
+
+sepref_register initialise_VMTF'
+
+lemma initialise_VMTF'[sepref_fr_rules]: \<open>(initialise_VMTF_code N\<^sub>0, (PR_CONST initialise_VMTF')) \<in> 
+    nat_assn\<^sup>k \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
+proof -
+  have [symmetric, simp]: \<open>nat_assn = hn_val nat_rel\<close>
+    unfolding hn_ctxt_def ..
+  have [simp]: \<open>uint32_assn a a = emp\<close> for a
+    unfolding pure_def
+    by (sep_auto)
+  have [simp]: \<open>hn_ctxt (list_assn uint32_assn) N\<^sub>0 N\<^sub>0 = emp\<close>
+    unfolding hn_ctxt_def by (induction N\<^sub>0) sep_auto+
+  show ?thesis
+    unfolding PR_CONST_def initialise_VMTF'_def hfref_def
+    apply sep_auto
+    subgoal for c a
+      using initialise_VMTF_code.refine[to_hnr, of a c N\<^sub>0 N\<^sub>0]
+      by sep_auto
+    done
+qed
+
+concrete_definition (in -) initialise_VMTF'_code
+  uses "twl_array_code_ops.initialise_VMTF'"
+  is "(?f,_)\<in>_"
+
+prepare_code_thms (in -) initialise_VMTF'_code_def
+
+lemmas (in twl_array_code_ops)init_state_wl_D_code_refine[sepref_fr_rules] =
+    initialise_VMTF'_code.refine[of N\<^sub>0]
+
+definition init_trail_D :: \<open>nat \<Rightarrow> trail_int nres\<close> where
+  \<open>init_trail_D n = do {
+     let M = replicate (shiftr1 n) None;
+     let M' = replicate (shiftr1 n) zero_uint32;
+     let \<phi> = replicate (shiftr1 n) False;
+     vm \<leftarrow> initialise_VMTF' n; 
+     RETURN (([], M, M', zero_uint32), vm, \<phi>)
+  }\<close>
+
+sepref_thm init_trail_D_code
+  is \<open>PR_CONST init_trail_D\<close>
+  :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_conc\<close>
+  unfolding init_trail_D_def PR_CONST_def
+  supply uint32_nat_assn_zero_uint32[sepref_fr_rules]
+  apply (rewrite in "((\<hole>, _, _, _), _, _)" HOL_list.fold_custom_empty)
+  apply (rewrite in "((\<hole>, _, _, _), _, _)" annotate_assn[where A=pair_nat_ann_lits_assn])
+  
+  apply (rewrite in "let _ = \<hole> in _" annotate_assn[where A=phase_saver_conc])
+  apply (rewrite in "let _ = \<hole> in _" annotate_assn[where A=\<open>array_assn (option_assn bool_assn)\<close>])
+  apply (rewrite in "let _ = \<hole> in _" annotate_assn[where A=\<open>array_assn uint32_nat_assn\<close>])
+  apply (rewrite in "let _ = _ in _" array_fold_custom_replicate)
+  apply (rewrite in "let _ = _ in _" array_fold_custom_replicate)
+  apply (rewrite in "let _ = _ in _" array_fold_custom_replicate)
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) init_trail_D_code
+  uses "twl_array_code_ops.init_trail_D_code.refine_raw"
+  is "(?f,_)\<in>_"
+
+prepare_code_thms (in -) init_trail_D_code_def
+
+lemmas (in twl_array_code_ops) init_trail_D_code_refine[sepref_fr_rules] =
+    init_trail_D_code.refine[of N\<^sub>0]
+
+definition init_state_wl_D' :: \<open>nat \<Rightarrow> (trail_int \<times> _ list list \<times>
+     nat \<times> _) nres\<close> where
+  \<open>init_state_wl_D' l_Ns = do {
+     let n = Suc (Suc (nat_of_uint32 (fold max N\<^sub>0 0)));
+     M \<leftarrow> init_trail_D n;
+     let e = [];
+     let N = init_rll n;
+     let N = N @ [e];
+     let WS = init_rll n;
+     RETURN (M, N, 0, None, [], [], [], WS)
+  }\<close>
 definition (in twl_array_code_ops) init_state_wl_D :: \<open>nat \<Rightarrow> twl_st_wll_trail Heap\<close> where
   \<open>init_state_wl_D l_Ns = do {
      let n = Suc (Suc (nat_of_uint32 (fold max N\<^sub>0 0)));
