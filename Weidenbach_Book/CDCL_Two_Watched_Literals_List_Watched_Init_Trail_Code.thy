@@ -204,10 +204,13 @@ sepref_definition extract_lits_clss_imp_list_assn
   apply (rewrite at \<open>extract_lits_clss\<close> id_extract_lits_clss)
   by sepref
 
+definition op_extract_list_empty where
+  \<open>op_extract_list_empty = []\<close>
+
 lemma extract_lits_clss_imp_empty_rel:
-  \<open>(uncurry0 (RETURN ({}, [])), uncurry0 (RETURN op_HOL_list_empty)) \<in>
+  \<open>(uncurry0 (RETURN ({}, [])), uncurry0 (RETURN op_extract_list_empty)) \<in>
      unit_rel \<rightarrow>\<^sub>f \<langle>nat_lit_list_hm_ref_rel\<rangle> nres_rel\<close>
-  by (intro frefI nres_relI) (auto simp: nat_lit_list_hm_ref_rel_def)
+  by (intro frefI nres_relI) (auto simp: nat_lit_list_hm_ref_rel_def op_extract_list_empty_def)
 
 sepref_definition extract_lits_clss_imp_empty_assn
   is \<open>uncurry0 (RETURN ({}, []))\<close>
@@ -215,8 +218,9 @@ sepref_definition extract_lits_clss_imp_empty_assn
   unfolding hs.fold_custom_empty HOL_list.fold_custom_empty
   by sepref
 
+
 lemma extract_lits_clss_imp_empty_assn[sepref_fr_rules]:
-  \<open>(uncurry0 extract_lits_clss_imp_empty_assn, uncurry0 (RETURN op_HOL_list_empty))
+  \<open>(uncurry0 extract_lits_clss_imp_empty_assn, uncurry0 (RETURN op_extract_list_empty))
     \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_list_hm_assn\<close>
   using extract_lits_clss_imp_empty_assn.refine[FCOMP extract_lits_clss_imp_empty_rel] .
 
@@ -851,8 +855,8 @@ definition init_state :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_resta
 definition empty_watched :: \<open>uint32 list \<Rightarrow> nat literal \<Rightarrow> nat list\<close> where
   \<open>empty_watched _ = (\<lambda>_. [])\<close>
 
-definition (in twl_array_code_ops) init_state_wl :: \<open>nat \<Rightarrow> nat twl_st_wl\<close> where
-  \<open>init_state_wl _ = ([], [[]], 0, None, {#}, {#}, {#}, empty_watched N\<^sub>0)\<close>
+definition (in twl_array_code_ops) init_state_wl :: \<open>nat twl_st_wl\<close> where
+  \<open>init_state_wl = ([], [[]], 0, None, {#}, {#}, {#}, empty_watched N\<^sub>0)\<close>
 
 
 text \<open>to get a full SAT:
@@ -872,7 +876,7 @@ definition SAT_wl :: \<open>nat clauses_l \<Rightarrow> nat twl_st_wl nres\<clos
   \<open>SAT_wl CS = do{
     let n = length CS;
     let N\<^sub>0 = map (uint32_of_nat o nat_of_lit) (extract_lits_clss CS []);
-    let S = twl_array_code_ops.init_state_wl N\<^sub>0 n;
+    let S = twl_array_code_ops.init_state_wl N\<^sub>0;
     T \<leftarrow> init_dt_wl N\<^sub>0 CS S;
     if get_conflict_wl T = None
     then twl_array_code.cdcl_twl_stgy_prog_wl_D N\<^sub>0 T
@@ -1205,7 +1209,7 @@ definition SAT_wl' :: \<open>nat clauses_l \<Rightarrow> bool nres\<close> where
     let n = length CS;
     let N\<^sub>0 = map_uint32_of_lit (extract_lits_clss CS []);
     ASSERT(twl_array_code N\<^sub>0);
-    let S = twl_array_code_ops.init_state_wl N\<^sub>0 n;
+    let S = twl_array_code_ops.init_state_wl N\<^sub>0;
     T \<leftarrow> init_dt_wl N\<^sub>0 CS S;
     if get_conflict_wl T = None
     then do {
