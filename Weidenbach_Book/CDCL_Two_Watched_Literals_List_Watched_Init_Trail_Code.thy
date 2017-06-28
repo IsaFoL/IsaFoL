@@ -1341,13 +1341,7 @@ qed
 context twl_array_code
 begin
 
-lemma (in -)atm_of_uminus_lit_of_nat: \<open>atm_of (- literal_of_nat x) = x div 2\<close>
-  by (cases x) auto
 
-lemma (in twl_array_code_ops)in_atms_of_N\<^sub>1_iff:
-   \<open>atm_of L \<in> atms_of (N\<^sub>1) \<longleftrightarrow> L \<in> set N\<^sub>0' \<or> -L \<in> set N\<^sub>0'\<close>
-  by (auto simp: N\<^sub>1_def N\<^sub>0''_def atm_of_eq_atm_of atms_of_def
-      atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
 
 lemma (in -) [sepref_fr_rules]:
   \<open>(uncurry (return oo max), uncurry (RETURN oo max)) \<in> uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
