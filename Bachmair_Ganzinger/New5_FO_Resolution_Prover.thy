@@ -1930,15 +1930,95 @@ lemma from_P_to_Q:
     c: "C \<in> llimit Ns - src.Rf (llimit Ns)" and
     d: "D \<in> getP (lnth Sts i)" "enat i < llength Sts" and
     \<sigma>: "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
-  shows "D \<in> getQ (lnth Sts l) \<and> enat l < llength Sts"
+  shows "\<exists>l. D \<in> getQ (lnth Sts l) \<and> enat l < llength Sts"
 proof -
   let ?Ns = "\<lambda>i. getN (lnth Sts i)"
   let ?Ps = "\<lambda>i. getP (lnth Sts i)"
   let ?Qs = "\<lambda>i. getQ (lnth Sts i)"
+
+  from c have no_taut: "\<not>(\<exists>A. Pos A \<in># C \<and> Neg A \<in># C)" 
+    using src.tautology_redundant by auto
+
+  from deriv have four_ten: "derivation src_ext.derive Ns" 
+    using resolution_prover_ground_derivation ns by auto
+
   have "\<exists>l. D \<in> getP (lnth Sts l) \<and> D \<notin> getP (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
     using fair using eventually_deleted_P[of D Sts i] d unfolding ns by auto
-  then show ?thesis sorry
+  then obtain l where l_p: "D \<in> getP (lnth Sts l) \<and> D \<notin> getP (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
+    by auto
+  then have l_Ns: "enat (Suc l) < llength Ns"
+    using ns by auto
+  from l_p have "lnth Sts l \<leadsto> lnth Sts (Suc l)"
+    using deriv using derivation_lnth_rel by auto
+  then show ?thesis
+  proof (induction rule: resolution_prover.cases)
+    case (tautology_deletion A D_twin N P Q)
+    then have "D_twin = D" 
+      using l_p by auto
+    then have "Pos (A \<cdot>a \<sigma>) \<in># C \<and> Neg (A \<cdot>a \<sigma>) \<in># C"
+      using tautology_deletion(3,4) \<sigma>
+      by (metis Melem_subst_cls eql_neg_lit_eql_atm eql_pos_lit_eql_atm) 
+    then have False 
+      using no_taut by metis
+    then show ?case
+      by blast
+  next
+    case (forward_subsumption P Q D_twin N)
+    then have twins: "D_twin = D" "?Ps (Suc l) = P" "?Ps l = P" "?Qs (Suc l) = Q" "?Qs l = Q" 
+      using l_p by auto
+    then have False
+      using l_p by metis
+    then show ?case 
+      by auto
+  next
+    case (backward_subsumption_P N D_twin P Q)
+    then show ?case sorry
+  next
+    case (backward_subsumption_Q N D_twin P Q)    
+    then have twins: "D_twin = D" "?Ps (Suc l) = P" "?Ps l = P" "?Qs (Suc l) = Q" "?Qs l = Q" 
+      using l_p by auto
+    then have False
+      using l_p by metis
+    then show ?case 
+      by auto
+  next
+    case (forward_reduction P Q L \<sigma> D_twin N)
+    then have twins: "D_twin = D" "?Ps (Suc l) = P" "?Ps l = P" "?Qs (Suc l) = Q" "?Qs l = Q" 
+      using l_p by auto
+    then have False
+      using l_p by metis
+    then show ?case 
+      by auto
+  next
+    case (backward_reduction_P N L \<sigma> D_twin P Q)
+    then show ?case sorry
+  next
+    case (backward_reduction_Q N L \<sigma> D_twin P Q) 
+    then have twins: "D_twin = D" "?Ps (Suc l) = P" "?Ps l = P" "?Qs (Suc l) = Q" "?Qs l = Q" 
+      using l_p by auto
+    then have False
+      using l_p by metis
+    then show ?case 
+      by auto
+  next
+    case (clause_processing N D_twin P Q)
+    then have twins: "D_twin = D" "?Ps (Suc l) = P" "?Ps l = P" "?Qs (Suc l) = Q" "?Qs l = Q" 
+      using l_p by auto
+    then have False
+      using l_p by metis
+    then show ?case 
+      by auto
+  next
+    case (inference_computation N Q D_twin P)
+    then have twins: "D_twin = D" "?Ps (Suc l) = P" "?Ps l = P \<union> {D_twin}" "?Qs (Suc l) = Q \<union> {D_twin}" "?Qs l = Q" 
+      using l_p by auto
+    then show ?thesis
+      using d \<sigma> l_p by auto
+  qed
 qed
+
+lemma from_N_to_P: True 
+  by auto
 
 
 text {*
