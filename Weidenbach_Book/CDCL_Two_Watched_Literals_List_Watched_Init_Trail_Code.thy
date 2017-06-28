@@ -1145,9 +1145,9 @@ sepref_register initialise_VMTF
 
 definition init_trail_D :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> trail_int nres\<close> where
   \<open>init_trail_D N\<^sub>0 n = do {
-     let M = replicate (shiftr1 n) None;
-     let M' = replicate (shiftr1 n) zero_uint32;
-     let \<phi> = replicate (shiftr1 n) False;
+     let M = replicate n None;
+     let M' = replicate n zero_uint32;
+     let \<phi> = replicate n False;
      vm \<leftarrow> initialise_VMTF N\<^sub>0 n;
      RETURN (([], M, M', zero_uint32), vm, \<phi>)
   }\<close>
@@ -1187,7 +1187,7 @@ lemma (in -)atm_of_uminus_lit_of_nat: \<open>atm_of (- literal_of_nat x) = x div
   by (cases x) auto
 
 lemma (in twl_array_code_ops)in_atms_of_N\<^sub>1_iff:
-   \<open>atm_of L \<in> atms_of (N\<^sub>1) \<longleftrightarrow> L \<in> set N\<^sub>0' \<or> -L \<in> set N\<^sub>0'\<close>
+   \<open>atm_of L \<in> atms_of N\<^sub>1 \<longleftrightarrow> L \<in> set N\<^sub>0' \<or> -L \<in> set N\<^sub>0'\<close>
   by (auto simp: N\<^sub>1_def N\<^sub>0''_def atm_of_eq_atm_of atms_of_def
       atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
 
@@ -1216,10 +1216,39 @@ sepref_definition init_state_wl_D'_code
   supply max_uint32[sepref_fr_rules]
   by sepref
 
-lemma \<open>(uncurry init_trail_D, uncurry (RETURN oo (\<lambda> _ _. []))) \<in>[\<lambda>(N, _). N = N\<^sub>0]\<^sub>f \<langle>Id\<rangle>list_rel \<times>\<^sub>r nat_rel \<rightarrow>
+lemma bind_refine_res: \<open>(\<And>x. x \<in>\<Phi> \<Longrightarrow> f x \<le> \<Down> R M) \<Longrightarrow> M' \<le> RES \<Phi> \<Longrightarrow> M' \<bind> f \<le> \<Down> R M\<close>
+  by (auto simp add: pw_le_iff refine_pw_simps)
+
+lemma (in twl_array_code_ops) in_atms_of_N\<^sub>1_N\<^sub>0''_def:
+  \<open>L \<in> atms_of N\<^sub>1 \<longleftrightarrow> Pos L \<in> set N\<^sub>0' \<or> Neg L \<in> set N\<^sub>0'\<close>
+  using N\<^sub>1_def twl_array_code_ops.in_atms_of_N\<^sub>1_iff by force
+
+lemma init_trail_D_ref: \<open>(uncurry init_trail_D, uncurry (RETURN oo (\<lambda> _ _. []))) \<in> [\<lambda>(N, n). N = N\<^sub>0 \<and>
+    distinct (map ((\<lambda>x. x div 2) \<circ> nat_of_uint32) N) \<and> (\<forall>L\<in>set N. nat_of_uint32 (L >> Suc 0) < n)]\<^sub>f
+    \<langle>Id\<rangle>list_rel \<times>\<^sub>r nat_rel \<rightarrow>
    \<langle>twl_array_code_ops.trail_ref N\<^sub>0\<rangle> nres_rel\<close>
-  unfolding init_trail_D_def
-  oops
+proof -
+  have K: \<open>(\<forall>L\<in>set N\<^sub>0. nat_of_uint32 L div 2 < n) \<longleftrightarrow> 
+     (\<forall>L \<in> set (twl_array_code_ops.N\<^sub>0' N\<^sub>0). atm_of L < n)\<close> for N n
+    by (auto simp: twl_array_code_ops.N\<^sub>0'_def nat_shiftr_div2 nat_of_uint32_shiftr)
+
+  have H: \<open>initialise_VMTF a b \<le> RES (twl_array_code_ops.vmtf_imp a [])\<close>
+    if \<open>\<forall>L\<in>set a. nat_of_uint32 (L >> Suc 0) < b\<close> and
+      \<open>distinct (map ((\<lambda>x. x div 2) \<circ> nat_of_uint32) a)\<close>
+    for a b
+    using initialise_VMTF[unfolded fref_def nres_rel_def, simplified] that by blast
+  show ?thesis
+    unfolding init_trail_D_def twl_array_code_ops.trail_ref_def
+    apply (intro frefI nres_relI)
+    unfolding uncurry_def Let_def
+    apply clarify
+    apply (rule bind_refine_res)
+     prefer 2 apply (rule H; auto)
+    by (auto 5 5 simp: zero_uint32_def twl_array_code_ops.trailt_ref_def shiftr1_def
+        nat_shiftr_div2 nat_of_uint32_shiftr twl_array_code_ops.in_N\<^sub>1_atm_of_in_atms_of_iff
+        valued_atm_on_trail_def twl_array_code_ops.in_atms_of_N\<^sub>1_iff K 
+        twl_array_code_ops.phase_saving_def twl_array_code_ops.in_atms_of_N\<^sub>1_N\<^sub>0''_def)
+qed
 
 lemma
   \<open>(init_state_wl_D', RETURN o twl_array_code_ops.init_state_wl) \<in>
