@@ -30,17 +30,17 @@ fun get_conflict_wl :: "'v twl_st_wl \<Rightarrow> 'v cconflict" where
   \<open>get_conflict_wl (_, _, _, D, _, _, _, _) = D\<close>
 
 
-definition lits_of_atms_of_mm :: \<open>'a clauses \<Rightarrow> 'a literal multiset\<close> where
-\<open>lits_of_atms_of_mm Ls = Pos `# (atm_of `# (\<Union># Ls)) + Neg `# (atm_of `# (\<Union># Ls))\<close>
+definition all_lits_of_mm :: \<open>'a clauses \<Rightarrow> 'a literal multiset\<close> where
+\<open>all_lits_of_mm Ls = Pos `# (atm_of `# (\<Union># Ls)) + Neg `# (atm_of `# (\<Union># Ls))\<close>
 
 text \<open>
   We cannot just extract the literals of the clauses: we cannot be sure that atoms appear \<^emph>\<open>both\<close>
   positively and negatively in the clauses. If we can ensure that there are no pure literals, the
-  definition of \<^term>\<open>lits_of_atms_of_mm\<close> can be changed to \<open>lits_of_atms_of_mm Ls = \<Union># Ls\<close>.
+  definition of \<^term>\<open>all_lits_of_mm\<close> can be changed to \<open>all_lits_of_mm Ls = \<Union># Ls\<close>.
 \<close>
 fun correct_watching :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>correct_watching (M, N, U, D, NP, UP, Q, W) \<longleftrightarrow>
-    (\<forall>L \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP). mset (W L) = clause_to_update L (M, N, U, D, NP, UP, {#}, {#}))\<close>
+    (\<forall>L \<in># all_lits_of_mm (mset `# mset (tl N) + NP). mset (W L) = clause_to_update L (M, N, U, D, NP, UP, {#}, {#}))\<close>
 
 declare correct_watching.simps[simp del]
 
@@ -54,34 +54,34 @@ fun delete_index_and_swap where
   \<open>delete_index_and_swap l i = butlast(l[i := last l])\<close>
 
 
-lemma in_lits_of_atms_of_mm_ain_atms_of_iff: \<open>L \<in># lits_of_atms_of_mm N \<longleftrightarrow> atm_of L \<in> atms_of_mm N\<close>
-  by (cases L) (auto simp: lits_of_atms_of_mm_def atms_of_ms_def atms_of_def)
+lemma in_all_lits_of_mm_ain_atms_of_iff: \<open>L \<in># all_lits_of_mm N \<longleftrightarrow> atm_of L \<in> atms_of_mm N\<close>
+  by (cases L) (auto simp: all_lits_of_mm_def atms_of_ms_def atms_of_def)
 
-lemma lits_of_atms_of_mm_union:
-  \<open>lits_of_atms_of_mm (M + N) = lits_of_atms_of_mm M + lits_of_atms_of_mm N\<close>
-  unfolding lits_of_atms_of_mm_def by auto
+lemma all_lits_of_mm_union:
+  \<open>all_lits_of_mm (M + N) = all_lits_of_mm M + all_lits_of_mm N\<close>
+  unfolding all_lits_of_mm_def by auto
 
-definition lits_of_atms_of_m :: \<open>'a clause \<Rightarrow> 'a literal multiset\<close> where
-\<open>lits_of_atms_of_m Ls = Pos `# (atm_of `# Ls) + Neg `# (atm_of `# Ls)\<close>
+definition all_lits_of_m :: \<open>'a clause \<Rightarrow> 'a literal multiset\<close> where
+\<open>all_lits_of_m Ls = Pos `# (atm_of `# Ls) + Neg `# (atm_of `# Ls)\<close>
 
-lemma in_lits_of_atms_of_m_ain_atms_of_iff: \<open>L \<in># lits_of_atms_of_m N \<longleftrightarrow> atm_of L \<in> atms_of N\<close>
-  by (cases L) (auto simp: lits_of_atms_of_m_def atms_of_ms_def atms_of_def)
+lemma in_all_lits_of_m_ain_atms_of_iff: \<open>L \<in># all_lits_of_m N \<longleftrightarrow> atm_of L \<in> atms_of N\<close>
+  by (cases L) (auto simp: all_lits_of_m_def atms_of_ms_def atms_of_def)
 
-lemma lits_of_atms_of_mm_add_mset:
-  \<open>lits_of_atms_of_mm (add_mset C N) = (lits_of_atms_of_m C) + (lits_of_atms_of_mm N)\<close>
-  by (auto simp: lits_of_atms_of_mm_def lits_of_atms_of_m_def)
+lemma all_lits_of_mm_add_mset:
+  \<open>all_lits_of_mm (add_mset C N) = (all_lits_of_m C) + (all_lits_of_mm N)\<close>
+  by (auto simp: all_lits_of_mm_def all_lits_of_m_def)
 
-lemma lits_of_atms_of_m_add_mset:
-  \<open>lits_of_atms_of_m (add_mset L C) = add_mset L (add_mset (-L) (lits_of_atms_of_m C))\<close>
-  by (cases L) (auto simp: lits_of_atms_of_m_def)
+lemma all_lits_of_m_add_mset:
+  \<open>all_lits_of_m (add_mset L C) = add_mset L (add_mset (-L) (all_lits_of_m C))\<close>
+  by (cases L) (auto simp: all_lits_of_m_def)
 
-lemma lits_of_atms_of_m_union:
-  \<open>lits_of_atms_of_m (A + B) = lits_of_atms_of_m A + lits_of_atms_of_m B\<close>
-  by (auto simp: lits_of_atms_of_m_def)
+lemma all_lits_of_m_union:
+  \<open>all_lits_of_m (A + B) = all_lits_of_m A + all_lits_of_m B\<close>
+  by (auto simp: all_lits_of_m_def)
 
-lemma lits_of_atms_of_m_mono:
-  "D \<subseteq># D' \<Longrightarrow> lits_of_atms_of_m D \<subseteq># lits_of_atms_of_m D'"
-  by (auto elim!: mset_le_addE simp: lits_of_atms_of_m_union)
+lemma all_lits_of_m_mono:
+  "D \<subseteq># D' \<Longrightarrow> all_lits_of_m D \<subseteq># all_lits_of_m D'"
+  by (auto elim!: mset_le_addE simp: all_lits_of_m_union)
 
 fun st_l_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_l\<close> where
   \<open>st_l_of_wl None (M, N, C, D, NP, UP, Q, W) = (M, N, C, D, NP, UP, {#}, Q)\<close>
@@ -152,7 +152,7 @@ definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat 
   'v twl_st_wl \<Rightarrow> (nat \<times> 'v twl_st_wl) nres" where
   \<open>unit_propagation_inner_loop_body_wl K w S = do {
     let (M, N, U, D, NP, UP, Q, W) = (S::'v twl_st_wl);
-    ASSERT(K \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP));
+    ASSERT(K \<in># all_lits_of_mm (mset `# mset (tl N) + NP));
     ASSERT(w < length (watched_by S K));
     let C = (watched_by S K) ! w;
     ASSERT(C > 0);
@@ -181,7 +181,7 @@ definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat 
       | Some f \<Rightarrow> do {
           ASSERT(f < length (N!C));
           let K' = (N!C) ! f;
-          ASSERT(K' \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP));
+          ASSERT(K' \<in># all_lits_of_mm (mset `# mset (tl N) + NP));
           let N' = list_update N C (swap (N!C) i f);
           ASSERT(K \<noteq> K');
           RETURN (w, (M, N', U, D, NP, UP, Q, W(K := delete_index_and_swap (watched_by S L) w, K':= W K' @ [C])))
@@ -323,12 +323,12 @@ proof -
   from mset_le_add_mset_decr_left2[OF this] have uL_M: \<open>-L \<in> lits_of_l M\<close>
     using imageI[of _ \<open>set M\<close> lit_of] lits_of_l_convert_lits_l[of N M]
     by (auto simp: lits_of_def)
-  have \<open>L \<in># lits_of_atms_of_mm (mset `# mset (take U (tl N))+NP)\<close>
+  have \<open>L \<in># all_lits_of_mm (mset `# mset (take U (tl N))+NP)\<close>
     using alien uL_M
     by (auto simp: S cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
-        mset_take_mset_drop_mset in_lits_of_atms_of_mm_ain_atms_of_iff)
-  then have L_in_N_NP: \<open>L \<in># lits_of_atms_of_mm (mset `# mset (tl N)+NP)\<close>
-    by (auto simp: in_lits_of_atms_of_mm_ain_atms_of_iff atms_of_ms_def
+        mset_take_mset_drop_mset in_all_lits_of_mm_ain_atms_of_iff)
+  then have L_in_N_NP: \<open>L \<in># all_lits_of_mm (mset `# mset (tl N)+NP)\<close>
+    by (auto simp: in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def
         dest: in_set_takeD)
   then have \<open>mset (W L) = mset_set {x. Suc 0 \<le> x \<and> x < length N \<and> L \<in> set (take 2 (N ! x))}\<close>
     using corr_w by (auto simp: S correct_watching.simps clause_to_update_def)
@@ -470,7 +470,7 @@ proof -
     subgoal by auto
     subgoal
       using zero_le_W_L_w
-      by (auto simp: in_lits_of_atms_of_mm_ain_atms_of_iff atms_of_ms_def correct_watching.simps
+      by (auto simp: in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def correct_watching.simps
           intro!: nth_in_set_tl
           intro!: bexI[of _ \<open>N ! (W L ! w)\<close>])
     subgoal using uL_M by auto
@@ -673,7 +673,7 @@ definition unit_propagation_outer_loop_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_
       (\<lambda>S. do {
         ASSERT(literals_to_update_wl S \<noteq> {#});
         (S', L) \<leftarrow> select_and_remove_from_literals_to_update_wl S;
-        ASSERT(L \<in># lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None S'))));
+        ASSERT(L \<in># all_lits_of_mm (cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None S'))));
         unit_propagation_inner_loop_wl L S'
       })
       (S\<^sub>0 :: 'v twl_st_wl)
@@ -701,7 +701,7 @@ proof -
   have select_and_remove_from_literals_to_update_wl: \<open>select_and_remove_from_literals_to_update_wl S' \<le>
      \<Down> {((T', L'), (T, L)). L = L' \<and> T = st_l_of_wl (Some (L, 0)) T' \<and>
          T' = set_literals_to_update_wl (literals_to_update_wl S' - {#L#}) S' \<and> L \<in># literals_to_update_wl S' \<and>
-         L \<in># lits_of_atms_of_mm (cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None S')))
+         L \<in># all_lits_of_mm (cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None S')))
        }
        (select_and_remove_from_literals_to_update S)\<close>
     if S: \<open>S = st_l_of_wl None S'\<close> and \<open>get_conflict_wl S' = None\<close> and
@@ -717,12 +717,12 @@ proof -
       alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of None (st_l_of_wl None S')))\<close>
       using struct_invs that by (auto simp: twl_struct_invs_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
-    then have H1: \<open>L \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP)\<close> if LQ: \<open>L \<in># Q\<close> for L
+    then have H1: \<open>L \<in># all_lits_of_mm (mset `# mset (tl N) + NP)\<close> if LQ: \<open>L \<in># Q\<close> for L
     proof -
       obtain K where \<open>L = - lit_of K\<close> and \<open>K \<in># mset (convert_lits_l N M)\<close>
         using that no_dup_q LQ
         by (auto simp: S' cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
-          lits_of_atms_of_mm_def atms_of_ms_def)
+          all_lits_of_mm_def atms_of_ms_def)
       then have \<open>atm_of L \<in> atm_of ` lits_of_l M\<close>
         by (auto simp: convert_lits_l_def lits_of_def)
       moreover {
@@ -730,7 +730,7 @@ proof -
            atm_of ` set (drop 2 x)) \<union> (\<Union>x\<in>set_mset NP. atms_of x)\<close>
           using that alien unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
           by (auto simp: S' cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
-              lits_of_atms_of_mm_def atms_of_ms_def)
+              all_lits_of_mm_def atms_of_ms_def)
         then have \<open>atm_of ` lits_of_l M \<subseteq> (\<Union>x\<in>set (take U (tl N)). atm_of ` set x) \<union>
            (\<Union>x\<in>set_mset NP. atms_of x)\<close>
           unfolding image_Un[symmetric]
@@ -744,7 +744,7 @@ proof -
       ultimately have \<open>atm_of L \<in> atms_of_mm (mset `# mset (tl N) + NP)\<close>
         using that by blast
       then show ?thesis
-        using that by (auto simp: in_lits_of_atms_of_mm_ain_atms_of_iff)
+        using that by (auto simp: in_all_lits_of_mm_ain_atms_of_iff)
     qed
     then have H: \<open>clause_to_update L S = mset (W L)\<close> if \<open>L \<in># Q\<close> for L
       using corr_w that S by (auto simp: correct_watching.simps S' clause_to_update_def)
@@ -756,7 +756,7 @@ proof -
       unfolding select_and_remove_from_literals_to_update_wl_def select_and_remove_from_literals_to_update_def
       apply (rule RES_refine)
       using that S' by (auto 5 5 simp: literals_to_update_wl_literals_to_update_l_iff correct_watching.simps clauses_def
-          mset_take_mset_drop_mset' cdcl\<^sub>W_restart_mset_state m lits_of_atms_of_mm_union
+          mset_take_mset_drop_mset' cdcl\<^sub>W_restart_mset_state m all_lits_of_mm_union
           dest: H H1)
   qed
   have set_literals_to_update_add_remove: \<open>(set_literals_to_update_wl (add_mset L (literals_to_update_wl (set_literals_to_update_wl (remove1_mset L (literals_to_update_wl T')) T'))) (set_literals_to_update_wl (remove1_mset L (literals_to_update_wl T')) T')) = T'\<close>
@@ -1092,34 +1092,34 @@ lemma correct_watching_learn:
   correct_watching (M, N, U, D, NP, UP, Q, W)\<close> (is \<open>?l \<longleftrightarrow> ?c\<close>)
 proof (rule iffI)
   assume corr: ?l
-  have H: \<open>\<And>x. x \<in># lits_of_atms_of_mm (mset `# mset (tl (N @ [L1 # L2 # UW]))) +
-              lits_of_atms_of_mm NP \<longrightarrow>
+  have H: \<open>\<And>x. x \<in># all_lits_of_mm (mset `# mset (tl (N @ [L1 # L2 # UW]))) +
+              all_lits_of_mm NP \<longrightarrow>
         mset ((W(L1 := W L1 @ [length N], L2 := W L2 @ [length N])) x) =
         clause_to_update x
          (K # M, N @ [L1 # L2 # UW], U, D, NP, UP, {#}, {#})\<close>
     using corr
-    by (auto simp: lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset if_distrib[of mset]
-        uminus_lit_swap correct_watching.simps lits_of_atms_of_mm_union Ball_def
+    by (auto simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset if_distrib[of mset]
+        uminus_lit_swap correct_watching.simps all_lits_of_mm_union Ball_def
         all_conj_distrib)
   have [simp]: \<open>{x. (P x \<longrightarrow> Q x) \<and> P x} = {x. Q x \<and> P x}\<close> for P Q :: \<open>'a \<Rightarrow> bool\<close>
     by auto
   have [simp]: \<open>mset (W x) = clause_to_update x (M, N, U, D, NP, UP, {#}, {#})\<close>
-    if \<open>x \<in># lits_of_atms_of_mm NP\<close>
+    if \<open>x \<in># all_lits_of_mm NP\<close>
     for x
     using that H[of x]
     by (auto split: if_splits simp: clause_to_update_def nth_append
         intro!: arg_cong[of _ _ mset_set])
   have [simp]: \<open>mset (W x) = clause_to_update x (M, N, U, D, NP, UP, {#}, {#})\<close>
-    if \<open>x \<in># lits_of_atms_of_mm (mset `# mset (tl N))\<close>
+    if \<open>x \<in># all_lits_of_mm (mset `# mset (tl N))\<close>
     for x
     using that H[of x]
     by (auto split: if_splits simp: clause_to_update_def nth_append
-        lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset
+        all_lits_of_mm_add_mset all_lits_of_m_add_mset
         intro!: arg_cong[of _ _ mset_set]) \<comment> \<open>slow but auto magic\<close>
   show ?c
     unfolding correct_watching.simps Ball_def
-    by (auto simp add: lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset
-        all_conj_distrib lits_of_atms_of_mm_union)
+    by (auto simp add: all_lits_of_mm_add_mset all_lits_of_m_add_mset
+        all_conj_distrib all_lits_of_mm_union)
 next
   assume corr: ?c
   have [simp]: \<open>{x. (P x \<longrightarrow> Q x) \<and> P x} = {x. Q x \<and> P x}\<close> for P Q :: \<open>'a \<Rightarrow> bool\<close>
@@ -1130,24 +1130,24 @@ next
     for L
     using N_ne_Nil by (auto simp: clause_to_update_def nth_append
         intro: arg_cong[of _ _ mset_set])
-  have \<open>L1 \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP)\<close> and
-    \<open>-L1 \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP)\<close> and
-    \<open>L2 \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP)\<close> and
-    \<open>-L2 \<in># lits_of_atms_of_mm (mset `# mset (tl N) + NP)\<close>
-    using L1 L2 by (auto simp add: in_lits_of_atms_of_mm_ain_atms_of_iff)
+  have \<open>L1 \<in># all_lits_of_mm (mset `# mset (tl N) + NP)\<close> and
+    \<open>-L1 \<in># all_lits_of_mm (mset `# mset (tl N) + NP)\<close> and
+    \<open>L2 \<in># all_lits_of_mm (mset `# mset (tl N) + NP)\<close> and
+    \<open>-L2 \<in># all_lits_of_mm (mset `# mset (tl N) + NP)\<close>
+    using L1 L2 by (auto simp add: in_all_lits_of_mm_ain_atms_of_iff)
   then have [simp]:
     \<open>mset (W L1) = clause_to_update L1 (M, N, U, D, NP, UP, {#}, {#})\<close>
     \<open>mset (W (- L1)) = clause_to_update (- L1) (M, N, U, D, NP, UP, {#}, {#})\<close>
     \<open>mset (W L2) = clause_to_update L2 (M, N, U, D, NP, UP, {#}, {#})\<close>
     \<open>mset (W (- L2)) = clause_to_update (- L2) (M, N, U, D, NP, UP, {#}, {#})\<close>
     using corr by (auto simp: correct_watching.simps)
-  have \<open>set_mset (lits_of_atms_of_m (mset UW)) \<subseteq> set_mset (lits_of_atms_of_mm (mset `# mset (tl N)+ NP))\<close>
-    using UW using in_lits_of_atms_of_m_ain_atms_of_iff in_lits_of_atms_of_mm_ain_atms_of_iff by blast
+  have \<open>set_mset (all_lits_of_m (mset UW)) \<subseteq> set_mset (all_lits_of_mm (mset `# mset (tl N)+ NP))\<close>
+    using UW using in_all_lits_of_m_ain_atms_of_iff in_all_lits_of_mm_ain_atms_of_iff by blast
   then show ?l
     using corr N_ne_Nil
     unfolding correct_watching.simps Ball_def
-    by (auto simp add: lits_of_atms_of_mm_add_mset lits_of_atms_of_m_add_mset
-        all_conj_distrib lits_of_atms_of_mm_union)
+    by (auto simp add: all_lits_of_mm_add_mset all_lits_of_m_add_mset
+        all_conj_distrib all_lits_of_mm_union)
 qed
 
 lemma in_set_image_subsetD: \<open> f ` A \<subseteq> B \<Longrightarrow> x \<in> A \<Longrightarrow>f x \<in> B\<close>

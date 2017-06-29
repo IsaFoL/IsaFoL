@@ -1711,21 +1711,21 @@ definition find_unassigned_lit_wl_D :: \<open>_\<close> where
    )\<close>
 
 sepref_register N\<^sub>0'
-declare N_hnr'[sepref_fr_rules]
 
-lemma N_hnr[sepref_import_param]: "(N\<^sub>0,N\<^sub>0')\<in>\<langle>unat_lit_rel\<rangle>list_rel"
+lemma N_hnr[sepref_import_param]: "(N\<^sub>0',N\<^sub>0')\<in>\<langle>Id\<rangle>list_rel"
   using lits_less_upperN unfolding N\<^sub>0'_def
   by (auto simp del: literal_of_nat.simps simp: p2rel_def lit_of_natP_def
       unat_lit_rel_def uint32_nat_rel_def nat_lit_rel_def br_def Collect_eq_comp
       list_rel_def list_all2_op_eq_map_right_iff 
       upperN_def nat_of_uint32_uint32_of_nat_id)
     
+declare N_hnr[sepref_fr_rules]
 
-lemma set_mset_lits_of_atms_of_mm_atms_of_ms_iff:
-  \<open>set_mset (lits_of_atms_of_mm A) = set_mset N\<^sub>1 \<longleftrightarrow> atms_of_ms (set_mset A) = atms_of N\<^sub>1\<close>
-  apply (auto simp: atms_of_s_def in_lits_of_atms_of_mm_ain_atms_of_iff atms_of_ms_def
+lemma set_mset_all_lits_of_mm_atms_of_ms_iff:
+  \<open>set_mset (all_lits_of_mm A) = set_mset N\<^sub>1 \<longleftrightarrow> atms_of_ms (set_mset A) = atms_of N\<^sub>1\<close>
+  apply (auto simp: atms_of_s_def in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def
       atms_of_def atm_of_eq_atm_of in_N\<^sub>1_atm_of_in_atms_of_iff)
-  apply (auto simp: in_lits_of_atms_of_mm_ain_atms_of_iff in_implies_atm_of_on_atms_of_ms)
+  apply (auto simp: in_all_lits_of_mm_ain_atms_of_iff in_implies_atm_of_on_atms_of_ms)
   done -- \<open>TODO tune proof\<close>
 
 lemma Ball_mset_add: \<open>Multiset.Ball (M + N) P \<longleftrightarrow> Multiset.Ball M P \<and> Multiset.Ball N P\<close>
@@ -1812,9 +1812,9 @@ proof -
       using in_N\<^sub>1_atm_of_in_atms_of_iff[of \<open>Neg x\<close>] in_N\<^sub>1_atm_of_in_atms_of_iff[of \<open>Pos x\<close>] by simp_all
     have tl_N_NP_N\<^sub>1: \<open>atms_of_ms (mset ` set (tl N) \<union> set_mset NP) = atms_of_s (set_mset N\<^sub>1)\<close>
       using lit_N\<^sub>0 0 UP_NP unfolding is_N\<^sub>1_def
-      by (subst (asm) set_mset_lits_of_atms_of_mm_atms_of_ms_iff)
-        (auto simp add: clauses_def mset_take_mset_drop_mset' in_lits_of_atms_of_mm_ain_atms_of_iff
-          cdcl\<^sub>W_restart_mset_state 1 lits_of_atms_of_mm_union in_N\<^sub>1)
+      by (subst (asm) set_mset_all_lits_of_mm_atms_of_ms_iff)
+        (auto simp add: clauses_def mset_take_mset_drop_mset' in_all_lits_of_mm_ain_atms_of_iff
+          cdcl\<^sub>W_restart_mset_state 1 all_lits_of_mm_union in_N\<^sub>1)
     let ?L = \<open>the (fst s)\<close>
     obtain brk xs where s': \<open>s = (brk, xs)\<close> by (cases s)
     obtain ys where
@@ -1875,9 +1875,9 @@ proof -
       using in_N\<^sub>1_atm_of_in_atms_of_iff[of \<open>Neg x\<close>] in_N\<^sub>1_atm_of_in_atms_of_iff[of \<open>Pos x\<close>] by simp_all
     have tl_N_NP_N\<^sub>1: \<open>atms_of_ms (mset ` set (tl N) \<union> set_mset NP) = atms_of_s (set_mset N\<^sub>1)\<close>
       using lit_N\<^sub>0 0 UP_NP unfolding is_N\<^sub>1_def
-      by (subst (asm) set_mset_lits_of_atms_of_mm_atms_of_ms_iff)
-        (auto simp add: clauses_def mset_take_mset_drop_mset' in_lits_of_atms_of_mm_ain_atms_of_iff
-          cdcl\<^sub>W_restart_mset_state 1 lits_of_atms_of_mm_union in_N\<^sub>1)
+      by (subst (asm) set_mset_all_lits_of_mm_atms_of_ms_iff)
+        (auto simp add: clauses_def mset_take_mset_drop_mset' in_all_lits_of_mm_ain_atms_of_iff
+          cdcl\<^sub>W_restart_mset_state 1 all_lits_of_mm_union in_N\<^sub>1)
     let ?L = \<open>the (fst s)\<close>
     obtain brk xs where s': \<open>s = (brk, xs)\<close> by (cases s)
     obtain ys where

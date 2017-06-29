@@ -86,20 +86,20 @@ context twl_array_code
 begin
 
 
-definition cons_trail_Propagated :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
+definition (in twl_array_code_ops) cons_trail_Propagated :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
   \<open>cons_trail_Propagated L C M' = Propagated L C # M'\<close>
 
 
-definition cons_trailt_Propagated_tr :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> trailt \<Rightarrow> trailt\<close> where
+definition (in twl_array_code_ops) cons_trailt_Propagated_tr :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> trailt \<Rightarrow> trailt\<close> where
   \<open>cons_trailt_Propagated_tr = (\<lambda>L C (M', xs, lvls, k).
      (Propagated L C # M', xs[atm_of L := Some (is_pos L)],
       lvls[atm_of L := k], k))\<close>
 
-definition cons_trail_Propagated_tr :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> trail_int \<Rightarrow> trail_int\<close> where
+definition (in twl_array_code_ops) cons_trail_Propagated_tr :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> trail_int \<Rightarrow> trail_int\<close> where
   \<open>cons_trail_Propagated_tr = (\<lambda>L C (M', vm, \<phi>).
      (cons_trailt_Propagated_tr L C M', vm, \<phi>))\<close>
 
-  lemma cons_trail_Propagated_tr:
+lemma cons_trail_Propagated_tr:
   \<open>(uncurry2 (RETURN ooo cons_trail_Propagated_tr), uncurry2 (RETURN ooo cons_trail_Propagated)) \<in>
   [\<lambda>((L, C), M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f trail_ref \<rightarrow> \<langle>trail_ref\<rangle>nres_rel\<close>
   by (intro frefI nres_relI, rename_tac x y, case_tac \<open>fst (fst x)\<close>)
@@ -536,8 +536,8 @@ lemma literals_are_in_N\<^sub>0_in_N\<^sub>1:
 proof -
   have \<open>xs ! i \<in># mset xs\<close>
     using i_xs by auto
-  then have \<open>xs ! i \<in> set_mset (lits_of_atms_of_m (mset xs))\<close>
-    by (auto simp: in_lits_of_atms_of_m_ain_atms_of_iff)
+  then have \<open>xs ! i \<in> set_mset (all_lits_of_m (mset xs))\<close>
+    by (auto simp: in_all_lits_of_m_ain_atms_of_iff)
   then show ?thesis
     using N1 unfolding literals_are_in_N\<^sub>0_def by blast
 qed
@@ -970,7 +970,7 @@ lemma in_literals_are_in_N\<^sub>0_in_D\<^sub>0:
   assumes \<open>literals_are_in_N\<^sub>0 D\<close> and \<open>L \<in># D\<close>
   shows \<open>L \<in> snd ` D\<^sub>0\<close>
   using assms
-  by (cases L) (auto simp: image_image literals_are_in_N\<^sub>0_def lits_of_atms_of_m_def)
+  by (cases L) (auto simp: image_image literals_are_in_N\<^sub>0_def all_lits_of_m_def)
 
 definition (in -)
   \<open>zero_uint32 = (0 :: nat)\<close>
@@ -1594,6 +1594,13 @@ prepare_code_thms (in -) backtrack_wl_D_code_def
 
 lemmas backtrack_wl_D_code_refine[sepref_fr_rules] =
    backtrack_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_l_trail_assn_def]
+
+lemma N_hnr[sepref_import_param]: "(N\<^sub>0,N\<^sub>0')\<in>\<langle>unat_lit_rel\<rangle>list_rel"
+   using lits_less_upperN unfolding N\<^sub>0'_def
+   by (auto simp del: literal_of_nat.simps simp: p2rel_def lit_of_natP_def
+       unat_lit_rel_def uint32_nat_rel_def nat_lit_rel_def br_def Collect_eq_comp
+       list_rel_def list_all2_op_eq_map_right_iff
+       upperN_def nat_of_uint32_uint32_of_nat_id)
 
 lemma N\<^sub>0'_eq_append_in_D\<^sub>0: \<open>N\<^sub>0' = ys @ a2'g \<Longrightarrow>a2'g \<noteq> [] \<Longrightarrow> hd a2'g \<in> snd ` D\<^sub>0\<close>
   by (auto simp: image_image N\<^sub>1_def N\<^sub>0''_def)
