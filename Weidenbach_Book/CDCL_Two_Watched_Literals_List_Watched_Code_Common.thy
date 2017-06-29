@@ -151,38 +151,8 @@ lemma watched_by_nth_watched_app:
 
 subsubsection \<open>More Operations\<close>
 
-definition valued_impl :: "(nat, nat) ann_lits \<Rightarrow> nat literal \<Rightarrow> bool option nres" where
-  \<open>valued_impl M L =
-    nfoldli M
-     (\<lambda>brk. brk = None)
-     (\<lambda>L' _. do {
-       let L\<^sub>1 = atm_of L;
-       let L\<^sub>2 = (lit_of L');
-       let L\<^sub>2' = atm_of (lit_of L');
-       if L = L\<^sub>2 then RETURN (Some True)
-       else
-         if L\<^sub>1 = L\<^sub>2' then RETURN (Some False) else RETURN None
-    })
-    None\<close>
-
-lemma valued_impl_valued:
-  assumes \<open>no_dup M\<close>
-  shows \<open>valued_impl M L = RETURN (valued M L)\<close>
-  using assms
-  apply (induction M)
-   apply (simp add: valued_def valued_impl_def Decided_Propagated_in_iff_in_lits_of_l
-      atm_of_eq_atm_of)[]
-  by (auto simp add: valued_def valued_impl_def defined_lit_map dest: in_lits_of_l_defined_litD)
-
-lemma valued_impl_spec:
-  shows \<open>(uncurry valued_impl, uncurry (RETURN oo valued)) \<in>
-     [\<lambda>(M, L). no_dup M]\<^sub>f Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
-  unfolding fref_def nres_rel_def
-  by (auto simp: valued_impl_valued IS_ID_def)
-
 lemma nat_of_uint32_shiftr: \<open>nat_of_uint32 (shiftr xi n) = (shiftr (nat_of_uint32 xi) n)\<close>
   by transfer (auto simp: shiftr_div_2n unat_def shiftr_nat_def)
-
 
 lemma atm_of_hnr[sepref_fr_rules]:
   \<open>(return o (\<lambda>L. shiftr L 1), RETURN o op_atm_of) \<in> (pure unat_lit_rel)\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
@@ -221,15 +191,6 @@ proof -
       word_nat_of_uint32_Rep_inject by blast
 qed
 
-sepref_definition valued_impl' is \<open>uncurry valued_impl\<close>
-  :: \<open>pair_nat_ann_lits_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn\<close>
-  unfolding valued_impl_def Let_def
-  by sepref
-
-lemma valued_impl'[sepref_fr_rules]: \<open>(uncurry valued_impl', uncurry (RETURN oo valued)) \<in>
-   [\<lambda>(a, b). no_dup a]\<^sub>a pair_nat_ann_lits_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn bool_assn\<close>
-  using valued_impl'.refine[FCOMP valued_impl_spec] by auto
-
 definition delete_index_and_swap_ll where
   \<open>delete_index_and_swap_ll xs i j =
      xs[i:= delete_index_and_swap (xs!i) j]\<close>
@@ -252,6 +213,7 @@ lemma delete_index_and_swap_aa_ll_hnr[sepref_fr_rules]:
       simp: delete_index_and_swap_ll_def update_ll_def last_ll_def set_butlast_ll_def
       length_ll_def[symmetric])
 
+(* TODO kill *)
 definition find_unwatched' :: "(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> (nat option) nres" where
 \<open>find_unwatched' M N' C = do {
    S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> 2 \<and> i \<le> length (N'!C) \<and> (\<forall>j\<in>{2..<i}. -((N'!C)!j) \<in> lits_of_l M) \<and>
@@ -272,17 +234,6 @@ definition find_unwatched' :: "(nat, nat) ann_lits \<Rightarrow> nat clauses_l \
 lemma find_unwatched'_find_unwatched: \<open>find_unwatched' M N' C = find_unwatched M (N'!C)\<close>
   unfolding find_unwatched'_def find_unwatched_def
   by auto
-
-sepref_definition find_unwatched'_impl
-  is \<open>uncurry2 find_unwatched'\<close>
-  :: \<open>[\<lambda>((M, N'), C). no_dup M \<and> C < length N']\<^sub>a
-        pair_nat_ann_lits_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>
-        option_assn nat_assn\<close>
-  unfolding find_unwatched'_def nth_rll_def[symmetric] length_rll_def[symmetric]
-  supply [[goals_limit=1]]
-  by sepref
-
-declare find_unwatched'_impl.refine[sepref_fr_rules]
 
 
 subsection \<open>Code Generation\<close>

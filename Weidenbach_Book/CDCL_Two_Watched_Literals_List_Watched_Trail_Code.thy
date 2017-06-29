@@ -9,7 +9,7 @@ notation prod_rel_syn (infixl "\<times>\<^sub>f" 70)
 type_synonym trailt = \<open>(nat, nat) ann_lits \<times> bool option list \<times> nat list \<times> nat\<close>
 type_synonym trailt_assn = \<open>(uint32 \<times> nat option) list \<times> bool option array \<times> uint32 array \<times> uint32\<close>
 
-type_synonym vmtf_assn = \<open>l_vmtf_atm array \<times> nat \<times> nat option \<times> nat option\<close>
+type_synonym vmtf_assn = \<open>l_vmtf_atm array \<times> nat \<times> uint32 option \<times> uint32 option\<close>
 type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> nat list\<close>
 
 type_synonym phase_saver_assn = \<open>bool array\<close>
@@ -26,17 +26,17 @@ definition valued_atm_on_trail where
     else if Neg L \<in> lits_of_l M then Some False
     else None)\<close>
 
-instance l_vmtf_atm :: heap
+instance al_vmtf_atm :: (heap) heap
 proof intro_classes
-  let ?to_pair = \<open>\<lambda>x. (stamp x, get_prev x, get_next x)\<close>
+  let ?to_pair = \<open>\<lambda>x::'a al_vmtf_atm. (stamp x, get_prev x, get_next x)\<close>
   have inj': \<open>inj ?to_pair\<close>
     unfolding inj_def by (intro allI) (case_tac x; case_tac y; auto)
-  obtain to_nat :: \<open>nat \<times> nat option \<times> nat option \<Rightarrow> nat\<close> where
+  obtain to_nat :: \<open>nat \<times> 'a option \<times> 'a option \<Rightarrow> nat\<close> where
     \<open>inj to_nat\<close>
     by blast
   then have \<open>inj (to_nat o ?to_pair)\<close>
     using inj' by (blast intro: inj_comp)
-  then show \<open>\<exists>to_nat:: l_vmtf_atm \<Rightarrow> nat. inj to_nat\<close>
+  then show \<open>\<exists>to_nat:: 'a al_vmtf_atm \<Rightarrow> nat. inj to_nat\<close>
     by blast
 qed
 
@@ -63,8 +63,8 @@ abbreviation (in -)  l_vmtf_atm_assn where
 \<open>l_vmtf_atm_assn \<equiv> id_assn :: l_vmtf_atm \<Rightarrow> _\<close>
 
 abbreviation (in -) vmtf_conc where
-  \<open>vmtf_conc \<equiv> (array_assn l_vmtf_atm_assn *assn nat_assn *assn option_assn nat_assn
-    *assn option_assn nat_assn)\<close>
+  \<open>vmtf_conc \<equiv> (array_assn l_vmtf_atm_assn *assn nat_assn *assn option_assn uint32_nat_assn
+    *assn option_assn uint32_nat_assn)\<close>
 
 abbreviation (in -) vmtf_remove_conc where
   \<open>vmtf_remove_conc \<equiv> vmtf_conc *assn clauses_to_update_ll_assn\<close>
@@ -359,6 +359,12 @@ lemma (in -)stamp_ref[sepref_fr_rules]: \<open>(return o stamp, RETURN o stamp) 
   apply (case_tac x)
   by (auto simp: ex_assn_move_out(2)[symmetric] return_cons_rule ent_ex_up_swap simp del: ex_assn_move_out)
 
+lemma (in -)stamp_ref[sepref_fr_rules]: \<open>(return o get_next, RETURN o get_next) \<in> l_vmtf_atm_assn\<^sup>d \<rightarrow>\<^sub>a 
+   option_assn uint32_nat_assn\<close>
+  apply sepref_to_hoare
+  apply (case_tac x)
+  by (auto simp: ex_assn_move_out(2)[symmetric] return_cons_rule ent_ex_up_swap simp del: ex_assn_move_out)
+
 definition (in -) nat_uint32_id :: \<open>nat \<Rightarrow> nat\<close> where
 \<open>nat_uint32_id n = n\<close>
 
@@ -388,7 +394,6 @@ sepref_thm tl_trail_tr_code
         trail_conc\<^sup>d \<rightarrow> trail_conc\<close>
   supply if_splits[split] option.splits[split] bind_ref_tag_False_True[simp]
   unfolding tl_trail_tr_alt_def
-  apply (rewrite at \<open>Some \<hole>\<close> nat_uint32_id_def[symmetric])
   apply (rewrite at \<open>_ = None \<or> _\<close> short_circuit_conv)
   supply [[goals_limit = 1]]
   supply uint32_nat_assn_one[sepref_fr_rules]
@@ -1595,12 +1600,95 @@ prepare_code_thms (in -) backtrack_wl_D_code_def
 lemmas backtrack_wl_D_code_refine[sepref_fr_rules] =
    backtrack_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_l_trail_assn_def]
 
-lemma N\<^sub>0'_eq_append_in_D\<^sub>0: \<open>N\<^sub>0' = ys @ a2'g \<Longrightarrow>a2'g \<noteq> [] \<Longrightarrow> hd a2'g \<in> snd ` D\<^sub>0\<close>
-  by (auto simp: image_image N\<^sub>1_def N\<^sub>0''_def)
+definition find_unassigned_lit_wl_D' :: \<open>((nat, nat)ann_lits \<times> vmtf_imp_remove \<times> phase_saver) \<times> 'a \<Rightarrow> 
+   (_ \<times> (((nat, nat)ann_lits \<times> vmtf_imp_remove \<times> phase_saver) \<times> 'a)) nres\<close> where
+\<open>find_unassigned_lit_wl_D' S = do {
+  let ((M, ((A, m, lst, next_search), removed), \<phi>), S') = S;
+  L \<leftarrow>  vmtf_find_next_undef ((A, m, lst, next_search), removed) M;
+  let vm = ((A, m, lst, L), removed);
+  let T = ((M, vm, \<phi>), S');
+  case L of
+    None \<Rightarrow> RETURN (None, T)
+  | Some L \<Rightarrow> do {
+        ASSERT(L < length \<phi>); 
+        if \<phi> ! L then RETURN (Some (Pos L), T) else RETURN (Some (Neg L), T)}
+  }\<close>
+
+lemma (in -)not_is_None_not_None: \<open>\<not>is_None s \<Longrightarrow> s \<noteq> None\<close>
+  by (auto split: option.splits)
+
+definition (in -) defined_atm :: \<open>('v, nat) ann_lits \<Rightarrow> 'v \<Rightarrow> bool\<close> where
+\<open>defined_atm M L = defined_lit M (Pos L)\<close>
+
+definition (in -) defined_atm_impl where
+  \<open>defined_atm_impl = (\<lambda>(M, xs, lvls, k) L. do {
+      ASSERT(L < length xs);
+      RETURN (xs!L \<noteq> None)
+    })\<close>
+
+sepref_thm defined_atm_impl
+  is \<open>uncurry defined_atm_impl\<close>
+  :: \<open>(trailt_conc)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding defined_atm_impl_def
+  by sepref
+
+concrete_definition (in -) defined_atm_code
+   uses twl_array_code.defined_atm_impl.refine_raw
+   is "(uncurry ?f,_)\<in>_"
+
+prepare_code_thms (in -) defined_atm_code_def
+
+lemmas undefined_atm_impl_refine[sepref_fr_rules] =
+   defined_atm_code.refine[OF twl_array_code_axioms]
+
+lemma undefined_atm_impl:
+  \<open>(uncurry defined_atm_impl, uncurry (RETURN oo defined_atm)) \<in>
+   [\<lambda>(M, L). Pos L \<in> snd ` D\<^sub>0]\<^sub>f trailt_ref \<times>\<^sub>r Id \<rightarrow> \<langle>bool_rel\<rangle> nres_rel\<close>
+proof -
+  have H: \<open>L < length xs\<close> (is \<open>?length\<close>) and
+    none: \<open>defined_atm M L \<longleftrightarrow> xs ! L \<noteq> None\<close> (is ?undef)
+    if L_N: \<open>Pos L \<in># N\<^sub>1\<close> and  tr: \<open>((M', xs, lvls, k), M) \<in> trailt_ref\<close>
+    for M xs lvls k M' L
+  proof -
+    have 
+       \<open>M = M'\<close> and
+       \<open>\<forall>L\<in>#N\<^sub>1. atm_of L < length xs \<and> xs ! atm_of L = valued_atm_on_trail M (atm_of L)\<close>
+      using tr unfolding trailt_ref_def by fast+
+    then have L: \<open>L < length xs\<close> and xsL: \<open>xs ! L = valued_atm_on_trail M L\<close>
+      using L_N by force+
+    show ?length
+      using L .
+    show ?undef
+      using xsL by (auto simp: valued_atm_on_trail_def defined_atm_def 
+          Decided_Propagated_in_iff_in_lits_of_l split: if_splits)
+  qed
+  show ?thesis
+    unfolding defined_atm_impl_def
+    by (intro frefI nres_relI) (auto 5 5 simp: none H intro!: ASSERT_leI)
+qed
+
+lemma undefined_atm_code_ref[sepref_fr_rules]: 
+  \<open>(uncurry defined_atm_code, uncurry (RETURN \<circ>\<circ> defined_atm)) \<in>
+     [\<lambda>(a, b). Pos b \<in> snd ` D\<^sub>0]\<^sub>a (hr_comp trailt_conc trailt_ref)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  using undefined_atm_impl_refine[FCOMP undefined_atm_impl] .
 
 sepref_thm find_unassigned_lit_wl_D_code
-  is \<open>PR_CONST find_unassigned_lit_wl_D\<close>
-  :: \<open>twl_st_l_trail_assn\<^sup>k \<rightarrow>\<^sub>a option_assn unat_lit_assn\<close>
+  is \<open>uncurry vmtf_find_next_undef\<close>
+  :: \<open>vmtf_remove_conc\<^sup>k *\<^sub>a (hr_comp trailt_conc trailt_ref)\<^sup>k \<rightarrow>\<^sub>a option_assn uint32_nat_assn\<close>
+  supply [[goals_limit=1]]
+  supply not_is_None_not_None[simp]
+  unfolding vmtf_find_next_undef_def
+  apply (rewrite at \<open>WHILE\<^sub>T\<^bsup>_\<^esup> (\<lambda> _ . \<hole>) _ _\<close> short_circuit_conv)
+  apply (rewrite in \<open>If \<hole> _ _\<close> defined_atm_def[symmetric])
+  apply (rewrite in \<open>If _ \<hole> _\<close> defined_atm_def[symmetric])
+    apply sepref_dbg_keep
+    apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref
+
+sepref_thm find_unassigned_lit_wl_D_code
+  is \<open>PR_CONST find_unassigned_lit_wl_D'\<close>
+  :: \<open>twl_st_l_trail_assn\<^sup>k \<rightarrow>\<^sub>a option_assn unat_lit_assn *assn twl_st_l_trail_assn\<close>
   unfolding find_unassigned_lit_wl_D_def PR_CONST_def twl_st_l_trail_assn_def
     is_None_def[symmetric]
   supply [[goals_limit = 1]]

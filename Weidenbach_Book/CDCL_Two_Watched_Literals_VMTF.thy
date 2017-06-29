@@ -59,9 +59,10 @@ subsubsection \<open>Specification\<close>
 type_synonym 'v abs_l_vmtf = \<open>'v set \<times> 'v set\<close>
 type_synonym 'v abs_l_vmtf_remove = \<open>'v abs_l_vmtf \<times> 'v set\<close>
 
-datatype l_vmtf_atm = l_vmtf_ATM (stamp : nat) (get_prev: \<open>nat option\<close>) (get_next: \<open>nat option\<close>)
+datatype 'v al_vmtf_atm = l_vmtf_ATM (stamp : nat) (get_prev: \<open>'v option\<close>) (get_next: \<open>'v option\<close>)
+type_synonym l_vmtf_atm = \<open>nat al_vmtf_atm\<close>
 
-inductive l_vmtf :: \<open>nat list \<Rightarrow> nat \<Rightarrow>l_vmtf_atm list \<Rightarrow> bool\<close> where
+inductive l_vmtf :: \<open>nat list \<Rightarrow> nat \<Rightarrow> l_vmtf_atm list \<Rightarrow> bool\<close> where
 Nil: \<open>l_vmtf [] st xs\<close> |
 Cons1: \<open>a < length xs \<Longrightarrow> m \<ge> n \<Longrightarrow> xs ! a = l_vmtf_ATM (n::nat) None None \<Longrightarrow> l_vmtf [a] m xs\<close> |
 Cons: \<open>l_vmtf (b # l) m xs \<Longrightarrow> a < length xs \<Longrightarrow> xs ! a = l_vmtf_ATM n None (Some b) \<Longrightarrow>
@@ -419,21 +420,21 @@ lemma l_vmtf_different_same_neq: \<open>l_vmtf (b # c # l') m xs \<Longrightarro
   apply (subst (asm) l_vmtf.simps)
   apply (subst (asm)(2) l_vmtf.simps)
   apply auto (* TODO Proof *)
-  by (metis length_list_update nth_list_update_eq nth_list_update_neq option.distinct(1) l_vmtf_atm.sel(2))
+  by (metis length_list_update nth_list_update_eq nth_list_update_neq option.distinct(1) al_vmtf_atm.sel(2))
 
 lemma l_vmtf_last_next:
   \<open>l_vmtf (xs @ [x]) m A \<Longrightarrow> get_next (A ! x) = None\<close>
   apply (induction "xs @ [x]" m A arbitrary: xs x rule: l_vmtf.induct) (* TODO Proof *)
     apply auto
   by (metis list.distinct(1) list.sel(3) list.set_intros(1) nth_list_update_eq nth_list_update_neq
-      self_append_conv2 tl_append2 l_vmtf_atm.sel(3) l_vmtf_le_length)
+      self_append_conv2 tl_append2 al_vmtf_atm.sel(3) l_vmtf_le_length)
 
 lemma l_vmtf_last_mid_get_next:
   \<open>l_vmtf (xs @ [x, y] @ zs) m A \<Longrightarrow> get_next (A ! x) = Some y\<close>
   apply (induction "xs @ [x, y] @ zs" m A arbitrary: xs x rule: l_vmtf.induct) (* TODO Proof *)
     apply auto
   by (metis list.sel(1) list.sel(3) list.set_intros(1) nth_list_update_eq nth_list_update_neq
-      self_append_conv2 tl_append2 l_vmtf_atm.sel(3) l_vmtf_le_length)
+      self_append_conv2 tl_append2 al_vmtf_atm.sel(3) l_vmtf_le_length)
 
 lemma l_vmtf_last_mid_get_next_option_hd:
   \<open>l_vmtf (xs @ x # zs) m A \<Longrightarrow> get_next (A ! x) = option_hd zs\<close>
@@ -925,7 +926,7 @@ next
     \<close>
     using H(2-5) xs' zs_a \<open>b < length xs\<close>
     by (metis list.set_intros(1) list.set_intros(2) list_update_id list_update_overwrite
-      nth_list_update_eq nth_list_update_neq l_vmtf_atm.collapse l_vmtf_atm.sel(2,3))
+      nth_list_update_eq nth_list_update_neq al_vmtf_atm.collapse al_vmtf_atm.sel(2,3))
 
   have vtmf_b_l: \<open>l_vmtf (b # l) (Max (set st)) zs'\<close>
     unfolding zs'_def
@@ -1579,21 +1580,6 @@ proof -
     done
 qed
 
-definition vmtf_find_next_undef :: \<open>vmtf_imp_remove \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat option) nres\<close> where
-\<open>vmtf_find_next_undef \<equiv> (\<lambda>((A, m, lst, next_search), removed) M. do {
-    WHILE\<^sub>T
-      (\<lambda>next_search. next_search \<noteq> None \<and> defined_lit M (Pos (the next_search)))
-      (\<lambda>next_search. do {
-         ASSERT(next_search \<noteq> None);
-         let n = the next_search;
-         if undefined_lit M (Pos n)
-         then RETURN (Some n)
-         else RETURN (get_next (A!n))
-        }
-      )
-      next_search
-  })\<close>
-
 lemma wf_vmtf_get_next:
   assumes vmtf: \<open>((A, m, lst, next_search), removed) \<in> vmtf_imp M\<close>
   shows \<open>wf {(get_next (A ! the a), a) |a. a \<noteq> None \<and> the a \<in> atms_of N\<^sub>1}\<close> (is \<open>wf ?R\<close>)
@@ -1721,6 +1707,25 @@ proof clarify
     using atm_A by blast
 qed
 
+
+definition vmtf_find_next_undef :: \<open>vmtf_imp_remove \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat option) nres\<close> where
+\<open>vmtf_find_next_undef \<equiv> (\<lambda>((A, m, lst, next_search), removed) M. do {
+    WHILE\<^sub>T\<^bsup>\<lambda>next_search. ((A, m, lst, next_search), removed) \<in> vmtf_imp M \<and> 
+         (next_search \<noteq> None \<longrightarrow> Pos (the next_search) \<in> snd ` D\<^sub>0)\<^esup>
+      (\<lambda>next_search. next_search \<noteq> None \<and> defined_lit M (Pos (the next_search)))
+      (\<lambda>next_search. do {
+         ASSERT(next_search \<noteq> None);
+         let n = the next_search;
+         ASSERT(Pos n \<in> snd ` D\<^sub>0);
+         ASSERT (n < length A);
+         if undefined_lit M (Pos n)
+         then RETURN (Some n)
+         else RETURN (get_next (A!n))
+        }
+      )
+      next_search
+  })\<close>
+
 lemma vmtf_find_next_undef_ref:
   assumes
     vmtf: \<open>((A, m, lst, next_search), removed) \<in> vmtf_imp M\<close>
@@ -1749,18 +1754,28 @@ proof -
     for A' m' lst' remove y
     by (auto simp: vmtf_imp_def abs_l_vmtf_remove_inv_def in_N\<^sub>1_atm_of_in_atms_of_iff
         defined_lit_map lits_of_def)
-
+  have next_search_le_A':
+    \<open>((A', m', lst', Some y), remove) \<in> vmtf_imp M \<Longrightarrow> y < length A'\<close>
+    for A' m' lst' remove y
+    by (auto simp: vmtf_imp_def abs_l_vmtf_remove_inv_def in_N\<^sub>1_atm_of_in_atms_of_iff
+        defined_lit_map lits_of_def)
   show ?thesis
     unfolding vmtf_find_next_undef_def
     apply (refine_vcg
-       WHILET_rule[where R=\<open>{(get_next (A ! the a), a) |a. a \<noteq> None \<and> the a \<in> atms_of N\<^sub>1}\<close> and
-        I=\<open>\<lambda>next_search. ((A, m, lst, next_search), removed) \<in> vmtf_imp M\<close>])
+       WHILEIT_rule[where R=\<open>{(get_next (A ! the a), a) |a. a \<noteq> None \<and> the a \<in> atms_of N\<^sub>1}\<close>])
     subgoal using vmtf by (rule wf_vmtf_get_next)
     subgoal using next_search vmtf by auto
-    subgoal by auto
+    subgoal using vmtf by (auto dest!: next_search_N\<^sub>1 simp: image_image in_N\<^sub>1_atm_of_in_atms_of_iff)
+    subgoal using vmtf by auto
+    subgoal using vmtf by auto
+    subgoal using vmtf by (auto dest: next_search_le_A')
+    subgoal by (auto dest!: next_search_N\<^sub>1 simp: image_image in_N\<^sub>1_atm_of_in_atms_of_iff)
+    subgoal by (auto dest: next_search_le_A')
     subgoal for x1 A' x2 m' x2a lst' next_search' x2c s
       by (auto dest: no_next_search_all_defined next_search_N\<^sub>1)
     subgoal by (auto dest: wf_vmtf_next_search_take_next)
+    subgoal by (auto simp: image_image in_N\<^sub>1_atm_of_in_atms_of_iff)
+        (metis next_search_N\<^sub>1 option.distinct(1) option.sel wf_vmtf_next_search_take_next)
     subgoal by (auto dest: next_search_N\<^sub>1 no_next_search_all_defined wf_vmtf_next_search_take_next)
     subgoal by (auto dest: no_next_search_all_defined next_search_N\<^sub>1)
     subgoal by (auto dest: no_next_search_all_defined)
