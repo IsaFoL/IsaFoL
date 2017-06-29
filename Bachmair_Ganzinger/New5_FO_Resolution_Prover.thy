@@ -1418,7 +1418,7 @@ next
   qed
 next
   case (backward_subsumption_Q N C P Q) (* Adapted from previous proof *)
-     then obtain D where D_p: "D\<in>N \<and> properly_subsumes D C"
+  then obtain D where D_p: "D\<in>N \<and> properly_subsumes D C"
     by auto
   from D_p obtain \<sigma> where \<sigma>_p: "D \<cdot> \<sigma> \<subseteq># C" unfolding properly_subsumes_def subsumes_def by auto
   then have "D \<cdot> \<sigma> = C \<or> D \<cdot> \<sigma> \<subset># C"
@@ -1909,6 +1909,17 @@ proof (rule ccontr)
     by (simp add: getP_limit_state_llimit_getP)
 qed
 
+lemma proper_neq:
+  assumes "properly_subsumes D' D"
+  shows "D' \<noteq> D \<cdot> \<sigma>"
+proof
+  assume "D'=D \<cdot> \<sigma>"
+  then have "D \<cdot> (\<sigma> \<odot> id_subst) \<subseteq># D'"
+    by auto
+  then show False 
+    using assms  unfolding properly_subsumes_def unfolding subsumes_def by metis
+qed
+
 lemma from_Q_to_Q_inf:
   assumes 
     deriv: "derivation (op \<leadsto>) Sts" and
@@ -1972,7 +1983,59 @@ proof -
       by auto
   next
     case (backward_subsumption_P N D_twin P Q)
-    then show ?case sorry
+    then have twins: "D_twin = D" "?Ns (Suc l) = N" "?Ns l = N"  "?Ps (Suc l) = P" "?Ps l = P \<union> {D_twin}" "?Qs (Suc l) = Q" "?Qs l = Q" 
+      using l_p by auto
+    then obtain D' where D'_p: "properly_subsumes D' D \<and> D' \<in> N"
+      using backward_subsumption_P by auto
+    then obtain \<tau> where \<tau>_p: "D' \<cdot> \<tau> \<subseteq># D"
+      unfolding properly_subsumes_def subsumes_def by auto 
+      then have "D = D' \<cdot> \<tau> \<or> D' \<cdot> \<tau> \<subset># D"
+        using subset_mset_def by auto
+      then show ?case 
+      proof
+        assume "D = D' \<cdot> \<tau>"
+        then have False 
+          using D'_p proper_neq[of D' D] by auto
+          using l_p \<sigma>
+          by auto
+        then show ?case
+          using twins \<tau>_D'_p l_p unfolding is_least_def
+            by metis
+      next
+        assume "D' \<cdot> \<tau> \<subset># D"
+        then have "D' \<cdot> \<tau> \<cdot> \<sigma> \<subset># D \<cdot> \<sigma>"
+          by (simp add: subst_subset_mono)
+        then have D'_C: "D' \<cdot> \<tau> \<cdot> \<sigma> \<subset># C"
+          using d \<sigma> by auto
+        then have "(\<forall>I. I \<Turnstile> D' \<cdot> \<tau> \<cdot> \<sigma> \<longrightarrow> I \<Turnstile> C)"
+          by (meson set_mset_mono subset_mset.less_imp_le true_cls_mono)
+        moreover
+        from D'_C have "C > D' \<cdot> \<tau> \<cdot> \<sigma>"
+          by (simp add: subset_imp_less_mset)
+        moreover
+        have "D' \<cdot> \<tau> \<cdot> \<sigma> \<in> grounding_of_cls D'"
+          using \<sigma> unfolding grounding_of_cls_def
+          by (metis (mono_tags, lifting) is_ground_comp_subst mem_Collect_eq subst_cls_comp_subst) 
+        ultimately
+        have "C \<in> src.Rf (grounding_of_cls D')"
+          unfolding src.Rf_def 
+          apply simp
+          apply (rule_tac x="{#D' \<cdot> \<tau> \<cdot> \<sigma>#}" in exI)
+            by simp
+        then have "C \<in> src.Rf (grounding_of_state (lnth Sts (Suc l)))"
+          using src.Rf_mono D'_p unfolding twins(2)[symmetric] using getN_subset l_p grounding_of_clss_mono2[of D']
+          by (metis (no_types, lifting) contra_subsetD)
+        then have "C \<in> src.Rf (lnth Ns (Suc l))"
+           using l_p unfolding ns by auto
+        then have "C \<in> src.Rf (lSup Ns)" 
+          using src.Rf_mono[of "(lnth Ns (Suc l))" "lSup Ns"] l_Ns by (auto simp add: lnth_subset_lSup)
+        then have "C \<in> src.Rf (llimit Ns)" using four_ten src_ext.derivation_supremum_llimit_satisfiable(1)[of Ns]
+          by auto
+        then have "False" 
+          using c by auto
+        then show ?case
+          by auto
+      qed
   next
     case (backward_subsumption_Q N D_twin P Q)    
     then have twins: "D_twin = D" "?Ps (Suc l) = P" "?Ps l = P" "?Qs (Suc l) = Q" "?Qs l = Q" 
