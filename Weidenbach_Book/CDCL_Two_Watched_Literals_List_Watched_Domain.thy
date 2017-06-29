@@ -180,17 +180,14 @@ subsection \<open>Refinement\<close>
 definition upperN :: nat where
   \<open>upperN = 2 ^32\<close>
 
-text \<open>We start in a context where we have an initial set of literals. \<close>
+text \<open>We start in a context where we have an initial set of atoms. \<close>
 locale twl_array_code_ops =
-  fixes N\<^sub>0 :: \<open>uint32 list\<close>
+  fixes N\<^sub>0 :: \<open>nat multiset\<close>
 begin
 
 text \<open>This is the \<^emph>\<open>completion\<close> of \<^term>\<open>N\<^sub>0\<close>, containing the positive and the negation of every
   literal of \<^term>\<open>N\<^sub>0\<close>:\<close>
-definition N\<^sub>0' where \<open>N\<^sub>0' = map (literal_of_nat o nat_of_uint32) N\<^sub>0\<close>
-definition N\<^sub>0'' where \<open>N\<^sub>0'' = mset N\<^sub>0'\<close>
-
-definition N\<^sub>1 where \<open>N\<^sub>1 = N\<^sub>0'' + uminus `# N\<^sub>0''\<close>
+definition N\<^sub>1 where \<open>N\<^sub>1 = poss N\<^sub>0 + negs N\<^sub>0\<close>
 
 definition is_N\<^sub>1 :: "nat literal multiset \<Rightarrow> bool" where
   \<open>is_N\<^sub>1 S \<longleftrightarrow> set_mset S = set_mset N\<^sub>1\<close>
@@ -223,7 +220,7 @@ proof -
 qed
 
 lemma in_N\<^sub>1_atm_of_in_atms_of_iff: \<open>x \<in># N\<^sub>1 \<longleftrightarrow> atm_of x \<in> atms_of N\<^sub>1\<close>
-  by (auto simp: N\<^sub>1_def atms_of_def atm_of_eq_atm_of)
+  by (cases x) (auto simp: N\<^sub>1_def atms_of_def atm_of_eq_atm_of image_Un image_image)
 
 abbreviation D\<^sub>0 :: \<open>(nat \<times> nat literal) set\<close> where
   \<open>D\<^sub>0 \<equiv> (\<lambda>L. (nat_of_lit L, L)) ` set_mset N\<^sub>1\<close>
@@ -339,53 +336,17 @@ proof -
     using H unfolding 1 2 3 .
 qed
 
-lemma (in twl_array_code_ops) atms_of_N\<^sub>1_N\<^sub>0: \<open>atms_of N\<^sub>1 = atms_of N\<^sub>0''\<close>
-  unfolding N\<^sub>1_def by (auto simp: atms_of_def)
+lemma atms_of_N\<^sub>1_N\<^sub>0: \<open>atms_of N\<^sub>1 = set_mset N\<^sub>0\<close>
+  unfolding N\<^sub>1_def by (auto simp: atms_of_def image_Un image_image)
 
 end
 
 
 locale twl_array_code =
   twl_array_code_ops N\<^sub>0
-  for N\<^sub>0 :: \<open>uint32 list\<close> +
-  assumes lits_less_upperN: \<open>\<forall>L \<in> set N\<^sub>0. nat_of_uint32 L < upperN\<close>
+  for N\<^sub>0 :: \<open>nat multiset\<close> +
+  assumes in_N1_less_than_upperN: \<open>\<forall>L \<in># N\<^sub>1. nat_of_lit L < upperN\<close>
 begin
-
-
-lemma in_N1_less_than_upperN: \<open>L \<in># N\<^sub>1 \<Longrightarrow> nat_of_lit L < upperN\<close>
-  using twl_array_code_axioms unfolding twl_array_code_def
-  apply (auto simp: N\<^sub>1_def N\<^sub>0''_def N\<^sub>0'_def)
-    apply (metis Suc_lessI even_Suc even_numeral even_power upperN_def zero_less_numeral)
-  using less_imp_diff_less by blast
-
-lemma list_assn_N\<^sub>0': \<open>list_assn (\<lambda>a c. \<up> ((c, a) \<in> unat_lit_rel)) N\<^sub>0' N\<^sub>0 = emp\<close>
-  unfolding  N\<^sub>0'_def
-    pure_def[symmetric] list_assn_pure_conv
-    using lits_less_upperN
-  by (auto simp: list_rel_def uint32_nat_rel_def br_def pure_def unat_lit_rel_def
-        Collect_eq_comp nat_lit_rel_def lit_of_natP_def nat_of_uint32_uint32_of_nat_id upperN_def
-      list_all2_op_eq_map_right_iff
-      simp del: literal_of_nat.simps )
-
-lemma N_hnr'[sepref_import_param]:
-  "(uncurry0 (return N\<^sub>0), uncurry0 (RETURN N\<^sub>0'))\<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a list_assn unat_lit_assn"
-  by sepref_to_hoare (sep_auto simp: list_assn_N\<^sub>0')
-lemma [sepref_import_param]: "(N\<^sub>0, N\<^sub>0) \<in> \<langle>uint32_rel\<rangle>list_rel"
-  by auto
-
-text \<open>The strict equality does not hold\<close>
-lemma card_set_N\<^sub>0_upperN: \<open>card (set N\<^sub>0) \<le> upperN\<close>
-proof -
-  have \<open>card (set N\<^sub>0) = card (nat_of_uint32 ` set N\<^sub>0)\<close>
-      using lits_less_upperN  by (induction N\<^sub>0) (auto simp: card_insert_if)
-  moreover {
-    have \<open>nat_of_uint32 ` set N\<^sub>0 \<subseteq> set [0..< upperN]\<close>
-      using lits_less_upperN  by (induction N\<^sub>0) auto
-    from card_mono[OF _ this] have \<open>card (nat_of_uint32 ` set N\<^sub>0) \<le> upperN\<close>
-      by auto
-    }
-  ultimately show ?thesis by presburger
-qed
 
 definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> nat \<Rightarrow>
   nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres"  where
@@ -1114,11 +1075,6 @@ proof -
     apply (subst (2) append_take_drop_id[of n \<open>tl xs\<close>, symmetric])
     apply (subst mset_append)
     by (auto simp: drop_Suc)
-  have N\<^sub>1: \<open>set_mset (all_lits_of_mm N) = set_mset N\<^sub>1 \<longleftrightarrow> atms_of_mm N = atms_of N\<^sub>1\<close> for N
-    apply (auto simp: in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def atms_of_def
-        atm_of_eq_atm_of N\<^sub>1_def in_implies_atm_of_on_atms_of_ms
-        image_Un)
-    using in_implies_atm_of_on_atms_of_ms in_all_lits_of_mm_ain_atms_of_iff by fastforce
   have list_of_mset: \<open>list_of_mset2 L L' D \<le>
       \<Down> {(E, F). F = [L, L'] @ remove1 L (remove1 L' E) \<and> D = mset E \<and> E!0 = L \<and> E!1 = L' \<and> E=F}
         (list_of_mset D')\<close>

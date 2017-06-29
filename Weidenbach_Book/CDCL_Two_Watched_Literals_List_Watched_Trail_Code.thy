@@ -181,7 +181,7 @@ proof -
   have inj_on: \<open>inj_on nat_of_lit (set_mset (remdups_mset N\<^sub>1))\<close>
     by (auto simp: inj_on_def)
   have H: \<open>xa \<in># N\<^sub>1 \<Longrightarrow> atm_of xa < upperN div 2\<close> for xa
-    using in_N1_less_than_upperN[of xa]
+    using in_N1_less_than_upperN
     by (cases xa) (auto simp: upperN_def)
   have \<open>remdups_mset (atm_of `# N\<^sub>1) \<subseteq># mset [0..<upperN div 2]\<close>
     apply (subst distinct_subseteq_iff[THEN iffD1])
@@ -1594,13 +1594,6 @@ prepare_code_thms (in -) backtrack_wl_D_code_def
 
 lemmas backtrack_wl_D_code_refine[sepref_fr_rules] =
    backtrack_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_l_trail_assn_def]
-
-lemma N_hnr[sepref_import_param]: "(N\<^sub>0,N\<^sub>0')\<in>\<langle>unat_lit_rel\<rangle>list_rel"
-   using lits_less_upperN unfolding N\<^sub>0'_def
-   by (auto simp del: literal_of_nat.simps simp: p2rel_def lit_of_natP_def
-       unat_lit_rel_def uint32_nat_rel_def nat_lit_rel_def br_def Collect_eq_comp
-       list_rel_def list_all2_op_eq_map_right_iff
-       upperN_def nat_of_uint32_uint32_of_nat_id)
 
 lemma N\<^sub>0'_eq_append_in_D\<^sub>0: \<open>N\<^sub>0' = ys @ a2'g \<Longrightarrow>a2'g \<noteq> [] \<Longrightarrow> hd a2'g \<in> snd ` D\<^sub>0\<close>
   by (auto simp: image_image N\<^sub>1_def N\<^sub>0''_def)
