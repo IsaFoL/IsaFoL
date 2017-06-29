@@ -3759,7 +3759,7 @@ next
     using w_q unfolding clauses_to_update_inv.simps by auto
 
 
-  show ?case unfolding T
+  show ?case
   proof (induction rule: clauses_to_update_inv_cases)
     case (WS_nempty L C)
     then show ?case by simp
@@ -3986,7 +3986,7 @@ next
       L' \<notin> lits_of_l M1 \<Longrightarrow> (L, C) \<notin># {#} \<Longrightarrow> L \<in># {#}\<close>
     using w_q unfolding clauses_to_update_inv.simps by auto
 
-  show ?case unfolding T
+  show ?case
   proof (induction rule: clauses_to_update_inv_cases)
     case (WS_nempty L C)
     then show ?case by simp

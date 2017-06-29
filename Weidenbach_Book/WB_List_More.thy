@@ -202,7 +202,7 @@ proof -
       upt_eq_Cons_conv upt_rec ys)
 qed
 
-lemma nths_upt_Suc: \<open>aa < length xs \<Longrightarrow> nths xs {0..<Suc aa} = nths xs {0..<aa} @ [xs ! aa]\<close>
+lemma nths_upt_upto_Suc: \<open>aa < length xs \<Longrightarrow> nths xs {0..<Suc aa} = nths xs {0..<aa} @ [xs ! aa]\<close>
   by (simp add: atLeast0LessThan take_Suc_conv_app_nth)
 
 text \<open>The following two lemmas are useful as simp rules for case-distinction. The case
