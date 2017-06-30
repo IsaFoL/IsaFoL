@@ -1755,6 +1755,62 @@ private lemma swap_ex_assn_8_10: \<open>(\<exists>\<^sub>Aag ah ai aj ak bd al a
             ex_assn_swap[of \<open>_ :: 'ag \<Rightarrow>'aj \<Rightarrow>assn\<close>]
   ..
 
+text \<open>This incredible ugly proof is the best way I have found to swap the order of the literals.\<close>
+private lemma swap_ex_assn_8:
+  \<open>(\<exists>\<^sub>A(a::'a) (b::'b) (c::'c) (d::'d) (e::'e) (f::'f) (g::'g) (h::'h) (i::'i).
+     P a b c d e f g h i) =
+  (\<exists>\<^sub>A(g::'g) (h::'h) (i::'i) (a::'a) (b::'b) (c::'c) (d::'d) (e::'e) (f::'f).
+     P a b c d e f g h i)\<close>
+  unfolding
+   ex_assn_swap[of \<open>_ :: 'b \<Rightarrow>'a \<Rightarrow>assn\<close>]
+
+   ex_assn_swap[of \<open>_ :: 'c \<Rightarrow>'a \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'c \<Rightarrow>'b \<Rightarrow>assn\<close>]
+
+   ex_assn_swap[of \<open>_ :: 'd \<Rightarrow>'a \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'd \<Rightarrow>'b \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'd \<Rightarrow>'c \<Rightarrow>assn\<close>]
+
+   ex_assn_swap[of \<open>_ :: 'e \<Rightarrow>'a \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'e \<Rightarrow>'b \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'e \<Rightarrow>'c \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'e \<Rightarrow>'d \<Rightarrow>assn\<close>]
+
+   ex_assn_swap[of \<open>_ :: 'f \<Rightarrow>'a \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'f \<Rightarrow>'b \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'f \<Rightarrow>'c \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'f \<Rightarrow>'d \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'f \<Rightarrow>'e \<Rightarrow>assn\<close>]
+
+   ex_assn_swap[of \<open>_ :: 'g \<Rightarrow>'a \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'g \<Rightarrow>'b \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'g \<Rightarrow>'c \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'g \<Rightarrow>'d \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'g \<Rightarrow>'e \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'g \<Rightarrow>'f \<Rightarrow>assn\<close>]
+
+   ex_assn_swap[of \<open>_ :: 'h \<Rightarrow>'a \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'h \<Rightarrow>'b \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'h \<Rightarrow>'c \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'h \<Rightarrow>'d \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'h \<Rightarrow>'e \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'h \<Rightarrow>'f \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'h \<Rightarrow>'g \<Rightarrow>assn\<close>]
+
+   ex_assn_swap[of \<open>_ :: 'i \<Rightarrow>'a \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'i \<Rightarrow>'b \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'i \<Rightarrow>'c \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'i \<Rightarrow>'d \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'i \<Rightarrow>'e \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'i \<Rightarrow>'f \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'i \<Rightarrow>'g \<Rightarrow>assn\<close>]
+   ex_assn_swap[of \<open>_ :: 'i \<Rightarrow>'h \<Rightarrow>assn\<close>]
+  ..
+
+private lemma eq_out_of_ex_assn_replace:
+  \<open>\<up> (a = b) * P a = \<up> (a = b) * P b\<close>
+  by (metis (full_types) pure_false star_aci(2) star_false_right)
+
 lemma
   \<open>(vmtf_find_next_undef_upd_code, find_undefined_atm) \<in>
       trail_assn\<^sup>d \<rightarrow>\<^sub>a trail_assn *assn option_assn uint32_nat_assn\<close>
@@ -1842,42 +1898,41 @@ proof -
       apply (subst swap_ex_assn_8_10)
       apply (subst ex_assn_def_pure_eq_middle2)
       by (auto simp: conj_left_commute)
-    finally have A: \<open>?A = \<up> (af = x) * (\<exists>\<^sub>Aag ah ai aj ak bd am an be. 
-       ?P af am an be ag ah ai aj ak bd * \<up> (?R af am an be) * (\<up> (?\<phi> bd) * \<up> (?S ag ah ai aj ak)))\<close> 
-       (is \<open>_ = _ * ?A'\<close>) .
-
+    finally have \<open>?A = \<up> (af = x) * (\<exists>\<^sub>Aag ah ai aj ak bd am an be.
+       ?P af am an be ag ah ai aj ak bd * \<up> (?R af am an be \<and> ?\<phi> bd \<and> ?S ag ah ai aj ak))\<close> by simp
+    then have A: \<open>?A = \<up> (af = x) * (\<exists>\<^sub>Aag ah ai aj ak bd am an be.
+       ?P af am an be ag ah ai aj ak bd * \<up> (?R af am an be \<and> ?S ag ah ai aj ak \<and> ?\<phi> bd))\<close>
+      (is \<open>_ = _ * ?A'\<close>)
+      by (simp add: conj_commute)
 
     have \<open>?B = (\<exists>\<^sub>Aag ah ai aj ak al am an bd.
            ?P' ag ah ai aj ak al am an bd *
            \<up> (?R' ah ag ai \<and> af = x \<and> ?S' aj ak al am an \<and> ?\<phi> bd))\<close>
       by (subst 1) auto
-    also have B: \<open>\<dots> = \<up> (af = x) * (\<exists>\<^sub>Aag ah ai aj ak al am an bd.
+    also have \<open>\<dots> = \<up> (af = x) * (\<exists>\<^sub>Aag ah ai aj ak al am an bd.
            ?P' ag ah ai aj ak al am an bd *
            \<up> (?R' ah ag ai \<and> ?S' aj ak al am an \<and> ?\<phi> bd))\<close>
       (is \<open>_ = _ * ?B'\<close>)
       unfolding ex_assn_move_out(2)
       by (auto simp: conj_left_commute)
-    have \<open>?A' = ?B'\<close>
-      apply auto
-    term \<open>(?P, ?P')\<close>
+    finally have B: \<open>?B = \<up> (af = x) * (\<exists>\<^sub>Aag ah ai aj ak al am an bd.
+           ?P' ag ah ai aj ak al am an bd *
+           \<up> (?R' ah ag ai \<and> ?S' aj ak al am an \<and> ?\<phi> bd))\<close> .
 
-      unfolding ex_assn_swap[of \<open>_ :: 'aa \<Rightarrow>'ab\<Rightarrow>assn\<close>]
-                ex_assn_swap[of \<open>_ :: 'aa \<Rightarrow>'ac\<Rightarrow>assn\<close>]
-                ex_assn_swap[of \<open>_ :: 'aa \<Rightarrow>'ad\<Rightarrow>assn\<close>]
-                ex_assn_swap[of \<open>_ :: 'aa \<Rightarrow>'ae\<Rightarrow>assn\<close>]
-                ex_assn_swap[of \<open>_ :: 'aa \<Rightarrow>'af\<Rightarrow>assn\<close>]
-                ex_assn_swap[of \<open>_ :: 'aa \<Rightarrow>'ag\<Rightarrow>assn\<close>]
-                ex_assn_swap[of \<open>_ :: 'aa \<Rightarrow>'ah\<Rightarrow>assn\<close>]
-                ex_assn_swap[of \<open>_ :: 'aa \<Rightarrow>'ai\<Rightarrow>assn\<close>]
-                ex_assn_swap[of \<open>_ :: 'aa \<Rightarrow>'aj\<Rightarrow>assn\<close>] ..
-    also have \<open>\<dots> = ?B\<close>
-      by (subst ex_assn_def_pure_eq_middle2) simp
-    finally show ?thesis .
+    have normalise_name: \<open>(\<exists>\<^sub>Aag ah ai aj ak al am an bd. P ag ah ai aj ak al am an bd) =
+        (\<exists>\<^sub>Axa xb xc xd xe xf xg xh xi. P xa xb xc xd xe xf xg xh xi)\<close> for P
+      ..
+    show ?thesis
+      unfolding A
+      apply (subst B)
+      apply (subst swap_ex_assn_8)
+      apply (subst normalise_name)
+      apply (subst (2) normalise_name)
+      apply (subst eq_out_of_ex_assn_replace)
+      apply (subst (2) eq_out_of_ex_assn_replace)
+      ..
   qed
-  have swap: \<open>NO_MATCH (z :: bool list \<Rightarrow> bool list \<Rightarrow> bool) P \<Longrightarrow>
-          (\<exists>\<^sub>Aa b. P a b) = (\<exists>\<^sub>Ab a. P a b)\<close> for P :: \<open>bool list \<Rightarrow> _\<close> and z
-    apply (subst ex_assn_swap) ..
-  sorry
+
   have *: \<open>hr_comp
       (hr_comp trailt_conc trailt_ref *assn
        vmtf_remove_conc *assn hr_comp phase_saver_conc phase_saver_ref)
@@ -1885,11 +1940,8 @@ proof -
     apply (sep_auto simp: phase_saver_ref_def trail_ref_except_ann_lits_def trail_ref_def
       hr_comp_def ex_assn_pair_split list_assn_pure_conv option_assn_pure_conv
        intro!: ext arg_cong[of _ _ ex_assn])
-    thm arg_cong[of _ _ ex_assn]
     apply (subst KH)
-    apply (subst conj_commute[of \<open>phase_saving _\<close>])
-    apply (auto simp:  swap)
-    sorry
+    ..
   then have pre: \<open>?pre' = ?pre\<close>
     unfolding trail_assn_def hrp_comp_dest
     by (auto simp: trail_ref_except_ann_lits_def intro!: ext)
@@ -1901,10 +1953,8 @@ proof -
   show ?thesis
     using H unfolding cond pre im .
 qed
-  thm vmtf_find_next_undef_upd_code_ref[FCOMP vmtf_find_next_undef_upd]
-  thm vmtf_find_next_undef_ref[to_fref]
 
-definition find_unassigned_lit_wl_D' :: \<open>((nat, nat)ann_lits \<times> vmtf_imp_remove \<times> phase_saver) \<times> 'a \<Rightarrow> 
+end
    (_ \<times> (((nat, nat)ann_lits \<times> vmtf_imp_remove \<times> phase_saver) \<times> 'a)) nres\<close> where
 \<open>find_unassigned_lit_wl_D' S = do {
   let ((M, ((A, m, lst, next_search), removed), \<phi>), S') = S;
