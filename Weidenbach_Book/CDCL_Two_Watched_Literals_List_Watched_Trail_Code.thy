@@ -1952,8 +1952,64 @@ proof -
     using H unfolding cond pre im PR_CONST_def .
 qed
 
+definition lit_of_found_atom where
+\<open>lit_of_found_atom M L = SPEC (\<lambda>K. (L = None \<longrightarrow> K = None) \<and> (L \<noteq> None \<longrightarrow> K \<noteq> None \<and> atm_of (the K) = the L))\<close>
+
 end
 
+
+definition (in twl_array_code_ops) lit_of_found_atm_D
+  :: \<open>trail_int \<Rightarrow> nat option \<Rightarrow> (nat literal option)nres\<close> where
+  \<open>lit_of_found_atm_D = (\<lambda>(M, vm, \<phi>::bool list) L. do{
+      case L of
+        None \<Rightarrow> RETURN None
+      | Some L \<Rightarrow> do {
+          ASSERT(L < length \<phi>);
+          if \<phi>!L then RETURN (Some (Pos L)) else RETURN (Some (Neg L))
+        }
+  })\<close>
+value \<open>(8::nat) << 1\<close>
+
+(* TODO Move *)
+lemma (in -) shiftl_0_uint32[simp]: \<open>n << 0 = n\<close> for n :: uint32
+  by transfer auto
+
+lemma (in -) shiftl_Suc_uint32: \<open>n << Suc m = (n << m) << 1\<close> for n :: uint32
+  apply transfer
+  apply transfer
+  by auto
+(* End Move *)
+
+lemma (in -) \<open>nat_of_uint32 (n << m) < upperN \<Longrightarrow> nat_of_uint32 (n << m) = nat_of_uint32 n << m\<close>
+  oops
+
+lemma
+  \<open>(return o (\<lambda>L. 2 * L), RETURN o Pos) \<in> [\<lambda>L. Pos L \<in> snd ` D\<^sub>0]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  apply sepref_to_hoare
+  apply (auto simp: uint32_nat_rel_def br_def unat_lit_rel_def nat_lit_rel_def
+      uint32_nat_rel_def Collect_eq_comp lit_of_natP_def nat_of_uint32_shiftr
+      intro!: return_cons_rule)
+  oops
+
+sepref_register lit_of_found_atm_D
+sepref_thm lit_of_found_atom_D_code
+  is \<open>uncurry (PR_CONST lit_of_found_atm_D)\<close>
+  :: \<open>trail_conc\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>d \<rightarrow>\<^sub>a option_assn unat_lit_assn\<close>
+  supply [[goals_limit=1]]
+  supply not_is_None_not_None[simp]
+  unfolding lit_of_found_atm_D_def PR_CONST_def
+  apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  by sepref
+
+concrete_definition (in -) vmtf_find_next_undef_upd_code
+  uses twl_array_code.vmtf_find_next_undef_upd_code.refine_raw
+  is "(?f,_)\<in>_"
+
+prepare_code_thms (in -) vmtf_find_next_undef_upd_code_def
+
+term find_unassigned_lit_wl_D
 
 definition find_unassigned_lit_wl_D' :: \<open>((nat, nat)ann_lits \<times> vmtf_imp_remove \<times> phase_saver) \<times> 'a \<Rightarrow>
    (_ \<times> (((nat, nat)ann_lits \<times> vmtf_imp_remove \<times> phase_saver) \<times> 'a)) nres\<close> where
