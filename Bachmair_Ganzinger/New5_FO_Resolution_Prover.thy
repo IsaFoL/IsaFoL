@@ -1513,21 +1513,8 @@ next
       unfolding grounding_of_cls_def by auto
     have C\<mu>_CL\<mu>: "C \<cdot> \<mu> \<subset># (C + {#L#}) \<cdot> \<mu>"
       by auto
-    then have "\<forall>I. I \<Turnstile> C \<cdot> \<mu> \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu>"
-      unfolding true_cls_def by auto
-    moreover
-    from C\<mu>_CL\<mu> have "(C + {#L#}) \<cdot> \<mu> > C \<cdot> \<mu>"
-      by simp
-    moreover
-    have "C \<cdot> \<mu> \<in> grounding_of_cls C"
-      using \<mu>_def substitution_ops.grounding_of_cls_def by auto
-    ultimately
-    have "set_mset {# C \<cdot> \<mu> #} \<subseteq> grounding_of_cls C \<and> (\<forall>I. I \<Turnstile>m {# C \<cdot> \<mu> #} \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu>) \<and> (\<forall>D. D \<in># {# C \<cdot> \<mu> #} \<longrightarrow> D < (C + {#L#}) \<cdot> \<mu>)"
-      by simp
-    then have "(C + {#L#}) \<cdot> \<mu> \<in> src.Rf (grounding_of_cls C)"
-      using src.Rf_def[of "grounding_of_cls C"] by blast
     then have "(C + {#L#}) \<cdot> \<mu> \<in> src.Rf (grounding_of_state (N \<union> {C}, P, Q))"
-      using src_ext.Rf_mono[of "grounding_of_cls C"] unfolding clss_of_state_def grounding_of_clss_def by auto
+      using src.Rf_def[of "grounding_of_cls C"] using strict_subsumption_redundant_state[of C \<mu> "(C + {#L#}) \<cdot> \<mu>" "(N \<union> {C}, P, Q)"] \<mu>_def unfolding clss_of_state_def by force
     then have "CL\<mu> \<in> src.Rf (grounding_of_state (N \<union> {C}, P, Q))"
       using \<mu>_def by auto
   }
@@ -1577,28 +1564,15 @@ next
   then have "grounding_of_state (N, P \<union> {C}, Q) - grounding_of_state (N, P \<union> {C + {#L#}}, Q) \<subseteq> concls_of (src_ext.inferences_from (grounding_of_state (N, P \<union> {C + {#L#}}, Q)))"
     unfolding grounding_of_clss_def clss_of_state_def by auto
   moreover
-  {
+  { (*This part is adapted from previous proof *)
     fix CL\<mu>
     assume "CL\<mu> \<in> grounding_of_cls (C + {#L#})"
     then obtain \<mu> where \<mu>_def: "CL\<mu> = (C + {#L#}) \<cdot> \<mu> \<and> is_ground_subst \<mu>"
       unfolding grounding_of_cls_def by auto
     have C\<mu>_CL\<mu>: "C \<cdot> \<mu> \<subset># (C + {#L#}) \<cdot> \<mu>"
       by auto
-    then have "\<forall>I. I \<Turnstile> C \<cdot> \<mu> \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu>"
-      unfolding true_cls_def by auto
-    moreover
-    from C\<mu>_CL\<mu> have "(C + {#L#}) \<cdot> \<mu> > C \<cdot> \<mu>"
-      by simp
-    moreover
-    have "C \<cdot> \<mu> \<in> grounding_of_cls C"
-      using \<mu>_def substitution_ops.grounding_of_cls_def by auto
-    ultimately
-    have "set_mset {# C \<cdot> \<mu> #} \<subseteq> grounding_of_cls C \<and> (\<forall>I. I \<Turnstile>m {# C \<cdot> \<mu> #} \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu>) \<and> (\<forall>D. D \<in># {# C \<cdot> \<mu> #} \<longrightarrow> D < (C + {#L#}) \<cdot> \<mu>)"
-      by simp
-    then have "(C + {#L#}) \<cdot> \<mu> \<in> src.Rf (grounding_of_cls C)"
-      using src.Rf_def[of "grounding_of_cls C"] by blast
-    then have "(C + {#L#}) \<cdot> \<mu> \<in> src.Rf (grounding_of_state (N, P \<union> {C}, Q))"
-      using src_ext.Rf_mono[of "grounding_of_cls C"] unfolding clss_of_state_def grounding_of_clss_def by auto
+    then have "(C + {#L#}) \<cdot> \<mu> \<in> src.Rf (grounding_of_state (N, P\<union> {C}, Q))"
+      using src.Rf_def[of "grounding_of_cls C"] using strict_subsumption_redundant_state[of C \<mu> "(C + {#L#}) \<cdot> \<mu>" "(N, P \<union> {C}, Q)"] \<mu>_def unfolding clss_of_state_def by force
     then have "CL\<mu> \<in> src.Rf (grounding_of_state (N, P \<union> {C}, Q))"
       using \<mu>_def by auto
   }
@@ -1648,28 +1622,15 @@ next
   then have "grounding_of_state (N, P \<union> {C}, Q) - grounding_of_state (N, P, Q \<union> {C + {#L#}}) \<subseteq> concls_of (src_ext.inferences_from (grounding_of_state (N, P, Q \<union> {C + {#L#}})))"
     unfolding grounding_of_clss_def clss_of_state_def by auto
   moreover
-  {
+  { (*This part is adapted from previous proof *)
     fix CL\<mu>
     assume "CL\<mu> \<in> grounding_of_cls (C + {#L#})"
     then obtain \<mu> where \<mu>_def: "CL\<mu> = (C + {#L#}) \<cdot> \<mu> \<and> is_ground_subst \<mu>"
       unfolding grounding_of_cls_def by auto
     have C\<mu>_CL\<mu>: "C \<cdot> \<mu> \<subset># (C + {#L#}) \<cdot> \<mu>"
       by auto
-    then have "\<forall>I. I \<Turnstile> C \<cdot> \<mu> \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu>"
-      unfolding true_cls_def by auto
-    moreover
-    from C\<mu>_CL\<mu> have "(C + {#L#}) \<cdot> \<mu> > C \<cdot> \<mu>"
-      by simp
-    moreover
-    have "C \<cdot> \<mu> \<in> grounding_of_cls C"
-      using \<mu>_def substitution_ops.grounding_of_cls_def by auto
-    ultimately
-    have "set_mset {# C \<cdot> \<mu> #} \<subseteq> grounding_of_cls C \<and> (\<forall>I. I \<Turnstile>m {# C \<cdot> \<mu> #} \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu>) \<and> (\<forall>D. D \<in># {# C \<cdot> \<mu> #} \<longrightarrow> D < (C + {#L#}) \<cdot> \<mu>)"
-      by simp
-    then have "(C + {#L#}) \<cdot> \<mu> \<in> src.Rf (grounding_of_cls C)"
-      using src.Rf_def[of "grounding_of_cls C"] by blast
-    then have "(C + {#L#}) \<cdot> \<mu> \<in> src.Rf (grounding_of_state (N, P \<union> {C}, Q))"
-      using src_ext.Rf_mono[of "grounding_of_cls C"] unfolding clss_of_state_def grounding_of_clss_def by auto
+    then have "(C + {#L#}) \<cdot> \<mu> \<in> src.Rf (grounding_of_state (N, P\<union> {C}, Q))"
+      using src.Rf_def[of "grounding_of_cls C"] using strict_subsumption_redundant_state[of C \<mu> "(C + {#L#}) \<cdot> \<mu>" "(N, P \<union> {C}, Q)"] \<mu>_def unfolding clss_of_state_def by force
     then have "CL\<mu> \<in> src.Rf (grounding_of_state (N, P \<union> {C}, Q))"
       using \<mu>_def by auto
   }
@@ -1682,7 +1643,7 @@ next
 next
   case (clause_processing N C P Q)
   then show ?case
-    unfolding clss_of_state_def  using src_ext.derive.intros by auto
+    unfolding clss_of_state_def using src_ext.derive.intros by auto
 next
   case (inference_computation N Q C P)
   {
