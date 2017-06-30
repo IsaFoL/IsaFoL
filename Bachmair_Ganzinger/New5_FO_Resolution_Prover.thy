@@ -1920,6 +1920,15 @@ proof
     using assms  unfolding properly_subsumes_def unfolding subsumes_def by metis
 qed
 
+lemma properly_subsumes_well_founded:
+  shows True
+  sorry
+
+lemma properly_subsumes_has_minimum:
+  assumes "CC \<noteq> {}"
+  shows "\<exists>C \<in> CC. \<forall>D \<in> CC. \<not>properly_subsumes D C"
+  using properly_subsumes_well_founded sorry
+
 lemma from_Q_to_Q_inf:
   assumes 
     deriv: "derivation (op \<leadsto>) Sts" and
