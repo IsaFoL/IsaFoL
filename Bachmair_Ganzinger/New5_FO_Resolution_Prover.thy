@@ -1257,7 +1257,50 @@ lemma set_mset_subst_cls_mset_subst_clss: "set_mset (X \<cdot>cm \<mu>) = (set_m
 lemma infer_from_superset: "infer_from x y \<Longrightarrow> z \<supseteq> x \<Longrightarrow> infer_from z y"
   by (meson infer_from_def lfp.leq_trans)
   
-    
+lemma strict_subsumption_redundant_clause:
+  assumes "D \<cdot> \<sigma> \<subset># C"
+  assumes "is_ground_subst \<sigma>"
+  shows "C \<in> src.Rf (grounding_of_cls D)"
+proof -
+  from assms(1) have "\<forall>I. I \<Turnstile> D \<cdot> \<sigma> \<longrightarrow> I \<Turnstile> C"
+    unfolding true_cls_def by blast
+  moreover
+  have "C > D \<cdot> \<sigma>"
+    using assms(1)
+    by (simp add: subset_imp_less_mset) 
+  moreover
+  have "D \<cdot> \<sigma> \<in> grounding_of_cls D"
+    by (metis (mono_tags, lifting) assms(2) mem_Collect_eq substitution_ops.grounding_of_cls_def)        
+  ultimately
+  have "set_mset {#D \<cdot> \<sigma>#} \<subseteq> grounding_of_cls D \<and> (\<forall>I. I \<Turnstile>m {#D \<cdot> \<sigma>#} \<longrightarrow> I \<Turnstile> C) \<and> (\<forall>D'. D' \<in># {#D \<cdot> \<sigma>#} \<longrightarrow> D' < C)"
+    by auto
+  then have "C \<in> src.Rf (grounding_of_cls D)"
+    using src.Rf_def[of "grounding_of_cls D"] by blast
+  then show "C \<in> src.Rf (grounding_of_cls D)"
+    by auto
+qed
+
+lemma strict_subsumption_redundant_state:
+  assumes "D \<cdot> \<sigma> \<subset># C"
+  assumes "is_ground_subst \<sigma>"
+  assumes "D \<in> clss_of_state St"
+  shows "C \<in> src.Rf (grounding_of_state St)"
+proof -
+  from assms have "C \<in> src.Rf (grounding_of_cls D)"
+    using strict_subsumption_redundant_clause by auto
+  then show "C \<in> src.Rf (grounding_of_state St)"
+    using assms(3) unfolding clss_of_state_def grounding_of_clss_def using src.Rf_mono 
+    apply (induction St)
+    apply auto
+      apply (metis SUP_absorb contra_subsetD le_sup_iff order_refl)+
+    done
+qed
+
+lemma grounding_of_clss_mono:
+  assumes "X \<subseteq> Y"
+  shows "grounding_of_clss X \<subseteq> grounding_of_clss Y"
+  using assms
+  using grounding_of_clss_def by auto
 
 text {*
 The following corresponds to Lemma 4.10:
@@ -1318,7 +1361,7 @@ next
         by auto
   next
     assume a: "D \<cdot> \<sigma> \<subset># C"
-    have "grounding_of_cls C \<subseteq> src.Rf (grounding_of_cls D)"
+    have "grounding_of_cls C \<subseteq> src.Rf (grounding_of_state (N, P, Q))"
     proof
       fix C\<mu>
       assume "C\<mu> \<in> grounding_of_cls C"
@@ -1326,31 +1369,9 @@ next
         unfolding grounding_of_cls_def by auto
       have D\<sigma>\<mu>C\<mu>: "D \<cdot> \<sigma> \<cdot> \<mu> \<subset># C \<cdot> \<mu>"
         using a subst_subset_mono by auto
-      then have "\<forall>I. I \<Turnstile> D \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>"
-        unfolding true_cls_def by blast
-      moreover
-      have "C \<cdot> \<mu> > D \<cdot> \<sigma> \<cdot> \<mu>"
-        using D\<sigma>\<mu>C\<mu>
-        by (simp add: subset_imp_less_mset) 
-      moreover
-      have "D \<cdot> \<sigma> \<cdot> \<mu> \<in> grounding_of_cls D"
-        by (metis (mono_tags, lifting) \<mu>_p is_ground_comp_subst mem_Collect_eq subst_cls_comp_subst substitution_ops.grounding_of_cls_def)        
-      ultimately
-      have "set_mset {#D \<cdot> \<sigma> \<cdot> \<mu>#} \<subseteq> grounding_of_cls D \<and> (\<forall>I. I \<Turnstile>m {#D \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>) \<and> (\<forall>D'. D' \<in># {#D \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> D' < C \<cdot> \<mu>)"
-        by auto
-      then have "C \<cdot> \<mu> \<in> src.Rf (grounding_of_cls D)"
-        using src.Rf_def[of "grounding_of_cls D"] by blast
-      then show "C\<mu> \<in> src.Rf (grounding_of_cls D)"
-        using \<mu>_p by auto
+      then show "C\<mu> \<in> src.Rf (grounding_of_state (N, P, Q))"
+        using \<mu>_p strict_subsumption_redundant_state[of D "\<sigma> \<odot> \<mu>" "C \<cdot> \<mu>" "(N, P, Q)"] D_p unfolding clss_of_state_def by auto
     qed
-    moreover 
-    have "(grounding_of_cls D) \<subseteq> (grounding_of_state (N, P, Q))"
-      using D_p unfolding clss_of_state_def grounding_of_clss_def by auto
-    then have "src.Rf (grounding_of_cls D) \<subseteq> src.Rf (grounding_of_state (N, P, Q))"
-      using src_ext.Rf_mono by auto
-    ultimately
-    have "grounding_of_cls C \<subseteq> src.Rf (grounding_of_state (N, P, Q))"
-      by auto
     then show ?case
       using src_ext.derive.intros[of "grounding_of_state (N, P, Q)" "grounding_of_state (N \<union> {C}, P, Q)"]
       unfolding clss_of_state_def grounding_of_clss_def by force
@@ -1385,7 +1406,7 @@ next
         by auto
   next
     assume a: "D \<cdot> \<sigma> \<subset># C"
-    have "grounding_of_cls C \<subseteq> src.Rf (grounding_of_cls D)"
+    have "grounding_of_cls C \<subseteq> src.Rf (grounding_of_state (N, P, Q))"
     proof
       fix C\<mu>
       assume "C\<mu> \<in> grounding_of_cls C"
@@ -1393,33 +1414,11 @@ next
         unfolding grounding_of_cls_def by auto
       have D\<sigma>\<mu>C\<mu>: "D \<cdot> \<sigma> \<cdot> \<mu> \<subset># C \<cdot> \<mu>"
         using a subst_subset_mono by auto
-      then have "\<forall>I. I \<Turnstile> D \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>"
-        unfolding true_cls_def by blast
-      moreover
-      have "C \<cdot> \<mu> > D \<cdot> \<sigma> \<cdot> \<mu>"
-        using D\<sigma>\<mu>C\<mu>
-        by (simp add: subset_imp_less_mset) 
-      moreover
-      have "D \<cdot> \<sigma> \<cdot> \<mu> \<in> grounding_of_cls D"
-        by (metis (mono_tags, lifting) \<mu>_p is_ground_comp_subst mem_Collect_eq subst_cls_comp_subst substitution_ops.grounding_of_cls_def)        
-      ultimately
-      have "set_mset {#D \<cdot> \<sigma> \<cdot> \<mu>#} \<subseteq> grounding_of_cls D \<and> (\<forall>I. I \<Turnstile>m {#D \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>) \<and> (\<forall>D'. D' \<in># {#D \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> D' < C \<cdot> \<mu>)"
-        by auto
-      then have "C \<cdot> \<mu> \<in> src.Rf (grounding_of_cls D)"
-        using src.Rf_def[of "grounding_of_cls D"] by blast
-      then show "C\<mu> \<in> src.Rf (grounding_of_cls D)"
-        using \<mu>_p by auto
+      then show "C\<mu> \<in> src.Rf (grounding_of_state (N, P, Q))"
+        using \<mu>_p strict_subsumption_redundant_state[of D "\<sigma> \<odot> \<mu>" "C \<cdot> \<mu>" "(N, P, Q)"] D_p unfolding clss_of_state_def by auto
     qed
-    moreover 
-    have "(grounding_of_cls D) \<subseteq> (grounding_of_state (N, P, Q))"
-      using D_p unfolding clss_of_state_def grounding_of_clss_def by auto
-    then have "src.Rf (grounding_of_cls D) \<subseteq> src.Rf (grounding_of_state (N, P, Q))"
-      using src_ext.Rf_mono by auto
-    ultimately
-    have "grounding_of_cls C \<subseteq> src.Rf (grounding_of_state (N, P, Q))"
-      by auto
     then show ?case
-      using src_ext.derive.intros[of "grounding_of_state (N, P, Q)" "grounding_of_state (N, P \<union> {C}, Q)"]
+      using src_ext.derive.intros[of "grounding_of_state (N, P, Q)" "grounding_of_state (N \<union> {C}, P, Q)"]
       unfolding clss_of_state_def grounding_of_clss_def by force
   qed
 next
@@ -1452,7 +1451,7 @@ next
         by auto
   next
     assume a: "D \<cdot> \<sigma> \<subset># C"
-    have "grounding_of_cls C \<subseteq> src.Rf (grounding_of_cls D)"
+    have "grounding_of_cls C \<subseteq> src.Rf (grounding_of_state (N, P, Q))"
     proof
       fix C\<mu>
       assume "C\<mu> \<in> grounding_of_cls C"
@@ -1460,33 +1459,11 @@ next
         unfolding grounding_of_cls_def by auto
       have D\<sigma>\<mu>C\<mu>: "D \<cdot> \<sigma> \<cdot> \<mu> \<subset># C \<cdot> \<mu>"
         using a subst_subset_mono by auto
-      then have "\<forall>I. I \<Turnstile> D \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>"
-        unfolding true_cls_def by blast
-      moreover
-      have "C \<cdot> \<mu> > D \<cdot> \<sigma> \<cdot> \<mu>"
-        using D\<sigma>\<mu>C\<mu>
-        by (simp add: subset_imp_less_mset) 
-      moreover
-      have "D \<cdot> \<sigma> \<cdot> \<mu> \<in> grounding_of_cls D"
-        by (metis (mono_tags, lifting) \<mu>_p is_ground_comp_subst mem_Collect_eq subst_cls_comp_subst substitution_ops.grounding_of_cls_def)        
-      ultimately
-      have "set_mset {#D \<cdot> \<sigma> \<cdot> \<mu>#} \<subseteq> grounding_of_cls D \<and> (\<forall>I. I \<Turnstile>m {#D \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>) \<and> (\<forall>D'. D' \<in># {#D \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> D' < C \<cdot> \<mu>)"
-        by auto
-      then have "C \<cdot> \<mu> \<in> src.Rf (grounding_of_cls D)"
-        using src.Rf_def[of "grounding_of_cls D"] by blast
-      then show "C\<mu> \<in> src.Rf (grounding_of_cls D)"
-        using \<mu>_p by auto
+      then show "C\<mu> \<in> src.Rf (grounding_of_state (N, P, Q))"
+        using \<mu>_p strict_subsumption_redundant_state[of D "\<sigma> \<odot> \<mu>" "C \<cdot> \<mu>" "(N, P, Q)"] D_p unfolding clss_of_state_def by auto
     qed
-    moreover 
-    have "(grounding_of_cls D) \<subseteq> (grounding_of_state (N, P, Q))"
-      using D_p unfolding clss_of_state_def grounding_of_clss_def by auto
-    then have "src.Rf (grounding_of_cls D) \<subseteq> src.Rf (grounding_of_state (N, P, Q))"
-      using src_ext.Rf_mono by auto
-    ultimately
-    have "grounding_of_cls C \<subseteq> src.Rf (grounding_of_state (N, P, Q))"
-      by auto
     then show ?case
-      using src_ext.derive.intros[of "grounding_of_state (N, P, Q)" "grounding_of_state (N, P, Q \<union> {C})"]
+      using src_ext.derive.intros[of "grounding_of_state (N, P, Q)" "grounding_of_state (N \<union> {C}, P, Q)"]
       unfolding clss_of_state_def grounding_of_clss_def by force
   qed
 next
@@ -2060,7 +2037,7 @@ proof -
         done
       then have undefined
         sorry
-    
+      
   qed
   then obtain \<sigma> where \<sigma>: "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
     by auto (* Since otherwise C would be redundant! *)
