@@ -1702,7 +1702,7 @@ definition (in twl_array_code_ops) vmtf_find_next_undef_upd
   })\<close>
 
 definition trail_ref_except_ann_lits where
- \<open>trail_ref_except_ann_lits= {((M, ((A, m, lst, next_search), removed), \<phi>::bool list), M').
+ \<open>trail_ref_except_ann_lits = {((M, ((A, m, lst, next_search), removed), \<phi>::bool list), M').
         M = M' \<and> ((A, m, lst, next_search), removed) \<in> vmtf_imp M}\<close>
 
 lemma vmtf_find_next_undef_upd:
@@ -1813,8 +1813,8 @@ private lemma eq_out_of_ex_assn_replace:
   \<open>\<up> (a = b) * P a = \<up> (a = b) * P b\<close>
   by (metis (full_types) pure_false star_aci(2) star_false_right)
 
-lemma
-  \<open>(vmtf_find_next_undef_upd_code, find_undefined_atm) \<in>
+lemma vmtf_find_next_undef_upd_code[sepref_fr_rules]:
+  \<open>(vmtf_find_next_undef_upd_code, PR_CONST (find_undefined_atm)) \<in>
       trail_assn\<^sup>d \<rightarrow>\<^sub>a trail_assn *assn option_assn uint32_nat_assn\<close>
   (is \<open>_ \<in> [?cond]\<^sub>a ?pre \<rightarrow> ?im\<close>)
 proof -
@@ -1836,15 +1836,14 @@ proof -
   have cond: \<open>?cond' = ?cond\<close>
     unfolding comp_PRE_def by auto
   have [simp]: \<open>(\<exists>\<^sub>Aa b. P a b * \<up>(f a b \<and> a = b \<and> g a b)) =
-        (\<exists>\<^sub>Aa.   P a a * \<up>(f a a \<and>         g a a))\<close>
+        (\<exists>\<^sub>Aa. P a a * \<up>(f a a \<and>  g a a))\<close>
     for P f g
   proof -
     have \<open>(\<exists>\<^sub>Aa b. P a b * \<up>(f a b \<and> a = b \<and> g a b)) =
         (\<exists>\<^sub>Aa b. P a b * \<up>(f a b) * \<up>(a = b) * \<up>(g a b)) \<close>
       unfolding import_param_3 mult.assoc[symmetric] ..
     also have \<open>\<dots> = (\<exists>\<^sub>Aa. P a a * \<up>(f a a) * \<up>(g a a))\<close>
-      apply (subst ex_assn_def_pure_eq_middle2)
-      ..
+      by (subst ex_assn_def_pure_eq_middle2) standard
     finally show ?thesis by simp
   qed
   have KH: \<open>(\<exists>\<^sub>Aag ah ai aj ak bd al am an be bf.
@@ -1938,11 +1937,9 @@ proof -
       (hr_comp trailt_conc trailt_ref *assn
        vmtf_remove_conc *assn hr_comp phase_saver_conc phase_saver_ref)
       trail_ref_except_ann_lits = hr_comp trail_conc trail_ref\<close>
-    apply (sep_auto simp: phase_saver_ref_def trail_ref_except_ann_lits_def trail_ref_def
+    by (sep_auto simp: phase_saver_ref_def trail_ref_except_ann_lits_def trail_ref_def
       hr_comp_def ex_assn_pair_split list_assn_pure_conv option_assn_pure_conv
-       intro!: ext arg_cong[of _ _ ex_assn])
-    apply (subst KH)
-    ..
+       intro!: ext arg_cong[of _ _ ex_assn] KH)
   then have pre: \<open>?pre' = ?pre\<close>
     unfolding trail_assn_def hrp_comp_dest
     by (auto simp: trail_ref_except_ann_lits_def intro!: ext)
@@ -1952,7 +1949,7 @@ proof -
     unfolding *
     by auto
   show ?thesis
-    using H unfolding cond pre im .
+    using H unfolding cond pre im PR_CONST_def .
 qed
 
 end
