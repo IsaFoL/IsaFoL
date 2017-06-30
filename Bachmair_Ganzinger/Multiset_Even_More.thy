@@ -8,6 +8,12 @@ imports "$AFP/Nested_Multisets_Ordinals/Multiset_More"
 begin
 
 section \<open>Even More about Multisets\<close>
+
+subsection \<open>Lengths of multisets\<close>
+
+lemma mset_subseteq_size: "(A::'a multiset) \<subseteq># B \<Longrightarrow> size A \<le> size B"
+  using mset_subset_size
+  by (simp add: size_mset_mono) 
   
 subsection \<open>Multisets and functions\<close>
   
