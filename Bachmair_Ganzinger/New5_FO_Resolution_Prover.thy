@@ -1992,7 +1992,7 @@ proof -
       then have "D = D' \<cdot> \<tau> \<or> D' \<cdot> \<tau> \<subset># D"
         using subset_mset_def by auto
       then show ?case 
-      proof
+      proof (* dead end *)
         assume "D = D' \<cdot> \<tau>"
         then have False 
           using D'_p proper_neq[of D' D] by auto
