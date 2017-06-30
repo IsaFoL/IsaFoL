@@ -9,7 +9,7 @@ notation prod_rel_syn (infixl "\<times>\<^sub>f" 70)
 type_synonym trailt = \<open>(nat, nat) ann_lits \<times> bool option list \<times> nat list \<times> nat\<close>
 type_synonym trailt_assn = \<open>(uint32 \<times> nat option) list \<times> bool option array \<times> uint32 array \<times> uint32\<close>
 
-type_synonym vmtf_assn = \<open>l_vmtf_atm array \<times> nat \<times> uint32 option \<times> uint32 option\<close>
+type_synonym vmtf_assn = \<open>uint32 al_vmtf_atm array \<times> nat \<times> uint32 option \<times> uint32 option\<close>
 type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> nat list\<close>
 
 type_synonym phase_saver_assn = \<open>bool array\<close>
@@ -59,8 +59,21 @@ abbreviation (in -) trailt_conc :: \<open>trailt \<Rightarrow> trailt_assn \<Rig
   \<open>trailt_conc \<equiv> pair_nat_ann_lits_assn *assn array_assn (option_assn bool_assn) *assn
       array_assn uint32_nat_assn *assn uint32_nat_assn\<close>
 
+definition (in -)  l_vmtf_atm_rel where
+\<open>l_vmtf_atm_rel = {(a', a). stamp a = stamp a' \<and> 
+   (get_prev a', get_prev a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel \<and> 
+   (get_next a', get_next a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel}\<close>
+
 abbreviation (in -)  l_vmtf_atm_assn where
-\<open>l_vmtf_atm_assn \<equiv> id_assn :: l_vmtf_atm \<Rightarrow> _\<close>
+\<open>l_vmtf_atm_assn \<equiv> pure l_vmtf_atm_rel\<close>
+
+
+lemma (in-) l_vmtf_ATM_ref[sepref_fr_rules]:
+  \<open>(uncurry2 (return ooo l_vmtf_ATM), uncurry2 (RETURN ooo l_vmtf_ATM)) \<in>
+      nat_assn\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a l_vmtf_atm_assn\<close>
+  by sepref_to_hoare
+   (sep_auto simp: l_vmtf_atm_rel_def uint32_nat_rel_def br_def option_assn_alt_def
+     split: option.splits)
 
 abbreviation (in -) vmtf_conc where
   \<open>vmtf_conc \<equiv> (array_assn l_vmtf_atm_assn *assn nat_assn *assn option_assn uint32_nat_assn
@@ -68,7 +81,6 @@ abbreviation (in -) vmtf_conc where
 
 abbreviation (in -) vmtf_remove_conc where
   \<open>vmtf_remove_conc \<equiv> vmtf_conc *assn clauses_to_update_ll_assn\<close>
-
 
 abbreviation (in -) phase_saver_conc where
   \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
@@ -85,10 +97,8 @@ end
 context twl_array_code
 begin
 
-
 definition (in twl_array_code_ops) cons_trail_Propagated :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
   \<open>cons_trail_Propagated L C M' = Propagated L C # M'\<close>
-
 
 definition (in twl_array_code_ops) cons_trailt_Propagated_tr :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> trailt \<Rightarrow> trailt\<close> where
   \<open>cons_trailt_Propagated_tr = (\<lambda>L C (M', xs, lvls, k).
@@ -243,14 +253,14 @@ proof -
     using H unfolding im pre f .
 qed
 
-fun cons_trail_Decided :: \<open>nat literal \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
+fun (in twl_array_code_ops) cons_trail_Decided :: \<open>nat literal \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
   \<open>cons_trail_Decided L M' = Decided L # M'\<close>
 
-definition cons_trailt_Decided_tr :: \<open>nat literal \<Rightarrow> trailt \<Rightarrow> trailt\<close> where
+definition (in twl_array_code_ops) cons_trailt_Decided_tr :: \<open>nat literal \<Rightarrow> trailt \<Rightarrow> trailt\<close> where
   \<open>cons_trailt_Decided_tr = (\<lambda>L (M', xs, lvls, k).
      (Decided L # M', xs[atm_of L := Some (is_pos L)], lvls[atm_of L := k+1], k+1))\<close>
 
-definition cons_trail_Decided_tr :: \<open>nat literal \<Rightarrow> trail_int \<Rightarrow> trail_int\<close> where
+definition (in twl_array_code_ops) cons_trail_Decided_tr :: \<open>nat literal \<Rightarrow> trail_int \<Rightarrow> trail_int\<close> where
   \<open>cons_trail_Decided_tr = (\<lambda>L (M', vm, \<phi>). (cons_trailt_Decided_tr L M', vm, \<phi>))\<close>
 
 lemma cons_trail_Decided_tr:
@@ -265,6 +275,7 @@ lemma cons_trail_Decided_tr:
 lemma (in -) uint32_nat_assn_one:
   \<open>(uncurry0 (return 1), uncurry0 (RETURN 1)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_012)
+
 lemma (in -) uint32_nat_assn_zero:
   \<open>(uncurry0 (return 0), uncurry0 (RETURN 0)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_012)
@@ -295,16 +306,15 @@ lemma cons_trail_Decided_tr_code_cons_trail_Decided_tr[sepref_fr_rules]:
     [\<lambda>(L, M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a trail_assn\<^sup>d \<rightarrow> trail_assn\<close>
     (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
-thm hfref_compI_PRE_aux[OF cons_trail_Decided_tr_code.refine cons_trail_Decided_tr, OF twl_array_code_axioms]
   have H: \<open>(uncurry cons_trail_Decided_tr_code, uncurry (RETURN \<circ>\<circ> cons_trail_Decided))
-\<in> [comp_PRE (Id \<times>\<^sub>f trail_ref) (\<lambda>(L, M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0)
-     (\<lambda>_ (L, ((M, xs, lvls, k), vm, \<phi>)).
-         atm_of L < length xs \<and>
-         atm_of L < length lvls \<and>
-         (\<forall>L\<in>set M. lit_of L \<in># N\<^sub>1) \<and>
-         k = count_decided M \<and> undefined_lit M L \<and> no_dup M \<and> L \<in> snd ` D\<^sub>0)
-     (\<lambda>_. True)]\<^sub>a hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a trail_conc\<^sup>d) (Id \<times>\<^sub>f trail_ref) \<rightarrow>
-       hr_comp trail_conc trail_ref\<close>
+    \<in> [comp_PRE (Id \<times>\<^sub>f trail_ref) (\<lambda>(L, M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0)
+        (\<lambda>_ (L, ((M, xs, lvls, k), vm, \<phi>)).
+            atm_of L < length xs \<and>
+            atm_of L < length lvls \<and>
+            (\<forall>L\<in>set M. lit_of L \<in># N\<^sub>1) \<and>
+            k = count_decided M \<and> undefined_lit M L \<and> no_dup M \<and> L \<in> snd ` D\<^sub>0)
+        (\<lambda>_. True)]\<^sub>a hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a trail_conc\<^sup>d) (Id \<times>\<^sub>f trail_ref) \<rightarrow>
+          hr_comp trail_conc trail_ref\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF cons_trail_Decided_tr_code.refine cons_trail_Decided_tr, OF twl_array_code_axioms] .
   have pre: \<open>?pre' = ?pre\<close>
@@ -319,11 +329,11 @@ thm hfref_compI_PRE_aux[OF cons_trail_Decided_tr_code.refine cons_trail_Decided_
     using H unfolding im pre f .
 qed
 
-definition tl_trailt_tr :: \<open>trailt \<Rightarrow> trailt\<close> where
+definition (in twl_array_code_ops) tl_trailt_tr :: \<open>trailt \<Rightarrow> trailt\<close> where
   \<open>tl_trailt_tr = (\<lambda>(M', xs, lvls, k). (tl M', xs[atm_of (lit_of (hd M')) := None], lvls[atm_of (lit_of (hd M')) := 0],
     if is_decided (hd M') then k-1 else k))\<close>
 
-definition tl_trail_tr :: \<open>trail_int \<Rightarrow> trail_int\<close> where
+definition (in twl_array_code_ops) tl_trail_tr :: \<open>trail_int \<Rightarrow> trail_int\<close> where
   \<open>tl_trail_tr = (\<lambda>(M', vm, \<phi>). (tl_trailt_tr M', vmtf_unset (atm_of (lit_of (hd (fst M')))) vm, \<phi>))\<close>
 
 lemma tl_trail_tr:
@@ -354,16 +364,16 @@ qed
 lemma (in -) bind_ref_tag_False_True: \<open>bind_ref_tag a (RETURN b) \<longleftrightarrow> a=b\<close>
   unfolding bind_ref_tag_def by auto
 
-lemma (in -)stamp_ref[sepref_fr_rules]: \<open>(return o stamp, RETURN o stamp) \<in> l_vmtf_atm_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn\<close>
+lemma (in -) stamp_ref[sepref_fr_rules]: \<open>(return o stamp, RETURN o stamp) \<in> l_vmtf_atm_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn\<close>
   apply sepref_to_hoare
   apply (case_tac x)
-  by (auto simp: ex_assn_move_out(2)[symmetric] return_cons_rule ent_ex_up_swap simp del: ex_assn_move_out)
+  by (auto simp: ex_assn_move_out(2)[symmetric] return_cons_rule ent_ex_up_swap l_vmtf_atm_rel_def
+     simp del: ex_assn_move_out)
 
-lemma (in -)stamp_ref[sepref_fr_rules]: \<open>(return o get_next, RETURN o get_next) \<in> l_vmtf_atm_assn\<^sup>d \<rightarrow>\<^sub>a 
+lemma (in -) get_next_ref[sepref_fr_rules]: \<open>(return o get_next, RETURN o get_next) \<in> l_vmtf_atm_assn\<^sup>d \<rightarrow>\<^sub>a 
    option_assn uint32_nat_assn\<close>
-  apply sepref_to_hoare
-  apply (case_tac x)
-  by (auto simp: ex_assn_move_out(2)[symmetric] return_cons_rule ent_ex_up_swap simp del: ex_assn_move_out)
+  unfolding option_assn_pure_conv
+  by sepref_to_hoare (sep_auto simp: return_cons_rule l_vmtf_atm_rel_def)
 
 definition (in -) nat_uint32_id :: \<open>nat \<Rightarrow> nat\<close> where
 \<open>nat_uint32_id n = n\<close>
@@ -371,18 +381,19 @@ definition (in -) nat_uint32_id :: \<open>nat \<Rightarrow> nat\<close> where
 lemma (in -) nat_of_uint32: \<open>(return o nat_of_uint32, RETURN o nat_uint32_id) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   unfolding nat_uint32_id_def
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
+
 lemma (in -) nat_of_uint32': \<open>(return o id, RETURN o nat_uint32_id) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   unfolding nat_uint32_id_def
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
 
 lemma tl_trail_tr_alt_def:
   \<open>tl_trail_tr = (case_prod)
-  (\<lambda>(M', xs, lvls, k) (((A, m, lst, next_search), removed), \<phi>).
-      let trail = tl M'; K = hd M'; L = atm_of (lit_of K) in
-      ((tl M', xs[L := None], lvls[L := 0], if is_decided K then k - 1 else k),
-          if next_search = None \<or> stamp (A ! the next_search) < stamp (A ! L)
-                       then ((A, m, lst, Some (L)), removed) else ((A, m, lst, next_search), removed),
-       \<phi>))\<close>
+    (\<lambda>(M', xs, lvls, k) (((A, m, lst, next_search), removed), \<phi>).
+        let trail = tl M'; K = hd M'; L = atm_of (lit_of K) in
+        ((tl M', xs[L := None], lvls[L := 0], if is_decided K then k - 1 else k),
+            if next_search = None \<or> stamp (A ! the next_search) < stamp (A ! L)
+                        then ((A, m, lst, Some (L)), removed) else ((A, m, lst, next_search), removed),
+        \<phi>))\<close>
   unfolding tl_trail_tr_def tl_trailt_tr_def vmtf_unset_def
   by (auto intro!: ext simp: nat_uint32_id_def Let_def)
 
@@ -835,7 +846,6 @@ lemmas is_decided_hd_trail_wll_code_refine[sepref_fr_rules] =
 lemma (in -)ex_assn_pair_split: \<open>(\<exists>\<^sub>Ab. P b) = (\<exists>\<^sub>Aa b. P (a, b))\<close>
   by (subst ex_assn_def, subst (1) ex_assn_def, auto)+
 
-text \<open>Splitting in \<open>\<exists>\<^sub>A\<close> does not seem to work, leading to splitting by hand:\<close>
 lemma
   trail_assn_Cons_Nil:
      \<open>hr_comp trailt_conc trailt_ref (a # list) ([], ah, ba) = false\<close> and
@@ -852,22 +862,10 @@ proof -
   have [simp]: \<open>(aa = [] \<and> aa = a # list \<and> P) = False\<close> for aa a list P
     by auto
 
-  have [simp]: \<open>(fst b = [] \<and> fst b = a # list \<and> P) \<longleftrightarrow> False\<close> for b P
-    by auto
   show \<open>hr_comp trailt_conc trailt_ref  (a # list) ([], ah, ba) = false\<close>
     by (sep_auto simp: hr_comp_def trailt_ref_def eq_commute[of _ \<open>fst _\<close>] ex_assn_pair_split
         simp del: prod.collapse)
 
-  have H: \<open>(\<exists>\<^sub>A b. f (fst b) * P b * \<up>(fst b = a \<and> Q b)) = (\<exists>\<^sub>A b. f a * P b * \<up>(fst b = a \<and> Q b))\<close> for f P Q a
-  proof -
-    { fix pp
-      have "fst pp = a \<longrightarrow> f (fst pp) * P pp * \<up> (fst pp = a \<and> Q pp) = f a * P pp * \<up> (fst pp = a \<and> Q pp)"
-        by meson
-      then have "f (fst pp) * P pp * \<up> (fst pp = a \<and> Q pp) = f a * P pp * \<up> (fst pp = a \<and> Q pp)"
-        by force }
-    then show ?thesis
-      by auto
-  qed
   have [simp]: \<open>pair_nat_ann_lit_assn (Decided x1) (aba, Some x2) = false\<close> and
     [simp]: \<open>pair_nat_ann_lit_assn (Propagated x21 x22) (aba, None) = false\<close>
     by (auto simp: nat_ann_lit_rel_def pure_def)
@@ -1600,20 +1598,6 @@ prepare_code_thms (in -) backtrack_wl_D_code_def
 lemmas backtrack_wl_D_code_refine[sepref_fr_rules] =
    backtrack_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_l_trail_assn_def]
 
-definition find_unassigned_lit_wl_D' :: \<open>((nat, nat)ann_lits \<times> vmtf_imp_remove \<times> phase_saver) \<times> 'a \<Rightarrow> 
-   (_ \<times> (((nat, nat)ann_lits \<times> vmtf_imp_remove \<times> phase_saver) \<times> 'a)) nres\<close> where
-\<open>find_unassigned_lit_wl_D' S = do {
-  let ((M, ((A, m, lst, next_search), removed), \<phi>), S') = S;
-  L \<leftarrow>  vmtf_find_next_undef ((A, m, lst, next_search), removed) M;
-  let vm = ((A, m, lst, L), removed);
-  let T = ((M, vm, \<phi>), S');
-  case L of
-    None \<Rightarrow> RETURN (None, T)
-  | Some L \<Rightarrow> do {
-        ASSERT(L < length \<phi>); 
-        if \<phi> ! L then RETURN (Some (Pos L), T) else RETURN (Some (Neg L), T)}
-  }\<close>
-
 lemma (in -)not_is_None_not_None: \<open>\<not>is_None s \<Longrightarrow> s \<noteq> None\<close>
   by (auto split: option.splits)
 
@@ -1672,19 +1656,267 @@ lemma undefined_atm_code_ref[sepref_fr_rules]:
      [\<lambda>(a, b). Pos b \<in> snd ` D\<^sub>0]\<^sub>a (hr_comp trailt_conc trailt_ref)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
   using undefined_atm_impl_refine[FCOMP undefined_atm_impl] .
 
-sepref_thm find_unassigned_lit_wl_D_code
-  is \<open>uncurry vmtf_find_next_undef\<close>
+abbreviation (in -) undefined_atm where
+  \<open>undefined_atm M L \<equiv> \<not>defined_atm M L\<close>
+
+sepref_register vmtf_find_next_undef
+sepref_thm vmtf_find_next_undef_code
+  is \<open>uncurry (PR_CONST vmtf_find_next_undef)\<close>
   :: \<open>vmtf_remove_conc\<^sup>k *\<^sub>a (hr_comp trailt_conc trailt_ref)\<^sup>k \<rightarrow>\<^sub>a option_assn uint32_nat_assn\<close>
   supply [[goals_limit=1]]
   supply not_is_None_not_None[simp]
-  unfolding vmtf_find_next_undef_def
+  unfolding vmtf_find_next_undef_def PR_CONST_def
   apply (rewrite at \<open>WHILE\<^sub>T\<^bsup>_\<^esup> (\<lambda> _ . \<hole>) _ _\<close> short_circuit_conv)
   apply (rewrite in \<open>If \<hole> _ _\<close> defined_atm_def[symmetric])
   apply (rewrite in \<open>If _ \<hole> _\<close> defined_atm_def[symmetric])
-    apply sepref_dbg_keep
-    apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply sepref
+  by sepref
+
+concrete_definition (in -) vmtf_find_next_undef_code
+  uses twl_array_code.vmtf_find_next_undef_code.refine_raw
+  is "(uncurry ?f,_)\<in>_"
+
+prepare_code_thms (in -) vmtf_find_next_undef_code_def
+
+lemmas vmtf_find_next_undef_code_ref[sepref_fr_rules] =
+   vmtf_find_next_undef_code.refine[OF twl_array_code_axioms, unfolded twl_st_l_trail_assn_def]
+
+definition (in twl_array_code_ops) find_undefined_atm where
+  \<open>find_undefined_atm M = SPEC(\<lambda>(M', L). (L \<noteq> None \<longrightarrow> Pos (the L) \<in>snd ` D\<^sub>0 \<and> undefined_atm M (the L)) \<and>
+     (L = None \<longrightarrow> (\<forall>K\<in>snd ` D\<^sub>0. defined_lit M K)) \<and> M = M')\<close>
+
+definition (in -) update_next_search where
+  \<open>update_next_search L = (\<lambda>((A, m, lst, next_search), removed). ((A, m, lst, L), removed))\<close>
+
+lemma (in -) update_next_search_ref[sepref_fr_rules]:
+  \<open>(uncurry (return oo update_next_search), uncurry (RETURN oo update_next_search)) \<in>
+      (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
+  unfolding option_assn_pure_conv
+  by sepref_to_hoare (sep_auto simp: update_next_search_def)
+
+definition (in twl_array_code_ops) vmtf_find_next_undef_upd 
+  :: \<open>(nat, nat)ann_lits \<times> vmtf_imp_remove \<times> phase_saver \<Rightarrow> 
+        (((nat, nat)ann_lits \<times> vmtf_imp_remove \<times> phase_saver) \<times> nat option)nres\<close> where
+  \<open>vmtf_find_next_undef_upd = (\<lambda>(M, vm, \<phi>::bool list). do{ 
+      L \<leftarrow>  vmtf_find_next_undef vm M;
+      RETURN ((M, update_next_search L vm, \<phi>), L)
+  })\<close>
+
+definition trail_ref_except_ann_lits where
+ \<open>trail_ref_except_ann_lits= {((M, ((A, m, lst, next_search), removed), \<phi>::bool list), M'). 
+        M = M' \<and> ((A, m, lst, next_search), removed) \<in> vmtf_imp M}\<close>
+
+lemma vmtf_find_next_undef_upd:
+  \<open>(vmtf_find_next_undef_upd, find_undefined_atm) \<in>
+     trail_ref_except_ann_lits \<rightarrow>\<^sub>f 
+      \<langle>trail_ref_except_ann_lits \<times>\<^sub>r \<langle>nat_rel\<rangle>option_rel\<rangle>nres_rel\<close>
+  unfolding vmtf_find_next_undef_upd_def trail_ref_except_ann_lits_def find_undefined_atm_def
+        update_next_search_def
+  apply (intro frefI nres_relI)
+  apply (clarify)
+  apply (rule bind_refine_spec)
+  prefer 2
+    apply (rule vmtf_find_next_undef_ref[simplified]; assumption)
+  by (auto intro!: RETURN_SPEC_refine simp: image_image defined_atm_def[symmetric])
+
+definition phase_saver_ref where
+  \<open>phase_saver_ref = {(M, M'). M = M' \<and> phase_saving M}\<close>
+
+sepref_register vmtf_find_next_undef_upd
+sepref_thm vmtf_find_next_undef_upd_code
+  is \<open>PR_CONST vmtf_find_next_undef_upd\<close>
+  :: \<open>(hr_comp trailt_conc trailt_ref *assn vmtf_remove_conc *assn hr_comp phase_saver_conc phase_saver_ref)\<^sup>d \<rightarrow>\<^sub>a 
+     (hr_comp trailt_conc trailt_ref *assn vmtf_remove_conc *assn hr_comp phase_saver_conc phase_saver_ref) *assn 
+        option_assn uint32_nat_assn\<close>
+  supply [[goals_limit=1]]
+  supply not_is_None_not_None[simp]
+  unfolding vmtf_find_next_undef_upd_def PR_CONST_def
+  by sepref
+
+concrete_definition (in -) vmtf_find_next_undef_upd_code
+  uses twl_array_code.vmtf_find_next_undef_upd_code.refine_raw
+  is "(?f,_)\<in>_"
+
+prepare_code_thms (in -) vmtf_find_next_undef_upd_code_def
+
+lemmas vmtf_find_next_undef_upd_code_ref[sepref_fr_rules] =
+   vmtf_find_next_undef_upd_code.refine[OF twl_array_code_axioms, unfolded twl_st_l_trail_assn_def]
+context
+begin
+private lemma swap_ex_assn_8_10: \<open>(\<exists>\<^sub>Aag ah ai aj ak bd al am an be. P ag ah ai aj ak bd al am an be) = 
+  (\<exists>\<^sub>Aag ah ai aj ak bd am an be al. P ag ah ai aj ak bd al am an be)\<close> 
+  for P :: \<open>'aa \<Rightarrow> 'ab \<Rightarrow> 'ac \<Rightarrow> 'ad \<Rightarrow> 'ae \<Rightarrow> 'af \<Rightarrow>'ag \<Rightarrow> 'ah \<Rightarrow> 'ai \<Rightarrow> 'aj \<Rightarrow> assn\<close>
+  unfolding ex_assn_swap[of \<open>_ :: 'ag \<Rightarrow>'ab \<Rightarrow>assn\<close>]
+            ex_assn_swap[of \<open>_ :: 'ag \<Rightarrow>'ac \<Rightarrow>assn\<close>]
+            ex_assn_swap[of \<open>_ :: 'ag \<Rightarrow>'ad \<Rightarrow>assn\<close>]
+            ex_assn_swap[of \<open>_ :: 'ag \<Rightarrow>'ae \<Rightarrow>assn\<close>]
+            ex_assn_swap[of \<open>_ :: 'ag \<Rightarrow>'af \<Rightarrow>assn\<close>]
+            ex_assn_swap[of \<open>_ :: 'ag \<Rightarrow>'ah \<Rightarrow>assn\<close>]
+            ex_assn_swap[of \<open>_ :: 'ag \<Rightarrow>'ai \<Rightarrow>assn\<close>]
+            ex_assn_swap[of \<open>_ :: 'ag \<Rightarrow>'aj \<Rightarrow>assn\<close>]
+  ..
+
+lemma
+  \<open>(vmtf_find_next_undef_upd_code, find_undefined_atm) \<in>
+      trail_assn\<^sup>d \<rightarrow>\<^sub>a trail_assn *assn option_assn uint32_nat_assn\<close>
+  (is \<open>_ \<in> [?cond]\<^sub>a ?pre \<rightarrow> ?im\<close>)
+proof -
+  have H: \<open>(vmtf_find_next_undef_upd_code, find_undefined_atm)
+  \<in> [comp_PRE trail_ref_except_ann_lits (\<lambda>_. True) (\<lambda>_ _. True)
+      (\<lambda>_. True)]\<^sub>a hrp_comp
+                     ((hr_comp trailt_conc trailt_ref *assn
+                       vmtf_remove_conc *assn
+                       hr_comp phase_saver_conc phase_saver_ref)\<^sup>d)
+                     trail_ref_except_ann_lits \<rightarrow> hr_comp
+          ((hr_comp trailt_conc trailt_ref *assn
+            vmtf_remove_conc *assn
+            hr_comp phase_saver_conc phase_saver_ref) *assn
+           option_assn uint32_nat_assn)
+          (trail_ref_except_ann_lits \<times>\<^sub>f \<langle>nat_rel\<rangle>option_rel)\<close>
+    (is \<open>_ \<in> [?cond']\<^sub>a ?pre' \<rightarrow> ?im'\<close>)
+    using hfref_compI_PRE_aux[OF vmtf_find_next_undef_upd_code_ref, unfolded PR_CONST_def, 
+      OF vmtf_find_next_undef_upd] .
+  have cond: \<open>?cond' = ?cond\<close>
+    unfolding comp_PRE_def by auto
+  have [simp]: \<open>(\<exists>\<^sub>Aa b. P a b * \<up>(f a b \<and> a = b \<and> g a b)) =
+        (\<exists>\<^sub>Aa.   P a a * \<up>(f a a \<and>         g a a))\<close>
+    for P f g
+  proof -
+    have \<open>(\<exists>\<^sub>Aa b. P a b * \<up>(f a b \<and> a = b \<and> g a b)) =
+        (\<exists>\<^sub>Aa b. P a b * \<up>(f a b) * \<up>(a = b) * \<up>(g a b)) \<close>
+      unfolding import_param_3 mult.assoc[symmetric] ..
+    also have \<open>\<dots> = (\<exists>\<^sub>Aa. P a a * \<up>(f a a) * \<up>(g a a))\<close>
+      apply (subst ex_assn_def_pure_eq_middle2)
+      ..
+    finally show ?thesis by simp
+  qed
+  have KH: \<open>(\<exists>\<^sub>Aag ah ai aj ak bd al am an be bf.
+           pure (\<langle>nat_ann_lit_rel\<rangle>list_rel) al a * (array_assn id_assn am aa * (array_assn uint32_nat_assn an ab * uint32_nat_assn be b)) *
+           (array_assn l_vmtf_atm_assn ag ac * pure (nat_rel \<times>\<^sub>f (\<langle>uint32_nat_rel\<rangle>option_rel \<times>\<^sub>f \<langle>uint32_nat_rel\<rangle>option_rel)) (ah, ai, aj) (ad, ae, ba) *
+            id_assn ak bb *
+            phase_saver_conc bf bc) *
+           \<up> (((al, am, an, be), af) \<in> trailt_ref \<and> bf = bd \<and> phase_saving bf \<and> af = x \<and> ((ag, ah, ai, aj), ak) \<in> vmtf_imp af)) =
+       (\<exists>\<^sub>Aag ah ai aj ak al am an bd.
+           pure (\<langle>nat_ann_lit_rel\<rangle>list_rel) af a * (array_assn id_assn ag aa * (array_assn uint32_nat_assn ah ab * uint32_nat_assn ai b)) *
+           (array_assn l_vmtf_atm_assn aj ac * pure (nat_rel \<times>\<^sub>f (\<langle>uint32_nat_rel\<rangle>option_rel \<times>\<^sub>f \<langle>uint32_nat_rel\<rangle>option_rel)) (ak, al, am) (ad, ae, ba) *
+            id_assn an bb *
+            phase_saver_conc bd bc) *
+           \<up> (((af, ag, ah, ai), x) \<in> trailt_ref \<and> ((aj, ak, al, am), an) \<in> vmtf_imp x \<and> phase_saving bd))\<close>
+    (is \<open>?A = ?B\<close> is \<open>(\<exists>\<^sub>Aag ah ai aj ak bd al am an be bf. 
+       ?P al am an be  ag  ah ai aj ak bf * \<up> (?R al am an be \<and> bf = bd \<and> ?\<phi> bf \<and>af = x \<and> ?S ag ah ai aj ak)) =
+       (\<exists>\<^sub>Aag ah ai aj ak al am an bd.
+           ?P' ag ah ai aj ak al am an bd *
+           \<up> (?R' ah ag ai \<and> ?S' aj ak al am an \<and> ?\<phi> bd))\<close>)
+    for P :: \<open>'aa \<Rightarrow> 'ab \<Rightarrow> 'ac \<Rightarrow> 'ad \<Rightarrow> 'ae \<Rightarrow> 'af \<Rightarrow>'ag \<Rightarrow> 'ah \<Rightarrow> 'ai \<Rightarrow> 'aj \<Rightarrow> 'ah \<Rightarrow> 'ag \<Rightarrow> assn\<close> and
+      f1 f2 f3:: \<open>'aa \<Rightarrow> 'ab \<Rightarrow> 'ac \<Rightarrow> 'ad \<Rightarrow> 'ae \<Rightarrow> 'af \<Rightarrow>'ag \<Rightarrow> 'ah \<Rightarrow> 'ai \<Rightarrow> 'aj \<Rightarrow> 'ah \<Rightarrow> 'ag \<Rightarrow> bool\<close> and x and
+      ab ac bc aa af a bb b ad ae ba
+  proof -
+    have 1: \<open>((af, ag, ah, ai), x) \<in> trailt_ref \<longleftrightarrow> ((af, ag, ah, ai), x) \<in> trailt_ref \<and> af = x\<close>
+      for af ag ah ai x by (auto simp: trailt_ref_def) 
+
+    have \<open>?A = (\<exists>\<^sub>Aag ah ai aj ak bd al am an be bf. 
+       ?P al am an be  ag  ah ai aj ak bf * \<up> (?R al am an be) * \<up> (bf = bd) * \<up> (?\<phi> bf) * \<up> (af = x) * \<up> (?S ag ah ai aj ak))\<close>
+      unfolding import_param_3 mult.assoc[symmetric] ..
+    also have \<open>\<dots> = (\<exists>\<^sub>Aag ah ai aj ak bd al am an be bf. 
+       ?P al am an be ag ah ai aj ak bf * \<up> (?R al am an be) * \<up> (bf = bd) *( \<up> (?\<phi> bf) * \<up> (af = x) * \<up> (?S ag ah ai aj ak)))\<close>
+      by auto
+    also have \<open>\<dots> = (\<exists>\<^sub>Aag ah ai aj ak bd al am an be. 
+       ?P al am an be ag ah ai aj ak bd * \<up> (?R al am an be) * (\<up> (?\<phi> bd) * \<up> (af = x) * \<up> (?S ag ah ai aj ak)))\<close>
+      apply (subst ex_assn_def_pure_eq_middle2) ..
+    also have \<open>\<dots> = \<up> (af = x) * (\<exists>\<^sub>Aag ah ai aj ak bd al am an be. 
+       ?P al am an be ag ah ai aj ak bd * \<up> (?R al am an be) * \<up> (?\<phi> bd) * \<up> (?S ag ah ai aj ak))\<close>
+      unfolding ex_assn_move_out(2)
+      by (auto simp: conj_left_commute)
+    also have \<open>\<dots> = \<up> (af = x) * (\<exists>\<^sub>Aag ah ai aj ak bd al am an be. 
+       ?P al am an be ag ah ai aj ak bd * \<up> (?R al am an be \<and> al = af) * \<up> (?\<phi> bd) * \<up> (?S ag ah ai aj ak))\<close>
+      apply (subst 1)
+      by (auto simp: conj_left_commute)
+    also have \<open>\<dots> = \<up> (af = x) * (\<exists>\<^sub>Aag ah ai aj ak bd al am an be. 
+       ?P al am an be ag ah ai aj ak bd * \<up> (?R al am an be) * \<up> (al = af) * \<up> (?\<phi> bd) * \<up> (?S ag ah ai aj ak))\<close>
+      unfolding import_param_3 mult.assoc[symmetric] ..
+    also have \<open>\<dots> = \<up> (af = x) * (\<exists>\<^sub>Aag ah ai aj ak bd al am an be. 
+       (?P al am an be ag ah ai aj ak bd * \<up> (?R al am an be)) * \<up> (al = af) * (\<up> (?\<phi> bd) * \<up> (?S ag ah ai aj ak)))\<close>
+      by (auto simp: conj_left_commute)
+    also have \<open>\<dots> = \<up> (af = x) * (\<exists>\<^sub>Aag ah ai aj ak bd am an be. 
+       ?P af am an be ag ah ai aj ak bd * \<up> (?R af am an be) * (\<up> (?\<phi> bd) * \<up> (?S ag ah ai aj ak)))\<close>
+      thm swap
+      apply (subst swap_ex_assn_8_10)
+      apply (subst ex_assn_def_pure_eq_middle2)
+      by (auto simp: conj_left_commute)
+    finally have A: \<open>?A = \<up> (af = x) * (\<exists>\<^sub>Aag ah ai aj ak bd am an be. 
+       ?P af am an be ag ah ai aj ak bd * \<up> (?R af am an be) * (\<up> (?\<phi> bd) * \<up> (?S ag ah ai aj ak)))\<close> 
+       (is \<open>_ = _ * ?A'\<close>) .
+
+
+    have \<open>?B = (\<exists>\<^sub>Aag ah ai aj ak al am an bd.
+           ?P' ag ah ai aj ak al am an bd *
+           \<up> (?R' ah ag ai \<and> af = x \<and> ?S' aj ak al am an \<and> ?\<phi> bd))\<close>
+      by (subst 1) auto
+    also have B: \<open>\<dots> = \<up> (af = x) * (\<exists>\<^sub>Aag ah ai aj ak al am an bd.
+           ?P' ag ah ai aj ak al am an bd *
+           \<up> (?R' ah ag ai \<and> ?S' aj ak al am an \<and> ?\<phi> bd))\<close>
+      (is \<open>_ = _ * ?B'\<close>)
+      unfolding ex_assn_move_out(2)
+      by (auto simp: conj_left_commute)
+    have \<open>?A' = ?B'\<close>
+      apply auto
+    term \<open>(?P, ?P')\<close>
+
+      unfolding ex_assn_swap[of \<open>_ :: 'aa \<Rightarrow>'ab\<Rightarrow>assn\<close>]
+                ex_assn_swap[of \<open>_ :: 'aa \<Rightarrow>'ac\<Rightarrow>assn\<close>]
+                ex_assn_swap[of \<open>_ :: 'aa \<Rightarrow>'ad\<Rightarrow>assn\<close>]
+                ex_assn_swap[of \<open>_ :: 'aa \<Rightarrow>'ae\<Rightarrow>assn\<close>]
+                ex_assn_swap[of \<open>_ :: 'aa \<Rightarrow>'af\<Rightarrow>assn\<close>]
+                ex_assn_swap[of \<open>_ :: 'aa \<Rightarrow>'ag\<Rightarrow>assn\<close>]
+                ex_assn_swap[of \<open>_ :: 'aa \<Rightarrow>'ah\<Rightarrow>assn\<close>]
+                ex_assn_swap[of \<open>_ :: 'aa \<Rightarrow>'ai\<Rightarrow>assn\<close>]
+                ex_assn_swap[of \<open>_ :: 'aa \<Rightarrow>'aj\<Rightarrow>assn\<close>] ..
+    also have \<open>\<dots> = ?B\<close>
+      by (subst ex_assn_def_pure_eq_middle2) simp
+    finally show ?thesis .
+  qed
+  have swap: \<open>NO_MATCH (z :: bool list \<Rightarrow> bool list \<Rightarrow> bool) P \<Longrightarrow>
+          (\<exists>\<^sub>Aa b. P a b) = (\<exists>\<^sub>Ab a. P a b)\<close> for P :: \<open>bool list \<Rightarrow> _\<close> and z
+    apply (subst ex_assn_swap) ..
+  sorry
+  have *: \<open>hr_comp
+      (hr_comp trailt_conc trailt_ref *assn
+       vmtf_remove_conc *assn hr_comp phase_saver_conc phase_saver_ref)
+      trail_ref_except_ann_lits = hr_comp trail_conc trail_ref\<close>
+    apply (sep_auto simp: phase_saver_ref_def trail_ref_except_ann_lits_def trail_ref_def
+      hr_comp_def ex_assn_pair_split list_assn_pure_conv option_assn_pure_conv
+       intro!: ext arg_cong[of _ _ ex_assn])
+    thm arg_cong[of _ _ ex_assn]
+    apply (subst KH)
+    apply (subst conj_commute[of \<open>phase_saving _\<close>])
+    apply (auto simp:  swap)
+    sorry
+  then have pre: \<open>?pre' = ?pre\<close>
+    unfolding trail_assn_def hrp_comp_dest
+    by (auto simp: trail_ref_except_ann_lits_def intro!: ext)
+    
+  have im: \<open>?im' = ?im\<close>
+    unfolding trail_assn_def hrp_comp_dest hr_comp_prod_conv
+    unfolding *
+    by auto
+  show ?thesis
+    using H unfolding cond pre im .
+qed
+  thm vmtf_find_next_undef_upd_code_ref[FCOMP vmtf_find_next_undef_upd]
+  thm vmtf_find_next_undef_ref[to_fref]
+
+definition find_unassigned_lit_wl_D' :: \<open>((nat, nat)ann_lits \<times> vmtf_imp_remove \<times> phase_saver) \<times> 'a \<Rightarrow> 
+   (_ \<times> (((nat, nat)ann_lits \<times> vmtf_imp_remove \<times> phase_saver) \<times> 'a)) nres\<close> where
+\<open>find_unassigned_lit_wl_D' S = do {
+  let ((M, ((A, m, lst, next_search), removed), \<phi>), S') = S;
+  L \<leftarrow>  vmtf_find_next_undef ((A, m, lst, next_search), removed) M;
+  let vm = ((A, m, lst, L), removed);
+  let T = ((M, vm, \<phi>), S');
+  case L of
+    None \<Rightarrow> RETURN (None, T)
+  | Some L \<Rightarrow> do {
+        ASSERT(L < length \<phi>); 
+        if \<phi> ! L then RETURN (Some (Pos L), T) else RETURN (Some (Neg L), T)}
+  }\<close>
 
 sepref_thm find_unassigned_lit_wl_D_code
   is \<open>PR_CONST find_unassigned_lit_wl_D'\<close>

@@ -1732,7 +1732,7 @@ lemma vmtf_find_next_undef_ref:
   shows \<open>vmtf_find_next_undef ((A, m, lst, next_search), removed) M
      \<le> \<Down> Id (SPEC (\<lambda>L. ((A, m, lst, L), removed) \<in> vmtf_imp M \<and>
         (L = None \<longrightarrow> (\<forall>L\<in>#N\<^sub>1. defined_lit M L)) \<and>
-        (L \<noteq> None \<longrightarrow> undefined_lit M (Pos (the L)))))\<close>
+        (L \<noteq> None \<longrightarrow> Pos (the L) \<in> snd ` D\<^sub>0 \<and> undefined_lit M (Pos (the L)))))\<close>
 proof -
   obtain xs' ys' where
     l_vmtf: \<open>l_vmtf (ys' @ xs') m A\<close> and
@@ -1779,6 +1779,7 @@ proof -
     subgoal by (auto dest: next_search_N\<^sub>1 no_next_search_all_defined wf_vmtf_next_search_take_next)
     subgoal by (auto dest: no_next_search_all_defined next_search_N\<^sub>1)
     subgoal by (auto dest: no_next_search_all_defined)
+    subgoal by auto
     subgoal by auto
     done
 qed
