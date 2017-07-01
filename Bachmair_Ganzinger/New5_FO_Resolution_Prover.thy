@@ -1701,8 +1701,6 @@ text {*
 Another formulation of the last part of lemma 4.10
  *}
   
-
-  
 lemma resolution_prover_ground_derivation:
   assumes "derivation op \<leadsto> Sts"
   shows "derivation src_ext.derive (lmap grounding_of_state Sts)"
@@ -1809,9 +1807,6 @@ lemma getQ_subset:
  assumes "enat l < llength Sts"
  shows "getQ (lnth Sts l) \<subseteq> clss_of_state (lnth Sts l)"
   using assms unfolding clss_of_state_def by auto
-    
-lemma grounding_of_clss_mono: "X \<subseteq> Y \<Longrightarrow> grounding_of_clss X \<subseteq> grounding_of_clss Y"
-  unfolding grounding_of_clss_def by auto
     
 lemma grounding_of_clss_mono2: "X \<in> Y \<Longrightarrow> grounding_of_cls X \<subseteq> grounding_of_clss Y"
   using grounding_of_clss_def grounding_of_cls_def by auto
@@ -1963,12 +1958,16 @@ lemma from_P_to_Q:
     c: "C \<in> llimit Ns - src.Rf (llimit Ns)" and
     d: "D \<in> getP (lnth Sts i)" "enat i < llength Sts" "subsumes D C" and
     d_least: "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not>properly_subsumes E D"
-      (* Wrong! I should only consider the clauses that instantiate to D *)
   shows "\<exists>l. D \<in> getQ (lnth Sts l) \<and> enat l < llength Sts"
 proof -
   let ?Ns = "\<lambda>i. getN (lnth Sts i)"
   let ?Ps = "\<lambda>i. getP (lnth Sts i)"
   let ?Qs = "\<lambda>i. getQ (lnth Sts i)"
+
+  have ground_C: "is_ground_cls C"
+    using c using llimit_grounding_of_state_ground ns by auto 
+
+  have derivns: "derivation src_ext.derive Ns" using resolution_prover_ground_derivation deriv ns by auto
 
   have "\<exists>\<sigma>. D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
   proof -
@@ -1976,32 +1975,37 @@ proof -
     proof (rule ccontr)
       assume "\<nexists>\<sigma>. D \<cdot> \<sigma> = C"
       moreover
-      from d(3) obtain \<tau> where "D \<cdot> \<tau> \<subseteq># C" unfolding subsumes_def
+      from d(3) obtain \<tau>_proto where "D \<cdot> \<tau>_proto \<subseteq># C" unfolding subsumes_def
         by blast
+      then obtain \<tau> where \<tau>_p: "D \<cdot> \<tau> \<subseteq># C \<and> is_ground_subst \<tau>"
+        using ground_C
+        by (metis is_ground_cls_mono make_single_ground_subst subset_mset.order_refl) 
       ultimately
       have subsub: "D \<cdot> \<tau> \<subset># C"
         using subset_mset.le_imp_less_or_eq by auto
-      then have "\<forall>I. I \<Turnstile> D \<cdot> \<tau> \<longrightarrow> I \<Turnstile> C"
-        sorry
       moreover
-      from subsub have "D \<cdot> \<tau> < C"
-        sorry
-      moreover
-      have "D \<cdot> \<tau> \<in> grounding_of_cls D"
-        sorry
+      have "is_ground_subst \<tau>" using \<tau>_p by auto
+      moreover 
+      have "D \<in> clss_of_state (lnth Sts i)" 
+        using d getP_subset by auto
       ultimately
-      have "C \<in> src.Rf (grounding_of_cls D)"
-        unfolding src.Rf_def 
-        apply auto
-        apply (rule_tac x="{#D \<cdot> \<tau>#}" in exI)
-        apply auto
-        done
-      then have undefined
-        sorry
-      
+      have "C \<in> src.Rf (grounding_of_state (lnth Sts i))" 
+        using strict_subsumption_redundant_state[of D \<tau> C "lnth Sts i"]
+        by auto
+      then have "C \<in> src.Rf (Lazy_List_Limit.lSup Ns)" 
+        using d ns
+        by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_lSup src.Rf_mono) 
+      then have "C \<in> src.Rf (llimit Ns)" 
+        unfolding ns using local.src_ext.Rf_lSup_subset_Rf_llimit derivns ns by auto
+      then show False using c by auto
+    qed
+    then obtain \<sigma> where "D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>" 
+      using ground_C
+      by (metis make_single_ground_subst subset_mset.order_refl) 
+    then show ?thesis by auto
   qed
   then obtain \<sigma> where \<sigma>: "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
-    by auto (* Since otherwise C would be redundant! *)
+    by auto
 
   from c have no_taut: "\<not>(\<exists>A. Pos A \<in># C \<and> Neg A \<in># C)" 
     using src.tautology_redundant by auto
@@ -2020,21 +2024,14 @@ proof -
   then show ?thesis
   proof (induction rule: resolution_prover.cases)
     case (tautology_deletion A D_twin N P Q)
-    then have "D_twin = D" 
+    then have False
       using l_p by auto
-    then have "Pos (A \<cdot>a \<sigma>) \<in># C \<and> Neg (A \<cdot>a \<sigma>) \<in># C"
-      using tautology_deletion(3,4) \<sigma>
-      by (metis Melem_subst_cls eql_neg_lit_eql_atm eql_pos_lit_eql_atm) 
-    then have False 
-      using no_taut by metis
-    then show ?case
-      by blast
+    then show ?case 
+      by auto
   next
     case (forward_subsumption P Q D_twin N)
-    then have twins: "D_twin = D" "?Ps (Suc l) = P" "?Ps l = P" "?Qs (Suc l) = Q" "?Qs l = Q" 
-      using l_p by auto
     then have False
-      using l_p by metis
+      using l_p by auto
     then show ?case 
       by auto
   next
@@ -2054,18 +2051,14 @@ proof -
       by auto
   next
     case (backward_subsumption_Q N D_twin P Q)    
-    then have twins: "D_twin = D" "?Ps (Suc l) = P" "?Ps l = P" "?Qs (Suc l) = Q" "?Qs l = Q" 
-      using l_p by auto
     then have False
-      using l_p by metis
+      using l_p by auto
     then show ?case 
       by auto
   next
     case (forward_reduction P Q L \<sigma> D_twin N)
-    then have twins: "D_twin = D" "?Ps (Suc l) = P" "?Ps l = P" "?Qs (Suc l) = Q" "?Qs l = Q" 
-      using l_p by auto
     then have False
-      using l_p by metis
+      using l_p by auto
     then show ?case 
       by auto
   next
@@ -2083,19 +2076,15 @@ proof -
     then show ?case 
       by auto
   next
-    case (backward_reduction_Q N L \<sigma> D_twin P Q) 
-    then have twins: "D_twin = D" "?Ps (Suc l) = P" "?Ps l = P" "?Qs (Suc l) = Q" "?Qs l = Q" 
-      using l_p by auto
+    case (backward_reduction_Q N L \<sigma> D_twin P Q)
     then have False
-      using l_p by metis
+      using l_p by auto
     then show ?case 
       by auto
   next
     case (clause_processing N D_twin P Q)
-    then have twins: "D_twin = D" "?Ps (Suc l) = P" "?Ps l = P" "?Qs (Suc l) = Q" "?Qs l = Q" 
-      using l_p by auto
     then have False
-      using l_p by metis
+      using l_p by auto
     then show ?case 
       by auto
   next
@@ -2107,9 +2096,156 @@ proof -
   qed
 qed
 
-lemma from_N_to_P: True 
-  by auto
+lemma from_N_to_P:
+  assumes 
+    deriv: "derivation (op \<leadsto>) Sts" and
+    fair: "fair_state_seq Sts" and
+    ns: "Ns = lmap grounding_of_state Sts" and
 
+    c: "C \<in> llimit Ns - src.Rf (llimit Ns)" and
+    d: "D \<in> getN (lnth Sts i)" "enat i < llength Sts" "subsumes D C" and
+    d_least: "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not>properly_subsumes E D"
+  shows "\<exists>l D' \<sigma>'. D' \<in> getP (lnth Sts l) \<and> enat l < llength Sts \<and> (\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not>properly_subsumes E D') \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
+proof -
+  let ?Ns = "\<lambda>i. getN (lnth Sts i)"
+  let ?Ps = "\<lambda>i. getP (lnth Sts i)"
+  let ?Qs = "\<lambda>i. getQ (lnth Sts i)"
+
+  have ground_C: "is_ground_cls C"
+    using c using llimit_grounding_of_state_ground ns by auto 
+
+  have derivns: "derivation src_ext.derive Ns" using resolution_prover_ground_derivation deriv ns by auto
+
+  have "\<exists>\<sigma>. D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
+  proof -
+    have "\<exists>\<sigma>. D \<cdot> \<sigma> = C" 
+    proof (rule ccontr)
+      assume "\<nexists>\<sigma>. D \<cdot> \<sigma> = C"
+      moreover
+      from d(3) obtain \<tau>_proto where "D \<cdot> \<tau>_proto \<subseteq># C" unfolding subsumes_def
+        by blast
+      then obtain \<tau> where \<tau>_p: "D \<cdot> \<tau> \<subseteq># C \<and> is_ground_subst \<tau>"
+        using ground_C
+        by (metis is_ground_cls_mono make_single_ground_subst subset_mset.order_refl) 
+      ultimately
+      have subsub: "D \<cdot> \<tau> \<subset># C"
+        using subset_mset.le_imp_less_or_eq by auto
+      moreover
+      have "is_ground_subst \<tau>" using \<tau>_p by auto
+      moreover 
+      have "D \<in> clss_of_state (lnth Sts i)" 
+        using d getN_subset by auto
+      ultimately
+      have "C \<in> src.Rf (grounding_of_state (lnth Sts i))" 
+        using strict_subsumption_redundant_state[of D \<tau> C "lnth Sts i"]
+        by auto
+      then have "C \<in> src.Rf (Lazy_List_Limit.lSup Ns)" 
+        using d ns
+        by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_lSup src.Rf_mono) 
+      then have "C \<in> src.Rf (llimit Ns)" 
+        unfolding ns using local.src_ext.Rf_lSup_subset_Rf_llimit derivns ns by auto
+      then show False using c by auto
+    qed
+    then obtain \<sigma> where "D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>" 
+      using ground_C
+      by (metis make_single_ground_subst subset_mset.order_refl) 
+    then show ?thesis by auto
+  qed
+  then obtain \<sigma> where \<sigma>: "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
+    by auto
+
+  from c have no_taut: "\<not>(\<exists>A. Pos A \<in># C \<and> Neg A \<in># C)" 
+    using src.tautology_redundant by auto
+
+  from deriv have four_ten: "derivation src_ext.derive Ns" 
+    using resolution_prover_ground_derivation ns by auto
+
+  have "\<exists>l. D \<in> getN (lnth Sts l) \<and> D \<notin> getN (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
+    using fair using eventually_deleted[of D Sts i] d unfolding ns by auto
+  then obtain l where l_p: "D \<in> getN (lnth Sts l) \<and> D \<notin> getN (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
+    by auto
+  then have l_Ns: "enat (Suc l) < llength Ns"
+    using ns by auto
+  from l_p have "lnth Sts l \<leadsto> lnth Sts (Suc l)"
+    using deriv using derivation_lnth_rel by auto
+  then show ?thesis
+  proof (induction rule: resolution_prover.cases)
+    case (tautology_deletion A D_twin N P Q)
+    then have "D_twin = D" 
+      using l_p by auto
+    then have "Pos (A \<cdot>a \<sigma>) \<in># C \<and> Neg (A \<cdot>a \<sigma>) \<in># C"
+      using tautology_deletion(3,4) \<sigma>
+      by (metis Melem_subst_cls eql_neg_lit_eql_atm eql_pos_lit_eql_atm) 
+    then have False 
+      using no_taut by metis
+    then show ?case
+      by blast 
+  next
+    case (forward_subsumption P Q D_twin N) 
+    then have twins: "D_twin = D" "?Ns (Suc l) = N" "?Ns l = N \<union> {D_twin}"  "?Ps (Suc l) = P " "?Ps l = P" "?Qs (Suc l) = Q" "?Qs l = Q" 
+      using l_p by auto
+    from forward_subsumption obtain D' where D'_p: "D' \<in> P \<union> Q \<and> subsumes D' D"
+      using twins by auto
+    then have "\<not>properly_subsumes D' D"
+      using d_least sorry
+    then have "subsumes D D'" 
+      unfolding properly_subsumes_def using D'_p by auto
+    then have "\<forall>E\<in>{E \<in> clss_of_state (sup_state Sts). subsumes E C}. \<not> properly_subsumes E D'"
+      using d_least sorry (* I think it's something like this. Maybe. Well if nothing else the argument is that D and D' must simply be renamings of each other. *)
+    then show ?case sorry
+  next
+    case (backward_subsumption_P N D_twin P Q)
+    then have False
+      using l_p by auto
+    then show ?case 
+      by auto
+  next
+    case (backward_subsumption_Q N D_twin P Q)
+    then have False
+      using l_p by auto
+    then show ?case 
+      by auto
+  next
+    case (forward_reduction P Q L \<sigma> D' N)
+    then have twins: "D' + {#L#} = D" "?Ns (Suc l) = N \<union> {D'}" "?Ns l = N \<union> {D' + {#L#}}"  "?Ps (Suc l) = P " "?Ps l = P" "?Qs (Suc l) = Q" "?Qs l = Q" 
+      using l_p by auto
+    then have D'_p: "properly_subsumes D' D \<and> D' \<in> ?Ns (Suc l)"
+      using subset_properly_subsumes[of D' D] by auto
+    then have subc: "subsumes D' C"
+      using d(3) subsumes_trans unfolding properly_subsumes_def by auto
+    from D'_p have "D' \<in> clss_of_state (sup_state Sts)"
+       using l_p
+       by (metis (no_types, lifting) UnI1 clss_of_state_def getN.simps llength_lmap lnth_lmap lnth_subset_lSup subsetCE sup_state_def) 
+    then have False using d_least D'_p subc by auto
+    then show ?case 
+      by auto
+  next
+    case (backward_reduction_P N L \<sigma> D' P Q)
+    then have False 
+      using l_p by auto
+    then show ?case 
+      by auto
+  next
+    case (backward_reduction_Q N L \<sigma> C P Q)
+    then have False
+      using l_p by auto
+    then show ?case 
+      by auto 
+  next
+    case (clause_processing N D_twin P Q)
+    then have twins:  "D_twin = D" "?Ns (Suc l) = N" "?Ns l = N \<union> {D}"  "?Ps (Suc l) = P \<union> {D}" "?Ps l = P" "?Qs (Suc l) = Q" "?Qs l = Q" 
+      using l_p by auto
+    then show ?thesis
+      using d \<sigma> l_p
+      using d_least by blast
+  next
+    case (inference_computation N Q C P)
+    then have False
+      using l_p by auto
+    then show ?case 
+      by auto
+  qed  
+ 
 
 text {*
 The following corresponds to Lemma 4.11:
@@ -2144,14 +2280,14 @@ proof
     done
   moreover
   {
-    assume "D \<in> ?Ns i"
+    assume a: "D \<in> ?Ns i"
     then obtain D' \<sigma>' l where D'_p: 
       "D' \<in> ?Ps l" 
       "D' \<cdot> \<sigma>' = C" 
       "enat l < llength Sts" 
       "is_ground_subst \<sigma>'" (* Do I also need that l is later than i? Probably not. *)
       "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not>properly_subsumes E D'"
-      using from_N_to_P sorry
+      using from_N_to_P[OF deriv fair ns C_p a i_p(1) D_p(2) D_p(3)] by blast
     then obtain l' where l'_p: "D' \<in> ?Qs l'" "l' < llength Sts" (* Do I also need that l is later than l'? Probably not*)
       using from_P_to_Q[of Sts] deriv fair ns C_p  by blast
     then have "D' \<in> getQ (limit_state Sts)"
