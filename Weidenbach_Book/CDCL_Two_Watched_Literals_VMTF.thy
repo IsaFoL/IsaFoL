@@ -4,6 +4,14 @@ begin
 
 
 declare nth_list_update[simp]
+text \<open>
+  This a version of @{thm nth_list_update} with a different condition (\<^term>\<open>j\<close>
+  instead of \<^term>\<open>i\<close>). This is more useful here.
+  \<close>
+(* TODO: Move*)
+lemma nth_list_update_le'[simp]:
+  "j < length xs \<Longrightarrow> (xs[i:=x])!j = (if i = j then x else xs!j)"
+  by (induct xs arbitrary: i j) (auto simp add: nth_Cons split: nat.split)
 
 
 subsection \<open>Variable-Move-to-Front\<close>
@@ -420,7 +428,8 @@ lemma l_vmtf_different_same_neq: \<open>l_vmtf (b # c # l') m xs \<Longrightarro
   apply (subst (asm) l_vmtf.simps)
   apply (subst (asm)(2) l_vmtf.simps)
   apply auto (* TODO Proof *)
-  by (metis length_list_update nth_list_update_eq nth_list_update_neq option.distinct(1) al_vmtf_atm.sel(2))
+  by (metis length_list_update nth_list_update_eq nth_list_update_neq option.distinct(1)
+   al_vmtf_atm.sel(2))
 
 lemma l_vmtf_last_next:
   \<open>l_vmtf (xs @ [x]) m A \<Longrightarrow> get_next (A ! x) = None\<close>
@@ -547,16 +556,6 @@ proof (induction rule: l_vmtf.induct)
   then show ?case
     using Cons by (auto simp: H sorted_many_eq_append)
 qed auto
-
-
-text \<open>
-  This a version of @{thm nth_list_update} with a different condition (\<^term>\<open>j\<close>
-  instead of \<^term>\<open>i\<close>). This is more useful here.
-  \<close>
-(* TODO: Move*)
-lemma nth_list_update_le'[simp]:
-"j < length xs \<Longrightarrow> (xs[i:=x])!j = (if i = j then x else xs!j)"
-  by (induct xs arbitrary: i j) (auto simp add: nth_Cons split: nat.split)
 
 lemma l_vmtf_l_vmtf_dequeue:
   assumes l_vmtf: \<open>l_vmtf l m A\<close> and notin: \<open>l_vmtf_notin l m A\<close> and valid: \<open>x < length A\<close>

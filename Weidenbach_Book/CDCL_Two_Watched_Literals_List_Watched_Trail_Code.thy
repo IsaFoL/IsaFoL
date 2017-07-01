@@ -1586,7 +1586,7 @@ sepref_thm backtrack_wl_D
   unfolding no_skip_def[symmetric] no_resolve_def[symmetric]
     find_decomp_wl'_find_decomp_wl[symmetric] option.sel add_mset_list.simps
   supply [[goals_limit=1]]
-  by sepref
+  by sepref -- \<open>slow\<close>
 
 
 concrete_definition (in -) backtrack_wl_D_code
@@ -1981,6 +1981,10 @@ lemma (in -) shiftl_Suc_uint32: \<open>n << Suc m = (n << m) << 1\<close> for n 
 (* End Move *)
 
 lemma (in -) \<open>nat_of_uint32 (n << m) < upperN \<Longrightarrow> nat_of_uint32 (n << m) = nat_of_uint32 n << m\<close>
+  unfolding upperN_def
+  apply transfer
+  unfolding unat_def 
+     apply (auto simp: uint_shiftl)
   oops
 
 lemma
