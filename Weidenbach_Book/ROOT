@@ -116,7 +116,7 @@ session "CDCL_Base" (Weidenbach_Book) = "Imports"  +
     "root.tex"
     "biblio.bib"
 
-session "Two_Watched_Literals" (Weidenbach_Book) = "CDCL_Base"  +
+session "Two_Watched_Literals_Base" (Weidenbach_Book) = "CDCL_Base"  +
   description \<open>This session contains all theories related to the two-watched literals.\<close>
   options [document = pdf, document_output = "output"]
   theories [quick_and_dirty = false, document = true]
@@ -138,6 +138,19 @@ session "Two_Watched_Literals" (Weidenbach_Book) = "CDCL_Base"  +
 
     CDCL_Two_Watched_Literals_List_Watched_Domain
     CDCL_Two_Watched_Literals_List_Watched_Code_Common
+  document_files
+    "root.tex"
+    "biblio.bib"
+
+session "Two_Watched_Literals" (Weidenbach_Book) = "Two_Watched_Literals_Base"  +
+  description \<open>This session contains all theories related to the two-watched literals.\<close>
+  options [document = pdf, document_output = "output"]
+  theories [quick_and_dirty = false, document = true]
+    CDCL_W_Abstract_State
+    CDCL_W_Full
+
+  theories [quick_and_dirty = false, document = true]
+    CDCL_Two_Watched_Literals_VMTF.thy
     CDCL_Two_Watched_Literals_List_Watched_Trail_Code
     CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code
   document_files
