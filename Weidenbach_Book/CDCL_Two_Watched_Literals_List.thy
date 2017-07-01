@@ -1367,7 +1367,7 @@ definition (in -)list_of_mset :: \<open>'v clause \<Rightarrow> 'v clause_l nres
 fun extract_shorter_conflict_l :: \<open>'v twl_st_l \<Rightarrow> 'v clause nres\<close>
    where
   \<open>extract_shorter_conflict_l (M, N, U, D, NP, UP, WS, Q) = SPEC(\<lambda>D'. D' \<subseteq># the D \<and>
-     clause `# twl_clause_of `# mset (tl N) + NP + UP \<Turnstile>pm D' \<and> -(lit_of (hd M)) \<in># D')\<close>
+     clause `# twl_clause_of `# mset (tl N) + NP + UP \<Turnstile>p D' \<and> -(lit_of (hd M)) \<in># D')\<close>
 
 declare extract_shorter_conflict_l.simps[simp del]
 lemmas extract_shorter_conflict_l_def = extract_shorter_conflict_l.simps

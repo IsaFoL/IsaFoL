@@ -228,7 +228,7 @@ next
                   (add_learned_cls (add_mset L D')
                     (update_conflicting None V)))" and
     D_D': \<open>D' \<subseteq># D\<close> and
-    NU_D': \<open>clauses V \<Turnstile>pm add_mset L D'\<close>
+    NU_D': \<open>clauses V \<Turnstile>p add_mset L D'\<close>
     using bt inv by (elim backtrackE) metis
   obtain L' C' M E where
     tr: "trail T = Propagated L' C' # M" and
@@ -347,7 +347,7 @@ proof -
                   (add_learned_cls (add_mset L D')
                     (update_conflicting None S)))" and
     D_D': \<open>D' \<subseteq># D\<close> and
-    NU_D': \<open>clauses S \<Turnstile>pm add_mset L D'\<close>
+    NU_D': \<open>clauses S \<Turnstile>p add_mset L D'\<close>
     using bt by (elim backtrackE) metis
   let ?D = "add_mset L D"
   let ?D' = "add_mset L D'"

@@ -177,7 +177,7 @@ next
       \<union> atm_of ` lits_of_l (convert_trail_from_W (trail S))"
       using \<open>convert_trail_from_W (trail S) = F' @ Decided K # F\<close>
         \<open>atm_of L \<in> atms_of_mm (clauses S) \<union> atm_of ` lits_of_l (F' @ Decided K # F)\<close> by auto
-    have f4: "clauses S \<Turnstile>pm add_mset L ?C'"
+    have f4: "clauses S \<Turnstile>p add_mset L ?C'"
       by (metis "1"(7) dist(2) remdups_mset_singleton_sum true_clss_cls_remdups_mset)
     have "F \<Turnstile>as CNot ?C'"
       by (simp add: \<open>F \<Turnstile>as CNot C'\<close>)
@@ -309,7 +309,7 @@ next
      "C \<notin> set (get_all_mark_of_propagated (trail S))" and
      C_init: "C \<notin># init_clss S" and
      T: "T \<sim> remove_cls C S" and
-     S_C: \<open>removeAll_mset C (clauses S) \<Turnstile>pm C\<close>
+     S_C: \<open>removeAll_mset C (clauses S) \<Turnstile>p C\<close>
     by (auto elim: forgetE)
   have "forget\<^sub>N\<^sub>O\<^sub>T S T"
     apply (rule forget\<^sub>N\<^sub>O\<^sub>T.forget\<^sub>N\<^sub>O\<^sub>T)
@@ -363,7 +363,7 @@ next
                     (add_learned_cls (add_mset L D')
                       (update_conflicting None T')))" and
       D_D': \<open>D' \<subseteq># D\<close> and
-      T'_L_D': \<open>clauses T' \<Turnstile>pm add_mset L D'\<close>
+      T'_L_D': \<open>clauses T' \<Turnstile>p add_mset L D'\<close>
       using bt by (auto elim: backtrackE)
     let ?D' = \<open>add_mset L D'\<close>
     have [simp]: "clauses S = clauses T"
@@ -404,7 +404,7 @@ next
     define M'' where "M'' \<equiv> M @ M'"
     have tr_T: "trail S = M'' @ Decided K # tl (trail U)"
       using tr_T tr_T' confl unfolding M''_def by (auto elim: rulesE)
-    have "init_clss T' + learned_clss S \<Turnstile>pm ?D'"
+    have "init_clss T' + learned_clss S \<Turnstile>p ?D'"
       using inv_T' confl_T' \<open>clauses S = clauses T\<close> \<open>clauses T = clauses T'\<close> T'_L_D'
       unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def clauses_def by auto
     have "reduce_trail_to (convert_trail_from_NOT (convert_trail_from_W M1)) S =
@@ -437,7 +437,7 @@ next
 
           using undef_L apply (auto; fail)[]
          using atm_L apply (simp add: trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_add_learned_cls; fail)
-        using \<open>init_clss T' + learned_clss S \<Turnstile>pm ?D'\<close> unfolding clauses_def
+        using \<open>init_clss T' + learned_clss S \<Turnstile>p ?D'\<close> unfolding clauses_def
         apply (simp; fail)
        apply (simp; fail)
       apply (metis U_D convert_trail_from_W_true_annots)
@@ -1174,7 +1174,7 @@ proof -
         (reduce_trail_to M1
           (add_learned_cls (add_mset L D')
             (update_conflicting None U)))" and
-    U_L_D': \<open>clauses U \<Turnstile>pm add_mset L D'\<close> and
+    U_L_D': \<open>clauses U \<Turnstile>p add_mset L D'\<close> and
     D_D': \<open>D' \<subseteq># D\<close>
     using bt by (auto elim!: rulesE)
   let ?D' = \<open>add_mset L D'\<close>

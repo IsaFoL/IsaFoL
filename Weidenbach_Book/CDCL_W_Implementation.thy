@@ -518,7 +518,7 @@ next
     using count_decided_ge_get_maximum_level by blast
   ultimately have max_lev_count_dec: "get_maximum_level M (mset C) = count_decided M" by auto
 
-  have clss_C: \<open>clauses (toS S) \<Turnstile>pm mset C\<close> and
+  have clss_C: \<open>clauses (toS S) \<Turnstile>p mset C\<close> and
     M_C: \<open>M \<Turnstile>as CNot (mset C)\<close> and
     lev_inv: "cdcl\<^sub>W_M_level_inv (toS S)"
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def S E

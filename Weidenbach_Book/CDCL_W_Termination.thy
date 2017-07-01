@@ -36,7 +36,7 @@ proof (rule ccontr)
           (add_learned_cls (add_mset L D')
             (update_conflicting None S)))" and
     D_D': \<open>D' \<subseteq># D\<close> and
-    \<open>clauses S \<Turnstile>pm add_mset L D'\<close>
+    \<open>clauses S \<Turnstile>p add_mset L D'\<close>
     using cdcl confl by (auto elim!: rulesE)
   have E_L_D: \<open>E = add_mset L D\<close>
     using confl confl_S by auto

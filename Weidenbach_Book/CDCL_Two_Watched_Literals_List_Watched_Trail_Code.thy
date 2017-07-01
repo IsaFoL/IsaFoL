@@ -1432,7 +1432,7 @@ proof -
       using that(2-) learned
       by (auto simp: cdcl\<^sub>W_restart_mset_state clauses_def mset_take_mset_drop_mset'
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
-    moreover have \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of ?S) \<Turnstile>pm
+    moreover have \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of ?S) \<Turnstile>p
         filter_mset (\<lambda>L. get_level (trail (state\<^sub>W_of ?S)) L > 0) (the (conflicting (state\<^sub>W_of ?S)))\<close>
       apply (rule cdcl\<^sub>W_restart_mset.conflict_minimisation_level_0(1))
       subgoal using n_s_s unfolding no_skip_def by fast

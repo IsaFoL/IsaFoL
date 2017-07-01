@@ -38,7 +38,7 @@ lemma backtrack_is_backjump:
           M = F' @ Decided K # F \<and>
           M' = Propagated L l # F \<and> N = N' \<and> C \<in># N \<and> F' @ Decided K # F \<Turnstile>as CNot C \<and>
           undefined_lit F L \<and> atm_of L \<in> atms_of_mm N \<union> atm_of ` lits_of_l (F' @ Decided K # F) \<and>
-          N \<Turnstile>pm C' + {#L#} \<and> F \<Turnstile>as CNot C'\<close>
+          N \<Turnstile>p C' + {#L#} \<and> F \<Turnstile>as CNot C'\<close>
 proof -
   let ?S = \<open>(M, N)\<close>
   let ?T = \<open>(M', N')\<close>
@@ -92,7 +92,7 @@ proof -
       then show ?thesis
         using true_clss_clss_left_right[OF N_C_M, of \<open>{{#}}\<close>] unfolding A by auto
     qed
-    have \<open>N \<Turnstile>pm image_mset uminus ?C + {#-?K#}\<close>
+    have \<open>N \<Turnstile>p image_mset uminus ?C + {#-?K#}\<close>
       unfolding true_clss_cls_def true_clss_clss_def total_over_m_def
       proof (intro allI impI)
         fix I
@@ -149,7 +149,7 @@ lemma backtrack_is_backjump':
           fst S = F' @ Decided K # F \<and>
           T = (Propagated L l # F, snd S) \<and> C \<in># snd S \<and> fst S \<Turnstile>as CNot C
           \<and> undefined_lit F L \<and> atm_of L \<in> atms_of_mm (snd S) \<union> atm_of ` lits_of_l (fst S) \<and>
-          snd S \<Turnstile>pm C' + {#L#} \<and> F \<Turnstile>as CNot C'\<close>
+          snd S \<Turnstile>p C' + {#L#} \<and> F \<Turnstile>as CNot C'\<close>
   apply (cases S, cases T)
   using backtrack_is_backjump[of \<open>fst S\<close> \<open>snd S\<close> \<open>fst T\<close> \<open>snd T\<close>] assms by fastforce
 
@@ -192,7 +192,7 @@ proof -
     4: \<open>fst S \<Turnstile>as CNot C\<close> and
     5: \<open>undefined_lit F L\<close> and
     6: \<open>atm_of L \<in> atms_of_mm (snd S) \<union> atm_of ` lits_of_l (fst S)\<close> and
-    7: \<open>snd S \<Turnstile>pm C' + {#L#}\<close> and
+    7: \<open>snd S \<Turnstile>p C' + {#L#}\<close> and
     8: \<open>F \<Turnstile>as CNot C'\<close>
   using backtrack_is_backjump'[OF assms] by force
   show ?thesis

@@ -130,7 +130,7 @@ inductive cdcl_twl_o :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" w
     \<open>get_level M K = i + 1\<close>
     \<open>D' = {#L#}\<close> and
     \<open>D' \<subseteq># D\<close> and
-    \<open>clause `# (N + U) + NP + UP \<Turnstile>pm D'\<close>
+    \<open>clause `# (N + U) + NP + UP \<Turnstile>p D'\<close>
 | backtrack_nonunit_clause:
   \<open>cdcl_twl_o (M, N, U, Some D, NP, UP, {#}, {#})
   (Propagated L D' # M1, N, add_mset (TWL_Clause {#L, L'#} (D' - {#L, L'#})) U, None, NP, UP, {#}, {#-L#})\<close>
@@ -143,7 +143,7 @@ inductive cdcl_twl_o :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" w
     \<open>get_level M K = i + 1\<close>
     \<open>D' \<noteq> {#L#}\<close> and
     \<open>D' \<subseteq># D\<close> and
-    \<open>clause `# (N + U) + NP + UP \<Turnstile>pm D'\<close> and
+    \<open>clause `# (N + U) + NP + UP \<Turnstile>p D'\<close> and
     \<open>L \<in># D'\<close>
     \<open>L' \<in># D'\<close> and \<comment> \<open>\<^term>\<open>L'\<close> is the new watched literal\<close>
     \<open>get_level M L' = i\<close>

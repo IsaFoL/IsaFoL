@@ -70,14 +70,15 @@ lemma finite_lits_of_def[simp]:
 abbreviation unmark where
 \<open>unmark \<equiv> (\<lambda>a. {#lit_of a#})\<close>
 
-abbreviation unmark_s where
-\<open>unmark_s M \<equiv> unmark ` M\<close>
+(* TODO Kill *)
+abbreviation (input) unmark_s where
+\<open>unmark_s M \<equiv> unmark M\<close>
 
 abbreviation unmark_m where
 \<open>unmark_m M \<equiv> image_mset unmark M\<close>
 
 abbreviation unmark_l where
-\<open>unmark_l M \<equiv> unmark_s (set M)\<close>
+\<open>unmark_l M \<equiv> unmark_m (mset M)\<close>
 
 (* S2MS *)
 abbreviation unmark_lm where
@@ -89,9 +90,10 @@ lemma atms_of_ms_lambda_lit_of_ms_is_atm_of_lit_of[simp]:
   unfolding atms_of_mms_def by auto 
 
 lemma atms_of_ms_lambda_lit_of_is_atm_of_lit_of[simp]:
-  \<open>atms_of_ms (unmark_l M') = atm_of ` lits_of_l M'\<close>
+  \<open>atms_of_mms (unmark_l M') = atm_of ` lits_of_l M'\<close>
   unfolding atms_of_ms_def lits_of_def by auto
-    
+
+(* TODO Kill *)
 lemma atms_of_mms_lambda_lit_of_is_atm_of_lit_of[simp]:
   \<open>atms_of_mms (unmark_lm M') = atm_of ` lits_of_l M'\<close>
   unfolding atms_of_mms_def lits_of_def by auto
@@ -1152,11 +1154,11 @@ proof (intro allI impI)
   then show \<open>M \<Turnstile>a l\<close> using LA l by (cases L) (auto simp: CNot_def)
  qed
 
-(* S2MS: to do after the other correction *)
-(* lemma true_clss_clss_union_false_true_clss_clss_cnot:
+
+lemma true_clss_clss_union_false_true_clss_clss_cnot:
   \<open>A + {#B#} \<Turnstile>ps {#{#}#} \<longleftrightarrow> A \<Turnstile>ps CNot B\<close>
-  using total_not_CNot consistent_CNot_not unfolding total_over_set_def total_over_mm_def true_clss_clss_def atms_of_mms_def
-  by fastforce *)
+  using total_not_CNot consistent_CNot_not unfolding true_clss_clss_def
+  by force+
 
 lemma true_annot_remove_hd_if_notin_vars:
   assumes \<open>a # M'\<Turnstile>a D\<close> and \<open>atm_of (lit_of a) \<notin> atms_of D\<close>
@@ -1209,18 +1211,17 @@ lemma true_clss_clss_true_clss_cls_true_clss_clss:
   assumes
     \<open>A \<Turnstile>ps unmark_l M\<close> and \<open>M \<Turnstile>as D\<close>
   shows \<open>A \<Turnstile>ps D\<close>
-  by (meson assms total_over_m_union true_annots_true_cls true_annots_true_clss_clss
-      true_clss_clss_def true_clss_clss_left_right true_clss_clss_union_and
-      true_clss_clss_union_l_r)
+  using assms
+  by (metis (mono_tags, lifting) comm_monoid_add_class.add_0 true_annots_true_clss_clss 
+      true_clss_clss_generalise_true_clss_clss_add)
 
 lemma true_clss_clss_CNot_true_clss_cls_unsatisfiable:
   assumes \<open>A \<Turnstile>ps CNot D\<close> and \<open>A \<Turnstile>p D\<close>
   shows \<open>unsatisfiable A\<close>
-  using assms(2) unfolding true_clss_clss_def true_clss_cls_def satisfiable_def
-  by (metis (full_types) Un_absorb Un_empty_right assms(1) atms_of_empty
-      atms_of_ms_emtpy_set total_over_m_def total_over_m_insert total_over_m_union
-      true_cls_empty true_clss_cls_def true_clss_clss_generalise_true_clss_clss
-      true_clss_clss_true_clss_cls true_clss_clss_union_false_true_clss_clss_cnot)
+  using assms unfolding satisfiable_def
+  by (metis CNot_empty total_over_mm_CNot_total_over_m total_over_mm_add_mset total_over_mm_empty 
+      true_cls_empty true_clss_cls_def true_clss_clss_insert_add true_clss_clss_left_right_add 
+      true_clss_clss_true_clss_cls true_clss_clss_union_false_true_clss_clss_cnot true_clss_set_mset)
 
 
 subsection \<open>Other\<close>
@@ -1326,22 +1327,10 @@ lemma no_dup_distinct_uminus: \<open>no_dup M \<Longrightarrow> distinct_mset {#
 
 subsection \<open>Extending Entailments to multisets\<close>
 
-text \<open>We have defined previous entailment with respect to sets, but we also need a multiset version
-  depending on the context. The conversion is simple using the function @{term set_mset} (in this
-  direction, there is no loss of information).\<close>
-abbreviation true_annots_mset (infix "\<Turnstile>asm" 50) where
-\<open>I \<Turnstile>asm C \<equiv> I \<Turnstile>as C\<close>
-
-abbreviation true_clss_clss_m :: \<open>'v clause multiset \<Rightarrow> 'v clause multiset \<Rightarrow> bool\<close> (infix "\<Turnstile>psm" 50)
-  where
-\<open>I \<Turnstile>psm C \<equiv> I \<Turnstile>ps C\<close>
-
 text \<open>Analog of theorem @{thm [source] true_clss_clss_subsetE}\<close>
-lemma true_clss_clssm_subsetE: \<open>N \<Turnstile>psm B \<Longrightarrow> A \<subseteq># B \<Longrightarrow> N \<Turnstile>psm A\<close>
+(* TODO: kill *)
+lemma true_clss_clssm_subsetE: \<open>N \<Turnstile>ps B \<Longrightarrow> A \<subseteq># B \<Longrightarrow> N \<Turnstile>ps A\<close>
   using set_mset_mono true_clss_clss_subsetE by blast
-
-abbreviation true_clss_cls_m:: \<open>'a clause multiset \<Rightarrow> 'a clause \<Rightarrow> bool\<close> (infix "\<Turnstile>pm" 50) where
-\<open>I \<Turnstile>pm C \<equiv> I \<Turnstile>p C\<close>
 
 abbreviation distinct_mset_mset :: \<open>'a multiset multiset \<Rightarrow> bool\<close> where
 \<open>distinct_mset_mset \<Sigma> \<equiv> distinct_mset_set (set_mset \<Sigma>)\<close>
@@ -1349,18 +1338,6 @@ abbreviation distinct_mset_mset :: \<open>'a multiset multiset \<Rightarrow> boo
 abbreviation all_decomposition_implies_m where
 \<open>all_decomposition_implies_m A B \<equiv> all_decomposition_implies A B\<close>
 
-abbreviation atms_of_mm :: \<open>'a clause multiset \<Rightarrow> 'a set\<close> where
-\<open>atms_of_mm U \<equiv> atms_of_ms (set_mset U)\<close>
-
-text \<open>Other definition using @{term \<open>Union_mset\<close>}\<close>
-lemma \<open>atms_of_mm U \<equiv> set_mset (\<Union># image_mset (image_mset atm_of) U)\<close>
-  unfolding atms_of_ms_def by (auto simp: atms_of_def)
-
-abbreviation true_clss_m:: \<open>'a interp \<Rightarrow> 'a clause multiset \<Rightarrow> bool\<close> (infix "\<Turnstile>sm" 50) where
-\<open>I \<Turnstile>sm C \<equiv> I \<Turnstile>s C\<close>
-
-abbreviation true_clss_ext_m (infix "\<Turnstile>sextm" 49) where
-\<open>I \<Turnstile>sextm C \<equiv> I \<Turnstile>sext C\<close>
 
 type_synonym 'v clauses = \<open>'v clause multiset\<close>
 

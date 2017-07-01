@@ -577,7 +577,7 @@ subsubsection \<open>Backtrack\<close>
 
 fun extract_shorter_conflict :: \<open>'v twl_st \<Rightarrow> 'v clause nres\<close> where
   \<open>extract_shorter_conflict (M, N, U, D, NP, UP, WS, Q) =
-    SPEC(\<lambda>D'. D' \<subseteq># the D \<and> clause `# (N + U) + NP + UP \<Turnstile>pm D' \<and> -lit_of (hd M) \<in># D')\<close>
+    SPEC(\<lambda>D'. D' \<subseteq># the D \<and> clause `# (N + U) + NP + UP \<Turnstile>p D' \<and> -lit_of (hd M) \<in># D')\<close>
 
 declare extract_shorter_conflict.simps[simp del]
 lemmas extract_shorter_conflict_def = extract_shorter_conflict.simps
@@ -708,7 +708,7 @@ proof -
       \<open>get_level M (lit_of (hd M)) = count_decided M\<close> and
       D'_D: \<open>D' \<subseteq># the D\<close> and
       L_D': \<open>-lit_of (hd M) \<in># D'\<close> and
-      N_U_NP_UP_D': \<open>clause `# (N + U) + NP + UP \<Turnstile>pm D'\<close>
+      N_U_NP_UP_D': \<open>clause `# (N + U) + NP + UP \<Turnstile>p D'\<close>
 
     have D_Some_the: \<open>D = Some (the D)\<close>
       using confl S by auto
