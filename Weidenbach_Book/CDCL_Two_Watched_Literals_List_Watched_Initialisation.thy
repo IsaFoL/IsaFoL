@@ -6,7 +6,7 @@ section \<open>Third Refinement: Remembering watched\<close>
 
 subsection \<open>Types\<close>
 
-type_synonym working_queue_wl = "nat multiset"
+type_synonym clauses_to_update_wl = "nat multiset"
 type_synonym watched = "nat list"
 type_synonym 'v lit_queue_wl = "'v literal multiset"
 
@@ -38,7 +38,7 @@ lemma image_mset_Suc: \<open>Suc `# {#C \<in># M. P C#} = {#C \<in># Suc `# M. P
 lemma clause_to_update_def2:
   \<open>clause_to_update L (M, C # N, U, D, NP, UP, {#}, {#}) =
     image_mset Suc (filter_mset
-      (\<lambda>C::nat. L \<in> set (watched_l (N!(C))))
+      (\<lambda>C::nat. L \<in> set (watched_l (N!C)))
       (mset [0..<length N]))\<close>
 proof -
   have 1: \<open>Suc `# mset [0..<length N] =  mset [1..<Suc (length N)]\<close>

@@ -79,11 +79,20 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="title">GRATgen </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>Check DRAT certificates and emit enriched GRAT certificate.</p>
+<div class="textblock"><p>Check DRAT certificate and emit GRAT certificate.</p>
 <h2>Build</h2>
-<p>Run cmake.</p>
+<p>Run </p><pre class="fragment">cmake .
+make
+make install
+</pre><p>this should generate a build system, build the executable gratgen, and install it in $HOME/bin by default.</p>
+<p>If you do not like heavy make scripts, just run: </p><pre class="fragment">g++ -O3 -DNDEBUG -std=c++11 -pthread -o gratgen gratgen.cpp
+</pre><p>and make sure you have the <a href="http://www.boost.org/">Boost</a> libraries on your include path.</p>
+<h2>Usage</h2>
+<p>For short:</p>
+<p>gratgen formula.cnf formula.drat [-o formula.gratp] [-l formula.gratl] [-j num_threads]</p>
+<p>run gratgen without arguments to get a list of all available options.</p>
 <h2>Documentation</h2>
-<p>In doc/ folder. </p>
+<p>Can be found in the <a href="doc/html/index.html">doc/</a> folder. </p>
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>

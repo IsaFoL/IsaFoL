@@ -15,7 +15,11 @@ This folder contains the GRATchk Standard ML code.
 
 ## Running
   Run 
-      gratchk (sat|unsat) <cnf-file> <grat-file>
+    gratchk options
+  where options are
+    unsat <formula.cnf> <cert.grat>                 Check standard UNSAT certificate
+    unsat <formula.cnf> <cert.gratl> <cert.gratp>   Check split UNSAT certificate
+    sat <formula.cnf> <cert.lit>                    Check SAT certificate
 
   The checker will print the line 
       s VERIFIED

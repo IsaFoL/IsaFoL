@@ -14,7 +14,6 @@ subsection \<open>Lifting of Rewrite Rules\<close>
 text \<open>We can lift a rewrite relation r over a full1 formula: the relation \<open>r\<close> works on terms,
   while \<open>propo_rew_step\<close> works on formulas.\<close>
 
-
 inductive propo_rew_step :: "('v propo \<Rightarrow> 'v propo \<Rightarrow> bool) \<Rightarrow> 'v propo \<Rightarrow> 'v propo \<Rightarrow> bool"
   for r :: "'v propo \<Rightarrow> 'v propo \<Rightarrow> bool" where
 global_rel: "r \<phi> \<psi> \<Longrightarrow> propo_rew_step r \<phi> \<psi>" |
@@ -159,14 +158,14 @@ qed
 
 subsection \<open>Consistency Preservation\<close>
 
-text \<open>We define \<open>preserves_un_sat\<close>: it means that a relation preserves consistency.\<close>
-definition preserves_un_sat where
-"preserves_un_sat r \<longleftrightarrow> (\<forall>\<phi> \<psi>. r \<phi> \<psi> \<longrightarrow> (\<forall>A. A \<Turnstile> \<phi> \<longleftrightarrow> A \<Turnstile> \<psi>))"
+text \<open>We define \<open>preserve_models\<close>: it means that a relation preserves consistency.\<close>
+definition preserve_models where
+"preserve_models r \<longleftrightarrow> (\<forall>\<phi> \<psi>. r \<phi> \<psi> \<longrightarrow> (\<forall>A. A \<Turnstile> \<phi> \<longleftrightarrow> A \<Turnstile> \<psi>))"
 
 
 lemma propo_rew_step_preservers_val_explicit:
-"propo_rew_step r \<phi> \<psi> \<Longrightarrow> preserves_un_sat r \<Longrightarrow> propo_rew_step r \<phi> \<psi> \<Longrightarrow> (\<forall>A. A \<Turnstile>\<phi> \<longleftrightarrow> A\<Turnstile>\<psi>)"
-  unfolding preserves_un_sat_def
+"propo_rew_step r \<phi> \<psi> \<Longrightarrow> preserve_models r \<Longrightarrow> propo_rew_step r \<phi> \<psi> \<Longrightarrow> (\<forall>A. A \<Turnstile>\<phi> \<longleftrightarrow> A\<Turnstile>\<psi>)"
+  unfolding preserve_models_def
 proof (induction rule: propo_rew_step.induct)
   case global_rel
   then show ?case by simp
@@ -187,25 +186,25 @@ qed
 
 
 lemma propo_rew_step_preservers_val':
-  assumes "preserves_un_sat r"
-  shows "preserves_un_sat (propo_rew_step r)"
-  using assms by (simp add: preserves_un_sat_def propo_rew_step_preservers_val_explicit)
+  assumes "preserve_models r"
+  shows "preserve_models (propo_rew_step r)"
+  using assms by (simp add: preserve_models_def propo_rew_step_preservers_val_explicit)
 
 
-lemma preserves_un_sat_OO[intro]:
-"preserves_un_sat f \<Longrightarrow> preserves_un_sat g \<Longrightarrow> preserves_un_sat (f OO g) "
-  unfolding preserves_un_sat_def by auto
+lemma preserve_models_OO[intro]:
+"preserve_models f \<Longrightarrow> preserve_models g \<Longrightarrow> preserve_models (f OO g) "
+  unfolding preserve_models_def by auto
 
 
 lemma star_consistency_preservation_explicit:
-  assumes "(propo_rew_step r)^** \<phi> \<psi>" and "preserves_un_sat r"
+  assumes "(propo_rew_step r)^** \<phi> \<psi>" and "preserve_models r"
   shows "\<forall>A. A \<Turnstile> \<phi> \<longleftrightarrow> A \<Turnstile> \<psi>"
   using assms by (induct rule: rtranclp_induct)
     (auto simp add: propo_rew_step_preservers_val_explicit)
 
 lemma star_consistency_preservation:
-"preserves_un_sat r \<Longrightarrow>  preserves_un_sat (propo_rew_step r)^**"
-  by (simp add: star_consistency_preservation_explicit preserves_un_sat_def)
+"preserve_models r \<Longrightarrow>  preserve_models (propo_rew_step r)^**"
+  by (simp add: star_consistency_preservation_explicit preserve_models_def)
 
 subsection "Full Lifting"
 text \<open>In the previous a relation was lifted to a formula, now we define the relation such it is
@@ -213,8 +212,8 @@ text \<open>In the previous a relation was lifted to a formula, now we define th
   be derived.\<close>
 
 lemma full_ropo_rew_step_preservers_val[simp]:
-"preserves_un_sat r \<Longrightarrow> preserves_un_sat (full (propo_rew_step r))"
-  by (metis full_def preserves_un_sat_def star_consistency_preservation)
+"preserve_models r \<Longrightarrow> preserve_models (full (propo_rew_step r))"
+  by (metis full_def preserve_models_def star_consistency_preservation)
 
 lemma full_propo_rew_step_subformula:
 "full (propo_rew_step r) \<phi>' \<phi> \<Longrightarrow> \<not>(\<exists> \<psi> \<psi>'. \<psi> \<preceq> \<phi> \<and> r \<psi> \<psi>')"

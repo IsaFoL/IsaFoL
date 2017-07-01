@@ -98,10 +98,6 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a9baafb3b3f399cdb3dc914bd717b6e9b"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSynch__Data.html#a9baafb3b3f399cdb3dc914bd717b6e9b">Synch_Data</a> ()</td></tr>
 <tr class="memdesc:a9baafb3b3f399cdb3dc914bd717b6e9b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructor.  <a href="#a9baafb3b3f399cdb3dc914bd717b6e9b">More...</a><br /></td></tr>
 <tr class="separator:a9baafb3b3f399cdb3dc914bd717b6e9b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a023af3c79d4618efec7271b01b36ff9f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a023af3c79d4618efec7271b01b36ff9f"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSynch__Data.html#a023af3c79d4618efec7271b01b36ff9f">mark_clause</a> (<a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a> *cl)</td></tr>
-<tr class="memdesc:a023af3c79d4618efec7271b01b36ff9f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Mark a clause. <br /></td></tr>
-<tr class="separator:a023af3c79d4618efec7271b01b36ff9f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a51a6e3c15d0d9997559035a9804dcda1"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a51a6e3c15d0d9997559035a9804dcda1"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSynch__Data.html#a51a6e3c15d0d9997559035a9804dcda1">is_marked</a> (<a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a> *cl)</td></tr>
 <tr class="memdesc:a51a6e3c15d0d9997559035a9804dcda1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if clause is marked. <br /></td></tr>
@@ -110,9 +106,12 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSynch__Data.html#ac92efe9a2939a7e306c07f416e79b05d">acquire</a> (<a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a> *cl)</td></tr>
 <tr class="memdesc:ac92efe9a2939a7e306c07f416e79b05d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Try to acquire a clause. <br /></td></tr>
 <tr class="separator:ac92efe9a2939a7e306c07f416e79b05d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a95c51ad5378eb87cbcb5e1e2497ddf48"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSynch__Data.html#a95c51ad5378eb87cbcb5e1e2497ddf48">mark_clause_single_threaded</a> (<a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a> *cl)</td></tr>
+<tr class="memdesc:a95c51ad5378eb87cbcb5e1e2497ddf48"><td class="mdescLeft">&#160;</td><td class="mdescRight">Directly mark a single clause.  <a href="#a95c51ad5378eb87cbcb5e1e2497ddf48">More...</a><br /></td></tr>
+<tr class="separator:a95c51ad5378eb87cbcb5e1e2497ddf48"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5617d994548ed904cd06fa13d694de3f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5617d994548ed904cd06fa13d694de3f"></a>
 vector&lt; <a class="el" href="gratgen_8cpp.html#aa8bad35fe9da2e81b16bbaf5a0e32554">cdb_t</a> &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSynch__Data.html#a5617d994548ed904cd06fa13d694de3f">proof_of</a> (<a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a> *cl)</td></tr>
-<tr class="memdesc:a5617d994548ed904cd06fa13d694de3f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return proof of clause. ALso for modification. <br /></td></tr>
+<tr class="memdesc:a5617d994548ed904cd06fa13d694de3f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return reference to proof of clause. <br /></td></tr>
 <tr class="separator:a5617d994548ed904cd06fa13d694de3f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a47bc744917d7f2c1d6cbb5b8d799d555"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a47bc744917d7f2c1d6cbb5b8d799d555"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSynch__Data.html#a47bc744917d7f2c1d6cbb5b8d799d555">inc_rat_counts</a> (<a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a> l)</td></tr>
@@ -122,6 +121,12 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 const <a class="el" href="classlit__map.html">lit_map</a>&lt; atomic&lt; size_t &gt; &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSynch__Data.html#a1e5ba5aa5022182deae29733a4baeef9">get_rat_counts</a> ()</td></tr>
 <tr class="memdesc:a1e5ba5aa5022182deae29733a4baeef9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the RAT-count map. <br /></td></tr>
 <tr class="separator:a1e5ba5aa5022182deae29733a4baeef9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3a17aa28e527717c4177a4257720b1ea"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSynch__Data.html#a3a17aa28e527717c4177a4257720b1ea">bulk_mark_clauses</a> (<a class="el" href="classClauseDB.html">ClauseDB</a> *db, vector&lt; <a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a> * &gt; &amp;clauses, size_t &amp;idx, size_t &amp;failed_attempts)</td></tr>
+<tr class="memdesc:a3a17aa28e527717c4177a4257720b1ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Globally mark a vector of clauses, and exchange the data in the vector by incoming clauses.  <a href="#a3a17aa28e527717c4177a4257720b1ea">More...</a><br /></td></tr>
+<tr class="separator:a3a17aa28e527717c4177a4257720b1ea"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aea888bec09816403f3c8060e14808caf"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classSynch__Data.html#aea888bec09816403f3c8060e14808caf">get_incoming</a> (<a class="el" href="classClauseDB.html">ClauseDB</a> *db, vector&lt; <a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a> * &gt; &amp;clauses, size_t &amp;idx, size_t &amp;failed_attempts)</td></tr>
+<tr class="memdesc:aea888bec09816403f3c8060e14808caf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get incoming marked clauses from global marking, but do not synchronize outgoing clauses.  <a href="#aea888bec09816403f3c8060e14808caf">More...</a><br /></td></tr>
+<tr class="separator:aea888bec09816403f3c8060e14808caf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Global data, which is synchronized between threads, or joined after thread's execution from thread's local data. </p>
@@ -150,6 +155,151 @@ const <a class="el" href="classlit__map.html">lit_map</a>&lt; atomic&lt; size_t 
 <p>Constructor. </p>
 <dl class="section pre"><dt>Precondition</dt><dd>Global data <a class="el" href="classGlobal__Data.html#af6ea3e6b3dd68a15eb793deb3c80a259" title="Only instance of Global_Data. ">glb</a> must already be after parsing when constructing this</dd></dl>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="Object_Lifetimes.html">Object_Lifetimes</a> </dd></dl>
+
+</div>
+</div>
+<h2 class="groupheader">Member Function Documentation</h2>
+<a class="anchor" id="a3a17aa28e527717c4177a4257720b1ea"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool Synch_Data::bulk_mark_clauses </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classClauseDB.html">ClauseDB</a> *&#160;</td>
+          <td class="paramname"><em>db</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">vector&lt; <a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a> * &gt; &amp;&#160;</td>
+          <td class="paramname"><em>clauses</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t &amp;&#160;</td>
+          <td class="paramname"><em>idx</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t &amp;&#160;</td>
+          <td class="paramname"><em>failed_attempts</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Globally mark a vector of clauses, and exchange the data in the vector by incoming clauses. </p>
+<p>As longer the list of incoming clauses, as harder this function tries to get the lock. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">db</td><td>Clause database the clauses are stored in. Used to compute positions. </td></tr>
+    <tr><td class="paramname">clauses</td><td>Vector of clauses to be marked. On success, is filled with incoming clauses to be marked </td></tr>
+    <tr><td class="paramname">idx</td><td>Marking sync-index for this thread. Updated on success. </td></tr>
+    <tr><td class="paramname">failed_attempts</td><td>Counter for failed attempts to get the lock. Updated by this function. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Whether function succeeded to get the lock and do the update. On success, clauses and index are updated. Otherwise, nothing is updated. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="aea888bec09816403f3c8060e14808caf"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool Synch_Data::get_incoming </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classClauseDB.html">ClauseDB</a> *&#160;</td>
+          <td class="paramname"><em>db</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">vector&lt; <a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a> * &gt; &amp;&#160;</td>
+          <td class="paramname"><em>clauses</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t &amp;&#160;</td>
+          <td class="paramname"><em>idx</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t &amp;&#160;</td>
+          <td class="paramname"><em>failed_attempts</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Get incoming marked clauses from global marking, but do not synchronize outgoing clauses. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">db</td><td>Clause database the clauses are stored in. Used to compute positions. </td></tr>
+    <tr><td class="paramname">clauses</td><td>On success, this is filled with incoming clauses to be marked </td></tr>
+    <tr><td class="paramname">idx</td><td>Marking sync-index for this thread. Updated on success. </td></tr>
+    <tr><td class="paramname">failed_attempts</td><td>Counter for failed attempts to get the lock. Updated by this function.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section warning"><dt>Warning</dt><dd>Not tested, currently not used. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="a95c51ad5378eb87cbcb5e1e2497ddf48"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool Synch_Data::mark_clause_single_threaded </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a> *&#160;</td>
+          <td class="paramname"><em>cl</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Directly mark a single clause. </p>
+<dl class="section pre"><dt>Precondition</dt><dd>Must be in single-threaded mode </dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="gratgen_8cpp.html#a1536921f4585fa6622493676da790d7a" title="Operate in single-threaded mode. Implicitly set by -j option. ">cfg_single_threaded</a>. </dd></dl>
 
 </div>
 </div>

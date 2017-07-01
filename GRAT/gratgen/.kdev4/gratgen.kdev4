@@ -2,12 +2,12 @@
 BuildItems=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x01\x00\x00\x00\x0e\x00g\x00r\x00a\x00t\x00g\x00e\x00n)
 
 [CMake]
-Build Directory Count=2
-Current Build Directory Index=1
+Build Directory Count=3
+Current Build Directory Index=2
 ProjectRootRelative=./
 
 [CMake][CMake Build Directory 0]
-Build Directory Path=file:///home/lammich/devel/isabelle/isafol/DRAT/gratgen/debug
+Build Directory Path=file:///home/lammich/devel/isabelle/isafol/GRAT/gratgen/debug
 Build Type=Debug
 CMake Binary=file:///usr/bin/cmake
 Environment Profile=
@@ -15,8 +15,16 @@ Extra Arguments=
 Install Directory=file:///usr/local
 
 [CMake][CMake Build Directory 1]
-Build Directory Path=file:///home/lammich/devel/isabelle/isafol/DRAT/gratgen/release
+Build Directory Path=file:///home/lammich/devel/isabelle/isafol/GRAT/gratgen/release
 Build Type=Release
+CMake Binary=file:///usr/bin/cmake
+Environment Profile=
+Extra Arguments=
+Install Directory=file:///usr/local
+
+[CMake][CMake Build Directory 2]
+Build Directory Path=file:///home/lammich/devel/isabelle/isafol/GRAT/gratgen/profile
+Build Type=RelWithDebInfo
 CMake Binary=file:///usr/bin/cmake
 Environment Profile=
 Extra Arguments=
@@ -154,6 +162,27 @@ targets=2
 inclusive=0
 pattern=__pycache__
 targets=2
+
+[Launch]
+Launch Configurations=Launch Configuration 0
+
+[Launch][Launch Configuration 0]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=gratgen
+Type=Native Application
+
+[Launch][Launch Configuration 0][Data]
+Arguments=rotmul.miter.shuffled-as.sat03-356.cnf rotmul.miter.shuffled-as.sat03-356.drat
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x02\x00\x00\x00\x0e\x00g\x00r\x00a\x00t\x00g\x00e\x00n\x00\x00\x00\x0e\x00g\x00r\x00a\x00t\x00g\x00e\x00n)
+Dependency Action=Build
+EnvironmentGroup=
+Executable=file:///home/lammich/devel/isabelle/isafol/GRAT/gratgen/
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Project Target=gratgen,gratgen
+Use External Terminal=false
+Working Directory=file:///home/lammich/devel/isabelle/isafol/GRAT/regression/data
+isExecutable=false
 
 [Project]
 VersionControlSupport=kdevgit

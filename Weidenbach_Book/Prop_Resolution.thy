@@ -17,7 +17,7 @@ condensation:
 subsumption:
   "A \<in> N \<Longrightarrow> A \<subset># B \<Longrightarrow> B \<in> N \<Longrightarrow> simplify N (N - {B})"
 
-lemma simplify_preserves_un_sat':
+lemma simplify_preserve_models':
   fixes N N' :: "'v clauses"
   assumes "simplify N N'"
   and "total_over_m I N"
@@ -40,7 +40,7 @@ next
   ultimately show ?case by (metis insert_Diff_single true_clss_insert)
 qed
 
-lemma simplify_preserves_un_sat:
+lemma simplify_preserve_models:
   fixes N N' :: "'v clauses"
   assumes "simplify N N'"
   and "total_over_m I N"
@@ -48,7 +48,7 @@ lemma simplify_preserves_un_sat:
   using assms apply (induct rule: simplify.induct)
   using true_clss_def by fastforce+
 
-lemma simplify_preserves_un_sat'':
+lemma simplify_preserve_models'':
   fixes N N' :: "'v clauses"
   assumes "simplify N N'"
   and "total_over_m I N'"
@@ -56,12 +56,12 @@ lemma simplify_preserves_un_sat'':
   using assms apply (induct rule: simplify.induct)
   using true_clss_def by fastforce+
 
-lemma simplify_preserves_un_sat_eq:
+lemma simplify_preserve_models_eq:
   fixes N N' :: "'v clauses"
   assumes "simplify N N'"
   and "total_over_m I N"
   shows "I \<Turnstile>s N \<longleftrightarrow> I \<Turnstile>s N'"
-  using simplify_preserves_un_sat simplify_preserves_un_sat' assms by blast
+  using simplify_preserve_models simplify_preserve_models' assms by blast
 
 lemma simplify_preserves_finite:
  assumes "simplify \<psi> \<psi>'"
@@ -305,7 +305,7 @@ lemma inference_already_used_increasing:
   using assms apply (induct rule:inference.induct)
   using inference_clause_already_used_increasing by fastforce
 
-lemma inference_clause_preserves_un_sat:
+lemma inference_clause_preserve_models:
   fixes N N' :: "'v clauses"
   assumes "inference_clause T T'"
   and "total_over_m I (fst T)"
@@ -315,14 +315,14 @@ lemma inference_clause_preserves_un_sat:
   unfolding consistent_interp_def true_clss_def by auto force+
 
 
-lemma inference_preserves_un_sat:
+lemma inference_preserve_models:
   fixes N N' :: "'v clauses"
   assumes "inference T T'"
   and "total_over_m I (fst T)"
   and consistent: "consistent_interp I"
   shows "I \<Turnstile>s fst T \<longleftrightarrow> I \<Turnstile>s fst T'"
   using assms apply (induct rule: inference.induct)
-  using inference_clause_preserves_un_sat by fastforce
+  using inference_clause_preserve_models by fastforce
 
 lemma inference_clause_preserves_atms_of_ms:
   assumes "inference_clause S S'"
@@ -349,14 +349,14 @@ lemma rtranclp_inference_preserves_total:
   shows "total_over_m I (fst T) \<Longrightarrow> total_over_m I (fst T')"
   using assms by (induct rule: rtranclp_induct, auto simp add: inference_preserves_total)
 
-lemma rtranclp_inference_preserves_un_sat:
+lemma rtranclp_inference_preserve_models:
   assumes "rtranclp inference N N'"
   and "total_over_m I (fst N)"
   and consistent: "consistent_interp I"
   shows "I \<Turnstile>s fst N \<longleftrightarrow> I \<Turnstile>s fst N'"
   using assms apply (induct rule: rtranclp_induct)
-  apply (simp add: inference_preserves_un_sat)
-  using inference_preserves_un_sat rtranclp_inference_preserves_total by blast
+  apply (simp add: inference_preserve_models)
+  using inference_preserve_models rtranclp_inference_preserves_total by blast
 
 lemma inference_preserves_finite:
   assumes "inference \<psi> \<psi>'" and "finite (fst \<psi>)"
@@ -441,7 +441,7 @@ next
     by simp
   then show ?case
     using f5 f4 f3 by (metis Un_insert_right add_mset_add_single atms_of_ms_insert satisfiable_carac
-        simplify_preserves_un_sat' sup_bot.right_neutral total_over_m_def)
+        simplify_preserve_models' sup_bot.right_neutral total_over_m_def)
 next
   case (subsumption A B) note A = this(1) and AB = this(2) and B = this(3) and sat = this(4)
   let ?\<psi>' = "\<psi> - {B}"
@@ -967,7 +967,7 @@ lemma inference_soundness:
   fixes \<psi> :: "'v ::linorder state"
   assumes "rtranclp inference \<psi> \<psi>'" and "{#} \<in> fst \<psi>'"
   shows "unsatisfiable (fst \<psi>)"
-  using assms by (meson rtranclp_inference_preserves_un_sat satisfiable_def true_cls_empty
+  using assms by (meson rtranclp_inference_preserve_models satisfiable_def true_cls_empty
     true_clss_def)
 
 lemma inference_soundness_and_completeness:
@@ -1716,23 +1716,23 @@ next
     using AN by (metis (no_types, lifting) Diff_subset Un_empty_right Un_insert_right card.remove
       card_insert_if card_mono fin finite_Diff order_refl)
   moreover have "\<Xi> {?C'} < \<Xi> {?C}"
-    proof -
-      have mset_decomp:
-        "{# La \<in># A. (L = La \<longrightarrow> La \<in># A) \<and> (L \<noteq> La \<longrightarrow> 2 \<le> count A La)#}
+  proof -
+    have mset_decomp:
+      "{# La \<in># A. (L = La \<longrightarrow> La \<in># A) \<and> (L \<noteq> La \<longrightarrow> 2 \<le> count A La)#}
         =  {# La \<in># A. L \<noteq> La \<and> 2 \<le> count A La#} +
           {# La \<in># A. L = La \<and> Suc 0 \<le> count A L#}"
-           by (auto simp: multiset_eq_iff ac_simps)
-      have mset_decomp2: "{# La \<in># A. L \<noteq> La \<longrightarrow> 2 \<le> count A La#} =
+      by (auto simp: multiset_eq_iff ac_simps)
+    have mset_decomp2: "{# La \<in># A. L \<noteq> La \<longrightarrow> 2 \<le> count A La#} =
         {# La \<in># A. L \<noteq> La \<and> 2 \<le> count A La#} + replicate_mset (count A L) L"
-        by (auto simp: multiset_eq_iff)
-      have *: "(\<Sum>x\<in>#B. if L = x then Suc (count A x) else count A x) \<le>
+      by (auto simp: multiset_eq_iff)
+    have *: "(\<Sum>x\<in>#B. if L = x then Suc (count A x) else count A x) \<le>
         (\<Sum>x\<in>#B. if L = x then Suc (count (add_mset L A) x) else count (add_mset L A) x)"
-        for B
-        by (auto intro!: sum_mset_mono)
-      show ?thesis
-        using *[of "{#La \<in># A. L \<noteq> La \<and> 2 \<le> count A La#}"]
-        by (auto simp: mset_decomp mset_decomp2 filter_mset_eq)
-   qed
+      for B
+      by (auto intro!: sum_mset_mono)
+    show ?thesis
+      using *[of "{#La \<in># A. L \<noteq> La \<and> 2 \<le> count A La#}"]
+      by (auto simp: mset_decomp mset_decomp2 filter_mset_eq)
+  qed
   have "\<Xi> ?N' < \<Xi> N"
     proof cases
       assume a1: "?C' \<in> N"
@@ -2157,7 +2157,7 @@ lemma rtranclp_preserves_sat:
   shows "satisfiable S'"
   using assms apply induction
    apply simp
-  by (meson satisfiable_carac satisfiable_def simplify_preserves_un_sat_eq)
+  by (meson satisfiable_carac satisfiable_def simplify_preserve_models_eq)
 
 lemma resolution_preserves_sat:
   assumes "resolution S S'"
@@ -2165,7 +2165,7 @@ lemma resolution_preserves_sat:
   shows "satisfiable (fst S')"
   using assms apply (induction rule: resolution.induct)
    using rtranclp_preserves_sat tranclp_into_rtranclp unfolding full1_def apply fastforce
-  by (metis fst_conv full_def inference_preserves_un_sat rtranclp_preserves_sat
+  by (metis fst_conv full_def inference_preserve_models rtranclp_preserves_sat
     satisfiable_carac' satisfiable_def)
 
 lemma rtranclp_resolution_preserves_sat:
@@ -2251,7 +2251,7 @@ theorem resolution_soundness_and_completeness':
     finite: "finite (fst \<psi>)"and
     snd: "snd \<psi> = {}"
   shows "(\<exists>a_u_v. (resolution\<^sup>*\<^sup>* \<psi> ({{#}}, a_u_v))) \<longleftrightarrow> unsatisfiable (fst \<psi>)"
-    using assms resolution_completeness resolution_soundness resolution_falsity_get_falsity_alone
-    by metis
+  using assms resolution_completeness resolution_soundness resolution_falsity_get_falsity_alone
+  by metis
 
 end

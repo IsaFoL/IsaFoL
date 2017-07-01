@@ -367,7 +367,7 @@ proof -
     unfolding consistent_interp_def by auto
 
   have [simp]: "cdcl\<^sub>W_M_level_inv ?T"
-    using M_lev unfolding cdcl\<^sub>W_M_level_inv_def 
+    using M_lev unfolding cdcl\<^sub>W_M_level_inv_def
     by (auto simp: M_lev cdcl\<^sub>W_M_level_inv_def cut_trail_wrt_clause_backtrack_lvl_length_decided)
 
   have [simp]: "\<And>s. s \<in># learned_clss T \<Longrightarrow> \<not>tautology s"
@@ -439,10 +439,10 @@ proof -
     using trail_cut_trail_wrt_clause by blast
   consider
       (false) "\<forall>L\<in>#C. - L \<notin> lits_of_l (trail T)" and
-        "trail (cut_trail_wrt_clause C (trail T) T) = []"
-    | (not_false)
-      "- lit_of (hd (trail (cut_trail_wrt_clause C (trail T) T))) \<in># C" and
-      "1 \<le> length (trail (cut_trail_wrt_clause C (trail T) T))"
+        "trail (cut_trail_wrt_clause C (trail T) T) = []" |
+      (not_false)
+        "- lit_of (hd (trail (cut_trail_wrt_clause C (trail T) T))) \<in># C" and
+        "1 \<le> length (trail (cut_trail_wrt_clause C (trail T) T))"
     using cut_trail_wrt_clause_hd_trail_in_or_empty_trail[of "C" T] by auto
   then show ?thesis
     proof cases
@@ -525,7 +525,7 @@ lemma incremental_cdcl\<^sub>W_restart_inv:
     "cdcl\<^sub>W_stgy_invariant T" and
     learned_entailed: \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init T\<close>
   using inc
-proof (induction)
+proof induction
   case (add_confl C T)
   let ?T = "(update_conflicting (Some C) (add_init_cls C
     (cut_trail_wrt_clause C (trail S) S)))"

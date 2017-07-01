@@ -98,6 +98,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <code>#include &lt;fstream&gt;</code><br />
 <code>#include &lt;sstream&gt;</code><br />
 <code>#include &lt;vector&gt;</code><br />
+<code>#include &lt;deque&gt;</code><br />
 <code>#include &lt;algorithm&gt;</code><br />
 <code>#include &lt;cassert&gt;</code><br />
 <code>#include &lt;functional&gt;</code><br />
@@ -116,6 +117,9 @@ Include dependency graph for gratgen.cpp:</div>
 </div><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Classes</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classspinlock.html">spinlock</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Simple spinlock.  <a href="classspinlock.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpos__t.html">pos_t</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A relative position in the clause database.  <a href="structpos__t.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -148,6 +152,9 @@ Classes</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVController.html">VController</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Encapsulates the functionality to control the multi-threaded checker.  <a href="classVController.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classProof__Writer.html">Proof_Writer&lt; binary &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Contains functions to output a GRAT proof.  <a href="classProof__Writer.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
@@ -209,10 +216,10 @@ template&lt;typename T &gt; </td></tr>
 <tr class="memitem:a6df775ef195063e1b7c68b54482ac63d"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="gratgen_8cpp.html#a6df775ef195063e1b7c68b54482ac63d">set_resize</a> (vector&lt; T &gt; &amp;v, size_t i, T data)</td></tr>
 <tr class="memdesc:a6df775ef195063e1b7c68b54482ac63d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set v[i]=data, resizing v as necessary. <br /></td></tr>
 <tr class="separator:a6df775ef195063e1b7c68b54482ac63d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac1f658ca9c7f1ca9d2fc29a6e7e852c4"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
-<tr class="memitem:ac1f658ca9c7f1ca9d2fc29a6e7e852c4"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="gratgen_8cpp.html#ac1f658ca9c7f1ca9d2fc29a6e7e852c4">del_from_list</a> (vector&lt; T &gt; &amp;v, T x)</td></tr>
-<tr class="memdesc:ac1f658ca9c7f1ca9d2fc29a6e7e852c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Delete one x from (unordered) list.  <a href="#ac1f658ca9c7f1ca9d2fc29a6e7e852c4">More...</a><br /></td></tr>
-<tr class="separator:ac1f658ca9c7f1ca9d2fc29a6e7e852c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7613f3a9ab399734968c3b6903cfdbcc"><td class="memTemplParams" colspan="2">template&lt;typename S , typename T &gt; </td></tr>
+<tr class="memitem:a7613f3a9ab399734968c3b6903cfdbcc"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="gratgen_8cpp.html#a7613f3a9ab399734968c3b6903cfdbcc">del_from_list</a> (vector&lt; S &gt; &amp;v, T x)</td></tr>
+<tr class="memdesc:a7613f3a9ab399734968c3b6903cfdbcc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Delete one x from (unordered) list.  <a href="#a7613f3a9ab399734968c3b6903cfdbcc">More...</a><br /></td></tr>
+<tr class="separator:a7613f3a9ab399734968c3b6903cfdbcc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a710c97630869243fe60c45c6a0ac1894"><td class="memTemplParams" colspan="2">template&lt;typename RT , typename T &gt; </td></tr>
 <tr class="memitem:a710c97630869243fe60c45c6a0ac1894"><td class="memTemplItemLeft" align="right" valign="top">RT&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="gratgen_8cpp.html#a710c97630869243fe60c45c6a0ac1894">with_timing</a> (string name, T op, chrono::milliseconds *dp=nullptr, ostream &amp;out=clog)</td></tr>
 <tr class="memdesc:a710c97630869243fe60c45c6a0ac1894"><td class="mdescLeft">&#160;</td><td class="mdescRight">Measure timing of operation, and print timing message to log.  <a href="#a710c97630869243fe60c45c6a0ac1894">More...</a><br /></td></tr>
@@ -221,6 +228,14 @@ template&lt;typename T &gt; </td></tr>
 <tr class="memitem:a0dbb5b501f8c769f7494b1f966250d29"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="gratgen_8cpp.html#a0dbb5b501f8c769f7494b1f966250d29">with_timing</a> (string name, T op, chrono::milliseconds *dp=nullptr, ostream &amp;out=clog)</td></tr>
 <tr class="memdesc:a0dbb5b501f8c769f7494b1f966250d29"><td class="mdescLeft">&#160;</td><td class="mdescRight">Measure timing of operation, and print timing message to log.  <a href="#a0dbb5b501f8c769f7494b1f966250d29">More...</a><br /></td></tr>
 <tr class="separator:a0dbb5b501f8c769f7494b1f966250d29"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aba7007c92aaa4e8c8e226d574d1ebb5a"><td class="memTemplParams" colspan="2">template&lt;typename RT , typename T &gt; </td></tr>
+<tr class="memitem:aba7007c92aaa4e8c8e226d574d1ebb5a"><td class="memTemplItemLeft" align="right" valign="top">RT&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="gratgen_8cpp.html#aba7007c92aaa4e8c8e226d574d1ebb5a">with_timing_ml</a> (string name, T op, chrono::milliseconds *dp=nullptr, ostream &amp;out=clog)</td></tr>
+<tr class="memdesc:aba7007c92aaa4e8c8e226d574d1ebb5a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Measure timing of operation, and print timing message to log, allowing measured operation to print to log.  <a href="#aba7007c92aaa4e8c8e226d574d1ebb5a">More...</a><br /></td></tr>
+<tr class="separator:aba7007c92aaa4e8c8e226d574d1ebb5a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5a03562ece29aa31fcc4459e56616947"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a5a03562ece29aa31fcc4459e56616947"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="gratgen_8cpp.html#a5a03562ece29aa31fcc4459e56616947">with_timing_ml</a> (string name, T op, chrono::milliseconds *dp=nullptr, ostream &amp;out=clog)</td></tr>
+<tr class="memdesc:a5a03562ece29aa31fcc4459e56616947"><td class="mdescLeft">&#160;</td><td class="mdescRight">Measure timing of operation, and print timing message to log, allowing measured operation to print to log.  <a href="#a5a03562ece29aa31fcc4459e56616947">More...</a><br /></td></tr>
+<tr class="separator:a5a03562ece29aa31fcc4459e56616947"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr><td colspan="2"><div class="groupHeader">Statistics</div></td></tr>
 <tr><td colspan="2"><div class="groupText"><hr/>
 <p>These statistics are collected during every run of the program. </p>
@@ -261,6 +276,22 @@ size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gr
 size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gratgen_8cpp.html#afc0d617dcec2c33a046c8f72fdf56f87">stat_db_size</a> (0)</td></tr>
 <tr class="memdesc:afc0d617dcec2c33a046c8f72fdf56f87"><td class="mdescLeft">&#160;</td><td class="mdescRight">Size of clause database in bytes. <br /></td></tr>
 <tr class="separator:afc0d617dcec2c33a046c8f72fdf56f87"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6975e2de397df101434972aad7c3c246"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6975e2de397df101434972aad7c3c246"></a>
+size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gratgen_8cpp.html#a6975e2de397df101434972aad7c3c246">stat_num_clauses</a> (0)</td></tr>
+<tr class="memdesc:a6975e2de397df101434972aad7c3c246"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of ids. <br /></td></tr>
+<tr class="separator:a6975e2de397df101434972aad7c3c246"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af20faeaf04a30b020e12ebeb4c1090cc"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af20faeaf04a30b020e12ebeb4c1090cc"></a>
+size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gratgen_8cpp.html#af20faeaf04a30b020e12ebeb4c1090cc">stat_rup_lemmas</a> (0)</td></tr>
+<tr class="memdesc:af20faeaf04a30b020e12ebeb4c1090cc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of RUP lemmas. <br /></td></tr>
+<tr class="separator:af20faeaf04a30b020e12ebeb4c1090cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4c898e9651358b234b540eefc6d0905c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4c898e9651358b234b540eefc6d0905c"></a>
+size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gratgen_8cpp.html#a4c898e9651358b234b540eefc6d0905c">stat_rat_lemmas</a> (0)</td></tr>
+<tr class="memdesc:a4c898e9651358b234b540eefc6d0905c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of RAT lemmas. <br /></td></tr>
+<tr class="separator:a4c898e9651358b234b540eefc6d0905c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a29ae70eef3cc34b47d77aa5b58186da2"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a29ae70eef3cc34b47d77aa5b58186da2"></a>
+atomic&lt; size_t &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gratgen_8cpp.html#a29ae70eef3cc34b47d77aa5b58186da2">stat_rat_run_h</a> (0)</td></tr>
+<tr class="memdesc:a29ae70eef3cc34b47d77aa5b58186da2"><td class="mdescLeft">&#160;</td><td class="mdescRight">How often RAT-run heuristics was successful. <br /></td></tr>
+<tr class="separator:a29ae70eef3cc34b47d77aa5b58186da2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -286,6 +317,30 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="grat
 bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gratgen_8cpp.html#a1e80a3342d585369ca148972abcd038c">cfg_show_progress_bar</a> = true</td></tr>
 <tr class="memdesc:a1e80a3342d585369ca148972abcd038c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Display progress bar. <br /></td></tr>
 <tr class="separator:a1e80a3342d585369ca148972abcd038c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a650e5383c9814ec40e3eecaaef234fc7"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a650e5383c9814ec40e3eecaaef234fc7"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gratgen_8cpp.html#a650e5383c9814ec40e3eecaaef234fc7">cfg_summarize_deletions</a> = true</td></tr>
+<tr class="memdesc:a650e5383c9814ec40e3eecaaef234fc7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Summarize deletions. <br /></td></tr>
+<tr class="separator:a650e5383c9814ec40e3eecaaef234fc7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a327d6d45361c10e8ae1229d2f6c48645"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a327d6d45361c10e8ae1229d2f6c48645"></a>
+size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gratgen_8cpp.html#a327d6d45361c10e8ae1229d2f6c48645">cfg_out_buf_size_threshold</a> = 16*1024</td></tr>
+<tr class="memdesc:a327d6d45361c10e8ae1229d2f6c48645"><td class="mdescLeft">&#160;</td><td class="mdescRight">Threshold for output buffer size. <br /></td></tr>
+<tr class="separator:a327d6d45361c10e8ae1229d2f6c48645"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa1c0844166aa054ef2d8f0f4ac6484f3"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa1c0844166aa054ef2d8f0f4ac6484f3"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gratgen_8cpp.html#aa1c0844166aa054ef2d8f0f4ac6484f3">cfg_premark_formula</a> = false</td></tr>
+<tr class="memdesc:aa1c0844166aa054ef2d8f0f4ac6484f3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Mark all clauses of initial formula, to prefer them in unit propagation. <br /></td></tr>
+<tr class="separator:aa1c0844166aa054ef2d8f0f4ac6484f3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1536921f4585fa6622493676da790d7a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1536921f4585fa6622493676da790d7a"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gratgen_8cpp.html#a1536921f4585fa6622493676da790d7a">cfg_single_threaded</a> = false</td></tr>
+<tr class="memdesc:a1536921f4585fa6622493676da790d7a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Operate in single-threaded mode. Implicitly set by -j option. <br /></td></tr>
+<tr class="separator:a1536921f4585fa6622493676da790d7a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af2104b53dc3b5740882e347ddb1a2ec2"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af2104b53dc3b5740882e347ddb1a2ec2"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gratgen_8cpp.html#af2104b53dc3b5740882e347ddb1a2ec2">cfg_rat_run_heuristics</a> = true</td></tr>
+<tr class="memdesc:af2104b53dc3b5740882e347ddb1a2ec2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Enable RAT run heuristics. <br /></td></tr>
+<tr class="separator:af2104b53dc3b5740882e347ddb1a2ec2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3422ef444fb7994ff635bfa560dc0b92"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a3422ef444fb7994ff635bfa560dc0b92"></a>
+size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gratgen_8cpp.html#a3422ef444fb7994ff635bfa560dc0b92">cfg_rat_run_readd_upper_limit</a> = 1&lt;&lt;8</td></tr>
+<tr class="memdesc:a3422ef444fb7994ff635bfa560dc0b92"><td class="mdescLeft">&#160;</td><td class="mdescRight">Upper limit for re-added clauses to be collected until RAT-run heuristics is reset. TODO: Compute dynamically as fraction of total number of clauses?! <br /></td></tr>
+<tr class="separator:a3422ef444fb7994ff635bfa560dc0b92"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="member-group"></a>
 Variables and Literals</h2></td></tr>
@@ -357,10 +412,10 @@ size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gr
 <p>Unused. </p>
 </td></tr>
 <tr><td class="fieldname"><a class="anchor" id="a8c2e74cbe5228c02be4d77db10cce705af6623b37ec202d519e40f65b26452b75"></a>UNIT_PROP&#160;</td><td class="fielddoc">
-<p>Unit propagation item. Contains a zero-terminated list of unit-clause IDs: <code>ID* 0</code> </p>
+<p>Unit propagation item. Contains a zero-terminated list of unit-clause IDs: <code>id* 0</code> </p>
 </td></tr>
 <tr><td class="fieldname"><a class="anchor" id="a8c2e74cbe5228c02be4d77db10cce705abde76e129e1e8d7ca615d80ac22a3086"></a>DELETION&#160;</td><td class="fielddoc">
-<p>Deletion item. Contains a single clause ID to be deleted: <code>id</code> TODO: Change to zero-terminated list of IDs! </p>
+<p>Deletion item. Contains a zero-terminated list of clause IDs to be deleted: <code>id* 0</code> </p>
 </td></tr>
 <tr><td class="fieldname"><a class="anchor" id="a8c2e74cbe5228c02be4d77db10cce705aaea9233bb77c710c5ca9d18cdaa6453a"></a>RUP_LEMMA&#160;</td><td class="fielddoc">
 <p>Lemma with RUP-certificate. Contains the new ID for the lemma, the clause, a list of unit clause IDs, and a conflict clause: <code>id lit* 0 id* 0 id</code> </p>
@@ -381,16 +436,16 @@ size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gr
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
-<a class="anchor" id="ac1f658ca9c7f1ca9d2fc29a6e7e852c4"></a>
+<a class="anchor" id="a7613f3a9ab399734968c3b6903cfdbcc"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename T &gt; </div>
+template&lt;typename S , typename T &gt; </div>
       <table class="memname">
         <tr>
           <td class="memname">bool del_from_list </td>
           <td>(</td>
-          <td class="paramtype">vector&lt; T &gt; &amp;&#160;</td>
+          <td class="paramtype">vector&lt; S &gt; &amp;&#160;</td>
           <td class="paramname"><em>v</em>, </td>
         </tr>
         <tr>
@@ -455,7 +510,7 @@ template&lt;typename RT , typename T &gt; </div>
   <table class="params">
     <tr><td class="paramname">name</td><td>name that is printed as operation name </td></tr>
     <tr><td class="paramname">op</td><td>operation, invoked as op() </td></tr>
-    <tr><td class="paramname">dp</td><td>Pointer to store required time to, nullptr if no time to be stored </td></tr>
+    <tr><td class="paramname">dp</td><td>Pointer to time to be incremented. nullptr if no time to be stored </td></tr>
     <tr><td class="paramname">out</td><td>Stream to print message to, clog by default </td></tr>
   </table>
   </dd>
@@ -507,7 +562,110 @@ template&lt;typename T &gt; </div>
   <table class="params">
     <tr><td class="paramname">name</td><td>name that is printed as operation name </td></tr>
     <tr><td class="paramname">op</td><td>operation, invoked as op() </td></tr>
-    <tr><td class="paramname">dp</td><td>Pointer to store required time to, nullptr if no time to be stored </td></tr>
+    <tr><td class="paramname">dp</td><td>Pointer to time to be incremented. nullptr if no time to be stored </td></tr>
+    <tr><td class="paramname">out</td><td>Stream to print message to, clog by default </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a class="anchor" id="aba7007c92aaa4e8c8e226d574d1ebb5a"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename RT , typename T &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">RT with_timing_ml </td>
+          <td>(</td>
+          <td class="paramtype">string&#160;</td>
+          <td class="paramname"><em>name</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">T&#160;</td>
+          <td class="paramname"><em>op</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">chrono::milliseconds *&#160;</td>
+          <td class="paramname"><em>dp</em> = <code>nullptr</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">ostream &amp;&#160;</td>
+          <td class="paramname"><em>out</em> = <code>clog</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Measure timing of operation, and print timing message to log, allowing measured operation to print to log. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">name</td><td>name that is printed as operation name </td></tr>
+    <tr><td class="paramname">op</td><td>operation, invoked as op() </td></tr>
+    <tr><td class="paramname">dp</td><td>Pointer to time to be incremented. nullptr if no time to be stored </td></tr>
+    <tr><td class="paramname">out</td><td>Stream to print message to, clog by default </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>return value of op() </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="a5a03562ece29aa31fcc4459e56616947"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">void with_timing_ml </td>
+          <td>(</td>
+          <td class="paramtype">string&#160;</td>
+          <td class="paramname"><em>name</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">T&#160;</td>
+          <td class="paramname"><em>op</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">chrono::milliseconds *&#160;</td>
+          <td class="paramname"><em>dp</em> = <code>nullptr</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">ostream &amp;&#160;</td>
+          <td class="paramname"><em>out</em> = <code>clog</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Measure timing of operation, and print timing message to log, allowing measured operation to print to log. </p>
+<p>Specialized for op() returning void. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">name</td><td>name that is printed as operation name </td></tr>
+    <tr><td class="paramname">op</td><td>operation, invoked as op() </td></tr>
+    <tr><td class="paramname">dp</td><td>Pointer to time to be incremented. nullptr if no time to be stored </td></tr>
     <tr><td class="paramname">out</td><td>Stream to print message to, clog by default </td></tr>
   </table>
   </dd>

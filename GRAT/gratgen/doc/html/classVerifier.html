@@ -83,6 +83,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </div><!-- top -->
 <div class="header">
   <div class="summary">
+<a href="#nested-classes">Classes</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="classVerifier-members.html">List of all members</a>  </div>
   <div class="headertitle">
@@ -100,7 +101,7 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a3f4d2f9dac7c8df5ae0e8bd5a871bd97"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad849204666ef59d69a4978de0903ac57"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad849204666ef59d69a4978de0903ac57"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVerifier.html#ad849204666ef59d69a4978de0903ac57">~Verifier</a> ()</td></tr>
-<tr class="memdesc:ad849204666ef59d69a4978de0903ac57"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deconstructor. <br /></td></tr>
+<tr class="memdesc:ad849204666ef59d69a4978de0903ac57"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor. <br /></td></tr>
 <tr class="separator:ad849204666ef59d69a4978de0903ac57"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a53144287275437928552de91c278855f"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVerifier.html#a53144287275437928552de91c278855f">init_after_parsing</a> (<a class="el" href="classSynch__Data.html">Synch_Data</a> *_sdata)</td></tr>
 <tr class="memdesc:a53144287275437928552de91c278855f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize after parsing has been completed.  <a href="#a53144287275437928552de91c278855f">More...</a><br /></td></tr>
@@ -119,30 +120,19 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:aa51c6aba991bc5e842ea67bc9a4e881f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa51c6aba991bc5e842ea67bc9a4e881f"></a>
 <a class="el" href="classVerifier.html">Verifier</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>operator=</b> (<a class="el" href="classVerifier.html">Verifier</a> const &amp;&amp;vrf)=delete</td></tr>
 <tr class="separator:aa51c6aba991bc5e842ea67bc9a4e881f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac4c78131e225c13f997f4521a30b623c"><td class="memTemplParams" colspan="2">template&lt;bool core_first&gt; </td></tr>
-<tr class="memitem:ac4c78131e225c13f997f4521a30b623c"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a> *&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classVerifier.html#ac4c78131e225c13f997f4521a30b623c">propagate_units_aux</a> ()</td></tr>
-<tr class="memdesc:ac4c78131e225c13f997f4521a30b623c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do unit propagation, explicitly selecting core-first optimization.  <a href="#ac4c78131e225c13f997f4521a30b623c">More...</a><br /></td></tr>
-<tr class="separator:ac4c78131e225c13f997f4521a30b623c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3877123d6158632c874fb54daf5a7d0e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVerifier.html#a3877123d6158632c874fb54daf5a7d0e">propagate_units</a> ()</td></tr>
 <tr class="memdesc:a3877123d6158632c874fb54daf5a7d0e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do unit propagation.  <a href="#a3877123d6158632c874fb54daf5a7d0e">More...</a><br /></td></tr>
 <tr class="separator:a3877123d6158632c874fb54daf5a7d0e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae999894dcc6bb313b81306e6fc182a39"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVerifier.html#ae999894dcc6bb313b81306e6fc182a39">get_rat_candidates</a> (std::vector&lt; <a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a> * &gt; &amp;cands, <a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a> pivot)</td></tr>
-<tr class="memdesc:ae999894dcc6bb313b81306e6fc182a39"><td class="mdescLeft">&#160;</td><td class="mdescRight">Collect all RAT candidates for a specified pivot literal.  <a href="#ae999894dcc6bb313b81306e6fc182a39">More...</a><br /></td></tr>
-<tr class="separator:ae999894dcc6bb313b81306e6fc182a39"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2653db0b3cb50f5378a9f238e834c017"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a2653db0b3cb50f5378a9f238e834c017"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVerifier.html#a2653db0b3cb50f5378a9f238e834c017">verify</a> (<a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a> *cl)</td></tr>
-<tr class="memdesc:a2653db0b3cb50f5378a9f238e834c017"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verify a clause, <a class="el" href="gratgen_8cpp.html#ae43c436803c9d4249d469ff2ac5fe162" title="Abort checking with optional error message. ">fail()</a> on error. <br /></td></tr>
-<tr class="separator:a2653db0b3cb50f5378a9f238e834c017"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7d7854564630f13ae2531af42012c521"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structpos__t.html">pos_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVerifier.html#a7d7854564630f13ae2531af42012c521">fwd_pass</a> ()</td></tr>
 <tr class="memdesc:a7d7854564630f13ae2531af42012c521"><td class="mdescLeft">&#160;</td><td class="mdescRight">Perform forward pass.  <a href="#a7d7854564630f13ae2531af42012c521">More...</a><br /></td></tr>
 <tr class="separator:a7d7854564630f13ae2531af42012c521"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9d152bc6015be397a498ab8277cb90f5"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVerifier.html#a9d152bc6015be397a498ab8277cb90f5">bwd_pass</a> (size_t start_item, bool show_status_bar=false)</td></tr>
-<tr class="memdesc:a9d152bc6015be397a498ab8277cb90f5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Perform backwards pass, starting at the specified item.  <a href="#a9d152bc6015be397a498ab8277cb90f5">More...</a><br /></td></tr>
-<tr class="separator:a9d152bc6015be397a498ab8277cb90f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a258190d5ecf4fb74fedf30c2f5a1c2ea"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a258190d5ecf4fb74fedf30c2f5a1c2ea"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVerifier.html#a258190d5ecf4fb74fedf30c2f5a1c2ea">dbg_check_uprop</a> ()</td></tr>
-<tr class="memdesc:a258190d5ecf4fb74fedf30c2f5a1c2ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Used for debugging only. <br /></td></tr>
-<tr class="separator:a258190d5ecf4fb74fedf30c2f5a1c2ea"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9bb6babc7ea467c7a63a79825f539a2c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVerifier.html#a9bb6babc7ea467c7a63a79825f539a2c">bwd_pass</a> (bool show_status_bar)</td></tr>
+<tr class="memdesc:a9bb6babc7ea467c7a63a79825f539a2c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Perform backwards pass, starting at the specified item.  <a href="#a9bb6babc7ea467c7a63a79825f539a2c">More...</a><br /></td></tr>
+<tr class="separator:a9bb6babc7ea467c7a63a79825f539a2c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5d885c6884ed1a25559c49fe609a1587"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5d885c6884ed1a25559c49fe609a1587"></a>
+size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVerifier.html#a5d885c6884ed1a25559c49fe609a1587">get_cnt_verified</a> ()</td></tr>
+<tr class="memdesc:a5d885c6884ed1a25559c49fe609a1587"><td class="mdescLeft">&#160;</td><td class="mdescRight">Used for debugging only. <br /></td></tr>
+<tr class="separator:a5d885c6884ed1a25559c49fe609a1587"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr><td colspan="2"><div class="groupHeader">Assignment</div></td></tr>
 <tr class="memitem:a460f0231b1a2d1f7fe2adacad567aa00"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a460f0231b1a2d1f7fe2adacad567aa00"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVerifier.html#a460f0231b1a2d1f7fe2adacad567aa00">is_true</a> (<a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a> l)</td></tr>
@@ -183,6 +173,13 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 <tr class="memitem:ac0d4d56e1dce70d5aa88e9d8783fc252"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVerifier.html#ac0d4d56e1dce70d5aa88e9d8783fc252">mark_clause</a> (<a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a> *cl)</td></tr>
 <tr class="memdesc:ac0d4d56e1dce70d5aa88e9d8783fc252"><td class="mdescLeft">&#160;</td><td class="mdescRight">Mark clause and literals in clause, recursively.  <a href="#ac0d4d56e1dce70d5aa88e9d8783fc252">More...</a><br /></td></tr>
 <tr class="separator:ac0d4d56e1dce70d5aa88e9d8783fc252"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa85672e8c60fb1cac3636d1a878e53e3"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVerifier.html#aa85672e8c60fb1cac3636d1a878e53e3">sync_marked</a> (bool force)</td></tr>
+<tr class="memdesc:aa85672e8c60fb1cac3636d1a878e53e3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Synchronize marked clauses.  <a href="#aa85672e8c60fb1cac3636d1a878e53e3">More...</a><br /></td></tr>
+<tr class="separator:aa85672e8c60fb1cac3636d1a878e53e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a044dbbc8f6417376fda72cc1d4b239da"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a044dbbc8f6417376fda72cc1d4b239da"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVerifier.html#a044dbbc8f6417376fda72cc1d4b239da">sync_incoming_marked</a> ()</td></tr>
+<tr class="memdesc:a044dbbc8f6417376fda72cc1d4b239da"><td class="mdescLeft">&#160;</td><td class="mdescRight">Synchronize only incoming marked clauses. <br /></td></tr>
+<tr class="separator:a044dbbc8f6417376fda72cc1d4b239da"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="member-group"></a>
 Adding and removing clauses</h2></td></tr>
@@ -203,7 +200,7 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 <tr class="separator:a920f17f69b934a34999e78206f674a3b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4a24b94116d990d1a9108747942fab67"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4a24b94116d990d1a9108747942fab67"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classVerifier.html#a4a24b94116d990d1a9108747942fab67">readd_clause</a> (<a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a> *cl)</td></tr>
-<tr class="memdesc:a4a24b94116d990d1a9108747942fab67"><td class="mdescLeft">&#160;</td><td class="mdescRight">Only clauses that where on watchlists may be readded. <br /></td></tr>
+<tr class="memdesc:a4a24b94116d990d1a9108747942fab67"><td class="mdescLeft">&#160;</td><td class="mdescRight">Only clauses that where on watchlists may be readded. Watched literals must not have changed since deletion. <br /></td></tr>
 <tr class="separator:a4a24b94116d990d1a9108747942fab67"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
@@ -276,26 +273,16 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
-<a class="anchor" id="a9d152bc6015be397a498ab8277cb90f5"></a>
+<a class="anchor" id="a9bb6babc7ea467c7a63a79825f539a2c"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
           <td class="memname">void Verifier::bwd_pass </td>
           <td>(</td>
-          <td class="paramtype">size_t&#160;</td>
-          <td class="paramname"><em>start_item</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
           <td class="paramtype">bool&#160;</td>
-          <td class="paramname"><em>show_status_bar</em> = <code>false</code>&#160;</td>
-        </tr>
-        <tr>
+          <td class="paramname"><em>show_status_bar</em></td><td>)</td>
           <td></td>
-          <td>)</td>
-          <td></td><td></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -303,7 +290,6 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 <p>Perform backwards pass, starting at the specified item. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">start_item</td><td>Index of proof item to start as </td></tr>
     <tr><td class="paramname">show_status_bar</td><td>Wether to print a status bar </td></tr>
   </table>
   </dd>
@@ -366,35 +352,6 @@ template&lt;typename T &gt; </div>
 
 <p>Perform forward pass. </p>
 <dl class="section return"><dt>Returns</dt><dd>relative position of conflict clause </dd></dl>
-
-</div>
-</div>
-<a class="anchor" id="ae999894dcc6bb313b81306e6fc182a39"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void Verifier::get_rat_candidates </td>
-          <td>(</td>
-          <td class="paramtype">std::vector&lt; <a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a> * &gt; &amp;&#160;</td>
-          <td class="paramname"><em>cands</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a>&#160;</td>
-          <td class="paramname"><em>pivot</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Collect all RAT candidates for a specified pivot literal. </p>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="Unmarked_RAT_Candidates.html">Unmarked_RAT_Candidates</a> </dd></dl>
 
 </div>
 </div>
@@ -499,25 +456,27 @@ template&lt;typename T &gt; </div>
 
 </div>
 </div>
-<a class="anchor" id="ac4c78131e225c13f997f4521a30b623c"></a>
+<a class="anchor" id="aa85672e8c60fb1cac3636d1a878e53e3"></a>
 <div class="memitem">
 <div class="memproto">
-<div class="memtemplate">
-template&lt;bool cf_enabled&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="gratgen_8cpp.html#af60a61f425a670e469d9f2d820f36084">lit_t</a> * Verifier::propagate_units_aux </td>
+          <td class="memname">bool Verifier::sync_marked </td>
           <td>(</td>
-          <td class="paramname"></td><td>)</td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>force</em></td><td>)</td>
           <td></td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Do unit propagation, explicitly selecting core-first optimization. </p>
-<p>Note: Unit propagation does not perform conflict analysis, this must be invoked afterwards, with <a class="el" href="classVerifier.html#ac0d4d56e1dce70d5aa88e9d8783fc252" title="Mark clause and literals in clause, recursively. ">mark_clause()</a>.</p>
-<dl class="section return"><dt>Returns</dt><dd>Conflict clause or nullptr</dd></dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="Core_First_Unit_Propagation.html">Core_First_Unit_Propagation</a> </dd></dl>
+<p>Synchronize marked clauses. </p>
+<p>May give up to acquire lock if not too many clauses to synchronize. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">force</td><td>Force synchronization. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>

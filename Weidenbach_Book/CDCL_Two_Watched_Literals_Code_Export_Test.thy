@@ -15,7 +15,7 @@ export_code valued_impl in SML
 declare find_unwatched_impl[refine_transfer] valued_impl[refine_transfer]
 schematic_goal unit_propagation_inner_loop_body_list: "RETURN ?c \<le> unit_propagation_inner_loop_body_l L C S"
   unfolding unit_propagation_inner_loop_body_l_def
-  apply (refine_transfer)
+  apply refine_transfer
   done
 
 (*

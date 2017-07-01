@@ -1,0 +1,7 @@
+problem, drat-user-time/s, drat-sys-time(s), drat-wall-time/s, drat-mem/KiB, gratgen-j1-user-time/s, gratgen-j1-sys-time(s), gratgen-j1-wall-time/s, gratgen-j1-mem/KiB, gratchk-j1-user-time/s, gratchk-j1-sys-time(s), gratchk-j1-wall-time/s, gratchk-j1-mem/KiB, gratgen-j8-user-time/s, gratgen-j8-sys-time(s), gratgen-j8-wall-time/s, gratgen-j8-mem/KiB, gratchk-j8-user-time/s, gratchk-j8-sys-time(s), gratchk-j8-wall-time/s, gratchk-j8-mem/KiB, 
+sokoban-p16.sas.cr.37,19991.6,8.9,20000,6182464,19216,15.8,19272,13020972,309.9,12.6,401.8,41228272,30993.5,60.9,4261,54151776,62.8,10.7,88.7,41228224, 
+valves-gates-1-k617-unsat,19999.6,2.8,20000,1847004,19037.7,7.9,19056,3575056,47.6,3.7,51.2,11034288,26434.6,20.4,3395,14564528,48.3,4.5,52.9,10239488, 
+sokoban-p20.sas.ex.13,SEGV,SEGV,SEGV,14758916,3895.7,29.5,3988,28831816,384.8,32.2,492.7,85474060,9249.5,78.4,1987.5,121264200,360.7,28.3,406,85575920, 
+sokoban-p20.sas.cr.25,16537.2,8,16549,3896740,13067.7,10.6,13099,7757484,147.9,5.7,153.6,13243376,20702.9,32.5,2806.8,33975540,145.5,5.5,151.1,13241580, 
+sokoban-p20.sas.cr.23,12039.2,6.8,12045,2547996,9128.4,7,9154,5408332,108.7,6.1,114.8,13252544,14738.4,21.1,1990.2,22250404,106.8,6.3,113.1,13253172, 
+peb-pyrofpyr-15-neq-3_shuffled,10782.6,1.1,10782,465668,8278,1.9,8281,800332,5.7,1.4,7,3307188,16132.9,4.8,2035.4,3201552,5.7,1.4,7.1,3321964, 

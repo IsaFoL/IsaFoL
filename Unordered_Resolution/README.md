@@ -10,6 +10,9 @@
 
 * [Stefan Berghofer](mailto:berghofe shtrudel in.tum.de)
 
+## News: Additional Completeness results ##
+I have proven some additional completeness results. They are available at the end of [this file](https://bitbucket.org/isafol/isafol/src/unordered_jar/Unordered_Resolution/Resolution_FOL/Completeness.thy) following the theorem named completeness. I plan to add them to the AFP entry.
+
 ## Installation ##
 * [Download and install Isabelle2016-1](https://isabelle.in.tum.de)
 * [Download AFP version afp-2016-12-17](https://sourceforge.net/projects/afp/files/afp-Isabelle2016-1/)

@@ -44,20 +44,20 @@ $S(C_i \lor A_i \lor \cdots \lor A_i)$. Apparently, the latter was meant.
 \end{nit}
 *}
 
-abbreviation "maximal_in A DAs \<equiv> (A = Max (atms_of DAs))"
-definition "str_maximal_in A CAis \<equiv> (\<forall>B \<in> atms_of CAis. B < A)"
+abbreviation "maximal_in A DA \<equiv> (A = Max (atms_of DA))"
+definition "str_maximal_in A CA \<equiv> (\<forall>B \<in> atms_of CA. B < A)"
 
 (* Inspiration from supercalc *)
 inductive eligible :: "'a list \<Rightarrow> 'a clause \<Rightarrow> bool" where
   eligible:
-  "S DAi = negs (mset Ai) 
+  "S DA = negs (mset Ai) 
    \<or> 
    (
-     S DAi = {#} 
+     S DA = {#} 
      \<and> length Ai = 1 
-     \<and> maximal_in (Ai ! 0) DAi
+     \<and> maximal_in (Ai ! 0) DA
    )
-   \<Longrightarrow> eligible Ai DAi"
+   \<Longrightarrow> eligible Ai DA"
   
 inductive 
   ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool"
@@ -77,13 +77,13 @@ inductive
           
 lemma ord_resolve_sound:
   assumes
-    res_e: "ord_resolve CAi DAi E" and
+    res_e: "ord_resolve CAi DA E" and
     cc_true: "I \<Turnstile>m mset CAi" and
-    d_true: "I \<Turnstile> DAi"
+    d_true: "I \<Turnstile> DA"
   shows "I \<Turnstile> E"
 using res_e proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Ci Aij Ai D)
-  have dai: "DAi = D + negs (mset Ai)" using ord_resolve by -
+  have DA: "DA = D + negs (mset Ai)" using ord_resolve by -
   have e: "E = (\<Union># (mset Ci)) + D" using ord_resolve by -
   have cai_len: "length CAi = n" using ord_resolve by -
   have ci_len: "length Ci = n" using ord_resolve by -
@@ -100,7 +100,7 @@ using res_e proof (cases rule: ord_resolve.cases)
     hence "\<not> I \<Turnstile> negs (mset Ai)"
       unfolding true_cls_def by fastforce
     hence "I \<Turnstile> D"
-      using d_true dai by fast
+      using d_true DA by fast
     then show ?thesis unfolding e by blast
   next
     case False
@@ -130,11 +130,11 @@ This corresponds to Lemma 3.13:
 *}
 
 lemma ord_resolve_reductive:
-  assumes res_e: "ord_resolve CAi DAi E"
-  shows "E < DAi"
+  assumes res_e: "ord_resolve CAi DA E"
+  shows "E < DA"
 using res_e proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Ci Aij Ai D)
-  have dai: "DAi = D + negs (mset Ai)" using ord_resolve by -
+  have DA: "DA = D + negs (mset Ai)" using ord_resolve by -
   have e: "E = \<Union>#mset Ci + D" using ord_resolve by -
   have cai_len: "length CAi = n" using ord_resolve by -
   have ci_len: "length Ci = n" using ord_resolve by -
@@ -152,7 +152,7 @@ using res_e proof (cases rule: ord_resolve.cases)
     have "negs (mset Ai) \<noteq> {#}"
        using as_ne by auto
     thus ?thesis
-       unfolding True e dai by auto
+       unfolding True e DA by auto
   next
     case False
     moreover
@@ -191,7 +191,7 @@ using res_e proof (cases rule: ord_resolve.cases)
       (* TODO tune proof *)
       using atms_less_eq_imp_lit_less_eq_neg count_inI dual_order.strict_implies_order 
           gr_implies_not_zero order.not_eq_order_implies_strict by metis
-    then show ?thesis unfolding e dai by auto
+    then show ?thesis unfolding e DA by auto
   qed
 qed
 
@@ -202,65 +202,65 @@ This corresponds to Theorem 3.15:
 theorem ord_resolve_counterex_reducing:
   assumes
     ec_ni_n: "{#} \<notin> N" and
-    d_in_n: "DAi \<in> N" and
-    d_cex: "\<not> INTERP N \<Turnstile> DAi" and
-    d_min: "\<And>C. C \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> C \<Longrightarrow> DAi \<le> C"
+    d_in_n: "DA \<in> N" and
+    d_cex: "\<not> INTERP N \<Turnstile> DA" and
+    d_min: "\<And>C. C \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> C \<Longrightarrow> DA \<le> C"
   obtains CAi E where
     "set CAi \<subseteq> N"
     "INTERP N \<Turnstile>m mset CAi"
     "\<And>CA. CA \<in> set CAi \<Longrightarrow> productive N CA"
-    "ord_resolve CAi DAi E"
+    "ord_resolve CAi DA E"
     "\<not> INTERP N \<Turnstile> E"
-    "E < DAi"
+    "E < DA"
 proof -
-  have d_ne: "DAi \<noteq> {#}"
+  have d_ne: "DA \<noteq> {#}"
     using d_in_n ec_ni_n by blast
-  have "\<exists>Ai. Ai \<noteq> [] \<and> negs (mset Ai) \<le># DAi \<and> eligible Ai DAi"
-  proof (cases "S DAi = {#}")
-    assume s_d_e: "S DAi = {#}"
-    define A where "A = Max (atms_of DAi)"
+  have "\<exists>Ai. Ai \<noteq> [] \<and> negs (mset Ai) \<le># DA \<and> eligible Ai DA"
+  proof (cases "S DA = {#}")
+    assume s_d_e: "S DA = {#}"
+    define A where "A = Max (atms_of DA)"
     define Ai where "Ai = [A]"
-    define D where "D = DAi-{#Neg A #}"
+    define D where "D = DA-{#Neg A #}"
     
-    have na_in_d: "Neg A \<in># DAi"
+    have na_in_d: "Neg A \<in># DA"
       unfolding A_def using s_d_e d_ne d_in_n d_cex d_min
       by (metis Max_in_lits Max_lit_eq_pos_or_neg_Max_atm max_pos_imp_true_in_Interp
         true_Interp_imp_INTERP)
-    hence das: "DAi = D + negs (mset Ai)" unfolding D_def Ai_def by auto
+    hence das: "DA = D + negs (mset Ai)" unfolding D_def Ai_def by auto
     moreover
-    from na_in_d have "negs (mset Ai) \<subseteq># DAi"
+    from na_in_d have "negs (mset Ai) \<subseteq># DA"
       by (simp add: Ai_def) 
     moreover
     have "Ai ! 0 = Max (atms_of (D + negs (mset Ai)))"
       using A_def Ai_def das by auto
-    hence "eligible Ai DAi" using eligible s_d_e Ai_def das by auto
+    hence "eligible Ai DA" using eligible s_d_e Ai_def das by auto
     ultimately show ?thesis using Ai_def by blast
   next
-    assume s_d_e: "S DAi \<noteq> {#}"
-    define Ai where "Ai = list_of_mset {#atm_of L. L \<in># S DAi#}"
-    define D where "D = DAi - negs {#atm_of L. L \<in># S DAi#}"
+    assume s_d_e: "S DA \<noteq> {#}"
+    define Ai where "Ai = list_of_mset {#atm_of L. L \<in># S DA#}"
+    define D where "D = DA - negs {#atm_of L. L \<in># S DA#}"
     
     have "Ai \<noteq> []" unfolding Ai_def using s_d_e
       by (metis image_mset_is_empty_iff list_of_mset_empty)
     moreover
-    have da_sub_as: "negs {#atm_of L. L \<in># S DAi#} \<subseteq># DAi" 
+    have da_sub_as: "negs {#atm_of L. L \<in># S DA#} \<subseteq># DA" 
       using S_selects_subseteq by (auto simp: filter_neg_atm_of_S)
-    hence "negs (mset Ai) \<subseteq># DAi" unfolding Ai_def by auto
+    hence "negs (mset Ai) \<subseteq># DA" unfolding Ai_def by auto
     moreover
-    have das: "DAi = D + negs (mset Ai)" using da_sub_as unfolding D_def Ai_def by auto
+    have das: "DA = D + negs (mset Ai)" using da_sub_as unfolding D_def Ai_def by auto
     moreover
-    have "S DAi = negs {#atm_of L. L \<in># S DAi#}" 
+    have "S DA = negs {#atm_of L. L \<in># S DA#}" 
       by (auto simp: filter_neg_atm_of_S)
-    hence "S DAi = negs (mset Ai)" unfolding Ai_def by auto
-    hence "eligible Ai DAi" unfolding das using eligible by auto
+    hence "S DA = negs (mset Ai)" unfolding Ai_def by auto
+    hence "eligible Ai DA" unfolding das using eligible by auto
     ultimately show ?thesis by blast
   qed
   then obtain Ai where
     as_ne: "Ai \<noteq> []" and 
-    negs_as_le_d: "negs (mset Ai) \<le># DAi" and
-    s_d: "eligible Ai DAi"
+    negs_as_le_d: "negs (mset Ai) \<le># DA" and
+    s_d: "eligible Ai DA"
     by blast
-  define D where "D = DAi - negs (mset Ai)"
+  define D where "D = DA - negs (mset Ai)"
   have "set Ai \<subseteq> INTERP N"
     using d_cex negs_as_le_d by force
   hence prod_ex: "\<forall>A \<in> set Ai. \<exists>D. produces N D A"
@@ -357,7 +357,7 @@ proof -
   have "\<forall>i<n. \<forall>A\<in>#Aij ! i. A = Ai ! i"
     by (simp add: \<open>\<forall>i<length Aij. \<forall>A\<in>#Aij ! i. A = Ai ! i\<close> calculation(3))
   moreover
-  have "eligible Ai DAi" using s_d by auto
+  have "eligible Ai DA" using s_d by auto
   hence "eligible Ai (D + negs (mset Ai))" using D_def negs_as_le_d by auto 
   moreover
   have "\<And>i. i < length Aij \<Longrightarrow> str_maximal_in (Ai ! i) ((Ci ! i))"
@@ -399,13 +399,13 @@ proof -
   have "\<And>CA. CA \<in> set CAi \<Longrightarrow> productive N CA"
     by (simp add: prod_c) 
   moreover
-  have "ord_resolve CAi DAi (\<Union>#mset Ci + D)"
+  have "ord_resolve CAi DA (\<Union>#mset Ci + D)"
     using D_def negs_as_le_d res_e by auto
   moreover
   have "\<not> INTERP N \<Turnstile> \<Union>#mset Ci + D"
     using e_cex by simp
   moreover
-  have "(\<Union>#mset Ci + D) < DAi"
+  have "(\<Union>#mset Ci + D) < DA"
     using calculation(4) ord_resolve_reductive by auto
   ultimately
   show ?thesis ..
@@ -414,11 +414,11 @@ proof -
 qed
 
 lemma ord_resolve_atms_of_concl_subset:
-  assumes res_e: "ord_resolve CAi DAi E"
-  shows "atms_of E \<subseteq> (\<Union>C \<in> set CAi. atms_of C) \<union> atms_of DAi"
+  assumes res_e: "ord_resolve CAi DA E"
+  shows "atms_of E \<subseteq> (\<Union>C \<in> set CAi. atms_of C) \<union> atms_of DA"
 using res_e proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Ci Aij Ai D)
-  have dai: "DAi = D + negs (mset Ai)" using ord_resolve by -
+  have DA: "DA = D + negs (mset Ai)" using ord_resolve by -
   have e: "E = \<Union>#mset Ci + D" using ord_resolve by -
   have cai_len: "length CAi = n" using ord_resolve by -
   have ci_len: "length Ci = n" using ord_resolve by -
@@ -440,7 +440,7 @@ using res_e proof (cases rule: ord_resolve.cases)
   ultimately
   have "atms_of (\<Union>#mset Ci) \<subseteq> (\<Union>C\<in>set CAi. atms_of C)" by auto
   moreover
-  have "atms_of D \<subseteq> atms_of DAi" using dai by auto
+  have "atms_of D \<subseteq> atms_of DA" using DA by auto
   ultimately
   show ?thesis unfolding e by auto
 qed
@@ -455,38 +455,38 @@ inference system.
 *}
 
 definition ord_\<Gamma> :: "'a inference set" where
-  "ord_\<Gamma> = {Infer (mset CAi) DAi E | CAi DAi E. ord_resolve CAi DAi E}"
+  "ord_\<Gamma> = {Infer (mset CAi) DA E | CAi DA E. ord_resolve CAi DA E}"
 
 sublocale 
   sound_counterex_reducing_inference_system "ground_resolution_with_selection.ord_\<Gamma> S"
     "ground_resolution_with_selection.INTERP S" +
   reductive_inference_system "ground_resolution_with_selection.ord_\<Gamma> S"
 proof unfold_locales
-  fix DAi :: "'a clause" and N :: "'a clause set"
+  fix DA :: "'a clause" and N :: "'a clause set"
   thm ord_resolve_counterex_reducing
-  assume "{#} \<notin> N" and "DAi \<in> N" and "\<not> INTERP N \<Turnstile> DAi" and "\<And>C. C \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> C \<Longrightarrow> DAi \<le> C"
+  assume "{#} \<notin> N" and "DA \<in> N" and "\<not> INTERP N \<Turnstile> DA" and "\<And>C. C \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> C \<Longrightarrow> DA \<le> C"
   then obtain CAi E where
     dd_sset_n: "set CAi \<subseteq> N" and
     dd_true: "INTERP N \<Turnstile>m mset CAi" and
-    res_e: "ord_resolve CAi DAi E" and
+    res_e: "ord_resolve CAi DA E" and
     e_cex: "\<not> INTERP N \<Turnstile> E" and
-    e_lt_c: "E < DAi"
-    using ord_resolve_counterex_reducing[of N DAi thesis] by auto
+    e_lt_c: "E < DA"
+    using ord_resolve_counterex_reducing[of N DA thesis] by auto
 
-  have "ord_resolve CAi DAi E" by (simp add: res_e)
-  then have "Infer (mset CAi) DAi E \<in> ord_\<Gamma>"
+  have "ord_resolve CAi DA E" by (simp add: res_e)
+  then have "Infer (mset CAi) DA E \<in> ord_\<Gamma>"
     unfolding ord_\<Gamma>_def by (metis (mono_tags, lifting) mem_Collect_eq)
-  thus "\<exists>CC E. set_mset CC \<subseteq> N \<and> INTERP N \<Turnstile>m CC \<and> Infer CC DAi E \<in> ord_\<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E < DAi"
+  thus "\<exists>CC E. set_mset CC \<subseteq> N \<and> INTERP N \<Turnstile>m CC \<and> Infer CC DA E \<in> ord_\<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E < DA"
     using dd_sset_n dd_true e_cex e_lt_c
     by (metis set_mset_mset)
 next
-  fix CC DAi E and I
-  assume inf: "Infer CC DAi E \<in> ord_\<Gamma>" and icc: "I \<Turnstile>m CC" and id: "I \<Turnstile> DAi"
+  fix CC DA E and I
+  assume inf: "Infer CC DA E \<in> ord_\<Gamma>" and icc: "I \<Turnstile>m CC" and id: "I \<Turnstile> DA"
   thm ord_\<Gamma>_def
   from inf obtain mCC where 
     "mset mCC = CC"
-    "ord_resolve mCC DAi E" using ord_\<Gamma>_def by auto
-  thus "I \<Turnstile> E" using id icc ord_resolve_sound[of mCC DAi E I] by auto
+    "ord_resolve mCC DA E" using ord_\<Gamma>_def by auto
+  thus "I \<Turnstile> E" using id icc ord_resolve_sound[of mCC DA E I] by auto
 next
   fix \<gamma>
   assume "\<gamma> \<in> ord_\<Gamma>"

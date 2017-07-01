@@ -68,6 +68,9 @@ lemma consistent_interp_insert_not_in:
 lemma consistent_interp_unionD: \<open>consistent_interp (I \<union> I') \<Longrightarrow> consistent_interp I'\<close>
   unfolding consistent_interp_def by auto
 
+lemma consistent_interp_insert_iff: \<open>consistent_interp (insert L C) \<longleftrightarrow> consistent_interp C \<and> -L \<notin> C\<close>
+  by (metis consistent_interp_def consistent_interp_insert_pos insert_absorb)
+
 
 subsubsection \<open>Atoms\<close>
 
@@ -838,6 +841,9 @@ proof (intro allI HOL.impI)
   ultimately show "I \<Turnstile> \<chi>'" unfolding true_cls_def by auto
 qed
 
+lemma not_tautology_mono: \<open>D' \<subseteq># D \<Longrightarrow> \<not>tautology D \<Longrightarrow> \<not>tautology D'\<close>
+  by (meson tautology_imp_tautology true_cls_add_mset true_cls_mono_leD)
+
 
 subsubsection \<open>Entailment for clauses and propositions\<close>
 
@@ -865,9 +871,7 @@ lemma true_cls_cls_refl[simp]:
 lemma true_cls_cls_insert_l[simp]:
   "a \<Turnstile>f C \<Longrightarrow> add_mset a A \<Turnstile>p C"
   unfolding true_cls_cls_def true_clss_cls_def true_clss_def
-  by (metis add_mset_add_single atms_of_mms_add_mset atms_of_mms_empty atms_of_ms_emtpy_set
-      atms_of_ms_insert total_over_m_def total_over_m_union total_over_mm_addition
-      total_over_mm_def union_single_eq_member)
+  by auto
 
 (* S2MS modif *)
 lemma true_cls_clss_empty[iff]:
@@ -877,10 +881,7 @@ lemma true_cls_clss_empty[iff]:
 (* S2MS modif *)
 lemma true_prop_true_clause[iff]:
   "{#\<phi>#} \<Turnstile>p \<psi> \<longleftrightarrow> \<phi> \<Turnstile>f \<psi>"
-  unfolding true_cls_cls_def true_clss_cls_def
-  by (metis add_mset_add_single atms_of_mms_add_mset atms_of_mms_empty atms_of_ms_emtpy_set
-      atms_of_ms_insert set_mset_add_mset_insert set_mset_empty set_mset_union total_over_m_def
-      total_over_mm_def true_clss_singleton)
+  unfolding true_cls_cls_def true_clss_cls_def by auto
 
 (* S2MS modif *)
 text \<open>The full version is shown below.\<close>
@@ -1465,9 +1466,9 @@ Shared by the second layer of type 'a \<Rightarrow> 'b set \<Rightarrow> bool:
 * A \<subseteq> B \<Longrightarrow> I \<Turnstile>s B \<Longrightarrow> I \<Turnstile>s A
 * I \<Turnstile>s {}
 
-*   true_lit   \<Turnstile>   'a interp \<Rightarrow> 'a literal \<Rightarrow> bool
-*   true_cls   \<Turnstile>l 'a interp \<Rightarrow> 'a clause \<Rightarrow> bool
-\<longrightarrow> true_clss  \<Turnstile>s 'a interp \<Rightarrow> 'a clauses \<Rightarrow> bool
+*   true_lit  \<Turnstile>   'a interp \<Rightarrow> 'a literal \<Rightarrow> bool
+*   true_cls  \<Turnstile>l 'a interp \<Rightarrow> 'a clause \<Rightarrow> bool
+\<longrightarrow> true_clss \<Turnstile>s 'a interp \<Rightarrow> 'a clauses \<Rightarrow> bool
 
 *   true_annot \<Turnstile>a ann_lits \<Rightarrow> 'a clause \<Rightarrow> bool
 \<longrightarrow> true_annots \<Turnstile>as ann_lits \<Rightarrow> 'a clauses \<Rightarrow> bool

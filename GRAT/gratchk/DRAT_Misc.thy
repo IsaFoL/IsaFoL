@@ -2,6 +2,17 @@ theory DRAT_Misc
 imports IICF
 begin
   
+  (* TODO: Move *)
+  abbreviation "uncurry6 f \<equiv> uncurry (uncurry5 f)"
+  abbreviation "curry6 f \<equiv> curry (curry5 f)"
+  abbreviation "uncurry7 f \<equiv> uncurry (uncurry6 f)"
+  abbreviation "curry7 f \<equiv> curry (curry6 f)"
+  abbreviation "uncurry8 f \<equiv> uncurry (uncurry7 f)"
+  abbreviation "curry8 f \<equiv> curry (curry7 f)"
+  abbreviation "uncurry9 f \<equiv> uncurry (uncurry8 f)"
+  abbreviation "curry9 f \<equiv> curry (curry8 f)"
+  
+  
   (* TODO: Move *)  
   lemma map_nth_upt_drop_take_conv: "N \<le> length l \<Longrightarrow> map (nth l) [M..<N] = drop M (take N l)"
     by (induction N) (auto simp: take_Suc_conv_app_nth)

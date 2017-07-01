@@ -19,8 +19,8 @@ and make sure you have the [Boost](http://www.boost.org/) libraries on your incl
 
 ## Usage
   For short:
-  
-    gratgen formula.cnf formula.drat [-o formula.grat] [-j num_threads]
+
+    gratgen formula.cnf formula.drat [-o formula.gratp] [-l formula.gratl] [-j num_threads]
 
   run gratgen without arguments to get a list of all available options.
 

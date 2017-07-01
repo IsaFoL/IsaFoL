@@ -119,6 +119,11 @@ lemma get_maximum_level_plus:
   "get_maximum_level M (D + D') = max (get_maximum_level M D) (get_maximum_level M D')"
   by (induction D) (simp_all add: get_maximum_level_add_mset)
 
+lemma get_maximum_level_cong:
+  assumes \<open>\<forall>L \<in># D. get_level M L = get_level M' L\<close>
+  shows \<open>get_maximum_level M D = get_maximum_level M' D\<close>
+  using assms by (induction D) (auto simp: get_maximum_level_add_mset)
+
 lemma get_maximum_level_exists_lit:
   assumes n: "n > 0"
   and max: "get_maximum_level M D = n"
@@ -170,6 +175,14 @@ lemma count_decided_ge_get_maximum_level:
   "count_decided M \<ge> get_maximum_level M D"
   using get_maximum_level_exists_lit_of_max_level unfolding Bex_def
   by (metis get_maximum_level_empty count_decided_ge_get_level le0)
+
+lemma get_level_last_decided_ge:
+   \<open>defined_lit (c @ [Decided K]) L' \<Longrightarrow> 0 < get_level (c @ [Decided K]) L'\<close>
+  by (induction c) (auto simp: defined_lit_cons get_level_cons_if)
+
+lemma get_maximum_level_mono:
+  \<open>D \<subseteq># D' \<Longrightarrow> get_maximum_level M D \<le> get_maximum_level M D'\<close>
+  unfolding get_maximum_level_def by auto
 
 fun get_all_mark_of_propagated where
 "get_all_mark_of_propagated [] = []" |
@@ -247,5 +260,8 @@ lemma Suc_count_decided_gt_get_level:
 lemma get_level_Succ_count_decided_neq[simp]:
   \<open>get_level M L \<noteq> Suc (count_decided M)\<close>
   using Suc_count_decided_gt_get_level[of M L] by auto
+
+lemma length_get_all_ann_decomposition: \<open>length (get_all_ann_decomposition M) = 1+count_decided M\<close>
+  by (induction M rule: ann_lit_list_induct) auto
 
 end

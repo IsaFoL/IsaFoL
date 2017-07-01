@@ -495,19 +495,25 @@ lemma resolve_resolve:
       simp: clauses_def cdcl\<^sub>W_restart_mset.clauses_def cdcl\<^sub>W_restart_mset_state
       true_annots_true_cls_def_iff_negation_in_model abs_state_def
       in_negate_trial_iff)
-
+    
 lemma backtrack_backtrack:
   \<open>backtrack S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.backtrack (abs_state S) (abs_state T)\<close>
 proof (induction rule: backtrack.cases)
-  case (backtrack_rule D L K M1 M2 i T)
-  moreover have
-    \<open>cdcl\<^sub>W_restart_mset.reduce_trail_to M1
+  case (backtrack_rule L D K M1 M2 D' i T)
+  have H: \<open>set_mset (init_clss S) \<union> set_mset (learned_clss S)
+    \<subseteq> set_mset (init_clss S) \<union> set_mset (conflicting_clss S) \<union> set_mset (learned_clss S)\<close>
+    by auto
+  have [simp]: \<open>cdcl\<^sub>W_restart_mset.reduce_trail_to M1
        (trail S, init_clss S + conflicting_clss S, add_mset D (learned_clss S), None) =
-    (M1, init_clss S + conflicting_clss S, add_mset D (learned_clss S), None)\<close>
-    using backtrack_rule by (auto simp add: cdcl\<^sub>W_restart_mset_reduce_trail_to cdcl\<^sub>W_restart_mset_state)
-  ultimately show ?case
+    (M1, init_clss S + conflicting_clss S, add_mset D (learned_clss S), None)\<close> for D
+    using backtrack_rule by (auto simp add: cdcl\<^sub>W_restart_mset_reduce_trail_to
+        cdcl\<^sub>W_restart_mset_state)
+  show ?case
+    using true_clss_cls_subset[of \<open>set_mset (init_clss S) \<union> set_mset (learned_clss S)\<close>
+      \<open>set_mset (init_clss S) \<union> set_mset (conflicting_clss S) \<union> set_mset (learned_clss S)\<close>
+      \<open>add_mset L D'\<close>, OF H] backtrack_rule
     by (auto intro!: cdcl\<^sub>W_restart_mset.backtrack.intros
-        simp: cdcl\<^sub>W_restart_mset_state abs_state_def)
+        simp: cdcl\<^sub>W_restart_mset_state abs_state_def clauses_def cdcl\<^sub>W_restart_mset.clauses_def)
 qed
 
 lemma cdcl\<^sub>W_o_cdcl\<^sub>W_o:
@@ -949,20 +955,20 @@ lemma no_step_cdcl_opt_stgy:
   assumes
     n_s: \<open>no_step cdcl_opt_stgy S\<close> and
     all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
-    stgy_inv: \<open>cdcl_opt_stgy_inv S\<close>
+    stgy_inv: \<open>cdcl_opt_stgy_inv S\<close> and
+    le: \<open>cdcl\<^sub>W_learned_clause S\<close>
   shows \<open>conflicting S = None \<or> conflicting S = Some {#}\<close>
 proof (rule ccontr)
   assume \<open>\<not> ?thesis\<close>
   then obtain D where \<open>conflicting S = Some D\<close> and \<open>D \<noteq> {#}\<close>
     by auto
-  moreover have \<open>no_step cdcl\<^sub>W_stgy S\<close>
+      moreover have \<open>no_step cdcl\<^sub>W_stgy S\<close>
     using n_s by (auto simp: cdcl\<^sub>W_stgy.simps cdcl_opt_stgy.simps)
   ultimately show False
-    using conflicting_no_false_can_do_step[of S] all_struct stgy_inv
+    using conflicting_no_false_can_do_step[of S] all_struct stgy_inv le
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl_opt_stgy_inv_def
     by (auto dest!: distinct_cdcl\<^sub>W_state_distinct_cdcl\<^sub>W_state)
 qed
-
 
 end
 

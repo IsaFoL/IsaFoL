@@ -352,7 +352,9 @@ using resolve proof (atomize_elim, cases rule: ord_resolve_raw.cases)
   note lengths = \<open>length \<rho>'s = length \<rho>s\<close> \<rho>s(1) trans[OF \<open>length Cs = ?n\<close> sym[OF \<open>length \<sigma>s = ?n\<close>]]
 
   then have "Cs \<cdot>\<cdot>cl \<rho>s \<cdot>\<cdot>cl \<rho>'s = Cs" "Dp \<cdot> \<rho>D \<cdot> \<rho>D' = Dp"
-    unfolding subst_cls_comp_subst[symmetric] subst_cls_lists_comp_substs[symmetric] inv by auto
+    unfolding subst_cls_comp_subst[symmetric] subst_cls_lists_comp_substs[symmetric] inv
+    apply (metis subst_cls_lists_id_subst)
+    by simp 
 
   with lengths var_disjoint_ground[OF \<rho>s(4), of "(\<rho>D' \<odot> \<sigma>D) # (\<rho>'s \<odot>s \<sigma>s)"] ground_\<sigma>D ground_\<sigma>s
     obtain \<tau> where \<tau>: "is_ground_subst \<tau>" "Dp \<cdot> \<sigma>D = Dp \<cdot> \<rho>D \<cdot> \<tau>" "Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<tau>"
@@ -360,8 +362,12 @@ using resolve proof (atomize_elim, cases rule: ord_resolve_raw.cases)
 
   moreover from pick have "?Cs = Cs \<cdot>\<cdot>cl \<sigma>s"
     unfolding subst_cls_lists_def Cs_def \<sigma>s_def
-    by (auto simp only: set_map length_map length_zip nth_map nth_zip nth_mem list_eq_iff_nth_eq
+    apply (auto simp only: set_map length_map length_zip nth_map nth_zip nth_mem list_eq_iff_nth_eq
       set_sorted_list_of_multiset[symmetric])
+     apply simp
+    using nth_mem by fastforce
+      
+    
 
   then have "mset ?Cs = mset (Cs \<cdot>\<cdot>cl \<sigma>s)"
     by simp
@@ -416,6 +422,11 @@ begin
 
 interpretation ground_resolution_with_S: ground_resolution_with_selection S
   by unfold_locales
+    
+lemma mgu_eq_id_subst:
+  "finite AAA \<Longrightarrow> (\<forall>AA \<in> AAA. finite AA \<and> card AA \<le> 1) \<Longrightarrow> \<exists>\<rho>. mgu AAA = Some \<rho> \<and> is_renaming \<rho>"
+  sorry
+    (* This lemma was in Substitution.thy, but it's proof broke when I changed the definition of is_renaming. *)
 
 lemma ground_prems_ground_ord_resolve_imp_ord_resolve_raw:
   assumes

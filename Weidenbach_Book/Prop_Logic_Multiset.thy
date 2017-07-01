@@ -181,7 +181,7 @@ function formula_of_msets :: "'a literal multiset set \<Rightarrow> 'a propo" wh
       else
          let v = (SOME v. v \<in> \<phi>s);
              v' = formula_of_mset v in
-         if  \<phi>s - {v} = {} then v'
+         if \<phi>s - {v} = {} then v'
          else FAnd v' (formula_of_msets (\<phi>s - {v})))\<close>
   by auto
 termination
@@ -311,7 +311,7 @@ lemma no_T_F_formula_of_msets:
 
 lemma is_cnf_formula_of_msets:
   assumes \<open>finite \<phi>\<close> and \<open>{#} \<notin> \<phi>\<close>
-  shows \<open>is_cnf (formula_of_msets (\<phi>))\<close>
+  shows \<open>is_cnf (formula_of_msets \<phi>)\<close>
   using assms apply (induction \<open>card \<phi>\<close> arbitrary: \<phi>)
   subgoal by (subst formula_of_msets.simps) (auto simp: is_cnf_def is_conj_with_TF_def)[]
   subgoal
