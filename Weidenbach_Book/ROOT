@@ -150,7 +150,7 @@ session "Two_Watched_Literals" (Weidenbach_Book) = "Two_Watched_Literals_Base"  
     CDCL_W_Full
 
   theories [quick_and_dirty = false, document = true]
-    CDCL_Two_Watched_Literals_VMTF.thy
+    CDCL_Two_Watched_Literals_VMTF
     CDCL_Two_Watched_Literals_List_Watched_Trail_Code
     CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code
   document_files
