@@ -1980,13 +1980,6 @@ lemma (in -) shiftl_Suc_uint32: \<open>n << Suc m = (n << m) << 1\<close> for n 
   by auto
 (* End Move *)
 
-lemma (in -) \<open>nat_of_uint32 (n << m) < upperN \<Longrightarrow> nat_of_uint32 (n << m) = nat_of_uint32 n << m\<close>
-  unfolding upperN_def
-  apply transfer
-  unfolding unat_def
-     apply (auto simp: uint_shiftl)
-  oops
-
 lemma PosL_N\<^sub>1_le_upperN_div_2: \<open>Pos L \<in># N\<^sub>1 \<Longrightarrow> L < upperN div 2\<close>
   using in_N1_less_than_upperN by (auto simp: upperN_def)
 
@@ -2002,6 +1995,7 @@ lemma (in -) mult_mod_mod_mult:
   apply auto
   by (metis (full_types) le_cases not_le order_trans pos_imp_zdiv_nonneg_iff zdiv_le_dividend)
 
+(* TODO: tune proof*)
 lemma (in -) nat_of_uint32_distrib_mult2:
   assumes \<open>nat_of_uint32 xi < upperN div 2\<close>
   shows \<open>nat_of_uint32 (2 * xi) = 2 * nat_of_uint32 xi\<close>
@@ -2036,11 +2030,58 @@ proof -
     done
 qed
 
+(* TODO:  tune proof*)
+lemma (in -) nat_of_uint32_distrib_mult2_plus1:
+  assumes \<open>nat_of_uint32 xi < upperN div 2\<close>
+  shows \<open>nat_of_uint32 (2 * xi + 1) = 2 * nat_of_uint32 xi + 1\<close>
+proof -
+  have H: \<open>⋀xi::32 Word.word.
+       nat (uint xi) < (2147483648::nat) ⟹
+       xi ≠ (0::32 Word.word) ⟹
+       nat (uint xi mod (4294967296::int)) = nat (uint xi)\<close>
+  proof -
+    fix xia :: "32 Word.word"
+    assume a1: "nat (uint xia) < 2147483648"
+    have f2: "⋀n. (numeral n::nat) ≤ numeral (num.Bit0 n)"
+      by (metis (no_types) add_0_right add_mono_thms_linordered_semiring(1) dual_order.order_iff_strict numeral_Bit0 rel_simps(51)) (* 33 ms *)
+    have "unat xia ≤ 4294967296"
+      using a1 by (metis (no_types) add_0_right add_mono_thms_linordered_semiring(1) dual_order.order_iff_strict nat_int numeral_Bit0 rel_simps(51) uint_nat) (* 140 ms *)
+    then show "nat (uint xia mod 4294967296) = nat (uint xia)"
+      using f2 a1 by (metis (no_types) Divides.mod_less Divides.transfer_int_nat_functions(2) dual_order.order_iff_strict linorder_not_less nat_int of_nat_numeral uint_nat) (* 546 ms *)
+  qed
+  have mod_is_id: \<open>⋀xi::32 Word.word.
+       nat (uint xi) < (2147483648::nat) ⟹
+       (uint xi mod (4294967296::int)) = uint xi\<close>
+    by (subst zmod_trival_iff) auto
+  have [simp]: \<open>xi ≠ (0::32 Word.word) ⟹ (0::int) < uint xi\<close> for xi
+    by (metis (full_types) uint_eq_0 word_gt_0 word_less_def)
+  show ?thesis
+    using assms
+    supply [[show_types]]
+    apply (case_tac \<open>xi = 0\<close>)
+    subgoal by (auto simp: nat_of_uint32_012)
+    subgoal
+      apply (auto simp: upperN_def)
+      apply transfer
+      apply (auto simp: unat_def uint_word_ariths nat_mult_distrib)
+      apply (subst mult_mod_mod_mult)
+      apply (auto simp: nat_mult_distrib mod_is_id nat_mod_distrib nat_add_distrib intro:)
+      done
+    done
+qed
+
 lemma Pos_ref[sepref_fr_rules]:
   \<open>(return o (\<lambda>L. 2 * L), RETURN o Pos) \<in> [\<lambda>L. Pos L \<in> snd ` D\<^sub>0]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   by sepref_to_hoare
    (sep_auto simp: uint32_nat_rel_def br_def unat_lit_rel_def nat_lit_rel_def
       Collect_eq_comp lit_of_natP_def nat_of_uint32_shiftr nat_of_uint32_distrib_mult2
+      dest!: PosL_N\<^sub>1_le_upperN_div_2)
+
+lemma Neg_ref[sepref_fr_rules]:
+  \<open>(return o (\<lambda>L. 2 * L + 1), RETURN o Neg) \<in> [\<lambda>L. Pos L \<in> snd ` D\<^sub>0]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  by sepref_to_hoare
+   (sep_auto simp: uint32_nat_rel_def br_def unat_lit_rel_def nat_lit_rel_def
+      Collect_eq_comp lit_of_natP_def nat_of_uint32_shiftr nat_of_uint32_distrib_mult2_plus1
       dest!: PosL_N\<^sub>1_le_upperN_div_2)
 
 sepref_register lit_of_found_atm_D
@@ -2050,9 +2091,6 @@ sepref_thm lit_of_found_atom_D_code
   supply [[goals_limit=1]]
   supply not_is_None_not_None[simp]
   unfolding lit_of_found_atm_D_def PR_CONST_def
-  apply sepref_dbg_keep
-      apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
   by sepref
 
 concrete_definition (in -) vmtf_find_next_undef_upd_code
