@@ -141,7 +141,7 @@ which is instantiated below.
 definition unord_\<Gamma> :: "'a inference set" where
   "unord_\<Gamma> = {Infer {#C#} D E | C D E. unord_resolve C D E}"
 
-sublocale sound_counterex_reducing_inference_system unord_\<Gamma> INTERP
+sublocale foo?: sound_counterex_reducing_inference_system unord_\<Gamma> INTERP
 proof unfold_locales
   fix C E and N :: "('b :: wellorder) clause set"
   assume "{#} \<notin> N" and "C \<in> N" and "\<not> INTERP N \<Turnstile> C" and "\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C \<le> D"
