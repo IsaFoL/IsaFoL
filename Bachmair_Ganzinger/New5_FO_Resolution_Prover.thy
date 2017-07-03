@@ -2247,7 +2247,7 @@ lemma from_N_to_P:
     c: "C \<in> llimit Ns - src.Rf (llimit Ns)" and
     d: "D \<in> getN (lnth Sts i)" "enat i < llength Sts" "subsumes D C" and
     d_least: "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not>properly_subsumes E D"
-  shows "\<exists>l D' \<sigma>'. D' \<in> getP (lnth Sts l) \<and> enat l < llength Sts \<and> (\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not>properly_subsumes E D') \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
+  shows "\<exists>l D' \<sigma>'. D' \<in> getP (lnth Sts l) \<and> enat l < llength Sts \<and> (\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not>properly_subsumes E D') \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>' \<and> subsumes D' C"
 proof -
   let ?Ns = "\<lambda>i. getN (lnth Sts i)"
   let ?Ps = "\<lambda>i. getP (lnth Sts i)"
@@ -2431,9 +2431,10 @@ proof
       "enat l < llength Sts" 
       "is_ground_subst \<sigma>'" (* Do I also need that l is later than i? Probably not. *)
       "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not>properly_subsumes E D'"
+      "subsumes D' C"
       using from_N_to_P[OF deriv fair ns C_p a i_p(1) D_p(2) D_p(3)] by blast
     then obtain l' where l'_p: "D' \<in> ?Qs l'" "l' < llength Sts" (* Do I also need that l is later than l'? Probably not*)
-      using from_P_to_Q[of Sts] deriv fair ns C_p  by blast
+      using from_P_to_Q[OF deriv fair ns C_p D'_p(1) D'_p(3) D'_p(6) D'_p(5) ] by blast
     then have "D' \<in> getQ (limit_state Sts)"
       using from_Q_to_Q_inf[OF deriv fair ns C_p _ l'_p(2)] D'_p by auto
     then have "\<exists>D' \<sigma>'. D' \<in> getQ (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
@@ -2443,9 +2444,9 @@ proof
   {
     assume a: "D \<in> ?Ps i"
     then obtain l' where l'_p: "D \<in> ?Qs l'" "l' < llength Sts" (* Do I also need that l is later than l'? Probably not*)
-      using from_P_to_Q[OF deriv fair ns C_p a i_p(1) D_p(3)] by auto
+      using from_P_to_Q[OF deriv fair ns C_p a i_p(1) D_p(2) D_p(3) ] by auto
     then have "D \<in> getQ (limit_state Sts)"
-      using from_Q_to_Q_inf[OF deriv fair ns C_p l'_p(1) l'_p(2)] D_p(3) \<sigma>(1) \<sigma>(2) by auto
+      using from_Q_to_Q_inf[OF deriv fair ns C_p l'_p(1) l'_p(2)] D_p(3) \<sigma>(1) \<sigma>(2) D_p(2) by auto
     then have "\<exists>D' \<sigma>'. D' \<in> getQ (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
       using D_p \<sigma> by auto
   }
@@ -2453,7 +2454,7 @@ proof
   {
     assume a: "D \<in> ?Qs i"
     then have "D \<in> getQ (limit_state Sts)"
-      using from_Q_to_Q_inf[OF deriv fair ns C_p a i_p(1) \<sigma>(1) \<sigma>(2)] \<sigma> D_p(2) D_p(3) by auto
+      using from_Q_to_Q_inf[OF deriv fair ns C_p a i_p(1)] \<sigma> D_p(2) D_p(3) by auto
     then have "\<exists>D' \<sigma>'. D' \<in> getQ (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
       using D_p \<sigma> by auto
   }
