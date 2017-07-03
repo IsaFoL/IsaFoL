@@ -1941,14 +1941,133 @@ lemma from_Q_to_Q_inf:
     ns: "Ns = lmap grounding_of_state Sts" and
 
     c: "C \<in> llimit Ns - src.Rf (llimit Ns)" and
-    d: "D \<in> getQ (lnth Sts i)" "enat i < llength Sts" and
-    \<sigma>: "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>" and
+    d: "D \<in> getQ (lnth Sts i)" "enat i < llength Sts" "subsumes D C" and
     d_least: "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not>properly_subsumes E D"
   shows "D \<in> getQ (limit_state Sts)"
-  sorry 
-(* I'm not sure how to do this. Some kind of (co?)induction maybe? 
-  Nah. I guess I just need to prove that D will not be removed. Should not be too hard. *)
+proof -
+  let ?Ns = "\<lambda>i. getN (lnth Sts i)"
+  let ?Ps = "\<lambda>i. getP (lnth Sts i)"
+  let ?Qs = "\<lambda>i. getQ (lnth Sts i)"
 
+  have ground_C: "is_ground_cls C"
+    using c using llimit_grounding_of_state_ground ns by auto 
+
+  have derivns: "derivation src_ext.derive Ns" using resolution_prover_ground_derivation deriv ns by auto
+
+  have "\<exists>\<sigma>. D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
+  proof -
+    have "\<exists>\<sigma>. D \<cdot> \<sigma> = C" 
+    proof (rule ccontr)
+      assume "\<nexists>\<sigma>. D \<cdot> \<sigma> = C"
+      moreover
+      from d(3) obtain \<tau>_proto where "D \<cdot> \<tau>_proto \<subseteq># C" unfolding subsumes_def
+        by blast
+      then obtain \<tau> where \<tau>_p: "D \<cdot> \<tau> \<subseteq># C \<and> is_ground_subst \<tau>"
+        using ground_C
+        by (metis is_ground_cls_mono make_single_ground_subst subset_mset.order_refl) 
+      ultimately
+      have subsub: "D \<cdot> \<tau> \<subset># C"
+        using subset_mset.le_imp_less_or_eq by auto
+      moreover
+      have "is_ground_subst \<tau>" using \<tau>_p by auto
+      moreover 
+      have "D \<in> clss_of_state (lnth Sts i)" 
+        using d getQ_subset by auto
+      ultimately
+      have "C \<in> src.Rf (grounding_of_state (lnth Sts i))" 
+        using strict_subsumption_redundant_state[of D \<tau> C "lnth Sts i"]
+        by auto
+      then have "C \<in> src.Rf (Lazy_List_Limit.lSup Ns)" 
+        using d ns
+        by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_lSup src.Rf_mono) 
+      then have "C \<in> src.Rf (llimit Ns)" 
+        unfolding ns using local.src_ext.Rf_lSup_subset_Rf_llimit derivns ns by auto
+      then show False using c by auto
+    qed
+    then obtain \<sigma> where "D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>" 
+      using ground_C
+      by (metis make_single_ground_subst subset_mset.order_refl) 
+    then show ?thesis by auto
+  qed
+  then obtain \<sigma> where \<sigma>: "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
+    by auto
+
+  from deriv have four_ten: "derivation src_ext.derive Ns" 
+    using resolution_prover_ground_derivation ns by auto
+
+  have "\<forall>l \<ge> i. enat (Suc l) < llength Sts \<longrightarrow> D \<in> getQ (lnth Sts l) \<longrightarrow> D \<in> getQ (lnth Sts (Suc l))"
+  proof (rule, rule, rule, rule)
+    fix l 
+    assume len: "i \<le> l" 
+    assume llen: "enat (Suc l) < llength Sts"
+    assume d_in_q: "D \<in> getQ (lnth Sts l)"
+    have "lnth Sts l \<leadsto> lnth Sts (Suc l)"
+      sorry
+    then show "D \<in> getQ (lnth Sts (Suc l))"
+    proof (induction rule: resolution_prover.cases)
+      case (tautology_deletion A C N P Q)
+      then show ?case using d_in_q by auto
+    next
+      case (forward_subsumption P Q C N)
+      then show ?case using d_in_q by auto
+    next
+      case (backward_subsumption_P N C P Q)
+      then show ?case using d_in_q by auto
+    next
+      case (backward_subsumption_Q N D_removed P Q)
+      moreover
+      {
+        assume "D_removed = D"
+        then obtain D_subsumes where D_subsumes_p: "D_subsumes \<in> N \<and> properly_subsumes D_subsumes D" 
+          using backward_subsumption_Q by auto
+        moreover
+        from D_subsumes_p have "subsumes D_subsumes C"
+          using d subsumes_trans unfolding properly_subsumes_def by auto
+        moreover
+        from backward_subsumption_Q have "D_subsumes \<in> clss_of_state (sup_state Sts)"
+          using D_subsumes_p llen
+          by (metis (no_types, lifting) UnI1 clss_of_state_def getN.simps llength_lmap lnth_lmap lnth_subset_lSup rev_subsetD sup_state_def) 
+        ultimately 
+        have False
+          using d_least unfolding subsumes_def by auto
+      }
+      ultimately
+      show ?case 
+        using d_in_q by auto
+    next
+      case (forward_reduction P Q L \<sigma> C N)
+      then show ?case using d_in_q by auto
+    next
+      case (backward_reduction_P N L \<sigma> C P Q)
+      then show ?case using d_in_q by auto
+    next
+      case (backward_reduction_Q N L \<sigma> D' P Q)
+      {
+        assume "D' + {#L#} = D"
+        then have D'_p: "properly_subsumes D' D \<and> D' \<in> ?Ps (Suc l)"
+          using subset_properly_subsumes[of D' D] backward_reduction_Q by auto
+        then have subc: "subsumes D' C"
+          using d(3) subsumes_trans unfolding properly_subsumes_def by auto
+        from D'_p have "D' \<in> clss_of_state (sup_state Sts)"
+          using llen
+          by (metis (no_types, lifting) UnI1 clss_of_state_def getP.simps llength_lmap lnth_lmap lnth_subset_lSup subsetCE sup_ge2 sup_state_def)
+        then have False using d_least D'_p subc by auto
+      }
+      then show ?case
+        using backward_reduction_Q d_in_q by auto
+    next
+      case (clause_processing N C P Q)
+      then show ?case using d_in_q by auto
+    next
+      case (inference_computation N Q C P)
+      then show ?case using d_in_q by auto
+    qed
+  qed
+  then show ?thesis 
+    sorry
+qed
+
+    
 lemma from_P_to_Q:
   assumes 
     deriv: "derivation (op \<leadsto>) Sts" and
@@ -2006,9 +2125,6 @@ proof -
   qed
   then obtain \<sigma> where \<sigma>: "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
     by auto
-
-  from c have no_taut: "\<not>(\<exists>A. Pos A \<in># C \<and> Neg A \<in># C)" 
-    using src.tautology_redundant by auto
 
   from deriv have four_ten: "derivation src_ext.derive Ns" 
     using resolution_prover_ground_derivation ns by auto
@@ -2190,9 +2306,10 @@ proof -
       using d_least sorry
     then have "subsumes D D'" 
       unfolding properly_subsumes_def using D'_p by auto
-    then have "\<forall>E\<in>{E \<in> clss_of_state (sup_state Sts). subsumes E C}. \<not> properly_subsumes E D'"
+    then have "\<forall>E\<in>{E \<in> clss_of_state (sup_state Sts). subsumes E C}. \<not> properly_subsumes E D'" 
       using d_least sorry (* I think it's something like this. Maybe. Well if nothing else the argument is that D and D' must simply be renamings of each other. *)
-    then show ?case sorry
+    then show ?case 
+      sorry
   next
     case (backward_subsumption_P N D_twin P Q)
     then have False
@@ -2244,7 +2361,8 @@ proof -
       using l_p by auto
     then show ?case 
       by auto
-  qed  
+  qed 
+qed
  
 
 text {*
