@@ -2110,7 +2110,7 @@ lemma lit_of_found_atm_D_ref:
     [lit_of_found_atm_D_pre]\<^sub>f trail_ref \<times>\<^sub>r \<langle>Id\<rangle>option_rel \<rightarrow> \<langle>\<langle>Id\<rangle>option_rel\<rangle> nres_rel\<close>
   unfolding lit_of_found_atm_D_def lit_of_found_atm_def PR_CONST_def
   by (intro nres_relI frefI)
-    (auto simp: trail_ref_def lit_of_found_atm_D_pre_def phase_saving_def 
+    (auto simp: trail_ref_def lit_of_found_atm_D_pre_def phase_saving_def
         in_N⇩1_atm_of_in_atms_of_iff
       split: option.splits)
 
@@ -2118,14 +2118,14 @@ thm lit_of_found_atm_D_code_ref lit_of_found_atm_D_ref
 
 lemma lit_of_found_atm_D_code_hfref[sepref_fr_rules]:
   \<open>(uncurry lit_of_found_atm_D_code, uncurry lit_of_found_atm)
-  ∈ [lit_of_found_atm_D_pre]⇩a trail_assn⇧k *⇩a (option_assn uint32_nat_assn)⇧d → 
+  ∈ [lit_of_found_atm_D_pre]⇩a trail_assn⇧k *⇩a (option_assn uint32_nat_assn)⇧d →
       option_assn unat_lit_assn\<close>
   (is \<open>_ \<in> [?cond]\<^sub>a ?pre \<rightarrow> ?im\<close>)
 proof -
   have H: \<open>(uncurry lit_of_found_atm_D_code, uncurry lit_of_found_atm)
     ∈ [comp_PRE (trail_ref ×⇩f ⟨nat_rel⟩option_rel) lit_of_found_atm_D_pre
           (λ_. lit_of_found_atm_D_pre)
-          (λ_. True)]⇩a 
+          (λ_. True)]⇩a
       hrp_comp (trail_conc⇧k *⇩a (option_assn uint32_nat_assn)⇧d)
               (trail_ref ×⇩f ⟨nat_rel⟩option_rel) →
       hr_comp (option_assn unat_lit_assn) (⟨Id⟩option_rel)\<close>
@@ -2144,7 +2144,7 @@ proof -
 qed
 
 definition find_unassigned_lit_wl_D' :: \<open>nat twl_st_wl \<Rightarrow> (nat twl_st_wl \<times> nat literal option) nres\<close> where
-\<open>find_unassigned_lit_wl_D' = (\<lambda>(M, N, U, D, NP, UP, WS, Q). do { 
+\<open>find_unassigned_lit_wl_D' = (\<lambda>(M, N, U, D, NP, UP, WS, Q). do {
     (M, L) \<leftarrow> find_undefined_atm M;
     ASSERT(lit_of_found_atm_D_pre(M, L));
     L \<leftarrow> lit_of_found_atm M L;
@@ -2152,9 +2152,9 @@ definition find_unassigned_lit_wl_D' :: \<open>nat twl_st_wl \<Rightarrow> (nat 
   })\<close>
 
 lemma find_unassigned_lit_wl_D'_find_unassigned_lit_wl_D:
-  \<open>(find_unassigned_lit_wl_D', find_unassigned_lit_wl_D :: nat twl_st_wl \<Rightarrow> _) \<in> 
+  \<open>(find_unassigned_lit_wl_D', find_unassigned_lit_wl_D :: nat twl_st_wl \<Rightarrow> _) \<in>
     [\<lambda>S. twl_struct_invs (twl_st_of_wl None S) \<and> literals_are_N\<^sub>0 S \<and>
-      get_conflict_wl S = None]\<^sub>f Id \<rightarrow> 
+      get_conflict_wl S = None]\<^sub>f Id \<rightarrow>
       \<langle>Id \<times>\<^sub>r \<langle>Id\<rangle>option_rel\<rangle> nres_rel\<close>
 proof -
   have [simp]: \<open>undefined_lit M (Pos (atm_of y)) = undefined_lit M y\<close> for M y
@@ -2164,7 +2164,7 @@ proof -
 
   have ID_R: \<open>Id \<times>\<^sub>r \<langle>Id\<rangle>option_rel = Id\<close>
     by auto
-  have atms: \<open>atms_of N\<^sub>1 = 
+  have atms: \<open>atms_of N\<^sub>1 =
          atms_of_ms ((λx. mset (take 2 x) + mset (drop 2 x)) ` set (take U (tl N))) \<union>
          atms_of_mm NP \<and> (\<forall>y. atm_of y ∈ atms_of_mm NP \<longrightarrow> defined_lit M y)\<close>
       if inv: \<open>twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q))\<close> and
@@ -2231,7 +2231,7 @@ lemmas find_unassigned_lit_wl_D_code[sepref_fr_rules] =
 lemma find_unassigned_lit_wl_D_code_hfref[unfolded twl_st_l_trail_assn_def, sepref_fr_rules]:
   \<open>(find_unassigned_lit_wl_D_code, find_unassigned_lit_wl_D)
   ∈ [\<lambda>S. literals_are_N\<^sub>0 S \<and> twl_struct_invs (twl_st_of_wl None S) \<and> get_conflict_wl S = None]⇩a
-    twl_st_l_trail_assn\<^sup>d → 
+    twl_st_l_trail_assn\<^sup>d →
     twl_st_l_trail_assn *assn option_assn unat_lit_assn\<close>
   (is \<open>_ \<in> [?cond]\<^sub>a ?pre \<rightarrow> ?im\<close>)
 proof -
@@ -2240,13 +2240,13 @@ proof -
       (λS. twl_struct_invs (twl_st_of_wl None S) ∧
            literals_are_N⇩0 S ∧ get_conflict_wl S = None)
       (λ_ _. True)
-      (λ_. True)]⇩a 
+      (λ_. True)]⇩a
     hrp_comp ((trail_assn *assn clauses_ll_assn *assn nat_assn *assn conflict_option_assn *assn
         clauses_l_assn *assn clauses_l_assn *assn clause_l_assn *assn
-        hr_comp (arrayO_assn (arl_assn nat_assn)) (⟨Id⟩map_fun_rel D⇩0))⇧d) Id → 
+        hr_comp (arrayO_assn (arl_assn nat_assn)) (⟨Id⟩map_fun_rel D⇩0))⇧d) Id →
     hr_comp ((trail_assn *assn clauses_ll_assn *assn nat_assn *assn conflict_option_assn *assn
         clauses_l_assn *assn clauses_l_assn *assn clause_l_assn *assn
-        hr_comp (arrayO_assn (arl_assn nat_assn)) (⟨Id⟩map_fun_rel D⇩0)) *assn 
+        hr_comp (arrayO_assn (arl_assn nat_assn)) (⟨Id⟩map_fun_rel D⇩0)) *assn
         option_assn unat_lit_assn) (Id ×⇩f ⟨Id⟩option_rel)\<close>
     (is \<open>_ \<in> [?cond']\<^sub>a ?pre' \<rightarrow> ?im'\<close>)
     using hfref_compI_PRE_aux[OF find_unassigned_lit_wl_D_code[unfolded PR_CONST_def],
