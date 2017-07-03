@@ -1952,8 +1952,9 @@ proof -
     using H unfolding cond pre im PR_CONST_def .
 qed
 
-definition lit_of_found_atom where
-\<open>lit_of_found_atom M L = SPEC (\<lambda>K. (L = None \<longrightarrow> K = None) \<and> (L \<noteq> None \<longrightarrow> K \<noteq> None \<and> atm_of (the K) = the L))\<close>
+definition lit_of_found_atm where
+\<open>lit_of_found_atm M L = SPEC (\<lambda>K. (L = None \<longrightarrow> K = None) \<and>
+    (L \<noteq> None \<longrightarrow> K \<noteq> None \<and> atm_of (the K) = the L))\<close>
 
 end
 
@@ -1968,7 +1969,6 @@ definition (in twl_array_code_ops) lit_of_found_atm_D
           if \<phi>!L then RETURN (Some (Pos L)) else RETURN (Some (Neg L))
         }
   })\<close>
-value \<open>(8::nat) << 1\<close>
 
 (* TODO Move *)
 lemma (in -) shiftl_0_uint32[simp]: \<open>n << 0 = n\<close> for n :: uint32
@@ -2084,44 +2084,139 @@ lemma Neg_ref[sepref_fr_rules]:
       Collect_eq_comp lit_of_natP_def nat_of_uint32_shiftr nat_of_uint32_distrib_mult2_plus1
       dest!: PosL_N\<^sub>1_le_upperN_div_2)
 
+definition (in twl_array_code_ops) lit_of_found_atm_D_pre where
+\<open>lit_of_found_atm_D_pre = (\<lambda>(M, L). L \<noteq> None \<longrightarrow> Pos (the L) \<in> snd ` D\<^sub>0)\<close>
+
 sepref_register lit_of_found_atm_D
-sepref_thm lit_of_found_atom_D_code
+sepref_thm lit_of_found_atm_D_code
   is \<open>uncurry (PR_CONST lit_of_found_atm_D)\<close>
-  :: \<open>[\<lambda>(M, L). L \<noteq> None \<longrightarrow> Pos (the L) \<in> snd ` D\<^sub>0]\<^sub>a trail_conc\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>d \<rightarrow> option_assn unat_lit_assn\<close>
+  :: \<open>[lit_of_found_atm_D_pre]\<^sub>a trail_conc\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>d \<rightarrow> option_assn unat_lit_assn\<close>
   supply [[goals_limit=1]]
   supply not_is_None_not_None[simp]
-  unfolding lit_of_found_atm_D_def PR_CONST_def
+  unfolding lit_of_found_atm_D_def PR_CONST_def lit_of_found_atm_D_pre_def
   by sepref
 
-concrete_definition (in -) vmtf_find_next_undef_upd_code
-  uses twl_array_code.vmtf_find_next_undef_upd_code.refine_raw
-  is "(?f,_)\<in>_"
+concrete_definition (in -) lit_of_found_atm_D_code
+  uses twl_array_code.lit_of_found_atm_D_code.refine_raw
+  is "(uncurry ?f,_)\<in>_"
 
-prepare_code_thms (in -) vmtf_find_next_undef_upd_code_def
+prepare_code_thms (in -) lit_of_found_atm_D_code_def
 
-term find_unassigned_lit_wl_D
+lemmas lit_of_found_atm_D_code_ref[sepref_fr_rules] =
+   lit_of_found_atm_D_code.refine[OF twl_array_code_axioms]
 
-definition find_unassigned_lit_wl_D' :: \<open>((nat, nat)ann_lits \<times> vmtf_imp_remove \<times> phase_saver) \<times> 'a \<Rightarrow>
-   (_ \<times> (((nat, nat)ann_lits \<times> vmtf_imp_remove \<times> phase_saver) \<times> 'a)) nres\<close> where
-\<open>find_unassigned_lit_wl_D' S = do {
-  let ((M, ((A, m, lst, next_search), removed), \<phi>), S') = S;
-  L \<leftarrow>  vmtf_find_next_undef ((A, m, lst, next_search), removed) M;
-  let vm = ((A, m, lst, L), removed);
-  let T = ((M, vm, \<phi>), S');
-  case L of
-    None \<Rightarrow> RETURN (None, T)
-  | Some L \<Rightarrow> do {
-        ASSERT(L < length \<phi>);
-        if \<phi> ! L then RETURN (Some (Pos L), T) else RETURN (Some (Neg L), T)}
-  }\<close>
+lemma lit_of_found_atm_D_ref:
+  \<open>(uncurry (PR_CONST lit_of_found_atm_D), uncurry lit_of_found_atm) \<in>
+    [lit_of_found_atm_D_pre]\<^sub>f trail_ref \<times>\<^sub>r \<langle>Id\<rangle>option_rel \<rightarrow> \<langle>\<langle>Id\<rangle>option_rel\<rangle> nres_rel\<close>
+  unfolding lit_of_found_atm_D_def lit_of_found_atm_def PR_CONST_def
+  by (intro nres_relI frefI)
+    (auto simp: trail_ref_def lit_of_found_atm_D_pre_def phase_saving_def 
+        in_N⇩1_atm_of_in_atms_of_iff
+      split: option.splits)
 
+thm lit_of_found_atm_D_code_ref lit_of_found_atm_D_ref
+
+lemma lit_of_found_atm_D_code_hfref[sepref_fr_rules]:
+  \<open>(uncurry lit_of_found_atm_D_code, uncurry lit_of_found_atm)
+  ∈ [lit_of_found_atm_D_pre]⇩a trail_assn⇧k *⇩a (option_assn uint32_nat_assn)⇧d → 
+      option_assn unat_lit_assn\<close>
+  (is \<open>_ \<in> [?cond]\<^sub>a ?pre \<rightarrow> ?im\<close>)
+proof -
+  have H: \<open>(uncurry lit_of_found_atm_D_code, uncurry lit_of_found_atm)
+    ∈ [comp_PRE (trail_ref ×⇩f ⟨nat_rel⟩option_rel) lit_of_found_atm_D_pre
+          (λ_. lit_of_found_atm_D_pre)
+          (λ_. True)]⇩a 
+      hrp_comp (trail_conc⇧k *⇩a (option_assn uint32_nat_assn)⇧d)
+              (trail_ref ×⇩f ⟨nat_rel⟩option_rel) →
+      hr_comp (option_assn unat_lit_assn) (⟨Id⟩option_rel)\<close>
+    (is \<open>_ \<in> [?cond']\<^sub>a ?pre' \<rightarrow> ?im'\<close>)
+    using hfref_compI_PRE_aux[OF lit_of_found_atm_D_code_ref,
+      OF lit_of_found_atm_D_ref, unfolded PR_CONST_def] .
+  have cond: \<open>?cond' = ?cond\<close>
+    unfolding comp_PRE_def by (auto intro!: ext simp: lit_of_found_atm_D_pre_def image_image)
+  have pre: \<open>?pre' = ?pre\<close>
+    unfolding trail_assn_def prod_hrp_comp hrp_comp_keep hrp_comp_dest
+    by auto
+  have im: \<open>?im' = ?im\<close>
+    by auto
+  show ?thesis
+    using H unfolding cond pre im PR_CONST_def .
+qed
+
+definition find_unassigned_lit_wl_D' :: \<open>nat twl_st_wl \<Rightarrow> (nat twl_st_wl \<times> nat literal option) nres\<close> where
+\<open>find_unassigned_lit_wl_D' = (\<lambda>(M, N, U, D, NP, UP, WS, Q). do { 
+    (M, L) \<leftarrow> find_undefined_atm M;
+    ASSERT(lit_of_found_atm_D_pre(M, L));
+    L \<leftarrow> lit_of_found_atm M L;
+    RETURN ((M, N, U, D, NP, UP, WS, Q), L)
+  })\<close>
+
+lemma find_unassigned_lit_wl_D'_find_unassigned_lit_wl_D:
+  \<open>(find_unassigned_lit_wl_D', find_unassigned_lit_wl_D :: nat twl_st_wl \<Rightarrow> _) \<in> 
+    [\<lambda>S. twl_struct_invs (twl_st_of_wl None S) \<and> literals_are_N\<^sub>0 S \<and>
+      get_conflict_wl S = None]\<^sub>f Id \<rightarrow> 
+      \<langle>Id \<times>\<^sub>r \<langle>Id\<rangle>option_rel\<rangle> nres_rel\<close>
+proof -
+  have [simp]: \<open>undefined_lit M (Pos (atm_of y)) = undefined_lit M y\<close> for M y
+    by (auto simp: defined_lit_map)
+  have [simp]: \<open>defined_atm M (atm_of y) = defined_lit M y\<close> for M y
+    by (auto simp: defined_lit_map defined_atm_def)
+
+  have ID_R: \<open>Id \<times>\<^sub>r \<langle>Id\<rangle>option_rel = Id\<close>
+    by auto
+  have atms: \<open>atms_of N\<^sub>1 = 
+         atms_of_ms ((λx. mset (take 2 x) + mset (drop 2 x)) ` set (take U (tl N))) \<union>
+         atms_of_mm NP \<and> (\<forall>y. atm_of y ∈ atms_of_mm NP \<longrightarrow> defined_lit M y)\<close>
+      if inv: \<open>twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q))\<close> and
+        N\<^sub>0: \<open>literals_are_N\<^sub>0 (M, N, U, D, NP, UP, WS, Q)\<close> and
+        confl: \<open>get_conflict_wl (M, N, U, D, NP, UP, WS, Q) = None\<close>
+      for M N U D NP UP WS Q
+  proof -
+    have \<open>cdcl⇩W_restart_mset.no_strange_atm
+            (state⇩W_of (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q)))\<close> and
+        unit: \<open>unit_clss_inv (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q))\<close>
+      using inv unfolding twl_struct_invs_def cdcl⇩W_restart_mset.cdcl⇩W_all_struct_inv_def
+      by fast+
+    moreover have \<open>defined_lit M L\<close> if NP: \<open>atm_of L\<in> atms_of_mm NP\<close> for L
+    proof -
+      obtain C where C_NP: \<open>C \<in># NP\<close> and L_C: \<open>atm_of L \<in> atms_of C\<close>
+         using NP unfolding atms_of_ms_def by auto
+      have \<open>C∈set_mset NP \<Longrightarrow> ∃L. C = {#L#} ∧ get_level M L = 0 ∧ L ∈ lits_of_l M\<close> for C
+         using unit confl by auto
+      from this[of C] obtain L' where \<open>C = {#L'#}\<close> and \<open>L' ∈ lits_of_l M\<close>
+         using C_NP by auto
+      then show ?thesis
+        using L_C by (auto simp: Decided_Propagated_in_iff_in_lits_of_l atm_of_eq_atm_of)
+    qed
+    ultimately show ?thesis
+      using N\<^sub>0 unfolding is_N⇩1_alt_def
+      by (auto simp: cdcl⇩W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
+        mset_take_mset_drop_mset mset_take_mset_drop_mset' clauses_def simp del: unit_clss_inv.simps)
+  qed
+  show ?thesis
+   unfolding find_unassigned_lit_wl_D'_def find_unassigned_lit_wl_D_def find_undefined_atm_def
+    ID_R lit_of_found_atm_def
+   apply (intro frefI nres_relI)
+   apply clarify
+   apply (refine_vcg)
+   subgoal by (auto simp: lit_of_found_atm_D_pre_def)
+   subgoal by (auto simp: lit_of_found_atm_D_pre_def)
+   subgoal by (auto simp: lit_of_found_atm_D_pre_def defined_atm_def)
+   subgoal by (auto simp: lit_of_found_atm_D_pre_def in_N⇩1_atm_of_in_atms_of_iff
+     simp del: twl_st_of_wl.simps dest!: atms)
+   subgoal by (auto simp: lit_of_found_atm_D_pre_def in_N⇩1_atm_of_in_atms_of_iff
+     simp del: twl_st_of_wl.simps dest!: atms)
+   done
+qed
+
+sepref_register find_undefined_atm
+sepref_register find_unassigned_lit_wl_D'
+sepref_register lit_of_found_atm
 sepref_thm find_unassigned_lit_wl_D_code
   is \<open>PR_CONST find_unassigned_lit_wl_D'\<close>
-  :: \<open>twl_st_l_trail_assn\<^sup>k \<rightarrow>\<^sub>a option_assn unat_lit_assn *assn twl_st_l_trail_assn\<close>
-  unfolding find_unassigned_lit_wl_D_def PR_CONST_def twl_st_l_trail_assn_def
-    is_None_def[symmetric]
+  :: \<open>twl_st_l_trail_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_trail_assn *assn option_assn unat_lit_assn\<close>
+  unfolding find_unassigned_lit_wl_D'_def PR_CONST_def twl_st_l_trail_assn_def
   supply [[goals_limit = 1]]
-  supply N\<^sub>0'_eq_append_in_D\<^sub>0[intro]
   by sepref
 
 concrete_definition (in -) find_unassigned_lit_wl_D_code
@@ -2133,41 +2228,39 @@ prepare_code_thms (in -) find_unassigned_lit_wl_D_code_def
 lemmas find_unassigned_lit_wl_D_code[sepref_fr_rules] =
    find_unassigned_lit_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_l_trail_assn_def]
 
-lemma find_unassigned_lit_wl_D_code_find_unassigned_lit_wl[unfolded twl_st_l_trail_assn_def, sepref_fr_rules]:
-  \<open>(find_unassigned_lit_wl_D_code N\<^sub>0, find_unassigned_lit_wl)
-  \<in> [\<lambda>S. literals_are_N\<^sub>0 S \<and> twl_struct_invs (twl_st_of_wl None S) \<and> get_conflict_wl S = None]\<^sub>a
-     twl_st_l_trail_assn\<^sup>k \<rightarrow> option_assn unat_lit_assn\<close>
-  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+lemma find_unassigned_lit_wl_D_code_hfref[unfolded twl_st_l_trail_assn_def, sepref_fr_rules]:
+  \<open>(find_unassigned_lit_wl_D_code, find_unassigned_lit_wl_D)
+  ∈ [\<lambda>S. literals_are_N\<^sub>0 S \<and> twl_struct_invs (twl_st_of_wl None S) \<and> get_conflict_wl S = None]⇩a
+    twl_st_l_trail_assn\<^sup>d → 
+    twl_st_l_trail_assn *assn option_assn unat_lit_assn\<close>
+  (is \<open>_ \<in> [?cond]\<^sub>a ?pre \<rightarrow> ?im\<close>)
 proof -
-  have P: \<open>is_pure nat_assn\<close>
+  have H: \<open>(find_unassigned_lit_wl_D_code, find_unassigned_lit_wl_D)
+  ∈ [comp_PRE Id
+      (λS. twl_struct_invs (twl_st_of_wl None S) ∧
+           literals_are_N⇩0 S ∧ get_conflict_wl S = None)
+      (λ_ _. True)
+      (λ_. True)]⇩a 
+    hrp_comp ((trail_assn *assn clauses_ll_assn *assn nat_assn *assn conflict_option_assn *assn
+        clauses_l_assn *assn clauses_l_assn *assn clause_l_assn *assn
+        hr_comp (arrayO_assn (arl_assn nat_assn)) (⟨Id⟩map_fun_rel D⇩0))⇧d) Id → 
+    hr_comp ((trail_assn *assn clauses_ll_assn *assn nat_assn *assn conflict_option_assn *assn
+        clauses_l_assn *assn clauses_l_assn *assn clause_l_assn *assn
+        hr_comp (arrayO_assn (arl_assn nat_assn)) (⟨Id⟩map_fun_rel D⇩0)) *assn 
+        option_assn unat_lit_assn) (Id ×⇩f ⟨Id⟩option_rel)\<close>
+    (is \<open>_ \<in> [?cond']\<^sub>a ?pre' \<rightarrow> ?im'\<close>)
+    using hfref_compI_PRE_aux[OF find_unassigned_lit_wl_D_code[unfolded PR_CONST_def],
+      OF find_unassigned_lit_wl_D'_find_unassigned_lit_wl_D[unfolded PR_CONST_def]] .
+  have cond: \<open>?cond' = ?cond\<close>
+    unfolding comp_PRE_def by (auto intro!: ext simp: lit_of_found_atm_D_pre_def image_image)
+  have pre: \<open>?pre' = ?pre\<close>
+    unfolding trail_assn_def prod_hrp_comp hrp_comp_keep hrp_comp_dest twl_st_l_trail_assn_def
     by auto
-  have H: \<open>(find_unassigned_lit_wl_D_code N\<^sub>0, find_unassigned_lit_wl)
-  \<in> [comp_PRE (Id \<times>\<^sub>f (Id \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f Id)))))))
-      (\<lambda>S. literals_are_N\<^sub>0 S \<and> twl_struct_invs (twl_st_of_wl None S) \<and> get_conflict_wl S = None)
-       (\<lambda>_ _. True)
-       (\<lambda>_. True)]\<^sub>a
-     hrp_comp (twl_st_l_trail_assn\<^sup>k) (Id \<times>\<^sub>f (Id \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f Id))))))) \<rightarrow>
-     hr_comp (option_assn unat_lit_assn) (\<langle>Id\<rangle>option_rel)\<close>
-    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF find_unassigned_lit_wl_D_code.refine[unfolded PR_CONST_def]
-       find_unassigned_lit_wl_D_find_unassigned_lit_wl, OF twl_array_code_axioms]
-    unfolding op_watched_app_def .
-
-  have 1: \<open>?pre' = ?pre\<close>
-    using ex_list_watched
-    by (auto simp: comp_PRE_def simp: prod_rel_def_internal
-        relAPP_def map_fun_rel_def[abs_def] p2rel_def lit_of_natP_def
-        literal_of_neq_eq_nat_of_lit_eq_iff length_ll_def
-        simp del: literal_of_nat.simps)
-
-  have 2: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp
-    by (auto simp: hrp_comp_def hr_comp_def)
-  have 3: \<open>?f' = ?f\<close>
-    by (auto simp: hrp_comp_def hr_comp_def)
-
+  have im: \<open>?im' = ?im\<close>
+    unfolding twl_st_l_trail_assn_def
+    by auto
   show ?thesis
-    using H unfolding 1 2 3 .
+    using H unfolding cond pre im PR_CONST_def .
 qed
 
 sepref_register decide_wl_or_skip_D
