@@ -2002,7 +2002,8 @@ proof -
     assume llen: "enat (Suc l) < llength Sts"
     assume d_in_q: "D \<in> getQ (lnth Sts l)"
     have "lnth Sts l \<leadsto> lnth Sts (Suc l)"
-      sorry
+      using llen deriv
+      using derivation_lnth_rel by blast 
     then show "D \<in> getQ (lnth Sts (Suc l))"
     proof (induction rule: resolution_prover.cases)
       case (tautology_deletion A C N P Q)
@@ -2063,8 +2064,33 @@ proof -
       then show ?case using d_in_q by auto
     qed
   qed
-  then show ?thesis 
-    sorry
+  note previous = this
+  have "\<forall>l\<ge>i. enat (Suc l) < llength Sts \<longrightarrow> (D \<in> getQ (lnth Sts l) \<and> D \<in> getQ (lnth Sts (Suc l)))"
+    apply rule
+    using previous
+    subgoal for l
+      apply (induction "l-i" arbitrary: l)
+       apply rule
+       apply rule
+      using d
+       apply -
+       apply auto[]
+      apply rule
+      apply rule
+      apply rule
+       apply (smt Suc_diff_Suc Suc_ile_eq Suc_pred diff_Suc_Suc less_Suc_eq less_eq_Suc_le less_imp_le not_less zero_less_Suc)
+      apply (smt Suc_diff_Suc Suc_ile_eq Suc_pred diff_Suc_Suc less_Suc_eq less_eq_Suc_le less_imp_le not_less zero_less_Suc)
+      done
+    done
+  then have "D \<in> llimit (lmap getQ Sts)"
+    unfolding llimit_def
+    apply auto
+    apply (rule_tac x=i in exI)
+    using d 
+    apply (metis (no_types, hide_lams) Suc_ile_eq Suc_le_mono enat_ord_simps(1) enat_ord_simps(2) le_less not0_implies_Suc not_less_zero)
+    done
+  then show ?thesis  
+    unfolding limit_state_def by auto
 qed
 
     
