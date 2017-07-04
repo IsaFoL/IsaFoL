@@ -512,8 +512,8 @@ qed
 definition find_unwatched'' :: "(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> (nat option) nres" where
 \<open>find_unwatched'' M N' C = do {
    S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> 2 \<and> i \<le> length (N'!C) \<and> (\<forall>j\<in>{2..<i}. -((N'!C)!j) \<in> lits_of_l M) \<and>
-    (\<forall>j. found = Some j \<longrightarrow> (i = j \<and> (undefined_lit M ((N'!C)!j) \<or> (N'!C)!j \<in> lits_of_l M) \<and> j < length (N'!C) \<and> j \<ge> 2)) \<and>
-    literals_are_in_N\<^sub>0 (mset (N'!C))\<^esup>
+    (\<forall>j. found = Some j \<longrightarrow> (i = j \<and> (undefined_lit M ((N'!C)!j) \<or> (N'!C)!j \<in> lits_of_l M) \<and>
+        j < length (N'!C) \<and> j \<ge> 2)) \<and> literals_are_in_N\<^sub>0 (mset (N'!C))\<^esup>
     (\<lambda>(found, i). found = None \<and> i < length (N'!C))
     (\<lambda>(_, i). do {
       ASSERT(i < length (N'!C));
