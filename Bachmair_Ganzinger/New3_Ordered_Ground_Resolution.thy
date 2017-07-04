@@ -458,7 +458,7 @@ definition ord_\<Gamma> :: "'a inference set" where
   "ord_\<Gamma> = {Infer (mset CAi) DA E | CAi DA E. ord_resolve CAi DA E}"
 
 sublocale 
-  bar?: sound_counterex_reducing_inference_system "ground_resolution_with_selection.ord_\<Gamma> S"
+  ord_\<Gamma>_sound_counterex_reducing?: sound_counterex_reducing_inference_system "ground_resolution_with_selection.ord_\<Gamma> S"
     "ground_resolution_with_selection.INTERP S" +
   reductive_inference_system "ground_resolution_with_selection.ord_\<Gamma> S"
 proof unfold_locales

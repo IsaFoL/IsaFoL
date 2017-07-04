@@ -1077,13 +1077,9 @@ begin
 interpretation gd: ground_resolution_with_selection S
   by unfold_locales
 
-(*
-locale_deps
-*)
 
-(*
 interpretation gd_unord: ground_resolution_without_selection
-*)
+  by unfold_locales
                        
 
 (*"grounding_of_clss N0"*)
