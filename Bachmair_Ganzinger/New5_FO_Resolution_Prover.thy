@@ -208,7 +208,6 @@ lemma ord_resolve_ground_inst_sound: (* This theorem can be used to prove FO sou
   assumes
     d_inst_true: "I \<Turnstile> DA \<cdot> \<sigma> \<cdot> \<eta>"
   assumes ground_subst_\<eta>: "is_ground_subst \<eta>"
-(* maybe I need that eta is a ground substitution *)
   shows "I \<Turnstile> E \<cdot> \<eta>"
   using assms proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Ci Aij Ai D)
@@ -325,7 +324,25 @@ proof -
         
   qed
 qed
-  
+
+lemma ord_resolve_rename_ground_inst_sound: (* This theorem will be used in 4.11. *)
+  assumes
+    res_e: "ord_resolve_rename CAi DA \<sigma> E"
+  assumes
+    \<rho>s: "\<rho>s = tl (mk_var_dis (DA # CAi))"
+  assumes
+    \<rho>: "\<rho> = hd (mk_var_dis (DA # CAi))"
+  assumes
+    cc_inst_true: "I \<Turnstile>m (mset (CAi \<cdot>\<cdot>cl \<rho>s)) \<cdot>cm \<sigma> \<cdot>cm \<eta>"
+  assumes
+    d_inst_true: "I \<Turnstile> DA \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<eta>"
+  assumes ground_subst_\<eta>: "is_ground_subst \<eta>"
+  shows "I \<Turnstile> E \<cdot> \<eta>"
+  using assms proof (cases rule: ord_resolve_rename.cases)
+  case (ord_resolve_rename \<rho>_twin \<rho>s_twin)
+  then show ?thesis
+    using ord_resolve_ground_inst_sound[of _ _ \<sigma> E I \<eta>] \<rho>s \<rho> cc_inst_true d_inst_true ground_subst_\<eta> by simp
+qed
 
 lemma ord_resolve_rename_sound:
   assumes
