@@ -18,9 +18,11 @@ chapter.
 
 subsection {* Derivations *}
 
-coinductive derivation :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a llist \<Rightarrow> bool" where
-  singleton: "derivation R (LCons N LNil)"
-| cons: "derivation R Ns \<Longrightarrow> R M (lhd Ns) \<Longrightarrow> derivation R (LCons M Ns)"
+coinductive derivation :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a llist \<Rightarrow> bool"
+	  for R :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
+	  singleton: "derivation R (LCons N LNil)"
+	| cons: "derivation R Ns \<Longrightarrow> R M (lhd Ns) \<Longrightarrow> derivation R (LCons M Ns)"
+
 
 lemma
   derivation_LNil[simp]: "\<not> derivation R LNil" and

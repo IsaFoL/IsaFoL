@@ -1249,40 +1249,7 @@ lemma subst_subset_mono: "D \<subset># C \<Longrightarrow> D \<cdot> \<sigma> \<
 fun subst_inf :: "'a inference \<Rightarrow> 's \<Rightarrow> 'a inference" (infixl "\<cdot>i" 67) where
   "(Infer CC C E) \<cdot>i \<sigma> = Infer (CC \<cdot>cm \<sigma>) (C \<cdot> \<sigma>) (E \<cdot> \<sigma>)"
   
-lemma ord_FO_\<Gamma>_gd_ord_\<Gamma>'_bad: (* I have my doubts about this... *)
-  assumes "\<gamma> \<in> ord_FO_\<Gamma>"
-  assumes "is_ground_subst \<eta>"
-  shows "\<gamma> \<cdot>i \<eta> \<in> gd_ord_\<Gamma>'"
-proof -
-  from assms obtain CC D E Cl \<sigma> where "\<gamma> = Infer CC D E \<and> ord_resolve_rename S Cl D \<sigma> E \<and> mset Cl = CC" unfolding ord_FO_\<Gamma>_def by auto
-  then have "\<forall>I. I \<Turnstile>fom CC + {#D#} \<longrightarrow> I \<Turnstile>fo E" using ord_resolve_rename_sound[of S _ ] by auto
-  then have "\<forall>I. (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile>m ((CC + {#D#}) \<cdot>cm \<sigma>)) \<longrightarrow> (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile> E \<cdot> \<sigma>)"
-    using true_fo_cls.cases
-    by (meson true_fo_cls_mset) 
-  then show ?thesis
-    sorry
-qed
-  
-lemma ord_FO_\<Gamma>_gd_ord_\<Gamma>': (* Probably better than the above... *)
-  assumes resolve_ren: "ord_resolve_rename S CAi DA \<sigma> E"
-  assumes "\<rho> = hd (mk_var_dis (DA#CAi))"
-  assumes "\<rho>s = tl (mk_var_dis (DA#CAi))"
-  assumes "is_ground_subst \<eta>"
-  shows "\<forall>I. I \<Turnstile>m (mset ((CAi \<cdot>\<cdot>cl \<rho>s) \<cdot>cl \<sigma> \<cdot>cl \<eta>)) \<longrightarrow> I \<Turnstile> (DA \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<eta>) \<longrightarrow> I \<Turnstile> E \<cdot> \<sigma> \<cdot> \<eta>"
-using resolve_ren proof (cases rule: ord_resolve_rename.cases)
-  case (ord_resolve_rename \<rho> \<rho>s)
-  note resolve = \<open>ord_resolve S (CAi \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) \<sigma> E\<close>
-  show ?thesis
-    using resolve proof (cases rule:ord_resolve.cases)
-    case (ord_resolve n Ci Aij Ai D)
-    then show ?thesis sorry
-  qed
-qed
-
-(* Somehow it seems more tempting to show that we can do unordered ground resolution... 
-   And then use soundness of that... 
-   
-*)
+thm ord_resolve_rename_ground_inst_sound
     
 lemma prems_of_subst_inf_subst_cls_mset: "(prems_of (\<gamma> \<cdot>i \<mu>)) = ((prems_of \<gamma>) \<cdot>cm \<mu>)"
   apply auto
@@ -1346,7 +1313,10 @@ lemma grounding_of_clss_mono:
 text {*
 The following corresponds to Lemma 4.10:
 *}
-    
+
+lemma subsubsubsubxx: "(mset Cl) \<cdot>cm \<sigma> = mset (Cl  \<cdot>cl \<sigma>)"
+  unfolding subst_cls_mset_def subst_cls_list_def by auto
+     
 lemma resolution_prover_ground_derive:
   assumes "St \<leadsto> St'"
   shows "src_ext.derive (grounding_of_state St) (grounding_of_state St')"
@@ -1696,35 +1666,97 @@ next
       using inference_computation by auto
     then obtain \<gamma> where \<gamma>_p: "\<gamma> \<in> ord_FO_\<Gamma> \<and> infer_from (Q \<union> {C}) \<gamma> \<and> C \<in># prems_of \<gamma> \<and> concl_of \<gamma> = E"
       unfolding ord_FO_resolution.inferences_between_def by auto
-    have tt: "\<gamma> \<cdot>i \<mu> \<in> gd_ord_\<Gamma>' \<and> infer_from ((Q \<union> {C}) \<cdot>cs \<mu>) (\<gamma> \<cdot>i \<mu>) \<and> concl_of (\<gamma> \<cdot>i \<mu>) = E \<cdot> \<mu>"
+    then obtain CC D Cl \<sigma> where \<gamma>_p2: "\<gamma> = Infer CC D E \<and> ord_resolve_rename S Cl D \<sigma> E \<and> mset Cl = CC" 
+      unfolding ord_FO_\<Gamma>_def by auto
+    define \<rho> where "\<rho> = hd (mk_var_dis (D # Cl))"
+    define \<rho>s where "\<rho>s = tl (mk_var_dis (D # Cl))"
+    define \<gamma>_ground where "\<gamma>_ground = Infer (mset (Cl \<cdot>\<cdot>cl \<rho>s) \<cdot>cm \<sigma> \<cdot>cm \<mu>) (D \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<mu>) (E \<cdot> \<mu>)"
+    have "\<forall>I. I \<Turnstile>m mset (Cl \<cdot>\<cdot>cl \<rho>s) \<cdot>cm \<sigma> \<cdot>cm \<mu> \<longrightarrow> I \<Turnstile> D \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> E \<cdot> \<mu>"
+      using ord_resolve_rename_ground_inst_sound[of S Cl D \<sigma> E _ _ _ \<mu>] \<rho>_def \<rho>s_def E_\<mu>_p \<gamma>_p2 by auto
+    then have "\<gamma>_ground \<in> {Infer a b c |a b c. \<forall>I. I \<Turnstile>m a \<longrightarrow> I \<Turnstile> b \<longrightarrow> I \<Turnstile> c}"
+      unfolding \<gamma>_ground_def by auto
+    moreover
+    have "set_mset (prems_of \<gamma>_ground) \<subseteq> grounding_of_state ({}, P \<union> {C}, Q)"
+      unfolding \<gamma>_ground_def using E_\<mu>_p \<gamma>_p2 \<gamma>_p unfolding infer_from_def
+      unfolding clss_of_state_def grounding_of_clss_def
+      apply simp
       apply (rule conjI)
-       defer
-       apply (rule conjI)
-        prefer 3
-      using ord_FO_\<Gamma>_gd_ord_\<Gamma>'_bad \<gamma>_p E_\<mu>_p apply simp
-       defer
-      using \<gamma>_p
-       apply (metis inference.collapse inference.simps(1) subst_inf.simps)
-      using \<gamma>_p
-      unfolding infer_from_def
-      using prems_of_subst_inf_subst_cls_mset set_mset_subst_cls_mset_subst_clss
-      by (metis subset_Un_eq subst_clss_union)
-    have "\<gamma> \<cdot>i \<mu> \<in> gd_ord_\<Gamma>' \<and> infer_from (grounding_of_state ({}, P \<union> {C}, Q)) (\<gamma> \<cdot>i \<mu>) \<and> concl_of (\<gamma> \<cdot>i \<mu>) = E \<cdot> \<mu>"
-      apply (rule conjI)
-      using tt apply simp
-      apply (rule conjI)
-      defer
-      using tt apply simp
-      apply (subgoal_tac "(Q \<union> {C}) \<cdot>cs \<mu> \<subseteq> grounding_of_state ({}, P \<union> {C}, Q)")
-      using infer_from_superset[of "((Q \<union> {C}) \<cdot>cs \<mu>)" " (\<gamma> \<cdot>i \<mu>) " "grounding_of_state ({}, P \<union> {C}, Q)"] tt
+      unfolding grounding_of_cls_def
        apply simp
-        using E_\<mu>_p
-        unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def
-        using subst_clss_def by auto
-    then have "E \<cdot> \<mu> \<in> concls_of (src_ext.inferences_from (grounding_of_state ({}, P \<union> {C}, Q)))"
-      unfolding src_ext.inferences_from_def 
-      by (metis (no_types, lifting) image_eqI mem_Collect_eq)
-        
+       apply (subgoal_tac "(C = D \<or> C \<in># CC)")
+        prefer 2
+        apply simp
+       apply (cases "C = D")
+        apply (rule disjI1)
+        apply (rule_tac x="\<rho> \<odot> \<sigma> \<odot> \<mu>" in exI)
+        apply (rule conjI)
+         apply (auto;fail)
+        apply (auto;fail)
+       apply (subgoal_tac "C \<in># CC")
+        prefer 2
+        apply (auto;fail)
+       apply (rule disjI2)
+       apply (rule disjI2)
+       apply (subgoal_tac "D \<in> Q")
+        prefer 2
+        apply (auto;fail)
+       apply (rule_tac x=D in bexI)
+        prefer 2
+        apply (auto;fail)
+       apply (rule_tac x="\<rho> \<odot> \<sigma> \<odot> \<mu>" in exI)
+       apply (auto;fail)
+      apply (subgoal_tac "set_mset (mset (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>)) \<subseteq> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))")
+      using subsubsubsubxx apply auto[]
+      apply (subgoal_tac "\<forall>x \<in># (mset (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>)). x \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))")
+      subgoal
+        apply (auto;fail)
+        done
+      apply (subgoal_tac "\<forall>i < length (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>). ((Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>) ! i) \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))")
+      subgoal
+        apply (metis (no_types, lifting) in_set_conv_nth set_mset_mset)
+        done
+      apply rule
+      apply rule
+      subgoal for i
+        apply simp
+        apply (subgoal_tac "Cl ! i \<in> {C} \<union> Q")
+         apply (cases "Cl ! i = C")
+          apply (rule disjI1)
+          apply (rule_tac x="(\<rho>s ! i) \<odot> \<sigma> \<odot> \<mu>" in exI)
+          apply (rule conjI)
+           apply (subgoal_tac "length \<rho>s = length Cl")
+        subgoal
+          apply (auto;fail)
+          done
+           defer
+           apply (auto;fail)
+          apply (subgoal_tac "Cl ! i \<in> Q")
+           prefer 2
+        subgoal
+          apply (auto;fail)
+          done
+          apply (rule disjI2)
+          apply (rule disjI2)
+          apply (rule_tac x="Cl ! i " in bexI)
+           prefer 2
+           apply auto[]
+          apply (rule_tac x="(\<rho>s ! i) \<odot> \<sigma> \<odot> \<mu>" in exI)
+          apply (rule conjI)
+           apply (subgoal_tac "length \<rho>s = length Cl")
+        subgoal
+          apply (auto;fail)
+          done
+           defer
+           apply (auto;fail)
+          apply (metis UnI1 UnI2 insertE nth_mem_mset singletonI subsetCE)
+        using \<rho>s_def using mk_var_dis_jaja apply auto
+        done
+      done
+    ultimately
+    have "E \<cdot> \<mu> \<in> concls_of (src_ext.inferences_from (grounding_of_state ({}, P \<union> {C}, Q)))"
+      unfolding src_ext.inferences_from_def inference_system.inferences_from_def gd_ord_\<Gamma>'_def infer_from_def
+      using \<gamma>_ground_def
+      by (smt image_iff inference.sel(3) mem_Collect_eq)
     then have "E\<mu> \<in> concls_of (src_ext.inferences_from (grounding_of_state ({}, P \<union> {C}, Q)))"
       using E_\<mu>_p by auto
   }
@@ -1741,11 +1773,36 @@ qed
 text {*
 Another formulation of the last part of lemma 4.10
  *}
-  
+
+lemma derivation_derivation_lmap: (* move this theorem *)
+  assumes "\<forall>x y. R x y \<longrightarrow> T (G x) (G y)"
+  assumes "derivation R Sts"
+  shows "derivation T (lmap G Sts)"
+  using assms proof (coinduction arbitrary: Sts)
+  case derivation
+  then have "(\<exists>N. Sts = LCons N LNil) \<or> (\<exists>Ns M. Sts = LCons M Ns \<and> derivation R Ns \<and> R M (lhd Ns))" 
+    using derivation.simps[of R Sts] by auto
+  then show ?case
+  proof 
+    assume "\<exists>N. Sts = LCons N LNil"
+    then have "\<exists>N. lmap G Sts = LCons N LNil"
+      by auto
+    then show "(\<exists>N. lmap G Sts = LCons N LNil) \<or> (\<exists>Ns M. lmap G Sts = LCons M Ns \<and> ((\<exists>Sts. Ns = lmap G Sts \<and> (\<forall>x y. R x y \<longrightarrow> T (G x) (G y)) \<and> derivation R Sts) \<or> derivation T Ns) \<and> T M (lhd Ns))"
+      by auto
+  next
+    assume "\<exists>Ns M. Sts = LCons M Ns \<and> derivation R Ns \<and> R M (lhd Ns)"
+    then have "\<exists>Ns M. lmap G Sts = LCons M Ns \<and> ((\<exists>Sts. Ns = lmap G Sts \<and> (\<forall>x y. R x y \<longrightarrow> T (G x) (G y)) \<and> derivation R Sts) \<or> derivation T Ns) \<and> T M (lhd Ns)"
+      using derivation
+      by (metis (no_types, lifting) lhd_LCons llist.distinct(1) llist.exhaust_sel llist.map_sel(1) lmap_eq_LNil lnull_derivation ltl_lmap ltl_simps(2)) 
+    then show "(\<exists>N. lmap G Sts = LCons N LNil) \<or> (\<exists>Ns M. lmap G Sts = LCons M Ns \<and> ((\<exists>Sts. Ns = lmap G Sts \<and> (\<forall>x y. R x y \<longrightarrow> T (G x) (G y)) \<and> derivation R Sts) \<or> derivation T Ns) \<and> T M (lhd Ns))"
+      by auto
+  qed
+qed
+
 lemma resolution_prover_ground_derivation:
   assumes "derivation op \<leadsto> Sts"
   shows "derivation src_ext.derive (lmap grounding_of_state Sts)"
-  using assms resolution_prover_ground_derive sorry
+  using assms resolution_prover_ground_derive derivation_derivation_lmap[of "op \<leadsto>"] by metis
   
 text {*
 The following is used prove to Lemma 4.11:
