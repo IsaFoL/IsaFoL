@@ -335,9 +335,9 @@ proof -
   have is_N\<^sub>1_add: \<open>twl_array_code_ops.is_N\<^sub>1 N\<^sub>0 (A + B) \<longleftrightarrow> set_mset A \<subseteq> set_mset (twl_array_code_ops.N\<^sub>1 N\<^sub>0)\<close>
     if \<open>twl_array_code_ops.is_N\<^sub>1 N\<^sub>0 B\<close> for A B N\<^sub>0
     using that unfolding twl_array_code_ops.is_N\<^sub>1_def by auto
-  have H1: \<open>xa ∈ set N⇩0 ⟹ literal_of_nat (2 * xa) ∈ Pos ` set N⇩0\<close> for xa N\<^sub>0
+  have H1: \<open>xa \<in> set N\<^sub>0 \<Longrightarrow> literal_of_nat (2 * xa) \<in> Pos ` set N\<^sub>0\<close> for xa N\<^sub>0
     by (auto simp: literal_of_nat.simps)
-  have H2: \<open>xa ∈ set N⇩0 ⟹ - literal_of_nat (2 * xa) ∈ Neg ` set N⇩0\<close> for xa N\<^sub>0
+  have H2: \<open>xa \<in> set N\<^sub>0 \<Longrightarrow> - literal_of_nat (2 * xa) \<in> Neg ` set N\<^sub>0\<close> for xa N\<^sub>0
     by (auto simp: literal_of_nat.simps)
   show ?thesis
     using upper upperN
@@ -417,7 +417,7 @@ proof -
     by (cases C; cases \<open>hd C\<close>) 
        (auto simp: HH_def correct_watching.simps clause_to_update_def image_image
         all_lits_of_mm_add_mset all_lits_of_m_add_mset twl_array_code_ops.N\<^sub>1_def
-        clauses_def mset_take_mset_drop_mset' literals_are_in_N⇩0_add_mset)
+        clauses_def mset_take_mset_drop_mset' literals_are_in_N\<^sub>0_add_mset)
 
   have hd_tl_C: \<open>hd (tl C) \<in> snd ` (\<lambda>L. (nat_of_lit L, L)) ` set_mset (twl_array_code_ops.N\<^sub>1 N\<^sub>0)\<close>
     if \<open>C \<noteq> []\<close> and \<open>tl C \<noteq> []\<close>
@@ -666,7 +666,7 @@ lemma init_dt_init_dt_l_full:
 proof -
   define T where \<open>T = st_l_of_wl None S\<close>
   have CS_N\<^sub>1: \<open>\<forall>C\<in>set CS. literals_are_in_N\<^sub>0 (mset C)\<close>
-    using is_N\<^sub>1 all_lits_of_mm_in_all_lits_of_m_in_iff unfolding is_N⇩1_def literals_are_in_N\<^sub>0_def 
+    using is_N\<^sub>1 all_lits_of_mm_in_all_lits_of_m_in_iff unfolding is_N\<^sub>1_def literals_are_in_N\<^sub>0_def 
     by blast
   have w_q: \<open>clauses_to_update_l T = {#}\<close>
     by (cases S) (simp add: T_def)
@@ -798,8 +798,8 @@ proof -
   then have [simp]: \<open>set_mset (all_lits_of_m N\<^sub>1) = set_mset N\<^sub>1\<close>
     by (fastforce simp: all_lits_of_m_def N\<^sub>1_def image_image uminus_lit_swap
         simp del: literal_of_nat.simps)
-  have [simp]: \<open>all_lits_of_atms_m N⇩0 = N\<^sub>1\<close>
-    by (simp add: N⇩1_def all_lits_of_atms_m_def)
+  have [simp]: \<open>all_lits_of_atms_m N\<^sub>0 = N\<^sub>1\<close>
+    by (simp add: N\<^sub>1_def all_lits_of_atms_m_def)
   show ?thesis
     apply (rule order.trans)
      apply (rule HH)
@@ -929,12 +929,12 @@ proof -
     for lst x N
     by (metis (no_types, lifting) in_set_conv_nth length_take less_not_refl min_less_iff_conj
       nth_eq_iff_index_eq nth_take)
-  have W_ref: \<open>WHILE⇩T (λ(N, A, st, cnext). N ≠ [])
-        (λ(N, A, st, cnext).
-            ASSERT (N ≠ []) ⤜
-            (λ_. ASSERT (nat_of_uint32 (hd N) < length A) ⤜
-                 (λ_. ASSERT (cnext ≠ None ⟶ the cnext < length A) ⤜
-                      (λ_. RETURN
+  have W_ref: \<open>WHILE\<^sub>T (\<lambda>(N, A, st, cnext). N \<noteq> [])
+        (\<lambda>(N, A, st, cnext).
+            ASSERT (N \<noteq> []) ⤜
+            (\<lambda>_. ASSERT (nat_of_uint32 (hd N) < length A) ⤜
+                 (\<lambda>_. ASSERT (cnext \<noteq> None \<longrightarrow> the cnext < length A) ⤜
+                      (\<lambda>_. RETURN
                             (tl N, vmtf_cons A (nat_of_uint32 (hd N)) cnext st,
                              st + 1, Some (nat_of_uint32 (hd N)))))))
         (N', replicate n' (l_vmtf_ATM 0 None None), 0, None)
@@ -946,10 +946,10 @@ proof -
       )\<close>
     if L_N: \<open>\<forall>L\<in># N. L < n\<close> and
        dist: \<open>distinct_mset N\<close> and
-       ref: \<open>((N', n'), N, n) ∈ ⟨uint32_nat_rel⟩list_rel O list_mset_rel ×⇩f nat_rel\<close>
+       ref: \<open>((N', n'), N, n) \<in> \<langle>uint32_nat_rel\<rangle>list_rel O list_mset_rel \<times>\<^sub>f nat_rel\<close>
      for N N' n n'
   proof -
-  have [simp]: \<open>n = n'\<close> and NN': \<open>(N', N) \<in> ⟨uint32_nat_rel⟩list_rel O list_mset_rel\<close>
+  have [simp]: \<open>n = n'\<close> and NN': \<open>(N', N) \<in> \<langle>uint32_nat_rel\<rangle>list_rel O list_mset_rel\<close>
     using ref by auto
   have \<open>inj_on nat_of_uint32 S\<close> for S
     by (auto simp: inj_on_def)
@@ -1031,18 +1031,18 @@ proof -
     done
   qed
   have [simp]: \<open>twl_array_code_ops.abs_l_vmtf_remove_inv N [] ((nat_of_uint32 ` set N', {}), {})\<close> 
-    if \<open>(N', y) ∈ ⟨uint32_nat_rel⟩list_rel\<close> and \<open>(y, N) ∈ list_mset_rel\<close> for N N' y
+    if \<open>(N', y) \<in> \<langle>uint32_nat_rel\<rangle>list_rel\<close> and \<open>(y, N) \<in> list_mset_rel\<close> for N N' y
     using that unfolding twl_array_code_ops.abs_l_vmtf_remove_inv_def
     by (auto simp: twl_array_code_ops.N\<^sub>1_def atms_of_def image_image image_Un list_rel_def
       uint32_nat_rel_def br_def list_mset_rel_def list_all2_op_eq_map_right_iff')
   have in_N_in_N1: \<open>L \<in> set N' \<Longrightarrow>  nat_of_uint32 L \<in> atms_of (twl_array_code_ops.N\<^sub>1 N)\<close> 
-    if \<open>(N', y) ∈ ⟨uint32_nat_rel⟩list_rel\<close> and \<open>(y, N) ∈ list_mset_rel\<close> for L N N' y
+    if \<open>(N', y) \<in> \<langle>uint32_nat_rel\<rangle>list_rel\<close> and \<open>(y, N) \<in> list_mset_rel\<close> for L N N' y
     using that by (auto simp: twl_array_code_ops.N\<^sub>1_def atms_of_def image_image image_Un list_rel_def
       uint32_nat_rel_def br_def list_mset_rel_def list_all2_op_eq_map_right_iff')
 
   have length_ba: \<open>\<forall>L\<in># N. L < length ba \<Longrightarrow> L \<in> atms_of (twl_array_code_ops.N\<^sub>1 N) \<Longrightarrow> 
      L < length ba\<close>
-    if \<open>(N', y) ∈ ⟨uint32_nat_rel⟩list_rel\<close> and \<open>(y, N) ∈ list_mset_rel\<close>
+    if \<open>(N', y) \<in> \<langle>uint32_nat_rel\<rangle>list_rel\<close> and \<open>(y, N) \<in> list_mset_rel\<close>
     for L ba N N' y
     using that
     by (auto simp: twl_array_code_ops.N\<^sub>1_def nat_shiftr_div2 nat_of_uint32_shiftr
@@ -1086,7 +1086,7 @@ lemma initialise_VMTF_href:
    (list_mset_assn uint32_nat_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> vmtf_remove_conc\<close>
 proof -
   have H: \<open>hr_comp (list_assn uint32_assn)
-                (⟨uint32_nat_rel⟩list_rel O list_mset_rel) = list_mset_assn uint32_nat_assn\<close>
+                (\<langle>uint32_nat_rel\<rangle>list_rel O list_mset_rel) = list_mset_assn uint32_nat_assn\<close>
     unfolding list_mset_assn_def list_assn_pure_conv
     by (auto simp: mset_rel_def p2rel_def rel_mset_def list_mset_rel_def list_rel_def
       br_def uint32_nat_rel_def list_all2_op_eq_map_right_iff' Collect_eq_comp list.rel_eq hr_comp_pure
@@ -1226,15 +1226,15 @@ lemma init_trail_D_ref:
    \<langle>twl_array_code_ops.trail_ref N\<^sub>0\<rangle> nres_rel\<close>
 proof -
   have K: \<open>(\<forall>L\<in>set N. nat_of_uint32 L < n) \<longleftrightarrow> 
-     (\<forall>L \<in># (twl_array_code_ops.N⇩1 (nat_of_uint32 `# mset N)). atm_of L < n)\<close> for N n
+     (\<forall>L \<in># (twl_array_code_ops.N\<^sub>1 (nat_of_uint32 `# mset N)). atm_of L < n)\<close> for N n
      (*TODO proof*)
-    apply (auto simp: nat_shiftr_div2 nat_of_uint32_shiftr twl_array_code_ops.N⇩1_def)
+    apply (auto simp: nat_shiftr_div2 nat_of_uint32_shiftr twl_array_code_ops.N\<^sub>1_def)
     by (metis (full_types) UnCI image_eqI literal.sel(1))
 
   have H: \<open>initialise_VMTF a' b' \<le> RES (twl_array_code_ops.vmtf_imp a [])\<close>
     if \<open>\<forall>L\<in># a. L < b'\<close> and
       \<open>distinct_mset a\<close> and 
-      \<open>((a', b'), a, b) ∈ ⟨uint32_nat_rel⟩list_rel O list_mset_rel ×⇩f nat_rel\<close>
+      \<open>((a', b'), a, b) \<in> \<langle>uint32_nat_rel\<rangle>list_rel O list_mset_rel \<times>\<^sub>f nat_rel\<close>
     for a b a' b'
     using initialise_VMTF[unfolded fref_def nres_rel_def, simplified] that 
     by (auto simp: list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff' 
