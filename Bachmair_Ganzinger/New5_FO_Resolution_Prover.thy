@@ -198,46 +198,49 @@ lemma true_fo_cls_mset_inst: "I \<Turnstile>fom C \<Longrightarrow> is_ground_su
 
 lemma true_fo_cls_mset_def2: "I \<Turnstile>fom CC \<longleftrightarrow> (\<forall>C \<in># CC. I \<Turnstile>fo C)"
   by (metis Melem_subst_cls_mset true_cls_mset_def true_fo_cls true_fo_cls_inst true_fo_cls_mset true_fo_cls_mset.cases)
-  
-  
-lemma ord_resolve_sound:
+
+
+lemma ord_resolve_ground_inst_sound: (* This theorem can be used to prove FO soundness. And it will also be used in 4.11. *)
+  assumes 
+    res_e: "ord_resolve CAi DA \<sigma> E"
   assumes
-    res_e: "ord_resolve CAi DA \<tau> E" and
-    cc_d_true: "I \<Turnstile>fom mset CAi + {#DA#}"
-  shows "I \<Turnstile>fo E"
-  apply (rule true_fo_cls) using assms proof (cases rule: ord_resolve.cases)
-  fix \<sigma>
-  assume ground_subst_\<sigma>: "is_ground_subst \<sigma>"
+    cc_inst_true: "I \<Turnstile>m (mset CAi) \<cdot>cm \<sigma> \<cdot>cm \<eta>"
+  assumes
+    d_inst_true: "I \<Turnstile> DA \<cdot> \<sigma> \<cdot> \<eta>"
+  assumes ground_subst_\<eta>: "is_ground_subst \<eta>"
+(* maybe I need that eta is a ground substitution *)
+  shows "I \<Turnstile> E \<cdot> \<eta>"
+  using assms proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Ci Aij Ai D)
   have DA: "DA = D + negs (mset Ai)" using ord_resolve by -
-  have e: "E = (\<Union>#mset Ci + D) \<cdot> \<tau>" using ord_resolve by -
+  have e: "E = (\<Union>#mset Ci + D) \<cdot> \<sigma>" using ord_resolve by -
   have ci_len: "length Ci = n" using ord_resolve by -
   have cai_len: "length CAi = n" using ord_resolve by -
   have aij_len: "length Aij = n" using ord_resolve by -
   have ai_len: "length Ai = n" using ord_resolve by -
   have cai: "\<forall>i<n. CAi ! i = Ci ! i + poss (Aij ! i)" using ord_resolve by -
-  have mgu: "Some \<tau> = mgu (set_mset ` set (map2 add_mset Ai Aij))" using ord_resolve by -
+  have mgu: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset Ai Aij))" using ord_resolve by -
   have len: "length CAi = length Ai" using ai_len cai_len by auto
-  have "is_ground_subst (\<tau> \<odot> \<sigma>)"
-    using ground_subst_\<sigma> by (rule is_ground_comp_subst)
-  hence cc_true: "I \<Turnstile>m (mset CAi) \<cdot>cm \<tau> \<cdot>cm \<sigma>" and d_true: "I \<Turnstile> DA \<cdot> \<tau> \<cdot> \<sigma>"
-    using true_fo_cls_mset_inst[OF cc_d_true, of "\<tau> \<odot> \<sigma>"] by auto 
-      
-  from mgu have unif: "\<forall>i<n. \<forall>A\<in>#Aij ! i. A \<cdot>a \<tau> = Ai ! i \<cdot>a \<tau>" 
+  have "is_ground_subst (\<sigma> \<odot> \<eta>)"
+    using ground_subst_\<eta> by (rule is_ground_comp_subst)
+  hence cc_true: "I \<Turnstile>m (mset CAi) \<cdot>cm \<sigma> \<cdot>cm \<eta>" and d_true: "I \<Turnstile> DA \<cdot> \<sigma> \<cdot> \<eta>"
+    using cc_inst_true d_inst_true by auto
+
+    from mgu have unif: "\<forall>i<n. \<forall>A\<in>#Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>" 
     using mgu_unifier using ai_len aij_len by blast
       
-  show "\<forall>i<n. S (CAi ! i) = {#} \<Longrightarrow> I \<Turnstile> E \<cdot> \<sigma>"
-  proof (cases "\<forall>A \<in> set Ai. A \<cdot>a \<tau> \<cdot>a \<sigma> \<in> I")
+  show "I \<Turnstile> E \<cdot> \<eta>"
+  proof (cases "\<forall>A \<in> set Ai. A \<cdot>a \<sigma> \<cdot>a \<eta> \<in> I")
     case True
-    hence "\<not> I \<Turnstile> negs (mset Ai) \<cdot> \<tau> \<cdot> \<sigma>"
+    hence "\<not> I \<Turnstile> negs (mset Ai) \<cdot> \<sigma> \<cdot> \<eta>"
       unfolding true_cls_def by auto
-    hence "I \<Turnstile> D \<cdot> \<tau> \<cdot> \<sigma>"
+    hence "I \<Turnstile> D \<cdot> \<sigma> \<cdot> \<eta>"
       using d_true DA by auto
     thus ?thesis
       unfolding e by simp
   next
     case False
-    then obtain i where a_in_aa: "i < length CAi" and a_false: "(Ai ! i) \<cdot>a \<tau> \<cdot>a \<sigma> \<notin> I"
+    then obtain i where a_in_aa: "i < length CAi" and a_false: "(Ai ! i) \<cdot>a \<sigma> \<cdot>a \<eta> \<notin> I"
       using DA len by (metis in_set_conv_nth) 
     define C' where "C' \<equiv> Ci ! i"
     define BB where "BB \<equiv> Aij ! i"
@@ -249,19 +252,44 @@ lemma ord_resolve_sound:
       using cai_len in_set_conv_nth cai by fastforce
     { fix B
       assume "B \<in># BB"
-      then have "B \<cdot>a \<tau> = (Ai ! i) \<cdot>a \<tau>" using unif a_in_aa cai_len unfolding BB_def by auto
+      then have "B \<cdot>a \<sigma> = (Ai ! i) \<cdot>a \<sigma>" using unif a_in_aa cai_len unfolding BB_def by auto
     }
-    hence "\<not> I \<Turnstile> poss BB \<cdot> \<tau> \<cdot> \<sigma>"
+    hence "\<not> I \<Turnstile> poss BB \<cdot> \<sigma> \<cdot> \<eta>"
       using a_false by (auto simp: true_cls_def)
-    moreover have "I \<Turnstile> (C' + poss BB) \<cdot> \<tau> \<cdot> \<sigma>"
+    moreover have "I \<Turnstile> (C' + poss BB) \<cdot> \<sigma> \<cdot> \<eta>"
       using c_in_cc cc_true unfolding true_cls_mset_def by force
-    ultimately have "I \<Turnstile> C' \<cdot> \<tau> \<cdot> \<sigma>"
+    ultimately have "I \<Turnstile> C' \<cdot> \<sigma> \<cdot> \<eta>"
       by simp
     thus ?thesis
       unfolding e subst_cls_union using c_cf'
       using true_cls_mono subst_cls_mono
       by (metis (no_types, lifting) C'_def a_in_aa cai_len ci_len mset_subset_eq_add_left nth_mem_mset set_mset_mono sum_mset.remove)
   qed
+qed
+  
+lemma ord_resolve_sound:
+  assumes
+    res_e: "ord_resolve CAi DA \<sigma> E" and
+    cc_d_true: "I \<Turnstile>fom mset CAi + {#DA#}"
+  shows "I \<Turnstile>fo E"
+  apply (rule true_fo_cls) using assms proof (cases rule: ord_resolve.cases)
+  fix \<eta>
+  assume ground_subst_\<eta>: "is_ground_subst \<eta>"
+  case (ord_resolve n Ci Aij Ai D)
+  have DA: "DA = D + negs (mset Ai)" using ord_resolve by -
+  have e: "E = (\<Union>#mset Ci + D) \<cdot> \<sigma>" using ord_resolve by -
+  have ci_len: "length Ci = n" using ord_resolve by -
+  have cai_len: "length CAi = n" using ord_resolve by -
+  have aij_len: "length Aij = n" using ord_resolve by -
+  have ai_len: "length Ai = n" using ord_resolve by -
+  have cai: "\<forall>i<n. CAi ! i = Ci ! i + poss (Aij ! i)" using ord_resolve by -
+  have mgu: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset Ai Aij))" using ord_resolve by -
+  have len: "length CAi = length Ai" using ai_len cai_len by auto
+  have "is_ground_subst (\<sigma> \<odot> \<eta>)"
+    using ground_subst_\<eta> by (rule is_ground_comp_subst)
+  hence cc_true: "I \<Turnstile>m (mset CAi) \<cdot>cm \<sigma> \<cdot>cm \<eta>" and d_true: "I \<Turnstile> DA \<cdot> \<sigma> \<cdot> \<eta>"
+    using true_fo_cls_mset_inst[OF cc_d_true, of "\<sigma> \<odot> \<eta>"] by auto 
+  show "I \<Turnstile> E \<cdot> \<eta>" using ord_resolve_ground_inst_sound[OF res_e cc_true d_true ] using ground_subst_\<eta> by auto
 qed
 
 lemma subst_sound:
