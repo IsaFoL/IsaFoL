@@ -818,6 +818,7 @@ definition (in -) empty_watched :: \<open>uint32 list \<Rightarrow> nat literal 
 definition (in -) init_state_wl :: \<open>uint32 list \<Rightarrow> nat twl_st_wl\<close> where
   \<open>init_state_wl N\<^sub>0 = ([], [[]], 0, None, {#}, {#}, {#}, empty_watched N\<^sub>0)\<close>
 
+end
 
 text \<open>to get a full SAT:
   \<^item> either we fully apply \<^term>\<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<close>
@@ -832,6 +833,7 @@ definition SAT :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_restart_mset
             cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv U))
   }\<close>
 term init_dt_wl
+
 definition (in -) SAT_wl :: \<open>nat clauses_l \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>SAT_wl CS = do{
     let n = length CS;
@@ -856,24 +858,27 @@ lemma (in-) uint32_of_nat_nat_of_uint32[simp]: \<open>uint32_of_nat (nat_of_uint
 (*End Move*)
 
 definition (in -)map_uint32_of_lit where
-  \<open>map_uint32_of_lit = map (uint32_of_nat o nat_of_lit)\<close>
+  \<open>map_uint32_of_lit = map (uint32_of_nat)\<close>
+
 lemma (in -) map_uint32_of_lit[sepref_fr_rules]:
   \<open>(return o id, RETURN o map_uint32_of_lit) \<in>
-     (list_assn unat_lit_assn)\<^sup>d \<rightarrow>\<^sub>a list_assn uint32_assn\<close>
+     (list_assn uint32_nat_assn)\<^sup>d \<rightarrow>\<^sub>a list_assn uint32_assn\<close>
   unfolding list_assn_pure_conv
   by sepref_to_hoare
    (sep_auto simp: unat_lit_rel_def uint32_nat_rel_def Collect_eq_comp br_def nat_lit_rel_def
-      lit_of_natP_def map_uint32_of_lit_def list_rel_def list_all2_op_eq_map_right_iff comp_def
+      lit_of_natP_def map_uint32_of_lit_def list_rel_def list_all2_op_eq_map_right_iff' comp_def
+      list.rel_eq
       simp del: literal_of_nat.simps)
 
-definition initialise_VMTF :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> (vmtf_imp_remove) nres\<close> where
+
+definition initialise_VMTF :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> vmtf_imp_remove nres\<close> where
 \<open>initialise_VMTF N n = do {
    let A = replicate n (l_vmtf_ATM 0 None None);
    (_, A, n, cnext) \<leftarrow> WHILE\<^sub>T
       (\<lambda>(N, A, st, cnext). N \<noteq> [])
       (\<lambda>(N, A, st, cnext). do {
         ASSERT(N \<noteq> []);
-        let L = nat_of_uint32 ((hd N) >> 1);
+        let L = nat_of_uint32 (hd N);
         ASSERT(L < length A);
         ASSERT(cnext \<noteq> None \<longrightarrow> the cnext < length A);
         RETURN (tl N, vmtf_cons A L cnext st, st+1, Some L)
@@ -882,27 +887,36 @@ definition initialise_VMTF :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow>
    RETURN ((A, n, cnext, cnext), [])
   }\<close>
 
+(*TODO Move*)
+lemma (in -) nat_of_uint32_int32_assn[sepref_fr_rules]:
+  \<open>(return o id, RETURN o nat_of_uint32) \<in> uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
+(*End Move*)
+
 sepref_definition initialise_VMTF_code
   is \<open>uncurry initialise_VMTF\<close>
   :: \<open>(list_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
   unfolding initialise_VMTF_def vmtf_cons_def
   apply (rewrite in "((_, _, _, _), \<hole>)" annotate_assn[where A=\<open>list_assn nat_assn\<close>])
-  apply (rewrite in \<open>((_, _, _, _), ASSN_ANNOT _ \<hole>)\<close> HOL_list.fold_custom_empty op_list_empty_def[symmetric])
+  apply (rewrite in "(_, _, _, Some \<hole>)" annotate_assn[where A=\<open>uint32_nat_assn\<close>])
+  apply (rewrite in "WHILE\<^sub>T _ _ (_, _, _, \<hole>)" annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
+  apply (rewrite in "do {ASSERT _; let _ = \<hole>; _}" annotate_assn[where A=\<open>uint32_nat_assn\<close>])
+  apply (rewrite in \<open>((_, _, _, _), ASSN_ANNOT _ \<hole>)\<close> HOL_list.fold_custom_empty
+   op_list_empty_def[symmetric])
   apply (rewrite in \<open>let _ = \<hole> in _ \<close> array_fold_custom_replicate op_list_replicate_def[symmetric])
+  apply (rewrite in "l_vmtf_ATM 0 \<hole> _" annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
+  apply (rewrite in "l_vmtf_ATM 0 _ \<hole>" annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
   supply [[goals_limit = 1]]
-    apply sepref_dbg_keep
-      apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-    apply sepref_dbg_side_keep
   by sepref
 
 declare initialise_VMTF_code.refine[sepref_fr_rules]
 
 lemma initialise_VMTF:
   shows \<open>(uncurry initialise_VMTF, uncurry (\<lambda>N n. RES (twl_array_code_ops.vmtf_imp N []))) \<in>
-      [\<lambda>(N,n). (\<forall>L\<in>set N. nat_of_uint32 (L >> 1) < n) \<and>
-        (distinct (map ((\<lambda>x. x >> 1) o nat_of_uint32) N))
-     ]\<^sub>f Id \<times>\<^sub>f nat_rel \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+      [\<lambda>(N,n). (\<forall>L\<in># N. L < n) \<and> (distinct_mset N)]\<^sub>f 
+      (\<langle>uint32_nat_rel\<rangle>list_rel O list_mset_rel) \<times>\<^sub>f nat_rel \<rightarrow> 
+      \<langle>(\<langle>Id\<rangle>list_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r \<langle>nat_rel\<rangle> option_rel \<times>\<^sub>r \<langle>nat_rel\<rangle> option_rel)
+        \<times>\<^sub>r \<langle>Id\<rangle>list_rel\<rangle>nres_rel\<close>
     (is \<open>(?init, ?R) \<in> _\<close>)
 proof -
   have l_vmtf_notin_empty: \<open>l_vmtf_notin [] 0 (replicate n (l_vmtf_ATM 0 None None))\<close> for n
@@ -911,41 +925,47 @@ proof -
   have take_Suc_append: \<open>take (Suc a) c = (take a c @ [c ! a])\<close>
     if  \<open>a < length c\<close> for a b c
     using that by (auto simp: take_Suc_conv_app_nth)
-  have K1:  \<open>distinct (map ((\<lambda>x. x div 2) \<circ> nat_of_uint32) N) \<Longrightarrow> lst < length N \<Longrightarrow>
-     nat_of_uint32 (N ! lst) div 2 = nat_of_uint32 x div 2 \<Longrightarrow> x \<in> set N \<Longrightarrow> x = N!lst\<close>
+  have K2: \<open>distinct N \<Longrightarrow> lst < length N \<Longrightarrow> N!lst \<in> set (take lst N) \<Longrightarrow> False\<close>
     for lst x N
-    apply (induction N arbitrary: lst x)
-    subgoal by auto
-    subgoal for a N lst x
-       using nth_mem by (case_tac lst) (fastforce simp: nth_Cons comp_def image_iff)+
-    done
-  have K2: \<open>distinct (map ((\<lambda>x. x div 2) \<circ> nat_of_uint32) N) \<Longrightarrow> lst < length N \<Longrightarrow>
-     nat_of_uint32 (N ! lst) div 2 = nat_of_uint32 x div 2 \<Longrightarrow> x \<in> set (take lst N) \<Longrightarrow> False\<close>
-    for lst x N
-    using K1[of N lst x, OF _ _ _ in_set_takeD[of _ lst]]
-    by (metis (no_types, lifting) distinct_mapI in_set_conv_nth length_take less_not_refl
-        min_less_iff_conj nth_eq_iff_index_eq nth_take)
-  let ?sh = \<open>\<lambda>x. x >> 1\<close>
-  have W_ref: \<open> WHILE\<^sub>T (\<lambda>(N, A, st, cnext). N \<noteq> [])
-     (\<lambda>(N, A, st, cnext).
-         ASSERT (N \<noteq> []) \<bind>
-         (\<lambda>_. ASSERT (nat_of_uint32 (hd N >> 1) < length A) \<bind>
-               (\<lambda>_. ASSERT (cnext \<noteq> None \<longrightarrow> the cnext < length A) \<bind>
-                     (\<lambda>_. RETURN (tl N, vmtf_cons A (nat_of_uint32 (hd N >> 1)) cnext st, st + 1, Some (nat_of_uint32 (hd N >> 1)))))))
-     (N, replicate n (l_vmtf_ATM 0 None None), 0, None)
-    \<le> SPEC(\<lambda>(N', A', st, cnext). l_vmtf (rev (map (?sh o nat_of_uint32) (take (length N - length N') N))) st A'
-      \<and> cnext = map_option (?sh o nat_of_uint32) (option_last (take (length N - length N') N)) \<and>
-    N' = drop st N \<and> length N' \<le> length N \<and> st \<le> length N \<and>
-    length A' = n \<and> N' = [] \<and> l_vmtf_notin (rev (map (?sh o nat_of_uint32) (take (length N - length N') N))) st A'
+    by (metis (no_types, lifting) in_set_conv_nth length_take less_not_refl min_less_iff_conj
+      nth_eq_iff_index_eq nth_take)
+  have W_ref: \<open>WHILE⇩T (λ(N, A, st, cnext). N ≠ [])
+        (λ(N, A, st, cnext).
+            ASSERT (N ≠ []) ⤜
+            (λ_. ASSERT (nat_of_uint32 (hd N) < length A) ⤜
+                 (λ_. ASSERT (cnext ≠ None ⟶ the cnext < length A) ⤜
+                      (λ_. RETURN
+                            (tl N, vmtf_cons A (nat_of_uint32 (hd N)) cnext st,
+                             st + 1, Some (nat_of_uint32 (hd N)))))))
+        (N', replicate n' (l_vmtf_ATM 0 None None), 0, None)
+    \<le> SPEC(\<lambda>(N'', A', st, cnext). 
+      l_vmtf (rev (map (nat_of_uint32) (take (length N' - length N'') N'))) st A'
+      \<and> cnext = map_option (nat_of_uint32) (option_last (take (length N' - length N'') N')) \<and>
+    N'' = drop st N' \<and> length N'' \<le> length N' \<and> st \<le> length N' \<and>
+    length A' = n \<and> N'' = [] \<and> l_vmtf_notin (rev (map (nat_of_uint32) (take (length N' - length N'') N'))) st A'
       )\<close>
-    if L_N: \<open>\<forall>L\<in>set N. nat_of_uint32 (L >> 1) < n\<close> and
-       dist: \<open>distinct (map ((\<lambda>x. x >> 1) o nat_of_uint32) N)\<close>
-     for N n
-    apply (refine_rcg WHILET_rule[where R = \<open>measure (\<lambda>(N, _). length N)\<close> and
-     I = \<open>\<lambda>(N', A', st, cnext). l_vmtf (rev (map (?sh o nat_of_uint32) (take (length N - length N') N))) st A'
-      \<and> cnext = map_option (?sh o nat_of_uint32) (option_last (take (length N - length N') N)) \<and>
-    N' = drop st N \<and> length N' \<le> length N \<and> st \<le> length N \<and> (N' \<noteq> [] \<longrightarrow> st < length N) \<and>
-    length A' = n \<and> l_vmtf_notin (rev (map (?sh o nat_of_uint32) (take (length N - length N') N))) st A'\<close>])
+    if L_N: \<open>\<forall>L\<in># N. L < n\<close> and
+       dist: \<open>distinct_mset N\<close> and
+       ref: \<open>((N', n'), N, n) ∈ ⟨uint32_nat_rel⟩list_rel O list_mset_rel ×⇩f nat_rel\<close>
+     for N N' n n'
+  proof -
+  have [simp]: \<open>n = n'\<close> and NN': \<open>(N', N) \<in> ⟨uint32_nat_rel⟩list_rel O list_mset_rel\<close>
+    using ref by auto
+  have \<open>inj_on nat_of_uint32 S\<close> for S
+    by (auto simp: inj_on_def)
+  then have dist: \<open>distinct N'\<close>
+    using NN' dist by (auto simp: list_rel_def uint32_nat_rel_def br_def list_mset_rel_def 
+      list_all2_op_eq_map_right_iff' distinct_image_mset_inj)
+  have L_N: \<open>\<forall>L\<in>set N'. nat_of_uint32 L < n\<close>
+    using L_N ref by (auto simp: list_rel_def uint32_nat_rel_def br_def list_mset_rel_def 
+      list_all2_op_eq_map_right_iff')
+
+  show ?thesis
+    apply (refine_rcg WHILET_rule[where R = \<open>measure (\<lambda>(N', _). length N')\<close> and
+     I = \<open>\<lambda>(N'', A', st, cnext). l_vmtf (rev (map (nat_of_uint32) (take (length N' - length N'') N'))) st A'
+      \<and> cnext = map_option (nat_of_uint32) (option_last (take (length N' - length N'') N')) \<and>
+    N'' = drop st N' \<and> length N'' \<le> length N' \<and> st \<le> length N' \<and> (N'' \<noteq> [] \<longrightarrow> st < length N') \<and>
+    length A' = n \<and> l_vmtf_notin (rev (map (nat_of_uint32) (take (length N' - length N'') N'))) st A'\<close>])
     subgoal by auto
     subgoal by (auto intro: l_vmtf.intros)
     subgoal by auto
@@ -966,10 +986,13 @@ proof -
         using L_N dist
         by (auto 5 5 simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
             option_last_def hd_rev last_map intro!: vmtf_cons dest: K2)
-      subgoal
-        using L_N dist  List.last_in_set[of \<open>take lst N\<close>] set_take_subset[of lst N]
-        by (auto 5 5 simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+      subgoal (*TODO tune proof*)
+        using L_N dist List.last_in_set[of \<open>take lst N'\<close>] set_take_subset[of lst N']
+        apply (auto simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
             option_last_def hd_rev last_map)
+        by (metis List.last_in_set diff_le_self diff_less_mono2 l_vmtf_le_length last_map
+          le_eq_less_or_eq len_greater_imp_nonempty length_drop length_rev list.map_disc_iff
+          rev_take set_rev)
       subgoal
         apply (rule RETURN_rule)
         apply (clarify intro!: RETURN_rule)
@@ -1006,38 +1029,37 @@ proof -
     subgoal by auto
     subgoal by auto
     done
-  have [simp]: \<open>twl_array_code_ops.abs_l_vmtf_remove_inv N []
-     ((((\<lambda>xs'. xs' div 2) \<circ> nat_of_uint32) ` set N,
-       {}),
-      {})\<close> for N
-    unfolding twl_array_code_ops.abs_l_vmtf_remove_inv_def
-    by (auto simp: twl_array_code_ops.N\<^sub>1_def twl_array_code_ops.N\<^sub>0''_def
-      twl_array_code_ops.N\<^sub>0'_def atms_of_def image_image image_Un)
-  have in_N_in_N1: \<open>L \<in> set N \<Longrightarrow>
-         nat_of_uint32 L div 2
-         \<in> atms_of (twl_array_code_ops.N\<^sub>1 N)\<close> for L N
-    by (auto simp: twl_array_code_ops.N\<^sub>1_def twl_array_code_ops.N\<^sub>0''_def
-      twl_array_code_ops.N\<^sub>0'_def atms_of_def image_image image_Un)
+  qed
+  have [simp]: \<open>twl_array_code_ops.abs_l_vmtf_remove_inv N [] ((nat_of_uint32 ` set N', {}), {})\<close> 
+    if \<open>(N', y) ∈ ⟨uint32_nat_rel⟩list_rel\<close> and \<open>(y, N) ∈ list_mset_rel\<close> for N N' y
+    using that unfolding twl_array_code_ops.abs_l_vmtf_remove_inv_def
+    by (auto simp: twl_array_code_ops.N\<^sub>1_def atms_of_def image_image image_Un list_rel_def
+      uint32_nat_rel_def br_def list_mset_rel_def list_all2_op_eq_map_right_iff')
+  have in_N_in_N1: \<open>L \<in> set N' \<Longrightarrow>  nat_of_uint32 L \<in> atms_of (twl_array_code_ops.N\<^sub>1 N)\<close> 
+    if \<open>(N', y) ∈ ⟨uint32_nat_rel⟩list_rel\<close> and \<open>(y, N) ∈ list_mset_rel\<close> for L N N' y
+    using that by (auto simp: twl_array_code_ops.N\<^sub>1_def atms_of_def image_image image_Un list_rel_def
+      uint32_nat_rel_def br_def list_mset_rel_def list_all2_op_eq_map_right_iff')
 
-  have length_ba: \<open>\<forall>L\<in>set N. nat_of_uint32 (L >> Suc 0) < length ba \<Longrightarrow> L \<in> atms_of (twl_array_code_ops.N\<^sub>1 N) \<Longrightarrow> L < length ba\<close>
-    for L ba N
-    by (auto simp: twl_array_code_ops.N\<^sub>1_def twl_array_code_ops.N\<^sub>0''_def nat_shiftr_div2 nat_of_uint32_shiftr
-      twl_array_code_ops.N\<^sub>0'_def atms_of_def image_image image_Un split: if_splits)
+  have length_ba: \<open>\<forall>L\<in># N. L < length ba \<Longrightarrow> L \<in> atms_of (twl_array_code_ops.N\<^sub>1 N) \<Longrightarrow> 
+     L < length ba\<close>
+    if \<open>(N', y) ∈ ⟨uint32_nat_rel⟩list_rel\<close> and \<open>(y, N) ∈ list_mset_rel\<close>
+    for L ba N N' y
+    using that
+    by (auto simp: twl_array_code_ops.N\<^sub>1_def nat_shiftr_div2 nat_of_uint32_shiftr
+      atms_of_def image_image image_Un split: if_splits)
   show ?thesis
     apply (intro frefI nres_relI)
     unfolding initialise_VMTF_def Let_def uncurry_def conc_Id id_def
     apply clarify
     apply (rule specify_left)
-     apply (rule W_ref)
-    subgoal by auto
-    subgoal by auto
-    subgoal for ab aa N x st
+     apply (rule W_ref; assumption)
+    subgoal for N' n' N n st
       apply (case_tac st)
-      apply (clarify)
-      apply (unfold nres_order_simps)
+      apply clarify
+      apply (subst RETURN_RES_refine_iff)
       apply (unfold twl_array_code_ops.vmtf_imp_def)
-      apply (clarify)
-      apply (rule exI[of _ \<open>map ((\<lambda>x. x div 2) \<circ> nat_of_uint32) (rev N)\<close>])
+      apply (clarsimp)
+      apply (rule exI[of _ \<open>map nat_of_uint32 (rev N')\<close>])
       apply (rule_tac exI[of _ \<open>[]\<close>])
       apply (intro conjI)
       subgoal by (auto simp: rev_map[symmetric] twl_array_code_ops.vmtf_imp_def option_hd_rev
@@ -1060,25 +1082,36 @@ qed
 
 lemma initialise_VMTF_href:
   \<open>(uncurry initialise_VMTF_code, uncurry (\<lambda>N (_::nat). RES (twl_array_code_ops.vmtf_imp N []))) \<in>
-   [\<lambda>(N, n). (\<forall>L\<in>set N. nat_of_uint32 (L >> 1) < n) \<and> distinct (map ((\<lambda>x. x >> 1) o nat_of_uint32) N)]\<^sub>a
-   (list_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> vmtf_remove_conc\<close>
-  using initialise_VMTF_code.refine[FCOMP initialise_VMTF] unfolding nat_shiftr_div2 by simp
+   [\<lambda>(N, n). (\<forall>L\<in>#N. L < n) \<and> distinct_mset N]\<^sub>a
+   (list_mset_assn uint32_nat_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> vmtf_remove_conc\<close>
+proof -
+  have H: \<open>hr_comp (list_assn uint32_assn)
+                (⟨uint32_nat_rel⟩list_rel O list_mset_rel) = list_mset_assn uint32_nat_assn\<close>
+    unfolding list_mset_assn_def list_assn_pure_conv
+    by (auto simp: mset_rel_def p2rel_def rel_mset_def list_mset_rel_def list_rel_def
+      br_def uint32_nat_rel_def list_all2_op_eq_map_right_iff' Collect_eq_comp list.rel_eq hr_comp_pure
+        rel2p_def[abs_def])
+  show ?thesis
+    using initialise_VMTF_code.refine[FCOMP initialise_VMTF] unfolding H
+    by simp
+qed
 
 definition SAT_wl' :: \<open>nat clauses_l \<Rightarrow> bool nres\<close> where
   \<open>SAT_wl' CS = do{
     let n = length CS;
-    let N\<^sub>0 = map_uint32_of_lit (extract_atms_clss CS []);
-    ASSERT(twl_array_code N\<^sub>0);
-    let S = twl_array_code_ops.init_state_wl N\<^sub>0;
-    T \<leftarrow> init_dt_wl N\<^sub>0 CS S;
+    let N\<^sub>0' = (extract_atms_clss CS []);
+    let N\<^sub>0 = map_uint32_of_lit N\<^sub>0';
+    ASSERT(twl_array_code (mset N\<^sub>0'));
+    let S = init_state_wl N\<^sub>0;
+    T \<leftarrow> twl_array_code.init_dt_wl (mset N\<^sub>0') CS S;
     if get_conflict_wl T = None
     then do {
-       U \<leftarrow> twl_array_code.cdcl_twl_stgy_prog_wl_D N\<^sub>0 T;
+       U \<leftarrow> twl_array_code.cdcl_twl_stgy_prog_wl_D (mset N\<^sub>0') T;
        RETURN (get_conflict_wl U = None)}
     else RETURN False
   }\<close>
 
-definition init_rll :: \<open>nat \<Rightarrow> 'a list list\<close> where
+definition (in -) init_rll :: \<open>nat \<Rightarrow> 'a list list\<close> where
   \<open>init_rll n = []\<close>
 
 lemma (in -)arrayO_raa_empty_sz_init_rll[sepref_fr_rules]:
@@ -1100,7 +1133,6 @@ lemma (in -)arrayO_raa_empty_sz_init_lrl[sepref_fr_rules]:
 lemma shiftr1_fref[sepref_fr_rules]: \<open>(return o shiftr1, RETURN o shiftr1) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   by sepref_to_hoare sep_auto
 
-sepref_register initialise_VMTF
 
 definition init_trail_D :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> trail_int nres\<close> where
   \<open>init_trail_D N\<^sub>0 n = do {
@@ -1111,6 +1143,8 @@ definition init_trail_D :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> tr
      RETURN (([], M, M', zero_uint32), vm, \<phi>)
   }\<close>
 
+sepref_register initialise_VMTF
+thm initialise_VMTF_href
 sepref_definition init_trail_D_code
   is \<open>uncurry init_trail_D\<close>
   :: \<open>(list_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_conc\<close>
@@ -1146,10 +1180,12 @@ definition init_state_wl_D' :: \<open>uint32 list \<Rightarrow>  (trail_int \<ti
 lemma (in -)atm_of_uminus_lit_of_nat: \<open>atm_of (- literal_of_nat x) = x div 2\<close>
   by (cases x) auto
 
-lemma (in twl_array_code_ops)in_atms_of_N\<^sub>1_iff:
-   \<open>atm_of L \<in> atms_of N\<^sub>1 \<longleftrightarrow> L \<in> set N\<^sub>0' \<or> -L \<in> set N\<^sub>0'\<close>
-  by (auto simp: N\<^sub>1_def N\<^sub>0''_def atm_of_eq_atm_of atms_of_def
-      atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set)
+
+lemma shiftr1_uint_fref: \<open>(return o (\<lambda>n. n >> 1), RETURN o shiftr1) \<in> 
+   uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by (sepref_to_hoare)
+   (sep_auto simp: shiftr1_def uint32_nat_rel_def br_def nat_of_uint32_shiftr)
+
 
 term twl_array_code_ops.twl_st_l_trail_assn
 sepref_definition init_state_wl_D'_code
@@ -1174,31 +1210,36 @@ sepref_definition init_state_wl_D'_code
   apply (rewrite at "let _ = _ @ _; _= \<hole> in _" annotate_assn[where A=\<open>(arrayO_assn (arl_assn nat_assn))\<close>])
   supply [[goals_limit = 1]]
   supply max_uint32[sepref_fr_rules]
+  (*TODO: remove from sepref_frrules: unsafe rule*)
+  supply nat_of_uint32_int32_assn[sepref_fr_rules del]
   by sepref
 
 lemma bind_refine_res: \<open>(\<And>x. x \<in> \<Phi> \<Longrightarrow> f x \<le> \<Down> R M) \<Longrightarrow> M' \<le> RES \<Phi> \<Longrightarrow> M' \<bind> f \<le> \<Down> R M\<close>
   by (auto simp add: pw_le_iff refine_pw_simps)
 
-lemma (in twl_array_code_ops) in_atms_of_N\<^sub>1_N\<^sub>0''_def:
-  \<open>L \<in> atms_of N\<^sub>1 \<longleftrightarrow> Pos L \<in> set N\<^sub>0' \<or> Neg L \<in> set N\<^sub>0'\<close>
-  using N\<^sub>1_def twl_array_code_ops.in_atms_of_N\<^sub>1_iff by force
-
-lemma init_trail_D_ref: \<open>(uncurry init_trail_D, uncurry (RETURN oo (\<lambda> _ _. []))) \<in> [\<lambda>(N, n). N = N\<^sub>0 \<and>
-    distinct (map ((\<lambda>x. x div 2) \<circ> nat_of_uint32) N) \<and> (\<forall>L\<in>set N. nat_of_uint32 (L >> Suc 0) < n)]\<^sub>f
-    \<langle>Id\<rangle>list_rel \<times>\<^sub>r nat_rel \<rightarrow>
+lemma init_trail_D_ref:
+  \<open>(uncurry init_trail_D, uncurry (RETURN oo (\<lambda> _ _. []))) \<in> [\<lambda>(N, n). mset N = N\<^sub>0 \<and>
+    distinct N \<and> (\<forall>L\<in>set N. L< n)]\<^sub>f
+    \<langle>uint32_nat_rel\<rangle>list_rel \<times>\<^sub>r nat_rel \<rightarrow>
    \<langle>twl_array_code_ops.trail_ref N\<^sub>0\<rangle> nres_rel\<close>
 proof -
-  have K: \<open>(\<forall>L\<in>set N\<^sub>0. nat_of_uint32 L div 2 < n) \<longleftrightarrow> 
-     (\<forall>L \<in> set (twl_array_code_ops.N\<^sub>0' N\<^sub>0). atm_of L < n)\<close> for N n
-    by (auto simp: twl_array_code_ops.N\<^sub>0'_def nat_shiftr_div2 nat_of_uint32_shiftr)
+  have K: \<open>(\<forall>L\<in>set N. nat_of_uint32 L < n) \<longleftrightarrow> 
+     (\<forall>L \<in># (twl_array_code_ops.N⇩1 (nat_of_uint32 `# mset N)). atm_of L < n)\<close> for N n
+     (*TODO proof*)
+    apply (auto simp: nat_shiftr_div2 nat_of_uint32_shiftr twl_array_code_ops.N⇩1_def)
+    by (metis (full_types) UnCI image_eqI literal.sel(1))
 
-  have H: \<open>initialise_VMTF a b \<le> RES (twl_array_code_ops.vmtf_imp a [])\<close>
-    if \<open>\<forall>L\<in>set a. nat_of_uint32 (L >> Suc 0) < b\<close> and
-      \<open>distinct (map ((\<lambda>x. x div 2) \<circ> nat_of_uint32) a)\<close>
-    for a b
-    using initialise_VMTF[unfolded fref_def nres_rel_def, simplified] that by blast
+  have H: \<open>initialise_VMTF a' b' \<le> RES (twl_array_code_ops.vmtf_imp (mset a) [])\<close>
+    if \<open>\<forall>L\<in>set a. L < b'\<close> and
+      \<open>distinct a\<close> and 
+      \<open>((a', b'), a, b) ∈ ⟨uint32_nat_rel⟩list_rel ×⇩f nat_rel\<close>
+    for a b a' b'
+    using initialise_VMTF[unfolded fref_def nres_rel_def, simplified] that 
+    by (auto simp: list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff' 
+      list_mset_rel_def Collect_eq_comp mset_map[symmetric]
+      simp del: mset_map)
   show ?thesis
-    unfolding init_trail_D_def twl_array_code_ops.trail_ref_def
+    unfolding init_trail_D_def
     apply (intro frefI nres_relI)
     unfolding uncurry_def Let_def
     apply clarify
@@ -1206,13 +1247,15 @@ proof -
      prefer 2 apply (rule H; auto)
     by (auto 5 5 simp: zero_uint32_def twl_array_code_ops.trailt_ref_def shiftr1_def
         nat_shiftr_div2 nat_of_uint32_shiftr twl_array_code_ops.in_N\<^sub>1_atm_of_in_atms_of_iff
-        valued_atm_on_trail_def twl_array_code_ops.in_atms_of_N\<^sub>1_iff K 
-        twl_array_code_ops.phase_saving_def twl_array_code_ops.in_atms_of_N\<^sub>1_N\<^sub>0''_def)
+        valued_atm_on_trail_def twl_array_code_ops.trail_ref_def K atms_of_def
+        twl_array_code_ops.phase_saving_def
+        list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff' 
+      list_mset_rel_def Collect_eq_comp)
 qed
 
 lemma init_state_wl_D':
-  \<open>(init_state_wl_D', RETURN o twl_array_code_ops.init_state_wl) \<in>
-    [\<lambda>N. N = N\<^sub>0 \<and> distinct (map ((\<lambda>x. x div 2) \<circ> nat_of_uint32) N)]\<^sub>f \<langle>Id\<rangle>list_rel \<rightarrow> 
+  \<open>(init_state_wl_D', RETURN o init_state_wl) \<in>
+    [\<lambda>N. mset N = N\<^sub>0 \<and> distinct_mset N\<^sub>0]\<^sub>f \<langle>uint32_nat_rel\<rangle>list_rel \<rightarrow> 
       \<langle>twl_array_code_ops.trail_ref N\<^sub>0 \<times>\<^sub>r \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r
         \<langle>list_mset_rel\<rangle>option_rel \<times>\<^sub>r list_mset_rel O
         \<langle>list_mset_rel O \<langle>Id\<rangle>mset_rel\<rangle>mset_rel \<times>\<^sub>r
