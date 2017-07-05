@@ -76,6 +76,7 @@ structure SAT_Solver : sig
   type nat
   val integer_of_nat : nat -> IntInf.int
   val nat_of_integer : IntInf.int -> nat
+  type 'a al_vmtf_atm
   datatype int = Int_of_integer of IntInf.int
   type ('a, 'b) hashtable
   val integer_of_int : int -> IntInf.int
@@ -261,6 +262,21 @@ val typerep_unit = {typerep = typerep_unita} : unit typerep;
 val heap_unit = {countable_heap = countable_unit, typerep_heap = typerep_unit} :
   unit heap;
 
+datatype 'a al_vmtf_atm = L_vmtf_ATM of nat * 'a option * 'a option;
+
+fun typerep_al_vmtf_atma A_ t =
+  Typerep ("CDCL_Two_Watched_Literals_VMTF.al_vmtf_atm", [typerep A_ Type]);
+
+fun countable_al_vmtf_atm A_ = {} : 'a al_vmtf_atm countable;
+
+fun typerep_al_vmtf_atm A_ = {typerep = typerep_al_vmtf_atma A_} :
+  'a al_vmtf_atm typerep;
+
+fun heap_al_vmtf_atm A_ =
+  {countable_heap = countable_al_vmtf_atm A_,
+    typerep_heap = typerep_al_vmtf_atm (typerep_heap A_)}
+  : 'a al_vmtf_atm heap;
+
 datatype int = Int_of_integer of IntInf.int;
 
 datatype ('a, 'b) hashtable = HashTable of (('a * 'b) list) array * nat;
@@ -294,9 +310,6 @@ fun upd A_ i x a =
       a
     end);
 
-fun fold f (x :: xs) s = fold f xs (f x s)
-  | fold f [] s = s;
-
 fun null [] = true
   | null (x :: xs) = false;
 
@@ -314,6 +327,9 @@ fun equal_nat m n = (((integer_of_nat m) : IntInf.int) = (integer_of_nat n));
 fun replicate n x =
   (if equal_nat n zero_nata then []
     else x :: replicate (minus_nat n one_nat) x);
+
+fun is_none (SOME x) = false
+  | is_none NONE = true;
 
 fun blit A_ src si dst di len =
   (fn () => 
@@ -845,6 +861,10 @@ fun arrayO_ara_empty_sz_code (A1_, A2_) =
       (fn () => Array.fromList x) ()
     end);
 
+fun stamp (L_vmtf_ATM (x1, x2, x3)) = x1;
+
+fun get_next (L_vmtf_ATM (x1, x2, x3)) = x3;
+
 fun decided l = (l, NONE);
 
 fun propagated l c = (l, SOME c);
@@ -852,9 +872,9 @@ fun propagated l c = (l, SOME c);
 fun get_level_code x =
   (fn ai => fn bi =>
     let
-      val (_, (_, (a1b, _))) = ai;
+      val ((_, (_, (a1c, _))), (_, _)) = ai;
     in
-      nth heap_uint32 a1b (nat_of_uint32 (shiftr_uint32 bi one_nat))
+      nth heap_uint32 a1c (nat_of_uint32 (shiftr_uint32 bi one_nat))
     end)
     x;
 
@@ -907,7 +927,7 @@ fun remove1_wl_code x =
     end)
     x;
 
-val extract_lits_clss_imp_empty_assn :
+val extract_atms_clss_imp_empty_assn :
   (unit -> ((Word32.word, unit) hashtable * Word32.word list))
   = (fn () => let
                 val x = hs_new (hashable_uint32, heap_uint32) ();
@@ -918,9 +938,7 @@ val extract_lits_clss_imp_empty_assn :
 fun nat_lit_lits_init_assn_assn_prepend x =
   (fn ai => fn (a1, a2) => fn () =>
     let
-      val xa =
-        hs_ins (equal_uint32, hashable_uint32, heap_uint32)
-          (shiftr_uint32 ai one_nat) a1 ();
+      val xa = hs_ins (equal_uint32, hashable_uint32, heap_uint32) ai a1 ();
     in
       (xa, op_list_prepend ai a2)
     end)
@@ -931,7 +949,7 @@ fun nat_lit_lits_init_assn_assn_in x =
     hs_memb (equal_uint32, hashable_uint32, heap_uint32) ai a1)
     x;
 
-fun extract_lits_cls_imp x =
+fun extract_atms_cls_imp x =
   (fn ai =>
     imp_nfoldli ai (fn _ => (fn () => true))
       (fn xa => fn sigma => fn () =>
@@ -940,18 +958,18 @@ fun extract_lits_cls_imp x =
             nat_lit_lits_init_assn_assn_in (shiftr_uint32 xa one_nat) sigma ();
         in
           (if x_a then (fn () => sigma)
-            else nat_lit_lits_init_assn_assn_prepend
-                   (Word32.xorb (xa, (Word32.fromInt 1))) sigma)
+            else nat_lit_lits_init_assn_assn_prepend (shiftr_uint32 xa one_nat)
+                   sigma)
             ()
         end))
     x;
 
-fun extract_lits_clss_imp x =
-  (fn ai => imp_nfoldli ai (fn _ => (fn () => true)) extract_lits_cls_imp) x;
+fun extract_atms_clss_imp x =
+  (fn ai => imp_nfoldli ai (fn _ => (fn () => true)) extract_atms_cls_imp) x;
 
-fun extract_lits_clss_imp_list_assn x =
+fun extract_atms_clss_imp_list_assn x =
   (fn ai => fn bi => fn () => let
-                                val xa = extract_lits_clss_imp ai bi ();
+                                val xa = extract_atms_clss_imp ai bi ();
                               in
                                 snd xa
                               end)
@@ -972,17 +990,32 @@ fun hd_select_and_remove_from_literals_to_update_wl x =
     x;
 
 fun cons_trail_Propagated_tr_code x =
-  (fn ai => fn bia => fn (a1, (a1a, (a1b, a2b))) => fn () =>
+  (fn ai => fn bia => fn (a1, (a1a, a2a)) => fn () =>
     let
       val xa =
-        upd (heap_option heap_bool) (nat_of_uint32 (shiftr_uint32 ai one_nat))
-          (SOME (((Word32.andb (ai,
-                    (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0)))
-          a1a ();
-      val xaa =
-        upd heap_uint32 (nat_of_uint32 (shiftr_uint32 ai one_nat)) a2b a1b ();
+        let
+          val (a1b, (a1c, (a1d, a2d))) = a1;
+        in
+          (fn f_ => fn () => f_
+            ((upd (heap_option heap_bool)
+               (nat_of_uint32 (shiftr_uint32 ai one_nat))
+               (SOME (((Word32.andb (ai,
+                         (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0)))
+               a1c)
+            ()) ())
+            (fn xa =>
+              (fn f_ => fn () => f_
+                ((upd heap_uint32 (nat_of_uint32 (shiftr_uint32 ai one_nat)) a2d
+                   a1d)
+                ()) ())
+                (fn xaa =>
+                  (fn () =>
+                    (op_list_prepend (propagated ai bia) a1b,
+                      (xa, (xaa, a2d))))))
+        end
+          ();
     in
-      (op_list_prepend (propagated ai bia) a1, (xa, (xaa, a2b)))
+      (xa, (a1a, a2a))
     end)
     x;
 
@@ -997,12 +1030,12 @@ fun delete_index_and_swap_aa A_ xs i j =
 fun valued_trail_code x =
   (fn ai => fn bi =>
     let
-      val (_, (a1a, (_, _))) = ai;
+      val ((_, (a1b, (_, _))), (_, _)) = ai;
     in
       (fn () =>
         let
           val xa =
-            nth (heap_option heap_bool) a1a
+            nth (heap_option heap_bool) a1b
               (nat_of_uint32 (shiftr_uint32 bi one_nat)) ();
         in
           (case xa of NONE => NONE
@@ -1152,7 +1185,7 @@ fun is_decided_wl_code x = (fn xi => (fn () => (is_None (snd xi)))) x;
 fun is_decided_hd_trail_wll_code x =
   (fn (a1, (_, (_, (_, (_, (_, (_, _))))))) => fn () =>
     let
-      val xa = ((fn a => (fn () => a)) o hd o fst) a1 ();
+      val xa = ((fn a => (fn () => a)) o hd o fst o fst) a1 ();
     in
       is_decided_wl_code xa ()
     end)
@@ -1208,24 +1241,42 @@ fun maximum_level_remove_code x =
     x;
 
 fun tl_trail_tr_code x =
-  (fn (a1, (a1a, (a1b, a2b))) => fn () =>
+  (fn ((a1a, (a1b, (a1c, a2c))), (((a1f, (a1g, (a1h, a2h))), a2e), a2d)) =>
     let
-      val xa =
-        upd (heap_option heap_bool)
-          (nat_of_uint32 (shiftr_uint32 (fst (op_list_hd a1)) one_nat)) NONE a1a
-          ();
-      val xaa =
-        upd heap_uint32
-          (nat_of_uint32 (shiftr_uint32 (fst (op_list_hd a1)) one_nat))
-          (Word32.fromInt 0) a1b ();
-      val xb = is_decided_wl_code (op_list_hd a1) ();
+      val x_a = op_list_hd a1a;
+      val x_b = shiftr_uint32 (fst x_a) one_nat;
     in
-      (op_list_tl a1,
-        (xa, (xaa, (if xb
-                     then uint32_safe_minus
-                            (minus_uint32, zero_uint32, ord_uint32) a2b
-                            (Word32.fromInt 1)
-                     else a2b))))
+      (fn () =>
+        let
+          val xa = upd (heap_option heap_bool) (nat_of_uint32 x_b) NONE a1b ();
+          val xaa =
+            upd heap_uint32 (nat_of_uint32 x_b) (Word32.fromInt 0) a1c ();
+          val xb = is_decided_wl_code x_a ();
+          val xc =
+            (if is_None a2h then (fn () => true)
+              else (fn f_ => fn () => f_
+                     ((nth (heap_al_vmtf_atm heap_uint32) a1f
+                        (nat_of_uint32 (the a2h)))
+                     ()) ())
+                     (fn xc =>
+                       (fn f_ => fn () => f_
+                         ((nth (heap_al_vmtf_atm heap_uint32) a1f
+                            (nat_of_uint32 x_b))
+                         ()) ())
+                         (fn xab =>
+                           (fn () => (less_nat (stamp xc) (stamp xab))))))
+              ();
+        in
+          ((op_list_tl a1a,
+             (xa, (xaa, (if xb
+                          then uint32_safe_minus
+                                 (minus_uint32, zero_uint32, ord_uint32) a2c
+                                 (Word32.fromInt 1)
+                          else a2c)))),
+            ((if xc then ((a1f, (a1g, (a1h, SOME x_b))), a2e)
+               else ((a1f, (a1g, (a1h, a2h))), a2e)),
+              a2d))
+        end)
     end)
     x;
 
@@ -1245,8 +1296,8 @@ fun skip_and_resolve_loop_wl_D_code x =
             let
               val x_b = the a1d;
             in
-              (fn f_ => fn () => f_ ((((fn a => (fn () => a)) o hd o fst) a1a)
-                ()) ())
+              (fn f_ => fn () => f_
+                ((((fn a => (fn () => a)) o hd o fst o fst) a1a) ()) ())
                 (fn xb =>
                   let
                     val (a1h, a2h) = (fst xb, the (snd xb));
@@ -1270,9 +1321,14 @@ fun skip_and_resolve_loop_wl_D_code x =
                                  ()) ())
                                  (fn xd =>
                                    (if ((xd : Word32.word) = let
-                       val (_, (_, (_, k))) = a1a;
+                       val (a, b) = a1a;
                      in
-                       k
+                       let
+                         val (_, (_, (_, k))) = a;
+                       in
+                         (fn _ => k)
+                       end
+                         b
                      end)
                                      then (fn f_ => fn () => f_
     ((remove1_wl_code (Word32.xorb (a1h, (Word32.fromInt 1))) x_b) ()) ())
@@ -1311,63 +1367,160 @@ fun skip_and_resolve_loop_wl_D_code x =
     end)
     x;
 
-fun find_unassigned_lit_wl_D_code n_0 =
-  (fn (a1, (_, (_, (_, (_, (_, (_, _))))))) => fn () =>
+fun defined_atm_code x =
+  (fn ai => fn bi =>
     let
-      val x =
-        heap_WHILET
-          (fn (a1g, a2g) =>
-            (fn () => (is_None a1g andalso not (op_list_is_empty a2g))))
-          (fn (_, a2g) =>
-            (fn f_ => fn () => f_ ((valued_trail_code a1 (op_list_hd a2g)) ())
-              ())
-              (fn x =>
-                (fn () =>
-                  ((if is_None x then SOME (op_list_hd a2g) else NONE),
-                    op_list_tl a2g))))
-          (NONE, n_0) ();
+      val (_, (a1a, (_, _))) = ai;
     in
-      fst x
-    end);
-
-fun cons_trail_Decided_tr_code x =
-  (fn ai => fn (a1, (a1a, (a1b, a2b))) => fn () =>
-    let
-      val xa =
-        upd (heap_option heap_bool) (nat_of_uint32 (shiftr_uint32 ai one_nat))
-          (SOME (((Word32.andb (ai,
-                    (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0)))
-          a1a ();
-      val xaa =
-        upd heap_uint32 (nat_of_uint32 (shiftr_uint32 ai one_nat))
-          (Word32.+ (a2b, (Word32.fromInt 1))) a1b ();
-    in
-      (op_list_prepend (decided ai) a1,
-        (xa, (xaa, Word32.+ (a2b, (Word32.fromInt 1)))))
+      (fn () =>
+        let
+          val xa = nth (heap_option heap_bool) a1a (nat_of_uint32 bi) ();
+        in
+          not (is_none xa)
+        end)
     end)
     x;
 
-fun decide_wl_or_skip_D_code n_0 =
+fun vmtf_find_next_undef_code x =
+  (fn ai => fn bi =>
+    let
+      val ((a1a, a), _) = ai;
+      val (_, aa) = a;
+      val (_, ab) = aa;
+    in
+      heap_WHILET
+        (fn s =>
+          (if not (is_None s) then defined_atm_code bi (the s)
+            else (fn () => false)))
+        (fn s =>
+          let
+            val xa = the s;
+          in
+            (fn () =>
+              let
+                val xaa = defined_atm_code bi xa ();
+              in
+                (if not xaa then (fn () => (SOME xa))
+                  else (fn f_ => fn () => f_
+                         ((nth (heap_al_vmtf_atm heap_uint32) a1a
+                            (nat_of_uint32 xa))
+                         ()) ())
+                         (fn x_c => (fn () => (get_next x_c))))
+                  ()
+              end)
+          end)
+        ab
+    end)
+    x;
+
+fun update_next_search l =
+  (fn (a, b) => let
+                  val (aa, (m, (lst, _))) = a;
+                in
+                  (fn ba => ((aa, (m, (lst, l))), ba))
+                end
+                  b);
+
+fun vmtf_find_next_undef_upd_code x =
+  (fn (a1, (a1a, a2a)) => fn () =>
+    let
+      val xa = vmtf_find_next_undef_code a1a a1 ();
+    in
+      ((a1, (update_next_search xa a1a, a2a)), xa)
+    end)
+    x;
+
+fun lit_of_found_atm_D_code x =
+  (fn ai => fn bi =>
+    let
+      val (_, (_, a2a)) = ai;
+    in
+      (case bi of NONE => (fn () => NONE)
+        | SOME xa =>
+          (fn () =>
+            let
+              val x_a = nth heap_bool a2a (nat_of_uint32 xa) ();
+            in
+              (if x_a
+                then SOME (Word32.* (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int)), xa))
+                else SOME (Word32.+ (Word32.* (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int)), xa), (Word32.fromInt 1))))
+            end))
+    end)
+    x;
+
+fun find_unassigned_lit_wl_D_code x =
+  (fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f, a2f))))))) => fn () =>
+    let
+      val a = vmtf_find_next_undef_upd_code a1 ();
+    in
+      let
+        val (a1g, a2g) = a;
+      in
+        (fn f_ => fn () => f_ ((lit_of_found_atm_D_code a1g a2g) ()) ())
+          (fn x_a =>
+            (fn () =>
+              ((a1g, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f, a2f))))))), x_a)))
+      end
+        ()
+    end)
+    x;
+
+fun cons_trail_Decided_tr_code x =
+  (fn ai => fn (a1, (a1a, a2a)) => fn () =>
+    let
+      val xa =
+        let
+          val (a1b, (a1c, (a1d, a2d))) = a1;
+        in
+          (fn f_ => fn () => f_
+            ((upd (heap_option heap_bool)
+               (nat_of_uint32 (shiftr_uint32 ai one_nat))
+               (SOME (((Word32.andb (ai,
+                         (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0)))
+               a1c)
+            ()) ())
+            (fn xa =>
+              (fn f_ => fn () => f_
+                ((upd heap_uint32 (nat_of_uint32 (shiftr_uint32 ai one_nat))
+                   (Word32.+ (a2d, (Word32.fromInt 1))) a1d)
+                ()) ())
+                (fn xaa =>
+                  (fn () =>
+                    (op_list_prepend (decided ai) a1b,
+                      (xa, (xaa, Word32.+ (a2d, (Word32.fromInt 1))))))))
+        end
+          ();
+    in
+      (xa, (a1a, a2a))
+    end)
+    x;
+
+fun decide_wl_or_skip_D_code x =
   (fn xi => fn () =>
     let
-      val x = find_unassigned_lit_wl_D_code n_0 xi ();
+      val a = find_unassigned_lit_wl_D_code xi ();
     in
-      (if not (is_None x)
-        then let
-               val (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (_, a2f))))))) = xi;
-               val x_c = the x;
-             in
-               (fn f_ => fn () => f_ ((cons_trail_Decided_tr_code x_c a1) ())
-                 ())
-                 (fn xa =>
-                   (fn () =>
-                     (false,
-                       (xa, (a1a, (a1b, (a1c,
-  (a1d, (a1e, ([Word32.xorb (x_c, (Word32.fromInt 1))], a2f))))))))))
-             end
-        else (fn () => (true, xi)))
+      let
+        val (a1, a2) = a;
+      in
+        (if not (is_None a2)
+          then let
+                 val (a1a, (a1b, (a1c, (a1d, (a1e, (a1f, (_, a2g))))))) = a1;
+                 val x_c = the a2;
+               in
+                 (fn f_ => fn () => f_ ((cons_trail_Decided_tr_code x_c a1a) ())
+                   ())
+                   (fn xa =>
+                     (fn () =>
+                       (false,
+                         (xa, (a1b, (a1c, (a1d,
+    (a1e, (a1f, ([Word32.xorb (x_c, (Word32.fromInt 1))], a2g))))))))))
+               end
+          else (fn () => (true, a1)))
+      end
         ()
-    end);
+    end)
+    x;
 
 fun extract_shorter_conflict_l_trivial_code x =
   (fn ai => fn _ => fn _ => fn bid => fn _ => fn _ => fn _ => fn _ =>
@@ -1455,8 +1608,8 @@ fun find_decomp_wl_imp_code x =
       val a =
         heap_WHILET (fn (a1, _) => (fn () => (Word32.< (xa, a1))))
           (fn (a1, a2) =>
-            (fn f_ => fn () => f_ ((((fn a => (fn () => a)) o hd o fst) a2) ())
-              ())
+            (fn f_ => fn () => f_
+              ((((fn a => (fn () => a)) o hd o fst o fst) a2) ()) ())
               (fn xb =>
                 (fn f_ => fn () => f_ ((is_decided_wl_code xb) ()) ())
                   (fn x_e =>
@@ -1471,9 +1624,14 @@ fun find_decomp_wl_imp_code x =
                       else (fn f_ => fn () => f_ ((tl_trail_tr_code a2) ()) ())
                              (fn x_f => (fn () => (a1, x_f)))))))
           (let
-             val (_, (_, (_, k))) = ai;
+             val (a, b) = ai;
            in
-             k
+             let
+               val (_, (_, (_, k))) = a;
+             in
+               (fn _ => k)
+             end
+               b
            end,
             ai)
           ();
@@ -1497,7 +1655,7 @@ fun single_of_mset_imp_code x = (fn xi => arl_get heap_uint32 xi zero_nata) x;
 fun backtrack_wl_D_code x =
   (fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f, a2f))))))) => fn () =>
     let
-      val xa = ((fn a => (fn () => a)) o hd o fst) a1 ();
+      val xa = ((fn a => (fn () => a)) o hd o fst o fst) a1 ();
     in
       let
         val x_a = fst xa;
@@ -1573,26 +1731,27 @@ fun backtrack_wl_D_code x =
     end)
     x;
 
-fun cdcl_twl_o_prog_wl_D_code n_0 =
+fun cdcl_twl_o_prog_wl_D_code x =
   (fn xi => fn () =>
     let
-      val x = get_conflict_wl_is_None_code xi ();
+      val xa = get_conflict_wl_is_None_code xi ();
     in
-      (if x then decide_wl_or_skip_D_code n_0 xi
+      (if xa then decide_wl_or_skip_D_code xi
         else (fn f_ => fn () => f_ ((skip_and_resolve_loop_wl_D_code xi) ()) ())
                (fn x_a =>
                  (fn f_ => fn () => f_ ((get_conflict_wll_is_Nil_code x_a) ())
                    ())
-                   (fn xa =>
-                     (if not xa
+                   (fn xb =>
+                     (if not xb
                        then (fn f_ => fn () => f_ ((backtrack_wl_D_code x_a) ())
                               ())
                               (fn x_c => (fn () => (false, x_c)))
                        else (fn () => (true, x_a))))))
         ()
-    end);
+    end)
+    x;
 
-fun cdcl_twl_stgy_prog_wl_D_code n_0 =
+fun cdcl_twl_stgy_prog_wl_D_code x =
   (fn xi => fn () =>
     let
       val a =
@@ -1600,7 +1759,7 @@ fun cdcl_twl_stgy_prog_wl_D_code n_0 =
           (fn (_, a2) =>
             (fn f_ => fn () => f_ ((unit_propagation_outer_loop_wl_D_code a2)
               ()) ())
-              (cdcl_twl_o_prog_wl_D_code n_0))
+              cdcl_twl_o_prog_wl_D_code)
           (false, xi) ();
     in
       let
@@ -1609,35 +1768,110 @@ fun cdcl_twl_stgy_prog_wl_D_code n_0 =
         (fn () => aa)
       end
         ()
-    end);
+    end)
+    x;
 
-fun init_state_wl_D n_0 l_Ns =
-  let
-    val n =
-      suc (suc (nat_of_uint32 (fold (max ord_uint32) n_0 (Word32.fromInt 0))));
-  in
-    (fn () =>
+fun initialise_VMTF_code x =
+  (fn ai => fn bi => fn () =>
+    let
+      val xa =
+        new (heap_al_vmtf_atm heap_uint32) bi
+          (L_vmtf_ATM (zero_nata, NONE, NONE)) ();
+      val a =
+        heap_WHILET
+          (fn (a1, (_, (_, _))) => (fn () => (not (op_list_is_empty a1))))
+          (fn (a1, (a1a, (a1b, a2b))) =>
+            let
+              val x_c = op_list_hd a1;
+            in
+              (fn f_ => fn () => f_
+                ((upd (heap_al_vmtf_atm heap_uint32) (nat_of_uint32 x_c)
+                   (L_vmtf_ATM (suc a1b, NONE, a2b)) a1a)
+                ()) ())
+                (fn xb =>
+                  (fn f_ => fn () => f_
+                    ((case a2b of NONE => (fn () => xb)
+                       | SOME x_g =>
+                         (fn f_ => fn () => f_
+                           ((nth (heap_al_vmtf_atm heap_uint32) xb
+                              (nat_of_uint32 x_g))
+                           ()) ())
+                           (fn xaa =>
+                             (fn f_ => fn () => f_
+                               ((nth (heap_al_vmtf_atm heap_uint32) xb
+                                  (nat_of_uint32 x_g))
+                               ()) ())
+                               (fn xba =>
+                                 upd (heap_al_vmtf_atm heap_uint32)
+                                   (nat_of_uint32 x_g)
+                                   (L_vmtf_ATM
+                                     (stamp xaa, SOME x_c, get_next xba))
+                                   xb)))
+                    ()) ())
+                    (fn xc =>
+                      (fn () =>
+                        (op_list_tl a1,
+                          (xc, (plus_nat a1b one_nat, SOME x_c))))))
+            end)
+          (ai, (xa, (zero_nata, NONE))) ();
+    in
       let
-        val na =
-          arrayO_raa_empty_sz (default_uint32, heap_uint32) zero_nat l_Ns ();
-        val e = new heap_uint32 zero_nata (Word32.fromInt 0) ();
-        val naa = arrayO_raa_append (default_uint32, heap_uint32) na e ();
-        val ws = arrayO_ara_empty_sz_code (default_nat, heap_nat) n ();
-        val m =
-          new (heap_option heap_bool)
-            ((nat_of_integer(IntInf.~>> (integer_of_nat(n), Word.fromInt 1))))
-            NONE ();
-        val ma =
-          new heap_uint32
-            ((nat_of_integer(IntInf.~>> (integer_of_nat(n), Word.fromInt 1))))
-            (Word32.fromInt 0) ();
+        val (_, (a1a, (a1b, a2b))) = a;
       in
-        (([], (m, (ma, (Word32.fromInt 0)))),
-          (naa, (zero_nata, (NONE, ([], ([], ([], ws)))))))
-      end)
-  end;
+        (fn () => ((a1a, (a1b, (a2b, a2b))), []))
+      end
+        ()
+    end)
+    x;
 
-fun init_state_wl_D_code n_0 = init_state_wl_D n_0;
+fun init_trail_D_code x =
+  (fn ai => fn bi => fn () =>
+    let
+      val xa = new (heap_option heap_bool) bi NONE ();
+      val x_b = new heap_uint32 bi (Word32.fromInt 0) ();
+      val x_d = new heap_bool bi false ();
+      val x_f = initialise_VMTF_code ai bi ();
+    in
+      (([], (xa, (x_b, (Word32.fromInt 0)))), (x_f, x_d))
+    end)
+    x;
+
+fun init_state_wl_D_code x =
+  (fn xi => fn () =>
+    let
+      val xa =
+        imp_nfoldli xi (fn _ => (fn () => true))
+          (fn xb => fn sigma => (fn () => (max ord_uint32 xb sigma)))
+          (Word32.fromInt 0) ();
+    in
+      let
+        val xb = suc (nat_of_uint32 xa);
+      in
+        (fn f_ => fn () => f_ ((init_trail_D_code xi xb) ()) ())
+          (fn x_d =>
+            (fn f_ => fn () => f_ (((fn () => Array.fromList [])) ()) ())
+              (fn x_e =>
+                (fn f_ => fn () => f_
+                  ((arrayO_raa_empty_sz (default_uint32, heap_uint32) zero_nat
+                     xb)
+                  ()) ())
+                  (fn x_g =>
+                    (fn f_ => fn () => f_
+                      ((arrayO_raa_append (default_uint32, heap_uint32) x_g x_e)
+                      ()) ())
+                      (fn x_i =>
+                        (fn f_ => fn () => f_
+                          ((arrayO_ara_empty_sz_code (default_nat, heap_nat)
+                             (times_nat (nat_of_integer (2 : IntInf.int)) xb))
+                          ()) ())
+                          (fn x_k =>
+                            (fn () =>
+                              (x_d, (x_i, (zero_nata,
+    (NONE, ([], ([], ([], x_k)))))))))))))
+      end
+        ()
+    end)
+    x;
 
 fun arl_of_list_raa A_ xs =
   (fn () => let
@@ -1647,12 +1881,12 @@ fun arl_of_list_raa A_ xs =
             end);
 
 fun init_dt_step_wl_code x =
-  (fn _ => fn bia => fn a =>
+  (fn ai => fn a =>
     (case a
       of (a1, (a1a, (a1b, (NONE, (a1d, (a1e, (a1f, a2f))))))) =>
-        (if equal_nat (op_list_length bia) one_nat
+        (if equal_nat (op_list_length ai) one_nat
           then let
-                 val x_b = op_list_hd bia;
+                 val x_b = op_list_hd ai;
                in
                  (fn () =>
                    let
@@ -1673,7 +1907,7 @@ fun init_dt_step_wl_code x =
                                      (a1, (a1a,
     (a1b, (NONE, ([x_b] :: a1d, (a1e, (a1f, a2f))))))))
                               else (fn f_ => fn () => f_
-                                     ((arl_of_list_raa heap_uint32 bia) ()) ())
+                                     ((arl_of_list_raa heap_uint32 ai) ()) ())
                                      (fn xa =>
                                        (fn () =>
  (a1, (a1a, (a1b, (SOME xa, ([x_b] :: a1d, (a1e, ([], a2f)))))))))))
@@ -1685,32 +1919,32 @@ fun init_dt_step_wl_code x =
                    val x_b = length_ra heap_uint32 a1a ();
                    val x_d =
                      append_el_aa (default_nat, heap_nat) a2f
-                       (nat_of_uint32 (op_list_hd bia)) x_b ();
+                       (nat_of_uint32 (op_list_hd ai)) x_b ();
                    val x_f =
                      append_el_aa (default_nat, heap_nat) x_d
-                       (nat_of_uint32 (op_list_hd (op_list_tl bia))) x_b ();
-                   val xa = (fn () => Array.fromList bia) ();
+                       (nat_of_uint32 (op_list_hd (op_list_tl ai))) x_b ();
+                   val xa = (fn () => Array.fromList ai) ();
                    val xb =
                      arrayO_raa_append (default_uint32, heap_uint32) a1a xa ();
                  in
                    (a1, (xb, (x_b, (NONE, (a1d, (a1e, (a1f, x_f)))))))
                  end))
       | (a1, (a1a, (a1b, (SOME x_a, (a1d, (a1e, (_, a2f))))))) =>
-        (if equal_nat (op_list_length bia) one_nat
+        (if equal_nat (op_list_length ai) one_nat
           then (fn () =>
                  (a1, (a1a, (a1b, (SOME x_a,
-                                    ([op_list_hd bia] :: a1d,
+                                    ([op_list_hd ai] :: a1d,
                                       (a1e, ([], a2f))))))))
           else (fn () =>
                  let
                    val x_c = length_ra heap_uint32 a1a ();
                    val x_e =
                      append_el_aa (default_nat, heap_nat) a2f
-                       (nat_of_uint32 (op_list_hd bia)) x_c ();
+                       (nat_of_uint32 (op_list_hd ai)) x_c ();
                    val x_g =
                      append_el_aa (default_nat, heap_nat) x_e
-                       (nat_of_uint32 (op_list_hd (op_list_tl bia))) x_c ();
-                   val xa = (fn () => Array.fromList bia) ();
+                       (nat_of_uint32 (op_list_hd (op_list_tl ai))) x_c ();
+                   val xa = (fn () => Array.fromList ai) ();
                    val xb =
                      arrayO_raa_append (default_uint32, heap_uint32) a1a xa ();
                  in
@@ -1719,22 +1953,19 @@ fun init_dt_step_wl_code x =
     x;
 
 fun init_dt_wl_code x =
-  (fn ai => fn bia =>
-    imp_nfoldli bia (fn _ => (fn () => true)) (init_dt_step_wl_code ai))
-    x;
+  (fn ai => imp_nfoldli ai (fn _ => (fn () => true)) init_dt_step_wl_code) x;
 
 fun sAT_wl_code x =
   (fn xi => fn () =>
     let
-      val xa = extract_lits_clss_imp_empty_assn ();
-      val x_b = extract_lits_clss_imp_list_assn xi xa ();
-      val x_d = init_state_wl_D_code x_b (op_list_length xi) ();
-      val x_f = init_dt_wl_code x_b xi x_d ();
+      val xa = extract_atms_clss_imp_empty_assn ();
+      val x_b = extract_atms_clss_imp_list_assn xi xa ();
+      val x_d = init_state_wl_D_code x_b ();
+      val x_f = init_dt_wl_code xi x_d ();
       val x_g = get_conflict_wl_is_None_code x_f ();
     in
       (if x_g
-        then (fn f_ => fn () => f_ ((cdcl_twl_stgy_prog_wl_D_code x_b x_f) ())
-               ())
+        then (fn f_ => fn () => f_ ((cdcl_twl_stgy_prog_wl_D_code x_f) ()) ())
                get_conflict_wl_is_None_code
         else (fn () => false))
         ()
