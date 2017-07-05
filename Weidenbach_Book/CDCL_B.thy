@@ -23,11 +23,9 @@ abbreviation lits_of_l\<^sub>B :: \<open>('v, 'mark) ann_bats \<Rightarrow> 'v l
 definition true_annot\<^sub>B :: \<open>('v, 'mark) ann_bats \<Rightarrow> 'v clause \<Rightarrow> bool\<close> (infix "\<Turnstile>b" 49) where
   \<open>I \<Turnstile>b C \<longleftrightarrow> (lits_of_l\<^sub>B I) \<Turnstile> C\<close>
 
-definition true_annots\<^sub>B :: \<open>('v, 'mark) ann_bats \<Rightarrow> 'v clause set \<Rightarrow> bool\<close> (infix "\<Turnstile>bs" 49) where
-  \<open>I \<Turnstile>bs CC \<longleftrightarrow> (\<forall>C \<in> CC. I \<Turnstile>b C)\<close>  (* (set_mset CC). instead works *)
+definition true_annots\<^sub>B :: \<open>('v, 'mark) ann_bats \<Rightarrow> 'v clauses \<Rightarrow> bool\<close> (infix "\<Turnstile>bs" 49) where
+  \<open>I \<Turnstile>bs CC \<longleftrightarrow> (\<forall>C \<in># CC. I \<Turnstile>b C)\<close>
 
-abbreviation true_annots\<^sub>B_mset :: \<open>('v, 'mark) ann_bats \<Rightarrow> 'v clauses \<Rightarrow> bool\<close> (infix "\<Turnstile>bsm" 49) where
-  \<open>I \<Turnstile>bsm C \<equiv> I \<Turnstile>bs set_mset C\<close>
 
 locale state\<^sub>B_ops =
   fixes
@@ -653,8 +651,8 @@ definition valid_bats :: \<open>('v, 'v clause) ann_bats \<Rightarrow> 'v clause
   \<open>valid_bats M N B \<longleftrightarrow>
     (\<forall>Ls \<in># B. consistent_interp (set Ls)) \<and>
     (\<forall>Ls \<in># B. \<forall>L \<in> set Ls. -L \<notin> lits_of_l\<^sub>B M) \<and>
-    (\<forall>Ls \<in># B. \<exists>I. (set Ls \<subseteq> I \<and> I \<Turnstile>sm (restrict Ls N))) \<and> (* new constraint *)
-    (\<forall>I. I \<Turnstile>sm N \<longrightarrow> lits_of_l\<^sub>B M \<subseteq> I \<longrightarrow> (\<exists>Ls \<in># B. set Ls \<subseteq> I))\<close>
+    (\<forall>Ls \<in># B. \<exists>I. (set Ls \<subseteq> I \<and> I \<Turnstile>s (restrict Ls N))) \<and> (* new constraint *)
+    (\<forall>I. I \<Turnstile>s N \<longrightarrow> lits_of_l\<^sub>B M \<subseteq> I \<longrightarrow> (\<exists>Ls \<in># B. set Ls \<subseteq> I))\<close>
 
 inductive decide\<^sub>B :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
 decide\<^sub>B_rule:
