@@ -988,7 +988,7 @@ proof -
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def)
   then have M\<^sub>0_CNot_D: \<open>M\<^sub>0 \<Turnstile>as CNot (the D)\<close>
     using E_D\<^sub>0 unfolding E by (simp add: mset_subset_eqD true_annots_true_cls_def_iff_negation_in_model)
-    
+
   have n_d: \<open>no_dup M\<^sub>0\<close>
     using lev_inv by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset'
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def)
@@ -1153,7 +1153,7 @@ lemma nth_ll_watched_app:
   unfolding watched_app_def nth_ll_def
   by (fastforce simp: fref_def map_fun_rel_def prod_rel_def nres_rel_def p2rel_def lit_of_natP_def)
 
- 
+
 lemma nth_aa_hnr_u[sepref_fr_rules]:
   assumes p: \<open>is_pure R\<close>
   shows
@@ -1163,7 +1163,7 @@ lemma nth_aa_hnr_u[sepref_fr_rules]:
   supply nth_aa_hnr[to_hnr, sep_heap_rules]
   using assms
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
- 
+
 lemma nth_aa_watched_app[sepref_fr_rules]:
   \<open>(uncurry2 (\<lambda>xs i. nth_aa xs (nat_of_uint32 i)), uncurry2 (RETURN ooo op_watched_app)) \<in>
    [\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0 \<and> i < length (W L)]\<^sub>a
@@ -1196,11 +1196,11 @@ proof -
     using H unfolding 1 2 3 op_watched_app_def .
 qed
 
-lemma length_aa_hnr_u[sepref_fr_rules]: 
+lemma length_aa_hnr_u[sepref_fr_rules]:
   \<open>(uncurry (\<lambda>xs i. length_aa xs (nat_of_uint32 i)), uncurry (RETURN \<circ>\<circ> length_ll)) \<in>
      [\<lambda>(xs, i). i < length xs]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
-    
+
 lemma length_aa_length_ll_f[sepref_fr_rules]:
   \<open>(uncurry (\<lambda>xs i. length_aa xs (nat_of_uint32 i)), uncurry (RETURN oo length_ll_f)) \<in>
    [\<lambda>(W, L). L \<in> snd ` D\<^sub>0]\<^sub>a
@@ -1236,6 +1236,32 @@ proof -
 
   show ?thesis
     using H unfolding 1 2 3 .
+qed
+
+
+lemma (in -) is_pos_nat_lit_hnr:
+  \<open>(return o (\<lambda>L. bitAND L 1 = 0), RETURN o is_pos) \<in> nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding bitAND_1_mod_2
+  apply (sepref_to_hoare, rename_tac x xi, case_tac x)
+   apply (sep_auto simp: p2rel_def lit_of_natP_def unat_lit_rel_def uint32_nat_rel_def nat_lit_rel_def br_def
+      split: if_splits)+
+  by presburger
+
+lemma (in -) is_pos_hnr[sepref_fr_rules]:
+  \<open>(return o (\<lambda>L. bitAND L 1 = 0), RETURN o is_pos) \<in> unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+proof -
+  have 1: \<open>(RETURN o (\<lambda>L. bitAND L 1 = 0), RETURN o is_pos) \<in> nat_lit_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
+    unfolding bitAND_1_mod_2
+    by (intro nres_relI frefI) (auto simp: nat_lit_rel_def lit_of_natP_def split: if_splits)
+  have 2: \<open>(return o (\<lambda>L. bitAND L 1 = 0), RETURN o (\<lambda>L. bitAND L 1 = 0)) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+    apply sepref_to_hoare
+    using nat_of_uint32_ao[of _ 1]
+    by (sep_auto simp: p2rel_def lit_of_natP_def unat_lit_rel_def uint32_nat_rel_def
+        nat_lit_rel_def br_def nat_of_uint32_012
+        nat_of_uint32_0_iff nat_0_AND uint32_0_AND
+        split: if_splits)+
+  show ?thesis
+    using 2[FCOMP 1] unfolding unat_lit_rel_def .
 qed
 
 

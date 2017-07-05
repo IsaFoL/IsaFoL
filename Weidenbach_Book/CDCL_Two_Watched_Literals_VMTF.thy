@@ -12,6 +12,7 @@ text \<open>
 lemma nth_list_update_le'[simp]:
   "j < length xs \<Longrightarrow> (xs[i:=x])!j = (if i = j then x else xs!j)"
   by (induct xs arbitrary: i j) (auto simp add: nth_Cons split: nat.split)
+(* End Move *)
 
 
 subsection \<open>Variable-Move-to-Front\<close>
@@ -1709,7 +1710,7 @@ qed
 
 definition vmtf_find_next_undef :: \<open>vmtf_imp_remove \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat option) nres\<close> where
 \<open>vmtf_find_next_undef \<equiv> (\<lambda>((A, m, lst, next_search), removed) M. do {
-    WHILE\<^sub>T\<^bsup>\<lambda>next_search. ((A, m, lst, next_search), removed) \<in> vmtf_imp M \<and> 
+    WHILE\<^sub>T\<^bsup>\<lambda>next_search. ((A, m, lst, next_search), removed) \<in> vmtf_imp M \<and>
          (next_search \<noteq> None \<longrightarrow> Pos (the next_search) \<in> snd ` D\<^sub>0)\<^esup>
       (\<lambda>next_search. next_search \<noteq> None \<and> defined_lit M (Pos (the next_search)))
       (\<lambda>next_search. do {

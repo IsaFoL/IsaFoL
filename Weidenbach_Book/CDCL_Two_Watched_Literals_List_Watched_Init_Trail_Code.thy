@@ -2,7 +2,7 @@ theory CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code
 imports CDCL_Two_Watched_Literals_List_Watched_Trail_Code
 begin
 
-
+(* TODO Move? *)
 definition arl_of_list_raa :: "'a::heap list \<Rightarrow> ('a array_list) Heap" where
   \<open>arl_of_list_raa xs = do {
     ys \<leftarrow> Array.of_list xs;
@@ -24,9 +24,17 @@ proof -
     done
 qed
 
-
 lemma valued_None_undefined_lit: \<open>is_None (valued M L) \<Longrightarrow> undefined_lit M L\<close>
   by (auto simp: valued_def split: if_splits)
+
+lemma distinct_nat_of_uint32[iff]:
+  \<open>distinct_mset (nat_of_uint32 `# A) \<longleftrightarrow> distinct_mset A\<close>
+  \<open>distinct (map nat_of_uint32 xs) \<longleftrightarrow> distinct xs\<close>
+  using distinct_image_mset_inj[of nat_of_uint32]
+  by (auto simp: inj_on_def distinct_map)
+
+(* End Move *)
+
 
 declare twl_array_code.append_el_aa_hnr[sepref_fr_rules]
 declare twl_array_code.valued_trail_code_valued_refine_code[sepref_fr_rules]
@@ -251,14 +259,6 @@ proof -
     using find_first_eq_map_atm_of_code.refine[FCOMP 1] .
 qed
 
-(* TODO Move *)
-lemma all_lits_of_mm_empty[simp]: \<open>all_lits_of_mm {#} = {#}\<close>
-  by (auto simp: all_lits_of_mm_def)
-
-lemma all_lits_of_m_empty[simp]: \<open>all_lits_of_m {#} = {#}\<close>
-  by (auto simp: all_lits_of_m_def)
-(* End Move *)
-
 lemma extract_atms_cls_Cons:
   \<open>extract_atms_cls (L # C) N\<^sub>0 = extract_atms_cls C (if atm_of L \<in> set N\<^sub>0 then N\<^sub>0 else atm_of L # N\<^sub>0)\<close>
   unfolding extract_atms_cls_def fold.simps by simp
@@ -271,6 +271,19 @@ lemma extract_atms_clss_Cons[simp]:
   \<open>extract_atms_clss (C # Cs) N = extract_atms_clss Cs (extract_atms_cls C N)\<close>
   by (simp add: extract_atms_clss_def)
 
+lemma distinct_extract_atms_cls: \<open>distinct (extract_atms_cls x N) \<longleftrightarrow> distinct N\<close>
+  apply (induction x arbitrary: N)
+  subgoal by (auto simp: extract_atms_clss_def)
+  subgoal premises p for a x N
+    using p by (auto simp: extract_atms_cls_Cons)
+  done
+
+lemma distinct_extract_atms_clss: \<open>distinct (extract_atms_clss x N) \<longleftrightarrow> distinct N\<close>
+  apply (induction x arbitrary: N)
+  subgoal by (auto simp: extract_atms_clss_def)
+  subgoal premises p for a x N
+    using p by (auto simp: distinct_extract_atms_cls)
+  done
 
 definition (in -) all_lits_of_atms_m :: \<open>'a multiset \<Rightarrow> 'a clause\<close> where
  \<open>all_lits_of_atms_m N = poss N + negs N\<close>
@@ -318,7 +331,6 @@ lemma in_extract_atms_clssD:
   subgoal premises IH for L' C N\<^sub>0
     using IH(1)[of \<open>extract_atms_cls L' N\<^sub>0\<close>]
     by (auto simp: extract_atms_clss_def in_extract_atms_clsD split: if_splits)
-
   done
 
 lemma is_N\<^sub>1_extract_atms_clss:
@@ -331,7 +343,7 @@ proof -
   have atm_of_N\<^sub>0_iff: \<open>atm_of x \<in> set N\<^sub>0 \<longleftrightarrow>
          x \<in> (- literal_of_nat \<circ>\<circ> op *) 2 ` set N\<^sub>0 \<or> x \<in> (literal_of_nat \<circ>\<circ> op *) 2 ` set N\<^sub>0\<close>
     for x N\<^sub>0
-    by (cases x)  auto
+    by (cases x) auto
   have is_N\<^sub>1_add: \<open>twl_array_code_ops.is_N\<^sub>1 N\<^sub>0 (A + B) \<longleftrightarrow> set_mset A \<subseteq> set_mset (twl_array_code_ops.N\<^sub>1 N\<^sub>0)\<close>
     if \<open>twl_array_code_ops.is_N\<^sub>1 N\<^sub>0 B\<close> for A B N\<^sub>0
     using that unfolding twl_array_code_ops.is_N\<^sub>1_def by auto
@@ -603,22 +615,11 @@ lemma init_dt_wl_init_dt_l:
     done
   done
 
-fun (in -) get_clauses_wl :: "'v twl_st_wl \<Rightarrow> 'v clauses_l" where
-  \<open>get_clauses_wl (M, N, U, D, NP, UP, WS, Q) = N\<close>
-
-fun (in -) get_learned_wl :: "'v twl_st_wl \<Rightarrow> nat" where
-  \<open>get_learned_wl (M, N, U, D, NP, UP, WS, Q) = U\<close>
-
 lemma all_lits_of_mm_in_all_lits_of_m_in_iff:
   \<open>set_mset (all_lits_of_mm (mset `# mset CS)) \<subseteq> A \<longleftrightarrow>
     (\<forall>C\<in>set CS. set_mset (all_lits_of_m (mset C)) \<subseteq> A)\<close>
   by (auto simp: all_lits_of_mm_def all_lits_of_m_def)
 
-definition (in -) get_unit_learned :: "'v twl_st_wl \<Rightarrow> 'v clauses" where
-  \<open>get_unit_learned = (\<lambda>(M, N, U, D, NP, UP, Q, W). UP)\<close>
-
-definition (in -) get_unit_init_clss :: "'v twl_st_wl \<Rightarrow> 'v clauses" where
-  \<open>get_unit_init_clss = (\<lambda>(M, N, U, D, NP, UP, Q, W). NP)\<close>
 
 (*TODO Move*)
 lemma (in -) all_lits_of_atms_m_nil[simp]: \<open>all_lits_of_atms_m {#} = {#}\<close>
@@ -893,15 +894,10 @@ definition initialise_VMTF :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow>
    RETURN ((A, n, cnext, cnext), [])
   }\<close>
 
-(*TODO Move*)
-lemma (in -) nat_of_uint32_int32_assn[sepref_fr_rules]:
-  \<open>(return o id, RETURN o nat_of_uint32) \<in> uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
-(*End Move*)
-
 sepref_definition initialise_VMTF_code
   is \<open>uncurry initialise_VMTF\<close>
   :: \<open>(list_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
+  supply nat_of_uint32_int32_assn[sepref_fr_rules]
   unfolding initialise_VMTF_def vmtf_cons_def
   apply (rewrite in "((_, _, _, _), \<hole>)" annotate_assn[where A=\<open>list_assn nat_assn\<close>])
   apply (rewrite in "(_, _, _, Some \<hole>)" annotate_assn[where A=\<open>uint32_nat_assn\<close>])
@@ -916,21 +912,6 @@ sepref_definition initialise_VMTF_code
   by sepref
 
 declare initialise_VMTF_code.refine[sepref_fr_rules]
-
-(*TODO Move*)
-definition (in -) list_rel_mset_rel where list_rel_mset_rel_internal:
-\<open>list_rel_mset_rel \<equiv> \<lambda>R. \<langle>R\<rangle>list_rel O list_mset_rel\<close>
-
-lemma (in -) list_rel_mset_rel_def[refine_rel_defs]:
-  \<open>\<langle>R\<rangle>list_rel_mset_rel = \<langle>R\<rangle>list_rel O list_mset_rel\<close>
-  unfolding relAPP_def list_rel_mset_rel_internal ..
-(*End Move*)
-
-lemma (in -)distinct_nat_of_uint32[iff]:
-  \<open>distinct_mset (nat_of_uint32 `# A) \<longleftrightarrow> distinct_mset A\<close>
-  \<open>distinct (map nat_of_uint32 xs) \<longleftrightarrow> distinct xs\<close>
-  using distinct_image_mset_inj[of nat_of_uint32]
-  by (auto simp: inj_on_def distinct_map)
 
 lemma initialise_VMTF:
   shows \<open>(uncurry initialise_VMTF, uncurry (\<lambda>N n. RES (twl_array_code_ops.vmtf_imp N []))) \<in>
@@ -1476,34 +1457,6 @@ lemma cdcl_twl_stgy_prog_wl_D_code_ref':
 declare cdcl_twl_stgy_prog_wl_D_code_ref'[to_hnr, OF refl, unfolded twl_array_code_ops.twl_st_l_trail_assn_def,
    sepref_fr_rules]
 
-(*TODO Move*)
-lemma Collect_eq_comp_right:
-  \<open>{(x, y). P x y} O {(c, a). a = f c} =
-    {(x, c). \<exists>y. P x y \<and> c = f y} \<close>
-  by auto
-
-lemma(in -) list_mset_assn_pure_conv:
-  \<open>list_mset_assn (pure R) = pure (list_rel_mset_rel R)\<close>
-  apply (intro ext)
-  using list_all2_reorder_left_invariance
-  by (fastforce
-    simp: list_rel_mset_rel_def list_mset_assn_def
-      mset_rel_def rel2p_def[abs_def] rel_mset_def p2rel_def
-      list_mset_rel_def[abs_def] Collect_eq_comp br_def
-      list_rel_mset_rel_internal list_rel_def Collect_eq_comp_right
-    intro!: arg_cong[of _ _ \<open>\<lambda>b. pure b _ _\<close>])
-
-definition (in -) dont_care_rel where
-  \<open>dont_care_rel = {(a, b). a = ()}\<close>
-
-definition dont_care_assn where
-\<open>dont_care_assn = pure dont_care_rel\<close>
-
-lemma (in -) dont_care_assn[simp]: \<open>dont_care_assn a b = emp\<close>
-  unfolding dont_care_assn_def dont_care_rel_def
-  by (auto simp: pure_def)
-(*End Move*)
-
 lemma init_dt_wl_code_refine[unfolded twl_array_code_ops.twl_st_l_trail_assn_def, sepref_fr_rules]:
   \<open>(uncurry2 (\<lambda>_. init_dt_wl_code), uncurry2 (twl_array_code_ops.init_dt_wl))
   \<in> [\<lambda>((N, S), S'). twl_array_code N \<and> N = N\<^sub>0]\<^sub>a
@@ -1517,9 +1470,9 @@ lemma init_dt_wl_code_refine[unfolded twl_array_code_ops.twl_st_l_trail_assn_def
     using init_dt_wl_code.refine[of N\<^sub>0,
       unfolded in_pair_collect_simp hfref_def hn_refine_def PR_CONST_def,
       rule_format, of \<open>(snd (fst c), snd c)\<close> \<open>(snd (fst a), snd a)\<close>]
-    apply (cases a)
-    by (sep_auto
-      dest!: frame_rule_left[of \<open>_ * twl_array_code_ops.twl_st_l_trail_assn _ _ _\<close> _ _\<open>list_mset_assn uint32_nat_assn N\<^sub>0 (fst (fst a))\<close>])
+    by (cases a)
+       (sep_auto dest!: frame_rule_left[of \<open>_ * twl_array_code_ops.twl_st_l_trail_assn _ _ _\<close> _ _
+            \<open>list_mset_assn uint32_nat_assn N\<^sub>0 (fst (fst a))\<close>])
   done
 
 find_theorems hn_ctxt twl_array_code_ops.twl_st_l_trail_assn
@@ -1555,13 +1508,10 @@ export_code SAT_wl_code
     integer_of_nat
     nat_of_integer
     uint32_of_nat
-  in SML_imp module_name SAT_Solver file "code/Native/full_SAT_Cached_Trail.sml"
+  in SML_imp module_name SAT_Solver file "code/full_SAT_Cached_Trail.sml"
 
 definition TWL_to_clauses_state_conv :: \<open>(nat twl_st_wl \<times> nat cdcl\<^sub>W_restart_mset) set\<close> where
   \<open>TWL_to_clauses_state_conv = {(S', S). S = state\<^sub>W_of (twl_st_of_wl None S')}\<close>
-
-lemma SPEC_add_information: \<open>P \<Longrightarrow> A \<le> SPEC Q \<Longrightarrow> A \<le> SPEC(\<lambda>x. Q x \<and> P)\<close>
-  by auto
 
 lemma cdcl_twl_stgy_prog_wl_spec_final2:
   shows
@@ -1861,19 +1811,6 @@ find_theorems \<open>list_all2 (\<lambda>x. op = _)\<close>
         list_all2_op_eq_map_right_iff list_all2_op_eq_map_right_iff
         simp del: literal_of_nat.simps)
 qed
-lemma distinct_extract_atms_cls: \<open>distinct (extract_atms_cls x N) \<longleftrightarrow> distinct N\<close>
-  apply (induction x arbitrary: N)
-  subgoal by (auto simp: extract_atms_clss_def)
-  subgoal premises p for a x N
-    using p by (auto simp: extract_atms_cls_Cons)
-  done
-
-lemma distinct_extract_atms_clss: \<open>distinct (extract_atms_clss x N) \<longleftrightarrow> distinct N\<close>
-  apply (induction x arbitrary: N)
-  subgoal by (auto simp: extract_atms_clss_def)
-  subgoal premises p for a x N
-    using p by (auto simp: distinct_extract_atms_cls)
-  done
 
 lemma SAT_wl_code: \<open>(SAT_wl_code, SAT')
     \<in> [\<lambda>x. Multiset.Ball x distinct_mset \<and> (\<forall>C\<in>#x. Suc 0 \<le> size C) \<and> (\<forall>C\<in>#x. \<not> tautology C) \<and>

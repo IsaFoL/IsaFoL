@@ -55,59 +55,75 @@ definition trailt_ref :: \<open>(trailt \<times> (nat, nat) ann_lits) set\<close
 definition trail_ref :: \<open>(trail_int \<times> (nat, nat) ann_lits) set\<close> where
   \<open>trail_ref = {((M', vm, \<phi>), M). (M', M) \<in> trailt_ref \<and> vm \<in> vmtf_imp M \<and> phase_saving \<phi>}\<close>
 
-abbreviation (in -) trailt_conc :: \<open>trailt \<Rightarrow> trailt_assn \<Rightarrow> assn\<close> where
+end
+
+abbreviation trailt_conc :: \<open>trailt \<Rightarrow> trailt_assn \<Rightarrow> assn\<close> where
   \<open>trailt_conc \<equiv> pair_nat_ann_lits_assn *assn array_assn (option_assn bool_assn) *assn
       array_assn uint32_nat_assn *assn uint32_nat_assn\<close>
 
-definition (in -)  l_vmtf_atm_rel where
+definition l_vmtf_atm_rel where
 \<open>l_vmtf_atm_rel = {(a', a). stamp a = stamp a' \<and>
    (get_prev a', get_prev a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel \<and>
    (get_next a', get_next a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel}\<close>
 
-abbreviation (in -)  l_vmtf_atm_assn where
+abbreviation l_vmtf_atm_assn where
 \<open>l_vmtf_atm_assn \<equiv> pure l_vmtf_atm_rel\<close>
 
-
-lemma (in-) l_vmtf_ATM_ref[sepref_fr_rules]:
+lemma l_vmtf_ATM_ref[sepref_fr_rules]:
   \<open>(uncurry2 (return ooo l_vmtf_ATM), uncurry2 (RETURN ooo l_vmtf_ATM)) \<in>
       nat_assn\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a l_vmtf_atm_assn\<close>
   by sepref_to_hoare
    (sep_auto simp: l_vmtf_atm_rel_def uint32_nat_rel_def br_def option_assn_alt_def
      split: option.splits)
 
-abbreviation (in -) vmtf_conc where
+lemma stamp_ref[sepref_fr_rules]: \<open>(return o stamp, RETURN o stamp) \<in> l_vmtf_atm_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn\<close>
+  apply sepref_to_hoare
+  apply (case_tac x)
+  by (auto simp: ex_assn_move_out(2)[symmetric] return_cons_rule ent_ex_up_swap l_vmtf_atm_rel_def
+     simp del: ex_assn_move_out)
+
+lemma get_next_ref[sepref_fr_rules]: \<open>(return o get_next, RETURN o get_next) \<in> l_vmtf_atm_assn\<^sup>d \<rightarrow>\<^sub>a
+   option_assn uint32_nat_assn\<close>
+  unfolding option_assn_pure_conv
+  by sepref_to_hoare (sep_auto simp: return_cons_rule l_vmtf_atm_rel_def)
+
+abbreviation vmtf_conc where
   \<open>vmtf_conc \<equiv> (array_assn l_vmtf_atm_assn *assn nat_assn *assn option_assn uint32_nat_assn
     *assn option_assn uint32_nat_assn)\<close>
 
-abbreviation (in -) vmtf_remove_conc where
+abbreviation vmtf_remove_conc where
   \<open>vmtf_remove_conc \<equiv> vmtf_conc *assn clauses_to_update_ll_assn\<close>
 
-abbreviation (in -) phase_saver_conc where
+abbreviation phase_saver_conc where
   \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
 
-abbreviation (in -) trail_conc :: \<open>trail_int \<Rightarrow> trail_assn \<Rightarrow> assn\<close> where
+abbreviation trail_conc :: \<open>trail_int \<Rightarrow> trail_assn \<Rightarrow> assn\<close> where
   \<open>trail_conc \<equiv> trailt_conc *assn vmtf_remove_conc *assn phase_saver_conc\<close>
+
+context twl_array_code_ops
+begin
 
 definition trail_assn :: "(nat, nat) ann_lits \<Rightarrow> trail_assn \<Rightarrow> assn" where
   \<open>trail_assn = hr_comp trail_conc trail_ref\<close>
+
+
+definition cons_trail_Propagated :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
+  \<open>cons_trail_Propagated L C M' = Propagated L C # M'\<close>
+
+definition cons_trailt_Propagated_tr :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> trailt \<Rightarrow> trailt\<close> where
+  \<open>cons_trailt_Propagated_tr = (\<lambda>L C (M', xs, lvls, k).
+     (Propagated L C # M', xs[atm_of L := Some (is_pos L)],
+      lvls[atm_of L := k], k))\<close>
+
+definition cons_trail_Propagated_tr :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> trail_int \<Rightarrow> trail_int\<close> where
+  \<open>cons_trail_Propagated_tr = (\<lambda>L C (M', vm, \<phi>).
+     (cons_trailt_Propagated_tr L C M', vm, \<phi>))\<close>
 
 end
 
 
 context twl_array_code
 begin
-
-definition (in twl_array_code_ops) cons_trail_Propagated :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
-  \<open>cons_trail_Propagated L C M' = Propagated L C # M'\<close>
-
-definition (in twl_array_code_ops) cons_trailt_Propagated_tr :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> trailt \<Rightarrow> trailt\<close> where
-  \<open>cons_trailt_Propagated_tr = (\<lambda>L C (M', xs, lvls, k).
-     (Propagated L C # M', xs[atm_of L := Some (is_pos L)],
-      lvls[atm_of L := k], k))\<close>
-
-definition (in twl_array_code_ops) cons_trail_Propagated_tr :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> trail_int \<Rightarrow> trail_int\<close> where
-  \<open>cons_trail_Propagated_tr = (\<lambda>L C (M', vm, \<phi>).
-     (cons_trailt_Propagated_tr L C M', vm, \<phi>))\<close>
 
 lemma cons_trail_Propagated_tr:
   \<open>(uncurry2 (RETURN ooo cons_trail_Propagated_tr), uncurry2 (RETURN ooo cons_trail_Propagated)) \<in>
@@ -117,60 +133,6 @@ lemma cons_trail_Propagated_tr:
         trailt_ref_def cons_trailt_Propagated_tr_def
         cons_trail_Propagated_tr_def Decided_Propagated_in_iff_in_lits_of_l nth_list_update'
       dest: vmtf_imp_consD)
-
-lemma is_pos_nat_lit_hnr:
-  \<open>(return o (\<lambda>L. bitAND L 1 = 0), RETURN o is_pos) \<in> nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding bitAND_1_mod_2
-  apply (sepref_to_hoare, rename_tac x xi, case_tac x)
-   apply (sep_auto simp: p2rel_def lit_of_natP_def unat_lit_rel_def uint32_nat_rel_def nat_lit_rel_def br_def
-      split: if_splits)+
-  by presburger
-
-lemma is_pos_hnr[sepref_fr_rules]:
-  \<open>(return o (\<lambda>L. bitAND L 1 = 0), RETURN o is_pos) \<in> unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-proof -
-  have 1: \<open>(RETURN o (\<lambda>L. bitAND L 1 = 0), RETURN o is_pos) \<in> nat_lit_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
-    unfolding bitAND_1_mod_2
-    by (intro nres_relI frefI) (auto simp: nat_lit_rel_def lit_of_natP_def split: if_splits)
-  have 2: \<open>(return o (\<lambda>L. bitAND L 1 = 0), RETURN o (\<lambda>L. bitAND L 1 = 0)) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-    apply sepref_to_hoare
-    using nat_of_uint32_ao[of _ 1]
-    by (sep_auto simp: p2rel_def lit_of_natP_def unat_lit_rel_def uint32_nat_rel_def
-        nat_lit_rel_def br_def nat_of_uint32_012
-        nat_of_uint32_0_iff nat_0_AND uint32_0_AND
-        split: if_splits)+
-  show ?thesis
-    using 2[FCOMP 1] unfolding unat_lit_rel_def .
-qed
-
-lemma (in -) array_set_hnr_u[sepref_fr_rules]:
-    \<open>CONSTRAINT is_pure A \<Longrightarrow>
-    (uncurry2 (\<lambda>xs i. heap_array_set xs (nat_of_uint32 i)), uncurry2 (RETURN \<circ>\<circ>\<circ> op_list_set)) \<in>
-     [pre_list_set]\<^sub>a (array_assn A)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a A\<^sup>k \<rightarrow> array_assn A\<close>
-  by sepref_to_hoare
-    (sep_auto simp: uint32_nat_rel_def br_def ex_assn_up_eq2 array_assn_def is_array_def
-      hr_comp_def list_rel_pres_length list_rel_update)
-
-lemma (in -) array_get_hnr_u[sepref_fr_rules]:
-    \<open>CONSTRAINT is_pure A \<Longrightarrow>
-(uncurry (\<lambda>xs i. Array.nth xs (nat_of_uint32 i)), uncurry (RETURN \<circ>\<circ> op_list_get))
-\<in> [pre_list_get]\<^sub>a (array_assn A)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> A\<close>
-  apply sepref_to_hoare -- \<open>TODO proof\<close>
-   apply (sep_auto simp: uint32_nat_rel_def br_def ex_assn_up_eq2 array_assn_def is_array_def
-       hr_comp_def list_rel_pres_length list_rel_update param_nth)
-  by (metis ent_pure_pre_iff ent_refl_true pair_in_Id_conv param_nth pure_app_eq pure_the_pure)
-
-
-lemma (in -) nat_of_uint32_add_less_upperN:
-  \<open>nat_of_uint32 ai + nat_of_uint32 bi < 2 ^32 \<Longrightarrow>
-    nat_of_uint32 (ai + bi) = nat_of_uint32 ai + nat_of_uint32 bi\<close>
-  by transfer (auto simp: unat_def uint_plus_if' upperN_def nat_add_distrib)
-
-lemma (in -) uint32_nat_assn_plus[sepref_fr_rules]:
-  \<open>(uncurry (return oo op +), uncurry (RETURN oo op +)) \<in> [\<lambda>(m, n). m + n < upperN]\<^sub>a
-     uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def nat_of_uint32_add_less_upperN upperN_def
-      br_def)
 
 lemma undefined_lit_count_decided_upperN:
   assumes
@@ -272,13 +234,22 @@ lemma cons_trail_Decided_tr:
         uminus_lit_swap
       dest: vmtf_imp_consD)
 
-lemma (in -) uint32_nat_assn_one:
-  \<open>(uncurry0 (return 1), uncurry0 (RETURN 1)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_012)
+lemma (in -) bind_ref_tag_False_True: \<open>bind_ref_tag a (RETURN b) \<longleftrightarrow> a=b\<close>
+  unfolding bind_ref_tag_def by auto
 
-lemma (in -) uint32_nat_assn_zero:
-  \<open>(uncurry0 (return 0), uncurry0 (RETURN 0)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_012)
+lemma undefined_lit_count_decided_upperN':
+  assumes
+    M_N\<^sub>1: \<open>\<forall>L\<in>set M. lit_of L \<in># N\<^sub>1\<close> and n_d: \<open>no_dup M\<close> and
+    \<open>L \<in> snd ` D\<^sub>0\<close> and \<open>undefined_lit M L\<close> and v: \<open>v = 1\<close>
+  shows \<open>count_decided M + v < upperN\<close>
+  using undefined_lit_count_decided_upperN[OF assms(1-4)] unfolding v by simp
+
+lemma undefined_lit_count_decided_upperN'':
+  assumes
+    M_N\<^sub>1: \<open>\<forall>L\<in>set M. lit_of L \<in># N\<^sub>1\<close> and n_d: \<open>no_dup M\<close> and
+    \<open>L \<in> snd ` D\<^sub>0\<close> and \<open>undefined_lit M L\<close>
+  shows \<open>count_decided M < upperN - 1\<close>
+  using undefined_lit_count_decided_upperN[OF assms(1-4)] by simp
 
 sepref_thm cons_trail_Decided_tr_code
   is \<open>uncurry (RETURN oo cons_trail_Decided_tr)\<close>
@@ -289,8 +260,9 @@ sepref_thm cons_trail_Decided_tr_code
     trail_conc\<close>
   unfolding cons_trail_Decided_tr_def cons_trailt_Decided_tr_def
   supply [[goals_limit = 1]]
-  supply undefined_lit_count_decided_upperN[intro!]
-  supply uint32_nat_assn_one[sepref_fr_rules]
+  supply undefined_lit_count_decided_upperN'[intro!] upperN_def[symmetric]
+  supply uint32_nat_assn_one[sepref_fr_rules] bind_ref_tag_False_True[simp]
+  supply undefined_lit_count_decided_upperN''[unfolded upperN_def, simplified, intro!]
   by sepref
 
 concrete_definition (in -) cons_trail_Decided_tr_code
@@ -352,52 +324,44 @@ lemma tl_trail_tr:
   \<open>((RETURN o tl_trail_tr), (RETURN o tl)) \<in>
     [\<lambda>M. M \<noteq> []]\<^sub>f trail_ref \<rightarrow> \<langle>trail_ref\<rangle>nres_rel\<close>
 proof -
-  have [iff]: \<open>is_proped L \<longleftrightarrow> \<not>is_decided L\<close> for L
-    by (cases L) auto
-  have [simp]: \<open>is_pos L \<longleftrightarrow> (\<exists>K. L = Pos K)\<close> for L
-    by (cases L) auto
+  have \<open>La \<notin> A \<Longrightarrow>  -La \<notin> A \<Longrightarrow> Pos (atm_of La) \<in> A \<Longrightarrow> False\<close> for La A
+    by (metis literal.exhaust_sel uminus_Pos uminus_Neg)
+  have [intro]:
+    \<open>Pos (atm_of La) \<notin> lits_of_l M's \<Longrightarrow> Neg (atm_of La) \<notin> lits_of_l M's \<Longrightarrow> get_level M's La = 0\<close>
+    for La M's
+    by (rule atm_of_notin_get_level_eq_0) (cases La; auto simp: Decided_Propagated_in_iff_in_lits_of_l)
+
+
   show ?thesis -- \<open>TODO tune proof\<close>
     apply (intro frefI nres_relI, rename_tac x y, case_tac \<open>y\<close>)
     subgoal by fast
     subgoal for M M' L M's
-      apply (auto simp: trail_ref_def valued_atm_on_trail_def tl_trail_tr_def tl_trailt_tr_def
-          Decided_Propagated_in_iff_in_lits_of_l nth_list_update' uminus_lit_swap
-          eq_commute[of _ \<open>lit_of _\<close>] atm_of_eq_atm_of get_level_cons_if trailt_ref_def
-          in_N\<^sub>1_atm_of_in_atms_of_iff
-        dest: no_dup_consistentD abs_l_vmtf_unset_vmtf_unset')
-      apply (metis literal.exhaust_sel uminus_Pos uminus_Neg)
-      apply (metis literal.exhaust_sel uminus_Pos uminus_Neg)
-      apply (metis literal.exhaust_sel uminus_Pos uminus_Neg)
-      apply (metis literal.exhaust_sel uminus_Pos uminus_Neg)
-      apply (metis literal.exhaust_sel uminus_Pos uminus_Neg)
+      unfolding trail_ref_def comp_def RETURN_refine_iff trailt_ref_def
+      apply clarify
+      apply (intro conjI; clarify?; (intro conjI)?)
+      subgoal by (auto simp: trail_ref_def valued_atm_on_trail_def tl_trail_tr_def tl_trailt_tr_def)
+      subgoal by (auto simp: trail_ref_def valued_atm_on_trail_def tl_trail_tr_def tl_trailt_tr_def)
+      subgoal -- \<open>Trail ref\<close>
+        by (cases \<open>lit_of L\<close>)
+            (auto simp: trail_ref_def valued_atm_on_trail_def tl_trail_tr_def tl_trailt_tr_def
+          Decided_Propagated_in_iff_in_lits_of_l eq_commute[of _ \<open>lit_of _\<close>] )
+      subgoal
+        by (auto simp: valued_atm_on_trail_def tl_trail_tr_def tl_trailt_tr_def
+           atm_of_eq_atm_of get_level_cons_if)
+      subgoal
+        by (auto simp: valued_atm_on_trail_def tl_trail_tr_def tl_trailt_tr_def
+           atm_of_eq_atm_of get_level_cons_if)
+      subgoal
+        by (auto simp: valued_atm_on_trail_def tl_trail_tr_def tl_trailt_tr_def
+           atm_of_eq_atm_of get_level_cons_if)
+      subgoal -- \<open>VMTF\<close>
+        by (auto simp: tl_trail_tr_def tl_trailt_tr_def in_N\<^sub>1_atm_of_in_atms_of_iff
+            dest: no_dup_consistentD abs_l_vmtf_unset_vmtf_unset')
+      subgoal -- \<open>Phase saving\<close>
+        by (auto simp: tl_trail_tr_def tl_trailt_tr_def)
       done
     done
 qed
-
-lemma (in -) bind_ref_tag_False_True: \<open>bind_ref_tag a (RETURN b) \<longleftrightarrow> a=b\<close>
-  unfolding bind_ref_tag_def by auto
-
-lemma (in -) stamp_ref[sepref_fr_rules]: \<open>(return o stamp, RETURN o stamp) \<in> l_vmtf_atm_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn\<close>
-  apply sepref_to_hoare
-  apply (case_tac x)
-  by (auto simp: ex_assn_move_out(2)[symmetric] return_cons_rule ent_ex_up_swap l_vmtf_atm_rel_def
-     simp del: ex_assn_move_out)
-
-lemma (in -) get_next_ref[sepref_fr_rules]: \<open>(return o get_next, RETURN o get_next) \<in> l_vmtf_atm_assn\<^sup>d \<rightarrow>\<^sub>a
-   option_assn uint32_nat_assn\<close>
-  unfolding option_assn_pure_conv
-  by sepref_to_hoare (sep_auto simp: return_cons_rule l_vmtf_atm_rel_def)
-
-definition (in -) nat_uint32_id :: \<open>nat \<Rightarrow> nat\<close> where
-\<open>nat_uint32_id n = n\<close>
-
-lemma (in -) nat_of_uint32: \<open>(return o nat_of_uint32, RETURN o nat_uint32_id) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  unfolding nat_uint32_id_def
-  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
-
-lemma (in -) nat_of_uint32': \<open>(return o id, RETURN o nat_uint32_id) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  unfolding nat_uint32_id_def
-  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
 
 lemma tl_trail_tr_alt_def:
   \<open>tl_trail_tr = (case_prod)
@@ -408,7 +372,7 @@ lemma tl_trail_tr_alt_def:
                         then ((A, m, lst, Some (L)), removed) else ((A, m, lst, next_search), removed),
         \<phi>))\<close>
   unfolding tl_trail_tr_def tl_trailt_tr_def vmtf_unset_def
-  by (auto intro!: ext simp: nat_uint32_id_def Let_def)
+  by (auto intro!: ext simp: Let_def)
 
 sepref_thm tl_trail_tr_code
   is \<open>RETURN o tl_trail_tr\<close>
@@ -422,7 +386,6 @@ sepref_thm tl_trail_tr_code
   supply [[goals_limit = 1]]
   supply uint32_nat_assn_one[sepref_fr_rules]
   supply uint32_nat_assn_zero[sepref_fr_rules]
-  nat_of_uint32[sepref_fr_rules] nat_of_uint32'[sepref_fr_rules]
   by sepref
 
 concrete_definition (in -) tl_trail_tr_code
@@ -1983,117 +1946,24 @@ definition (in twl_array_code_ops) lit_of_found_atm_D
         }
   })\<close>
 
-(* TODO Move *)
-lemma (in -) shiftl_0_uint32[simp]: \<open>n << 0 = n\<close> for n :: uint32
-  by transfer auto
-
-lemma (in -) shiftl_Suc_uint32: \<open>n << Suc m = (n << m) << 1\<close> for n :: uint32
-  apply transfer
-  apply transfer
-  by auto
-(* End Move *)
-
 lemma PosL_N\<^sub>1_le_upperN_div_2: \<open>Pos L \<in># N\<^sub>1 \<Longrightarrow> L < upperN div 2\<close>
   using in_N1_less_than_upperN by (auto simp: upperN_def)
 
 lemma NegL_N\<^sub>1_le_upperN_div_2: \<open>Neg L \<in># N\<^sub>1 \<Longrightarrow> L < upperN div 2\<close>
   using in_N1_less_than_upperN by (auto simp: upperN_def)
 
-lemma (in -) mult_mod_mod_mult:
-   \<open>b < n div a \<Longrightarrow> a > 0 \<Longrightarrow> b > 0 \<Longrightarrow> a * b mod n = a * (b mod n)\<close> for a b n :: int
-  apply (subst int_mod_eq')
-  using not_le zdiv_mono1 apply fastforce
-  using not_le zdiv_mono1 apply fastforce
-  apply (subst int_mod_eq')
-  apply auto
-  by (metis (full_types) le_cases not_le order_trans pos_imp_zdiv_nonneg_iff zdiv_le_dividend)
-
 (* TODO: tune proof*)
-lemma (in -) nat_of_uint32_distrib_mult2:
-  assumes \<open>nat_of_uint32 xi < upperN div 2\<close>
-  shows \<open>nat_of_uint32 (2 * xi) = 2 * nat_of_uint32 xi\<close>
-proof -
-  have H: \<open>\<And>xi::32 Word.word.
-       nat (uint xi) < (2147483648::nat) \<Longrightarrow>
-       xi \<noteq> (0::32 Word.word) \<Longrightarrow>
-       nat (uint xi mod (4294967296::int)) = nat (uint xi)\<close>
-  proof -
-    fix xia :: "32 Word.word"
-    assume a1: "nat (uint xia) < 2147483648"
-    have f2: "\<And>n. (numeral n::nat) \<le> numeral (num.Bit0 n)"
-      by (metis (no_types) add_0_right add_mono_thms_linordered_semiring(1) dual_order.order_iff_strict numeral_Bit0 rel_simps(51)) (* 33 ms *)
-    have "unat xia \<le> 4294967296"
-      using a1 by (metis (no_types) add_0_right add_mono_thms_linordered_semiring(1) dual_order.order_iff_strict nat_int numeral_Bit0 rel_simps(51) uint_nat) (* 140 ms *)
-    then show "nat (uint xia mod 4294967296) = nat (uint xia)"
-      using f2 a1 by (metis (no_types) Divides.mod_less Divides.transfer_int_nat_functions(2) dual_order.order_iff_strict linorder_not_less nat_int of_nat_numeral uint_nat) (* 546 ms *)
-  qed
-  have [simp]: \<open>xi \<noteq> (0::32 Word.word) \<Longrightarrow> (0::int) < uint xi\<close> for xi
-    by (metis (full_types) uint_eq_0 word_gt_0 word_less_def)
-  show ?thesis
-    using assms
-    supply [[show_types]]
-    apply (case_tac \<open>xi = 0\<close>)
-    subgoal by (auto simp: nat_of_uint32_012)
-    subgoal
-      apply (auto simp: upperN_def)
-      apply transfer
-      apply (auto simp: unat_def uint_word_ariths nat_mult_distrib)
-      apply (subst mult_mod_mod_mult)
-      by (auto simp: nat_mult_distrib intro: H)
-    done
-qed
-
-(* TODO:  tune proof*)
-lemma (in -) nat_of_uint32_distrib_mult2_plus1:
-  assumes \<open>nat_of_uint32 xi < upperN div 2\<close>
-  shows \<open>nat_of_uint32 (2 * xi + 1) = 2 * nat_of_uint32 xi + 1\<close>
-proof -
-  have H: \<open>\<And>xi::32 Word.word.
-       nat (uint xi) < (2147483648::nat) \<Longrightarrow>
-       xi \<noteq> (0::32 Word.word) \<Longrightarrow>
-       nat (uint xi mod (4294967296::int)) = nat (uint xi)\<close>
-  proof -
-    fix xia :: "32 Word.word"
-    assume a1: "nat (uint xia) < 2147483648"
-    have f2: "\<And>n. (numeral n::nat) \<le> numeral (num.Bit0 n)"
-      by (metis (no_types) add_0_right add_mono_thms_linordered_semiring(1) dual_order.order_iff_strict numeral_Bit0 rel_simps(51)) (* 33 ms *)
-    have "unat xia \<le> 4294967296"
-      using a1 by (metis (no_types) add_0_right add_mono_thms_linordered_semiring(1) dual_order.order_iff_strict nat_int numeral_Bit0 rel_simps(51) uint_nat) (* 140 ms *)
-    then show "nat (uint xia mod 4294967296) = nat (uint xia)"
-      using f2 a1 by (metis (no_types) Divides.mod_less Divides.transfer_int_nat_functions(2) dual_order.order_iff_strict linorder_not_less nat_int of_nat_numeral uint_nat) (* 546 ms *)
-  qed
-  have mod_is_id: \<open>\<And>xi::32 Word.word.
-       nat (uint xi) < (2147483648::nat) \<Longrightarrow>
-       (uint xi mod (4294967296::int)) = uint xi\<close>
-    by (subst zmod_trival_iff) auto
-  have [simp]: \<open>xi \<noteq> (0::32 Word.word) \<Longrightarrow> (0::int) < uint xi\<close> for xi
-    by (metis (full_types) uint_eq_0 word_gt_0 word_less_def)
-  show ?thesis
-    using assms
-    supply [[show_types]]
-    apply (case_tac \<open>xi = 0\<close>)
-    subgoal by (auto simp: nat_of_uint32_012)
-    subgoal
-      apply (auto simp: upperN_def)
-      apply transfer
-      apply (auto simp: unat_def uint_word_ariths nat_mult_distrib)
-      apply (subst mult_mod_mod_mult)
-      apply (auto simp: nat_mult_distrib mod_is_id nat_mod_distrib nat_add_distrib intro:)
-      done
-    done
-qed
-
 lemma Pos_ref[sepref_fr_rules]:
   \<open>(return o (\<lambda>L. 2 * L), RETURN o Pos) \<in> [\<lambda>L. Pos L \<in> snd ` D\<^sub>0]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   by sepref_to_hoare
-   (sep_auto simp: uint32_nat_rel_def br_def unat_lit_rel_def nat_lit_rel_def
+   (sep_auto simp: uint32_nat_rel_def br_def unat_lit_rel_def nat_lit_rel_def upperN_def
       Collect_eq_comp lit_of_natP_def nat_of_uint32_shiftr nat_of_uint32_distrib_mult2
       dest!: PosL_N\<^sub>1_le_upperN_div_2)
 
 lemma Neg_ref[sepref_fr_rules]:
   \<open>(return o (\<lambda>L. 2 * L + 1), RETURN o Neg) \<in> [\<lambda>L. Pos L \<in> snd ` D\<^sub>0]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   by sepref_to_hoare
-   (sep_auto simp: uint32_nat_rel_def br_def unat_lit_rel_def nat_lit_rel_def
+   (sep_auto simp: uint32_nat_rel_def br_def unat_lit_rel_def nat_lit_rel_def upperN_def
       Collect_eq_comp lit_of_natP_def nat_of_uint32_shiftr nat_of_uint32_distrib_mult2_plus1
       dest!: PosL_N\<^sub>1_le_upperN_div_2)
 

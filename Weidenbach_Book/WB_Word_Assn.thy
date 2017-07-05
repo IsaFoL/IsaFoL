@@ -3,6 +3,7 @@ imports
   "$AFP/Word/Word"
   IICF
   Bits_Natural
+  WB_More_Refinement
 begin
 
 lemma less_upper_bintrunc_id: \<open>n < 2 ^b \<Longrightarrow> n \<ge> 0 \<Longrightarrow> bintrunc b n = n\<close>
@@ -206,7 +207,8 @@ lemma nat_of_uint32_uint32_of_nat_id: \<open>n < 2 ^32 \<Longrightarrow> nat_of_
   by (auto simp: less_upper_bintrunc_id)
 
 lemma shiftr1[sepref_fr_rules]:
-   \<open>(uncurry (return oo (op >> )), uncurry (RETURN oo (op >>))) \<in> uint32_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+   \<open>(uncurry (return oo (op >> )), uncurry (RETURN oo (op >>))) \<in> uint32_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a
+      uint32_assn\<close>
   by sepref_to_hoare (sep_auto simp: shiftr1_def uint32_nat_rel_def br_def)
 
 lemma shiftl1[sepref_fr_rules]: \<open>(return o shiftl1, RETURN o shiftl1) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
@@ -235,7 +237,115 @@ lemma nat_of_uint32_max:
   by (auto simp: max_def nat_of_uint32_le_iff split: if_splits)
 
 lemma max_uint32_nat[sepref_fr_rules]:
-  \<open>(uncurry (return oo max), uncurry (RETURN oo max)) \<in> uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  \<open>(uncurry (return oo max), uncurry (RETURN oo max)) \<in> uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a
+     uint32_nat_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_max)
+
+lemma mult_mod_mod_mult:
+   \<open>b < n div a \<Longrightarrow> a > 0 \<Longrightarrow> b > 0 \<Longrightarrow> a * b mod n = a * (b mod n)\<close> for a b n :: int
+  apply (subst int_mod_eq')
+  subgoal using not_le zdiv_mono1 by fastforce
+  subgoal using not_le zdiv_mono1 by fastforce
+  subgoal
+    apply (subst int_mod_eq')
+    subgoal by auto
+    subgoal by (metis (full_types) le_cases not_le order_trans pos_imp_zdiv_nonneg_iff zdiv_le_dividend)
+    subgoal by auto
+    done
+  done
+
+lemma nat_of_uint32_distrib_mult2:
+  assumes \<open>nat_of_uint32 xi < 2^32 div 2\<close>
+  shows \<open>nat_of_uint32 (2 * xi) = 2 * nat_of_uint32 xi\<close>
+proof -
+  have H: \<open>\<And>xi::32 Word.word. nat (uint xi) < (2147483648::nat) \<Longrightarrow>
+       nat (uint xi mod (4294967296::int)) = nat (uint xi)\<close>
+  proof -
+    fix xia :: "32 Word.word"
+    assume a1: "nat (uint xia) < 2147483648"
+    have f2: "\<And>n. (numeral n::nat) \<le> numeral (num.Bit0 n)"
+      by (metis (no_types) add_0_right add_mono_thms_linordered_semiring(1)
+          dual_order.order_iff_strict numeral_Bit0 rel_simps(51))
+    have "unat xia \<le> 4294967296"
+      using a1 by (metis (no_types) add_0_right add_mono_thms_linordered_semiring(1)
+          dual_order.order_iff_strict nat_int numeral_Bit0 rel_simps(51) uint_nat)
+    then show "nat (uint xia mod 4294967296) = nat (uint xia)"
+      using f2 a1 by (metis (no_types) Divides.mod_less Divides.transfer_int_nat_functions(2) dual_order.order_iff_strict linorder_not_less nat_int of_nat_numeral uint_nat) (* 546 ms *)
+  qed
+  have [simp]: \<open>xi \<noteq> (0::32 Word.word) \<Longrightarrow> (0::int) < uint xi\<close> for xi
+    by (metis (full_types) uint_eq_0 word_gt_0 word_less_def)
+  show ?thesis
+    using assms
+    apply (case_tac \<open>xi = 0\<close>)
+    subgoal by (auto simp: nat_of_uint32_012)
+    subgoal by transfer (auto simp: unat_def uint_word_ariths nat_mult_distrib mult_mod_mod_mult H)
+    done
+qed
+
+lemma nat_of_uint32_distrib_mult2_plus1:
+  assumes \<open>nat_of_uint32 xi < 2^32 div 2\<close>
+  shows \<open>nat_of_uint32 (2 * xi + 1) = 2 * nat_of_uint32 xi + 1\<close>
+proof -
+  have mod_is_id: \<open>\<And>xi::32 Word.word. nat (uint xi) < (2147483648::nat) \<Longrightarrow>
+      (uint xi mod (4294967296::int)) = uint xi\<close>
+    by (subst zmod_trival_iff) auto
+  have [simp]: \<open>xi \<noteq> (0::32 Word.word) \<Longrightarrow> (0::int) < uint xi\<close> for xi
+    by (metis (full_types) uint_eq_0 word_gt_0 word_less_def)
+  show ?thesis
+    using assms by transfer (auto simp: unat_def uint_word_ariths nat_mult_distrib mult_mod_mod_mult
+        mod_is_id nat_mod_distrib nat_add_distrib)
+qed
+
+
+lemma array_set_hnr_u[sepref_fr_rules]:
+    \<open>CONSTRAINT is_pure A \<Longrightarrow>
+    (uncurry2 (\<lambda>xs i. heap_array_set xs (nat_of_uint32 i)), uncurry2 (RETURN \<circ>\<circ>\<circ> op_list_set)) \<in>
+     [pre_list_set]\<^sub>a (array_assn A)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a A\<^sup>k \<rightarrow> array_assn A\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint32_nat_rel_def br_def ex_assn_up_eq2 array_assn_def is_array_def
+      hr_comp_def list_rel_pres_length list_rel_update)
+
+lemma  array_get_hnr_u[sepref_fr_rules]:
+  assumes \<open>CONSTRAINT is_pure A\<close>
+  shows \<open>(uncurry (\<lambda>xs i. Array.nth xs (nat_of_uint32 i)),
+      uncurry (RETURN \<circ>\<circ> op_list_get)) \<in> [pre_list_get]\<^sub>a (array_assn A)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> A\<close>
+proof -
+  obtain A' where
+    A: \<open>pure A' = A\<close>
+    using assms pure_the_pure by auto
+  then have A': \<open>the_pure A = A'\<close>
+    by auto
+  have [simp]: \<open>the_pure (\<lambda>a c. \<up> ((c, a) \<in> A')) = A'\<close>
+    unfolding pure_def[symmetric] by auto
+  show ?thesis
+    by sepref_to_hoare
+      (sep_auto simp: uint32_nat_rel_def br_def ex_assn_up_eq2 array_assn_def is_array_def
+       hr_comp_def list_rel_pres_length list_rel_update param_nth A' A[symmetric] ent_refl_true
+     list_rel_eq_listrel listrel_iff_nth pure_def)
+qed
+
+
+lemma nat_of_uint32_add:
+  \<open>nat_of_uint32 ai + nat_of_uint32 bi < 2 ^32 \<Longrightarrow>
+    nat_of_uint32 (ai + bi) = nat_of_uint32 ai + nat_of_uint32 bi\<close>
+  by transfer (auto simp: unat_def uint_plus_if' nat_add_distrib)
+
+lemma uint32_nat_assn_plus[sepref_fr_rules]:
+  \<open>(uncurry (return oo op +), uncurry (RETURN oo op +)) \<in> [\<lambda>(m, n). m + n < 2^32]\<^sub>a
+     uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def nat_of_uint32_add br_def)
+
+
+lemma uint32_nat_assn_one:
+  \<open>(uncurry0 (return 1), uncurry0 (RETURN 1)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_012)
+
+lemma uint32_nat_assn_zero:
+  \<open>(uncurry0 (return 0), uncurry0 (RETURN 0)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_012)
+
+lemma nat_of_uint32_int32_assn:
+  \<open>(return o id, RETURN o nat_of_uint32) \<in> uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
 
 end
