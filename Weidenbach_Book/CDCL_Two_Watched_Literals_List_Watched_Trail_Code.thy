@@ -333,8 +333,20 @@ definition (in twl_array_code_ops) tl_trailt_tr :: \<open>trailt \<Rightarrow> t
   \<open>tl_trailt_tr = (\<lambda>(M', xs, lvls, k). (tl M', xs[atm_of (lit_of (hd M')) := None], lvls[atm_of (lit_of (hd M')) := 0],
     if is_decided (hd M') then k-1 else k))\<close>
 
+definition (in twl_array_code_ops) vmtf_dump_and_unset  :: \<open>nat \<Rightarrow> vmtf_imp_remove \<Rightarrow> vmtf_imp_remove\<close> where
+  \<open>vmtf_dump_and_unset L M = vmtf_dump L (vmtf_unset L M)\<close>
+
 definition (in twl_array_code_ops) tl_trail_tr :: \<open>trail_int \<Rightarrow> trail_int\<close> where
   \<open>tl_trail_tr = (\<lambda>(M', vm, \<phi>). (tl_trailt_tr M', vmtf_unset (atm_of (lit_of (hd (fst M')))) vm, \<phi>))\<close>
+
+definition (in twl_array_code_ops) tl_trail_tr_dump :: \<open>trail_int \<Rightarrow> trail_int\<close> where
+  \<open>tl_trail_tr_dump = (\<lambda>(M', vm, \<phi>). (tl_trailt_tr M', vmtf_dump_and_unset (atm_of (lit_of (hd (fst M')))) vm, \<phi>))\<close>
+
+definition (in -) tl_dump where
+  \<open>tl_dump = tl\<close>
+
+definition (in -) rescore where
+  \<open>rescore = id\<close>
 
 lemma tl_trail_tr:
   \<open>((RETURN o tl_trail_tr), (RETURN o tl)) \<in>
@@ -361,6 +373,7 @@ proof -
       done
     done
 qed
+
 lemma (in -) bind_ref_tag_False_True: \<open>bind_ref_tag a (RETURN b) \<longleftrightarrow> a=b\<close>
   unfolding bind_ref_tag_def by auto
 
