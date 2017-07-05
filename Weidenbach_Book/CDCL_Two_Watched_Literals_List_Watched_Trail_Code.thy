@@ -2000,14 +2000,14 @@ lemma (in -) nat_of_uint32_distrib_mult2:
   assumes \<open>nat_of_uint32 xi < upperN div 2\<close>
   shows \<open>nat_of_uint32 (2 * xi) = 2 * nat_of_uint32 xi\<close>
 proof -
-  have H: \<open>⋀xi::32 Word.word.
+  have H: \<open>\<And>xi::32 Word.word.
        nat (uint xi) < (2147483648::nat) \<Longrightarrow>
        xi \<noteq> (0::32 Word.word) \<Longrightarrow>
        nat (uint xi mod (4294967296::int)) = nat (uint xi)\<close>
   proof -
     fix xia :: "32 Word.word"
     assume a1: "nat (uint xia) < 2147483648"
-    have f2: "⋀n. (numeral n::nat) \<le> numeral (num.Bit0 n)"
+    have f2: "\<And>n. (numeral n::nat) \<le> numeral (num.Bit0 n)"
       by (metis (no_types) add_0_right add_mono_thms_linordered_semiring(1) dual_order.order_iff_strict numeral_Bit0 rel_simps(51)) (* 33 ms *)
     have "unat xia \<le> 4294967296"
       using a1 by (metis (no_types) add_0_right add_mono_thms_linordered_semiring(1) dual_order.order_iff_strict nat_int numeral_Bit0 rel_simps(51) uint_nat) (* 140 ms *)
@@ -2035,21 +2035,21 @@ lemma (in -) nat_of_uint32_distrib_mult2_plus1:
   assumes \<open>nat_of_uint32 xi < upperN div 2\<close>
   shows \<open>nat_of_uint32 (2 * xi + 1) = 2 * nat_of_uint32 xi + 1\<close>
 proof -
-  have H: \<open>⋀xi::32 Word.word.
+  have H: \<open>\<And>xi::32 Word.word.
        nat (uint xi) < (2147483648::nat) \<Longrightarrow>
        xi \<noteq> (0::32 Word.word) \<Longrightarrow>
        nat (uint xi mod (4294967296::int)) = nat (uint xi)\<close>
   proof -
     fix xia :: "32 Word.word"
     assume a1: "nat (uint xia) < 2147483648"
-    have f2: "⋀n. (numeral n::nat) \<le> numeral (num.Bit0 n)"
+    have f2: "\<And>n. (numeral n::nat) \<le> numeral (num.Bit0 n)"
       by (metis (no_types) add_0_right add_mono_thms_linordered_semiring(1) dual_order.order_iff_strict numeral_Bit0 rel_simps(51)) (* 33 ms *)
     have "unat xia \<le> 4294967296"
       using a1 by (metis (no_types) add_0_right add_mono_thms_linordered_semiring(1) dual_order.order_iff_strict nat_int numeral_Bit0 rel_simps(51) uint_nat) (* 140 ms *)
     then show "nat (uint xia mod 4294967296) = nat (uint xia)"
       using f2 a1 by (metis (no_types) Divides.mod_less Divides.transfer_int_nat_functions(2) dual_order.order_iff_strict linorder_not_less nat_int of_nat_numeral uint_nat) (* 546 ms *)
   qed
-  have mod_is_id: \<open>⋀xi::32 Word.word.
+  have mod_is_id: \<open>\<And>xi::32 Word.word.
        nat (uint xi) < (2147483648::nat) \<Longrightarrow>
        (uint xi mod (4294967296::int)) = uint xi\<close>
     by (subst zmod_trival_iff) auto
