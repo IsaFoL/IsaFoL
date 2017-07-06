@@ -186,7 +186,7 @@ lemma nat_of_uint32_notle_minus:
   by (subst uint_sub_lem[THEN iffD1])
     (auto simp: unat_def uint_nonnegative nat_diff_distrib word_le_def[symmetric] intro: leI)
 
-lemma uint32_nat_assn_minus[sepref_fr_rules]:
+lemma uint32_nat_assn_minus:
   \<open>(uncurry (return oo uint32_safe_minus), uncurry (RETURN oo op -)) \<in>
      uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   by sepref_to_hoare
@@ -397,11 +397,14 @@ lemma (in -) le_nat_uint32_hnr:
 definition (in -) fast_minus :: \<open>'a::minus \<Rightarrow> 'a \<Rightarrow> 'a\<close> where
   \<open>fast_minus m n = m - n\<close>
 
+definition (in -) fast_minus_uint32 :: \<open>uint32 \<Rightarrow> uint32 \<Rightarrow> uint32\<close> where
+  \<open>fast_minus_uint32 = fast_minus\<close>
+
 lemma (in -) safe_minus[sepref_fr_rules]:
-  \<open>(uncurry (return oo fast_minus), uncurry (RETURN oo fast_minus)) \<in>
+  \<open>(uncurry (return oo fast_minus_uint32), uncurry (RETURN oo fast_minus)) \<in>
      [\<lambda>(m, n). m \<ge> n]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   by sepref_to_hoare
    (sep_auto simp: fast_minus_def uint32_nat_rel_def br_def nat_of_uint32_le_minus
-      nat_of_uint32_notle_minus nat_of_uint32_le_iff)
+      nat_of_uint32_notle_minus nat_of_uint32_le_iff fast_minus_uint32_def)
 
 end

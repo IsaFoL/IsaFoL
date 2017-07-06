@@ -1322,6 +1322,7 @@ sepref_thm find_decomp_wl_imp_code
   unfolding find_decomp_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
   supply [[goals_limit=1]]
   supply uint32_nat_assn_one[sepref_fr_rules]
+  supply uint32_nat_assn_minus[sepref_fr_rules]
   by sepref
 
 concrete_definition (in -) find_decomp_wl_imp_code
