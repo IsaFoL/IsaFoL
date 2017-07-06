@@ -15,7 +15,7 @@ type_synonym trailt = \<open>(nat, nat) ann_lits \<times> bool option list \<tim
 type_synonym trailt_assn = \<open>(uint32 \<times> nat option) list \<times> bool option array \<times> uint32 array \<times> uint32\<close>
 
 type_synonym vmtf_assn = \<open>uint32 al_vmtf_atm array \<times> nat \<times> uint32 option \<times> uint32 option\<close>
-type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> nat list\<close>
+type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> uint32 list\<close>
 
 type_synonym phase_saver_assn = \<open>bool array\<close>
 type_synonym trail_int = \<open>trailt \<times> vmtf_imp_remove \<times> phase_saver\<close>
@@ -97,7 +97,7 @@ abbreviation vmtf_conc where
     *assn option_assn uint32_nat_assn)\<close>
 
 abbreviation vmtf_remove_conc where
-  \<open>vmtf_remove_conc \<equiv> vmtf_conc *assn clauses_to_update_ll_assn\<close>
+  \<open>vmtf_remove_conc \<equiv> vmtf_conc *assn list_assn uint32_nat_assn\<close>
 
 
 definition update_next_search where
@@ -1827,13 +1827,13 @@ proof -
   have KH: \<open>(\<exists>\<^sub>Aag ah ai aj ak bd al am an be bf.
            pure (\<langle>nat_ann_lit_rel\<rangle>list_rel) al a * (array_assn id_assn am aa * (array_assn uint32_nat_assn an ab * uint32_nat_assn be b)) *
            (array_assn l_vmtf_atm_assn ag ac * pure (nat_rel \<times>\<^sub>f (\<langle>uint32_nat_rel\<rangle>option_rel \<times>\<^sub>f \<langle>uint32_nat_rel\<rangle>option_rel)) (ah, ai, aj) (ad, ae, ba) *
-            id_assn ak bb *
+             pure (\<langle>uint32_nat_rel\<rangle>list_rel) ak bb *
             phase_saver_conc bf bc) *
            \<up> (((al, am, an, be), af) \<in> trailt_ref \<and> bf = bd \<and> phase_saving bf \<and> af = x \<and> ((ag, ah, ai, aj), ak) \<in> vmtf_imp af)) =
        (\<exists>\<^sub>Aag ah ai aj ak al am an bd.
            pure (\<langle>nat_ann_lit_rel\<rangle>list_rel) af a * (array_assn id_assn ag aa * (array_assn uint32_nat_assn ah ab * uint32_nat_assn ai b)) *
            (array_assn l_vmtf_atm_assn aj ac * pure (nat_rel \<times>\<^sub>f (\<langle>uint32_nat_rel\<rangle>option_rel \<times>\<^sub>f \<langle>uint32_nat_rel\<rangle>option_rel)) (ak, al, am) (ad, ae, ba) *
-            id_assn an bb *
+             pure (\<langle>uint32_nat_rel\<rangle>list_rel) an bb *
             phase_saver_conc bd bc) *
            \<up> (((af, ag, ah, ai), x) \<in> trailt_ref \<and> ((aj, ak, al, am), an) \<in> vmtf_imp x \<and> phase_saving bd))\<close>
     (is \<open>?A = ?B\<close> is \<open>(\<exists>\<^sub>Aag ah ai aj ak bd al am an be bf.
@@ -1841,9 +1841,7 @@ proof -
        (\<exists>\<^sub>Aag ah ai aj ak al am an bd.
            ?P' ag ah ai aj ak al am an bd *
            \<up> (?R' ah ag ai \<and> ?S' aj ak al am an \<and> ?\<phi> bd))\<close>)
-    for P :: \<open>'aa \<Rightarrow> 'ab \<Rightarrow> 'ac \<Rightarrow> 'ad \<Rightarrow> 'ae \<Rightarrow> 'af \<Rightarrow>'ag \<Rightarrow> 'ah \<Rightarrow> 'ai \<Rightarrow> 'aj \<Rightarrow> 'ah \<Rightarrow> 'ag \<Rightarrow> assn\<close> and
-      f1 f2 f3:: \<open>'aa \<Rightarrow> 'ab \<Rightarrow> 'ac \<Rightarrow> 'ad \<Rightarrow> 'ae \<Rightarrow> 'af \<Rightarrow>'ag \<Rightarrow> 'ah \<Rightarrow> 'ai \<Rightarrow> 'aj \<Rightarrow> 'ah \<Rightarrow> 'ag \<Rightarrow> bool\<close> and x and
-      ab ac bc aa af a bb b ad ae ba
+    for x and ab ac bc aa af a bb b ad ae ba
   proof -
     have 1: \<open>((af, ag, ah, ai), x) \<in> trailt_ref \<longleftrightarrow> ((af, ag, ah, ai), x) \<in> trailt_ref \<and> af = x\<close>
       for af ag ah ai x by (auto simp: trailt_ref_def)
