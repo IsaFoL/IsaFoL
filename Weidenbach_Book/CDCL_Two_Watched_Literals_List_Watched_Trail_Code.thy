@@ -81,13 +81,18 @@ lemma l_vmtf_ATM_ref[sepref_fr_rules]:
    (sep_auto simp: l_vmtf_atm_rel_def uint32_nat_rel_def br_def option_assn_alt_def
      split: option.splits)
 
-lemma stamp_ref[sepref_fr_rules]: \<open>(return o stamp, RETURN o stamp) \<in> l_vmtf_atm_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn\<close>
+lemma stamp_ref[sepref_fr_rules]: \<open>(return o stamp, RETURN o stamp) \<in> l_vmtf_atm_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   apply sepref_to_hoare
   apply (case_tac x)
   by (auto simp: ex_assn_move_out(2)[symmetric] return_cons_rule ent_ex_up_swap l_vmtf_atm_rel_def
      simp del: ex_assn_move_out)
 
-lemma get_next_ref[sepref_fr_rules]: \<open>(return o get_next, RETURN o get_next) \<in> l_vmtf_atm_assn\<^sup>d \<rightarrow>\<^sub>a
+lemma get_next_ref[sepref_fr_rules]: \<open>(return o get_next, RETURN o get_next) \<in> l_vmtf_atm_assn\<^sup>k \<rightarrow>\<^sub>a
+   option_assn uint32_nat_assn\<close>
+  unfolding option_assn_pure_conv
+  by sepref_to_hoare (sep_auto simp: return_cons_rule l_vmtf_atm_rel_def)
+
+lemma get_prev_ref[sepref_fr_rules]: \<open>(return o get_prev, RETURN o get_prev) \<in> l_vmtf_atm_assn\<^sup>k \<rightarrow>\<^sub>a
    option_assn uint32_nat_assn\<close>
   unfolding option_assn_pure_conv
   by sepref_to_hoare (sep_auto simp: return_cons_rule l_vmtf_atm_rel_def)
@@ -99,7 +104,6 @@ abbreviation vmtf_conc where
 abbreviation vmtf_remove_conc where
   \<open>vmtf_remove_conc \<equiv> vmtf_conc *assn list_assn uint32_nat_assn\<close>
 
-
 definition update_next_search where
   \<open>update_next_search L = (\<lambda>((A, m, lst, next_search), removed). ((A, m, lst, L), removed))\<close>
 
@@ -108,6 +112,29 @@ lemma update_next_search_ref[sepref_fr_rules]:
       (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
   unfolding option_assn_pure_conv
   by sepref_to_hoare (sep_auto simp: update_next_search_def)
+
+sepref_definition vmtf_dequeue_code
+   is \<open>uncurry (RETURN oo l_vmtf_dequeue)\<close>
+   :: \<open>[\<lambda>(L,A). L < length A \<and> 
+          (\<forall>a. Some a = get_next (A!L) \<longrightarrow> a < length A) \<and> 
+          (\<forall>a. Some a = get_prev (A!L) \<longrightarrow> a < length A)]\<^sub>a 
+        uint32_nat_assn\<^sup>k *\<^sub>a (array_assn l_vmtf_atm_assn)\<^sup>d \<rightarrow> array_assn l_vmtf_atm_assn\<close>
+  supply [[goals_limit = 1]]
+  unfolding l_vmtf_dequeue_def Let_def
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+           apply sepref_dbg_trans_step_keep
+  oops
+
+sepref_definition vmtf_dequeue_code
+   is \<open>uncurry (RETURN oo vmtf_dequeue)\<close>
+   :: \<open>[\<lambda>(L,(A,m,lst,next_search)). L < length A]\<^sub>a  uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc\<^sup>d \<rightarrow> vmtf_conc\<close>
+  supply [[goals_limit = 1]]
+  unfolding vmtf_dequeue_def
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+           apply sepref_dbg_trans_step_keep
+  oops
 
 abbreviation phase_saver_conc where
   \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>

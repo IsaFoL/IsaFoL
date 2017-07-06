@@ -1038,7 +1038,7 @@ proof -
     unfolding vmtf_imp_def by fast
 qed
 
-definition vmtf_dequeue :: \<open>nat \<Rightarrow> vmtf_imp \<Rightarrow> vmtf_imp\<close> where
+definition (in -) vmtf_dequeue :: \<open>nat \<Rightarrow> vmtf_imp \<Rightarrow> vmtf_imp\<close> where
 \<open>vmtf_dequeue \<equiv> (\<lambda>L (A, m, lst, next_search).
   (l_vmtf_dequeue L A, m, if lst = Some L then get_next (A ! L) else lst,
      if next_search = Some L then get_next (A ! L) else next_search))\<close>
@@ -1474,17 +1474,24 @@ proof -
     by fast
 qed
 
+definition reorder_remove :: \<open>nat list \<Rightarrow> nat list nres\<close> where
+\<open>reorder_remove removed = SPEC (\<lambda>removed'. mset removed' = mset removed)\<close>
+
 definition vmtf_flush :: \<open>vmtf_imp_remove \<Rightarrow> vmtf_imp_remove nres\<close> where
 \<open>vmtf_flush \<equiv> (\<lambda>((A, m, lst, next_search), removed). do {
-    removed' \<leftarrow> SPEC (\<lambda>removed'. mset removed' = mset removed);
+    removed' \<leftarrow> reorder_remove removed;
     (_, (A, m, lst, next_search)) \<leftarrow> WHILE\<^sub>T
       (\<lambda>(i, (A, m, lst, next_search)). i < length removed)
       (\<lambda>(i, (A, m, lst, next_search)). do {
          ASSERT(i < length removed);
+         ASSERT(removed!i < length A);
          RETURN (i+1, vmtf_en_dequeue (removed!i) (A, m, lst, next_search))})
       (0, (A, m, lst, next_search));
     RETURN ((A, m, lst, next_search), [])
   })\<close>
+
+lemma id_reorder_remove: \<open>(RETURN o id, reorder_remove) \<in> \<langle>nat_rel\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>nat_rel\<rangle>list_rel\<rangle>nres_rel\<close>
+  unfolding reorder_remove_def by (intro frefI nres_relI) auto
 
 lemma vmtf_imp_swap_removed:
   assumes
@@ -1542,11 +1549,17 @@ proof -
     then show ?thesis
       using that by auto
   qed
+  have a: \<open>a < length removed' \<Longrightarrow> removed' ! a \<in> set (drop a removed')\<close> for a
+    using in_set_drop_conv_nth by fastforce
+  have removed_le: \<open>((aa, ab, ac, bc), drop a removed') \<in> vmtf_imp M \<Longrightarrow> a < length removed' \<Longrightarrow> removed' ! a < length aa\<close>
+    for a aa ab ac bc
+    using a[of a] by (auto simp: vmtf_imp_def abs_l_vmtf_remove_inv_def)
   have H: \<open>do {
       WHILE\<^sub>T
         (\<lambda>(i, (A, m, lst, next_search)). i < length removed')
         (\<lambda>(i, (A, m, lst, next_search)). do {
           ASSERT(i < length removed');
+          ASSERT(removed'!i < length A);
           RETURN (i+1, vmtf_en_dequeue (removed'!i) (A, m, lst, next_search))})
         (0, (A, m, lst, next_search))
     } \<le> (RES ({(length removed', a)|a. (a, []) \<in> vmtf_imp M}))\<close>
@@ -1556,6 +1569,7 @@ proof -
     subgoal using vmtf by auto
     subgoal using vmtf mset  by (auto intro: vmtf_imp_swap_removed)
     subgoal by simp
+    subgoal by (simp add: removed_le)
     subgoal by auto
     subgoal by (rule H'; assumption)
     subgoal by auto
@@ -1574,7 +1588,7 @@ proof -
     apply (subst RES)
     apply clarify
     apply (refine_rcg H[THEN order_trans] K)
-    subgoal by auto
+    subgoal unfolding reorder_remove_def by auto
     subgoal for r r' a a' x1 x2 x1a x2a x1b x2b x1c x2c
       by (cases a') auto
     done
