@@ -605,6 +605,8 @@ fun imp_for i u f s =
                      imp_for (plus_nat i one_nat) u f x ()
                    end));
 
+fun fast_minus A_ m n = minus A_ m n;
+
 fun arl_last A_ = (fn (a, n) => nth A_ a (minus_nat n one_nat));
 
 fun last_aa A_ xs i =
@@ -781,6 +783,8 @@ fun append_el_aa (A1_, A2_) =
     in
       upd (heap_prod (heap_array (typerep_heap A2_)) heap_nat) i aa a ()
     end);
+
+fun fast_minus_uint32 x = fast_minus minus_uint32 x;
 
 fun uint32_safe_minus (A1_, A2_, A3_) m n =
   (if less A3_ m n then zero A2_ else minus A1_ m n);
@@ -1240,6 +1244,53 @@ fun maximum_level_remove_code x =
     end)
     x;
 
+fun tl_trail_tr_dump_code x =
+  (fn ((a1a, (a1b, (a1c, a2c))), (((a1f, (a1g, (a1h, a2h))), a2e), a2d)) =>
+    let
+      val x_a = op_list_hd a1a;
+      val x_b = shiftr_uint32 (fst x_a) one_nat;
+    in
+      (fn () =>
+        let
+          val xa = upd (heap_option heap_bool) (nat_of_uint32 x_b) NONE a1b ();
+          val xaa =
+            upd heap_uint32 (nat_of_uint32 x_b) (Word32.fromInt 0) a1c ();
+          val xb = is_decided_wl_code x_a ();
+          val xc =
+            (if is_None a2h then (fn () => true)
+              else (fn f_ => fn () => f_
+                     ((nth (heap_al_vmtf_atm heap_uint32) a1f
+                        (nat_of_uint32 (the a2h)))
+                     ()) ())
+                     (fn xc =>
+                       (fn f_ => fn () => f_
+                         ((nth (heap_al_vmtf_atm heap_uint32) a1f
+                            (nat_of_uint32 x_b))
+                         ()) ())
+                         (fn xab =>
+                           (fn () => (less_nat (stamp xc) (stamp xab))))))
+              ();
+          val xd =
+            upd heap_bool (nat_of_uint32 x_b)
+              (((Word32.andb (fst x_a,
+                  (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0))
+              a2d ();
+        in
+          ((op_list_tl a1a,
+             (xa, (xaa, (if xb then fast_minus_uint32 a2c (Word32.fromInt 1)
+                          else a2c)))),
+            (let
+               val ((a1j, (a1k, (a1l, a2l))), a2i) =
+                 (if xc then ((a1f, (a1g, (a1h, SOME x_b))), a2e)
+                   else ((a1f, (a1g, (a1h, a2h))), a2e));
+             in
+               ((a1j, (a1k, (a1l, a2l))), op_list_prepend x_b a2i)
+             end,
+              xd))
+        end)
+    end)
+    x;
+
 fun tl_trail_tr_code x =
   (fn ((a1a, (a1b, (a1c, a2c))), (((a1f, (a1g, (a1h, a2h))), a2e), a2d)) =>
     let
@@ -1268,10 +1319,7 @@ fun tl_trail_tr_code x =
               ();
         in
           ((op_list_tl a1a,
-             (xa, (xaa, (if xb
-                          then uint32_safe_minus
-                                 (minus_uint32, zero_uint32, ord_uint32) a2c
-                                 (Word32.fromInt 1)
+             (xa, (xaa, (if xb then fast_minus_uint32 a2c (Word32.fromInt 1)
                           else a2c)))),
             ((if xc then ((a1f, (a1g, (a1h, SOME x_b))), a2e)
                else ((a1f, (a1g, (a1h, a2h))), a2e)),
@@ -1347,7 +1395,7 @@ fun skip_and_resolve_loop_wl_D_code x =
             (fn x_l =>
               (fn f_ => fn () => f_ ((arl_is_empty heap_uint32 x_l) ()) ())
                 (fn x_n =>
-                  (fn f_ => fn () => f_ ((tl_trail_tr_code a1a) ()) ())
+                  (fn f_ => fn () => f_ ((tl_trail_tr_dump_code a1a) ()) ())
                     (fn xe =>
                       (fn () =>
                         (x_n, (xe, (a1b, (a1c,
