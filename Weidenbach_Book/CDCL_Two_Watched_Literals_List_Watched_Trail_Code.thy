@@ -173,10 +173,7 @@ sepref_definition vmtf_flush_code
   apply (rewrite at \<open>(_, \<hole>)\<close> HOL_list.fold_custom_empty)
   by sepref
 
-definition trail_bump where
-  \<open>trail_bump = (\<lambda>(M, vm, \<phi>). do{
-      vm' \<leftarrow> vmtf_flush vm;
-      RETURN (M, vm', \<phi>)})\<close>
+declare vmtf_flush_code.refine[sepref_fr_rules]
 
 
 abbreviation phase_saver_conc where
@@ -272,8 +269,7 @@ qed
 sepref_thm cons_trail_Propagated_tr_code
   is \<open>uncurry2 (RETURN ooo cons_trail_Propagated_tr)\<close>
   :: \<open>[\<lambda>((L, C), ((M, xs, lvls, k), vm, \<phi>)). atm_of L < length xs \<and> atm_of L < length lvls]\<^sub>a
-       unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a trail_conc\<^sup>d\<rightarrow>
-    trail_conc\<close>
+       unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a trail_conc\<^sup>d \<rightarrow> trail_conc\<close>
   unfolding cons_trail_Propagated_tr_def cons_trailt_Propagated_tr_def
   supply [[goals_limit = 1]]
   by sepref
@@ -531,8 +527,8 @@ paragraph \<open>tl and dump\<close>
 definition (in -) tl_dump where
   \<open>tl_dump = tl\<close>
 
-definition (in -) rescore where
-  \<open>rescore = id\<close>
+definition (in -) rescore :: \<open>(nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
+  \<open>rescore M = M\<close>
 
 definition (in twl_array_code_ops) tl_trail_tr_dump :: \<open>trail_int \<Rightarrow> trail_int\<close> where
   \<open>tl_trail_tr_dump =
@@ -957,6 +953,59 @@ proof -
   show ?thesis
     using find_unwatched''_code.refine[FCOMP 1, OF twl_array_code_axioms] .
 qed
+
+
+paragraph \<open>Bump scores\<close>
+
+definition trail_bump where
+  \<open>trail_bump = (\<lambda>(M, vm, \<phi>). do{
+      vm' \<leftarrow> vmtf_flush vm;
+      RETURN (M, vm', \<phi>)})\<close>
+
+sepref_thm trail_dump_code
+  is trail_bump
+  :: \<open>trail_conc\<^sup>d \<rightarrow>\<^sub>a trail_conc\<close>
+  supply [[goals_limit=1]]
+  unfolding trail_bump_def
+  by sepref
+
+concrete_definition (in -) trail_dump_code
+   uses twl_array_code.trail_dump_code.refine_raw
+   is "(?f,_)\<in>_"
+
+prepare_code_thms (in -) trail_dump_code_def
+
+lemmas trail_dump_code_refine[sepref_fr_rules] =
+   trail_dump_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_l_trail_assn_def]
+
+lemma trail_bump_rescore:
+  \<open>(trail_bump, RETURN o rescore) \<in> trail_ref \<rightarrow>\<^sub>f \<langle>trail_ref\<rangle>nres_rel\<close>
+proof -
+  have r_id_def: \<open>(RETURN o rescore) y = do {
+       _ \<leftarrow>  (RES (vmtf_imp y));
+       RETURN y}\<close>
+    if \<open>(x, y) \<in> trail_ref\<close>
+    for x y
+    apply (subst unused_bind_RES_ne)
+    using that by (auto simp: rescore_def trail_ref_def) 
+  show ?thesis
+    unfolding trail_bump_def
+    apply (intro nres_relI frefI)
+    apply clarify
+    apply (subst r_id_def)
+     apply assumption
+    unfolding trail_ref_def
+    apply (refine_vcg vmtf_imp_change_removed_order)
+    apply clarify 
+    apply assumption
+     apply rule
+    apply auto
+    done
+qed
+
+lemma trail_dump_code_rescore[sepref_fr_rules]:
+   \<open>(trail_dump_code, RETURN \<circ> rescore) \<in> trail_assn\<^sup>d \<rightarrow>\<^sub>a trail_assn\<close>
+  using trail_dump_code_refine[FCOMP trail_bump_rescore] unfolding trail_assn_def .
 
 
 subsubsection \<open>Transitions\<close>
@@ -1523,9 +1572,6 @@ abbreviation (in -) uncurry_swap3 where
 abbreviation (in -) uncurried_swap8 where
 \<open>uncurried_swap8 f \<equiv> \<lambda> (((((((M, N), U), D), NP), UP), Q), W). f (M, N, U, D, NP, UP, Q, W)\<close>
 
-(*TODO Move*)
-(*END Move*)
-
 lemma (in -) op_list_append_alt_def:
   \<open>op_list_append xs x = xs @ [x]\<close>
   by (auto simp: op_list_append_def)
@@ -1744,7 +1790,9 @@ concrete_definition (in -) extract_shorter_conflict_l_trivial_code_wl'
    is "(uncurry7 ?f,_)\<in>_"
 
 prepare_code_thms (in -) extract_shorter_conflict_l_trivial_code_wl'_def
+
 sepref_register extract_shorter_conflict_wl'
+
 thm extract_shorter_conflict_l_trivial_code_wl'.refine[of N\<^sub>0,
       OF twl_array_code_axioms]
 lemmas extract_shorter_conflict_l_trivial_code_wl'_D[sepref_fr_rules] =
@@ -1763,6 +1811,8 @@ sepref_thm backtrack_wl_D
     cons_trail_Propagated_def[symmetric]
   apply (rewrite at \<open>(_, add_mset _ \<hole>, _)\<close> lms_fold_custom_empty)+
   apply (rewrite at \<open>(_, add_mset (add_mset _ \<hole>) _, _)\<close> lms_fold_custom_empty)
+  apply (rewrite in \<open>let _ = _ in RETURN (\<hole>, _)\<close> rescore_def[symmetric])
+  apply (rewrite in \<open>ASSERT _ \<bind> (\<lambda>_. RETURN (\<hole>, _))\<close> rescore_def[symmetric])
   unfolding no_skip_def[symmetric] no_resolve_def[symmetric]
     find_decomp_wl'_find_decomp_wl[symmetric] option.sel add_mset_list.simps
   supply [[goals_limit=1]]
