@@ -394,4 +394,14 @@ lemma (in -) le_nat_uint32_hnr:
    nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
 
+definition (in -) fast_minus :: \<open>'a::minus \<Rightarrow> 'a \<Rightarrow> 'a\<close> where
+  \<open>fast_minus m n = m - n\<close>
+
+lemma (in -) safe_minus[sepref_fr_rules]:
+  \<open>(uncurry (return oo fast_minus), uncurry (RETURN oo fast_minus)) \<in>
+     [\<lambda>(m, n). m \<ge> n]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  by sepref_to_hoare
+   (sep_auto simp: fast_minus_def uint32_nat_rel_def br_def nat_of_uint32_le_minus
+      nat_of_uint32_notle_minus nat_of_uint32_le_iff)
+
 end

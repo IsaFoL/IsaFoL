@@ -399,11 +399,13 @@ sepref_thm tl_trail_tr_code
   is \<open>RETURN o tl_trail_tr\<close>
   :: \<open>[\<lambda>((M, xs, lvls, k), ((A, m, lst, next_search), _), \<phi>). M \<noteq> [] \<and> atm_of (lit_of (hd M)) < length xs \<and>
           atm_of (lit_of (hd M)) < length lvls \<and> atm_of (lit_of (hd M)) < length \<phi> \<and>
-         atm_of (lit_of (hd M)) < length A \<and> (next_search \<noteq> None \<longrightarrow>  the next_search < length A)]\<^sub>a
+         atm_of (lit_of (hd M)) < length A \<and> (next_search \<noteq> None \<longrightarrow>  the next_search < length A) \<and>
+         (is_decided (hd M) \<longrightarrow> k \<ge> 1)]\<^sub>a
         trail_conc\<^sup>d \<rightarrow> trail_conc\<close>
   supply if_splits[split] option.splits[split] bind_ref_tag_False_True[simp]
   unfolding tl_trail_tr_alt_def
   apply (rewrite at \<open>_ = None \<or> _\<close> short_circuit_conv)
+  apply (rewrite at \<open>_ - 1\<close> fast_minus_def[symmetric])
   supply [[goals_limit = 1]]
   supply uint32_nat_assn_one[sepref_fr_rules]
   supply uint32_nat_assn_zero[sepref_fr_rules]
@@ -426,7 +428,8 @@ lemma tl_trail_tr_code_op_list_tl[sepref_fr_rules]:
 proof -
   have [dest]: \<open>((a, aa, ab, b), x) \<in> trailt_ref \<Longrightarrow> x = a\<close> for a aa ab b x
     by (auto simp: trailt_ref_def)
-  thm hfref_compI_PRE_aux[OF tl_trail_tr_code.refine tl_trail_tr, OF twl_array_code_axioms]
+  have [simp]: \<open>x \<noteq> [] \<Longrightarrow> is_decided (hd x) \<Longrightarrow> Suc 0 \<le> count_decided x\<close> for x
+    by (cases x) auto
   have H: \<open>(tl_trail_tr_code, RETURN \<circ> tl)
      \<in> [comp_PRE trail_ref (\<lambda>M. M \<noteq> [])
      (\<lambda>_ ((M, xs, lvls, k), ((A, m, lst, next_search), uu), \<phi>).
@@ -435,7 +438,8 @@ proof -
          atm_of (lit_of (hd M)) < length lvls \<and>
          atm_of (lit_of (hd M)) < length \<phi> \<and>
          atm_of (lit_of (hd M)) < length A \<and>
-         (next_search \<noteq> None \<longrightarrow> the next_search < length A))
+         (next_search \<noteq> None \<longrightarrow> the next_search < length A) \<and>
+         (is_decided (hd M) \<longrightarrow> k \<ge> 1))
      (\<lambda>_. True)]\<^sub>a hrp_comp (trail_conc\<^sup>d) trail_ref \<rightarrow> hr_comp trail_conc trail_ref\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF tl_trail_tr_code.refine tl_trail_tr, OF twl_array_code_axioms] .
@@ -520,17 +524,18 @@ lemma tl_trail_tr_dump_alt_def:
   unfolding tl_trail_tr_dump_def tl_trailt_tr_def vmtf_unset_def
   by (auto intro!: ext simp: Let_def)
 
-
 sepref_thm tl_trail_tr_dump_code
   is \<open>RETURN o tl_trail_tr_dump\<close>
   :: \<open>[\<lambda>((M, xs, lvls, k), ((A, m, lst, next_search), _), \<phi>). M \<noteq> [] \<and> atm_of (lit_of (hd M)) < length xs \<and>
           atm_of (lit_of (hd M)) < length lvls \<and> atm_of (lit_of (hd M)) < length \<phi> \<and>
-         atm_of (lit_of (hd M)) < length A \<and> (next_search \<noteq> None \<longrightarrow>  the next_search < length A)]\<^sub>a
+         atm_of (lit_of (hd M)) < length A \<and> (next_search \<noteq> None \<longrightarrow>  the next_search < length A) \<and>
+         (is_decided (hd M) \<longrightarrow> k \<ge> 1)]\<^sub>a
         trail_conc\<^sup>d \<rightarrow> trail_conc\<close>
   supply if_splits[split] option.splits[split] bind_ref_tag_False_True[simp]
   unfolding tl_trail_tr_dump_alt_def save_phase_def vmtf_dump_and_unset_def vmtf_dump_def
    vmtf_unset_def
   apply (rewrite at \<open>_ = None \<or> _\<close> short_circuit_conv)
+  apply (rewrite at \<open>_ - 1\<close> fast_minus_def[symmetric])
   supply [[goals_limit = 1]]
   supply uint32_nat_assn_one[sepref_fr_rules]
   supply uint32_nat_assn_zero[sepref_fr_rules]
@@ -553,6 +558,8 @@ lemma tl_trail_tr_dump_code_op_list_tl[sepref_fr_rules]:
 proof -
   have [dest]: \<open>((a, aa, ab, b), x) \<in> trailt_ref \<Longrightarrow> x = a\<close> for a aa ab b x
     by (auto simp: trailt_ref_def)
+  have [simp]: \<open>x \<noteq> [] \<Longrightarrow> is_decided (hd x) \<Longrightarrow> Suc 0 \<le> count_decided x\<close> for x
+    by (cases x) auto
   have H: \<open>(tl_trail_tr_dump_code, RETURN \<circ> tl_dump)
      \<in> [comp_PRE trail_ref (\<lambda>M. M \<noteq> [])
      (\<lambda>_ ((M, xs, lvls, k), ((A, m, lst, next_search), uu), \<phi>).
@@ -561,7 +568,8 @@ proof -
          atm_of (lit_of (hd M)) < length lvls \<and>
          atm_of (lit_of (hd M)) < length \<phi> \<and>
          atm_of (lit_of (hd M)) < length A \<and>
-         (next_search \<noteq> None \<longrightarrow> the next_search < length A))
+         (next_search \<noteq> None \<longrightarrow> the next_search < length A) \<and>
+         (is_decided (hd M) \<longrightarrow> k \<ge> 1))
      (\<lambda>_. True)]\<^sub>a hrp_comp (trail_conc\<^sup>d) trail_ref \<rightarrow> hr_comp trail_conc trail_ref\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF tl_trail_tr_dump_code.refine tl_trail_tr_dump, OF twl_array_code_axioms] .
@@ -1325,6 +1333,8 @@ prepare_code_thms (in -) find_decomp_wl_imp_code_def
 lemmas find_decomp_wl_imp_code[sepref_fr_rules] =
    find_decomp_wl_imp_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
 
+lemma hd_decided_count_decided_ge_1: \<open>x \<noteq> [] \<Longrightarrow> is_decided (hd x) \<Longrightarrow> Suc 0 \<le> count_decided x\<close> for x
+    by (cases x) auto
 sepref_thm find_decomp_wl_imp'_code
   is \<open>uncurry8 (PR_CONST find_decomp_wl_imp')\<close>
   :: \<open>[\<lambda>((((((((M::(nat, nat) ann_lits, N), U::nat), D::nat clause), NP::nat clauses), UP:: nat clauses),

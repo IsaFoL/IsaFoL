@@ -1123,12 +1123,26 @@ lemma watched_by_nth_watched_app':
 context twl_array_code
 begin
 
+lemma (in -) safe_minus_nat_assn:
+  \<open>(uncurry (return oo op -), uncurry (RETURN oo fast_minus)) \<in>
+     [\<lambda>(m, n). m \<ge> n]\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  by sepref_to_hoare
+   (sep_auto simp: fast_minus_def uint32_nat_rel_def br_def nat_of_uint32_le_minus
+      nat_of_uint32_notle_minus nat_of_uint32_le_iff)
+
+lemma (in -) hd_decided_count_decided_ge_1:
+  \<open>x \<noteq> [] \<Longrightarrow> is_decided (hd x) \<Longrightarrow> Suc 0 \<le> count_decided x\<close>
+  by (cases x) auto
+
 sepref_definition (in -) find_decomp_wl_imp_code
   is \<open>uncurry2 find_decomp_wl_imp\<close>
   :: \<open>[\<lambda>((M, D), L). M \<noteq> []]\<^sub>a
          pair_nat_ann_lits_assn\<^sup>d *\<^sub>a conflict_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k
     \<rightarrow> pair_nat_ann_lits_assn\<close>
+  supply safe_minus_nat_assn[sepref_fr_rules]
   unfolding find_decomp_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
+  apply (rewrite at \<open>_ - 1\<close> fast_minus_def[symmetric])
+  supply hd_decided_count_decided_ge_1[simp]
   supply [[goals_limit=1]]
   by sepref
 
