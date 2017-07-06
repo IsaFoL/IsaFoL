@@ -113,28 +113,71 @@ lemma update_next_search_ref[sepref_fr_rules]:
   unfolding option_assn_pure_conv
   by sepref_to_hoare (sep_auto simp: update_next_search_def)
 
-sepref_definition vmtf_dequeue_code
+sepref_definition (in -)l_vmtf_dequeue_code
    is \<open>uncurry (RETURN oo l_vmtf_dequeue)\<close>
-   :: \<open>[\<lambda>(L,A). L < length A \<and> 
-          (\<forall>a. Some a = get_next (A!L) \<longrightarrow> a < length A) \<and> 
-          (\<forall>a. Some a = get_prev (A!L) \<longrightarrow> a < length A)]\<^sub>a 
+   :: \<open>[vmtf_dequeue_pre]\<^sub>a
         uint32_nat_assn\<^sup>k *\<^sub>a (array_assn l_vmtf_atm_assn)\<^sup>d \<rightarrow> array_assn l_vmtf_atm_assn\<close>
   supply [[goals_limit = 1]]
-  unfolding l_vmtf_dequeue_def Let_def
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-           apply sepref_dbg_trans_step_keep
-  oops
+  supply option.splits[split]
+  unfolding l_vmtf_dequeue_def vmtf_dequeue_pre_alt_def
+  by sepref
+
+declare l_vmtf_dequeue_code.refine[sepref_fr_rules]
 
 sepref_definition vmtf_dequeue_code
    is \<open>uncurry (RETURN oo vmtf_dequeue)\<close>
-   :: \<open>[\<lambda>(L,(A,m,lst,next_search)). L < length A]\<^sub>a  uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc\<^sup>d \<rightarrow> vmtf_conc\<close>
+   :: \<open>[\<lambda>(L,(A,m,lst,next_search)). L < length A \<and> vmtf_dequeue_pre (L, A)]\<^sub>a
+        uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc\<^sup>d \<rightarrow> vmtf_conc\<close>
   supply [[goals_limit = 1]]
   unfolding vmtf_dequeue_def
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-           apply sepref_dbg_trans_step_keep
-  oops
+  by sepref
+
+declare vmtf_dequeue_code.refine[sepref_fr_rules]
+
+sepref_definition vmtf_enqueue_code
+   is \<open>uncurry (RETURN oo vmtf_enqueue)\<close>
+   :: \<open>[\<lambda>(L,(A,m,lst,next_search)). L < length A \<and> (lst \<noteq> None \<longrightarrow> the lst < length A)]\<^sub>a
+        uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc\<^sup>d \<rightarrow> vmtf_conc\<close>
+  supply [[goals_limit = 1]]
+  unfolding vmtf_enqueue_def
+  by sepref
+
+declare vmtf_enqueue_code.refine[sepref_fr_rules]
+
+sepref_definition vmtf_en_dequeue_code
+   is \<open>uncurry (RETURN oo vmtf_en_dequeue)\<close>
+   :: \<open>[\<lambda>(L,(A,m,lst,next_search)). L < length A \<and> (lst \<noteq> None \<longrightarrow> the lst < length A) \<and>
+        vmtf_dequeue_pre (L,A)]\<^sub>a
+        uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc\<^sup>d \<rightarrow> vmtf_conc\<close>
+  supply [[goals_limit = 1]]
+  supply vmtf_dequeue_def[simp] if_splits[split] vmtf_dequeue_pre_def[simp]
+  unfolding vmtf_en_dequeue_def
+  by sepref
+
+declare vmtf_en_dequeue_code.refine[sepref_fr_rules]
+
+lemma (in -) id_ref: \<open>(return o id, RETURN o id) \<in> R\<^sup>d \<rightarrow>\<^sub>a R\<close>
+  by sepref_to_hoare sep_auto
+
+lemma (in -) id_reorder_remove: \<open>(return o id, reorder_remove) \<in>
+      (list_assn uint32_nat_assn)\<^sup>d \<rightarrow>\<^sub>a list_assn uint32_nat_assn\<close>
+  using id_ref[of \<open>list_assn uint32_nat_assn\<close>, FCOMP id_reorder_remove]
+  .
+
+sepref_definition vmtf_flush_code
+   is \<open>vmtf_flush\<close>
+   :: \<open>vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
+  supply [[goals_limit = 1]]
+  supply id_reorder_remove[sepref_fr_rules] vmtf_en_dequeue_pre_def[simp]
+  unfolding vmtf_flush_def
+  apply (rewrite at \<open>(_, \<hole>)\<close> HOL_list.fold_custom_empty)
+  by sepref
+
+definition trail_bump where
+  \<open>trail_bump = (\<lambda>(M, vm, \<phi>). do{
+      vm' \<leftarrow> vmtf_flush vm;
+      RETURN (M, vm', \<phi>)})\<close>
+
 
 abbreviation phase_saver_conc where
   \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
