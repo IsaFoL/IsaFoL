@@ -571,7 +571,6 @@ proof -
         twl_array_code_ops.literals_are_in_N\<^sub>0_def)
 
   show ?thesis
-    supply literal_of_nat.simps[simp del]
     using assms(3-)
     unfolding init_dt_step_wl_def init_dt_step_l_def
     apply (refine_rcg val)

@@ -604,4 +604,7 @@ lemma list_mset_assn_pure_conv:
       list_rel_mset_rel_internal list_rel_def Collect_eq_comp_right
     intro!: arg_cong[of _ _ \<open>\<lambda>b. pure b _ _\<close>])
 
+lemma ex_assn_pair_split: \<open>(\<exists>\<^sub>Ab. P b) = (\<exists>\<^sub>Aa b. P (a, b))\<close>
+  by (subst ex_assn_def, subst (1) ex_assn_def, auto)+
+
 end

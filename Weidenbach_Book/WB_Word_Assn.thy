@@ -218,8 +218,7 @@ lemma nat_of_uint32_rule[sepref_fr_rules]:
   \<open>(return o nat_of_uint32, RETURN o nat_of_uint32) \<in> uint32_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   by sepref_to_hoare sep_auto
 
-text \<open>TODO:is uint32 a \<open>canonically_ordered_monoid_add\<close>? \<close>
-lemma uint32_less_than_0[iff]: \<open>(a::uint32) \<le> 0 \<longleftrightarrow> a= 0\<close>
+lemma uint32_less_than_0[iff]: \<open>(a::uint32) \<le> 0 \<longleftrightarrow> a = 0\<close>
   by transfer auto
 
 lemma nat_of_uint32_less_iff: \<open>nat_of_uint32 a < nat_of_uint32 b \<longleftrightarrow> a < b\<close>
@@ -235,11 +234,6 @@ lemma nat_of_uint32_le_iff: \<open>nat_of_uint32 a \<le> nat_of_uint32 b \<longl
 lemma nat_of_uint32_max:
   \<open>nat_of_uint32 (max ai bi) = max (nat_of_uint32 ai) (nat_of_uint32 bi)\<close>
   by (auto simp: max_def nat_of_uint32_le_iff split: if_splits)
-
-lemma max_uint32_nat[sepref_fr_rules]:
-  \<open>(uncurry (return oo max), uncurry (RETURN oo max)) \<in> uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a
-     uint32_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_max)
 
 lemma mult_mod_mod_mult:
    \<open>b < n div a \<Longrightarrow> a > 0 \<Longrightarrow> b > 0 \<Longrightarrow> a * b mod n = a * (b mod n)\<close> for a b n :: int
@@ -297,6 +291,12 @@ proof -
 qed
 
 
+
+lemma max_uint32_nat[sepref_fr_rules]:
+  \<open>(uncurry (return oo max), uncurry (RETURN oo max)) \<in> uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a
+     uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_max)
+
 lemma array_set_hnr_u[sepref_fr_rules]:
     \<open>CONSTRAINT is_pure A \<Longrightarrow>
     (uncurry2 (\<lambda>xs i. heap_array_set xs (nat_of_uint32 i)), uncurry2 (RETURN \<circ>\<circ>\<circ> op_list_set)) \<in>
@@ -324,6 +324,24 @@ proof -
      list_rel_eq_listrel listrel_iff_nth pure_def)
 qed
 
+lemma arl_get_hnr_u[sepref_fr_rules]:
+  assumes \<open>CONSTRAINT is_pure A\<close>
+  shows \<open>(uncurry (\<lambda>xs i. arl_get xs (nat_of_uint32 i)), uncurry (RETURN \<circ>\<circ> op_list_get))
+\<in> [pre_list_get]\<^sub>a (arl_assn A)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> A\<close>
+proof -
+  obtain A' where
+    A: \<open>pure A' = A\<close>
+    using assms pure_the_pure by auto
+  then have A': \<open>the_pure A = A'\<close>
+    by auto
+  have [simp]: \<open>the_pure (\<lambda>a c. \<up> ((c, a) \<in> A')) = A'\<close>
+    unfolding pure_def[symmetric] by auto
+  show ?thesis
+    by sepref_to_hoare
+      (sep_auto simp: uint32_nat_rel_def br_def ex_assn_up_eq2 array_assn_def is_array_def
+        hr_comp_def list_rel_pres_length list_rel_update param_nth arl_assn_def
+        A' A[symmetric] pure_def)
+qed
 
 lemma nat_of_uint32_add:
   \<open>nat_of_uint32 ai + nat_of_uint32 bi < 2 ^32 \<Longrightarrow>
@@ -346,6 +364,34 @@ lemma uint32_nat_assn_zero:
 
 lemma nat_of_uint32_int32_assn:
   \<open>(return o id, RETURN o nat_of_uint32) \<in> uint32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
+
+
+definition \<open>zero_uint32 = (0 :: nat)\<close>
+
+lemma uint32_nat_assn_zero_uint32:
+  \<open>(uncurry0 (return 0), uncurry0 (RETURN zero_uint32)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_012 zero_uint32_def)
+
+lemma nat_assn_zero:
+  \<open>(uncurry0 (return 0), uncurry0 (RETURN 0)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_012)
+
+lemma uint32_nat_assn_less[sepref_fr_rules]:
+  \<open>(uncurry (return oo op <), uncurry (RETURN oo op <)) \<in>
+    uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def max_def
+      nat_of_uint32_less_iff)
+
+text \<open>Do NOT declare this theorem as \<open>sepref_fr_rules\<close> to avoid bad unexpected conversions.\<close>
+lemma (in -) le_uint32_nat_hnr:
+  \<open>(uncurry (return oo (\<lambda>a b. nat_of_uint32 a < b)), uncurry (RETURN oo op <)) \<in>
+   uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
+
+lemma (in -) le_nat_uint32_hnr:
+  \<open>(uncurry (return oo (\<lambda>a b. a < nat_of_uint32 b)), uncurry (RETURN oo op <)) \<in>
+   nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
 
 end
