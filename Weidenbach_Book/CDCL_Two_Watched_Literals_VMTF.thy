@@ -1912,6 +1912,71 @@ proof -
     by fast
 qed
 
+definition (in twl_array_code_ops) vmtf_dump_and_unset  :: \<open>nat \<Rightarrow> vmtf_imp_remove \<Rightarrow> vmtf_imp_remove\<close> where
+  \<open>vmtf_dump_and_unset L M = vmtf_dump L (vmtf_unset L M)\<close>
+
+lemma vmtf_imp_cons_remove_iff:
+  \<open>((A, m, lst, next_search), L # b) \<in> vmtf_imp M \<longleftrightarrow> 
+     L \<in> atms_of N\<^sub>1 \<and> ((A, m, lst, next_search), b) \<in> vmtf_imp M\<close>
+  (is \<open>?A \<longleftrightarrow> ?L \<and> ?B\<close>)
+proof
+  assume vmtf: ?A
+  obtain xs' ys' where
+    l_vmtf: \<open>l_vmtf (ys' @ xs') m A\<close> and
+    lst: \<open>lst = option_hd (ys' @ xs')\<close> and
+    next_search: \<open>next_search = option_hd xs'\<close> and
+    abs_vmtf: \<open>abs_l_vmtf_remove_inv M ((set xs', set ys'), set (L # b))\<close> and
+    notin: \<open>l_vmtf_notin (ys' @ xs') m A\<close> and
+    atm_A: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length A\<close> and
+    \<open>\<forall>L\<in>set (ys' @ xs'). L \<in> atms_of N\<^sub>1\<close>
+    using vmtf unfolding vmtf_imp_def by fast
+  moreover have \<open>abs_l_vmtf_remove_inv M ((set xs', set ys'), set b)\<close> and L: ?L
+    using abs_vmtf unfolding abs_l_vmtf_remove_inv_def by auto
+  ultimately have \<open>l_vmtf (ys' @ xs') m A \<and>
+       lst = option_hd (ys' @ xs') \<and>
+       next_search = option_hd xs' \<and>
+       abs_l_vmtf_remove_inv M ((set xs', set ys'), set b) \<and>
+       l_vmtf_notin (ys' @ xs') m A \<and> (\<forall>L\<in>atms_of N\<^sub>1. L < length A) \<and>
+       (\<forall>L\<in>set (ys' @ xs'). L \<in> atms_of N\<^sub>1)\<close>
+      by fast
+  then show \<open>?L \<and> ?B\<close>
+    using L unfolding vmtf_imp_def by fast
+next
+  assume vmtf: \<open>?L \<and> ?B\<close>
+  obtain xs' ys' where
+    l_vmtf: \<open>l_vmtf (ys' @ xs') m A\<close> and
+    lst: \<open>lst = option_hd (ys' @ xs')\<close> and
+    next_search: \<open>next_search = option_hd xs'\<close> and
+    abs_vmtf: \<open>abs_l_vmtf_remove_inv M ((set xs', set ys'), set b)\<close> and
+    notin: \<open>l_vmtf_notin (ys' @ xs') m A\<close> and
+    atm_A: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length A\<close> and
+    \<open>\<forall>L\<in>set (ys' @ xs'). L \<in> atms_of N\<^sub>1\<close>
+    using vmtf unfolding vmtf_imp_def by fast
+  moreover have \<open>abs_l_vmtf_remove_inv M ((set xs', set ys'), set (L # b))\<close>
+    using vmtf abs_vmtf unfolding abs_l_vmtf_remove_inv_def by auto
+  ultimately have \<open>l_vmtf (ys' @ xs') m A \<and>
+       lst = option_hd (ys' @ xs') \<and>
+       next_search = option_hd xs' \<and>
+       abs_l_vmtf_remove_inv M ((set xs', set ys'), set (L # b)) \<and>
+       l_vmtf_notin (ys' @ xs') m A \<and> (\<forall>L\<in>atms_of N\<^sub>1. L < length A) \<and>
+       (\<forall>L\<in>set (ys' @ xs'). L \<in> atms_of N\<^sub>1)\<close>
+      by fast
+  then show \<open>?A\<close>
+    unfolding vmtf_imp_def by fast
+qed
+
+lemma abs_l_vmtf_unset_vmtf_dump_unset:
+  fixes M
+  defines [simp]: \<open>L \<equiv> atm_of (lit_of (hd M))\<close>
+  assumes vmtf:\<open>((A, m, lst, next_search), remove) \<in> vmtf_imp M\<close> and
+    L_N: \<open>L \<in> atms_of N\<^sub>1\<close> and [simp]: \<open>M \<noteq> []\<close>
+  shows \<open>(vmtf_dump_and_unset L ((A, m, lst, next_search), remove)) \<in> vmtf_imp (tl M)\<close>
+     (is \<open>?S \<in> _\<close>)
+  using abs_l_vmtf_unset_vmtf_unset'[OF assms(2-)[unfolded assms(1)]] L_N
+  unfolding vmtf_dump_and_unset_def vmtf_dump_def
+  by (cases \<open>vmtf_unset (atm_of (lit_of (hd M))) ((A, m, lst, next_search), remove)\<close>)
+     (auto simp: vmtf_imp_cons_remove_iff)
+
 end
 
 
@@ -2011,7 +2076,11 @@ definition (in twl_array_code_ops) phase_saving :: \<open>phase_saver \<Rightarr
 definition get_saved_lit :: \<open>phase_saver \<Rightarrow> nat \<Rightarrow> nat literal\<close> where
 \<open>get_saved_lit \<phi> L = (if \<phi>!L then Pos L else Neg L)\<close>
 
-definition save_phase :: \<open>nat literal \<Rightarrow> phase_saver \<Rightarrow> phase_saver\<close> where
-\<open>save_phase L \<phi> = \<phi>[atm_of L := is_pos L]\<close>
+text \<open>Save phase as given (e.g. for literals in the trail):\<close>
+definition (in twl_array_code_ops) save_phase :: \<open>nat literal \<Rightarrow> phase_saver \<Rightarrow> phase_saver\<close> where
+  \<open>save_phase L \<phi> = \<phi>[atm_of L := is_pos L]\<close>
 
+text \<open>Save opposite of the phase (e.g. for literals in the conflict clause):\<close>
+definition  (in twl_array_code_ops) save_phase_inv :: \<open>nat literal \<Rightarrow> phase_saver \<Rightarrow> phase_saver\<close> where
+  \<open>save_phase_inv L \<phi> = \<phi>[atm_of L := \<not>is_pos L]\<close>
 end

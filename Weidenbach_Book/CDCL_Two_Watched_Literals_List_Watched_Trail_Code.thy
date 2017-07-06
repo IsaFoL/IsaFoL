@@ -338,20 +338,8 @@ definition (in twl_array_code_ops) tl_trailt_tr :: \<open>trailt \<Rightarrow> t
   \<open>tl_trailt_tr = (\<lambda>(M', xs, lvls, k). (tl M', xs[atm_of (lit_of (hd M')) := None], lvls[atm_of (lit_of (hd M')) := 0],
     if is_decided (hd M') then k-1 else k))\<close>
 
-definition (in twl_array_code_ops) vmtf_dump_and_unset  :: \<open>nat \<Rightarrow> vmtf_imp_remove \<Rightarrow> vmtf_imp_remove\<close> where
-  \<open>vmtf_dump_and_unset L M = vmtf_dump L (vmtf_unset L M)\<close>
-
 definition (in twl_array_code_ops) tl_trail_tr :: \<open>trail_int \<Rightarrow> trail_int\<close> where
   \<open>tl_trail_tr = (\<lambda>(M', vm, \<phi>). (tl_trailt_tr M', vmtf_unset (atm_of (lit_of (hd (fst M')))) vm, \<phi>))\<close>
-
-definition (in twl_array_code_ops) tl_trail_tr_dump :: \<open>trail_int \<Rightarrow> trail_int\<close> where
-  \<open>tl_trail_tr_dump = (\<lambda>(M', vm, \<phi>). (tl_trailt_tr M', vmtf_dump_and_unset (atm_of (lit_of (hd (fst M')))) vm, \<phi>))\<close>
-
-definition (in -) tl_dump where
-  \<open>tl_dump = tl\<close>
-
-definition (in -) rescore where
-  \<open>rescore = id\<close>
 
 lemma tl_trail_tr:
   \<open>((RETURN o tl_trail_tr), (RETURN o tl)) \<in>
@@ -397,12 +385,12 @@ proof -
 qed
 
 lemma tl_trail_tr_alt_def:
-  \<open>tl_trail_tr = (case_prod)
+  \<open>tl_trail_tr = case_prod
     (\<lambda>(M', xs, lvls, k) (((A, m, lst, next_search), removed), \<phi>).
         let trail = tl M'; K = hd M'; L = atm_of (lit_of K) in
         ((tl M', xs[L := None], lvls[L := 0], if is_decided K then k - 1 else k),
             if next_search = None \<or> stamp (A ! the next_search) < stamp (A ! L)
-                        then ((A, m, lst, Some (L)), removed) else ((A, m, lst, next_search), removed),
+                        then ((A, m, lst, Some L), removed) else ((A, m, lst, next_search), removed),
         \<phi>))\<close>
   unfolding tl_trail_tr_def tl_trailt_tr_def vmtf_unset_def
   by (auto intro!: ext simp: Let_def)
@@ -451,6 +439,132 @@ proof -
      (\<lambda>_. True)]\<^sub>a hrp_comp (trail_conc\<^sup>d) trail_ref \<rightarrow> hr_comp trail_conc trail_ref\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF tl_trail_tr_code.refine tl_trail_tr, OF twl_array_code_axioms] .
+  have pre: \<open>?pre' = ?pre\<close>
+    by (auto simp: comp_PRE_def trail_ref_def trailt_ref_def phase_saving_def
+        in_N\<^sub>1_atm_of_in_atms_of_iff vmtf_imp_def intro!: ext)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: trail_assn_def hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: trail_assn_def hrp_comp_def hr_comp_def)
+  show ?thesis
+    using H unfolding im pre f by simp
+qed
+
+paragraph \<open>tl and dump\<close>
+
+definition (in -) tl_dump where
+  \<open>tl_dump = tl\<close>
+
+definition (in -) rescore where
+  \<open>rescore = id\<close>
+
+definition (in twl_array_code_ops) tl_trail_tr_dump :: \<open>trail_int \<Rightarrow> trail_int\<close> where
+  \<open>tl_trail_tr_dump =
+     (\<lambda>(M', vm, \<phi>). (tl_trailt_tr M', vmtf_dump_and_unset (atm_of (lit_of (hd (fst M')))) vm,
+      save_phase (lit_of (hd (fst M'))) \<phi>))\<close>
+
+
+lemma tl_trail_tr_dump:
+  \<open>((RETURN o tl_trail_tr_dump), (RETURN o tl_dump)) \<in>
+    [\<lambda>M. M \<noteq> []]\<^sub>f trail_ref \<rightarrow> \<langle>trail_ref\<rangle>nres_rel\<close>
+proof -
+  have \<open>La \<notin> A \<Longrightarrow>  -La \<notin> A \<Longrightarrow> Pos (atm_of La) \<in> A \<Longrightarrow> False\<close> for La A
+    by (metis literal.exhaust_sel uminus_Pos uminus_Neg)
+  have [intro]:
+    \<open>Pos (atm_of La) \<notin> lits_of_l M's \<Longrightarrow> Neg (atm_of La) \<notin> lits_of_l M's \<Longrightarrow> get_level M's La = 0\<close>
+    for La M's
+    by (rule atm_of_notin_get_level_eq_0) (cases La; auto simp: Decided_Propagated_in_iff_in_lits_of_l)
+
+
+  show ?thesis -- \<open>TODO tune proof\<close>
+    apply (intro frefI nres_relI, rename_tac x y, case_tac \<open>y\<close>)
+    subgoal by fast
+    subgoal for M M' L M's
+      unfolding trail_ref_def comp_def RETURN_refine_iff trailt_ref_def tl_dump_def
+      apply clarify
+      apply (intro conjI; clarify?; (intro conjI)?)
+      subgoal by (auto simp: trail_ref_def valued_atm_on_trail_def tl_trail_tr_dump_def tl_trailt_tr_def)
+      subgoal by (auto simp: trail_ref_def valued_atm_on_trail_def tl_trail_tr_def tl_trailt_tr_def)
+      subgoal -- \<open>Trail ref\<close>
+        by (cases \<open>lit_of L\<close>)
+            (auto simp: trail_ref_def valued_atm_on_trail_def tl_trail_tr_dump_def tl_trailt_tr_def
+          Decided_Propagated_in_iff_in_lits_of_l eq_commute[of _ \<open>lit_of _\<close>] )
+      subgoal
+        by (auto simp: valued_atm_on_trail_def tl_trail_tr_dump_def tl_trailt_tr_def
+           atm_of_eq_atm_of get_level_cons_if)
+      subgoal
+        by (auto simp: valued_atm_on_trail_def tl_trail_tr_dump_def tl_trailt_tr_def
+           atm_of_eq_atm_of get_level_cons_if)
+      subgoal
+        by (auto simp: valued_atm_on_trail_def tl_trailt_tr_def atm_of_eq_atm_of get_level_cons_if)
+      subgoal -- \<open>VMTF\<close>
+        by (auto simp: tl_trail_tr_def tl_trail_tr_dump_def in_N\<^sub>1_atm_of_in_atms_of_iff
+            dest: no_dup_consistentD abs_l_vmtf_unset_vmtf_dump_unset)
+      subgoal -- \<open>Phase saving\<close>
+        by (auto simp: tl_trail_tr_def tl_trail_tr_dump_def save_phase_def phase_saving_def)
+      done
+    done
+qed
+
+
+
+lemma tl_trail_tr_dump_alt_def:
+  \<open>tl_trail_tr_dump = case_prod
+    (\<lambda>(M', xs, lvls, k) (((A, m, lst, next_search), removed), \<phi>).
+        let trail = tl M'; K = hd M'; L = atm_of (lit_of K) in
+        ((tl M', xs[L := None], lvls[L := 0], if is_decided K then k - 1 else k),
+            vmtf_dump_and_unset L ((A, m, lst, next_search), removed),
+        save_phase (lit_of K) \<phi>))\<close>
+  unfolding tl_trail_tr_dump_def tl_trailt_tr_def vmtf_unset_def
+  by (auto intro!: ext simp: Let_def)
+
+
+sepref_thm tl_trail_tr_dump_code
+  is \<open>RETURN o tl_trail_tr_dump\<close>
+  :: \<open>[\<lambda>((M, xs, lvls, k), ((A, m, lst, next_search), _), \<phi>). M \<noteq> [] \<and> atm_of (lit_of (hd M)) < length xs \<and>
+          atm_of (lit_of (hd M)) < length lvls \<and> atm_of (lit_of (hd M)) < length \<phi> \<and>
+         atm_of (lit_of (hd M)) < length A \<and> (next_search \<noteq> None \<longrightarrow>  the next_search < length A)]\<^sub>a
+        trail_conc\<^sup>d \<rightarrow> trail_conc\<close>
+  supply if_splits[split] option.splits[split] bind_ref_tag_False_True[simp]
+  unfolding tl_trail_tr_dump_alt_def save_phase_def vmtf_dump_and_unset_def vmtf_dump_def
+   vmtf_unset_def
+  apply (rewrite at \<open>_ = None \<or> _\<close> short_circuit_conv)
+  supply [[goals_limit = 1]]
+  supply uint32_nat_assn_one[sepref_fr_rules]
+  supply uint32_nat_assn_zero[sepref_fr_rules]
+  by sepref
+
+
+concrete_definition (in -) tl_trail_tr_dump_code
+  uses twl_array_code.tl_trail_tr_dump_code.refine_raw
+  is "(?f,_)\<in>_"
+
+prepare_code_thms (in -) tl_trail_tr_dump_code_def
+
+lemmas tl_trail_tr_dump_code_refine[sepref_fr_rules] =
+   tl_trail_tr_dump_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma tl_trail_tr_dump_code_op_list_tl[sepref_fr_rules]:
+  \<open>(tl_trail_tr_dump_code, (RETURN o tl_dump)) \<in>
+    [\<lambda>M. M \<noteq> []]\<^sub>a trail_assn\<^sup>d \<rightarrow> trail_assn\<close>
+    (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have [dest]: \<open>((a, aa, ab, b), x) \<in> trailt_ref \<Longrightarrow> x = a\<close> for a aa ab b x
+    by (auto simp: trailt_ref_def)
+  have H: \<open>(tl_trail_tr_dump_code, RETURN \<circ> tl_dump)
+     \<in> [comp_PRE trail_ref (\<lambda>M. M \<noteq> [])
+     (\<lambda>_ ((M, xs, lvls, k), ((A, m, lst, next_search), uu), \<phi>).
+         M \<noteq> [] \<and>
+         atm_of (lit_of (hd M)) < length xs \<and>
+         atm_of (lit_of (hd M)) < length lvls \<and>
+         atm_of (lit_of (hd M)) < length \<phi> \<and>
+         atm_of (lit_of (hd M)) < length A \<and>
+         (next_search \<noteq> None \<longrightarrow> the next_search < length A))
+     (\<lambda>_. True)]\<^sub>a hrp_comp (trail_conc\<^sup>d) trail_ref \<rightarrow> hr_comp trail_conc trail_ref\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF tl_trail_tr_dump_code.refine tl_trail_tr_dump, OF twl_array_code_axioms] .
   have pre: \<open>?pre' = ?pre\<close>
     by (auto simp: comp_PRE_def trail_ref_def trailt_ref_def phase_saving_def
         in_N\<^sub>1_atm_of_in_atms_of_iff vmtf_imp_def intro!: ext)
@@ -1071,6 +1185,7 @@ sepref_thm skip_and_resolve_loop_wl_D
   unfolding skip_and_resolve_loop_wl_D_def
   apply (rewrite at \<open>\<not>_ \<and> \<not> _\<close> short_circuit_conv)
   apply (rewrite at \<open>If _ \<hole> _\<close> op_mset_arl_empty_def[symmetric])
+  apply (rewrite in \<open>let _ = _ \<union># _ in RETURN(_ = {#}, tl _, _)\<close> tl_dump_def[symmetric])
   unfolding twl_st_l_trail_assn_def
     literals_to_update_wl_literals_to_update_wl_empty
     get_conflict_wl.simps get_trail_wl.simps get_conflict_wl_get_conflict_wl_is_Nil
