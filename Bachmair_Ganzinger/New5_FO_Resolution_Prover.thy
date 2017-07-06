@@ -1176,9 +1176,11 @@ interpretation src_ext:
 definition ord_FO_\<Gamma> :: "'a inference set" where
   "ord_FO_\<Gamma> = {Infer CC D E | CC D E Cl \<sigma>. ord_resolve_rename S Cl D \<sigma> E \<and> mset Cl = CC}"
 
+thm ord_resolve_rename_lifting
+
 interpretation ord_FO_resolution: inference_system ord_FO_\<Gamma> .
 
-inductive subsume_resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+inductive subsume_resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where (* This is never used. *)
   "subsume_resolve (D + {#L#}) (C + (D + {#- L#}) \<cdot> \<sigma>) (C + D \<cdot> \<sigma>)"
 
 text {*
@@ -1208,6 +1210,17 @@ definition sup_state ::
 where
   "sup_state Sts = (lSup (lmap getN Sts), lSup (lmap getP Sts),
      lSup (lmap getQ Sts))"
+
+(*
+definition limit_N :: "('a state) llist \<Rightarrow> 'a clause set" where 
+  "limit_N Sts = llimit (lmap getN Sts)"
+
+definition limit_P :: "('a state) llist \<Rightarrow> 'a clause set" where 
+  "limit_P Sts = llimit (lmap getP Sts)"
+
+definition limit_Q :: "('a state) llist \<Rightarrow> 'a clause set" where 
+  "limit_Q Sts = llimit (lmap getQ Sts)"
+*)
     
 definition limit_state ::
   "('a state) llist \<Rightarrow> 'a state"
@@ -2526,13 +2539,57 @@ proof
   then obtain D where D_p: "D \<in> clss_of_state (sup_state Sts)" "subsumes D C" "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not>properly_subsumes E D"
     using properly_subsumes_has_minimum[of "{E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}"]
     by auto
-  then obtain \<sigma> where \<sigma>: "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
-    sorry (* Since otherwise C would be redundant! *)
+
   from D_p(1) obtain i where i_p: "i < llength Sts" "D \<in> ?Ns i \<or> D \<in> ?Ps i \<or> D \<in> ?Qs i"
     unfolding clss_of_state_def unfolding sup_state_def 
     apply auto
       apply (metis in_lSup_in_nth llength_lmap lnth_lmap)+ 
     done
+
+  have ground_C: "is_ground_cls C"
+    using C_p using llimit_grounding_of_state_ground ns by auto 
+
+  have derivns: "derivation src_ext.derive Ns" using resolution_prover_ground_derivation deriv ns by auto
+
+  have "\<exists>\<sigma>. D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
+  proof - (* copy paste *)
+    have "\<exists>\<sigma>. D \<cdot> \<sigma> = C" 
+    proof (rule ccontr)
+      assume "\<nexists>\<sigma>. D \<cdot> \<sigma> = C"
+      moreover
+      from D_p obtain \<tau>_proto where "D \<cdot> \<tau>_proto \<subseteq># C" unfolding subsumes_def
+        by blast
+      then obtain \<tau> where \<tau>_p: "D \<cdot> \<tau> \<subseteq># C \<and> is_ground_subst \<tau>"
+        using ground_C
+        by (metis is_ground_cls_mono make_single_ground_subst subset_mset.order_refl) 
+      ultimately
+      have subsub: "D \<cdot> \<tau> \<subset># C"
+        using subset_mset.le_imp_less_or_eq by auto
+      moreover
+      have "is_ground_subst \<tau>" using \<tau>_p by auto
+      moreover 
+      have "D \<in> clss_of_state (lnth Sts i)" 
+        using D_p getN_subset by (meson contra_subsetD getP_subset getQ_subset i_p(1) i_p(2)) 
+      ultimately
+      have "C \<in> src.Rf (grounding_of_state (lnth Sts i))" 
+        using strict_subsumption_redundant_state[of D \<tau> C "lnth Sts i"]
+        by auto
+      then have "C \<in> src.Rf (Lazy_List_Limit.lSup Ns)" 
+        using D_p ns src.Rf_mono
+        by (metis (no_types, lifting) i_p(1) contra_subsetD llength_lmap lnth_lmap lnth_subset_lSup) 
+      then have "C \<in> src.Rf (llimit Ns)" 
+        unfolding ns using local.src_ext.Rf_lSup_subset_Rf_llimit derivns ns by auto
+      then show False using C_p by auto
+    qed
+    then obtain \<sigma> where "D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>" 
+      using ground_C
+      by (metis make_single_ground_subst subset_mset.order_refl) 
+    then show ?thesis by auto
+  qed
+  then obtain \<sigma> where \<sigma>: "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
+    by blast
+
+  note i_p
   moreover
   {
     assume a: "D \<in> ?Ns i"
@@ -2590,14 +2647,31 @@ theorem completeness:
   assumes
     deriv: "derivation (op \<leadsto>) Sts" and
     fair: "fair_state_seq Sts" and
-    unsat: "\<not> satisfiable (grounding_of_state (limit_state Sts))"
+    unsat: "\<not> satisfiable (grounding_of_state (limit_state Sts))" and
+    ns: "Ns = lmap grounding_of_state Sts"
   shows "{#} \<in> clss_of_state (limit_state Sts)"
 proof -
   let ?N = "\<lambda>i. grounding_of_state (lnth Sts i)"
   define \<Gamma>x :: "'a inference set" where "\<Gamma>x = undefined"
   define Rf :: "'a literal multiset set \<Rightarrow> 'a literal multiset set" where "Rf = standard_redundancy_criterion.Rf"
   define derive where "derive = redundancy_criterion.derive \<Gamma>x Rf"
-    
+
+  from fair deriv have "llimit Ns - src.Rf (llimit Ns) \<subseteq> grounding_of_state (limit_state Sts)" using fair_imp_limit_minus_Rf_subset_ground_limit_state ns by blast
+
+  have derivns: "derivation src_ext.derive Ns" using resolution_prover_ground_derivation deriv ns by auto
+
+  {
+    fix \<gamma> :: "'a inference"
+    assume "\<gamma> \<in> undefined"
+    let ?Cs = "side_prems_of \<gamma>"
+    let ?D = "main_prem_of \<gamma>"
+    let ?E = "concl_of \<gamma>"
+    assume "set_mset ?Cs \<union> {?D} \<subseteq> grounding_of_state (limit_state Sts) - src.Rf (grounding_of_state (limit_state Sts))"
+
+    thm ord_resolve_rename_lifting
+
+    then obtain Y where True sorry
+  }
     
 oops
   
