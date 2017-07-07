@@ -100,6 +100,7 @@ abbreviation vmtf_conc where
   \<open>vmtf_conc \<equiv> (array_assn l_vmtf_atm_assn *assn nat_assn *assn option_assn uint32_nat_assn
     *assn option_assn uint32_nat_assn)\<close>
 
+
 abbreviation vmtf_remove_conc where
   \<open>vmtf_remove_conc \<equiv> vmtf_conc *assn arl_assn uint32_nat_assn\<close>
 
@@ -155,29 +156,114 @@ sepref_definition vmtf_en_dequeue_code
 
 declare vmtf_en_dequeue_code.refine[sepref_fr_rules]
 
+
+definition insert_sort_inner_nth where
+  \<open>insert_sort_inner_nth A = insert_sort_inner (\<lambda>remove n. stamp (A ! (remove ! n)))\<close>
+
+definition insert_sort_nth where
+  \<open>insert_sort_nth =  (\<lambda>(A, _). insert_sort (\<lambda>remove n. stamp (A ! (remove ! n))))\<close>
+
+
+lemma insert_sort_inner_nth_code_helper:
+  assumes \<open>\<forall>x\<in>set ba. x < length a\<close>  and
+      \<open>b < length ba\<close> and
+     mset: \<open>mset ba = mset a2'\<close>  and
+      \<open>a1' < length a2'\<close>
+  shows \<open>a2' ! b < length a\<close>
+  using nth_mem[of b a2'] mset_eq_setD[OF mset] mset_eq_length[OF mset] assms
+  by (auto simp del: nth_mem)
+
+sepref_definition (in -) insert_sort_inner_nth_code
+   is \<open>uncurry2 insert_sort_inner_nth\<close>
+   :: \<open>[\<lambda>((xs, remove), n). (\<forall>x\<in>#mset remove. x < length xs) \<and> n < length remove]\<^sub>a
+  (array_assn l_vmtf_atm_assn)\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>
+  arl_assn uint32_nat_assn\<close>
+  unfolding insert_sort_inner_nth_def insert_sort_inner_def
+  supply [[goals_limit = 1]]
+  supply mset_eq_setD[dest] mset_eq_length[dest]  insert_sort_inner_nth_code_helper[intro]
+  by sepref
+
+declare insert_sort_inner_nth_code.refine[sepref_fr_rules]
+
+sepref_definition (in -) insert_sort_nth_code
+   is \<open>uncurry insert_sort_nth\<close>
+   :: \<open>[\<lambda>(vm, remove). (\<forall>x\<in>#mset remove. x < length (fst vm))]\<^sub>a
+      vmtf_conc\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d  \<rightarrow>
+       arl_assn uint32_nat_assn\<close>
+  unfolding insert_sort_nth_def insert_sort_def insert_sort_inner_nth_def[symmetric]
+  supply [[goals_limit = 1]]
+  supply mset_eq_setD[dest] mset_eq_length[dest]
+  by sepref
+
+declare insert_sort_nth_code.refine[sepref_fr_rules]
+
 lemma (in -) id_ref: \<open>(return o id, RETURN o id) \<in> R\<^sup>d \<rightarrow>\<^sub>a R\<close>
   by sepref_to_hoare sep_auto
 
-lemma (in -) id_reorder_remove: \<open>(return o id, reorder_remove) \<in>
-      (arl_assn uint32_nat_assn)\<^sup>d \<rightarrow>\<^sub>a arl_assn uint32_nat_assn\<close>
-  using id_ref[of \<open>arl_assn uint32_nat_assn\<close>, FCOMP id_reorder_remove]
+lemma insert_sort_nth_reorder:
+   \<open>(uncurry insert_sort_nth, uncurry reorder_remove) \<in>
+      [\<lambda>((xs, _), i). True]\<^sub>f Id \<times>\<^sub>r \<langle>Id\<rangle>list_rel \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
+  using insert_sort_reorder_remove[unfolded fref_def nres_rel_def]
+  by (intro frefI nres_relI) (fastforce simp: insert_sort_nth_def)
+
+
+lemma (in -) insert_sort_nth_code_reorder_remove[sepref_fr_rules]:
+   \<open>(uncurry insert_sort_nth_code, uncurry reorder_remove) \<in>
+      [\<lambda>((a, _), b). \<forall>x\<in>set b. x < length a]\<^sub>a vmtf_conc\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d \<rightarrow> arl_assn uint32_nat_assn\<close>
+  using insert_sort_nth_code.refine[FCOMP insert_sort_nth_reorder]
   by auto
 
-sepref_definition vmtf_flush_code
+context twl_array_code_ops
+begin
+
+lemma vmtf_imp_insert_sort_nth_code_preD:
+  assumes vmtf: \<open>vm \<in> vmtf_imp M\<close>
+  shows \<open>\<forall>x\<in>set (snd vm). x < length (fst (fst vm))\<close>
+proof -
+  obtain A m lst next_search remove where
+    vm: \<open>vm = ((A, m, lst, next_search), remove)\<close>
+    by (cases vm) auto
+
+  obtain xs' ys' where
+    l_vmtf: \<open>l_vmtf (ys' @ xs') m A\<close> and
+    lst: \<open>lst = option_hd (ys' @ xs')\<close> and
+    next_search: \<open>next_search = option_hd xs'\<close> and
+    abs_vmtf: \<open>abs_l_vmtf_remove_inv M ((set xs', set ys'), set remove)\<close> and
+    notin: \<open>l_vmtf_notin (ys' @ xs') m A\<close> and
+    atm_A: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length A\<close> and
+    \<open>\<forall>L\<in>set (ys' @ xs'). L \<in> atms_of N\<^sub>1\<close>
+    using vmtf unfolding vmtf_imp_def vm by fast
+  show ?thesis
+    using atm_A abs_vmtf unfolding abs_l_vmtf_remove_inv_def
+    by (auto simp: vm)
+qed
+
+sepref_thm vmtf_flush_code
    is \<open>vmtf_flush\<close>
-   :: \<open>vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
+   :: \<open>[\<lambda>a. \<exists>M. a \<in> vmtf_imp M]\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
   supply [[goals_limit = 1]]
-  supply id_reorder_remove[sepref_fr_rules] vmtf_en_dequeue_pre_def[simp]
+  supply vmtf_en_dequeue_pre_def[simp] vmtf_imp_insert_sort_nth_code_preD[dest]
   unfolding vmtf_flush_def
-  apply (rewrite 
-        at \<open>[]\<close> in \<open>\<lambda>(_, removed). do {removed' \<leftarrow> _; (vm, _) \<leftarrow> _; RETURN (_, \<hole>)}\<close> 
+  apply (rewrite
+        at \<open>[]\<close> in \<open>\<lambda>(_, removed). do {removed' \<leftarrow> _; (vm, _) \<leftarrow> _; RETURN (_, \<hole>)}\<close>
         to \<open>emptied_list removed'\<close>
           emptied_list_def[symmetric]
      )
   by sepref
 
+
+concrete_definition (in -) vmtf_flush_code
+   uses twl_array_code_ops.vmtf_flush_code.refine_raw
+   is "(?f,_)\<in>_"
+
+prepare_code_thms (in -) vmtf_flush_code_def
+
+lemmas trail_dump_code_refine[sepref_fr_rules] =
+   vmtf_flush_code.refine[of N\<^sub>0]
+
 declare vmtf_flush_code.refine[sepref_fr_rules]
 
+end
 
 abbreviation phase_saver_conc where
   \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
@@ -965,10 +1051,11 @@ definition trail_bump where
       vm' \<leftarrow> vmtf_flush vm;
       RETURN (M, vm', \<phi>)})\<close>
 
+thm trail_dump_code_refine
 sepref_thm trail_dump_code
   is trail_bump
-  :: \<open>trail_conc\<^sup>d \<rightarrow>\<^sub>a trail_conc\<close>
-  supply [[goals_limit=1]]
+  :: \<open>[\<lambda>(M, vm, \<phi>). vm \<in> vmtf_imp (fst M)]\<^sub>a trail_conc\<^sup>d \<rightarrow> trail_conc\<close>
+  supply [[goals_limit=1]] trail_dump_code_refine[sepref_fr_rules]
   unfolding trail_bump_def
   by sepref
 
@@ -990,7 +1077,7 @@ proof -
     if \<open>(x, y) \<in> trail_ref\<close>
     for x y
     apply (subst unused_bind_RES_ne)
-    using that by (auto simp: rescore_def trail_ref_def) 
+    using that by (auto simp: rescore_def trail_ref_def)
   show ?thesis
     unfolding trail_bump_def
     apply (intro nres_relI frefI)
@@ -999,7 +1086,7 @@ proof -
      apply assumption
     unfolding trail_ref_def
     apply (refine_vcg vmtf_imp_change_removed_order)
-    apply clarify 
+    apply clarify
     apply assumption
      apply rule
     apply auto
@@ -1008,7 +1095,23 @@ qed
 
 lemma trail_dump_code_rescore[sepref_fr_rules]:
    \<open>(trail_dump_code, RETURN \<circ> rescore) \<in> trail_assn\<^sup>d \<rightarrow>\<^sub>a trail_assn\<close>
-  using trail_dump_code_refine[FCOMP trail_bump_rescore] unfolding trail_assn_def .
+   (is \<open>_ \<in> [?cond]\<^sub>a ?pre \<rightarrow> ?im\<close>)
+proof -
+  have H: \<open>(trail_dump_code, RETURN \<circ> rescore)
+    \<in> [comp_PRE trail_ref (\<lambda>_. True) (\<lambda>_ (M, vm, \<phi>). vm \<in> vmtf_imp (fst M)) (\<lambda>_. True)]\<^sub>a
+       hrp_comp (trail_conc\<^sup>d) trail_ref \<rightarrow> hr_comp trail_conc
+          trail_ref\<close>
+    (is \<open>_ \<in> [?cond']\<^sub>a ?pre' \<rightarrow> ?im'\<close>)
+    using hfref_compI_PRE_aux[OF trail_dump_code_refine trail_bump_rescore] .
+  have cond: \<open>?cond' = ?cond\<close>
+    by (auto simp: comp_PRE_def trail_ref_def trailt_ref_def intro!: ext)
+  have pre: \<open>?pre' = ?pre\<close>
+    unfolding trail_assn_def  hrp_comp_dest ..
+  have im: \<open>?im' = ?im\<close>
+    unfolding trail_assn_def  hrp_comp_dest ..
+  show ?thesis
+    using H unfolding cond pre im .
+qed
 
 
 subsubsection \<open>Transitions\<close>

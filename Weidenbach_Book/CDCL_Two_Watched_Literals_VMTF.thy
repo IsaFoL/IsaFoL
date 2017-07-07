@@ -14,7 +14,80 @@ lemma emptied_arl_refine[sepref_fr_rules]:
   shows \<open>(return o emptied_arl, RETURN o emptied_list) \<in> (arl_assn R)\<^sup>d \<rightarrow>\<^sub>a arl_assn R\<close>
   unfolding emptied_arl_def emptied_list_def
   by sepref_to_hoare (sep_auto simp: arl_assn_def hr_comp_def is_array_list_def)
-  (* End Move *)
+
+definition insert_sort_inner :: \<open>('a list \<Rightarrow> nat \<Rightarrow> 'b :: ord) \<Rightarrow> 'a list \<Rightarrow>  nat \<Rightarrow> 'a list nres\<close> where
+  \<open>insert_sort_inner f xs i = do {
+     (j, ys) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(j, ys). j \<ge> 0 \<and> mset xs = mset ys \<and> j < length ys\<^esup>
+         (\<lambda>(j, ys). j > 0 \<and> f ys j > f ys i)
+         (\<lambda>(j, ys). do {
+             ASSERT(j < length ys);
+             ASSERT(j-1 < length ys);
+             let xs = swap ys j (j - 1);
+             RETURN (j-1, xs)
+           }
+         )
+        (i, xs);
+     RETURN ys
+  }\<close>
+
+
+definition (in -) reorder_remove :: \<open>'b \<Rightarrow> 'a list \<Rightarrow> 'a list nres\<close> where
+\<open>reorder_remove _ removed = SPEC (\<lambda>removed'. mset removed' = mset removed)\<close>
+
+definition insert_sort :: \<open>('a list \<Rightarrow> nat \<Rightarrow> 'b :: ord) \<Rightarrow> 'a list \<Rightarrow> 'a list nres\<close> where
+  \<open>insert_sort f xs = do {
+     (i, ys) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, ys). (ys = [] \<or> i \<le> length ys) \<and> mset xs = mset ys\<^esup>
+        (\<lambda>(i, ys). i < length ys)
+        (\<lambda>(i, ys). do {
+            ASSERT(i < length ys);
+            ys \<leftarrow> insert_sort_inner f ys i;
+            RETURN (i+1, ys)
+          })
+        (1, xs);
+     RETURN ys
+  }\<close>
+
+lemma insert_sort_inner:
+   \<open>(uncurry (insert_sort_inner f), uncurry (\<lambda>m m'. reorder_remove m' m)) \<in>
+      [\<lambda>(xs, i). i < length xs]\<^sub>f \<langle>Id:: ('a \<times> 'a) set\<rangle>list_rel \<times>\<^sub>r nat_rel \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
+  unfolding insert_sort_inner_def uncurry_def reorder_remove_def
+  apply (intro frefI nres_relI)
+  apply clarify
+  apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i, _). i)\<close>])
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by (auto dest: mset_eq_length)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  done
+
+lemma insert_sort_reorder_remove: \<open>(insert_sort f, reorder_remove vm) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
+proof -
+  have H: \<open>ba < length aa \<Longrightarrow> insert_sort_inner f aa ba \<le> SPEC (\<lambda>m'. mset m' = mset aa)\<close>
+    for ba aa b
+    using insert_sort_inner[unfolded fref_def nres_rel_def reorder_remove_def, simplified, rule_format]
+    by fast
+  show ?thesis
+    unfolding insert_sort_def reorder_remove_def
+    apply (intro frefI nres_relI)
+    apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i, ys). length ys - i)\<close>] H)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto dest: mset_eq_length)
+    subgoal by auto
+    subgoal by (auto dest!: mset_eq_length)
+    subgoal by auto
+    done
+qed
+(* End Move *)
 
 (* TODO: Move*)
 declare nth_list_update[simp]
@@ -1493,18 +1566,15 @@ proof -
     by fast
 qed
 
-definition (in -) reorder_remove :: \<open>nat list \<Rightarrow> nat list nres\<close> where
-\<open>reorder_remove removed = SPEC (\<lambda>removed'. mset removed' = mset removed)\<close>
-
 
 definition (in -) vmtf_dequeue_pre where
-  \<open>vmtf_dequeue_pre = (\<lambda>(L,A). L < length A \<and> 
-          (get_next (A!L) \<noteq> None \<longrightarrow> the (get_next (A!L)) < length A) \<and> 
+  \<open>vmtf_dequeue_pre = (\<lambda>(L,A). L < length A \<and>
+          (get_next (A!L) \<noteq> None \<longrightarrow> the (get_next (A!L)) < length A) \<and>
           (get_prev (A!L) \<noteq> None \<longrightarrow> the (get_prev (A!L)) < length A))\<close>
 
 lemma (in -) vmtf_dequeue_pre_alt_def:
-  \<open>vmtf_dequeue_pre = (\<lambda>(L, A). L < length A \<and> 
-          (\<forall>a. Some a = get_next (A!L) \<longrightarrow> a < length A) \<and> 
+  \<open>vmtf_dequeue_pre = (\<lambda>(L, A). L < length A \<and>
+          (\<forall>a. Some a = get_next (A!L) \<longrightarrow> a < length A) \<and>
           (\<forall>a. Some a = get_prev (A!L) \<longrightarrow> a < length A))\<close>
   apply (intro ext, rename_tac x)
   subgoal for x
@@ -1518,7 +1588,7 @@ definition (in -) vmtf_en_dequeue_pre where
 
 definition (in -) vmtf_flush :: \<open>vmtf_imp_remove \<Rightarrow> vmtf_imp_remove nres\<close> where
 \<open>vmtf_flush \<equiv> (\<lambda>(vm, removed). do {
-    removed' \<leftarrow> reorder_remove removed;
+    removed' \<leftarrow> reorder_remove vm removed;
     (_, vm) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, vm). i \<le> length removed' \<and>
           (i < length removed' \<longrightarrow> vmtf_en_dequeue_pre (removed'!i, vm))\<^esup>
       (\<lambda>(i, vm). i < length removed')
@@ -1529,7 +1599,7 @@ definition (in -) vmtf_flush :: \<open>vmtf_imp_remove \<Rightarrow> vmtf_imp_re
     RETURN (vm, [])
   })\<close>
 
-lemma (in -) id_reorder_remove: \<open>(RETURN o id, reorder_remove) \<in> \<langle>nat_rel\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>nat_rel\<rangle>list_rel\<rangle>nres_rel\<close>
+lemma (in -) id_reorder_remove: \<open>(RETURN o id, reorder_remove vm) \<in> \<langle>nat_rel\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>nat_rel\<rangle>list_rel\<rangle>nres_rel\<close>
   unfolding reorder_remove_def by (intro frefI nres_relI) auto
 
 lemma vmtf_imp_swap_removed:
@@ -1542,12 +1612,12 @@ thm WHILEIT_rule[of R I s b f]
 
 (* TODO Move *)
 lemma (in -)WHILEIT_rule_stronger_inv:
-  assumes 
+  assumes
     \<open>wf R\<close> and
     \<open>I s\<close> and
     \<open>I' s\<close>
     \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> b s \<Longrightarrow> f s \<le> SPEC (\<lambda>s'. I s' \<and>  I' s' \<and> (s', s) \<in> R)\<close> and
-   \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> \<not> b s \<Longrightarrow> \<Phi> s\<close> 
+   \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> \<not> b s \<Longrightarrow> \<Phi> s\<close>
  shows \<open>WHILE\<^sub>T\<^bsup>I\<^esup> b f s \<le> SPEC \<Phi>\<close>
 proof -
   have \<open>WHILE\<^sub>T\<^bsup>I\<^esup> b f s \<le> WHILE\<^sub>T\<^bsup>\<lambda>s. I s \<and> I' s\<^esup> b f s\<close>
@@ -1586,7 +1656,7 @@ proof -
     moreover have \<open>y < length A\<close> if get_next: \<open>get_next (A ! (removed ! i)) = Some y\<close> for y
     proof (cases \<open>removed ! i \<in> set (ys' @ xs')\<close>)
       case False
-      then show ?thesis 
+      then show ?thesis
         using notin get_next remove_i_le_A by (auto simp: l_vmtf_notin_def)
     next
       case True
@@ -1601,7 +1671,7 @@ proof -
     moreover have \<open>y < length A\<close> if get_prev: \<open>get_prev (A ! (removed ! i)) = Some y\<close> for y
     proof (cases \<open>removed ! i \<in> set (ys' @ xs')\<close>)
       case False
-      then show ?thesis 
+      then show ?thesis
         using notin get_prev remove_i_le_A by (auto simp: l_vmtf_notin_def)
     next
       case True
@@ -1644,7 +1714,7 @@ proof -
       \<open>s = (i, vm')\<close> and
       i_le_rem: \<open>i < length removed'\<close> and
       \<open>(i + 1, vmtf_en_dequeue (removed' ! i) vm') = (j, x2)\<close> and
-      mset_removed': \<open>mset removed = mset removed'\<close> 
+      mset_removed': \<open>mset removed = mset removed'\<close>
     for s i j x2 vm' removed'
   proof -
     have l_vmtf: \<open>(vm', drop i removed') \<in> vmtf_imp M\<close>
@@ -1699,7 +1769,7 @@ proof -
       using de vmtf s I' by (auto intro: vmtf_imp_swap_removed)
   qed
   have H: \<open>do {
-      WHILE\<^sub>T\<^bsup>\<lambda>(i, vm). i \<le> length removed'' \<and> 
+      WHILE\<^sub>T\<^bsup>\<lambda>(i, vm). i \<le> length removed'' \<and>
             (i < length removed'' \<longrightarrow> vmtf_en_dequeue_pre (removed'' ! i, vm))\<^esup>
         (\<lambda>(i, vm). i < length removed'')
         (\<lambda>(i, vm). do {
@@ -1709,12 +1779,12 @@ proof -
     } \<le> (RES ({(length removed'', a)|a. (a, []) \<in> vmtf_imp M}))\<close>
     if \<open>mset removed'' = mset removed'\<close>
     for removed''
-  proof - 
+  proof -
     have vmtf: \<open>((A, m, lst, next_search), removed'') \<in> vmtf_imp M\<close>
         using vmtf mset that by (auto intro: vmtf_imp_swap_removed)
     show ?thesis
       unfolding vmtf_flush_def
-      apply (refine_vcg 
+      apply (refine_vcg
          WHILEIT_rule_stronger_inv
             [where R = \<open>measure (\<lambda>(i, vm). Suc (length removed'') - i)\<close> and
              I' = \<open>\<lambda>(i, vm). (vm, drop i removed'') \<in> vmtf_imp M \<and>
@@ -2092,7 +2162,7 @@ definition (in twl_array_code_ops) vmtf_dump_and_unset  :: \<open>nat \<Rightarr
   \<open>vmtf_dump_and_unset L M = vmtf_dump L (vmtf_unset L M)\<close>
 
 lemma vmtf_imp_append_remove_iff:
-  \<open>((A, m, lst, next_search), b @ [L]) \<in> vmtf_imp M \<longleftrightarrow> 
+  \<open>((A, m, lst, next_search), b @ [L]) \<in> vmtf_imp M \<longleftrightarrow>
      L \<in> atms_of N\<^sub>1 \<and> ((A, m, lst, next_search), b) \<in> vmtf_imp M\<close>
   (is \<open>?A \<longleftrightarrow> ?L \<and> ?B\<close>)
 proof
