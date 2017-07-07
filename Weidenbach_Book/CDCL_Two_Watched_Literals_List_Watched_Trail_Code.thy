@@ -6,7 +6,6 @@ no_notation Ref.update ("_ := _" 62)
 
 notation prod_rel_syn (infixl "\<times>\<^sub>f" 70)
 
-
 subsection \<open>Code Generation\<close>
 
 subsubsection \<open>Types and Refinement Relations\<close>
@@ -15,7 +14,7 @@ type_synonym trailt = \<open>(nat, nat) ann_lits \<times> bool option list \<tim
 type_synonym trailt_assn = \<open>(uint32 \<times> nat option) list \<times> bool option array \<times> uint32 array \<times> uint32\<close>
 
 type_synonym vmtf_assn = \<open>uint32 al_vmtf_atm array \<times> nat \<times> uint32 option \<times> uint32 option\<close>
-type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> uint32 list\<close>
+type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> uint32 array_list\<close>
 
 type_synonym phase_saver_assn = \<open>bool array\<close>
 type_synonym trail_int = \<open>trailt \<times> vmtf_imp_remove \<times> phase_saver\<close>
@@ -102,7 +101,7 @@ abbreviation vmtf_conc where
     *assn option_assn uint32_nat_assn)\<close>
 
 abbreviation vmtf_remove_conc where
-  \<open>vmtf_remove_conc \<equiv> vmtf_conc *assn list_assn uint32_nat_assn\<close>
+  \<open>vmtf_remove_conc \<equiv> vmtf_conc *assn arl_assn uint32_nat_assn\<close>
 
 definition update_next_search where
   \<open>update_next_search L = (\<lambda>((A, m, lst, next_search), removed). ((A, m, lst, L), removed))\<close>
@@ -160,9 +159,9 @@ lemma (in -) id_ref: \<open>(return o id, RETURN o id) \<in> R\<^sup>d \<rightar
   by sepref_to_hoare sep_auto
 
 lemma (in -) id_reorder_remove: \<open>(return o id, reorder_remove) \<in>
-      (list_assn uint32_nat_assn)\<^sup>d \<rightarrow>\<^sub>a list_assn uint32_nat_assn\<close>
-  using id_ref[of \<open>list_assn uint32_nat_assn\<close>, FCOMP id_reorder_remove]
-  .
+      (arl_assn uint32_nat_assn)\<^sup>d \<rightarrow>\<^sub>a arl_assn uint32_nat_assn\<close>
+  using id_ref[of \<open>arl_assn uint32_nat_assn\<close>, FCOMP id_reorder_remove]
+  by auto
 
 sepref_definition vmtf_flush_code
    is \<open>vmtf_flush\<close>
@@ -170,7 +169,11 @@ sepref_definition vmtf_flush_code
   supply [[goals_limit = 1]]
   supply id_reorder_remove[sepref_fr_rules] vmtf_en_dequeue_pre_def[simp]
   unfolding vmtf_flush_def
-  apply (rewrite at \<open>(_, \<hole>)\<close> HOL_list.fold_custom_empty)
+  apply (rewrite 
+        at \<open>[]\<close> in \<open>\<lambda>(_, removed). do {removed' \<leftarrow> _; (vm, _) \<leftarrow> _; RETURN (_, \<hole>)}\<close> 
+        to \<open>emptied_list removed'\<close>
+          emptied_list_def[symmetric]
+     )
   by sepref
 
 declare vmtf_flush_code.refine[sepref_fr_rules]
@@ -2073,13 +2076,13 @@ proof -
   have KH: \<open>(\<exists>\<^sub>Aag ah ai aj ak bd al am an be bf.
            pure (\<langle>nat_ann_lit_rel\<rangle>list_rel) al a * (array_assn id_assn am aa * (array_assn uint32_nat_assn an ab * uint32_nat_assn be b)) *
            (array_assn l_vmtf_atm_assn ag ac * pure (nat_rel \<times>\<^sub>f (\<langle>uint32_nat_rel\<rangle>option_rel \<times>\<^sub>f \<langle>uint32_nat_rel\<rangle>option_rel)) (ah, ai, aj) (ad, ae, ba) *
-             pure (\<langle>uint32_nat_rel\<rangle>list_rel) ak bb *
+            arl_assn uint32_nat_assn ak bb *
             phase_saver_conc bf bc) *
            \<up> (((al, am, an, be), af) \<in> trailt_ref \<and> bf = bd \<and> phase_saving bf \<and> af = x \<and> ((ag, ah, ai, aj), ak) \<in> vmtf_imp af)) =
        (\<exists>\<^sub>Aag ah ai aj ak al am an bd.
            pure (\<langle>nat_ann_lit_rel\<rangle>list_rel) af a * (array_assn id_assn ag aa * (array_assn uint32_nat_assn ah ab * uint32_nat_assn ai b)) *
            (array_assn l_vmtf_atm_assn aj ac * pure (nat_rel \<times>\<^sub>f (\<langle>uint32_nat_rel\<rangle>option_rel \<times>\<^sub>f \<langle>uint32_nat_rel\<rangle>option_rel)) (ak, al, am) (ad, ae, ba) *
-             pure (\<langle>uint32_nat_rel\<rangle>list_rel) an bb *
+            arl_assn uint32_nat_assn an bb *
             phase_saver_conc bd bc) *
            \<up> (((af, ag, ah, ai), x) \<in> trailt_ref \<and> ((aj, ak, al, am), an) \<in> vmtf_imp x \<and> phase_saving bd))\<close>
     (is \<open>?A = ?B\<close> is \<open>(\<exists>\<^sub>Aag ah ai aj ak bd al am an be bf.

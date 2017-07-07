@@ -2,13 +2,26 @@ theory CDCL_Two_Watched_Literals_VMTF
 imports CDCL_Two_Watched_Literals_List_Watched_Domain
 begin
 
+(* TODO Move *)
+definition emptied_list :: \<open>'a list \<Rightarrow> 'a list\<close> where
+  \<open>emptied_list l = []\<close>
 
+text \<open>This functions deletes all elements of a resizable array, without resizing it.\<close>
+definition emptied_arl :: \<open>'a array_list \<Rightarrow> 'a array_list\<close> where
+\<open>emptied_arl = (\<lambda>(a, n). (a, 0))\<close>
+
+lemma emptied_arl_refine[sepref_fr_rules]:
+  shows \<open>(return o emptied_arl, RETURN o emptied_list) \<in> (arl_assn R)\<^sup>d \<rightarrow>\<^sub>a arl_assn R\<close>
+  unfolding emptied_arl_def emptied_list_def
+  by sepref_to_hoare (sep_auto simp: arl_assn_def hr_comp_def is_array_list_def)
+  (* End Move *)
+
+(* TODO: Move*)
 declare nth_list_update[simp]
 text \<open>
   This a version of @{thm nth_list_update} with a different condition (\<^term>\<open>j\<close>
   instead of \<^term>\<open>i\<close>). This is more useful here.
   \<close>
-(* TODO: Move*)
 lemma nth_list_update_le'[simp]:
   "j < length xs \<Longrightarrow> (xs[i:=x])!j = (if i = j then x else xs!j)"
   by (induct xs arbitrary: i j) (auto simp add: nth_Cons split: nat.split)
@@ -1948,7 +1961,7 @@ proof -
 qed
 
 definition vmtf_dump :: \<open>nat \<Rightarrow> vmtf_imp_remove \<Rightarrow> vmtf_imp_remove\<close> where
-\<open>vmtf_dump L = (\<lambda>((A, m, lst, next_search), removed). ((A, m, lst, next_search), L # removed))\<close>
+\<open>vmtf_dump L = (\<lambda>((A, m, lst, next_search), removed). ((A, m, lst, next_search), removed @ [L]))\<close>
 
 lemma vmtf_dump:
   assumes L: \<open>L \<in>atms_of N\<^sub>1\<close> and vmtf: \<open>((A, m, lst, next_search), removed) \<in> vmtf_imp M\<close>
@@ -1963,7 +1976,7 @@ proof -
     atm_A: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length A\<close> and
     \<open>\<forall>L\<in>set (ys' @ xs'). L \<in> atms_of N\<^sub>1\<close>
     using vmtf unfolding vmtf_imp_def by fast
-  moreover have \<open>abs_l_vmtf_remove_inv M ((set xs', set ys'), set (L # removed))\<close>
+  moreover have \<open>abs_l_vmtf_remove_inv M ((set xs', set ys'), set (removed @ [L]))\<close>
     using abs_vmtf L unfolding abs_l_vmtf_remove_inv_def
     by auto
   ultimately show ?thesis
@@ -2078,8 +2091,8 @@ qed
 definition (in twl_array_code_ops) vmtf_dump_and_unset  :: \<open>nat \<Rightarrow> vmtf_imp_remove \<Rightarrow> vmtf_imp_remove\<close> where
   \<open>vmtf_dump_and_unset L M = vmtf_dump L (vmtf_unset L M)\<close>
 
-lemma vmtf_imp_cons_remove_iff:
-  \<open>((A, m, lst, next_search), L # b) \<in> vmtf_imp M \<longleftrightarrow> 
+lemma vmtf_imp_append_remove_iff:
+  \<open>((A, m, lst, next_search), b @ [L]) \<in> vmtf_imp M \<longleftrightarrow> 
      L \<in> atms_of N\<^sub>1 \<and> ((A, m, lst, next_search), b) \<in> vmtf_imp M\<close>
   (is \<open>?A \<longleftrightarrow> ?L \<and> ?B\<close>)
 proof
@@ -2088,7 +2101,7 @@ proof
     l_vmtf: \<open>l_vmtf (ys' @ xs') m A\<close> and
     lst: \<open>lst = option_hd (ys' @ xs')\<close> and
     next_search: \<open>next_search = option_hd xs'\<close> and
-    abs_vmtf: \<open>abs_l_vmtf_remove_inv M ((set xs', set ys'), set (L # b))\<close> and
+    abs_vmtf: \<open>abs_l_vmtf_remove_inv M ((set xs', set ys'), set (b @ [L]))\<close> and
     notin: \<open>l_vmtf_notin (ys' @ xs') m A\<close> and
     atm_A: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length A\<close> and
     \<open>\<forall>L\<in>set (ys' @ xs'). L \<in> atms_of N\<^sub>1\<close>
@@ -2115,12 +2128,12 @@ next
     atm_A: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length A\<close> and
     \<open>\<forall>L\<in>set (ys' @ xs'). L \<in> atms_of N\<^sub>1\<close>
     using vmtf unfolding vmtf_imp_def by fast
-  moreover have \<open>abs_l_vmtf_remove_inv M ((set xs', set ys'), set (L # b))\<close>
+  moreover have \<open>abs_l_vmtf_remove_inv M ((set xs', set ys'), set (b @ [L]))\<close>
     using vmtf abs_vmtf unfolding abs_l_vmtf_remove_inv_def by auto
   ultimately have \<open>l_vmtf (ys' @ xs') m A \<and>
        lst = option_hd (ys' @ xs') \<and>
        next_search = option_hd xs' \<and>
-       abs_l_vmtf_remove_inv M ((set xs', set ys'), set (L # b)) \<and>
+       abs_l_vmtf_remove_inv M ((set xs', set ys'), set (b @ [L])) \<and>
        l_vmtf_notin (ys' @ xs') m A \<and> (\<forall>L\<in>atms_of N\<^sub>1. L < length A) \<and>
        (\<forall>L\<in>set (ys' @ xs'). L \<in> atms_of N\<^sub>1)\<close>
       by fast
@@ -2138,7 +2151,7 @@ lemma abs_l_vmtf_unset_vmtf_dump_unset:
   using abs_l_vmtf_unset_vmtf_unset'[OF assms(2-)[unfolded assms(1)]] L_N
   unfolding vmtf_dump_and_unset_def vmtf_dump_def
   by (cases \<open>vmtf_unset (atm_of (lit_of (hd M))) ((A, m, lst, next_search), remove)\<close>)
-     (auto simp: vmtf_imp_cons_remove_iff)
+     (auto simp: vmtf_imp_append_remove_iff)
 
 end
 
