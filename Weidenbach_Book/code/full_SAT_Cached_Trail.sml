@@ -1018,25 +1018,91 @@ fun vmtf_en_dequeue_code x =
                               end)
     x;
 
-fun vmtf_flush_code x =
-  (fn (a1, a2) => fn () =>
+fun insert_sort_inner_nth_code x =
+  (fn ai => fn bia => fn bi => fn () =>
     let
       val a =
         heap_WHILET
+          (fn (a1, a2) =>
+            (fn f_ => fn () => f_ ((arl_get heap_uint32 a2 bi) ()) ())
+              (fn xa =>
+                (fn f_ => fn () => f_
+                  ((nth (heap_al_vmtf_atm heap_uint32) ai (nat_of_uint32 xa))
+                  ()) ())
+                  (fn xb =>
+                    (fn f_ => fn () => f_ ((arl_get heap_uint32 a2 a1) ()) ())
+                      (fn xaa =>
+                        (fn f_ => fn () => f_
+                          ((nth (heap_al_vmtf_atm heap_uint32) ai
+                             (nat_of_uint32 xaa))
+                          ()) ())
+                          (fn xab =>
+                            (fn () =>
+                              (less_nat zero_nata a1 andalso
+                                less_nat (stamp xb) (stamp xab))))))))
+          (fn (a1, a2) =>
+            (fn f_ => fn () => f_
+              ((arl_swap heap_uint32 a2 a1 (minus_nat a1 one_nat)) ()) ())
+              (fn x_a => (fn () => (minus_nat a1 one_nat, x_a))))
+          (bi, bia) ();
+    in
+      let
+        val (_, aa) = a;
+      in
+        (fn () => aa)
+      end
+        ()
+    end)
+    x;
+
+fun insert_sort_nth_code x =
+  (fn ai => fn bi =>
+    let
+      val (a1, _) = ai;
+    in
+      (fn () =>
+        let
+          val a =
+            heap_WHILET
+              (fn (a1a, a2a) =>
+                (fn f_ => fn () => f_ ((arl_length heap_uint32 a2a) ()) ())
+                  (fn x_a => (fn () => (less_nat a1a x_a))))
+              (fn (a1a, a2a) =>
+                (fn f_ => fn () => f_ ((insert_sort_inner_nth_code a1 a2a a1a)
+                  ()) ())
+                  (fn x_a => (fn () => (plus_nat a1a one_nat, x_a))))
+              (one_nat, bi) ();
+        in
+          let
+            val (_, aa) = a;
+          in
+            (fn () => aa)
+          end
+            ()
+        end)
+    end)
+    x;
+
+fun vmtf_flush_code x =
+  (fn (a1, a2) => fn () =>
+    let
+      val xa = insert_sort_nth_code a1 a2 ();
+      val a =
+        heap_WHILET
           (fn (a1a, _) =>
-            (fn f_ => fn () => f_ ((arl_length heap_uint32 a2) ()) ())
+            (fn f_ => fn () => f_ ((arl_length heap_uint32 xa) ()) ())
               (fn x_b => (fn () => (less_nat a1a x_b))))
           (fn (a1a, a2a) =>
-            (fn f_ => fn () => f_ ((arl_get heap_uint32 a2 a1a) ()) ())
-              (fn xa =>
-                (fn f_ => fn () => f_ ((vmtf_en_dequeue_code xa a2a) ()) ())
+            (fn f_ => fn () => f_ ((arl_get heap_uint32 xa a1a) ()) ())
+              (fn xb =>
+                (fn f_ => fn () => f_ ((vmtf_en_dequeue_code xb a2a) ()) ())
                   (fn x_c => (fn () => (plus_nat a1a one_nat, x_c)))))
           (zero_nata, a1) ();
     in
       let
         val (_, a2a) = a;
       in
-        (fn () => (a2a, emptied_arl a2))
+        (fn () => (a2a, emptied_arl xa))
       end
         ()
     end)
