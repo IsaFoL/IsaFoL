@@ -2036,6 +2036,58 @@ proof
     using assms  unfolding properly_subsumes_def unfolding subsumes_def by metis
 qed
 
+
+lemma least_exists':
+  assumes "N \<noteq> {}"
+  shows "\<exists>(m :: nat) \<in> N. (\<forall>n \<in> N. m \<le> n)"
+proof -
+  obtain y where "y \<in> N"
+    using assms by auto
+  then obtain m where m_p: "m \<in> N \<and> (\<forall>n'<m. n' \<notin> N)" using least_exists[of "\<lambda>x. x \<in> N" y] unfolding is_least_def by auto
+  then have "\<forall>n'. n' < m \<longrightarrow> n' \<notin> N" by auto
+  then have "\<forall>n'. n' \<in> N \<longrightarrow> \<not> n' <  m"
+    by metis
+  then have "\<forall>n'. n' \<in> N \<longrightarrow>  n' \<ge>  m"
+    by auto
+  then show ?thesis
+    using m_p by auto
+qed
+
+lemma aa_lemma:
+  fixes f :: "nat \<Rightarrow> nat"
+  assumes leq: "\<forall>i. f (Suc i) \<le> f i"
+  shows "\<exists>l. \<forall>l'\<ge>l. f l' = f (Suc l')"
+proof (rule ccontr)
+  assume "\<nexists>l. \<forall>l'\<ge>l. f l' = f (Suc l')"
+  then have ll': "\<forall>l. \<exists>l'\<ge> l. f l' \<noteq> f (Suc l')"
+    by metis
+  have "\<forall>l. \<exists>l'\<ge> l. f l' > f (Suc l')"
+  proof 
+    fix l
+    obtain l' where l'_p: "l'\<ge> l \<and> f l' \<noteq> f (Suc l')"
+      using ll' by auto
+    moreover
+    have "f (Suc l') \<le> f l'"
+      using leq by auto
+    ultimately
+    have "f l' > f (Suc l')"
+      by auto
+    then show "\<exists>l'\<ge> l. f l' > f (Suc l')"
+      using l'_p by metis
+  qed
+  then have iii: "\<forall>l. \<exists>l'>l. f l' < f l"
+    sorry
+  obtain m where m_p: "m \<in> range f \<and> (\<forall>n \<in> range f. m \<le> n)"
+    using least_exists'[of "range f"] by auto
+  then obtain i where i_p: "f i = m"
+    by auto
+  then obtain j where "j > i \<and> f j < f i"
+    using iii by blast
+  then show False
+    using m_p i_p
+    by (simp add: leD) 
+qed
+
 lemma properly_subsumes_well_founded:
   shows True
   sorry
@@ -2043,7 +2095,77 @@ lemma properly_subsumes_well_founded:
 lemma properly_subsumes_has_minimum:
   assumes "CC \<noteq> {}"
   shows "\<exists>C \<in> CC. \<forall>D \<in> CC. \<not>properly_subsumes D C"
-  using properly_subsumes_well_founded sorry
+proof (rule ccontr)
+  assume "\<not>(\<exists>C\<in>CC. \<forall>D\<in>CC. \<not> properly_subsumes D C)"
+  then have "\<forall>C\<in>CC. \<exists>D\<in>CC. properly_subsumes D C"
+    by blast
+  then obtain f where f_p: "\<forall>C \<in> CC. f C \<in> CC \<and> properly_subsumes (f C) C"
+    by metis
+  from assms obtain C where C_p: "C \<in> CC"
+    by auto
+  define c where "c = (\<lambda>n. compow n f C)"
+  have incc: "\<forall>i. c i \<in> CC"
+    apply rule
+    subgoal for i
+      apply (induction i)
+      unfolding c_def
+      using f_p C_p
+       apply auto
+      done
+    done
+  have ps: "\<forall>i. properly_subsumes (c (Suc i)) (c i)"
+    using incc
+    unfolding c_def
+    using f_p 
+    by auto
+
+  have "\<forall>i. size (c i) \<ge> size (c (Suc i))"
+    using ps unfolding properly_subsumes_def subsumes_def
+    by (metis mset_subseteq_size size_subst)
+  then have lte: "\<forall>i. (size o c) i \<ge> (size o c) (Suc i)"
+    unfolding comp_def .
+  then have "\<exists>l. \<forall>l' \<ge> l. (size o c) l' = (size o c) (Suc l')"
+    using aa_lemma by auto (* make a lemma *)
+  then have "\<exists>l. \<forall>l' \<ge> l. size (c l') = size (c (Suc l'))"
+    unfolding comp_def by auto
+  then obtain l where l_p: "\<forall>l' \<ge> l. size (c l') = size (c (Suc l'))"
+    by metis
+  have "\<forall>l' \<ge> l. \<exists>\<sigma>. (c l') = (c (Suc l')) \<cdot> \<sigma>"
+  proof (rule, rule)
+    fix l'
+    assume "l' \<ge> l"
+    then have siz: "size (c l') = size (c (Suc l'))"
+      using l_p by metis
+    have "properly_subsumes (c (Suc l')) (c l')"
+      using ps by auto
+    then have "subsumes (c (Suc l')) (c l')"
+      unfolding properly_subsumes_def by auto
+    then obtain \<sigma> where "c (Suc l') \<cdot> \<sigma> \<subseteq># c l'" unfolding subsumes_def by auto
+    then have "c (Suc l') \<cdot> \<sigma> = c l'"
+      using siz sorry
+    then show "\<exists>\<sigma>. c l' = c (Suc l') \<cdot> \<sigma>"
+      by metis
+  qed
+  moreover
+  have "\<forall>l' \<ge> l. \<not>(\<exists>\<sigma>. (c l')  \<cdot> \<sigma> = (c (Suc l')))"
+  proof (rule, rule)
+    fix l'
+    assume "l' \<ge> l"
+    then have siz: "size (c l') = size (c (Suc l'))"
+      using l_p by metis
+    have "properly_subsumes (c (Suc l')) (c l')"
+      using ps by auto
+    then have "\<not> subsumes (c l') (c (Suc l'))"
+      unfolding properly_subsumes_def by auto
+    then have "\<nexists>\<sigma>. c l' \<cdot> \<sigma> \<subseteq># c (Suc l')"
+      unfolding subsumes_def by auto
+    then show "\<nexists>\<sigma>. c l' \<cdot> \<sigma> = c (Suc l')"
+      by (metis subset_mset.dual_order.refl)
+  qed  
+  ultimately
+  show False (* We have an infinite chain of proper generalizing clauses. That is impossible since proper generalization is well founded. *)
+    sorry
+qed
 
 lemma from_Q_to_Q_inf:
   assumes 
