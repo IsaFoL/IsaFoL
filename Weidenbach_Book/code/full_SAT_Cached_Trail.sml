@@ -1919,6 +1919,53 @@ fun find_decomp_wl_imp_codea x =
 
 fun single_of_mset_imp_code x = (fn xi => arl_get heap_uint32 xi zero_nata) x;
 
+fun vmtf_rescore_code x =
+  (fn ai => fn (a1, (a1a, a2a)) => fn () =>
+    let
+      val a =
+        heap_WHILET
+          (fn (a1b, (_, _)) =>
+            (fn f_ => fn () => f_ ((len heap_uint32 ai) ()) ())
+              (fn x_a => (fn () => (less_nat a1b x_a))))
+          (fn (a1b, (a1c, a2c)) =>
+            (fn f_ => fn () => f_
+              (let
+                 val ((a1e, (a1f, (a1g, a2g))), a2d) = a1c;
+               in
+                 (fn f_ => fn () => f_ ((nth heap_uint32 ai a1b) ()) ())
+                   (fn xa =>
+                     (fn f_ => fn () => f_
+                       ((arl_append (default_uint32, heap_uint32) a2d
+                          (shiftr_uint32 xa one_nat))
+                       ()) ())
+                       (fn x_b => (fn () => ((a1e, (a1f, (a1g, a2g))), x_b))))
+               end
+              ()) ())
+              (fn x_a =>
+                (fn f_ => fn () => f_ ((nth heap_uint32 ai a1b) ()) ())
+                  (fn xa =>
+                    (fn f_ => fn () => f_ ((nth heap_uint32 ai a1b) ()) ())
+                      (fn xaa =>
+                        (fn f_ => fn () => f_
+                          ((upd heap_bool
+                             (nat_of_uint32 (shiftr_uint32 xa one_nat))
+                             (not (((Word32.andb (xaa,
+                                      (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0)))
+                             a2c)
+                          ()) ())
+                          (fn x_c =>
+                            (fn () => (plus_nat a1b one_nat, (x_a, x_c))))))))
+          (zero_nata, (a1a, a2a)) ();
+    in
+      let
+        val (_, (a1c, a2c)) = a;
+      in
+        (fn () => (a1, (a1c, a2c)))
+      end
+        ()
+    end)
+    x;
+
 fun backtrack_wl_D_code x =
   (fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f, a2f))))))) => fn () =>
     let
@@ -1963,26 +2010,27 @@ fun backtrack_wl_D_code x =
             (nat_of_uint32 (Word32.xorb (x_a, (Word32.fromInt 1)))) xd)
          ()) ())
          (fn x_l =>
-           (fn f_ => fn () => f_ ((length_ra heap_uint32 a1a) ()) ())
-             (fn xe =>
-               (fn f_ => fn () => f_
-                 ((cons_trail_Propagated_tr_code
-                    (Word32.xorb (x_a, (Word32.fromInt 1))) xe x_d)
-                 ()) ())
-                 (fn xf =>
-                   (fn f_ => fn () => f_ ((trail_dump_code xf) ()) ())
-                     (fn x_n =>
-                       (fn f_ => fn () => f_ ((array_of_arl_raa heap_uint32 x_i)
-                         ()) ())
+           (fn f_ => fn () => f_ ((array_of_arl_raa heap_uint32 x_i) ()) ())
+             (fn x_n =>
+               (fn f_ => fn () => f_ ((length_ra heap_uint32 a1a) ()) ())
+                 (fn xe =>
+                   (fn f_ => fn () => f_
+                     ((cons_trail_Propagated_tr_code
+                        (Word32.xorb (x_a, (Word32.fromInt 1))) xe x_d)
+                     ()) ())
+                     (fn xf =>
+                       (fn f_ => fn () => f_ ((vmtf_rescore_code x_n xf) ()) ())
                          (fn xg =>
-                           (fn f_ => fn () => f_
-                             ((arrayO_raa_append (default_uint32, heap_uint32)
-                                a1a xg)
-                             ()) ())
-                             (fn xh =>
-                               (fn () =>
-                                 (x_n, (xh,
- (a1b, (NONE, (a1d, (a1e, ([x_a], x_l)))))))))))))))))))
+                           (fn f_ => fn () => f_ ((trail_dump_code xg) ()) ())
+                             (fn x_p =>
+                               (fn f_ => fn () => f_
+                                 ((arrayO_raa_append
+                                    (default_uint32, heap_uint32) a1a x_n)
+                                 ()) ())
+                                 (fn xh =>
+                                   (fn () =>
+                                     (x_p, (xh,
+     (a1b, (NONE, (a1d, (a1e, ([x_a], x_l))))))))))))))))))))
                       else (fn f_ => fn () => f_ ((single_of_mset_imp_code x_c)
                              ()) ())
                              (fn x_f =>
