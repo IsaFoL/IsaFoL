@@ -676,7 +676,7 @@ lemma tl_trail_tr_dump_alt_def:
         ((tl M', xs[L := None], lvls[L := 0], if is_decided K then k - 1 else k),
             vmtf_dump_and_unset L ((A, m, lst, next_search), removed),
         save_phase (lit_of K) \<phi>))\<close>
-  unfolding tl_trail_tr_dump_def tl_trailt_tr_def vmtf_unset_def
+  unfolding tl_trail_tr_dump_def tl_trailt_tr_def
   by (auto intro!: ext simp: Let_def)
 
 sepref_thm tl_trail_tr_dump_code
@@ -1112,6 +1112,99 @@ proof -
   show ?thesis
     using H unfolding cond pre im .
 qed
+
+
+paragraph \<open>Rescore conflict clause\<close>
+
+definition rescore_clause :: \<open>'a clause_l \<Rightarrow> (nat, nat) ann_lits \<Rightarrow>  (nat, nat) ann_lits\<close> where
+\<open>rescore_clause C M = M\<close>
+term trail_ref
+
+definition (in twl_array_code_ops) vmtf_rescore_body :: \<open>nat clause_l \<Rightarrow> vmtf_imp_remove \<times> phase_saver  \<Rightarrow> (nat \<times> vmtf_imp_remove \<times> phase_saver) nres\<close> where
+  \<open>vmtf_rescore_body C = (\<lambda>(vm, \<phi>). do {
+         WHILE\<^sub>T\<^bsup>\<lambda>(i, vm, \<phi>). i \<le> length C  \<and>
+            (\<forall>c \<in> set C. atm_of c < length \<phi> \<and> atm_of c < length (fst (fst vm)))\<^esup>
+           (\<lambda>(i, vm, \<phi>). i < length C)
+           (\<lambda>(i, vm, \<phi>). do {
+               ASSERT(i < length C);
+               let vm' = vmtf_dump (atm_of (C!i)) vm;
+               let \<phi>' = save_phase_inv (C!i) \<phi>;
+               RETURN(i+1, vm', \<phi>')
+             })
+           (0, vm, \<phi>)
+    })\<close>
+
+definition (in twl_array_code_ops) vmtf_rescore :: \<open>nat clause_l \<Rightarrow> trail_int  \<Rightarrow> trail_int nres\<close> where
+  \<open>vmtf_rescore C = (\<lambda>(M, vm, \<phi>). do {
+      (_, vm, \<phi>) \<leftarrow> vmtf_rescore_body C (vm, \<phi>);
+      RETURN (M, vm, \<phi>)
+    })\<close>
+
+sepref_thm vmtf_rescore_code
+  is \<open>uncurry vmtf_rescore\<close>
+  :: \<open>(array_assn unat_lit_assn)\<^sup>k *\<^sub>a trail_conc\<^sup>d \<rightarrow>\<^sub>a trail_conc\<close>
+  unfolding vmtf_rescore_def vmtf_dump_and_unset_def save_phase_inv_def vmtf_dump_def vmtf_unset_def
+  vmtf_rescore_body_def
+  supply [[goals_limit = 1]] is_None_def[simp] fold_is_None[simp]
+  by sepref
+
+concrete_definition (in -) vmtf_rescore_code
+   uses twl_array_code.vmtf_rescore_code.refine_raw
+   is "(uncurry ?f,_)\<in>_"
+
+prepare_code_thms (in -) vmtf_rescore_code_def
+
+lemmas vmtf_rescore_code_refine[sepref_fr_rules] =
+   vmtf_rescore_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma vmtf_rescore_score_clause:
+  \<open>(uncurry vmtf_rescore, uncurry (RETURN oo rescore_clause)) \<in> 
+     [\<lambda>(C, M). literals_are_in_N\<^sub>0 (mset C)]\<^sub>f
+     (\<langle>Id\<rangle>list_rel \<times>\<^sub>r trail_ref) \<rightarrow> \<langle>trail_ref\<rangle> nres_rel\<close>
+proof -
+  have H: \<open>vmtf_rescore_body C (vm, \<phi>) \<le> RES {(i, vm, \<phi>). ((M, vm, \<phi>), M') \<in> trail_ref}\<close>
+    if M: \<open>((M, vm, \<phi>), M') \<in> trail_ref\<close> and C: \<open>\<forall>c\<in>set C. atm_of c \<in> atms_of N\<^sub>1\<close>
+    for C vm \<phi> M M'
+    unfolding vmtf_rescore_body_def vmtf_dump_def
+    apply (refine_vcg WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(i, _). length C - i)\<close> and
+       I' = \<open>\<lambda>(i, vm, \<phi>). ((M, vm, \<phi>), M') \<in> trail_ref\<close>])
+    subgoal by auto
+    subgoal by auto
+    subgoal using M C by (auto simp: trail_ref_def vmtf_imp_def phase_saving_def)
+    subgoal using M by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal unfolding save_phase_inv_def by auto
+    subgoal using C unfolding trail_ref_def phase_saving_def save_phase_inv_def
+      by (auto simp: vmtf_imp_append_remove_iff)
+    subgoal by simp
+    done
+  have K: \<open>((a, b),(a', b')) \<in> A \<times>\<^sub>f B \<longleftrightarrow> (a, a') \<in> A \<and> (b, b') \<in> B\<close> for a b a' b' A B
+    by auto
+  show ?thesis
+    unfolding vmtf_rescore_def rescore_clause_def uncurry_def
+    apply (intro frefI nres_relI)
+    apply clarify
+    apply (rule bind_refine_spec)
+     prefer 2
+     apply (subst (asm) K)
+     apply (rule H)
+      apply clarify
+      apply assumption
+    subgoal apply auto
+      by (meson atm_of_lit_in_atms_of contra_subsetD in_all_lits_of_m_ain_atms_of_iff 
+          in_multiset_in_set literals_are_in_N\<^sub>0_def)
+    subgoal by auto
+    done
+qed
+
+lemma vmtf_rescore_code_rescore_clause[sepref_fr_rules]:
+  \<open>(uncurry vmtf_rescore_code, uncurry (RETURN \<circ>\<circ> rescore_clause))
+     \<in> [\<lambda>(a, b). literals_are_in_N\<^sub>0 (mset a)]\<^sub>a 
+       clause_ll_assn\<^sup>k *\<^sub>a trail_assn\<^sup>d \<rightarrow> trail_assn\<close>
+  using vmtf_rescore_code.refine[FCOMP vmtf_rescore_score_clause, OF twl_array_code_axioms]
+  unfolding trail_assn_def
+  by auto
 
 
 subsubsection \<open>Transitions\<close>
@@ -1905,11 +1998,80 @@ lemmas extract_shorter_conflict_l_trivial_code_wl'_D[sepref_fr_rules] =
   extract_shorter_conflict_l_trivial_code_wl'.refine[of N\<^sub>0, unfolded PR_CONST_def,
       OF twl_array_code_axioms]
 
+
+lemma backtrack_wl_D_alt_def:
+  \<open>backtrack_wl_D S\<^sub>0 =
+   do {
+      let (M, N, U, D, NP, UP, Q, W) = S\<^sub>0 in
+      do {
+        ASSERT(M \<noteq> []);
+        let L = lit_of (hd M);
+        ASSERT(twl_stgy_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
+        ASSERT(twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
+        ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
+        ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
+        ASSERT(D ~= None);
+        ASSERT(literals_are_in_N\<^sub>0 (the D));
+        ASSERT(-L \<in># the D);
+        D' \<leftarrow> extract_shorter_conflict_wl (M, N, U, D, NP, UP, Q, W);
+        ASSERT(get_level M L = count_decided M);
+        ASSERT(D' \<noteq> {#});
+        ASSERT(ex_decomp_of_max_lvl M (Some D') L);
+        ASSERT(D' \<subseteq># the D);
+        ASSERT(-L \<in># D');
+        ASSERT(literals_are_in_N\<^sub>0 D');
+        ASSERT(\<forall>L\<in># D'. defined_lit M L);
+        M1 \<leftarrow> find_decomp_wl (M, N, U, Some D', NP, UP, Q, W) L;
+
+        if size D' > 1
+        then do {
+          ASSERT(\<forall>L' \<in># D' - {#-L#}. get_level M L' = get_level M1 L');
+          ASSERT(\<exists>L' \<in># D' - {#-L#}. get_level M L' = get_maximum_level M (D' - {#-L#}));
+          ASSERT(\<exists>L' \<in># D' - {#-L#}. get_level M1 L' = get_maximum_level M1 (D' - {#-L#}));
+          ASSERT(get_level M L > get_maximum_level M (D' - {#-L#}));
+          ASSERT(distinct_mset D');
+          L' \<leftarrow> find_lit_of_max_level_wl' M1 N U D' NP UP Q W L;
+          ASSERT(L \<noteq> -L');
+          ASSERT(-L \<in># D');
+          ASSERT(L' \<in># D');
+          let K = -L;
+          D' \<leftarrow> list_of_mset2 K L' D';
+          ASSERT(atm_of L \<in> atms_of_mm (mset `# mset (tl N) + NP));
+          ASSERT(atm_of L' \<in> atms_of_mm (mset `# mset (tl N) + NP));
+          ASSERT(-L \<in> snd ` D\<^sub>0);
+          ASSERT(L' \<in> snd ` D\<^sub>0);
+          ASSERT(undefined_lit M1 (-L));
+          let W = W(L':= W L' @ [length N]);
+          let W = W(-L:= W (-L) @ [length N]);
+          let D'' = array_of_arl D';
+          RETURN (rescore (rescore_clause D'' (Propagated (-L) (length N) # M1)), N @ [D''], U,
+            None, NP, UP, {#L#}, W)
+        }
+        else do {
+          D' \<leftarrow> single_of_mset D';
+          ASSERT(undefined_lit M1 (-L));
+          ASSERT(-L \<in> snd ` D\<^sub>0);
+          RETURN (rescore (Propagated (-L) 0 # M1), N, U, None, NP, add_mset {#D'#} UP, add_mset L {#}, W)
+        }
+      }
+    }
+  \<close>
+  unfolding backtrack_wl_D_def Let_def rescore_clause_def rescore_def by fast
+
+
+lemma bind_ref_tag_SPEC: \<open>bind_ref_tag a (SPEC P) \<longleftrightarrow> P a\<close>
+  unfolding bind_ref_tag_def by auto
+
+lemma backtrack_wl_D_helper: \<open>literals_are_in_N\<^sub>0 xd \<Longrightarrow> RETURN xk \<le> list_of_mset2 xh La xd \<Longrightarrow> literals_are_in_N\<^sub>0 (mset (array_of_arl xk))\<close>
+  apply (auto simp: bind_ref_tag_False_True array_of_arl_def list_of_mset2_def bind_ref_tag_SPEC)
+  done
+
 sepref_register backtrack_wl_D
 sepref_thm backtrack_wl_D
   is \<open>PR_CONST backtrack_wl_D\<close>
   :: \<open>twl_st_l_trail_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_l_trail_assn\<close>
-  unfolding backtrack_wl_D_def PR_CONST_def
+  supply [[goals_limit=1]]
+  unfolding backtrack_wl_D_alt_def PR_CONST_def backtrack_wl_D_helper[simp]
   unfolding twl_st_l_trail_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric]
@@ -1917,11 +2079,8 @@ sepref_thm backtrack_wl_D
     cons_trail_Propagated_def[symmetric]
   apply (rewrite at \<open>(_, add_mset _ \<hole>, _)\<close> lms_fold_custom_empty)+
   apply (rewrite at \<open>(_, add_mset (add_mset _ \<hole>) _, _)\<close> lms_fold_custom_empty)
-  apply (rewrite in \<open>let _ = _ in RETURN (\<hole>, _)\<close> rescore_def[symmetric])
-  apply (rewrite in \<open>ASSERT _ \<bind> (\<lambda>_. RETURN (\<hole>, _))\<close> rescore_def[symmetric])
   unfolding no_skip_def[symmetric] no_resolve_def[symmetric]
     find_decomp_wl'_find_decomp_wl[symmetric] option.sel add_mset_list.simps
-  supply [[goals_limit=1]]
   by sepref -- \<open>slow\<close>
 
 
