@@ -615,7 +615,7 @@ lemma ord_resolve_obtain_clauses:
   case (ord_resolve nn Ci Aij Ai D)
   then have "nn = n"
     using n by auto
-  then have "n \<noteq> 0" "length Ci = n" "length Aij = n" "length Ai = n" using ord_resolve by auto
+  then have "n \<noteq> 0" "length Ci = n" "length Aij = n" "length Ai = n" using ord_resolve by force+
   note n = \<open>n \<noteq> 0\<close> \<open>length CAi = n\<close> \<open>length Ci = n\<close> \<open>length Aij = n\<close> \<open>length Ai = n\<close>
     
   interpret S: selection S by (rule select)
@@ -891,7 +891,7 @@ lemma ord_resolve_rename_lifting:
       fix i
       assume "i<n"
       have "CAi' ! i \<cdot> \<eta> = CAi ! i"
-        using \<open>i < n\<close> \<open>CAi' \<cdot>cl \<eta> = CAi\<close> n by auto
+        using \<open>i < n\<close> \<open>CAi' \<cdot>cl \<eta> = CAi\<close> n by force
       moreover
       have "poss (Aij ! i) \<subseteq># CAi !i"
         using \<open>i<n\<close> ord_resolve(8) by auto
