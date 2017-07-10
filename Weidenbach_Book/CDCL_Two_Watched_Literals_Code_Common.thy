@@ -73,15 +73,6 @@ lemma [def_pat_rules]:
   "op = $ a $ b \<equiv> op_nat_lit_eq $ a $ b"
   by auto
 
-term id_assn
-
-definition nat_ann_lit_eq_cases :: "(nat, nat) ann_lit \<Rightarrow> (nat, nat) ann_lit \<Rightarrow> bool" where
-  \<open>nat_ann_lit_eq_cases K L =
-    (case (K, L) of
-      (Decided K, Decided L) \<Rightarrow> K = L
-    | (Propagated K C, Propagated L C') \<Rightarrow> K = L \<and> C = C'
-    | (_, _) \<Rightarrow> False)\<close>
-
 definition nat_lit_eq_cases :: "nat literal \<Rightarrow> nat literal \<Rightarrow> bool" where
   \<open>nat_lit_eq_cases K L =
     (case (K, L) of
@@ -96,13 +87,6 @@ sepref_decl_op atm_of: "atm_of :: nat literal \<Rightarrow> nat" ::
 lemma [def_pat_rules]:
   "atm_of \<equiv> op_atm_of"
   by auto
-
-definition atm_of_impl :: "nat literal \<Rightarrow> nat" where
-  \<open>atm_of_impl L = do {
-    case L of
-      Pos K \<Rightarrow> K
-    | Neg K \<Rightarrow> K}\<close>
-
 
 sepref_decl_op lit_of: "lit_of :: (nat, nat) ann_lit \<Rightarrow> nat literal" ::
   "(Id :: ((nat, nat) ann_lit \<times> _) set) \<rightarrow> (Id :: (nat literal \<times> _) set)" .
@@ -145,42 +129,12 @@ definition case_bool_impl :: \<open>bool \<Rightarrow> bool \<Rightarrow> bool \
   \<open>case_bool_impl L L' v = do {if v then L else L'}\<close>
 
 
-text \<open>Some functions and types:\<close>
-abbreviation nat_lit_assn_id :: "nat literal \<Rightarrow> nat literal \<Rightarrow> assn" where
-  \<open>nat_lit_assn_id \<equiv> (id_assn :: nat literal \<Rightarrow> _)\<close>
-
-abbreviation nat_ann_lit_assn :: "(nat, nat) ann_lit \<Rightarrow> (nat, nat) ann_lit \<Rightarrow> assn" where
-  \<open>nat_ann_lit_assn \<equiv> (id_assn :: (nat, nat) ann_lit \<Rightarrow> _)\<close>
-
 type_synonym ann_lits_l = \<open>(nat, nat) ann_lits\<close>
 
 context
   notes [intro!] = hfrefI hn_refineI[THEN hn_refine_preI] frefI
   notes [simp] = pure_def hn_ctxt_def invalid_assn_def
 begin
-
-lemma nat_lit_eq_cases_refine[sepref_fr_rules]:
-  \<open>(uncurry (return oo (op =)), uncurry (RETURN oo op_nat_lit_eq)) \<in>
-    nat_lit_assn_id\<^sup>k *\<^sub>a nat_lit_assn_id\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding nat_lit_eq_cases_def
-  by (sep_auto split: literal.split)
-
-sepref_decl_impl nat_lit_eq_cases: nat_lit_eq_cases_refine .
-
-
-lemma atom_of_impl_refine[sepref_fr_rules]:
-  \<open>(return o atm_of_impl, RETURN o op_atm_of) \<in> nat_lit_assn_id\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  unfolding op_atm_of_def atm_of_impl_def
-  by (sep_auto split: literal.split)
-
-sepref_decl_impl atom_of_impl: atom_of_impl_refine .
-
-lemma lit_of_impl_refine[sepref_fr_rules]:
-  \<open>(return o lit_of_impl, RETURN o op_lit_of) \<in> nat_ann_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_assn_id\<close>
-  unfolding op_lit_of_def lit_of_impl_def
-  by (sep_auto split: annotated_lit.splits)
-
-sepref_decl_impl lit_of_impl: atom_of_impl_refine .
 
 lemma option_bool_eq_impl_option_op_bool_eq_impl: \<open>option_bool_eq_impl = op_option_bool_eq\<close>
   unfolding option_bool_eq_impl_def op_option_bool_eq_def by (auto split: option.splits intro!: ext)
@@ -218,36 +172,6 @@ sepref_decl_op defined_lit_imp: "defined_lit:: (nat, nat) ann_lit list \<Rightar
 lemma [def_pat_rules]:
   "defined_lit $ a $ b \<equiv> op_defined_lit_imp $ a $ b"
   by auto
-
-definition defined_lit_set :: \<open>('a, 'm) ann_lit set \<Rightarrow> 'a literal \<Rightarrow> bool\<close>
-  where
-\<open>defined_lit_set I L \<longleftrightarrow> (Decided L \<in> I) \<or> (\<exists>P. Propagated L P \<in>  I)
-  \<or> (Decided (-L) \<in> I) \<or> (\<exists>P. Propagated (-L) P \<in>  I)\<close>
-
-lemma defined_lit_defined_lit_set: \<open>defined_lit M L \<longleftrightarrow> defined_lit_set (set M) L\<close>
-  unfolding defined_lit_set_def defined_lit_def
-  by auto
-
-lemma defined_lit_set_insert: \<open>defined_lit_set (insert L' M) L \<longleftrightarrow> atm_of (lit_of L') = atm_of L \<or> defined_lit_set M L\<close>
-  unfolding defined_lit_set_def
-  by (cases L') (auto dest!: literal_is_lit_of_decided simp: atm_of_eq_atm_of)
-
-lemma defined_lit_set_nil[simp]: \<open>\<not>defined_lit_set {} L\<close>
-   unfolding defined_lit_set_def by auto
-
-lemma defined_lit_set_mono: \<open>M \<subseteq> M' \<Longrightarrow> defined_lit_set M L \<Longrightarrow> defined_lit_set M' L\<close>
-   unfolding defined_lit_set_def by auto
-
-definition defined_lit_map_impl :: "(nat, nat) ann_lit list \<Rightarrow> nat literal \<Rightarrow> bool nres" where
-  \<open>defined_lit_map_impl M L =
-  nfoldli M
-     (\<lambda>brk. brk = False)
-     (\<lambda>L' _. do {
-       let L\<^sub>1 = atm_of L;
-       let L\<^sub>1'' = atm_of (lit_of L');
-       RETURN (L\<^sub>1 = L\<^sub>1'')})
-    False\<close>
-
 
 section \<open>Code for the initialisation of the Data Structure\<close>
 
@@ -309,7 +233,7 @@ proof -
 qed
 
 definition init_dt_l where
-  \<open>init_dt_l CS S =  nfoldli CS (\<lambda>_. True) init_dt_step_l S\<close>
+  \<open>init_dt_l CS S = nfoldli CS (\<lambda>_. True) init_dt_step_l S\<close>
 
 lemma init_dt_init_dt_l:
   assumes
