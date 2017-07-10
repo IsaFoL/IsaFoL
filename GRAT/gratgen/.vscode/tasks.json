@@ -4,6 +4,6 @@
     "version": "0.1.0",
     "command": "g++",
     "isShellCommand": true,
-    "args": ["-O3", "-DNDEBUG", "-std=c++11", "-pthread", "-o gratgen", "gratgen.cpp"],
+    "args": ["-O3", "-DNDEBUG", "-std=c++11", "-pthread", "-ogratgen", "gratgen.cpp"],
     "showOutput": "always"
 }
