@@ -18,6 +18,7 @@
   <p>
 
   @author Peter Lammich
+  @author Maximilian Kirchmeier
 
     all rights reserved. Some ideas borrowed from Marijn Heule's [DRAT-trim](https://www.cs.utexas.edu/~marijn/drat-trim/) tool.
 
@@ -718,6 +719,191 @@ public:
 
 };
 
+/**
+ * Contains functions to output a GRAT proof.
+ *
+ */
+class Proof_Writer {
+private:
+  // Output in binary mode?
+  bool binary;
+  // Current item data
+  vector<int32_t> data;
+  // Current item type
+  item_type ty = item_type::INVALID;
+  // Output stream
+  ostream &out;
+
+  // Buffer for binary write-out. Seems to be faster then using put on ostream.
+  vector<ostream::char_type> buf;
+
+public:
+  /// Constructor
+  Proof_Writer(bool _binary, ostream &_out) : binary(_binary), data(), out(_out), buf() {}
+
+public:
+  /// Write identifier
+  void write_id(clause_id_t id) {data.push_back(id);}
+  /// Write counter
+  void write_cnt(size_t c) {data.push_back(c);}
+  /// Write literal
+  void write_lit(lit_t l) {data.push_back(l);}
+  /// Write zero
+  void write_Z() {data.push_back(0);}
+
+private:
+  inline void put32(int32_t x) {
+    buf.push_back(x);
+    buf.push_back(x >> 8);
+    buf.push_back(x >> 16);
+    buf.push_back(x >> 24);
+  }
+
+  inline void flush_buf() {
+    if (buf.size()) {
+      out.write(buf.data(),buf.size());
+      buf.clear();
+    }
+  }
+
+  inline void write_out() {
+    if (binary) {
+      // Write in reverse
+      size_t i = data.size();
+
+      while (i) {
+        --i;
+        put32(data[i]);
+      }
+      put32(ty);
+      if (buf.size()>=cfg_out_buf_size_threshold) flush_buf();
+    } else {
+      // TODO: Also buffer in text mode!
+      out<<ty<<" ";
+      for (auto x : data) out<<x<<" ";
+      out<<(data.size() + 1)<<'\n';
+    }
+  }
+
+  void close_current() {
+    if (ty != item_type::INVALID && data.size()) {
+      if (ty == item_type::DELETION || ty == item_type::UNIT_PROP) write_Z();
+
+      write_out();
+      ty = item_type::INVALID;
+    }
+    data.clear();
+  }
+
+public:
+  /**
+   * Write deletion. Summarizes adjacent deletions.
+   */
+  void write_del(clause_id_t id) {
+    if (ty != item_type::DELETION) {
+      close_current();
+      ty = item_type::DELETION;
+    }
+    write_id(id);
+  }
+
+  /**
+   * Write unit propagation. Summarizes adjacent unit propagations.
+   */
+  void write_uprop(clause_id_t id) {
+    if (ty != item_type::UNIT_PROP) {
+      close_current();
+      ty = item_type::UNIT_PROP;
+    }
+    write_id(id);
+  }
+
+  /**
+   * Start writing an item of specified type.
+   * @param _ty Type of item. Must not be @see item_type::DELETION or @see item_type::UNIT_PROP, these items are inserted automatically, triggered by invocations of @see write_del and @see write_uprop.
+   */
+  void start_ty(item_type _ty) {
+    close_current();
+    ty = _ty;
+  }
+
+  /**
+   * Close current item and flush writer.
+   */
+  void close() {
+    close_current();
+    flush_buf();
+    out.flush();
+  }
+};
+
+
+/*
+ * Interface class for GRAT proof objects
+ */
+class Lemma_Proof {
+public:
+  // Writes out the proof object using the specified writer, optionally including the lemma itself
+  virtual void write(Proof_Writer&, bool include_lemma) = 0;
+};
+
+class RUP_Proof : public Lemma_Proof {
+public:
+  RUP_Proof(lit_t* _lemma, clause_id_t _lemma_id, clause_id_t _conflict_id, vector<clause_id_t> &&_unit_clauses)
+    : lemma(_lemma), lemma_id(_lemma_id), conflict_id(_conflict_id), unit_clauses(_unit_clauses) {}
+
+  void write(Proof_Writer& writer, bool include_lemma) {
+    writer.start_ty(item_type::RUP_LEMMA);
+    writer.write_id(lemma_id);
+
+    if (include_lemma) {
+      for (lit_t *l = lemma; *l; ++l)
+        writer.write_lit(*l);
+      writer.write_Z();
+    }
+
+    for (auto clause_id : unit_clauses)
+      writer.write_id(clause_id);
+    writer.write_Z();
+    writer.write_id(conflict_id);
+  }
+private:
+  lit_t* lemma;
+  clause_id_t lemma_id, conflict_id;
+  vector<clause_id_t> unit_clauses;
+};
+
+class RAT_Proof : public Lemma_Proof {
+public:
+  RAT_Proof(lit_t* _lemma, clause_id_t _lemma_id, lit_t _pivot, vector<clause_id_t> &&_initial_units, vector<RUP_Proof> &&_cand_proofs)
+    : lemma(_lemma), lemma_id(_lemma_id), pivot(_pivot), initial_units(_initial_units), candidate_proofs(_cand_proofs) {}
+
+  void write(Proof_Writer& writer, bool include_lemma) {
+    writer.start_ty(item_type::RAT_LEMMA);
+    writer.write_lit(pivot);
+    writer.write_id(lemma_id);
+
+    if (include_lemma) {
+      for (lit_t *l = lemma; *l; ++l)
+        writer.write_lit(*l);
+      writer.write_Z();
+    }
+
+    for (auto clause_id : initial_units)
+      writer.write_id(clause_id);
+    writer.write_Z();
+    for (auto cand_proof : candidate_proofs)
+      cand_proof.write(writer, false);
+    writer.write_Z();
+  }
+private:
+  lit_t* lemma;
+  clause_id_t lemma_id;
+  lit_t pivot;
+  vector<clause_id_t> initial_units;
+  vector<RUP_Proof> candidate_proofs;
+};
+
 
 class Parser;
 class Synch_Data;
@@ -871,7 +1057,7 @@ private:
   vector<atomic<bool>> marked;  // Id -> Whether clause is marked
   vector<atomic_flag> acquired; // Id -> Whether clause is/was acquired for verification by a worker thread
 
-  vector<vector<cdb_t>> proofs;   // Id -> Proof of this lemma (RUP or RAT proof). Synchronized by acquired.
+  vector<Lemma_Proof*> proofs;   // Id -> Proof of this lemma (RUP or RAT proof). Synchronized by acquired.
 
 
   pos_t *mark_queue;       // Global marked queue. Capacity must be big enough to hold every clause at most once.
@@ -933,7 +1119,7 @@ public:
 
 
   /// Return reference to proof of clause.
-  inline vector<cdb_t> &proof_of(lit_t *cl) {return proofs[clause_id(cl)];}
+  inline Lemma_Proof **proof_of(lit_t *cl) {return &proofs[clause_id(cl)];}
 
   /// Increment RAT-count for specified literal.
   inline void inc_rat_counts(lit_t l) { ++rat_counts[l]; }
@@ -1517,18 +1703,17 @@ public:
 
   void rollback(size_t pos);                        ///< Rollback to specfied trail position
 
-  /** Dump vmarked clauses from pos (inclusive), by calling %ucr(cl).
+  /** Collect vmarked clauses from pos (inclusive) into a vector
    *
    *  This function is used to emit the relevant unit propagations for reaching a conflict, before backtracking.
    *
    *  @param pos Position (inclusive) to dump vmarked trail items
-   *  @param ucr Callback invoked with the reason for each of the vmarked trail items.
    *
    *  TODO: Could be combined with backtracking, to have only one iteration over the trail!
    *
    * @see @ref Conflict_Analysis
    */
-  template<typename T> void for_marked_from(size_t pos, T const &ucr);
+  vector<clause_id_t> collect_marked_from(size_t pos);
 
   void mark_var(var_t v);     ///< Mark reason for this variable to be set, recursively. @see @ref Conflict_Analysis
   void mark_clause(lit_t *cl); ///< Mark clause and literals in clause, recursively. @see @ref Conflict_Analysis
@@ -1829,9 +2014,11 @@ void Verifier::rollback(size_t pos) {
   if (processed>trail.size()) processed = trail.size();
 }
 
-template<typename T> void Verifier::for_marked_from(size_t pos, T const &ucr) {
-  for (size_t i = pos; i<trail.size(); ++i) {
-    if (trail[i].vmarked && trail[i].reason) ucr(trail[i].reason);
+vector<clause_id_t> Verifier::collect_marked_from(size_t pos) {
+  auto marked_clauses = vector<clause_id_t>();
+  for (size_t i = pos; i < trail.size(); ++i) {
+    if (trail[i].vmarked && trail[i].reason)
+      marked_clauses.push_back(clause_id(trail[i].reason));
   }
 }
 
@@ -2182,26 +2369,12 @@ void Verifier::get_rat_candidates(lit_t pivot) {
   }
 }
 
-/**
- * The functionality of appending clause IDs to a vector.
- */
-struct push_clause_ids {
-  vector<lit_t> &prf; ///< vector to append IDs to
-
-  /// Constructor
-  push_clause_ids(vector<lit_t> &_prf) : prf(_prf) {};
-
-  /// Append an ID
-  void operator () (lit_t *cl) const { prf.push_back(static_cast<lit_t>( clause_id(cl))); }
-};
-
-
 void Verifier::verify(lit_t *cl) {
   ++cnt_verified;
 
-  vector<lit_t> &prf = sdata->proof_of(cl);
-  push_clause_ids pci (prf);
+  Lemma_Proof **prf = sdata->proof_of(cl);
 
+  clause_id_t cl_id = clause_id(cl);
   size_t orig_pos = trail_pos();
   lit_t pivot = glb.get_pivot(cl);
   bool pivot_false = (pivot != 0) && is_false(pivot);
@@ -2222,17 +2395,13 @@ void Verifier::verify(lit_t *cl) {
     ++stat_rup_lemmas;
     mark_clause(conflict);
     if (!cfg_no_grat) {
-      prf.push_back(item_type::RUP_LEMMA);
-      for_marked_from(orig_pos, pci);
+      *prf = new RUP_Proof(cl, cl_id,
+        clause_id(conflict),
+        collect_marked_from(orig_pos));
     }
     rollback(orig_pos);
-    if (!cfg_no_grat) {
-      prf.push_back(0);
-      prf.push_back(static_cast<cdb_t>(clause_id(conflict)));
-    }
   } else {
-    vector<cdb_t> rat_prf;
-    push_clause_ids rpci (rat_prf);
+    vector<RUP_Proof> candidate_proofs;
     // RUP-check failed, do RAT check
     if (pivot == 0) {fail("RUP check failed on empty clause");}     // Cannot do RAT check on empty clause.
     if (pivot_false) {fail("RAT check failed due to false pivot");} // Must not do RAT check if pivot literal is false.
@@ -2266,14 +2435,13 @@ void Verifier::verify(lit_t *cl) {
         mark_clause(conflict);
 
         if (!cfg_no_grat) {
-          rat_prf.push_back(static_cast<cdb_t>(clause_id(rat_candidate)));
-          for_marked_from(rat_pos,rpci);
+          candidate_proofs.emplace_back(
+            RUP_Proof(
+              rat_candidate, clause_id(rat_candidate),
+              clause_id(conflict),
+              collect_marked_from(rat_pos)));
         }
         rollback(rat_pos);
-        if (!cfg_no_grat) {
-          rat_prf.push_back(0);
-          rat_prf.push_back(static_cast<cdb_t>(clause_id(conflict)));
-        }
       }
     }
 
@@ -2281,16 +2449,12 @@ void Verifier::verify(lit_t *cl) {
     ++stat_rat_lemmas;
 
     if (!cfg_no_grat) {
-      prf.push_back(item_type::RAT_LEMMA);
-      prf.push_back(pivot);
-      for_marked_from(orig_pos,pci);
+      *prf = new RAT_Proof(
+        cl, cl_id, pivot,
+        collect_marked_from(orig_pos),
+        move(candidate_proofs));
     }
     rollback(orig_pos);
-    if (!cfg_no_grat) {
-      prf.push_back(0);
-      for (auto x : rat_prf) prf.push_back(x);
-      prf.push_back(0);
-    }
   }
 }
 
@@ -2693,129 +2857,10 @@ void VController::do_verification(size_t num_threads) {
 
 }
 
-/**
- * Contains functions to output a GRAT proof.
- *
- * @param binary True if the proof is output in binary (split) format
- *
- */
-template<bool binary> class Proof_Writer {
-private:
-  // Current item data
-  vector<int32_t> data;
-  // Current item type
-  item_type ty = item_type::INVALID;
-  // Output stream
-  ostream &out;
-
-  // Buffer for binary write-out. Seems to be faster then using put on ostream.
-  vector<ostream::char_type> buf;
-
-public:
-  /// Constructor
-  Proof_Writer(ostream &_out) : data(), out(_out), buf() {}
-
-public:
-  /// Write identifier
-  void write_id(clause_id_t id) {data.push_back(id);}
-  /// Write counter
-  void write_cnt(size_t c) {data.push_back(c);}
-  /// Write literal
-  void write_lit(lit_t l) {data.push_back(l);}
-  /// Write zero
-  void write_Z() {data.push_back(0);}
-
-private:
-  inline void put32(int32_t x) {
-    buf.push_back(x);
-    buf.push_back(x >> 8);
-    buf.push_back(x >> 16);
-    buf.push_back(x >> 24);
-  }
-
-  inline void flush_buf() {
-    if (buf.size()) {
-      out.write(buf.data(),buf.size());
-      buf.clear();
-    }
-  }
-
-  inline void write_out() {
-    if (binary) {
-      // Write in reverse
-      size_t i = data.size();
-
-      while (i) {
-        --i;
-        put32(data[i]);
-      }
-      put32(ty);
-      if (buf.size()>=cfg_out_buf_size_threshold) flush_buf();
-    } else {
-      // TODO: Also buffer in text mode!
-      out<<ty<<" ";
-      for (auto x : data) out<<x<<" ";
-      out<<(data.size() + 1)<<'\n';
-    }
-  }
-
-  void close_current() {
-    if (ty != item_type::INVALID && data.size()) {
-      if (ty == item_type::DELETION || ty == item_type::UNIT_PROP) write_Z();
-
-      write_out();
-      ty = item_type::INVALID;
-    }
-    data.clear();
-  }
-
-public:
-  /**
-   * Write deletion. Summarizes adjacent deletions.
-   */
-  void write_del(clause_id_t id) {
-    if (ty != item_type::DELETION) {
-      close_current();
-      ty = item_type::DELETION;
-    }
-    write_id(id);
-  }
-
-  /**
-   * Write unit propagation. Summarizes adjacent unit propagations.
-   */
-  void write_uprop(clause_id_t id) {
-    if (ty != item_type::UNIT_PROP) {
-      close_current();
-      ty = item_type::UNIT_PROP;
-    }
-    write_id(id);
-  }
-
-  /**
-   * Start writing an item of specified type.
-   * @param _ty Type of item. Must not be @see item_type::DELETION or @see item_type::UNIT_PROP, these items are inserted automatically, triggered by invocations of @see write_del and @see write_uprop.
-   */
-  void start_ty(item_type _ty) {
-    close_current();
-    ty = _ty;
-  }
-
-  /**
-   * Close current item and flush writer.
-   */
-  void close() {
-    close_current();
-    flush_buf();
-    out.flush();
-  }
-};
-
-
 template<bool include_lemmas, bool binary> void VController::dump_proof_aux(ostream &out) {
   assert(!cfg_no_grat);
 
-  Proof_Writer<binary> prw(out);
+  Proof_Writer prw(binary, out);
 
   // Conflict clause
   assert(glb.get_conflict());
@@ -2861,34 +2906,10 @@ template<bool include_lemmas, bool binary> void VController::dump_proof_aux(ostr
           // Dump proof
           size_t j = 0;
 
-          vector<cdb_t> &prf = sdata->proof_of(cl);
-          assert(prf.size() > 0);
+          Lemma_Proof *prf = *sdata->proof_of(cl);
+          assert(prf != nullptr);
 
-
-          // TODO/FIXME Store proofs in more structured way, such that this clause-inserting hack becomes unnecessary!
-          // Item type
-
-          item_type itt = static_cast<item_type>(prf[j++]);
-
-          assert(itt == item_type::RAT_LEMMA || itt == item_type::RUP_LEMMA);
-
-
-          prw.start_ty(itt);
-
-          if (itt == item_type::RAT_LEMMA) {
-            prw.write_lit(prf[j++]);
-          }
-
-          prw.write_id(clause_id(cl));
-
-          if (include_lemmas) {
-            // Dump clause
-            for (lit_t *l = cl; *l; ++l) {prw.write_lit(*l);}
-            prw.write_Z();
-          }
-
-          // Dump remaining proof
-          for (; j<prf.size(); ++j) {prw.write_id(prf[j]);}
+          prf->write(prw, include_lemmas);
         }
       }
     }
