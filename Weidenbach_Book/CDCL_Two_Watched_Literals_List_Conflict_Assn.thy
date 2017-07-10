@@ -56,7 +56,7 @@ proof (induction P)
 next
   case (Cons L P) note IH = this(1) and atm_P_xs = this(2) and uL_P = this(3) and dist = this(4) and
     tauto = this(5)
-  then have mset: \<open>mset_as_position (fold (λL xs. xs[atm_of L := Some (is_pos L)]) P xs) (mset P \<union># P')\<close>
+  then have mset: \<open>mset_as_position (fold (\<lambda>L xs. xs[atm_of L := Some (is_pos L)]) P xs) (mset P \<union># P')\<close>
     by (auto simp: tautology_add_mset)
   show ?case
   proof (cases \<open>L \<in># P'\<close>)
@@ -67,12 +67,12 @@ next
        insert_DiffM list_update_id mset.simps(2) mset_as_position_nth set_mset_mset sup_union_right1)
   next
     case False
-    have [simp]: \<open>length (fold (λL xs. xs[atm_of L := Some (is_pos L)]) P xs) = length xs\<close>
+    have [simp]: \<open>length (fold (\<lambda>L xs. xs[atm_of L := Some (is_pos L)]) P xs) = length xs\<close>
       by (induction P arbitrary: xs) auto
     moreover have \<open>- L \<notin> set P\<close>
       using tauto by (metis list.set_intros(1) list.set_intros(2) set_mset_mset tautology_minus)
-    moreover have \<open>fold (λL xs. xs[atm_of L := Some (is_pos L)]) P (xs[atm_of L := Some (is_pos L)]) =
-    fold (λL xs. xs[atm_of L := Some (is_pos L)]) P xs [atm_of L := Some (is_pos L)]\<close>
+    moreover have \<open>fold (\<lambda>L xs. xs[atm_of L := Some (is_pos L)]) P (xs[atm_of L := Some (is_pos L)]) =
+    fold (\<lambda>L xs. xs[atm_of L := Some (is_pos L)]) P xs [atm_of L := Some (is_pos L)]\<close>
        using uL_P dist tauto
       apply (induction P arbitrary: xs)
       subgoal by auto
@@ -88,27 +88,27 @@ qed
 context twl_array_code_ops
 begin
 
-definition conflict_rel :: "((nat \<times> bool option list) × nat literal multiset) set" where
+definition conflict_rel :: "((nat \<times> bool option list) \<times> nat literal multiset) set" where
 \<open>conflict_rel = {((n, xs), C). n = size C \<and> mset_as_position xs C \<and>
    (\<forall>L\<in>atms_of N\<^sub>1. L < length xs)}\<close>
 
-lemma conflict_rel_empty_iff: ‹((n, xs), C) \<in> conflict_rel \<Longrightarrow> n = 0 \<longleftrightarrow> C = {#}›
+lemma conflict_rel_empty_iff: \<open>((n, xs), C) \<in> conflict_rel \<Longrightarrow> n = 0 \<longleftrightarrow> C = {#}\<close>
   by (auto simp: conflict_rel_def)
 
-lemma conflict_atm_le_length: ‹((n, xs), C) \<in> conflict_rel \<Longrightarrow> L \<in> atms_of N\<^sub>1 \<Longrightarrow> L < length xs›
+lemma conflict_atm_le_length: \<open>((n, xs), C) \<in> conflict_rel \<Longrightarrow> L \<in> atms_of N\<^sub>1 \<Longrightarrow> L < length xs\<close>
   by (auto simp: conflict_rel_def)
 
 
 lemma conflict_le_length:
   assumes
-    c_rel: ‹((n, xs), C) \<in> conflict_rel\<close> and
+    c_rel: \<open>((n, xs), C) \<in> conflict_rel\<close> and
     L_N\<^sub>1: \<open>L \<in># N\<^sub>1\<close>
-  shows \<open>atm_of L < length xs›
+  shows \<open>atm_of L < length xs\<close>
 proof -
   have
-    size: ‹n = size C\<close> and
+    size: \<open>n = size C\<close> and
     mset_pos: \<open>mset_as_position xs C\<close> and
-    atms_le: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length xs›
+    atms_le: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length xs\<close>
     using c_rel unfolding conflict_rel_def by blast+
   have \<open>atm_of L \<in> atms_of N\<^sub>1\<close>
     using L_N\<^sub>1 by (simp add: atms_of_def)
@@ -117,7 +117,7 @@ proof -
 qed
 
 lemma conflict_rel_atm_in_iff:
-  ‹((n, xs), C) \<in> conflict_rel \<Longrightarrow> L \<in># N\<^sub>1 \<Longrightarrow> L \<in>#C \<longleftrightarrow> xs!(atm_of L) = Some (is_pos L)›
+  \<open>((n, xs), C) \<in> conflict_rel \<Longrightarrow> L \<in># N\<^sub>1 \<Longrightarrow> L \<in>#C \<longleftrightarrow> xs!(atm_of L) = Some (is_pos L)\<close>
   by (rule mset_as_position_in_iff_nth)
      (auto simp: conflict_rel_def atms_of_def)
 
