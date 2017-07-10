@@ -2778,19 +2778,74 @@ proof -
   define Rf :: "'a literal multiset set \<Rightarrow> 'a literal multiset set" where "Rf = standard_redundancy_criterion.Rf"
   define derive where "derive = redundancy_criterion.derive \<Gamma>x Rf"
 
-  from fair deriv have "llimit Ns - src.Rf (llimit Ns) \<subseteq> grounding_of_state (limit_state Sts)" using fair_imp_limit_minus_Rf_subset_ground_limit_state ns by blast
+  from fair deriv have "llimit Ns - src.Rf (llimit Ns) \<subseteq> grounding_of_state (limit_state Sts)" 
+    using fair_imp_limit_minus_Rf_subset_ground_limit_state ns by blast
 
-  have derivns: "derivation src_ext.derive Ns" using resolution_prover_ground_derivation deriv ns by auto
+  have derivns: "derivation src_ext.derive Ns" 
+    using resolution_prover_ground_derivation deriv ns by auto
+
+  interpret gd2: ground_resolution_with_selection "(S_M S (getQ (limit_state Sts)))"
+    apply unfold_locales
+    using S_M_selects_subseteq selection_axioms apply auto[]
+    using selection_axioms S_M_selects_neg_lits apply auto[]
+    done
 
   {
     fix \<gamma> :: "'a inference"
-    assume "\<gamma> \<in> undefined"
+    assume \<gamma>_p: "\<gamma> \<in> gd2.ord_\<Gamma>"
     let ?Cs = "side_prems_of \<gamma>"
     let ?D = "main_prem_of \<gamma>"
     let ?E = "concl_of \<gamma>"
     assume "set_mset ?Cs \<union> {?D} \<subseteq> grounding_of_state (limit_state Sts) - src.Rf (grounding_of_state (limit_state Sts))"
 
-    thm ord_resolve_rename_lifting
+    
+    
+    from \<gamma>_p obtain CAi1 where "gd2.ord_resolve CAi1 ?D ?E \<and> mset CAi1 = ?Cs" unfolding gd2.ord_\<Gamma>_def
+      by auto
+    then have "\<exists>\<sigma>. ord_resolve (S_M S (getQ (limit_state Sts))) CAi1 ?D \<sigma> ?E"
+    proof
+      assume "gd2.ord_resolve CAi1 (main_prem_of \<gamma>) (concl_of \<gamma>)"
+      then show "\<exists>\<sigma>. ord_resolve (S_M S (getQ (limit_state Sts))) CAi1 (main_prem_of \<gamma>) \<sigma> (concl_of \<gamma>)"  
+        proof (cases rule: gd2.ord_resolve.cases)
+          case (ord_resolve n Ci Aij Ai D)
+          have a: "?D = D + negs (mset Ai)"
+            using ord_resolve by simp
+          have b: "?E = \<Union>#mset Ci + D"
+            using ord_resolve by simp
+          have c: "length CAi1 = n"
+            using ord_resolve by simp
+          have d: "length Ci = n"
+            using ord_resolve by simp
+          have e: "length Aij = n"
+            using ord_resolve by simp
+          have f: "length Ai = n"
+            using ord_resolve by simp
+          have g: "n \<noteq> 0" 
+            using ord_resolve by simp
+          have h: "\<forall>i<n. CAi1 ! i = Ci ! i + poss (Aij ! i)" 
+            using ord_resolve by simp
+          have i: "\<forall>i<n. Aij ! i \<noteq> {#}"
+            using ord_resolve by simp
+
+          have j: "\<forall>i<n. \<forall>A\<in>#Aij ! i. A = Ai ! i"
+            using ord_resolve by simp
+          obtain \<sigma> where jj: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset Ai Aij))"
+            sorry
+
+          have k: "gd2.eligible Ai (D + negs (mset Ai))"
+            using ord_resolve by simp
+          have kk: "eligible (S_M S (getQ (limit_state Sts))) \<sigma> Ai (D + negs (mset Ai))"
+            sorry
+
+          have l: "\<forall>i<n. gd2.str_maximal_in (Ai ! i) (Ci ! i)"
+            using ord_resolve by simp
+          then have ll: "\<forall>i<n. str_maximal_in (Ai ! i \<cdot>a \<sigma>) (Ci ! i \<cdot> \<sigma>)"
+            sorry
+
+          show ?thesis
+            using ord_resolve.intros[OF c d e f g h i jj kk ll] sorry
+        qed
+    qed
 
     then obtain Y where True sorry
   }
