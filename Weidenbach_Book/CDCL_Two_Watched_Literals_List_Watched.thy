@@ -166,47 +166,46 @@ lemma get_conflict_l_st_l_of_wl:
   by (cases S; cases L) auto
 
 text \<open>We here also update the list of watched clauses \<^term>\<open>WL\<close>.\<close>
-definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat \<Rightarrow>
-  'v twl_st_wl \<Rightarrow> (nat \<times> 'v twl_st_wl) nres" where
+definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
+    (nat \<times> 'v twl_st_wl) nres" where
   \<open>unit_propagation_inner_loop_body_wl K w S = do {
-    let (M, N, U, D, NP, UP, Q, W) = (S::'v twl_st_wl);
-    ASSERT(K \<in># all_lits_of_mm (mset `# mset (tl N) + NP));
-    ASSERT(w < length (watched_by S K));
-    let C = (watched_by S K) ! w;
-    ASSERT(C > 0);
-    ASSERT(no_dup M);
-    ASSERT(C < length N);
-    ASSERT(0 < length (N!C));
-    let i = (if (N!C) ! 0 = K then 0 else 1);
-    ASSERT(i < length (N!C));
-    ASSERT(1-i < length (N!C));
-    let L = ((N!C)) ! i;
-    ASSERT(L = K);
-    let L' = ((N!C)) ! (1 - i);
-    ASSERT(L' \<in># mset (watched_l (N!C)) - {#L#});
-    ASSERT (mset (watched_l (N!C)) = {#L, L'#});
-    val_L' \<leftarrow> RETURN (valued M L');
-    if val_L' = Some True
-    then RETURN (w+1, S)
-    else do {
-      f \<leftarrow> find_unwatched M (N!C);
-      ASSERT (f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l (N!C)). - L \<in> lits_of_l M));
-      case f of
-        None \<Rightarrow>
-          if val_L' = Some False
-          then do {RETURN (w+1, (M, N, U, Some (mset (N!C)), NP, UP, {#}, W))}
-          else do {RETURN (w+1, (Propagated L' C # M, N, U, D, NP, UP, add_mset (-L') Q, W))}
-      | Some f \<Rightarrow> do {
-          ASSERT(f < length (N!C));
-          let K' = (N!C) ! f;
-          ASSERT(K' \<in># all_lits_of_mm (mset `# mset (tl N) + NP));
-          let N' = list_update N C (swap (N!C) i f);
-          ASSERT(K \<noteq> K');
-          RETURN (w, (M, N', U, D, NP, UP, Q, W(K := delete_index_and_swap (watched_by S L) w, K':= W K' @ [C])))
-        }
-    }
-   }
-\<close>
+      let (M, N, U, D, NP, UP, Q, W) = (S::'v twl_st_wl);
+      ASSERT(K \<in># all_lits_of_mm (mset `# mset (tl N) + NP));
+      ASSERT(w < length (watched_by S K));
+      let C = (watched_by S K) ! w;
+      ASSERT(C > 0);
+      ASSERT(no_dup M);
+      ASSERT(C < length N);
+      ASSERT(0 < length (N!C));
+      let i = (if (N!C) ! 0 = K then 0 else 1);
+      ASSERT(i < length (N!C));
+      ASSERT(1-i < length (N!C));
+      let L = (N!C) ! i;
+      ASSERT(L = K);
+      let L' = (N!C) ! (1 - i);
+      ASSERT(L' \<in># mset (watched_l (N!C)) - {#L#});
+      ASSERT(mset (watched_l (N!C)) = {#L, L'#});
+      val_L' \<leftarrow> RETURN (valued M L');
+      if val_L' = Some True
+      then RETURN (w+1, S)
+      else do {
+        f \<leftarrow> find_unwatched M (N!C);
+        ASSERT (f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l (N!C)). - L \<in> lits_of_l M));
+        case f of
+          None \<Rightarrow>
+            if val_L' = Some False
+            then do {RETURN (w+1, (M, N, U, Some (mset (N!C)), NP, UP, {#}, W))}
+            else do {RETURN (w+1, (Propagated L' C # M, N, U, D, NP, UP, add_mset (-L') Q, W))}
+        | Some f \<Rightarrow> do {
+            ASSERT(f < length (N!C));
+            let K' = (N!C) ! f;
+            ASSERT(K' \<in># all_lits_of_mm (mset `# mset (tl N) + NP));
+            let N' = list_update N C (swap (N!C) i f);
+            ASSERT(K \<noteq> K');
+            RETURN (w, (M, N', U, D, NP, UP, Q, W(K := delete_index_and_swap (watched_by S L) w, K':= W K' @ [C])))
+          }
+      }
+   }\<close>
 
 lemma refine_add_invariants':
   assumes

@@ -424,8 +424,7 @@ proof -
     by (cases S)
   have f': \<open>(f, f') \<in> \<langle>Id\<rangle>option_rel\<close> if \<open>(f, f') \<in> Id\<close> for f f'
     using that by auto
-  have valued: \<open>(valued M L,
-     valued M' L') \<in>
+  have valued: \<open>(valued M L, valued M' L') \<in>
     {(val, val'). val = val' \<and>
        val = (if undefined_lit M L then None else if L \<in> lits_of_l M then Some True else Some False)}\<close>
     if \<open>M = M'\<close> and \<open>L = L'\<close>
