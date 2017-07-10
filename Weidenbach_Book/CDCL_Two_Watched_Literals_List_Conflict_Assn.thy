@@ -1,5 +1,5 @@
 theory CDCL_Two_Watched_Literals_List_Conflict_Assn
-  imports CDCL_Two_Watched_Literals_List_Watched_Code_Common
+  imports CDCL_Two_Watched_Literals_List_Watched_Domain
 begin
 
 no_notation Ref.update ("_ := _" 62)
@@ -88,7 +88,9 @@ qed
 context twl_array_code_ops
 begin
 
-definition conflict_rel :: "((nat \<times> bool option list) \<times> nat literal multiset) set" where
+type_synonym (in -) conflict_rel = "nat \<times> bool option list"
+
+definition conflict_rel :: "(conflict_rel \<times> nat literal multiset) set" where
 \<open>conflict_rel = {((n, xs), C). n = size C \<and> mset_as_position xs C \<and>
    (\<forall>L\<in>atms_of N\<^sub>1. L < length xs)}\<close>
 
@@ -121,14 +123,28 @@ lemma conflict_rel_atm_in_iff:
   by (rule mset_as_position_in_iff_nth)
      (auto simp: conflict_rel_def atms_of_def)
 
-definition conflict_assn where
+type_synonym (in -) conflict_assn = "uint32 \<times> bool option array"
+
+definition conflict_assn :: "nat clause \<Rightarrow> conflict_assn \<Rightarrow> assn" where
 \<open>conflict_assn = hr_comp (uint32_nat_assn *assn array_assn (option_assn bool_assn)) conflict_rel\<close>
 
 definition option_conflict_rel where
-\<open>option_conflict_rel = {(b,(n,xs), C). b = (C = None) \<and>
+\<open>option_conflict_rel = {((b,(n,xs)), C). b = (C = None) \<and>
    (C = None \<longrightarrow> ((n,xs), {#}) \<in> conflict_rel) \<and>
    (C \<noteq> None \<longrightarrow> ((n,xs), the C) \<in> conflict_rel)}
    \<close>
+
+lemma option_conflict_rel_conflict_rel_iff: \<open>((False, (n, xs)), Some C) \<in> option_conflict_rel \<longleftrightarrow>
+   ((n, xs), C) \<in> conflict_rel\<close>
+   unfolding option_conflict_rel_def by auto
+
+
+type_synonym (in -) conflict_option_assn = "bool \<times> uint32 \<times> bool option array"
+
+definition conflict_option_assn :: \<open>nat clause option \<Rightarrow> conflict_option_assn \<Rightarrow> assn\<close> where
+\<open>conflict_option_assn = 
+   hr_comp (bool_assn *assn uint32_nat_assn *assn array_assn (option_assn bool_assn)) 
+     option_conflict_rel\<close>
 
 end
 

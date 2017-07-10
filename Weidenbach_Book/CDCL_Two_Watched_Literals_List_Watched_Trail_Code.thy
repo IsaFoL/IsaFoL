@@ -21,7 +21,7 @@ type_synonym trail_int = \<open>trailt \<times> vmtf_imp_remove \<times> phase_s
 type_synonym trail_assn = \<open>trailt_assn \<times> vmtf_remove_assn \<times> bool array\<close>
 
 type_synonym twl_st_wll_trail =
-  "trail_assn \<times> clauses_wl \<times> nat \<times> uint32 array_list option \<times> unit_lits_wl \<times> unit_lits_wl \<times>
+  "trail_assn \<times> clauses_wl \<times> nat \<times> conflict_option_assn \<times> unit_lits_wl \<times> unit_lits_wl \<times>
     lit_queue_l \<times> watched_wl"
 
 definition valued_atm_on_trail where
@@ -1211,6 +1211,272 @@ subsubsection \<open>Transitions\<close>
 
 paragraph \<open>Unit propagation, body of the inner loop\<close>
 
+definition (in -) mark_conflict :: \<open>nat clauses_l \<Rightarrow> nat \<Rightarrow> nat clause option \<Rightarrow> nat clause option\<close> where
+\<open>mark_conflict N i _ = Some (mset (N!i))\<close>
+
+definition (in -) conflict_add :: \<open>nat literal \<Rightarrow> conflict_rel \<Rightarrow> conflict_rel\<close> where
+  \<open>conflict_add = (\<lambda>L (n, xs). (if xs ! atm_of L = None then n + 1 else n,
+      xs[atm_of L := Some (is_pos L)]))\<close>
+
+
+lemma conflict_add_conflict_rel:
+  assumes confl: \<open>((n, xs), C) \<in> conflict_rel\<close> and uL_C: \<open>-L \<notin># C\<close> and L_N\<^sub>1: \<open>L \<in># N\<^sub>1\<close>
+  shows \<open>(conflict_add L (n, xs), {#L#} \<union># C) \<in> conflict_rel\<close>
+proof -
+  have 
+    n: \<open>n = size C\<close> and 
+    mset: \<open>mset_as_position xs C\<close> and
+    atm: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length xs\<close>
+    using confl unfolding conflict_rel_def by blast+
+  have \<open>distinct_mset C\<close>
+    using mset by (blast dest: mset_as_position_distinct_mset)
+  have atm_L_xs: \<open>atm_of L < length xs\<close>
+    using atm L_N\<^sub>1 by (auto simp: atms_of_def)
+  then show ?thesis
+  proof (cases \<open>L \<in># C\<close>)
+    case True
+    with mset have xs: \<open>xs ! atm_of L = Some (is_pos L)\<close> \<open>xs ! atm_of L \<noteq> None\<close>
+      by (auto dest: mset_as_position_nth)
+    moreover have \<open>{#L#} \<union># C = C\<close>
+      using True by (simp add: subset_mset.sup.absorb2)
+    ultimately show ?thesis
+      using n mset atm True
+      by (auto simp: conflict_rel_def conflict_add_def xs[symmetric])
+  next
+    case False
+    with mset have \<open>xs ! atm_of L = None\<close> 
+      using mset_as_position_in_iff_nth[of xs C L]
+       mset_as_position_in_iff_nth[of xs C \<open>-L\<close>]  atm_L_xs uL_C
+      by (cases L; cases \<open>xs ! atm_of L\<close>) auto
+    then show ?thesis
+      using n mset atm False atm_L_xs uL_C
+      by (auto simp: conflict_rel_def conflict_add_def
+          intro!: mset_as_position.intros)
+  qed
+qed
+
+definition conflict_merge where
+  \<open>conflict_merge C  = (\<lambda>(b, xs). do {
+     S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, zs). i \<le> length C \<and> length (snd zs) = length (snd xs) \<and>
+            ((False, zs), Some (mset (take i C))) \<in> option_conflict_rel \<and> Suc i < upperN \<and> Suc (fst zs) < upperN \<^esup>
+       (\<lambda>(i, zs). i < length C)
+       (\<lambda>(i, zs). do{
+           ASSERT(i < length C);
+           ASSERT(Suc i < upperN);
+           RETURN(Suc i, conflict_add (C!i) zs)})
+       (0, xs);
+     RETURN (False, snd S)
+   })\<close>
+
+definition conflict_merge_aa where
+  \<open>conflict_merge_aa C i xs = conflict_merge (C ! i) xs\<close>
+
+abbreviation conflict_rel_assn where
+ \<open>conflict_rel_assn \<equiv> (uint32_nat_assn *assn array_assn (option_assn bool_assn))\<close>
+
+abbreviation conflict_option_rel_assn where
+ \<open>conflict_option_rel_assn \<equiv> (bool_assn *assn uint32_nat_assn *assn array_assn (option_assn bool_assn))\<close>
+
+sepref_definition conflict_merge_code 
+  is \<open>uncurry2 conflict_merge_aa\<close>
+  :: \<open>[\<lambda>((N, i), (_, xs)). i < length N \<and> (\<forall>j<length (N!i). atm_of (N!i!j) < length (snd xs))]\<^sub>a 
+        clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow> conflict_option_rel_assn\<close>
+  supply length_rll_def[simp] nth_rll_def[simp] upperN_def[simp] uint32_nat_assn_one[sepref_fr_rules]
+  unfolding conflict_merge_aa_def conflict_merge_def conflict_add_def
+  apply (rewrite at \<open>_ + \<hole>\<close> annotate_assn[where A = \<open>uint32_nat_assn\<close>])
+  apply (subst nth_rll_def[symmetric])
+  supply [[goals_limit = 1]]
+  by sepref
+
+lemma (in twl_array_code_ops) in_clause_in_all_lits_of_m: \<open>x \<in># C \<Longrightarrow> x \<in># all_lits_of_m C\<close>
+  using atm_of_lit_in_atms_of in_all_lits_of_m_ain_atms_of_iff by blast
+
+(* TODO Move *)
+lemma (in -) count_multi_member_split:
+   \<open>count M a \<ge> n \<Longrightarrow> \<exists>M'. M = replicate_mset n a + M'\<close>
+  apply (induction n arbitrary: M)
+  subgoal by auto
+  subgoal premises IH for n M
+    using IH(1)[of \<open>remove1_mset a M\<close>] IH(2)  
+    apply (cases \<open>n \<le> count M a - Suc 0\<close>)
+     apply (auto dest!: Suc_le_D  simp: count_greater_zero_iff)
+    by (metis count_greater_zero_iff insert_DiffM zero_less_Suc)
+  done
+
+lemma (in -) count_image_mset_multi_member_split: 
+  \<open>count (image_mset f M) L \<ge> Suc 0 \<Longrightarrow>  \<exists>K. f K = L \<and> K \<in># M\<close>
+  by auto
+
+lemma (in -) count_image_mset_multi_member_split_2: 
+  assumes count: \<open>count (image_mset f M) L \<ge> 2\<close>
+  shows \<open>\<exists>K K' M'. f K = L \<and> K \<in># M \<and> f K' = L \<and> K' \<in># remove1_mset K M \<and>
+       M = {#K, K'#} + M'\<close>
+proof -
+  obtain K where
+    K: \<open>f K = L\<close> \<open>K \<in># M\<close>
+    using count_image_mset_multi_member_split[of f M L] count by fastforce
+  then obtain K' where
+    K': \<open>f K' = L\<close> \<open>K' \<in># remove1_mset K M\<close>
+    using count_image_mset_multi_member_split[of f \<open>remove1_mset K M\<close> L] count 
+    by (auto dest!: multi_member_split)
+  moreover have \<open>\<exists>M'. M = {#K, K'#} + M'\<close>
+    using multi_member_split[of K M] multi_member_split[of K' \<open>remove1_mset K M\<close>] K K'
+    by (auto dest!: multi_member_split)
+  then show ?thesis
+    using K K' by blast
+qed
+
+lemma simple_clss_size_upper_div2:
+  assumes 
+   lits: \<open>literals_are_in_N\<^sub>0 C\<close> and
+   dist: \<open>distinct_mset C\<close> and
+   tauto: \<open>\<not>tautology C\<close>
+  shows \<open>size C \<le> upperN div 2\<close>
+proof -
+  let ?C = \<open>atm_of `# C\<close>
+  have \<open>distinct_mset ?C\<close>
+  proof (rule ccontr)
+    assume \<open>\<not> ?thesis\<close>
+    then obtain K where \<open>\<not>count (atm_of `# C) K \<le> Suc 0\<close>
+      unfolding distinct_mset_count_less_1
+      by auto
+    then have \<open>count (atm_of `# C) K \<ge> 2\<close>
+      by auto
+    then obtain L L' C' where 
+      C: \<open>C = {#L, L'#} + C'\<close> and L_L': \<open>atm_of L = atm_of L'\<close>
+      by (auto dest!: count_image_mset_multi_member_split_2)
+    then show False
+      using dist tauto by (auto simp: atm_of_eq_atm_of tautology_add_mset)
+  qed
+  then have card: \<open>size ?C = card (set_mset ?C)\<close>
+    using distinct_mset_size_eq_card by blast
+  have size: \<open>size ?C = size C\<close>
+    using dist tauto
+    by (induction C) (auto simp: tautology_add_mset)
+  have m: \<open>set_mset ?C \<subseteq> {0..< upperN div 2}\<close>
+  proof 
+    fix L
+    assume \<open>L \<in> set_mset ?C\<close>
+    then have \<open>L \<in> atms_of N\<^sub>1\<close>
+    using lits by (auto simp: literals_are_in_N\<^sub>0_def atm_of_lit_in_atms_of
+        in_all_lits_of_m_ain_atms_of_iff subset_iff)
+    then have \<open>Pos L \<in># N\<^sub>1\<close>
+      using lits by (auto simp: in_N\<^sub>1_atm_of_in_atms_of_iff)
+    then show \<open>L \<in> {0..< upperN div 2}\<close>
+      using in_N1_less_than_upperN by (auto simp: atm_of_lit_in_atms_of
+        in_all_lits_of_m_ain_atms_of_iff subset_iff upperN_def)
+  qed
+  moreover have \<open>card \<dots> = upperN div 2\<close>
+    by auto
+  ultimately have \<open>card (set_mset ?C) \<le> upperN div 2\<close>
+    using card_mono[OF _ m] by auto
+  then show ?thesis
+    unfolding card[symmetric] size .
+qed
+
+lemma
+  \<open>(uncurry2 conflict_merge_aa, uncurry2 (RETURN ooo mark_conflict)) \<in>
+    [\<lambda>((N, i), xs). i < length N \<and> xs = None]\<^sub>f \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f option_conflict_rel \<rightarrow>
+      \<langle>option_conflict_rel\<rangle>nres_rel\<close>
+proof -
+  have [simp]: \<open>\<not>tautology (mset C) \<Longrightarrow> j < length C \<Longrightarrow> -C ! j \<notin> set (take j C)\<close> for j C
+    by (meson in_multiset_in_set in_set_takeD nth_mem_mset tautology_minus)
+  have [simp]: \<open>distinct C \<Longrightarrow> j < length C \<Longrightarrow> C ! j \<notin> set (take j C)\<close> for j C
+    by (simp add: index_nth_id index_take)
+  have \<open>conflict_merge_aa N i (b, n, xs) \<le> \<Down> option_conflict_rel (RETURN (Some (mset (N ! i))))\<close>
+    if 
+      \<open>i < length N\<close> and 
+      \<open>((b, n, xs), None) \<in> option_conflict_rel\<close> and
+     dist: \<open>distinct (N! i)\<close> and
+     lits: \<open>literals_are_in_N\<^sub>0 (mset (N ! i))\<close> and
+     tauto: \<open>\<not>tautology (mset (N ! i))\<close>
+    for b n xs N i
+    unfolding conflict_merge_aa_def conflict_merge_def
+    apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(j, _). length (N!i) - j)\<close>])
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal using that by (auto simp: option_conflict_rel_def)
+    subgoal sorry
+    subgoal sorry
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal for b' n' s i zs by (cases \<open>snd s\<close>) (auto simp: conflict_add_def split: if_splits)
+    subgoal for b' n' s j zs
+      using conflict_add_conflict_rel[of \<open>fst zs\<close> \<open>snd zs\<close> \<open>mset (take j (N ! i))\<close> \<open>N ! i ! j\<close>]
+      dist lits tauto
+      by (auto simp: option_conflict_rel_def take_Suc_conv_app_nth
+          literals_are_in_N\<^sub>0_in_N\<^sub>1)
+    subgoal
+      sorry
+    subgoal for b' n' s j zs apply (cases \<open>snd s\<close>)
+      apply (auto simp: conflict_add_def option_conflict_rel_def conflict_rel_def)
+      sorry
+    subgoal by auto
+    subgoal using that by auto
+    done
+
+
+    show ?thesis
+  unfolding (* conflict_merge_aa_def *) conflict_merge_def mark_conflict_def uncurry_def
+  apply (intro nres_relI frefI)
+  apply auto
+using WHILEIT_rule_stronger_inv
+  apply (refine_vcg)
+
+
+  oops
+
+
+lemma unit_propagation_inner_loop_body_wl_D_alt_def:
+  \<open>unit_propagation_inner_loop_body_wl_D K w S = do {
+    ASSERT(literals_are_N\<^sub>0 S);
+    let (M, N, U, D', NP, UP, Q, W) = S;
+    ASSERT(K \<in># all_lits_of_mm (mset `# mset (tl N) + NP));
+    ASSERT(w < length (watched_by S K));
+    ASSERT(K \<in> snd ` D\<^sub>0);
+    let C = (W K) ! w;
+    ASSERT(C > 0);
+    ASSERT(no_dup M);
+    ASSERT(C < length N);
+    ASSERT(0 < length (N!C));
+    let i = (if (N!C) ! 0 = K then 0 else 1);
+    ASSERT(i < length (N!C));
+    ASSERT(1-i < length (N!C));
+    let L = K;
+    let L' = (N!C) ! (1 - i);
+    ASSERT(L' \<in># mset (watched_l (N!C)) - {#L#});
+    ASSERT (mset (watched_l (N!C)) = {#L, L'#});
+    ASSERT(L' \<in> snd ` D\<^sub>0);
+    val_L' \<leftarrow> RETURN (valued M L');
+    if val_L' = Some True
+    then RETURN (w+1, (M, N, U, D', NP, UP, Q, W))
+    else do {
+      ASSERT(literals_are_in_N\<^sub>0 (mset (N!C)));
+      f \<leftarrow> find_unwatched M (N!C);
+      ASSERT (f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l (N!C)). - L \<in> lits_of_l M));
+      case f of
+        None \<Rightarrow>
+          if val_L' = Some False
+          then do {RETURN (w+1, (M, N, U, mark_conflict D' (N!C), NP, UP, {#}, W))}
+          else do {
+            ASSERT(undefined_lit M L');
+            RETURN (w+1, (Propagated L' C # M, N, U, D', NP, UP, add_mset (-L') Q, W))}
+      | Some f \<Rightarrow> do {
+           ASSERT(f < length (N!C));
+           let K' = (N!C) ! f;
+           ASSERT(K' \<in># all_lits_of_mm (mset `# mset (tl N) + NP));
+           ASSERT(K' \<in> snd ` D\<^sub>0);
+           let N' = list_update N C (swap (N!C) i f);
+           let W = W(L := delete_index_and_swap (W L) w);
+           let W = W(K':= W K' @ [C]);
+           ASSERT(K \<noteq> K');
+           RETURN (w, (M, N', U, D', NP, UP, Q, W))
+       }
+    }
+   }
+\<close>
 sepref_register unit_propagation_inner_loop_body_wl_D
 sepref_thm unit_propagation_inner_loop_body_wl_D
   is \<open>uncurry2 ((PR_CONST unit_propagation_inner_loop_body_wl_D) :: nat literal \<Rightarrow> nat \<Rightarrow>
