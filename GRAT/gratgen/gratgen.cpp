@@ -508,10 +508,10 @@ public:
   }
 
   /// Get reference to mapping for specified literal
-  T &operator [](lit_t l) { assert(static_cast<size_t>(abs(l)) <= max_var); return m[l];}
+  T &operator [](lit_t l) { assert(static_cast<size_t>(abs(l)) <= max_var); return m[l]; }
 
   /// Get const reference to mapping for specified literal
-  const T &operator [](lit_t l) const { assert(static_cast<size_t>(abs(l)) <= max_var); return m[l];}
+  const T &operator [](lit_t l) const { assert(static_cast<size_t>(abs(l)) <= max_var); return m[l]; }
 
   /// Get maximum variable number
   size_t get_max_var() const {return max_var;}
@@ -609,11 +609,11 @@ public:
   /**
    * Remove everything from (including) the specified positon onwards
    */
-  void shrink_to(pos_t pos) { assert(pos.pos <= current().pos); db.resize(pos.pos);}
+  void shrink_to(pos_t pos) { assert(pos.pos <= current().pos); db.resize(pos.pos); }
   /**
    * @copydoc shrink_to()
    */
-  void shrink_to(vector<cdb_t>::iterator end) { assert(end >= db.begin() && end <= db.end()); db.erase(end, db.end());}
+  void shrink_to(vector<cdb_t>::iterator end) { assert(end >= db.begin() && end <= db.end()); db.erase(end, db.end()); }
 
   /**
    * Get a const reference to the internal vector storing the data.
@@ -882,9 +882,9 @@ private:
 
 private:
   /// Mark a clause, and return wether it was already marked.
-  inline bool mark_clause(size_t id) { return marked[id].exchange(true);}
+  inline bool mark_clause(size_t id) { return marked[id].exchange(true); }
   /// Mark a clause.
-  inline bool mark_clause(lit_t *cl) { return mark_clause(clid(cl));}
+  inline bool mark_clause(lit_t *cl) { return mark_clause(clid(cl)); }
 
 
 public:
@@ -916,9 +916,9 @@ public:
 
 
   /// Check if clause is marked.
-  inline bool is_marked(lit_t *cl) { return marked[clid(cl)].load();}
+  inline bool is_marked(lit_t *cl) { return marked[clid(cl)].load(); }
   /// Try to acquire a clause
-  inline bool acquire(lit_t *cl) { return !acquired[clid(cl)].test_and_set(memory_order_acquire);}
+  inline bool acquire(lit_t *cl) { return !acquired[clid(cl)].test_and_set(memory_order_acquire); }
 
 
   /** Directly mark a single clause.
@@ -934,10 +934,10 @@ public:
   inline vector<cdb_t> &proof_of(lit_t *cl) {return proofs[clid(cl)];}
 
   /// Increment RAT-count for specified literal.
-  inline void inc_rat_counts(lit_t l) { ++rat_counts[l];}
+  inline void inc_rat_counts(lit_t l) { ++rat_counts[l]; }
 
   /// Get the RAT-count map.
-  inline const lit_map<atomic<size_t>> &get_rat_counts() { return rat_counts;}
+  inline const lit_map<atomic<size_t>> &get_rat_counts() { return rat_counts; }
 
 
 
@@ -1323,7 +1323,7 @@ private:
 
 
     // is_core || !in_wl
-//     inline bool der_is_orphan() { return (flags & (CORE|IN_WL)) != IN_WL;}
+//     inline bool der_is_orphan() { return (flags & (CORE|IN_WL)) != IN_WL; }
 
   };
 
@@ -2190,7 +2190,7 @@ struct push_clause_ids {
   push_clause_ids(vector<lit_t> &_prf) : prf(_prf) {};
 
   /// Append an ID
-  void operator () (lit_t *cl) const { prf.push_back(static_cast<lit_t>( clid(cl)));}
+  void operator () (lit_t *cl) const { prf.push_back(static_cast<lit_t>( clid(cl))); }
 };
 
 
@@ -2622,7 +2622,7 @@ void VController::do_parallel_bwd(size_t num_threads) {
 
   for (size_t i = 0; i<num_threads-1; ++i) {
     Verifier *vrf = &aux_vrfs[i];
-    aux_threads.push_back(thread([vrf, num_threads] () { vrf->bwd_pass(false);}));
+    aux_threads.push_back(thread([vrf, num_threads] () { vrf->bwd_pass(false); }));
   }
 
   main_vrf.bwd_pass(cfg_show_progress_bar);
