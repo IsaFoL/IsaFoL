@@ -52,10 +52,10 @@ proof -
   then show ?thesis by auto
 qed
 
-theorem list_of_mset_empty[simp]:
-  assumes "list_of_mset m = []"
-  shows "m = {#}"
-by (metis (full_types) assms ex_mset list_of_mset_def mset_zero_iff_right someI_ex) 
+theorem list_of_mset_empty[iff]:
+  "list_of_mset m = [] \<longleftrightarrow> m = {#}"
+  by (metis (mono_tags, lifting) ex_mset list_of_mset_def mset_zero_iff_right someI_ex)
+
   
 
 theorem in_mset_conv_nth: "(x \<in># mset xs) = (\<exists>i<length xs. xs ! i = x)"
