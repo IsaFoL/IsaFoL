@@ -29,9 +29,24 @@ fun set_literals_to_update_wl :: "'v lit_queue_wl \<Rightarrow> 'v twl_st_wl \<R
 fun get_conflict_wl :: "'v twl_st_wl \<Rightarrow> 'v cconflict" where
   \<open>get_conflict_wl (_, _, _, D, _, _, _, _) = D\<close>
 
+fun get_clauses_wl :: "'v twl_st_wl \<Rightarrow> 'v clauses_l" where
+  \<open>get_clauses_wl (M, N, U, D, NP, UP, WS, Q) = N\<close>
+
+fun get_learned_wl :: "'v twl_st_wl \<Rightarrow> nat" where
+  \<open>get_learned_wl (M, N, U, D, NP, UP, WS, Q) = U\<close>
+
+definition get_unit_learned :: "'v twl_st_wl \<Rightarrow> 'v clauses" where
+  \<open>get_unit_learned = (\<lambda>(M, N, U, D, NP, UP, Q, W). UP)\<close>
+
+definition get_unit_init_clss :: "'v twl_st_wl \<Rightarrow> 'v clauses" where
+  \<open>get_unit_init_clss = (\<lambda>(M, N, U, D, NP, UP, Q, W). NP)\<close>
 
 definition all_lits_of_mm :: \<open>'a clauses \<Rightarrow> 'a literal multiset\<close> where
 \<open>all_lits_of_mm Ls = Pos `# (atm_of `# (\<Union># Ls)) + Neg `# (atm_of `# (\<Union># Ls))\<close>
+
+lemma all_lits_of_mm_empty[simp]: \<open>all_lits_of_mm {#} = {#}\<close>
+  by (auto simp: all_lits_of_mm_def)
+
 
 text \<open>
   We cannot just extract the literals of the clauses: we cannot be sure that atoms appear \<^emph>\<open>both\<close>
@@ -63,6 +78,9 @@ lemma all_lits_of_mm_union:
 
 definition all_lits_of_m :: \<open>'a clause \<Rightarrow> 'a literal multiset\<close> where
 \<open>all_lits_of_m Ls = Pos `# (atm_of `# Ls) + Neg `# (atm_of `# Ls)\<close>
+
+lemma all_lits_of_m_empty[simp]: \<open>all_lits_of_m {#} = {#}\<close>
+  by (auto simp: all_lits_of_m_def)
 
 lemma in_all_lits_of_m_ain_atms_of_iff: \<open>L \<in># all_lits_of_m N \<longleftrightarrow> atm_of L \<in> atms_of N\<close>
   by (cases L) (auto simp: all_lits_of_m_def atms_of_ms_def atms_of_def)

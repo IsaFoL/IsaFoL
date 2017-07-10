@@ -615,7 +615,7 @@ lemma ord_resolve_obtain_clauses:
   case (ord_resolve nn Ci Aij Ai D)
   then have "nn = n"
     using n by auto
-  then have "n \<noteq> 0" "length Ci = n" "length Aij = n" "length Ai = n" using ord_resolve by auto
+  then have "n \<noteq> 0" "length Ci = n" "length Aij = n" "length Ai = n" using ord_resolve by force+
   note n = \<open>n \<noteq> 0\<close> \<open>length CAi = n\<close> \<open>length Ci = n\<close> \<open>length Aij = n\<close> \<open>length Ai = n\<close>
     
   interpret S: selection S by (rule select)
@@ -891,7 +891,7 @@ lemma ord_resolve_rename_lifting:
       fix i
       assume "i<n"
       have "CAi' ! i \<cdot> \<eta> = CAi ! i"
-        using \<open>i < n\<close> \<open>CAi' \<cdot>cl \<eta> = CAi\<close> n by auto
+        using \<open>i < n\<close> \<open>CAi' \<cdot>cl \<eta> = CAi\<close> n by force
       moreover
       have "poss (Aij ! i) \<subseteq># CAi !i"
         using \<open>i<n\<close> ord_resolve(8) by auto
@@ -2228,7 +2228,8 @@ proof -
   from deriv have four_ten: "derivation src_ext.derive Ns" 
     using resolution_prover_ground_derivation ns by auto
 
-  have "\<forall>l \<ge> i. enat (Suc l) < llength Sts \<longrightarrow> D \<in> getQ (lnth Sts l) \<longrightarrow> D \<in> getQ (lnth Sts (Suc l))"
+  have in_Sts_in_Sts_Suc: 
+    "\<forall>l \<ge> i. enat (Suc l) < llength Sts \<longrightarrow> D \<in> getQ (lnth Sts l) \<longrightarrow> D \<in> getQ (lnth Sts (Suc l))"
   proof (rule, rule, rule, rule)
     fix l 
     assume len: "i \<le> l" 
@@ -2297,31 +2298,30 @@ proof -
       then show ?case using d_in_q by auto
     qed
   qed
-  note previous = this
-  have "\<forall>l\<ge>i. enat (Suc l) < llength Sts \<longrightarrow> (D \<in> getQ (lnth Sts l) \<and> D \<in> getQ (lnth Sts (Suc l)))"
-    apply rule
-    using previous
-    subgoal for l
+  have D_in_Sts: "D \<in> getQ (lnth Sts l)" and D_in_Sts_Suc: "D \<in> getQ (lnth Sts (Suc l))"
+    if l_i: \<open>l \<ge> i\<close> and enat: \<open>enat (Suc l) < llength Sts\<close>
+    for l
+  proof -
+    show \<open>D \<in> getQ (lnth Sts l)\<close>
+      using that
       apply (induction "l-i" arbitrary: l)
-       apply rule
-       apply rule
-      using d
-       apply -
-       apply auto[]
-      apply rule
-      apply rule
-      apply rule
-       apply (smt Suc_diff_Suc Suc_ile_eq Suc_pred diff_Suc_Suc less_Suc_eq less_eq_Suc_le less_imp_le not_less zero_less_Suc)
-      apply (smt Suc_diff_Suc Suc_ile_eq Suc_pred diff_Suc_Suc less_Suc_eq less_eq_Suc_le less_imp_le not_less zero_less_Suc)
+      subgoal using d by auto
+      subgoal using d(1) in_Sts_in_Sts_Suc
+        by (metis (no_types, lifting) Suc_ile_eq add_Suc_right add_diff_cancel_left' le_SucE
+            le_Suc_ex less_imp_le)
       done
+    then show "D \<in> getQ (lnth Sts (Suc l))"
+      using that in_Sts_in_Sts_Suc by blast
+  qed
+  have "i \<le> x \<Longrightarrow> enat x < llength Sts \<Longrightarrow> D \<in> getQ (lnth Sts x)" for x
+    apply (cases x)
+    subgoal using d(1) by (auto intro!: exI[of _ i] simp: less_Suc_eq)
+    subgoal for x'
+      using d(1) D_in_Sts_Suc[of x'] by (cases \<open>i \<le> x'\<close>) (auto simp: not_less_eq_eq)
     done
   then have "D \<in> llimit (lmap getQ Sts)"
     unfolding llimit_def
-    apply auto
-    apply (rule_tac x=i in exI)
-    using d 
-    apply (metis (no_types, hide_lams) Suc_ile_eq Suc_le_mono enat_ord_simps(1) enat_ord_simps(2) le_less not0_implies_Suc not_less_zero)
-    done
+    by (auto intro!: exI[of _ i] simp: d)
   then show ?thesis  
     unfolding limit_state_def by auto
 qed
