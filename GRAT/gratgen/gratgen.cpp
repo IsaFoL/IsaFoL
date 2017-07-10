@@ -150,6 +150,7 @@
 #include <atomic>
 #include <chrono>
 #include <limits>
+#include <cmath>
 
 #include <boost/progress.hpp>
 
@@ -187,10 +188,10 @@ void fail(string msg = "") {
 }
 
 /**
- * Set v[i]=data, resizing v as necessary.
+ * Set v[i] = data, resizing v as necessary.
  */
 template <typename T> void set_resize(vector<T> &v, size_t i, T data) {
-  if (i>=v.size()) {
+  if (i >= v.size()) {
     size_t ns = max(v.size() * 2, i+1);
     v.resize(ns);
   }
@@ -201,13 +202,13 @@ template <typename T> void set_resize(vector<T> &v, size_t i, T data) {
  * Delete one x from (unordered) list. Returns true if an x was deleted, false if no x was found.
  */
 // template <typename S,typename T> struct dflt_eq {
-//   bool operator() (S s, T t) {return s==t;}
+//   bool operator() (S s, T t) {return s == t;}
 // };
 
 template<typename S, typename T/*, typename EQ = dflt_eq<S,T>*/> bool del_from_list(vector<S> &v, T x) {
-  for (size_t i=0;i<v.size();++i) {
+  for (size_t i = 0; i<v.size(); ++i) {
     if (v[i] == x) {
-      v[i]=v.back();
+      v[i] = v.back();
       v.pop_back();
       return true;
     }
@@ -228,10 +229,10 @@ template<typename RT, typename T> RT with_timing(string name, T op, chrono::mill
   RT r;
   out<<"c "<<name<<" ..."; out.flush();
   auto t = chrono::steady_clock::now();
-  r=op();
+  r = op();
   auto d = chrono::steady_clock::now() - t;
   chrono::milliseconds dm = chrono::duration_cast<chrono::milliseconds>(d);
-  if (dp) *dp+=dm;
+  if (dp) *dp += dm;
   out<<" "<< dm.count() <<"ms"<<endl; out.flush();
   return r;
 }
@@ -243,8 +244,9 @@ template<typename RT, typename T> RT with_timing(string name, T op, chrono::mill
  * @param dp Pointer to time to be incremented. nullptr if no time to be stored
  * @param out Stream to print message to, clog by default
  */
-template<typename T> void with_timing(string name, T op, chrono::milliseconds *dp = nullptr, ostream &out = clog) {
-  with_timing(name, [] {op(); return 0;}, dp, out);
+template<typename T> void with_timing_void(string name, T op, chrono::milliseconds *dp = nullptr, ostream &out = clog) {
+  auto wrapper = [op] {op(); return 0;};
+  with_timing<int, decltype(wrapper)>(name, wrapper, dp, out);
 }
 
 /**
@@ -259,10 +261,10 @@ template<typename RT, typename T> RT with_timing_ml(string name, T op, chrono::m
   RT r;
   out<<"c Starting "<<name<<endl; out.flush();
   auto t = chrono::steady_clock::now();
-  r=op();
+  r = op();
   auto d = chrono::steady_clock::now() - t;
   chrono::milliseconds dm = chrono::duration_cast<chrono::milliseconds>(d);
-  if (dp) *dp+=dm;
+  if (dp) *dp += dm;
   out<<"c Finished "<<name<<": "<< dm.count() <<"ms"<<endl; out.flush();
   return r;
 }
@@ -274,8 +276,9 @@ template<typename RT, typename T> RT with_timing_ml(string name, T op, chrono::m
  * @param dp Pointer to time to be incremented. nullptr if no time to be stored
  * @param out Stream to print message to, clog by default
  */
-template<typename T> void with_timing_ml(string name, T op, chrono::milliseconds *dp = nullptr, ostream &out = clog) {
-  with_timing_ml(name, [] {op(); return 0;}, dp, out);
+template<typename T> void with_timing_void_ml(string name, T op, chrono::milliseconds *dp = nullptr, ostream &out = clog) {
+  auto wrapper = [op] {op(); return 0;};
+  with_timing_ml<int, decltype(wrapper)>(name, wrapper, dp, out);
 }
 
 
@@ -418,7 +421,7 @@ struct pos_t {
   pos_t() : pos(0) {};  ///< Initialize position to null
   explicit pos_t(size_t _pos) : pos(_pos) {}; ///< Initialize with a size_t, specifying the position
 
-  operator bool() const {return pos!=0;}  ///< True if position is not null
+  operator bool() const {return pos != 0;}  ///< True if position is not null
   bool operator==(pos_t const&p) const {return pos == p.pos;} ///< Compare two positions
 
   /** The null position, used as a guard */
@@ -488,7 +491,7 @@ public:
    */
   lit_map &operator= (lit_map const &lm) {
     max_var = lm.max_var;
-    vec=lm.vec;
+    vec = lm.vec;
     m = vec.data() + max_var;
     return *this;
   }
@@ -516,13 +519,13 @@ public:
   /** Get smallest mapped literal.
    *
    * Used to iterate over all mapped literals:
-   *    @code for (lit_t i=X.lbegin();i<X.lend();++i) ...} @endcode
+   *    @code for (lit_t i = X.lbegin(); i<X.lend(); ++i) ...} @endcode
    */
   lit_t lbegin() const {return -static_cast<lit_t>(max_var);}
   /** Get largest mapped literal plus one.
    *
    * Used to iterate over all mapped literals:
-   *    @code for (lit_t i=X.lbegin();i<X.lend();++i) ...} @endcode
+   *    @code for (lit_t i = X.lbegin(); i<X.lend(); ++i) ...} @endcode
    */
   lit_t lend() const {return static_cast<lit_t>(max_var) + 1;}
 
@@ -551,7 +554,7 @@ public:
    * Converts a relative position to a pointer into the current data.
    */
   lit_t *p2c(pos_t pos) {
-    assert(pos<=db.size());
+    assert(pos <= db.size());
     return pos?db.data() + pos.pos:nullptr;
   }
 
@@ -559,7 +562,7 @@ public:
    * @copydoc p2c()
    */
   lit_t const *p2c(pos_t pos) const {
-    assert(pos<=db.size());
+    assert(pos <= db.size());
     return pos?db.data() + pos.pos:nullptr;
   }
 
@@ -567,7 +570,7 @@ public:
    * Converts a relative position into an iterator
    */
   vector<cdb_t>::iterator p2i(pos_t pos) {
-    assert(pos && pos<=db.size());
+    assert(pos && pos <= db.size());
     return db.begin() + pos.pos;
   }
 
@@ -575,7 +578,7 @@ public:
    * @copydoc p2i()
    */
   vector<cdb_t>::const_iterator p2i(pos_t pos) const {
-    assert(pos && pos<=db.size());
+    assert(pos && pos <= db.size());
     return db.begin() + pos.pos;
   }
 
@@ -606,11 +609,11 @@ public:
   /**
    * Remove everything from (including) the specified positon onwards
    */
-  void shrink_to(pos_t pos) { assert(pos.pos <= current().pos); db.resize(pos.pos); }
+  void shrink_to(pos_t pos) { assert(pos.pos <= current().pos); db.resize(pos.pos);}
   /**
    * @copydoc shrink_to()
    */
-  void shrink_to(vector<cdb_t>::iterator end) { assert(end >= db.begin() && end<=db.end()); db.erase(end,db.end()); }
+  void shrink_to(vector<cdb_t>::iterator end) { assert(end >= db.begin() && end <= db.end()); db.erase(end, db.end());}
 
   /**
    * Get a const reference to the internal vector storing the data.
@@ -645,14 +648,14 @@ inline size_t clid(lit_t *cl) {assert(cl); return static_cast<size_t>(cl[-1]);}
  * @see @ref pg_clause_format
  * @relates ClauseDB
  */
-inline lit_t &clw1(lit_t *cl) {assert(cl && cl[0]!=0 && cl[1]!=0); return cl[0]; }
+inline lit_t &clw1(lit_t *cl) {assert(cl && cl[0]!=0 && cl[1]!=0); return cl[0];}
 /**
  * Get the second watched literal of a clause.
  *
  * @see @ref pg_clause_format
  * @relates ClauseDB
  */
-inline lit_t &clw2(lit_t *cl) {assert(cl && cl[0]!=0 && cl[1]!=0); return cl[1]; }
+inline lit_t &clw2(lit_t *cl) {assert(cl && cl[0]!=0 && cl[1]!=0); return cl[1];}
 
 /**
  * A certificate item.
@@ -676,7 +679,7 @@ public:
   /// Check if item is erased.
   bool is_erased() const {return !pos;}
   /// Erase item
-  void erase() {pos=pos_t::null;}
+  void erase() {pos = pos_t::null;}
 
   /**
    * Check if this is a deletion item.
@@ -695,14 +698,14 @@ public:
   /**
    * Check if item is associated to a trail position
    */
-  bool has_tr_pos() const {assert(!is_erased()); return trpos>>1!=0;}
+  bool has_tr_pos() const {assert(!is_erased()); return trpos>>1 != 0;}
 
   /**
    * Get associated trail position
    *
    * @pre Item is not erased.
    */
-  size_t get_trpos() const {assert(has_tr_pos()); return (trpos>>1) - 1; }
+  size_t get_trpos() const {assert(has_tr_pos()); return (trpos>>1) - 1;}
   /**
    * Set associated trail position
    *
@@ -727,15 +730,15 @@ private:
   ClauseDB db;
 
   ///// This data is set by friend Parser
-  size_t num_clauses=0;
-  size_t max_var=0;
+  size_t num_clauses = 0;
+  size_t max_var = 0;
   vector<lit_t> pivots;   // Map from clause ids to pivot literals. Empty clauses have pivot 0.
   vector<item_t> items;   // List of items in DB
-  size_t fst_prf_item=0;  // Index of first proof item
-  size_t fst_lemma_id=0;  // Id of first lemma
+  size_t fst_prf_item = 0;  // Index of first proof item
+  size_t fst_lemma_id = 0;  // Id of first lemma
   /////
 
-  lit_t *conflict=nullptr;
+  lit_t *conflict = nullptr;
 
   vector<pair<size_t,bool>> fwd_trail; // Forward trail, in format (clause-id, vmarked)
 
@@ -749,7 +752,7 @@ private:
    * @see @ref Object_Lifetimes
    */
   void init_after_parsing() {
-    after_parsing=true;
+    after_parsing = true;
 
     items.shrink_to_fit();
     pivots.shrink_to_fit();
@@ -844,7 +847,7 @@ void Global_Data::init_after_fwd(pos_t cn_pos, vector<trail_item_t> const &tr) {
 void Global_Data::join_vmarked(const vector<bool> &marked) {
   assert(fwd_trail.size() == marked.size());
 
-  for (size_t i=0;i<marked.size();++i)
+  for (size_t i = 0; i<marked.size(); ++i)
     fwd_trail[i].second |= marked[i];
 
 }
@@ -870,7 +873,7 @@ private:
 
 
   pos_t *mark_queue;       // Global marked queue. Capacity must be big enough to hold every clause at most once.
-  size_t mq_pos=0;
+  size_t mq_pos = 0;
   spinlock mq_lock;
 
 
@@ -879,9 +882,9 @@ private:
 
 private:
   /// Mark a clause, and return wether it was already marked.
-  inline bool mark_clause(size_t id) { return marked[id].exchange(true); }
+  inline bool mark_clause(size_t id) { return marked[id].exchange(true);}
   /// Mark a clause.
-  inline bool mark_clause(lit_t *cl) { return mark_clause(clid(cl)); }
+  inline bool mark_clause(lit_t *cl) { return mark_clause(clid(cl));}
 
 
 public:
@@ -902,7 +905,7 @@ public:
   {
     assert(glb.is_after_parsing());
 
-    for (auto &b : marked) b=false;  // TODO: Is initialization necessary?
+    for (auto &b : marked) b = false;  // TODO: Is initialization necessary?
     //for (auto &f : acquired) f.test_and_set();  // Set all acquired flags. They are only cleared if clause is marked
   }
 
@@ -913,9 +916,9 @@ public:
 
 
   /// Check if clause is marked.
-  inline bool is_marked(lit_t *cl) { return marked[clid(cl)].load(); }
+  inline bool is_marked(lit_t *cl) { return marked[clid(cl)].load();}
   /// Try to acquire a clause
-  inline bool acquire(lit_t *cl) { return !acquired[clid(cl)].test_and_set(memory_order_acquire); }
+  inline bool acquire(lit_t *cl) { return !acquired[clid(cl)].test_and_set(memory_order_acquire);}
 
 
   /** Directly mark a single clause.
@@ -931,10 +934,10 @@ public:
   inline vector<cdb_t> &proof_of(lit_t *cl) {return proofs[clid(cl)];}
 
   /// Increment RAT-count for specified literal.
-  inline void inc_rat_counts(lit_t l) { ++rat_counts[l]; }
+  inline void inc_rat_counts(lit_t l) { ++rat_counts[l];}
 
   /// Get the RAT-count map.
-  inline const lit_map<atomic<size_t>> &get_rat_counts() { return rat_counts; }
+  inline const lit_map<atomic<size_t>> &get_rat_counts() { return rat_counts;}
 
 
 
@@ -964,11 +967,11 @@ public:
     size_t new_pos = mq_pos;
     mq_lock.release();
 
-    failed_attempts=0;
+    failed_attempts = 0;
 
     clauses.clear();
-    for (size_t i=idx;i<old_pos;++i) clauses.push_back(db->p2c(mark_queue[i]));
-    idx=new_pos;
+    for (size_t i = idx; i<old_pos; ++i) clauses.push_back(db->p2c(mark_queue[i]));
+    idx = new_pos;
 
     return true;
   }
@@ -989,11 +992,11 @@ public:
     if (!mq_lock.acquire(failed_attempts++)) return false;
     size_t end = mq_pos;
     mq_lock.release();
-    failed_attempts=0;
+    failed_attempts = 0;
 
     clauses.clear();
-    for (size_t i=idx;i<end;++i) clauses.push_back(db->p2c(mark_queue[i]));
-    idx=end;
+    for (size_t i = idx; i<end; ++i) clauses.push_back(db->p2c(mark_queue[i]));
+    idx = end;
     return true;
   }
 
@@ -1040,8 +1043,8 @@ public:
 
 
 inline size_t Parser::Clause_Hash_Eq::operator() (const pos_t &pos) const {
-  size_t sum=0, prod=1, xxor=0; // The hash-function from drat-trim
-  for (lit_t const *l=db.p2c(pos);*l;++l) {
+  size_t sum = 0, prod = 1, xxor = 0; // The hash-function from drat-trim
+  for (lit_t const *l = db.p2c(pos); *l; ++l) {
     prod*=*l; sum+=*l; xxor^=*l;
   }
   return (1023 * sum + prod) ^ (31 * xxor);
@@ -1051,7 +1054,7 @@ inline bool Parser::Clause_Hash_Eq::operator() (const pos_t &pos1, const pos_t &
   lit_t const *l1 = db.p2c(pos1);
   lit_t const *l2 = db.p2c(pos2);
 
-  size_t i=0;
+  size_t i = 0;
   do {
     if (l1[i]!=l2[i]) return false;
   } while (l1[i++]);
@@ -1065,7 +1068,7 @@ pos_t Parser::parse_clause(istream &in) {
   glb.db.append(id);                                // Push id
   pos_t pos = glb.db.current();                     // Positions refer to first literal
 
-  size_t len=0;
+  size_t len = 0;
 
   lit_t l;
   do {                                          // Push literals and terminating zero
@@ -1085,7 +1088,7 @@ pos_t Parser::parse_clause(istream &in) {
     // Remove duplicate literals
     auto ncle = unique(cl,cle);
     if (ncle != cle) {
-      ncle[1]=0;
+      ncle[1] = 0;
       glb.db.shrink_to(ncle+1);
     }
   }
@@ -1312,15 +1315,15 @@ private:
     inline bool is_clear() {return flags == NO_FLAGS;}
 
     inline bool is_inwl() {return flags & IN_WL;}
-    inline wl_clause_state_t& set_inwl() {flags|=IN_WL; return *this;}
-    inline wl_clause_state_t& clear_inwl() {flags&= ~IN_WL; return *this;}
+    inline wl_clause_state_t& set_inwl() {flags |= IN_WL; return *this;}
+    inline wl_clause_state_t& clear_inwl() {flags &= ~IN_WL; return *this;}
 
     inline bool is_core() {return flags & CORE;}
-    inline wl_clause_state_t& set_core() {flags|=CORE; return *this;}
+    inline wl_clause_state_t& set_core() {flags |= CORE; return *this;}
 
 
     // is_core || !in_wl
-//     inline bool der_is_orphan() { return (flags & (CORE|IN_WL)) != IN_WL; }
+//     inline bool der_is_orphan() { return (flags & (CORE|IN_WL)) != IN_WL;}
 
   };
 
@@ -1329,8 +1332,8 @@ private:
   vector<lit_t *> new_core; // Clauses that should be marked as core, buffered during uprop. FIXME Will probably be removed
 
   vector<lit_t *> marked_outgoing;  // Outgoing marked clauses, to be synchronized
-  size_t failed_sync_attempts=0;    // Failed attempts to synchronize marked clauses
-  size_t glb_marked_sync_idx=0;     // Synchronization index with global marked queue
+  size_t failed_sync_attempts = 0;    // Failed attempts to synchronize marked clauses
+  size_t glb_marked_sync_idx = 0;     // Synchronization index with global marked queue
 
 
   size_t cnt_verified = 0; // Number of lemmas verified by this instance
@@ -1341,14 +1344,14 @@ private:
 
 
   // Relocate a clause pointer wrt old clause-db
-  void relocate(ClauseDB const *odb, lit_t * &cl) {if (cl) cl=db->p2c(odb->c2p(cl));}
+  void relocate(ClauseDB const *odb, lit_t * &cl) {if (cl) cl = db->p2c(odb->c2p(cl));}
   // Relocate all clause pointers in this data structure
   void relocate(ClauseDB const *odb);
 
 
   inline void reset_true(lit_t l) {
     assert(is_true(l));
-    assignment[l]=0;
+    assignment[l] = 0;
   }
 
 
@@ -1389,7 +1392,7 @@ public:
    * @see @ref Object_Lifetimes
    */
   void init_after_parsing(Synch_Data *_sdata) {
-    sdata=_sdata;
+    sdata = _sdata;
     assignment.resize_reset(glb.get_max_var());
     vtpos.resize(glb.get_max_var()+1);
     if (cfg_core_first) core_watchlists.resize_reset(glb.get_max_var());
@@ -1443,9 +1446,9 @@ public:
     new_core = vrf.new_core;
 
     marked_outgoing.clear();
-    glb_marked_sync_idx=vrf.glb_marked_sync_idx;
+    glb_marked_sync_idx = vrf.glb_marked_sync_idx;
 
-    rat_candidates=vrf.rat_candidates;
+    rat_candidates = vrf.rat_candidates;
     rat_lit = vrf.rat_lit;
 
     relocate(vrf.db);
@@ -1645,8 +1648,8 @@ private:
 
     bool marked = sdata->is_marked(cl);
 
-    lit_t w1=cl[0]; assert(w1 != 0);
-    lit_t w2=cl[1]; assert(w2 != 0);
+    lit_t w1 = cl[0]; assert(w1 != 0);
+    lit_t w2 = cl[1]; assert(w2 != 0);
 
     if (marked || cst.is_core()) { // Make sure that local core clauses are added to core wl
       if (cfg_core_first) {
@@ -1669,7 +1672,7 @@ private:
      * RAT-runs did not exceed over deletion items (which cause adding of clauses).
      * Thus, we immediately invalidate the RAT run heuristics if a new lemma is added.
      */
-    if (rat_lit!=0 && cfg_rat_run_heuristics) {
+    if (rat_lit != 0 && cfg_rat_run_heuristics) {
       clear_rat_runs();
     }
 
@@ -1687,7 +1690,7 @@ private:
    * @param to_outgoing If set, the clause is also added to outgoing marked queue.
    *      If, however, this clause has been synched from global marked queue, tere is no point re-adding it to local queue, and this should be clear.
    */
-  inline void move_to_core(lit_t *cl, bool to_outgoing=true) {
+  inline void move_to_core(lit_t *cl, bool to_outgoing = true) {
     auto id = clid(cl);
     auto &cst = wl_clause_state[id];
 
@@ -1705,8 +1708,8 @@ private:
     if (!cfg_core_first) return; // If core-first mode is not enabled, we do not maintain core-watchlists
 
     // Only add clause if it is not deleted, in a watchlist, and not already in core watchlists
-    lit_t w1=cl[0]; assert(w1 != 0);
-    lit_t w2=cl[1]; assert(w2 != 0);
+    lit_t w1 = cl[0]; assert(w1 != 0);
+    lit_t w2 = cl[1]; assert(w2 != 0);
 
     // Remove from noncore watchlists
     bool d1 = del_from_list(noncore_watchlists[w1],cl);
@@ -1745,12 +1748,12 @@ void Verifier::relocate(ClauseDB const *odb) {
   }
 
   if (cfg_core_first) {
-    for (lit_t l=core_watchlists.lbegin();l<core_watchlists.lend();++l) {
+    for (lit_t l = core_watchlists.lbegin(); l<core_watchlists.lend(); ++l) {
       for (auto &cl : core_watchlists[l]) relocate(odb,cl);
     }
   }
 
-  for (lit_t l=noncore_watchlists.lbegin();l<noncore_watchlists.lend();++l) {
+  for (lit_t l = noncore_watchlists.lbegin(); l<noncore_watchlists.lend(); ++l) {
     for (auto &cl : noncore_watchlists[l]) relocate(odb,cl);
   }
 
@@ -1762,12 +1765,12 @@ void Verifier::relocate(ClauseDB const *odb) {
 
 Verifier::acres_t Verifier::add_clause(lit_t *cl) {
   // Search for watched literals
-  lit_t *w1=nullptr, *w2=nullptr;
+  lit_t *w1 = nullptr, *w2 = nullptr;
 
   for (lit_t *l = cl; *l; ++l) {
     if (is_true(*l)) return acres_t::TAUT; // Ignoring tautology.
     if (!is_false(*l)) {
-      if (!w1) w1=l; else if (!w2 && *l!=*w1) w2=l;
+      if (!w1) w1 = l; else if (!w2 && *l!=*w1) w2 = l;
     }
   }
 
@@ -1778,7 +1781,7 @@ Verifier::acres_t Verifier::add_clause(lit_t *cl) {
     return acres_t::UNIT;
   } else { // >1 undec
     assert(w1<w2);    // Implies that double-swapping below is correct
-    swap(cl[0],*w1); swap(cl[1],*w2); w1=nullptr; w2=nullptr;
+    swap(cl[0],*w1); swap(cl[1],*w2); w1 = nullptr; w2 = nullptr;
 
     add_to_wl(cl);
 
@@ -1792,8 +1795,8 @@ bool Verifier::rem_clause(lit_t *cl) {
 
   if (!cst.is_inwl()) return false;
 
-  lit_t w1=cl[0]; assert(w1 != 0);
-  lit_t w2=cl[1]; assert(w2 != 0);
+  lit_t w1 = cl[0]; assert(w1 != 0);
+  lit_t w2 = cl[1]; assert(w2 != 0);
 
 
   if (cfg_core_first && cst.is_core()) {
@@ -1819,13 +1822,13 @@ void Verifier::readd_clause(lit_t *cl) {
 
 
 void Verifier::rollback(size_t pos) {
-  for (size_t i=pos;i<trail.size();++i) reset_true(trail[i].l);
+  for (size_t i = pos; i<trail.size(); ++i) reset_true(trail[i].l);
   trail.resize(pos);
-  if (processed>trail.size()) processed=trail.size();
+  if (processed>trail.size()) processed = trail.size();
 }
 
 template<typename T> void Verifier::for_marked_from(size_t pos, T const &ucr) {
-  for (size_t i=pos;i<trail.size();++i) {
+  for (size_t i = pos; i<trail.size(); ++i) {
     if (trail[i].vmarked && trail[i].reason) ucr(trail[i].reason);
   }
 }
@@ -1836,9 +1839,9 @@ inline void Verifier::mark_var(size_t v) {
   size_t pos = vtpos[v];
 
   if (!trail[pos].vmarked) {
-    trail[pos].vmarked=true;
+    trail[pos].vmarked = true;
 
-    if (pos < fwd_trail_size) fwd_vmarked[pos]=true; // If this position is on current forward trail, also flag as marked there
+    if (pos < fwd_trail_size) fwd_vmarked[pos] = true; // If this position is on current forward trail, also flag as marked there
 
     if (trail[pos].reason) mark_clause(trail[pos].reason);
   }
@@ -1847,7 +1850,7 @@ inline void Verifier::mark_var(size_t v) {
 void Verifier::mark_clause(lit_t *cl) {
   move_to_core(cl);
 
-  for (auto l=cl;*l;++l) {
+  for (auto l = cl; *l; ++l) {
     mark_var(var_of(*l));
   }
 }
@@ -1902,7 +1905,7 @@ template<bool cf_enabled> lit_t *Verifier::propagate_units_aux() {
 
       if (cf_processed == trail.size()) {
         // If processed whole trail for cf, switch back to non-cf
-        cf_mode=false;
+        cf_mode = false;
         continue;
       }
 
@@ -1914,14 +1917,14 @@ template<bool cf_enabled> lit_t *Verifier::propagate_units_aux() {
       auto &__restrict__ watchlist = core_watchlists[l];
 
 
-      for (size_t i=0;i<watchlist.size();++i) {
+      for (size_t i = 0; i<watchlist.size(); ++i) {
 
         lit_t *cl = watchlist[i];
 
         assert(wl_clause_state[clid(cl)].is_core());  // Core watchlist will only contain core clauses
         assert(wl_clause_state[clid(cl)].is_inwl());  // Core watchlist must not contain deleted clauses
 
-        DBG_STAT(dbg_stat_uprop_c2++;);
+        DBG_STAT(dbg_stat_uprop_c2++; );
 
 
         lit_t w1 = cl[0];
@@ -1935,9 +1938,9 @@ template<bool cf_enabled> lit_t *Verifier::propagate_units_aux() {
         }
 
 
-        if (w1==l) {                    // Normalize on w2 being set literal
+        if (w1 == l) {                    // Normalize on w2 being set literal
           cl[0] = w2;                   // First part of swapping cl[0] and cl[1]. Second part is deferred, to summarize with swap in found-new-watched case
-          w1=w2; w2=l;
+          w1 = w2; w2 = l;
         }
         assert(w2 == l);
         assert(is_false(w2));
@@ -1946,9 +1949,9 @@ template<bool cf_enabled> lit_t *Verifier::propagate_units_aux() {
         // Scan through clause and try to find new watched literal
         // Assuming that clauses do not contain dup literals, we can take first non-false literal from cl+2 onwards
         lit_t *w = nullptr;
-        for (lit_t *ll=cl+2;*ll;++ll) {
-          assert(*ll!=w1 && *ll!=w2);
-          if (!is_false(*ll)) {w=ll; break;}
+        for (lit_t *ll = cl+2; *ll; ++ll) {
+          assert(*ll != w1 && *ll != w2);
+          if (!is_false(*ll)) {w = ll; break;}
         }
 
         if (w) { // Found new watchable literal
@@ -1995,20 +1998,20 @@ template<bool cf_enabled> lit_t *Verifier::propagate_units_aux() {
 
       // Precise positioning of noncore propagation continuation index
       size_t i = ncf_ctd_i;
-      ncf_ctd_i=0;
+      ncf_ctd_i = 0;
 
-      for (;i<watchlist.size();++i) {
+      for (; i<watchlist.size(); ++i) {
         lit_t *cl = watchlist[i];
 
         assert(!cfg_core_first || !wl_clause_state[clid(cl)].is_core());  // Noncore watchlist will only contain non-core clauses (if cf enabled. Otherwise, core-wl contains all clauses)
         assert(wl_clause_state[clid(cl)].is_inwl());  // Noncore watchlist must not contain deleted clauses
 
 
-        DBG_STAT(dbg_stat_uprop_c1++;);
+        DBG_STAT(dbg_stat_uprop_c1++; );
 
 //           if (sdata->is_marked(cl)) {
 //             register_new_core(cl);
-//             DBG_STAT(dbg_stat_uprop_c1++;);
+//             DBG_STAT(dbg_stat_uprop_c1++; );
 //           }
 
         lit_t w1 = cl[0];
@@ -2021,9 +2024,9 @@ template<bool cf_enabled> lit_t *Verifier::propagate_units_aux() {
         }
 
 
-        if (w1==l) {                    // Normalize on w2 being set literal
+        if (w1 == l) {                    // Normalize on w2 being set literal
           cl[0] = w2;                   // First part of swapping cl[0] and cl[1]. Second part is deferred, to summarize with swap in found-new-watched case
-          w1=w2; w2=l;
+          w1 = w2; w2 = l;
         }
         assert(w2 == l);
         assert(is_false(w2));
@@ -2032,9 +2035,9 @@ template<bool cf_enabled> lit_t *Verifier::propagate_units_aux() {
         // Scan through clause and try to find new watched literal
         // Assuming that clauses do not contain dup literals, we can take first non-false literal from cl+2 onwards
         lit_t *w = nullptr;
-        for (lit_t *ll=cl+2;*ll;++ll) {
-          assert(*ll!=w1 && *ll!=w2);
-          if (!is_false(*ll)) {w=ll; break;}
+        for (lit_t *ll = cl+2; *ll; ++ll) {
+          assert(*ll != w1 && *ll != w2);
+          if (!is_false(*ll)) {w = ll; break;}
         }
 
 
@@ -2065,7 +2068,7 @@ template<bool cf_enabled> lit_t *Verifier::propagate_units_aux() {
 
           if (cf_enabled) {              // If we find a unit in non-cf_mode, switch back to cf-mode
             --processed; ncf_ctd_i = i+1;       // Store exact position where non-cf processing stopped
-            cf_mode=true;
+            cf_mode = true;
             break;
           }
 
@@ -2114,7 +2117,7 @@ template<bool cf_enabled> lit_t *Verifier::propagate_units_aux() {
 void Verifier::get_rat_candidates(lit_t pivot) {
   // Gather RAT candidates
 
-  assert(pivot !=0 );
+  assert(pivot != 0 );
   pivot=-pivot;
 
 
@@ -2124,10 +2127,10 @@ void Verifier::get_rat_candidates(lit_t pivot) {
     ++stat_rat_run_h;
 
     // Filter out deleted clauses from last candidates
-    for (size_t i=0;i<rat_candidates.size();++i) {
+    for (size_t i = 0; i<rat_candidates.size(); ++i) {
       lit_t *cl = rat_candidates[i];
       if (!wl_clause_state[clid(cl)].is_inwl()) {
-        rat_candidates[i]=rat_candidates.back();
+        rat_candidates[i] = rat_candidates.back();
         rat_candidates.pop_back();
         --i;
       }
@@ -2137,18 +2140,18 @@ void Verifier::get_rat_candidates(lit_t pivot) {
     // Search for candidates in watchlists
 
     rat_candidates.clear();
-    if (cfg_rat_run_heuristics) rat_lit=pivot; else rat_lit=0;
+    if (cfg_rat_run_heuristics) rat_lit = pivot; else rat_lit = 0;
 
     auto collect = [pivot, this](vector<lit_t*>& watchlist, lit_t l) {
       auto end = watchlist.end();
 
-      for (auto it = watchlist.begin();it!=end; ++it) {
+      for (auto it = watchlist.begin(); it != end; ++it) {
         lit_t *cl = *it;
 
         assert(wl_clause_state[clid(cl)].is_inwl()); // Watchlists must not contain deleted clauses
 
         if (cl[0] == l) {
-          for (lit_t *ll=cl; *ll; ++ll) {
+          for (lit_t *ll = cl; *ll; ++ll) {
             if (*ll == pivot) {
               rat_candidates.push_back(cl);
               break;
@@ -2159,16 +2162,16 @@ void Verifier::get_rat_candidates(lit_t pivot) {
     };
 
 
-    lit_t lmin=-static_cast<lit_t>(glb.get_max_var());
-    lit_t lmax=static_cast<lit_t>(glb.get_max_var());
+    lit_t lmin =-static_cast<lit_t>(glb.get_max_var());
+    lit_t lmax = static_cast<lit_t>(glb.get_max_var());
 
     if (cfg_core_first) {
-      for (lit_t l = lmin;l<=lmax;++l) {
+      for (lit_t l = lmin; l <= lmax; ++l) {
         collect(noncore_watchlists[l],l);
         collect(core_watchlists[l],l);
       }
     } else {
-      for (lit_t l = lmin;l<=lmax;++l) {
+      for (lit_t l = lmin; l <= lmax; ++l) {
         collect(noncore_watchlists[l],l);
       }
     }
@@ -2187,7 +2190,7 @@ struct push_clause_ids {
   push_clause_ids(vector<lit_t> &_prf) : prf(_prf) {};
 
   /// Append an ID
-  void operator () (lit_t *cl) const { prf.push_back(static_cast<lit_t>( clid(cl))); }
+  void operator () (lit_t *cl) const { prf.push_back(static_cast<lit_t>( clid(cl)));}
 };
 
 
@@ -2199,7 +2202,7 @@ void Verifier::verify(lit_t *cl) {
 
   size_t orig_pos = trail_pos();
   lit_t pivot = glb.get_pivot(cl);
-  bool pivot_false = (pivot!=0) && is_false(pivot);
+  bool pivot_false = (pivot != 0) && is_false(pivot);
 
   // Set current size of forward trail. Subsequent clause marking will remember markings set on current forward trail.
   fwd_trail_size = orig_pos;
@@ -2241,13 +2244,13 @@ void Verifier::verify(lit_t *cl) {
 
     for (auto ccl : rat_candidates) {
       // Falsify literals and check blocked
-      bool blocked=false;
-      for (lit_t *l = ccl;*l;++l) {
+      bool blocked = false;
+      for (lit_t *l = ccl; *l; ++l) {
         if (*l == -pivot) continue;
         if (is_true(*l)) {
           mark_var(var_of(*l));  // Mark clauses that caused this clause to be blocked
           rollback(rat_pos);
-          blocked=true;
+          blocked = true;
           break;
         } else {
           if (!is_false(*l)) assign_true(-(*l),nullptr);
@@ -2291,7 +2294,7 @@ void Verifier::verify(lit_t *cl) {
 
 pos_t Verifier::fwd_pass_aux() {
   // Add clauses of formula
-  for (size_t i=0;i<glb.get_fst_prf_item();++i) {
+  for (size_t i = 0; i<glb.get_fst_prf_item(); ++i) {
     item_t &item = glb.get_item(i);
     if (!item.is_erased()) {
       lit_t *cl = db->p2c(item.get_pos());
@@ -2316,7 +2319,7 @@ pos_t Verifier::fwd_pass_aux() {
   }
 
   // Add lemmas
-  for (size_t i=glb.get_fst_prf_item();i<glb.get_num_items();++i) {
+  for (size_t i = glb.get_fst_prf_item(); i<glb.get_num_items(); ++i) {
     item_t &item = glb.get_item(i);
     if (!item.is_erased()) {
       lit_t *cl = db->p2c(item.get_pos());
@@ -2370,8 +2373,8 @@ pos_t Verifier::fwd_pass() {
   if (cfg_premark_formula) {
     clog<<"c pre-marking formula"<<endl;
 
-    for (size_t i=0;i<glb.get_fst_prf_item();++i) {
-      item_t &it=glb.get_item(i);
+    for (size_t i = 0; i<glb.get_fst_prf_item(); ++i) {
+      item_t &it = glb.get_item(i);
       if (!it.is_erased()) {
         assert(!it.is_deletion());
         lit_t *cl = db->p2c(it.get_pos());
@@ -2393,10 +2396,10 @@ void Verifier::bwd_pass(bool show_status_bar) {
   size_t cycles_not_synched = 0;
 
   size_t outgoing_threshold = 0;
-//   if (outgoing_threshold<100) outgoing_threshold=100;
+//   if (outgoing_threshold<100) outgoing_threshold = 100;
 
   size_t cycles_threshold = 0;
-//   if (cycles_threshold<100) cycles_threshold=100;
+//   if (cycles_threshold<100) cycles_threshold = 100;
 
 
   size_t range_detect_max = 512; // Maximum equal-pivot range to acquire simultaneously
@@ -2437,15 +2440,15 @@ void Verifier::bwd_pass(bool show_status_bar) {
           assert(i>range_end_idx);
           assert(wl_clause_state[clid(cl)].is_core());
           range_acquired.pop_front();
-          do_verify=true;
+          do_verify = true;
         } else if (wl_clause_state[clid(cl)].is_core()) {
           if (sdata->acquire(cl)) {
-            do_verify=true;
+            do_verify = true;
 
             // Range heuristics
             if (!cfg_single_threaded && cfg_rat_run_heuristics && i <= range_end_idx) {
               assert(range_acquired.empty());
-              range_end_idx=i;
+              range_end_idx = i;
 
               lit_t pivot = glb.get_pivot(cl);
 
@@ -2482,7 +2485,7 @@ void Verifier::bwd_pass(bool show_status_bar) {
           // Commit newly marked info to global
           if (!cfg_single_threaded) {
             if (marked_outgoing.size() > outgoing_threshold || ++cycles_not_synched>cycles_threshold) {
-              if (sync_marked(false)) cycles_not_synched=0;
+              if (sync_marked(false)) cycles_not_synched = 0;
             }
           }
         }
@@ -2617,9 +2620,9 @@ void VController::do_parallel_bwd(size_t num_threads) {
 
   vector<thread> aux_threads;
 
-  for (size_t i=0;i<num_threads-1;++i) {
+  for (size_t i = 0; i<num_threads-1; ++i) {
     Verifier *vrf = &aux_vrfs[i];
-    aux_threads.push_back(thread([vrf, num_threads] () { vrf->bwd_pass(false); }));
+    aux_threads.push_back(thread([vrf, num_threads] () { vrf->bwd_pass(false);}));
   }
 
   main_vrf.bwd_pass(cfg_show_progress_bar);
@@ -2628,7 +2631,7 @@ void VController::do_parallel_bwd(size_t num_threads) {
   clog<<"done"<<endl;
 
   // Synchronize vmarked on forward trail, and clause marking information.
-  for (size_t i=0; i<num_threads-1;++i) {
+  for (size_t i = 0; i<num_threads-1; ++i) {
     glb.join_vmarked(aux_vrfs[i].get_fwd_vmarked());
     if (!cfg_single_threaded) aux_vrfs[i].sync_marked(true);
   }
@@ -2645,17 +2648,17 @@ void VController::do_parallel_bwd(size_t num_threads) {
 
     clog<<main_vrf.get_cnt_verified()<<" ";
 
-    for (size_t i=0; i<num_threads-1;++i) {
+    for (size_t i = 0; i<num_threads-1; ++i) {
       size_t cv = aux_vrfs[i].get_cnt_verified();
 
-      mean+=cv;
+      mean += cv;
       clog<<cv<<" ";
     }
 
-    mean=mean / num_threads;
+    mean = mean / num_threads;
 
     double sumsq = abs(main_vrf.get_cnt_verified() - mean) / mean;
-    for (size_t i=0; i<num_threads-1;++i) {
+    for (size_t i = 0; i<num_threads-1; ++i) {
       size_t cv = aux_vrfs[i].get_cnt_verified();
       sumsq += abs(cv - mean) / mean;
     }
@@ -2667,7 +2670,7 @@ void VController::do_parallel_bwd(size_t num_threads) {
 
 
 void VController::do_verification(size_t num_threads) {
-  sdata=new Synch_Data(); // FIXME: Memory leak?
+  sdata = new Synch_Data(); // FIXME: Memory leak?
   main_vrf.init_after_parsing(sdata);
 
   pos_t cpos = with_timing<pos_t>("Forward pass",[&] {return main_vrf.fwd_pass();});
@@ -2678,7 +2681,7 @@ void VController::do_verification(size_t num_threads) {
 #ifdef WITH_PROFILING
     ProfilerStart("/tmp/gratgen.prof");
 #endif
-    with_timing_ml("Backward pass",[&] {do_parallel_bwd(num_threads);},&stat_bwd_checking_time);
+    with_timing_void_ml("Backward pass",[&] {do_parallel_bwd(num_threads);},&stat_bwd_checking_time);
 #ifdef WITH_PROFILING
     ProfilerStop();
 #endif
@@ -2738,7 +2741,7 @@ private:
   inline void write_out() {
     if (binary) {
       // Write in reverse
-      size_t i=data.size();
+      size_t i = data.size();
 
       while (i) {
         --i;
@@ -2769,9 +2772,9 @@ public:
    * Write deletion. Summarizes adjacent deletions.
    */
   void write_del(size_t id) {
-    if (ty!=item_type::DELETION) {
+    if (ty != item_type::DELETION) {
       close_current();
-      ty=item_type::DELETION;
+      ty = item_type::DELETION;
     }
     write_id(id);
   }
@@ -2780,9 +2783,9 @@ public:
    * Write unit propagation. Summarizes adjacent unit propagations.
    */
   void write_uprop(size_t id) {
-    if (ty!=item_type::UNIT_PROP) {
+    if (ty != item_type::UNIT_PROP) {
       close_current();
-      ty=item_type::UNIT_PROP;
+      ty = item_type::UNIT_PROP;
     }
     write_id(id);
   }
@@ -2793,7 +2796,7 @@ public:
    */
   void start_ty(item_type _ty) {
     close_current();
-    ty=_ty;
+    ty = _ty;
   }
 
   /**
@@ -2843,7 +2846,7 @@ template<bool include_lemmas, bool binary> void VController::dump_proof_aux(ostr
           size_t ntri = item.get_trpos();
           assert(ntri < tri);
 
-          for (size_t j=ntri;j<tri;++j) {
+          for (size_t j = ntri; j<tri; ++j) {
             auto &tritem = glb.get_fwd_trail()[j];
             if (tritem.second) {
               prw.write_uprop(tritem.first);
@@ -2854,7 +2857,7 @@ template<bool include_lemmas, bool binary> void VController::dump_proof_aux(ostr
 
         if (sdata->is_marked(cl)) {
           // Dump proof
-          size_t j=0;
+          size_t j = 0;
 
           vector<cdb_t> &prf = sdata->proof_of(cl);
           assert(prf.size() > 0);
@@ -2878,12 +2881,12 @@ template<bool include_lemmas, bool binary> void VController::dump_proof_aux(ostr
 
           if (include_lemmas) {
             // Dump clause
-            for (lit_t *l = cl;*l;++l) {prw.write_lit(*l);}
+            for (lit_t *l = cl; *l; ++l) {prw.write_lit(*l);}
             prw.write_Z();
           }
 
           // Dump remaining proof
-          for (;j<prf.size();++j) {prw.write_id(prf[j]); }
+          for (; j<prf.size(); ++j) {prw.write_id(prf[j]);}
         }
       }
     }
@@ -2892,7 +2895,7 @@ template<bool include_lemmas, bool binary> void VController::dump_proof_aux(ostr
 
   // Initial unit propagations. TODO: Redundant, outsource to dump_unit_props(start,end) function.
   {
-    for (size_t j=0;j<tri;++j) {
+    for (size_t j = 0; j<tri; ++j) {
       size_t id = glb.get_fwd_trail()[j].first;
       bool vmarked = glb.get_fwd_trail()[j].second;
 
@@ -2908,7 +2911,7 @@ template<bool include_lemmas, bool binary> void VController::dump_proof_aux(ostr
 
   auto &rc = sdata->get_rat_counts();
 
-  for (lit_t l=rc.lbegin(); l<rc.lend();++l) {
+  for (lit_t l = rc.lbegin(); l<rc.lend(); ++l) {
     size_t c = rc[l];
     if (c) {
       prw.write_lit(l); prw.write_cnt(c);
@@ -2920,7 +2923,7 @@ template<bool include_lemmas, bool binary> void VController::dump_proof_aux(ostr
 
 
 void VController::dump_lemmas(ostream &out) {
-  for (size_t i=glb.get_fst_prf_item();i<glb.get_num_items();++i) {
+  for (size_t i = glb.get_fst_prf_item(); i<glb.get_num_items(); ++i) {
     item_t &item = glb.get_item(i);
 
     if (!item.is_erased()) {
@@ -2930,7 +2933,7 @@ void VController::dump_lemmas(ostream &out) {
         // Dump clause
         //out<<"c id "<<clid(cl)<<endl; // TODO/FIXME: For debugging only
 
-        for (lit_t *l = cl;*l;++l) {out<<*l<<" "; }
+        for (lit_t *l = cl; *l; ++l) {out<<*l<<" ";}
         out<<"0"<<endl;
       }
     }
@@ -2996,12 +2999,12 @@ int main(int argc, char **argv) {
 
   string dimacs_file = argv[1];
   string proof_file = argv[2];
-  string grat_file=""; cfg_no_grat=true;
+  string grat_file=""; cfg_no_grat = true;
   string lemmas_file="";
 
   size_t num_parallel = 1; //thread::hardware_concurrency();
 
-  for (int i=3;i<argc;++i) {
+  for (int i = 3; i<argc; ++i) {
     string a = argv[i];
 
     if (a=="-u" || a=="--no-core-first") cfg_core_first = false;
@@ -3013,22 +3016,22 @@ int main(int argc, char **argv) {
     else if (           a=="--no-premark-formula") cfg_premark_formula = false;
     else if (           a=="--no-rat-run-h") cfg_rat_run_heuristics = false;
     else if (a=="-j" || a=="--num_parallel") {
-      ++i; if (i>=argc) {cerr<<"Expecting argument for "<<a<<endl; fail();}
+      ++i; if (i >= argc) {cerr<<"Expecting argument for "<<a<<endl; fail();}
       num_parallel = stoul(argv[i]);
       if (!num_parallel) {cerr<<"Invalid number of parallel threads "<<num_parallel<<endl; fail();}
     } else if (a=="-o") {
-      ++i; if (i>=argc) {cerr<<"Expecting argument for -o"<<endl; fail();}
-      grat_file=argv[i];
-      cfg_no_grat=false;
+      ++i; if (i >= argc) {cerr<<"Expecting argument for -o"<<endl; fail();}
+      grat_file = argv[i];
+      cfg_no_grat = false;
     } else if (a=="-l") {
-      ++i; if (i>=argc) {cerr<<"Expecting argument for -l"<<endl; fail();}
-      lemmas_file=argv[i];
+      ++i; if (i >= argc) {cerr<<"Expecting argument for -l"<<endl; fail();}
+      lemmas_file = argv[i];
     } else {
       cerr<<"Unknown command line argument: "<<a<<endl; fail();
     }
   }
 
-  cfg_single_threaded = (num_parallel==1);
+  cfg_single_threaded = (num_parallel == 1);
 
 
   ofstream grat_out;
@@ -3065,13 +3068,13 @@ int main(int argc, char **argv) {
     Parser parser;
     auto parsing_start_time = chrono::steady_clock::now();
 
-    with_timing("Parsing formula",[&] () {
+    with_timing_void("Parsing formula",[&] () {
       ifstream fs(dimacs_file,ifstream::in);
       parser.parse_dimacs(fs);
       fs.close();
     });
 
-    with_timing("Parsing proof",[&] () {
+    with_timing_void("Parsing proof",[&] () {
       ifstream fs(proof_file,ifstream::in);
       parser.parse_proof(fs);
       fs.close();
@@ -3091,10 +3094,10 @@ int main(int argc, char **argv) {
   if (!cfg_no_grat) {
     if (split_proof_mode) {
       // Write lemmas and proof file
-      with_timing("Writing split lemmas and proof",[&] () {vctl.dump_split_proof(lemmas_out, grat_out); lemmas_out.close(); grat_out.close(); },&stat_writing_time);
+      with_timing_void("Writing split lemmas and proof",[&] () {vctl.dump_split_proof(lemmas_out, grat_out); lemmas_out.close(); grat_out.close();},&stat_writing_time);
     } else {
       // Write proof file
-      with_timing("Writing combined proof",[&] () {vctl.dump_proof(grat_out); grat_out.close();},&stat_writing_time);
+      with_timing_void("Writing combined proof",[&] () {vctl.dump_proof(grat_out); grat_out.close();},&stat_writing_time);
     }
   }
 
