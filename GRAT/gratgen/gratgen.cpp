@@ -532,6 +532,41 @@ public:
 
 };
 
+class Clause {
+private:
+  const static size_t num_members = 2;
+  clause_id_t clause_id;
+  clause_id_t id_in_proof;
+  lit_t literals[];
+
+  Clause(clause_id_t id)
+    : clause_id(id), id_in_proof(0) {}
+
+public:
+  /// Construct a new clause on the DB vector
+  static Clause& new_clause(vector<cdb_t> &db, clause_id_t id) {
+    assert(num_members*sizeof(cdb_t) == sizeof(Clause));
+
+    // Make room for the new clause
+    db.resize(db.size()+num_members);
+    void* new_home = &db.data()[db.size()-num_members];
+
+    // and construct it at its 'new home' at the end of the vector using the 'placement new' operator
+    return *(new (new_home) Clause(id));
+  }
+
+  // disallow copying
+  Clause& operator=(const Clause&) = delete;
+  Clause(const Clause&) = delete;
+
+  void set_id_in_proof(clause_id_t id) {id_in_proof = id;}
+  clause_id_t get_id_in_proof() {return id_in_proof;}
+
+  void append_literal(vector<cdb_t> &db, lit_t lit) {
+    db.push_back(lit);
+  }
+};
+
 
 /**
  * Stores the clauses and the certificate as an array of cdb_t items.
@@ -1137,13 +1172,19 @@ public:
     return mark_clause(cl);
   }
 
+  /// Set proof for clause
+  inline void set_proof_of(lit_t *cl, Lemma_Proof *proof) {
+    auto cl_id = clause_id(cl);
+    assert(proofs[cl_id] == nullptr);
+    proofs[cl_id] = proof;
+  }
 
-  /// Return reference to proof of clause.
-  inline Lemma_Proof **proof_of(lit_t *cl) {return &proofs[clause_id(cl)];}
+  /// Return pointer to proof of clause.
+  inline Lemma_Proof *get_proof_of(lit_t *cl) {return proofs[clause_id(cl)];}
 
-  /// Get the ID the lemma got in the GRAT proof (might be different than the ID in the DRAT proof)
+  /// Get the ID the lemma got in the GRAT proof (possibly different from ID in DRAT proof)
   inline clause_id_t get_id_in_proof(lit_t *cl) {
-    auto proof = *proof_of(cl);
+    auto proof = get_proof_of(cl);
     assert(proof != nullptr);
 
     return proof->get_lemma_id();
@@ -2400,8 +2441,6 @@ void Verifier::get_rat_candidates(lit_t pivot) {
 void Verifier::verify(lit_t *cl) {
   ++cnt_verified;
 
-  Lemma_Proof **prf = sdata->proof_of(cl);
-
   clause_id_t cl_id = clause_id(cl);
   size_t orig_pos = trail_pos();
   lit_t pivot = glb.get_pivot(cl);
@@ -2423,9 +2462,9 @@ void Verifier::verify(lit_t *cl) {
     ++stat_rup_lemmas;
     mark_clause(conflict);
     if (!cfg_no_grat) {
-      *prf = new RUP_Proof(cl, cl_id,
+      sdata->set_proof_of(cl, new RUP_Proof(cl, cl_id,
         clause_id(conflict),
-        collect_marked_from(orig_pos));
+        collect_marked_from(orig_pos)));
     }
     rollback(orig_pos);
   } else {
@@ -2477,10 +2516,10 @@ void Verifier::verify(lit_t *cl) {
     ++stat_rat_lemmas;
 
     if (!cfg_no_grat) {
-      *prf = new RAT_Proof(
+      sdata->set_proof_of(cl, new RAT_Proof(
         cl, cl_id, pivot,
         collect_marked_from(orig_pos),
-        move(candidate_proofs));
+        move(candidate_proofs)));
     }
     rollback(orig_pos);
   }
@@ -2934,7 +2973,7 @@ template<bool include_lemmas, bool binary> void VController::dump_proof_aux(ostr
           // Dump proof
           size_t j = 0;
 
-          Lemma_Proof *prf = *sdata->proof_of(cl);
+          Lemma_Proof *prf = sdata->get_proof_of(cl);
           assert(prf != nullptr);
 
           prf->write(prw, include_lemmas);
