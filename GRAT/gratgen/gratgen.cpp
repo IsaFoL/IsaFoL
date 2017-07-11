@@ -843,12 +843,26 @@ class Lemma_Proof {
 public:
   // Writes out the proof object using the specified writer, optionally including the lemma itself
   virtual void write(Proof_Writer&, bool include_lemma) = 0;
+
+  clause_id_t get_lemma_id() {return lemma_id;}
+
+protected:
+  Lemma_Proof(lit_t* _lemma, clause_id_t _lemma_id)
+    : lemma(_lemma), lemma_id(_lemma_id) {}
+
+  lit_t* lemma;
+  clause_id_t lemma_id;
 };
 
 class RUP_Proof : public Lemma_Proof {
 public:
-  RUP_Proof(lit_t* _lemma, clause_id_t _lemma_id, clause_id_t _conflict_id, vector<clause_id_t> &&_unit_clauses)
-    : lemma(_lemma), lemma_id(_lemma_id), conflict_id(_conflict_id), unit_clauses(_unit_clauses) {}
+  RUP_Proof(lit_t* _lemma
+      , clause_id_t _lemma_id
+      , clause_id_t _conflict_id
+      , vector<clause_id_t> &&_unit_clauses)
+    : Lemma_Proof(_lemma, _lemma_id)
+    , conflict_id(_conflict_id)
+    , unit_clauses(_unit_clauses) {}
 
   void write(Proof_Writer& writer, bool include_lemma) {
     writer.start_ty(item_type::RUP_LEMMA);
@@ -866,15 +880,21 @@ public:
     writer.write_id(conflict_id);
   }
 private:
-  lit_t* lemma;
-  clause_id_t lemma_id, conflict_id;
+  clause_id_t conflict_id;
   vector<clause_id_t> unit_clauses;
 };
 
 class RAT_Proof : public Lemma_Proof {
 public:
-  RAT_Proof(lit_t* _lemma, clause_id_t _lemma_id, lit_t _pivot, vector<clause_id_t> &&_initial_units, vector<RUP_Proof> &&_cand_proofs)
-    : lemma(_lemma), lemma_id(_lemma_id), pivot(_pivot), initial_units(_initial_units), candidate_proofs(_cand_proofs) {}
+  RAT_Proof(lit_t* _lemma
+      , clause_id_t _lemma_id
+      , lit_t _pivot
+      , vector<clause_id_t> &&_initial_units
+      , vector<RUP_Proof> &&_cand_proofs)
+    : Lemma_Proof(_lemma, _lemma_id)
+    , pivot(_pivot)
+    , initial_units(_initial_units)
+    , candidate_proofs(_cand_proofs) {}
 
   void write(Proof_Writer& writer, bool include_lemma) {
     writer.start_ty(item_type::RAT_LEMMA);
@@ -890,13 +910,11 @@ public:
     for (auto clause_id : initial_units)
       writer.write_id(clause_id);
     writer.write_Z();
-    for (auto cand_proof : candidate_proofs)
+    for (auto &cand_proof : candidate_proofs)
       cand_proof.write(writer, false);
     writer.write_Z();
   }
 private:
-  lit_t* lemma;
-  clause_id_t lemma_id;
   lit_t pivot;
   vector<clause_id_t> initial_units;
   vector<RUP_Proof> candidate_proofs;
@@ -1057,6 +1075,7 @@ private:
 
   vector<Lemma_Proof*> proofs;   // Id -> Proof of this lemma (RUP or RAT proof). Synchronized by acquired.
 
+  atomic<clause_id_t> next_proof_lemma_id;
 
   pos_t *mark_queue;       // Global marked queue. Capacity must be big enough to hold every clause at most once.
   size_t mq_pos = 0;
@@ -1086,6 +1105,7 @@ public:
   , marked(glb.get_num_clauses()+1)
   , acquired(glb.get_num_clauses()+1)
   , proofs(glb.get_num_clauses()+1)
+  , next_proof_lemma_id(1)
   , mark_queue(cfg_single_threaded?nullptr : new pos_t[glb.get_num_clauses()])
   , mq_lock()
   {
@@ -1105,6 +1125,8 @@ public:
   inline bool is_marked(lit_t *cl) { return marked[clause_id(cl)].load(); }
   /// Try to acquire a clause
   inline bool acquire(lit_t *cl) { return !acquired[clause_id(cl)].test_and_set(memory_order_acquire); }
+  /// Get the next free lemma ID used in the proof
+  inline clause_id_t get_free_lemma_id() { return next_proof_lemma_id++; }
 
 
   /** Directly mark a single clause.
@@ -1118,6 +1140,14 @@ public:
 
   /// Return reference to proof of clause.
   inline Lemma_Proof **proof_of(lit_t *cl) {return &proofs[clause_id(cl)];}
+
+  /// Get the ID the lemma got in the GRAT proof (might be different than the ID in the DRAT proof)
+  inline clause_id_t get_id_in_proof(lit_t *cl) {
+    auto proof = *proof_of(cl);
+    assert(proof != nullptr);
+
+    return proof->get_lemma_id();
+  }
 
   /// Increment RAT-count for specified literal.
   inline void inc_rat_counts(lit_t l) { ++rat_counts[l]; }
@@ -2601,7 +2631,7 @@ void Verifier::bwd_pass(bool show_status_bar) {
         bool do_verify = false;
 
         if (!range_acquired.empty() && cl == range_acquired.front()) {
-          assert(i>range_end_idx);
+          assert(i > range_end_idx);
           assert(wl_clause_state[clause_id(cl)].is_core());
           range_acquired.pop_front();
           do_verify = true;

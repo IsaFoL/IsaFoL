@@ -1,0 +1,1 @@
+- Was, wenn cl nicht an erster Stelle in range_acquired?
