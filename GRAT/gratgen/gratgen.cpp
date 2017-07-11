@@ -246,8 +246,7 @@ template<typename RT, typename T> RT with_timing(string name, T op, chrono::mill
  * @param out Stream to print message to, clog by default
  */
 template<typename T> void with_timing_void(string name, T op, chrono::milliseconds *dp = nullptr, ostream &out = clog) {
-  auto wrapper = [op] {op(); return 0;};
-  with_timing<int, decltype(wrapper)>(name, wrapper, dp, out);
+  with_timing<int>(name, [op] {op(); return 0;}, dp, out);
 }
 
 /**
@@ -278,8 +277,7 @@ template<typename RT, typename T> RT with_timing_ml(string name, T op, chrono::m
  * @param out Stream to print message to, clog by default
  */
 template<typename T> void with_timing_void_ml(string name, T op, chrono::milliseconds *dp = nullptr, ostream &out = clog) {
-  auto wrapper = [op] {op(); return 0;};
-  with_timing_ml<int, decltype(wrapper)>(name, wrapper, dp, out);
+  with_timing_ml<int>(name, [op] {op(); return 0;}, dp, out);
 }
 
 
