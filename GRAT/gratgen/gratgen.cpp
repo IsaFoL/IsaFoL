@@ -448,6 +448,7 @@ enum item_type : cdb_t {
   RAT_COUNTS = 6    ///< Item to store RAT literal counts. Contains a list of pairs of literals and positive numbers: <code>(lit num)* 0</code>
 };
 
+class Clause;
 
 /**
  * An item on the trail.
@@ -456,7 +457,7 @@ struct trail_item_t {
   /// The literal.
   lit_t l;
   /// Clause due to which this literal was set. nullptr for assumed literals.
-  lit_t * reason;
+  Clause *reason;
   /// Marker flag used for collecting relevant clauses during conflict analysis.
   bool vmarked;
 };
@@ -532,20 +533,85 @@ public:
 
 };
 
+/*
+ * Encapsulates a clause in the clause-DB. This assumes that the vector stores its members contiguously
+ * and that there's no padding between the 4-byte members, which is reasonable
+ */
 class Clause {
+public:
+  /// Helper class encapsulating the literals, offering convenient iterators
+  class Literal_Container {
+    friend Clause;
+    unsigned_cdb_t length;
+    lit_t array[];
+  public:
+    Literal_Container() : length(0) {
+      static_assert(offsetof(Clause, literals) + offsetof(Literal_Container, array) == sizeof(Clause),
+        "Compiler didn't place literals at end of Clause class");
+    }
+
+    Literal_Container &operator=(const Literal_Container&) = delete;
+    Literal_Container(const Literal_Container&) = delete;
+
+    /// Iterator pointing to beginning of literals
+    lit_t* begin() {return array;}
+    const lit_t* cbegin() const {return array;}
+    /// Iterator pointing to end of literals (zero literal)
+    lit_t* end() {return &array[length];}
+    const lit_t* cend() const {return &array[length];}
+
+    lit_t &operator[](size_t idx) {return array[idx];}
+
+    void sort() {
+      assert(length > 0);
+      std::sort(begin(), end());
+    }
+
+    void uniquify(vector<cdb_t> &db) {
+      lit_t* real_end = end()+1; // include trailing zero
+      // only allow uniquifying after clause is 'finished', but still last elem in DB
+      assert(*end() == 0 && (&*db.end() == real_end));
+
+      // include trailing zero, which will still mark the end, because 'unique' is stable
+      auto new_length = distance(begin(), unique(begin(), real_end));
+      assert(new_length <= length);
+
+      auto delta = length - new_length;
+      if (delta > 0)
+        db.resize(db.size() - delta);
+      length = new_length;
+    }
+
+    void swap(size_t i1, size_t i2) {
+      lit_t tmp = array[i2];
+      array[i2] = array[i1];
+      array[i1] = tmp;
+    }
+
+    void swap(lit_t *l1, lit_t *l2) {
+      assert(l1 >= array && l1 < &array[length]);
+      assert(l2 >= array && l2 < &array[length]);
+
+      lit_t tmp = *l2;
+      *l2 = *l1;
+      *l1 = tmp;
+    }
+  };
 private:
-  const static size_t num_members = 2;
+  const static size_t num_members = 4;
   clause_id_t clause_id;
   clause_id_t id_in_proof;
-  lit_t literals[];
+  lit_t pivot;
+  Literal_Container literals;
 
   Clause(clause_id_t id)
-    : clause_id(id), id_in_proof(0) {}
+    : clause_id(id), id_in_proof(0), pivot(0), literals() {}
 
 public:
   /// Construct a new clause on the DB vector
   static Clause& new_clause(vector<cdb_t> &db, clause_id_t id) {
-    assert(num_members*sizeof(cdb_t) == sizeof(Clause));
+    static_assert(Clause::num_members*sizeof(cdb_t) == sizeof(Clause),
+      "Clause class has incorrect number of data-members");
 
     // Make room for the new clause
     db.resize(db.size()+num_members);
@@ -559,14 +625,55 @@ public:
   Clause& operator=(const Clause&) = delete;
   Clause(const Clause&) = delete;
 
+  pos_t get_pos_in_db(vector<cdb_t> &db) {
+    return pos_t(distance(db.data(), (cdb_t*)this));
+  }
+
+  clause_id_t get_clause_id() {return clause_id;}
+
   void set_id_in_proof(clause_id_t id) {id_in_proof = id;}
   clause_id_t get_id_in_proof() {return id_in_proof;}
 
+  Literal_Container &get_literals() {
+    return literals;
+  }
+  Literal_Container const &get_literals() const {
+    return literals;
+  }
+
+  size_t get_length() const {return literals.length;}
+
+  lit_t get_pivot() {
+    return pivot;
+  }
+
+  lit_t get_watched_lit1() {
+    assert(literals.length >= 2);
+    return literals[0];
+  }
+
+  lit_t get_watched_lit2() {
+    assert(literals.length >= 2);
+    return literals[1];
+  }
+
   void append_literal(vector<cdb_t> &db, lit_t lit) {
+    // only allow appending as long as this clause is the last element in the DB
+    assert(&*db.end() == literals.end());
+
+    if (!literals.length) {
+      assert(lit); // no empty clauses
+      pivot = lit;
+    } else {
+      // make sure no more literals follow, if we've already got the end-literal
+      assert(literals[literals.length] != 0);
+    }
+
     db.push_back(lit);
+    if (lit != 0) // don't count end-literal
+      literals.length++;
   }
 };
-
 
 /**
  * Stores the clauses and the certificate as an array of cdb_t items.
@@ -574,7 +681,7 @@ public:
  */
 class ClauseDB {
 private:
-  vector<cdb_t> db;   // Stores 0-terminated clauses, in format "Id literals 0". Clause pointers always point to first literal.
+  vector<cdb_t> db;   // Home for the Clause objects
 
 public:
   ClauseDB() : db() {}
@@ -589,17 +696,17 @@ public:
   /**
    * Converts a relative position to a pointer into the current data.
    */
-  lit_t *p2c(pos_t pos) {
+  Clause *p2c(pos_t pos) {
     assert(pos <= db.size());
-    return pos?db.data() + pos.pos:nullptr;
+    return pos ? (Clause*)(db.data() + pos.pos) : nullptr;
   }
 
   /**
    * @copydoc p2c()
    */
-  lit_t const *p2c(pos_t pos) const {
+  Clause const *p2c(pos_t pos) const {
     assert(pos <= db.size());
-    return pos?db.data() + pos.pos:nullptr;
+    return pos ? (Clause*)(db.data() + pos.pos) : nullptr;
   }
 
   /**
@@ -621,10 +728,10 @@ public:
   /**
    * Converts a pointer into a relative position.
    */
-  pos_t c2p(lit_t *cl) const {
+  pos_t c2p(Clause *cl) const {
     if (cl) {
-      assert(db.data()<=cl && cl <= db.data() + db.size());
-      return pos_t(cl - db.data());
+      assert(db.data() <= (cdb_t*)cl && (cdb_t*)cl <= db.data() + db.size());
+      return pos_t((cdb_t*)cl - db.data());
     } else return pos_t(0);
   }
 
@@ -634,16 +741,7 @@ public:
   pos_t current() const {return pos_t(db.size());}
 
   /**
-   * Appends a literal to the clause database.
-   *
-   * This invalidates all pointers and iterators, but preserves relative positions.
-   */
-  void append(lit_t l) {
-    db.push_back(l);
-  }
-
-  /**
-   * Remove everything from (including) the specified positon onwards
+   * Remove everything from (including) the specified position onwards
    */
   void shrink_to(pos_t pos) { assert(pos.pos <= current().pos); db.resize(pos.pos); }
   /**
@@ -677,21 +775,21 @@ public:
  * @see @ref pg_clause_format
  * @relates ClauseDB
  */
-inline clause_id_t clause_id(lit_t *cl) {assert(cl); return static_cast<size_t>(cl[-1]);}
+//inline clause_id_t clause_id(Clause *cl) {assert(cl); return static_cast<size_t>(cl[-1]);}
 /**
  * Get the first watched literal of a clause.
  *
  * @see @ref pg_clause_format
  * @relates ClauseDB
  */
-inline lit_t &clw1(lit_t *cl) {assert(cl && cl[0]!=0 && cl[1]!=0); return cl[0];}
+//inline lit_t &clw1(Clause *cl) {assert(cl && cl[0]!=0 && cl[1]!=0); return cl[0];}
 /**
  * Get the second watched literal of a clause.
  *
  * @see @ref pg_clause_format
  * @relates ClauseDB
  */
-inline lit_t &clw2(lit_t *cl) {assert(cl && cl[0]!=0 && cl[1]!=0); return cl[1];}
+//inline lit_t &clw2(Clause *cl) {assert(cl && cl[0]!=0 && cl[1]!=0); return cl[1];}
 
 /**
  * A certificate item.
@@ -881,17 +979,27 @@ public:
 
   clause_id_t get_lemma_id() {return lemma_id;}
 
+  Lemma_Proof &operator=(const Lemma_Proof&) = delete;
+  Lemma_Proof(const Lemma_Proof&) = delete;
+  Lemma_Proof(Lemma_Proof&&) = default;
+
 protected:
-  Lemma_Proof(lit_t* _lemma, clause_id_t _lemma_id)
+  Lemma_Proof(Clause* _lemma, clause_id_t _lemma_id)
     : lemma(_lemma), lemma_id(_lemma_id) {}
 
-  lit_t* lemma;
+  Clause *lemma;
   clause_id_t lemma_id;
+
+  void write_lemma(Proof_Writer& writer) {
+    for (auto l : lemma->get_literals())
+      writer.write_lit(l);
+    writer.write_Z();
+  }
 };
 
 class RUP_Proof : public Lemma_Proof {
 public:
-  RUP_Proof(lit_t* _lemma
+  RUP_Proof(Clause* _lemma
       , clause_id_t _lemma_id
       , clause_id_t _conflict_id
       , vector<clause_id_t> &&_unit_clauses)
@@ -899,15 +1007,16 @@ public:
     , conflict_id(_conflict_id)
     , unit_clauses(_unit_clauses) {}
 
+  RUP_Proof &operator=(const RUP_Proof&) = delete;
+  RUP_Proof(const RUP_Proof&) = delete;
+  RUP_Proof(RUP_Proof&&) = default;
+
   void write(Proof_Writer& writer, bool include_lemma) {
     writer.start_ty(item_type::RUP_LEMMA);
     writer.write_id(lemma_id);
 
-    if (include_lemma) {
-      for (lit_t *l = lemma; *l; ++l)
-        writer.write_lit(*l);
-      writer.write_Z();
-    }
+    if (include_lemma)
+      write_lemma(writer);
 
     for (auto clause_id : unit_clauses)
       writer.write_id(clause_id);
@@ -921,7 +1030,7 @@ private:
 
 class RAT_Proof : public Lemma_Proof {
 public:
-  RAT_Proof(lit_t* _lemma
+  RAT_Proof(Clause *_lemma
       , clause_id_t _lemma_id
       , lit_t _pivot
       , vector<clause_id_t> &&_initial_units
@@ -929,18 +1038,19 @@ public:
     : Lemma_Proof(_lemma, _lemma_id)
     , pivot(_pivot)
     , initial_units(_initial_units)
-    , candidate_proofs(_cand_proofs) {}
+    , candidate_proofs(std::move(_cand_proofs)) {}
+
+  RAT_Proof &operator=(const RAT_Proof&) = delete;
+  RAT_Proof(const RAT_Proof&) = delete;
+  RAT_Proof(RAT_Proof&&) = default;
 
   void write(Proof_Writer& writer, bool include_lemma) {
     writer.start_ty(item_type::RAT_LEMMA);
     writer.write_lit(pivot);
     writer.write_id(lemma_id);
 
-    if (include_lemma) {
-      for (lit_t *l = lemma; *l; ++l)
-        writer.write_lit(*l);
-      writer.write_Z();
-    }
+    if (include_lemma)
+      write_lemma(writer);
 
     for (auto clause_id : initial_units)
       writer.write_id(clause_id);
@@ -971,13 +1081,12 @@ private:
   ///// This data is set by friend Parser
   size_t num_clauses = 0;
   var_t max_var = 0;
-  vector<lit_t> pivots;   // Map from clause ids to pivot literals. Empty clauses have pivot 0.
   vector<item_t> items;   // List of items in DB
   size_t fst_prf_item = 0;  // Index of first proof item
   size_t fst_lemma_id = 0;  // Id of first lemma
   /////
 
-  lit_t *conflict = nullptr;
+  Clause *conflict = nullptr;
 
   vector<pair<clause_id_t,bool>> fwd_trail; // Forward trail, in format (clause-id, vmarked)
 
@@ -994,11 +1103,9 @@ private:
     after_parsing = true;
 
     items.shrink_to_fit();
-    pivots.shrink_to_fit();
     db.get_db().shrink_to_fit();
 
     stat_itemlist_size = items.capacity()*sizeof(item_t);
-    stat_pivots_size = pivots.capacity()*sizeof(lit_t);
     stat_db_size = db.get_db().size()*sizeof(cdb_t);
     stat_num_clauses = num_clauses;
   }
@@ -1006,7 +1113,7 @@ private:
 
 public:
   /// Standard constructor
-  Global_Data() : db(), pivots(), items(), fwd_trail() {}
+  Global_Data() : db(), items(), fwd_trail() {}
 
   /// Get associated clause database
   ClauseDB &get_db() {return db;}
@@ -1018,9 +1125,6 @@ public:
 
   /// Check whether we are in after-parsing phase
   bool is_after_parsing() const {return after_parsing;}
-
-  /// Get the pivot literal associated to a clause. Empty clauses have pivot 0.
-  lit_t get_pivot(lit_t *cl) const {assert(cl); return pivots[clause_id(cl)];}
 
   /// Get the first item of the DRAT certificate
   size_t get_fst_prf_item() const {return fst_prf_item;}
@@ -1060,7 +1164,7 @@ public:
   /**
    * Return the conflict clause.
    */
-  lit_t *get_conflict() {return conflict;}
+  Clause *get_conflict() {return conflict;}
 
 
 };
@@ -1079,7 +1183,7 @@ void Global_Data::init_after_fwd(pos_t cn_pos, vector<trail_item_t> const &tr) {
   fwd_trail.clear();
   for (trail_item_t ti : tr) {
     assert(ti.reason);
-    fwd_trail.push_back({clause_id(ti.reason),ti.vmarked});
+    fwd_trail.push_back({ti.reason->get_clause_id(), ti.vmarked});
   }
 }
 
@@ -1124,7 +1228,7 @@ private:
   /// Mark a clause, and return wether it was already marked.
   inline bool mark_clause(clause_id_t id) { return marked[id].exchange(true); }
   /// Mark a clause.
-  inline bool mark_clause(lit_t *cl) { return mark_clause(clause_id(cl)); }
+  inline bool mark_clause(Clause *cl) { return mark_clause(cl->get_clause_id()); }
 
 
 public:
@@ -1157,9 +1261,9 @@ public:
 
 
   /// Check if clause is marked.
-  inline bool is_marked(lit_t *cl) { return marked[clause_id(cl)].load(); }
+  inline bool is_marked(Clause *cl) { return marked[cl->get_clause_id()].load(); }
   /// Try to acquire a clause
-  inline bool acquire(lit_t *cl) { return !acquired[clause_id(cl)].test_and_set(memory_order_acquire); }
+  inline bool acquire(Clause *cl) { return !acquired[cl->get_clause_id()].test_and_set(memory_order_acquire); }
   /// Get the next free lemma ID used in the proof
   inline clause_id_t get_free_lemma_id() { return next_proof_lemma_id++; }
 
@@ -1167,23 +1271,23 @@ public:
   /** Directly mark a single clause.
    * @pre Must be in single-threaded mode @see ::cfg_single_threaded.
    */
-  bool mark_clause_single_threaded(lit_t *cl) {
+  bool mark_clause_single_threaded(Clause *cl) {
     assert(cfg_single_threaded);
     return mark_clause(cl);
   }
 
   /// Set proof for clause
-  inline void set_proof_of(lit_t *cl, Lemma_Proof *proof) {
-    auto cl_id = clause_id(cl);
+  inline void set_proof_of(Clause *cl, Lemma_Proof *proof) {
+    auto cl_id = cl->get_clause_id();
     assert(proofs[cl_id] == nullptr);
     proofs[cl_id] = proof;
   }
 
   /// Return pointer to proof of clause.
-  inline Lemma_Proof *get_proof_of(lit_t *cl) {return proofs[clause_id(cl)];}
+  inline Lemma_Proof *get_proof_of(Clause *cl) {return proofs[cl->get_clause_id()];}
 
   /// Get the ID the lemma got in the GRAT proof (possibly different from ID in DRAT proof)
-  inline clause_id_t get_id_in_proof(lit_t *cl) {
+  inline clause_id_t get_id_in_proof(Clause *cl) {
     auto proof = get_proof_of(cl);
     assert(proof != nullptr);
 
@@ -1207,7 +1311,7 @@ public:
    * @param failed_attempts Counter for failed attempts to get the lock. Updated by this function.
    * @returns Whether function succeeded to get the lock and do the update. On success, clauses and index are updated. Otherwise, nothing is updated.
    */
-  inline bool bulk_mark_clauses(ClauseDB *db, vector<lit_t*> &clauses, size_t &idx, size_t &failed_attempts) {
+  inline bool bulk_mark_clauses(ClauseDB *db, vector<Clause*> &clauses, size_t &idx, size_t &failed_attempts) {
     assert(!cfg_single_threaded);
     if (!mq_lock.acquire(clauses.size() + (failed_attempts++))) return false;
 
@@ -1243,7 +1347,7 @@ public:
    * @warning Not tested, currently not used.
    *
    */
-  inline bool get_incoming(ClauseDB *db, vector<lit_t*> &clauses, size_t &idx, size_t &failed_attempts) {
+  inline bool get_incoming(ClauseDB *db, vector<Clause*> &clauses, size_t &idx, size_t &failed_attempts) {
     assert(!cfg_single_threaded);
 
     if (!mq_lock.acquire(failed_attempts++)) return false;
@@ -1269,12 +1373,12 @@ private:
   struct Clause_Hash_Eq {
     ClauseDB const &db;
 
-    size_t operator() (const pos_t &pos) const; // Hash function
-    bool operator() (const pos_t &pos1, const pos_t &pos2) const; // Equality
+    size_t operator() (const lit_t *lits) const; // Hash function
+    bool operator() (const lit_t *lits1, const lit_t *lits2) const; // Equality
   };
 
   Clause_Hash_Eq cheq;  // Hash and equality function for claus-positions
-  typedef unordered_multimap<pos_t,pos_t,Clause_Hash_Eq,Clause_Hash_Eq> clause_map_t;
+  typedef unordered_multimap<lit_t*,pos_t,Clause_Hash_Eq,Clause_Hash_Eq> clause_map_t;
   clause_map_t clause_map; // Map from clauses to their position
 
 public:
@@ -1299,18 +1403,15 @@ public:
 };
 
 
-inline size_t Parser::Clause_Hash_Eq::operator() (const pos_t &pos) const {
+inline size_t Parser::Clause_Hash_Eq::operator() (const lit_t *lits) const {
   size_t sum = 0, prod = 1, xxor = 0; // The hash-function from drat-trim
-  for (lit_t const *l = db.p2c(pos); *l; ++l) {
+  for (const lit_t *l = lits; *l; ++l) {
     prod*=*l; sum+=*l; xxor^=*l;
   }
   return (1023 * sum + prod) ^ (31 * xxor);
 }
 
-inline bool Parser::Clause_Hash_Eq::operator() (const pos_t &pos1, const pos_t &pos2) const {
-  lit_t const *l1 = db.p2c(pos1);
-  lit_t const *l2 = db.p2c(pos2);
-
+inline bool Parser::Clause_Hash_Eq::operator() (const lit_t *l1, const lit_t *l2) const {
   size_t i = 0;
   do {
     if (l1[i]!=l2[i]) return false;
@@ -1321,72 +1422,57 @@ inline bool Parser::Clause_Hash_Eq::operator() (const pos_t &pos1, const pos_t &
 
 
 pos_t Parser::parse_clause(istream &in) {
-  clause_id_t id = ++glb.num_clauses;                    // Ids start at 1
-  glb.db.append(id);                                // Push id
-  pos_t pos = glb.db.current();                     // Positions refer to first literal
+  clause_id_t id = ++glb.num_clauses; // Ids start at 1
+
+  auto &db = glb.db.get_db();
+
+  Clause &new_clause = Clause::new_clause(db, id); // Construct new clause in ClauseDB
+  pos_t pos = new_clause.get_pos_in_db(db);
 
   size_t len = 0;
 
   lit_t l;
   do {                                          // Push literals and terminating zero
-    in>>ws; in>>l; glb.db.append(l);
+    in>>ws; in>>l;
+    new_clause.append_literal(db, l);
     glb.max_var = max(var_of(l),glb.max_var);
     ++len;
   } while (l);
   --len;
 
-  auto cl = glb.db.p2i(pos);                  // pos indicates first literal
-  auto cle = glb.db.p2i(glb.db.current())-1;  // set cle one past last literal (Current position is one past terminating zero)
+  auto &literals = new_clause.get_literals();
 
-  set_resize<lit_t>(glb.pivots,id,*cl);         // Remember pivot as first literal of clause. Note: If clause is empty, we store 0 as pivot.
-  sort(cl,cle);                                 // Sort literals by ascending numerical value
+  literals.sort();
 
   if (!cfg_assume_nodup) {
     // Remove duplicate literals
-    auto ncle = unique(cl,cle);
-    if (ncle != cle) {
-      ncle[1] = 0;
-      glb.db.shrink_to(ncle+1);
-    }
+    literals.uniquify(db);
   }
 
-  clause_map.insert({ pos, pos });              // Add to clause_map
+  clause_map.insert({ literals.begin(), pos });              // Add to clause_map
 
   return pos;
 }
 
 pos_t Parser::parse_deletion(istream &in) {
-  pos_t orig_pos = glb.db.current();
   pos_t result = pos_t::null;
-
-  /*
-   * In order to hash it, we push the clause to db first. Later, we will delete it again
-   */
-
-  glb.db.append(0);                             // Push dummy id
-
-  pos_t pos = glb.db.current();
-
+  auto literals = vector<lit_t>();
 
   lit_t l;
-  do {                                          // Push literals and terminating zero
-    in>>ws; in>>l; glb.db.append(l);
+  do {
+    in>>ws; in>>l;
+    literals.push_back(l);
   } while (l);
 
-  lit_t *cl = glb.db.p2c(pos);                  // pos indicates first literal
-  lit_t *cle = glb.db.p2c(glb.db.current())-1;  // set cle one past last literal (Current position is one past terminating zero)
-
-  sort(cl,cle);                                 // Sort
-  auto orig_c = clause_map.find(pos);           // Look up clause
+  auto orig_c = clause_map.find(literals.data()); // Look up clause
 
   if (orig_c == clause_map.end()) {
-    clog<<"c Ignoring deletion of non-existent clause (pos "<<pos.pos<<")"<<endl;
+    clog<<"c Ignoring deletion of non-existent clause"<<endl;
   } else {
     result = orig_c->second;
     clause_map.erase(orig_c);
   }
 
-  glb.db.shrink_to(orig_pos);
   return result;
 }
 
@@ -1553,8 +1639,8 @@ private:
    * Watchlists are split into core and non-core watchlist.
    * Unmarked clauses go to the noncore watchlist, and are lazily propagated to the core watchlist if they are marked.
    */
-  lit_map<vector<lit_t *>> core_watchlists;
-  lit_map<vector<lit_t *>> noncore_watchlists;
+  lit_map<vector<Clause *>> core_watchlists;
+  lit_map<vector<Clause *>> noncore_watchlists;
 
 
   /**
@@ -1586,9 +1672,9 @@ private:
 
   vector<wl_clause_state_t> wl_clause_state; // id -> Watchlist state of clauses
 
-  vector<lit_t *> new_core; // Clauses that should be marked as core, buffered during uprop. FIXME Will probably be removed
+  vector<Clause *> new_core; // Clauses that should be marked as core, buffered during uprop. FIXME Will probably be removed
 
-  vector<lit_t *> marked_outgoing;  // Outgoing marked clauses, to be synchronized
+  vector<Clause *> marked_outgoing;  // Outgoing marked clauses, to be synchronized
   size_t failed_sync_attempts = 0;    // Failed attempts to synchronize marked clauses
   size_t glb_marked_sync_idx = 0;     // Synchronization index with global marked queue
 
@@ -1596,12 +1682,12 @@ private:
   size_t cnt_verified = 0; // Number of lemmas verified by this instance
 
 
-  vector<lit_t *> rat_candidates;       ///< Last RAT candidate list. May be flushed if RAT run heuristics is not enabled.
+  vector<Clause *> rat_candidates;       ///< Last RAT candidate list. May be flushed if RAT run heuristics is not enabled.
   lit_t rat_lit = 0;                    ///< Last literal for which RAT candidates have been collected, 0 if no valid collected candidates.
 
 
   // Relocate a clause pointer wrt old clause-db
-  void relocate(ClauseDB const *odb, lit_t * &cl) {if (cl) cl = db->p2c(odb->c2p(cl));}
+  void relocate(ClauseDB const *odb, Clause * &cl) {if (cl) cl = db->p2c(odb->c2p(cl));}
   // Relocate all clause pointers in this data structure
   void relocate(ClauseDB const *odb);
 
@@ -1726,11 +1812,11 @@ public:
   inline bool is_false(lit_t l) {assert(l != 0); return assignment[-l]!=0;}
 
   /// Assign literal to true
-  inline void assign_true(lit_t l, lit_t* reason) {
+  inline void assign_true(lit_t l, Clause* reason) {
     assert(!is_true(l) && !is_false(l));
     assignment[l] = 1;
     vtpos[var_of(l)] = trail.size();
-    trail.push_back({l,reason,false});
+    trail.push_back({l, reason, false});
   }
 
   ///@}
@@ -1750,9 +1836,9 @@ public:
   /**
    * Add a clause and update the internal data structures.
    */
-  acres_t add_clause(lit_t *cl);
-  bool rem_clause(lit_t *cl);   ///< Remove clause from watchlist. Returns true if clause actually was in watchlists.
-  void readd_clause(lit_t *cl); ///< Only clauses that where on watchlists may be readded. Watched literals must not have changed since deletion.
+  acres_t add_clause(Clause *cl);
+  bool rem_clause(Clause *cl);   ///< Remove clause from watchlist. Returns true if clause actually was in watchlists.
+  void readd_clause(Clause *cl); ///< Only clauses that where on watchlists may be readded. Watched literals must not have changed since deletion.
 
   ///@}
 
@@ -1785,7 +1871,7 @@ public:
   vector<clause_id_t> collect_marked_from(size_t pos);
 
   void mark_var(var_t v);     ///< Mark reason for this variable to be set, recursively. @see @ref Conflict_Analysis
-  void mark_clause(lit_t *cl); ///< Mark clause and literals in clause, recursively. @see @ref Conflict_Analysis
+  void mark_clause(Clause *cl); ///< Mark clause and literals in clause, recursively. @see @ref Conflict_Analysis
 
 
   /**
@@ -1826,7 +1912,7 @@ private:
    *
    * @see @ref Core_First_Unit_Propagation
    */
-  template<bool core_first> lit_t *propagate_units_aux();
+  template<bool core_first> Clause *propagate_units_aux();
 
 public:
   /**
@@ -1838,9 +1924,9 @@ public:
    * @see @ref Core_First_Unit_Propagation
    *
    */
-  lit_t *propagate_units() {
+  Clause *propagate_units() {
     if (cfg_core_first) {
-      lit_t *res = propagate_units_aux<true>();
+      Clause *res = propagate_units_aux<true>();
       handle_new_core();
       return res;
     }
@@ -1859,7 +1945,7 @@ private:
   /**
    * Verify a clause, fail() on error.
    */
-  void verify(lit_t *cl);
+  void verify(Clause *cl);
 
 private:
   pos_t fwd_pass_aux();
@@ -1897,15 +1983,15 @@ private:
   /**
    * Add to core or non-core watchlist depending on local and global marked state.
    */
-  inline void add_to_wl(lit_t *cl) {
-    auto id = clause_id(cl);
+  inline void add_to_wl(Clause *cl) {
+    auto id = cl->get_clause_id();
     auto &cst = wl_clause_state[id];
     assert(!cst.is_inwl());
 
     bool marked = sdata->is_marked(cl);
 
-    lit_t w1 = cl[0]; assert(w1 != 0);
-    lit_t w2 = cl[1]; assert(w2 != 0);
+    lit_t w1 = cl->get_watched_lit1(); assert(w1 != 0);
+    lit_t w2 = cl->get_watched_lit2(); assert(w2 != 0);
 
     if (marked || cst.is_core()) { // Make sure that local core clauses are added to core wl
       if (cfg_core_first) {
@@ -1946,8 +2032,8 @@ private:
    * @param to_outgoing If set, the clause is also added to outgoing marked queue.
    *      If, however, this clause has been synched from global marked queue, tere is no point re-adding it to local queue, and this should be clear.
    */
-  inline void move_to_core(lit_t *cl, bool to_outgoing = true) {
-    auto id = clause_id(cl);
+  inline void move_to_core(Clause *cl, bool to_outgoing = true) {
+    auto id = cl->get_clause_id();
     auto &cst = wl_clause_state[id];
 
     if (cst.is_core()) return; // No effect on clauses that are already known to be in core
@@ -1964,8 +2050,8 @@ private:
     if (!cfg_core_first) return; // If core-first mode is not enabled, we do not maintain core-watchlists
 
     // Only add clause if it is not deleted, in a watchlist, and not already in core watchlists
-    lit_t w1 = cl[0]; assert(w1 != 0);
-    lit_t w2 = cl[1]; assert(w2 != 0);
+    lit_t w1 = cl->get_watched_lit1(); assert(w1 != 0);
+    lit_t w2 = cl->get_watched_lit2(); assert(w2 != 0);
 
     // Remove from noncore watchlists
     bool d1 = del_from_list(noncore_watchlists[w1],cl);
@@ -1980,7 +2066,7 @@ private:
   }
 
 
-  inline void register_new_core(lit_t *cl) {
+  inline void register_new_core(Clause *cl) {
     new_core.push_back(cl);
   }
 
@@ -2019,25 +2105,33 @@ void Verifier::relocate(ClauseDB const *odb) {
 }
 
 
-Verifier::acres_t Verifier::add_clause(lit_t *cl) {
+Verifier::acres_t Verifier::add_clause(Clause *cl) {
   // Search for watched literals
   lit_t *w1 = nullptr, *w2 = nullptr;
 
-  for (lit_t *l = cl; *l; ++l) {
+  auto &lits = cl->get_literals();
+
+  for (lit_t *l = lits.begin(); l != lits.end(); ++l) {
     if (is_true(*l)) return acres_t::TAUT; // Ignoring tautology.
     if (!is_false(*l)) {
-      if (!w1) w1 = l; else if (!w2 && *l!=*w1) w2 = l;
+      if (!w1)
+        w1 = l;
+      else if (!w2 && *l!=*w1)
+        w2 = l;
     }
   }
 
   if (!w1) { // Conflict
     return acres_t::CONFLICT;
   } else if (!w2) { // Unit, *w1 is unit literal
-    assign_true(*w1,cl);
+    assign_true(*w1, cl);
     return acres_t::UNIT;
   } else { // >1 undec
-    assert(w1<w2);    // Implies that double-swapping below is correct
-    swap(cl[0],*w1); swap(cl[1],*w2); w1 = nullptr; w2 = nullptr;
+    assert(w1 < w2);    // Implies that double-swapping below is correct
+    
+    lits.swap(&lits[0], w1);
+    lits.swap(&lits[1], w2);
+    w1 = nullptr; w2 = nullptr;
 
     add_to_wl(cl);
 
@@ -2045,14 +2139,14 @@ Verifier::acres_t Verifier::add_clause(lit_t *cl) {
   }
 }
 
-bool Verifier::rem_clause(lit_t *cl) {
-  auto id = clause_id(cl);
+bool Verifier::rem_clause(Clause *cl) {
+  auto id = cl->get_clause_id();
   auto &cst = wl_clause_state[id];
 
   if (!cst.is_inwl()) return false;
 
-  lit_t w1 = cl[0]; assert(w1 != 0);
-  lit_t w2 = cl[1]; assert(w2 != 0);
+  lit_t w1 = cl->get_watched_lit1(); assert(w1 != 0);
+  lit_t w2 = cl->get_watched_lit2(); assert(w2 != 0);
 
 
   if (cfg_core_first && cst.is_core()) {
@@ -2071,7 +2165,7 @@ bool Verifier::rem_clause(lit_t *cl) {
   return true;
 }
 
-void Verifier::readd_clause(lit_t *cl) {
+void Verifier::readd_clause(Clause *cl) {
   add_to_wl(cl);
 }
 
@@ -2087,8 +2181,9 @@ vector<clause_id_t> Verifier::collect_marked_from(size_t pos) {
   auto marked_clauses = vector<clause_id_t>();
   for (size_t i = pos; i < trail.size(); ++i) {
     if (trail[i].vmarked && trail[i].reason)
-      marked_clauses.push_back(clause_id(trail[i].reason));
+      marked_clauses.push_back(trail[i].reason->get_clause_id());
   }
+  return marked_clauses;
 }
 
 
@@ -2105,12 +2200,11 @@ inline void Verifier::mark_var(var_t v) {
   }
 }
 
-void Verifier::mark_clause(lit_t *cl) {
+void Verifier::mark_clause(Clause *cl) {
   move_to_core(cl);
 
-  for (auto l = cl; *l; ++l) {
-    mark_var(var_of(*l));
-  }
+  for (auto l : cl->get_literals())
+    mark_var(var_of(l));
 }
 
 
@@ -2119,9 +2213,9 @@ bool Verifier::sync_marked(bool force) {
 
   if (force) {
     if (!marked_outgoing.size()) return false;
-    while (!sdata->bulk_mark_clauses(db,marked_outgoing,glb_marked_sync_idx,failed_sync_attempts));
+    while (!sdata->bulk_mark_clauses(db, marked_outgoing, glb_marked_sync_idx, failed_sync_attempts));
   } else {
-    if (!sdata->bulk_mark_clauses(db,marked_outgoing,glb_marked_sync_idx,failed_sync_attempts)) return false;
+    if (!sdata->bulk_mark_clauses(db, marked_outgoing, glb_marked_sync_idx, failed_sync_attempts)) return false;
   }
 
   // Successfully synchronized, marked_outgoing now contains incoming clauses
@@ -2134,8 +2228,8 @@ bool Verifier::sync_marked(bool force) {
 void Verifier::sync_incoming_marked() {
   assert(!cfg_single_threaded);
 
-  vector<lit_t*> incoming;
-  if (sdata->get_incoming(db,incoming,glb_marked_sync_idx,failed_sync_attempts)) {
+  vector<Clause*> incoming;
+  if (sdata->get_incoming(db, incoming, glb_marked_sync_idx, failed_sync_attempts)) {
     for (auto cl : incoming) move_to_core(cl, false);
   }
 }
@@ -2148,14 +2242,11 @@ atomic<uintmax_t> dbg_stat_uprop_c3(0);
 #endif
 
 
-template<bool cf_enabled> lit_t *Verifier::propagate_units_aux() {
+template<bool cf_enabled> Clause *Verifier::propagate_units_aux() {
   size_t cf_processed = processed;
 
   bool cf_mode = cf_enabled;
   size_t ncf_ctd_i = 0;  // Watchlist index to continue when switching to non-cf_mode. Used to precisely store processed position.
-
-
-
 
   while (true) {
     if (cf_mode) {
@@ -2176,17 +2267,16 @@ template<bool cf_enabled> lit_t *Verifier::propagate_units_aux() {
 
 
       for (size_t i = 0; i<watchlist.size(); ++i) {
+        Clause *cl = watchlist[i];
+        auto &lits = cl->get_literals();
 
-        lit_t *cl = watchlist[i];
-
-        assert(wl_clause_state[clause_id(cl)].is_core());  // Core watchlist will only contain core clauses
-        assert(wl_clause_state[clause_id(cl)].is_inwl());  // Core watchlist must not contain deleted clauses
+        assert(wl_clause_state[cl->get_clause_id()].is_core());  // Core watchlist will only contain core clauses
+        assert(wl_clause_state[cl->get_clause_id()].is_inwl());  // Core watchlist must not contain deleted clauses
 
         DBG_STAT(dbg_stat_uprop_c2++; );
 
-
-        lit_t w1 = cl[0];
-        lit_t w2 = cl[1];
+        lit_t w1 = cl->get_watched_lit1();
+        lit_t w2 = cl->get_watched_lit2();
 
         assert (w1 == l || w2 == l);
 
@@ -2197,17 +2287,17 @@ template<bool cf_enabled> lit_t *Verifier::propagate_units_aux() {
 
 
         if (w1 == l) {                    // Normalize on w2 being set literal
-          cl[0] = w2;                   // First part of swapping cl[0] and cl[1]. Second part is deferred, to summarize with swap in found-new-watched case
+          lits[0] = w2;                   // First part of swapping lits[0] and lits[1]. Second part is deferred, to summarize with swap in found-new-watched case
           w1 = w2; w2 = l;
         }
         assert(w2 == l);
         assert(is_false(w2));
-        assert(cl[0] == w1);
+        assert(lits[0] == w1);
 
         // Scan through clause and try to find new watched literal
         // Assuming that clauses do not contain dup literals, we can take first non-false literal from cl+2 onwards
         lit_t *w = nullptr;
-        for (lit_t *ll = cl+2; *ll; ++ll) {
+        for (lit_t *ll = lits.begin()+2; *ll; ++ll) {
           assert(*ll != w1 && *ll != w2);
           if (!is_false(*ll)) {w = ll; break;}
         }
@@ -2222,13 +2312,13 @@ template<bool cf_enabled> lit_t *Verifier::propagate_units_aux() {
           core_watchlists[*w].push_back(cl);
 
           // Swap w2 and *w (update cl[1] and *w)
-          cl[1] = *w; *w = w2;
+          lits[1] = *w; *w = w2;
 
           continue;
         }
 
         // Complete swapping. TODO: If not swapped, this assignment is spurious. Test whether conditionally doing it improves performance.
-        cl[1] = w2;
+        lits[1] = w2;
 
         // We found no watchable literal in clause
         if (!is_false(w1)) { // Found unit clause
@@ -2259,10 +2349,11 @@ template<bool cf_enabled> lit_t *Verifier::propagate_units_aux() {
       ncf_ctd_i = 0;
 
       for (; i<watchlist.size(); ++i) {
-        lit_t *cl = watchlist[i];
+        Clause *cl = watchlist[i];
+        auto &lits = cl->get_literals();
 
-        assert(!cfg_core_first || !wl_clause_state[clause_id(cl)].is_core());  // Noncore watchlist will only contain non-core clauses (if cf enabled. Otherwise, core-wl contains all clauses)
-        assert(wl_clause_state[clause_id(cl)].is_inwl());  // Noncore watchlist must not contain deleted clauses
+        assert(!cfg_core_first || !wl_clause_state[cl->get_clause_id()].is_core());  // Noncore watchlist will only contain non-core clauses (if cf enabled. Otherwise, core-wl contains all clauses)
+        assert(wl_clause_state[cl->get_clause_id()].is_inwl());  // Noncore watchlist must not contain deleted clauses
 
 
         DBG_STAT(dbg_stat_uprop_c1++; );
@@ -2272,8 +2363,8 @@ template<bool cf_enabled> lit_t *Verifier::propagate_units_aux() {
 //             DBG_STAT(dbg_stat_uprop_c1++; );
 //           }
 
-        lit_t w1 = cl[0];
-        lit_t w2 = cl[1];
+        lit_t w1 = cl->get_watched_lit1();
+        lit_t w2 = cl->get_watched_lit2();
         assert (w1 == l || w2 == l);
 
         /* Filter out clauses where other watched literal is true */
@@ -2283,17 +2374,17 @@ template<bool cf_enabled> lit_t *Verifier::propagate_units_aux() {
 
 
         if (w1 == l) {                    // Normalize on w2 being set literal
-          cl[0] = w2;                   // First part of swapping cl[0] and cl[1]. Second part is deferred, to summarize with swap in found-new-watched case
+          lits[0] = w2;                   // First part of swapping lits[0] and lits[1]. Second part is deferred, to summarize with swap in found-new-watched case
           w1 = w2; w2 = l;
         }
         assert(w2 == l);
         assert(is_false(w2));
-        assert(cl[0] == w1);
+        assert(lits[0] == w1);
 
         // Scan through clause and try to find new watched literal
-        // Assuming that clauses do not contain dup literals, we can take first non-false literal from cl+2 onwards
+        // Assuming that clauses do not contain dup literals, we can take first non-false literal from lits+2 onwards
         lit_t *w = nullptr;
-        for (lit_t *ll = cl+2; *ll; ++ll) {
+        for (lit_t *ll = lits.begin()+2; *ll; ++ll) {
           assert(*ll != w1 && *ll != w2);
           if (!is_false(*ll)) {w = ll; break;}
         }
@@ -2310,14 +2401,14 @@ template<bool cf_enabled> lit_t *Verifier::propagate_units_aux() {
           noncore_watchlists[*w].push_back(cl);
 
           // Swap w2 and *w (update cl[1] and *w)
-          cl[1] = *w; *w = w2;
+          lits[1] = *w; *w = w2;
 
           continue;
         }
 
 
         // Complete swapping. TODO: If not swapped, this assignment is spurious. Test whether conditionally doing it improves performance.
-        cl[1] = w2;
+        lits[1] = w2;
 
 
         // We found no watchable literal in clause
@@ -2386,8 +2477,8 @@ void Verifier::get_rat_candidates(lit_t pivot) {
 
     // Filter out deleted clauses from last candidates
     for (size_t i = 0; i<rat_candidates.size(); ++i) {
-      lit_t *cl = rat_candidates[i];
-      if (!wl_clause_state[clause_id(cl)].is_inwl()) {
+      Clause *cl = rat_candidates[i];
+      if (!wl_clause_state[cl->get_clause_id()].is_inwl()) {
         rat_candidates[i] = rat_candidates.back();
         rat_candidates.pop_back();
         --i;
@@ -2400,17 +2491,18 @@ void Verifier::get_rat_candidates(lit_t pivot) {
     rat_candidates.clear();
     if (cfg_rat_run_heuristics) rat_lit = pivot; else rat_lit = 0;
 
-    auto collect = [pivot, this](vector<lit_t*>& watchlist, lit_t l) {
+    auto collect = [pivot, this](vector<Clause*>& watchlist, lit_t l) {
       auto end = watchlist.end();
 
       for (auto it = watchlist.begin(); it != end; ++it) {
-        lit_t *cl = *it;
+        Clause *cl = *it;
+        auto &lits = cl->get_literals();
 
-        assert(wl_clause_state[clause_id(cl)].is_inwl()); // Watchlists must not contain deleted clauses
+        assert(wl_clause_state[cl->get_clause_id()].is_inwl()); // Watchlists must not contain deleted clauses
 
-        if (cl[0] == l) {
-          for (lit_t *ll = cl; *ll; ++ll) {
-            if (*ll == pivot) {
+        if (lits[0] == l) {
+          for (auto ll : lits) {
+            if (ll == pivot) {
               rat_candidates.push_back(cl);
               break;
             }
@@ -2438,32 +2530,32 @@ void Verifier::get_rat_candidates(lit_t pivot) {
   }
 }
 
-void Verifier::verify(lit_t *cl) {
+void Verifier::verify(Clause *cl) {
   ++cnt_verified;
 
-  clause_id_t cl_id = clause_id(cl);
+  clause_id_t cl_id = cl->get_clause_id();
   size_t orig_pos = trail_pos();
-  lit_t pivot = glb.get_pivot(cl);
+  lit_t pivot = cl->get_pivot();
   bool pivot_false = (pivot != 0) && is_false(pivot);
 
   // Set current size of forward trail. Subsequent clause marking will remember markings set on current forward trail.
   fwd_trail_size = orig_pos;
 
   // Falsify literals
-  for (lit_t *l = cl; *l; ++l) {
-    assert(!is_true(*l)); // Tautologies should have been ignored
-    if (!is_false(*l)) assign_true(-(*l),nullptr);
+  for (lit_t l : cl->get_literals()) {
+    assert(!is_true(l)); // Tautologies should have been ignored
+    if (!is_false(l)) assign_true(-(l), nullptr);
   }
 
   // Unit propagation
-  lit_t *conflict = propagate_units();
+  Clause *conflict = propagate_units();
 
   if (conflict) { // RUP-check succeeded
     ++stat_rup_lemmas;
     mark_clause(conflict);
     if (!cfg_no_grat) {
       sdata->set_proof_of(cl, new RUP_Proof(cl, cl_id,
-        clause_id(conflict),
+        conflict->get_clause_id(),
         collect_marked_from(orig_pos)));
     }
     rollback(orig_pos);
@@ -2483,19 +2575,19 @@ void Verifier::verify(lit_t *cl) {
     for (auto rat_candidate : rat_candidates) {
       // Falsify literals and check blocked
       bool blocked = false;
-      for (lit_t *l = rat_candidate; *l; ++l) {
-        if (*l == -pivot) continue;
-        if (is_true(*l)) {
-          mark_var(var_of(*l));  // Mark clauses that caused this clause to be blocked
+      for (lit_t l : rat_candidate->get_literals()) {
+        if (l == -pivot) continue;
+        if (is_true(l)) {
+          mark_var(var_of(l));  // Mark clauses that caused this clause to be blocked
           rollback(rat_pos);
           blocked = true;
           break;
         } else {
-          if (!is_false(*l)) assign_true(-(*l),nullptr);
+          if (!is_false(l)) assign_true(-(l),nullptr);
         }
       }
       if (!blocked) {
-        lit_t *conflict = propagate_units();
+        Clause *conflict = propagate_units();
         if (!conflict) {
           fail("RAT-check failed");
         }
@@ -2504,8 +2596,8 @@ void Verifier::verify(lit_t *cl) {
         if (!cfg_no_grat) {
           candidate_proofs.emplace_back(
             RUP_Proof(
-              rat_candidate, clause_id(rat_candidate),
-              clause_id(conflict),
+              rat_candidate, rat_candidate->get_clause_id(),
+              conflict->get_clause_id(),
               collect_marked_from(rat_pos)));
         }
         rollback(rat_pos);
@@ -2530,7 +2622,7 @@ pos_t Verifier::fwd_pass_aux() {
   for (size_t i = 0; i<glb.get_fst_prf_item(); ++i) {
     item_t &item = glb.get_item(i);
     if (!item.is_erased()) {
-      lit_t *cl = db->p2c(item.get_pos());
+      Clause *cl = db->p2c(item.get_pos());
 
       assert(!item.is_deletion());
       size_t trpos = trail_pos();
@@ -2545,7 +2637,7 @@ pos_t Verifier::fwd_pass_aux() {
     }
   }
 
-  lit_t *conflict = propagate_units();
+  Clause *conflict = propagate_units();
   if (conflict) {
     // Conflict after unit-propagation on initial clauses
     return db->c2p(conflict);
@@ -2555,7 +2647,7 @@ pos_t Verifier::fwd_pass_aux() {
   for (size_t i = glb.get_fst_prf_item(); i<glb.get_num_items(); ++i) {
     item_t &item = glb.get_item(i);
     if (!item.is_erased()) {
-      lit_t *cl = db->p2c(item.get_pos());
+      Clause *cl = db->p2c(item.get_pos());
 
       if (item.is_deletion()) {
         if (!cfg_ignore_deletion) {
@@ -2610,8 +2702,8 @@ pos_t Verifier::fwd_pass() {
       item_t &it = glb.get_item(i);
       if (!it.is_erased()) {
         assert(!it.is_deletion());
-        lit_t *cl = db->p2c(it.get_pos());
-        assert(clause_id(cl)<glb.get_fst_lemma_id());
+        Clause *cl = db->p2c(it.get_pos());
+        assert(cl->get_clause_id() < glb.get_fst_lemma_id());
         move_to_core(cl);
       }
     }
@@ -2641,7 +2733,7 @@ void Verifier::bwd_pass(bool show_status_bar) {
   size_t i = glb.get_num_items();
 
   size_t range_end_idx = glb.get_num_items();   // Next item index not in current range
-  deque<lit_t*> range_acquired;               // List of clauses pre-acquired for current range
+  deque<Clause*> range_acquired;               // List of clauses pre-acquired for current range
 
   while (i>glb.get_fst_prf_item()) {
     --i;
@@ -2651,13 +2743,13 @@ void Verifier::bwd_pass(bool show_status_bar) {
     item_t &item = glb.get_item(i);
 
     if (!item.is_erased()) {
-      lit_t *cl = db->p2c(item.get_pos());
+      Clause *cl = db->p2c(item.get_pos());
 
       if (item.is_deletion()) {
         if (!cfg_ignore_deletion) readd_clause(cl); // We have erased deletions of clauses that were not on watchlist, so readding is safe here.
       } else {
         // Remove from watchlists
-        if (cl[0] && cl[1]) {
+        if (cl->get_length() > 2) {
           bool inwl = rem_clause(cl);
           assert(inwl);
           (void)inwl; // Silence unused warning
@@ -2671,10 +2763,10 @@ void Verifier::bwd_pass(bool show_status_bar) {
 
         if (!range_acquired.empty() && cl == range_acquired.front()) {
           assert(i > range_end_idx);
-          assert(wl_clause_state[clause_id(cl)].is_core());
+          assert(wl_clause_state[cl->get_clause_id()].is_core());
           range_acquired.pop_front();
           do_verify = true;
-        } else if (wl_clause_state[clause_id(cl)].is_core()) {
+        } else if (wl_clause_state[cl->get_clause_id()].is_core()) {
           if (sdata->acquire(cl)) {
             do_verify = true;
 
@@ -2683,7 +2775,7 @@ void Verifier::bwd_pass(bool show_status_bar) {
               assert(range_acquired.empty());
               range_end_idx = i;
 
-              lit_t pivot = glb.get_pivot(cl);
+              lit_t pivot = cl->get_pivot();
 
               while (true) {
                 --range_end_idx;
@@ -2694,12 +2786,12 @@ void Verifier::bwd_pass(bool show_status_bar) {
                 if (it.is_erased()) continue;
                 if (it.is_deletion()) break; // TODO: Is it worth to detect ranges across deletions?
 
-                lit_t *cl2 = db->p2c(it.get_pos());
-                if (glb.get_pivot(cl2) != pivot) break;
+                Clause *cl2 = db->p2c(it.get_pos());
+                if (cl2->get_pivot() != pivot) break;
 
                 // Element is in range
 
-                if (wl_clause_state[clause_id(cl2)].is_core()) {
+                if (wl_clause_state[cl2->get_clause_id()].is_core()) {
                   // Element is in core, try to acquire
                   if (sdata->acquire(cl2)) range_acquired.push_back(cl2);
                 }
@@ -2933,7 +3025,7 @@ template<bool include_lemmas, bool binary> void VController::dump_proof_aux(ostr
   assert(glb.get_conflict());
 
   prw.start_ty(item_type::CONFLICT);
-  prw.write_id(clause_id(glb.get_conflict()));
+  prw.write_id(glb.get_conflict()->get_clause_id());
 
   // Proof items
   size_t i = glb.get_num_items();
@@ -2945,13 +3037,12 @@ template<bool include_lemmas, bool binary> void VController::dump_proof_aux(ostr
 
     if (!item.is_erased()) {
 
-      lit_t *cl = glb.get_db().p2c(item.get_pos());
-
+      Clause *cl = glb.get_db().p2c(item.get_pos());
 
       if (item.is_deletion()) {
         if (!cfg_ignore_deletion) {
           if (sdata->is_marked(cl)) {
-            prw.write_del(clause_id(cl));
+            prw.write_del(cl->get_clause_id());
           }
         }
       } else {
@@ -3017,13 +3108,13 @@ void VController::dump_lemmas(ostream &out) {
     item_t &item = glb.get_item(i);
 
     if (!item.is_erased()) {
-      lit_t *cl = glb.get_db().p2c(item.get_pos());
+      Clause *cl = glb.get_db().p2c(item.get_pos());
 
       if (!item.is_deletion() && sdata->is_marked(cl)) {
         // Dump clause
-        //out<<"c id "<<clause_id(cl)<<endl; // TODO/FIXME: For debugging only
+        //out<<"c id "<<cl->get_clause_id()<<endl; // TODO/FIXME: For debugging only
 
-        for (lit_t *l = cl; *l; ++l) {out<<*l<<" ";}
+        for (lit_t l : cl->get_literals()) {out<<l<<" ";}
         out<<"0"<<endl;
       }
     }
