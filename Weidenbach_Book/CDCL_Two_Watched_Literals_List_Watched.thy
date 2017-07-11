@@ -166,9 +166,24 @@ lemma get_conflict_l_st_l_of_wl:
   by (cases S; cases L) auto
 
 text \<open>We here also update the list of watched clauses \<^term>\<open>WL\<close>.\<close>
+definition unit_prop_body_wl_inv where
+\<open>unit_prop_body_wl_inv T' i L \<longleftrightarrow>
+    twl_struct_invs (twl_st_of (Some L) (st_l_of_wl (Some (L, i)) T')) \<and>
+    twl_stgy_invs (twl_st_of (Some L) (st_l_of_wl (Some (L, i)) T')) \<and>
+    additional_WS_invs (st_l_of_wl (Some (L, i)) T') \<and>
+    correct_watching T' \<and>
+    i < length (watched_by T' L) \<and>
+    get_conflict_wl T' = None \<and>
+    (watched_by T' L) ! i > 0 \<and>
+    i < length (watched_by T' L) \<and>
+    watched_by T' L ! i < length (get_clauses_wl T')
+  \<close>
+
+
 definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
     (nat \<times> 'v twl_st_wl) nres" where
   \<open>unit_propagation_inner_loop_body_wl K w S = do {
+      ASSERT(unit_prop_body_wl_inv S w K);
       let (M, N, U, D, NP, UP, Q, W) = (S::'v twl_st_wl);
       ASSERT(K \<in># all_lits_of_mm (mset `# mset (tl N) + NP));
       ASSERT(w < length (watched_by S K));
@@ -333,18 +348,18 @@ proof -
     using valid S WL_w_in_drop by (auto simp: WS'_def)
   have C'_i[simp]: \<open>C''!i = L\<close>
     using L two_le_length_C S by (auto simp: take_2_if i_def split: if_splits)
-  then have N_W_w_i_L[simp]: \<open>N! (W L ! w)!i = L\<close>
+  then have N_W_w_i_L[simp]: \<open>N ! (W L ! w) ! i = L\<close>
     by (auto simp: S)
   have \<open>add_mset L Q \<subseteq># {#- lit_of x. x \<in># mset (convert_lits_l N M)#}\<close>
     using WS'_def no_dup_queued by (simp add: S all_conj_distrib)
   from mset_le_add_mset_decr_left2[OF this] have uL_M: \<open>-L \<in> lits_of_l M\<close>
     using imageI[of _ \<open>set M\<close> lit_of] lits_of_l_convert_lits_l[of N M]
     by (auto simp: lits_of_def)
-  have \<open>L \<in># all_lits_of_mm (mset `# mset (take U (tl N))+NP)\<close>
+  have \<open>L \<in># all_lits_of_mm (mset `# mset (take U (tl N)) + NP)\<close>
     using alien uL_M
     by (auto simp: S cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
         mset_take_mset_drop_mset in_all_lits_of_mm_ain_atms_of_iff)
-  then have L_in_N_NP: \<open>L \<in># all_lits_of_mm (mset `# mset (tl N)+NP)\<close>
+  then have L_in_N_NP: \<open>L \<in># all_lits_of_mm (mset `# mset (tl N) + NP)\<close>
     by (auto simp: in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def
         dest: in_set_takeD)
   then have \<open>mset (W L) = mset_set {x. Suc 0 \<le> x \<and> x < length N \<and> L \<in> set (take 2 (N ! x))}\<close>
@@ -474,6 +489,7 @@ proof -
     apply (rewrite at \<open>let _ = watched_by _ _ ! _ in _\<close> Let_def)
     apply (refine_vcg val f f'; remove_dummy_vars)
     unfolding i_def[symmetric]
+    subgoal using assms S zero_le_W_L_w C_N_U by (auto simp: unit_prop_body_wl_inv_def)
     subgoal using L_in_N_NP .
     subgoal using zero_le_W_L_w by simp
     subgoal by simp

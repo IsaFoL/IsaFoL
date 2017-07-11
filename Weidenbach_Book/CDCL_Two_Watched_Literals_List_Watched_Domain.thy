@@ -351,6 +351,7 @@ begin
 definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> nat \<Rightarrow>
   nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres"  where
   \<open>unit_propagation_inner_loop_body_wl_D K w S = do {
+    ASSERT(unit_prop_body_wl_inv S w K);
     ASSERT(literals_are_N\<^sub>0 S);
     let (M, N, U, D', NP, UP, Q, W) = S;
     ASSERT(K \<in># all_lits_of_mm (mset `# mset (tl N) + NP));

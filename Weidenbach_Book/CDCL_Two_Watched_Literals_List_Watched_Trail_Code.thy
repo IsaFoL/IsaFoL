@@ -1277,17 +1277,27 @@ abbreviation conflict_rel_assn where
 abbreviation conflict_option_rel_assn where
  \<open>conflict_option_rel_assn \<equiv> (bool_assn *assn uint32_nat_assn *assn array_assn (option_assn bool_assn))\<close>
 
-sepref_definition conflict_merge_code
-  is \<open>uncurry2 conflict_merge_aa\<close>
+sepref_register conflict_merge_aa
+sepref_thm conflict_merge_code
+  is \<open>uncurry2 (PR_CONST conflict_merge_aa)\<close>
   :: \<open>[\<lambda>((N, i), (_, xs)). i < length N \<and> (\<forall>j<length (N!i). atm_of (N!i!j) < length (snd xs))]\<^sub>a
         clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow> conflict_option_rel_assn\<close>
   supply length_rll_def[simp] nth_rll_def[simp] upperN_def[simp] uint32_nat_assn_one[sepref_fr_rules]
-  unfolding conflict_merge_aa_def conflict_merge_def conflict_add_def
+  unfolding conflict_merge_aa_def conflict_merge_def conflict_add_def PR_CONST_def
   apply (rewrite at \<open>_ + \<hole>\<close> annotate_assn[where A = \<open>uint32_nat_assn\<close>])
   apply (subst nth_rll_def[symmetric])
   supply [[goals_limit = 1]]
   by sepref
 
+concrete_definition (in -) conflict_merge_code
+   uses twl_array_code.conflict_merge_code.refine_raw
+   is "(uncurry2 ?f,_)\<in>_"
+prepare_code_thms (in -) conflict_merge_code_def
+
+lemmas conflict_merge_aa_refine[sepref_fr_rules] =
+   conflict_merge_code.refine[OF twl_array_code_axioms]
+
+(*TODO Move*)
 lemma (in twl_array_code_ops) in_clause_in_all_lits_of_m: \<open>x \<in># C \<Longrightarrow> x \<in># all_lits_of_m C\<close>
   using atm_of_lit_in_atms_of in_all_lits_of_m_ain_atms_of_iff by blast
 
@@ -1375,7 +1385,7 @@ proof -
 qed
 
 lemma conflict_merge_aa_mark_conflict:
-  \<open>(uncurry2 conflict_merge_aa, uncurry2 (RETURN ooo mark_conflict)) \<in>
+  \<open>(uncurry2 conflict_merge_aa, uncurry2(RETURN ooo mark_conflict)) \<in>
     [\<lambda>((N, i), xs). i < length N \<and> xs = None \<and> distinct (N ! i) \<and>
        literals_are_in_N\<^sub>0 (mset (N ! i)) \<and> \<not>tautology (mset (N ! i))]\<^sub>f
     \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f option_conflict_rel \<rightarrow>
@@ -1398,7 +1408,7 @@ proof -
       using simple_clss_size_upper_div2[of \<open>mset (N!i)\<close>] that by (auto simp: upperN_def)
 
     show ?thesis
-      unfolding conflict_merge_aa_def conflict_merge_def
+      unfolding conflict_merge_aa_def conflict_merge_def PR_CONST_def
       apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(j, _). length (N!i) - j)\<close>])
       subgoal by auto
       subgoal by auto
@@ -1446,7 +1456,8 @@ proof -
     hr_comp (bool_assn *assn uint32_nat_assn *assn array_assn (option_assn bool_assn))
         option_conflict_rel\<close>
    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF conflict_merge_code.refine conflict_merge_aa_mark_conflict] .
+    using hfref_compI_PRE_aux[OF conflict_merge_code.refine[unfolded PR_CONST_def]
+        conflict_merge_aa_mark_conflict[unfolded PR_CONST_def], OF twl_array_code_axioms] .
   have pre: \<open>?pre' = ?pre\<close>
     by (auto simp: comp_PRE_def in_br_conv list_mset_rel_def in_N⇩1_atm_of_in_atms_of_iff
         literals_to_update_wl_empty_def option_conflict_rel_def
@@ -1459,18 +1470,73 @@ proof -
   have post: \<open>?f' = ?f\<close>
     by (auto simp: twl_st_l_trail_assn_def list_assn_list_mset_rel_eq_list_mset_assn
        conflict_option_assn_def)
-  show ?thesis using H unfolding pre post im .
+  show ?thesis using H unfolding PR_CONST_def pre post im .
+qed
+     
+lemma unit_prop_body_wl_invD:
+  fixes S w K
+  defines \<open>C \<equiv> (watched_by S K) ! w\<close>
+  assumes inv: \<open>unit_prop_body_wl_inv S w K\<close>
+  shows \<open>distinct((get_clauses_wl S)!C)\<close> and \<open>get_conflict_wl S = None\<close> and
+    \<open>\<not>tautology(mset((get_clauses_wl S)!C))\<close>
+proof -
+  obtain M N U D' NP UP Q W where
+     S: \<open>S = (M, N, U, D', NP, UP, Q, W)\<close>
+    by (cases S)
+  have 
+     struct_invs: \<open>twl_struct_invs (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S))\<close> and
+     \<open>additional_WS_invs (st_l_of_wl (Some (K, w)) S)\<close> and
+     corr: \<open>correct_watching S\<close> and
+     \<open>w < length (watched_by S K)\<close> and
+     confl: \<open>get_conflict_wl S = None\<close> and
+     w_ge_0: \<open>0 < watched_by S K ! w\<close> and
+     w_le_length: \<open>w < length (watched_by S K)\<close> and
+     w_le_length_S: \<open>watched_by S K ! w < length (get_clauses_wl S)\<close>
+    using inv unfolding unit_prop_body_wl_inv_def by fast+
+  
+  show \<open>get_conflict_wl S = None\<close>
+    using confl .
+  have \<open>cdcl⇩W_restart_mset.cdcl⇩W_all_struct_inv
+       (state⇩W_of (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S)))\<close> and
+    no_tauto: \<open>∀D∈#init_clss (state⇩W_of (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S))).
+      ¬ tautology D\<close> 
+      \<open>∀D∈#learned_clss (state⇩W_of (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S))).
+      ¬ tautology D\<close> 
+      and
+    dist: \<open>cdcl⇩W_restart_mset.distinct_cdcl⇩W_state
+    (state⇩W_of (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S)))\<close>
+    using struct_invs unfolding twl_struct_invs_def
+      cdcl⇩W_restart_mset.cdcl⇩W_all_struct_inv_def
+    by fast+
+  have \<open>distinct_mset_set (mset ` set (tl N))\<close>
+    apply (subst append_take_drop_id[of \<open>U\<close> \<open>tl N\<close>, symmetric])
+    apply (subst set_append)
+    apply (subst image_Un)
+    apply (subst distinct_mset_set_union)
+    using dist
+    by (auto simp: C_def S cdcl⇩W_restart_mset.distinct_cdcl⇩W_state_def cdcl\<^sub>W_restart_mset_state
+        mset_take_mset_drop_mset drop_Suc)
+  moreover have NC: \<open>N!C \<in> set (tl N)\<close>
+     using w_ge_0 w_le_length_S unfolding C_def S
+     by (auto intro!: nth_in_set_tl)
+  ultimately show \<open>distinct((get_clauses_wl S)!C)\<close>
+     unfolding distinct_mset_set_def S by simp
+  show \<open>\<not>tautology(mset((get_clauses_wl S)!C))\<close>
+     using no_tauto NC
+    apply (subst (asm) append_take_drop_id[of \<open>U\<close> \<open>tl N\<close>, symmetric])
+    apply (subst (asm) set_append)
+    by (auto simp: C_def drop_Suc S cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset)
 qed
 
 
 lemma unit_propagation_inner_loop_body_wl_D_alt_def:
   \<open>unit_propagation_inner_loop_body_wl_D K w S = do {
+    ASSERT(unit_prop_body_wl_inv S w K);
     ASSERT(literals_are_N\<^sub>0 S);
     let (M, N, U, D', NP, UP, Q, W) = S;
     ASSERT(K \<in># all_lits_of_mm (mset `# mset (tl N) + NP));
     ASSERT(w < length (watched_by S K));
     ASSERT(K \<in> snd ` D\<^sub>0);
-    ASSERT(D' = None); (*NEW*)
     let C = (W K) ! w;
     ASSERT(C > 0);
     ASSERT(no_dup M);
@@ -1479,8 +1545,6 @@ lemma unit_propagation_inner_loop_body_wl_D_alt_def:
     let i = (if (N!C) ! 0 = K then 0 else 1);
     ASSERT(i < length (N!C));
     ASSERT(1-i < length (N!C));
-    ASSERT(distinct(N!C)); (*NEW*)
-    ASSERT(\<not>tautology(mset (N!C))); (*NEW*)
     let L = K;
     let L' = (N!C) ! (1 - i);
     ASSERT(L' \<in># mset (watched_l (N!C)) - {#L#});
@@ -1512,10 +1576,9 @@ lemma unit_propagation_inner_loop_body_wl_D_alt_def:
            RETURN (w, (M, N', U, D', NP, UP, Q, W))
        }
     }
-   }
-\<close>
-  sorry
-
+   }\<close>
+   unfolding unit_propagation_inner_loop_body_wl_D_def mark_conflict_def
+   ..
 
 sepref_register unit_propagation_inner_loop_body_wl_D
 sepref_thm unit_propagation_inner_loop_body_wl_D
@@ -1529,8 +1592,8 @@ sepref_thm unit_propagation_inner_loop_body_wl_D
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
   unfolding cons_trail_Propagated_def[symmetric]
   supply [[goals_limit=1]]
+  supply unit_prop_body_wl_invD[dest, intro] watched_app_def[simp]
   by sepref -- \<open>slow!\<close>
-
 
 
 concrete_definition (in -) unit_propagation_inner_loop_body_wl_D_code
@@ -1555,6 +1618,11 @@ sepref_thm unit_propagation_inner_loop_wl_loop_D
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     is_None_def[symmetric] get_conflict_wl_is_None
   supply [[goals_limit=1]]
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  -- \<open>Translation stops at the \<open>set\<close> operation\<close>
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_side_unfold apply auto[]
   by sepref
 
 concrete_definition (in -) unit_propagation_inner_loop_wl_loop_D_code
