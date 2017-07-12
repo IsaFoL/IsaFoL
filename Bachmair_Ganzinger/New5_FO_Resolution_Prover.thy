@@ -6,7 +6,7 @@
 *)
 
 theory New5_FO_Resolution_Prover 
-imports New3_Ordered_Ground_Resolution Standard_Redundancy Substitution Clauses 
+imports New3_Ordered_Ground_Resolution Standard_Redundancy Substitution Clauses
 begin
 
 
@@ -2893,37 +2893,41 @@ proof -
           have gD: "is_ground_cls D"
             sorry
 
-          from k have kk: "eligible (S_M S (getQ (limit_state Sts))) \<sigma> Ai (D + negs (mset Ai))"
-            unfolding gd2.eligible.simps unfolding eligible.simps
-            apply auto 
-            using gd gci gai gD
-            apply (subgoal_tac "maximal_in (Max (atms_of D \<union> set Ai)) (D + negs (mset Ai))")
-             apply (subgoal_tac "(Max (atms_of D \<union> set Ai) \<cdot>a \<sigma>) = Max (atms_of D \<union> set Ai) \<and> (D \<cdot> \<sigma> + negs (mset Ai \<cdot>am \<sigma>)) = (D + negs (mset Ai))")
-              apply auto[]
-             apply rule
-            using gD gai
-              apply (subgoal_tac "is_ground_atm (Max (atms_of D \<union> set Ai))")
-               apply auto[]
-              apply (metis is_ground_atms_def length_greater_0_conv nth_mem)
-             apply auto[]
-            using gai2 apply auto[]
+          have iii: "\<And>X :: 'a set. X \<noteq> {} \<Longrightarrow> finite X \<Longrightarrow> Max X \<in> X"
+            by auto
+
+          from f g have "atms_of D \<union> set Ai \<noteq> {}" "finite (atms_of D \<union> set Ai)"
+            by auto
+          then have aaaaa: "Max (atms_of D \<union> set Ai) \<in> atms_of D \<union> set Ai"
+            using iii by metis
+          then have ii123i: "is_ground_atm (Max (atms_of D \<union> set Ai))"
+            using gD gai2 unfolding is_ground_atm_mset_def using is_ground_cls_imp_is_ground_atm by auto 
+          then have grgrgr: "\<forall>\<sigma>. Max (atms_of D \<union> set Ai) \<cdot>a \<sigma> = Max (atms_of D \<union> set Ai)"
+            by auto
+
+          from k have ann2: "(Max (atms_of D \<union> set Ai) \<cdot>a \<sigma>) = Max (atms_of D \<union> set Ai) \<and> (D \<cdot> \<sigma> + negs (mset Ai \<cdot>am \<sigma>)) = (D + negs (mset Ai))"
+            unfolding gd2.eligible.simps[simplified] using ii123i using gai2 gD by auto
+
+           have ann1: "maximal_in (Max (atms_of D \<union> set Ai)) (D + negs (mset Ai))"
+            unfolding gd2.eligible.simps[simplified] ann2
             unfolding maximal_in_def
             unfolding less_atm_iff
-            apply (subgoal_tac "\<forall>\<sigma>. Max (atms_of D \<union> set Ai) \<cdot>a \<sigma> = Max (atms_of D \<union> set Ai)")
-            apply auto[]
+            using grgrgr
+            using gai gD 
             using ex_ground_subst
-              apply auto[]
-            subgoal for A \<sigma>
-              apply (rule_tac x=\<sigma> in exI)
+            apply simp
+            apply clarify
+            subgoal for B \<sigma>
+              apply(rule_tac x = \<sigma> in exI)
               apply auto
-              apply (rule_tac x="Max (atms_of D \<union> set Ai)" in bexI)
-               apply (subgoal_tac "A \<cdot>a \<sigma> = A")
-                apply (auto;fail)
-              using gD apply auto[]
-              using eddddd[of D] unfolding is_ground_atms_def apply auto[]
-              apply (metis UnI2 length_greater_0_conv nth_mem)
-              done
-            sorry (* I really need to clean this up before continuing. *)
+              apply (metis Max_less_iff UnCI \<open>finite (atms_of D \<union> set Ai)\<close> equals0D infinite_growing is_ground_cls_imp_is_ground_atm is_ground_subst_atm)
+              by (metis Max_less_iff UnCI \<open>finite (atms_of D \<union> set Ai)\<close> all_not_in_conv infinite_growing is_ground_atms_def is_ground_subst_atm)
+            done
+          note k
+          then have kk: "eligible (S_M S (getQ (limit_state Sts))) \<sigma> Ai (D + negs (mset Ai))"
+            unfolding gd2.eligible.simps unfolding eligible.simps
+            by (auto simp add: ann1 ann2)
+
           have l: "\<forall>i<n. gd2.str_maximal_in (Ai ! i) (Ci ! i)"
             using ord_resolve by simp
           then have ll: "\<forall>i<n. str_maximal_in (Ai ! i \<cdot>a \<sigma>) (Ci ! i \<cdot> \<sigma>)"
