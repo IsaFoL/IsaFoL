@@ -758,29 +758,33 @@ lemma ord_resolve_rename_lifting:
   define CAi' where "CAi' = CAi'' \<cdot>\<cdot>cl tl (mk_var_dis (DA''#CAi''))"
   define \<eta>' where "\<eta>' = (inv_ren (hd (mk_var_dis (DA''#CAi'')))) \<odot> \<eta>''"
   define \<eta>s' where "\<eta>s' = (map inv_ren (tl (mk_var_dis (DA''#CAi'')))) \<odot>s \<eta>s''"
-    
-  (* Try to reprove below lines nicer. *)
+
+  have iiir: "is_renaming (hd (mk_var_dis (DA''#CAi'')))"
+    using mk_var_dis_p[of "DA'' # CAi''"]
+    by (metis length_greater_0_conv list.exhaust_sel list.set_intros(1) list.simps(3)) 
+
+  have iiiiiir: "is_renaming_list (tl (mk_var_dis (DA''#CAi'')))"
+    using mk_var_dis_p[of "DA'' # CAi''"]
+    by (metis is_renaming_list_def length_greater_0_conv list.set_sel(2) list.simps(3))
+
+
   have "length CAi' = n"
     using ai''(1) n unfolding CAi'_def by auto
   have "length \<eta>s' = n"
     using ai''(2) n unfolding \<eta>s'_def by auto   
   note n = \<open>length CAi' = n\<close> \<open>length \<eta>s' = n\<close> n
+  thm inv_ren_cancel_r
   have DA'_DA: "DA' \<cdot> \<eta>' = DA"
-    using ai''(4) unfolding \<eta>'_def DA'_def using mk_var_dis_p n(3)
-    by (metis inv_ren_cancel_r length_greater_0_conv list.exhaust_sel list.set_intros(1) subst_cls_comp_subst subst_cls_id_subst zero_less_Suc) 
+    using ai''(4) unfolding \<eta>'_def DA'_def using iiir by auto
   have "S DA' \<cdot> \<eta>' = S_M S M DA" 
-    using ai''(5) using ai''(4) unfolding \<eta>'_def DA'_def using mk_var_dis_p n(3)
-    by (smt inv_ren_cancel_r length_greater_0_conv list.exhaust_sel list.set_intros(1) selection_renaming_invariant subst_cls_comp_subst subst_cls_id_subst zero_less_Suc)
-    (* There is also an isar proof *)
+    using ai''(5) unfolding \<eta>'_def DA'_def using iiir selection_renaming_invariant
+    by auto
   have CAi'_CAi: "CAi' \<cdot>\<cdot>cl \<eta>s' = CAi"
-    using ai''(7) selection_renaming_list_invariant unfolding CAi'_def \<eta>s'_def using n unfolding is_renaming_list_def
-      using mk_var_dis_p
-      by (metis drdrdrdrdrdrdrdrdrdrdrdr is_renaming_list_def length_greater_0_conv length_tl list.sel(3) list.set_sel(2) subst_cls_lists_comp_substs zero_less_Suc) 
+    using ai''(7)  unfolding CAi'_def \<eta>s'_def using n(3)
+    using mk_var_dis_p using iiiiiir
+    by auto 
   have "(map S CAi') \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi"
-    using ai''(8) unfolding CAi'_def \<eta>s'_def using selection_renaming_list_invariant using n
-    by (smt drdrdrdrdrdrdrdrdrdrdrdr inv_ren_is_renaming_list is_renaming_list_def length_greater_0_conv length_map length_tl list.sel(3) list.set_sel(2) mk_var_dis_p subst_cls_lists_comp_substs zero_less_Suc)
-     (* no isar proof :-0 *) 
-      
+    unfolding CAi'_def \<eta>s'_def using ai''(8) n(3,4) iiiiiir selection_renaming_list_invariant by auto     
   have vd: "var_disjoint (DA' # CAi')" unfolding DA'_def CAi'_def
     using mk_var_dis_p[of "DA'' # CAi''"]
     by (metis length_greater_0_conv list.exhaust_sel n(3) substitution.subst_cls_lists_Cons substitution_axioms zero_less_Suc)
@@ -864,8 +868,7 @@ lemma ord_resolve_rename_lifting:
         
     have "S_M S M (D + negs (mset Ai)) \<noteq> {#} \<Longrightarrow> negs (mset Ai') = S DA'"
       using Ai'_p by blast
-        
-        
+
     show ?thesis using that
         \<open>Ai' \<cdot>al \<eta> = Ai\<close>
         \<open>D' \<cdot> \<eta> = D\<close>
