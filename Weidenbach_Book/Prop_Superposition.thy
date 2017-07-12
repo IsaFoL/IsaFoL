@@ -428,7 +428,7 @@ proof -
     using cons unfolding consistent_interp_def atms_of_s_def atms_of_def
       apply (auto 1 5 simp add: image_iff)
     by (metis atm_of_uminus literal.sel(1))
-  moreover have tot: "total_over_m ?I (A \<union> {B})"
+  moreover have tot_I: "total_over_m ?I (A \<union> {B})"
   proof -
     obtain aa :: "'a set \<Rightarrow> 'a literal set \<Rightarrow> 'a" where
       f2: "\<forall>x0 x1. (\<exists>v2. v2 \<in> x0 \<and> Pos v2 \<notin> x1 \<and> Neg v2 \<notin> x1)
@@ -452,12 +452,36 @@ proof -
   qed
   moreover have "?I \<Turnstile>s A"
     using I_A by auto
-  ultimately have "?I \<Turnstile> B"
+  ultimately have 1: "?I \<Turnstile> B"
     using \<open>A\<Turnstile>pB\<close> unfolding true_clss_cls_def by auto
+
+  let ?I' = "I \<union> {Neg P|P. P \<in> atms_of B \<and> P \<notin> atms_of_s I}"
+  have "consistent_interp ?I'"
+    using cons unfolding consistent_interp_def atms_of_s_def atms_of_def
+    apply (auto 1 5 simp add: image_iff)
+    by (metis atm_of_uminus literal.sel(2))
+  moreover have tot: "total_over_m ?I' (A \<union> {B})"
+    by (smt Un_iff in_atms_of_s_decomp mem_Collect_eq tot total_over_m_empty total_over_m_insert
+        total_over_m_union total_over_set_def total_union)
+  moreover have "?I' \<Turnstile>s A"
+    using I_A by auto
+  ultimately have 2: "?I' \<Turnstile> B"
+    using \<open>A\<Turnstile>pB\<close> unfolding true_clss_cls_def by auto  
+  define BB where
+    \<open>BB =  {P. P \<in> atms_of B \<and> P \<notin> atms_of_s I}\<close>
+  have 1: \<open>I \<union> Pos ` BB \<Turnstile> B\<close>
+    using 1 unfolding BB_def by (simp add: setcompr_eq_image)
+  have 2: \<open>I \<union> Neg ` BB \<Turnstile> B\<close>
+    using 2 unfolding BB_def by (simp add: setcompr_eq_image)
+  have \<open>finite BB\<close>
+    unfolding BB_def by auto
   then show ?thesis
+    using 1 2  apply (induction BB)
+    subgoal by auto
+    subgoal for x BB
+      using remove_literal_in_model_tautology[of \<open>I \<union> Pos ` BB\<close>]
     apply -
     apply (rule ccontr)
-    using tot
     apply (auto simp: Partial_Clausal_Logic.true_cls_def total_over_set_def total_over_m_def
         atms_of_ms_def)
 
@@ -476,9 +500,65 @@ locale ground_ordered_resolution_with_redundancy =
   assumes
     redundant_iff_abstract: "redundant A N \<longleftrightarrow> abstract_red A N"
 begin
+
 definition saturated :: "'a clauses \<Rightarrow> bool" where
-"saturated N \<longleftrightarrow> (\<forall>A B C. A \<in> N \<longrightarrow> B \<in> N \<longrightarrow> \<not>redundant A N \<longrightarrow> \<not>redundant B N
-  \<longrightarrow> superposition_rules A B C \<longrightarrow> redundant C N \<or> C \<in> N)"
+"saturated N \<longleftrightarrow> 
+  (\<forall>A B C. A \<in> N \<longrightarrow> B \<in> N \<longrightarrow> \<not>redundant A N \<longrightarrow> \<not>redundant B N \<longrightarrow> 
+      superposition_rules A B C \<longrightarrow> redundant C N \<or> C \<in> N)"
+lemma (in -)
+  assumes \<open>A \<Turnstile>p C + E\<close>
+  shows \<open>A \<Turnstile>p add_mset L C \<or> A \<Turnstile>p add_mset (-L) E\<close>
+proof clarify
+  assume \<open>\<not> A \<Turnstile>p add_mset (- L) E\<close>
+  then obtain I' where
+     tot': \<open>total_over_m I' (A \<union> {add_mset (-L) E})\<close> and
+     cons': \<open>consistent_interp I'\<close> and
+     I'_A: \<open>I' \<Turnstile>s A\<close> and
+     I'_uL_E: \<open>\<not>I' \<Turnstile> add_mset (-L) E\<close>
+    unfolding true_clss_cls_def by auto
+  have \<open>- L \<notin> I'\<close> \<open>\<not> I' \<Turnstile> E\<close>
+    using I'_uL_E by auto
+  moreover have \<open>atm_of L \<in> atm_of ` I'\<close>
+    using tot' unfolding total_over_m_def total_over_set_def
+    by (cases L) force+
+  ultimately have \<open>L \<in> I'\<close>
+    by (auto simp: image_iff atm_of_eq_atm_of)
+  
+  show \<open>A \<Turnstile>p add_mset L C\<close>
+    unfolding true_clss_cls_def
+  proof (intro allI impI conjI)
+    fix I
+    assume 
+      tot: \<open>total_over_m I (A \<union> {add_mset L C})\<close> and
+      cons: \<open>consistent_interp I\<close> and
+      I_A: \<open>I \<Turnstile>s A\<close>
+    let ?I = "I \<union> {Pos P|P. P \<in> atms_of E \<and> P \<notin> atms_of_s I}"
+    have in_C_pm_I: \<open>L \<in># C \<Longrightarrow> L \<in> I \<or> -L \<in> I\<close> for L
+      using tot by (cases L) (force simp: total_over_m_def total_over_set_def atms_of_def)+
+    have "consistent_interp ?I"
+      using cons unfolding consistent_interp_def atms_of_s_def atms_of_def
+      apply (auto 1 5 simp add: image_iff)
+      by (metis atm_of_uminus literal.sel(1))
+    moreover {
+      have tot_I: "total_over_m ?I (A \<union> {E})"
+        using tot total_over_set_def total_union by force
+      then have tot_I: "total_over_m ?I (A \<union> {C+E})"
+        using total_union[OF tot] by auto}
+    moreover have "?I \<Turnstile>s A"
+      using I_A by auto
+    ultimately have 1: "?I \<Turnstile> C + E"
+      using assms unfolding true_clss_cls_def by auto
+
+    then have \<open>I \<Turnstile> add_mset L C\<close>
+      unfolding Partial_Clausal_Logic.true_cls_def
+      apply (auto simp: true_cls_def dest: in_C_pm_I)
+      oops
+    then show \<open>I \<Turnstile> add_mset L C\<close>
+      unfolding Partial_Clausal_Logic.true_cls_def
+      apply (auto simp: true_cls_def dest: in_C_pm_I)
+      
+      thm true_cls_def
+      oops
 
 lemma
   assumes
@@ -491,7 +571,7 @@ proof (rule ccontr)
   assume "\<not> ?thesis"
   then have not_empty: "{E\<in>N. \<not>?N\<^sub>\<I> \<Turnstile>h E} \<noteq> {}"
     unfolding true_clss_def Ball_def by auto
-  def D \<equiv> "Min {E\<in>N. \<not>?N\<^sub>\<I> \<Turnstile>h E}"
+  define D where "D = Min {E\<in>N. \<not>?N\<^sub>\<I> \<Turnstile>h E}"
   have [simp]: "D \<in> N"
     unfolding D_def
     by (metis (mono_tags, lifting) Min_in not_empty finite mem_Collect_eq rev_finite_subset subsetI)
@@ -585,12 +665,17 @@ proof (rule ccontr)
           abstract_red_subset_mset_abstract_red)
   next
     case Lneg note L = this(1)
-    have "P \<in> ?N\<^sub>\<I>"
+    have P: "P \<in> ?N\<^sub>\<I>"
       using not_d_interp unfolding D true_cls_def L by (auto split: if_split_asm)
     then obtain E where
       DPN: "E + {#Pos P#} \<in> N" and
       prod: "production N (E + {#Pos P#}) = {P}"
       using in_interp_is_produced by blast
+    have \<open>\<not> ?N\<^sub>\<I> \<Turnstile>h C\<close>
+      using not_d_interp P unfolding D Lneg by auto
+    then have uL_C: \<open>Pos P \<notin># C\<close>
+      using P unfolding Lneg by blast
+
     have sup_EC: "superposition_rules (E + {#Pos P#}) (C + {#Neg P#}) (E + C)"
       using superposition_l by fast
     then have "superposition N (N \<union> {E+C})"
@@ -603,8 +688,8 @@ proof (rule ccontr)
       using prod unfolding production_unfold by auto
     have "Neg P \<notin># E"
       using prod produces_imp_neg_notin_lits by force
-    then have "\<And>y. y \<in># (E + {#Pos P#})
-        \<Longrightarrow> count (E + {#Pos P#}) (Neg P) < count (C + {#Neg P#}) (Neg P)"
+    then have "\<And>y. y \<in># (E + {#Pos P#}) \<Longrightarrow>
+        count (E + {#Pos P#}) (Neg P) < count (C + {#Neg P#}) (Neg P)"
       using count_greater_zero_iff by fastforce
     moreover have "\<And>y. y \<in># (E + {#Pos P#}) \<Longrightarrow> y < Neg P"
       using PMax by (metis DPN Max_less_iff empty finite_set_mset pos_less_neg
@@ -619,27 +704,27 @@ proof (rule ccontr)
       using \<open>P \<in> ?N\<^sub>\<I>\<close> by blast
     have "?N\<^sub>\<I> \<Turnstile>h C+E \<or> C+E \<notin> N"
       using ce_lt_d cls_not_D unfolding D_def by fastforce
-    have "Pos P \<notin># C+E"
+    have Pos_P_C_E: "Pos P \<notin># C+E"
       using D \<open>P \<in> ground_resolution_with_selection.INTERP S N\<close>
         \<open>count (E + {#Pos P#}) (Pos P) \<le> 1\<close> multi_member_skip not_d_interp
       by (auto simp: not_in_iff)
     then have "\<And>y. y \<in># C+E \<Longrightarrow> count (C+E) (Pos P) < count (E + {#Pos P#}) (Pos P)"
       using set_mset_def by fastforce
-        (*       moreover
-        have "Pos P \<notin># E"
-          using `Pos P \<notin># C + E` by auto
-        hence "\<And>y. y \<in>#  C + E \<Longrightarrow> y < Pos P"
-        using PMax apply auto
-        defer
-        sorry
-      ultimately have ce_lt_ep: "C + E < E + {#Pos P#}"
-        using ex_gt_imp_less_multiset prod produces_imp_Pos_in_lits by blast *)
     have "\<not>redundant (C + E) N"
     proof (rule ccontr)
       assume red'[simplified]: "\<not> ?thesis"
       have abs: "clss_lt N (C + E) \<Turnstile>p C + E"
         using redundant_iff_abstract red' unfolding abstract_red_def by auto
-      have "clss_lt N (C + E) \<Turnstile>p E + {#Pos P#} \<or> clss_lt N (C + E) \<Turnstile>p C + {#Neg P#}"
+      moreover
+      have \<open>clss_lt N (C + E)  \<subseteq> clss_lt N (E + {#Pos P#})\<close>
+        using ce_lt_d Pos_P_C_E uL_C apply (auto simp: clss_lt_def D L)
+        
+        using Pos_P_C_E unfolding less_multiset\<^sub>H\<^sub>O 
+        apply (auto split: if_splits)
+
+      then have "clss_lt N (E + {#Pos P#}) \<Turnstile>p E + {#Pos P#} \<or> 
+          clss_lt N (C + {#Neg P#}) \<Turnstile>p C + {#Neg P#}"
+        
       proof clarify
         assume CP: "\<not> clss_lt N (C + E) \<Turnstile>p C + {#Neg P#}"
         { fix I
@@ -649,7 +734,24 @@ proof (rule ccontr)
             "I \<Turnstile>s clss_lt N (C + E)"
           then have "I \<Turnstile> C + E"
             using (* true_clss_cls_extended *) abs sorry
-          thm true_clss_cls_extended
+          moreover have "\<not> I \<Turnstile> C + {#Neg P#}"
+            using CP unfolding true_clss_cls_def (* TODO same here *)
+            sorry
+          ultimately have "I \<Turnstile> E + {#Pos P#}" by auto
+        }
+        then show "clss_lt N (C + E) \<Turnstile>p E + {#Pos P#}"
+          unfolding true_clss_cls_def by auto
+      qed
+      then have "clss_lt N (C + E) \<Turnstile>p E + {#Pos P#} \<or> clss_lt N (C + E) \<Turnstile>p C + {#Neg P#}"
+      proof clarify
+        assume CP: "\<not> clss_lt N (C + E) \<Turnstile>p C + {#Neg P#}"
+        { fix I
+          assume
+            "total_over_m I (clss_lt N (C + E) \<union> {E + {#Pos P#}})" and
+            "consistent_interp I" and
+            "I \<Turnstile>s clss_lt N (C + E)"
+          then have "I \<Turnstile> C + E"
+            using (* true_clss_cls_extended *) abs sorry
           moreover have "\<not> I \<Turnstile> C + {#Neg P#}"
             using CP unfolding true_clss_cls_def (* TODO same here *)
             sorry
@@ -663,7 +765,17 @@ proof (rule ccontr)
         by (blast dest: less_imp_le)
       ultimately have "redundant (C + {#Neg P#}) N \<or> clss_lt N (C + E) \<Turnstile>p E + {#Pos P#} "
         unfolding redundant_iff_abstract abstract_red_def using true_clss_cls_subset by blast
-      show False sorry
+      show False
+
+
+
+
+
+
+
+
+        
+        sorry
     qed
     moreover have "\<not> redundant (E + {#Pos P#}) N"
       sorry
