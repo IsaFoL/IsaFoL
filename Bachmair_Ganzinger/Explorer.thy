@@ -1,5 +1,8 @@
 (* 
 
+LICENSE: ? ? ? ? 
+FROM: http://www.mail-archive.com/isabelle-dev@mailbroy.informatik.tu-muenchen.de/msg07448.html
+
 FABIAN IMMLER
 
 A while ago, Florian Haftmann sent a command that does something like this to the mailing list [1]. I attach a version that works with current Isabelle2016-1 (not sure if I got all the modifications right, but it seems to work at least on the example in the .thy file).
