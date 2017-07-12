@@ -472,7 +472,7 @@ lemma subst_cls_list_nth[simp]: "i < length Ci \<Longrightarrow> ((Ci \<cdot>cl 
   unfolding subst_cls_list_def using less_Suc_eq_0_disj nth_map by (induction Ci) auto
   
 lemma subst_cls_lists_nth[simp]: "length CC = length \<sigma>s \<Longrightarrow> i < length CC \<Longrightarrow> (CC \<cdot>\<cdot>cl \<sigma>s) ! i = (CC ! i) \<cdot> (\<sigma>s ! i)"
-  unfolding subst_cls_lists_def by auto  
+  unfolding subst_cls_lists_def by auto
 
     
 subsubsection {* Substitute on an image *}
@@ -874,7 +874,7 @@ lemma is_ground_subst_lit_iff: "is_ground_lit L \<longleftrightarrow> (\<forall>
     
 lemma is_ground_subst_cls_iff: "is_ground_cls C \<longleftrightarrow> (\<forall>\<sigma>. C = C \<cdot> \<sigma>)"
   apply rule
-  using is_ground_subst_lit_iff apply (auto simp add: is_ground_cls_def subst_cls_def)[]
+  using is_ground_subst_lit_iff apply (auto simp add: is_ground_cls_def subst_cls_def; fail)
   apply (metis ex_ground_subst ground_subst_ground_cls)
   done    
 

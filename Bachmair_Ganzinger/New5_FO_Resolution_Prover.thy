@@ -420,13 +420,32 @@ lemma eql_map_neg_lit_eql_atm:
   shows "Ai' \<cdot>al \<eta> = Ai"
   using assms 
 by (induction Ai' arbitrary: Ai) auto
+
+find_theorems image_mset 
+
+lemma asdfasdfasfdfffkggfjgsljgf[simp]: (* maybe faster without this... *)
+   "L \<cdot>l \<sigma> \<in> Neg ` X \<Longrightarrow> is_neg L"
+  by (metis bex_imageD literal.disc(2) literal.map_disc_iff subst_lit_def)
   
+lemma dfdfdferre: 
+  assumes "L \<cdot>l \<sigma> \<in># (negs X) \<cdot> \<tau>"
+  shows "is_neg L"
+  using assms
+  by simp
+
+lemma dfdfdfee:
+  assumes "L \<cdot>l \<sigma> \<in># (negs X)"
+  shows "is_neg L"
+  using assms
+  by auto
+
 lemma instance_list:
   assumes "negs (mset Ai) = SDA' \<cdot> \<eta>"
   shows "\<exists>Ai'. negs (mset Ai') = SDA' \<and> Ai' \<cdot>al \<eta> = Ai"
 proof - 
   from assms have negL: "\<forall>L \<in># SDA'. is_neg L"
-    by (metis image_iff literal.disc(2) set_image_mset subst_lit_is_pos substitution_ops.subst_cls_def)
+    using Melem_subst_cls dfdfdfee by metis
+
     
   from assms(1) have "{#x \<cdot>l \<eta>. x \<in># SDA'#} = mset (map Neg Ai)"
     using subst_cls_def by auto
@@ -495,6 +514,9 @@ next
   case 0 then show ?case
     by auto
 qed
+
+lemma ddd345345345d[simp]: "B \<in> atms_of C \<Longrightarrow> B \<cdot>a \<sigma> \<in> atms_of (C \<cdot> \<sigma>)"
+  sorry
   
 lemma maximal_in_gen:
   assumes "maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>)"
@@ -504,24 +526,12 @@ proof -
   hence "\<forall>B \<in> atms_of (C \<cdot> \<sigma>). \<not> less_atm (A \<cdot>a \<sigma>) B" unfolding maximal_in_def by -
   hence ll: "\<forall>B\<in>atms_of (C \<cdot> \<sigma>). \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma>'))" unfolding less_atm_iff by -
   have "\<forall>B\<in>atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma> \<cdot>a \<sigma>'))"
-  proof (* This proof should ideally not be necessary *)
-    fix B
-    assume "B \<in> atms_of C"
-    then have "B \<cdot>a \<sigma> \<in> (atms_of C) \<cdot>as \<sigma>" unfolding subst_atms_def by auto (* this should be automatic *)
-    then have "B \<cdot>a \<sigma> \<in> atms_of (C \<cdot> \<sigma>)" unfolding subst_cls_def subst_lit_def subst_atms_def atms_of_def
-      apply auto
-      by (metis (mono_tags, lifting) imageI literal.map_sel(1) literal.map_sel(2))
-    then show "\<not> (\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < (B \<cdot>a \<sigma>) \<cdot>a \<sigma>')" using ll by auto 
-  qed 
+     using ll by auto
   hence "\<forall>B\<in>atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma>' < B \<cdot>a \<sigma>'))"
     using is_ground_comp_subst by fastforce
   hence "\<forall>B\<in>atms_of C. \<not> (less_atm A B)" unfolding less_atm_iff by -
   then show ?thesis unfolding less_eq_atm_def maximal_in_def by auto
 qed
-    
-  
-    
-  
   
 lemma str_maximal_in_gen: (* a better proof might reuse the lemma maximal_in_gen *)
   assumes "str_maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>)"
@@ -539,7 +549,13 @@ proof -
   hence "\<forall>B\<in>atms_of C. \<not> (less_atm A B \<or> A = B)" unfolding less_atm_iff by -
   then show ?thesis unfolding less_eq_atm_def by auto
 qed
-  
+
+lemma[simp]: "sum_list Ci \<subseteq># sum_list CAi \<Longrightarrow> is_ground_cls_list CAi \<Longrightarrow> is_ground_cls_list Ci"
+  sorry
+
+lemma[simp]: "is_ground_cls_list Ci \<Longrightarrow> is_ground_cls (sum_list Ci)"
+  sorry
+
 lemma ground_resolvent_subset:
   assumes gr_c: "is_ground_cls_list CAi"
   assumes gr_d: "is_ground_cls DA"
@@ -551,14 +567,13 @@ lemma ground_resolvent_subset:
   hence cisucai: "\<Union>#mset Ci \<subseteq># \<Union>#(mset CAi)"
     using subseteq_list_Union_mset ord_resolve(3) ord_resolve(4) by force
   hence gr_ci: "is_ground_cls_list Ci" using gr_c
-    by (metis is_ground_cls_Union_mset is_ground_cls_list_def is_ground_cls_mono is_ground_cls_mset_def set_mset_mset)
+    by simp
   have dsuDA :"D \<subseteq># DA" by (simp add: local.ord_resolve(1)) 
   hence gr_di: "is_ground_cls D"
     using gr_d is_ground_cls_mono by auto     
   
   have "is_ground_cls (\<Union>#mset Ci + D)" using gr_ci gr_di
-    unfolding is_ground_cls_def is_ground_cls_list_def
-    by (metis in_Union_mset_iff set_mset_mset union_iff)
+    by auto
   then have fffff: "(\<Union>#mset Ci + D) = (\<Union>#mset Ci + D) \<cdot> \<sigma>" by auto
   from this ord_resolve have "E = (\<Union>#mset Ci + D) \<cdot> \<sigma>" by -
   hence "E = (\<Union>#mset Ci + D)" using fffff by auto
@@ -709,15 +724,13 @@ lemma ord_resolve_rename_lifting:
   case (ord_resolve n Ci Aij Ai D)
     
   have selection_renaming_list_invariant: "\<And>\<rho>s Ci. length \<rho>s = length Ci \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> map S (Ci \<cdot>\<cdot>cl \<rho>s) = (map S Ci) \<cdot>\<cdot>cl \<rho>s"
-    apply (rule nth_equalityI)
-    using selection_renaming_invariant unfolding is_renaming_list_def apply auto
-    done
+    using selection_renaming_invariant unfolding is_renaming_list_def by auto
     
   note n = \<open>n \<noteq> 0\<close> \<open>length CAi = n\<close> \<open>length Ci = n\<close> \<open>length Aij = n\<close> \<open>length Ai = n\<close>
     
   interpret S: selection S by (rule select)
    
-  obtain DA'' \<eta>'' CAi'' \<eta>s'' where ff:
+  obtain DA'' \<eta>'' CAi'' \<eta>s'' where ai'':
     "length CAi'' = n"
     "length \<eta>s'' = n"
     
@@ -746,25 +759,25 @@ lemma ord_resolve_rename_lifting:
   define \<eta>' where "\<eta>' = (inv_ren (hd (mk_var_dis (DA''#CAi'')))) \<odot> \<eta>''"
   define \<eta>s' where "\<eta>s' = (map inv_ren (tl (mk_var_dis (DA''#CAi'')))) \<odot>s \<eta>s''"
     
-  (* Try to reprove below lines nicer. I think maybe even sledgehammer could do that for good reasons. *)
+  (* Try to reprove below lines nicer. *)
   have "length CAi' = n"
-    using ff(1) n unfolding CAi'_def by auto
+    using ai''(1) n unfolding CAi'_def by auto
   have "length \<eta>s' = n"
-    using ff(2) n unfolding \<eta>s'_def by auto   
+    using ai''(2) n unfolding \<eta>s'_def by auto   
   note n = \<open>length CAi' = n\<close> \<open>length \<eta>s' = n\<close> n
   have DA'_DA: "DA' \<cdot> \<eta>' = DA"
-    using ff(4) unfolding \<eta>'_def DA'_def using mk_var_dis_p n
+    using ai''(4) unfolding \<eta>'_def DA'_def using mk_var_dis_p n(3)
     by (metis inv_ren_cancel_r length_greater_0_conv list.exhaust_sel list.set_intros(1) subst_cls_comp_subst subst_cls_id_subst zero_less_Suc) 
   have "S DA' \<cdot> \<eta>' = S_M S M DA" 
-    using ff(5) using ff(4) unfolding \<eta>'_def DA'_def using mk_var_dis_p n
+    using ai''(5) using ai''(4) unfolding \<eta>'_def DA'_def using mk_var_dis_p n(3)
     by (smt inv_ren_cancel_r length_greater_0_conv list.exhaust_sel list.set_intros(1) selection_renaming_invariant subst_cls_comp_subst subst_cls_id_subst zero_less_Suc)
-    (* There is also a sledgehammer proof *)
+    (* There is also an isar proof *)
   have CAi'_CAi: "CAi' \<cdot>\<cdot>cl \<eta>s' = CAi"
-    using ff(7) selection_renaming_list_invariant unfolding CAi'_def \<eta>s'_def using n unfolding is_renaming_list_def
+    using ai''(7) selection_renaming_list_invariant unfolding CAi'_def \<eta>s'_def using n unfolding is_renaming_list_def
       using mk_var_dis_p
       by (metis drdrdrdrdrdrdrdrdrdrdrdr is_renaming_list_def length_greater_0_conv length_tl list.sel(3) list.set_sel(2) subst_cls_lists_comp_substs zero_less_Suc) 
   have "(map S CAi') \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi"
-    using ff(8) unfolding CAi'_def \<eta>s'_def using selection_renaming_list_invariant using n
+    using ai''(8) unfolding CAi'_def \<eta>s'_def using selection_renaming_list_invariant using n
     by (smt drdrdrdrdrdrdrdrdrdrdrdr inv_ren_is_renaming_list is_renaming_list_def length_greater_0_conv length_map length_tl list.sel(3) list.set_sel(2) mk_var_dis_p subst_cls_lists_comp_substs zero_less_Suc)
      (* no isar proof :-0 *) 
       
