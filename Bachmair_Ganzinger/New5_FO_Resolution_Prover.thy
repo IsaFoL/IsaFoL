@@ -412,16 +412,13 @@ lemma (in linorder) multiset_mset_sorted_list_of_multiset[simp]:
   by (induct M) (simp_all add: ac_simps)
     
 lemma grounding_ground: "C \<in> grounding_of_clss M \<Longrightarrow> is_ground_cls C"
-   by (smt ground_subst_ground_cls grounding_of_clss_def image_iff mem_Collect_eq mem_simps(9) substitution_ops.grounding_of_cls_def)
-  (* There is also an Isar proof. *)
+  unfolding grounding_of_clss_def grounding_of_cls_def by auto
      
 lemma eql_map_neg_lit_eql_atm:
   assumes "map (\<lambda>x. x \<cdot>l \<eta>) (map Neg Ai') = map Neg Ai"
   shows "Ai' \<cdot>al \<eta> = Ai"
   using assms 
 by (induction Ai' arbitrary: Ai) auto
-
-find_theorems image_mset 
 
 lemma asdfasdfasfdfffkggfjgsljgf[simp]: (* maybe faster without this... *)
    "L \<cdot>l \<sigma> \<in> Neg ` X \<Longrightarrow> is_neg L"
@@ -516,7 +513,8 @@ next
 qed
 
 lemma ddd345345345d[simp]: "B \<in> atms_of C \<Longrightarrow> B \<cdot>a \<sigma> \<in> atms_of (C \<cdot> \<sigma>)"
-  sorry
+  by (metis atms_of_subst_atms image_iff subst_atms_def)
+  
   
 lemma maximal_in_gen:
   assumes "maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>)"
@@ -551,11 +549,11 @@ proof -
 qed
 
 lemma[simp]: "sum_list Ci \<subseteq># sum_list CAi \<Longrightarrow> is_ground_cls_list CAi \<Longrightarrow> is_ground_cls_list Ci"
-  sorry
+  by (metis is_ground_cls_Union_mset is_ground_cls_list_def is_ground_cls_mono is_ground_cls_mset_def set_mset_mset sum_mset_sum_list)
 
 lemma[simp]: "is_ground_cls_list Ci \<Longrightarrow> is_ground_cls (sum_list Ci)"
-  sorry
-
+  by (meson in_mset_sum_list2 is_ground_cls_def is_ground_cls_list_def)
+  
 lemma ground_resolvent_subset:
   assumes gr_c: "is_ground_cls_list CAi"
   assumes gr_d: "is_ground_cls DA"
@@ -1332,6 +1330,13 @@ The following corresponds to Lemma 4.10:
 
 lemma subsubsubsubxx: "(mset Cl) \<cdot>cm \<sigma> = mset (Cl  \<cdot>cl \<sigma>)"
   unfolding subst_cls_mset_def subst_cls_list_def by auto
+
+lemma gigigigig: "D \<cdot> \<sigma> = C \<Longrightarrow> grounding_of_cls C \<subseteq> grounding_of_cls D"
+  unfolding grounding_of_cls_def
+  apply auto
+  apply (rule_tac x="\<sigma> \<odot> \<sigma>'" in exI)
+  apply auto
+  done
      
 lemma resolution_prover_ground_derive:
   assumes "St \<leadsto> St'"
@@ -1369,8 +1374,7 @@ next
   proof
     assume "D \<cdot> \<sigma> = C"
     then have gC_gD: "grounding_of_cls C \<subseteq> grounding_of_cls D"
-      unfolding grounding_of_cls_def
-      by (smt Collect_mono is_ground_comp_subst subst_cls_comp_subst) 
+      using gigigigig by simp
     have "grounding_of_state (N \<union> {C}, P, Q) = grounding_of_state (N, P, Q)"
     proof (rule; rule)
       fix x
@@ -1414,8 +1418,7 @@ next
   proof
     assume "D \<cdot> \<sigma> = C"
     then have gC_gD: "grounding_of_cls C \<subseteq> grounding_of_cls D"
-      unfolding grounding_of_cls_def
-      by (smt Collect_mono is_ground_comp_subst subst_cls_comp_subst) 
+      using gigigigig by simp
     have "grounding_of_state (N, P \<union> {C}, Q) = grounding_of_state (N, P, Q)"
     proof (rule; rule)
       fix x
@@ -1459,8 +1462,7 @@ next
   proof
     assume "D \<cdot> \<sigma> = C"
     then have gC_gD: "grounding_of_cls C \<subseteq> grounding_of_cls D"
-      unfolding grounding_of_cls_def
-      by (smt Collect_mono is_ground_comp_subst subst_cls_comp_subst) 
+      using gigigigig by simp
     have "grounding_of_state (N, P, Q \<union> {C}) = grounding_of_state (N, P, Q)"
     proof (rule; rule)
       fix x
@@ -1803,14 +1805,14 @@ lemma derivation_derivation_lmap: (* move this theorem *)
     assume "\<exists>N. Sts = LCons N LNil"
     then have "\<exists>N. lmap G Sts = LCons N LNil"
       by auto
-    then show "(\<exists>N. lmap G Sts = LCons N LNil) \<or> (\<exists>Ns M. lmap G Sts = LCons M Ns \<and> ((\<exists>Sts. Ns = lmap G Sts \<and> (\<forall>x y. R x y \<longrightarrow> T (G x) (G y)) \<and> derivation R Sts) \<or> derivation T Ns) \<and> T M (lhd Ns))"
+    then show ?thesis
       by auto
   next
     assume "\<exists>Ns M. Sts = LCons M Ns \<and> derivation R Ns \<and> R M (lhd Ns)"
-    then have "\<exists>Ns M. lmap G Sts = LCons M Ns \<and> ((\<exists>Sts. Ns = lmap G Sts \<and> (\<forall>x y. R x y \<longrightarrow> T (G x) (G y)) \<and> derivation R Sts) \<or> derivation T Ns) \<and> T M (lhd Ns)"
+    then have "\<exists>Ns M. lmap G Sts = LCons M Ns \<and> (\<exists>Sts. Ns = lmap G Sts \<and> (\<forall>x y. R x y \<longrightarrow> T (G x) (G y)) \<and> derivation R Sts) \<and> T M (lhd Ns)"
       using derivation
       by (metis (no_types, lifting) lhd_LCons llist.distinct(1) llist.exhaust_sel llist.map_sel(1) lmap_eq_LNil lnull_derivation ltl_lmap ltl_simps(2)) 
-    then show "(\<exists>N. lmap G Sts = LCons N LNil) \<or> (\<exists>Ns M. lmap G Sts = LCons M Ns \<and> ((\<exists>Sts. Ns = lmap G Sts \<and> (\<forall>x y. R x y \<longrightarrow> T (G x) (G y)) \<and> derivation R Sts) \<or> derivation T Ns) \<and> T M (lhd Ns))"
+    then show ?thesis
       by auto
   qed
 qed
