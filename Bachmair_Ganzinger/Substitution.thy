@@ -471,7 +471,7 @@ lemma subst_atm_mset_list_nth[simp]: "i < length Aij' \<Longrightarrow> (Aij' \<
 lemma subst_cls_list_nth[simp]: "i < length Ci \<Longrightarrow> ((Ci \<cdot>cl \<tau>) ! i) = (Ci ! i) \<cdot> \<tau>"
   unfolding subst_cls_list_def using less_Suc_eq_0_disj nth_map by (induction Ci) auto
   
-lemma subst_cls_lists_nth[simp]: "length CC = length \<sigma>s \<Longrightarrow> i < length CC \<Longrightarrow> (CC \<cdot>\<cdot>cl \<sigma>s) ! i = (CC ! i) \<cdot> \<sigma>s ! i"
+lemma subst_cls_lists_nth[simp]: "length CC = length \<sigma>s \<Longrightarrow> i < length CC \<Longrightarrow> (CC \<cdot>\<cdot>cl \<sigma>s) ! i = (CC ! i) \<cdot> (\<sigma>s ! i)"
   unfolding subst_cls_lists_def by auto  
 
     
@@ -485,13 +485,12 @@ lemma subst_cls_mset_image_mset[simp]: "image_mset f A \<cdot>cm \<sigma> = {# f
     
 subsubsection {* Substitute on the mset function*}
   
-    
-lemma[simp]: "mset (Ai \<cdot>al \<sigma>) = mset (Ai) \<cdot>am \<sigma>"
+lemma mset_subst_atm_list_subst_atm_mset[simp]: "mset (Ai \<cdot>al \<sigma>) = mset (Ai) \<cdot>am \<sigma>"
   unfolding subst_atm_list_def subst_atm_mset_def by auto
     
 subsubsection {* Substitute on @{term sum_list} *}
     
-lemma[simp]: "sum_list (Ci' \<cdot>cl \<eta>) = sum_list Ci' \<cdot> \<eta>" 
+lemma sum_list_subst_cls_list_subst_cls[simp]: "sum_list (Ci' \<cdot>cl \<eta>) = sum_list Ci' \<cdot> \<eta>" 
   unfolding subst_cls_list_def by (induction Ci') auto
     
 subsubsection {* Renamings *}
@@ -533,12 +532,11 @@ lemma inv_ren_cancel_l_list[simp]: "is_renaming_list s \<Longrightarrow> (map in
   unfolding is_renaming_list_def by (induction s) (auto simp add: comp_substs_def)
     
     
-lemma[simp]: "[] \<odot>s s = []"
+lemma Nil_comp_substs[simp]: "[] \<odot>s s = []"
   unfolding comp_substs_def by auto
     
-lemma[simp]: "s \<odot>s [] = []"
+lemma comp_substs_Nil[simp]: "s \<odot>s [] = []"
   unfolding comp_substs_def by auto
-  
     
 lemma xxid: "is_renaming x \<Longrightarrow> x \<odot> x = x \<Longrightarrow> x = id_subst"
   by (metis comp_subst_assoc comp_subst_id_subst inv_ren_cancel_r) 
@@ -586,7 +584,7 @@ thm inv_ren_cancel_l
   
 
   
-lemma[simp]: "is_renaming \<rho> \<Longrightarrow> C  \<cdot> \<rho> \<cdot> (inv_ren \<rho>) = C"
+lemma is_renaming_inv_ren_cancel[simp]: "is_renaming \<rho> \<Longrightarrow> C  \<cdot> \<rho> \<cdot> (inv_ren \<rho>) = C"
   by (metis inv_ren_cancel_r subst_cls_comp_subst subst_cls_id_subst)
     
 lemma drdrdrdrdrdrdrdrdrdrdrdr[simp]: "length CC = length \<rho>s \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> CC \<cdot>\<cdot>cl \<rho>s \<cdot>\<cdot>cl (map inv_ren \<rho>s) = CC"
@@ -963,6 +961,8 @@ next
   ultimately show ?case
     by blast
   oops (* Proof broke when I changed \<^text>\<open>is_renaming_def\<close> *)
+
+
 
 end
   
