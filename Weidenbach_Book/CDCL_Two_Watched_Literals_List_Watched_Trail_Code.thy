@@ -1605,6 +1605,50 @@ lemmas unit_propagation_inner_loop_body_wl_D_code_refine[sepref_fr_rules] =
    unit_propagation_inner_loop_body_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms,
      unfolded twl_st_l_trail_assn_def]
 
+(*TODO Move*)
+definition (in -) conflict_assn_is_None :: ‹_ \<Rightarrow> bool› where
+  ‹conflict_assn_is_None = (\<lambda>(b, _, _). b)›
+
+lemma conflict_assn_is_None_is_None: ‹(RETURN o conflict_assn_is_None, RETURN o is_None) \<in> 
+  option_conflict_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel›
+  by (intro nres_relI frefI)
+   (auto simp: option_conflict_rel_def conflict_assn_is_None_def split: option.splits)
+
+lemma conflict_assn_is_None_conflict_assn_is_None: 
+ ‹(return o conflict_assn_is_None, RETURN o conflict_assn_is_None) \<in> 
+  (bool_assn *assn uint32_nat_assn *assn array_assn (option_assn bool_assn))\<^sup>k \<rightarrow>\<^sub>a bool_assn›
+  by sepref_to_hoare
+   (sep_auto simp: conflict_assn_is_None_def)
+
+lemma conflict_assn_is_None_is_none_Code[sepref_fr_rules]:
+  ‹(return ∘ conflict_assn_is_None, RETURN ∘ is_None) ∈ conflict_option_assn⇧k →⇩a bool_assn›
+  using conflict_assn_is_None_conflict_assn_is_None[FCOMP conflict_assn_is_None_is_None,
+  unfolded conflict_option_assn_def[symmetric]] .
+
+definition (in -) conflict_assn_is_empty :: ‹_ \<Rightarrow> bool› where
+  ‹conflict_assn_is_empty = (\<lambda>(_, n, _). n = 0)›
+
+lemma conflict_assn_is_empty_is_empty: ‹(RETURN o conflict_assn_is_empty, RETURN o (\<lambda>D. Multiset.is_empty(the D))) \<in>
+  [\<lambda>D. D \<noteq> None]\<^sub>f
+  option_conflict_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel›
+  by (intro nres_relI frefI)
+   (auto simp: option_conflict_rel_def conflict_assn_is_empty_def conflict_rel_def Multiset.is_empty_def
+      split: option.splits)
+
+lemma conflict_assn_is_empty_conflict_assn_is_empty: 
+ ‹(return o conflict_assn_is_empty, RETURN o conflict_assn_is_empty) \<in> 
+  (bool_assn *assn uint32_nat_assn *assn array_assn (option_assn bool_assn))\<^sup>k \<rightarrow>\<^sub>a bool_assn›
+  by sepref_to_hoare
+     (sep_auto simp: conflict_assn_is_empty_def uint32_nat_rel_def br_def nat_of_uint32_0_iff)
+
+lemma conflict_assn_is_empty_is_empty_code[sepref_fr_rules]:
+  ‹(return ∘ conflict_assn_is_empty, RETURN ∘ the_is_empty) ∈ 
+      [\<lambda>D. D \<noteq> None]\<^sub>a conflict_option_assn⇧k → bool_assn›
+  using conflict_assn_is_empty_conflict_assn_is_empty[FCOMP conflict_assn_is_empty_is_empty,
+  unfolded conflict_option_assn_def[symmetric]] unfolding the_is_empty_def
+  by simp
+(*End MOVE*)
+
 sepref_register unit_propagation_inner_loop_wl_loop_D
 sepref_thm unit_propagation_inner_loop_wl_loop_D
   is \<open>uncurry ((PR_CONST unit_propagation_inner_loop_wl_loop_D) :: nat literal \<Rightarrow>
@@ -1618,11 +1662,6 @@ sepref_thm unit_propagation_inner_loop_wl_loop_D
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     is_None_def[symmetric] get_conflict_wl_is_None
   supply [[goals_limit=1]]
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  -- \<open>Translation stops at the \<open>set\<close> operation\<close>
-  apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_side_unfold apply auto[]
   by sepref
 
 concrete_definition (in -) unit_propagation_inner_loop_wl_loop_D_code
