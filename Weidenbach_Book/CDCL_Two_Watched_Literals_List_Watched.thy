@@ -149,15 +149,15 @@ proof -
 qed
 (* End Move  *)
 
-lemma literals_to_update_wl_literals_to_update_l_iff: 
+lemma literals_to_update_wl_literals_to_update_l_iff:
   \<open>literals_to_update_l (st_l_of_wl L S) = literals_to_update_wl S\<close>
   by (cases S; cases L) auto
 
-lemma correct_watching_set_literals_to_update: 
+lemma correct_watching_set_literals_to_update:
   \<open>correct_watching (set_literals_to_update_wl WS T') = correct_watching T'\<close>
   by (cases T') (auto simp: correct_watching.simps)
 
-lemma get_conflict_wl_set_literals_to_update_wl: 
+lemma get_conflict_wl_set_literals_to_update_wl:
   \<open>get_conflict_wl (set_literals_to_update_wl P S) = get_conflict_wl S\<close>
   by (cases S) auto
 
@@ -165,7 +165,7 @@ lemma get_conflict_twl_st_of_st_l_of_wl:
   \<open>get_conflict (twl_st_of L (st_l_of_wl L' T')) = get_conflict_wl T'\<close>
   by (cases T'; cases L; cases L') auto
 
-lemma literals_to_update_twl_st_of_st_l_of_wl: 
+lemma literals_to_update_twl_st_of_st_l_of_wl:
   \<open>literals_to_update (twl_st_of L (st_l_of_wl L' T')) = literals_to_update_wl T'\<close>
   by (cases T'; cases L; cases L') auto
 
@@ -667,7 +667,7 @@ proof -
       subgoal for i'T' T i' T' by auto
       subgoal for i'T' T i' T' by auto
       subgoal for i'T' T i' T'
-        by (cases T') 
+        by (cases T')
           (solves \<open>auto simp del: unit_clss_inv.simps valid_annotation.simps split: if_splits\<close>)+
       subgoal for i'T' T i' T'
         apply (rule order_trans)
@@ -1480,7 +1480,7 @@ definition cdcl_twl_o_prog_wl :: "'v twl_st_wl \<Rightarrow> (bool \<times> 'v t
 
 (* TODO Move *)
 text \<open>
-  This lemma is not general enough to move to Isabelle, but might be interesting in other 
+  This lemma is not general enough to move to Isabelle, but might be interesting in other
   cases.\<close>
 lemma set_Collect_Pair_to_fst_snd:
   \<open>{((a, b), (a', b')). P a b a' b'} = {(e, f). P (fst e) (snd e) (fst f) (snd f)}\<close>
