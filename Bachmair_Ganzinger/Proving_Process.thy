@@ -409,4 +409,11 @@ lemma standard_redundancy_criterion_extension:
   using assms unfolding redundancy_criterion_def
   by (intro conjI) ((auto simp: rev_subsetD)[5], satx)
 
+lemma standard_redundancy_criterion_extension_saturated_up_to:
+  assumes "\<Gamma> \<subseteq> \<Gamma>'" and "redundancy_criterion \<Gamma> Rf Ri"
+  assumes "redundancy_criterion.saturated_upto \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>)) M"
+  shows "redundancy_criterion.saturated_upto \<Gamma> Rf Ri M" (* See page 38. There is also something about fairness which could be a lemma *)
+  sorry
+find_theorems name: saturated
+
 end

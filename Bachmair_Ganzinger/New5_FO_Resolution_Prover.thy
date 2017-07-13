@@ -2989,6 +2989,7 @@ proof -
       "{DA'''} \<union> set CAi''' \<subseteq> getQ (limit_state Sts)"
       using selection_renaming_invariant ord_resolve_rename_lifting[of S "getQ (limit_state Sts)" CAi1 "?D" _ "?E", OF sisisgma selection_axioms _ xxq]
       by smt
+    (* THE FOLLOWING 3 COMMENTS ARE WRONG. SEE YOU KLADEHAEFTE *)
     (* I should replace these by the smallest according to subsumption. The I can use the lemmas from 4.11 to move the clauses to Q. *)
     (* Here is a sketch of doing that. *)
     (* First we get the ones with the nice property. *)
@@ -3035,13 +3036,20 @@ proof -
       sorry
     then have "?E \<in> grounding_of_state (lnth Sts j)"
       sorry
-    
-    then have "\<gamma> \<in> src.Ri (G(S\<^sub>j))"
-    
-
-    have True sorry
+    then have "\<gamma> \<in> src_ext_Ri (grounding_of_state (lnth Sts j))"
+      unfolding src_ext_Ri_def src.Ri_def sorry
+    then have "\<gamma> \<in> src_ext_Ri (?N j)"
+      .
+    then have "\<gamma> \<in> src_ext_Ri (lSup (lmap grounding_of_state Sts))"
+      sorry
+    then have "\<gamma> \<in> src_ext_Ri (llimit (lmap grounding_of_state Sts))"
+      sorry
   }
-    
+  term src_ext.saturated_upto
+  then have "src_ext.saturated_upto (llimit (lmap grounding_of_state Sts))"
+    sorry
+  find_theorems name: saturated_upto_refute_complete 
+  
 oops
   
 end
