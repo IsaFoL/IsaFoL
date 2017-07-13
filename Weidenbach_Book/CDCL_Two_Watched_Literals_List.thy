@@ -1316,6 +1316,19 @@ lemma get_conflict_l_get_conflict_state_spec:
 fun lit_and_ann_of_propagated where
   \<open>lit_and_ann_of_propagated (Propagated L C) = (L, C)\<close>
 
+definition tl_state_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
+  \<open>tl_state_l = (\<lambda>(M, N, U, D, NP, UP, WS, Q). (tl M, N, U, D, NP, UP, WS, Q))\<close>
+
+definition resolve_cls_l' :: \<open>'v twl_st_l \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> 'v clause\<close> where
+\<open>resolve_cls_l' S C L  =
+   remove1_mset (-L) (the (get_conflict_l S)) \<union>#
+      (if C = 0 then {#} else mset (remove1 L (get_clauses_l S!C)))\<close>
+
+definition update_confl_tl_l :: \<open>nat \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> bool \<times> 'v twl_st_l\<close> where
+  \<open>update_confl_tl_l = (\<lambda>C L (M, N, U, D, NP, UP, WS, Q).
+     let D = resolve_cls_l' (M, N, U, D, NP, UP, WS, Q) C L in
+        (D = {#}, (tl M, N, U, Some D, NP, UP, WS, Q)))\<close>
+
 text \<open>
   We here strictly follow \<^term>\<open>cdcl\<^sub>W_restart_mset.skip\<close> and \<^term>\<open>cdcl\<^sub>W_restart_mset.resolve\<close>:
   if the level is 0, we should directly return \<^term>\<open>{#}\<close>. This would also avoid the
@@ -1330,24 +1343,17 @@ definition skip_and_resolve_loop_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nre
          additional_WS_invs S \<and> clauses_to_update_l S = {#}\<^esup>
         (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided (hd (get_trail_l S)))
         (\<lambda>(_, S).
-          let (M, N, U, D, NP, UP, WS, Q) = S in
           do {
-            ASSERT(M \<noteq> []);
-            ASSERT(get_conflict_l (M, N, U, D, NP, UP, WS, Q) \<noteq> None);
-            let D' = the (get_conflict_l (M, N, U, D, NP, UP, WS, Q));
-            ASSERT(is_proped (hd (get_trail_l (M, N, U, D, NP, UP, WS, Q))));
-            let (L, C) = lit_and_ann_of_propagated (hd (get_trail_l (M, N, U, D, NP, UP, WS, Q)));
-            ASSERT(C < length N);
+            let D' = the (get_conflict_l S);
+            let (L, C) = lit_and_ann_of_propagated (hd (get_trail_l S));
             if -L \<notin># D' then
-              do {RETURN (False, (tl M, N, U, D, NP, UP, WS, Q))}
+              do {RETURN (False, tl_state_l S)}
             else
-              if get_maximum_level M (remove1_mset (-L) D') = count_decided M
+              if get_maximum_level (get_trail_l S) (remove1_mset (-L) D') = count_decided (get_trail_l S)
               then
-                do {RETURN (remove1_mset (-L) D' \<union># (if C = 0 then {#} else mset (remove1 L (N!C))) = {#},
-                   (tl M, N, U, Some (remove1_mset (-L) D' \<union># (if C = 0 then {#} else mset (remove1 L (N!C)))),
-                     NP, UP, WS, Q))}
+                do {RETURN (update_confl_tl_l C L S)}
               else
-                do {RETURN (True, (M, N, U, D, NP, UP, WS, Q))}
+                do {RETURN (True, S)}
           }
         )
         (get_conflict_l S\<^sub>0 = Some {#}, S\<^sub>0);
@@ -1370,17 +1376,14 @@ private lemma skip_and_resolve_loop_l_index_le_length_N':
   by (cases \<open>hd M''\<close>) (auto elim!: neq_NilE simp add: additional_WS_invs_def)
 
 private lemma skip_and_resolve_l_refines:
-  \<open>((brk''', M'', N'', U'', D'', NP'', UP'', WS'', Q''), brk'', M''', N''', U''', D''', NP''', UP''', WS''', Q''')
-    \<in> {((brk, S), brk', S'). brk = brk' \<and> S' = twl_st_of None S \<and> additional_WS_invs S \<and> clauses_to_update_l S = {#}} \<Longrightarrow>
-    M''' \<noteq> [] \<Longrightarrow>
-    ((L', C'), L, C) \<in> {((L, C), L', C'). L = L' \<and> C' = (if C = 0 then {#L#} else mset (get_clauses_l (M'', N'', U'', D'', NP'', UP'', WS'', Q'') ! C))} \<Longrightarrow>
-    ((remove1_mset (- L') (the (get_conflict_l (M'', N'', U'', D'', NP'', UP'', WS'', Q''))) \<union># (if C' = 0 then {#} else mset (remove1 L' (N'' ! C'))) = {#}, tl M'', N'', U'',
-      Some (remove1_mset (- L') (the (get_conflict_l (M'', N'', U'', D'', NP'', UP'', WS'', Q''))) \<union># (if C' = 0 then {#} else mset (remove1 L' (N'' ! C')))), NP'', UP'', WS'', Q''),
-     remove1_mset (- L) (the (get_conflict (M''', N''', U''', D''', NP''', UP''', WS''', Q'''))) \<union># remove1_mset L C = {#}, tl M''', N''', U''',
-     Some (remove1_mset (- L) (the (get_conflict (M''', N''', U''', D''', NP''', UP''', WS''', Q'''))) \<union># remove1_mset L C), NP''', UP''', WS''', Q''')
-    \<in> {((brk, S), brk', S'). brk = brk' \<and> S' = twl_st_of None S \<and> additional_WS_invs S \<and> clauses_to_update_l S = {#}}\<close>
-  by (cases M'') (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def
-      resolve_cls_l_nil_iff)
+  \<open>((brk, S), brk', S') \<in> {((brk, S), brk', S'). brk = brk' \<and> S' = twl_st_of None S \<and>
+       additional_WS_invs S \<and> clauses_to_update_l S = {#}} \<Longrightarrow>
+  ((False, tl_state_l S), False, tl_state S') \<in> {((brk, S), brk', S'). brk = brk' \<and>
+       S' = twl_st_of None S \<and> additional_WS_invs S \<and> clauses_to_update_l S = {#}}\<close>
+  by (cases S; cases \<open>get_trail_l S\<close>)
+   (auto simp: additional_WS_invs_def
+      resolve_cls_l_nil_iff tl_state_l_def tl_state_def)
+
 
 private lemma skip_and_resolve_l_count_decided:
   \<open>((brk''', M'', N'', U'', D'', NP'', UP'', WS'', Q''), brk'', M''', N''', U''', D''', NP''', UP''', WS''', Q''')
@@ -1396,17 +1399,30 @@ private lemma skip_and_resolve_l_count_decided:
   by (auto simp: skip_and_resolve_loop_inv_def)
 
 private lemma skip_and_resolve_skip_refine:
-  \<open>((brk''', M'', N'', U'', D'', NP'', UP'', WS'', Q''),
-     brk'', M''', N''', U''', D''', NP''', UP''', WS''', Q''')
-    \<in> {((brk, S), brk', S'). brk = brk' \<and> S' = twl_st_of None S \<and> additional_WS_invs S \<and>
-         clauses_to_update_l S = {#}} \<Longrightarrow>
-  skip_and_resolve_loop_inv (twl_st_of None (M, N, U, D, NP, UP, WS, Q))
-    (brk'', M''', N''', U''', D''', NP''', UP''', WS''', Q''') \<Longrightarrow>
-  M'' \<noteq> [] \<Longrightarrow>
-  ((False, tl M'', N'', U'', D'', NP'', UP'', WS'', Q''), False, tl M''', N''', U''', D''', NP''', UP''', WS''', Q''')
-    \<in> {((brk, S), brk', S'). brk = brk' \<and> S' = twl_st_of None S \<and> additional_WS_invs S \<and> clauses_to_update_l S = {#}}\<close>
-  by (cases \<open>M''\<close>) (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def
-          resolve_cls_l_nil_iff)
+  \<open>((nrk, S), brk', S')
+    \<in> {((brk, S), brk', S').
+       brk = brk' \<and>
+       S' = twl_st_of None S \<and>
+       additional_WS_invs S \<and> clauses_to_update_l S = {#}} \<Longrightarrow>
+    ((L, C), L', C')
+    \<in> {((L, C), L', C').
+       L = L' \<and> C' = (if C = 0 then {#L#} else mset (get_clauses_l S ! C))} \<Longrightarrow>
+    lit_and_ann_of_propagated (hd (get_trail_l S)) = (L, C) \<Longrightarrow>
+    (update_confl_tl_l C L S,
+     remove1_mset (- L') (the (get_conflict S')) \<union># remove1_mset L' C' =
+     {#},
+     update_confl_tl
+      (Some (remove1_mset (- L') (the (get_conflict S')) \<union>#
+             remove1_mset L' C'))
+      S')
+    \<in> {((brk, S), brk', S').
+       brk = brk' \<and>
+       S' = twl_st_of None S \<and>
+       additional_WS_invs S \<and> clauses_to_update_l S = {#}}\<close>
+  by (cases S; cases \<open>get_trail_l S\<close>)
+     (auto simp: skip_and_resolve_loop_inv_def additional_WS_invs_def resolve_cls_l'_def
+          resolve_cls_l_nil_iff update_confl_tl_l_def update_confl_tl_def)
+
 
 private lemma skip_and_resolve_l_not_conflict_iff:
   \<open>(M', N', U', D', NP', UP', WS', Q') = twl_st_of None (M, N, U, D, NP, UP, WS, Q) \<Longrightarrow>
@@ -1436,7 +1452,7 @@ lemma skip_and_resolve_loop_l_spec:
 proof -
   text \<open>Stupid placeholder to help the application of \<open>rule\<close> later:\<close>
   define TT where [simp]: \<open>TT = (\<lambda>_::'v twl_st_l. True)\<close>
-  have is_dec[iff]: \<open>is_decided (hd (get_trail (twl_st_of None S))) \<longleftrightarrow> is_decided (hd (get_trail_l S))\<close>
+  have is_proped[iff]: \<open>is_proped (hd (get_trail (twl_st_of None S))) \<longleftrightarrow> is_proped (hd (get_trail_l S))\<close>
     if \<open>get_trail_l S \<noteq> []\<close> for S :: \<open>'v twl_st_l\<close>
     by (cases S, cases \<open>get_trail_l S\<close>; cases \<open>hd (get_trail_l S)\<close>)
       (use that in \<open>auto split: if_splits\<close>)
@@ -1452,41 +1468,63 @@ proof -
     unfolding RETURN_def
     apply (rule RES_refine)
     by (auto split: if_splits)
+  have get_trail_twl_st_of_get_trail_l: \<open>get_trail (twl_st_of None S) = [] \<longleftrightarrow> get_trail_l S = []\<close> for S
+    by (cases S) (auto simp: convert_lits_l_def)
+  have skip_and_resolve_loop_inv_trail_nempty: \<open>skip_and_resolve_loop_inv (twl_st_of None S)
+          (False, twl_st_of None S') \<Longrightarrow>
+        get_trail_l S' \<noteq> []\<close> for S S'
+    unfolding skip_and_resolve_loop_inv_def
+    by (auto simp: get_trail_twl_st_of_get_trail_l)
+
+  have get_trail_twl_st_of_get_trail_l: \<open>get_trail (twl_st_of None S) = [] \<longleftrightarrow> get_trail_l S = []\<close> for S
+    by (cases S) (auto simp: convert_lits_l_def)
+  have lit_hd_get_trail_twl_st_of:
+     \<open>lit_of (hd (get_trail (twl_st_of None S))) = lit_of (hd (get_trail_l S))\<close>
+    if \<open>get_trail_l S \<noteq> []\<close>
+    for S
+    using that by (cases S; cases \<open>get_trail_l S\<close>) (auto simp: convert_lits_l_def)
+  have get_conflict_twl_st_of_get_conflict_l[simp]: \<open>get_conflict (twl_st_of None S) = get_conflict_l S\<close> for S
+    by (cases S) auto
+  have [simp]: \<open>get_level (get_trail_l S) L = get_level (get_trail (twl_st_of None S)) L\<close> for S L
+    by (cases S) auto
+  have [simp]: \<open>get_maximum_level (get_trail_l S) = get_maximum_level (get_trail (twl_st_of None S))\<close> for S
+    by (intro ext) (auto simp: get_maximum_level_cong)
+  have [simp]: \<open>count_decided (get_trail_l S) = count_decided (get_trail (twl_st_of None S))\<close> for S
+    by (cases S) auto
   have H:
     \<open>(skip_and_resolve_loop_l, skip_and_resolve_loop) \<in>
     ?R \<rightarrow>
     \<langle>{(T, T'). T' = twl_st_of None T \<and> additional_WS_invs T \<and> clauses_to_update_l T = {#}}\<rangle> nres_rel\<close>
     supply [[goals_limit=1]]
-    apply clarify
     unfolding skip_and_resolve_loop_l_def skip_and_resolve_loop_def
     apply (refine_rcg get_conflict_l_get_conflict_state_spec H; remove_dummy_vars)
     subgoal by auto \<comment> \<open>conflict is not none\<close>
     subgoal by auto \<comment> \<open>loop invariant init: @{term skip_and_resolve_loop_inv}\<close>
     subgoal by auto \<comment> \<open>loop invariant init: @{term additional_WS_invs}\<close>
     subgoal by auto \<comment> \<open>loop invariant init: @{term \<open>clauses_to_update S = {#}\<close>}\<close>
-    subgoal by (auto simp: skip_and_resolve_loop_inv_def get_trail_twl_st_of_nil_iff)
+    subgoal by (auto simp: skip_and_resolve_loop_inv_def get_trail_twl_st_of_nil_iff
+      dest: skip_and_resolve_loop_inv_trail_nempty)
       \<comment> \<open>align loop conditions\<close>
     subgoal by auto
       \<comment> \<open>trail not empty\<close>
-    subgoal by (auto simp: skip_and_resolve_loop_inv_def)
+    subgoal by (auto simp add: get_trail_twl_st_of_get_trail_l)
       \<comment> \<open>conflict not none\<close>
-    subgoal by (auto simp: is_decided_no_proped_iff)
+    subgoal by (auto simp: is_decided_no_proped_iff lit_hd_get_trail_twl_st_of
+      dest!: skip_and_resolve_loop_inv_trail_nempty)
       \<comment> \<open>head of the trail is a propagation\<close>
-    subgoal by fastforce
+    subgoal by (simp add: get_conflict_twl_st_of_get_conflict_l)
       \<comment> \<open>state equality\<close>
-    subgoal by fastforce
-      \<comment> \<open>trail not empty\<close>
-    subgoal by (rule skip_and_resolve_loop_l_index_le_length_N') assumption
+    subgoal by (auto simp: is_decided_no_proped_iff lit_hd_get_trail_twl_st_of
+      dest!: skip_and_resolve_loop_inv_trail_nempty)
+    subgoal by (auto simp: is_decided_no_proped_iff lit_hd_get_trail_twl_st_of
+      dest!: skip_and_resolve_loop_inv_trail_nempty)
+    subgoal by simp
+    subgoal by (rule skip_and_resolve_l_refines) assumption+
+    subgoal by auto
+    subgoal by (rule skip_and_resolve_skip_refine) assumption
       \<comment> \<open>annotation of the valid\<close>
-    subgoal by (rule skip_and_resolve_l_not_conflict_iff) assumption
-    subgoal by (rule skip_and_resolve_skip_refine)
-        \<comment> \<open>skip final invariants\<close>
-    subgoal by (rule skip_and_resolve_l_count_decided)
-        \<comment> \<open>maximum level\<close>
-
-    subgoal by (rule skip_and_resolve_l_refines) \<comment> \<open>needs around 1 min\<close>
-    subgoal by fastforce
-    subgoal by fastforce
+    subgoal by auto
+    subgoal by auto
     done
   have H: \<open>(skip_and_resolve_loop_l, skip_and_resolve_loop)
     \<in> ?R \<rightarrow>
@@ -1513,15 +1551,15 @@ qed
 
 end
 
-
+(* TODO Move  *)
 lemma not_is_decidedE:
   \<open>\<not>is_decided E \<Longrightarrow> (\<And>K C. E = Propagated K C \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
   by (cases E) auto
+(* End Move  *)
 
-
-definition find_decomp :: "'v twl_st_l \<Rightarrow> 'v literal \<Rightarrow> ('v, nat) ann_lits nres" where
-  \<open>find_decomp =  (\<lambda>(M, N, U, D, NP, UP, WS, Q) L.
-    SPEC(\<lambda>M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
+definition find_decomp :: "'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l  nres" where
+  \<open>find_decomp =  (\<lambda>L (M, N, U, D, NP, UP, WS, Q).
+    SPEC(\<lambda>S. \<exists>K M2 M1. S = (M1, N, U, D, NP, UP, WS, Q) \<and> (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
           get_level M K = get_maximum_level M (the D - {#-L#}) + 1))\<close>
 
 definition find_lit_of_max_level :: "'v twl_st_l \<Rightarrow> 'v literal \<Rightarrow> 'v literal nres" where
@@ -1532,56 +1570,58 @@ definition ex_decomp_of_max_lvl :: "('v, nat) ann_lits \<Rightarrow> 'v cconflic
   \<open>ex_decomp_of_max_lvl M D L \<longleftrightarrow> (\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
           get_level M K = get_maximum_level M (remove1_mset (-L) (the D)) + 1)\<close>
 
-
 fun add_mset_list :: "'a list \<Rightarrow> 'a multiset multiset \<Rightarrow> 'a multiset multiset"  where
   \<open>add_mset_list L UP = add_mset (mset L) UP\<close>
 
 definition (in -)list_of_mset :: \<open>'v clause \<Rightarrow> 'v clause_l nres\<close> where
   \<open>list_of_mset D = SPEC(\<lambda>D'. D = mset D')\<close>
 
-fun extract_shorter_conflict_l :: \<open>'v twl_st_l \<Rightarrow> 'v clause nres\<close>
+fun extract_shorter_conflict_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close>
    where
-  \<open>extract_shorter_conflict_l (M, N, U, D, NP, UP, WS, Q) = SPEC(\<lambda>D'. D' \<subseteq># the D \<and>
+  \<open>extract_shorter_conflict_l (M, N, U, D, NP, UP, WS, Q) = SPEC(\<lambda>S.
+     \<exists>D'. D' \<subseteq># the D \<and> S = (M, N, U, Some D', NP, UP, WS, Q) \<and>
      clause `# twl_clause_of `# mset (tl N) + NP + UP \<Turnstile>pm D' \<and> -(lit_of (hd M)) \<in># D')\<close>
 
 declare extract_shorter_conflict_l.simps[simp del]
 lemmas extract_shorter_conflict_l_def = extract_shorter_conflict_l.simps
 
-definition backtrack_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
-  \<open>backtrack_l S\<^sub>0 =
-    do {
-      let (M, N, U, D, NP, UP, WS, Q) = S\<^sub>0;
-      ASSERT(M \<noteq> []);
-      let L = lit_of (hd M);
-      ASSERT(twl_stgy_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)));
-      ASSERT(twl_struct_invs (twl_st_of None (M, N, U, D, NP, UP, WS, Q)));
-      ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of None (M, N, U, D, NP, UP, WS, Q))));
-      ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of None (M, N, U, D, NP, UP, WS, Q))));
-      ASSERT(D ~= None);
-      ASSERT(-L \<in># the D);
-      D' \<leftarrow> extract_shorter_conflict_l (M, N, U, D, NP, UP, WS, Q);
 
-      ASSERT(get_level M L = count_decided M);
-      ASSERT(D' \<noteq> {#});
-      ASSERT(ex_decomp_of_max_lvl M (Some D') L);
-      ASSERT(-L \<in># D');
-      M1 \<leftarrow> find_decomp (M, N, U, Some D', NP, UP, WS, Q) L;
+definition backtrack_l_inv where
+  \<open>backtrack_l_inv S \<longleftrightarrow> get_trail_l S \<noteq> [] \<and>
+      no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of None S))\<and>
+      no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of None S)) \<and>
+      get_conflict_l S \<noteq> None \<and>
+      twl_struct_invs (twl_st_of None S) \<and>
+      twl_stgy_invs (twl_st_of None S)
+  \<close>
 
-      if size D' > 1
-      then do {
-        ASSERT(\<forall>L' \<in># D' - {#-L#}. get_level M L' = get_level M1 L');
-        ASSERT(\<exists>L' \<in># D' - {#-L#}. get_level M L' = get_maximum_level M (D' - {#-L#}));
-        ASSERT(get_level M L > get_maximum_level M (D' - {#-L#}));
-        L' \<leftarrow> find_lit_of_max_level (M, N, U, Some D', NP, UP, WS, Q) L;
-        ASSERT(L \<noteq> -L');
-        D'' \<leftarrow> list_of_mset D';
-        RETURN (Propagated (-L) (length N) # M1,
-          N @ [[-L, L'] @ (remove1 (-L) (remove1 L' D''))], U,
+definition propgate_bt_l :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+  \<open>propgate_bt_l = (\<lambda>L L' (M, N, U, D, NP, UP, WS, Q). do {
+    D'' \<leftarrow> list_of_mset (the D);
+    RETURN (Propagated (-L) (length N) # M,
+        N @ [[-L, L'] @ (remove1 (-L) (remove1 L' D''))], U,
           None, NP, UP, WS, {#L#})
+      })\<close>
+
+definition propgate_unit_bt_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
+  \<open>propgate_unit_bt_l = (\<lambda>L (M, N, U, D, NP, UP, WS, Q).
+    (Propagated (-L) 0 # M, N, U, None, NP, add_mset (the D) UP, WS, {#L#}))\<close>
+
+definition backtrack_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
+  \<open>backtrack_l S =
+    do {
+      ASSERT(backtrack_l_inv S);
+      let L = lit_of (hd (get_trail_l S));
+      S \<leftarrow> extract_shorter_conflict_l S;
+      S \<leftarrow> find_decomp L S;
+
+      if size (the (get_conflict_l S)) > 1
+      then do {
+        L' \<leftarrow> find_lit_of_max_level S L;
+        propgate_bt_l L L' S
       }
       else do {
-        _ \<leftarrow> list_of_mset D';
-        RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset D' UP, WS, {#L#})
+        RETURN (propgate_unit_bt_l L S)
      }
   }\<close>
 
@@ -1594,9 +1634,15 @@ lemma get_all_ann_decomposition_convert_lits_l:
   subgoal for L m M by (cases \<open>get_all_ann_decomposition M\<close>) auto
   done
 
+(* TODO Move upper  *)
 lemma get_level_convert_lits_l2[simp]:
   \<open>get_level (convert_lits_l N M') K = get_level M' K\<close>
   using get_level_convert_lits_l[of N M'] by simp
+
+lemma hd_get_trail_twl_st_of_get_trail_l:
+  \<open>get_trail_l S \<noteq> [] \<Longrightarrow> lit_of (hd (get_trail (twl_st_of None S))) = lit_of (hd (get_trail_l S))\<close>
+  by (cases S; cases \<open>get_trail_l S\<close>) auto
+(* End Move  *)
 
 lemma additional_WS_invs_backtrack_iff:
   assumes
@@ -1773,6 +1819,30 @@ qed
 lemma lit_of_hd_convert_lits_l[simp]: \<open>M \<noteq> [] \<Longrightarrow> lit_of (hd (convert_lits_l N M)) = lit_of (hd M)\<close>
   by (cases M) auto
 
+(*TODO Move up  *)
+lemma convert_lits_l_Nil_off[iff]: \<open>convert_lits_l b a = [] \<longleftrightarrow> a = []\<close>
+  by (auto simp: convert_lits_l_def)
+
+lemma get_conflict_twl_st_of_get_conflict_l[simp]:
+  \<open>get_conflict (twl_st_of b S) = get_conflict_l S\<close>
+  by (cases S; cases b) auto
+
+fun equality_except_trail where
+\<open>equality_except_trail (M, N, U, D, NP, UP, WS, Q) (M', N', U', D', NP', UP', WS', Q') \<longleftrightarrow>
+    N = N' \<and> U = U' \<and> D = D' \<and> NP = NP' \<and> UP = UP' \<and> WS = WS' \<and> Q = Q'\<close>
+
+fun equality_except_conflict where
+\<open>equality_except_conflict (M, N, U, D, NP, UP, WS, Q) (M', N', U', D', NP', UP', WS', Q') \<longleftrightarrow>
+    M = M' \<and> N = N' \<and> U = U' \<and> NP = NP' \<and> UP = UP' \<and> WS = WS' \<and> Q = Q'\<close>
+
+lemma equality_except_conflict_rewrite:
+  assumes \<open>equality_except_conflict S T\<close>
+  shows
+    \<open>get_trail_l S = get_trail_l T\<close> and
+    \<open>get_clauses_l S = get_clauses_l T\<close>
+  using assms by (cases S; cases T; auto; fail)+
+(*End Move  *)
+
 lemma backtrack_l_spec:
   \<open>(backtrack_l, backtrack) \<in>
     {(S::'v twl_st_l, S'). S' = twl_st_of None S \<and> get_conflict_l S \<noteq> None \<and> get_conflict_l S \<noteq> Some {#} \<and>
@@ -1785,7 +1855,7 @@ lemma backtrack_l_spec:
        literals_to_update_l T \<noteq> {#}}\<rangle> nres_rel\<close>
   (is \<open> _ \<in> ?R \<rightarrow> ?I\<close>)
 proof -
-  have backtrack_def':
+  (* have backtrack_def':
     \<open>backtrack S\<^sub>0 =
     do {
       let (M, N, U, D, NP, UP, WS, Q) = S\<^sub>0 in
@@ -1819,7 +1889,7 @@ proof -
   \<close>
     for S\<^sub>0 :: \<open>'v twl_st\<close>
     unfolding backtrack_def
-    apply (rewrite at \<open>let _ = _ in _\<close> Let_def)+ ..
+    apply (rewrite at \<open>let _ = _ in _\<close> Let_def)+ .. *)
 
   have obtain_decom: \<open>\<exists>K. \<exists>M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M') \<and>
     get_level M' K = (get_maximum_level M' (remove1_mset (- lit_of (hd M'))
@@ -1844,50 +1914,83 @@ proof -
       apply (rule exI[of _ K], rule exI[of _ M1'], rule exI[of _ M2'])
       by (cases K') (use Q in \<open>auto split: if_splits\<close>)
   qed
+  have obtain_decom': \<open>\<exists>K. \<exists>M1. (\<exists>M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M')) \<and>
+    get_level M' K = Suc (get_maximum_level M' (remove1_mset (- lit_of (hd M'))
+    E))\<close> if
+    decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (convert_lits_l N M')) \<and>
+    get_level M' K = Suc (get_maximum_level M' (remove1_mset (- lit_of (hd (convert_lits_l N M')))
+    E))\<close> (is \<open>?P K M1 M2 \<and> ?Q K\<close> ) and
+    M': \<open>M' \<noteq> []\<close>
+    for M' E N K M1 M2
+  proof -
+    obtain K M1 M2 where
+      \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (convert_lits_l N M'))\<close> and
+      Q: \<open>?Q K\<close>
+      using decomp by auto
+    then obtain K' M1' M2' where
+      \<open>(K' # M1', M2') \<in> set (get_all_ann_decomposition M')\<close> and
+      \<open>Decided K # M1 = convert_lits_l N (K' # M1')\<close> and
+      \<open>M2 = convert_lits_l N M2'\<close>
+      unfolding get_all_ann_decomposition_convert_lits_l by (auto simp: convert_lits_l_def)
+    then show ?thesis
+      using M' apply -
+      by (cases K') (use Q in \<open>auto split: if_splits\<close>)
+  qed
 
-  have H: \<open>find_decomp (M', N, U, C, NP, UP, WS, Q) L
-    \<le> \<Down> {(M1', M1). M1 = convert_lits_l N M1' \<and>
-       (\<exists>K M2. (Decided K # M1', M2) \<in> set (get_all_ann_decomposition M') \<and>
-          get_level M' K = get_maximum_level M' (D - {#-L#}) + 1)}
-    (SPEC (\<lambda>M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
-    get_level M K = get_maximum_level M (remove1_mset (- L') D) + 1))\<close>
-    (is \<open>_ \<le> \<Down> ?decomp (SPEC ?decomp_spec)\<close>)
+  have H: \<open>find_decomp L S
+       \<le> \<Down> {(T, T'). T' = twl_st_of None T \<and> equality_except_trail T S \<and>
+       (\<exists>M. get_trail_l S = M @ get_trail_l T)}
+       (reduce_trail_bt L' S')\<close>
+    (is \<open>_ \<le>  \<Down> ?find_decomp _\<close>)
     if
-      help_the_unificacton: \<open>additional_WS_invs (M', N, thing_we_dont_care)\<close> and
-      H: \<open>L' = lit_of (hd (convert_lits_l N M'))\<close> \<open>M = convert_lits_l N M'\<close>
-      \<open>L = lit_of (hd (convert_lits_l N M'))\<close> \<open>the C = D\<close>
-    for M M' L' L D D' N thing_we_dont_care U C NP UP WS Q
-    unfolding find_decomp_def
-  proof (clarify, rule RES_refine, clarify)
-    fix M1 K M2
-    assume
-      lev: \<open>get_level M' K = get_maximum_level M' (remove1_mset (- L) (the C)) + 1\<close> and
-      decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M')\<close>
-    then have \<open>(Decided K # convert_lits_l N M1, convert_lits_l N M2) \<in> set (get_all_ann_decomposition M)\<close>
-      by (force simp: get_all_ann_decomposition_convert_lits_l H)
-    then show \<open>\<exists>s'\<in>Collect ?decomp_spec. (M1, s') \<in> ?decomp\<close>
-      using lev decomp by (auto simp: H)
+      \<open>S' = twl_st_of None S\<close> and \<open>L = lit_of (hd (get_trail_l S))\<close> and
+      \<open>L' = lit_of (hd (get_trail S'))\<close> \<open>get_trail_l S \<noteq> []\<close>
+    for S S' L' L
+    unfolding find_decomp_def reduce_trail_bt_def
+    apply (subst SPEC_RETURN_RES)
+    apply (cases S; cases S')
+    apply clarify
+    apply (rule RES_refine)
+    unfolding image_Collect
+    apply clarify
+  proof (goal_cases)
+    case (1 a b c d e f g h aa ba ca da ea fa ga ha ab ac ad ae af ag ah bb K M2 M1)
+    note S' = this(1) and S = this(2) and decomp = this(3) and lev_K = this(4)
+    show ?case
+      apply (rule bexI[of _ \<open>twl_st_of None (M1, b, c, d, e, f, g, h)\<close>])
+      subgoal using S S' decomp by auto
+      subgoal using decomp that lev_K imageI[of _ _ \<open> (\<lambda>(M, M'). (convert_lits_l b M, convert_lits_l b M'))\<close>, OF decomp]
+        unfolding S S'
+        by (force intro!: exI[of _ K] simp: image_Collect get_all_ann_decomposition_convert_lits_l
+            intro!: obtain_decom')
+      done
   qed
 
   have list_of_mset: \<open>list_of_mset D' \<le> SPEC (\<lambda>c. (c, D'') \<in> {(c, D). D = mset c})\<close>
     if \<open>D' = D''\<close> for D' :: \<open>'v clause\<close> and D''
     using that by (cases D'') (auto simp: list_of_mset_def)
-  have ext: \<open>extract_shorter_conflict_l S
-    \<le> \<Down> {(D, D'). D = D' \<and> -lit_of (hd (get_trail_l S)) \<in># D \<and> D \<subseteq># the D\<^sub>0} (extract_shorter_conflict S')\<close>
-    if \<open>S' = twl_st_of None S \<close> and
-      \<open>D\<^sub>0 = get_conflict_l S\<close> and
-      \<open>get_trail_l S ~= []\<close>
-    for S S' and D\<^sub>0
+  have ext: \<open>extract_shorter_conflict_l T
+    \<le> \<Down> {(S, S'). S' = twl_st_of None S \<and> -lit_of (hd (get_trail_l S)) \<in># the (get_conflict_l S) \<and>
+       the (get_conflict_l S) \<subseteq># the D\<^sub>0 \<and> equality_except_conflict T S \<and> get_conflict_l S \<noteq> None}
+       (extract_shorter_conflict T')\<close>
+    (is \<open>_ \<le>  \<Down> ?extract _\<close>)
+    if \<open>T' = twl_st_of None T\<close> and
+      \<open>D\<^sub>0 = get_conflict_l T\<close> and
+      \<open>get_trail_l T \<noteq> []\<close>
+    for T T' and D\<^sub>0
     using that
-    by (cases S; cases S'; cases \<open>get_trail_l S\<close>; cases \<open>get_trail S'\<close>)
-     (auto intro!: SPEC_refine simp: extract_shorter_conflict_l_def extract_shorter_conflict_def)
+    by (cases T; cases T'; cases \<open>get_trail_l T\<close>; cases \<open>get_trail T'\<close>)
+       (auto intro!: SPEC_refine simp: extract_shorter_conflict_l_def extract_shorter_conflict_def
+      image_Un[symmetric] set_append[symmetric] drop_Suc image_image
+      simp del: set_append)
 
   have uhd_in_D: \<open>L \<in># the D\<close>
     if
       inv_s: "twl_stgy_invs (twl_st_of None S)" and
       inv: "twl_struct_invs (twl_st_of None S)" and
       ns: \<open>no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of None S))\<close> and
-      confl: \<open>conflicting (state\<^sub>W_of (twl_st_of None S)) \<noteq> None\<close>
+      confl:
+         \<open>conflicting (state\<^sub>W_of (twl_st_of None S)) \<noteq> None\<close>
          \<open>conflicting (state\<^sub>W_of (twl_st_of None S)) \<noteq> Some {#}\<close> and
       M_nempty: \<open>get_trail_l S ~= []\<close> and
       D: \<open>D = get_conflict_l S\<close>
@@ -1898,42 +2001,172 @@ proof -
       OF _ _ ns confl]
     by (cases S; cases \<open>fst S\<close>) (use that in \<open>auto simp: cdcl\<^sub>W_restart_mset_state twl_stgy_invs_def
        twl_struct_invs_def\<close>)
+  have [simp]: \<open>get_trail (twl_st_of None S) = [] \<longleftrightarrow> get_trail_l S = []\<close> for S
+    by (cases S) auto
+
+  have find_lit:
+    \<open>find_lit_of_max_level U (lit_of (hd (get_trail_l S)))
+    \<le> SPEC (\<lambda>L''. L'' \<in># remove1_mset (- lit_of (hd (get_trail S'))) (the (get_conflict U')) \<and>
+              lit_of (hd (get_trail S')) \<noteq> - L'' \<and>
+              get_level (get_trail U') L'' = get_maximum_level (get_trail U')
+                (remove1_mset (- lit_of (hd (get_trail S'))) (the (get_conflict U'))))\<close>
+   (is \<open>_ \<le> RES ?find_lit_of_max_level\<close>)
+    if
+      UU': \<open>(S, S') \<in> ?R\<close> and
+      bt_inv: \<open>backtrack_l_inv S\<close> and
+      RR': \<open>(T, T') \<in> ?extract S (get_conflict_l S)\<close> and
+      T: \<open>(U, U') \<in> ?find_decomp T\<close>
+    for S S' T T' U U'
+  proof -
+    have [simp]: \<open>S' = twl_st_of None S\<close> \<open>get_trail_l S \<noteq> []\<close> and
+      struct_invs: \<open>twl_struct_invs (twl_st_of None S)\<close> \<open>get_conflict_l S \<noteq> None\<close>
+      using UU' bt_inv by (auto simp: backtrack_l_inv_def)
+    have \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of (twl_st_of None S))\<close>
+      using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      by fast
+    then have dist: \<open>distinct_mset (the (get_conflict_l S))\<close>
+      using struct_invs unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+      by (cases S) (auto simp: cdcl\<^sub>W_restart_mset_state)
+    then have dist: \<open>distinct_mset (the (get_conflict_l U))\<close>
+      using UU' RR' T by (cases S, cases T, cases U, auto intro: distinct_mset_mono)
+    show ?thesis
+      using T distinct_mem_diff_mset[OF dist, of _ \<open>{#_#}\<close>]
+      unfolding find_lit_of_max_level_def
+      by (cases U; cases U')
+         (force simp: hd_get_trail_twl_st_of_get_trail_l)
+  qed
+
+  have propagate_bt:
+    \<open>propgate_bt_l (lit_of (hd (get_trail_l S))) L U
+    \<le> SPEC (\<lambda>c. (c, propgate_bt (lit_of (hd (get_trail S'))) L' U') \<in>
+        {(T, T'). T' = twl_st_of None T \<and> clauses_to_update_l T = {#} \<and> additional_WS_invs T})\<close>
+    if
+      SS': \<open>(S, S') \<in> ?R\<close> and
+      bt_inv: \<open>backtrack_l_inv S\<close> and
+      TT': \<open>(T, T') \<in> ?extract S (get_conflict_l S)\<close> and
+      UU': \<open>(U, U') \<in> ?find_decomp T\<close> and
+      L': \<open>L' \<in> ?find_lit_of_max_level S' U'\<close> and
+      LL':  \<open>(L, L') \<in> Id\<close> and
+      size: \<open>size (the (get_conflict_l U)) > 1\<close>
+     for S S' T T' U U' L L'
+  proof -
+    obtain MS NS US DS NPS UPS where
+      S: \<open>S = (MS, NS, US, Some DS, NPS, UPS, {#}, {#})\<close>
+      using SS' by (cases S; cases \<open>get_conflict_l S\<close>) auto
+    then obtain DT where
+      T: \<open>T = (MS, NS, US, Some DT, NPS, UPS, {#}, {#})\<close>
+      using TT' by (cases T; cases \<open>get_conflict_l T\<close>) auto
+    then obtain MU MU' where
+      U: \<open>U = (MU, NS, US, Some DT, NPS, UPS, {#}, {#})\<close> and
+      MU: \<open>MS = MU' @ MU\<close>
+      using UU' by (cases U) auto
+
+    have [simp]: \<open>NS \<noteq> []\<close> \<open>MS \<noteq> []\<close> and US_NS: \<open>US < length NS\<close> and add_invs: \<open>additional_WS_invs S\<close>
+      using SS' bt_inv unfolding additional_WS_invs_def backtrack_l_inv_def S by auto
+    have S'_S[simp]: \<open>S' = twl_st_of None S\<close>
+      using SS' by simp
+    have U'_U[simp]: \<open>U' = twl_st_of None U\<close>
+      using UU' by simp
+    have [simp]: \<open>L = L'\<close>
+      using LL' by simp
+    have [simp]: \<open>convert_lits_l (NS @ NS') MU = convert_lits_l NS MU\<close> for NS'
+      unfolding convert_lits_l_def
+      apply (rule map_cong)
+      subgoal by simp
+      subgoal for x using add_invs
+        by (cases x; auto 5 5 simp: additional_WS_invs_def nth_append S MU)
+      done
+    have \<open>Suc 0 < size DT\<close>
+      using size by (auto simp: U)
+    then have \<open>DS \<noteq> {#}\<close>
+      using TT' by (auto simp: S T)
+    then have \<open>- lit_of (hd MS) \<in># DS\<close>
+      using bt_inv cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of \<open>state\<^sub>W_of (twl_st_of None S)\<close>]
+        size
+      unfolding backtrack_l_inv_def S by (auto simp: twl_struct_invs_def twl_stgy_invs_def
+        cdcl\<^sub>W_restart_mset_state U)
+    then have \<open>- lit_of (hd MS) \<in># DT\<close>
+      using TT' by (auto simp: T)
+    moreover have \<open>L' \<in># remove1_mset (- lit_of (hd MS)) DT\<close>
+      using L' by (auto simp: S U)
+    ultimately have DT: \<open>DT = add_mset (- lit_of (hd MS)) (add_mset L' (DT - {#- lit_of (hd MS), L'#}))\<close>
+      by (metis (no_types, lifting) add_mset_diff_bothsides diff_single_eq_union)
+    show ?thesis
+      unfolding propgate_bt_l_def list_of_mset_def propgate_bt_def U SPEC_RETURN_RES
+      apply clarify
+      apply (rule RES_rule)
+      apply (subst in_pair_collect_simp)
+      apply (intro conjI)
+      subgoal using US_NS DT by (auto simp: hd_get_trail_twl_st_of_get_trail_l S T U)
+      subgoal by auto
+      subgoal using US_NS add_invs by (auto 5 5 simp: additional_WS_invs_def nth_append S MU)
+      done
+  qed
+
+  have propagate_unit_bt:
+    \<open>(propgate_unit_bt_l (lit_of (hd (get_trail_l S))) U , propgate_unit_bt (lit_of (hd (get_trail S'))) U') \<in>
+        {(T, T'). T' = twl_st_of None T \<and> clauses_to_update_l T = {#} \<and> additional_WS_invs T}\<close>
+    if
+      SS': \<open>(S, S') \<in> ?R\<close> and
+      bt_inv: \<open>backtrack_l_inv S\<close> and
+      TT': \<open>(T, T') \<in> ?extract S (get_conflict_l S)\<close> and
+      UU': \<open>(U, U') \<in> ?find_decomp T\<close> and
+      size: \<open>\<not>size (the (get_conflict_l U)) > 1\<close>
+     for S S' T T' U U' L L'
+  proof -
+    obtain MS NS US DS NPS UPS where
+      S: \<open>S = (MS, NS, US, Some DS, NPS, UPS, {#}, {#})\<close>
+      using SS' by (cases S; cases \<open>get_conflict_l S\<close>) auto
+    then obtain DT where
+      T: \<open>T = (MS, NS, US, Some DT, NPS, UPS, {#}, {#})\<close>
+      using TT' by (cases T; cases \<open>get_conflict_l T\<close>) auto
+    then obtain MU MU' where
+      U: \<open>U = (MU, NS, US, Some DT, NPS, UPS, {#}, {#})\<close> and
+      MU: \<open>MS = MU' @ MU\<close>
+      using UU' by (cases U) auto
+    have S'_S[simp]: \<open>S' = twl_st_of None S\<close>
+      using SS' by simp
+    have U'_U[simp]: \<open>U' = twl_st_of None U\<close>
+      using UU' by simp
+
+    have [simp]: \<open>NS \<noteq> []\<close> \<open>MS \<noteq> []\<close> and US_NS: \<open>US < length NS\<close> and add_invs: \<open>additional_WS_invs S\<close>
+      using SS' bt_inv unfolding additional_WS_invs_def backtrack_l_inv_def S by auto
+    have DT: \<open>DT = {#- lit_of (hd MS)#}\<close>
+      using TT' size by (cases DT, auto simp: U T)
+    have [simp]: \<open>convert_lits_l (NS @ NS') MU = convert_lits_l NS MU\<close> for NS'
+      unfolding convert_lits_l_def
+      apply (rule map_cong)
+      subgoal by simp
+      subgoal for x using add_invs
+        by (cases x; auto 5 5 simp: additional_WS_invs_def nth_append S MU)
+      done
+    show ?thesis
+      apply (subst in_pair_collect_simp)
+      apply (intro conjI)
+      subgoal by (auto simp: propgate_unit_bt_def propgate_unit_bt_l_def S T U DT)
+      subgoal by (auto simp: propgate_unit_bt_def propgate_unit_bt_l_def S T U DT)
+      subgoal  using add_invs by (auto 5 5 simp: propgate_unit_bt_def propgate_unit_bt_l_def S T U DT
+        additional_WS_invs_def MU)
+      done
+  qed
 
   have bt:
     \<open>(backtrack_l, backtrack) \<in> ?R \<rightarrow>
     \<langle>{(T::'v twl_st_l, T'). T' = twl_st_of None T \<and> clauses_to_update_l T = {#} \<and> additional_WS_invs T}\<rangle> nres_rel\<close>
     supply [[goals_limit=1]]
-    apply clarify
-    apply (rename_tac M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' E)
-
-    unfolding backtrack_l_def backtrack_def'
+    unfolding backtrack_l_def backtrack_def
     apply (refine_vcg H list_of_mset ext; remove_dummy_vars)
-    subgoal by auto
+    subgoal by (auto simp: backtrack_inv_def backtrack_l_inv_def)
     subgoal by (auto simp: convert_lits_l_def elim: neq_NilE)
+    subgoal unfolding backtrack_inv_def by simp
     subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by (rule uhd_in_D) (assumption, assumption, auto simp: cdcl\<^sub>W_restart_mset_state)
-    subgoal by simp
-    subgoal by simp
-    subgoal by auto
-    subgoal unfolding ex_decomp_of_max_lvl_def
-      by (rule obtain_decom) auto
-    subgoal by auto
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by (simp add: find_lit_of_max_level_def)
-    subgoal by (auto dest!: in_diffD)
-    subgoal by simp
-    subgoal by (rule backtrak_l_ge1_rule_refinement) assumption+
-    subgoal by fast
-    subgoal by (rule backtrack_l_size0_rule_refinement) assumption
+    subgoal by (auto simp: backtrack_inv_def equality_except_conflict_rewrite)
+    subgoal by (auto simp: hd_get_trail_twl_st_of_get_trail_l backtrack_l_inv_def equality_except_conflict_rewrite)
+    subgoal by (auto simp: propgate_bt_l_def propgate_bt_def backtrack_l_inv_def equality_except_conflict_rewrite)
+    subgoal by (auto simp: propgate_unit_bt_def propgate_unit_bt_l_def)
+    subgoal by (rule find_lit) assumption+
+    subgoal by (rule propagate_bt) assumption+
+    subgoal by (rule propagate_unit_bt) assumption+
     done
   have KK:
     \<open>get_conflict_l T = None \<longleftrightarrow> get_conflict (twl_st_of None T) = None\<close>
@@ -2090,7 +2323,7 @@ proof -
     subgoal
       by (rule twl_st_lE) auto
     subgoal
-      by (auto simp add: get_conflict_l_Some_nil_iff)
+      by (auto simp add: get_conflict_l_Some_nil_iff additional_WS_invs_def)
     subgoal
       by fast
     subgoal
