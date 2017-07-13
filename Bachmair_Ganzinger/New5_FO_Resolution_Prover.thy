@@ -2840,149 +2840,148 @@ proof -
     from CAi1_p have "\<exists>\<sigma>. ord_resolve (S_M S (getQ (limit_state Sts))) CAi1 ?D \<sigma> ?E"
     proof
       assume "gd2.ord_resolve CAi1 ?D ?E"
-      then show "\<exists>\<sigma>. ord_resolve (S_M S (getQ (limit_state Sts))) CAi1 (main_prem_of \<gamma>) \<sigma> (concl_of \<gamma>)"  
-        proof (cases rule: gd2.ord_resolve.cases)
-          case (ord_resolve n Ci Aij Ai D)
-          have a: "?D = D + negs (mset Ai)"
-            using ord_resolve by simp
-          have b: "?E = \<Union>#mset Ci + D"
-            using ord_resolve by simp
-          have c: "length CAi1 = n"
-            using ord_resolve by simp
-          have d: "length Ci = n"
-            using ord_resolve by simp
-          have e: "length Aij = n"
-            using ord_resolve by simp
-          have f: "length Ai = n"
-            using ord_resolve by simp
-          have g: "n \<noteq> 0" 
-            using ord_resolve by simp
-          have h: "\<forall>i<n. CAi1 ! i = Ci ! i + poss (Aij ! i)" 
-            using ord_resolve by simp
-          have i: "\<forall>i<n. Aij ! i \<noteq> {#}"
-            using ord_resolve by simp
+      then show "\<exists>\<sigma>. ord_resolve (S_M S (getQ (limit_state Sts))) CAi1 ?D \<sigma> ?E"  
+      proof (cases rule: gd2.ord_resolve.cases)
+        case (ord_resolve n Ci Aij Ai D)
+        have a: "?D = D + negs (mset Ai)"
+          using ord_resolve by simp
+        have b: "?E = \<Union>#mset Ci + D"
+          using ord_resolve by simp
+        have c: "length CAi1 = n"
+          using ord_resolve by simp
+        have d: "length Ci = n"
+          using ord_resolve by simp
+        have e: "length Aij = n"
+          using ord_resolve by simp
+        have f: "length Ai = n"
+          using ord_resolve by simp
+        have g: "n \<noteq> 0" 
+          using ord_resolve by simp
+        have h: "\<forall>i<n. CAi1 ! i = Ci ! i + poss (Aij ! i)" 
+          using ord_resolve by simp
+        have i: "\<forall>i<n. Aij ! i \<noteq> {#}"
+          using ord_resolve by simp
 
-          have "length Aij = length Ai"
-            using e f by auto
-          have j: "\<forall>i<n. \<forall>A\<in>#Aij ! i. A = Ai ! i"
-            using ord_resolve by simp
-          then have "\<forall>i<n. \<forall>A\<in>#add_mset (Ai ! i) (Aij ! i). A = Ai ! i"
-            using ord_resolve by simp            
-          then have "\<forall>i<n. card (set_mset (add_mset (Ai ! i) (Aij ! i))) \<le> Suc 0" 
-              using all_the_same by metis
-          then have "\<forall>i<length Aij. card (set_mset (add_mset (Ai ! i) (Aij ! i))) \<le> Suc 0"
-            using e by auto
-          then have "\<forall>AA \<in> set (map2 add_mset Ai Aij). card (set_mset AA) \<le> Suc 0"
-            using set_map2_ex[of Aij Ai add_mset, OF \<open>length Aij = length Ai\<close>]
-            by auto
-          then have "is_unifiers id_subst (set_mset ` set (map2 add_mset Ai Aij))"
-            unfolding is_unifiers_def is_unifier_def
-            by auto
-          moreover
-          have "finite (set_mset ` set (map2 add_mset Ai Aij))"
-            by auto
-          moreover 
-          have "\<forall>AA\<in>set_mset ` set (map2 add_mset Ai Aij). finite AA"
-            by auto
-          ultimately
-          obtain \<sigma> where jj: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset Ai Aij))"
-            using mgu_complete[of "set_mset ` set (map2 add_mset Ai Aij)"] by metis
+        have "length Aij = length Ai"
+          using e f by auto
+        have j: "\<forall>i<n. \<forall>A\<in>#Aij ! i. A = Ai ! i"
+          using ord_resolve by simp
+        then have "\<forall>i<n. \<forall>A\<in>#add_mset (Ai ! i) (Aij ! i). A = Ai ! i"
+          using ord_resolve by simp            
+        then have "\<forall>i<n. card (set_mset (add_mset (Ai ! i) (Aij ! i))) \<le> Suc 0" 
+          using all_the_same by metis
+        then have "\<forall>i<length Aij. card (set_mset (add_mset (Ai ! i) (Aij ! i))) \<le> Suc 0"
+          using e by auto
+        then have "\<forall>AA \<in> set (map2 add_mset Ai Aij). card (set_mset AA) \<le> Suc 0"
+          using set_map2_ex[of Aij Ai add_mset, OF \<open>length Aij = length Ai\<close>]
+          by auto
+        then have "is_unifiers id_subst (set_mset ` set (map2 add_mset Ai Aij))"
+          unfolding is_unifiers_def is_unifier_def
+          by auto
+        moreover
+        have "finite (set_mset ` set (map2 add_mset Ai Aij))"
+          by auto
+        moreover 
+        have "\<forall>AA\<in>set_mset ` set (map2 add_mset Ai Aij). finite AA"
+          by auto
+        ultimately
+        obtain \<sigma> where jj: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset Ai Aij))"
+          using mgu_complete[of "set_mset ` set (map2 add_mset Ai Aij)"] by metis
 
-          have k: "gd2.eligible Ai (D + negs (mset Ai))"
-            using ord_resolve by simp
-          have gci: "\<forall>i<n. is_ground_cls (Ci ! i)"
-            sorry
-          have gai: "is_ground_atms (set (Ai))"
-            sorry
-          have gai2: "is_ground_atm_mset (mset Ai)"
-            sorry
-          have gai3: "is_ground_atm_list Ai"
-            sorry
-          have gD: "is_ground_cls D"
-            sorry
+        have k: "gd2.eligible Ai (D + negs (mset Ai))"
+          using ord_resolve by simp
+        have gci: "\<forall>i<n. is_ground_cls (Ci ! i)"
+          sorry
+        have gai: "is_ground_atms (set (Ai))"
+          sorry
+        have gai2: "is_ground_atm_mset (mset Ai)"
+          sorry
+        have gai3: "is_ground_atm_list Ai"
+          sorry
+        have gD: "is_ground_cls D"
+          sorry
 
-          have iii: "\<And>X :: 'a set. X \<noteq> {} \<Longrightarrow> finite X \<Longrightarrow> Max X \<in> X"
-            by auto
+        have iii: "\<And>X :: 'a set. X \<noteq> {} \<Longrightarrow> finite X \<Longrightarrow> Max X \<in> X"
+          by auto
 
-          from f g have "atms_of D \<union> set Ai \<noteq> {}" "finite (atms_of D \<union> set Ai)"
-            by auto
-          then have aaaaa: "Max (atms_of D \<union> set Ai) \<in> atms_of D \<union> set Ai"
-            using iii by metis
-          then have ii123i: "is_ground_atm (Max (atms_of D \<union> set Ai))"
-            using gD gai2 unfolding is_ground_atm_mset_def using is_ground_cls_imp_is_ground_atm by auto 
-          then have grgrgr: "\<forall>\<sigma>. Max (atms_of D \<union> set Ai) \<cdot>a \<sigma> = Max (atms_of D \<union> set Ai)"
-            by auto
+        from f g have "atms_of D \<union> set Ai \<noteq> {}" "finite (atms_of D \<union> set Ai)"
+          by auto
+        then have aaaaa: "Max (atms_of D \<union> set Ai) \<in> atms_of D \<union> set Ai"
+          using iii by metis
+        then have ii123i: "is_ground_atm (Max (atms_of D \<union> set Ai))"
+          using gD gai2 unfolding is_ground_atm_mset_def using is_ground_cls_imp_is_ground_atm by auto 
+        then have grgrgr: "\<forall>\<sigma>. Max (atms_of D \<union> set Ai) \<cdot>a \<sigma> = Max (atms_of D \<union> set Ai)"
+          by auto
 
-          from k have ann2: "(Max (atms_of D \<union> set Ai) \<cdot>a \<sigma>) = Max (atms_of D \<union> set Ai) \<and> (D \<cdot> \<sigma> + negs (mset Ai \<cdot>am \<sigma>)) = (D + negs (mset Ai))"
-            unfolding gd2.eligible.simps[simplified] using ii123i using gai2 gD by auto
+        from k have ann2: "(Max (atms_of D \<union> set Ai) \<cdot>a \<sigma>) = Max (atms_of D \<union> set Ai) \<and> (D \<cdot> \<sigma> + negs (mset Ai \<cdot>am \<sigma>)) = (D + negs (mset Ai))"
+          unfolding gd2.eligible.simps[simplified] using ii123i using gai2 gD by auto
 
-           have ann1: "maximal_in (Max (atms_of D \<union> set Ai)) (D + negs (mset Ai))"
-            unfolding gd2.eligible.simps[simplified] ann2
-            unfolding maximal_in_def
-            unfolding less_atm_iff
-            using grgrgr
-            using gai gD 
-            using ex_ground_subst
-            apply simp
-            apply clarify
-            subgoal for B \<sigma>
-              apply(rule_tac x = \<sigma> in exI)
-              apply auto
-              apply (metis Max_less_iff UnCI \<open>finite (atms_of D \<union> set Ai)\<close> equals0D infinite_growing is_ground_cls_imp_is_ground_atm is_ground_subst_atm)
-              by (metis Max_less_iff UnCI \<open>finite (atms_of D \<union> set Ai)\<close> all_not_in_conv infinite_growing is_ground_atms_def is_ground_subst_atm)
+        have ann1: "maximal_in (Max (atms_of D \<union> set Ai)) (D + negs (mset Ai))"
+          unfolding gd2.eligible.simps[simplified] ann2
+          unfolding maximal_in_def
+          unfolding less_atm_iff
+          using grgrgr
+          using gai gD 
+          using ex_ground_subst
+          apply simp
+          apply clarify
+          subgoal for B \<sigma>
+            apply(rule_tac x = \<sigma> in exI)
+            apply auto
+             apply (metis Max_less_iff UnCI \<open>finite (atms_of D \<union> set Ai)\<close> equals0D infinite_growing is_ground_cls_imp_is_ground_atm is_ground_subst_atm)
+            by (metis Max_less_iff UnCI \<open>finite (atms_of D \<union> set Ai)\<close> all_not_in_conv infinite_growing is_ground_atms_def is_ground_subst_atm)
+          done
+        note k
+        then have kk: "eligible (S_M S (getQ (limit_state Sts))) \<sigma> Ai (D + negs (mset Ai))"
+          unfolding gd2.eligible.simps unfolding eligible.simps
+          by (auto simp add: ann1 ann2)
+
+        have LEMMA: "\<And>As i \<sigma>. is_ground_atm_list As \<Longrightarrow> (As ! i \<cdot>a \<sigma>) = As ! i"
+          sorry
+
+        have l: "\<forall>i<n. gd2.str_maximal_in (Ai ! i) (Ci ! i)"
+          using ord_resolve by simp
+        then have ll: "\<forall>i<n. str_maximal_in (Ai ! i \<cdot>a \<sigma>) (Ci ! i \<cdot> \<sigma>)"
+          unfolding gd2.str_maximal_in_def 
+          using  gci gai gai2 g f e c d gai3 using LEMMA apply simp unfolding less_eq_atm_def less_atm_iff apply simp
+          using ex_ground_subst
+          apply clarify
+          apply rule
+          subgoal for \<sigma> i B
+            apply(rule_tac x = \<sigma> in exI)
+            apply (subgoal_tac "B \<cdot>a \<sigma> = B") (* This should have happened by itself. *)
+             apply force
+            using gci
+            using is_ground_cls_imp_is_ground_atm is_ground_subst_atm apply blast
             done
-          note k
-          then have kk: "eligible (S_M S (getQ (limit_state Sts))) \<sigma> Ai (D + negs (mset Ai))"
-            unfolding gd2.eligible.simps unfolding eligible.simps
-            by (auto simp add: ann1 ann2)
+          apply force
+          done
 
-          have LEMMA: "\<And>As i \<sigma>. is_ground_atm_list As \<Longrightarrow> (As ! i \<cdot>a \<sigma>) = As ! i"
-            sorry
+        have m: "\<forall>i<n. S_M S (getQ (limit_state Sts)) (CAi1 ! i) = {#}"
+          using ord_resolve by simp
 
-          have l: "\<forall>i<n. gd2.str_maximal_in (Ai ! i) (Ci ! i)"
-            using ord_resolve by simp
-          then have ll: "\<forall>i<n. str_maximal_in (Ai ! i \<cdot>a \<sigma>) (Ci ! i \<cdot> \<sigma>)"
-            unfolding gd2.str_maximal_in_def 
-            using  gci gai gai2 g f e c d gai3 using LEMMA apply simp unfolding less_eq_atm_def less_atm_iff apply simp
-            using ex_ground_subst
-            apply clarify
-            apply rule
-            subgoal for \<sigma> i B
-              apply(rule_tac x = \<sigma> in exI)
-              apply (subgoal_tac "B \<cdot>a \<sigma> = B") (* This should have happened by itself. *)
-              apply force
-              using gci
-              using is_ground_cls_imp_is_ground_atm is_ground_subst_atm apply blast
-              done
-            apply force
-            done
+        have gg: "is_ground_cls (\<Union>#mset Ci + D)"
+          sorry
 
-          have m: "\<forall>i<n. S_M S (getQ (limit_state Sts)) (CAi1 ! i) = {#}"
-            using ord_resolve by simp
-
-          have gg: "is_ground_cls (\<Union>#mset Ci + D)"
-            sorry
-
-          show ?thesis
-            using ord_resolve.intros[OF c d e f g h i jj kk ll m] using a b gg by auto
-        qed
+        show ?thesis
+          using ord_resolve.intros[OF c d e f g h i jj kk ll m] using a b gg by auto
       qed
-      
-      then obtain \<sigma> where sisisgma: "ord_resolve (S_M S (getQ (limit_state Sts))) CAi1 ?D \<sigma> ?E"
-        by auto
-      then obtain \<eta>s \<eta> \<eta>2 CAi'' DA'' E'' \<tau> where
-        "is_ground_subst \<eta>"
-        "is_ground_subst_list \<eta>s" 
-        "is_ground_subst \<eta>2" 
-        "ord_resolve_rename S CAi'' DA'' \<tau> E''"
-        "CAi'' \<cdot>\<cdot>cl \<eta>s = CAi1"
-        "DA'' \<cdot> \<eta> = ?D"
-        "E'' \<cdot> \<eta>2 = ?E"
-        "{DA''} \<union> set CAi'' \<subseteq> getQ (limit_state Sts)"
-        using selection_renaming_invariant ord_resolve_rename_lifting[of S "getQ (limit_state Sts)" CAi1 "main_prem_of \<gamma>" _ "concl_of \<gamma>", OF sisisgma selection_axioms _ xxq]
-        by smt
-      then have True
-        sorry
+    qed
+    then obtain \<sigma> where sisisgma: "ord_resolve (S_M S (getQ (limit_state Sts))) CAi1 ?D \<sigma> ?E"
+      by auto
+    then obtain \<eta>s \<eta> \<eta>2 CAi'' DA'' E'' \<tau> where
+      "is_ground_subst \<eta>"
+      "is_ground_subst_list \<eta>s" 
+      "is_ground_subst \<eta>2" 
+      "ord_resolve_rename S CAi'' DA'' \<tau> E''"
+      "CAi'' \<cdot>\<cdot>cl \<eta>s = CAi1"
+      "DA'' \<cdot> \<eta> = ?D"
+      "E'' \<cdot> \<eta>2 = ?E"
+      "{DA''} \<union> set CAi'' \<subseteq> getQ (limit_state Sts)"
+      using selection_renaming_invariant ord_resolve_rename_lifting[of S "getQ (limit_state Sts)" CAi1 "main_prem_of \<gamma>" _ "concl_of \<gamma>", OF sisisgma selection_axioms _ xxq]
+      by smt
+    then have True
+      sorry
   }
     
 oops
