@@ -1944,53 +1944,29 @@ definition decide_l_or_skip :: "'v twl_st_l \<Rightarrow> (bool \<times> 'v twl_
   })
 \<close>
 
+thm refinement_trans_long
 
-method unify_Down_invs2 =
-  (match premises in
-      \<comment> \<open>if the relation 2-1 has not assumption, we add True. Then we call out method again and
-           this time it will match since it has an assumption.\<close>
-      I: \<open>S1 \<le> \<Down> R10 S0\<close> and
-      J[thin]: \<open>S2 \<le> \<Down> R21 S1\<close>
-       for S1:: \<open>'b nres\<close> and S0 :: \<open>'a nres\<close> and S2 :: \<open>'c nres\<close> and R10 R21 \<Rightarrow>
-        \<open>print_term S1; insert True_implies_equals[where P = \<open>S2 \<le> \<Down> R21 S1\<close>, symmetric,
-           THEN equal_elim_rule1, OF J]\<close>
-    \<bar> I[thin]: \<open>S1 \<le> \<Down> {(T1, T0). P T1} S0\<close> (multi) and
-      J[thin]: _ for S1:: \<open>'b nres\<close> and S0 :: \<open>'a nres\<close> and P :: \<open>'b \<Rightarrow> bool\<close> \<Rightarrow>
-       \<open>match J[uncurry] in
-         J[curry]: \<open>_ \<Longrightarrow> S2 \<le> \<Down> {(T2, T1). R T2 T1} S1\<close> for S2 :: \<open>'c nres\<close> and R \<Rightarrow>
-          \<open>print_term S1; insert Down_add_assumption_beginning_single[where P = P and R = R and
-               W = S2 and V = S1 and U = S0, OF _ I J];
-           unify_Down_invs2_normalisation_post\<close>
-       \<bar> _ \<Rightarrow> \<open>fail\<close>\<close>
-   \<bar> I[thin]: \<open>S1 \<le> \<Down> {(T1, T0). P T1 \<and> Q' T1 T0} S0\<close> (multi) and
-     J[thin]: _ for S1:: \<open>'b nres\<close> and S0 :: \<open>'a nres\<close> and Q' and P :: \<open>'b \<Rightarrow> bool\<close> \<Rightarrow>
-       \<open>print_term S1; match J[uncurry] in
-         J[curry]: \<open>_ \<Longrightarrow> S2 \<le> \<Down> {(T2, T1). R T2 T1} S1\<close> for S2 :: \<open>'c nres\<close> and R \<Rightarrow>
-          \<open>insert Down_add_assumption_beginning[where Q' = Q' and P = P and R = R and
-              W = S2 and V = S1 and U = S0,
-              OF _ I J];
-           insert Down_del_assumption_beginning[where Q = \<open>\<lambda>S _. P S\<close> and Q' = Q' and V = S1 and
-             U = S0, OF I];
-          unify_Down_invs2_normalisation_post\<close>
-       \<bar> _ \<Rightarrow> \<open>fail\<close>\<close>
-   \<bar> I[thin]: \<open>S1 \<le> \<Down> {(T1, T0). Q T0 T1\<and> Q' T1 T0} S0\<close> (multi) and
-     J: _ for S1:: \<open>'b nres\<close> and S0 :: \<open>'a nres\<close> and Q Q' \<Rightarrow>
-       \<open>print_term S1; match J[uncurry] in
-         J[curry]: \<open>_ \<Longrightarrow> S2 \<le> \<Down> {(T2, T1). R T2 T1} S1\<close> for S2 :: \<open>'c nres\<close> and R \<Rightarrow>
-          \<open>insert Down_del_assumption_beginning[where Q = \<open>\<lambda> x y. Q y x\<close> and Q' = Q', OF I];
-           unify_Down_invs2_normalisation_post\<close>
-       \<bar> _ \<Rightarrow> \<open>fail\<close>\<close>
-  )
+lemma refinement_trans_eq:
+  \<open>A = A' \<Longrightarrow> B = B' \<Longrightarrow> R' = R \<Longrightarrow> A \<le> \<Down> R B \<Longrightarrow> A' \<le> \<Down> R' B'\<close>
+  by (auto simp: pw_ref_iff)
 
-lemma cdcl_twl_o_prog_spec:
+
+method "match_\<Down>" =
+  (match conclusion in \<open>f \<le> \<Down> R g\<close> for f :: \<open>'a nres\<close> and R :: \<open>('a \<times> 'b) set\<close> and g :: \<open>'b nres\<close> \<Rightarrow>
+    \<open>print_term f; match premises in
+       I[uncurry]: \<open>f \<le> \<Down> R' g\<close> for R' :: \<open>('a \<times> 'b) set\<close>
+          \<Rightarrow> \<open>rule refinement_trans_long[of f f g g R' R]\<close>\<close>)
+
+lemma decide_l_or_skip_spec:
   \<open>(decide_l_or_skip, decide_or_skip) \<in>
     {(S, S'). S' = twl_st_of None S \<and> get_conflict_l S = None \<and>
        clauses_to_update_l S = {#} \<and> literals_to_update_l S = {#} \<and> no_step cdcl_twl_cp (twl_st_of None S) \<and>
        twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S) \<and> additional_WS_invs S} \<rightarrow>
     \<langle>{((brk, T), (brk', T')). T' = twl_st_of None T \<and> brk = brk' \<and> additional_WS_invs T \<and> clauses_to_update_l T = {#} \<and>
     (get_conflict_l T \<noteq> None \<longrightarrow> get_conflict_l T = Some {#})\<and>
-       twl_struct_invs (twl_st_of None T) \<and> twl_stgy_invs (twl_st_of None T) (* \<and>
-       (\<not>brk \<longrightarrow> literals_to_update_l T \<noteq> {#}) *)}\<rangle> nres_rel\<close>
+       twl_struct_invs (twl_st_of None T) \<and> twl_stgy_invs (twl_st_of None T) \<and> 
+       (\<not>brk \<longrightarrow> literals_to_update_l T \<noteq> {#})\<and>
+       (brk \<longrightarrow> literals_to_update_l T = {#})}\<rangle> nres_rel\<close>
   (is \<open>_ \<in> ?R \<rightarrow> \<langle>?S\<rangle>nres_rel\<close>)
 proof -
   have find_unassigned_lit_l: \<open>find_unassigned_lit_l S \<le> \<Down> Id (find_unassigned_lit S')\<close>
@@ -2036,11 +2012,13 @@ proof -
           mset_take_mset_drop_mset' image_image S)
   qed
 
-
-    
+ 
   have I: \<open>(x, x') \<in> Id \<Longrightarrow> (x, x') \<in> \<langle>Id\<rangle>option_rel\<close> for x x' by auto
   have dec: \<open>(decide_l_or_skip, decide_or_skip) \<in> ?R \<rightarrow>
-    \<langle>{((brk, T), (brk', T')). T' = twl_st_of None T \<and> brk = brk' \<and> additional_WS_invs T}\<rangle> nres_rel\<close>
+    \<langle>{((brk, T), (brk', T')). T' = twl_st_of None T \<and> brk = brk' \<and> additional_WS_invs T \<and>
+      clauses_to_update_l T = {#} \<and>
+       (\<not>brk \<longrightarrow> literals_to_update_l T \<noteq> {#})\<and>
+       (brk \<longrightarrow> literals_to_update_l T = {#}) }\<rangle> nres_rel\<close>
     unfolding decide_l_or_skip_def decide_or_skip_def
     apply (refine_vcg find_unassigned_lit_l I)
     subgoal unfolding decide_l_or_skip_pre_def by auto
@@ -2052,52 +2030,33 @@ proof -
   have KK: \<open>SPEC (\<lambda>(brk, T). cdcl_twl_o\<^sup>*\<^sup>* S' T \<and> P brk T) = \<Down> {(S, S'). snd S = S' \<and> P (fst S) (snd S)} (SPEC (cdcl_twl_o\<^sup>*\<^sup>* S'))\<close>
     for S' P
     by (auto simp: conc_fun_def)
-  have nf: \<open>nofail (SPEC (cdcl_twl_o\<^sup>*\<^sup>* S'))\<close> for S'
-    sorry
+  have nf: \<open>nofail (SPEC (cdcl_twl_o\<^sup>*\<^sup>* S'))\<close> \<open>nofail (SPEC (cdcl_twl_o\<^sup>*\<^sup>* (twl_st_of None S)))\<close> for S S'
+    by auto
+  have [simp]: \<open>literals_to_update (twl_st_of None S) = literals_to_update_l S\<close> for S
+    by (cases S) auto
+  have set: \<open>{((a,b), (a', b')). P a b a' b'} = {(a, b). P (fst a) (snd a) (fst b) (snd b)}\<close> for P
+    by auto
+      
   show ?thesis
     apply (intro fun_relI nres_relI)
     subgoal for S S'
       using decide_or_skip_spec[of S', unfolded KK] dec["to_\<Down>", of S S'] nf apply -
-      apply (simp only:)
-      apply unify_Down_invs2+
-
-  oops
-  fix S S'
-  assume SS': \<open>(S, S') \<in> ?R\<close>
-  show \<open>decide_l_or_skip_pre S\<close>
-    using SS' unfolding decide_l_or_skip_pre_def by auto
-  have \<open>find_unassigned_lit S \<le> \<Down> {(S, S')} (decide S')\<close>
-
-  let ?P = \<open>\<exists>L. undefined_lit (get_trail S') L \<and> atm_of L \<in> atms_of_mm (clause `# get_clauses S')\<close>
-  show \<open>find_unassigned_lit_l S \<bind> (\<lambda>L. if L \<noteq> None then RETURN (False, decide_lit_l L S) else RETURN (True, S))
-            \<le> \<Down> ?S (if \<exists>L. undefined_lit (get_trail S') L \<and> atm_of L \<in> atms_of_mm (clause `# get_clauses S')
-                    then decide S' \<bind> (\<lambda>S. RETURN (False, S)) else RETURN (True, S'))\<close>
-
-  proof (cases ?P)
-    case True
-    then have P: \<open>?P = True\<close>
-      by fast
-    show ?thesis
-      unfolding P if_True
-      unfolding find_unassigned_lit_l_def decide_def
-      apply refine_vcg
       apply auto
 
-
-  next
-    case False
-    then show ?thesis sorry
-  qed
-  subgoal unfolding decide_l_or_skip_pre_def by auto
-  subgoal for S S'
-    apply (cases \<open>\<exists>L. undefined_lit (get_trail S') L \<and> atm_of L \<in> atms_of_mm (clause `# get_clauses S')\<close>)
-    subgoal
-      apply clarify
-
-     apply auto
-
-
-  oops
+      apply unify_Down_invs2+
+      apply (simp only: nf set)
+      apply (simp (no_asm_use))
+      apply ("match_\<Down>")
+      subgoal by simp
+      subgoal by simp
+      subgoal
+        apply (rule; rule)
+        apply clarsimp
+        done
+      subgoal by simp
+      done
+    done
+qed
 
 definition cdcl_twl_o_prog_l :: "'v twl_st_l \<Rightarrow> (bool \<times> 'v twl_st_l) nres" where
   \<open>cdcl_twl_o_prog_l S =
@@ -2119,8 +2078,8 @@ definition cdcl_twl_o_prog_l :: "'v twl_st_l \<Rightarrow> (bool \<times> 'v twl
     }
   \<close>
 
-thm decide_l_spec[unfolded nres_rel_def, unfolded fun_rel_def, simplified]
-thm decide_l_spec
+thm decide_l_or_skip_spec[unfolded nres_rel_def, unfolded fun_rel_def, simplified]
+
 thm decide[to_pred]
 
 lemma twl_st_lE:
@@ -2159,15 +2118,15 @@ proof -
          clauses_to_update_l (snd S) = {#}}\<rangle> nres_rel\<close>
     supply [[goals_limit=1]]
     apply clarify
-    unfolding cdcl_twl_o_prog_l_def cdcl_twl_o_prog_def decide_l_or_skip_def
-      find_unassigned_lit_def decide_def
-    apply (refine_vcg decide_l_spec[THEN refine_pair_to_SPEC]
+    unfolding cdcl_twl_o_prog_l_def cdcl_twl_o_prog_def (* decide_l_or_skip_def *)
+      find_unassigned_lit_def
+    apply (refine_vcg (* decide_l_or_skip_spec[THEN refine_pair_to_SPEC] *) decide_l_or_skip_spec["to_\<Down>", THEN order_trans]
         skip_and_resolve_loop_l_spec[THEN refine_pair_to_SPEC]
         backtrack_l_spec[THEN refine_pair_to_SPEC] H; remove_dummy_vars)
     subgoal by simp
+      apply (auto; fail) -- \<open>the variable L have to be guessed, so no subgoal\<close>
     subgoal for M N U NP UP WS Q M' N' U' NP' UP' WS' Q'
       by auto
-      apply (auto; fail) -- \<open>the variable L have to be guessed, so no subgoal\<close>
     subgoal
       by auto
     subgoal
@@ -2177,7 +2136,7 @@ proof -
     subgoal
       by simp
     subgoal
-      by simp
+      by auto
     subgoal
       by (rule twl_st_lE) auto
     subgoal
