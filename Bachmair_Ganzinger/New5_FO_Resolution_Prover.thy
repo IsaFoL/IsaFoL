@@ -6,7 +6,7 @@
 *)
 
 theory New5_FO_Resolution_Prover 
-imports New3_Ordered_Ground_Resolution Standard_Redundancy Substitution Clauses Explorer
+imports New3_Ordered_Ground_Resolution Standard_Redundancy Substitution Clauses  "../lib/Explorer"
 begin
 
 

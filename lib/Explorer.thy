@@ -1,33 +1,9 @@
-(* 
-
-LICENSE: ? ? ? ? 
-FROM: http://www.mail-archive.com/isabelle-dev@mailbroy.informatik.tu-muenchen.de/msg07448.html
-
-FABIAN IMMLER
-
-A while ago, Florian Haftmann sent a command that does something like this to the mailing list [1]. I attach a version that works with current Isabelle2016-1 (not sure if I got all the modifications right, but it seems to work at least on the example in the .thy file).
-
-Fabian
-
-[1] http://www.mail-archive.com/isabelle-dev@mailbroy.informatik.tu-muenchen.de/msg04443.html
-
-
-> Am 09.07.2017 um 16:58 schrieb Lawrence Paulson <lp15@cam.ac.uk>:
-> 
-> What I’m requesting requires no sophistication at all. It is merely to automate what we currently do by copying from one window and pasting to another, while inserting “fix”, “assume” and “show” in the obvious places.
-> Larry
-> 
->> On 9 Jul 2017, at 16:32, Lars Hupel <hupel@in.tum.de> wrote:
->> 
->> I currently supervise a student who's investigating proof refactoring. One possible outcome of this would be a tool that also does what you suggested. It's a little too early to tell, though.
-> 
-> _______________________________________________
-> isabelle-dev mailing list
-> isabelle-dev@in.tum.de
-> https://mailmanbroy.informatik.tu-muenchen.de/mailman/listinfo/isabelle-dev
-
-
-
+(* Title: Explorer
+   Initial author: Florian Haftmann
+   Initial author: Fabian Immler
+   License: ? ? ? ?
+   From: The isabelle-dev mailing list. "Re: [isabelle-dev] The coming release of Isabelle2017"
+   Link: http://www.mail-archive.com/isabelle-dev@mailbroy.informatik.tu-muenchen.de/msg07448.html
 *)
 
 theory Explorer
