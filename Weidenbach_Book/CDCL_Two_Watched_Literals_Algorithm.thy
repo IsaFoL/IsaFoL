@@ -398,26 +398,24 @@ definition find_unassigned_lit :: \<open>'v twl_st \<Rightarrow> 'v literal opti
 definition propagate_dec where
   \<open>propagate_dec = (\<lambda>L (M, N, U, D, NP, UP, WS, Q). (Decided L # M, N, U, D, NP, UP, WS, {#-L#}))\<close>
 
-definition decide :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
-  \<open>decide S = do {
+definition decide_or_skip :: "'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres" where
+  \<open>decide_or_skip S = do {
      L \<leftarrow> find_unassigned_lit S;
      case L of
-       None \<Rightarrow> RETURN S
-     | Some L \<Rightarrow> RETURN (propagate_dec L S)
+       None \<Rightarrow> RETURN (True, S)
+     | Some L \<Rightarrow> RETURN (False, propagate_dec L S)
   }
 \<close>
 
-lemma decide_spec:
+lemma decide_or_skip_spec:
   assumes \<open>clauses_to_update S = {#}\<close> and \<open>literals_to_update S = {#}\<close> and \<open>get_conflict S = None\<close> and
     twl: \<open>twl_struct_invs S\<close> and twl_s: \<open>twl_stgy_invs S\<close>
-  shows \<open>decide S \<le> SPEC (\<lambda>T.
-   ((S \<noteq> T \<and> (\<exists>L. undefined_lit (get_trail S) L \<and> atm_of L \<in> atms_of_mm (clause `# get_clauses S)) \<and>
-    cdcl_twl_o S T \<and> literals_to_update T \<noteq> {#}) \<or>
-     (S = T \<and>
-      (\<nexists>L. undefined_lit (get_trail S) L \<and> atm_of L \<in> atms_of_mm (clause `# get_clauses S)) \<and>
-      no_step cdcl_twl_o S )) \<and>
-    get_conflict T = None \<and> clauses_to_update T = {#} \<and>
-    twl_struct_invs T \<and> twl_stgy_invs T)\<close>
+  shows \<open>decide_or_skip S \<le> SPEC(\<lambda>(brk, T). cdcl_twl_o\<^sup>*\<^sup>* S T \<and>
+       (get_conflict T \<noteq> None \<longrightarrow> get_conflict T = Some {#}) \<and>
+       no_step cdcl_twl_o T \<and> (brk \<longrightarrow> no_step cdcl_twl_stgy T) \<and> twl_struct_invs T \<and>
+       twl_stgy_invs T \<and> clauses_to_update T = {#} \<and>
+       (\<not>brk \<longrightarrow> literals_to_update T \<noteq> {#}) \<and>
+       (\<not>no_step cdcl_twl_o S \<longrightarrow> cdcl_twl_o\<^sup>+\<^sup>+ S T))\<close>
 proof -
   obtain M N U NP UP where S: \<open>S = (M, N, U, None, NP, UP, {#}, {#})\<close>
     using assms by (cases S) auto
@@ -457,12 +455,12 @@ proof -
     note o twl' twl_s'
   } note H = this
   show ?thesis
-    using assms unfolding S decide_def find_unassigned_lit_def propagate_dec_def
+    using assms unfolding S find_unassigned_lit_def propagate_dec_def decide_or_skip_def
     apply (refine_vcg)
-    by (auto simp: H elim!: cdcl_twl_oE simp: cdcl_twl_o.simps)
+    by (auto simp: H elim!: cdcl_twl_oE cdcl_twl_stgyE cdcl_twl_cpE simp: cdcl_twl_o.simps )
 qed
 
-declare decide_spec[THEN order_trans, refine_vcg]
+declare decide_or_skip_spec[THEN order_trans, refine_vcg]
 
 subsubsection \<open>Skip and Resolve Loop\<close>
 
@@ -1064,54 +1062,6 @@ declare backtrack_spec[THEN order_trans, refine_vcg]
 
 subsubsection \<open>Full loop\<close>
 
-definition decide_or_skip :: "'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres" where
-  \<open>decide_or_skip S =
-     (if (\<exists>L. undefined_lit (get_trail S) L \<and> atm_of L \<in> atms_of_mm (clause `# (get_clauses S)))
-      then do {S \<leftarrow> decide S; RETURN (False, S)}
-      else do {RETURN (True, S)})\<close>
-
-lemma decide_or_skip_spec:
-  assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
-    \<open>literals_to_update S = {#}\<close> and \<open>get_conflict S = None\<close> and
-    ns_cp: \<open>no_step cdcl_twl_cp S\<close>
-  shows
-    \<open>decide_or_skip S \<le> SPEC(\<lambda>(brk, T). cdcl_twl_o\<^sup>*\<^sup>* S T \<and>
-       (get_conflict T \<noteq> None \<longrightarrow> get_conflict T = Some {#}) \<and>
-       no_step cdcl_twl_o T \<and> (brk \<longrightarrow> no_step cdcl_twl_stgy T) \<and> twl_struct_invs T \<and>
-       twl_stgy_invs T \<and> clauses_to_update T = {#} \<and>
-       (\<not>brk \<longrightarrow> literals_to_update T \<noteq> {#}) \<and>
-       (\<not>no_step cdcl_twl_o S \<longrightarrow> cdcl_twl_o\<^sup>+\<^sup>+ S T))\<close>
-proof -
-  have [iff]: \<open>\<not> cdcl_twl_cp S T\<close> for T
-    using ns_cp by fast
-
-  show ?thesis
-    unfolding decide_or_skip_def
-    apply (refine_vcg; remove_dummy_vars)
-    \<comment> \<open>initial invariants\<close>
-    subgoal using assms by auto
-    subgoal using assms by auto
-    subgoal using assms by auto
-    subgoal using assms by auto
-    subgoal using assms by auto
-    subgoal using assms by auto
-    subgoal by (auto simp: cdcl_twl_o.simps)
-    subgoal by (auto simp: cdcl_twl_stgy.simps)
-    subgoal by auto
-    subgoal by auto
-    subgoal using assms by auto
-    subgoal using assms by (auto simp: cdcl_twl_o.simps image_Un)
-    subgoal using assms by (auto simp: cdcl_twl_stgy.simps cdcl_twl_o.simps image_Un)
-    subgoal using assms by fast
-    subgoal using assms by fast
-    subgoal using assms by fast
-    subgoal using assms by fast
-    subgoal using assms by (auto simp: cdcl_twl_o.simps image_Un)
-    done
-qed
-
-declare decide_or_skip_spec[THEN order_trans, refine_vcg]
-
 definition cdcl_twl_o_prog :: "'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres" where
   \<open>cdcl_twl_o_prog S =
     do {
@@ -1144,7 +1094,7 @@ proof -
 
   show ?thesis
     unfolding cdcl_twl_o_prog_def
-    apply (refine_vcg decide_spec[THEN order_trans]; remove_dummy_vars)
+    apply (refine_vcg decide_or_skip_spec[THEN order_trans]; remove_dummy_vars)
     \<comment> \<open>initial invariants\<close>
     subgoal using assms by auto
     subgoal using assms by auto
@@ -1152,23 +1102,21 @@ proof -
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
+    subgoal using assms by (auto elim!: cdcl_twl_oE simp: image_Un)
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by (auto elim!: cdcl_twl_oE simp: image_Un)
     subgoal for x T using assms
-      by (cases T) (auto elim!: cdcl_twl_stgyE cdcl_twl_oE)
+      by (cases T) (auto elim!: cdcl_twl_stgyE cdcl_twl_oE cdcl_twl_cpE)
 
     \<comment> \<open>decision, if false\<close>
     subgoal using assms by (auto elim!: cdcl_twl_oE)
-    subgoal using assms by (auto elim!: cdcl_twl_oE)
-    subgoal using assms by (auto simp: cdcl_twl_o.simps image_Un)
-
-    subgoal using assms ns_cp by (auto simp: cdcl_twl_o.simps  cdcl_twl_stgy.simps image_Un)
-    subgoal using assms by (auto elim!: cdcl_twl_oE simp: cdcl_twl_o.simps  cdcl_twl_stgy.simps image_Un cdcl_twl_cp.simps)
-    subgoal using assms by auto
     subgoal by (auto simp: rtranclp_unfold elim!: cdcl_twl_oE)
     done
 qed

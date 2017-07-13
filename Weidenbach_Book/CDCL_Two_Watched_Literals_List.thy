@@ -1267,45 +1267,6 @@ proof -
     done
 qed
 
-definition decide_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
-  \<open>decide_l = (\<lambda>(M, N, U, D, NP, UP, WS, Q). do {
-     L \<leftarrow> SPEC (\<lambda>L. undefined_lit M L \<and> atm_of L \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N))));
-     RETURN (Decided L # M, N, U, D, NP, UP, WS, {#-L#})
-  })
-\<close>
-
-lemma decide_l_spec:
-  \<open>(decide_l, decide) \<in>
-    {(S, S'). S' = twl_st_of None S \<and> twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S) \<and>
-        additional_WS_invs S \<and> clauses_to_update_l S = {#} \<and> literals_to_update (twl_st_of None S) = {#} \<and>
-        get_conflict (twl_st_of None S) = None} \<rightarrow>
-  \<langle>{(T, T'). T' = twl_st_of None T \<and> additional_WS_invs T \<and>
-    (twl_struct_invs (twl_st_of None T) \<and> twl_stgy_invs (twl_st_of None T) \<and>
-    clauses_to_update_l T = {#} \<and> get_conflict (twl_st_of None T) = None)}\<rangle> nres_rel\<close>
-  (is \<open>?C \<in> ?R \<rightarrow> ?inv\<close>)
-proof -
-  have
-    \<open>(decide_l, decide) \<in> ?R \<rightarrow> \<langle>{(T, T'). T' = twl_st_of None T \<and> (additional_WS_invs T \<and>
-    clauses_to_update_l T = {#})}\<rangle> nres_rel\<close>
-    unfolding decide_l_def decide_def
-    by refine_vcg (auto simp: additional_WS_invs_def)
-  then have
-    \<open>(decide_l, decide) \<in> ?R \<rightarrow>  \<langle>{(T, T'). T' = twl_st_of None T \<and>
-    (additional_WS_invs T \<and> clauses_to_update_l T = {#}) \<and>
-    (twl_struct_invs (twl_st_of None T) \<and> twl_stgy_invs (twl_st_of None T) \<and>
-    get_conflict (twl_st_of None T) = None)}\<rangle> nres_rel\<close>
-    apply (rule refine_add_inv)
-    subgoal for S
-      using decide_spec[of \<open>twl_st_of None S\<close>]
-      apply (simp add: weaken_SPEC)
-      done
-    done
-  then show ?thesis
-    apply -
-    apply (match_spec; (match_fun_rel; match_fun_rel?)+)
-    by force+
-qed
-
 lemma get_conflict_l_get_conflict_state_spec:
   assumes \<open>S' = twl_st_of None S\<close> and \<open>additional_WS_invs S\<close> and \<open>clauses_to_update_l S = {#}\<close>
   shows \<open>((get_conflict_l S = Some {#}, S), (get_conflict S' = Some {#}, S'))
@@ -1948,8 +1909,8 @@ proof -
     done
 qed
 
-definition find_unassigned_lit :: \<open>'v twl_st_l \<Rightarrow> 'v literal option nres\<close> where
-  \<open>find_unassigned_lit = (\<lambda>(M, N, U, D, NP, UP, WS, Q).
+definition find_unassigned_lit_l :: \<open>'v twl_st_l \<Rightarrow> 'v literal option nres\<close> where
+  \<open>find_unassigned_lit_l = (\<lambda>(M, N, U, D, NP, UP, WS, Q).
      SPEC (\<lambda>L.
          (L \<noteq> None \<longrightarrow>
             undefined_lit M (the L) \<and>
@@ -1969,19 +1930,57 @@ definition decide_l_or_skip_pre where
   \<close>
 
 
-definition decide_lit_l :: \<open>'v literal option \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
+definition decide_lit_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
   \<open>decide_lit_l = (\<lambda>L' (M, N, U, D, NP, UP, WS, Q).
-      (Decided (the L') # M, N, U, D, NP, UP, WS, {#-the L'#}))\<close>
+      (Decided (L') # M, N, U, D, NP, UP, WS, {#- L'#}))\<close>
 
 definition decide_l_or_skip :: "'v twl_st_l \<Rightarrow> (bool \<times> 'v twl_st_l) nres" where
   \<open>decide_l_or_skip S = (do {
     ASSERT(decide_l_or_skip_pre S);
-    L \<leftarrow> find_unassigned_lit S;
-    if L \<noteq> None
-    then RETURN (False, decide_lit_l L S)
-    else do {RETURN (True, S)}
+    L \<leftarrow> find_unassigned_lit_l S;
+    case L of
+      None \<Rightarrow> RETURN (True, S)
+    | Some L \<Rightarrow> RETURN (False, decide_lit_l L S)
   })
 \<close>
+
+
+method unify_Down_invs2 =
+  (match premises in
+      \<comment> \<open>if the relation 2-1 has not assumption, we add True. Then we call out method again and
+           this time it will match since it has an assumption.\<close>
+      I: \<open>S1 \<le> \<Down> R10 S0\<close> and
+      J[thin]: \<open>S2 \<le> \<Down> R21 S1\<close>
+       for S1:: \<open>'b nres\<close> and S0 :: \<open>'a nres\<close> and S2 :: \<open>'c nres\<close> and R10 R21 \<Rightarrow>
+        \<open>print_term S1; insert True_implies_equals[where P = \<open>S2 \<le> \<Down> R21 S1\<close>, symmetric,
+           THEN equal_elim_rule1, OF J]\<close>
+    \<bar> I[thin]: \<open>S1 \<le> \<Down> {(T1, T0). P T1} S0\<close> (multi) and
+      J[thin]: _ for S1:: \<open>'b nres\<close> and S0 :: \<open>'a nres\<close> and P :: \<open>'b \<Rightarrow> bool\<close> \<Rightarrow>
+       \<open>match J[uncurry] in
+         J[curry]: \<open>_ \<Longrightarrow> S2 \<le> \<Down> {(T2, T1). R T2 T1} S1\<close> for S2 :: \<open>'c nres\<close> and R \<Rightarrow>
+          \<open>print_term S1; insert Down_add_assumption_beginning_single[where P = P and R = R and
+               W = S2 and V = S1 and U = S0, OF _ I J];
+           unify_Down_invs2_normalisation_post\<close>
+       \<bar> _ \<Rightarrow> \<open>fail\<close>\<close>
+   \<bar> I[thin]: \<open>S1 \<le> \<Down> {(T1, T0). P T1 \<and> Q' T1 T0} S0\<close> (multi) and
+     J[thin]: _ for S1:: \<open>'b nres\<close> and S0 :: \<open>'a nres\<close> and Q' and P :: \<open>'b \<Rightarrow> bool\<close> \<Rightarrow>
+       \<open>print_term S1; match J[uncurry] in
+         J[curry]: \<open>_ \<Longrightarrow> S2 \<le> \<Down> {(T2, T1). R T2 T1} S1\<close> for S2 :: \<open>'c nres\<close> and R \<Rightarrow>
+          \<open>insert Down_add_assumption_beginning[where Q' = Q' and P = P and R = R and
+              W = S2 and V = S1 and U = S0,
+              OF _ I J];
+           insert Down_del_assumption_beginning[where Q = \<open>\<lambda>S _. P S\<close> and Q' = Q' and V = S1 and
+             U = S0, OF I];
+          unify_Down_invs2_normalisation_post\<close>
+       \<bar> _ \<Rightarrow> \<open>fail\<close>\<close>
+   \<bar> I[thin]: \<open>S1 \<le> \<Down> {(T1, T0). Q T0 T1\<and> Q' T1 T0} S0\<close> (multi) and
+     J: _ for S1:: \<open>'b nres\<close> and S0 :: \<open>'a nres\<close> and Q Q' \<Rightarrow>
+       \<open>print_term S1; match J[uncurry] in
+         J[curry]: \<open>_ \<Longrightarrow> S2 \<le> \<Down> {(T2, T1). R T2 T1} S1\<close> for S2 :: \<open>'c nres\<close> and R \<Rightarrow>
+          \<open>insert Down_del_assumption_beginning[where Q = \<open>\<lambda> x y. Q y x\<close> and Q' = Q', OF I];
+           unify_Down_invs2_normalisation_post\<close>
+       \<bar> _ \<Rightarrow> \<open>fail\<close>\<close>
+  )
 
 lemma cdcl_twl_o_prog_spec:
   \<open>(decide_l_or_skip, decide_or_skip) \<in>
@@ -1993,25 +1992,96 @@ lemma cdcl_twl_o_prog_spec:
        twl_struct_invs (twl_st_of None T) \<and> twl_stgy_invs (twl_st_of None T) (* \<and>
        (\<not>brk \<longrightarrow> literals_to_update_l T \<noteq> {#}) *)}\<rangle> nres_rel\<close>
   (is \<open>_ \<in> ?R \<rightarrow> \<langle>?S\<rangle>nres_rel\<close>)
-  unfolding decide_l_or_skip_def decide_or_skip_def
-proof refine_vcg
+proof -
+  have find_unassigned_lit_l: \<open>find_unassigned_lit_l S \<le> \<Down> Id (find_unassigned_lit S')\<close>
+    if SS': \<open>(S, S') \<in> ?R\<close>
+    for S S'
+  proof -
+    obtain M N U D NP UP WS Q where S: \<open>S = (M, N, U, None, NP, UP, WS, Q)\<close>
+      using SS' by (cases S) auto
+    have [dest!]:
+      \<open>atm_of L \<in> atms_of_ms (mset ` set (take U (tl N)))\<close>
+      if U: \<open>atm_of L \<in> atms_of_ms (mset ` set (drop U (tl N)))\<close> and
+        undef: \<open>undefined_lit M L\<close>
+      for L
+    proof -
+      have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of None S))\<close> and
+        unit: \<open>unit_clss_inv (twl_st_of None S)\<close>
+        using SS' unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+        by fast+
+      moreover have \<open>atm_of L \<notin> atms_of_mm NP\<close>
+      proof (rule ccontr)
+        assume \<open>\<not> ?thesis\<close>
+        then obtain C where C: \<open>C \<in># NP\<close> and LC: \<open>atm_of L \<in> atms_of C\<close>
+          by (auto  simp: S atms_of_ms_def atms_of_def)
+        then obtain L' where \<open>C = {#L'#}\<close> and \<open>defined_lit M L'\<close>
+          using unit by (auto simp: S Decided_Propagated_in_iff_in_lits_of_l)
+        then show False
+          using LC undef by (auto simp: atm_of_eq_atm_of)
+      qed
+      ultimately show ?thesis
+        using that
+        by (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def S cdcl\<^sub>W_restart_mset_state image_Un
+            mset_take_mset_drop_mset' drop_Suc)
+    qed
+    have [simp]: \<open>mset ` set (tl N) = mset ` set (take U (tl N)) \<union> mset ` set (drop U (tl N))\<close>
+      apply (subst append_take_drop_id[symmetric, of \<open>tl N\<close> U])
+      apply (subst set_append image_Un)
+      by auto
+
+    show ?thesis
+      using that 
+      by (cases S')
+        (auto simp: find_unassigned_lit_l_def find_unassigned_lit_def
+          mset_take_mset_drop_mset' image_image S)
+  qed
+
+
+    
+  have I: \<open>(x, x') \<in> Id \<Longrightarrow> (x, x') \<in> \<langle>Id\<rangle>option_rel\<close> for x x' by auto
+  have dec: \<open>(decide_l_or_skip, decide_or_skip) \<in> ?R \<rightarrow>
+    \<langle>{((brk, T), (brk', T')). T' = twl_st_of None T \<and> brk = brk' \<and> additional_WS_invs T}\<rangle> nres_rel\<close>
+    unfolding decide_l_or_skip_def decide_or_skip_def
+    apply (refine_vcg find_unassigned_lit_l I)
+    subgoal unfolding decide_l_or_skip_pre_def by auto
+    subgoal by auto
+    subgoal for S S'
+      by (cases S)
+       (auto simp: decide_lit_l_def propagate_dec_def additional_WS_invs_def)
+    done
+  have KK: \<open>SPEC (\<lambda>(brk, T). cdcl_twl_o\<^sup>*\<^sup>* S' T \<and> P brk T) = \<Down> {(S, S'). snd S = S' \<and> P (fst S) (snd S)} (SPEC (cdcl_twl_o\<^sup>*\<^sup>* S'))\<close>
+    for S' P
+    by (auto simp: conc_fun_def)
+  have nf: \<open>nofail (SPEC (cdcl_twl_o\<^sup>*\<^sup>* S'))\<close> for S'
+    sorry
+  show ?thesis
+    apply (intro fun_relI nres_relI)
+    subgoal for S S'
+      using decide_or_skip_spec[of S', unfolded KK] dec["to_\<Down>", of S S'] nf apply -
+      apply (simp only:)
+      apply unify_Down_invs2+
+
+  oops
   fix S S'
   assume SS': \<open>(S, S') \<in> ?R\<close>
   show \<open>decide_l_or_skip_pre S\<close>
     using SS' unfolding decide_l_or_skip_pre_def by auto
-  have \<open>find_unassigned_lit S \<le> \<Down> {(L, T). undefined_lit (get_trail_l S)} (decide S')\<close>
+  have \<open>find_unassigned_lit S \<le> \<Down> {(S, S')} (decide S')\<close>
 
   let ?P = \<open>\<exists>L. undefined_lit (get_trail S') L \<and> atm_of L \<in> atms_of_mm (clause `# get_clauses S')\<close>
-  show \<open>find_unassigned_lit S \<bind> (\<lambda>L. if L \<noteq> None then RETURN (False, decide_lit_l L S) else RETURN (True, S))
+  show \<open>find_unassigned_lit_l S \<bind> (\<lambda>L. if L \<noteq> None then RETURN (False, decide_lit_l L S) else RETURN (True, S))
             \<le> \<Down> ?S (if \<exists>L. undefined_lit (get_trail S') L \<and> atm_of L \<in> atms_of_mm (clause `# get_clauses S')
                     then decide S' \<bind> (\<lambda>S. RETURN (False, S)) else RETURN (True, S'))\<close>
+
   proof (cases ?P)
     case True
     then have P: \<open>?P = True\<close>
       by fast
     show ?thesis
       unfolding P if_True
+      unfolding find_unassigned_lit_l_def decide_def
       apply refine_vcg
+      apply auto
 
 
   next
