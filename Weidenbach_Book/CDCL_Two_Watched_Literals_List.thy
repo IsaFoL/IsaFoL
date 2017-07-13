@@ -2323,7 +2323,7 @@ proof -
     subgoal
       by (rule twl_st_lE) auto
     subgoal
-      by (auto simp add: get_conflict_l_Some_nil_iff additional_WS_invs_def)
+      by (auto simp add: additional_WS_invs_def)
     subgoal
       by fast
     subgoal
