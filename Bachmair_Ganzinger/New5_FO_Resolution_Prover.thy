@@ -1166,10 +1166,14 @@ lemma nice: "sat_preserving_inference_system gd_ord_\<Gamma>'" (* Altough maybe 
     apply (simp add: set_rev_mp true_cls_mset_def) 
     done
   done
-    
+
+definition src_ext_Ri where
+  "src_ext_Ri = (\<lambda>N. src.Ri N \<union> (gd_ord_\<Gamma>' - gd.ord_\<Gamma>))"
+
 interpretation src_ext:
-  sat_preserving_redundancy_criterion "gd_ord_\<Gamma>'" "src.Rf" "(\<lambda>N. src.Ri N \<union> (gd_ord_\<Gamma>' - gd.ord_\<Gamma>))"
-  unfolding sat_preserving_redundancy_criterion_def
+  sat_preserving_redundancy_criterion "gd_ord_\<Gamma>'" "src.Rf" "src_ext_Ri"
+
+  unfolding sat_preserving_redundancy_criterion_def src_ext_Ri_def
   apply(rule conjI)
   using nice apply simp
   by (rule standard_redundancy_criterion_extension[OF gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redudancy_criterion])
@@ -1832,7 +1836,7 @@ definition is_least :: "(nat \<Rightarrow> bool) \<Rightarrow> nat \<Rightarrow>
 lemma least_exists: 
   assumes "P n"
   shows "\<exists>n. is_least P n"
-    using assms  exists_least_iff unfolding is_least_def by auto
+    using assms exists_least_iff unfolding is_least_def by auto
    
 
 lemma in_lSup_in_nth:
@@ -2794,6 +2798,11 @@ theorem completeness:
   shows "{#} \<in> clss_of_state (limit_state Sts)"
 proof -
   let ?N = "\<lambda>i. grounding_of_state (lnth Sts i)"
+
+  let ?Ns = "\<lambda>i. getN (lnth Sts i)"
+  let ?Ps = "\<lambda>i. getP (lnth Sts i)"
+  let ?Qs = "\<lambda>i. getQ (lnth Sts i)"
+
   define \<Gamma>x :: "'a inference set" where "\<Gamma>x = undefined"
   define Rf :: "'a literal multiset set \<Rightarrow> 'a literal multiset set" where "Rf = standard_redundancy_criterion.Rf"
   define derive where "derive = redundancy_criterion.derive \<Gamma>x Rf"
@@ -2969,19 +2978,68 @@ proof -
     qed
     then obtain \<sigma> where sisisgma: "ord_resolve (S_M S (getQ (limit_state Sts))) CAi1 ?D \<sigma> ?E"
       by auto
-    then obtain \<eta>s \<eta> \<eta>2 CAi'' DA'' E'' \<tau> where
-      "is_ground_subst \<eta>"
-      "is_ground_subst_list \<eta>s" 
-      "is_ground_subst \<eta>2" 
-      "ord_resolve_rename S CAi'' DA'' \<tau> E''"
-      "CAi'' \<cdot>\<cdot>cl \<eta>s = CAi1"
-      "DA'' \<cdot> \<eta> = ?D"
-      "E'' \<cdot> \<eta>2 = ?E"
-      "{DA''} \<union> set CAi'' \<subseteq> getQ (limit_state Sts)"
-      using selection_renaming_invariant ord_resolve_rename_lifting[of S "getQ (limit_state Sts)" CAi1 "main_prem_of \<gamma>" _ "concl_of \<gamma>", OF sisisgma selection_axioms _ xxq]
+    then obtain \<eta>s''' \<eta>''' \<eta>2''' CAi''' DA''' E''' \<tau>''' where
+      "is_ground_subst \<eta>'''"
+      "is_ground_subst_list \<eta>s'''" 
+      "is_ground_subst \<eta>2'''" 
+      "ord_resolve_rename S CAi''' DA''' \<tau>''' E'''"
+      "CAi''' \<cdot>\<cdot>cl \<eta>s''' = CAi1"
+      "DA''' \<cdot> \<eta>''' = ?D"
+      "E''' \<cdot> \<eta>2''' = ?E"
+      "{DA'''} \<union> set CAi''' \<subseteq> getQ (limit_state Sts)"
+      using selection_renaming_invariant ord_resolve_rename_lifting[of S "getQ (limit_state Sts)" CAi1 "?D" _ "?E", OF sisisgma selection_axioms _ xxq]
       by smt
-    then have True
+    (* I should replace these by the smallest according to subsumption. The I can use the lemmas from 4.11 to move the clauses to Q. *)
+    (* Here is a sketch of doing that. *)
+    (* First we get the ones with the nice property. *)
+    then obtain \<eta>s'' \<eta>'' \<eta>2'' CAi'' DA'' E'' \<tau>'' where
+      "is_ground_subst \<eta>''"
+      "is_ground_subst_list \<eta>s''" 
+      "is_ground_subst \<eta>2''" 
+      "ord_resolve_rename S CAi'' DA'' \<tau>'' E''"
+      "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi1"
+      "DA'' \<cdot> \<eta>'' = ?D"
+      "E'' \<cdot> \<eta>2'' = ?E"
+      "{DA''} \<union> set CAi'' \<subseteq> getQ (limit_state Sts)"
+      UWEPROPERTY
       sorry
+    (* Next we get the ones that are eventually in Q *)
+    then obtain \<eta>s' \<eta>' \<eta>2' CAi' DA' E' \<tau>' where
+      "is_ground_subst \<eta>'"
+      "is_ground_subst_list \<eta>s'" 
+      "is_ground_subst \<eta>2'" 
+      "ord_resolve_rename S CAi' DA' \<tau>' E'"
+      "CAi' \<cdot>\<cdot>cl \<eta>s' = CAi1"
+      "DA' \<cdot> \<eta>' = ?D"
+      "E' \<cdot> \<eta>2' = ?E"
+      "{DA'} \<union> set CAi' \<subseteq> getQ (limit_state Sts)"
+      UWEPROPERTY (* They have the property, but that is not really important anymore. *)
+      "\<exists>j. enat j < llength Sts \<and> (set CAi') \<union> {DA'} \<subseteq> ?Qs j"
+      sorry
+    then obtain j where j_p: "is_least (\<lambda>j. enat j < llength Sts \<and> (set CAi') \<union> {DA'} \<subseteq> ?Qs j) j"
+      using least_exists by force
+    then have "j \<noteq> 0" (* Since there are initially no clauses in Q *)
+      sorry
+    then have "\<not>set CAi' \<union> {DA'} \<subseteq> ?Qs (j-1) \<and> set CAi' \<union> {DA'} \<subseteq> ?Qs j" using j_p
+      sorry
+    then obtain C' where C'_p:
+      "?Ns (j-1) = {}"
+      "?Ps (j-1) = ?Ps j \<union> {C'}"
+      "?Qs j = ?Qs (j-1) \<union> {C'}"
+      "?Ns j = concls_of (ord_FO_resolution.inferences_between (?Qs (j-1)) C')"
+      "C' \<in> set CAi' \<union> {DA'}"  (* This one also because of j_p *)
+      sorry
+    then have "E' \<in> ?Ns j"
+      sorry
+    then have "E' \<in> clss_of_state (lnth Sts j)"
+      sorry
+    then have "?E \<in> grounding_of_state (lnth Sts j)"
+      sorry
+    
+    then have "\<gamma> \<in> src.Ri (G(S\<^sub>j))"
+    
+
+    have True sorry
   }
     
 oops
