@@ -184,48 +184,49 @@ definition unit_prop_body_wl_inv where
     get_conflict_wl T' = None \<and>
     (watched_by T' L) ! i > 0 \<and>
     i < length (watched_by T' L) \<and>
-    watched_by T' L ! i < length (get_clauses_wl T')
+    watched_by T' L ! i < length (get_clauses_wl T') \<and>
+    unit_propagation_inner_loop_body_l_inv L (watched_by T' L ! i) (st_l_of_wl (Some (L, Suc i)) T') \<and>
+    L \<in># all_lits_of_mm (mset `# mset (tl (get_clauses_wl T')) + (get_unit_init_clss T')) 
   \<close>
 
 
+definition mark_conflict_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
+  \<open>mark_conflict_wl = (\<lambda>C (M, N, U, D, NP, UP, Q, W). (M, N, U, Some (mset C), NP, UP, {#}, W))\<close>
+
+
+definition propgate_lit_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
+  \<open>propgate_lit_wl = (\<lambda>L' C (M, N, U, D, NP, UP, Q, W).
+      (Propagated L' C # M, N, U, D, NP, UP, add_mset (-L') Q, W))\<close>
+
+definition update_clause_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
+    (nat \<times> 'v twl_st_wl) nres\<close> where
+  \<open>update_clause_wl = (\<lambda>(L::'v literal) C w i f (M, N, U, D, NP, UP, Q, W). do {
+     let K' = (N!C) ! f;
+     let N' = list_update N C (swap (N!C) i f);
+     RETURN (w, (M, N', U, D, NP, UP, Q, W(L := delete_index_and_swap (watched_by (M, N, U, D, NP, UP, Q, W) L) w, K':= W K' @ [C])))
+
+  })\<close>
+
 definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
     (nat \<times> 'v twl_st_wl) nres" where
-  \<open>unit_propagation_inner_loop_body_wl K w S = do {
-      ASSERT(unit_prop_body_wl_inv S w K);
-      let (M, N, U, D, NP, UP, Q, W) = (S::'v twl_st_wl);
-      ASSERT(K \<in># all_lits_of_mm (mset `# mset (tl N) + NP));
-      ASSERT(w < length (watched_by S K));
-      let C = (watched_by S K) ! w;
-      ASSERT(C > 0);
-      ASSERT(no_dup M);
-      ASSERT(C < length N);
-      ASSERT(0 < length (N!C));
-      let i = (if (N!C) ! 0 = K then 0 else 1);
-      ASSERT(i < length (N!C));
-      ASSERT(1-i < length (N!C));
-      let L = (N!C) ! i;
-      ASSERT(L = K);
-      let L' = (N!C) ! (1 - i);
-      ASSERT(L' \<in># mset (watched_l (N!C)) - {#L#});
-      ASSERT(mset (watched_l (N!C)) = {#L, L'#});
-      val_L' \<leftarrow> RETURN (valued M L');
+  \<open>unit_propagation_inner_loop_body_wl L w S = do {
+      ASSERT(unit_prop_body_wl_inv S w L);
+      let C = (watched_by S L) ! w;
+      let i = (if ((get_clauses_wl S)!C) ! 0 = L then 0 else 1);
+      let L' = ((get_clauses_wl S)!C) ! (1 - i);
+      let val_L' = valued (get_trail_wl S) L';
       if val_L' = Some True
       then RETURN (w+1, S)
       else do {
-        f \<leftarrow> find_unwatched M (N!C);
-        ASSERT (f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l (N!C)). - L \<in> lits_of_l M));
+        f \<leftarrow> find_unwatched (get_trail_wl S) ((get_clauses_wl S)!C);
+        ASSERT (f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l ((get_clauses_wl S)!C)). - L \<in> lits_of_l (get_trail_wl S)));
         case f of
           None \<Rightarrow>
             if val_L' = Some False
-            then do {RETURN (w+1, (M, N, U, Some (mset (N!C)), NP, UP, {#}, W))}
-            else do {RETURN (w+1, (Propagated L' C # M, N, U, D, NP, UP, add_mset (-L') Q, W))}
+            then do {RETURN (w+1, mark_conflict_wl ((get_clauses_wl S)!C) S)}
+            else do {RETURN (w+1, propgate_lit_wl L' C S)}
         | Some f \<Rightarrow> do {
-            ASSERT(f < length (N!C));
-            let K' = (N!C) ! f;
-            ASSERT(K' \<in># all_lits_of_mm (mset `# mset (tl N) + NP));
-            let N' = list_update N C (swap (N!C) i f);
-            ASSERT(K \<noteq> K');
-            RETURN (w, (M, N', U, D, NP, UP, Q, W(K := delete_index_and_swap (watched_by S L) w, K':= W K' @ [C])))
+            update_clause_wl L C w i f S
           }
       }
    }\<close>
@@ -322,7 +323,7 @@ proof -
     by (auto simp: trail.simps comp_def S)
 
   define i :: nat where
-    \<open>i \<equiv> if N ! (watched_by (M, N, U, None, NP, UP, Q, W) L ! w) ! 0 = L then 0 else 1\<close>
+    \<open>i \<equiv> (if get_clauses_wl S ! (watched_by S L ! w) ! 0 = L then 0 else 1)\<close>
   let ?L = \<open>C'' ! i\<close>
   let ?L' = \<open>C'' ! (Suc 0 - i)\<close>
   have cons_M: \<open>consistent_interp (lits_of_l M)\<close>
@@ -378,6 +379,29 @@ proof -
   ultimately have zero_le_W_L_w: \<open>0 < W L ! w\<close>
     by (auto simp: S correct_watching.simps clause_to_update_def)
 
+(* 
+unit_propagation_inner_loop_body_l_inv L C' T \<Longrightarrow>
+    unit_prop_body_wl_inv S w L \<Longrightarrow>
+    valued (get_trail_wl S) (get_clauses_wl S ! (watched_by S L ! w) ! (1 - i)) \<noteq>
+    Some True \<Longrightarrow>
+    valued (get_trail_l T) (get_clauses_l T ! C' ! (1 - i)) \<noteq> Some True \<Longrightarrow>
+    (Some x_, Some x'_) \<in> Id \<Longrightarrow>
+    (Some x'_ = None) =
+    (\<forall>L\<in>#mset (unwatched_l (get_clauses_l T ! C')). - L \<in> lits_of_l (get_trail_l T)) \<Longrightarrow>
+    (Some x_ = None) =
+    (\<forall>L\<in>#mset (unwatched_l (get_clauses_wl S ! (watched_by S L ! w))).
+        - L \<in> lits_of_l (get_trail_wl S)) \<Longrightarrow>
+    (x_, x'_) \<in> nat_rel \<Longrightarrow>
+    x'_ < length (get_clauses_l T ! C') \<Longrightarrow>
+    w < length (watched_by S L) \<Longrightarrow>
+    get_conflict_wl S = None \<Longrightarrow>
+    correct_watching S \<Longrightarrow>
+    update_clause_wl L (watched_by S L ! w) w i x_ S
+    \<le> \<Down> {((i, T'), T).
+          T = st_l_of_wl (Some (L, i)) T' \<and>
+          correct_watching T' \<and> i \<le> length (watched_by T' L)}
+        (update_clause_l C' i x'_ T)
+ *)
   have ref:
     \<open>((w, M, N[watched_by (M, N, U, None, NP, UP, Q, W) L ! w := swap (N ! (watched_by (M, N, U, None, NP, UP, Q, W) L ! w)) i f], U, None, NP, UP, Q, W
         (L := delete_index_and_swap (watched_by (M, N, U, None, NP, UP, Q, W) L) w,
@@ -485,40 +509,42 @@ proof -
   have f': \<open>(f, f') \<in> \<langle>Id\<rangle>option_rel\<close>
     if \<open>f = f'\<close> for f f'
     using that by auto
+  have i_alt_def: \<open>i = (if get_clauses_l T ! C' ! 0 = L then 0 else 1)\<close>
+    by (cases S, cases T) (auto simp: i_def)
   have 1: \<open>unit_propagation_inner_loop_body_wl L w S
     \<le> \<Down> {((i, T'), T).
           T = st_l_of_wl (Some (L, i)) T' \<and> correct_watching T' \<and>
           i \<le> length (watched_by T' L)}
         (unit_propagation_inner_loop_body_l L C' T)\<close>
+    (is \<open>_ \<le> \<Down> ?unit _\<close>)
     using w_le confl corr_w
-    unfolding T_def
-    unfolding unit_propagation_inner_loop_body_wl_def unit_propagation_inner_loop_body_l_def S T'
-      C'_def
+    unfolding unit_propagation_inner_loop_body_wl_def unit_propagation_inner_loop_body_l_def
     supply [[goals_limit=1]]
-    apply (rewrite at \<open>let _ = watched_by _ _ ! _ in _\<close> Let_def)
     apply (refine_vcg val f f'; remove_dummy_vars)
-    unfolding i_def[symmetric]
-    subgoal using assms S zero_le_W_L_w C_N_U by (auto simp: unit_prop_body_wl_inv_def)
-    subgoal using L_in_N_NP .
-    subgoal using zero_le_W_L_w by simp
+    unfolding i_def[symmetric] i_alt_def[symmetric]
+    subgoal using assms S zero_le_W_L_w C_N_U L_in_N_NP unfolding unit_prop_body_wl_inv_def
+      by (auto simp: get_unit_init_clss_def)
+    subgoal by (auto simp: S)
+    subgoal using L_in_N_NP zero_le_W_L_w
+      by (auto simp: in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def correct_watching.simps S
+          intro!: nth_in_set_tl
+          intro!: bexI[of _ \<open>N ! (W L ! w)\<close>])
+    subgoal using zero_le_W_L_w by (simp add: S)
+    subgoal by (simp add: S)
+    subgoal by (simp add: S)
+    subgoal by (simp add: S)
     subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by (simp add: clause_to_update_def correct_watching.simps)
-    subgoal by (simp add: clause_to_update_def correct_watching.simps)
-    subgoal by auto
+    subgoal by (simp add: S)
+    subgoal by (auto simp add: clause_to_update_def correct_watching.simps mark_conflict_wl_def S
+       mark_conflict_l_def)
+    subgoal by (simp add: clause_to_update_def correct_watching.simps propgate_lit_wl_def S
+       propgate_lit_l_def)
     subgoal
       using zero_le_W_L_w
       by (auto simp: in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def correct_watching.simps
-          intro!: nth_in_set_tl
-          intro!: bexI[of _ \<open>N ! (W L ! w)\<close>])
-    subgoal using uL_M by auto
-    subgoal by (rule ref) assumption+
+            update_clause_wl_def update_clause_l_def Let_def)
     done
-
+  thm ref i_def
   have \<open>unit_propagation_inner_loop_body_wl L w S \<le>
      \<Down> {((i, T'), T). (T = st_l_of_wl (Some (L, i)) T' \<and> correct_watching T' \<and>
               i \<le> length (watched_by T' L)) \<and>
