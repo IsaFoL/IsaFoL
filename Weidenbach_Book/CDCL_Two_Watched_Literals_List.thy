@@ -2051,6 +2051,12 @@ proof -
     done
 qed
 
+thm refinement_trans_long
+
+lemma refinement_trans_eq:
+  \<open>A = A' \<Longrightarrow> B = B' \<Longrightarrow> R' = R \<Longrightarrow> A \<le> \<Down> R B \<Longrightarrow> A' \<le> \<Down> R' B'\<close>
+  by (auto simp: pw_ref_iff)
+
 definition cdcl_twl_o_prog_l :: "'v twl_st_l \<Rightarrow> (bool \<times> 'v twl_st_l) nres" where
   \<open>cdcl_twl_o_prog_l S =
     do {
