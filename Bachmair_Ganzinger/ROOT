@@ -14,6 +14,7 @@ session Bachmair_Ganzinger = Bachmair_Ganzinger_Base +
   theories
     "../lib/Clausal_Logic"
     "../lib/Herbrand_Interpretation"
+    "../lib/Explorer"
     Multiset_Even_More
     Locale_Deps
     Inference_System
