@@ -186,7 +186,7 @@ definition unit_prop_body_wl_inv where
     i < length (watched_by T' L) \<and>
     watched_by T' L ! i < length (get_clauses_wl T') \<and>
     unit_propagation_inner_loop_body_l_inv L (watched_by T' L ! i) (st_l_of_wl (Some (L, Suc i)) T') \<and>
-    L \<in># all_lits_of_mm (mset `# mset (tl (get_clauses_wl T')) + (get_unit_init_clss T')) 
+    L \<in># all_lits_of_mm (mset `# mset (tl (get_clauses_wl T')) + (get_unit_init_clss T'))
   \<close>
 
 
@@ -218,7 +218,7 @@ definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat 
       if val_L' = Some True
       then RETURN (w+1, S)
       else do {
-        f \<leftarrow> find_unwatched (get_trail_wl S) ((get_clauses_wl S)!C);
+        f \<leftarrow> find_unwatched_l (get_trail_wl S) ((get_clauses_wl S)!C);
         ASSERT (f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l ((get_clauses_wl S)!C)). - L \<in> lits_of_l (get_trail_wl S)));
         case f of
           None \<Rightarrow>
@@ -283,10 +283,15 @@ proof -
   have val: \<open>(valued a b, valued a' b') \<in> Id\<close>
     if \<open>a = a'\<close> and \<open>b = b'\<close> for a a' :: \<open>('a, 'b) ann_lits\<close> and b b' :: \<open>'a literal\<close>
     by (auto simp: that)
-  have f: \<open>find_unwatched a (b ! c) \<le> \<Down> Id (find_unwatched a' (b' ! c'))\<close>
-    if \<open>a = a'\<close> and \<open>b = b'\<close> and \<open>c = c'\<close> for a a' :: \<open>('a, 'b) ann_lits\<close> and
-      b b' :: \<open>'a clauses_l\<close>and c c' :: nat
-    by (auto simp: that)
+  let ?M = \<open>get_trail_wl S\<close>
+  have f: \<open>find_unwatched_l (get_trail_wl S) (get_clauses_wl S ! (watched_by S L ! w))
+      \<le> \<Down> {(found, found'). found = found' \<and>
+             (found = None \<longleftrightarrow> (\<forall>L\<in>set (unwatched_l C''). -L \<in> lits_of_l ?M)) \<and>
+             (\<forall>j. found = Some j \<longrightarrow> (j < length C'' \<and> (undefined_lit ?M (C''!j) \<or> C''!j \<in> lits_of_l ?M) \<and> j \<ge> 2))
+           }
+            (find_unwatched_l (get_trail_l T) (get_clauses_l T ! C'))\<close>
+    (is \<open>_ \<le> \<Down> ?find _\<close>)
+    by (cases S) (auto simp: find_unwatched_l_def intro!: RES_refine)
   obtain M N U NP UP Q W where
     S: \<open>S = (M, N, U, None, NP, UP, Q, W)\<close>
     using confl by (cases S) auto
@@ -379,60 +384,48 @@ proof -
   ultimately have zero_le_W_L_w: \<open>0 < W L ! w\<close>
     by (auto simp: S correct_watching.simps clause_to_update_def)
 
-(* 
-unit_propagation_inner_loop_body_l_inv L C' T \<Longrightarrow>
-    unit_prop_body_wl_inv S w L \<Longrightarrow>
-    valued (get_trail_wl S) (get_clauses_wl S ! (watched_by S L ! w) ! (1 - i)) \<noteq>
-    Some True \<Longrightarrow>
-    valued (get_trail_l T) (get_clauses_l T ! C' ! (1 - i)) \<noteq> Some True \<Longrightarrow>
-    (Some f, Some f') \<in> Id \<Longrightarrow>
-    (Some f' = None) =
-    (\<forall>L\<in>#mset (unwatched_l (get_clauses_l T ! C')). - L \<in> lits_of_l (get_trail_l T)) \<Longrightarrow>
-    (Some f = None) =
-    (\<forall>L\<in>#mset (unwatched_l (get_clauses_wl S ! (watched_by S L ! w))).
-        - L \<in> lits_of_l (get_trail_wl S)) \<Longrightarrow>
-    (f, f') \<in> nat_rel \<Longrightarrow>
-    f' < length (get_clauses_l T ! C') \<Longrightarrow>
-    w < length (watched_by S L) \<Longrightarrow>
-    get_conflict_wl S = None \<Longrightarrow>
-    correct_watching S \<Longrightarrow>
-    update_clause_wl L (watched_by S L ! w) w i f S
-    \<le> \<Down> {((i, T'), T).
-          T = st_l_of_wl (Some (L, i)) T' \<and>
-          correct_watching T' \<and> i \<le> length (watched_by T' L)}
-        (update_clause_l C' i f' T)
-*)
   have ref:
     \<open>update_clause_wl L (watched_by S L ! w) w i f S
     \<le> \<Down> {((i, T'), T). T = st_l_of_wl (Some (L, i)) T' \<and> correct_watching T' \<and> i \<le> length (watched_by T' L)}
         (update_clause_l C' i f' T)\<close>
-    if 
-      \<open>unit_prop_body_wl_inv S w L\<close> and
+    if
+      init_inv: \<open>unit_prop_body_wl_inv S w L\<close> and
       val_L'_not_Some_True: \<open>valued (get_trail_wl S) (get_clauses_wl S ! (watched_by S L ! w) ! (1 - i)) \<noteq> Some True\<close> and
-      f'_f: \<open>(Some f, Some f') \<in> Id\<close> and
+      f'_f: \<open>(Some f, Some f') \<in> ?find\<close> and
       fst_f'_not_None: \<open>(\<forall>L\<in>#mset (unwatched_l (get_clauses_l T ! C')). - L \<in> lits_of_l (get_trail_l T)) \<Longrightarrow>
     (Some f = None) =
     (\<forall>L\<in>#mset (unwatched_l (get_clauses_wl S ! (watched_by S L ! w))).
         - L \<in> lits_of_l (get_trail_wl S))\<close> and
-    \<open>(f, f') \<in> nat_rel\<close> and
-    \<open>f' < length (get_clauses_l T ! C')\<close> and
-    C'_le_length: \<open>w < length (watched_by S L)\<close> and
-    \<open>get_conflict_wl S = None\<close>
-  for f f'  
- proof -
-    let ?K = \<open>N ! (W L ! w) ! f\<close>
-    have K_notin_watched[iff]: \<open>?K \<notin> set (watched_l (N ! (W L ! w)))\<close>
+      ff': \<open>(f, f') \<in> nat_rel\<close> and
+      \<open>f' < length (get_clauses_l T ! C')\<close> and
+      C'_le_length: \<open>w < length (watched_by S L)\<close> and
+      \<open>get_conflict_wl S = None\<close>
+    for f f'
+  proof -
+    let ?K = \<open>N ! (W L ! w) ! f'\<close>
+    have [simp]: \<open>f = f'\<close> \<open>f' < length (N ! (W L ! w))\<close>
+      using ff' f'_f by (simp_all add: S)
+    have C''_snd_f_unwatched: \<open>N ! C' ! f' \<in>#
+       mset (unwatched_l (N ! C'))\<close>
+      using f'_f by (auto simp: S in_set_drop_conv_nth)
+    have [iff]: \<open>L \<noteq> N ! (W L ! w) ! f'\<close>
       using dist_C''
       apply (subst (asm) append_take_drop_id[of 2 \<open>C''\<close>, symmetric])
       apply (subst (asm) distinct_append)
-      using C''_snd_f_unwatched f'_f
+      using f'_f C''_snd_f_unwatched uL_M n_d
+      by (auto simp: S Decided_Propagated_in_iff_in_lits_of_l dest: no_dup_consistentD)
+    have K_notin_watched: \<open>?K \<notin> set (watched_l (N ! (W L ! w)))\<close>
+      using dist_C''
+      apply (subst (asm) append_take_drop_id[of 2 \<open>C''\<close>, symmetric])
+      apply (subst (asm) distinct_append)
+      using f'_f C''_snd_f_unwatched
       by (auto simp: S)
-    have snd_f'_ge_2: \<open>f \<ge> 2\<close>
+    have snd_f'_ge_2: \<open>f' \<ge> 2\<close>
     proof (rule ccontr)
       assume \<open>\<not> ?thesis\<close>
       then have \<open>?K \<in> set (watched_l (N ! (W L ! w)))\<close>
         using two_le_length_C f'_f by (auto simp add: S take_set
-            intro!: exI[of _ \<open>the f'\<close>])
+            intro!: exI[of _ f'])
       then show False
         using K_notin_watched f'_f by (auto simp: S)
     qed
@@ -441,165 +434,114 @@ unit_propagation_inner_loop_body_l_inv L C' T \<Longrightarrow>
       apply (subst (asm) append_take_drop_id[of 2 \<open>C''\<close>, symmetric])
       apply (subst (asm) distinct_append)
       by (auto simp: S take_2_if split: if_splits)
-    then have [simp]: \<open>L \<notin> set (take 2 (swap (N ! x) i f))\<close> if \<open>W L ! w = x\<close> for x
-      using snd_f'_le_C'' le_length_C'' C''_snd_f_unwatched snd_f'_ge_2 L_ne_C''_snd_f that f'_f
+    then have [simp]: \<open>L \<notin> set (take 2 (swap (N ! x) i f'))\<close> if \<open>W L ! w = x\<close> for x
+      using f'_f C''_snd_f_unwatched snd_f'_ge_2  that f'_f
       by (auto simp: take_2_if i_def take_set S)
     have C'_N: \<open>W L ! w < length N\<close> \<open>0 < W L ! w\<close>
       using add_inv WL_w_in_drop by (auto simp: S additional_WS_invs_def)
     have C'_N_indirect: \<open>x < length N\<close> \<open>0 < length N\<close> if \<open>W L ! w = x\<close> for x
       using that add_inv WL_w_in_drop by (auto simp: S additional_WS_invs_def)
-    have [simp]: \<open>{x. a \<noteq> x \<and> P x} = {x. P x} - {a}\<close> for P :: \<open>'a \<Rightarrow> bool\<close> and a :: 'a
-      by auto
     have KK: \<open>Suc 0 \<le> W L ! w\<close>
       using add_inv WL_w_in_drop by (auto simp: S additional_WS_invs_def)
     have [simp]: \<open>L \<in> set (take 2 (N ! (W L ! w)))\<close>
       using struct_invs valid WL_w_in_drop by (auto simp: S)
-    have [simp]: \<open>N ! (W L ! w) ! f \<in> set (take 2 (swap (N ! (W L ! w)) i f))\<close>
-      using w_le snd_f'_ge_2 snd_f_le_C'' f'_f
-      by (auto simp: i_def swap_def take_2_if split: nat.splits)
-    have [simp]: \<open>{x. (y = x \<longrightarrow> P x) \<and> (y \<noteq> x \<longrightarrow> Q x)} =
-         (if P y then insert y {x. Q x} else {x. x \<noteq>  y \<and> Q x})\<close>
-      for y :: 'a and P Q :: \<open>'a \<Rightarrow> bool\<close>
-      by auto
+    have [simp]: \<open>N ! (W L ! w) ! f' \<in> set (take 2 (swap (N ! (W L ! w)) i f))\<close>
+      using w_le snd_f'_ge_2 f'_f K_notin_watched
+      by (auto simp: i_def swap_def take_2_if S split: nat.splits)
     have i_le_length_C'': \<open>i < length C''\<close>
       using two_le_length_C i_def S by auto
-    have [iff]: \<open>?K \<in> set (take 2 (N ! (W L ! w))) \<longleftrightarrow> False\<close>
-      using f'_f[symmetric] K_notin_watched by auto
-    have [simp]: \<open>set (take 2 (swap (N ! (W L ! w)) i f)) = {C''!(1-i), ?K}\<close>
-      using snd_f'_ge_2 two_le_length_C f'_f by (auto simp: take_2_if S i_def swap_def)
+
     have [simp]: \<open>set (take 2 (N ! (W L ! w))) = {?L, ?L'}\<close>
       using snd_f'_ge_2 two_le_length_C by (auto simp: take_2_if S i_def)
-    have [simp]: \<open>N ! (W L ! w) ! (Suc 0 - i) \<in> set (take 2 (N ! (W L ! w)))\<close>
-      using i_def two_le_length_C by (auto simp: take_set S intro!: exI[of _ \<open>1-i\<close>])
     have [simp]: \<open>N ! (W L ! w) ! j = N ! (W L ! w) ! k \<longleftrightarrow> j = k\<close>
       if \<open>j < length (N ! (W L ! w))\<close> and \<open>k < length (N ! (W L ! w))\<close>
       for j k
       using dist_C'' that by (auto simp: S distinct_conv_nth)
-    have \<open>N ! (W L ! w) \<in> set (tl N)\<close>
+
+    have [simp]: \<open>Suc 0 - i < length (N ! (W L ! w))\<close> \<open>i < length (N ! (W L ! w))\<close> \<open>w < length (W L)\<close> \<open>W L \<noteq> []\<close>
+      using init_inv unfolding unit_prop_body_wl_inv_def i_def unit_propagation_inner_loop_body_l_inv_def
+      by (auto simp: S)
+    have N_W_tl: \<open>N ! (W L ! w) \<in> set (tl N)\<close>
       by (metis C'_N(1) KK drop_0 drop_Suc in_set_drop_conv_nth)
-    then have [simp]: \<open>mset `# mset (tl N[W L ! w - Suc 0 := swap (N ! (W L ! w)) i f]) = mset `# mset (tl N)\<close>
-      using corr_w C_N_U C'_N i_le_C'' snd_f'_le_C'' f'_f
-      by (auto simp: S mset_update tl_update_swap image_mset_remove1_mset_if
-          add_mset_remove_trivial_If nth_tl)
+    have T: \<open>T = (M, N, U, None, NP, UP, mset (drop (Suc w) (W L)), Q)\<close>
+      using T_def unfolding S by auto
+    have  WLx_length: \<open>(W L ! w = x \<longrightarrow> \<not> x < length N) \<equiv> W L ! w \<noteq> x\<close> for x
+      using C'_N_indirect[of x] by auto
+    have [simp]: \<open>{x. (y = x \<longrightarrow> P x) \<and> (y \<noteq> x \<longrightarrow> Q x)} =
+         (if P y then insert y {x. Q x} else {x. x \<noteq>  y \<and> Q x})\<close>
+      for y :: 'a and P Q :: \<open>'a \<Rightarrow> bool\<close>
+      by auto
+    have [simp]: \<open>{x. (y = x \<longrightarrow> \<not> P x) \<and> Q x \<and> P x \<and> R x} =
+      {x. Q x \<and> P x \<and> R x} - {y}\<close> for P Q R y
+      by auto
+    have take_2_swap_i_f':
+      \<open>set (take 2 (swap (N ! (W L ! w)) i f')) = {N ! (W L ! w) ! f', N ! (W L ! w) ! (1-i)}\<close>
+      using two_le_length_C N_W_w_i_L snd_f'_ge_2 by (auto simp: take_2_if S i_def)
+    let ?W = \<open>W
+      (L := delete_index_and_swap (watched_by (M, N, U, None, NP, UP, Q, W) L) w,
+       N ! (watched_by (M, N, U, None, NP, UP, Q, W) L ! w) ! f :=
+         W (N ! (watched_by (M, N, U, None, NP, UP, Q, W) L ! w) ! f) @
+         [watched_by (M, N, U, None, NP, UP, Q, W) L ! w])\<close>
+    let ?N = \<open>N[watched_by (M, N, U, None, NP, UP, Q, W) L ! w :=
+             swap (N ! (watched_by (M, N, U, None, NP, UP, Q, W) L ! w)) i f]\<close>
+    have corr_w: \<open>correct_watching (M, ?N, U, None, NP, UP, Q, ?W)\<close>
+      (is \<open>correct_watching ?S\<close>)
+      unfolding correct_watching.simps Ball_def
+    proof (intro allI conjI impI)
+      fix x
+      assume \<open>x \<in># all_lits_of_mm (mset `# mset (tl ?N) + NP)\<close>
+      moreover have \<open>add_mset (mset (N ! (W L ! w))) (mset `# remove1_mset (N ! (W L ! w)) (mset (tl N)) + NP) =
+        mset `# mset (tl N) + NP\<close>
+        by (metis (no_types, lifting) N_W_tl image_mset_add_mset
+            in_multiset_in_set insert_DiffM union_mset_add_mset_left)
+      ultimately have  \<open>x \<in># all_lits_of_mm (mset `# mset (tl N) + NP)\<close>
+        using w_le KK i_le_length_C'' snd_f'_ge_2 C'_N
+        by (auto simp add: S  mset_butlast_remove1_mset nth_list_update' swap_multiset
+            mset_update nth_tl  tl_update_swap)
+      then have Wx: \<open>mset (W x) = clause_to_update x (M, N, U, None, NP, UP, {#}, {#})\<close>
+        using corr_w by (auto simp: S correct_watching.simps)
+
+      have \<open>N ! (W L ! w) ! f' \<in># all_lits_of_mm (mset `# mset (tl N) + NP)\<close>
+        using KK  C'_N_indirect[OF refl]
+        by (auto simp: in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def
+            intro!: bexI[of _ \<open>N ! (W L ! w)\<close>] nth_in_set_tl)
+      then have Wf': \<open>mset (W (N ! (W L ! w) ! f')) = clause_to_update (N ! (W L ! w) ! f') (M, N, U, None, NP, UP, {#}, {#})\<close>
+        using corr_w by (auto simp: S correct_watching.simps)
+
+      show \<open>mset (?W x) = clause_to_update x (M, ?N, U, None, NP, UP, {#}, {#})\<close>
+      proof (cases \<open>x = L\<close>)
+        case True
+        moreover have
+          \<open>remove1_mset (W L ! w) (mset_set {x. Suc 0 \<le> x \<and> x < length N \<and> L \<in> set (take 2 (N ! x))}) =
+          mset_set ({x. Suc 0 \<le> x \<and> x < length N \<and> L \<in> set (take 2 (N ! x))} - {W L ! w})\<close>
+          using C'_N_indirect[OF refl] KK  by (auto simp: S mset_set_Diff)
+        ultimately show ?thesis
+          using Wx
+          by (auto simp add: S clause_to_update_def mset_butlast_remove1_mset nth_list_update'
+              last_list_update_to_last mset_update tl_update_swap)
+      next
+        case [simp]: False
+        show ?thesis
+          using w_le KK i_le_length_C'' snd_f'_ge_2
+            KK corr_w C'_N_indirect[OF refl]
+          by (auto simp add: S clause_to_update_def mset_butlast_remove1_mset nth_list_update'
+              Wf' WLx_length Wx take_2_swap_i_f' mset_set.insert_remove tl_update_swap
+              mset_set_mset_set_minus_id_iff mset_set_eq_mset_set_more_conds
+              intro!: mset_set.remove)
+      qed
+    qed
     show ?thesis
+      unfolding update_clause_wl_def update_clause_l_def S Let_def T
+      apply clarify
+      apply (rule RETURN_refine)
       apply clarify
       apply (intro conjI)
-      subgoal using f'_f L_ne_C''_snd_f w_le by (simp add: S)
-      subgoal
-        using w_le L_ne_C''_snd_f KK i_le_length_C'' snd_f'_le_C'' one_minus_i_le_C'' snd_f'_ge_2
-          KK corr_w
-        by (auto simp add: S clause_to_update_def mset_butlast_remove1_mset nth_list_update'
-            last_list_update_to_last mset_update mset_set_Diff mset_set.insert_remove
-            tl_update_swap C'_N_indirect correct_watching.simps
-            mset_set_mset_set_minus_id_iff mset_set_empty_iff mset_set_eq_mset_set_more_conds
-            dest!: in_diffD)
-      subgoal using w_le by (auto simp: S)
+      subgoal using f'_f w_le T_def by (simp add: S)
+      subgoal by (rule corr_w)
+      subgoal using w_le by (auto simp: S simp del: \<open>w < length (W L)\<close>)
       done
   qed
 
-  have ref:
-    \<open>((w, M, N[watched_by (M, N, U, None, NP, UP, Q, W) L ! w := swap (N ! (watched_by (M, N, U, None, NP, UP, Q, W) L ! w)) i f], U, None, NP, UP, Q, W
-        (L := delete_index_and_swap (watched_by (M, N, U, None, NP, UP, Q, W) L) w,
-          N ! (watched_by (M, N, U, None, NP, UP, Q, W) L ! w) ! f := W (N ! (watched_by (M, N, U, None, NP, UP, Q, W) L ! w) ! f) @ [watched_by (M, N, U, None, NP, UP, Q, W) L ! w])),
-      M, N[watched_by (M, N, U, None, NP, UP, Q, W) L ! w := swap (N ! (watched_by (M, N, U, None, NP, UP, Q, W) L ! w)) i thef], U, None, NP, UP,
-      remove1_mset (watched_by (M, N, U, None, NP, UP, Q, W) L ! w) (clauses_to_update_wl (M, N, U, None, NP, UP, Q, W) L w), Q)
-    \<in> {((i, T'), T). T = st_l_of_wl (Some (L, i)) T' \<and> correct_watching T' \<and> i \<le> length (watched_by T' L)}\<close>
-  if
-    C'_le_length: \<open>w < length (watched_by (M, N, U, None, NP, UP, Q, W) L)\<close> and
-    le_length_C'': \<open>0 < watched_by (M, N, U, None, NP, UP, Q, W) L ! w\<close> and
-    i_le_C'': \<open>i < length (N ! (watched_by (M, N, U, None, NP, UP, Q, W) L ! w))\<close> and
-    one_minus_i_le_C'': \<open>1 - i < length (N ! (watched_by (M, N, U, None, NP, UP, Q, W) L ! w))\<close> and
-    C''_i_eq_L: \<open>N ! (watched_by (M, N, U, None, NP, UP, Q, W) L ! w) ! i = L\<close> and
-    mset_watched_C': \<open>mset (watched_l (N ! (watched_by (M, N, U, None, NP, UP, Q, W) L ! w))) = {#L, N ! (watched_by (M, N, U, None, NP, UP, Q, W) L ! w) ! (1 - i)#}\<close> and
-    val_L'_val_L: \<open>(val_L', val_L) \<in> Id\<close> and
-    val_L'_not_Some_True: \<open>val_L' \<noteq> Some True\<close> and
-    val_L_not_Some_True: \<open>val_L \<noteq> Some True\<close> and
-    f'_f: \<open>(Some f, f') \<in> Id\<close> \<open>(f, thef) \<in> nat_rel\<close> and
-    fst_f'_not_None: \<open>(Some f = None) = (\<forall>L\<in>#mset (unwatched_l (N ! (watched_by (M, N, U, None, NP, UP, Q, W) L ! w))). - L \<in> lits_of_l M)\<close> and
-    fst_f'_not_None: \<open>(f, thef) \<in> nat_rel\<close> and
-    snd_f_le_C'': \<open>thef < length (N ! (watched_by (M, N, U, None, NP, UP, Q, W) L ! w))\<close> and
-    snd_f'_le_C'': \<open>f < length (N ! (watched_by (M, N, U, None, NP, UP, Q, W) L ! w))\<close> and
-    L_ne_C''_snd_f: \<open>L \<noteq> N ! (watched_by (M, N, U, None, NP, UP, Q, W) L ! w) ! f\<close> and
-    C''_snd_f_unwatched: \<open>N ! (watched_by (M, N, U, None, NP, UP, Q, W) L ! w) ! thef \<in># mset (unwatched_l (N ! (watched_by (M, N, U, None, NP, UP, Q, W) L ! w)))\<close> and
-    uC''_snd_f_notin_M: \<open>- N ! (watched_by (M, N, U, None, NP, UP, Q, W) L ! w) ! thef \<notin> lits_of_l M\<close>
-  for val_L val_L' f thef f'
-  proof -
-    let ?K = \<open>N ! (W L ! w) ! f\<close>
-    have K_notin_watched[iff]: \<open>?K \<notin> set (watched_l (N ! (W L ! w)))\<close>
-      using dist_C''
-      apply (subst (asm) append_take_drop_id[of 2 \<open>C''\<close>, symmetric])
-      apply (subst (asm) distinct_append)
-      using C''_snd_f_unwatched f'_f
-      by (auto simp: S)
-    have snd_f'_ge_2: \<open>f \<ge> 2\<close>
-    proof (rule ccontr)
-      assume \<open>\<not> ?thesis\<close>
-      then have \<open>?K \<in> set (watched_l (N ! (W L ! w)))\<close>
-        using two_le_length_C f'_f by (auto simp add: S take_set
-            intro!: exI[of _ \<open>the f'\<close>])
-      then show False
-        using K_notin_watched f'_f by (auto simp: S)
-    qed
-    have \<open>?L \<noteq> ?L'\<close>
-      using dist_C'' two_le_length_C i_def
-      apply (subst (asm) append_take_drop_id[of 2 \<open>C''\<close>, symmetric])
-      apply (subst (asm) distinct_append)
-      by (auto simp: S take_2_if split: if_splits)
-    then have [simp]: \<open>L \<notin> set (take 2 (swap (N ! x) i f))\<close> if \<open>W L ! w = x\<close> for x
-      using snd_f'_le_C'' le_length_C'' C''_snd_f_unwatched snd_f'_ge_2 L_ne_C''_snd_f that f'_f
-      by (auto simp: take_2_if i_def take_set S)
-    have C'_N: \<open>W L ! w < length N\<close> \<open>0 < W L ! w\<close>
-      using add_inv WL_w_in_drop by (auto simp: S additional_WS_invs_def)
-    have C'_N_indirect: \<open>x < length N\<close> \<open>0 < length N\<close> if \<open>W L ! w = x\<close> for x
-      using that add_inv WL_w_in_drop by (auto simp: S additional_WS_invs_def)
-    have [simp]: \<open>{x. a \<noteq> x \<and> P x} = {x. P x} - {a}\<close> for P :: \<open>'a \<Rightarrow> bool\<close> and a :: 'a
-      by auto
-    have KK: \<open>Suc 0 \<le> W L ! w\<close>
-      using add_inv WL_w_in_drop by (auto simp: S additional_WS_invs_def)
-    have [simp]: \<open>L \<in> set (take 2 (N ! (W L ! w)))\<close>
-      using struct_invs valid WL_w_in_drop by (auto simp: S)
-    have [simp]: \<open>N ! (W L ! w) ! f \<in> set (take 2 (swap (N ! (W L ! w)) i f))\<close>
-      using w_le snd_f'_ge_2 snd_f_le_C'' f'_f
-      by (auto simp: i_def swap_def take_2_if split: nat.splits)
-    have [simp]: \<open>{x. (y = x \<longrightarrow> P x) \<and> (y \<noteq> x \<longrightarrow> Q x)} =
-         (if P y then insert y {x. Q x} else {x. x \<noteq>  y \<and> Q x})\<close>
-      for y :: 'a and P Q :: \<open>'a \<Rightarrow> bool\<close>
-      by auto
-    have i_le_length_C'': \<open>i < length C''\<close>
-      using two_le_length_C i_def S by auto
-    have [iff]: \<open>?K \<in> set (take 2 (N ! (W L ! w))) \<longleftrightarrow> False\<close>
-      using f'_f[symmetric] K_notin_watched by auto
-    have [simp]: \<open>set (take 2 (swap (N ! (W L ! w)) i f)) = {C''!(1-i), ?K}\<close>
-      using snd_f'_ge_2 two_le_length_C f'_f by (auto simp: take_2_if S i_def swap_def)
-    have [simp]: \<open>set (take 2 (N ! (W L ! w))) = {?L, ?L'}\<close>
-      using snd_f'_ge_2 two_le_length_C by (auto simp: take_2_if S i_def)
-    have [simp]: \<open>N ! (W L ! w) ! (Suc 0 - i) \<in> set (take 2 (N ! (W L ! w)))\<close>
-      using i_def two_le_length_C by (auto simp: take_set S intro!: exI[of _ \<open>1-i\<close>])
-    have [simp]: \<open>N ! (W L ! w) ! j = N ! (W L ! w) ! k \<longleftrightarrow> j = k\<close>
-      if \<open>j < length (N ! (W L ! w))\<close> and \<open>k < length (N ! (W L ! w))\<close>
-      for j k
-      using dist_C'' that by (auto simp: S distinct_conv_nth)
-    have \<open>N ! (W L ! w) \<in> set (tl N)\<close>
-      by (metis C'_N(1) KK drop_0 drop_Suc in_set_drop_conv_nth)
-    then have [simp]: \<open>mset `# mset (tl N[W L ! w - Suc 0 := swap (N ! (W L ! w)) i f]) = mset `# mset (tl N)\<close>
-      using corr_w C_N_U C'_N i_le_C'' snd_f'_le_C'' f'_f
-      by (auto simp: S mset_update tl_update_swap image_mset_remove1_mset_if
-          add_mset_remove_trivial_If nth_tl)
-    show ?thesis
-      apply clarify
-      apply (intro conjI)
-      subgoal using f'_f L_ne_C''_snd_f w_le by (simp add: S)
-      subgoal
-        using w_le L_ne_C''_snd_f KK i_le_length_C'' snd_f'_le_C'' one_minus_i_le_C'' snd_f'_ge_2
-          KK corr_w
-        by (auto simp add: S clause_to_update_def mset_butlast_remove1_mset nth_list_update'
-            last_list_update_to_last mset_update mset_set_Diff mset_set.insert_remove
-            tl_update_swap C'_N_indirect correct_watching.simps
-            mset_set_mset_set_minus_id_iff mset_set_empty_iff mset_set_eq_mset_set_more_conds
-            dest!: in_diffD)
-      subgoal using w_le by (auto simp: S)
-      done
-  qed
   have f': \<open>(f, f') \<in> \<langle>Id\<rangle>option_rel\<close>
     if \<open>f = f'\<close> for f f'
     using that by auto
@@ -614,7 +556,7 @@ unit_propagation_inner_loop_body_l_inv L C' T \<Longrightarrow>
     using w_le confl corr_w
     unfolding unit_propagation_inner_loop_body_wl_def unit_propagation_inner_loop_body_l_def
     supply [[goals_limit=1]]
-    apply (refine_vcg val f f'; remove_dummy_vars)
+    apply (refine_vcg val f f' ref; remove_dummy_vars)
     unfolding i_def[symmetric] i_alt_def[symmetric]
     subgoal using assms S zero_le_W_L_w C_N_U L_in_N_NP unfolding unit_prop_body_wl_inv_def
       by (auto simp: get_unit_init_clss_def)
@@ -623,22 +565,16 @@ unit_propagation_inner_loop_body_l_inv L C' T \<Longrightarrow>
       by (auto simp: in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def correct_watching.simps S
           intro!: nth_in_set_tl
           intro!: bexI[of _ \<open>N ! (W L ! w)\<close>])
-    subgoal using zero_le_W_L_w by (simp add: S)
+    subgoal using zero_le_W_L_w by (auto simp add: S)
     subgoal by (simp add: S)
-    subgoal by (simp add: S)
-    subgoal by (simp add: S)
-    subgoal by simp
     subgoal by (simp add: S)
     subgoal by (auto simp add: clause_to_update_def correct_watching.simps mark_conflict_wl_def S
        mark_conflict_l_def)
     subgoal by (simp add: clause_to_update_def correct_watching.simps propgate_lit_wl_def S
        propgate_lit_l_def)
-    subgoal
-      using zero_le_W_L_w
-      by (auto simp: in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def correct_watching.simps
-            update_clause_wl_def update_clause_l_def Let_def)
+    subgoal by (rule ref) assumption
     done
-  thm ref i_def
+
   have \<open>unit_propagation_inner_loop_body_wl L w S \<le>
      \<Down> {((i, T'), T). (T = st_l_of_wl (Some (L, i)) T' \<and> correct_watching T' \<and>
               i \<le> length (watched_by T' L)) \<and>
@@ -965,7 +901,7 @@ proof -
          clauses_to_update (twl_st_of None (st_l_of_wl None T')) = {#} \<and> literals_to_update (twl_st_of None (st_l_of_wl None T')) = {#})\<close>)
           \<comment> \<open>this goal is extracted from the invariant\<close>
        apply (auto simp: correct_watching_set_literals_to_update set_literals_to_update_add_remove get_conflict_wl_set_literals_to_update_wl
-          get_conflict_twl_st_of_st_l_of_wl literals_to_update_twl_st_of_st_l_of_wl; fail)
+          get_conflict_twl_st_of_st_l_of_wl literals_to_update_twl_st_of_st_l_of_wl get_conflict_l_st_l_of_wl; fail)
       apply (simp add: twl_struct_invs_def)
       done
     done
@@ -1015,20 +951,23 @@ definition find_unassigned_lit_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v litera
             atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N))))))
      )\<close>
 
+definition decide_wl_or_skip_pre where
+\<open>decide_wl_or_skip_pre S \<longleftrightarrow>
+   decide_l_or_skip_pre (st_l_of_wl None S)
+  \<close>
+
+definition decide_lit_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
+  \<open>decide_lit_wl = (\<lambda>L' (M, N, U, D, NP, UP, Q, W).
+      (Decided (L') # M, N, U, D, NP, UP, {#- L'#}, W))\<close>
+
+
 definition decide_wl_or_skip :: "'v twl_st_wl \<Rightarrow> (bool \<times> 'v twl_st_wl) nres" where
   \<open>decide_wl_or_skip S = (do {
-    ASSERT(twl_struct_invs (twl_st_of_wl None S));
-    ASSERT(twl_stgy_invs (twl_st_of_wl None S));
-    ASSERT(additional_WS_invs (st_l_of_wl None S));
-    ASSERT(get_conflict_wl S = None);
+    ASSERT(decide_wl_or_skip_pre S);
     L \<leftarrow> find_unassigned_lit_wl S;
-    if L \<noteq> None
-    then do {
-      let (M, N, U, D, NP, UP, Q, W) = S;
-      ASSERT(L \<noteq> None);
-      let K = the L;
-      RETURN (False, (Decided K # M, N, U, D, NP, UP, {#-K#}, W))}
-    else do {RETURN (True, S)}
+    case L of
+      None \<Rightarrow> RETURN (True, S)
+    | Some L \<Rightarrow> RETURN (False, decide_lit_wl L S)
   })
 \<close>
 
@@ -1047,28 +986,41 @@ lemma decide_wl_or_skip_spec:
 proof -
   have find_unassigned_lit_wl: \<open>find_unassigned_lit_wl S'
     \<le> \<Down> Id
-        (find_unassigned_lit S)\<close>
+        (find_unassigned_lit_l S)\<close>
     if \<open>S = st_l_of_wl None S'\<close>
     for S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st_wl\<close>
     using that
-    by (cases S') (auto simp: find_unassigned_lit_wl_def find_unassigned_lit_def)
-
+    by (cases S') (auto simp: find_unassigned_lit_wl_def find_unassigned_lit_l_def)
+  have option: \<open>(x, x') \<in> \<langle>Id\<rangle>option_rel\<close> if \<open>x = x'\<close> for x x'
+    using that by (auto)
   show ?thesis
     unfolding decide_wl_or_skip_def decide_l_or_skip_def
-    apply (refine_vcg find_unassigned_lit_wl)
+    apply (refine_vcg find_unassigned_lit_wl option)
+    subgoal unfolding decide_wl_or_skip_pre_def by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by (auto simp: correct_watching.simps clause_to_update_def)
-    subgoal by auto
+    subgoal for S S'
+      by (cases S) (auto simp: correct_watching.simps clause_to_update_def
+          decide_lit_l_def decide_lit_wl_def)
     done
 qed
 
 
 subsubsection \<open>Skip or Resolve\<close>
+
+definition tl_state_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
+  \<open>tl_state_wl = (\<lambda>(M, N, U, D, NP, UP, WS, Q). (tl M, N, U, D, NP, UP, WS, Q))\<close>
+
+definition resolve_cls_wl' :: \<open>'v twl_st_wl \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> 'v clause\<close> where
+\<open>resolve_cls_wl' S C L  =
+   remove1_mset (-L) (the (get_conflict_wl S)) \<union>#
+      (if C = 0 then {#} else mset (remove1 L (get_clauses_wl S!C)))\<close>
+
+definition update_confl_tl_wl :: \<open>nat \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool \<times> 'v twl_st_wl\<close> where
+  \<open>update_confl_tl_wl = (\<lambda>C L (M, N, U, D, NP, UP, WS, Q).
+     let D = resolve_cls_wl' (M, N, U, D, NP, UP, WS, Q) C L in
+        (D = {#}, (tl M, N, U, Some D, NP, UP, WS, Q)))\<close>
 
 definition skip_and_resolve_loop_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
   \<open>skip_and_resolve_loop_wl S\<^sub>0 =
@@ -1079,30 +1031,28 @@ definition skip_and_resolve_loop_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl 
          additional_WS_invs (st_l_of_wl None S) \<and> correct_watching S\<^esup>
         (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided (hd (get_trail_wl S)))
         (\<lambda>(_, S).
-          let (M, N, U, D, NP, UP, Q, W) = S in
           do {
-            ASSERT(M \<noteq> []);
-            ASSERT(get_conflict_wl (M, N, U, D, NP, UP, Q, W) \<noteq> None);
-            let D' = the (get_conflict_wl (M, N, U, D, NP, UP, Q, W));
-            ASSERT(is_proped (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W))));
-            let (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W)));
-            ASSERT(C < length N);
+            let D' = the (get_conflict_wl S);
+            let (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S));
             if -L \<notin># D' then
-              do {RETURN (False, (tl M, N, U, D, NP, UP, Q, W))}
+              do {RETURN (False, tl_state_wl S)}
             else
-              if get_maximum_level M (remove1_mset (-L) D') = count_decided M
+              if get_maximum_level (get_trail_wl S) (remove1_mset (-L) D') = count_decided (get_trail_wl S)
               then
-                do {RETURN (remove1_mset (-L) D' \<union># (if C = 0 then {#} else remove1_mset L (mset (N!C))) = {#},
-                   (tl M, N, U, Some (remove1_mset (-L) D' \<union># (if C = 0 then {#} else remove1_mset L (mset (N!C)))),
-                     NP, UP, Q, W))}
+                do {RETURN (update_confl_tl_wl C L S)}
               else
-                do {RETURN (True, (M, N, U, D, NP, UP, Q, W))}
+                do {RETURN (True, S)}
           }
         )
         (get_conflict_wl S\<^sub>0 = Some {#}, S\<^sub>0);
       RETURN S
     }
   \<close>
+
+(* TODO Move, mark as simp? *)
+lemma get_trail_l_st_l_of_wl: \<open>get_trail_l (st_l_of_wl None S) = get_trail_wl S\<close>
+  by (cases S) auto
+(* End Move *)
 
 lemma skip_and_resolve_loop_wl_spec:
   \<open>(skip_and_resolve_loop_wl, skip_and_resolve_loop_l)
@@ -1131,6 +1081,31 @@ proof -
     if \<open>S = st_l_of_wl None S'\<close> and \<open>correct_watching S'\<close>
     for S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st_wl\<close>
     using that by (cases S') auto
+  have [simp]: \<open>st_l_of_wl None (tl_state_wl S) = tl_state_l (st_l_of_wl None S)\<close> for S
+    by (cases S) (auto simp: tl_state_wl_def tl_state_l_def)
+  have [simp]: \<open>correct_watching (tl_state_wl S) = correct_watching S\<close> for S
+    by (cases S) (auto simp: correct_watching.simps tl_state_wl_def clause_to_update_def)
+  have [simp]: \<open>correct_watching  (tl aa, ba, ca, da, ea, fa, ha, h) \<longleftrightarrow>
+    correct_watching (aa, ba, ca, None, ea, fa, ha, h)\<close>
+    for aa ba ca L da ea fa ha h
+    by (auto simp: correct_watching.simps tl_state_wl_def clause_to_update_def)
+  have [simp]: \<open>NO_MATCH None da \<Longrightarrow> correct_watching  (aa, ba, ca, da, ea, fa, ha, h) \<longleftrightarrow>
+    correct_watching (aa, ba, ca, None, ea, fa, ha, h)\<close>
+    for aa ba ca L da ea fa ha h
+    by (auto simp: correct_watching.simps tl_state_wl_def clause_to_update_def)
+  have update_confl_tl_wl: \<open>
+    (brkT, brkT') \<in> bool_rel \<times>\<^sub>f {(T', T). st_l_of_wl None T' = T \<and> correct_watching T'} \<Longrightarrow>
+    case brkT' of (brk, S) \<Rightarrow> skip_and_resolve_loop_inv (twl_st_of None S') (brk, twl_st_of None S) \<and> additional_WS_invs S \<and> clauses_to_update_l S = {#} \<Longrightarrow>
+    brkT' = (brk', T') \<Longrightarrow>
+    brkT = (brk, T) \<Longrightarrow>
+    lit_and_ann_of_propagated (hd (get_trail_l T')) = (L', C') \<Longrightarrow>
+    lit_and_ann_of_propagated (hd (get_trail_wl T)) = (L, C) \<Longrightarrow>
+    (update_confl_tl_wl C L T, update_confl_tl_l C' L' T') \<in> bool_rel \<times>\<^sub>f {(T', T). st_l_of_wl None T' = T \<and> correct_watching T'}\<close>
+    for T' brkT brk brkT' brk' T C C' L L' S'
+    unfolding update_confl_tl_wl_def update_confl_tl_l_def resolve_cls_wl'_def resolve_cls_l'_def
+    by (cases T; cases T')
+     (auto simp: Let_def)
+
   have H: \<open>?s \<in> ?A \<rightarrow> \<langle>{(T', T). st_l_of_wl None T' = T \<and> correct_watching T'}\<rangle>nres_rel\<close>
     unfolding skip_and_resolve_loop_wl_def skip_and_resolve_loop_l_def
     apply (refine_vcg get_conflict_wl)
@@ -1141,16 +1116,12 @@ proof -
     subgoal by auto
     subgoal for S' S b'T' bT b' T' by (cases T') (auto simp: correct_watching.simps)
     subgoal for S' S b'T' bT b' T' by (cases T') (auto simp: correct_watching.simps)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by (auto simp: correct_watching.simps clause_to_update_def)
+    subgoal by (auto simp: get_conflict_l_st_l_of_wl get_trail_l_st_l_of_wl)
+    subgoal by (auto simp: get_trail_l_st_l_of_wl )
+    subgoal by (auto simp: get_conflict_l_st_l_of_wl get_trail_l_st_l_of_wl)
+    subgoal by (rule update_confl_tl_wl) assumption+
     subgoal by auto
     subgoal by (auto simp: correct_watching.simps clause_to_update_def)
-    subgoal by auto
-    subgoal by auto
     done
 
   have skip_and_resolve_loop_wl:
@@ -1186,9 +1157,9 @@ qed
 
 subsubsection \<open>Backtrack\<close>
 
-definition find_decomp_wl :: "'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> ('v, nat) ann_lits nres" where
-  \<open>find_decomp_wl = (\<lambda>(M, N, U, D, NP, UP, Q, WS) L.
-    SPEC(\<lambda>M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
+definition find_decomp_wl :: "'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl  nres" where
+  \<open>find_decomp_wl =  (\<lambda>L (M, N, U, D, NP, UP, Q, W).
+    SPEC(\<lambda>S. \<exists>K M2 M1. S = (M1, N, U, D, NP, UP, Q, W) \<and> (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
           get_level M K = get_maximum_level M (the D - {#-L#}) + 1))\<close>
 
 definition find_lit_of_max_level_wl :: "'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> 'v literal nres" where
@@ -1196,55 +1167,48 @@ definition find_lit_of_max_level_wl :: "'v twl_st_wl \<Rightarrow> 'v literal \<
     SPEC(\<lambda>L'. L' \<in># remove1_mset (-L) (the D) \<and> get_level M L' = get_maximum_level M (the D - {#-L#})))\<close>
 
 
-fun extract_shorter_conflict_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clause nres\<close>
-   where
-  \<open>extract_shorter_conflict_wl (M, N, U, D, NP, UP, WS, Q) = SPEC(\<lambda>D'. D' \<subseteq># the D \<and>
+fun extract_shorter_conflict_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>extract_shorter_conflict_wl (M, N, U, D, NP, UP, Q, W) = SPEC(\<lambda>S.
+     \<exists>D'. D' \<subseteq># the D \<and> S = (M, N, U, Some D', NP, UP, Q, W) \<and>
      clause `# twl_clause_of `# mset (tl N) + NP + UP \<Turnstile>pm D' \<and> -(lit_of (hd M)) \<in># D')\<close>
 
 declare extract_shorter_conflict_wl.simps[simp del]
 lemmas extract_shorter_conflict_wl_def = extract_shorter_conflict_wl.simps
 
-definition backtrack_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
-  \<open>backtrack_wl S\<^sub>0 =
-    do {
-      let (M, N, U, D, NP, UP, Q, W) = S\<^sub>0 in
-      do {
-        ASSERT(M \<noteq> []);
-        let L = lit_of (hd M);
-        ASSERT(twl_stgy_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
-        ASSERT(twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
-        ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
-        ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
-        ASSERT(D ~= None);
-        ASSERT(-L \<in># the D);
-        D' \<leftarrow> extract_shorter_conflict_wl (M, N, U, D, NP, UP, Q, W);
-        ASSERT(get_level M L = count_decided M);
-        ASSERT(D' \<noteq> {#});
-        ASSERT(ex_decomp_of_max_lvl M (Some D') L);
-        ASSERT(-L \<in># D');
-        M1 \<leftarrow> find_decomp_wl (M, N, U, Some D', NP, UP, Q, W) L;
 
-        if size D' > 1
-        then do {
-          ASSERT(\<forall>L' \<in># D' - {#-L#}. get_level M L' = get_level M1 L');
-          ASSERT(\<exists>L' \<in># D' - {#-L#}. get_level M L' = get_maximum_level M (D' - {#-L#}));
-          ASSERT(get_level M L > get_maximum_level M (D' - {#-L#}));
-          L' \<leftarrow> find_lit_of_max_level_wl (M1, N, U, Some D', NP, UP, Q, W) L;
-          ASSERT(L \<noteq> -L');
-          D' \<leftarrow> list_of_mset D';
-          ASSERT(atm_of L \<in> atms_of_mm (mset `# mset (tl N) + NP));
-          ASSERT(atm_of L' \<in> atms_of_mm (mset `# mset (tl N) + NP));
-          RETURN (Propagated (-L) (length N) # M1,
-            N @ [[-L, L'] @ (remove1 (-L) (remove1 L'  D'))], U,
-            None, NP, UP, add_mset L {#}, W(-L:= W (-L) @ [length N], L':= W L' @ [length N]))
-        }
-        else do {
-          _ \<leftarrow> list_of_mset D';
-          RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset D' UP, add_mset L {#}, W)
-        }
-      }
-    }
+definition backtrack_wl_inv where
+  \<open>backtrack_wl_inv S \<longleftrightarrow> backtrack_l_inv (st_l_of_wl None S) \<and> correct_watching S
   \<close>
+
+definition propgate_bt_wl :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>propgate_bt_wl = (\<lambda>L L' (M, N, U, D, NP, UP, Q, W). do {
+    D'' \<leftarrow> list_of_mset (the D);
+    RETURN (Propagated (-L) (length N) # M,
+        N @ [[-L, L'] @ (remove1 (-L) (remove1 L' D''))], U,
+          None, NP, UP, {#L#}, W(-L:= W (-L) @ [length N], L':= W L' @ [length N]))
+      })\<close>
+
+definition propgate_unit_bt_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
+  \<open>propgate_unit_bt_wl = (\<lambda>L (M, N, U, D, NP, UP, Q, W).
+    (Propagated (-L) 0 # M, N, U, None, NP, add_mset (the D) UP, {#L#}, W))\<close>
+
+definition backtrack_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
+  \<open>backtrack_wl S =
+    do {
+      ASSERT(backtrack_wl_inv S);
+      let L = lit_of (hd (get_trail_wl S));
+      S \<leftarrow> extract_shorter_conflict_wl S;
+      S \<leftarrow> find_decomp_wl L S;
+
+      if size (the (get_conflict_wl S)) > 1
+      then do {
+        L' \<leftarrow> find_lit_of_max_level_wl S L;
+        propgate_bt_wl L L' S
+      }
+      else do {
+        RETURN (propgate_unit_bt_wl L S)
+     }
+  }\<close>
 
 
 lemma correct_watching_learn:
@@ -1316,11 +1280,13 @@ next
         all_conj_distrib all_lits_of_mm_union)
 qed
 
+(* TODO Move *)
 lemma in_set_image_subsetD: \<open> f ` A \<subseteq> B \<Longrightarrow> x \<in> A \<Longrightarrow>f x \<in> B\<close>
   by blast
 
 lemma nofail_Down_nofail: \<open>nofail gS \<Longrightarrow> fS \<le> \<Down> R gS \<Longrightarrow> nofail fS\<close>
   using pw_ref_iff by blast
+(* ENd Move *)
 
 lemma backtrack_wl_spec:
   \<open>(backtrack_wl, backtrack_l)
@@ -1345,7 +1311,7 @@ lemma backtrack_wl_spec:
           correct_watching T'}\<rangle>nres_rel\<close>
   (is \<open>?bt \<in> ?A \<rightarrow> \<langle>?B\<rangle>nres_rel\<close>)
 proof -
-  have find_decomp_wl: \<open>find_decomp_wl S' L' \<le> \<Down> Id (find_decomp S L)\<close>
+  have find_decomp_wl: \<open>find_decomp_wl L' S' \<le> \<Down> Id (find_decomp L S)\<close>
     if \<open>L = L'\<close> and \<open>st_l_of_wl None S' = S\<close>
     for S and S' :: \<open>'v twl_st_wl\<close> and L L' :: \<open>'v literal\<close>
     using that by (cases S') (auto simp: find_decomp_wl_def find_decomp_def)
@@ -1506,14 +1472,72 @@ proof -
       using corr conv by blast
   qed
 
+  have extract_shorter_conflict_wl: \<open>extract_shorter_conflict_wl S'
+    \<le> \<Down> {(U'::'v twl_st_wl, U).
+          st_l_of_wl None U' = U \<and> equality_except_conflict U' S' } (extract_shorter_conflict_l S)\<close>
+    (is \<open>_ \<le> \<Down> ?extract _\<close>)
+    if  \<open>(S', S) \<in> ?A\<close>
+    for S' S L
+    using that
+    by (cases S'; cases S)
+       (auto simp: extract_shorter_conflict_wl_def extract_shorter_conflict_l_def mset_take_mset_drop_mset
+        intro!: RES_refine)
+
+  have find_decomp_wl: \<open>find_decomp_wl L T'
+    \<le> \<Down> {(U'::'v twl_st_wl, U).
+          st_l_of_wl None U' = U \<and> equality_except_trail U' T' } (find_decomp L' T)\<close>
+    (is \<open>_ \<le> \<Down> ?find _\<close>)
+    if \<open>(S', S) \<in> ?A\<close> \<open>L = L'\<close> \<open>(T', T) \<in> ?extract S'\<close>
+    for S' S T T' L L'
+    using that
+    apply (cases T; cases T')
+    apply (auto intro!: RES_refine simp add: find_decomp_wl_def find_decomp_def)
+    apply blast
+    done
+
+  have find_lit_of_max_level_wl: \<open>find_lit_of_max_level_wl T' L'
+    \<le> \<Down> Id (find_lit_of_max_level T L)\<close>
+    (is \<open>_ \<le> \<Down> ?find_lit _\<close>)
+    if \<open>L = L'\<close> \<open>(T', T) \<in> ?find S'\<close>
+    for S' S T T' L L'
+    using that
+    apply (cases T; cases T')
+    apply (auto intro!: RES_refine simp add: find_lit_of_max_level_wl_def find_lit_of_max_level_def)
+    done
+
+  have propgate_bt_wl: \<open>propgate_bt_wl K L' T'
+    \<le> \<Down> {(T', T). st_l_of_wl None T' = T \<and> correct_watching T'}
+        (propgate_bt_l K' L T)\<close>
+    (is \<open>_ \<le> \<Down> ?propa _\<close>)
+    if  \<open>(S', S) \<in> ?A\<close> \<open>L = L'\<close> \<open>(T', T) \<in> ?extract S'\<close> and
+     \<open>K = lit_of (hd (get_trail_wl S'))\<close> \<open>K' = lit_of (hd (get_trail_l S))\<close> \<open>backtrack_wl_inv S'\<close>
+    for S' S T T' L L' K K'
+    using that unfolding propgate_bt_wl_def propgate_bt_l_def
+    apply (refine_vcg list_of_mset ref)
+    subgoal by auto
+    subgoal
+    using that
+    apply (cases T; cases T'; cases S; cases S')
+    apply (auto intro!: RES_refine simp add: get_trail_l_st_l_of_wl correct_watching_learn
+        backtrack_wl_inv_def backtrack_l_inv_def)
+    apply (subst (asm) correct_watching_learn[simplified])
+    subgoal  sorry
+    subgoal sorry
+    subgoal sorry
+    subgoal sorry
+    subgoal apply (auto simp: correct_watching.simps clause_to_update_def) done
+     using correct_watching_learn[simplified]
+    apply refine_vcg
+     sorry
+   done
 
   have H: \<open>?bt \<in> ?A \<rightarrow> \<langle>{(T', T). st_l_of_wl None T' = T \<and> correct_watching T'}\<rangle>nres_rel\<close>
     unfolding backtrack_wl_def backtrack_l_def
-    apply (refine_vcg find_decomp_wl find_lit_of_max_level_wl list_of_mset ext; remove_dummy_vars)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by fast
+    apply (refine_vcg find_decomp_wl find_lit_of_max_level_wl list_of_mset extract_shorter_conflict_wl; remove_dummy_vars)
+    subgoal unfolding backtrack_wl_inv_def by auto
+    subgoal by (auto simp: get_trail_l_st_l_of_wl)
+    subgoal by (auto simp: get_conflict_l_st_l_of_wl)
+    subgoal by (auto simp: get_trail_l_st_l_of_wl)
     subgoal by fast
     subgoal by simp
     subgoal by auto

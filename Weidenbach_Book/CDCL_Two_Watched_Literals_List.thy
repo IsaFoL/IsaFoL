@@ -1246,8 +1246,6 @@ lemma skip_and_resolve_loop_l_spec:
     clauses_to_update_l T = {#} \<and> get_conflict (twl_st_of None T) \<noteq> None)}\<rangle> nres_rel\<close>
   (is \<open>_ \<in> ?R \<rightarrow> _\<close>)
 proof -
-  text \<open>Stupid placeholder to help the application of \<open>rule\<close> later:\<close>
-  define TT where [simp]: \<open>TT = (\<lambda>_::'v twl_st_l. True)\<close>
   have is_proped[iff]: \<open>is_proped (hd (get_trail (twl_st_of None S))) \<longleftrightarrow> is_proped (hd (get_trail_l S))\<close>
     if \<open>get_trail_l S \<noteq> []\<close> for S :: \<open>'v twl_st_l\<close>
     by (cases S, cases \<open>get_trail_l S\<close>; cases \<open>hd (get_trail_l S)\<close>)
