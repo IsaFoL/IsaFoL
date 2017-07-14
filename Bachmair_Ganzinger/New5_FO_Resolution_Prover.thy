@@ -2825,23 +2825,31 @@ proof -
     let ?Cs = "side_prems_of \<gamma>"
     let ?D = "main_prem_of \<gamma>"
     let ?E = "concl_of \<gamma>"
-    assume "set_mset ?Cs \<union> {?D} \<subseteq> grounding_of_state (limit_state Sts) - src.Rf (grounding_of_state (limit_state Sts))"
+    assume a: "set_mset ?Cs \<union> {?D} \<subseteq> grounding_of_state (limit_state Sts) - src.Rf (grounding_of_state (limit_state Sts))"
 
     have gc: "is_ground_cls_mset ?Cs"
-      sorry
+      using a using grounding_ground is_ground_cls_mset_def by auto 
 
     have gd: "is_ground_cls ?D"
-      using \<open>set_mset (side_prems_of \<gamma>) \<union> {main_prem_of \<gamma>} \<subseteq> grounding_of_state (limit_state Sts) - src.Rf (grounding_of_state (limit_state Sts))\<close> grounding_ground singletonI by auto
-      
+      using a grounding_ground singletonI by auto  
 
     have ge: "is_ground_cls ?E"
+      using \<gamma>_p gc gd unfolding gd2.ord_\<Gamma>_def using gd2.ord_resolve_atms_of_concl_subset
+      apply auto
+      unfolding is_ground_cls_mset_def
+      apply auto
+      unfolding is_ground_cls_def
+      unfolding is_ground_lit_def
+      apply auto
+      apply (subgoal_tac "atm_of L \<in> atms_of E")
       sorry
+      
 
     from \<gamma>_p obtain CAi1 where CAi1_p: "gd2.ord_resolve CAi1 ?D ?E \<and> mset CAi1 = ?Cs" unfolding gd2.ord_\<Gamma>_def
       by auto
 
-    have xxq: "{main_prem_of \<gamma>} \<union> set CAi1 \<subseteq> grounding_of_clss (getQ (limit_state Sts))"
-      sorry
+    have xxq: "{?D} \<union> set CAi1 \<subseteq> grounding_of_clss (getQ (limit_state Sts))"
+      using a CAi1_p by auto
 
     have gc1: "is_ground_cls_list CAi1"
       sorry
@@ -2978,33 +2986,6 @@ proof -
     qed
     then obtain \<sigma> where sisisgma: "ord_resolve (S_M S (getQ (limit_state Sts))) CAi1 ?D \<sigma> ?E"
       by auto
-    then obtain \<eta>s''' \<eta>''' \<eta>2''' CAi''' DA''' E''' \<tau>''' where
-      "is_ground_subst \<eta>'''"
-      "is_ground_subst_list \<eta>s'''" 
-      "is_ground_subst \<eta>2'''" 
-      "ord_resolve_rename S CAi''' DA''' \<tau>''' E'''"
-      "CAi''' \<cdot>\<cdot>cl \<eta>s''' = CAi1"
-      "DA''' \<cdot> \<eta>''' = ?D"
-      "E''' \<cdot> \<eta>2''' = ?E"
-      "{DA'''} \<union> set CAi''' \<subseteq> getQ (limit_state Sts)"
-      using selection_renaming_invariant ord_resolve_rename_lifting[of S "getQ (limit_state Sts)" CAi1 "?D" _ "?E", OF sisisgma selection_axioms _ xxq]
-      by smt
-    (* THE FOLLOWING 3 COMMENTS ARE WRONG. SEE YOU KLADEHAEFTE *)
-    (* I should replace these by the smallest according to subsumption. The I can use the lemmas from 4.11 to move the clauses to Q. *)
-    (* Here is a sketch of doing that. *)
-    (* First we get the ones with the nice property. *)
-    then obtain \<eta>s'' \<eta>'' \<eta>2'' CAi'' DA'' E'' \<tau>'' where
-      "is_ground_subst \<eta>''"
-      "is_ground_subst_list \<eta>s''" 
-      "is_ground_subst \<eta>2''" 
-      "ord_resolve_rename S CAi'' DA'' \<tau>'' E''"
-      "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi1"
-      "DA'' \<cdot> \<eta>'' = ?D"
-      "E'' \<cdot> \<eta>2'' = ?E"
-      "{DA''} \<union> set CAi'' \<subseteq> getQ (limit_state Sts)"
-      UWEPROPERTY
-      sorry
-    (* Next we get the ones that are eventually in Q *)
     then obtain \<eta>s' \<eta>' \<eta>2' CAi' DA' E' \<tau>' where
       "is_ground_subst \<eta>'"
       "is_ground_subst_list \<eta>s'" 
@@ -3014,15 +2995,16 @@ proof -
       "DA' \<cdot> \<eta>' = ?D"
       "E' \<cdot> \<eta>2' = ?E"
       "{DA'} \<union> set CAi' \<subseteq> getQ (limit_state Sts)"
-      UWEPROPERTY (* They have the property, but that is not really important anymore. *)
-      "\<exists>j. enat j < llength Sts \<and> (set CAi') \<union> {DA'} \<subseteq> ?Qs j"
+      using selection_renaming_invariant ord_resolve_rename_lifting[of S "getQ (limit_state Sts)" CAi1 "?D" _ "?E", OF sisisgma selection_axioms _ xxq]
+      by smt
+    have "\<exists>j. enat j < llength Sts \<and> (\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j)"
       sorry
-    then obtain j where j_p: "is_least (\<lambda>j. enat j < llength Sts \<and> (set CAi') \<union> {DA'} \<subseteq> ?Qs j) j"
-      using least_exists by force
+    then obtain j where j_p: "is_least (\<lambda>j. enat j < llength Sts \<and> (\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j)) j"
+      using least_exists[of "(\<lambda>j. enat j < llength Sts \<and> (\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j))"] by force
     then have "j \<noteq> 0" (* Since there are initially no clauses in Q *)
       sorry
-    then have "\<not>set CAi' \<union> {DA'} \<subseteq> ?Qs (j-1) \<and> set CAi' \<union> {DA'} \<subseteq> ?Qs j" using j_p
-      sorry
+    then have "\<not>set CAi' \<union> {DA'} \<subseteq> ?Qs (j-1) \<and> set CAi' \<union> {DA'} \<subseteq> ?Qs j" 
+      using j_p sorry
     then obtain C' where C'_p:
       "?Ns (j-1) = {}"
       "?Ps (j-1) = ?Ps j \<union> {C'}"
@@ -3045,12 +3027,17 @@ proof -
     then have "\<gamma> \<in> src_ext_Ri (llimit (lmap grounding_of_state Sts))"
       sorry
   }
-  term src_ext.saturated_upto
   then have "src_ext.saturated_upto (llimit (lmap grounding_of_state Sts))"
     sorry
-  find_theorems name: saturated_upto_refute_complete 
-  
-oops
+  then have "src.saturated_upto (llimit (lmap grounding_of_state Sts))"
+    using standard_redundancy_criterion_extension_saturated_up_to sorry
+  then have "src.saturated_upto (grounding_of_state (limit_state Sts))"
+    sorry
+  then have "{#} \<in> grounding_of_state (limit_state Sts)" using src.saturated_upto_refute_complete unsat
+    by auto
+  then show "{#} \<in> clss_of_state (limit_state Sts)"
+    sorry
+qed
   
 end
   
