@@ -8,6 +8,12 @@ imports "$AFP/Nested_Multisets_Ordinals/Multiset_More"
 begin
 
 section \<open>Even More about Multisets\<close>
+
+subsection \<open>Lengths of multisets\<close>
+
+lemma mset_subseteq_size: "(A::'a multiset) \<subseteq># B \<Longrightarrow> size A \<le> size B"
+  using mset_subset_size
+  by (simp add: size_mset_mono) 
   
 subsection \<open>Multisets and functions\<close>
   
@@ -46,10 +52,10 @@ proof -
   then show ?thesis by auto
 qed
 
-theorem list_of_mset_empty[simp]:
-  assumes "list_of_mset m = []"
-  shows "m = {#}"
-by (metis (full_types) assms ex_mset list_of_mset_def mset_zero_iff_right someI_ex) 
+theorem list_of_mset_empty[iff]:
+  "list_of_mset m = [] \<longleftrightarrow> m = {#}"
+  by (metis (mono_tags, lifting) ex_mset list_of_mset_def mset_zero_iff_right someI_ex)
+
   
 
 theorem in_mset_conv_nth: "(x \<in># mset xs) = (\<exists>i<length xs. xs ! i = x)"
@@ -135,7 +141,46 @@ qed
 theorem "\<forall>i < length xs. P (xs ! i) \<Longrightarrow> \<forall>x \<in> set xs. P x"
   using in_mset_conv_nth[of _ xs] by auto
     
-    
-    
-    
+
+
+
+lemma all_the_same: "\<forall>x \<in># X. x = y \<Longrightarrow> card (set_mset X) \<le> Suc 0"
+  by (metis card.empty card.insert card_mono finite.intros(1) finite_insert le_SucI singletonI subsetI)
+
+
+thm "sum_mset.remove"
+
+lemma Melem_subseteq_Union_mset[simp]:
+  assumes "x \<in># T"
+  shows "x \<subseteq># \<Union>#T"
+  using assms
+  using sum_mset.remove by force 
+
+lemma Melem_subset_eq_sum_list [simp]:
+  assumes "x \<in># mset T"
+  shows "x \<subseteq># sum_list T"
+  using assms
+  by (metis mset_subset_eq_add_left sum_mset.remove sum_mset_sum_list)
+
+lemma less_subset_eq_Union_mset[simp]:
+  assumes "i < length CAi"
+  shows "CAi ! i \<subseteq># \<Union>#mset CAi"  
+proof -
+  from assms have "CAi ! i \<in># mset CAi"
+    by auto
+  then show "CAi ! i \<subseteq># \<Union>#mset CAi"
+    by auto
+qed
+
+lemma less_subset_eq_sum_list[simp]:
+  assumes "i < length CAi"
+  shows "CAi ! i \<subseteq># sum_list CAi"  
+proof -
+  from assms have "CAi ! i \<in># mset CAi"
+    by auto
+  then show "CAi ! i \<subseteq># sum_list CAi"
+    by auto
+qed
+
+
 end

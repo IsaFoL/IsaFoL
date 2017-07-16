@@ -351,6 +351,7 @@ begin
 definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> nat \<Rightarrow>
   nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres"  where
   \<open>unit_propagation_inner_loop_body_wl_D K w S = do {
+    ASSERT(unit_prop_body_wl_inv S w K);
     ASSERT(literals_are_N\<^sub>0 S);
     let (M, N, U, D', NP, UP, Q, W) = S;
     ASSERT(K \<in># all_lits_of_mm (mset `# mset (tl N) + NP));
@@ -424,8 +425,7 @@ proof -
     by (cases S)
   have f': \<open>(f, f') \<in> \<langle>Id\<rangle>option_rel\<close> if \<open>(f, f') \<in> Id\<close> for f f'
     using that by auto
-  have valued: \<open>(valued M L,
-     valued M' L') \<in>
+  have valued: \<open>(valued M L, valued M' L') \<in>
     {(val, val'). val = val' \<and>
        val = (if undefined_lit M L then None else if L \<in> lits_of_l M then Some True else Some False)}\<close>
     if \<open>M = M'\<close> and \<open>L = L'\<close>

@@ -160,5 +160,12 @@ lemma bitAND_1_mod_2: \<open>bitAND L 1 = L mod 2\<close> for L :: nat
   apply (subst bitAND_nat_def)
   by (auto simp: zmod_int bin_rest_def bin_last_def bitval_bin_last[symmetric])
 
+lemma shiftl_0_uint32[simp]: \<open>n << 0 = n\<close> for n :: uint32
+  by transfer auto
+
+lemma shiftl_Suc_uint32: \<open>n << Suc m = (n << m) << 1\<close> for n :: uint32
+  apply transfer
+  apply transfer
+  by auto
 
 end

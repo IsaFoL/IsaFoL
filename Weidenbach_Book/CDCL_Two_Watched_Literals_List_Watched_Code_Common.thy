@@ -1,6 +1,6 @@
 theory CDCL_Two_Watched_Literals_List_Watched_Code_Common
   imports CDCL_Two_Watched_Literals_Code_Common CDCL_Two_Watched_Literals_List_Watched_Domain
-    Bits_Natural WB_Word_Assn
+    Bits_Natural WB_Word_Assn CDCL_Two_Watched_Literals_List_Conflict_Assn
 begin
 
 lemma \<open>(return o (\<lambda>n. shiftr n 1), RETURN o shiftr1) \<in> word_nat_assn\<^sup>k \<rightarrow>\<^sub>a word_nat_assn\<close>
@@ -111,11 +111,11 @@ abbreviation clauses_to_update_ll_assn :: "nat list \<Rightarrow> nat list \<Rig
 abbreviation unit_lits_assn :: "nat clauses \<Rightarrow> unit_lits_wl \<Rightarrow> assn" where
   \<open>unit_lits_assn \<equiv> list_mset_assn (list_mset_assn unat_lit_assn)\<close>
 
-abbreviation conflict_assn :: "nat clause \<Rightarrow> uint32 array_list \<Rightarrow> assn" where
+(* abbreviation conflict_assn :: "nat clause \<Rightarrow> uint32 array_list \<Rightarrow> assn" where
   \<open>conflict_assn \<equiv> hr_comp (arl_assn unat_lit_assn) list_mset_rel\<close>
 
 abbreviation conflict_option_assn :: "nat clause option \<Rightarrow> uint32 array_list option \<Rightarrow> assn" where
-  \<open>conflict_option_assn \<equiv> option_assn conflict_assn\<close>
+  \<open>conflict_option_assn \<equiv> option_assn conflict_assn\<close> *)
 
 type_synonym nat_clauses_l = \<open>nat list list\<close>
 
@@ -476,7 +476,7 @@ qed
 definition get_maximum_level_remove where
   \<open>get_maximum_level_remove M D L =  get_maximum_level M (remove1_mset L D)\<close>
 
-lemma maximum_level_remove_code_get_maximum_level_remove[sepref_fr_rules]:
+(* lemma maximum_level_remove_code_get_maximum_level_remove[sepref_fr_rules]:
   \<open>(uncurry2 maximum_level_remove_code,
      uncurry2 (RETURN ooo get_maximum_level_remove)) \<in>
     pair_nat_ann_lits_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
@@ -489,7 +489,7 @@ proof -
         get_maximum_level_remove_def)
   show ?thesis
     using maximum_level_remove_code.refine[FCOMP 1] .
-qed
+qed *)
 
 
 definition count_decided_wl :: "('a, 'b, 'c) annotated_lit list \<Rightarrow> nat" where
@@ -636,7 +636,7 @@ sepref_definition is_in_arl_code
   supply [[goals_limit = 1]]
   by sepref
 
-lemma is_in_arl_op_mset_contains_nat_lit_rel[sepref_fr_rules]:
+(* lemma is_in_arl_op_mset_contains_nat_lit_rel[sepref_fr_rules]:
   shows \<open>(uncurry is_in_arl_code, uncurry (RETURN oo op_mset_contains)) \<in>
    (pure unat_lit_rel)\<^sup>k *\<^sub>a conflict_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
 proof -
@@ -650,7 +650,7 @@ proof -
   show ?thesis
     using is_in_arl_code.refine[FCOMP is_in_arl_op_mset_contains, of Id]
     by (auto simp: 1 3)
-qed
+qed *)
 
 
 text \<open>The order is \<^emph>\<open>not\<close> preserved. However, the function moves only one element (and therefore,
@@ -715,7 +715,7 @@ proof -
     by (intro frefI nres_relI) (clarsimp simp: remove1_wl_def)
 qed
 
-lemma remove1_wl_code_op_mset_delete[sepref_fr_rules]:
+(* lemma remove1_wl_code_op_mset_delete[sepref_fr_rules]:
   \<open>(uncurry (remove1_wl_code), uncurry (RETURN oo op_mset_delete)) \<in>
      unat_lit_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>d \<rightarrow>\<^sub>a conflict_assn\<close>
   (is \<open>_ \<in> _ *\<^sub>a ?c\<^sup>d \<rightarrow>\<^sub>a ?o\<close>)
@@ -764,7 +764,7 @@ proof -
 
   show ?thesis
     using H unfolding c o' op_mset_delete_def unat_lit_rel_def .
-qed
+qed *)
 
 definition maximum_level :: \<open>(nat, nat) ann_lits \<Rightarrow> nat literal list \<Rightarrow> nat\<close> where
   \<open>maximum_level M D = fold (\<lambda>i l. max (get_level M (D!i)) l) [0..<length D] 0\<close>
@@ -792,10 +792,10 @@ proof -
     by (auto simp: list_mset_rel_def br_def)
 qed
 
-lemma maximum_level_code_get_maximum_level[sepref_fr_rules]:
+(* lemma maximum_level_code_get_maximum_level[sepref_fr_rules]:
   \<open>(uncurry maximum_level_code, uncurry (RETURN oo get_maximum_level))
     \<in> pair_nat_ann_lits_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  using maximum_level_code.refine[FCOMP maximum_level_get_maximum_level] .
+  using maximum_level_code.refine[FCOMP maximum_level_get_maximum_level] . *)
 
 text \<open>TODO: avoid copy of the list (use index)\<close>
 definition union_mset_list_fold where
@@ -880,13 +880,14 @@ lemma union_mset_list_fold_op_union_mset:
   by (auto simp: list_mset_rel_def br_def intro!: union_mset_list_fold_union_mset[symmetric]
       intro!: frefI nres_relI)
 
-lemma union_mset_list_fold_code_op_union_mset[sepref_fr_rules]:
+(* lemma union_mset_list_fold_code_op_union_mset[sepref_fr_rules]:
   \<open>(uncurry union_mset_list_fold_code, uncurry (RETURN oo op \<union>#)) \<in>
    [\<lambda>(a, b). distinct_mset a \<and> distinct_mset b]\<^sub>a conflict_assn\<^sup>d *\<^sub>a conflict_assn\<^sup>k \<rightarrow> conflict_assn\<close>
-  using union_mset_list_fold_code.refine[FCOMP union_mset_list_fold_op_union_mset] .
+  using union_mset_list_fold_code.refine[FCOMP union_mset_list_fold_op_union_mset] . *)
 
-lemma arl_is_empty_is_empty[sepref_fr_rules]: \<open>(arl_is_empty, RETURN o Multiset.is_empty) \<in> conflict_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+(* lemma arl_is_empty_is_empty[sepref_fr_rules]: \<open>(arl_is_empty, RETURN o Multiset.is_empty) \<in> conflict_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare (sep_auto simp: Multiset.is_empty_def hr_comp_def list_mset_rel_def br_def arl_assn_def)
+ *)
 
 definition find_decomp_wl_imp :: "(nat, nat) ann_lits \<Rightarrow> nat clause \<Rightarrow> nat literal \<Rightarrow> (nat, nat) ann_lits nres" where
   \<open>find_decomp_wl_imp = (\<lambda>M\<^sub>0 D L. do {
@@ -988,7 +989,7 @@ proof -
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def)
   then have M\<^sub>0_CNot_D: \<open>M\<^sub>0 \<Turnstile>as CNot (the D)\<close>
     using E_D\<^sub>0 unfolding E by (simp add: mset_subset_eqD true_annots_true_cls_def_iff_negation_in_model)
-    
+
   have n_d: \<open>no_dup M\<^sub>0\<close>
     using lev_inv by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset'
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def)
@@ -1123,28 +1124,42 @@ lemma watched_by_nth_watched_app':
 context twl_array_code
 begin
 
-sepref_definition (in -) find_decomp_wl_imp_code
+lemma (in -) safe_minus_nat_assn:
+  \<open>(uncurry (return oo op -), uncurry (RETURN oo fast_minus)) \<in>
+     [\<lambda>(m, n). m \<ge> n]\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  by sepref_to_hoare
+   (sep_auto simp: fast_minus_def uint32_nat_rel_def br_def nat_of_uint32_le_minus
+      nat_of_uint32_notle_minus nat_of_uint32_le_iff)
+
+lemma (in -) hd_decided_count_decided_ge_1:
+  \<open>x \<noteq> [] \<Longrightarrow> is_decided (hd x) \<Longrightarrow> Suc 0 \<le> count_decided x\<close>
+  by (cases x) auto
+
+(* sepref_definition (in -) find_decomp_wl_imp_code
   is \<open>uncurry2 find_decomp_wl_imp\<close>
   :: \<open>[\<lambda>((M, D), L). M \<noteq> []]\<^sub>a
          pair_nat_ann_lits_assn\<^sup>d *\<^sub>a conflict_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k
     \<rightarrow> pair_nat_ann_lits_assn\<close>
+  supply safe_minus_nat_assn[sepref_fr_rules]
   unfolding find_decomp_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
+  apply (rewrite at \<open>_ - 1\<close> fast_minus_def[symmetric])
+  supply hd_decided_count_decided_ge_1[simp]
   supply [[goals_limit=1]]
-  by sepref
+  by sepref *)
 
-lemmas find_decomp_wl_imp_code_refine[sepref_fr_rules] = find_decomp_wl_imp_code.refine
+(* lemmas find_decomp_wl_imp_code_refine[sepref_fr_rules] = find_decomp_wl_imp_code.refine *)
 
 definition (in -) find_decomp_wl_imp' :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clause_l list \<Rightarrow> nat \<Rightarrow>
     nat clause \<Rightarrow> nat clauses \<Rightarrow> nat clauses \<Rightarrow> nat lit_queue_wl \<Rightarrow>
     (nat literal \<Rightarrow> watched) \<Rightarrow> _ \<Rightarrow> (nat, nat) ann_lits nres\<close> where
   \<open>find_decomp_wl_imp' = (\<lambda>M N U D NP UP W Q L. find_decomp_wl_imp M D L)\<close>
 
-lemma (in -) id_mset_hnr[sepref_fr_rules]:
+(* lemma (in -) id_mset_hnr[sepref_fr_rules]:
  \<open>(arl_of_array_raa, (RETURN o mset)) \<in> [\<lambda>xs. xs \<noteq> []]\<^sub>a clause_ll_assn\<^sup>d \<rightarrow> conflict_assn\<close>
   unfolding list_assn_pure_conv list_mset_assn_def the_pure_pure
   by sepref_to_hoare (sep_auto simp: list_mset_assn_def mset_rel_def rel_mset_def hr_comp_def
       rel2p_def[abs_def] p2rel_def list_mset_rel_def br_def Collect_eq_comp pure_def list_rel_def
-      arl_of_array_raa_def array_assn_def is_array_def arl_assn_def is_array_list_def)
+      arl_of_array_raa_def array_assn_def is_array_def arl_assn_def is_array_list_def) *)
 
 lemma nth_ll_watched_app:
   \<open>(uncurry2 (RETURN ooo nth_ll), uncurry2 (RETURN ooo watched_app)) \<in>
@@ -1153,7 +1168,7 @@ lemma nth_ll_watched_app:
   unfolding watched_app_def nth_ll_def
   by (fastforce simp: fref_def map_fun_rel_def prod_rel_def nres_rel_def p2rel_def lit_of_natP_def)
 
- 
+
 lemma nth_aa_hnr_u[sepref_fr_rules]:
   assumes p: \<open>is_pure R\<close>
   shows
@@ -1163,7 +1178,7 @@ lemma nth_aa_hnr_u[sepref_fr_rules]:
   supply nth_aa_hnr[to_hnr, sep_heap_rules]
   using assms
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
- 
+
 lemma nth_aa_watched_app[sepref_fr_rules]:
   \<open>(uncurry2 (\<lambda>xs i. nth_aa xs (nat_of_uint32 i)), uncurry2 (RETURN ooo op_watched_app)) \<in>
    [\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0 \<and> i < length (W L)]\<^sub>a
@@ -1196,11 +1211,11 @@ proof -
     using H unfolding 1 2 3 op_watched_app_def .
 qed
 
-lemma length_aa_hnr_u[sepref_fr_rules]: 
+lemma length_aa_hnr_u[sepref_fr_rules]:
   \<open>(uncurry (\<lambda>xs i. length_aa xs (nat_of_uint32 i)), uncurry (RETURN \<circ>\<circ> length_ll)) \<in>
      [\<lambda>(xs, i). i < length xs]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
-    
+
 lemma length_aa_length_ll_f[sepref_fr_rules]:
   \<open>(uncurry (\<lambda>xs i. length_aa xs (nat_of_uint32 i)), uncurry (RETURN oo length_ll_f)) \<in>
    [\<lambda>(W, L). L \<in> snd ` D\<^sub>0]\<^sub>a
@@ -1236,6 +1251,32 @@ proof -
 
   show ?thesis
     using H unfolding 1 2 3 .
+qed
+
+
+lemma (in -) is_pos_nat_lit_hnr:
+  \<open>(return o (\<lambda>L. bitAND L 1 = 0), RETURN o is_pos) \<in> nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding bitAND_1_mod_2
+  apply (sepref_to_hoare, rename_tac x xi, case_tac x)
+   apply (sep_auto simp: p2rel_def lit_of_natP_def unat_lit_rel_def uint32_nat_rel_def nat_lit_rel_def br_def
+      split: if_splits)+
+  by presburger
+
+lemma (in -) is_pos_hnr[sepref_fr_rules]:
+  \<open>(return o (\<lambda>L. bitAND L 1 = 0), RETURN o is_pos) \<in> unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+proof -
+  have 1: \<open>(RETURN o (\<lambda>L. bitAND L 1 = 0), RETURN o is_pos) \<in> nat_lit_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
+    unfolding bitAND_1_mod_2
+    by (intro nres_relI frefI) (auto simp: nat_lit_rel_def lit_of_natP_def split: if_splits)
+  have 2: \<open>(return o (\<lambda>L. bitAND L 1 = 0), RETURN o (\<lambda>L. bitAND L 1 = 0)) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+    apply sepref_to_hoare
+    using nat_of_uint32_ao[of _ 1]
+    by (sep_auto simp: p2rel_def lit_of_natP_def unat_lit_rel_def uint32_nat_rel_def
+        nat_lit_rel_def br_def nat_of_uint32_012
+        nat_of_uint32_0_iff nat_0_AND uint32_0_AND
+        split: if_splits)+
+  show ?thesis
+    using 2[FCOMP 1] unfolding unat_lit_rel_def .
 qed
 
 
@@ -1448,7 +1489,7 @@ lemma get_conflict_wll_is_Nil_get_conflict_wl_is_Nil:
       split: option.splits)
 
 text \<open>The important point in the following theorem is the \<^term>\<open>hfkeep\<close>.\<close>
-lemma (in -) the_is_empty[sepref_fr_rules]:
+(* lemma (in -) the_is_empty[sepref_fr_rules]:
   \<open>((arl_is_empty o the), RETURN o the_is_empty) \<in> [\<lambda>D. D \<noteq> None]\<^sub>a (conflict_option_assn)\<^sup>k \<rightarrow> bool_assn\<close>
   apply sepref_to_hoare
   apply (case_tac x)
@@ -1459,7 +1500,7 @@ lemma (in -) the_is_empty[sepref_fr_rules]:
       arl_is_empty_def the_is_empty_def Multiset.is_empty_def
       hr_comp_def arl_assn_def is_array_list_def list_mset_rel_def
       br_def)
-  done
+  done *)
 
 lemma get_conflict_wl_get_conflict_wl_is_Nil:
   \<open>get_conflict_wl S\<^sub>0 = Some {#} \<longleftrightarrow> get_conflict_wl_is_Nil S\<^sub>0\<close>
@@ -1498,12 +1539,12 @@ lemma lit_and_ann_of_propagated_hnr[sepref_fr_rules]:
 definition op_mset_arl_empty :: "'a multiset" where
   \<open>op_mset_arl_empty = {#}\<close>
 
-lemma arl_empty_op_mset_arl_empy[sepref_fr_rules]:
+(* lemma arl_empty_op_mset_arl_empy[sepref_fr_rules]:
   \<open>(uncurry0 arl_empty, uncurry0 (RETURN op_mset_arl_empty)) \<in>
   unit_assn\<^sup>k \<rightarrow>\<^sub>a conflict_assn\<close>
   by sepref_to_hoare
     (use lms_empty_aref in \<open>sep_auto simp: op_mset_arl_empty_def hr_comp_def arl_assn_def\<close>)
-
+ *)
 
 definition (in -) find_lit_of_max_level_wl_imp where
   \<open>find_lit_of_max_level_wl_imp M D L = do {
@@ -1580,12 +1621,12 @@ sepref_definition (in -)remove1_and_add_first_code
   unfolding remove1_and_add_first_def
   by sepref
 
-lemma (in -) id_list_of_mset[sepref_fr_rules]:
+(* lemma (in -) id_list_of_mset[sepref_fr_rules]:
   \<open>(return o id, list_of_mset) \<in> conflict_assn\<^sup>d \<rightarrow>\<^sub>a arl_assn unat_lit_assn\<close>
   by sepref_to_hoare (sep_auto simp: hr_comp_def list_of_mset_def arl_assn_def list_mset_rel_def
-      br_def)
+      br_def) *)
 
-lemma (in -)remove1_and_add_first_code_list_of_mset2[sepref_fr_rules]:
+(* lemma (in -)remove1_and_add_first_code_list_of_mset2[sepref_fr_rules]:
   \<open>(uncurry2 remove1_and_add_first_code, uncurry2 (list_of_mset2))
   \<in> [\<lambda>((L, L'), D). L \<in># D \<and> L' \<in># D \<and> L \<noteq> L' \<and> distinct_mset D]\<^sub>a
      unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>d \<rightarrow> arl_assn unat_lit_assn\<close>
@@ -1612,12 +1653,12 @@ proof -
 
   show ?thesis
     using remove1_and_add_first_code.refine[FCOMP 1] .
-qed
+qed *)
 
-lemma [sepref_fr_rules]: \<open>(arl_length, RETURN o size) \<in> conflict_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+(* lemma [sepref_fr_rules]: \<open>(arl_length, RETURN o size) \<in> conflict_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   by sepref_to_hoare
    (sep_auto simp: hr_comp_def arl_assn_def list_mset_rel_def br_def list_rel_def
-      dest: list_all2_lengthD)
+      dest: list_all2_lengthD) *)
 
 lemma length_a_hnr[sepref_fr_rules]: \<open>(length_a, RETURN o op_list_length) \<in> (arrayO_assn R)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   by sepref_to_hoare sep_auto
@@ -1631,7 +1672,7 @@ sepref_definition(in -) single_of_mset_imp_code
   unfolding single_of_mset_imp_def
   by sepref
 
-lemma (in -)single_of_mset_imp_code_single_of_mset[sepref_fr_rules]:
+(* lemma (in -)single_of_mset_imp_code_single_of_mset[sepref_fr_rules]:
   \<open>(single_of_mset_imp_code, single_of_mset) \<in> [\<lambda>D. D \<noteq> {#} \<and> size D \<le> 1]\<^sub>a
      conflict_assn\<^sup>d \<rightarrow> unat_lit_assn\<close>
 proof -
@@ -1643,7 +1684,7 @@ proof -
         intro!: frefI nres_relI)
   show ?thesis
     using single_of_mset_imp_code.refine[FCOMP 1] by simp
-qed
+qed *)
 
 lemma set_mset_all_lits_of_mm_atms_of_ms_iff:
   \<open>set_mset (all_lits_of_mm A) = set_mset N\<^sub>1 \<longleftrightarrow> atms_of_ms (set_mset A) = atms_of N\<^sub>1\<close>

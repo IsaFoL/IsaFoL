@@ -1,6 +1,6 @@
 theory WB_More_Refinement
   imports
-    "$AFP/Refine_Imperative_HOL/IICF/IICF"
+    IICF
     Eisbach
     "~~/src/HOL/Eisbach/Eisbach_Tools"
     WB_List_More
@@ -219,6 +219,9 @@ notation (in -)
 
 subsection \<open>More Theorems for Refinement\<close>
 
+lemma SPEC_add_information: \<open>P \<Longrightarrow> A \<le> SPEC Q \<Longrightarrow> A \<le> SPEC(\<lambda>x. Q x \<and> P)\<close>
+  by auto
+
 lemma bind_refine_spec: \<open>(\<And>x. \<Phi> x \<Longrightarrow> f x \<le> \<Down> R M) \<Longrightarrow> M' \<le> SPEC \<Phi> \<Longrightarrow> M' \<bind> f \<le> \<Down> R M\<close>
   by (auto simp add: pw_le_iff refine_pw_simps)
 
@@ -291,6 +294,10 @@ lemma fr_refl': \<open>A \<Longrightarrow>\<^sub>A B \<Longrightarrow> C * A \<L
   by (rule Automation.fr_refl)
 
 lemma Collect_eq_comp: \<open>{(c, a). a = f c} O {(x, y). P x y} = {(c, y). P (f c) y}\<close>
+  by auto
+
+lemma Collect_eq_comp_right:
+  \<open>{(x, y). P x y} O {(c, a). a = f c} = {(x, c). \<exists>y. P x y \<and> c = f y} \<close>
   by auto
 
 lemma
@@ -555,5 +562,49 @@ lemma
   empty_list_mset_rel_iff:
     \<open>(a, {#}) \<in> list_mset_rel \<longleftrightarrow> a = []\<close>
   by (auto simp: list_mset_rel_def br_def)
+
+lemma ex_assn_up_eq2: \<open>(\<exists>\<^sub>Aba. f ba * \<up> (ba = c)) = (f c)\<close>
+  by (simp add: ex_assn_def)
+
+lemma list_rel_update:
+  fixes R :: \<open>'a \<Rightarrow> 'b :: {heap}\<Rightarrow> assn\<close>
+  assumes rel: \<open>(xs, ys) \<in> \<langle>the_pure R\<rangle>list_rel\<close> and
+   h: \<open>h \<Turnstile> A * R b bi\<close> and
+   p: \<open>is_pure R\<close>
+  shows \<open>(list_update xs ba bi, list_update ys ba b) \<in> \<langle>the_pure R\<rangle>list_rel\<close>
+proof -
+  obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
+    using p by fastforce
+  have [simp]: \<open>(bi, b) \<in> the_pure R\<close>
+    using h p by (auto simp: mod_star_conv R R')
+  have \<open>length xs = length ys\<close>
+    using assms list_rel_imp_same_length by blast
+
+  then show ?thesis
+    using rel
+    by (induction xs ys arbitrary: ba rule: list_induct2) (auto split: nat.splits)
+qed
+
+
+definition list_rel_mset_rel where list_rel_mset_rel_internal:
+\<open>list_rel_mset_rel \<equiv> \<lambda>R. \<langle>R\<rangle>list_rel O list_mset_rel\<close>
+
+lemma list_rel_mset_rel_def[refine_rel_defs]:
+  \<open>\<langle>R\<rangle>list_rel_mset_rel = \<langle>R\<rangle>list_rel O list_mset_rel\<close>
+  unfolding relAPP_def list_rel_mset_rel_internal ..
+
+lemma list_mset_assn_pure_conv:
+  \<open>list_mset_assn (pure R) = pure (list_rel_mset_rel R)\<close>
+  apply (intro ext)
+  using list_all2_reorder_left_invariance
+  by (fastforce
+    simp: list_rel_mset_rel_def list_mset_assn_def
+      mset_rel_def rel2p_def[abs_def] rel_mset_def p2rel_def
+      list_mset_rel_def[abs_def] Collect_eq_comp br_def
+      list_rel_mset_rel_internal list_rel_def Collect_eq_comp_right
+    intro!: arg_cong[of _ _ \<open>\<lambda>b. pure b _ _\<close>])
+
+lemma ex_assn_pair_split: \<open>(\<exists>\<^sub>Ab. P b) = (\<exists>\<^sub>Aa b. P (a, b))\<close>
+  by (subst ex_assn_def, subst (1) ex_assn_def, auto)+
 
 end
