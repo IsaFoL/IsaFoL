@@ -1311,45 +1311,10 @@ lemma backtrack_wl_spec:
           correct_watching T'}\<rangle>nres_rel\<close>
   (is \<open>?bt \<in> ?A \<rightarrow> \<langle>?B\<rangle>nres_rel\<close>)
 proof -
-  have find_decomp_wl: \<open>find_decomp_wl L' S' \<le> \<Down> Id (find_decomp L S)\<close>
-    if \<open>L = L'\<close> and \<open>st_l_of_wl None S' = S\<close>
-    for S and S' :: \<open>'v twl_st_wl\<close> and L L' :: \<open>'v literal\<close>
-    using that by (cases S') (auto simp: find_decomp_wl_def find_decomp_def)
-  have find_lit_of_max_level_wl:
-    \<open>find_lit_of_max_level_wl (M1', N', U', D', NP', UP', W', Q') L' \<le>
-       \<Down> {(L, L'). L = L' \<and> L \<in># (the D')}
-         (find_lit_of_max_level (M, N, U, D, NP, UP, W, Q) L)\<close>
-    if LL': \<open>L = L'\<close> and D: \<open>\<forall>L'\<in>#remove1_mset (-L) (the D). get_level M L' = get_level M1 L'\<close> and
-    \<open>D = D'\<close> and [simp]: \<open>M1 = M1'\<close>
-    for M M1 M1' and N N' and U U' and D D' NP NP' UP UP' W W' Q Q' and L L' :: \<open>'v literal\<close>
-  proof -
-    have \<open>get_level M `# remove1_mset (-L') (the D) = get_level M1 `# remove1_mset (-L') (the D)\<close>
-      by (rule image_mset_cong) (use D LL' in auto)
-    then have \<open> get_maximum_level M (remove1_mset (-L') (the D)) =
-        get_maximum_level M1 (remove1_mset (-L') (the D))\<close>
-      unfolding get_maximum_level_def by auto
-    then show ?thesis
-      using that by (auto simp: find_lit_of_max_level_wl_def find_lit_of_max_level_def
-          intro!: RES_refine dest: in_diffD)
-  qed
-  have atms_of_diffD: \<open>La \<in> atms_of (A - B) \<Longrightarrow> La \<in> atms_of A\<close> for La and A B :: \<open>'a clause\<close>
-    by (auto simp: atms_of_def dest: in_diffD)
-  have list_of_mset: \<open>list_of_mset D \<le> \<Down> {(E, F). E = F \<and> D = mset E} (list_of_mset D')\<close>
-    if \<open>D = D'\<close> for D D'
-    using that by (auto simp: list_of_mset_def intro!: RES_refine)
-
-  have ext: \<open>extract_shorter_conflict_wl T' \<le> \<Down> {(D', D''). D' = D'' \<and>
-      -lit_of (hd (get_trail_wl T')) \<in># D' \<and> D' \<subseteq># the D}
-    (extract_shorter_conflict_l T)\<close>
-    if \<open>st_l_of_wl None T' = T\<close> \<open>D = get_conflict_wl T'\<close> for T T' D
-    using that
-    by (cases T; cases T')
-      (auto intro!: SPEC_refine simp: extract_shorter_conflict_l_def extract_shorter_conflict_wl_def)
-
   have hd_not_alien:
-    \<open>atm_of (lit_of (hd M')) \<in> atms_of_mm (mset `# mset (tl N') + NP')\<close>
+    \<open>atm_of (-lit_of (hd M')) \<in> atms_of_mm (mset `# mset (tl N') + NP')\<close>
     if
-      st: \<open>((M', N', U', E', NP', UP', Q', W), M, N, U, E, NP, UP, WS, Q)
+      st: \<open>((M', N', U', E', NP', UP', Q', W), S')
       \<in> {(T', T). st_l_of_wl None T' = T \<and>
                    correct_watching T' \<and>
                    twl_struct_invs (twl_st_of_wl None T') \<and>
@@ -1359,10 +1324,12 @@ proof -
                    literals_to_update_wl T' = {#} \<and>
                    (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of_wl None T')) S') \<and>
                    (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None T')) S') \<and> additional_WS_invs (st_l_of_wl None T')}\<close> and
-      M'_empty: \<open>M' \<noteq> []\<close> and
-      struct_invs: \<open>twl_struct_invs (twl_st_of_wl None (M', N', U', E', NP', UP', Q', W))\<close>
-    for M N U E NP UP WS Q M' N' U' E' NP' UP' Q' W M''' M'''' L L' D D' D''' D''''
+      M'_empty: \<open>M' \<noteq> []\<close>
+
+    for M N U E NP UP WS Q M' N' U' E' NP' UP' Q' W S'
   proof -
+    have struct_invs: \<open>twl_struct_invs (twl_st_of_wl None (M', N', U', E', NP', UP', Q', W))\<close>
+      using st by auto
     have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl None (M', N', U', E', NP', UP', Q', W)))\<close>
       using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       by fast
@@ -1372,43 +1339,6 @@ proof -
             mset_take_mset_drop_mset dest: in_atms_of_mset_takeD)
     qed
 
-  have not_alien:
-    "atm_of L' \<in> atms_of_mm (mset `# mset (tl N') + NP')"
-    if
-      stuct_invs: "twl_struct_invs (twl_st_of_wl None (M', N', U', E', NP', UP', Q', W))" and
-      L': "(L', L'a) \<in> {(L, L'). L = L' \<and> L \<in># the (Some D')}" and
-      D_D': "(D', D) \<in> {(D, D'). D = D' \<and> L'' \<in># D \<and>
-        D \<subseteq># the (get_conflict_wl (M', N', U', E', NP', UP', Q', W))}" and
-      E': "((a, b, c, E', S'), T')
-         \<in> {(T', T).
-             st_l_of_wl None T' = T \<and>
-             correct_watching T' \<and>
-             twl_struct_invs (twl_st_of_wl None T') \<and>
-             twl_stgy_invs (twl_st_of_wl None T') \<and>
-             get_conflict_wl T' \<noteq> None \<and>
-             get_conflict_wl T' \<noteq> Some {#} \<and>
-             literals_to_update_wl T' = {#} \<and>
-             (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.skip
-                       (state\<^sub>W_of (twl_st_of_wl None T'))
-                       S') \<and>
-             (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.resolve
-                       (state\<^sub>W_of (twl_st_of_wl None T'))
-                       S') \<and>
-             additional_WS_invs (st_l_of_wl None T')}"
-    for L' M' N' U' E' NP' UP' Q' W' D D' M L'a W T' a b c S' L''
-  proof -
-    have E': "E' \<noteq> None"
-      using E' by (cases S') auto
-    have no_alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl None (M', N', U', E', NP', UP', Q', W)))\<close>
-      using stuct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      by fast
-    moreover have \<open>L' \<in># the E'\<close>
-      using E' D_D' L' by (auto simp: mset_take_mset_drop_mset)
-    ultimately show ?thesis
-      using E'
-      by (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
-          mset_take_mset_drop_mset dest!: atm_of_lit_in_atms_of in_atms_of_mset_takeD)
-  qed
   have ref:
     \<open>((Propagated (- lit_of (hd M')) (length N') # L, N' @ [[- lit_of (hd M'), L'] @ remove1 (- lit_of (hd M')) (remove1 L' D'b)], U', None, NP', UP', unmark (hd M'), W
       (- lit_of (hd M') := W (- lit_of (hd M')) @ [length N'], L' := W L' @ [length N'])),
@@ -1428,7 +1358,6 @@ proof -
                      (\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None T')) S') \<and>
                      additional_WS_invs (st_l_of_wl None T')}\<close>
         (is \<open>(?U, ?V) \<in> _\<close>)and
-        M'_empty: \<open>M' \<noteq> []\<close> and
         M: \<open>(M''', M'''') \<in> {(D', D''). D' = D'' \<and>
                - lit_of (hd (get_trail_wl (M', N', U', E', NP', UP', Q', W))) \<in># D' \<and>
                D' \<subseteq># the (get_conflict_wl (M', N', U', E', NP', UP', Q', W))}\<close> and
@@ -1465,7 +1394,7 @@ proof -
       subgoal using add by (auto simp: additional_WS_invs_def)
       subgoal using atm_hd by simp
       subgoal using atm .
-      subgoal using atms_D by (fastforce dest: atms_of_diffD)
+      subgoal using atms_D by (fastforce dest: in_atms_of_minusD)
       subgoal using corr by (auto simp add: correct_watching.simps clause_to_update_def)
       done
     show ?thesis
@@ -1474,7 +1403,9 @@ proof -
 
   have extract_shorter_conflict_wl: \<open>extract_shorter_conflict_wl S'
     \<le> \<Down> {(U'::'v twl_st_wl, U).
-          st_l_of_wl None U' = U \<and> equality_except_conflict U' S' } (extract_shorter_conflict_l S)\<close>
+          st_l_of_wl None U' = U \<and> equality_except_conflict U' S' \<and>
+          the (get_conflict_wl U') \<subseteq># the (get_conflict_wl S') \<and>
+          get_conflict_wl U' \<noteq> None} (extract_shorter_conflict_l S)\<close>
     (is \<open>_ \<le> \<Down> ?extract _\<close>)
     if  \<open>(S', S) \<in> ?A\<close>
     for S' S L
@@ -1485,7 +1416,8 @@ proof -
 
   have find_decomp_wl: \<open>find_decomp_wl L T'
     \<le> \<Down> {(U'::'v twl_st_wl, U).
-          st_l_of_wl None U' = U \<and> equality_except_trail U' T' } (find_decomp L' T)\<close>
+          st_l_of_wl None U' = U \<and> equality_except_trail U' T' \<and>
+       (\<exists>M. get_trail_wl T' = M @ get_trail_wl U') } (find_decomp L' T)\<close>
     (is \<open>_ \<le> \<Down> ?find _\<close>)
     if \<open>(S', S) \<in> ?A\<close> \<open>L = L'\<close> \<open>(T', T) \<in> ?extract S'\<close>
     for S' S T T' L L'
@@ -1493,76 +1425,135 @@ proof -
     apply (cases T; cases T')
     apply (auto intro!: RES_refine simp add: find_decomp_wl_def find_decomp_def)
     apply blast
+    apply (auto dest!: get_all_ann_decomposition_exists_prepend)
     done
 
   have find_lit_of_max_level_wl: \<open>find_lit_of_max_level_wl T' L'
-    \<le> \<Down> Id (find_lit_of_max_level T L)\<close>
+    \<le> \<Down> {(L', L). L = L' \<and> L' \<in># the (get_conflict_wl T')}
+         (find_lit_of_max_level T L)\<close>
     (is \<open>_ \<le> \<Down> ?find_lit _\<close>)
     if \<open>L = L'\<close> \<open>(T', T) \<in> ?find S'\<close>
     for S' S T T' L L'
     using that
     apply (cases T; cases T')
-    apply (auto intro!: RES_refine simp add: find_lit_of_max_level_wl_def find_lit_of_max_level_def)
+    apply (auto intro!: RES_refine simp add: find_lit_of_max_level_wl_def find_lit_of_max_level_def
+     dest: in_diffD)
     done
 
-  have propgate_bt_wl: \<open>propgate_bt_wl K L' T'
+  have propgate_bt_wl: \<open>propgate_bt_wl (lit_of (hd (get_trail_wl S'))) L' U'
     \<le> \<Down> {(T', T). st_l_of_wl None T' = T \<and> correct_watching T'}
-        (propgate_bt_l K' L T)\<close>
+        (propgate_bt_l (lit_of (hd (get_trail_l S))) L U)\<close>
     (is \<open>_ \<le> \<Down> ?propa _\<close>)
-    if  \<open>(S', S) \<in> ?A\<close> \<open>L = L'\<close> \<open>(T', T) \<in> ?extract S'\<close> and
-     \<open>K = lit_of (hd (get_trail_wl S'))\<close> \<open>K' = lit_of (hd (get_trail_l S))\<close> \<open>backtrack_wl_inv S'\<close>
-    for S' S T T' L L' K K'
-    using that unfolding propgate_bt_wl_def propgate_bt_l_def
-    apply (refine_vcg list_of_mset ref)
-    subgoal by auto
-    subgoal
-    using that
-    apply (cases T; cases T'; cases S; cases S')
-    apply (auto intro!: RES_refine simp add: get_trail_l_st_l_of_wl correct_watching_learn
-        backtrack_wl_inv_def backtrack_l_inv_def)
-    apply (subst (asm) correct_watching_learn[simplified])
-    subgoal  sorry
-    subgoal sorry
-    subgoal sorry
-    subgoal sorry
-    subgoal apply (auto simp: correct_watching.simps clause_to_update_def) done
-     using correct_watching_learn[simplified]
-    apply refine_vcg
-     sorry
-   done
+    if  SS': \<open>(S', S) \<in> ?A\<close> and
+     UU': \<open>(U', U) \<in> ?find T'\<close> and
+     LL': \<open>(L', L) \<in> ?find_lit U'\<close> and
+     TT': \<open>(T', T) \<in> ?extract S'\<close> and
+    bt: \<open>backtrack_wl_inv S'\<close>
+    for S' S T T' L L' U U'
+  proof -
+    define K' where \<open>K' = lit_of (hd (get_trail_l S))\<close>
+    obtain MS NS US DS NPS UPS W where
+      S': \<open>S' = (MS, NS, US, Some DS, NPS, UPS, {#}, W)\<close>
+      using SS' by (cases S'; cases \<open>get_conflict_wl S'\<close>) auto
+    then obtain DT where
+      T': \<open>T' = (MS, NS, US, Some DT, NPS, UPS, {#}, W)\<close>
+      using TT' by (cases T'; cases \<open>get_conflict_wl T'\<close>) auto
+    then obtain MU MU' where
+      U': \<open>U' = (MU, NS, US, Some DT, NPS, UPS, {#}, W)\<close> and
+      MU: \<open>MS = MU' @ MU\<close> and
+      U: \<open>U = st_l_of_wl None U'\<close>
+      using UU' by (cases U') auto
+    have NS: \<open>NS ≠ []\<close>
+      using SS' by (auto simp: S' additional_WS_invs_def)
+    have MS: \<open>MS \<noteq> []\<close>
+      using bt unfolding backtrack_wl_inv_def backtrack_l_inv_def S' by auto
+    have \<open>correct_watching S'\<close>
+      using SS' by fast
+    then have corr: \<open>correct_watching (MU, NS, US, None, NPS, UPS, unmark (hd MS), W)\<close>
+       unfolding S' correct_watching.simps clause_to_update_def get_clauses_l.simps .
+
+    have no_alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl None S'))\<close>
+      using SS' unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      by fast
+    moreover have \<open>L' \<in># DS\<close>
+      using LL' TT'  by (auto simp: T' S' U' mset_take_mset_drop_mset)
+    ultimately have
+       atm_L': \<open>atm_of L' ∈ atms_of_mm (mset `# mset (tl NS) + NPS)\<close> and
+       atm_confl: \<open>\<forall>L\<in>#DS. atm_of L ∈ atms_of_mm (mset `# mset (tl NS) + NPS)\<close>
+      by (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state S'
+          mset_take_mset_drop_mset dest!: atm_of_lit_in_atms_of in_atms_of_mset_takeD)
+    show ?thesis
+      unfolding propgate_bt_wl_def propgate_bt_l_def S' T' U' U st_l_of_wl.simps get_trail_wl.simps
+      list_of_mset_def K'_def[symmetric]
+      apply clarify
+      apply (refine_rcg ref)
+      apply (clarify)
+      apply (intro conjI)
+      subgoal using LL' SS' by (auto simp: S' K'_def)
+      subgoal
+        apply (subst correct_watching_learn)
+        subgoal using NS .
+        subgoal using SS'[unfolded S'] MS by (rule hd_not_alien)
+        subgoal using atm_L' .
+        subgoal using atm_confl TT' by (fastforce simp: S' T' dest!: in_atms_of_minusD)
+        subgoal by (rule corr)
+      done
+      done
+  qed
+
+  have propgate_unit_bt_wl: \<open>(propgate_unit_bt_wl (lit_of (hd (get_trail_wl S'))) U',
+     propgate_unit_bt_l (lit_of (hd (get_trail_l S))) U)
+    ∈ {(T', T). st_l_of_wl None T' = T ∧ correct_watching T'} \<close>
+    (is \<open>(_, _) \<in> ?propgate_unit_bt_wl _\<close>)
+    if
+     SS': \<open>(S', S) \<in> ?A\<close> and
+     TT': \<open>(T', T) \<in> ?extract S'\<close> and
+     UU': \<open>(U', U) \<in> ?find T'\<close>
+    for S' S T T' L L' U U' K'
+  proof -
+    obtain MS NS US DS NPS UPS W where
+      S': \<open>S' = (MS, NS, US, Some DS, NPS, UPS, {#}, W)\<close>
+      using SS' by (cases S'; cases \<open>get_conflict_wl S'\<close>) auto
+    then obtain DT where
+      T': \<open>T' = (MS, NS, US, Some DT, NPS, UPS, {#}, W)\<close>
+      using TT' by (cases T'; cases \<open>get_conflict_wl T'\<close>) auto
+    have T: \<open>T = (MS, NS, US, Some DT, NPS, UPS, {#}, {#})\<close>
+      using TT' by (auto simp: T')
+    obtain MU MU' where
+      U': \<open>U' = (MU, NS, US, Some DT, NPS, UPS, {#}, W)\<close> and
+      MU: \<open>MS = MU' @ MU\<close> and
+      U: \<open>U = st_l_of_wl None U'\<close>
+      using UU' T' by (cases U') auto
+    have U: \<open>U = (MU, NS, US, Some DT, NPS, UPS, {#}, {#})\<close>
+      using UU' by (auto simp: U')
+
+    have \<open>correct_watching S'\<close>
+      using SS' by fast
+    then have corr: \<open>correct_watching (Propagated (- lit_of (hd MS)) 0 # MU, NS, US, None, NPS,
+      add_mset (the (Some DT)) UPS, unmark (hd MS), W)\<close>
+       unfolding S' correct_watching.simps clause_to_update_def get_clauses_l.simps .
+
+    show ?thesis
+      unfolding propgate_unit_bt_wl_def propgate_unit_bt_l_def S' T' U U' st_l_of_wl.simps get_trail_wl.simps
+      list_of_mset_def
+      apply clarify
+      apply (refine_rcg)
+      subgoal using SS' by (auto simp: S')
+      subgoal by (rule corr)
+      done
+  qed
 
   have H: \<open>?bt \<in> ?A \<rightarrow> \<langle>{(T', T). st_l_of_wl None T' = T \<and> correct_watching T'}\<rangle>nres_rel\<close>
     unfolding backtrack_wl_def backtrack_l_def
-    apply (refine_vcg find_decomp_wl find_lit_of_max_level_wl list_of_mset extract_shorter_conflict_wl; remove_dummy_vars)
+    apply (refine_vcg find_decomp_wl find_lit_of_max_level_wl extract_shorter_conflict_wl; remove_dummy_vars)
     subgoal unfolding backtrack_wl_inv_def by auto
     subgoal by (auto simp: get_trail_l_st_l_of_wl)
     subgoal by (auto simp: get_conflict_l_st_l_of_wl)
     subgoal by (auto simp: get_trail_l_st_l_of_wl)
-    subgoal by fast
-    subgoal by simp
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by (rule hd_not_alien) assumption+
-    subgoal by (rule not_alien) assumption+
-    subgoal by (rule ref) assumption+
-    subgoal by auto
-    subgoal by (auto simp: correct_watching.simps clause_to_update_def)
+    subgoal by (rule propgate_bt_wl ) assumption+
+    subgoal by (rule propgate_unit_bt_wl) assumption+
     done
+
   have bt: \<open>backtrack_wl S \<le> \<Down> ?B (backtrack_l T)\<close>
     if A: \<open>(S, T) \<in> ?A\<close>
     for S :: \<open>'v twl_st_wl\<close> and T :: \<open>'v twl_st_l\<close>
