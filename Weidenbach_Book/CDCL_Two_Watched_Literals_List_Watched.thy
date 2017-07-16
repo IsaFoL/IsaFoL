@@ -1642,11 +1642,18 @@ lemma cdcl_twl_o_prog_wl_spec:
      correct_watching T}\<rangle>nres_rel\<close>
    (is \<open>?o \<in> ?A \<rightarrow> \<langle>?B\<rangle> nres_rel\<close>)
 proof -
-  have find_unassigned_lit_wl: \<open>find_unassigned_lit_wl S \<le> \<Down> Id (find_unassigned_lit S')\<close>
+  have find_unassigned_lit_wl: \<open>find_unassigned_lit_wl S \<le> \<Down> Id (find_unassigned_lit_l S')\<close>
     if \<open>S' = st_l_of_wl None S\<close>
     for S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close>
-    unfolding find_unassigned_lit_wl_def find_unassigned_lit_def that
+    unfolding find_unassigned_lit_wl_def find_unassigned_lit_l_def that
     by (cases S) auto
+  have [iff]: \<open>correct_watching (decide_lit_wl L S) \<longleftrightarrow> correct_watching S\<close> for L S
+    by (cases S; auto simp: decide_lit_wl_def correct_watching.simps clause_to_update_def)
+  have [iff]: \<open>decide_lit_l L (st_l_of_wl None S) =
+    st_l_of_wl None (decide_lit_wl L S)\<close> for L S
+    by (cases S; auto simp: decide_lit_wl_def decide_lit_l_def)
+  have option_id: \<open>x = x' \<Longrightarrow> (x,x') \<in> \<langle>Id\<rangle>option_rel\<close> for x x' by auto
+
   have cdcl_o: \<open>?o \<in> ?A \<rightarrow>
    \<langle>{((brk::bool, T::'v twl_st_wl), brk'::bool, T'::'v twl_st_l).
      T' = st_l_of_wl None T \<and>
@@ -1654,22 +1661,25 @@ proof -
      correct_watching T}\<rangle>nres_rel\<close>
     unfolding cdcl_twl_o_prog_wl_def cdcl_twl_o_prog_l_def decide_wl_or_skip_def
       decide_l_or_skip_def
-    apply (refine_vcg skip_and_resolve_loop_wl_spec["to_\<Down>"] backtrack_wl_spec["to_\<Down>"] find_unassigned_lit_wl)
+    apply (refine_vcg skip_and_resolve_loop_wl_spec["to_\<Down>"] backtrack_wl_spec["to_\<Down>"]
+      find_unassigned_lit_wl option_id)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: get_conflict_l_st_l_of_wl)
+    subgoal unfolding decide_wl_or_skip_pre_def by auto
+    subgoal by auto
+    subgoal by (auto simp: )
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by (auto simp: get_conflict_l_st_l_of_wl)
     subgoal by auto
     subgoal by auto
-    subgoal by (auto simp: correct_watching.simps clause_to_update_def)
-    subgoal by auto
-    subgoal by auto
-    subgoal for S S' T T' by (cases T) auto
-    subgoal for S S' T T' by (cases T) auto
-    subgoal for S S' T T' by auto
-    subgoal by auto
     subgoal by auto
     done
+
   have cdcl_twl_o_prog_wl: \<open>cdcl_twl_o_prog_wl S \<le> \<Down> ?B (cdcl_twl_o_prog_l S')\<close>
     if A: \<open>(S, S') \<in> ?A\<close> for S S'
   proof -
