@@ -3053,6 +3053,9 @@ proof -
       sorry
     then obtain j where j_p: "is_least (\<lambda>j. enat j < llength Sts \<and> (\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j)) j"
       using least_exists[of "(\<lambda>j. enat j < llength Sts \<and> (\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j))"] by force
+    have j_p': "enat j < llength Sts \<and> (\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j)"
+      sorry
+
     then have "j \<noteq> 0" (* Since there are initially no clauses in Q *)
       sorry
     then have "\<not>set CAi' \<union> {DA'} \<subseteq> ?Qs (j-1) \<and> set CAi' \<union> {DA'} \<subseteq> ?Qs j" 
@@ -3071,14 +3074,17 @@ proof -
     then have "?E \<in> grounding_of_state (lnth Sts j)"
       using s_p unfolding grounding_of_clss_def grounding_of_cls_def sorry
     then have "\<gamma> \<in> src_ext_Ri (grounding_of_state (lnth Sts j))"
-      unfolding src_ext_Ri_def src.Ri_def sorry
+      unfolding src_ext_Ri_def src.Ri_def 
+      apply simp
+      (* IS THIS STATE A MISTAKE IN MY PROOF? *)
+      sorry
     then have "\<gamma> \<in> src_ext_Ri (?N j)"
       .
     then have "\<gamma> \<in> src_ext_Ri (lSup (lmap grounding_of_state Sts))"
-      sorry
+      using j_p'
+      by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_lSup src_ext.Ri_mono)
     then have "\<gamma> \<in> src_ext_Ri (llimit (lmap grounding_of_state Sts))"
-      sorry
-  }
+      using src_ext.derivation_supremum_llimit_satisfiable[of Ns] derivns ns by blast
   then have "src_ext.saturated_upto (llimit (lmap grounding_of_state Sts))"
     sorry
   then have "src.saturated_upto (llimit (lmap grounding_of_state Sts))"
