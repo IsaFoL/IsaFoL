@@ -102,6 +102,17 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
    \<forall>i. i < n \<longrightarrow> str_maximal_in (Ai ! i \<cdot>a \<sigma>) ((Ci ! i) \<cdot> \<sigma>) \<Longrightarrow>
    \<forall>i < n. S (CAi ! i) = {#} \<Longrightarrow> (* Use the ! style instead maybe, or maybe us the \<forall>\<in>. style above *)
    ord_resolve CAi (D + negs (mset Ai)) \<sigma> (((\<Union># (mset Ci)) + D) \<cdot> \<sigma>)"    
+
+
+lemma is_mgu_is_unifiers: "is_mgu \<sigma> AAA \<Longrightarrow> is_unifiers \<sigma> AAA"
+  using is_mgu_def by blast 
+
+lemma is_mgu_is_more_general: "is_mgu \<sigma> AAA \<Longrightarrow> is_unifiers \<tau> AAA \<Longrightarrow> (\<exists>\<gamma>. \<tau> = \<sigma> \<odot> \<gamma>)"
+  using is_mgu_def by blast 
+
+lemma is_unifiers_is_unifier: "is_unifiers \<sigma> AAA \<Longrightarrow> AA\<in>AAA \<Longrightarrow> is_unifier \<sigma> AA"
+  using is_unifiers_def by auto 
+
   
 lemma mgu_unifier:
   assumes ailen: "length Ai = n"
@@ -112,14 +123,13 @@ proof -
   from mgu have "is_mgu \<sigma> (set_mset ` (set (map2 add_mset Ai Aij)))" 
     using mgu_sound by auto
   then have uni: "is_unifiers \<sigma> (set_mset ` (set (map2 add_mset Ai Aij)))" 
-    unfolding is_mgu_def by auto
-  
+    using is_mgu_is_unifiers by auto
   show "\<forall>i < n. (\<forall>A \<in># Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>)" 
   proof (rule allI; rule impI)
     fix i
     assume i: "i < n"
     then have "is_unifier \<sigma> (set_mset (add_mset (Ai ! i) (Aij ! i)))"
-      using ailen aijlen uni unfolding is_unifiers_def
+      using ailen aijlen uni is_unifiers_is_unifier
       by (auto simp del: map2_nth simp add: map2_nth[symmetric])
     then show "\<forall>A\<in>#Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>" 
       using ailen aijlen i is_unifier_subst_atm_eqI by (metis finite_set_mset insertCI set_mset_add_mset_insert)
@@ -187,6 +197,8 @@ lemma true_fo_cls_mset_inst: "I \<Turnstile>fom C \<Longrightarrow> is_ground_su
 lemma true_fo_cls_mset_def2: "I \<Turnstile>fom CC \<longleftrightarrow> (\<forall>C \<in># CC. I \<Turnstile>fo C)"
   unfolding true_fo_cls_mset.simps true_fo_cls.simps true_cls_mset_def by auto
 
+lemma true_cls_mset_true_cls: "I \<Turnstile>m CC \<Longrightarrow> C \<in># CC \<Longrightarrow> I \<Turnstile> C" using true_cls_mset_def by auto
+
 lemma ord_resolve_ground_inst_sound: (* This theorem can be used to prove FO soundness. And it will also be used in 4.10. *)
   assumes 
     res_e: "ord_resolve CAi DA \<sigma> E"
@@ -219,7 +231,7 @@ lemma ord_resolve_ground_inst_sound: (* This theorem can be used to prove FO sou
   proof (cases "\<forall>A \<in> set Ai. A \<cdot>a \<sigma> \<cdot>a \<eta> \<in> I")
     case True
     hence "\<not> I \<Turnstile> negs (mset Ai) \<cdot> \<sigma> \<cdot> \<eta>"
-      unfolding true_cls_def by auto
+      unfolding true_cls_def[of I] by auto
     hence "I \<Turnstile> D \<cdot> \<sigma> \<cdot> \<eta>"
       using d_true DA by auto
     thus ?thesis
@@ -243,12 +255,11 @@ lemma ord_resolve_ground_inst_sound: (* This theorem can be used to prove FO sou
     hence "\<not> I \<Turnstile> poss BB \<cdot> \<sigma> \<cdot> \<eta>"
       using a_false by (auto simp: true_cls_def)
     moreover have "I \<Turnstile> (C' + poss BB) \<cdot> \<sigma> \<cdot> \<eta>"
-      using c_in_cc cc_true unfolding true_cls_mset_def by force
+      using c_in_cc cc_true true_cls_mset_true_cls[of I "mset CAi \<cdot>cm \<sigma> \<cdot>cm \<eta>"] by force
     ultimately have "I \<Turnstile> C' \<cdot> \<sigma> \<cdot> \<eta>"
       by simp
     thus ?thesis
-      unfolding e subst_cls_union using c_cf'
-      using C'_def a_in_aa cai_len ci_len
+      unfolding e subst_cls_union using c_cf' C'_def a_in_aa cai_len ci_len
       by (metis (no_types, lifting) mset_subset_eq_add_left nth_mem_mset set_mset_mono sum_mset.remove true_cls_mono subst_cls_mono)
   qed
 qed
@@ -284,13 +295,16 @@ lemma subst_sound:
   using assms
   by (metis is_ground_comp_subst subst_cls_comp_subst true_fo_cls true_fo_cls_inst)
 
+lemma true_fo_cls_mset_true_fo_cls: "(I \<Turnstile>fom CC) \<Longrightarrow> C \<in># CC \<Longrightarrow> I \<Turnstile>fo C"
+  using true_fo_cls_mset_def2 by auto
+
 lemma subst_sound_scl:
   assumes len: "length P = length CAi"
   assumes true_cas: "I \<Turnstile>fom mset CAi"
   shows "I \<Turnstile>fom mset (CAi \<cdot>\<cdot>cl P)"
 proof -
   from true_cas have "\<forall>C. C\<in># mset CAi \<longrightarrow> (I \<Turnstile>fo C)" 
-    using true_fo_cls_mset_def2 by auto
+    using true_fo_cls_mset_true_fo_cls by auto
   then have "\<forall>C. C \<in> set CAi \<longrightarrow> (I \<Turnstile>fo C)" unfolding side_clauses_def by auto
   then have "\<forall>i. i < length CAi \<longrightarrow> (I \<Turnstile>fo  (CAi ! i))"
     using in_set_conv_nth[of _ CAi] by blast
@@ -298,18 +312,17 @@ proof -
     using subst_sound len by auto
   then have true_cp: "\<forall>i. i < length CAi \<longrightarrow> (I \<Turnstile>fo (CAi ! i \<cdot> P ! i))" 
     by auto
-  show ?thesis unfolding true_fo_cls_mset_def2
-  proof
+  {
     fix x
     assume "x \<in># mset (CAi \<cdot>\<cdot>cl P)"
     then have "x \<in> set_mset (mset ((CAi \<cdot>\<cdot>cl P)))" by -
     then have "x \<in> set (CAi \<cdot>\<cdot>cl P)" by auto
     then obtain i where i_x: "i < length (CAi \<cdot>\<cdot>cl P) \<and> x = (CAi \<cdot>\<cdot>cl P) ! i"
       using in_set_conv_nth by metis
-    then show "I \<Turnstile>fo x" using true_cp unfolding subst_cls_lists_def
+    then have "I \<Turnstile>fo x" using true_cp unfolding subst_cls_lists_def
       by (simp add: len)
-        
-  qed
+  }
+  then show ?thesis unfolding true_fo_cls_mset_def2 by auto
 qed
 
 lemma ord_resolve_rename_ground_inst_sound: (* This theorem will be used in 4.11. *)
@@ -464,6 +477,17 @@ proof -
   show ?thesis by auto
 qed
 
+
+
+lemma jajaja123[simp]: "(tl (Ai' \<cdot>al \<eta>)) = (tl Ai' \<cdot>al \<eta>)"
+  by (induction Ai') auto
+
+lemma dadada123[simp]:"(tl (Aij' \<cdot>aml \<eta>)) = (tl Aij' \<cdot>aml \<eta>)"
+  by (induction Aij') auto
+
+lemma lenn123[simp]: "length (Aij' \<cdot>aml \<eta>) = length Aij'"
+  unfolding subst_atm_mset_list_def by auto
+
 lemma map2_add_mset_map:
   assumes "length Aij' = n"
   assumes "length Ai' = n"
@@ -473,25 +497,24 @@ lemma map2_add_mset_map:
   then have "map2 add_mset (tl Ai' \<cdot>al \<eta>) (tl Aij' \<cdot>aml \<eta>) = map2 add_mset (tl Ai') (tl Aij') \<cdot>aml \<eta>"
     by simp
   then have "map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>)) = map2 add_mset (tl Ai') (tl Aij') \<cdot>aml \<eta>"
-    unfolding subst_atm_list_def subst_atm_mset_list_def
-    by (simp add: map_tl)
+    by simp
   moreover 
   have Succ: "length (Ai' \<cdot>al \<eta>) = Suc n" "length (Aij' \<cdot>aml \<eta>) = Suc n"
-    using Suc(3) using Suc(2) unfolding subst_atm_mset_list_def by auto (* unfolding should not be necessary  *)
+    using Suc(3) using Suc(2) by auto (* unfolding should not be necessary  *)
   then have "length (tl (Ai' \<cdot>al \<eta>)) = n" "length (tl (Aij' \<cdot>aml \<eta>)) = n"
     by auto
   then have "length (map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>))) = n" 
     "length (map2 add_mset (tl Ai') (tl Aij') \<cdot>aml \<eta>) = n"
-    using Suc(3) Suc(2) unfolding subst_atm_mset_list_def by auto
+    using Suc(3) Suc(2) by auto
   ultimately
   have "\<forall>i < n. (map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>))) ! i = (map2 add_mset (tl Ai') (tl Aij') \<cdot>aml \<eta>) ! i"
     by auto
   then have "\<forall>i < n. tl (map2 add_mset ( (Ai' \<cdot>al \<eta>)) ((Aij' \<cdot>aml \<eta>))) ! i = tl (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) ! i"
-    using Suc(2) Suc(3) Succ by (simp add: map2_tl map_tl subst_atm_mset_list_def)
+    using Suc(2) Suc(3) Succ by (simp add: map2_tl map_tl subst_atm_mset_list_def del: jajaja123)
   moreover 
   have nn: "length (map2 add_mset ((Ai' \<cdot>al \<eta>)) ((Aij' \<cdot>aml \<eta>))) = Suc n"
     "length (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) = Suc n"
-    using Succ using Suc unfolding subst_atm_mset_list_def by auto (* I should not have to unfold *)
+    using Succ using Suc by auto
   ultimately 
   have "\<forall>i. i < Suc n \<longrightarrow> i > 0 \<longrightarrow> (map2 add_mset ((Ai' \<cdot>al \<eta>)) ((Aij' \<cdot>aml \<eta>))) ! i = (map2 add_mset ( Ai') (Aij') \<cdot>aml \<eta>) ! i"
     by (metis (no_types, lifting) Suc.prems(1) Suc.prems(2) Succ(1) Succ(2) \<open>length (map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>))) = n\<close> 
@@ -3015,7 +3038,7 @@ proof -
     qed
     then obtain \<sigma> where sisisgma: "ord_resolve (S_M S (getQ (limit_state Sts))) CAi1 ?D \<sigma> ?E"
       by auto
-    then obtain \<eta>s' \<eta>' \<eta>2' CAi' DA' E' \<tau>' where
+    then obtain \<eta>s' \<eta>' \<eta>2' CAi' DA' E' \<tau>' where s_p:
       "is_ground_subst \<eta>'"
       "is_ground_subst_list \<eta>s'" 
       "is_ground_subst \<eta>2'" 
@@ -3046,7 +3069,7 @@ proof -
     then have "E' \<in> clss_of_state (lnth Sts j)"
       sorry
     then have "?E \<in> grounding_of_state (lnth Sts j)"
-      sorry
+      using s_p unfolding grounding_of_clss_def grounding_of_cls_def sorry
     then have "\<gamma> \<in> src_ext_Ri (grounding_of_state (lnth Sts j))"
       unfolding src_ext_Ri_def src.Ri_def sorry
     then have "\<gamma> \<in> src_ext_Ri (?N j)"
