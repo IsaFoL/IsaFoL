@@ -2784,8 +2784,31 @@ lemma ground_max_ground:
   shows "is_ground_atm (Max X)"
   using assms unfolding is_ground_atms_def by auto
 
-lemma eddddd: "is_ground_cls D \<Longrightarrow> is_ground_atms (atms_of D)"
-  sorry
+lemma eddddd[simp]: "is_ground_cls D \<Longrightarrow> is_ground_atms (atms_of D)"
+  by (simp add: is_ground_cls_imp_is_ground_atm substitution_ops.is_ground_atms_def)
+  
+lemma abc[simp]: "x \<in> X \<Longrightarrow> X \<subseteq> grounding_of_clss Y \<Longrightarrow> is_ground_cls x"
+  unfolding grounding_of_clss_def grounding_of_cls_def by auto
+
+lemma abcdefg: 
+  assumes plus: "\<forall>i<length CAi1. CAi1 ! i = Ci ! i + poss (Aij ! i)"
+  assumes n: "length Ci = length CAi1"
+  assumes gl: "is_ground_cls_list CAi1"
+  shows "is_ground_cls_list Ci"
+  unfolding is_ground_cls_list_def
+proof
+  fix x :: "'a literal multiset"
+  assume "x \<in> set Ci"
+  then obtain i where i_p: "i < length Ci \<and> x = Ci ! i"
+    by (metis in_set_conv_nth)
+  then have "CAi1 ! i = Ci ! i + poss (Aij ! i)" 
+    using plus n by auto
+  then have "Ci ! i \<subseteq># CAi1 ! i" 
+    by auto
+  then have "is_ground_cls (Ci ! i)"   
+    using gl unfolding is_ground_cls_list_def using n i_p is_ground_cls_mono by auto
+  then show "is_ground_cls x" using i_p by auto
+qed
 
 
 theorem completeness:
@@ -2833,26 +2856,30 @@ proof -
     have gd: "is_ground_cls ?D"
       using a grounding_ground singletonI by auto  
 
-    have ge: "is_ground_cls ?E"
-      using \<gamma>_p gc gd unfolding gd2.ord_\<Gamma>_def using gd2.ord_resolve_atms_of_concl_subset
-      apply auto
-      unfolding is_ground_cls_mset_def
-      apply auto
-      unfolding is_ground_cls_def
-      unfolding is_ground_lit_def
-      apply auto
-      apply (subgoal_tac "atm_of L \<in> atms_of E")
-      sorry
-      
-
     from \<gamma>_p obtain CAi1 where CAi1_p: "gd2.ord_resolve CAi1 ?D ?E \<and> mset CAi1 = ?Cs" unfolding gd2.ord_\<Gamma>_def
       by auto
 
     have xxq: "{?D} \<union> set CAi1 \<subseteq> grounding_of_clss (getQ (limit_state Sts))"
-      using a CAi1_p by auto
+      using a CAi1_p unfolding clss_of_state_def using fair unfolding fair_state_seq_def
+      by (metis Diff_subset Un_empty_left set_mset_mset subset_trans sup.commute)
 
-    have gc1: "is_ground_cls_list CAi1"
-      sorry
+    then have gc1: "is_ground_cls_list CAi1"
+      using CAi1_p unfolding is_ground_cls_list_def by auto
+
+    have ge: "is_ground_cls ?E"
+    proof - (* turn in to a LEMMA? *)
+      have a1: "atms_of ?E \<subseteq> (\<Union>C\<in>set CAi1. atms_of C) \<union> atms_of ?D"
+        using \<gamma>_p gc gd gd2.ord_resolve_atms_of_concl_subset[of "CAi1" "?D" "?E"] CAi1_p by auto
+      {
+        fix L :: "'a literal"
+        assume "L \<in># concl_of \<gamma>"
+        then have "atm_of L \<in> atms_of (concl_of \<gamma>)"
+          by (meson atm_of_lit_in_atms_of)
+        then have "is_ground_atm (atm_of L)"
+          using a1 gc1 gd is_ground_cls_imp_is_ground_atm is_ground_cls_list_def by auto
+      }
+      then show ?thesis unfolding is_ground_cls_def is_ground_lit_def by auto
+    qed
 
     from CAi1_p have "\<exists>\<sigma>. ord_resolve (S_M S (getQ (limit_state Sts))) CAi1 ?D \<sigma> ?E"
     proof
@@ -2908,15 +2935,17 @@ proof -
         have k: "gd2.eligible Ai (D + negs (mset Ai))"
           using ord_resolve by simp
         have gci: "\<forall>i<n. is_ground_cls (Ci ! i)"
-          sorry
-        have gai: "is_ground_atms (set (Ai))"
-          sorry
-        have gai2: "is_ground_atm_mset (mset Ai)"
-          sorry
+          using ord_resolve(8) ord_resolve(3,4) gc1 
+          using abcdefg[of CAi1 Ci Aij] unfolding is_ground_cls_list_def by auto
+        have gai: "is_ground_atms (set Ai)"
+          using ord_resolve(1) gd
+          by (metis atms_of_negg eddddd is_ground_cls_union set_mset_mset) 
+        then have gai2: "is_ground_atm_mset (mset Ai)"
+          unfolding is_ground_atm_mset_def is_ground_atms_def by auto
         have gai3: "is_ground_atm_list Ai"
-          sorry
+          using gai is_ground_atm_list_def is_ground_atms_def by auto
         have gD: "is_ground_cls D"
-          sorry
+          using gd ord_resolve by simp
 
         have iii: "\<And>X :: 'a set. X \<noteq> {} \<Longrightarrow> finite X \<Longrightarrow> Max X \<in> X"
           by auto
@@ -2953,14 +2982,14 @@ proof -
           unfolding gd2.eligible.simps unfolding eligible.simps
           by (auto simp add: ann1 ann2)
 
-        have LEMMA: "\<And>As i \<sigma>. is_ground_atm_list As \<Longrightarrow> (As ! i \<cdot>a \<sigma>) = As ! i"
-          sorry
+        have LEMMA[simp]: "\<And>As i \<sigma>. is_ground_atm_list As \<Longrightarrow> i < length As \<Longrightarrow> (As ! i \<cdot>a \<sigma>) = As ! i"
+          unfolding is_ground_atm_list_def by auto
 
         have l: "\<forall>i<n. gd2.str_maximal_in (Ai ! i) (Ci ! i)"
           using ord_resolve by simp
         then have ll: "\<forall>i<n. str_maximal_in (Ai ! i \<cdot>a \<sigma>) (Ci ! i \<cdot> \<sigma>)"
           unfolding gd2.str_maximal_in_def 
-          using  gci gai gai2 g f e c d gai3 using LEMMA apply simp unfolding less_eq_atm_def less_atm_iff apply simp
+          using  gci gai gai2 g f e c d gai3 apply simp unfolding less_eq_atm_def less_atm_iff apply simp
           using ex_ground_subst
           apply clarify
           apply rule
@@ -2978,7 +3007,7 @@ proof -
           using ord_resolve by simp
 
         have gg: "is_ground_cls (\<Union>#mset Ci + D)"
-          sorry
+          using gD gci b ge by auto 
 
         show ?thesis
           using ord_resolve.intros[OF c d e f g h i jj kk ll m] using a b gg by auto
