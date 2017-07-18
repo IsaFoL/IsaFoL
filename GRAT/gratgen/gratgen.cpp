@@ -419,17 +419,17 @@ atomic<size_t> stat_rat_run_h(0);     ///< How often RAT-run heuristics was succ
  */
 struct pos_t {
   size_t pos;           ///< Position wrt the start of the clause database
-  pos_t() : pos(0) {};  ///< Initialize position to null
+  pos_t() : pos(-1) {};  ///< Initialize position to null
   explicit pos_t(size_t _pos) : pos(_pos) {}; ///< Initialize with a size_t, specifying the position
 
-  operator bool() const {return pos != 0;}  ///< True if position is not null
+  operator bool() const {return pos != -1;}  ///< True if position is not null
   bool operator==(pos_t const&p) const {return pos == p.pos;} ///< Compare two positions
 
-  /** The null position, used as a guard */
-  static pos_t null;
+  /** The invalid position, used as a guard */
+  static pos_t invalid;
 };
 
-pos_t pos_t::null = pos_t(0);
+pos_t pos_t::invalid = pos_t(-1);
 
 
 /** GRAT item types */
@@ -542,6 +542,8 @@ public:
   /// Helper class encapsulating the literals, offering convenient iterators
   class Literal_Container {
     friend Clause;
+    friend class ClauseDB;
+
     unsigned_cdb_t length;
     lit_t array[];
   public:
@@ -555,31 +557,20 @@ public:
 
     /// Iterator pointing to beginning of literals
     lit_t* begin() {return array;}
+    const lit_t* begin() const {return array;}
     const lit_t* cbegin() const {return array;}
+
     /// Iterator pointing to end of literals (zero literal)
     lit_t* end() {return &array[length];}
+    const lit_t* end() const {return &array[length];}
     const lit_t* cend() const {return &array[length];}
 
     lit_t &operator[](size_t idx) {return array[idx];}
+    lit_t operator[](size_t idx) const {return array[idx];}
 
     void sort() {
       assert(length > 0);
       std::sort(begin(), end());
-    }
-
-    void uniquify(vector<cdb_t> &db) {
-      lit_t* real_end = end()+1; // include trailing zero
-      // only allow uniquifying after clause is 'finished', but still last elem in DB
-      assert(*end() == 0 && (&*db.end() == real_end));
-
-      // include trailing zero, which will still mark the end, because 'unique' is stable
-      auto new_length = distance(begin(), unique(begin(), real_end));
-      assert(new_length <= length);
-
-      auto delta = length - new_length;
-      if (delta > 0)
-        db.resize(db.size() - delta);
-      length = new_length;
     }
 
     void swap(size_t i1, size_t i2) {
@@ -596,8 +587,26 @@ public:
       *l2 = *l1;
       *l1 = tmp;
     }
+
+  private:
+    size_t uniquify() {
+      lit_t* real_end = end()+1;
+
+      // include trailing zero, which will still mark the end, because 'unique' is stable
+      auto new_length = distance(begin(), unique(begin(), real_end));
+      assert(new_length <= length+1);
+
+      auto delta = (length+1) - new_length;
+      if (delta > 0)
+        length -= delta;
+
+      return delta;
+    }
   };
+
 private:
+  friend class ClauseDB;
+
   const static size_t num_members = 4;
   clause_id_t clause_id;
   clause_id_t id_in_proof;
@@ -607,27 +616,20 @@ private:
   Clause(clause_id_t id)
     : clause_id(id), id_in_proof(0), pivot(0), literals() {}
 
-public:
-  /// Construct a new clause on the DB vector
-  static Clause& new_clause(vector<cdb_t> &db, clause_id_t id) {
-    static_assert(Clause::num_members*sizeof(cdb_t) == sizeof(Clause),
-      "Clause class has incorrect number of data-members");
+  void init_after_literals(size_t length) {
+    assert(literals[length] == 0);
+    assert(length >= 1);
+    
+    pivot = literals[0];
+    assert(pivot);
 
-    // Make room for the new clause
-    db.resize(db.size()+num_members);
-    void* new_home = &db.data()[db.size()-num_members];
-
-    // and construct it at its 'new home' at the end of the vector using the 'placement new' operator
-    return *(new (new_home) Clause(id));
+    literals.length = length;
   }
 
+public:
   // disallow copying
   Clause& operator=(const Clause&) = delete;
   Clause(const Clause&) = delete;
-
-  pos_t get_pos_in_db(vector<cdb_t> &db) {
-    return pos_t(distance(db.data(), (cdb_t*)this));
-  }
 
   clause_id_t get_clause_id() {return clause_id;}
 
@@ -656,23 +658,6 @@ public:
     assert(literals.length >= 2);
     return literals[1];
   }
-
-  void append_literal(vector<cdb_t> &db, lit_t lit) {
-    // only allow appending as long as this clause is the last element in the DB
-    assert(&*db.end() == literals.end());
-
-    if (!literals.length) {
-      assert(lit); // no empty clauses
-      pivot = lit;
-    } else {
-      // make sure no more literals follow, if we've already got the end-literal
-      assert(literals[literals.length] != 0);
-    }
-
-    db.push_back(lit);
-    if (lit != 0) // don't count end-literal
-      literals.length++;
-  }
 };
 
 /**
@@ -693,27 +678,75 @@ public:
     return *this;
   };
 
+  /// Construct a new clause on the DB vector
+  pos_t new_clause(clause_id_t id) {
+    static_assert(Clause::num_members*sizeof(cdb_t) == sizeof(Clause),
+      "Clause class has incorrect number of data-members");
+
+    // Make room for the new clause
+    db.resize(db.size()+Clause::num_members);
+    void* new_home = &db.data()[db.size()-Clause::num_members];
+
+    // and construct it at its 'new home' at the end of the vector using the 'placement new' operator
+    Clause *new_clause = new (new_home) Clause(id);
+    return c2p(new_clause);
+  }
+  
+  pos_t new_temp_clause() {
+    return new_clause(-1);
+  }
+
+  void remove_temp_clause(pos_t pos) {
+    assert(0 < pos.pos && pos.pos < db.size());
+    db.resize(pos.pos);
+  }
+
+  void append_literal(lit_t lit) {
+    db.push_back(lit);
+  }
+
+  Clause *finish_clause(pos_t pos, size_t len, bool sort, bool uniquify) {
+    Clause *cl = p2c(pos);
+
+    cl->init_after_literals(len);
+    auto &lits = cl->get_literals();
+
+    // make sure 'finish' gets called before any new elements are added to DB
+    assert(*lits.end() == 0 && (&*db.end() == (lits.end()+1)));
+
+    if (sort)
+      lits.sort();
+
+    if (uniquify) {
+      size_t delta = lits.uniquify();
+      if (delta)
+        db.resize(db.size() - delta);
+    }
+
+    return cl;
+  }
+
   /**
    * Converts a relative position to a pointer into the current data.
    */
   Clause *p2c(pos_t pos) {
-    assert(pos <= db.size());
-    return pos ? (Clause*)(db.data() + pos.pos) : nullptr;
+    assert(pos_t::invalid != pos && pos <= db.size());
+    return (Clause*)(db.data() + pos.pos);
   }
 
   /**
    * @copydoc p2c()
    */
   Clause const *p2c(pos_t pos) const {
-    assert(pos <= db.size());
-    return pos ? (Clause*)(db.data() + pos.pos) : nullptr;
+    assert(pos_t::invalid != pos && pos <= db.size());
+    return (Clause*)(db.data() + pos.pos);
   }
 
   /**
    * Converts a relative position into an iterator
    */
   vector<cdb_t>::iterator p2i(pos_t pos) {
-    assert(pos && pos <= db.size());
+    assert(pos_t::invalid != pos && pos <= db.size());
     return db.begin() + pos.pos;
   }
 
@@ -721,7 +754,7 @@ public:
    * @copydoc p2i()
    */
   vector<cdb_t>::const_iterator p2i(pos_t pos) const {
-    assert(pos && pos <= db.size());
+    assert(pos_t::invalid != pos && pos <= db.size());
     return db.begin() + pos.pos;
   }
 
@@ -732,7 +765,8 @@ public:
     if (cl) {
       assert(db.data() <= (cdb_t*)cl && (cdb_t*)cl <= db.data() + db.size());
       return pos_t((cdb_t*)cl - db.data());
-    } else return pos_t(0);
+    } else
+      return pos_t::invalid;
   }
 
   /**
@@ -813,7 +847,7 @@ public:
   /// Check if item is erased.
   bool is_erased() const {return !pos;}
   /// Erase item
-  void erase() {pos = pos_t::null;}
+  void erase() {pos = pos_t::invalid;}
 
   /**
    * Check if this is a deletion item.
@@ -1373,12 +1407,12 @@ private:
   struct Clause_Hash_Eq {
     ClauseDB const &db;
 
-    size_t operator() (const lit_t *lits) const; // Hash function
-    bool operator() (const lit_t *lits1, const lit_t *lits2) const; // Equality
+    size_t operator() (const pos_t pos) const; // Hash function
+    bool operator() (const pos_t pos1, const pos_t pos2) const; // Equality
   };
 
   Clause_Hash_Eq cheq;  // Hash and equality function for claus-positions
-  typedef unordered_multimap<lit_t*,pos_t,Clause_Hash_Eq,Clause_Hash_Eq> clause_map_t;
+  typedef unordered_multimap<pos_t,pos_t,Clause_Hash_Eq,Clause_Hash_Eq> clause_map_t;
   clause_map_t clause_map; // Map from clauses to their position
 
 public:
@@ -1403,19 +1437,26 @@ public:
 };
 
 
-inline size_t Parser::Clause_Hash_Eq::operator() (const lit_t *lits) const {
+inline size_t Parser::Clause_Hash_Eq::operator() (const pos_t pos) const {
   size_t sum = 0, prod = 1, xxor = 0; // The hash-function from drat-trim
-  for (const lit_t *l = lits; *l; ++l) {
-    prod*=*l; sum+=*l; xxor^=*l;
+  auto &lits = db.p2c(pos)->get_literals();
+  for (const auto l : lits) {
+    prod *= l; sum += l; xxor ^= l;
   }
   return (1023 * sum + prod) ^ (31 * xxor);
 }
 
-inline bool Parser::Clause_Hash_Eq::operator() (const lit_t *l1, const lit_t *l2) const {
+inline bool Parser::Clause_Hash_Eq::operator() (const pos_t pos1, const pos_t pos2) const {
+  auto *cl1 = db.p2c(pos1), *cl2 = db.p2c(pos2);
+  if (cl1->get_length() != cl2->get_length())
+    return false;
+
+  auto &lits1 = cl1->get_literals(), &lits2 = cl2->get_literals();
   size_t i = 0;
   do {
-    if (l1[i]!=l2[i]) return false;
-  } while (l1[i++]);
+    if (lits1[i] != lits2[i])
+      return false;
+  } while (lits1[i++]);
   return true;
 }
 
@@ -1424,47 +1465,41 @@ inline bool Parser::Clause_Hash_Eq::operator() (const lit_t *l1, const lit_t *l2
 pos_t Parser::parse_clause(istream &in) {
   clause_id_t id = ++glb.num_clauses; // Ids start at 1
 
-  auto &db = glb.db.get_db();
-
-  Clause &new_clause = Clause::new_clause(db, id); // Construct new clause in ClauseDB
-  pos_t pos = new_clause.get_pos_in_db(db);
+  pos_t pos = glb.db.new_clause(id); // Construct new clause in ClauseDB
 
   size_t len = 0;
-
   lit_t l;
   do {                                          // Push literals and terminating zero
     in>>ws; in>>l;
-    new_clause.append_literal(db, l);
+    glb.db.append_literal(l);
     glb.max_var = max(var_of(l),glb.max_var);
-    ++len;
+    if (l)
+      len++;
   } while (l);
-  --len;
 
-  auto &literals = new_clause.get_literals();
+  glb.db.finish_clause(pos, len, true, !cfg_assume_nodup);
 
-  literals.sort();
-
-  if (!cfg_assume_nodup) {
-    // Remove duplicate literals
-    literals.uniquify(db);
-  }
-
-  clause_map.insert({ literals.begin(), pos });              // Add to clause_map
+  clause_map.insert({ pos, pos });              // Add to clause_map
 
   return pos;
 }
 
 pos_t Parser::parse_deletion(istream &in) {
-  pos_t result = pos_t::null;
-  auto literals = vector<lit_t>();
+  pos_t result = pos_t::invalid;
 
+  pos_t temp_pos = glb.db.new_temp_clause();
+
+  size_t len = 0;
   lit_t l;
   do {
     in>>ws; in>>l;
-    literals.push_back(l);
+    glb.db.append_literal(l);
+    if (l)
+      len++;
   } while (l);
 
-  auto orig_c = clause_map.find(literals.data()); // Look up clause
+  glb.db.finish_clause(temp_pos, len, true, !cfg_assume_nodup);
+  auto orig_c = clause_map.find(temp_pos); // Look up clause
 
   if (orig_c == clause_map.end()) {
     clog<<"c Ignoring deletion of non-existent clause"<<endl;
@@ -2630,7 +2665,7 @@ pos_t Verifier::fwd_pass_aux() {
       switch (add_clause(cl)) {
         case acres_t::TAUT: item.erase(); break;
         case acres_t::UNIT: item.set_trpos(trpos); break;
-        case acres_t::CONFLICT: return pos_t::null; // Trivial conflict in clauses
+        case acres_t::CONFLICT: return pos_t::invalid; // Trivial conflict in clauses
         case acres_t::NORMAL: break;
         default:;
       }
@@ -2680,7 +2715,7 @@ pos_t Verifier::fwd_pass_aux() {
   }
 
   fail("Forward pass found no conflict");
-  return pos_t::null; // Unreachable, but not detected by gcc. Adding this to silence warning.
+  return pos_t::invalid; // Unreachable, but not detected by gcc. Adding this to silence warning.
 }
 
 pos_t Verifier::fwd_pass() {
