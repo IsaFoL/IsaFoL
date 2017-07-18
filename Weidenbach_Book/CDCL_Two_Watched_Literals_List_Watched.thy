@@ -125,6 +125,7 @@ lemma remove_one_lit_from_wq_def:
 (* TODO Move  *)
 lemma Collect_minus_single_Collect: \<open>{x. P x} - {a} = {x . P x \<and> x \<noteq> a}\<close>
   by auto
+(* End Move *)
 
 lemma mset_set_mset_set_minus_id_iff:
   assumes \<open>finite A\<close>
@@ -1463,7 +1464,7 @@ proof -
       MU: \<open>MS = MU' @ MU\<close> and
       U: \<open>U = st_l_of_wl None U'\<close>
       using UU' by (cases U') auto
-    have NS: \<open>NS ≠ []\<close>
+    have NS: \<open>NS \<noteq> []\<close>
       using SS' by (auto simp: S' additional_WS_invs_def)
     have MS: \<open>MS \<noteq> []\<close>
       using bt unfolding backtrack_wl_inv_def backtrack_l_inv_def S' by auto
@@ -1478,8 +1479,8 @@ proof -
     moreover have \<open>L' \<in># DS\<close>
       using LL' TT'  by (auto simp: T' S' U' mset_take_mset_drop_mset)
     ultimately have
-       atm_L': \<open>atm_of L' ∈ atms_of_mm (mset `# mset (tl NS) + NPS)\<close> and
-       atm_confl: \<open>\<forall>L\<in>#DS. atm_of L ∈ atms_of_mm (mset `# mset (tl NS) + NPS)\<close>
+       atm_L': \<open>atm_of L' \<in> atms_of_mm (mset `# mset (tl NS) + NPS)\<close> and
+       atm_confl: \<open>\<forall>L\<in>#DS. atm_of L \<in> atms_of_mm (mset `# mset (tl NS) + NPS)\<close>
       by (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state S'
           mset_take_mset_drop_mset dest!: atm_of_lit_in_atms_of in_atms_of_mset_takeD)
     show ?thesis
@@ -1503,7 +1504,7 @@ proof -
 
   have propgate_unit_bt_wl: \<open>(propgate_unit_bt_wl (lit_of (hd (get_trail_wl S'))) U',
      propgate_unit_bt_l (lit_of (hd (get_trail_l S))) U)
-    ∈ {(T', T). st_l_of_wl None T' = T ∧ correct_watching T'} \<close>
+    \<in> {(T', T). st_l_of_wl None T' = T \<and> correct_watching T'} \<close>
     (is \<open>(_, _) \<in> ?propgate_unit_bt_wl _\<close>)
     if
      SS': \<open>(S', S) \<in> ?A\<close> and
