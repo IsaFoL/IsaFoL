@@ -475,19 +475,11 @@ proof -
   show ?G1
     unfolding fref_def 1 by (auto simp add: nres_rel_def uncurry_def simp del: twl_st_of_wl.simps
         intro!: unit_propagation_inner_loop_body_wl_D_spec)
-  moreover have \<open> \<langle>nat_rel \<times>\<^sub>r
-              {(T', T).
-               T = T' \<and>
-               is_N\<^sub>1
-                (all_lits_of_mm
-                  (cdcl\<^sub>W_restart_mset.clauses
-                    (state\<^sub>W_of
-                      (twl_st_of None (st_l_of_wl None T)))))}\<rangle>nres_rel \<subseteq> \<langle>Id\<rangle> nres_rel\<close>
-    (is \<open>\<langle>?R\<rangle> nres_rel \<subseteq> _\<close>)
-    using "weaken_\<Down>"[of ?R Id]
-    by (auto simp: nres_rel_def prod_rel_def)
-  ultimately show ?G2
-    unfolding fref_def by (auto 11 0)
+  then show ?G2
+    apply -
+    apply (match_spec)
+    apply (match_fun_rel; match_fun_rel?)
+    by fastforce+
 qed
 
 definition unit_propagation_inner_loop_wl_loop_D :: "nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres" where

@@ -184,12 +184,15 @@ lemma nres_rel_mono:
 
 method match_spec =
   (match conclusion in \<open>(f, g) \<in> R\<close> for f g R \<Rightarrow>
-    \<open>print_term f; match premises in I: \<open>(f, g) \<in> R'\<close> for R'
+    \<open>print_term f; match premises in I[thin]: \<open>(f, g) \<in> R'\<close> for R'
        \<Rightarrow> \<open>print_term R'; rule mem_set_trans[OF _ I]\<close>\<close>)
 
 method match_fun_rel =
-  ((match conclusion in \<open>_ \<rightarrow> _ \<subseteq> _ \<rightarrow> _\<close> \<Rightarrow> \<open>rule fun_rel_syn_invert\<close> |
-   match conclusion in \<open>\<langle>_\<rangle>nres_rel \<subseteq> \<langle>_\<rangle>nres_rel\<close> \<Rightarrow> \<open>rule nres_rel_mono\<close>)+)
+  ((match conclusion in
+       \<open>_ \<rightarrow> _ \<subseteq> _ \<rightarrow> _\<close> \<Rightarrow> \<open>rule fun_rel_mono\<close>
+     \<bar> \<open>\<langle>_\<rangle>nres_rel \<subseteq> \<langle>_\<rangle>nres_rel\<close> \<Rightarrow> \<open>rule nres_rel_mono\<close>
+     \<bar> \<open>[_]\<^sub>f _ \<rightarrow> _ \<subseteq> [_]\<^sub>f _ \<rightarrow> _\<close> \<Rightarrow> \<open>rule fref_mono\<close>
+   )+)
 
 lemma weaken_SPEC2: \<open>m' \<le> SPEC \<Phi> \<Longrightarrow> m = m' \<Longrightarrow> (\<And>x. \<Phi> x \<Longrightarrow> \<Psi> x) \<Longrightarrow> m \<le> SPEC \<Psi>\<close>
   using weaken_SPEC by auto
