@@ -3074,12 +3074,23 @@ proof -
     then have "?E \<in> grounding_of_state (lnth Sts j)"
       using s_p unfolding grounding_of_clss_def grounding_of_cls_def sorry
     then have "\<gamma> \<in> src_ext_Ri (grounding_of_state (lnth Sts j))"
-      unfolding src_ext_Ri_def src.Ri_def 
+      unfolding src_ext_Ri_def src.Ri_def (* This proof is kind of interesting and very strange. It uses both gd.ord_\<Gamma> and gd2.ord_\<Gamma>  *)
       apply simp
-      (* IS THIS STATE A MISTAKE IN MY PROOF? *)
-      sorry
+      apply (cases "\<gamma> \<in> gd.ord_\<Gamma>")
+       apply auto
+       apply (rule_tac x="{#?E#}" in exI)
+       apply simp (* reductive -- se side 40 *)
+      using gd.\<Gamma>_reductive apply simp
+      using gd2.ord_\<Gamma>_sound_counterex_reducing.\<Gamma>_sound[of ?Cs ?D ?E ] \<gamma>_p unfolding gd_ord_\<Gamma>'_def
+      apply auto
+      apply (rule_tac x="?Cs" in exI)
+      apply (rule_tac x="?D" in exI)
+      apply (rule_tac x="?E" in exI)
+      apply auto
+      done
     then have "\<gamma> \<in> src_ext_Ri (?N j)"
       .
+find_theorems gd.ord_\<Gamma> name: sound
     then have "\<gamma> \<in> src_ext_Ri (lSup (lmap grounding_of_state Sts))"
       using j_p'
       by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_lSup src_ext.Ri_mono)
