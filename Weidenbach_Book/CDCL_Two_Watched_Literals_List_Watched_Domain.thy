@@ -627,49 +627,6 @@ definition skip_and_resolve_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st
     }
   \<close>
 
-context
-begin
-text \<open>Auxiliary definition: it helps to prove refinements. Once the \<^term>\<open>RETURN\<close> is removed,
-  the invariants form the \<^term>\<open>WHILE\<close>--loop are not dropped.\<close>
-private definition skip_and_resolve_loop_wl_D' :: "nat twl_st_wl \<Rightarrow> (bool \<times> nat twl_st_wl) nres" where
-  \<open>skip_and_resolve_loop_wl_D' S\<^sub>0 =
-    do {
-      ASSERT(get_conflict_wl S\<^sub>0 \<noteq> None);
-      S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, S).
-           skip_and_resolve_loop_inv (twl_st_of_wl None S\<^sub>0) (brk, twl_st_of_wl None S) \<and>
-           additional_WS_invs (st_l_of_wl None S) \<and> correct_watching S \<and> literals_are_N\<^sub>0 S\<^esup>
-        (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided (hd (get_trail_wl S)))
-        (\<lambda>(_, S).
-          let (M, N, U, D, NP, UP, Q, W) = S in
-          do {
-            ASSERT(M \<noteq> []);
-            ASSERT(get_conflict_wl (M, N, U, D, NP, UP, Q, W) \<noteq> None);
-            let D' = the (get_conflict_wl (M, N, U, D, NP, UP, Q, W));
-            ASSERT(is_proped (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W))));
-            let (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W)));
-            ASSERT(C < length N);
-            ASSERT(literals_are_in_N\<^sub>0 D');
-            ASSERT(\<forall>L\<in># D'. defined_lit M L);
-            if -L \<notin># D' then
-              do {RETURN (False, (tl M, N, U, Some D', NP, UP, Q, W))}
-            else
-              if get_maximum_level M (remove1_mset (-L) D') = count_decided M
-              then do {
-                ASSERT(C > 0 \<longrightarrow> N!C \<noteq> []);
-                ASSERT(distinct_mset (if C = 0 then {#} else mset (remove1 L (N!C))));
-                ASSERT(distinct_mset (remove1_mset (-L) D'));
-                RETURN (remove1_mset (-L) D' \<union># (if C = 0 then {#} else mset (remove1 L (N!C))) = {#},
-                   (tl M, N, U, Some (remove1_mset (-L) D' \<union># (if C = 0 then {#} else mset (remove1 L (N!C)))),
-                     NP, UP, Q, W))}
-              else
-                do {RETURN (True, (M, N, U, Some D', NP, UP, Q, W))}
-          }
-        )
-        (get_conflict_wl S\<^sub>0 = Some {#}, S\<^sub>0);
-     RETURN S
-    }
-  \<close>
-
 lemma twl_struct_invs_is_N\<^sub>1_clauses_init_clss:
   fixes S\<^sub>0 :: \<open>nat twl_st_wl\<close>
   defines \<open>S \<equiv> twl_st_of_wl None S\<^sub>0\<close>
@@ -723,34 +680,130 @@ lemma is_N\<^sub>1_alt_def: \<open>is_N\<^sub>1 (all_lits_of_mm A) \<longleftrig
   unfolding set_mset_set_mset_eq_iff is_N\<^sub>1_def Ball_def in_N\<^sub>1_atm_of_in_atms_of_iff
     in_all_lits_of_mm_ain_atms_of_iff
   by auto (metis literal.sel(2))+
-thm RECT_unfold
-thm WHILEIT_unfold
-lemma \<open>REC\<^sub>T (WHILEI_body op \<bind> RETURN I' b' f') x' =
-     (REC\<^sub>T (WHILEI_body op \<bind> RETURN (\<lambda>x'. I' x' \<and> (f x' \<le> SPEC I')) b' (\<lambda>x'. f' x')) x')\<close>
+
+lemma RES_RETURN_RES: \<open>RES \<Phi> \<bind> (\<lambda>T. RETURN (f T)) = RES (f ` \<Phi>)\<close>
+  by (simp add: bind_RES_RETURN_eq setcompr_eq_image)
+
+lemma RECT_WHILEI_body_add_post_condition:
+    \<open>REC\<^sub>T (WHILEI_body op \<bind> RETURN I' b' f) x' =
+     (REC\<^sub>T (WHILEI_body op \<bind> RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f) x')\<close>
+  (is \<open>REC\<^sub>T ?f x' = REC\<^sub>T ?f' x'\<close>)
 proof -
+  have le: \<open>flatf_gfp ?f x' \<le> flatf_gfp ?f' x'\<close> for x'
+  proof (induct arbitrary: x' rule: flatf_ord.fixp_induct[where b = top and 
+        f = ?f'])
+    case 1
+    then show ?case
+      unfolding fun_lub_def pw_le_iff
+      by (smt ccpo.admissibleI chain_fun flat_lub_in_chain  mem_Collect_eq nofail_simps(1)) 
+  next
+    case 2
+    then show ?case by (auto simp: WHILEI_mono_ge)
+  next
+    case 3
+    then show ?case by simp
+  next
+    case (4 x)
+    have  \<open>(RES X \<bind> f \<le> M) = (\<forall>x\<in>X. f x \<le> M)\<close> for x f M X
+      using intro_spec_refine_iff[of _ _ \<open>Id\<close>] by auto
+    thm bind_refine_RES(2)[of _ Id, simplified]
+    have [simp]: \<open>flatf_mono FAIL (WHILEI_body op \<bind> RETURN I' b' f)\<close>
+      by (simp add: WHILEI_mono_ge)
 
-  show ?thesis
-  unfolding RECT_def
-  apply (auto simp: WHILEI_body_trimono)
-  apply (rule flatf_ord.fixp_induct)
-  oops
+    have \<open>flatf_gfp ?f x' = ?f (?f (flatf_gfp ?f)) x'\<close>
+      apply (subst flatf_ord.fixp_unfold)
+       apply (solves \<open>simp\<close>)
+      apply (subst flatf_ord.fixp_unfold)
+       apply (solves \<open>simp\<close>)
+      ..
+    also have \<open>\<dots> = WHILEI_body op \<bind> RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f (WHILEI_body op \<bind> RETURN I' b' f (flatf_gfp (WHILEI_body op \<bind> RETURN I' b' f))) x'\<close>
+      apply (subst (1) WHILEI_body_def, subst (1) WHILEI_body_def)
+      apply (subst (2) WHILEI_body_def, subst (2) WHILEI_body_def)
+      apply simp_all
+      apply (cases \<open>f x'\<close>)
+       apply (auto simp: RES_RETURN_RES nofail_def[symmetric] pw_RES_bind_choose
+           intro!: (* bind_refine_RES(2)[of , simplified]  *)
+          split: if_splits
+          cong: if_cong)
+      done
+    also have \<open>\<dots> =  WHILEI_body op \<bind> RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f ((flatf_gfp (WHILEI_body op \<bind> RETURN I' b' f))) x'\<close>
+      apply (subst (2) flatf_ord.fixp_unfold)
+       apply (solves \<open>simp\<close>)
+      ..
+    finally have unfold1: \<open>flatf_gfp (WHILEI_body op \<bind> RETURN I' b' f) x' =
+         ?f' (flatf_gfp (WHILEI_body op \<bind> RETURN I' b' f)) x'\<close>
+      .
+    have [intro!]: \<open>(\<And>x. g x \<le>(h:: 'a \<Rightarrow> 'a nres) x) \<Longrightarrow> fx \<bind> g \<le> fx \<bind> h\<close> for g h fx fy
+      by (refine_rcg bind_refine'[where R = \<open>Id\<close>, simplified]) fast
+    show ?case
+      apply (subst unfold1)
+      using 4
+      unfolding WHILEI_body_def
+      by (auto intro: bind_refine'[where R = \<open>Id\<close>, simplified])
+  qed
 
-lemma \<open>(WHILEIT I' b' f' x') \<le> \<Down> Id (WHILEIT I' b' (\<lambda>x'. do {ASSERT(f x' \<le> SPEC I'); f' x'}) x')\<close>
-  apply (subst WHILEIT_unfold)
-  apply (subst WHILEIT_unfold)
-  apply auto
-  oops
+  have ge: \<open>flatf_gfp ?f x' \<ge>  flatf_gfp ?f' x'\<close> for x'
+  proof (induct arbitrary: x' rule: flatf_ord.fixp_induct[where b = top and 
+        f = ?f])
+    case 1
+    then show ?case
+      unfolding fun_lub_def pw_le_iff
+      by (rule ccpo.admissibleI) (smt chain_fun flat_lub_in_chain mem_Collect_eq nofail_simps(1)) 
+  next
+    case 2
+    then show ?case by (auto simp: WHILEI_mono_ge)
+  next
+    case 3
+    then show ?case by simp
+  next
+    case (4 x)
+    have  \<open>(RES X \<bind> f \<le> M) = (\<forall>x\<in>X. f x \<le> M)\<close> for x f M X
+      using intro_spec_refine_iff[of _ _ \<open>Id\<close>] by auto
+    thm bind_refine_RES(2)[of _ Id, simplified]
+    have [simp]: \<open>flatf_mono FAIL ?f'\<close>
+      by (simp add: WHILEI_mono_ge)
+    have H: \<open>A = FAIL \<longleftrightarrow> \<not>nofail A\<close> for A by (auto simp: nofail_def)
+    have \<open>flatf_gfp ?f' x' = ?f' (?f' (flatf_gfp ?f')) x'\<close>
+      apply (subst flatf_ord.fixp_unfold)
+       apply (solves \<open>simp\<close>)
+      apply (subst flatf_ord.fixp_unfold)
+       apply (solves \<open>simp\<close>)
+      ..
+    also have \<open>\<dots> = ?f (?f' (flatf_gfp ?f')) x'\<close>
+      apply (subst (1) WHILEI_body_def, subst (1) WHILEI_body_def)
+      apply (subst (2) WHILEI_body_def, subst (2) WHILEI_body_def)
+      apply simp_all
+      apply (cases \<open>f x'\<close>)
+       apply (auto simp: RES_RETURN_RES nofail_def[symmetric] pw_RES_bind_choose
+          eq_commute[of \<open>FAIL\<close>] H
+           intro!: (* bind_refine_RES(2)[of , simplified]  *)
+          split: if_splits
+          cong: if_cong)
+      done
+    also have \<open>\<dots> = ?f (flatf_gfp ?f') x'\<close>
+      apply (subst (2) flatf_ord.fixp_unfold)
+       apply (solves \<open>simp\<close>)
+      ..
+    finally have unfold1: \<open>flatf_gfp ?f' x' =
+         ?f (flatf_gfp ?f') x'\<close>
+      .
+    have [intro!]: \<open>(\<And>x. g x \<le>(h:: 'a \<Rightarrow> 'a nres) x) \<Longrightarrow> fx \<bind> g \<le> fx \<bind> h\<close> for g h fx fy
+      by (refine_rcg bind_refine'[where R = \<open>Id\<close>, simplified]) fast
+    show ?case
+      apply (subst unfold1)
+      using 4
+      unfolding WHILEI_body_def
+      by (auto intro: bind_refine'[where R = \<open>Id\<close>, simplified])
+  qed
+  show ?thesis                  
+    unfolding RECT_def
+    using le[of x'] ge[of x'] by (auto simp: WHILEI_body_trimono)
+qed
 
-lemma WHILEIT_refine_genR:
-  assumes R0: "I' x' \<Longrightarrow> (x,x')\<in>R'"
-  assumes IREF: "\<And>x x'. \<lbrakk> (x,x')\<in>R'; I' x' \<rbrakk> \<Longrightarrow> I x"
-  assumes COND_REF: "\<And>x x'. \<lbrakk> (x,x')\<in>R'; I x; I' x' \<rbrakk> \<Longrightarrow> b x = b' x'"
-  assumes STEP_REF: 
-    "\<And>x x'. \<lbrakk> (x,x')\<in>R'; b x; b' x'; I x; I' x'; f' x \<le> SPEC I'\<rbrakk> \<Longrightarrow> f x \<le> \<Down>R' (f' x')"
-  assumes R_REF: 
-    "\<And>x x'. \<lbrakk> (x,x')\<in>R'; \<not>b x; \<not>b' x'; I x; I' x' \<rbrakk> \<Longrightarrow> (x,x')\<in>R"
-  shows "WHILEIT I b f x \<le>\<Down>R (WHILEIT I' b' f' x')" 
-  oops
+lemma WHILEIT_add_post_condition: \<open>(WHILEIT I' b' f' x') = (WHILEIT (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f' x' = FAIL \<or> f' x' \<le> SPEC I')) b' f' x')\<close>
+  unfolding WHILEIT_def 
+  apply (subst RECT_WHILEI_body_add_post_condition)
+  ..
 
 lemma skip_and_resolve_loop_wl_D_spec:
   assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close> \<open>twl_struct_invs (twl_st_of None (st_l_of_wl None S))\<close>
@@ -766,187 +819,34 @@ proof -
   have H: \<open>(\<lambda>(brk, T). skip_and_resolve_loop_inv (twl_st_of_wl None S) (brk, twl_st_of_wl None T) \<and>
          additional_WS_invs (st_l_of_wl None T) \<and> correct_watching T) =
        invar\<close>
-    sorry
+    apply (intro ext, rename_tac brkT)
+    subgoal for brkT
+      using cdcl_twl_o_literals_are_N\<^sub>0_invs[of S \<open>snd brkT\<close>]
+      using 1 N\<^sub>0 unfolding invar_def skip_and_resolve_loop_inv_def
+      apply (cases brkT)
+      apply clarify
+      apply simp
+      by blast
+    done
 
   show ?thesis
     unfolding skip_and_resolve_loop_wl_D_def skip_and_resolve_loop_wl_def H
+    apply (subst (2) WHILEIT_add_post_condition)
     apply (refine_rcg 1 WHILEIT_refine[where R = \<open>{((i', S'), (i, S)). i = i' \<and> (S', S) \<in> ?R}\<close>])    
     subgoal using assms by auto   
-    subgoal by fast   
-    subgoal by fast   
-    subgoal by fast    
+    subgoal unfolding invar_def by fast   
+    subgoal unfolding invar_def by fast   
+    subgoal unfolding invar_def by fast    
     subgoal by fast    
     subgoal by fast  
     subgoal by auto   
+    subgoal unfolding invar_def by auto   
     subgoal by auto   
-    subgoal by auto   
-    subgoal by auto   
+    subgoal unfolding invar_def by auto   
     subgoal by fast   
     subgoal by auto 
-    thm WHILEIT_rule
-    oops
-
-  have D'\<^sub>1: \<open>skip_and_resolve_loop_wl_D' S \<le> \<Down> {((b, T'), T). T' = T} (skip_and_resolve_loop_wl S)\<close>
-    unfolding skip_and_resolve_loop_wl_D_def skip_and_resolve_loop_wl_def
-    apply (refine_vcg 1)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal for brk'S' brkS brk' S'
-      by (rule cdcl_twl_o_literals_are_N\<^sub>0_invs[of S])
-        (use N\<^sub>0 in \<open>auto simp: skip_and_resolve_loop_inv_def\<close>)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-
-    subgoal for brk'S' brkS brk S brk' S' M x2b N x2c U x2d D x2e NP x2f UP x2g WS
-       Q M' x2i N' x2j U' x2k D' x2l NP' x2m UP' x2n WS' Q' L C L' C'
-      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl None S))\<close>)
-      subgoal
-        apply clarify
-        apply (subst (asm) twl_struct_invs_is_N\<^sub>1_clauses_init_clss)
-         apply (solves \<open>simp add: skip_and_resolve_loop_inv_def\<close>)
-        by (fastforce simp add: literals_are_in_N\<^sub>0_def is_N\<^sub>1_alt_def
-            cdcl\<^sub>W_restart_mset.no_strange_atm_def in_N\<^sub>1_atm_of_in_atms_of_iff
-            cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset' atms_of_def
-            in_all_lits_of_m_ain_atms_of_iff atm_of_eq_atm_of)
-      subgoal
-        apply (subst (asm) skip_and_resolve_loop_inv_def)
-        apply (subst (asm) twl_struct_invs_def)
-        apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
-        by force
-      done
-    subgoal for brk'S' brkS brk S brk' S' M x2b N x2c U x2d D x2e NP x2f UP x2g WS
-       Q M' x2i N' x2j U' x2k D' x2l NP' x2m UP' x2n WS' Q' L C L' C'
-      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of (twl_st_of_wl None S))\<close>)
-      subgoal
-        by (auto simp add: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-            cdcl\<^sub>W_restart_mset_state dest!: true_annots_CNot_definedD)
-      subgoal
-        apply (subst (asm) skip_and_resolve_loop_inv_def)
-        apply (subst (asm) twl_struct_invs_def)
-        apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
-        by force
-      done
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g
-       x1h x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p
-       x2p x1q x2q
-       apply (subgoal_tac \<open>Multiset.Ball
-         {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x))
-         . x \<in># mset (tl x1c)#}
-         struct_wf_twl_cls\<close>)
-      subgoal
-        apply (subgoal_tac \<open>x1j ! x2q \<in> set (tl x1c)\<close>)
-         apply (solves \<open>auto\<close>)
-        apply (cases x1b; cases \<open>hd x1b\<close>)
-
-        by (auto intro!: nth_in_set_tl simp: additional_WS_invs_def all_conj_distrib)
-      subgoal
-        apply (simp del: struct_wf_twl_cls.simps)
-        apply (subst (asm)(1) skip_and_resolve_loop_inv_def)
-        apply (subst (asm) twl_struct_invs_def)
-        apply (simp del: struct_wf_twl_cls.simps)
-        apply (subst (asm) twl_st_inv.simps)
-        apply (subst (asm) image_mset_union[symmetric])
-        apply (subst (asm) mset_take_mset_drop_mset')
-        apply (subst (asm) mset_append[symmetric])
-        apply (subst (asm)(2) drop_Suc)
-        apply (subst (asm) append_take_drop_id)
-        apply (simp del: struct_wf_twl_cls.simps)
-        done
-      done
-    subgoal for brk'S' brkS brk S brk' S' M x2b N x2c U x2d D x2e NP x2f UP x2g WS
-       Q M' x2i N' x2j U' x2k D' x2l NP' x2m UP' x2n WS' Q' L C L' C'
-      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of (twl_st_of_wl None S))\<close>)
-      subgoal
-        by (cases M; cases \<open>hd M\<close>) (auto simp add: clauses_def
-            cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
-            cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset')
-      subgoal
-        apply (subst (asm) skip_and_resolve_loop_inv_def)
-        apply (subst (asm) twl_struct_invs_def)
-        apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
-        by force
-      done
-    subgoal for brk'S' brkS brk S brk' S' M x2b N x2c U x2d D x2e NP x2f UP x2g WS
-       Q M' x2i N' x2j U' x2k D' x2l NP' x2m UP' x2n WS' Q' L C L' C'
-      apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of (twl_st_of_wl None S))\<close>)
-      subgoal
-        by (cases M; cases \<open>hd M\<close>) (auto simp add: clauses_def
-            cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
-            cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset')
-      subgoal
-        apply (subst (asm) skip_and_resolve_loop_inv_def)
-        apply (subst (asm) twl_struct_invs_def)
-        apply (subst (asm) cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
-        by force
-      done
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
     done
-  have H: \<open>do {S \<leftarrow> H; RETURN S} = H\<close> for H :: \<open>'a nres\<close>
-    by simp
-  have D'\<^sub>2: \<open>skip_and_resolve_loop_wl_D' S \<le>
-     \<Down> {((b', T'), (b, T)). b = b' \<and> T' = T \<and> literals_are_N\<^sub>0 T} (skip_and_resolve_loop_wl_D' S)\<close>
-    unfolding H skip_and_resolve_loop_wl_D'_def
-    apply (refine_vcg 1)
-    subgoal by auto
-    subgoal for b'T' bT b' T' by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by (auto simp: mset_take_mset_drop_mset' clauses_def)
-    subgoal by auto
-    subgoal by (auto simp: clauses_def)
-    subgoal by auto
-    subgoal by auto
-    subgoal by (auto simp: mset_take_mset_drop_mset' clauses_def)
-    subgoal by auto
-    done
-  have S: \<open>({((b', T'), b, T). b = b' \<and> T' = T \<and> local.literals_are_N\<^sub>0 T} O Collect (case_prod (\<lambda>(b, y). op = y)))
-   = {((b', T'), T). T' = T \<and> local.literals_are_N\<^sub>0 T}\<close>
-    by auto
-  have D'\<^sub>3: \<open>local.skip_and_resolve_loop_wl_D' S \<le> \<Down> {((b', T'), T). T' = T \<and> local.literals_are_N\<^sub>0 T} (skip_and_resolve_loop_wl S)\<close>
-    using conc_trans[OF D'\<^sub>2 D'\<^sub>1] unfolding conc_fun_chain S .
-  have D'\<^sub>4: \<open>skip_and_resolve_loop_wl_D S \<le> \<Down> {(T, (b, T')). T' = T} (skip_and_resolve_loop_wl_D' S)\<close>
-    unfolding skip_and_resolve_loop_wl_D_def skip_and_resolve_loop_wl_D'_def COPY_def
-    op_list_copy_def
-    apply (rewrite at \<open>let _ = remove1_mset _ _ in _\<close> Let_def)
-    apply (rewrite at \<open>let _ = If _ _ _ in _\<close> Let_def)
-    apply (rewrite at \<open>let _ = _ \<union># _ in _\<close> Let_def)
-    apply (rewrite mset_remove1[symmetric])+
-    by refine_vcg auto
-  have S: \<open>{(T, b, T'). T' = T} O {((b', T'), T). T' = T \<and> local.literals_are_N\<^sub>0 T} =
-     {(T', T). T = T' \<and> local.literals_are_N\<^sub>0 T}\<close>
-    by auto
-  show ?thesis
-    using conc_trans[OF D'\<^sub>4 D'\<^sub>3] unfolding conc_fun_chain S .
 qed
-
-end
 
 definition find_lit_of_max_level_wl' :: "_ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow>
    nat literal nres" where
