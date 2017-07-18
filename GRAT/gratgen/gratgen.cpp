@@ -691,7 +691,7 @@ public:
     Clause *new_clause = new (new_home) Clause(id);
     return c2p(new_clause);
   }
-  
+
   pos_t new_temp_clause() {
     return new_clause(-1);
   }
@@ -1498,7 +1498,8 @@ pos_t Parser::parse_deletion(istream &in) {
       len++;
   } while (l);
 
-  glb.db.finish_clause(temp_pos, len, true, !cfg_assume_nodup);
+  // only sort and uniquify if we assume possible literal duplications
+  glb.db.finish_clause(temp_pos, len, !cfg_assume_nodup, !cfg_assume_nodup);
   auto orig_c = clause_map.find(temp_pos); // Look up clause
 
   if (orig_c == clause_map.end()) {
@@ -1507,6 +1508,9 @@ pos_t Parser::parse_deletion(istream &in) {
     result = orig_c->second;
     clause_map.erase(orig_c);
   }
+
+  // Remove the temp clause again
+  glb.db.remove_temp_clause(temp_pos);
 
   return result;
 }
