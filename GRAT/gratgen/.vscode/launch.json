@@ -7,7 +7,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceRoot}/gratgen",
-            "args": ["test_v3_r8_vr5_c1_s8257.smt2-stp212.cnf", "test_v3_r8_vr5_c1_s8257.smt2-stp212.drat"],
+            "args": ["test_v3_r8_vr5_c1_s8257.smt2-stp212.cnf", "test_v3_r8_vr5_c1_s8257.smt2-stp212.drat", "-o", "test.grat"],
             "stopAtEntry": false,
             "cwd": "${workspaceRoot}",
             "environment": [],
