@@ -376,8 +376,7 @@ definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> n
           }
       }
    }\<close>
-lemma \<open>f \<le> \<Down> Id f\<close>
-oops
+
 declare Id_refine[refine_vcg del] refine0(5)[refine_vcg del]
 
 lemma (in -) mset_tl_update_swap:
@@ -429,9 +428,9 @@ proof -
   have update_clause_wl: \<open>update_clause_wl K (watched_by S K ! w) w
      (if get_clauses_wl S ! (watched_by S K ! w) ! 0 = K then 0 else 1) n S
     \<le> \<Down> {((n', T'), n, T). n' = n \<and> T = T' \<and> literals_are_N\<^sub>0 T'}
-       (update_clause_wl K (watched_by S K ! w) w    
+       (update_clause_wl K (watched_by S K ! w) w
          (if get_clauses_wl S ! (watched_by S K ! w) ! 0 = K then 0 else 1) n' S)\<close>
-    if \<open>(n, n') \<in> Id\<close> and \<open>unit_prop_body_wl_D_inv S w K\<close> 
+    if \<open>(n, n') \<in> Id\<close> and \<open>unit_prop_body_wl_D_inv S w K\<close>
       \<open>(f, f') \<in> ?find_unwatched K\<close> and
       \<open>f = Some n\<close> \<open>f' = Some n'\<close> and
       \<open>unit_prop_body_wl_find_unwatched_inv f (watched_by S K ! w) S\<close>
@@ -509,14 +508,6 @@ proof -
   if \<open>K \<in> snd ` local.D\<^sub>0\<close> and \<open>literals_are_N\<^sub>0 S\<close> and
     \<open>K = K'\<close> and \<open>w = w'\<close> and \<open>S = S'\<close> for S S' and w w' and K K'
     using unit_propagation_inner_loop_body_wl_D_spec[of K S w] that by auto
-  have \<open>mset `# mset (take n (tl xs)) + mset `# mset (drop (Suc n) xs) = mset `# mset (tl xs)\<close>
-    for n :: nat and xs :: \<open>'a list list\<close>
-    unfolding image_mset_union[symmetric] mset_append[symmetric] drop_Suc
-      append_take_drop_id ..
-  then have m: \<open>(mset `# mset (take n (tl xs)) + a + (mset `# mset (drop (Suc n) xs) + b)) =
-         (mset `# mset (tl xs)) + a + b\<close>
-    for a b and xs :: \<open>'a list list\<close> and n :: nat
-    by auto
 
   show ?thesis
     unfolding unit_propagation_inner_loop_wl_loop_D_def unit_propagation_inner_loop_wl_loop_def
