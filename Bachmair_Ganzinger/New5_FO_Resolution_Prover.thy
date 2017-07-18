@@ -2833,7 +2833,6 @@ proof
   then show "is_ground_cls x" using i_p by auto
 qed
 
-
 theorem completeness:
   assumes selection_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
   assumes
@@ -2864,6 +2863,10 @@ proof -
     using S_M_selects_subseteq selection_axioms apply auto[]
     using selection_axioms S_M_selects_neg_lits apply auto[]
     done
+
+  interpret src2: standard_redundancy_criterion gd2.ord_\<Gamma>
+  "ground_resolution_with_selection.INTERP (S_M S (getQ (limit_state Sts)))"
+  by unfold_locales
 
   {
     fix \<gamma> :: "'a inference"
@@ -3053,12 +3056,11 @@ proof -
       sorry
     then obtain j where j_p: "is_least (\<lambda>j. enat j < llength Sts \<and> (\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j)) j"
       using least_exists[of "(\<lambda>j. enat j < llength Sts \<and> (\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j))"] by force
-    have j_p': "enat j < llength Sts \<and> (\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j)"
+    have j_p': "enat j < llength Sts" "(set CAi') \<union> {DA'} \<subseteq> ?Qs j" "(\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j)"
       sorry
-
     then have "j \<noteq> 0" (* Since there are initially no clauses in Q *)
       sorry
-    then have "\<not>set CAi' \<union> {DA'} \<subseteq> ?Qs (j-1) \<and> set CAi' \<union> {DA'} \<subseteq> ?Qs j" 
+    then have anders: "\<not>set CAi' \<union> {DA'} \<subseteq> ?Qs (j-1)" "set CAi' \<union> {DA'} \<subseteq> ?Qs j" 
       using j_p sorry
     then obtain C' where C'_p:
       "?Ns (j-1) = {}"
@@ -3066,20 +3068,37 @@ proof -
       "?Qs j = ?Qs (j-1) \<union> {C'}"
       "?Ns j = concls_of (ord_FO_resolution.inferences_between (?Qs (j-1)) C')"
       "C' \<in> set CAi' \<union> {DA'}"  (* This one also because of j_p *)
+      "C' \<notin> ?Qs (j-1)"
       sorry
-    then have "E' \<in> ?Ns j"
-      sorry
+    then have ihih: "(set CAi' \<union> {DA'}) - {C'} \<subseteq> ?Qs (j-1)"
+      using anders by auto
+    have "E' \<in> ?Ns j"
+    proof -
+      have "E' \<in> concls_of (ord_FO_resolution.inferences_between (getQ (lnth Sts (j - 1))) C')"
+        apply auto unfolding  infer_from_def ord_FO_\<Gamma>_def unfolding inference_system.inferences_between_def
+        apply auto
+        apply (rule_tac x="Infer (mset CAi') DA' E'" in image_eqI)
+         apply auto
+        using s_p(4)
+          apply auto[]
+        unfolding infer_from_def apply auto[]
+        using C'_p(3) j_p'(2) apply (metis (no_types, hide_lams)  One_nat_def Un_insert_left insert_iff insert_subset  sup.commute sup_bot.left_neutral)
+        using anders(2) C'_p apply auto
+        done
+      then show "E' \<in> ?Ns j"
+        using C'_p(4) by auto
+    qed
     then have "E' \<in> clss_of_state (lnth Sts j)"
-      sorry
+      using getN_subset j_p' by auto
     then have "?E \<in> grounding_of_state (lnth Sts j)"
-      using s_p unfolding grounding_of_clss_def grounding_of_cls_def sorry
+      using s_p(7) s_p(3) unfolding grounding_of_clss_def grounding_of_cls_def by force
     then have "\<gamma> \<in> src_ext_Ri (grounding_of_state (lnth Sts j))"
       unfolding src_ext_Ri_def src.Ri_def (* This proof is kind of interesting and very strange. It uses both gd.ord_\<Gamma> and gd2.ord_\<Gamma>  *)
       apply simp
       apply (cases "\<gamma> \<in> gd.ord_\<Gamma>")
        apply auto
        apply (rule_tac x="{#?E#}" in exI)
-       apply simp (* reductive -- se side 40 *)
+       apply simp 
       using gd.\<Gamma>_reductive apply simp
       using gd2.ord_\<Gamma>_sound_counterex_reducing.\<Gamma>_sound[of ?Cs ?D ?E ] \<gamma>_p unfolding gd_ord_\<Gamma>'_def
       apply auto
@@ -3096,7 +3115,7 @@ proof -
     then have "\<gamma> \<in> src_ext_Ri (llimit (lmap grounding_of_state Sts))"
       using src_ext.derivation_supremum_llimit_satisfiable[of Ns] derivns ns by blast
   }
-  then have "src_ext.saturated_upto (llimit (lmap grounding_of_state Sts))"
+  then have "src2.saturated_upto (llimit (lmap grounding_of_state Sts))" unfolding src2.saturated_upto_def gd2.inferences_from_def infer_from_def
     sorry
   then have "src.saturated_upto (llimit (lmap grounding_of_state Sts))"
     using standard_redundancy_criterion_extension_saturated_up_to sorry
