@@ -600,42 +600,27 @@ proof -
     done
 qed
 
-
 definition skip_and_resolve_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
   \<open>skip_and_resolve_loop_wl_D S\<^sub>0 =
     do {
       ASSERT(get_conflict_wl S\<^sub>0 \<noteq> None);
-      (H, S) \<leftarrow>
-        WHILE\<^sub>T\<^bsup>\<lambda>(brk, S).
-           skip_and_resolve_loop_inv (twl_st_of_wl None S\<^sub>0) (brk, twl_st_of_wl None S) \<and>
-           additional_WS_invs (st_l_of_wl None S) \<and> correct_watching S \<and> literals_are_N\<^sub>0 S\<^esup>
+      (_, S) \<leftarrow>
+        WHILE\<^sub>T\<^bsup>\<lambda>(brk, S). skip_and_resolve_loop_inv (twl_st_of_wl None S\<^sub>0) (brk, twl_st_of_wl None S) \<and>
+         additional_WS_invs (st_l_of_wl None S) \<and> correct_watching S \<and> literals_are_N\<^sub>0 S\<^esup>
         (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided (hd (get_trail_wl S)))
         (\<lambda>(_, S).
-          let (M, N, U, D, NP, UP, Q, W) = S in
           do {
-            ASSERT(M \<noteq> []);
-            ASSERT(get_conflict_wl (M, N, U, D, NP, UP, Q, W) \<noteq> None);
-            let D' = the (get_conflict_wl (M, N, U, D, NP, UP, Q, W));
-            ASSERT(is_proped (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W))));
-            let (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl (M, N, U, D, NP, UP, Q, W)));
-            ASSERT(C < length N);
-            ASSERT(literals_are_in_N\<^sub>0 D');
-            ASSERT(\<forall>L\<in># D'. defined_lit M L);
+            let D' = the (get_conflict_wl S);
+            let (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S));
             if -L \<notin># D' then
-              do {RETURN (False, (tl M, N, U, Some D', NP, UP, Q, W))}
-            else do {
-              if get_maximum_level M (remove1_mset (-L) D') = count_decided M
-              then do {
-                let E = remove1_mset (-L) D';
-                ASSERT(C > 0 \<longrightarrow> N!C \<noteq> []);
-                let F = (if C = 0 then {#} else (remove1_mset L (mset (N!C))));
-                ASSERT(distinct_mset F);
-                ASSERT(distinct_mset E);
-                let G = E \<union># F;
-                RETURN (G = {#}, (tl M, N, U, Some G, NP, UP, Q, W))}
+              do {RETURN (False, tl_state_wl S)}
+            else
+              if get_maximum_level (get_trail_wl S) (remove1_mset (-L) D') = count_decided (get_trail_wl S)
+              then
+                do {RETURN (update_confl_tl_wl C L S)}
               else
-                do {RETURN (True, (M, N, U, Some D', NP, UP, Q, W))}
-          }}
+                do {RETURN (True, S)}
+          }
         )
         (get_conflict_wl S\<^sub>0 = Some {#}, S\<^sub>0);
       RETURN S
@@ -737,17 +722,72 @@ lemma set_mset_set_mset_eq_iff: \<open>set_mset A = set_mset B \<longleftrightar
 lemma is_N\<^sub>1_alt_def: \<open>is_N\<^sub>1 (all_lits_of_mm A) \<longleftrightarrow> atms_of_mm A = atms_of N\<^sub>1\<close>
   unfolding set_mset_set_mset_eq_iff is_N\<^sub>1_def Ball_def in_N\<^sub>1_atm_of_in_atms_of_iff
     in_all_lits_of_mm_ain_atms_of_iff
-    by auto (metis literal.sel(2))+
+  by auto (metis literal.sel(2))+
+thm RECT_unfold
+thm WHILEIT_unfold
+lemma \<open>REC\<^sub>T (WHILEI_body op \<bind> RETURN I' b' f') x' =
+     (REC\<^sub>T (WHILEI_body op \<bind> RETURN (\<lambda>x'. I' x' \<and> (f x' \<le> SPEC I')) b' (\<lambda>x'. f' x')) x')\<close>
+proof -
+
+  show ?thesis
+  unfolding RECT_def
+  apply (auto simp: WHILEI_body_trimono)
+  apply (rule flatf_ord.fixp_induct)
+  oops
+
+lemma \<open>(WHILEIT I' b' f' x') \<le> \<Down> Id (WHILEIT I' b' (\<lambda>x'. do {ASSERT(f x' \<le> SPEC I'); f' x'}) x')\<close>
+  apply (subst WHILEIT_unfold)
+  apply (subst WHILEIT_unfold)
+  apply auto
+  oops
+
+lemma WHILEIT_refine_genR:
+  assumes R0: "I' x' \<Longrightarrow> (x,x')\<in>R'"
+  assumes IREF: "\<And>x x'. \<lbrakk> (x,x')\<in>R'; I' x' \<rbrakk> \<Longrightarrow> I x"
+  assumes COND_REF: "\<And>x x'. \<lbrakk> (x,x')\<in>R'; I x; I' x' \<rbrakk> \<Longrightarrow> b x = b' x'"
+  assumes STEP_REF: 
+    "\<And>x x'. \<lbrakk> (x,x')\<in>R'; b x; b' x'; I x; I' x'; f' x \<le> SPEC I'\<rbrakk> \<Longrightarrow> f x \<le> \<Down>R' (f' x')"
+  assumes R_REF: 
+    "\<And>x x'. \<lbrakk> (x,x')\<in>R'; \<not>b x; \<not>b' x'; I x; I' x' \<rbrakk> \<Longrightarrow> (x,x')\<in>R"
+  shows "WHILEIT I b f x \<le>\<Down>R (WHILEIT I' b' f' x')" 
+  oops
 
 lemma skip_and_resolve_loop_wl_D_spec:
   assumes N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close> \<open>twl_struct_invs (twl_st_of None (st_l_of_wl None S))\<close>
   shows \<open>skip_and_resolve_loop_wl_D S \<le>
      \<Down> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T} (skip_and_resolve_loop_wl S)\<close>
+    (is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
+  define invar where
+   \<open>invar = (\<lambda>(brk, T). skip_and_resolve_loop_inv (twl_st_of_wl None S) (brk, twl_st_of_wl None T) \<and>
+         additional_WS_invs (st_l_of_wl None T) \<and> correct_watching T \<and> literals_are_N\<^sub>0 T)\<close>
   have 1: \<open>((get_conflict_wl S = Some {#}, S), get_conflict_wl S = Some {#}, S) \<in> Id\<close>
     by auto
+  have H: \<open>(\<lambda>(brk, T). skip_and_resolve_loop_inv (twl_st_of_wl None S) (brk, twl_st_of_wl None T) \<and>
+         additional_WS_invs (st_l_of_wl None T) \<and> correct_watching T) =
+       invar\<close>
+    sorry
+
+  show ?thesis
+    unfolding skip_and_resolve_loop_wl_D_def skip_and_resolve_loop_wl_def H
+    apply (refine_rcg 1 WHILEIT_refine[where R = \<open>{((i', S'), (i, S)). i = i' \<and> (S', S) \<in> ?R}\<close>])    
+    subgoal using assms by auto   
+    subgoal by fast   
+    subgoal by fast   
+    subgoal by fast    
+    subgoal by fast    
+    subgoal by fast  
+    subgoal by auto   
+    subgoal by auto   
+    subgoal by auto   
+    subgoal by auto   
+    subgoal by fast   
+    subgoal by auto 
+    thm WHILEIT_rule
+    oops
+
   have D'\<^sub>1: \<open>skip_and_resolve_loop_wl_D' S \<le> \<Down> {((b, T'), T). T' = T} (skip_and_resolve_loop_wl S)\<close>
-    unfolding skip_and_resolve_loop_wl_D'_def skip_and_resolve_loop_wl_def
+    unfolding skip_and_resolve_loop_wl_D_def skip_and_resolve_loop_wl_def
     apply (refine_vcg 1)
     subgoal by auto
     subgoal by auto
@@ -760,6 +800,16 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+
     subgoal for brk'S' brkS brk S brk' S' M x2b N x2c U x2d D x2e NP x2f UP x2g WS
        Q M' x2i N' x2j U' x2k D' x2l NP' x2m UP' x2n WS' Q' L C L' C'
       apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl None S))\<close>)
