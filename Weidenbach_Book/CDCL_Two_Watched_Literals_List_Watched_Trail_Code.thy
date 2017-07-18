@@ -1439,30 +1439,30 @@ qed
 
 theorem conflict_merge_code_mark_conflict[sepref_fr_rules]:
   \<open>(uncurry2 conflict_merge_code, uncurry2 (RETURN ∘∘∘ mark_conflict)) \<in>
-  [λ((N, i), xs). i < length N ∧ xs = None ∧ distinct (N ! i) ∧
-    literals_are_in_N⇩0 (mset (N ! i)) ∧ ¬ tautology (mset (N ! i))]⇩a
-  clauses_ll_assn⇧k *⇩a nat_assn⇧k *⇩a conflict_option_assn⇧d → conflict_option_assn\<close>
+  [\<lambda>((N, i), xs). i < length N \<and> xs = None \<and> distinct (N ! i) \<and>
+    literals_are_in_N\<^sub>0 (mset (N ! i)) \<and> \<not> tautology (mset (N ! i))]\<^sub>a
+  clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_assn\<^sup>d \<rightarrow> conflict_option_assn\<close>
    (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
    have H: \<open>(uncurry2 conflict_merge_code, uncurry2 (RETURN ∘∘∘ mark_conflict))
-  ∈ [comp_PRE (⟨⟨Id⟩list_rel⟩list_rel ×⇩f nat_rel ×⇩f option_conflict_rel)
-      (λ((N, i), xs). i < length N ∧ xs = None ∧ distinct (N ! i) ∧
-          literals_are_in_N⇩0 (mset (N ! i)) ∧ ¬ tautology (mset (N ! i)))
-      (λ_ ((N, i), _, xs). i < length N ∧ (∀j<length (N ! i). atm_of (N ! i ! j) < length (snd xs)))
-      (λ_. True)]⇩a
-    hrp_comp (clauses_ll_assn⇧k *⇩a nat_assn⇧k *⇩a (bool_assn *assn uint32_nat_assn *assn
-                       array_assn (option_assn bool_assn))⇧d)
-            (⟨⟨Id⟩list_rel⟩list_rel ×⇩f nat_rel ×⇩f option_conflict_rel) →
+  \<in> [comp_PRE (\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f option_conflict_rel)
+      (\<lambda>((N, i), xs). i < length N \<and> xs = None \<and> distinct (N ! i) \<and>
+          literals_are_in_N\<^sub>0 (mset (N ! i)) \<and> \<not> tautology (mset (N ! i)))
+      (\<lambda>_ ((N, i), _, xs). i < length N \<and> (\<forall>j<length (N ! i). atm_of (N ! i ! j) < length (snd xs)))
+      (\<lambda>_. True)]\<^sub>a
+    hrp_comp (clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (bool_assn *assn uint32_nat_assn *assn
+                       array_assn (option_assn bool_assn))\<^sup>d)
+            (\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f option_conflict_rel) \<rightarrow>
     hr_comp (bool_assn *assn uint32_nat_assn *assn array_assn (option_assn bool_assn))
         option_conflict_rel\<close>
    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF conflict_merge_code.refine[unfolded PR_CONST_def]
         conflict_merge_aa_mark_conflict[unfolded PR_CONST_def], OF twl_array_code_axioms] .
   have pre: \<open>?pre' = ?pre\<close>
-    by (auto simp: comp_PRE_def in_br_conv list_mset_rel_def in_N⇩1_atm_of_in_atms_of_iff
+    by (auto simp: comp_PRE_def in_br_conv list_mset_rel_def in_N\<^sub>1_atm_of_in_atms_of_iff
         literals_to_update_wl_empty_def option_conflict_rel_def
         conflict_rel_def intro!: ext
-        dest: literals_are_in_N⇩0_in_N⇩1)
+        dest: literals_are_in_N\<^sub>0_in_N\<^sub>1)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp conflict_option_assn_def
     by (auto simp: prod_hrp_comp hrp_comp_def hr_comp_invalid)
@@ -1496,17 +1496,17 @@ proof -
   
   show \<open>get_conflict_wl S = None\<close>
     using confl .
-  have \<open>cdcl⇩W_restart_mset.cdcl⇩W_all_struct_inv
-       (state⇩W_of (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S)))\<close> and
-    no_tauto: \<open>∀D∈#init_clss (state⇩W_of (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S))).
-      ¬ tautology D\<close> 
-      \<open>∀D∈#learned_clss (state⇩W_of (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S))).
-      ¬ tautology D\<close> 
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv
+       (state\<^sub>W_of (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S)))\<close> and
+    no_tauto: \<open>\<forall>D\<in>#init_clss (state\<^sub>W_of (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S))).
+      \<not> tautology D\<close> 
+      \<open>\<forall>D\<in>#learned_clss (state\<^sub>W_of (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S))).
+      \<not> tautology D\<close> 
       and
-    dist: \<open>cdcl⇩W_restart_mset.distinct_cdcl⇩W_state
-    (state⇩W_of (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S)))\<close>
+    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state
+    (state\<^sub>W_of (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S)))\<close>
     using struct_invs unfolding twl_struct_invs_def
-      cdcl⇩W_restart_mset.cdcl⇩W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by fast+
   have \<open>distinct_mset_set (mset ` set (tl N))\<close>
     apply (subst append_take_drop_id[of \<open>U\<close> \<open>tl N\<close>, symmetric])
@@ -1514,7 +1514,7 @@ proof -
     apply (subst image_Un)
     apply (subst distinct_mset_set_union)
     using dist
-    by (auto simp: C_def S cdcl⇩W_restart_mset.distinct_cdcl⇩W_state_def cdcl\<^sub>W_restart_mset_state
+    by (auto simp: C_def S cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset_state
         mset_take_mset_drop_mset drop_Suc)
   moreover have NC: \<open>N!C \<in> set (tl N)\<close>
      using w_ge_0 w_le_length_S unfolding C_def S
@@ -1606,44 +1606,44 @@ lemmas unit_propagation_inner_loop_body_wl_D_code_refine[sepref_fr_rules] =
      unfolded twl_st_l_trail_assn_def]
 
 (*TODO Move*)
-definition (in -) conflict_assn_is_None :: ‹_ \<Rightarrow> bool› where
-  ‹conflict_assn_is_None = (\<lambda>(b, _, _). b)›
+definition (in -) conflict_assn_is_None :: \<open>_ \<Rightarrow> bool\<close> where
+  \<open>conflict_assn_is_None = (\<lambda>(b, _, _). b)\<close>
 
-lemma conflict_assn_is_None_is_None: ‹(RETURN o conflict_assn_is_None, RETURN o is_None) \<in> 
-  option_conflict_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel›
+lemma conflict_assn_is_None_is_None: \<open>(RETURN o conflict_assn_is_None, RETURN o is_None) \<in> 
+  option_conflict_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
   by (intro nres_relI frefI)
    (auto simp: option_conflict_rel_def conflict_assn_is_None_def split: option.splits)
 
 lemma conflict_assn_is_None_conflict_assn_is_None: 
- ‹(return o conflict_assn_is_None, RETURN o conflict_assn_is_None) \<in> 
-  (bool_assn *assn uint32_nat_assn *assn array_assn (option_assn bool_assn))\<^sup>k \<rightarrow>\<^sub>a bool_assn›
+ \<open>(return o conflict_assn_is_None, RETURN o conflict_assn_is_None) \<in> 
+  (bool_assn *assn uint32_nat_assn *assn array_assn (option_assn bool_assn))\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare
    (sep_auto simp: conflict_assn_is_None_def)
 
 lemma conflict_assn_is_None_is_none_Code[sepref_fr_rules]:
-  ‹(return ∘ conflict_assn_is_None, RETURN ∘ is_None) ∈ conflict_option_assn⇧k →⇩a bool_assn›
+  \<open>(return ∘ conflict_assn_is_None, RETURN ∘ is_None) \<in> conflict_option_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   using conflict_assn_is_None_conflict_assn_is_None[FCOMP conflict_assn_is_None_is_None,
   unfolded conflict_option_assn_def[symmetric]] .
 
-definition (in -) conflict_assn_is_empty :: ‹_ \<Rightarrow> bool› where
-  ‹conflict_assn_is_empty = (\<lambda>(_, n, _). n = 0)›
+definition (in -) conflict_assn_is_empty :: \<open>_ \<Rightarrow> bool\<close> where
+  \<open>conflict_assn_is_empty = (\<lambda>(_, n, _). n = 0)\<close>
 
-lemma conflict_assn_is_empty_is_empty: ‹(RETURN o conflict_assn_is_empty, RETURN o (\<lambda>D. Multiset.is_empty(the D))) \<in>
+lemma conflict_assn_is_empty_is_empty: \<open>(RETURN o conflict_assn_is_empty, RETURN o (\<lambda>D. Multiset.is_empty(the D))) \<in>
   [\<lambda>D. D \<noteq> None]\<^sub>f
-  option_conflict_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel›
+  option_conflict_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
   by (intro nres_relI frefI)
    (auto simp: option_conflict_rel_def conflict_assn_is_empty_def conflict_rel_def Multiset.is_empty_def
       split: option.splits)
 
 lemma conflict_assn_is_empty_conflict_assn_is_empty: 
- ‹(return o conflict_assn_is_empty, RETURN o conflict_assn_is_empty) \<in> 
-  (bool_assn *assn uint32_nat_assn *assn array_assn (option_assn bool_assn))\<^sup>k \<rightarrow>\<^sub>a bool_assn›
+ \<open>(return o conflict_assn_is_empty, RETURN o conflict_assn_is_empty) \<in> 
+  (bool_assn *assn uint32_nat_assn *assn array_assn (option_assn bool_assn))\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare
      (sep_auto simp: conflict_assn_is_empty_def uint32_nat_rel_def br_def nat_of_uint32_0_iff)
 
 lemma conflict_assn_is_empty_is_empty_code[sepref_fr_rules]:
-  ‹(return ∘ conflict_assn_is_empty, RETURN ∘ the_is_empty) ∈ 
-      [\<lambda>D. D \<noteq> None]\<^sub>a conflict_option_assn⇧k → bool_assn›
+  \<open>(return ∘ conflict_assn_is_empty, RETURN ∘ the_is_empty) \<in> 
+      [\<lambda>D. D \<noteq> None]\<^sub>a conflict_option_assn\<^sup>k \<rightarrow> bool_assn\<close>
   using conflict_assn_is_empty_conflict_assn_is_empty[FCOMP conflict_assn_is_empty_is_empty,
   unfolded conflict_option_assn_def[symmetric]] unfolding the_is_empty_def
   by simp
