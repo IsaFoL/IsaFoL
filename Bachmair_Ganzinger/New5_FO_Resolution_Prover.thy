@@ -3090,12 +3090,12 @@ proof -
       done
     then have "\<gamma> \<in> src_ext_Ri (?N j)"
       .
-find_theorems gd.ord_\<Gamma> name: sound
     then have "\<gamma> \<in> src_ext_Ri (lSup (lmap grounding_of_state Sts))"
       using j_p'
       by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_lSup src_ext.Ri_mono)
     then have "\<gamma> \<in> src_ext_Ri (llimit (lmap grounding_of_state Sts))"
       using src_ext.derivation_supremum_llimit_satisfiable[of Ns] derivns ns by blast
+  }
   then have "src_ext.saturated_upto (llimit (lmap grounding_of_state Sts))"
     sorry
   then have "src.saturated_upto (llimit (lmap grounding_of_state Sts))"
@@ -3103,7 +3103,7 @@ find_theorems gd.ord_\<Gamma> name: sound
   then have "src.saturated_upto (grounding_of_state (limit_state Sts))"
     sorry
   then have "{#} \<in> grounding_of_state (limit_state Sts)" using src.saturated_upto_refute_complete unsat
-    by auto
+    by auto 
   then show "{#} \<in> clss_of_state (limit_state Sts)"
     sorry
 qed
