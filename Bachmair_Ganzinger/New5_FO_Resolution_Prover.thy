@@ -3114,8 +3114,8 @@ proof -
       by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_lSup src_ext.Ri_mono)
     then have "\<gamma> \<in> src_ext_Ri (llimit (lmap grounding_of_state Sts))"
       using src_ext.derivation_supremum_llimit_satisfiable[of Ns] derivns ns by blast
-  }
-  then have "src2.saturated_upto (llimit (lmap grounding_of_state Sts))" unfolding src2.saturated_upto_def gd2.inferences_from_def infer_from_def
+  } (* Probably I need some "moreover" here to consider also the part of src_ext that is not in gd2...  *)
+  then have "src_ext.saturated_upto (llimit (lmap grounding_of_state Sts))" unfolding src_ext.saturated_upto_def src_ext.inferences_from_def
     sorry
   then have "src.saturated_upto (llimit (lmap grounding_of_state Sts))"
     using standard_redundancy_criterion_extension_saturated_up_to sorry
