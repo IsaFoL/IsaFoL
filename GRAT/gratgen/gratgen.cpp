@@ -419,7 +419,7 @@ atomic<size_t> stat_rat_run_h(0);     ///< How often RAT-run heuristics was succ
  */
 struct pos_t {
   size_t pos;           ///< Position wrt the start of the clause database
-  pos_t() : pos(-1) {};  ///< Initialize position to null
+  pos_t() : pos(-1) {};  ///< Initialize position to invalid value
   explicit pos_t(size_t _pos) : pos(_pos) {}; ///< Initialize with a size_t, specifying the position
 
   operator bool() const {return pos != -1;}  ///< True if position is not null
@@ -555,30 +555,61 @@ public:
     Literal_Container &operator=(const Literal_Container&) = delete;
     Literal_Container(const Literal_Container&) = delete;
 
-    /// Iterator pointing to beginning of literals
+    /**
+     * Iterator pointing to beginning of literals
+     */
     lit_t* begin() {return array;}
+    /**
+     * @copydoc begin
+     */
     const lit_t* begin() const {return array;}
+    /**
+     * @copydoc begin
+     */
     const lit_t* cbegin() const {return array;}
 
-    /// Iterator pointing to end of literals (zero literal)
+    /**
+     * Iterator pointing to end of literals (zero literal)
+     */
     lit_t* end() {return &array[length];}
+    /**
+     * @copydoc end
+     */
     const lit_t* end() const {return &array[length];}
+    /**
+     * @copydoc end
+     */
     const lit_t* cend() const {return &array[length];}
 
+    /**
+     * Index operator offering direct access to literals
+     */
     lit_t &operator[](size_t idx) {return array[idx];}
+    /**
+     * @copydoc operator[]
+     */
     lit_t operator[](size_t idx) const {return array[idx];}
 
+    /**
+     * Sort the literals in ascending order (0 stays at end)
+     */
     void sort() {
       assert(length > 0);
       std::sort(begin(), end());
     }
 
+    /**
+     * Swap two literals by index
+     */
     void swap(size_t i1, size_t i2) {
       lit_t tmp = array[i2];
       array[i2] = array[i1];
       array[i1] = tmp;
     }
 
+    /**
+     * Swap two literals by reference
+     */
     void swap(lit_t *l1, lit_t *l2) {
       assert(l1 >= array && l1 < &array[length]);
       assert(l2 >= array && l2 < &array[length]);
@@ -589,6 +620,9 @@ public:
     }
 
   private:
+    /**
+     * Remove duplicate literals (keeping 0 at end) and return the number of removed elements
+     */
     size_t uniquify() {
       lit_t* real_end = end()+1;
 
@@ -616,6 +650,9 @@ private:
   Clause(clause_id_t id)
     : clause_id(id), id_in_proof(0), pivot(0), literals() {}
 
+  /**
+   * Initialize the clause after all literals have been appended
+   */
   void init_after_literals(size_t length) {
     assert(literals[length] == 0);
     assert(length >= 1);
@@ -631,29 +668,57 @@ public:
   Clause& operator=(const Clause&) = delete;
   Clause(const Clause&) = delete;
 
+  /**
+   * Return the original clause ID
+   */
   clause_id_t get_clause_id() {return clause_id;}
 
+  /**
+   * Set the ID the clause will have in the GRAT proof
+   */
   void set_id_in_proof(clause_id_t id) {id_in_proof = id;}
+
+  /**
+   * Return the ID the clause has in the GRAT proof
+   */
   clause_id_t get_id_in_proof() {return id_in_proof;}
 
+  /**
+   * Get the literal container
+   */
   Literal_Container &get_literals() {
     return literals;
   }
+  /**
+   * @copydoc get_literals
+   */
   Literal_Container const &get_literals() const {
     return literals;
   }
 
+  /**
+   * Return the number of the literals (excluding the trailing 0)
+   */
   size_t get_length() const {return literals.length;}
 
+  /**
+   * Return the original pivot literal
+   */
   lit_t get_pivot() {
     return pivot;
   }
 
+  /**
+   * Return the first watched literal
+   */
   lit_t get_watched_lit1() {
     assert(literals.length >= 2);
     return literals[0];
   }
 
+  /**
+   * Return the second watched literal
+   */
   lit_t get_watched_lit2() {
     assert(literals.length >= 2);
     return literals[1];
@@ -678,7 +743,9 @@ public:
     return *this;
   };
 
-  /// Construct a new clause on the DB vector
+  /**
+   * Construct a new clause on the DB vector
+   */
   pos_t new_clause(clause_id_t id) {
     static_assert(Clause::num_members*sizeof(cdb_t) == sizeof(Clause),
       "Clause class has incorrect number of data-members");
@@ -692,19 +759,31 @@ public:
     return c2p(new_clause);
   }
 
+  /**
+   * Construct a temporary clause on the DB vector
+   */
   pos_t new_temp_clause() {
     return new_clause(-1);
   }
 
+  /**
+   * Remove a temporary clause again
+   */
   void remove_temp_clause(pos_t pos) {
     assert(0 < pos.pos && pos.pos < db.size());
     db.resize(pos.pos);
   }
 
+  /**
+  * Append a literal to the current clause
+  */
   void append_literal(lit_t lit) {
     db.push_back(lit);
   }
 
+  /**
+   * Finish initialization after all literals have been appended to a clause
+   */
   Clause *finish_clause(pos_t pos, size_t len, bool sort, bool uniquify) {
     Clause *cl = p2c(pos);
 
@@ -1008,7 +1087,7 @@ public:
  */
 class Lemma_Proof {
 public:
-  // Writes out the proof object using the specified writer, optionally including the lemma itself
+  /// Writes out the proof object using the specified writer, optionally including the lemma itself
   virtual void write(Proof_Writer&, bool include_lemma) = 0;
 
   clause_id_t get_lemma_id() {return lemma_id;}
@@ -1560,7 +1639,8 @@ void Parser::parse_proof(istream &in) {
       in.get();
       pos_t pos = parse_deletion(in);
 
-      if (pos) glb.items.push_back(item_t(true,pos));
+      if (pos)
+        glb.items.push_back(item_t(true,pos));
     } else {
       pos_t pos = parse_clause(in);
       glb.items.push_back(item_t(false,pos));
@@ -2069,7 +2149,7 @@ private:
    *
    * @param cl Clause to move to core
    * @param to_outgoing If set, the clause is also added to outgoing marked queue.
-   *      If, however, this clause has been synched from global marked queue, tere is no point re-adding it to local queue, and this should be clear.
+   *      If, however, this clause has been synched from global marked queue, there is no point re-adding it to local queue, and this should be clear.
    */
   inline void move_to_core(Clause *cl, bool to_outgoing = true) {
     auto id = cl->get_clause_id();
@@ -2251,10 +2331,12 @@ bool Verifier::sync_marked(bool force) {
   assert(!cfg_single_threaded);
 
   if (force) {
-    if (!marked_outgoing.size()) return false;
+    if (!marked_outgoing.size())
+      return false;
     while (!sdata->bulk_mark_clauses(db, marked_outgoing, glb_marked_sync_idx, failed_sync_attempts));
   } else {
-    if (!sdata->bulk_mark_clauses(db, marked_outgoing, glb_marked_sync_idx, failed_sync_attempts)) return false;
+    if (!sdata->bulk_mark_clauses(db, marked_outgoing, glb_marked_sync_idx, failed_sync_attempts))
+      return false;
   }
 
   // Successfully synchronized, marked_outgoing now contains incoming clauses
@@ -2783,12 +2865,14 @@ void Verifier::bwd_pass(bool show_status_bar) {
 
     if (!item.is_erased()) {
       Clause *cl = db->p2c(item.get_pos());
+      if (cl->get_clause_id() == 1154382)
+        cl->get_clause_id();
 
       if (item.is_deletion()) {
         if (!cfg_ignore_deletion) readd_clause(cl); // We have erased deletions of clauses that were not on watchlist, so readding is safe here.
       } else {
         // Remove from watchlists
-        if (cl->get_length() > 2) {
+        if (cl->get_length() >= 2) {
           bool inwl = rem_clause(cl);
           assert(inwl);
           (void)inwl; // Silence unused warning
