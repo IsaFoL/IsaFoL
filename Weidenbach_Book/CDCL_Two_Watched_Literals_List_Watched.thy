@@ -208,6 +208,11 @@ definition update_clause_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow>
 
   })\<close>
 
+definition unit_prop_body_wl_find_unwatched_inv where
+\<open>unit_prop_body_wl_find_unwatched_inv f C S \<longleftrightarrow>
+   (get_clauses_wl S)!C \<noteq> [] \<and>
+   (f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l ((get_clauses_wl S)!C)). - L \<in> lits_of_l (get_trail_wl S)))\<close>
+
 definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
     (nat \<times> 'v twl_st_wl) nres" where
   \<open>unit_propagation_inner_loop_body_wl L w S = do {
@@ -220,7 +225,7 @@ definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat 
       then RETURN (w+1, S)
       else do {
         f \<leftarrow> find_unwatched_l (get_trail_wl S) ((get_clauses_wl S)!C);
-        ASSERT (f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l ((get_clauses_wl S)!C)). - L \<in> lits_of_l (get_trail_wl S)));
+        ASSERT (unit_prop_body_wl_find_unwatched_inv f C S);
         case f of
           None \<Rightarrow>
             if val_L' = Some False
@@ -393,10 +398,6 @@ proof -
       init_inv: \<open>unit_prop_body_wl_inv S w L\<close> and
       val_L'_not_Some_True: \<open>valued (get_trail_wl S) (get_clauses_wl S ! (watched_by S L ! w) ! (1 - i)) \<noteq> Some True\<close> and
       f'_f: \<open>(Some f, Some f') \<in> ?find\<close> and
-      fst_f'_not_None: \<open>(\<forall>L\<in>#mset (unwatched_l (get_clauses_l T ! C')). - L \<in> lits_of_l (get_trail_l T)) \<Longrightarrow>
-    (Some f = None) =
-    (\<forall>L\<in>#mset (unwatched_l (get_clauses_wl S ! (watched_by S L ! w))).
-        - L \<in> lits_of_l (get_trail_wl S))\<close> and
       ff': \<open>(f, f') \<in> nat_rel\<close> and
       \<open>f' < length (get_clauses_l T ! C')\<close> and
       C'_le_length: \<open>w < length (watched_by S L)\<close> and
@@ -566,7 +567,8 @@ proof -
       by (auto simp: in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def correct_watching.simps S
           intro!: nth_in_set_tl
           intro!: bexI[of _ \<open>N ! (W L ! w)\<close>])
-    subgoal using zero_le_W_L_w by (auto simp add: S)
+    subgoal using zero_le_W_L_w watched_C'
+        by (auto simp add: S unit_prop_body_wl_find_unwatched_inv_def)
     subgoal by (simp add: S)
     subgoal by (simp add: S)
     subgoal by (auto simp add: clause_to_update_def correct_watching.simps mark_conflict_wl_def S

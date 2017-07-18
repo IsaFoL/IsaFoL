@@ -365,7 +365,7 @@ definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> n
       then RETURN (w+1, S)
       else do {
         f \<leftarrow> find_unwatched_l (get_trail_wl S) ((get_clauses_wl S)!C);
-        ASSERT (f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l ((get_clauses_wl S)!C)). - L \<in> lits_of_l (get_trail_wl S)));
+        ASSERT (unit_prop_body_wl_find_unwatched_inv f C S);
         case f of
           None \<Rightarrow>
             if val_L' = Some False
@@ -406,23 +406,15 @@ proof -
     by (cases S)
   have f': \<open>(f, f') \<in> \<langle>Id\<rangle>option_rel\<close> if \<open>(f, f') \<in> Id\<close> for f f'
     using that by auto
-  have valued: \<open>(valued M L, valued M' L') \<in>
-    {(val, val'). val = val' \<and>
-       val = (if undefined_lit M L then None else if L \<in> lits_of_l M then Some True else Some False)}\<close>
-    if \<open>M = M'\<close> and \<open>L = L'\<close>
-    for M M' :: \<open>(nat literal, nat literal, nat) annotated_lit list\<close> and L L'
-    using that by (auto simp: valued_def)
   define find_unwatched_wl :: \<open>(nat,nat) ann_lits \<Rightarrow> _\<close> where
     \<open>find_unwatched_wl = find_unwatched_l\<close>
-  have find_unwatched: \<open>find_unwatched_wl M (N ! (W K ! w))
-    \<le> \<Down> {(L, L'). L = L' \<and> (L \<noteq> None \<longrightarrow> the L < length (N ! (W K ! w)) \<and> the L \<ge> 2)}
-        (find_unwatched_l M' (N' ! (W' K ! w)))\<close>
+  have find_unwatched: \<open>find_unwatched_wl (get_trail_wl S) ((get_clauses_wl S)!((watched_by S K) ! w))
+    \<le> \<Down> {(L, L'). L = L' \<and> (L \<noteq> None \<longrightarrow> the L < length ((get_clauses_wl S)!((watched_by S K) ! w)) \<and> the L \<ge> 2)}
+        (find_unwatched_l (get_trail_wl S) ((get_clauses_wl S)!((watched_by S K) ! w)))\<close>
       (is \<open>_ \<le> \<Down> ?find_unwatched _\<close>)
-    if \<open>N=N'\<close> and \<open>M = M'\<close> and \<open>W = W'\<close>
-    for N N' :: \<open>nat literal list list\<close> and
-      M M' :: \<open>(nat literal, nat literal, nat) annotated_lit list\<close> and W W'
-    unfolding find_unwatched_l_def find_unwatched_wl_def
-    by (auto simp: that intro: RES_refine)
+    for C and L and K
+    unfolding find_unwatched_l_def find_unwatched_wl_def S
+    by (auto simp: intro!: RES_refine)
 
   have \<open>mset `# mset (take n (tl xs)) +
     mset `# mset (drop (Suc n) xs) =
@@ -433,103 +425,37 @@ proof -
          (mset `# mset (tl xs)) + a + b\<close>
     for a b and xs :: \<open>'a list list\<close> and n :: nat
     by auto
-  have in_lits_of_atms_S: \<open>N' ! a ! b
-    \<in># all_lits_of_mm
-         (cdcl\<^sub>W_restart_mset.clauses
-           (state\<^sub>W_of (twl_st_of_wl None S)))\<close>
-    if \<open>a > 0\<close> and \<open>a < length N\<close> and \<open>b < length (N ! a)\<close> and \<open>N' = N\<close>
-    for a b :: nat and N'
-  proof -
-    have \<open>atm_of (N ! a ! b) \<in> atms_of_ms (mset ` set (tl N))\<close>
-    using that by (auto simp: in_all_lits_of_mm_ain_atms_of_iff clauses_def S mset_take_mset_drop_mset
-        atms_of_ms_def drop_Suc atms_of_def nth_in_set_tl intro!: bexI[of _ \<open>N!a\<close>] )
-    then show ?thesis
-      using that
-      by (simp add: S clauses_def mset_take_mset_drop_mset' m in_all_lits_of_mm_ain_atms_of_iff)
-  qed
-  have N_W_K_w_0: \<open>0 < length (N ! (W K ! w))\<close>
-    sorry
-  have \<open>update_clause_wl K (watched_by S K ! w) w
+
+  have update_clause_wl: \<open>update_clause_wl K (watched_by S K ! w) w
      (if get_clauses_wl S ! (watched_by S K ! w) ! 0 = K then 0 else 1) n S
-    \<le> ⇓ {((n', T'), n, T). n' = n \<and> T = T' \<and> literals_are_N\<^sub>0 T'}
-       (update_clause_wl K (watched_by S K ! w) w
+    \<le> \<Down> {((n', T'), n, T). n' = n \<and> T = T' \<and> literals_are_N\<^sub>0 T'}
+       (update_clause_wl K (watched_by S K ! w) w    
          (if get_clauses_wl S ! (watched_by S K ! w) ! 0 = K then 0 else 1) n' S)\<close>
-    if \<open>(n, n') \<in> Id\<close> and \<open>unit_prop_body_wl_D_inv S w K\<close> \<open>(f, f') \<in> ?find_unwatched N W\<close> and
-    \<open>f = Some n\<close> \<open>f' = Some n'\<close>
-    for n n'
+    if \<open>(n, n') \<in> Id\<close> and \<open>unit_prop_body_wl_D_inv S w K\<close> 
+      \<open>(f, f') \<in> ?find_unwatched K\<close> and
+      \<open>f = Some n\<close> \<open>f' = Some n'\<close> and
+      \<open>unit_prop_body_wl_find_unwatched_inv f (watched_by S K ! w) S\<close>
+    for n n' f f'
     unfolding update_clause_wl_def S
     apply clarify
     apply refine_vcg
-    using that N\<^sub>0 apply (auto simp: clauses_def  mset_take_mset_drop_mset
+    using that N\<^sub>0
+    by (auto simp: clauses_def  mset_take_mset_drop_mset mset_tl_update_swap unit_prop_body_wl_find_unwatched_inv_def
           mset_take_mset_drop_mset' m S unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def)
-          apply (subst mset_tl_update_swap)
-          apply assumption
-          using N_W_K_w_0 apply assumption
-          apply auto
-          sorry
-          thm literals_are_in_N\<^sub>0_nth additional_WS_invs_def find_unwatched["to_\<Down>"] 
-          find_theorems list_update tl 
   show ?thesis
     unfolding unit_propagation_inner_loop_body_wl_D_def find_unwatched_wl_def[symmetric]
     unfolding unit_propagation_inner_loop_body_wl_def
-    
     supply [[goals_limit=1]]
-    apply (refine_rcg valued find_unwatched f')
+    apply (refine_rcg find_unwatched f')
     subgoal using assms unfolding S unit_prop_body_wl_D_inv_def by auto
     subgoal by simp
     subgoal by (auto simp: unit_prop_body_wl_D_inv_def)
     subgoal by simp
     subgoal by simp
     subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
     subgoal by (auto simp: mark_conflict_wl_def S unit_prop_body_wl_D_inv_def clauses_def)
     subgoal by (auto simp: propgate_lit_wl_def S unit_prop_body_wl_D_inv_def clauses_def)
-    subgoal using N\<^sub>0 apply (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset'
-          clauses_def image_image m all_lits_of_mm_union is_N\<^sub>1_def S)
-    oops
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal for M'' x2 N'' x2a U'' x2b D'' x2c NP'' x2d UP'' x2e WS'' Q'' M' x2g
-      N' x2h U' x2i D' x2j NP' x2k UP' x2l WS' Q'
-      apply (subgoal_tac \<open>N' ! (Q' K ! w) ! (1 - (if N' ! (Q' K ! w) ! 0 = K then 0 else 1)) \<in>#
-        all_lits_of_mm (cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None S)))\<close>)
-      subgoal using eq_commute[THEN iffD1, OF N\<^sub>0[unfolded is_N\<^sub>1_def]]
-        by (auto simp: image_image S clauses_def mset_take_mset_drop_mset' m is_N\<^sub>1_def
-            all_lits_of_mm_union)[]
-      subgoal by (rule in_lits_of_atms_S) blast+
-      done
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal
-      using N\<^sub>0 by (simp add: S clauses_def mset_take_mset_drop_mset
-          mset_take_mset_drop_mset' m)
-    subgoal by (rule literals_are_in_N\<^sub>0_nth) fast+
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal
-      using N\<^sub>0 by (simp add: S clauses_def mset_take_mset_drop_mset
-          mset_take_mset_drop_mset' m)
-    subgoal by (auto split: if_splits)
-    subgoal
-      using N\<^sub>0 by (simp add: S clauses_def mset_take_mset_drop_mset
-          mset_take_mset_drop_mset' m)
-    subgoal by simp
-    subgoal by simp
-    subgoal
-      using N\<^sub>0 unfolding S
-      by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset'
-          clauses_def image_image m all_lits_of_mm_union is_N\<^sub>1_def)
-    subgoal by simp
-    subgoal
-      using N\<^sub>0 by (simp add: S clauses_def mset_take_mset_drop_mset
-          mset_take_mset_drop_mset' m mset_tl_update_swap)
+    subgoal by (rule update_clause_wl) assumption+
     done
 qed
 
