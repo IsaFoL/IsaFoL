@@ -737,62 +737,41 @@ definition (in -) list_of_mset2 :: "nat literal \<Rightarrow> nat literal \<Righ
 definition (in -) single_of_mset where
   \<open>single_of_mset D = SPEC(\<lambda>L. D = mset [L])\<close>
 
-definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
-  \<open>backtrack_wl_D S\<^sub>0 =
-   do {
-      let (M, N, U, D, NP, UP, Q, W) = S\<^sub>0 in
-      do {
-        ASSERT(M \<noteq> []);
-        let L = lit_of (hd M);
-        ASSERT(twl_stgy_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
-        ASSERT(twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)));
-        ASSERT(no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
-        ASSERT(no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W))));
-        ASSERT(D ~= None);
-        ASSERT(literals_are_in_N\<^sub>0 (the D));
-        ASSERT(-L \<in># the D);
-        D' \<leftarrow> extract_shorter_conflict_wl (M, N, U, D, NP, UP, Q, W);
-        ASSERT(get_level M L = count_decided M);
-        ASSERT(D' \<noteq> {#});
-        ASSERT(ex_decomp_of_max_lvl M (Some D') L);
-        ASSERT(D' \<subseteq># the D);
-        ASSERT(-L \<in># D');
-        ASSERT(literals_are_in_N\<^sub>0 D');
-        ASSERT(\<forall>L\<in># D'. defined_lit M L);
-        M1 \<leftarrow> find_decomp_wl (M, N, U, Some D', NP, UP, Q, W) L;
+definition backtrack_l_D_inv where
+  \<open>backtrack_l_D_inv S \<longleftrightarrow> backtrack_wl_inv S \<and> literals_are_N\<^sub>0 S\<close>
 
-        if size D' > 1
-        then do {
-          ASSERT(\<forall>L' \<in># D' - {#-L#}. get_level M L' = get_level M1 L');
-          ASSERT(\<exists>L' \<in># D' - {#-L#}. get_level M L' = get_maximum_level M (D' - {#-L#}));
-          ASSERT(\<exists>L' \<in># D' - {#-L#}. get_level M1 L' = get_maximum_level M1 (D' - {#-L#}));
-          ASSERT(get_level M L > get_maximum_level M (D' - {#-L#}));
-          ASSERT(distinct_mset D');
-          L' \<leftarrow> find_lit_of_max_level_wl' M1 N U D' NP UP Q W L;
-          ASSERT(L \<noteq> -L');
-          ASSERT(-L \<in># D');
-          ASSERT(L' \<in># D');
-          let K = -L;
-          D' \<leftarrow> list_of_mset2 K L' D';
-          ASSERT(atm_of L \<in> atms_of_mm (mset `# mset (tl N) + NP));
-          ASSERT(atm_of L' \<in> atms_of_mm (mset `# mset (tl N) + NP));
-          ASSERT(-L \<in> snd ` D\<^sub>0);
-          ASSERT(L' \<in> snd ` D\<^sub>0);
-          ASSERT(undefined_lit M1 (-L));
-          let W = W(L':= W L' @ [length N]);
-          let W = W(-L:= W (-L) @ [length N]);
-          RETURN (Propagated (-L) (length N) # M1, N @ [array_of_arl D'], U,
-            None, NP, UP, {#L#}, W)
-        }
-        else do {
-          D' \<leftarrow> single_of_mset D';
-          ASSERT(undefined_lit M1 (-L));
-          ASSERT(-L \<in> snd ` D\<^sub>0);
-          RETURN (Propagated (-L) 0 # M1, N, U, None, NP, add_mset {#D'#} UP, add_mset L {#}, W)
-        }
+
+definition propgate_bt_wl_D :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
+  \<open>propgate_bt_wl_D = (\<lambda>L L' (M, N, U, D, NP, UP, Q, W). do {
+    D'' \<leftarrow> list_of_mset2 L L' (the D);
+    RETURN (Propagated (-L) (length N) # M,
+        N @ [[-L, L'] @ (remove1 (-L) (remove1 L' D''))], U,
+          None, NP, UP, {#L#}, W(-L:= W (-L) @ [length N], L':= W L' @ [length N]))
+      })\<close>
+
+definition propgate_unit_bt_wl_D :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close> where
+  \<open>propgate_unit_bt_wl_D = (\<lambda>L (M, N, U, D, NP, UP, Q, W). do {
+        D' \<leftarrow> single_of_mset (the D);
+        RETURN (Propagated (-L) 0 # M, N, U, None, NP, add_mset {#D'#} UP, {#L#}, W)
+    })\<close>
+
+definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+  \<open>backtrack_wl_D S =
+    do {
+      ASSERT(backtrack_wl_inv S);
+      let L = lit_of (hd (get_trail_wl S));
+      S \<leftarrow> extract_shorter_conflict_wl S;
+      S \<leftarrow> find_decomp_wl L S;
+
+      if size (the (get_conflict_wl S)) > 1
+      then do {
+        L' \<leftarrow> find_lit_of_max_level_wl S L;
+        propgate_bt_wl_D L L' S
       }
-    }
-  \<close>
+      else do {
+        propgate_unit_bt_wl_D L S
+     }
+  }\<close>
 
 lemma literals_are_in_N\<^sub>0_mono:
   assumes N: \<open>literals_are_in_N\<^sub>0 D'\<close> and D: \<open>D \<subseteq># D'\<close>
