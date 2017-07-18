@@ -3115,7 +3115,21 @@ proof -
     then have "\<gamma> \<in> src_ext_Ri (llimit (lmap grounding_of_state Sts))"
       using src_ext.derivation_supremum_llimit_satisfiable[of Ns] derivns ns by blast
   } (* Probably I need some "moreover" here to consider also the part of src_ext that is not in gd2...  *)
-  then have "src_ext.saturated_upto (llimit (lmap grounding_of_state Sts))" unfolding src_ext.saturated_upto_def src_ext.inferences_from_def
+  moreover
+  {
+    fix \<gamma> :: "'a inference"
+    assume \<gamma>_p: "\<gamma> \<in> gd_ord_\<Gamma>'" "\<gamma> \<notin> gd2.ord_\<Gamma>"
+    let ?Cs = "side_prems_of \<gamma>"
+    let ?D = "main_prem_of \<gamma>"
+    let ?E = "concl_of \<gamma>"
+    assume a: "set_mset ?Cs \<union> {?D} \<subseteq> grounding_of_state (limit_state Sts) - src.Rf (grounding_of_state (limit_state Sts))"
+    
+  }
+  ultimately
+  have "src_ext.saturated_upto (llimit (lmap grounding_of_state Sts))" unfolding src_ext.saturated_upto_def src_ext.inferences_from_def infer_from_def
+    apply auto
+    apply (subgoal_tac "llimit (lmap grounding_of_state Sts) = grounding_of_state (limit_state Sts)")
+     apply auto[]
     sorry
   then have "src.saturated_upto (llimit (lmap grounding_of_state Sts))"
     using standard_redundancy_criterion_extension_saturated_up_to sorry
