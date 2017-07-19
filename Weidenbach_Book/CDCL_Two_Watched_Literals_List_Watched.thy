@@ -961,7 +961,7 @@ definition decide_wl_or_skip_pre where
 
 definition decide_lit_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
   \<open>decide_lit_wl = (\<lambda>L' (M, N, U, D, NP, UP, Q, W).
-      (Decided (L') # M, N, U, D, NP, UP, {#- L'#}, W))\<close>
+      (Decided L' # M, N, U, D, NP, UP, {#- L'#}, W))\<close>
 
 
 definition decide_wl_or_skip :: "'v twl_st_wl \<Rightarrow> (bool \<times> 'v twl_st_wl) nres" where

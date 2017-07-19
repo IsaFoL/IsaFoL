@@ -1061,34 +1061,29 @@ qed
 
 subsubsection \<open>Decide or Skip\<close>
 
-definition find_unassigned_lit_wl_D where
+definition find_unassigned_lit_wl_D:: \<open>nat twl_st_wl \<Rightarrow> (nat twl_st_wl \<times> nat literal option) nres\<close> where
   \<open>find_unassigned_lit_wl_D S = (
      SPEC(\<lambda>((M, N, U, D, NP, UP, WS, Q), L).
          S = (M, N, U, D, NP, UP, WS, Q) \<and>
          (L \<noteq> None \<longrightarrow>
-            undefined_lit M (the L) \<and>
+            undefined_lit M (the L) \<and> the L \<in> snd ` D\<^sub>0 \<and>
             atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N)))) \<and>
          (L = None \<longrightarrow> (\<nexists>L'. undefined_lit M L' \<and>
             atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N)))))))
-
 \<close>
+
+
+definition decide_wl_or_skip_D_pre :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
+\<open>decide_wl_or_skip_D_pre S \<longleftrightarrow>
+   decide_wl_or_skip_pre S \<and> literals_are_N\<^sub>0 S\<close>
+
 definition decide_wl_or_skip_D :: "nat twl_st_wl \<Rightarrow> (bool \<times> nat twl_st_wl) nres" where
   \<open>decide_wl_or_skip_D S = (do {
-    ASSERT(twl_struct_invs (twl_st_of_wl None S));
-    ASSERT(twl_stgy_invs (twl_st_of_wl None S));
-    ASSERT(additional_WS_invs (st_l_of_wl None S));
-    ASSERT(get_conflict_wl S = None);
-    ASSERT(literals_are_N\<^sub>0 S);
+    ASSERT(decide_wl_or_skip_D_pre S);
     (S, L) \<leftarrow> find_unassigned_lit_wl_D S;
-    if L \<noteq> None
-    then do {
-      let (M, N, U, D, NP, UP, Q, W) = S;
-      ASSERT(L \<noteq> None);
-      ASSERT(the L \<in> snd ` D\<^sub>0);
-      let K = the L;
-      ASSERT(undefined_lit M K);
-      RETURN (False, (Decided K # M, N, U, D, NP, UP, {#-K#}, W))}
-    else do {RETURN (True, S)}
+    case L of
+      None \<Rightarrow> RETURN (True, S)
+    | Some L \<Rightarrow> RETURN (False, decide_lit_wl L S)
   })
 \<close>
 
@@ -1097,38 +1092,56 @@ theorem decide_wl_or_skip_D_spec:
   shows \<open>decide_wl_or_skip_D S
     \<le> \<Down> {((b', T'), b, T). b = b' \<and> T = T' \<and> literals_are_N\<^sub>0 T} (decide_wl_or_skip S)\<close>
 proof -
-  let ?clss = \<open>(\<lambda>(_, N, _). N)\<close>
-  let ?learned = \<open>(\<lambda>(_, _, U, _). U)\<close>
   have H: \<open>find_unassigned_lit_wl_D S \<le> \<Down> {((S', L'), L). S' = S \<and> L = L' \<and>
          (L \<noteq> None \<longrightarrow>
             undefined_lit (get_trail_wl S) (the L) \<and>
-            atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# mset (take (?learned S) (tl (?clss S))))) \<and>
+            atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# mset (take (get_learned_wl S) (tl (get_clauses_wl S))))) \<and>
          (L = None \<longrightarrow> (\<nexists>L'. undefined_lit (get_trail_wl S) L' \<and>
-            atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# mset (take (?learned S) (tl (?clss S))))))}
+            atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# mset (take (get_learned_wl S) (tl (get_clauses_wl S))))))}
      (find_unassigned_lit_wl S')\<close>
+    (is \<open>_ \<le> \<Down> ?find _\<close>)
     if \<open>S = S'\<close>
-    for S S'
+    for S S' :: \<open>nat twl_st_wl\<close>
     by (cases S') (auto simp: find_unassigned_lit_wl_def find_unassigned_lit_wl_D_def that
         intro!: RES_refine)
+  have [refine]: \<open>x = x' \<Longrightarrow> (x, x') \<in> \<langle>Id\<rangle> option_rel\<close>
+    for x x' by auto
+  have decide_lit_wl: "((False, decide_lit_wl L T), False, decide_lit_wl L' S')
+        \<in> {((b', T'), b, T).
+            b = b' \<and> T = T' \<and> literals_are_N\<^sub>0 T}"
+    if
+      SS': "(S, S') \<in> {(T', T). T = T' \<and> literals_are_N\<^sub>0 T}" and
+      "decide_wl_or_skip_pre S'" and
+      pre: "decide_wl_or_skip_D_pre S" and
+      LT_L': "(LT, bL') \<in> ?find S" and
+      LT: "LT = (T, bL)" and
+      "bL' = Some L'" and
+      "bL = Some L" and
+      LL': "(L, L') \<in> Id"
+    for S S' L L' LT bL bL' T
+  proof -
+    have N\<^sub>0: \<open>literals_are_N\<^sub>0 T\<close> and [simp]: \<open>T = S\<close>
+      using LT_L' pre unfolding LT decide_wl_or_skip_D_pre_def by fast+
+    have [simp]: \<open>S' = S\<close> \<open>L = L'\<close>
+      using SS' LL' by simp_all
+    have \<open>is_N\<^sub>1 (all_lits_of_mm (cdcl\<^sub>W_restart_mset.clauses
+            (state\<^sub>W_of (twl_st_of None (st_l_of_wl None (decide_lit_wl L' S))))))\<close>
+      using N\<^sub>0
+      by (cases S) (auto simp: decide_lit_wl_def clauses_def)
+    then show ?thesis
+      by auto
+  qed
 
   have \<open>(decide_wl_or_skip_D, decide_wl_or_skip) \<in> {((T'), (T)).  T = T' \<and> literals_are_N\<^sub>0 T} \<rightarrow>\<^sub>f
      \<langle>{((b', T'), (b, T)). b = b' \<and> T = T' \<and> literals_are_N\<^sub>0 T}\<rangle> nres_rel\<close>
     unfolding decide_wl_or_skip_D_def decide_wl_or_skip_def
     apply (intro frefI)
     apply (refine_vcg H)
+    subgoal unfolding decide_wl_or_skip_D_pre_def by blast
     subgoal by simp
     subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by auto
-    subgoal by simp
-    subgoal by (simp add: mset_take_mset_drop_mset' clauses_def)
-    subgoal by (auto simp add: mset_take_mset_drop_mset' clauses_def image_image
-          is_N\<^sub>1_alt_def in_N\<^sub>1_atm_of_in_atms_of_iff)
-    subgoal by (auto simp add: mset_take_mset_drop_mset' clauses_def image_image
-          is_N\<^sub>1_alt_def in_N\<^sub>1_atm_of_in_atms_of_iff)
-    subgoal by (auto simp add: mset_take_mset_drop_mset' clauses_def)
-    subgoal by (simp add: mset_take_mset_drop_mset' clauses_def)
+    subgoal unfolding decide_wl_or_skip_D_pre_def by fast
+    subgoal by (rule decide_lit_wl) assumption+
     done
   then show ?thesis
     using assms by (cases S) (auto simp: fref_def nres_rel_def)
