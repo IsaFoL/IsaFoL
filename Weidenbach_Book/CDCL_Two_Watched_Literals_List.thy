@@ -1386,7 +1386,8 @@ definition backtrack_l_inv where
       no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of None S)) \<and>
       get_conflict_l S \<noteq> None \<and>
       twl_struct_invs (twl_st_of None S) \<and>
-      twl_stgy_invs (twl_st_of None S)
+      twl_stgy_invs (twl_st_of None S) \<and>
+      additional_WS_invs S
   \<close>
 
 definition propgate_bt_l :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
