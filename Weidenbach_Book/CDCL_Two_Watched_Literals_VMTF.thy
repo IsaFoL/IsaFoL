@@ -1088,14 +1088,14 @@ abbreviation abs_l_vmtf_inv :: \<open>(nat, nat) ann_lits \<Rightarrow> nat abs_
 subsubsection \<open>Implementation\<close>
 
 type_synonym (in -) vmtf_imp = \<open>l_vmtf_atm list \<times> nat \<times> nat option \<times> nat option\<close>
-type_synonym (in -) vmtf_imp_remove = \<open>vmtf_imp \<times> nat list\<close>
+type_synonym (in -) vmtf_remove_int = \<open>vmtf_imp \<times> nat list\<close>
 
 text \<open>
   We use the opposite direction of the VMTF paper: The latest added element \<^term>\<open>lst\<close> is at
   the beginning.
 \<close>
 
-definition vmtf_imp :: \<open>(nat, nat) ann_lits \<Rightarrow> vmtf_imp_remove set\<close> where
+definition vmtf_imp :: \<open>(nat, nat) ann_lits \<Rightarrow> vmtf_remove_int set\<close> where
 \<open>vmtf_imp M = {((A, m, lst, next_search), removed).
    (\<exists>xs' ys'.
      l_vmtf (ys' @ xs') m A \<and> lst = option_hd (ys' @ xs') \<and> next_search = option_hd xs'
@@ -1412,7 +1412,7 @@ proof clarify
     by simp
 qed
 
-definition vmtf_unset :: \<open>nat \<Rightarrow> vmtf_imp_remove \<Rightarrow> vmtf_imp_remove\<close> where
+definition vmtf_unset :: \<open>nat \<Rightarrow> vmtf_remove_int \<Rightarrow> vmtf_remove_int\<close> where
 \<open>vmtf_unset = (\<lambda>L ((A, m, lst, next_search), removed).
   (if next_search = None \<or> stamp (A ! (the next_search)) < stamp (A ! L)
   then ((A, m, lst, Some L), removed)
@@ -1586,7 +1586,7 @@ definition (in -) vmtf_en_dequeue_pre where
   \<open>vmtf_en_dequeue_pre = (\<lambda>(L,(A,m,lst,next_search)). L < length A \<and> vmtf_dequeue_pre (L, A) \<and>
            (lst \<noteq> None \<longrightarrow> the lst < length A))\<close>
 
-definition (in -) vmtf_flush :: \<open>vmtf_imp_remove \<Rightarrow> vmtf_imp_remove nres\<close> where
+definition (in -) vmtf_flush :: \<open>vmtf_remove_int \<Rightarrow> vmtf_remove_int nres\<close> where
 \<open>vmtf_flush \<equiv> (\<lambda>(vm, removed). do {
     removed' \<leftarrow> reorder_remove vm removed;
     (_, vm) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, vm). i \<le> length removed' \<and>
@@ -1954,7 +1954,7 @@ proof clarify
 qed
 
 
-definition vmtf_find_next_undef :: \<open>vmtf_imp_remove \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat option) nres\<close> where
+definition vmtf_find_next_undef :: \<open>vmtf_remove_int \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat option) nres\<close> where
 \<open>vmtf_find_next_undef \<equiv> (\<lambda>((A, m, lst, next_search), removed) M. do {
     WHILE\<^sub>T\<^bsup>\<lambda>next_search. ((A, m, lst, next_search), removed) \<in> vmtf_imp M \<and>
          (next_search \<noteq> None \<longrightarrow> Pos (the next_search) \<in> snd ` D\<^sub>0)\<^esup>
@@ -2030,7 +2030,7 @@ proof -
     done
 qed
 
-definition vmtf_dump :: \<open>nat \<Rightarrow> vmtf_imp_remove \<Rightarrow> vmtf_imp_remove\<close> where
+definition vmtf_dump :: \<open>nat \<Rightarrow> vmtf_remove_int \<Rightarrow> vmtf_remove_int\<close> where
 \<open>vmtf_dump L = (\<lambda>((A, m, lst, next_search), removed). ((A, m, lst, next_search), removed @ [L]))\<close>
 
 lemma vmtf_dump:
@@ -2158,7 +2158,7 @@ proof -
     by fast
 qed
 
-definition (in twl_array_code_ops) vmtf_dump_and_unset  :: \<open>nat \<Rightarrow> vmtf_imp_remove \<Rightarrow> vmtf_imp_remove\<close> where
+definition (in twl_array_code_ops) vmtf_dump_and_unset  :: \<open>nat \<Rightarrow> vmtf_remove_int \<Rightarrow> vmtf_remove_int\<close> where
   \<open>vmtf_dump_and_unset L M = vmtf_dump L (vmtf_unset L M)\<close>
 
 lemma vmtf_imp_append_remove_iff:

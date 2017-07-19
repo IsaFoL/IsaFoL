@@ -84,6 +84,7 @@ subsection \<open>State Conversion\<close>
 subsubsection \<open>Functions and Types:\<close>
 
 type_synonym clauses_wl = \<open>uint32 arrayO_raa\<close>
+
 abbreviation ann_lit_wl_assn :: \<open>ann_lit_wl \<Rightarrow> ann_lit_wl \<Rightarrow> assn\<close> where
   \<open>ann_lit_wl_assn \<equiv> prod_assn uint32_assn (option_assn nat_assn)\<close>
 
@@ -921,7 +922,7 @@ lemma count_decided_butlast:
   \<open>count_decided (butlast xs) = (if is_decided (last xs) then count_decided xs - 1 else count_decided xs)\<close>
   by (cases xs rule: rev_cases) (auto simp: count_decided_def)
 
-lemma find_decomp_wl_code_find_decomp_wl:
+(* lemma find_decomp_wl_code_find_decomp_wl:
   assumes D: \<open>D \<noteq> None\<close> \<open>D \<noteq> Some {#}\<close> and M\<^sub>0: \<open>M\<^sub>0 \<noteq> []\<close> and ex_decomp: \<open>ex_decomp_of_max_lvl M\<^sub>0 D L\<close> and
     L: \<open>L = lit_of (hd M\<^sub>0)\<close> and
     struct: \<open>twl_struct_invs (twl_st_of_wl None (M\<^sub>0, N, U, D\<^sub>0, NP, UP, Q, W))\<close> and
@@ -1076,7 +1077,7 @@ proof -
   show ?thesis
     using H unfolding find_decomp_wl_def find_decomp_wl_code E
     by refine_vcg auto
-qed
+qed *)
 
 definition find_decomp_wl'  where
   \<open>find_decomp_wl' =
@@ -1090,7 +1091,7 @@ definition no_skip where
 
 definition no_resolve where
   \<open>no_resolve S = (no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None S)))\<close>
-
+(* 
 lemma find_decomp_wl'_find_decomp_wl:
   \<open>find_decomp_wl' M N U (the D) NP UP Q WS L = find_decomp_wl (M, N, U, D, NP, UP, Q, WS) L\<close>
   \<open>find_decomp_wl' M N U D' NP UP Q WS L = find_decomp_wl (M, N, U, Some D', NP, UP, Q, WS) L\<close>
@@ -1109,7 +1110,7 @@ lemma find_decomp_wl_imp_find_decomp_wl':
     using p
     by (cases S, cases S') (auto intro!: find_decomp_wl_code_find_decomp_wl)
   done
-
+ *)
 definition get_conflict_wl_is_None :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
   \<open>get_conflict_wl_is_None = (\<lambda>(M, N, U, D, NP, UP, Q, W). is_None D)\<close>
 
