@@ -1258,7 +1258,7 @@ proof -
     for S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st\<close>
     using that apply (cases S; cases S'; cases \<open>get_trail_l S\<close>; cases \<open>hd (get_trail_l S)\<close> ;
         cases \<open>get_trail S'\<close>; cases \<open>hd (get_trail S')\<close>)
-                   apply ((solves \<open>auto split: if_splits\<close>)+)[15]
+                   apply ((solves \<open>force split: if_splits\<close>)+)[15]
     unfolding RETURN_def
     apply (rule RES_refine)
     by (auto split: if_splits)
