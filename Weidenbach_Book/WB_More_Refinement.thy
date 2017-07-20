@@ -204,15 +204,13 @@ method match_spec_trans =
 
 subsection \<open>More Operations\<close>
 
-abbreviation "curry8' fc \<equiv> (\<lambda> (a, b, c, d, e, f, g, h). fc a b c d e f g)"
-
 abbreviation comp4 (infixl "oooo" 55) where "f oooo g \<equiv> \<lambda>x. f ooo (g x)"
 abbreviation comp5 (infixl "ooooo" 55) where "f ooooo g \<equiv> \<lambda>x. f oooo (g x)"
 abbreviation comp6 (infixl "oooooo" 55) where "f oooooo g \<equiv> \<lambda>x. f oooo (g x)"
 abbreviation comp7 (infixl "ooooooo" 55) where "f ooooooo g \<equiv> \<lambda>x. f oooo (g x)"
 abbreviation comp8 (infixl "oooooooo" 55) where "f oooooooo g \<equiv> \<lambda>x. f oooo (g x)"
 
-notation (in -)
+notation
   comp4 (infixl "\<circ>\<circ>\<circ>" 55) and
   comp5 (infixl "\<circ>\<circ>\<circ>\<circ>" 55) and
   comp6 (infixl "\<circ>\<circ>\<circ>\<circ>\<circ>" 55) and
@@ -255,8 +253,130 @@ lemma list_assn_map_list_assn: \<open>list_assn g (map f x) xi = list_assn (\<la
     by (cases xi) auto
   done
 
+lemma RES_RETURN_RES: \<open>RES \<Phi> \<bind> (\<lambda>T. RETURN (f T)) = RES (f ` \<Phi>)\<close>
+  by (simp add: bind_RES_RETURN_eq setcompr_eq_image)
 
-subsubsection \<open>More Ssimplification Theorems\<close>
+lemma RECT_WHILEI_body_add_post_condition:
+    \<open>REC\<^sub>T (WHILEI_body op \<bind> RETURN I' b' f) x' =
+     (REC\<^sub>T (WHILEI_body op \<bind> RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f) x')\<close>
+  (is \<open>REC\<^sub>T ?f x' = REC\<^sub>T ?f' x'\<close>)
+proof -
+  have le: \<open>flatf_gfp ?f x' \<le> flatf_gfp ?f' x'\<close> for x'
+  proof (induct arbitrary: x' rule: flatf_ord.fixp_induct[where b = top and 
+        f = ?f'])
+    case 1
+    then show ?case
+      unfolding fun_lub_def pw_le_iff
+      by (rule ccpo.admissibleI)
+        (smt chain_fun flat_lub_in_chain mem_Collect_eq nofail_simps(1))
+  next
+    case 2
+    then show ?case by (auto simp: WHILEI_mono_ge)
+  next
+    case 3
+    then show ?case by simp
+  next
+    case (4 x)
+    have  \<open>(RES X \<bind> f \<le> M) = (\<forall>x\<in>X. f x \<le> M)\<close> for x f M X
+      using intro_spec_refine_iff[of _ _ \<open>Id\<close>] by auto
+    thm bind_refine_RES(2)[of _ Id, simplified]
+    have [simp]: \<open>flatf_mono FAIL (WHILEI_body op \<bind> RETURN I' b' f)\<close>
+      by (simp add: WHILEI_mono_ge)
+
+    have \<open>flatf_gfp ?f x' = ?f (?f (flatf_gfp ?f)) x'\<close>
+      apply (subst flatf_ord.fixp_unfold)
+       apply (solves \<open>simp\<close>)
+      apply (subst flatf_ord.fixp_unfold)
+       apply (solves \<open>simp\<close>)
+      ..
+    also have \<open>\<dots> = WHILEI_body op \<bind> RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f (WHILEI_body op \<bind> RETURN I' b' f (flatf_gfp (WHILEI_body op \<bind> RETURN I' b' f))) x'\<close>
+      apply (subst (1) WHILEI_body_def, subst (1) WHILEI_body_def)
+      apply (subst (2) WHILEI_body_def, subst (2) WHILEI_body_def)
+      apply simp_all
+      apply (cases \<open>f x'\<close>)
+       apply (auto simp: RES_RETURN_RES nofail_def[symmetric] pw_RES_bind_choose
+           intro!: (* bind_refine_RES(2)[of , simplified]  *)
+          split: if_splits
+          cong: if_cong)
+      done
+    also have \<open>\<dots> =  WHILEI_body op \<bind> RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f ((flatf_gfp (WHILEI_body op \<bind> RETURN I' b' f))) x'\<close>
+      apply (subst (2) flatf_ord.fixp_unfold)
+       apply (solves \<open>simp\<close>)
+      ..
+    finally have unfold1: \<open>flatf_gfp (WHILEI_body op \<bind> RETURN I' b' f) x' =
+         ?f' (flatf_gfp (WHILEI_body op \<bind> RETURN I' b' f)) x'\<close>
+      .
+    have [intro!]: \<open>(\<And>x. g x \<le>(h:: 'a \<Rightarrow> 'a nres) x) \<Longrightarrow> fx \<bind> g \<le> fx \<bind> h\<close> for g h fx fy
+      by (refine_rcg bind_refine'[where R = \<open>Id\<close>, simplified]) fast
+    show ?case
+      apply (subst unfold1)
+      using 4 unfolding WHILEI_body_def by auto
+  qed
+
+  have ge: \<open>flatf_gfp ?f x' \<ge>  flatf_gfp ?f' x'\<close> for x'
+  proof (induct arbitrary: x' rule: flatf_ord.fixp_induct[where b = top and 
+        f = ?f])
+    case 1
+    then show ?case
+      unfolding fun_lub_def pw_le_iff
+      by (rule ccpo.admissibleI) (smt chain_fun flat_lub_in_chain mem_Collect_eq nofail_simps(1)) 
+  next
+    case 2
+    then show ?case by (auto simp: WHILEI_mono_ge)
+  next
+    case 3
+    then show ?case by simp
+  next
+    case (4 x)
+    have  \<open>(RES X \<bind> f \<le> M) = (\<forall>x\<in>X. f x \<le> M)\<close> for x f M X
+      using intro_spec_refine_iff[of _ _ \<open>Id\<close>] by auto
+    thm bind_refine_RES(2)[of _ Id, simplified]
+    have [simp]: \<open>flatf_mono FAIL ?f'\<close>
+      by (simp add: WHILEI_mono_ge)
+    have H: \<open>A = FAIL \<longleftrightarrow> \<not>nofail A\<close> for A by (auto simp: nofail_def)
+    have \<open>flatf_gfp ?f' x' = ?f' (?f' (flatf_gfp ?f')) x'\<close>
+      apply (subst flatf_ord.fixp_unfold)
+       apply (solves \<open>simp\<close>)
+      apply (subst flatf_ord.fixp_unfold)
+       apply (solves \<open>simp\<close>)
+      ..
+    also have \<open>\<dots> = ?f (?f' (flatf_gfp ?f')) x'\<close>
+      apply (subst (1) WHILEI_body_def, subst (1) WHILEI_body_def)
+      apply (subst (2) WHILEI_body_def, subst (2) WHILEI_body_def)
+      apply simp_all
+      apply (cases \<open>f x'\<close>)
+       apply (auto simp: RES_RETURN_RES nofail_def[symmetric] pw_RES_bind_choose
+          eq_commute[of \<open>FAIL\<close>] H
+          split: if_splits
+          cong: if_cong)
+      done
+    also have \<open>\<dots> = ?f (flatf_gfp ?f') x'\<close>
+      apply (subst (2) flatf_ord.fixp_unfold)
+       apply (solves \<open>simp\<close>)
+      ..
+    finally have unfold1: \<open>flatf_gfp ?f' x' =
+         ?f (flatf_gfp ?f') x'\<close>
+      .
+    have [intro!]: \<open>(\<And>x. g x \<le>(h:: 'a \<Rightarrow> 'a nres) x) \<Longrightarrow> fx \<bind> g \<le> fx \<bind> h\<close> for g h fx fy
+      by (refine_rcg bind_refine'[where R = \<open>Id\<close>, simplified]) fast
+    show ?case
+      apply (subst unfold1)
+      using 4
+      unfolding WHILEI_body_def
+      by (auto intro: bind_refine'[where R = \<open>Id\<close>, simplified])
+  qed
+  show ?thesis                  
+    unfolding RECT_def
+    using le[of x'] ge[of x'] by (auto simp: WHILEI_body_trimono)
+qed
+
+lemma WHILEIT_add_post_condition: \<open>(WHILEIT I' b' f' x') = (WHILEIT (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f' x' = FAIL \<or> f' x' \<le> SPEC I')) b' f' x')\<close>
+  unfolding WHILEIT_def 
+  apply (subst RECT_WHILEI_body_add_post_condition)
+  ..
+
+
+subsubsection \<open>More Simplification Theorems\<close>
 
 lemma ex_assn_swap: \<open>(\<exists>\<^sub>Aa b. P a b) = (\<exists>\<^sub>Ab a. P a b)\<close>
   by (meson ent_ex_postI ent_ex_preI ent_iffI ent_refl)

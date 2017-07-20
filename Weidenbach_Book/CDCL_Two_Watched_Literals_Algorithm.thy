@@ -419,7 +419,7 @@ lemma decide_or_skip_spec:
 proof -
   obtain M N U NP UP where S: \<open>S = (M, N, U, None, NP, UP, {#}, {#})\<close>
     using assms by (cases S) auto
-  have [dest!]:
+  have atm_N_U:
     \<open>atm_of L \<in> atms_of_ms (clause ` set_mset N)\<close>
     if U: \<open>atm_of L \<in> atms_of_ms (clause ` set_mset U)\<close> and
        undef: \<open>undefined_lit M L\<close>
@@ -457,7 +457,25 @@ proof -
   show ?thesis
     using assms unfolding S find_unassigned_lit_def propagate_dec_def decide_or_skip_def
     apply (refine_vcg)
-    by (auto simp: H elim!: cdcl_twl_oE cdcl_twl_stgyE cdcl_twl_cpE simp: cdcl_twl_o.simps )
+    subgoal by fast
+    subgoal by blast
+    subgoal by (force simp: H elim!: cdcl_twl_oE cdcl_twl_stgyE cdcl_twl_cpE dest!: atm_N_U)
+    subgoal by (force elim!: cdcl_twl_oE cdcl_twl_stgyE cdcl_twl_cpE)
+    subgoal by fast
+    subgoal by fast
+    subgoal by fast
+    subgoal by fast
+    subgoal by (auto elim!: cdcl_twl_oE)
+    subgoal using atm_N_U by (auto simp: cdcl_twl_o.simps decide)
+    subgoal by auto
+    subgoal by (auto elim!: cdcl_twl_oE)
+    subgoal by auto
+    subgoal using atm_N_U H by auto
+    subgoal using H atm_N_U by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal using H atm_N_U by auto
+    done
 qed
 
 declare decide_or_skip_spec[THEN order_trans, refine_vcg]

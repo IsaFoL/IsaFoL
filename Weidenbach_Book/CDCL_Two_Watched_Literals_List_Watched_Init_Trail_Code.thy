@@ -877,7 +877,7 @@ lemma (in -) map_uint32_of_lit[sepref_fr_rules]:
       simp del: literal_of_nat.simps)
 
 
-definition initialise_VMTF :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> vmtf_imp_remove nres\<close> where
+definition initialise_VMTF :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> vmtf_remove_int nres\<close> where
 \<open>initialise_VMTF N n = do {
    let A = replicate n (l_vmtf_ATM 0 None None);
    (_, A, n, cnext) \<leftarrow> WHILE\<^sub>T

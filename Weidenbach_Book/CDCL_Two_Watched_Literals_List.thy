@@ -1258,7 +1258,7 @@ proof -
     for S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st\<close>
     using that apply (cases S; cases S'; cases \<open>get_trail_l S\<close>; cases \<open>hd (get_trail_l S)\<close> ;
         cases \<open>get_trail S'\<close>; cases \<open>hd (get_trail S')\<close>)
-                   apply ((solves \<open>auto split: if_splits\<close>)+)[15]
+                   apply ((solves \<open>force split: if_splits\<close>)+)[15]
     unfolding RETURN_def
     apply (rule RES_refine)
     by (auto split: if_splits)
@@ -1386,7 +1386,8 @@ definition backtrack_l_inv where
       no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of None S)) \<and>
       get_conflict_l S \<noteq> None \<and>
       twl_struct_invs (twl_st_of None S) \<and>
-      twl_stgy_invs (twl_st_of None S)
+      twl_stgy_invs (twl_st_of None S) \<and>
+      additional_WS_invs S
   \<close>
 
 definition propgate_bt_l :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
