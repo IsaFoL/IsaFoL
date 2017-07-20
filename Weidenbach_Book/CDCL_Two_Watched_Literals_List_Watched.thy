@@ -87,6 +87,9 @@ lemma all_lits_of_m_empty_iff[iff]: \<open>all_lits_of_m A = {#} \<longleftright
 lemma in_all_lits_of_m_ain_atms_of_iff: \<open>L \<in># all_lits_of_m N \<longleftrightarrow> atm_of L \<in> atms_of N\<close>
   by (cases L) (auto simp: all_lits_of_m_def atms_of_ms_def atms_of_def)
 
+lemma in_clause_in_all_lits_of_m: \<open>x \<in># C \<Longrightarrow> x \<in># all_lits_of_m C\<close>
+  using atm_of_lit_in_atms_of in_all_lits_of_m_ain_atms_of_iff by blast
+
 lemma all_lits_of_mm_add_mset:
   \<open>all_lits_of_mm (add_mset C N) = (all_lits_of_m C) + (all_lits_of_mm N)\<close>
   by (auto simp: all_lits_of_mm_def all_lits_of_m_def)

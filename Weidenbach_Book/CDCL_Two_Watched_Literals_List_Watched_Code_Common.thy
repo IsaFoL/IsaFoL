@@ -1169,17 +1169,6 @@ lemma nth_ll_watched_app:
   unfolding watched_app_def nth_ll_def
   by (fastforce simp: fref_def map_fun_rel_def prod_rel_def nres_rel_def p2rel_def lit_of_natP_def)
 
-
-lemma nth_aa_hnr_u[sepref_fr_rules]:
-  assumes p: \<open>is_pure R\<close>
-  shows
-    \<open>(uncurry2 (\<lambda>xs i. nth_aa xs (nat_of_uint32 i)), uncurry2 (RETURN \<circ>\<circ>\<circ> nth_ll)) \<in>
-       [\<lambda>((l,i),j). i < length l \<and> j < length_ll l i]\<^sub>a
-       (arrayO_assn (arl_assn R))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
-  supply nth_aa_hnr[to_hnr, sep_heap_rules]
-  using assms
-  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
-
 lemma nth_aa_watched_app[sepref_fr_rules]:
   \<open>(uncurry2 (\<lambda>xs i. nth_aa xs (nat_of_uint32 i)), uncurry2 (RETURN ooo op_watched_app)) \<in>
    [\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0 \<and> i < length (W L)]\<^sub>a
@@ -1193,7 +1182,7 @@ proof -
        (\<lambda>_. True)]\<^sub>a hrp_comp ((arrayO_assn (arl_assn nat_assn))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
                        (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f p2rel lit_of_natP \<times>\<^sub>f nat_rel) \<rightarrow> hr_comp nat_assn nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF nth_aa_hnr_u nth_ll_watched_app, OF P]
+    using hfref_compI_PRE_aux[OF nth_aa_uint_hnr nth_ll_watched_app, OF P]
     unfolding op_watched_app_def .
 
   have 1: \<open>?pre' = ?pre\<close>
@@ -1479,9 +1468,6 @@ definition get_conflict_wll_is_Nil :: \<open>nat twl_st_wl \<Rightarrow> bool nr
      then RETURN False
      else do{ ASSERT(D \<noteq> None); RETURN (Multiset.is_empty (the D))}
    })\<close>
-
-definition (in -)the_is_empty where
-  \<open>the_is_empty D = Multiset.is_empty (the D)\<close>
 
 lemma get_conflict_wll_is_Nil_get_conflict_wl_is_Nil:
   \<open>(PR_CONST get_conflict_wll_is_Nil, RETURN o get_conflict_wl_is_Nil) \<in>

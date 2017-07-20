@@ -156,7 +156,7 @@ definition insert_sort_inner_nth where
   \<open>insert_sort_inner_nth A = insert_sort_inner (\<lambda>remove n. stamp (A ! (remove ! n)))\<close>
 
 definition insert_sort_nth where
-  \<open>insert_sort_nth =  (\<lambda>(A, _). insert_sort (\<lambda>remove n. stamp (A ! (remove ! n))))\<close>
+  \<open>insert_sort_nth = (\<lambda>(A, _). insert_sort (\<lambda>remove n. stamp (A ! (remove ! n))))\<close>
 
 
 lemma insert_sort_inner_nth_code_helper:
@@ -242,8 +242,7 @@ sepref_thm vmtf_flush_code
   apply (rewrite
         at \<open>[]\<close> in \<open>\<lambda>(_, removed). do {removed' \<leftarrow> _; (vm, _) \<leftarrow> _; RETURN (_, \<hole>)}\<close>
         to \<open>emptied_list removed'\<close>
-          emptied_list_def[symmetric]
-     )
+          emptied_list_def[symmetric])
   by sepref
 
 
@@ -273,7 +272,7 @@ begin
 definition twl_st_l_trail_ref :: \<open>(twl_st_wl_int \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_l_trail_ref =
   {((M', N', U', D', Q', W', vm, \<phi>), (M, N, U, D, NP, UP, Q, W)).
-    (M', M) \<in> trailt_ref \<and> N' = N \<and> U' = U \<and> D = D' \<and> 
+    (M', M) \<in> trailt_ref \<and> N' = N \<and> U' = U \<and> D = D' \<and>
      Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
     vm \<in> vmtf_imp M \<and>
@@ -405,93 +404,6 @@ prepare_code_thms (in -) conflict_merge_code_def
 lemmas conflict_merge_aa_refine[sepref_fr_rules] =
    conflict_merge_code.refine[OF twl_array_code_axioms]
 
-(*TODO Move*)
-lemma (in twl_array_code_ops) in_clause_in_all_lits_of_m: \<open>x \<in># C \<Longrightarrow> x \<in># all_lits_of_m C\<close>
-  using atm_of_lit_in_atms_of in_all_lits_of_m_ain_atms_of_iff by blast
-
-(* TODO Move *)
-lemma (in -) count_multi_member_split:
-   \<open>count M a \<ge> n \<Longrightarrow> \<exists>M'. M = replicate_mset n a + M'\<close>
-  apply (induction n arbitrary: M)
-  subgoal by auto
-  subgoal premises IH for n M
-    using IH(1)[of \<open>remove1_mset a M\<close>] IH(2)
-    apply (cases \<open>n \<le> count M a - Suc 0\<close>)
-     apply (auto dest!: Suc_le_D  simp: count_greater_zero_iff)
-    by (metis count_greater_zero_iff insert_DiffM zero_less_Suc)
-  done
-
-lemma (in -) count_image_mset_multi_member_split:
-  \<open>count (image_mset f M) L \<ge> Suc 0 \<Longrightarrow>  \<exists>K. f K = L \<and> K \<in># M\<close>
-  by auto
-
-lemma (in -) count_image_mset_multi_member_split_2:
-  assumes count: \<open>count (image_mset f M) L \<ge> 2\<close>
-  shows \<open>\<exists>K K' M'. f K = L \<and> K \<in># M \<and> f K' = L \<and> K' \<in># remove1_mset K M \<and>
-       M = {#K, K'#} + M'\<close>
-proof -
-  obtain K where
-    K: \<open>f K = L\<close> \<open>K \<in># M\<close>
-    using count_image_mset_multi_member_split[of f M L] count by fastforce
-  then obtain K' where
-    K': \<open>f K' = L\<close> \<open>K' \<in># remove1_mset K M\<close>
-    using count_image_mset_multi_member_split[of f \<open>remove1_mset K M\<close> L] count
-    by (auto dest!: multi_member_split)
-  moreover have \<open>\<exists>M'. M = {#K, K'#} + M'\<close>
-    using multi_member_split[of K M] multi_member_split[of K' \<open>remove1_mset K M\<close>] K K'
-    by (auto dest!: multi_member_split)
-  then show ?thesis
-    using K K' by blast
-qed
-
-lemma simple_clss_size_upper_div2:
-  assumes
-   lits: \<open>literals_are_in_N\<^sub>0 C\<close> and
-   dist: \<open>distinct_mset C\<close> and
-   tauto: \<open>\<not>tautology C\<close>
-  shows \<open>size C \<le> upperN div 2\<close>
-proof -
-  let ?C = \<open>atm_of `# C\<close>
-  have \<open>distinct_mset ?C\<close>
-  proof (rule ccontr)
-    assume \<open>\<not> ?thesis\<close>
-    then obtain K where \<open>\<not>count (atm_of `# C) K \<le> Suc 0\<close>
-      unfolding distinct_mset_count_less_1
-      by auto
-    then have \<open>count (atm_of `# C) K \<ge> 2\<close>
-      by auto
-    then obtain L L' C' where
-      C: \<open>C = {#L, L'#} + C'\<close> and L_L': \<open>atm_of L = atm_of L'\<close>
-      by (auto dest!: count_image_mset_multi_member_split_2)
-    then show False
-      using dist tauto by (auto simp: atm_of_eq_atm_of tautology_add_mset)
-  qed
-  then have card: \<open>size ?C = card (set_mset ?C)\<close>
-    using distinct_mset_size_eq_card by blast
-  have size: \<open>size ?C = size C\<close>
-    using dist tauto
-    by (induction C) (auto simp: tautology_add_mset)
-  have m: \<open>set_mset ?C \<subseteq> {0..< upperN div 2}\<close>
-  proof
-    fix L
-    assume \<open>L \<in> set_mset ?C\<close>
-    then have \<open>L \<in> atms_of N\<^sub>1\<close>
-    using lits by (auto simp: literals_are_in_N\<^sub>0_def atm_of_lit_in_atms_of
-        in_all_lits_of_m_ain_atms_of_iff subset_iff)
-    then have \<open>Pos L \<in># N\<^sub>1\<close>
-      using lits by (auto simp: in_N\<^sub>1_atm_of_in_atms_of_iff)
-    then show \<open>L \<in> {0..< upperN div 2}\<close>
-      using in_N1_less_than_upperN by (auto simp: atm_of_lit_in_atms_of
-        in_all_lits_of_m_ain_atms_of_iff subset_iff upperN_def)
-  qed
-  moreover have \<open>card \<dots> = upperN div 2\<close>
-    by auto
-  ultimately have \<open>card (set_mset ?C) \<le> upperN div 2\<close>
-    using card_mono[OF _ m] by auto
-  then show ?thesis
-    unfolding card[symmetric] size .
-qed
-
 lemma conflict_merge_aa_mark_conflict:
   \<open>(uncurry2 conflict_merge_aa, uncurry2(RETURN ooo mark_conflict)) \<in>
     [\<lambda>((N, i), xs). i < length N \<and> xs = None \<and> distinct (N ! i) \<and>
@@ -580,7 +492,7 @@ proof -
        conflict_option_assn_def)
   show ?thesis using H unfolding PR_CONST_def pre post im .
 qed
-     
+
 lemma unit_prop_body_wl_invD:
   fixes S w K
   defines \<open>C \<equiv> (watched_by S K) ! w\<close>
@@ -591,7 +503,7 @@ proof -
   obtain M N U D' NP UP Q W where
      S: \<open>S = (M, N, U, D', NP, UP, Q, W)\<close>
     by (cases S)
-  have 
+  have
      struct_invs: \<open>twl_struct_invs (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S))\<close> and
      \<open>additional_WS_invs (st_l_of_wl (Some (K, w)) S)\<close> and
      corr: \<open>correct_watching S\<close> and
@@ -601,15 +513,15 @@ proof -
      w_le_length: \<open>w < length (watched_by S K)\<close> and
      w_le_length_S: \<open>watched_by S K ! w < length (get_clauses_wl S)\<close>
     using inv unfolding unit_prop_body_wl_inv_def by fast+
-  
+
   show \<open>get_conflict_wl S = None\<close>
     using confl .
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv
        (state\<^sub>W_of (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S)))\<close> and
     no_tauto: \<open>\<forall>D\<in>#init_clss (state\<^sub>W_of (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S))).
-      \<not> tautology D\<close> 
+      \<not> tautology D\<close>
       \<open>\<forall>D\<in>#learned_clss (state\<^sub>W_of (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S))).
-      \<not> tautology D\<close> 
+      \<not> tautology D\<close>
       and
     dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state
     (state\<^sub>W_of (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S)))\<close>
@@ -636,18 +548,13 @@ proof -
     by (auto simp: C_def drop_Suc S cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset)
 qed
 
-lemma (in -)[sepref_fr_rules]: \<open>(return o id, RETURN o nat_of_lit) \<in> unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  by sepref_to_hoare
-     (sep_auto simp: uint32_nat_rel_def br_def unat_lit_rel_def nat_lit_rel_def
-      lit_of_natP_def)
-
 fun watched_by_int:: \<open>twl_st_wl_int \<Rightarrow> nat literal \<Rightarrow> watched\<close> where
   \<open>watched_by_int (M, N, U, D, Q, W, _) L = W ! nat_of_lit L\<close>
 
 fun (in -) get_watched_wl :: "nat twl_st_wl \<Rightarrow> (nat literal \<Rightarrow> nat list)" where
   \<open>get_watched_wl (_, _, _, _, _, _, _, W) = W\<close>
 
-fun get_watched_wl_int :: "twl_st_wl_int \<Rightarrow> nat list list" where
+fun (in -) get_watched_wl_int :: "twl_st_wl_int \<Rightarrow> nat list list" where
   \<open>get_watched_wl_int (_, _, _, _, _, W, _) = W\<close>
 
 definition (in -) watched_by_app_int :: \<open>twl_st_wl_int \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat\<close> where
@@ -663,28 +570,21 @@ lemma watched_by_app_watched_by_app_int:
   by (intro frefI nres_relI)
      (auto simp: watched_by_app_int_def watched_by_app_def twl_st_l_trail_ref_def map_fun_rel_def)
 
-lemma (in -) nth_aa_uint_hnr[sepref_fr_rules]:
-  assumes \<open>CONSTRAINT is_pure R\<close>
-  shows 
-    \<open>(uncurry2 (\<lambda>x L L'. nth_aa x (nat_of_uint32 L) L'), uncurry2 (RETURN ooo nth_rll)) \<in>
-       [\<lambda>((x, L), L'). L < length x \<and> L' < length (x ! L)]\<^sub>a
-       (arrayO_assn (arl_assn R))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
-  by sepref_to_hoare
-    (use assms in \<open>sep_auto simp: uint32_nat_rel_def br_def length_ll_def nth_ll_def
-     nth_rll_def\<close>)
+term uint32_nat_assn
+
 
 sepref_thm watched_by_app_int_code
   is \<open>uncurry2 (RETURN ooo watched_by_app_int)\<close>
   :: \<open>[\<lambda>((S, L), K). nat_of_lit L < length (get_watched_wl_int S) \<and> K < length (watched_by_int S L)]\<^sub>a
         twl_st_l_trail_int_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding watched_by_app_int_def twl_st_l_trail_int_assn_def nth_rll_def[symmetric]
+  supply [[goals_limit=1]] length_ll_def[simp]
+  unfolding watched_by_app_int_def twl_st_l_trail_int_assn_def nth_ll_def[symmetric]
   by sepref
 
 concrete_definition (in -) watched_by_app_int_code
    uses twl_array_code.watched_by_app_int_code.refine_raw
    is "(uncurry2 ?f,_)\<in>_"
-  
+
 prepare_code_thms (in -) watched_by_app_int_code_def
 
 lemmas watched_by_app_int_code_refine[sepref_fr_rules] =
@@ -702,12 +602,12 @@ proof -
       (\<lambda>((S, L), K). L \<in> snd ` D\<^sub>0 \<and> K < length (get_watched_wl S L))
       (\<lambda>_ ((S, L), K).
           nat_of_lit L < length (get_watched_wl_int S) \<and>
-          K < length (watched_by_int S L)) (\<lambda>_. True)]\<^sub>a 
+          K < length (watched_by_int S L)) (\<lambda>_. True)]\<^sub>a
     hrp_comp (twl_st_l_trail_int_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
-             (twl_st_l_trail_ref \<times>\<^sub>f Id \<times>\<^sub>f nat_rel) \<rightarrow> 
+             (twl_st_l_trail_ref \<times>\<^sub>f Id \<times>\<^sub>f nat_rel) \<rightarrow>
     hr_comp nat_assn nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF watched_by_app_int_code_refine[unfolded PR_CONST_def] 
+    using hfref_compI_PRE_aux[OF watched_by_app_int_code_refine[unfolded PR_CONST_def]
         watched_by_app_watched_by_app_int[unfolded PR_CONST_def]] .
   have pre: \<open>?pre' = ?pre\<close>
     by (auto simp: comp_PRE_def twl_st_l_trail_assn_def twl_st_l_trail_ref_def
@@ -723,7 +623,7 @@ proof -
 qed
 
 lemma (in -) twl_struct_invs_length_clause_ge_2:
-  assumes 
+  assumes
     struct: \<open>twl_struct_invs (twl_st_of (Some L) (st_l_of_wl (Some (L, w)) S))\<close> and
     i: \<open>i > 0\<close> \<open>i < length (get_clauses_wl S)\<close>
  shows \<open>length (get_clauses_wl S ! i) \<ge> 2\<close>
@@ -742,8 +642,8 @@ qed
 lemma unit_prop_body_wl_D_invD:
   assumes \<open>unit_prop_body_wl_D_inv S w L\<close>
   shows
-    \<open>L \<in> snd ` D\<^sub>0\<close> and 
-    \<open>w < length (watched_by S L)\<close> and 
+    \<open>L \<in> snd ` D\<^sub>0\<close> and
+    \<open>w < length (watched_by S L)\<close> and
     \<open>watched_by_app S L w < length (get_clauses_wl S)\<close> and
     \<open>get_clauses_wl S ! watched_by_app S L w \<noteq> []\<close> and
     \<open>Suc 0 < length (get_clauses_wl S ! watched_by_app S L w)\<close>
@@ -779,7 +679,7 @@ sepref_thm access_clauses_int_code
 concrete_definition (in -) access_clauses_int_code
    uses twl_array_code.access_clauses_int_code.refine_raw
    is "(uncurry2 ?f,_)\<in>_"
-  
+
 prepare_code_thms (in -) access_clauses_int_code_def
 
 lemmas access_clauses_int_code_refine[sepref_fr_rules] =
@@ -802,10 +702,10 @@ proof -
   \<in> [comp_PRE (twl_st_l_trail_ref \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel) (\<lambda>_. True)
       (\<lambda>_ (((_, N, _), i), j). i < length N \<and> j < length_rll N i) (\<lambda>_. True)]\<^sub>a
     hrp_comp (twl_st_l_trail_int_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
-             (twl_st_l_trail_ref \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel) \<rightarrow> 
+             (twl_st_l_trail_ref \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel) \<rightarrow>
     hr_comp unat_lit_assn Id\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF access_clauses_int_code_refine[unfolded PR_CONST_def] 
+    using hfref_compI_PRE_aux[OF access_clauses_int_code_refine[unfolded PR_CONST_def]
         access_clauses_int_access_clauses[unfolded PR_CONST_def]] .
   have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
     unfolding comp_PRE_def
@@ -1764,47 +1664,7 @@ lemma vmtf_rescore_code_rescore_clause[sepref_fr_rules]:
 subsubsection \<open>Transitions\<close>
 
 (*TODO Move*)
-definition (in -) conflict_assn_is_None :: \<open>_ \<Rightarrow> bool\<close> where
-  \<open>conflict_assn_is_None = (\<lambda>(b, _, _). b)\<close>
 
-lemma conflict_assn_is_None_is_None: \<open>(RETURN o conflict_assn_is_None, RETURN o is_None) \<in> 
-  option_conflict_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
-  by (intro nres_relI frefI)
-   (auto simp: option_conflict_rel_def conflict_assn_is_None_def split: option.splits)
-
-lemma conflict_assn_is_None_conflict_assn_is_None: 
- \<open>(return o conflict_assn_is_None, RETURN o conflict_assn_is_None) \<in> 
-  (bool_assn *assn uint32_nat_assn *assn array_assn (option_assn bool_assn))\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  by sepref_to_hoare
-   (sep_auto simp: conflict_assn_is_None_def)
-
-lemma conflict_assn_is_None_is_none_Code[sepref_fr_rules]:
-  \<open>(return \<circ> conflict_assn_is_None, RETURN \<circ> is_None) \<in> conflict_option_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  using conflict_assn_is_None_conflict_assn_is_None[FCOMP conflict_assn_is_None_is_None,
-  unfolded conflict_option_assn_def[symmetric]] .
-
-definition (in -) conflict_assn_is_empty :: \<open>_ \<Rightarrow> bool\<close> where
-  \<open>conflict_assn_is_empty = (\<lambda>(_, n, _). n = 0)\<close>
-
-lemma conflict_assn_is_empty_is_empty: \<open>(RETURN o conflict_assn_is_empty, RETURN o (\<lambda>D. Multiset.is_empty(the D))) \<in>
-  [\<lambda>D. D \<noteq> None]\<^sub>f
-  option_conflict_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
-  by (intro nres_relI frefI)
-   (auto simp: option_conflict_rel_def conflict_assn_is_empty_def conflict_rel_def Multiset.is_empty_def
-      split: option.splits)
-
-lemma conflict_assn_is_empty_conflict_assn_is_empty: 
- \<open>(return o conflict_assn_is_empty, RETURN o conflict_assn_is_empty) \<in> 
-  (bool_assn *assn uint32_nat_assn *assn array_assn (option_assn bool_assn))\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  by sepref_to_hoare
-     (sep_auto simp: conflict_assn_is_empty_def uint32_nat_rel_def br_def nat_of_uint32_0_iff)
-
-lemma conflict_assn_is_empty_is_empty_code[sepref_fr_rules]:
-  \<open>(return \<circ> conflict_assn_is_empty, RETURN \<circ> the_is_empty) \<in> 
-      [\<lambda>D. D \<noteq> None]\<^sub>a conflict_option_assn\<^sup>k \<rightarrow> bool_assn\<close>
-  using conflict_assn_is_empty_conflict_assn_is_empty[FCOMP conflict_assn_is_empty_is_empty,
-  unfolded conflict_option_assn_def[symmetric]] unfolding the_is_empty_def
-  by simp
 (*End MOVE*)
 
 sepref_register unit_propagation_inner_loop_wl_loop_D
