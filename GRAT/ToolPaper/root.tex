@@ -2,7 +2,7 @@
 \documentclass{llncs}
 
 \usepackage{etex}
-\pagestyle{plain} % turn on page numbers
+% \pagestyle{plain} % turn on page numbers
 \usepackage[utf8]{inputenc}
 \usepackage{newunicodechar}
 
@@ -21,8 +21,8 @@
 \usepackage{booktabs}
 \usepackage{color}
 \usepackage[noend]{algpseudocode}
-\usepackage{caption}
-\usepackage[font=scriptsize]{subcaption}
+% \usepackage{caption}
+% \usepackage[font=scriptsize]{subcaption}
 \usepackage{hyperref}
 \usepackage{float}
 \usepackage{wrapfig}
@@ -65,11 +65,12 @@
 
 \begin{abstract}
 We present the GRAT tool chain, which provides an efficient and formally verified SAT and UNSAT certificate checker.
-It utilizes a two phase approach: The multi-threaded gratgen tool converts a DRAT certificate to a GRAT certificate, which is then
+It utilizes a two phase approach: The highly optimized gratgen tool converts a DRAT certificate to a GRAT certificate, which is then
 checked by the formally verified gratchk tool. 
 
 On a realistic benchmark suite drawn from the 2016 SAT competition,
-our approach is as fast as the unverified standard tool drat-trim. In multi-threaded mode, our approach is several times faster.
+our approach is faster than the unverified standard tool drat-trim, and significantly faster than the formally verified LRAT tool.
+An optional multithreaded mode allows for even faster checking of a single certificate.
 \end{abstract}
 
 % \begin{abstract}
@@ -93,20 +94,45 @@ The complexity and high optimization level of modern SAT solvers makes them pron
 A common approach in such situations is certification, \ie to make the SAT solver produce a certificate for its output, which can then be checked 
 independently by a simpler algorithm. While SAT certificates describe a satisfying assignment and are straightforward to check, UNSAT certificates are 
 more complex. The de facto standard are DRAT certificates~\cite{WHH14} checked by drat-trim~\cite{drat-trim-webpage}. 
-However, efficiently checking a DRAT certificate still requires a quite complex and highly optimized implementation. 
-Thus, it has been proposed to split certificate checking into two phases: The first phase produces an enriched certificate, which is then checked by the second phase.
-This effectively shifts the computational intensive and algorithmically complex part of checking to the first phase, while the second phase is both computationally cheap 
-and algorithmically simple, making it amenable to formal verification. Cruz-Filipe et al.~\cite{CMS17} first proposed this approach for the weaker DRUP certificates~\cite{WHH13},
-and then extended it to DRAT certificates~\cite{CHHKS17}. Independently, the author also extended the approach to DRAT certificates~\cite{La17_CADE}.
-While Cruz-Filipe et al.\ use an extended version of the drat-trim tool to enrich the certificates, the author implemented the specialized gratgen tool for that.
-Compared to drat-trim, gratgen's distinguishing feature is its support for multi-threading, allowing it to generate enriched certificates several times faster
-than drat-trim. While \cite{La17_CADE} focuses on the formal verification of the certificate checker (gratchk), this paper focuses on gratgen. 
-Moreover, we describe the novel feature of split certificates, which reduces the memory footprint of the certificate checker, enabling checking of larger certificates.
+However, efficiently checking a DRAT certificate still requires a quite complex and highly optimized implementation.\footnote{We found several bugs in drat-trim. Most of them are already fixed~\cite{drat-trim-issues,La17_CADE}.} 
+A crucial idea~\cite{CMS17} is to split certificate checking into two phases: The first phase produces an enriched certificate, which is then checked by the second phase.
+This effectively shifts the computationally intensive and algorithmically complex part of checking to the first phase, while the second phase is both computationally cheap 
+and algorithmically simple, making it amenable to formal verification. 
+
+Cruz-Filipe et al.~\cite{CMS17} originally implemented this approach for the weaker DRUP certificates~\cite{WHH13},
+and later extended it to DRAT certificates~\cite{CHHKS17,HHKW17}, obtaining the LRAT tool chain. 
+Independently, the author also extended the approach to DRAT certificates~\cite{La17_CADE}.
+While Cruz-Filipe et al.\ use an extended version of drat-trim to enrich the certificates, the author implemented the specialized gratgen tool for that purpose.
+Compared to drat-trim, gratgen's distinguishing feature is its support for multithreading, allowing it to generate enriched certificates several times faster
+at the cost of using more CPU time and memory. Moreover, we have implemented some novel optimizations, making gratgen faster than drat-trim even in single-threaded mode.
+While~\cite{La17_CADE} focuses on the formal verification of the certificate checker (gratchk), this paper focuses on gratgen. 
 The GRAT tools and raw benchmark data are available at \url{http://www21.in.tum.de/~lammich/grat/}.
 
-\section{Background}
+\section{The GRAT Toolchain}
+To obtain a formally verified solution for a CNF formula, it is first given to a SAT solver.
+If the formula is satisfiable, the SAT-solver outputs a valuation of the variables, 
+which is then used by gratchk to verify that the formula is actually satisfiable.
+If the formula is unsatisfiable, the SAT-solver outputs a DRAT certificate.
+This is processed by gratgen to produce a GRAT certificate, which, in turn, is used by 
+gratchk to verify that the formula is actually unsatisfiable. We have formally proved that
+gratchk only accepts satisfiable/unsatisfiable formulas.
+
+
+% Using the valuation, the gratchk tool verifies that the formula is actually satisfiable.
+% 
+% If the formula is unsatisfiable, the SAT-solver outputs
+% a DRAT certificate. The DRAT certificate and the formula are given to gratgen to produce a GRAT certificate.
+% Finally, using the GRAT certificate, gratchk verifies that the formula is actually unsatisfiable.
+% 
+% As gratchk works against the original CNF formula, errors in any previous tools in the chain (SAT-solver, gratgen) cannot affect its 
+% soundness ---they can only cause the certificate to be rejected.
+% The implementation of the gratchk tool has been formally proved sound with the Isabelle/HOL theorem prover, down to the
+% representation of the formula as integer array.
+
+
+\subsection{DRAT Certificates}\label{sec:bg}
 A DRAT certificate~\cite{WHH14} is a list of clause addition and deletion items. Clause addition items are called \emph{lemmas}.
-The following pseudocode illustrates forward checking of a DRAT certificate:
+The following pseudocode illustrates the \emph{forward checking} algorithm for DRAT certificates:
 \begin{lstlisting}
   F := F$_0$  // F$_0$ is CNF formula to be certified as UNSAT
   F := unitprop(F); if F == conflict then exit "s UNSAT"
@@ -125,66 +151,109 @@ The algorithm maintains the invariant that $F$ is satisfiable if the initial CNF
 Deleting a clause and unit propagation obviously preserve this invariant. When adding a clause, the invariant 
 is ensured by the clause having the RAT property. The algorithm only reports UNSAT if $F$ has clearly become unsatisfiable, 
 which, by the invariant, implies unsatisfiability of $F_0$.
-A clause $C$ has the \emph{RAT property} \wrt the formula $F$, iff there is
+A clause $C$ has the \emph{RAT property} \wrt the formula $F$ iff there is
 a \emph{pivot literal} $l\in C$, such that for all \emph{RAT candidates} $D\in F$ with $\neg l \in D$, we have $(F \wedge \neg(C \cup D\setminus\{\neg l\}))^{\textrm u} = \{\emptyset\}$.
 Here, $F^{\textrm u}$ denotes the unique result of unit propagation, where we define $F^{\textrm u} = \{\emptyset\}$ if unit propagation yields a conflict.
 Exploiting that $(F\wedge\neg(C\union D))^\textrm{u}$ is equivalent to $((F \wedge \neg C)^\textrm{u} \wedge \neg D)^\textrm{u}$, the candidates do not have to 
-be checked if the first unit propagation already yields a conflict. In this case, the lemma has the \emph{RUP property}.
+be checked if the first unit propagation $(F \wedge \neg C)^\textrm{u}$ already yields a conflict. In this case, the lemma has the \emph{RUP property}.
 This optimization is essential, as most lemmas typically have RUP, and gathering the list of RAT candidates is expensive.
 
-The most complex and expensive operation in DRAT certificate checking is unit propagation,\footnote{Our benchmarks indicate that more than 90\% of the execution time are spent on unit propagation.}
+
+\subsection{GRAT Certificates}
+
+The most complex and expensive operation in DRAT certificate checking is unit propagation,\footnote{We found that more than 90\% of the execution time is spent on unit propagation.}
 and highly optimized implementations like two watched literals~\cite{MMZZ01} are required for practically efficient checkers.
 The main idea of enriched certificates~\cite{CMS17} is to make unit propagation output a sequence of the identified unit and conflict clauses. 
-Thus, on unit propagation, the enriched certificate checker just has to verify that the proposed clauses are actually unit, which is simpler and cheaper than finding new unit clauses.
+The enriched certificate checker simulates the forward checking algorithm, verifying that the clauses from the certificate are actually unit/conflict,
+which is both cheaper and simpler than performing fully fledged unit propagation.
+For RAT lemmas, the checker also has to verify that all RAT candidates have been checked.
+
+% Thus, on unit propagation, the enriched certificate checker just has to verify that the proposed clauses are actually unit, which is simpler and cheaper than finding new unit clauses.
 % Additionally, the enriched certificate contains a map from literals to the count how often this literal is used as a pivot literal in a RAT check. 
 % Using this information, the enriched certificate checker can maintain a map from literals to candidate clauses, instead of traversing the whole clause database on each RAT check.
 
-\section{Split GRAT Certificates}
-The enriched LRAT certificate format by Cruz-Filipe et al.~\cite{CHHKS17}, as well as the GRAT format~\cite{La17_CADE} proposed by 
-the author contain lemmas and proofs (deletions, units, and conflicts) in an interleaved fashion. 
-The idea is to copy the clauses to a container data structure while reading the certificate, reclaiming the memory for deleted clauses.
-However, for GRAT, the author originally~\cite{La17_CADE} decided to trade memory for a simpler and more efficient data structure, and read the entire certificate into memory, using pointers 
-to clauses. However, our checker ran out of memory on two very large certificates from our benchmark suite.\footnote{drat-trim also failed on these.}
-Thus, we refined our approach: We store the lemmas and the actual proof in two separate files. 
-% SIMON: Emphasize that this splitting is new feature!
-The checker still reads all lemmas into memory, but streams the proof file. This reduced the memory requirements of the checker, and we could 
-successfully verify our whole benchmark suite.
 
-The lemma file roughly follows the DIMACS CNF format: It is a text file that contains a sequence of integers and comment lines starting with ``c''. 
-The integer sequence encodes a list of zero-terminated clauses.
-The proof file is a binary file, containing a sequence of 32 bit signed integers stored in 2's complement little endian format. 
-The sequence is reversed (or the file is streamed backwards), and then interpreted according to the following grammar:
-\begin{lstlisting}[language={},columns={[c]fullflexible},literate={}]
-  proof      ::= rat-counts item* conflict
-  literal    ::= int32 != 0
-  id         ::= int32 > 0
-  count      ::= int32 > 0
-  rat-counts ::= 6 (literal count)* 0
-  item       ::= unit-prop | deletion | rup-lemma | rat-lemma
-  unit-prop  ::= 1 id* 0
-  deletion   ::= 2 id* 0
-  rup-lemma  ::= 3 id id* 0 id
-  rat-lemma  ::= 4 literal id id* 0 cand-prf* 0
-  cand-prf   ::= id id* 0 id
-  conflict   ::= 5 id
-\end{lstlisting}
-Clauses are identified by positive numbers. The clauses of the original formula implicitly get the ids $1$ to $N$.
-The \lsti{rat-counts} part stores a map from literals to the number of times they occur as pivot literals. Literals not occurring in this map must not be used as pivot literals.
-The next part corresponds to the loop of the forward checking algorithm: A \lsti{unit-prop} item indicates a list of unit clauses to be propagated; a \lsti{deletion} item specifies a list
-of clauses to be deleted. A \lsti{rup-lemma} item indicates that the next lemma in the lemma file has RUP. 
-It specifies the id for this lemma.\footnote{The ids for the lemmas must be strictly increasing, in particular, ids of deleted clauses must not be reused. This restriction may be relaxed in the future.} 
-Next, it lists unit clauses and a conflict clause according to the unit propagation $(F \wedge \neg C)^\textrm{u} = \{\emptyset\}$ that was 
-used to verify the lemma. A \lsti{rat-lemma} item contains the pivot literal and the id for the lemma. Next, it contains an initial list of unit clauses, according to the unit propagation
-$(F \wedge \neg C)^\textrm{u}$, followed by a list of candidate proofs. A candidate proof contains the id of the candidate lemma, and the trace of the unit propagation leading to a conflict.
-For technical reasons, there may be candidate proofs referring to invalid lemma ids. The checker must ignore them.
-The last item in the proof declares the id of the conflict clause that caused the checker to accept the certificate.
+
+
+A GRAT certificate consists of a lemma and a proof part. 
+The lemma part contains a list of lemmas to be verified by the forward checking algorithm,
+and the proof part contains the unit and conflict clauses, deletion information, and counters how often each literal is used as a pivot in a RAT proof.
+
+The lemma part is stored as a text file roughly following DIMACS CNF format, and the proof part is a binary file in a proprietary format.
+The gratchk tool completely reads the lemmas into memory, and then streams over the proof during simulating the forward checking algorithm.
+We introduced the splitting of lemmas and proof after gratchk ran out of memory for some very large certificates.\footnote{LRAT~\cite{HHKW17} uses a similar streaming optimization, called \emph{incremental mode}.}
+
+
+% 
+% The proof part contains a sequence of commands to guide the forward checking algorithm:
+% \begin{description}  
+%   \item{Delete~($i_1,\ldots,i_n$)} The clauses $i_1$ to $i_n$ are deleted. Clauses are identified by positive numbers
+%     that are assigned while adding the clauses. Clauses of the original formula implicitly get the ids $1$ to $N$.
+%   \item{Unit Propagation~($u_1,\ldots,u_n$)} Performs unit propagation \wrt the clauses $u_1$ to $u_n$ (in this order).
+%     For each clause, it is checked that it is actually unit and the unit literal is assigned.
+%   \item{RUP lemma~($i$,$u_1,\ldots,u_n$,$c$)} Adds the next lemma from the lemma part, and verifies that it has RUP property, where
+%     $u_1,\ldots,u_n$ is the sequence of unit clauses leading to a conflict on clause $c$.
+%   \item{RAT lemma~($l$,$i$,$u_1,\ldots,u_n$,$c_1,\ldots,c_n$} Adds the next lemma and verifies that it has RAT. 
+%     Here $l$ is the pivot literal, $u_1,\ldots,u_n$ are the unit clauses of the initial unit propagation, and $c_1,\ldots,c_n$ contain the proofs for the RAT candidates.
+%     Each RAT candidate proof specifies the candidate's id, a sequence of unit clauses, and a conflict clause.
+%   \item{RAT-counts~($(l_1,c_1),\ldots,(l_n,c_n)$)} This item must be the first item of a proof. It contains literals $l_i$ and 
+%     the number $c_i$ of times this literal is used as pivot literal in a RAT proof. Only literals with positive counts are included in the list.
+%   \item{Root conflict ($c$)} This item contains the id of a conflict clause, and finishes a proof.
+% \end{description}
+% 
+% 
+% 
+% 
+% 
+% 
+% xxx, ctd here: Only short, non-technical description!
+% 
+% 
+% The enriched LRAT certificate format by Cruz-Filipe et al.~\cite{CHHKS17}, as well as the GRAT format~\cite{La17_CADE} proposed by 
+% the author contain lemmas and proofs (deletions, units, and conflicts) in an interleaved fashion. 
+% The idea is to copy the clauses to a container data structure while reading the certificate, reclaiming the memory for deleted clauses.
+% However, for GRAT, the author originally~\cite{La17_CADE} decided to trade memory for a simpler and more efficient data structure, and read the entire certificate into memory, using pointers 
+% to clauses. However, our checker ran out of memory on two very large certificates from our benchmark suite.\footnote{drat-trim also failed on these.}
+% Thus, we refined our approach: We store the lemmas and the actual proof in two separate files. 
+% % SIMON: Emphasize that this splitting is new feature!
+% The checker still reads all lemmas into memory, but streams the proof file. This reduced the memory requirements of the checker, and we could 
+% successfully verify our whole benchmark suite.
+% 
+% The lemma file roughly follows the DIMACS CNF format: It is a text file that contains a sequence of integers and comment lines starting with ``c''. 
+% The integer sequence encodes a list of zero-terminated clauses.
+% The proof file is a binary file, containing a sequence of 32 bit signed integers stored in 2's complement little endian format. 
+% The sequence is reversed (or the file is streamed backwards), and then interpreted according to the following grammar:
+% \begin{lstlisting}[language={},columns={[c]fullflexible},literate={}]
+%   proof      ::= rat-counts item* conflict
+%   literal    ::= int32 != 0
+%   id         ::= int32 > 0
+%   count      ::= int32 > 0
+%   rat-counts ::= 6 (literal count)* 0
+%   item       ::= unit-prop | deletion | rup-lemma | rat-lemma
+%   unit-prop  ::= 1 id* 0
+%   deletion   ::= 2 id* 0
+%   rup-lemma  ::= 3 id id* 0 id
+%   rat-lemma  ::= 4 literal id id* 0 cand-prf* 0
+%   cand-prf   ::= id id* 0 id
+%   conflict   ::= 5 id
+% \end{lstlisting}
+% Clauses are identified by positive numbers. The clauses of the original formula implicitly get the ids $1$ to $N$.
+% The \lsti{rat-counts} part stores a map from literals to the number of times they occur as pivot literals. Literals not occurring in this map must not be used as pivot literals.
+% The next part corresponds to the loop of the forward checking algorithm: A \lsti{unit-prop} item indicates a list of unit clauses to be propagated; a \lsti{deletion} item specifies a list
+% of clauses to be deleted. A \lsti{rup-lemma} item indicates that the next lemma in the lemma file has RUP. 
+% It specifies the id for this lemma.\footnote{The ids for the lemmas must be strictly increasing, in particular, ids of deleted clauses must not be reused. This restriction may be relaxed in the future.} 
+% Next, it lists unit clauses and a conflict clause according to the unit propagation $(F \wedge \neg C)^\textrm{u} = \{\emptyset\}$ that was 
+% used to verify the lemma. A \lsti{rat-lemma} item contains the pivot literal and the id for the lemma. Next, it contains an initial list of unit clauses, according to the unit propagation
+% $(F \wedge \neg C)^\textrm{u}$, followed by a list of candidate proofs. A candidate proof contains the id of the candidate lemma, and the trace of the unit propagation leading to a conflict.
+% For technical reasons, there may be candidate proofs referring to invalid lemma ids. The checker must ignore them.
+% The last item in the proof declares the id of the conflict clause that caused the checker to accept the certificate.
 
 % Extending the certificate generator and checker to produce split certificates required only minor modifications.
 % An interesting point is that the verified checker is proved sound for all streams, such that bugs in the implementation of proof streaming cannot impair soundness of the checker.
 
-\section{Generating GRAT Certificates}  
-Our tool gratgen reads a DIMACS-CNF formula and a DRAT certificate, and produces a GRAT certificate. 
-It uses a multi-threaded backwards checking algorithm, which is outlined below:
+\subsection{Generating GRAT Certificates}  
+Our gratgen tool reads a DIMACS CNF formula and a DRAT certificate, and produces a GRAT certificate. 
+Instead of the simple forward checking algorithm, it uses a multithreaded backwards checking algorithm, which is outlined below:
 \begin{lstlisting}
   fun forward_phase:
     F := unitprop(F); if F == conflict then exit "s UNSAT"
@@ -220,13 +289,16 @@ The backward phase iterates over the certificate in reverse order, undoes the ef
 However, only \emph{marked} lemmas are actually verified. Lemmas are marked by unit propagation, if they are required to produce a conflict.
 This way, lemmas not required for any conflict need not be verified nor included into the enriched certificate, which can speed up certificate generation and reduce the certificate size.
 Moreover, we implement core-first unit propagation, which prefers marked lemmas over unmarked ones, aiming at reducing the number of newly marked lemmas.
-Backward checking and core-first unit propagation are also implemented in the original drat-trim tool~\cite{WHH14}. 
-The distinguishing feature of gratgen is its parallel backwards phase: Verification of the lemmas is distributed over multiple threads, which share the marking information, but 
-otherwise work on their own copy of the clause database. A thread tries to acquire a lemma before verifying it. If this fails, another thread has already verified the lemma, and 
-this thread continues with the next lemma.
+While backwards checking and core-first unit propagation are already used in drat-trim, 
+the distinguishing feature of gratgen is its parallel backward phase: Verification of the lemmas is distributed over multiple threads.
+Each thread has its own copy of the clause database and watch lists. The threads only synchronize to ensure that no lemma is processed 
+twice (each lemma has an atomic flag, and only the thread that manages to acquire it will process the lemma), and to periodically exchange information on newly marked lemmas (using a spinlock protected global data structure).
 
-\section{Checking GRAT Certificates}
-We have formalized certificate checking in Isabelle/HOL~\cite{NPW02}, and used program refinement techniques~\cite{LaTu12,La15} to obtain an efficient verified implementation in Standard ML, 
+We implemented gratgen in about 3k lines of heavily documented \CC~code.
+
+
+\subsection{Checking GRAT Certificates}
+We have formalized GRAT certificate checking in Isabelle/HOL~\cite{NPW02}, and used program refinement techniques~\cite{LaTu12,La15} to obtain an efficient verified implementation in Standard ML, 
 for which we proved:
 \begin{lstlisting}[language=isabelle]
 theorem verify_unsat_impl_correct: "
@@ -237,25 +309,64 @@ theorem verify_unsat_impl_correct: "
 This Hoare triple states that if \isai$DBi$ points to an integer array holding the elements \isai$DB$,
 and we run \isai$verify_unsat_impl$, the array will be unchanged, and if the return value is no exception,
 the formula represented by the range \isai$1...F_end$ in the array is unsatisfiable. 
-For a detailed discussion of this correctness statement, we refer the reader to \cite{GRATchk-proof-outline,La17_CADE}.
+For a detailed discussion of this correctness statement, we refer the reader to~\cite{GRATchk-proof-outline,La17_CADE}.
+Similarly, we also defined and proved correct a \isai{verify_sat_impl} function.
 
-The gratchk tool contains the \isai{verify_unsat_impl} function, a parser to read formulas into an array, and the logic to stream the proof file.
-Note that the correctness statement does not depend on the parameters \isai{prf_next}, \isai{prf}, and \isai{it}, which are used for streaming and iterating over the lemmas.
-Thus, the parser is the only additional component that has to be trusted. 
+The gratchk tool contains the \isai{verify_unsat_impl} and \isai{verify_sat_impl} functions, a parser to read formulas into an array, and the logic to stream the proof file.
+As the correctness statement does not depend on the parameters \isai{prf_next}, \isai{prf}, and \isai{it}, which are used for streaming and iterating over the lemmas,
+the parser is the only additional component that has to be trusted. 
+
+The formalization is about 12k lines of Isabelle/HOL text, and gratchk is 4k lines of Standard ML, of which 3.5k lines are generated from the formalization by Isabelle/HOL.
+
+
+\subsection{Novel Optimizations}
+Apart from multithreading, gratgen includes two key optimizations that make it faster than drat-trim, even in single-threaded mode:
+First, we implement core-first unit propagation by using separate watch lists for marked and unmarked clauses. 
+Compared to the single watch list of drat-trim, our approach reduces the number of iterations over the watch lists in the inner loop of unit 
+propagation, while requiring some more time for marking a lemma.
+
+Second, if we encounter a run of RAT lemmas with the same pivot literal, we only collect the candidate clauses once for the whole run.
+As RAT lemmas tend to occur in runs, this approach saves a significant amount of time compared to drat-trim's recollection of candidates for each RAT lemma.
+
+% 
+% For certificate checking, both gratchk and the LRAT checker use imperative data structures too speed up checking. 
+% Moreover, both checkers try to avoid to fully read the certificate into memory. While we split the certificate into 
+% a lemma and a proof part, the latest version of LRAT~\cite{HHKW17} incrementally reads the certificate to memory, 
+% reclaiming unused memory before reading the next chunk. 
+% For the candidate exhaustiveness check, which is required to verify a RAT proof, our checker maintains a candidate table 
+% for each pivot literal used in the proof, while the LRAT checker iterates over all clauses to gather the candidates. 
 
 \section{Benchmarks}
-  We have benchmarked our GRAT tools on the 109 problems from the 2016 SAT competition main track that CryptoMiniSat could prove unsatisfiable. 
-  We ran the benchmarks on a standard server board with a 22 core Intel XEON Broadwell processor with 2.2 GHz and 128 GiB of RAM.
-  We have used gratgen in single-threaded mode and with 8 threads. 
-  We also ran drat-trim on the same set of benchmarks. The results are displayed as scatter plots in Figure~\ref{fig:benchmark}. 
-  The value for drat-trim is on the y axis, and the value for GRAT on the x axis. The line indicates the identity, \ie points above 
-  the line mean that we are better, and points below the line mean that drat-trim is better. 
-  In single-threaded mode, our tool chain is as fast as drat-trim, but consumes a bit more memory. 
-  In multi-threaded mode, we are significantly faster, at the cost of significantly larger memory consumption.
-  Note that the time values for GRAT refer to the combined certificate generation and checking time, while the memory consumption only refers 
-  to certificate generation: Due to the garbage collection in Standard ML, we could not measure meaningful values for memory consumption.
+  We have benchmarked GRAT with one and eight threads against drat-trim and (incremental) LRAT~\cite{HHKW17} on the 110 problems from the 2016 SAT competition main track that CryptoMiniSat could prove unsatisfiable,
+  and on the 128 problems that silver medalist Riss6 proved unsatisfiable.
+  Although not among the Top 3 solvers, we included CryptoMiniSat because it seems to be the only prover that produces a significant amount of RAT lemmas.
+  
+  Using a timeout of 20,000 seconds (the default for the 2016 SAT competition), single-threaded GRAT verified all certificates, while drat-trim and LRAT timed out
+  on two certificate, and segfaulted on a third one. For fairness, we exclude these from the following figures:
+  GRAT required 44 hours, while drat-trim required 72 hours and LRAT required 93 hours.
+  With 8 threads, GRAT ran out of memory for one certificate. For the remaining 234 certificates, the wall-clock times sum up to only 21 hours.
+  
+  The certificates from CryptoMiniSAT contain many RAT lemmas, and thanks to our RAT run optimization, we are more than two times faster than drat-trim, and 
+  three times faster than LRAT. (17h/42h/51h)
+  The certificates from Riss6 contain no RAT lemmas at all, and we are only slightly faster. (26h/30h/42h)
+  The scatter plot in Figure~\ref{fig:benchmark} compares the wall-clock times for drat-trim against GRAT, differentiated by the SAT solver used to generate the certificates.
+  
+  We also compare the memory consumption: In single threaded mode, gratgen needs roughly twice as much memory as drat-trim, with 8 threads, this figure increases to 
+  roughly 7 times more memory. Due to the garbage collection in Standard ML, we could not measure meaningful memory consumptions for gratchk.
+  The extra memory in single-threaded mode is mostly due to the proof being stored in memory, the extra memory in multithreaded mode is due to the duplication of data for each thread.
+  
+  The certificates for the 64 satisfiable problems that CryptoMiniSat solved at the 2016 SAT competition main track~\cite{satcomp-2016} have a size of 229 MiB and could be 
+  verified in 40 seconds.
 
-  \begin{figure}[!h]
+  
+  
+%   We ran the benchmarks on a standard server board with a 22 core Intel XEON Broadwell processor with 2.2 GHz and 128 GiB of RAM.
+%   We have used gratgen in single-threaded mode and with 8 threads.
+%   We also ran drat-trim on the same set of benchmarks, with a timeout of 20,000s. The results are displayed as scatter plots in Figure~\ref{fig:benchmark}. 
+%   The value for drat-trim is on the y axis, and the value for GRAT on the x axis. The line indicates the identity, \ie points above 
+%   the line mean that we are better, and points below the line mean that drat-trim is better. 
+  
+  \begin{figure}[!t]
   \begin{center}    
     \begin{tikzpicture}[thick,scale=.75, every node/.style={scale=1}] %change the scales if you like to reduce the size
       \begin{groupplot}[
@@ -266,64 +377,67 @@ Thus, the parser is the only additional component that has to be trusted.
       ]
 
       \nextgroupplot[
-          title={Wall Clock Time},
+          title={Certificates by CryptoMiniSAT},
           title style={yshift=-2ex},
           axis x line*= bottom,
           axis y line*= left,
+          xtick={0,2,4,6},
+          ytick={0,2,4,6},
+          xlabel style={align=center},
           xlabel={grat/hours},
           ylabel={drat-trim/hours},
           ylabel style={yshift=-4ex},
           legend style={at={(1,-0.1)},anchor=north,cells={anchor=east}},
       ]
-      \addplot+[only marks,mark=square] table[x expr=\thisrow{Grat-1}/3600,y expr=\thisrow{Drat}/3600] {scatter.data};
+      \addplot+[only marks,mark=square] table[x expr=\thisrow{Grat-1}/3600,y expr=\thisrow{Drat}/3600] {scatter-cmsat.data};
       \addlegendentry{single threaded}
-      \addplot+[only marks,mark=o] table[x expr=\thisrow{Grat-8}/3600,y expr=\thisrow{Drat}/3600] {scatter.data};
+      \addplot+[only marks,mark=o] table[x expr=\thisrow{Grat-8}/3600,y expr=\thisrow{Drat}/3600] {scatter-cmsat.data};
       \addlegendentry{8 threads}
       \addplot+[domain=0:6,smooth,mark=,color=black]{x};
       
 
       \nextgroupplot[
-        title={Memory Consumption},
-        title style={yshift=-2ex},
-        axis x line*= bottom,
-        axis y line*= left,
-        xlabel={gratgen/GiB},
-        ylabel={drat-trim/GiB},
-        ylabel style={yshift=-4ex},
+          title={Certificates by Riss6},
+          title style={yshift=-2ex},
+          axis x line*= bottom,
+          axis y line*= left,
+          xtick={0,1,2,3},
+          ytick={0,1,2,3},
+          xlabel style={align=center},
+          xlabel={grat/hours\\Excluded points at (4.6,4.6) and (1.5,4.6)},
+          ylabel={drat-trim/hours},
+          ylabel style={yshift=-4ex},
+          legend style={at={(1,-0.1)},anchor=north,cells={anchor=east}},
       ]
-      \addplot+[only marks,mark=square] table[x expr=\thisrow{Gratgen-1-mem}/2^20,y expr=\thisrow{Drat-mem}/2^20] {scattermem.data};
-      \addplot+[only marks,mark=o] table[x expr=\thisrow{Gratgen-8-mem}/2^20,y expr=\thisrow{Drat-mem}/2^20] {scattermem.data};
-      \addplot+[domain=0:15,smooth,mark=,color=black]{x};
-
+      \addplot+[only marks,mark=square] table[x expr=\thisrow{Grat-1}/3600,y expr=\thisrow{Drat}/3600] {scatter-riss6.data};
+%       \addlegendentry{single threaded}
+      \addplot+[only marks,mark=o] table[x expr=\thisrow{Grat-8}/3600,y expr=\thisrow{Drat}/3600] {scatter-riss6.data};
+%       \addlegendentry{8 threads}
+      \addplot+[domain=0:3,smooth,mark=,color=black]{x};
+      
       \end{groupplot}
       
   %     \node at (group c1r1.south) [anchor=west, xshift= 1.1cm] {\ref{grouplegend}};
     \end{tikzpicture}
   \end{center}
-  \caption{Comparison of the time and memory consumption of drat-trim and grat.}\label{fig:benchmark}
+  \caption{Comparison of drat-trim and GRAT, ran on a server board with a 22-core XEON Broadwell CPU @2.2GHz and 128GiB RAM.}\label{fig:benchmark}
   \end{figure}
   
-  
-  While drat-trim timed out at $20,000$ seconds on two benchmarks, and segfaulted on another one, our tool chain successfully verified all benchmarks.
-  
-  To complete the presentation, we briefly report on the results of our formally verified satisfiability checker:
-  The certificates for the 64 satisfiable problems that CryptoMiniSat solved at the 2016 SAT competition~\cite{satcomp-2016} have a size of 229 MiB and could be verified in 40 seconds.
-
 
 \section{Conclusion}
-We have presented a tool chain for formally verified (un)satisfiability certificate checking.
-In single threaded mode, our tool chain is as fast as the unverified standard tool drat-trim, at a slightly increased memory consumption.
-In multi-threaded mode, our tool chain is several times faster, but also needs significantly more memory.
+We have presented a formally verified (un)satisfiability certificate checker, which is faster than the unverified state-of-the-art tool.
+An optional multithreaded mode makes it even faster, at the cost of using more memory.
+Our tool utilizes a two-phase approach: The highly optimized unverified gratgen tool produces an enriched certificate, which is then checked by the verified gratchk tool.
 
 \paragraph{Future Work}
-We plan to attack the excessive memory consumption in multi-threaded mode by writing out the proof concurrently instead of collecting the whole proof in memory,
-and by using a shared clause database. While the former optimization is straightforward, the latter has shown a significant decrease 
+We plan to reduce memory consumption by writing out the proof on the fly,
+and by sharing the clause database between threads. While the former optimization is straightforward, the latter has shown a significant decrease 
 in performance in our initial experiments: Reordering of the literals in the clauses by moving watched literals to the front seems to have a positive effect on 
 unit propagation, which we have not fully understood. However, when using a shared clause database, we cannot implement such a reordering, and the algorithm 
-performs significantly more unit propagations before finding a conflict.
+performs significantly more unit propagations before finding a conflict. Note that parallelization at the level of unit propagation is conjectured to be hard~\cite{HW13}.
 
 \paragraph{Acknowledgement}
-We thank Simon Wimmer for proofreading the draft version of this paper.
+We thank Simon Wimmer for proofreading, and the anonymous reviewers for their useful comments.
 
 
 % 
@@ -661,7 +775,7 @@ We thank Simon Wimmer for proofreading the draft version of this paper.
 %   
 % \section{Generating GRAT Certificates}  
 %   Our tool gratgen reads a DIMACS-CNF formula and a DRAT certificate, and produces a GRAT certificate. 
-%   It uses a multi-threaded backwards checking algorithm, which is sketched below:
+%   It uses a multithreaded backwards checking algorithm, which is sketched below:
 %   \begin{lstlisting}
 %     fun forward_phase:
 %       F := original formula

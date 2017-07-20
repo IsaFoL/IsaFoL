@@ -62,7 +62,11 @@ cp gratchk/output/outline.pdf html/
 cp gratchk/output/document.pdf html/
 
 cp evaluation/sat.csv html/
-cp evaluation/logs/2017-05-combined/rawdata.csv html/unsat.csv
+# cp evaluation/logs/2017-05-combined/rawdata.csv html/unsat.csv
+
+cp evaluation/logs/2017-06-combined_logs.tgz html/
+
+cp LICENSE html/
 
 # cp evaluation/unsat.csv html/
 # cp evaluation/big_unsat.csv html/

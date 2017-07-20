@@ -713,7 +713,7 @@ subsection \<open>FOREACH with duplicates\<close>
 
 
   section \<open>Miscellaneous\<close>
-
+  (** NOT MOVED **)
   text \<open>Ad-hoc tactic to solve locale subgoals that are similar to existing locale assumptions\<close>
   named_theorems l_asm_rules \<open>Rules to be tried for discharging locale assumptions\<close>
 
@@ -1007,7 +1007,7 @@ lemma hn_ASSUME_bind[sepref_comb_rules]:
     
     
     
-    
+(** NOT MOVED **)    
 subsection \<open>Maybe-Head Insertion into Distinct List\<close>    
 text \<open>
   Insertion into distinct list, where the inserted element is either the head of the list, or

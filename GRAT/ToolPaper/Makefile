@@ -1,7 +1,7 @@
 TEX=root
 
 # You probably don't need to change anything below the following line:
-.PHONY: clean ps pdf dvi holbib clean check clean_snippets
+.PHONY: clean ps pdf dvi holbib clean check clean_snippets submission
 LATEX_ARGS= --interaction batchmode
 
 all: check $(TEX).pdf
@@ -22,6 +22,11 @@ check:
 
 $(TEX).pdf: *.tex *.bib *.data
 	latexmk -pdf $(TEX).tex; err=$$?; egrep --color -i 'error|warning|overfull|underfull|undef|^l\.[0-9]' $(TEX).log; grep --color=never "Output written" $(TEX).log; exit $$err
+
+submission: submission.zip
+
+submission.zip: $(TEX).pdf
+	zip submission.zip *.tex *.data *.bib
 
 clean:
 	@rm -f *.toc *.aux *.dvi *.log *.lof *.bbl *.blg *.hix *.tid *.tde *.out *.fdb_latexmk *.fls *~ snippets/*.out.tex
