@@ -419,18 +419,20 @@ atomic<size_t> stat_rat_run_h(0);     ///< How often RAT-run heuristics was succ
  * Also used to exchange clauses between threads.
  */
 struct pos_t {
-  size_t pos;           ///< Position wrt the start of the clause database
-  pos_t() : pos(-1) {};  ///< Initialize position to invalid value
+  static const size_t invalid_pos = numeric_limits<size_t>::max();
+
+  size_t pos;          ///< Position wrt the start of the clause database
+  pos_t() : pos(invalid_pos) {};  ///< Initialize position to invalid value
   explicit pos_t(size_t _pos) : pos(_pos) {}; ///< Initialize with a size_t, specifying the position
 
-  operator bool() const {return pos != -1;}  ///< True if position is not null
+  operator bool() const {return pos != invalid_pos;}  ///< True if position is not null
   bool operator==(pos_t const&p) const {return pos == p.pos;} ///< Compare two positions
 
   /** The invalid position, used as a guard */
-  static pos_t invalid;
+  static const pos_t invalid;
 };
 
-pos_t pos_t::invalid = pos_t(-1);
+const pos_t pos_t::invalid = pos_t(pos_t::invalid_pos);
 
 
 /** GRAT item types */
@@ -603,6 +605,8 @@ public:
      * Swap two literals by index
      */
     void swap(size_t i1, size_t i2) {
+      assert(i1 < length && i2 < length);
+
       lit_t tmp = array[i2];
       array[i2] = array[i1];
       array[i1] = tmp;
@@ -642,20 +646,16 @@ public:
 private:
   friend class ClauseDB;
 
-  const static size_t num_members = 5;
+  const static size_t num_members = 4;
 
   clause_id_t clause_id;
   clause_id_t id_in_proof;
   lit_t pivot;
 
-  unsigned_cdb_t flags;
-  const static unsigned_cdb_t IS_MARKED = 1;
-  const static unsigned_cdb_t IS_RAT_CANDIDATE = 2;
-
   Literal_Container literals;
 
   Clause(clause_id_t id)
-    : clause_id(id), id_in_proof(0), pivot(0), flags(0), literals() {}
+    : clause_id(id), id_in_proof(0), pivot(0), literals() {}
 
   /**
    * Initialize the clause after all literals have been appended
@@ -696,22 +696,6 @@ public:
       assert (id_in_proof);
       return id_in_proof;
     }
-  }
-
-  void set_marked() {
-    flags |= IS_MARKED;
-  }
-
-  bool is_marked() {
-    return flags & IS_MARKED;
-  }
-
-  void set_rat_candidate() {
-    flags |= IS_RAT_CANDIDATE;
-  }
-
-  bool is_rat_candidate() {
-    return flags & IS_RAT_CANDIDATE;
   }
 
   /**
@@ -794,7 +778,7 @@ public:
    * Construct a temporary clause on the DB vector
    */
   pos_t new_temp_clause() {
-    return new_clause(-1);
+    return new_clause(0);
   }
 
   /**
@@ -994,6 +978,289 @@ public:
 
 };
 
+
+class Parser;
+class Synch_Data;
+
+/**
+ * Global data, which is constant after forward pass
+ */
+class Global_Data {
+  friend Parser;
+
+private:
+  ClauseDB db;
+
+  ///// This data is set by friend Parser
+  size_t num_clauses = 0;
+  var_t max_var = 0;
+  vector<item_t> items;   // List of items in DB
+  size_t fst_prf_item = 0;  // Index of first proof item
+  size_t fst_lemma_id = 0;  // Id of first lemma
+  /////
+
+  Clause *conflict = nullptr;
+
+  vector<pair<clause_id_t, bool>> fwd_trail; // Forward trail, in format (clause-id, vmarked)
+
+  Global_Data(Global_Data const &) = delete;
+  Global_Data &operator=(Global_Data const &) = delete;
+
+  bool after_parsing = false;
+
+  /** Do initializations after parsing is completed. Called by friend Parser.
+   *
+   * @see @ref Object_Lifetimes
+   */
+  void init_after_parsing() {
+    after_parsing = true;
+
+    items.shrink_to_fit();
+    db.get_db().shrink_to_fit();
+
+    stat_itemlist_size = items.capacity() * sizeof(item_t);
+    stat_db_size = db.get_db().size() * sizeof(cdb_t);
+    stat_num_clauses = num_clauses;
+  }
+
+
+public:
+  /// Standard constructor
+  Global_Data() : db(), items(), fwd_trail() {}
+
+  /// Get associated clause database
+  ClauseDB &get_db() {return db;}
+
+  /// Get maximum number of variables
+  var_t get_max_var() const {return max_var;}
+  /// Get number of clauses
+  size_t get_num_clauses() const {return num_clauses;}
+
+  /// Check whether we are in after-parsing phase
+  bool is_after_parsing() const {return after_parsing;}
+
+  /// Get the first item of the DRAT certificate
+  size_t get_fst_prf_item() const {return fst_prf_item;}
+  /// Get the total number of items
+  size_t get_num_items() const {return items.size();}
+
+  /// Truncate items, discarding the tail. @pre New number of items must be less or equal to current number of items.
+  void truncate_items(size_t _num_items);
+
+  /// Get item by index
+  item_t &get_item(size_t i) {return items[i];}
+
+  /// Get the id for the first lemma, i.e., the id of the last clause + 1
+  clause_id_t get_fst_lemma_id() const {return fst_lemma_id;}
+
+  /**
+   * Initialization after forward pass:
+   *
+   * @param cn_pos Position of conflict clause
+   * @param tr Trail after forward pass
+   *
+   * @see @ref Object_Lifetimes
+   */
+  void init_after_fwd(pos_t cn_pos, vector<trail_item_t> const &tr);
+
+  /**
+   * Join marking information for forward trail with provided information.
+   * This is used after the concurrent backwards phase to join the information computed by the different threads.
+   */
+  void join_vmarked(vector<bool> const &marked);
+
+  /**
+   * Return the forward trail, with marking information joined in.
+   */
+  const vector<pair<clause_id_t,bool>>& get_fwd_trail() const {return fwd_trail;}
+
+  /**
+   * Return the conflict clause.
+   */
+  Clause *get_conflict() {return conflict;}
+};
+
+void Global_Data::truncate_items(size_t _num_items) {
+  assert(_num_items <= items.size());
+  items.erase(items.begin() + _num_items,items.end());
+}
+
+
+void Global_Data::init_after_fwd(pos_t cn_pos, vector<trail_item_t> const &tr) {
+  conflict = db.p2c(cn_pos);
+  assert(conflict);
+  fwd_trail.clear();
+  for (trail_item_t ti : tr) {
+    assert(ti.reason);
+    fwd_trail.push_back({ti.reason->get_clause_id(), ti.vmarked});
+  }
+}
+
+void Global_Data::join_vmarked(const vector<bool> &marked) {
+  assert(fwd_trail.size() == marked.size());
+
+  for (size_t i = 0; i<marked.size(); ++i)
+    fwd_trail[i].second |= marked[i];
+
+}
+
+Global_Data glb; ///< Only instance of Global_Data @relates Global_Data
+
+
+class Verifier;
+class Lemma_Proof;
+
+/**
+ * Global data, which is synchronized between threads, or joined after thread's execution from thread's local data.
+ *
+ */
+class Synch_Data {
+private:
+  lit_map<atomic<size_t>> rat_counts;  // Literal -> rat-count.
+
+  vector<atomic<bool>> marked;  // Id -> Whether clause is marked
+  vector<atomic_flag> acquired; // Id -> Whether clause is/was acquired for verification by a worker thread
+
+  vector<Lemma_Proof*> proofs;   // Id -> Proof of this lemma (RUP or RAT proof). Synchronized by acquired.
+
+  pos_t *mark_queue;       // Global marked queue. Capacity must be big enough to hold every clause at most once.
+  size_t mq_pos = 0;
+  spinlock mq_lock;
+
+
+  Synch_Data(Synch_Data const &) = delete;
+  Synch_Data &operator= (Synch_Data const &) = delete;
+
+private:
+  /// Mark a clause, and return wether it was already marked.
+  inline bool mark_clause(Clause *cl) {
+    return marked[cl->get_clause_id()].exchange(true);
+  }
+
+
+public:
+  /**
+   * Constructor.
+   *
+   * @pre Global data ::glb must already be after parsing when constructing this
+   *
+   * @see @ref Object_Lifetimes
+   */
+  Synch_Data() :
+    rat_counts(glb.get_max_var())
+  , marked(glb.get_num_clauses()+1)
+  , acquired(glb.get_num_clauses()+1)
+  , proofs(glb.get_num_clauses()+1)
+  , mark_queue(cfg_single_threaded?nullptr : new pos_t[glb.get_num_clauses()])
+  , mq_lock()
+  {
+    assert(glb.is_after_parsing());
+
+    for (auto &b : marked) b = false;  // TODO: Is initialization necessary?
+    //for (auto &f : acquired) f.test_and_set();  // Set all acquired flags. They are only cleared if clause is marked
+  }
+
+  ~Synch_Data() {
+    if (mark_queue) delete [] mark_queue;
+  }
+
+  /// Check if clause is marked.
+  inline bool is_marked(clause_id_t cl_id) { return marked[cl_id].load(); }
+  /// Check if clause is marked.
+  inline bool is_marked(Clause *cl) { return is_marked(cl->get_clause_id()); }
+  /// Try to acquire a clause
+  inline bool acquire(Clause *cl) { return !acquired[cl->get_clause_id()].test_and_set(memory_order_acquire); }
+
+
+  /** Directly mark a single clause.
+   * @pre Must be in single-threaded mode @see ::cfg_single_threaded.
+   */
+  bool mark_clause_single_threaded(Clause *cl) {
+    assert(cfg_single_threaded);
+    return mark_clause(cl);
+  }
+
+  /// Set proof for clause
+  inline void set_proof_of(Clause *cl, Lemma_Proof *proof) {
+    auto cl_id = cl->get_clause_id();
+    assert(proofs[cl_id] == nullptr);
+    proofs[cl_id] = proof;
+  }
+
+  /// Return pointer to proof of clause.
+  inline Lemma_Proof *get_proof_of(Clause *cl) {return proofs[cl->get_clause_id()];}
+
+  /// Increment RAT-count for specified literal.
+  inline void inc_rat_counts(lit_t l) { ++rat_counts[l]; }
+
+  /// Get the RAT-count map.
+  inline const lit_map<atomic<size_t>> &get_rat_counts() { return rat_counts; }
+
+
+  /**
+   * Globally mark a vector of clauses, and exchange the data in the vector by incoming clauses.
+   * As longer the list of incoming clauses, as harder this function tries to get the lock.
+   * @param db Clause database the clauses are stored in. Used to compute positions.
+   * @param clauses Vector of clauses to be marked. On success, is filled with incoming clauses to be marked
+   * @param idx Marking sync-index for this thread. Updated on success.
+   * @param failed_attempts Counter for failed attempts to get the lock. Updated by this function.
+   * @returns Whether function succeeded to get the lock and do the update. On success, clauses and index are updated. Otherwise, nothing is updated.
+   */
+  inline bool bulk_mark_clauses(ClauseDB *db, vector<Clause*> &clauses, size_t &idx, size_t &failed_attempts) {
+    assert(!cfg_single_threaded);
+    if (!mq_lock.acquire(clauses.size() + (failed_attempts++))) return false;
+
+    size_t old_pos = mq_pos;
+    assert(mq_pos < glb.get_num_clauses());
+
+    for (auto cl : clauses) {
+      if (!mark_clause(cl)) {
+        assert(mq_pos < glb.get_num_clauses());
+        mark_queue[mq_pos++]=db->c2p(cl);
+      }
+    }
+
+    size_t new_pos = mq_pos;
+    mq_lock.release();
+
+    failed_attempts = 0;
+
+    clauses.clear();
+    for (size_t i = idx; i<old_pos; ++i) clauses.push_back(db->p2c(mark_queue[i]));
+    idx = new_pos;
+
+    return true;
+  }
+
+  /**
+   * Get incoming marked clauses from global marking, but do not synchronize outgoing clauses.
+   * @param db Clause database the clauses are stored in. Used to compute positions.
+   * @param clauses On success, this is filled with incoming clauses to be marked
+   * @param idx Marking sync-index for this thread. Updated on success.
+   * @param failed_attempts Counter for failed attempts to get the lock. Updated by this function.
+   *
+   * @warning Not tested, currently not used.
+   *
+   */
+  inline bool get_incoming(ClauseDB *db, vector<Clause*> &clauses, size_t &idx, size_t &failed_attempts) {
+    assert(!cfg_single_threaded);
+
+    if (!mq_lock.acquire(failed_attempts++)) return false;
+    size_t end = mq_pos;
+    mq_lock.release();
+    failed_attempts = 0;
+
+    clauses.clear();
+    for (size_t i = idx; i<end; ++i) clauses.push_back(db->p2c(mark_queue[i]));
+    idx = end;
+    return true;
+  }
+};
+
+/// Only instance of Synch_Data. Serves to synchronize data between all threads
+Synch_Data *sdata = nullptr;
+
+
 /**
  * Contains functions to output a GRAT proof.
  *
@@ -1130,6 +1397,11 @@ public:
    */
   Clause *get_lemma() {return lemma;}
 
+  /**
+   * Returns the lemma ID associated with this proof element
+   */
+  clause_id_t get_lemma_id() {return lemma->get_clause_id();}
+
 protected:
   Lemma_Proof(Clause* _lemma)
     : lemma(_lemma) {}
@@ -1204,7 +1476,11 @@ public:
       writer.write_id(clause->get_id_in_proof());
     writer.write_Z();
     for (auto &cand_proof : candidate_proofs) {
-      cand_proof.write(writer, false);
+      clause_id_t cand_id = cand_proof.get_lemma_id();
+
+      // skip unmarked proof lemmas
+      if (cand_id < glb.get_fst_lemma_id() || sdata->is_marked(cand_id))
+        cand_proof.write(writer, false);
     }
     writer.write_Z();
   }
@@ -1218,297 +1494,6 @@ static_assert(!is_copy_constructible<RAT_Proof>{}, "");
 static_assert(is_move_constructible<RAT_Proof>{}, "");
 static_assert(is_move_constructible<vector<RAT_Proof>>{}, "");
 
-
-class Parser;
-class Synch_Data;
-
-/**
- * Global data, which is constant after forward pass
- */
-class Global_Data {
-  friend Parser;
-
-private:
-  ClauseDB db;
-
-  ///// This data is set by friend Parser
-  size_t num_clauses = 0;
-  var_t max_var = 0;
-  vector<item_t> items;   // List of items in DB
-  size_t fst_prf_item = 0;  // Index of first proof item
-  size_t fst_lemma_id = 0;  // Id of first lemma
-  /////
-
-  Clause *conflict = nullptr;
-
-  vector<pair<clause_id_t,bool>> fwd_trail; // Forward trail, in format (clause-id, vmarked)
-
-  Global_Data(Global_Data const &) = delete;
-  Global_Data &operator=(Global_Data const &) = delete;
-
-  bool after_parsing = false;
-
-  /** Do initializations after parsing is completed. Called by friend Parser.
-   *
-   * @see @ref Object_Lifetimes
-   */
-  void init_after_parsing() {
-    after_parsing = true;
-
-    items.shrink_to_fit();
-    db.get_db().shrink_to_fit();
-
-    stat_itemlist_size = items.capacity()*sizeof(item_t);
-    stat_db_size = db.get_db().size()*sizeof(cdb_t);
-    stat_num_clauses = num_clauses;
-  }
-
-
-public:
-  /// Standard constructor
-  Global_Data() : db(), items(), fwd_trail() {}
-
-  /// Get associated clause database
-  ClauseDB &get_db() {return db;}
-
-  /// Get maximum number of variables
-  var_t get_max_var() const {return max_var;}
-  /// Get number of clauses
-  size_t get_num_clauses() const {return num_clauses;}
-
-  /// Check whether we are in after-parsing phase
-  bool is_after_parsing() const {return after_parsing;}
-
-  /// Get the first item of the DRAT certificate
-  size_t get_fst_prf_item() const {return fst_prf_item;}
-  /// Get the total number of items
-  size_t get_num_items() const {return items.size();}
-
-  /// Truncate items, discarding the tail. @pre New number of items must be less or equal to current number of items.
-  void truncate_items(size_t _num_items);
-
-  /// Get item by index
-  item_t &get_item(size_t i) {return items[i];}
-
-  /// Get the id for the first lemma, i.e., the id of the last clause + 1
-  clause_id_t get_fst_lemma_id() const {return fst_lemma_id;}
-
-  /**
-   * Initialization after forward pass:
-   *
-   * @param cn_pos Position of conflict clause
-   * @param tr Trail after forward pass
-   *
-   * @see @ref Object_Lifetimes
-   */
-  void init_after_fwd(pos_t cn_pos, vector<trail_item_t> const &tr);
-
-  /**
-   * Join marking information for forward trail with provided information.
-   * This is used after the concurrent backwards phase to join the information computed by the different threads.
-   */
-  void join_vmarked(vector<bool> const &marked);
-
-  /**
-   * Return the forward trail, with marking information joined in.
-   */
-  const vector<pair<clause_id_t,bool>>& get_fwd_trail() const {return fwd_trail;}
-
-  /**
-   * Return the conflict clause.
-   */
-  Clause *get_conflict() {return conflict;}
-
-
-};
-
-
-void Global_Data::truncate_items(size_t _num_items) {
-  assert(_num_items <= items.size());
-  items.erase(items.begin() + _num_items,items.end());
-}
-
-
-
-void Global_Data::init_after_fwd(pos_t cn_pos, vector<trail_item_t> const &tr) {
-  conflict = db.p2c(cn_pos);
-  assert(conflict);
-  fwd_trail.clear();
-  for (trail_item_t ti : tr) {
-    assert(ti.reason);
-    fwd_trail.push_back({ti.reason->get_clause_id(), ti.vmarked});
-  }
-}
-
-void Global_Data::join_vmarked(const vector<bool> &marked) {
-  assert(fwd_trail.size() == marked.size());
-
-  for (size_t i = 0; i<marked.size(); ++i)
-    fwd_trail[i].second |= marked[i];
-
-}
-
-
-
-Global_Data glb; ///< Only instance of Global_Data @relates Global_Data
-
-class Verifier;
-
-/**
- * Global data, which is synchronized between threads, or joined after thread's execution from thread's local data.
- *
- */
-class Synch_Data {
-private:
-  lit_map<atomic<size_t>> rat_counts;  // Literal -> rat-count.
-
-  vector<atomic<bool>> marked;  // Id -> Whether clause is marked
-  vector<atomic_flag> acquired; // Id -> Whether clause is/was acquired for verification by a worker thread
-
-  vector<Lemma_Proof*> proofs;   // Id -> Proof of this lemma (RUP or RAT proof). Synchronized by acquired.
-
-  atomic<clause_id_t> next_proof_lemma_id;
-
-  pos_t *mark_queue;       // Global marked queue. Capacity must be big enough to hold every clause at most once.
-  size_t mq_pos = 0;
-  spinlock mq_lock;
-
-
-  Synch_Data(Synch_Data const &) = delete;
-  Synch_Data &operator= (Synch_Data const &) = delete;
-
-private:
-  /// Mark a clause, and return wether it was already marked.
-  inline bool mark_clause(Clause *cl) {
-    cl->set_marked();
-    return marked[cl->get_clause_id()].exchange(true);
-  }
-
-
-public:
-  /**
-   * Constructor.
-   *
-   * @pre Global data ::glb must already be after parsing when constructing this
-   *
-   * @see @ref Object_Lifetimes
-   */
-  Synch_Data() :
-    rat_counts(glb.get_max_var())
-  , marked(glb.get_num_clauses()+1)
-  , acquired(glb.get_num_clauses()+1)
-  , proofs(glb.get_num_clauses()+1)
-  , next_proof_lemma_id(1)
-  , mark_queue(cfg_single_threaded?nullptr : new pos_t[glb.get_num_clauses()])
-  , mq_lock()
-  {
-    assert(glb.is_after_parsing());
-
-    for (auto &b : marked) b = false;  // TODO: Is initialization necessary?
-    //for (auto &f : acquired) f.test_and_set();  // Set all acquired flags. They are only cleared if clause is marked
-  }
-
-  ~Synch_Data() {
-    if (mark_queue) delete [] mark_queue;
-  }
-
-
-
-  /// Check if clause is marked.
-  inline bool is_marked(Clause *cl) { return marked[cl->get_clause_id()].load(); }
-  /// Try to acquire a clause
-  inline bool acquire(Clause *cl) { return !acquired[cl->get_clause_id()].test_and_set(memory_order_acquire); }
-  /// Get the next free lemma ID used in the proof
-  inline clause_id_t get_free_lemma_id() { return next_proof_lemma_id++; }
-
-
-  /** Directly mark a single clause.
-   * @pre Must be in single-threaded mode @see ::cfg_single_threaded.
-   */
-  bool mark_clause_single_threaded(Clause *cl) {
-    assert(cfg_single_threaded);
-    return mark_clause(cl);
-  }
-
-  /// Set proof for clause
-  inline void set_proof_of(Clause *cl, Lemma_Proof *proof) {
-    auto cl_id = cl->get_clause_id();
-    assert(proofs[cl_id] == nullptr);
-    proofs[cl_id] = proof;
-  }
-
-  /// Return pointer to proof of clause.
-  inline Lemma_Proof *get_proof_of(Clause *cl) {return proofs[cl->get_clause_id()];}
-
-  /// Increment RAT-count for specified literal.
-  inline void inc_rat_counts(lit_t l) { ++rat_counts[l]; }
-
-  /// Get the RAT-count map.
-  inline const lit_map<atomic<size_t>> &get_rat_counts() { return rat_counts; }
-
-
-
-  /**
-   * Globally mark a vector of clauses, and exchange the data in the vector by incoming clauses.
-   * As longer the list of incoming clauses, as harder this function tries to get the lock.
-   * @param db Clause database the clauses are stored in. Used to compute positions.
-   * @param clauses Vector of clauses to be marked. On success, is filled with incoming clauses to be marked
-   * @param idx Marking sync-index for this thread. Updated on success.
-   * @param failed_attempts Counter for failed attempts to get the lock. Updated by this function.
-   * @returns Whether function succeeded to get the lock and do the update. On success, clauses and index are updated. Otherwise, nothing is updated.
-   */
-  inline bool bulk_mark_clauses(ClauseDB *db, vector<Clause*> &clauses, size_t &idx, size_t &failed_attempts) {
-    assert(!cfg_single_threaded);
-    if (!mq_lock.acquire(clauses.size() + (failed_attempts++))) return false;
-
-    size_t old_pos = mq_pos;
-    assert(mq_pos < glb.get_num_clauses());
-
-    for (auto cl : clauses) {
-      if (!mark_clause(cl)) {
-        assert(mq_pos < glb.get_num_clauses());
-        mark_queue[mq_pos++]=db->c2p(cl);
-      }
-    }
-
-    size_t new_pos = mq_pos;
-    mq_lock.release();
-
-    failed_attempts = 0;
-
-    clauses.clear();
-    for (size_t i = idx; i<old_pos; ++i) clauses.push_back(db->p2c(mark_queue[i]));
-    idx = new_pos;
-
-    return true;
-  }
-
-  /**
-   * Get incoming marked clauses from global marking, but do not synchronize outgoing clauses.
-   * @param db Clause database the clauses are stored in. Used to compute positions.
-   * @param clauses On success, this is filled with incoming clauses to be marked
-   * @param idx Marking sync-index for this thread. Updated on success.
-   * @param failed_attempts Counter for failed attempts to get the lock. Updated by this function.
-   *
-   * @warning Not tested, currently not used.
-   *
-   */
-  inline bool get_incoming(ClauseDB *db, vector<Clause*> &clauses, size_t &idx, size_t &failed_attempts) {
-    assert(!cfg_single_threaded);
-
-    if (!mq_lock.acquire(failed_attempts++)) return false;
-    size_t end = mq_pos;
-    mq_lock.release();
-    failed_attempts = 0;
-
-    clauses.clear();
-    for (size_t i = idx; i<end; ++i) clauses.push_back(db->p2c(mark_queue[i]));
-    idx = end;
-    return true;
-  }
-
-
-};
 
 /**
  * Parser that reads cnf and drat files
@@ -1771,7 +1756,6 @@ void Parser::parse_proof(istream &in) {
  */
 class Verifier {
 private:
-  Synch_Data *sdata = nullptr;
   ClauseDB *db;
   bool my_clause_db = true;
 
@@ -1886,8 +1870,7 @@ public:
    *
    * @see @ref Object_Lifetimes
    */
-  void init_after_parsing(Synch_Data *_sdata) {
-    sdata = _sdata;
+  void init_after_parsing() {
     assignment.resize_reset(glb.get_max_var());
     vtpos.resize(glb.get_max_var()+1);
     if (cfg_core_first) core_watchlists.resize_reset(glb.get_max_var());
@@ -1901,8 +1884,7 @@ public:
    * Initialize a verifier with a copy of the specified clause database.
    */
   Verifier(Verifier const &vrf) :
-      sdata(vrf.sdata)
-    , db(new ClauseDB(*vrf.db))
+      db(new ClauseDB(*vrf.db))
     , my_clause_db(true)
     , assignment(vrf.assignment)
     , trail(vrf.trail)
@@ -1927,7 +1909,6 @@ public:
    * Assign the verifier to be a copy of the specified verifier, using its own clause database and state.
    */
   Verifier &operator=(Verifier const &vrf) {
-    assert(&sdata == &vrf.sdata);
     db = new ClauseDB(*vrf.db);
     my_clause_db = true;
     trail = vrf.trail;
@@ -2140,7 +2121,7 @@ private:
     auto &cst = wl_clause_state[id];
     assert(!cst.is_inwl());
 
-    bool marked = sdata->is_marked(cl);
+    bool marked = sdata->is_marked(id);
 
     lit_t w1 = cl->get_watched_lit1(); assert(w1 != 0);
     lit_t w2 = cl->get_watched_lit2(); assert(w2 != 0);
@@ -2515,11 +2496,6 @@ template<bool cf_enabled> Clause *Verifier::propagate_units_aux() {
 
         DBG_STAT(dbg_stat_uprop_c1++; );
 
-//           if (sdata->is_marked(cl)) {
-//             register_new_core(cl);
-//             DBG_STAT(dbg_stat_uprop_c1++; );
-//           }
-
         lit_t w1 = cl->get_watched_lit1();
         lit_t w2 = cl->get_watched_lit2();
         assert (w1 == l || w2 == l);
@@ -2730,8 +2706,6 @@ void Verifier::verify(Clause *cl) {
     // Iterate over candidates
 
     for (auto rat_candidate : rat_candidates) {
-      rat_candidate->set_rat_candidate();
-
       // Falsify literals and check blocked
       bool blocked = false;
       for (lit_t l : rat_candidate->get_literals()) {
@@ -3017,7 +2991,6 @@ void Verifier::bwd_pass(bool show_status_bar) {
  */
 class VController {
 private:
-  Synch_Data *sdata = nullptr;
   Verifier main_vrf;
 
   VController(const VController &) = delete;
@@ -3093,7 +3066,7 @@ void VController::do_parallel_bwd(size_t num_threads) {
 
   vector<thread> aux_threads;
 
-  for (size_t i = 0; i<num_threads-1; ++i) {
+  for (size_t i = 0; i < num_threads-1; ++i) {
     Verifier *vrf = &aux_vrfs[i];
     aux_threads.push_back(thread([vrf, num_threads] () { vrf->bwd_pass(false); }));
   }
@@ -3104,7 +3077,7 @@ void VController::do_parallel_bwd(size_t num_threads) {
   clog<<"done"<<endl;
 
   // Synchronize vmarked on forward trail, and clause marking information.
-  for (size_t i = 0; i<num_threads-1; ++i) {
+  for (size_t i = 0; i < num_threads-1; ++i) {
     glb.join_vmarked(aux_vrfs[i].get_fwd_vmarked());
     if (!cfg_single_threaded) aux_vrfs[i].sync_marked(true);
   }
@@ -3119,7 +3092,7 @@ void VController::do_parallel_bwd(size_t num_threads) {
 
     clog<<main_vrf.get_cnt_verified()<<" ";
 
-    for (size_t i = 0; i<num_threads-1; ++i) {
+    for (size_t i = 0; i < num_threads-1; ++i) {
       size_t cv = aux_vrfs[i].get_cnt_verified();
 
       mean += cv;
@@ -3129,7 +3102,7 @@ void VController::do_parallel_bwd(size_t num_threads) {
     mean = mean / num_threads;
 
     double sumsq = abs(main_vrf.get_cnt_verified() - mean) / mean;
-    for (size_t i = 0; i<num_threads-1; ++i) {
+    for (size_t i = 0; i < num_threads-1; ++i) {
       size_t cv = aux_vrfs[i].get_cnt_verified();
       sumsq += abs(cv - mean) / mean;
     }
@@ -3141,8 +3114,9 @@ void VController::do_parallel_bwd(size_t num_threads) {
 
 
 void VController::do_verification(size_t num_threads) {
-  sdata = new Synch_Data(); // FIXME: Memory leak?
-  main_vrf.init_after_parsing(sdata);
+  sdata = new Synch_Data(); // Initialize global synch-data
+
+  main_vrf.init_after_parsing();
 
   pos_t cpos = with_timing<pos_t>("Forward pass",[&] {return main_vrf.fwd_pass();});
 
@@ -3170,14 +3144,11 @@ void VController::assign_new_lemma_ids() {
 
     if (!item.is_erased()) {
       Clause *cl = glb.get_db().p2c(item.get_pos());
-
-      if (cl->is_marked() || cl->is_rat_candidate()) {
-        clause_id_t cl_id = cl->get_clause_id();
-        if (cl_id < glb.get_fst_lemma_id())
-          cl->set_id_in_proof(cl_id); // let all original clauses keep their IDs
-        else
-          cl->set_id_in_proof(next_id++);
-      }
+      clause_id_t cl_id = cl->get_clause_id();
+      if (cl_id < glb.get_fst_lemma_id())
+        cl->set_id_in_proof(cl_id); // let all original clauses keep their IDs
+      else if (sdata->is_marked(cl_id)) // only give new IDs to marked proof lemmas
+        cl->set_id_in_proof(next_id++);
     }
   }
 }
