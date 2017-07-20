@@ -990,6 +990,23 @@ lemma CNot_union_mset[simp]:
   \<open>CNot (A \<union># B) = CNot A \<union> CNot B\<close>
   unfolding CNot_def by auto
 
+lemma true_clss_clss_true_clss_cls_true_clss_clss:
+  assumes
+    \<open>A \<Turnstile>ps unmark_l M\<close> and \<open>M \<Turnstile>as D\<close>
+  shows \<open>A \<Turnstile>ps D\<close>
+  by (meson assms total_over_m_union true_annots_true_cls true_annots_true_clss_clss
+      true_clss_clss_def true_clss_clss_left_right true_clss_clss_union_and
+      true_clss_clss_union_l_r)
+
+lemma true_clss_clss_CNot_true_clss_cls_unsatisfiable:
+  assumes \<open>A \<Turnstile>ps CNot D\<close> and \<open>A \<Turnstile>p D\<close>
+  shows \<open>unsatisfiable A\<close>
+  using assms(2) unfolding true_clss_clss_def true_clss_cls_def satisfiable_def
+  by (metis (full_types) Un_absorb Un_empty_right assms(1) atms_of_empty
+      atms_of_ms_emtpy_set total_over_m_def total_over_m_insert total_over_m_union
+      true_cls_empty true_clss_cls_def true_clss_clss_generalise_true_clss_clss
+      true_clss_clss_true_clss_cls true_clss_clss_union_false_true_clss_clss_cnot)
+
 
 subsection \<open>Other\<close>
 

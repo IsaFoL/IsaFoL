@@ -25,26 +25,26 @@ HOL:
 
 Weidenbach_Book: HOL
 	$(RUN_ISABELLE) build -d '$$AFP' -b Refine_Imperative_HOL
-	$(RUN_ISABELLE) build -d '$$AFP' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -D Weidenbach_Book
+	$(RUN_ISABELLE) build -d '$$AFP' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D Weidenbach_Book
 
 Bachmair_Ganzinger: HOL
-	$(RUN_ISABELLE) build -o browser_info -v -D Bachmair_Ganzinger
+	$(RUN_ISABELLE) build -o browser_info -v -b -D Bachmair_Ganzinger
 
 Unordered_Resolution: HOL
-	$(RUN_ISABELLE2016-1) build -o browser_info -v -D Unordered_Resolution
+	$(RUN_ISABELLE2016-1) build -o browser_info -v -b -D Unordered_Resolution
 
 GRAT: HOL
 	$(RUN_ISABELLE2016-1) build -d '$$AFP' -b Refine_Imperative_HOL
-	$(RUN_ISABELLE2016-1) build -d '$$AFP' -o browser_info -o "document=pdf" -v -D GRAT/gratchk
+	$(RUN_ISABELLE2016-1) build -d '$$AFP' -o browser_info -o "document=pdf" -v -b -D GRAT/gratchk
 
 FOL_Berghofer: HOL
-	$(RUN_ISABELLE2016-1) build -v -D FOL_Berghofer
+	$(RUN_ISABELLE2016-1) build -v -b -D FOL_Berghofer
 
 all: Weidenbach_Book Bachmair_Ganzinger Unordered_Resolution GRAT FOL_Berghofer
 
 # build the documentation and the files
 current: Bachmair_Ganzinger Unordered_Resolution
-	$(RUN_ISABELLE) build -d '$$AFP' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -d Weidenbach_Book Full
+	$(RUN_ISABELLE) build -d '$$AFP' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -d Weidenbach_Book Full
 
 # move the html documentation to the locale directory
 doc:

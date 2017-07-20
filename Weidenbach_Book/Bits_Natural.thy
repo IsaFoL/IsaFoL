@@ -71,6 +71,7 @@ lemma nat_shiftr_div: \<open>m << n = m * (2^n)\<close> for m :: nat
   by (induction n arbitrary: m) (auto simp: div_mult2_eq)
 
 export_code \<open>shiftl::nat \<Rightarrow> nat \<Rightarrow> nat\<close> checking SML
+
 value [nbe] \<open>shiftr (4::nat) 1\<close>
 
 definition shiftl1 :: \<open>nat \<Rightarrow> nat\<close> where
@@ -157,6 +158,14 @@ lemma bitAND_1_mod_2: \<open>bitAND L 1 = L mod 2\<close> for L :: nat
   apply transfer
   apply (subst int_int_eq[symmetric])
   apply (subst bitAND_nat_def)
-   by (auto simp: zmod_int bin_rest_def bin_last_def bitval_bin_last[symmetric])
+  by (auto simp: zmod_int bin_rest_def bin_last_def bitval_bin_last[symmetric])
+
+lemma shiftl_0_uint32[simp]: \<open>n << 0 = n\<close> for n :: uint32
+  by transfer auto
+
+lemma shiftl_Suc_uint32: \<open>n << Suc m = (n << m) << 1\<close> for n :: uint32
+  apply transfer
+  apply transfer
+  by auto
 
 end

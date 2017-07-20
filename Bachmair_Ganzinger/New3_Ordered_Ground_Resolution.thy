@@ -73,6 +73,7 @@ inductive
     \<forall>i < n. (\<forall>A \<in># Aij ! i. A = Ai ! i) \<Longrightarrow>
     eligible Ai (D + negs (mset Ai)) \<Longrightarrow>
     \<forall>i < n. str_maximal_in (Ai ! i) (Ci ! i) \<Longrightarrow>
+    \<forall>i < n. S (CAi ! i) = {#} \<Longrightarrow>
     ord_resolve CAi (D + negs (mset Ai)) ((\<Union># (mset Ci)) + D)" 
           
 lemma ord_resolve_sound:
@@ -369,10 +370,11 @@ proof -
     using prod_c producesD productive_imp_produces_Max_literal by blast 
   have "\<forall>C\<in>set CAi. S C = {#}"
     using \<open>\<forall>C\<in>set CAi. S C = {#}\<close> by simp
+  then have "\<forall>i<n. S (CAi ! i) = {#}"
+    using \<open>length CAi = n\<close> nth_mem by blast
   ultimately
-  have res_e: "ord_resolve CAi (D + negs (mset Ai)) (\<Union>#mset Ci + D)" using ord_resolve[of CAi n Ci Aij Ai D] by auto
-          
-  
+  have res_e: "ord_resolve CAi (D + negs (mset Ai)) (\<Union>#mset Ci + D)" 
+    using ord_resolve by auto
   have "\<And>A. A \<in> set Ai \<Longrightarrow> \<not> interp N (CA_of A) \<Turnstile> CA_of A"
     by (simp add: prod_c0 producesD)
   hence "\<And>A. A \<in> set Ai \<Longrightarrow> \<not> Interp N (CA_of A) \<Turnstile> C_of A"
@@ -458,7 +460,7 @@ definition ord_\<Gamma> :: "'a inference set" where
   "ord_\<Gamma> = {Infer (mset CAi) DA E | CAi DA E. ord_resolve CAi DA E}"
 
 sublocale 
-  sound_counterex_reducing_inference_system "ground_resolution_with_selection.ord_\<Gamma> S"
+  ord_\<Gamma>_sound_counterex_reducing?: sound_counterex_reducing_inference_system "ground_resolution_with_selection.ord_\<Gamma> S"
     "ground_resolution_with_selection.INTERP S" +
   reductive_inference_system "ground_resolution_with_selection.ord_\<Gamma> S"
 proof unfold_locales

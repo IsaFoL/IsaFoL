@@ -1,5 +1,5 @@
 theory Array_Array_List
-imports IICF
+imports WB_More_Refinement
 begin
 
 subsection \<open>Array of Array Lists\<close>
@@ -99,7 +99,8 @@ lemma heap_list_all_nth_append:
 lemma heap_list_all_heap_list_all_nth_eq:
   \<open>heap_list_all R xs ys = heap_list_all_nth R [0..< length xs] xs ys * \<up>(length xs = length ys)\<close>
   by (induction R xs ys rule: heap_list_all.induct)
-    (auto simp del: upt_Suc simp: upt_rec[of 0] heap_list_all_nth_single star_aci(3)
+    (auto simp del: upt_Suc upt_Suc_append
+      simp: upt_rec[of 0] heap_list_all_nth_single star_aci(3)
       heap_list_all_nth_Cons heap_list_all_nth_Suc)
 
 lemma heap_list_all_nth_remove1: \<open>i \<in> set is \<Longrightarrow>
@@ -328,32 +329,8 @@ definition update_aa :: "('a::{heap} array_list) array \<Rightarrow> nat \<Right
 definition update_ll :: "'a list list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a list list"  where
   \<open>update_ll xs i j y = xs[i:= (xs ! i)[j := y]]\<close>
 
-abbreviation comp4 (infixl "oooo" 55) where "f oooo g \<equiv> \<lambda>x. f ooo (g x)"
-
-notation
-  comp4  (infixl "\<circ>\<circ>\<circ>\<circ>" 55)
-
 declare nth_rule[sep_heap_rules del]
 declare arrayO_nth_rule[sep_heap_rules]
-
-lemma list_rel_update:
-  fixes R :: \<open>'a \<Rightarrow> 'b :: {heap}\<Rightarrow> assn\<close>
-  assumes rel: \<open>(xs, ys) \<in> \<langle>the_pure R\<rangle>list_rel\<close> and
-   h: \<open>h \<Turnstile> A * R b bi\<close> and
-   p: \<open>is_pure R\<close>
-  shows \<open>(list_update xs ba bi, list_update ys ba b) \<in> \<langle>the_pure R\<rangle>list_rel\<close>
-proof -
-  obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
-    using p by fastforce
-  have [simp]: \<open>(bi, b) \<in> the_pure R\<close>
-    using h p by (auto simp: mod_star_conv R R')
-  have \<open>length xs = length ys\<close>
-    using assms list_rel_imp_same_length by blast
-
-  then show ?thesis
-    using rel
-    by (induction xs ys arbitrary: ba rule: list_induct2) (auto split: nat.splits)
-qed
 
 text \<open>TODO: is it possible to be more precise and not drop the \<^term>\<open>\<up> ((aa, bc) = r' ! bb)\<close>\<close>
 lemma arrayO_except_assn_arl_set[sep_heap_rules]:
@@ -696,8 +673,5 @@ sepref_definition
   apply (rewrite at \<open>fold _ _ \<hole>\<close> op_HOL_list_empty_def[symmetric])
   supply [[goals_limit = 1]]
   by sepref
-
-lemma ex_assn_up_eq2: \<open>(\<exists>\<^sub>Aba. f ba * \<up> (ba = c)) = (f c)\<close>
-  by (simp add: ex_assn_def)
 
 end

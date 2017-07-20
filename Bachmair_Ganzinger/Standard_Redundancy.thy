@@ -28,6 +28,17 @@ definition Rf :: "'a clause set \<Rightarrow> 'a clause set" where
 
 definition Ri :: "'a clause set \<Rightarrow> 'a inference set" where
   "Ri N = {\<gamma> \<in> \<Gamma>. redundant_infer N \<gamma>}"
+  
+lemma tautology_redundant:
+  assumes "Pos A \<in># C"
+  assumes "Neg A \<in># C"
+  shows "C \<in> Rf N"
+proof -
+  have "set_mset {#} \<subseteq> N \<and> (\<forall>I. I \<Turnstile>m {#} \<longrightarrow> I \<Turnstile> C) \<and> (\<forall>D. D \<in># {#} \<longrightarrow> D < C)"
+    using assms by auto
+  then show "C \<in> Rf N" 
+    unfolding Rf_def by blast
+qed
 
 text {*
 The following results correspond to Lemma 4.5. The lemma @{text assume_non_Rf} generalizes the core

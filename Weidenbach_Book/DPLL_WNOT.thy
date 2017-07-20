@@ -46,15 +46,15 @@ lemma dpll\<^sub>W_dpll\<^sub>N\<^sub>O\<^sub>T:
 lemma rtranclp_dpll\<^sub>W_rtranclp_dpll\<^sub>N\<^sub>O\<^sub>T:
   assumes "dpll\<^sub>W\<^sup>*\<^sup>* S T " and "dpll\<^sub>W_all_inv S"
   shows "dpll\<^sub>N\<^sub>O\<^sub>T.dpll_bj\<^sup>*\<^sup>* S T"
-  using assms apply (induction)
-   apply simp
+  using assms apply induction
+   apply (simp; fail)
   by (auto intro:  rtranclp_dpll\<^sub>W_all_inv dpll\<^sub>W_dpll\<^sub>W_bj rtranclp.rtrancl_into_rtrancl)
 
 lemma rtranclp_dpll_rtranclp_dpll\<^sub>W:
   assumes "dpll\<^sub>N\<^sub>O\<^sub>T.dpll_bj\<^sup>*\<^sup>* S T " and "dpll\<^sub>W_all_inv S"
   shows "dpll\<^sub>W\<^sup>*\<^sup>* S T"
-  using assms apply (induction)
-   apply simp
+  using assms apply induction
+   apply (simp; fail)
   by (auto intro: dpll\<^sub>W_bj_dpll rtranclp.rtrancl_into_rtrancl rtranclp_dpll\<^sub>W_all_inv)
 
 lemma dpll_conclusive_state_correctness:

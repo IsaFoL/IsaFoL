@@ -177,3 +177,8 @@ GRAT/html
 GRAT/gratchk/code/gratchk
 GRAT/gratgen/debug
 GRAT/gratgen/release
+
+## Generated documentation
+html
+Weidenbach_Book/output*
+

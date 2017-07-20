@@ -815,10 +815,10 @@ lemma ord_resolve_obtain_clauses_std_apart:
       
   have CAi'_in_M: "\<forall>i < n. CAi' ! i \<in> M" using clauses' by auto
   have CAi'_\<eta>_fo_CAi: "CAi' \<cdot>cl \<eta>_fo = CAi"
-    using clauses' cai'_\<eta>_fo by auto
+    using clauses'(7) cai'_\<eta>_fo by auto
   
   have SCAi'_\<eta>_fo_SMCAi: "(map S CAi') \<cdot>cl \<eta>_fo = map (S_M S M) CAi"
-    using cai'_\<eta>_fo_sel clauses' by auto
+    using cai'_\<eta>_fo_sel clauses'(8) by auto
     
   have "DA' \<in> M" using clauses' by auto
   have "DA' \<cdot> \<eta>_fo = DA" using DA'_\<eta>
@@ -829,14 +829,16 @@ lemma ord_resolve_obtain_clauses_std_apart:
     (* Obtain ground substitution *)
     
   obtain \<eta> where \<eta>_p: "is_ground_subst \<eta> \<and> (\<forall>i<length (DA' # CAi'). \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> \<eta>_fo = S \<cdot> \<eta>)"
-    using make_ground_subst[of "DA' # CAi'" \<eta>_fo] grounding \<open>CAi' \<cdot>cl \<eta>_fo = CAi\<close> \<open>DA' \<cdot> \<eta>_fo = DA\<close> grounding_ground by metis
+    using make_ground_subst[of "DA' # CAi'" \<eta>_fo] grounding \<open>CAi' \<cdot>cl \<eta>_fo = CAi\<close> \<open>DA' \<cdot> \<eta>_fo = DA\<close> grounding_ground
+    by (metis Un_insert_left is_ground_cls_list_def list.simps(15) subsetCE subst_cls_list_Cons sup_bot.left_neutral) 
+      
       
   from \<eta>_p have DA'_\<eta>_fo_sel: "(S DA') \<cdot> \<eta>_fo = (S DA') \<cdot> \<eta>" 
     using S.S_selects_subseteq by auto
   from \<eta>_p have DA'_\<eta>: "DA' \<cdot> \<eta>_fo = DA' \<cdot> \<eta>" 
     by auto
       
-  from \<eta>_p have "\<forall>i<n. (S ((CAi') ! i)) \<cdot> \<eta>_fo = (S ((CAi') ! i)) \<cdot> \<eta>" 
+  from \<eta>_p have "\<forall>i<n. (S (CAi' ! i)) \<cdot> \<eta>_fo = (S (CAi' ! i)) \<cdot> \<eta>" 
     using n S.S_selects_subseteq by auto
   then have cai'_\<eta>_fo_sel: "(map S CAi') \<cdot>cl \<eta>_fo = (map S CAi') \<cdot>cl \<eta>"
     using n by auto
@@ -845,11 +847,11 @@ lemma ord_resolve_obtain_clauses_std_apart:
   then have cai'_\<eta>_fo: "CAi' \<cdot>cl \<eta>_fo = CAi' \<cdot>cl \<eta>"
     using n by auto
       
-  have "\<forall>i < n. CAi' ! i \<in> M" using clauses' n by auto
+  have "\<forall>i < n. CAi' ! i \<in> M" using clauses'(6) n by auto
   have CAi'_CAi: "CAi' \<cdot>cl \<eta> = CAi"
     using cai'_\<eta>_fo CAi'_\<eta>_fo_CAi by simp
       
-  have SCAi'_SMCAi: "map S (CAi') \<cdot>cl \<eta> = map (S_M S M) CAi"
+  have SCAi'_SMCAi: "(map S CAi') \<cdot>cl \<eta> = map (S_M S M) CAi"
     using cai'_\<eta>_fo_sel SCAi'_\<eta>_fo_SMCAi by auto
     
   have DA'_in_M: "DA' \<in> M" using clauses' by auto
@@ -964,7 +966,7 @@ lemma ord_resolve_lifting:
   note n = n \<open>length Ai' = n\<close>
     
     (* Split in to C's and A's *)
-  obtain Aij' Ci'  where aij':
+  obtain Aij' Ci'  where Aij'_Ci'_p:
     "length Aij' = n"
     "length Ci' = n"
     
@@ -977,13 +979,13 @@ lemma ord_resolve_lifting:
       fix i
       assume "i<n"
       have "CAi' ! i \<cdot> \<eta> = CAi ! i"
-        using \<open>i < n\<close> clauses'(1,6) n by auto
+        using \<open>i < n\<close> clauses'(6) using n by auto
       moreover
       have "poss (Aij ! i) \<subseteq># CAi !i"
         using \<open>i<n\<close> ord_resolve(8) by auto
       ultimately
       obtain NAiji' where nn: "NAiji' \<cdot> \<eta> = poss (Aij ! i) \<and> NAiji' \<subseteq># CAi' ! i"
-        using clauses' ord_resolve(8) image_mset_of_subset unfolding subst_cls_def by metis
+        using ord_resolve(8) image_mset_of_subset unfolding subst_cls_def by metis
       then have l: "\<forall>L \<in># NAiji'. is_pos L"
         unfolding subst_cls_def by (metis Melem_subst_cls imageE literal.disc(1) literal.map_disc_iff set_image_mset subst_cls_def subst_lit_def) 
       define Aiji' where "Aiji' = image_mset atm_of NAiji'"
@@ -1021,7 +1023,7 @@ lemma ord_resolve_lifting:
     have "\<forall>i < n. CAi' ! i = Ci' ! i + poss (Aij' ! i)"
      using Aij'_in_CAi' using Ci'_def n by auto
     then have "Ci' \<cdot>cl \<eta> = Ci"
-      using nth_equalityI clauses' n Aij'_Aij ord_resolve(8) by auto
+      using clauses'(6) Aij'_Aij ord_resolve(8) using n by auto
       
     show ?thesis using that 
         \<open>Aij' \<cdot>aml \<eta> = Aij\<close>
@@ -1134,19 +1136,16 @@ lemma ord_resolve_lifting:
   have res_e: "ord_resolve S CAi' DA' E'" 
     using ord_resolve.intros[of CAi' n Ci' Aij' Ai' \<tau> S D', 
         OF 
-        \<open>length CAi' = n\<close>
-        \<open>length Ci' = n\<close> 
-        \<open>length Aij' = n\<close> 
-        \<open>length Ai' = n\<close> 
-        \<open>n \<noteq> 0\<close>
-        \<open>\<forall>i<n. CAi' ! i = Ci' ! i + poss (Aij' ! i)\<close>
+        _ _ _ _
+        _
+        _
         \<open>\<forall>i<n. Aij' ! i \<noteq> {#}\<close> 
-        \<open> Some \<tau> = mgu (set_mset ` set (map2 add_mset Ai' Aij'))\<close>
-        \<open>eligible S \<tau> Ai' (D' + negs (mset Ai'))\<close>
+        \<tau>\<phi>(1)
+        eligibility
         \<open>\<forall>i<n. str_maximal_in (Ai' ! i \<cdot>a \<tau>) (Ci' ! i \<cdot> \<tau>)\<close>
         \<open>\<forall>i<n. S (CAi' ! i) = {#}\<close>
         ] 
-    unfolding E'_def using ai'
+    unfolding E'_def using ai' n Aij'_Ci'_p
     by blast
       
       
@@ -1161,7 +1160,7 @@ lemma ord_resolve_lifting:
     finally show e'\<phi>e: "E' \<cdot> \<phi> = E" .
   qed
     
-    (* Replace \<phi> with ground substitution *)
+    (* Replace \<eta> with ground substitution *)
   obtain \<eta>2 where ground_\<eta>2: "is_ground_subst \<eta>2" "E' \<cdot> \<eta>2 = E"
   proof -
     have "is_ground_cls_list CAi" "is_ground_cls DA"

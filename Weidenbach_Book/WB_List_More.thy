@@ -79,7 +79,18 @@ qed
 section \<open>More Lists\<close>
 
 lemma tl_drop_def: \<open>tl N = drop 1 N\<close>
-  by (cases N)  auto
+  by (cases N) auto
+
+lemma take_2_if:
+  \<open>take 2 C = (if C = [] then [] else if length C = 1 then [hd C] else [C!0, C!1])\<close>
+  by (cases C; cases \<open>tl C\<close>) auto
+
+lemma tl_update_swap:
+  \<open>i \<ge> 1 \<Longrightarrow> tl (N[i := C]) = tl N[i-1 := C]\<close>
+  by (auto simp:  drop_Suc[of 0, symmetric, simplified] drop_update_swap)
+
+lemma nth_in_set_tl: \<open>i > 0 \<Longrightarrow> i < length xs \<Longrightarrow> xs ! i \<in> set (tl xs)\<close>
+  by (cases xs) auto
 
 
 subsection \<open>@{term upt}\<close>
@@ -191,6 +202,9 @@ proof -
       upt_eq_Cons_conv upt_rec ys)
 qed
 
+lemma nths_upt_upto_Suc: \<open>aa < length xs \<Longrightarrow> nths xs {0..<Suc aa} = nths xs {0..<aa} @ [xs ! aa]\<close>
+  by (simp add: atLeast0LessThan take_Suc_conv_app_nth)
+
 text \<open>The following two lemmas are useful as simp rules for case-distinction. The case
   @{term \<open>length l = 0\<close>} is already simplified by default.\<close>
 lemma length_list_Suc_0:
@@ -282,6 +296,32 @@ next
     using Cons[of 0] Cons by (auto simp: nth_Cons drop_Cons H mset_case_Suc *)
 qed
 
+lemma last_list_update_to_last:
+  \<open>last (xs[x := last xs]) = last xs\<close>
+  by (metis last_list_update list_update.simps(1))
+
+lemma take_map_nth_alt_def: \<open>take n xs = map (op! xs) [0..<min n (length xs)]\<close>
+proof (induction xs rule: rev_induct)
+  case Nil
+  then show ?case by auto
+next
+  case (snoc x xs) note IH = this
+  show ?case
+  proof (cases \<open>n < length (xs @ [x])\<close>)
+    case True
+    then show ?thesis
+      using IH by (auto simp: min_def nth_append)
+  next
+    case False
+    have [simp]:
+      \<open>map (\<lambda>a. if a < length xs then xs ! a else [x] ! (a - length xs)) [0..<length xs] =
+       map (\<lambda>a. xs ! a) [0..<length xs]\<close> for xs x
+     by (rule map_cong) auto
+    show ?thesis
+      using IH False by (auto simp: nth_append min_def)
+  qed
+qed
+
 
 subsection \<open>Lexicographic Ordering\<close>
 
@@ -368,7 +408,7 @@ qed
 
 lemma append_same_lexn:
   assumes irrefl: \<open>irrefl R\<close>
-  shows \<open>(B  @ A , C @ A) \<in> lexn R n \<longleftrightarrow> (B, C) \<in> lexn R (n - length A)\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
+  shows \<open>(B @ A , C @ A) \<in> lexn R n \<longleftrightarrow> (B, C) \<in> lexn R (n - length A)\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
 proof
   assume ?A
   then obtain xys x xs y ys where
@@ -430,9 +470,15 @@ subsection \<open>Remove\<close>
 
 subsubsection \<open>More lemmas about remove\<close>
 
-lemma remove1_Nil:
-  \<open>remove1 (- L) W = [] \<longleftrightarrow> (W = [] \<or> W = [-L])\<close>
-  by (cases W) auto
+  
+lemma distinct_remove1_last_butlast:
+  \<open>distinct xs \<Longrightarrow> xs \<noteq> [] \<Longrightarrow> remove1 (last xs) xs = butlast xs\<close>
+  by (metis append_Nil2 append_butlast_last_id distinct_butlast not_distinct_conv_prefix
+      remove1.simps(2) remove1_append)
+
+lemma remove1_Nil_iff:
+  \<open>remove1 x xs = [] \<longleftrightarrow> xs = [] \<or> xs = [x]\<close>
+  by (cases xs) auto
 
 lemma removeAll_upt:
   \<open>removeAll k [a..<b] = (if k \<ge> a \<and> k < b then [a..<k] @ [Suc k..<b] else [a..<b])\<close>
@@ -444,6 +490,10 @@ lemma remove1_upt:
 
 lemma sorted_removeAll: \<open>sorted C \<Longrightarrow> sorted (removeAll k C)\<close>
   by (metis map_ident removeAll_filter_not_eq sorted_filter)
+
+lemma distinct_remove1_rev: \<open>distinct xs \<Longrightarrow> remove1 x (rev xs) = rev (remove1 x xs)\<close>
+  using split_list[of x xs]
+  by (cases \<open>x \<in> set xs\<close>) (auto simp: remove1_append remove1_idem)
 
 
 subsubsection \<open>Remove under condition\<close>
@@ -518,6 +568,9 @@ proof -
   then show ?thesis by (simp add: union_mset_list_def)
 qed
 
+lemma union_mset_list_Nil[simp]: \<open>union_mset_list [] bi = bi\<close>
+  by (auto simp: union_mset_list_def)
+
 lemma size_le_Suc_0_iff: \<open>size M \<le> Suc 0 \<longleftrightarrow> ((\<exists>a b. M = {#a#}) \<or> M = {#})\<close>
    using size_1_singleton_mset by (auto simp: le_Suc_eq)
 
@@ -546,9 +599,32 @@ lemma mset_butlast_remove1_mset: \<open>xs \<noteq> [] \<Longrightarrow> mset (b
   apply (simp only: mset_append)
   by auto
 
-lemma last_list_update_to_last:
-  \<open>last (xs[x := last xs]) = last xs\<close>
-  by (metis last_list_update list_update.simps(1))
+lemma distinct_mset_mono: \<open>D' \<subseteq># D \<Longrightarrow> distinct_mset D \<Longrightarrow> distinct_mset D'\<close>
+  by (metis distinct_mset_union subset_mset.le_iff_add)
+
+lemma subset_mset_trans_add_mset:
+  \<open>D \<subseteq># D' \<Longrightarrow> D \<subseteq># add_mset L D'\<close>
+  by (metis add_mset_remove_trivial diff_subset_eq_self subset_mset.dual_order.trans)
+
+lemma remove1_mset_empty_iff: \<open>remove1_mset L N = {#} \<longleftrightarrow> N = {#L#} \<or> N = {#}\<close>
+  by (cases \<open>L \<in># N\<close>; cases N) auto
+
+lemma distinct_subseteq_iff :
+  assumes dist: "distinct_mset M" and fin: "distinct_mset N"
+  shows "set_mset M \<subseteq> set_mset N \<longleftrightarrow> M \<subseteq># N"
+proof
+  assume "set_mset M \<subseteq> set_mset N"
+  then show "M \<subseteq># N"
+    using dist fin by auto
+next
+  assume "M \<subseteq># N"
+  then show "set_mset M \<subseteq> set_mset N"
+    by (metis set_mset_mono)
+qed
+
+lemma in_remove1_msetI: \<open>x \<noteq> a \<Longrightarrow> x \<in># M \<Longrightarrow> x \<in># remove1_mset a M\<close>
+  by (simp add: in_remove1_mset_neq)
+
 
 subsection \<open>Sorting\<close>
 
@@ -627,30 +703,30 @@ lemma distinct_mset_set_distinct: \<open>distinct_mset_set (mset ` set Cs) \<lon
 
 subsection \<open>Sublists\<close>
 
-lemma sublist_single_if: \<open>sublist l {n} = (if n < length l then [l!n] else [])\<close>
+lemma nths_single_if: \<open>nths l {n} = (if n < length l then [l!n] else [])\<close>
 proof -
   have [simp]: \<open>0 < n \<Longrightarrow> {j. Suc j = n} = {n-1}\<close> for n
     by auto
   show ?thesis
   apply (induction l arbitrary: n)
-  subgoal by (auto simp: sublist_def)
-  subgoal by (auto simp: sublist_Cons)
+  subgoal by (auto simp: nths_def)
+  subgoal by (auto simp: nths_Cons)
   done
 qed
 
 lemma atLeastLessThan_Collect: \<open>{a..<b} = {j. j \<ge> a \<and> j < b}\<close>
   by auto
 
-lemma mset_sublist_subset_mset: \<open>mset (sublist xs A) \<subseteq># mset xs\<close>
+lemma mset_nths_subset_mset: \<open>mset (nths xs A) \<subseteq># mset xs\<close>
   apply (induction xs arbitrary: A)
   subgoal by auto
   subgoal for a xs A
-    using subset_mset.add_increasing2[of \<open>add_mset _ {#}\<close> \<open>mset (sublist xs {j. Suc j \<in> A})\<close>  \<open>mset xs\<close>]
-    by (auto simp: sublist_Cons)
+    using subset_mset.add_increasing2[of \<open>add_mset _ {#}\<close> \<open>mset (nths xs {j. Suc j \<in> A})\<close>  \<open>mset xs\<close>]
+    by (auto simp: nths_Cons)
   done
 
-lemma sublist_id_iff:
-  \<open>sublist xs A = xs \<longleftrightarrow> {0..<length xs} \<subseteq> A \<close>
+lemma nths_id_iff:
+  \<open>nths xs A = xs \<longleftrightarrow> {0..<length xs} \<subseteq> A \<close>
 proof -
   have \<open>{j. Suc j \<in> A} =  (\<lambda>j. j-1) ` (A - {0})\<close> for A
     using DiffI by (fastforce simp: image_iff)
@@ -660,16 +736,16 @@ proof -
   have [simp]: \<open>{0..<b} \<subseteq> {j. Suc j \<in> A} \<longleftrightarrow> (\<forall>x. x-1 < b \<longrightarrow> x \<in> A)\<close>
     if \<open>0 \<in> A\<close> for A :: \<open>nat set\<close> and b :: nat
     using that unfolding 1 by auto
-  have [simp]: \<open>sublist xs {j. Suc j \<in> A} = a # xs \<longleftrightarrow> False\<close>
+  have [simp]: \<open>nths xs {j. Suc j \<in> A} = a # xs \<longleftrightarrow> False\<close>
     for a :: 'a and xs :: \<open>'a list\<close> and A :: \<open>nat set\<close>
-    using mset_sublist_subset_mset[of xs \<open>{j. Suc j \<in> A}\<close>] by auto
+    using mset_nths_subset_mset[of xs \<open>{j. Suc j \<in> A}\<close>] by auto
   show ?thesis -- \<open>TODO tune proof\<close>
     apply (induction xs arbitrary: A)
-     apply (auto simp: sublist_Cons less_Suc_eq)
+     apply (auto simp: nths_Cons less_Suc_eq)
     by (fastforce simp: less_Suc_eq)+
 qed
 
-lemma sublist_shift_lemma':
+lemma nths_shift_lemma':
   \<open>map fst [p<-zip xs [i..<i + n]. snd p + b : A] = map fst [p<-zip xs [0..<n]. snd p + b + i : A]\<close>
 proof (induct xs arbitrary: i n b)
   case Nil
@@ -715,15 +791,15 @@ next
   qed
 qed
 
-lemma sublist_Cons_upt_Suc: \<open>sublist (a # xs) {0..<Suc n} = a # sublist xs {0..<n}\<close>
-  unfolding sublist_def
+lemma nths_Cons_upt_Suc: \<open>nths (a # xs) {0..<Suc n} = a # nths xs {0..<n}\<close>
+  unfolding nths_def
   apply (subst upt_conv_Cons)
    apply simp
-  using sublist_shift_lemma'[of 0 \<open>{0..<Suc n}\<close> \<open>xs\<close> 1 \<open>length xs\<close>]
+  using nths_shift_lemma'[of 0 \<open>{0..<Suc n}\<close> \<open>xs\<close> 1 \<open>length xs\<close>]
   by (simp_all add: ac_simps)
 
 
-lemma sublist_empty_iff: \<open>sublist xs A = [] \<longleftrightarrow> {..<length xs} \<inter> A = {}\<close>
+lemma nths_empty_iff: \<open>nths xs A = [] \<longleftrightarrow> {..<length xs} \<inter> A = {}\<close>
 proof (induction xs arbitrary: A)
   case Nil
   then show ?case by auto
@@ -736,17 +812,17 @@ next
   show ?case
   proof (cases \<open>0 \<in> A\<close>)
     case True
-    then show ?thesis by (subst sublist_Cons) auto
+    then show ?thesis by (subst nths_Cons) auto
   next
     case False
     then show ?thesis
-      by (subst sublist_Cons) (use less_Suc_eq_0_disj IH in auto)
+      by (subst nths_Cons) (use less_Suc_eq_0_disj IH in auto)
   qed
 qed
 
-lemma sublist_upt_Suc:
+lemma nths_upt_Suc:
   assumes \<open>i < length xs\<close>
-  shows \<open>sublist xs {i..<length xs} = xs!i # sublist xs {Suc i..<length xs}\<close>
+  shows \<open>nths xs {i..<length xs} = xs!i # nths xs {Suc i..<length xs}\<close>
 proof -
   have upt: \<open>{i..<k} = {j. i \<le> j \<and> j < k}\<close> for i k :: nat
     by auto
@@ -761,9 +837,41 @@ proof -
       using that by auto
     show ?case
       using IH[of \<open>i-1\<close>] i_le
-      by (auto simp add: sublist_Cons upt)
+      by (auto simp add: nths_Cons upt)
   qed
 qed
+
+lemma nths_upt_Suc':
+  assumes \<open>i < b\<close> and \<open>b <= length xs\<close>
+  shows \<open>nths xs {i..<b} = xs!i # nths xs {Suc i..<b}\<close>
+proof -
+  have S1: \<open>{j. i \<le> Suc j \<and> j < b - Suc 0}  = {j. i \<le> Suc j \<and> Suc j < b}\<close> for i b
+    by auto
+  have S2: \<open>{j. i \<le> j \<and> j < b - Suc 0}  = {j. i \<le> j \<and> Suc j < b}\<close> for i b
+    by auto
+  have upt: \<open>{i..<k} = {j. i \<le> j \<and> j < k}\<close> for i k :: nat
+    by auto
+  show ?thesis
+    using assms
+  proof (induction xs arbitrary: i b)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a xs i) note IH = this(1) and i_le = this(2,3)
+    have [simp]: \<open>i - Suc 0 \<le> j \<longleftrightarrow> i \<le> Suc j\<close> if \<open>i > 0\<close> for j
+      using that by auto
+    have \<open>i - Suc 0 < b - Suc 0 \<or> (i = 0)\<close>
+      using i_le by linarith
+    moreover have \<open>b - Suc 0 \<le> length xs \<or> xs = []\<close>
+      using i_le by auto
+    ultimately show ?case
+      using IH[of \<open>i-1\<close> \<open>b-1\<close>] i_le
+      apply (subst nths_Cons)
+      apply (subst nths_Cons)
+      by (auto simp: upt S1 S2)
+  qed
+qed
+
 
 subsection \<open>Product Case\<close>
 
@@ -818,6 +926,11 @@ lemma list_all2_op_eq_map_right_iff: \<open>list_all2 (\<lambda>L. op = (f L)) a
    apply (auto; fail)
   by (rename_tac aa, case_tac aa) (auto)
 
+lemma list_all2_op_eq_map_right_iff': \<open>list_all2 (\<lambda>L L'. L' = f L) a aa \<longleftrightarrow> aa = map f a\<close>
+  apply (induction a arbitrary: aa)
+   apply (auto; fail)
+  by (rename_tac aa, case_tac aa) auto
+
 lemma list_all2_op_eq_map_left_iff: \<open>list_all2 (\<lambda>L' L. L'  = (f L)) a aa \<longleftrightarrow> a = map f aa\<close>
   apply (induction a arbitrary: aa)
    apply (auto; fail)
@@ -836,5 +949,6 @@ lemma list_all2_op_eq_map_map_left_iff:
      apply (auto; fail)
     apply (rename_tac x, case_tac x)
   by (auto simp: list_all2_op_eq_map_left_iff)
+
 
 end

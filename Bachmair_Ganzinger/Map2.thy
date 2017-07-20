@@ -40,6 +40,37 @@ lemma map2_tl: "length t = length s \<Longrightarrow> (map2 f (tl t) (tl s)) = t
     
 lemma map2_Cons[simp]: "map2 f (x # xs) (y # ys) = f x y # map2 f xs ys"
   unfolding map2_def
+  by auto
+
+lemma set_map2_ex:
+  assumes "length t = length s"
+  shows "set (map2 f s t) = {x. \<exists>i<length t. x = f (s ! i) (t ! i)}"
+proof (rule; rule)
+  fix x
+  assume "x \<in> set (map2 f s t)"
+  then obtain i where i_p: "i < length (map2 f s t) \<and> x = ((map2 f s t) ! i)"
+    by (metis in_set_conv_nth)
+  from i_p have "i < length t"
     by auto
-    
+  moreover
+  from this i_p have "x = f (s ! i) (t ! i)"
+    using map2_nth assms by auto
+  ultimately
+  show "x \<in> {x. \<exists>i<length t. x = f (s ! i) (t ! i)}"
+     using assms by auto
+next
+  fix x 
+  assume "x \<in> {x. \<exists>i<length t. x = f (s ! i) (t ! i)}"
+  then obtain i where i_p: "i<length t \<and> x = f (s ! i) (t ! i)"
+    by auto
+  then have "i < length (map2 f s t)"
+    using assms by auto
+  moreover
+  from i_p have "x = ((map2 f s t) ! i)"
+    using map2_nth assms by auto
+  ultimately
+  show "x \<in> set (map2 f s t)"
+    by (metis in_set_conv_nth)
+qed
+
 end

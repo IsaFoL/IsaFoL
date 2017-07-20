@@ -296,9 +296,7 @@ next
           using S' no_smaller by (auto simp: a S cdcl\<^sub>W_restart_mset_state
               cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
         subgoal
-          using S' excep by (auto simp: a S cdcl\<^sub>W_restart_mset_state
-              twl_exception_inv.simps cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def
-              dest!: in_M_IN_QD split: if_splits)
+          using S' excep by (force simp: a S twl_exception_inv.simps split: if_splits)
         subgoal
           using S' no_dup by (auto simp: a S cdcl\<^sub>W_restart_mset_state
             twl_exception_inv.simps uminus_lit_swap

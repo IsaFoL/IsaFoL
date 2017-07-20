@@ -14,6 +14,7 @@ session Bachmair_Ganzinger = Bachmair_Ganzinger_Base +
   theories
     "../lib/Clausal_Logic"
     "../lib/Herbrand_Interpretation"
+    "../lib/Explorer"
     Multiset_Even_More
     Locale_Deps
     Inference_System
@@ -21,16 +22,17 @@ session Bachmair_Ganzinger = Bachmair_Ganzinger_Base +
     Unordered_Ground_Resolution
     Ordered_Ground_Resolution
     Lazy_List_Limit
-    Proving_Process
-    Standard_Redundancy
     New3_Ordered_Ground_Resolution
     Clauses
     Map2
   theories [quick_and_dirty]
+    Proving_Process
+    Standard_Redundancy
     Substitution
     FO_Resolution_Prover
     New3_FO_Resolution_Prover
     New4_FO_Resolution_Prover
+    New5_FO_Resolution_Prover
   document_files
     "bib.bib"
     "root.tex"

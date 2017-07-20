@@ -181,7 +181,7 @@ function formula_of_msets :: "'a literal multiset set \<Rightarrow> 'a propo" wh
       else
          let v = (SOME v. v \<in> \<phi>s);
              v' = formula_of_mset v in
-         if  \<phi>s - {v} = {} then v'
+         if \<phi>s - {v} = {} then v'
          else FAnd v' (formula_of_msets (\<phi>s - {v})))\<close>
   by auto
 termination

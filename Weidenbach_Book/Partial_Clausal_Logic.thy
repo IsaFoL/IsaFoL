@@ -68,6 +68,9 @@ lemma consistent_interp_insert_not_in:
 lemma consistent_interp_unionD: \<open>consistent_interp (I \<union> I') \<Longrightarrow> consistent_interp I'\<close>
   unfolding consistent_interp_def by auto
 
+lemma consistent_interp_insert_iff: \<open>consistent_interp (insert L C) \<longleftrightarrow> consistent_interp C \<and> -L \<notin> C\<close>
+  by (metis consistent_interp_def consistent_interp_insert_pos insert_absorb)
+
 
 subsubsection \<open>Atoms\<close>
 
@@ -658,7 +661,12 @@ proof (intro allI HOL.impI)
   ultimately show "I \<Turnstile> \<chi>'" unfolding true_cls_def by auto
 qed
 
+lemma not_tautology_mono: \<open>D' \<subseteq># D \<Longrightarrow> \<not>tautology D \<Longrightarrow> \<not>tautology D'\<close>
+  by (meson tautology_imp_tautology true_cls_add_mset true_cls_mono_leD)
+
+
 subsubsection \<open>Entailment for clauses and propositions\<close>
+
 text \<open>We also need entailment of clauses by other clauses.\<close>
 definition true_cls_cls :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>f" 49) where
 "\<psi> \<Turnstile>f \<chi> \<longleftrightarrow> (\<forall>I. total_over_m I ({\<psi>} \<union> {\<chi>}) \<longrightarrow> consistent_interp I \<longrightarrow> I \<Turnstile> \<psi> \<longrightarrow> I \<Turnstile> \<chi>)"
@@ -1170,9 +1178,9 @@ Shared by the second layer of type 'a \<Rightarrow> 'b set \<Rightarrow> bool:
 * A \<subseteq> B \<Longrightarrow> I \<Turnstile>s B \<Longrightarrow> I \<Turnstile>s A
 * I \<Turnstile>s {}
 
-*   true_lit   \<Turnstile>   'a interp \<Rightarrow> 'a literal \<Rightarrow> bool
-*   true_cls   \<Turnstile>l 'a interp \<Rightarrow> 'a clause \<Rightarrow> bool
-\<longrightarrow> true_clss  \<Turnstile>s 'a interp \<Rightarrow> 'a clauses \<Rightarrow> bool
+*   true_lit  \<Turnstile>   'a interp \<Rightarrow> 'a literal \<Rightarrow> bool
+*   true_cls  \<Turnstile>l 'a interp \<Rightarrow> 'a clause \<Rightarrow> bool
+\<longrightarrow> true_clss \<Turnstile>s 'a interp \<Rightarrow> 'a clauses \<Rightarrow> bool
 
 *   true_annot \<Turnstile>a ann_lits \<Rightarrow> 'a clause \<Rightarrow> bool
 \<longrightarrow> true_annots \<Turnstile>as ann_lits \<Rightarrow> 'a clauses \<Rightarrow> bool

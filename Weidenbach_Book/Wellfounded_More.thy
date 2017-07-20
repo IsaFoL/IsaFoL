@@ -65,7 +65,7 @@ lemma rtranclp_exists_last_with_prop:
   assumes \<open>R x z\<close> and \<open>R\<^sup>*\<^sup>* z z'\<close> and \<open>P x z\<close>
   shows \<open>\<exists>y y'. R\<^sup>*\<^sup>* x y \<and> R y y' \<and> P y y' \<and> (\<lambda>a b. R a b \<and> \<not>P a b)\<^sup>*\<^sup>* y' z'\<close>
   using assms(2,1,3)
-proof (induction)
+proof induction
   case base
   then show ?case by auto
 next

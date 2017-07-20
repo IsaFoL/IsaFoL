@@ -1716,23 +1716,23 @@ next
     using AN by (metis (no_types, lifting) Diff_subset Un_empty_right Un_insert_right card.remove
       card_insert_if card_mono fin finite_Diff order_refl)
   moreover have "\<Xi> {?C'} < \<Xi> {?C}"
-    proof -
-      have mset_decomp:
-        "{# La \<in># A. (L = La \<longrightarrow> La \<in># A) \<and> (L \<noteq> La \<longrightarrow> 2 \<le> count A La)#}
+  proof -
+    have mset_decomp:
+      "{# La \<in># A. (L = La \<longrightarrow> La \<in># A) \<and> (L \<noteq> La \<longrightarrow> 2 \<le> count A La)#}
         =  {# La \<in># A. L \<noteq> La \<and> 2 \<le> count A La#} +
           {# La \<in># A. L = La \<and> Suc 0 \<le> count A L#}"
-           by (auto simp: multiset_eq_iff ac_simps)
-      have mset_decomp2: "{# La \<in># A. L \<noteq> La \<longrightarrow> 2 \<le> count A La#} =
+      by (auto simp: multiset_eq_iff ac_simps)
+    have mset_decomp2: "{# La \<in># A. L \<noteq> La \<longrightarrow> 2 \<le> count A La#} =
         {# La \<in># A. L \<noteq> La \<and> 2 \<le> count A La#} + replicate_mset (count A L) L"
-        by (auto simp: multiset_eq_iff)
-      have *: "(\<Sum>x\<in>#B. if L = x then Suc (count A x) else count A x) \<le>
+      by (auto simp: multiset_eq_iff)
+    have *: "(\<Sum>x\<in>#B. if L = x then Suc (count A x) else count A x) \<le>
         (\<Sum>x\<in>#B. if L = x then Suc (count (add_mset L A) x) else count (add_mset L A) x)"
-        for B
-        by (auto intro!: sum_mset_mono)
-      show ?thesis
-        using *[of "{#La \<in># A. L \<noteq> La \<and> 2 \<le> count A La#}"]
-        by (auto simp: mset_decomp mset_decomp2 filter_mset_eq)
-   qed
+      for B
+      by (auto intro!: sum_mset_mono)
+    show ?thesis
+      using *[of "{#La \<in># A. L \<noteq> La \<and> 2 \<le> count A La#}"]
+      by (auto simp: mset_decomp mset_decomp2 filter_mset_eq)
+  qed
   have "\<Xi> ?N' < \<Xi> N"
     proof cases
       assume a1: "?C' \<in> N"
@@ -2251,7 +2251,7 @@ theorem resolution_soundness_and_completeness':
     finite: "finite (fst \<psi>)"and
     snd: "snd \<psi> = {}"
   shows "(\<exists>a_u_v. (resolution\<^sup>*\<^sup>* \<psi> ({{#}}, a_u_v))) \<longleftrightarrow> unsatisfiable (fst \<psi>)"
-    using assms resolution_completeness resolution_soundness resolution_falsity_get_falsity_alone
-    by metis
+  using assms resolution_completeness resolution_soundness resolution_falsity_get_falsity_alone
+  by metis
 
 end
