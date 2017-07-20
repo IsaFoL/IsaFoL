@@ -365,6 +365,7 @@ bool cfg_no_grat = false; ///< Do not produce a GRAT certificate
 bool cfg_assume_nodup = false; /**< Assume that clauses contain no duplicate literals.
   @attention You're on your own if they do nevertheless!
 */
+bool cfg_keep_ids = false; ///< Don't assign continuous IDs to lemmas used in proof
 bool cfg_show_progress_bar = true; ///< Display progress bar
 bool cfg_summarize_deletions = true; ///< Summarize deletions
 
@@ -641,14 +642,20 @@ public:
 private:
   friend class ClauseDB;
 
-  const static size_t num_members = 4;
+  const static size_t num_members = 5;
+
   clause_id_t clause_id;
   clause_id_t id_in_proof;
   lit_t pivot;
+
+  unsigned_cdb_t flags;
+  const static unsigned_cdb_t IS_MARKED = 1;
+  const static unsigned_cdb_t IS_RAT_CANDIDATE = 2;
+
   Literal_Container literals;
 
   Clause(clause_id_t id)
-    : clause_id(id), id_in_proof(0), pivot(0), literals() {}
+    : clause_id(id), id_in_proof(0), pivot(0), flags(0), literals() {}
 
   /**
    * Initialize the clause after all literals have been appended
@@ -681,7 +688,31 @@ public:
   /**
    * Return the ID the clause has in the GRAT proof
    */
-  clause_id_t get_id_in_proof() {return id_in_proof;}
+  clause_id_t get_id_in_proof() {
+    assert (!cfg_keep_ids || id_in_proof != 0);
+    if (cfg_keep_ids)
+      return clause_id;
+    else {
+      assert (id_in_proof);
+      return id_in_proof;
+    }
+  }
+
+  void set_marked() {
+    flags |= IS_MARKED;
+  }
+
+  bool is_marked() {
+    return flags & IS_MARKED;
+  }
+
+  void set_rat_candidate() {
+    flags |= IS_RAT_CANDIDATE;
+  }
+
+  bool is_rat_candidate() {
+    return flags & IS_RAT_CANDIDATE;
+  }
 
   /**
    * Get the literal container
@@ -916,7 +947,7 @@ public:
  */
 class item_t {
 private:
-  pos_t pos;      // Position of referenced clause (added or deleted clause), null if erased
+  pos_t pos;      // Position of referenced clause (added or deleted clause), pos_t::invalid if erased
   size_t trpos;   // [Position on forward trail + 1, 0 if not unit] | del-flag
 
 public:
@@ -924,7 +955,7 @@ public:
   item_t(bool _deletion, pos_t _pos) : pos(_pos), trpos(_deletion?1:0) {}
 
   /// Check if item is erased.
-  bool is_erased() const {return !pos;}
+  bool is_erased() const {return pos == pos_t::invalid;}
   /// Erase item
   void erase() {pos = pos_t::invalid;}
 
@@ -1090,18 +1121,20 @@ public:
   /// Writes out the proof object using the specified writer, optionally including the lemma itself
   virtual void write(Proof_Writer&, bool include_lemma) = 0;
 
-  clause_id_t get_lemma_id() {return lemma_id;}
-
   Lemma_Proof &operator=(const Lemma_Proof&) = delete;
   Lemma_Proof(const Lemma_Proof&) = delete;
   Lemma_Proof(Lemma_Proof&&) = default;
 
+  /**
+   * Returns the lemma associated with this proof element
+   */
+  Clause *get_lemma() {return lemma;}
+
 protected:
-  Lemma_Proof(Clause* _lemma, clause_id_t _lemma_id)
-    : lemma(_lemma), lemma_id(_lemma_id) {}
+  Lemma_Proof(Clause* _lemma)
+    : lemma(_lemma) {}
 
   Clause *lemma;
-  clause_id_t lemma_id;
 
   void write_lemma(Proof_Writer& writer) {
     for (auto l : lemma->get_literals())
@@ -1113,11 +1146,10 @@ protected:
 class RUP_Proof : public Lemma_Proof {
 public:
   RUP_Proof(Clause* _lemma
-      , clause_id_t _lemma_id
-      , clause_id_t _conflict_id
-      , vector<clause_id_t> &&_unit_clauses)
-    : Lemma_Proof(_lemma, _lemma_id)
-    , conflict_id(_conflict_id)
+      , Clause* _conflict
+      , vector<Clause*> &&_unit_clauses)
+    : Lemma_Proof(_lemma)
+    , conflict(_conflict)
     , unit_clauses(_unit_clauses) {}
 
   RUP_Proof &operator=(const RUP_Proof&) = delete;
@@ -1126,29 +1158,32 @@ public:
 
   void write(Proof_Writer& writer, bool include_lemma) {
     writer.start_ty(item_type::RUP_LEMMA);
-    writer.write_id(lemma_id);
+    writer.write_id(lemma->get_id_in_proof());
 
     if (include_lemma)
       write_lemma(writer);
 
-    for (auto clause_id : unit_clauses)
-      writer.write_id(clause_id);
+    for (auto clause : unit_clauses)
+      writer.write_id(clause->get_id_in_proof());
     writer.write_Z();
-    writer.write_id(conflict_id);
+    writer.write_id(conflict->get_id_in_proof());
   }
 private:
-  clause_id_t conflict_id;
-  vector<clause_id_t> unit_clauses;
+  Clause* conflict;
+  vector<Clause*> unit_clauses;
 };
+
+static_assert(!is_copy_constructible<RUP_Proof>{}, "");
+static_assert(is_move_constructible<RUP_Proof>{}, "");
+static_assert(is_move_constructible<vector<RUP_Proof>>{}, "");
 
 class RAT_Proof : public Lemma_Proof {
 public:
   RAT_Proof(Clause *_lemma
-      , clause_id_t _lemma_id
       , lit_t _pivot
-      , vector<clause_id_t> &&_initial_units
+      , vector<Clause*> &&_initial_units
       , vector<RUP_Proof> &&_cand_proofs)
-    : Lemma_Proof(_lemma, _lemma_id)
+    : Lemma_Proof(_lemma)
     , pivot(_pivot)
     , initial_units(_initial_units)
     , candidate_proofs(std::move(_cand_proofs)) {}
@@ -1160,23 +1195,28 @@ public:
   void write(Proof_Writer& writer, bool include_lemma) {
     writer.start_ty(item_type::RAT_LEMMA);
     writer.write_lit(pivot);
-    writer.write_id(lemma_id);
+    writer.write_id(lemma->get_id_in_proof());
 
     if (include_lemma)
       write_lemma(writer);
 
-    for (auto clause_id : initial_units)
-      writer.write_id(clause_id);
+    for (auto clause : initial_units)
+      writer.write_id(clause->get_id_in_proof());
     writer.write_Z();
-    for (auto &cand_proof : candidate_proofs)
+    for (auto &cand_proof : candidate_proofs) {
       cand_proof.write(writer, false);
+    }
     writer.write_Z();
   }
 private:
   lit_t pivot;
-  vector<clause_id_t> initial_units;
+  vector<Clause*> initial_units;
   vector<RUP_Proof> candidate_proofs;
 };
+
+static_assert(!is_copy_constructible<RAT_Proof>{}, "");
+static_assert(is_move_constructible<RAT_Proof>{}, "");
+static_assert(is_move_constructible<vector<RAT_Proof>>{}, "");
 
 
 class Parser;
@@ -1339,9 +1379,10 @@ private:
 
 private:
   /// Mark a clause, and return wether it was already marked.
-  inline bool mark_clause(clause_id_t id) { return marked[id].exchange(true); }
-  /// Mark a clause.
-  inline bool mark_clause(Clause *cl) { return mark_clause(cl->get_clause_id()); }
+  inline bool mark_clause(Clause *cl) {
+    cl->set_marked();
+    return marked[cl->get_clause_id()].exchange(true);
+  }
 
 
 public:
@@ -1398,14 +1439,6 @@ public:
 
   /// Return pointer to proof of clause.
   inline Lemma_Proof *get_proof_of(Clause *cl) {return proofs[cl->get_clause_id()];}
-
-  /// Get the ID the lemma got in the GRAT proof (possibly different from ID in DRAT proof)
-  inline clause_id_t get_id_in_proof(Clause *cl) {
-    auto proof = get_proof_of(cl);
-    assert(proof != nullptr);
-
-    return proof->get_lemma_id();
-  }
 
   /// Increment RAT-count for specified literal.
   inline void inc_rat_counts(lit_t l) { ++rat_counts[l]; }
@@ -1987,7 +2020,7 @@ public:
    *
    * @see @ref Conflict_Analysis
    */
-  vector<clause_id_t> collect_marked_from(size_t pos);
+  vector<Clause*> collect_marked_from(size_t pos);
 
   void mark_var(var_t v);     ///< Mark reason for this variable to be set, recursively. @see @ref Conflict_Analysis
   void mark_clause(Clause *cl); ///< Mark clause and literals in clause, recursively. @see @ref Conflict_Analysis
@@ -2296,11 +2329,13 @@ void Verifier::rollback(size_t pos) {
   if (processed>trail.size()) processed = trail.size();
 }
 
-vector<clause_id_t> Verifier::collect_marked_from(size_t pos) {
-  auto marked_clauses = vector<clause_id_t>();
+vector<Clause*> Verifier::collect_marked_from(size_t pos) {
+  auto marked_clauses = vector<Clause*>();
   for (size_t i = pos; i < trail.size(); ++i) {
-    if (trail[i].vmarked && trail[i].reason)
-      marked_clauses.push_back(trail[i].reason->get_clause_id());
+    if (trail[i].vmarked && trail[i].reason) {
+      assert(sdata->is_marked(trail[i].reason));
+      marked_clauses.push_back(trail[i].reason);
+    }
   }
   return marked_clauses;
 }
@@ -2315,7 +2350,8 @@ inline void Verifier::mark_var(var_t v) {
 
     if (pos < fwd_trail_size) fwd_vmarked[pos] = true; // If this position is on current forward trail, also flag as marked there
 
-    if (trail[pos].reason) mark_clause(trail[pos].reason);
+    if (trail[pos].reason)
+      mark_clause(trail[pos].reason);
   }
 }
 
@@ -2675,8 +2711,8 @@ void Verifier::verify(Clause *cl) {
     ++stat_rup_lemmas;
     mark_clause(conflict);
     if (!cfg_no_grat) {
-      sdata->set_proof_of(cl, new RUP_Proof(cl, cl_id,
-        conflict->get_clause_id(),
+      sdata->set_proof_of(cl, new RUP_Proof(cl,
+        conflict,
         collect_marked_from(orig_pos)));
     }
     rollback(orig_pos);
@@ -2694,6 +2730,8 @@ void Verifier::verify(Clause *cl) {
     // Iterate over candidates
 
     for (auto rat_candidate : rat_candidates) {
+      rat_candidate->set_rat_candidate();
+
       // Falsify literals and check blocked
       bool blocked = false;
       for (lit_t l : rat_candidate->get_literals()) {
@@ -2704,7 +2742,8 @@ void Verifier::verify(Clause *cl) {
           blocked = true;
           break;
         } else {
-          if (!is_false(l)) assign_true(-(l),nullptr);
+          if (!is_false(l))
+            assign_true(-(l), nullptr);
         }
       }
       if (!blocked) {
@@ -2717,8 +2756,8 @@ void Verifier::verify(Clause *cl) {
         if (!cfg_no_grat) {
           candidate_proofs.emplace_back(
             RUP_Proof(
-              rat_candidate, rat_candidate->get_clause_id(),
-              conflict->get_clause_id(),
+              rat_candidate,
+              conflict,
               collect_marked_from(rat_pos)));
         }
         rollback(rat_pos);
@@ -2730,7 +2769,7 @@ void Verifier::verify(Clause *cl) {
 
     if (!cfg_no_grat) {
       sdata->set_proof_of(cl, new RAT_Proof(
-        cl, cl_id, pivot,
+        cl, pivot,
         collect_marked_from(orig_pos),
         move(candidate_proofs)));
     }
@@ -2850,23 +2889,16 @@ void Verifier::bwd_pass(bool show_status_bar) {
 
   size_t range_detect_max = 512; // Maximum equal-pivot range to acquire simultaneously
 
-
-  size_t i = glb.get_num_items();
-
   size_t range_end_idx = glb.get_num_items();   // Next item index not in current range
   deque<Clause*> range_acquired;               // List of clauses pre-acquired for current range
 
-  while (i>glb.get_fst_prf_item()) {
-    --i;
-
+  for (size_t i = glb.get_num_items() - 1; i >= glb.get_fst_prf_item(); --i) {
     if (pdsp) ++*pdsp;
 
     item_t &item = glb.get_item(i);
 
     if (!item.is_erased()) {
       Clause *cl = db->p2c(item.get_pos());
-      if (cl->get_clause_id() == 1154382)
-        cl->get_clause_id();
 
       if (item.is_deletion()) {
         if (!cfg_ignore_deletion) readd_clause(cl); // We have erased deletions of clauses that were not on watchlist, so readding is safe here.
@@ -3009,6 +3041,11 @@ public:
   /// Perform verification, using the specified number of threads.
   void do_verification(size_t num_threads);
 
+  /**
+   * Assign continuous IDs to all lemmas used in the proof
+   */
+  void assign_new_lemma_ids();
+
 private:
   /**
    * Write out the proof backwards.
@@ -3047,18 +3084,6 @@ public:
   void dump_split_proof(ostream &lout, ostream &pout);
 };
 
-// void VController::do_parsing(istream& cnf_in, istream& drat_in) {
-//   Parser parser;
-//
-//   with_timing("Parsing formula",[&] () {
-//     parser.parse_dimacs(cnf_in);
-//   });
-//
-//   with_timing("Parsing proof",[&] () {
-//     parser.parse_proof(drat_in);
-//   });
-// }
-
 
 void VController::do_parallel_bwd(size_t num_threads) {
   if (num_threads>1) clog<<"c Checking with "<<num_threads<<" parallel threads"<<endl; else clog<<"c Single threaded mode"<<endl;
@@ -3085,8 +3110,6 @@ void VController::do_parallel_bwd(size_t num_threads) {
   }
   glb.join_vmarked(main_vrf.get_fwd_vmarked());
   if (!cfg_single_threaded) main_vrf.sync_marked(true);
-
-
 
 
   // Log number of verified lemmas, compute variance
@@ -3122,7 +3145,6 @@ void VController::do_verification(size_t num_threads) {
   main_vrf.init_after_parsing(sdata);
 
   pos_t cpos = with_timing<pos_t>("Forward pass",[&] {return main_vrf.fwd_pass();});
-//   pos_t cpos = main_vrf.fwd_pass();
 
   if (cpos) {
     glb.init_after_fwd(cpos,main_vrf.get_trail());
@@ -3139,6 +3161,27 @@ void VController::do_verification(size_t num_threads) {
 
 }
 
+void VController::assign_new_lemma_ids() {
+  // give proof lemmas new, continuous IDs, above the range of original clause IDs
+  clause_id_t next_id = glb.get_fst_lemma_id();
+
+  for (size_t i = 0; i < glb.get_num_items(); ++i) {
+    item_t &item = glb.get_item(i);
+
+    if (!item.is_erased()) {
+      Clause *cl = glb.get_db().p2c(item.get_pos());
+
+      if (cl->is_marked() || cl->is_rat_candidate()) {
+        clause_id_t cl_id = cl->get_clause_id();
+        if (cl_id < glb.get_fst_lemma_id())
+          cl->set_id_in_proof(cl_id); // let all original clauses keep their IDs
+        else
+          cl->set_id_in_proof(next_id++);
+      }
+    }
+  }
+}
+
 template<bool include_lemmas, bool binary> void VController::dump_proof_aux(ostream &out) {
   assert(!cfg_no_grat);
 
@@ -3151,15 +3194,11 @@ template<bool include_lemmas, bool binary> void VController::dump_proof_aux(ostr
   prw.write_id(glb.get_conflict()->get_clause_id());
 
   // Proof items
-  size_t i = glb.get_num_items();
   size_t tri = glb.get_fwd_trail().size();
-  while (i>glb.get_fst_prf_item()) {
-    --i;
-
+  for (size_t i = glb.get_num_items() - 1; i >= glb.get_fst_prf_item(); --i) {
     item_t &item = glb.get_item(i);
 
     if (!item.is_erased()) {
-
       Clause *cl = glb.get_db().p2c(item.get_pos());
 
       if (item.is_deletion()) {
@@ -3174,7 +3213,7 @@ template<bool include_lemmas, bool binary> void VController::dump_proof_aux(ostr
           size_t ntri = item.get_trpos();
           assert(ntri < tri);
 
-          for (size_t j = ntri; j<tri; ++j) {
+          for (size_t j = ntri; j < tri; ++j) {
             auto &tritem = glb.get_fwd_trail()[j];
             if (tritem.second) {
               prw.write_uprop(tritem.first);
@@ -3396,6 +3435,9 @@ int main(int argc, char **argv) {
   stat_overall_vrf_time = chrono::duration_cast<chrono::milliseconds>( chrono::steady_clock::now() - main_start_time);
 
   if (!cfg_no_grat) {
+    if (!cfg_keep_ids)
+      vctl.assign_new_lemma_ids();
+    
     if (split_proof_mode) {
       // Write lemmas and proof file
       with_timing_void("Writing split lemmas and proof",[&] () {vctl.dump_split_proof(lemmas_out, grat_out); lemmas_out.close(); grat_out.close();},&stat_writing_time);
