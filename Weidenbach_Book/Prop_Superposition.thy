@@ -406,7 +406,7 @@ lemma abstract_red_subset_mset_abstract_red:
   shows "abstract_red D N"
 proof -
   have "{D \<in> N. D < C} \<subseteq> {D' \<in> N. D' < D}"
-    using subset_eq_imp_le_multiset[OF c_lt_d] 
+    using subset_eq_imp_le_multiset[OF c_lt_d]
     by (metis (no_types, lifting) Collect_mono order.strict_trans2)
   then show ?thesis
     using abstr unfolding abstract_red_def clss_lt_def
@@ -466,7 +466,7 @@ proof -
   moreover have "?I' \<Turnstile>s A"
     using I_A by auto
   ultimately have 2: "?I' \<Turnstile> B"
-    using \<open>A\<Turnstile>pB\<close> unfolding true_clss_cls_def by auto  
+    using \<open>A\<Turnstile>pB\<close> unfolding true_clss_cls_def by auto
   define BB where
     \<open>BB =  {P. P \<in> atms_of B \<and> P \<notin> atms_of_s I}\<close>
   have 1: \<open>I \<union> Pos ` BB \<Turnstile> B\<close>
@@ -502,8 +502,8 @@ locale ground_ordered_resolution_with_redundancy =
 begin
 
 definition saturated :: "'a clauses \<Rightarrow> bool" where
-"saturated N \<longleftrightarrow> 
-  (\<forall>A B C. A \<in> N \<longrightarrow> B \<in> N \<longrightarrow> \<not>redundant A N \<longrightarrow> \<not>redundant B N \<longrightarrow> 
+"saturated N \<longleftrightarrow>
+  (\<forall>A B C. A \<in> N \<longrightarrow> B \<in> N \<longrightarrow> \<not>redundant A N \<longrightarrow> \<not>redundant B N \<longrightarrow>
       superposition_rules A B C \<longrightarrow> redundant C N \<or> C \<in> N)"
 lemma (in -)
   assumes \<open>A \<Turnstile>p C + E\<close>
@@ -523,12 +523,12 @@ proof clarify
     by (cases L) force+
   ultimately have \<open>L \<in> I'\<close>
     by (auto simp: image_iff atm_of_eq_atm_of)
-  
+
   show \<open>A \<Turnstile>p add_mset L C\<close>
     unfolding true_clss_cls_def
   proof (intro allI impI conjI)
     fix I
-    assume 
+    assume
       tot: \<open>total_over_m I (A \<union> {add_mset L C})\<close> and
       cons: \<open>consistent_interp I\<close> and
       I_A: \<open>I \<Turnstile>s A\<close>
@@ -549,15 +549,9 @@ proof clarify
     ultimately have 1: "?I \<Turnstile> C + E"
       using assms unfolding true_clss_cls_def by auto
 
-    then have \<open>I \<Turnstile> add_mset L C\<close>
-      unfolding Partial_Clausal_Logic.true_cls_def
-      apply (auto simp: true_cls_def dest: in_C_pm_I)
-      oops
     then show \<open>I \<Turnstile> add_mset L C\<close>
       unfolding Partial_Clausal_Logic.true_cls_def
       apply (auto simp: true_cls_def dest: in_C_pm_I)
-      
-      thm true_cls_def
       oops
 
 lemma
@@ -718,15 +712,14 @@ proof (rule ccontr)
       moreover
       have \<open>clss_lt N (C + E)  \<subseteq> clss_lt N (E + {#Pos P#})\<close>
         using ce_lt_d Pos_P_C_E uL_C apply (auto simp: clss_lt_def D L)
-        
-        using Pos_P_C_E unfolding less_multiset\<^sub>H\<^sub>O 
-        apply (auto split: if_splits)
 
-      then have "clss_lt N (E + {#Pos P#}) \<Turnstile>p E + {#Pos P#} \<or> 
+        using Pos_P_C_E unfolding less_multiset\<^sub>H\<^sub>O
+        apply (auto split: if_splits)
+        sorry
+      then have "clss_lt N (E + {#Pos P#}) \<Turnstile>p E + {#Pos P#} \<or>
           clss_lt N (C + {#Neg P#}) \<Turnstile>p C + {#Neg P#}"
-        
       proof clarify
-        assume CP: "\<not> clss_lt N (C + E) \<Turnstile>p C + {#Neg P#}"
+        assume CP: "\<not> clss_lt N (C + {#Neg P#}) \<Turnstile>p C + {#Neg P#}"
         { fix I
           assume
             "total_over_m I (clss_lt N (C + E) \<union> {E + {#Pos P#}})" and
@@ -739,8 +732,8 @@ proof (rule ccontr)
             sorry
           ultimately have "I \<Turnstile> E + {#Pos P#}" by auto
         }
-        then show "clss_lt N (C + E) \<Turnstile>p E + {#Pos P#}"
-          unfolding true_clss_cls_def by auto
+        then show "clss_lt N (E + {#Pos P#}) \<Turnstile>p E + {#Pos P#}"
+          unfolding true_clss_cls_def sorry
       qed
       then have "clss_lt N (C + E) \<Turnstile>p E + {#Pos P#} \<or> clss_lt N (C + E) \<Turnstile>p C + {#Neg P#}"
       proof clarify
@@ -761,20 +754,12 @@ proof (rule ccontr)
           unfolding true_clss_cls_def by auto
       qed
       moreover have "clss_lt N (C + E) \<subseteq> clss_lt N (C + {#Neg P#})"
-        using ce_lt_d order.strict_trans2 unfolding clss_lt_def D L 
+        using ce_lt_d order.strict_trans2 unfolding clss_lt_def D L
         by (blast dest: less_imp_le)
       ultimately have "redundant (C + {#Neg P#}) N \<or> clss_lt N (C + E) \<Turnstile>p E + {#Pos P#} "
         unfolding redundant_iff_abstract abstract_red_def using true_clss_cls_subset by blast
       show False
 
-
-
-
-
-
-
-
-        
         sorry
     qed
     moreover have "\<not> redundant (E + {#Pos P#}) N"
