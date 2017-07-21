@@ -11,7 +11,7 @@ begin
 
 
 type_synonym 'a state = "'a clause set \<times> 'a clause set \<times> 'a clause set"
-              
+
 locale FO_resolution =
   unification subst_atm id_subst comp_subst mgu
   for
@@ -1147,8 +1147,8 @@ interpretation gd: ground_resolution_with_selection S
   by unfold_locales
 
 
-interpretation gd_unord: ground_resolution_without_selection
-  by unfold_locales
+(* interpretation gd_unord: ground_resolution_without_selection
+  by unfold_locales *)
                        
 
 (*"grounding_of_clss N0"*)
@@ -3126,13 +3126,14 @@ proof -
     
   }
   ultimately
+  find_theorems name: saturated_no_empty_imp_model
   have "src_ext.saturated_upto (llimit (lmap grounding_of_state Sts))" unfolding src_ext.saturated_upto_def src_ext.inferences_from_def infer_from_def
     apply auto
     apply (subgoal_tac "llimit (lmap grounding_of_state Sts) = grounding_of_state (limit_state Sts)")
      apply auto[]
     sorry
   then have "src.saturated_upto (llimit (lmap grounding_of_state Sts))"
-    using standard_redundancy_criterion_extension_saturated_up_to sorry
+    (* using standard_redundancy_criterion_extension_saturated_up_to *) sorry
   then have "src.saturated_upto (grounding_of_state (limit_state Sts))"
     sorry
   then have "{#} \<in> grounding_of_state (limit_state Sts)" using src.saturated_upto_refute_complete unsat

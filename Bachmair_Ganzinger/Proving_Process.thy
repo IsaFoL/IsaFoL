@@ -430,18 +430,25 @@ lemma standard_redundancy_criterion_extension_fair_iff:
 (* I might need a derivation iff derivation *)
 (* Or if that is not true then a "fair derivation" iff "fair derivation" *)
 
+
+lemma standard_redundancy_criterion_extension_saturated_up_iff:
+  assumes "\<Gamma> \<subseteq> \<Gamma>'" and "redundancy_criterion \<Gamma> Rf Ri"
+  shows "redundancy_criterion.saturated_upto \<Gamma> Rf Ri M \<longleftrightarrow> redundancy_criterion.saturated_upto \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>)) M"
+  using assms redundancy_criterion.saturated_upto_def redundancy_criterion.saturated_upto_def standard_redundancy_criterion_extension
+  unfolding inference_system.inferences_from_def
+  by blast
+
 lemma standard_redundancy_criterion_extension_saturated_up_to:
   assumes "\<Gamma> \<subseteq> \<Gamma>'" and "sat_preserving_effective_redundancy_criterion \<Gamma> Rf Ri"
   assumes "effective_redundancy_criterion.fair_clss_seq \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>)) Ns"
   assumes "derivation (redundancy_criterion.derive \<Gamma>' Rf) Ns"
   shows "redundancy_criterion.saturated_upto \<Gamma> Rf Ri (llimit Ns)"
 proof -
-  from assms have "effective_redundancy_criterion.fair_clss_seq \<Gamma> Rf Ri Ns" 
+  from assms have "effective_redundancy_criterion.fair_clss_seq \<Gamma> Rf Ri Ns"
     using standard_redundancy_criterion_extension_fair_iff[of \<Gamma> \<Gamma>' Rf Ri Ns] 
     unfolding sat_preserving_effective_redundancy_criterion_def by auto
   then have "redundancy_criterion.saturated_upto \<Gamma> Rf Ri (llimit Ns)" 
-    using assms sat_preserving_effective_redundancy_criterion.fair_derive_saturated[of \<Gamma> Rf Ri Ns] sorry
+    using assms sorry
   oops
-
 
 end
