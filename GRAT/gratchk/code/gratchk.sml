@@ -107,6 +107,8 @@ val ESC = String.str (Char.chr 27)
 fun check_split_unsat cnf_name lemmas_name proof_name = let
   val a = Array.array (1024,gi_of_int 0);
   
+  val _ = print("c Using split proof mode, proof read buffer size is " ^ Position.toString (!Bin_Reader.buf_size) ^ "\n");
+  
   val cnf_start = 1;
   val _ = print ("c Reading cnf\n");
   val (proof_start,a) = Dimacs_Parser.parse_dimacs_file_map_to_dynarray cnf_name gi_of_int (cnf_start,a);
@@ -195,16 +197,22 @@ in
 end*)
 
 fun print_help () = (
-  println("c Usage: " ^ CommandLine.name() ^ " options");
+  println("c Usage: " ^ CommandLine.name() ^ " options command");
   println("c where options are");
-  println("c  unsat <cnf-file> <proof-file>                   Check standard UNSAT certificate");
-  println("c  unsat <cnf-file> <lemma-file> <proof-file>      Check split UNSAT certificate");
-  println("c  sat <cnf-file> <lit-file>                       Check SAT certificate")
+  println("c  --pbuf-size <size>                          Proof read buffer size in KiB");
+  println("c where command is one of");
+  println("c  unsat <cnf-file> <proof-file>               Check standard UNSAT certificate");
+  println("c  unsat <cnf-file> <lemma-file> <proof-file>  Check split UNSAT certificate");
+  println("c  sat <cnf-file> <lit-file>                   Check SAT certificate")
 )
 
 fun process_args ["sat",cnf_name,proof_name] = check_sat cnf_name proof_name
   | process_args ["unsat",cnf_name,lemmas_name,proof_name] = check_split_unsat cnf_name lemmas_name proof_name
   | process_args ["unsat",cnf_name,grat_name] = check_unsat cnf_name grat_name
+  | process_args ("--pbuf-size"::size::rest) = (
+      Bin_Reader.buf_size := valOf (Position.fromString size) * 1024;
+      process_args rest
+    )
 (*  | process_args ["dump",cnf_name,grat_name,ofs] 
       = checker (MODE_DUMP (valOf (Int.fromString ofs))) cnf_name grat_name*)
   | process_args _ = (

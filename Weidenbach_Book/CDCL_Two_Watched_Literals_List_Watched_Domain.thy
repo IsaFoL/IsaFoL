@@ -1,6 +1,6 @@
 theory CDCL_Two_Watched_Literals_List_Watched_Domain
-  imports CDCL_Two_Watched_Literals_List_Watched Array_Array_List Array_List_Array
-    WB_Word_Assn "../lib/Explorer"
+  imports CDCL_Two_Watched_Literals_List_Watched
+    Array_UInt "../lib/Explorer"
 begin
 
 text \<open>We refine the implementation by adding a \<^emph>\<open>domain\<close> on the literals\<close>
@@ -40,6 +40,8 @@ lemma [safe_constraint_rules]: \<open>is_pure (map_fun_rel_assn D R)\<close>
 
 
 subsection \<open>Literals as Natural Numbers\<close>
+
+subsubsection \<open>Definition\<close>
 
 lemma Pos_div2_iff: \<open>Pos (bb div 2) = b \<longleftrightarrow> is_pos b \<and> (bb = 2 * atm_of b \<or> bb = 2 * atm_of b + 1)\<close> for bb :: nat
   by (cases b) auto
@@ -175,6 +177,17 @@ lemma lit_of_natP_same_leftD: \<open>lit_of_natP bi b \<Longrightarrow> lit_of_n
   done
 
 
+subsubsection \<open>Code\<close>
+
+lemma [sepref_fr_rules]: \<open>(return o id, RETURN o nat_of_lit) \<in> unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare
+     (sep_auto simp: uint32_nat_rel_def br_def unat_lit_rel_def nat_lit_rel_def
+      lit_of_natP_def)
+
+definition (in -)the_is_empty where
+  \<open>the_is_empty D = Multiset.is_empty (the D)\<close>
+
+
 subsection \<open>Refinement\<close>
 
 definition upperN :: nat where
@@ -274,9 +287,6 @@ proof -
       apply (case_tac \<open>(nat_of_lit ` set_mset Ls) = {}\<close>)
        apply (solves simp)
       apply (auto simp: less_Suc_eq_le length_fold)
-      apply (subst nth_list_update_neq)
-       apply (auto simp: less_Suc_eq_le)[]
-      apply (auto simp: less_Suc_eq_le)[]
       done
     done
   have H': \<open>aa ! nat_of_lit x = W x\<close> if \<open>x \<in># N\<^sub>1\<close> for x
@@ -347,6 +357,54 @@ locale twl_array_code =
   for N\<^sub>0 :: \<open>nat multiset\<close> +
   assumes in_N1_less_than_upperN: \<open>\<forall>L \<in># N\<^sub>1. nat_of_lit L < upperN\<close>
 begin
+
+lemma simple_clss_size_upper_div2:
+  assumes
+   lits: \<open>literals_are_in_N\<^sub>0 C\<close> and
+   dist: \<open>distinct_mset C\<close> and
+   tauto: \<open>\<not>tautology C\<close>
+  shows \<open>size C \<le> upperN div 2\<close>
+proof -
+  let ?C = \<open>atm_of `# C\<close>
+  have \<open>distinct_mset ?C\<close>
+  proof (rule ccontr)
+    assume \<open>\<not> ?thesis\<close>
+    then obtain K where \<open>\<not>count (atm_of `# C) K \<le> Suc 0\<close>
+      unfolding distinct_mset_count_less_1
+      by auto
+    then have \<open>count (atm_of `# C) K \<ge> 2\<close>
+      by auto
+    then obtain L L' C' where
+      C: \<open>C = {#L, L'#} + C'\<close> and L_L': \<open>atm_of L = atm_of L'\<close>
+      by (auto dest!: count_image_mset_multi_member_split_2)
+    then show False
+      using dist tauto by (auto simp: atm_of_eq_atm_of tautology_add_mset)
+  qed
+  then have card: \<open>size ?C = card (set_mset ?C)\<close>
+    using distinct_mset_size_eq_card by blast
+  have size: \<open>size ?C = size C\<close>
+    using dist tauto
+    by (induction C) (auto simp: tautology_add_mset)
+  have m: \<open>set_mset ?C \<subseteq> {0..< upperN div 2}\<close>
+  proof
+    fix L
+    assume \<open>L \<in> set_mset ?C\<close>
+    then have \<open>L \<in> atms_of N\<^sub>1\<close>
+    using lits by (auto simp: literals_are_in_N\<^sub>0_def atm_of_lit_in_atms_of
+        in_all_lits_of_m_ain_atms_of_iff subset_iff)
+    then have \<open>Pos L \<in># N\<^sub>1\<close>
+      using lits by (auto simp: in_N\<^sub>1_atm_of_in_atms_of_iff)
+    then show \<open>L \<in> {0..< upperN div 2}\<close>
+      using in_N1_less_than_upperN by (auto simp: atm_of_lit_in_atms_of
+        in_all_lits_of_m_ain_atms_of_iff subset_iff upperN_def)
+  qed
+  moreover have \<open>card \<dots> = upperN div 2\<close>
+    by auto
+  ultimately have \<open>card (set_mset ?C) \<le> upperN div 2\<close>
+    using card_mono[OF _ m] by auto
+  then show ?thesis
+    unfolding card[symmetric] size .
+qed
 
 definition unit_prop_body_wl_D_inv where
 \<open>unit_prop_body_wl_D_inv T' i L \<longleftrightarrow>
@@ -771,6 +829,7 @@ definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" wh
         propgate_unit_bt_wl_D L S
      }
   }\<close>
+
 lemma literals_are_N\<^sub>0_conflict_literals_are_in_N\<^sub>0:
   assumes
     N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close> and

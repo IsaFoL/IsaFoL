@@ -25,3 +25,5 @@ machine-checked
 wall-clock
 null-terminated
 worst-case
+single-threaded
+multi-threaded

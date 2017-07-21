@@ -78,19 +78,42 @@ qed
 
 section \<open>More Lists\<close>
 
+subsection \<open>set, nth, tl\<close>
+
+lemma nth_in_set_tl: \<open>i > 0 \<Longrightarrow> i < length xs \<Longrightarrow> xs ! i \<in> set (tl xs)\<close>
+  by (cases xs) auto
+
 lemma tl_drop_def: \<open>tl N = drop 1 N\<close>
   by (cases N) auto
+
+lemma in_set_remove1D:
+  \<open>a \<in> set (remove1 x xs) \<Longrightarrow> a \<in> set xs\<close>
+  by (meson notin_set_remove1)
+
+lemma take_length_takeWhile_eq_takeWhile:
+  \<open>take (length (takeWhile P xs)) xs = takeWhile P xs\<close>
+  by (induction xs) auto
 
 lemma take_2_if:
   \<open>take 2 C = (if C = [] then [] else if length C = 1 then [hd C] else [C!0, C!1])\<close>
   by (cases C; cases \<open>tl C\<close>) auto
 
+
+subsection \<open>Update\<close>
+
+
 lemma tl_update_swap:
   \<open>i \<ge> 1 \<Longrightarrow> tl (N[i := C]) = tl N[i-1 := C]\<close>
   by (auto simp:  drop_Suc[of 0, symmetric, simplified] drop_update_swap)
 
-lemma nth_in_set_tl: \<open>i > 0 \<Longrightarrow> i < length xs \<Longrightarrow> xs ! i \<in> set (tl xs)\<close>
-  by (cases xs) auto
+declare nth_list_update[simp]
+text \<open>
+  This a version of @{thm nth_list_update} with a different condition (\<^term>\<open>j\<close>
+  instead of \<^term>\<open>i\<close>). This is more useful in some cases.
+  \<close>
+lemma nth_list_update_le'[simp]:
+  "j < length xs \<Longrightarrow> (xs[i:=x])!j = (if i = j then x else xs!j)"
+  by (induct xs arbitrary: i j) (auto simp add: nth_Cons split: nat.split)
 
 
 subsection \<open>@{term upt}\<close>
@@ -624,6 +647,40 @@ qed
 
 lemma in_remove1_msetI: \<open>x \<noteq> a \<Longrightarrow> x \<in># M \<Longrightarrow> x \<in># remove1_mset a M\<close>
   by (simp add: in_remove1_mset_neq)
+
+lemma count_multi_member_split:
+   \<open>count M a \<ge> n \<Longrightarrow> \<exists>M'. M = replicate_mset n a + M'\<close>
+  apply (induction n arbitrary: M)
+  subgoal by auto
+  subgoal premises IH for n M
+    using IH(1)[of \<open>remove1_mset a M\<close>] IH(2)
+    apply (cases \<open>n \<le> count M a - Suc 0\<close>)
+     apply (auto dest!: Suc_le_D  simp: count_greater_zero_iff)
+    by (metis count_greater_zero_iff insert_DiffM zero_less_Suc)
+  done
+
+lemma count_image_mset_multi_member_split:
+  \<open>count (image_mset f M) L \<ge> Suc 0 \<Longrightarrow>  \<exists>K. f K = L \<and> K \<in># M\<close>
+  by auto
+
+lemma count_image_mset_multi_member_split_2:
+  assumes count: \<open>count (image_mset f M) L \<ge> 2\<close>
+  shows \<open>\<exists>K K' M'. f K = L \<and> K \<in># M \<and> f K' = L \<and> K' \<in># remove1_mset K M \<and>
+       M = {#K, K'#} + M'\<close>
+proof -
+  obtain K where
+    K: \<open>f K = L\<close> \<open>K \<in># M\<close>
+    using count_image_mset_multi_member_split[of f M L] count by fastforce
+  then obtain K' where
+    K': \<open>f K' = L\<close> \<open>K' \<in># remove1_mset K M\<close>
+    using count_image_mset_multi_member_split[of f \<open>remove1_mset K M\<close> L] count
+    by (auto dest!: multi_member_split)
+  moreover have \<open>\<exists>M'. M = {#K, K'#} + M'\<close>
+    using multi_member_split[of K M] multi_member_split[of K' \<open>remove1_mset K M\<close>] K K'
+    by (auto dest!: multi_member_split)
+  then show ?thesis
+    using K K' by blast
+qed
 
 
 subsection \<open>Sorting\<close>

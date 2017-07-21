@@ -17,6 +17,8 @@ signature BIN_READER = sig
   
   (* Get position where last int has been read from. At least one int must have been read for this to be accurate! *)
   val last_rd_pos : rd -> Position.int
+  
+  val buf_size : Position.int ref
 end
 
 structure Bin_Reader : BIN_READER = struct

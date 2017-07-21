@@ -375,6 +375,22 @@ lemma WHILEIT_add_post_condition: \<open>(WHILEIT I' b' f' x') = (WHILEIT (\<lam
   apply (subst RECT_WHILEI_body_add_post_condition)
   ..
 
+lemma WHILEIT_rule_stronger_inv:
+  assumes
+    \<open>wf R\<close> and
+    \<open>I s\<close> and
+    \<open>I' s\<close>
+    \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> b s \<Longrightarrow> f s \<le> SPEC (\<lambda>s'. I s' \<and>  I' s' \<and> (s', s) \<in> R)\<close> and
+   \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> \<not> b s \<Longrightarrow> \<Phi> s\<close>
+ shows \<open>WHILE\<^sub>T\<^bsup>I\<^esup> b f s \<le> SPEC \<Phi>\<close>
+proof -
+  have \<open>WHILE\<^sub>T\<^bsup>I\<^esup> b f s \<le> WHILE\<^sub>T\<^bsup>\<lambda>s. I s \<and> I' s\<^esup> b f s\<close>
+    by (metis (mono_tags, lifting) WHILEIT_weaken)
+  also have \<open>WHILE\<^sub>T\<^bsup>\<lambda>s. I s \<and> I' s\<^esup> b f s \<le> SPEC \<Phi>\<close>
+    by (rule WHILEIT_rule) (use assms in \<open>auto simp: \<close>)
+  finally show ?thesis .
+qed
+
 
 subsubsection \<open>More Simplification Theorems\<close>
 
@@ -729,5 +745,21 @@ lemma list_mset_assn_pure_conv:
 
 lemma ex_assn_pair_split: \<open>(\<exists>\<^sub>Ab. P b) = (\<exists>\<^sub>Aa b. P (a, b))\<close>
   by (subst ex_assn_def, subst (1) ex_assn_def, auto)+
+
+
+subsection \<open>More Functions\<close>
+
+definition emptied_list :: \<open>'a list \<Rightarrow> 'a list\<close> where
+  \<open>emptied_list l = []\<close>
+
+text \<open>This functions deletes all elements of a resizable array, without resizing it.\<close>
+definition emptied_arl :: \<open>'a array_list \<Rightarrow> 'a array_list\<close> where
+\<open>emptied_arl = (\<lambda>(a, n). (a, 0))\<close>
+
+lemma emptied_arl_refine[sepref_fr_rules]:
+  shows \<open>(return o emptied_arl, RETURN o emptied_list) \<in> (arl_assn R)\<^sup>d \<rightarrow>\<^sub>a arl_assn R\<close>
+  unfolding emptied_arl_def emptied_list_def
+  by sepref_to_hoare (sep_auto simp: arl_assn_def hr_comp_def is_array_list_def)
+
 
 end

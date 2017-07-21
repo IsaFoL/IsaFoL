@@ -795,6 +795,11 @@ lemma true_clss_clss_subset:
   "A \<subseteq> B \<Longrightarrow> A \<Turnstile>ps CC \<Longrightarrow> B \<Turnstile>ps CC"
   by (metis subset_Un_eq true_clss_clss_union_l)
 
+text \<open>Better suited as intro rule:\<close>
+lemma true_clss_clss_subsetI:
+  "A \<Turnstile>ps CC \<Longrightarrow> A \<subseteq> B \<Longrightarrow> B \<Turnstile>ps CC"
+  by (metis subset_Un_eq true_clss_clss_union_l)
+
 lemma union_trus_clss_clss[simp]: "A \<union> B \<Turnstile>ps B"
   unfolding true_clss_clss_def by auto
 

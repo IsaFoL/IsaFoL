@@ -25,3 +25,6 @@ machine-checked
 wall-clock
 null-terminated
 worst-case
+single-threaded
+state-of-the-art
+two-phase
