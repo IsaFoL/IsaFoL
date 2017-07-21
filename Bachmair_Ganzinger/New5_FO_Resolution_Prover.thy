@@ -1195,7 +1195,6 @@ definition src_ext_Ri where
 
 interpretation src_ext:
   sat_preserving_redundancy_criterion "gd_ord_\<Gamma>'" "src.Rf" "src_ext_Ri"
-
   unfolding sat_preserving_redundancy_criterion_def src_ext_Ri_def
   apply(rule conjI)
   using nice apply simp
