@@ -75,7 +75,6 @@ definition "maximal_in A DAs \<equiv> (\<forall>B \<in> atms_of DAs. \<not> less
 abbreviation "str_maximal_in A CAis \<equiv> (\<forall>B \<in> atms_of CAis. \<not> less_eq_atm A B)"
   (* It would look better if the "atms_of" was not in here *)
 
-  
 (* Inspiration from supercalc *)
 inductive eligible :: "'s \<Rightarrow> 'a list \<Rightarrow> 'a clause \<Rightarrow> bool" where
   eligible:
@@ -169,8 +168,8 @@ lemma ground_prems_ord_resolve_rename_imp_ord_resolve:
   shows "ord_resolve CAi DA \<sigma> E"
   using res_e_re proof (cases rule: ord_resolve_rename.cases)
   case (ord_resolve_rename \<rho> P)
-  then have rename_P: "\<forall>\<rho> \<in> set P. is_renaming \<rho>" using mk_var_dis_p
-    by (metis list.sel(2) list.set_sel(2)) 
+  then have rename_P: "\<forall>\<rho> \<in> set P. is_renaming \<rho>" 
+    using mk_var_dis_p by (metis list.sel(2) list.set_sel(2)) 
   from ord_resolve_rename have len: "length P = length CAi" using mk_var_dis_p by auto
   have res_e: "ord_resolve (CAi \<cdot>\<cdot>cl P) (DA \<cdot> \<rho>) \<sigma> E" using ord_resolve_rename by auto
   
@@ -1222,6 +1221,8 @@ interpretation src: standard_redundancy_criterion gd.ord_\<Gamma>
   "ground_resolution_with_selection.INTERP S_Q"
   by unfold_locales
 
+interpretation srcX: sat_preserving_redundancy_criterion "gd.ord_\<Gamma>" "src.Rf" "src.Ri"
+  by unfold_locales
 (*
 find_theorems name: src
 thm src.saturated_upto_refute_complete
@@ -3109,14 +3110,10 @@ proof -
       using s_p(7) s_p(3) unfolding grounding_of_clss_def grounding_of_cls_def by force
     then have "\<gamma> \<in> src.Ri (grounding_of_state (lnth Sts j))"
       unfolding src_ext_Ri_def src.Ri_def (* This proof is kind of interesting and very strange. It uses both gd.ord_\<Gamma> and gd2.ord_\<Gamma>  *)
-      apply simp
-      apply (cases "\<gamma> \<in> gd.ord_\<Gamma>")
-       apply auto
+      using \<gamma>_p using gd.\<Gamma>_reductive
+       apply simp
        apply (rule_tac x="{#?E#}" in exI)
-       apply simp 
-      using gd.\<Gamma>_reductive apply simp
-      using gd.ord_\<Gamma>_sound_counterex_reducing.\<Gamma>_sound[of ?Cs ?D ?E ] \<gamma>_p unfolding gd_ord_\<Gamma>'_def
-      apply auto
+       apply simp
       done
     then have "\<gamma> \<in> src.Ri (?N j)"
       .
@@ -3126,7 +3123,8 @@ proof -
       by (metis (no_types, lifting))
 
     then have "\<gamma> \<in> src.Ri (llimit (lmap grounding_of_state Sts))"
-      using src_ext.derivation_supremum_llimit_satisfiable[of Ns] derivns ns by blast
+      using srcX.derivation_supremum_llimit_satisfiable[of Ns] derivns
+      unfolding ns[symmetric] by blast (* Something is clearly wrong here. Look in your notes *)
   }
   then have "src.saturated_upto (llimit (lmap grounding_of_state Sts))" unfolding src_ext.saturated_upto_def src_ext.inferences_from_def infer_from_def
     apply auto
