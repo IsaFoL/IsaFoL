@@ -1208,7 +1208,7 @@ term S_M
 find_theorems selection
 
 definition S_Q :: "'a clause \<Rightarrow> 'a clause" where
-  "S_Q = S_M S (grounding_of_clss (llimit (lmap getQ Sts)))"
+  "S_Q = S_M S (getQ (limit_state Sts))"
 
 interpretation sq: selection S_Q
   apply unfold_locales
@@ -1221,6 +1221,7 @@ interpretation gd: ground_resolution_with_selection "S_Q"
 interpretation src: standard_redundancy_criterion gd.ord_\<Gamma>
   "ground_resolution_with_selection.INTERP S_Q"
   by unfold_locales
+
 (*
 find_theorems name: src
 thm src.saturated_upto_refute_complete
@@ -2869,7 +2870,7 @@ proof -
   have derivns: "derivation src_ext.derive Ns" 
     using resolution_prover_ground_derivation deriv ns by auto
 
-  interpret gd2: ground_resolution_with_selection "(S_M S (getQ (limit_state Sts)))"
+  (* interpret gd2: ground_resolution_with_selection "(S_M S (getQ (limit_state Sts)))"
     apply unfold_locales
     using S_M_selects_subseteq selection_axioms apply auto[]
     using selection_axioms S_M_selects_neg_lits apply auto[]
@@ -2877,11 +2878,11 @@ proof -
 
   interpret src2: standard_redundancy_criterion gd2.ord_\<Gamma>
   "ground_resolution_with_selection.INTERP (S_M S (getQ (limit_state Sts)))"
-  by unfold_locales
+  by unfold_locales *)
 
   {
     fix \<gamma> :: "'a inference"
-    assume \<gamma>_p: "\<gamma> \<in> gd2.ord_\<Gamma>"
+    assume \<gamma>_p: "\<gamma> \<in> gd.ord_\<Gamma>"
     let ?Cs = "side_prems_of \<gamma>"
     let ?D = "main_prem_of \<gamma>"
     let ?E = "concl_of \<gamma>"
@@ -2893,7 +2894,7 @@ proof -
     have gd: "is_ground_cls ?D"
       using a grounding_ground singletonI by auto  
 
-    from \<gamma>_p obtain CAi1 where CAi1_p: "gd2.ord_resolve CAi1 ?D ?E \<and> mset CAi1 = ?Cs" unfolding gd2.ord_\<Gamma>_def
+    from \<gamma>_p obtain CAi1 where CAi1_p: "gd.ord_resolve CAi1 ?D ?E \<and> mset CAi1 = ?Cs" unfolding gd.ord_\<Gamma>_def
       by auto
 
     have xxq: "{?D} \<union> set CAi1 \<subseteq> grounding_of_clss (getQ (limit_state Sts))"
@@ -2906,7 +2907,7 @@ proof -
     have ge: "is_ground_cls ?E"
     proof - (* turn in to a LEMMA? *)
       have a1: "atms_of ?E \<subseteq> (\<Union>C\<in>set CAi1. atms_of C) \<union> atms_of ?D"
-        using \<gamma>_p gc gd gd2.ord_resolve_atms_of_concl_subset[of "CAi1" "?D" "?E"] CAi1_p by auto
+        using \<gamma>_p gc gd gd.ord_resolve_atms_of_concl_subset[of "CAi1" "?D" "?E"] CAi1_p by auto
       {
         fix L :: "'a literal"
         assume "L \<in># concl_of \<gamma>"
@@ -2920,9 +2921,9 @@ proof -
 
     from CAi1_p have "\<exists>\<sigma>. ord_resolve (S_M S (getQ (limit_state Sts))) CAi1 ?D \<sigma> ?E"
     proof
-      assume "gd2.ord_resolve CAi1 ?D ?E"
+      assume "gd.ord_resolve CAi1 ?D ?E"
       then show "\<exists>\<sigma>. ord_resolve (S_M S (getQ (limit_state Sts))) CAi1 ?D \<sigma> ?E"  
-      proof (cases rule: gd2.ord_resolve.cases)
+      proof (cases rule: gd.ord_resolve.cases)
         case (ord_resolve n Ci Aij Ai D)
         have a: "?D = D + negs (mset Ai)"
           using ord_resolve by simp
@@ -2969,7 +2970,7 @@ proof -
         obtain \<sigma> where jj: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset Ai Aij))"
           using mgu_complete[of "set_mset ` set (map2 add_mset Ai Aij)"] by metis
 
-        have k: "gd2.eligible Ai (D + negs (mset Ai))"
+        have k: "gd.eligible Ai (D + negs (mset Ai))"
           using ord_resolve by simp
         have gci: "\<forall>i<n. is_ground_cls (Ci ! i)"
           using ord_resolve(8) ord_resolve(3,4) gc1 
@@ -2997,10 +2998,10 @@ proof -
           by auto
 
         from k have ann2: "(Max (atms_of D \<union> set Ai) \<cdot>a \<sigma>) = Max (atms_of D \<union> set Ai) \<and> (D \<cdot> \<sigma> + negs (mset Ai \<cdot>am \<sigma>)) = (D + negs (mset Ai))"
-          unfolding gd2.eligible.simps[simplified] using ii123i using gai2 gD by auto
+          unfolding gd.eligible.simps[simplified] using ii123i using gai2 gD by auto
 
         have ann1: "maximal_in (Max (atms_of D \<union> set Ai)) (D + negs (mset Ai))"
-          unfolding gd2.eligible.simps[simplified] ann2
+          unfolding gd.eligible.simps[simplified] ann2
           unfolding maximal_in_def
           unfolding less_atm_iff
           using grgrgr
@@ -3016,16 +3017,16 @@ proof -
           done
         note k
         then have kk: "eligible (S_M S (getQ (limit_state Sts))) \<sigma> Ai (D + negs (mset Ai))"
-          unfolding gd2.eligible.simps unfolding eligible.simps
-          by (auto simp add: ann1 ann2)
+          unfolding gd.eligible.simps unfolding eligible.simps
+           using ann1 ann2 unfolding S_Q_def by auto
 
         have LEMMA[simp]: "\<And>As i \<sigma>. is_ground_atm_list As \<Longrightarrow> i < length As \<Longrightarrow> (As ! i \<cdot>a \<sigma>) = As ! i"
           unfolding is_ground_atm_list_def by auto
 
-        have l: "\<forall>i<n. gd2.str_maximal_in (Ai ! i) (Ci ! i)"
+        have l: "\<forall>i<n. gd.str_maximal_in (Ai ! i) (Ci ! i)"
           using ord_resolve by simp
         then have ll: "\<forall>i<n. str_maximal_in (Ai ! i \<cdot>a \<sigma>) (Ci ! i \<cdot> \<sigma>)"
-          unfolding gd2.str_maximal_in_def 
+          unfolding gd.str_maximal_in_def 
           using  gci gai gai2 g f e c d gai3 apply simp unfolding less_eq_atm_def less_atm_iff apply simp
           using ex_ground_subst
           apply clarify
@@ -3040,14 +3041,17 @@ proof -
           apply force
           done
 
-        have m: "\<forall>i<n. S_M S (getQ (limit_state Sts)) (CAi1 ! i) = {#}"
+        have m: "\<forall>i<n. S_Q (CAi1 ! i) = {#}"
           using ord_resolve by simp
 
         have gg: "is_ground_cls (\<Union>#mset Ci + D)"
           using gD gci b ge by auto 
 
         show ?thesis
-          using ord_resolve.intros[OF c d e f g h i jj kk ll m] using a b gg by auto
+
+          using ord_resolve.intros[OF c d e f g h i jj kk ll _  ]  m a b gg
+          unfolding S_Q_def
+           by auto
       qed
     qed
     then obtain \<sigma> where sisisgma: "ord_resolve (S_M S (getQ (limit_state Sts))) CAi1 ?D \<sigma> ?E"
@@ -3103,7 +3107,7 @@ proof -
       using getN_subset j_p' by auto
     then have "?E \<in> grounding_of_state (lnth Sts j)"
       using s_p(7) s_p(3) unfolding grounding_of_clss_def grounding_of_cls_def by force
-    then have "\<gamma> \<in> src_ext_Ri (grounding_of_state (lnth Sts j))"
+    then have "\<gamma> \<in> src.Ri (grounding_of_state (lnth Sts j))"
       unfolding src_ext_Ri_def src.Ri_def (* This proof is kind of interesting and very strange. It uses both gd.ord_\<Gamma> and gd2.ord_\<Gamma>  *)
       apply simp
       apply (cases "\<gamma> \<in> gd.ord_\<Gamma>")
@@ -3111,33 +3115,20 @@ proof -
        apply (rule_tac x="{#?E#}" in exI)
        apply simp 
       using gd.\<Gamma>_reductive apply simp
-      using gd2.ord_\<Gamma>_sound_counterex_reducing.\<Gamma>_sound[of ?Cs ?D ?E ] \<gamma>_p unfolding gd_ord_\<Gamma>'_def
-      apply auto
-      apply (rule_tac x="?Cs" in exI)
-      apply (rule_tac x="?D" in exI)
-      apply (rule_tac x="?E" in exI)
+      using gd.ord_\<Gamma>_sound_counterex_reducing.\<Gamma>_sound[of ?Cs ?D ?E ] \<gamma>_p unfolding gd_ord_\<Gamma>'_def
       apply auto
       done
-    then have "\<gamma> \<in> src_ext_Ri (?N j)"
+    then have "\<gamma> \<in> src.Ri (?N j)"
       .
-    then have "\<gamma> \<in> src_ext_Ri (lSup (lmap grounding_of_state Sts))"
+    then have "\<gamma> \<in> src.Ri (lSup (lmap grounding_of_state Sts))"
       using j_p'
-      by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_lSup src_ext.Ri_mono)
-    then have "\<gamma> \<in> src_ext_Ri (llimit (lmap grounding_of_state Sts))"
+      contra_subsetD llength_lmap lnth_lmap lnth_subset_lSup src.Ri_mono
+      by (metis (no_types, lifting))
+
+    then have "\<gamma> \<in> src.Ri (llimit (lmap grounding_of_state Sts))"
       using src_ext.derivation_supremum_llimit_satisfiable[of Ns] derivns ns by blast
-  } (* Probably I need some "moreover" here to consider also the part of src_ext that is not in gd2...  *)
-  moreover
-  {
-    fix \<gamma> :: "'a inference"
-    assume \<gamma>_p: "\<gamma> \<in> gd_ord_\<Gamma>'" "\<gamma> \<notin> gd2.ord_\<Gamma>"
-    let ?Cs = "side_prems_of \<gamma>"
-    let ?D = "main_prem_of \<gamma>"
-    let ?E = "concl_of \<gamma>"
-    assume a: "set_mset ?Cs \<union> {?D} \<subseteq> grounding_of_state (limit_state Sts) - src.Rf (grounding_of_state (limit_state Sts))"
-    
   }
-  ultimately
-  have "src_ext.saturated_upto (llimit (lmap grounding_of_state Sts))" unfolding src_ext.saturated_upto_def src_ext.inferences_from_def infer_from_def
+  then have "src.saturated_upto (llimit (lmap grounding_of_state Sts))" unfolding src_ext.saturated_upto_def src_ext.inferences_from_def infer_from_def
     apply auto
     apply (subgoal_tac "llimit (lmap grounding_of_state Sts) = grounding_of_state (limit_state Sts)")
      apply auto[]
