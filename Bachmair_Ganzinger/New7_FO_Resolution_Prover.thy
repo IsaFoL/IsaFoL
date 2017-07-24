@@ -7,9 +7,7 @@
 
 theory New7_FO_Resolution_Prover 
 imports New3_Ordered_Ground_Resolution Standard_Redundancy Substitution Clauses  "../lib/Explorer" Proving_Process
-begin
-
-find_theorems name: standard_redundancy_criterion_extension_saturated_up_to 
+begin 
 
 
 type_synonym 'a state = "'a clause set \<times> 'a clause set \<times> 'a clause set"
@@ -1179,10 +1177,11 @@ definition fair_state_seq where
 
 context
   fixes
-    N0 :: "'a clause set" and
     Sts :: "('a state) llist"
   assumes
-    finite_N0: "finite N0" and
+    finite_Sts0: "finite (clss_of_state (lnth Sts 0))" and
+    empty_P0: "getP (lnth Sts 0) = {}" and
+    empty_Q0: "getQ (lnth Sts 0) = {}" and
     deriv: "derivation op \<leadsto> Sts"
 begin
 
@@ -2829,6 +2828,42 @@ proof
   then show "is_ground_cls x" using i_p by auto
 qed
 
+lemma limit_state_eventually_always:
+  assumes "finite X"
+  assumes "X \<noteq> {}"
+  assumes "X \<subseteq> getQ (limit_state Sts)"
+  shows "\<exists>j. enat j < llength Sts \<and> (\<forall>j'\<ge>enat j. j' < llength Sts \<longrightarrow> X \<subseteq> getQ (lnth Sts j'))"
+proof -
+  from assms(3) have "\<forall>x \<in> X. \<exists>j. enat j < llength Sts \<and> (\<forall>j'\<ge>enat j. j' < llength Sts \<longrightarrow> x \<in> getQ (lnth Sts j'))"
+    unfolding limit_state_def llimit_def
+    by auto blast
+  then obtain f where f_p: "\<forall>x \<in> X. f x < llength Sts \<and> (\<forall>j'\<ge>enat (f x). j' < llength Sts \<longrightarrow> x \<in> getQ (lnth Sts j')) "
+    by metis
+  define j where "j = Max (f ` X)"
+  have "enat j < llength Sts"
+    unfolding j_def using f_p assms(1) apply auto
+    by (metis (mono_tags, lifting) Max_in assms(2) finite_imageI imageE image_is_empty)
+  moreover
+  have "\<forall>x j'. x \<in> X \<longrightarrow> enat j \<le> j' \<longrightarrow> j' < llength Sts \<longrightarrow> x \<in> getQ (lnth Sts j')"
+  proof (rule; rule; rule; rule; rule)
+    fix x :: "'a literal multiset" and j' :: "nat"
+    assume a:
+      "x \<in> X" 
+      "enat j \<le> enat j'" 
+      "enat j' < llength Sts"
+    then have "f x \<le> j'"
+      unfolding j_def using assms(1)
+      using Max.bounded_iff by auto
+    then have "enat (f x) \<le> enat j'"
+      by auto
+    then show "x \<in> getQ (lnth Sts j')" using f_p a by auto
+  qed
+  ultimately
+  have "enat j < llength Sts \<and> (\<forall>j'\<ge>enat j. j' < llength Sts \<longrightarrow> X \<subseteq> getQ (lnth Sts j'))"
+     by auto 
+  then show ?thesis by auto
+qed
+
 theorem completeness:
   assumes selection_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
   assumes
@@ -3051,16 +3086,22 @@ proof -
       "{DA'} \<union> set CAi' \<subseteq> getQ (limit_state Sts)"
       using selection_renaming_invariant ord_resolve_rename_lifting[of S "getQ (limit_state Sts)" CAi1 "?D" _ "?E", OF sisisgma selection_axioms _ xxq]
       by smt
-    have "\<exists>j. enat j < llength Sts \<and> (\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j)"
-      sorry
+    from this(8) have "\<exists>j. enat j < llength Sts \<and> (\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j)"
+      unfolding  llimit_def
+      using limit_state_eventually_always[of "{DA'} \<union> set CAi'"]
+      by auto
     then obtain j where j_p: "is_least (\<lambda>j. enat j < llength Sts \<and> (\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j)) j"
       using least_exists[of "(\<lambda>j. enat j < llength Sts \<and> (\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j))"] by force
-    have j_p': "enat j < llength Sts" "(set CAi') \<union> {DA'} \<subseteq> ?Qs j" "(\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j)"
-      sorry
-    then have "j \<noteq> 0" (* Since there are initially no clauses in Q *)
-      sorry
+    then have j_p': "enat j < llength Sts" "(set CAi') \<union> {DA'} \<subseteq> ?Qs j" "(\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j)"
+      unfolding is_least_def by auto
+    then have jn0: "j \<noteq> 0" (* Since there are initially no clauses in Q *)
+      using empty_Q0 using insert_subset by fastforce
     then have anders: "\<not>set CAi' \<union> {DA'} \<subseteq> ?Qs (j-1)" "set CAi' \<union> {DA'} \<subseteq> ?Qs j" 
-      using j_p sorry
+      using j_p unfolding is_least_def
+       apply (metis (no_types, hide_lams) One_nat_def Suc_diff_Suc Suc_ile_eq diff_diff_cancel diff_zero less_imp_le less_one neq0_conv zero_less_diff)
+      using j_p'(2) by blast
+    have "(lnth Sts (j-1)) \<leadsto> (lnth Sts j)"
+      using j_p'(1) jn0  deriv derivation_lnth_rel[of _ _ "j-1"] by force
     then obtain C' where C'_p:
       "?Ns (j-1) = {}"
       "?Ps (j-1) = ?Ps j \<union> {C'}"
@@ -3068,7 +3109,7 @@ proof -
       "?Ns j = concls_of (ord_FO_resolution.inferences_between (?Qs (j-1)) C')"
       "C' \<in> set CAi' \<union> {DA'}"  (* This one also because of j_p *)
       "C' \<notin> ?Qs (j-1)"
-      sorry
+      using anders by (induction rule: resolution_prover.cases) auto
     then have ihih: "(set CAi' \<union> {DA'}) - {C'} \<subseteq> ?Qs (j-1)"
       using anders by auto
     have "E' \<in> ?Ns j"
@@ -3110,20 +3151,33 @@ proof -
       using src_ext.derivation_supremum_llimit_satisfiable[of Ns] derivns
       unfolding ns[symmetric] by blast
   }
-  then have "src_ext.saturated_upto (llimit (lmap grounding_of_state Sts))" unfolding src_ext.saturated_upto_def src_ext.inferences_from_def infer_from_def
-    apply auto
+  then have "src_ext.saturated_upto (llimit (lmap grounding_of_state Sts))" 
+    unfolding src_ext.saturated_upto_def
+    unfolding  src_ext.inferences_from_def
+    apply clarify
     apply (subgoal_tac "llimit (lmap grounding_of_state Sts) = grounding_of_state (limit_state Sts)")
+    subgoal for \<gamma>
+      apply (cases "\<gamma> \<in> gd.ord_\<Gamma>")
+
      apply auto[]
-    sorry
+      unfolding infer_from_def
+        apply force
+      using gd_ord_\<Gamma>_ngd_ord_\<Gamma>
+      unfolding src_ext_Ri_def
+    apply auto
+  done
+  using fair unfolding fair_state_seq_def limit_state_def
+  apply simp
+  sorry (* This state is problematic. Is it even true? *)
   then have "src.saturated_upto (llimit (lmap grounding_of_state Sts))"
-     
-    (* using standard_redundancy_criterion_extension_saturated_up_to *) sorry
+    using standard_redundancy_criterion_extension_saturated_up_iff[of gd.ord_\<Gamma> gd_ord_\<Gamma>' src.Rf src.Ri "(llimit (lmap grounding_of_state Sts))"]
+    (* uhm... how do I do this? *) sorry
   then have "src.saturated_upto (grounding_of_state (limit_state Sts))"
     sorry
   then have "{#} \<in> grounding_of_state (limit_state Sts)" using src.saturated_upto_refute_complete unsat
     by auto 
   then show "{#} \<in> clss_of_state (limit_state Sts)"
-    sorry
+    unfolding grounding_of_clss_def grounding_of_cls_def by auto
 qed
   
 end
