@@ -427,8 +427,6 @@ lemma map2_add_mset_map:
   moreover 
   have Succ: "length (Ai' \<cdot>al \<eta>) = Suc n" "length (Aij' \<cdot>aml \<eta>) = Suc n"
     using Suc(3) using Suc(2) unfolding subst_atm_mset_list_def by auto (* unfolding should not be necessary  *)
-  then have "length (tl (Ai' \<cdot>al \<eta>)) = n" "length (tl (Aij' \<cdot>aml \<eta>)) = n"
-    by auto
   then have "length (map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>))) = n" 
     "length (map2 add_mset (tl Ai') (tl Aij') \<cdot>aml \<eta>) = n"
     using Suc(3) Suc(2) unfolding subst_atm_mset_list_def by auto
@@ -436,7 +434,8 @@ lemma map2_add_mset_map:
   have "\<forall>i < n. (map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>))) ! i = (map2 add_mset (tl Ai') (tl Aij') \<cdot>aml \<eta>) ! i"
     by auto
   then have "\<forall>i < n. tl (map2 add_mset ( (Ai' \<cdot>al \<eta>)) ((Aij' \<cdot>aml \<eta>))) ! i = tl (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) ! i"
-    using Suc(2) Suc(3) Succ by (simp add: map2_tl map_tl subst_atm_mset_list_def)
+    using Suc(2) Suc(3) Succ
+    by (metis map2_tl subst_atm_mset_list_tl) 
   moreover 
   have nn: "length (map2 add_mset ((Ai' \<cdot>al \<eta>)) ((Aij' \<cdot>aml \<eta>))) = Suc n"
     "length (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) = Suc n"

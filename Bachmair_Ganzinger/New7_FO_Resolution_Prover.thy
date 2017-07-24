@@ -6,8 +6,10 @@
 *)
 
 theory New7_FO_Resolution_Prover 
-imports New3_Ordered_Ground_Resolution Standard_Redundancy Substitution Clauses  "../lib/Explorer"
+imports New3_Ordered_Ground_Resolution Standard_Redundancy Substitution Clauses  "../lib/Explorer" Proving_Process
 begin
+
+find_theorems name: standard_redundancy_criterion_extension_saturated_up_to 
 
 
 type_synonym 'a state = "'a clause set \<times> 'a clause set \<times> 'a clause set"
@@ -1201,9 +1203,9 @@ interpretation gd: ground_resolution_with_selection "S_Q"
 interpretation src: standard_redundancy_criterion gd.ord_\<Gamma>
   "ground_resolution_with_selection.INTERP S_Q"
   by unfold_locales
-
+(*
 interpretation srcX: sat_preserving_redundancy_criterion "gd.ord_\<Gamma>" "src.Rf" "src.Ri"
-  by unfold_locales
+  by unfold_locales *)
 (*
 find_theorems name: src
 thm src.saturated_upto_refute_complete
@@ -3098,21 +3100,23 @@ proof -
       done
     then have "\<gamma> \<in> src.Ri (?N j)"
       .
-    then have "\<gamma> \<in> src.Ri (lSup (lmap grounding_of_state Sts))"
+    then have "\<gamma> \<in> src_ext_Ri (?N j)"
+      unfolding src_ext_Ri_def by auto
+    then have "\<gamma> \<in> src_ext_Ri (lSup (lmap grounding_of_state Sts))"
       using j_p'
-      contra_subsetD llength_lmap lnth_lmap lnth_subset_lSup src.Ri_mono
+      contra_subsetD llength_lmap lnth_lmap lnth_subset_lSup src_ext.Ri_mono
       by (metis (no_types, lifting))
-
-    then have "\<gamma> \<in> src.Ri (llimit (lmap grounding_of_state Sts))"
-      using srcX.derivation_supremum_llimit_satisfiable[of Ns] derivns
-      unfolding ns[symmetric] by blast (* Something is clearly wrong here. Look in your notes *)
+    then have "\<gamma> \<in> src_ext_Ri (llimit (lmap grounding_of_state Sts))"
+      using src_ext.derivation_supremum_llimit_satisfiable[of Ns] derivns
+      unfolding ns[symmetric] by blast
   }
-  then have "src.saturated_upto (llimit (lmap grounding_of_state Sts))" unfolding src_ext.saturated_upto_def src_ext.inferences_from_def infer_from_def
+  then have "src_ext.saturated_upto (llimit (lmap grounding_of_state Sts))" unfolding src_ext.saturated_upto_def src_ext.inferences_from_def infer_from_def
     apply auto
     apply (subgoal_tac "llimit (lmap grounding_of_state Sts) = grounding_of_state (limit_state Sts)")
      apply auto[]
     sorry
   then have "src.saturated_upto (llimit (lmap grounding_of_state Sts))"
+     
     (* using standard_redundancy_criterion_extension_saturated_up_to *) sorry
   then have "src.saturated_upto (grounding_of_state (limit_state Sts))"
     sorry
