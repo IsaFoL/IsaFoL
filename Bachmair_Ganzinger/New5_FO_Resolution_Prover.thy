@@ -3005,7 +3005,7 @@ proof -
         note k
         then have kk: "eligible (S_M S (getQ (limit_state Sts))) \<sigma> Ai (D + negs (mset Ai))"
           unfolding gd2.eligible.simps unfolding eligible.simps
-          by (auto simp add: ann1 ann2)
+          using ann1 ann2 by (auto)
 
         have LEMMA[simp]: "\<And>As i \<sigma>. is_ground_atm_list As \<Longrightarrow> i < length As \<Longrightarrow> (As ! i \<cdot>a \<sigma>) = As ! i"
           unfolding is_ground_atm_list_def by auto

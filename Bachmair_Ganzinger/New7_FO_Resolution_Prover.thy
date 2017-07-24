@@ -170,13 +170,17 @@ lemma ground_prems_ord_resolve_rename_imp_ord_resolve:
   case (ord_resolve_rename \<rho> P)
   then have rename_P: "\<forall>\<rho> \<in> set P. is_renaming \<rho>" 
     using mk_var_dis_p by (metis list.sel(2) list.set_sel(2)) 
-  from ord_resolve_rename have len: "length P = length CAi" using mk_var_dis_p by auto
-  have res_e: "ord_resolve (CAi \<cdot>\<cdot>cl P) (DA \<cdot> \<rho>) \<sigma> E" using ord_resolve_rename by auto
-  
-  have "CAi \<cdot>\<cdot>cl P = CAi" using len gr_cc by auto
+  from ord_resolve_rename have len: "length P = length CAi" 
+    using mk_var_dis_p by auto
+  have res_e: "ord_resolve (CAi \<cdot>\<cdot>cl P) (DA \<cdot> \<rho>) \<sigma> E" 
+    using ord_resolve_rename by auto
+  have "CAi \<cdot>\<cdot>cl P = CAi" 
+    using len gr_cc by auto
   moreover
-  have "DA \<cdot> \<rho> = DA" using gr_d by auto
-  ultimately show ?thesis using res_e by auto
+  have "DA \<cdot> \<rho> = DA" 
+    using gr_d by auto
+  ultimately show ?thesis 
+    using res_e by auto
 qed
 
 inductive true_fo_cls :: "'a interp \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>fo" 50) where
@@ -247,7 +251,8 @@ lemma ord_resolve_ground_inst_sound: (* This theorem can be used to prove FO sou
     have c_in_cc: "C' + poss BB \<in># mset CAi"
       using C'_def BB_def using a_in_aa
       using cai_len in_set_conv_nth cai by fastforce
-    { fix B
+    { 
+      fix B
       assume "B \<in># BB"
       then have "B \<cdot>a \<sigma> = (Ai ! i) \<cdot>a \<sigma>" using unif a_in_aa cai_len unfolding BB_def by auto
     }
@@ -432,30 +437,13 @@ lemma eql_map_neg_lit_eql_atm:
   using assms 
 by (induction Ai' arbitrary: Ai) auto
 
-lemma asdfasdfasfdfffkggfjgsljgf[simp]: (* maybe faster without this... *)
-   "L \<cdot>l \<sigma> \<in> Neg ` X \<Longrightarrow> is_neg L"
-  by (metis bex_imageD literal.disc(2) literal.map_disc_iff subst_lit_def)
-  
-lemma dfdfdferre: 
-  assumes "L \<cdot>l \<sigma> \<in># (negs X) \<cdot> \<tau>"
-  shows "is_neg L"
-  using assms
-  by simp
-
-lemma dfdfdfee:
-  assumes "L \<cdot>l \<sigma> \<in># (negs X)"
-  shows "is_neg L"
-  using assms
-  by auto
-
 lemma instance_list:
   assumes "negs (mset Ai) = SDA' \<cdot> \<eta>"
   shows "\<exists>Ai'. negs (mset Ai') = SDA' \<and> Ai' \<cdot>al \<eta> = Ai"
 proof - 
   from assms have negL: "\<forall>L \<in># SDA'. is_neg L"
-    using Melem_subst_cls dfdfdfee by metis
+    using Melem_subst_cls subst_lit_in_negs_is_neg by metis
 
-    
   from assms(1) have "{#x \<cdot>l \<eta>. x \<in># SDA'#} = mset (map Neg Ai)"
     using subst_cls_def by auto
   then have "\<exists>NAi'. map (\<lambda>x. x \<cdot>l \<eta>) NAi' = map Neg Ai \<and> mset NAi' = SDA'"  
@@ -476,13 +464,6 @@ proof -
   show ?thesis by auto
 qed
 
-
-
-lemma jajaja123[simp]: "(tl (Ai' \<cdot>al \<eta>)) = (tl Ai' \<cdot>al \<eta>)"
-  by (induction Ai') auto
-
-lemma dadada123[simp]:"(tl (Aij' \<cdot>aml \<eta>)) = (tl Aij' \<cdot>aml \<eta>)"
-  by (induction Aij') auto
 
 lemma lenn123[simp]: "length (Aij' \<cdot>aml \<eta>) = length Aij'"
   unfolding subst_atm_mset_list_def by auto
@@ -509,7 +490,7 @@ lemma map2_add_mset_map:
   have "\<forall>i < n. (map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>))) ! i = (map2 add_mset (tl Ai') (tl Aij') \<cdot>aml \<eta>) ! i"
     by auto
   then have "\<forall>i < n. tl (map2 add_mset ( (Ai' \<cdot>al \<eta>)) ((Aij' \<cdot>aml \<eta>))) ! i = tl (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) ! i"
-    using Suc(2) Suc(3) Succ by (simp add: map2_tl map_tl subst_atm_mset_list_def del: jajaja123)
+    using Suc(2) Suc(3) Succ by (simp add: map2_tl map_tl subst_atm_mset_list_def del: subst_atm_list_tl)
   moreover 
   have nn: "length (map2 add_mset ((Ai' \<cdot>al \<eta>)) ((Aij' \<cdot>aml \<eta>))) = Suc n"
     "length (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) = Suc n"

@@ -314,6 +314,22 @@ proof -
     by auto
 qed
 
+lemma in_image_Neg_is_neg[simp]: (* maybe faster without this... *)
+   "L \<cdot>l \<sigma> \<in> Neg ` X \<Longrightarrow> is_neg L"
+  by (metis bex_imageD literal.disc(2) literal.map_disc_iff subst_lit_def)
+  
+lemma subst_lit_in_negs_subst_is_neg: 
+  assumes "L \<cdot>l \<sigma> \<in># (negs X) \<cdot> \<tau>"
+  shows "is_neg L"
+  using assms
+  by simp
+
+lemma subst_lit_in_negs_is_neg:
+  assumes "L \<cdot>l \<sigma> \<in># (negs X)"
+  shows "is_neg L"
+  using assms
+  by auto
+
 subsubsection {* Substitute on empty *}
     
 lemma subst_atms_empty[simp]: "{} \<cdot>as \<sigma> = {}"
@@ -453,7 +469,14 @@ lemma subst_cls_list_Cons[simp]: "(C # CC) \<cdot>cl \<sigma> = C \<cdot> \<sigm
 
 lemma subst_cls_lists_Cons[simp]: "(C # CC) \<cdot>\<cdot>cl (\<sigma> # \<sigma>s) = C \<cdot> \<sigma> # CC \<cdot>\<cdot>cl \<sigma>s"
   unfolding subst_cls_lists_def by auto
-    
+
+subsubsection {* Substitution on tl *}
+
+lemma subst_atm_list_tl[simp]: "(tl (Ai' \<cdot>al \<eta>)) = (tl Ai' \<cdot>al \<eta>)"
+  by (induction Ai') auto
+
+lemma subst_atm_mset_list_tl[simp]:"(tl (Aij' \<cdot>aml \<eta>)) = (tl Aij' \<cdot>aml \<eta>)"
+  by (induction Aij') auto
     
 subsubsection {* Substitute on nth *}
   
