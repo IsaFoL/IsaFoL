@@ -2889,16 +2889,6 @@ proof -
   have derivns: "derivation src_ext.derive Ns" 
     using resolution_prover_ground_derivation deriv ns by auto
 
-  (* interpret gd2: ground_resolution_with_selection "(S_M S (getQ (limit_state Sts)))"
-    apply unfold_locales
-    using S_M_selects_subseteq selection_axioms apply auto[]
-    using selection_axioms S_M_selects_neg_lits apply auto[]
-    done
-
-  interpret src2: standard_redundancy_criterion gd2.ord_\<Gamma>
-  "ground_resolution_with_selection.INTERP (S_M S (getQ (limit_state Sts)))"
-  by unfold_locales *)
-
   {
     fix \<gamma> :: "'a inference"
     assume \<gamma>_p: "\<gamma> \<in> gd.ord_\<Gamma>"
