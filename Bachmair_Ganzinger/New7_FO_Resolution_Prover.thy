@@ -2828,7 +2828,7 @@ proof
   then show "is_ground_cls x" using i_p by auto
 qed
 
-lemma limit_state_eventually_always:
+lemma subseteq_limit_state_eventually_always:
   assumes "finite X"
   assumes "X \<noteq> {}"
   assumes "X \<subseteq> getQ (limit_state Sts)"
@@ -2864,6 +2864,21 @@ proof -
   then show ?thesis by auto
 qed
 
+lemma
+  assumes "{#} \<in> llimit (lmap grounding_of_state Sts)" 
+  assumes "fair_state_seq Sts"
+  shows "{#} \<in> clss_of_state (limit_state Sts)"
+proof -
+  from assms obtain i where "enat i < llength (lmap grounding_of_state Sts) \<and> {#} \<in> lnth (lmap grounding_of_state Sts) i"
+    unfolding llimit_def by force
+  then have "{#} \<in> grounding_of_state (lnth Sts i)"
+    by auto
+  then have "{#} \<in> clss_of_state (lnth Sts i)"
+    unfolding grounding_of_clss_def grounding_of_cls_def by auto
+  then show ?thesis
+    sorry
+qed
+
 theorem completeness:
   assumes selection_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
   assumes
@@ -2883,6 +2898,14 @@ proof -
   define Rf :: "'a literal multiset set \<Rightarrow> 'a literal multiset set" where "Rf = standard_redundancy_criterion.Rf"
   define derive where "derive = redundancy_criterion.derive \<Gamma>x Rf"
 
+  have SQinf: "clss_of_state (limit_state Sts) = llimit (lmap getQ Sts)"
+    using fair unfolding fair_state_seq_def limit_state_def clss_of_state_def
+    by auto
+(*
+  have SinfS: "clss_of_state (limit_state Sts) = llimit (lmap clss_of_state Sts)"
+    using fair
+    oops *)
+
   from fair deriv have "llimit Ns - src.Rf (llimit Ns) \<subseteq> grounding_of_state (limit_state Sts)" 
     using fair_imp_limit_minus_Rf_subset_ground_limit_state ns by blast
 
@@ -2895,20 +2918,25 @@ proof -
     let ?Cs = "side_prems_of \<gamma>"
     let ?D = "main_prem_of \<gamma>"
     let ?E = "concl_of \<gamma>"
-    assume a: "set_mset ?Cs \<union> {?D} \<subseteq> grounding_of_state (limit_state Sts) - src.Rf (grounding_of_state (limit_state Sts))"
+    assume a: "set_mset ?Cs \<union> {?D} \<subseteq> llimit (lmap grounding_of_state Sts) - src.Rf (llimit (lmap grounding_of_state Sts))"
+
+    have gggg: "is_ground_clss (llimit (lmap grounding_of_state Sts))"
+      using llimit_grounding_of_state_ground unfolding is_ground_clss_def by auto (* TODO: instead of is_ground_clss_def MAKE a lemma like llimit_grounding_of_state_ground *)
 
     have gc: "is_ground_cls_mset ?Cs"
-      using a using grounding_ground is_ground_cls_mset_def by auto 
+      using a gggg
+      using is_ground_cls_mset_def is_ground_clss_def by auto 
 
     have gd: "is_ground_cls ?D"
-      using a grounding_ground singletonI by auto  
-
+      using a grounding_ground singletonI gggg
+      by (simp add: llimit_grounding_of_state_ground)  
+                                     
     from \<gamma>_p obtain CAi1 where CAi1_p: "gd.ord_resolve CAi1 ?D ?E \<and> mset CAi1 = ?Cs" unfolding gd.ord_\<Gamma>_def
       by auto
 
     have xxq: "{?D} \<union> set CAi1 \<subseteq> grounding_of_clss (getQ (limit_state Sts))"
       using a CAi1_p unfolding clss_of_state_def using fair unfolding fair_state_seq_def
-      by (metis Diff_subset Un_empty_left set_mset_mset subset_trans sup.commute)
+      by (metis (no_types, lifting) Un_empty_left \<open>llimit Ns - src.Rf (llimit Ns) \<subseteq> grounding_of_state (limit_state Sts)\<close> a clss_of_state_def ns set_mset_mset subset_trans sup_commute)
 
     then have gc1: "is_ground_cls_list CAi1"
       using CAi1_p unfolding is_ground_cls_list_def by auto
@@ -3078,7 +3106,7 @@ proof -
       by smt
     from this(8) have "\<exists>j. enat j < llength Sts \<and> (\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j)"
       unfolding  llimit_def
-      using limit_state_eventually_always[of "{DA'} \<union> set CAi'"]
+      using subseteq_limit_state_eventually_always[of "{DA'} \<union> set CAi'"]
       by auto
     then obtain j where j_p: "is_least (\<lambda>j. enat j < llength Sts \<and> (\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j)) j"
       using least_exists[of "(\<lambda>j. enat j < llength Sts \<and> (\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j))"] by force
@@ -3097,7 +3125,7 @@ proof -
       "?Ps (j-1) = ?Ps j \<union> {C'}"
       "?Qs j = ?Qs (j-1) \<union> {C'}"
       "?Ns j = concls_of (ord_FO_resolution.inferences_between (?Qs (j-1)) C')"
-      "C' \<in> set CAi' \<union> {DA'}"  (* This one also because of j_p *)
+      "C' \<in> set CAi' \<union> {DA'}" 
       "C' \<notin> ?Qs (j-1)"
       using anders by (induction rule: resolution_prover.cases) auto
     then have ihih: "(set CAi' \<union> {DA'}) - {C'} \<subseteq> ?Qs (j-1)"
@@ -3136,7 +3164,7 @@ proof -
     then have "\<gamma> \<in> src_ext_Ri (lSup (lmap grounding_of_state Sts))"
       using j_p'
       contra_subsetD llength_lmap lnth_lmap lnth_subset_lSup src_ext.Ri_mono
-      by (metis (no_types, lifting))
+      by metis
     then have "\<gamma> \<in> src_ext_Ri (llimit (lmap grounding_of_state Sts))"
       using src_ext.derivation_supremum_llimit_satisfiable[of Ns] derivns
       unfolding ns[symmetric] by blast
@@ -3145,29 +3173,34 @@ proof -
     unfolding src_ext.saturated_upto_def
     unfolding  src_ext.inferences_from_def
     apply clarify
-    apply (subgoal_tac "llimit (lmap grounding_of_state Sts) = grounding_of_state (limit_state Sts)")
     subgoal for \<gamma>
       apply (cases "\<gamma> \<in> gd.ord_\<Gamma>")
-
      apply auto[]
       unfolding infer_from_def
         apply force
       using gd_ord_\<Gamma>_ngd_ord_\<Gamma>
       unfolding src_ext_Ri_def
     apply auto
-  done
-  using fair unfolding fair_state_seq_def limit_state_def
-  apply simp
-  sorry (* This state is problematic. Is it even true? *)
-  then have "src.saturated_upto (llimit (lmap grounding_of_state Sts))"
+      done
+    done
+  note continue_from_this = this
+
+  have sor: "llimit (lmap grounding_of_state Sts) \<supseteq> grounding_of_state (limit_state Sts)"
+    sorry
+  then have unsat2: "\<not> satisfiable (llimit (lmap grounding_of_state Sts))"
+    using unsat unfolding true_clss_def by auto blast
+
+  from continue_from_this
+  have "src.saturated_upto (llimit (lmap grounding_of_state Sts))"
     using standard_redundancy_criterion_extension_saturated_up_iff[of gd.ord_\<Gamma> gd_ord_\<Gamma>' src.Rf src.Ri "(llimit (lmap grounding_of_state Sts))"]
     (* uhm... how do I do this? *) sorry
-  then have "src.saturated_upto (grounding_of_state (limit_state Sts))"
-    sorry
-  then have "{#} \<in> grounding_of_state (limit_state Sts)" using src.saturated_upto_refute_complete unsat
-    by auto 
+  then have "{#} \<in> llimit (lmap grounding_of_state Sts)" 
+    using src.saturated_upto_refute_complete unsat2
+    by auto
   then show "{#} \<in> clss_of_state (limit_state Sts)"
-    unfolding grounding_of_clss_def grounding_of_cls_def by auto
+    using fair
+    apply -
+    explore_lemma
 qed
   
 end
