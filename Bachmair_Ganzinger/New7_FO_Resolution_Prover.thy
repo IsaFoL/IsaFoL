@@ -2498,6 +2498,45 @@ proof -
   qed
 qed
 
+lemma variants_sym:
+   "variants D D' \<longleftrightarrow> variants D' D"
+   unfolding variants_def by auto
+
+lemma variants_is_renaming:
+  assumes "variants D D'"
+  shows "\<exists>\<sigma>. is_renaming \<sigma> \<and> D \<cdot> \<sigma> = D'"
+  using assms
+  unfolding variants_def
+  unfolding subsumes_def
+  unfolding is_renaming_def
+  sorry
+
+
+lemma properly_subsume_variants:
+  assumes "properly_subsumes E D"
+  assumes "variants D D'"
+  shows "properly_subsumes E D'"
+using variants_is_renaming[of D D']
+  sorry
+
+lemma neg_properly_subsume_variants:
+  assumes "\<not>(properly_subsumes E D)"
+  assumes "variants D D'"
+  shows "\<not>(properly_subsumes E D')"
+  sorry
+
+lemma subsume_variants:
+  assumes "subsumes E D"
+  assumes "variants D D'"
+  shows "subsumes E D'"
+  sorry
+
+lemma neg_subsume_variants:
+  assumes "\<not>(subsumes E D)"
+  assumes "variants D D'"
+  shows "\<not>(subsumes E D')"
+  sorry
+
 lemma from_N_to_P_or_Q:
   assumes 
     deriv: "derivation (op \<leadsto>) Sts" and
@@ -2599,11 +2638,24 @@ proof -
       using d_least by auto
     then have "subsumes D D'"
       unfolding properly_subsumes_def using D'_p by auto
+    then have v: "variants D D'"
+      using D'_p unfolding variants_def by auto
     then have mini: "\<forall>E\<in>{E \<in> clss_of_state (sup_state Sts). subsumes E C}. \<not> properly_subsumes E D'" 
-      using d_least sorry (* I think it's something like this. Maybe. Well if nothing else the argument is that D and D' must simply be renamings of each other. *)
+      using d_least D'_p neg_properly_subsume_variants[of _ D D'] by auto
 
-    obtain \<sigma>' where \<sigma>'_p: "D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
-      sorry (* Well if nothing else the argument is that D and D' must simply be renamings of each other. *)
+    from v have "\<exists>\<sigma>'. D' \<cdot> \<sigma>' = C"
+      using \<sigma> variants_is_renaming[of D' D] variants_sym[of D' D] 
+      apply auto
+      subgoal for \<sigma>'
+        apply (rule_tac x = " \<sigma>' \<odot> \<sigma>" in exI)
+        apply auto
+        done 
+      done 
+    then have "\<exists>\<sigma>'. D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
+      using ground_C apply auto
+      by (meson make_single_ground_subst subset_mset.dual_order.refl)
+    then obtain \<sigma>' where \<sigma>'_p: "D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
+      by metis (* Well if nothing else the argument is that D and D' must simply be renamings of each other. *)
 
     show ?case
       using D'_p twins l_p subs mini \<sigma>'_p
@@ -3112,9 +3164,7 @@ proof -
 
         have gg: "is_ground_cls (\<Union>#mset Ci + D)"
           using gD gci b ge by auto 
-
         show ?thesis
-
           using ord_resolve.intros[OF c d e f g h i jj kk ll _  ]  m a b gg
           unfolding S_Q_def
            by auto
