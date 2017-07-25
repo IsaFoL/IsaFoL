@@ -3180,7 +3180,7 @@ proof -
     then have "?E \<in> grounding_of_state (lnth Sts j)"
       using s_p(7) s_p(3) unfolding grounding_of_clss_def grounding_of_cls_def by force
     then have "\<gamma> \<in> src.Ri (grounding_of_state (lnth Sts j))"
-      unfolding src_ext_Ri_def src.Ri_def (* This proof is kind of interesting and very strange. It uses both gd.ord_\<Gamma> and gd2.ord_\<Gamma>  *)
+      unfolding src_ext_Ri_def src.Ri_def
       using \<gamma>_p using gd.\<Gamma>_reductive
        apply simp
        apply (rule_tac x="{#?E#}" in exI)
