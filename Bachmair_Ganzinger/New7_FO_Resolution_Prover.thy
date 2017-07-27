@@ -2509,33 +2509,86 @@ lemma variants_is_renaming:
   unfolding variants_def
   unfolding subsumes_def
   unfolding is_renaming_def
-  sorry
+  oops (* Should be true. But can I prove it? *)
 
+lemma variants_size:
+  assumes "variants D D'"
+  shows "size D = size D'"
+  using assms
+  by (metis (full_types) properly_subsumes_def size_subst subset_mset_def subset_subst_properly_subsumes subsumes_def variants_def)
+
+lemma variants_eql_mod_two_subtitution:
+  assumes "variants D D'"
+  shows "(\<exists>\<sigma>. D \<cdot> \<sigma> = D') \<and> (\<exists>\<sigma>'. D' \<cdot> \<sigma>' = D)"
+  using assms unfolding variants_def subsumes_def
+  apply rule
+  apply rule
+   apply auto
+  subgoal for \<sigma> \<sigma>'
+    apply (rule_tac x=\<sigma> in exI)
+    using variants_size[of D D'] assms
+    apply auto
+    apply (meson properly_subsumes_def subset_mset_def subset_subst_properly_subsumes subsumes_def)
+    done
+  subgoal for \<sigma> \<sigma>'
+    apply (rule_tac x=\<sigma>' in exI)
+    using variants_size[of D D'] assms
+    apply auto
+    apply (meson properly_subsumes_def subset_mset_def subset_subst_properly_subsumes subsumes_def)
+    done
+  done
 
 lemma properly_subsume_variants:
   assumes "properly_subsumes E D"
   assumes "variants D D'"
   shows "properly_subsumes E D'"
-using variants_is_renaming[of D D']
-  sorry
+proof -
+  from assms obtain \<sigma> \<sigma>' where \<sigma>_\<sigma>'_p: "D \<cdot> \<sigma> = D' \<and> D' \<cdot> \<sigma>' = D" 
+    using variants_eql_mod_two_subtitution by metis
+
+  from assms obtain \<sigma>'' where "E \<cdot> \<sigma>'' \<subseteq># D" 
+    unfolding properly_subsumes_def subsumes_def by auto
+  then have "E \<cdot> \<sigma>'' \<cdot> \<sigma> \<subseteq># D \<cdot> \<sigma>"
+    using subst_cls_mono_mset by blast 
+  then have "E \<cdot> (\<sigma>'' \<odot> \<sigma>)  \<subseteq># D'"
+    using \<sigma>_\<sigma>'_p by auto
+  moreover
+  from assms have n: "(\<nexists>\<sigma>. D \<cdot> \<sigma> \<subseteq># E)" unfolding properly_subsumes_def subsumes_def by auto
+  have "(\<nexists>\<sigma>. D' \<cdot> \<sigma> \<subseteq># E)"
+  proof
+    assume "\<exists>\<sigma>'''. D' \<cdot> \<sigma>''' \<subseteq># E"
+    then obtain \<sigma>''' where "D' \<cdot> \<sigma>''' \<subseteq># E"
+      by auto
+    then have "D \<cdot> \<sigma> \<cdot> \<sigma>''' \<subseteq># E"
+      using \<sigma>_\<sigma>'_p by auto
+    then have "D \<cdot> (\<sigma> \<odot> \<sigma>''') \<subseteq># E"
+      by auto
+    then show "False" using n 
+      by metis
+  qed
+  ultimately
+  show ?thesis 
+    unfolding properly_subsumes_def subsumes_def by metis
+qed
+
 
 lemma neg_properly_subsume_variants:
   assumes "\<not>(properly_subsumes E D)"
   assumes "variants D D'"
   shows "\<not>(properly_subsumes E D')"
-  sorry
+  using assms properly_subsume_variants variants_sym by auto
 
 lemma subsume_variants:
   assumes "subsumes E D"
   assumes "variants D D'"
   shows "subsumes E D'"
-  sorry
+  oops (* probably true. And maybe use above proofs *)
 
 lemma neg_subsume_variants:
   assumes "\<not>(subsumes E D)"
   assumes "variants D D'"
   shows "\<not>(subsumes E D')"
-  sorry
+  oops (* probably true. And maybe use above proofs *)
 
 lemma from_N_to_P_or_Q:
   assumes 
@@ -2644,13 +2697,8 @@ proof -
       using d_least D'_p neg_properly_subsume_variants[of _ D D'] by auto
 
     from v have "\<exists>\<sigma>'. D' \<cdot> \<sigma>' = C"
-      using \<sigma> variants_is_renaming[of D' D] variants_sym[of D' D] 
-      apply auto
-      subgoal for \<sigma>'
-        apply (rule_tac x = " \<sigma>' \<odot> \<sigma>" in exI)
-        apply auto
-        done 
-      done 
+      using \<sigma> variants_eql_mod_two_subtitution[of D D'] apply auto
+      by (metis subst_cls_comp_subst)
     then have "\<exists>\<sigma>'. D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
       using ground_C apply auto
       by (meson make_single_ground_subst subset_mset.dual_order.refl)
