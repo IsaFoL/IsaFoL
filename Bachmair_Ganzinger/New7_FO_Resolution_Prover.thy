@@ -2115,9 +2115,12 @@ proof (rule ccontr)
     by (simp add: leD) 
 qed
 
-lemma properly_subsumes_well_founded:
-  shows True
-  sorry
+lemma subseteq_mset_size_eql:
+  assumes 
+    "X \<subseteq># Y" and
+    "size Y = size X"
+  shows "X = Y"
+  using assms mset_subset_size subset_mset_def by fastforce 
 
 lemma properly_subsumes_has_minimum:
   assumes "CC \<noteq> {}"
@@ -2163,13 +2166,15 @@ proof (rule ccontr)
     assume "l' \<ge> l"
     then have siz: "size (c l') = size (c (Suc l'))"
       using l_p by metis
+    then have siz2: "\<forall>\<sigma>. size (c l') = size (c (Suc l') \<cdot> \<sigma>)"
+      unfolding subst_cls_def by auto
     have "properly_subsumes (c (Suc l')) (c l')"
       using ps by auto
     then have "subsumes (c (Suc l')) (c l')"
       unfolding properly_subsumes_def by auto
     then obtain \<sigma> where "c (Suc l') \<cdot> \<sigma> \<subseteq># c l'" unfolding subsumes_def by auto
     then have "c (Suc l') \<cdot> \<sigma> = c l'"
-      using siz sorry
+      using siz2 subseteq_mset_size_eql by auto
     then show "\<exists>\<sigma>. c l' = c (Suc l') \<cdot> \<sigma>"
       by metis
   qed
@@ -2193,6 +2198,12 @@ proof (rule ccontr)
   show False (* We have an infinite chain of proper generalizing clauses. That is impossible since proper generalization is well founded. *)
     sorry
 qed
+
+lemma properly_subsumes_well_founded: "wfP properly_subsumes"
+  using properly_subsumes_has_minimum
+  by (metis empty_iff wfP_eq_minimal)
+  
+  unfolding Wellfounded.wfP_def Wellfounded.wf_def apply auto
 
 lemma from_Q_to_Q_inf:
   assumes 
