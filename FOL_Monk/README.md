@@ -7,3 +7,5 @@ Donald Monk's axiomatic system for first-order logic that he described as "the s
 ## Author ##
 
 * [John Bruntse Larsen](mailto:jobla shtrudel dtu.dk)
+* [Andreas Halkjær From](mailto:s144442 shtrudel student.dtu.dk)
+* [Jørgen Villadsen](mailto:jovi shtrudel dtu.dk)
