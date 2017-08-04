@@ -1,59 +1,48 @@
 (*
   FOL-Monk - First-Order Logic According to Monk
 
-  Author: John Bruntse Larsen
+  Author: John Bruntse Larsen, Andreas Halkjær From & Jørgen Villadsen
 *)
 
 theory FOL_Monk imports Main
 begin
 
-section \<open>Syntax of first-order logic\<close>
+section \<open>Syntax of First-Order Logic\<close>
 
-datatype form = Pre string nat | Eq nat nat | Neg form | Imp form form | Uni nat form
+type_synonym arity = nat
+
+type_synonym var = nat
+
+datatype form = Pre string arity | Eq var var | Neg form | Imp form form | Uni var form
 
 abbreviation (input) "Falsity \<equiv> Uni 0 (Neg (Eq 0 0))"
 
 abbreviation (input) "Truth \<equiv> Neg Falsity"
 
-section \<open>Semantics of first-order logic\<close>
+section \<open>Semantics of First-Order Logic\<close>
 
-fun vars :: "nat \<Rightarrow> nat list"
+primrec vars :: "arity \<Rightarrow> var list"
   where
     "vars 0 = []" |
-    "vars n = (vars (n-1)) @ [n-1]"
+    "vars (Suc n) = vars n @ [n]"
 
-fun semantics :: "(nat \<Rightarrow> 'a) \<Rightarrow> (string \<Rightarrow> 'a list \<Rightarrow> bool) \<Rightarrow> form \<Rightarrow> bool"
+primrec semantics :: "(var \<Rightarrow> 'a) \<Rightarrow> (string \<Rightarrow> 'a list \<Rightarrow> bool) \<Rightarrow> form \<Rightarrow> bool"
   where
-    "semantics e g (Eq x y) \<longleftrightarrow> (e x) = (e y)" |
-    "semantics e g (Pre p n) \<longleftrightarrow> g p (map e (vars n))" |
-    "semantics e g (Neg f) \<longleftrightarrow> \<not> semantics e g f" |
-    "semantics e g (Imp p q) \<longleftrightarrow> (semantics e g p \<longrightarrow> semantics e g q)" |
-    "semantics e g (Uni x p) \<longleftrightarrow> (\<forall>t. (semantics (e(x := t)) g p))"
+    "semantics e g (Eq x y) = (e x = e y)" |
+    "semantics e g (Pre i n) = g i (map e (vars n))" |
+    "semantics e g (Neg f) = (\<not> semantics e g f)" |
+    "semantics e g (Imp p q) = (semantics e g p \<longrightarrow> semantics e g q)" |
+    "semantics e g (Uni x p) = (\<forall>t. (semantics (e(x := t)) g p))"
 
-section \<open>Definition of rules and axioms\<close>
+section \<open>Definition of Rules and Axioms\<close>
 
-fun not_occurs_in :: "nat \<Rightarrow> form \<Rightarrow> bool"
+primrec not_occurs_in :: "var \<Rightarrow> form \<Rightarrow> bool"
   where
-    "not_occurs_in x (Pre _ arity) \<longleftrightarrow> x \<ge> arity" |
-    "not_occurs_in x (Eq y z) \<longleftrightarrow> x \<noteq> y \<and> x \<noteq> z " |
-    "not_occurs_in x (Neg p) \<longleftrightarrow> not_occurs_in x p" |
-    "not_occurs_in x (Imp p q) \<longleftrightarrow> not_occurs_in x p \<and> not_occurs_in x q" |
-    "not_occurs_in x (Uni y p) \<longleftrightarrow> (x \<noteq> y \<and> not_occurs_in x p)"
-
-corollary not_occurs_falsity: "not_occurs_in 1 Falsity"
-  by simp
-
-proposition "x \<noteq> y \<and> x \<noteq> z \<longrightarrow> not_occurs_in x (Eq y z)"
-  by simp
-
-proposition "not_occurs_in x p \<longrightarrow> not_occurs_in x (Neg p)"
-  by simp
-
-proposition "not_occurs_in x p \<and> not_occurs_in x q \<longrightarrow> not_occurs_in x (Imp p q)"
-  by simp
-
-proposition "x \<noteq> y \<and> not_occurs_in x p \<longrightarrow> not_occurs_in x (Uni y p)"
-  by simp
+    "not_occurs_in x (Pre _ arity) = (x \<ge> arity)" |
+    "not_occurs_in x (Eq y z) = (x \<noteq> y \<and> x \<noteq> z)" |
+    "not_occurs_in x (Neg p) = not_occurs_in x p" |
+    "not_occurs_in x (Imp p q) = (not_occurs_in x p \<and> not_occurs_in x q)" |
+    "not_occurs_in x (Uni y p) = (x \<noteq> y \<and> not_occurs_in x p)"
 
 datatype "thm" = Thm (concl: form)
 
@@ -64,7 +53,7 @@ definition modusponens :: "thm \<Rightarrow> thm \<Rightarrow> thm"
     "modusponens s s' \<equiv> case concl s of Imp p q \<Rightarrow>
       let p' = concl s' in if p = p' then Thm q else fail_thm | _ \<Rightarrow> fail_thm"
 
-definition gen :: "nat \<Rightarrow> thm \<Rightarrow> thm"
+definition gen :: "var \<Rightarrow> thm \<Rightarrow> thm"
   where
     "gen x a \<equiv> Thm (Uni x (concl a))"
 
@@ -80,35 +69,35 @@ definition c3 :: "form \<Rightarrow> form \<Rightarrow> thm"
   where
     "c3 p q \<equiv> Thm (Imp p (Imp (Neg p) q))"
 
-definition c4 :: "nat \<Rightarrow> form \<Rightarrow> form \<Rightarrow> thm"
+definition c4 :: "var \<Rightarrow> form \<Rightarrow> form \<Rightarrow> thm"
   where
     "c4 x p q \<equiv> Thm (Imp (Uni x (Imp p q)) (Imp (Uni x p) (Uni x q)))"
 
-definition c5_1 :: "nat \<Rightarrow> form \<Rightarrow> thm"
+definition c5_1 :: "var \<Rightarrow> form \<Rightarrow> thm"
   where
     "c5_1 x p \<equiv> if not_occurs_in x p then Thm (Imp p (Uni x p)) else fail_thm"
 
-definition c5_2 :: "nat \<Rightarrow> form \<Rightarrow> thm"
+definition c5_2 :: "var \<Rightarrow> form \<Rightarrow> thm"
   where
     "c5_2 x p \<equiv> Thm (Imp (Neg (Uni x p)) (Uni x (Neg (Uni x p))))"
 
-definition c5_3 :: "nat \<Rightarrow> nat \<Rightarrow> form \<Rightarrow> thm"
+definition c5_3 :: "var \<Rightarrow> var \<Rightarrow> form \<Rightarrow> thm"
   where
     "c5_3 x y p \<equiv> Thm (Imp (Uni x (Uni y p)) (Uni y (Uni x p)))"
 
-definition c6 :: "nat \<Rightarrow> nat \<Rightarrow> thm"
+definition c6 :: "var \<Rightarrow> var \<Rightarrow> thm"
   where
     "c6 x y \<equiv> if x \<noteq> y then Thm (Neg (Uni x (Neg (Eq x y)))) else fail_thm"
 
-definition c7 :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> thm"
+definition c7 :: "var \<Rightarrow> var \<Rightarrow> var \<Rightarrow> thm"
   where
     "c7 x y z \<equiv> Thm (Imp (Eq x y) (Imp (Eq x z) (Eq y z)))"
 
-definition c8 :: "nat \<Rightarrow> nat \<Rightarrow> form \<Rightarrow> thm"
+definition c8 :: "var \<Rightarrow> var \<Rightarrow> form \<Rightarrow> thm"
   where
     "c8 x y p \<equiv> if x \<noteq> y then Thm (Imp (Eq x y) (Imp p (Uni x (Imp (Eq x y) p)))) else fail_thm"
 
-section \<open>Definition of proof system\<close>
+section \<open>Definition of Proof System\<close>
 
 inductive OK :: "form \<Rightarrow> bool" ("\<turnstile> _" 0)
   where
@@ -140,32 +129,75 @@ inductive OK :: "form \<Rightarrow> bool" ("\<turnstile> _" 0)
 proposition "\<turnstile> Truth"
   by (metis OK.simps c8_def thm.sel)
 
-section \<open>Soundness of proof system\<close>
+section \<open>Soundness of Proof System\<close>
 
-corollary sound_c1_1: "\<turnstile> concl (c1 p q r) \<Longrightarrow> semantics e g (concl (c1 p q r))"
-  by (simp add: c1_def)
-
-lemma "semantics e g (concl (c1 p q r))"
-  by (simp add: case_c1 sound_c1_1)
-
-lemma update_identity: "e x = e y \<longrightarrow> semantics e g p \<longrightarrow> semantics (e(x := e y)) g p"
+lemma update_identity: "e x = e y \<Longrightarrow> semantics e g p \<Longrightarrow> semantics (e(x := e y)) g p"
   by (simp add: fun_upd_idem)
 
-lemma frame_property: "not_occurs_in x p \<Longrightarrow> semantics e g p \<Longrightarrow> semantics (e(x := t)) g p"
-  sorry
+lemma vars_bound: "x \<ge> n \<Longrightarrow> map e (vars n) = map (e(x := t)) (vars n)"
+  by (induct n) simp_all
 
-lemmas defs = c1_def c2_def c3_def c4_def c5_1_def c5_2_def c5_3_def c6_def c7_def c8_def
+lemma frame_property: "not_occurs_in x p \<Longrightarrow> semantics e g p = semantics (e(x := t)) g p"
+proof (induct p arbitrary: e)
+  case (Pre i n)
+  then have "x \<ge> n"
+    by simp
+  then show ?case
+    using vars_bound by (metis semantics.simps(2))
+next
+  case (Uni y p)
+  then show ?case
+    by (metis fun_upd_twist not_occurs_in.simps(5) semantics.simps(5))
+qed simp_all
+
+lemma commute_uni: "semantics e g (Uni x (Uni y p)) \<Longrightarrow> semantics e g (Uni y (Uni x p))"
+  by (metis fun_upd_twist semantics.simps(5))
+
+lemma sound_c8:
+  assumes "x \<noteq> y" "semantics e g (Eq x y)" "semantics e g p"
+  shows "semantics e g (Uni x (Imp (Eq x y) p))"
+proof -
+  have "semantics (e(x := t)) g (Imp (Eq x y) p)" for t
+  proof (cases "e y = t")
+    case True
+    then have "semantics (e(x := t)) g (Eq x y)"
+      by simp
+    then show ?thesis
+      using assms True by auto
+  next
+    case False
+    then show ?thesis
+      using assms by simp
+  qed
+  then show ?thesis
+    by simp
+qed
+
+lemma sound_modusponens:
+  "semantics e g (concl f) \<Longrightarrow> semantics e g (concl f') \<Longrightarrow>
+  semantics e g (concl (modusponens f f'))"
+  by (cases "concl f") (simp_all add: modusponens_def)
 
 theorem soundness: "\<turnstile> p \<Longrightarrow> semantics e g p"
-  apply (induction rule: OK.induct)
-             defer
-             defer
-             apply (simp_all add: defs update_identity frame_property)
-    apply (metis fun_upd_twist)
-  sorry
+proof (induct p arbitrary: e rule: OK.induct)
+  case (case_modusponens f f')
+  then show ?case
+    using sound_modusponens by fast
+next
+  case (case_c5_1 x p)
+  then show ?case
+    unfolding c5_1_def using frame_property by fastforce
+next
+  case (case_c5_3 x y p)
+  then show ?case
+    unfolding c5_3_def using commute_uni by fastforce
+next
+  case (case_c8 x y p)
+  then show ?case
+    unfolding c8_def using sound_c8 by simp blast
+qed (simp_all add: gen_def c1_def c2_def c3_def c4_def c5_2_def c6_def c7_def)
 
 corollary "\<not> (\<turnstile> Falsity)"
-  using soundness
-  by fastforce
+  using soundness by fastforce
 
 end
