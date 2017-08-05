@@ -4,8 +4,8 @@
 Donald Monk's axiomatic system for first-order logic that he described as "the simplest known formulation of ordinary logic"
 (_The Substitutionless Predicate Logic_, Archiv f. Math. Logik und Grundlagenforschung 7, 102-121, 1965).
 
-## Author ##
+## Authors ##
 
 * [John Bruntse Larsen](mailto:jobla shtrudel dtu.dk)
-* [Andreas HalkjÃ¦r From](mailto:s144442 shtrudel student.dtu.dk)
-* [JÃ¸rgen Villadsen](mailto:jovi shtrudel dtu.dk)
+* [Andreas Halkjær From](mailto:s144442 shtrudel student.dtu.dk)
+* [Jørgen Villadsen](mailto:jovi shtrudel dtu.dk)
