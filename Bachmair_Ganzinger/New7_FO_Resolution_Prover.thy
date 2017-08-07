@@ -3449,10 +3449,13 @@ proof -
   then have unsat2: "\<not> satisfiable (llimit (lmap grounding_of_state Sts))"
     using unsat unfolding true_clss_def by auto blast
 
-  from continue_from_this
-  have "src.saturated_upto (llimit (lmap grounding_of_state Sts))"
+  from continue_from_this have "src.saturated_upto (llimit (lmap grounding_of_state Sts))"
+    using gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redudancy_criterion src_ext.redundancy_criterion_axioms
+    unfolding src_ext_Ri_def
     using standard_redundancy_criterion_extension_saturated_up_iff[of gd.ord_\<Gamma> gd_ord_\<Gamma>' src.Rf src.Ri "(llimit (lmap grounding_of_state Sts))"]
-    (* uhm... how do I do this? *) sorry
+    unfolding src_ext.saturated_upto_def
+    using redundancy_criterion.saturated_upto_def[of gd_ord_\<Gamma>' src.Rf "(\<lambda>N. src.Ri N \<union> (gd_ord_\<Gamma>' - gd.ord_\<Gamma>))" "(llimit (lmap grounding_of_state Sts))"]
+    by auto
   then have "{#} \<in> llimit (lmap grounding_of_state Sts)" 
     using src.saturated_upto_refute_complete unsat2
     by auto
