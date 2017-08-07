@@ -2079,41 +2079,137 @@ proof -
   then show ?thesis
     using m_p by auto
 qed
+  
+lemma KONGE:
+  assumes 
+    "\<forall>i. f (Suc i) \<le> f i" and
+    "i \<le> l'"
+  shows "f l' \<le> (f i ::nat)"
+using assms proof (induction "l'-i" arbitrary: i l')
+  case 0
+  then show ?case by auto
+next
+  case (Suc x)
+  moreover
+  from Suc have "x = l' - 1 - i "
+     apply (subgoal_tac "l'>0")
+     apply auto done
+  moreover
+  have "i \<le> l' - 1"
+    using Suc apply auto done
+  ultimately
+  have "f (l' - 1) \<le> f i" 
+    using Suc(1)[of "l'-1" i] by auto
+  then show ?case using Suc(3)
+    apply auto
+    apply (rule_tac P="\<lambda>i. f (Suc i) \<le> f i" and x = "l' - 1" in allE)
+     apply auto[]
+    apply (subgoal_tac "f (Suc (l' - 1)) \<le> f (l' - 1)")
+    apply (subgoal_tac "Suc (l' - 1) = l'")
+      apply auto
+    apply (subgoal_tac "l'>0")
+     apply auto
+    using Suc by auto
+qed
 
 lemma aa_lemma:
   fixes f :: "nat \<Rightarrow> nat"
   assumes leq: "\<forall>i. f (Suc i) \<le> f i"
   shows "\<exists>l. \<forall>l'\<ge>l. f l' = f (Suc l')"
 proof (rule ccontr)
-  assume "\<nexists>l. \<forall>l'\<ge>l. f l' = f (Suc l')"
-  then have ll': "\<forall>l. \<exists>l'\<ge> l. f l' \<noteq> f (Suc l')"
-    by metis
-  have "\<forall>l. \<exists>l'\<ge> l. f l' > f (Suc l')"
-  proof 
-    fix l
-    obtain l' where l'_p: "l'\<ge> l \<and> f l' \<noteq> f (Suc l')"
-      using ll' by auto
-    moreover
-    have "f (Suc l') \<le> f l'"
-      using leq by auto
-    ultimately
-    have "f l' > f (Suc l')"
+  assume a: "\<nexists>l. \<forall>l'\<ge>l. f l' = f (Suc l')"
+  have "\<forall>i. \<exists>i'. i' > i \<and> f i' < f i" proof
+    fix i :: "nat"
+    from a have "\<not>(\<forall>l'\<ge>i. f l' = f (Suc l'))"
       by auto
-    then show "\<exists>l'\<ge> l. f l' > f (Suc l')"
-      using l'_p by metis
+    then have "\<exists>l'\<ge>i. f l' \<noteq> f (Suc l')"
+      by auto
+    then obtain l' where l'_p: "l'\<ge>i \<and> f l' \<noteq> f (Suc l')"
+      by metis
+    then have "f l' > f (Suc l')"
+      using leq 
+      apply auto
+      apply (rule_tac P="\<lambda>i. f (Suc i) \<le> f i" and x=l' in allE)
+       apply clarify
+      by linarith
+    moreover
+    have "f i \<ge> f l'"
+      using leq l'_p 
+      apply -
+      explore_lemma
+      apply auto
+      apply (induction "l'" arbitrary: i)
+       apply auto
+      using KONGE by auto
+    ultimately
+    show "\<exists>i'>i. f i' < f i"
+      using l'_p
+      apply -
+      apply auto
+      apply (rule_tac x="Suc l'" in exI)
+      apply auto
+      done
   qed
-  then have iii: "\<forall>l. \<exists>l'>l. f l' < f l"
-    sorry
-  obtain m where m_p: "m \<in> range f \<and> (\<forall>n \<in> range f. m \<le> n)"
-    using least_exists'[of "range f"] by auto
-  then obtain i where i_p: "f i = m"
+  then obtain g_sm where g_sm_p: "\<forall>i. g_sm i > i \<and> f (g_sm i) < f i"
+    by metis
+  define c where "c = (\<lambda>n. compow n g_sm 0)"
+  have "\<forall>i. f (c i) > f(c (Suc i))"
+    apply rule
+    subgoal for i
+      apply (induction i)
+      unfolding c_def
+      using g_sm_p
+       apply auto
+      done
+    done
+  then have "\<forall>i. (f \<circ> c) i > (f \<circ> c) (Suc i) " 
     by auto
-  then obtain j where "j > i \<and> f j < f i"
-    using iii by blast
+  then have "\<exists>fc :: nat\<Rightarrow>nat. \<forall>i. fc i > fc (Suc i)"
+    by metis
   then show False
-    using m_p i_p
-    by (simp add: leD) 
+    using wf_less_than
+    by (simp add: wf_iff_no_infinite_down_chain)
 qed
+
+(*
+lemma aa_lemma:
+  fixes f :: "nat \<Rightarrow> nat"
+  assumes leq: "\<forall>i. f (Suc i) \<le> f i"
+  shows "\<exists>l. \<forall>l'\<ge>l. f l' = f (Suc l')"
+proof (rule ccontr)
+  assume "\<nexists>l. \<forall>l'\<ge>l. f l' = f (Suc l')"
+  then have "\<forall>l. \<exists>l'\<ge> l. f l' \<noteq> f (Suc l')"
+    by metis (* I can always go forward to smthng different *)
+  moreover
+  have "\<forall>i i'. i \<ge> i' \<longrightarrow> f i \<le> f i'"
+    using leq
+    sorry
+  ultimately
+  have "\<forall>l. \<exists>l'\<ge> l. f l' > f (Suc l')"
+    sorry
+  then have "\<forall>l. \<exists>l'' > l. f l'' < f l"
+    using leq sorry
+  then obtain nxt where nxt_p: "\<forall>l. nxt l > l \<and> f (nxt l) < f l"
+    by metis
+  define c where "c = (\<lambda>n. compow n nxt 0)"
+  have "\<forall>i. (f \<circ> c) (Suc i) < (f \<circ> c) i"
+    apply rule
+    subgoal for i
+      apply (induction i)
+      unfolding c_def
+       apply simp
+      using nxt_p apply auto
+      done
+    done
+  then obtain g :: "nat \<Rightarrow> nat" where g_p: "\<forall>i. g (Suc i) < g i"
+    by metis
+  have "\<forall>n. compow (Suc (g n)) g (g n) < n"
+    
+      
+  then show False
+    
+    
+qed *)
 
 lemma subseteq_mset_size_eql:
   assumes 
@@ -2194,9 +2290,42 @@ proof (rule ccontr)
     then show "\<nexists>\<sigma>. c l' \<cdot> \<sigma> = c (Suc l')"
       by (metis subset_mset.dual_order.refl)
   qed  
+  moreover
+  have "wfP proper_instance_of"
+    sorry
+  then have "\<nexists>f. \<forall>i. (f (Suc i), f i) \<in> {(a, b). instance_of a b \<and> \<not> instance_of b a}"
+    unfolding wfP_def proper_instance_of_def
+    using wf_iff_no_infinite_down_chain[of "{(a, b). instance_of a b \<and> \<not> instance_of b a}"] by auto
+  then have "\<nexists>f. \<forall>i. instance_of (f (Suc i)) (f i) \<and> \<not> instance_of (f i) (f (Suc i))"
+    by auto
   ultimately
   show False (* We have an infinite chain of proper generalizing clauses. That is impossible since proper generalization is well founded. *)
-    sorry
+    
+    
+    
+    using proper_instance_of_wf wf_iff_no_infinite_down_chain[of "{(a, b). instance_of a b \<and> \<not> instance_of b a}"]
+    unfolding conversep_iff proper_instance_of_def
+    apply (subgoal_tac "\<forall>i. ((\<lambda>x. c (x+l)) (Suc i), (\<lambda>x. c (x+l)) i) \<in> {(a, b). instance_of a b \<and> \<not> instance_of b a}")
+    unfolding wfP_def
+    apply auto[]
+
+     apply (subgoal_tac "\<forall>i. (((\<lambda>i. c (i + l)) (Suc i)), (\<lambda>i. c (i + l)) (i)) \<in> {(a, b). instance_of a b \<and> \<not> instance_of b a}")
+    apply auto[]
+    unfolding instance_of_def
+     apply simp
+    apply rule
+     apply auto[]
+    apply (thin_tac "wf {(C, D). (\<exists>\<sigma>. C \<cdot> \<sigma> = D) \<and> (\<nexists>\<sigma>. D \<cdot> \<sigma> = C)} ")
+    apply (thin_tac "wf {(a, b). (\<exists>\<sigma>. b \<cdot> \<sigma> = a) \<and> (\<nexists>\<sigma>. a \<cdot> \<sigma> = b)} =
+    (\<nexists>f. \<forall>i. (f (Suc i), f i) \<in> {(a, b). (\<exists>\<sigma>. b \<cdot> \<sigma> = a) \<and> (\<nexists>\<sigma>. a \<cdot> \<sigma> = b)})")
+    
+(* Something is wrong with the direction *)
+    apply (thin_tac "\<forall>l'\<ge>l. \<exists>\<sigma>. c l' = c (Suc l') \<cdot> \<sigma>")
+    apply (thin_tac " \<forall>l'\<ge>l. \<nexists>\<sigma>. c l' \<cdot> \<sigma> = c (Suc l') ")
+    apply auto
+        
+    (* problem is: it doesn't keep getting smaller. It eventually keeps getting smaller. *)
+    
 qed
 
 lemma properly_subsumes_well_founded: "wfP properly_subsumes"
