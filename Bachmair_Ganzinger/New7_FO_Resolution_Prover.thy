@@ -2256,7 +2256,7 @@ proof (rule ccontr)
     unfolding comp_def by auto
   then obtain l where l_p: "\<forall>l' \<ge> l. size (c l') = size (c (Suc l'))"
     by metis
-  have "\<forall>l' \<ge> l. \<exists>\<sigma>. (c l') = (c (Suc l')) \<cdot> \<sigma>"
+  have ee: "\<forall>l' \<ge> l. \<exists>\<sigma>. (c l') = (c (Suc l')) \<cdot> \<sigma>"
   proof (rule, rule)
     fix l'
     assume "l' \<ge> l"
@@ -2275,7 +2275,7 @@ proof (rule ccontr)
       by metis
   qed
   moreover
-  have "\<forall>l' \<ge> l. \<not>(\<exists>\<sigma>. (c l')  \<cdot> \<sigma> = (c (Suc l')))"
+  have ff: "\<forall>l' \<ge> l. \<not>(\<exists>\<sigma>. (c l')  \<cdot> \<sigma> = (c (Suc l')))"
   proof (rule, rule)
     fix l'
     assume "l' \<ge> l"
@@ -2292,47 +2292,29 @@ proof (rule ccontr)
   qed  
   moreover
   have "wfP proper_instance_of"
-    sorry
+    using proper_instance_of_wf by auto
+    
   then have "\<nexists>f. \<forall>i. (f (Suc i), f i) \<in> {(a, b). instance_of a b \<and> \<not> instance_of b a}"
     unfolding wfP_def proper_instance_of_def
     using wf_iff_no_infinite_down_chain[of "{(a, b). instance_of a b \<and> \<not> instance_of b a}"] by auto
   then have "\<nexists>f. \<forall>i. instance_of (f (Suc i)) (f i) \<and> \<not> instance_of (f i) (f (Suc i))"
     by auto
+  moreover
+  have "\<forall>i. instance_of ((\<lambda>x. c (x+l)) (Suc i)) ((\<lambda>x. c (x+l)) i) \<and> \<not> instance_of ((\<lambda>x. c (x+l)) i) ((\<lambda>x. c (x+l)) (Suc i))"
+    using ee ff
+    unfolding instance_of_def
+     apply auto
+    by (metis le_add2)
+  then have "\<exists>f. \<forall>i. instance_of (f (Suc i)) (f i) \<and> \<not> instance_of (f i) (f (Suc i))"
+    by meson
   ultimately
   show False (* We have an infinite chain of proper generalizing clauses. That is impossible since proper generalization is well founded. *)
-    
-    
-    
-    using proper_instance_of_wf wf_iff_no_infinite_down_chain[of "{(a, b). instance_of a b \<and> \<not> instance_of b a}"]
-    unfolding conversep_iff proper_instance_of_def
-    apply (subgoal_tac "\<forall>i. ((\<lambda>x. c (x+l)) (Suc i), (\<lambda>x. c (x+l)) i) \<in> {(a, b). instance_of a b \<and> \<not> instance_of b a}")
-    unfolding wfP_def
-    apply auto[]
-
-     apply (subgoal_tac "\<forall>i. (((\<lambda>i. c (i + l)) (Suc i)), (\<lambda>i. c (i + l)) (i)) \<in> {(a, b). instance_of a b \<and> \<not> instance_of b a}")
-    apply auto[]
-    unfolding instance_of_def
-     apply simp
-    apply rule
-     apply auto[]
-    apply (thin_tac "wf {(C, D). (\<exists>\<sigma>. C \<cdot> \<sigma> = D) \<and> (\<nexists>\<sigma>. D \<cdot> \<sigma> = C)} ")
-    apply (thin_tac "wf {(a, b). (\<exists>\<sigma>. b \<cdot> \<sigma> = a) \<and> (\<nexists>\<sigma>. a \<cdot> \<sigma> = b)} =
-    (\<nexists>f. \<forall>i. (f (Suc i), f i) \<in> {(a, b). (\<exists>\<sigma>. b \<cdot> \<sigma> = a) \<and> (\<nexists>\<sigma>. a \<cdot> \<sigma> = b)})")
-    
-(* Something is wrong with the direction *)
-    apply (thin_tac "\<forall>l'\<ge>l. \<exists>\<sigma>. c l' = c (Suc l') \<cdot> \<sigma>")
-    apply (thin_tac " \<forall>l'\<ge>l. \<nexists>\<sigma>. c l' \<cdot> \<sigma> = c (Suc l') ")
-    apply auto
-        
-    (* problem is: it doesn't keep getting smaller. It eventually keeps getting smaller. *)
-    
+    by auto
 qed
 
 lemma properly_subsumes_well_founded: "wfP properly_subsumes"
   using properly_subsumes_has_minimum
   by (metis empty_iff wfP_eq_minimal)
-  
-  unfolding Wellfounded.wfP_def Wellfounded.wf_def apply auto
 
 lemma from_Q_to_Q_inf:
   assumes 
