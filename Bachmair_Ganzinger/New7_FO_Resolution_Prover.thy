@@ -2171,46 +2171,6 @@ proof (rule ccontr)
     by (simp add: wf_iff_no_infinite_down_chain)
 qed
 
-(*
-lemma aa_lemma:
-  fixes f :: "nat \<Rightarrow> nat"
-  assumes leq: "\<forall>i. f (Suc i) \<le> f i"
-  shows "\<exists>l. \<forall>l'\<ge>l. f l' = f (Suc l')"
-proof (rule ccontr)
-  assume "\<nexists>l. \<forall>l'\<ge>l. f l' = f (Suc l')"
-  then have "\<forall>l. \<exists>l'\<ge> l. f l' \<noteq> f (Suc l')"
-    by metis (* I can always go forward to smthng different *)
-  moreover
-  have "\<forall>i i'. i \<ge> i' \<longrightarrow> f i \<le> f i'"
-    using leq
-    sorry
-  ultimately
-  have "\<forall>l. \<exists>l'\<ge> l. f l' > f (Suc l')"
-    sorry
-  then have "\<forall>l. \<exists>l'' > l. f l'' < f l"
-    using leq sorry
-  then obtain nxt where nxt_p: "\<forall>l. nxt l > l \<and> f (nxt l) < f l"
-    by metis
-  define c where "c = (\<lambda>n. compow n nxt 0)"
-  have "\<forall>i. (f \<circ> c) (Suc i) < (f \<circ> c) i"
-    apply rule
-    subgoal for i
-      apply (induction i)
-      unfolding c_def
-       apply simp
-      using nxt_p apply auto
-      done
-    done
-  then obtain g :: "nat \<Rightarrow> nat" where g_p: "\<forall>i. g (Suc i) < g i"
-    by metis
-  have "\<forall>n. compow (Suc (g n)) g (g n) < n"
-    
-      
-  then show False
-    
-    
-qed *)
-
 lemma subseteq_mset_size_eql:
   assumes 
     "X \<subseteq># Y" and
