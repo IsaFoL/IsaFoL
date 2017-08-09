@@ -203,7 +203,7 @@ lemma insert_sort_nth_reorder:
 
 lemma (in -) insert_sort_nth_code_reorder_remove[sepref_fr_rules]:
    \<open>(uncurry insert_sort_nth_code, uncurry reorder_remove) \<in>
-      [\<lambda>((a, _), b). \<forall>x\<in>set b. x < length a]\<^sub>a 
+      [\<lambda>((a, _), b). \<forall>x\<in>set b. x < length a]\<^sub>a
       vmtf_conc\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d \<rightarrow> arl_assn uint32_nat_assn\<close>
   using insert_sort_nth_code.refine[FCOMP insert_sort_nth_reorder]
   by auto
@@ -496,9 +496,8 @@ proof -
     using hfref_compI_PRE_aux[OF conflict_merge_code.refine[unfolded PR_CONST_def]
         conflict_merge_aa_mark_conflict[unfolded PR_CONST_def], OF twl_array_code_axioms] .
   have pre: \<open>?pre' = ?pre\<close>
-    by (auto simp: comp_PRE_def in_br_conv list_mset_rel_def in_N\<^sub>1_atm_of_in_atms_of_iff
-        literals_to_update_wl_empty_def option_conflict_rel_def
-        conflict_rel_def intro!: ext
+    by (intro ext) (auto simp: comp_PRE_def in_br_conv list_mset_rel_def in_N\<^sub>1_atm_of_in_atms_of_iff
+        literals_to_update_wl_empty_def option_conflict_rel_def conflict_rel_def
         dest: literals_are_in_N\<^sub>0_in_N\<^sub>1)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp conflict_option_assn_def
@@ -641,8 +640,7 @@ proof -
     using hfref_compI_PRE_aux[OF watched_by_app_int_code_refine[unfolded PR_CONST_def]
         watched_by_app_watched_by_app_int[unfolded PR_CONST_def]] .
   have pre: \<open>?pre' = ?pre\<close>
-    by (auto simp: comp_PRE_def twl_st_assn_def twl_st_ref_def
-      map_fun_rel_def intro!: ext)
+    by (intro ext) (auto simp: comp_PRE_def twl_st_assn_def twl_st_ref_def map_fun_rel_def)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def[symmetric]
     by (auto simp: hrp_comp_def hr_comp_def)
@@ -946,7 +944,6 @@ lemma twl_st_ref_assn_assn:
   hr_comp_assoc[symmetric] twl_st_int_trail_ref_assn_twl_st_int_assn
   ..
 
-term twl_st_assn
 sepref_thm valued_st_int_code
   is \<open>uncurry valued_st_int\<close>
   :: \<open>twl_st_int_trail_ref_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn\<close>
@@ -1097,10 +1094,9 @@ proof -
       done
     then show ?thesis
       using that unfolding comp_PRE_def
-      by (fastforce simp: comp_PRE_def
-          mset_take_mset_drop_mset clauses_def
-          mset_take_mset_drop_mset' drop_Suc simp del: twl_st_of.simps st_l_of_wl.simps
-          intro!: ext)
+      by (intro ext impI)(use that in \<open>fastforce simp: comp_PRE_def
+            mset_take_mset_drop_mset clauses_def mset_take_mset_drop_mset' drop_Suc
+          simp del: twl_st_of.simps st_l_of_wl.simps\<close>)
   qed
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def[symmetric]
@@ -1493,7 +1489,7 @@ lemma undefined_lit_valued_st_iff:
 
 lemma find_unwatched_get_clause_neq_L:
   \<open>get_clauses_wl S ! watched_by_app S L C ! xj \<noteq> L\<close>
-  if 
+  if
     find_unw: \<open>RETURN (Some xj) \<le> find_unwatched_wl_s S (watched_by_app S L C)\<close> and
     inv: \<open>unit_prop_body_wl_D_inv S C L\<close>
   for S C xj L
@@ -1501,7 +1497,7 @@ proof (rule ccontr)
   have is_N\<^sub>1_alt_def_sym: \<open>is_N\<^sub>1 (all_lits_of_mm A) \<longleftrightarrow> atms_of N\<^sub>1 = atms_of_mm A\<close> for A
     unfolding is_N\<^sub>1_alt_def by metis
   assume eq[simplified, simp]: \<open>\<not> ?thesis\<close>
-  let ?C = \<open>get_clauses_wl S ! watched_by_app S L C\<close> 
+  let ?C = \<open>get_clauses_wl S ! watched_by_app S L C\<close>
   let ?L = \<open>get_clauses_wl S ! watched_by_app S L C ! xj\<close>
   have corr: \<open>correct_watching S\<close> and
     alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S)))\<close> and
@@ -1556,14 +1552,14 @@ qed
 
 lemma find_unwatched_le_length:
   \<open>xj < length (get_clauses_wl S ! watched_by_app S L C)\<close>
-  if 
+  if
     find_unw: \<open>RETURN (Some xj) \<le> find_unwatched_wl_s S (watched_by_app S L C)\<close>
   for S L C xj
   using that unfolding find_unwatched_wl_s_def find_unwatched_l_def
   by (cases S) auto
 
 lemma find_unwatched_in_D\<^sub>0: \<open>get_clauses_wl S ! watched_by_app S L C ! xj \<in> snd ` D\<^sub>0\<close>
-  if 
+  if
     find_unw: \<open>RETURN (Some xj) \<le> find_unwatched_wl_s S (watched_by_app S L C)\<close> and
     inv: \<open>unit_prop_body_wl_D_inv S C L\<close>
   for S C xj L
