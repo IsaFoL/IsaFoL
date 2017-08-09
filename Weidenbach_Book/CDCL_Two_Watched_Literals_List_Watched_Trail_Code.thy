@@ -249,7 +249,7 @@ sepref_thm vmtf_flush_code
 
 concrete_definition (in -) vmtf_flush_code
    uses twl_array_code_ops.vmtf_flush_code.refine_raw
-   is "(?f,_)\<in>_"
+   is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) vmtf_flush_code_def
 
@@ -414,7 +414,8 @@ sepref_thm conflict_merge_code
 
 concrete_definition (in -) conflict_merge_code
    uses twl_array_code.conflict_merge_code.refine_raw
-   is "(uncurry2 ?f,_)\<in>_"
+   is \<open>(uncurry2 ?f, _) \<in> _\<close>
+
 prepare_code_thms (in -) conflict_merge_code_def
 
 lemmas conflict_merge_aa_refine[sepref_fr_rules] =
@@ -613,7 +614,7 @@ sepref_thm watched_by_app_int_code
 
 concrete_definition (in -) watched_by_app_int_code
    uses twl_array_code.watched_by_app_int_code.refine_raw
-   is "(uncurry2 ?f,_)\<in>_"
+   is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) watched_by_app_int_code_def
 
@@ -796,7 +797,7 @@ sepref_thm access_lit_in_clauses_int_code
 
 concrete_definition (in -) access_lit_in_clauses_int_code
    uses twl_array_code.access_lit_in_clauses_int_code.refine_raw
-   is "(uncurry2 ?f,_)\<in>_"
+   is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) access_lit_in_clauses_int_code_def
 
@@ -876,7 +877,7 @@ sepref_thm valued_trail_code
 
 concrete_definition (in -) valued_trail_code
    uses twl_array_code.valued_trail_code.refine_raw
-   is "(uncurry ?f,_)\<in>_"
+   is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) valued_trail_code_def
 
@@ -955,7 +956,7 @@ sepref_thm valued_st_int_code
 
 concrete_definition (in -) valued_st_int_code
    uses twl_array_code.valued_st_int_code.refine_raw
-   is "(uncurry ?f,_)\<in>_"
+   is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) valued_st_int_code_def
 
@@ -1041,7 +1042,7 @@ sepref_thm find_unwatched_wl_s_int_code
 
 concrete_definition (in -) find_unwatched_wl_s_int_code
    uses twl_array_code.find_unwatched_wl_s_int_code.refine_raw
-   is "(uncurry ?f,_)\<in>_"
+   is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) find_unwatched_wl_s_int_code_def
 
@@ -1190,7 +1191,7 @@ sepref_thm cons_trail_Propagated_tr_code
 
 concrete_definition (in -) cons_trail_Propagated_tr_code
   uses "twl_array_code.cons_trail_Propagated_tr_code.refine_raw"
-  is "(uncurry2 ?f,_)\<in>_"
+  is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) cons_trail_Propagated_tr_code_def
 
@@ -1251,7 +1252,7 @@ sepref_thm mark_conflict_wl'_int_code
 
 concrete_definition (in -) mark_conflict_wl'_int_code
   uses "twl_array_code.mark_conflict_wl'_int_code.refine_raw"
-  is "(uncurry ?f,_)\<in>_"
+  is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) mark_conflict_wl'_int_code_def
 
@@ -1358,7 +1359,7 @@ sepref_thm update_clause_wl_int_code
 
 concrete_definition (in -) update_clause_wl_int_code
   uses "twl_array_code.update_clause_wl_int_code.refine_raw"
-  is "(uncurry5 ?f,_)\<in>_"
+  is \<open>(uncurry5 ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) update_clause_wl_int_code_def
 
@@ -1444,7 +1445,7 @@ sepref_thm propgate_lit_wl_int_code
 
 concrete_definition (in -) propgate_lit_wl_int_code
   uses "twl_array_code.propgate_lit_wl_int_code.refine_raw"
-  is "(uncurry2 ?f,_)\<in>_"
+  is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) propgate_lit_wl_int_code_def
 
@@ -1624,7 +1625,7 @@ sepref_thm unit_propagation_inner_loop_body_wl_D
 
 concrete_definition (in -) unit_propagation_inner_loop_body_wl_D_code
    uses twl_array_code.unit_propagation_inner_loop_body_wl_D.refine_raw
-   is "(uncurry2 ?f,_)\<in>_"
+   is \<open>(uncurry2 ?f, _) \<in> _\<close>
 prepare_code_thms (in -) unit_propagation_inner_loop_body_wl_D_code_def
 
 lemmas unit_propagation_inner_loop_body_wl_D_code_refine[sepref_fr_rules] =
@@ -1707,7 +1708,7 @@ sepref_thm cons_trail_Propagated_tr_code
 
 concrete_definition (in -) cons_trail_Propagated_tr_code
   uses "twl_array_code.cons_trail_Propagated_tr_code.refine_raw"
-  is "(uncurry2 ?f,_)\<in>_"
+  is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) cons_trail_Propagated_tr_code_def
 
@@ -1794,7 +1795,7 @@ sepref_thm cons_trail_Decided_tr_code
 
 concrete_definition (in -) cons_trail_Decided_tr_code
   uses "twl_array_code.cons_trail_Decided_tr_code.refine_raw"
-  is "(uncurry ?f,_)\<in>_"
+  is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) cons_trail_Decided_tr_code_def
 
@@ -1910,7 +1911,7 @@ sepref_thm tl_trail_tr_code
 
 concrete_definition (in -) tl_trail_tr_code
   uses twl_array_code.tl_trail_tr_code.refine_raw
-  is "(?f,_)\<in>_"
+  is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) tl_trail_tr_code_def
 
@@ -2041,7 +2042,7 @@ sepref_thm tl_trail_tr_dump_code
 
 concrete_definition (in -) tl_trail_tr_dump_code
   uses twl_array_code.tl_trail_tr_dump_code.refine_raw
-  is "(?f,_)\<in>_"
+  is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) tl_trail_tr_dump_code_def
 
@@ -2105,7 +2106,7 @@ sepref_thm is_decided_hd_trail_wll_code
 
 concrete_definition (in -) is_decided_hd_trail_wll_code
    uses twl_array_code.is_decided_hd_trail_wll_code.refine_raw
-   is "(?f,_)\<in>_"
+   is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) is_decided_hd_trail_wll_code_def
 
@@ -2189,7 +2190,7 @@ sepref_thm get_level_code
 
 concrete_definition (in -) get_level_code
    uses twl_array_code.get_level_code.refine_raw
-   is "(uncurry ?f,_)\<in>_"
+   is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) get_level_code_def
 
@@ -2284,7 +2285,7 @@ sepref_thm find_unwatched''_code
 
 concrete_definition (in -) find_unwatched''_code
   uses "twl_array_code.find_unwatched''_code.refine_raw"
-  is "(uncurry2 ?f,_)\<in>_"
+  is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) find_unwatched''_code_def
 
@@ -2346,7 +2347,7 @@ sepref_thm trail_dump_code
 
 concrete_definition (in -) trail_dump_code
    uses twl_array_code.trail_dump_code.refine_raw
-   is "(?f,_)\<in>_"
+   is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) trail_dump_code_def
 
@@ -2435,7 +2436,7 @@ sepref_thm vmtf_rescore_code
 
 concrete_definition (in -) vmtf_rescore_code
    uses twl_array_code.vmtf_rescore_code.refine_raw
-   is "(uncurry ?f,_)\<in>_"
+   is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) vmtf_rescore_code_def
 
@@ -2555,7 +2556,7 @@ sepref_thm unit_propagation_inner_loop_wl_loop_D
 
 concrete_definition (in -) unit_propagation_inner_loop_wl_loop_D_code
    uses twl_array_code.unit_propagation_inner_loop_wl_loop_D.refine_raw
-   is "(uncurry ?f,_)\<in>_"
+   is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) unit_propagation_inner_loop_wl_loop_D_code_def
 lemmas unit_propagation_inner_loop_wl_loop_D_code_refine[sepref_fr_rules] =
@@ -2577,7 +2578,7 @@ sepref_thm unit_propagation_inner_loop_wl_D
 
 concrete_definition (in -) unit_propagation_inner_loop_wl_D_code
    uses twl_array_code.unit_propagation_inner_loop_wl_D.refine_raw
-   is "(uncurry ?f,_)\<in>_"
+   is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) unit_propagation_inner_loop_wl_D_code_def
 
@@ -2598,7 +2599,7 @@ lemma literals_to_update_wll_empty_hnr[unfolded twl_st_assn_def, sepref_fr_rules
 
 concrete_definition (in -) literals_to_update_wll_empty'
    uses twl_array_code.literals_to_update_wll_empty_hnr
-   is "(?f,_)\<in>_"
+   is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) literals_to_update_wll_empty'_def
 
@@ -2674,7 +2675,7 @@ qed
 
 concrete_definition (in -) hd_select_and_remove_from_literals_to_update_wl''
    uses twl_array_code.hd_select_and_remove_from_literals_to_update_wl''_refine
-   is "(?f,_)\<in>_"
+   is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) hd_select_and_remove_from_literals_to_update_wl''_def
 
@@ -2698,7 +2699,7 @@ sepref_thm unit_propagation_outer_loop_wl_D
 
 concrete_definition (in -) unit_propagation_outer_loop_wl_D_code
    uses twl_array_code.unit_propagation_outer_loop_wl_D.refine_raw
-   is "(?f,_)\<in>_"
+   is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) unit_propagation_outer_loop_wl_D_code_def
 
@@ -2721,7 +2722,7 @@ sepref_thm get_conflict_wll_is_Nil_code
 
 concrete_definition (in -) get_conflict_wll_is_Nil_code
    uses twl_array_code.get_conflict_wll_is_Nil_code.refine_raw
-   is "(?f,_)\<in>_"
+   is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) get_conflict_wll_is_Nil_code_def
 
@@ -2762,7 +2763,7 @@ sepref_thm maximum_level_remove_code
 
 concrete_definition (in -) maximum_level_remove_code
    uses twl_array_code.maximum_level_remove_code.refine_raw
-   is "(uncurry2 ?f,_)\<in>_"
+   is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
 prepare_code_thms maximum_level_remove_code_def
 
@@ -2827,7 +2828,7 @@ sepref_thm skip_and_resolve_loop_wl_D
 
 concrete_definition (in -) skip_and_resolve_loop_wl_D_code
    uses twl_array_code.skip_and_resolve_loop_wl_D.refine_raw
-   is "(?f,_)\<in>_"
+   is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) skip_and_resolve_loop_wl_D_code_def
 
@@ -2852,7 +2853,7 @@ sepref_thm find_lit_of_max_level_wl_imp_code
 
 concrete_definition (in -) find_lit_of_max_level_wl_imp_code
    uses twl_array_code.find_lit_of_max_level_wl_imp_code.refine_raw
-   is "(uncurry8 ?f,_)\<in>_"
+   is \<open>(uncurry8 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) find_lit_of_max_level_wl_imp_code_def
 
@@ -2948,7 +2949,7 @@ sepref_thm find_decomp_wl_imp_code
 
 concrete_definition (in -) find_decomp_wl_imp_code
    uses twl_array_code.find_decomp_wl_imp_code.refine_raw
-   is "(uncurry2 ?f,_)\<in>_"
+   is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) find_decomp_wl_imp_code_def
 
@@ -2970,7 +2971,7 @@ sepref_thm find_decomp_wl_imp'_code
 
 concrete_definition (in -) find_decomp_wl_imp'_code
    uses twl_array_code.find_decomp_wl_imp'_code.refine_raw
-   is "(uncurry8 ?f,_)\<in>_"
+   is \<open>(uncurry8 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) find_decomp_wl_imp'_code_def
 thm find_decomp_wl_imp'_code.refine[of N\<^sub>0, OF twl_array_code_axioms,
@@ -3099,7 +3100,7 @@ sepref_thm extract_shorter_conflict_l_trivial'
 
 concrete_definition (in -) extract_shorter_conflict_l_trivial_code
    uses twl_array_code.extract_shorter_conflict_l_trivial'.refine_raw
-   is "(uncurry7 ?f,_)\<in>_"
+   is \<open>(uncurry7 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) extract_shorter_conflict_l_trivial_code_def
 
@@ -3289,7 +3290,7 @@ qed
 
 concrete_definition (in -) extract_shorter_conflict_l_trivial_code_wl'
    uses twl_array_code.extract_shorter_conflict_l_trivial_code_wl'
-   is "(uncurry7 ?f,_)\<in>_"
+   is \<open>(uncurry7 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) extract_shorter_conflict_l_trivial_code_wl'_def
 
@@ -3389,7 +3390,7 @@ sepref_thm backtrack_wl_D
 
 concrete_definition (in -) backtrack_wl_D_code
    uses twl_array_code.backtrack_wl_D.refine_raw
-   is "(?f,_)\<in>_"
+   is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) backtrack_wl_D_code_def
 
@@ -3419,7 +3420,7 @@ sepref_thm defined_atm_impl
 
 concrete_definition (in -) defined_atm_code
    uses twl_array_code.defined_atm_impl.refine_raw
-   is "(uncurry ?f,_)\<in>_"
+   is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) defined_atm_code_def
 
@@ -3474,7 +3475,7 @@ sepref_thm vmtf_find_next_undef_code
 
 concrete_definition (in -) vmtf_find_next_undef_code
   uses twl_array_code.vmtf_find_next_undef_code.refine_raw
-  is "(uncurry ?f,_)\<in>_"
+  is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) vmtf_find_next_undef_code_def
 
@@ -3526,7 +3527,7 @@ sepref_thm vmtf_find_next_undef_upd_code
 
 concrete_definition (in -) vmtf_find_next_undef_upd_code
   uses twl_array_code.vmtf_find_next_undef_upd_code.refine_raw
-  is "(?f,_)\<in>_"
+  is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) vmtf_find_next_undef_upd_code_def
 
@@ -3795,7 +3796,7 @@ sepref_thm lit_of_found_atm_D_code
 
 concrete_definition (in -) lit_of_found_atm_D_code
   uses twl_array_code.lit_of_found_atm_D_code.refine_raw
-  is "(uncurry ?f,_)\<in>_"
+  is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) lit_of_found_atm_D_code_def
 
@@ -3918,7 +3919,7 @@ sepref_thm find_unassigned_lit_wl_D_code
 
 concrete_definition (in -) find_unassigned_lit_wl_D_code
   uses twl_array_code.find_unassigned_lit_wl_D_code.refine_raw
-  is "(?f,_)\<in>_"
+  is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) find_unassigned_lit_wl_D_code_def
 
@@ -3972,7 +3973,7 @@ sepref_thm decide_wl_or_skip_D_code
 
 concrete_definition (in -) decide_wl_or_skip_D_code
    uses twl_array_code.decide_wl_or_skip_D_code.refine_raw
-   is "(?f,_)\<in>_"
+   is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) decide_wl_or_skip_D_code_def
 
@@ -3992,7 +3993,7 @@ sepref_thm (in twl_array_code_ops) get_conflict_wl_is_None_code
 
 concrete_definition (in -) get_conflict_wl_is_None_code
    uses twl_array_code_ops.get_conflict_wl_is_None_code.refine_raw
-   is "(?f,_)\<in>_"
+   is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) get_conflict_wl_is_None_code_def
 
@@ -4011,7 +4012,7 @@ sepref_thm cdcl_twl_o_prog_wl_D_code
 
 concrete_definition (in -) cdcl_twl_o_prog_wl_D_code
    uses twl_array_code.cdcl_twl_o_prog_wl_D_code.refine_raw
-   is "(?f,_)\<in>_"
+   is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) cdcl_twl_o_prog_wl_D_code_def
 
@@ -4031,7 +4032,7 @@ sepref_thm cdcl_twl_stgy_prog_wl_D_code
 
 concrete_definition (in -) cdcl_twl_stgy_prog_wl_D_code
    uses twl_array_code.cdcl_twl_stgy_prog_wl_D_code.refine_raw
-   is "(?f,_)\<in>_"
+   is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) cdcl_twl_stgy_prog_wl_D_code_def
 
@@ -4040,7 +4041,7 @@ lemmas cdcl_twl_stgy_prog_wl_D_code[sepref_fr_rules] =
 
 concrete_definition (in -) select_and_remove_from_literals_to_update_wl''_code
    uses twl_array_code.hd_select_and_remove_from_literals_to_update_wl''_refine
-   is "(?f,_)\<in>_"
+   is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms select_and_remove_from_literals_to_update_wl''_code_def
 
