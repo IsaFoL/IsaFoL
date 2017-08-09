@@ -19,8 +19,8 @@ type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> uint32 array_list\<clo
 type_synonym phase_saver_assn = \<open>bool array\<close>
 
 type_synonym twl_st_wll_trail =
-  "trail_int_assn \<times> clauses_wl \<times> nat \<times> conflict_option_assn \<times>
-    lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn"
+  \<open>trail_int_assn \<times> clauses_wl \<times> nat \<times> conflict_option_assn \<times>
+    lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn\<close>
 
 definition valued_atm_on_trail where
   \<open>valued_atm_on_trail M L =
@@ -572,10 +572,10 @@ lemma (in -)[sepref_fr_rules]: \<open>(return o id, RETURN o nat_of_lit) \<in> u
 fun watched_by_int:: \<open>twl_st_wl_int \<Rightarrow> nat literal \<Rightarrow> watched\<close> where
   \<open>watched_by_int (M, N, U, D, Q, W, _) L = W ! nat_of_lit L\<close>
 
-fun (in -) get_watched_wl :: "nat twl_st_wl \<Rightarrow> (nat literal \<Rightarrow> nat list)" where
+fun (in -) get_watched_wl :: \<open>nat twl_st_wl \<Rightarrow> (nat literal \<Rightarrow> nat list)\<close> where
   \<open>get_watched_wl (_, _, _, _, _, _, _, W) = W\<close>
 
-fun get_watched_wl_int :: "twl_st_wl_int \<Rightarrow> nat list list" where
+fun get_watched_wl_int :: \<open>twl_st_wl_int \<Rightarrow> nat list list\<close> where
   \<open>get_watched_wl_int (_, _, _, _, _, W, _) = W\<close>
 
 definition (in -) watched_by_app_int :: \<open>twl_st_wl_int \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat\<close> where
@@ -1232,7 +1232,7 @@ lemma mark_conflict_wl'_alt_def:
 definition mark_conflict_wl'_int :: \<open>nat \<Rightarrow> twl_st_wl_int \<Rightarrow> twl_st_wl_int\<close> where
   \<open>mark_conflict_wl'_int = (\<lambda>C (M, N, U, D, Q, W). (M, N, U, set_conflict N C D, {#}, W))\<close>
 
-fun get_conflict_wl_int :: "twl_st_wl_int \<Rightarrow> nat cconflict" where
+fun get_conflict_wl_int :: \<open>twl_st_wl_int \<Rightarrow> nat cconflict\<close> where
   \<open>get_conflict_wl_int (_, _, _, D, _) = D\<close>
 
 sepref_thm mark_conflict_wl'_int_code
@@ -1244,7 +1244,6 @@ sepref_thm mark_conflict_wl'_int_code
   supply [[goals_limit=1]]
   unfolding mark_conflict_wl'_int_def twl_st_int_assn_def IICF_List_Mset.lms_fold_custom_empty
   by sepref
-
 
 concrete_definition (in -) mark_conflict_wl'_int_code
   uses "twl_array_code.mark_conflict_wl'_int_code.refine_raw"
@@ -1308,8 +1307,6 @@ definition update_clause_wl_int :: \<open>nat literal \<Rightarrow> nat \<Righta
             vm))
   })\<close>
 
-term \<open>uncurry5 update_clause_wl\<close>
-term \<open>RETURN ooooooo update_clause_wl\<close>
 lemma update_clause_wl_int_update_clause_wl:
   \<open>(uncurry5 update_clause_wl_int, uncurry5 (update_clause_wl)) \<in>
    [\<lambda>(((((L, C), w), i), f), S). (get_clauses_wl S ! C) ! f \<noteq> L]\<^sub>f
@@ -1320,8 +1317,6 @@ lemma update_clause_wl_int_update_clause_wl:
 
 (* TODO Move to declaration *)
 declare delete_index_and_swap_aa_ll_hnr_u[sepref_fr_rules]
-thm CDCL_Two_Watched_Literals_List_Watched_Code_Common.twl_array_code.append_aa_hnr_u[OF twl_array_code_axioms]
-append_el_aa_hnr
 
 lemma append_el_aa_hnr'[sepref_fr_rules]:
   shows \<open>(uncurry2 (\<lambda>xs i j. append_el_aa xs (nat_of_uint32 i) j), uncurry2 (RETURN ooo append_ll))
@@ -1331,6 +1326,7 @@ lemma append_el_aa_hnr'[sepref_fr_rules]:
   using append_aa_hnr_u[of nat_assn, simplified] unfolding hfref_def  uint32_nat_rel_def br_def pure_def
    hn_refine_def
   by auto
+
 lemma length_delete_index_and_swap_ll[simp]: \<open>length (delete_index_and_swap_ll s i j) = length s\<close>
   by (auto simp: delete_index_and_swap_ll_def)
 
@@ -1589,9 +1585,6 @@ proof -
     by (auto simp: image_image is_N\<^sub>1_def)
 qed
 
-thm unit_prop_body_wl_D_invD[intro,dest] length_rll_def[simp]
-  access_lit_in_clauses_def[simp] watched_by_app_def[simp]
-  length_rll_def[simp]
 sepref_register unit_propagation_inner_loop_body_wl_D
 sepref_thm unit_propagation_inner_loop_body_wl_D
   is \<open>uncurry2 ((PR_CONST unit_propagation_inner_loop_body_wl_D) :: nat literal \<Rightarrow> nat \<Rightarrow>
@@ -1847,7 +1840,7 @@ proof -
     by (rule atm_of_notin_get_level_eq_0) (cases La; auto simp: Decided_Propagated_in_iff_in_lits_of_l)
 
 
-  show ?thesis -- \<open>TODO tune proof\<close>
+  show ?thesis \<comment> \<open>TODO tune proof\<close>
     apply (intro frefI nres_relI, rename_tac x y, case_tac \<open>y\<close>)
     subgoal by fast
     subgoal for M M' L M's
@@ -1856,7 +1849,7 @@ proof -
       apply (intro conjI; clarify?; (intro conjI)?)
       subgoal by (auto simp: trail_ref_def valued_atm_on_trail_def tl_trail_tr_def tl_trailt_tr_def)
       subgoal by (auto simp: trail_ref_def valued_atm_on_trail_def tl_trail_tr_def tl_trailt_tr_def)
-      subgoal -- \<open>Trail ref\<close>
+      subgoal \<comment> \<open>Trail ref\<close>
         by (cases \<open>lit_of L\<close>)
             (auto simp: trail_ref_def valued_atm_on_trail_def tl_trail_tr_def tl_trailt_tr_def
           Decided_Propagated_in_iff_in_lits_of_l eq_commute[of _ \<open>lit_of _\<close>] )
@@ -1869,10 +1862,10 @@ proof -
       subgoal
         by (auto simp: valued_atm_on_trail_def tl_trail_tr_def tl_trailt_tr_def
            atm_of_eq_atm_of get_level_cons_if)
-      subgoal -- \<open>VMTF\<close>
+      subgoal \<comment> \<open>VMTF\<close>
         by (auto simp: tl_trail_tr_def tl_trailt_tr_def in_N\<^sub>1_atm_of_in_atms_of_iff
             dest: no_dup_consistentD abs_l_vmtf_unset_vmtf_unset')
-      subgoal -- \<open>Phase saving\<close>
+      subgoal \<comment> \<open>Phase saving\<close>
         by (auto simp: tl_trail_tr_def tl_trailt_tr_def)
       done
     done
@@ -1976,7 +1969,7 @@ proof -
     by (rule atm_of_notin_get_level_eq_0) (cases La; auto simp: Decided_Propagated_in_iff_in_lits_of_l)
 
 
-  show ?thesis -- \<open>TODO tune proof\<close>
+  show ?thesis \<comment> \<open>TODO tune proof\<close>
     apply (intro frefI nres_relI, rename_tac x y, case_tac \<open>y\<close>)
     subgoal by fast
     subgoal for M M' L M's
@@ -1985,7 +1978,7 @@ proof -
       apply (intro conjI; clarify?; (intro conjI)?)
       subgoal by (auto simp: trail_ref_def valued_atm_on_trail_def tl_trail_tr_dump_def tl_trailt_tr_def)
       subgoal by (auto simp: trail_ref_def valued_atm_on_trail_def tl_trail_tr_def tl_trailt_tr_def)
-      subgoal -- \<open>Trail ref\<close>
+      subgoal \<comment> \<open>Trail ref\<close>
         by (cases \<open>lit_of L\<close>)
             (auto simp: trail_ref_def valued_atm_on_trail_def tl_trail_tr_dump_def tl_trailt_tr_def
           Decided_Propagated_in_iff_in_lits_of_l eq_commute[of _ \<open>lit_of _\<close>] )
@@ -1997,10 +1990,10 @@ proof -
            atm_of_eq_atm_of get_level_cons_if)
       subgoal
         by (auto simp: valued_atm_on_trail_def tl_trailt_tr_def atm_of_eq_atm_of get_level_cons_if)
-      subgoal -- \<open>VMTF\<close>
+      subgoal \<comment> \<open>VMTF\<close>
         by (auto simp: tl_trail_tr_def tl_trail_tr_dump_def in_N\<^sub>1_atm_of_in_atms_of_iff
             dest: no_dup_consistentD abs_l_vmtf_unset_vmtf_dump_unset)
-      subgoal -- \<open>Phase saving\<close>
+      subgoal \<comment> \<open>Phase saving\<close>
         by (auto simp: tl_trail_tr_def tl_trail_tr_dump_def save_phase_def phase_saving_def)
       done
     done
@@ -2252,7 +2245,7 @@ lemmas count_decided_trail_code[sepref_fr_rules] =
 
 paragraph \<open>Find next decision\<close>
 
-definition find_unwatched'' :: "(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> (nat option) nres" where
+definition find_unwatched'' :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> (nat option) nres\<close> where
 \<open>find_unwatched'' M N' C = do {
    S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> 2 \<and> i \<le> length (N'!C) \<and> (\<forall>j\<in>{2..<i}. -((N'!C)!j) \<in> lits_of_l M) \<and>
     (\<forall>j. found = Some j \<longrightarrow> (i = j \<and> (undefined_lit M ((N'!C)!j) \<or> (N'!C)!j \<in> lits_of_l M) \<and>
@@ -2787,7 +2780,7 @@ proof -
         hr_comp uint32_nat_assn nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux [OF maximum_level_remove_code.refine 1, OF twl_array_code_axioms] .
-  have 1: \<open>?pre' = ?pre\<close> -- \<open>TODO tune proof\<close>
+  have 1: \<open>?pre' = ?pre\<close> \<comment> \<open>TODO tune proof\<close>
     apply (auto simp: comp_PRE_def
         list_mset_rel_def br_def
         simp del: literal_of_nat.simps intro!: ext)
@@ -3381,7 +3374,7 @@ sepref_thm backtrack_wl_D
   apply (rewrite at \<open>(_, add_mset (add_mset _ \<hole>) _, _)\<close> lms_fold_custom_empty)
   unfolding no_skip_def[symmetric] no_resolve_def[symmetric]
     find_decomp_wl'_find_decomp_wl[symmetric] option.sel add_mset_list.simps
-  by sepref -- \<open>slow\<close>
+  by sepref \<comment> \<open>slow\<close>
 
 
 concrete_definition (in -) backtrack_wl_D_code
