@@ -411,6 +411,14 @@ definition unit_prop_body_wl_D_inv where
     unit_prop_body_wl_inv T' i L \<and> literals_are_N\<^sub>0 T' \<and> L \<in> snd ` D\<^sub>0
   \<close>
 
+(* TODO should be the definition of unit_prop_body_wl_find_unwatched_inv *)
+definition (in -) unit_prop_body_wl_D_find_unwatched_inv where
+\<open>unit_prop_body_wl_D_find_unwatched_inv f C S \<longleftrightarrow>
+   unit_prop_body_wl_find_unwatched_inv f C S \<and>
+   (f \<noteq> None \<longrightarrow> the f > 0 \<and> the f < length (get_clauses_wl S ! C) \<and>
+   get_clauses_wl S ! C ! (the f) \<noteq> get_clauses_wl S ! C ! 0  \<and>
+   get_clauses_wl S ! C ! (the f) \<noteq> get_clauses_wl S ! C ! 1)\<close>
+
 definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> nat \<Rightarrow> nat twl_st_wl \<Rightarrow>
     (nat \<times> nat twl_st_wl) nres" where
   \<open>unit_propagation_inner_loop_body_wl_D L w S = do {
@@ -423,7 +431,7 @@ definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> n
       then RETURN (w+1, S)
       else do {
         f \<leftarrow> find_unwatched_l (get_trail_wl S) ((get_clauses_wl S)!C);
-        ASSERT (unit_prop_body_wl_find_unwatched_inv f C S);
+        ASSERT (unit_prop_body_wl_D_find_unwatched_inv f C S);
         case f of
           None \<Rightarrow>
             if val_L' = Some False
@@ -449,6 +457,48 @@ lemma (in -) mset_tl_update_swap:
     apply (auto simp: tl_update_swap mset_update nth_tl)[]
     by (metis image_mset_add_mset insert_DiffM set_mset_mset)
   done
+
+lemma unit_prop_body_wl_D_inv_clauses_distinct_eq:
+  assumes 
+    inv: \<open>unit_prop_body_wl_D_inv S w K\<close> and
+    y: \<open>y < length (get_clauses_wl S ! (watched_by S K ! w))\<close> and
+    y': \<open>y' < length (get_clauses_wl S ! (watched_by S K ! w))\<close>
+  shows \<open>get_clauses_wl S ! (watched_by S K ! w) ! y =
+     get_clauses_wl S ! (watched_by S K ! w) ! y' \<longleftrightarrow> y = y'\<close> (is \<open>?eq \<longleftrightarrow> ?y\<close>)
+proof
+  assume eq: ?eq
+  let ?C = \<open>watched_by S K ! w\<close>
+
+  have \<open>twl_struct_invs (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S))\<close> 
+    using inv unfolding unit_prop_body_wl_inv_def unit_prop_body_wl_D_inv_def
+    by fast
+  then have \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state
+    (state\<^sub>W_of (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S)))\<close>
+    unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by fast
+  then have \<open>distinct_mset_set (mset ` set (tl (get_clauses_wl S)))\<close>
+    apply (subst append_take_drop_id[of \<open>get_learned_wl S\<close>, symmetric])
+    unfolding set_append image_Un cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+    by (cases S)
+       (auto simp: drop_Suc cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset')
+  then have \<open>distinct (get_clauses_wl S ! C)\<close> if \<open>C > 0\<close> and \<open>C < length (get_clauses_wl S)\<close>
+     for C
+     using that unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+     by (cases S)
+        (auto simp: nth_in_set_tl mset_take_mset_drop_mset cdcl\<^sub>W_restart_mset_state
+      distinct_mset_set_distinct)
+  moreover have \<open>?C > 0\<close> and \<open>?C < length (get_clauses_wl S)\<close>
+    using inv unfolding unit_propagation_inner_loop_body_l_inv_def unit_prop_body_wl_D_inv_def
+      unit_prop_body_wl_inv_def by fast+
+  ultimately have \<open>distinct (get_clauses_wl S ! ?C)\<close>
+    by blast
+  then show ?y
+    using y y' eq 
+    by (auto simp: nth_eq_iff_index_eq)
+next
+  assume ?y
+  then show ?eq by blast
+qed
 
 lemma unit_propagation_inner_loop_body_wl_D_spec:
   assumes
@@ -491,7 +541,7 @@ proof -
     if \<open>(n, n') \<in> Id\<close> and \<open>unit_prop_body_wl_D_inv S w K\<close>
       \<open>(f, f') \<in> ?find_unwatched K\<close> and
       \<open>f = Some n\<close> \<open>f' = Some n'\<close> and
-      \<open>unit_prop_body_wl_find_unwatched_inv f (watched_by S K ! w) S\<close>
+      \<open>unit_prop_body_wl_D_find_unwatched_inv f (watched_by S K ! w) S\<close>
     for n n' f f'
     unfolding update_clause_wl_def S
     apply clarify
@@ -507,7 +557,9 @@ proof -
     subgoal using assms unfolding S unit_prop_body_wl_D_inv_def by auto
     subgoal by simp
     subgoal by (auto simp: unit_prop_body_wl_D_inv_def)
-    subgoal by simp
+    subgoal
+      unfolding unit_prop_body_wl_D_find_unwatched_inv_def
+      by (auto simp: unit_prop_body_wl_D_inv_clauses_distinct_eq)
     subgoal by simp
     subgoal by simp
     subgoal by (auto simp: mark_conflict_wl_def S unit_prop_body_wl_D_inv_def clauses_def)
