@@ -1,6 +1,6 @@
 section \<open>Code Generation and Summary of Correctness Theorems\<close>
 theory Grat_Check_Code_Exporter
-imports Unsat_Check Unsat_Check_Split Sat_Check
+imports Unsat_Check Unsat_Check_Split_MM Sat_Check
 begin
   subsection \<open>Code Generation\<close>
   text \<open>We generate code for @{const verify_unsat_impl_wrapper} 

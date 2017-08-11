@@ -437,7 +437,14 @@ fun upd A_ i x a =
 fun null [] = true
   | null (x :: xs) = false;
 
+fun member A_ [] y = false
+  | member A_ (x :: xs) y = eq A_ x y orelse member A_ xs y;
+
 fun hd (x21 :: x22) = x21;
+
+fun remdups A_ [] = []
+  | remdups A_ (x :: xs) =
+    (if member A_ xs x then remdups A_ xs else x :: remdups A_ xs);
 
 fun blit A_ src si dst di len =
   (fn () => 
@@ -2152,6 +2159,19 @@ fun backtrack3a x =
   (fn ai => fn bi => imp_nfoldli bi (fn _ => (fn () => true)) unset_var_impl ai)
     x;
 
+fun creg_register_ndj A_ l cid cr =
+  (fn () =>
+    let
+      val a =
+        array_get_dyn (heap_option (heap_list A_)) NONE cr (int_encode l) ();
+    in
+      (case a of NONE => (fn () => cr)
+        | SOME s =>
+          array_set_dyn (heap_option (heap_list A_)) NONE cr (int_encode l)
+            (SOME (cid :: s)))
+        ()
+    end);
+
 fun add_clause3a x =
   (fn ai => fn bib => fn bia => fn (a1, a2) => fn () =>
     let
@@ -2164,8 +2184,8 @@ fun add_clause3a x =
           (fn (a1a, a2a) =>
             (fn f_ => fn () => f_ ((nth heap_int ai a1a) ()) ())
               (fn x_c =>
-                (fn f_ => fn () => f_
-                  ((creg_register (equal_nat, heap_nat) x_c bib a2a) ()) ())
+                (fn f_ => fn () => f_ ((creg_register_ndj heap_nat x_c bib a2a)
+                  ()) ())
                   (fn x_g => (fn () => (plus_nat one_nat a1a, x_g)))))
           (bia, a2) ();
     in
@@ -2470,7 +2490,7 @@ val (_, ab) = a2a;
 fun check_rup_proof3a x =
   (fn ai => fn bic => fn bib => fn bia => fn bi =>
     let
-      val (a1, (a1a, a2a)) = bib;
+      val (a1, a2) = bib;
     in
       (fn () =>
         let
@@ -2479,59 +2499,68 @@ fun check_rup_proof3a x =
           (case a of Inl x1a => (fn () => (Inl x1a))
             | Inr x2a =>
               (case let
-                      val (a1b, a2b) = x2a;
+                      val (a1a, a2a) = x2a;
                     in
-                      (if less_int zero_int a1b then Inr (nat a1b, a2b)
-                        else Inl (mkp_raw_err "Invalid id" (SOME a1b)
-                                   (SOME a2b)))
+                      (if less_int zero_int a1a then Inr (nat a1a, a2a)
+                        else Inl (mkp_raw_err "Invalid id" (SOME a1a)
+                                   (SOME a2a)))
                     end
                 of Inl x1a => (fn () => (Inl x1a))
-                | Inr (a1b, a2b) =>
-                  (if less_nat a1 a1b
-                    then (fn f_ => fn () => f_
-                           ((parse_check_blocked3a ai a2a bia) ()) ())
-                           (fn aa =>
-                             (case aa of Inl x1a => (fn () => (Inl x1a))
-                               | Inr (a1c, ((a1e, a2e), a2d)) =>
+                | Inr (a1a, a2a) =>
+                  (fn f_ => fn () => f_
+                    (let
+                       val (a1b, _) = a1;
+                     in
+                       (fn f_ => fn () => f_
+                         ((array_get_dyn heap_nat zero_nat a1b a1a) ()) ())
+                         (fn x_b => (fn () => (equal_nata zero_nat x_b)))
+                     end
+                    ()) ())
+                    (fn x_b =>
+                      (if x_b
+                        then (fn f_ => fn () => f_
+                               ((parse_check_blocked3a ai a2 bia) ()) ())
+                               (fn aa =>
+                                 (case aa of Inl x1a => (fn () => (Inl x1a))
+                                   | Inr (a1b, ((a1d, a2d), a2c)) =>
+                                     (fn f_ => fn () => f_
+                                       ((apply_units3_bta ai bic a1 a1d a2d a2a)
+                                       ()) ())
+                                       (fn ab =>
+ (case ab of Inl x1a => (fn () => (Inl x1a))
+   | Inr ((a1f, a2f), a2e) =>
+     (fn f_ => fn () => f_ ((parse_prf_impl bic a2e) ()) ())
+       (fn ac =>
+         (case ac of Inl x1a => (fn () => (Inl x1a))
+           | Inr x2ad =>
+             (case let
+                     val (a1g, a2g) = x2ad;
+                   in
+                     (if less_int zero_int a1g then Inr (nat a1g, a2g)
+                       else Inl (mkp_raw_err "Invalid id" (SOME a1g)
+                                  (SOME a2g)))
+                   end
+               of Inl x1a => (fn () => (Inl x1a))
+               | Inr (a1g, a2g) =>
+                 (fn f_ => fn () => f_ ((resolve_id3a a1 a1g) ()) ())
+                   (fn ad =>
+                     (case ad of Inl x1a => (fn () => (Inl x1a))
+                       | Inr x2af =>
+                         (fn f_ => fn () => f_
+                           ((check_conflict_clause3a ai a2g a1f x2af) ()) ())
+                           (fn ae =>
+                             (case ae of Inl x1a => (fn () => (Inl x1a))
+                               | Inr _ =>
                                  (fn f_ => fn () => f_
-                                   ((apply_units3_bta ai bic a1a a1e a2e a2b)
-                                   ()) ())
-                                   (fn ab =>
-                                     (case ab of Inl x1a => (fn () => (Inl x1a))
-                                       | Inr ((a1g, a2g), a2f) =>
- (fn f_ => fn () => f_ ((parse_prf_impl bic a2f) ()) ())
-   (fn ac =>
-     (case ac of Inl x1a => (fn () => (Inl x1a))
-       | Inr x2ad =>
-         (case let
-                 val (a1h, a2h) = x2ad;
-               in
-                 (if less_int zero_int a1h then Inr (nat a1h, a2h)
-                   else Inl (mkp_raw_err "Invalid id" (SOME a1h) (SOME a2h)))
-               end
-           of Inl x1a => (fn () => (Inl x1a))
-           | Inr (a1h, a2h) =>
-             (fn f_ => fn () => f_ ((resolve_id3a a1a a1h) ()) ())
-               (fn ad =>
-                 (case ad of Inl x1a => (fn () => (Inl x1a))
-                   | Inr x2af =>
-                     (fn f_ => fn () => f_
-                       ((check_conflict_clause3a ai a2h a1g x2af) ()) ())
-                       (fn ae =>
-                         (case ae of Inl x1a => (fn () => (Inl x1a))
-                           | Inr _ =>
-                             (fn f_ => fn () => f_
-                               ((add_clause3a ai a1b a1c a1a) ()) ())
-                               (fn x_i =>
-                                 (fn f_ => fn () => f_ ((backtrack3a a1g a2g)
-                                   ()) ())
-                                   (fn x_j =>
-                                     (fn () =>
-                                       (Inr
- ((a1b, (x_i, x_j)), (a2d, a2h)))))))))))))))))
-                    else (fn () =>
-                           (Inl (mkp_raw_err "Ids must be strictly increasing"
-                                  (SOME (int_of_nat a1b)) (SOME a2b)))))))
+                                   ((add_clause3a ai a1a a1b a1) ()) ())
+                                   (fn x_i =>
+                                     (fn f_ => fn () => f_
+                                       ((backtrack3a a1f a2f) ()) ())
+                                       (fn x_j =>
+ (fn () => (Inr ((x_i, x_j), (a2c, a2g)))))))))))))))))
+                        else (fn () =>
+                               (Inl (mkp_raw_err "Duplicate ID"
+                                      (SOME (int_of_nat a1a)) (SOME a2a))))))))
             ()
         end)
     end)
@@ -2803,7 +2832,7 @@ xa)
                               else (fn () => sigma))))
                       [])
                    ()) ())
-                   (fn x_e => (fn () => (Inr x_e)))
+                   (fn x_e => (fn () => (Inr (remdups equal_nat x_e))))
             else (fn () =>
                    (Inl (mkp_raw_err "Resolution literal not declared" NONE
                           NONE))))
@@ -2838,7 +2867,7 @@ fun lit_in_clause3a x =
 fun check_rat_proof3a x =
   (fn ai => fn bic => fn bib => fn bia => fn bi =>
     let
-      val (a1, (a1a, a2a)) = bib;
+      val (a1, a2) = bib;
     in
       (fn () =>
         let
@@ -2847,75 +2876,84 @@ fun check_rat_proof3a x =
           (case a of Inl x1a => (fn () => (Inl x1a))
             | Inr x2a =>
               (case let
-                      val (a1b, a2b) = x2a;
+                      val (a1a, a2a) = x2a;
                     in
-                      (if not (equal_int a1b zero_int) then Inr (a1b, a2b)
+                      (if not (equal_int a1a zero_int) then Inr (a1a, a2a)
                         else Inl (mkp_raw_err "Expected literal but found 0"
-                                   NONE (SOME a2b)))
+                                   NONE (SOME a2a)))
                     end
                 of Inl x1a => (fn () => (Inl x1a))
-                | Inr (a1b, a2b) =>
-                  (fn f_ => fn () => f_ ((op_lit_is_false_impl a1b a2a) ()) ())
+                | Inr (a1a, a2a) =>
+                  (fn f_ => fn () => f_ ((op_lit_is_false_impl a1a a2) ()) ())
                     (fn xa =>
                       (if not xa
-                        then (fn f_ => fn () => f_ ((parse_prf_impl bic a2b) ())
+                        then (fn f_ => fn () => f_ ((parse_prf_impl bic a2a) ())
                                ())
                                (fn aa =>
                                  (case aa of Inl x1a => (fn () => (Inl x1a))
                                    | Inr x2ab =>
                                      (case let
-     val (a1c, a2c) = x2ab;
+     val (a1b, a2b) = x2ab;
    in
-     (if less_int zero_int a1c then Inr (nat a1c, a2c)
-       else Inl (mkp_raw_err "Invalid id" (SOME a1c) (SOME a2c)))
+     (if less_int zero_int a1b then Inr (nat a1b, a2b)
+       else Inl (mkp_raw_err "Invalid id" (SOME a1b) (SOME a2b)))
    end
                                        of Inl x1a => (fn () => (Inl x1a))
-                                       | Inr (a1c, a2c) =>
- (if less_nat a1 a1c
-   then (fn f_ => fn () => f_ ((parse_check_blocked3a ai a2a bia) ()) ())
-          (fn ab =>
-            (case ab of Inl x1a => (fn () => (Inl x1a))
-              | Inr (a1d, ((a1f, a2f), a2e)) =>
-                (fn f_ => fn () => f_ ((lit_in_clause3a ai a1d a1b) ()) ())
-                  (fn x_g =>
-                    (case (if x_g then Inr ()
-                            else Inl (mkp_raw_err
-                                       "Resolution literal not in clause" NONE
-                                       (SOME a2c)))
-                      of Inl x1a => (fn () => (Inl x1a))
-                      | Inr _ =>
-                        (fn f_ => fn () => f_
-                          ((apply_units3_bta ai bic a1a a1f a2f a2c) ()) ())
-                          (fn ac =>
-                            (case ac of Inl x1a => (fn () => (Inl x1a))
-                              | Inr ((a1h, a2h), a2g) =>
-                                (fn f_ => fn () => f_
-                                  ((get_rat_candidates3a ai a1a a1h a1b) ()) ())
-                                  (fn ad =>
-                                    (case ad of Inl x1a => (fn () => (Inl x1a))
-                                      | Inr x2ag =>
-(fn f_ => fn () => f_ ((check_rat_candidates_part3a ai bic a1a a1b x2ag a1h a2g)
-  ()) ())
-  (fn ae =>
-    (case ae of Inl x1a => (fn () => (Inl x1a))
-      | Inr x2ah =>
-        (fn f_ => fn () => f_
-          (let
-             val (a1i, a2i) = x2ah;
-           in
-             (fn f_ => fn () => f_ ((add_clause3a ai a1c a1d a1a) ()) ())
-               (fn x_l =>
-                 (fn f_ => fn () => f_ ((backtrack3a a1i a2h) ()) ())
-                   (fn x_m => (fn () => ((a1c, (x_l, x_m)), (a2e, a2i)))))
-           end
-          ()) ())
-          (fn x_l => (fn () => (Inr x_l)))))))))))))
-   else (fn () =>
-          (Inl (mkp_raw_err "Ids must be strictly increasing"
-                 (SOME (int_of_nat a1c)) (SOME a2c))))))))
+                                       | Inr (a1b, a2b) =>
+ (fn f_ => fn () => f_
+   (let
+      val (a1c, _) = a1;
+    in
+      (fn f_ => fn () => f_ ((array_get_dyn heap_nat zero_nat a1c a1b) ()) ())
+        (fn x_e => (fn () => (equal_nata zero_nat x_e)))
+    end
+   ()) ())
+   (fn x_e =>
+     (if x_e
+       then (fn f_ => fn () => f_ ((parse_check_blocked3a ai a2 bia) ()) ())
+              (fn ab =>
+                (case ab of Inl x1a => (fn () => (Inl x1a))
+                  | Inr (a1c, ((a1e, a2e), a2d)) =>
+                    (fn f_ => fn () => f_ ((lit_in_clause3a ai a1c a1a) ()) ())
+                      (fn x_g =>
+                        (case (if x_g then Inr ()
+                                else Inl (mkp_raw_err
+   "Resolution literal not in clause" NONE (SOME a2b)))
+                          of Inl x1a => (fn () => (Inl x1a))
+                          | Inr _ =>
+                            (fn f_ => fn () => f_
+                              ((apply_units3_bta ai bic a1 a1e a2e a2b) ()) ())
+                              (fn ac =>
+                                (case ac of Inl x1a => (fn () => (Inl x1a))
+                                  | Inr ((a1g, a2g), a2f) =>
+                                    (fn f_ => fn () => f_
+                                      ((get_rat_candidates3a ai a1 a1g a1a) ())
+                                      ())
+                                      (fn ad =>
+(case ad of Inl x1a => (fn () => (Inl x1a))
+  | Inr x2ag =>
+    (fn f_ => fn () => f_
+      ((check_rat_candidates_part3a ai bic a1 a1a x2ag a1g a2f) ()) ())
+      (fn ae =>
+        (case ae of Inl x1a => (fn () => (Inl x1a))
+          | Inr x2ah =>
+            (fn f_ => fn () => f_
+              (let
+                 val (a1h, a2h) = x2ah;
+               in
+                 (fn f_ => fn () => f_ ((add_clause3a ai a1b a1c a1) ()) ())
+                   (fn x_l =>
+                     (fn f_ => fn () => f_ ((backtrack3a a1h a2g) ()) ())
+                       (fn x_m => (fn () => ((x_l, x_m), (a2d, a2h)))))
+               end
+              ()) ())
+              (fn x_l => (fn () => (Inr x_l)))))))))))))
+       else (fn () =>
+              (Inl (mkp_raw_err "Ids must be strictly increasing"
+                     (SOME (int_of_nat a1b)) (SOME a2b)))))))))
                         else (fn () =>
                                (Inl (mkp_raw_err "Resolution literal is false"
-                                      NONE (SOME a2b))))))))
+                                      NONE (SOME a2a))))))))
             ()
         end)
     end)
@@ -3070,90 +3108,98 @@ fun remove_ids3a x =
 fun check_item3a x =
   (fn ai => fn bic => fn bib => fn bia => fn bi =>
     let
-      val (a1, (a1a, a2a)) = bib;
+      val (a1, a2) = bib;
     in
       (fn () =>
         let
           val a = parse_prf_impl bic bi ();
         in
           (case a of Inl x1a => (fn () => (Inl x1a))
-            | Inr (a1b, a2b) =>
-              (if equal_int a1b (Int_of_integer (1 : IntInf.int))
-                then (fn f_ => fn () => f_ ((apply_units3a ai bic a1a a2a a2b)
-                       ()) ())
+            | Inr (a1a, a2a) =>
+              (if equal_int a1a (Int_of_integer (1 : IntInf.int))
+                then (fn f_ => fn () => f_ ((apply_units3a ai bic a1 a2 a2a) ())
+                       ())
                        (fn aa =>
                          (case aa of Inl x1a => (fn () => (Inl x1a))
                            | Inr x2aa =>
-                             (fn () =>
-                               (Inr let
-                                      val (a1c, a2c) = x2aa;
-                                    in
-                                      SOME ((a1, (a1a, a1c)), (bia, a2c))
-                                    end))))
-                else (if equal_int a1b (Int_of_integer (2 : IntInf.int))
-                       then (fn f_ => fn () => f_ ((remove_ids3a bic a1a a2b)
-                              ()) ())
+                             (fn () => (Inr let
+      val (a1b, a2b) = x2aa;
+    in
+      SOME ((a1, a1b), (bia, a2b))
+    end))))
+                else (if equal_int a1a (Int_of_integer (2 : IntInf.int))
+                       then (fn f_ => fn () => f_ ((remove_ids3a bic a1 a2a) ())
+                              ())
                               (fn aa =>
                                 (case aa of Inl x1a => (fn () => (Inl x1a))
                                   | Inr x2aa =>
                                     (fn () =>
-                                      (Inr
-let
-  val (a1c, a2c) = x2aa;
-in
-  SOME ((a1, (a1c, a2a)), (bia, a2c))
-end))))
-                       else (if equal_int a1b (Int_of_integer (3 : IntInf.int))
+                                      (Inr let
+     val (a1b, a2b) = x2aa;
+   in
+     SOME ((a1b, a2), (bia, a2b))
+   end))))
+                       else (if equal_int a1a (Int_of_integer (3 : IntInf.int))
                               then (fn f_ => fn () => f_
-                                     ((check_rup_proof3a ai bic (a1, (a1a, a2a))
-bia a2b)
+                                     ((check_rup_proof3a ai bic (a1, a2) bia
+a2a)
                                      ()) ())
                                      (fn aa =>
                                        (case aa
  of Inl x1a => (fn () => (Inl x1a)) | Inr x2aa => (fn () => (Inr (SOME x2aa)))))
-                              else (if equal_int a1b
+                              else (if equal_int a1a
  (Int_of_integer (4 : IntInf.int))
                                      then (fn f_ => fn () => f_
-    ((check_rat_proof3a ai bic (a1, (a1a, a2a)) bia a2b) ()) ())
+    ((check_rat_proof3a ai bic (a1, a2) bia a2a) ()) ())
     (fn aa =>
       (case aa of Inl x1a => (fn () => (Inl x1a))
         | Inr x2aa => (fn () => (Inr (SOME x2aa)))))
-                                     else (if equal_int a1b
+                                     else (if equal_int a1a
         (Int_of_integer (5 : IntInf.int))
-    then (fn f_ => fn () => f_ ((parse_prf_impl bic a2b) ()) ())
+    then (fn f_ => fn () => f_ ((parse_prf_impl bic a2a) ()) ())
            (fn aa =>
              (case aa of Inl x1a => (fn () => (Inl x1a))
                | Inr x2aa =>
                  (case let
-                         val (a1c, a2c) = x2aa;
+                         val (a1b, a2b) = x2aa;
                        in
-                         (if less_int zero_int a1c then Inr (nat a1c, a2c)
-                           else Inl (mkp_raw_err "Invalid id" (SOME a1c)
-                                      (SOME a2c)))
+                         (if less_int zero_int a1b then Inr (nat a1b, a2b)
+                           else Inl (mkp_raw_err "Invalid id" (SOME a1b)
+                                      (SOME a2b)))
                        end
                    of Inl x1a => (fn () => (Inl x1a))
-                   | Inr (a1c, a2c) =>
-                     (fn f_ => fn () => f_ ((resolve_id3a a1a a1c) ()) ())
+                   | Inr (a1b, a2b) =>
+                     (fn f_ => fn () => f_ ((resolve_id3a a1 a1b) ()) ())
                        (fn ab =>
                          (case ab of Inl x1a => (fn () => (Inl x1a))
                            | Inr x2ac =>
                              (fn f_ => fn () => f_
-                               ((check_conflict_clause3a ai a2c a2a x2ac) ())
-                               ())
+                               ((check_conflict_clause3a ai a2b a2 x2ac) ()) ())
                                (fn ac =>
                                  (case ac of Inl x1a => (fn () => (Inl x1a))
                                    | Inr _ => (fn () => (Inr NONE)))))))))
     else (fn () =>
-           (if equal_int a1b (Int_of_integer (6 : IntInf.int))
+           (if equal_int a1a (Int_of_integer (6 : IntInf.int))
              then Inl (mkp_raw_err
                         "Not expecting rat-counts in the middle of proof" NONE
-                        (SOME a2b))
-             else Inl (mkp_raw_err "Invalid item type" (SOME a1b)
-                        (SOME a2b))))))))))
+                        (SOME a2a))
+             else Inl (mkp_raw_err "Invalid item type" (SOME a1a)
+                        (SOME a2a))))))))))
             ()
         end)
     end)
     x;
+
+fun verify_sat_impl_wrapper dBi f_end =
+  (fn () =>
+    let
+      val lenDBi = len heap_int dBi ();
+    in
+      (if less_nat zero_nat f_end andalso less_eq_nat f_end lenDBi
+        then verify_sat3 dBi one_nat f_end f_end
+        else (fn () => (Inl ("Invalid arguments", (NONE, NONE)))))
+        ()
+    end);
 
 fun read_clause_check_taut3a x =
   (fn ai => fn bib => fn bia => fn bi =>
@@ -3280,16 +3326,15 @@ fun read_cnf_new3a x =
           (Inr (bia, (bi, (one_nat, xa)))) ();
     in
       (case a of Inl x1a => (fn () => (Inl x1a))
-        | Inr x2a =>
-          (fn () => (Inr let
-                           val (a1, (a1a, _)) = let
-          val (_, b) = x2a;
-        in
-          b
-        end;
-                         in
-                           (a1, minus_nat a1a one_nat)
-                         end)))
+        | Inr x2a => (fn () => (Inr let
+                                      val (a1, (_, _)) = let
+                   val (_, b) = x2a;
+                 in
+                   b
+                 end;
+                                    in
+                                      a1
+                                    end)))
         ()
     end)
     x;
@@ -3400,19 +3445,19 @@ fun verify_unsat3a x =
           (fn f_ => fn () => f_ ((read_cnf_new3a ai bib bic a1) ()) ())
             (fn aa =>
               (case aa of Inl x1a => (fn () => (Inl x1a))
-                | Inr (a1a, a2a) =>
+                | Inr x2aa =>
                   (fn f_ => fn () => f_
                     ((heap_WHILET
                        (fn ab =>
                          (case ab of Inl _ => (fn () => false)
                            | Inr x2ab => (fn () => (not (is_None x2ab)))))
                        (fn s => let
-                                  val (a1b, ab) = the (projr s);
+                                  val (a1a, ab) = the (projr s);
                                   val (ac, b) = ab;
                                 in
-                                  check_item3a ai bid a1b ac b
+                                  check_item3a ai bid a1a ac b
                                 end)
-                       (Inr (SOME ((a2a, (a1a, xa)), (bia, a2)))))
+                       (Inr (SOME ((x2aa, xa), (bia, a2)))))
                     ()) ())
                     (fn ab =>
                       (case ab of Inl x1a => (fn () => (Inl x1a))
@@ -3424,17 +3469,6 @@ fun verify_unsat3a x =
         ()
     end)
     x;
-
-fun verify_sat_impl_wrapper dBi f_end =
-  (fn () =>
-    let
-      val lenDBi = len heap_int dBi ();
-    in
-      (if less_nat zero_nat f_end andalso less_eq_nat f_end lenDBi
-        then verify_sat3 dBi one_nat f_end f_end
-        else (fn () => (Inl ("Invalid arguments", (NONE, NONE)))))
-        ()
-    end);
 
 fun verify_unsat_impl_wrapper dBi f_end it =
   (fn () =>
