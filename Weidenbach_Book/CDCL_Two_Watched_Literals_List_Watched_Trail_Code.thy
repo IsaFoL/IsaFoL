@@ -671,12 +671,6 @@ qed
 (* End Move *)
 
 
-(* get_conflict_wl S = None
- distinct (get_clauses_wl b ! xa)
- literals_are_in_N\<^sub>0 (mset (get_clauses_wl b ! xa))
-\<not> tautology (mset (get_clauses_wl b ! xa))
- *)
-
 lemma unit_prop_body_wl_D_invD:
   assumes \<open>unit_prop_body_wl_D_inv S w L\<close>
   shows
@@ -1026,8 +1020,6 @@ lemma literals_are_in_N\<^sub>0_int_length_in_D\<^sub>0':
   shows \<open>N ! i ! j \<in> snd ` D\<^sub>0\<close>
   using literals_are_in_N\<^sub>0_int_length_in_D\<^sub>0[OF assms(1-4)] unfolding N .
 
-find_theorems find_unwatched return
-find_theorems return defined_lit
 sepref_thm find_unwatched_wl_s_int_code
   is \<open>uncurry ((PR_CONST find_unwatched_wl_s_int))\<close>
   :: \<open>[\<lambda>(S, i). i < length (get_clauses_wl_int S) \<and> i > 0 \<and> literals_are_in_N\<^sub>0_int S]\<^sub>a
@@ -1056,11 +1048,11 @@ theorem find_unwatched_wl_s_int_find_unwatched_wl_s:
      (auto simp: find_unwatched_wl_s_def find_unwatched_wl_s_int_def twl_st_ref_def
     find_unwatched)
 
-(* sepref_register find_unwatched_wl_s *)
+thm unit_propagation_inner_loop_body_wl_D_def[unfolded find_unwatched_wl_s_def[symmetric]]
+
 theorem find_unwatched_wl_s_int_code_find_unwatched_wl_s[sepref_fr_rules]:
-  \<open>(uncurry find_unwatched_wl_s_int_code, uncurry ((* PR_CONST *) find_unwatched_wl_s))
-    \<in> [\<lambda>(S, i). i < length (get_clauses_wl S) \<and> 0 < i \<and> literals_are_N\<^sub>0 S \<and>
-         2 \<le> length (get_clauses_wl S ! i)]\<^sub>a
+  \<open>(uncurry find_unwatched_wl_s_int_code, uncurry find_unwatched_wl_s)
+    \<in> [\<lambda>(S, i). \<exists>w L. unit_prop_body_wl_D_inv S w L \<and> i = watched_by S L ! w]\<^sub>a
       twl_st_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> option_assn nat_assn\<close>
     (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
@@ -1072,8 +1064,7 @@ proof -
          (\<lambda>_. True)]\<^sub>a
        hrp_comp (twl_st_int_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
                    (twl_st_ref \<times>\<^sub>f nat_rel) \<rightarrow>
-       hr_comp (option_assn nat_assn) Id
-\<close>
+       hr_comp (option_assn nat_assn) Id\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF find_unwatched_wl_s_int_code_find_unwatched_wl_s_int[unfolded PR_CONST_def]
     find_unwatched_wl_s_int_find_unwatched_wl_s] .
@@ -1084,7 +1075,7 @@ proof -
       apply (subst (6) append_take_drop_id[of ai, symmetric])
       unfolding mset_append drop_Suc
       by auto
-    have \<open>literals_are_in_N\<^sub>0_int T\<close> and \<open>get_clauses_wl_int T = get_clauses_wl S\<close> if
+    have [intro]: \<open>literals_are_in_N\<^sub>0_int T\<close> and \<open>get_clauses_wl_int T = get_clauses_wl S\<close> if
        \<open>is_N\<^sub>1 (all_lits_of_mm (cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None (st_l_of_wl None S)))))\<close> and
        \<open>(T, S) \<in> twl_st_ref\<close>
       for S and T
@@ -1092,11 +1083,19 @@ proof -
           mset_take_mset_drop_mset' clauses_def literals_are_in_N\<^sub>0_int_def)
       apply (auto simp add: all_lits_of_mm_union literals_are_in_N\<^sub>0_mm_def is_N\<^sub>1_def)
       done
-    then show ?thesis
-      using that unfolding comp_PRE_def
-      by (intro ext impI)(use that in \<open>fastforce simp: comp_PRE_def
+    show ?thesis
+      unfolding comp_PRE_def
+      apply (intro ext impI conjI)
+      subgoal
+        using that by (auto dest: simp: unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
+            unit_propagation_inner_loop_body_l_inv_def)
+      subgoal
+        by (use that in \<open>auto simp: comp_PRE_def unit_prop_body_wl_D_inv_def
             mset_take_mset_drop_mset clauses_def mset_take_mset_drop_mset' drop_Suc
+             unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
+            unit_propagation_inner_loop_body_l_inv_def twl_st_ref_def
           simp del: twl_st_of.simps st_l_of_wl.simps\<close>)
+      done
   qed
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def[symmetric]
