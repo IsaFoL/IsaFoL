@@ -100,6 +100,15 @@
 
  */
 
+/*
+  TODO: Marijn proposed RAT search heuristics based on observation that pivot-literals actually occur in
+        small intervals in the proof. Keep track of these intervals, and limit search to them.
+        This can be done with modest overhead per literal.
+        TUNING: Do pivot literals only occur in single interval? ==> Simpler DS.
+
+
+ */
+
 
 
 /** ****************************************
