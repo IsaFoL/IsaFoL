@@ -2,19 +2,8 @@ theory CDCL_Two_Watched_Literals_VMTF
 imports CDCL_Two_Watched_Literals_List_Watched_Domain
 begin
 
+
 (* TODO Move *)
-definition emptied_list :: \<open>'a list \<Rightarrow> 'a list\<close> where
-  \<open>emptied_list l = []\<close>
-
-text \<open>This functions deletes all elements of a resizable array, without resizing it.\<close>
-definition emptied_arl :: \<open>'a array_list \<Rightarrow> 'a array_list\<close> where
-\<open>emptied_arl = (\<lambda>(a, n). (a, 0))\<close>
-
-lemma emptied_arl_refine[sepref_fr_rules]:
-  shows \<open>(return o emptied_arl, RETURN o emptied_list) \<in> (arl_assn R)\<^sup>d \<rightarrow>\<^sub>a arl_assn R\<close>
-  unfolding emptied_arl_def emptied_list_def
-  by sepref_to_hoare (sep_auto simp: arl_assn_def hr_comp_def is_array_list_def)
-
 definition insert_sort_inner :: \<open>('a list \<Rightarrow> nat \<Rightarrow> 'b :: ord) \<Rightarrow> 'a list \<Rightarrow>  nat \<Rightarrow> 'a list nres\<close> where
   \<open>insert_sort_inner f xs i = do {
      (j, ys) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(j, ys). j \<ge> 0 \<and> mset xs = mset ys \<and> j < length ys\<^esup>
@@ -31,7 +20,7 @@ definition insert_sort_inner :: \<open>('a list \<Rightarrow> nat \<Rightarrow> 
   }\<close>
 
 
-definition (in -) reorder_remove :: \<open>'b \<Rightarrow> 'a list \<Rightarrow> 'a list nres\<close> where
+definition reorder_remove :: \<open>'b \<Rightarrow> 'a list \<Rightarrow> 'a list nres\<close> where
 \<open>reorder_remove _ removed = SPEC (\<lambda>removed'. mset removed' = mset removed)\<close>
 
 definition insert_sort :: \<open>('a list \<Rightarrow> nat \<Rightarrow> 'b :: ord) \<Rightarrow> 'a list \<Rightarrow> 'a list nres\<close> where
@@ -87,17 +76,6 @@ proof -
     subgoal by auto
     done
 qed
-(* End Move *)
-
-(* TODO: Move*)
-declare nth_list_update[simp]
-text \<open>
-  This a version of @{thm nth_list_update} with a different condition (\<^term>\<open>j\<close>
-  instead of \<^term>\<open>i\<close>). This is more useful here.
-  \<close>
-lemma nth_list_update_le'[simp]:
-  "j < length xs \<Longrightarrow> (xs[i:=x])!j = (if i = j then x else xs!j)"
-  by (induct xs arbitrary: i j) (auto simp add: nth_Cons split: nat.split)
 (* End Move *)
 
 
@@ -511,26 +489,33 @@ definition l_vmtf_dequeue :: \<open>nat \<Rightarrow> l_vmtf_atm list \<Rightarr
 
 lemma l_vmtf_different_same_neq: \<open>l_vmtf (b # c # l') m xs \<Longrightarrow> l_vmtf (c # l') m xs \<Longrightarrow> False\<close>
   apply (cases l')
-   apply (force elim: l_vmtfE)
-  apply (subst (asm) l_vmtf.simps)
-  apply (subst (asm)(2) l_vmtf.simps)
-  apply auto (* TODO Proof *)
-  by (metis length_list_update nth_list_update_eq nth_list_update_neq option.distinct(1)
-   al_vmtf_atm.sel(2))
+  subgoal by (force elim: l_vmtfE)
+  subgoal for x xs
+    apply (subst (asm) l_vmtf.simps)
+    apply (subst (asm)(2) l_vmtf.simps)
+    by (metis (no_types, lifting) al_vmtf_atm.inject length_list_update list.discI list_tail_coinc
+        nth_list_update_eq nth_list_update_neq option.discI)
+  done
 
 lemma l_vmtf_last_next:
   \<open>l_vmtf (xs @ [x]) m A \<Longrightarrow> get_next (A ! x) = None\<close>
-  apply (induction "xs @ [x]" m A arbitrary: xs x rule: l_vmtf.induct) (* TODO Proof *)
-    apply auto
-  by (metis list.distinct(1) list.sel(3) list.set_intros(1) nth_list_update_eq nth_list_update_neq
-      self_append_conv2 tl_append2 al_vmtf_atm.sel(3) l_vmtf_le_length)
+  apply (induction "xs @ [x]" m A arbitrary: xs x rule: l_vmtf.induct)
+  subgoal by auto
+  subgoal by auto
+  subgoal for b l m xs a n xs' n' xsa x
+    by (cases \<open>xs ! b\<close>; cases \<open>x = b\<close>; cases xsa)
+       (force simp: l_vmtf_le_length)+
+  done
 
 lemma l_vmtf_last_mid_get_next:
   \<open>l_vmtf (xs @ [x, y] @ zs) m A \<Longrightarrow> get_next (A ! x) = Some y\<close>
-  apply (induction "xs @ [x, y] @ zs" m A arbitrary: xs x rule: l_vmtf.induct) (* TODO Proof *)
-    apply auto
-  by (metis list.sel(1) list.sel(3) list.set_intros(1) nth_list_update_eq nth_list_update_neq
-      self_append_conv2 tl_append2 al_vmtf_atm.sel(3) l_vmtf_le_length)
+  apply (induction "xs @ [x, y] @ zs" m A arbitrary: xs x rule: l_vmtf.induct)
+  subgoal by auto
+  subgoal by auto
+  subgoal for b l m xs a n xs' n' xsa x
+    by (cases \<open>xs ! b\<close>; cases \<open>x = b\<close>; cases xsa)
+       (force simp: l_vmtf_le_length)+
+  done
 
 lemma l_vmtf_last_mid_get_next_option_hd:
   \<open>l_vmtf (xs @ x # zs) m A \<Longrightarrow> get_next (A ! x) = option_hd zs\<close>
@@ -702,7 +687,7 @@ next
       using l_vmtf unfolding l xs zs
       by (cases zs; auto 5 5 simp: option_hd_def elim: l_vmtfE; fail)+
     then have vmtf': \<open>l_vmtf (y' # zs') m (A[y' := l_vmtf_ATM (stamp (A ! y')) None (get_next (A ! y'))])\<close>
-      using l_vmtf unfolding r_l unfolding l xs zs -- \<open>TODO proof\<close>
+      using l_vmtf unfolding r_l unfolding l xs zs
       by (auto simp: l_vmtf_dequeue_def Let_def nth_list_update' zs
           split: option.splits
           intro: l_vmtf.intros l_vmtf_stamp_increase dest: l_vmtf_skip_fst)
@@ -814,9 +799,9 @@ next
          y' := l_vmtf_ATM (stamp (A' ! y')) (Some x') (get_next (A' ! y')),
          x := l_vmtf_ATM (stamp (A' ! x)) None None] = l_vmtf_dequeue x A\<close>
       using l_vmtf_last_mid_get_next[OF l_vmtf_x_y] l_vmtf_last_mid_get_prev[OF l_vmtf_x'_x]
-      unfolding A'_def l_vmtf_dequeue_def (* TODO proof *)
-      apply (auto simp: Let_def)
-        by (metis (no_types, lifting) list_update_overwrite list_update_swap)
+      list_update_swap[of x' y' _ \<open>_ :: nat al_vmtf_atm\<close>]
+      unfolding A'_def l_vmtf_dequeue_def
+      by (auto simp: Let_def)
     ultimately show ?thesis
       by force
   qed
@@ -1148,16 +1133,6 @@ definition (in -) vmtf_enqueue :: \<open>nat \<Rightarrow> vmtf_imp \<Rightarrow
 definition (in -) vmtf_en_dequeue :: \<open>nat \<Rightarrow> vmtf_imp \<Rightarrow>  vmtf_imp\<close> where
 \<open>vmtf_en_dequeue = (\<lambda>L vm. vmtf_enqueue L (vmtf_dequeue L vm))\<close>
 
-(*TODO: Move*)
-lemma (in -) in_set_remove1D:
-  \<open>a \<in> set (remove1 x xs) \<Longrightarrow> a \<in> set xs\<close>
-  by (meson notin_set_remove1)
-
-lemma (in -) take_length_takeWhile_eq_takeWhile:
-  \<open>take (length (takeWhile P xs)) xs = takeWhile P xs\<close>
-  by (induction xs) auto
-(*End Move*)
-
 lemma abs_l_vmtf_bump_vmtf_dequeue:
   fixes M
   assumes vmtf:\<open>((A, m, lst, next_search), removed) \<in> vmtf_imp M\<close>  and
@@ -1204,7 +1179,7 @@ proof -
     then have [simp]: \<open>get_next (A ! hd xs) = option_hd (remove1 (hd xs) xs)\<close> if \<open>xs \<noteq> []\<close>
       using l_vmtf_last_mid_get_next[of \<open>?ys\<close> \<open>hd ?xs\<close>
           \<open>hd (tl ?xs)\<close> \<open>tl (tl ?xs)\<close> m A] vmtf l_vmtf_distinct[OF vmtf] that
-        distinct_remove1_last_butlast[of xs] (* TODO proof *)
+        distinct_remove1_last_butlast[of xs]
       by (cases xs; cases \<open>tl xs\<close>)
         (auto simp: tl_append l_vmtf_last_next split: list.splits elim: l_vmtfE)
     have \<open>xs \<noteq> [] \<Longrightarrow> xs \<noteq> [L] \<Longrightarrow>  L \<noteq> hd xs \<Longrightarrow> hd xs = hd (remove1 L xs)\<close>
@@ -1224,7 +1199,7 @@ proof -
       if \<open>ys @ xs \<noteq> []\<close>
       using l_vmtf_last_next[of \<open>?xs @ butlast ?ys\<close> \<open>last ?ys\<close>] that
       using l_vmtf_last_next[of \<open>butlast ?xs\<close> \<open>last ?xs\<close>]  vmtf dist
-        distinct_remove1_last_butlast[of \<open>?ys @ ?xs\<close>] (* TODO proof *)
+        distinct_remove1_last_butlast[of \<open>?ys @ ?xs\<close>]
       by (cases ys; cases \<open>tl ys\<close>)
        (auto simp: tl_append l_vmtf_last_prev remove1_append hd_append remove1_Nil_iff
           split: list.splits if_splits elim: l_vmtfE)
@@ -1608,25 +1583,6 @@ lemma vmtf_imp_swap_removed:
     mset: \<open>mset removed = mset removed'\<close>
   shows \<open>((A, m, lst, next_search), removed') \<in> vmtf_imp M\<close>
   using assms unfolding vmtf_imp_def by (fastforce dest: mset_eq_setD)
-thm WHILEIT_rule[of R I s b f]
-
-(* TODO Move *)
-lemma (in -)WHILEIT_rule_stronger_inv:
-  assumes
-    \<open>wf R\<close> and
-    \<open>I s\<close> and
-    \<open>I' s\<close>
-    \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> b s \<Longrightarrow> f s \<le> SPEC (\<lambda>s'. I s' \<and>  I' s' \<and> (s', s) \<in> R)\<close> and
-   \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> \<not> b s \<Longrightarrow> \<Phi> s\<close>
- shows \<open>WHILE\<^sub>T\<^bsup>I\<^esup> b f s \<le> SPEC \<Phi>\<close>
-proof -
-  have \<open>WHILE\<^sub>T\<^bsup>I\<^esup> b f s \<le> WHILE\<^sub>T\<^bsup>\<lambda>s. I s \<and> I' s\<^esup> b f s\<close>
-    by (metis (mono_tags, lifting) WHILEIT_weaken)
-  also have \<open>WHILE\<^sub>T\<^bsup>\<lambda>s. I s \<and> I' s\<^esup> b f s \<le> SPEC \<Phi>\<close>
-    by (rule WHILEIT_rule) (use assms in \<open>auto simp: \<close>)
-  finally show ?thesis .
-qed
-(* End Move *)
 
 lemma vmtf_vmtf_en_dequeue_pre_removed:
   assumes vmtf: \<open>((A, m, lst, next_search), removed) \<in> vmtf_imp M\<close> and i: \<open>i < length removed\<close>

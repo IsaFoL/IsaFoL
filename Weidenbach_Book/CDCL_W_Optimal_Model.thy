@@ -908,12 +908,10 @@ next
        if \<open>is_improving M S\<close> for M
     using that conflicting_clss_update_weight_information_mono[OF all_struct]
     by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
-  ultimately show ?case (* TODO proof. *)
+  ultimately show ?case
     using entailed
-    apply (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
-        elim!: improveE)
-    apply (rule true_clss_clss_subset; simp)
-    done
+    by (fastforce simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
+        elim!: improveE intro: true_clss_clss_subsetI)
 next
   case (cdcl_opt_conflict_opt S')
   then show ?case

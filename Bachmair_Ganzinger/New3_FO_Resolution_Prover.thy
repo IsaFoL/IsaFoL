@@ -503,7 +503,7 @@ lemma map2_add_mset_map:
   then have "length (tl (Ai' \<cdot>al \<eta>)) = n" "length (tl (Aij' \<cdot>aml \<eta>)) = n"
      apply -
      apply auto
-      done
+    by (simp add: subst_atm_mset_list_def)
   then have "length (map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>))) = n" 
     "length (map2 add_mset (tl Ai') (tl Aij') \<cdot>aml \<eta>) = n"
      apply -
@@ -517,7 +517,9 @@ lemma map2_add_mset_map:
     by auto
   then have "\<forall>i < n. tl (map2 add_mset ( (Ai' \<cdot>al \<eta>)) ((Aij' \<cdot>aml \<eta>))) ! i = tl (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) ! i"
     using  Suc(2) Suc(3) Succ
-    by (simp add: map2_tl map_tl subst_atm_mset_list_def) 
+    apply (simp add: map2_tl map_tl subst_atm_mset_list_def)
+    by (metis (no_types) \<open>map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>)) = map2 add_mset (tl Ai') (tl Aij') \<cdot>aml \<eta>\<close> length_map map2_tl map_tl substitution_ops.subst_atm_list_def substitution_ops.subst_atm_mset_list_def) 
+
 
   moreover have nn: "length (map2 add_mset ((Ai' \<cdot>al \<eta>)) ((Aij' \<cdot>aml \<eta>))) = Suc n"
     "length (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) = Suc n"

@@ -75,6 +75,12 @@ lemma subst_cls_mset_add_mset[simp]:
   "add_mset C CC \<cdot>cm \<sigma> = add_mset (C \<cdot> \<sigma>) (CC \<cdot>cm \<sigma>)"
   unfolding subst_cls_mset_def by auto
 
+definition instance_of :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  "instance_of C D \<longleftrightarrow> (\<exists>\<sigma>. C \<cdot> \<sigma> = D)"
+
+definition proper_instance_of :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  "proper_instance_of C D \<longleftrightarrow> instance_of C D \<and> \<not>instance_of D C"
+
 definition is_renaming :: "'s \<Rightarrow> bool" where
   "is_renaming \<sigma> = (\<exists>\<tau>. \<sigma> \<odot> \<tau> = id_subst \<and> \<tau> \<odot> \<sigma> = id_subst)"
   
@@ -153,9 +159,11 @@ locale substitution = substitution_ops subst_atm id_subst comp_subst
     subst_ext: "(\<And>A. subst_atm A \<sigma> = subst_atm A \<tau>) \<Longrightarrow> \<sigma> = \<tau>" and
     make_ground_subst: "is_ground_cls_list (CC \<cdot>cl \<sigma>) \<Longrightarrow> \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)" and
     make_var_disjoint: "\<And>Cs. \<exists>\<rho>s. length \<rho>s = length Cs \<and> (\<forall>\<rho> \<in> set \<rho>s. is_renaming \<rho>) \<and>
-       var_disjoint (Cs \<cdot>\<cdot>cl \<rho>s)"
+       var_disjoint (Cs \<cdot>\<cdot>cl \<rho>s)" and
+    proper_instance_of_wf: "wfP (proper_instance_of)"
 begin
-  
+
+
 lemma subst_ext_iff: "\<sigma> = \<tau> \<longleftrightarrow> (\<forall>A. A \<cdot>a \<sigma> = A \<cdot>a \<tau>)"
   by (auto intro: subst_ext)
 
@@ -314,6 +322,22 @@ proof -
     by auto
 qed
 
+lemma in_image_Neg_is_neg[simp]: (* maybe faster without this... *)
+   "L \<cdot>l \<sigma> \<in> Neg ` X \<Longrightarrow> is_neg L"
+  by (metis bex_imageD literal.disc(2) literal.map_disc_iff subst_lit_def)
+  
+lemma subst_lit_in_negs_subst_is_neg: 
+  assumes "L \<cdot>l \<sigma> \<in># (negs X) \<cdot> \<tau>"
+  shows "is_neg L"
+  using assms
+  by simp
+
+lemma subst_lit_in_negs_is_neg:
+  assumes "L \<cdot>l \<sigma> \<in># (negs X)"
+  shows "is_neg L"
+  using assms
+  by auto
+
 subsubsection {* Substitute on empty *}
     
 lemma subst_atms_empty[simp]: "{} \<cdot>as \<sigma> = {}"
@@ -453,7 +477,14 @@ lemma subst_cls_list_Cons[simp]: "(C # CC) \<cdot>cl \<sigma> = C \<cdot> \<sigm
 
 lemma subst_cls_lists_Cons[simp]: "(C # CC) \<cdot>\<cdot>cl (\<sigma> # \<sigma>s) = C \<cdot> \<sigma> # CC \<cdot>\<cdot>cl \<sigma>s"
   unfolding subst_cls_lists_def by auto
-    
+
+subsubsection {* Substitution on tl *}
+
+lemma subst_atm_list_tl[simp]: "(tl (Ai' \<cdot>al \<eta>)) = (tl Ai' \<cdot>al \<eta>)"
+  by (induction Ai') auto
+
+lemma subst_atm_mset_list_tl[simp]:"(tl (Aij' \<cdot>aml \<eta>)) = (tl Aij' \<cdot>aml \<eta>)"
+  by (induction Aij') auto
     
 subsubsection {* Substitute on nth *}
   
@@ -492,7 +523,7 @@ subsubsection {* Substitute on @{term sum_list} *}
     
 lemma sum_list_subst_cls_list_subst_cls[simp]: "sum_list (Ci' \<cdot>cl \<eta>) = sum_list Ci' \<cdot> \<eta>" 
   unfolding subst_cls_list_def by (induction Ci') auto
-    
+
 subsubsection {* Renamings *}
   
 lemma is_renaming_id_subst[simp]: "is_renaming id_subst"

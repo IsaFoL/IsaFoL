@@ -1,6 +1,6 @@
 theory CDCL_Two_Watched_Literals_List_Watched_Domain
-  imports CDCL_Two_Watched_Literals_List_Watched Array_Array_List Array_List_Array
-    WB_Word_Assn "../lib/Explorer"
+  imports CDCL_Two_Watched_Literals_List_Watched
+    Array_UInt "../lib/Explorer"
 begin
 
 text \<open>We refine the implementation by adding a \<^emph>\<open>domain\<close> on the literals\<close>
@@ -40,6 +40,8 @@ lemma [safe_constraint_rules]: \<open>is_pure (map_fun_rel_assn D R)\<close>
 
 
 subsection \<open>Literals as Natural Numbers\<close>
+
+subsubsection \<open>Definition\<close>
 
 lemma Pos_div2_iff: \<open>Pos (bb div 2) = b \<longleftrightarrow> is_pos b \<and> (bb = 2 * atm_of b \<or> bb = 2 * atm_of b + 1)\<close> for bb :: nat
   by (cases b) auto
@@ -175,6 +177,17 @@ lemma lit_of_natP_same_leftD: \<open>lit_of_natP bi b \<Longrightarrow> lit_of_n
   done
 
 
+subsubsection \<open>Code\<close>
+
+lemma [sepref_fr_rules]: \<open>(return o id, RETURN o nat_of_lit) \<in> unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare
+     (sep_auto simp: uint32_nat_rel_def br_def unat_lit_rel_def nat_lit_rel_def
+      lit_of_natP_def)
+
+definition (in -)the_is_empty where
+  \<open>the_is_empty D = Multiset.is_empty (the D)\<close>
+
+
 subsection \<open>Refinement\<close>
 
 definition upperN :: nat where
@@ -274,9 +287,6 @@ proof -
       apply (case_tac \<open>(nat_of_lit ` set_mset Ls) = {}\<close>)
        apply (solves simp)
       apply (auto simp: less_Suc_eq_le length_fold)
-      apply (subst nth_list_update_neq)
-       apply (auto simp: less_Suc_eq_le)[]
-      apply (auto simp: less_Suc_eq_le)[]
       done
     done
   have H': \<open>aa ! nat_of_lit x = W x\<close> if \<open>x \<in># N\<^sub>1\<close> for x
@@ -348,10 +358,69 @@ locale twl_array_code =
   assumes in_N1_less_than_upperN: \<open>\<forall>L \<in># N\<^sub>1. nat_of_lit L < upperN\<close>
 begin
 
+lemma simple_clss_size_upper_div2:
+  assumes
+   lits: \<open>literals_are_in_N\<^sub>0 C\<close> and
+   dist: \<open>distinct_mset C\<close> and
+   tauto: \<open>\<not>tautology C\<close>
+  shows \<open>size C \<le> upperN div 2\<close>
+proof -
+  let ?C = \<open>atm_of `# C\<close>
+  have \<open>distinct_mset ?C\<close>
+  proof (rule ccontr)
+    assume \<open>\<not> ?thesis\<close>
+    then obtain K where \<open>\<not>count (atm_of `# C) K \<le> Suc 0\<close>
+      unfolding distinct_mset_count_less_1
+      by auto
+    then have \<open>count (atm_of `# C) K \<ge> 2\<close>
+      by auto
+    then obtain L L' C' where
+      C: \<open>C = {#L, L'#} + C'\<close> and L_L': \<open>atm_of L = atm_of L'\<close>
+      by (auto dest!: count_image_mset_multi_member_split_2)
+    then show False
+      using dist tauto by (auto simp: atm_of_eq_atm_of tautology_add_mset)
+  qed
+  then have card: \<open>size ?C = card (set_mset ?C)\<close>
+    using distinct_mset_size_eq_card by blast
+  have size: \<open>size ?C = size C\<close>
+    using dist tauto
+    by (induction C) (auto simp: tautology_add_mset)
+  have m: \<open>set_mset ?C \<subseteq> {0..< upperN div 2}\<close>
+  proof
+    fix L
+    assume \<open>L \<in> set_mset ?C\<close>
+    then have \<open>L \<in> atms_of N\<^sub>1\<close>
+    using lits by (auto simp: literals_are_in_N\<^sub>0_def atm_of_lit_in_atms_of
+        in_all_lits_of_m_ain_atms_of_iff subset_iff)
+    then have \<open>Pos L \<in># N\<^sub>1\<close>
+      using lits by (auto simp: in_N\<^sub>1_atm_of_in_atms_of_iff)
+    then show \<open>L \<in> {0..< upperN div 2}\<close>
+      using in_N1_less_than_upperN by (auto simp: atm_of_lit_in_atms_of
+        in_all_lits_of_m_ain_atms_of_iff subset_iff upperN_def)
+  qed
+  moreover have \<open>card \<dots> = upperN div 2\<close>
+    by auto
+  ultimately have \<open>card (set_mset ?C) \<le> upperN div 2\<close>
+    using card_mono[OF _ m] by auto
+  then show ?thesis
+    unfolding card[symmetric] size .
+qed
+
 definition unit_prop_body_wl_D_inv where
 \<open>unit_prop_body_wl_D_inv T' i L \<longleftrightarrow>
     unit_prop_body_wl_inv T' i L \<and> literals_are_N\<^sub>0 T' \<and> L \<in> snd ` D\<^sub>0
   \<close>
+
+text ‹TODO:
+  \<^item> should be the definition of \<^term>‹unit_prop_body_wl_find_unwatched_inv›.
+  \<^item> the distinctiveness should probably be only a property, not a part of the definition.
+›
+definition (in -) unit_prop_body_wl_D_find_unwatched_inv where
+\<open>unit_prop_body_wl_D_find_unwatched_inv f C S \<longleftrightarrow>
+   unit_prop_body_wl_find_unwatched_inv f C S \<and>
+   (f \<noteq> None \<longrightarrow> the f > 0 \<and> the f < length (get_clauses_wl S ! C) \<and>
+   get_clauses_wl S ! C ! (the f) \<noteq> get_clauses_wl S ! C ! 0  \<and>
+   get_clauses_wl S ! C ! (the f) \<noteq> get_clauses_wl S ! C ! 1)\<close>
 
 definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> nat \<Rightarrow> nat twl_st_wl \<Rightarrow>
     (nat \<times> nat twl_st_wl) nres" where
@@ -365,7 +434,7 @@ definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> n
       then RETURN (w+1, S)
       else do {
         f \<leftarrow> find_unwatched_l (get_trail_wl S) ((get_clauses_wl S)!C);
-        ASSERT (unit_prop_body_wl_find_unwatched_inv f C S);
+        ASSERT (unit_prop_body_wl_D_find_unwatched_inv f C S);
         case f of
           None \<Rightarrow>
             if val_L' = Some False
@@ -384,13 +453,51 @@ lemma (in -) mset_tl_update_swap:
   mset `# mset (tl (xs [i := swap (xs ! i) j k])) = mset `# mset (tl xs)\<close>
   apply (cases i)
   subgoal by (cases xs) auto
-  subgoal for i'
-    apply (subgoal_tac \<open>(xs ! Suc i') \<in># (mset (tl xs))\<close>)
-     defer
-     apply (solves \<open>auto simp: nth_in_set_tl\<close>)
-    apply (auto simp: tl_update_swap mset_update nth_tl)[]
-    by (metis image_mset_add_mset insert_DiffM set_mset_mset)
+  subgoal by (auto simp: tl_update_swap mset_update nth_tl image_mset_remove1_mset_if
+      nth_in_set_tl)
   done
+
+lemma unit_prop_body_wl_D_inv_clauses_distinct_eq:
+  assumes
+    inv: \<open>unit_prop_body_wl_D_inv S w K\<close> and
+    y: \<open>y < length (get_clauses_wl S ! (watched_by S K ! w))\<close> and
+    y': \<open>y' < length (get_clauses_wl S ! (watched_by S K ! w))\<close>
+  shows \<open>get_clauses_wl S ! (watched_by S K ! w) ! y =
+     get_clauses_wl S ! (watched_by S K ! w) ! y' \<longleftrightarrow> y = y'\<close> (is \<open>?eq \<longleftrightarrow> ?y\<close>)
+proof
+  assume eq: ?eq
+  let ?C = \<open>watched_by S K ! w\<close>
+
+  have \<open>twl_struct_invs (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S))\<close>
+    using inv unfolding unit_prop_body_wl_inv_def unit_prop_body_wl_D_inv_def
+    by fast
+  then have \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state
+    (state\<^sub>W_of (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S)))\<close>
+    unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by fast
+  then have \<open>distinct_mset_set (mset ` set (tl (get_clauses_wl S)))\<close>
+    apply (subst append_take_drop_id[of \<open>get_learned_wl S\<close>, symmetric])
+    unfolding set_append image_Un cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+    by (cases S)
+       (auto simp: drop_Suc cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset')
+  then have \<open>distinct (get_clauses_wl S ! C)\<close> if \<open>C > 0\<close> and \<open>C < length (get_clauses_wl S)\<close>
+     for C
+     using that unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+     by (cases S)
+        (auto simp: nth_in_set_tl mset_take_mset_drop_mset cdcl\<^sub>W_restart_mset_state
+      distinct_mset_set_distinct)
+  moreover have \<open>?C > 0\<close> and \<open>?C < length (get_clauses_wl S)\<close>
+    using inv unfolding unit_propagation_inner_loop_body_l_inv_def unit_prop_body_wl_D_inv_def
+      unit_prop_body_wl_inv_def by fast+
+  ultimately have \<open>distinct (get_clauses_wl S ! ?C)\<close>
+    by blast
+  then show ?y
+    using y y' eq
+    by (auto simp: nth_eq_iff_index_eq)
+next
+  assume ?y
+  then show ?eq by blast
+qed
 
 lemma unit_propagation_inner_loop_body_wl_D_spec:
   assumes
@@ -433,7 +540,7 @@ proof -
     if \<open>(n, n') \<in> Id\<close> and \<open>unit_prop_body_wl_D_inv S w K\<close>
       \<open>(f, f') \<in> ?find_unwatched K\<close> and
       \<open>f = Some n\<close> \<open>f' = Some n'\<close> and
-      \<open>unit_prop_body_wl_find_unwatched_inv f (watched_by S K ! w) S\<close>
+      \<open>unit_prop_body_wl_D_find_unwatched_inv f (watched_by S K ! w) S\<close>
     for n n' f f'
     unfolding update_clause_wl_def S
     apply clarify
@@ -449,7 +556,9 @@ proof -
     subgoal using assms unfolding S unit_prop_body_wl_D_inv_def by auto
     subgoal by simp
     subgoal by (auto simp: unit_prop_body_wl_D_inv_def)
-    subgoal by simp
+    subgoal
+      unfolding unit_prop_body_wl_D_find_unwatched_inv_def
+      by (auto simp: unit_prop_body_wl_D_inv_clauses_distinct_eq)
     subgoal by simp
     subgoal by simp
     subgoal by (auto simp: mark_conflict_wl_def S unit_prop_body_wl_D_inv_def clauses_def)
@@ -771,6 +880,7 @@ definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" wh
         propgate_unit_bt_wl_D L S
      }
   }\<close>
+
 lemma literals_are_N\<^sub>0_conflict_literals_are_in_N\<^sub>0:
   assumes
     N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close> and
