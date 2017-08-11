@@ -411,7 +411,10 @@ definition unit_prop_body_wl_D_inv where
     unit_prop_body_wl_inv T' i L \<and> literals_are_N\<^sub>0 T' \<and> L \<in> snd ` D\<^sub>0
   \<close>
 
-(* TODO should be the definition of unit_prop_body_wl_find_unwatched_inv *)
+text ‹TODO:
+  \<^item> should be the definition of \<^term>‹unit_prop_body_wl_find_unwatched_inv›.
+  \<^item> the distinctiveness should probably be only a property, not a part of the definition.
+›
 definition (in -) unit_prop_body_wl_D_find_unwatched_inv where
 \<open>unit_prop_body_wl_D_find_unwatched_inv f C S \<longleftrightarrow>
    unit_prop_body_wl_find_unwatched_inv f C S \<and>
@@ -450,16 +453,12 @@ lemma (in -) mset_tl_update_swap:
   mset `# mset (tl (xs [i := swap (xs ! i) j k])) = mset `# mset (tl xs)\<close>
   apply (cases i)
   subgoal by (cases xs) auto
-  subgoal for i'
-    apply (subgoal_tac \<open>(xs ! Suc i') \<in># (mset (tl xs))\<close>)
-     defer
-     apply (solves \<open>auto simp: nth_in_set_tl\<close>)
-    apply (auto simp: tl_update_swap mset_update nth_tl)[]
-    by (metis image_mset_add_mset insert_DiffM set_mset_mset)
+  subgoal by (auto simp: tl_update_swap mset_update nth_tl image_mset_remove1_mset_if
+      nth_in_set_tl)
   done
 
 lemma unit_prop_body_wl_D_inv_clauses_distinct_eq:
-  assumes 
+  assumes
     inv: \<open>unit_prop_body_wl_D_inv S w K\<close> and
     y: \<open>y < length (get_clauses_wl S ! (watched_by S K ! w))\<close> and
     y': \<open>y' < length (get_clauses_wl S ! (watched_by S K ! w))\<close>
@@ -469,7 +468,7 @@ proof
   assume eq: ?eq
   let ?C = \<open>watched_by S K ! w\<close>
 
-  have \<open>twl_struct_invs (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S))\<close> 
+  have \<open>twl_struct_invs (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S))\<close>
     using inv unfolding unit_prop_body_wl_inv_def unit_prop_body_wl_D_inv_def
     by fast
   then have \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state
@@ -493,7 +492,7 @@ proof
   ultimately have \<open>distinct (get_clauses_wl S ! ?C)\<close>
     by blast
   then show ?y
-    using y y' eq 
+    using y y' eq
     by (auto simp: nth_eq_iff_index_eq)
 next
   assume ?y
