@@ -597,7 +597,7 @@ definition unit_propagation_inner_loop_wl_loop_D :: "nat literal \<Rightarrow> n
          additional_WS_invs (st_l_of_wl (Some (L, w)) S) \<and>
         correct_watching S \<and> w \<le> length (watched_by S L) \<and>
         literals_are_N\<^sub>0 S \<and> L \<in> snd ` D\<^sub>0\<^esup>
-      (\<lambda>(w, (M, N, U, D, NP, UP, Q, W)). w < length (W L) \<and> D = None)
+      (\<lambda>(w, S). w < length (watched_by S L) \<and> get_conflict_wl S = None)
       (\<lambda>(w, S). do {
         unit_propagation_inner_loop_body_wl_D L w S
       })
