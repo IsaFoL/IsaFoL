@@ -1052,7 +1052,7 @@ thm unit_propagation_inner_loop_body_wl_D_def[unfolded find_unwatched_wl_s_def[s
 
 theorem find_unwatched_wl_s_int_code_find_unwatched_wl_s[sepref_fr_rules]:
   \<open>(uncurry find_unwatched_wl_s_int_code, uncurry find_unwatched_wl_s)
-    \<in> [\<lambda>(S, i). \<exists>w L. unit_prop_body_wl_D_inv S w L \<and> i = watched_by S L ! w]\<^sub>a
+    \<in> [\<lambda>(S, i). \<exists>w L. unit_prop_body_wl_D_inv S w L \<and> i = watched_by_app S L w]\<^sub>a
       twl_st_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> option_assn nat_assn\<close>
     (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
@@ -1088,11 +1088,11 @@ proof -
       apply (intro ext impI conjI)
       subgoal
         using that by (auto dest: simp: unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
-            unit_propagation_inner_loop_body_l_inv_def)
+            unit_propagation_inner_loop_body_l_inv_def watched_by_app_def)
       subgoal
         by (use that in \<open>auto simp: comp_PRE_def unit_prop_body_wl_D_inv_def
             mset_take_mset_drop_mset clauses_def mset_take_mset_drop_mset' drop_Suc
-             unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
+             unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def watched_by_app_def
             unit_propagation_inner_loop_body_l_inv_def twl_st_ref_def
           simp del: twl_st_of.simps st_l_of_wl.simps\<close>)
       done
@@ -1357,16 +1357,85 @@ prepare_code_thms (in -) update_clause_wl_int_code_def
 lemmas update_clause_wl_int_code[sepref_fr_rules] =
   update_clause_wl_int_code.refine[OF twl_array_code_axioms]
 
+
+lemma find_unwatched_get_clause_neq_L:
+  \<open>get_clauses_wl S ! watched_by_app S L C ! xj \<noteq> L\<close>
+  if
+    find_unw: \<open>unit_prop_body_wl_D_find_unwatched_inv (Some xj) (watched_by S L ! C) S\<close> and
+    inv: \<open>unit_prop_body_wl_D_inv S C L\<close>
+  for S C xj L
+proof (rule ccontr)
+  have is_N\<^sub>1_alt_def_sym: \<open>is_N\<^sub>1 (all_lits_of_mm A) \<longleftrightarrow> atms_of N\<^sub>1 = atms_of_mm A\<close> for A
+    unfolding is_N\<^sub>1_alt_def by metis
+  assume eq[simplified, simp]: \<open>\<not> ?thesis\<close>
+  let ?C = \<open>get_clauses_wl S ! watched_by_app S L C\<close>
+  let ?L = \<open>get_clauses_wl S ! watched_by_app S L C ! xj\<close>
+  have corr: \<open>correct_watching S\<close> and
+    alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S)))\<close> and
+    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S)))\<close>
+    using inv unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
+    unfolding correct_watching.simps twl_struct_invs_def  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      by fast+
+  moreover have \<open>watched_by_app S L C < length (get_clauses_wl S)\<close>
+    using inv by (blast intro: unit_prop_body_wl_D_invD)
+  moreover have \<open>watched_by_app S L C > 0\<close>
+    using inv by (blast intro: unit_prop_body_wl_D_invD)
+  ultimately have in_watched: \<open>watched_by_app S L C \<in># mset (watched_by S L)\<close>
+    using inv by (auto simp: watched_by_app_def dest: unit_prop_body_wl_D_invD)
+
+  have \<open>literals_are_N\<^sub>0 S\<close>
+    using inv by (blast intro: unit_prop_body_wl_D_invD)
+  moreover have \<open>L \<in> snd ` D\<^sub>0\<close>
+    using inv by (auto intro: unit_prop_body_wl_D_invD)
+  ultimately have \<open>L \<in># all_lits_of_mm (mset `# mset (tl (get_clauses_wl S)) + get_unit_init_clss S)\<close>
+    using alien
+    by (cases S)
+        (auto 5 5 simp: get_unit_init_clss_def clauses_def mset_take_mset_drop_mset drop_Suc
+        mset_take_mset_drop_mset' cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
+        is_N\<^sub>1_alt_def_sym in_all_lits_of_mm_ain_atms_of_iff in_N\<^sub>1_atm_of_in_atms_of_iff
+        dest: in_atms_of_mset_takeD)
+    then have H: \<open>mset (watched_by S L) =
+      mset_set {x. Suc 0 \<le> x \<and> x < length (get_clauses_wl S) \<and> L \<in> set (watched_l (get_clauses_wl S ! x))}\<close>
+      using corr by (cases S)
+          (auto simp: correct_watching.simps watched_by_app_def clause_to_update_def
+          watched_by.simps get_unit_init_clss_def)
+  have L_in_watched: \<open>L \<in> set (watched_l ?C)\<close>
+    using in_watched unfolding H
+    by (cases S)
+        (auto simp: correct_watching.simps watched_by_app_def clause_to_update_def
+        watched_by.simps get_unit_init_clss_def)
+  have \<open>xj \<ge> 2\<close> and \<open>xj < length (get_clauses_wl S ! watched_by_app S L C)\<close>
+    using find_unw unfolding unit_prop_body_wl_D_find_unwatched_inv_def unit_prop_body_wl_find_unwatched_inv_def
+    by (cases S; auto simp: watched_by_app_def)+
+
+  then have L_in_unwatched: \<open>L \<in> set (unwatched_l ?C)\<close>
+    by (auto simp: in_set_drop_conv_nth intro!: exI[of _ xj])
+  have \<open>distinct_mset_set (mset ` set (tl (get_clauses_wl S)))\<close>
+    apply (subst append_take_drop_id[of \<open>get_learned_wl S\<close>, symmetric])
+    using dist unfolding  cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def set_append
+    by (cases S)
+        (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset image_Un drop_Suc)
+  then have dist_C: \<open>distinct ?C\<close>
+    using inv by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset
+      intro: unit_prop_body_wl_D_invD)
+  then show False
+    using L_in_watched L_in_unwatched by (cases ?C; cases \<open>tl ?C\<close>; cases \<open>tl (tl ?C)\<close>) auto
+qed
+
+thm unit_propagation_inner_loop_body_wl_D_def
 lemma update_clause_wl_int_code_update_clause_wl[sepref_fr_rules]:
   \<open>(uncurry5 update_clause_wl_int_code, uncurry5 update_clause_wl) \<in>
-    [\<lambda>(((((L, C), w), i), f), S).
+    [\<lambda>(((((L, C), w), i), f), S). 
+      unit_prop_body_wl_D_inv S w L \<and>
+      unit_prop_body_wl_D_find_unwatched_inv (Some f) C S \<and>
+      C = watched_by S L ! w \<and>
+      i = (if get_clauses_wl S ! C ! 0 = L then 0 else 1)
+(*)
       (get_clauses_wl S ! C) ! f \<noteq> L \<and>
       C < length (get_clauses_wl S) \<and>
       f < length (get_clauses_wl S ! C) \<and>
-      i < length (get_clauses_wl S ! C) \<and>
-      L \<in> snd ` D\<^sub>0 \<and>
       (get_clauses_wl S ! C) ! f \<in> snd ` D\<^sub>0 \<and>
-      w < length (get_watched_wl S L)]\<^sub>a
+      w < length (get_watched_wl S L)*)]\<^sub>a
      unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a  nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>d \<rightarrow>
        nat_assn *assn twl_st_assn\<close>
     (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
@@ -1389,9 +1458,45 @@ proof -
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF update_clause_wl_int_code update_clause_wl_int_update_clause_wl]
     .
+  have [dest]: \<open>literals_are_in_N\<^sub>0_mm (mset `# mset (tl (get_clauses_wl S)))\<close> 
+    if \<open>unit_prop_body_wl_D_inv S w L\<close>
+    for S w L
+  proof -
+    have \<open>literals_are_N\<^sub>0 S\<close>
+      using that unfolding twl_st_ref_def  map_fun_rel_def unit_prop_body_wl_D_find_unwatched_inv_def
+        unit_prop_body_wl_find_unwatched_inv_def unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
+        unit_propagation_inner_loop_body_l_inv_def by fast
+    then  have \<open> set_mset (all_lits_of_mm (mset `# mset (tl (get_clauses_wl S)))) \<subseteq>
+       set_mset N\<^sub>1\<close>
+      apply (subst append_take_drop_id[symmetric, of _ \<open>get_learned_wl S\<close>])
+      unfolding mset_append all_lits_of_mm_union
+      apply (cases S)
+      by (auto simp:  mset_take_mset_drop_mset' literals_are_in_N\<^sub>0_mm_def clauses_def
+           drop_Suc all_lits_of_mm_union is_N\<^sub>1_def)
+    then show ?thesis
+      unfolding literals_are_in_N\<^sub>0_mm_def by blast
+  qed
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
-    using that unfolding comp_PRE_def twl_st_ref_def  map_fun_rel_def
-    by auto
+    unfolding comp_PRE_def
+    apply (cases x)
+    apply (clarify)
+    apply (intro conjI impI allI)
+    subgoal for L C w i f M N U D NP UP Q W
+      using that find_unwatched_get_clause_neq_L[of f \<open>(M, N, U, D, NP, UP, Q, W)\<close> L w]
+      by (auto simp add: watched_by_app_def)
+    subgoal for L C w i f M N U D NP UP Q W y
+      apply (subgoal_tac \<open>literals_are_in_N\<^sub>0_mm (mset `# mset (tl N))\<close>)
+      subgoal
+          using literals_are_in_N\<^sub>0_mm_in_N\<^sub>1[of \<open>tl N\<close> \<open>(W L ! w - 1)\<close> f]
+         using that unfolding comp_PRE_def twl_st_ref_def  map_fun_rel_def unit_prop_body_wl_D_find_unwatched_inv_def
+        unit_prop_body_wl_find_unwatched_inv_def unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
+        unit_propagation_inner_loop_body_l_inv_def
+        apply (auto dest: simp: nth_tl )[]
+        done
+      subgoal
+        using that by auto
+      done
+    done
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def[symmetric]
     by (auto simp: hrp_comp_def hr_comp_def)
@@ -1482,69 +1587,6 @@ lemma undefined_lit_valued_st_iff:
    \<open>undefined_lit (get_trail_wl S) L \<longleftrightarrow> valued_st S L \<noteq> Some True \<and> valued_st S L \<noteq> Some False\<close>
   by (auto simp: valued_st_def valued_def)
 
-lemma find_unwatched_get_clause_neq_L:
-  \<open>get_clauses_wl S ! watched_by_app S L C ! xj \<noteq> L\<close>
-  if
-    find_unw: \<open>RETURN (Some xj) \<le> find_unwatched_wl_s S (watched_by_app S L C)\<close> and
-    inv: \<open>unit_prop_body_wl_D_inv S C L\<close>
-  for S C xj L
-proof (rule ccontr)
-  have is_N\<^sub>1_alt_def_sym: \<open>is_N\<^sub>1 (all_lits_of_mm A) \<longleftrightarrow> atms_of N\<^sub>1 = atms_of_mm A\<close> for A
-    unfolding is_N\<^sub>1_alt_def by metis
-  assume eq[simplified, simp]: \<open>\<not> ?thesis\<close>
-  let ?C = \<open>get_clauses_wl S ! watched_by_app S L C\<close>
-  let ?L = \<open>get_clauses_wl S ! watched_by_app S L C ! xj\<close>
-  have corr: \<open>correct_watching S\<close> and
-    alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S)))\<close> and
-    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S)))\<close>
-    using inv unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
-    unfolding correct_watching.simps twl_struct_invs_def  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      by fast+
-  moreover have \<open>watched_by_app S L C < length (get_clauses_wl S)\<close>
-    using inv by (blast intro: unit_prop_body_wl_D_invD)
-  moreover have \<open>watched_by_app S L C > 0\<close>
-    using inv by (blast intro: unit_prop_body_wl_D_invD)
-  ultimately have in_watched: \<open>watched_by_app S L C \<in># mset (watched_by S L)\<close>
-    using inv by (auto simp: watched_by_app_def dest: unit_prop_body_wl_D_invD)
-
-  have \<open>literals_are_N\<^sub>0 S\<close>
-    using inv by (blast intro: unit_prop_body_wl_D_invD)
-  moreover have \<open>L \<in> snd ` D\<^sub>0\<close>
-    using inv by (auto intro: unit_prop_body_wl_D_invD)
-  ultimately have \<open>L \<in># all_lits_of_mm (mset `# mset (tl (get_clauses_wl S)) + get_unit_init_clss S)\<close>
-    using alien
-    by (cases S)
-        (auto 5 5 simp: get_unit_init_clss_def clauses_def mset_take_mset_drop_mset drop_Suc
-        mset_take_mset_drop_mset' cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
-        is_N\<^sub>1_alt_def_sym in_all_lits_of_mm_ain_atms_of_iff in_N\<^sub>1_atm_of_in_atms_of_iff
-        dest: in_atms_of_mset_takeD)
-    then have H: \<open>mset (watched_by S L) =
-      mset_set {x. Suc 0 \<le> x \<and> x < length (get_clauses_wl S) \<and> L \<in> set (watched_l (get_clauses_wl S ! x))}\<close>
-      using corr by (cases S)
-          (auto simp: correct_watching.simps watched_by_app_def clause_to_update_def
-          watched_by.simps get_unit_init_clss_def)
-  have L_in_watched: \<open>L \<in> set (watched_l ?C)\<close>
-    using in_watched unfolding H
-    by (cases S)
-        (auto simp: correct_watching.simps watched_by_app_def clause_to_update_def
-        watched_by.simps get_unit_init_clss_def)
-  have \<open>xj \<ge> 2\<close> and \<open>xj < length (get_clauses_wl S ! watched_by_app S L C)\<close>
-    using find_unw unfolding find_unwatched_wl_s_def find_unwatched_l_def
-    by (cases S; auto)+
-  then have L_in_unwatched: \<open>L \<in> set (unwatched_l ?C)\<close>
-    by (auto simp: in_set_drop_conv_nth intro!: exI[of _ xj])
-  have \<open>distinct_mset_set (mset ` set (tl (get_clauses_wl S)))\<close>
-    apply (subst append_take_drop_id[of \<open>get_learned_wl S\<close>, symmetric])
-    using dist unfolding  cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def set_append
-    by (cases S)
-        (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset image_Un drop_Suc)
-  then have dist_C: \<open>distinct ?C\<close>
-    using inv by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset
-      intro: unit_prop_body_wl_D_invD)
-  then show False
-    using L_in_watched L_in_unwatched by (cases ?C; cases \<open>tl ?C\<close>; cases \<open>tl (tl ?C)\<close>) auto
-qed
-
 lemma find_unwatched_le_length:
   \<open>xj < length (get_clauses_wl S ! watched_by_app S L C)\<close>
   if
@@ -1584,18 +1626,26 @@ proof -
     by (auto simp: image_image is_N\<^sub>1_def)
 qed
 
+end
+
+text \<open>Find a less hack-like solution\<close>
+setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper "split_all_tac")\<close>
+
+context twl_array_code
+begin
+
+
 sepref_register unit_propagation_inner_loop_body_wl_D
 sepref_thm unit_propagation_inner_loop_body_wl_D
   is \<open>uncurry2 ((PR_CONST unit_propagation_inner_loop_body_wl_D) :: nat literal \<Rightarrow> nat \<Rightarrow>
            nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_assn\<close>
-  supply unit_prop_body_wl_D_invD[intro,dest]  find_unwatched_in_D\<^sub>0[intro]
-   find_unwatched_le_length[intro] find_unwatched_get_clause_neq_L[intro]
-   length_rll_def[simp]
-    if_splits[split]
-  access_lit_in_clauses_def[simp] unit_prop_body_wl_D_invD'[intro, simp, dest]
-  length_rll_def[simp]
-  watched_by.simps[simp del] undefined_lit_valued_st_iff[iff]
+  supply 
+    if_splits[split] unit_prop_body_wl_D_invD[intro,dest]
+    watched_by_app_def[symmetric,simp]
+    access_lit_in_clauses_def[simp] unit_prop_body_wl_D_invD'[intro]
+    length_rll_def[simp]
+  supply undefined_lit_valued_st_iff[iff]
   unfolding unit_propagation_inner_loop_body_wl_D_def length_rll_def[symmetric] PR_CONST_def
   unfolding watched_by_app_def[symmetric] access_lit_in_clauses_def[symmetric]
     find_unwatched_l_find_unwatched_wl_s
@@ -1605,20 +1655,18 @@ sepref_thm unit_propagation_inner_loop_body_wl_D
   find_unwatched_wl_s_int_def[symmetric] valued_st_def[symmetric]
   mark_conflict_wl'_alt_def[symmetric]
   supply [[goals_limit=1]]
-
-  supply unit_prop_body_wl_invD[dest, intro]
-     supply find_unwatched_get_clause_neq_L[simp]
-     apply sepref
-     done
+  by sepref
 
 concrete_definition (in -) unit_propagation_inner_loop_body_wl_D_code
    uses twl_array_code.unit_propagation_inner_loop_body_wl_D.refine_raw
    is \<open>(uncurry2 ?f, _) \<in> _\<close>
+
 prepare_code_thms (in -) unit_propagation_inner_loop_body_wl_D_code_def
 
 lemmas unit_propagation_inner_loop_body_wl_D_code_refine[sepref_fr_rules] =
    unit_propagation_inner_loop_body_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms,
      unfolded twl_st_assn_def]
+
 
 subsubsection \<open>Operations on the trail\<close>
 

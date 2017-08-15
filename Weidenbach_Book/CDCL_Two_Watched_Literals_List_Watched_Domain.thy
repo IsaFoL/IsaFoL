@@ -411,14 +411,14 @@ definition unit_prop_body_wl_D_inv where
     unit_prop_body_wl_inv T' i L \<and> literals_are_N\<^sub>0 T' \<and> L \<in> snd ` D\<^sub>0
   \<close>
 
-text ‹TODO:
-  \<^item> should be the definition of \<^term>‹unit_prop_body_wl_find_unwatched_inv›.
+text \<open>TODO:
+  \<^item> should be the definition of \<^term>\<open>unit_prop_body_wl_find_unwatched_inv\<close>.
   \<^item> the distinctiveness should probably be only a property, not a part of the definition.
-›
+\<close>
 definition (in -) unit_prop_body_wl_D_find_unwatched_inv where
 \<open>unit_prop_body_wl_D_find_unwatched_inv f C S \<longleftrightarrow>
    unit_prop_body_wl_find_unwatched_inv f C S \<and>
-   (f \<noteq> None \<longrightarrow> the f > 0 \<and> the f < length (get_clauses_wl S ! C) \<and>
+   (f \<noteq> None \<longrightarrow> the f \<ge> 2 \<and> the f < length (get_clauses_wl S ! C) \<and>
    get_clauses_wl S ! C ! (the f) \<noteq> get_clauses_wl S ! C ! 0  \<and>
    get_clauses_wl S ! C ! (the f) \<noteq> get_clauses_wl S ! C ! 1)\<close>
 
