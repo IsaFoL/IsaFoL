@@ -1,0 +1,13 @@
+
+Page 4, code display at top:
+  You inserted a verbatim "\,": The original reads 
+    for parallel 1..N do
+  you changed it to   
+    for parallel 1..\,N do
+
+Page 6, caption of Fig 1
+  You added an odd space in @2.2GHz, it now reads 
+    "@2.2G Hz", but, if spacing is added correctly, it should be "@ 2.2 GHz", or, better "with 2.2 GHz"
+    
+    
+    
