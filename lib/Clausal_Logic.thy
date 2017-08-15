@@ -174,35 +174,35 @@ type_synonym 'a clause = "'a literal multiset"
 abbreviation poss :: "'a multiset \<Rightarrow> 'a clause" where "poss AA \<equiv> {#Pos A. A \<in># AA#}"
 abbreviation negs :: "'a multiset \<Rightarrow> 'a clause" where "negs AA \<equiv> {#Neg A. A \<in># AA#}"
 
-lemma Max_in_lits: "C \<noteq> {#} \<Longrightarrow> Max (set_mset C) \<in># C"
+lemma Max_in_lits: "C \<noteq> {#} \<Longrightarrow> Max_mset C \<in># C"
   by (rule Max_in[OF finite_set_mset, unfolded set_mset_eq_empty_iff])
 
-lemma Max_atm_of_set_mset_commute: "C \<noteq> {#} \<Longrightarrow> Max (atm_of ` set_mset C) = atm_of (Max (set_mset C))"
+lemma Max_atm_of_set_mset_commute: "C \<noteq> {#} \<Longrightarrow> Max (atm_of ` set_mset C) = atm_of (Max_mset C)"
   by (rule mono_Max_commute[symmetric])
     (auto simp: mono_def atm_of_def less_eq_literal_def less_literal_def)
 
 lemma Max_pos_neg_less_multiset:
-  assumes max: "Max (set_mset C) = Pos A" and neg: "Neg A \<in># D"
+  assumes max: "Max_mset C = Pos A" and neg: "Neg A \<in># D"
   shows "C < D"
 proof -
-  have "Max (set_mset C) < Neg A"
+  have "Max_mset C < Neg A"
     using max by simp
   thus ?thesis
     using neg by (metis (no_types) ex_gt_imp_less_multiset Max_less_iff[OF finite_set_mset]
       all_not_in_conv)
 qed
 
-lemma pos_Max_imp_neg_notin: "Max (set_mset C) = Pos A \<Longrightarrow> Neg A \<notin># C"
+lemma pos_Max_imp_neg_notin: "Max_mset C = Pos A \<Longrightarrow> Neg A \<notin># C"
   using Max_pos_neg_less_multiset[unfolded not_le[symmetric]] by blast
 
-lemma less_eq_Max_lit: "C \<noteq> {#} \<Longrightarrow> C \<le> D \<Longrightarrow> Max (set_mset C) \<le> Max (set_mset D)"
+lemma less_eq_Max_lit: "C \<noteq> {#} \<Longrightarrow> C \<le> D \<Longrightarrow> Max_mset C \<le> Max_mset D"
 proof (unfold less_eq_multiset\<^sub>H\<^sub>O)
   assume ne: "C \<noteq> {#}" and ex_gt: "\<forall>x. count D x < count C x \<longrightarrow> (\<exists>y > x. count C y < count D y)"
-  from ne have "Max (set_mset C) \<in># C"
+  from ne have "Max_mset C \<in># C"
     by (fast intro: Max_in_lits)
-  hence "\<exists>l. l \<in># D \<and> \<not> l < Max (set_mset C)"
+  hence "\<exists>l. l \<in># D \<and> \<not> l < Max_mset C"
     using ex_gt by (metis count_greater_zero_iff count_inI less_not_sym)
-  hence "\<not> Max (set_mset D) < Max (set_mset C)"
+  hence "\<not> Max_mset D < Max_mset C"
     by (metis Max.coboundedI[OF finite_set_mset] le_less_trans)
   thus ?thesis
     by simp
@@ -280,11 +280,11 @@ lemma le_multiset_Max_in_imp_Max:
   by (metis Max.coboundedI[OF finite_atms_of] atms_of_def empty_iff eq_iff image_subsetI
     less_eq_Max_atms_of set_mset_empty subset_Compl_self_eq)
 
-lemma atm_of_Max_lit[simp]: "C \<noteq> {#} \<Longrightarrow> atm_of (Max (set_mset C)) = Max (atms_of C)"
+lemma atm_of_Max_lit[simp]: "C \<noteq> {#} \<Longrightarrow> atm_of (Max_mset C) = Max (atms_of C)"
   unfolding atms_of_def Max_atm_of_set_mset_commute ..
 
 lemma Max_lit_eq_pos_or_neg_Max_atm:
-  "C \<noteq> {#} \<Longrightarrow> Max (set_mset C) = Pos (Max (atms_of C)) \<or> Max (set_mset C) = Neg (Max (atms_of C))"
+  "C \<noteq> {#} \<Longrightarrow> Max_mset C = Pos (Max (atms_of C)) \<or> Max_mset C = Neg (Max (atms_of C))"
   by (metis Neg_atm_of_iff Pos_atm_of_iff atm_of_Max_lit)
 
 lemma atms_less_imp_lit_less_pos: "(\<And>B. B \<in> atms_of C \<Longrightarrow> B < A) \<Longrightarrow> L \<in># C \<Longrightarrow> L < Pos A"

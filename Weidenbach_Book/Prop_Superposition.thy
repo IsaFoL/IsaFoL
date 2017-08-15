@@ -57,7 +57,7 @@ function
   production :: "'a clause \<Rightarrow> 'a interp"
 where
   "production C =
-   {A. C \<in> N \<and> C \<noteq> {#} \<and> Max (set_mset C) = Pos A \<and> count C (Pos A) \<le> 1
+   {A. C \<in> N \<and> C \<noteq> {#} \<and> Max_mset C = Pos A \<and> count C (Pos A) \<le> 1
      \<and> \<not> (\<Union>D \<in> {D. D < C}. production D) \<Turnstile>h C \<and> S C = {#}}"
   by auto
 termination by (relation "{(D, C). D < C}") (auto simp: wf_less_multiset)
@@ -68,7 +68,7 @@ definition interp :: "'a clause \<Rightarrow> 'a interp" where
   "interp C = (\<Union>D \<in> {D. D < C}. production D)"
 
 lemma production_unfold:
-  "production C = {A. C \<in> N \<and> C \<noteq> {#} \<and> Max (set_mset C) = Pos A\<and> count C (Pos A) \<le> 1 \<and> \<not> interp C \<Turnstile>h C \<and> S C = {#}}"
+  "production C = {A. C \<in> N \<and> C \<noteq> {#} \<and> Max_mset C = Pos A\<and> count C (Pos A) \<le> 1 \<and> \<not> interp C \<Turnstile>h C \<and> S C = {#}}"
   unfolding interp_def by (rule production.simps)
 
 abbreviation "productive A \<equiv> (production A \<noteq> {})"
@@ -77,7 +77,7 @@ abbreviation produces :: "'a clause \<Rightarrow> 'a \<Rightarrow> bool" where
   "produces C A \<equiv> production C = {A}"
 
 lemma producesD:
-  "produces C A \<Longrightarrow> C \<in> N \<and> C \<noteq> {#} \<and> Pos A = Max (set_mset C) \<and> count C (Pos A) \<le> 1 \<and>
+  "produces C A \<Longrightarrow> C \<in> N \<and> C \<noteq> {#} \<and> Pos A = Max_mset C \<and> count C (Pos A) \<le> 1 \<and>
     \<not> interp C \<Turnstile>h C \<and> S C = {#}"
   unfolding production_unfold by auto
 
@@ -116,14 +116,14 @@ lemma Interp_as_UNION: "Interp C = (\<Union>D \<in> {D. D \<le> C}. production D
 lemma productive_not_empty: "productive C \<Longrightarrow> C \<noteq> {#}"
   unfolding production_unfold by auto
 
-lemma productive_imp_produces_Max_literal: "productive C \<Longrightarrow> produces C (atm_of (Max (set_mset C)))"
+lemma productive_imp_produces_Max_literal: "productive C \<Longrightarrow> produces C (atm_of (Max_mset C))"
   unfolding production_unfold by (auto simp del: atm_of_Max_lit)
 
 lemma productive_imp_produces_Max_atom: "productive C \<Longrightarrow> produces C (Max (atms_of C))"
   unfolding atms_of_def Max_atm_of_set_mset_commute[OF productive_not_empty]
   by (rule productive_imp_produces_Max_literal)
 
-lemma produces_imp_Max_literal: "produces C A \<Longrightarrow> A = atm_of (Max (set_mset C))"
+lemma produces_imp_Max_literal: "produces C A \<Longrightarrow> A = atm_of (Max_mset C)"
   by (metis Max_singleton insert_not_empty productive_imp_produces_Max_literal)
 
 lemma produces_imp_Max_atom: "produces C A \<Longrightarrow> A = Max (atms_of C)"
@@ -189,7 +189,7 @@ lemma produces_imp_in_interp:
   assumes a_in_c: "Neg A \<in># C" and d: "produces D A"
   shows "A \<in> interp C"
 proof -
-  from d have "Max (set_mset D) = Pos A"
+  from d have "Max_mset D = Pos A"
     using production_unfold by blast
   then have "D < {#Neg A#}"
     by (meson Max_pos_neg_less_multiset multi_member_last)
@@ -313,7 +313,7 @@ proof -
       case Q
       have "Q \<in> set_mset C"
         using Q(2) by (auto split: if_split_asm)
-      then have "Max (set_mset C) > Pos P"
+      then have "Max_mset C > Pos P"
         using Q(1) Max_gr_iff by blast
       then show ?thesis
         unfolding production_unfold by auto
@@ -340,15 +340,15 @@ proof -
       case Q
       have "Q \<in> set_mset D"
         using Q(2) gr_implies_not0 by fastforce
-      then have "Max (set_mset D) > Neg P"
+      then have "Max_mset D > Neg P"
         using Q(1) Max_gr_iff by blast
-      then have "Max (set_mset D) > Pos P"
-        using less_trans[of "Pos P" "Neg P" "Max (set_mset D)"] by auto
+      then have "Max_mset D > Pos P"
+        using less_trans[of "Pos P" "Neg P" "Max_mset D"] by auto
       then show ?thesis
         unfolding production_unfold by auto
     next
       case P
-      then have "Max (set_mset D) > Pos P"
+      then have "Max_mset D > Pos P"
         by (meson Max_ge finite_set_mset le_less_trans linorder_not_le pos_less_neg)
       then show ?thesis
         unfolding production_unfold by auto
@@ -365,8 +365,6 @@ lemma in_interp_is_produced:
 
 end
 end
-(*TODO sharing with Prop_CDCL*)
-abbreviation "MMax M \<equiv> Max (set_mset M)"
 
 subsection \<open>We can now define the rules of the calculus\<close>
 inductive superposition_rules :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
@@ -574,7 +572,7 @@ proof (rule ccontr)
     by (metis (mono_tags, lifting) Min_in finite mem_Collect_eq not_empty rev_finite_subset subsetI)
   have cls_not_D: "\<And>E. E \<in> N \<Longrightarrow> E \<noteq> D \<Longrightarrow> \<not>?N\<^sub>\<I> \<Turnstile>h E \<Longrightarrow> D \<le> E"
     using finite D_def by auto
-  obtain C L where D: "D = C + {#L#}" and LSD: "L \<in># S D \<or> (S D = {#} \<and> Max (set_mset D) = L)"
+  obtain C L where D: "D = C + {#L#}" and LSD: "L \<in># S D \<or> (S D = {#} \<and> Max_mset D = L)"
   proof (cases "S D = {#}")
     case False
     then obtain L where "L \<in># S D"
@@ -586,7 +584,7 @@ proof (rule ccontr)
         by auto }
     ultimately show ?thesis using that by blast
   next
-    let ?L = "MMax D"
+    let ?L = "Max_mset D"
     case True
     moreover {
       have "?L \<in># D"
@@ -608,7 +606,7 @@ proof (rule ccontr)
     qed
 
   consider
-    (L) P where "L = Pos P" and "S D = {#}" and "Max (set_mset D) = Pos P"
+    (L) P where "L = Pos P" and "S D = {#}" and "Max_mset D = Pos P"
   | (Lneg) P where "L = Neg P"
     using LSD S_selects_neg_lits[of L D] by (cases L) auto
   then show False
@@ -675,7 +673,7 @@ proof (rule ccontr)
     then have "superposition N (N \<union> {E+C})"
       using DPN \<open>D \<in> N\<close> unfolding D L by (auto simp add: superposition.simps)
     have
-      PMax: "Pos P = MMax (E + {#Pos P#})" and
+      PMax: "Pos P = Max_mset (E + {#Pos P#})" and
       "count (E + {#Pos P#}) (Pos P) \<le> 1" and
       "S (E + {#Pos P#}) = {#}" and
       "\<not>interp N (E + {#Pos P#}) \<Turnstile>h E + {#Pos P#}"

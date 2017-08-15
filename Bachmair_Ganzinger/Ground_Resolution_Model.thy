@@ -44,7 +44,7 @@ function
   production :: "'a clause \<Rightarrow> 'a interp"
 where
   "production C =
-   {A. C \<in> N \<and> C \<noteq> {#} \<and> Max (set_mset C) = Pos A \<and> \<not> (\<Union>D \<in> {D. D < C}. production D) \<Turnstile> C \<and>
+   {A. C \<in> N \<and> C \<noteq> {#} \<and> Max_mset C = Pos A \<and> \<not> (\<Union>D \<in> {D. D < C}. production D) \<Turnstile> C \<and>
       S C = {#}}"
   by auto
   termination by (relation "{(D, C). D < C}") (auto simp: wf_less_multiset)
@@ -55,7 +55,7 @@ definition interp :: "'a clause \<Rightarrow> 'a interp" where
   "interp C = (\<Union>D \<in> {D. D < C}. production D)"
 
 lemma production_unfold:
-  "production C = {A. C \<in> N \<and> C \<noteq> {#} \<and> Max (set_mset C) = Pos A \<and> \<not> interp C \<Turnstile> C \<and> S C = {#}}"
+  "production C = {A. C \<in> N \<and> C \<noteq> {#} \<and> Max_mset C = Pos A \<and> \<not> interp C \<Turnstile> C \<and> S C = {#}}"
   unfolding interp_def by (rule production.simps)
 
 abbreviation productive :: "'a clause \<Rightarrow> bool" where
@@ -65,7 +65,7 @@ abbreviation produces :: "'a clause \<Rightarrow> 'a \<Rightarrow> bool" where
   "produces C A \<equiv> production C = {A}"
 
 lemma producesD:
-  "produces C A \<Longrightarrow> C \<in> N \<and> C \<noteq> {#} \<and> Pos A = Max (set_mset C) \<and> \<not> interp C \<Turnstile> C \<and> S C = {#}"
+  "produces C A \<Longrightarrow> C \<in> N \<and> C \<noteq> {#} \<and> Pos A = Max_mset C \<and> \<not> interp C \<Turnstile> C \<and> S C = {#}"
   unfolding production_unfold by auto
 
 definition Interp :: "'a clause \<Rightarrow> 'a interp" where
@@ -80,14 +80,14 @@ lemma Interp_as_UNION: "Interp C = (\<Union>D \<in> {D. D \<le> C}. production D
 lemma productive_not_empty: "productive C \<Longrightarrow> C \<noteq> {#}"
   unfolding production_unfold by simp
 
-lemma productive_imp_produces_Max_literal: "productive C \<Longrightarrow> produces C (atm_of (Max (set_mset C)))"
+lemma productive_imp_produces_Max_literal: "productive C \<Longrightarrow> produces C (atm_of (Max_mset C))"
   unfolding production_unfold by (auto simp del: atm_of_Max_lit)
 
 lemma productive_imp_produces_Max_atom: "productive C \<Longrightarrow> produces C (Max (atms_of C))"
   unfolding atms_of_def Max_atm_of_set_mset_commute[OF productive_not_empty]
   by (rule productive_imp_produces_Max_literal)
 
-lemma produces_imp_Max_literal: "produces C A \<Longrightarrow> A = atm_of (Max (set_mset C))"
+lemma produces_imp_Max_literal: "produces C A \<Longrightarrow> A = atm_of (Max_mset C)"
   by (metis Max_singleton insert_not_empty productive_imp_produces_Max_literal)
 
 lemma produces_imp_Max_atom: "produces C A \<Longrightarrow> A = Max (atms_of C)"
@@ -155,7 +155,7 @@ lemma produces_imp_in_interp:
   assumes a_in_c: "Neg A \<in># C" and d: "produces D A"
   shows "A \<in> interp C"
 proof -
-  from d have "Max (set_mset D) = Pos A"
+  from d have "Max_mset D = Pos A"
     using production_unfold by blast
   hence "D < {#Neg A#}"
     by (meson Max_pos_neg_less_multiset union_single_eq_member)
@@ -286,7 +286,7 @@ This corresponds to Lemma 3.5:
 *}
 
 lemma max_pos_imp_true_in_Interp:
-  assumes "C \<in> N" and "C \<noteq> {#}" and "Max (set_mset C) = Pos A" and "S C = {#}"
+  assumes "C \<in> N" and "C \<noteq> {#}" and "Max_mset C = Pos A" and "S C = {#}"
   shows "Interp C \<Turnstile> C"
 proof (cases "productive C")
   case True
@@ -318,7 +318,7 @@ proof (cases "Neg A \<in># C")
 next
   case False
   moreover have ne: "C \<noteq> {#}" using pos_in by auto
-  ultimately have "Max (set_mset C) = Pos A"
+  ultimately have "Max_mset C = Pos A"
     using max_atm using Max_in_lits Max_lit_eq_pos_or_neg_Max_atm by metis
   thus ?thesis
     using ne c_in_n s_c_e by (blast intro: max_pos_imp_true_in_Interp)

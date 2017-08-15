@@ -85,12 +85,10 @@ lemma get_level_skip_all_not_decided[simp]:
   shows "get_level M L = 0"
   using assms by (auto simp: filter_empty_conv get_level_def dest: set_dropWhileD)
 
-abbreviation "MMax M \<equiv> Max (set_mset M)"
-
 text \<open>the @{term "{#0#}"} is there to ensures that the set is not empty.\<close>
 definition get_maximum_level :: "('a, 'b) ann_lits \<Rightarrow> 'a clause \<Rightarrow> nat"
   where
-"get_maximum_level M D = MMax ({#0#} + image_mset (get_level M) D)"
+"get_maximum_level M D = Max_mset ({#0#} + image_mset (get_level M) D)"
 
 lemma get_maximum_level_ge_get_level:
   "L \<in># D \<Longrightarrow> get_maximum_level M D \<ge> get_level M L"
