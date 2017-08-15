@@ -309,8 +309,6 @@ subsubsection \<open>Refining code\<close>
 context twl_array_code
 begin
 
-paragraph \<open>Inner Loop of the Propagation\<close>
-
 paragraph \<open>Unit propagation, body of the inner loop\<close>
 
 definition (in -) set_conflict :: \<open>nat clauses_l \<Rightarrow> nat \<Rightarrow> nat clause option \<Rightarrow> nat clause option\<close> where
@@ -1425,7 +1423,7 @@ qed
 thm unit_propagation_inner_loop_body_wl_D_def
 lemma update_clause_wl_int_code_update_clause_wl[sepref_fr_rules]:
   \<open>(uncurry5 update_clause_wl_int_code, uncurry5 update_clause_wl) \<in>
-    [\<lambda>(((((L, C), w), i), f), S). 
+    [\<lambda>(((((L, C), w), i), f), S).
       unit_prop_body_wl_D_inv S w L \<and>
       unit_prop_body_wl_D_find_unwatched_inv (Some f) C S \<and>
       C = watched_by S L ! w \<and>
@@ -1458,7 +1456,7 @@ proof -
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF update_clause_wl_int_code update_clause_wl_int_update_clause_wl]
     .
-  have [dest]: \<open>literals_are_in_N\<^sub>0_mm (mset `# mset (tl (get_clauses_wl S)))\<close> 
+  have [dest]: \<open>literals_are_in_N\<^sub>0_mm (mset `# mset (tl (get_clauses_wl S)))\<close>
     if \<open>unit_prop_body_wl_D_inv S w L\<close>
     for S w L
   proof -
@@ -1635,12 +1633,11 @@ context twl_array_code
 begin
 
 
-sepref_register unit_propagation_inner_loop_body_wl_D
 sepref_thm unit_propagation_inner_loop_body_wl_D
   is \<open>uncurry2 ((PR_CONST unit_propagation_inner_loop_body_wl_D) :: nat literal \<Rightarrow> nat \<Rightarrow>
            nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_assn\<close>
-  supply 
+  supply
     if_splits[split] unit_prop_body_wl_D_invD[intro,dest]
     watched_by_app_def[symmetric,simp]
     access_lit_in_clauses_def[simp] unit_prop_body_wl_D_invD'[intro]
@@ -1663,8 +1660,181 @@ concrete_definition (in -) unit_propagation_inner_loop_body_wl_D_code
 
 prepare_code_thms (in -) unit_propagation_inner_loop_body_wl_D_code_def
 
+sepref_register unit_propagation_inner_loop_body_wl_D
 lemmas unit_propagation_inner_loop_body_wl_D_code_refine[sepref_fr_rules] =
-   unit_propagation_inner_loop_body_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms,
+   unit_propagation_inner_loop_body_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma \<open>(RETURN o watched_by_int, RETURN o watched_by) \<in>
+  twl_st_ref \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  apply (auto simp: twl_st_ref_def map_fun_rel_def intro!: ext)
+  oops
+
+sepref_register unit_propagation_inner_loop_wl_loop_D
+sepref_thm unit_propagation_inner_loop_wl_loop_D
+  is \<open>uncurry ((PR_CONST unit_propagation_inner_loop_wl_loop_D) :: nat literal \<Rightarrow>
+           nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_assn\<close>
+  unfolding unit_propagation_inner_loop_wl_loop_D_def length_ll_def[symmetric] PR_CONST_def
+  unfolding watched_by_nth_watched_app watched_app_def[symmetric]
+    length_ll_f_def[symmetric]
+  unfolding nth_ll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
+  unfolding swap_ll_def[symmetric]
+  unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
+    is_None_def[symmetric] get_conflict_wl_is_None
+  supply [[goals_limit=1]]
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+     apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_keep
+  thm unit_propagation_inner_loop_body_wl_D_code_refine[unfolded PR_CONST_def, to_hnr]
+  apply sepref_dbg_side_keep
+
+paragraph \<open>Unit propagation, inner loop\<close>
+
+sepref_register unit_propagation_inner_loop_wl_D
+sepref_thm unit_propagation_inner_loop_wl_D
+  is \<open>uncurry (PR_CONST unit_propagation_inner_loop_wl_D)\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding PR_CONST_def unit_propagation_inner_loop_wl_loop_D_def
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+     apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_trans_keep
+  thm unit_propagation_inner_loop_body_wl_D_code_refine[unfolded PR_CONST_def, to_hnr]
+  apply sepref_dbg_side_keep
+  by sepref
+
+concrete_definition (in -) unit_propagation_inner_loop_wl_D_code
+   uses twl_array_code.unit_propagation_inner_loop_wl_D.refine_raw
+   is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) unit_propagation_inner_loop_wl_D_code_def
+
+lemmas unit_propagation_inner_loop_wl_D_code_refine[sepref_fr_rules] =
+   unit_propagation_inner_loop_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms,
+     unfolded twl_st_assn_def]
+
+
+lemma literals_to_update_wll_empty_hnr[unfolded twl_st_assn_def, sepref_fr_rules]:
+  \<open>(return o (\<lambda>(M, N, U, D, NP, UP, Q, W). is_Nil Q), RETURN o literals_to_update_wl_empty) \<in> twl_st_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  apply sepref_to_hoare
+  apply (rename_tac S' S)
+  apply (case_tac \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). Q) S\<close>;
+      case_tac \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). Q) S'\<close>)
+  by (sep_auto simp: twl_st_assn_def literals_to_update_wll_empty_def literals_to_update_wl_empty_def
+      list_mset_assn_empty_Cons list_mset_assn_add_mset_Nil
+      split: list.splits)+
+
+concrete_definition (in -) literals_to_update_wll_empty'
+   uses twl_array_code.literals_to_update_wll_empty_hnr
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) literals_to_update_wll_empty'_def
+
+lemmas literals_to_update_wll_empty'_code[sepref_fr_rules] =
+   literals_to_update_wll_empty'.refine[of N\<^sub>0, OF twl_array_code_axioms,
+     unfolded twl_st_assn_def]
+
+lemma hd_select_and_remove_from_literals_to_update_wl''_refine:
+  \<open>(return o (\<lambda>(M, N, U, D, NP, UP, Q, W).  ((M, N, U, D, NP, UP, tl Q, W), hd Q)),
+       select_and_remove_from_literals_to_update_wl :: nat twl_st_wl \<Rightarrow> (nat twl_st_wl \<times> nat literal) nres) \<in>
+    [\<lambda>S. \<not>literals_to_update_wl_empty S]\<^sub>a
+    twl_st_assn\<^sup>d \<rightarrow> twl_st_assn *assn unat_lit_assn\<close>
+  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  let ?int = \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W).  ((M, N, U, D, NP, UP, tl Q, W), hd Q))\<close>
+  define twl_st_l_interm_rel_1 :: \<open>(_ \<times> nat twl_st_wl) set\<close> where
+    \<open>twl_st_l_interm_rel_1 \<equiv> Id \<times>\<^sub>r \<langle>\<langle>Id\<rangle> list_rel\<rangle>list_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r
+     \<langle>Id\<rangle>option_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r list_mset_rel \<times>\<^sub>r Id\<close>
+  have 1:
+    \<open>(RETURN o ?int,
+       select_and_remove_from_literals_to_update_wl :: nat twl_st_wl \<Rightarrow> (nat twl_st_wl \<times> nat literal) nres) \<in>
+    [\<lambda>(_, _, _, _, _, _, Q, _). Q \<noteq> {#}]\<^sub>f
+    twl_st_l_interm_rel_1 \<rightarrow> \<langle>twl_st_l_interm_rel_1 \<times>\<^sub>r Id\<rangle>nres_rel\<close>
+    unfolding fref_def
+    apply clarify
+    apply (rename_tac a aa ab ac ad ae af b ag ah ai aj ak al am ba)
+    apply (case_tac af)
+     apply (auto simp: fref_def nres_rel_def twl_st_l_interm_rel_1_def
+        select_and_remove_from_literals_to_update_wl_def RETURN_RES_refine_iff list_mset_rel_def br_def)
+    done
+  define twl_st_l_interm_assn_2 :: \<open>_ \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
+    \<open>twl_st_l_interm_assn_2 \<equiv>
+       (trail_assn *assn clauses_ll_assn *assn nat_assn *assn
+       conflict_option_assn *assn
+       unit_lits_assn *assn
+       unit_lits_assn *assn
+       list_assn unat_lit_assn *assn
+       array_watched_assn
+      )\<close>
+  have 2:
+    \<open>(return o (\<lambda>(M, N, U, D, NP, UP, Q, W). ((M, N, U, D, NP, UP, tl Q, W), hd Q)), RETURN o ?int) \<in>
+    [\<lambda>(_, _, _, _, _, _, Q, _). Q \<noteq> []]\<^sub>a
+    twl_st_l_interm_assn_2\<^sup>d \<rightarrow> twl_st_l_interm_assn_2 *assn unat_lit_assn\<close>
+    unfolding twl_st_l_interm_assn_2_def
+    apply sepref_to_hoare
+    by (case_tac \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). Q) x\<close>;
+        case_tac \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). Q) xi\<close>) sep_auto+
+  have H: \<open>(return \<circ> (\<lambda>(M, N, U, D, NP, UP, Q, W). ((M, N, U, D, NP, UP, tl Q, W), hd Q)),
+             select_and_remove_from_literals_to_update_wl)
+            \<in> [comp_PRE twl_st_l_interm_rel_1
+                 (\<lambda>(_, _, _, _, _, _, Q, _). Q \<noteq> {#})
+                 (\<lambda>_ (_, _, _, _, _, _, Q, _). Q \<noteq> [])
+                 (\<lambda>_. True)]\<^sub>a
+              hrp_comp (twl_st_l_interm_assn_2\<^sup>d) twl_st_l_interm_rel_1 \<rightarrow>
+              hr_comp (twl_st_l_interm_assn_2 *assn unat_lit_assn) (twl_st_l_interm_rel_1 \<times>\<^sub>r Id)\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF 2 1] .
+  have pre: \<open>?pre' = ?pre\<close>
+    by (auto simp: comp_PRE_def twl_st_l_interm_rel_1_def in_br_conv list_mset_rel_def
+        literals_to_update_wl_empty_def)
+
+  have im: \<open>?im' = ?im\<close>
+    unfolding twl_st_l_interm_assn_2_def twl_st_l_interm_rel_1_def prod_hrp_comp
+    by (auto simp: prod_hrp_comp hrp_comp_def list_assn_list_mset_rel_eq_list_mset_assn
+        twl_st_assn_def hr_comp_invalid)
+
+ have post: \<open>?f' = ?f\<close>
+   by (auto simp: comp_PRE_def twl_st_l_interm_assn_2_def
+       twl_st_assn_def list_assn_list_mset_rel_eq_list_mset_assn
+       twl_st_l_interm_rel_1_def)
+  show ?thesis using H unfolding pre post im .
+qed
+
+concrete_definition (in -) hd_select_and_remove_from_literals_to_update_wl''
+   uses twl_array_code.hd_select_and_remove_from_literals_to_update_wl''_refine
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) hd_select_and_remove_from_literals_to_update_wl''_def
+
+lemmas [sepref_fr_rules] =
+   hd_select_and_remove_from_literals_to_update_wl''.refine[of N\<^sub>0, OF twl_array_code_axioms,
+     unfolded twl_st_assn_def]
+
+
+paragraph \<open>Unit propagation, outer loop\<close>
+
+sepref_register unit_propagation_outer_loop_wl_D
+sepref_thm unit_propagation_outer_loop_wl_D
+  is \<open>((PR_CONST unit_propagation_outer_loop_wl_D) :: nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres)\<close>
+  :: \<open>twl_st_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_assn\<close>
+  supply [[goals_limit=1]]
+  apply (subst PR_CONST_def)
+  unfolding unit_propagation_outer_loop_wl_D_def twl_st_assn_def
+    literals_to_update_wl_literals_to_update_wl_empty
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) unit_propagation_outer_loop_wl_D_code
+   uses twl_array_code.unit_propagation_outer_loop_wl_D.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) unit_propagation_outer_loop_wl_D_code_def
+
+lemmas unit_propagation_outer_loop_wl_D_code_refine[sepref_fr_rules] =
+   unit_propagation_outer_loop_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms,
      unfolded twl_st_assn_def]
 
 
