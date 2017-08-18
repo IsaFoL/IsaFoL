@@ -1672,7 +1672,7 @@ definition (in -) length_ll_fs_int :: \<open>twl_st_wl_int \<Rightarrow> nat lit
 
 lemma length_ll_fs_int_length_ll_fs:
     \<open>(uncurry (RETURN oo length_ll_fs_int), uncurry (RETURN oo length_ll_fs)) \<in>
-    [\<lambda>(S, L). L \<in> snd ` D\<^sub>0]\<^sub>f twl_st_ref \<times>\<^sub>r Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close> 
+    [\<lambda>(S, L). L \<in> snd ` D\<^sub>0]\<^sub>f twl_st_ref \<times>\<^sub>r Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   apply (rename_tac x y, case_tac x, case_tac y)
   by (auto simp: length_ll_fs_def length_ll_fs_int_def twl_st_ref_def map_fun_rel_def)
@@ -1684,7 +1684,7 @@ sepref_thm length_ll_fs_int_code
   is \<open>uncurry (RETURN oo length_ll_fs_int)\<close>
   :: \<open>[\<lambda>(S, L). nat_of_lit L < length (get_watched_wl_int S)]\<^sub>a twl_st_int_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
   unfolding length_ll_fs_int_def get_watched_wl_int_def twl_st_int_assn_def length_ll_def[symmetric]
-  supply [[goals_limit=1]] 
+  supply [[goals_limit=1]]
   by sepref
 
 concrete_definition (in -) length_ll_fs_int_code
@@ -1702,13 +1702,13 @@ lemma length_ll_fs_int_code_length_ll_fs[sepref_fr_rules]:
      twl_st_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
     (is \<open>?fun \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
-thm hfref_compI_PRE_aux[OF length_ll_fs_int_code_refine length_ll_fs_int_length_ll_fs] 
+thm hfref_compI_PRE_aux[OF length_ll_fs_int_code_refine length_ll_fs_int_length_ll_fs]
   have H: \<open>?fun ∈ [comp_PRE (twl_st_ref ×⇩f Id) (λ(S, L). L ∈ snd ` D⇩0)
     (λ_ (S, L). nat_of_lit L < length (get_watched_wl_int S))
     (λ_. True)]⇩a hrp_comp (twl_st_int_assn⇧k *⇩a unat_lit_assn⇧k)
                    (twl_st_ref ×⇩f Id) → hr_comp nat_assn nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF length_ll_fs_int_code_refine length_ll_fs_int_length_ll_fs] 
+    using hfref_compI_PRE_aux[OF length_ll_fs_int_code_refine length_ll_fs_int_length_ll_fs]
     .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     using that unfolding comp_PRE_def twl_st_ref_def
