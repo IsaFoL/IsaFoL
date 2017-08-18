@@ -573,7 +573,7 @@ fun watched_by_int:: \<open>twl_st_wl_int \<Rightarrow> nat literal \<Rightarrow
 fun (in -) get_watched_wl :: \<open>nat twl_st_wl \<Rightarrow> (nat literal \<Rightarrow> nat list)\<close> where
   \<open>get_watched_wl (_, _, _, _, _, _, _, W) = W\<close>
 
-fun get_watched_wl_int :: \<open>twl_st_wl_int \<Rightarrow> nat list list\<close> where
+fun (in -) get_watched_wl_int :: \<open>twl_st_wl_int \<Rightarrow> nat list list\<close> where
   \<open>get_watched_wl_int (_, _, _, _, _, W, _) = W\<close>
 
 definition (in -) watched_by_app_int :: \<open>twl_st_wl_int \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat\<close> where
@@ -1188,7 +1188,8 @@ concrete_definition (in -) cons_trail_Propagated_tr_code
 
 prepare_code_thms (in -) cons_trail_Propagated_tr_code_def
 
-lemmas cons_trail_Propagated_tr_code[sepref_fr_rules] = cons_trail_Propagated_tr_code.refine[OF twl_array_code_axioms]
+lemmas cons_trail_Propagated_tr_code[sepref_fr_rules] =
+  cons_trail_Propagated_tr_code.refine[OF twl_array_code_axioms]
 
 lemma cons_trail_Propagated_tr_code_cons_trail_Propagated_tr[sepref_fr_rules]:
   \<open>(uncurry2 cons_trail_Propagated_tr_code, uncurry2 (RETURN ooo cons_trail_Propagated)) \<in>
@@ -1632,7 +1633,6 @@ setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper "split_all_tac")\<cl
 context twl_array_code
 begin
 
-
 sepref_thm unit_propagation_inner_loop_body_wl_D
   is \<open>uncurry2 ((PR_CONST unit_propagation_inner_loop_body_wl_D) :: nat literal \<Rightarrow> nat \<Rightarrow>
            nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
@@ -1664,31 +1664,91 @@ sepref_register unit_propagation_inner_loop_body_wl_D
 lemmas unit_propagation_inner_loop_body_wl_D_code_refine[sepref_fr_rules] =
    unit_propagation_inner_loop_body_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
 
-lemma \<open>(RETURN o watched_by_int, RETURN o watched_by) \<in>
-  twl_st_ref \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+definition (in -) length_ll_fs :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
+  \<open>length_ll_fs = (\<lambda>(_, _, _, _, _, _, _, W) L. length (W L))\<close>
+
+definition (in -) length_ll_fs_int :: \<open>twl_st_wl_int \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
+  \<open>length_ll_fs_int = (\<lambda>(M, N, U, D, Q, W, _) L. length (W ! nat_of_lit L))\<close>
+
+lemma length_ll_fs_int_length_ll_fs:
+    \<open>(uncurry (RETURN oo length_ll_fs_int), uncurry (RETURN oo length_ll_fs)) \<in>
+    [\<lambda>(S, L). L \<in> snd ` D\<^sub>0]\<^sub>f twl_st_ref \<times>\<^sub>r Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close> 
   apply (intro frefI nres_relI)
-  apply (auto simp: twl_st_ref_def map_fun_rel_def intro!: ext)
-  oops
+  apply (rename_tac x y, case_tac x, case_tac y)
+  by (auto simp: length_ll_fs_def length_ll_fs_int_def twl_st_ref_def map_fun_rel_def)
+
+lemma (in -) get_watched_wl_int_def: \<open>get_watched_wl_int = (\<lambda>(M, N, U, D, Q, W, _). W)\<close>
+  by (intro ext, rename_tac x, case_tac x) (auto intro!: ext)
+
+sepref_thm length_ll_fs_int_code
+  is \<open>uncurry (RETURN oo length_ll_fs_int)\<close>
+  :: \<open>[\<lambda>(S, L). nat_of_lit L < length (get_watched_wl_int S)]\<^sub>a twl_st_int_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  unfolding length_ll_fs_int_def get_watched_wl_int_def twl_st_int_assn_def length_ll_def[symmetric]
+  supply [[goals_limit=1]] 
+  by sepref
+
+concrete_definition (in -) length_ll_fs_int_code
+   uses twl_array_code.length_ll_fs_int_code.refine_raw
+   is \<open>(uncurry ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) length_ll_fs_int_code_def
+
+lemmas length_ll_fs_int_code_refine[sepref_fr_rules] =
+   length_ll_fs_int_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma length_ll_fs_int_code_length_ll_fs[sepref_fr_rules]:
+  \<open>(uncurry length_ll_fs_int_code, uncurry (RETURN oo length_ll_fs)) \<in>
+    [\<lambda>(S, L). L \<in> snd ` D\<^sub>0]\<^sub>a
+     twl_st_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
+    (is \<open>?fun \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+thm hfref_compI_PRE_aux[OF length_ll_fs_int_code_refine length_ll_fs_int_length_ll_fs] 
+  have H: \<open>?fun ∈ [comp_PRE (twl_st_ref ×⇩f Id) (λ(S, L). L ∈ snd ` D⇩0)
+    (λ_ (S, L). nat_of_lit L < length (get_watched_wl_int S))
+    (λ_. True)]⇩a hrp_comp (twl_st_int_assn⇧k *⇩a unat_lit_assn⇧k)
+                   (twl_st_ref ×⇩f Id) → hr_comp nat_assn nat_rel\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF length_ll_fs_int_code_refine length_ll_fs_int_length_ll_fs] 
+    .
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
+    using that unfolding comp_PRE_def twl_st_ref_def
+    by (auto simp: image_image map_fun_rel_def)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def[symmetric]
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
+qed
+
+lemma length_ll_fs_alt_def: \<open>length_ll_fs S L = length_ll_f (watched_by S) L\<close>
+  by (cases S) (auto simp: length_ll_fs_def length_ll_f_def)
 
 sepref_register unit_propagation_inner_loop_wl_loop_D
 sepref_thm unit_propagation_inner_loop_wl_loop_D
   is \<open>uncurry ((PR_CONST unit_propagation_inner_loop_wl_loop_D) :: nat literal \<Rightarrow>
            nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *assn twl_st_assn\<close>
-  unfolding unit_propagation_inner_loop_wl_loop_D_def length_ll_def[symmetric] PR_CONST_def
+  unfolding unit_propagation_inner_loop_wl_loop_D_def PR_CONST_def
   unfolding watched_by_nth_watched_app watched_app_def[symmetric]
-    length_ll_f_def[symmetric]
+    length_ll_f_def[symmetric] length_ll_fs_alt_def[symmetric]
   unfolding nth_ll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
   unfolding swap_ll_def[symmetric]
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
-    is_None_def[symmetric] get_conflict_wl_is_None
+    is_None_def[symmetric] get_conflict_wl_is_None length_ll_fs_def[symmetric]
   supply [[goals_limit=1]]
   apply sepref_dbg_keep
   apply sepref_dbg_trans_keep
      apply sepref_dbg_trans_step_keep
   apply sepref_dbg_trans_keep
-  thm unit_propagation_inner_loop_body_wl_D_code_refine[unfolded PR_CONST_def, to_hnr]
   apply sepref_dbg_side_keep
+  oops
+
 
 paragraph \<open>Unit propagation, inner loop\<close>
 
