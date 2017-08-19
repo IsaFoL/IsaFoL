@@ -1703,10 +1703,10 @@ lemma length_ll_fs_int_code_length_ll_fs[sepref_fr_rules]:
     (is \<open>?fun \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
 thm hfref_compI_PRE_aux[OF length_ll_fs_int_code_refine length_ll_fs_int_length_ll_fs]
-  have H: \<open>?fun ∈ [comp_PRE (twl_st_ref ×⇩f Id) (λ(S, L). L ∈ snd ` D⇩0)
-    (λ_ (S, L). nat_of_lit L < length (get_watched_wl_int S))
-    (λ_. True)]⇩a hrp_comp (twl_st_int_assn⇧k *⇩a unat_lit_assn⇧k)
-                   (twl_st_ref ×⇩f Id) → hr_comp nat_assn nat_rel\<close>
+  have H: \<open>?fun \<in> [comp_PRE (twl_st_ref \<times>\<^sub>f Id) (\<lambda>(S, L). L \<in> snd ` D\<^sub>0)
+    (\<lambda>_ (S, L). nat_of_lit L < length (get_watched_wl_int S))
+    (\<lambda>_. True)]\<^sub>a hrp_comp (twl_st_int_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k)
+                   (twl_st_ref \<times>\<^sub>f Id) \<rightarrow> hr_comp nat_assn nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF length_ll_fs_int_code_refine length_ll_fs_int_length_ll_fs]
     .
