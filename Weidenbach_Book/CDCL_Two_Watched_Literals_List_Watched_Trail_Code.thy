@@ -1722,7 +1722,41 @@ qed
 lemma length_ll_fs_alt_def: \<open>length_ll_fs S L = length_ll_f (watched_by S) L\<close>
   by (cases S) (auto simp: length_ll_fs_def length_ll_f_def)
 
+definition (in -) get_conflict_wl_is_None_int :: \<open>twl_st_wl_int \<Rightarrow> bool\<close> where
+  \<open>get_conflict_wl_is_None_int = (\<lambda>(M, N, U, D, Q, W, _). is_None D)\<close>
+
+lemma get_conflict_wl_is_None_int_get_conflict_wl_is_None:
+    \<open>(RETURN o get_conflict_wl_is_None_int,  RETURN o get_conflict_wl_is_None) \<in>
+    twl_st_ref \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  apply (rename_tac x y, case_tac x, case_tac y)
+  by (auto simp: twl_st_ref_def get_conflict_wl_is_None_int_def get_conflict_wl_is_None_def
+     split: option.splits)
+
+sepref_thm get_conflict_wl_is_None_int_code
+  is \<open>RETURN o get_conflict_wl_is_None_int\<close>
+  :: \<open>twl_st_int_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding get_conflict_wl_is_None_int_def get_watched_wl_int_def twl_st_int_assn_def length_ll_def[symmetric]
+  supply [[goals_limit=1]]
+  by sepref
+
+concrete_definition (in -) get_conflict_wl_is_None_int_code
+   uses twl_array_code.get_conflict_wl_is_None_int_code.refine_raw
+   is \<open>(?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) get_conflict_wl_is_None_int_code_def
+
+lemmas get_conflict_wl_is_None_int_code_refine[sepref_fr_rules] =
+   get_conflict_wl_is_None_int_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma get_conflict_wl_is_None_int_code_get_conflict_wl_is_None[sepref_fr_rules]:
+  \<open>(get_conflict_wl_is_None_int_code, RETURN o get_conflict_wl_is_None) \<in>
+     twl_st_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  using get_conflict_wl_is_None_int_code_refine[FCOMP get_conflict_wl_is_None_int_get_conflict_wl_is_None]
+  unfolding twl_st_assn_def by fast
+
 sepref_register unit_propagation_inner_loop_wl_loop_D
+
 sepref_thm unit_propagation_inner_loop_wl_loop_D
   is \<open>uncurry ((PR_CONST unit_propagation_inner_loop_wl_loop_D) :: nat literal \<Rightarrow>
            nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
@@ -1735,13 +1769,17 @@ sepref_thm unit_propagation_inner_loop_wl_loop_D
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     is_None_def[symmetric] get_conflict_wl_is_None length_ll_fs_def[symmetric]
   supply [[goals_limit=1]]
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-     apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_side_keep
-  oops
+  by sepref
 
+
+concrete_definition (in -) unit_propagation_inner_loop_wl_loop_D_code
+   uses twl_array_code.unit_propagation_inner_loop_wl_loop_D.refine_raw
+   is \<open>(uncurry ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) unit_propagation_inner_loop_wl_loop_D_code_def
+
+lemmas unit_propagation_inner_loop_wl_loop_D_code_refine[sepref_fr_rules] =
+   unit_propagation_inner_loop_wl_loop_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
 
 paragraph \<open>Unit propagation, inner loop\<close>
 
@@ -1750,13 +1788,7 @@ sepref_thm unit_propagation_inner_loop_wl_D
   is \<open>uncurry (PR_CONST unit_propagation_inner_loop_wl_D)\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_assn\<close>
   supply [[goals_limit=1]]
-  unfolding PR_CONST_def unit_propagation_inner_loop_wl_loop_D_def
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-     apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_trans_keep
-  thm unit_propagation_inner_loop_body_wl_D_code_refine[unfolded PR_CONST_def, to_hnr]
-  apply sepref_dbg_side_keep
+  unfolding PR_CONST_def unit_propagation_inner_loop_wl_D_def
   by sepref
 
 concrete_definition (in -) unit_propagation_inner_loop_wl_D_code
