@@ -1428,13 +1428,7 @@ lemma update_clause_wl_int_code_update_clause_wl[sepref_fr_rules]:
       unit_prop_body_wl_D_inv S w L \<and>
       unit_prop_body_wl_D_find_unwatched_inv (Some f) C S \<and>
       C = watched_by S L ! w \<and>
-      i = (if get_clauses_wl S ! C ! 0 = L then 0 else 1)
-(*)
-      (get_clauses_wl S ! C) ! f \<noteq> L \<and>
-      C < length (get_clauses_wl S) \<and>
-      f < length (get_clauses_wl S ! C) \<and>
-      (get_clauses_wl S ! C) ! f \<in> snd ` D\<^sub>0 \<and>
-      w < length (get_watched_wl S L)*)]\<^sub>a
+      i = (if get_clauses_wl S ! C ! 0 = L then 0 else 1)]\<^sub>a
      unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a  nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>d \<rightarrow>
        nat_assn *assn twl_st_assn\<close>
     (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
@@ -1486,12 +1480,11 @@ proof -
     subgoal for L C w i f M N U D NP UP Q W y
       apply (subgoal_tac \<open>literals_are_in_N\<^sub>0_mm (mset `# mset (tl N))\<close>)
       subgoal
-          using literals_are_in_N\<^sub>0_mm_in_N\<^sub>1[of \<open>tl N\<close> \<open>(W L ! w - 1)\<close> f]
-         using that unfolding comp_PRE_def twl_st_ref_def  map_fun_rel_def unit_prop_body_wl_D_find_unwatched_inv_def
+        using literals_are_in_N\<^sub>0_mm_in_N\<^sub>1[of \<open>tl N\<close> \<open>(W L ! w - 1)\<close> f]
+        using that unfolding comp_PRE_def twl_st_ref_def  map_fun_rel_def unit_prop_body_wl_D_find_unwatched_inv_def
         unit_prop_body_wl_find_unwatched_inv_def unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
         unit_propagation_inner_loop_body_l_inv_def
-        apply (auto dest: simp: nth_tl )[]
-        done
+        by (auto dest: simp: nth_tl )[]
       subgoal
         using that by auto
       done
@@ -1776,26 +1769,6 @@ lemmas unit_propagation_inner_loop_wl_D_code_refine[sepref_fr_rules] =
    unit_propagation_inner_loop_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms,
      unfolded twl_st_assn_def]
 
-
-lemma literals_to_update_wll_empty_hnr[unfolded twl_st_assn_def, sepref_fr_rules]:
-  \<open>(return o (\<lambda>(M, N, U, D, NP, UP, Q, W). is_Nil Q), RETURN o literals_to_update_wl_empty) \<in> twl_st_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  apply sepref_to_hoare
-  apply (rename_tac S' S)
-  apply (case_tac \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). Q) S\<close>;
-      case_tac \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). Q) S'\<close>)
-  by (sep_auto simp: twl_st_assn_def literals_to_update_wll_empty_def literals_to_update_wl_empty_def
-      list_mset_assn_empty_Cons list_mset_assn_add_mset_Nil
-      split: list.splits)+
-
-concrete_definition (in -) literals_to_update_wll_empty'
-   uses twl_array_code.literals_to_update_wll_empty_hnr
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) literals_to_update_wll_empty'_def
-
-lemmas literals_to_update_wll_empty'_code[sepref_fr_rules] =
-   literals_to_update_wll_empty'.refine[of N\<^sub>0, OF twl_array_code_axioms,
-     unfolded twl_st_assn_def]
 
 lemma hd_select_and_remove_from_literals_to_update_wl''_refine:
   \<open>(return o (\<lambda>(M, N, U, D, NP, UP, Q, W).  ((M, N, U, D, NP, UP, tl Q, W), hd Q)),
