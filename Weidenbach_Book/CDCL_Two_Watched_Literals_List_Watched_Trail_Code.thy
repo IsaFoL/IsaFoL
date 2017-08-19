@@ -1807,17 +1807,17 @@ type_synonym (in -) twl_st_wl_int_W_list =
   \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times> nat \<times>
     nat cconflict \<times> nat literal list \<times> nat list list \<times> vmtf_remove_int \<times> bool list\<close>
 
-definition (in -) select_and_remove_from_literals_to_update_wl_int 
+definition (in -) select_and_remove_from_literals_to_update_wl_int
   :: \<open>twl_st_wl_int_W_list \<Rightarrow> twl_st_wl_int_W_list \<times> _\<close> where
   ‹select_and_remove_from_literals_to_update_wl_int =
      (\<lambda>(M, N, U, D, Q, W, other).  ((M, N, U, D, tl Q, W, other), hd Q))›
 
 definition twl_st_wl_int_W_list_rel :: ‹(twl_st_wl_int_W_list \<times> twl_st_wl_int) set› where
   ‹twl_st_wl_int_W_list_rel =
-     (Id :: ((nat,nat) ann_lits \<times> _) set) \<times>\<^sub>r 
-     (Id :: (nat clauses_l  \<times> _) set) \<times>\<^sub>r 
+     (Id :: ((nat,nat) ann_lits \<times> _) set) \<times>\<^sub>r
+     (Id :: (nat clauses_l  \<times> _) set) \<times>\<^sub>r
      nat_rel \<times>\<^sub>r
-     (Id :: (nat cconflict \<times> _)set) \<times>\<^sub>r 
+     (Id :: (nat cconflict \<times> _)set) \<times>\<^sub>r
      (list_mset_rel :: (nat literal list \<times> nat lit_queue_wl) set)  \<times>\<^sub>r
      (Id :: (nat list list \<times> _)set) \<times>\<^sub>r
      Id \<times>\<^sub>r
@@ -1832,7 +1832,7 @@ definition twl_st_int_W_list_rel_assn :: \<open>twl_st_wl_int_W_list \<Rightarro
   vmtf_remove_conc *assn phase_saver_conc
   )\<close>
 
-lemma twl_st_wl_int_W_list_rel_twl_st_rel: ‹twl_st_wl_int_W_list_rel O twl_st_ref = 
+lemma twl_st_wl_int_W_list_rel_twl_st_rel: ‹twl_st_wl_int_W_list_rel O twl_st_ref =
    {((M', N', U', D', Q', W', vm, φ), M, N, U, D, NP, UP, Q, W).
      M = M' ∧
      N' = N ∧
@@ -1864,7 +1864,7 @@ definition get_literals_to_update_wl_int_W_list where
 
 (* TODO Move *)
 lemma (in -) nempty_list_mset_rel_iff: ‹M ≠ {#} ⟹
-       (xs, M) ∈ list_mset_rel \<longleftrightarrow> (xs \<noteq> [] \<and> hd xs \<in># M \<and> 
+       (xs, M) ∈ list_mset_rel \<longleftrightarrow> (xs \<noteq> [] \<and> hd xs \<in># M \<and>
          (tl xs, remove1_mset (hd xs) M) \<in> list_mset_rel)›
   by (cases xs)
    (auto simp: list_mset_rel_def br_def dest!: multi_member_split)
@@ -1879,12 +1879,12 @@ lemma select_and_remove_from_literals_to_update_wl_int_select_and_remove_from_li
     [\<lambda>S. \<not>literals_to_update_wl_empty S]\<^sub>f
       (twl_st_wl_int_W_list_rel O twl_st_ref) \<rightarrow>
        \<langle>(twl_st_wl_int_W_list_rel O twl_st_ref) \<times>\<^sub>r Id\<rangle>nres_rel›
-  unfolding select_and_remove_from_literals_to_update_wl_int_def   
+  unfolding select_and_remove_from_literals_to_update_wl_int_def
   select_and_remove_from_literals_to_update_wl_def get_literals_to_update_wl_int_W_list_def
   twl_st_wl_int_W_list_rel_twl_st_rel get_literals_to_update_wl_def
   literals_to_update_wl_empty_def
   apply (intro frefI nres_relI)
-  apply (rename_tac x y, case_tac x, case_tac y, 
+  apply (rename_tac x y, case_tac x, case_tac y,
       case_tac ‹get_literals_to_update_wl_int_W_list y›)
   unfolding get_literals_to_update_wl_def get_literals_to_update_wl_int_W_list_def
   by (auto intro!: RETURN_SPEC_refine simp: nempty_list_mset_rel_iff)
@@ -1922,7 +1922,7 @@ proof -
          (λS. ¬ literals_to_update_wl_empty S)
          (λ_ S. ¬ literals_to_update_wl_int_empty S)
          (λ_. True)]⇩a
-      hrp_comp (twl_st_int_W_list_rel_assn⇧d) (twl_st_wl_int_W_list_rel O twl_st_ref) → 
+      hrp_comp (twl_st_int_W_list_rel_assn⇧d) (twl_st_wl_int_W_list_rel O twl_st_ref) →
       hr_comp (twl_st_int_W_list_rel_assn *assn unat_lit_assn)
            ((twl_st_wl_int_W_list_rel O twl_st_ref) \<times>\<^sub>f Id)›
      (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
@@ -1976,7 +1976,7 @@ lemma literals_to_update_wl_int_empty_literals_to_update_wl_empty:
   apply (rename_tac x y, case_tac x, case_tac y)
   by (auto simp: Nil_list_mset_rel_iff empty_list_mset_rel_iff)
 
-lemma literals_to_update_wl_int_empty_code_literals_to_update_wl_empty[sepref_fr_rules]: 
+lemma literals_to_update_wl_int_empty_code_literals_to_update_wl_empty[sepref_fr_rules]:
   ‹(literals_to_update_wl_int_empty_code, RETURN ∘ literals_to_update_wl_empty)
      ∈ twl_st_assn⇧k →⇩a bool_assn›
   using literals_to_update_wl_int_empty_code_refine[FCOMP literals_to_update_wl_int_empty_literals_to_update_wl_empty]
