@@ -1,7 +1,7 @@
 (*
   FOL-Monk - First-Order Logic According to Monk
 
-  Author: John Bruntse Larsen, Andreas Halkjær From & Jørgen Villadsen
+  Authors: John Bruntse Larsen, Andreas Halkjær From & Jørgen Villadsen
 *)
 
 theory FOL_Monk imports Main
@@ -15,9 +15,9 @@ type_synonym var = nat
 
 datatype form = Pre string arity | Eq var var | Neg form | Imp form form | Uni var form
 
-abbreviation (input) "Falsity \<equiv> Uni 0 (Neg (Eq 0 0))"
+abbreviation "Truth \<equiv> Uni 0 (Eq 0 0)"
 
-abbreviation (input) "Truth \<equiv> Neg Falsity"
+abbreviation "Falsity \<equiv> Neg Truth"
 
 section \<open>Semantics of First-Order Logic\<close>
 
@@ -38,11 +38,11 @@ section \<open>Definition of Rules and Axioms\<close>
 
 primrec not_occurs_in :: "var \<Rightarrow> form \<Rightarrow> bool"
   where
-    "not_occurs_in x (Pre _ n) = (x \<ge> n)" |
-    "not_occurs_in x (Eq y z) = (x \<noteq> y \<and> x \<noteq> z)" |
-    "not_occurs_in x (Neg p) = not_occurs_in x p" |
-    "not_occurs_in x (Imp p q) = (not_occurs_in x p \<and> not_occurs_in x q)" |
-    "not_occurs_in x (Uni y p) = (x \<noteq> y \<and> not_occurs_in x p)"
+    "not_occurs_in z (Pre _ n) = (z \<ge> n)" |
+    "not_occurs_in z (Eq x y) = (z \<noteq> x \<and> z \<noteq> y)" |
+    "not_occurs_in z (Neg p) = not_occurs_in z p" |
+    "not_occurs_in z (Imp p q) = (not_occurs_in z p \<and> not_occurs_in z q)" |
+    "not_occurs_in z (Uni _ p) = not_occurs_in z p"
 
 datatype "thm" = Thm (concl: form)
 
@@ -127,7 +127,7 @@ inductive OK :: "form \<Rightarrow> bool" ("\<turnstile> _" 0)
     "\<turnstile> concl (c8 _ _ _)"
 
 proposition "\<turnstile> Truth"
-   using case_c6 unfolding c6_def by simp
+  by (metis c8_def case_c8 thm.sel)
 
 section \<open>Soundness of Proof System\<close>
 
@@ -141,7 +141,7 @@ proof (induct p arbitrary: e)
     by simp
   then show ?case
     using vars_bound by (metis semantics.simps(1))
-qed (simp_all add: fun_upd_twist)
+qed (simp_all, metis fun_upd_twist fun_upd_upd)
 
 lemma commute_uni: "semantics e g (Uni x (Uni y p)) \<Longrightarrow> semantics e g (Uni y (Uni x p))"
   by (metis fun_upd_twist semantics.simps(5))
@@ -166,29 +166,25 @@ proof -
     by simp
 qed
 
-lemma sound_modusponens:
+lemma sound_modusponens[simp]:
   "semantics e g (concl f) \<Longrightarrow> semantics e g (concl f') \<Longrightarrow>
   semantics e g (concl (modusponens f f'))"
   unfolding modusponens_def by (cases "concl f") simp_all
 
 theorem soundness: "\<turnstile> p \<Longrightarrow> semantics e g p"
 proof (induct p arbitrary: e rule: OK.induct)
-  case case_modusponens
-  then show ?case
-    using sound_modusponens by fast
-next
   case case_c5_1
   then show ?case
     unfolding c5_1_def using frame_property by fastforce
 next
   case case_c5_3
   then show ?case
-    unfolding c5_3_def using commute_uni by fastforce
+    unfolding c5_3_def using commute_uni by (metis semantics.simps(4) thm.sel)
 next
   case case_c8
   then show ?case
     unfolding c8_def using sound_c8 by simp blast
-qed (simp_all add: gen_def c1_def c2_def c3_def c4_def c5_2_def c6_def c7_def)
+qed (unfold gen_def c1_def c2_def c3_def c4_def c5_2_def c6_def c7_def, simp_all)
 
 corollary "\<not> (\<turnstile> Falsity)"
   using soundness by fastforce
