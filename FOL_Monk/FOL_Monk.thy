@@ -55,7 +55,7 @@ definition modusponens :: "thm \<Rightarrow> thm \<Rightarrow> thm"
 
 definition gen :: "var \<Rightarrow> thm \<Rightarrow> thm"
   where
-    "gen x a \<equiv> Thm (Uni x (concl a))"
+    "gen x s \<equiv> Thm (Uni x (concl s))"
 
 definition c1 :: "form \<Rightarrow> form \<Rightarrow> form \<Rightarrow> thm"
   where
@@ -102,9 +102,9 @@ section \<open>Definition of Proof System\<close>
 inductive OK :: "form \<Rightarrow> bool" ("\<turnstile> _" 0)
   where
     case_modusponens:
-    "\<turnstile> concl f \<Longrightarrow> \<turnstile> concl f' \<Longrightarrow> \<turnstile> concl (modusponens f f')" |
+    "\<turnstile> concl s \<Longrightarrow> \<turnstile> concl s' \<Longrightarrow> \<turnstile> concl (modusponens s s')" |
     case_gen:
-    "\<turnstile> concl f \<Longrightarrow> \<turnstile> concl (gen _ f)" |
+    "\<turnstile> concl s \<Longrightarrow> \<turnstile> concl (gen _ s)" |
     case_c1:
     "\<turnstile> concl (c1 _ _ _)" |
     case_c2:
@@ -167,9 +167,9 @@ proof -
 qed
 
 lemma sound_modusponens[simp]:
-  "semantics e g (concl f) \<Longrightarrow> semantics e g (concl f') \<Longrightarrow>
-  semantics e g (concl (modusponens f f'))"
-  unfolding modusponens_def by (cases "concl f") simp_all
+  "semantics e g (concl s) \<Longrightarrow> semantics e g (concl s') \<Longrightarrow>
+  semantics e g (concl (modusponens s s'))"
+  unfolding modusponens_def by (cases "concl s") simp_all
 
 theorem soundness: "\<turnstile> p \<Longrightarrow> semantics e g p"
 proof (induct p arbitrary: e rule: OK.induct)
