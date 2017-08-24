@@ -2220,9 +2220,8 @@ lemma Ball_atLeastLessThan_iff: \<open>(\<forall>L\<in>{a..<b}. P L) \<longleftr
 
 (* End Move *)
 
-lemma maximum_level_remove_code_get_maximum_level_remove:
-  \<open>(uncurry2 maximum_level_remove',
-     uncurry2 (RETURN ooo get_maximum_level_remove)) \<in>
+lemma maximum_level_remove'_get_maximum_level_remove:
+  \<open>(uncurry2 maximum_level_remove', uncurry2 (RETURN ooo get_maximum_level_remove)) \<in>
     [\<lambda>((M, D), L). literals_are_in_N\<^sub>0 D \<and> L \<in># D]\<^sub>f
       Id \<times>\<^sub>f conflict_rel \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
 proof -
@@ -2459,11 +2458,10 @@ lemma maximum_level_remove_code_get_maximum_level_remove[sepref_fr_rules]:
       trail_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
- have H: \<open>?c
+  have H: \<open>?c
     \<in> [comp_PRE (Id \<times>\<^sub>f conflict_rel \<times>\<^sub>f Id)
-     (\<lambda>((M, D), L). literals_are_in_N\<^sub>0 D \<and> L \<in># D)
-     (\<lambda>_ ((M, D), L). length (snd D) < upperN)
-     (\<lambda>_. True)]\<^sub>a hrp_comp
+       (\<lambda>((M, D), L). literals_are_in_N\<^sub>0 D \<and> L \<in># D) (\<lambda>_ ((M, D), L). True)
+       (\<lambda>_. True)]\<^sub>a hrp_comp
                      ((hr_comp trailt_conc trailt_ref)\<^sup>k *\<^sub>a
                       conflict_rel_assn\<^sup>k *\<^sub>a
                       unat_lit_assn\<^sup>k)
@@ -2471,7 +2469,7 @@ proof -
                       Id) \<rightarrow> hr_comp uint32_nat_assn nat_rel\<close>
      (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using  hfref_compI_PRE_aux[OF select_and_remove_from_literals_to_update_wl''_code[unfolded PR_CONST_def]
-      maximum_level_remove_code_get_maximum_level_remove]
+      maximum_level_remove'_get_maximum_level_remove]
     .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     using that unfolding comp_PRE_def twl_st_ref_def literals_to_update_wl_int_empty_def
@@ -2490,32 +2488,6 @@ proof -
      defer
     using H unfolding im f PR_CONST_def apply assumption
     using pre ..
-  have 1:
-  \<open>(uncurry2 (RETURN ooo maximum_level_remove),
-     uncurry2 (RETURN ooo get_maximum_level_remove)) \<in>
-    ((Id \<times>\<^sub>r list_mset_rel) \<times>\<^sub>r Id) \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
-    by (auto intro!: nres_relI frefI simp: list_mset_rel_def br_def maximum_level_remove
-        get_maximum_level_remove_def)
-  have H: \<open>(uncurry2 maximum_level_remove_code,
-   uncurry2 (RETURN \<circ>\<circ>\<circ> get_maximum_level_remove))
-  \<in> [comp_PRE (Id \<times>\<^sub>f list_mset_rel \<times>\<^sub>f Id) (\<lambda>_. True) (\<lambda>_ ((M, D), L). literals_are_in_N\<^sub>0 (mset D))
-       (\<lambda>_. True)]\<^sub>a hrp_comp (trail_assn\<^sup>k *\<^sub>a (arl_assn unat_lit_assn)\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k) (Id \<times>\<^sub>f list_mset_rel \<times>\<^sub>f Id) \<rightarrow>
-        hr_comp uint32_nat_assn nat_rel\<close>
-    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux [OF maximum_level_remove_code.refine 1, OF twl_array_code_axioms] .
-  have 1: \<open>?pre' = ?pre\<close> \<comment> \<open>TODO tune proof\<close>
-    apply (auto simp: comp_PRE_def
-        list_mset_rel_def br_def
-        simp del: literal_of_nat.simps intro!: ext)
-    by (metis mset_sorted_list_of_multiset)
-
-  have 2: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp by (auto simp: hrp_comp_def hr_comp_def)
-  have 3: \<open>?f' = ?f\<close>
-    by (auto simp: hrp_comp_def hr_comp_def)
-
-  show ?thesis
-    using H unfolding 1 2 3 .
 qed
 
 sepref_register skip_and_resolve_loop_wl_D
