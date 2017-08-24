@@ -2041,16 +2041,124 @@ lemma in_literals_are_in_N\<^sub>0_in_D\<^sub>0:
   shows \<open>L \<in> snd ` D\<^sub>0\<close>
   using assms by (cases L) (auto simp: image_image literals_are_in_N\<^sub>0_def all_lits_of_m_def)
 
-sepref_thm maximum_level_remove_code
-  is \<open>uncurry2 (RETURN ooo maximum_level_remove)\<close>
-  :: \<open>[\<lambda>((M, D), L). literals_are_in_N\<^sub>0 (mset D)]\<^sub>a
-       trail_assn\<^sup>k *\<^sub>a (arl_assn unat_lit_assn)\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  unfolding maximum_level_remove_def[abs_def]
-  supply in_literals_are_in_N\<^sub>0_in_D\<^sub>0[intro]
-  supply uint32_nat_assn_zero_uint32[sepref_fr_rules]
+
+
+paragraph \<open>Level of a literal\<close>
+
+definition get_level_trail :: \<open>trail_int \<Rightarrow> uint32 \<Rightarrow> nat\<close> where
+  \<open>get_level_trail = (\<lambda>(M, xs, lvls, k) L. lvls ! (nat_of_uint32 (L >> 1)))\<close>
+
+sepref_thm get_level_code
+  is \<open>uncurry (RETURN oo get_level_trail)\<close>
+  :: \<open>[\<lambda>((M, xs, lvls, k), L). nat_of_uint32 L div 2 < length lvls]\<^sub>a
+  trailt_conc\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  unfolding get_level_trail_def nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
   supply [[goals_limit = 1]]
-  apply (rewrite in "(False, \<hole>)" zero_uint32_def[symmetric])
-  apply (rewrite in "[\<hole>..<_]" annotate_assn[where A=nat_assn])
+  by sepref
+
+concrete_definition (in -) get_level_code
+   uses twl_array_code.get_level_code.refine_raw
+   is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) get_level_code_def
+
+lemmas get_level_code_get_level_code[sepref_fr_rules] =
+   get_level_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_assn_def]
+
+lemma get_level_code_get_level[sepref_fr_rules]:
+  \<open>(uncurry get_level_code, uncurry (RETURN oo get_level)) \<in>
+   [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a trail_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+    (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have [simp]: \<open>(ba, bb) \<in> nat_lit_rel \<Longrightarrow> ba div 2 = atm_of bb\<close> for ba bb
+    by (auto simp: p2rel_def lit_of_natP_def atm_of_lit_of_nat nat_lit_rel_def
+        simp del: literal_of_nat.simps)
+
+  have 1: \<open>(uncurry (RETURN oo get_level_trail), uncurry (RETURN oo get_level)) \<in>
+     [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>f trailt_ref \<times>\<^sub>f unat_lit_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
+    by (intro nres_relI frefI, rename_tac x y, case_tac x) (auto simp: image_image trailt_ref_def get_level_trail_def
+        nat_shiftr_div2 shiftr1_def unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def
+        nat_of_uint32_shiftr trailt_ref_def)
+
+  have H: \<open>(uncurry get_level_code, uncurry (RETURN \<circ>\<circ> get_level))
+\<in> [comp_PRE (trailt_ref \<times>\<^sub>f unat_lit_rel)
+     (\<lambda>(M, L). L \<in> snd ` D\<^sub>0)
+     (\<lambda>_ ((M, xs, lvls, k), L).
+         nat_of_uint32 L div 2 < length lvls)
+     (\<lambda>_. True)]\<^sub>a hrp_comp
+                     (trailt_conc\<^sup>k *\<^sub>a
+                      uint32_assn\<^sup>k)
+                     (trailt_ref \<times>\<^sub>f
+                      unat_lit_rel) \<rightarrow> hr_comp
+                 uint32_nat_assn nat_rel\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF get_level_code.refine 1, OF twl_array_code_axioms] .
+  have pre: \<open>?pre' = ?pre\<close>
+    by (auto simp: comp_PRE_def trailt_ref_def unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def
+      trailt_ref_def intro!: ext)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    using H unfolding im pre f by simp
+qed
+
+(* TODO: get_level M (Pos i) is inefficient (i*2 div 2) *)
+definition maximum_level_remove' :: \<open>(nat, nat) ann_lits \<Rightarrow> conflict_rel \<Rightarrow> nat literal \<Rightarrow> nat nres\<close> where
+  \<open>maximum_level_remove'  = (\<lambda>M (n, xs) L. do {
+       S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, lev, n). i \<le> length xs \<and>
+               n = size (filter_mset (op \<noteq> None) (mset (nths xs {i..<length xs})))\<^esup>
+             (\<lambda>(i, lev, n). n > 0)
+             (\<lambda>(i, lev, n). do {
+                  ASSERT(i < length xs);
+                  ASSERT(i < upperN - 1);
+                  ASSERT(n > 0);
+                  if xs ! i = None then RETURN (i+1, lev, n)
+                  else
+                    if i = atm_of L then
+                      RETURN (i+1, lev, n - 1)
+                    else do{ ASSERT(Pos i \<in># N\<^sub>1); RETURN (i+1, max (get_level M (Pos i)) lev, n - 1)}
+                }
+             )
+             (0, 0, n);
+       RETURN (fst (snd S))
+     })
+     \<close>
+
+(* TODO MOve *)
+definition (in -) \<open>one_nat_uint32 = (1 :: nat)\<close>
+
+lemma (in -)one_nat_uint32[sepref_fr_rules]:
+  \<open>(uncurry0 (return 1), uncurry0 (RETURN one_nat_uint32)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: one_nat_uint32_def uint32_nat_rel_def br_def nat_of_uint32_012) 
+
+lemma Pot_unat_lit_assn:
+  \<open>(return o (\<lambda>n. 2 * n), RETURN o Pos) \<in> [\<lambda>L. Pos L \<in># N\<^sub>1]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  apply sepref_to_hoare
+  using in_N1_less_than_upperN
+  by (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
+      lit_of_natP_def nat_of_uint32_distrib_mult2 upperN_def)
+
+(* End Move *)
+sepref_register maximum_level_remove'
+sepref_thm maximum_level_remove_code
+  is \<open>uncurry2 (PR_CONST maximum_level_remove')\<close>
+  :: \<open>[\<lambda>((M, D), L). True]\<^sub>a
+       trail_assn\<^sup>k *\<^sub>a (uint32_nat_assn *assn array_assn (option_assn bool_assn))\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  unfolding maximum_level_remove'_def[abs_def] zero_uint32_def[symmetric] one_nat_uint32_def[symmetric]
+    fast_minus_def[symmetric] upperN_def PR_CONST_def
+  supply in_literals_are_in_N\<^sub>0_in_D\<^sub>0[intro] one_nat_uint32_def[simp] fast_minus_def[simp]
+  supply uint32_nat_assn_zero_uint32[sepref_fr_rules] Pot_unat_lit_assn[sepref_fr_rules]
+  supply [[goals_limit = 1]]
+  apply (rewrite in "ASSERT (\<hole> < length _)" annotate_assn[where A=uint32_nat_assn])
+  apply (rewrite in "If _ _ (If _ (RETURN (_, \<hole>, _)) _)" annotate_assn[where A=uint32_nat_assn])
+  apply (rewrite in "If _ (RETURN (_, \<hole>, _)) _" annotate_assn[where A=uint32_nat_assn])
+  apply (rewrite in "\<lambda>(i, lev, y). \<hole> < _" annotate_assn[where A=uint32_nat_assn])
+  apply (rewrite in "_ + \<hole>" annotate_assn[where A=uint32_nat_assn])
   by sepref
 
 concrete_definition (in -) maximum_level_remove_code
@@ -2059,17 +2167,325 @@ concrete_definition (in -) maximum_level_remove_code
 
 prepare_code_thms maximum_level_remove_code_def
 
-lemmas select_and_remove_from_literals_to_update_wl''_code_[sepref_fr_rules] =
-   maximum_level_remove_code.refine[of N\<^sub>0, OF twl_array_code_axioms,
-     unfolded twl_st_assn_def]
+lemmas select_and_remove_from_literals_to_update_wl''_code[sepref_fr_rules] =
+   maximum_level_remove_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+
+(* TODO Move *)
+lemma (in -) nts_upt_length[simp]: \<open>nths xs {0..<length xs} = xs\<close>
+  by (auto simp: nths_id_iff)
+
+lemma (in -) mset_as_position_length_not_None:
+   \<open>mset_as_position x2 C \<Longrightarrow>  size C = length (filter (op \<noteq> None) ( x2))\<close>
+proof (induction rule: mset_as_position.induct)
+  case (empty n)
+  then show ?case by auto
+next
+  case (add xs P L xs') note m_as_p = this(1) and atm_L = this(2)
+  have xs_L: \<open>xs ! (atm_of L) = None\<close>
+  proof -
+    obtain bb :: "bool option \<Rightarrow> bool" where
+      f1: "\<forall>z. z = None \<or> z = Some (bb z)"
+      by (metis option.exhaust)
+    have f2: "xs ! atm_of L \<noteq> Some (is_pos L)"
+      using add.hyps(1) add.hyps(2) add.hyps(3) mset_as_position_in_iff_nth by blast
+    have f3: "\<forall>z b. ((Some b = z \<or> z = None) \<or> bb z) \<or> b"
+      using f1 by blast
+    have f4: "\<forall>zs. (zs ! atm_of L \<noteq> Some (is_pos (- L)) \<or> \<not> atm_of L < length zs) \<or> \<not> mset_as_position zs P"
+      by (metis add.hyps(4) atm_of_uminus mset_as_position_in_iff_nth)
+    have "\<forall>z b. ((Some b = z \<or> z = None) \<or> \<not> bb z) \<or> \<not> b"
+      using f1 by blast
+    then show ?thesis
+      using f4 f3 f2 by (metis add.hyps(1) add.hyps(2) is_pos_neg_not_is_pos)
+  qed
+  obtain xs1 xs2 where
+    xs_xs12: \<open>xs = xs1 @ None # xs2\<close> and
+    xs1: \<open>length xs1 = atm_of L\<close>
+    using atm_L upd_conv_take_nth_drop[of \<open>atm_of L\<close> xs \<open>None\<close>] apply -
+    apply (subst(asm)(2) xs_L[symmetric])
+    by (force simp del: append_take_drop_id)+
+  then show ?case
+    using add by (auto simp: list_update_append)
+qed
+
+lemma filter_union_or_split:
+  \<open>{#L \<in># C. P L \<or> Q L#} = {#L \<in># C. P L#} + {#L \<in># C. \<not>P L \<and> Q L#}\<close>
+  by (induction C) auto
+
+lemma Ball_set_nths: \<open>(\<forall>L\<in>set (nths xs A). P L) \<longleftrightarrow> (\<forall>i \<in> A \<inter> {0..<length xs}. P (xs ! i)) \<close>
+  unfolding set_nths by fastforce
+
+lemma Ball_atLeastLessThan_iff: \<open>(\<forall>L\<in>{a..<b}. P L) \<longleftrightarrow> (\<forall>L. L \<ge> a \<and> L < b \<longrightarrow> P L) \<close>
+  unfolding set_nths by auto
+
+(* End Move *)
+
+lemma maximum_level_remove_code_get_maximum_level_remove:
+  \<open>(uncurry2 maximum_level_remove',
+     uncurry2 (RETURN ooo get_maximum_level_remove)) \<in>
+    [\<lambda>((M, D), L). literals_are_in_N\<^sub>0 D \<and> L \<in># D]\<^sub>f
+      Id \<times>\<^sub>f conflict_rel \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
+proof -
+  define maximum_level_remove'' :: \<open>(nat, nat) ann_lits \<Rightarrow> conflict_rel \<Rightarrow> nat literal \<Rightarrow>
+       (nat \<times> nat \<times> nat) nres\<close> where
+    \<open>maximum_level_remove''  = (\<lambda>M (n, xs) L. do {
+        WHILE\<^sub>T\<^bsup>\<lambda>(i, lev, n). i \<le> length xs \<and>
+               n = size (filter_mset (op \<noteq> None) (mset (nths xs {i..<length xs})))\<^esup>
+             (\<lambda>(i, lev, n). n > 0)
+             (\<lambda>(i, lev, n). do {
+                  ASSERT(i < length xs);
+                  ASSERT(i < upperN - 1);
+                  ASSERT(n > 0);
+                  if xs ! i = None then RETURN (i+1, lev, n)
+                  else
+                    if i = atm_of L then
+                      RETURN (i+1, lev, n - 1)
+                    else do{ ASSERT(Pos i \<in># N\<^sub>1); RETURN (i+1, max (get_level M (Pos i)) lev, n - 1)}
+                }
+             )
+             (0, 0, n)
+       })
+       \<close>
+  have maximum_level_remove''_def:  \<open>maximum_level_remove'' M (n, xs) L = do {
+         WHILE\<^sub>T\<^bsup>\<lambda>(i, lev, n). i \<le> length xs \<and>
+               n = size (filter_mset (op \<noteq> None) (mset (nths xs {i..<length xs})))\<^esup>
+             (\<lambda>(i, lev, n). n > 0)
+             (\<lambda>(i, lev, n). do {
+                  ASSERT(i < length xs);
+                  ASSERT(i < upperN - 1);
+                  ASSERT(n > 0);
+                  if xs ! i = None then RETURN (i+1, lev, n)
+                  else
+                    if i = atm_of L then
+                      RETURN (i+1, lev, n - 1)
+                    else do{ ASSERT(Pos i \<in># N\<^sub>1); RETURN (i+1, max (get_level M (Pos i)) lev, n - 1)}
+                }
+             )
+             (0, 0, n)
+       }\<close> for M xs L n
+    unfolding maximum_level_remove''_def by fast
+  have size_ge_0_notnil: \<open>a < length xs'\<close>
+    if \<open>0 < size (filter_mset (op \<noteq> None) (mset (nths xs' {a..<length xs'})))\<close>
+    for xs' a
+    by (rule ccontr) (use that in auto)
+  have [iff]: \<open>(\<not> atm_of L < a \<and> atm_of L = a) \<longleftrightarrow> atm_of L = (a :: nat)\<close> for a L
+    by auto
+  let ?f = \<open>\<lambda>L C. replicate_mset (count C L) L\<close>
+  have filter_eq: \<open>{#L \<in># C. atm_of L = a#} = ?f (Pos a) C + ?f (Neg a) C
+    \<close> for C a
+    apply (rule multiset_eqI, rename_tac x)
+    by (case_tac x, auto simp: multiset_eq_iff count_eq_zero_iff)
+
+  have filter_le_Suc:
+    \<open>{#L \<in># C. atm_of L < Suc a#} = ?f (Pos a) C + ?f (Neg a) C + {#L \<in># C. atm_of L < a#}\<close>
+    for L C a f
+    by (cases \<open>Pos (Suc a) \<in># C\<close>; cases \<open>Neg (Suc a) \<in># C\<close>)
+       (auto simp: less_Suc_eq filter_union_or_split filter_eq)
+  have count0:
+    \<open>count C (Pos a) = 0\<close> \<open> count C (Neg a) = 0\<close>
+    if \<open>x2 ! a = None\<close> and \<open>mset_as_position x2 C\<close> \<open>a < length x2\<close>
+    for x2 a C
+    using mset_as_position_nth[of x2 C \<open>Pos a\<close>]
+      mset_as_position_nth[of x2 C \<open>Neg a\<close>]  that
+    by (auto simp: count_eq_zero_iff)
+  have Suc_minus_Suc_Suc:
+    \<open>Suc (2 * a) - (b + c) < Suc (Suc (2 * a)) - (b + c)\<close>
+    if \<open>b < a\<close> \<open>c < a\<close> for a b c
+    using that by auto
+  have Suc_minus_Suc_Suc':
+    \<open>(2 * a) - (b + c) < (Suc (2 * a)) - (b + c)\<close>
+    if \<open>b < a\<close> \<open>c < a\<close> for a b c
+    using that by auto
+  have length_filter_le: \<open>length (filter (op \<noteq> None) (nths x2 {a..<length x2})) < length x2\<close>
+    if \<open>x2 ! a = None\<close> \<open>a < length x2 \<close>
+    for a x2
+  proof -
+    have \<open>length (filter P (nths x2 A)) \<le> length (filter P x2)\<close> for P A
+      apply (induction x2 arbitrary: A)
+      subgoal by auto
+      subgoal premises IH for a x2 A
+        using IH[of \<open>{j. Suc j \<in> A}\<close>] by (auto simp: nths_Cons)
+      done
+    then have \<open>length (filter (op \<noteq> None) (nths x2 {a..<length x2})) \<le>
+        length (filter (op \<noteq> None) x2)\<close>
+      by auto
+    also have \<open>length (filter (op \<noteq> None) x2) < length x2\<close>
+      apply (rule length_filter_less[of \<open>x2!a\<close>])
+      using that by (auto dest!: nth_mem)
+    finally show ?thesis .
+  qed
+  have maximum_level_remove'': \<open>maximum_level_remove'' M (n, xs) L \<le> \<Down> Id
+     (SPEC(\<lambda>(i, lev, n). lev = get_maximum_level_remove M C L))\<close>
+    if xs: \<open>mset_as_position xs C\<close> and n_C: \<open>n = size C\<close> and L_C: \<open>L \<in># C\<close> and
+     N\<^sub>0: \<open>literals_are_in_N\<^sub>0 C\<close>
+    for xs C M n K L
+  proof -
+    have Pos_in_N\<^sub>1: \<open>Pos a \<in># N\<^sub>1\<close>
+      if \<open>a < length xs\<close> and
+         \<open>xs ! a \<noteq> None\<close>
+       for a
+    proof -
+      have \<open>Pos a \<in># C \<or> Neg a \<in># C\<close>
+        using mset_as_position_in_iff_nth[OF xs, of \<open>Pos a\<close>]
+            mset_as_position_in_iff_nth[OF xs, of \<open>Neg a\<close>] that
+        by auto
+      then show ?thesis
+        using N\<^sub>0
+        by (metis atm_iff_pos_or_neg_lit in_N\<^sub>1_atm_of_in_atms_of_iff in_clause_in_all_lits_of_m
+            literal.sel(1) literals_are_in_N\<^sub>0_def subsetCE)
+    qed
+    have count_L: \<open>count C L = 1\<close>
+      using L_C mset_as_position_distinct_mset[OF xs] unfolding distinct_mset_def by blast
+    then have count_uL: \<open>count C (-L) = 0\<close>
+      using mset_as_position_nth[OF xs, of \<open>-L\<close>] mset_as_position_nth[OF xs, of L]
+      by (cases L) (auto simp: count_greater_zero_iff[symmetric] simp del: count_greater_zero_iff)
+    have count_C: \<open>count C a = 0 \<or> count C a = 1\<close> for a
+      using L_C mset_as_position_distinct_mset[OF xs] unfolding distinct_mset_count_less_1
+      by (cases \<open>count C a\<close>; cases \<open>count C a - 1\<close>)
+        (auto dest: HOL.spec[of _ a])
+    have count_1_neg: \<open>count C a = 1 \<Longrightarrow> count C (-a) = 0\<close> for a
+      using mset_as_position_nth[OF xs, of \<open>-a\<close>] mset_as_position_nth[OF xs, of a]
+      by (cases a) (auto simp: count_greater_zero_iff[symmetric] simp del: count_greater_zero_iff)
+    have mset_as_position_SomeD:
+      \<open>count C (Pos a) = 1 \<or> count C (Neg a) = 1\<close> if \<open>x2 ! a = Some y\<close> and xs: \<open>mset_as_position x2 C\<close> and \<open>a < length x2\<close>
+      for a x2 y
+      using that mset_as_position_in_iff_nth[OF xs, of \<open>Pos a\<close>] mset_as_position_in_iff_nth[OF xs, of \<open>Neg a\<close>]
+      count_1_neg[of \<open>Pos a\<close>] count_1_neg[of \<open>Neg a\<close>] count_C[of \<open>Pos a\<close>] count_C[of \<open>Neg a\<close>]
+      by (cases \<open>x2 ! a\<close>) (auto simp: count_greater_zero_iff[symmetric] simp del: count_greater_zero_iff)
+    have [simp]: \<open>get_level M (Neg a) = get_level M (Pos a)\<close> for a
+      using get_level_uminus[of M \<open>Neg a\<close>] by auto
+    have H: \<open>filter_mset (op \<noteq> None) (mset (nths x2 {x1a..<length x2})) = {#} \<Longrightarrow>
+        {#L \<in># C. atm_of L < x1a#} = C\<close> if xs: \<open>mset_as_position x2 C\<close> for x2 x1a
+      apply (rule multiset_eqI)
+      subgoal for x
+        using that mset_as_position_in_iff_nth[OF xs, of x] (* TODO Proof *)
+        apply (auto simp: filter_mset_empty_conv Ball_set_nths Ball_atLeastLessThan_iff
+            count_greater_zero_iff[symmetric] simp del: count_greater_zero_iff)
+        by (meson count_inI mset_as_position_atm_le_length)
+      done
+    have le_upperN_1: "a < upperN - 1" (* TODO there is probably some more information missing
+      about i *)
+      if 
+        nempty: "case s of
+         (i, lev, n) \<Rightarrow>
+           i \<le> length xs \<and>
+           n = size (filter_mset (op \<noteq> None) (mset (nths xs {i..<length xs})))" and
+        m: "case s of
+         (i, lev, n) \<Rightarrow>
+           mset_as_position xs C \<and>
+           lev = get_maximum_level_remove M {#L \<in># C. atm_of L < i#} L" and
+        n: "case s of (i, lev, xa) \<Rightarrow> 0 < xa" and
+        s: "s = (a, b)" "b = (aa, ba)" and
+        a: "a < length xs"
+      for s a b aa ba
+    proof (rule ccontr)
+      assume F: \<open>\<not> ?thesis\<close>
+      from nempty n obtain i where
+        \<open>xs ! i \<noteq> None\<close> and i_a: \<open>i \<in> {a..<length xs}\<close>
+        by (force simp: filter_mset_empty_conv nonempty_has_size[symmetric] set_nths s)
+      then have \<open>Pos i \<in># C \<or> Neg i \<in># C\<close>
+        using m mset_as_position_in_iff_nth[of xs C \<open>Pos i\<close>] mset_as_position_in_iff_nth[of xs C \<open>Neg i\<close>]
+          a by auto
+      moreover have \<open>i \<ge> upperN - 1\<close>
+        using i_a F by (auto simp: not_less_eq)
+      ultimately show False using N\<^sub>0 sorry
+    qed
+    show ?thesis
+      unfolding maximum_level_remove''_def
+      apply (refine_vcg WHILEIT_rule_stronger_inv[where
+            R = \<open>measure (\<lambda>(i, lev, n). length xs + 2 - i + n)\<close> and
+            I' = \<open>\<lambda>(i, lev, n). mset_as_position xs C \<and> lev = get_maximum_level_remove M (filter_mset (\<lambda>L. atm_of L < i) C) L\<close>])
+      subgoal by auto
+      subgoal by auto
+      subgoal
+        using xs n_C by (auto simp: mset_filter[symmetric] mset_as_position_length_not_None)
+      subgoal using xs by auto
+      subgoal by (auto simp: get_maximum_level_remove_def)
+      subgoal for n' xs' by (auto dest: size_ge_0_notnil)
+      subgoal for s a b aa ba by (rule le_upperN_1)
+      subgoal by auto
+      subgoal by auto
+      subgoal using xs by (auto simp: nths_upt_Suc')
+      subgoal using xs by auto
+      subgoal using xs by (auto simp: count0 get_maximum_level_remove_def filter_le_Suc)
+      subgoal by (auto simp: mset_filter[symmetric] length_filter_le
+            intro!: Suc_minus_Suc_Suc)
+      subgoal by auto
+      subgoal by (auto simp: nths_upt_Suc')
+      subgoal by auto
+      subgoal
+        using count_L count_uL
+        by (cases L)
+           (auto simp: nths_upt_Suc' get_maximum_level_remove_def filter_le_Suc
+            get_maximum_level_add_mset)
+      subgoal by auto
+      subgoal by (auto simp: Pos_in_N\<^sub>1)
+      subgoal by auto
+      subgoal by (auto simp: nths_upt_Suc')
+      subgoal by auto
+      subgoal for s a b aa ba x1 x2 x1a x2a
+        using count_L count_uL count_C[of \<open>Pos a\<close>] count_C[of \<open>Neg a\<close>] 
+        count_1_neg[of \<open>Pos a\<close>] count_1_neg[of \<open>Neg a\<close>]
+        apply (cases L) by (auto simp: filter_le_Suc nths_upt_Suc'
+            get_maximum_level_remove_def get_maximum_level_add_mset
+            dest!: mset_as_position_SomeD)
+      subgoal by (auto simp: nths_upt_Suc')
+      subgoal by (auto simp: nths_upt_Suc' H)
+      done
+  qed
+
+  show ?thesis
+    apply (intro frefI nres_relI ext)
+    unfolding maximum_level_remove'_def get_maximum_level_remove_def uncurry_def
+      maximum_level_remove''_def[symmetric]
+    subgoal for x y (* TODO proof *)
+      apply (cases x; cases \<open>fst x\<close>; cases y)
+      apply auto
+      apply (refine_vcg maximum_level_remove'')
+      apply (rule order.trans)
+       apply (rule maximum_level_remove'')
+      by (auto simp: conflict_rel_def get_maximum_level_remove_def)
+    done
+qed
 
 lemma maximum_level_remove_code_get_maximum_level_remove[sepref_fr_rules]:
   \<open>(uncurry2 maximum_level_remove_code,
      uncurry2 (RETURN ooo get_maximum_level_remove)) \<in>
-    [\<lambda>((M, D), L). literals_are_in_N\<^sub>0 D]\<^sub>a
+    [\<lambda>((M, D), L). literals_are_in_N\<^sub>0 D \<and> L \<in># D]\<^sub>a
       trail_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
+ have H: \<open>?c
+    \<in> [comp_PRE (Id \<times>\<^sub>f conflict_rel \<times>\<^sub>f Id)
+     (\<lambda>((M, D), L). literals_are_in_N\<^sub>0 D \<and> L \<in># D)
+     (\<lambda>_ ((M, D), L). length (snd D) < upperN)
+     (\<lambda>_. True)]\<^sub>a hrp_comp
+                     ((hr_comp trailt_conc trailt_ref)\<^sup>k *\<^sub>a
+                      conflict_rel_assn\<^sup>k *\<^sub>a
+                      unat_lit_assn\<^sup>k)
+                     (Id \<times>\<^sub>f conflict_rel \<times>\<^sub>f
+                      Id) \<rightarrow> hr_comp uint32_nat_assn nat_rel\<close>
+     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using  hfref_compI_PRE_aux[OF select_and_remove_from_literals_to_update_wl''_code[unfolded PR_CONST_def]
+      maximum_level_remove_code_get_maximum_level_remove]
+    .
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
+    using that unfolding comp_PRE_def twl_st_ref_def literals_to_update_wl_int_empty_def
+      literals_to_update_wl_empty_def twl_st_wl_int_W_list_rel_def
+    by (auto simp: image_image map_fun_rel_def Nil_list_mset_rel_iff conflict_rel_def)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def[symmetric]
+    twl_st_assn_W_list[symmetric] conflict_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def
+    twl_st_assn_W_list[symmetric] hr_comp_prod_conv
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
   have 1:
   \<open>(uncurry2 (RETURN ooo maximum_level_remove),
      uncurry2 (RETURN ooo get_maximum_level_remove)) \<in>
