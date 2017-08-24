@@ -2036,6 +2036,12 @@ lemma get_conflict_wll_is_Nil_code_get_conflict_wll_is_Nil[sepref_fr_rules]:
   using get_conflict_wll_is_Nil_code[FCOMP get_conflict_wll_is_Nil_int_get_conflict_wll_is_Nil]
   unfolding twl_st_assn_def[symmetric] .
 
+lemma get_conflict_wll_is_Nil_code_get_conflict_wl_is_Nil[sepref_fr_rules]:
+  \<open>(get_conflict_wll_is_Nil_code, RETURN \<circ> get_conflict_wl_is_Nil) \<in> twl_st_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  using get_conflict_wll_is_Nil_code_get_conflict_wll_is_Nil[FCOMP
+   get_conflict_wll_is_Nil_get_conflict_wl_is_Nil[unfolded PR_CONST_def]]
+  by auto
+
 lemma in_literals_are_in_N\<^sub>0_in_D\<^sub>0:
   assumes \<open>literals_are_in_N\<^sub>0 D\<close> and \<open>L \<in># D\<close>
   shows \<open>L \<in> snd ` D\<^sub>0\<close>
