@@ -2498,8 +2498,6 @@ sepref_thm skip_and_resolve_loop_wl_D
   apply (subst PR_CONST_def)
   unfolding skip_and_resolve_loop_wl_D_def
   apply (rewrite at \<open>\<not>_ \<and> \<not> _\<close> short_circuit_conv)
-  apply (rewrite at \<open>If _ \<hole> _\<close> op_mset_arl_empty_def[symmetric])
-  apply (rewrite in \<open>let _ = _ \<union># _ in RETURN(_ = {#}, tl _, _)\<close> tl_dump_def[symmetric])
   unfolding twl_st_assn_def
     literals_to_update_wl_literals_to_update_wl_empty
     get_conflict_wl.simps get_trail_wl.simps get_conflict_wl_get_conflict_wl_is_Nil
@@ -2508,6 +2506,10 @@ sepref_thm skip_and_resolve_loop_wl_D
     maximum_level_remove[symmetric]
     Multiset.is_empty_def[symmetric]
     get_maximum_level_remove_def[symmetric]
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  -- \<open>Translation stops at the \<open>set\<close> operation\<close>
+  apply sepref_dbg_trans_step_keep
   by sepref
 
 concrete_definition (in -) skip_and_resolve_loop_wl_D_code
