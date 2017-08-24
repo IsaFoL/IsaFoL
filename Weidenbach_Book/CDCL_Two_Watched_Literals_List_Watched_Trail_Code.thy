@@ -2048,7 +2048,6 @@ lemma in_literals_are_in_N\<^sub>0_in_D\<^sub>0:
   using assms by (cases L) (auto simp: image_image literals_are_in_N\<^sub>0_def all_lits_of_m_def)
 
 
-
 paragraph \<open>Level of a literal\<close>
 
 definition get_level_trail :: \<open>trail_int \<Rightarrow> uint32 \<Rightarrow> nat\<close> where
@@ -2504,7 +2503,7 @@ sepref_thm skip_and_resolve_loop_wl_D
   apply (subst PR_CONST_def)
   unfolding skip_and_resolve_loop_wl_D_def
   apply (rewrite at \<open>\<not>_ \<and> \<not> _\<close> short_circuit_conv)
-  unfolding twl_st_assn_def
+  unfolding
     literals_to_update_wl_literals_to_update_wl_empty
     get_conflict_wl.simps get_trail_wl.simps get_conflict_wl_get_conflict_wl_is_Nil
     is_decided_hd_trail_wl_def[symmetric]
