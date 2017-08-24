@@ -2134,7 +2134,7 @@ definition (in -) \<open>one_nat_uint32 = (1 :: nat)\<close>
 lemma (in -)one_nat_uint32[sepref_fr_rules]:
   \<open>(uncurry0 (return 1), uncurry0 (RETURN one_nat_uint32)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   by sepref_to_hoare
-    (sep_auto simp: one_nat_uint32_def uint32_nat_rel_def br_def nat_of_uint32_012) 
+    (sep_auto simp: one_nat_uint32_def uint32_nat_rel_def br_def nat_of_uint32_012)
 
 lemma Pot_unat_lit_assn:
   \<open>(return o (\<lambda>n. 2 * n), RETURN o Pos) \<in> [\<lambda>L. Pos L \<in># N\<^sub>1]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
@@ -2363,7 +2363,7 @@ proof -
         by (meson count_inI mset_as_position_atm_le_length)
       done
     have le_upperN_1: "a < upperN - 1"
-      if 
+      if
         nempty: "case s of
           (i, lev, n) \<Rightarrow>
            i \<le> length xs \<and>
@@ -2384,7 +2384,7 @@ proof -
       then have \<open>Pos i \<in># C \<or> Neg i \<in># C\<close>
         using m mset_as_position_in_iff_nth[of xs C \<open>Pos i\<close>] mset_as_position_in_iff_nth[of xs C \<open>Neg i\<close>]
           a by auto
-      then have \<open>Pos i \<in># N\<^sub>1 \<or> Neg i \<in># N\<^sub>1\<close> 
+      then have \<open>Pos i \<in># N\<^sub>1 \<or> Neg i \<in># N\<^sub>1\<close>
         using in_literals_are_in_N\<^sub>0_in_D\<^sub>0[OF N\<^sub>0, of \<open>Pos i\<close>] in_literals_are_in_N\<^sub>0_in_D\<^sub>0[OF N\<^sub>0, of \<open>Neg i\<close>]
         by (auto simp: image_image)
       then have \<open>i < upperN div 2\<close>
@@ -2427,7 +2427,7 @@ proof -
       subgoal by (auto simp: nths_upt_Suc')
       subgoal by auto
       subgoal for s a b aa ba x1 x2 x1a x2a
-        using count_L count_uL count_C[of \<open>Pos a\<close>] count_C[of \<open>Neg a\<close>] 
+        using count_L count_uL count_C[of \<open>Pos a\<close>] count_C[of \<open>Neg a\<close>]
         count_1_neg[of \<open>Pos a\<close>] count_1_neg[of \<open>Neg a\<close>]
         apply (cases L) by (auto simp: filter_le_Suc nths_upt_Suc'
             get_maximum_level_remove_def get_maximum_level_add_mset
