@@ -2495,14 +2495,92 @@ proof -
     using pre ..
 qed
 
+
+definition is_decided_hd_trail_wl_int :: \<open>twl_st_wl_int \<Rightarrow> bool\<close> where
+  \<open>is_decided_hd_trail_wl_int = (\<lambda>(M, _). is_decided (hd M))\<close>
+
+lemma is_decided_hd_trail_wl_int_is_decided_hd_trail_wl:
+  \<open>(RETURN o is_decided_hd_trail_wl_int, RETURN o is_decided_hd_trail_wl) \<in>
+    [\<lambda>S. get_trail_wl S \<noteq> []]\<^sub>f twl_st_ref \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: is_decided_hd_trail_wl_int_def is_decided_hd_trail_wl_def twl_st_ref_def)
+
+lemma get_trail_wl_int_def: \<open>get_trail_wl_int = (\<lambda>(M, S). M)\<close>
+  by (intro ext, rename_tac S, case_tac S) auto
+
+definition hd_trail_code :: \<open>trail_int_assn \<Rightarrow> uint32 \<times> nat option\<close> where
+  \<open>hd_trail_code = (\<lambda>(M, _). hd M)\<close>
+
+lemma hd_trail_code_hd[sepref_fr_rules]:
+  \<open>(return o hd_trail_code, RETURN o op_list_hd) \<in> [\<lambda>M. M \<noteq> []]\<^sub>a trail_assn\<^sup>k \<rightarrow> pair_nat_ann_lit_assn\<close>
+  unfolding hd_trail_code_def op_list_hd_def
+  apply sepref_to_hoare
+  apply (case_tac x; case_tac xi; case_tac \<open> (fst (xi))\<close>)
+  apply (sep_auto simp:  trailt_ref_def hr_comp_def)+
+  done
+
+sepref_thm is_decided_hd_trail_wl_int_code
+  is \<open>RETURN o is_decided_hd_trail_wl_int\<close>
+  :: \<open>[\<lambda>S. get_trail_wl_int S \<noteq> []]\<^sub>a twl_st_int_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  unfolding is_decided_hd_trail_wl_int_def twl_st_int_assn_def
+    supply get_trail_wl_int_def[simp]
+  by sepref
+
+
+concrete_definition (in -) is_decided_hd_trail_wl_int_code
+   uses twl_array_code.is_decided_hd_trail_wl_int_code.refine_raw
+   is \<open>(?f, _) \<in> _\<close>
+
+prepare_code_thms is_decided_hd_trail_wl_int_code_def
+
+lemmas is_decided_hd_trail_wl_int_code[sepref_fr_rules] =
+   is_decided_hd_trail_wl_int_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma is_decided_hd_trail_wl_int_code_is_decided_hd_trail_wl[sepref_fr_rules]:
+  \<open>(is_decided_hd_trail_wl_int_code, RETURN o is_decided_hd_trail_wl) \<in>
+    [\<lambda>S. get_trail_wl S \<noteq> []]\<^sub>a twl_st_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c
+    \<in> [comp_PRE twl_st_ref (\<lambda>S. get_trail_wl S \<noteq> []) (\<lambda>_ S. get_trail_wl_int S \<noteq> [])
+        (\<lambda>_. True)]\<^sub>a hrp_comp (twl_st_int_assn\<^sup>k)
+                     twl_st_ref \<rightarrow> hr_comp bool_assn bool_rel\<close>
+     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using  hfref_compI_PRE_aux[OF is_decided_hd_trail_wl_int_code
+      is_decided_hd_trail_wl_int_is_decided_hd_trail_wl]
+    .
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
+    using that unfolding comp_PRE_def twl_st_ref_def literals_to_update_wl_int_empty_def
+      literals_to_update_wl_empty_def twl_st_wl_int_W_list_rel_def
+    by (auto simp: image_image map_fun_rel_def Nil_list_mset_rel_iff conflict_rel_def)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def[symmetric]
+    twl_st_assn_W_list[symmetric] conflict_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def
+    twl_st_assn_W_list[symmetric] hr_comp_prod_conv
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
+qed
+
+lemma get_trail_twl_st_of_wl_get_trail_wl_empty_iff:
+  \<open>get_trail (twl_st_of None (st_l_of_wl None S)) = [] \<longleftrightarrow> get_trail_wl S = []\<close>
+  by (cases S) auto
+
 sepref_register skip_and_resolve_loop_wl_D
 sepref_thm skip_and_resolve_loop_wl_D
   is \<open>PR_CONST skip_and_resolve_loop_wl_D\<close>
   :: \<open>twl_st_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_assn\<close>
-  supply [[goals_limit=1]]
+  supply [[goals_limit=1]] get_trail_twl_st_of_wl_get_trail_wl_empty_iff[simp]
   apply (subst PR_CONST_def)
   unfolding skip_and_resolve_loop_wl_D_def
   apply (rewrite at \<open>\<not>_ \<and> \<not> _\<close> short_circuit_conv)
+  apply (rewrite at \<open>let _ = the _ in _\<close> Let_def)
   unfolding
     literals_to_update_wl_literals_to_update_wl_empty
     get_conflict_wl.simps get_trail_wl.simps get_conflict_wl_get_conflict_wl_is_Nil
@@ -2514,7 +2592,9 @@ sepref_thm skip_and_resolve_loop_wl_D
   apply sepref_dbg_keep
   apply sepref_dbg_trans_keep
   -- \<open>Translation stops at the \<open>set\<close> operation\<close>
-  apply sepref_dbg_trans_step_keep
+                  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_side_unfold apply auto[]
+
   by sepref
 
 concrete_definition (in -) skip_and_resolve_loop_wl_D_code
