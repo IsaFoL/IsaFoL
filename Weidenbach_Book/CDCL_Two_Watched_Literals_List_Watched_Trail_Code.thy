@@ -2363,11 +2363,10 @@ proof -
             count_greater_zero_iff[symmetric] simp del: count_greater_zero_iff)
         by (meson count_inI mset_as_position_atm_le_length)
       done
-    have le_upperN_1: "a < upperN - 1" (* TODO there is probably some more information missing
-      about i *)
+    have le_upperN_1: "a < upperN - 1"
       if 
         nempty: "case s of
-         (i, lev, n) \<Rightarrow>
+          (i, lev, n) \<Rightarrow>
            i \<le> length xs \<and>
            n = size (filter_mset (op \<noteq> None) (mset (nths xs {i..<length xs})))" and
         m: "case s of
@@ -2386,9 +2385,14 @@ proof -
       then have \<open>Pos i \<in># C \<or> Neg i \<in># C\<close>
         using m mset_as_position_in_iff_nth[of xs C \<open>Pos i\<close>] mset_as_position_in_iff_nth[of xs C \<open>Neg i\<close>]
           a by auto
+      then have \<open>Pos i \<in># N\<^sub>1 \<or> Neg i \<in># N\<^sub>1\<close> 
+        using in_literals_are_in_N\<^sub>0_in_D\<^sub>0[OF N\<^sub>0, of \<open>Pos i\<close>] in_literals_are_in_N\<^sub>0_in_D\<^sub>0[OF N\<^sub>0, of \<open>Neg i\<close>]
+        by (auto simp: image_image)
+      then have \<open>i < upperN div 2\<close>
+        using in_N1_less_than_upperN by (auto simp: upperN_def)
       moreover have \<open>i \<ge> upperN - 1\<close>
         using i_a F by (auto simp: not_less_eq)
-      ultimately show False using N\<^sub>0 sorry
+      ultimately show False by linarith
     qed
     show ?thesis
       unfolding maximum_level_remove''_def
