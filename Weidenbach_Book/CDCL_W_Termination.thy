@@ -16,7 +16,7 @@ text \<open>
 lemma cdcl\<^sub>W_stgy_no_relearned_clause:
   assumes
     cdcl: \<open>backtrack S T\<close> and
-    inv: "cdcl\<^sub>W_all_struct_inv S" and
+    inv: \<open>cdcl\<^sub>W_all_struct_inv S\<close> and
     smaller: \<open>no_smaller_propa S\<close> and
     confl: \<open>conflicting S = Some E\<close>
   shows
