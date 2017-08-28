@@ -1358,13 +1358,18 @@ proof  -
     by (cases S)
 
   have \<open>consistent_interp (lits_of_l (trail (state\<^sub>W_of (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S)))))\<close>
-    \<open>no_dup (trail (state\<^sub>W_of (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S))))\<close>
+    \<open>no_dup (trail (state\<^sub>W_of (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S))))\<close> and
+    valid: \<open>valid_annotation (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S))\<close>
     using inv unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def twl_struct_invs_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
     by blast+
   then have cons: \<open>consistent_interp (lits_of_l (get_trail_wl S))\<close>
     by (cases S) (auto simp: cdcl\<^sub>W_restart_mset_state)
 
+  have \<open>additional_WS_invs (st_l_of_wl (Some (L, C)) S)\<close> and C_le: \<open>C < length (watched_by S L)\<close> and
+    confl: \<open>get_conflict_wl S = None\<close> and \<open>no_duplicate_queued (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S))\<close>
+      using inv unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
+        unit_propagation_inner_loop_body_l_inv_def twl_struct_invs_def by fast+
   have \<open>\<forall>L\<in>#mset (unwatched_l (get_clauses_wl S ! (watched_by S L ! C))).
          - L \<in> lits_of_l (get_trail_wl S)\<close>
     using find_unw unfolding unit_prop_body_wl_D_find_unwatched_inv_def
@@ -1387,12 +1392,17 @@ proof  -
   moreover have \<open>- ?C ! ?i \<in> lits_of_l (convert_lits_l N M)\<close>
     using val by (auto simp: S valued_st_def watched_by_app_def valued_def
         access_lit_in_clauses_def Decided_Propagated_in_iff_in_lits_of_l split: if_splits)
-  moreover have \<open>length (?C) > 2\<close>
-
-    sorry
-  moreover have \<open>N ! (Q L ! C) ! 0 = L \<or> N ! (Q L ! C) ! 1 = L\<close>
-
-    sorry
+  moreover have length_C: \<open>length ?C \<ge> 2\<close>
+    apply (rule twl_struct_invs_length_clause_ge_2)
+    using inv unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def by (auto simp: watched_by_app_def)
+  moreover {
+    have QL: \<open>Q L ! C = hd (drop C (Q L))\<close>
+      using confl C_le length_C by (auto simp: S hd_drop_conv_nth split: )
+    have \<open>L \<in># mset (watched_l ?C)\<close>
+      using valid confl C_le length_C by (auto simp: QL S take_2_if watched_by_app_def)
+    then have \<open>N ! (Q L ! C) ! 0 = L \<or> N ! (Q L ! C) ! 1 = L\<close>
+      using confl C_le length_C by (auto simp: S take_2_if watched_by_app_def QL split: if_splits)
+  }
   ultimately have Not: \<open>lits_of_l (get_trail_wl S) \<Turnstile>s CNot ?D\<close>
     unfolding true_clss_def_iff_negation_in_model
     apply (subst (2) append_take_drop_id[symmetric, of _ 2])
@@ -1690,16 +1700,6 @@ sepref_thm unit_propagation_inner_loop_body_wl_D
   find_unwatched_wl_s_int_def[symmetric] valued_st_def[symmetric]
   mark_conflict_wl'_alt_def[symmetric]
   supply [[goals_limit=1]]
-
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  -- \<open>Translation stops at the \<open>set\<close> operation\<close>
-                  apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_side_unfold apply auto[]
-  subgoal for b ba a xh xj
-    using find_unwatched_not_tauto
-
-    oops
   by sepref
 
 concrete_definition (in -) unit_propagation_inner_loop_body_wl_D_code
@@ -2627,11 +2627,353 @@ lemma get_trail_twl_st_of_wl_get_trail_wl_empty_iff:
   \<open>get_trail (twl_st_of None (st_l_of_wl None S)) = [] \<longleftrightarrow> get_trail_wl S = []\<close>
   by (cases S) auto
 
+definition (in -) is_in_conflict :: \<open>nat literal \<Rightarrow> nat clause option \<Rightarrow> bool\<close> where
+  \<open>is_in_conflict L C \<longleftrightarrow> L \<in># the C\<close>
+
+definition (in -) is_in_conflict_option_assn :: \<open>nat literal \<Rightarrow> (bool \<times> nat \<times> bool option list) \<Rightarrow> bool\<close> where
+  \<open>is_in_conflict_option_assn = (\<lambda>L (_, _, xs). xs ! atm_of L = Some (is_pos L))\<close>
+
+lemma is_in_conflict_option_assn_is_in_conflict:
+  \<open>(uncurry (RETURN oo is_in_conflict_option_assn), uncurry (RETURN oo is_in_conflict)) \<in>
+     [\<lambda>(L, C). C \<noteq> None \<and> L \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>r option_conflict_rel \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  apply (intro nres_relI frefI)
+  subgoal for Lxs LC
+    using conflict_rel_atm_in_iff[of _ \<open>snd (snd (snd Lxs))\<close>]
+    apply (cases Lxs)
+    by (auto simp: is_in_conflict_option_assn_def is_in_conflict_def option_conflict_rel_def)
+  done
+
+sepref_definition (in -) is_in_conflict_option_assn_code
+  is \<open>uncurry (RETURN oo is_in_conflict_option_assn)\<close>
+  :: \<open>[\<lambda>(L, (b, n, xs)). atm_of L < length xs]\<^sub>a
+        unat_lit_assn\<^sup>k *\<^sub>a (bool_assn *assn conflict_rel_assn)\<^sup>k \<rightarrow> bool_assn\<close> 
+  unfolding is_in_conflict_option_assn_def
+  by sepref
+
+
+lemma is_in_conflict_option_assn_code_is_in_conflict[sepref_fr_rules]:
+  \<open>(uncurry is_in_conflict_option_assn_code,
+     uncurry (RETURN oo is_in_conflict)) \<in>
+    [\<lambda>(L, C). L \<in> snd ` D\<^sub>0 \<and> literals_are_in_N\<^sub>0 (the C) \<and> C \<noteq> None]\<^sub>a
+      unat_lit_assn\<^sup>k *\<^sub>a conflict_option_assn\<^sup>k  \<rightarrow> bool_assn\<close>
+  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c
+    \<in> [comp_PRE (Id \<times>\<^sub>f option_conflict_rel) (\<lambda>(L, C). C \<noteq> None \<and> L \<in> snd ` D\<^sub>0)
+          (\<lambda>_ (L, b, n, xs). atm_of L < length xs)
+          (\<lambda>_. True)]\<^sub>a 
+      hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a (bool_assn *assn conflict_rel_assn)\<^sup>k) (Id \<times>\<^sub>f option_conflict_rel)
+       \<rightarrow>
+      hr_comp bool_assn bool_rel\<close>
+     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using  hfref_compI_PRE_aux[OF is_in_conflict_option_assn_code.refine is_in_conflict_option_assn_is_in_conflict]
+    .
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
+    using that unfolding comp_PRE_def option_conflict_rel_def conflict_rel_def
+    by (auto simp: image_image in_N\<^sub>1_atm_of_in_atms_of_iff conflict_rel_def)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep 
+    twl_st_assn_W_list[symmetric] conflict_assn_def conflict_option_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def
+    twl_st_assn_W_list[symmetric] hr_comp_prod_conv
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
+qed
+
+definition literal_is_in_conflict :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>literal_is_in_conflict L S \<longleftrightarrow> L \<in># the (get_conflict_wl S)\<close>
+
+definition literal_is_in_conflict_int :: \<open>nat literal \<Rightarrow> twl_st_wl_int \<Rightarrow> bool\<close> where
+  \<open>literal_is_in_conflict_int = (\<lambda>L (M, N, U, D, _). L \<in># the D)\<close>
+
+lemma literal_is_in_conflict_int_literal_is_in_conflict:
+  \<open>(uncurry (RETURN oo literal_is_in_conflict_int), uncurry (RETURN oo literal_is_in_conflict)) \<in>
+   Id \<times>\<^sub>r twl_st_ref \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
+  apply (intro frefI nres_relI)
+  apply (case_tac x, case_tac y)
+  by (auto simp: literal_is_in_conflict_int_def literal_is_in_conflict_def twl_st_ref_def)
+
+sepref_thm literal_is_in_conflict_int_code
+  is \<open>uncurry (RETURN oo literal_is_in_conflict_int)\<close>
+  :: \<open>[\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> literals_are_in_N\<^sub>0 (the (get_conflict_wl_int S)) \<and> get_conflict_wl_int S \<noteq> None]\<^sub>a
+      unat_lit_assn\<^sup>k *\<^sub>a twl_st_int_assn\<^sup>k  \<rightarrow> bool_assn\<close>
+  supply [[goals_limit=1]]                                        
+  unfolding literal_is_in_conflict_int_def twl_st_int_assn_def is_in_conflict_def[symmetric]
+  PR_CONST_def
+  by sepref
+
+concrete_definition (in -) literal_is_in_conflict_int_code
+   uses twl_array_code.literal_is_in_conflict_int_code.refine_raw
+   is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) literal_is_in_conflict_int_code_def
+
+lemmas literal_is_in_conflict_int_code_refine[sepref_fr_rules] =
+   literal_is_in_conflict_int_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma literal_is_in_conflict_int_code_literal_is_in_conflict[sepref_fr_rules]:
+  \<open>(uncurry literal_is_in_conflict_int_code,
+     uncurry (RETURN oo literal_is_in_conflict)) \<in>
+    [\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> literals_are_in_N\<^sub>0 (the (get_conflict_wl S)) \<and> get_conflict_wl S \<noteq> None]\<^sub>a
+      unat_lit_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>k  \<rightarrow> bool_assn\<close>
+  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c
+    \<in> [comp_PRE (Id \<times>\<^sub>f twl_st_ref) (\<lambda>_. True)
+         (\<lambda>_ (L, S). L \<in> snd ` D\<^sub>0 \<and> literals_are_in_N\<^sub>0 (the (get_conflict_wl_int S)) \<and>
+           get_conflict_wl_int S \<noteq> None)
+         (\<lambda>_. True)]\<^sub>a 
+      hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a twl_st_int_assn\<^sup>k) (Id \<times>\<^sub>f twl_st_ref) \<rightarrow> 
+      hr_comp bool_assn bool_rel\<close>
+      (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using  hfref_compI_PRE_aux[OF literal_is_in_conflict_int_code_refine literal_is_in_conflict_int_literal_is_in_conflict]
+    .
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
+    using that unfolding comp_PRE_def option_conflict_rel_def conflict_rel_def
+    by (auto simp: image_image twl_st_ref_def)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep 
+    twl_st_assn_W_list[symmetric] twl_st_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def
+    twl_st_assn_W_list[symmetric] hr_comp_prod_conv
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
+qed
+
+definition lit_and_ann_of_propagated_st :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<times> nat\<close> where
+  \<open>lit_and_ann_of_propagated_st S = lit_and_ann_of_propagated (hd (get_trail_wl S))\<close>
+
+definition lit_and_ann_of_propagated_st_int :: \<open>twl_st_wl_int \<Rightarrow> nat literal \<times> nat\<close> where
+  \<open>lit_and_ann_of_propagated_st_int = (\<lambda>(M, _). (lit_of (hd M), mark_of (hd M)))\<close>
+
+lemma mark_of_refine[sepref_fr_rules]:                                                          
+  \<open>(return o (\<lambda>C. the (snd C)), RETURN o mark_of) \<in> [\<lambda>C. is_proped C]\<^sub>a pair_nat_ann_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  apply sepref_to_hoare
+  apply (case_tac x; case_tac xi; case_tac \<open>snd xi\<close>)
+  by (sep_auto simp: nat_ann_lit_rel_def)+
+
+sepref_thm lit_and_ann_of_propagated_st_int_code
+  is \<open>RETURN o lit_and_ann_of_propagated_st_int\<close>
+  :: \<open>[\<lambda>S. is_proped (hd (get_trail_wl_int S)) \<and> get_trail_wl_int S \<noteq> []]\<^sub>a
+       twl_st_int_assn\<^sup>k \<rightarrow> (unat_lit_assn *assn nat_assn)\<close>
+  supply [[goals_limit=1]]
+  supply get_trail_wl_int_def[simp]
+  unfolding lit_and_ann_of_propagated_st_int_def twl_st_int_assn_def
+  by sepref
+
+concrete_definition (in -) lit_and_ann_of_propagated_st_int_code
+   uses twl_array_code.lit_and_ann_of_propagated_st_int_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) lit_and_ann_of_propagated_st_int_code_def
+
+lemmas lit_and_ann_of_propagated_st_int_code_refine[sepref_fr_rules] =
+   lit_and_ann_of_propagated_st_int_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma lit_and_ann_of_propagated_st_int_lit_and_ann_of_propagated_st:
+   \<open>(RETURN o lit_and_ann_of_propagated_st_int, RETURN o lit_and_ann_of_propagated_st) \<in>
+   [\<lambda>S. is_proped (hd (get_trail_wl S))]\<^sub>f twl_st_ref \<rightarrow> \<langle>Id \<times>\<^sub>f Id\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  apply (rename_tac x y; case_tac x; case_tac y; case_tac \<open>hd (fst x)\<close>)
+  by (auto simp: twl_st_ref_def lit_and_ann_of_propagated_st_int_def lit_and_ann_of_propagated_st_def)
+
+lemma lit_and_ann_of_propagated_st_refine[sepref_fr_rules]:
+  \<open>(lit_and_ann_of_propagated_st_int_code,
+     (RETURN o lit_and_ann_of_propagated_st)) \<in>
+    [\<lambda>S. get_trail_wl S \<noteq> [] \<and> is_proped (hd (get_trail_wl S))]\<^sub>a
+      twl_st_assn\<^sup>k  \<rightarrow> unat_lit_assn *assn nat_assn \<close>
+  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c
+    \<in> [comp_PRE twl_st_ref (\<lambda>S. is_proped (hd (get_trail_wl S)))
+         (\<lambda>_ S. is_proped (hd (get_trail_wl_int S)) \<and> get_trail_wl_int S \<noteq> [])
+         (\<lambda>_. True)]\<^sub>a
+    hrp_comp (twl_st_int_assn\<^sup>k) twl_st_ref \<rightarrow> 
+    hr_comp (unat_lit_assn *assn nat_assn) (Id \<times>\<^sub>f nat_rel)\<close>
+      (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using  hfref_compI_PRE_aux[OF lit_and_ann_of_propagated_st_int_code_refine lit_and_ann_of_propagated_st_int_lit_and_ann_of_propagated_st]
+    .
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
+    using that unfolding comp_PRE_def option_conflict_rel_def conflict_rel_def
+    by (auto simp: image_image twl_st_ref_def)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep 
+    twl_st_assn_W_list[symmetric] twl_st_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def
+    twl_st_assn_W_list[symmetric] hr_comp_prod_conv
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
+qed
+
+lemma skip_and_resolve_hd_in_D\<^sub>0:
+  assumes 
+    L: "(L, a2'a) = lit_and_ann_of_propagated_st a2'" and
+    is_proped: "is_proped (hd (get_trail_wl a2'))" and
+    struct: "twl_struct_invs (twl_st_of None (st_l_of_wl None a2'))" and
+    nempty: "get_trail_wl a2' \<noteq> []" and
+    N\<^sub>1: "is_N\<^sub>1
+      (all_lits_of_mm
+        (cdcl\<^sub>W_restart_mset.clauses
+          (state\<^sub>W_of (twl_st_of None (st_l_of_wl None a2')))))"
+   shows "- L \<in> snd ` D\<^sub>0"
+proof -
+  obtain M' where
+    M': \<open>get_trail_wl a2' = Propagated L a2'a # M'\<close>
+    using is_proped L nempty by (cases \<open>get_trail_wl a2'\<close>; cases \<open>hd (get_trail_wl a2')\<close>)
+      (auto simp: lit_and_ann_of_propagated_st_def)
+  have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of None (st_l_of_wl None a2')))\<close>
+    using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by fast
+  then show ?thesis
+    using N\<^sub>1 M' unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def 
+    by (cases a2')
+     (auto simp: cdcl\<^sub>W_restart_mset_state image_image mset_take_mset_drop_mset'
+        in_N\<^sub>1_atm_of_in_atms_of_iff clauses_def is_N\<^sub>1_alt_def) 
+qed
+
+
+definition tl_state_wl_int :: \<open>twl_st_wl_int \<Rightarrow> twl_st_wl_int\<close> where
+  \<open>tl_state_wl_int = (\<lambda>(M, N, U, D, WS, Q, vmtf, \<phi>). 
+       (tl M, N, U, D, WS, Q, vmtf_unset (atm_of (lit_of (hd M))) vmtf, \<phi>))\<close>
+
+lemma tl_state_wl_int_alt_def:
+    \<open>tl_state_wl_int =  (\<lambda>(M, N, U, D, WS, Q, vmtf, \<phi>).
+      (let L = hd M in 
+       (tl M, N, U, D, WS, Q, vmtf_unset (atm_of (lit_of L)) vmtf, \<phi>)))\<close>
+  by (auto simp: tl_state_wl_int_def)
+
+definition (in twl_array_code_ops) tl_trailt_tr :: \<open>trail_int \<Rightarrow> trail_int\<close> where
+  \<open>tl_trailt_tr = (\<lambda>(M', xs, lvls, k). (tl M', xs[atm_of (lit_of (hd M')) := None], lvls[atm_of (lit_of (hd M')) := 0],
+    if is_decided (hd M') then k-1 else k))\<close>
+
+sepref_thm tl_trail_tr_code
+  is \<open>RETURN o tl_trailt_tr\<close>
+  :: \<open>[\<lambda>(M, xs, lvls, k). M \<noteq> [] \<and> atm_of (lit_of (hd M)) < length xs  \<and> atm_of (lit_of (hd M)) < length lvls \<and>
+    (is_decided (hd M) \<longrightarrow> k \<ge> 1)]\<^sub>a
+        trailt_conc\<^sup>d \<rightarrow> trailt_conc\<close>
+  supply if_splits[split] option.splits[split]
+  unfolding tl_trailt_tr_def
+  apply (rewrite at \<open>_ - 1\<close> fast_minus_def[symmetric])
+  supply [[goals_limit = 1]]
+  supply uint32_nat_assn_one[sepref_fr_rules]
+  supply uint32_nat_assn_zero[sepref_fr_rules]
+  by sepref
+
+concrete_definition (in -) tl_trail_tr_code
+  uses twl_array_code.tl_trail_tr_code.refine_raw
+  is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) tl_trail_tr_code_def
+
+lemmas tl_trail_tr_coded_refine[sepref_fr_rules] =
+   tl_trail_tr_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma tl_trail_tr:
+  \<open>((RETURN o tl_trailt_tr), (RETURN o tl)) \<in>
+    [\<lambda>M. M \<noteq> []]\<^sub>f trailt_ref \<rightarrow> \<langle>trailt_ref\<rangle>nres_rel\<close>
+proof -
+  show ?thesis
+    apply (intro frefI nres_relI, rename_tac x y, case_tac \<open>y\<close>)
+    subgoal by fast
+    subgoal for M M' L M's
+      unfolding trailt_ref_def comp_def RETURN_refine_iff trailt_ref_def
+      apply clarify
+      apply (intro conjI; clarify?; (intro conjI)?)
+      subgoal by (auto simp: trailt_ref_def valued_atm_on_trail_def tl_trailt_tr_def)
+      subgoal by (auto simp: trailt_ref_def valued_atm_on_trail_def tl_trailt_tr_def)
+      subgoal by (auto simp: valued_atm_on_trail_def tl_trailt_tr_def)
+      subgoal
+        by (cases \<open>lit_of L\<close>)
+            (auto simp: valued_atm_on_trail_def tl_trailt_tr_def Decided_Propagated_in_iff_in_lits_of_l)
+      subgoal
+        by (auto simp: valued_atm_on_trail_def tl_trailt_tr_def
+           atm_of_eq_atm_of get_level_cons_if)
+      subgoal
+        by (auto simp: valued_atm_on_trail_def tl_trailt_tr_def
+           atm_of_eq_atm_of get_level_cons_if)
+      subgoal
+        by (auto simp: tl_trailt_tr_def in_N\<^sub>1_atm_of_in_atms_of_iff
+            dest: no_dup_consistentD abs_l_vmtf_unset_vmtf_unset')
+      subgoal
+        by (auto simp: tl_trailt_tr_def)
+      done
+    done
+qed
+
+lemma tl_trail_tr_code_op_list_tl[sepref_fr_rules]:
+  \<open>(tl_trail_tr_code, (RETURN o op_list_tl)) \<in>
+    [\<lambda>M. M \<noteq> []]\<^sub>a trail_assn\<^sup>d \<rightarrow> trail_assn\<close>
+    (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have [dest]: \<open>((a, aa, ab, b), x) \<in> trailt_ref \<Longrightarrow> x = a\<close> for a aa ab b x
+    by (auto simp: trailt_ref_def)
+  have [simp]: \<open>x \<noteq> [] \<Longrightarrow> is_decided (hd x) \<Longrightarrow> Suc 0 \<le> count_decided x\<close> for x
+    by (cases x) auto
+  have H: \<open>(tl_trail_tr_code, RETURN \<circ> tl)
+      \<in> [comp_PRE trailt_ref (\<lambda>M. M \<noteq> [])
+            (\<lambda>_ (M, xs, lvls, k). M \<noteq> [] \<and> atm_of (lit_of (hd M)) < length xs \<and>
+             atm_of (lit_of (hd M)) < length lvls \<and> (is_decided (hd M) \<longrightarrow> 1 \<le> k))
+            (\<lambda>_. True)]\<^sub>a 
+         hrp_comp (trailt_conc\<^sup>d) trailt_ref \<rightarrow> hr_comp trailt_conc trailt_ref\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF tl_trail_tr_code.refine tl_trail_tr, OF twl_array_code_axioms] .
+  have pre: \<open>?pre' = ?pre\<close>
+    by (auto simp: comp_PRE_def trailt_ref_def phase_saving_def
+        in_N\<^sub>1_atm_of_in_atms_of_iff vmtf_imp_def intro!: ext)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    using H unfolding im pre by simp
+qed
+
+fun get_vmtf_int :: \<open>twl_st_wl_int \<Rightarrow> _\<close> where
+  \<open>get_vmtf_int (M, N, U, D, WS, W, vmtf, _) = vmtf\<close>
+
+sepref_thm tl_state_wl_int_code 
+  is \<open>RETURN o tl_state_wl_int\<close>
+  :: \<open>[\<lambda>S. get_trail_wl_int S \<noteq> [] \<and> 
+        atm_of (lit_of (hd (get_trail_wl_int S))) < length (fst (fst (get_vmtf_int S)))]\<^sub>a twl_st_int_assn\<^sup>d \<rightarrow> twl_st_int_assn\<close>
+  supply [[goals_limit=1]] option.splits[split] get_vmtf_int.simps[simp]
+  unfolding tl_state_wl_int_alt_def[abs_def] twl_st_int_assn_def get_trail_wl_int_def[simp]
+    vmtf_unset_def bind_ref_tag_def[simp]
+    short_circuit_conv
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  -- \<open>Translation stops at the \<open>set\<close> operation\<close>
+                  apply sepref_dbg_trans_step_keep
+                      apply sepref_dbg_side_unfold apply auto[]
+  unfolding get_vmtf_int.simps
+  apply auto[]
+  thm get_vmtf_int.simps
+
+  oops
+
 sepref_register skip_and_resolve_loop_wl_D
 sepref_thm skip_and_resolve_loop_wl_D
   is \<open>PR_CONST skip_and_resolve_loop_wl_D\<close>
   :: \<open>twl_st_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_assn\<close>
-  supply [[goals_limit=1]] get_trail_twl_st_of_wl_get_trail_wl_empty_iff[simp]
+  supply [[goals_limit=1]] get_trail_twl_st_of_wl_get_trail_wl_empty_iff[simp] is_decided_hd_trail_wl_def[simp]
+    is_decided_no_proped_iff[simp] skip_and_resolve_hd_in_D\<^sub>0[intro] literals_are_N\<^sub>0_conflict_literals_are_in_N\<^sub>0[intro]
+   get_conflict_l_st_l_of_wl[simp]
   apply (subst PR_CONST_def)
   unfolding skip_and_resolve_loop_wl_D_def
   apply (rewrite at \<open>\<not>_ \<and> \<not> _\<close> short_circuit_conv)
@@ -2644,13 +2986,14 @@ sepref_thm skip_and_resolve_loop_wl_D
     maximum_level_remove[symmetric]
     Multiset.is_empty_def[symmetric]
     get_maximum_level_remove_def[symmetric]
+    literal_is_in_conflict_def[symmetric]
+    lit_and_ann_of_propagated_st_def[symmetric]
   apply sepref_dbg_keep
   apply sepref_dbg_trans_keep
   -- \<open>Translation stops at the \<open>set\<close> operation\<close>
                   apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_side_unfold apply auto[]
-
-  by sepref
+                    apply sepref_dbg_side_unfold apply auto[]
+  oops
 
 concrete_definition (in -) skip_and_resolve_loop_wl_D_code
    uses twl_array_code.skip_and_resolve_loop_wl_D.refine_raw

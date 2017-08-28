@@ -717,8 +717,9 @@ definition skip_and_resolve_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st
         WHILE\<^sub>T\<^bsup>\<lambda>(brk, S). skip_and_resolve_loop_inv (twl_st_of_wl None S\<^sub>0) (brk, twl_st_of_wl None S) \<and>
          additional_WS_invs (st_l_of_wl None S) \<and> correct_watching S \<and> literals_are_N\<^sub>0 S\<^esup>
         (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided (hd (get_trail_wl S)))
-        (\<lambda>(_, S).
+        (\<lambda>(brk, S).
           do {
+            ASSERT(\<not>brk \<and> \<not>is_decided (hd (get_trail_wl S)));
             let D' = the (get_conflict_wl S);
             let (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S));
             if -L \<notin># D' then
@@ -825,6 +826,8 @@ proof -
     subgoal unfolding invar_def by fast
     subgoal by fast
     subgoal by fast
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     subgoal unfolding invar_def by auto
     subgoal by auto
