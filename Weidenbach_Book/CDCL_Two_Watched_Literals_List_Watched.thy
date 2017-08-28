@@ -1665,7 +1665,6 @@ theorem init_dt_wl:
   assumes
     dist: \<open>\<forall>C \<in> set CS. distinct C\<close> and
     le: \<open>\<forall>C \<in> set CS. length C \<ge> 1\<close> and
-    taut: \<open>\<forall>C \<in> set CS. \<not>tautology (mset C)\<close> and
     no_confl: \<open>get_conflict_wl S = None\<close>
   shows
     \<open>cdcl_twl_stgy_prog_wl S \<le> SPEC (\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy
@@ -1688,16 +1687,16 @@ proof -
     \<open>additional_WS_invs (st_l_of_wl None S)\<close>
     unfolding S S\<^sub>0
     subgoal
-      using init_dt(1)[OF dist le taut]
+      using init_dt(1)[OF dist le]
         by (cases \<open>(init_dt CS ([], [[]], 0, None, {#}, {#}, {#}, {#}))\<close>) auto
     subgoal
-      using init_dt(2)[OF dist le taut]
+      using init_dt(2)[OF dist le]
         by (cases \<open>(init_dt CS ([], [[]], 0, None, {#}, {#}, {#}, {#}))\<close>) auto
     subgoal
-      using init_dt(3)[OF dist le taut]
+      using init_dt(3)[OF dist le]
         by (cases \<open>(init_dt CS ([], [[]], 0, None, {#}, {#}, {#}, {#}))\<close>) auto
     subgoal
-      using init_dt(5)[OF dist le taut]
+      using init_dt(5)[OF dist le]
       by (cases \<open>(init_dt CS ([], [[]], 0, None, {#}, {#}, {#}, {#}))\<close>)
         (auto simp: additional_WS_invs_def)
     done
