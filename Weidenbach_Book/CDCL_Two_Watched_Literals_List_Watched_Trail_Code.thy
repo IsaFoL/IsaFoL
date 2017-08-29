@@ -419,6 +419,107 @@ prepare_code_thms (in -) conflict_merge_code_def
 lemmas conflict_merge_aa_refine[sepref_fr_rules] =
    conflict_merge_code.refine[OF twl_array_code_axioms]
 
+definition conflict_merge'_step where
+  \<open>conflict_merge'_step i zs D C = (
+      let D' = mset (take i D);
+          E = remdups_mset (D' + (C - D' - image_mset uminus D')) in
+      ((False, fst zs, snd zs), Some E) \<in> option_conflict_rel \<and>
+      literals_are_in_N\<^sub>0 E)\<close>
+
+definition conflict_merge' where
+  \<open>conflict_merge' D  = (\<lambda>(b, xs). do {
+     (_, (i, xs)) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, zs). i \<le> length D \<and> length (snd zs) = length (snd xs) \<and>
+             Suc i < upperN \<and> Suc (fst zs) < upperN \<^esup>
+       (\<lambda>(i, zs). i < length D)
+       (\<lambda>(i, zs). do{
+           ASSERT(i < length D);
+           ASSERT(Suc i < upperN);
+           RETURN(Suc i, conflict_add (D!i) zs)})
+       (0, xs);
+     RETURN (False, i, xs)
+   })\<close>
+
+(* TODO Move *)
+lemma
+  assumes c: \<open>((n,xs), C) \<in> conflict_rel\<close>
+  shows
+    conflict_rel_not_tautolgy: \<open>\<not>tautology C\<close> and 
+    conflict_rel_size: \<open>literals_are_in_N\<^sub>0 C \<Longrightarrow> size C \<le> upperN div 2\<close>
+proof -
+  have mset: \<open>mset_as_position xs C\<close> and \<open>n = size C\<close> and \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length xs\<close>
+    using c unfolding conflict_rel_def by fast+
+  show \<open>\<not>tautology C\<close>
+    using mset
+    apply (induction rule: mset_as_position.induct)
+    subgoal by (auto simp: literals_are_in_N\<^sub>0_def)
+    subgoal by (auto simp: tautology_add_mset)
+    done
+  have \<open>distinct_mset C\<close>
+    using mset mset_as_position_distinct_mset by blast
+  then show \<open>literals_are_in_N\<^sub>0 C \<Longrightarrow> size C \<le> upperN div 2\<close>
+    using simple_clss_size_upper_div2[of \<open>C\<close>] \<open>\<not>tautology C\<close> by auto
+qed
+    
+lemma (in -)distinct_mset_remdups_mset: \<open>distinct_mset C \<Longrightarrow> remdups_mset C = C\<close>
+  by (induction C)  auto
+
+(* End Move *)
+
+lemma H: \<open>conflict_merge' D (b, n, xs) \<le> \<Down> option_conflict_rel
+            (RETURN (Some (remdups_mset (mset D + (C - mset D - image_mset uminus (mset D))))))\<close>
+    if
+      \<open>i < length D\<close> and
+     o:  \<open>((b, n, xs), Some C) \<in> option_conflict_rel\<close> and
+     dist: \<open>distinct D\<close> and
+     lits: \<open>literals_are_in_N\<^sub>0 (mset D)\<close> and
+     tauto: \<open>\<not>tautology (mset D)\<close> and
+     \<open>literals_are_in_N\<^sub>0 C\<close>
+    for b n xs i
+proof -
+  have [simp]: \<open>a < length D \<Longrightarrow> Suc (Suc a) < upperN\<close> for a
+    using simple_clss_size_upper_div2[of \<open>mset D\<close>] that by (auto simp: upperN_def)
+  have Suc_N_upperN: \<open>Suc n < upperN\<close> 
+    using that simple_clss_size_upper_div2[of C] mset_as_position_distinct_mset[of xs C]
+      conflict_rel_not_tautolgy[of n xs C]
+    unfolding option_conflict_rel_def conflict_rel_def
+    by (auto simp: upperN_def)
+  have [intro]: \<open>((b, a, ba), Some C) \<in> option_conflict_rel \<Longrightarrow> literals_are_in_N\<^sub>0 C \<Longrightarrow> 
+        Suc (Suc a) < upperN\<close> for b a ba C
+    using conflict_rel_size[of a ba C] by (auto simp: option_conflict_rel_def
+        conflict_rel_def upperN_def)
+  have [simp]: \<open>remdups_mset C = C\<close>
+    using o mset_as_position_distinct_mset[of xs C] by (auto simp: option_conflict_rel_def conflict_rel_def
+        distinct_mset_remdups_mset)
+  show ?thesis
+    unfolding conflict_merge_aa_def conflict_merge'_def PR_CONST_def
+    apply (refine_vcg WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(j, _). length D - j)\<close> and
+          I' = \<open>\<lambda>(i, zs). conflict_merge'_step i zs D C\<close>])
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: upperN_def)
+    subgoal using Suc_N_upperN by auto
+    subgoal using that by (simp add: upperN_def conflict_merge'_step_def option_conflict_rel_def)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal for b' n' s i zs by (cases \<open>snd s\<close>) (auto simp: conflict_add_def split: if_splits)
+    subgoal for b' n' s j zs
+      using dist lits tauto
+      by (auto simp: option_conflict_rel_def take_Suc_conv_app_nth
+          literals_are_in_N\<^sub>0_in_N\<^sub>1)
+    subgoal for b' n' s j zs using that
+      by (cases zs) (auto simp add: conflict_add_def conflict_merge'_step_def Let_def)
+    subgoal for b' n' s j zs
+      apply (auto simp: (* conflict_add_def *) (* option_conflict_rel_def conflict_rel_def *)
+          conflict_merge'_step_def Let_def option_conflict_rel_def (* conflict_rel_def *))
+      sorry
+    subgoal by auto
+    subgoal using that by (auto simp: option_conflict_rel_def conflict_merge'_step_def Let_def)
+    done
+qed
+
+
 lemma conflict_merge_aa_mark_conflict:
   \<open>(uncurry2 conflict_merge_aa, uncurry2(RETURN ooo set_conflict)) \<in>
     [\<lambda>((N, i), xs). i < length N \<and> xs = None \<and> distinct (N ! i) \<and>
