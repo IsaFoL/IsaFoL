@@ -2950,10 +2950,28 @@ fun get_vmtf_int :: \<open>twl_st_wl_int \<Rightarrow> _\<close> where
 
 end
 
+
 setup \<open>map_theory_claset (fn ctxt => ctxt addSbefore ("split_all_tac", split_all_tac))\<close>
 
 context twl_array_code
 begin
+
+lemma literals_are_N⇩0_hd_trail_in_D\<^sub>0:
+  assumes 
+    N\<^sub>1: ‹literals_are_N⇩0 S› and
+    invs: ‹twl_struct_invs (twl_st_of_wl None S)› and
+    nil: ‹get_trail_wl S \<noteq> []›
+  shows ‹lit_of (hd (get_trail_wl S)) \<in> snd ` D\<^sub>0›
+proof -
+  have ‹cdcl⇩W_restart_mset.no_strange_atm (state⇩W_of (twl_st_of_wl None S))›
+    using invs unfolding twl_struct_invs_def cdcl⇩W_restart_mset.cdcl⇩W_all_struct_inv_def
+    by fast
+  then show ?thesis
+     using nil N\<^sub>1 by (cases S; cases ‹get_trail_wl S›)
+        (auto simp: cdcl⇩W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
+          in_N⇩1_atm_of_in_atms_of_iff image_image mset_take_mset_drop_mset' clauses_def
+          is_N⇩1_alt_def)
+qed
 
 sepref_thm tl_state_wl_int_code 
   is \<open>RETURN o tl_state_wl_int\<close>
@@ -2963,6 +2981,7 @@ sepref_thm tl_state_wl_int_code
       twl_st_int_assn\<^sup>d \<rightarrow> twl_st_int_assn\<close>
   supply [[goals_limit=1]] option.splits[split] get_vmtf_int.simps[simp] if_splits[split]
   option.splits[split]
+  supply [[goals_limit=1]] option.splits[split] get_vmtf_int.simps[simp] literals_are_N⇩0_hd_trail_in_D\<^sub>0[intro]
   unfolding tl_state_wl_int_alt_def[abs_def] twl_st_int_assn_def get_trail_wl_int_def[simp]
     vmtf_unset_def bind_ref_tag_def[simp] 
     short_circuit_conv
@@ -2991,7 +3010,7 @@ lemma tl_state_wl_int_tl_state_wl: \<open>(RETURN o tl_state_wl_int, RETURN o tl
 
 lemma tl_state_wl_refine[sepref_fr_rules]:
   \<open>(tl_state_wl_int_code, RETURN o tl_state_wl) \<in>
-    [\<lambda>S. get_trail_wl S \<noteq> [] \<and> lit_of(hd (get_trail_wl S)) \<in> snd ` D\<^sub>0]\<^sub>a
+    [\<lambda>S. get_trail_wl S \<noteq> [] \<and> literals_are_N\<^sub>0 S \<and> twl_struct_invs (twl_st_of None (st_l_of_wl None S))]\<^sub>a
       twl_st_assn\<^sup>d \<rightarrow> twl_st_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
@@ -3008,7 +3027,8 @@ proof -
     using  hfref_compI_PRE_aux[OF tl_state_wl_int_code_refine tl_state_wl_int_tl_state_wl]
     .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
-    using that unfolding comp_PRE_def option_conflict_rel_def conflict_rel_def
+    using that literals_are_N⇩0_hd_trail_in_D\<^sub>0[of x]
+    unfolding comp_PRE_def option_conflict_rel_def conflict_rel_def
     by (auto simp: image_image twl_st_ref_def phase_saving_def in_N⇩1_atm_of_in_atms_of_iff
       vmtf_imp_def)
   have im: \<open>?im' = ?im\<close>
@@ -3025,6 +3045,33 @@ proof -
     using H unfolding im f PR_CONST_def apply assumption
     using pre ..
 qed
+
+end
+
+
+setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close>
+
+context twl_array_code
+begin
+
+definition (in -) get_max_lvl_st :: ‹nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat› where
+  ‹get_max_lvl_st S L = get_maximum_level_remove (get_trail_wl S) (the (get_conflict_wl S)) L›
+
+lemma (in -) get_max_lvl_st_alt_def:
+  ‹get_max_lvl_st = (\<lambda>(M, N, U, D, _) L. get_maximum_level_remove M (the D) L)›
+  unfolding get_max_lvl_st_def
+  by (intro ext, rename_tac S L, case_tac S) auto
+find_theorems maximum_level_remove_code
+term maximum_level_remove_code
+lemma [sepref_fr_rules]:
+  ‹(uncurry (\<lambda>(M, N, U, (_, D), _) L. maximum_level_remove_code M D L), 
+    uncurry (RETURN oo get_max_lvl_st)) \<in>
+    [λ(S, L). literals_are_N⇩0 S ∧ L ∈# the (get_conflict_wl S)]⇩a twl_st_assn⇧k *⇩a
+                    unat_lit_assn⇧k → uint32_nat_assn›
+  thm maximum_level_remove_code_get_maximum_level_remove[to_hnr]
+  apply sepref_to_hoare
+    apply (sep_auto simp: get_max_lvl_st_alt_def)
+    sorry
 
 sepref_register skip_and_resolve_loop_wl_D
 sepref_thm skip_and_resolve_loop_wl_D
@@ -3047,6 +3094,7 @@ sepref_thm skip_and_resolve_loop_wl_D
     get_maximum_level_remove_def[symmetric]
     literal_is_in_conflict_def[symmetric]
     lit_and_ann_of_propagated_st_def[symmetric]
+    get_max_lvl_st_def[symmetric]
   apply sepref_dbg_keep
   apply sepref_dbg_trans_keep
   -- \<open>Translation stops at the \<open>set\<close> operation\<close>
