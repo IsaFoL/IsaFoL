@@ -2856,9 +2856,9 @@ definition tl_state_wl_int :: \<open>twl_st_wl_int \<Rightarrow> twl_st_wl_int\<
 
 lemma tl_state_wl_int_alt_def:
     \<open>tl_state_wl_int =  (\<lambda>(M, N, U, D, WS, Q, vmtf, \<phi>).
-      (let L = hd M in 
-       (tl M, N, U, D, WS, Q, vmtf_unset (atm_of (lit_of L)) vmtf, \<phi>)))\<close>
-  by (auto simp: tl_state_wl_int_def)
+      (let L = lit_of (hd M) in 
+       (tl M, N, U, D, WS, Q, vmtf_unset (atm_of L) vmtf, \<phi>)))\<close>
+  by (auto simp: tl_state_wl_int_def Let_def)
 
 definition (in twl_array_code_ops) tl_trailt_tr :: \<open>trail_int \<Rightarrow> trail_int\<close> where
   \<open>tl_trailt_tr = (\<lambda>(M', xs, lvls, k). (tl M', xs[atm_of (lit_of (hd M')) := None], lvls[atm_of (lit_of (hd M')) := 0],
@@ -2948,24 +2948,83 @@ qed
 fun get_vmtf_int :: \<open>twl_st_wl_int \<Rightarrow> _\<close> where
   \<open>get_vmtf_int (M, N, U, D, WS, W, vmtf, _) = vmtf\<close>
 
+end
+
+setup \<open>map_theory_claset (fn ctxt => ctxt addSbefore ("split_all_tac", split_all_tac))\<close>
+
+context twl_array_code
+begin
+
 sepref_thm tl_state_wl_int_code 
   is \<open>RETURN o tl_state_wl_int\<close>
-  :: \<open>[\<lambda>S. get_trail_wl_int S \<noteq> [] \<and> 
-        atm_of (lit_of (hd (get_trail_wl_int S))) < length (fst (fst (get_vmtf_int S)))]\<^sub>a twl_st_int_assn\<^sup>d \<rightarrow> twl_st_int_assn\<close>
-  supply [[goals_limit=1]] option.splits[split] get_vmtf_int.simps[simp]
+  :: \<open>[\<lambda>(M, N, U, D, WS, Q, ((A, m, lst, next_search), _), \<phi>). M \<noteq> [] \<and>
+         atm_of (lit_of (hd M)) < length \<phi> \<and>
+         atm_of (lit_of (hd M)) < length A \<and> (next_search \<noteq> None \<longrightarrow>  the next_search < length A)]\<^sub>a 
+      twl_st_int_assn\<^sup>d \<rightarrow> twl_st_int_assn\<close>
+  supply [[goals_limit=1]] option.splits[split] get_vmtf_int.simps[simp] if_splits[split]
+  option.splits[split]
   unfolding tl_state_wl_int_alt_def[abs_def] twl_st_int_assn_def get_trail_wl_int_def[simp]
-    vmtf_unset_def bind_ref_tag_def[simp]
+    vmtf_unset_def bind_ref_tag_def[simp] 
     short_circuit_conv
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  -- \<open>Translation stops at the \<open>set\<close> operation\<close>
-                  apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_side_unfold apply auto[]
-  unfolding get_vmtf_int.simps
-  apply auto[]
-  thm get_vmtf_int.simps
+  by sepref
 
-  oops
+
+concrete_definition (in -) tl_state_wl_int_code
+  uses twl_array_code.tl_state_wl_int_code.refine_raw
+  is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) tl_state_wl_int_code_def
+
+lemmas tl_state_wl_int_code_refine[sepref_fr_rules] =
+   tl_state_wl_int_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+(* TODO Move *)
+lemma (in -) no_dup_tlD: \<open>no_dup a \<Longrightarrow> no_dup (tl a)\<close>
+  unfolding no_dup_def by (cases a) auto
+(* End Move *)
+
+lemma tl_state_wl_int_tl_state_wl: \<open>(RETURN o tl_state_wl_int, RETURN o tl_state_wl) \<in>
+  [\<lambda>S. get_trail_wl S \<noteq> [] \<and> lit_of(hd (get_trail_wl S)) \<in> snd ` D\<^sub>0]\<^sub>f twl_st_ref \<rightarrow> \<langle>twl_st_ref\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+   (auto simp: twl_st_ref_def tl_state_wl_int_def tl_state_wl_def abs_l_vmtf_unset_vmtf_unset'
+    in_N⇩1_atm_of_in_atms_of_iff phase_saving_def dest: no_dup_tlD)
+
+lemma tl_state_wl_refine[sepref_fr_rules]:
+  \<open>(tl_state_wl_int_code, RETURN o tl_state_wl) \<in>
+    [\<lambda>S. get_trail_wl S \<noteq> [] \<and> lit_of(hd (get_trail_wl S)) \<in> snd ` D\<^sub>0]\<^sub>a
+      twl_st_assn\<^sup>d \<rightarrow> twl_st_assn\<close>
+  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c
+   ∈ [comp_PRE twl_st_ref
+        (λS. get_trail_wl S ≠ [] ∧ lit_of (hd (get_trail_wl S)) ∈ snd ` D⇩0)
+         (λ_ (M, N, U, D, WS, Q, ((A, m, lst, next_search), _), φ).
+            M ≠ [] ∧ atm_of (lit_of (hd M)) < length φ ∧
+            atm_of (lit_of (hd M)) < length A ∧
+             (next_search ≠ None ⟶ the next_search < length A))
+            (λ_. True)]⇩a 
+      hrp_comp (twl_st_int_assn⇧d) twl_st_ref → hr_comp twl_st_int_assn twl_st_ref\<close>
+      (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using  hfref_compI_PRE_aux[OF tl_state_wl_int_code_refine tl_state_wl_int_tl_state_wl]
+    .
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
+    using that unfolding comp_PRE_def option_conflict_rel_def conflict_rel_def
+    by (auto simp: image_image twl_st_ref_def phase_saving_def in_N⇩1_atm_of_in_atms_of_iff
+      vmtf_imp_def)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep 
+    twl_st_assn_W_list[symmetric] twl_st_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def
+    twl_st_assn_W_list[symmetric] hr_comp_prod_conv
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
+qed
 
 sepref_register skip_and_resolve_loop_wl_D
 sepref_thm skip_and_resolve_loop_wl_D
