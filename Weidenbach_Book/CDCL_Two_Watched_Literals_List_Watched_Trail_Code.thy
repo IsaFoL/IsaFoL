@@ -3174,6 +3174,53 @@ proof -
     using pre ..
 qed
 
+
+lemma count_decided_trail_ref:
+  \<open>(RETURN o (\<lambda>(_, _, _, k). k), RETURN o count_decided) \<in> trailt_ref \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI) (auto simp: trailt_ref_def)
+
+lemma count_decided_trail:
+   \<open>(return o (\<lambda>(_, _, _, k). k), RETURN o (\<lambda>(_, _, _, k). k)) \<in> trailt_conc\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  supply [[goals_limit = 1]]
+  by sepref_to_hoare sep_auto
+
+lemmas count_decided_trail_code[sepref_fr_rules] =
+   count_decided_trail[FCOMP count_decided_trail_ref]
+
+definition count_decided_st where
+  \<open>count_decided_st = (\<lambda>(M, _). count_decided M)\<close>
+
+sepref_thm count_decided_st_code
+  is \<open>RETURN o count_decided_st\<close>
+  :: \<open>twl_st_int_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  supply [[goals_limit=2]]
+  unfolding count_decided_st_def twl_st_int_assn_def
+  by sepref
+
+concrete_definition (in -) count_decided_st_code
+  uses twl_array_code.count_decided_st_code.refine_raw
+  is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) count_decided_st_code_def
+
+lemmas count_decided_st_code_refine[sepref_fr_rules] =
+   count_decided_st_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma count_decided_st_count_decided_st: 
+  \<open>(RETURN o count_decided_st, RETURN o count_decided_st) \<in> twl_st_ref \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+     (auto simp: count_decided_st_def twl_st_ref_def)
+
+lemma count_decided_refine[sepref_fr_rules]:
+  \<open>(count_decided_st_code, RETURN \<circ> count_decided_st) \<in> twl_st_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  using count_decided_st_code_refine[FCOMP count_decided_st_count_decided_st]
+  unfolding twl_st_assn_def
+  .
+
+lemma count_decided_st_alt_def: \<open>count_decided_st S = count_decided (get_trail_wl S)\<close>
+  unfolding count_decided_st_def
+  by (cases S) auto
+
 end
 
 
@@ -3181,7 +3228,6 @@ setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<
 
 context twl_array_code
 begin
-
 
 sepref_register skip_and_resolve_loop_wl_D
 sepref_thm skip_and_resolve_loop_wl_D
@@ -3205,6 +3251,7 @@ sepref_thm skip_and_resolve_loop_wl_D
     literal_is_in_conflict_def[symmetric]
     lit_and_ann_of_propagated_st_def[symmetric]
     get_max_lvl_st_def[symmetric]
+    count_decided_st_alt_def[symmetric]
   apply sepref_dbg_keep
   apply sepref_dbg_trans_keep
   -- \<open>Translation stops at the \<open>set\<close> operation\<close>
