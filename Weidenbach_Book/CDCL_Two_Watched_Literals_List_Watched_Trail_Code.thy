@@ -3075,7 +3075,6 @@ definition twl_st_wl_int_conflict_rel :: \<open>(twl_st_wl_int_conflict \<times>
      Id \<times>\<^sub>r
      Id\<close>
 
-
 definition twl_st_int_conflict_assn :: \<open>twl_st_wl_int_conflict \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>twl_st_int_conflict_assn =
   trail_assn *assn clauses_ll_assn *assn nat_assn *assn
@@ -3097,37 +3096,85 @@ lemma twl_st_wl_int_conflict_rel_twl_st_rel: \<open>twl_st_wl_int_conflict_rel O
   unfolding twl_st_ref_def twl_st_wl_int_conflict_rel_def
   by force
 
-lemma twl_st_int_assn_int_conflict_ass:
+lemma get_max_lvl_st_int_get_max_lvl_st:
+  \<open>(uncurry (PR_CONST get_max_lvl_st_int), uncurry (RETURN oo get_max_lvl_st)) \<in>
+   [\<lambda>((M, N, U, D, _), L). literals_are_in_N\<^sub>0 (the D) \<and> L \<in># the D \<and> D \<noteq> None]\<^sub>f
+   (twl_st_wl_int_conflict_rel O twl_st_ref) \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
+  using maximum_level_remove'_get_maximum_level_remove[unfolded fref_def nres_rel_def]
+  unfolding get_max_lvl_st_int_def get_max_lvl_st_def twl_st_wl_int_conflict_rel_twl_st_rel
+  apply (intro frefI nres_relI)
+  by (auto simp: option_conflict_rel_def)
+
+lemma twl_st_int_assn_int_conflict_assn:
   \<open>twl_st_int_assn = hr_comp twl_st_int_conflict_assn twl_st_wl_int_conflict_rel\<close>
   unfolding twl_st_int_assn_def twl_st_int_conflict_assn_def
     twl_st_wl_int_conflict_rel_def
   by (auto simp: list_assn_list_mset_rel_eq_list_mset_assn conflict_option_assn_def)
 
+
+lemma twl_st_assn_confl_assn:
+  \<open>twl_st_assn = hr_comp twl_st_int_conflict_assn (twl_st_wl_int_conflict_rel O twl_st_ref)\<close>
+  apply (subst hr_comp_assoc[symmetric])
+  apply (subst twl_st_int_assn_int_conflict_assn[symmetric])
+  unfolding twl_st_assn_def ..
+
+sepref_register get_max_lvl_st_int
 sepref_thm get_max_lvl_st_int_code
-  is \<open>uncurry (get_max_lvl_st_int)\<close>
+  is \<open>uncurry (PR_CONST get_max_lvl_st_int)\<close>
   :: \<open>twl_st_int_conflict_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   supply [[goals_limit=2]]
-  unfolding get_max_lvl_st_int_def twl_st_int_conflict_assn_def
+  unfolding get_max_lvl_st_int_def twl_st_int_conflict_assn_def PR_CONST_def
   by sepref
 
-thm select_and_remove_from_literals_to_update_wl''_code
-lemma [sepref_fr_rules]:
-  \<open>(uncurry (\<lambda>(M, N, U, (_, D), _) L. maximum_level_remove_code M D L),
-    uncurry (RETURN oo get_max_lvl_st)) \<in>
-    [\<lambda>(S, L). literals_are_N\<^sub>0 S \<and> L \<in># the (get_conflict_wl S)]\<^sub>a twl_st_assn\<^sup>k *\<^sub>a
-                    unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  thm maximum_level_remove_code_get_maximum_level_remove[to_hnr, unfolded hn_refine_def,
-   simplified]
-  apply sepref_to_hoare
-  subgoal for L' L S' S
-    using maximum_level_remove_code_get_maximum_level_remove[to_hnr, unfolded hn_refine_def,
-   simplified, of \<open>the (get_conflict_wl S')\<close> L' L \<open>(\<lambda>(M, N, U, D, _). snd D) S\<close>
-     \<open>get_trail_wl S'\<close> \<open>(\<lambda>(M, _). M) S\<close>]
-    apply (cases S')
-    apply (sep_auto simp: get_max_lvl_st_alt_def)
-    sorry
-  sorry
 
+concrete_definition (in -) get_max_lvl_st_int_code
+  uses twl_array_code.get_max_lvl_st_int_code.refine_raw
+  is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) get_max_lvl_st_int_code_def
+
+lemmas get_max_lvl_st_int_code_refine[sepref_fr_rules] =
+   get_max_lvl_st_int_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma get_max_lvl_st_refine[sepref_fr_rules]:
+  \<open>(uncurry get_max_lvl_st_int_code, uncurry (RETURN oo get_max_lvl_st)) \<in>
+    [\<lambda>(S, L). literals_are_N\<^sub>0 S \<and> twl_struct_invs (twl_st_of None (st_l_of_wl None S)) \<and>
+       L \<in># the (get_conflict_wl S) \<and> get_conflict_wl S \<noteq> None]\<^sub>a
+      twl_st_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c
+     \<in> [comp_PRE (twl_st_wl_int_conflict_rel O twl_st_ref \<times>\<^sub>f Id)
+          (\<lambda>((M, N, U, D, _), L). literals_are_in_N\<^sub>0 (the D) \<and> L \<in># the D \<and> D \<noteq> None)
+          (\<lambda>_ _. True) (\<lambda>_. True)]\<^sub>a
+        hrp_comp (twl_st_int_conflict_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k)
+                     (twl_st_wl_int_conflict_rel O twl_st_ref \<times>\<^sub>f Id) \<rightarrow>
+        hr_comp uint32_nat_assn nat_rel\<close>
+      (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using  hfref_compI_PRE_aux[OF get_max_lvl_st_int_code_refine get_max_lvl_st_int_get_max_lvl_st]
+    .
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
+    using that literals_are_N\<^sub>0_conflict_literals_are_in_N\<^sub>0[of \<open>fst x\<close>]
+    unfolding comp_PRE_def option_conflict_rel_def conflict_rel_def
+    by (auto simp: image_image twl_st_ref_def phase_saving_def in_N\<^sub>1_atm_of_in_atms_of_iff
+      vmtf_imp_def)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+      twl_st_assn_def twl_st_int_assn_int_conflict_assn[symmetric]
+      twl_st_assn_confl_assn[symmetric]
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def
+    twl_st_assn_W_list[symmetric] hr_comp_prod_conv
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
+qed
+
+end
 
 
 setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close>
@@ -3142,7 +3189,7 @@ sepref_thm skip_and_resolve_loop_wl_D
   :: \<open>twl_st_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_assn\<close>
   supply [[goals_limit=1]] get_trail_twl_st_of_wl_get_trail_wl_empty_iff[simp] is_decided_hd_trail_wl_def[simp]
     is_decided_no_proped_iff[simp] skip_and_resolve_hd_in_D\<^sub>0[intro] literals_are_N\<^sub>0_conflict_literals_are_in_N\<^sub>0[intro]
-   get_conflict_l_st_l_of_wl[simp]
+   get_conflict_l_st_l_of_wl[simp] literal_is_in_conflict_def[simp]
   apply (subst PR_CONST_def)
   unfolding skip_and_resolve_loop_wl_D_def
   apply (rewrite at \<open>\<not>_ \<and> \<not> _\<close> short_circuit_conv)
