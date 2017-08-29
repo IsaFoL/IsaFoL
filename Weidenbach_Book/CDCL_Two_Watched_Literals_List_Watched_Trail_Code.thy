@@ -463,7 +463,81 @@ qed
 lemma (in -)distinct_mset_remdups_mset: \<open>distinct_mset C \<Longrightarrow> remdups_mset C = C\<close>
   by (induction C)  auto
 
+lemma (in -) minus_notin_trivial: "L \<notin># A ==> A - add_mset L B = A - B"
+  by (metis diff_intersect_left_idem inter_add_right1)
+
 (* End Move *)
+lemma mset_as_position_remove:
+  \<open>mset_as_position xs D \<Longrightarrow> L < length xs \<Longrightarrow> mset_as_position (xs[L := None]) (remove1_mset (Pos L) (remove1_mset (Neg L) D))\<close>
+proof (induction rule: mset_as_position.induct)
+  case (empty n)
+  then have [simp]: \<open>replicate n None[L := None] = replicate n None\<close>
+    using list_update_id[of \<open>replicate n None\<close> L] by auto
+  show ?case by (auto intro: mset_as_position.intros)
+next
+  case (add xs P K xs')
+  show ?case
+  proof (cases \<open>L = atm_of K\<close>)
+    case True
+    then show ?thesis
+      using add by (cases K) auto
+  next
+    case False
+    have map: \<open>mset_as_position (xs[L := None]) (remove1_mset (Pos L) (remove1_mset (Neg L) P))\<close>
+      using add by auto
+    have \<open>K \<notin># P - {#Pos L, Neg L#}\<close> \<open>-K \<notin># P - {#Pos L, Neg L#}\<close>
+      by (auto simp: add.hyps dest!: in_diffD)
+    then show ?thesis
+      using mset_as_position.add[OF map, of \<open>K\<close> \<open>xs[L := None, atm_of K := Some (is_pos K)]\<close>]
+        add False list_update_swap[of \<open>atm_of K\<close> L xs] apply simp
+      apply (subst diff_add_mset_swap)
+      by auto
+  qed
+qed
+
+lemma option_conflict_rel_update_None:
+  assumes  \<open>((False, (n, xs)), Some D) \<in> option_conflict_rel\<close> and L_xs : \<open>L < length xs\<close>
+  shows \<open>((False, (if xs!L = None then n else n - 1, xs[L := None])), Some (D - {# Pos L, Neg L #})) \<in> option_conflict_rel\<close>
+proof -
+  have [simp]: "L \<notin># A ==> A - add_mset L' (add_mset L B) = A - add_mset L' B" for A B L L'
+    by (metis add_mset_commute minus_notin_trivial)
+  have "n = size D" and map: "mset_as_position xs D"
+    using assms by (auto simp: option_conflict_rel_def conflict_rel_def)
+  have xs_None_iff: "xs ! L = None \<longleftrightarrow> Pos L \<notin># D \<and> Neg L \<notin># D" 
+    using map L_xs mset_as_position_in_iff_nth[of xs D "Pos L"] mset_as_position_in_iff_nth[of xs D "Neg L"]
+    by (cases \<open>xs ! L\<close>) auto
+  
+  have 1: \<open>xs ! L = None \<Longrightarrow> D - {#Pos L, Neg L#} = D\<close>
+    using assms by (auto simp: xs_None_iff minus_notin_trivial)
+  have 2: \<open>xs ! L = None \<Longrightarrow> xs[L := None] = xs\<close>
+   using map list_update_id[of xs L] by (auto simp: 1)
+  have 3: \<open>xs ! L = Some y \<longleftrightarrow> (y \<and> Pos L \<in># D \<and> Neg L \<notin># D) \<or> (\<not>y \<and> Pos L \<notin># D \<and> Neg L \<in># D)\<close> for y
+    using map L_xs mset_as_position_in_iff_nth[of xs D "Pos L"] mset_as_position_in_iff_nth[of xs D "Neg L"]
+    by (cases \<open>xs ! L\<close>) auto
+
+  show ?thesis
+    using assms mset_as_position_remove[of xs D L]
+    by (auto simp: option_conflict_rel_def conflict_rel_def 1 2 3 size_remove1_mset_If minus_notin_trivial
+        mset_as_position_remove)
+qed
+
+lemma
+  assumes ocr: \<open>((False, (n, zs)), Some D) \<in> option_conflict_rel\<close> and
+    \<open>literals_are_in_N\<^sub>0 D\<close> and L: \<open>atm_of L < length zs\<close>
+  shows
+    \<open>((False, conflict_add L (n, zs)), Some (remdups_mset (remove1_mset (-L) (add_mset L D))))
+        \<in> option_conflict_rel\<close>
+proof -
+  have \<open>((n, zs), D) \<in> conflict_rel\<close>
+    using ocr unfolding option_conflict_rel_def by auto
+  have \<open>((False, (if zs!(atm_of L) = None then n else n - 1,
+         zs[atm_of L := None])), Some (D - {#L, -L#})) \<in> option_conflict_rel\<close>
+    using option_conflict_rel_update_None[OF ocr L]
+    by (metis (no_types, lifting) add_mset_commute literal.exhaust_sel uminus_Neg uminus_Pos)
+    (* Now add L via mset_as_position.add and conclude*)
+  show ?thesis
+    sorry
+qed
 
 lemma H: \<open>conflict_merge' D (b, n, xs) \<le> \<Down> option_conflict_rel
             (RETURN (Some (remdups_mset (mset D + (C - mset D - image_mset uminus (mset D))))))\<close>
@@ -511,9 +585,11 @@ proof -
     subgoal for b' n' s j zs using that
       by (cases zs) (auto simp add: conflict_add_def conflict_merge'_step_def Let_def)
     subgoal for b' n' s j zs
-      apply (auto simp: (* conflict_add_def *) (* option_conflict_rel_def conflict_rel_def *)
-          conflict_merge'_step_def Let_def option_conflict_rel_def (* conflict_rel_def *))
+      apply (auto simp: take_Suc_conv_app_nth(* conflict_add_def *) (* option_conflict_rel_def conflict_rel_def *)
+          conflict_merge'_step_def Let_def (*option_conflict_rel_def conflict_rel_def *))
+
       sorry
+      find_theorems take Suc nth
     subgoal by auto
     subgoal using that by (auto simp: option_conflict_rel_def conflict_merge'_step_def Let_def)
     done
