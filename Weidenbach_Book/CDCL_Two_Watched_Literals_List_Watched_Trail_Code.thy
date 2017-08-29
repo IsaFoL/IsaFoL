@@ -2956,21 +2956,21 @@ setup \<open>map_theory_claset (fn ctxt => ctxt addSbefore ("split_all_tac", spl
 context twl_array_code
 begin
 
-lemma literals_are_N⇩0_hd_trail_in_D\<^sub>0:
+lemma literals_are_N\<^sub>0_hd_trail_in_D\<^sub>0:
   assumes 
-    N\<^sub>1: ‹literals_are_N⇩0 S› and
-    invs: ‹twl_struct_invs (twl_st_of_wl None S)› and
-    nil: ‹get_trail_wl S \<noteq> []›
-  shows ‹lit_of (hd (get_trail_wl S)) \<in> snd ` D\<^sub>0›
+    N\<^sub>1: \<open>literals_are_N\<^sub>0 S\<close> and
+    invs: \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and
+    nil: \<open>get_trail_wl S \<noteq> []\<close>
+  shows \<open>lit_of (hd (get_trail_wl S)) \<in> snd ` D\<^sub>0\<close>
 proof -
-  have ‹cdcl⇩W_restart_mset.no_strange_atm (state⇩W_of (twl_st_of_wl None S))›
-    using invs unfolding twl_struct_invs_def cdcl⇩W_restart_mset.cdcl⇩W_all_struct_inv_def
+  have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl None S))\<close>
+    using invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by fast
   then show ?thesis
-     using nil N\<^sub>1 by (cases S; cases ‹get_trail_wl S›)
-        (auto simp: cdcl⇩W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
-          in_N⇩1_atm_of_in_atms_of_iff image_image mset_take_mset_drop_mset' clauses_def
-          is_N⇩1_alt_def)
+     using nil N\<^sub>1 by (cases S; cases \<open>get_trail_wl S\<close>)
+        (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
+          in_N\<^sub>1_atm_of_in_atms_of_iff image_image mset_take_mset_drop_mset' clauses_def
+          is_N\<^sub>1_alt_def)
 qed
 
 sepref_thm tl_state_wl_int_code 
@@ -2981,7 +2981,7 @@ sepref_thm tl_state_wl_int_code
       twl_st_int_assn\<^sup>d \<rightarrow> twl_st_int_assn\<close>
   supply [[goals_limit=1]] option.splits[split] get_vmtf_int.simps[simp] if_splits[split]
   option.splits[split]
-  supply [[goals_limit=1]] option.splits[split] get_vmtf_int.simps[simp] literals_are_N⇩0_hd_trail_in_D\<^sub>0[intro]
+  supply [[goals_limit=1]] option.splits[split] get_vmtf_int.simps[simp] literals_are_N\<^sub>0_hd_trail_in_D\<^sub>0[intro]
   unfolding tl_state_wl_int_alt_def[abs_def] twl_st_int_assn_def get_trail_wl_int_def[simp]
     vmtf_unset_def bind_ref_tag_def[simp] 
     short_circuit_conv
@@ -3006,7 +3006,7 @@ lemma tl_state_wl_int_tl_state_wl: \<open>(RETURN o tl_state_wl_int, RETURN o tl
   [\<lambda>S. get_trail_wl S \<noteq> [] \<and> lit_of(hd (get_trail_wl S)) \<in> snd ` D\<^sub>0]\<^sub>f twl_st_ref \<rightarrow> \<langle>twl_st_ref\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
    (auto simp: twl_st_ref_def tl_state_wl_int_def tl_state_wl_def abs_l_vmtf_unset_vmtf_unset'
-    in_N⇩1_atm_of_in_atms_of_iff phase_saving_def dest: no_dup_tlD)
+    in_N\<^sub>1_atm_of_in_atms_of_iff phase_saving_def dest: no_dup_tlD)
 
 lemma tl_state_wl_refine[sepref_fr_rules]:
   \<open>(tl_state_wl_int_code, RETURN o tl_state_wl) \<in>
@@ -3015,21 +3015,21 @@ lemma tl_state_wl_refine[sepref_fr_rules]:
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?c
-   ∈ [comp_PRE twl_st_ref
-        (λS. get_trail_wl S ≠ [] ∧ lit_of (hd (get_trail_wl S)) ∈ snd ` D⇩0)
-         (λ_ (M, N, U, D, WS, Q, ((A, m, lst, next_search), _), φ).
-            M ≠ [] ∧ atm_of (lit_of (hd M)) < length φ ∧
-            atm_of (lit_of (hd M)) < length A ∧
-             (next_search ≠ None ⟶ the next_search < length A))
-            (λ_. True)]⇩a 
-      hrp_comp (twl_st_int_assn⇧d) twl_st_ref → hr_comp twl_st_int_assn twl_st_ref\<close>
+   \<in> [comp_PRE twl_st_ref
+        (\<lambda>S. get_trail_wl S \<noteq> [] \<and> lit_of (hd (get_trail_wl S)) \<in> snd ` D\<^sub>0)
+         (\<lambda>_ (M, N, U, D, WS, Q, ((A, m, lst, next_search), _), φ).
+            M \<noteq> [] \<and> atm_of (lit_of (hd M)) < length φ \<and>
+            atm_of (lit_of (hd M)) < length A \<and>
+             (next_search \<noteq> None \<longrightarrow> the next_search < length A))
+            (\<lambda>_. True)]\<^sub>a 
+      hrp_comp (twl_st_int_assn\<^sup>d) twl_st_ref \<rightarrow> hr_comp twl_st_int_assn twl_st_ref\<close>
       (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using  hfref_compI_PRE_aux[OF tl_state_wl_int_code_refine tl_state_wl_int_tl_state_wl]
     .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
-    using that literals_are_N⇩0_hd_trail_in_D\<^sub>0[of x]
+    using that literals_are_N\<^sub>0_hd_trail_in_D\<^sub>0[of x]
     unfolding comp_PRE_def option_conflict_rel_def conflict_rel_def
-    by (auto simp: image_image twl_st_ref_def phase_saving_def in_N⇩1_atm_of_in_atms_of_iff
+    by (auto simp: image_image twl_st_ref_def phase_saving_def in_N\<^sub>1_atm_of_in_atms_of_iff
       vmtf_imp_def)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep 
@@ -3054,20 +3054,20 @@ setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<
 context twl_array_code
 begin
 
-definition (in -) get_max_lvl_st :: ‹nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat› where
-  ‹get_max_lvl_st S L = get_maximum_level_remove (get_trail_wl S) (the (get_conflict_wl S)) L›
+definition (in -) get_max_lvl_st :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
+  \<open>get_max_lvl_st S L = get_maximum_level_remove (get_trail_wl S) (the (get_conflict_wl S)) L\<close>
 
 lemma (in -) get_max_lvl_st_alt_def:
-  ‹get_max_lvl_st = (\<lambda>(M, N, U, D, _) L. get_maximum_level_remove M (the D) L)›
+  \<open>get_max_lvl_st = (\<lambda>(M, N, U, D, _) L. get_maximum_level_remove M (the D) L)\<close>
   unfolding get_max_lvl_st_def
   by (intro ext, rename_tac S L, case_tac S) auto
 find_theorems maximum_level_remove_code
 term maximum_level_remove_code
 lemma [sepref_fr_rules]:
-  ‹(uncurry (\<lambda>(M, N, U, (_, D), _) L. maximum_level_remove_code M D L), 
+  \<open>(uncurry (\<lambda>(M, N, U, (_, D), _) L. maximum_level_remove_code M D L), 
     uncurry (RETURN oo get_max_lvl_st)) \<in>
-    [λ(S, L). literals_are_N⇩0 S ∧ L ∈# the (get_conflict_wl S)]⇩a twl_st_assn⇧k *⇩a
-                    unat_lit_assn⇧k → uint32_nat_assn›
+    [\<lambda>(S, L). literals_are_N\<^sub>0 S \<and> L \<in># the (get_conflict_wl S)]\<^sub>a twl_st_assn\<^sup>k *\<^sub>a
+                    unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   thm maximum_level_remove_code_get_maximum_level_remove[to_hnr]
   apply sepref_to_hoare
     apply (sep_auto simp: get_max_lvl_st_alt_def)
