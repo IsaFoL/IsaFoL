@@ -3319,7 +3319,7 @@ proof -
       by auto
     then obtain j where j_p: "is_least (\<lambda>j. enat j < llength Sts \<and> ((set CAi') \<union> {DA'} \<subseteq> ?Qs j)) j"
       using least_exists[of "(\<lambda>j. enat j < llength Sts \<and> ((set CAi') \<union> {DA'} \<subseteq> ?Qs j))"] by force
-    then have j_p': "enat j < llength Sts" "(set CAi') \<union> {DA'} \<subseteq> ?Qs j" "((set CAi') \<union> {DA'} \<subseteq> ?Qs j)"
+    then have j_p': "enat j < llength Sts" "(set CAi') \<union> {DA'} \<subseteq> ?Qs j"
       unfolding is_least_def by auto
     then have jn0: "j \<noteq> 0" (* Since there are initially no clauses in Q *)
       using empty_Q0 using insert_subset by fastforce
@@ -3359,11 +3359,11 @@ proof -
       using getN_subset j_p' by auto
     then have "?E \<in> grounding_of_state (lnth Sts j)"
       using s_p(7) s_p(3) unfolding grounding_of_clss_def grounding_of_cls_def by force
-    then have "\<gamma> \<in> src.Ri (grounding_of_state (lnth Sts j))"
+    then have "\<gamma> \<in> src.Ri (grounding_of_state (lnth Sts j))" (* Here I could also just use R4.  *)
       unfolding src_ext_Ri_def src.Ri_def
       using \<gamma>_p using gd.\<Gamma>_reductive
        apply simp
-       apply (rule_tac x="{#?E#}" in exI)
+      apply (rule_tac x="{#?E#}" in exI)
        apply simp
       done
     then have "\<gamma> \<in> src.Ri (?N j)"
