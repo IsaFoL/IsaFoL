@@ -1131,7 +1131,7 @@ text {*
 @{text O} denotes relation composition in Isabelle, so the formalization uses @{text Q} instead.
 *}
   
-inductive resolution_prover :: "('a clause set \<times> 'a clause set \<times> 'a clause set) \<Rightarrow> ('a clause set \<times> 'a clause set \<times> 'a clause set) \<Rightarrow> bool" (infix "\<leadsto>" 50)  where
+inductive resolution_prover :: "'a state \<Rightarrow> 'a state \<Rightarrow> bool" (infix "\<leadsto>" 50)  where
  tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N \<union> {C}, P, Q) \<leadsto> (N, P, Q)"
 | forward_subsumption: "(\<exists>D \<in> P \<union> Q. subsumes D C) \<Longrightarrow> (N \<union> {C}, P, Q) \<leadsto> (N, P, Q)"
 | backward_subsumption_P: "(\<exists>D \<in> N. properly_subsumes D C) \<Longrightarrow> (N, P \<union> {C}, Q) \<leadsto> (N, P, Q)"
@@ -3313,13 +3313,13 @@ proof -
       "{DA'} \<union> set CAi' \<subseteq> getQ (limit_state Sts)"
       using selection_renaming_invariant ord_resolve_rename_lifting[of S "getQ (limit_state Sts)" CAi1 "?D" _ "?E", OF sisisgma selection_axioms _ xxq]
       by smt
-    from this(8) have "\<exists>j. enat j < llength Sts \<and> (\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j)"
+    from this(8) have "\<exists>j. enat j < llength Sts \<and> ((set CAi') \<union> {DA'} \<subseteq> ?Qs j)"
       unfolding  llimit_def
       using subseteq_limit_state_eventually_always[of "{DA'} \<union> set CAi'"]
       by auto
-    then obtain j where j_p: "is_least (\<lambda>j. enat j < llength Sts \<and> (\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j)) j"
-      using least_exists[of "(\<lambda>j. enat j < llength Sts \<and> (\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j))"] by force
-    then have j_p': "enat j < llength Sts" "(set CAi') \<union> {DA'} \<subseteq> ?Qs j" "(\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j)"
+    then obtain j where j_p: "is_least (\<lambda>j. enat j < llength Sts \<and> ((set CAi') \<union> {DA'} \<subseteq> ?Qs j)) j"
+      using least_exists[of "(\<lambda>j. enat j < llength Sts \<and> ((set CAi') \<union> {DA'} \<subseteq> ?Qs j))"] by force
+    then have j_p': "enat j < llength Sts" "(set CAi') \<union> {DA'} \<subseteq> ?Qs j" "((set CAi') \<union> {DA'} \<subseteq> ?Qs j)"
       unfolding is_least_def by auto
     then have jn0: "j \<noteq> 0" (* Since there are initially no clauses in Q *)
       using empty_Q0 using insert_subset by fastforce
