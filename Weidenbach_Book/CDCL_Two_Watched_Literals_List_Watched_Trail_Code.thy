@@ -634,18 +634,6 @@ proof -
         \<in> option_conflict_rel\<close> and
       lits: \<open>literals_are_in_N\<^sub>0 (remdups_mset (mset (take j D) + (C - (mset (take j D) + uminus `# mset (take j D)))))\<close>
       using that unfolding conflict_merge'_step_def Let_def by auto
-    have 1: \<open>D ! j \<in> set (take j D) \<Longrightarrow> remdups_mset
-        (remove1_mset (- D ! j)
-          (remdups_mset
-            (mset (take j D) +
-             (C -
-              (mset (take j D) + uminus `# mset (take j D)))))) = remdups_mset
-        (mset (take j D) +
-         (C -
-          add_mset (- D ! j)
-           (add_mset (D ! j)
-             (mset (take j D) + uminus `# mset (take j D)))))\<close>
-      by (auto simp: remdups_mset_def dist index_nth_id index_take)
 
     define CD where
       \<open>CD = (C - mset (take j D) - uminus `# mset (take j D))\<close>
@@ -681,7 +669,7 @@ proof -
             dest: in_diffD)
     have \<open>\<not>tautology CD\<close>
       using \<open>\<not>tautology C\<close> by (auto simp: not_tautology_minus CD_def)
-    then have \<open>D ! j \<in># CD \<Longrightarrow> - D ! j \<notin># CD\<close>
+    then have in_CD_uCD: \<open>D ! j \<in># CD \<Longrightarrow> - D ! j \<notin># CD\<close>
       using tautology_minus by blast
     then have DJ_notin_CD: \<open>D ! j \<in># C \<Longrightarrow> - D ! j \<notin># CD\<close>
       by (auto simp: CD_def dest: in_diffD)
@@ -699,58 +687,56 @@ proof -
       by (smt \<open>distinct_mset CD\<close> add_diff_cancel_left' add_mset_remove_trivial
           diff_single_trivial diff_union_single_conv3 distinct_mset_add_mset
           in_multiset_in_set insert_DiffM notin_notin_diff_iff remdups_mset_inv remdups_mset_singleton_sum uDj_jD)
+    have [simp]: \<open>D ! j \<notin># remove1_mset (- D ! j) (remove1_mset (D ! j) CD)\<close>
+      using uDj_jD Dj_D unfolding CD_def
+      by (smt Multiset.diff_add \<open>D ! j \<notin># C - add_mset (- D ! j) (add_mset (D ! j) (mset (take j D) + uminus `# mset (take j D)))\<close> add_diff_cancel_left' add_mset_add_single diff_union_single_conv3 in_multiset_in_set notin_notin_diff_iff)
+    have thesis: \<open>((False, conflict_add (D ! j) zs), Some (remdups_mset (remove1_mset (- D ! j)
+              (add_mset (D ! j) (remdups_mset (mset (take j D) + (C - (mset (take j D) + uminus `# mset (take j D)))))))))
+         \<in> option_conflict_rel\<close>
+      using  conflict_add_option_conflict_rel[OF ocr lits Dj, unfolded surjective_pairing[symmetric]] .
 
-    show ?thesis
-      using conflict_add_option_conflict_rel[OF ocr lits Dj]
-      apply (auto simp: take_Suc_conv_app_nth(* conflict_add_def *) (* option_conflict_rel_def conflict_rel_def *)
-          conflict_merge'_step_def Let_def (*option_conflict_rel_def conflict_rel_def *) in_remove1_mset_neq
-          diff_union_single_conv3 1
-          split: if_splits
-          intro: )
-      subgoal
-        apply (rule H)
-         apply assumption
-        using uDj_jD Dj_D
-        apply (auto simp del: diff_diff_add_mset remdups_mset_singleton_sum
+    thm H[OF thesis]
+    have \<open>literals_are_in_N\<^sub>0 (remdups_mset (mset (take x1 D) + (C - mset (take x1 D) - uminus `# mset (take x1 D))))\<close>
+      using \<open>D ! j \<in># N\<^sub>1\<close> by (auto simp: take_Suc_conv_app_nth
+          conflict_merge'_step_def Let_def in_remove1_mset_neq
+          literals_are_in_N\<^sub>0_add_mset)
+    moreover {
+      have CD': \<open>C - add_mset (- D ! j) (add_mset (D ! j) (mset (take j D) + uminus `# mset (take j D)))
+           = CD - {#-D!j, D!j#}\<close>
+        unfolding CD_def by auto
+      have CD'': \<open>C - (mset (take j D) + uminus `# mset (take j D)) = CD\<close>
+        unfolding CD_def by auto
+      have [simp]: \<open>D ! j \<notin># remove1_mset (- D ! j) (remove1_mset (D ! j) (mset (take j D) + CD))\<close>
+        using uDj_jD Dj_D by (auto simp: diff_union_single_conv3)
+
+      have \<open>remdups_mset (remove1_mset (- D ! j) (remdups_mset (mset (take j D) + CD))) =
+        add_mset (D ! j) (remdups_mset (mset (take j D) + (CD - {#- D ! j, D ! j#})))\<close>
+        if \<open>D ! j \<in># CD\<close>
+      proof -
+        have \<open>remdups_mset (remove1_mset (- D ! j) (remdups_mset (mset (take j D) + CD))) =
+          remdups_mset (add_mset (D ! j) (remove1_mset (D ! j) (remove1_mset (- D ! j) (mset (take j D) + CD))))\<close>
+          using uDj_jD Dj_D that by (auto simp: in_remove1_mset_neq in_CD_uCD remdups_mset_inv)
+        then have \<open>remdups_mset (remove1_mset (- D ! j) (remdups_mset (mset (take j D) + CD))) =
+          remdups_mset (add_mset (D ! j) (remove1_mset (- D ! j) (remove1_mset (D ! j) (mset (take j D) + CD))))\<close>
+          by (subst diff_right_commute[of _ \<open>{#D!j#}\<close> \<open>{#-D!j#}\<close>])  auto
+        then show ?thesis
+          using uDj_jD Dj_D that
+          by (auto simp del: diff_diff_add_mset remdups_mset_singleton_sum
             simp: diff_diff_add_mset[symmetric] diff_add_mset_remove1
               diff_union_single_conv3[symmetric] notin_add_mset_remdups_mset)
-        apply (subst notin_add_mset_remdups_mset)
-         apply (auto simp:  diff_diff_add_mset[symmetric] simp del: diff_diff_add_mset)[]
-        apply (smt Multiset.diff_add \<open>D ! j \<notin># C - add_mset (- D ! j) (add_mset (D ! j) (mset (take j D) + uminus `# mset (take j D)))\<close> add_diff_cancel_left' add_mset_add_single diff_union_single_conv3 in_multiset_in_set notin_notin_diff_iff)
-
-        apply (auto
-            simp: diff_diff_add_mset[symmetric] CD_def[symmetric] in_remove1_mset_neq
-              diff_union_single_conv3
-            simp del: diff_diff_add_mset
-            dest: in_diffD)
-        apply (subst notin_add_mset_remdups_mset)
-         apply (auto simp:  diff_diff_add_mset[symmetric] simp del: diff_diff_add_mset
-            dest: in_diffD)[]
-        apply (auto simp: subset_mset.add_diff_assoc simp del: remdups_mset_singleton_sum)
-        apply (subst diff_single_trivial)
-         apply (auto simp: DJ_notin_CD minus_notin_trivial remdups_mset_inv DJ_in_CD add_mset_remove_trivial_If
-            diff_union_single_conv3[symmetric] notin_add_mset_remdups_mset dest: in_diffD
-            simp del: remdups_mset_singleton_sum)
-        done
-      subgoal using \<open>D ! j \<in># N\<^sub>1\<close> by (auto simp: literals_are_in_N\<^sub>0_add_mset)
-      subgoal
-        apply (rule H)
-         apply assumption
-        using uDj_jD Dj_D
-        apply (auto simp del: diff_diff_add_mset remdups_mset_singleton_sum
-            simp: diff_diff_add_mset[symmetric] diff_add_mset_remove1
-            diff_union_single_conv3[symmetric] notin_add_mset_remdups_mset)
-        apply (auto
-            simp: diff_diff_add_mset[symmetric] CD_def[symmetric] in_remove1_mset_neq
-            diff_union_single_conv3
-            simp del: diff_diff_add_mset
-            dest: in_diffD)
-        apply (auto simp: DJ_notin_CD minus_notin_trivial remdups_mset_inv DJ_in_CD add_mset_remove_trivial_If
-            diff_union_single_conv3[symmetric] notin_add_mset_remdups_mset 3 dest: in_diffD
-            simp del: remdups_mset_singleton_sum)
-        done
-      subgoal using \<open>D ! j \<in># N\<^sub>1\<close> by (auto simp: literals_are_in_N\<^sub>0_add_mset)
-      done
+      qed
+      moreover have \<open>remdups_mset (remove1_mset (- D ! j) (remdups_mset (mset (take j D) + CD))) =
+        remdups_mset (mset (take j D) + (CD - {#- D ! j, D ! j#}))\<close> if \<open>D ! j \<notin># CD\<close>
+        using uDj_jD Dj_D that "3" DJ_in_CD
+        by (auto simp: diff_add_mset_remove1 diff_union_single_conv3[symmetric])
+      ultimately have \<open>((False, fst x2, snd x2), Some (remdups_mset (mset (take x1 D) + (C - mset (take x1 D) - uminus `# mset (take x1 D)))))
+      \<in> option_conflict_rel\<close>
+        using uDj_jD Dj_D by (fastforce simp: take_Suc_conv_app_nth
+          conflict_merge'_step_def Let_def in_remove1_mset_neq
+          diff_union_single_conv3 CD' CD_def[symmetric] CD''
+          intro!: H[OF thesis]) }
+    ultimately show ?thesis
+      unfolding conflict_merge'_step_def Let_def by simp
   qed
 
   show ?thesis
