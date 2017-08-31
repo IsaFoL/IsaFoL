@@ -573,19 +573,20 @@ lemma (in -) diff_le_mono2_mset: \<open>A \<subseteq># B \<Longrightarrow> C - B
 lemma mset_as_position_tautology: \<open>mset_as_position xs C \<Longrightarrow> \<not>tautology C\<close>
   by (induction rule: mset_as_position.induct) (auto simp: tautology_add_mset)
 
-lemma conflict_merge'_spec: \<open>conflict_merge D (b, n, xs) \<le> \<Down> option_conflict_rel
-            (RETURN (Some (remdups_mset (mset D + (C - mset D - image_mset uminus (mset D))))))\<close>
-    if
+lemma conflict_merge'_spec:
+  assumes
       o: \<open>((b, n, xs), Some C) \<in> option_conflict_rel\<close> and
       dist: \<open>distinct D\<close> and
       lits: \<open>literals_are_in_N\<^sub>0 (mset D)\<close> and
       tauto: \<open>\<not>tautology (mset D)\<close> and
       \<open>literals_are_in_N\<^sub>0 C\<close>
+  shows \<open>conflict_merge D (b, n, xs) \<le> \<Down> option_conflict_rel
+            (RETURN (Some (mset D \<union># (C - mset D - image_mset uminus (mset D)))))\<close>
 proof -
   have [simp]: \<open>a < length D \<Longrightarrow> Suc (Suc a) < upperN\<close> for a
-    using simple_clss_size_upper_div2[of \<open>mset D\<close>] that by (auto simp: upperN_def)
+    using simple_clss_size_upper_div2[of \<open>mset D\<close>] assms by (auto simp: upperN_def)
   have Suc_N_upperN: \<open>Suc n < upperN\<close>
-    using that simple_clss_size_upper_div2[of C] mset_as_position_distinct_mset[of xs C]
+    using assms simple_clss_size_upper_div2[of C] mset_as_position_distinct_mset[of xs C]
       conflict_rel_not_tautolgy[of n xs C]
     unfolding option_conflict_rel_def conflict_rel_def
     by (auto simp: upperN_def)
@@ -599,6 +600,9 @@ proof -
   have \<open>\<not>tautology C\<close>
     using mset_as_position_tautology o by (auto simp: option_conflict_rel_def
         conflict_rel_def)
+  have \<open>distinct_mset C\<close>
+    using mset_as_position_distinct_mset[of _ C] o
+    unfolding option_conflict_rel_def conflict_rel_def by auto
   have inv: "conflict_merge'_step x1 x2 D C"
     if
       "(b, n, xs) = (b', n')" and
@@ -646,9 +650,6 @@ proof -
     have [simp]: \<open>D ! j \<in># C - (mset (take j D) + uminus `# mset (take j D)) \<longleftrightarrow> D !j \<in># C\<close>
       apply (rule notin_notin_diff_iff)
       using uDj_jD Dj_D by auto
-    have \<open>distinct_mset C\<close>
-      using mset_as_position_distinct_mset[of _ C] o
-      unfolding option_conflict_rel_def conflict_rel_def by auto
 
     have [simp]: \<open>D ! j \<notin># C - add_mset (- D ! j)
              (add_mset (D ! j)
@@ -737,9 +738,14 @@ proof -
     ultimately show ?thesis
       unfolding conflict_merge'_step_def Let_def by simp
   qed
+  have dist_D: \<open>distinct_mset (mset D)\<close>
+    using dist by auto
+  have dist_CD: \<open>distinct_mset (C - mset D - uminus `# mset D)\<close>
+    using \<open>distinct_mset C\<close> by auto
 
   show ?thesis
     unfolding conflict_merge_aa_def conflict_merge_def PR_CONST_def
+    distinct_mset_rempdups_union_mset[OF dist_D dist_CD]
     apply (refine_vcg WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(j, _). length D - j)\<close> and
           I' = \<open>\<lambda>(i, zs). conflict_merge'_step i zs D C\<close>])
     subgoal by auto
@@ -747,7 +753,7 @@ proof -
     subgoal by auto
     subgoal by (auto simp: upperN_def)
     subgoal using Suc_N_upperN by auto
-    subgoal using that by (simp add: upperN_def conflict_merge'_step_def option_conflict_rel_def)
+    subgoal using assms by (simp add: upperN_def conflict_merge'_step_def option_conflict_rel_def)
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -756,12 +762,12 @@ proof -
       using dist lits tauto
       by (auto simp: option_conflict_rel_def take_Suc_conv_app_nth
           literals_are_in_N\<^sub>0_in_N\<^sub>1)
-    subgoal for b' n' s j zs using that
+    subgoal for b' n' s j zs using assms
       by (cases zs) (auto simp add: conflict_add_def conflict_merge'_step_def Let_def)
     subgoal for b' n' s j zs
       by (rule inv)
     subgoal by auto
-    subgoal using that by (auto simp: option_conflict_rel_def conflict_merge'_step_def Let_def)
+    subgoal using assms by (auto simp: option_conflict_rel_def conflict_merge'_step_def Let_def)
     done
 qed
 
