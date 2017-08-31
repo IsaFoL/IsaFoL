@@ -716,14 +716,13 @@ proof -
         have \<open>remdups_mset (remove1_mset (- D ! j) (remdups_mset (mset (take j D) + CD))) =
           remdups_mset (add_mset (D ! j) (remove1_mset (D ! j) (remove1_mset (- D ! j) (mset (take j D) + CD))))\<close>
           using uDj_jD Dj_D that by (auto simp: in_remove1_mset_neq in_CD_uCD remdups_mset_inv)
-        then have \<open>remdups_mset (remove1_mset (- D ! j) (remdups_mset (mset (take j D) + CD))) =
-          remdups_mset (add_mset (D ! j) (remove1_mset (- D ! j) (remove1_mset (D ! j) (mset (take j D) + CD))))\<close>
-          by (subst diff_right_commute[of _ \<open>{#D!j#}\<close> \<open>{#-D!j#}\<close>])  auto
-        then show ?thesis
+        also have \<open>\<dots> = remdups_mset (add_mset (D ! j) (remove1_mset (- D ! j) (remove1_mset (D ! j) (mset (take j D) + CD))))\<close>
+          by (subst diff_right_commute[of _ \<open>{#D!j#}\<close> \<open>{#-D!j#}\<close>]) auto
+        finally show ?thesis
           using uDj_jD Dj_D that
           by (auto simp del: diff_diff_add_mset remdups_mset_singleton_sum
-            simp: diff_diff_add_mset[symmetric] diff_add_mset_remove1
-              diff_union_single_conv3[symmetric] notin_add_mset_remdups_mset)
+              simp: diff_diff_add_mset[symmetric] diff_add_mset_remove1 notin_add_mset_remdups_mset
+                diff_union_single_conv3[symmetric])
       qed
       moreover have \<open>remdups_mset (remove1_mset (- D ! j) (remdups_mset (mset (take j D) + CD))) =
         remdups_mset (mset (take j D) + (CD - {#- D ! j, D ! j#}))\<close> if \<open>D ! j \<notin># CD\<close>
