@@ -696,7 +696,6 @@ proof -
          \<in> option_conflict_rel\<close>
       using  conflict_add_option_conflict_rel[OF ocr lits Dj, unfolded surjective_pairing[symmetric]] .
 
-    thm H[OF thesis]
     have \<open>literals_are_in_N\<^sub>0 (remdups_mset (mset (take x1 D) + (C - mset (take x1 D) - uminus `# mset (take x1 D))))\<close>
       using \<open>D ! j \<in># N\<^sub>1\<close> by (auto simp: take_Suc_conv_app_nth
           conflict_merge'_step_def Let_def in_remove1_mset_neq
@@ -2061,6 +2060,7 @@ concrete_definition (in -) unit_propagation_inner_loop_body_wl_D_code
 prepare_code_thms (in -) unit_propagation_inner_loop_body_wl_D_code_def
 
 sepref_register unit_propagation_inner_loop_body_wl_D
+
 lemmas unit_propagation_inner_loop_body_wl_D_code_refine[sepref_fr_rules] =
    unit_propagation_inner_loop_body_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
 
@@ -2873,14 +2873,12 @@ lemma maximum_level_remove_code_get_maximum_level_remove[sepref_fr_rules]:
 proof -
   have H: \<open>?c
     \<in> [comp_PRE (Id \<times>\<^sub>f conflict_rel \<times>\<^sub>f Id)
-       (\<lambda>((M, D), L). literals_are_in_N\<^sub>0 D \<and> L \<in># D) (\<lambda>_ _. True)
-       (\<lambda>_. True)]\<^sub>a hrp_comp
-                     ((hr_comp trailt_conc trailt_ref)\<^sup>k *\<^sub>a
-                      conflict_rel_assn\<^sup>k *\<^sub>a
-                      unat_lit_assn\<^sup>k)
-                     (Id \<times>\<^sub>f conflict_rel \<times>\<^sub>f
-                      Id) \<rightarrow> hr_comp uint32_nat_assn nat_rel\<close>
-     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+        (\<lambda>((M, D), L). literals_are_in_N\<^sub>0 D \<and> L \<in># D) (\<lambda>_ _. True)
+        (\<lambda>_. True)]\<^sub>a
+      hrp_comp ((hr_comp trailt_conc trailt_ref)\<^sup>k *\<^sub>a conflict_rel_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k)
+               (Id \<times>\<^sub>f conflict_rel \<times>\<^sub>f Id) \<rightarrow>
+      hr_comp uint32_nat_assn nat_rel\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using  hfref_compI_PRE_aux[OF select_and_remove_from_literals_to_update_wl''_code[unfolded PR_CONST_def]
       maximum_level_remove'_get_maximum_level_remove]
     .
@@ -2923,7 +2921,7 @@ lemma hd_trail_code_hd[sepref_fr_rules]:
   \<open>(return o hd_trail_code, RETURN o op_list_hd) \<in> [\<lambda>M. M \<noteq> []]\<^sub>a trail_assn\<^sup>k \<rightarrow> pair_nat_ann_lit_assn\<close>
   unfolding hd_trail_code_def op_list_hd_def
   apply sepref_to_hoare
-  apply (case_tac x; case_tac xi; case_tac \<open> (fst (xi))\<close>)
+  apply (case_tac x; case_tac xi; case_tac \<open>fst (xi)\<close>)
   apply (sep_auto simp:  trailt_ref_def hr_comp_def)+
   done
 
@@ -3580,6 +3578,35 @@ setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<
 
 context twl_array_code
 begin
+
+text \<open>This is how to do resolution in the code:\<close>
+lemma
+  assumes \<open>C \<noteq> 0\<close> and
+    \<open>distinct_mset(mset (N!C))\<close>
+    \<open>distinct_mset (the D)\<close> and
+    \<open>D \<noteq> None\<close> and
+    \<open>L \<in> set (N!C)\<close> and
+    \<open>-L \<notin> set (N!C)\<close> and
+    \<open>-L \<in># the D\<close> and
+    \<open>L \<notin># the D\<close>
+  shows \<open>resolve_cls_wl' (M, N, U, D, NP, UP, WS, Q) C L =
+    the D \<union># (remove1_mset L (mset (N!C))) - {#-L#}\<close>
+  using assms apply (auto simp: resolve_cls_wl'_def sup_subset_mset_def)
+  apply (subst diff_union_single_conv2)
+   apply auto[]
+  apply (auto simp: minus_notin_trivial Multiset.diff_right_commute
+      simp del: diff_diff_add_mset)
+  by (smt Multiset.diff_right_commute diff_diff_add_mset diff_single_trivial in_multiset_in_set
+      insert_DiffM2 union_mset_add_mset_left)
+
+lemma (in -)
+  fixes L :: \<open>'v literal\<close>
+  assumes \<open>(D - {#-L#}) \<inter># (E - {#L#}) = {#}\<close> and \<open>-L \<notin># E\<close> \<open>L \<in># E\<close> \<open>-L \<in># D\<close>  \<open>L \<notin># D\<close>
+  shows \<open>remove1_mset L E = E - D - uminus `# D\<close>
+  apply simp
+  apply (subst (2) diff_intersect_right_idem[symmetric])
+  using assms apply (auto dest!: multi_member_split simp: ac_simps
+      simp del: diff_intersect_right_idem diff_intersect_left_idem)
 
 sepref_register skip_and_resolve_loop_wl_D
 sepref_thm skip_and_resolve_loop_wl_D
