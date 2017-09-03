@@ -581,7 +581,7 @@ lemma conflict_merge'_spec:
       tauto: \<open>\<not>tautology (mset D)\<close> and
       \<open>literals_are_in_N\<^sub>0 C\<close>
   shows \<open>conflict_merge D (b, n, xs) \<le> \<Down> option_conflict_rel
-            (RETURN (Some (mset D \<union># (C - mset D - image_mset uminus (mset D)))))\<close>
+            (RETURN (Some (mset D \<union># (C - image_mset uminus (mset D)))))\<close>
 proof -
   have [simp]: \<open>a < length D \<Longrightarrow> Suc (Suc a) < upperN\<close> for a
     using simple_clss_size_upper_div2[of \<open>mset D\<close>] assms by (auto simp: upperN_def)
@@ -743,7 +743,9 @@ proof -
   have dist_CD: \<open>distinct_mset (C - mset D - uminus `# mset D)\<close>
     using \<open>distinct_mset C\<close> by auto
 
-  show ?thesis
+  have confl: \<open>conflict_merge D (b, n, xs)
+    \<le> ⇓ option_conflict_rel
+       (RETURN (Some (mset D \<union># (C - mset D - uminus `# mset D))))\<close>
     unfolding conflict_merge_aa_def conflict_merge_def PR_CONST_def
     distinct_mset_rempdups_union_mset[OF dist_D dist_CD]
     apply (refine_vcg WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(j, _). length D - j)\<close> and
@@ -769,6 +771,17 @@ proof -
     subgoal by auto
     subgoal using assms by (auto simp: option_conflict_rel_def conflict_merge'_step_def Let_def)
     done
+  have count_D: \<open>count (mset D) a = 1 \<or> count (mset D) a = 0\<close> for a
+    using dist_D unfolding distinct_mset_def by auto
+  have count_C: \<open>count C a = 1 \<or> count C a = 0\<close> for a
+    using \<open>distinct_mset C\<close> unfolding distinct_mset_def by auto
+  have \<open>mset D \<union># (C - mset D - image_mset uminus (mset D)) = mset D \<union># (C - image_mset uminus (mset D))\<close>
+    apply (rule multiset_eqI)
+    subgoal for a
+      using count_D[of a] count_C[of a] by (auto simp: max_def)
+    done
+  then show ?thesis
+    using confl by simp
 qed
 
 (* TODO Move *)
