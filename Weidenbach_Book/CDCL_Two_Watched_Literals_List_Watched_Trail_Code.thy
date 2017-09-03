@@ -3599,22 +3599,22 @@ lemma
   by (smt Multiset.diff_right_commute diff_diff_add_mset diff_single_trivial in_multiset_in_set
       insert_DiffM2 union_mset_add_mset_left)
 
-definition conflict_remove1 :: ‹nat literal \<Rightarrow> conflict_rel \<Rightarrow> conflict_rel› where
-  ‹conflict_remove1 =
-     (\<lambda>L (n,xs). if xs ! (atm_of L) = None then (n, xs) else (n-1, xs [atm_of L := None]))›
+definition conflict_remove1 :: \<open>nat literal \<Rightarrow> conflict_rel \<Rightarrow> conflict_rel\<close> where
+  \<open>conflict_remove1 =
+     (\<lambda>L (n,xs). if xs ! (atm_of L) = None then (n, xs) else (n-1, xs [atm_of L := None]))\<close>
 
-lemma (in -) minus_notin_trivial2: ‹b \<notin># A \<Longrightarrow> A - add_mset e (add_mset b B) = A - add_mset e B›
+lemma (in -) minus_notin_trivial2: \<open>b \<notin># A \<Longrightarrow> A - add_mset e (add_mset b B) = A - add_mset e B\<close>
   by (subst add_mset_commute) (auto simp: minus_notin_trivial)
 
 
 lemma conflict_remove1:
-  ‹(uncurry (RETURN oo conflict_remove1), uncurry (RETURN oo remove1_mset)) \<in>
-  [\<lambda>(L,C). L \<in># C \<and> -L \<notin># C \<and> L \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>f conflict_rel \<rightarrow> \<langle>conflict_rel\<rangle>nres_rel›
+  \<open>(uncurry (RETURN oo conflict_remove1), uncurry (RETURN oo remove1_mset)) \<in>
+  [\<lambda>(L,C). L \<in># C \<and> -L \<notin># C \<and> L \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>f conflict_rel \<rightarrow> \<langle>conflict_rel\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   apply (case_tac y; case_tac x)
   subgoal for x y a b aa ab c
-    using mset_as_position_remove[of c b ‹atm_of aa›]
-    by (cases ‹aa›)
+    using mset_as_position_remove[of c b \<open>atm_of aa\<close>]
+    by (cases \<open>aa\<close>)
        (auto simp: conflict_rel_def conflict_remove1_def  conflict_rel_atm_in_iff minus_notin_trivial2
       size_remove1_mset_If in_N\<^sub>1_atm_of_in_atms_of_iff minus_notin_trivial mset_as_position_in_iff_nth)
    done
