@@ -1230,15 +1230,11 @@ lemma gd_ord_\<Gamma>_ngd_ord_\<Gamma>: "gd.ord_\<Gamma> \<subseteq> gd_ord_\<Ga
 lemma nice: "sat_preserving_inference_system gd_ord_\<Gamma>'" (* Altough maybe it would be nice to prove it was a sound_inference_system *)
   unfolding sat_preserving_inference_system_def gd_ord_\<Gamma>'_def
   apply auto
-  subgoal for N I
     unfolding inference_system.inferences_from_def
     unfolding infer_from_def
     unfolding true_clss_def
-    apply (rule_tac x=I in exI)
     apply auto
-    apply (simp add: set_rev_mp true_cls_mset_def) 
-    done
-  done
+    by (metis set_rev_mp true_cls_mset_def inference.exhaust inference.exhaust_sel inference.inject inference.sel(2) inference.sel(3)) 
 
 definition src_ext_Ri where
   "src_ext_Ri = (\<lambda>N. src.Ri N \<union> (gd_ord_\<Gamma>' - gd.ord_\<Gamma>))"
@@ -1246,9 +1242,7 @@ definition src_ext_Ri where
 interpretation src_ext:
   sat_preserving_redundancy_criterion "gd_ord_\<Gamma>'" "src.Rf" "src_ext_Ri"
   unfolding sat_preserving_redundancy_criterion_def src_ext_Ri_def
-  apply(rule conjI)
-  using nice apply simp
-  by (rule standard_redundancy_criterion_extension[OF gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redudancy_criterion])
+  using nice using standard_redundancy_criterion_extension gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redudancy_criterion by auto
 
 
 
@@ -1288,10 +1282,7 @@ fun subst_inf :: "'a inference \<Rightarrow> 's \<Rightarrow> 'a inference" (inf
 thm ord_resolve_rename_ground_inst_sound
     
 lemma prems_of_subst_inf_subst_cls_mset: "(prems_of (\<gamma> \<cdot>i \<mu>)) = ((prems_of \<gamma>) \<cdot>cm \<mu>)"
-  apply auto
-  apply (induction \<gamma>)
-  apply auto
-  done
+  by (induction \<gamma>) auto
     
     
 lemma set_mset_subst_cls_mset_subst_clss: "set_mset (X \<cdot>cm \<mu>) = (set_mset X)  \<cdot>cs \<mu>"
@@ -1722,74 +1713,129 @@ next
       apply simp
       apply (rule conjI)
       unfolding grounding_of_cls_def
-       apply simp
-       apply (subgoal_tac "(C = D \<or> C \<in># CC)")
-        prefer 2
-        apply simp
-       apply (cases "C = D")
-        apply (rule disjI1)
-        apply (rule_tac x="\<rho> \<odot> \<sigma> \<odot> \<mu>" in exI)
-        apply (rule conjI)
-         apply (auto;fail)
-        apply (auto;fail)
-       apply (subgoal_tac "C \<in># CC")
-        prefer 2
-        apply (auto;fail)
-       apply (rule disjI2)
-       apply (rule disjI2)
-       apply (subgoal_tac "D \<in> Q")
-        prefer 2
-        apply (auto;fail)
-       apply (rule_tac x=D in bexI)
-        prefer 2
-        apply (auto;fail)
-       apply (rule_tac x="\<rho> \<odot> \<sigma> \<odot> \<mu>" in exI)
-       apply (auto;fail)
-      apply (subgoal_tac "set_mset (mset (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>)) \<subseteq> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))")
-      using subsubsubsubxx apply auto[]
-      apply (subgoal_tac "\<forall>x \<in># (mset (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>)). x \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))")
       subgoal
-        apply (auto;fail)
-        done
-      apply (subgoal_tac "\<forall>i < length (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>). ((Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>) ! i) \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))")
-      subgoal
-        apply (metis (no_types, lifting) in_set_conv_nth set_mset_mset)
-        done
-      apply rule
-      apply rule
-      subgoal for i
         apply simp
-        apply (subgoal_tac "Cl ! i \<in> {C} \<union> Q")
-         apply (cases "Cl ! i = C")
-          apply (rule disjI1)
-          apply (rule_tac x="(\<rho>s ! i) \<odot> \<sigma> \<odot> \<mu>" in exI)
-          apply (rule conjI)
-           apply (subgoal_tac "length \<rho>s = length Cl")
+        apply (subgoal_tac "(C = D \<or> C \<in># CC)")
         subgoal
-          apply (auto;fail)
+          apply (cases "C = D")
+          subgoal   
+            apply (rule disjI1)
+            apply (rule_tac x="\<rho> \<odot> \<sigma> \<odot> \<mu>" in exI)
+            apply (rule conjI)
+            subgoal
+              apply (auto;fail)
+              done
+            subgoal
+              apply (auto;fail)
+              done
+            done
+          subgoal
+            apply (subgoal_tac "C \<in># CC")
+            subgoal
+              apply (rule disjI2)
+              apply (rule disjI2)
+              apply (subgoal_tac "D \<in> Q")
+              subgoal
+                apply (rule_tac x=D in bexI)
+                subgoal
+                  apply (rule_tac x="\<rho> \<odot> \<sigma> \<odot> \<mu>" in exI)
+                  apply (auto;fail)
+                  done
+                subgoal
+                  apply (auto;fail)
+                  done
+                done
+              subgoal
+                apply (auto;fail)
+                done
+              done
+            subgoal
+              apply (auto;fail)
+              done
+            done
           done
-           defer
-           apply (auto;fail)
-          apply (subgoal_tac "Cl ! i \<in> Q")
-           prefer 2
         subgoal
-          apply (auto;fail)
+          apply simp
           done
-          apply (rule disjI2)
-          apply (rule disjI2)
-          apply (rule_tac x="Cl ! i " in bexI)
-           prefer 2
-           apply auto[]
-          apply (rule_tac x="(\<rho>s ! i) \<odot> \<sigma> \<odot> \<mu>" in exI)
-          apply (rule conjI)
-           apply (subgoal_tac "length \<rho>s = length Cl")
+        done
+      subgoal
+        apply (subgoal_tac "set_mset (mset (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>)) \<subseteq> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))")
+        subgoal 
+          using subsubsubsubxx apply auto[]
+          done
         subgoal
-          apply (auto;fail)
+          apply (subgoal_tac "\<forall>x \<in># (mset (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>)). x \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))")
+          subgoal
+            apply (auto;fail)
+            done
+          subgoal
+            apply (subgoal_tac "\<forall>i < length (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>). ((Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>) ! i) \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))")
+            subgoal
+              apply (metis (no_types, lifting) in_set_conv_nth set_mset_mset)
+              done
+            subgoal
+              apply rule
+              apply rule
+              subgoal for i
+                apply simp
+                apply (subgoal_tac "Cl ! i \<in> {C} \<union> Q")
+                subgoal 
+                  apply (cases "Cl ! i = C")
+                  subgoal
+                    apply (rule disjI1)
+                    apply (rule_tac x="(\<rho>s ! i) \<odot> \<sigma> \<odot> \<mu>" in exI)
+                    apply (rule conjI)
+                    subgoal
+                      apply (subgoal_tac "length \<rho>s = length Cl")
+                      subgoal
+                        apply (auto;fail)
+                        done
+                      subgoal
+                        using \<rho>s_def using mk_var_dis_p apply auto
+                        done
+                      done
+                    subgoal
+                      apply (auto;fail)
+                      done
+                    done
+                  subgoal
+                    apply (subgoal_tac "Cl ! i \<in> Q")
+                    subgoal
+                      apply (rule disjI2)
+                      apply (rule disjI2)
+                      apply (rule_tac x="Cl ! i " in bexI)
+                      subgoal
+                        apply (rule_tac x="(\<rho>s ! i) \<odot> \<sigma> \<odot> \<mu>" in exI)
+                        apply (rule conjI)
+                        subgoal
+                          apply (subgoal_tac "length \<rho>s = length Cl")
+                          subgoal
+                            apply (auto;fail)
+                            done
+                          subgoal
+                            using \<rho>s_def using mk_var_dis_p apply (auto;fail)
+                            done
+                          done
+                        subgoal
+                          apply (auto;fail)
+                          done
+                        done
+                      subgoal
+                        apply auto[]
+                        done
+                      done
+                    subgoal
+                      apply (auto;fail)
+                      done
+                    done
+                  done
+                subgoal
+                  apply (metis UnI1 UnI2 insertE nth_mem_mset singletonI subsetCE)
+                  done
+                done
+              done
+            done
           done
-           defer
-           apply (auto;fail)
-          apply (metis UnI1 UnI2 insertE nth_mem_mset singletonI subsetCE)
-        using \<rho>s_def using mk_var_dis_p apply auto
         done
       done
     ultimately
@@ -1809,7 +1855,7 @@ next
   show ?case
     using src_ext.derive.intros[of "(grounding_of_state (N, P, Q \<union> {C}))" "(grounding_of_state ({}, P \<union> {C}, Q))"] by auto
 qed
-  
+
 text {*
 Another formulation of the last part of lemma 4.10
  *}
