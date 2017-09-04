@@ -1715,48 +1715,7 @@ next
       unfolding grounding_of_cls_def
       subgoal
         apply simp
-        apply (subgoal_tac "(C = D \<or> C \<in># CC)")
-        subgoal
-          apply (cases "C = D")
-          subgoal   
-            apply (rule disjI1)
-            apply (rule_tac x="\<rho> \<odot> \<sigma> \<odot> \<mu>" in exI)
-            apply (rule conjI)
-            subgoal
-              apply (auto;fail)
-              done
-            subgoal
-              apply (auto;fail)
-              done
-            done
-          subgoal
-            apply (subgoal_tac "C \<in># CC")
-            subgoal
-              apply (rule disjI2)
-              apply (rule disjI2)
-              apply (subgoal_tac "D \<in> Q")
-              subgoal
-                apply (rule_tac x=D in bexI)
-                subgoal
-                  apply (rule_tac x="\<rho> \<odot> \<sigma> \<odot> \<mu>" in exI)
-                  apply (auto;fail)
-                  done
-                subgoal
-                  apply (auto;fail)
-                  done
-                done
-              subgoal
-                apply (auto;fail)
-                done
-              done
-            subgoal
-              apply (auto;fail)
-              done
-            done
-          done
-        subgoal
-          apply simp
-          done
+        apply (metis is_ground_comp_subst subst_cls_comp_subst)
         done
       subgoal
         apply (subgoal_tac "set_mset (mset (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>)) \<subseteq> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))")
@@ -1784,19 +1743,7 @@ next
                   subgoal
                     apply (rule disjI1)
                     apply (rule_tac x="(\<rho>s ! i) \<odot> \<sigma> \<odot> \<mu>" in exI)
-                    apply (rule conjI)
-                    subgoal
-                      apply (subgoal_tac "length \<rho>s = length Cl")
-                      subgoal
-                        apply (auto;fail)
-                        done
-                      subgoal
-                        using \<rho>s_def using mk_var_dis_p apply auto
-                        done
-                      done
-                    subgoal
-                      apply (auto;fail)
-                      done
+                    using \<rho>s_def using mk_var_dis_p apply (auto;fail)
                     done
                   subgoal
                     apply (subgoal_tac "Cl ! i \<in> Q")
@@ -1806,19 +1753,7 @@ next
                       apply (rule_tac x="Cl ! i " in bexI)
                       subgoal
                         apply (rule_tac x="(\<rho>s ! i) \<odot> \<sigma> \<odot> \<mu>" in exI)
-                        apply (rule conjI)
-                        subgoal
-                          apply (subgoal_tac "length \<rho>s = length Cl")
-                          subgoal
-                            apply (auto;fail)
-                            done
-                          subgoal
-                            using \<rho>s_def using mk_var_dis_p apply (auto;fail)
-                            done
-                          done
-                        subgoal
-                          apply (auto;fail)
-                          done
+                        using \<rho>s_def using mk_var_dis_p apply (auto;fail)
                         done
                       subgoal
                         apply auto[]
