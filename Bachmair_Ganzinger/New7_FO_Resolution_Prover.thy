@@ -2915,7 +2915,7 @@ proof -
       "is_ground_subst \<sigma>'" (* Do I also need that l is later than i? Probably not. *)
       "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not>properly_subsumes E D'"
       "subsumes D' C"
-      using from_N_to_P_or_Q[OF deriv fair ns c a i_p(1) D_p(2) D_p(3)] by blast
+      using from_N_to_P_or_Q deriv fair ns c i_p(1) D_p(2) D_p(3) by blast
     then obtain l' where l'_p: "D' \<in> ?Qs l'" "l' < llength Sts" (* Do I also need that l is later than l'? Probably not*)
       using from_P_to_Q[OF deriv fair ns c _ D'_p(3) D'_p(6) D'_p(5)] by blast
     then have "D' \<in> getQ (limit_state Sts)"
@@ -2975,7 +2975,7 @@ proof
     using C_p using llimit_grounding_of_state_ground ns by auto 
 
   have "\<exists>D' \<sigma>'. D' \<in> getQ (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'" 
-    using eventually_in_Qinf[of D C Ns, OF D_p(1) D_p(2) D_p(3) fair ns C_p ground_C] by auto
+    using eventually_in_Qinf[of D C Ns] using D_p(1) D_p(2) D_p(3) fair ns C_p ground_C by auto
   then obtain D' \<sigma>' where D'_p: "D' \<in> getQ (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
     by blast
   then have "D' \<in> clss_of_state (limit_state Sts)"
