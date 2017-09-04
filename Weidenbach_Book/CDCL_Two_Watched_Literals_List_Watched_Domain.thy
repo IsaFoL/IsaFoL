@@ -411,14 +411,14 @@ definition unit_prop_body_wl_D_inv where
     unit_prop_body_wl_inv T' i L \<and> literals_are_N\<^sub>0 T' \<and> L \<in> snd ` D\<^sub>0
   \<close>
 
-text ‹TODO:
-  \<^item> should be the definition of \<^term>‹unit_prop_body_wl_find_unwatched_inv›.
+text \<open>TODO:
+  \<^item> should be the definition of \<^term>\<open>unit_prop_body_wl_find_unwatched_inv\<close>.
   \<^item> the distinctiveness should probably be only a property, not a part of the definition.
-›
+\<close>
 definition (in -) unit_prop_body_wl_D_find_unwatched_inv where
 \<open>unit_prop_body_wl_D_find_unwatched_inv f C S \<longleftrightarrow>
    unit_prop_body_wl_find_unwatched_inv f C S \<and>
-   (f \<noteq> None \<longrightarrow> the f > 0 \<and> the f < length (get_clauses_wl S ! C) \<and>
+   (f \<noteq> None \<longrightarrow> the f \<ge> 2 \<and> the f < length (get_clauses_wl S ! C) \<and>
    get_clauses_wl S ! C ! (the f) \<noteq> get_clauses_wl S ! C ! 0  \<and>
    get_clauses_wl S ! C ! (the f) \<noteq> get_clauses_wl S ! C ! 1)\<close>
 
@@ -597,7 +597,7 @@ definition unit_propagation_inner_loop_wl_loop_D :: "nat literal \<Rightarrow> n
          additional_WS_invs (st_l_of_wl (Some (L, w)) S) \<and>
         correct_watching S \<and> w \<le> length (watched_by S L) \<and>
         literals_are_N\<^sub>0 S \<and> L \<in> snd ` D\<^sub>0\<^esup>
-      (\<lambda>(w, (M, N, U, D, NP, UP, Q, W)). w < length (W L) \<and> D = None)
+      (\<lambda>(w, S). w < length (watched_by S L) \<and> get_conflict_wl S = None)
       (\<lambda>(w, S). do {
         unit_propagation_inner_loop_body_wl_D L w S
       })
@@ -717,8 +717,9 @@ definition skip_and_resolve_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st
         WHILE\<^sub>T\<^bsup>\<lambda>(brk, S). skip_and_resolve_loop_inv (twl_st_of_wl None S\<^sub>0) (brk, twl_st_of_wl None S) \<and>
          additional_WS_invs (st_l_of_wl None S) \<and> correct_watching S \<and> literals_are_N\<^sub>0 S\<^esup>
         (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided (hd (get_trail_wl S)))
-        (\<lambda>(_, S).
+        (\<lambda>(brk, S).
           do {
+            ASSERT(\<not>brk \<and> \<not>is_decided (hd (get_trail_wl S)));
             let D' = the (get_conflict_wl S);
             let (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S));
             if -L \<notin># D' then
@@ -825,6 +826,8 @@ proof -
     subgoal unfolding invar_def by fast
     subgoal by fast
     subgoal by fast
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     subgoal unfolding invar_def by auto
     subgoal by auto
