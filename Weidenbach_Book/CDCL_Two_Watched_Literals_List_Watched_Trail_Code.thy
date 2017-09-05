@@ -3595,7 +3595,7 @@ lemma conflict_remove1:
 
 sepref_thm conflict_remove1_code
   is \<open>uncurry (RETURN oo conflict_remove1)\<close>
-  :: \<open>[\<lambda>(L, (n,xs)). n > 0 \<and> atm_of L < length xs]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a conflict_rel_assn\<^sup>d \<rightarrow> conflict_rel_assn›
+  :: \<open>[\<lambda>(L, (n,xs)). n > 0 \<and> atm_of L < length xs]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a conflict_rel_assn\<^sup>d \<rightarrow> conflict_rel_assn\<close>
   supply [[goals_limit=2]] one_nat_uint32[sepref_fr_rules] one_nat_uint32_def[simp]
   unfolding conflict_remove1_def one_nat_uint32_def[symmetric] fast_minus_def[symmetric]
   by sepref
@@ -3611,22 +3611,61 @@ lemmas conflict_remove1_code_refine[sepref_fr_rules] =
    conflict_remove1_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
 
 lemma conflict_option_assn_the[sepref_fr_rules]:
-  ‹(return o snd, RETURN o the) \<in> [\<lambda>C. C \<noteq> None]\<^sub>a conflict_option_assn\<^sup>d \<rightarrow> conflict_assn›
+  \<open>(return o snd, RETURN o the) \<in> [\<lambda>C. C \<noteq> None]\<^sub>a conflict_option_assn\<^sup>d \<rightarrow> conflict_assn\<close>
   by sepref_to_hoare
      (sep_auto simp: conflict_assn_def conflict_option_assn_def conflict_rel_def hr_comp_def
     option_conflict_rel_def)
 
 (* TODO Move *)
-lemma (in -) bool_assn_alt_def: ‹bool_assn a b = \<up> (a = b)›
+lemma (in -) bool_assn_alt_def: \<open>bool_assn a b = \<up> (a = b)\<close>
   unfolding pure_def by auto
 (* End Move *)
 
 lemma conflict_option_assn_Some[sepref_fr_rules]:
-  ‹(return o (\<lambda>C. (False, C)), RETURN o Some) \<in> conflict_assn\<^sup>d \<rightarrow>\<^sub>a conflict_option_assn›
+  \<open>(return o (\<lambda>C. (False, C)), RETURN o Some) \<in> conflict_assn\<^sup>d \<rightarrow>\<^sub>a conflict_option_assn\<close>
   by sepref_to_hoare
      (sep_auto simp: conflict_assn_def conflict_option_assn_def conflict_rel_def hr_comp_def
     option_conflict_rel_def bool_assn_alt_def)
 
+thm update_confl_tl_wl_def
+
+lemma
+  assumes invs: \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and
+    confl: \<open>get_conflict_wl S \<noteq> None\<close> and 
+    C: \<open>C > 0\<close> \<open>C < length (get_clauses_wl S)\<close> and
+    L_confl: \<open>-L \<in># the (get_conflict_wl S)\<close> and
+    tr: \<open>(L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S))\<close>
+       \<open>is_proped (hd (get_trail_wl S))\<close> \<open>get_trail_wl S \<noteq> []\<close>
+  shows \<open>resolve_cls_wl' S C L = remove1_mset (-L)
+      (the (get_conflict_wl S) \<union># (mset (get_clauses_wl S ! C) - uminus `# the (get_conflict_wl S)))\<close>
+proof -
+  obtain M N U D NP UP Q W where
+    S: \<open>S = (Propagated L C # M, N, U, Some D, NP, UP, W, Q)\<close>
+    using confl tr by (cases S; cases \<open>get_conflict_wl S\<close>; cases \<open>hd (get_trail_wl S)\<close>;
+        cases \<open>get_trail_wl S\<close>) auto
+  obtain D' where
+    D: \<open>D = add_mset (-L) D'\<close>
+    using L_confl by (auto simp: S dest: multi_member_split)
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of (twl_st_of_wl None S))\<close>
+    using invs unfolding twl_struct_invs_def by fast
+  then have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of (twl_st_of_wl None S))\<close>
+     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast
+  then have \<open>L \<in># mset (N ! C)\<close> and \<open>M \<Turnstile>as CNot (mset (N!C) - {#L#})\<close>
+    using C unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+    by (fastforce simp: S cdcl\<^sub>W_restart_mset_state)+
+  from multi_member_split[OF this(1)] obtain C' where
+    C': \<open>mset (N ! C) = add_mset L C'\<close>
+    by auto
+
+  have \<open>-L \<notin># D'\<close> sorry
+  moreover have \<open>-L \<notin># C' - uminus `# D'\<close>
+    sorry
+  moreover have \<open>C' - uminus `# D' = C'\<close>
+    sorry
+  ultimately show ?thesis
+    using C unfolding S apply (auto simp: C' D resolve_cls_wl'_def)
+ find_theorems \<open>add_mset _ _\<union># _ = add_mset _ _\<close>
+oops
 end
 
 
