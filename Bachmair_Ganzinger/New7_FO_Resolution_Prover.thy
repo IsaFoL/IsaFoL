@@ -1937,16 +1937,22 @@ lemma eventually_deleted:
   assumes i_Sts: "enat i < llength Sts"
   shows "\<exists>l. D \<in> getN (lnth Sts l) \<and> D \<notin> getN (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
 proof (rule ccontr)
-  assume "\<nexists>l. D \<in> getN (lnth Sts l) \<and> D \<notin> getN (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
-  then have "\<forall>l. i \<le> l \<longrightarrow> enat l < llength Sts \<longrightarrow> D \<in> getN (lnth Sts l)"
-    apply -
-    apply auto
-    subgoal for ll
-      apply (induction ll)
-       apply auto
-      using assms(1) apply blast
-      by (metis Suc_ile_eq assms(1) le_SucE less_imp_le)
-    done
+  assume a: "\<nexists>l. D \<in> getN (lnth Sts l) \<and> D \<notin> getN (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
+  have "\<forall>l. i \<le> l \<longrightarrow> enat l < llength Sts \<longrightarrow> D \<in> getN (lnth Sts l)"
+  proof (rule; rule; rule)
+    fix l :: "nat"
+    assume 
+      "i \<le> l" and
+      "enat l < llength Sts"
+    then show "D \<in> getN (lnth Sts l)"
+    proof (induction l)
+      case 0
+      then show ?case using assms(1) by blast
+    next
+      case (Suc l)
+      then show ?case using a by (metis Suc_ile_eq assms(1) le_SucE less_imp_le)
+    qed
+  qed
   then have "\<forall>l. i \<le> l \<longrightarrow> enat l < llength Sts \<longrightarrow> D \<in> (lnth (lmap getN Sts) l)"
     by auto
   then have "D \<in> llimit (lmap getN Sts) "
@@ -1962,16 +1968,22 @@ lemma eventually_deleted_P:
   assumes i_Sts: "enat i < llength Sts"
   shows "\<exists>l. D \<in> getP (lnth Sts l) \<and> D \<notin> getP (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
 proof (rule ccontr)
-  assume "\<nexists>l. D \<in> getP (lnth Sts l) \<and> D \<notin> getP (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
-  then have "\<forall>l. i \<le> l \<longrightarrow> enat l < llength Sts \<longrightarrow> D \<in> getP (lnth Sts l)"
-    apply -
-    apply auto
-    subgoal for ll
-      apply (induction ll)
-       apply auto
-      using assms(1) apply blast
-      by (metis Suc_ile_eq assms(1) le_SucE less_imp_le)
-    done
+  assume a: "\<nexists>l. D \<in> getP (lnth Sts l) \<and> D \<notin> getP (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
+  have "\<forall>l. i \<le> l \<longrightarrow> enat l < llength Sts \<longrightarrow> D \<in> getP (lnth Sts l)"
+    proof (rule; rule; rule)
+    fix l :: "nat"
+    assume 
+      "i \<le> l" and
+      "enat l < llength Sts"
+    then show "D \<in> getP (lnth Sts l)"
+    proof (induction l)
+      case 0
+      then show ?case using assms(1) by blast
+    next
+      case (Suc l)
+      then show ?case using a by (metis Suc_ile_eq assms(1) le_SucE less_imp_le)
+    qed
+  qed
   then have "\<forall>l. i \<le> l \<longrightarrow> enat l < llength Sts \<longrightarrow> D \<in> (lnth (lmap getP Sts) l)"
     by auto
   then have "D \<in> llimit (lmap getP Sts) "
@@ -2073,24 +2085,25 @@ next
   case (Suc x)
   moreover
   from Suc have "x = l' - 1 - i "
-     apply (subgoal_tac "l'>0")
-     apply auto done
+    by auto
   moreover
   have "i \<le> l' - 1"
-    using Suc apply auto done
+    using Suc by auto 
   ultimately
   have "f (l' - 1) \<le> f i" 
     using Suc(1)[of "l'-1" i] by auto
-  then show ?case using Suc(3)
-    apply auto
-    apply (rule_tac P="\<lambda>i. f (Suc i) \<le> f i" and x = "l' - 1" in allE)
-     apply auto[]
-    apply (subgoal_tac "f (Suc (l' - 1)) \<le> f (l' - 1)")
-    apply (subgoal_tac "Suc (l' - 1) = l'")
-      apply auto
-    apply (subgoal_tac "l'>0")
-     apply auto
+  moreover
+  have "l'>0"
     using Suc by auto
+  moreover
+  have "Suc (l' - 1) = l'"
+    using Suc by auto
+  ultimately
+  show ?case 
+    using Suc(3) apply auto
+    apply (rule_tac P="\<lambda>i. f (Suc i) \<le> f i" and x = "l' - 1" in allE)
+     apply auto
+    done
 qed
 
 lemma aa_lemma:
@@ -2117,7 +2130,6 @@ proof (rule ccontr)
     have "f i \<ge> f l'"
       using leq l'_p 
       apply -
-      explore_lemma
       apply auto
       apply (induction "l'" arbitrary: i)
        apply auto
