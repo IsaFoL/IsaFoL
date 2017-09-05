@@ -3571,41 +3571,15 @@ lemma count_decided_st_alt_def: \<open>count_decided_st S = count_decided (get_t
   unfolding count_decided_st_def
   by (cases S) auto
 
-end
 
-
-setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close>
-
-context twl_array_code
-begin
-
-text \<open>This is how to do resolution in the code:\<close>
-lemma
-  assumes \<open>C \<noteq> 0\<close> and
-    \<open>distinct_mset(mset (N!C))\<close>
-    \<open>distinct_mset (the D)\<close> and
-    \<open>D \<noteq> None\<close> and
-    \<open>L \<in> set (N!C)\<close> and
-    \<open>-L \<notin> set (N!C)\<close> and
-    \<open>-L \<in># the D\<close> and
-    \<open>L \<notin># the D\<close>
-  shows \<open>resolve_cls_wl' (M, N, U, D, NP, UP, WS, Q) C L =
-    the D \<union># (remove1_mset L (mset (N!C))) - {#-L#}\<close>
-  using assms apply (auto simp: resolve_cls_wl'_def sup_subset_mset_def)
-  apply (subst diff_union_single_conv2)
-   apply auto[]
-  apply (auto simp: minus_notin_trivial Multiset.diff_right_commute
-      simp del: diff_diff_add_mset)
-  by (smt Multiset.diff_right_commute diff_diff_add_mset diff_single_trivial in_multiset_in_set
-      insert_DiffM2 union_mset_add_mset_left)
-
-definition conflict_remove1 :: \<open>nat literal \<Rightarrow> conflict_rel \<Rightarrow> conflict_rel\<close> where
+definition (in -) conflict_remove1 :: \<open>nat literal \<Rightarrow> conflict_rel \<Rightarrow> conflict_rel\<close> where
   \<open>conflict_remove1 =
      (\<lambda>L (n,xs). if xs ! (atm_of L) = None then (n, xs) else (n-1, xs [atm_of L := None]))\<close>
 
+(* TODO Move *)
 lemma (in -) minus_notin_trivial2: \<open>b \<notin># A \<Longrightarrow> A - add_mset e (add_mset b B) = A - add_mset e B\<close>
   by (subst add_mset_commute) (auto simp: minus_notin_trivial)
-
+(* End Move *)
 
 lemma conflict_remove1:
   \<open>(uncurry (RETURN oo conflict_remove1), uncurry (RETURN oo remove1_mset)) \<in>
@@ -3618,6 +3592,48 @@ lemma conflict_remove1:
        (auto simp: conflict_rel_def conflict_remove1_def  conflict_rel_atm_in_iff minus_notin_trivial2
       size_remove1_mset_If in_N\<^sub>1_atm_of_in_atms_of_iff minus_notin_trivial mset_as_position_in_iff_nth)
    done
+
+sepref_thm conflict_remove1_code
+  is \<open>uncurry (RETURN oo conflict_remove1)\<close>
+  :: \<open>[\<lambda>(L, (n,xs)). n > 0 \<and> atm_of L < length xs]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a conflict_rel_assn\<^sup>d \<rightarrow> conflict_rel_assn›
+  supply [[goals_limit=2]] one_nat_uint32[sepref_fr_rules] one_nat_uint32_def[simp]
+  unfolding conflict_remove1_def one_nat_uint32_def[symmetric] fast_minus_def[symmetric]
+  by sepref
+
+find_theorems one_nat_uint32
+concrete_definition (in -) conflict_remove1_code
+  uses twl_array_code.conflict_remove1_code.refine_raw
+  is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) conflict_remove1_code_def
+
+lemmas conflict_remove1_code_refine[sepref_fr_rules] =
+   conflict_remove1_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma conflict_option_assn_the[sepref_fr_rules]:
+  ‹(return o snd, RETURN o the) \<in> [\<lambda>C. C \<noteq> None]\<^sub>a conflict_option_assn\<^sup>d \<rightarrow> conflict_assn›
+  by sepref_to_hoare
+     (sep_auto simp: conflict_assn_def conflict_option_assn_def conflict_rel_def hr_comp_def
+    option_conflict_rel_def)
+
+(* TODO Move *)
+lemma (in -) bool_assn_alt_def: ‹bool_assn a b = \<up> (a = b)›
+  unfolding pure_def by auto
+(* End Move *)
+
+lemma conflict_option_assn_Some[sepref_fr_rules]:
+  ‹(return o (\<lambda>C. (False, C)), RETURN o Some) \<in> conflict_assn\<^sup>d \<rightarrow>\<^sub>a conflict_option_assn›
+  by sepref_to_hoare
+     (sep_auto simp: conflict_assn_def conflict_option_assn_def conflict_rel_def hr_comp_def
+    option_conflict_rel_def bool_assn_alt_def)
+
+end
+
+
+setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close>
+
+context twl_array_code
+begin
 
 sepref_register skip_and_resolve_loop_wl_D
 sepref_thm skip_and_resolve_loop_wl_D
