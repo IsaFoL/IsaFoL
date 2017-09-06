@@ -3629,9 +3629,29 @@ lemma conflict_option_assn_Some[sepref_fr_rules]:
 
 thm update_confl_tl_wl_def
 
-lemma
+(* TODO Move *)
+lemma (in -) subset_mset_minus_eq_add_mset_noteq: \<open>A \<subset># C \<Longrightarrow> A - B \<noteq> C\<close>
+  by (auto simp: dest: in_diffD)
+
+
+lemma (in -) minus_eq_id_forall_notin_mset:
+  \<open>A - B = A \<longleftrightarrow> (\<forall>L \<in># B. L \<notin># A)\<close>
+  by (induction A)
+   (auto dest!: multi_member_split simp: subset_mset_minus_eq_add_mset_noteq)
+
+(* End Move *)
+lemma resolve_cls_wl'_union_uminus_zero_index:
+  assumes
+    confl: \<open>get_conflict_wl S \<noteq> None\<close> and
+    C: \<open>C = 0\<close> and
+    tr: \<open>(L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S))\<close>
+       \<open>is_proped (hd (get_trail_wl S))\<close> \<open>get_trail_wl S \<noteq> []\<close>
+  shows \<open>resolve_cls_wl' S C L = remove1_mset (-L) (the (get_conflict_wl S))\<close>
+  using assms by (auto simp: resolve_cls_wl'_def)
+
+lemma resolve_cls_wl'_union_uminus_positive_index:
   assumes invs: \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and
-    confl: \<open>get_conflict_wl S \<noteq> None\<close> and 
+    confl: \<open>get_conflict_wl S \<noteq> None\<close> and
     C: \<open>C > 0\<close> \<open>C < length (get_clauses_wl S)\<close> and
     L_confl: \<open>-L \<in># the (get_conflict_wl S)\<close> and
     tr: \<open>(L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S))\<close>
@@ -3648,24 +3668,47 @@ proof -
     using L_confl by (auto simp: S dest: multi_member_split)
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of (twl_st_of_wl None S))\<close>
     using invs unfolding twl_struct_invs_def by fast
-  then have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of (twl_st_of_wl None S))\<close>
-     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast
-  then have \<open>L \<in># mset (N ! C)\<close> and \<open>M \<Turnstile>as CNot (mset (N!C) - {#L#})\<close>
-    using C unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+  then have
+     confl: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of (twl_st_of_wl None S))\<close> and
+     M_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of (twl_st_of_wl None S))\<close> and
+     dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of (twl_st_of_wl None S))\<close>
+     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
+  have \<open>L \<in># mset (N ! C)\<close> and
+    M_C: \<open>M \<Turnstile>as CNot (mset (N!C) - {#L#})\<close> and
+    M_D: \<open>Propagated L (mset (N ! C)) # convert_lits_l N M \<Turnstile>as CNot D\<close>
+    using C confl unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
     by (fastforce simp: S cdcl\<^sub>W_restart_mset_state)+
+
   from multi_member_split[OF this(1)] obtain C' where
     C': \<open>mset (N ! C) = add_mset L C'\<close>
     by auto
+  have M_D': \<open>Propagated L C # M \<Turnstile>as CNot D\<close>
+    using M_D by (auto simp: true_annots_true_cls split: if_splits)
 
-  have \<open>-L \<notin># D'\<close> sorry
-  moreover have \<open>-L \<notin># C' - uminus `# D'\<close>
-    sorry
+  have undef_L: \<open>undefined_lit M L\<close> and n_d: \<open>no_dup M\<close>
+    using M_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by (auto simp: S cdcl\<^sub>W_restart_mset_state split: if_splits)
+
+  have n_d_L: \<open>L \<in> lits_of_l M \<Longrightarrow> -L \<in> lits_of_l M \<Longrightarrow> False\<close> for L
+    using distinct_consistent_interp[OF n_d] by (auto simp: consistent_interp_def)
+
+  have \<open>-L \<notin># C' - uminus `# D'\<close>
+    using M_C undef_L by (auto simp: C' true_annots_true_cls_def_iff_negation_in_model
+        Decided_Propagated_in_iff_in_lits_of_l
+      dest!: in_diffD)
   moreover have \<open>C' - uminus `# D' = C'\<close>
-    sorry
+    apply (rule minus_eq_id_forall_notin_mset[THEN iffD2])
+    unfolding Ball_def
+    apply (rule impI conjI allI)
+    subgoal for L'
+      using undef_L n_d M_D' M_C n_d_L[of L']
+      by (auto 5 5 simp: C' D true_annots_true_cls_def_iff_negation_in_model uminus_lit_swap
+        Decided_Propagated_in_iff_in_lits_of_l)
+    done
   ultimately show ?thesis
-    using C unfolding S apply (auto simp: C' D resolve_cls_wl'_def)
- find_theorems \<open>add_mset _ _\<union># _ = add_mset _ _\<close>
-oops
+    using C unfolding S by (auto simp: C' D resolve_cls_wl'_def)
+qed
+
 end
 
 
