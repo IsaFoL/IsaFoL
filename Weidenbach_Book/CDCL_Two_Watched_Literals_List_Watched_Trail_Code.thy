@@ -743,7 +743,7 @@ proof -
     using \<open>distinct_mset C\<close> by auto
 
   have confl: \<open>conflict_merge D (b, n, xs)
-    \<le> ⇓ option_conflict_rel
+    \<le> \<Down> option_conflict_rel
        (RETURN (Some (mset D \<union># (C - mset D - uminus `# mset D))))\<close>
     unfolding conflict_merge_aa_def conflict_merge_def PR_CONST_def
     distinct_mset_rempdups_union_mset[OF dist_D dist_CD]
@@ -3710,17 +3710,17 @@ proof -
 qed
 
 definition (in -) conflict_merge_abs_union :: \<open>nat clauses_l \<Rightarrow> nat \<Rightarrow> nat clause option \<Rightarrow> nat cconflict\<close> where
-\<open>conflict_merge_abs_union N i C = Some (mset (N!i) ∪# (the C - uminus `# mset (N!i)))\<close>
+\<open>conflict_merge_abs_union N i C = Some (mset (N!i) \<union># (the C - uminus `# mset (N!i)))\<close>
 
 lemma conflict_merge_aa_conflict_merge_abs_union_aa:
-  ‹(uncurry2 (conflict_merge_aa), uncurry2 (RETURN ooo conflict_merge_abs_union)) \<in>
-     [\<lambda>((N, i), C). distinct (N!i) \<and> literals_are_in_N⇩0 (mset (N!i)) \<and> ¬ tautology (mset (N!i)) \<and>
-         literals_are_in_N⇩0 (the C) \<and> C \<noteq> None]\<^sub>f
-    Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_conflict_rel \<rightarrow> \<langle>option_conflict_rel\<rangle> nres_rel›
+  \<open>(uncurry2 (conflict_merge_aa), uncurry2 (RETURN ooo conflict_merge_abs_union)) \<in>
+     [\<lambda>((N, i), C). distinct (N!i) \<and> literals_are_in_N\<^sub>0 (mset (N!i)) \<and> \<not> tautology (mset (N!i)) \<and>
+         literals_are_in_N\<^sub>0 (the C) \<and> C \<noteq> None]\<^sub>f
+    Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_conflict_rel \<rightarrow> \<langle>option_conflict_rel\<rangle> nres_rel\<close>
   apply (intro frefI nres_relI)
   subgoal for x y
-    using conflict_merge'_spec[of ‹fst (snd x)› ‹fst (snd (snd x))› ‹snd (snd (snd x))›
-       ‹the (snd y)› ‹(fst (fst y)) ! snd (fst y)›]
+    using conflict_merge'_spec[of \<open>fst (snd x)\<close> \<open>fst (snd (snd x))\<close> \<open>snd (snd (snd x))\<close>
+       \<open>the (snd y)\<close> \<open>(fst (fst y)) ! snd (fst y)\<close>]
     unfolding conflict_merge_abs_union_def conflict_merge_aa_def
     by (cases x; cases y) auto 
   done
