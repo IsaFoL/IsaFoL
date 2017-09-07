@@ -3709,8 +3709,24 @@ proof -
     using C unfolding S by (auto simp: C' D resolve_cls_wl'_def)
 qed
 
-end
+definition (in -) conflict_merge_abs_union :: \<open>nat clauses_l \<Rightarrow> nat \<Rightarrow> nat clause option \<Rightarrow> nat cconflict\<close> where
+\<open>conflict_merge_abs_union N i C = Some (mset (N!i) ∪# (the C - uminus `# mset (N!i)))\<close>
 
+lemma conflict_merge_aa_conflict_merge_abs_union_aa:
+  ‹(uncurry2 (conflict_merge_aa), uncurry2 (RETURN ooo conflict_merge_abs_union)) \<in>
+     [\<lambda>((N, i), C). distinct (N!i) \<and> literals_are_in_N⇩0 (mset (N!i)) \<and> ¬ tautology (mset (N!i)) \<and>
+         literals_are_in_N⇩0 (the C) \<and> C \<noteq> None]\<^sub>f
+    Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_conflict_rel \<rightarrow> \<langle>option_conflict_rel\<rangle> nres_rel›
+  apply (intro frefI nres_relI)
+  subgoal for x y
+    using conflict_merge'_spec[of ‹fst (snd x)› ‹fst (snd (snd x))› ‹snd (snd (snd x))›
+       ‹the (snd y)› ‹(fst (fst y)) ! snd (fst y)›]
+    unfolding conflict_merge_abs_union_def conflict_merge_aa_def
+    by (cases x; cases y) auto 
+  done
+term conflict_merge_code
+thm conflict_merge_aa_refine
+end
 
 setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close>
 
