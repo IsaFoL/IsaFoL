@@ -383,8 +383,7 @@ lemma false_Interp_imp_Interp:
 lemma false_Interp_imp_INTERP:
   "D' \<le> D \<Longrightarrow> D' \<in> N \<and> S D' = {#} \<or> Max (atms_of D') < Max (atms_of D) \<Longrightarrow> \<not> Interp D \<Turnstile> D' \<Longrightarrow>
    \<not> INTERP \<Turnstile> D'"
-  using INTERP_def interp_subseteq_INTERP
-    false_Interp_imp_general[OF _ _ _ le_multiset_right_total]
+  using INTERP_def interp_subseteq_INTERP false_Interp_imp_general[OF _ _ _ le_multiset_right_total]
   by simp
 
 text {*

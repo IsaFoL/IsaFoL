@@ -934,8 +934,7 @@ lemma is_unifiers_subst_atm_eqI:
   by (metis assms is_unifiers_def is_unifier_subst_atm_eqI)
 
 theorem is_unifiers_comp: "is_unifiers \<sigma> (set_mset ` set (map2 add_mset Ai' Aij') \<cdot>ass \<eta>) \<longleftrightarrow> is_unifiers (\<eta> \<odot> \<sigma>) (set_mset ` set (map2 add_mset Ai' Aij'))"
-  unfolding is_unifiers_def is_unifier_def subst_atmss_def
-  by auto
+  unfolding is_unifiers_def is_unifier_def subst_atmss_def by auto
 
 end
 
@@ -954,46 +953,6 @@ begin
 
 lemmas is_unifiers_mgu = mgu_sound[unfolded is_mgu_def, THEN conjunct1]
 lemmas is_mgu_most_general = mgu_sound[unfolded is_mgu_def, THEN conjunct2]
-
-lemma mgu_empty: "mgu {} = Some \<rho> \<Longrightarrow> is_renaming \<rho>"
-  using mgu_sound is_mgu_def is_unifiers_def
-  oops (* Proof broke when I changed is_renaming_def *)
-
-lemma mgu_singleton: "mgu {{x}} = Some \<rho> \<Longrightarrow> is_renaming \<rho>"
-  using is_unifier_def
-    mgu_sound  is_mgu_def is_unifiers_def
-  oops (* Proof broke when I changed is_renaming_def *)
-lemma mgu_eq_id_subst:
-  "finite AAA \<Longrightarrow> (\<forall>AA \<in> AAA. finite AA \<and> card AA \<le> 1) \<Longrightarrow> \<exists>\<rho>. mgu AAA = Some \<rho> \<and> is_renaming \<rho>"
-proof (induct AAA rule: finite_induct)
-  case empty
-  have "is_unifiers id_subst {}"
-    unfolding is_unifiers_def by simp
-  then show ?case
-    using mgu_complete
-      sorry
-next
-  case (insert AA AAA)
-  then obtain \<rho> where "mgu AAA = Some \<rho>" "is_renaming \<rho>"
-    by auto
-  then have "is_mgu \<rho> AAA"
-    using mgu_sound insert(1,4) by blast
-  moreover have "is_unifier \<rho> AA"
-    using bspec[OF insert(4), of AA] card_le_one_alt[of AA] by (auto simp: is_unifier_def)
-  ultimately have "is_mgu \<rho> (insert AA AAA)"
-    unfolding is_mgu_def is_unifiers_def by simp
-  then obtain \<rho>' where "mgu (insert AA AAA) = Some \<rho>'"
-    using mgu_complete insert(1,4) is_mgu_def by force
-  moreover then have "is_mgu \<rho>' (insert AA AAA)"
-    using mgu_sound insert(1,4) by force
-  with \<open>is_mgu \<rho> (insert AA AAA)\<close> \<open>is_renaming \<rho>\<close>  have "is_renaming \<rho>'"
-    unfolding is_mgu_def is_renaming_def
-      sorry
-  ultimately show ?case
-    by blast
-  oops (* Proof broke when I changed \<^text>\<open>is_renaming_def\<close> *)
-
-
 
 end
 

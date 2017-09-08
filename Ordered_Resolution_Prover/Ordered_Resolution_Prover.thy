@@ -2576,15 +2576,6 @@ lemma variants_sym:
    "variants D D' \<longleftrightarrow> variants D' D"
    unfolding variants_def by auto
 
-lemma variants_is_renaming:
-  assumes "variants D D'"
-  shows "\<exists>\<sigma>. is_renaming \<sigma> \<and> D \<cdot> \<sigma> = D'"
-  using assms
-  unfolding variants_def
-  unfolding subsumes_def
-  unfolding is_renaming_def
-  oops (* Should be true. But can I prove it? *)
-
 lemma variants_size:
   assumes "variants D D'"
   shows "size D = size D'"
@@ -2651,18 +2642,6 @@ lemma neg_properly_subsume_variants:
   assumes "variants D D'"
   shows "\<not>(properly_subsumes E D')"
   using assms properly_subsume_variants variants_sym by auto
-
-lemma subsume_variants:
-  assumes "subsumes E D"
-  assumes "variants D D'"
-  shows "subsumes E D'"
-  oops (* probably true. And maybe use above proofs *)
-
-lemma neg_subsume_variants:
-  assumes "\<not>(subsumes E D)"
-  assumes "variants D D'"
-  shows "\<not>(subsumes E D')"
-  oops (* probably true. And maybe use above proofs *)
 
 lemma from_N_to_P_or_Q:
   assumes
@@ -3102,12 +3081,7 @@ proof -
   define derive where "derive = redundancy_criterion.derive \<Gamma>x Rf"
 
   have SQinf: "clss_of_state (limit_state Sts) = llimit (lmap getQ Sts)"
-    using fair unfolding fair_state_seq_def limit_state_def clss_of_state_def
-    by auto
-(*
-  have SinfS: "clss_of_state (limit_state Sts) = llimit (lmap clss_of_state Sts)"
-    using fair
-    oops *)
+    using fair unfolding fair_state_seq_def limit_state_def clss_of_state_def by auto
 
   from fair deriv have "llimit Ns - src.Rf (llimit Ns) \<subseteq> grounding_of_state (limit_state Sts)"
     using fair_imp_limit_minus_Rf_subset_ground_limit_state ns by blast

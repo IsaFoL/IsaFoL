@@ -27,8 +27,6 @@ lemma image_map2: "length t = length s \<Longrightarrow>
          g ` set (map2 f t s) = set (map2 (\<lambda>a b. g (f a b)) t s)"
   unfolding map2_def by (induction t arbitrary: s) auto
 
-lemma inj_map2[iff]: "inj (map2 f) = inj f" oops
-
 lemma map2_nth[simp]: "length t = length s \<Longrightarrow> i < length s \<Longrightarrow> (map2 f s t) ! i = f (s!i) (t!i)"
   unfolding map2_def by (induction t arbitrary: s) auto
 
