@@ -382,7 +382,8 @@ qed
 end
 
 text {*
-The following are minor results scattered through Section 4.1.
+This corresponds to the trivial redundancy criterion defined on page 36 of
+Section 4.1.
 *}
 
 locale trivial_redundancy_criterion = inference_system
@@ -402,7 +403,10 @@ lemma saturated_upto_iff: "saturated_upto N \<longleftrightarrow> concls_of (inf
 
 end
 
-(* Some material from 4.1 page 38 *)
+text {*
+The following lemmas corresponds to the standard extension of a redundancy
+criterion defined on page 38 of Section 4.1.
+*}
 
 lemma standard_redundancy_criterion_extension:
   assumes "\<Gamma> \<subseteq> \<Gamma>'" and "redundancy_criterion \<Gamma> Rf Ri"

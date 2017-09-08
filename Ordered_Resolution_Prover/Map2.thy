@@ -1,4 +1,6 @@
-theory Map2 imports Main begin
+theory Map2
+imports Main
+begin
 
 abbreviation image2 :: "('a \<Rightarrow> 'b \<Rightarrow> 'c) \<Rightarrow> ('a * 'b) set \<Rightarrow> 'c set" where
   "image2 f s \<equiv> (case_prod f) ` s"
