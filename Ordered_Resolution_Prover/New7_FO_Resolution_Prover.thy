@@ -1131,7 +1131,7 @@ text {*
 @{text O} denotes relation composition in Isabelle, so the formalization uses @{text Q} instead.
 *}
   
-inductive resolution_prover :: "('a clause set \<times> 'a clause set \<times> 'a clause set) \<Rightarrow> ('a clause set \<times> 'a clause set \<times> 'a clause set) \<Rightarrow> bool" (infix "\<leadsto>" 50)  where
+inductive resolution_prover :: "'a state \<Rightarrow> 'a state \<Rightarrow> bool" (infix "\<leadsto>" 50)  where
  tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N \<union> {C}, P, Q) \<leadsto> (N, P, Q)"
 | forward_subsumption: "(\<exists>D \<in> P \<union> Q. subsumes D C) \<Longrightarrow> (N \<union> {C}, P, Q) \<leadsto> (N, P, Q)"
 | backward_subsumption_P: "(\<exists>D \<in> N. properly_subsumes D C) \<Longrightarrow> (N, P \<union> {C}, Q) \<leadsto> (N, P, Q)"
@@ -1230,15 +1230,11 @@ lemma gd_ord_\<Gamma>_ngd_ord_\<Gamma>: "gd.ord_\<Gamma> \<subseteq> gd_ord_\<Ga
 lemma nice: "sat_preserving_inference_system gd_ord_\<Gamma>'" (* Altough maybe it would be nice to prove it was a sound_inference_system *)
   unfolding sat_preserving_inference_system_def gd_ord_\<Gamma>'_def
   apply auto
-  subgoal for N I
     unfolding inference_system.inferences_from_def
     unfolding infer_from_def
     unfolding true_clss_def
-    apply (rule_tac x=I in exI)
     apply auto
-    apply (simp add: set_rev_mp true_cls_mset_def) 
-    done
-  done
+    by (metis set_rev_mp true_cls_mset_def inference.exhaust inference.exhaust_sel inference.inject inference.sel(2) inference.sel(3)) 
 
 definition src_ext_Ri where
   "src_ext_Ri = (\<lambda>N. src.Ri N \<union> (gd_ord_\<Gamma>' - gd.ord_\<Gamma>))"
@@ -1246,9 +1242,7 @@ definition src_ext_Ri where
 interpretation src_ext:
   sat_preserving_redundancy_criterion "gd_ord_\<Gamma>'" "src.Rf" "src_ext_Ri"
   unfolding sat_preserving_redundancy_criterion_def src_ext_Ri_def
-  apply(rule conjI)
-  using nice apply simp
-  by (rule standard_redundancy_criterion_extension[OF gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redudancy_criterion])
+  using nice using standard_redundancy_criterion_extension gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redudancy_criterion by auto
 
 
 
@@ -1288,10 +1282,7 @@ fun subst_inf :: "'a inference \<Rightarrow> 's \<Rightarrow> 'a inference" (inf
 thm ord_resolve_rename_ground_inst_sound
     
 lemma prems_of_subst_inf_subst_cls_mset: "(prems_of (\<gamma> \<cdot>i \<mu>)) = ((prems_of \<gamma>) \<cdot>cm \<mu>)"
-  apply auto
-  apply (induction \<gamma>)
-  apply auto
-  done
+  by (induction \<gamma>) auto
     
     
 lemma set_mset_subst_cls_mset_subst_clss: "set_mset (X \<cdot>cm \<mu>) = (set_mset X)  \<cdot>cs \<mu>"
@@ -1722,74 +1713,64 @@ next
       apply simp
       apply (rule conjI)
       unfolding grounding_of_cls_def
-       apply simp
-       apply (subgoal_tac "(C = D \<or> C \<in># CC)")
-        prefer 2
-        apply simp
-       apply (cases "C = D")
-        apply (rule disjI1)
-        apply (rule_tac x="\<rho> \<odot> \<sigma> \<odot> \<mu>" in exI)
-        apply (rule conjI)
-         apply (auto;fail)
-        apply (auto;fail)
-       apply (subgoal_tac "C \<in># CC")
-        prefer 2
-        apply (auto;fail)
-       apply (rule disjI2)
-       apply (rule disjI2)
-       apply (subgoal_tac "D \<in> Q")
-        prefer 2
-        apply (auto;fail)
-       apply (rule_tac x=D in bexI)
-        prefer 2
-        apply (auto;fail)
-       apply (rule_tac x="\<rho> \<odot> \<sigma> \<odot> \<mu>" in exI)
-       apply (auto;fail)
-      apply (subgoal_tac "set_mset (mset (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>)) \<subseteq> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))")
-      using subsubsubsubxx apply auto[]
-      apply (subgoal_tac "\<forall>x \<in># (mset (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>)). x \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))")
       subgoal
-        apply (auto;fail)
-        done
-      apply (subgoal_tac "\<forall>i < length (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>). ((Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>) ! i) \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))")
-      subgoal
-        apply (metis (no_types, lifting) in_set_conv_nth set_mset_mset)
-        done
-      apply rule
-      apply rule
-      subgoal for i
         apply simp
-        apply (subgoal_tac "Cl ! i \<in> {C} \<union> Q")
-         apply (cases "Cl ! i = C")
-          apply (rule disjI1)
-          apply (rule_tac x="(\<rho>s ! i) \<odot> \<sigma> \<odot> \<mu>" in exI)
-          apply (rule conjI)
-           apply (subgoal_tac "length \<rho>s = length Cl")
-        subgoal
-          apply (auto;fail)
+        apply (metis is_ground_comp_subst subst_cls_comp_subst)
+        done
+      subgoal
+        apply (subgoal_tac "set_mset (mset (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>)) \<subseteq> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))")
+        subgoal 
+          using subsubsubsubxx apply auto[]
           done
-           defer
-           apply (auto;fail)
-          apply (subgoal_tac "Cl ! i \<in> Q")
-           prefer 2
         subgoal
-          apply (auto;fail)
+          apply (subgoal_tac "\<forall>x \<in># (mset (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>)). x \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))")
+          subgoal
+            apply (auto;fail)
+            done
+          subgoal
+            apply (subgoal_tac "\<forall>i < length (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>). ((Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>) ! i) \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))")
+            subgoal
+              apply (metis (no_types, lifting) in_set_conv_nth set_mset_mset)
+              done
+            subgoal
+              apply rule
+              apply rule
+              subgoal for i
+                apply simp
+                apply (subgoal_tac "Cl ! i \<in> {C} \<union> Q")
+                subgoal 
+                  apply (cases "Cl ! i = C")
+                  subgoal
+                    apply (rule disjI1)
+                    apply (rule_tac x="(\<rho>s ! i) \<odot> \<sigma> \<odot> \<mu>" in exI)
+                    using \<rho>s_def using mk_var_dis_p apply (auto;fail)
+                    done
+                  subgoal
+                    apply (subgoal_tac "Cl ! i \<in> Q")
+                    subgoal
+                      apply (rule disjI2)
+                      apply (rule disjI2)
+                      apply (rule_tac x="Cl ! i " in bexI)
+                      subgoal
+                        apply (rule_tac x="(\<rho>s ! i) \<odot> \<sigma> \<odot> \<mu>" in exI)
+                        using \<rho>s_def using mk_var_dis_p apply (auto;fail)
+                        done
+                      subgoal
+                        apply auto[]
+                        done
+                      done
+                    subgoal
+                      apply (auto;fail)
+                      done
+                    done
+                  done
+                subgoal
+                  apply (metis UnI1 UnI2 insertE nth_mem_mset singletonI subsetCE)
+                  done
+                done
+              done
+            done
           done
-          apply (rule disjI2)
-          apply (rule disjI2)
-          apply (rule_tac x="Cl ! i " in bexI)
-           prefer 2
-           apply auto[]
-          apply (rule_tac x="(\<rho>s ! i) \<odot> \<sigma> \<odot> \<mu>" in exI)
-          apply (rule conjI)
-           apply (subgoal_tac "length \<rho>s = length Cl")
-        subgoal
-          apply (auto;fail)
-          done
-           defer
-           apply (auto;fail)
-          apply (metis UnI1 UnI2 insertE nth_mem_mset singletonI subsetCE)
-        using \<rho>s_def using mk_var_dis_p apply auto
         done
       done
     ultimately
@@ -1809,7 +1790,7 @@ next
   show ?case
     using src_ext.derive.intros[of "(grounding_of_state (N, P, Q \<union> {C}))" "(grounding_of_state ({}, P \<union> {C}, Q))"] by auto
 qed
-  
+
 text {*
 Another formulation of the last part of lemma 4.10
  *}
@@ -1956,16 +1937,22 @@ lemma eventually_deleted:
   assumes i_Sts: "enat i < llength Sts"
   shows "\<exists>l. D \<in> getN (lnth Sts l) \<and> D \<notin> getN (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
 proof (rule ccontr)
-  assume "\<nexists>l. D \<in> getN (lnth Sts l) \<and> D \<notin> getN (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
-  then have "\<forall>l. i \<le> l \<longrightarrow> enat l < llength Sts \<longrightarrow> D \<in> getN (lnth Sts l)"
-    apply -
-    apply auto
-    subgoal for ll
-      apply (induction ll)
-       apply auto
-      using assms(1) apply blast
-      by (metis Suc_ile_eq assms(1) le_SucE less_imp_le)
-    done
+  assume a: "\<nexists>l. D \<in> getN (lnth Sts l) \<and> D \<notin> getN (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
+  have "\<forall>l. i \<le> l \<longrightarrow> enat l < llength Sts \<longrightarrow> D \<in> getN (lnth Sts l)"
+  proof (rule; rule; rule)
+    fix l :: "nat"
+    assume 
+      "i \<le> l" and
+      "enat l < llength Sts"
+    then show "D \<in> getN (lnth Sts l)"
+    proof (induction l)
+      case 0
+      then show ?case using assms(1) by blast
+    next
+      case (Suc l)
+      then show ?case using a by (metis Suc_ile_eq assms(1) le_SucE less_imp_le)
+    qed
+  qed
   then have "\<forall>l. i \<le> l \<longrightarrow> enat l < llength Sts \<longrightarrow> D \<in> (lnth (lmap getN Sts) l)"
     by auto
   then have "D \<in> llimit (lmap getN Sts) "
@@ -1981,16 +1968,22 @@ lemma eventually_deleted_P:
   assumes i_Sts: "enat i < llength Sts"
   shows "\<exists>l. D \<in> getP (lnth Sts l) \<and> D \<notin> getP (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
 proof (rule ccontr)
-  assume "\<nexists>l. D \<in> getP (lnth Sts l) \<and> D \<notin> getP (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
-  then have "\<forall>l. i \<le> l \<longrightarrow> enat l < llength Sts \<longrightarrow> D \<in> getP (lnth Sts l)"
-    apply -
-    apply auto
-    subgoal for ll
-      apply (induction ll)
-       apply auto
-      using assms(1) apply blast
-      by (metis Suc_ile_eq assms(1) le_SucE less_imp_le)
-    done
+  assume a: "\<nexists>l. D \<in> getP (lnth Sts l) \<and> D \<notin> getP (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
+  have "\<forall>l. i \<le> l \<longrightarrow> enat l < llength Sts \<longrightarrow> D \<in> getP (lnth Sts l)"
+    proof (rule; rule; rule)
+    fix l :: "nat"
+    assume 
+      "i \<le> l" and
+      "enat l < llength Sts"
+    then show "D \<in> getP (lnth Sts l)"
+    proof (induction l)
+      case 0
+      then show ?case using assms(1) by blast
+    next
+      case (Suc l)
+      then show ?case using a by (metis Suc_ile_eq assms(1) le_SucE less_imp_le)
+    qed
+  qed
   then have "\<forall>l. i \<le> l \<longrightarrow> enat l < llength Sts \<longrightarrow> D \<in> (lnth (lmap getP Sts) l)"
     by auto
   then have "D \<in> llimit (lmap getP Sts) "
@@ -2092,24 +2085,25 @@ next
   case (Suc x)
   moreover
   from Suc have "x = l' - 1 - i "
-     apply (subgoal_tac "l'>0")
-     apply auto done
+    by auto
   moreover
   have "i \<le> l' - 1"
-    using Suc apply auto done
+    using Suc by auto 
   ultimately
   have "f (l' - 1) \<le> f i" 
     using Suc(1)[of "l'-1" i] by auto
-  then show ?case using Suc(3)
-    apply auto
-    apply (rule_tac P="\<lambda>i. f (Suc i) \<le> f i" and x = "l' - 1" in allE)
-     apply auto[]
-    apply (subgoal_tac "f (Suc (l' - 1)) \<le> f (l' - 1)")
-    apply (subgoal_tac "Suc (l' - 1) = l'")
-      apply auto
-    apply (subgoal_tac "l'>0")
-     apply auto
+  moreover
+  have "l'>0"
     using Suc by auto
+  moreover
+  have "Suc (l' - 1) = l'"
+    using Suc by auto
+  ultimately
+  show ?case 
+    using Suc(3) apply auto
+    apply (rule_tac P="\<lambda>i. f (Suc i) \<le> f i" and x = "l' - 1" in allE)
+     apply auto
+    done
 qed
 
 lemma aa_lemma:
@@ -2136,7 +2130,6 @@ proof (rule ccontr)
     have "f i \<ge> f l'"
       using leq l'_p 
       apply -
-      explore_lemma
       apply auto
       apply (induction "l'" arbitrary: i)
        apply auto
@@ -2915,7 +2908,7 @@ proof -
       "is_ground_subst \<sigma>'" (* Do I also need that l is later than i? Probably not. *)
       "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not>properly_subsumes E D'"
       "subsumes D' C"
-      using from_N_to_P_or_Q[OF deriv fair ns c a i_p(1) D_p(2) D_p(3)] by blast
+      using from_N_to_P_or_Q deriv fair ns c i_p(1) D_p(2) D_p(3) by blast
     then obtain l' where l'_p: "D' \<in> ?Qs l'" "l' < llength Sts" (* Do I also need that l is later than l'? Probably not*)
       using from_P_to_Q[OF deriv fair ns c _ D'_p(3) D'_p(6) D'_p(5)] by blast
     then have "D' \<in> getQ (limit_state Sts)"
@@ -2975,7 +2968,7 @@ proof
     using C_p using llimit_grounding_of_state_ground ns by auto 
 
   have "\<exists>D' \<sigma>'. D' \<in> getQ (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'" 
-    using eventually_in_Qinf[of D C Ns, OF D_p(1) D_p(2) D_p(3) fair ns C_p ground_C] by auto
+    using eventually_in_Qinf[of D C Ns] using D_p(1) D_p(2) D_p(3) fair ns C_p ground_C by auto
   then obtain D' \<sigma>' where D'_p: "D' \<in> getQ (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
     by blast
   then have "D' \<in> clss_of_state (limit_state Sts)"
@@ -3313,13 +3306,13 @@ proof -
       "{DA'} \<union> set CAi' \<subseteq> getQ (limit_state Sts)"
       using selection_renaming_invariant ord_resolve_rename_lifting[of S "getQ (limit_state Sts)" CAi1 "?D" _ "?E", OF sisisgma selection_axioms _ xxq]
       by smt
-    from this(8) have "\<exists>j. enat j < llength Sts \<and> (\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j)"
+    from this(8) have "\<exists>j. enat j < llength Sts \<and> ((set CAi') \<union> {DA'} \<subseteq> ?Qs j)"
       unfolding  llimit_def
       using subseteq_limit_state_eventually_always[of "{DA'} \<union> set CAi'"]
       by auto
-    then obtain j where j_p: "is_least (\<lambda>j. enat j < llength Sts \<and> (\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j)) j"
-      using least_exists[of "(\<lambda>j. enat j < llength Sts \<and> (\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j))"] by force
-    then have j_p': "enat j < llength Sts" "(set CAi') \<union> {DA'} \<subseteq> ?Qs j" "(\<forall>j'. j' \<ge> j \<longrightarrow> j' < llength Sts \<longrightarrow> (set CAi') \<union> {DA'} \<subseteq> ?Qs j)"
+    then obtain j where j_p: "is_least (\<lambda>j. enat j < llength Sts \<and> ((set CAi') \<union> {DA'} \<subseteq> ?Qs j)) j"
+      using least_exists[of "(\<lambda>j. enat j < llength Sts \<and> ((set CAi') \<union> {DA'} \<subseteq> ?Qs j))"] by force
+    then have j_p': "enat j < llength Sts" "(set CAi') \<union> {DA'} \<subseteq> ?Qs j"
       unfolding is_least_def by auto
     then have jn0: "j \<noteq> 0" (* Since there are initially no clauses in Q *)
       using empty_Q0 using insert_subset by fastforce
@@ -3359,11 +3352,11 @@ proof -
       using getN_subset j_p' by auto
     then have "?E \<in> grounding_of_state (lnth Sts j)"
       using s_p(7) s_p(3) unfolding grounding_of_clss_def grounding_of_cls_def by force
-    then have "\<gamma> \<in> src.Ri (grounding_of_state (lnth Sts j))"
+    then have "\<gamma> \<in> src.Ri (grounding_of_state (lnth Sts j))" (* Here I could also just use R4.  *)
       unfolding src_ext_Ri_def src.Ri_def
       using \<gamma>_p using gd.\<Gamma>_reductive
        apply simp
-       apply (rule_tac x="{#?E#}" in exI)
+      apply (rule_tac x="{#?E#}" in exI)
        apply simp
       done
     then have "\<gamma> \<in> src.Ri (?N j)"
