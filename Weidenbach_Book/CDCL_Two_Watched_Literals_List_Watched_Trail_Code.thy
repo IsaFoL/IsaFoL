@@ -3766,6 +3766,16 @@ proof -
     using pre ..
 qed
 
+fun update_confl_tl_wl_int where
+  ‹update_confl_tl_wl_int C L (M, N, U, D, Q, W, vmtf, \<phi>) =
+     (let D' = if C = 0 then remove1_mset (-L) (the D) 
+       else remove1_mset (-L) (the (conflict_merge_abs_union N C D)) in
+    (tl M, N, U, D, Q, W, vmtf, \<phi>))›
+
+declare update_confl_tl_wl_int.simps[simp del]
+lemmas update_confl_tl_wl_int_def = update_confl_tl_wl_int.simps
+
+thm update_confl_tl_wl_def
 end
 
 setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close>
