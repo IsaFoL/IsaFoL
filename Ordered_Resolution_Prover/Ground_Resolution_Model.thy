@@ -181,7 +181,7 @@ text {*
 The results below corresponds to Lemma 3.4.
 
 \begin{nit}
-If $D = D'$ and $D$ is productive, $I^D \subseteq I_{D'}$ does not hold. 
+If $D = D'$ and $D$ is productive, $I^D \subseteq I_{D'}$ does not hold.
 \end{nit}
 *}
 

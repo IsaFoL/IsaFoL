@@ -101,14 +101,14 @@ definition saturated_upto :: "'a clause set \<Rightarrow> bool" where
 
 inductive "derive" :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<triangleright>" 50) where
   deduction_deletion: "M - N \<subseteq> concls_of (inferences_from N) \<Longrightarrow> N - M \<subseteq> Rf M \<Longrightarrow> N \<triangleright> M"
-  
+
 inductive "derive2" :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<triangleright>\<triangleright>" 50) where
   deduction: "M \<subseteq> concls_of (inferences_from N) \<Longrightarrow> N \<triangleright>\<triangleright> N \<union> M"
 | deletion: "M \<subseteq> Rf N \<Longrightarrow> N \<union> M \<triangleright>\<triangleright> N"
 
 lemma derive_subset: "M \<triangleright> N \<Longrightarrow> N \<subseteq> M \<union> concls_of (inferences_from M)"
   by (cases rule: derive.cases) auto
-    
+
 lemma derive_derive2: "rtranclp derive N1 N2 \<Longrightarrow> rtranclp derive2 N1 N2"
 proof (induction rule: rtranclp_induct)
   case base
@@ -124,12 +124,12 @@ next
       moreover
       from deduction_deletion have "N \<union> (M - N) \<triangleright>\<triangleright> M"
         using derive2.intros(2)[of _ _]
-        by (metis Un_Diff_cancel2 sup_commute) 
+        by (metis Un_Diff_cancel2 sup_commute)
       ultimately
       show ?case using deduction_deletion by auto
     qed
   qed
-    
+
 lemma derive2_derive: "rtranclp derive2 N1 N2 \<Longrightarrow> rtranclp derive N1 N2"
 proof (induction rule: rtranclp_induct)
   case base
@@ -141,20 +141,20 @@ next
       case (deduction M N)
       then have "N \<triangleright> N \<union> M"
         using derive.intros[of "N \<union> M" N] by blast
-      then show ?case 
-        using deduction by auto 
+      then show ?case
+        using deduction by auto
     next
       case (deletion M N)
       then have "N \<union> M \<triangleright> N"
         using derive.intros[of N] by blast
-      then show ?case using deletion 
+      then show ?case using deletion
         by auto
     qed
   qed
-    
+
 lemma "rtranclp derive = rtranclp derive2"
   apply (rule, rule)
-  using derive_derive2 derive2_derive 
+  using derive_derive2 derive2_derive
     by auto
 
 end
@@ -278,7 +278,7 @@ proof -
         thus ?thesis
           using Suc c_in by auto
       qed
-    qed  
+    qed
   }
   hence lu_ll: "lSup Ns - Rf (lSup Ns) \<subseteq> llimit Ns"
     unfolding lSup_def llimit_def by blast
@@ -414,7 +414,7 @@ lemma standard_redundancy_criterion_extension_effective:
   assumes "\<Gamma> \<subseteq> \<Gamma>'" and "effective_redundancy_criterion \<Gamma> Rf Ri"
   shows "effective_redundancy_criterion \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>))"
   using assms unfolding effective_redundancy_criterion_def
-  using standard_redundancy_criterion_extension[of \<Gamma>] 
+  using standard_redundancy_criterion_extension[of \<Gamma>]
   unfolding effective_redundancy_criterion_axioms_def
   by auto
 
@@ -422,7 +422,7 @@ lemma standard_redundancy_criterion_extension_fair_iff:
   assumes "\<Gamma> \<subseteq> \<Gamma>'" and  "effective_redundancy_criterion \<Gamma> Rf Ri"
   shows "effective_redundancy_criterion.fair_clss_seq \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>)) Ns \<longleftrightarrow> effective_redundancy_criterion.fair_clss_seq \<Gamma> Rf Ri Ns"
   using assms standard_redundancy_criterion_extension_effective[of \<Gamma> \<Gamma>' Rf Ri] assms(1) assms(2)
-    effective_redundancy_criterion.fair_clss_seq_def[of \<Gamma> Rf Ri Ns] 
+    effective_redundancy_criterion.fair_clss_seq_def[of \<Gamma> Rf Ri Ns]
     effective_redundancy_criterion.fair_clss_seq_def[of \<Gamma>' Rf "(\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>))" Ns]
   unfolding inference_system.inferences_from_def Let_def by auto
 

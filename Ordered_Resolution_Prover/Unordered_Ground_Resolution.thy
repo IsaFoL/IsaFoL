@@ -26,7 +26,7 @@ sound and counterexample-reducing.
 locale ground_resolution_without_selection
 
 sublocale ground_resolution_without_selection \<subseteq> ground_resolution_with_selection where S = "\<lambda>_. {#}"
-  by unfold_locales auto 
+  by unfold_locales auto
 
 context ground_resolution_without_selection
 begin

@@ -25,7 +25,7 @@ Inferences have one distinguished main premise, any number of side premises, and
 
 datatype 'a inference =
   Infer (side_prems_of: "'a clause multiset") (main_prem_of: "'a clause") (concl_of: "'a clause")
-  
+
 abbreviation prems_of :: "'a inference \<Rightarrow> 'a clause multiset" where
   "prems_of \<gamma> \<equiv> side_prems_of \<gamma> + {# main_prem_of \<gamma> #}"
 
@@ -41,7 +41,7 @@ begin
 
 definition inferences_from :: "'a clause set \<Rightarrow> 'a inference set" where
   "inferences_from CC = {\<gamma>. \<gamma> \<in> \<Gamma> \<and> infer_from CC \<gamma>}"
-  
+
 definition inferences_between :: "'a clause set \<Rightarrow> 'a clause \<Rightarrow> 'a inference set" where
   "inferences_between CC C = {\<gamma>. \<gamma> \<in> \<Gamma> \<and> infer_from (CC \<union> {C}) \<gamma> \<and> C \<in># prems_of \<gamma>}"
 

@@ -28,7 +28,7 @@ definition Rf :: "'a clause set \<Rightarrow> 'a clause set" where
 
 definition Ri :: "'a clause set \<Rightarrow> 'a inference set" where
   "Ri N = {\<gamma> \<in> \<Gamma>. redundant_infer N \<gamma>}"
-  
+
 lemma tautology_redundant:
   assumes "Pos A \<in># C"
   assumes "Neg A \<in># C"
@@ -36,7 +36,7 @@ lemma tautology_redundant:
 proof -
   have "set_mset {#} \<subseteq> N \<and> (\<forall>I. I \<Turnstile>m {#} \<longrightarrow> I \<Turnstile> C) \<and> (\<forall>D. D \<in># {#} \<longrightarrow> D < C)"
     using assms by auto
-  then show "C \<in> Rf N" 
+  then show "C \<in> Rf N"
     unfolding Rf_def by blast
 qed
 
@@ -78,10 +78,10 @@ proof -
       unfolding Rf_def by blast
     define DD where  DD_def: "DD = CC - {#D#} + CC'"
     have "set_mset DD \<subseteq> N"
-      unfolding DD_def using cc_subs_n cc'_subs_n 
+      unfolding DD_def using cc_subs_n cc'_subs_n
       by (meson contra_subsetD in_diffD subsetI union_iff)
     moreover have "\<forall>I. I \<Turnstile>m DD + EE \<longrightarrow> I \<Turnstile> E"
-      using cc'_imp_d cc_imp_c d_in_cc unfolding DD_def true_cls_mset_def 
+      using cc'_imp_d cc_imp_c d_in_cc unfolding DD_def true_cls_mset_def
       by (metis in_remove1_mset_neq union_iff)
     moreover have "\<forall>C'. C' \<in># DD \<longrightarrow> C' < C"
       using cc_lt_c cc'_lt_d d_in_cc unfolding DD_def
@@ -96,7 +96,7 @@ proof -
           using cc'_lt_d ex_gt_imp_less_multiset unfolding Bex_def  by (metis multi_member_last)
       qed
     ultimately show False
-      using c_min antisym[of "_ :: 'a literal multiset multiset"] 
+      using c_min antisym[of "_ :: 'a literal multiset multiset"]
       unfolding less_eq_multiset_def by blast
   qed
   thus ?thesis
@@ -169,13 +169,13 @@ qed
 
 lemma Ri_eq_Ri_diff_Rf: "Ri N = Ri (N - Rf N)"
   by (metis Diff_subset Ri_mono Ri_subs_Ri_diff_Rf subset_antisym)
-  
+
 lemma Ri_subset_\<Gamma>: "Ri N \<subseteq> \<Gamma>"
   unfolding Ri_def by blast
 
 lemma Rf_indep: "N' \<subseteq> Rf N \<Longrightarrow> Rf N \<subseteq> Rf (N - N')"
   by (metis Diff_cancel Diff_eq_empty_iff Diff_mono Rf_eq_Rf_diff_Rf Rf_mono)
-  
+
 lemma Ri_indep: "N' \<subseteq> Rf N \<Longrightarrow> Ri N \<subseteq> Ri (N - N')"
   by (metis Diff_mono Ri_eq_Ri_diff_Rf Ri_mono order_refl)
 
@@ -278,7 +278,7 @@ unfolding effective_redundancy_criterion_def
 proof (intro conjI redudancy_criterion, unfold_locales)
   fix \<gamma> N
   assume in_\<gamma>: "\<gamma> \<in> \<Gamma>" and concl_of_in_n_un_rf_n: "concl_of \<gamma> \<in> N \<union> Rf N"
-  obtain CC D E where \<gamma>: "\<gamma> = Infer CC D E"  
+  obtain CC D E where \<gamma>: "\<gamma> = Infer CC D E"
     by (cases \<gamma>)
   hence cc: "CC = side_prems_of \<gamma>" and d: "D = main_prem_of \<gamma>" and e: "E = concl_of \<gamma>"
     unfolding \<gamma> by simp_all
