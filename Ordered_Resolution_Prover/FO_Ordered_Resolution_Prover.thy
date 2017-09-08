@@ -5,7 +5,7 @@
     Maintainer:  Anders Schlichtkrull
 *)
 
-theory Ordered_Resolution_Prover
+theory FO_Ordered_Resolution_Prover
 imports Ordered_Ground_Resolution Standard_Redundancy Substitution Clauses Proving_Process
 begin
 
@@ -43,13 +43,13 @@ definition variants :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" wh
   "variants C D \<longleftrightarrow> subsumes C D \<and> subsumes D C"
 
 fun getN :: "'a state \<Rightarrow> 'a clause set" where
-  "getN (N,P,Q) = N"
+  "getN (N, P, Q) = N"
 
 fun getP :: "'a state \<Rightarrow> 'a clause set" where
-  "getP (N,P,Q) = P"
+  "getP (N, P, Q) = P"
 
 fun getQ :: "'a state \<Rightarrow> 'a clause set" where
-  "getQ (N,P,Q) = Q"
+  "getQ (N, P, Q) = Q"
 
 definition clss_of_state :: "'a state \<Rightarrow> 'a clause set" where
   "clss_of_state St = getN St \<union> getP St \<union> getQ St"
@@ -892,7 +892,7 @@ lemma ord_resolve_rename_lifting:
     have "\<forall>i<n. \<exists>Aiji'. Aiji' \<cdot>am \<eta> = Aij ! i \<and> (poss Aiji') \<subseteq># CAi' ! i"
     proof (rule, rule)
       fix i
-      assume "i<n"
+      assume "i < n"
       have "CAi' ! i \<cdot> \<eta> = CAi ! i"
         using \<open>i < n\<close> \<open>CAi' \<cdot>cl \<eta> = CAi\<close> n by force
       moreover
@@ -979,8 +979,7 @@ lemma ord_resolve_rename_lifting:
     ultimately show ?thesis using that by auto
   qed
 
-
-    (* Lifting eligibility *)
+  (* Lifting eligibility *)
   have eligibility: "eligible S \<tau> Ai' (D' + negs (mset Ai'))"
   proof -
     have "eligible (S_M S M) \<sigma> Ai (D + negs (mset Ai))" using ord_resolve unfolding eligible.simps[simplified] by -
@@ -1094,10 +1093,9 @@ lemma ord_resolve_rename_lifting:
       \<open>is_ground_subst_list \<eta>s''\<close>
       \<open>is_ground_subst \<eta>2\<close>
       res_r_e
-      \<open> CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi\<close>
+      \<open>CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi\<close>
       \<open>DA'' \<cdot> \<eta>'' = DA\<close>
       \<open>E' \<cdot> \<eta>2 = E\<close>
-
       \<open>DA'' \<in> M\<close>
       \<open>\<forall>CA\<in>set CAi''. CA \<in> M\<close>
     by blast
@@ -1146,30 +1144,12 @@ inductive resolution_prover :: "'a state \<Rightarrow> 'a state \<Rightarrow> bo
     "N = concls_of (ord_FO_resolution.inferences_between Q C) \<Longrightarrow>
      ({}, P \<union> {C}, Q) \<leadsto> (N, P, Q \<union> {C})"
 
+(* I could also proved that state is a distributive lattice and define sup_state directly as lSup *)
+definition sup_state :: "('a state) llist \<Rightarrow> 'a state" where
+  "sup_state Sts = (lSup (lmap getN Sts), lSup (lmap getP Sts), lSup (lmap getQ Sts))"
 
-(* I could also prove that state is a distributive lattice and define sup_state directly as lSup *)
-definition sup_state ::
-  "('a state) llist \<Rightarrow> 'a state"
-where
-  "sup_state Sts = (lSup (lmap getN Sts), lSup (lmap getP Sts),
-     lSup (lmap getQ Sts))"
-
-(*
-definition limit_N :: "('a state) llist \<Rightarrow> 'a clause set" where
-  "limit_N Sts = llimit (lmap getN Sts)"
-
-definition limit_P :: "('a state) llist \<Rightarrow> 'a clause set" where
-  "limit_P Sts = llimit (lmap getP Sts)"
-
-definition limit_Q :: "('a state) llist \<Rightarrow> 'a clause set" where
-  "limit_Q Sts = llimit (lmap getQ Sts)"
-*)
-
-definition limit_state ::
-  "('a state) llist \<Rightarrow> 'a state"
-where
-  "limit_state Sts = (llimit (lmap getN Sts), llimit (lmap getP Sts),
-     llimit (lmap getQ Sts))"
+definition limit_state :: "('a state) llist \<Rightarrow> 'a state" where
+  "limit_state Sts = (llimit (lmap getN Sts), llimit (lmap getP Sts), llimit (lmap getQ Sts))"
 
 definition fair_state_seq where
   "fair_state_seq Sts \<longleftrightarrow> getN (limit_state Sts) = {} \<and> getP (limit_state Sts) = {}"
@@ -1215,7 +1195,7 @@ thm src.saturated_upto_refute_complete
 (* A huge extension like Uwe suggested. *)
 (* Uwe suggested the set of sound rules, and later the set of consistency preserving rules.
    But we need the whole set to be consistency preserving, and that does not follow from the rules being consistency preserving.
-   It does follow from soundness however, so lets just go with that.
+   It does follow from soundness however, so let's just go with that.
  *)
 
 definition gd_ord_\<Gamma>':: "'a inference set" where
@@ -1226,14 +1206,14 @@ lemma gd_ord_\<Gamma>_ngd_ord_\<Gamma>: "gd.ord_\<Gamma> \<subseteq> gd_ord_\<Ga
   unfolding gd_ord_\<Gamma>'_def
   using gd.ord_\<Gamma>_def gd.ord_resolve_sound by fastforce
 
-lemma nice: "sat_preserving_inference_system gd_ord_\<Gamma>'" (* Altough maybe it would be nice to prove it was a sound_inference_system *)
+lemma nice: "sat_preserving_inference_system gd_ord_\<Gamma>'" (* Although maybe it would be nice to prove it was a sound_inference_system *)
   unfolding sat_preserving_inference_system_def gd_ord_\<Gamma>'_def
   apply auto
-    unfolding inference_system.inferences_from_def
-    unfolding infer_from_def
-    unfolding true_clss_def
-    apply auto
-    by (metis set_rev_mp true_cls_mset_def inference.exhaust inference.exhaust_sel inference.inject inference.sel(2) inference.sel(3))
+  unfolding inference_system.inferences_from_def
+  unfolding infer_from_def
+  unfolding true_clss_def
+  apply auto
+  by (metis set_rev_mp true_cls_mset_def inference.exhaust inference.exhaust_sel inference.inject inference.sel(2) inference.sel(3))
 
 definition src_ext_Ri where
   "src_ext_Ri = (\<lambda>N. src.Ri N \<union> (gd_ord_\<Gamma>' - gd.ord_\<Gamma>))"

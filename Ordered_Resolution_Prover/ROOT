@@ -12,7 +12,7 @@ session Ordered_Resolution_Prover = Ordered_Resolution_Prover_Base +
   theories [document = false]
     "$AFP/Nested_Multisets_Ordinals/Multiset_More"
   theories
-    Ordered_Resolution_Prover
+    FO_Ordered_Resolution_Prover
   document_files
     "bib.bib"
     "root.tex"
