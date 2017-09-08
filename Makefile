@@ -27,8 +27,8 @@ Weidenbach_Book: HOL
 	$(RUN_ISABELLE) build -d '$$AFP' -b Refine_Imperative_HOL
 	$(RUN_ISABELLE) build -d '$$AFP' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D Weidenbach_Book
 
-Bachmair_Ganzinger: HOL
-	$(RUN_ISABELLE) build -o browser_info -v -b -D Bachmair_Ganzinger
+Ordered_Resolution_Prover: HOL
+	$(RUN_ISABELLE) build -o browser_info -v -b -D Ordered_Resolution_Prover
 
 Unordered_Resolution: HOL
 	$(RUN_ISABELLE2016-1) build -o browser_info -v -b -D Unordered_Resolution
@@ -40,17 +40,17 @@ GRAT: HOL
 FOL_Berghofer: HOL
 	$(RUN_ISABELLE2016-1) build -v -b -D FOL_Berghofer
 
-all: Weidenbach_Book Bachmair_Ganzinger Unordered_Resolution GRAT FOL_Berghofer
+all: Weidenbach_Book Ordered_Resolution_Prover Unordered_Resolution GRAT FOL_Berghofer
 
 # build the documentation and the files
-current: Bachmair_Ganzinger Unordered_Resolution
+current: Ordered_Resolution_Prover Unordered_Resolution
 	$(RUN_ISABELLE) build -d '$$AFP' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -d Weidenbach_Book Full
 
 # move the html documentation to the locale directory
 doc:
 	mkdir -p $(DESTINATION)/current
 	cp -R $(ISABELLE_HOME)/Weidenbach_Book $(DESTINATION)/current || :
-	cp -R $(ISABELLE_HOME)/Bachmair_Ganzinger $(DESTINATION)/current || :
+	cp -R $(ISABELLE_HOME)/Ordered_Resolution_Prover $(DESTINATION)/current || :
 	cp -R $(ISABELLE2016-1_HOME)/Unsorted/Unordered_Resolution $(DESTINATION)/current || :
 	./add_dates.pl --noverbose --unsafe --isabelle="$(ISABELLE_version)" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP_version)"
 
@@ -59,6 +59,6 @@ refs:
 
 clean:
 	$(RUN_ISABELLE) build -d '$$AFP' -c -v -n -D Weidenbach_Book
-	$(RUN_ISABELLE) build -c -v -n -D Bachmair_Ganzinger
+	$(RUN_ISABELLE) build -c -v -n -D Ordered_Resolution_Prover
 	$(RUN_ISABELLE2016-1) build -c -v -n -D Unordered_Resolution
 	rm -rf $(DESTINATION)/current

@@ -1,11 +1,11 @@
-chapter Bachmair_Ganzinger
+chapter Ordered_Resolution_Prover
 
-session Bachmair_Ganzinger_Base = HOL +
+session Ordered_Resolution_Prover_Base = HOL +
   theories [document = false]
     "~~/src/HOL/Library/Multiset"
     "$AFP/Coinductive/Coinductive_List"
 
-session Bachmair_Ganzinger = Bachmair_Ganzinger_Base +
+session Ordered_Resolution_Prover = Ordered_Resolution_Prover_Base +
   options [document = pdf, document_output = "output",
     document_variants = "document:outline=/proof,/ML",
     timeout=200]
