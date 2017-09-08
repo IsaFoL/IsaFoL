@@ -183,8 +183,7 @@ proof -
         let ?S' = \<open>(M, N, U, None, NP, UP, add_mset (L, C) WS', Q)\<close>
         let ?T = \<open>set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S\<close>
         fix K M' N' U' D' WS'' NP' UP' Q' N'' U''
-(*         assume \<open>?T = (M', N', U', D', NP', UP', WS'', Q')\<close> *)
-        have \<open>update_clauseS L C (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)
+        show \<open>update_clauseS L C (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)
                \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> twl_stgy_invs S' \<and> cdcl_twl_cp\<^sup>*\<^sup>* S S' \<and> (S', S) \<in> measure (size \<circ> clauses_to_update))\<close>
           apply (rewrite at \<open>set_clauses_to_update _ \<hole>\<close> S)
           apply (rewrite at \<open>clauses_to_update \<hole>\<close> S)
@@ -218,12 +217,6 @@ proof -
           show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
             by (simp add: WS'_def[symmetric] WS_WS' S)
         qed
-        moreover
-          assume \<open>\<not>update_clauseS L C (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)
-               \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> twl_stgy_invs S' \<and> cdcl_twl_cp\<^sup>*\<^sup>* S S' \<and> (S', S) \<in> measure (size \<circ> clauses_to_update))\<close>
-          ultimately have False by fast
-        then show \<open>- La \<in> lits_of_l (get_trail ?T)\<close>
-          ..
       }
     }
   qed
