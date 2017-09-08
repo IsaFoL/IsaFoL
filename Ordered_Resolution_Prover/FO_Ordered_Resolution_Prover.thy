@@ -1935,8 +1935,7 @@ proof (rule ccontr)
   then have "\<forall>l. i \<le> l \<longrightarrow> enat l < llength Sts \<longrightarrow> D \<in> (lnth (lmap getN Sts) l)"
     by auto
   then have "D \<in> llimit (lmap getN Sts) "
-    unfolding llimit_def apply auto
-    using i_Sts by blast
+    unfolding llimit_def using i_Sts by auto
   then show False using fair unfolding fair_state_seq_def
     by (simp add: getN_limit_state_llimit_getN)
 qed
@@ -1966,8 +1965,7 @@ proof (rule ccontr)
   then have "\<forall>l. i \<le> l \<longrightarrow> enat l < llength Sts \<longrightarrow> D \<in> (lnth (lmap getP Sts) l)"
     by auto
   then have "D \<in> llimit (lmap getP Sts) "
-    unfolding llimit_def apply auto
-    using i_Sts by blast
+    unfolding llimit_def using i_Sts by auto
   then show False using fair unfolding fair_state_seq_def
     by (simp add: getP_limit_state_llimit_getP)
 qed
@@ -2079,10 +2077,7 @@ next
     using Suc by auto
   ultimately
   show ?case
-    using Suc(3) apply auto
-    apply (rule_tac P="\<lambda>i. f (Suc i) \<le> f i" and x = "l' - 1" in allE)
-     apply auto
-    done
+    using Suc(3) by (metis le_trans)
 qed
 
 lemma aa_lemma:
@@ -2100,27 +2095,14 @@ proof (rule ccontr)
     then obtain l' where l'_p: "l'\<ge>i \<and> f l' \<noteq> f (Suc l')"
       by metis
     then have "f l' > f (Suc l')"
-      using leq
-      apply auto
-      apply (rule_tac P="\<lambda>i. f (Suc i) \<le> f i" and x=l' in allE)
-       apply clarify
-      by linarith
+      using leq le_eq_less_or_eq by auto
     moreover
     have "f i \<ge> f l'"
-      using leq l'_p
-      apply -
-      apply auto
-      apply (induction "l'" arbitrary: i)
-       apply auto
-      using KONGE by auto
+      using leq l'_p KONGE by (induction "l'" arbitrary: i) auto
     ultimately
     show "\<exists>i'>i. f i' < f i"
       using l'_p
-      apply -
-      apply auto
-      apply (rule_tac x="Suc l'" in exI)
-      apply auto
-      done
+      using less_le_trans by blast
   qed
   then obtain g_sm where g_sm_p: "\<forall>i. g_sm i > i \<and> f (g_sm i) < f i"
     by metis
@@ -2566,22 +2548,7 @@ lemma variants_eql_mod_two_subtitution:
   assumes "variants D D'"
   shows "(\<exists>\<sigma>. D \<cdot> \<sigma> = D') \<and> (\<exists>\<sigma>'. D' \<cdot> \<sigma>' = D)"
   using assms unfolding variants_def subsumes_def
-  apply rule
-  apply rule
-   apply auto
-  subgoal for \<sigma> \<sigma>'
-    apply (rule_tac x=\<sigma> in exI)
-    using variants_size[of D D'] assms
-    apply auto
-    apply (meson properly_subsumes_def subset_mset_def subset_subst_properly_subsumes subsumes_def)
-    done
-  subgoal for \<sigma> \<sigma>'
-    apply (rule_tac x=\<sigma>' in exI)
-    using variants_size[of D D'] assms
-    apply auto
-    apply (meson properly_subsumes_def subset_mset_def subset_subst_properly_subsumes subsumes_def)
-    done
-  done
+  by (meson properly_subsumes_def subset_mset_def subset_subst_properly_subsumes subsumes_def)
 
 lemma properly_subsume_variants:
   assumes "properly_subsumes E D"
@@ -2733,15 +2700,13 @@ proof -
       using \<sigma> variants_eql_mod_two_subtitution[of D D'] apply auto
       by (metis subst_cls_comp_subst)
     then have "\<exists>\<sigma>'. D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
-      using ground_C apply auto
-      by (meson make_single_ground_subst subset_mset.dual_order.refl)
+      using ground_C by (meson make_single_ground_subst subset_mset.dual_order.refl)
     then obtain \<sigma>' where \<sigma>'_p: "D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
       by metis (* Well if nothing else the argument is that D and D' must simply be renamings of each other. *)
 
     show ?case
       using D'_p twins l_p subs mini \<sigma>'_p
-      apply auto
-      done
+      by auto
   next
     case (backward_subsumption_P N D_twin P Q)
     then have False
@@ -2800,6 +2765,7 @@ qed
 lemma eventually_in_Qinf:
   assumes D_p: "D \<in> clss_of_state (sup_state Sts)" "subsumes D C" "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not>properly_subsumes E D"
   assumes  fair: "fair_state_seq Sts"
+   (* We could also, we guess, in this proof obtain a D with property D_p(3) from one with only properties D_p(2,3). *)
   assumes ns: "Ns = lmap grounding_of_state Sts"
   assumes c: "C \<in> llimit Ns - src.Rf (llimit Ns)"
   assumes ground_C: "is_ground_cls C"
@@ -3325,19 +3291,10 @@ proof -
       unfolding ns[symmetric] by blast
   }
   then have "src_ext.saturated_upto (llimit (lmap grounding_of_state Sts))"
-    unfolding src_ext.saturated_upto_def
-    unfolding  src_ext.inferences_from_def
-    apply clarify
-    subgoal for \<gamma>
-      apply (cases "\<gamma> \<in> gd.ord_\<Gamma>")
-     apply auto[]
-      unfolding infer_from_def
-        apply force
-      using gd_ord_\<Gamma>_ngd_ord_\<Gamma>
-      unfolding src_ext_Ri_def
-    apply auto
-      done
-    done
+    unfolding src_ext.saturated_upto_def  src_ext.inferences_from_def
+    using gd_ord_\<Gamma>_ngd_ord_\<Gamma> 
+    unfolding src_ext.saturated_upto_def src_ext.inferences_from_def infer_from_def src_ext_Ri_def
+    by auto
   note continue_from_this = this
 
   have "llimit (lmap grounding_of_state Sts) \<supseteq> grounding_of_state (limit_state Sts)"
@@ -3352,44 +3309,28 @@ proof -
                  \<or> x \<in> llimit (lmap grounding_of_clss (lmap getP Sts))
                    \<or> x \<in> llimit (lmap grounding_of_clss (lmap getQ Sts))"
       apply -
+      unfolding llimit_def grounding_of_clss_def grounding_of_cls_def
       apply (erule HOL.disjE)
-       apply (rule disjI1)
-       apply (unfold llimit_def)[]
-       apply auto[]
-      subgoal for xa
-        apply (rule_tac x=xa in exI)
-        apply auto[]
-        apply (unfold grounding_of_clss_def grounding_of_cls_def)[]
+      subgoal
+        apply (rule disjI1)
         using X\<sigma>_p apply auto
         done
-      apply (erule HOL.disjE)
-       apply (rule disjI2)
-       apply(rule disjI1)
-      apply (unfold llimit_def)[]
-       apply auto[]
-      subgoal for xa
-        apply (rule_tac x=xa in exI)
-        apply auto[]
-        apply (unfold grounding_of_clss_def grounding_of_cls_def)[]
-        using X\<sigma>_p apply auto
-        done
-      apply (rule disjI2)
-       apply(rule disjI2)
-      apply (unfold llimit_def)[]
-       apply auto[]
-      subgoal for xa
-        apply (rule_tac x=xa in exI)
-        apply auto[]
-        apply (unfold grounding_of_clss_def grounding_of_cls_def)[]
-        using X\<sigma>_p apply auto
+      subgoal
+        apply (erule HOL.disjE)
+        subgoal
+          apply (rule disjI2)
+          apply (rule disjI1)
+          using X\<sigma>_p apply auto
+          done
+        subgoal
+          apply (rule disjI2)
+          apply (rule disjI2)
+          using X\<sigma>_p apply auto
+          done
         done
       done
     then show "x \<in> llimit (lmap grounding_of_state Sts)"
-      unfolding llimit_def clss_of_state_def
-      apply auto
-      unfolding grounding_of_clss_def
-        apply auto
-      done
+      unfolding llimit_def clss_of_state_def grounding_of_clss_def by auto
   qed
 
   then have unsat2: "\<not> satisfiable (llimit (lmap grounding_of_state Sts))"
