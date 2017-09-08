@@ -550,6 +550,7 @@ proof -
   then show ?thesis unfolding less_eq_atm_def by auto
 qed
 
+(* FIXME: always name simp rules -- cf. AFP guidelines *)
 lemma[simp]: "sum_list Ci \<subseteq># sum_list CAi \<Longrightarrow> is_ground_cls_list CAi \<Longrightarrow> is_ground_cls_list Ci"
   by (metis is_ground_cls_Union_mset is_ground_cls_list_def is_ground_cls_mono is_ground_cls_mset_def set_mset_mset sum_mset_sum_list)
 
