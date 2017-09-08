@@ -2005,7 +2005,7 @@ proof -
     then obtain \<sigma> where "D \<cdot> \<sigma> \<subseteq># C"
       by blast
     then have "size (D \<cdot> \<sigma>) \<le> size C"
-      by (simp add: mset_subseteq_size)
+      by (simp add: size_mset_mono)
     then have "size D \<le> size C"
       using size_subst by auto
     moreover
@@ -2199,7 +2199,7 @@ proof (rule ccontr)
 
   have "\<forall>i. size (c i) \<ge> size (c (Suc i))"
     using ps unfolding properly_subsumes_def subsumes_def
-    by (metis mset_subseteq_size size_subst)
+    by (metis size_mset_mono size_subst)
   then have lte: "\<forall>i. (size o c) i \<ge> (size o c) (Suc i)"
     unfolding comp_def .
   then have "\<exists>l. \<forall>l' \<ge> l. (size o c) l' = (size o c) (Suc l')"

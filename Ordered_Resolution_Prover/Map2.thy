@@ -2,9 +2,7 @@ theory Map2 imports Main begin
 
 abbreviation image2 :: "('a \<Rightarrow> 'b \<Rightarrow> 'c) \<Rightarrow> ('a * 'b) set \<Rightarrow> 'c set" where
   "image2 f s \<equiv> (case_prod f) ` s"
-  
-  
-  
+ 
 (* Definition is from "$AFP/Jinja/DFA/Listn.thy" *)
 definition map2 :: "('a \<Rightarrow> 'b \<Rightarrow> 'c) \<Rightarrow> 'a list \<Rightarrow> 'b list \<Rightarrow> 'c list"
 where
@@ -32,7 +30,6 @@ lemma inj_map2[iff]: "inj (map2 f) = inj f" oops
 lemma map2_nth[simp]: "length t = length s \<Longrightarrow> i < length s \<Longrightarrow> (map2 f s t) ! i = f (s!i) (t!i)"
   unfolding map2_def by (induction t arbitrary: s) auto
     
-    
 lemma map2_tl: "length t = length s \<Longrightarrow> (map2 f (tl t) (tl s)) = tl (map2 f (t) (s))"  
   unfolding map2_def apply (induction t arbitrary: s)
    apply auto
@@ -57,7 +54,7 @@ proof (rule; rule)
     using map2_nth assms by auto
   ultimately
   show "x \<in> {x. \<exists>i<length t. x = f (s ! i) (t ! i)}"
-     using assms by auto
+    using assms by auto
 next
   fix x 
   assume "x \<in> {x. \<exists>i<length t. x = f (s ! i) (t ! i)}"

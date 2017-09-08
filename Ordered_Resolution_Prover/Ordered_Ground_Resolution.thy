@@ -8,7 +8,7 @@
 section {* Ordered Ground Resolution with Selection *}
 
 theory Ordered_Ground_Resolution
-imports Inference_System Ground_Resolution_Model Multiset_Even_More Clauses Map2
+imports Inference_System Ground_Resolution_Model Clauses Map2
 begin
 
 (* Perhaps this will improve automation? *)
