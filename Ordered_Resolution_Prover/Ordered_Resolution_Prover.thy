@@ -6,7 +6,7 @@
 *)
 
 theory Ordered_Resolution_Prover 
-imports Ordered_Ground_Resolution Standard_Redundancy Substitution Clauses  "../lib/Explorer" Proving_Process
+imports Ordered_Ground_Resolution Standard_Redundancy Substitution Clauses Proving_Process
 begin 
 
 type_synonym 'a state = "'a clause set \<times> 'a clause set \<times> 'a clause set"
