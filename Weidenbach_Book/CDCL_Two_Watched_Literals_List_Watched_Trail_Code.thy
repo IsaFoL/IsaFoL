@@ -3610,6 +3610,41 @@ prepare_code_thms (in -) conflict_remove1_code_def
 lemmas conflict_remove1_code_refine[sepref_fr_rules] =
    conflict_remove1_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
 
+lemma conflict_remove1_code_op_nset_delete[sepref_fr_rules]:
+  \<open>(uncurry conflict_remove1_code, uncurry (RETURN ∘∘ op_mset_delete))
+    ∈ [λ(L, C). L \<in> snd ` D\<^sub>0 \<and> L \<in># C \<and> -L \<notin># C]⇩a
+       unat_lit_assn⇧k *⇩a conflict_assn⇧d → conflict_assn\<close>
+  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c \<in>
+    [comp_PRE (Id ×⇩f conflict_rel) (λ(L, C). L ∈# C ∧ - L ∉# C ∧ L ∈ snd ` D⇩0)
+              (λ_ (L, n, xs). 0 < n ∧ atm_of L < length xs)
+              (λ_. True)]⇩a
+    hrp_comp (unat_lit_assn⇧k *⇩a conflict_rel_assn⇧d) (Id ×⇩f conflict_rel) →
+    hr_comp conflict_rel_assn conflict_rel\<close>
+      (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using  hfref_compI_PRE_aux[OF conflict_remove1_code_refine conflict_remove1]
+    unfolding op_mset_delete_def
+    .
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
+    using that neq0_conv
+    unfolding comp_PRE_def option_conflict_rel_def conflict_rel_def
+    by (fastforce simp: image_image twl_st_ref_def phase_saving_def in_N\<^sub>1_atm_of_in_atms_of_iff
+      vmtf_imp_def)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep conflict_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def hr_comp_prod_conv
+      conflict_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
+qed
+
 lemma conflict_option_assn_the[sepref_fr_rules]:
   \<open>(return o snd, RETURN o the) \<in> [\<lambda>C. C \<noteq> None]\<^sub>a conflict_option_assn\<^sup>d \<rightarrow> conflict_assn\<close>
   by sepref_to_hoare
@@ -3772,15 +3807,12 @@ proof -
     using pre ..
 qed
 
-fun update_confl_tl_wl_int :: \<open>nat \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_int \<Rightarrow> bool \<times> twl_st_wl_int\<close> where
-  \<open>update_confl_tl_wl_int C L (M, N, U, D, Q, W, vmtf, \<phi>) =
-     (let D' = if C = 0 then remove1_mset (-L) (the D) 
+definition update_confl_tl_wl_int :: \<open>nat \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_int \<Rightarrow> bool \<times> twl_st_wl_int\<close> where
+  \<open>update_confl_tl_wl_int = (\<lambda>C L (M, N, U, D, Q, W, vmtf, \<phi>).
+     (let D' = if C = 0 then remove1_mset (-L) (the D)
                else remove1_mset L (the (conflict_merge_abs_union N C D));
           L' = atm_of L in
-    (D' = {#}, (tl M, N, U, Some D', Q, W, vmtf_dump_and_unset L' vmtf, save_phase L \<phi>)))\<close>
-
-declare update_confl_tl_wl_int.simps[simp del]
-lemmas update_confl_tl_wl_int_def = update_confl_tl_wl_int.simps
+    (D' = {#}, (tl M, N, U, Some D', Q, W, vmtf_dump_and_unset L' vmtf, save_phase L \<phi>))))\<close>
 
 lemma resolve_cls_wl'_if_conflict_merge_abs_union:
   assumes
@@ -3791,12 +3823,11 @@ lemma resolve_cls_wl'_if_conflict_merge_abs_union:
     \<open>(L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S))\<close> and
     \<open>is_proped (hd (get_trail_wl S))\<close> and
     \<open>get_trail_wl S \<noteq> []\<close>
-  shows \<open>resolve_cls_wl' S C L = (if C = 0 then remove1_mset (-L) (the (get_conflict_wl S)) 
+  shows \<open>resolve_cls_wl' S C L = (if C = 0 then remove1_mset (-L) (the (get_conflict_wl S))
                else remove1_mset L (the (conflict_merge_abs_union (get_clauses_wl S) C (get_conflict_wl S))))\<close>
   using resolve_cls_wl'_union_uminus_positive_index[of \<open>S\<close> C L] assms
   unfolding conflict_merge_abs_union_def[symmetric]
   by (auto simp: resolve_cls_wl'_def)
-
 
 lemma update_confl_tl_wl_int_state_helper:
    \<open>(L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S)) \<Longrightarrow> get_trail_wl S \<noteq> [] \<Longrightarrow>
@@ -3824,6 +3855,25 @@ lemma update_confl_tl_wl_int_update_confl_tl_wl:
         dest: no_dup_tlD)
   done
 
+lemma uminus_N\<^sub>0_iff: \<open>- L ∈# N⇩1 \<longleftrightarrow> L ∈# N⇩1\<close>
+   by (simp add: in_N⇩1_atm_of_in_atms_of_iff)
+
+lemma conflict_merge_abs_union_None: \<open>conflict_merge_abs_union a b c \<noteq> None\<close>
+  unfolding conflict_merge_abs_union_def by auto
+find_theorems conflict_assn Multiset.is_empty
+
+(* TODO Move *)
+lemma (in -)uint32_nat_assn_0_eq: \<open>uint32_nat_assn 0 a = \<up> (a = 0)\<close>
+  by (auto simp: uint32_nat_rel_def br_def pure_def nat_of_uint32_0_iff)
+(* End Move *)
+
+lemma conflict_assn_op_nset_is_emty[sepref_fr_rules]:
+  \<open>(return o (\<lambda>(n, _). n = 0), RETURN o op_mset_is_empty) \<in> conflict_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  apply sepref_to_hoare
+  apply (rename_tac x xi, case_tac xi)
+  by (sep_auto simp: conflict_assn_def conflict_rel_def hr_comp_def
+    uint32_nat_assn_0_eq uint32_nat_rel_def br_def pure_def nat_of_uint32_0_iff
+    nat_of_uint32_012)+
 end
 
 setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close>
