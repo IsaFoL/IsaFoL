@@ -3806,7 +3806,7 @@ lemma update_confl_tl_wl_int_state_helper:
 lemma update_confl_tl_wl_int_update_confl_tl_wl:
   \<open>(uncurry2 (RETURN ooo update_confl_tl_wl_int), uncurry2 (RETURN ooo update_confl_tl_wl)) \<in>
   [\<lambda>((C, L), S). twl_struct_invs (twl_st_of_wl None S) \<and> C < length (get_clauses_wl S) \<and>
-    get_conflict_wl S \<noteq> None \<and> get_conflict_wl S \<noteq> Some {#} \<and> get_trail_wl S \<noteq> [] \<and> - L \<in># the (get_conflict_wl S) \<and>
+    get_conflict_wl S \<noteq> None \<and> get_trail_wl S \<noteq> [] \<and> - L \<in># the (get_conflict_wl S) \<and>
      (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S)) \<and> L \<in> snd ` D\<^sub>0 \<and>
     twl_struct_invs (twl_st_of_wl None S) \<and> is_proped (hd (get_trail_wl S))]\<^sub>f
    nat_rel \<times>\<^sub>f Id \<times>\<^sub>f twl_st_ref \<rightarrow> \<langle>bool_rel \<times>\<^sub>f twl_st_ref\<rangle>nres_rel\<close>
