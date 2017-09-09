@@ -3782,7 +3782,48 @@ fun update_confl_tl_wl_int :: \<open>nat \<Rightarrow> nat literal \<Rightarrow>
 declare update_confl_tl_wl_int.simps[simp del]
 lemmas update_confl_tl_wl_int_def = update_confl_tl_wl_int.simps
 
-thm update_confl_tl_wl_def
+lemma resolve_cls_wl'_if_conflict_merge_abs_union:
+  assumes
+    \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and
+    \<open>get_conflict_wl S \<noteq> None\<close> and
+    \<open>C < length (get_clauses_wl S)\<close> and
+    \<open>- L \<in># the (get_conflict_wl S)\<close> and
+    \<open>(L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S))\<close> and
+    \<open>is_proped (hd (get_trail_wl S))\<close> and
+    \<open>get_trail_wl S \<noteq> []\<close>
+  shows \<open>resolve_cls_wl' S C L = (if C = 0 then remove1_mset (-L) (the (get_conflict_wl S)) 
+               else remove1_mset L (the (conflict_merge_abs_union (get_clauses_wl S) C (get_conflict_wl S))))\<close>
+  using resolve_cls_wl'_union_uminus_positive_index[of \<open>S\<close> C L] assms
+  unfolding conflict_merge_abs_union_def[symmetric]
+  by (auto simp: resolve_cls_wl'_def)
+
+
+lemma update_confl_tl_wl_int_state_helper:
+   \<open>(L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S)) \<Longrightarrow> get_trail_wl S \<noteq> [] \<Longrightarrow>
+    is_proped (hd (get_trail_wl S)) \<Longrightarrow> L = lit_of (hd (get_trail_wl S))\<close>
+  by (cases S; cases \<open>hd (get_trail_wl S)\<close>) auto
+
+lemma update_confl_tl_wl_int_update_confl_tl_wl:
+  \<open>(uncurry2 (RETURN ooo update_confl_tl_wl_int), uncurry2 (RETURN ooo update_confl_tl_wl)) \<in>
+  [\<lambda>((C, L), S). twl_struct_invs (twl_st_of_wl None S) \<and> C < length (get_clauses_wl S) \<and>
+    get_conflict_wl S \<noteq> None \<and> get_conflict_wl S \<noteq> Some {#} \<and> get_trail_wl S \<noteq> [] \<and> - L \<in># the (get_conflict_wl S) \<and>
+     (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S)) \<and> L \<in> snd ` D\<^sub>0 \<and>
+    twl_struct_invs (twl_st_of_wl None S) \<and> is_proped (hd (get_trail_wl S))]\<^sub>f
+   nat_rel \<times>\<^sub>f Id \<times>\<^sub>f twl_st_ref \<rightarrow> \<langle>bool_rel \<times>\<^sub>f twl_st_ref\<rangle>nres_rel\<close>
+  supply [[goals_limit = 2]]
+  apply (intro frefI nres_relI)
+  subgoal for CLS' CLS
+    unfolding case_prod_beta uncurry_def update_confl_tl_wl_int_def comp_def
+    using resolve_cls_wl'_if_conflict_merge_abs_union[of \<open>snd CLS\<close> \<open>fst (fst CLS)\<close> \<open>snd (fst CLS)\<close>,
+        symmetric]
+        update_confl_tl_wl_int_state_helper[of \<open>snd (fst CLS)\<close> \<open>fst (fst CLS)\<close>  \<open>snd CLS\<close>]
+    by (cases \<open>CLS'\<close>; cases CLS)
+       (auto simp: twl_st_ref_def update_confl_tl_wl_int_def update_confl_tl_wl_def
+        abs_l_vmtf_unset_vmtf_unset' Let_def
+        in_N\<^sub>1_atm_of_in_atms_of_iff phase_saving_def abs_l_vmtf_unset_vmtf_dump_unset
+        no_dup_tlD)
+  done
+
 end
 
 setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close>
