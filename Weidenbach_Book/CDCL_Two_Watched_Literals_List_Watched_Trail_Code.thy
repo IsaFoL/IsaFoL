@@ -3777,7 +3777,7 @@ fun update_confl_tl_wl_int :: \<open>nat \<Rightarrow> nat literal \<Rightarrow>
      (let D' = if C = 0 then remove1_mset (-L) (the D) 
                else remove1_mset L (the (conflict_merge_abs_union N C D));
           L' = atm_of L in
-    (D' = {#}, (tl M, N, U, D, Q, W, vmtf_dump_and_unset L' vmtf, \<phi>)))\<close>
+    (D' = {#}, (tl M, N, U, Some D', Q, W, vmtf_dump_and_unset L' vmtf, \<phi>)))\<close>
 
 declare update_confl_tl_wl_int.simps[simp del]
 lemmas update_confl_tl_wl_int_def = update_confl_tl_wl_int.simps
