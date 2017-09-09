@@ -3650,6 +3650,10 @@ lemma resolve_cls_wl'_union_uminus_zero_index:
   shows \<open>resolve_cls_wl' S C L = remove1_mset (-L) (the (get_conflict_wl S))\<close>
   using assms by (auto simp: resolve_cls_wl'_def)
 
+
+definition (in -) conflict_merge_abs_union :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow> 'v clause option \<Rightarrow> 'v cconflict\<close> where
+\<open>conflict_merge_abs_union N i C = Some (mset (N!i) \<union># (the C - uminus `# mset (N!i)))\<close>
+
 lemma resolve_cls_wl'_union_uminus_positive_index:
   assumes invs: \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and
     confl: \<open>get_conflict_wl S \<noteq> None\<close> and
@@ -3657,8 +3661,7 @@ lemma resolve_cls_wl'_union_uminus_positive_index:
     L_confl: \<open>-L \<in># the (get_conflict_wl S)\<close> and
     tr: \<open>(L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S))\<close>
        \<open>is_proped (hd (get_trail_wl S))\<close> \<open>get_trail_wl S \<noteq> []\<close>
-  shows \<open>resolve_cls_wl' S C L = remove1_mset (-L)
-      (the (get_conflict_wl S) \<union># (mset (get_clauses_wl S ! C) - uminus `# the (get_conflict_wl S)))\<close>
+  shows \<open>resolve_cls_wl' S C L = remove1_mset L (the (conflict_merge_abs_union (get_clauses_wl S) C (get_conflict_wl S)))\<close>
 proof -
   obtain M N U D NP UP Q W where
     S: \<open>S = (Propagated L C # M, N, U, Some D, NP, UP, W, Q)\<close>
@@ -3692,12 +3695,15 @@ proof -
 
   have n_d_L: \<open>L \<in> lits_of_l M \<Longrightarrow> -L \<in> lits_of_l M \<Longrightarrow> False\<close> for L
     using distinct_consistent_interp[OF n_d] by (auto simp: consistent_interp_def)
+  have tauto_D: \<open>\<not>tautology D\<close>
+    using M_D' n_d undef_L consistent_CNot_not_tautology[of \<open>lits_of_l (Propagated L C # M)\<close> D]
+    by (auto dest!: distinct_consistent_interp simp: true_annots_true_cls)
 
   have \<open>-L \<notin># C' - uminus `# D'\<close>
     using M_C undef_L by (auto simp: C' true_annots_true_cls_def_iff_negation_in_model
         Decided_Propagated_in_iff_in_lits_of_l
       dest!: in_diffD)
-  moreover have \<open>C' - uminus `# D' = C'\<close>
+  moreover have \<open>D' - uminus `# C' = D'\<close>
     apply (rule minus_eq_id_forall_notin_mset[THEN iffD2])
     unfolding Ball_def
     apply (rule impI conjI allI)
@@ -3706,12 +3712,12 @@ proof -
       by (auto 5 5 simp: C' D true_annots_true_cls_def_iff_negation_in_model uminus_lit_swap
         Decided_Propagated_in_iff_in_lits_of_l)
     done
+  moreover have \<open>L \<notin># D'\<close>
+    using tauto_D by (auto simp: tautology_add_mset D)
   ultimately show ?thesis
-    using C unfolding S by (auto simp: C' D resolve_cls_wl'_def)
+    using C unfolding S by (auto simp: C' D resolve_cls_wl'_def ac_simps
+        conflict_merge_abs_union_def)
 qed
-
-definition (in -) conflict_merge_abs_union :: \<open>nat clauses_l \<Rightarrow> nat \<Rightarrow> nat clause option \<Rightarrow> nat cconflict\<close> where
-\<open>conflict_merge_abs_union N i C = Some (mset (N!i) \<union># (the C - uminus `# mset (N!i)))\<close>
 
 lemma conflict_merge_aa_conflict_merge_abs_union_aa:
   \<open>(uncurry2 (conflict_merge_aa), uncurry2 (RETURN ooo conflict_merge_abs_union)) \<in>
