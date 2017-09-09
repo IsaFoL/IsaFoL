@@ -3736,26 +3736,26 @@ lemma conflict_merge_code_conflict_merge_abs_union[sepref_fr_rules]:
   \<open>(uncurry2 conflict_merge_code, uncurry2 (RETURN ooo conflict_merge_abs_union)) \<in>
     [\<lambda>((N, i), C). distinct (N!i) \<and> literals_are_in_N\<^sub>0 (mset (N!i)) \<and> \<not> tautology (mset (N!i)) \<and>
          literals_are_in_N\<^sub>0 (the C) \<and> C \<noteq> None \<and> i < length N]\<^sub>a
-    clauses_ll_assn⇧k *⇩a nat_assn⇧k *⇩a (conflict_option_assn)⇧d → conflict_option_assn\<close>
+    clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (conflict_option_assn)\<^sup>d \<rightarrow> conflict_option_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?c
      \<in> [comp_PRE
-           (Id ×⇩f nat_rel ×⇩f option_conflict_rel)
-           (λ((N, i), C). distinct (N ! i) ∧ literals_are_in_N⇩0 (mset (N ! i)) ∧
-              ¬ tautology (mset (N ! i)) ∧ literals_are_in_N⇩0 (the C) ∧ C ≠ None)
-           (λ_ ((N, i), _, xs). i < length N ∧
-              (∀j<length (N ! i). atm_of (N ! i ! j) < length (snd xs)))
-           (λ_. True)]⇩a
-      hrp_comp (clauses_ll_assn⇧k *⇩a nat_assn⇧k *⇩a (bool_assn *assn conflict_rel_assn)⇧d)
-                   (Id ×⇩f nat_rel ×⇩f option_conflict_rel) →
+           (Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_conflict_rel)
+           (\<lambda>((N, i), C). distinct (N ! i) \<and> literals_are_in_N\<^sub>0 (mset (N ! i)) \<and>
+              \<not> tautology (mset (N ! i)) \<and> literals_are_in_N\<^sub>0 (the C) \<and> C \<noteq> None)
+           (\<lambda>_ ((N, i), _, xs). i < length N \<and>
+              (\<forall>j<length (N ! i). atm_of (N ! i ! j) < length (snd xs)))
+           (\<lambda>_. True)]\<^sub>a
+      hrp_comp (clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (bool_assn *assn conflict_rel_assn)\<^sup>d)
+                   (Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_conflict_rel) \<rightarrow>
       hr_comp (bool_assn *assn conflict_rel_assn) option_conflict_rel\<close>
       (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF conflict_merge_aa_refine[unfolded PR_CONST_def]
       conflict_merge_aa_conflict_merge_abs_union_aa]
     .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
-    using that literals_are_in_N⇩0_in_N⇩1
+    using that literals_are_in_N\<^sub>0_in_N\<^sub>1
     unfolding comp_PRE_def option_conflict_rel_def conflict_rel_def
     by (auto simp: image_image twl_st_ref_def phase_saving_def in_N\<^sub>1_atm_of_in_atms_of_iff
       vmtf_imp_def)
@@ -3772,11 +3772,12 @@ proof -
     using pre ..
 qed
 
-fun update_confl_tl_wl_int where
-  ‹update_confl_tl_wl_int C L (M, N, U, D, Q, W, vmtf, \<phi>) =
+fun update_confl_tl_wl_int :: \<open>nat \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_int \<Rightarrow> bool \<times> twl_st_wl_int\<close> where
+  \<open>update_confl_tl_wl_int C L (M, N, U, D, Q, W, vmtf, \<phi>) =
      (let D' = if C = 0 then remove1_mset (-L) (the D) 
-       else remove1_mset (-L) (the (conflict_merge_abs_union N C D)) in
-    (tl M, N, U, D, Q, W, vmtf, \<phi>))›
+               else remove1_mset L (the (conflict_merge_abs_union N C D));
+          L' = atm_of L in
+    (D' = {#}, (tl M, N, U, D, Q, W, vmtf_dump_and_unset L' vmtf, \<phi>)))\<close>
 
 declare update_confl_tl_wl_int.simps[simp del]
 lemmas update_confl_tl_wl_int_def = update_confl_tl_wl_int.simps
