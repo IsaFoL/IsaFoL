@@ -3777,7 +3777,7 @@ fun update_confl_tl_wl_int :: \<open>nat \<Rightarrow> nat literal \<Rightarrow>
      (let D' = if C = 0 then remove1_mset (-L) (the D) 
                else remove1_mset L (the (conflict_merge_abs_union N C D));
           L' = atm_of L in
-    (D' = {#}, (tl M, N, U, Some D', Q, W, vmtf_dump_and_unset L' vmtf, \<phi>)))\<close>
+    (D' = {#}, (tl M, N, U, Some D', Q, W, vmtf_dump_and_unset L' vmtf, save_phase L \<phi>)))\<close>
 
 declare update_confl_tl_wl_int.simps[simp del]
 lemmas update_confl_tl_wl_int_def = update_confl_tl_wl_int.simps
@@ -3819,9 +3819,9 @@ lemma update_confl_tl_wl_int_update_confl_tl_wl:
         update_confl_tl_wl_int_state_helper[of \<open>snd (fst CLS)\<close> \<open>fst (fst CLS)\<close>  \<open>snd CLS\<close>]
     by (cases \<open>CLS'\<close>; cases CLS)
        (auto simp: twl_st_ref_def update_confl_tl_wl_int_def update_confl_tl_wl_def
-        abs_l_vmtf_unset_vmtf_unset' Let_def
+        abs_l_vmtf_unset_vmtf_unset' Let_def save_phase_def
         in_N\<^sub>1_atm_of_in_atms_of_iff phase_saving_def abs_l_vmtf_unset_vmtf_dump_unset
-        no_dup_tlD)
+        dest: no_dup_tlD)
   done
 
 end
