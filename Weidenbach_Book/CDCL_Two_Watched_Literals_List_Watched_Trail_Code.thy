@@ -4154,8 +4154,7 @@ concrete_definition (in -) skip_and_resolve_loop_wl_D_code
 prepare_code_thms (in -) skip_and_resolve_loop_wl_D_code_def
 
 lemmas skip_and_resolve_loop_wl_D_code_refine[sepref_fr_rules] =
-   skip_and_resolve_loop_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms,
-     unfolded twl_st_assn_def]
+   skip_and_resolve_loop_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
 
 
 subsubsection \<open>Operations on the trail\<close>
