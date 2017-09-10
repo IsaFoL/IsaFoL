@@ -3860,7 +3860,6 @@ lemma uminus_N\<^sub>0_iff: \<open>- L ∈# N⇩1 \<longleftrightarrow> L ∈# N
 
 lemma conflict_merge_abs_union_None: \<open>conflict_merge_abs_union a b c \<noteq> None\<close>
   unfolding conflict_merge_abs_union_def by auto
-find_theorems conflict_assn Multiset.is_empty
 
 (* TODO Move *)
 lemma (in -)uint32_nat_assn_0_eq: \<open>uint32_nat_assn 0 a = \<up> (a = 0)\<close>
@@ -4015,12 +4014,12 @@ sepref_thm skip_and_resolve_loop_wl_D
     lit_and_ann_of_propagated_st_def[symmetric]
     get_max_lvl_st_def[symmetric]
     count_decided_st_alt_def[symmetric]
-  apply sepref_dbg_keep
+  by sepref
+  (* apply sepref_dbg_keep
   apply sepref_dbg_trans_keep
   -- \<open>Translation stops at the \<open>set\<close> operation\<close>
                   apply sepref_dbg_trans_step_keep
-                    apply sepref_dbg_side_unfold apply auto[]
-  oops
+                    apply sepref_dbg_side_unfold apply (auto simp: )[] *)
 
 concrete_definition (in -) skip_and_resolve_loop_wl_D_code
    uses twl_array_code.skip_and_resolve_loop_wl_D.refine_raw
