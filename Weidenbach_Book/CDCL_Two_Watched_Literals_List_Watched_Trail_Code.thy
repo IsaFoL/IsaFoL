@@ -3881,8 +3881,8 @@ lemma conflict_assn_op_nset_is_emty[sepref_fr_rules]:
 sepref_thm update_confl_tl_wl_code
   is \<open>uncurry2 (RETURN ooo update_confl_tl_wl_int)\<close>
   :: \<open>[\<lambda>((i, L), (M, N, U, D, W, Q, ((A, m, lst, next_search), _), \<phi>)). 
-      distinct (N ! i) ∧
-      literals_are_in_N⇩0 (mset (N! i)) ∧
+      (i > 0 \<longrightarrow> distinct (N ! i)) ∧
+      (i > 0 \<longrightarrow> literals_are_in_N⇩0 (mset (N! i))) ∧
       ¬ tautology (mset (N ! i)) ∧ i < length N \<and>
       literals_are_in_N⇩0 (the D) ∧ D \<noteq> None \<and>
       M \<noteq> [] \<and>
@@ -3936,8 +3936,8 @@ proof -
         L ∈ snd ` D⇩0 ∧
         twl_struct_invs (twl_st_of_wl None S) ∧ is_proped (hd (get_trail_wl S)))
     (λ_ ((i, L), M, N, U, D, W, Q, ((A, m, lst, next_search), _), φ).
-        distinct (N ! i) ∧
-        literals_are_in_N⇩0 (mset (N ! i)) ∧
+        (i > 0 \<longrightarrow> distinct (N ! i)) ∧
+        (i > 0 \<longrightarrow> literals_are_in_N⇩0 (mset (N ! i))) ∧
         ¬ tautology (mset (N ! i)) ∧
         i < length N ∧
         literals_are_in_N⇩0 (the D) ∧
