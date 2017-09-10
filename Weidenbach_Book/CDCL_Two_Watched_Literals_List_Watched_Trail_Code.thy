@@ -3962,11 +3962,83 @@ proof -
     using  hfref_compI_PRE_aux[OF update_confl_tl_wl_code_refine
        update_confl_tl_wl_int_update_confl_tl_wl]
     .
-  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
-    using that unfolding comp_PRE_def
-    apply clarify
-    apply (intro allI impI conjI)
-    oops
+  have pre: \<open>?pre' x\<close> (is \<open>comp_PRE ?rel ?\<Phi> ?\<Psi> _ x\<close>) if \<open>?pre x\<close> for x
+  unfolding comp_PRE_def
+  proof (intro allI impI conjI)
+    obtain C L S where
+      [simp]: \<open>x = ((C,L), S)\<close>
+      by (cases x) auto
+    obtain M N U D W Q NP UP where
+      [simp]: \<open>S = (M, N, U, D, NP, UP, W, Q)\<close>
+      by (cases S) auto
+    have LC: \<open>(L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S))\<close> and
+      lits_N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close> and
+      struct_invs: \<open>twl_struct_invs (twl_st_of None (st_l_of_wl None S))\<close> and
+      trail_nempty: \<open>get_trail_wl S \<noteq> []\<close> and
+      add_invs: \<open>additional_WS_invs (st_l_of_wl None S)\<close> and
+      proped: \<open>is_proped (hd (get_trail_wl S))\<close> and
+      confl: \<open>get_conflict_wl S ≠ None\<close> and
+      L_confl: \<open>-L \<in># the(get_conflict_wl S)\<close>
+      using that by (auto simp: lit_and_ann_of_propagated_st_def)
+    have C_le: \<open>C < length (get_clauses_wl S)\<close>
+      using trail_nempty LC proped add_invs trail_nempty unfolding additional_WS_invs_def 
+      by (cases M; cases \<open>hd M\<close>) auto
+    moreover {
+      have \<open>literals_are_in_N⇩0 (the (get_conflict_wl S))\<close>
+        by (rule literals_are_N⇩0_conflict_literals_are_in_N⇩0)
+          (use lits_N\<^sub>0 confl struct_invs in auto)
+      then have \<open>L ∈ snd ` D⇩0\<close>
+        using L_confl confl
+          by (cases \<open>get_conflict_wl S\<close>)
+            (auto simp: image_image literals_are_in_N⇩0_add_mset uminus_N⇩0_iff
+            dest: multi_member_split)
+    } note L_D\<^sub>0 = this
+    ultimately show \<open>?\<Phi> x\<close>
+      using that by (auto simp: lit_and_ann_of_propagated_st_def)
+    
+    fix x'
+    assume x'x: \<open>(x', x) ∈ nat_rel ×⇩f Id ×⇩f twl_st_ref\<close>
+    then obtain S' where
+      [simp]: \<open>x' = ((C, L), S')\<close>
+      by (cases x') auto
+    obtain Q' A m lst next_search oth \<phi> where
+      [simp]: \<open>S' = (M, N, U, D, W, Q', ((A, m, lst, next_search), oth), φ)\<close>
+      using x'x by (cases S') (auto simp: twl_st_ref_def)
+    
+    have \<open>cdcl⇩W_restart_mset.cdcl⇩W_all_struct_inv (state⇩W_of (twl_st_of None (st_l_of_wl None S)))\<close>
+      using struct_invs unfolding twl_struct_invs_def by fast
+    then have \<open>cdcl⇩W_restart_mset.distinct_cdcl⇩W_state (state⇩W_of (twl_st_of None (st_l_of_wl None S)))\<close>
+      unfolding cdcl⇩W_restart_mset.cdcl⇩W_all_struct_inv_def by fast+
+    then have \<open>distinct_mset_set (mset ` set (tl N))\<close>
+      apply (subst append_take_drop_id[of U, symmetric])
+      unfolding set_append image_Un
+      by (auto simp: cdcl⇩W_restart_mset.distinct_cdcl⇩W_state_def mset_take_mset_drop_mset drop_Suc)
+    then have dist_NC:  \<open>distinct (N ! C)\<close> if \<open>C > 0\<close>
+      using that C_le nth_in_set_tl[of C N] by (auto simp: distinct_mset_set_def)
+    
+    have lits_NC: \<open>literals_are_in_N⇩0 (mset (N ! C))\<close> if \<open>C > 0\<close>
+      by (rule literals_are_in_N⇩0_nth) (use C_le that lits_N\<^sub>0 in auto)
+    have L_hd_M: \<open>L = lit_of (hd M)\<close>
+      by (cases M; cases \<open>hd M\<close>) (use trail_nempty LC proped in auto)
+    have L_notin_D: \<open>L \<notin># the D\<close>
+      sorry
+    have L_NC: \<open>L ∈ set (N ! C)\<close>\<open>-L \<notin> set (N ! C)\<close>
+      sorry
+    then have uL_conflict_merge: \<open>- L \<notin># the (conflict_merge_abs_union N C D)\<close>
+      using confl L_notin_D
+      apply (auto simp: conflict_merge_abs_union_def dest: in_diffD)
+      sorry
+    have tauto: \<open>\<not>tautology (mset (N ! C))\<close>
+      sorry
+    have lits_D: \<open>literals_are_in_N⇩0 (the D)\<close>
+      using literals_are_N⇩0_conflict_literals_are_in_N⇩0[of S] lits_N\<^sub>0 struct_invs confl
+      by auto
+    show \<open>?\<Psi> x x'\<close>
+      using confl L_confl dist_NC lits_NC C_le trail_nempty L_D\<^sub>0 tauto lits_D L_notin_D L_NC
+      uL_conflict_merge
+      apply (auto simp: L_hd_M[symmetric])
+      sorry
+  qed
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def
     by (auto simp: hrp_comp_def hr_comp_def)
