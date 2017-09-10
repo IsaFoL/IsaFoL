@@ -104,7 +104,7 @@ sublocale sat_preserving_inference_system
 end
 
 locale reductive_inference_system = inference_system \<Gamma> for \<Gamma> :: "('a :: wellorder) inference set" +
-  assumes \<Gamma>_reductive: "\<And>\<gamma>. \<gamma> \<in> \<Gamma> \<Longrightarrow> concl_of \<gamma> < main_prem_of \<gamma>"
+  assumes \<Gamma>_reductive: "\<gamma> \<in> \<Gamma> \<Longrightarrow> concl_of \<gamma> < main_prem_of \<gamma>"
 
 
 subsection {* Refutational Completeness *}
@@ -124,8 +124,8 @@ locale counterex_reducing_inference_system =
   inference_system \<Gamma> for \<Gamma> :: "('a :: wellorder) inference set" +
   fixes INTERP :: "'a clause set \<Rightarrow> 'a interp"
   assumes \<Gamma>_counterex_reducing:
-    "\<And>N. {#} \<notin> N \<Longrightarrow> C \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> C \<Longrightarrow> (\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C \<le> D) \<Longrightarrow>
-       \<exists>DD E. set_mset DD \<subseteq> N \<and> INTERP N \<Turnstile>m DD \<and> Infer DD C E \<in> \<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E < C"
+    "{#} \<notin> N \<Longrightarrow> C \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> C \<Longrightarrow> (\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C \<le> D) \<Longrightarrow>
+     \<exists>DD E. set_mset DD \<subseteq> N \<and> INTERP N \<Turnstile>m DD \<and> Infer DD C E \<in> \<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E < C"
     (* Here the side-clauses are D's and the main clauses are C's. This is backwards... *)
 begin
 
@@ -178,7 +178,7 @@ Cf. Corollary 3.10:
 *}
 
 corollary saturated_refute_complete: "saturated N \<Longrightarrow> \<not> satisfiable N \<Longrightarrow> {#} \<in> N"
-  by (metis saturated_no_empty_imp_model)
+  using saturated_no_empty_imp_model by blast
 
 end
 
@@ -267,6 +267,7 @@ This result surely holds, but we have yet to prove it.
 *}
 
 theorem saturate_sat_preserving: "satisfiable CC \<Longrightarrow> satisfiable (saturate CC)"
+  thm saturate.induct
   oops
 
 end

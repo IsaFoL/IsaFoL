@@ -217,7 +217,7 @@ theorem saturated_upto_refute_complete:
   shows "{#} \<in> N"
 proof (rule ccontr)
   assume ec_ni_n: "{#} \<notin> N"
-  def M \<equiv> "N - Rf N"
+  define M where "M = N - Rf N"
   have ec_ni_m: "{#} \<notin> M"
     unfolding M_def using ec_ni_n by fast
   have "INTERP M \<Turnstile>s M"

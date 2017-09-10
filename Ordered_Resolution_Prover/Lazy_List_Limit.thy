@@ -18,20 +18,17 @@ generally in terms of lattices. The basis for this theory is Section 4.1 (``Theo
 Processes'') of Bachmair and Ganzinger's chapter.
 *}
 
-lemma enat_0_le[simp]: "enat 0 \<le> n"  -- "belongs elsewhere"
-  by (cases n) auto
+definition Sup_llist :: "('a::complete_distrib_lattice) llist \<Rightarrow> 'a" where
+  "Sup_llist As = (\<Squnion>i \<in> {i. enat i < llength As}. lnth As i)"
 
-definition lSup :: "('a::complete_distrib_lattice) llist \<Rightarrow> 'a" where
-  "lSup As = (\<Squnion>i \<in> {i. enat i < llength As}. lnth As i)"
+lemma lnth_subset_Sup_llist: "enat i < llength xs \<Longrightarrow> lnth xs i \<subseteq> Sup_llist xs"
+  unfolding Sup_llist_def by auto
 
-lemma lnth_subset_lSup: "enat i < llength xs \<Longrightarrow> lnth xs i \<subseteq> lSup xs"
-  unfolding lSup_def by auto
+lemma Sup_llist_LNil[simp]: "Sup_llist LNil = {}"
+  unfolding Sup_llist_def by auto
 
-lemma lSup_LNil[simp]: "lSup LNil = {}"
-  unfolding lSup_def by auto
-
-lemma lSup_LCons[simp]: "lSup (LCons A As) = A \<union> lSup As"
-unfolding lSup_def
+lemma Sup_llist_LCons[simp]: "Sup_llist (LCons A As) = A \<union> Sup_llist As"
+  unfolding Sup_llist_def
 proof (intro subset_antisym subsetI)
   fix x
   assume "x \<in> (\<Squnion>i \<in> {i. enat i < llength (LCons A As)}. lnth (LCons A As) i)"
@@ -40,51 +37,45 @@ proof (intro subset_antisym subsetI)
   from nth have "x \<in> A \<or> i > 0 \<and> x \<in> lnth As (i - 1)"
     by (metis lnth_LCons' neq0_conv)
   hence "x \<in> A \<or> (\<exists>i. enat i < llength As \<and> x \<in> lnth As i)"
-    using len
-    by (metis Suc_pred' eSuc_enat iless_Suc_eq less_irrefl llength_LCons not_less order_trans)
+    by (metis len Suc_pred' eSuc_enat iless_Suc_eq less_irrefl llength_LCons not_less order_trans)
   thus "x \<in> A \<union> (\<Squnion>i \<in> {i. enat i < llength As}. lnth As i)"
     by blast
-next
-  fix x
-  assume "x \<in> A \<union> (\<Squnion>i \<in> {i. enat i < llength As}. lnth As i)"
-  thus "x \<in> (\<Squnion>i \<in> {i. enat i < llength (LCons A As)}. lnth (LCons A As) i)"
-    by auto (metis i0_lb lnth_0 zero_enat_def, metis Suc_ile_eq lnth_Suc_LCons)
-qed
+qed ((auto)[], metis i0_lb lnth_0 zero_enat_def, metis Suc_ile_eq lnth_Suc_LCons)
 
-lemma lhd_subset_lSup: "\<not> lnull As \<Longrightarrow> lhd As \<subseteq> lSup As"
+lemma lhd_subset_Sup_llist: "\<not> lnull As \<Longrightarrow> lhd As \<subseteq> Sup_llist As"
   by (cases As) simp_all
 
-definition lSup_upto :: "('a::Sup) llist \<Rightarrow> nat \<Rightarrow> 'a" where
-  "lSup_upto As j = (\<Squnion>i \<in> {i. enat i < llength As \<and> i \<le> j}. lnth As i)"
+definition Sup_upto_llist :: "('a::Sup) llist \<Rightarrow> nat \<Rightarrow> 'a" where
+  "Sup_upto_llist As j = (\<Squnion>i \<in> {i. enat i < llength As \<and> i \<le> j}. lnth As i)"
 
-lemma lSup_upto_mono: "j \<le> k \<Longrightarrow> lSup_upto As j \<subseteq> lSup_upto As k"
-  unfolding lSup_upto_def by auto
+lemma Sup_upto_llist_mono: "j \<le> k \<Longrightarrow> Sup_upto_llist As j \<subseteq> Sup_upto_llist As k"
+  unfolding Sup_upto_llist_def by auto
 
-lemma lSup_upto_subset_lSup: "j \<le> k \<Longrightarrow> lSup_upto As j \<subseteq> lSup As"
-  unfolding lSup_def lSup_upto_def by auto
+lemma Sup_upto_llist_subset_Sup_llist: "j \<le> k \<Longrightarrow> Sup_upto_llist As j \<subseteq> Sup_llist As"
+  unfolding Sup_llist_def Sup_upto_llist_def by auto
 
-lemma elem_lSup_imp_lSup_upto: "x \<in> lSup As \<Longrightarrow> \<exists>j. x \<in> lSup_upto As j"
-  unfolding lSup_def lSup_upto_def by blast
+lemma elem_Sup_llist_imp_Sup_upto_llist: "x \<in> Sup_llist As \<Longrightarrow> \<exists>j. x \<in> Sup_upto_llist As j"
+  unfolding Sup_llist_def Sup_upto_llist_def by blast
 
-lemma finite_lSup_imp_lSup_upto:
-  assumes "finite A" and "A \<subseteq> lSup As"
-  shows "\<exists>k. A \<subseteq> lSup_upto As k"
-using assms
+lemma finite_Sup_llist_imp_Sup_upto_llist:
+  assumes "finite A" and "A \<subseteq> Sup_llist As"
+  shows "\<exists>k. A \<subseteq> Sup_upto_llist As k"
+  using assms
 proof induct
   case empty
   thus ?case
     by simp
 next
   case (insert x A)
-  from insert.prems have x: "x \<in> lSup As" and a: "A \<subseteq> lSup As"
+  from insert.prems have x: "x \<in> Sup_llist As" and a: "A \<subseteq> Sup_llist As"
     by simp_all
-  from x obtain k where k: "x \<in> lSup_upto As k"
-    using elem_lSup_imp_lSup_upto by fast
-  from a obtain k' where k': "A \<subseteq> lSup_upto As k'"
+  from x obtain k where k: "x \<in> Sup_upto_llist As k"
+    using elem_Sup_llist_imp_Sup_upto_llist by fast
+  from a obtain k' where k': "A \<subseteq> Sup_upto_llist As k'"
     using insert.hyps(3) by fast
-  have "insert x A \<subseteq> lSup_upto As (max k k')"
+  have "insert x A \<subseteq> Sup_upto_llist As (max k k')"
     using k k'
-    by (metis insert_absorb insert_subset lSup_upto_mono max.cobounded2 max.commute order_trans)
+    by (metis insert_absorb insert_subset Sup_upto_llist_mono max.cobounded2 max.commute order_trans)
   thus ?case
     by fast
 qed
@@ -97,10 +88,10 @@ expand to be the universal set for values of $i$ beyond the length of a finite l
 \end{nit}
 *}
 
-definition llimit :: "('a::{Inf,Sup}) llist \<Rightarrow> 'a" where
-  "llimit As = (\<Squnion>i \<in> {i. enat i < llength As}. \<Sqinter>j \<in> {j. i \<le> j \<and> enat j < llength As}. lnth As j)"
+definition limit_llist :: "('a::{Inf,Sup}) llist \<Rightarrow> 'a" where
+  "limit_llist As = (\<Squnion>i \<in> {i. enat i < llength As}. \<Sqinter>j \<in> {j. i \<le> j \<and> enat j < llength As}. lnth As j)"
 
-lemma llimit_subset_lSup: "llimit As \<subseteq> lSup As"
-  unfolding llimit_def lSup_def by fast
+lemma limit_llist_subset_Sup_llist: "limit_llist As \<subseteq> Sup_llist As"
+  unfolding limit_llist_def Sup_llist_def by fast
 
 end

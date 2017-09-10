@@ -12,7 +12,8 @@ begin
 
 text \<open>
 Resolution operates of clauses, which are disjunctions of literals. The material formalized here
-corresponds roughly to Sections 2.2 (``Herbrand Interpretations'') of Bachmair and Ganzinger, excluding the formula and term syntax.
+corresponds roughly to Sections 2.2 (``Herbrand Interpretations'') of Bachmair and Ganzinger,
+excluding the formula and term syntax.
 \<close>
 
 subsection \<open>Herbrand Interpretations\<close>
@@ -57,26 +58,25 @@ lemma
   shows
     false_to_true_imp_ex_pos: "\<not> I \<Turnstile> C \<Longrightarrow> J \<Turnstile> C \<Longrightarrow> \<exists>A \<in> J. Pos A \<in># C" and
     true_to_false_imp_ex_neg: "I \<Turnstile> C \<Longrightarrow> \<not> J \<Turnstile> C \<Longrightarrow> \<exists>A \<in> J. Neg A \<in># C"
-  using assms unfolding subset_iff true_cls_def
-  by (metis literal.collapse true_lit_simps)+
+  using assms unfolding subset_iff true_cls_def by (metis literal.collapse true_lit_simps)+
 
 lemma true_cls_replicate_mset[iff]: "I \<Turnstile> replicate_mset n L \<longleftrightarrow> n \<noteq> 0 \<and> I \<Turnstile>l L"
-  by (induct n) auto
+  by (simp add: true_cls_def)
 
 lemma pos_literal_in_imp_true_cls[intro]: "Pos A \<in># C \<Longrightarrow> A \<in> I \<Longrightarrow> I \<Turnstile> C"
-  by (metis true_cls_def true_lit_simps(1))
+  using true_cls_def by blast
 
 lemma neg_literal_notin_imp_true_cls[intro]: "Neg A \<in># C \<Longrightarrow> A \<notin> I \<Longrightarrow> I \<Turnstile> C"
-  by (metis true_cls_def true_lit_simps(2))
+  using true_cls_def by blast
 
 lemma pos_neg_in_imp_true: "Pos A \<in># C \<Longrightarrow> Neg A \<in># C \<Longrightarrow> I \<Turnstile> C"
-  unfolding true_cls_def by (metis true_lit_simps)
+  using true_cls_def by blast
 
 definition true_clss :: "'a interp \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>s" 50) where
   "I \<Turnstile>s CC \<longleftrightarrow> (\<forall>C \<in> CC. I \<Turnstile> C)"
 
 lemma true_clss_empty[iff]: "I \<Turnstile>s {}"
-  unfolding true_clss_def by blast
+  by (simp add: true_clss_def)
 
 lemma true_clss_singleton[iff]: "I \<Turnstile>s {C} \<longleftrightarrow> I \<Turnstile> C"
   unfolding true_clss_def by blast
@@ -85,7 +85,7 @@ lemma true_clss_union[iff]: "I \<Turnstile>s CC \<union> DD \<longleftrightarrow
   unfolding true_clss_def by blast
 
 lemma true_clss_mono: "DD \<subseteq> CC \<Longrightarrow> I \<Turnstile>s CC \<Longrightarrow> I \<Turnstile>s DD"
-  unfolding true_clss_def by blast
+  by (simp add: set_mp true_clss_def)
 
 abbreviation satisfiable :: "'a clause set \<Rightarrow> bool" where
   "satisfiable CC \<equiv> \<exists>I. I \<Turnstile>s CC"

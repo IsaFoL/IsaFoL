@@ -24,19 +24,16 @@ sound and counterexample-reducing.
 *}
 
 locale ground_resolution_without_selection
-
-sublocale ground_resolution_without_selection \<subseteq> ground_resolution_with_selection where S = "\<lambda>_. {#}"
-  by unfold_locales auto
-
-context ground_resolution_without_selection
 begin
+
+sublocale ground_resolution_with_selection where S = "\<lambda>_. {#}"
+  by unfold_locales auto
 
 inductive unord_resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   "unord_resolve (C + replicate_mset (Suc n) (Pos A)) (add_mset (Neg A) D) (C + D)"
 
 lemma unord_resolve_sound: "unord_resolve C D E \<Longrightarrow> I \<Turnstile> C \<Longrightarrow> I \<Turnstile> D \<Longrightarrow> I \<Turnstile> E"
-  unfolding true_cls_def ex_lit_cases true_lit_simps
-  by (erule unord_resolve.cases) (auto elim: unord_resolve.cases split: if_splits)
+  using unord_resolve.cases by fastforce
 
 text {*
 The following result corresponds to Theorem 3.8, except that the conclusion is strengthened slightly
@@ -141,7 +138,8 @@ which is instantiated below.
 definition unord_\<Gamma> :: "'a inference set" where
   "unord_\<Gamma> = {Infer {#C#} D E | C D E. unord_resolve C D E}"
 
-sublocale unord_\<Gamma>_sound_counterex_reducing?: sound_counterex_reducing_inference_system unord_\<Gamma> INTERP
+sublocale unord_\<Gamma>_sound_counterex_reducing?:
+  sound_counterex_reducing_inference_system unord_\<Gamma> INTERP
 proof unfold_locales
   fix C E and N :: "('b :: wellorder) clause set"
   assume "{#} \<notin> N" and "C \<in> N" and "\<not> INTERP N \<Turnstile> C" and "\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C \<le> D"
@@ -166,6 +164,8 @@ next
     by (clarsimp simp: unord_\<Gamma>_def true_cls_mset_def) (erule unord_resolve_sound, auto)
 qed
 
+lemmas clausal_logic_compact = unord_\<Gamma>_sound_counterex_reducing.clausal_logic_compact
+
 end
 
 text {*
@@ -173,6 +173,6 @@ Theorem 3.12, compactness of clausal logic, has finally been derived for a concr
 system:
 *}
 
-lemmas (in ground_resolution_without_selection) clausal_logic_compact = clausal_logic_compact
+lemmas clausal_logic_compact = ground_resolution_without_selection.clausal_logic_compact
 
 end
