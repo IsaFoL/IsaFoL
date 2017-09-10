@@ -3874,7 +3874,118 @@ lemma conflict_assn_op_nset_is_emty[sepref_fr_rules]:
   by (sep_auto simp: conflict_assn_def conflict_rel_def hr_comp_def
     uint32_nat_assn_0_eq uint32_nat_rel_def br_def pure_def nat_of_uint32_0_iff
     nat_of_uint32_012)+
+
+
+sepref_thm update_confl_tl_wl_code
+  is \<open>uncurry2 (RETURN ooo update_confl_tl_wl_int)\<close>
+  :: \<open>[\<lambda>((i, L), (M, N, U, D, W, Q, ((A, m, lst, next_search), _), \<phi>)). 
+      distinct (N ! i) ∧
+      literals_are_in_N⇩0 (mset (N! i)) ∧
+      ¬ tautology (mset (N ! i)) ∧ i < length N \<and>
+      literals_are_in_N⇩0 (the D) ∧ D \<noteq> None \<and>
+      M \<noteq> [] \<and>
+      L \<in> snd ` D\<^sub>0 \<and> -L \<in># the D \<and> L \<notin># the D \<and>
+      L \<in> set (N ! i) \<and> -L \<notin> set (N ! i) \<and>
+      -L \<notin># the (conflict_merge_abs_union N i D) \<and>
+      L \<in># the (conflict_merge_abs_union N i D) \<and>
+      atm_of (lit_of (hd M)) < length \<phi> \<and>
+      atm_of (lit_of (hd M)) < length A \<and> (next_search \<noteq> None \<longrightarrow>  the next_search < length A) \<and>
+      L = lit_of (hd M)
+         ]\<^sub>a
+  nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a twl_st_int_assn\<^sup>d \<rightarrow> bool_assn *assn twl_st_int_assn\<close>
+  supply image_image[simp] uminus_N\<^sub>0_iff[iff] in_diffD[dest]
+  supply [[goals_limit=1]]
+  supply conflict_merge_abs_union_None[simplified, simp]
+  unfolding update_confl_tl_wl_int_def twl_st_int_assn_def vmtf_dump_and_unset_def vmtf_dump_def
+   vmtf_unset_def save_phase_def
+  apply (rewrite in \<open>If (_ \<or> _)\<close> short_circuit_conv)
+  by sepref
+
+concrete_definition (in -) update_confl_tl_wl_code
+  uses twl_array_code.update_confl_tl_wl_code.refine_raw
+  is \<open>(uncurry2 ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) update_confl_tl_wl_code_def
+
+lemmas update_confl_tl_wl_code_refine[sepref_fr_rules] =
+   update_confl_tl_wl_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma update_confl_tl_wl_code_update_confl_tl_wl[sepref_fr_rules]:
+  \<open>(uncurry2 update_confl_tl_wl_code, uncurry2 (RETURN ooo update_confl_tl_wl))
+    ∈ [λ((C, L), S). twl_struct_invs (twl_st_of_wl None S) ∧
+        get_conflict_wl S ≠ None ∧
+        get_trail_wl S ≠ [] ∧
+        - L ∈# the (get_conflict_wl S) ∧
+        (L, C) = lit_and_ann_of_propagated_st S ∧
+        literals_are_N⇩0 S ∧
+        twl_struct_invs (twl_st_of_wl None S) ∧ is_proped (hd (get_trail_wl S))]⇩a
+       nat_assn\<^sup>k *\<^sub>a unat_lit_assn⇧k *⇩a twl_st_assn⇧d → bool_assn *assn twl_st_assn\<close>
+  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c \<in>
+   [comp_PRE (nat_rel ×⇩f Id ×⇩f twl_st_ref)
+    (λ((C, L), S).
+        twl_struct_invs (twl_st_of_wl None S) ∧
+        C < length (get_clauses_wl S) ∧
+        get_conflict_wl S ≠ None ∧
+        get_trail_wl S ≠ [] ∧
+        - L ∈# the (get_conflict_wl S) ∧
+        (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S)) ∧
+        L ∈ snd ` D⇩0 ∧
+        twl_struct_invs (twl_st_of_wl None S) ∧ is_proped (hd (get_trail_wl S)))
+    (λ_ ((i, L), M, N, U, D, W, Q, ((A, m, lst, next_search), _), φ).
+        distinct (N ! i) ∧
+        literals_are_in_N⇩0 (mset (N ! i)) ∧
+        ¬ tautology (mset (N ! i)) ∧
+        i < length N ∧
+        literals_are_in_N⇩0 (the D) ∧
+        D ≠ None ∧
+        M ≠ [] ∧
+        L ∈ snd ` D⇩0 ∧
+        - L ∈# the D ∧
+        L ∉# the D ∧
+        L ∈ set (N ! i) ∧
+        - L ∉ set (N ! i) ∧
+        - L ∉# the (conflict_merge_abs_union N i D) ∧
+        L ∈# the (conflict_merge_abs_union N i D) ∧
+        atm_of (lit_of (hd M)) < length φ ∧
+        atm_of (lit_of (hd M)) < length A ∧
+        (next_search ≠ None ⟶ the next_search < length A) ∧ L = lit_of (hd M))
+    (λ_. True)]⇩a 
+    hrp_comp (nat_assn⇧k *⇩a unat_lit_assn⇧k *⇩a twl_st_int_assn⇧d)
+             (nat_rel ×⇩f Id ×⇩f twl_st_ref) → 
+    hr_comp (bool_assn *assn twl_st_int_assn) (bool_rel ×⇩f twl_st_ref)\<close>
+      (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using  hfref_compI_PRE_aux[OF update_confl_tl_wl_code_refine
+       update_confl_tl_wl_int_update_confl_tl_wl]
+    .
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
+    using that unfolding comp_PRE_def
+    apply clarify
+    apply (intro allI impI conjI)
+    oops
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def hr_comp_prod_conv
+      conflict_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
+qed
+
 end
+
+
+
+
+
+
+
 
 setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close>
 
