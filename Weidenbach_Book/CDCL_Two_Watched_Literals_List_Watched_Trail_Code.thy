@@ -3685,6 +3685,9 @@ lemma resolve_cls_wl'_union_uminus_zero_index:
   shows \<open>resolve_cls_wl' S C L = remove1_mset (-L) (the (get_conflict_wl S))\<close>
   using assms by (auto simp: resolve_cls_wl'_def)
 
+(* TODO Move *)
+declare cdcl\<^sub>W_restart_mset_state[simp]
+(* End Move *)
 
 definition (in -) conflict_merge_abs_union :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow> 'v clause option \<Rightarrow> 'v cconflict\<close> where
 \<open>conflict_merge_abs_union N i C = Some (mset (N!i) \<union># (the C - uminus `# mset (N!i)))\<close>
