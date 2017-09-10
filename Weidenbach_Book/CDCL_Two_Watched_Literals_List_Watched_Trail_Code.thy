@@ -3920,7 +3920,8 @@ lemma update_confl_tl_wl_code_update_confl_tl_wl[sepref_fr_rules]:
         - L ∈# the (get_conflict_wl S) ∧
         (L, C) = lit_and_ann_of_propagated_st S ∧
         literals_are_N⇩0 S ∧
-        twl_struct_invs (twl_st_of_wl None S) ∧ is_proped (hd (get_trail_wl S))]⇩a
+        twl_struct_invs (twl_st_of_wl None S) ∧ is_proped (hd (get_trail_wl S)) \<and>
+        additional_WS_invs (st_l_of_wl None S)]⇩a
        nat_assn\<^sup>k *\<^sub>a unat_lit_assn⇧k *⇩a twl_st_assn⇧d → bool_assn *assn twl_st_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
