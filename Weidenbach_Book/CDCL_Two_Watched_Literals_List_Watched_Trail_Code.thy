@@ -1280,7 +1280,7 @@ concrete_definition (in -) valued_st_int_code
 prepare_code_thms (in -) valued_st_int_code_def
 
 lemmas valued_st_int_code_valued_refine_code[sepref_fr_rules] =
-   valued_st_int_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_assn_def]
+   valued_st_int_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
 
 lemma valued_st_int_code_valued_st_refine[sepref_fr_rules]:
   \<open>(uncurry valued_st_int_code, uncurry (RETURN oo valued_st)) \<in>
@@ -2554,6 +2554,13 @@ lemma Pot_unat_lit_assn:
   using in_N1_less_than_upperN
   by (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
       lit_of_natP_def nat_of_uint32_distrib_mult2 upperN_def)
+
+lemma Neg_unat_lit_assn:
+  \<open>(return o (\<lambda>n. 2 * n +1), RETURN o Neg) \<in> [\<lambda>L. Pos L \<in># N\<^sub>1]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  apply sepref_to_hoare
+  using in_N1_less_than_upperN
+  by (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
+      lit_of_natP_def nat_of_uint32_distrib_mult2_plus1 upperN_def)
 
 (* End Move *)
 sepref_register maximum_level_remove'
