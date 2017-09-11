@@ -39,8 +39,8 @@ lemma ground_less_eq_atm_iff: "is_ground_atm A \<Longrightarrow> is_ground_atm B
 definition subsumes :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   "subsumes C D \<longleftrightarrow> (\<exists>\<sigma>. C \<cdot> \<sigma> \<subseteq># D)"
 
-definition properly_subsumes :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
-  "properly_subsumes C D \<longleftrightarrow> subsumes C D \<and> \<not> subsumes D C"
+definition strictly_subsumes :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  "strictly_subsumes C D \<longleftrightarrow> subsumes C D \<and> \<not> subsumes D C"
 
 definition variants :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   "variants C D \<longleftrightarrow> subsumes C D \<and> subsumes D C"
