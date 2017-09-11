@@ -4162,6 +4162,68 @@ prepare_code_thms (in -) skip_and_resolve_loop_wl_D_code_def
 
 lemmas skip_and_resolve_loop_wl_D_code_refine[sepref_fr_rules] =
    skip_and_resolve_loop_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+end
+
+
+setup \<open>map_theory_claset (fn ctxt => ctxt addSbefore ("split_all_tac", split_all_tac))\<close>
+
+context twl_array_code
+begin
+term twl_st_assn
+definition (in -) lit_of_hd_trail :: \<open>'v twl_st_wl \<Rightarrow> 'v literal\<close> where
+  \<open>lit_of_hd_trail S = lit_of (hd (get_trail_wl S))\<close>
+
+definition lit_of_hd_trail_int :: \<open>twl_st_wl_int_trail_ref \<Rightarrow> nat literal\<close> where
+  \<open>lit_of_hd_trail_int = (\<lambda>((M, _), _). lit_of (hd M))\<close>
+
+lemma lit_of_hd_trail_int_lit_of_hd_trail:
+   \<open>(RETURN o lit_of_hd_trail_int, RETURN o lit_of_hd_trail) \<in>
+  [\<lambda>S. get_trail_wl S \<noteq>  []]\<^sub>f twl_st_trail_ref \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+    by (auto simp: lit_of_hd_trail_def twl_st_trail_ref_def trailt_ref_def lit_of_hd_trail_int_def
+      intro!: frefI nres_relI)
+
+sepref_thm lit_of_hd_trail_code
+  is \<open>RETURN o lit_of_hd_trail_int\<close>
+  :: \<open>[\<lambda>((M, _), _). M \<noteq> []]\<^sub>a twl_st_int_trail_ref_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  unfolding lit_of_hd_trail_int_def twl_st_int_trail_ref_assn_def
+  by sepref
+
+concrete_definition (in -) lit_of_hd_trail_code
+   uses twl_array_code.lit_of_hd_trail_code.refine_raw
+   is \<open>(?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) lit_of_hd_trail_code_def
+
+lemmas lit_of_hd_trail_code_refine_code[sepref_fr_rules] =
+   lit_of_hd_trail_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+theorem lit_of_hd_trail_code_lit_of_hd_trail[sepref_fr_rules]:
+  \<open>(lit_of_hd_trail_code, RETURN o lit_of_hd_trail)
+    \<in> [\<lambda>S. get_trail_wl S \<noteq> []]\<^sub>a
+      twl_st_assn\<^sup>k  \<rightarrow> unat_lit_assn\<close>
+    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c
+    \<in> [comp_PRE twl_st_trail_ref (\<lambda>S. get_trail_wl S \<noteq> [])
+        (\<lambda>_ ((M, _), _). M \<noteq> []) (\<lambda>_. True)]\<^sub>a
+      hrp_comp (twl_st_int_trail_ref_assn\<^sup>k) twl_st_trail_ref \<rightarrow>
+      hr_comp unat_lit_assn Id\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF lit_of_hd_trail_code_refine_code
+    lit_of_hd_trail_int_lit_of_hd_trail] .
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
+    using that by (auto simp: comp_PRE_def twl_st_trail_ref_def trailt_ref_def)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_ref_assn_assn ..
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
+qed
 
 
 subsubsection \<open>Operations on the trail\<close>
