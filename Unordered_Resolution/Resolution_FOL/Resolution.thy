@@ -26,9 +26,9 @@ qed
 
 lemma comp_swap: "l\<^sub>1\<^sup>c = l\<^sub>2 \<longleftrightarrow> l\<^sub>1 = l\<^sub>2\<^sup>c" 
 proof -
-  have "l\<^sub>1\<^sup>c = l\<^sub>2 \<Longrightarrow> l\<^sub>1 = l\<^sub>2\<^sup>c" using cancel_comp1[of l\<^sub>1] by auto
+  have "l\<^sub>1\<^sup>c = l\<^sub>2 \<longrightarrow> l\<^sub>1 = l\<^sub>2\<^sup>c" using cancel_comp1[of l\<^sub>1] by auto
   moreover
-  have "l\<^sub>1 = l\<^sub>2\<^sup>c \<Longrightarrow> l\<^sub>1\<^sup>c = l\<^sub>2" using cancel_comp1 by auto
+  have "l\<^sub>1 = l\<^sub>2\<^sup>c \<longrightarrow> l\<^sub>1\<^sup>c = l\<^sub>2" using cancel_comp1 by auto
   ultimately
   show ?thesis by auto
 qed
@@ -72,15 +72,24 @@ definition vars\<^sub>l :: "fterm literal \<Rightarrow> var_sym set" where
 definition vars\<^sub>l\<^sub>s :: "fterm literal set \<Rightarrow> var_sym set" where 
   "vars\<^sub>l\<^sub>s L \<equiv> \<Union>l\<in>L. vars\<^sub>l l"
 
-lemma ground_vars\<^sub>t: "ground\<^sub>t t \<Longrightarrow> vars\<^sub>t t = {}" 
-by (induction t) auto
+lemma ground_vars\<^sub>t:
+  assumes "ground\<^sub>t t"
+  shows "vars\<^sub>t t = {}" 
+using assms by (induction t) auto
 
-lemma ground\<^sub>t\<^sub>s_vars\<^sub>t\<^sub>s: "ground\<^sub>t\<^sub>s ts \<Longrightarrow> vars\<^sub>t\<^sub>s ts = {}"
-using ground_vars\<^sub>t by auto
+lemma ground\<^sub>t\<^sub>s_vars\<^sub>t\<^sub>s: 
+  assumes "ground\<^sub>t\<^sub>s ts"
+  shows "vars\<^sub>t\<^sub>s ts = {}"
+using assms ground_vars\<^sub>t by auto
 
-lemma ground\<^sub>l_vars\<^sub>l: "ground\<^sub>l l \<Longrightarrow> vars\<^sub>l l = {}" unfolding vars\<^sub>l_def using ground_vars\<^sub>t by auto
+lemma ground\<^sub>l_vars\<^sub>l:
+  assumes "ground\<^sub>l l"
+  shows "vars\<^sub>l l = {}" 
+  unfolding vars\<^sub>l_def using assms ground_vars\<^sub>t by auto
 
-lemma ground\<^sub>l\<^sub>s_vars\<^sub>l\<^sub>s: "ground\<^sub>l\<^sub>s L \<Longrightarrow> vars\<^sub>l\<^sub>s L = {}" unfolding vars\<^sub>l\<^sub>s_def using ground\<^sub>l_vars\<^sub>l by auto
+lemma ground\<^sub>l\<^sub>s_vars\<^sub>l\<^sub>s: 
+  assumes "ground\<^sub>l\<^sub>s L"
+  shows "vars\<^sub>l\<^sub>s L = {}" unfolding vars\<^sub>l\<^sub>s_def using assms ground\<^sub>l_vars\<^sub>l by auto
 
 lemma ground_comp: "ground\<^sub>l (l\<^sup>c) \<longleftrightarrow> ground\<^sub>l l" by (cases l) auto
 
@@ -128,8 +137,10 @@ notation (latex) "eval\<^sub>c\<^sub>s" ("_\<^latex>\<open>$\\mathit{\\evalcs}$\
 
 subsection {* Semantics of Ground Terms *}
 
-lemma ground_var_denott: "ground\<^sub>t t \<Longrightarrow> (eval\<^sub>t E F t = eval\<^sub>t E' F t)"
-proof (induction t)
+lemma ground_var_denott: 
+  assumes "ground\<^sub>t t"
+  shows "eval\<^sub>t E F t = eval\<^sub>t E' F t"
+using assms proof (induction t)
   case (Var x)
   then have "False" by auto
   then show ?case by auto
@@ -142,12 +153,16 @@ next
   then show ?case by simp
 qed
 
-lemma ground_var_denotts: "ground\<^sub>t\<^sub>s ts \<Longrightarrow> (eval\<^sub>t\<^sub>s E F ts = eval\<^sub>t\<^sub>s E' F ts)"
-  using ground_var_denott by (metis map_eq_conv)
+lemma ground_var_denotts: 
+  assumes "ground\<^sub>t\<^sub>s ts"
+  shows "eval\<^sub>t\<^sub>s E F ts = eval\<^sub>t\<^sub>s E' F ts"
+  using assms ground_var_denott by (metis map_eq_conv)
 
 
-lemma ground_var_denot: "ground\<^sub>l l \<Longrightarrow> (eval\<^sub>l E F G l = eval\<^sub>l E' F G l)"
-proof (induction l)
+lemma ground_var_denot: 
+  assumes "ground\<^sub>l l"
+  shows "eval\<^sub>l E F G l = eval\<^sub>l E' F G l"
+using assms proof (induction l)
   case Pos then show ?case using ground_var_denotts by (metis eval\<^sub>l.simps(1) literal.sel(3))
 next
   case Neg then show ?case using ground_var_denotts by (metis eval\<^sub>l.simps(2) literal.sel(4))
@@ -247,14 +262,20 @@ qed
 
 subsection {* Substitutions and Ground Terms *}
 
-lemma ground_sub: "ground\<^sub>t t \<Longrightarrow> t \<cdot>\<^sub>t \<sigma> = t"
-by (induction t) (auto simp add: map_idI)
+lemma ground_sub: 
+  assumes "ground\<^sub>t t"
+  shows "t \<cdot>\<^sub>t \<sigma> = t"
+using assms by (induction t) (auto simp add: map_idI)
 
-lemma ground_subs: "ground\<^sub>t\<^sub>s ts \<Longrightarrow> ts \<cdot>\<^sub>t\<^sub>s \<sigma> = ts" 
-using ground_sub by (simp add: map_idI)
+lemma ground_subs: 
+  assumes "ground\<^sub>t\<^sub>s ts "
+  shows " ts \<cdot>\<^sub>t\<^sub>s \<sigma> = ts" 
+using assms ground_sub by (simp add: map_idI)
 
-lemma ground\<^sub>l_subs: "ground\<^sub>l l \<Longrightarrow> l \<cdot>\<^sub>l \<sigma> = l" 
-using ground_subs by (cases l) auto
+lemma ground\<^sub>l_subs: 
+  assumes "ground\<^sub>l l "
+  shows " l \<cdot>\<^sub>l \<sigma> = l" 
+using assms ground_subs by (cases l) auto
 
 lemma ground\<^sub>l\<^sub>s_subls:
   assumes ground: "ground\<^sub>l\<^sub>s L"
@@ -418,10 +439,11 @@ proof -
 qed
 
 lemma relevant_vars_subt:
-  "\<forall>x \<in> vars\<^sub>t t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x \<Longrightarrow> t \<cdot>\<^sub>t \<sigma>\<^sub>1 = t \<cdot>\<^sub>t \<sigma>\<^sub>2"
-proof (induction t)
+  assumes "\<forall>x \<in> vars\<^sub>t t. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x "
+  shows " t \<cdot>\<^sub>t \<sigma>\<^sub>1 = t \<cdot>\<^sub>t \<sigma>\<^sub>2"
+using assms proof (induction t)
   case (Fun f ts)
-  have f: "\<And>t. t \<in> set ts \<Longrightarrow> vars\<^sub>t t \<subseteq> vars\<^sub>t\<^sub>s ts" by (induction ts) auto
+  have f: "\<forall>t. t \<in> set ts \<longrightarrow> vars\<^sub>t t \<subseteq> vars\<^sub>t\<^sub>s ts" by (induction ts) auto
   have "\<forall>t\<in>set ts. t \<cdot>\<^sub>t \<sigma>\<^sub>1 = t \<cdot>\<^sub>t \<sigma>\<^sub>2" 
     proof
       fix t
@@ -437,7 +459,7 @@ lemma relevant_vars_subts: (* similar to above proof *)
   assumes asm: "\<forall>x \<in> vars\<^sub>t\<^sub>s ts. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x"
   shows "ts \<cdot>\<^sub>t\<^sub>s \<sigma>\<^sub>1 = ts \<cdot>\<^sub>t\<^sub>s \<sigma>\<^sub>2" 
 proof -
-   have f: "\<And>t. t \<in> set ts \<Longrightarrow> vars\<^sub>t t \<subseteq> vars\<^sub>t\<^sub>s ts" by (induction ts) auto
+   have f: "\<forall>t. t \<in> set ts \<longrightarrow> vars\<^sub>t t \<subseteq> vars\<^sub>t\<^sub>s ts" by (induction ts) auto
    have "\<forall>t\<in>set ts. t \<cdot>\<^sub>t \<sigma>\<^sub>1 = t \<cdot>\<^sub>t \<sigma>\<^sub>2" 
     proof
       fix t
@@ -449,8 +471,9 @@ proof -
 qed
 
 lemma relevant_vars_subl:
-  "\<forall>x \<in> vars\<^sub>l l. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x \<Longrightarrow> l \<cdot>\<^sub>l \<sigma>\<^sub>1 = l \<cdot>\<^sub>l \<sigma>\<^sub>2"
-proof (induction l)
+  assumes "\<forall>x \<in> vars\<^sub>l l. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x "
+  shows "l \<cdot>\<^sub>l \<sigma>\<^sub>1 = l \<cdot>\<^sub>l \<sigma>\<^sub>2"
+using assms proof (induction l)
   case (Pos p ts)
   then show ?case using relevant_vars_subts unfolding vars\<^sub>l_def by auto
 next
@@ -462,7 +485,7 @@ lemma relevant_vars_subls: (* in many ways a mirror of relevant_vars_subts  *)
   assumes asm: "\<forall>x \<in> vars\<^sub>l\<^sub>s L. \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x"
   shows "L \<cdot>\<^sub>l\<^sub>s \<sigma>\<^sub>1 = L \<cdot>\<^sub>l\<^sub>s \<sigma>\<^sub>2"
 proof -
-  have f: "\<And>l. l \<in> L \<Longrightarrow> vars\<^sub>l l \<subseteq> vars\<^sub>l\<^sub>s L" unfolding vars\<^sub>l\<^sub>s_def by auto
+  have f: "\<forall>l. l \<in> L \<longrightarrow> vars\<^sub>l l \<subseteq> vars\<^sub>l\<^sub>s L" unfolding vars\<^sub>l\<^sub>s_def by auto
   have "\<forall>l \<in> L. l \<cdot>\<^sub>l \<sigma>\<^sub>1 = l \<cdot>\<^sub>l \<sigma>\<^sub>2"
     proof
       fix l
@@ -504,12 +527,15 @@ abbreviation std\<^sub>2 :: "fterm clause \<Rightarrow> fterm clause" where
 notation (latex) "std\<^sub>2" ("_\<^latex>\<open>$\\mathit{\\stdtwo}$\<close>")
 
 lemma std_apart_apart'': 
-  "x \<in> vars\<^sub>t  (t \<cdot>\<^sub>t (\<lambda>x::char list. Var (y @ x))) \<Longrightarrow> \<exists>x'. x = y@x'"
-by (induction t) auto
+  assumes "x \<in> vars\<^sub>t  (t \<cdot>\<^sub>t (\<lambda>x::char list. Var (y @ x)))"
+  shows "\<exists>x'. x = y@x'"
+using assms by (induction t) auto
 
 
-lemma std_apart_apart': "x \<in> vars\<^sub>l (l \<cdot>\<^sub>l (\<lambda>x. Var  (y@x))) \<Longrightarrow> \<exists>x'. x = y@x'"
-unfolding vars\<^sub>l_def using std_apart_apart'' by (cases l) auto
+lemma std_apart_apart':
+  assumes "x \<in> vars\<^sub>l (l \<cdot>\<^sub>l (\<lambda>x. Var  (y@x)))" 
+  shows "\<exists>x'. x = y@x'"
+using assms unfolding vars\<^sub>l_def using std_apart_apart'' by (cases l) auto
 
 lemma std_apart_apart: "vars\<^sub>l\<^sub>s (std\<^sub>1 C\<^sub>1) \<inter> vars\<^sub>l\<^sub>s (std\<^sub>2 C\<^sub>2) = {}"
 proof -
@@ -645,8 +671,11 @@ next
   then show "unifier\<^sub>l\<^sub>s \<sigma> (L\<^sup>C)" unfolding unifier\<^sub>l\<^sub>s_def by auto
 qed
 
-lemma unifier_sub1: "unifier\<^sub>l\<^sub>s \<sigma> L \<Longrightarrow> L' \<subseteq> L \<Longrightarrow> unifier\<^sub>l\<^sub>s \<sigma> L' " 
-  unfolding unifier\<^sub>l\<^sub>s_def by auto
+lemma unifier_sub1: 
+  assumes "unifier\<^sub>l\<^sub>s \<sigma> L"
+  assumes "L' \<subseteq> L"
+  shows "unifier\<^sub>l\<^sub>s \<sigma> L' " 
+  using assms unfolding unifier\<^sub>l\<^sub>s_def by auto
 
 lemma unifier_sub2: 
   assumes asm: "unifier\<^sub>l\<^sub>s \<sigma> (L\<^sub>1 \<union> L\<^sub>2)"
@@ -688,7 +717,7 @@ definition resolution :: "   fterm clause \<Rightarrow> fterm clause
   "resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> = ((C\<^sub>1 - L\<^sub>1) \<union> (C\<^sub>2 - L\<^sub>2)) \<cdot>\<^sub>l\<^sub>s \<sigma>"
 
 inductive mresolution_step :: "fterm clause set \<Rightarrow> fterm clause set \<Rightarrow> bool" where
-  mresolution_rule: 
+  mresolution_rule:
     "C\<^sub>1 \<in> Cs \<Longrightarrow> C\<^sub>2 \<in> Cs \<Longrightarrow> applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> \<Longrightarrow> 
        mresolution_step Cs (Cs \<union> {mresolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>})"
 | standardize_apart:
@@ -896,11 +925,11 @@ lemma derivation_sound_refute:
   assumes deriv: "resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
   shows "\<not>eval\<^sub>c\<^sub>s F G Cs"
 proof -
-  from deriv have "eval\<^sub>c\<^sub>s F G Cs \<Longrightarrow> eval\<^sub>c\<^sub>s F G Cs'" using derivation_sound by auto
+  from deriv have "eval\<^sub>c\<^sub>s F G Cs \<longrightarrow> eval\<^sub>c\<^sub>s F G Cs'" using derivation_sound by auto
   moreover
-  from deriv have "eval\<^sub>c\<^sub>s F G Cs' \<Longrightarrow> eval\<^sub>c F G {}" unfolding eval\<^sub>c\<^sub>s_def by auto
+  from deriv have "eval\<^sub>c\<^sub>s F G Cs' \<longrightarrow> eval\<^sub>c F G {}" unfolding eval\<^sub>c\<^sub>s_def by auto
   moreover
-  then have "eval\<^sub>c F G {} \<Longrightarrow> False" unfolding eval\<^sub>c_def by auto
+  then have "eval\<^sub>c F G {} \<longrightarrow> False" unfolding eval\<^sub>c_def by auto
   ultimately show ?thesis by auto
 qed
 
@@ -909,12 +938,16 @@ section {* Herbrand Interpretations *}
 text {* @{const HFun} is the Herbrand function denotation in which terms are mapped to themselves. *}
 term HFun
 
-lemma eval_ground\<^sub>t: "ground\<^sub>t t \<Longrightarrow> (eval\<^sub>t E HFun t) = hterm_of_fterm t"
-  by (induction t) auto
+lemma eval_ground\<^sub>t: 
+  assumes "ground\<^sub>t t"
+  shows "(eval\<^sub>t E HFun t) = hterm_of_fterm t"
+  using assms by (induction t) auto
 
 
-lemma eval_ground\<^sub>t\<^sub>s: "ground\<^sub>t\<^sub>s ts \<Longrightarrow> (eval\<^sub>t\<^sub>s E HFun ts) = hterms_of_fterms ts" 
-  unfolding hterms_of_fterms_def using eval_ground\<^sub>t by (induction ts) auto
+lemma eval_ground\<^sub>t\<^sub>s: 
+  assumes "ground\<^sub>t\<^sub>s ts"
+  shows "(eval\<^sub>t\<^sub>s E HFun ts) = hterms_of_fterms ts" 
+  unfolding hterms_of_fterms_def using assms eval_ground\<^sub>t by (induction ts) auto
 
 lemma eval\<^sub>l_ground\<^sub>t\<^sub>s:
   assumes asm: "ground\<^sub>t\<^sub>s ts"
@@ -1221,8 +1254,10 @@ fun deeptree :: "nat \<Rightarrow> tree" where
   "deeptree 0 = Leaf"
 | "deeptree (Suc n) = Branching (deeptree n) (deeptree n)"
 
-lemma branch_length: "branch b (deeptree n) \<Longrightarrow> length b = n"
-proof (induction n arbitrary: b)
+lemma branch_length: 
+  assumes "branch b (deeptree n)"
+  shows "length b = n"
+using assms proof (induction n arbitrary: b)
   case 0 then show ?case using branch_inv_Leaf by auto
 next
   case (Suc n)
@@ -1340,7 +1375,7 @@ theorem herbrand'_contra:
   assumes unsat: "\<forall>G. \<not>eval\<^sub>c\<^sub>s HFun G Cs"
   shows "\<exists>T. \<forall>G. branch G T \<longrightarrow> closed_branch G T Cs"
 proof -
-  from finite_cs unsat have "\<forall>T. \<exists>G. open_branch G T Cs \<Longrightarrow> \<exists>G. eval\<^sub>c\<^sub>s HFun G Cs" using herbrand' by blast
+  from finite_cs unsat have "(\<forall>T. \<exists>G. open_branch G T Cs) \<longrightarrow> (\<exists>G. eval\<^sub>c\<^sub>s HFun G Cs)" using herbrand' by blast
   then show ?thesis using unsat by blast 
 qed
 
@@ -1356,4 +1391,3 @@ proof -
 qed
 
 end
-

@@ -759,7 +759,7 @@ proof
         have "\<exists>ds. ds \<in> T" using inf by (simp add: not_finite_existsD)
         then obtain ds where "ds \<in> T" by auto
         then have "([]@ds) \<in> T" by auto
-        then have "[] \<in> T" using prefix[of "[]"] by auto 
+        then have "[] \<in> T" using prefix by blast 
         then show ?case using inf by auto
       next
         case (Suc n)
@@ -775,7 +775,7 @@ proof
         then have "ds \<in> T" "\<exists>suf. ds = (?nextnode (?c n)) @ suf" by auto
         then obtain suf where "ds \<in> T \<and> ds = (?nextnode (?c n)) @ suf" by auto
         then have "(?nextnode (?c n)) \<in> T"
-          using prefix[of "?nextnode (?c n)" suf] by auto
+          using prefix by blast
               
         then have "(?c (Suc n)) \<in> T" by auto
         then show ?case using next_next_inf by auto
