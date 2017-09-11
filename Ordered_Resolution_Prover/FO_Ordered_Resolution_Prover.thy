@@ -6,7 +6,7 @@
 *)
 
 theory FO_Ordered_Resolution_Prover
-imports Ordered_Ground_Resolution Standard_Redundancy Substitution Clauses Proving_Process
+imports Ordered_Ground_Resolution Standard_Redundancy Substitution
 begin
 
 (* FIXME: Avoid such global changes to the intro/etc. sets *)
@@ -303,7 +303,7 @@ lemma subst_sound_scl:
 proof -
   from true_cas have "\<forall>C. C\<in># mset CAi \<longrightarrow> (I \<Turnstile>fo C)"
     using true_fo_cls_mset_true_fo_cls by auto
-  then have "\<forall>C. C \<in> set CAi \<longrightarrow> (I \<Turnstile>fo C)" unfolding side_clauses_def by auto
+  then have "\<forall>C. C \<in> set CAi \<longrightarrow> (I \<Turnstile>fo C)" by auto
   then have "\<forall>i. i < length CAi \<longrightarrow> (I \<Turnstile>fo  (CAi ! i))"
     using in_set_conv_nth[of _ CAi] by blast
   then have "\<forall>i. i < length CAi \<longrightarrow> (I \<Turnstile>fo  (CAi ! i) \<cdot> P ! i)"
