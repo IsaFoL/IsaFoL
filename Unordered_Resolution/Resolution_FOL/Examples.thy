@@ -77,8 +77,10 @@ definition NP :: "fterm literal" where
 definition NQ :: "fterm literal" where
   "NQ = Neg ''Q'' [Fun ''d'' []]"
 
-theorem empty_mgu: "unifier\<^sub>l\<^sub>s \<epsilon> L \<Longrightarrow> mgu\<^sub>l\<^sub>s \<epsilon> L"
-unfolding unifier\<^sub>l\<^sub>s_def mgu\<^sub>l\<^sub>s_def apply auto
+theorem empty_mgu: 
+  assumes "unifier\<^sub>l\<^sub>s \<epsilon> L"
+  shows "mgu\<^sub>l\<^sub>s \<epsilon> L"
+using assms unfolding unifier\<^sub>l\<^sub>s_def mgu\<^sub>l\<^sub>s_def apply auto
 apply (rule_tac x=u in exI)
 using empty_comp1 empty_comp2 apply auto
 done
@@ -87,10 +89,12 @@ theorem unifier_single: "unifier\<^sub>l\<^sub>s \<sigma> {l}"
 unfolding unifier\<^sub>l\<^sub>s_def by auto
 
 theorem resolution_rule':
-      "C\<^sub>1 \<in> Cs \<Longrightarrow> C\<^sub>2 \<in> Cs \<Longrightarrow> applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma> 
-   \<Longrightarrow> C = {resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>} 
-   \<Longrightarrow> resolution_step Cs (Cs \<union> C)"
-  using resolution_rule by auto
+  assumes "C\<^sub>1 \<in> Cs"
+  assumes "C\<^sub>2 \<in> Cs"
+  assumes "applicable C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>"
+  assumes "C = {resolution C\<^sub>1 C\<^sub>2 L\<^sub>1 L\<^sub>2 \<sigma>}"
+  shows "resolution_step Cs (Cs \<union> C)"
+  using assms resolution_rule by auto
 
 lemma resolution_example1: 
    "resolution_deriv {{NP,PQ},{NQ},{PP,PQ}} 
