@@ -4534,6 +4534,105 @@ proof -
     by (intro frefI nres_relI) (auto intro!: H)
 qed
 
+
+lemma (in -) Pot_unat_lit_assn':
+  \<open>(return o (\<lambda>n. 2 * n), RETURN o Pos) \<in> [\<lambda>L. L < upperN div 2]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  apply sepref_to_hoare
+  by (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
+      lit_of_natP_def nat_of_uint32_distrib_mult2 upperN_def)
+lemma (in -)uint32_nat_assn_nat_assn_nat_of_uint32: \<open>uint32_nat_assn aa a = nat_assn aa (nat_of_uint32 a)\<close>
+  by (auto simp: pure_def uint32_nat_rel_def br_def)
+lemma (in -) fast_minus_uint32_alt_def:
+   \<open>fast_minus_uint32 a b = a -b\<close>
+  unfolding fast_minus_def fast_minus_uint32_def ..
+
+lemma (in -) array_replicate_custom_hnr_u[sepref_fr_rules]:
+  \<open>CONSTRAINT is_pure A \<Longrightarrow>
+   (uncurry (\<lambda>n. Array.new (nat_of_uint32 n)), uncurry (RETURN \<circ>\<circ> op_array_replicate)) \<in>
+     uint32_nat_assn\<^sup>k *\<^sub>a A\<^sup>k \<rightarrow>\<^sub>a array_assn A\<close>
+  using array_replicate_custom_hnr[of A]
+  unfolding hfref_def
+  by (sep_auto simp: uint32_nat_assn_nat_assn_nat_of_uint32)
+
+lemma conflict_to_conflict_with_cls_code_helper:
+  \<open>zero_uint32 < upperN div 2\<close>
+  \<open>a1'b < upperN div 2 \<Longrightarrow> a1'b + one_nat_uint32 < upperN\<close>
+  by (auto simp: upperN_def zero_uint32_def one_nat_uint32_def)
+
+lemmas uint32_nat_assn_plus'[sepref_fr_rules] = uint32_nat_assn_plus[unfolded upperN_def[symmetric]]
+declare uint32_nat_assn_plus[sepref_fr_rules del]
+
+sepref_thm conflict_to_conflict_with_cls_code
+  is \<open>conflict_to_conflict_with_cls\<close>
+  :: \<open>conflict_option_rel_assn\<^sup>d \<rightarrow>\<^sub>a conflict_with_cls_assn\<close>
+  supply uint32_nat_assn_zero_uint32[sepref_fr_rules] [[goals_limit=1]]
+   Pot_unat_lit_assn'[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
+   conflict_to_conflict_with_cls_code_helper[simp]
+  unfolding conflict_to_conflict_with_cls_def array_fold_custom_replicate
+    fast_minus_def[of \<open>_ :: nat\<close>, symmetric]
+  apply (rewrite at "\<hole> < length _" annotate_assn[where A=uint32_nat_assn])
+  apply (rewrite at "case _ ! \<hole> of None \<Rightarrow> _ | Some True \<Rightarrow> _ | Some False \<Rightarrow> _"
+      annotate_assn[where A=uint32_nat_assn])
+  apply (rewrite at "_ ! \<hole> \<noteq> None" annotate_assn[where A=uint32_nat_assn])
+  apply (rewrite at "\<hole> < _" zero_uint32_def[symmetric])
+  apply (rewrite at \<open>Pos \<hole>\<close> zero_uint32_def[symmetric])
+  apply (rewrite at \<open>(\<hole>, _, _, _)\<close> zero_uint32_def[symmetric])
+  apply (rewrite at "(zero_uint32, \<hole>, _, _)" annotate_assn[where A=uint32_nat_assn])
+  apply (rewrite at \<open>_ + \<hole>\<close> one_nat_uint32_def[symmetric])+
+  apply (rewrite at \<open>fast_minus _ \<hole>\<close> one_nat_uint32_def[symmetric])+
+
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+                    apply sepref_dbg_trans_step_keep
+                    apply sepref_dbg_side_unfold apply (auto simp: )[]
+
+  oops
+                    apply sepref_dbg_side_unfold apply (auto simp: )[]
+
+
+
+lemma backtrack_wl_D_invD:
+  assumes \<open>backtrack_wl_D_inv S\<close>
+  shows \<open>get_trail_wl S \<noteq> []\<close>
+  using assms unfolding backtrack_wl_D_inv_def backtrack_wl_inv_def backtrack_l_inv_def
+  by (cases S, auto)
+
+end
+
+
+setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close>
+
+context twl_array_code
+begin
+
+sepref_register backtrack_wl_D
+sepref_thm backtrack_wl_D
+  is \<open>PR_CONST backtrack_wl_D\<close>
+  :: \<open>twl_st_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_assn\<close>
+  supply [[goals_limit=1]] backtrack_wl_D_invD[simp]
+  unfolding backtrack_wl_D_def PR_CONST_def
+  unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
+    append_ll_def[symmetric] lit_of_hd_trail_def[symmetric]
+    cons_trail_Propagated_def[symmetric]
+apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  -- \<open>Translation stops at the \<open>set\<close> operation\<close>
+                  apply sepref_dbg_trans_step_keep
+                    apply sepref_dbg_side_unfold apply (auto simp: )[]
+  by sepref \<comment> \<open>slow\<close>
+
+
+concrete_definition (in -) backtrack_wl_D_code
+   uses twl_array_code.backtrack_wl_D.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) backtrack_wl_D_code_def
+
+lemmas backtrack_wl_D_code_refine[sepref_fr_rules] =
+   backtrack_wl_D_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_assn_def]
+
+
+
 subsubsection \<open>Operations on the trail\<close>
 
 paragraph \<open>Cons\<close>
