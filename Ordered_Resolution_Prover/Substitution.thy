@@ -7,7 +7,7 @@
 section {* Abstract Substitutions *}
 
 theory Substitution
-imports Clauses Map2
+imports "../lib/Clausal_Logic" Map2
 begin
 
 text {*
