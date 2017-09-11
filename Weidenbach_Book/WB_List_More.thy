@@ -94,9 +94,25 @@ lemma take_length_takeWhile_eq_takeWhile:
   \<open>take (length (takeWhile P xs)) xs = takeWhile P xs\<close>
   by (induction xs) auto
 
+lemma fold_cons_replicate: \<open>fold (\<lambda>_ xs. a # xs) [0..<n] xs = replicate n a @ xs\<close>
+  by (induction n) auto
+
 lemma take_2_if:
   \<open>take 2 C = (if C = [] then [] else if length C = 1 then [hd C] else [C!0, C!1])\<close>
   by (cases C; cases \<open>tl C\<close>) auto
+
+lemma Collect_minus_single_Collect: \<open>{x. P x} - {a} = {x . P x \<and> x \<noteq> a}\<close>
+  by auto
+
+lemma in_set_image_subsetD: \<open> f ` A \<subseteq> B \<Longrightarrow> x \<in> A \<Longrightarrow>f x \<in> B\<close>
+  by blast
+
+text \<open>
+  This lemma is not general enough to move to Isabelle, but might be interesting in other
+  cases.\<close>
+lemma set_Collect_Pair_to_fst_snd:
+  \<open>{((a, b), (a', b')). P a b a' b'} = {(e, f). P (fst e) (snd e) (fst f) (snd f)}\<close>
+  by auto
 
 
 subsection \<open>Update\<close>
@@ -682,6 +698,12 @@ proof -
     using K K' by blast
 qed
 
+lemma minus_notin_trivial: "L \<notin># A \<Longrightarrow> A - add_mset L B = A - B"
+  by (metis diff_intersect_left_idem inter_add_right1)
+
+lemma diff_union_single_conv3: \<open>a \<notin># I \<Longrightarrow> remove1_mset a (I + J) = I + remove1_mset a J\<close>
+  by (metis diff_union_single_conv remove_1_mset_id_iff_notin union_iff)
+
 
 subsection \<open>Sorting\<close>
 
@@ -756,6 +778,9 @@ lemma distinct_mset_mset_set: \<open>distinct_mset (mset_set A)\<close>
 
 lemma distinct_mset_set_distinct: \<open>distinct_mset_set (mset ` set Cs) \<longleftrightarrow> (\<forall>c\<in> set Cs. distinct c)\<close>
   unfolding distinct_mset_set_def by auto
+
+lemma distinct_mset_remdups_mset_id: \<open>distinct_mset C \<Longrightarrow> remdups_mset C = C\<close>
+  by (induction C)  auto
 
 
 subsection \<open>Sublists\<close>

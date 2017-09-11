@@ -407,4 +407,13 @@ lemma safe_minus[sepref_fr_rules]:
    (sep_auto simp: fast_minus_def uint32_nat_rel_def br_def nat_of_uint32_le_minus
       nat_of_uint32_notle_minus nat_of_uint32_le_iff fast_minus_uint32_def)
 
+lemma word_of_int_int_unat[simp]: \<open>word_of_int (int (unat x)) = x\<close>
+  unfolding unat_def
+  apply transfer
+  by (simp add: bintr_ge0)
+
+lemma uint32_of_nat_nat_of_uint32[simp]: \<open>uint32_of_nat (nat_of_uint32 x) = x\<close>
+  unfolding uint32_of_nat_def
+  by transfer auto
+
 end

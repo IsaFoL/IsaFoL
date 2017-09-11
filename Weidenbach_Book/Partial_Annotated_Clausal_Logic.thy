@@ -36,6 +36,10 @@ lemma is_decided_ex_Decided:
 lemma is_decided_no_proped_iff: \<open>is_decided L \<longleftrightarrow> \<not>is_proped L\<close>
   by (cases L) auto
 
+lemma not_is_decidedE:
+  \<open>\<not>is_decided E \<Longrightarrow> (\<And>K C. E = Propagated K C \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
+  by (cases E) auto
+
 type_synonym ('v, 'm) ann_lits = \<open>('v, 'm) ann_lit list\<close>
 
 fun lit_of :: \<open>('a, 'a, 'mark) annotated_lit \<Rightarrow> 'a\<close> where

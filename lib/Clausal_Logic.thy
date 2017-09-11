@@ -78,6 +78,9 @@ lemma uminus_lit_swap:
   "(a::'a literal) = -b \<longleftrightarrow> -a = b"
   by auto
 
+lemma is_pos_neg_not_is_pos: \<open>is_pos (- L) \<longleftrightarrow> \<not>is_pos L\<close>
+  by (cases L) auto
+
 instantiation literal :: (preorder) preorder
 begin
 

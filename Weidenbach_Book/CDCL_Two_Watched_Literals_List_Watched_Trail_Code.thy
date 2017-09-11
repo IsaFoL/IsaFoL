@@ -447,14 +447,6 @@ proof -
     using simple_clss_size_upper_div2[of \<open>C\<close>] \<open>\<not>tautology C\<close> by auto
 qed
 
-lemma (in -)distinct_mset_remdups_mset: \<open>distinct_mset C \<Longrightarrow> remdups_mset C = C\<close>
-  by (induction C)  auto
-
-lemma (in -) minus_notin_trivial: "L \<notin># A ==> A - add_mset L B = A - B"
-  by (metis diff_intersect_left_idem inter_add_right1)
-
-lemma (in -)diff_union_single_conv3: \<open>a \<notin># I \<Longrightarrow> remove1_mset a (I + J) = I + remove1_mset a J\<close>
-  by (metis diff_single_trivial diff_union_single_conv insert_DiffM mset_un_single_un_cases)
 (* End Move *)
 lemma mset_as_position_remove:
   \<open>mset_as_position xs D \<Longrightarrow> L < length xs \<Longrightarrow> mset_as_position (xs[L := None]) (remove1_mset (Pos L) (remove1_mset (Neg L) D))\<close>
@@ -540,7 +532,8 @@ proof -
     using uL_DLL L_DLL L by (auto simp: option_conflict_rel_def conflict_add_def)
   moreover have \<open>add_mset L (D - {#L, - L#}) = remdups_mset (remove1_mset (- L) (add_mset L D))\<close>
     using uL_DLL L_DLL unfolding minus_remove1_mset
-    by (auto simp: minus_notin_trivial distinct_mset_remdups_mset simp del: diff_diff_add_mset dest: in_diffD)
+    by (auto simp: minus_notin_trivial distinct_mset_remdups_mset_id simp del: diff_diff_add_mset
+       dest: in_diffD)
   ultimately show ?thesis
     by (auto simp: conflict_add_def)
 qed
@@ -596,7 +589,7 @@ proof -
         conflict_rel_def upperN_def)
   have [simp]: \<open>remdups_mset C = C\<close>
     using o mset_as_position_distinct_mset[of xs C] by (auto simp: option_conflict_rel_def conflict_rel_def
-        distinct_mset_remdups_mset)
+        distinct_mset_remdups_mset_id)
   have \<open>\<not>tautology C\<close>
     using mset_as_position_tautology o by (auto simp: option_conflict_rel_def
         conflict_rel_def)
@@ -809,7 +802,7 @@ proof -
     for b n xs N i
   proof -
     have [simp]: \<open>remdups_mset (mset (N ! i)) = mset (N!i)\<close>
-      using distinct_mset_remdups_mset[of \<open>mset (N!i)\<close>] dist by auto
+      using distinct_mset_remdups_mset_id[of \<open>mset (N!i)\<close>] dist by auto
     have conflict_merge_normalise: \<open>conflict_merge C (b, zs) = conflict_merge C (False, zs)\<close> for C zs
       unfolding conflict_merge_def by auto
     have T: \<open>((False, n, xs), Some {#}) \<in> option_conflict_rel\<close>
@@ -4247,6 +4240,7 @@ definition conflict_to_conflict_with_cls :: \<open>conflict_option_rel \<Rightar
        (\<lambda>(i, m, C, zs). do {
            ASSERT(i < length xs);
            ASSERT(i < upperN div 2);
+           ASSERT(m > 0);
            ASSERT(zs ! i \<noteq> None \<longrightarrow> Pos i \<in># N\<^sub>1);
            case zs ! i of
              None \<Rightarrow> RETURN (i+1, m, C, zs)
@@ -4512,6 +4506,7 @@ proof -
       subgoal by auto
       subgoal by auto
       subgoal by auto
+      subgoal by auto
       subgoal by (rule option_conflict_rel_notin) fast+
       subgoal by (rule IH_ineq) assumption+
       subgoal using b by (auto simp: less_Suc_eq)
@@ -4527,7 +4522,7 @@ proof -
       subgoal by auto
       subgoal by auto
       subgoal by (rule final) assumption+
-      dione
+      done
     qed
 
   show ?thesis
@@ -4540,11 +4535,9 @@ lemma (in -) Pot_unat_lit_assn':
   apply sepref_to_hoare
   by (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
       lit_of_natP_def nat_of_uint32_distrib_mult2 upperN_def)
+
 lemma (in -)uint32_nat_assn_nat_assn_nat_of_uint32: \<open>uint32_nat_assn aa a = nat_assn aa (nat_of_uint32 a)\<close>
   by (auto simp: pure_def uint32_nat_rel_def br_def)
-lemma (in -) fast_minus_uint32_alt_def:
-   \<open>fast_minus_uint32 a b = a -b\<close>
-  unfolding fast_minus_def fast_minus_uint32_def ..
 
 lemma (in -) array_replicate_custom_hnr_u[sepref_fr_rules]:
   \<open>CONSTRAINT is_pure A \<Longrightarrow>
@@ -4557,7 +4550,9 @@ lemma (in -) array_replicate_custom_hnr_u[sepref_fr_rules]:
 lemma conflict_to_conflict_with_cls_code_helper:
   \<open>zero_uint32 < upperN div 2\<close>
   \<open>a1'b < upperN div 2 \<Longrightarrow> a1'b + one_nat_uint32 < upperN\<close>
-  by (auto simp: upperN_def zero_uint32_def one_nat_uint32_def)
+  \<open> 0 < a1'c \<Longrightarrow> one_nat_uint32 \<le> a1'c\<close>
+  \<open>fast_minus a1'c one_nat_uint32  = a1'c - 1\<close>
+  by (auto simp: upperN_def zero_uint32_def one_nat_uint32_def fast_minus_def)
 
 lemmas uint32_nat_assn_plus'[sepref_fr_rules] = uint32_nat_assn_plus[unfolded upperN_def[symmetric]]
 declare uint32_nat_assn_plus[sepref_fr_rules del]
@@ -4571,8 +4566,6 @@ sepref_thm conflict_to_conflict_with_cls_code
   unfolding conflict_to_conflict_with_cls_def array_fold_custom_replicate
     fast_minus_def[of \<open>_ :: nat\<close>, symmetric]
   apply (rewrite at "\<hole> < length _" annotate_assn[where A=uint32_nat_assn])
-  apply (rewrite at "case _ ! \<hole> of None \<Rightarrow> _ | Some True \<Rightarrow> _ | Some False \<Rightarrow> _"
-      annotate_assn[where A=uint32_nat_assn])
   apply (rewrite at "_ ! \<hole> \<noteq> None" annotate_assn[where A=uint32_nat_assn])
   apply (rewrite at "\<hole> < _" zero_uint32_def[symmetric])
   apply (rewrite at \<open>Pos \<hole>\<close> zero_uint32_def[symmetric])
@@ -4580,15 +4573,11 @@ sepref_thm conflict_to_conflict_with_cls_code
   apply (rewrite at "(zero_uint32, \<hole>, _, _)" annotate_assn[where A=uint32_nat_assn])
   apply (rewrite at \<open>_ + \<hole>\<close> one_nat_uint32_def[symmetric])+
   apply (rewrite at \<open>fast_minus _ \<hole>\<close> one_nat_uint32_def[symmetric])+
-
-  apply sepref_dbg_keep
+  by sepref
+(*   apply sepref_dbg_keep
   apply sepref_dbg_trans_keep
                     apply sepref_dbg_trans_step_keep
-                    apply sepref_dbg_side_unfold apply (auto simp: )[]
-
-  oops
-                    apply sepref_dbg_side_unfold apply (auto simp: )[]
-
+                    apply sepref_dbg_side_unfold apply (auto simp: )[] *)
 
 
 lemma backtrack_wl_D_invD:

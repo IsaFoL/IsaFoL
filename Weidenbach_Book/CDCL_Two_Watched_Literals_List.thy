@@ -1345,11 +1345,6 @@ qed
 
 end
 
-(* TODO Move  *)
-lemma not_is_decidedE:
-  \<open>\<not>is_decided E \<Longrightarrow> (\<And>K C. E = Propagated K C \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
-  by (cases E) auto
-(* End Move  *)
 
 definition find_decomp :: "'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l  nres" where
   \<open>find_decomp =  (\<lambda>L (M, N, U, D, NP, UP, WS, Q).

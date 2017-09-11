@@ -422,6 +422,9 @@ lemma ex_assn_skip_first2:
   apply (subst ex_assn_swap)
   by (subst ex_assn_def, subst (2) ex_assn_def, auto)+
 
+lemma nofail_Down_nofail: \<open>nofail gS \<Longrightarrow> fS \<le> \<Down> R gS \<Longrightarrow> nofail fS\<close>
+  using pw_ref_iff by blast
+
 
 subsection \<open>Some Refinement\<close>
 
@@ -627,6 +630,23 @@ proof -
         unfolded list_mset_assn_def[symmetric] I] .
 qed
 
+lemma refine_add_invariants':
+  assumes
+    \<open>f S \<le> \<Down> {(S, S'). Q' S S' \<and> Q S} gS\<close> and
+    \<open>y \<le> \<Down> {((i, S), S'). P i S S'} (f S)\<close> and
+    \<open>nofail gS\<close>
+  shows \<open>y \<le> \<Down> {((i, S), S'). P i S S' \<and> Q S'} (f S)\<close>
+  using assms unfolding pw_le_iff pw_conc_inres pw_conc_nofail
+  by force
+
+lemma "weaken_\<Down>": \<open>R' \<subseteq> R \<Longrightarrow> f \<le> \<Down> R' g \<Longrightarrow> f \<le> \<Down> R g\<close>
+  by (meson pw_ref_iff subset_eq)
+
+method match_Down =
+  (match conclusion in \<open>f \<le> \<Down> R g\<close> for f g R \<Rightarrow>
+    \<open>match premises in I: \<open>f \<le> \<Down> R' g\<close> for R'
+       \<Rightarrow> \<open>rule "weaken_\<Down>"[OF _ I]\<close>\<close>)
+
 
 subsection \<open>More declarations\<close>
 
@@ -761,5 +781,82 @@ lemma emptied_arl_refine[sepref_fr_rules]:
   unfolding emptied_arl_def emptied_list_def
   by sepref_to_hoare (sep_auto simp: arl_assn_def hr_comp_def is_array_list_def)
 
+
+subsection \<open>Sorting\<close>
+
+text \<open>Remark that we do not \<^emph>\<open>prove\<close> that the sorting in correct, since we do not care about the
+ correctness, only the fact that it is reordered. (Based on wikipedia's algorithm.)\<close>
+definition insert_sort_inner :: \<open>('a list \<Rightarrow> nat \<Rightarrow> 'b :: ord) \<Rightarrow> 'a list \<Rightarrow>  nat \<Rightarrow> 'a list nres\<close> where
+  \<open>insert_sort_inner f xs i = do {
+     (j, ys) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(j, ys). j \<ge> 0 \<and> mset xs = mset ys \<and> j < length ys\<^esup>
+         (\<lambda>(j, ys). j > 0 \<and> f ys j > f ys i)
+         (\<lambda>(j, ys). do {
+             ASSERT(j < length ys);
+             ASSERT(j-1 < length ys);
+             let xs = swap ys j (j - 1);
+             RETURN (j-1, xs)
+           }
+         )
+        (i, xs);
+     RETURN ys
+  }\<close>
+
+
+definition reorder_remove :: \<open>'b \<Rightarrow> 'a list \<Rightarrow> 'a list nres\<close> where
+\<open>reorder_remove _ removed = SPEC (\<lambda>removed'. mset removed' = mset removed)\<close>
+
+definition insert_sort :: \<open>('a list \<Rightarrow> nat \<Rightarrow> 'b :: ord) \<Rightarrow> 'a list \<Rightarrow> 'a list nres\<close> where
+  \<open>insert_sort f xs = do {
+     (i, ys) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, ys). (ys = [] \<or> i \<le> length ys) \<and> mset xs = mset ys\<^esup>
+        (\<lambda>(i, ys). i < length ys)
+        (\<lambda>(i, ys). do {
+            ASSERT(i < length ys);
+            ys \<leftarrow> insert_sort_inner f ys i;
+            RETURN (i+1, ys)
+          })
+        (1, xs);
+     RETURN ys
+  }\<close>
+
+lemma insert_sort_inner:
+   \<open>(uncurry (insert_sort_inner f), uncurry (\<lambda>m m'. reorder_remove m' m)) \<in>
+      [\<lambda>(xs, i). i < length xs]\<^sub>f \<langle>Id:: ('a \<times> 'a) set\<rangle>list_rel \<times>\<^sub>r nat_rel \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
+  unfolding insert_sort_inner_def uncurry_def reorder_remove_def
+  apply (intro frefI nres_relI)
+  apply clarify
+  apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i, _). i)\<close>])
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by (auto dest: mset_eq_length)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  done
+
+lemma insert_sort_reorder_remove: \<open>(insert_sort f, reorder_remove vm) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
+proof -
+  have H: \<open>ba < length aa \<Longrightarrow> insert_sort_inner f aa ba \<le> SPEC (\<lambda>m'. mset m' = mset aa)\<close>
+    for ba aa b
+    using insert_sort_inner[unfolded fref_def nres_rel_def reorder_remove_def, simplified, rule_format]
+    by fast
+  show ?thesis
+    unfolding insert_sort_def reorder_remove_def
+    apply (intro frefI nres_relI)
+    apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i, ys). length ys - i)\<close>] H)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto dest: mset_eq_length)
+    subgoal by auto
+    subgoal by (auto dest!: mset_eq_length)
+    subgoal by auto
+    done
+qed
 
 end

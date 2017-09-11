@@ -28,11 +28,6 @@ lemma mset_as_position_nth:
   by (induction rule: mset_as_position.induct)
     (auto simp: nth_list_update' atm_of_eq_atm_of dest: mset_as_position_atm_le_length)
 
-(*TODO Move*)
-lemma (in -) is_pos_neg_not_is_pos: \<open>is_pos (- L) \<longleftrightarrow> \<not>is_pos L\<close>
-  by (cases L) auto
-(*End Move*)
-
 lemma mset_as_position_in_iff_nth:
   \<open>mset_as_position xs P \<Longrightarrow> atm_of L < length xs \<Longrightarrow> L \<in># P \<longleftrightarrow> xs ! (atm_of L) = Some (is_pos L)\<close>
   by (induction rule: mset_as_position.induct)
@@ -172,8 +167,8 @@ lemma conflict_assn_is_empty_is_empty:
   \<open>(RETURN o conflict_assn_is_empty, RETURN o (\<lambda>D. Multiset.is_empty(the D))) \<in>
   [\<lambda>D. D \<noteq> None]\<^sub>f option_conflict_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
   by (intro nres_relI frefI)
-   (auto simp: option_conflict_rel_def conflict_assn_is_empty_def conflict_rel_def Multiset.is_empty_def
-      split: option.splits)
+   (auto simp: option_conflict_rel_def conflict_assn_is_empty_def conflict_rel_def
+     Multiset.is_empty_def split: option.splits)
 
 lemma conflict_assn_is_empty_conflict_assn_is_empty:
  \<open>(return o conflict_assn_is_empty, RETURN o conflict_assn_is_empty) \<in>
