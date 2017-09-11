@@ -175,9 +175,10 @@ qed
 
 text_raw {*\DefineSnippet{completenessprime}{*}
 theorem completeness':
-  "closed_tree T Cs \<Longrightarrow> \<forall>C\<in>Cs. finite C \<Longrightarrow> 
-                                            \<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
-proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
+  assumes "closed_tree T Cs"
+  assumes "\<forall>C\<in>Cs. finite C"
+  shows "\<exists>Cs'. resolution_deriv Cs Cs' \<and> {} \<in> Cs'"
+using assms proof (induction T arbitrary: Cs rule: measure_induct_rule[of treesize])
   fix T :: tree
   fix Cs :: "fterm clause set"
   assume ih: "\<And>T' Cs. treesize T' < treesize T \<Longrightarrow> closed_tree T' Cs \<Longrightarrow> 
