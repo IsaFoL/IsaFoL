@@ -101,14 +101,10 @@ lemma gd_ord_\<Gamma>_ngd_ord_\<Gamma>: "gd.ord_\<Gamma> \<subseteq> gd_ord_\<Ga
   unfolding gd_ord_\<Gamma>'_def
   using gd.ord_\<Gamma>_def gd.ord_resolve_sound by fastforce
 
-lemma nice: "sat_preserving_inference_system gd_ord_\<Gamma>'" (* Although maybe it would be nice to prove it was a sound_inference_system *)
-  unfolding sat_preserving_inference_system_def gd_ord_\<Gamma>'_def
-  apply auto
-  unfolding inference_system.inferences_from_def
-  unfolding infer_from_def
-  unfolding true_clss_def
-  apply auto
-  by (metis set_rev_mp true_cls_mset_def inference.exhaust inference.exhaust_sel inference.inject inference.sel(2) inference.sel(3))
+interpretation sound_gd_ord_\<Gamma>':
+  sound_inference_system gd_ord_\<Gamma>'
+  unfolding sound_inference_system_def gd_ord_\<Gamma>'_def
+  by auto
 
 definition src_ext_Ri where
   "src_ext_Ri = (\<lambda>N. src.Ri N \<union> (gd_ord_\<Gamma>' - gd.ord_\<Gamma>))"
@@ -116,7 +112,8 @@ definition src_ext_Ri where
 interpretation src_ext:
   sat_preserving_redundancy_criterion "gd_ord_\<Gamma>'" "src.Rf" "src_ext_Ri"
   unfolding sat_preserving_redundancy_criterion_def src_ext_Ri_def
-  using nice using standard_redundancy_criterion_extension gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redudancy_criterion by auto
+  using standard_redundancy_criterion_extension gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redudancy_criterion
+  using sound_gd_ord_\<Gamma>'.sat_preserving_inference_system_axioms by blast 
 
 text {*
 The following corresponds to Lemma 4.10:
