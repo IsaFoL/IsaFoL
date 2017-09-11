@@ -21,9 +21,15 @@ fun treesize :: "tree \<Rightarrow> nat" where
   "treesize Leaf = 0"
 | "treesize (Branching l r) = 1 + treesize l + treesize r"
 
-lemma treesize_Leaf: "treesize T = 0 \<Longrightarrow> T = Leaf" by (cases T) auto
+lemma treesize_Leaf:
+  assumes "treesize T = 0"
+  shows "T = Leaf"
+  using assms by (cases T) auto
 
-lemma treesize_Branching: "treesize T = Suc n \<Longrightarrow> \<exists>l r. T = Branching l r" by (cases T) auto
+lemma treesize_Branching:
+  assumes "treesize T = Suc n"
+  shows "\<exists>l r. T = Branching l r" 
+  using assms by (cases T) auto
 
 
 subsection {* Paths *}
@@ -63,8 +69,10 @@ next
     qed
 qed
 
-lemma path_prefix: "path (ds1@ds2) T \<Longrightarrow> path ds1 T"
-proof (induction ds1 arbitrary: T)
+lemma path_prefix: 
+  assumes "path (ds1@ds2) T"
+  shows "path ds1 T"
+using assms proof (induction ds1 arbitrary: T)
   case (Cons a ds1)
   then have "\<exists>l r. T = Branching l r" using path_inv_Leaf by (cases T) auto
   then obtain l r where p_lr: "T = Branching l r" by auto
@@ -138,8 +146,9 @@ proof -
 qed
 
 lemma branch_is_path: 
-  "branch ds T \<Longrightarrow> path ds T"
-proof (induction T arbitrary: ds)
+  assumes"branch ds T"
+  shows "path ds T"
+using assms proof (induction T arbitrary: ds)
   case Leaf
   then have "ds = []" using branch_inv_Leaf by auto
   then show ?case  by auto
@@ -150,8 +159,10 @@ next
   then show "?case" using ds_p by (cases a) auto
 qed
 
-lemma Branching_Leaf_Leaf_Tree: "T = Branching T1 T2 \<Longrightarrow> (\<exists>B. branch (B@[True]) T \<and> branch (B@[False]) T)"
-proof (induction T arbitrary: T1 T2)
+lemma Branching_Leaf_Leaf_Tree:
+  assumes "T = Branching T1 T2"
+  shows "(\<exists>B. branch (B@[True]) T \<and> branch (B@[False]) T)"
+using assms proof (induction T arbitrary: T1 T2)
   case Leaf then show ?case by auto
 next
   case (Branching T1' T2')
@@ -216,8 +227,9 @@ next
 qed
 
 lemma internal_is_path: 
-  "internal ds T \<Longrightarrow> path ds T"
-proof (induction T arbitrary: ds)
+  assumes "internal ds T"
+  shows "path ds T"
+using assms proof (induction T arbitrary: ds)
   case Leaf
   then have "False" using internal_inv_Leaf by auto
   then show ?case by auto
@@ -228,8 +240,10 @@ next
   then show "?case" using ds_p by (cases a) auto
 qed
 
-lemma internal_prefix: "internal (ds1@ds2@[d]) T \<Longrightarrow> internal ds1 T" (* more or less copy paste of path_prefix *)
-proof (induction ds1 arbitrary: T)
+lemma internal_prefix:
+  assumes "internal (ds1@ds2@[d]) T"
+  shows "internal ds1 T" (* more or less copy paste of path_prefix *)
+using assms proof (induction ds1 arbitrary: T)
   case (Cons a ds1)
   then have "\<exists>l r. T = Branching l r" using internal_inv_Leaf by (cases T) auto
   then obtain l r where p_lr: "T = Branching l r" by auto
@@ -252,8 +266,10 @@ next
 qed
 
 
-lemma internal_branch: "branch (ds1@ds2@[d]) T \<Longrightarrow> internal ds1 T" (* more or less copy paste of path_prefix *)
-proof (induction ds1 arbitrary: T)
+lemma internal_branch:
+  assumes "branch (ds1@ds2@[d]) T"
+  shows "internal ds1 T" (* more or less copy paste of path_prefix *)
+using assms proof (induction ds1 arbitrary: T)
   case (Cons a ds1)
   then have "\<exists>l r. T = Branching l r" using branch_inv_Leaf by (cases T) auto
   then obtain l r where p_lr: "T = Branching l r" by auto
@@ -289,8 +305,10 @@ fun delete :: "dir list \<Rightarrow> tree \<Rightarrow> tree" where
 
 lemma delete_Leaf: "delete T Leaf = Leaf" by (cases T) auto
 
-lemma path_delete: "path p (delete ds T) \<Longrightarrow> path p T " (* What a huge proof... But the four cases can be proven shorter *)
-proof (induction p arbitrary: T ds)
+lemma path_delete: 
+  assumes "path p (delete ds T)"
+  shows "path p T " (* What a huge proof... But the four cases can be proven shorter *)
+using assms proof (induction p arbitrary: T ds)
   case Nil 
   then show ?case by simp
 next
@@ -344,8 +362,10 @@ next
   ultimately show ?case by blast
 qed
 
-lemma branch_delete: "branch p (delete ds T) \<Longrightarrow> branch p T \<or> p=ds" (* Adapted from above *)
-proof (induction p arbitrary: T ds)
+lemma branch_delete:
+  assumes "branch p (delete ds T)"
+  shows "branch p T \<or> p=ds" (* Adapted from above *)
+using assms proof (induction p arbitrary: T ds)
   case Nil 
   then have "delete ds T = Leaf" by (cases "delete ds T") auto
   then have "ds = [] \<or> T = Leaf" using delete.elims by blast 
@@ -402,8 +422,10 @@ next
 qed
   
 
-lemma branch_delete_postfix: "path p (delete ds T) \<Longrightarrow> \<not>(\<exists>c cs. p = ds @ c#cs)" (* Adapted from previous proof *)
-proof (induction p arbitrary: T ds)
+lemma branch_delete_postfix: 
+  assumes "path p (delete ds T)"
+  shows "\<not>(\<exists>c cs. p = ds @ c#cs)" (* Adapted from previous proof *)
+using assms proof (induction p arbitrary: T ds)
   case Nil then show ?case by simp
 next
   case (Cons a p)
@@ -450,8 +472,10 @@ next
   ultimately show ?case by blast
 qed
 
-lemma treezise_delete: "internal p T \<Longrightarrow> treesize (delete p T) < treesize T"
-proof (induction p arbitrary: T)
+lemma treezise_delete: 
+  assumes "internal p T"
+  shows "treesize (delete p T) < treesize T"
+using assms proof (induction p arbitrary: T)
   case (Nil)
   then have "\<exists>T1 T2. T = Branching T1 T2" by (cases T) auto
   then obtain T1 T2 where T1T2_p: "T = Branching T1 T2" by auto 
@@ -509,8 +533,9 @@ abbreviation anyinternal :: "tree \<Rightarrow> (dir list \<Rightarrow> bool) \<
   "anyinternal T P \<equiv> \<forall>p. internal p T \<longrightarrow> P p"
 
 lemma cutoff_branch': 
-  "anybranch T (\<lambda>b. red(ds@b)) \<Longrightarrow> anybranch (cutoff red ds T) (\<lambda>b. red(ds@b))"
-proof (induction T arbitrary: ds) (* This proof seems a bit excessive for such a simple theorem *)
+  assumes "anybranch T (\<lambda>b. red(ds@b))"
+  shows "anybranch (cutoff red ds T) (\<lambda>b. red(ds@b))"
+using assms proof (induction T arbitrary: ds) (* This proof seems a bit excessive for such a simple theorem *)
   case (Leaf) 
   let ?T = "cutoff red ds Leaf"
   {
@@ -556,12 +581,15 @@ next
   then show ?case by blast
 qed
 
-lemma cutoff_branch: "anybranch T (\<lambda>p. red p) \<Longrightarrow> anybranch (cutoff red [] T) (\<lambda>p. red p)" 
-  using cutoff_branch'[of T red "[]"] by auto
+lemma cutoff_branch: 
+  assumes "anybranch T (\<lambda>p. red p)"
+  shows "anybranch (cutoff red [] T) (\<lambda>p. red p)" 
+  using assms cutoff_branch'[of T red "[]"] by auto
 
 lemma cutoff_internal': 
-  "anybranch T (\<lambda>b. red(ds@b)) \<Longrightarrow> anyinternal (cutoff red ds T) (\<lambda>b. \<not>red(ds@b))"
-proof (induction T arbitrary: ds) (* This proof seems a bit excessive for such a simple theorem *)
+  assumes "anybranch T (\<lambda>b. red(ds@b))" 
+  shows "anyinternal (cutoff red ds T) (\<lambda>b. \<not>red(ds@b))"
+using assms proof (induction T arbitrary: ds) (* This proof seems a bit excessive for such a simple theorem *)
   case (Leaf) then show ?case using internal_inv_Leaf by simp
 next                                                     
   case (Branching T\<^sub>1 T\<^sub>2)
@@ -601,16 +629,20 @@ next
   then show ?case by blast
 qed
 
-lemma cutoff_internal: "anybranch T red \<Longrightarrow> anyinternal (cutoff red [] T) (\<lambda>p. \<not>red p)" 
-  using cutoff_internal'[of T red "[]"] by auto
+lemma cutoff_internal:
+  assumes  "anybranch T red"
+  shows "anyinternal (cutoff red [] T) (\<lambda>p. \<not>red p)" 
+  using assms cutoff_internal'[of T red "[]"] by auto
 
 lemma cutoff_branch_internal': 
-  "anybranch T red \<Longrightarrow> anyinternal (cutoff red [] T) (\<lambda>p. \<not>red p) \<and> anybranch (cutoff red [] T) (\<lambda>p. red p)" 
-  using cutoff_internal[of T] cutoff_branch[of T] by blast
+  assumes "anybranch T red"
+  shows "anyinternal (cutoff red [] T) (\<lambda>p. \<not>red p) \<and> anybranch (cutoff red [] T) (\<lambda>p. red p)" 
+  using assms cutoff_internal[of T] cutoff_branch[of T] by blast
 
 lemma cutoff_branch_internal: 
-  "anybranch T red \<Longrightarrow> \<exists>T'. anyinternal T' (\<lambda>p. \<not>red p) \<and> anybranch T' (\<lambda>p. red p)" 
-  using cutoff_branch_internal' by blast
+  assumes "anybranch T red"
+  shows "\<exists>T'. anyinternal T' (\<lambda>p. \<not>red p) \<and> anybranch T' (\<lambda>p. red p)" 
+  using assms cutoff_branch_internal' by blast
 
 section {* Possibly Infinite Trees *}
 text {* Possibly infinite trees are of type @{typ "dir list set"}. *}
@@ -641,15 +673,20 @@ subsection {* Infinite Paths *}
 abbreviation wf_infpath :: "(nat \<Rightarrow> 'a list) \<Rightarrow> bool" where
   "wf_infpath f \<equiv> (f 0 = []) \<and> (\<forall>n. \<exists>a. f (Suc n) = (f n) @ [a])"
 
-lemma infpath_length: "wf_infpath f \<Longrightarrow> length (f n) = n"
-proof (induction n)
+lemma infpath_length:
+  assumes "wf_infpath f"
+  shows "length (f n) = n"
+using assms proof (induction n)
   case 0 then show ?case by auto
 next
   case (Suc n) then show ?case by (metis length_append_singleton)
 qed
 
-lemma chain_prefix: "wf_infpath f \<Longrightarrow> n\<^sub>1 \<le> n\<^sub>2 \<Longrightarrow> \<exists>a. (f n\<^sub>1) @ a = (f n\<^sub>2)"
-proof (induction n\<^sub>2)
+lemma chain_prefix: 
+  assumes "wf_infpath f"
+  assumes "n\<^sub>1 \<le> n\<^sub>2"
+  shows "\<exists>a. (f n\<^sub>1) @ a = (f n\<^sub>2)"
+using assms proof (induction n\<^sub>2)
   case (Suc n\<^sub>2)
   then have "n\<^sub>1 \<le> n\<^sub>2 \<or> n\<^sub>1 = Suc n\<^sub>2" by auto
   then show ?case
@@ -712,7 +749,7 @@ proof
 
   have is_chain: "wf_infpath ?c" by auto
 
-  from wellformed have prefix: "\<And>ds d. (ds @ d) \<in> T \<Longrightarrow> ds \<in> T" by blast
+  from wellformed have prefix: "\<forall>ds d. (ds @ d) \<in> T \<longrightarrow> ds \<in> T" by blast
 
   { 
     fix n
