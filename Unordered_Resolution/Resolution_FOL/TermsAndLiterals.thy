@@ -45,8 +45,10 @@ notation (latex) "ground\<^sub>l\<^sub>s" ("_\<^latex>\<open>$\\mathit{\\groundl
 definition ground_fatoms :: "fterm atom set" where
   "ground_fatoms \<equiv> {a. ground\<^sub>t\<^sub>s (snd a)}"
 
-lemma ground\<^sub>l_ground_fatom: "ground\<^sub>l l \<Longrightarrow> get_atom l \<in> ground_fatoms"
-  unfolding ground_fatoms_def by (induction l) auto
+lemma ground\<^sub>l_ground_fatom: 
+  assumes "ground\<^sub>l l"
+  shows "get_atom l \<in> ground_fatoms"
+  using assms unfolding ground_fatoms_def by (induction l) auto
 
 subsection {* Auxiliary *}
 
@@ -94,11 +96,15 @@ lemma [simp]: "hterm_of_fterm (fterm_of_hterm t) = t"
 lemma [simp]: "hterms_of_fterms (fterms_of_hterms ts) = ts" 
   unfolding hterms_of_fterms_def fterms_of_hterms_def by (simp add: map_idI)
 
-lemma [simp]: "ground\<^sub>t t \<Longrightarrow> fterm_of_hterm (hterm_of_fterm t) = t" 
-  by (induction t) (auto simp add: map_idI)
+lemma [simp]:
+  assumes "ground\<^sub>t t"
+  shows "fterm_of_hterm (hterm_of_fterm t) = t" 
+  using assms by (induction t) (auto simp add: map_idI)
 
-lemma [simp]: "ground\<^sub>t\<^sub>s ts \<Longrightarrow> fterms_of_hterms (hterms_of_fterms ts) = ts" 
-  unfolding fterms_of_hterms_def hterms_of_fterms_def by (simp add: map_idI)
+lemma [simp]: 
+  assumes "ground\<^sub>t\<^sub>s ts"
+  shows "fterms_of_hterms (hterms_of_fterms ts) = ts" 
+  using assms unfolding fterms_of_hterms_def hterms_of_fterms_def by (simp add: map_idI)
 
 lemma ground_fterm_of_hterm:  "ground\<^sub>t (fterm_of_hterm t)"
   by (induction t) (auto simp add: map_idI)
@@ -121,7 +127,10 @@ lemma ground_flit_of_hlit: "ground\<^sub>l (flit_of_hlit l)"
 
 theorem hlit_of_flit_flit_of_hlit [simp]: "hlit_of_flit (flit_of_hlit l) =  l" by (cases l) auto
 
-theorem flit_of_hlit_hlit_of_flit [simp]: "ground\<^sub>l l \<Longrightarrow> flit_of_hlit (hlit_of_flit l) = l" by (cases l) auto
+theorem flit_of_hlit_hlit_of_flit [simp]:
+  assumes "ground\<^sub>l l"
+  shows "flit_of_hlit (hlit_of_flit l) = l"
+  using assms by (cases l) auto
 
 lemma sign_flit_of_hlit: "sign (flit_of_hlit l) = sign l" by (cases l) auto
 
@@ -160,9 +169,13 @@ fun hatom_of_fatom :: "fterm atom \<Rightarrow> hterm atom" where
 lemma ground_fatom_of_hatom: "ground\<^sub>t\<^sub>s (snd (fatom_of_hatom a))" 
   by  (induction a) (simp add: ground_fterms_of_hterms)+
 
-theorem hatom_of_fatom_fatom_of_hatom [simp]: "hatom_of_fatom (fatom_of_hatom l) = l" by (cases l) auto
+theorem hatom_of_fatom_fatom_of_hatom [simp]: "hatom_of_fatom (fatom_of_hatom l) = l" 
+  by (cases l) auto
 
-theorem fatom_of_hatom_hatom_of_fatom [simp]: "ground\<^sub>t\<^sub>s (snd l) \<Longrightarrow> fatom_of_hatom (hatom_of_fatom l) = l" by (cases l) auto
+theorem fatom_of_hatom_hatom_of_fatom [simp]: 
+  assumes "ground\<^sub>t\<^sub>s (snd l)"
+  shows "fatom_of_hatom (hatom_of_fatom l) = l"
+  using assms by (cases l) auto
 
 lemma hatom_of_fatom_bij: "bij_betw hatom_of_fatom ground_fatoms UNIV" 
  unfolding bij_betw_def
@@ -273,14 +286,15 @@ definition fatom_of_nat :: "nat \<Rightarrow> fterm atom" where
 definition nat_of_fatom :: "fterm atom \<Rightarrow> nat" where
   "nat_of_fatom = (\<lambda>t. nat_of_hatom (hatom_of_fatom t))"
 
-theorem diag_undiag_fatom[simp]: "ground\<^sub>t\<^sub>s ts \<Longrightarrow> fatom_of_nat (nat_of_fatom (p,ts)) = (p,ts)"
-unfolding fatom_of_nat_def nat_of_fatom_def by auto
+theorem diag_undiag_fatom[simp]: 
+  assumes "ground\<^sub>t\<^sub>s ts"
+  shows "fatom_of_nat (nat_of_fatom (p,ts)) = (p,ts)"
+using assms unfolding fatom_of_nat_def nat_of_fatom_def by auto
 
 theorem undiag_diag_fatom[simp]: "nat_of_fatom (fatom_of_nat n) = n" unfolding fatom_of_nat_def nat_of_fatom_def by auto
 
 lemma fatom_of_nat_bij: "bij_betw fatom_of_nat UNIV ground_fatoms" 
   using hatom_of_nat_bij bij_betw_trans fatom_of_hatom_bij hatom_of_nat_bij unfolding fatom_of_nat_def comp_def by blast
-
 
 lemma ground_fatom_of_nat: "ground\<^sub>t\<^sub>s (snd (fatom_of_nat x))" unfolding fatom_of_nat_def using ground_fatom_of_hatom by auto
 
