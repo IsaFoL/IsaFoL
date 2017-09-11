@@ -873,7 +873,7 @@ lemma is_ground_subst_atm_list[simp]: "is_ground_atm_list As \<Longrightarrow> A
   unfolding is_ground_atm_list_def subst_atm_list_def by auto
 
 lemma is_ground_subst_atm_list_member[simp]: "\<And>As i \<sigma>. is_ground_atm_list As \<Longrightarrow> i < length As \<Longrightarrow> (As ! i \<cdot>a \<sigma>) = As ! i"
-          unfolding is_ground_atm_list_def by auto
+  unfolding is_ground_atm_list_def by auto
 
 lemma is_ground_subst_lit[simp]: "is_ground_lit L \<Longrightarrow> L \<cdot>l \<sigma> = L"
   unfolding is_ground_lit_def subst_lit_def by (cases L) simp_all
