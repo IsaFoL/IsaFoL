@@ -514,15 +514,27 @@ lemma subst_clss_image[simp]: "image f A \<cdot>cs \<sigma> = {f x \<cdot> \<sig
 lemma subst_cls_mset_image_mset[simp]: "image_mset f A \<cdot>cm \<sigma> = {# f x \<cdot> \<sigma>. x \<in># A #}"
   unfolding subst_cls_mset_def by auto
 
+
 subsubsection {* Substitute on the mset function*}
 
 lemma mset_subst_atm_list_subst_atm_mset[simp]: "mset (Ai \<cdot>al \<sigma>) = mset (Ai) \<cdot>am \<sigma>"
   unfolding subst_atm_list_def subst_atm_mset_def by auto
 
+lemma mset_subst_cls_list_subst_cls_mset: "mset (Cl  \<cdot>cl \<sigma>) = (mset Cl) \<cdot>cm \<sigma>"
+  unfolding subst_cls_mset_def subst_cls_list_def by auto
+
+
 subsubsection {* Substitute on @{term sum_list} *}
 
 lemma sum_list_subst_cls_list_subst_cls[simp]: "sum_list (Ci' \<cdot>cl \<eta>) = sum_list Ci' \<cdot> \<eta>"
   unfolding subst_cls_list_def by (induction Ci') auto
+
+
+subsubsection {* Substitute on @{term set_mset} *}
+
+lemma set_mset_subst_cls_mset_subst_clss: "set_mset (X \<cdot>cm \<mu>) = (set_mset X) \<cdot>cs \<mu>"
+  by (simp add: subst_cls_mset_def subst_clss_def)
+
 
 subsubsection {* Renamings *}
 
@@ -816,19 +828,6 @@ lemma is_ground_clss_mono: "CC \<le> DD \<Longrightarrow> is_ground_clss DD \<Lo
 lemma is_ground_cls_mset_mono: "CC \<le># DD \<Longrightarrow> is_ground_cls_mset DD \<Longrightarrow> is_ground_cls_mset CC"
   unfolding is_ground_cls_mset_def by (metis mset_subset_eqD)
 
-
-paragraph {* Members of ground expressions are ground *}
-
-lemma is_ground_cls_as_atms: "is_ground_cls C \<longleftrightarrow> (\<forall>A \<in> atms_of C. is_ground_atm A)"
-  by (auto simp: atms_of_def is_ground_cls_def is_ground_lit_def)
-
-lemma is_ground_cls_imp_is_ground_lit: "L \<in># C \<Longrightarrow> is_ground_cls C \<Longrightarrow> is_ground_lit L"
-  unfolding is_ground_cls_def by auto
-
-lemma is_ground_cls_imp_is_ground_atm: "A \<in> atms_of C \<Longrightarrow> is_ground_cls C \<Longrightarrow> is_ground_atm A"
-  using is_ground_cls_as_atms by auto
-
-
 paragraph {* Substituting on ground expression preserves ground *}
 
 
@@ -873,6 +872,9 @@ lemma is_ground_subst_atm_list[simp]: "is_ground_atm_list As \<Longrightarrow> A
   apply (rule nth_equalityI)
   unfolding is_ground_atm_list_def subst_atm_list_def by auto
 
+lemma is_ground_subst_atm_list_member[simp]: "\<And>As i \<sigma>. is_ground_atm_list As \<Longrightarrow> i < length As \<Longrightarrow> (As ! i \<cdot>a \<sigma>) = As ! i"
+          unfolding is_ground_atm_list_def by auto
+
 lemma is_ground_subst_lit[simp]: "is_ground_lit L \<Longrightarrow> L \<cdot>l \<sigma> = L"
   unfolding is_ground_lit_def subst_lit_def by (cases L) simp_all
 
@@ -909,6 +911,22 @@ lemma is_ground_subst_cls_iff: "is_ground_cls C \<longleftrightarrow> (\<forall>
   apply (metis ex_ground_subst ground_subst_ground_cls)
   done
 
+paragraph {* Members of ground expressions are ground *}
+
+lemma is_ground_cls_as_atms: "is_ground_cls C \<longleftrightarrow> (\<forall>A \<in> atms_of C. is_ground_atm A)"
+  by (auto simp: atms_of_def is_ground_cls_def is_ground_lit_def)
+
+lemma is_ground_cls_imp_is_ground_lit: "L \<in># C \<Longrightarrow> is_ground_cls C \<Longrightarrow> is_ground_lit L"
+  unfolding is_ground_cls_def by auto
+
+lemma is_ground_cls_imp_is_ground_atm: "A \<in> atms_of C \<Longrightarrow> is_ground_cls C \<Longrightarrow> is_ground_atm A"
+  using is_ground_cls_as_atms by auto
+
+lemma is_ground_cls_is_ground_atms_atms_of[simp]: "is_ground_cls D \<Longrightarrow> is_ground_atms (atms_of D)"
+  by (simp add: is_ground_cls_imp_is_ground_atm substitution_ops.is_ground_atms_def)
+
+lemma in_subset_eq_grounding_of_clss_is_ground_cls[simp]: "x \<in> X \<Longrightarrow> X \<subseteq> grounding_of_clss Y \<Longrightarrow> is_ground_cls x"
+  unfolding grounding_of_clss_def grounding_of_cls_def by auto
 
 
 subsubsection {* Unifiers *}
@@ -935,6 +953,9 @@ lemma is_unifiers_subst_atm_eqI:
 
 theorem is_unifiers_comp: "is_unifiers \<sigma> (set_mset ` set (map2 add_mset Ai' Aij') \<cdot>ass \<eta>) \<longleftrightarrow> is_unifiers (\<eta> \<odot> \<sigma>) (set_mset ` set (map2 add_mset Ai' Aij'))"
   unfolding is_unifiers_def is_unifier_def subst_atmss_def by auto
+
+
+
 
 end
 
