@@ -5,7 +5,7 @@
     Maintainer:  Anders Schlichtkrull
 *)
 
-section {* First-Order Ordered Resolution Calculus with Selection *}
+section \<open>First-Order Ordered Resolution Calculus with Selection\<close>
 
 theory FO_Ordered_Resolution
   imports Abstract_Substitution Ordered_Ground_Resolution Standard_Redundancy
@@ -14,12 +14,11 @@ begin
 (* FIXME: Avoid such global changes to the intro/etc. sets *)
 declare nth_equalityI [intro]
 
-locale FO_resolution =
-  unification subst_atm id_subst comp_subst mgu
+locale FO_resolution = unification subst_atm id_subst comp_subst mgu
   for
     subst_atm :: "'a :: wellorder \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and
-    comp_subst :: "'s => 's => 's" and
+    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
     mgu :: "'a set set \<Rightarrow> 's option" +
   fixes
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
@@ -28,7 +27,7 @@ locale FO_resolution =
 begin
 
 
-subsection {* First-order logic *}
+subsection \<open>First-order logic\<close>
 
 definition less_eq_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
   "less_eq_atm A B \<longleftrightarrow> less_atm A B \<or> A = B"
@@ -65,18 +64,18 @@ lemma true_fo_cls_mset_inst: "I \<Turnstile>fom C \<Longrightarrow> is_ground_su
 lemma true_fo_cls_mset_def2: "I \<Turnstile>fom CC \<longleftrightarrow> (\<forall>C \<in># CC. I \<Turnstile>fo C)"
   unfolding true_fo_cls_mset.simps true_fo_cls.simps true_cls_mset_def by auto
 
-text {*
+text \<open>
 \begin{nit}
 $A_{ii}$ vs.\ $A_i$
 \end{nit}
-*}
+\<close>
 
 context
   fixes S :: "'a clause \<Rightarrow> 'a clause"
 begin
 
 
-subsection {* Calculus *}
+subsection \<open>Calculus\<close>
 
 definition maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where (* Would "'a \<Rightarrow> 'a set \<Rightarrow> bool" be cleaner?  *)
    "maximal_in A DAs \<equiv> (\<forall>B \<in> atms_of DAs. \<not> less_atm A B)"
@@ -135,7 +134,7 @@ inductive ord_resolve_rename :: "'a clause list \<Rightarrow> 'a clause \<Righta
    ord_resolve_rename CAi DA \<sigma> E"
 
 
-subsection {* Soundness *}
+subsection \<open>Soundness\<close>
 
 lemma ground_prems_ord_resolve_rename_imp_ord_resolve:
   assumes
@@ -324,7 +323,7 @@ proof (cases rule: ord_resolve_rename.cases)
 qed
 
 
-subsection {* Lifting *}
+subsection \<open>Lifting\<close>
 
 context
   fixes M :: "'a clause set"
@@ -363,9 +362,9 @@ end
 
 end
 
-text {*
+text \<open>
 The following corresponds to Lemma 4.12:
-*}
+\<close>
 
 lemma (in linorder) set_sorted_list_of_multiset[simp]:
   "set (sorted_list_of_multiset M) = set_mset M"

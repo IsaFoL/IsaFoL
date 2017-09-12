@@ -4,24 +4,24 @@
     Maintainer:  Anders Schlichtkrull
 *)
 
-section {* Ground Unordered Resolution Calculus *}
+section \<open>Ground Unordered Resolution Calculus\<close>
 
 theory Unordered_Ground_Resolution
   imports Inference_System Ground_Resolution_Model
 begin
 
-text {*
+text \<open>
 Unordered ground resolution is one of the two inference systems studied in Section 3 (``Standard
 Resolution'') of Bachmair and Ganzinger's chapter.
-*}
+\<close>
 
 
-subsection {* Inference Rule *}
+subsection \<open>Inference Rule\<close>
 
-text {*
+text \<open>
 Unordered ground resolution consists of a single rule, called @{text unord_resolve} below, which is
 sound and counterexample-reducing.
-*}
+\<close>
 
 locale ground_resolution_without_selection
 begin
@@ -35,10 +35,10 @@ inductive unord_resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a c
 lemma unord_resolve_sound: "unord_resolve C D E \<Longrightarrow> I \<Turnstile> C \<Longrightarrow> I \<Turnstile> D \<Longrightarrow> I \<Turnstile> E"
   using unord_resolve.cases by fastforce
 
-text {*
+text \<open>
 The following result corresponds to Theorem 3.8, except that the conclusion is strengthened slightly
 to make it fit better with the counterexample-reducing inference system framework.
-*}
+\<close>
 
 theorem unord_resolve_counterex_reducing:
   assumes
@@ -128,12 +128,12 @@ proof -
 qed
 
 
-subsection {* Inference System *}
+subsection \<open>Inference System\<close>
 
-text {*
+text \<open>
 Lemma 3.9 and Corollary 3.10 are subsumed in the counterexample-reducing inference system framework,
 which is instantiated below.
-*}
+\<close>
 
 definition unord_\<Gamma> :: "'a inference set" where
   "unord_\<Gamma> = {Infer {#C#} D E | C D E. unord_resolve C D E}"
@@ -168,10 +168,10 @@ lemmas clausal_logic_compact = unord_\<Gamma>_sound_counterex_reducing.clausal_l
 
 end
 
-text {*
+text \<open>
 Theorem 3.12, compactness of clausal logic, has finally been derived for a concrete inference
 system:
-*}
+\<close>
 
 lemmas clausal_logic_compact = ground_resolution_without_selection.clausal_logic_compact
 

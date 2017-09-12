@@ -4,24 +4,24 @@
     Maintainer:  Anders Schlichtkrull
 *)
 
-section {* Refutational Inference Systems *}
+section \<open>Refutational Inference Systems\<close>
 
 theory Inference_System
   imports "../lib/Herbrand_Interpretation"
 begin
 
-text {*
+text \<open>
 This theory gathers results from Section 2.4 (``Refutational Theorem Proving''), 3 (``Standard
 Resolution''), and 4.2 (``Counterexample-Reducing Inference Systems'') of Bachmair and Ganzinger's
 chapter.
-*}
+\<close>
 
 
-subsection {* Preliminaries *}
+subsection \<open>Preliminaries\<close>
 
-text {*
+text \<open>
 Inferences have one distinguished main premise, any number of side premises, and a conclusion.
-*}
+\<close>
 
 datatype 'a inference =
   Infer (side_prems_of: "'a clause multiset") (main_prem_of: "'a clause") (concl_of: "'a clause")
@@ -69,9 +69,9 @@ qed
 
 end
 
-text {*
+text \<open>
 Satisfiability preservation is a weaker requirement than soundness.
-*}
+\<close>
 
 locale sat_preserving_inference_system = inference_system +
   assumes \<Gamma>_sat_preserving: "satisfiable N \<Longrightarrow> satisfiable (N \<union> concls_of (inferences_from N))"
@@ -107,9 +107,9 @@ locale reductive_inference_system = inference_system \<Gamma> for \<Gamma> :: "(
   assumes \<Gamma>_reductive: "\<gamma> \<in> \<Gamma> \<Longrightarrow> concl_of \<gamma> < main_prem_of \<gamma>"
 
 
-subsection {* Refutational Completeness *}
+subsection \<open>Refutational Completeness\<close>
 
-text {*
+text \<open>
 Refutational completeness can be established once and for all for counterexample-reducing inference
 systems. The material formalized here draws from both the general framework of Section 4.2 and the
 concrete instances of Section 3.
@@ -118,7 +118,7 @@ concrete instances of Section 3.
 The chapter uses the phrase ``true in $N$'' to mean ``true in $I_N$ and element of $N$.'' This is
 formalized by the condition @{prop "set_mset DD \<subseteq> N \<and> interp N \<Turnstile>m DD"} below.
 \end{nit}
-*}
+\<close>
 
 locale counterex_reducing_inference_system =
   inference_system \<Gamma> for \<Gamma> :: "('a :: wellorder) inference set" +
@@ -173,9 +173,9 @@ proof -
     by satx
 qed
 
-text {*
+text \<open>
 Cf. Corollary 3.10:
-*}
+\<close>
 
 corollary saturated_refute_complete: "saturated N \<Longrightarrow> \<not> satisfiable N \<Longrightarrow> {#} \<in> N"
   using saturated_no_empty_imp_model by blast
@@ -183,13 +183,13 @@ corollary saturated_refute_complete: "saturated N \<Longrightarrow> \<not> satis
 end
 
 
-subsection {* Compactness *}
+subsection \<open>Compactness\<close>
 
-text {*
+text \<open>
 Bachmair and Ganzinger claim that compactness follows from refutational completeness but leave the
 proof to the readers' imagination. Our proof relies on an inductive definition of saturation in
 terms of a base set of clauses.
-*}
+\<close>
 
 context inference_system
 begin
@@ -262,9 +262,9 @@ end
 context sat_preserving_inference_system
 begin
 
-text {*
+text \<open>
 This result surely holds, but we have yet to prove it.
-*}
+\<close>
 
 theorem saturate_sat_preserving: "satisfiable CC \<Longrightarrow> satisfiable (saturate CC)"
   thm saturate.induct
@@ -276,12 +276,12 @@ locale sound_counterex_reducing_inference_system =
   counterex_reducing_inference_system + sound_inference_system
 begin
 
-text {*
+text \<open>
 Compactness of clausal logic is stated as Theorem 3.12 for the case of unordered ground resolution.
 The proof below is a generalization to any sound counterexample-reducing inference system. The
 actual theorem will become available once the locale has been instantiated with a concrete inference
 system.
-*}
+\<close>
 
 theorem clausal_logic_compact:
   fixes N :: "('a :: wellorder) clause set"

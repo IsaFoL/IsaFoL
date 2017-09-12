@@ -4,16 +4,16 @@
     Maintainer:  Anders Schlichtkrull
 *)
 
-section {* The Standard Redundancy Criterion *}
+section \<open>The Standard Redundancy Criterion\<close>
 
 theory Standard_Redundancy
   imports Proving_Process
 begin
 
-text {*
+text \<open>
 This material is based on Section 4.2.2 (``The Standard Redundancy Criterion'') of Bachmair and
 Ganzinger's chapter.
-*}
+\<close>
 
 locale standard_redundancy_criterion = counterex_reducing_inference_system
 begin
@@ -40,10 +40,10 @@ proof -
     unfolding Rf_def by blast
 qed
 
-text {*
+text \<open>
 The following results correspond to Lemma 4.5. The lemma @{text assume_non_Rf} generalizes the core
 of the argument.
-*}
+\<close>
 
 lemma Rf_mono: "N \<subseteq> N' \<Longrightarrow> Rf N \<subseteq> Rf N'"
   unfolding Rf_def by auto
@@ -136,7 +136,7 @@ qed
 lemma Rf_eq_Rf_diff_Rf: "Rf N = Rf (N - Rf N)"
   by (metis Diff_subset Rf_mono Rf_subs_Rf_diff_Rf subset_antisym)
 
-text {*
+text \<open>
 The following results correspond to Lemma 4.6.
 
 \begin{nit}
@@ -144,7 +144,7 @@ Lemma 4.6 does not seem to be derivable from Lemma 4.5, unlike what the chapter 
 appears necessary to generalize the argument of Lemma 4.5 (cf.\ the @{thm [source] assume_non_Rf}
 lemma).
 \end{nit}
-*}
+\<close>
 
 lemma Ri_mono: "N \<subseteq> N' \<Longrightarrow> Ri N \<subseteq> Ri N'"
   unfolding Ri_def by auto
@@ -195,20 +195,20 @@ qed
 lemma Rf_sat: "satisfiable (N - Rf N) \<Longrightarrow> satisfiable N"
   by (metis Rf_true)
 
-text {*
+text \<open>
 The following corresponds to Theorem 4.7:
-*}
+\<close>
 
 sublocale redundancy_criterion \<Gamma> Rf Ri
   by unfold_locales (rule Ri_subset_\<Gamma>, (elim Rf_mono Ri_mono Rf_indep Ri_indep Rf_sat)+)
 
-text {*
+text \<open>
 The following result corresponds to Theorem 4.9. (The ``if'' direction is omitted because trivial.)
 
 \begin{nit}
 The invocation of Lemma 4.5 does not fit. What is needed is a generalized version of Lemma 4.6.
 \end{nit}
-*}
+\<close>
 
 theorem saturated_upto_refute_complete:
   assumes
@@ -269,9 +269,9 @@ locale standard_redundancy_criterion_reductive =
   standard_redundancy_criterion + reductive_inference_system
 begin
 
-text {*
+text \<open>
 The following corresponds to Theorem 4.8:
-*}
+\<close>
 
 sublocale effective_redundancy_criterion \<Gamma> Rf Ri
 unfolding effective_redundancy_criterion_def

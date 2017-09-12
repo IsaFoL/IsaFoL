@@ -3,7 +3,7 @@
     Maintainer:  Anders Schlichtkrull
 *)
 
-section {* Map Function on Two Parallel Lists *}
+section \<open>Map Function on Two Parallel Lists\<close>
 
 theory Map2
   imports Main

@@ -4,19 +4,19 @@
     Maintainer:  Anders Schlichtkrull
 *)
 
-section {* Theorem Proving Processes *}
+section \<open>Theorem Proving Processes\<close>
 
 theory Proving_Process
   imports Unordered_Ground_Resolution Lazy_List_Limit
 begin
 
-text {*
+text \<open>
 This material corresponds to Section 4.1 (``Theorem Proving Processes'') of Bachmair and Ganzinger's
 chapter.
-*}
+\<close>
 
 
-subsection {* Chains *}
+subsection \<open>Chains\<close>
 
 coinductive
   chain :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a llist \<Rightarrow> bool" for R :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
@@ -86,12 +86,12 @@ proof (coinduction arbitrary: Ms)
 qed
 
 
-subsection {* Processes *}
+subsection \<open>Processes\<close>
 
-text {*
+text \<open>
 The locale assumptions below capture conditions R1 to R3 of Definition 4.1.
 @{text Rf} denotes $\mathcal{R}_{\mathcal{F}}$; @{text Ri} denotes $\mathcal{R}_{\mathcal{I}}$.
-*}
+\<close>
 
 locale redundancy_criterion = inference_system +
   fixes
@@ -166,13 +166,13 @@ lemma derive_eq_derive2: "rtranclp derive = rtranclp derive2"
 
 end
 
-text {*
+text \<open>
 \begin{nit}
 Section 4.1 requires soundness, even though it is claimed in Section 2.4 that only
 consistency-preserving inference systems will be considered. It turns out that consistency
 preservation is enough, but a different proof is needed.
 \end{nit}
-*}
+\<close>
 
 locale sat_preserving_redundancy_criterion =
   sat_preserving_inference_system "\<Gamma> :: ('a :: wellorder) inference set" + redundancy_criterion
@@ -240,9 +240,9 @@ proof -
     using ground_resolution_without_selection.clausal_logic_compact[THEN iffD1] by metis
 qed
 
-text {*
+text \<open>
 This corresponds to Lemma 4.2:
-*}
+\<close>
 
 lemma derivation_supremum_limit_llist_satisfiable:
   assumes deriv: "derivation Ns"
@@ -318,9 +318,9 @@ qed
 
 end
 
-text {*
+text \<open>
 The assumption below corresponds to condition R4 of Definition 4.1.
-*}
+\<close>
 
 locale effective_redundancy_criterion = redundancy_criterion +
   assumes Ri_effective: "\<gamma> \<in> \<Gamma> \<Longrightarrow> concl_of \<gamma> \<in> N \<union> Rf N \<Longrightarrow> \<gamma> \<in> Ri N"
@@ -339,14 +339,14 @@ begin
 
 sublocale sat_preserving_redundancy_criterion ..
 
-text {*
+text \<open>
 The result below corresponds to Theorem 4.3.
 
 \begin{nit}
 The case where $\gamma \in \mathcal{R}_{\mathcal{I}}(N_\infty \backslash
 \mathcal{R}_{\mathcal{F}}(N_\infty))$ is not covered by the proof.
 \end{nit}
-*}
+\<close>
 
 theorem fair_derive_saturated:
   assumes
@@ -388,10 +388,10 @@ qed
 
 end
 
-text {*
+text \<open>
 This corresponds to the trivial redundancy criterion defined on page 36 of
 Section 4.1.
-*}
+\<close>
 
 locale trivial_redundancy_criterion = inference_system
 begin
@@ -410,10 +410,10 @@ lemma saturated_upto_iff: "saturated_upto N \<longleftrightarrow> concls_of (inf
 
 end
 
-text {*
+text \<open>
 The following lemmas corresponds to the standard extension of a redundancy
 criterion defined on page 38 of Section 4.1.
-*}
+\<close>
 
 lemma standard_redundancy_criterion_extension:
   assumes "\<Gamma> \<subseteq> \<Gamma>'" and "redundancy_criterion \<Gamma> Rf Ri"
