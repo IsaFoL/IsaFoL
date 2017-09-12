@@ -1,7 +1,7 @@
 (*  Title:       Herbrand Interpretation
-    Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
+    Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2014, 2017
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
-    Maintainer:  Jasmin Blanchette <jasmin.blanchette at inria.fr>
+    Maintainer:  Jasmin Blanchette <j.c.blanchette at vu.nl>
 *)
 
 section \<open>Herbrand Intepretation\<close>

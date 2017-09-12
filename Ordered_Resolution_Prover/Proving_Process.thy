@@ -1,5 +1,5 @@
 (*  Title:       Theorem Proving Processes
-    Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
+    Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2014, 2017
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
     Maintainer:  Anders Schlichtkrull
 *)
