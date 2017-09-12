@@ -1383,7 +1383,7 @@ definition backtrack_l_inv where
       twl_struct_invs (twl_st_of None S) \<and>
       twl_stgy_invs (twl_st_of None S) \<and>
       additional_WS_invs S \<and>
-      get_conflict_l S \<noteq> None
+      get_conflict_l S \<noteq> Some {#}
   \<close>
 
 definition propgate_bt_l :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
