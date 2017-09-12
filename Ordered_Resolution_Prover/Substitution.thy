@@ -595,10 +595,10 @@ lemma Nil_comp_substs[simp]: "[] \<odot>s s = []"
 lemma comp_substs_Nil[simp]: "s \<odot>s [] = []"
   unfolding comp_substs_def by auto
 
-lemma xxid: "is_renaming x \<Longrightarrow> x \<odot> x = x \<Longrightarrow> x = id_subst"
+lemma is_renaming_idempotent_id_subst: "is_renaming x \<Longrightarrow> x \<odot> x = x \<Longrightarrow> x = id_subst"
   by (metis comp_subst_assoc comp_subst_id_subst inv_ren_cancel_r)
 
-lemma xyidyxid: "is_renaming x \<Longrightarrow> is_renaming y \<Longrightarrow> x \<odot> y = id_subst \<Longrightarrow> y \<odot> x = id_subst"
+lemma is_renaming_left_id_subst_right_id_subst: "is_renaming x \<Longrightarrow> is_renaming y \<Longrightarrow> x \<odot> y = id_subst \<Longrightarrow> y \<odot> x = id_subst"
   by (metis comp_subst_assoc comp_subst_id_subst is_renaming_def)
 
 (* Closure *)
