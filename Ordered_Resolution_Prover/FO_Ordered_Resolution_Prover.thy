@@ -116,7 +116,7 @@ lemma sound_gd_ord_\<Gamma>': "sound_inference_system gd_ord_\<Gamma>'"
   by auto
 
 lemma sat_preserving_gd_ord_\<Gamma>': "sat_preserving_inference_system gd_ord_\<Gamma>'"
-  using sound_gd_ord_\<Gamma>' sat_preserving_inference_system.intro sound_inference_system.\<Gamma>_sat_preserving by blast 
+  using sound_gd_ord_\<Gamma>' sat_preserving_inference_system.intro sound_inference_system.\<Gamma>_sat_preserving by blast
 
 definition src_ext_Ri where
   "src_ext_Ri = (\<lambda>N. src.Ri N \<union> (gd_ord_\<Gamma>' - gd.ord_\<Gamma>))"
@@ -211,7 +211,7 @@ using assms proof (induction rule: resolution_prover.induct)
       unfolding grounding_of_cls_def by auto
     then have "Neg (A \<cdot>a \<sigma>) \<in># C\<sigma> \<and> Pos (A \<cdot>a \<sigma>) \<in># C\<sigma>"
       using tautology_deletion Neg_Melem_subst_atm_subst_cls Pos_Melem_subst_atm_subst_cls by auto
-      
+
     then have "C\<sigma> \<in> src.Rf (grounding_of_state (N, P, Q))"
       using src.tautology_redundant by auto
   }
@@ -1004,7 +1004,7 @@ proof (rule ccontr)
   then have lte: "\<forall>i. (size o c) i \<ge> (size o c) (Suc i)"
     unfolding comp_def .
   then have "\<exists>l. \<forall>l' \<ge> l. (size o c) l' = (size o c) (Suc l')"
-    using f_Suc_decr_eventually_const by auto 
+    using f_Suc_decr_eventually_const by auto
   then have "\<exists>l. \<forall>l' \<ge> l. size (c l') = size (c (Suc l'))"
     unfolding comp_def by auto
   then obtain l where l_p: "\<forall>l' \<ge> l. size (c l') = size (c (Suc l'))"
@@ -1961,7 +1961,7 @@ proof -
           using abcdefg[of CAi1 Ci Aij] unfolding is_ground_cls_list_def by auto
         have gai: "is_ground_atms (set Ai)"
           using ord_resolve(1) gd
-          by (metis atms_of_negg is_ground_cls_union set_mset_mset is_ground_cls_is_ground_atms_atms_of) 
+          by (metis atms_of_negg is_ground_cls_union set_mset_mset is_ground_cls_is_ground_atms_atms_of)
         then have gai2: "is_ground_atm_mset (mset Ai)"
           unfolding is_ground_atm_mset_def is_ground_atms_def by auto
         have gai3: "is_ground_atm_list Ai"
@@ -1969,7 +1969,7 @@ proof -
         have gD: "is_ground_cls D"
           using gd ord_resolve by simp
 
-        
+
 
         from f g have "atms_of D \<union> set Ai \<noteq> {}" "finite (atms_of D \<union> set Ai)"
           by auto
@@ -2111,7 +2111,7 @@ proof -
   }
   then have "src_ext.saturated_upto (limit_llist (lmap grounding_of_state Sts))"
     unfolding src_ext.saturated_upto_def  src_ext.inferences_from_def
-    using gd_ord_\<Gamma>_ngd_ord_\<Gamma> 
+    using gd_ord_\<Gamma>_ngd_ord_\<Gamma>
     unfolding src_ext.saturated_upto_def src_ext.inferences_from_def infer_from_def src_ext_Ri_def
     by auto
   note continue_from_this = this

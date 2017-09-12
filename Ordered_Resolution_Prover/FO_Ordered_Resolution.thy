@@ -80,7 +80,7 @@ subsection {* Calculus *}
 
 definition maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where (* Would "'a \<Rightarrow> 'a set \<Rightarrow> bool" be cleaner?  *)
    "maximal_in A DAs \<equiv> (\<forall>B \<in> atms_of DAs. \<not> less_atm A B)"
-  
+
 abbreviation str_maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where (* Would "'a \<Rightarrow> 'a set \<Rightarrow> bool" be cleaner?  *)
   "str_maximal_in A CAis \<equiv> (\<forall>B \<in> atms_of CAis. \<not> less_eq_atm A B)"
 
@@ -312,7 +312,7 @@ lemma ord_resolve_rename_sound:
   using res_e
 proof (cases rule: ord_resolve_rename.cases)
   case (ord_resolve_rename \<rho> P)
-  then have len: "length P = length CAi" 
+  then have len: "length P = length CAi"
     using ord_resolve_rename mk_var_dis_p by auto
   have res: "ord_resolve (CAi \<cdot>\<cdot>cl P) (DA \<cdot> \<rho>) \<sigma> E"
     using ord_resolve_rename by -
@@ -426,7 +426,7 @@ lemma map2_add_mset_map:
     by simp
   moreover
   have Succ: "length (Ai' \<cdot>al \<eta>) = Suc n" "length (Aij' \<cdot>aml \<eta>) = Suc n"
-    using Suc(3) Suc(2) by auto 
+    using Suc(3) Suc(2) by auto
   then have "length (tl (Ai' \<cdot>al \<eta>)) = n" "length (tl (Aij' \<cdot>aml \<eta>)) = n"
     by auto
   then have "length (map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>))) = n"
@@ -493,11 +493,11 @@ proof -
   then show ?thesis unfolding less_eq_atm_def by auto
 qed
 
-lemma sum_list_subseteq_mset_is_ground_cls_list[simp]: 
+lemma sum_list_subseteq_mset_is_ground_cls_list[simp]:
   "sum_list Ci \<subseteq># sum_list CAi \<Longrightarrow> is_ground_cls_list CAi \<Longrightarrow> is_ground_cls_list Ci"
   by (metis is_ground_cls_Union_mset is_ground_cls_list_def is_ground_cls_mono is_ground_cls_mset_def set_mset_mset sum_mset_sum_list)
 
-lemma is_ground_cls_list_is_ground_cls_sum_list[simp]: 
+lemma is_ground_cls_list_is_ground_cls_sum_list[simp]:
   "is_ground_cls_list Ci \<Longrightarrow> is_ground_cls (sum_list Ci)"
   by (meson in_mset_sum_list2 is_ground_cls_def is_ground_cls_list_def)
 
