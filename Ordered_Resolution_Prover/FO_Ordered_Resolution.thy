@@ -929,13 +929,10 @@ proof (cases rule: ord_resolve.cases)
     have \<eta>\<sigma>uni: "is_unifiers (\<eta> \<odot> \<sigma>) (set_mset ` set (map2 add_mset Ai' Aij'))"
     proof -
       have eq: "(set_mset ` set (map2 add_mset Ai' Aij' \<cdot>aml \<eta>)) = (set_mset ` set (map2 add_mset Ai' Aij') \<cdot>ass \<eta>)"
-        unfolding subst_atmss_def
-          subst_atm_mset_list_def
-        using subst_atm_mset_def subst_atms_def by auto
-      have "is_unifiers \<sigma> (set_mset ` set (map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)))"
-        using uu by -
-      then have "is_unifiers \<sigma> (set_mset ` set ((map2 add_mset Ai' Aij') \<cdot>aml \<eta>))"
-        using n map2_add_mset_map by auto
+        unfolding subst_atmss_def subst_atm_mset_list_def using subst_atm_mset_def subst_atms_def
+        by (simp add: image_image subst_atm_mset_def subst_atms_def)
+      have "is_unifiers \<sigma> (set_mset ` set ((map2 add_mset Ai' Aij') \<cdot>aml \<eta>))"
+        using uu n map2_add_mset_map by auto
       then have "is_unifiers \<sigma> (set_mset ` set ((map2 add_mset Ai' Aij')) \<cdot>ass \<eta>)"
         using eq by auto
       then show ?thesis
@@ -945,9 +942,9 @@ proof (cases rule: ord_resolve.cases)
       \<tau>_p: "Some \<tau> = mgu (set_mset ` set (map2 add_mset Ai' Aij'))"
       using mgu_complete
       by (metis (mono_tags, hide_lams) List.finite_set finite_imageI finite_set_mset image_iff)
-    moreover
-    then obtain \<phi> where \<phi>_p: "\<tau> \<odot> \<phi> = \<eta> \<odot> \<sigma>"
-      by (metis (mono_tags, hide_lams) List.finite_set \<eta>\<sigma>uni finite_imageI finite_set_mset image_iff mgu_sound set_mset_mset substitution_ops.is_mgu_def that) (* should be simpler *)
+    moreover then obtain \<phi> where \<phi>_p: "\<tau> \<odot> \<phi> = \<eta> \<odot> \<sigma>"
+      by (metis (mono_tags, hide_lams) finite_set \<eta>\<sigma>uni finite_imageI finite_set_mset image_iff
+          mgu_sound set_mset_mset substitution_ops.is_mgu_def) (* should be simpler *)
     ultimately show ?thesis using that
       by auto
   qed
