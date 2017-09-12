@@ -1,12 +1,14 @@
-(*  Title:       A Simple Resolution Prover for First-Order Clauses
+(*  Title:       A Simple Ordered Resolution Prover for First-Order Clauses
     Author:      Anders Schlichtkrull, 2017
     Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
     Maintainer:  Anders Schlichtkrull
 *)
 
+section \<open>A Simple Ordered Resolution Prover for First-Order Clauses\<close>
+
 theory FO_Ordered_Resolution_Prover
-imports FO_Ordered_Resolution
+  imports FO_Ordered_Resolution
 begin
 
 type_synonym 'a state = "'a clause set \<times> 'a clause set \<times> 'a clause set"
@@ -46,9 +48,9 @@ interpretation ord_FO_resolution: inference_system ord_FO_\<Gamma> .
 inductive subsume_resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where (* This is never used. *)
   "subsume_resolve (D + {#L#}) (C + (D + {#- L#}) \<cdot> \<sigma>) (C + D \<cdot> \<sigma>)"
 
-text {*
+text \<open>
 @{text O} denotes relation composition in Isabelle, so the formalization uses @{text Q} instead.
-*}
+\<close>
 
 inductive resolution_prover :: "'a state \<Rightarrow> 'a state \<Rightarrow> bool" (infix "\<leadsto>" 50)  where
   tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N \<union> {C}, P, Q) \<leadsto> (N, P, Q)"
@@ -126,9 +128,9 @@ interpretation src_ext:
   unfolding sat_preserving_redundancy_criterion_def src_ext_Ri_def
   using sat_preserving_gd_ord_\<Gamma>' using standard_redundancy_criterion_extension gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redudancy_criterion by auto
 
-text {*
+text \<open>
 The following corresponds to Lemma 4.10:
-*}
+\<close>
 
 lemma subst_subset_mono: "D \<subset># C \<Longrightarrow> D \<cdot> \<sigma> \<subset># C \<cdot> \<sigma>"
   unfolding subst_cls_def
@@ -185,9 +187,9 @@ qed
 lemma grounding_of_clss_mono: "X \<subseteq> Y \<Longrightarrow> grounding_of_clss X \<subseteq> grounding_of_clss Y"
   using grounding_of_clss_def by auto
 
-text {*
+text \<open>
 The following corresponds to Lemma 4.10:
-*}
+\<close>
 
 lemma subst_cls_eq_grounding_of_cls_subset_eq: "D \<cdot> \<sigma> = C \<Longrightarrow> grounding_of_cls C \<subseteq> grounding_of_cls D"
   unfolding grounding_of_cls_def
@@ -634,17 +636,17 @@ next
     using src_ext.derive.intros[of "(grounding_of_state (N, P, Q \<union> {C}))" "(grounding_of_state ({}, P \<union> {C}, Q))"] by auto
 qed
 
-text {*
+text \<open>
 Another formulation of the last part of lemma 4.10
- *}
+\<close>
 
 lemma resolution_prover_ground_derivation:
   "chain (op \<leadsto>) Sts \<Longrightarrow> chain src_ext.derive (lmap grounding_of_state Sts)"
   using resolution_prover_ground_derive by (simp add: chain_lmap[of "op \<leadsto>"])
 
-text {*
+text \<open>
 The following is used prove to Lemma 4.11:
-*}
+\<close>
 
 (* FIXME: Used only once, really -- inline? *)
 definition is_least :: "(nat \<Rightarrow> bool) \<Rightarrow> nat \<Rightarrow> bool" where
@@ -1690,9 +1692,9 @@ proof -
     by auto
 qed
 
-text {*
+text \<open>
 The following corresponds to Lemma 4.11:
-*}
+\<close>
 
 lemma fair_imp_limit_minus_Rf_subset_ground_limit_state:
   assumes
@@ -1728,9 +1730,9 @@ proof
     unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def using D'_p by auto
 qed
 
-text {*
+text \<open>
 The following corresponds to (one direction of) Theorem 4.13:
-*}
+\<close>
 
 lemma ground_max_ground:
   assumes "X\<noteq>{}"

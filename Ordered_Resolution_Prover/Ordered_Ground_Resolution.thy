@@ -1,33 +1,33 @@
-(*  Title:       Ordered Ground Resolution with Selection
+(*  Title:       Ground Ordered Resolution Calculus with Selection
     Author:      Anders Schlichtkrull, 2017
     Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
-    Maintainer:  Anders Schlichtkrull <jasmin.blanchette at inria.fr>
+    Maintainer:  Anders Schlichtkrull
 *)
 
-section {* Ordered Ground Resolution with Selection *}
+section \<open>Ground Ordered Resolution Calculus with Selection\<close>
 
 theory Ordered_Ground_Resolution
-imports Inference_System Ground_Resolution_Model
+  imports Inference_System Ground_Resolution_Model
 begin
 
-text {*
+text \<open>
 Ordered ground resolution with selection is the second inference system studied in Section 3
 (``Standard Resolution'') of Bachmair and Ganzinger's chapter.
-*}
+\<close>
 
 
-subsection {* Inference Rule *}
+subsection \<open>Inference Rule\<close>
 
-text {*
+text \<open>
 Ordered ground resolution consists of a single rule, called @{text ord_resolve} below. Like
 @{text unord_resolve}, the rule is sound and counterexample-reducing. In addition, it is reductive.
-*}
+\<close>
 
 context ground_resolution_with_selection
 begin
 
-text {*
+text \<open>
 The following inductive definition corresponds to Figure 2.
 
 \begin{nit}
@@ -36,7 +36,7 @@ In condition (iii), it is not clear with respect to which clause the ``selected 
 seen. The two candidates are $S(\lnot\,A_1 \lor \cdots \lor \lnot\,A_n \lor D)$ and
 $S(C_i \lor A_i \lor \cdots \lor A_i)$. Apparently, the latter was meant.
 \end{nit}
-*}
+\<close>
 
 abbreviation maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where
   "maximal_in A DA \<equiv> (A = Max (atms_of DA))" (* FIXME: Change to (\<forall>B \<in> atms_of CA. B \<le> A)? *)
@@ -122,9 +122,9 @@ qed
 lemma filter_neg_atm_of_S: "{#Neg (atm_of L). L \<in># S C#} = S C"
   by (simp add: S_selects_neg_lits)
 
-text {*
+text \<open>
 This corresponds to Lemma 3.13:
-*}
+\<close>
 
 lemma ord_resolve_reductive:
   assumes res_e: "ord_resolve CAi DA E"
@@ -204,9 +204,9 @@ proof (cases rule: ord_resolve.cases)
   qed
 qed
 
-text {*
+text \<open>
 This corresponds to Theorem 3.15:
-*}
+\<close>
 
 theorem ord_resolve_counterex_reducing:
   assumes
@@ -456,13 +456,13 @@ using res_e proof (cases rule: ord_resolve.cases)
 qed
 
 
-subsection {* Inference System *}
+subsection \<open>Inference System\<close>
 
-text {*
+text \<open>
 Theorem 3.16 is subsumed in the counterexample-reducing inference system framework, which is
 instantiated below. Unlike its unordered cousin, ordered resolution is additionally a reductive
 inference system.
-*}
+\<close>
 
 definition ord_\<Gamma> :: "'a inference set" where
   "ord_\<Gamma> = {Infer (mset CAi) DA E | CAi DA E. ord_resolve CAi DA E}"
@@ -508,9 +508,9 @@ lemmas clausal_logic_compact = ord_\<Gamma>_sound_counterex_reducing.clausal_log
 
 end
 
-text {*
+text \<open>
 A second proof of Theorem 3.12, compactness of clausal logic:
-*}
+\<close>
 
 lemmas clausal_logic_compact = ground_resolution_with_selection.clausal_logic_compact
 

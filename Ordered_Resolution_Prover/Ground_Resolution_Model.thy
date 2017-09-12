@@ -4,19 +4,19 @@
     Maintainer:  Anders Schlichtkrull
 *)
 
-section {* Candidate Models for Ground Resolution *}
+section \<open>Candidate Models for Ground Resolution\<close>
 
 theory Ground_Resolution_Model
-imports "../lib/Herbrand_Interpretation"
+  imports "../lib/Herbrand_Interpretation"
 begin
 
-text {*
+text \<open>
 The proofs of refutational completeness for the two resolution inference systems presented in
 Section 3 (``Standard Resolution'') of Bachmair and Ganzinger's chapter share mostly the same
 candidate model construction. The literal selection capability needed for the second system is
 ignored by the first one, by taking @{term "\<lambda>_. {}"} as instantiation for the @{text S}
 parameter.
-*}
+\<close>
 
 locale selection =
   fixes S :: "'a clause \<Rightarrow> 'a clause"
@@ -28,13 +28,13 @@ locale ground_resolution_with_selection =
   selection S for S :: "('a :: wellorder) clause \<Rightarrow> 'a clause"
 begin
 
-text {*
+text \<open>
 The following commands corresponds to Definition 3.14, which generalizes Definition 3.1.
 @{text "production C"} is denoted $\varepsilon_C$ in the chapter; @{text "interp C"} is denoted
 $I_C$; @{text "Interp C"} is denoted $I^C$; and @{text Interp_N} is denoted $I_N$. The mutually
 recursive definition from the chapter is massaged to simplify the termination argument. The
 @{text production_unfold} lemma below gives the intended characterization.
-*}
+\<close>
 
 context
   fixes N :: "'a clause set"
@@ -165,13 +165,13 @@ lemma not_produces_imp_notin_production: "\<not> produces C A \<Longrightarrow> 
 lemma not_produces_imp_notin_interp: "(\<And>D. \<not> produces D A) \<Longrightarrow> A \<notin> interp C"
   unfolding interp_def by (fast intro!: in_production_imp_produces)
 
-text {*
+text \<open>
 The results below corresponds to Lemma 3.4.
 
 \begin{nit}
 If $D = D'$ and $D$ is productive, $I^D \subseteq I_{D'}$ does not hold.
 \end{nit}
-*}
+\<close>
 
 lemma true_Interp_imp_general:
   assumes
@@ -247,9 +247,9 @@ lemma true_interp_imp_INTERP: "C \<le> D \<Longrightarrow> interp D \<Turnstile>
 lemma productive_imp_false_interp: "productive C \<Longrightarrow> \<not> interp C \<Turnstile> C"
   unfolding production_unfold by simp
 
-text {*
+text \<open>
 This corresponds to Lemma 3.3:
-*}
+\<close>
 
 lemma productive_imp_true_in_Interp:
   assumes "productive C"
@@ -268,9 +268,9 @@ qed
 lemma productive_imp_true_in_INTERP: "productive C \<Longrightarrow> INTERP \<Turnstile> C"
   by (fast intro: productive_imp_true_in_Interp true_Interp_imp_INTERP)
 
-text {*
+text \<open>
 This corresponds to Lemma 3.5:
-*}
+\<close>
 
 lemma max_pos_imp_true_in_Interp:
   assumes "C \<in> N" and "C \<noteq> {#}" and "Max_mset C = Pos A" and "S C = {#}"
@@ -287,9 +287,9 @@ next
     unfolding Interp_def using False by auto
 qed
 
-text {*
+text \<open>
 The following results correspond to Lemma 3.6:
-*}
+\<close>
 
 lemma max_atm_imp_true_in_Interp:
   assumes
@@ -373,7 +373,7 @@ lemma false_Interp_imp_INTERP:
   using INTERP_def interp_subseteq_INTERP false_Interp_imp_general[OF _ _ _ le_multiset_right_total]
   by simp
 
-text {*
+text \<open>
 Lemma 3.7 is a problem child. It is stated below but not proved; instead, a counterexample is
 displayed. This is not much of a problem, because it is not invoked in the rest of the chapter.
 
@@ -383,7 +383,7 @@ In the lemma's statement, ``then $D'$'' should be ``then $C$.'' It is also not c
 lemma's proof, the case distinction is incomplete (as can be seen by instantiating the proof with
 the counterexample).
 \end{nit}
-*}
+\<close>
 
 lemma
   assumes "D \<in> N" and "\<And>D'. D' < D \<Longrightarrow> Interp D' \<Turnstile> C"

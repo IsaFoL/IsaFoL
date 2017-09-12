@@ -4,19 +4,19 @@
     Maintainer:  Jasmin Blanchette <jasmin.blanchette at inria.fr>
 *)
 
-section {* Limits of Lazy Lists *}
+section \<open>Limits of Lazy Lists\<close>
 
 theory Lazy_List_Limit
-imports "$AFP/Coinductive/Coinductive_List"
+  imports "$AFP/Coinductive/Coinductive_List"
 begin
 
-text {*
+text \<open>
 Lazy lists, as defined in the \emph{Archive of Formal Proofs}, provide finite and infinite lists in
 one type, defined coinductively. The present theory introduces the concept of the union of all
 elements of a lazy list of sets and the limit of such a lazy list. The definitions are stated more
 generally in terms of lattices. The basis for this theory is Section 4.1 (``Theorem Proving
 Processes'') of Bachmair and Ganzinger's chapter.
-*}
+\<close>
 
 definition Sup_llist :: "('a::complete_distrib_lattice) llist \<Rightarrow> 'a" where
   "Sup_llist As = (\<Squnion>i \<in> {i. enat i < llength As}. lnth As i)"
@@ -80,13 +80,13 @@ next
     by fast
 qed
 
-text {*
+text \<open>
 \begin{nit}
 The chapter does not specify the range of $i$ and $j$. Clearly, $j$ must be bounded by the length of
 the list, but it is less obvious that $i$ also must be bounded, to avoid the inner intersection to
 expand to be the universal set for values of $i$ beyond the length of a finite list.
 \end{nit}
-*}
+\<close>
 
 definition limit_llist :: "('a::{Inf,Sup}) llist \<Rightarrow> 'a" where
   "limit_llist As = (\<Squnion>i \<in> {i. enat i < llength As}. \<Sqinter>j \<in> {j. i \<le> j \<and> enat j < llength As}. lnth As j)"
