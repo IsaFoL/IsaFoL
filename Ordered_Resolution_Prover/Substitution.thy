@@ -963,10 +963,19 @@ lemma is_unifiers_subst_atm_eqI:
 theorem is_unifiers_comp: "is_unifiers \<sigma> (set_mset ` set (map2 add_mset Ai' Aij') \<cdot>ass \<eta>) \<longleftrightarrow> is_unifiers (\<eta> \<odot> \<sigma>) (set_mset ` set (map2 add_mset Ai' Aij'))"
   unfolding is_unifiers_def is_unifier_def subst_atmss_def by auto
 
+subsubsection {* MGUs *}
 
+lemma is_mgu_is_unifiers: "is_mgu \<sigma> AAA \<Longrightarrow> is_unifiers \<sigma> AAA"
+  using is_mgu_def by blast
 
+lemma is_mgu_is_more_general: "is_mgu \<sigma> AAA \<Longrightarrow> is_unifiers \<tau> AAA \<Longrightarrow> (\<exists>\<gamma>. \<tau> = \<sigma> \<odot> \<gamma>)"
+  using is_mgu_def by blast
+
+lemma is_unifiers_is_unifier: "is_unifiers \<sigma> AAA \<Longrightarrow> AA \<in> AAA \<Longrightarrow> is_unifier \<sigma> AA"
+  using is_unifiers_def by auto
 
 end
+
 
 subsection {* Unification *}
 locale unification = substitution subst_atm id_subst comp_subst

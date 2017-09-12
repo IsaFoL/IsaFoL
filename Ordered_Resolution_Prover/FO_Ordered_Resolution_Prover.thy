@@ -9,6 +9,8 @@ theory FO_Ordered_Resolution_Prover
 imports FO_Ordered_Resolution
 begin
 
+type_synonym 'a state = "'a clause set \<times> 'a clause set \<times> 'a clause set"
+
 locale FO_resolution_with_selection =
   FO_resolution subst_atm id_subst comp_subst mgu less_atm +
   selection S
@@ -20,6 +22,22 @@ locale FO_resolution_with_selection =
     mgu :: "'a set set \<Rightarrow> 's option" and
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
 begin
+
+
+fun N_of_state :: "'a state \<Rightarrow> 'a clause set" where
+  "N_of_state (N, P, Q) = N"
+
+fun P_of_state :: "'a state \<Rightarrow> 'a clause set" where
+  "P_of_state (N, P, Q) = P"
+
+fun Q_of_state :: "'a state \<Rightarrow> 'a clause set" where
+  "Q_of_state (N, P, Q) = Q"
+
+definition clss_of_state :: "'a state \<Rightarrow> 'a clause set" where
+  "clss_of_state St = N_of_state St \<union> P_of_state St \<union> Q_of_state St"
+
+abbreviation grounding_of_state :: "'a state \<Rightarrow> 'a clause set" where
+  "grounding_of_state St \<equiv> grounding_of_clss (clss_of_state St)"
 
 definition ord_FO_\<Gamma> :: "'a inference set" where
   "ord_FO_\<Gamma> = {Infer CC D E | CC D E Cl \<sigma>. ord_resolve_rename S Cl D \<sigma> E \<and> mset Cl = CC}"
@@ -379,7 +397,7 @@ next
   then have "grounding_of_state (N \<union> {C}, P, Q) - grounding_of_state (N \<union> {C + {#L#}}, P, Q) \<subseteq> concls_of (src_ext.inferences_from (grounding_of_state (N \<union> {C + {#L#}}, P, Q)))"
     unfolding grounding_of_clss_def clss_of_state_def by auto
   moreover
-  { (*This part is adapted from previous proof *)
+  { (* This part is adapted from previous proof *)
     fix CL\<mu>
     assume "CL\<mu> \<in> grounding_of_cls (C + {#L#})"
     then obtain \<mu> where \<mu>_def: "CL\<mu> = (C + {#L#}) \<cdot> \<mu> \<and> is_ground_subst \<mu>"
@@ -437,7 +455,7 @@ next
   then have "grounding_of_state (N, P \<union> {C}, Q) - grounding_of_state (N, P \<union> {C + {#L#}}, Q) \<subseteq> concls_of (src_ext.inferences_from (grounding_of_state (N, P \<union> {C + {#L#}}, Q)))"
     unfolding grounding_of_clss_def clss_of_state_def by auto
   moreover
-  { (*This part is adapted from previous proof *)
+  { (* This part is adapted from previous proof *)
     fix CL\<mu>
     assume "CL\<mu> \<in> grounding_of_cls (C + {#L#})"
     then obtain \<mu> where \<mu>_def: "CL\<mu> = (C + {#L#}) \<cdot> \<mu> \<and> is_ground_subst \<mu>"
@@ -495,7 +513,7 @@ next
   then have "grounding_of_state (N, P \<union> {C}, Q) - grounding_of_state (N, P, Q \<union> {C + {#L#}}) \<subseteq> concls_of (src_ext.inferences_from (grounding_of_state (N, P, Q \<union> {C + {#L#}})))"
     unfolding grounding_of_clss_def clss_of_state_def by auto
   moreover
-  { (*This part is adapted from previous proof *)
+  { (* This part is adapted from previous proof *)
     fix CL\<mu>
     assume "CL\<mu> \<in> grounding_of_cls (C + {#L#})"
     then obtain \<mu> where \<mu>_def: "CL\<mu> = (C + {#L#}) \<cdot> \<mu> \<and> is_ground_subst \<mu>"

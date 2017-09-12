@@ -5,14 +5,14 @@
     Maintainer:  Anders Schlichtkrull
 *)
 
+section {* First-order ordered resolution calculus *}
+
 theory FO_Ordered_Resolution
 imports Ordered_Ground_Resolution Standard_Redundancy Substitution
 begin
 
 (* FIXME: Avoid such global changes to the intro/etc. sets *)
 declare nth_equalityI [intro]
-
-type_synonym 'a state = "'a clause set \<times> 'a clause set \<times> 'a clause set"
 
 locale FO_resolution =
   unification subst_atm id_subst comp_subst mgu
@@ -45,21 +45,6 @@ definition strictly_subsumes :: "'a clause \<Rightarrow> 'a clause \<Rightarrow>
 definition variants :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   "variants C D \<longleftrightarrow> subsumes C D \<and> subsumes D C"
 
-fun N_of_state :: "'a state \<Rightarrow> 'a clause set" where
-  "N_of_state (N, P, Q) = N"
-
-fun P_of_state :: "'a state \<Rightarrow> 'a clause set" where
-  "P_of_state (N, P, Q) = P"
-
-fun Q_of_state :: "'a state \<Rightarrow> 'a clause set" where
-  "Q_of_state (N, P, Q) = Q"
-
-definition clss_of_state :: "'a state \<Rightarrow> 'a clause set" where
-  "clss_of_state St = N_of_state St \<union> P_of_state St \<union> Q_of_state St"
-
-abbreviation grounding_of_state :: "'a state \<Rightarrow> 'a clause set" where
-  "grounding_of_state St \<equiv> grounding_of_clss (clss_of_state St)"
-
 text {*
 \begin{nit}
 $A_{ii}$ vs.\ $A_i$
@@ -69,6 +54,8 @@ $A_{ii}$ vs.\ $A_i$
 context
   fixes S :: "'a clause \<Rightarrow> 'a clause"
 begin
+
+subsection {* Calculus *}
 
 definition maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where (* Would "'a \<Rightarrow> 'a set \<Rightarrow> bool" be cleaner?  *)
    "maximal_in A DAs \<equiv> (\<forall>B \<in> atms_of DAs. \<not> less_atm A B)"
@@ -95,6 +82,8 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
    \<forall>i. i < n \<longrightarrow> str_maximal_in (Ai ! i \<cdot>a \<sigma>) ((Ci ! i) \<cdot> \<sigma>) \<Longrightarrow>
    \<forall>i < n. S (CAi ! i) = {#} \<Longrightarrow> (* Use the ! style instead maybe, or maybe us the \<forall>\<in>. style above *)
    ord_resolve CAi (D + negs (mset Ai)) \<sigma> (((\<Union># (mset Ci)) + D) \<cdot> \<sigma>)"
+
+subsection {* Soundness *}
 
 lemma is_mgu_is_unifiers: "is_mgu \<sigma> AAA \<Longrightarrow> is_unifiers \<sigma> AAA"
   using is_mgu_def by blast
@@ -359,6 +348,7 @@ proof (cases rule: ord_resolve_rename.cases)
     using ord_resolve_sound[of "CAi \<cdot>\<cdot>cl P" "DA \<cdot> \<rho>" \<sigma> E I, OF res] by simp
 qed
 
+subsection {* Lifting *}
 context
   fixes M :: "'a clause set"
   assumes select: "selection S"
@@ -529,7 +519,6 @@ proof -
   then show ?thesis unfolding less_eq_atm_def by auto
 qed
 
-
 lemma sum_list_subseteq_mset_is_ground_cls_list[simp]: 
   "sum_list Ci \<subseteq># sum_list CAi \<Longrightarrow> is_ground_cls_list CAi \<Longrightarrow> is_ground_cls_list Ci"
   by (metis is_ground_cls_Union_mset is_ground_cls_list_def is_ground_cls_mono is_ground_cls_mset_def set_mset_mset sum_mset_sum_list)
@@ -686,8 +675,6 @@ lemma ord_resolve_obtain_clauses:
       \<eta>''g_p \<eta>s''g_p
     by auto
 qed
-
-
 
 lemma ord_resolve_rename_lifting:
   fixes CAi
