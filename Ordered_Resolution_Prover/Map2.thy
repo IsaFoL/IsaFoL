@@ -69,7 +69,7 @@ next
   then have "i < length (map2 f s t)"
     using assms by auto
   moreover
-  from i_p have "x = map2 f s t ! i)"
+  from i_p have "x = map2 f s t ! i"
     using map2_nth assms by auto
   ultimately
   show "x \<in> set (map2 f s t)"
