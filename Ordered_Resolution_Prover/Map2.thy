@@ -9,10 +9,13 @@ theory Map2
   imports Main
 begin
 
-abbreviation image2 :: "('a \<Rightarrow> 'b \<Rightarrow> 'c) \<Rightarrow> ('a * 'b) set \<Rightarrow> 'c set" where
-  "image2 f s \<equiv> (case_prod f) ` s"
+abbreviation image2 :: "('a \<Rightarrow> 'b \<Rightarrow> 'c) \<Rightarrow> ('a \<times> 'b) set \<Rightarrow> 'c set" where
+  "image2 f s \<equiv> case_prod f ` s"
 
-(* Definition is from "$AFP/Jinja/DFA/Listn.thy" *)
+text \<open>
+This definition is taken from @{file "$AFP/Jinja/DFA/Listn.thy"}.
+\<close>
+
 definition map2 :: "('a \<Rightarrow> 'b \<Rightarrow> 'c) \<Rightarrow> 'a list \<Rightarrow> 'b list \<Rightarrow> 'c list" where
   "map2 f = (\<lambda>xs ys. map (case_prod f) (zip xs ys))"
 
@@ -25,20 +28,22 @@ lemma map2_empty_l[simp]: "map2 f [] ys = []"
 lemma map2_empty_r[simp]: "map2 f xs [] = []"
   unfolding map2_def by auto
 
-lemma map2_empty_iff[simp]: "(map2 f xs ys = []) \<longleftrightarrow> (xs = [] \<or> ys = [])"
-  unfolding map2_def
-  by (metis list.exhaust list.simps(3) list.simps(9) map2_def map2_empty_l map2_empty_r zip_Cons_Cons)
+lemma map2_empty_iff[simp]: "map2 f xs ys = [] \<longleftrightarrow> xs = [] \<or> ys = []"
+  by (metis list.exhaust list.simps(3) list.simps(9) map2_def map2_empty_l map2_empty_r
+      zip_Cons_Cons)
 
 lemma image_map2: "length t = length s \<Longrightarrow> g ` set (map2 f t s) = set (map2 (\<lambda>a b. g (f a b)) t s)"
   unfolding map2_def by (induction t arbitrary: s) auto
 
-lemma map2_nth[simp]: "length t = length s \<Longrightarrow> i < length s \<Longrightarrow> (map2 f s t) ! i = f (s!i) (t!i)"
+lemma map2_nth[simp]: "length t = length s \<Longrightarrow> i < length s \<Longrightarrow> map2 f s t ! i = f (s ! i) (t ! i)"
   unfolding map2_def by (induction t arbitrary: s) auto
 
-lemma map2_tl: "length t = length s \<Longrightarrow> (map2 f (tl t) (tl s)) = tl (map2 f (t) (s))"
-  unfolding map2_def apply (induction t arbitrary: s)
-   apply auto
-  by (smt Suc_length_conv list.sel(3) list.simps(9) zip_Cons_Cons)
+lemma map2_tl: "length t = length s \<Longrightarrow> map2 f (tl t) (tl s) = tl (map2 f t s)"
+proof (induction t arbitrary: s)
+  case (Cons a t)
+  then show ?case
+    unfolding map2_def by (metis (no_types) length_Suc_conv list.sel(3) map_tl zip_Cons_Cons)
+qed simp
 
 lemma map2_Cons[simp]: "map2 f (x # xs) (y # ys) = f x y # map2 f xs ys"
   unfolding map2_def by auto
@@ -53,11 +58,9 @@ proof (rule; rule)
     by (metis in_set_conv_nth)
   from i_p have "i < length t"
     by auto
-  moreover
-  from this i_p have "x = f (s ! i) (t ! i)"
+  moreover from this i_p have "x = f (s ! i) (t ! i)"
     using map2_nth assms by auto
-  ultimately
-  show "x \<in> {x. \<exists>i < length t. x = f (s ! i) (t ! i)}"
+  ultimately show "x \<in> {x. \<exists>i < length t. x = f (s ! i) (t ! i)}"
     using assms by auto
 next
   fix x
@@ -66,11 +69,9 @@ next
     by auto
   then have "i < length (map2 f s t)"
     using assms by auto
-  moreover
-  from i_p have "x = map2 f s t ! i"
+  moreover from i_p have "x = map2 f s t ! i"
     using map2_nth assms by auto
-  ultimately
-  show "x \<in> set (map2 f s t)"
+  ultimately show "x \<in> set (map2 f s t)"
     by (metis in_set_conv_nth)
 qed
 

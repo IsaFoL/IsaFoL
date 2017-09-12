@@ -1,6 +1,6 @@
 (*  Title:       Integration of IsaFoR Terms
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
-    Maintainer:  Jasmin Blanchette <jasmin.blanchette at inria.fr>
+    Maintainer:  Jasmin Blanchette <j.c.blanchette at vu.nl>, 2014, 2017
 *)
 
 section \<open>Integration of IsaFoR Terms\<close>
