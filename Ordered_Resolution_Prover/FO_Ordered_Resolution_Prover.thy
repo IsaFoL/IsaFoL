@@ -653,25 +653,21 @@ definition is_least :: "(nat \<Rightarrow> bool) \<Rightarrow> nat \<Rightarrow>
 lemma least_exists: "P n \<Longrightarrow> \<exists>n. is_least P n"
   using exists_least_iff unfolding is_least_def by auto
 
-lemma in_Sup_llist_in_nth:
-  assumes "C \<in> Sup_llist Ns"
-  shows "\<exists>j. enat j < llength Ns \<and> C \<in> lnth Ns j"
-  using assms unfolding Sup_llist_def by auto
+lemma in_Sup_llist_in_nth: "C \<in> Sup_llist Ns \<Longrightarrow> \<exists>j. enat j < llength Ns \<and> C \<in> lnth Ns j"
+  unfolding Sup_llist_def by auto
 
 lemma Sup_llist_grounding_of_state_ground:
   assumes "C \<in> Sup_llist (lmap grounding_of_state Sts)"
   shows "is_ground_cls C"
 proof -
-  from assms have "\<exists>j. enat j < llength (lmap grounding_of_state Sts) \<and> (C \<in> (lnth (lmap grounding_of_state Sts) j))"
-    using in_Sup_llist_in_nth by metis
+  have "\<exists>j. enat j < llength (lmap grounding_of_state Sts) \<and> (C \<in> (lnth (lmap grounding_of_state Sts) j))"
+    using assms in_Sup_llist_in_nth by metis
   then obtain j where
     "enat j < llength (lmap grounding_of_state Sts)"
     "C \<in> lnth (lmap grounding_of_state Sts) j"
     by blast
-  then have "C \<in> grounding_of_state (lnth Sts j)"
-    by auto
-  then show ?thesis unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def
-    by auto
+  then show ?thesis
+    unfolding grounding_of_clss_def grounding_of_cls_def by auto
 qed
 
 lemma limit_llist_grounding_of_state_ground:
@@ -680,7 +676,8 @@ lemma limit_llist_grounding_of_state_ground:
 proof -
   from assms have "C \<in> Sup_llist (lmap grounding_of_state Sts)"
     using limit_llist_subset_Sup_llist[of "lmap grounding_of_state Sts"] by blast
-  then show ?thesis using Sup_llist_grounding_of_state_ground by auto
+  then show ?thesis using Sup_llist_grounding_of_state_ground
+    by auto
 qed
 
 lemma limit_llist_eventually_always:
@@ -1826,8 +1823,8 @@ proof -
 qed
 
 theorem completeness:
-  assumes selection_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
   assumes
+    selection_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
     deriv: "chain (op \<leadsto>) Sts" and
     fair: "fair_state_seq Sts" and
     unsat: "\<not> satisfiable (grounding_of_state (limit_state Sts))" and
