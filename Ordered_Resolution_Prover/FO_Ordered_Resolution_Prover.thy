@@ -49,7 +49,7 @@ inductive resolution_prover :: "'a state \<Rightarrow> 'a state \<Rightarrow> bo
     "N = concls_of (ord_FO_resolution.inferences_between Q C) \<Longrightarrow>
      ({}, P \<union> {C}, Q) \<leadsto> (N, P, Q \<union> {C})"
 
-(* I could also proved that state is a distributive lattice and define sup_state directly as Sup_llist *)
+(* I could also have proved that state is a distributive lattice and define sup_state directly as Sup_llist *)
 definition sup_state :: "('a state) llist \<Rightarrow> 'a state" where
   "sup_state Sts = (Sup_llist (lmap N_of_state Sts), Sup_llist (lmap P_of_state Sts), Sup_llist (lmap Q_of_state Sts))"
 
@@ -85,14 +85,7 @@ interpretation src: standard_redundancy_criterion gd.ord_\<Gamma>
   "ground_resolution_with_selection.INTERP S_Q"
   by unfold_locales
 
-(* The extension of ordered resolution mentioned in 4.10. Following Uwe's recommendation I make it enormous,
-   i.e. consisting of all satisfiability preserving rules *)
-(* A huge extension like Uwe suggested. *)
-(* Uwe suggested the set of sound rules, and later the set of consistency preserving rules.
-   But we need the whole set to be consistency preserving, and that does not follow from the rules being consistency preserving.
-   It does follow from soundness however, so let's just go with that.
- *)
-
+(* The extension of ordered resolution mentioned in 4.10. We let it consist of all sound rules *)
 definition gd_ord_\<Gamma>':: "'a inference set" where
   "gd_ord_\<Gamma>' = {Infer a b c | a b c. (\<forall>I. I \<Turnstile>m a \<longrightarrow>  I \<Turnstile> b \<longrightarrow> I \<Turnstile> c)}"
 
@@ -200,8 +193,8 @@ using assms proof (induction rule: resolution_prover.induct)
     then obtain \<sigma> where "C\<sigma> = C \<cdot> \<sigma>"
       unfolding grounding_of_cls_def by auto
     then have "Neg (A \<cdot>a \<sigma>) \<in># C\<sigma> \<and> Pos (A \<cdot>a \<sigma>) \<in># C\<sigma>"
-      using tautology_deletion
-      by (metis Melem_subst_cls eql_neg_lit_eql_atm eql_pos_lit_eql_atm) (* seems a bit complicated... *)
+      using tautology_deletion Neg_Melem_subst_atm_subst_cls Pos_Melem_subst_atm_subst_cls by auto
+      
     then have "C\<sigma> \<in> src.Rf (grounding_of_state (N, P, Q))"
       using src.tautology_redundant by auto
   }

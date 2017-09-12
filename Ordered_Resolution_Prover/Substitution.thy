@@ -536,6 +536,15 @@ lemma set_mset_subst_cls_mset_subst_clss: "set_mset (X \<cdot>cm \<mu>) = (set_m
   by (simp add: subst_cls_mset_def subst_clss_def)
 
 
+subsubsection {* Substitute on a clause and its member *}
+
+lemma Neg_Melem_subst_atm_subst_cls[simp]: "Neg A \<in># C \<Longrightarrow> Neg (A \<cdot>a \<sigma>) \<in># C \<cdot> \<sigma> "
+  by (metis Melem_subst_cls eql_neg_lit_eql_atm)
+
+lemma Pos_Melem_subst_atm_subst_cls[simp]: "Pos A \<in># C \<Longrightarrow> Pos (A \<cdot>a \<sigma>) \<in># C \<cdot> \<sigma> "
+  by (metis Melem_subst_cls eql_pos_lit_eql_atm)
+
+
 subsubsection {* Renamings *}
 
 lemma is_renaming_id_subst[simp]: "is_renaming id_subst"
