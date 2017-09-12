@@ -1969,8 +1969,6 @@ proof -
         have gD: "is_ground_cls D"
           using gd ord_resolve by simp
 
-
-
         from f g have "atms_of D \<union> set Ai \<noteq> {}" "finite (atms_of D \<union> set Ai)"
           by auto
         then have "Max (atms_of D \<union> set Ai) \<in> atms_of D \<union> set Ai"
