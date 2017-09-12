@@ -8,7 +8,7 @@
 section {* Ordered Ground Resolution with Selection *}
 
 theory Ordered_Ground_Resolution
-imports Inference_System Ground_Resolution_Model
+  imports Inference_System Ground_Resolution_Model
 begin
 
 text {*

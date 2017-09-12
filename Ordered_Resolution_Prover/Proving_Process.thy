@@ -7,7 +7,7 @@
 section {* Theorem Proving Processes *}
 
 theory Proving_Process
-imports Unordered_Ground_Resolution Lazy_List_Limit
+  imports Unordered_Ground_Resolution Lazy_List_Limit
 begin
 
 text {*

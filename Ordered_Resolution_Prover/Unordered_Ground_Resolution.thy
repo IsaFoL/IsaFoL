@@ -7,7 +7,7 @@
 section {* Unordered Ground Resolution *}
 
 theory Unordered_Ground_Resolution
-imports Inference_System Ground_Resolution_Model
+  imports Inference_System Ground_Resolution_Model
 begin
 
 text {*

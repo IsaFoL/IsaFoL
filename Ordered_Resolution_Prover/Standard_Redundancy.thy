@@ -7,7 +7,7 @@
 section {* The Standard Redundancy Criterion *}
 
 theory Standard_Redundancy
-imports Proving_Process
+  imports Proving_Process
 begin
 
 text {*

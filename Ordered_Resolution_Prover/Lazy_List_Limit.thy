@@ -7,7 +7,7 @@
 section {* Limits of Lazy Lists *}
 
 theory Lazy_List_Limit
-imports "$AFP/Coinductive/Coinductive_List"
+  imports "$AFP/Coinductive/Coinductive_List"
 begin
 
 text {*

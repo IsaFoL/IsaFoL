@@ -6,7 +6,7 @@
 *)
 
 theory FO_Ordered_Resolution_Prover
-imports FO_Ordered_Resolution
+  imports FO_Ordered_Resolution
 begin
 
 type_synonym 'a state = "'a clause set \<times> 'a clause set \<times> 'a clause set"

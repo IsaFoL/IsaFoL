@@ -8,7 +8,7 @@
 section {* First-order ordered resolution calculus *}
 
 theory FO_Ordered_Resolution
-imports Ordered_Ground_Resolution Standard_Redundancy Substitution
+  imports Ordered_Ground_Resolution Standard_Redundancy Substitution
 begin
 
 (* FIXME: Avoid such global changes to the intro/etc. sets *)
