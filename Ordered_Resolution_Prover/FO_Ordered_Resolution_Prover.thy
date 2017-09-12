@@ -166,7 +166,8 @@ proof -
 qed
 
 lemma strict_subsumption_redundant_state:
-  assumes "D \<cdot> \<sigma> \<subset># C" and
+  assumes
+    "D \<cdot> \<sigma> \<subset># C" and
     "is_ground_subst \<sigma>" and
     "D \<in> clss_of_state St"
   shows "C \<in> src.Rf (grounding_of_state St)"
@@ -289,7 +290,7 @@ next
     qed
     then show ?case
       using src_ext.derive.intros[of "grounding_of_state (N, P, Q)" "grounding_of_state (N, P, Q)"]
-        by auto
+      by auto
   next
     assume a: "D \<cdot> \<sigma> \<subset># C"
     have "grounding_of_cls C \<subseteq> src.Rf (grounding_of_state (N, P, Q))"
@@ -645,6 +646,7 @@ text {*
 The following is used prove to Lemma 4.11:
 *}
 
+(* FIXME: Used only once, really -- inline? *)
 definition is_least :: "(nat \<Rightarrow> bool) \<Rightarrow> nat \<Rightarrow> bool" where
   "is_least P n \<longleftrightarrow> P n \<and> (\<forall>n' < n. \<not> P n')"
 
@@ -683,16 +685,18 @@ qed
 
 lemma limit_llist_eventually_always:
   assumes "C \<in> limit_llist Ns"
-  shows "\<exists>i. enat i < llength Ns \<and>(\<forall>j\<ge>i. enat j < llength Ns \<longrightarrow> C \<in> lnth Ns j)"
+  shows "\<exists>i. enat i < llength Ns \<and> (\<forall>j \<ge> i. enat j < llength Ns \<longrightarrow> C \<in> lnth Ns j)"
 proof -
-  have "\<exists>i. enat i < llength Ns \<and> C \<in> INTER {j. i \<le> j \<and> enat j < llength Ns} (lnth Ns)" using assms unfolding limit_llist_def by auto
+  have "\<exists>i. enat i < llength Ns \<and> C \<in> INTER {j. i \<le> j \<and> enat j < llength Ns} (lnth Ns)"
+    using assms unfolding limit_llist_def by auto
   then show ?thesis
     by auto
 qed
 
 lemma in_lnth_grounding_in_lnth:
-  assumes C_in: "C \<in> lnth (lmap grounding_of_state Sts) i"
-  assumes i_p: "enat i < llength (lmap grounding_of_state Sts)"
+  assumes
+    C_in: "C \<in> lnth (lmap grounding_of_state Sts) i" and
+    i_p: "enat i < llength (lmap grounding_of_state Sts)"
   shows "\<exists>D \<sigma>. D \<in> clss_of_state (lnth Sts i) \<and> D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
 proof -
   from C_in have "C \<in> grounding_of_state (lnth Sts i)" using i_p by auto
