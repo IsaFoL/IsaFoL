@@ -706,21 +706,19 @@ definition backtrack_inv where
 definition backtrack :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
   \<open>backtrack S =
     do {
-      do {
-        ASSERT(backtrack_inv S);
-        let L = lit_of (hd (get_trail S));
-        S \<leftarrow> extract_shorter_conflict S;
-        S \<leftarrow> reduce_trail_bt L S;
+      ASSERT(backtrack_inv S);
+      let L = lit_of (hd (get_trail S));
+      S \<leftarrow> extract_shorter_conflict S;
+      S \<leftarrow> reduce_trail_bt L S;
 
-        if size (the (get_conflict S)) > 1
-        then do {
-          L' \<leftarrow> SPEC(\<lambda>L'. L' \<in># the (get_conflict S) - {#-L#} \<and> L \<noteq> -L' \<and>
-            get_level (get_trail S) L' = get_maximum_level (get_trail S) (the (get_conflict S) - {#-L#}));
-          RETURN (propgate_bt L L' S)
-        }
-        else do {
-          RETURN (propgate_unit_bt L S)
-        }
+      if size (the (get_conflict S)) > 1
+      then do {
+        L' \<leftarrow> SPEC(\<lambda>L'. L' \<in># the (get_conflict S) - {#-L#} \<and> L \<noteq> -L' \<and>
+          get_level (get_trail S) L' = get_maximum_level (get_trail S) (the (get_conflict S) - {#-L#}));
+        RETURN (propgate_bt L L' S)
+      }
+      else do {
+        RETURN (propgate_unit_bt L S)
       }
     }
   \<close>
@@ -914,7 +912,6 @@ proof -
       ultimately show ?thesis
         by simp
     qed
-
 
     then have \<open>\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
       get_level M K = get_maximum_level M (remove1_mset (-lit_of (hd M)) D') + 1\<close>
