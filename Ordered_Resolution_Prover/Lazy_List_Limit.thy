@@ -36,9 +36,9 @@ proof (intro subset_antisym subsetI)
     by blast
   from nth have "x \<in> A \<or> i > 0 \<and> x \<in> lnth As (i - 1)"
     by (metis lnth_LCons' neq0_conv)
-  hence "x \<in> A \<or> (\<exists>i. enat i < llength As \<and> x \<in> lnth As i)"
+  then have "x \<in> A \<or> (\<exists>i. enat i < llength As \<and> x \<in> lnth As i)"
     by (metis len Suc_pred' eSuc_enat iless_Suc_eq less_irrefl llength_LCons not_less order_trans)
-  thus "x \<in> A \<union> (\<Squnion>i \<in> {i. enat i < llength As}. lnth As i)"
+  then show "x \<in> A \<union> (\<Squnion>i \<in> {i. enat i < llength As}. lnth As i)"
     by blast
 qed ((auto)[], metis i0_lb lnth_0 zero_enat_def, metis Suc_ile_eq lnth_Suc_LCons)
 
@@ -63,7 +63,7 @@ lemma finite_Sup_llist_imp_Sup_upto_llist:
   using assms
 proof induct
   case empty
-  thus ?case
+  then show ?case
     by simp
 next
   case (insert x A)
@@ -76,7 +76,7 @@ next
   have "insert x A \<subseteq> Sup_upto_llist As (max k k')"
     using k k'
     by (metis insert_absorb insert_subset Sup_upto_llist_mono max.cobounded2 max.commute order_trans)
-  thus ?case
+  then show ?case
     by fast
 qed
 

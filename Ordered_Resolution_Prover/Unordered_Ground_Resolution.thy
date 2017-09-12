@@ -58,7 +58,7 @@ proof -
     using c_in_n ec_ni_n by blast
   have "\<exists>A. A \<in> atms_of C \<and> A = Max (atms_of C)"
     using c_ne by (blast intro: Max_in_lits atm_of_Max_lit atm_of_lit_in_atms_of)
-  hence "\<exists>A. Neg A \<in># C"
+  then have "\<exists>A. Neg A \<in># C"
     using c_ne c_in_n c_cex c_min Max_in_lits Max_lit_eq_pos_or_neg_Max_atm
       max_pos_imp_true_in_Interp true_Interp_imp_INTERP by metis
   then obtain A where neg_a_in_c: "Neg A \<in># C"
@@ -71,7 +71,7 @@ proof -
     unfolding INTERP_def by (metis UN_E not_produces_imp_notin_production)
   have prod_d: "productive N D"
     unfolding d0 by simp
-  hence d_in_n: "D \<in> N"
+  then have d_in_n: "D \<in> N"
     using productive_in_N by fast
   have d_true: "INTERP N \<Turnstile> D"
     using prod_d productive_imp_true_in_INTERP by blast
@@ -85,21 +85,21 @@ proof -
     unfolding d' by auto
   have "\<not> Neg A \<in># D"
     using d0 by (blast dest: produces_imp_neg_notin_lits)
-  hence neg_a_ni_d': "\<not> Neg A \<in># D'"
+  then have neg_a_ni_d': "\<not> Neg A \<in># D'"
     using d'_subs by auto
   have a_ni_d': "A \<notin> atms_of D'"
     using d' neg_a_ni_d' by (auto dest: atm_imp_pos_or_neg_lit)
   have "\<exists>n. AAA = replicate_mset (Suc n) (Pos A)"
     using aa d0 not0_implies_Suc produces_imp_Pos_in_lits[of N]
     by (simp add: filter_eq_replicate_mset del: replicate_mset_Suc)
-  hence res_e: "unord_resolve D C (D' + C')"
+  then have res_e: "unord_resolve D C (D' + C')"
     unfolding c d by (fastforce intro: unord_resolve.intros)
 
   have d'_le_d: "D' \<le> D"
     unfolding d by simp
   have a_max_d: "A = Max (atms_of D)"
     using d0 productive_imp_produces_Max_atom by auto
-  hence "D' \<noteq> {#} \<Longrightarrow> Max (atms_of D') \<le> A"
+  then have "D' \<noteq> {#} \<Longrightarrow> Max (atms_of D') \<le> A"
     using d'_le_d by (blast intro: less_eq_Max_atms_of)
   moreover have "D' \<noteq> {#} \<Longrightarrow> Max (atms_of D') \<noteq> A"
     using a_ni_d' Max_in by (blast intro: atms_empty_iff_empty[THEN iffD1])
@@ -108,9 +108,9 @@ proof -
 
   have "\<not> interp N D \<Turnstile> D"
     using d0 productive_imp_false_interp by blast
-  hence "\<not> Interp N D \<Turnstile> D'"
+  then have "\<not> Interp N D \<Turnstile> D'"
     unfolding d0 d' Interp_def true_cls_def by (auto simp: true_lit_def simp del: not_gr_zero)
-  hence "\<not> INTERP N \<Turnstile> D'"
+  then have "\<not> INTERP N \<Turnstile> D'"
     using a_max_d d'_le_d max_d'_lt_a false_Interp_imp_INTERP by blast
   moreover have "\<not> INTERP N \<Turnstile> C'"
     using c_cex unfolding c by simp
@@ -119,9 +119,9 @@ proof -
 
   have "\<And>B. B \<in> atms_of D' \<Longrightarrow> B \<le> A"
     using d0 d'_subs contra_subsetD lits_subseteq_imp_atms_subseteq produces_imp_atms_leq by metis
-  hence "\<And>L. L \<in># D' \<Longrightarrow> L < Neg A"
+  then have "\<And>L. L \<in># D' \<Longrightarrow> L < Neg A"
     using neg_a_ni_d' antisym_conv1 atms_less_eq_imp_lit_less_eq_neg by metis
-  hence lt_cex: "D' + C' < C"
+  then have lt_cex: "D' + C' < C"
     by (force intro: add.commute simp: c less_multiset\<^sub>D\<^sub>M intro: exI[of _ "{#Neg A#}"])
 
   from d_in_n d_true prod_d res_e e_cex lt_cex show ?thesis ..
@@ -160,7 +160,7 @@ proof unfold_locales
 next
   fix CC D E and I :: "'b interp"
   assume "Infer CC D E \<in> unord_\<Gamma>" and "I \<Turnstile>m CC" and "I \<Turnstile> D"
-  thus "I \<Turnstile> E"
+  then show "I \<Turnstile> E"
     by (clarsimp simp: unord_\<Gamma>_def true_cls_mset_def) (erule unord_resolve_sound, auto)
 qed
 

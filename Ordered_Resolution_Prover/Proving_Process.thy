@@ -52,9 +52,9 @@ proof -
     unfolding Ms_def by (metis Suc_ile_eq ldropn_Suc_conv_ldropn len less_imp_not_less not_less)
   have "chain R Ms"
     unfolding Ms_def using Suc_ile_eq deriv chain_ldropn len less_imp_le by blast
-  hence "R M0 M1"
+  then have "R M0 M1"
     unfolding ms by (auto elim: chain.cases)
-  thus ?thesis
+  then show ?thesis
     using Ms_def unfolding ms by (metis ldropn_Suc_conv_ldropn ldropn_eq_LConsD llist.inject)
 qed
 
@@ -196,16 +196,16 @@ proof -
     have "satisfiable (Sup_upto_llist Ns k)"
     proof (induct k)
       case 0
-      thus ?case
+      then show ?case
         using len_ns ns0 sat_n0 unfolding Sup_upto_llist_def true_clss_def by auto
     next
       case (Suc k)
       show ?case
       proof (cases "llength Ns \<le> enat (Suc k)")
         case True
-        hence "Sup_upto_llist Ns k = Sup_upto_llist Ns (Suc k)"
+        then have "Sup_upto_llist Ns k = Sup_upto_llist Ns (Suc k)"
           unfolding Sup_upto_llist_def using le_Suc_eq not_less by blast
-        thus ?thesis
+        then show ?thesis
           using Suc by simp
       next
         case False
@@ -213,13 +213,13 @@ proof -
           using Suc \<Gamma>_sat_preserving unfolding sat_preserving_inference_system_def by simp
         have rel: "lnth Ns k \<triangleright> lnth Ns (Suc k)"
           using False deriv by (auto simp: chain_lnth_rel)
-        hence suc_k_subs: "lnth Ns (Suc k) \<subseteq> lnth Ns k \<union> concls_of (inferences_from (lnth Ns k))"
+        then have suc_k_subs: "lnth Ns (Suc k) \<subseteq> lnth Ns k \<union> concls_of (inferences_from (lnth Ns k))"
           by (rule derive_subset)
         have k_subs: "lnth Ns k \<subseteq> Sup_upto_llist Ns k"
           unfolding Sup_upto_llist_def using False Suc_ile_eq linear by blast
-        hence "\<And>M. lnth Ns (Suc k) \<subseteq> Sup_upto_llist Ns k \<union> (M \<union> concls_of (inferences_from (lnth Ns k)))"
+        then have "\<And>M. lnth Ns (Suc k) \<subseteq> Sup_upto_llist Ns k \<union> (M \<union> concls_of (inferences_from (lnth Ns k)))"
           using suc_k_subs by force
-        hence suc_k_subs':
+        then have suc_k_subs':
           "lnth Ns (Suc k) \<subseteq> Sup_upto_llist Ns k \<union> concls_of (inferences_from (Sup_upto_llist Ns k))"
           using k_subs suc_k_subs
           by clarsimp (metis UnCI UnE image_Un inferences_from_mono le_iff_sup)
@@ -235,9 +235,9 @@ proof -
           unfolding upto true_clss_union using suc_k_subs' sat by (metis sup_ge1 true_clss_mono)
       qed
     qed
-    hence "satisfiable DD"
+    then have "satisfiable DD"
       using dd_sset unfolding Sup_upto_llist_def by (blast intro: true_clss_mono) }
-  thus ?thesis
+  then show ?thesis
     using ground_resolution_without_selection.clausal_logic_compact[THEN iffD1] by metis
 qed
 
@@ -264,11 +264,11 @@ proof -
     using j j'
     proof (induct j)
       case 0
-      thus ?case
+      then show ?case
         using c_in by blast
     next
       case (Suc k)
-      thus ?case
+      then show ?case
       proof (cases "i < Suc k")
         case True
         have "i \<le> k"
@@ -279,16 +279,16 @@ proof -
           using Suc.hyps by blast
         have rel: "lnth Ns k \<triangleright> lnth Ns (Suc k)"
           using Suc.prems deriv by (auto simp: chain_lnth_rel)
-        thus ?thesis
+        then show ?thesis
           using c_in_k c_ni' Suc.prems(2) by cases auto
       next
         case False
-        thus ?thesis
+        then show ?thesis
           using Suc c_in by auto
       qed
     qed
   }
-  hence lu_ll: "Sup_llist Ns - Rf (Sup_llist Ns) \<subseteq> limit_llist Ns"
+  then have lu_ll: "Sup_llist Ns - Rf (Sup_llist Ns) \<subseteq> limit_llist Ns"
     unfolding Sup_llist_def limit_llist_def by blast
   have rf: "Rf (Sup_llist Ns - Rf (Sup_llist Ns)) \<subseteq> Rf (limit_llist Ns)"
     using lu_ll Rf_mono by simp
@@ -302,17 +302,17 @@ proof -
   show "satisfiable (limit_llist Ns) \<longleftrightarrow> satisfiable (lhd Ns)"
   proof
     assume "satisfiable (lhd Ns)"
-    hence "satisfiable (Sup_llist Ns)"
+    then have "satisfiable (Sup_llist Ns)"
       using deriv deriv_sat_preserving by simp
-    thus "satisfiable (limit_llist Ns)"
+    then show "satisfiable (limit_llist Ns)"
       using true_clss_mono[OF limit_llist_subset_Sup_llist] by blast
   next
     assume "satisfiable (limit_llist Ns)"
-    hence "satisfiable (Sup_llist Ns - Rf (Sup_llist Ns))"
+    then have "satisfiable (Sup_llist Ns - Rf (Sup_llist Ns))"
       using true_clss_mono[OF lu_ll] by blast
-    hence "satisfiable (Sup_llist Ns)"
+    then have "satisfiable (Sup_llist Ns)"
       using Rf_sat by blast
-    thus "satisfiable (lhd Ns)"
+    then show "satisfiable (lhd Ns)"
       using deriv true_clss_mono lhd_subset_Sup_llist lnull_chain by metis
   qed
 qed
@@ -362,25 +362,25 @@ proof
   show "\<gamma> \<in> Ri (limit_llist Ns)"
   proof (cases "\<gamma> \<in> Ri ?N'")
     case True
-    thus ?thesis
+    then show ?thesis
       using Ri_mono by blast
   next
     case False
     have "concls_of (inferences_from ?N' - Ri ?N') \<subseteq> Sup_llist Ns \<union> Rf (Sup_llist Ns)"
       using fair unfolding fair_clss_seq_def Let_def .
-    hence "concl_of \<gamma> \<in> Sup_llist Ns \<union> Rf (Sup_llist Ns)"
+    then have "concl_of \<gamma> \<in> Sup_llist Ns \<union> Rf (Sup_llist Ns)"
       using False \<gamma> by auto
     moreover
     { assume "concl_of \<gamma> \<in> Sup_llist Ns"
-      hence "\<gamma> \<in> Ri (Sup_llist Ns)"
+      then have "\<gamma> \<in> Ri (Sup_llist Ns)"
         using \<gamma> Ri_effective inferences_from_def by blast
-      hence "\<gamma> \<in> Ri (limit_llist Ns)"
+      then have "\<gamma> \<in> Ri (limit_llist Ns)"
         using deriv Ri_Sup_llist_subset_Ri_limit_llist by fast }
     moreover
     { assume "concl_of \<gamma> \<in> Rf (Sup_llist Ns)"
-      hence "concl_of \<gamma> \<in> Rf (limit_llist Ns)"
+      then have "concl_of \<gamma> \<in> Rf (limit_llist Ns)"
         using deriv Rf_Sup_llist_subset_Rf_limit_llist by blast
-      hence "\<gamma> \<in> Ri (limit_llist Ns)"
+      then have "\<gamma> \<in> Ri (limit_llist Ns)"
         using \<gamma> Ri_effective inferences_from_def by auto }
     ultimately show "\<gamma> \<in> Ri (limit_llist Ns)"
       by blast

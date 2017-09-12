@@ -28,7 +28,7 @@ proof
       have "t \<cdot> \<tau> \<cdot> \<tau> = t \<cdot> \<tau>"
         by (induct t) (auto simp add: \<tau>_def)
     }
-    thus "substitution_ops.is_ground_subst op \<cdot> \<tau> \<and> substitution_ops.subst_cls_list op \<cdot> CC \<sigma> = substitution_ops.subst_cls_list op \<cdot> CC \<tau>"
+    then show "substitution_ops.is_ground_subst op \<cdot> \<tau> \<and> substitution_ops.subst_cls_list op \<cdot> CC \<sigma> = substitution_ops.subst_cls_list op \<cdot> CC \<tau>"
       unfolding is_ground_subst_def is_ground_atm_def by simp
   qed
 qed (auto intro: subst_term_eqI)

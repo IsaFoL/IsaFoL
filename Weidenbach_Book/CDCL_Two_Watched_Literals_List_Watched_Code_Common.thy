@@ -924,9 +924,8 @@ lemma count_decided_butlast:
 
 definition find_decomp_wl'  where
   \<open>find_decomp_wl' =
-     (\<lambda>(M::(nat, nat) ann_lits) (N::nat clauses_l) (U :: nat) (D::nat clause) (
-         NP::nat clauses) (UP::nat clauses) (Q::nat lit_queue_wl) (W::(nat literal \<Rightarrow> watched)) (
-     L::nat literal). SPEC(\<lambda>M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
+     (\<lambda>(M::(nat, nat) ann_lits) (D::nat clause) (L::nat literal).
+        SPEC(\<lambda>M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
           get_level M K = get_maximum_level M (D - {#-L#}) + 1))\<close>
 
 definition no_skip where

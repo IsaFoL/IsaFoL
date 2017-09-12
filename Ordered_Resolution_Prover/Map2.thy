@@ -16,37 +16,27 @@ text \<open>
 This definition is taken from @{file "$AFP/Jinja/DFA/Listn.thy"}.
 \<close>
 
-definition map2 :: "('a \<Rightarrow> 'b \<Rightarrow> 'c) \<Rightarrow> 'a list \<Rightarrow> 'b list \<Rightarrow> 'c list" where
-  "map2 f = (\<lambda>xs ys. map (case_prod f) (zip xs ys))"
-
-lemma map2_length[simp]: "length (map2 f as bs) = min (length as) (length bs)"
-  unfolding map2_def by auto
-
-lemma map2_empty_l[simp]: "map2 f [] ys = []"
-  unfolding map2_def by auto
-
-lemma map2_empty_r[simp]: "map2 f xs [] = []"
-  unfolding map2_def by auto
+abbreviation map2 :: "('a \<Rightarrow> 'b \<Rightarrow> 'c) \<Rightarrow> 'a list \<Rightarrow> 'b list \<Rightarrow> 'c list" where
+  "map2 f xs ys \<equiv> map (case_prod f) (zip xs ys)"
 
 lemma map2_empty_iff[simp]: "map2 f xs ys = [] \<longleftrightarrow> xs = [] \<or> ys = []"
-  by (metis list.exhaust list.simps(3) list.simps(9) map2_def map2_empty_l map2_empty_r
-      zip_Cons_Cons)
+  by (metis Nil_is_map_conv list.exhaust list.simps(3) zip.simps(1) zip_Cons_Cons zip_Nil)
 
 lemma image_map2: "length t = length s \<Longrightarrow> g ` set (map2 f t s) = set (map2 (\<lambda>a b. g (f a b)) t s)"
-  unfolding map2_def by (induction t arbitrary: s) auto
+  by auto
 
 lemma map2_nth[simp]: "length t = length s \<Longrightarrow> i < length s \<Longrightarrow> map2 f s t ! i = f (s ! i) (t ! i)"
-  unfolding map2_def by (induction t arbitrary: s) auto
+  by auto
 
 lemma map2_tl: "length t = length s \<Longrightarrow> map2 f (tl t) (tl s) = tl (map2 f t s)"
-proof (induction t arbitrary: s)
-  case (Cons a t)
-  then show ?case
-    unfolding map2_def by (metis (no_types) length_Suc_conv list.sel(3) map_tl zip_Cons_Cons)
-qed simp
+  by (metis (no_types, lifting) hd_Cons_tl list.sel(3) map2_empty_iff map_tl tl_Nil zip_Cons_Cons)
 
 lemma map2_Cons[simp]: "map2 f (x # xs) (y # ys) = f x y # map2 f xs ys"
-  unfolding map2_def by auto
+  by simp
+
+lemma map_zip_assoc:
+  "map f (zip (zip xs ys) zs) = map (\<lambda>(x, y, z). f ((x, y), z)) (zip xs (zip ys zs))"
+  by (induct zs arbitrary: xs ys) (auto simp add: zip.simps(2) split: list.splits)
 
 lemma set_map2_ex:
   assumes "length t = length s"

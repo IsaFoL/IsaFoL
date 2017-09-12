@@ -81,7 +81,7 @@ definition instance_of :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool"
   "instance_of C D \<longleftrightarrow> (\<exists>\<sigma>. C \<cdot> \<sigma> = D)"
 
 definition proper_instance_of :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
-  "proper_instance_of C D \<longleftrightarrow> instance_of C D \<and> \<not>instance_of D C"
+  "proper_instance_of C D \<longleftrightarrow> instance_of C D \<and> \<not> instance_of D C"
 
 definition is_renaming :: "'s \<Rightarrow> bool" where
   "is_renaming \<sigma> = (\<exists>\<tau>. \<sigma> \<odot> \<tau> = id_subst \<and> \<tau> \<odot> \<sigma> = id_subst)"
@@ -163,7 +163,7 @@ locale substitution = substitution_ops subst_atm id_subst comp_subst
        \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)" and
     make_var_disjoint: "\<And>Cs. \<exists>\<rho>s. length \<rho>s = length Cs \<and> (\<forall>\<rho> \<in> set \<rho>s. is_renaming \<rho>) \<and>
       var_disjoint (Cs \<cdot>\<cdot>cl \<rho>s)" and
-    proper_instance_of_wf: "wfP (proper_instance_of)"
+    proper_instance_of_wf: "wfP proper_instance_of"
 begin
 
 lemma subst_ext_iff: "\<sigma> = \<tau> \<longleftrightarrow> (\<forall>A. A \<cdot>a \<sigma> = A \<cdot>a \<tau>)"
@@ -253,12 +253,8 @@ lemma subst_clsscomp_subst[simp]: "CC \<cdot>cs (\<tau> \<odot> \<sigma>) = CC \
 lemma subst_cls_list_comp_subst[simp]: "CC \<cdot>cl (\<tau> \<odot> \<sigma>) = CC \<cdot>cl \<tau> \<cdot>cl \<sigma>"
   unfolding subst_cls_list_def by auto
 
-lemma map_zip_assoc:
-  "map f (zip (zip xs ys) zs) = map (\<lambda>(x, y, z). f ((x, y), z)) (zip xs (zip ys zs))"
-  by (induct zs arbitrary: xs ys) (auto simp add: zip.simps(2) split: list.splits)
-
 lemma subst_cls_lists_comp_substs[simp]: "Cs \<cdot>\<cdot>cl (\<tau>s \<odot>s \<sigma>s) = Cs \<cdot>\<cdot>cl \<tau>s \<cdot>\<cdot>cl \<sigma>s"
-  unfolding map2_def subst_cls_lists_def comp_substs_def map_zip_map map_zip_map2 map_zip_assoc
+  unfolding subst_cls_lists_def comp_substs_def map_zip_map map_zip_map2 map_zip_assoc
   by (simp add: split_def)
 
 lemma subst_cls_mset_comp_subst[simp]: "CC \<cdot>cm (\<tau> \<odot> \<sigma>) = CC \<cdot>cm \<tau> \<cdot>cm \<sigma>"
@@ -332,7 +328,7 @@ lemma subst_atmss_empty[simp]: "{} \<cdot>ass \<sigma> = {}"
   unfolding subst_atmss_def by auto
 
 lemma comp_substs_empty_iff[simp]: "\<sigma>s \<odot>s \<eta>s = [] \<longleftrightarrow> \<sigma>s = [] \<or> \<eta>s = []"
-  unfolding comp_substs_def by auto
+  using comp_substs_def map2_empty_iff by auto
 
 lemma subst_atm_list_empty[simp]: "[] \<cdot>al \<sigma> = []"
   unfolding subst_atm_list_def by auto
@@ -383,7 +379,7 @@ lemma subst_cls_list_empty_iff[simp]: "CC \<cdot>cl \<eta> = [] \<longleftrighta
   unfolding subst_cls_list_def by auto
 
 lemma subst_cls_lists_empty_iff[simp]: "C \<cdot>\<cdot>cl \<eta>s = [] \<longleftrightarrow> (C = [] \<or> \<eta>s = [])"
-  unfolding subst_cls_lists_def by auto
+  using map2_empty_iff subst_cls_lists_def by auto
 
 lemma subst_cls_mset_empty_iff[simp]: "C \<cdot>cm \<eta> = {#} \<longleftrightarrow> C = {#}"
   unfolding subst_cls_mset_def by auto
@@ -800,7 +796,7 @@ lemma ground_subst_ground_cls_list[simp]: "is_ground_subst \<sigma> \<Longrighta
 
 lemma ground_subst_ground_cls_lists[simp]:
   "\<forall>\<sigma> \<in> set \<sigma>s. is_ground_subst \<sigma> \<Longrightarrow> is_ground_cls_list (CC \<cdot>\<cdot>cl \<sigma>s)"
-  unfolding is_ground_cls_list_def subst_cls_lists_def map2_def by (auto simp: set_zip)
+  unfolding is_ground_cls_list_def subst_cls_lists_def by (auto simp: set_zip)
 
 lemma ground_subst_ground_cls_mset[simp]: "is_ground_subst \<sigma> \<Longrightarrow> is_ground_cls_mset (CC \<cdot>cm \<sigma>)"
   unfolding is_ground_cls_mset_def subst_cls_mset_def by auto
@@ -937,13 +933,13 @@ proof (intro allI impI)
   fix i
   assume i: "i < n"
 
-  from mgu have "is_mgu \<sigma> (set_mset ` (set (map2 add_mset Ai Aij)))"
+  from mgu have "is_mgu \<sigma> (set_mset ` set (map2 add_mset Ai Aij))"
     using mgu_sound by auto
-  then have "is_unifiers \<sigma> (set_mset ` (set (map2 add_mset Ai Aij)))"
+  then have "is_unifiers \<sigma> (set_mset ` set (map2 add_mset Ai Aij))"
     using is_mgu_is_unifiers by auto
   then have "is_unifier \<sigma> (set_mset (add_mset (Ai ! i) (Aij ! i)))"
-    using i ailen aijlen is_unifiers_is_unifier
-    by (auto simp del: map2_nth simp add: map2_nth[symmetric])
+    using i ailen aijlen unfolding is_unifiers_def is_unifier_def
+    by simp (metis length_zip min.idem nth_mem nth_zip old.prod.case set_mset_add_mset_insert)
   then show "\<forall>A \<in># Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>"
     using ailen aijlen is_unifier_subst_atm_eqI
     by (metis finite_set_mset insertCI set_mset_add_mset_insert)
