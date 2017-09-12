@@ -3,6 +3,8 @@
     Maintainer:  Jasmin Blanchette <jasmin.blanchette at inria.fr>
 *)
 
+section {* Integration of IsaFoR Terms *}
+
 theory IsaFoR_Term
   imports "$AFP/Deriving/Derive" "$ISAFOR/Rewriting/Unification" Substitution
 begin

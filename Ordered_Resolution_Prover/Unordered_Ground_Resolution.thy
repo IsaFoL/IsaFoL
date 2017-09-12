@@ -1,10 +1,10 @@
-(*  Title:       Unordered Ground Resolution
+(*  Title:       Ground Unordered Resolution Calculus
     Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
     Maintainer:  Anders Schlichtkrull
 *)
 
-section {* Unordered Ground Resolution *}
+section {* Ground Unordered Resolution Calculus *}
 
 theory Unordered_Ground_Resolution
   imports Inference_System Ground_Resolution_Model

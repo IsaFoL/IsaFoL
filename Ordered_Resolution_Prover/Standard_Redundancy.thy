@@ -1,7 +1,7 @@
 (*  Title:       The Standard Redundancy Criterion
     Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
-    Maintainer:  Anders Schlichtkrull 2017
+    Maintainer:  Anders Schlichtkrull
 *)
 
 section {* The Standard Redundancy Criterion *}

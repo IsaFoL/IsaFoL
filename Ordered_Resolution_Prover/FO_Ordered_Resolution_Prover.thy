@@ -1,9 +1,11 @@
-(*  Title:       A Simple Resolution Prover for First-Order Clauses
+(*  Title:       A Simple Ordered Resolution Prover for First-Order Clauses
     Author:      Anders Schlichtkrull, 2017
     Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
     Maintainer:  Anders Schlichtkrull
 *)
+
+section {* A Simple Ordered Resolution Prover for First-Order Clauses *}
 
 theory FO_Ordered_Resolution_Prover
   imports FO_Ordered_Resolution

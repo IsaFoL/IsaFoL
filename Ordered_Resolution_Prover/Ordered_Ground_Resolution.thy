@@ -1,11 +1,11 @@
-(*  Title:       Ordered Ground Resolution with Selection
+(*  Title:       Ground Ordered Resolution Calculus with Selection
     Author:      Anders Schlichtkrull, 2017
     Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
-    Maintainer:  Anders Schlichtkrull <jasmin.blanchette at inria.fr>
+    Maintainer:  Anders Schlichtkrull
 *)
 
-section {* Ordered Ground Resolution with Selection *}
+section {* Ground Ordered Resolution Calculus with Selection *}
 
 theory Ordered_Ground_Resolution
   imports Inference_System Ground_Resolution_Model

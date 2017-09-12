@@ -1,11 +1,11 @@
-(*  Title:       A Simple Resolution Prover for First-Order Clauses
+(*  Title:       First-Order Ordered Resolution Calculus with Selection
     Author:      Anders Schlichtkrull, 2017
     Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
     Maintainer:  Anders Schlichtkrull
 *)
 
-section {* First-order ordered resolution calculus *}
+section {* First-Order Ordered Resolution Calculus with Selection *}
 
 theory FO_Ordered_Resolution
   imports Ordered_Ground_Resolution Standard_Redundancy Substitution
