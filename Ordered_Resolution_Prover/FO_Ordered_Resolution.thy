@@ -27,6 +27,8 @@ locale FO_resolution =
     less_atm_iff: "less_atm A B \<longleftrightarrow> (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> A \<cdot>a \<sigma> < B \<cdot>a \<sigma>)"
 begin
 
+subsection {* First-order logic *}
+
 definition less_eq_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
   "less_eq_atm A B \<longleftrightarrow> less_atm A B \<or> A = B"
 
@@ -45,6 +47,23 @@ definition strictly_subsumes :: "'a clause \<Rightarrow> 'a clause \<Rightarrow>
 definition variants :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   "variants C D \<longleftrightarrow> subsumes C D \<and> subsumes D C"
 
+inductive true_fo_cls :: "'a interp \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>fo" 50) where
+  true_fo_cls:
+  "(\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile> C \<cdot> \<sigma>) \<Longrightarrow> I \<Turnstile>fo C"
+
+lemma true_fo_cls_inst: "I \<Turnstile>fo C \<Longrightarrow> is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile> (C \<cdot> \<sigma>)"
+  using true_fo_cls.induct .
+
+inductive true_fo_cls_mset :: "'a interp \<Rightarrow> 'a clause multiset \<Rightarrow> bool" (infix "\<Turnstile>fom" 50) where
+  true_fo_cls_mset:
+  "(\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile>m (CC \<cdot>cm \<sigma>)) \<Longrightarrow> I \<Turnstile>fom CC"
+
+lemma true_fo_cls_mset_inst: "I \<Turnstile>fom C \<Longrightarrow> is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile>m (C \<cdot>cm \<sigma>)"
+  using true_fo_cls_mset.induct .
+
+lemma true_fo_cls_mset_def2: "I \<Turnstile>fom CC \<longleftrightarrow> (\<forall>C \<in># CC. I \<Turnstile>fo C)"
+  unfolding true_fo_cls_mset.simps true_fo_cls.simps true_cls_mset_def by auto
+
 text {*
 \begin{nit}
 $A_{ii}$ vs.\ $A_i$
@@ -62,6 +81,9 @@ definition maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> boo
   
 abbreviation str_maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where (* Would "'a \<Rightarrow> 'a set \<Rightarrow> bool" be cleaner?  *)
   "str_maximal_in A CAis \<equiv> (\<forall>B \<in> atms_of CAis. \<not> less_eq_atm A B)"
+
+lemma str_maximal_in_maximal_in: "str_maximal_in A C \<Longrightarrow> maximal_in A C"
+  unfolding maximal_in_def less_eq_atm_def by auto
 
 inductive eligible :: "'s \<Rightarrow> 'a list \<Rightarrow> 'a clause \<Rightarrow> bool" where
   eligible:
@@ -82,30 +104,6 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
    \<forall>i. i < n \<longrightarrow> str_maximal_in (Ai ! i \<cdot>a \<sigma>) ((Ci ! i) \<cdot> \<sigma>) \<Longrightarrow>
    \<forall>i < n. S (CAi ! i) = {#} \<Longrightarrow> (* Use the ! style instead maybe, or maybe us the \<forall>\<in>. style above *)
    ord_resolve CAi (D + negs (mset Ai)) \<sigma> (((\<Union># (mset Ci)) + D) \<cdot> \<sigma>)"
-
-subsection {* Soundness *}
-
-lemma mgu_unifier:
-  assumes ailen: "length Ai = n"
-  assumes aijlen: "length Aij = n"
-  assumes mgu: "Some \<sigma> = mgu (set_mset ` (set (map2 add_mset Ai Aij)))"
-  shows "\<forall>i < n. (\<forall>A \<in># Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>)"
-proof -
-  from mgu have "is_mgu \<sigma> (set_mset ` (set (map2 add_mset Ai Aij)))"
-    using mgu_sound by auto
-  then have uni: "is_unifiers \<sigma> (set_mset ` (set (map2 add_mset Ai Aij)))"
-    using is_mgu_is_unifiers by auto
-  show "\<forall>i < n. (\<forall>A \<in># Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>)"
-  proof (rule allI; rule impI)
-    fix i
-    assume i: "i < n"
-    then have "is_unifier \<sigma> (set_mset (add_mset (Ai ! i) (Aij ! i)))"
-      using ailen aijlen uni is_unifiers_is_unifier
-      by (auto simp del: map2_nth simp add: map2_nth[symmetric])
-    then show "\<forall>A\<in>#Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>"
-      using ailen aijlen i is_unifier_subst_atm_eqI by (metis finite_set_mset insertCI set_mset_add_mset_insert)
-  qed
-qed
 
 definition mk_var_dis :: "'a literal multiset list \<Rightarrow> 's list" where
   "mk_var_dis Cs = (SOME \<rho>s. length \<rho>s = length Cs \<and> (\<forall>\<rho> \<in> set \<rho>s. is_renaming \<rho>) \<and>
@@ -134,6 +132,8 @@ inductive ord_resolve_rename :: "'a clause list \<Rightarrow> 'a clause \<Righta
    ord_resolve (CAi \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) \<sigma> E \<Longrightarrow>
    ord_resolve_rename CAi DA \<sigma> E"
 
+subsection {* Soundness *}
+
 lemma ground_prems_ord_resolve_rename_imp_ord_resolve:
   assumes
     gr_cc: "is_ground_cls_list CAi" and
@@ -156,25 +156,6 @@ lemma ground_prems_ord_resolve_rename_imp_ord_resolve:
   ultimately show ?thesis
     using res_e by auto
 qed
-
-inductive true_fo_cls :: "'a interp \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>fo" 50) where
-  true_fo_cls:
-  "(\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile> C \<cdot> \<sigma>) \<Longrightarrow> I \<Turnstile>fo C"
-
-lemma true_fo_cls_inst: "I \<Turnstile>fo C \<Longrightarrow> is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile> (C \<cdot> \<sigma>)"
-  using true_fo_cls.induct .
-
-inductive true_fo_cls_mset :: "'a interp \<Rightarrow> 'a clause multiset \<Rightarrow> bool" (infix "\<Turnstile>fom" 50) where
-  true_fo_cls_mset:
-  "(\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile>m (CC \<cdot>cm \<sigma>)) \<Longrightarrow> I \<Turnstile>fom CC"
-
-lemma true_fo_cls_mset_inst: "I \<Turnstile>fom C \<Longrightarrow> is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile>m (C \<cdot>cm \<sigma>)"
-  using true_fo_cls_mset.induct .
-
-lemma true_fo_cls_mset_def2: "I \<Turnstile>fom CC \<longleftrightarrow> (\<forall>C \<in># CC. I \<Turnstile>fo C)"
-  unfolding true_fo_cls_mset.simps true_fo_cls.simps true_cls_mset_def by auto
-
-lemma true_cls_mset_true_cls: "I \<Turnstile>m CC \<Longrightarrow> C \<in># CC \<Longrightarrow> I \<Turnstile> C" using true_cls_mset_def by auto
 
 lemma ord_resolve_ground_inst_sound: (* This theorem can be used to prove FO soundness. And it will also be used in 4.10. *)
   assumes
@@ -474,9 +455,6 @@ next
   case 0 then show ?case
     by auto
 qed
-
-lemma in_atms_of_subst[simp]: "B \<in> atms_of C \<Longrightarrow> B \<cdot>a \<sigma> \<in> atms_of (C \<cdot> \<sigma>)"
-  by (metis atms_of_subst_atms image_iff subst_atms_def)
 
 lemma maximal_in_gen:
   assumes "maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>)"

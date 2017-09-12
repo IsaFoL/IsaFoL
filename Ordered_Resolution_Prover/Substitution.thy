@@ -536,7 +536,7 @@ lemma set_mset_subst_cls_mset_subst_clss: "set_mset (X \<cdot>cm \<mu>) = (set_m
   by (simp add: subst_cls_mset_def subst_clss_def)
 
 
-subsubsection {* Substitute on a clause and its member *}
+subsubsection {* Substitute on an mset and its member *}
 
 lemma Neg_Melem_subst_atm_subst_cls[simp]: "Neg A \<in># C \<Longrightarrow> Neg (A \<cdot>a \<sigma>) \<in># C \<cdot> \<sigma> "
   by (metis Melem_subst_cls eql_neg_lit_eql_atm)
@@ -544,6 +544,11 @@ lemma Neg_Melem_subst_atm_subst_cls[simp]: "Neg A \<in># C \<Longrightarrow> Neg
 lemma Pos_Melem_subst_atm_subst_cls[simp]: "Pos A \<in># C \<Longrightarrow> Pos (A \<cdot>a \<sigma>) \<in># C \<cdot> \<sigma> "
   by (metis Melem_subst_cls eql_pos_lit_eql_atm)
 
+
+subsubsection {* Substitute on a set and its member *}
+
+lemma in_atms_of_subst[simp]: "B \<in> atms_of C \<Longrightarrow> B \<cdot>a \<sigma> \<in> atms_of (C \<cdot> \<sigma>)"
+  by (metis atms_of_subst_atms image_iff subst_atms_def)
 
 subsubsection {* Renamings *}
 
@@ -992,6 +997,28 @@ begin
 
 lemmas is_unifiers_mgu = mgu_sound[unfolded is_mgu_def, THEN conjunct1]
 lemmas is_mgu_most_general = mgu_sound[unfolded is_mgu_def, THEN conjunct2]
+
+lemma mgu_unifier:
+  assumes ailen: "length Ai = n"
+  assumes aijlen: "length Aij = n"
+  assumes mgu: "Some \<sigma> = mgu (set_mset ` (set (map2 add_mset Ai Aij)))"
+  shows "\<forall>i < n. (\<forall>A \<in># Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>)"
+proof -
+  from mgu have "is_mgu \<sigma> (set_mset ` (set (map2 add_mset Ai Aij)))"
+    using mgu_sound by auto
+  then have uni: "is_unifiers \<sigma> (set_mset ` (set (map2 add_mset Ai Aij)))"
+    using is_mgu_is_unifiers by auto
+  show "\<forall>i < n. (\<forall>A \<in># Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>)"
+  proof (rule allI; rule impI)
+    fix i
+    assume i: "i < n"
+    then have "is_unifier \<sigma> (set_mset (add_mset (Ai ! i) (Aij ! i)))"
+      using ailen aijlen uni is_unifiers_is_unifier
+      by (auto simp del: map2_nth simp add: map2_nth[symmetric])
+    then show "\<forall>A\<in>#Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>"
+      using ailen aijlen i is_unifier_subst_atm_eqI by (metis finite_set_mset insertCI set_mset_add_mset_insert)
+  qed
+qed
 
 end
 
