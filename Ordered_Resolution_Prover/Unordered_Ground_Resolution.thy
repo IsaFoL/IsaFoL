@@ -1,7 +1,7 @@
 (*  Title:       Ground Unordered Resolution Calculus
     Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
-    Maintainer:  Anders Schlichtkrull
+    Maintainer:  Anders Schlichtkrull <andschl at dtu.dk>
 *)
 
 section \<open>Ground Unordered Resolution Calculus\<close>

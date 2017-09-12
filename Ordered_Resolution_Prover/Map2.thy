@@ -1,6 +1,6 @@
 (*  Title:       Map Function on Two Parallel Lists
-    Author:      Anders Schlichtkrull, 2017
-    Maintainer:  Anders Schlichtkrull
+    Author:      Anders Schlichtkrull <andschl at dtu.dk>, 2017
+    Maintainer:  Anders Schlichtkrull <andschl at dtu.dk>
 *)
 
 section \<open>Map Function on Two Parallel Lists\<close>
