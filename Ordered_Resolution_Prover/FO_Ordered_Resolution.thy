@@ -85,15 +85,6 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
 
 subsection {* Soundness *}
 
-lemma is_mgu_is_unifiers: "is_mgu \<sigma> AAA \<Longrightarrow> is_unifiers \<sigma> AAA"
-  using is_mgu_def by blast
-
-lemma is_mgu_is_more_general: "is_mgu \<sigma> AAA \<Longrightarrow> is_unifiers \<tau> AAA \<Longrightarrow> (\<exists>\<gamma>. \<tau> = \<sigma> \<odot> \<gamma>)"
-  using is_mgu_def by blast
-
-lemma is_unifiers_is_unifier: "is_unifiers \<sigma> AAA \<Longrightarrow> AA \<in> AAA \<Longrightarrow> is_unifier \<sigma> AA"
-  using is_unifiers_def by auto
-
 lemma mgu_unifier:
   assumes ailen: "length Ai = n"
   assumes aijlen: "length Aij = n"
