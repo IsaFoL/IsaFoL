@@ -126,7 +126,8 @@ locale counterex_reducing_inference_system =
   assumes \<Gamma>_counterex_reducing:
     "{#} \<notin> N \<Longrightarrow> C \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> C \<Longrightarrow> (\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C \<le> D) \<Longrightarrow>
      \<exists>DD E. set_mset DD \<subseteq> N \<and> INTERP N \<Turnstile>m DD \<and> Infer DD C E \<in> \<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E < C"
-    (* Here the side-clauses are D's and the main clauses are C's. This is backwards... *)
+    (* FIXME: Here the side-clauses are D's and the main clauses are C's. This is backwards...
+       (I was following the book. Feel free to change. --JB) *)
 begin
 
 lemma ex_min_counterex:
@@ -153,7 +154,8 @@ proof -
   have ec_ni_n: "{#} \<notin> N"
     using ec_ni_n by auto
 
-  { assume "\<not> INTERP N \<Turnstile>s N"
+  {
+    assume "\<not> INTERP N \<Turnstile>s N"
     then obtain C where
       c_in_n: "C \<in> N" and
       c_cex: "\<not> INTERP N \<Turnstile> C" and
@@ -168,7 +170,8 @@ proof -
     from dd_subs_n inf_e have "E \<in> N"
       using c_in_n satur by (blast dest: saturatedD)
     hence False
-      using e_cex e_lt_c c_min not_less by blast }
+      using e_cex e_lt_c c_min not_less by blast
+  }
   thus ?thesis
     by satx
 qed

@@ -955,8 +955,8 @@ lemma ord_resolve_rename_lifting:
   proof -
     have "eligible (S_M S M) \<sigma> Ai (D + negs (mset Ai))"
       using ord_resolve unfolding eligible.simps[simplified] by -
-    hence "S_M S M (D + negs (mset Ai)) = negs (mset Ai) \<or>
-    S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
+    hence "S_M S M (D + negs (mset Ai)) = negs (mset Ai) \<or> S_M S M (D + negs (mset Ai)) = {#} \<and>
+      length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
       unfolding eligible.simps[simplified] by auto
     thus "eligible S \<tau> Ai' (D' + negs (mset Ai'))"
     proof
@@ -970,20 +970,18 @@ lemma ord_resolve_rename_lifting:
       thus "eligible S \<tau> Ai' (D' + negs (mset Ai'))"
         unfolding eligible.simps[simplified]  by auto
     next
-      assume asm: "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
-      let ?A = "Ai ! 0"
+      assume asm: "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and>
+        maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
       from asm have "S_M S M (D + negs (mset Ai)) = {#}"
         by auto
       hence "S (D' + negs (mset Ai')) = {#}"
         using \<open>D' \<cdot> \<eta> = D\<close>[symmetric] \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] \<open>S (DA') \<cdot> \<eta> = S_M S M (DA)\<close>
           ord_resolve(1) ai' subst_cls_empty_iff by metis
-      moreover
-      from asm have l: "length Ai = 1"
+      moreover from asm have l: "length Ai = 1"
         by auto
       hence l': "length Ai' = 1"
         using \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] by auto
-      moreover
-      from asm have "maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
+      moreover from asm have "maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
         by auto
       hence "maximal_in (Ai' ! 0 \<cdot>a (\<eta> \<odot> \<sigma>)) ((D' + negs (mset Ai')) \<cdot> (\<eta> \<odot> \<sigma>))"
         unfolding \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] \<open>D' \<cdot> \<eta> = D\<close>[symmetric] using l' by auto
@@ -1073,9 +1071,7 @@ lemma ord_resolve_rename_lifting:
   qed
 
   have res_r_e: "ord_resolve_rename S CAi'' DA'' \<tau> E'"
-    using ord_resolve_rename[of "hd (mk_var_dis (DA''#CAi''))" DA'' CAi'' "tl (mk_var_dis (DA''#CAi''))" S]
-      res_e
-    unfolding CAi'_def DA'_def by auto
+    using ord_resolve_rename res_e unfolding CAi'_def DA'_def by auto
 
   show ?thesis
     using that[of \<eta>'' \<eta>s'' \<eta>2 CAi'' DA''] \<open>is_ground_subst \<eta>''\<close> \<open>is_ground_subst_list \<eta>s''\<close>

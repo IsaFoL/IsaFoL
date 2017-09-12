@@ -284,16 +284,19 @@ proof (intro conjI redudancy_criterion, unfold_locales)
     unfolding \<gamma> by simp_all
   note e_in_n_un_rf_n = concl_of_in_n_un_rf_n[folded e]
 
-  { assume "E \<in> N"
+  {
+    assume "E \<in> N"
     moreover have "E < D"
       using \<Gamma>_reductive e d in_\<gamma> by auto
     ultimately have
       "set_mset {#E#} \<subseteq> N" and "\<forall>I. I \<Turnstile>m {#E#} + CC \<longrightarrow> I \<Turnstile> E" and "\<forall>D'. D' \<in># {#E#} \<longrightarrow> D' < D"
       by simp_all
     hence "redundant_infer N \<gamma>"
-      using cc d e by blast }
+      using cc d e by blast
+  }
   moreover
-  { assume "E \<in> Rf N"
+  {
+    assume "E \<in> Rf N"
     then obtain DD where
       dd_sset: "set_mset DD \<subseteq> N" and
       dd_imp_e: "\<forall>I. I \<Turnstile>m DD \<longrightarrow> I \<Turnstile> E" and
@@ -302,7 +305,8 @@ proof (intro conjI redudancy_criterion, unfold_locales)
     from dd_lt_e have "\<forall>Da. Da \<in># DD \<longrightarrow> Da < D"
       using d e in_\<gamma> \<Gamma>_reductive less_trans by blast
     hence "redundant_infer N \<gamma>"
-      using dd_sset dd_imp_e cc d e by blast }
+      using dd_sset dd_imp_e cc d e by blast
+  }
   ultimately show "\<gamma> \<in> Ri N"
     using in_\<gamma> e_in_n_un_rf_n unfolding Ri_def by blast
 qed
