@@ -4890,7 +4890,7 @@ proof -
 qed
 
 lemma extract_shorter_conflict_st_trivial_extract_shorter_conflict_wl:
-  \<open>(extract_shorter_conflict_st_trivial, extract_shorter_conflict_wl) \<in> 
+  \<open>(extract_shorter_conflict_st_trivial, extract_shorter_conflict_wl) \<in>
     [\<lambda>S. twl_struct_invs (twl_st_of_wl None S) \<and> twl_stgy_invs (twl_st_of_wl None S) \<and>
       get_conflict_wl S \<noteq> None \<and> no_skip S \<and> no_resolve S \<and> get_conflict_wl S \<noteq> Some {#}]\<^sub>f
     Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
@@ -5021,16 +5021,31 @@ prepare_code_thms (in -) find_decomp_wl_imp_code_def
 lemmas find_decomp_wl_imp_code[sepref_fr_rules] =
    find_decomp_wl_imp_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
 
-definition (in -) find_decomp_wl_st where
+definition (in -) find_decomp_wl_st :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>find_decomp_wl_st = (\<lambda>L (M, N, U, D, oth).  do{
      M' \<leftarrow> find_decomp_wl_imp M (the D) L;
     RETURN (M', N, U, D, oth)
   })\<close>
 
+definition find_decomp_wl_st_int :: \<open>nat literal \<Rightarrow> twl_st_wl_int_W_confl_with_cls \<Rightarrow>
+    twl_st_wl_int_W_confl_with_cls nres\<close> where
+  \<open>find_decomp_wl_st_int = (\<lambda>L (M, N, U, (D, K), W, Q, vm, \<phi>).  do{
+     M' \<leftarrow> find_decomp_wl' M (mset D) L;
+    RETURN (M', N, U, (D, K), W, Q, vm, \<phi>)
+  })\<close>
 
-thm find_decomp_wl_def
-(* TODO: duplicate of commented-out version *)
-lemma (in -) find_decomp_wl_code_find_decomp_wl:
+
+abbreviation (in -) nat_lit_lit_rel where
+  \<open>nat_lit_lit_rel \<equiv> Id :: (nat literal \<times> _) set\<close>
+
+definition find_decomp_wl_pre where
+  \<open>find_decomp_wl_pre = (\<lambda>((M, E), L).
+      \<exists>N U D NP UP Q W. twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)) \<and>
+       E \<noteq> {#} \<and> L = lit_of (hd M) \<and>
+       M \<noteq> [] \<and> ex_decomp_of_max_lvl M (Some E) L \<and>
+       E \<subseteq># the D \<and> D \<noteq> None)\<close>
+
+lemma (in -)
   assumes D: \<open>D \<noteq> None\<close> \<open>D \<noteq> Some {#}\<close> and M\<^sub>0: \<open>M\<^sub>0 \<noteq> []\<close> and ex_decomp: \<open>ex_decomp_of_max_lvl M\<^sub>0 D L\<close> and
     L: \<open>L = lit_of (hd M\<^sub>0)\<close> and
     struct: \<open>twl_struct_invs (twl_st_of_wl None (M\<^sub>0, N, U, D\<^sub>0, NP, UP, Q, W))\<close> and
@@ -5038,7 +5053,18 @@ lemma (in -) find_decomp_wl_code_find_decomp_wl:
     E_D\<^sub>0: \<open>E \<subseteq># the D\<^sub>0\<close> and
     D\<^sub>0: \<open>D\<^sub>0 \<noteq> None\<close>
   shows
-   \<open>find_decomp_wl_st L (M\<^sub>0, N, U, D, NP, UP, Q, WS) \<le> find_decomp_wl L (M\<^sub>0, N, U, D, NP, UP, Q, WS)\<close>
+    find_decomp_wl_code_find_decomp_wl:
+      \<open>find_decomp_wl_st L (M\<^sub>0, N, U, D, NP, UP, Q, WS) \<le> find_decomp_wl L
+        (M\<^sub>0, N, U, D, NP, UP, Q, WS)\<close>
+        (is ?ST) and
+    find_decomp_wl_imp_spec:
+     \<open>find_decomp_wl_imp M\<^sub>0 (the D) L \<le>
+        SPEC (\<lambda>x. \<exists>K. (\<exists>M2. (Decided K # x, M2) \<in> set (get_all_ann_decomposition M\<^sub>0)) \<and>
+        get_level M\<^sub>0 K = Suc (get_maximum_level M\<^sub>0 (remove1_mset (- L) (the D))))\<close>
+      (is ?WL) and
+    find_decomp_wl_imp_find_decomp_wl':
+      \<open>find_decomp_wl_imp M\<^sub>0 (the D) L \<le> find_decomp_wl' M\<^sub>0 (the D) L\<close>
+     (is ?decomp)
 proof -
   define f where
     \<open>f M\<^sub>0 D L \<equiv> (\<lambda>M\<^sub>0 D L. do {
@@ -5182,11 +5208,57 @@ proof -
     done
   have find_decomp_wl_code: \<open>find_decomp_wl_imp M\<^sub>0 D L = do {(_, j) \<leftarrow> f M\<^sub>0 D L; RETURN j}\<close> for L D M\<^sub>0
     unfolding find_decomp_wl_imp_def f_def by (auto simp: Let_def)
-  show ?thesis
+  show ST: ?ST
     using H unfolding find_decomp_wl_def find_decomp_wl_code E find_decomp_wl_st_def
     by refine_vcg auto
+  then show ?WL
+    unfolding find_decomp_wl_st_def find_decomp_wl_def
+    by (auto simp: bind_rule_complete)
+  show ?decomp
+    using ST
+    unfolding find_decomp_wl_st_def find_decomp_wl_def find_decomp_wl'_def
+    by (auto simp: bind_rule_complete)
 qed
 
+lemma find_decomp_wl_imp_find_decomp_wl':
+  \<open>(uncurry2 find_decomp_wl_imp, uncurry2 find_decomp_wl') \<in>
+    [find_decomp_wl_pre]\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f nat_lit_lit_rel \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+     (auto simp: find_decomp_wl_pre_def intro!:
+       find_decomp_wl_imp_find_decomp_wl'[where D = \<open>Some _\<close>, simplified])
+
+lemma find_decomp_wl_imp_code_find_decomp_wl'[sepref_fr_rules]:
+  \<open>(uncurry2 find_decomp_wl_imp_code, uncurry2 find_decomp_wl')
+     \<in> [\<lambda>((a, b), ba). find_decomp_wl_pre ((a, b), ba) \<and> a \<noteq> [] \<and>
+       literals_are_in_N\<^sub>0 b \<and> - ba
+       \<in># b]\<^sub>a
+     trail_assn\<^sup>d *\<^sub>a conflict_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> trail_assn\<close>
+  using find_decomp_wl_imp_code[FCOMP find_decomp_wl_imp_find_decomp_wl'] .
+
+
+(* TODO Move *)
+lemma (in -)
+  assumes \<open>I \<le> SPEC P\<close> and \<open>\<And>x. P x \<Longrightarrow> (x, x) \<in> R\<close>
+  shows \<open>I \<le> \<Down> R I\<close>
+  using assms by (meson inres_SPEC pw_ref_I)
+(* End Move *)
+
+lemma \<open>(uncurry find_decomp_wl_st_int, uncurry find_decomp_wl_st) \<in>
+   [\<lambda>(L, S). get_conflict_wl S \<noteq> None \<and> get_conflict_wl S \<noteq> Some {#}]\<^sub>f
+   nat_lit_rel \<times>\<^sub>r twl_st_wl_int_W_confl_with_cls O twl_st_ref \<rightarrow>
+   \<langle>twl_st_wl_int_W_confl_with_cls O twl_st_ref\<rangle>nres_rel\<close>
+  unfolding twl_st_wl_int_W_confl_with_cls_twl_st_rel
+  apply (intro frefI nres_relI)
+  apply clarify
+  subgoal for L' M' N' U' D' K' W' Q' A' m' _ _ _ \<phi> L M N U D NP UP W Q
+  apply (auto simp: find_decomp_wl_st_int_def find_decomp_wl_st_def option_conflict_rel_with_cls_def
+      list_mset_rel_def br_def
+    intro!: bind_refine[where R' = \<open>{(Ms', Ms). Ms = Ms' \<and> (\<exists>M''. M = M'' @ Ms)}\<close>]
+    dest: no_dup_appendD)
+    apply (rule order.trans)
+       apply (rule find_decomp_wl_imp_spec[where D = \<open>Some (mset D')\<close>, simplified])
+    apply auto
+    thm order.trans
 fun set_conflict_wl where
   \<open>set_conflict_wl D (M, N, U, _, oth) = (M, N, U, D, oth)\<close>
 
@@ -5280,7 +5352,7 @@ context twl_array_code
 begin
 
 lemma backtrack_wl_D_invD:
-  assumes \<open>backtrack_wl_D_inv S\<close> 
+  assumes \<open>backtrack_wl_D_inv S\<close>
   shows \<open>get_trail_wl S \<noteq> []\<close> \<open>extract_shorter_conflict_wl_pre S\<close>
   using assms unfolding backtrack_wl_D_inv_def backtrack_wl_inv_def backtrack_l_inv_def
   extract_shorter_conflict_wl_pre_def get_trail_l_st_l_of_wl
