@@ -543,8 +543,7 @@ subsubsection \<open>Renamings\<close>
 lemma is_renaming_id_subst[simp]: "is_renaming id_subst"
   unfolding is_renaming_def by simp
 
-lemma is_renaming_bij:
-   "is_renaming \<sigma> \<Longrightarrow> (\<forall>x y. x \<cdot>a \<sigma> = y \<cdot>a \<sigma> \<longleftrightarrow> x = y)" (* I don't think the other direction is true *)
+lemma is_renamingD: "is_renaming \<sigma> \<Longrightarrow> (\<forall>x y. x \<cdot>a \<sigma> = y \<cdot>a \<sigma> \<longleftrightarrow> x = y)"
   by (metis is_renaming_def subst_atm_comp_subst subst_atm_id_subst)
 
 lemma "is_renaming \<sigma> \<Longrightarrow> range (\<lambda>x. x \<cdot>a \<sigma>) = UNIV"
@@ -557,16 +556,18 @@ lemma "is_renaming r1 \<Longrightarrow> is_renaming r2 \<Longrightarrow> r1 \<od
   by (metis comp_subst_assoc id_subst_comp_subst is_renaming_def)
 
 lemma inv_ren_cancel_r[simp]: "is_renaming s \<Longrightarrow> s \<odot> (inv_ren s) = id_subst"
-  unfolding inv_ren_def is_renaming_def by (metis (mono_tags, lifting) someI_ex)
+  unfolding inv_ren_def is_renaming_def by (metis (mono_tags) someI_ex)
 
-lemma inv_ren_cancel_r_list[simp]: "is_renaming_list s \<Longrightarrow> s \<odot>s (map inv_ren s) = replicate (length s) id_subst"
-  unfolding is_renaming_list_def
-  by (induction s) (auto simp add: comp_substs_def)
+lemma inv_ren_cancel_r_list[simp]:
+  "is_renaming_list s \<Longrightarrow> s \<odot>s (map inv_ren s) = replicate (length s) id_subst"
+  unfolding is_renaming_list_def by (induction s) (auto simp add: comp_substs_def)
 
 lemma inv_ren_cancel_l[simp]: "is_renaming s \<Longrightarrow> (inv_ren s) \<odot> s = id_subst"
-  by (metis comp_subst_assoc id_subst_comp_subst inv_ren_cancel_r is_renaming_def substitution.comp_subst_id_subst substitution_axioms)
+  by (metis comp_subst_assoc id_subst_comp_subst inv_ren_cancel_r is_renaming_def
+      substitution.comp_subst_id_subst substitution_axioms)
 
-lemma inv_ren_cancel_l_list[simp]: "is_renaming_list s \<Longrightarrow> (map inv_ren s) \<odot>s s = replicate (length s) id_subst"
+lemma inv_ren_cancel_l_list[simp]:
+  "is_renaming_list s \<Longrightarrow> (map inv_ren s) \<odot>s s = replicate (length s) id_subst"
   unfolding is_renaming_list_def by (induction s) (auto simp add: comp_substs_def)
 
 lemma Nil_comp_substs[simp]: "[] \<odot>s s = []"
@@ -613,7 +614,7 @@ lemma is_renaming_list_inv_ren_cancel2[simp]:
 subsubsection \<open>Monotonicity\<close>
 
 lemma subst_cls_mono: "set_mset C \<subseteq> set_mset D \<Longrightarrow> set_mset (C \<cdot> \<sigma>) \<subseteq> set_mset (D \<cdot> \<sigma>)"
-  unfolding subst_cls_def by auto
+  by force
 
 lemma subst_cls_mono_mset: "C \<le># D \<Longrightarrow> C \<cdot> \<sigma> \<le># D \<cdot> \<sigma>"
   unfolding subst_clss_def by (metis mset_subset_eq_exists_conv subst_cls_union)
@@ -639,16 +640,17 @@ subsubsection \<open>Variable disjointness\<close>
 lemma var_disjoint_clauses:
   assumes "var_disjoint Cs"
   shows "\<forall>\<sigma>s. length \<sigma>s = length Cs \<longrightarrow> (\<exists>\<tau>. Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>)"
-proof (rule, rule)
+proof clarify
   fix \<sigma>s :: "'s list"
   assume a: "length \<sigma>s = length Cs"
-  then obtain \<tau> where "\<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma>s ! i = S \<cdot> \<tau>"
+  then obtain \<tau> where "\<forall>i < length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma>s ! i = S \<cdot> \<tau>"
     using assms unfolding var_disjoint_def by blast
-  then have "\<forall>i<length Cs. (Cs ! i) \<cdot> \<sigma>s ! i = (Cs ! i) \<cdot> \<tau>"
+  then have "\<forall>i < length Cs. (Cs ! i) \<cdot> \<sigma>s ! i = (Cs ! i) \<cdot> \<tau>"
     by auto
   then have "Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>"
     using a by (simp add: nth_equalityI)
-  then show "\<exists>\<tau>. Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>" by auto
+  then show "\<exists>\<tau>. Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>"
+    by auto
 qed
 
 
@@ -666,24 +668,19 @@ lemma make_single_ground_subst:
   obtains \<tau> where
     "is_ground_subst \<tau>"
     "\<forall>S. S \<subseteq># C \<longrightarrow> S \<cdot> \<tau> = S \<cdot> \<sigma>"
-using assms
-  using make_ground_subst[of "[C]" \<sigma>] unfolding is_ground_cls_list_def by auto
+  using assms make_ground_subst[of "[C]" \<sigma>] unfolding is_ground_cls_list_def by auto
 
 lemma make_ground_subst_clauses:
   assumes "is_ground_cls_list (CC \<cdot>cl \<sigma>)"
   shows "\<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length CC. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)"
-proof -
-  from assms obtain \<tau> where "is_ground_subst \<tau> \<and> (\<forall>i<length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)"
-    using make_ground_subst by blast
-  then show ?thesis
-    by blast
-qed
+  using assms make_ground_subst by blast
 
 lemma make_ground_subst_clauses':
   assumes "is_ground_cls_list (CC \<cdot>cl \<sigma>)"
   shows "\<exists>\<tau>. is_ground_subst \<tau> \<and> CC \<cdot>cl \<sigma> = CC \<cdot>cl \<tau>"
 proof -
-  from assms obtain \<tau> where "is_ground_subst \<tau> \<and> (\<forall>i<length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)"
+  from assms obtain \<tau> where
+    "is_ground_subst \<tau> \<and> (\<forall>i<length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)"
     using make_ground_subst by blast
   then have "is_ground_subst \<tau> \<and> (\<forall>i<length CC. (CC ! i) \<cdot> \<sigma> = (CC ! i) \<cdot> \<tau>)"
     by auto
@@ -694,20 +691,24 @@ proof -
 qed
 
 lemma make_ground_subst_list_clauses:
-  assumes "length CC = length \<sigma>s"
-  assumes "is_ground_cls_list (CC \<cdot>\<cdot>cl \<sigma>s)"
-  shows "\<exists>\<tau>s. is_ground_subst_list \<tau>s \<and> length \<tau>s = length CC \<and> (\<forall>i<length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> (\<sigma>s ! i) = S \<cdot> (\<tau>s ! i))"
+  assumes "length CC = length \<sigma>s" and "is_ground_cls_list (CC \<cdot>\<cdot>cl \<sigma>s)"
+  shows "\<exists>\<tau>s. is_ground_subst_list \<tau>s \<and> length \<tau>s = length CC \<and>
+    (\<forall>i < length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma>s ! i = S \<cdot> \<tau>s ! i)"
 proof -
-  have "\<forall>i < length CC. \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>S. S \<subseteq># (CC ! i) \<longrightarrow> S \<cdot> \<tau> = S \<cdot> \<sigma>s ! i)"
+  have "\<forall>i < length CC. \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<tau> = S \<cdot> \<sigma>s ! i)"
     using assms make_single_ground_subst[of "CC ! _" "\<sigma>s ! _"] unfolding is_ground_cls_list_def
     by (metis min.idem nth_mem subst_cls_lists_length subst_cls_lists_nth)
-  then obtain f where f_p:
-    "\<forall>i < length CC. is_ground_subst (f i) \<and> (\<forall>S. S \<subseteq># (CC ! i) \<longrightarrow> S \<cdot> (f i) = S \<cdot> \<sigma>s ! i)"
+  then obtain f where
+    f_p: "\<forall>i < length CC. is_ground_subst (f i) \<and> (\<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> f i = S \<cdot> \<sigma>s ! i)"
     by metis
+
   let ?\<tau>s = "map f [0 ..< length CC]"
-  have \<tau>s_p: "\<forall>i < length CC. is_ground_subst (?\<tau>s ! i) \<and> (\<forall>S. S \<subseteq># (CC ! i) \<longrightarrow> S \<cdot> (?\<tau>s ! i) = S \<cdot> \<sigma>s ! i)"
+
+  have \<tau>s_p: "\<forall>i < length CC. is_ground_subst (?\<tau>s ! i) \<and>
+    (\<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> ?\<tau>s ! i = S \<cdot> \<sigma>s ! i)"
     using f_p by auto
-  then have "is_ground_subst_list ?\<tau>s \<and> length ?\<tau>s = length CC \<and> (\<forall>i<length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> (\<sigma>s ! i) = S \<cdot> (?\<tau>s ! i))"
+  then have "is_ground_subst_list ?\<tau>s \<and> length ?\<tau>s = length CC \<and>
+    (\<forall>i < length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma>s ! i = S \<cdot> ?\<tau>s ! i)"
     unfolding is_ground_subst_list_def by auto
   then show ?thesis
     by metis
@@ -722,38 +723,23 @@ proof -
     by (metis min.idem nth_mem subst_cls_lists_length subst_cls_lists_nth)
   then obtain f where f_p:
     "\<forall>i < length CC. is_ground_subst (f i) \<and> (\<forall>S. S \<subseteq># (CC ! i) \<longrightarrow> S \<cdot> (f i) = S \<cdot> \<sigma>s ! i)"
-    by metis
+    by moura
   let ?\<tau>s = "map f [0 ..< length CC]"
-  have \<tau>s_p: "\<forall>i < length CC. is_ground_subst (?\<tau>s ! i) \<and> (\<forall>S. S \<subseteq># (CC ! i) \<longrightarrow> S \<cdot> (?\<tau>s ! i) = S \<cdot> \<sigma>s ! i)"
+  have \<tau>s_p: "\<forall>i < length CC. is_ground_subst (?\<tau>s ! i) \<and>
+    (\<forall>S. S \<subseteq># (CC ! i) \<longrightarrow> S \<cdot> (?\<tau>s ! i) = S \<cdot> \<sigma>s ! i)"
     using f_p by auto
   then have "is_ground_subst_list ?\<tau>s"
     unfolding is_ground_subst_list_def by auto
-  moreover
-  from \<tau>s_p have "CC \<cdot>\<cdot>cl \<sigma>s = CC \<cdot>\<cdot>cl ?\<tau>s"
+  moreover from \<tau>s_p have "CC \<cdot>\<cdot>cl \<sigma>s = CC \<cdot>\<cdot>cl ?\<tau>s"
     by (simp add: assms(1) nth_equalityI)
-  ultimately
-  show ?thesis
+  ultimately show ?thesis
     by auto
 qed
 
 lemma var_disjoint_ground:
-  assumes
-    "var_disjoint Cs" and
-    "length \<sigma>s = length Cs" and
-    "is_ground_cls_list (Cs \<cdot>\<cdot>cl \<sigma>s)"
+  assumes "var_disjoint Cs" and "length \<sigma>s = length Cs" and "is_ground_cls_list (Cs \<cdot>\<cdot>cl \<sigma>s)"
   shows "\<exists>\<tau>. is_ground_subst \<tau> \<and> Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>"
-proof -
-  from assms(1,2) obtain \<tau> where *: "Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>"
-    using var_disjoint_clauses by auto
-  with assms(3) have "is_ground_cls_list (Cs \<cdot>cl \<tau>)"
-    by simp
-  then obtain \<tau>' where "is_ground_subst \<tau>'" "Cs \<cdot>cl \<tau> = Cs \<cdot>cl \<tau>'"
-    using make_ground_subst_clauses' by blast
-  with assms(2) * have "is_ground_subst \<tau>' \<and> Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>'"
-    by simp
-  then show ?thesis
-    ..
-qed
+  using assms make_ground_subst_clauses' var_disjoint_clauses by force
 
 
 paragraph \<open>Ground union\<close>
@@ -798,7 +784,7 @@ lemma is_ground_comp_subst[simp]: "is_ground_subst \<sigma> \<Longrightarrow> is
   unfolding is_ground_subst_def is_ground_atm_def by auto
 
 lemma ground_subst_ground_atm[simp]: "is_ground_subst \<sigma> \<Longrightarrow> is_ground_atm (A \<cdot>a \<sigma>)"
-  unfolding is_ground_subst_def by auto
+  by (simp add: is_ground_subst_def)
 
 lemma ground_subst_ground_lit[simp]: "is_ground_subst \<sigma> \<Longrightarrow> is_ground_lit (L \<cdot>l \<sigma>)"
   unfolding is_ground_lit_def subst_lit_def by (cases L) auto
@@ -814,7 +800,7 @@ lemma ground_subst_ground_cls_list[simp]: "is_ground_subst \<sigma> \<Longrighta
 
 lemma ground_subst_ground_cls_lists[simp]:
   "\<forall>\<sigma> \<in> set \<sigma>s. is_ground_subst \<sigma> \<Longrightarrow> is_ground_cls_list (CC \<cdot>\<cdot>cl \<sigma>s)"
-  unfolding  is_ground_cls_list_def subst_cls_lists_def map2_def by (auto simp: set_zip)
+  unfolding is_ground_cls_list_def subst_cls_lists_def map2_def by (auto simp: set_zip)
 
 lemma ground_subst_ground_cls_mset[simp]: "is_ground_subst \<sigma> \<Longrightarrow> is_ground_cls_mset (CC \<cdot>cm \<sigma>)"
   unfolding is_ground_cls_mset_def subst_cls_mset_def by auto
@@ -832,10 +818,10 @@ lemma is_ground_subst_atm_mset[simp]: "is_ground_atm_mset AA \<Longrightarrow> A
   unfolding is_ground_atm_mset_def subst_atm_mset_def by auto
 
 lemma is_ground_subst_atm_list[simp]: "is_ground_atm_list As \<Longrightarrow> As \<cdot>al \<sigma> = As"
-  apply (rule nth_equalityI)
-  unfolding is_ground_atm_list_def subst_atm_list_def by auto
+  unfolding is_ground_atm_list_def subst_atm_list_def by (auto intro: nth_equalityI)
 
-lemma is_ground_subst_atm_list_member[simp]: "\<And>As i \<sigma>. is_ground_atm_list As \<Longrightarrow> i < length As \<Longrightarrow> (As ! i \<cdot>a \<sigma>) = As ! i"
+lemma is_ground_subst_atm_list_member[simp]:
+  "is_ground_atm_list As \<Longrightarrow> i < length As \<Longrightarrow> As ! i \<cdot>a \<sigma> = As ! i"
   unfolding is_ground_atm_list_def by auto
 
 lemma is_ground_subst_lit[simp]: "is_ground_lit L \<Longrightarrow> L \<cdot>l \<sigma> = L"
@@ -851,28 +837,16 @@ lemma is_ground_subst_cls_mset[simp]: "is_ground_cls_mset CC \<Longrightarrow> C
   unfolding is_ground_cls_mset_def subst_cls_mset_def by auto
 
 lemma is_ground_subst_cls_list[simp]:
-  assumes "length P = length CAi"
-  assumes "is_ground_cls_list CAi"
+  assumes "length P = length CAi" and "is_ground_cls_list CAi"
   shows "CAi \<cdot>\<cdot>cl P = CAi"
-proof -
-  {
-    fix i
-    assume "i < length P"
-    then have "(CAi \<cdot>\<cdot>cl P) ! i = CAi !i "
-      using assms unfolding is_ground_cls_list_def
-      using subst_cls_lists_def by auto
-  }
-  then show ?thesis using nth_equalityI[of _ CAi] assms by auto
-qed
+  by (metis assms is_ground_cls_list_def is_ground_subst_cls min.idem nth_equalityI nth_mem
+      subst_cls_lists_nth subst_cls_lists_length)
 
 lemma is_ground_subst_lit_iff: "is_ground_lit L \<longleftrightarrow> (\<forall>\<sigma>. L = L \<cdot>l \<sigma>)"
   using is_ground_atm_def is_ground_lit_def subst_lit_def by (cases L) auto
 
 lemma is_ground_subst_cls_iff: "is_ground_cls C \<longleftrightarrow> (\<forall>\<sigma>. C = C \<cdot> \<sigma>)"
-  apply rule
-  using is_ground_subst_lit_iff apply (auto simp add: is_ground_cls_def subst_cls_def; fail)
-  apply (metis ex_ground_subst ground_subst_ground_cls)
-  done
+  by (metis ex_ground_subst ground_subst_ground_cls is_ground_subst_cls)
 
 paragraph \<open>Members of ground expressions are ground\<close>
 
@@ -880,15 +854,16 @@ lemma is_ground_cls_as_atms: "is_ground_cls C \<longleftrightarrow> (\<forall>A 
   by (auto simp: atms_of_def is_ground_cls_def is_ground_lit_def)
 
 lemma is_ground_cls_imp_is_ground_lit: "L \<in># C \<Longrightarrow> is_ground_cls C \<Longrightarrow> is_ground_lit L"
-  unfolding is_ground_cls_def by auto
+  by (simp add: is_ground_cls_def)
 
 lemma is_ground_cls_imp_is_ground_atm: "A \<in> atms_of C \<Longrightarrow> is_ground_cls C \<Longrightarrow> is_ground_atm A"
-  using is_ground_cls_as_atms by auto
+  by (simp add: is_ground_cls_as_atms)
 
 lemma is_ground_cls_is_ground_atms_atms_of[simp]: "is_ground_cls D \<Longrightarrow> is_ground_atms (atms_of D)"
-  by (simp add: is_ground_cls_imp_is_ground_atm substitution_ops.is_ground_atms_def)
+  by (simp add: is_ground_cls_imp_is_ground_atm is_ground_atms_def)
 
-lemma in_subset_eq_grounding_of_clss_is_ground_cls[simp]: "x \<in> X \<Longrightarrow> X \<subseteq> grounding_of_clss Y \<Longrightarrow> is_ground_cls x"
+lemma in_subset_eq_grounding_of_clss_is_ground_cls[simp]:
+  "x \<in> X \<Longrightarrow> X \<subseteq> grounding_of_clss Y \<Longrightarrow> is_ground_cls x"
   unfolding grounding_of_clss_def grounding_of_cls_def by auto
 
 
@@ -907,18 +882,20 @@ lemma is_unifier_alt:
   assumes "finite AA"
   shows "is_unifier \<sigma> AA \<longleftrightarrow> (\<forall>A \<in> AA. \<forall>B \<in> AA. A \<cdot>a \<sigma> = B \<cdot>a \<sigma>)"
   unfolding is_unifier_def subst_atms_def card_le_one_alt[OF finite_imageI[OF assms(1)]]
-  by (cases "AA = {}") (auto, metis equals0D imageI insert_iff)
+  by (rule iffI, metis empty_iff insert_iff insert_image, blast)
 
 lemma is_unifiers_subst_atm_eqI:
   assumes "finite AA" "is_unifiers \<sigma> AAA" "AA \<in> AAA" "A \<in> AA" "B \<in> AA"
   shows "A \<cdot>a \<sigma> = B \<cdot>a \<sigma>"
   by (metis assms is_unifiers_def is_unifier_subst_atm_eqI)
 
-theorem is_unifiers_comp: "is_unifiers \<sigma> (set_mset ` set (map2 add_mset Ai' Aij') \<cdot>ass \<eta>) \<longleftrightarrow> is_unifiers (\<eta> \<odot> \<sigma>) (set_mset ` set (map2 add_mset Ai' Aij'))"
+theorem is_unifiers_comp:
+  "is_unifiers \<sigma> (set_mset ` set (map2 add_mset Ai' Aij') \<cdot>ass \<eta>) \<longleftrightarrow>
+   is_unifiers (\<eta> \<odot> \<sigma>) (set_mset ` set (map2 add_mset Ai' Aij'))"
   unfolding is_unifiers_def is_unifier_def subst_atmss_def by auto
 
 
-subsubsection \<open>MGUs\<close>
+subsubsection \<open>Most General Unifier\<close>
 
 lemma is_mgu_is_unifiers: "is_mgu \<sigma> AAA \<Longrightarrow> is_unifiers \<sigma> AAA"
   using is_mgu_def by blast
@@ -943,32 +920,33 @@ locale unification = substitution subst_atm id_subst comp_subst
     mgu :: "'a set set \<Rightarrow> 's option"
   assumes
     mgu_sound: "finite AAA \<Longrightarrow> (\<forall>AA \<in> AAA. finite AA) \<Longrightarrow> mgu AAA = Some \<sigma> \<Longrightarrow> is_mgu \<sigma> AAA" and
-    mgu_complete: "finite AAA \<Longrightarrow> (\<forall>AA \<in> AAA. finite AA) \<Longrightarrow> is_unifiers \<sigma> AAA \<Longrightarrow> \<exists>\<tau>. mgu AAA = Some \<tau>"
+    mgu_complete:
+      "finite AAA \<Longrightarrow> (\<forall>AA \<in> AAA. finite AA) \<Longrightarrow> is_unifiers \<sigma> AAA \<Longrightarrow> \<exists>\<tau>. mgu AAA = Some \<tau>"
 begin
 
 lemmas is_unifiers_mgu = mgu_sound[unfolded is_mgu_def, THEN conjunct1]
 lemmas is_mgu_most_general = mgu_sound[unfolded is_mgu_def, THEN conjunct2]
 
 lemma mgu_unifier:
-  assumes ailen: "length Ai = n"
-  assumes aijlen: "length Aij = n"
-  assumes mgu: "Some \<sigma> = mgu (set_mset ` (set (map2 add_mset Ai Aij)))"
-  shows "\<forall>i < n. (\<forall>A \<in># Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>)"
-proof -
+  assumes
+    ailen: "length Ai = n" and
+    aijlen: "length Aij = n" and
+    mgu: "Some \<sigma> = mgu (set_mset ` (set (map2 add_mset Ai Aij)))"
+  shows "\<forall>i < n. \<forall>A \<in># Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>"
+proof (intro allI impI)
+  fix i
+  assume i: "i < n"
+
   from mgu have "is_mgu \<sigma> (set_mset ` (set (map2 add_mset Ai Aij)))"
     using mgu_sound by auto
-  then have uni: "is_unifiers \<sigma> (set_mset ` (set (map2 add_mset Ai Aij)))"
+  then have "is_unifiers \<sigma> (set_mset ` (set (map2 add_mset Ai Aij)))"
     using is_mgu_is_unifiers by auto
-  show "\<forall>i < n. (\<forall>A \<in># Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>)"
-  proof (rule allI; rule impI)
-    fix i
-    assume i: "i < n"
-    then have "is_unifier \<sigma> (set_mset (add_mset (Ai ! i) (Aij ! i)))"
-      using ailen aijlen uni is_unifiers_is_unifier
-      by (auto simp del: map2_nth simp add: map2_nth[symmetric])
-    then show "\<forall>A\<in>#Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>"
-      using ailen aijlen i is_unifier_subst_atm_eqI by (metis finite_set_mset insertCI set_mset_add_mset_insert)
-  qed
+  then have "is_unifier \<sigma> (set_mset (add_mset (Ai ! i) (Aij ! i)))"
+    using i ailen aijlen is_unifiers_is_unifier
+    by (auto simp del: map2_nth simp add: map2_nth[symmetric])
+  then show "\<forall>A \<in># Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>"
+    using ailen aijlen is_unifier_subst_atm_eqI
+    by (metis finite_set_mset insertCI set_mset_add_mset_insert)
 qed
 
 end
