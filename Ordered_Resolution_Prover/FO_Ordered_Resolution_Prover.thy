@@ -2042,9 +2042,9 @@ proof -
       unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def by auto
     then have ii: "X \<in> limit_llist (lmap N_of_state Sts) \<or> X \<in> limit_llist (lmap P_of_state Sts) \<or> X \<in> limit_llist (lmap Q_of_state Sts)"
       unfolding clss_of_state_def  limit_state_def by simp
-    then have "x \<in> limit_llist (lmap grounding_of_clss (lmap N_of_state Sts))
-                 \<or> x \<in> limit_llist (lmap grounding_of_clss (lmap P_of_state Sts))
-                   \<or> x \<in> limit_llist (lmap grounding_of_clss (lmap Q_of_state Sts))"
+    then have "x \<in> limit_llist (lmap grounding_of_clss (lmap N_of_state Sts)) \<or>
+      x \<in> limit_llist (lmap grounding_of_clss (lmap P_of_state Sts)) \<or>
+      x \<in> limit_llist (lmap grounding_of_clss (lmap Q_of_state Sts))"
       apply -
       unfolding limit_llist_def grounding_of_clss_def grounding_of_cls_def
       apply (erule HOL.disjE)
