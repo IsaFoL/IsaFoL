@@ -326,7 +326,7 @@ proof -
     by auto
 qed
 
-lemma in_image_Neg_is_neg[simp]: (* maybe faster without this... *)
+lemma in_image_Neg_is_neg[simp]:
    "L \<cdot>l \<sigma> \<in> Neg ` X \<Longrightarrow> is_neg L"
   by (metis bex_imageD literal.disc(2) literal.map_disc_iff subst_lit_def)
 
@@ -563,8 +563,8 @@ subsubsection \<open>Renamings\<close>
 lemma is_renaming_id_subst[simp]: "is_renaming id_subst"
   unfolding is_renaming_def by simp
 
-lemma is_renaming_inj:
-   "is_renaming \<sigma> \<Longrightarrow> (\<forall>x y. x \<cdot>a \<sigma> = y \<cdot>a \<sigma> \<longrightarrow> x = y)" (* I don't think the other direction is true *)
+lemma is_renaming_bij:
+   "is_renaming \<sigma> \<Longrightarrow> (\<forall>x y. x \<cdot>a \<sigma> = y \<cdot>a \<sigma> \<longleftrightarrow> x = y)" (* I don't think the other direction is true *)
   by (metis is_renaming_def subst_atm_comp_subst subst_atm_id_subst)
 
 lemma "is_renaming \<sigma> \<Longrightarrow> range (\<lambda>x. x \<cdot>a \<sigma>) = UNIV"
