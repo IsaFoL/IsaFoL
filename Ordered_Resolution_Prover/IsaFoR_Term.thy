@@ -6,7 +6,7 @@
 section {* Integration of IsaFoR Terms *}
 
 theory IsaFoR_Term
-  imports "$AFP/Deriving/Derive" "$ISAFOR/Rewriting/Unification" Substitution
+  imports "$AFP/Deriving/Derive" "$ISAFOR/Rewriting/Unification" Abstract_Substitution
 begin
 
 hide_const (open) mgu

@@ -6,7 +6,7 @@
 
 section {* Abstract Substitutions *}
 
-theory Substitution
+theory Abstract_Substitution
   imports "../lib/Clausal_Logic" Map2
 begin
 

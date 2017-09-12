@@ -8,7 +8,7 @@
 section {* First-Order Ordered Resolution Calculus with Selection *}
 
 theory FO_Ordered_Resolution
-  imports Ordered_Ground_Resolution Standard_Redundancy Substitution
+  imports Abstract_Substitution Ordered_Ground_Resolution Standard_Redundancy
 begin
 
 (* FIXME: Avoid such global changes to the intro/etc. sets *)
@@ -1012,7 +1012,7 @@ lemma ord_resolve_rename_lifting:
     finally show e'\<phi>e: "E' \<cdot> \<phi> = E" .
   qed
 
-    (* Replace \<eta> with ground substitution *)
+  (* Replace \<eta> with ground substitution *)
   obtain \<eta>2 where ground_\<eta>2: "is_ground_subst \<eta>2" "E' \<cdot> \<eta>2 = E"
   proof -
     have "is_ground_cls_list CAi" "is_ground_cls DA"
@@ -1027,15 +1027,15 @@ lemma ord_resolve_rename_lifting:
     res_e unfolding CAi'_def DA'_def by auto
 
   show ?thesis using that[of \<eta>'' \<eta>s'' \<eta>2 CAi'' DA'']
-      \<open>is_ground_subst \<eta>''\<close>
-      \<open>is_ground_subst_list \<eta>s''\<close>
-      \<open>is_ground_subst \<eta>2\<close>
-      res_r_e
-      \<open>CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi\<close>
-      \<open>DA'' \<cdot> \<eta>'' = DA\<close>
-      \<open>E' \<cdot> \<eta>2 = E\<close>
-      \<open>DA'' \<in> M\<close>
-      \<open>\<forall>CA\<in>set CAi''. CA \<in> M\<close>
+    \<open>is_ground_subst \<eta>''\<close>
+    \<open>is_ground_subst_list \<eta>s''\<close>
+    \<open>is_ground_subst \<eta>2\<close>
+    res_r_e
+    \<open>CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi\<close>
+    \<open>DA'' \<cdot> \<eta>'' = DA\<close>
+    \<open>E' \<cdot> \<eta>2 = E\<close>
+    \<open>DA'' \<in> M\<close>
+    \<open>\<forall>CA\<in>set CAi''. CA \<in> M\<close>
     by blast
 qed
 
