@@ -261,7 +261,7 @@ lemma map_zip_assoc: "map f (zip (zip xs ys) zs) = map (\<lambda>(x,y,z). f ((x,
 
 lemma subst_cls_lists_comp_substs[simp]: "Cs \<cdot>\<cdot>cl (\<tau>s \<odot>s \<sigma>s) = Cs \<cdot>\<cdot>cl \<tau>s \<cdot>\<cdot>cl \<sigma>s"
   unfolding map2_def subst_cls_lists_def comp_substs_def map_zip_map map_zip_map2 map_zip_assoc
-     by (simp add: split_def)
+  by (simp add: split_def)
 
 lemma subst_cls_mset_comp_subst[simp]: "CC \<cdot>cm (\<tau> \<odot> \<sigma>) = CC \<cdot>cm \<tau> \<cdot>cm \<sigma>"
   unfolding subst_cls_mset_def by auto
@@ -636,7 +636,7 @@ lemma inv_ren_is_renaming_list[simp]:
 lemma is_renaming_inv_ren_cancel[simp]: "is_renaming \<rho> \<Longrightarrow> C  \<cdot> \<rho> \<cdot> (inv_ren \<rho>) = C"
   by (metis inv_ren_cancel_r subst_cls_comp_subst subst_cls_id_subst)
 
-(* FIXME: rename following properties *)
+(* FIXME: rename following properties and indent properly *)
 lemma drdrdrdrdrdrdrdrdrdrdrdr[simp]: "length CC = length \<rho>s \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> CC \<cdot>\<cdot>cl \<rho>s \<cdot>\<cdot>cl (map inv_ren \<rho>s) = CC"
   apply (induction \<rho>s)
     unfolding is_renaming_list_def

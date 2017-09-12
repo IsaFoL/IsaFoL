@@ -294,7 +294,7 @@ lemma ord_resolve_rename_ground_inst_sound: (* This theorem will be used in 4.11
     \<rho>: "\<rho> = hd (mk_var_dis (DA # CAi))" and
     cc_inst_true: "I \<Turnstile>m (mset (CAi \<cdot>\<cdot>cl \<rho>s)) \<cdot>cm \<sigma> \<cdot>cm \<eta>" and
     d_inst_true: "I \<Turnstile> DA \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<eta>" and
-     ground_subst_\<eta>: "is_ground_subst \<eta>"
+    ground_subst_\<eta>: "is_ground_subst \<eta>"
   shows "I \<Turnstile> E \<cdot> \<eta>"
   using assms
 proof (cases rule: ord_resolve_rename.cases)
@@ -394,8 +394,7 @@ proof -
   from assms(1) have "{#x \<cdot>l \<eta>. x \<in># SDA'#} = mset (map Neg Ai)"
     using subst_cls_def by auto
   then have "\<exists>NAi'. map (\<lambda>x. x \<cdot>l \<eta>) NAi' = map Neg Ai \<and> mset NAi' = SDA'"
-   using image_mset_of_subset_list[of "\<lambda>x. x \<cdot>l \<eta>" SDA' "map Neg Ai"]
-   by auto
+    using image_mset_of_subset_list[of "\<lambda>x. x \<cdot>l \<eta>" SDA' "map Neg Ai"] by auto
   then obtain Ai' where Ai'_p:
     "map (\<lambda>x. x \<cdot>l \<eta>) (map Neg Ai') = map Neg Ai \<and> mset (map Neg Ai') = SDA'"
     by (metis (no_types, lifting) Neg_atm_of_iff negL ex_map_conv set_mset_mset)
@@ -469,7 +468,7 @@ proof -
   hence "\<forall>B \<in> atms_of (C \<cdot> \<sigma>). \<not> less_atm (A \<cdot>a \<sigma>) B" unfolding maximal_in_def by -
   hence ll: "\<forall>B\<in>atms_of (C \<cdot> \<sigma>). \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma>'))" unfolding less_atm_iff by -
   have "\<forall>B\<in>atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma> \<cdot>a \<sigma>'))"
-     using ll by auto
+    using ll by auto
   hence "\<forall>B\<in>atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma>' < B \<cdot>a \<sigma>'))"
     using is_ground_comp_subst by fastforce
   hence "\<forall>B\<in>atms_of C. \<not> (less_atm A B)" unfolding less_atm_iff by -
@@ -591,7 +590,7 @@ lemma ord_resolve_obtain_clauses:
   have CAi''_to_CAi: "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi"
     unfolding CAi''_def \<eta>s''_def using f_p(2) by (auto simp: n)
   have SCAi''_to_SMCAi: "(map S CAi'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAi"
-   unfolding CAi''_def \<eta>s''_def using f_p(3) n by force
+    unfolding CAi''_def \<eta>s''_def using f_p(3) n by force
 
     (* Obtain DA''  *)
   have "\<exists>DA'' \<eta>''. DA'' \<in> M \<and> DA = DA'' \<cdot> \<eta>'' \<and> S DA'' \<cdot> \<eta>'' = S_M S M DA"
@@ -876,7 +875,7 @@ lemma ord_resolve_rename_lifting:
     note n = n \<open>length Ci' = n\<close>
 
     have "\<forall>i < n. CAi' ! i = Ci' ! i + poss (Aij' ! i)"
-     using Aij'_in_CAi' using Ci'_def n by auto
+      using Aij'_in_CAi' using Ci'_def n by auto
     then have "Ci' \<cdot>cl \<eta> = Ci"
       using \<open>CAi' \<cdot>cl \<eta> = CAi\<close> Aij'_Aij ord_resolve(8) using n by auto
 

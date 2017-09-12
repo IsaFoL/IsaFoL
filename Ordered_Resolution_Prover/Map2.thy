@@ -30,8 +30,7 @@ lemma map2_empty_iff[simp]: "(map2 f xs ys = []) \<longleftrightarrow> (xs = [] 
   unfolding map2_def
   by (metis list.exhaust list.simps(3) list.simps(9) map2_def map2_empty_l map2_empty_r zip_Cons_Cons)
 
-lemma image_map2: "length t = length s \<Longrightarrow>
-         g ` set (map2 f t s) = set (map2 (\<lambda>a b. g (f a b)) t s)"
+lemma image_map2: "length t = length s \<Longrightarrow> g ` set (map2 f t s) = set (map2 (\<lambda>a b. g (f a b)) t s)"
   unfolding map2_def by (induction t arbitrary: s) auto
 
 lemma map2_nth[simp]: "length t = length s \<Longrightarrow> i < length s \<Longrightarrow> (map2 f s t) ! i = f (s!i) (t!i)"

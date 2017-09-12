@@ -270,7 +270,7 @@ next
   qed
 next
   case (backward_subsumption_P N C P Q) (* Adapted from previous proof *) (* Arguably I should extract some lemma that says: if subsumed then redundant... *)
-   then obtain D where D_p: "D\<in>N \<and> strictly_subsumes D C"
+  then obtain D where D_p: "D\<in>N \<and> strictly_subsumes D C"
     by auto
   from D_p obtain \<sigma> where \<sigma>_p: "D \<cdot> \<sigma> \<subseteq># C" unfolding strictly_subsumes_def subsumes_def by auto
   then have "D \<cdot> \<sigma> = C \<or> D \<cdot> \<sigma> \<subset># C"
@@ -741,7 +741,7 @@ lemma N_of_state_subset:
 lemma P_of_state_subset:
   assumes "enat l < llength Sts"
   shows "P_of_state (lnth Sts l) \<subseteq> clss_of_state (lnth Sts l)"
-   using assms unfolding clss_of_state_def by auto
+  using assms unfolding clss_of_state_def by auto
 
 lemma Q_of_state_subset:
   assumes "enat l < llength Sts"
@@ -1372,9 +1372,8 @@ proof -
   qed
 qed
 
-lemma variants_sym:
-   "variants D D' \<longleftrightarrow> variants D' D"
-   unfolding variants_def by auto
+lemma variants_sym: "variants D D' \<longleftrightarrow> variants D' D"
+  unfolding variants_def by auto
 
 lemma variants_size:
   assumes "variants D D'"
@@ -1422,8 +1421,7 @@ proof -
 qed
 
 lemma neg_properly_subsume_variants:
-  assumes "\<not>(strictly_subsumes E D)"
-  assumes "variants D D'"
+  assumes "\<not>(strictly_subsumes E D)" and "variants D D'"
   shows "\<not>(strictly_subsumes E D')"
   using assms properly_subsume_variants variants_sym by auto
 
@@ -1800,7 +1798,7 @@ proof -
   qed
   ultimately
   have "enat j < llength Sts \<and> (\<forall>j'\<ge>enat j. j' < llength Sts \<longrightarrow> X \<subseteq> Q_of_state (lnth Sts j'))"
-     by auto
+    by auto
   then show ?thesis by auto
 qed
 
