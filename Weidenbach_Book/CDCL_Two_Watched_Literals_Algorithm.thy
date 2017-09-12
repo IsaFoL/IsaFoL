@@ -701,7 +701,7 @@ definition propgate_unit_bt :: \<open>'v literal \<Rightarrow> 'v twl_st \<Right
     (Propagated (-L) (the D) # M, N, U, None, NP, add_mset (the D) UP, WS, {#L#}))\<close>
 
 definition backtrack_inv where
-  \<open>backtrack_inv S \<longleftrightarrow> get_trail S \<noteq> []\<close>
+  \<open>backtrack_inv S \<longleftrightarrow> get_trail S \<noteq> [] \<and> get_conflict S \<noteq> Some {#}\<close>
 
 definition backtrack :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
   \<open>backtrack S =
@@ -813,8 +813,7 @@ proof -
      (*  propgate_bt_def propgate_unit_bt_def *)
   proof (refine_vcg; remove_dummy_vars; clarify?)
     show \<open>backtrack_inv S\<close>
-      using trail unfolding backtrack_inv_def .
-
+      using trail confl unfolding backtrack_inv_def by fast
 
     fix M M1 M2 :: \<open>('a, 'a clause) ann_lits\<close> and
       N U :: \<open>'a twl_clss\<close> and
