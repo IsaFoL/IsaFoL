@@ -144,8 +144,7 @@ lemma infer_from_superset: "infer_from x y \<Longrightarrow> z \<supseteq> x \<L
   by (meson infer_from_def lfp.leq_trans)
 
 lemma strict_subsumption_redundant_clause:
-  assumes "D \<cdot> \<sigma> \<subset># C"
-  assumes "is_ground_subst \<sigma>"
+  assumes "D \<cdot> \<sigma> \<subset># C" and "is_ground_subst \<sigma>"
   shows "C \<in> src.Rf (grounding_of_cls D)"
 proof -
   from assms(1) have "\<forall>I. I \<Turnstile> D \<cdot> \<sigma> \<longrightarrow> I \<Turnstile> C"
@@ -167,9 +166,9 @@ proof -
 qed
 
 lemma strict_subsumption_redundant_state:
-  assumes "D \<cdot> \<sigma> \<subset># C"
-  assumes "is_ground_subst \<sigma>"
-  assumes "D \<in> clss_of_state St"
+  assumes "D \<cdot> \<sigma> \<subset># C" and
+    "is_ground_subst \<sigma>" and
+    "D \<in> clss_of_state St"
   shows "C \<in> src.Rf (grounding_of_state St)"
 proof -
   from assms have "C \<in> src.Rf (grounding_of_cls D)"
@@ -182,10 +181,7 @@ proof -
     done
 qed
 
-lemma grounding_of_clss_mono:
-  assumes "X \<subseteq> Y"
-  shows "grounding_of_clss X \<subseteq> grounding_of_clss Y"
-  using assms
+lemma grounding_of_clss_mono: "X \<subseteq> Y \<Longrightarrow> grounding_of_clss X \<subseteq> grounding_of_clss Y"
   using grounding_of_clss_def by auto
 
 text {*
@@ -200,9 +196,8 @@ lemma subst_cls_eq_grounding_of_cls_subset_eq: "D \<cdot> \<sigma> = C \<Longrig
   done
 
 lemma resolution_prover_ground_derive:
-  assumes "St \<leadsto> St'"
-  shows "src_ext.derive (grounding_of_state St) (grounding_of_state St')"
-using assms proof (induction rule: resolution_prover.induct)
+  "St \<leadsto> St' \<Longrightarrow> src_ext.derive (grounding_of_state St) (grounding_of_state St')"
+proof (induction rule: resolution_prover.induct)
   case (tautology_deletion A C N P Q)
   {
     fix C\<sigma>
@@ -643,21 +638,18 @@ Another formulation of the last part of lemma 4.10
  *}
 
 lemma resolution_prover_ground_derivation:
-  assumes "chain (op \<leadsto>) Sts"
-  shows "chain src_ext.derive (lmap grounding_of_state Sts)"
-  using assms resolution_prover_ground_derive by (simp add: chain_lmap[of "op \<leadsto>"])
+  "chain (op \<leadsto>) Sts \<Longrightarrow> chain src_ext.derive (lmap grounding_of_state Sts)"
+  using resolution_prover_ground_derive by (simp add: chain_lmap[of "op \<leadsto>"])
 
 text {*
 The following is used prove to Lemma 4.11:
 *}
 
 definition is_least :: "(nat \<Rightarrow> bool) \<Rightarrow> nat \<Rightarrow> bool" where
-  "is_least P n \<longleftrightarrow> P n \<and> (\<forall>n' < n. \<not>P n')"
+  "is_least P n \<longleftrightarrow> P n \<and> (\<forall>n' < n. \<not> P n')"
 
-lemma least_exists:
-  assumes "P n"
-  shows "\<exists>n. is_least P n"
-    using assms exists_least_iff unfolding is_least_def by auto
+lemma least_exists: "P n \<Longrightarrow> \<exists>n. is_least P n"
+  using exists_least_iff unfolding is_least_def by auto
 
 lemma in_Sup_llist_in_nth:
   assumes "C \<in> Sup_llist Ns"
