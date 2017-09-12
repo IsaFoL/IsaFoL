@@ -5260,14 +5260,13 @@ lemma find_decomp_wl_imp_find_decomp_wl':
 lemma find_decomp_wl_imp_code_find_decomp_wl'[sepref_fr_rules]:
   \<open>(uncurry2 find_decomp_wl_imp_code, uncurry2 find_decomp_wl')
      \<in> [\<lambda>((a, b), ba). find_decomp_wl_pre ((a, b), ba) \<and> a \<noteq> [] \<and>
-       literals_are_in_N\<^sub>0 b \<and> - ba
-       \<in># b]\<^sub>a
+       literals_are_in_N\<^sub>0 b \<and> - ba \<in># b]\<^sub>a
      trail_assn\<^sup>d *\<^sub>a conflict_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> trail_assn\<close>
   using find_decomp_wl_imp_code[FCOMP find_decomp_wl_imp_find_decomp_wl'] .
 
 
 (* TODO Move *)
-lemma (in -)
+lemma (in -) Down_itself_via_SPEC:
   assumes \<open>I \<le> SPEC P\<close> and \<open>\<And>x. P x \<Longrightarrow> (x, x) \<in> R\<close>
   shows \<open>I \<le> \<Down> R I\<close>
   using assms by (meson inres_SPEC pw_ref_I)
@@ -5275,16 +5274,21 @@ lemma (in -)
 
 lemma \<open>(uncurry find_decomp_wl_st_int, uncurry find_decomp_wl_st) \<in>
    [\<lambda>(L, S). get_conflict_wl S \<noteq> None \<and> get_conflict_wl S \<noteq> Some {#}]\<^sub>f
-   nat_lit_rel \<times>\<^sub>r twl_st_wl_int_W_confl_with_cls O twl_st_ref \<rightarrow>
+   nat_lit_lit_rel \<times>\<^sub>r twl_st_wl_int_W_confl_with_cls O twl_st_ref \<rightarrow>
    \<langle>twl_st_wl_int_W_confl_with_cls O twl_st_ref\<rangle>nres_rel\<close>
   unfolding twl_st_wl_int_W_confl_with_cls_twl_st_rel
   apply (intro frefI nres_relI)
   apply clarify
   subgoal for L' M' N' U' D' K' W' Q' A' m' _ _ _ \<phi> L M N U D NP UP W Q
   apply (auto simp: find_decomp_wl_st_int_def find_decomp_wl_st_def option_conflict_rel_with_cls_def
-      list_mset_rel_def br_def
+      list_mset_rel_def br_def find_decomp_wl'_def
     intro!: bind_refine[where R' = \<open>{(Ms', Ms). Ms = Ms' \<and> (\<exists>M''. M = M'' @ Ms)}\<close>]
     dest: no_dup_appendD)
+      apply (rule RES_refine)
+      apply auto
+
+
+    sorry
     apply (rule order.trans)
        apply (rule find_decomp_wl_imp_spec[where D = \<open>Some (mset D')\<close>, simplified])
     apply auto
