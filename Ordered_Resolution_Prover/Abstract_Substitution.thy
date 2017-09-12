@@ -27,13 +27,13 @@ locale substitution_ops =
     comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's"
 begin
 
-abbreviation subst_atm_syntax (infixl "\<cdot>a" 67) where
+abbreviation subst_atm_syntax :: "'a \<Rightarrow> 's \<Rightarrow> 'a" (infixl "\<cdot>a" 67) where
   "subst_atm_syntax \<equiv> subst_atm"
 
-abbreviation comp_subst_syntax (infixl "\<odot>" 67) where
+abbreviation comp_subst_syntax :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 67) where
   "comp_subst_syntax \<equiv> comp_subst"
 
-definition comp_substs(infixl "\<odot>s" 67) where
+definition comp_substs :: "'s list \<Rightarrow> 's list \<Rightarrow> 's list" (infixl "\<odot>s" 67) where
   "\<sigma>s \<odot>s \<tau>s = map2 comp_subst \<sigma>s \<tau>s"
 
 definition subst_atms :: "'a set \<Rightarrow> 's \<Rightarrow> 'a set" (infixl "\<cdot>as" 67) where
@@ -48,7 +48,9 @@ definition subst_atm_list :: "'a list \<Rightarrow> 's \<Rightarrow> 'a list" (i
 definition subst_atm_mset :: "'a multiset \<Rightarrow> 's \<Rightarrow> 'a multiset" (infixl "\<cdot>am" 67) where
   "AA \<cdot>am \<sigma> = image_mset (\<lambda>A. A \<cdot>a \<sigma>) AA"
 
-definition subst_atm_mset_list :: "'a multiset list \<Rightarrow> 's \<Rightarrow> 'a multiset list" (infix "\<cdot>aml" 67) where
+definition
+  subst_atm_mset_list :: "'a multiset list \<Rightarrow> 's \<Rightarrow> 'a multiset list" (infix "\<cdot>aml" 67)
+where
   "AAA \<cdot>aml \<sigma> = map (\<lambda>AA. AA \<cdot>am \<sigma>) AAA"
 
 definition subst_lit :: "'a literal \<Rightarrow> 's \<Rightarrow> 'a literal" (infixl "\<cdot>l" 67) where
@@ -69,12 +71,10 @@ definition subst_cls_lists :: "'a clause list \<Rightarrow> 's list \<Rightarrow
 definition subst_cls_mset :: "'a clause multiset \<Rightarrow> 's \<Rightarrow> 'a clause multiset" (infixl "\<cdot>cm" 67) where
   "CC \<cdot>cm \<sigma> = image_mset (\<lambda>A. A \<cdot> \<sigma>) CC"
 
-lemma subst_cls_add_mset[simp]:
-  "add_mset L C \<cdot> \<sigma> = add_mset (L \<cdot>l \<sigma>) (C \<cdot> \<sigma>)"
+lemma subst_cls_add_mset[simp]: "add_mset L C \<cdot> \<sigma> = add_mset (L \<cdot>l \<sigma>) (C \<cdot> \<sigma>)"
   unfolding subst_cls_def by auto
 
-lemma subst_cls_mset_add_mset[simp]:
-  "add_mset C CC \<cdot>cm \<sigma> = add_mset (C \<cdot> \<sigma>) (CC \<cdot>cm \<sigma>)"
+lemma subst_cls_mset_add_mset[simp]: "add_mset C CC \<cdot>cm \<sigma> = add_mset (C \<cdot> \<sigma>) (CC \<cdot>cm \<sigma>)"
   unfolding subst_cls_mset_def by auto
 
 definition instance_of :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
@@ -141,10 +141,8 @@ definition is_mgu :: "'s \<Rightarrow> 'a set set \<Rightarrow> bool" where
   "is_mgu \<sigma> AAA \<longleftrightarrow> is_unifiers \<sigma> AAA \<and> (\<forall>\<tau>. is_unifiers \<tau> AAA \<longrightarrow> (\<exists>\<gamma>. \<tau> = \<sigma> \<odot> \<gamma>))"
 
 definition var_disjoint :: "'a clause list \<Rightarrow> bool" where
-  "var_disjoint Cs = (\<forall>\<sigma>s. length \<sigma>s = length Cs \<longrightarrow>
-      (\<exists>\<tau>.
-        (\<forall>i < length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma>s ! i = S \<cdot> \<tau>)
-      ))"
+  "var_disjoint Cs \<longleftrightarrow>
+   (\<forall>\<sigma>s. length \<sigma>s = length Cs \<longrightarrow> (\<exists>\<tau>. \<forall>i < length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma>s ! i = S \<cdot> \<tau>))"
 
 end
 
@@ -160,19 +158,19 @@ locale substitution = substitution_ops subst_atm id_subst comp_subst
     subst_atm_id_subst[simp]: "subst_atm A id_subst = A" and
     subst_atm_comp_subst[simp]: "subst_atm A (comp_subst \<tau> \<sigma>) = subst_atm (subst_atm A \<tau>) \<sigma>" and
     subst_ext: "(\<And>A. subst_atm A \<sigma> = subst_atm A \<tau>) \<Longrightarrow> \<sigma> = \<tau>" and
-    make_ground_subst: "is_ground_cls_list (CC \<cdot>cl \<sigma>) \<Longrightarrow> \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)" and
+    make_ground_subst:
+      "is_ground_cls_list (CC \<cdot>cl \<sigma>) \<Longrightarrow>
+       \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)" and
     make_var_disjoint: "\<And>Cs. \<exists>\<rho>s. length \<rho>s = length Cs \<and> (\<forall>\<rho> \<in> set \<rho>s. is_renaming \<rho>) \<and>
-       var_disjoint (Cs \<cdot>\<cdot>cl \<rho>s)" and
+      var_disjoint (Cs \<cdot>\<cdot>cl \<rho>s)" and
     proper_instance_of_wf: "wfP (proper_instance_of)"
 begin
 
 lemma subst_ext_iff: "\<sigma> = \<tau> \<longleftrightarrow> (\<forall>A. A \<cdot>a \<sigma> = A \<cdot>a \<tau>)"
-  by (auto intro: subst_ext)
+  by (blast intro: subst_ext)
 
 
 subsubsection \<open>Identity substitution\<close>
-
-thm subst_atm_id_subst
 
 lemma id_subst_comp_subst[simp]: "id_subst \<odot> \<sigma> = \<sigma>"
   by (rule subst_ext) simp
@@ -228,8 +226,6 @@ lemma comp_subst_assoc[simp]: "\<sigma> \<odot> (\<tau> \<odot> \<gamma>) = \<si
 
 subsubsection \<open>Substitution and composition are compatible\<close>
 
-thm subst_atm_comp_subst
-
 lemma subst_atms_comp_subst[simp]: "AA \<cdot>as (\<tau> \<odot> \<sigma>) = AA \<cdot>as \<tau> \<cdot>as \<sigma>"
   unfolding subst_atms_def by auto
 
@@ -257,7 +253,8 @@ lemma subst_clsscomp_subst[simp]: "CC \<cdot>cs (\<tau> \<odot> \<sigma>) = CC \
 lemma subst_cls_list_comp_subst[simp]: "CC \<cdot>cl (\<tau> \<odot> \<sigma>) = CC \<cdot>cl \<tau> \<cdot>cl \<sigma>"
   unfolding subst_cls_list_def by auto
 
-lemma map_zip_assoc: "map f (zip (zip xs ys) zs) = map (\<lambda>(x,y,z). f ((x,y),z)) (zip xs (zip ys zs))"
+lemma map_zip_assoc:
+  "map f (zip (zip xs ys) zs) = map (\<lambda>(x, y, z). f ((x, y), z)) (zip xs (zip ys zs))"
   by (induct zs arbitrary: xs ys) (auto simp add: zip.simps(2) split: list.splits)
 
 lemma subst_cls_lists_comp_substs[simp]: "Cs \<cdot>\<cdot>cl (\<tau>s \<odot>s \<sigma>s) = Cs \<cdot>\<cdot>cl \<tau>s \<cdot>\<cdot>cl \<sigma>s"
@@ -268,7 +265,7 @@ lemma subst_cls_mset_comp_subst[simp]: "CC \<cdot>cm (\<tau> \<odot> \<sigma>) =
   unfolding subst_cls_mset_def by auto
 
 
-subsubsection \<open>\<^text>\<open>Melem_subst_set\<close>\<close>
+subsubsection \<open>``Commutativity'' of membership and substitution\<close>
 
 lemma Melem_subst_atm_mset[simp]: "A \<in># AA \<cdot>am \<sigma> \<longleftrightarrow> (\<exists>B. B \<in># AA \<and> A = B \<cdot>a \<sigma>)"
   unfolding subst_atm_mset_def by auto
@@ -289,7 +286,7 @@ lemma subst_lit_is_pos[simp]: "is_pos (L \<cdot>l \<sigma>) = is_pos L"
   unfolding subst_lit_def by auto
 
 lemma subst_minus[simp]: "(- (L)) \<cdot>l \<mu> = - (L  \<cdot>l \<mu>)"
-  by (simp add: literal.map_sel(1) literal.map_sel(2) subst_lit_def uminus_literal_def)
+  by (simp add: literal.map_sel subst_lit_def uminus_literal_def)
 
 
 subsubsection \<open>Substitute on literal or literals\<close>
@@ -308,40 +305,22 @@ lemma subst_cls_poss[simp]: "(poss AA) \<cdot> \<sigma> = poss (AA \<cdot>am \<s
 
 lemma atms_of_subst_atms: "atms_of C \<cdot>as \<sigma> = atms_of (C \<cdot> \<sigma>)"
 proof -
-  have "atms_of (C \<cdot> \<sigma>) = atm_of ` set_mset (image_mset (map_literal (\<lambda>A. A \<cdot>a \<sigma>)) C)" unfolding subst_cls_def subst_atms_def subst_lit_def atms_of_def by auto
-  also have "... = set_mset (image_mset atm_of (image_mset (map_literal (\<lambda>A. A \<cdot>a \<sigma>)) C))"
-    by auto
-  also have "... = set_mset (image_mset ((\<lambda>A. A \<cdot>a \<sigma>)) (image_mset atm_of C))"
-    apply (rule arg_cong[of _ _ set_mset])
-    apply auto
-    apply (meson literal.map_sel(1) literal.map_sel(2))
-    done
-  also have "... =  (image ((\<lambda>A. A \<cdot>a \<sigma>)) (set_mset (image_mset atm_of C)))"
-    by auto
-  also have "... =  (image ((\<lambda>A. A \<cdot>a \<sigma>)) ((image atm_of (set_mset C))))"
-    by auto
-  also have "... =  atms_of C \<cdot>as \<sigma>"
-    unfolding subst_atms_def  atms_of_def by auto
-  finally
-  show "atms_of C \<cdot>as \<sigma> = atms_of (C \<cdot> \<sigma>)"
-    by auto
+  have "atms_of (C \<cdot> \<sigma>) = set_mset (image_mset atm_of (image_mset (map_literal (\<lambda>A. A \<cdot>a \<sigma>)) C))"
+    unfolding subst_cls_def subst_atms_def subst_lit_def atms_of_def by auto
+  also have "... = set_mset (image_mset (\<lambda>A. A \<cdot>a \<sigma>) (image_mset atm_of C))"
+    by simp (meson literal.map_sel)
+  finally show "atms_of C \<cdot>as \<sigma> = atms_of (C \<cdot> \<sigma>)"
+    unfolding subst_atms_def atms_of_def by auto
 qed
 
-lemma in_image_Neg_is_neg[simp]:
-   "L \<cdot>l \<sigma> \<in> Neg ` X \<Longrightarrow> is_neg L"
+lemma in_image_Neg_is_neg[simp]: "L \<cdot>l \<sigma> \<in> Neg ` X \<Longrightarrow> is_neg L"
   by (metis bex_imageD literal.disc(2) literal.map_disc_iff subst_lit_def)
 
-lemma subst_lit_in_negs_subst_is_neg:
-  assumes "L \<cdot>l \<sigma> \<in># (negs X) \<cdot> \<tau>"
-  shows "is_neg L"
-  using assms
+lemma subst_lit_in_negs_subst_is_neg: "L \<cdot>l \<sigma> \<in># (negs X) \<cdot> \<tau> \<Longrightarrow> is_neg L"
   by simp
 
-lemma subst_lit_in_negs_is_neg:
-  assumes "L \<cdot>l \<sigma> \<in># (negs X)"
-  shows "is_neg L"
-  using assms
-  by auto
+lemma subst_lit_in_negs_is_neg: "L \<cdot>l \<sigma> \<in># negs X \<Longrightarrow> is_neg L"
+  by simp
 
 
 subsubsection \<open>Substitute on empty\<close>
@@ -352,7 +331,7 @@ lemma subst_atms_empty[simp]: "{} \<cdot>as \<sigma> = {}"
 lemma subst_atmss_empty[simp]: "{} \<cdot>ass \<sigma> = {}"
   unfolding subst_atmss_def by auto
 
-lemma comp_substs_empty_iff[simp]: "\<sigma>s \<odot>s \<eta>s = [] \<longleftrightarrow> (\<sigma>s = [] \<or> \<eta>s = [])"
+lemma comp_substs_empty_iff[simp]: "\<sigma>s \<odot>s \<eta>s = [] \<longleftrightarrow> \<sigma>s = [] \<or> \<eta>s = []"
   unfolding comp_substs_def by auto
 
 lemma subst_atm_list_empty[simp]: "[] \<cdot>al \<sigma> = []"
@@ -458,7 +437,7 @@ lemma subst_atm_mset_list[simp]: "[AA] \<cdot>aml \<sigma> = [AA \<cdot>am \<sig
   unfolding subst_atm_mset_list_def by auto
 
 lemma subst_cls_single[simp]: "{#A#} \<cdot> \<sigma> = {#A \<cdot>l \<sigma>#}"
-  unfolding subst_cls_def by auto
+  by simp
 
 lemma subst_clss_single[simp]: "{C} \<cdot>cs \<sigma> = {C \<cdot> \<sigma>}"
   unfolding subst_clss_def by auto
@@ -467,7 +446,7 @@ lemma subst_cls_list_single[simp]: "[C] \<cdot>cl \<sigma> = [C \<cdot> \<sigma>
   unfolding subst_cls_list_def by auto
 
 lemma subst_cls_mset_single[simp]: "{#C#} \<cdot>cm \<sigma> = {#C \<cdot> \<sigma>#}"
-  unfolding subst_cls_mset_def by auto
+  by simp
 
 
 subsubsection \<open>Substitute on Cons\<close>
@@ -496,21 +475,21 @@ lemma subst_atm_mset_list_tl[simp]:"(tl (Aij' \<cdot>aml \<eta>)) = (tl Aij' \<c
 
 subsubsection \<open>Substitute on nth\<close>
 
-lemma comp_substs_nth[simp]: "length \<tau>s = length \<sigma>s \<Longrightarrow> i < length \<tau>s \<Longrightarrow> (\<tau>s \<odot>s \<sigma>s) ! i = (\<tau>s ! i) \<odot> (\<sigma>s ! i)"
-  unfolding comp_substs_def
-  by auto
+lemma comp_substs_nth[simp]:
+  "length \<tau>s = length \<sigma>s \<Longrightarrow> i < length \<tau>s \<Longrightarrow> (\<tau>s \<odot>s \<sigma>s) ! i = (\<tau>s ! i) \<odot> (\<sigma>s ! i)"
+  by (simp add: comp_substs_def)
 
-lemma subst_atm_list_nth[simp]: "i < length Ai \<Longrightarrow> ((Ai \<cdot>al \<tau>) ! i) = (Ai ! i) \<cdot>a \<tau>"
-  unfolding subst_atm_list_def using less_Suc_eq_0_disj nth_map by (induction Ai) auto
+lemma subst_atm_list_nth[simp]: "i < length Ai \<Longrightarrow> (Ai \<cdot>al \<tau>) ! i = Ai ! i \<cdot>a \<tau>"
+  unfolding subst_atm_list_def using less_Suc_eq_0_disj nth_map by force
 
 lemma subst_atm_mset_list_nth[simp]: "i < length Aij' \<Longrightarrow> (Aij' \<cdot>aml \<eta>) ! i = (Aij' ! i) \<cdot>am \<eta>"
-  unfolding subst_atm_mset_list_def
-    by auto
+  unfolding subst_atm_mset_list_def by auto
 
 lemma subst_cls_list_nth[simp]: "i < length Ci \<Longrightarrow> ((Ci \<cdot>cl \<tau>) ! i) = (Ci ! i) \<cdot> \<tau>"
   unfolding subst_cls_list_def using less_Suc_eq_0_disj nth_map by (induction Ci) auto
 
-lemma subst_cls_lists_nth[simp]: "length CC = length \<sigma>s \<Longrightarrow> i < length CC \<Longrightarrow> (CC \<cdot>\<cdot>cl \<sigma>s) ! i = (CC ! i) \<cdot> (\<sigma>s ! i)"
+lemma subst_cls_lists_nth[simp]:
+  "length CC = length \<sigma>s \<Longrightarrow> i < length CC \<Longrightarrow> (CC \<cdot>\<cdot>cl \<sigma>s) ! i = (CC ! i) \<cdot> (\<sigma>s ! i)"
   unfolding subst_cls_lists_def by auto
 
 
@@ -606,33 +585,15 @@ lemma is_renaming_left_id_subst_right_id_subst: "is_renaming x \<Longrightarrow>
 lemma "is_renaming a \<Longrightarrow> is_renaming b \<Longrightarrow> is_renaming (a \<odot> b)"
   unfolding is_renaming_def by (metis comp_subst_assoc comp_subst_id_subst)
 
-(* Associativity *)
-  (* Holds in general for substitutions and thus in particular for renamings. *)
-thm comp_subst_assoc
-
-(* Identity element *)
-thm is_renaming_id_subst
-
-  (* We can remove id_subst on lhs for substitutions and thus in particular for renamings *)
-thm id_subst_comp_subst
-
-  (* We can remove id_subst on rhs for substitutions and thus in particular for renamings *)
-thm comp_subst_id_subst
-
 (* inverse element *)
 
 (* s and (inv_ren s) cancel out *)
 
-lemma inv_ren_is_renaming[simp]:
-  assumes "is_renaming s"
-  shows "is_renaming (inv_ren s)"
-  using assms
+lemma inv_ren_is_renaming[simp]: "is_renaming s \<Longrightarrow> is_renaming (inv_ren s)"
   using inv_ren_cancel_l inv_ren_cancel_r is_renaming_def by blast
 
-lemma inv_ren_is_renaming_list[simp]:
-  assumes "is_renaming_list s"
-  shows "is_renaming_list (map inv_ren s)"
-  using assms unfolding is_renaming_list_def by (induction s) auto
+lemma inv_ren_is_renaming_list[simp]: "is_renaming_list s \<Longrightarrow> is_renaming_list (map inv_ren s)"
+  unfolding is_renaming_list_def by (induction s) auto
 
 lemma is_renaming_inv_ren_cancel[simp]: "is_renaming \<rho> \<Longrightarrow> C  \<cdot> \<rho> \<cdot> (inv_ren \<rho>) = C"
   by (metis inv_ren_cancel_r subst_cls_comp_subst subst_cls_id_subst)
@@ -640,17 +601,13 @@ lemma is_renaming_inv_ren_cancel[simp]: "is_renaming \<rho> \<Longrightarrow> C 
 lemma is_renaming_inv_ren_cancel2[simp]: "is_renaming \<rho> \<Longrightarrow> C  \<cdot> (inv_ren \<rho>) \<cdot> \<rho> = C"
   by (metis inv_ren_cancel_l subst_cls_comp_subst subst_cls_id_subst)
 
-lemma is_renaming_list_inv_ren_cancel[simp]: "length CC = length \<rho>s \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> CC \<cdot>\<cdot>cl \<rho>s \<cdot>\<cdot>cl (map inv_ren \<rho>s) = CC"
-  apply (induction \<rho>s)
-  unfolding is_renaming_list_def
-   apply auto
-  by (metis Suc_length_conv inv_ren_cancel_r_list is_renaming_list_def list.simps(9) set_ConsD subst_cls_lists_comp_substs subst_cls_lists_id_subst)
+lemma is_renaming_list_inv_ren_cancel[simp]:
+  "length CC = length \<rho>s \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> CC \<cdot>\<cdot>cl \<rho>s \<cdot>\<cdot>cl map inv_ren \<rho>s = CC"
+  by (metis inv_ren_cancel_r_list subst_cls_lists_comp_substs subst_cls_lists_id_subst)
 
-lemma is_renaming_list_inv_ren_cancel2[simp]: "length CC = length \<rho>s \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> CC \<cdot>\<cdot>cl (map inv_ren \<rho>s) \<cdot>\<cdot>cl \<rho>s = CC"
-  apply (induction \<rho>s)
-  unfolding is_renaming_list_def
-   apply auto
-  by (metis inv_ren_cancel_l_list is_renaming_list_def length_Cons list.simps(9) set_ConsD subst_cls_lists_comp_substs subst_cls_lists_id_subst)
+lemma is_renaming_list_inv_ren_cancel2[simp]:
+  "length CC = length \<rho>s \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> CC \<cdot>\<cdot>cl map inv_ren \<rho>s \<cdot>\<cdot>cl \<rho>s = CC"
+  by (metis inv_ren_cancel_l_list subst_cls_lists_comp_substs subst_cls_lists_id_subst)
 
 
 subsubsection \<open>Monotonicity\<close>
@@ -757,8 +714,7 @@ proof -
 qed
 
 lemma make_ground_subst_list_clauses':
-  assumes "length CC = length \<sigma>s"
-  assumes "is_ground_cls_list (CC \<cdot>\<cdot>cl \<sigma>s)"
+  assumes "length CC = length \<sigma>s" and "is_ground_cls_list (CC \<cdot>\<cdot>cl \<sigma>s)"
   shows "\<exists>\<tau>s. is_ground_subst_list \<tau>s \<and> CC \<cdot>\<cdot>cl \<sigma>s = CC \<cdot>\<cdot>cl \<tau>s"
 proof -
   have "\<forall>i < length CC. \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>S. S \<subseteq># (CC ! i) \<longrightarrow> S \<cdot> \<tau> = S \<cdot> \<sigma>s ! i)"
@@ -781,8 +737,10 @@ proof -
 qed
 
 lemma var_disjoint_ground:
-  assumes "var_disjoint Cs" "length \<sigma>s = length Cs"
-  and "is_ground_cls_list (Cs \<cdot>\<cdot>cl \<sigma>s)"
+  assumes
+    "var_disjoint Cs" and
+    "length \<sigma>s = length Cs" and
+    "is_ground_cls_list (Cs \<cdot>\<cdot>cl \<sigma>s)"
   shows "\<exists>\<tau>. is_ground_subst \<tau> \<and> Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>"
 proof -
   from assms(1,2) obtain \<tau> where *: "Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>"
@@ -793,31 +751,29 @@ proof -
     using make_ground_subst_clauses' by blast
   with assms(2) * have "is_ground_subst \<tau>' \<and> Cs \<cdot>\<cdot>cl \<sigma>s = Cs \<cdot>cl \<tau>'"
     by simp
-  then show ?thesis ..
+  then show ?thesis
+    ..
 qed
-
 
 
 paragraph \<open>Ground union\<close>
 
-lemma is_ground_atms_union[simp]:
-  "is_ground_atms (A \<union> B) \<longleftrightarrow> is_ground_atms A \<and> is_ground_atms B"
+lemma is_ground_atms_union[simp]: "is_ground_atms (A \<union> B) \<longleftrightarrow> is_ground_atms A \<and> is_ground_atms B"
   unfolding is_ground_atms_def by auto
 
 lemma is_ground_atm_mset_union[simp]:
   "is_ground_atm_mset (A + B) \<longleftrightarrow> is_ground_atm_mset A \<and> is_ground_atm_mset B"
   unfolding is_ground_atm_mset_def by auto
 
-lemma is_ground_cls_union[simp]:
-  "is_ground_cls (C + D) \<longleftrightarrow> is_ground_cls C \<and> is_ground_cls D"
+lemma is_ground_cls_union[simp]: "is_ground_cls (C + D) \<longleftrightarrow> is_ground_cls C \<and> is_ground_cls D"
   unfolding is_ground_cls_def by auto
 
 lemma is_ground_clss_union[simp]:
   "is_ground_clss (AA \<union> BB) \<longleftrightarrow> is_ground_clss AA \<and> is_ground_clss BB"
   unfolding is_ground_clss_def by auto
 
-lemma is_ground_cls_mset_union[simp]: "is_ground_cls_mset (AA + BB) \<longleftrightarrow>
-  is_ground_cls_mset AA \<and> is_ground_cls_mset BB"
+lemma is_ground_cls_mset_union[simp]:
+  "is_ground_cls_mset (AA + BB) \<longleftrightarrow> is_ground_cls_mset AA \<and> is_ground_cls_mset BB"
   unfolding is_ground_cls_mset_def by auto
 
 lemma is_ground_cls_Union_mset[iff]: "is_ground_cls (\<Union># CC) \<longleftrightarrow> is_ground_cls_mset CC"
@@ -835,8 +791,8 @@ lemma is_ground_clss_mono: "CC \<le> DD \<Longrightarrow> is_ground_clss DD \<Lo
 lemma is_ground_cls_mset_mono: "CC \<le># DD \<Longrightarrow> is_ground_cls_mset DD \<Longrightarrow> is_ground_cls_mset CC"
   unfolding is_ground_cls_mset_def by (metis mset_subset_eqD)
 
-paragraph \<open>Substituting on ground expression preserves ground\<close>
 
+paragraph \<open>Substituting on ground expression preserves ground\<close>
 
 lemma is_ground_comp_subst[simp]: "is_ground_subst \<sigma> \<Longrightarrow> is_ground_subst (\<tau> \<odot> \<sigma>)"
   unfolding is_ground_subst_def is_ground_atm_def by auto
