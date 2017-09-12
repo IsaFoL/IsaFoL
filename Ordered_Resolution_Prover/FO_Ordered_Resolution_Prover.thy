@@ -734,18 +734,18 @@ lemma Q_of_state_limit_state_limit_llist_Q_of_state:
   unfolding limit_state_def by auto
 
 lemma N_of_state_subset:
- assumes "enat l < llength Sts"
- shows "N_of_state (lnth Sts l) \<subseteq> clss_of_state (lnth Sts l)"
+  assumes "enat l < llength Sts"
+  shows "N_of_state (lnth Sts l) \<subseteq> clss_of_state (lnth Sts l)"
   using assms unfolding clss_of_state_def by auto
 
 lemma P_of_state_subset:
- assumes "enat l < llength Sts"
- shows "P_of_state (lnth Sts l) \<subseteq> clss_of_state (lnth Sts l)"
+  assumes "enat l < llength Sts"
+  shows "P_of_state (lnth Sts l) \<subseteq> clss_of_state (lnth Sts l)"
    using assms unfolding clss_of_state_def by auto
 
 lemma Q_of_state_subset:
- assumes "enat l < llength Sts"
- shows "Q_of_state (lnth Sts l) \<subseteq> clss_of_state (lnth Sts l)"
+  assumes "enat l < llength Sts"
+  shows "Q_of_state (lnth Sts l) \<subseteq> clss_of_state (lnth Sts l)"
   using assms unfolding clss_of_state_def by auto
 
 lemma grounding_of_clss_mono2: "X \<in> Y \<Longrightarrow> grounding_of_cls X \<subseteq> grounding_of_clss Y"
