@@ -27,6 +27,7 @@ locale FO_resolution =
     less_atm_iff: "less_atm A B \<longleftrightarrow> (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> A \<cdot>a \<sigma> < B \<cdot>a \<sigma>)"
 begin
 
+
 subsection {* First-order logic *}
 
 definition less_eq_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
@@ -73,6 +74,7 @@ $A_{ii}$ vs.\ $A_i$
 context
   fixes S :: "'a clause \<Rightarrow> 'a clause"
 begin
+
 
 subsection {* Calculus *}
 
@@ -131,6 +133,7 @@ inductive ord_resolve_rename :: "'a clause list \<Rightarrow> 'a clause \<Righta
    \<rho>s = tl (mk_var_dis (DA # CAi)) \<Longrightarrow>
    ord_resolve (CAi \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) \<sigma> E \<Longrightarrow>
    ord_resolve_rename CAi DA \<sigma> E"
+
 
 subsection {* Soundness *}
 
@@ -320,7 +323,9 @@ proof (cases rule: ord_resolve_rename.cases)
     using ord_resolve_sound[of "CAi \<cdot>\<cdot>cl P" "DA \<cdot> \<rho>" \<sigma> E I, OF res] by simp
 qed
 
+
 subsection {* Lifting *}
+
 context
   fixes M :: "'a clause set"
   assumes select: "selection S"
@@ -626,7 +631,6 @@ lemma ord_resolve_obtain_clauses:
   then have SCAi''_to_SMCAi: "(map S CAi'') \<cdot>\<cdot>cl \<eta>s''g = map (S_M S M) CAi"
     using n by auto
 
-
   have "is_ground_cls (DA'' \<cdot> \<eta>'')"
     using DA''_to_DA grounding grounding_ground by auto
   then obtain \<eta>''g where \<eta>''g_p:
@@ -705,7 +709,6 @@ lemma ord_resolve_rename_lifting:
     using mk_var_dis_p[of "DA'' # CAi''"]
     by (metis is_renaming_list_def length_greater_0_conv list.set_sel(2) list.simps(3))
 
-
   have "length CAi' = n"
     using ai''(1) n unfolding CAi'_def by auto
   have "length \<eta>s' = n"
@@ -726,7 +729,6 @@ lemma ord_resolve_rename_lifting:
   have vd: "var_disjoint (DA' # CAi')" unfolding DA'_def CAi'_def
     using mk_var_dis_p[of "DA'' # CAi''"]
     by (metis length_greater_0_conv list.exhaust_sel n(3) substitution.subst_cls_lists_Cons substitution_axioms zero_less_Suc)
-
 
   (* Introduce \<eta> *)
   from vd DA'_DA CAi'_CAi have "\<exists>\<eta>. \<forall>i<Suc n. \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> (\<eta>'#\<eta>s') ! i = S \<cdot> \<eta>" unfolding var_disjoint_def

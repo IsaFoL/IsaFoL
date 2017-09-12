@@ -24,7 +24,6 @@ Ordered ground resolution consists of a single rule, called @{text ord_resolve} 
 @{text unord_resolve}, the rule is sound and counterexample-reducing. In addition, it is reductive.
 *}
 
-
 context ground_resolution_with_selection
 begin
 

@@ -16,6 +16,7 @@ text {*
     'a atoms
 *}
 
+
 subsection {* Substitution operators *}
 
 locale substitution_ops =
@@ -146,6 +147,7 @@ definition var_disjoint :: "'a clause list \<Rightarrow> bool" where
 
 end
 
+
 subsection {* Substitution theorems *}
 
 locale substitution = substitution_ops subst_atm id_subst comp_subst
@@ -163,9 +165,9 @@ locale substitution = substitution_ops subst_atm id_subst comp_subst
     proper_instance_of_wf: "wfP (proper_instance_of)"
 begin
 
-
 lemma subst_ext_iff: "\<sigma> = \<tau> \<longleftrightarrow> (\<forall>A. A \<cdot>a \<sigma> = A \<cdot>a \<tau>)"
   by (auto intro: subst_ext)
+
 
 subsubsection {* Identity substitution *}
 
@@ -216,10 +218,12 @@ lemma subst_cls_lists_id_subst[simp]: "CC \<cdot>\<cdot>cl replicate (length CC)
 lemma subst_cls_mset_id_subst[simp]: "CC \<cdot>cm id_subst = CC"
   unfolding subst_cls_mset_def by simp
 
+
 subsubsection {* Composition is associative *}
 
 lemma comp_subst_assoc[simp]: "\<sigma> \<odot> (\<tau> \<odot> \<gamma>) = \<sigma> \<odot> \<tau> \<odot> \<gamma>"
   by (rule subst_ext) simp
+
 
 subsubsection {* Substitution and composition are compatible *}
 
@@ -337,6 +341,7 @@ lemma subst_lit_in_negs_is_neg:
   shows "is_neg L"
   using assms
   by auto
+
 
 subsubsection {* Substitute on empty *}
 
@@ -478,6 +483,7 @@ lemma subst_cls_list_Cons[simp]: "(C # CC) \<cdot>cl \<sigma> = C \<cdot> \<sigm
 lemma subst_cls_lists_Cons[simp]: "(C # CC) \<cdot>\<cdot>cl (\<sigma> # \<sigma>s) = C \<cdot> \<sigma> # CC \<cdot>\<cdot>cl \<sigma>s"
   unfolding subst_cls_lists_def by auto
 
+
 subsubsection {* Substitution on tl *}
 
 lemma subst_atm_list_tl[simp]: "(tl (Ai' \<cdot>al \<eta>)) = (tl Ai' \<cdot>al \<eta>)"
@@ -485,6 +491,7 @@ lemma subst_atm_list_tl[simp]: "(tl (Ai' \<cdot>al \<eta>)) = (tl Ai' \<cdot>al 
 
 lemma subst_atm_mset_list_tl[simp]:"(tl (Aij' \<cdot>aml \<eta>)) = (tl Aij' \<cdot>aml \<eta>)"
   by (induction Aij') auto
+
 
 subsubsection {* Substitute on nth *}
 
@@ -550,6 +557,7 @@ subsubsection {* Substitute on a set and its member *}
 lemma in_atms_of_subst[simp]: "B \<in> atms_of C \<Longrightarrow> B \<cdot>a \<sigma> \<in> atms_of (C \<cdot> \<sigma>)"
   by (metis atms_of_subst_atms image_iff subst_atms_def)
 
+
 subsubsection {* Renamings *}
 
 lemma is_renaming_id_subst[simp]: "is_renaming id_subst"
@@ -568,13 +576,6 @@ lemma "is_renaming r1 \<Longrightarrow> is_renaming r2 \<Longrightarrow> \<tau> 
 lemma "is_renaming r1 \<Longrightarrow> is_renaming r2 \<Longrightarrow> r1 \<odot> \<tau> = r2 \<Longrightarrow> is_renaming \<tau>"
   by (metis comp_subst_assoc id_subst_comp_subst is_renaming_def)
 
-
-(* The substitutions, and renamings in particular,  form a semigroup: *)
-thm comp_subst_assoc
-
-(* The renamings form a group I think, but I have not been able to prove it. *)
-thm id_subst_comp_subst
-
 lemma inv_ren_cancel_r[simp]: "is_renaming s \<Longrightarrow> s \<odot> (inv_ren s) = id_subst"
   unfolding inv_ren_def is_renaming_def by (metis (mono_tags, lifting) someI_ex)
 
@@ -587,7 +588,6 @@ lemma inv_ren_cancel_l[simp]: "is_renaming s \<Longrightarrow> (inv_ren s) \<odo
 
 lemma inv_ren_cancel_l_list[simp]: "is_renaming_list s \<Longrightarrow> (map inv_ren s) \<odot>s s = replicate (length s) id_subst"
   unfolding is_renaming_list_def by (induction s) (auto simp add: comp_substs_def)
-
 
 lemma Nil_comp_substs[simp]: "[] \<odot>s s = []"
   unfolding comp_substs_def by auto
@@ -620,8 +620,7 @@ thm comp_subst_id_subst
 
 (* inverse element *)
 
-  (* s and (inv_ren s) cancel out *)
-
+(* s and (inv_ren s) cancel out *)
 
 lemma inv_ren_is_renaming[simp]:
   assumes "is_renaming s"
@@ -634,16 +633,10 @@ lemma inv_ren_is_renaming_list[simp]:
   shows "is_renaming_list (map inv_ren s)"
   using assms unfolding is_renaming_list_def by (induction s) auto
 
-
-thm Groups.Let_0
-
-thm inv_ren_cancel_l
-
-
-
 lemma is_renaming_inv_ren_cancel[simp]: "is_renaming \<rho> \<Longrightarrow> C  \<cdot> \<rho> \<cdot> (inv_ren \<rho>) = C"
   by (metis inv_ren_cancel_r subst_cls_comp_subst subst_cls_id_subst)
 
+(* FIXME: rename following properties *)
 lemma drdrdrdrdrdrdrdrdrdrdrdr[simp]: "length CC = length \<rho>s \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> CC \<cdot>\<cdot>cl \<rho>s \<cdot>\<cdot>cl (map inv_ren \<rho>s) = CC"
   apply (induction \<rho>s)
     unfolding is_renaming_list_def
@@ -652,7 +645,6 @@ lemma drdrdrdrdrdrdrdrdrdrdrdr[simp]: "length CC = length \<rho>s \<Longrightarr
 
 lemma drdrdrdr[simp]: "is_renaming \<rho> \<Longrightarrow> C  \<cdot> (inv_ren \<rho>) \<cdot> \<rho> = C"
   by (metis inv_ren_cancel_l subst_cls_comp_subst subst_cls_id_subst)
-
 
 lemma drdrdrdrdrdrdrdr[simp]: "length CC = length \<rho>s \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> CC \<cdot>\<cdot>cl (map inv_ren \<rho>s) \<cdot>\<cdot>cl \<rho>s = CC"
   apply (induction \<rho>s)
@@ -683,6 +675,7 @@ lemma comp_substs_length[simp]: "length (\<tau>s \<odot>s \<sigma>s) = min (leng
 
 lemma subst_cls_lists_length[simp]: "length (CC \<cdot>\<cdot>cl \<sigma>s) = min (length CC) (length \<sigma>s)"
   unfolding subst_cls_lists_def by auto
+
 
 subsubsection {* Variable disjointness *}
 
@@ -968,6 +961,7 @@ lemma is_unifiers_subst_atm_eqI:
 theorem is_unifiers_comp: "is_unifiers \<sigma> (set_mset ` set (map2 add_mset Ai' Aij') \<cdot>ass \<eta>) \<longleftrightarrow> is_unifiers (\<eta> \<odot> \<sigma>) (set_mset ` set (map2 add_mset Ai' Aij'))"
   unfolding is_unifiers_def is_unifier_def subst_atmss_def by auto
 
+
 subsubsection {* MGUs *}
 
 lemma is_mgu_is_unifiers: "is_mgu \<sigma> AAA \<Longrightarrow> is_unifiers \<sigma> AAA"
@@ -983,6 +977,7 @@ end
 
 
 subsection {* Unification *}
+
 locale unification = substitution subst_atm id_subst comp_subst
   for
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and

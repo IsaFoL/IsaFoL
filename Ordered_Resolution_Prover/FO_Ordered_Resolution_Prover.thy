@@ -23,7 +23,6 @@ locale FO_resolution_with_selection =
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
 begin
 
-
 fun N_of_state :: "'a state \<Rightarrow> 'a clause set" where
   "N_of_state (N, P, Q) = N"
 
@@ -660,7 +659,6 @@ lemma least_exists:
   shows "\<exists>n. is_least P n"
     using assms exists_least_iff unfolding is_least_def by auto
 
-
 lemma in_Sup_llist_in_nth:
   assumes "C \<in> Sup_llist Ns"
   shows "\<exists>j. enat j < llength Ns \<and> C \<in> lnth Ns j"
@@ -858,7 +856,6 @@ lemma proper_subsumes_trans:
   assumes "strictly_subsumes D E"
   shows "strictly_subsumes C E"
   using assms strictly_subsumes_def subsumes_trans by blast
-
 
 lemma subset_strictly_subsumes:
   assumes "C \<subset># D"
@@ -1230,7 +1227,6 @@ proof -
     unfolding limit_state_def by auto
 qed
 
-
 lemma from_P_to_Q:
   assumes
     deriv: "chain (op \<leadsto>) Sts" and
@@ -1425,7 +1421,6 @@ proof -
     unfolding strictly_subsumes_def subsumes_def by metis
 qed
 
-
 lemma neg_properly_subsume_variants:
   assumes "\<not>(strictly_subsumes E D)"
   assumes "variants D D'"
@@ -1603,7 +1598,6 @@ proof -
   qed
 qed
 
-
 lemma eventually_in_Qinf:
   assumes D_p: "D \<in> clss_of_state (sup_state Sts)" "subsumes D C" "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not>strictly_subsumes E D"
   assumes  fair: "fair_state_seq Sts"
@@ -1742,8 +1736,6 @@ proof
   then show "C \<in> grounding_of_state (limit_state Sts)"
     unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def using D'_p by auto
 qed
-
-
 
 text {*
 The following corresponds to (one direction of) Theorem 4.13:

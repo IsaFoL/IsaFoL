@@ -1,3 +1,10 @@
+(*  Title:       Map Function on Two Parallel Lists
+    Author:      Anders Schlichtkrull, 2017
+    Maintainer:  Anders Schlichtkrull
+*)
+
+section {* Map Function on Two Parallel Lists *}
+
 theory Map2
 imports Main
 begin
