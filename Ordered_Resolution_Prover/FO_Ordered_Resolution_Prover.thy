@@ -1661,37 +1661,25 @@ text \<open>
 The following corresponds to (one direction of) Theorem 4.13:
 \<close>
 
-lemma ground_max_ground:
-  assumes "X\<noteq>{}"
-  assumes "finite X"
-  assumes "is_ground_atms X"
-  shows "is_ground_atm (Max X)"
-  using assms unfolding is_ground_atms_def by auto
+(* FIXME: move me (and rename all variables called X -- a set of atoms should be AA or something) *)
+lemma ground_max_ground: "X \<noteq> {} \<Longrightarrow> finite X \<Longrightarrow> is_ground_atms X \<Longrightarrow> is_ground_atm (Max X)"
+  unfolding is_ground_atms_def by auto
 
+(* FIXME: rename me *)
 lemma abcdefg:
-  assumes plus: "\<forall>i < length CAi1. CAi1 ! i = Ci ! i + poss (Aij ! i)"
-  assumes n: "length Ci = length CAi1"
-  assumes gl: "is_ground_cls_list CAi1"
+  assumes
+    plus: "\<forall>i < length CAi1. CAi1 ! i = Ci ! i + poss (Aij ! i)" and
+    n: "length Ci = length CAi1" and
+    gl: "is_ground_cls_list CAi1"
   shows "is_ground_cls_list Ci"
   unfolding is_ground_cls_list_def
-proof
-  fix x :: "'a literal multiset"
-  assume "x \<in> set Ci"
-  then obtain i where i_p: "i < length Ci \<and> x = Ci ! i"
-    by (metis in_set_conv_nth)
-  then have "CAi1 ! i = Ci ! i + poss (Aij ! i)"
-    using plus n by auto
-  then have "Ci ! i \<subseteq># CAi1 ! i"
-    by auto
-  then have "is_ground_cls (Ci ! i)"
-    using gl unfolding is_ground_cls_list_def using n i_p is_ground_cls_mono by auto
-  then show "is_ground_cls x" using i_p by auto
-qed
+  by (metis assms(1) gl in_set_conv_nth is_ground_cls_list_def is_ground_cls_union n)
 
 lemma subseteq_limit_state_eventually_always:
-  assumes "finite X"
-  assumes "X \<noteq> {}"
-  assumes "X \<subseteq> Q_of_state (limit_state Sts)"
+  assumes
+    "finite X" and
+    "X \<noteq> {}" and
+    "X \<subseteq> Q_of_state (limit_state Sts)"
   shows "\<exists>j. enat j < llength Sts \<and> (\<forall>j'\<ge>enat j. j' < llength Sts \<longrightarrow> X \<subseteq> Q_of_state (lnth Sts j'))"
 proof -
   from assms(3) have "\<forall>x \<in> X. \<exists>j. enat j < llength Sts \<and> (\<forall>j'\<ge>enat j. j' < llength Sts \<longrightarrow> x \<in> Q_of_state (lnth Sts j'))"
@@ -1699,35 +1687,38 @@ proof -
     by auto blast
   then obtain f where f_p: "\<forall>x \<in> X. f x < llength Sts \<and> (\<forall>j'\<ge>enat (f x). j' < llength Sts \<longrightarrow> x \<in> Q_of_state (lnth Sts j')) "
     by metis
+
   define j where "j = Max (f ` X)"
+
   have "enat j < llength Sts"
     unfolding j_def using f_p assms(1) apply auto
     by (metis (mono_tags, lifting) Max_in assms(2) finite_imageI imageE image_is_empty)
   moreover
   have "\<forall>x j'. x \<in> X \<longrightarrow> enat j \<le> j' \<longrightarrow> j' < llength Sts \<longrightarrow> x \<in> Q_of_state (lnth Sts j')"
-  proof (rule; rule; rule; rule; rule)
+  proof (intro allI impI)
     fix x :: "'a literal multiset" and j' :: "nat"
     assume a:
       "x \<in> X"
       "enat j \<le> enat j'"
       "enat j' < llength Sts"
     then have "f x \<le> j'"
-      unfolding j_def using assms(1)
-      using Max.bounded_iff by auto
+      unfolding j_def using assms(1) Max.bounded_iff by auto
     then have "enat (f x) \<le> enat j'"
       by auto
-    then show "x \<in> Q_of_state (lnth Sts j')" using f_p a by auto
+    then show "x \<in> Q_of_state (lnth Sts j')"
+      using f_p a by auto
   qed
-  ultimately
-  have "enat j < llength Sts \<and> (\<forall>j'\<ge>enat j. j' < llength Sts \<longrightarrow> X \<subseteq> Q_of_state (lnth Sts j'))"
+  ultimately have "enat j < llength Sts \<and> (\<forall>j'\<ge>enat j. j' < llength Sts \<longrightarrow> X \<subseteq> Q_of_state (lnth Sts j'))"
     by auto
-  then show ?thesis by auto
+  then show ?thesis
+    by auto
 qed
 
 lemma empty_in_limit_state:
-  assumes "{#} \<in> limit_llist (lmap grounding_of_state Sts)"
-  assumes fair: "fair_state_seq Sts"
-  assumes ns: "Ns = lmap grounding_of_state Sts"
+  assumes
+    "{#} \<in> limit_llist (lmap grounding_of_state Sts)" and
+    fair: "fair_state_seq Sts" and
+    ns: "Ns = lmap grounding_of_state Sts"
   shows "{#} \<in> clss_of_state (limit_state Sts)"
 proof -
   from assms(1) have in_limit_not_Rf: "{#} \<in> limit_llist Ns - src.Rf (limit_llist Ns)"
