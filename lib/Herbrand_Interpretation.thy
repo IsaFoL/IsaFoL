@@ -97,7 +97,7 @@ lemma true_cls_mset_empty[iff]: "I \<Turnstile>m {#}"
   unfolding true_cls_mset_def by auto
 
 lemma true_cls_mset_singleton[iff]: "I \<Turnstile>m {#C#} \<longleftrightarrow> I \<Turnstile> C"
-  unfolding true_cls_mset_def by auto
+  by (simp add: true_cls_mset_def)
 
 lemma true_cls_mset_union[iff]: "I \<Turnstile>m CC + DD \<longleftrightarrow> I \<Turnstile>m CC \<and> I \<Turnstile>m DD"
   unfolding true_cls_mset_def by auto

@@ -193,7 +193,7 @@ proof (cases rule: ord_resolve.cases)
     using ai_len cai_len by auto
   have "is_ground_subst (\<sigma> \<odot> \<eta>)"
     using ground_subst_\<eta> by (rule is_ground_comp_subst)
-  hence cc_true: "I \<Turnstile>m (mset CAi) \<cdot>cm \<sigma> \<cdot>cm \<eta>" and d_true: "I \<Turnstile> DA \<cdot> \<sigma> \<cdot> \<eta>"
+  then have cc_true: "I \<Turnstile>m (mset CAi) \<cdot>cm \<sigma> \<cdot>cm \<eta>" and d_true: "I \<Turnstile> DA \<cdot> \<sigma> \<cdot> \<eta>"
     using cc_inst_true d_inst_true by auto
 
   from mgu have unif: "\<forall>i<n. \<forall>A\<in>#Aij ! i. A \<cdot>a \<sigma> = Ai ! i \<cdot>a \<sigma>"
@@ -202,11 +202,11 @@ proof (cases rule: ord_resolve.cases)
   show "I \<Turnstile> E \<cdot> \<eta>"
   proof (cases "\<forall>A \<in> set Ai. A \<cdot>a \<sigma> \<cdot>a \<eta> \<in> I")
     case True
-    hence "\<not> I \<Turnstile> negs (mset Ai) \<cdot> \<sigma> \<cdot> \<eta>"
+    then have "\<not> I \<Turnstile> negs (mset Ai) \<cdot> \<sigma> \<cdot> \<eta>"
       unfolding true_cls_def[of I] by auto
-    hence "I \<Turnstile> D \<cdot> \<sigma> \<cdot> \<eta>"
+    then have "I \<Turnstile> D \<cdot> \<sigma> \<cdot> \<eta>"
       using d_true DA by auto
-    thus ?thesis
+    then show ?thesis
       unfolding e by auto
   next
     case False
@@ -225,13 +225,13 @@ proof (cases rule: ord_resolve.cases)
       then have "B \<cdot>a \<sigma> = (Ai ! i) \<cdot>a \<sigma>"
         using unif a_in_aa cai_len unfolding BB_def by auto
     }
-    hence "\<not> I \<Turnstile> poss BB \<cdot> \<sigma> \<cdot> \<eta>"
+    then have "\<not> I \<Turnstile> poss BB \<cdot> \<sigma> \<cdot> \<eta>"
       using a_false by (auto simp: true_cls_def)
     moreover have "I \<Turnstile> (C' + poss BB) \<cdot> \<sigma> \<cdot> \<eta>"
       using c_in_cc cc_true true_cls_mset_true_cls[of I "mset CAi \<cdot>cm \<sigma> \<cdot>cm \<eta>"] by force
     ultimately have "I \<Turnstile> C' \<cdot> \<sigma> \<cdot> \<eta>"
       by simp
-    thus ?thesis
+    then show ?thesis
       unfolding e subst_cls_union using c_cf' C'_def a_in_aa cai_len ci_len
       by (metis (no_types, lifting) mset_subset_eq_add_left nth_mem_mset set_mset_mono sum_mset.remove true_cls_mono subst_cls_mono)
   qed
@@ -268,7 +268,7 @@ proof (cases rule: ord_resolve.cases)
     using ai_len cai_len by auto
   have "is_ground_subst (\<sigma> \<odot> \<eta>)"
     using ground_subst_\<eta> by (rule is_ground_comp_subst)
-  hence cc_true: "I \<Turnstile>m (mset CAi) \<cdot>cm \<sigma> \<cdot>cm \<eta>" and d_true: "I \<Turnstile> DA \<cdot> \<sigma> \<cdot> \<eta>"
+  then have cc_true: "I \<Turnstile>m (mset CAi) \<cdot>cm \<sigma> \<cdot>cm \<eta>" and d_true: "I \<Turnstile> DA \<cdot> \<sigma> \<cdot> \<eta>"
     using true_fo_cls_mset_inst[OF cc_d_true, of "\<sigma> \<odot> \<eta>"] by auto
   show "I \<Turnstile> E \<cdot> \<eta>"
     using ord_resolve_ground_inst_sound[OF res_e cc_true d_true] ground_subst_\<eta> by auto
@@ -492,15 +492,15 @@ lemma maximal_in_gen:
 proof -
   from assms have "maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>)"
     by -
-  hence "\<forall>B \<in> atms_of (C \<cdot> \<sigma>). \<not> less_atm (A \<cdot>a \<sigma>) B"
+  then have "\<forall>B \<in> atms_of (C \<cdot> \<sigma>). \<not> less_atm (A \<cdot>a \<sigma>) B"
     unfolding maximal_in_def by -
-  hence ll: "\<forall>B \<in> atms_of (C \<cdot> \<sigma>). \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma>'))"
+  then have ll: "\<forall>B \<in> atms_of (C \<cdot> \<sigma>). \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma>'))"
     unfolding less_atm_iff by -
   have "\<forall>B \<in> atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma> \<cdot>a \<sigma>'))"
     using ll by auto
-  hence "\<forall>B \<in> atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma>' < B \<cdot>a \<sigma>'))"
+  then have "\<forall>B \<in> atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma>' < B \<cdot>a \<sigma>'))"
     using is_ground_comp_subst by fastforce
-  hence "\<forall>B \<in> atms_of C. \<not> (less_atm A B)"
+  then have "\<forall>B \<in> atms_of C. \<not> (less_atm A B)"
     unfolding less_atm_iff by -
   then show ?thesis unfolding less_eq_atm_def maximal_in_def by auto
 qed
@@ -511,11 +511,11 @@ lemma str_maximal_in_gen:
 proof -
   have "\<forall>B \<in> atms_of (C \<cdot> \<sigma>). \<not> (less_atm (A \<cdot>a \<sigma>) B \<or> A \<cdot>a \<sigma> = B)"
     using assms unfolding less_eq_atm_def by -
-  hence "\<forall>B \<in> atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma> \<cdot>a \<sigma>') \<or> A \<cdot>a \<sigma> = B \<cdot>a \<sigma>)"
+  then have "\<forall>B \<in> atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma> \<cdot>a \<sigma>') \<or> A \<cdot>a \<sigma> = B \<cdot>a \<sigma>)"
     unfolding subst_atms_def less_atm_iff using atms_of_subst_atms by auto
-  hence "\<forall>B \<in> atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma>' < B \<cdot>a \<sigma>') \<or> A = B)"
+  then have "\<forall>B \<in> atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma>' < B \<cdot>a \<sigma>') \<or> A = B)"
     using is_ground_comp_subst by fastforce
-  hence "\<forall>B \<in> atms_of C. \<not> (less_atm A B \<or> A = B)"
+  then have "\<forall>B \<in> atms_of C. \<not> (less_atm A B \<or> A = B)"
     unfolding less_atm_iff by -
   then show ?thesis unfolding less_eq_atm_def
     by auto
@@ -538,15 +538,15 @@ lemma ground_resolvent_subset:
   using resolve
 proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Ci Aij Ai D)
-  hence "\<forall>i<n.  Ci ! i \<subseteq># CAi ! i "
+  then have "\<forall>i<n.  Ci ! i \<subseteq># CAi ! i "
     by auto
-  hence cisucai: "\<Union># mset Ci \<subseteq># \<Union># mset CAi"
+  then have cisucai: "\<Union># mset Ci \<subseteq># \<Union># mset CAi"
     using subseteq_list_Union_mset ord_resolve(3) ord_resolve(4) by force
-  hence gr_ci: "is_ground_cls_list Ci"
+  then have gr_ci: "is_ground_cls_list Ci"
     using gr_c by simp
   have dsuDA: "D \<subseteq># DA"
     by (simp add: local.ord_resolve(1))
-  hence gr_di: "is_ground_cls D"
+  then have gr_di: "is_ground_cls D"
     using gr_d is_ground_cls_mono by auto
 
   have "is_ground_cls (\<Union># mset Ci + D)"
@@ -598,7 +598,7 @@ proof (cases rule: ord_resolve.cases)
     (* Obtain CAi'' *)
   have "\<forall>CA \<in> set CAi. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> CA'' \<cdot> \<eta>c'' = CA \<and> S CA'' \<cdot> \<eta>c'' = S_M S M CA"
     using grounding S_M_grounding_of_clss select by (metis le_supE subset_iff)
-  hence "\<forall>i < n. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> CA'' \<cdot> \<eta>c'' = (CAi ! i) \<and> S CA'' \<cdot> \<eta>c'' = S_M S M (CAi ! i)"
+  then have "\<forall>i < n. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> CA'' \<cdot> \<eta>c'' = (CAi ! i) \<and> S CA'' \<cdot> \<eta>c'' = S_M S M (CAi ! i)"
     using n by auto
   then obtain \<eta>s''f CAi''f where f_p:
     "\<forall>i < n. CAi''f i \<in> M"
@@ -924,7 +924,7 @@ proof (cases rule: ord_resolve.cases)
   proof -
     have "Some \<sigma> = mgu (set_mset ` set (map2 add_mset Ai Aij))"
       using ord_resolve by -
-    hence uu: "is_unifiers \<sigma> (set_mset ` set (map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)))"
+    then have uu: "is_unifiers \<sigma> (set_mset ` set (map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>)))"
       using mgu_sound is_mgu_def unfolding \<open>Aij' \<cdot>aml \<eta> = Aij\<close> using ai' by auto
     have \<eta>\<sigma>uni: "is_unifiers (\<eta> \<odot> \<sigma>) (set_mset ` set (map2 add_mset Ai' Aij'))"
     proof -
@@ -957,41 +957,41 @@ proof (cases rule: ord_resolve.cases)
   proof -
     have "eligible (S_M S M) \<sigma> Ai (D + negs (mset Ai))"
       using ord_resolve unfolding eligible.simps[simplified] by -
-    hence "S_M S M (D + negs (mset Ai)) = negs (mset Ai) \<or> S_M S M (D + negs (mset Ai)) = {#} \<and>
+    then have "S_M S M (D + negs (mset Ai)) = negs (mset Ai) \<or> S_M S M (D + negs (mset Ai)) = {#} \<and>
       length Ai = 1 \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
       unfolding eligible.simps[simplified] by auto
-    thus "eligible S \<tau> Ai' (D' + negs (mset Ai'))"
+    then show "eligible S \<tau> Ai' (D' + negs (mset Ai'))"
     proof
       assume as: "S_M S M (D + negs (mset Ai)) = negs (mset Ai)"
       then have "S_M S M (D + negs (mset Ai)) \<noteq> {#}"
         using n ord_resolve(7) by force
       then have "negs (mset Ai') = S DA'"
         using ai' by auto
-      hence "S (D'  + negs (mset Ai')) = negs (mset Ai')"
+      then have "S (D'  + negs (mset Ai')) = negs (mset Ai')"
         using ai' by auto
-      thus "eligible S \<tau> Ai' (D' + negs (mset Ai'))"
+      then show "eligible S \<tau> Ai' (D' + negs (mset Ai'))"
         unfolding eligible.simps[simplified]  by auto
     next
       assume asm: "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = 1 \<and>
         maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
       from asm have "S_M S M (D + negs (mset Ai)) = {#}"
         by auto
-      hence "S (D' + negs (mset Ai')) = {#}"
+      then have "S (D' + negs (mset Ai')) = {#}"
         using \<open>D' \<cdot> \<eta> = D\<close>[symmetric] \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] \<open>S (DA') \<cdot> \<eta> = S_M S M (DA)\<close>
           ord_resolve(1) ai' subst_cls_empty_iff by metis
       moreover from asm have l: "length Ai = 1"
         by auto
-      hence l': "length Ai' = 1"
+      then have l': "length Ai' = 1"
         using \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] by auto
       moreover from asm have "maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
         by auto
-      hence "maximal_in (Ai' ! 0 \<cdot>a (\<eta> \<odot> \<sigma>)) ((D' + negs (mset Ai')) \<cdot> (\<eta> \<odot> \<sigma>))"
+      then have "maximal_in (Ai' ! 0 \<cdot>a (\<eta> \<odot> \<sigma>)) ((D' + negs (mset Ai')) \<cdot> (\<eta> \<odot> \<sigma>))"
         unfolding \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] \<open>D' \<cdot> \<eta> = D\<close>[symmetric] using l' by auto
-      hence "maximal_in (Ai' ! 0 \<cdot>a (\<tau> \<odot> \<phi>)) ((D' + negs (mset Ai')) \<cdot> (\<tau> \<odot> \<phi>))"
+      then have "maximal_in (Ai' ! 0 \<cdot>a (\<tau> \<odot> \<phi>)) ((D' + negs (mset Ai')) \<cdot> (\<tau> \<odot> \<phi>))"
         unfolding \<open>Ai' \<cdot>al \<eta> = Ai\<close>[symmetric] \<open>D' \<cdot> \<eta> = D\<close>[symmetric] using \<tau>\<phi> by auto
-      hence "maximal_in (Ai' ! 0 \<cdot>a \<tau> \<cdot>a \<phi>) ((D' + negs (mset Ai')) \<cdot> \<tau> \<cdot> \<phi>)"
+      then have "maximal_in (Ai' ! 0 \<cdot>a \<tau> \<cdot>a \<phi>) ((D' + negs (mset Ai')) \<cdot> \<tau> \<cdot> \<phi>)"
         by auto
-      hence "maximal_in (Ai' ! 0 \<cdot>a \<tau>) ((D' + negs (mset Ai')) \<cdot> \<tau>)"
+      then have "maximal_in (Ai' ! 0 \<cdot>a \<tau>) ((D' + negs (mset Ai')) \<cdot> \<tau>)"
         using maximal_in_gen by blast
       ultimately show "eligible S \<tau> Ai' (D' + negs (mset Ai'))"
         unfolding eligible.simps[simplified] by auto
@@ -1004,13 +1004,13 @@ proof (cases rule: ord_resolve.cases)
   proof -
     from ord_resolve have "\<forall>i<n. str_maximal_in (Ai ! i \<cdot>a \<sigma>) (Ci ! i \<cdot> \<sigma>)"
       by -
-    hence "\<forall>i<n. str_maximal_in ((Ai' \<cdot>al \<eta>) ! i \<cdot>a \<sigma>) ((Ci' \<cdot>cl \<eta>) ! i \<cdot> \<sigma>)"
+    then have "\<forall>i<n. str_maximal_in ((Ai' \<cdot>al \<eta>) ! i \<cdot>a \<sigma>) ((Ci' \<cdot>cl \<eta>) ! i \<cdot> \<sigma>)"
       using \<open>Ai' \<cdot>al \<eta> = Ai\<close>  \<open>Ci' \<cdot>cl \<eta> = Ci\<close> by simp
-    hence "\<forall>i<n. str_maximal_in ((Ai' ! i) \<cdot>a (\<eta> \<odot> \<sigma>)) ((Ci' ! i) \<cdot> (\<eta> \<odot> \<sigma>))"
+    then have "\<forall>i<n. str_maximal_in ((Ai' ! i) \<cdot>a (\<eta> \<odot> \<sigma>)) ((Ci' ! i) \<cdot> (\<eta> \<odot> \<sigma>))"
       using n by auto
-    hence "\<forall>i<n. str_maximal_in ((Ai' ! i) \<cdot>a (\<tau> \<odot> \<phi>)) ((Ci' ! i) \<cdot> (\<tau> \<odot> \<phi>))"
+    then have "\<forall>i<n. str_maximal_in ((Ai' ! i) \<cdot>a (\<tau> \<odot> \<phi>)) ((Ci' ! i) \<cdot> (\<tau> \<odot> \<phi>))"
       using \<tau>\<phi> by auto
-    hence "\<forall>i<n. str_maximal_in ((Ai' ! i \<cdot>a \<tau>) \<cdot>a \<phi>) ((Ci' ! i \<cdot> \<tau>) \<cdot> \<phi>)"
+    then have "\<forall>i<n. str_maximal_in ((Ai' ! i \<cdot>a \<tau>) \<cdot>a \<phi>) ((Ci' ! i \<cdot> \<tau>) \<cdot> \<phi>)"
       by auto
     then show e: "\<forall>i<n. str_maximal_in (Ai' ! i \<cdot>a \<tau>) (Ci' ! i \<cdot> \<tau>)"
       using str_maximal_in_gen \<tau>\<phi> by blast
@@ -1023,7 +1023,7 @@ proof (cases rule: ord_resolve.cases)
       by (simp add: \<open>map S CAi' \<cdot>cl \<eta> = map (S_M S M) CAi\<close>)
     then have "\<forall>i < n. S (CAi' ! i) \<cdot> \<eta> = S_M S M (CAi ! i)"
       using n by auto
-    hence "\<forall>i < n. S (CAi' ! i)  \<cdot> \<eta> = {#}"
+    then have "\<forall>i < n. S (CAi' ! i)  \<cdot> \<eta> = {#}"
       using ord_resolve(13) \<open>\<forall>i < n.  S (CAi' ! i) \<cdot> \<eta> = S_M S M (CAi ! i)\<close> by auto
     then show "\<forall>i < n. S (CAi' ! i) = {#}"
       using subst_cls_empty_iff by blast
@@ -1064,7 +1064,7 @@ proof (cases rule: ord_resolve.cases)
   proof -
     have "is_ground_cls_list CAi" "is_ground_cls DA"
       using grounding grounding_ground unfolding is_ground_cls_list_def by auto
-    hence "is_ground_cls E"
+    then have "is_ground_cls E"
       using resolve ground_resolvent_ground by auto
     then obtain \<eta>2 where ground_\<eta>2: "is_ground_subst \<eta>2" "E' \<cdot> \<eta>2 = E"
       using e'\<phi>e make_single_ground_subst by blast

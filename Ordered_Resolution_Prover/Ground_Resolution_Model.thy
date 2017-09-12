@@ -183,15 +183,15 @@ proof (cases "\<exists>A. Pos A \<in># C \<and> A \<in> Interp D")
     by blast
   from a_at_d have "A \<in> interp D'"
     using d_lt_d' less_imp_Interp_subseteq_interp by blast
-  thus ?thesis
+  then show ?thesis
     using subs a_in_c by (blast dest: contra_subsetD)
 next
   case False
   then obtain A where a_in_c: "Neg A \<in># C" and "A \<notin> Interp D"
     using c_at_d unfolding true_cls_def by blast
-  hence "\<And>D''. \<not> produces D'' A"
+  then have "\<And>D''. \<not> produces D'' A"
     using c_le_d neg_notin_Interp_not_produce by simp
-  thus ?thesis
+  then show ?thesis
     using a_in_c subs not_produces_imp_notin_production by auto
 qed
 
@@ -218,15 +218,15 @@ proof (cases "\<exists>A. Pos A \<in># C \<and> A \<in> interp D")
     by blast
   from a_at_d have "A \<in> interp D'"
     using d_lt_d' less_eq_imp_interp_subseteq_interp[OF less_imp_le] by blast
-  thus ?thesis
+  then show ?thesis
     using subs a_in_c by (blast dest: contra_subsetD)
 next
   case False
   then obtain A where a_in_c: "Neg A \<in># C" and "A \<notin> interp D"
     using c_at_d unfolding true_cls_def by blast
-  hence "\<And>D''. \<not> produces D'' A"
+  then have "\<And>D''. \<not> produces D'' A"
     using c_le_d by (auto dest: produces_imp_in_interp less_eq_imp_interp_subseteq_interp)
-  thus ?thesis
+  then show ?thesis
     using a_in_c subs not_produces_imp_notin_production by auto
 qed
 
@@ -253,7 +253,7 @@ lemma productive_imp_true_in_Interp:
 proof -
   obtain A where a: "produces C A"
     using assms productive_imp_produces_Max_atom by blast
-  hence a_in_c: "Pos A \<in># C"
+  then have a_in_c: "Pos A \<in># C"
     by (rule produces_imp_Pos_in_lits)
   moreover have "A \<in> Interp C"
     using a less_eq_imp_production_subseteq_Interp by blast
@@ -273,13 +273,13 @@ lemma max_pos_imp_true_in_Interp:
   shows "Interp C \<Turnstile> C"
 proof (cases "productive C")
   case True
-  thus ?thesis
+  then show ?thesis
     by (fast intro: productive_imp_true_in_Interp)
 next
   case False
-  hence "interp C \<Turnstile> C"
+  then have "interp C \<Turnstile> C"
     using assms unfolding production_unfold by simp
-  thus ?thesis
+  then show ?thesis
     unfolding Interp_def using False by auto
 qed
 
@@ -296,7 +296,7 @@ lemma max_atm_imp_true_in_Interp:
   shows "Interp C \<Turnstile> C"
 proof (cases "Neg A \<in># C")
   case True
-  thus ?thesis
+  then show ?thesis
     using pos_in pos_neg_in_imp_true by metis
 next
   case False
@@ -304,7 +304,7 @@ next
     using pos_in by auto
   ultimately have "Max_mset C = Pos A"
     using max_atm using Max_in_lits Max_lit_eq_pos_or_neg_Max_atm by metis
-  thus ?thesis
+  then show ?thesis
     using ne c_in_n s_c_e by (blast intro: max_pos_imp_true_in_Interp)
 qed
 
@@ -332,31 +332,31 @@ proof -
     have leq_dc': "D \<le> C'"
       using a_at_d d'_at_d prod_c'
       by (auto simp: Interp_def intro: false_interp_to_true_Interp_imp_le_multiset)
-    hence "D' \<le> C'"
+    then have "D' \<le> C'"
       using d'_le_d order_trans by blast
-    hence max_d': "Max (atms_of D') = A"
+    then have max_d': "Max (atms_of D') = A"
       using a_in_d' max_c' by (fast intro: pos_lit_in_atms_of le_multiset_Max_in_imp_Max)
 
     {
       assume "D' \<in> N \<and> S D' = {#}"
-      hence "Interp D' \<Turnstile> D'"
+      then have "Interp D' \<Turnstile> D'"
         using a_in_d' max_d' by (blast intro: max_atm_imp_true_in_Interp)
-      hence "Interp D \<Turnstile> D'"
+      then have "Interp D \<Turnstile> D'"
         using d'_le_d by (auto intro: true_Interp_imp_Interp simp: less_eq_multiset_def)
-      hence False
+      then have False
         using d'_at_d by satx
     }
     moreover
     {
       assume "Max (atms_of D') < Max (atms_of D)"
-      hence False
+      then have False
         using max_d' leq_dc' max_c' d'_le_d
         by (metis le_imp_less_or_eq le_multiset_empty_right less_eq_Max_atms_of less_imp_not_less)
     }
     ultimately have False
       using in_n_or_max_gt by satx
   }
-  thus ?thesis
+  then show ?thesis
     by satx
 qed
 
