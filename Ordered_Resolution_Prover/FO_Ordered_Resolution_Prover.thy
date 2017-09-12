@@ -2044,7 +2044,7 @@ proof -
       unfolding is_least_def by auto
     then have jn0: "j \<noteq> 0" (* Since there are initially no clauses in Q *)
       using empty_Q0 using insert_subset by fastforce
-    then have anders (* FIXME: rename *) : "\<not>set CAi' \<union> {DA'} \<subseteq> ?Qs (j - 1)" "set CAi' \<union> {DA'} \<subseteq> ?Qs j"
+    then have j_adds_CAi': "\<not>set CAi' \<union> {DA'} \<subseteq> ?Qs (j - 1)" "set CAi' \<union> {DA'} \<subseteq> ?Qs j"
       using j_p unfolding is_least_def
        apply (metis (no_types, hide_lams) One_nat_def Suc_diff_Suc Suc_ile_eq diff_diff_cancel diff_zero less_imp_le less_one neq0_conv zero_less_diff)
       using j_p'(2) by blast
@@ -2057,9 +2057,9 @@ proof -
       "?Ns j = concls_of (ord_FO_resolution.inferences_between (?Qs (j-1)) C')"
       "C' \<in> set CAi' \<union> {DA'}"
       "C' \<notin> ?Qs (j-1)"
-      using anders by (induction rule: resolution_prover.cases) auto
+      using j_adds_CAi' by (induction rule: resolution_prover.cases) auto
     then have ihih: "(set CAi' \<union> {DA'}) - {C'} \<subseteq> ?Qs (j - 1)"
-      using anders by auto
+      using j_adds_CAi' by auto
     have "E' \<in> ?Ns j"
     proof -
       have "E' \<in> concls_of (ord_FO_resolution.inferences_between (Q_of_state (lnth Sts (j - 1))) C')"
@@ -2071,7 +2071,7 @@ proof -
           apply auto[]
         unfolding infer_from_def apply auto[]
         using C'_p(3) j_p'(2) apply (metis (no_types, hide_lams)  One_nat_def Un_insert_left insert_iff insert_subset  sup.commute sup_bot.left_neutral)
-        using anders(2) C'_p apply auto
+        using j_adds_CAi'(2) C'_p apply auto
         done
       then show "E' \<in> ?Ns j"
         using C'_p(4) by auto

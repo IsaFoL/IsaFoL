@@ -636,21 +636,20 @@ lemma inv_ren_is_renaming_list[simp]:
 lemma is_renaming_inv_ren_cancel[simp]: "is_renaming \<rho> \<Longrightarrow> C  \<cdot> \<rho> \<cdot> (inv_ren \<rho>) = C"
   by (metis inv_ren_cancel_r subst_cls_comp_subst subst_cls_id_subst)
 
-(* FIXME: rename following properties and indent properly *)
-lemma drdrdrdrdrdrdrdrdrdrdrdr[simp]: "length CC = length \<rho>s \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> CC \<cdot>\<cdot>cl \<rho>s \<cdot>\<cdot>cl (map inv_ren \<rho>s) = CC"
-  apply (induction \<rho>s)
-    unfolding is_renaming_list_def
-     apply auto
-    by (metis Suc_length_conv inv_ren_cancel_r_list is_renaming_list_def list.simps(9) set_ConsD subst_cls_lists_comp_substs subst_cls_lists_id_subst)
-
-lemma drdrdrdr[simp]: "is_renaming \<rho> \<Longrightarrow> C  \<cdot> (inv_ren \<rho>) \<cdot> \<rho> = C"
+lemma is_renaming_inv_ren_cancel2[simp]: "is_renaming \<rho> \<Longrightarrow> C  \<cdot> (inv_ren \<rho>) \<cdot> \<rho> = C"
   by (metis inv_ren_cancel_l subst_cls_comp_subst subst_cls_id_subst)
 
-lemma drdrdrdrdrdrdrdr[simp]: "length CC = length \<rho>s \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> CC \<cdot>\<cdot>cl (map inv_ren \<rho>s) \<cdot>\<cdot>cl \<rho>s = CC"
+lemma is_renaming_list_inv_ren_cancel[simp]: "length CC = length \<rho>s \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> CC \<cdot>\<cdot>cl \<rho>s \<cdot>\<cdot>cl (map inv_ren \<rho>s) = CC"
   apply (induction \<rho>s)
-    unfolding is_renaming_list_def
-     apply auto
-    by (metis inv_ren_cancel_l_list is_renaming_list_def length_Cons list.simps(9) set_ConsD subst_cls_lists_comp_substs subst_cls_lists_id_subst)
+  unfolding is_renaming_list_def
+   apply auto
+  by (metis Suc_length_conv inv_ren_cancel_r_list is_renaming_list_def list.simps(9) set_ConsD subst_cls_lists_comp_substs subst_cls_lists_id_subst)
+
+lemma is_renaming_list_inv_ren_cancel2[simp]: "length CC = length \<rho>s \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> CC \<cdot>\<cdot>cl (map inv_ren \<rho>s) \<cdot>\<cdot>cl \<rho>s = CC"
+  apply (induction \<rho>s)
+  unfolding is_renaming_list_def
+   apply auto
+  by (metis inv_ren_cancel_l_list is_renaming_list_def length_Cons list.simps(9) set_ConsD subst_cls_lists_comp_substs subst_cls_lists_id_subst)
 
 
 subsubsection {* Monotonicity *}
