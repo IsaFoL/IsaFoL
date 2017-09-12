@@ -648,6 +648,7 @@ proof (cases rule: ord_resolve.cases)
 
   from \<eta>s''g_p have CAi''_to_CAi: "CAi'' \<cdot>\<cdot>cl \<eta>s''g = CAi"
     using CAi''_to_CAi n by auto
+
   {
     fix i
     assume a: "i<n"
@@ -690,7 +691,8 @@ lemma ord_resolve_rename_lifting:
     "ord_resolve_rename S CAi'' DA'' \<tau> E''"
     "CAi'' \<cdot>\<cdot>cl \<eta>s = CAi" "DA'' \<cdot> \<eta> = DA" "E'' \<cdot> \<eta>2 = E" (* In the previous proofs I have CAi and DA on lfs of equality... *)
     "{DA''} \<union> set CAi'' \<subseteq> M"
-  using resolve proof (cases rule: ord_resolve.cases)
+  using resolve
+proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Ci Aij Ai D)
 
   have selection_renaming_list_invariant: "\<And>\<rho>s Ci. length \<rho>s = length Ci \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> map S (Ci \<cdot>\<cdot>cl \<rho>s) = (map S Ci) \<cdot>\<cdot>cl \<rho>s"

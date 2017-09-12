@@ -81,7 +81,7 @@ definition instance_of :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool"
   "instance_of C D \<longleftrightarrow> (\<exists>\<sigma>. C \<cdot> \<sigma> = D)"
 
 definition proper_instance_of :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
-  "proper_instance_of C D \<longleftrightarrow> instance_of C D \<and> \<not>instance_of D C"
+  "proper_instance_of C D \<longleftrightarrow> instance_of C D \<and> \<not> instance_of D C"
 
 definition is_renaming :: "'s \<Rightarrow> bool" where
   "is_renaming \<sigma> = (\<exists>\<tau>. \<sigma> \<odot> \<tau> = id_subst \<and> \<tau> \<odot> \<sigma> = id_subst)"
@@ -163,7 +163,7 @@ locale substitution = substitution_ops subst_atm id_subst comp_subst
        \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length CC. \<forall>S. S \<subseteq># CC ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)" and
     make_var_disjoint: "\<And>Cs. \<exists>\<rho>s. length \<rho>s = length Cs \<and> (\<forall>\<rho> \<in> set \<rho>s. is_renaming \<rho>) \<and>
       var_disjoint (Cs \<cdot>\<cdot>cl \<rho>s)" and
-    proper_instance_of_wf: "wfP (proper_instance_of)"
+    proper_instance_of_wf: "wfP proper_instance_of"
 begin
 
 lemma subst_ext_iff: "\<sigma> = \<tau> \<longleftrightarrow> (\<forall>A. A \<cdot>a \<sigma> = A \<cdot>a \<tau>)"
