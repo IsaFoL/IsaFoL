@@ -937,7 +937,7 @@ lemma subseteq_mset_size_eql: "X \<subseteq># Y \<Longrightarrow> size Y = size 
 
 lemma strictly_subsumes_has_minimum:
   assumes "CC \<noteq> {}"
-  shows "\<exists>C \<in> CC. \<forall>D \<in> CC. \<not>strictly_subsumes D C"
+  shows "\<exists>C \<in> CC. \<forall>D \<in> CC. \<not> strictly_subsumes D C"
 proof (rule ccontr)
   assume "\<not> (\<exists>C \<in> CC. \<forall>D\<in>CC. \<not> strictly_subsumes D C)"
   then have "\<forall>C \<in> CC. \<exists>D \<in> CC. strictly_subsumes D C"
@@ -985,28 +985,14 @@ proof (rule ccontr)
       by metis
   qed
   moreover have ff: "\<forall>l' \<ge> l. \<not> (\<exists>\<sigma>. c l'  \<cdot> \<sigma> = c (Suc l'))"
-  proof (intro allI impI)
-    fix l'
-    assume "l' \<ge> l"
-    then have siz: "size (c l') = size (c (Suc l'))"
-      using l_p by metis
-    have "strictly_subsumes (c (Suc l')) (c l')"
-      using ps by auto
-    then have "\<not> subsumes (c l') (c (Suc l'))"
-      unfolding strictly_subsumes_def by auto
-    then have "\<nexists>\<sigma>. c l' \<cdot> \<sigma> \<subseteq># c (Suc l')"
-      unfolding subsumes_def by auto
-    then show "\<nexists>\<sigma>. c l' \<cdot> \<sigma> = c (Suc l')"
-      by (metis subset_mset.dual_order.refl)
-  qed
+    by (metis proper_neq ps)
   moreover have "wfP proper_instance_of"
     using proper_instance_of_wf by auto
   then have "\<nexists>f. \<forall>i. (f (Suc i), f i) \<in> {(a, b). proper_instance_of a b}"
-    unfolding wfP_def
-    using wf_iff_no_infinite_down_chain[of "{(a, b). proper_instance_of a b}"] by auto
+    unfolding wfP_def using wf_iff_no_infinite_down_chain by blast
   then have "\<nexists>f. \<forall>i. proper_instance_of (f (Suc i)) (f i)"
-    by auto
-  moreover have "\<forall>i. proper_instance_of ((\<lambda>x. c (x+l)) (Suc i)) ((\<lambda>x. c (x+l)) i)"
+    unfolding wfP_def using wf_iff_no_infinite_down_chain by auto
+  moreover have "\<forall>i. proper_instance_of (c (Suc i + l)) (c (i + l))"
     using ee ff unfolding proper_instance_of_def instance_of_def
      apply auto
     by (metis le_add2)
@@ -1027,7 +1013,7 @@ lemma from_Q_to_Q_inf:
 
     c: "C \<in> limit_llist Ns - src.Rf (limit_llist Ns)" and
     d: "D \<in> Q_of_state (lnth Sts i)" "enat i < llength Sts" "subsumes D C" and
-    d_least: "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not>strictly_subsumes E D"
+    d_least: "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not> strictly_subsumes E D"
   shows "D \<in> Q_of_state (limit_state Sts)"
 proof -
   let ?Ns = "\<lambda>i. N_of_state (lnth Sts i)"
@@ -1157,7 +1143,7 @@ lemma from_P_to_Q:
     ns: "Ns = lmap grounding_of_state Sts" and
     c: "C \<in> limit_llist Ns - src.Rf (limit_llist Ns)" and
     d: "D \<in> P_of_state (lnth Sts i)" "enat i < llength Sts" "subsumes D C" and
-    d_least: "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not>strictly_subsumes E D"
+    d_least: "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not> strictly_subsumes E D"
   shows "\<exists>l. D \<in> Q_of_state (lnth Sts l) \<and> enat l < llength Sts"
 proof -
   let ?Ns = "\<lambda>i. N_of_state (lnth Sts i)"
@@ -1343,8 +1329,8 @@ proof -
 qed
 
 lemma neg_properly_subsume_variants:
-  assumes "\<not>(strictly_subsumes E D)" and "variants D D'"
-  shows "\<not>(strictly_subsumes E D')"
+  assumes "\<not> (strictly_subsumes E D)" and "variants D D'"
+  shows "\<not> (strictly_subsumes E D')"
   using assms properly_subsume_variants variants_sym by auto
 
 lemma from_N_to_P_or_Q:
@@ -1355,8 +1341,8 @@ lemma from_N_to_P_or_Q:
 
     c: "C \<in> limit_llist Ns - src.Rf (limit_llist Ns)" and
     d: "D \<in> N_of_state (lnth Sts i)" "enat i < llength Sts" "subsumes D C" and
-    d_least: "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not>strictly_subsumes E D"
-  shows "\<exists>l D' \<sigma>'. D' \<in> P_of_state (lnth Sts l) \<union> Q_of_state (lnth Sts l) \<and> enat l < llength Sts \<and> (\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not>strictly_subsumes E D') \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>' \<and> subsumes D' C"
+    d_least: "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not> strictly_subsumes E D"
+  shows "\<exists>l D' \<sigma>'. D' \<in> P_of_state (lnth Sts l) \<union> Q_of_state (lnth Sts l) \<and> enat l < llength Sts \<and> (\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not> strictly_subsumes E D') \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>' \<and> subsumes D' C"
 proof -
   let ?Ns = "\<lambda>i. N_of_state (lnth Sts i)"
   let ?Ps = "\<lambda>i. P_of_state (lnth Sts i)"
@@ -1405,7 +1391,7 @@ proof -
   then obtain \<sigma> where \<sigma>: "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
     by auto
 
-  from c have no_taut: "\<not>(\<exists>A. Pos A \<in># C \<and> Neg A \<in># C)"
+  from c have no_taut: "\<not> (\<exists>A. Pos A \<in># C \<and> Neg A \<in># C)"
     using src.tautology_redundant by auto
 
   from deriv have four_ten: "chain src_ext.derive Ns"
@@ -1444,7 +1430,7 @@ proof -
       using twins D'_p l_p unfolding clss_of_state_def sup_state_def apply simp
       by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist)
     ultimately
-    have "\<not>strictly_subsumes D' D"
+    have "\<not> strictly_subsumes D' D"
       using d_least by auto
     then have "subsumes D D'"
       unfolding strictly_subsumes_def using D'_p by auto
@@ -1519,7 +1505,7 @@ proof -
 qed
 
 lemma eventually_in_Qinf:
-  assumes D_p: "D \<in> clss_of_state (sup_state Sts)" "subsumes D C" "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not>strictly_subsumes E D"
+  assumes D_p: "D \<in> clss_of_state (sup_state Sts)" "subsumes D C" "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not> strictly_subsumes E D"
   assumes  fair: "fair_state_seq Sts"
    (* We could also, we guess, in this proof obtain a D with property D_p(3) from one with only properties D_p(2,3). *)
   assumes ns: "Ns = lmap grounding_of_state Sts"
@@ -1586,7 +1572,7 @@ proof -
       "D' \<cdot> \<sigma>' = C"
       "enat l < llength Sts"
       "is_ground_subst \<sigma>'" (* Do I also need that l is later than i? Probably not. *)
-      "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not>strictly_subsumes E D'"
+      "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not> strictly_subsumes E D'"
       "subsumes D' C"
       using from_N_to_P_or_Q deriv fair ns c i_p(1) D_p(2) D_p(3) by blast
     then obtain l' where l'_p: "D' \<in> ?Qs l'" "l' < llength Sts" (* Do I also need that l is later than l'? Probably not*)
@@ -1640,7 +1626,7 @@ proof
   then obtain D_proto where "D_proto \<in> clss_of_state (sup_state Sts) \<and> subsumes D_proto C"
     unfolding ns using in_Sup_llist_in_sup_state unfolding subsumes_def
     by blast
-  then obtain D where D_p: "D \<in> clss_of_state (sup_state Sts)" "subsumes D C" "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not>strictly_subsumes E D"
+  then obtain D where D_p: "D \<in> clss_of_state (sup_state Sts)" "subsumes D C" "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not> strictly_subsumes E D"
     using strictly_subsumes_has_minimum[of "{E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}"]
     by auto
 
@@ -1964,7 +1950,7 @@ proof -
       unfolding is_least_def by auto
     then have jn0: "j \<noteq> 0" (* Since there are initially no clauses in Q *)
       using empty_Q0 using insert_subset by fastforce
-    then have j_adds_CAi': "\<not>set CAi' \<union> {DA'} \<subseteq> ?Qs (j - 1)" "set CAi' \<union> {DA'} \<subseteq> ?Qs j"
+    then have j_adds_CAi': "\<not> set CAi' \<union> {DA'} \<subseteq> ?Qs (j - 1)" "set CAi' \<union> {DA'} \<subseteq> ?Qs j"
       using j_p unfolding is_least_def
        apply (metis (no_types, hide_lams) One_nat_def Suc_diff_Suc Suc_ile_eq diff_diff_cancel diff_zero less_imp_le less_one neq0_conv zero_less_diff)
       using j_p'(2) by blast
@@ -2072,8 +2058,7 @@ proof -
     using redundancy_criterion.saturated_upto_def[of gd_ord_\<Gamma>' src.Rf "\<lambda>N. src.Ri N \<union> (gd_ord_\<Gamma>' - gd.ord_\<Gamma>)" "limit_llist (lmap grounding_of_state Sts)"]
     by auto
   then have "{#} \<in> limit_llist (lmap grounding_of_state Sts)"
-    using src.saturated_upto_refute_complete unsat2
-    by auto
+    using src.saturated_upto_refute_complete unsat2 by auto
   then show "{#} \<in> clss_of_state (limit_state Sts)"
     using empty_in_limit_state fair ns by auto
 qed
