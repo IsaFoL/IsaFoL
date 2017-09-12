@@ -701,26 +701,24 @@ definition propgate_unit_bt :: \<open>'v literal \<Rightarrow> 'v twl_st \<Right
     (Propagated (-L) (the D) # M, N, U, None, NP, add_mset (the D) UP, WS, {#L#}))\<close>
 
 definition backtrack_inv where
-  \<open>backtrack_inv S \<longleftrightarrow> get_trail S \<noteq> []\<close>
+  \<open>backtrack_inv S \<longleftrightarrow> get_trail S \<noteq> [] \<and> get_conflict S \<noteq> Some {#}\<close>
 
 definition backtrack :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
   \<open>backtrack S =
     do {
-      do {
-        ASSERT(backtrack_inv S);
-        let L = lit_of (hd (get_trail S));
-        S \<leftarrow> extract_shorter_conflict S;
-        S \<leftarrow> reduce_trail_bt L S;
+      ASSERT(backtrack_inv S);
+      let L = lit_of (hd (get_trail S));
+      S \<leftarrow> extract_shorter_conflict S;
+      S \<leftarrow> reduce_trail_bt L S;
 
-        if size (the (get_conflict S)) > 1
-        then do {
-          L' \<leftarrow> SPEC(\<lambda>L'. L' \<in># the (get_conflict S) - {#-L#} \<and> L \<noteq> -L' \<and>
-            get_level (get_trail S) L' = get_maximum_level (get_trail S) (the (get_conflict S) - {#-L#}));
-          RETURN (propgate_bt L L' S)
-        }
-        else do {
-          RETURN (propgate_unit_bt L S)
-        }
+      if size (the (get_conflict S)) > 1
+      then do {
+        L' \<leftarrow> SPEC(\<lambda>L'. L' \<in># the (get_conflict S) - {#-L#} \<and> L \<noteq> -L' \<and>
+          get_level (get_trail S) L' = get_maximum_level (get_trail S) (the (get_conflict S) - {#-L#}));
+        RETURN (propgate_bt L L' S)
+      }
+      else do {
+        RETURN (propgate_unit_bt L S)
       }
     }
   \<close>
@@ -813,8 +811,7 @@ proof -
      (*  propgate_bt_def propgate_unit_bt_def *)
   proof (refine_vcg; remove_dummy_vars; clarify?)
     show \<open>backtrack_inv S\<close>
-      using trail unfolding backtrack_inv_def .
-
+      using trail confl unfolding backtrack_inv_def by fast
 
     fix M M1 M2 :: \<open>('a, 'a clause) ann_lits\<close> and
       N U :: \<open>'a twl_clss\<close> and
@@ -915,7 +912,6 @@ proof -
       ultimately show ?thesis
         by simp
     qed
-
 
     then have \<open>\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
       get_level M K = get_maximum_level M (remove1_mset (-lit_of (hd M)) D') + 1\<close>
