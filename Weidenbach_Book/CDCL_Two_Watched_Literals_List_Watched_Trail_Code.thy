@@ -5381,6 +5381,73 @@ proof -
     done
 qed
 
+definition extract_shorter_conflict_list where
+  \<open>extract_shorter_conflict_list = (\<lambda>M C. do {
+     let K = lit_of (hd M);
+     let C = Some (remove1_mset (-K) (the C));
+     let C = extract_shorter_conflict_l_trivial M C;
+     RETURN (map_option (add_mset (-K)) C)
+  })\<close>
+
+definition extract_shorter_conflict_list_int where
+  \<open>extract_shorter_conflict_list_int = (\<lambda>M (b, (n, xs)). do {
+     let K = lit_of (hd M);
+     ASSERT(atm_of K < length xs);
+     let xs = xs[atm_of K := None];
+     ((b, (n, xs)), L) \<leftarrow> extract_shorter_conflict_list_removed M (b, (n - 1, xs));
+     ASSERT(atm_of K < length xs);
+     RETURN ((b, (n + 1, xs[atm_of K := Some (is_neg K)])), L)
+  })\<close>
+
+
+lemma extract_shorter_conflict_list_extract_shorter_conflict_l_trivial_spec:
+  \<open>literals_are_in_N\<^sub>0 (the ba) \<and> (\<exists>y. ba = Some y) \<and> ((a, aa, b), ba) \<in> option_conflict_rel \<and> M = M' \<Longrightarrow>
+    extract_shorter_conflict_list_removed M (a, aa, b) \<le> \<Down> {((D, L), C).
+      (D, C) \<in> option_conflict_rel \<and> (\<exists>y. C = Some y) \<and> second_highest_lit M (the C) L}
+    (RETURN (extract_shorter_conflict_l_trivial M' ba))\<close>
+  apply simp
+    apply (rule extract_shorter_conflict_list_extract_shorter_conflict_l_trivial[
+        unfolded fref_def nres_rel_def, simplified, rule_format])
+  by fast
+
+lemma literals_are_in_N\<^sub>0_sub:
+  \<open>literals_are_in_N\<^sub>0 y \<Longrightarrow> literals_are_in_N\<^sub>0 (y - z)\<close>
+  using literals_are_in_N\<^sub>0_mono[of y \<open>y - z\<close>] by auto
+
+lemma
+  \<open>(uncurry extract_shorter_conflict_list_int, uncurry extract_shorter_conflict_list)
+   \<in> [\<lambda>(M', D). literals_are_in_N\<^sub>0 (the D) \<and> D \<noteq> None \<and> M = M' \<and> M \<noteq> [] \<and>
+         literals_are_in_N\<^sub>0 (lit_of `# mset M) \<and>  - lit_of (hd M) \<in># the D \<and>
+         lit_of (hd M) \<notin># the D]\<^sub>f
+      Id \<times>\<^sub>f option_conflict_rel \<rightarrow>
+       \<langle>{((D, L), C). (D, C) \<in> option_conflict_rel \<and> C \<noteq> None \<and>
+          second_highest_lit M (the C) L}\<rangle>nres_rel\<close>
+  supply extract_shorter_conflict_list_extract_shorter_conflict_l_trivial[refine_vcg]
+  unfolding extract_shorter_conflict_list_def extract_shorter_conflict_list_int_def uncurry_def
+  apply (intro frefI nres_relI)
+  apply clarify
+  apply refine_rcg
+  subgoal
+    by (cases M)
+      (auto simp: literals_are_in_N\<^sub>0_sub option_conflict_rel_def conflict_rel_def
+        literals_are_in_N\<^sub>0_add_mset in_N\<^sub>1_atm_of_in_atms_of_iff)
+  unfolding conc_fun_RETURN[symmetric]
+   apply (rule extract_shorter_conflict_list_extract_shorter_conflict_l_trivial_spec)
+  subgoal for a aa ab b ac ba y
+    using mset_as_position_remove[of b y \<open>atm_of (- lit_of (hd M))\<close>]
+    apply (cases \<open>lit_of (hd M)\<close>)
+    apply (auto intro!: ASSERT_refine_left
+        simp: literals_are_in_N\<^sub>0_sub option_conflict_rel_def conflict_rel_def
+        size_remove1_mset_If minus_notin_trivial2 minus_notin_trivial)
+    done
+  subgoal
+    apply (auto intro!: ASSERT_refine_left)
+    apply (cases M)
+    apply (auto simp: literals_are_in_N\<^sub>0_sub option_conflict_rel_def conflict_rel_def
+        literals_are_in_N\<^sub>0_add_mset in_N\<^sub>1_atm_of_in_atms_of_iff)
+    sorry
+  done
+
 lemma (in -) op_list_append_alt_def:
   \<open>op_list_append xs x = xs @ [x]\<close>
   by auto
