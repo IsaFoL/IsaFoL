@@ -1,7 +1,7 @@
 (*  Title:       Abstract Substitutions
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
     Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2014, 2017
-    Author:      Anders Schlichtkrull <andschl at dtu.dk>, 2017
+    Author:      Anders Schlichtkrull <andschl at dtu.dk>, 2016, 2017
     Maintainer:  Anders Schlichtkrull <andschl at dtu.dk>
 *)
 
