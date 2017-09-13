@@ -4644,7 +4644,6 @@ lemma conflict_to_conflict_with_cls_code_id[sepref_fr_rules]:
   unfolding conflict_with_cls_assn_def conflict_option_assn_def conflict_to_conflict_with_cls_spec_def
     by auto
 
-
 definition (in -) extract_shorter_conflict_l_trivial :: \<open>('v, nat) ann_lits \<Rightarrow> 'v cconflict \<Rightarrow> 'v cconflict\<close> where
   \<open>extract_shorter_conflict_l_trivial M D = Some (filter_mset (\<lambda>L. get_level M L > 0) (the D))\<close>
 
@@ -5669,7 +5668,7 @@ proof -
 qed
 
 
-definition find_decomp_wl_imp :: "(nat, nat) ann_lits \<Rightarrow> nat clause \<Rightarrow> nat literal \<Rightarrow> vmtf_remove_int \<Rightarrow> 
+definition find_decomp_wl_imp :: "(nat, nat) ann_lits \<Rightarrow> nat clause \<Rightarrow> nat literal \<Rightarrow> vmtf_remove_int \<Rightarrow>
    ((nat, nat) ann_lits \<times> vmtf_remove_int) nres" where
   \<open>find_decomp_wl_imp = (\<lambda>M\<^sub>0 D L vm. do {
     let lev = get_maximum_level M\<^sub>0 (remove1_mset (-L) D);
@@ -5693,7 +5692,7 @@ definition find_decomp_wl_imp :: "(nat, nat) ann_lits \<Rightarrow> nat clause \
 sepref_thm vmtf_unset_code
   is \<open>uncurry (RETURN oo vmtf_unset)\<close>
   :: \<open>[\<lambda>(L, vm). \<exists>M. L = atm_of(lit_of (hd M)) \<and> vm \<in> vmtf_imp M \<and> M \<noteq> [] \<and>
-          literals_are_in_N\<^sub>0 (lit_of `# mset M)]\<^sub>a 
+          literals_are_in_N\<^sub>0 (lit_of `# mset M)]\<^sub>a
      uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
   supply [[goals_limit=1]] option.splits[split] vmtf_imp_def[simp] in_N\<^sub>1_atm_of_in_atms_of_iff[simp]
     neq_NilE[elim!] literals_are_in_N\<^sub>0_add_mset[simp]
@@ -5711,7 +5710,7 @@ lemmas vmtf_unset_code_code[sepref_fr_rules] =
    vmtf_unset_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
 
 definition find_decomp_wl_imp_pre where
-  \<open>find_decomp_wl_imp_pre = (\<lambda>(((M, D), L), vm). M \<noteq> [] \<and> literals_are_in_N\<^sub>0 D \<and> -L \<in># D \<and> 
+  \<open>find_decomp_wl_imp_pre = (\<lambda>(((M, D), L), vm). M \<noteq> [] \<and> literals_are_in_N\<^sub>0 D \<and> -L \<in># D \<and>
       literals_are_in_N\<^sub>0 (lit_of `# mset M) \<and> vm \<in> vmtf_imp M)\<close>
 
 sepref_register find_decomp_wl_imp
@@ -5769,7 +5768,7 @@ lemma
     L: \<open>L = lit_of (hd M\<^sub>0)\<close> and
     E_D\<^sub>0: \<open>E \<subseteq># the D\<close> and
     D\<^sub>0: \<open>D \<noteq> None\<close> and
-   vm: \<open>vm \<in> vmtf_imp M\<^sub>0\<close> and 
+   vm: \<open>vm \<in> vmtf_imp M\<^sub>0\<close> and
    lits: \<open>literals_are_in_N\<^sub>0 (lit_of `# mset M\<^sub>0)\<close>
   shows
     find_decomp_wl_imp_le_find_decomp_wl':
@@ -5849,7 +5848,7 @@ proof -
     using that apply simp
     using n_d that by auto
 
-  have atm_of_N: 
+  have atm_of_N:
     \<open>literals_are_in_N\<^sub>0 (lit_of `# mset aa) \<Longrightarrow> aa \<noteq> [] \<Longrightarrow> atm_of (lit_of (hd aa)) \<in> atms_of N\<^sub>1\<close>
     for aa
     by (cases aa) (auto simp: literals_are_in_N\<^sub>0_add_mset in_N\<^sub>1_atm_of_in_atms_of_iff)
@@ -5867,7 +5866,7 @@ proof -
       using ex_decomp get_level_Succ_count_decided_neq (*TODO Proof*)
       apply (auto simp: count_decided_butlast butlast_nil_iff eq_commute[of \<open>[_]\<close>] ex_decomp_of_max_lvl_def
           intro: butlast)
-      by (metis E_D\<^sub>0 count_decided_ge_get_level get_maximum_level_mono mset_le_subtract 
+      by (metis E_D\<^sub>0 count_decided_ge_get_level get_maximum_level_mono mset_le_subtract
           not_less_eq_eq)
     subgoal using vm by auto
     subgoal using lits by auto
@@ -5876,7 +5875,7 @@ proof -
       using lits by (cases aa) (auto intro: butlast count_decided_tl_if)
     subgoal by (auto simp: count_decided_butlast count_decided_tl_if)[]
     subgoal for s a b aa ba x1 x2 x1a x2a by (cases aa) (auto simp: count_decided_ge_get_maximum_level)
-    subgoal for s a b aa ba x1 x2 x1a x2a 
+    subgoal for s a b aa ba x1 x2 x1a x2a
       by (cases aa) (auto simp: butlast_nil_iff count_decided_butlast)
     subgoal for s a b aa ba x1 x2 x1a x2a  by (cases ba)
         (auto intro!: abs_l_vmtf_unset_vmtf_unset' atm_of_N)
@@ -5885,7 +5884,7 @@ proof -
     subgoal by auto
     subgoal for s a b aa ba x1 x2 x1a x2a  by (cases aa) (auto intro: butlast count_decided_tl_if)
     subgoal by auto
-    subgoal for s a b aa ba x1 x2 x1a x2a  
+    subgoal for s a b aa ba x1 x2 x1a x2a
       by (cases aa) (auto simp: butlast_nil_iff count_decided_butlast
           eq_commute[of \<open>[_]\<close>] intro: butlast
           cong: if_cong split: if_splits)
@@ -5950,7 +5949,7 @@ sepref_register find_decomp_wl_vmtf
 lemma find_decomp_wl_imp_code_find_decomp_wl'[sepref_fr_rules]:
   \<open>(uncurry3 find_decomp_wl_imp_code, uncurry3 (PR_CONST find_decomp_wl_vmtf))
      \<in> [find_decomp_wl_vmtf_pre_full]\<^sub>a
-     trail_assn\<^sup>d *\<^sub>a conflict_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> 
+     trail_assn\<^sup>d *\<^sub>a conflict_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>
     trail_assn *assn vmtf_remove_conc\<close>
   using find_decomp_wl_imp_code[unfolded PR_CONST_def, FCOMP find_decomp_wl_imp_find_decomp_wl']
   unfolding PR_CONST_def find_decomp_wl_pre_full_alt_def[symmetric]
@@ -5986,10 +5985,10 @@ fun set_conflict_wl where
 
 term clause_ll_assn term conflict_assn
 lemma
-  \<open>(return o (\<lambda>D. (uint32_of_nat (size D), D)), RETURN o mset) \<in> clause_ll_assn\<^sup>k \<rightarrow>\<^sub>a 
+  \<open>(return o (\<lambda>D. (uint32_of_nat (size D), D)), RETURN o mset) \<in> clause_ll_assn\<^sup>k \<rightarrow>\<^sub>a
       (uint32_assn *assn array_assn unat_lit_assn)\<close>
-  
-  
+
+
 
 sepref_thm find_decomp_wl_imp'_code
   is \<open>uncurry find_decomp_wl_st_int\<close>
@@ -6002,6 +6001,7 @@ sepref_thm find_decomp_wl_imp'_code
   -- \<open>Translation stops at the \<open>set\<close> operation\<close>
                   apply sepref_dbg_trans_step_keep
                     apply sepref_dbg_side_unfold apply (auto simp: )[]
+  oops
 
 lemma find_decomp_wl_imp_find_decomp_wl':
   \<open>(uncurry find_decomp_wl_st, uncurry find_decomp_wl) \<in>
