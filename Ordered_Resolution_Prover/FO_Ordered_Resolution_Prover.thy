@@ -1262,16 +1262,12 @@ qed
 lemma variants_sym: "variants D D' \<longleftrightarrow> variants D' D"
   unfolding variants_def by auto
 
-lemma variants_size:
-  assumes "variants D D'"
-  shows "size D = size D'"
-  using assms
-  by (metis (full_types) strictly_subsumes_def size_subst subset_mset_def subset_subst_strictly_subsumes subsumes_def variants_def)
+lemma variants_size: "variants D D' \<Longrightarrow> size D = size D'"
+  by (metis strictly_subsumes_def size_subst subset_mset_def subset_subst_strictly_subsumes
+      subsumes_def variants_def)
 
-lemma variants_eql_mod_two_subtitution:
-  assumes "variants D D'"
-  shows "(\<exists>\<sigma>. D \<cdot> \<sigma> = D') \<and> (\<exists>\<sigma>'. D' \<cdot> \<sigma>' = D)"
-  using assms unfolding variants_def subsumes_def
+lemma variants_eql_mod_two_subtitution: "variants D D' \<Longrightarrow> (\<exists>\<sigma>. D \<cdot> \<sigma> = D') \<and> (\<exists>\<sigma>'. D' \<cdot> \<sigma>' = D)"
+  unfolding variants_def subsumes_def
   by (meson strictly_subsumes_def subset_mset_def subset_subst_strictly_subsumes subsumes_def)
 
 lemma properly_subsume_variants:
@@ -1492,11 +1488,10 @@ proof -
   let ?Ps = "\<lambda>i. P_of_state (lnth Sts i)"
   let ?Qs = "\<lambda>i. Q_of_state (lnth Sts i)"
 
-  from assms(1) obtain i where i_p: "i < llength Sts" "D \<in> ?Ns i \<or> D \<in> ?Ps i \<or> D \<in> ?Qs i"
-    unfolding clss_of_state_def unfolding sup_state_def
-    apply auto
-      apply (metis in_Sup_llist_in_nth llength_lmap lnth_lmap)+
-    done
+  from D_p obtain i where
+    i_p: "i < llength Sts" "D \<in> ?Ns i \<or> D \<in> ?Ps i \<or> D \<in> ?Qs i"
+    unfolding clss_of_state_def sup_state_def
+    by simp_all (metis (no_types) in_Sup_llist_in_nth llength_lmap lnth_lmap)
 
   have derivns: "chain src_ext.derive Ns" using resolution_prover_ground_derivation deriv ns by auto
 
@@ -1575,8 +1570,7 @@ proof -
     then have "\<exists>D' \<sigma>'. D' \<in> Q_of_state (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
       using D_p \<sigma> by auto
   }
-  ultimately
-  show "\<exists>D' \<sigma>'. D' \<in> Q_of_state (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
+  ultimately show "\<exists>D' \<sigma>'. D' \<in> Q_of_state (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
     by auto
 qed
 
@@ -1594,6 +1588,7 @@ proof
   let ?Ns = "\<lambda>i. N_of_state (lnth Sts i)"
   let ?Ps = "\<lambda>i. P_of_state (lnth Sts i)"
   let ?Qs = "\<lambda>i. Q_of_state (lnth Sts i)"
+
   fix C
   assume C_p: "C \<in> limit_llist Ns - src.Rf (limit_llist Ns)"
   then have "C \<in> Sup_llist Ns"
