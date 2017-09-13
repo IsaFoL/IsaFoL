@@ -156,7 +156,7 @@ definition insert_sort_inner_nth where
   \<open>insert_sort_inner_nth A = insert_sort_inner (\<lambda>remove n. stamp (A ! (remove ! n)))\<close>
 
 definition insert_sort_nth where
-  \<open>insert_sort_nth =  (\<lambda>(A, _). insert_sort (\<lambda>remove n. stamp (A ! (remove ! n))))\<close>
+  \<open>insert_sort_nth = (\<lambda>(A, _). insert_sort (\<lambda>remove n. stamp (A ! (remove ! n))))\<close>
 
 
 lemma insert_sort_inner_nth_code_helper:
@@ -480,7 +480,8 @@ lemma option_conflict_rel_update_None:
   assumes  \<open>((False, (n, xs)), Some D) \<in> option_conflict_rel\<close> and L_xs : \<open>L < length xs\<close>
   shows \<open>((False, (if xs!L = None then n else n - 1, xs[L := None])), Some (D - {# Pos L, Neg L #})) \<in> option_conflict_rel\<close>
 proof -
-  have [simp]: "L \<notin># A ==> A - add_mset L' (add_mset L B) = A - add_mset L' B" for A B L L'
+  have [simp]: "L \<notin># A \<Longrightarrow> A - add_mset L' (add_mset L B) = A - add_mset L' B"
+    for A B :: \<open>'a multiset\<close> and L L'
     by (metis add_mset_commute minus_notin_trivial)
   have "n = size D" and map: "mset_as_position xs D"
     using assms by (auto simp: option_conflict_rel_def conflict_rel_def)
@@ -509,7 +510,8 @@ lemma conflict_add_option_conflict_rel:
     \<open>((False, conflict_add L (n, zs)), Some (remdups_mset (remove1_mset (-L) (add_mset L D))))
         \<in> option_conflict_rel\<close>
 proof -
-  have minus_remove1_mset:  \<open>A - {#L, L'#} = remove1_mset L (remove1_mset L' A)\<close> for L L' A
+  have minus_remove1_mset:  \<open>A - {#L, L'#} = remove1_mset L (remove1_mset L' A)\<close>
+    for L L' and A :: \<open>'a multiset\<close>
     by (auto simp: ac_simps)
   have c_r: \<open>((n, zs), D) \<in> conflict_rel\<close>
     using ocr unfolding option_conflict_rel_def by auto
@@ -610,9 +612,9 @@ proof -
       j_le_D: "j < length D" and
       "Suc j < upperN" and
       "(Suc j, conflict_add (D ! j) zs) = (x1, x2)"
-    for b n xs b' n' s j zs x1 x2
+    for b :: bool and n :: nat and xs b' n' s j zs x1 x2
   proof -
-    have notin_notin_diff_iff: \<open>a \<notin># B \<Longrightarrow> a \<in># A - B \<longleftrightarrow> a \<in># A\<close> for a A B
+    have notin_notin_diff_iff: \<open>a \<notin># B \<Longrightarrow> a \<in># A - B \<longleftrightarrow> a \<in># A\<close> for a :: \<open>nat literal\<close> and A B
       by (auto dest: in_diffD simp add: in_diff_count not_in_iff)
     have Dj: \<open>D ! j \<in># N\<^sub>1\<close>
       using lits j_le_D literals_are_in_N\<^sub>0_in_N\<^sub>1 by blast
@@ -4664,13 +4666,9 @@ lemma extract_shorter_conflict_l_trivial_int_extract_shorter_conflict_l_trivial:
         extract_shorter_conflict_st_trivial_def twl_st_ref_def RETURN_def
      intro!: RES_refine)
 
-definition extract_shorter_conflict_list :: \<open>(nat, nat) ann_lits \<Rightarrow> conflict_option_rel \<Rightarrow>
+definition extract_shorter_conflict_list_removed :: \<open>(nat, nat) ann_lits \<Rightarrow> conflict_option_rel \<Rightarrow>
   (conflict_option_rel \<times> (nat literal \<times> nat) option) nres\<close> where
-\<open>extract_shorter_conflict_list = (\<lambda>M (_, (n, xs)). do {
-(*    ASSERT(M \<noteq> []);
-   let L = lit_of (hd M);
-   ASSERT(atm_of L < length xs);
-   let zs = xs[atm_of L := None]; *)
+\<open>extract_shorter_conflict_list_removed = (\<lambda>M (_, (n, xs)). do {
    (_, _, m, zs, L) \<leftarrow>
      WHILE\<^sub>T\<^bsup>\<lambda>(i, m', m, xs, L). i \<le> length xs \<and> m \<le> n\<^esup>
        (\<lambda>(i, m', _). m' > 0)
@@ -4740,12 +4738,12 @@ qed
 
 (* TODO: different conflict representation: the literal of highest level is *not* included anymore *)
 lemma extract_shorter_conflict_list_extract_shorter_conflict_l_trivial:
-  shows \<open>(uncurry extract_shorter_conflict_list, uncurry (RETURN oo extract_shorter_conflict_l_trivial)) \<in>
-      [\<lambda>(M', D). literals_are_in_N\<^sub>0 (the D) \<and> D \<noteq> None \<and> D \<noteq> Some {#} \<and> M = M']\<^sub>f Id \<times>\<^sub>f option_conflict_rel \<rightarrow>
+  shows \<open>(uncurry extract_shorter_conflict_list_removed, uncurry (RETURN oo extract_shorter_conflict_l_trivial)) \<in>
+      [\<lambda>(M', D). literals_are_in_N\<^sub>0 (the D) \<and> D \<noteq> None \<and> (* D \<noteq> Some {#} \<and> *) M = M']\<^sub>f Id \<times>\<^sub>f option_conflict_rel \<rightarrow>
          \<langle>{((D, L), C). (D, C) \<in> option_conflict_rel \<and> C \<noteq> None \<and> second_highest_lit M (the C) L}\<rangle> nres_rel\<close>
   (is \<open>?C \<in> [?pre]\<^sub>f _ \<times>\<^sub>f _ \<rightarrow> \<langle>?post\<rangle> nres_rel\<close>)
 proof -
-  have H: \<open>extract_shorter_conflict_list M (b, n, xs)
+  have H: \<open>extract_shorter_conflict_list_removed M (b, n, xs)
        \<le> \<Down> ?post (RETURN (extract_shorter_conflict_l_trivial M (Some C)))\<close>
     if lits: \<open>literals_are_in_N\<^sub>0 C\<close> and ocr: \<open>((b, n, xs), Some C) \<in> option_conflict_rel\<close>
     for C b n xs
@@ -5347,7 +5345,7 @@ proof -
         using ocr shl by auto
     qed
     show ?thesis
-      unfolding extract_shorter_conflict_list_def extract_shorter_conflict_l_trivial_def
+      unfolding extract_shorter_conflict_list_removed_def extract_shorter_conflict_l_trivial_def
         I_def[symmetric]
       apply (refine_vcg
          WHILEIT_rule_stronger_inv[where R=\<open>measure (\<lambda>(i, _). Suc (length xs) - i)\<close> and
