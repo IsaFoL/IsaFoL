@@ -4665,51 +4665,716 @@ lemma extract_shorter_conflict_l_trivial_int_extract_shorter_conflict_l_trivial:
         extract_shorter_conflict_st_trivial_def twl_st_ref_def RETURN_def
      intro!: RES_refine)
 
-definition extract_shorter_conflict_list :: \<open>(nat, nat) ann_lits \<Rightarrow> conflict_rel_with_cls \<Rightarrow>
-  conflict_rel_with_cls nres\<close> where
-\<open>extract_shorter_conflict_list = (\<lambda>M (D, b). do {
-   (_, D') \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, D'). i \<le> length D \<and> mset D' = filter_mset (\<lambda>L. get_level M L > 0) (mset (take i D))\<^esup>
-     (\<lambda>(i, _). i < length D)
-     (\<lambda>(i, D'). do {
-          ASSERT(i < length D);
-          ASSERT(D!i \<in> snd ` D\<^sub>0);
-          if get_level M (D!i) > 0 then RETURN (i+1, D' @ [D!i]) else RETURN (i+1, D')
+definition extract_shorter_conflict_list :: \<open>(nat, nat) ann_lits \<Rightarrow> conflict_option_rel \<Rightarrow>
+  (conflict_option_rel \<times> (nat literal \<times> nat) option) nres\<close> where
+\<open>extract_shorter_conflict_list = (\<lambda>M (_, (n, xs)). do {
+(*    ASSERT(M \<noteq> []);
+   let L = lit_of (hd M);
+   ASSERT(atm_of L < length xs);
+   let zs = xs[atm_of L := None]; *)
+   (_, _, m, zs, L) \<leftarrow>
+     WHILE\<^sub>T\<^bsup>\<lambda>(i, m', m, xs, L). i \<le> length xs \<and> m \<le> n\<^esup>
+       (\<lambda>(i, m', _). m' > 0)
+       (\<lambda>(i, m', m, zs, L). do {
+          case zs ! i of
+            None \<Rightarrow> RETURN (i+1, m', m, zs, L)
+          | Some b \<Rightarrow>  do {
+               ASSERT(Pos i \<in> snd ` D\<^sub>0);
+               ASSERT(i < length zs);
+               let k = get_level M (Pos i) in
+               if k > 0 then (* Keep *)
+                 (case L of
+                   None \<Rightarrow> RETURN (i+1, m' - 1, m, zs, Some (if b then Pos i else Neg i, k))
+                 | Some (_, k') \<Rightarrow>
+                   if k > k' then
+                     RETURN (i+1, m' - 1, m, zs, Some (if b then Pos i else Neg i, k))
+                   else
+                     RETURN (i+1, m' - 1, m, zs, L))
+               else (* delete *)
+                 RETURN (i+1, m' - 1, m - 1, zs[i := None], L)
+            }
         })
-     (0, []);
-    RETURN (array_of_arl D', b)
+     (0, n, n, xs, None);
+    RETURN ((False, (m, zs)), L)
   })\<close>
 
+definition second_highest_lit where
+  \<open>second_highest_lit M C L \<longleftrightarrow>
+     (L = None \<longrightarrow> size C \<le> 1) \<and>
+     (L \<noteq> None \<longrightarrow> get_level M (fst (the L)) = snd (the L) \<and>
+        snd (the L) \<le> get_maximum_level M C \<and>
+        fst (the L) \<in># C
+        )\<close>
+
+(* TODO Move *)
+lemma (in -) notin_filter_mset:
+  \<open>K \<notin># C \<Longrightarrow> filter_mset P C = filter_mset (\<lambda>L. P L \<and> L \<noteq> K) C\<close>
+  by (rule filter_mset_cong2) auto
+
+lemma (in -) get_level_Neg_Pos: \<open>get_level M (Neg L) = get_level M (Pos L)\<close>
+  unfolding get_level_def by auto
+
+lemma (in -) distinct_mset_add_mset_filter:
+  assumes \<open>distinct_mset C\<close> and \<open>L \<in># C\<close> and \<open>\<not>P L\<close>
+  shows \<open>add_mset L (filter_mset P C) = filter_mset (\<lambda>x. P x \<or> x = L) C\<close>
+  using assms
+proof (induction C)
+  case empty
+  then show ?case by simp
+next
+  case (add x C) note dist = this(2) and LC = this(3) and P[simp] = this(4) and _ = this
+  then have IH: \<open>L \<in># C \<Longrightarrow> add_mset L (filter_mset P C) = {#x \<in># C. P x \<or> x = L#}\<close> by auto
+  show ?case
+  proof (cases \<open>x = L\<close>)
+    case [simp]: True
+    have \<open>filter_mset P C = {#x \<in># C. P x \<or> x = L#}\<close>
+      by (rule filter_mset_cong2) (use dist in auto)
+    then show ?thesis
+      by auto
+  next
+    case False
+    then show ?thesis
+      using IH LC by auto
+  qed
+qed
+(* End Move *)
+
+(* TODO: different conflict representation: the literal of highest level is *not* included anymore *)
 lemma extract_shorter_conflict_list_extract_shorter_conflict_l_trivial:
   shows \<open>(uncurry extract_shorter_conflict_list, uncurry (RETURN oo extract_shorter_conflict_l_trivial)) \<in>
-      [\<lambda>(M, D). literals_are_in_N\<^sub>0 (the D) \<and> D \<noteq> None]\<^sub>f Id \<times>\<^sub>f option_conflict_rel_with_cls \<rightarrow>
-         \<langle>option_conflict_rel_with_cls\<rangle> nres_rel\<close>
+      [\<lambda>(M', D). literals_are_in_N\<^sub>0 (the D) \<and> D \<noteq> None \<and> M = M']\<^sub>f Id \<times>\<^sub>f option_conflict_rel \<rightarrow>
+         \<langle>{((D, L), C). (D, C) \<in> option_conflict_rel \<and> C \<noteq> None \<and> second_highest_lit M (the C) L}\<rangle> nres_rel\<close>
+  (is \<open>?C \<in> [?pre]\<^sub>f _ \<times>\<^sub>f _ \<rightarrow> \<langle>?post\<rangle> nres_rel\<close>)
 proof -
-  have take_Suc: \<open>take (Suc n) xs = take n xs @ [xs ! n]\<close> if \<open>n < length xs\<close> for n xs
-    using that unfolding take_map_nth_alt_def by auto
-  have H: \<open>extract_shorter_conflict_list M D' \<le> \<Down> option_conflict_rel_with_cls
-    (RETURN (extract_shorter_conflict_l_trivial M D))\<close>
-    if N\<^sub>0: \<open>D \<noteq> None\<close> \<open>literals_are_in_N\<^sub>0 (the D)\<close> \<open>(D', D) \<in> option_conflict_rel_with_cls\<close>
-    for M D D'
-    unfolding extract_shorter_conflict_l_trivial_def extract_shorter_conflict_list_def
-    Let_def array_of_arl_def option_conflict_rel_with_cls_def extract_shorter_conflict_l_trivial_def
-    apply (refine_vcg WHILEIT_rule[where R=\<open>measure (\<lambda>(i, _). Suc (length (fst D')) - i)\<close>])
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal using N\<^sub>0  by (auto simp: image_image literals_are_in_N\<^sub>0_in_N\<^sub>1
-          option_conflict_rel_with_cls_def br_def list_mset_rel_def)
-    subgoal by auto
-    subgoal by (auto simp: nths_upt_Suc' take_Suc)
-    subgoal by auto
-    subgoal by auto
-    subgoal by (auto simp: nths_upt_Suc' take_Suc)
-    subgoal by auto
-    subgoal for a b s using N\<^sub>0 by (cases \<open>fst s < length (fst D')\<close>)
-        (auto simp: option_conflict_rel_with_cls_def br_def list_mset_rel_def)
-    done
-  show ?thesis
-    by (intro frefI nres_relI) (auto intro!: H)
+  have H: \<open>extract_shorter_conflict_list M (b, n, xs)
+       \<le> \<Down> ?post (RETURN (extract_shorter_conflict_l_trivial M (Some C)))\<close>
+    if lits: \<open>literals_are_in_N\<^sub>0 C\<close> and ocr: \<open>((b, n, xs), Some C) \<in> option_conflict_rel\<close> and C_nempty: \<open>C \<noteq> {#}\<close>
+    for C b n xs
+  proof -
+    let ?C = \<open>\<lambda>M i C. filter_mset (\<lambda>L. atm_of L < i \<longrightarrow> get_level M L \<noteq> 0) C\<close>
+    let ?D = \<open>\<lambda>M i C. filter_mset (\<lambda>L. atm_of L < i \<and> get_level M L \<noteq> 0) C\<close>
+    define I' where
+      \<open>I' = (\<lambda>(i, m', m, zs, L). second_highest_lit M (?D M i C) L \<and>
+              ((False, (m, zs)), Some (?C M i C))
+        \<in> option_conflict_rel \<and> (i < length zs \<longrightarrow> zs ! i \<noteq> None \<longrightarrow> Pos i \<in> snd ` D\<^sub>0) \<and>
+        i + m' \<le> length zs \<and> length xs = length zs \<and>
+        m' = size (filter_mset (\<lambda>L. atm_of L \<ge> i) C) \<and>
+        i + m' + count_list (drop i zs) None = length xs)\<close>
+    have [simp]: \<open>b = False\<close>
+      using ocr C_nempty unfolding option_conflict_rel_def by auto
+    have n: \<open>n = size C\<close> and map: \<open>mset_as_position xs C\<close>
+      using ocr by (auto simp: conflict_rel_def second_highest_lit_def option_conflict_rel_def)
+    have \<open>xs ! i = None \<longleftrightarrow> Pos i \<notin># C \<and> Neg i \<notin># C\<close> if \<open>i < length xs\<close> for i
+      using mset_as_position_in_iff_nth[OF map, of \<open>Pos i\<close>] that
+        mset_as_position_in_iff_nth[OF map, of \<open>Neg i\<close>]
+      by (cases \<open>xs ! i\<close>) auto
+    have xs_Some:
+       \<open>xs ! i = Some y \<longleftrightarrow> (y \<longrightarrow> Pos i \<in># C) \<and> (\<not>y \<longrightarrow> Neg i \<in># C)\<close> if \<open>i < length xs\<close> for i y
+      using mset_as_position_in_iff_nth[OF map, of \<open>Pos i\<close>] that
+        mset_as_position_in_iff_nth[OF map, of \<open>Neg i\<close>]
+      by (cases \<open>xs ! i\<close>) auto
+
+    define I where
+      \<open>I n = (\<lambda>(i :: nat, m'::nat, m :: nat, xs :: bool option list, L:: (nat literal \<times> nat) option). i \<le> length xs \<and> m \<le> n)\<close>
+      for n :: nat
+    have I'_mapD: \<open>I' (i, m, n, xs, L) \<Longrightarrow> mset_as_position xs {#L \<in># C. \<not> (atm_of L < i \<and> get_level M L = 0)#}\<close>
+      for i m n xs L
+      unfolding I'_def option_conflict_rel_def conflict_rel_def by auto
+    have n_le: \<open>n \<le> length xs\<close> and b: \<open>b = False\<close> and
+       dist_C: \<open> distinct_mset C\<close> and
+       tauto_C: \<open>\<not> tautology C\<close> and
+       atms_le_xs: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length xs\<close> and
+       n_size: \<open>n = size C\<close>
+      using mset_as_position_length_not_None[of xs C] that  mset_as_position_distinct_mset[of xs C]
+        mset_as_position_tautology[of xs C]
+      by (auto simp: option_conflict_rel_def conflict_rel_def)
+    have init_I: \<open>I n (0, n, n, xs, None)\<close>
+      using ocr lits unfolding I_def
+      by (auto simp: conflict_rel_def second_highest_lit_def option_conflict_rel_def
+          mset_as_position_length_not_None[OF map] xs_Some literals_are_in_N\<^sub>0_add_mset
+          image_image in_N\<^sub>1_atm_of_in_atms_of_iff
+          dest!: multi_member_split[of _ C])
+    have \<open>length xs - count_list xs None + count_list xs None = length xs\<close>
+      using count_le_length[of xs None] by auto
+    then have init_I': \<open>I' (0, n, n, xs, None)\<close>
+      using ocr lits unfolding I'_def
+      by (auto simp: conflict_rel_def second_highest_lit_def option_conflict_rel_def
+          mset_as_position_length_not_None[OF map] xs_Some literals_are_in_N\<^sub>0_add_mset
+          image_image in_N\<^sub>1_atm_of_in_atms_of_iff removeAll_filter_not_eq[symmetric]
+          length_removeAll_count_list
+          dest!: multi_member_split[of _ C])
+    have notin_I': "I' (ab + 1, ac, ad, ae, be)"
+      if
+        "(b, n, xs) = (a, ba)" and
+        "ba = (aa, baa)" and
+        I: "I aa s" and
+        I': "I' s" and
+        m: "case s of (i, m', uu) \<Rightarrow> 0 < m'" and
+        s:
+          "s = (ab, bb)"
+          "bb = (ac, bc)"
+          "bc = (ad, bd)"
+          "bd = (ae, be)" and
+        None: "ae ! ab = None"
+      for ab ac ad ae be a ba aa baa s bb bc bd
+    proof -
+      have ab_le: \<open>ab < length ae\<close>
+        using s I I' m unfolding I'_def I_def by auto
+      have map: \<open>mset_as_position ae {#L \<in># C. \<not> (atm_of L < ab \<and> get_level M L = 0)#}\<close>
+        using I'_mapD[OF I'[unfolded s]] .
+      have Pos: \<open>Pos ab \<notin># C\<close> and Neg: \<open>Neg ab \<notin># C\<close>
+        using mset_as_position_in_iff_nth[OF map, of \<open>Pos ab\<close>] ab_le None
+        mset_as_position_in_iff_nth[OF map, of \<open>Neg ab\<close>] by auto
+      have [simp]: \<open>{#L \<in># C. ab \<le> atm_of L#} = {#L \<in># C. ab < atm_of L#}\<close>
+        apply (rule filter_mset_cong)
+         apply (rule refl)
+        subgoal for L
+          using Pos Neg by (cases L) (auto intro!: filter_mset_cong le_neq_implies_less)
+        done
+      have [simp]: \<open>{#L \<in># C. atm_of L < Suc ab#} =  {#L \<in># C. atm_of L < ab#}\<close>
+        apply (rule filter_mset_cong)
+         apply (rule refl)
+        subgoal for L
+          using Pos Neg by (cases L) (auto intro!: filter_mset_cong le_neq_implies_less)
+        done
+      have [simp]: \<open>{#L \<in># C. atm_of L < Suc ab \<longrightarrow> 0 < get_level M L#} = {#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#}\<close>
+        apply (rule filter_mset_cong)
+         apply (rule refl)
+        subgoal for L
+          using Pos Neg by (cases L) (auto intro!: filter_mset_cong le_neq_implies_less)
+        done
+      have [simp]: \<open>{#L \<in># C. ab < atm_of L#} = {#L \<in># C. Suc ab \<le> atm_of L#}\<close>
+        apply (rule filter_mset_cong)
+         apply (rule refl)
+        subgoal for L
+          using Pos Neg by (cases L) (auto intro!: filter_mset_cong le_neq_implies_less)
+        done
+      have 3: \<open>Suc ab < length ae \<Longrightarrow> ae ! Suc ab = Some y \<Longrightarrow> Pos (Suc ab) \<in> snd ` D\<^sub>0\<close> for y
+        using mset_as_position_in_iff_nth[OF map, of \<open>Pos (Suc ab)\<close>] ab_le None
+        mset_as_position_in_iff_nth[OF map, of \<open>Neg (Suc ab)\<close>] lits
+        by (auto dest!: multi_member_split simp: literals_are_in_N\<^sub>0_add_mset image_image
+            in_N\<^sub>1_atm_of_in_atms_of_iff)
+      have [simp]: \<open>{#L \<in># C. atm_of L < Suc ab \<and> 0 < get_level M L#} = {#L \<in># C. atm_of L < ab \<and> 0 < get_level M L#}\<close>
+        apply (rule filter_mset_cong2)
+        subgoal for L
+          using Pos Neg by (cases L) (auto intro!: filter_mset_cong le_neq_implies_less)
+        subgoal ..
+        done
+      have \<open>ab + size {#L \<in># C. Suc ab \<le> atm_of L#} + count_list (drop ab ae) None =
+           length ae\<close>
+        using that xs_Some unfolding I'_def I_def by (auto simp: 3)
+      then have \<open>Suc (ab + size {#L \<in># C. Suc ab \<le> atm_of L#} + count_list (drop (Suc ab) ae) None) =
+         length ae \<close>
+        using Cons_nth_drop_Suc[symmetric, of ab ae] ab_le None by auto
+      then show ?thesis
+        using that xs_Some unfolding I'_def I_def by (auto simp: 3)
+    qed
+    have in_I'_no_found: "I' (ab + 1, ac - 1, ad, ae, Some (if x then Pos ab else Neg ab, get_level M (Pos ab)))"
+      if
+        "I aa s" and
+        I': "I' s" and
+        cond: "case s of (i, m', uu_) \<Rightarrow> 0 < m'" and
+        s:
+          "s = (ab, bb)"
+          "bb = (ac, bc)"
+          "bc = (ad, bd)"
+          "bd = (ae, be)"
+          "(b, n, xs) = (a, ba)"
+          "ba = (aa, baa)" and
+        Some: "ae ! ab = Some x" and
+        "Pos ab \<in> snd ` D\<^sub>0" and
+        ab_le: "ab < length ae" and
+        lev_ab: "0 < get_level M (Pos ab)" and
+        [simp]: "be = None"
+      for a ba aa baa s ab bb ac bc ad bd ae be x
+    proof -
+      have [simp]:
+        "s = (ab, ac, ad, ae, be)"
+        "bb = (ac, ad, ae, be)"
+        "bc = (ad, ae, be)"
+        "bd = (ae, be)"
+        "ba = (aa, baa)"
+        "\<not> a"
+        "n = aa"
+        "xs = baa"
+        using s by auto
+      have
+        shl: "second_highest_lit M (?D M ab C) be" and
+        ocr: "((False, ad, ae), Some {#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#}) \<in> option_conflict_rel" and
+        ab_N\<^sub>1: "Pos ab \<in># N\<^sub>1" and
+        [simp]: "length baa = length ae" and
+        ab_drop_ae: "ab + size {#L \<in># C. ab \<le> atm_of L#} + count_list (drop ab ae) None = length ae" and
+        ac: "ac = size {#L \<in># C. ab \<le> atm_of L#}"
+        using I' ab_le Some unfolding I'_def
+        by auto
+      let ?L = \<open>if x then Pos ab else Neg ab\<close>
+      have [iff]: \<open>(atm_of L < ab \<longrightarrow>
+           get_level M L = 0 \<or> \<not> get_level M L < count_decided M) \<and>
+          atm_of L = ab \<and>
+          0 < get_level M L \<and> get_level M L < count_decided M \<longleftrightarrow>
+          atm_of L = ab \<and>
+          0 < get_level M L \<and> get_level M L < count_decided M\<close> for L and ab :: nat
+        by auto
+      have Suc_D\<^sub>0: \<open>Suc ab < length ae \<Longrightarrow> ae ! Suc ab = Some y \<Longrightarrow> Pos (Suc ab) \<in> snd ` D\<^sub>0\<close> for y
+        using mset_as_position_in_iff_nth[OF I'_mapD[OF I'[unfolded s]], of \<open>if y then Pos (Suc ab) else Neg (Suc ab)\<close>]
+          lits
+        by (cases y) (auto simp: image_image in_N\<^sub>1_atm_of_in_atms_of_iff literals_are_in_N\<^sub>0_add_mset
+            dest: multi_member_split)
+      have \<open>?L \<in># C\<close>
+        using mset_as_position_in_iff_nth[OF I'_mapD[OF I'[unfolded s]], of \<open>?L\<close>]
+        Some ab_le by auto
+
+      then have 1: \<open>(?D M (Suc ab) C) =  add_mset ?L (?D M ab C)\<close>
+        unfolding less_Suc_eq_le order.order_iff_strict filter_union_or_split conj_disj_distribR
+        using dist_C tauto_C filter_mset_cong_inner_outer[of \<open>{#?L#}\<close>
+            \<open>\<lambda>L. ab = atm_of L \<and> 0 < get_level M L\<close> \<open>\<lambda>L. ab = atm_of L \<and> 0 < get_level M L\<close> C,
+            symmetric]
+        lev_ab
+        unfolding less_Suc_eq_le order.order_iff_strict filter_union_or_split conj_disj_distribR
+        by (auto split: if_splits dest!: multi_member_split
+            simp: lev_ab tautology_add_mset filter_mset_empty_conv get_level_Neg_Pos)
+
+      have shl': \<open>second_highest_lit M (?D M (Suc ab) C) (Some (?L, get_level M (Pos ab)))\<close>
+        using shl unfolding 1 second_highest_lit_def
+        by (auto simp: get_level_Neg_Pos get_maximum_level_add_mset)
+      have ocr_e: \<open>{#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#} = {#L \<in># C. atm_of L < Suc ab \<longrightarrow> 0 < get_level M L#}\<close>
+        apply (rule filter_mset_cong2)
+        subgoal for x
+          using lev_ab by (cases x) (auto simp: less_Suc_eq_le get_level_Neg_Pos)
+        subgoal by (rule refl)
+        done
+      have ac_0: \<open>ac > 0\<close>
+        using cond by auto
+      have ocr': \<open>((False, ad, ae), Some {#L \<in># C. atm_of L < Suc ab \<longrightarrow> 0 < get_level M L#}) \<in>
+          option_conflict_rel\<close>
+        using ocr unfolding ocr_e by fast
+      have ab_ac_0: \<open>Suc (ab + (ac - Suc 0)) \<le> length ae\<close>
+        using ac_0 ab_drop_ae ac by auto
+      have [iff]: \<open> ab \<noteq> atm_of L \<and> Suc ab \<le> atm_of L \<longleftrightarrow> Suc ab \<le> atm_of L \<close> for L
+        by auto
+      have le_Suc: \<open>a \<le> n \<longleftrightarrow> a = n \<or> Suc a \<le> n\<close> for a n :: nat
+        by auto
+      have 1: \<open>add_mset ?L  {#L \<in># C. Suc ab \<le> atm_of L#} =  {#L \<in># C. ab \<le> atm_of L#}\<close>
+        apply (subst (2) le_Suc)
+        unfolding filter_union_or_split conj_disj_distribR
+        using dist_C tauto_C filter_mset_cong_inner_outer[of \<open>{#?L#}\<close>
+            \<open>\<lambda>L. Suc ab = atm_of L\<close> \<open>\<lambda>L. Suc ab = atm_of L\<close> C,
+            symmetric]
+        lev_ab \<open>?L \<in># C\<close>
+        by (auto split: if_splits dest!: multi_member_split
+            simp: lev_ab tautology_add_mset filter_mset_empty_conv get_level_Neg_Pos)
+      have ac_size: \<open>ac - Suc 0 = size {#L \<in># C. Suc ab \<le> atm_of L#}\<close>
+        using ac_0 ac 1[symmetric] by auto
+      have Suc_ab_drop_ae: \<open>Suc (ab + size {#L \<in># C. Suc ab \<le> atm_of L#} + count_list (drop (Suc ab) ae) None) =
+        length ae\<close>
+        using ab_drop_ae 1[symmetric] Cons_nth_drop_Suc[OF ab_le, symmetric] Some by auto
+      show ?thesis
+        using ab_le Some shl' ab_N\<^sub>1 ocr' ab_ac_0 ac_size Suc_ab_drop_ae Suc_D\<^sub>0 unfolding I'_def
+        by auto
+    qed
+    have in_I'_found_upd: "I' (ab + 1, ac - 1, ad, ae,
+          Some (if x then Pos ab else Neg ab, get_level M (Pos ab)))"
+      if
+        I: "I aa s" and
+        I': "I' s" and
+        cond: "case s of (i, m', uu_) \<Rightarrow> 0 < m'" and
+        s:
+          "s = (ab, bb)"
+          "bb = (ac, bc)"
+          "bc = (ad, bd)"
+          "bd = (ae, be)"
+          "(b, n, xs) = (a, ba)"
+          "ba = (aa, baa)"
+          "xa = (af, bf)" and
+        Some: "ae ! ab = Some x" and
+        "Pos ab \<in> snd ` D\<^sub>0" and
+        ab_le: "ab < length ae" and
+        lev_ab: "0 < get_level M (Pos ab)" and
+        [simp]: "be = Some xa" and
+
+        lev_bf: "bf < get_level M (Pos ab)"
+      for a ba aa baa s ab bb ac bc ad bd ae be x xa af bf
+    proof -
+      have [simp]:
+        "s = (ab, ac, ad, ae, be)"
+        "bb = (ac, ad, ae, be)"
+        "bc = (ad, ae, be)"
+        "bd = (ae, be)"
+        "ba = (aa, baa)"
+        "\<not> a"
+        "n = aa"
+        "xs = baa"
+        using s by auto
+      have
+        shl: "second_highest_lit M (?D M ab C) be" and
+        ocr: "((False, ad, ae), Some {#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#}) \<in> option_conflict_rel" and
+        ab_N\<^sub>1: "Pos ab \<in># N\<^sub>1" and
+        [simp]: "length baa = length ae" and
+        ab_drop_ae: "ab + size {#L \<in># C. ab \<le> atm_of L#} + count_list (drop ab ae) None = length ae" and
+        ac: "ac = size {#L \<in># C. ab \<le> atm_of L#}"
+        using I' ab_le Some unfolding I'_def
+        by auto
+      let ?L = \<open>if x then Pos ab else Neg ab\<close>
+      have [iff]: \<open>(atm_of L < ab \<longrightarrow>
+           get_level M L = 0 \<or> \<not> get_level M L < count_decided M) \<and>
+          atm_of L = ab \<and>
+          0 < get_level M L \<and> get_level M L < count_decided M \<longleftrightarrow>
+          atm_of L = ab \<and>
+          0 < get_level M L \<and> get_level M L < count_decided M\<close> for L and ab :: nat
+        by auto
+      have Suc_D\<^sub>0: \<open>Suc ab < length ae \<Longrightarrow> ae ! Suc ab = Some y \<Longrightarrow> Pos (Suc ab) \<in> snd ` D\<^sub>0\<close> for y
+        using mset_as_position_in_iff_nth[OF I'_mapD[OF I'[unfolded s]], of \<open>if y then Pos (Suc ab) else Neg (Suc ab)\<close>]
+          lits
+        by (cases y) (auto simp: image_image in_N\<^sub>1_atm_of_in_atms_of_iff literals_are_in_N\<^sub>0_add_mset
+            dest: multi_member_split)
+      have \<open>?L \<in># C\<close>
+        using mset_as_position_in_iff_nth[OF I'_mapD[OF I'[unfolded s]], of \<open>?L\<close>]
+        Some ab_le by auto
+
+      then have 1: \<open>(?D M (Suc ab) C) =  add_mset ?L (?D M ab C)\<close>
+        unfolding less_Suc_eq_le order.order_iff_strict filter_union_or_split conj_disj_distribR
+        using dist_C tauto_C filter_mset_cong_inner_outer[of \<open>{#?L#}\<close>
+            \<open>\<lambda>L. ab = atm_of L \<and> 0 < get_level M L\<close> \<open>\<lambda>L. ab = atm_of L \<and> 0 < get_level M L\<close> C,
+            symmetric]
+        lev_ab
+        unfolding less_Suc_eq_le order.order_iff_strict filter_union_or_split conj_disj_distribR
+        by (auto split: if_splits dest!: multi_member_split
+            simp: lev_ab tautology_add_mset filter_mset_empty_conv get_level_Neg_Pos)
+
+      have shl': \<open>second_highest_lit M (?D M (Suc ab) C) (Some (?L, get_level M (Pos ab)))\<close>
+        using shl unfolding 1 second_highest_lit_def
+        by (auto simp: get_level_Neg_Pos get_maximum_level_add_mset)
+      have ocr_e: \<open>{#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#} = {#L \<in># C. atm_of L < Suc ab \<longrightarrow> 0 < get_level M L#}\<close>
+        apply (rule filter_mset_cong2)
+        subgoal for x
+          using lev_ab by (cases x) (auto simp: less_Suc_eq_le get_level_Neg_Pos)
+        subgoal by (rule refl)
+        done
+      have ac_0: \<open>ac > 0\<close>
+        using cond by auto
+      have ocr': \<open>((False, ad, ae), Some {#L \<in># C. atm_of L < Suc ab \<longrightarrow> 0 < get_level M L#}) \<in>
+          option_conflict_rel\<close>
+        using ocr unfolding ocr_e by fast
+      have ab_ac_0: \<open>Suc (ab + (ac - Suc 0)) \<le> length ae\<close>
+        using ac_0 ab_drop_ae ac by auto
+      have [iff]: \<open> ab \<noteq> atm_of L \<and> Suc ab \<le> atm_of L \<longleftrightarrow> Suc ab \<le> atm_of L \<close> for L
+        by auto
+      have le_Suc: \<open>a \<le> n \<longleftrightarrow> a = n \<or> Suc a \<le> n\<close> for a n :: nat
+        by auto
+      have 1: \<open>add_mset ?L  {#L \<in># C. Suc ab \<le> atm_of L#} =  {#L \<in># C. ab \<le> atm_of L#}\<close>
+        apply (subst (2) le_Suc)
+        unfolding filter_union_or_split conj_disj_distribR
+        using dist_C tauto_C filter_mset_cong_inner_outer[of \<open>{#?L#}\<close>
+            \<open>\<lambda>L. Suc ab = atm_of L\<close> \<open>\<lambda>L. Suc ab = atm_of L\<close> C,
+            symmetric]
+        lev_ab \<open>?L \<in># C\<close>
+        by (auto split: if_splits dest!: multi_member_split
+            simp: lev_ab tautology_add_mset filter_mset_empty_conv get_level_Neg_Pos)
+      have ac_size: \<open>ac - Suc 0 = size {#L \<in># C. Suc ab \<le> atm_of L#}\<close>
+        using ac_0 ac 1[symmetric] by auto
+      have Suc_ab_drop_ae: \<open>Suc (ab + size {#L \<in># C. Suc ab \<le> atm_of L#} + count_list (drop (Suc ab) ae) None) =
+        length ae\<close>
+        using ab_drop_ae 1[symmetric] Cons_nth_drop_Suc[OF ab_le, symmetric] Some by auto
+      show ?thesis
+        using ab_le Some shl' ab_N\<^sub>1 ocr' ab_ac_0 ac_size Suc_ab_drop_ae Suc_D\<^sub>0 unfolding I'_def
+        by auto
+    qed
+    have in_I'_found_no_upd: "I' (ab + 1, ac - 1, ad, ae, be)"
+      if
+        I: "I aa s" and
+        I': "I' s" and
+        cond: "case s of (i, m', uu_) \<Rightarrow> 0 < m'" and
+        s:
+          "s = (ab, bb)"
+          "bb = (ac, bc)"
+          "bc = (ad, bd)"
+          "bd = (ae, be)"
+          "(b, n, xs) = (a, ba)"
+          "ba = (aa, baa)" and
+        Some: "ae ! ab = Some x" and
+        "Pos ab \<in> snd ` D\<^sub>0" and
+        ab_le: "ab < length ae" and
+        lev_ab: "0 < get_level M (Pos ab)" and
+        [simp]: "be = Some xa" and
+        "xa = (af, bf)" and
+        lev_bf: "\<not> bf < get_level M (Pos ab)"
+      for a ba aa baa s ab bb ac bc ad bd ae be x xa af bf
+    proof -
+      have [simp]:
+        "s = (ab, ac, ad, ae, be)"
+        "bb = (ac, ad, ae, be)"
+        "bc = (ad, ae, be)"
+        "bd = (ae, be)"
+        "ba = (aa, baa)"
+        "\<not> a"
+        "n = aa"
+        "xs = baa"
+        using s by auto
+      have
+        shl: "second_highest_lit M (?D M ab C) be" and
+        ocr: "((False, ad, ae), Some {#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#}) \<in> option_conflict_rel" and
+        ab_N\<^sub>1: "Pos ab \<in># N\<^sub>1" and
+        [simp]: "length baa = length ae" and
+        ab_drop_ae: "ab + size {#L \<in># C. ab \<le> atm_of L#} + count_list (drop ab ae) None = length ae" and
+        ac: "ac = size {#L \<in># C. ab \<le> atm_of L#}"
+        using I' ab_le Some unfolding I'_def
+        by auto
+      let ?L = \<open>if x then Pos ab else Neg ab\<close>
+      have [iff]: \<open>(atm_of L < ab \<longrightarrow>
+           get_level M L = 0 \<or> \<not> get_level M L < count_decided M) \<and>
+          atm_of L = ab \<and>
+          0 < get_level M L \<and> get_level M L < count_decided M \<longleftrightarrow>
+          atm_of L = ab \<and>
+          0 < get_level M L \<and> get_level M L < count_decided M\<close> for L and ab :: nat
+        by auto
+      have Suc_D\<^sub>0: \<open>Suc ab < length ae \<Longrightarrow> ae ! Suc ab = Some y \<Longrightarrow> Pos (Suc ab) \<in> snd ` D\<^sub>0\<close> for y
+        using mset_as_position_in_iff_nth[OF I'_mapD[OF I'[unfolded s]], of \<open>if y then Pos (Suc ab) else Neg (Suc ab)\<close>]
+          lits
+        by (cases y) (auto simp: image_image in_N\<^sub>1_atm_of_in_atms_of_iff literals_are_in_N\<^sub>0_add_mset
+            dest: multi_member_split)
+      have \<open>?L \<in># C\<close>
+        using mset_as_position_in_iff_nth[OF I'_mapD[OF I'[unfolded s]], of \<open>?L\<close>]
+        Some ab_le by auto
+
+      then have 1: \<open>(?D M (Suc ab) C) =  add_mset ?L (?D M ab C)\<close>
+        unfolding less_Suc_eq_le order.order_iff_strict filter_union_or_split conj_disj_distribR
+        using dist_C tauto_C filter_mset_cong_inner_outer[of \<open>{#?L#}\<close>
+            \<open>\<lambda>L. ab = atm_of L \<and> 0 < get_level M L\<close> \<open>\<lambda>L. ab = atm_of L \<and> 0 < get_level M L\<close> C,
+            symmetric]
+        lev_ab
+        unfolding less_Suc_eq_le order.order_iff_strict filter_union_or_split conj_disj_distribR
+        by (auto split: if_splits dest!: multi_member_split
+            simp: lev_ab tautology_add_mset filter_mset_empty_conv get_level_Neg_Pos)
+
+      have shl': \<open>second_highest_lit M (?D M (Suc ab) C) (Some xa)\<close>
+        using shl unfolding 1 second_highest_lit_def
+        by (auto simp: get_level_Neg_Pos get_maximum_level_add_mset)
+      have ocr_e: \<open>{#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#} = {#L \<in># C. atm_of L < Suc ab \<longrightarrow> 0 < get_level M L#}\<close>
+        apply (rule filter_mset_cong2)
+        subgoal for x
+          using lev_ab by (cases x) (auto simp: less_Suc_eq_le get_level_Neg_Pos)
+        subgoal by (rule refl)
+        done
+      have ac_0: \<open>ac > 0\<close>
+        using cond by auto
+      have ocr': \<open>((False, ad, ae), Some {#L \<in># C. atm_of L < Suc ab \<longrightarrow> 0 < get_level M L#}) \<in>
+          option_conflict_rel\<close>
+        using ocr unfolding ocr_e by fast
+      have ab_ac_0: \<open>Suc (ab + (ac - Suc 0)) \<le> length ae\<close>
+        using ac_0 ab_drop_ae ac by auto
+      have [iff]: \<open> ab \<noteq> atm_of L \<and> Suc ab \<le> atm_of L \<longleftrightarrow> Suc ab \<le> atm_of L \<close> for L
+        by auto
+      have le_Suc: \<open>a \<le> n \<longleftrightarrow> a = n \<or> Suc a \<le> n\<close> for a n :: nat
+        by auto
+      have 1: \<open>add_mset ?L  {#L \<in># C. Suc ab \<le> atm_of L#} =  {#L \<in># C. ab \<le> atm_of L#}\<close>
+        apply (subst (2) le_Suc)
+        unfolding filter_union_or_split conj_disj_distribR
+        using dist_C tauto_C filter_mset_cong_inner_outer[of \<open>{#?L#}\<close>
+            \<open>\<lambda>L. Suc ab = atm_of L\<close> \<open>\<lambda>L. Suc ab = atm_of L\<close> C,
+            symmetric]
+        lev_ab \<open>?L \<in># C\<close>
+        by (auto split: if_splits dest!: multi_member_split
+            simp: lev_ab tautology_add_mset filter_mset_empty_conv get_level_Neg_Pos)
+      have ac_size: \<open>ac - Suc 0 = size {#L \<in># C. Suc ab \<le> atm_of L#}\<close>
+        using ac_0 ac 1[symmetric] by auto
+      have Suc_ab_drop_ae: \<open>Suc (ab + size {#L \<in># C. Suc ab \<le> atm_of L#} + count_list (drop (Suc ab) ae) None) =
+        length ae\<close>
+        using ab_drop_ae 1[symmetric] Cons_nth_drop_Suc[OF ab_le, symmetric] Some by auto
+      show ?thesis
+        using ab_le Some shl' ab_N\<^sub>1 ocr' ab_ac_0 ac_size Suc_ab_drop_ae Suc_D\<^sub>0 unfolding I'_def
+        by auto
+    qed
+    have I'_in_remove: "I' (ab + 1, ac - 1, ad - 1, ae[ab := None], be)"
+      if
+        I: "I aa s" and
+        I': "I' s" and
+        cond: "case s of (i, m', uu_) \<Rightarrow> 0 < m'" and
+        s: "s = (ab, bb)"
+          "bb = (ac, bc)"
+          "bc = (ad, bd)"
+          "bd = (ae, be)"
+          "(b, n, xs) = (a, ba)"
+          "ba = (aa, baa)" and
+        Some: "ae ! ab = Some x" and
+        "Pos ab \<in> snd ` D\<^sub>0" and
+        ab_le: "ab < length ae" and
+        lev_ab: "\<not> 0 < get_level M (Pos ab)"
+      for a ba aa baa s ab bb ac bc ad bd ae be x
+    proof -
+      have [simp]:
+        "s = (ab, ac, ad, ae, be)"
+        "bb = (ac, ad, ae, be)"
+        "bc = (ad, ae, be)"
+        "bd = (ae, be)"
+        "ba = (aa, baa)"
+        "\<not> a"
+        "n = aa"
+        "xs = baa"
+        using s by auto
+      have
+        shl: "second_highest_lit M (?D M ab C) be" and
+        ocr: "((False, ad, ae), Some {#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#}) \<in> option_conflict_rel" and
+        ab_N\<^sub>1: "Pos ab \<in># N\<^sub>1" and
+        [simp]: "length baa = length ae" and
+        ab_drop_ae: "ab + size {#L \<in># C. ab \<le> atm_of L#} + count_list (drop ab ae) None = length ae" and
+        ac: "ac = size {#L \<in># C. ab \<le> atm_of L#}"
+        using I' ab_le Some unfolding I'_def
+        by auto
+      let ?L = \<open>if x then Pos ab else Neg ab\<close>
+      have [iff]: \<open>(atm_of L < ab \<longrightarrow>
+           get_level M L = 0 \<or> \<not> get_level M L < count_decided M) \<and>
+          atm_of L = ab \<and>
+          0 < get_level M L \<and> get_level M L < count_decided M \<longleftrightarrow>
+          atm_of L = ab \<and>
+          0 < get_level M L \<and> get_level M L < count_decided M\<close> for L and ab :: nat
+        by auto
+      have Suc_D\<^sub>0: \<open>Suc ab < length ae \<Longrightarrow> ae ! Suc ab = Some y \<Longrightarrow> Pos (Suc ab) \<in> snd ` D\<^sub>0\<close> for y
+        using mset_as_position_in_iff_nth[OF I'_mapD[OF I'[unfolded s]], of \<open>if y then Pos (Suc ab) else Neg (Suc ab)\<close>]
+          lits
+        by (cases y) (auto simp: image_image in_N\<^sub>1_atm_of_in_atms_of_iff literals_are_in_N\<^sub>0_add_mset
+            dest: multi_member_split)
+      have \<open>?L \<in># C\<close>
+        using mset_as_position_in_iff_nth[OF I'_mapD[OF I'[unfolded s]], of \<open>?L\<close>]
+        Some ab_le by auto
+
+      have 1: \<open>(?D M (Suc ab) C) =  (?D M ab C)\<close>
+        apply (rule filter_mset_cong2)
+        subgoal for L
+          using lev_ab by (cases L) (auto simp: less_Suc_eq_le order.order_iff_strict get_level_Neg_Pos)
+        subgoal ..
+        done
+      have shl': \<open>second_highest_lit M (?D M (Suc ab) C) be\<close>
+        using shl unfolding 1 second_highest_lit_def
+        by (auto simp: get_level_Neg_Pos get_maximum_level_add_mset)
+
+      have \<open>?L \<in># C\<close>
+        using mset_as_position_in_iff_nth[OF I'_mapD[OF I'[unfolded s]], of \<open>?L\<close>]
+        Some ab_le by auto
+      have ocr_e: \<open>{#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#} = add_mset ?L {#L \<in># C. atm_of L < Suc ab \<longrightarrow> 0 < get_level M L#}\<close>
+        apply (subst distinct_mset_add_mset_filter)
+        subgoal using dist_C .
+        subgoal using \<open>?L \<in># C\<close> .
+        subgoal using lev_ab by (auto simp: get_level_Neg_Pos)
+        apply (rule filter_mset_cong2)
+        subgoal for L
+          using lev_ab \<open>?L \<in># C\<close> tauto_C by (cases L) (auto simp: less_Suc_eq_le)
+        subgoal ..
+        done
+
+      have ac_0: \<open>ac > 0\<close>
+        using cond by auto
+      have [simp]: \<open>{#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#} - {#Pos ab, Neg ab#} =
+         {#L \<in># C. atm_of L < Suc ab \<longrightarrow> 0 < get_level M L#}\<close>
+        using lev_ab unfolding ocr_e by (auto simp: get_level_Neg_Pos)
+
+      have ocr': \<open>((False, ad - Suc 0, ae[ab := None]),
+           Some {#L \<in># C. atm_of L < Suc ab \<longrightarrow> 0 < get_level M L#})
+         \<in> option_conflict_rel\<close>
+        using ocr ab_le \<open>?L \<in># C\<close> tauto_C
+        mset_as_position_remove[OF I'_mapD[OF I'[unfolded s]], of \<open>atm_of ?L\<close>]
+        unfolding option_conflict_rel_def conflict_rel_def ocr_e by (cases x) auto
+      have ab_ac_0: \<open>Suc (ab + (ac - Suc 0)) \<le> length ae\<close>
+        using ac_0 ab_drop_ae ac by auto
+      have [iff]: \<open> ab \<noteq> atm_of L \<and> Suc ab \<le> atm_of L \<longleftrightarrow> Suc ab \<le> atm_of L \<close> for L
+        by auto
+      have le_Suc: \<open>a \<le> n \<longleftrightarrow> a = n \<or> Suc a \<le> n\<close> for a n :: nat
+        by auto
+      have 1: \<open>add_mset ?L  {#L \<in># C. Suc ab \<le> atm_of L#} =  {#L \<in># C. ab \<le> atm_of L#}\<close>
+        apply (subst (2) le_Suc)
+        unfolding filter_union_or_split conj_disj_distribR
+        using dist_C tauto_C filter_mset_cong_inner_outer[of \<open>{#?L#}\<close>
+            \<open>\<lambda>L. Suc ab = atm_of L\<close> \<open>\<lambda>L. Suc ab = atm_of L\<close> C,
+            symmetric]
+        lev_ab \<open>?L \<in># C\<close>
+        by (auto split: if_splits dest!: multi_member_split
+            simp: lev_ab tautology_add_mset filter_mset_empty_conv get_level_Neg_Pos)
+      have ac_size: \<open>ac - Suc 0 = size {#L \<in># C. Suc ab \<le> atm_of L#}\<close>
+        using ac_0 ac 1[symmetric] by auto
+      have Suc_ab_drop_ae: \<open>Suc (ab + size {#L \<in># C. Suc ab \<le> atm_of L#} + count_list (drop (Suc ab) ae) None) =
+        length ae\<close>
+        using ab_drop_ae 1[symmetric] Cons_nth_drop_Suc[OF ab_le, symmetric] Some by auto
+      show ?thesis
+        using ab_le Some shl' ab_N\<^sub>1 ocr' ab_ac_0 ac_size Suc_ab_drop_ae Suc_D\<^sub>0 unfolding I'_def
+        by auto
+    qed
+    have final: "(((False, ad, ae), be), Some {#L \<in># the (Some C). 0 < get_level M L#})
+      \<in> {((D, L), C).
+          (D, C) \<in> option_conflict_rel \<and>
+          C \<noteq> None \<and> second_highest_lit M (the C) L}"
+      if
+        I: "I aa s" and
+        I': "I' s" and
+        cond: "\<not> (case s of (i, m', uu_) \<Rightarrow> 0 < m')" and
+        s:
+          "s = (ab, bb)"
+          "bb = (ac, bc)"
+          "bc = (ad, bd)"
+          "bd = (ae, be)"
+          "(b, n, xs) = (a, ba)"
+          "ba = (aa, baa)"
+      for a ba aa baa s ab bb ac bc ad bd ae be
+    proof -
+      have [simp]:
+        "s = (ab, ac, ad, ae, be)"
+        "bb = (ac, ad, ae, be)"
+        "bc = (ad, ae, be)"
+        "bd = (ae, be)"
+        "ba = (aa, baa)"
+        "\<not> a"
+        "n = aa"
+        "xs = baa"
+        "ac = 0"
+        using s cond by auto
+
+      have
+        shl: "second_highest_lit M (?D M ab C) be" and
+        ocr: "((False, ad, ae), Some {#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#}) \<in> option_conflict_rel" and
+        [simp]: "length baa = length ae" and
+        ab_drop_ae: "ab + size {#L \<in># C. ab \<le> atm_of L#} + count_list (drop ab ae) None = length ae" and
+        ac: "ac = size {#L \<in># C. ab \<le> atm_of L#}"
+        using I' unfolding I'_def
+        by auto
+      have [simp]: \<open>{#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#} = {#L \<in># C. 0 < get_level M L#}\<close>
+        apply (rule filter_mset_cong2)
+        subgoal for L using ac by (auto simp: filter_mset_empty_conv)
+        subgoal by (rule refl)
+        done
+      have [simp]: \<open>{#L \<in># C. atm_of L < ab \<and> 0 < get_level M L#} = {#L \<in># C. 0 < get_level M L#}\<close>
+        apply (rule filter_mset_cong2)
+        subgoal for L using ac by (auto simp: filter_mset_empty_conv)
+        subgoal by (rule refl)
+        done
+      show ?thesis
+        using ocr shl by auto
+    qed
+    show ?thesis
+      unfolding extract_shorter_conflict_list_def extract_shorter_conflict_l_trivial_def
+        I_def[symmetric]
+      apply (refine_vcg
+         WHILEIT_rule_stronger_inv[where R=\<open>measure (\<lambda>(i, _). Suc (length xs) - i)\<close> and
+           I' = I'])
+      subgoal by auto
+      subgoal using init_I by auto
+      subgoal using init_I' by auto
+      subgoal unfolding I'_def I_def by auto
+      subgoal by (rule notin_I')
+      subgoal unfolding I'_def by auto
+      subgoal unfolding I'_def by auto
+      subgoal unfolding I'_def by auto
+      subgoal by (auto simp: I_def)
+      subgoal by (rule in_I'_no_found)
+      subgoal unfolding I'_def by auto
+      subgoal unfolding I_def by auto
+      subgoal by (rule in_I'_found_upd)
+      subgoal unfolding I'_def by auto
+      subgoal unfolding I_def by auto
+      subgoal by (rule in_I'_found_no_upd)
+      subgoal unfolding I'_def by auto
+      subgoal unfolding I_def by auto
+      subgoal by (rule I'_in_remove)
+      subgoal unfolding I'_def by auto
+      subgoal by (rule final)
+      done
 qed
 
 lemma (in -) op_list_append_alt_def:
