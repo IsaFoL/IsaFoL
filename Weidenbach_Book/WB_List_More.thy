@@ -80,6 +80,9 @@ section \<open>More Lists\<close>
 
 subsection \<open>set, nth, tl\<close>
 
+lemma Ball_atLeastLessThan_iff: \<open>(\<forall>L\<in>{a..<b}. P L) \<longleftrightarrow> (\<forall>L. L \<ge> a \<and> L < b \<longrightarrow> P L) \<close>
+  unfolding set_nths by auto
+
 lemma nth_in_set_tl: \<open>i > 0 \<Longrightarrow> i < length xs \<Longrightarrow> xs ! i \<in> set (tl xs)\<close>
   by (cases xs) auto
 
@@ -243,6 +246,7 @@ qed
 
 lemma nths_upt_upto_Suc: \<open>aa < length xs \<Longrightarrow> nths xs {0..<Suc aa} = nths xs {0..<aa} @ [xs ! aa]\<close>
   by (simp add: atLeast0LessThan take_Suc_conv_app_nth)
+
 
 text \<open>The following two lemmas are useful as simp rules for case-distinction. The case
   @{term \<open>length l = 0\<close>} is already simplified by default.\<close>
@@ -701,8 +705,74 @@ qed
 lemma minus_notin_trivial: "L \<notin># A \<Longrightarrow> A - add_mset L B = A - B"
   by (metis diff_intersect_left_idem inter_add_right1)
 
+lemma minus_notin_trivial2: \<open>b \<notin># A \<Longrightarrow> A - add_mset e (add_mset b B) = A - add_mset e B\<close>
+  by (subst add_mset_commute) (auto simp: minus_notin_trivial)
+
 lemma diff_union_single_conv3: \<open>a \<notin># I \<Longrightarrow> remove1_mset a (I + J) = I + remove1_mset a J\<close>
   by (metis diff_union_single_conv remove_1_mset_id_iff_notin union_iff)
+
+lemma filter_union_or_split:
+  \<open>{#L \<in># C. P L \<or> Q L#} = {#L \<in># C. P L#} + {#L \<in># C. \<not>P L \<and> Q L#}\<close>
+  by (induction C) auto
+
+lemma subset_mset_minus_eq_add_mset_noteq: \<open>A \<subset># C \<Longrightarrow> A - B \<noteq> C\<close>
+  by (auto simp: dest: in_diffD)
+
+lemma minus_eq_id_forall_notin_mset:
+  \<open>A - B = A \<longleftrightarrow> (\<forall>L \<in># B. L \<notin># A)\<close>
+  by (induction A)
+   (auto dest!: multi_member_split simp: subset_mset_minus_eq_add_mset_noteq)
+
+
+lemma filter_mset_cong2:
+  "(\<And>x. x \<in># M \<Longrightarrow> f x = g x) \<Longrightarrow> M = N \<Longrightarrow> filter_mset f M = filter_mset g N"
+  by (hypsubst, rule filter_mset_cong, simp)
+
+lemma filter_mset_cong_inner_outer:
+  assumes
+     M_eq: \<open>(\<And>x. x \<in># M \<Longrightarrow> f x = g x)\<close> and
+     notin: \<open>(\<And>x. x \<in># N - M \<Longrightarrow> \<not>g x)\<close> and
+     MN: \<open>M \<subseteq># N\<close>
+  shows \<open>filter_mset f M = filter_mset g N\<close>
+proof -
+  define NM where \<open>NM = N - M\<close>
+  have N: \<open>N = M + NM\<close>
+    unfolding NM_def using MN by simp
+  have \<open>filter_mset g NM = {#}\<close>
+    using notin unfolding NM_def[symmetric] by (auto simp: filter_mset_empty_conv)
+  moreover have \<open>filter_mset f M = filter_mset g M\<close>
+    by (rule filter_mset_cong) (use M_eq in auto)
+  ultimately show ?thesis
+    unfolding N by simp
+qed
+
+lemma notin_filter_mset:
+  \<open>K \<notin># C \<Longrightarrow> filter_mset P C = filter_mset (\<lambda>L. P L \<and> L \<noteq> K) C\<close>
+  by (rule filter_mset_cong) auto
+
+lemma distinct_mset_add_mset_filter:
+  assumes \<open>distinct_mset C\<close> and \<open>L \<in># C\<close> and \<open>\<not>P L\<close>
+  shows \<open>add_mset L (filter_mset P C) = filter_mset (\<lambda>x. P x \<or> x = L) C\<close>
+  using assms
+proof (induction C)
+  case empty
+  then show ?case by simp
+next
+  case (add x C) note dist = this(2) and LC = this(3) and P[simp] = this(4) and _ = this
+  then have IH: \<open>L \<in># C \<Longrightarrow> add_mset L (filter_mset P C) = {#x \<in># C. P x \<or> x = L#}\<close> by auto
+  show ?case
+  proof (cases \<open>x = L\<close>)
+    case [simp]: True
+    have \<open>filter_mset P C = {#x \<in># C. P x \<or> x = L#}\<close>
+      by (rule filter_mset_cong2) (use dist in auto)
+    then show ?thesis
+      by auto
+  next
+    case False
+    then show ?thesis
+      using IH LC by auto
+  qed
+qed
 
 
 subsection \<open>Sorting\<close>
@@ -826,6 +896,9 @@ proof -
      apply (auto simp: nths_Cons less_Suc_eq)
     by (fastforce simp: less_Suc_eq)+
 qed
+
+lemma nts_upt_length[simp]: \<open>nths xs {0..<length xs} = xs\<close>
+  by (auto simp: nths_id_iff)
 
 lemma nths_shift_lemma':
   \<open>map fst [p<-zip xs [i..<i + n]. snd p + b : A] = map fst [p<-zip xs [0..<n]. snd p + b + i : A]\<close>
@@ -953,6 +1026,9 @@ proof -
       by (auto simp: upt S1 S2)
   qed
 qed
+
+lemma Ball_set_nths: \<open>(\<forall>L\<in>set (nths xs A). P L) \<longleftrightarrow> (\<forall>i \<in> A \<inter> {0..<length xs}. P (xs ! i)) \<close>
+  unfolding set_nths by fastforce
 
 
 subsection \<open>Product Case\<close>

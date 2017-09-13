@@ -872,6 +872,10 @@ lemma true_annots_true_cls_def_iff_negation_in_model:
   \<open>M \<Turnstile>as CNot C \<longleftrightarrow> (\<forall>L \<in># C. -L \<in> lits_of_l M)\<close>
   unfolding CNot_def true_annots_true_cls true_clss_def by auto
 
+lemma true_clss_def_iff_negation_in_model:
+  \<open>M \<Turnstile>s CNot C \<longleftrightarrow> (\<forall>l \<in># C. -l \<in> M)\<close>
+  by (auto simp: CNot_def true_clss_def)
+
 lemma true_annots_CNot_definedD:
   \<open>M \<Turnstile>as CNot C \<Longrightarrow> \<forall>L \<in># C. defined_lit M L\<close>
   unfolding true_annots_true_cls_def_iff_negation_in_model
@@ -1085,6 +1089,9 @@ qed
 
 lemma no_dup_imp_distinct: \<open>no_dup M \<Longrightarrow> distinct M\<close>
   by (induction M) (auto simp: defined_lit_map)
+
+lemma no_dup_tlD: \<open>no_dup a \<Longrightarrow> no_dup (tl a)\<close>
+  unfolding no_dup_def by (cases a) auto
 
 lemma defined_lit_no_dupD:
   \<open>defined_lit M1 L \<Longrightarrow> no_dup (M2 @ M1) \<Longrightarrow> undefined_lit M2 L\<close>

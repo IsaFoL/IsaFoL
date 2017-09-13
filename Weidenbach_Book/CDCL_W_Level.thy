@@ -15,6 +15,9 @@ definition get_level :: "('v, 'm) ann_lits \<Rightarrow> 'v literal \<Rightarrow
 lemma get_level_uminus[simp]: \<open>get_level M (-L) = get_level M L\<close>
   by (auto simp: get_level_def)
 
+lemma get_level_Neg_Pos: \<open>get_level M (Neg L) = get_level M (Pos L)\<close>
+  unfolding get_level_def by auto
+
 lemma count_decided_0_iff:
   \<open>count_decided M = 0 \<longleftrightarrow> (\<forall>L \<in> set M. \<not>is_decided L)\<close>
   by (auto simp: count_decided_def filter_empty_conv)

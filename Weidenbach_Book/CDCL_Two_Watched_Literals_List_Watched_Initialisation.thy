@@ -49,28 +49,6 @@ proof -
     by (rule filter_mset_cong) (auto split: if_splits)
 qed
 
-lemma filter_mset_cong2:
-  "(\<And>x. x \<in># M \<Longrightarrow> f x = g x) \<Longrightarrow> M = N \<Longrightarrow> filter_mset f M = filter_mset g N"
-  by (hypsubst, rule filter_mset_cong, simp)
-
-lemma filter_mset_cong_inner_outer:
-  assumes
-     M_eq: \<open>(\<And>x. x \<in># M \<Longrightarrow> f x = g x)\<close> and
-     notin: \<open>(\<And>x. x \<in># N - M \<Longrightarrow> \<not>g x)\<close> and
-     MN: \<open>M \<subseteq># N\<close>
-  shows \<open>filter_mset f M = filter_mset g N\<close>
-proof -
-  define NM where \<open>NM = N - M\<close>
-  have N: \<open>N = M + NM\<close>
-    unfolding NM_def using MN by simp
-  have \<open>filter_mset g NM = {#}\<close>
-    using notin unfolding NM_def[symmetric] by (auto simp: filter_mset_empty_conv)
-  moreover have \<open>filter_mset f M = filter_mset g M\<close>
-    by (rule filter_mset_cong) (use M_eq in auto)
-  ultimately show ?thesis
-    unfolding N by simp
-qed
-
 lemma clause_to_update_Cons: \<open>clause_to_update L (M, C # C' # N, U, D, NP, UP, {#}, {#}) =
          (if L \<in> set (watched_l C') then {#1#} else {#}) +
          Suc `# clause_to_update L (M, C # N, U, D, NP, UP, {#}, {#})\<close> for L C

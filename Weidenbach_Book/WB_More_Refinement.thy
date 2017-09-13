@@ -767,7 +767,7 @@ lemma ex_assn_pair_split: \<open>(\<exists>\<^sub>Ab. P b) = (\<exists>\<^sub>Aa
   by (subst ex_assn_def, subst (1) ex_assn_def, auto)+
 
 
-subsection \<open>More Functions\<close>
+subsection \<open>More Functions, Relations, and Theorems\<close>
 
 definition emptied_list :: \<open>'a list \<Rightarrow> 'a list\<close> where
   \<open>emptied_list l = []\<close>
@@ -780,6 +780,14 @@ lemma emptied_arl_refine[sepref_fr_rules]:
   shows \<open>(return o emptied_arl, RETURN o emptied_list) \<in> (arl_assn R)\<^sup>d \<rightarrow>\<^sub>a arl_assn R\<close>
   unfolding emptied_arl_def emptied_list_def
   by sepref_to_hoare (sep_auto simp: arl_assn_def hr_comp_def is_array_list_def)
+
+lemma bool_assn_alt_def: \<open>bool_assn a b = \<up> (a = b)\<close>
+  unfolding pure_def by auto
+
+lemma nempty_list_mset_rel_iff: \<open>M \<noteq> {#} \<Longrightarrow>
+  (xs, M) \<in> list_mset_rel \<longleftrightarrow> (xs \<noteq> [] \<and> hd xs \<in># M \<and>
+         (tl xs, remove1_mset (hd xs) M) \<in> list_mset_rel)\<close>
+  by (cases xs) (auto simp: list_mset_rel_def br_def dest!: multi_member_split)
 
 
 subsection \<open>Sorting\<close>
