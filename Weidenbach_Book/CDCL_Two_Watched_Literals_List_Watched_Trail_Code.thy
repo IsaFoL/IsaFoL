@@ -4747,7 +4747,7 @@ lemma extract_shorter_conflict_list_extract_shorter_conflict_l_trivial:
 proof -
   have H: \<open>extract_shorter_conflict_list M (b, n, xs)
        \<le> \<Down> ?post (RETURN (extract_shorter_conflict_l_trivial M (Some C)))\<close>
-    if lits: \<open>literals_are_in_N\<^sub>0 C\<close> and ocr: \<open>((b, n, xs), Some C) \<in> option_conflict_rel\<close> and C_nempty: \<open>C \<noteq> {#}\<close>
+    if lits: \<open>literals_are_in_N\<^sub>0 C\<close> and ocr: \<open>((b, n, xs), Some C) \<in> option_conflict_rel\<close>
     for C b n xs
   proof -
     let ?C = \<open>\<lambda>M i C. filter_mset (\<lambda>L. atm_of L < i \<longrightarrow> get_level M L \<noteq> 0) C\<close>
@@ -4760,7 +4760,7 @@ proof -
         m' = size (filter_mset (\<lambda>L. atm_of L \<ge> i) C) \<and>
         i + m' + count_list (drop i zs) None = length xs)\<close>
     have [simp]: \<open>b = False\<close>
-      using ocr C_nempty unfolding option_conflict_rel_def by auto
+      using ocr unfolding option_conflict_rel_def by auto
     have n: \<open>n = size C\<close> and map: \<open>mset_as_position xs C\<close>
       using ocr by (auto simp: conflict_rel_def second_highest_lit_def option_conflict_rel_def)
     have \<open>xs ! i = None \<longleftrightarrow> Pos i \<notin># C \<and> Neg i \<notin># C\<close> if \<open>i < length xs\<close> for i
