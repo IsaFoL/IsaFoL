@@ -4741,7 +4741,7 @@ qed
 (* TODO: different conflict representation: the literal of highest level is *not* included anymore *)
 lemma extract_shorter_conflict_list_extract_shorter_conflict_l_trivial:
   shows \<open>(uncurry extract_shorter_conflict_list, uncurry (RETURN oo extract_shorter_conflict_l_trivial)) \<in>
-      [\<lambda>(M', D). literals_are_in_N\<^sub>0 (the D) \<and> D \<noteq> None \<and> M = M']\<^sub>f Id \<times>\<^sub>f option_conflict_rel \<rightarrow>
+      [\<lambda>(M', D). literals_are_in_N\<^sub>0 (the D) \<and> D \<noteq> None \<and> D \<noteq> Some {#} \<and> M = M']\<^sub>f Id \<times>\<^sub>f option_conflict_rel \<rightarrow>
          \<langle>{((D, L), C). (D, C) \<in> option_conflict_rel \<and> C \<noteq> None \<and> second_highest_lit M (the C) L}\<rangle> nres_rel\<close>
   (is \<open>?C \<in> [?pre]\<^sub>f _ \<times>\<^sub>f _ \<rightarrow> \<langle>?post\<rangle> nres_rel\<close>)
 proof -
@@ -5375,6 +5375,12 @@ proof -
       subgoal by (rule final)
       done
   qed
+  then show ?thesis
+    unfolding uncurry_def
+    apply (intro frefI nres_relI)
+    apply clarify
+    apply auto
+    done
 qed
 
 lemma (in -) op_list_append_alt_def:
