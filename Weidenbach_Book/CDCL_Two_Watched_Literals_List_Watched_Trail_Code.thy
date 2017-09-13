@@ -5374,6 +5374,7 @@ proof -
       subgoal unfolding I'_def by auto
       subgoal by (rule final)
       done
+  qed
 qed
 
 lemma (in -) op_list_append_alt_def:
