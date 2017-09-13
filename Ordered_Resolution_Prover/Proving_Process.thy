@@ -19,9 +19,7 @@ chapter.
 
 subsection \<open>Chains\<close>
 
-coinductive
-  chain :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a llist \<Rightarrow> bool" for R :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
-where
+coinductive chain :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a llist \<Rightarrow> bool" for R :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
 	singleton: "chain R (LCons N LNil)"
 | cons: "chain R Ns \<Longrightarrow> R M (lhd Ns) \<Longrightarrow> chain R (LCons M Ns)"
 
@@ -412,8 +410,8 @@ lemma saturated_upto_iff: "saturated_upto N \<longleftrightarrow> concls_of (inf
 end
 
 text \<open>
-The following lemmas corresponds to the standard extension of a redundancy
-criterion defined on page 38 of Section 4.1.
+The following lemmas corresponds to the standard extension of a redundancy criterion defined on
+page 38 of Section 4.1.
 \<close>
 
 lemma standard_redundancy_criterion_extension:

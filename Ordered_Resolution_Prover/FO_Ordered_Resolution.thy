@@ -50,7 +50,7 @@ definition variants :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" wh
 inductive true_fo_cls :: "'a interp \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>fo" 50) where
   true_fo_cls: "(\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile> C \<cdot> \<sigma>) \<Longrightarrow> I \<Turnstile>fo C"
 
-lemma true_fo_cls_inst: "I \<Turnstile>fo C \<Longrightarrow> is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile> (C \<cdot> \<sigma>)"
+lemma true_fo_cls_inst: "I \<Turnstile>fo C \<Longrightarrow> is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile> C \<cdot> \<sigma>"
   by (rule true_fo_cls.induct)
 
 inductive true_fo_cls_mset :: "'a interp \<Rightarrow> 'a clause multiset \<Rightarrow> bool" (infix "\<Turnstile>fom" 50) where
@@ -76,7 +76,7 @@ begin
 subsection \<open>Calculus\<close>
 
 definition maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where (* Would "'a \<Rightarrow> 'a set \<Rightarrow> bool" be cleaner?  *)
-   "maximal_in A DAs \<equiv> (\<forall>B \<in> atms_of DAs. \<not> less_atm A B)"
+   "maximal_in A DAs = (\<forall>B \<in> atms_of DAs. \<not> less_atm A B)"
 
 abbreviation str_maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where (* Would "'a \<Rightarrow> 'a set \<Rightarrow> bool" be cleaner?  *)
   "str_maximal_in A CAis \<equiv> (\<forall>B \<in> atms_of CAis. \<not> less_eq_atm A B)"
@@ -86,7 +86,7 @@ lemma str_maximal_in_maximal_in: "str_maximal_in A C \<Longrightarrow> maximal_i
 
 inductive eligible :: "'s \<Rightarrow> 'a list \<Rightarrow> 'a clause \<Rightarrow> bool" where
   eligible:
-    "S DA = negs (mset Ai) \<or> (S DA = {#} \<and> length Ai = 1 \<and> maximal_in ((Ai ! 0) \<cdot>a \<sigma>) (DA \<cdot> \<sigma>)) \<Longrightarrow>
+    "S DA = negs (mset Ai) \<or> S DA = {#} \<and> length Ai = 1 \<and> maximal_in ((Ai ! 0) \<cdot>a \<sigma>) (DA \<cdot> \<sigma>) \<Longrightarrow>
      eligible \<sigma> Ai DA"
 
 inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 's \<Rightarrow> 'a clause \<Rightarrow> bool" where
@@ -468,7 +468,7 @@ proof (induction n arbitrary: Aij' Ai')
     "length (map2 add_mset (Ai') (Aij') \<cdot>aml \<eta>) = Suc n"
     using Succ Suc by auto
   ultimately
-  have "\<forall>i. i < Suc n \<longrightarrow> i > 0 \<longrightarrow> (map2 add_mset ((Ai' \<cdot>al \<eta>)) ((Aij' \<cdot>aml \<eta>))) ! i = (map2 add_mset ( Ai') (Aij') \<cdot>aml \<eta>) ! i"
+  have "\<forall>i. i < Suc n \<longrightarrow> i > 0 \<longrightarrow> map2 add_mset (Ai' \<cdot>al \<eta>) (Aij' \<cdot>aml \<eta>) ! i = (map2 add_mset Ai' Aij' \<cdot>aml \<eta>) ! i"
     by (metis (no_types) Suc.prems(1) Suc.prems(2) Succ(1) Succ(2) \<open>length (map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>))) = n\<close>
         \<open>map2 add_mset (tl (Ai' \<cdot>al \<eta>)) (tl (Aij' \<cdot>aml \<eta>)) = map2 add_mset (tl Ai') (tl Aij') \<cdot>aml \<eta>\<close> less_Suc_eq_0_disj map2_tl map_tl neq0_conv nth_tl subst_atm_mset_list_def)
   moreover

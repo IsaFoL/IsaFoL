@@ -945,26 +945,9 @@ proof (rule ccontr)
   then obtain l where l_p: "\<forall>l' \<ge> l. size (c l') = size (c (Suc l'))"
     by metis
 
+  (* FIXME: rename ee ff etc. *)
   have ee: "\<forall>l' \<ge> l. \<exists>\<sigma>. c l' = c (Suc l') \<cdot> \<sigma>"
-  proof (intro allI impI)
-    fix l'
-    assume "l' \<ge> l"
-    then have siz: "size (c l') = size (c (Suc l'))"
-      using l_p by metis
-    then have siz2: "\<forall>\<sigma>. size (c l') = size (c (Suc l') \<cdot> \<sigma>)"
-      unfolding subst_cls_def by auto
-    have "strictly_subsumes (c (Suc l')) (c l')"
-      using ps by auto
-    then have "subsumes (c (Suc l')) (c l')"
-      unfolding strictly_subsumes_def by auto
-    then obtain \<sigma> where
-      "c (Suc l') \<cdot> \<sigma> \<subseteq># c l'"
-      unfolding subsumes_def by auto
-    then have "c (Suc l') \<cdot> \<sigma> = c l'"
-      using siz2 subseteq_mset_size_eql by auto
-    then show "\<exists>\<sigma>. c l' = c (Suc l') \<cdot> \<sigma>"
-      by metis
-  qed
+    by (metis l_p ps size_subst strictly_subsumes_def subseteq_mset_size_eql subsumes_def)
   moreover have ff: "\<forall>l' \<ge> l. \<not> (\<exists>\<sigma>. c l' \<cdot> \<sigma> = c (Suc l'))"
     by (metis proper_neq ps)
   moreover have "wfP proper_instance_of"
@@ -1022,7 +1005,7 @@ proof -
         using d Q_of_state_subset by auto
       ultimately have "C \<in> src.Rf (grounding_of_state (lnth Sts i))"
         using strict_subsumption_redundant_state[of D \<tau> C "lnth Sts i"] by auto
-      then have "C \<in> src.Rf (Lazy_List_Limit.Sup_llist Ns)"
+      then have "C \<in> src.Rf (Sup_llist Ns)"
         using d ns by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist src.Rf_mono)
       then have "C \<in> src.Rf (limit_llist Ns)"
         unfolding ns using local.src_ext.Rf_Sup_llist_subset_Rf_limit_llist derivns ns by auto
@@ -1158,7 +1141,7 @@ proof -
       have "C \<in> src.Rf (grounding_of_state (lnth Sts i))"
         using strict_subsumption_redundant_state[of D \<tau> C "lnth Sts i"]
         by auto
-      then have "C \<in> src.Rf (Lazy_List_Limit.Sup_llist Ns)"
+      then have "C \<in> src.Rf (Sup_llist Ns)"
         using d ns
         by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist src.Rf_mono)
       then have "C \<in> src.Rf (limit_llist Ns)"
@@ -1347,7 +1330,7 @@ proof -
         using d N_of_state_subset by auto
       ultimately have "C \<in> src.Rf (grounding_of_state (lnth Sts i))"
         using strict_subsumption_redundant_state[of D \<tau> C "lnth Sts i"] by auto
-      then have "C \<in> src.Rf (Lazy_List_Limit.Sup_llist Ns)"
+      then have "C \<in> src.Rf (Sup_llist Ns)"
         using d ns
         by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist src.Rf_mono)
       then have "C \<in> src.Rf (limit_llist Ns)"
@@ -1476,12 +1459,14 @@ proof -
 qed
 
 lemma eventually_in_Qinf:
-  assumes D_p: "D \<in> clss_of_state (sup_state Sts)" "subsumes D C" "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not> strictly_subsumes E D"
-  assumes fair: "fair_state_seq Sts"
-   (* We could also, we guess, in this proof obtain a D with property D_p(3) from one with only properties D_p(2,3). *)
-  assumes ns: "Ns = lmap grounding_of_state Sts"
-  assumes c: "C \<in> limit_llist Ns - src.Rf (limit_llist Ns)"
-  assumes ground_C: "is_ground_cls C"
+  assumes
+    D_p: "D \<in> clss_of_state (sup_state Sts)"
+      "subsumes D C" "\<forall>E \<in> {E. E \<in> (clss_of_state (sup_state Sts)) \<and> subsumes E C}. \<not> strictly_subsumes E D" and
+    fair: "fair_state_seq Sts" and
+    (* We could also, we guess, in this proof obtain a D with property D_p(3) from one with only properties D_p(2,3). *)
+    ns: "Ns = lmap grounding_of_state Sts" and
+    c: "C \<in> limit_llist Ns - src.Rf (limit_llist Ns)" and
+    ground_C: "is_ground_cls C"
   shows "\<exists>D' \<sigma>'. D' \<in> Q_of_state (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
 proof -
   let ?Ns = "\<lambda>i. N_of_state (lnth Sts i)"
@@ -1500,37 +1485,36 @@ proof -
     have "\<exists>\<sigma>. D \<cdot> \<sigma> = C"
     proof (rule ccontr)
       assume "\<nexists>\<sigma>. D \<cdot> \<sigma> = C"
-      moreover
-      from D_p obtain \<tau>_proto where "D \<cdot> \<tau>_proto \<subseteq># C" unfolding subsumes_def
-        by blast
-      then obtain \<tau> where \<tau>_p: "D \<cdot> \<tau> \<subseteq># C \<and> is_ground_subst \<tau>"
-        using ground_C
-        by (metis is_ground_cls_mono make_single_ground_subst subset_mset.order_refl)
-      ultimately
-      have subsub: "D \<cdot> \<tau> \<subset># C"
+      moreover from D_p obtain \<tau>_proto where
+        "D \<cdot> \<tau>_proto \<subseteq># C"
+        unfolding subsumes_def by blast
+      then obtain \<tau> where
+        \<tau>_p: "D \<cdot> \<tau> \<subseteq># C \<and> is_ground_subst \<tau>"
+        using ground_C by (metis is_ground_cls_mono make_single_ground_subst subset_mset.order_refl)
+      ultimately have subsub: "D \<cdot> \<tau> \<subset># C"
         using subset_mset.le_imp_less_or_eq by auto
-      moreover
-      have "is_ground_subst \<tau>" using \<tau>_p by auto
-      moreover
-      have "D \<in> clss_of_state (lnth Sts i)"
-        using D_p N_of_state_subset by (meson contra_subsetD P_of_state_subset Q_of_state_subset i_p(1) i_p(2))
-      ultimately
-      have "C \<in> src.Rf (grounding_of_state (lnth Sts i))"
-        using strict_subsumption_redundant_state[of D \<tau> C "lnth Sts i"]
-        by auto
-      then have "C \<in> src.Rf (Lazy_List_Limit.Sup_llist Ns)"
+      moreover have "is_ground_subst \<tau>"
+        using \<tau>_p by auto
+      moreover have "D \<in> clss_of_state (lnth Sts i)"
+        using D_p N_of_state_subset
+        by (meson contra_subsetD P_of_state_subset Q_of_state_subset i_p)
+      ultimately have "C \<in> src.Rf (grounding_of_state (lnth Sts i))"
+        using strict_subsumption_redundant_state by auto
+      then have "C \<in> src.Rf (Sup_llist Ns)"
         using D_p ns src.Rf_mono
-        by (metis (no_types, lifting) i_p(1) contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist)
+        by (metis (lifting) i_p(1) contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist)
       then have "C \<in> src.Rf (limit_llist Ns)"
         unfolding ns using local.src_ext.Rf_Sup_llist_subset_Rf_limit_llist derivns ns by auto
-      then show False using c by auto
+      then show False
+        using c by auto
     qed
     then obtain \<sigma> where "D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
-      using ground_C
-      by (metis make_single_ground_subst subset_mset.order_refl)
-    then show ?thesis by auto
+      using ground_C by (metis make_single_ground_subst subset_mset.order_refl)
+    then show ?thesis
+      by auto
   qed
-  then obtain \<sigma> where \<sigma>: "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
+  then obtain \<sigma> where
+    \<sigma>: "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
     by blast
 
   note i_p
@@ -1566,7 +1550,7 @@ proof -
   {
     assume a: "D \<in> ?Qs i"
     then have "D \<in> Q_of_state (limit_state Sts)"
-      using from_Q_to_Q_inf[OF deriv fair ns c a i_p(1)] \<sigma> D_p(2) D_p(3) by auto
+      using from_Q_to_Q_inf[OF deriv fair ns c a i_p(1)] \<sigma> D_p(2,3) by auto
     then have "\<exists>D' \<sigma>'. D' \<in> Q_of_state (limit_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
       using D_p \<sigma> by auto
   }
@@ -1594,8 +1578,7 @@ proof
   then have "C \<in> Sup_llist Ns"
     using limit_llist_subset_Sup_llist[of Ns] by blast
   then obtain D_proto where "D_proto \<in> clss_of_state (sup_state Sts) \<and> subsumes D_proto C"
-    unfolding ns using in_Sup_llist_in_sup_state unfolding subsumes_def
-    by blast
+    using in_Sup_llist_in_sup_state unfolding ns subsumes_def by blast
   then obtain D where
     D_p: "D \<in> clss_of_state (sup_state Sts)"
     "subsumes D C"
