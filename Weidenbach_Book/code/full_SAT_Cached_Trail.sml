@@ -81,7 +81,8 @@ structure SAT_Solver : sig
   type ('a, 'b) hashtable
   val integer_of_int : int -> IntInf.int
   val uint32_of_nat : nat -> Word32.word
-  val sAT_wl_code : (Word32.word list) list -> (unit -> bool)
+  val sAT_wl_code :
+    (Word32.word list) list -> (unit -> ((Word32.word list) option))
 end = struct
 
 datatype typerepa = Typerep of string * typerepa list;
@@ -658,6 +659,8 @@ in
   arl_set A_ x_b bi x ()
 end);
 
+fun op_list_concat x = (fn a => x @ a);
+
 fun size_list x = gen_length zero_nata x;
 
 fun op_list_length x = size_list x;
@@ -1192,6 +1195,29 @@ fun extract_atms_clss_imp_list_assn x =
                               in
                                 snd xa
                               end)
+    x;
+
+fun extract_model_of_state_code x =
+  (fn xi =>
+    imp_nfoldli let
+                  val (a, b) = xi;
+                in
+                  let
+                    val (aa, ba) = a;
+                  in
+                    let
+                      val (m, _) = aa;
+                    in
+                      (fn _ => fn _ => m)
+                    end
+                      ba
+                  end
+                    b
+                end
+      (fn _ => (fn () => true))
+      (fn xc => fn sigma =>
+        (fn () => (op_list_concat sigma (op_list_prepend (fst xc) []))))
+      [])
     x;
 
 fun get_conflict_wl_is_None_code x =
@@ -2287,8 +2313,16 @@ fun sAT_wl_code x =
     in
       (if x_g
         then (fn f_ => fn () => f_ ((cdcl_twl_stgy_prog_wl_D_code x_f) ()) ())
-               get_conflict_wl_is_None_code
-        else (fn () => false))
+               (fn x_h =>
+                 (fn f_ => fn () => f_ ((get_conflict_wl_is_None_code x_h) ())
+                   ())
+                   (fn x_i =>
+                     (if x_i
+                       then (fn f_ => fn () => f_
+                              ((extract_model_of_state_code x_h) ()) ())
+                              (fn x_j => (fn () => (SOME x_j)))
+                       else (fn () => NONE))))
+        else (fn () => NONE))
         ()
     end)
     x;
