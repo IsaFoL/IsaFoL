@@ -184,7 +184,8 @@ proof -
     done
 qed
 
-lemma grounding_of_clss_mono: "X \<subseteq> Y \<Longrightarrow> grounding_of_clss X \<subseteq> grounding_of_clss Y"
+(* FIXME: move me *)
+lemma grounding_of_clss_mono: "CC \<subseteq> DD \<Longrightarrow> grounding_of_clss CC \<subseteq> grounding_of_clss DD"
   using grounding_of_clss_def by auto
 
 text \<open>
@@ -734,7 +735,7 @@ lemma Q_of_state_subset:
   shows "Q_of_state (lnth Sts l) \<subseteq> clss_of_state (lnth Sts l)"
   using assms unfolding clss_of_state_def by auto
 
-lemma grounding_of_clss_mono2: "X \<in> Y \<Longrightarrow> grounding_of_cls X \<subseteq> grounding_of_clss Y"
+lemma grounding_of_clss_mono2: "C \<in> CC \<Longrightarrow> grounding_of_cls C \<subseteq> grounding_of_clss CC"
   using grounding_of_clss_def grounding_of_cls_def by auto
 
 lemma eventually_deleted:
@@ -1593,8 +1594,8 @@ text \<open>
 The following corresponds to (one direction of) Theorem 4.13:
 \<close>
 
-(* FIXME: move me (and rename all variables called X -- a set of atoms should be AA or something) *)
-lemma ground_max_ground: "X \<noteq> {} \<Longrightarrow> finite X \<Longrightarrow> is_ground_atms X \<Longrightarrow> is_ground_atm (Max X)"
+(* FIXME: move me *)
+lemma ground_max_ground: "AA \<noteq> {} \<Longrightarrow> finite AA \<Longrightarrow> is_ground_atms AA \<Longrightarrow> is_ground_atm (Max AA)"
   unfolding is_ground_atms_def by auto
 
 lemma ground_subclauses:
@@ -1607,36 +1608,37 @@ lemma ground_subclauses:
   by (metis assms in_set_conv_nth is_ground_cls_list_def is_ground_cls_union)
 
 lemma subseteq_limit_state_eventually_always:
+  fixes CC
   assumes
-    "finite X" and
-    "X \<noteq> {}" and
-    "X \<subseteq> Q_of_state (limit_state Sts)"
-  shows "\<exists>j. enat j < llength Sts \<and> (\<forall>j' \<ge> enat j. j' < llength Sts \<longrightarrow> X \<subseteq> Q_of_state (lnth Sts j'))"
+    "finite CC" and
+    "CC \<noteq> {}" and
+    "CC \<subseteq> Q_of_state (limit_state Sts)"
+  shows "\<exists>j. enat j < llength Sts \<and> (\<forall>j' \<ge> enat j. j' < llength Sts \<longrightarrow> CC \<subseteq> Q_of_state (lnth Sts j'))"
 proof -
-  from assms(3) have "\<forall>x \<in> X. \<exists>j. enat j < llength Sts \<and> (\<forall>j' \<ge> enat j. j' < llength Sts \<longrightarrow> x \<in> Q_of_state (lnth Sts j'))"
+  from assms(3) have "\<forall>C \<in> CC. \<exists>j. enat j < llength Sts \<and> (\<forall>j' \<ge> enat j. j' < llength Sts \<longrightarrow> C \<in> Q_of_state (lnth Sts j'))"
     unfolding limit_state_def limit_llist_def by force
-  then obtain f where f_p: "\<forall>x \<in> X. f x < llength Sts \<and> (\<forall>j' \<ge> enat (f x). j' < llength Sts \<longrightarrow> x \<in> Q_of_state (lnth Sts j')) "
+  then obtain f where f_p: "\<forall>C \<in> CC. f C < llength Sts \<and> (\<forall>j' \<ge> enat (f C). j' < llength Sts \<longrightarrow> C \<in> Q_of_state (lnth Sts j')) "
     by moura
 
   define j :: nat where
-    "j = Max (f ` X)"
+    "j = Max (f ` CC)"
 
   have "enat j < llength Sts"
     unfolding j_def using f_p assms(1) apply auto
     by (metis (mono_tags, lifting) Max_in assms(2) finite_imageI imageE image_is_empty)
   moreover
-  have "\<forall>x j'. x \<in> X \<longrightarrow> enat j \<le> j' \<longrightarrow> j' < llength Sts \<longrightarrow> x \<in> Q_of_state (lnth Sts j')"
+  have "\<forall>C j'. C \<in> CC \<longrightarrow> enat j \<le> j' \<longrightarrow> j' < llength Sts \<longrightarrow> C \<in> Q_of_state (lnth Sts j')"
   proof (intro allI impI)
-    fix x :: "'a clause" and j' :: "nat"
-    assume a: "x \<in> X" "enat j \<le> enat j'" "enat j' < llength Sts"
-    then have "f x \<le> j'"
+    fix C :: "'a clause" and j' :: "nat"
+    assume a: "C \<in> CC" "enat j \<le> enat j'" "enat j' < llength Sts"
+    then have "f C \<le> j'"
       unfolding j_def using assms(1) Max.bounded_iff by auto
-    then have "enat (f x) \<le> enat j'"
+    then have "enat (f C) \<le> enat j'"
       by auto
-    then show "x \<in> Q_of_state (lnth Sts j')"
+    then show "C \<in> Q_of_state (lnth Sts j')"
       using f_p a by auto
   qed
-  ultimately have "enat j < llength Sts \<and> (\<forall>j' \<ge> enat j. j' < llength Sts \<longrightarrow> X \<subseteq> Q_of_state (lnth Sts j'))"
+  ultimately have "enat j < llength Sts \<and> (\<forall>j' \<ge> enat j. j' < llength Sts \<longrightarrow> CC \<subseteq> Q_of_state (lnth Sts j'))"
     by auto
   then show ?thesis
     by auto
@@ -1817,7 +1819,7 @@ proof -
           using Max_in by metis
         then have is_ground_Max: "is_ground_atm (Max (atms_of D \<union> set Ai))"
           using gD gai2 is_ground_cls_imp_is_ground_atm unfolding is_ground_atm_mset_def by auto
-        (* FIXME: rename and maybe move *)
+        (* FIXME: rename and maybe turn in to a lemma *)
         then have grgrgr: "\<forall>\<sigma>. Max (atms_of D \<union> set Ai) \<cdot>a \<sigma> = Max (atms_of D \<union> set Ai)"
           by auto
 
@@ -1955,37 +1957,37 @@ proof -
 
   have "limit_llist (lmap grounding_of_state Sts) \<supseteq> grounding_of_state (limit_state Sts)"
   proof
-    fix x :: "'a clause"
-    assume "x \<in> grounding_of_state (limit_state Sts)"
-    then obtain X \<sigma> where X\<sigma>_p: "X \<in> clss_of_state (limit_state Sts)" "X \<cdot> \<sigma> = x" "is_ground_subst \<sigma>"
+    fix C :: "'a clause"
+    assume "C \<in> grounding_of_state (limit_state Sts)"
+    then obtain D \<sigma> where D_\<sigma>_p: "D \<in> clss_of_state (limit_state Sts)" "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
       unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def by auto
-    then have ii: "X \<in> limit_llist (lmap N_of_state Sts) \<or> X \<in> limit_llist (lmap P_of_state Sts) \<or> X \<in> limit_llist (lmap Q_of_state Sts)"
+    then have ii: "D \<in> limit_llist (lmap N_of_state Sts) \<or> D \<in> limit_llist (lmap P_of_state Sts) \<or> D \<in> limit_llist (lmap Q_of_state Sts)"
       unfolding clss_of_state_def  limit_state_def by simp
-    then have "x \<in> limit_llist (lmap grounding_of_clss (lmap N_of_state Sts)) \<or>
-      x \<in> limit_llist (lmap grounding_of_clss (lmap P_of_state Sts)) \<or>
-      x \<in> limit_llist (lmap grounding_of_clss (lmap Q_of_state Sts))"
+    then have "C \<in> limit_llist (lmap grounding_of_clss (lmap N_of_state Sts)) \<or>
+      C \<in> limit_llist (lmap grounding_of_clss (lmap P_of_state Sts)) \<or>
+      C \<in> limit_llist (lmap grounding_of_clss (lmap Q_of_state Sts))"
       apply -
       unfolding limit_llist_def grounding_of_clss_def grounding_of_cls_def
       apply (erule HOL.disjE)
       subgoal
         apply (rule disjI1)
-        using X\<sigma>_p apply auto
+        using D_\<sigma>_p apply auto
         done
       subgoal
         apply (erule HOL.disjE)
         subgoal
           apply (rule disjI2)
           apply (rule disjI1)
-          using X\<sigma>_p apply auto
+          using D_\<sigma>_p apply auto
           done
         subgoal
           apply (rule disjI2)
           apply (rule disjI2)
-          using X\<sigma>_p apply auto
+          using D_\<sigma>_p apply auto
           done
         done
       done
-    then show "x \<in> limit_llist (lmap grounding_of_state Sts)"
+    then show "C \<in> limit_llist (lmap grounding_of_state Sts)"
       unfolding limit_llist_def clss_of_state_def grounding_of_clss_def by auto
   qed
 

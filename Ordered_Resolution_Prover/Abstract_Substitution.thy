@@ -309,13 +309,13 @@ proof -
     unfolding subst_atms_def atms_of_def by auto
 qed
 
-lemma in_image_Neg_is_neg[simp]: "L \<cdot>l \<sigma> \<in> Neg ` X \<Longrightarrow> is_neg L"
+lemma in_image_Neg_is_neg[simp]: "L \<cdot>l \<sigma> \<in> Neg ` AA \<Longrightarrow> is_neg L"
   by (metis bex_imageD literal.disc(2) literal.map_disc_iff subst_lit_def)
 
-lemma subst_lit_in_negs_subst_is_neg: "L \<cdot>l \<sigma> \<in># (negs X) \<cdot> \<tau> \<Longrightarrow> is_neg L"
+lemma subst_lit_in_negs_subst_is_neg: "L \<cdot>l \<sigma> \<in># (negs AA) \<cdot> \<tau> \<Longrightarrow> is_neg L"
   by simp
 
-lemma subst_lit_in_negs_is_neg: "L \<cdot>l \<sigma> \<in># negs X \<Longrightarrow> is_neg L"
+lemma subst_lit_in_negs_is_neg: "L \<cdot>l \<sigma> \<in># negs AA \<Longrightarrow> is_neg L"
   by simp
 
 
@@ -515,7 +515,7 @@ lemma sum_list_subst_cls_list_subst_cls[simp]: "sum_list (Ci' \<cdot>cl \<eta>) 
 
 subsubsection \<open>Substitute on @{term set_mset}\<close>
 
-lemma set_mset_subst_cls_mset_subst_clss: "set_mset (X \<cdot>cm \<mu>) = (set_mset X) \<cdot>cs \<mu>"
+lemma set_mset_subst_cls_mset_subst_clss: "set_mset (CC \<cdot>cm \<mu>) = (set_mset CC) \<cdot>cs \<mu>"
   by (simp add: subst_cls_mset_def subst_clss_def)
 
 
@@ -859,7 +859,7 @@ lemma is_ground_cls_is_ground_atms_atms_of[simp]: "is_ground_cls D \<Longrightar
   by (simp add: is_ground_cls_imp_is_ground_atm is_ground_atms_def)
 
 lemma in_subset_eq_grounding_of_clss_is_ground_cls[simp]:
-  "x \<in> X \<Longrightarrow> X \<subseteq> grounding_of_clss Y \<Longrightarrow> is_ground_cls x"
+  "C \<in> CC \<Longrightarrow> CC \<subseteq> grounding_of_clss DD \<Longrightarrow> is_ground_cls C"
   unfolding grounding_of_clss_def grounding_of_cls_def by auto
 
 
