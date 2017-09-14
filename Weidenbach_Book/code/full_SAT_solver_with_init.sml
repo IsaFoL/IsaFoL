@@ -18,6 +18,12 @@ fun nat_of_lit n =
     else gn_of_int m
   end
 
+fun lit_of_nat n =
+  if Word.toLargeInt n mod 2 = 0 then Word.toLargeInt n div 2
+  else ~(Word.toLargeInt n div 2)
+
+val print_model = map (print o (fn n => IntInf.toString n ^ " ") o lit_of_nat)
+
 fun natotostr NONE = ""
   | natotostr (SOME n) = " (pos = "^Int.toString (int_of_gn n)^")"
 
@@ -64,7 +70,11 @@ fun checker cnf_name = let
   val _ = print "\nstarting SAT solver\n";
   val SAT = SAT_Solver.sAT_wl_code problem ();
   val _ = print "finished SAT solver\n";
-  val _ = if SAT then print "SAT\n" else print "UNSAT\n"
+  val _ = if SAT = NONE then print "UNSAT\n" else print "SAT\n"
+  val _ =
+      (case SAT of
+           NONE => ()
+        | SOME SAT => ignore (print_model SAT))
   in
     ()
   end
