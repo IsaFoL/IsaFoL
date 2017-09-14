@@ -192,17 +192,37 @@
   *<+-> SAT solvers
     * Elaborate optimizations + heuristics
     * Highly complex $\implies$ error prone
-    * Safety critical
+    * Used in safety critical applications
   *<+-> Certification
     * SAT: Solution. Easy!
     * UNSAT: De-facto standard: DRAT
   *<+-> DRAT certificate
     * Still requires highly optimized checker
+    * Main work spent on unit propagation (BCP)
     * drat-trim is optimized C program
       * We found several bugs (now fixed)
     
-
+# DRAT
+  * Certificate is list of clause additions and deletions
+  * Added clauses proved redundant
+    * Must have RUP or RAT property
+    * Proof based on BCP
+  * Last clause: Empty clause
+  
 # Enriched Certificates
+  Crucial idea 
+    * Unverified \emph{generator} records unit/conflict clauses
+    * Verified \emph{checker} replays BCP
+    * \emph{Finding} unit clause replaced by \emph{checking} unit clause
+  \pause  
+  
+  History
+    * Cruz-Filipe et al.~[TACAS 2017] for DRUP
+    * P.~L. [CADE 2017] extended to DRAT
+    * independently: Cruz-Filipe et al.~[CADE 2017] extended to DRAT
+  
+  
+# Workflow
   \begin{tikzpicture}[node distance = 1.5cm, auto]
     \tikzstyle{tool}=[shape=rectangle,draw, minimum size = 5mm]
     \tikzstyle{artf}=[minimum size = 5mm]
@@ -230,16 +250,9 @@
     \node<8->[rectangle callout, draw, callout absolute pointer=(gratchk.east), above right = of gratchk, align=left] {Cheap \\ Simple \\ Formally verified};
     
   \end{tikzpicture}  
-
-# DRAT
-  * Certificate is list of clause additions/deletion
-  * Added clauses proved redundant
-    * Must have RUP or RAT property
-    * Proof based on unit propagation
-  * Last clause: Empty clause
   
 # Backwards Checking
-  * Forward phase: Add lemmas, but no proofs
+  * Forward phase: Add lemmas, but do no proofs
   * Backwards phase: Remove lemma and prove it
     * Mark lemmas required for proof
     * Skip unmarked lemmas
@@ -247,11 +260,11 @@
     * Prefer marked lemmas when searching for proof
     * Goal: Reduce newly marked lemmas
   
-# Novel Optimizations (Compared to DRAT)
-  * Multithreaded Proving
-    * Multiple threads in backwards mode
+# Novel Optimizations (Compared to drat-trim)
+  * Multithreaded proving
+    * Multiple threads in backwards phase
     * Synchronize on proved/marked lemmas
-    * Significantly decreases time to proof
+    * Significantly decreases wall-clock time
     * Significantly increases memory usage
   * Separate watchlists
     * Maintain separate watchlists for marked/unmarked clauses
@@ -262,10 +275,10 @@
     * RAT candidates are particular expensive to gather
     * Reuse possible in many cases
 
-# Perhaps animation:
-  * One thread: Goto next marked lemma, unit-propagation, analyze conflict, mark lemmas
-  
-  * Multiple threads: Goto next marked lemma, try to acquire, up, ana-conf, mark
+% # Perhaps animation:
+%   * One thread: Goto next marked lemma, unit-propagation, analyze conflict, mark lemmas
+%   
+%   * Multiple threads: Goto next marked lemma, try to acquire, up, ana-conf, mark
     
     
 \newcommand{\annot}[1]{{\footnotesize\color{red}{#1}}}
@@ -308,17 +321,147 @@
   \vfill
   
   \begin{uncoverenv}<8->
-  SAT mode: cmsat: 40s
+  SAT mode: gratchk verified all 64 certificates in 40s
   \end{uncoverenv}  
   
 
-# Demo
-  * Gratgen, gratchk, gratgen/8
-  * If possible, on lxcisa0!
+#![t] Demo
+%   * Gratgen, gratchk, gratgen/8
+%   * If possible, on lxcisa0!
+% 
+%   * Perhaps gratgen no-core-first?
+%   
+%   * Use rotmul.miter.shuffled-as.sat03-356 ... good to demonstrate RAT-run heuristics, multithreading speedup
+  \scriptsize
+  \begin{onlyenv}<1>
+  \begin{verbatim}  
+  ls -1hs rotmul.miter.shuffled-as.sat03-356.{cnf,drat}
+  688K rotmul.miter.shuffled-as.sat03-356.cnf
+   30M rotmul.miter.shuffled-as.sat03-356.drat
+  \end{verbatim}
+  \end{onlyenv}
 
-  * Perhaps gratgen no-core-first?
+  \begin{onlyenv}<2>
+  \begin{verbatim}  
+  $ drat-trim rotmul.miter.shuffled-as.sat03-356.{cnf,drat}
+  c parsing input formula with 5980 variables and 35229 clauses
+  c finished parsing
+  c detected empty clause; start verification via backward checking
+  c 30476 of 35229 clauses in core
+  c 84401 of 219768 lemmas in core using 3834963 resolution steps
+  c 2162 RAT lemmas in core; 37038 redundant literals in core lemmas
+  s VERIFIED
+  c verification time: 13.773 seconds
+  \end{verbatim}  
+  \end{onlyenv}
+
+  \begin{onlyenv}<3>
+  \begin{verbatim}  
+  $ time ./grat.sh rotmul.miter.shuffled-as.sat03-356
+  [... output shortened ...]
+  c Timing statistics (ms)
+  c Overall:  7246
+
+  c Lemma statistics
+  c RUP lemmas:  79298
+  c RAT lemmas:  2183
+  c   RAT run heuristics:   1292
+
+  c Reading cnf
+  c Reading lemmas
+  c Done
+  c Verifying unsat (split certificate)
+  s VERIFIED UNSAT
+
+  real    0m1.012s
+  user    0m0.984s
+  sys     0m0.028s
+
+  real    0m8.268s
+  user    0m8.168s
+  sys     0m0.100s
+
+  \end{verbatim}  
+  \end{onlyenv}
+
+  \begin{onlyenv}<4>
+  \begin{verbatim}  
+  $ time ./grat.sh rotmul.miter.shuffled-as.sat03-356 -j 3
+  [... output shortened ...]
+  c Timing statistics (ms)
+  c Overall:  4386
+
+  c Lemma statistics
+  c RUP lemmas:  79529
+  c RAT lemmas:  2169
+  c   RAT run heuristics:   1269
+
+  c Reading cnf
+  c Reading lemmas
+  c Done
+  c Verifying unsat (split certificate)
+  s VERIFIED UNSAT
+
+  real    0m1.011s
+  user    0m0.988s
+  sys     0m0.020s
+
+  real    0m5.407s
+  user    0m12.120s
+  sys     0m0.124s
   
-  * Use rotmul.miter.shuffled-as.sat03-356 ... good to demonstrate RAT-run heuristics, multithreading speedup
+  \end{verbatim}  
+  \end{onlyenv}
+
+  \begin{onlyenv}<5>
+  \begin{verbatim}  
+  $ ls -1hs rotmul.miter.shuffled-as.sat03-356.grat?
+  5,5M rotmul.miter.shuffled-as.sat03-356.gratl
+   17M rotmul.miter.shuffled-as.sat03-356.gratp
+  \end{verbatim}  
+  \end{onlyenv}
+
+  
+  \begin{onlyenv}<6>
+  \begin{verbatim}  
+  $ ls -1hs unif-c500-v250-s1228594393.{cnf,sat}
+  8,0K unif-c500-v250-s1228594393.cnf
+  4,0K unif-c500-v250-s1228594393.sat
+  
+  $ time gratchk sat unif-c500-v250-s1228594393.{cnf,sat}
+  c Reading cnf
+  c Reading proof
+  c Done
+  c Verifying sat
+  s VERIFIED SAT
+
+  real    0m0.001s
+  user    0m0.000s
+  sys     0m0.000s
+  \end{verbatim}  
+  \end{onlyenv}
+  
+  
+# Conclusions
+  Fast SAT solver certification tool
+  * SAT and UNSAT certificates
+  * Strong formal correctness guarantees
+    * formally verified down to int array representing formula
+  * Available under BSD-style license
+    
+  \vfill 
+  \center \url{http://www21.in.tum.de/~lammich/grat/}
+  
+  
+%   Plot:
+%     *# Use rotmul.miter.shuffled-as.sat03-356
+%     * run drat-trim
+%     * run grat toolchain
+%     * run grat toolchain with multiple threads (laptop 3, lxcisa0 8)
+%     * Show sizes of certificates - effective trimming!
+    
+  
+  
   
   
   
