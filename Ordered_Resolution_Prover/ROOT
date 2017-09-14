@@ -1,0 +1,18 @@
+chapter Ordered_Resolution_Prover
+
+session Ordered_Resolution_Prover_Base = HOL +
+  theories [document = false]
+    "~~/src/HOL/Library/Multiset"
+    "$AFP/Coinductive/Coinductive_List"
+
+session Ordered_Resolution_Prover = Ordered_Resolution_Prover_Base +
+  options [document = pdf, document_output = "output",
+    document_variants = "document:outline=/proof,/ML",
+    timeout=200]
+  theories [document = false]
+    "$AFP/Nested_Multisets_Ordinals/Multiset_More"
+  theories
+    FO_Ordered_Resolution_Prover
+  document_files
+    "bib.bib"
+    "root.tex"

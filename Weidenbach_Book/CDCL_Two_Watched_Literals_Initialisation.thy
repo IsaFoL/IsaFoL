@@ -39,7 +39,6 @@ lemma init_dt_full:
   assumes
     \<open>\<forall>C \<in> set CS. distinct C\<close> and
     \<open>\<forall>C \<in> set CS. length C \<ge> 1\<close> and
-    \<open>\<forall>C \<in> set CS. \<not>tautology (mset C)\<close> and
     \<open>twl_struct_invs (twl_st_of None S)\<close> and
     \<open>clauses_to_update_l S = {#}\<close> and
     \<open>\<forall>s\<in>set (get_trail_l S). \<not>is_decided s\<close> and
@@ -73,9 +72,9 @@ proof (induction CS)
 next
   case (Cons a CS) note IH = this(1-)
   note init_dt_step_def[simp]
-  case 2 note dist = this(1) and length = this(2) and no_taut_Cs = this(3) and inv = this(4) and
-    WS = this(5) and dec = this(6) and in_literals_to_update = this(7) and add_inv = this(8) and len = this(9)
-    and stgy_inv = this(10)
+  case 2 note dist = this(1) and length = this(2) and inv = this(3) and
+    WS = this(4) and dec = this(5) and in_literals_to_update = this(6) and add_inv = this(7) and len = this(8)
+    and stgy_inv = this(9)
 
   have
     twl: \<open>twl_struct_invs (twl_st_of None (init_dt CS S))\<close> and
@@ -90,7 +89,7 @@ next
       and
     add_inv': \<open>additional_WS_invs (init_dt CS S)\<close> and
     U': \<open>get_learned_l (init_dt CS S) = length (get_clauses_l (init_dt CS S)) - 1\<close>
-    using IH[OF _ _ _inv WS dec in_literals_to_update add_inv len stgy_inv] dist length no_taut_Cs by auto
+    using IH[OF _ _ inv WS dec in_literals_to_update add_inv len stgy_inv] dist length by auto
 
   obtain M N U D NP UP Q where
     S: \<open>init_dt CS S = (M, N, U, D, NP, UP, {#}, Q)\<close>
@@ -155,10 +154,6 @@ next
     all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of
      (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
       Q))\<close> and
-    no_taut: \<open>\<forall>D\<in>#init_clss (state\<^sub>W_of
-                    (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP,
-                     {#}, Q)).
-      \<not> tautology D\<close> and
     no_smaller: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of
      (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#},
       Q))\<close> and
@@ -291,8 +286,6 @@ next
             get_level_cons_if split: if_splits)
         subgoal using all_inv' .
         subgoal
-          using S' no_taut by (auto simp: a S cdcl\<^sub>W_restart_mset_state split: if_splits)
-        subgoal
           using S' no_smaller by (auto simp: a S cdcl\<^sub>W_restart_mset_state
               cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
         subgoal
@@ -386,8 +379,6 @@ next
             get_level_cons_if
               split: if_splits)
         subgoal using all_inv' .
-        subgoal
-          using S' no_taut by (auto simp: a S cdcl\<^sub>W_restart_mset_state split: if_splits)
         subgoal
           using S' no_smaller by (auto simp: a S cdcl\<^sub>W_restart_mset_state
               cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
@@ -498,8 +489,6 @@ next
             split: if_splits)
       subgoal using all_inv' .
       subgoal
-        using S' no_taut no_taut_Cs N_not_empty by (cases D) (auto simp: a S cdcl\<^sub>W_restart_mset_state split: if_splits)
-      subgoal
         apply (cases D)
         using S' no_smaller by (auto simp: a S cdcl\<^sub>W_restart_mset_state
             cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
@@ -599,8 +588,7 @@ theorem init_dt:
   defines S: \<open>S \<equiv> ([], [[]], 0, None, {#}, {#}, {#}, {#})\<close>
   assumes
     \<open>\<forall>C \<in> set CS. distinct C\<close> and
-    \<open>\<forall>C \<in> set CS. length C \<ge> 1\<close> and
-    \<open>\<forall>C \<in> set CS. \<not>tautology (mset C)\<close>
+    \<open>\<forall>C \<in> set CS. length C \<ge> 1\<close>
   shows
     \<open>twl_struct_invs (twl_st_of None (init_dt CS S))\<close> and
     \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None (init_dt CS S))) = mset `# mset CS\<close> and
@@ -644,7 +632,7 @@ proof -
     \<open>clauses_to_update_l (init_dt CS S) = {#}\<close> and
     \<open>additional_WS_invs (init_dt CS S)\<close> and
     \<open>get_conflict_l (init_dt CS S) \<noteq> None \<longrightarrow> the (get_conflict_l (init_dt CS S)) \<in># mset `# mset CS\<close>
-    using init_dt_full[of CS S, OF assms(2-4)]
+    using init_dt_full[of CS S, OF assms(2-3)]
     init_dt_confl_in_clauses[of S CS] by simp_all
 qed
 

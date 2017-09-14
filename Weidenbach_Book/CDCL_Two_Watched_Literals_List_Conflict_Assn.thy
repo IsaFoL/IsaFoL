@@ -28,11 +28,6 @@ lemma mset_as_position_nth:
   by (induction rule: mset_as_position.induct)
     (auto simp: nth_list_update' atm_of_eq_atm_of dest: mset_as_position_atm_le_length)
 
-(*TODO Move*)
-lemma (in -) is_pos_neg_not_is_pos: \<open>is_pos (- L) \<longleftrightarrow> \<not>is_pos L\<close>
-  by (cases L) auto
-(*End Move*)
-
 lemma mset_as_position_in_iff_nth:
   \<open>mset_as_position xs P \<Longrightarrow> atm_of L < length xs \<Longrightarrow> L \<in># P \<longleftrightarrow> xs ! (atm_of L) = Some (is_pos L)\<close>
   by (induction rule: mset_as_position.induct)
@@ -123,6 +118,26 @@ lemma conflict_rel_atm_in_iff:
   by (rule mset_as_position_in_iff_nth)
      (auto simp: conflict_rel_def atms_of_def)
 
+lemma (in twl_array_code)
+  assumes c: \<open>((n,xs), C) \<in> conflict_rel\<close>
+  shows
+    conflict_rel_not_tautolgy: \<open>\<not>tautology C\<close> and
+    conflict_rel_size: \<open>literals_are_in_N\<^sub>0 C \<Longrightarrow> size C \<le> upperN div 2\<close>
+proof -
+  have mset: \<open>mset_as_position xs C\<close> and \<open>n = size C\<close> and \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length xs\<close>
+    using c unfolding conflict_rel_def by fast+
+  show \<open>\<not>tautology C\<close>
+    using mset
+    apply (induction rule: mset_as_position.induct)
+    subgoal by (auto simp: literals_are_in_N\<^sub>0_def)
+    subgoal by (auto simp: tautology_add_mset)
+    done
+  have \<open>distinct_mset C\<close>
+    using mset mset_as_position_distinct_mset by blast
+  then show \<open>literals_are_in_N\<^sub>0 C \<Longrightarrow> size C \<le> upperN div 2\<close>
+    using simple_clss_size_upper_div2[of \<open>C\<close>] \<open>\<not>tautology C\<close> by auto
+qed
+
 type_synonym (in -) conflict_assn = "uint32 \<times> bool option array"
 
 definition conflict_assn :: "nat clause \<Rightarrow> conflict_assn \<Rightarrow> assn" where
@@ -172,8 +187,8 @@ lemma conflict_assn_is_empty_is_empty:
   \<open>(RETURN o conflict_assn_is_empty, RETURN o (\<lambda>D. Multiset.is_empty(the D))) \<in>
   [\<lambda>D. D \<noteq> None]\<^sub>f option_conflict_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
   by (intro nres_relI frefI)
-   (auto simp: option_conflict_rel_def conflict_assn_is_empty_def conflict_rel_def Multiset.is_empty_def
-      split: option.splits)
+   (auto simp: option_conflict_rel_def conflict_assn_is_empty_def conflict_rel_def
+     Multiset.is_empty_def split: option.splits)
 
 lemma conflict_assn_is_empty_conflict_assn_is_empty:
  \<open>(return o conflict_assn_is_empty, RETURN o conflict_assn_is_empty) \<in>
@@ -189,5 +204,39 @@ lemma conflict_assn_is_empty_is_empty_code[sepref_fr_rules]:
   by simp
 
 end
+
+
+lemma (in -) mset_as_position_length_not_None:
+   \<open>mset_as_position x2 C \<Longrightarrow>  size C = length (filter (op \<noteq> None) x2)\<close>
+proof (induction rule: mset_as_position.induct)
+  case (empty n)
+  then show ?case by auto
+next
+  case (add xs P L xs') note m_as_p = this(1) and atm_L = this(2)
+  have xs_L: \<open>xs ! (atm_of L) = None\<close>
+  proof -
+    obtain bb :: "bool option \<Rightarrow> bool" where
+      f1: "\<forall>z. z = None \<or> z = Some (bb z)"
+      by (metis option.exhaust)
+    have f2: "xs ! atm_of L \<noteq> Some (is_pos L)"
+      using add.hyps(1) add.hyps(2) add.hyps(3) mset_as_position_in_iff_nth by blast
+    have f3: "\<forall>z b. ((Some b = z \<or> z = None) \<or> bb z) \<or> b"
+      using f1 by blast
+    have f4: "\<forall>zs. (zs ! atm_of L \<noteq> Some (is_pos (- L)) \<or> \<not> atm_of L < length zs) \<or> \<not> mset_as_position zs P"
+      by (metis add.hyps(4) atm_of_uminus mset_as_position_in_iff_nth)
+    have "\<forall>z b. ((Some b = z \<or> z = None) \<or> \<not> bb z) \<or> \<not> b"
+      using f1 by blast
+    then show ?thesis
+      using f4 f3 f2 by (metis add.hyps(1) add.hyps(2) is_pos_neg_not_is_pos)
+  qed
+  obtain xs1 xs2 where
+    xs_xs12: \<open>xs = xs1 @ None # xs2\<close> and
+    xs1: \<open>length xs1 = atm_of L\<close>
+    using atm_L upd_conv_take_nth_drop[of \<open>atm_of L\<close> xs \<open>None\<close>] apply -
+    apply (subst(asm)(2) xs_L[symmetric])
+    by (force simp del: append_take_drop_id)+
+  then show ?case
+    using add by (auto simp: list_update_append)
+qed
 
 end

@@ -16,7 +16,7 @@ text \<open>
 lemma cdcl\<^sub>W_stgy_no_relearned_clause:
   assumes
     cdcl: \<open>backtrack S T\<close> and
-    inv: "cdcl\<^sub>W_all_struct_inv S" and
+    inv: \<open>cdcl\<^sub>W_all_struct_inv S\<close> and
     smaller: \<open>no_smaller_propa S\<close> and
     confl: \<open>conflicting S = Some E\<close>
   shows
@@ -38,15 +38,14 @@ proof (rule ccontr)
     D_D': \<open>D' \<subseteq># D\<close> and
     \<open>clauses S \<Turnstile>pm add_mset L D'\<close>
     using cdcl confl by (auto elim!: rulesE)
-  have E_L_D: \<open>E = add_mset L D\<close>
-    using confl confl_S by auto
+
   obtain M2' where M2': \<open>trail S = (M2' @ M2) @ Decided K # M1\<close>
     using decomp by auto
   have inv_T: \<open>cdcl\<^sub>W_all_struct_inv T\<close>
     using cdcl cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv inv W_other backtrack bj
       cdcl\<^sub>W_all_struct_inv_inv cdcl\<^sub>W_cdcl\<^sub>W_restart by blast
 
-  have M1_D': "M1 \<Turnstile>as CNot D'"
+  have M1_D': \<open>M1 \<Turnstile>as CNot D'\<close>
     using backtrack_M1_CNot_D'[of S D' \<open>i\<close> K M1 M2 L \<open>add_mset L D\<close> T \<open>Propagated L (add_mset L D')\<close>]
       confl inv confl_S decomp i T D_D' lev_K lev_L max_D_L
     unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def

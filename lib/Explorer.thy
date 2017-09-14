@@ -77,7 +77,7 @@ fun generate_text ASSUME_SHOW context clauses =
       fun treat_line (fixes_s, assumes_s, shows_s) =
         let val combined_line = [shows_s] @ assumes_s @ fixes_s |> cat_lines
         in
-          "have " ^ combined_line ^ "\nproof\n  show thesis sorry\nqed"
+          "have " ^ combined_line ^ "\nproof -\n  show ?thesis sorry\nqed"
        end
       val raw_lines_with_proof_body = map treat_line raw_lines
     in
@@ -89,7 +89,7 @@ fun generate_text ASSUME_SHOW context clauses =
       fun treat_line (fixes_s, assumes_s, shows_s) =
         let val combined_line = assumes_s @ fixes_s @ [shows_s] |> cat_lines
         in
-          "lemma\n" ^ combined_line ^ "\nproof\n  show thesis sorry\nqed"
+          "lemma\n" ^ combined_line ^ "\nproof -\n  show ?thesis sorry\nqed"
        end
       val raw_lines_with_lemma_and_proof_body = map treat_line raw_lines
     in

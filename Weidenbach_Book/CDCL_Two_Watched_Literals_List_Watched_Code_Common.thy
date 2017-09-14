@@ -922,168 +922,10 @@ lemma count_decided_butlast:
   \<open>count_decided (butlast xs) = (if is_decided (last xs) then count_decided xs - 1 else count_decided xs)\<close>
   by (cases xs rule: rev_cases) (auto simp: count_decided_def)
 
-(* lemma find_decomp_wl_code_find_decomp_wl:
-  assumes D: \<open>D \<noteq> None\<close> \<open>D \<noteq> Some {#}\<close> and M\<^sub>0: \<open>M\<^sub>0 \<noteq> []\<close> and ex_decomp: \<open>ex_decomp_of_max_lvl M\<^sub>0 D L\<close> and
-    L: \<open>L = lit_of (hd M\<^sub>0)\<close> and
-    struct: \<open>twl_struct_invs (twl_st_of_wl None (M\<^sub>0, N, U, D\<^sub>0, NP, UP, Q, W))\<close> and
-    E: \<open>E = the D\<close> and
-    E_D\<^sub>0: \<open>E \<subseteq># the D\<^sub>0\<close> and
-    D\<^sub>0: \<open>D\<^sub>0 \<noteq> None\<close>
-  shows
-   \<open>find_decomp_wl_imp M\<^sub>0 E L \<le> find_decomp_wl (M\<^sub>0, N, U, D, NP, UP, Q, WS) L\<close>
-proof -
-  define f where
-    \<open>f M\<^sub>0 D L \<equiv> (\<lambda>M\<^sub>0 D L. do {
-       let lev = get_maximum_level M\<^sub>0 (remove1_mset (-L) D);
-       let k = count_decided M\<^sub>0;
-       WHILE\<^sub>T\<^bsup>\<lambda>(j, M). j = count_decided M \<and> j \<ge> lev \<and>
-          (M = [] \<longrightarrow> j = lev) \<and>
-          (\<exists>M'. M\<^sub>0 = M' @ M \<and> (j = lev \<longrightarrow> M' \<noteq> [] \<and> is_decided (last M')))\<^esup>
-         (\<lambda>(j, M). j > lev)
-         (\<lambda>(j, M). do {
-            ASSERT(M \<noteq> []);
-            if is_decided (hd M)
-            then RETURN (j-1, tl M)
-            else RETURN (j, tl M)}
-         )
-         (k, M\<^sub>0)}) M\<^sub>0 D L\<close> for M\<^sub>0 :: "(nat, nat) ann_lits" and D :: "nat clause" and L :: "nat literal"
-  have 1: \<open>((count_decided x1g, x1g), count_decided x1, x1) \<in> Id\<close>
-    if \<open>x1g = x1\<close> for x1g x1 :: \<open>(nat, nat) ann_lits\<close>
-    using that by auto
-  have [simp]: \<open>\<exists>M'a. M' @ x2g = M'a @ tl x2g\<close> for M' x2g :: \<open>'a list\<close>
-    by (metis append.assoc append_Cons append_Nil list.exhaust list.sel(3) tl_Nil)
-  have butlast_nil_iff: \<open>butlast xs = [] \<longleftrightarrow> xs = [] \<or> (\<exists>a. xs = [a])\<close> for xs :: \<open>(nat, nat) ann_lits\<close>
-    by (cases xs) auto
-  have butlast1: \<open>tl x2g = drop (Suc (length x1) - length x2g) x1\<close> (is \<open>?G1\<close>)
-    if \<open>x2g = drop (length x1 - length x2g) x1\<close> for x2g x1 :: \<open>'a list\<close>
-  proof -
-    have [simp]: \<open>Suc (length x1 - length x2g) = Suc (length x1) - length x2g\<close>
-      by (metis Suc_diff_le diff_le_mono2 diff_zero length_drop that zero_le)
-    show ?G1
-      by (subst that) (auto simp: butlast_conv_take tl_drop_def)[]
-  qed
-  have butlast2: \<open>tl x2g = drop (length x1 - (length x2g - Suc 0)) x1\<close> (is \<open>?G2\<close>)
-    if \<open>x2g = drop (length x1 - length x2g) x1\<close> and x2g: \<open>x2g \<noteq> []\<close> for x2g x1 :: \<open>'a list\<close>
-  proof -
-    have [simp]: \<open>Suc (length x1 - length x2g) = Suc (length x1) - length x2g\<close>
-      by (metis Suc_diff_le diff_le_mono2 diff_zero length_drop that(1) zero_le)
-    have [simp]: \<open>Suc (length x1) - length x2g = length x1 - (length x2g - Suc 0)\<close>
-      using x2g by auto
-    show ?G2
-      by (subst that) (auto simp: butlast_conv_take tl_drop_def)[]
-  qed
-  note butlast = butlast1 butlast2
-  have [iff]: \<open>convert_lits_l N M = [] \<longleftrightarrow> M = []\<close> for M
-    by (cases M) auto
-  have
-    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of (twl_st_of_wl None (M\<^sub>0, N, U, D\<^sub>0, NP, UP, Q, W)))\<close> and
-    confl: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of (twl_st_of_wl None (M\<^sub>0, N, U, D\<^sub>0, NP, UP, Q, W)))\<close> and
-    lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of (twl_st_of_wl None (M\<^sub>0, N, U, D\<^sub>0, NP, UP, Q, W)))\<close>
-    using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
-  have \<open>distinct_mset (the D\<^sub>0)\<close>
-    using D\<^sub>0 dist by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset'
-        cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def)
-  then have dist_D: \<open>distinct_mset (the D)\<close>
-    using distinct_mset_mono[OF E_D\<^sub>0] E by fast
-  have \<open>M\<^sub>0 \<Turnstile>as CNot (the D\<^sub>0)\<close>
-    using D\<^sub>0 confl by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset'
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def)
-  then have M\<^sub>0_CNot_D: \<open>M\<^sub>0 \<Turnstile>as CNot (the D)\<close>
-    using E_D\<^sub>0 unfolding E by (simp add: mset_subset_eqD true_annots_true_cls_def_iff_negation_in_model)
-
-  have n_d: \<open>no_dup M\<^sub>0\<close>
-    using lev_inv by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset'
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def)
-  have \<open>atm_of L \<notin> atms_of (remove1_mset (- L) (the D))\<close>
-  proof (rule ccontr)
-    assume \<open>\<not> ?thesis\<close>
-    moreover have \<open>-L \<notin># remove1_mset (- L) (the D)\<close>
-      using dist_D by (meson distinct_mem_diff_mset multi_member_last)
-    ultimately have \<open>L \<in># the D\<close>
-      using D by (auto simp: atms_of_def atm_of_eq_atm_of dest: in_diffD)
-
-    then have \<open>-L \<in> lits_of_l M\<^sub>0\<close>
-      using M\<^sub>0_CNot_D by (auto simp: true_annots_true_cls_def_iff_negation_in_model)
-    then show False
-      using n_d L M\<^sub>0 by (cases M\<^sub>0) (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
-  qed
-  moreover have \<open>L \<in> set (N!C)\<close> if \<open> hd M\<^sub>0 = Propagated L C\<close> and \<open>C > 0\<close> for C
-    using confl D M\<^sub>0 L that
-    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-    by (cases M\<^sub>0; cases \<open>hd M\<^sub>0\<close>) (auto 5 5 simp: cdcl\<^sub>W_restart_mset_state
-        split: if_splits)
-  have count_decided_not_Nil[simp]:  \<open>0 < count_decided M \<Longrightarrow> M \<noteq> []\<close> for M :: \<open>(nat, nat) ann_lits\<close>
-    by auto
-  have get_lev_last: \<open>get_level (M' @ M) (lit_of (last M')) = Suc (count_decided M)\<close>
-    if \<open>M\<^sub>0 = M' @ M\<close> and \<open>M' \<noteq> []\<close> and \<open>is_decided (last M')\<close> for M' M
-    apply (cases M' rule: rev_cases)
-    using that apply simp
-    using n_d that by auto
-  have H: \<open>f M\<^sub>0 (the D) L \<le> SPEC (\<lambda>(_, M1). \<exists>K M2. (Decided K # M1, M2)
-                                       \<in> set (get_all_ann_decomposition M\<^sub>0) \<and>
-                                       get_level M\<^sub>0 K =
-                                       get_maximum_level M\<^sub>0
-                                        (remove1_mset (- L) (the D)) +
-                                       1)\<close>
-    unfolding f_def Let_def
-    apply (refine_rcg 1 WHILEIT_rule[where R=\<open>measure (\<lambda>(_, M). length M)\<close>])
-    subgoal by simp
-    subgoal by auto
-    subgoal using M\<^sub>0 by (auto simp: count_decided_ge_get_maximum_level)
-    subgoal by (auto simp: butlast_nil_iff count_decided_butlast
-          eq_commute[of \<open>[_]\<close>] intro: butlast
-          cong: if_cong split: if_splits)
-    subgoal
-      using ex_decomp get_level_Succ_count_decided_neq (*TODO Proof*)
-      apply (auto simp: count_decided_butlast butlast_nil_iff eq_commute[of \<open>[_]\<close>] ex_decomp_of_max_lvl_def
-          intro: butlast)
-      by (metis get_level_Succ_count_decided_neq)
-    subgoal for s D M'
-      apply clarsimp
-      apply (intro conjI impI)
-      subgoal
-        apply (cases M')
-          by (auto intro: butlast count_decided_tl_if)
-      subgoal by (auto simp: count_decided_butlast count_decided_tl_if)[]
-      subgoal by (cases M') (auto simp: count_decided_ge_get_maximum_level)
-      subgoal by (cases M') (auto simp: butlast_nil_iff count_decided_butlast
-          eq_commute[of \<open>[_]\<close>] intro: butlast
-          cong: if_cong split: if_splits)
-      subgoal by (cases M') (auto simp: butlast_nil_iff count_decided_butlast
-          eq_commute[of \<open>[_]\<close>] last_conv_nth H intro: butlast
-          cong: if_cong split: if_splits)
-      subgoal by (cases M') auto
-      done
-    subgoal for s D M
-      apply (auto simp: count_decided_ge_get_maximum_level ex_decomp_get_ann_decomposition_iff
-          get_lev_last)
-       apply (rule_tac x=\<open>lit_of (last M')\<close> in exI)
-       apply auto
-        apply (rule_tac x=\<open>butlast M'\<close> in exI)
-        apply (case_tac \<open>last M'\<close>)
-         apply (auto simp: nth_append simp del: append_butlast_last_id)
-        apply (metis append_butlast_last_id)
-       defer
-       apply (rule_tac x=\<open>lit_of (last M')\<close> in exI)
-       apply auto
-        apply (rule_tac x=\<open>butlast M'\<close> in exI)
-        apply (case_tac \<open>last M'\<close>)
-         apply (auto simp: nth_append snoc_eq_iff_butlast' count_decided_ge_get_maximum_level
-          ex_decomp_get_ann_decomposition_iff get_lev_last)
-      done
-    done
-  have find_decomp_wl_code: \<open>find_decomp_wl_imp M\<^sub>0 D L = do {(_, j) \<leftarrow> f M\<^sub>0 D L; RETURN j}\<close> for L D M\<^sub>0
-    unfolding find_decomp_wl_imp_def f_def by (auto simp: Let_def)
-  show ?thesis
-    using H unfolding find_decomp_wl_def find_decomp_wl_code E
-    by refine_vcg auto
-qed *)
-
 definition find_decomp_wl'  where
   \<open>find_decomp_wl' =
-     (\<lambda>(M::(nat, nat) ann_lits) (N::nat clauses_l) (U :: nat) (D::nat clause) (
-         NP::nat clauses) (UP::nat clauses) (Q::nat lit_queue_wl) (W::(nat literal \<Rightarrow> watched)) (
-     L::nat literal). SPEC(\<lambda>M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
+     (\<lambda>(M::(nat, nat) ann_lits) (D::nat clause) (L::nat literal).
+        SPEC(\<lambda>M1. \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
           get_level M K = get_maximum_level M (D - {#-L#}) + 1))\<close>
 
 definition no_skip where
@@ -1091,26 +933,7 @@ definition no_skip where
 
 definition no_resolve where
   \<open>no_resolve S = (no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None S)))\<close>
-(* 
-lemma find_decomp_wl'_find_decomp_wl:
-  \<open>find_decomp_wl' M N U (the D) NP UP Q WS L = find_decomp_wl (M, N, U, D, NP, UP, Q, WS) L\<close>
-  \<open>find_decomp_wl' M N U D' NP UP Q WS L = find_decomp_wl (M, N, U, Some D', NP, UP, Q, WS) L\<close>
-  by (auto simp: find_decomp_wl'_def find_decomp_wl_def)
 
-lemma find_decomp_wl_imp_find_decomp_wl':
-  \<open>(uncurry8 (\<lambda>M N U D NP UP Q W L. find_decomp_wl_imp M D L), uncurry8 find_decomp_wl') \<in>
-  [\<lambda>((((((((M, N), U), D), NP), UP), Q), W), L). \<exists> D\<^sub>0. D \<noteq> {#} \<and> M \<noteq> [] \<and> ex_decomp_of_max_lvl M (Some D) L \<and>
-     L = lit_of (hd M) \<and>
-      twl_struct_invs (twl_st_of_wl None (M, N, U, D\<^sub>0, NP, UP, Q, W)) \<and>
-      D \<subseteq>#  the D\<^sub>0 \<and> D\<^sub>0 \<noteq> None]\<^sub>f
-   (Id \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id) \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
-  unfolding find_decomp_wl'_find_decomp_wl no_resolve_def no_skip_def
-  apply (intro frefI nres_relI)
-  subgoal premises p for S S'
-    using p
-    by (cases S, cases S') (auto intro!: find_decomp_wl_code_find_decomp_wl)
-  done
- *)
 definition get_conflict_wl_is_None :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
   \<open>get_conflict_wl_is_None = (\<lambda>(M, N, U, D, NP, UP, Q, W). is_None D)\<close>
 
@@ -1163,27 +986,36 @@ definition (in -) find_decomp_wl_imp' :: \<open>(nat, nat) ann_lits \<Rightarrow
       arl_of_array_raa_def array_assn_def is_array_def arl_assn_def is_array_list_def) *)
 
 lemma nth_ll_watched_app:
-  \<open>(uncurry2 (RETURN ooo nth_ll), uncurry2 (RETURN ooo watched_app)) \<in>
+  \<open>(uncurry2 (RETURN ooo nth_rll), uncurry2 (RETURN ooo watched_app)) \<in>
      [\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0) \<times>\<^sub>r p2rel lit_of_natP) \<times>\<^sub>r nat_rel \<rightarrow>
        \<langle>nat_rel\<rangle> nres_rel\<close>
-  unfolding watched_app_def nth_ll_def
+  unfolding watched_app_def nth_rll_def
   by (fastforce simp: fref_def map_fun_rel_def prod_rel_def nres_rel_def p2rel_def lit_of_natP_def)
 
 lemma nth_aa_watched_app[sepref_fr_rules]:
-  \<open>(uncurry2 (\<lambda>xs i. nth_aa xs (nat_of_uint32 i)), uncurry2 (RETURN ooo op_watched_app)) \<in>
+  \<open>(uncurry2 nth_aa_u, uncurry2 (RETURN ooo op_watched_app)) \<in>
    [\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0 \<and> i < length (W L)]\<^sub>a
      array_watched_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
-  have P: \<open>is_pure nat_assn\<close>
+  have P: \<open>CONSTRAINT is_pure nat_assn\<close>
     by auto
-  have H: \<open>(uncurry2 (\<lambda>xs i. nth_aa xs (nat_of_uint32 i)), uncurry2 (RETURN \<circ>\<circ>\<circ> watched_app))
-  \<in> [comp_PRE (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f p2rel lit_of_natP \<times>\<^sub>f nat_rel) (\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0) (\<lambda>_ ((l, i), j). i < length l \<and> j < length_ll l i)
-       (\<lambda>_. True)]\<^sub>a hrp_comp ((arrayO_assn (arl_assn nat_assn))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
-                       (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f p2rel lit_of_natP \<times>\<^sub>f nat_rel) \<rightarrow> hr_comp nat_assn nat_rel\<close>
+  have H: \<open>(uncurry2 nth_aa_u, uncurry2 (RETURN \<circ>\<circ>\<circ> watched_app))
+  \<in> [comp_PRE
+       (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f p2rel lit_of_natP \<times>\<^sub>f nat_rel)
+       (\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0)
+       (\<lambda>_ ((x, L), L'). L < length x \<and> L' < length (x ! L))
+       (\<lambda>_. True)]\<^sub>a hrp_comp
+                       ((arrayO_assn
+                          (arl_assn nat_assn))\<^sup>k *\<^sub>a
+                        uint32_nat_assn\<^sup>k *\<^sub>a
+                        nat_assn\<^sup>k)
+                       (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f
+                        p2rel lit_of_natP \<times>\<^sub>f
+                        nat_rel) \<rightarrow> hr_comp nat_assn nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF nth_aa_uint_hnr nth_ll_watched_app, OF P]
-    unfolding op_watched_app_def .
+     .
 
   have 1: \<open>?pre' = ?pre\<close>
     using ex_list_watched
@@ -1285,8 +1117,7 @@ lemma delete_index_and_swap_ll_delete_index_and_swap_update:
       nth_list_update' nat_lit_rel_def
       simp del: literal_of_nat.simps)
 
-thm delete_index_and_swap_aa_ll_hnr[to_hnr, unfolded hn_refine_def, simplified]
-lemma (in-) delete_index_and_swap_aa_ll_hnr_u:
+lemma (in-) delete_index_and_swap_aa_ll_hnr_u[sepref_fr_rules]:
   assumes \<open>is_pure R\<close>
   shows \<open>(uncurry2 (\<lambda>xs i. delete_index_and_swap_aa xs (nat_of_uint32 i)), uncurry2 (RETURN ooo delete_index_and_swap_ll))
      \<in> [\<lambda>((l,i), j). i < length l \<and> j < length_ll l i]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k

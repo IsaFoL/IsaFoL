@@ -212,6 +212,9 @@ abbreviation literals_are_N\<^sub>0 where
 definition literals_are_in_N\<^sub>0 :: \<open>nat clause \<Rightarrow> bool\<close> where
   \<open>literals_are_in_N\<^sub>0 C \<longleftrightarrow> set_mset (all_lits_of_m C) \<subseteq> set_mset N\<^sub>1\<close>
 
+lemma literals_are_in_N\<^sub>0_empty[simp]: \<open>literals_are_in_N\<^sub>0 {#}\<close>
+  by (auto simp: literals_are_in_N\<^sub>0_def)
+
 lemma all_lits_of_m_subset_all_lits_of_mmD:
   \<open>a \<in># b \<Longrightarrow> set_mset (all_lits_of_m a) \<subseteq> set_mset (all_lits_of_mm b)\<close>
   by (auto simp: all_lits_of_m_def all_lits_of_mm_def)
@@ -234,6 +237,25 @@ qed
 
 lemma in_N\<^sub>1_atm_of_in_atms_of_iff: \<open>x \<in># N\<^sub>1 \<longleftrightarrow> atm_of x \<in> atms_of N\<^sub>1\<close>
   by (cases x) (auto simp: N\<^sub>1_def atms_of_def atm_of_eq_atm_of image_Un image_image)
+
+definition literals_are_in_N\<^sub>0_mm :: \<open>nat clauses \<Rightarrow> bool\<close> where
+  \<open>literals_are_in_N\<^sub>0_mm C \<longleftrightarrow> set_mset (all_lits_of_mm C) \<subseteq> set_mset N\<^sub>1\<close>
+
+lemma literals_are_in_N\<^sub>0_mm_in_N\<^sub>1:
+  assumes
+    N1: \<open>literals_are_in_N\<^sub>0_mm (mset `# mset xs)\<close> and
+    i_xs: \<open>i < length xs\<close> and j_xs: \<open>j < length (xs ! i)\<close>
+  shows \<open>xs ! i ! j \<in># N\<^sub>1\<close>
+proof -
+  have \<open>xs ! i \<in># mset xs\<close>
+    using i_xs by auto
+  thm in_all_lits_of_m_ain_atms_of_iff
+  then have \<open>xs ! i ! j \<in> set_mset (all_lits_of_mm (mset `# mset xs))\<close>
+    using j_xs by (auto simp: in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def Bex_def
+      intro!: exI[of _ \<open>xs ! i\<close>])
+  then show ?thesis
+    using N1 unfolding literals_are_in_N\<^sub>0_mm_def by blast
+qed
 
 abbreviation D\<^sub>0 :: \<open>(nat \<times> nat literal) set\<close> where
   \<open>D\<^sub>0 \<equiv> (\<lambda>L. (nat_of_lit L, L)) ` set_mset N\<^sub>1\<close>
@@ -411,14 +433,14 @@ definition unit_prop_body_wl_D_inv where
     unit_prop_body_wl_inv T' i L \<and> literals_are_N\<^sub>0 T' \<and> L \<in> snd ` D\<^sub>0
   \<close>
 
-text ‹TODO:
-  \<^item> should be the definition of \<^term>‹unit_prop_body_wl_find_unwatched_inv›.
+text \<open>TODO:
+  \<^item> should be the definition of \<^term>\<open>unit_prop_body_wl_find_unwatched_inv\<close>.
   \<^item> the distinctiveness should probably be only a property, not a part of the definition.
-›
+\<close>
 definition (in -) unit_prop_body_wl_D_find_unwatched_inv where
 \<open>unit_prop_body_wl_D_find_unwatched_inv f C S \<longleftrightarrow>
    unit_prop_body_wl_find_unwatched_inv f C S \<and>
-   (f \<noteq> None \<longrightarrow> the f > 0 \<and> the f < length (get_clauses_wl S ! C) \<and>
+   (f \<noteq> None \<longrightarrow> the f \<ge> 2 \<and> the f < length (get_clauses_wl S ! C) \<and>
    get_clauses_wl S ! C ! (the f) \<noteq> get_clauses_wl S ! C ! 0  \<and>
    get_clauses_wl S ! C ! (the f) \<noteq> get_clauses_wl S ! C ! 1)\<close>
 
@@ -597,7 +619,7 @@ definition unit_propagation_inner_loop_wl_loop_D :: "nat literal \<Rightarrow> n
          additional_WS_invs (st_l_of_wl (Some (L, w)) S) \<and>
         correct_watching S \<and> w \<le> length (watched_by S L) \<and>
         literals_are_N\<^sub>0 S \<and> L \<in> snd ` D\<^sub>0\<^esup>
-      (\<lambda>(w, (M, N, U, D, NP, UP, Q, W)). w < length (W L) \<and> D = None)
+      (\<lambda>(w, S). w < length (watched_by S L) \<and> get_conflict_wl S = None)
       (\<lambda>(w, S). do {
         unit_propagation_inner_loop_body_wl_D L w S
       })
@@ -717,8 +739,9 @@ definition skip_and_resolve_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st
         WHILE\<^sub>T\<^bsup>\<lambda>(brk, S). skip_and_resolve_loop_inv (twl_st_of_wl None S\<^sub>0) (brk, twl_st_of_wl None S) \<and>
          additional_WS_invs (st_l_of_wl None S) \<and> correct_watching S \<and> literals_are_N\<^sub>0 S\<^esup>
         (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided (hd (get_trail_wl S)))
-        (\<lambda>(_, S).
+        (\<lambda>(brk, S).
           do {
+            ASSERT(\<not>brk \<and> \<not>is_decided (hd (get_trail_wl S)));
             let D' = the (get_conflict_wl S);
             let (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S));
             if -L \<notin># D' then
@@ -825,6 +848,8 @@ proof -
     subgoal unfolding invar_def by fast
     subgoal by fast
     subgoal by fast
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     subgoal unfolding invar_def by auto
     subgoal by auto

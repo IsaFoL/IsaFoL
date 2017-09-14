@@ -377,6 +377,13 @@ lemma nat_assn_zero:
   \<open>(uncurry0 (return 0), uncurry0 (RETURN 0)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_012)
 
+definition \<open>one_nat_uint32 = (1 :: nat)\<close>
+
+lemma one_nat_uint32[sepref_fr_rules]:
+  \<open>(uncurry0 (return 1), uncurry0 (RETURN one_nat_uint32)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: one_nat_uint32_def uint32_nat_rel_def br_def nat_of_uint32_012)
+
 lemma uint32_nat_assn_less[sepref_fr_rules]:
   \<open>(uncurry (return oo op <), uncurry (RETURN oo op <)) \<in>
     uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
@@ -406,5 +413,22 @@ lemma safe_minus[sepref_fr_rules]:
   by sepref_to_hoare
    (sep_auto simp: fast_minus_def uint32_nat_rel_def br_def nat_of_uint32_le_minus
       nat_of_uint32_notle_minus nat_of_uint32_le_iff fast_minus_uint32_def)
+
+lemma word_of_int_int_unat[simp]: \<open>word_of_int (int (unat x)) = x\<close>
+  unfolding unat_def
+  apply transfer
+  by (simp add: bintr_ge0)
+
+lemma uint32_of_nat_nat_of_uint32[simp]: \<open>uint32_of_nat (nat_of_uint32 x) = x\<close>
+  unfolding uint32_of_nat_def
+  by transfer auto
+
+
+lemma uint32_nat_assn_0_eq: \<open>uint32_nat_assn 0 a = \<up> (a = 0)\<close>
+  by (auto simp: uint32_nat_rel_def br_def pure_def nat_of_uint32_0_iff)
+
+lemma uint32_nat_assn_nat_assn_nat_of_uint32:
+   \<open>uint32_nat_assn aa a = nat_assn aa (nat_of_uint32 a)\<close>
+  by (auto simp: pure_def uint32_nat_rel_def br_def)
 
 end

@@ -125,11 +125,6 @@ lemma remove_one_lit_from_wq_def:
   \<open>remove_one_lit_from_wq L S = set_clauses_to_update_l (clauses_to_update_l S - {#L#}) S\<close>
   by (cases S) auto
 
-(* TODO Move  *)
-lemma Collect_minus_single_Collect: \<open>{x. P x} - {a} = {x . P x \<and> x \<noteq> a}\<close>
-  by auto
-(* End Move *)
-
 lemma mset_set_mset_set_minus_id_iff:
   assumes \<open>finite A\<close>
   shows \<open>mset_set A = mset_set (A - B) \<longleftrightarrow> (\<forall>b \<in> B. b \<notin> A)\<close>
@@ -240,24 +235,6 @@ definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat 
       }
    }\<close>
 
-(* TODO Move  *)
-lemma refine_add_invariants':
-  assumes
-    \<open>f S \<le> \<Down> {(S, S'). Q' S S' \<and> Q S} gS\<close> and
-    \<open>y \<le> \<Down> {((i, S), S'). P i S S'} (f S)\<close> and
-    \<open>nofail gS\<close>
-  shows \<open>y \<le> \<Down> {((i, S), S'). P i S S' \<and> Q S'} (f S)\<close>
-  using assms unfolding pw_le_iff pw_conc_inres pw_conc_nofail
-  by force
-
-lemma "weaken_\<Down>": \<open>R' \<subseteq> R \<Longrightarrow> f \<le> \<Down> R' g \<Longrightarrow> f \<le> \<Down> R g\<close>
-  by (meson pw_ref_iff subset_eq)
-
-method match_Down =
-  (match conclusion in \<open>f \<le> \<Down> R g\<close> for f g R \<Rightarrow>
-    \<open>match premises in I: \<open>f \<le> \<Down> R' g\<close> for R'
-       \<Rightarrow> \<open>rule "weaken_\<Down>"[OF _ I]\<close>\<close>)
-(* End Move  *)
 
 subsection \<open>The Functions\<close>
 
@@ -1286,13 +1263,6 @@ next
         all_conj_distrib all_lits_of_mm_union)
 qed
 
-(* TODO Move *)
-lemma in_set_image_subsetD: \<open> f ` A \<subseteq> B \<Longrightarrow> x \<in> A \<Longrightarrow>f x \<in> B\<close>
-  by blast
-
-lemma nofail_Down_nofail: \<open>nofail gS \<Longrightarrow> fS \<le> \<Down> R gS \<Longrightarrow> nofail fS\<close>
-  using pw_ref_iff by blast
-(* ENd Move *)
 
 lemma backtrack_wl_spec:
   \<open>(backtrack_wl, backtrack_l)
@@ -1619,14 +1589,6 @@ definition cdcl_twl_o_prog_wl :: "'v twl_st_wl \<Rightarrow> (bool \<times> 'v t
     }
   \<close>
 
-(* TODO Move *)
-text \<open>
-  This lemma is not general enough to move to Isabelle, but might be interesting in other
-  cases.\<close>
-lemma set_Collect_Pair_to_fst_snd:
-  \<open>{((a, b), (a', b')). P a b a' b'} = {(e, f). P (fst e) (snd e) (fst f) (snd f)}\<close>
-  by auto
-(* End Move *)
 
 lemma cdcl_twl_o_prog_wl_spec:
   \<open>(cdcl_twl_o_prog_wl, cdcl_twl_o_prog_l) \<in> {(S::'v twl_st_wl, S'::'v twl_st_l).
@@ -1844,7 +1806,6 @@ theorem init_dt_wl:
   assumes
     dist: \<open>\<forall>C \<in> set CS. distinct C\<close> and
     le: \<open>\<forall>C \<in> set CS. length C \<ge> 1\<close> and
-    taut: \<open>\<forall>C \<in> set CS. \<not>tautology (mset C)\<close> and
     no_confl: \<open>get_conflict_wl S = None\<close>
   shows
     \<open>cdcl_twl_stgy_prog_wl S \<le> SPEC (\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy
@@ -1867,16 +1828,16 @@ proof -
     \<open>additional_WS_invs (st_l_of_wl None S)\<close>
     unfolding S S\<^sub>0
     subgoal
-      using init_dt(1)[OF dist le taut]
+      using init_dt(1)[OF dist le]
         by (cases \<open>(init_dt CS ([], [[]], 0, None, {#}, {#}, {#}, {#}))\<close>) auto
     subgoal
-      using init_dt(2)[OF dist le taut]
+      using init_dt(2)[OF dist le]
         by (cases \<open>(init_dt CS ([], [[]], 0, None, {#}, {#}, {#}, {#}))\<close>) auto
     subgoal
-      using init_dt(3)[OF dist le taut]
+      using init_dt(3)[OF dist le]
         by (cases \<open>(init_dt CS ([], [[]], 0, None, {#}, {#}, {#}, {#}))\<close>) auto
     subgoal
-      using init_dt(5)[OF dist le taut]
+      using init_dt(5)[OF dist le]
       by (cases \<open>(init_dt CS ([], [[]], 0, None, {#}, {#}, {#}, {#}))\<close>)
         (auto simp: additional_WS_invs_def)
     done

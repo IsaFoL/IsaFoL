@@ -1,10 +1,12 @@
 (*  Title:       Integration of IsaFoR Terms
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
-    Maintainer:  Jasmin Blanchette <jasmin.blanchette at inria.fr>
+    Maintainer:  Jasmin Blanchette <j.c.blanchette at vu.nl>, 2014, 2017
 *)
 
+section \<open>Integration of IsaFoR Terms\<close>
+
 theory IsaFoR_Term
-imports"$AFP/Deriving/Derive" "$ISAFOR/Rewriting/Unification" Substitution
+  imports "$AFP/Deriving/Derive" "$ISAFOR/Rewriting/Unification" Abstract_Substitution
 begin
 
 hide_const (open) mgu
@@ -26,7 +28,7 @@ proof
       have "t \<cdot> \<tau> \<cdot> \<tau> = t \<cdot> \<tau>"
         by (induct t) (auto simp add: \<tau>_def)
     }
-    thus "substitution_ops.is_ground_subst op \<cdot> \<tau> \<and> substitution_ops.subst_cls_list op \<cdot> CC \<sigma> = substitution_ops.subst_cls_list op \<cdot> CC \<tau>"
+    then show "substitution_ops.is_ground_subst op \<cdot> \<tau> \<and> substitution_ops.subst_cls_list op \<cdot> CC \<sigma> = substitution_ops.subst_cls_list op \<cdot> CC \<tau>"
       unfolding is_ground_subst_def is_ground_atm_def by simp
   qed
 qed (auto intro: subst_term_eqI)

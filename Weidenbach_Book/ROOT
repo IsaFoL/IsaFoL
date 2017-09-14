@@ -1,6 +1,6 @@
 chapter Weidenbach_Book
 
-session "Imports" (Weidenbach_Book) = "Refine_Imperative_HOL" +
+session "Imports" (Weidenbach_Book) = "Sepref_IICF" +
   description \<open>This session imports HOL, some additional useful theories from HOL, and our own
   extensions above these lemmas.\<close>
   options [document = pdf, document_output = "output"]

@@ -1,61 +1,58 @@
 (*  Title:       Candidate Models for Ground Resolution
-    Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
+    Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2014, 2017
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
-    Maintainer:  Anders Schlichtkrull
+    Maintainer:  Anders Schlichtkrull <andschl at dtu.dk>
 *)
 
-section {* Candidate Models for Ground Resolution *}
+section \<open>Candidate Models for Ground Resolution\<close>
 
 theory Ground_Resolution_Model
-imports "../lib/Herbrand_Interpretation"
+  imports "../lib/Herbrand_Interpretation"
 begin
 
-text {*
+text \<open>
 The proofs of refutational completeness for the two resolution inference systems presented in
 Section 3 (``Standard Resolution'') of Bachmair and Ganzinger's chapter share mostly the same
 candidate model construction. The literal selection capability needed for the second system is
 ignored by the first one, by taking @{term "\<lambda>_. {}"} as instantiation for the @{text S}
 parameter.
-*}
+\<close>
 
 locale selection =
   fixes S :: "'a clause \<Rightarrow> 'a clause"
   assumes
-    S_selects_subseteq: "\<And>C. S C \<le># C" and
-    S_selects_neg_lits: "\<And>C L. L \<in># S C \<Longrightarrow> is_neg L"
+    S_selects_subseteq: "S C \<le># C" and
+    S_selects_neg_lits: "L \<in># S C \<Longrightarrow> is_neg L"
 
-locale ground_resolution_with_selection =
-  selection S for S :: "('a :: wellorder) clause \<Rightarrow> 'a clause"
+locale ground_resolution_with_selection = selection S
+  for S :: "('a :: wellorder) clause \<Rightarrow> 'a clause"
 begin
 
-text {*
+text \<open>
 The following commands corresponds to Definition 3.14, which generalizes Definition 3.1.
 @{text "production C"} is denoted $\varepsilon_C$ in the chapter; @{text "interp C"} is denoted
 $I_C$; @{text "Interp C"} is denoted $I^C$; and @{text Interp_N} is denoted $I_N$. The mutually
 recursive definition from the chapter is massaged to simplify the termination argument. The
 @{text production_unfold} lemma below gives the intended characterization.
-*}
+\<close>
 
 context
   fixes N :: "'a clause set"
 begin
 
-function
-  production :: "'a clause \<Rightarrow> 'a interp"
-where
+function production :: "'a clause \<Rightarrow> 'a interp" where
   "production C =
-   {A. C \<in> N \<and> C \<noteq> {#} \<and> Max (set_mset C) = Pos A \<and> \<not> (\<Union>D \<in> {D. D < C}. production D) \<Turnstile> C \<and>
-      S C = {#}}"
+   {A. C \<in> N \<and> C \<noteq> {#} \<and> Max_mset C = Pos A \<and> \<not> (\<Union>D \<in> {D. D < C}. production D) \<Turnstile> C \<and> S C = {#}}"
   by auto
-  termination by (relation "{(D, C). D < C}") (auto simp: wf_less_multiset)
+termination by (rule "termination"[OF wf, simplified])
 
-declare production.simps[simp del]
+declare production.simps [simp del]
 
 definition interp :: "'a clause \<Rightarrow> 'a interp" where
   "interp C = (\<Union>D \<in> {D. D < C}. production D)"
 
 lemma production_unfold:
-  "production C = {A. C \<in> N \<and> C \<noteq> {#} \<and> Max (set_mset C) = Pos A \<and> \<not> interp C \<Turnstile> C \<and> S C = {#}}"
+  "production C = {A. C \<in> N \<and> C \<noteq> {#} \<and> Max_mset C = Pos A \<and> \<not> interp C \<Turnstile> C \<and> S C = {#}}"
   unfolding interp_def by (rule production.simps)
 
 abbreviation productive :: "'a clause \<Rightarrow> bool" where
@@ -64,15 +61,14 @@ abbreviation productive :: "'a clause \<Rightarrow> bool" where
 abbreviation produces :: "'a clause \<Rightarrow> 'a \<Rightarrow> bool" where
   "produces C A \<equiv> production C = {A}"
 
-lemma producesD:
-  "produces C A \<Longrightarrow> C \<in> N \<and> C \<noteq> {#} \<and> Pos A = Max (set_mset C) \<and> \<not> interp C \<Turnstile> C \<and> S C = {#}"
+lemma producesD: "produces C A \<Longrightarrow> C \<in> N \<and> C \<noteq> {#} \<and> Pos A = Max_mset C \<and> \<not> interp C \<Turnstile> C \<and> S C = {#}"
   unfolding production_unfold by auto
 
 definition Interp :: "'a clause \<Rightarrow> 'a interp" where
   "Interp C = interp C \<union> production C"
 
 lemma interp_subseteq_Interp[simp]: "interp C \<subseteq> Interp C"
-  unfolding Interp_def by simp
+  by (simp add: Interp_def)
 
 lemma Interp_as_UNION: "Interp C = (\<Union>D \<in> {D. D \<le> C}. production D)"
   unfolding Interp_def interp_def less_eq_multiset_def by fast
@@ -80,31 +76,30 @@ lemma Interp_as_UNION: "Interp C = (\<Union>D \<in> {D. D \<le> C}. production D
 lemma productive_not_empty: "productive C \<Longrightarrow> C \<noteq> {#}"
   unfolding production_unfold by simp
 
-lemma productive_imp_produces_Max_literal: "productive C \<Longrightarrow> produces C (atm_of (Max (set_mset C)))"
+lemma productive_imp_produces_Max_literal: "productive C \<Longrightarrow> produces C (atm_of (Max_mset C))"
   unfolding production_unfold by (auto simp del: atm_of_Max_lit)
 
 lemma productive_imp_produces_Max_atom: "productive C \<Longrightarrow> produces C (Max (atms_of C))"
   unfolding atms_of_def Max_atm_of_set_mset_commute[OF productive_not_empty]
   by (rule productive_imp_produces_Max_literal)
 
-lemma produces_imp_Max_literal: "produces C A \<Longrightarrow> A = atm_of (Max (set_mset C))"
-  by (metis Max_singleton insert_not_empty productive_imp_produces_Max_literal)
+lemma produces_imp_Max_literal: "produces C A \<Longrightarrow> A = atm_of (Max_mset C)"
+  using productive_imp_produces_Max_literal by auto
 
 lemma produces_imp_Max_atom: "produces C A \<Longrightarrow> A = Max (atms_of C)"
-  by (metis Max_singleton insert_not_empty productive_imp_produces_Max_atom)
+  using producesD produces_imp_Max_literal by auto
 
 lemma produces_imp_Pos_in_lits: "produces C A \<Longrightarrow> Pos A \<in># C"
-  by (auto intro: Max_in_lits dest!: producesD)
+  by (simp add: producesD)
 
 lemma productive_in_N: "productive C \<Longrightarrow> C \<in> N"
   unfolding production_unfold by simp
 
 lemma produces_imp_atms_leq: "produces C A \<Longrightarrow> B \<in> atms_of C \<Longrightarrow> B \<le> A"
-  by (metis Max_ge finite_atms_of insert_not_empty productive_imp_produces_Max_atom
-    singleton_inject)
+  using Max.coboundedI produces_imp_Max_atom by blast
 
 lemma produces_imp_neg_notin_lits: "produces C A \<Longrightarrow> \<not> Neg A \<in># C"
-  by (auto intro!: pos_Max_imp_neg_notin dest: producesD simp del: not_gr_zero)
+  by (simp add: pos_Max_imp_neg_notin producesD)
 
 lemma less_eq_imp_interp_subseteq_interp: "C \<le> D \<Longrightarrow> interp C \<subseteq> interp D"
   unfolding interp_def by auto (metis order.strict_trans2)
@@ -120,12 +115,10 @@ lemma less_eq_imp_production_subseteq_Interp: "C \<le> D \<Longrightarrow> produ
   by (metis le_imp_less_or_eq le_supI1 sup_ge2)
 
 lemma less_imp_Interp_subseteq_interp: "C < D \<Longrightarrow> Interp C \<subseteq> interp D"
-  unfolding Interp_def
-  by (auto simp: less_eq_imp_interp_subseteq_interp less_imp_production_subseteq_interp)
+  by (simp add: Interp_def less_eq_imp_interp_subseteq_interp less_imp_production_subseteq_interp)
 
 lemma less_eq_imp_Interp_subseteq_Interp: "C \<le> D \<Longrightarrow> Interp C \<subseteq> Interp D"
-  using less_imp_Interp_subseteq_interp
-  unfolding Interp_def by (metis le_imp_less_or_eq le_supI2 subset_refl sup_commute)
+  using Interp_def less_eq_imp_interp_subseteq_Interp less_eq_imp_production_subseteq_Interp by auto
 
 lemma false_Interp_to_true_interp_imp_less_multiset: "A \<notin> Interp C \<Longrightarrow> A \<in> interp D \<Longrightarrow> C < D"
   using less_eq_imp_interp_subseteq_Interp not_less by blast
@@ -154,36 +147,28 @@ lemma Interp_subseteq_INTERP: "Interp C \<subseteq> INTERP"
 lemma produces_imp_in_interp:
   assumes a_in_c: "Neg A \<in># C" and d: "produces D A"
   shows "A \<in> interp C"
-proof -
-  from d have "Max (set_mset D) = Pos A"
-    using production_unfold by blast
-  hence "D < {#Neg A#}"
-    by (meson Max_pos_neg_less_multiset union_single_eq_member)
-  moreover have "{#Neg A#} \<le> C"
-    by (rule  subset_eq_imp_le_multiset) (rule mset_subset_eq_single[OF a_in_c])
-  ultimately show ?thesis
-    using d by (blast dest: less_eq_imp_interp_subseteq_interp less_imp_production_subseteq_interp)
-qed
+  by (metis Interp_def Max_pos_neg_less_multiset UnCI a_in_c d
+    false_interp_to_true_Interp_imp_le_multiset not_less producesD singletonI)
 
 lemma neg_notin_Interp_not_produce: "Neg A \<in># C \<Longrightarrow> A \<notin> Interp D \<Longrightarrow> C \<le> D \<Longrightarrow> \<not> produces D'' A"
-  by (auto dest: produces_imp_in_interp less_eq_imp_interp_subseteq_Interp)
+  using less_eq_imp_interp_subseteq_Interp produces_imp_in_interp by blast
 
 lemma in_production_imp_produces: "A \<in> production C \<Longrightarrow> produces C A"
-  by (metis insert_absorb productive_imp_produces_Max_atom singleton_insert_inj_eq')
+  using productive_imp_produces_Max_atom by fastforce
 
 lemma not_produces_imp_notin_production: "\<not> produces C A \<Longrightarrow> A \<notin> production C"
-  by (metis in_production_imp_produces)
+  using in_production_imp_produces by blast
 
 lemma not_produces_imp_notin_interp: "(\<And>D. \<not> produces D A) \<Longrightarrow> A \<notin> interp C"
   unfolding interp_def by (fast intro!: in_production_imp_produces)
 
-text {*
+text \<open>
 The results below corresponds to Lemma 3.4.
 
 \begin{nit}
-If $D = D'$ and $D$ is productive, $I^D \subseteq I_{D'}$ does not hold. 
+If $D = D'$ and $D$ is productive, $I^D \subseteq I_{D'}$ does not hold.
 \end{nit}
-*}
+\<close>
 
 lemma true_Interp_imp_general:
   assumes
@@ -198,15 +183,15 @@ proof (cases "\<exists>A. Pos A \<in># C \<and> A \<in> Interp D")
     by blast
   from a_at_d have "A \<in> interp D'"
     using d_lt_d' less_imp_Interp_subseteq_interp by blast
-  thus ?thesis
+  then show ?thesis
     using subs a_in_c by (blast dest: contra_subsetD)
 next
   case False
   then obtain A where a_in_c: "Neg A \<in># C" and "A \<notin> Interp D"
     using c_at_d unfolding true_cls_def by blast
-  hence "\<And>D''. \<not> produces D'' A"
+  then have "\<And>D''. \<not> produces D'' A"
     using c_le_d neg_notin_Interp_not_produce by simp
-  thus ?thesis
+  then show ?thesis
     using a_in_c subs not_produces_imp_notin_production by auto
 qed
 
@@ -217,8 +202,7 @@ lemma true_Interp_imp_Interp: "C \<le> D \<Longrightarrow> D < D' \<Longrightarr
   using Interp_as_UNION interp_subseteq_Interp true_Interp_imp_general by simp
 
 lemma true_Interp_imp_INTERP: "C \<le> D \<Longrightarrow> Interp D \<Turnstile> C \<Longrightarrow> INTERP \<Turnstile> C"
-  using INTERP_def interp_subseteq_INTERP
-    true_Interp_imp_general[OF _ le_multiset_right_total]
+  using INTERP_def interp_subseteq_INTERP true_Interp_imp_general[OF _ le_multiset_right_total]
   by simp
 
 lemma true_interp_imp_general:
@@ -234,15 +218,15 @@ proof (cases "\<exists>A. Pos A \<in># C \<and> A \<in> interp D")
     by blast
   from a_at_d have "A \<in> interp D'"
     using d_lt_d' less_eq_imp_interp_subseteq_interp[OF less_imp_le] by blast
-  thus ?thesis
+  then show ?thesis
     using subs a_in_c by (blast dest: contra_subsetD)
 next
   case False
   then obtain A where a_in_c: "Neg A \<in># C" and "A \<notin> interp D"
     using c_at_d unfolding true_cls_def by blast
-  hence "\<And>D''. \<not> produces D'' A"
+  then have "\<And>D''. \<not> produces D'' A"
     using c_le_d by (auto dest: produces_imp_in_interp less_eq_imp_interp_subseteq_interp)
-  thus ?thesis
+  then show ?thesis
     using a_in_c subs not_produces_imp_notin_production by auto
 qed
 
@@ -253,16 +237,15 @@ lemma true_interp_imp_Interp: "C \<le> D \<Longrightarrow> D < D' \<Longrightarr
   using Interp_as_UNION interp_subseteq_Interp[of D'] true_interp_imp_general by simp
 
 lemma true_interp_imp_INTERP: "C \<le> D \<Longrightarrow> interp D \<Turnstile> C \<Longrightarrow> INTERP \<Turnstile> C"
-  using INTERP_def interp_subseteq_INTERP
-    true_interp_imp_general[OF _ le_multiset_right_total]
+  using INTERP_def interp_subseteq_INTERP true_interp_imp_general[OF _ le_multiset_right_total]
   by simp
 
 lemma productive_imp_false_interp: "productive C \<Longrightarrow> \<not> interp C \<Turnstile> C"
   unfolding production_unfold by simp
 
-text {*
+text \<open>
 This corresponds to Lemma 3.3:
-*}
+\<close>
 
 lemma productive_imp_true_in_Interp:
   assumes "productive C"
@@ -270,7 +253,7 @@ lemma productive_imp_true_in_Interp:
 proof -
   obtain A where a: "produces C A"
     using assms productive_imp_produces_Max_atom by blast
-  hence a_in_c: "Pos A \<in># C"
+  then have a_in_c: "Pos A \<in># C"
     by (rule produces_imp_Pos_in_lits)
   moreover have "A \<in> Interp C"
     using a less_eq_imp_production_subseteq_Interp by blast
@@ -281,28 +264,28 @@ qed
 lemma productive_imp_true_in_INTERP: "productive C \<Longrightarrow> INTERP \<Turnstile> C"
   by (fast intro: productive_imp_true_in_Interp true_Interp_imp_INTERP)
 
-text {*
+text \<open>
 This corresponds to Lemma 3.5:
-*}
+\<close>
 
 lemma max_pos_imp_true_in_Interp:
-  assumes "C \<in> N" and "C \<noteq> {#}" and "Max (set_mset C) = Pos A" and "S C = {#}"
+  assumes "C \<in> N" and "C \<noteq> {#}" and "Max_mset C = Pos A" and "S C = {#}"
   shows "Interp C \<Turnstile> C"
 proof (cases "productive C")
   case True
-  thus ?thesis
+  then show ?thesis
     by (fast intro: productive_imp_true_in_Interp)
 next
   case False
-  hence "interp C \<Turnstile> C"
+  then have "interp C \<Turnstile> C"
     using assms unfolding production_unfold by simp
-  thus ?thesis
+  then show ?thesis
     unfolding Interp_def using False by auto
 qed
 
-text {*
+text \<open>
 The following results correspond to Lemma 3.6:
-*}
+\<close>
 
 lemma max_atm_imp_true_in_Interp:
   assumes
@@ -313,14 +296,15 @@ lemma max_atm_imp_true_in_Interp:
   shows "Interp C \<Turnstile> C"
 proof (cases "Neg A \<in># C")
   case True
-  thus ?thesis
+  then show ?thesis
     using pos_in pos_neg_in_imp_true by metis
 next
   case False
-  moreover have ne: "C \<noteq> {#}" using pos_in by auto
-  ultimately have "Max (set_mset C) = Pos A"
+  moreover have ne: "C \<noteq> {#}"
+    using pos_in by auto
+  ultimately have "Max_mset C = Pos A"
     using max_atm using Max_in_lits Max_lit_eq_pos_or_neg_Max_atm by metis
-  thus ?thesis
+  then show ?thesis
     using ne c_in_n s_c_e by (blast intro: max_pos_imp_true_in_Interp)
 qed
 
@@ -333,7 +317,8 @@ lemma false_Interp_imp_general:
     subs: "interp C \<subseteq> (\<Union>C \<in> CC. production C)"
   shows "\<not> (\<Union>C \<in> CC. production C) \<Turnstile> D'"
 proof -
-  { assume cc_blw_d': "(\<Union>C \<in> CC. production C) \<Turnstile> D'"
+  {
+    assume cc_blw_d': "(\<Union>C \<in> CC. production C) \<Turnstile> D'"
     have "Interp D \<subseteq> (\<Union>C \<in> CC. production C)"
       using less_imp_Interp_subseteq_interp d_lt_c subs by blast
     then obtain A where a_in_d': "Pos A \<in># D'" and a_blw_cc: "A \<in> (\<Union>C \<in> CC. production C)"
@@ -347,26 +332,31 @@ proof -
     have leq_dc': "D \<le> C'"
       using a_at_d d'_at_d prod_c'
       by (auto simp: Interp_def intro: false_interp_to_true_Interp_imp_le_multiset)
-    hence "D' \<le> C'"
+    then have "D' \<le> C'"
       using d'_le_d order_trans by blast
-    hence max_d': "Max (atms_of D') = A"
+    then have max_d': "Max (atms_of D') = A"
       using a_in_d' max_c' by (fast intro: pos_lit_in_atms_of le_multiset_Max_in_imp_Max)
 
-    { assume "D' \<in> N \<and> S D' = {#}"
-      hence "Interp D' \<Turnstile> D'"
+    {
+      assume "D' \<in> N \<and> S D' = {#}"
+      then have "Interp D' \<Turnstile> D'"
         using a_in_d' max_d' by (blast intro: max_atm_imp_true_in_Interp)
-      hence "Interp D \<Turnstile> D'"
+      then have "Interp D \<Turnstile> D'"
         using d'_le_d by (auto intro: true_Interp_imp_Interp simp: less_eq_multiset_def)
-      hence False
-        using d'_at_d by satx }
+      then have False
+        using d'_at_d by satx
+    }
     moreover
-    { assume "Max (atms_of D') < Max (atms_of D)"
-      hence False
+    {
+      assume "Max (atms_of D') < Max (atms_of D)"
+      then have False
         using max_d' leq_dc' max_c' d'_le_d
-        by (metis le_imp_less_or_eq le_multiset_empty_right less_eq_Max_atms_of less_imp_not_less) }
+        by (metis le_imp_less_or_eq le_multiset_empty_right less_eq_Max_atms_of less_imp_not_less)
+    }
     ultimately have False
-      using in_n_or_max_gt by satx }
-  thus ?thesis
+      using in_n_or_max_gt by satx
+  }
+  then show ?thesis
     by satx
 qed
 
@@ -383,11 +373,10 @@ lemma false_Interp_imp_Interp:
 lemma false_Interp_imp_INTERP:
   "D' \<le> D \<Longrightarrow> D' \<in> N \<and> S D' = {#} \<or> Max (atms_of D') < Max (atms_of D) \<Longrightarrow> \<not> Interp D \<Turnstile> D' \<Longrightarrow>
    \<not> INTERP \<Turnstile> D'"
-  using INTERP_def interp_subseteq_INTERP
-    false_Interp_imp_general[OF _ _ _ le_multiset_right_total]
+  using INTERP_def interp_subseteq_INTERP false_Interp_imp_general[OF _ _ _ le_multiset_right_total]
   by simp
 
-text {*
+text \<open>
 Lemma 3.7 is a problem child. It is stated below but not proved; instead, a counterexample is
 displayed. This is not much of a problem, because it is not invoked in the rest of the chapter.
 
@@ -397,7 +386,7 @@ In the lemma's statement, ``then $D'$'' should be ``then $C$.'' It is also not c
 lemma's proof, the case distinction is incomplete (as can be seen by instantiating the proof with
 the counterexample).
 \end{nit}
-*}
+\<close>
 
 lemma
   assumes "D \<in> N" and "\<And>D'. D' < D \<Longrightarrow> Interp D' \<Turnstile> C"

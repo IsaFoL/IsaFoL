@@ -183,8 +183,7 @@ proof -
         let ?S' = \<open>(M, N, U, None, NP, UP, add_mset (L, C) WS', Q)\<close>
         let ?T = \<open>set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S\<close>
         fix K M' N' U' D' WS'' NP' UP' Q' N'' U''
-(*         assume \<open>?T = (M', N', U', D', NP', UP', WS'', Q')\<close> *)
-        have \<open>update_clauseS L C (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)
+        show \<open>update_clauseS L C (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)
                \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> twl_stgy_invs S' \<and> cdcl_twl_cp\<^sup>*\<^sup>* S S' \<and> (S', S) \<in> measure (size \<circ> clauses_to_update))\<close>
           apply (rewrite at \<open>set_clauses_to_update _ \<hole>\<close> S)
           apply (rewrite at \<open>clauses_to_update \<hole>\<close> S)
@@ -218,12 +217,6 @@ proof -
           show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
             by (simp add: WS'_def[symmetric] WS_WS' S)
         qed
-        moreover
-          assume \<open>\<not>update_clauseS L C (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)
-               \<le> SPEC (\<lambda>S'. twl_struct_invs S' \<and> twl_stgy_invs S' \<and> cdcl_twl_cp\<^sup>*\<^sup>* S S' \<and> (S', S) \<in> measure (size \<circ> clauses_to_update))\<close>
-          ultimately have False by fast
-        then show \<open>- La \<in> lits_of_l (get_trail ?T)\<close>
-          ..
       }
     }
   qed
@@ -708,26 +701,24 @@ definition propgate_unit_bt :: \<open>'v literal \<Rightarrow> 'v twl_st \<Right
     (Propagated (-L) (the D) # M, N, U, None, NP, add_mset (the D) UP, WS, {#L#}))\<close>
 
 definition backtrack_inv where
-  \<open>backtrack_inv S \<longleftrightarrow> get_trail S \<noteq> []\<close>
+  \<open>backtrack_inv S \<longleftrightarrow> get_trail S \<noteq> [] \<and> get_conflict S \<noteq> Some {#}\<close>
 
 definition backtrack :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
   \<open>backtrack S =
     do {
-      do {
-        ASSERT(backtrack_inv S);
-        let L = lit_of (hd (get_trail S));
-        S \<leftarrow> extract_shorter_conflict S;
-        S \<leftarrow> reduce_trail_bt L S;
+      ASSERT(backtrack_inv S);
+      let L = lit_of (hd (get_trail S));
+      S \<leftarrow> extract_shorter_conflict S;
+      S \<leftarrow> reduce_trail_bt L S;
 
-        if size (the (get_conflict S)) > 1
-        then do {
-          L' \<leftarrow> SPEC(\<lambda>L'. L' \<in># the (get_conflict S) - {#-L#} \<and> L \<noteq> -L' \<and>
-            get_level (get_trail S) L' = get_maximum_level (get_trail S) (the (get_conflict S) - {#-L#}));
-          RETURN (propgate_bt L L' S)
-        }
-        else do {
-          RETURN (propgate_unit_bt L S)
-        }
+      if size (the (get_conflict S)) > 1
+      then do {
+        L' \<leftarrow> SPEC(\<lambda>L'. L' \<in># the (get_conflict S) - {#-L#} \<and> L \<noteq> -L' \<and>
+          get_level (get_trail S) L' = get_maximum_level (get_trail S) (the (get_conflict S) - {#-L#}));
+        RETURN (propgate_bt L L' S)
+      }
+      else do {
+        RETURN (propgate_unit_bt L S)
       }
     }
   \<close>
@@ -820,8 +811,7 @@ proof -
      (*  propgate_bt_def propgate_unit_bt_def *)
   proof (refine_vcg; remove_dummy_vars; clarify?)
     show \<open>backtrack_inv S\<close>
-      using trail unfolding backtrack_inv_def .
-
+      using trail confl unfolding backtrack_inv_def by fast
 
     fix M M1 M2 :: \<open>('a, 'a clause) ann_lits\<close> and
       N U :: \<open>'a twl_clss\<close> and
@@ -922,7 +912,6 @@ proof -
       ultimately show ?thesis
         by simp
     qed
-
 
     then have \<open>\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
       get_level M K = get_maximum_level M (remove1_mset (-lit_of (hd M)) D') + 1\<close>
