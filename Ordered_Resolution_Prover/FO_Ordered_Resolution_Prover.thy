@@ -1817,7 +1817,7 @@ proof -
           using Max_in by metis
         then have is_ground_Max: "is_ground_atm (Max (atms_of D \<union> set Ai))"
           using gD gai2 is_ground_cls_imp_is_ground_atm unfolding is_ground_atm_mset_def by auto
-        (* FIXME: rename *)
+        (* FIXME: rename and maybe move *)
         then have grgrgr: "\<forall>\<sigma>. Max (atms_of D \<union> set Ai) \<cdot>a \<sigma> = Max (atms_of D \<union> set Ai)"
           by auto
 
@@ -1841,8 +1841,7 @@ proof -
              apply (metis Max_less_iff UnCI \<open>finite (atms_of D \<union> set Ai)\<close> equals0D infinite_growing is_ground_cls_imp_is_ground_atm is_ground_subst_atm)
             by (metis Max_less_iff UnCI \<open>finite (atms_of D \<union> set Ai)\<close> all_not_in_conv infinite_growing is_ground_atms_def is_ground_subst_atm)
           done
-        note k (* FIXME: What does "note k" even mean? Not all Isar is readable/recommendable *)
-        then have kk: "eligible (S_M S (Q_of_state (limit_state Sts))) \<sigma> Ai (D + negs (mset Ai))"
+        from k have kk: "eligible (S_M S (Q_of_state (limit_state Sts))) \<sigma> Ai (D + negs (mset Ai))"
           unfolding gd.eligible.simps eligible.simps using ann1 ann2 by (auto simp: S_Q_def)
 
         have l: "\<forall>i<n. gd.str_maximal_in (Ai ! i) (Ci ! i)"
