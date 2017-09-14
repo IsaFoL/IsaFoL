@@ -315,7 +315,6 @@ lemma init_dt_init_dt_l:
   assumes
     \<open>\<forall>C \<in> set CS. distinct C\<close> and
     \<open>\<forall>C \<in> set CS. length C \<ge> 1\<close> and
-    \<open>\<forall>C \<in> set CS. \<not>tautology (mset C)\<close> and
     \<open>twl_struct_invs (twl_st_of None S)\<close> and
     \<open>clauses_to_update_l S = {#}\<close> and
     \<open>\<forall>s\<in>set (get_trail_l S). \<not>is_decided s\<close> and

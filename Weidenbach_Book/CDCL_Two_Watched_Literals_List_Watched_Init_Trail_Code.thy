@@ -389,8 +389,7 @@ lemma clause_to_update_append: \<open>N \<noteq> [] \<Longrightarrow> clause_to_
      clause_to_update La (M, N, U, D, NP, UP, WS, Q) +
     (if La \<in> set (watched_l C) then {#length N#} else {#})\<close>
   unfolding clause_to_update_def get_clauses_l.simps
-  apply (auto simp: clause_to_update_def nth_append)
-  by meson
+  by (auto simp: clause_to_update_def nth_append)
 
 definition HH :: \<open>(nat twl_st_wl \<times> nat twl_st_l) set\<close> where
   \<open>HH = {((M', N', U', D', NP', UP', Q', WS'), (M, N, U, D, NP, UP, WS, Q)).
@@ -629,7 +628,6 @@ lemma init_dt_init_dt_l_full:
   assumes
     dist: \<open>\<forall>C \<in> set CS. distinct C\<close> and
     length: \<open>\<forall>C \<in> set CS. length C \<ge> 1\<close> and
-    taut: \<open>\<forall>C \<in> set CS. \<not>tautology (mset C)\<close> and
     struct: \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and
     dec:\<open>\<forall>s\<in>set (get_trail_wl S). \<not>is_decided s\<close> and
     confl: \<open>get_conflict_wl S = None \<longrightarrow> literals_to_update_wl S = uminus `# lit_of `# mset (get_trail_wl S)\<close> and
@@ -678,7 +676,6 @@ proof -
   have
     dist_T: \<open>\<forall>C \<in> set (rev CS). distinct C\<close> and
     length_T: \<open>\<forall>C \<in> set (rev CS). length C \<ge> 1\<close> and
-    taut_T: \<open>\<forall>C \<in> set (rev CS). \<not>tautology (mset C)\<close> and
     struct_T: \<open>twl_struct_invs (twl_st_of None T)\<close> and
     stgy_T: \<open>twl_stgy_invs (twl_st_of None T)\<close> and
     w_q_T: \<open>clauses_to_update_l T = {#}\<close> and
@@ -688,7 +685,7 @@ proof -
     le_T: \<open>get_learned_l T = length (get_clauses_l T) - 1\<close> and
     confl_in_clss_T: \<open>get_conflict_l T \<noteq> None \<longrightarrow> the (get_conflict_l T) \<in># mset `# mset (rev CS)\<close>
     by (use assms in \<open>simp add: T_def[symmetric]  w_q tr_T_S p_T_S c_T_S l_T_S cl_T_S; fail\<close>)+
-  note init = init_dt_full[of \<open>rev CS\<close> T, OF dist_T length_T taut_T struct_T w_q_T tr_T c_T
+  note init = init_dt_full[of \<open>rev CS\<close> T, OF dist_T length_T struct_T w_q_T tr_T c_T
       add_invs_T le_T stgy_T ] init_dt_confl_in_clauses[OF confl_in_clss_T]
   have i: \<open>init_dt_l CS T \<le> \<Down> Id (SPEC(\<lambda>T. twl_struct_invs (twl_st_of None T) \<and> twl_stgy_invs (twl_st_of None T) \<and>
       cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None T)) =
@@ -742,7 +739,6 @@ lemma init_dt_init_dt_l:
   assumes
     dist: \<open>\<forall>C \<in> set CS. distinct C\<close> and
     length: \<open>\<forall>C \<in> set CS. length C \<ge> 1\<close> and
-    taut: \<open>\<forall>C \<in> set CS. \<not>tautology (mset C)\<close>and
     upper: \<open>\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L < upperN\<close> and
     is_N\<^sub>1: \<open>is_N\<^sub>1 (all_lits_of_mm (mset `# mset CS))\<close>
   shows
@@ -787,7 +783,7 @@ proof -
         cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
         cdcl\<^sub>W_restart_mset.no_smaller_confl_def get_unit_learned_def)
   note HH = init_dt_init_dt_l_full[of CS S, unfolded clss_empty,
-        OF dist length taut struct dec confl aff_invs learned stgy_invs watch clss _ learned_nil,
+        OF dist length struct dec confl aff_invs learned stgy_invs watch clss _ learned_nil,
         unfolded empty_neutral trail_in_NP]
   have [simp]: \<open>mset `# mset (take ag (tl af)) + ai + (mset `# mset (drop (Suc ag) af)) =
      mset `# mset (tl af) + ai\<close> for ag af aj ai
@@ -1514,7 +1510,7 @@ definition TWL_to_clauses_state_conv :: \<open>(nat twl_st_wl \<times> nat cdcl\
 lemma cdcl_twl_stgy_prog_wl_spec_final2:
   shows
     \<open>(SAT_wl, SAT) \<in> [\<lambda>CS. (\<forall>C \<in># CS. distinct_mset C) \<and> (\<forall>C \<in># CS. size C \<ge> 1) \<and>
-        (\<forall>C \<in># CS. \<not>tautology C) \<and> (\<forall>C \<in># CS. \<forall>L \<in># C. nat_of_lit L < upperN)]\<^sub>f
+        (\<forall>C \<in># CS. \<forall>L \<in># C. nat_of_lit L < upperN)]\<^sub>f
      (list_mset_rel O \<langle>list_mset_rel\<rangle> mset_rel) \<rightarrow> \<langle>TWL_to_clauses_state_conv\<rangle>nres_rel\<close>
 proof -
   have in_list_mset_rel: \<open>(CS', y) \<in> list_mset_rel \<longleftrightarrow> y = mset CS'\<close> for CS' y
@@ -1540,7 +1536,7 @@ proof -
                     cdcl\<^sub>W_restart_mset.clauses U = CS \<and> learned_clss U = {#} \<and> conflicting U \<noteq> None
                     \<and> backtrack_lvl U = 0 \<and> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv U))\<close>
     if
-      CS_p: \<open>Multiset.Ball CS distinct_mset \<and> (\<forall>C\<in>#CS. 1 \<le> size C) \<and> (\<forall>C\<in>#CS. \<not> tautology C) \<and>
+      CS_p: \<open>Multiset.Ball CS distinct_mset \<and> (\<forall>C\<in>#CS. 1 \<le> size C) \<and>
          (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L < upperN)\<close> and
       CS'_CS: \<open>(CS', CS) \<in> list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel\<close> and
       struct_invs: \<open>twl_struct_invs (twl_st_of_wl None S\<^sub>0)\<close> and
@@ -1671,7 +1667,6 @@ proof -
     subgoal by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
     subgoal by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
     subgoal by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
-    subgoal by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
     subgoal using N\<^sub>1 by simp
     done
 qed
@@ -1758,8 +1753,7 @@ proof -
 qed
 
 lemma SAT_is_SAT:
-  \<open>(SAT', is_SAT) \<in> [\<lambda>CS. (\<forall>C \<in># CS. distinct_mset C) \<and> (\<forall>C \<in># CS. size C \<ge> 1) \<and>
-      (\<forall>C \<in># CS. \<not>tautology C)]\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  \<open>(SAT', is_SAT) \<in> [\<lambda>CS. (\<forall>C \<in># CS. distinct_mset C) \<and> (\<forall>C \<in># CS. size C \<ge> 1)]\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
     (is \<open>_ \<in>[\<lambda>CS. ?P CS]\<^sub>f Id \<rightarrow> _\<close>)
 proof -
   have H: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (init_state CS)\<close>
@@ -1811,7 +1805,7 @@ find_theorems \<open>list_all2 (\<lambda>x. op = _)\<close>
 qed
 
 lemma SAT_wl_code: \<open>(SAT_wl_code, SAT')
-    \<in> [\<lambda>x. Multiset.Ball x distinct_mset \<and> (\<forall>C\<in>#x. Suc 0 \<le> size C) \<and> (\<forall>C\<in>#x. \<not> tautology C) \<and>
+    \<in> [\<lambda>x. Multiset.Ball x distinct_mset \<and> (\<forall>C\<in>#x. Suc 0 \<le> size C) \<and>
          (\<forall>C\<in>#x. \<forall>L\<in>#C. nat_of_lit L < upperN)]\<^sub>a
       clauses_l_assn\<^sup>k \<rightarrow> bool_assn\<close>
 proof -
@@ -1832,7 +1826,7 @@ proof -
     unfolding SAT_wl'_def SAT_wl_def Let_def
     by (auto cong: bind_cong simp: 1)
   have 2: \<open>Multiset.Ball y distinct_mset \<and>
-       (\<forall>C\<in>#y. 1 \<le> size C) \<and> (\<forall>C\<in>#y. \<not> tautology C) \<Longrightarrow>
+       (\<forall>C\<in>#y. 1 \<le> size C) \<Longrightarrow>
        (x, y) \<in> list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel \<Longrightarrow>
         (\<forall>C\<in>#y. \<forall>L\<in>#C. nat_of_lit L < upperN) \<Longrightarrow>
        SAT_wl x \<le> \<Down> TWL_to_clauses_state_conv (SAT y)\<close> for x y
@@ -1865,7 +1859,7 @@ proof -
     by (auto simp: distinct_extract_atms_clss)
 
   have SAT_wl'_SAT: \<open>(SAT_wl', SAT')\<in>
-     [\<lambda>CS. Multiset.Ball CS distinct_mset \<and> (\<forall>C\<in>#CS. 1 \<le> size C) \<and> (\<forall>C\<in>#CS. \<not> tautology C) \<and>
+     [\<lambda>CS. Multiset.Ball CS distinct_mset \<and> (\<forall>C\<in>#CS. 1 \<le> size C) \<and>
       (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L < upperN)]\<^sub>f
      list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
     unfolding SAT' SAT_wl'
