@@ -935,7 +935,6 @@ proof (rule ccontr)
     by (induction i) (auto simp: c_def f_p C_p)
   have ps: "\<forall>i. strictly_subsumes (c (Suc i)) (c i)"
     using incc f_p unfolding c_def by auto
-
   have "\<forall>i. size (c i) \<ge> size (c (Suc i))"
     using ps unfolding strictly_subsumes_def subsumes_def by (metis size_mset_mono size_subst)
   then have lte: "\<forall>i. (size o c) i \<ge> (size o c) (Suc i)"
@@ -944,26 +943,16 @@ proof (rule ccontr)
     using f_Suc_decr_eventually_const comp_def by auto
   then obtain l where l_p: "\<forall>l' \<ge> l. size (c l') = size (c (Suc l'))"
     by metis
-
-  (* FIXME: rename ee ff etc. *)
-  have ee: "\<forall>l' \<ge> l. \<exists>\<sigma>. c l' = c (Suc l') \<cdot> \<sigma>"
-    by (metis l_p ps size_subst strictly_subsumes_def subseteq_mset_size_eql subsumes_def)
-  moreover have ff: "\<forall>l' \<ge> l. \<not> (\<exists>\<sigma>. c l' \<cdot> \<sigma> = c (Suc l'))"
-    by (metis proper_neq ps)
-  moreover have "wfP proper_instance_of"
-    using proper_instance_of_wf by auto
-  then have "\<nexists>f. \<forall>i. (f (Suc i), f i) \<in> {(a, b). proper_instance_of a b}"
-    unfolding wfP_def using wf_iff_no_infinite_down_chain by blast
-  then have "\<nexists>f. \<forall>i. proper_instance_of (f (Suc i)) (f i)"
-    unfolding wfP_def using wf_iff_no_infinite_down_chain by auto
-  moreover have "\<forall>i. proper_instance_of (c (Suc i + l)) (c (i + l))"
-    using ee ff unfolding proper_instance_of_def instance_of_def
-     apply auto
-    by (metis le_add2)
+  then have "\<forall>l' \<ge> l. proper_instance_of  (c (Suc l')) (c l')"
+    using ps unfolding proper_instance_of_def instance_of_def
+    by (metis size_subst strictly_subsumes_def subseteq_mset_size_eql subsumes_def proper_neq)
+  then have "\<forall>i. proper_instance_of (c (Suc i + l)) (c (i + l))"
+    unfolding proper_instance_of_def instance_of_def by auto
   then have "\<exists>f. \<forall>i. proper_instance_of (f (Suc i)) (f i)"
-    by fastforce
-  ultimately show False (* We have an infinite chain of proper generalizing clauses. That is impossible since proper generalization is well founded. *)
-    by auto
+    by meson
+  then show False
+    using proper_instance_of_wf wf_iff_no_infinite_down_chain[of "{(x,y). proper_instance_of x y}"] 
+    unfolding wfP_def by auto
 qed
 
 lemma strictly_subsumes_well_founded: "wfP strictly_subsumes"

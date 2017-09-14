@@ -104,6 +104,8 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
    \<forall>i < n. S (CAi ! i) = {#} \<Longrightarrow> (* Use the ! style instead maybe, or maybe us the \<forall> \<in> . style above *)
    ord_resolve CAi (D + negs (mset Ai)) \<sigma> (((\<Union># (mset Ci)) + D) \<cdot> \<sigma>)"
 
+(* FIXME: Assume this function directly in the abstract substitution. Since then it can be computable. *)
+(* FIXME: Come up with a better name. Function gives substitutions that standardize clauses apart. *)
 definition mk_var_dis :: "'a literal multiset list \<Rightarrow> 's list" where
   "mk_var_dis Cs =
    (SOME \<rho>s. length \<rho>s = length Cs \<and> (\<forall>\<rho> \<in> set \<rho>s. is_renaming \<rho>) \<and> var_disjoint (Cs \<cdot>\<cdot>cl \<rho>s))"
@@ -731,12 +733,11 @@ proof (cases rule: ord_resolve.cases)
   define \<eta>' where "\<eta>' = (inv_ren (hd (mk_var_dis (DA''#CAi'')))) \<odot> \<eta>''"
   define \<eta>s' where "\<eta>s' = (map inv_ren (tl (mk_var_dis (DA''#CAi'')))) \<odot>s \<eta>s''"
 
-  (* FIXME: rename ii...ir's *)
-  have iiir: "is_renaming (hd (mk_var_dis (DA''#CAi'')))"
+  have renames_DA'': "is_renaming (hd (mk_var_dis (DA''#CAi'')))"
     using mk_var_dis_p[of "DA'' # CAi''"]
     by (metis length_greater_0_conv list.exhaust_sel list.set_intros(1) list.simps(3))
 
-  have iiiiiir: "is_renaming_list (tl (mk_var_dis (DA''#CAi'')))"
+  have renames_CAi'': "is_renaming_list (tl (mk_var_dis (DA''#CAi'')))"
     using mk_var_dis_p[of "DA'' # CAi''"]
     by (metis is_renaming_list_def length_greater_0_conv list.set_sel(2) list.simps(3))
 
@@ -747,13 +748,13 @@ proof (cases rule: ord_resolve.cases)
   note n = \<open>length CAi' = n\<close> \<open>length \<eta>s' = n\<close> n
 
   have DA'_DA: "DA' \<cdot> \<eta>' = DA"
-    using ai''(4) unfolding \<eta>'_def DA'_def using iiir by auto
+    using ai''(4) unfolding \<eta>'_def DA'_def using renames_DA'' by auto
   have "S DA' \<cdot> \<eta>' = S_M S M DA"
-    using ai''(5) unfolding \<eta>'_def DA'_def using iiir selection_renaming_invariant by auto
+    using ai''(5) unfolding \<eta>'_def DA'_def using renames_DA'' selection_renaming_invariant by auto
   have CAi'_CAi: "CAi' \<cdot>\<cdot>cl \<eta>s' = CAi"
-    using ai''(7) unfolding CAi'_def \<eta>s'_def using n(3) mk_var_dis_p iiiiiir by auto
+    using ai''(7) unfolding CAi'_def \<eta>s'_def using n(3) mk_var_dis_p renames_CAi'' by auto
   have "(map S CAi') \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi"
-    unfolding CAi'_def \<eta>s'_def using ai''(8) n(3,4) iiiiiir selection_renaming_list_invariant by auto
+    unfolding CAi'_def \<eta>s'_def using ai''(8) n(3,4) renames_CAi'' selection_renaming_list_invariant by auto
   have vd: "var_disjoint (DA' # CAi')"
     unfolding DA'_def CAi'_def using mk_var_dis_p[of "DA'' # CAi''"]
     by (metis length_greater_0_conv list.exhaust_sel n(3) substitution.subst_cls_lists_Cons substitution_axioms zero_less_Suc)
