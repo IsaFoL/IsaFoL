@@ -1092,7 +1092,7 @@ proof -
     by simp
 qed
 
-definition SAT_wl' :: \<open>nat clauses_l \<Rightarrow> bool nres\<close> where
+definition SAT_wl' :: \<open>nat clauses_l \<Rightarrow> nat literal list option nres\<close> where
   \<open>SAT_wl' CS = do{
     let n = length CS;
     let N\<^sub>0' = mset (extract_atms_clss CS []);
@@ -1103,8 +1103,8 @@ definition SAT_wl' :: \<open>nat clauses_l \<Rightarrow> bool nres\<close> where
     if get_conflict_wl T = None
     then do {
        U \<leftarrow> twl_array_code.cdcl_twl_stgy_prog_wl_D N\<^sub>0' T;
-       RETURN (get_conflict_wl U = None)}
-    else RETURN False
+       RETURN (if get_conflict_wl U = None then Some (map lit_of (get_trail_wl U)) else None)}
+    else RETURN None
   }\<close>
 
 definition (in -) init_rll :: \<open>nat \<Rightarrow> 'a list list\<close> where
@@ -1469,12 +1469,39 @@ lemma init_dt_wl_code_refine[unfolded twl_array_code_ops.twl_st_l_trail_assn_def
             \<open>list_mset_assn uint32_nat_assn N\<^sub>0 (fst (fst a))\<close>])
   done
 
-find_theorems hn_ctxt twl_array_code_ops.twl_st_l_trail_assn
+definition extract_model_of_state where
+  \<open>extract_model_of_state U = map lit_of (get_trail_wl U)\<close>
+
+lemma pair_nat_ann_lits_assn_alt_def:
+  \<open>pair_nat_ann_lits_assn at ag =  list_assn (\<lambda>a c. \<up> ((c, a) \<in> nat_ann_lit_rel)) at ag\<close>
+  by (auto simp: nat_ann_lit_rel_def pure_def)
+
+lemma (in twl_array_code) get_trail_wl[sepref_fr_rules]:
+  \<open>(return o (\<lambda>(((M, _), _), _). M), RETURN o get_trail_wl) \<in>  twl_st_l_trail_assn\<^sup>d \<rightarrow>\<^sub>a  pair_nat_ann_lits_assn\<close>
+  by sepref_to_hoare
+     (sep_auto simp: twl_st_l_trail_assn_def trail_assn_def trail_ref_def hr_comp_def trailt_ref_def
+      pair_nat_ann_lits_assn_alt_def[symmetric])
+
+lemma [unfolded twl_array_code_ops.twl_st_l_trail_assn_def, sepref_fr_rules]:
+  \<open>((return \<circ>\<circ> case_prod) (\<lambda>((M, _), _) _. M),
+   RETURN \<circ> get_trail_wl) \<in> [\<lambda>_. twl_array_code N\<^sub>0]\<^sub>a (twl_array_code_ops.twl_st_l_trail_assn N\<^sub>0)\<^sup>d \<rightarrow> pair_nat_ann_lits_assn\<close>
+  using twl_array_code.get_trail_wl[of N\<^sub>0] by (auto simp: hfref_def)
+
+sepref_definition extract_model_of_state_code
+  is \<open>RETURN o extract_model_of_state\<close>
+  :: \<open>[\<lambda>_. twl_array_code N\<^sub>0]\<^sub>a (twl_array_code_ops.twl_st_l_trail_assn N\<^sub>0)\<^sup>d \<rightarrow> list_assn unat_lit_assn\<close>
+  unfolding extract_model_of_state_def map_by_foldl[symmetric] twl_array_code_ops.twl_st_l_trail_assn_def
+    HOL_list.fold_custom_empty comp_def fold_eq_nfoldli foldl_conv_fold
+  supply [[goals_limit = 1]]
+  by sepref
+
+declare extract_model_of_state_code.refine[unfolded twl_array_code_ops.twl_st_l_trail_assn_def, sepref_fr_rules]
+
 sepref_definition SAT_wl_code
   is \<open>SAT_wl'\<close>
-  :: \<open>(list_assn (list_assn unat_lit_assn))\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding SAT_wl'_def (*extract_atms_cls'_extract_atms_cls[symmetric]*)
-    get_conflict_wl_is_None
+  :: \<open>(list_assn (list_assn unat_lit_assn))\<^sup>k \<rightarrow>\<^sub>a option_assn (list_assn unat_lit_assn)\<close>
+  unfolding SAT_wl'_def
+    get_conflict_wl_is_None extract_model_of_state_def[symmetric]
   supply twl_array_code_ops.get_conflict_wl_is_None_code_refine[sepref_fr_rules]
   supply twl_array_code.init_dt_wl_code_refine'[sepref_fr_rules]
   supply id_mset_list_assn_list_mset_assn[sepref_fr_rules]
@@ -1671,13 +1698,14 @@ proof -
     done
 qed
 
-definition is_SAT :: \<open>'a clauses \<Rightarrow> bool nres\<close> where
-  \<open>is_SAT CS = RETURN (satisfiable (set_mset CS))\<close>
+definition is_SAT :: \<open>nat clauses \<Rightarrow> nat literal list option nres\<close> where
+  \<open>is_SAT CS = SPEC (\<lambda>M.
+           if satisfiable (set_mset CS) then M \<noteq> None \<and> set (the M) \<Turnstile>sm CS else M = None)\<close>
 
-definition SAT' :: \<open>nat clauses \<Rightarrow> bool nres\<close> where
+definition SAT' :: \<open>nat clauses \<Rightarrow> nat literal list option nres\<close> where
   \<open>SAT' CS = do {
      T \<leftarrow> SAT CS;
-     RETURN(conflicting T = None)
+     RETURN(if conflicting T = None then Some(map lit_of (trail T)) else None)
   }
 \<close>
 
@@ -1789,7 +1817,7 @@ proof -
        ({#literal_of_nat (nat_of_uint32 x). x \<in># mset x#} = y)\<close>
     for x y
     by auto
-find_theorems \<open>list_all2 (\<lambda>x. op = _)\<close>
+
   show ?thesis
     unfolding list_assn_pure_conv list_mset_assn_pure_conv list_mset_assn_pure_conv list_rel_mset_rel_internal
     apply (auto simp: hr_comp_def)
@@ -1807,22 +1835,23 @@ qed
 lemma SAT_wl_code: \<open>(SAT_wl_code, SAT')
     \<in> [\<lambda>x. Multiset.Ball x distinct_mset \<and> (\<forall>C\<in>#x. Suc 0 \<le> size C) \<and>
          (\<forall>C\<in>#x. \<forall>L\<in>#C. nat_of_lit L < upperN)]\<^sub>a
-      clauses_l_assn\<^sup>k \<rightarrow> bool_assn\<close>
+      clauses_l_assn\<^sup>k \<rightarrow> option_assn (list_assn unat_lit_assn)\<close>
 proof -
   have 1: \<open>(H \<bind>
     (\<lambda>T. if get_conflict_wl T = None
           then twl_array_code.cdcl_twl_stgy_prog_wl_D
                 (mset (extract_atms_clss CS [])) T \<bind>
-               (\<lambda>U. RETURN (get_conflict_wl U = None))
-          else RETURN False)) =
+               (\<lambda>U. RETURN (if get_conflict_wl U = None then Some (map lit_of (get_trail_wl U)) else None))
+          else RETURN None)) =
     (H \<bind>
      (\<lambda>T. if get_conflict_wl T = None
            then twl_array_code.cdcl_twl_stgy_prog_wl_D
                  (mset (extract_atms_clss CS [])) T
            else RETURN T)) \<bind>
-    (\<lambda>T. RETURN (get_conflict_wl T = None))\<close> for H CS
+    (\<lambda>U. RETURN (if get_conflict_wl U = None then Some (map lit_of (get_trail_wl U)) else None))\<close> for H CS
     by (smt bind_cong nres_monad1 nres_monad3)
-  have SAT_wl': \<open>SAT_wl' CS = do { ASSERT (twl_array_code (mset (extract_atms_clss CS [])));ASSERT (distinct (extract_atms_clss CS [])); T \<leftarrow> SAT_wl CS; RETURN (get_conflict_wl T = None)}\<close> for CS
+  have SAT_wl': \<open>SAT_wl' CS = do { ASSERT (twl_array_code (mset (extract_atms_clss CS [])));ASSERT (distinct (extract_atms_clss CS [])); T \<leftarrow> SAT_wl CS;
+     RETURN (if get_conflict_wl T = None then Some (map lit_of (get_trail_wl T)) else None)}\<close> for CS
     unfolding SAT_wl'_def SAT_wl_def Let_def
     by (auto cong: bind_cong simp: 1)
   have 2: \<open>Multiset.Ball y distinct_mset \<and>
@@ -1831,7 +1860,7 @@ proof -
         (\<forall>C\<in>#y. \<forall>L\<in>#C. nat_of_lit L < upperN) \<Longrightarrow>
        SAT_wl x \<le> \<Down> TWL_to_clauses_state_conv (SAT y)\<close> for x y
     using cdcl_twl_stgy_prog_wl_spec_final2[unfolded fref_def nres_rel_def] by simp
-  have SAT': \<open>SAT' CS = do { ASSERT(True);ASSERT(True); T \<leftarrow> SAT CS; RETURN(conflicting T = None) } \<close> for CS
+  have SAT': \<open>SAT' CS = do { ASSERT(True);ASSERT(True); T \<leftarrow> SAT CS; RETURN(if conflicting T = None then Some (map lit_of (trail T)) else None) } \<close> for CS
     unfolding SAT'_def by auto
   have 3: \<open>ASSERT (twl_array_code (mset (extract_atms_clss x []))) \<le> \<Down> unit_rel (ASSERT True)\<close>
     if CS_p: \<open>(\<forall>C\<in>#y. \<forall>L\<in>#C. nat_of_lit L < upperN)\<close> and
@@ -1861,13 +1890,13 @@ proof -
   have SAT_wl'_SAT: \<open>(SAT_wl', SAT')\<in>
      [\<lambda>CS. Multiset.Ball CS distinct_mset \<and> (\<forall>C\<in>#CS. 1 \<le> size C) \<and>
       (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L < upperN)]\<^sub>f
-     list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
+     list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel \<rightarrow> \<langle>\<langle>\<langle>Id\<rangle>list_rel\<rangle> option_rel\<rangle>nres_rel\<close>
     unfolding SAT' SAT_wl'
     apply (intro frefI nres_relI bind_refine)
        apply (rule 3; simp)
       apply (rule 4; simp)
      apply (rule 2; simp)
-    by (auto simp: TWL_to_clauses_state_conv_def cdcl\<^sub>W_restart_mset_state)
+    by (auto simp: TWL_to_clauses_state_conv_def cdcl\<^sub>W_restart_mset_state convert_lits_l_def)
   show ?thesis
     using SAT_wl_code.refine[FCOMP SAT_wl'_SAT] unfolding list_assn_list_mset_rel_clauses_l_assn .
 qed
