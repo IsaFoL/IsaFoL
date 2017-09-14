@@ -1597,8 +1597,7 @@ The following corresponds to (one direction of) Theorem 4.13:
 lemma ground_max_ground: "X \<noteq> {} \<Longrightarrow> finite X \<Longrightarrow> is_ground_atms X \<Longrightarrow> is_ground_atm (Max X)"
   unfolding is_ground_atms_def by auto
 
-(* FIXME: rename me *)
-lemma abcdefg:
+lemma ground_subclauses:
   assumes
     "\<forall>i < length CAi1. CAi1 ! i = Ci ! i + poss (Aij ! i)" and
     "length Ci = length CAi1" and
@@ -1801,7 +1800,7 @@ proof -
           using ord_resolve by simp
         have gci: "\<forall>i<n. is_ground_cls (Ci ! i)"
           using ord_resolve(8) ord_resolve(3,4) gc1
-          using abcdefg[of CAi1 Ci Aij] unfolding is_ground_cls_list_def by auto
+          using ground_subclauses[of CAi1 Ci Aij] unfolding is_ground_cls_list_def by auto
         have gai: "is_ground_atms (set Ai)"
           using ord_resolve(1) gd
           by (metis atms_of_negg is_ground_cls_union set_mset_mset is_ground_cls_is_ground_atms_atms_of)
