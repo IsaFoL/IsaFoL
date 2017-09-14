@@ -1802,10 +1802,10 @@ proof -
     subgoal for CS' CS
       using H[of CS]
         cdcl\<^sub>W_restart_mset.full_cdcl\<^sub>W_stgy_inv_normal_form[of \<open>init_state CS\<close>]
-      by (auto intro!: le_SPEC_bindI simp: SPEC_RETURN_RES clauses_def
-          cdcl\<^sub>W_restart_mset_state
+      by (fastforce intro!: le_SPEC_bindI simp: SPEC_RETURN_RES clauses_def
+          cdcl\<^sub>W_restart_mset_state true_annots_true_cls lits_of_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
-          dest: conflict_of_level_unsatisfiable) blast
+          dest: conflict_of_level_unsatisfiable)
     done
 qed
 
