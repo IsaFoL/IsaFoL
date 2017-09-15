@@ -1,6 +1,7 @@
 (*  Title:       Ground Unordered Resolution Calculus
     Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2014, 2017
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
+    Author:      Anders Schlichtkrull <andschl at dtu.dk>, 2017
     Maintainer:  Anders Schlichtkrull <andschl at dtu.dk>
 *)
 
@@ -141,22 +142,22 @@ definition unord_\<Gamma> :: "'a inference set" where
 sublocale unord_\<Gamma>_sound_counterex_reducing?:
   sound_counterex_reducing_inference_system unord_\<Gamma> INTERP
 proof unfold_locales
-  fix C E and N :: "('b :: wellorder) clause set"
-  assume "{#} \<notin> N" and "C \<in> N" and "\<not> INTERP N \<Turnstile> C" and "\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C \<le> D"
-  then obtain D E where
-    d_in_n: "D \<in> N" and
-    d_true: "INTERP N \<Turnstile> D" and
-    res_e: "unord_resolve D C E" and
+  fix D E and N :: "('b :: wellorder) clause set"
+  assume "{#} \<notin> N" and "D \<in> N" and "\<not> INTERP N \<Turnstile> D" and "\<And>C. C \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> C \<Longrightarrow> D \<le> C"
+  then obtain C E where
+    c_in_n: "C \<in> N" and
+    c_true: "INTERP N \<Turnstile> C" and
+    res_e: "unord_resolve C D E" and
     e_cex: "\<not> INTERP N \<Turnstile> E" and
-    e_lt_c: "E < C"
+    e_lt_d: "E < D"
     using unord_resolve_counterex_reducing by (metis (no_types))
-  from d_in_n have "set_mset {#D#} \<subseteq> N"
+  from c_in_n have "set_mset {#C#} \<subseteq> N"
     by auto
-  moreover have "Infer {#D#} C E \<in> unord_\<Gamma>"
+  moreover have "Infer {#C#} D E \<in> unord_\<Gamma>"
     unfolding unord_\<Gamma>_def using res_e by blast
   ultimately show
-    "\<exists>DD E. set_mset DD \<subseteq> N \<and> INTERP N \<Turnstile>m DD \<and> Infer DD C E \<in> unord_\<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E < C"
-    using d_in_n d_true e_cex e_lt_c by blast
+    "\<exists>CC E. set_mset CC \<subseteq> N \<and> INTERP N \<Turnstile>m CC \<and> Infer CC D E \<in> unord_\<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E < D"
+    using c_in_n c_true e_cex e_lt_d by blast
 next
   fix CC D E and I :: "'b interp"
   assume "Infer CC D E \<in> unord_\<Gamma>" and "I \<Turnstile>m CC" and "I \<Turnstile> D"

@@ -52,16 +52,17 @@ lemma inferences_from_mono: "CC \<subseteq> DD \<Longrightarrow> inferences_from
 definition saturated :: "'a clause set \<Rightarrow> bool" where
   "saturated N \<longleftrightarrow> concls_of (inferences_from N) \<subseteq> N"
 
+(* FIXME: D was renamed to C. So should the theorem be saturatedC? Or can we come up with an even better name? *)
 lemma saturatedD:
   assumes
     satur: "saturated N" and
-    inf: "Infer DD C E \<in> \<Gamma>" and
-    dd_subs_n: "set_mset DD \<subseteq> N" and
-    c_in_n: "C \<in> N"
+    inf: "Infer CC D E \<in> \<Gamma>" and
+    cc_subs_n: "set_mset CC \<subseteq> N" and
+    d_in_n: "D \<in> N"
   shows "E \<in> N"
 proof -
-  have "Infer DD C E \<in> inferences_from N"
-    unfolding inferences_from_def infer_from_def using inf dd_subs_n c_in_n by simp
+  have "Infer CC D E \<in> inferences_from N"
+    unfolding inferences_from_def infer_from_def using inf cc_subs_n d_in_n by simp
   then have "E \<in> concls_of (inferences_from N)"
     unfolding image_iff by (metis inference.sel(3))
   then show "E \<in> N"
@@ -125,10 +126,8 @@ locale counterex_reducing_inference_system =
   inference_system \<Gamma> for \<Gamma> :: "('a :: wellorder) inference set" +
   fixes INTERP :: "'a clause set \<Rightarrow> 'a interp"
   assumes \<Gamma>_counterex_reducing:
-    "{#} \<notin> N \<Longrightarrow> C \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> C \<Longrightarrow> (\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C \<le> D) \<Longrightarrow>
-     \<exists>DD E. set_mset DD \<subseteq> N \<and> INTERP N \<Turnstile>m DD \<and> Infer DD C E \<in> \<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E < C"
-    (* FIXME: Here the side-clauses are D's and the main clauses are C's. This is backwards...
-       (I was following the book. Feel free to change. --JB) *)
+    "{#} \<notin> N \<Longrightarrow> D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> (\<And>C. C \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> C \<Longrightarrow> D \<le> C) \<Longrightarrow>
+     \<exists>CC E. set_mset CC \<subseteq> N \<and> INTERP N \<Turnstile>m CC \<and> Infer CC D E \<in> \<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E < D"
 begin
 
 lemma ex_min_counterex:
@@ -157,21 +156,21 @@ proof -
 
   {
     assume "\<not> INTERP N \<Turnstile>s N"
-    then obtain C where
-      c_in_n: "C \<in> N" and
-      c_cex: "\<not> INTERP N \<Turnstile> C" and
-      c_min: "\<And>D. D \<in> N \<Longrightarrow> D < C \<Longrightarrow> INTERP N \<Turnstile> D"
+    then obtain D where
+      d_in_n: "D \<in> N" and
+      d_cex: "\<not> INTERP N \<Turnstile> D" and
+      d_min: "\<And>C. C \<in> N \<Longrightarrow> C < D \<Longrightarrow> INTERP N \<Turnstile> C"
       using ex_min_counterex by meson
-    then obtain DD E where
-      dd_subs_n: "set_mset DD \<subseteq> N" and
-      inf_e: "Infer DD C E \<in> \<Gamma>" and
+    then obtain CC E where
+      cc_subs_n: "set_mset CC \<subseteq> N" and
+      inf_e: "Infer CC D E \<in> \<Gamma>" and
       e_cex: "\<not> INTERP N \<Turnstile> E" and
-      e_lt_c: "E < C"
+      e_lt_d: "E < D"
       using \<Gamma>_counterex_reducing[OF ec_ni_n] not_less by metis
-    from dd_subs_n inf_e have "E \<in> N"
-      using c_in_n satur by (blast dest: saturatedD)
+    from cc_subs_n inf_e have "E \<in> N"
+      using d_in_n satur by (blast dest: saturatedD)
     then have False
-      using e_cex e_lt_c c_min not_less by blast
+      using e_cex e_lt_d d_min not_less by blast
   }
   then show ?thesis
     by satx

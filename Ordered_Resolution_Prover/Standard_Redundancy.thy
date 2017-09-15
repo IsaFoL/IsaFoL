@@ -154,18 +154,18 @@ lemma Ri_subs_Ri_diff_Rf: "Ri N \<subseteq> Ri (N - Rf N)"
 proof
   fix \<gamma>
   assume \<gamma>_ri: "\<gamma> \<in> Ri N"
-  then obtain CC C D where \<gamma>: "\<gamma> = Infer CC C D"
+  then obtain CC D E where \<gamma>: "\<gamma> = Infer CC D E"
     by (cases \<gamma>)
-  have cc: "CC = side_prems_of \<gamma>" and c: "C = main_prem_of \<gamma>" and d: "D = concl_of \<gamma>"
+  have cc: "CC = side_prems_of \<gamma>" and d: "D = main_prem_of \<gamma>" and e: "E = concl_of \<gamma>"
     unfolding \<gamma> by simp_all
   obtain DD where
-    "set_mset DD \<subseteq> N" and "\<forall>I. I \<Turnstile>m DD + CC \<longrightarrow> I \<Turnstile> D" and "\<forall>D. D \<in># DD \<longrightarrow> D < C"
-    using \<gamma>_ri unfolding Ri_def cc c d by blast
+    "set_mset DD \<subseteq> N" and "\<forall>I. I \<Turnstile>m DD + CC \<longrightarrow> I \<Turnstile> E" and "\<forall>C. C \<in># DD \<longrightarrow> C < D"
+    using \<gamma>_ri unfolding Ri_def cc d e by blast
   then obtain DD' where
-    "set_mset DD' \<subseteq> N - Rf N" and "\<forall>I. I \<Turnstile>m DD' + CC \<longrightarrow> I \<Turnstile> D" and "\<forall>D'. D' \<in># DD' \<longrightarrow> D' < C"
+    "set_mset DD' \<subseteq> N - Rf N" and "\<forall>I. I \<Turnstile>m DD' + CC \<longrightarrow> I \<Turnstile> E" and "\<forall>D'. D' \<in># DD' \<longrightarrow> D' < D"
     using assume_non_Rf by atomize_elim blast
   then show "\<gamma> \<in> Ri (N - Rf N)"
-    using \<gamma>_ri unfolding Ri_def c cc d by blast
+    using \<gamma>_ri unfolding Ri_def d cc e by blast
 qed
 
 lemma Ri_eq_Ri_diff_Rf: "Ri N = Ri (N - Rf N)"
@@ -224,37 +224,37 @@ proof (rule ccontr)
   have "INTERP M \<Turnstile>s M"
   proof (rule ccontr)
     assume "\<not> INTERP M \<Turnstile>s M"
-    then obtain C where
-      c_in_m: "C \<in> M" and
-      c_cex: "\<not> INTERP M \<Turnstile> C" and
-      c_min: "\<And>D. D \<in> M \<Longrightarrow> D < C \<Longrightarrow> INTERP M \<Turnstile> D"
+    then obtain D where
+      d_in_m: "D \<in> M" and
+      d_cex: "\<not> INTERP M \<Turnstile> D" and
+      d_min: "\<And>C. C \<in> M \<Longrightarrow> C < D \<Longrightarrow> INTERP M \<Turnstile> C"
       using ex_min_counterex by meson
-    then obtain \<gamma> CC D where
-      \<gamma>: "\<gamma> = Infer CC C D" and
+    then obtain \<gamma> CC E where
+      \<gamma>: "\<gamma> = Infer CC D E" and
       cc_subs_m: "set_mset CC \<subseteq> M" and
       cc_true: "INTERP M \<Turnstile>m CC" and
       \<gamma>_in: "\<gamma> \<in> \<Gamma>" and
-      d_cex: "\<not> INTERP M \<Turnstile> D" and
-      d_lt_c: "D < C"
+      e_cex: "\<not> INTERP M \<Turnstile> E" and
+      e_lt_d: "E < D"
       using \<Gamma>_counterex_reducing[OF ec_ni_m] not_less by metis
-    have cc: "CC = side_prems_of \<gamma>" and c: "C = main_prem_of \<gamma>" and d: "D = concl_of \<gamma>"
+    have cc: "CC = side_prems_of \<gamma>" and c: "D = main_prem_of \<gamma>" and d: "E = concl_of \<gamma>"
       unfolding \<gamma> by simp_all
     have "\<gamma> \<in> Ri N"
       by (rule set_mp[OF satur[unfolded saturated_upto_def inferences_from_def infer_from_def]])
-        (simp add: \<gamma>_in c_in_m cc_subs_m cc[symmetric] c[symmetric] d[symmetric] M_def[symmetric])
+        (simp add: \<gamma>_in d_in_m cc_subs_m cc[symmetric] c[symmetric] d[symmetric] M_def[symmetric])
     then have "\<gamma> \<in> Ri M"
       unfolding M_def using Ri_subs_Ri_diff_Rf by fast
     then obtain DD where
       dd_subs_m: "set_mset DD \<subseteq> M" and
-      dd_cc_imp_d: "\<forall>I. I \<Turnstile>m DD + CC \<longrightarrow> I \<Turnstile> D" and
-      dd_lt_c: "\<forall>D. D \<in># DD \<longrightarrow> D < C"
+      dd_cc_imp_d: "\<forall>I. I \<Turnstile>m DD + CC \<longrightarrow> I \<Turnstile> E" and
+      dd_lt_d: "\<forall>C. C \<in># DD \<longrightarrow> C < D"
       unfolding Ri_def cc c d by blast
-    from dd_subs_m dd_lt_c have "INTERP M \<Turnstile>m DD"
-      using c_min unfolding true_cls_mset_def by (metis contra_subsetD)
-    then have "INTERP M \<Turnstile> D"
+    from dd_subs_m dd_lt_d have "INTERP M \<Turnstile>m DD"
+      using d_min unfolding true_cls_mset_def by (metis contra_subsetD)
+    then have "INTERP M \<Turnstile> E"
       using dd_cc_imp_d cc_true by auto
     then show False
-      using d_cex by auto
+      using e_cex by auto
   qed
   then have "INTERP M \<Turnstile>s N"
     using M_def Rf_true by blast

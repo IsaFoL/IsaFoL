@@ -106,7 +106,7 @@ interpretation src: standard_redundancy_criterion gd.ord_\<Gamma>
 
 (* The extension of ordered resolution mentioned in 4.10. We let it consist of all sound rules *)
 definition gd_ord_\<Gamma>':: "'a inference set" where
-  "gd_ord_\<Gamma>' = {Infer a b c | a b c. (\<forall>I. I \<Turnstile>m a \<longrightarrow>  I \<Turnstile> b \<longrightarrow> I \<Turnstile> c)}"
+  "gd_ord_\<Gamma>' = {Infer CC D E | CC D E. (\<forall>I. I \<Turnstile>m CC \<longrightarrow>  I \<Turnstile> D \<longrightarrow> I \<Turnstile> E)}"
 
 (* This corresponds to the part of 4.10 that claims we are extending resolution *)
 lemma gd_ord_\<Gamma>_ngd_ord_\<Gamma>: "gd.ord_\<Gamma> \<subseteq> gd_ord_\<Gamma>'"
@@ -137,7 +137,7 @@ lemma subst_subset_mono: "D \<subset># C \<Longrightarrow> D \<cdot> \<sigma> \<
   by (simp add: image_mset_subset_mono)
 
 fun subst_inf :: "'a inference \<Rightarrow> 's \<Rightarrow> 'a inference" (infixl "\<cdot>i" 67) where
-  "(Infer CC C E) \<cdot>i \<sigma> = Infer (CC \<cdot>cm \<sigma>) (C \<cdot> \<sigma>) (E \<cdot> \<sigma>)"
+  "(Infer CC D E) \<cdot>i \<sigma> = Infer (CC \<cdot>cm \<sigma>) (D \<cdot> \<sigma>) (E \<cdot> \<sigma>)"
 
 lemma prems_of_subst_inf_subst_cls_mset: "(prems_of (\<gamma> \<cdot>i \<mu>)) = ((prems_of \<gamma>) \<cdot>cm \<mu>)"
   by (induction \<gamma>) auto
@@ -365,7 +365,7 @@ next
     then obtain \<mu> where \<mu>_p: "C\<mu> = C \<cdot> \<mu> \<and> is_ground_subst \<mu>"
       unfolding grounding_of_cls_def by auto
 
-    define \<gamma> where "\<gamma> = Infer {# (D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> #} ((C + {#L#})\<cdot> \<mu>) (C \<cdot> \<mu>)"
+    define \<gamma> where "\<gamma> = Infer {#(C + {#L#})\<cdot> \<mu>#} ((D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>) (C \<cdot> \<mu>)"
 
     have "(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> \<in> grounding_of_state (N \<union> {C + {#L#}}, P, Q)"
       using DL'_p \<mu>_p unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def
@@ -423,7 +423,7 @@ next
     then obtain \<mu> where \<mu>_p: "C\<mu> = C \<cdot> \<mu> \<and> is_ground_subst \<mu>"
       unfolding grounding_of_cls_def by auto
 
-    define \<gamma> where "\<gamma> = Infer {# (D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> #} ((C + {#L#})\<cdot> \<mu>) (C \<cdot> \<mu>)"
+    define \<gamma> where "\<gamma> = Infer {#(C + {#L#})\<cdot> \<mu>#} ((D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>) (C \<cdot> \<mu>)"
 
     have "(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> \<in> grounding_of_state (N, P \<union> {C + {#L#}}, Q)"
       using DL'_p \<mu>_p unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def
@@ -481,7 +481,7 @@ next
     then obtain \<mu> where \<mu>_p: "C\<mu> = C \<cdot> \<mu> \<and> is_ground_subst \<mu>"
       unfolding grounding_of_cls_def by auto
 
-    define \<gamma> where "\<gamma> = Infer {# (D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> #} ((C + {#L#})\<cdot> \<mu>) (C \<cdot> \<mu>)"
+    define \<gamma> where "\<gamma> = Infer {#(C + {#L#})\<cdot> \<mu>#} ((D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>) (C \<cdot> \<mu>)"
 
     have "(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> \<in> grounding_of_state (N, P, Q \<union> {C + {#L#}})"
       using DL'_p \<mu>_p unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def
@@ -551,7 +551,7 @@ next
     define \<gamma>_ground where "\<gamma>_ground = Infer (mset (Cl \<cdot>\<cdot>cl \<rho>s) \<cdot>cm \<sigma> \<cdot>cm \<mu>) (D \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<mu>) (E \<cdot> \<mu>)"
     have "\<forall>I. I \<Turnstile>m mset (Cl \<cdot>\<cdot>cl \<rho>s) \<cdot>cm \<sigma> \<cdot>cm \<mu> \<longrightarrow> I \<Turnstile> D \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> E \<cdot> \<mu>"
       using ord_resolve_rename_ground_inst_sound[of S Cl D \<sigma> E _ _ _ \<mu>] \<rho>_def \<rho>s_def E_\<mu>_p \<gamma>_p2 by auto
-    then have "\<gamma>_ground \<in> {Infer a b c |a b c. \<forall>I. I \<Turnstile>m a \<longrightarrow> I \<Turnstile> b \<longrightarrow> I \<Turnstile> c}"
+    then have "\<gamma>_ground \<in> {Infer cc d e |cc d e. \<forall>I. I \<Turnstile>m cc \<longrightarrow> I \<Turnstile> d \<longrightarrow> I \<Turnstile> e}"
       unfolding \<gamma>_ground_def by auto
     moreover
     have "set_mset (prems_of \<gamma>_ground) \<subseteq> grounding_of_state ({}, P \<union> {C}, Q)"
