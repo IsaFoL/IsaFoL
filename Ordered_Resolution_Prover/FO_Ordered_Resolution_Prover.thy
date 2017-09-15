@@ -185,10 +185,6 @@ proof -
     done
 qed
 
-(* FIXME: move me *)
-lemma grounding_of_clss_mono: "CC \<subseteq> DD \<Longrightarrow> grounding_of_clss CC \<subseteq> grounding_of_clss DD"
-  using grounding_of_clss_def by auto
-
 text \<open>
 The following corresponds to Lemma 4.10:
 \<close>
@@ -1820,8 +1816,7 @@ proof -
           using Max_in by metis
         then have is_ground_Max: "is_ground_atm (Max (atms_of D \<union> set Ai))"
           using gD gai2 is_ground_cls_imp_is_ground_atm unfolding is_ground_atm_mset_def by auto
-        (* FIXME: rename and maybe turn in to a lemma *)
-        then have grgrgr: "\<forall>\<sigma>. Max (atms_of D \<union> set Ai) \<cdot>a \<sigma> = Max (atms_of D \<union> set Ai)"
+        then have Max\<sigma>_is_Max: "\<forall>\<sigma>. Max (atms_of D \<union> set Ai) \<cdot>a \<sigma> = Max (atms_of D \<union> set Ai)"
           by auto
 
         from k have
@@ -1833,7 +1828,7 @@ proof -
           unfolding gd.eligible.simps[simplified] ann2
           unfolding maximal_in_def
           unfolding less_atm_iff
-          using grgrgr
+          using Max\<sigma>_is_Max
           using gai gD
           using ex_ground_subst
           apply simp

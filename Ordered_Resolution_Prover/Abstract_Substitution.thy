@@ -780,6 +780,9 @@ lemma is_ground_clss_mono: "CC \<le> DD \<Longrightarrow> is_ground_clss DD \<Lo
 lemma is_ground_cls_mset_mono: "CC \<le># DD \<Longrightarrow> is_ground_cls_mset DD \<Longrightarrow> is_ground_cls_mset CC"
   unfolding is_ground_cls_mset_def by (metis mset_subset_eqD)
 
+lemma grounding_of_clss_mono: "CC \<subseteq> DD \<Longrightarrow> grounding_of_clss CC \<subseteq> grounding_of_clss DD"
+  using grounding_of_clss_def by auto
+
 
 paragraph \<open>Substituting on ground expression preserves ground\<close>
 
