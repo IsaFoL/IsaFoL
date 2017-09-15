@@ -4002,35 +4002,35 @@ setup \<open>map_theory_claset (fn ctxt => ctxt addSbefore ("split_all_tac", spl
 context twl_array_code
 begin
 term twl_st_assn
-definition (in -) lit_of_hd_trail :: \<open>'v twl_st_wl \<Rightarrow> 'v literal\<close> where
-  \<open>lit_of_hd_trail S = lit_of (hd (get_trail_wl S))\<close>
+definition (in -) lit_of_hd_trail_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal\<close> where
+  \<open> lit_of_hd_trail_st S = lit_of (hd (get_trail_wl S))\<close>
 
-definition lit_of_hd_trail_int :: \<open>twl_st_wl_int_trail_ref \<Rightarrow> nat literal\<close> where
-  \<open>lit_of_hd_trail_int = (\<lambda>((M, _), _). lit_of (hd M))\<close>
+definition lit_of_hd_trail_st_int :: \<open>twl_st_wl_int_trail_ref \<Rightarrow> nat literal\<close> where
+  \<open> lit_of_hd_trail_st_int = (\<lambda>((M, _), _). lit_of (hd M))\<close>
 
-lemma lit_of_hd_trail_int_lit_of_hd_trail:
-   \<open>(RETURN o lit_of_hd_trail_int, RETURN o lit_of_hd_trail) \<in>
+lemma lit_of_hd_trail_st_int_lit_of_hd_trail_st:
+   \<open>(RETURN o lit_of_hd_trail_st_int, RETURN o lit_of_hd_trail_st) \<in>
   [\<lambda>S. get_trail_wl S \<noteq>  []]\<^sub>f twl_st_trail_ref \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
-    by (auto simp: lit_of_hd_trail_def twl_st_trail_ref_def trailt_ref_def lit_of_hd_trail_int_def
+    by (auto simp: lit_of_hd_trail_st_def twl_st_trail_ref_def trailt_ref_def lit_of_hd_trail_st_int_def
       intro!: frefI nres_relI)
 
-sepref_thm lit_of_hd_trail_code
-  is \<open>RETURN o lit_of_hd_trail_int\<close>
+sepref_thm lit_of_hd_trail_st_code
+  is \<open>RETURN o lit_of_hd_trail_st_int\<close>
   :: \<open>[\<lambda>((M, _), _). M \<noteq> []]\<^sub>a twl_st_int_trail_ref_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-  unfolding lit_of_hd_trail_int_def twl_st_int_trail_ref_assn_def
+  unfolding lit_of_hd_trail_st_int_def twl_st_int_trail_ref_assn_def
   by sepref
 
-concrete_definition (in -) lit_of_hd_trail_code
-   uses twl_array_code.lit_of_hd_trail_code.refine_raw
+concrete_definition (in -) lit_of_hd_trail_st_code
+   uses twl_array_code.lit_of_hd_trail_st_code.refine_raw
    is \<open>(?f, _)\<in>_\<close>
 
-prepare_code_thms (in -) lit_of_hd_trail_code_def
+prepare_code_thms (in -) lit_of_hd_trail_st_code_def
 
-lemmas lit_of_hd_trail_code_refine_code[sepref_fr_rules] =
-   lit_of_hd_trail_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+lemmas lit_of_hd_trail_st_code_refine_code[sepref_fr_rules] =
+   lit_of_hd_trail_st_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
 
-theorem lit_of_hd_trail_code_lit_of_hd_trail[sepref_fr_rules]:
-  \<open>(lit_of_hd_trail_code, RETURN o lit_of_hd_trail)
+theorem lit_of_hd_trail_st_code_lit_of_hd_trail_st[sepref_fr_rules]:
+  \<open>(lit_of_hd_trail_st_code, RETURN o lit_of_hd_trail_st)
     \<in> [\<lambda>S. get_trail_wl S \<noteq> []]\<^sub>a
       twl_st_assn\<^sup>k  \<rightarrow> unat_lit_assn\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
@@ -4041,8 +4041,8 @@ proof -
       hrp_comp (twl_st_int_trail_ref_assn\<^sup>k) twl_st_trail_ref \<rightarrow>
       hr_comp unat_lit_assn Id\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF lit_of_hd_trail_code_refine_code
-    lit_of_hd_trail_int_lit_of_hd_trail] .
+    using hfref_compI_PRE_aux[OF lit_of_hd_trail_st_code_refine_code
+    lit_of_hd_trail_st_int_lit_of_hd_trail_st] .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     using that by (auto simp: comp_PRE_def twl_st_trail_ref_def trailt_ref_def)
   have im: \<open>?im' = ?im\<close>
@@ -4514,8 +4514,8 @@ definition extract_shorter_conflict_list_removed :: \<open>(nat, nat) ann_lits \
     RETURN ((False, (m, zs)), L)
   })\<close>
 
-definition second_highest_lit where
-  \<open>second_highest_lit M C L \<longleftrightarrow>
+definition highest_lit where
+  \<open>highest_lit M C L \<longleftrightarrow>
      (L = None \<longrightarrow> size C \<le> 1) \<and>
      (L \<noteq> None \<longrightarrow> get_level M (fst (the L)) = snd (the L) \<and>
         snd (the L) \<le> get_maximum_level M C \<and>
@@ -4526,7 +4526,7 @@ definition second_highest_lit where
 lemma extract_shorter_conflict_list_extract_shorter_conflict_l_trivial:
   shows \<open>(uncurry extract_shorter_conflict_list_removed, uncurry (RETURN oo extract_shorter_conflict_l_trivial)) \<in>
       [\<lambda>(M', D). literals_are_in_N\<^sub>0 (the D) \<and> D \<noteq> None \<and> (* D \<noteq> Some {#} \<and> *) M = M']\<^sub>f Id \<times>\<^sub>f option_conflict_rel \<rightarrow>
-         \<langle>{((D, L), C). (D, C) \<in> option_conflict_rel \<and> C \<noteq> None \<and> second_highest_lit M (the C) L}\<rangle> nres_rel\<close>
+         \<langle>{((D, L), C). (D, C) \<in> option_conflict_rel \<and> C \<noteq> None \<and> highest_lit M (the C) L}\<rangle> nres_rel\<close>
   (is \<open>?C \<in> [?pre]\<^sub>f _ \<times>\<^sub>f _ \<rightarrow> \<langle>?post\<rangle> nres_rel\<close>)
 proof -
   have H: \<open>extract_shorter_conflict_list_removed M (b, n, xs)
@@ -4537,7 +4537,7 @@ proof -
     let ?C = \<open>\<lambda>M i C. filter_mset (\<lambda>L. atm_of L < i \<longrightarrow> get_level M L \<noteq> 0) C\<close>
     let ?D = \<open>\<lambda>M i C. filter_mset (\<lambda>L. atm_of L < i \<and> get_level M L \<noteq> 0) C\<close>
     define I' where
-      \<open>I' = (\<lambda>(i, m', m, zs, L). second_highest_lit M (?D M i C) L \<and>
+      \<open>I' = (\<lambda>(i, m', m, zs, L). highest_lit M (?D M i C) L \<and>
               ((False, (m, zs)), Some (?C M i C))
         \<in> option_conflict_rel \<and> (i < length zs \<longrightarrow> zs ! i \<noteq> None \<longrightarrow> Pos i \<in> snd ` D\<^sub>0) \<and>
         i + m' \<le> length zs \<and> length xs = length zs \<and>
@@ -4546,7 +4546,7 @@ proof -
     have [simp]: \<open>b = False\<close>
       using ocr unfolding option_conflict_rel_def by auto
     have n: \<open>n = size C\<close> and map: \<open>mset_as_position xs C\<close>
-      using ocr by (auto simp: conflict_rel_def second_highest_lit_def option_conflict_rel_def)
+      using ocr by (auto simp: conflict_rel_def highest_lit_def option_conflict_rel_def)
     have \<open>xs ! i = None \<longleftrightarrow> Pos i \<notin># C \<and> Neg i \<notin># C\<close> if \<open>i < length xs\<close> for i
       using mset_as_position_in_iff_nth[OF map, of \<open>Pos i\<close>] that
         mset_as_position_in_iff_nth[OF map, of \<open>Neg i\<close>]
@@ -4573,7 +4573,7 @@ proof -
       by (auto simp: option_conflict_rel_def conflict_rel_def)
     have init_I: \<open>I n (0, n, n, xs, None)\<close>
       using ocr lits unfolding I_def
-      by (auto simp: conflict_rel_def second_highest_lit_def option_conflict_rel_def
+      by (auto simp: conflict_rel_def highest_lit_def option_conflict_rel_def
           mset_as_position_length_not_None[OF map] xs_Some literals_are_in_N\<^sub>0_add_mset
           image_image in_N\<^sub>1_atm_of_in_atms_of_iff
           dest!: multi_member_split[of _ C])
@@ -4581,7 +4581,7 @@ proof -
       using count_le_length[of xs None] by auto
     then have init_I': \<open>I' (0, n, n, xs, None)\<close>
       using ocr lits unfolding I'_def
-      by (auto simp: conflict_rel_def second_highest_lit_def option_conflict_rel_def
+      by (auto simp: conflict_rel_def highest_lit_def option_conflict_rel_def
           mset_as_position_length_not_None[OF map] xs_Some literals_are_in_N\<^sub>0_add_mset
           image_image in_N\<^sub>1_atm_of_in_atms_of_iff removeAll_filter_not_eq[symmetric]
           length_removeAll_count_list
@@ -4682,7 +4682,7 @@ proof -
         "xs = baa"
         using s by auto
       have
-        shl: "second_highest_lit M (?D M ab C) be" and
+        shl: "highest_lit M (?D M ab C) be" and
         ocr: "((False, ad, ae), Some {#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#}) \<in> option_conflict_rel" and
         ab_N\<^sub>1: "Pos ab \<in># N\<^sub>1" and
         [simp]: "length baa = length ae" and
@@ -4717,8 +4717,8 @@ proof -
         by (auto split: if_splits dest!: multi_member_split
             simp: lev_ab tautology_add_mset filter_mset_empty_conv get_level_Neg_Pos)
 
-      have shl': \<open>second_highest_lit M (?D M (Suc ab) C) (Some (?L, get_level M (Pos ab)))\<close>
-        using shl unfolding 1 second_highest_lit_def
+      have shl': \<open>highest_lit M (?D M (Suc ab) C) (Some (?L, get_level M (Pos ab)))\<close>
+        using shl unfolding 1 highest_lit_def
         by (auto simp: get_level_Neg_Pos get_maximum_level_add_mset)
       have ocr_e: \<open>{#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#} = {#L \<in># C. atm_of L < Suc ab \<longrightarrow> 0 < get_level M L#}\<close>
         apply (rule filter_mset_cong2)
@@ -4789,7 +4789,7 @@ proof -
         "xs = baa"
         using s by auto
       have
-        shl: "second_highest_lit M (?D M ab C) be" and
+        shl: "highest_lit M (?D M ab C) be" and
         ocr: "((False, ad, ae), Some {#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#}) \<in> option_conflict_rel" and
         ab_N\<^sub>1: "Pos ab \<in># N\<^sub>1" and
         [simp]: "length baa = length ae" and
@@ -4824,8 +4824,8 @@ proof -
         by (auto split: if_splits dest!: multi_member_split
             simp: lev_ab tautology_add_mset filter_mset_empty_conv get_level_Neg_Pos)
 
-      have shl': \<open>second_highest_lit M (?D M (Suc ab) C) (Some (?L, get_level M (Pos ab)))\<close>
-        using shl unfolding 1 second_highest_lit_def
+      have shl': \<open>highest_lit M (?D M (Suc ab) C) (Some (?L, get_level M (Pos ab)))\<close>
+        using shl unfolding 1 highest_lit_def
         by (auto simp: get_level_Neg_Pos get_maximum_level_add_mset)
       have ocr_e: \<open>{#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#} = {#L \<in># C. atm_of L < Suc ab \<longrightarrow> 0 < get_level M L#}\<close>
         apply (rule filter_mset_cong2)
@@ -4894,7 +4894,7 @@ proof -
         "xs = baa"
         using s by auto
       have
-        shl: "second_highest_lit M (?D M ab C) be" and
+        shl: "highest_lit M (?D M ab C) be" and
         ocr: "((False, ad, ae), Some {#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#}) \<in> option_conflict_rel" and
         ab_N\<^sub>1: "Pos ab \<in># N\<^sub>1" and
         [simp]: "length baa = length ae" and
@@ -4929,8 +4929,8 @@ proof -
         by (auto split: if_splits dest!: multi_member_split
             simp: lev_ab tautology_add_mset filter_mset_empty_conv get_level_Neg_Pos)
 
-      have shl': \<open>second_highest_lit M (?D M (Suc ab) C) (Some xa)\<close>
-        using shl unfolding 1 second_highest_lit_def
+      have shl': \<open>highest_lit M (?D M (Suc ab) C) (Some xa)\<close>
+        using shl unfolding 1 highest_lit_def
         by (auto simp: get_level_Neg_Pos get_maximum_level_add_mset)
       have ocr_e: \<open>{#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#} = {#L \<in># C. atm_of L < Suc ab \<longrightarrow> 0 < get_level M L#}\<close>
         apply (rule filter_mset_cong2)
@@ -4995,7 +4995,7 @@ proof -
         "xs = baa"
         using s by auto
       have
-        shl: "second_highest_lit M (?D M ab C) be" and
+        shl: "highest_lit M (?D M ab C) be" and
         ocr: "((False, ad, ae), Some {#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#}) \<in> option_conflict_rel" and
         ab_N\<^sub>1: "Pos ab \<in># N\<^sub>1" and
         [simp]: "length baa = length ae" and
@@ -5026,8 +5026,8 @@ proof -
           using lev_ab by (cases L) (auto simp: less_Suc_eq_le order.order_iff_strict get_level_Neg_Pos)
         subgoal ..
         done
-      have shl': \<open>second_highest_lit M (?D M (Suc ab) C) be\<close>
-        using shl unfolding 1 second_highest_lit_def
+      have shl': \<open>highest_lit M (?D M (Suc ab) C) be\<close>
+        using shl unfolding 1 highest_lit_def
         by (auto simp: get_level_Neg_Pos get_maximum_level_add_mset)
 
       have \<open>?L \<in># C\<close>
@@ -5083,7 +5083,7 @@ proof -
     have final: "(((False, ad, ae), be), Some {#L \<in># the (Some C). 0 < get_level M L#})
       \<in> {((D, L), C).
           (D, C) \<in> option_conflict_rel \<and>
-          C \<noteq> None \<and> second_highest_lit M (the C) L}"
+          C \<noteq> None \<and> highest_lit M (the C) L}"
       if
         I: "I aa s" and
         I': "I' s" and
@@ -5110,7 +5110,7 @@ proof -
         using s cond by auto
 
       have
-        shl: "second_highest_lit M (?D M ab C) be" and
+        shl: "highest_lit M (?D M ab C) be" and
         ocr: "((False, ad, ae), Some {#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#}) \<in> option_conflict_rel" and
         [simp]: "length baa = length ae" and
         ab_drop_ae: "ab + size {#L \<in># C. ab \<le> atm_of L#} + count_list (drop ab ae) None = length ae" and
@@ -5179,9 +5179,11 @@ definition extract_shorter_conflict_list_int where
   \<open>extract_shorter_conflict_list_int = (\<lambda>M (b, (n, xs)). do {
      let K = lit_of (hd M);
      ASSERT(atm_of K < length xs);
+     ASSERT(n \<ge> 1);
      let xs = xs[atm_of K := None];
      ((b, (n, xs)), L) \<leftarrow> extract_shorter_conflict_list_removed M (b, (n - 1, xs));
      ASSERT(atm_of K < length xs);
+     ASSERT(n < upperN);
      RETURN ((b, (n + 1, xs[atm_of K := Some (is_neg K)])), L)
   })\<close>
 
@@ -5189,7 +5191,7 @@ definition extract_shorter_conflict_list_int where
 lemma extract_shorter_conflict_list_extract_shorter_conflict_l_trivial_spec:
   \<open>literals_are_in_N\<^sub>0 (the ba) \<and> (\<exists>y. ba = Some y) \<and> ((a, aa, b), ba) \<in> option_conflict_rel \<and> M = M' \<Longrightarrow>
     extract_shorter_conflict_list_removed M (a, aa, b) \<le> \<Down> {((D, L), C).
-      (D, C) \<in> option_conflict_rel \<and> (\<exists>y. C = Some y) \<and> second_highest_lit M (the C) L}
+      (D, C) \<in> option_conflict_rel \<and> (\<exists>y. C = Some y) \<and> highest_lit M (the C) L}
     (RETURN (extract_shorter_conflict_l_trivial M' ba))\<close>
   apply simp
     apply (rule extract_shorter_conflict_list_extract_shorter_conflict_l_trivial[
@@ -5200,14 +5202,20 @@ lemma literals_are_in_N\<^sub>0_sub:
   \<open>literals_are_in_N\<^sub>0 y \<Longrightarrow> literals_are_in_N\<^sub>0 (y - z)\<close>
   using literals_are_in_N\<^sub>0_mono[of y \<open>y - z\<close>] by auto
 
-lemma
+lemma extract_shorter_conflict_l_trivial_subset_msetD:
+  \<open>extract_shorter_conflict_l_trivial M (Some (remove1_mset (- lit_of (hd M)) D)) = Some D' \<Longrightarrow> D' \<subseteq># D\<close>
+  apply (auto simp: extract_shorter_conflict_l_trivial_def)
+  by (metis Diff_eq_empty_iff_mset diff_le_mono2_mset diff_subset_eq_self diff_zero multiset_filter_subset)
+
+lemma extract_shorter_conflict_list_int_extract_shorter_conflict_list:
   \<open>(uncurry extract_shorter_conflict_list_int, uncurry extract_shorter_conflict_list)
    \<in> [\<lambda>(M', D). literals_are_in_N\<^sub>0 (the D) \<and> D \<noteq> None \<and> M = M' \<and> M \<noteq> [] \<and>
          literals_are_in_N\<^sub>0 (lit_of `# mset M) \<and>  - lit_of (hd M) \<in># the D \<and>
-         lit_of (hd M) \<notin># the D]\<^sub>f
+         lit_of (hd M) \<notin># the D \<and> distinct_mset (the D) \<and> get_level M (lit_of (hd M)) > 0 \<and>
+          \<not>tautology (the D)]\<^sub>f
       Id \<times>\<^sub>f option_conflict_rel \<rightarrow>
        \<langle>{((D, L), C). (D, C) \<in> option_conflict_rel \<and> C \<noteq> None \<and>
-          second_highest_lit M (the C) L}\<rangle>nres_rel\<close>
+          highest_lit M (remove1_mset (-lit_of (hd M)) (the C)) L}\<rangle>nres_rel\<close>
   supply extract_shorter_conflict_list_extract_shorter_conflict_l_trivial[refine_vcg]
   unfolding extract_shorter_conflict_list_def extract_shorter_conflict_list_int_def uncurry_def
   apply (intro frefI nres_relI)
@@ -5217,6 +5225,9 @@ lemma
     by (cases M)
       (auto simp: literals_are_in_N\<^sub>0_sub option_conflict_rel_def conflict_rel_def
         literals_are_in_N\<^sub>0_add_mset in_N\<^sub>1_atm_of_in_atms_of_iff)
+  subgoal by (auto simp: literals_are_in_N\<^sub>0_sub option_conflict_rel_def conflict_rel_def
+        literals_are_in_N\<^sub>0_add_mset in_N\<^sub>1_atm_of_in_atms_of_iff
+        dest: multi_member_split)
   unfolding conc_fun_RETURN[symmetric]
    apply (rule extract_shorter_conflict_list_extract_shorter_conflict_l_trivial_spec)
   subgoal for a aa ab b ac ba y
@@ -5226,12 +5237,29 @@ lemma
         simp: literals_are_in_N\<^sub>0_sub option_conflict_rel_def conflict_rel_def
         size_remove1_mset_If minus_notin_trivial2 minus_notin_trivial)
     done
-  subgoal
+  subgoal for M' b n zs ac ba D x' x1 x1a x2 x1b x2a L
     apply (auto intro!: ASSERT_refine_left)
-    apply (cases M)
-    apply (auto simp: literals_are_in_N\<^sub>0_sub option_conflict_rel_def conflict_rel_def
-        literals_are_in_N\<^sub>0_add_mset in_N\<^sub>1_atm_of_in_atms_of_iff)
-    sorry
+    subgoal 
+      apply (cases M)
+       apply (auto simp: literals_are_in_N\<^sub>0_sub option_conflict_rel_def conflict_rel_def
+          literals_are_in_N\<^sub>0_add_mset in_N\<^sub>1_atm_of_in_atms_of_iff is_pos_neg_not_is_pos
+          extract_shorter_conflict_l_trivial_def
+          intro!: mset_as_position.add
+          dest!: multi_member_split[of _ D])
+      done
+    subgoal for D'
+      using simple_clss_size_upper_div2[of D'] literals_are_in_N\<^sub>0_mono[of D D']
+        distinct_mset_mono[of D' D] not_tautology_mono[of D' D]
+      by (auto simp: literals_are_in_N\<^sub>0_sub option_conflict_rel_def conflict_rel_def
+          literals_are_in_N\<^sub>0_add_mset in_N\<^sub>1_atm_of_in_atms_of_iff upperN_def
+          dest!: extract_shorter_conflict_l_trivial_subset_msetD)
+    subgoal
+      by (auto simp: literals_are_in_N\<^sub>0_sub option_conflict_rel_def conflict_rel_def
+          literals_are_in_N\<^sub>0_add_mset in_N\<^sub>1_atm_of_in_atms_of_iff is_pos_neg_not_is_pos
+          extract_shorter_conflict_l_trivial_def
+          intro!: mset_as_position.add
+          dest!: multi_member_split[of _ D])
+    done
   done
 
 lemma (in -) op_list_append_alt_def:
@@ -5241,19 +5269,33 @@ lemma (in -) op_list_append_alt_def:
 abbreviation extract_shorter_conflict_l_trivial_pre where
 \<open>extract_shorter_conflict_l_trivial_pre \<equiv> \<lambda>(M, D). literals_are_in_N\<^sub>0 (mset (fst D))\<close>
 
+term extract_shorter_conflict_list_int
+term \<open>bool_assn *assn conflict_rel_assn\<close>
+term conflict_option_rel_assn
 (* TODO: this introduce some allocation to convert the arl to array. The minimization could also
   work on the other conflict representation.
    *)
+
+definition (in -) lit_of_hd_trail where
+  \<open>lit_of_hd_trail M = lit_of (hd M)\<close>
+
+sepref_register extract_shorter_conflict_list_removed
 sepref_register extract_shorter_conflict_l_trivial
 sepref_thm extract_shorter_conflict_l_trivial'
-  is \<open>uncurry (PR_CONST extract_shorter_conflict_list)\<close>
-  :: \<open>[extract_shorter_conflict_l_trivial_pre]\<^sub>a
-      trail_assn\<^sup>k *\<^sub>a conflict_with_cls_int_assn\<^sup>d \<rightarrow> conflict_with_cls_int_assn\<close>
+  is \<open>uncurry (PR_CONST extract_shorter_conflict_list_int)\<close>
+  :: \<open>[\<lambda>(M, (b, n, xs)). M \<noteq> []]\<^sub>a
+      trail_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow> conflict_option_rel_assn *assn 
+       option_assn (unat_lit_assn *assn uint32_nat_assn)\<close>
   supply [[goals_limit = 1]]
-  supply le_nat_uint32_hnr[sepref_fr_rules]
-  unfolding extract_shorter_conflict_list_def PR_CONST_def twl_st_assn_def
-  op_list_append_alt_def[symmetric]
-  apply (rewrite in "(_, \<hole>)" arl.fold_custom_empty)
+  unfolding extract_shorter_conflict_list_def PR_CONST_def
+  extract_shorter_conflict_list_int_def
+  lit_of_hd_trail_def[symmetric] Let_def one_nat_uint32_def[symmetric]
+  fast_minus_def[symmetric]
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  -- \<open>Translation stops at the \<open>set\<close> operation\<close>
+                  apply sepref_dbg_trans_step_keep
+                    apply sepref_dbg_side_unfold apply (auto simp: )[]
   by sepref
 
 concrete_definition (in -) extract_shorter_conflict_l_trivial_code
@@ -5969,7 +6011,7 @@ sepref_thm backtrack_wl_D
   supply [[goals_limit=1]] backtrack_wl_D_invD[simp]
   unfolding backtrack_wl_D_def PR_CONST_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
-    append_ll_def[symmetric] lit_of_hd_trail_def[symmetric]
+    append_ll_def[symmetric] lit_of_hd_trail_st_def[symmetric]
     cons_trail_Propagated_def[symmetric]
 apply sepref_dbg_keep
   apply sepref_dbg_trans_keep
