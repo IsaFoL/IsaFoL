@@ -619,8 +619,12 @@ subsubsection \<open>Monotonicity\<close>
 lemma subst_cls_mono: "set_mset C \<subseteq> set_mset D \<Longrightarrow> set_mset (C \<cdot> \<sigma>) \<subseteq> set_mset (D \<cdot> \<sigma>)"
   by force
 
-lemma subst_cls_mono_mset: "C \<le># D \<Longrightarrow> C \<cdot> \<sigma> \<le># D \<cdot> \<sigma>"
+lemma subst_cls_mono_mset: "C \<subseteq># D \<Longrightarrow> C \<cdot> \<sigma> \<subseteq># D \<cdot> \<sigma>"
   unfolding subst_clss_def by (metis mset_subset_eq_exists_conv subst_cls_union)
+
+lemma subst_subset_mono: "D \<subset># C \<Longrightarrow> D \<cdot> \<sigma> \<subset># C \<cdot> \<sigma>"
+  unfolding subst_cls_def
+  by (simp add: image_mset_subset_mono)
 
 
 subsubsection \<open>Length after substitution\<close>
@@ -771,13 +775,13 @@ lemma is_ground_cls_Union_mset[iff]: "is_ground_cls (\<Union># CC) \<longleftrig
 
 paragraph \<open>Ground mono\<close>
 
-lemma is_ground_cls_mono: "C \<le># D \<Longrightarrow> is_ground_cls D \<Longrightarrow> is_ground_cls C"
+lemma is_ground_cls_mono: "C \<subseteq># D \<Longrightarrow> is_ground_cls D \<Longrightarrow> is_ground_cls C"
   unfolding is_ground_cls_def by (metis set_mset_mono subsetD)
 
-lemma is_ground_clss_mono: "CC \<le> DD \<Longrightarrow> is_ground_clss DD \<Longrightarrow> is_ground_clss CC"
+lemma is_ground_clss_mono: "CC \<subseteq> DD \<Longrightarrow> is_ground_clss DD \<Longrightarrow> is_ground_clss CC"
   unfolding is_ground_clss_def by blast
 
-lemma is_ground_cls_mset_mono: "CC \<le># DD \<Longrightarrow> is_ground_cls_mset DD \<Longrightarrow> is_ground_cls_mset CC"
+lemma is_ground_cls_mset_mono: "CC \<subseteq># DD \<Longrightarrow> is_ground_cls_mset DD \<Longrightarrow> is_ground_cls_mset CC"
   unfolding is_ground_cls_mset_def by (metis mset_subset_eqD)
 
 lemma grounding_of_clss_mono: "CC \<subseteq> DD \<Longrightarrow> grounding_of_clss CC \<subseteq> grounding_of_clss DD"

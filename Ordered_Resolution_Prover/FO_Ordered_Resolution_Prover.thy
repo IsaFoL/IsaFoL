@@ -105,11 +105,13 @@ interpretation src: standard_redundancy_criterion gd.ord_\<Gamma>
   "ground_resolution_with_selection.INTERP S_Q"
   by unfold_locales
 
-(* The extension of ordered resolution mentioned in 4.10. We let it consist of all sound rules *)
+text \<open>
+The extension of ordered resolution mentioned in 4.10. We let it consist of all sound rules.
+\<close>
+
 definition gd_ord_\<Gamma>':: "'a inference set" where
   "gd_ord_\<Gamma>' = {Infer CC D E | CC D E. (\<forall>I. I \<Turnstile>m CC \<longrightarrow>  I \<Turnstile> D \<longrightarrow> I \<Turnstile> E)}"
 
-(* This corresponds to the part of 4.10 that claims we are extending resolution *)
 lemma gd_ord_\<Gamma>_ngd_ord_\<Gamma>: "gd.ord_\<Gamma> \<subseteq> gd_ord_\<Gamma>'"
   unfolding gd_ord_\<Gamma>'_def
   using gd.ord_\<Gamma>_def gd.ord_resolve_sound by fastforce
@@ -132,10 +134,6 @@ interpretation src_ext:
 text \<open>
 The following corresponds to Lemma 4.10:
 \<close>
-
-lemma subst_subset_mono: "D \<subset># C \<Longrightarrow> D \<cdot> \<sigma> \<subset># C \<cdot> \<sigma>"
-  unfolding subst_cls_def
-  by (simp add: image_mset_subset_mono)
 
 fun subst_inf :: "'a inference \<Rightarrow> 's \<Rightarrow> 'a inference" (infixl "\<cdot>i" 67) where
   "(Infer CC D E) \<cdot>i \<sigma> = Infer (CC \<cdot>cm \<sigma>) (D \<cdot> \<sigma>) (E \<cdot> \<sigma>)"
