@@ -4485,29 +4485,42 @@ lemma extract_shorter_conflict_l_trivial_int_extract_shorter_conflict_l_trivial:
         extract_shorter_conflict_st_trivial_def twl_st_ref_def RETURN_def
      intro!: RES_refine)
 
+definition (in -) sum_mod_upperN where
+  \<open>sum_mod_upperN a b = (a + b) mod upperN\<close>
+
+lemma (in -) nat_of_uint32_plus:
+  \<open>nat_of_uint32 (a + b) = (nat_of_uint32 a + nat_of_uint32 b) mod (2 ^ 32)\<close>
+  by transfer (auto simp: unat_word_ariths)
+
+lemma (in -) sum_mod_upperN: \<open>(uncurry (return oo op +), uncurry (RETURN oo sum_mod_upperN)) \<in> uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a
+  uint32_nat_assn\<close>
+  by sepref_to_hoare
+     (sep_auto simp: sum_mod_upperN_def uint32_nat_rel_def br_def nat_of_uint32_plus upperN_def)
+
 definition extract_shorter_conflict_list_removed :: \<open>(nat, nat) ann_lits \<Rightarrow> conflict_option_rel \<Rightarrow>
   (conflict_option_rel \<times> (nat literal \<times> nat) option) nres\<close> where
 \<open>extract_shorter_conflict_list_removed = (\<lambda>M (_, (n, xs)). do {
    (_, _, m, zs, L) \<leftarrow>
-     WHILE\<^sub>T\<^bsup>\<lambda>(i, m', m, xs, L). i \<le> length xs \<and> m \<le> n\<^esup>
+     WHILE\<^sub>T\<^bsup>\<lambda>(i, m', m, xs, L). i \<le> length xs \<and> m \<le> n \<and> i + 1 < upperN \<and> m \<ge> m'\<^esup>
        (\<lambda>(i, m', _). m' > 0)
        (\<lambda>(i, m', m, zs, L). do {
+          ASSERT(i < length zs);
+          ASSERT(m' > 0);
           case zs ! i of
             None \<Rightarrow> RETURN (i+1, m', m, zs, L)
           | Some b \<Rightarrow>  do {
                ASSERT(Pos i \<in> snd ` D\<^sub>0);
-               ASSERT(i < length zs);
                let k = get_level M (Pos i) in
                if k > 0 then (* Keep *)
                  (case L of
                    None \<Rightarrow> RETURN (i+1, m' - 1, m, zs, Some (if b then Pos i else Neg i, k))
                  | Some (_, k') \<Rightarrow>
                    if k > k' then
-                     RETURN (i+1, m' - 1, m, zs, Some (if b then Pos i else Neg i, k))
+                     RETURN (i + 1, m' - 1, m, zs, Some (if b then Pos i else Neg i, k))
                    else
-                     RETURN (i+1, m' - 1, m, zs, L))
+                     RETURN (i + 1, m' - 1, m, zs, L))
                else (* delete *)
-                 RETURN (i+1, m' - 1, m - 1, zs[i := None], L)
+                 RETURN (i + 1, m' - 1, m - 1, zs[i := None], L)
             }
         })
      (0, n, n, xs, None);
@@ -4542,7 +4555,8 @@ proof -
         \<in> option_conflict_rel \<and> (i < length zs \<longrightarrow> zs ! i \<noteq> None \<longrightarrow> Pos i \<in> snd ` D\<^sub>0) \<and>
         i + m' \<le> length zs \<and> length xs = length zs \<and>
         m' = size (filter_mset (\<lambda>L. atm_of L \<ge> i) C) \<and>
-        i + m' + count_list (drop i zs) None = length xs)\<close>
+        (m' > 0 \<longrightarrow> i + m' + count_list (drop i zs) None = length xs) \<and>
+        (m' > 0 \<longrightarrow> i \<le> upperN div 2))\<close>
     have [simp]: \<open>b = False\<close>
       using ocr unfolding option_conflict_rel_def by auto
     have n: \<open>n = size C\<close> and map: \<open>mset_as_position xs C\<close>
@@ -4556,9 +4570,13 @@ proof -
       using mset_as_position_in_iff_nth[OF map, of \<open>Pos i\<close>] that
         mset_as_position_in_iff_nth[OF map, of \<open>Neg i\<close>]
       by (cases \<open>xs ! i\<close>) auto
-
+    have n_ge_upperN: \<open>n > upperN div 2 \<Longrightarrow> {#L \<in># C. n \<le> atm_of L#} = {#}\<close> for n
+      using lits in_N1_less_than_upperN
+      by (auto simp: filter_mset_empty_conv literals_are_in_N\<^sub>0_add_mset nat_of_lit_def upperN_def
+          dest!: multi_member_split split: if_splits)
     define I where
-      \<open>I n = (\<lambda>(i :: nat, m'::nat, m :: nat, xs :: bool option list, L:: (nat literal \<times> nat) option). i \<le> length xs \<and> m \<le> n)\<close>
+      \<open>I n = (\<lambda>(i :: nat, m'::nat, m :: nat, xs :: bool option list, L:: (nat literal \<times> nat) option).
+         i \<le> length xs \<and> m \<le> n \<and> i + 1 < upperN \<and> m \<ge> m')\<close>
       for n :: nat
     have I'_mapD: \<open>I' (i, m, n, xs, L) \<Longrightarrow> mset_as_position xs {#L \<in># C. \<not> (atm_of L < i \<and> get_level M L = 0)#}\<close>
       for i m n xs L
@@ -4573,7 +4591,7 @@ proof -
       by (auto simp: option_conflict_rel_def conflict_rel_def)
     have init_I: \<open>I n (0, n, n, xs, None)\<close>
       using ocr lits unfolding I_def
-      by (auto simp: conflict_rel_def highest_lit_def option_conflict_rel_def
+      by (auto simp: conflict_rel_def highest_lit_def option_conflict_rel_def upperN_def
           mset_as_position_length_not_None[OF map] xs_Some literals_are_in_N\<^sub>0_add_mset
           image_image in_N\<^sub>1_atm_of_in_atms_of_iff
           dest!: multi_member_split[of _ C])
@@ -4584,7 +4602,7 @@ proof -
       by (auto simp: conflict_rel_def highest_lit_def option_conflict_rel_def
           mset_as_position_length_not_None[OF map] xs_Some literals_are_in_N\<^sub>0_add_mset
           image_image in_N\<^sub>1_atm_of_in_atms_of_iff removeAll_filter_not_eq[symmetric]
-          length_removeAll_count_list
+          length_removeAll_count_list upperN_def
           dest!: multi_member_split[of _ C])
     have notin_I': "I' (ab + 1, ac, ad, ae, be)"
       if
@@ -4643,6 +4661,8 @@ proof -
           using Pos Neg by (cases L) (auto intro!: filter_mset_cong le_neq_implies_less)
         subgoal ..
         done
+      have 4: \<open>0 < size {#L \<in># C. Suc ab \<le> atm_of L#} \<Longrightarrow> Suc ab \<le> upperN div 2\<close>
+        using n_ge_upperN[of \<open>Suc ab\<close>] by (cases \<open>upperN div 2 \<le> ab\<close>; auto simp: upperN_def)
       have \<open>ab + size {#L \<in># C. Suc ab \<le> atm_of L#} + count_list (drop ab ae) None =
            length ae\<close>
         using that xs_Some unfolding I'_def I_def by (auto simp: 3)
@@ -4650,7 +4670,7 @@ proof -
          length ae \<close>
         using Cons_nth_drop_Suc[symmetric, of ab ae] ab_le None by auto
       then show ?thesis
-        using that xs_Some unfolding I'_def I_def by (auto simp: 3)
+        using that xs_Some m unfolding I'_def I_def by (auto simp: 3 4)
     qed
     have in_I'_no_found: "I' (ab + 1, ac - 1, ad, ae, Some (if x then Pos ab else Neg ab, get_level M (Pos ab)))"
       if
@@ -4688,7 +4708,7 @@ proof -
         [simp]: "length baa = length ae" and
         ab_drop_ae: "ab + size {#L \<in># C. ab \<le> atm_of L#} + count_list (drop ab ae) None = length ae" and
         ac: "ac = size {#L \<in># C. ab \<le> atm_of L#}"
-        using I' ab_le Some unfolding I'_def
+        using I' ab_le Some cond unfolding I'_def
         by auto
       let ?L = \<open>if x then Pos ab else Neg ab\<close>
       have [iff]: \<open>(atm_of L < ab \<longrightarrow>
@@ -4751,9 +4771,12 @@ proof -
       have Suc_ab_drop_ae: \<open>Suc (ab + size {#L \<in># C. Suc ab \<le> atm_of L#} + count_list (drop (Suc ab) ae) None) =
         length ae\<close>
         using ab_drop_ae 1[symmetric] Cons_nth_drop_Suc[OF ab_le, symmetric] Some by auto
-      show ?thesis
-        using ab_le Some shl' ab_N\<^sub>1 ocr' ab_ac_0 ac_size Suc_ab_drop_ae Suc_D\<^sub>0 unfolding I'_def
-        by auto
+
+      have ab_upperN: \<open>0 < size {#L \<in># C. Suc ab \<le> atm_of L#} \<Longrightarrow> Suc ab \<le> upperN div 2\<close>
+        using n_ge_upperN[of \<open>Suc ab\<close>] by (cases \<open>upperN div 2 \<le> ab\<close>; auto simp: upperN_def)
+      then show ?thesis
+        using ab_le Some shl' ab_N\<^sub>1 ocr' ab_ac_0 ac_size Suc_ab_drop_ae Suc_D\<^sub>0 ab_upperN cond
+        unfolding I'_def by auto
     qed
     have in_I'_found_upd: "I' (ab + 1, ac - 1, ad, ae,
           Some (if x then Pos ab else Neg ab, get_level M (Pos ab)))"
@@ -4795,7 +4818,7 @@ proof -
         [simp]: "length baa = length ae" and
         ab_drop_ae: "ab + size {#L \<in># C. ab \<le> atm_of L#} + count_list (drop ab ae) None = length ae" and
         ac: "ac = size {#L \<in># C. ab \<le> atm_of L#}"
-        using I' ab_le Some unfolding I'_def
+        using I' ab_le Some cond unfolding I'_def
         by auto
       let ?L = \<open>if x then Pos ab else Neg ab\<close>
       have [iff]: \<open>(atm_of L < ab \<longrightarrow>
@@ -4858,8 +4881,17 @@ proof -
       have Suc_ab_drop_ae: \<open>Suc (ab + size {#L \<in># C. Suc ab \<le> atm_of L#} + count_list (drop (Suc ab) ae) None) =
         length ae\<close>
         using ab_drop_ae 1[symmetric] Cons_nth_drop_Suc[OF ab_le, symmetric] Some by auto
+      have [simp]: \<open>sum_mod_upperN ab (Suc 0) = ab + Suc 0\<close>
+        unfolding sum_mod_upperN_def
+        apply (rule nat_mod_eq')
+        apply (rule ccontr)
+        using n_ge_upperN[of ab] cond ac
+        by (auto simp: upperN_def not_less_eq)
+      have ab_upperN: \<open>0 < size {#L \<in># C. Suc ab \<le> atm_of L#} \<Longrightarrow> Suc ab \<le> upperN div 2\<close>
+        using n_ge_upperN[of \<open>Suc ab\<close>] by (cases \<open>upperN div 2 \<le> ab\<close>; auto simp: upperN_def)
       show ?thesis
-        using ab_le Some shl' ab_N\<^sub>1 ocr' ab_ac_0 ac_size Suc_ab_drop_ae Suc_D\<^sub>0 unfolding I'_def
+        using ab_le Some shl' ab_N\<^sub>1 ocr' ab_ac_0 ac_size Suc_ab_drop_ae Suc_D\<^sub>0 ab_upperN
+        unfolding I'_def
         by auto
     qed
     have in_I'_found_no_upd: "I' (ab + 1, ac - 1, ad, ae, be)"
@@ -4900,7 +4932,7 @@ proof -
         [simp]: "length baa = length ae" and
         ab_drop_ae: "ab + size {#L \<in># C. ab \<le> atm_of L#} + count_list (drop ab ae) None = length ae" and
         ac: "ac = size {#L \<in># C. ab \<le> atm_of L#}"
-        using I' ab_le Some unfolding I'_def
+        using I' ab_le Some cond unfolding I'_def
         by auto
       let ?L = \<open>if x then Pos ab else Neg ab\<close>
       have [iff]: \<open>(atm_of L < ab \<longrightarrow>
@@ -4963,9 +4995,11 @@ proof -
       have Suc_ab_drop_ae: \<open>Suc (ab + size {#L \<in># C. Suc ab \<le> atm_of L#} + count_list (drop (Suc ab) ae) None) =
         length ae\<close>
         using ab_drop_ae 1[symmetric] Cons_nth_drop_Suc[OF ab_le, symmetric] Some by auto
+      have ab_upperN: \<open>0 < size {#L \<in># C. Suc ab \<le> atm_of L#} \<Longrightarrow> Suc ab \<le> upperN div 2\<close>
+        using n_ge_upperN[of \<open>Suc ab\<close>] by (cases \<open>upperN div 2 \<le> ab\<close>; auto simp: upperN_def)
       show ?thesis
-        using ab_le Some shl' ab_N\<^sub>1 ocr' ab_ac_0 ac_size Suc_ab_drop_ae Suc_D\<^sub>0 unfolding I'_def
-        by auto
+        using ab_le Some shl' ab_N\<^sub>1 ocr' ab_ac_0 ac_size Suc_ab_drop_ae Suc_D\<^sub>0 ab_upperN 
+        unfolding I'_def by auto
     qed
     have I'_in_remove: "I' (ab + 1, ac - 1, ad - 1, ae[ab := None], be)"
       if
@@ -5001,7 +5035,7 @@ proof -
         [simp]: "length baa = length ae" and
         ab_drop_ae: "ab + size {#L \<in># C. ab \<le> atm_of L#} + count_list (drop ab ae) None = length ae" and
         ac: "ac = size {#L \<in># C. ab \<le> atm_of L#}"
-        using I' ab_le Some unfolding I'_def
+        using I' ab_le Some cond unfolding I'_def
         by auto
       let ?L = \<open>if x then Pos ab else Neg ab\<close>
       have [iff]: \<open>(atm_of L < ab \<longrightarrow>
@@ -5076,9 +5110,12 @@ proof -
       have Suc_ab_drop_ae: \<open>Suc (ab + size {#L \<in># C. Suc ab \<le> atm_of L#} + count_list (drop (Suc ab) ae) None) =
         length ae\<close>
         using ab_drop_ae 1[symmetric] Cons_nth_drop_Suc[OF ab_le, symmetric] Some by auto
+
+      have ab_upperN: \<open>0 < size {#L \<in># C. Suc ab \<le> atm_of L#} \<Longrightarrow> Suc ab \<le> upperN div 2\<close>
+        using n_ge_upperN[of \<open>Suc ab\<close>] by (cases \<open>upperN div 2 \<le> ab\<close>; auto simp: upperN_def)
       show ?thesis
-        using ab_le Some shl' ab_N\<^sub>1 ocr' ab_ac_0 ac_size Suc_ab_drop_ae Suc_D\<^sub>0 unfolding I'_def
-        by auto
+        using ab_le Some shl' ab_N\<^sub>1 ocr' ab_ac_0 ac_size Suc_ab_drop_ae Suc_D\<^sub>0 ab_upperN
+        unfolding I'_def by auto
     qed
     have final: "(((False, ad, ae), be), Some {#L \<in># the (Some C). 0 < get_level M L#})
       \<in> {((D, L), C).
@@ -5113,7 +5150,7 @@ proof -
         shl: "highest_lit M (?D M ab C) be" and
         ocr: "((False, ad, ae), Some {#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#}) \<in> option_conflict_rel" and
         [simp]: "length baa = length ae" and
-        ab_drop_ae: "ab + size {#L \<in># C. ab \<le> atm_of L#} + count_list (drop ab ae) None = length ae" and
+        (* ab_drop_ae: "ab + size {#L \<in># C. ab \<le> atm_of L#} + count_list (drop ab ae) None = length ae" and *)
         ac: "ac = size {#L \<in># C. ab \<le> atm_of L#}"
         using I' unfolding I'_def
         by auto
@@ -5140,20 +5177,21 @@ proof -
       subgoal using init_I by auto
       subgoal using init_I' by auto
       subgoal unfolding I'_def I_def by auto
+      subgoal by auto
+      subgoal unfolding I'_def I_def upperN_def by auto
       subgoal by (rule notin_I')
       subgoal unfolding I'_def by auto
       subgoal unfolding I'_def by auto
-      subgoal unfolding I'_def by auto
-      subgoal by (auto simp: I_def)
+      subgoal by (auto simp: I'_def I_def upperN_def)
       subgoal by (rule in_I'_no_found)
       subgoal unfolding I'_def by auto
-      subgoal unfolding I_def by auto
+      subgoal unfolding I_def upperN_def I'_def by auto
       subgoal by (rule in_I'_found_upd)
       subgoal unfolding I'_def by auto
-      subgoal unfolding I_def by auto
+      subgoal unfolding I_def I'_def upperN_def by auto
       subgoal by (rule in_I'_found_no_upd)
       subgoal unfolding I'_def by auto
-      subgoal unfolding I_def by auto
+      subgoal unfolding I_def I'_def upperN_def by auto
       subgoal by (rule I'_in_remove)
       subgoal unfolding I'_def by auto
       subgoal by (rule final)
@@ -5183,7 +5221,7 @@ definition extract_shorter_conflict_list_int where
      let xs = xs[atm_of K := None];
      ((b, (n, xs)), L) \<leftarrow> extract_shorter_conflict_list_removed M (b, (n - 1, xs));
      ASSERT(atm_of K < length xs);
-     ASSERT(n < upperN);
+     ASSERT(n + 1 < upperN);
      RETURN ((b, (n + 1, xs[atm_of K := Some (is_neg K)])), L)
   })\<close>
 
@@ -5279,8 +5317,78 @@ term conflict_option_rel_assn
 definition (in -) lit_of_hd_trail where
   \<open>lit_of_hd_trail M = lit_of (hd M)\<close>
 
+
+definition (in -) lit_of_hd_trail_int where
+  \<open>lit_of_hd_trail_int = (\<lambda>(M, _). lit_of (hd M))\<close>
+
+lemma lit_of_hd_trail_int_lit_of_hd_trail:
+   \<open>(RETURN o lit_of_hd_trail_int, RETURN o lit_of_hd_trail) \<in>
+         [\<lambda>S. S \<noteq> []]\<^sub>f trailt_ref \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+   by (auto simp: lit_of_hd_trail_def trailt_ref_def lit_of_hd_trail_int_def
+      intro!: frefI nres_relI)
+
+sepref_definition (in -) lit_of_hd_trail_code
+  is \<open>RETURN o lit_of_hd_trail_int\<close>
+  :: \<open>[\<lambda>(M, _). M \<noteq> []]\<^sub>a trailt_conc\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  unfolding lit_of_hd_trail_int_def
+  by sepref
+
+theorem lit_of_hd_trail_code_lit_of_hd_trail[sepref_fr_rules]:
+  \<open>(lit_of_hd_trail_code, RETURN o lit_of_hd_trail)
+    \<in> [\<lambda>S. S \<noteq> []]\<^sub>a trail_assn\<^sup>k  \<rightarrow> unat_lit_assn\<close>
+    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c
+    \<in> [comp_PRE trailt_ref (\<lambda>S. S \<noteq> []) (\<lambda>_ (M, _). M \<noteq> [])
+     (\<lambda>_. True)]\<^sub>a hrp_comp (trailt_conc\<^sup>k)
+                     trailt_ref \<rightarrow> hr_comp unat_lit_assn Id\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF lit_of_hd_trail_code.refine
+      lit_of_hd_trail_int_lit_of_hd_trail] .
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
+    using that by (auto simp: comp_PRE_def twl_st_trail_ref_def trailt_ref_def)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_ref_assn_assn ..
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
+qed
+
 sepref_register extract_shorter_conflict_list_removed
 sepref_register extract_shorter_conflict_l_trivial
+
+
+(*extract_shorter_conflict_list_removed  *)
+sepref_thm extract_shorter_conflict_list_removed_code
+  is \<open>uncurry (PR_CONST extract_shorter_conflict_list_removed)\<close>
+  :: \<open>[\<lambda>(M, (b, n, xs)). M \<noteq> []]\<^sub>a
+      trail_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow> conflict_option_rel_assn *assn 
+       option_assn (unat_lit_assn *assn uint32_nat_assn)\<close>
+  supply [[goals_limit = 1]] uint32_nat_assn_zero_uint32[sepref_fr_rules] 
+    Pot_unat_lit_assn[sepref_fr_rules] one_nat_uint32_def[simp]
+    Neg_unat_lit_assn[sepref_fr_rules] zero_uint32_def[simp]
+  unfolding extract_shorter_conflict_list_removed_def PR_CONST_def
+  extract_shorter_conflict_list_int_def
+  lit_of_hd_trail_def[symmetric] Let_def
+   zero_uint32_def[symmetric]
+  fast_minus_def[symmetric] one_nat_uint32_def[symmetric]
+  by sepref
+
+concrete_definition (in -) extract_shorter_conflict_list_removed_code
+   uses twl_array_code.extract_shorter_conflict_list_removed_code.refine_raw
+   is \<open>(uncurry ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) extract_shorter_conflict_list_removed_code_def
+
+lemmas extract_shorter_conflict_list_removed_code_extract_shorter_conflict_list_removed[sepref_fr_rules] =
+  extract_shorter_conflict_list_removed_code.refine[of N\<^sub>0,
+      OF twl_array_code_axioms]
+
 sepref_thm extract_shorter_conflict_l_trivial'
   is \<open>uncurry (PR_CONST extract_shorter_conflict_list_int)\<close>
   :: \<open>[\<lambda>(M, (b, n, xs)). M \<noteq> []]\<^sub>a
@@ -5291,11 +5399,6 @@ sepref_thm extract_shorter_conflict_l_trivial'
   extract_shorter_conflict_list_int_def
   lit_of_hd_trail_def[symmetric] Let_def one_nat_uint32_def[symmetric]
   fast_minus_def[symmetric]
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  -- \<open>Translation stops at the \<open>set\<close> operation\<close>
-                  apply sepref_dbg_trans_step_keep
-                    apply sepref_dbg_side_unfold apply (auto simp: )[]
   by sepref
 
 concrete_definition (in -) extract_shorter_conflict_l_trivial_code
@@ -5311,7 +5414,7 @@ lemmas extract_shorter_conflict_l_trivial_code_wl_D[sepref_fr_rules] =
 lemma extract_shorter_conflict_l_trivial_code_extract_shorter_conflict_l_trivial[sepref_fr_rules]:
   \<open>(uncurry extract_shorter_conflict_l_trivial_code,
      uncurry (RETURN \<circ>\<circ> extract_shorter_conflict_l_trivial))
-    \<in> [\<lambda>(M, D). literals_are_in_N\<^sub>0 (the D) \<and> D \<noteq> None]\<^sub>a
+    \<in> [\<lambda>(M, D). M \<noteq> [] \<and> literals_are_in_N\<^sub>0 (the D) \<and> D \<noteq> None]\<^sub>a
        trail_assn\<^sup>k *\<^sub>a  conflict_with_cls_assn\<^sup>d \<rightarrow> conflict_with_cls_assn\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
