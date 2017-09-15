@@ -203,11 +203,11 @@ subsection \<open>More Operations\<close>
 
 abbreviation "curry8' fc \<equiv> (\<lambda> (a, b, c, d, e, f, g, h). fc a b c d e f g)"
 
-abbreviation comp4 (infixl "oooo" 55) where "f oooo g \<equiv> \<lambda>x. f ooo (g x)"
-abbreviation comp5 (infixl "ooooo" 55) where "f ooooo g \<equiv> \<lambda>x. f oooo (g x)"
-abbreviation comp6 (infixl "oooooo" 55) where "f oooooo g \<equiv> \<lambda>x. f oooo (g x)"
-abbreviation comp7 (infixl "ooooooo" 55) where "f ooooooo g \<equiv> \<lambda>x. f oooo (g x)"
-abbreviation comp8 (infixl "oooooooo" 55) where "f oooooooo g \<equiv> \<lambda>x. f oooo (g x)"
+abbreviation comp4 (infixl "oooo" 55) where      "f oooo g \<equiv>     \<lambda>x. f ooo (g x)"
+abbreviation comp5 (infixl "ooooo" 55) where     "f ooooo g \<equiv>    \<lambda>x. f oooo (g x)"
+abbreviation comp6 (infixl "oooooo" 55) where    "f oooooo g \<equiv>   \<lambda>x. f ooooo (g x)"
+abbreviation comp7 (infixl "ooooooo" 55) where   "f ooooooo g \<equiv>  \<lambda>x. f oooooo (g x)"
+abbreviation comp8 (infixl "oooooooo" 55) where  "f oooooooo g \<equiv> \<lambda>x. f ooooooo (g x)"
 
 notation (in -)
   comp4 (infixl "\<circ>\<circ>\<circ>" 55) and
