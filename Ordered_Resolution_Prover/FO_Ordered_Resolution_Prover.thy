@@ -14,13 +14,14 @@ begin
 type_synonym 'a state = "'a clause set \<times> 'a clause set \<times> 'a clause set"
 
 locale FO_resolution_with_selection =
-  FO_resolution subst_atm id_subst comp_subst mgu less_atm +
+  FO_resolution subst_atm id_subst comp_subst mk_var_dis mgu less_atm +
   selection S
   for
     S :: "('a :: wellorder) clause \<Rightarrow> _" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and
     comp_subst :: "'s => 's => 's" and
+    mk_var_dis :: "'a literal multiset list \<Rightarrow> 's list" and
     mgu :: "'a set set \<Rightarrow> 's option" and
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
 begin

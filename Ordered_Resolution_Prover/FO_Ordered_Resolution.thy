@@ -14,11 +14,12 @@ begin
 (* FIXME: Avoid such global changes to the intro/etc. sets *)
 declare nth_equalityI [intro]
 
-locale FO_resolution = unification subst_atm id_subst comp_subst mgu
+locale FO_resolution = unification subst_atm id_subst comp_subst mk_var_dis mgu 
   for
     subst_atm :: "'a :: wellorder \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and
     comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
+    mk_var_dis :: "'a literal multiset list \<Rightarrow> 's list" and
     mgu :: "'a set set \<Rightarrow> 's option" +
   fixes
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
@@ -103,31 +104,6 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
    \<forall>i. i < n \<longrightarrow> str_maximal_in (Ai ! i \<cdot>a \<sigma>) ((Ci ! i) \<cdot> \<sigma>) \<Longrightarrow>
    \<forall>i < n. S (CAi ! i) = {#} \<Longrightarrow> (* Use the ! style instead maybe, or maybe us the \<forall> \<in> . style above *)
    ord_resolve CAi (D + negs (mset Ai)) \<sigma> (((\<Union># (mset Ci)) + D) \<cdot> \<sigma>)"
-
-(* FIXME: Assume this function directly in the abstract substitution. Since then it can be computable. *)
-(* FIXME: Come up with a better name. Function gives substitutions that standardize clauses apart. *)
-definition mk_var_dis :: "'a literal multiset list \<Rightarrow> 's list" where
-  "mk_var_dis Cs =
-   (SOME \<rho>s. length \<rho>s = length Cs \<and> (\<forall>\<rho> \<in> set \<rho>s. is_renaming \<rho>) \<and> var_disjoint (Cs \<cdot>\<cdot>cl \<rho>s))"
-
-lemma mk_var_dis_p:
-  "length (mk_var_dis Cs) = length Cs \<and> (\<forall>\<rho> \<in> set (mk_var_dis Cs). is_renaming \<rho>) \<and>
-   var_disjoint (Cs \<cdot>\<cdot>cl (mk_var_dis Cs))"
-proof -
-  define Q where
-    "Q = (\<lambda>\<rho>s. length \<rho>s = length Cs \<and> (\<forall>\<rho> \<in> set \<rho>s. is_renaming \<rho>) \<and> var_disjoint (Cs \<cdot>\<cdot>cl \<rho>s))"
-
-  have "mk_var_dis Cs = (SOME \<rho>s. Q \<rho>s)"
-    unfolding mk_var_dis_def Q_def by auto
-  moreover
-  have "\<exists>\<rho>s. Q \<rho>s"
-    using make_var_disjoint unfolding Q_def by metis
-  ultimately
-  have "Q (mk_var_dis Cs)"
-    using someI by metis
-  then show ?thesis
-    unfolding Q_def by auto
-qed
 
 inductive ord_resolve_rename :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 's \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve_rename:
