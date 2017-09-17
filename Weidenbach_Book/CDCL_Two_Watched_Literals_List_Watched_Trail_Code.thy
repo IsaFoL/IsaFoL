@@ -5440,7 +5440,10 @@ lemma extract_shorter_conflict_list_extract_shorter_conflict_l_trivial:
     (auto simp: extract_shorter_conflict_list_def extract_shorter_conflict_l_trivial_def
       Let_def)
 
-text \<open>This is the \<^emph>\<open>direct\<close> composition of the refinement theorems, but it is not simple to use yet.\<close>
+text \<open>
+  This is the \<^emph>\<open>direct\<close> composition of the refinement theorems. Only the version lifted to
+  state should be used (to get rid of the \<^term>\<open>M\<close> that appears in the refinement relation).
+\<close>
 lemma extract_shorter_conflict_l_trivial_code_extract_shorter_conflict_l_trivial:
   \<open>(uncurry extract_shorter_conflict_l_trivial_code,
      uncurry (RETURN \<circ>\<circ> extract_shorter_conflict_l_trivial))
