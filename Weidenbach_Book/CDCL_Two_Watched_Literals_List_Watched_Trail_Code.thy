@@ -4998,7 +4998,7 @@ proof -
       have ab_upperN: \<open>0 < size {#L \<in># C. Suc ab \<le> atm_of L#} \<Longrightarrow> Suc ab \<le> upperN div 2\<close>
         using n_ge_upperN[of \<open>Suc ab\<close>] by (cases \<open>upperN div 2 \<le> ab\<close>; auto simp: upperN_def)
       show ?thesis
-        using ab_le Some shl' ab_N\<^sub>1 ocr' ab_ac_0 ac_size Suc_ab_drop_ae Suc_D\<^sub>0 ab_upperN 
+        using ab_le Some shl' ab_N\<^sub>1 ocr' ab_ac_0 ac_size Suc_ab_drop_ae Suc_D\<^sub>0 ab_upperN
         unfolding I'_def by auto
     qed
     have I'_in_remove: "I' (ab + 1, ac - 1, ad - 1, ae[ab := None], be)"
@@ -5277,7 +5277,7 @@ lemma extract_shorter_conflict_list_int_extract_shorter_conflict_list:
     done
   subgoal for M' b n zs ac ba D x' x1 x1a x2 x1b x2a L
     apply (auto intro!: ASSERT_refine_left)
-    subgoal 
+    subgoal
       apply (cases M)
        apply (auto simp: literals_are_in_N\<^sub>0_sub option_conflict_rel_def conflict_rel_def
           literals_are_in_N\<^sub>0_add_mset in_N\<^sub>1_atm_of_in_atms_of_iff is_pos_neg_not_is_pos
@@ -5367,9 +5367,9 @@ sepref_register extract_shorter_conflict_l_trivial
 sepref_thm extract_shorter_conflict_list_removed_code
   is \<open>uncurry (PR_CONST extract_shorter_conflict_list_removed)\<close>
   :: \<open>[\<lambda>(M, (b, n, xs)). M \<noteq> []]\<^sub>a
-      trail_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow> conflict_option_rel_assn *assn 
+      trail_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow> conflict_option_rel_assn *assn
        option_assn (unat_lit_assn *assn uint32_nat_assn)\<close>
-  supply [[goals_limit = 1]] uint32_nat_assn_zero_uint32[sepref_fr_rules] 
+  supply [[goals_limit = 1]] uint32_nat_assn_zero_uint32[sepref_fr_rules]
     Pot_unat_lit_assn[sepref_fr_rules] one_nat_uint32_def[simp]
     Neg_unat_lit_assn[sepref_fr_rules] zero_uint32_def[simp]
   unfolding extract_shorter_conflict_list_removed_def PR_CONST_def
@@ -5392,7 +5392,7 @@ lemmas extract_shorter_conflict_list_removed_code_extract_shorter_conflict_list_
 sepref_thm extract_shorter_conflict_l_trivial'
   is \<open>uncurry (PR_CONST extract_shorter_conflict_list_int)\<close>
   :: \<open>[\<lambda>(M, (b, n, xs)). M \<noteq> []]\<^sub>a
-      trail_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow> conflict_option_rel_assn *assn 
+      trail_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow> conflict_option_rel_assn *assn
        option_assn (unat_lit_assn *assn uint32_nat_assn)\<close>
   supply [[goals_limit = 1]]
   unfolding extract_shorter_conflict_list_def PR_CONST_def
