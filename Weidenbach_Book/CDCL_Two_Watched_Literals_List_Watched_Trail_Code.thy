@@ -5411,11 +5411,33 @@ lemmas extract_shorter_conflict_l_trivial_code_wl_D[sepref_fr_rules] =
   extract_shorter_conflict_l_trivial_code.refine[of N\<^sub>0,
       OF twl_array_code_axioms]
 
+type_synonym (in -) conflict_rel_with_cls_with_highest =
+  \<open>conflict_option_rel \<times> (nat literal \<times> nat)option\<close>
+
+definition option_conflict_rel_with_cls_with_highest
+  :: \<open>(nat, 'a) ann_lits \<Rightarrow> (conflict_rel_with_cls_with_highest \<times> nat clause option) set\<close> where
+  \<open>option_conflict_rel_with_cls_with_highest M = {(((b, xs), L), D).
+     D \<noteq> None \<and> ((b, xs), D) \<in> option_conflict_rel \<and> highest_lit M (the D) L \<and>
+     (\<forall>L\<in>atms_of N\<^sub>1. L < length (snd xs))}\<close>
+
+type_synonym (in -) conflict_with_cls_with_highest_assn =
+   \<open>conflict_option_assn \<times> (uint32 \<times> uint32) option\<close>
+
+abbreviation conflict_with_cls_int_with_highest_assn
+ :: \<open>conflict_rel_with_cls_with_highest \<Rightarrow> conflict_with_cls_with_highest_assn \<Rightarrow> assn\<close> where
+ \<open>conflict_with_cls_int_with_highest_assn \<equiv>
+    (bool_assn *assn uint32_nat_assn *assn array_assn (option_assn bool_assn)) *assn option_assn (unat_lit_assn *assn uint32_nat_assn)\<close>
+
+definition conflict_with_cls_with_cls_with_highest_assn
+  :: \<open>(nat, 'a) ann_lits \<Rightarrow> nat clause option \<Rightarrow> conflict_with_cls_with_highest_assn \<Rightarrow> assn\<close> where
+ \<open>conflict_with_cls_with_cls_with_highest_assn M \<equiv>
+    hr_comp conflict_with_cls_int_with_highest_assn (option_conflict_rel_with_cls_with_highest M)\<close>
+
 lemma extract_shorter_conflict_l_trivial_code_extract_shorter_conflict_l_trivial[sepref_fr_rules]:
   \<open>(uncurry extract_shorter_conflict_l_trivial_code,
      uncurry (RETURN \<circ>\<circ> extract_shorter_conflict_l_trivial))
-    \<in> [\<lambda>(M, D). M \<noteq> [] \<and> literals_are_in_N\<^sub>0 (the D) \<and> D \<noteq> None]\<^sub>a
-       trail_assn\<^sup>k *\<^sub>a  conflict_with_cls_assn\<^sup>d \<rightarrow> conflict_with_cls_assn\<close>
+    \<in> [\<lambda>(M', D). M' \<noteq> [] \<and> literals_are_in_N\<^sub>0 (the D) \<and> D \<noteq> None \<and> M' = M]\<^sub>a
+       trail_assn\<^sup>k *\<^sub>a conflict_option_assn\<^sup>d \<rightarrow> (conflict_with_cls_with_cls_with_highest_assn M)\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?c
