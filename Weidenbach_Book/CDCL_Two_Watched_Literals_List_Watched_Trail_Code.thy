@@ -4535,7 +4535,6 @@ definition highest_lit where
         fst (the L) \<in># C
         )\<close>
 
-(* TODO: different conflict representation: the literal of highest level is *not* included anymore *)
 
 lemma extract_shorter_conflict_list_removed_extract_shorter_conflict_l_trivial:
   shows \<open>(uncurry extract_shorter_conflict_list_removed, uncurry (RETURN oo extract_shorter_conflict_l_trivial)) \<in>
@@ -5259,7 +5258,7 @@ lemma extract_shorter_conflict_list_int_extract_shorter_conflict_list:
           \<not>tautology (the D)]\<^sub>f
       Id \<times>\<^sub>f option_conflict_rel \<rightarrow>
        \<langle>{((D, L), C). (D, C) \<in> option_conflict_rel \<and> C \<noteq> None \<and>
-          highest_lit M (remove1_mset (-lit_of (hd M)) (the C)) L \<and> 
+          highest_lit M (remove1_mset (-lit_of (hd M)) (the C)) L \<and>
           (\<forall>L\<in>atms_of N\<^sub>1. L < length (snd (snd D)))}\<rangle>nres_rel\<close>
   supply extract_shorter_conflict_list_removed_extract_shorter_conflict_l_trivial[refine_vcg]
   unfolding extract_shorter_conflict_list_def extract_shorter_conflict_list_int_def uncurry_def
@@ -5307,19 +5306,12 @@ lemma extract_shorter_conflict_list_int_extract_shorter_conflict_list:
     done
   done
 
-lemma (in -) op_list_append_alt_def:
-  \<open>op_list_append xs x = xs @ [x]\<close>
-  by auto
-
 abbreviation extract_shorter_conflict_l_trivial_pre where
 \<open>extract_shorter_conflict_l_trivial_pre \<equiv> \<lambda>(M, D). literals_are_in_N\<^sub>0 (mset (fst D))\<close>
 
 term extract_shorter_conflict_list_int
 term \<open>bool_assn *assn conflict_rel_assn\<close>
 term conflict_option_rel_assn
-(* TODO: this introduce some allocation to convert the arl to array. The minimization could also
-  work on the other conflict representation.
-   *)
 
 definition (in -) lit_of_hd_trail where
   \<open>lit_of_hd_trail M = lit_of (hd M)\<close>
@@ -5452,7 +5444,7 @@ text \<open>This is the \<^emph>\<open>direct\<close> composition of the refinem
 lemma extract_shorter_conflict_l_trivial_code_extract_shorter_conflict_l_trivial:
   \<open>(uncurry extract_shorter_conflict_l_trivial_code,
      uncurry (RETURN \<circ>\<circ> extract_shorter_conflict_l_trivial))
-    \<in> [\<lambda>(M', D). M' \<noteq> [] \<and> literals_are_in_N\<^sub>0 (the D) \<and> D \<noteq> None \<and> M' = M \<and> 
+    \<in> [\<lambda>(M', D). M' \<noteq> [] \<and> literals_are_in_N\<^sub>0 (the D) \<and> D \<noteq> None \<and> M' = M \<and>
          -lit_of (hd M) \<in># the D \<and>  0 < get_level M (lit_of (hd M)) \<and>
          literals_are_in_N\<^sub>0 (lit_of `# mset M) \<and> literals_are_in_N\<^sub>0 (the D) \<and>
          distinct_mset (the D) \<and> \<not>tautology (the D)]\<^sub>a
@@ -5497,7 +5489,7 @@ proof -
              (\<forall>L\<in>atms_of N\<^sub>1. L < length (snd (snd D)))})
           Id\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF 
+    using hfref_compI_PRE_aux[OF
        hfref_compI_PRE_aux[OF extract_shorter_conflict_l_trivial_code_wl_D[unfolded PR_CONST_def]
           extract_shorter_conflict_list_int_extract_shorter_conflict_list, of M]
        extract_shorter_conflict_list_extract_shorter_conflict_l_trivial] .
