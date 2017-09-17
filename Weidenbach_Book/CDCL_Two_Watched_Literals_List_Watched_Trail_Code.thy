@@ -4536,10 +4536,12 @@ definition highest_lit where
         )\<close>
 
 (* TODO: different conflict representation: the literal of highest level is *not* included anymore *)
-lemma extract_shorter_conflict_list_extract_shorter_conflict_l_trivial:
+
+lemma extract_shorter_conflict_list_removed_extract_shorter_conflict_l_trivial:
   shows \<open>(uncurry extract_shorter_conflict_list_removed, uncurry (RETURN oo extract_shorter_conflict_l_trivial)) \<in>
-      [\<lambda>(M', D). literals_are_in_N\<^sub>0 (the D) \<and> D \<noteq> None \<and> (* D \<noteq> Some {#} \<and> *) M = M']\<^sub>f Id \<times>\<^sub>f option_conflict_rel \<rightarrow>
-         \<langle>{((D, L), C). (D, C) \<in> option_conflict_rel \<and> C \<noteq> None \<and> highest_lit M (the C) L}\<rangle> nres_rel\<close>
+      [\<lambda>(M', D). literals_are_in_N\<^sub>0 (the D) \<and> D \<noteq> None \<and> M = M']\<^sub>f Id \<times>\<^sub>f option_conflict_rel \<rightarrow>
+         \<langle>{((D, L), C). (D, C) \<in> option_conflict_rel \<and> C \<noteq> None \<and> highest_lit M (the C) L \<and>
+           (\<forall>L\<in>atms_of N\<^sub>1. L < length (snd (snd D)))}\<rangle> nres_rel\<close>
   (is \<open>?C \<in> [?pre]\<^sub>f _ \<times>\<^sub>f _ \<rightarrow> \<langle>?post\<rangle> nres_rel\<close>)
 proof -
   have H: \<open>extract_shorter_conflict_list_removed M (b, n, xs)
@@ -5120,7 +5122,7 @@ proof -
     have final: "(((False, ad, ae), be), Some {#L \<in># the (Some C). 0 < get_level M L#})
       \<in> {((D, L), C).
           (D, C) \<in> option_conflict_rel \<and>
-          C \<noteq> None \<and> highest_lit M (the C) L}"
+          C \<noteq> None \<and> highest_lit M (the C) L \<and> (\<forall>L\<in>atms_of N\<^sub>1. L < length (snd (snd D)))}"
       if
         I: "I aa s" and
         I': "I' s" and
@@ -5164,8 +5166,11 @@ proof -
         subgoal for L using ac by (auto simp: filter_mset_empty_conv)
         subgoal by (rule refl)
         done
+      have le_ae: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length ae\<close>
+        using I I' ocr unfolding I'_def option_conflict_rel_def conflict_rel_def
+        by auto
       show ?thesis
-        using ocr shl by auto
+        using ocr shl le_ae by auto
     qed
     show ?thesis
       unfolding extract_shorter_conflict_list_removed_def extract_shorter_conflict_l_trivial_def
@@ -5229,10 +5234,11 @@ definition extract_shorter_conflict_list_int where
 lemma extract_shorter_conflict_list_extract_shorter_conflict_l_trivial_spec:
   \<open>literals_are_in_N\<^sub>0 (the ba) \<and> (\<exists>y. ba = Some y) \<and> ((a, aa, b), ba) \<in> option_conflict_rel \<and> M = M' \<Longrightarrow>
     extract_shorter_conflict_list_removed M (a, aa, b) \<le> \<Down> {((D, L), C).
-      (D, C) \<in> option_conflict_rel \<and> (\<exists>y. C = Some y) \<and> highest_lit M (the C) L}
+      (D, C) \<in> option_conflict_rel \<and> (\<exists>y. C = Some y) \<and> highest_lit M (the C) L \<and>
+      (\<forall>L\<in>atms_of N\<^sub>1. L < length (snd (snd D)))}
     (RETURN (extract_shorter_conflict_l_trivial M' ba))\<close>
   apply simp
-    apply (rule extract_shorter_conflict_list_extract_shorter_conflict_l_trivial[
+    apply (rule extract_shorter_conflict_list_removed_extract_shorter_conflict_l_trivial[
         unfolded fref_def nres_rel_def, simplified, rule_format])
   by fast
 
@@ -5253,8 +5259,9 @@ lemma extract_shorter_conflict_list_int_extract_shorter_conflict_list:
           \<not>tautology (the D)]\<^sub>f
       Id \<times>\<^sub>f option_conflict_rel \<rightarrow>
        \<langle>{((D, L), C). (D, C) \<in> option_conflict_rel \<and> C \<noteq> None \<and>
-          highest_lit M (remove1_mset (-lit_of (hd M)) (the C)) L}\<rangle>nres_rel\<close>
-  supply extract_shorter_conflict_list_extract_shorter_conflict_l_trivial[refine_vcg]
+          highest_lit M (remove1_mset (-lit_of (hd M)) (the C)) L \<and> 
+          (\<forall>L\<in>atms_of N\<^sub>1. L < length (snd (snd D)))}\<rangle>nres_rel\<close>
+  supply extract_shorter_conflict_list_removed_extract_shorter_conflict_l_trivial[refine_vcg]
   unfolding extract_shorter_conflict_list_def extract_shorter_conflict_list_int_def uncurry_def
   apply (intro frefI nres_relI)
   apply clarify
@@ -5417,7 +5424,7 @@ type_synonym (in -) conflict_rel_with_cls_with_highest =
 definition option_conflict_rel_with_cls_with_highest
   :: \<open>(nat, 'a) ann_lits \<Rightarrow> (conflict_rel_with_cls_with_highest \<times> nat clause option) set\<close> where
   \<open>option_conflict_rel_with_cls_with_highest M = {(((b, xs), L), D).
-     D \<noteq> None \<and> ((b, xs), D) \<in> option_conflict_rel \<and> highest_lit M (the D) L \<and>
+     D \<noteq> None \<and> ((b, xs), D) \<in> option_conflict_rel \<and> highest_lit M (remove1_mset (-lit_of (hd M)) (the D)) L \<and>
      (\<forall>L\<in>atms_of N\<^sub>1. L < length (snd xs))}\<close>
 
 type_synonym (in -) conflict_with_cls_with_highest_assn =
@@ -5433,38 +5440,80 @@ definition conflict_with_cls_with_cls_with_highest_assn
  \<open>conflict_with_cls_with_cls_with_highest_assn M \<equiv>
     hr_comp conflict_with_cls_int_with_highest_assn (option_conflict_rel_with_cls_with_highest M)\<close>
 
-lemma extract_shorter_conflict_l_trivial_code_extract_shorter_conflict_l_trivial[sepref_fr_rules]:
+lemma extract_shorter_conflict_list_extract_shorter_conflict_l_trivial:
+  \<open>(uncurry extract_shorter_conflict_list, uncurry (RETURN oo extract_shorter_conflict_l_trivial)) \<in>
+  [\<lambda>(M, D). M \<noteq> [] \<and> D \<noteq> None \<and> -lit_of (hd M) \<in># the D \<and> 0 < get_level M (lit_of (hd M))]\<^sub>f
+   Id \<times>\<^sub>r \<langle>Id\<rangle>option_rel \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: extract_shorter_conflict_list_def extract_shorter_conflict_l_trivial_def
+      Let_def)
+
+text \<open>This is the \<^emph>\<open>direct\<close> composition of the refinement theorems, but it is not simple to use yet.\<close>
+lemma extract_shorter_conflict_l_trivial_code_extract_shorter_conflict_l_trivial:
   \<open>(uncurry extract_shorter_conflict_l_trivial_code,
      uncurry (RETURN \<circ>\<circ> extract_shorter_conflict_l_trivial))
-    \<in> [\<lambda>(M', D). M' \<noteq> [] \<and> literals_are_in_N\<^sub>0 (the D) \<and> D \<noteq> None \<and> M' = M]\<^sub>a
+    \<in> [\<lambda>(M', D). M' \<noteq> [] \<and> literals_are_in_N\<^sub>0 (the D) \<and> D \<noteq> None \<and> M' = M \<and> 
+         -lit_of (hd M) \<in># the D \<and>  0 < get_level M (lit_of (hd M)) \<and>
+         literals_are_in_N\<^sub>0 (lit_of `# mset M) \<and> literals_are_in_N\<^sub>0 (the D) \<and>
+         distinct_mset (the D) \<and> \<not>tautology (the D)]\<^sub>a
        trail_assn\<^sup>k *\<^sub>a conflict_option_assn\<^sup>d \<rightarrow> (conflict_with_cls_with_cls_with_highest_assn M)\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?c
-  \<in> [comp_PRE (Id \<times>\<^sub>f option_conflict_rel_with_cls)
-       (\<lambda>(M, D). literals_are_in_N\<^sub>0 (the D) \<and> D \<noteq> None)
-       (\<lambda>_ (M, D). literals_are_in_N\<^sub>0 (mset (fst D)))
-       (\<lambda>_. True)]\<^sub>a
-     hrp_comp ((hr_comp trailt_conc trailt_ref)\<^sup>k *\<^sub>a
-                        (clause_ll_assn *assn array_assn (option_assn bool_assn))\<^sup>d)
+  \<in> [comp_PRE (Id \<times>\<^sub>f \<langle>Id\<rangle>option_rel)
+       (\<lambda>(M, D).
+           M \<noteq> [] \<and>
+           D \<noteq> None \<and>
+           - lit_of (hd M) \<in># the D \<and>
+           0 < get_level M (lit_of (hd M)))
+       (\<lambda>_. comp_PRE (Id \<times>\<^sub>f option_conflict_rel)
+              (\<lambda>(M', D).
+                  literals_are_in_N\<^sub>0 (the D) \<and>
+                  D \<noteq> None \<and>
+                  M = M' \<and>
+                  M \<noteq> [] \<and>
+                  literals_are_in_N\<^sub>0 (lit_of `# mset M) \<and>
+                  - lit_of (hd M) \<in># the D \<and>
+                  lit_of (hd M) \<notin># the D \<and>
+                  distinct_mset (the D) \<and>
+                  0 < get_level M (lit_of (hd M)) \<and>
+                  \<not> tautology (the D))
+              (\<lambda>_ (M, b, n, xs). M \<noteq> []) (\<lambda>_. True))
+       (\<lambda>_. True)]\<^sub>a hrp_comp
+                       (hrp_comp
+                         ((hr_comp trailt_conc trailt_ref)\<^sup>k *\<^sub>a
+                          (bool_assn *assn conflict_rel_assn)\<^sup>d)
+                         (Id \<times>\<^sub>f option_conflict_rel))
                        (Id \<times>\<^sub>f
-                        option_conflict_rel_with_cls) \<rightarrow> hr_comp
-               (clause_ll_assn *assn array_assn (option_assn bool_assn))
-               option_conflict_rel_with_cls\<close>
+                        \<langle>Id\<rangle>option_rel) \<rightarrow> hr_comp
+          (hr_comp
+            ((bool_assn *assn conflict_rel_assn) *assn
+             option_assn (unat_lit_assn *assn uint32_nat_assn))
+            {((D, L), C).
+             (D, C) \<in> option_conflict_rel \<and>
+             C \<noteq> None \<and>
+             highest_lit M (remove1_mset (- lit_of (hd M)) (the C))
+              L \<and>
+             (\<forall>L\<in>atms_of N\<^sub>1. L < length (snd (snd D)))})
+          Id\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF extract_shorter_conflict_l_trivial_code_wl_D[unfolded PR_CONST_def]
-        extract_shorter_conflict_list_extract_shorter_conflict_l_trivial] .
+    using hfref_compI_PRE_aux[OF 
+       hfref_compI_PRE_aux[OF extract_shorter_conflict_l_trivial_code_wl_D[unfolded PR_CONST_def]
+          extract_shorter_conflict_list_int_extract_shorter_conflict_list, of M]
+       extract_shorter_conflict_list_extract_shorter_conflict_l_trivial] .
   have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
     unfolding comp_PRE_def
-      by (auto simp: comp_PRE_def option_conflict_rel_with_cls_def list_mset_rel_def br_def
+    by (auto simp: comp_PRE_def option_conflict_rel_with_cls_def list_mset_rel_def br_def
         map_fun_rel_def intro!: ext)
   have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep conflict_with_cls_assn_def[symmetric]
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep conflict_option_assn_def[symmetric]
     by (auto simp: hrp_comp_def hr_comp_def)
   have f: \<open>?f' = ?f\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep conflict_with_cls_assn_def[symmetric]
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep conflict_option_assn_def[symmetric]
+       conflict_with_cls_with_cls_with_highest_assn_def option_conflict_rel_with_cls_with_highest_def
+       hr_comp_Id2
+    apply (rule arg_cong[of _ _ \<open>hr_comp _\<close>])
     by (auto simp: hrp_comp_def hr_comp_def)
-
   show ?thesis
     apply (rule hfref_weaken_pre[OF ])
      defer
