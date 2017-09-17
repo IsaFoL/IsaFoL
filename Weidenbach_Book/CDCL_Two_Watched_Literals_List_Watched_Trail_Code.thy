@@ -4465,11 +4465,11 @@ lemma conflict_to_conflict_with_cls_code_id[sepref_fr_rules]:
   unfolding conflict_with_cls_assn_def conflict_option_assn_def conflict_to_conflict_with_cls_spec_def
     by auto
 
-definition (in -) extract_shorter_conflict_l_trivial :: \<open>('v, nat) ann_lits \<Rightarrow> 'v cconflict \<Rightarrow> 'v cconflict\<close> where
+definition (in -) extract_shorter_conflict_l_trivial :: \<open>('v, 'a) ann_lits \<Rightarrow> 'v cconflict \<Rightarrow> 'v cconflict\<close> where
   \<open>extract_shorter_conflict_l_trivial M D = Some (filter_mset (\<lambda>L. get_level M L > 0) (the D))\<close>
 
 definition (in -) extract_shorter_conflict_st_trivial :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-\<open>extract_shorter_conflict_st_trivial  = (\<lambda>(M, N, U, D, NP, UP, Q, W).
+\<open>extract_shorter_conflict_st_trivial = (\<lambda>(M, N, U, D, NP, UP, Q, W).
   RETURN (M, N, U, extract_shorter_conflict_l_trivial M D, NP, UP, Q, W))\<close>
 
 definition extract_shorter_conflict_st_trivial_int :: \<open>twl_st_wl_int \<Rightarrow> twl_st_wl_int nres\<close>
@@ -5456,41 +5456,24 @@ lemma extract_shorter_conflict_l_trivial_code_extract_shorter_conflict_l_trivial
 proof -
   have H: \<open>?c
   \<in> [comp_PRE (Id \<times>\<^sub>f \<langle>Id\<rangle>option_rel)
-       (\<lambda>(M, D).
-           M \<noteq> [] \<and>
-           D \<noteq> None \<and>
-           - lit_of (hd M) \<in># the D \<and>
-           0 < get_level M (lit_of (hd M)))
+       (\<lambda>(M, D). M \<noteq> [] \<and> D \<noteq> None \<and> - lit_of (hd M) \<in># the D \<and> 0 < get_level M (lit_of (hd M)))
        (\<lambda>_. comp_PRE (Id \<times>\<^sub>f option_conflict_rel)
-              (\<lambda>(M', D).
-                  literals_are_in_N\<^sub>0 (the D) \<and>
-                  D \<noteq> None \<and>
-                  M = M' \<and>
-                  M \<noteq> [] \<and>
-                  literals_are_in_N\<^sub>0 (lit_of `# mset M) \<and>
-                  - lit_of (hd M) \<in># the D \<and>
-                  lit_of (hd M) \<notin># the D \<and>
-                  distinct_mset (the D) \<and>
-                  0 < get_level M (lit_of (hd M)) \<and>
-                  \<not> tautology (the D))
-              (\<lambda>_ (M, b, n, xs). M \<noteq> []) (\<lambda>_. True))
-       (\<lambda>_. True)]\<^sub>a hrp_comp
-                       (hrp_comp
-                         ((hr_comp trailt_conc trailt_ref)\<^sup>k *\<^sub>a
-                          (bool_assn *assn conflict_rel_assn)\<^sup>d)
-                         (Id \<times>\<^sub>f option_conflict_rel))
-                       (Id \<times>\<^sub>f
-                        \<langle>Id\<rangle>option_rel) \<rightarrow> hr_comp
-          (hr_comp
-            ((bool_assn *assn conflict_rel_assn) *assn
-             option_assn (unat_lit_assn *assn uint32_nat_assn))
-            {((D, L), C).
-             (D, C) \<in> option_conflict_rel \<and>
-             C \<noteq> None \<and>
-             highest_lit M (remove1_mset (- lit_of (hd M)) (the C))
-              L \<and>
-             (\<forall>L\<in>atms_of N\<^sub>1. L < length (snd (snd D)))})
-          Id\<close>
+              (\<lambda>(M', D). literals_are_in_N\<^sub>0 (the D) \<and> D \<noteq> None \<and> M = M' \<and> M \<noteq> [] \<and>
+                  literals_are_in_N\<^sub>0 (lit_of `# mset M) \<and> - lit_of (hd M) \<in># the D \<and>
+                  lit_of (hd M) \<notin># the D \<and> distinct_mset (the D) \<and>
+                  0 < get_level M (lit_of (hd M)) \<and> \<not> tautology (the D))
+              (\<lambda>_ (M, b, n, xs). M \<noteq> [])
+              (\<lambda>_. True))
+       (\<lambda>_. True)]\<^sub>a 
+    hrp_comp (hrp_comp ((hr_comp trailt_conc trailt_ref)\<^sup>k *\<^sub>a (bool_assn *assn conflict_rel_assn)\<^sup>d)
+                       (Id \<times>\<^sub>f option_conflict_rel))
+              (Id \<times>\<^sub>f \<langle>Id\<rangle>option_rel) \<rightarrow> 
+    hr_comp (hr_comp ((bool_assn *assn conflict_rel_assn) *assn
+                        option_assn (unat_lit_assn *assn uint32_nat_assn))
+                     {((D, L), C). (D, C) \<in> option_conflict_rel \<and> C \<noteq> None \<and>
+                      highest_lit M (remove1_mset (- lit_of (hd M)) (the C)) L \<and>
+                       (\<forall>L\<in>atms_of N\<^sub>1. L < length (snd (snd D)))})
+             Id\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF
        hfref_compI_PRE_aux[OF extract_shorter_conflict_l_trivial_code_wl_D[unfolded PR_CONST_def]
