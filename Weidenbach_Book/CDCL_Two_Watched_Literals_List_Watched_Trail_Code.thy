@@ -5499,7 +5499,39 @@ proof -
     using pre ..
 qed
 
+type_synonym (in -) twl_st_wl_confl_extracted_int =
+  \<open>(nat,nat)ann_lits \<times> nat clause_l list \<times> nat \<times>
+    conflict_rel_with_cls_with_highest \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int \<times> bool list\<close>
 
+definition twl_st_ref_confl_extracted :: \<open>(twl_st_wl_confl_extracted_int \<times> nat twl_st_wl) set\<close> where
+\<open>twl_st_ref_confl_extracted =
+  {((M', N', U', D', Q', W', vm, \<phi>), (M, N, U, D, NP, UP, Q, W)).
+    M = M' \<and> N' = N \<and> U' = U \<and> 
+     (D', D) \<in> option_conflict_rel_with_cls_with_highest M \<and>
+     Q' = Q \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
+    vm \<in> vmtf_imp M \<and>
+    phase_saving \<phi> \<and>
+    no_dup M
+  }\<close>
+
+type_synonym (in -) twl_st_wll_trail_confl_extracted =
+  \<open>trail_int_assn \<times> clauses_wl \<times> nat \<times> conflict_with_cls_with_highest_assn \<times>
+    lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn\<close>
+
+
+definition twl_st_confl_extracted_int_assn
+  :: \<open>twl_st_wl_confl_extracted_int \<Rightarrow> twl_st_wll_trail_confl_extracted \<Rightarrow> assn\<close> where
+\<open>twl_st_confl_extracted_int_assn =
+  (trail_assn *assn clauses_ll_assn *assn nat_assn *assn
+  conflict_with_cls_int_with_highest_assn *assn
+  clause_l_assn *assn
+  arrayO_assn (arl_assn nat_assn) *assn
+  vmtf_remove_conc *assn phase_saver_conc
+  )\<close>
+
+definition twl_st_confl_extracted_assn :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_trail_confl_extracted \<Rightarrow> assn\<close> where
+  \<open>twl_st_confl_extracted_assn = hr_comp twl_st_confl_extracted_int_assn twl_st_ref_confl_extracted\<close>
 type_synonym (in -) twl_st_wl_int_W_confl_with_cls =
   \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times> nat \<times>
     conflict_rel_with_cls \<times> nat clause \<times> nat list list \<times> vmtf_remove_int \<times> bool list\<close>
