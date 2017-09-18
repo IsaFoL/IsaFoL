@@ -5736,56 +5736,53 @@ concrete_definition (in -) extract_shorter_conflict_st_trivial_code
 
 lemmas extract_shorter_conflict_st_code_refine[sepref_fr_rules] =
    extract_shorter_conflict_st_trivial_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
-thm extract_shorter_conflict_list_st_int_extract_shorter_conflict_st_trivial_int
-extract_shorter_conflict_st_code_refine
-sepref_thm extract_shorter_conflict_wl_code
-  is \<open>extract_shorter_conflict_st_trivial_int\<close>
-  :: \<open>[\<lambda>S. get_conflict_wl_int S \<noteq> None \<and>
-        literals_are_in_N\<^sub>0 (the (get_conflict_wl_int S))]\<^sub>a
-      twl_st_int_assn\<^sup>d \<rightarrow> twl_st_assn_confl_cls_int\<close>
-  supply [[goals_limit=1]] conflict_to_conflict_with_cls_spec_def[simp]
-  unfolding extract_shorter_conflict_st_trivial_int_def twl_st_int_assn_def
-    twl_st_assn_confl_cls_int_alt_def
-      supply [[goals_limit = 1]]
- apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  -- \<open>Translation stops at the \<open>set\<close> operation\<close>
-                  apply sepref_dbg_trans_step_keep
-                    apply sepref_dbg_side_unfold apply (auto simp: )[]
-  by sepref
 
-concrete_definition (in -) extract_shorter_conflict_wl_code
-   uses twl_array_code.extract_shorter_conflict_wl_code.refine_raw
-   is \<open>(?f, _)\<in>_\<close>
+definition extract_shorter_conflict_st_trivial_pre where
+  \<open>extract_shorter_conflict_st_trivial_pre S \<longleftrightarrow> (get_conflict_wl S \<noteq> None \<and>
+          get_trail_wl S \<noteq> [] \<and>
+          literals_are_in_N\<^sub>0 (the (get_conflict_wl S)) \<and>
+          - lit_of (hd (get_trail_wl S)) \<in># the (get_conflict_wl S) \<and>
+          0 < get_level (get_trail_wl S) (lit_of (hd (get_trail_wl S))) \<and>
+          literals_are_in_N\<^sub>0 (lit_of `# mset (get_trail_wl S)) \<and>
+          literals_are_in_N\<^sub>0 (the (get_conflict_wl S)) \<and>
+          distinct_mset (the (get_conflict_wl S)) \<and> \<not> tautology (the (get_conflict_wl S)))\<close>
 
-prepare_code_thms (in -) extract_shorter_conflict_wl_code_def
-
-lemmas extract_shorter_conflict_wl_code_refine[sepref_fr_rules] =
-   extract_shorter_conflict_wl_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
-
-lemma extract_shorter_conflict_wl_code_extract_shorter_conflict_st_trivial[sepref_fr_rules]:
-  \<open>(extract_shorter_conflict_wl_code, extract_shorter_conflict_st_trivial)
-    \<in> [\<lambda>S. get_conflict_wl S \<noteq> None \<and>
-        literals_are_in_N\<^sub>0 (the (get_conflict_wl S))]\<^sub>a
-       twl_st_assn\<^sup>d \<rightarrow> twl_st_assn_confl_cls\<close>
+lemma extract_shorter_conflict_st_trivial_hnr[sepref_fr_rules]:
+  \<open>(extract_shorter_conflict_st_trivial_code, extract_shorter_conflict_st_trivial) \<in>
+    [extract_shorter_conflict_st_trivial_pre]\<^sub>a
+       twl_st_assn\<^sup>d \<rightarrow> twl_st_confl_extracted_assn\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?c
-  \<in> [comp_PRE twl_st_ref (\<lambda>S. get_conflict_wl S \<noteq> None)
-       (\<lambda>_ S. get_conflict_wl_int S \<noteq> None \<and> literals_are_in_N\<^sub>0 (the (get_conflict_wl_int S)))
-        (\<lambda>_. True)]\<^sub>a
-    hrp_comp (twl_st_int_assn\<^sup>d) twl_st_ref \<rightarrow> hr_comp twl_st_assn_confl_cls_int twl_st_ref\<close>
+       \<in> [comp_PRE twl_st_ref (\<lambda>S. get_conflict_wl S \<noteq> None)
+               (\<lambda>_. comp_PRE twl_st_wl_int_conflict_rel
+                  (\<lambda>S. get_conflict_wl_int S \<noteq> None \<and>
+                     get_trail_wl_int S \<noteq> [] \<and>
+                     literals_are_in_N\<^sub>0 (the (get_conflict_wl_int S)) \<and>
+                     - lit_of (hd (get_trail_wl_int S)) \<in># the (get_conflict_wl_int S) \<and>
+                     0 < get_level (get_trail_wl_int S) (lit_of (hd (get_trail_wl_int S))) \<and>
+                     literals_are_in_N\<^sub>0 (lit_of `# mset (get_trail_wl_int S)) \<and>
+                     literals_are_in_N\<^sub>0 (the (get_conflict_wl_int S)) \<and> distinct_mset (the (get_conflict_wl_int S)) \<and> \<not> tautology (the (get_conflict_wl_int S)))
+                 (\<lambda>_ S. get_trail_wl_int_conflict S \<noteq> [])
+              (\<lambda>_. True))
+       (\<lambda>_. True)]\<^sub>a
+      hrp_comp (hrp_comp (twl_st_int_conflict_assn\<^sup>d) twl_st_wl_int_conflict_rel) twl_st_ref \<rightarrow>
+     hr_comp (hr_comp twl_st_confl_extracted_int_assn twl_st_ref_confl_extracted) twl_st_ref\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF extract_shorter_conflict_wl_code_refine[unfolded PR_CONST_def]
-        extract_shorter_conflict_l_trivial_int_extract_shorter_conflict_l_trivial] .
+    using hfref_compI_PRE_aux[OF
+        hfref_compI_PRE_aux[OF extract_shorter_conflict_st_code_refine[unfolded PR_CONST_def]
+           extract_shorter_conflict_list_st_int_extract_shorter_conflict_st_trivial_int]
+         extract_shorter_conflict_l_trivial_int_extract_shorter_conflict_l_trivial] .
   have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
-    unfolding comp_PRE_def
-      by (auto simp: comp_PRE_def twl_st_ref_def intro!: ext)
+    unfolding comp_PRE_def twl_st_wl_int_conflict_rel_def extract_shorter_conflict_st_trivial_pre_def
+      by (auto simp: comp_PRE_def twl_st_assn_def twl_st_ref_def
+      map_fun_rel_def intro!: ext)
   have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def[symmetric] ..
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def[symmetric]
+       twl_st_confl_extracted_assn_def hr_comp_assoc twl_st_assn_confl_assn ..
   have f: \<open>?f' = ?f\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_confl_cls_alt_def ..
-
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def[symmetric]
+       twl_st_confl_extracted_assn_def hr_comp_assoc twl_st_assn_confl_assn ..
   show ?thesis
     apply (rule hfref_weaken_pre[OF ])
      defer
