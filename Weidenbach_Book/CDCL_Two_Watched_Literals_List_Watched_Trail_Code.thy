@@ -5868,27 +5868,109 @@ definition extract_shorter_conflict_wl_pre where
       twl_struct_invs (twl_st_of_wl None S) \<and>
             twl_stgy_invs (twl_st_of_wl None S) \<and>
             get_conflict_wl S \<noteq> None \<and> get_conflict_wl S \<noteq> Some {#} \<and> no_skip S \<and> no_resolve S \<and>
-            literals_are_in_N\<^sub>0 (the (get_conflict_wl S))\<close>
+            literals_are_N\<^sub>0 S\<close>
+
+lemma literals_are_N\<^sub>0_trail_literals_are_in_N\<^sub>0:
+  assumes
+    N\<^sub>0: \<open>literals_are_N\<^sub>0 S\<close> and
+    struct: \<open>twl_struct_invs (twl_st_of_wl None S)\<close>
+  shows \<open>literals_are_in_N\<^sub>0 (lit_of `# mset (get_trail_wl S))\<close> (is \<open>literals_are_in_N\<^sub>0 ?M\<close>)
+proof -
+  have [simp]: \<open>lit_of ` set (convert_lits_l b a) =  lit_of ` set a\<close> for a b
+    by (induction a) auto
+  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl None S))\<close>
+    using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by fast
+  then have N: \<open>atms_of ?M \<subseteq> atms_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl None S)))\<close>
+    unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def lits_of_def atms_of_def
+    by (cases S)
+      (auto simp: mset_take_mset_drop_mset')
+
+  have \<open>is_N\<^sub>1 (all_lits_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl None S))))\<close>
+    using twl_struct_invs_is_N\<^sub>1_clauses_init_clss[OF struct] N\<^sub>0 by fast
+  then show ?thesis
+    using N in_all_lits_of_m_ain_atms_of_iff in_all_lits_of_mm_ain_atms_of_iff
+    by (fastforce simp: literals_are_in_N\<^sub>0_def is_N\<^sub>1_def )
+qed
+
+lemma extract_shorter_conflict_wl_pre_extract_shorter_conflict_st_trivial_pre:
+  assumes \<open>extract_shorter_conflict_wl_pre S\<close>
+  shows \<open>extract_shorter_conflict_st_trivial_pre S\<close>
+proof -
+  have
+    struct_invs: \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and
+    stgy_invs: \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
+    confl: \<open>get_conflict_wl S \<noteq> None\<close> and
+    confl_nempty: \<open>get_conflict_wl S \<noteq> Some {#}\<close> and
+    n_s: \<open>no_skip S\<close> and
+    n_r: \<open>no_resolve S\<close> and
+    lits: \<open>literals_are_N\<^sub>0 S\<close>
+    using assms unfolding extract_shorter_conflict_wl_pre_def by fast+
+
+  have invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of (twl_st_of_wl None S))\<close>
+    using struct_invs unfolding twl_struct_invs_def by fast
+  have
+    conf: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of (twl_st_of_wl None S))\<close> and
+    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of (twl_st_of_wl None S))\<close> and
+    lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of (twl_st_of_wl None S))\<close>
+    using invs unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
+  have lits_conf: \<open>literals_are_in_N\<^sub>0 (the (get_conflict_wl S))\<close>
+    using literals_are_N\<^sub>0_conflict_literals_are_in_N\<^sub>0[OF lits confl struct_invs] .
+
+  have trail: \<open>get_trail_wl S \<noteq> []\<close>
+    using conf confl confl_nempty unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def apply (cases S)
+    by auto
+  have uL_D: \<open>- lit_of (hd (get_trail_wl S)) \<in># {#L \<in># the (get_conflict_wl S).
+         0 < get_level (get_trail_wl S) L#}\<close>
+    using cdcl\<^sub>W_restart_mset.conflict_minimisation_level_0(2)[of \<open>state\<^sub>W_of (twl_st_of_wl None S)\<close>]
+     n_s n_r confl invs stgy_invs trail confl_nempty unfolding no_skip_def no_resolve_def twl_stgy_invs_def
+    by (cases S) simp
+  have lev_L: \<open>0 < get_level (get_trail_wl S) (lit_of (hd (get_trail_wl S)))\<close> and
+    uL_D: \<open>- lit_of (hd (get_trail_wl S)) \<in># the (get_conflict_wl S)\<close>
+    using uL_D by auto
+
+  have lits_trail: \<open>literals_are_in_N\<^sub>0 (lit_of `# mset (get_trail_wl S))\<close>
+    using literals_are_N\<^sub>0_trail_literals_are_in_N\<^sub>0[OF lits struct_invs] .
+  have dist_confl: \<open>distinct_mset (the (get_conflict_wl S))\<close>
+    using dist confl by (cases S) (auto simp: cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def)
+
+  have tr: \<open>get_trail_wl S \<Turnstile>as CNot (the (get_conflict_wl S))\<close>
+    using conf confl by (cases S) (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def)
+  have cons: \<open>consistent_interp (lits_of_l (get_trail_wl S))\<close>
+    using lev_inv  unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by (cases S) (auto dest!: distinct_consistent_interp)
+  have tauto: \<open>\<not> tautology (the (get_conflict_wl S))\<close>
+    using consistent_CNot_not_tautology[OF cons tr[unfolded true_annots_true_cls]] .
+  show ?thesis
+    using lits_conf confl trail lits_trail uL_D lev_L dist_confl tauto
+    unfolding extract_shorter_conflict_st_trivial_pre_def
+    by (intro conjI) fast+
+qed
 
 lemma extract_shorter_conflict_wl_code_extract_shorter_conflict_wl[sepref_fr_rules]:
-  \<open>(extract_shorter_conflict_wl_code, extract_shorter_conflict_wl)
+  \<open>(extract_shorter_conflict_st_trivial_code, extract_shorter_conflict_wl)
     \<in> [extract_shorter_conflict_wl_pre]\<^sub>a
-       twl_st_assn\<^sup>d \<rightarrow> twl_st_assn_confl_cls\<close>
+       twl_st_assn\<^sup>d \<rightarrow> twl_st_confl_extracted_assn\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?c
   \<in> [comp_PRE Id
-       (\<lambda>S. twl_struct_invs (twl_st_of_wl None S) \<and>
-             twl_stgy_invs (twl_st_of_wl None S) \<and>
-             get_conflict_wl S \<noteq> None \<and> no_skip S \<and> no_resolve S \<and> get_conflict_wl S \<noteq> Some {#})
-       (\<lambda>_ S. get_conflict_wl S \<noteq> None \<and> literals_are_in_N\<^sub>0 (the (get_conflict_wl S)))
-       (\<lambda>_. True)]\<^sub>a hrp_comp (twl_st_assn\<^sup>d) Id \<rightarrow> hr_comp twl_st_assn_confl_cls Id\<close>
+     (\<lambda>S. twl_struct_invs (twl_st_of_wl None S) \<and>
+          twl_stgy_invs (twl_st_of_wl None S) \<and>
+          get_conflict_wl S \<noteq> None \<and>
+          no_skip S \<and>
+          no_resolve S \<and> get_conflict_wl S \<noteq> Some {#})
+     (\<lambda>_. extract_shorter_conflict_st_trivial_pre)
+     (\<lambda>_. True)]\<^sub>a hrp_comp (twl_st_assn\<^sup>d)
+                    Id \<rightarrow> hr_comp twl_st_confl_extracted_assn
+                           Id\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF extract_shorter_conflict_wl_code_extract_shorter_conflict_st_trivial[unfolded PR_CONST_def]
+    using hfref_compI_PRE_aux[OF extract_shorter_conflict_st_trivial_hnr[unfolded PR_CONST_def]
         extract_shorter_conflict_st_trivial_extract_shorter_conflict_wl] .
   have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
+    using extract_shorter_conflict_wl_pre_extract_shorter_conflict_st_trivial_pre[of x]
     unfolding comp_PRE_def extract_shorter_conflict_wl_pre_def
-      by (auto simp: comp_PRE_def twl_st_ref_def intro!: ext)
+    by (auto simp: comp_PRE_def twl_st_ref_def)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep by auto
   have f: \<open>?f' = ?f\<close>
