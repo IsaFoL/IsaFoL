@@ -6292,7 +6292,7 @@ lemma find_decomp_wl_st_int_find_decomp_wl_st:
         list_mset_rel_def br_def
         intro!: bind_refine[where R' = \<open>{((Ms', vm'), Ms). Ms = Ms' \<and> (\<exists>M''. M = M'' @ Ms) \<and> vm' \<in> vmtf_imp Ms}\<close>]
         dest: no_dup_appendD)
-    apply (auto 5 5 simp:find_decomp_wl_vmtf_def find_decomp_wl'_def intro: RES_refine)
+    apply (auto 5 5 simp: find_decomp_wl_vmtf_def find_decomp_wl'_def intro: RES_refine)
     done
   done
 
