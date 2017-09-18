@@ -5413,11 +5413,16 @@ lemmas extract_shorter_conflict_l_trivial_code_wl_D[sepref_fr_rules] =
 type_synonym (in -) conflict_rel_with_cls_with_highest =
   \<open>conflict_option_rel \<times> (nat literal \<times> nat)option\<close>
 
-definition option_conflict_rel_with_cls_with_highest
-  :: \<open>(nat, 'a) ann_lits \<Rightarrow> (conflict_rel_with_cls_with_highest \<times> nat clause option) set\<close> where
-  \<open>option_conflict_rel_with_cls_with_highest M = {(((b, xs), L), D).
-     D \<noteq> None \<and> ((b, xs), D) \<in> option_conflict_rel \<and> highest_lit M (remove1_mset (-lit_of (hd M)) (the D)) L \<and>
+definition option_conflict_rel_with_cls_with_highest2
+  :: \<open>nat literal \<Rightarrow> (nat, 'a) ann_lits \<Rightarrow> (conflict_rel_with_cls_with_highest \<times> nat clause option) set\<close> where
+  \<open>option_conflict_rel_with_cls_with_highest2 K M = {(((b, xs), L), D).
+     D \<noteq> None \<and> ((b, xs), D) \<in> option_conflict_rel \<and> highest_lit M (remove1_mset K (the D)) L \<and>
      (\<forall>L\<in>atms_of N\<^sub>1. L < length (snd xs))}\<close>
+
+abbreviation option_conflict_rel_with_cls_with_highest where
+  \<open>option_conflict_rel_with_cls_with_highest M \<equiv> option_conflict_rel_with_cls_with_highest2 (-lit_of (hd M)) M\<close>
+
+lemmas option_conflict_rel_with_cls_with_highest_def = option_conflict_rel_with_cls_with_highest2_def
 
 type_synonym (in -) conflict_with_cls_with_highest_assn =
    \<open>conflict_option_assn \<times> (uint32 \<times> uint32) option\<close>
@@ -5503,6 +5508,18 @@ type_synonym (in -) twl_st_wl_confl_extracted_int =
   \<open>(nat,nat)ann_lits \<times> nat clause_l list \<times> nat \<times>
     conflict_rel_with_cls_with_highest \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int \<times> bool list\<close>
 
+definition twl_st_ref_confl_extracted2 
+  :: \<open>nat literal \<Rightarrow> (twl_st_wl_confl_extracted_int \<times> twl_st_wl_int) set\<close> where
+\<open>twl_st_ref_confl_extracted2 L =
+  {((M', N', U', D', Q', W', vm', \<phi>'), (M, N, U, D, Q, W, vm, \<phi>)).
+    M = M' \<and> N' = N \<and> U' = U \<and>
+     (D', D) \<in> option_conflict_rel_with_cls_with_highest2 L M \<and>
+     Q' = Q \<and>
+    W' = W \<and>
+    vm = vm' \<and>
+    \<phi>' = \<phi>
+  }\<close>
+
 definition twl_st_ref_confl_extracted :: \<open>(twl_st_wl_confl_extracted_int \<times> twl_st_wl_int) set\<close> where
 \<open>twl_st_ref_confl_extracted =
   {((M', N', U', D', Q', W', vm', \<phi>'), (M, N, U, D, Q, W, vm, \<phi>)).
@@ -5536,9 +5553,10 @@ definition twl_st_confl_extracted_assn
   (twl_st_ref_confl_extracted O twl_st_ref)\<close>
 
 definition twl_st_confl_extracted_assn2
-  :: \<open>twl_st_wl_int \<Rightarrow> twl_st_wll_trail_confl_extracted \<Rightarrow> assn\<close>
+  :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> twl_st_wll_trail_confl_extracted \<Rightarrow> assn\<close>
   where
-\<open>twl_st_confl_extracted_assn2 = hr_comp twl_st_confl_extracted_int_assn twl_st_ref_confl_extracted\<close>
+\<open>twl_st_confl_extracted_assn2 L = hr_comp twl_st_confl_extracted_int_assn
+  (twl_st_ref_confl_extracted2 L O twl_st_ref)\<close>
 
 lemma extract_shorter_conflict_st_trivial_int_alt_def:
   \<open>extract_shorter_conflict_st_trivial_int = (\<lambda>(M, N, U, D, oth).
@@ -6027,7 +6045,7 @@ lemmas vmtf_unset_code_code[sepref_fr_rules] =
 
 definition find_decomp_wl_imp_pre where
   \<open>find_decomp_wl_imp_pre = (\<lambda>(((M, D), L), vm). M \<noteq> [] \<and> D \<noteq> None \<and>
-      literals_are_in_N\<^sub>0 (the D) \<and> -L \<in># the D \<and> size (the D) > 1 \<and>
+      literals_are_in_N\<^sub>0 (the D) \<and> -L \<in># the D \<and>
       literals_are_in_N\<^sub>0 (lit_of `# mset M) \<and> vm \<in> vmtf_imp M)\<close>
 
 definition (in -) get_maximum_level_remove_int :: \<open>(nat, 'a) ann_lits \<Rightarrow>
@@ -6065,9 +6083,15 @@ lemmas get_maximum_level_remove_code_hnr[sepref_fr_rules] =
 definition (in -) get_maximum_level_remove' where
   \<open>get_maximum_level_remove' M D L = get_maximum_level_remove M (the D) L\<close>
 
+lemma (in -)get_maximum_level_remove_single_removed[simp]: \<open>get_maximum_level_remove M {#L#} L = 0\<close>
+  unfolding get_maximum_level_remove_def by auto
+
+lemma (in -) get_maximum_level_remove_empty[simp]: \<open>get_maximum_level_remove M {#} = (\<lambda>_. 0)\<close>
+ unfolding get_maximum_level_remove_def by auto
+
 lemma get_maximum_level_remove_int_get_maximum_level_remove':
   \<open>(uncurry2 (RETURN ooo get_maximum_level_remove_int), uncurry2 (RETURN ooo get_maximum_level_remove')) \<in>
-     [\<lambda>((M', D), L). M' = M \<and> L = -lit_of (hd M) \<and> M' \<noteq> [] \<and> D \<noteq> None \<and> size (the D) > 1]\<^sub>f Id \<times>\<^sub>f (option_conflict_rel_with_cls_with_highest M) \<times>\<^sub>f Id \<rightarrow>
+     [\<lambda>((M', D), L). M' = M \<and> L = -lit_of (hd M) \<and> M' \<noteq> [] \<and> D \<noteq> None]\<^sub>f Id \<times>\<^sub>f (option_conflict_rel_with_cls_with_highest M) \<times>\<^sub>f Id \<rightarrow>
     \<langle>Id\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: get_maximum_level_remove_int_def get_maximum_level_remove'_def
@@ -6077,7 +6101,7 @@ lemma get_maximum_level_remove_int_get_maximum_level_remove':
 
 lemma get_maximum_level_remove'_hnr[sepref_fr_rules]:
   \<open>(uncurry2 get_maximum_level_remove_code, uncurry2 (RETURN \<circ>\<circ>\<circ> get_maximum_level_remove'))
-     \<in> [\<lambda>((a, b), ba). a = M \<and> ba = - lit_of (hd M) \<and> a \<noteq> [] \<and> b \<noteq> None \<and> Suc 0 < size (the b)]\<^sub>a
+     \<in> [\<lambda>((a, b), ba). a = M \<and> ba = - lit_of (hd M) \<and> a \<noteq> [] \<and> b \<noteq> None]\<^sub>a
        trail_assn\<^sup>k *\<^sub>a (conflict_with_cls_with_cls_with_highest_assn M)\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>
    uint32_nat_assn\<close>
   using get_maximum_level_remove_code_hnr[FCOMP get_maximum_level_remove_int_get_maximum_level_remove']
@@ -6305,7 +6329,7 @@ definition find_decomp_wl_vmtf_pre_full where
   \<open>find_decomp_wl_vmtf_pre_full M' = (\<lambda>(((M, E), L), vm).
       \<exists>N U D NP UP Q W. twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, Q, W)) \<and>
        E \<noteq> None \<and> the E \<noteq> {#} \<and> L = lit_of (hd M) \<and>
-       M \<noteq> [] \<and> ex_decomp_of_max_lvl M D L \<and> size (the E) > 1 \<and>
+       M \<noteq> [] \<and> ex_decomp_of_max_lvl M D L \<and>
        the E \<subseteq># the D \<and> D \<noteq> None \<and> literals_are_in_N\<^sub>0 (lit_of `# mset M) \<and>
       vm \<in> vmtf_imp M \<and> literals_are_in_N\<^sub>0 (the E) \<and> -L \<in># the E \<and> M = M')\<close>
 
@@ -6433,13 +6457,7 @@ lemmas find_decomp_wl_imp'_code_hnr[sepref_fr_rules] =
 
 
 lemma find_decomp_wl_st_find_decomp_wl:
-  \<open>(uncurry find_decomp_wl_st, uncurry find_decomp_wl) \<in>
-  [\<lambda>(L, S). \<exists>D\<^sub>0. get_conflict_wl S \<noteq> None \<and> the (get_conflict_wl S) \<noteq> {#} \<and> get_trail_wl S \<noteq> [] \<and>
-      ex_decomp_of_max_lvl (get_trail_wl S) (get_conflict_wl S) L \<and>
-      L = lit_of (hd (get_trail_wl S)) \<and>
-      twl_struct_invs (twl_st_of_wl None (set_conflict_wl D\<^sub>0 S)) \<and>
-      the (get_conflict_wl S) \<subseteq>#  the D\<^sub>0 \<and> D\<^sub>0 \<noteq> None]\<^sub>f
-   Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
+  \<open>(uncurry find_decomp_wl_st, uncurry find_decomp_wl) \<in> [\<lambda>_. True]\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
   unfolding no_resolve_def no_skip_def
   apply (intro frefI nres_relI)
   subgoal premises p for S S'
