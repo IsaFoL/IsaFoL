@@ -5508,7 +5508,7 @@ type_synonym (in -) twl_st_wl_confl_extracted_int =
   \<open>(nat,nat)ann_lits \<times> nat clause_l list \<times> nat \<times>
     conflict_rel_with_cls_with_highest \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int \<times> bool list\<close>
 
-definition twl_st_ref_confl_extracted2 
+definition twl_st_ref_confl_extracted2
   :: \<open>nat literal \<Rightarrow> (twl_st_wl_confl_extracted_int \<times> twl_st_wl_int) set\<close> where
 \<open>twl_st_ref_confl_extracted2 L =
   {((M', N', U', D', Q', W', vm', \<phi>'), (M, N, U, D, Q, W, vm, \<phi>)).
@@ -6561,7 +6561,7 @@ lemma find_decomp_wl_imp'_code_find_decomp_wl[sepref_fr_rules]:
                twl_struct_invs (twl_st_of_wl None (set_conflict_wl D\<^sub>0 S)) \<and>
                the (get_conflict_wl S) \<subseteq># the D\<^sub>0 \<and> D\<^sub>0 \<noteq> None \<and> get_trail_wl S = M \<and> L' = L \<and>
                literals_are_in_N\<^sub>0 (lit_of `# mset M) \<and>
-               -L \<in># the (get_conflict_wl S) \<and> literals_are_in_N\<^sub>0 (the D\<^sub>0) 
+               -L \<in># the (get_conflict_wl S) \<and> literals_are_in_N\<^sub>0 (the D\<^sub>0)
          ]\<^sub>a
        unat_lit_assn\<^sup>k *\<^sub>a twl_st_confl_extracted_assn\<^sup>d \<rightarrow> twl_st_confl_extracted_assn2 L\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
@@ -6699,7 +6699,7 @@ proof -
     unfolding twl_st_confl_extracted_int_assn_def[symmetric] hr_comp_assoc
     .
   have get_maximum_level_eq:
-    \<open>\<forall>L\<in>#remove1_mset (- lit_of (hd M)) y. get_level bk L = get_level M L \<Longrightarrow> 
+    \<open>\<forall>L\<in>#remove1_mset (- lit_of (hd M)) y. get_level bk L = get_level M L \<Longrightarrow>
        get_maximum_level M (remove1_mset (- lit_of (hd M)) y) =
        get_maximum_level bk (remove1_mset (- lit_of (hd M)) y)\<close> for bk y
     unfolding get_maximum_level_def by auto
