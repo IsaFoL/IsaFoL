@@ -11,9 +11,6 @@ theory FO_Ordered_Resolution
   imports Abstract_Substitution Ordered_Ground_Resolution Standard_Redundancy
 begin
 
-(* FIXME: Avoid such global changes to the intro/etc. sets *)
-declare nth_equalityI [intro]
-
 locale FO_resolution = unification subst_atm id_subst comp_subst mk_var_dis mgu 
   for
     subst_atm :: "'a :: wellorder \<Rightarrow> 's \<Rightarrow> 'a" and
@@ -595,9 +592,9 @@ proof (cases rule: ord_resolve.cases)
   have CAi''_in_M: "\<forall>CA'' \<in> set CAi''. CA'' \<in> M"
     unfolding CAi''_def using f_p(1) by auto
   have CAi''_to_CAi: "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi"
-    unfolding CAi''_def \<eta>s''_def using f_p(2) by (auto simp: n)
+    unfolding CAi''_def \<eta>s''_def using f_p(2)  by (auto simp: n intro: nth_equalityI)
   have SCAi''_to_SMCAi: "(map S CAi'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAi"
-    unfolding CAi''_def \<eta>s''_def using f_p(3) n by force
+    unfolding CAi''_def \<eta>s''_def using f_p(3) n by (force intro: nth_equalityI)
 
     (* Obtain DA''  *)
   have "\<exists>DA'' \<eta>''. DA'' \<in> M \<and> DA = DA'' \<cdot> \<eta>'' \<and> S DA'' \<cdot> \<eta>'' = S_M S M DA"
@@ -625,18 +622,18 @@ proof (cases rule: ord_resolve.cases)
   note n = \<open>length \<eta>s''g = n\<close> n
 
   from \<eta>s''g_p have CAi''_to_CAi: "CAi'' \<cdot>\<cdot>cl \<eta>s''g = CAi"
-    using CAi''_to_CAi n by auto
+    using CAi''_to_CAi n by (auto intro: nth_equalityI)
 
   {
     fix i
     assume a: "i<n"
     then have "(map S CAi'' \<cdot>\<cdot>cl \<eta>s'') ! i = (map (S_M S M) CAi) ! i"
-      using SCAi''_to_SMCAi by simp
+      using SCAi''_to_SMCAi by (simp add: nth_equalityI)
     then have "((map S CAi'') \<cdot>\<cdot>cl \<eta>s''g) ! i = (map (S_M S M) CAi) ! i"
       using \<eta>s''g_p S.S_selects_subseteq a n by auto
   }
   then have SCAi''_to_SMCAi: "(map S CAi'') \<cdot>\<cdot>cl \<eta>s''g = map (S_M S M) CAi"
-    using n by auto
+    using n by (auto intro: nth_equalityI)
 
   have "is_ground_cls (DA'' \<cdot> \<eta>'')"
     using DA''_to_DA grounding grounding_ground by auto
@@ -674,7 +671,7 @@ proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Ci Aij Ai D)
 
   have selection_renaming_list_invariant: "\<And>\<rho>s Ci. length \<rho>s = length Ci \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> map S (Ci \<cdot>\<cdot>cl \<rho>s) = (map S Ci) \<cdot>\<cdot>cl \<rho>s"
-    using selection_renaming_invariant unfolding is_renaming_list_def by auto
+    using selection_renaming_invariant unfolding is_renaming_list_def by (auto intro: nth_equalityI)
 
   note n = \<open>n \<noteq> 0\<close> \<open>length CAi = n\<close> \<open>length Ci = n\<close> \<open>length Aij = n\<close> \<open>length Ai = n\<close>
 
@@ -749,14 +746,14 @@ proof (cases rule: ord_resolve.cases)
   from \<eta>_p have "\<forall>i < n. (CAi' ! i) \<cdot> (\<eta>s' ! i) = (CAi'! i) \<cdot> \<eta>"
     using n by auto
   then have cai'_\<eta>_fo: "CAi' \<cdot>\<cdot>cl \<eta>s' = CAi' \<cdot>cl \<eta>"
-    using n by auto
+    using n by (auto intro: nth_equalityI)
   then have CAi'_\<eta>_fo_CAi: "CAi' \<cdot>cl \<eta> = CAi"
     using CAi'_CAi \<eta>_p n by auto
 
   from \<eta>_p have "\<forall>i<n. (S ((CAi') ! i)) \<cdot> \<eta>s' ! i = (S ((CAi') ! i)) \<cdot> \<eta>"
     using S.S_selects_subseteq n by auto
   then have cai'_\<eta>_fo_sel: "(map S CAi') \<cdot>\<cdot>cl \<eta>s' = (map S CAi') \<cdot>cl \<eta>"
-    using n by auto
+    using n by (auto intro: nth_equalityI)
   then have SCAi'_\<eta>_fo_SMCAi: "(map S CAi') \<cdot>cl \<eta> = map (S_M S M) CAi"
     using \<open>(map S CAi') \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi\<close> by auto
 
@@ -774,7 +771,7 @@ proof (cases rule: ord_resolve.cases)
     proof
       assume a: "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = (Suc 0) \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
       then have "mset Ai = {# Ai ! 0 #}"
-        by auto
+        by (auto intro: nth_equalityI)
       then have "negs (mset Ai) = {# Neg (Ai ! 0) #}"
         by (simp add: \<open>mset Ai = {# Ai ! 0 #}\<close>)
       then have "DA = D + {#Neg (Ai ! 0)#}"
@@ -870,7 +867,7 @@ proof (cases rule: ord_resolve.cases)
     from Aij'_def have "\<forall>i<n. Aij' ! i \<cdot>am \<eta> = Aij ! i"
       using Aij'f_p by auto
     then have Aij'_Aij: "Aij' \<cdot>aml \<eta> = Aij"
-      using n unfolding subst_atm_mset_list_def by auto (* unfolding should not be necessary *)
+      using n unfolding subst_atm_mset_list_def by (auto intro: nth_equalityI) (* unfolding should not be necessary *)
 
     from Aij'_def have Aij'_in_CAi': "\<forall>i<n. (poss (Aij' ! i)) \<subseteq># CAi' ! i"
       using Aij'f_p by auto
@@ -884,7 +881,7 @@ proof (cases rule: ord_resolve.cases)
     have "\<forall>i < n. CAi' ! i = Ci' ! i + poss (Aij' ! i)"
       using Aij'_in_CAi' Ci'_def n by auto
     then have "Ci' \<cdot>cl \<eta> = Ci"
-      using \<open>CAi' \<cdot>cl \<eta> = CAi\<close> Aij'_Aij ord_resolve(8) n by auto
+      using \<open>CAi' \<cdot>cl \<eta> = CAi\<close> Aij'_Aij ord_resolve(8) n by (auto intro: nth_equalityI)
 
     show ?thesis
       using that \<open>Aij' \<cdot>aml \<eta> = Aij\<close> \<open>Ci' \<cdot>cl \<eta> = Ci\<close> \<open>\<forall>i < n. CAi' ! i = Ci' ! i + poss (Aij' ! i)\<close>
