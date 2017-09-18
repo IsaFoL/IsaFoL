@@ -5985,10 +5985,10 @@ proof -
 qed
 
 
-definition find_decomp_wl_imp :: "(nat, nat) ann_lits \<Rightarrow> nat clause \<Rightarrow> nat literal \<Rightarrow> vmtf_remove_int \<Rightarrow>
+definition find_decomp_wl_imp :: "(nat, nat) ann_lits \<Rightarrow> nat clause option \<Rightarrow> nat literal \<Rightarrow> vmtf_remove_int \<Rightarrow>
    ((nat, nat) ann_lits \<times> vmtf_remove_int) nres" where
   \<open>find_decomp_wl_imp = (\<lambda>M\<^sub>0 D L vm. do {
-    let lev = get_maximum_level M\<^sub>0 (remove1_mset (-L) D);
+    let lev = get_maximum_level M\<^sub>0 (remove1_mset (-L) (the D));
     let k = count_decided M\<^sub>0;
     (_, M, vm') \<leftarrow>
        WHILE\<^sub>T\<^bsup>\<lambda>(j, M, vm'). j = count_decided M \<and> j \<ge> lev \<and>
@@ -6027,23 +6027,75 @@ lemmas vmtf_unset_code_code[sepref_fr_rules] =
    vmtf_unset_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
 
 definition find_decomp_wl_imp_pre where
-  \<open>find_decomp_wl_imp_pre = (\<lambda>(((M, D), L), vm). M \<noteq> [] \<and> literals_are_in_N\<^sub>0 D \<and> -L \<in># D \<and>
+  \<open>find_decomp_wl_imp_pre = (\<lambda>(((M, D), L), vm). M \<noteq> [] \<and> D \<noteq> None \<and>
+      literals_are_in_N\<^sub>0 (the D) \<and> -L \<in># the D \<and> size (the D) > 1 \<and>
       literals_are_in_N\<^sub>0 (lit_of `# mset M) \<and> vm \<in> vmtf_imp M)\<close>
+
+definition (in -) get_maximum_level_remove_int :: \<open>(nat, 'a) ann_lits \<Rightarrow>
+    conflict_rel_with_cls_with_highest \<Rightarrow> nat literal \<Rightarrow>  nat\<close> where
+  \<open>get_maximum_level_remove_int = (\<lambda>_ (_, D) _.
+    (case D of None \<Rightarrow> 0 | Some i \<Rightarrow> snd i))\<close>
+
+(* TODO Move *)
+lemma (in -)snd_hnr_pure:
+   \<open>CONSTRAINT is_pure B \<Longrightarrow> (return \<circ> snd, RETURN \<circ> snd) \<in> (A *assn B)\<^sup>k \<rightarrow>\<^sub>a B\<close>
+  apply sepref_to_hoare
+  apply sep_auto
+  by (metis SLN_def SLN_left assn_times_comm ent_pure_pre_iff_sng ent_refl ent_star_mono
+      ent_true is_pure_assn_def is_pure_iff_pure_assn)
+(* End Move *)
+
+sepref_thm get_maximum_level_remove_code
+  is \<open>uncurry2 (RETURN ooo get_maximum_level_remove_int)\<close>
+  :: \<open>trail_assn\<^sup>k  *\<^sub>a conflict_with_cls_int_with_highest_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a 
+       uint32_nat_assn\<close>
+  supply uint32_nat_assn_zero_uint32[sepref_fr_rules]
+    snd_hnr_pure[sepref_fr_rules]
+  unfolding get_maximum_level_remove_int_def zero_uint32_def[symmetric]
+  by sepref
+
+concrete_definition (in -) get_maximum_level_remove_code
+   uses twl_array_code.get_maximum_level_remove_code.refine_raw
+   is \<open>(uncurry2 ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) get_maximum_level_remove_code_def
+
+lemmas get_maximum_level_remove_code_hnr[sepref_fr_rules] =
+   get_maximum_level_remove_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+definition (in -) get_maximum_level_remove' where
+  \<open>get_maximum_level_remove' M D L = get_maximum_level_remove M (the D) L\<close>
+
+lemma get_maximum_level_remove_int_get_maximum_level_remove':
+  \<open>(uncurry2 (RETURN ooo get_maximum_level_remove_int), uncurry2 (RETURN ooo get_maximum_level_remove')) \<in> 
+     [\<lambda>((M', D), L). M' = M \<and> L = -lit_of (hd M) \<and> M' \<noteq> [] \<and> D \<noteq> None \<and> size (the D) > 1]\<^sub>f Id \<times>\<^sub>f (option_conflict_rel_with_cls_with_highest M) \<times>\<^sub>f Id \<rightarrow> 
+    \<langle>Id\<rangle> nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: get_maximum_level_remove_int_def get_maximum_level_remove'_def
+      option_conflict_rel_with_cls_with_highest_def highest_lit_def
+      get_maximum_level_remove_def[symmetric] remove1_mset_empty_iff
+      split: option.splits)
+
+lemma get_maximum_level_remove'_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 get_maximum_level_remove_code, uncurry2 (RETURN \<circ>\<circ>\<circ> get_maximum_level_remove'))
+     \<in> [\<lambda>((a, b), ba). a = M \<and> ba = - lit_of (hd M) \<and> a \<noteq> [] \<and> b \<noteq> None \<and> Suc 0 < size (the b)]\<^sub>a 
+       trail_assn\<^sup>k *\<^sub>a (conflict_with_cls_with_cls_with_highest_assn M)\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> 
+   uint32_nat_assn\<close>
+  using get_maximum_level_remove_code_hnr[FCOMP get_maximum_level_remove_int_get_maximum_level_remove']
+  unfolding conflict_with_cls_with_cls_with_highest_assn_def[symmetric] by simp
 
 sepref_register find_decomp_wl_imp
 sepref_thm find_decomp_wl_imp_code
   is \<open>uncurry3 (PR_CONST find_decomp_wl_imp)\<close>
-  :: \<open>[find_decomp_wl_imp_pre]\<^sub>a
-         trail_assn\<^sup>d *\<^sub>a conflict_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d
+  :: \<open>[\<lambda>(((M', D), L), vm). M' = M \<and> L = lit_of (hd M') \<and> M' \<noteq> [] \<and> find_decomp_wl_imp_pre (((M', D), L), vm)]\<^sub>a
+         trail_assn\<^sup>d *\<^sub>a (conflict_with_cls_with_cls_with_highest_assn M)\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d
     \<rightarrow> trail_assn *assn vmtf_remove_conc\<close>
   unfolding find_decomp_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
-    find_decomp_wl_imp_pre_def
+    find_decomp_wl_imp_pre_def get_maximum_level_remove'_def[symmetric]
   supply [[goals_limit=1]]   literals_are_in_N\<^sub>0_add_mset[simp]
   supply uint32_nat_assn_one[sepref_fr_rules]
   supply uint32_nat_assn_minus[sepref_fr_rules]
   by sepref
-
-thm  CDCL_Two_Watched_Literals_List_Watched_Trail_Code.maximum_level_remove_code_def
 
 concrete_definition (in -) find_decomp_wl_imp_code
    uses twl_array_code.find_decomp_wl_imp_code.refine_raw
@@ -6061,7 +6113,7 @@ definition find_decomp_wl_vmtf  where
   \<open>find_decomp_wl_vmtf =
      (\<lambda>(M::(nat, nat) ann_lits) (D::nat clause) (L::nat literal) _.
         SPEC(\<lambda>(M1, vm). \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
-          get_level M K = get_maximum_level M (D - {#-L#}) + 1 \<and> vm \<in> vmtf_imp M1))\<close>
+          get_level M K = get_maximum_level M (the D - {#-L#}) + 1 \<and> vm \<in> vmtf_imp M1))\<close>
 
 
 definition (in -) find_decomp_wl_st :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
