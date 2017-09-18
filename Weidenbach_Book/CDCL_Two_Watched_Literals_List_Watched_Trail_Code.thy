@@ -4529,9 +4529,9 @@ definition extract_shorter_conflict_list_removed :: \<open>(nat, nat) ann_lits \
 
 definition highest_lit where
   \<open>highest_lit M C L \<longleftrightarrow>
-     (L = None \<longrightarrow> size C \<le> 1) \<and>
+     (L = None \<longrightarrow> C = {#}) \<and>
      (L \<noteq> None \<longrightarrow> get_level M (fst (the L)) = snd (the L) \<and>
-        snd (the L) \<le> get_maximum_level M C \<and>
+        snd (the L) = get_maximum_level M C \<and>
         fst (the L) \<in># C
         )\<close>
 
@@ -4798,7 +4798,6 @@ proof -
         ab_le: "ab < length ae" and
         lev_ab: "0 < get_level M (Pos ab)" and
         [simp]: "be = Some xa" and
-
         lev_bf: "bf < get_level M (Pos ab)"
       for a ba aa baa s ab bb ac bc ad bd ae be x xa af bf
     proof -
@@ -4811,6 +4810,7 @@ proof -
         "\<not> a"
         "n = aa"
         "xs = baa"
+        "xa = (af, bf)"
         using s by auto
       have
         shl: "highest_lit M (?D M ab C) be" and
@@ -4849,7 +4849,7 @@ proof -
             simp: lev_ab tautology_add_mset filter_mset_empty_conv get_level_Neg_Pos)
 
       have shl': \<open>highest_lit M (?D M (Suc ab) C) (Some (?L, get_level M (Pos ab)))\<close>
-        using shl unfolding 1 highest_lit_def
+        using shl lev_bf unfolding 1 highest_lit_def
         by (auto simp: get_level_Neg_Pos get_maximum_level_add_mset)
       have ocr_e: \<open>{#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#} = {#L \<in># C. atm_of L < Suc ab \<longrightarrow> 0 < get_level M L#}\<close>
         apply (rule filter_mset_cong2)
@@ -4906,13 +4906,13 @@ proof -
           "bc = (ad, bd)"
           "bd = (ae, be)"
           "(b, n, xs) = (a, ba)"
-          "ba = (aa, baa)" and
+          "ba = (aa, baa)"
+          "xa = (af, bf)" and
         Some: "ae ! ab = Some x" and
         "Pos ab \<in> snd ` D\<^sub>0" and
         ab_le: "ab < length ae" and
         lev_ab: "0 < get_level M (Pos ab)" and
         [simp]: "be = Some xa" and
-        "xa = (af, bf)" and
         lev_bf: "\<not> bf < get_level M (Pos ab)"
       for a ba aa baa s ab bb ac bc ad bd ae be x xa af bf
     proof -
@@ -4925,6 +4925,7 @@ proof -
         "\<not> a"
         "n = aa"
         "xs = baa"
+        "xa = (af, bf)"
         using s by auto
       have
         shl: "highest_lit M (?D M ab C) be" and
@@ -4963,7 +4964,7 @@ proof -
             simp: lev_ab tautology_add_mset filter_mset_empty_conv get_level_Neg_Pos)
 
       have shl': \<open>highest_lit M (?D M (Suc ab) C) (Some xa)\<close>
-        using shl unfolding 1 highest_lit_def
+        using shl lev_bf unfolding 1 highest_lit_def
         by (auto simp: get_level_Neg_Pos get_maximum_level_add_mset)
       have ocr_e: \<open>{#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#} = {#L \<in># C. atm_of L < Suc ab \<longrightarrow> 0 < get_level M L#}\<close>
         apply (rule filter_mset_cong2)
