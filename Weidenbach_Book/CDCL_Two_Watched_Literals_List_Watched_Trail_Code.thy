@@ -436,7 +436,7 @@ type_synonym (in -) conflict_option_assn = \<open>bool \<times> uint32 \<times> 
 type_synonym (in -) conflict_option_rel = \<open>bool \<times> nat \<times> bool option list\<close>
 
 abbreviation (in -)conflict_option_rel_assn :: \<open>conflict_option_rel \<Rightarrow> conflict_option_assn \<Rightarrow> assn\<close> where
- \<open>conflict_option_rel_assn \<equiv> (bool_assn *assn uint32_nat_assn *assn array_assn (option_assn bool_assn))\<close>
+ \<open>conflict_option_rel_assn \<equiv> (bool_assn *assn conflict_rel_assn)\<close>
 
 lemma literals_are_in_N\<^sub>0_in_N\<^sub>1:
   assumes
@@ -6937,13 +6937,88 @@ proof -
 qed
 
 lemma backtrack_get_conglit_wl_not_NoneD:
-  \<open> 
-       RETURN xc \<le> extract_shorter_conflict_wl x \<Longrightarrow>
-       RETURN xd \<le> find_decomp_wl (lit_of_hd_trail_st x) xc \<Longrightarrow>
-       \<exists>y. get_conflict_wl xd = Some y\<close>
+  \<open>RETURN xc \<le> extract_shorter_conflict_wl x \<Longrightarrow>
+   RETURN xd \<le> find_decomp_wl (lit_of_hd_trail_st x) xc \<Longrightarrow>
+   \<exists>y. get_conflict_wl xd = Some y\<close>
   by (cases xd; cases xc; cases x)
      (auto simp: find_decomp_wl_def extract_shorter_conflict_wl_def)
 
+definition get_snd_highest_lit :: \<open>conflict_rel_with_cls_with_highest \<Rightarrow> nat literal\<close> where
+  \<open>get_snd_highest_lit = (\<lambda>((_, _, _), L). fst (the L))\<close>
+
+definition find_lit_of_max_level_wl_int :: \<open>twl_st_wl_confl_extracted_int \<Rightarrow> nat literal \<Rightarrow> nat literal\<close> where
+  \<open>find_lit_of_max_level_wl_int = (\<lambda>(M, N, U, D, _, _, _, _) _. get_snd_highest_lit D)\<close>
+
+lemma get_snd_highest_lit[sepref_fr_rules]: 
+   \<open>(return o (\<lambda>((_, _, _), L). (fst (the L))), RETURN o get_snd_highest_lit) \<in>
+    [\<lambda>S. snd S \<noteq> None]\<^sub>a (conflict_option_rel_assn *assn
+         option_assn (unat_lit_assn *assn uint32_nat_assn))\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  unfolding get_snd_highest_lit_def
+  apply sep_auto
+  apply sepref_to_hoare
+  subgoal for x xi
+    apply (cases x; cases xi; cases \<open>snd x\<close>; cases \<open>snd xi\<close>)
+    apply sep_auto+
+    done
+  done
+
+sepref_thm find_lit_of_max_level_wl_code
+  is \<open>uncurry (RETURN oo find_lit_of_max_level_wl_int)\<close>
+  :: \<open>[\<lambda>((M, N, U, (_, L), _), _). L \<noteq> None]\<^sub>a  twl_st_confl_extracted_int_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>
+           unat_lit_assn\<close>
+  unfolding find_lit_of_max_level_wl_int_def twl_st_confl_extracted_int_assn_def
+  by sepref
+
+concrete_definition (in -) find_lit_of_max_level_wl_code
+   uses twl_array_code.find_lit_of_max_level_wl_code.refine_raw
+   is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) find_lit_of_max_level_wl_code_def
+
+lemmas find_lit_of_max_level_wl_code_hnr[sepref_fr_rules] =
+   find_lit_of_max_level_wl_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma find_lit_of_max_level_wl_int_find_lit_of_max_level_wl:
+  \<open>(uncurry (RETURN oo find_lit_of_max_level_wl_int), uncurry find_lit_of_max_level_wl) \<in>
+    [\<lambda>(S, L'). L' = -L \<and> get_conflict_wl S \<noteq> None \<and> size (the (get_conflict_wl S)) > 1]\<^sub>f
+     twl_st_ref_confl_extracted2 L O twl_st_ref \<times>\<^sub>r nat_lit_lit_rel \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: find_lit_of_max_level_wl_int_def find_lit_of_max_level_wl_def
+      twl_st_ref_confl_extracted2_twl_st_ref get_snd_highest_lit_def
+      option_conflict_rel_with_cls_with_highest2_def highest_lit_def
+      remove1_mset_empty_iff)
+
+theorem find_lit_of_max_level_wl_hnr[sepref_fr_rules]:
+  \<open>(uncurry find_lit_of_max_level_wl_code, uncurry find_lit_of_max_level_wl)
+    \<in> [\<lambda>(S, L'). L' = -L \<and> get_conflict_wl S \<noteq> None \<and> size (the (get_conflict_wl S)) > 1]\<^sub>a
+      (twl_st_confl_extracted_assn2 L)\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k  \<rightarrow> unat_lit_assn\<close>
+    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c
+    \<in> [comp_PRE (twl_st_ref_confl_extracted2 L O twl_st_ref \<times>\<^sub>f nat_lit_lit_rel)
+     (\<lambda>(S, L'). L' = - L \<and> get_conflict_wl S \<noteq> None \<and> 1 < size (the (get_conflict_wl S)))
+     (\<lambda>_ ((M, N, U, (_, L), _), _). L \<noteq> None)
+     (\<lambda>_. True)]\<^sub>a hrp_comp (twl_st_confl_extracted_int_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k)
+                    (twl_st_ref_confl_extracted2 L O twl_st_ref \<times>\<^sub>f
+                     nat_lit_lit_rel) \<rightarrow> hr_comp unat_lit_assn nat_lit_lit_rel\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF find_lit_of_max_level_wl_code_hnr
+    find_lit_of_max_level_wl_int_find_lit_of_max_level_wl] .
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
+    using that by (auto simp: comp_PRE_def highest_lit_def remove1_mset_empty_iff
+        twl_st_ref_confl_extracted2_def option_conflict_rel_with_cls_with_highest2_def
+        option_conflict_rel_def conflict_rel_def twl_st_ref_def)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_confl_extracted_assn2_def by simp
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
+qed
 end
 
 
@@ -6957,7 +7032,8 @@ sepref_thm backtrack_wl_D
   is \<open>PR_CONST backtrack_wl_D\<close>
   :: \<open>twl_st_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_assn\<close>
   supply [[goals_limit=1]] backtrack_wl_D_invD[simp] backtrack_wl_D_inv_find_decomp_wl_preD[intro, dest]
-  backtrack_get_conglit_wl_not_NoneD[dest]
+  backtrack_get_conglit_wl_not_NoneD[dest] lit_of_hd_trail_st_def[symmetric, simp]
+  size_conflict_wl_def[simp] one_nat_uint32_def[simp] 
   unfolding backtrack_wl_D_def PR_CONST_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] lit_of_hd_trail_st_def[symmetric]
