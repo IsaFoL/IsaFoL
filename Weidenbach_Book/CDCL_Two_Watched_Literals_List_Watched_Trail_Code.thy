@@ -6856,6 +6856,94 @@ proof -
         intro: exI[of _ \<open>Some D'\<close>])
 qed
 
+definition size_conflict_wl where
+  \<open>size_conflict_wl S = size (the (get_conflict_wl S))\<close>
+
+(* TODO: mention in publication, sepref_thm does not work *)
+definition size_conflict_extract :: \<open>conflict_rel_with_cls_with_highest \<Rightarrow> nat\<close> where
+  \<open>size_conflict_extract = (\<lambda>((_, n, _), _). n)\<close>
+
+definition size_conflict_wl_int :: \<open>twl_st_wl_confl_extracted_int \<Rightarrow> nat\<close> where
+  \<open>size_conflict_wl_int = (\<lambda>(M, N, U, D, _, _, _, _). size_conflict_extract D)\<close>
+
+
+
+lemma size_conflict_extract[sepref_fr_rules]: 
+   \<open>(return o (\<lambda>((_, n, _), _). n), RETURN o size_conflict_extract) \<in>
+   (((bool_assn *assn conflict_rel_assn) *assn
+         option_assn (unat_lit_assn *assn uint32_nat_assn)))\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding size_conflict_extract_def
+  apply sep_auto
+  apply sepref_to_hoare
+  subgoal for x xi
+    apply (cases x, cases xi)
+    apply sep_auto
+    done
+  done
+
+sepref_thm size_conflict_wl_code
+  is \<open>RETURN o size_conflict_wl_int\<close>
+  :: \<open>twl_st_confl_extracted_int_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding size_conflict_wl_int_def twl_st_confl_extracted_int_assn_def
+  by sepref
+
+
+concrete_definition (in -) size_conflict_wl_code
+   uses twl_array_code.size_conflict_wl_code.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) size_conflict_wl_code_def
+
+lemmas size_conflict_wl_code_hnr[sepref_fr_rules] =
+   size_conflict_wl_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma size_conflict_wl_int_size_conflict_wl:
+  \<open>(RETURN o size_conflict_wl_int, RETURN o size_conflict_wl) \<in> 
+   [\<lambda>S. get_conflict_wl S \<noteq> None]\<^sub>f twl_st_ref_confl_extracted2 L O twl_st_ref \<rightarrow>
+    \<langle>nat_rel\<rangle> nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: size_conflict_wl_int_def size_conflict_wl_def
+      twl_st_ref_confl_extracted2_twl_st_ref size_conflict_extract_def
+      option_conflict_rel_with_cls_with_highest2_def option_conflict_rel_def
+      conflict_rel_def)
+
+theorem size_conflict_wl_hnr[sepref_fr_rules]:
+  \<open>(size_conflict_wl_code, RETURN o size_conflict_wl)
+    \<in> [\<lambda>S. get_conflict_wl S \<noteq> None]\<^sub>a
+      (twl_st_confl_extracted_assn2 L)\<^sup>k  \<rightarrow> uint32_nat_assn\<close>
+    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c
+    \<in> [comp_PRE (twl_st_ref_confl_extracted2 L O twl_st_ref)
+     (\<lambda>S. get_conflict_wl S \<noteq> None) (\<lambda>_ _. True)
+     (\<lambda>_. True)]\<^sub>a hrp_comp (twl_st_confl_extracted_int_assn\<^sup>k)
+                    (twl_st_ref_confl_extracted2 L O
+                     twl_st_ref) \<rightarrow> hr_comp uint32_nat_assn nat_rel\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF size_conflict_wl_code_hnr
+    size_conflict_wl_int_size_conflict_wl] .
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
+    using that by (auto simp: comp_PRE_def twl_st_trail_ref_def trailt_ref_def)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_confl_extracted_assn2_def ..
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
+qed
+
+lemma backtrack_get_conglit_wl_not_NoneD:
+  \<open> 
+       RETURN xc \<le> extract_shorter_conflict_wl x \<Longrightarrow>
+       RETURN xd \<le> find_decomp_wl (lit_of_hd_trail_st x) xc \<Longrightarrow>
+       \<exists>y. get_conflict_wl xd = Some y\<close>
+  by (cases xd; cases xc; cases x)
+     (auto simp: find_decomp_wl_def extract_shorter_conflict_wl_def)
+
 end
 
 
@@ -6863,16 +6951,18 @@ setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<
 
 context twl_array_code
 begin
-
+sepref_register find_lit_of_max_level_wl propgate_bt_wl_D propgate_unit_bt_wl_D
 sepref_register backtrack_wl_D
 sepref_thm backtrack_wl_D
   is \<open>PR_CONST backtrack_wl_D\<close>
   :: \<open>twl_st_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_assn\<close>
   supply [[goals_limit=1]] backtrack_wl_D_invD[simp] backtrack_wl_D_inv_find_decomp_wl_preD[intro, dest]
+  backtrack_get_conglit_wl_not_NoneD[dest]
   unfolding backtrack_wl_D_def PR_CONST_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] lit_of_hd_trail_st_def[symmetric]
     cons_trail_Propagated_def[symmetric]
+    size_conflict_wl_def[symmetric] one_nat_uint32_def[symmetric]
   apply sepref_dbg_keep
       apply sepref_dbg_trans_keep
     -- \<open>Translation stops at the \<open>set\<close> operation\<close>
