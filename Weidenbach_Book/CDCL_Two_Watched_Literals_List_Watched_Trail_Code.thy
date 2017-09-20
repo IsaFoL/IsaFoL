@@ -6095,7 +6095,7 @@ definition size_conflict_wl_int :: \<open>twl_st_wl_confl_extracted_int \<Righta
 
 
 
-lemma size_conflict_extract[sepref_fr_rules]: 
+lemma size_conflict_extract[sepref_fr_rules]:
    \<open>(return o (\<lambda>((_, n, _), _). n), RETURN o size_conflict_extract) \<in>
    (((bool_assn *assn conflict_rel_assn) *assn
          option_assn (unat_lit_assn *assn uint32_nat_assn)))\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
@@ -6125,7 +6125,7 @@ lemmas size_conflict_wl_code_hnr[sepref_fr_rules] =
    size_conflict_wl_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
 
 lemma size_conflict_wl_int_size_conflict_wl:
-  \<open>(RETURN o size_conflict_wl_int, RETURN o size_conflict_wl) \<in> 
+  \<open>(RETURN o size_conflict_wl_int, RETURN o size_conflict_wl) \<in>
    [\<lambda>S. get_conflict_wl S \<noteq> None]\<^sub>f twl_st_ref_confl_extracted2 L O twl_st_ref \<rightarrow>
     \<langle>nat_rel\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
@@ -6176,7 +6176,7 @@ definition get_snd_highest_lit :: \<open>conflict_rel_with_cls_with_highest \<Ri
 definition find_lit_of_max_level_wl_int :: \<open>twl_st_wl_confl_extracted_int \<Rightarrow> nat literal \<Rightarrow> nat literal\<close> where
   \<open>find_lit_of_max_level_wl_int = (\<lambda>(M, N, U, D, _, _, _, _) _. get_snd_highest_lit D)\<close>
 
-lemma get_snd_highest_lit[sepref_fr_rules]: 
+lemma get_snd_highest_lit[sepref_fr_rules]:
    \<open>(return o (\<lambda>((_, _, _), L). (fst (the L))), RETURN o get_snd_highest_lit) \<in>
     [\<lambda>S. snd S \<noteq> None]\<^sub>a (conflict_option_rel_assn *assn
          option_assn (unat_lit_assn *assn uint32_nat_assn))\<^sup>k \<rightarrow> unat_lit_assn\<close>
@@ -6248,7 +6248,7 @@ proof -
 qed
 
 definition list_of_mset2_None where
-  \<open>list_of_mset2_None L L' D = SPEC(\<lambda>(E, F). mset E = D \<and> E!0 = L \<and> E!1 = L' \<and> 
+  \<open>list_of_mset2_None L L' D = SPEC(\<lambda>(E, F). mset E = D \<and> E!0 = L \<and> E!1 = L' \<and>
      F = None)\<close>
 
 
@@ -6284,7 +6284,7 @@ type_synonym twl_st_wll_confl_with_cls =
   \<open>trail_int_assn \<times> clauses_wl \<times> nat \<times> conflict_with_cls_assn \<times>
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn\<close>
 
-definition option_conflict_rel_with_cls 
+definition option_conflict_rel_with_cls
   :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> (conflict_rel_with_cls \<times> nat clause option) set\<close>
 where
   \<open>option_conflict_rel_with_cls L L' = {((C, xs), D). D \<noteq> None \<and> (drop 2 C, the D) \<in> list_mset_rel \<and>
@@ -6312,11 +6312,11 @@ type_synonym (in -) twl_st_wl_int_W_confl_with_cls =
 
 text \<open>
   \<^item> We are filling D starting from the end (index \<^term>\<open>n\<close>)
-  \<^item> We are changing position one and two. 
+  \<^item> We are changing position one and two.
 \<close>
 definition conflict_to_conflict_with_cls :: \<open>nat literal list \<Rightarrow> conflict_option_rel \<Rightarrow> conflict_rel_with_cls nres\<close> where
   \<open>conflict_to_conflict_with_cls = (\<lambda>D (_, n, xs). do {
-     (_, _, C, zs) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, m, C, zs). i \<le> length zs \<and> length zs = length xs \<and> 
+     (_, _, C, zs) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, m, C, zs). i \<le> length zs \<and> length zs = length xs \<and>
           length C = n \<and> m \<le> length C \<and> C!0 = D!0 \<and> C!1 = D!1\<^esup>
        (\<lambda>(i, m, C, zs). m > 2)
        (\<lambda>(i, m, C, zs). do {
@@ -6355,20 +6355,20 @@ definition conflict_to_conflict_with_cls_spec where
 lemma conflict_to_conflict_with_cls_id:
   \<open>(uncurry conflict_to_conflict_with_cls, uncurry (RETURN oo conflict_to_conflict_with_cls_spec)) \<in>
     [\<lambda>(D, C). C \<noteq> None \<and> literals_are_in_N\<^sub>0 (the C) \<and> length D = size (the C) + 2 \<and>
-      D!0 = L \<and> D!1 = L']\<^sub>f 
-      Id \<times>\<^sub>r option_conflict_rel_removed  \<rightarrow> 
+      D!0 = L \<and> D!1 = L']\<^sub>f
+      Id \<times>\<^sub>r option_conflict_rel_removed  \<rightarrow>
        \<langle>option_conflict_rel_with_cls L L'\<rangle> nres_rel\<close>
 proof -
   have H: \<open>conflict_to_conflict_with_cls D (b, n, xs) \<le> \<Down> (option_conflict_rel_with_cls L L') (RETURN (Some C))\<close>
     if
-      ocr: \<open>((b, n, xs), Some C) \<in> option_conflict_rel_removed\<close> and 
+      ocr: \<open>((b, n, xs), Some C) \<in> option_conflict_rel_removed\<close> and
       lits_N\<^sub>0: \<open>literals_are_in_N\<^sub>0 C\<close> and
       len_D: \<open>length D = size C + 2\<close> and
       [simp]: \<open>D!0 = L\<close>\<open>D!Suc 0 = L'\<close>
     for b n xs C D
   proof -
     define I' where
-      [simp]: \<open>I' = (\<lambda>(i, m, D, zs). 
+      [simp]: \<open>I' = (\<lambda>(i, m, D, zs).
               ((b, m, zs), Some (filter_mset (\<lambda>L. atm_of L \<ge> i) C)) \<in> option_conflict_rel_removed \<and>
                m - 2 = length (filter (op \<noteq> None) zs) \<and>
                i + (m - 2) + length (filter (op = None) (drop i zs)) = length zs \<and> (\<forall>k < i. zs ! k = None) \<and>
@@ -6452,7 +6452,7 @@ proof -
         using I' unfolding I'_def s by auto
       then have map: \<open>mset_as_position bd {#L \<in># C. ab \<le> atm_of L#}\<close> and
         le_bd: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length bd\<close>
-        using b unfolding option_conflict_rel_removed_def option_conflict_rel_def conflict_rel_def 
+        using b unfolding option_conflict_rel_removed_def option_conflict_rel_def conflict_rel_def
         by auto
       have \<open>ab < length bd\<close>
         using I I' cond s unfolding I' by auto
@@ -6714,7 +6714,7 @@ lemma (in -) uint32_2_hnr: \<open>(uncurry0 (return 2), uncurry0 (RETURN two_uin
 sepref_register conflict_to_conflict_with_cls
 sepref_thm conflict_to_conflict_with_cls_code
   is \<open>uncurry (PR_CONST conflict_to_conflict_with_cls)\<close>
-  :: \<open>(array_assn unat_lit_assn)\<^sup>d *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow>\<^sub>a 
+  :: \<open>(array_assn unat_lit_assn)\<^sup>d *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow>\<^sub>a
       conflict_with_cls_int_assn\<close>
   supply uint32_nat_assn_zero_uint32[sepref_fr_rules] [[goals_limit=1]]
    Pot_unat_lit_assn'[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
@@ -6741,9 +6741,9 @@ lemmas conflict_to_conflict_with_cls_code_refine[sepref_fr_rules] =
    conflict_to_conflict_with_cls_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
 
   thm propgate_bt_wl_D_def
-(* 
-twl_st_confl_extracted_assn2 (- lit_of (hd (get_trail_wl x)))) 
-propgate_bt_wl_D 
+(*
+twl_st_confl_extracted_assn2 (- lit_of (hd (get_trail_wl x))))
+propgate_bt_wl_D
  *)
 (*extract_shorter_conflict_list_removed  *)
 sepref_thm extract_shorter_conflict_list_removed_code
@@ -7062,7 +7062,7 @@ sepref_thm backtrack_wl_D
   :: \<open>twl_st_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_assn\<close>
   supply [[goals_limit=1]] backtrack_wl_D_invD[simp] backtrack_wl_D_inv_find_decomp_wl_preD[intro, dest]
   backtrack_get_conglit_wl_not_NoneD[dest] lit_of_hd_trail_st_def[symmetric, simp]
-  size_conflict_wl_def[simp] one_nat_uint32_def[simp] 
+  size_conflict_wl_def[simp] one_nat_uint32_def[simp]
   unfolding backtrack_wl_D_def PR_CONST_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] lit_of_hd_trail_st_def[symmetric]
