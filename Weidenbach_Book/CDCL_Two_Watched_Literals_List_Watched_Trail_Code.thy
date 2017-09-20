@@ -1159,7 +1159,7 @@ proof -
   have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
     unfolding comp_PRE_def
       by (auto simp: comp_PRE_def twl_st_assn_def twl_st_ref_def
-      map_fun_rel_def intro!: ext)
+          map_fun_rel_def intro!: ext)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def[symmetric]
     by (auto simp: hrp_comp_def hr_comp_def)
@@ -1225,7 +1225,7 @@ proof -
   have 2: \<open>(uncurry valued_trail, uncurry (RETURN oo valued)) \<in>
      [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>f trailt_ref \<times>\<^sub>f Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
     by (intro nres_relI frefI)
-      (auto simp: trailt_ref_def valued_def valued_trail_def trailt_ref_def
+      (auto simp: trailt_ref_def valued_def valued_trail_def
         split: if_splits option.splits)
   show ?thesis
     using valued_trail_code.refine[FCOMP 2, OF twl_array_code_axioms] .
@@ -2444,8 +2444,8 @@ proof -
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF get_level_code.refine 1, OF twl_array_code_axioms] .
   have pre: \<open>?pre' = ?pre\<close>
-    by (auto simp: comp_PRE_def trailt_ref_def unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def
-      trailt_ref_def intro!: ext)
+    by (auto simp: comp_PRE_def trailt_ref_def unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def
+        br_def intro!: ext)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
     by (auto simp: hrp_comp_def hr_comp_def)
@@ -4056,31 +4056,6 @@ proof -
     using pre ..
 qed
 
-thm conflict_assn_def conflict_rel_def
-
-
-type_synonym (in -) conflict_rel_with_cls = \<open>nat clause_l \<times> bool option list\<close>
-type_synonym (in -) conflict_with_cls_assn = \<open>uint32 array \<times> bool option array\<close>
-
-type_synonym twl_st_wll_confl_with_cls =
-  \<open>trail_int_assn \<times> clauses_wl \<times> nat \<times> conflict_with_cls_assn \<times>
-    lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn\<close>
-
-
-definition option_conflict_rel_with_cls :: \<open>(conflict_rel_with_cls \<times> nat clause option) set\<close> where
-  \<open>option_conflict_rel_with_cls = {((C, xs), D). D \<noteq> None \<and> (C, the D) \<in> list_mset_rel \<and>
-    mset_as_position xs {#} \<and> (\<forall>L\<in>atms_of N\<^sub>1. L < length xs)}\<close>
-
-definition option_conflict_rel_with_cls1 :: \<open>(nat clause_l \<times> nat clause option) set\<close> where
-  \<open>option_conflict_rel_with_cls1 = {(C, D). D \<noteq> None \<and> (C, the D) \<in> list_mset_rel}\<close>
-
-abbreviation (in -) conflict_with_cls_int_assn :: \<open>conflict_rel_with_cls \<Rightarrow> conflict_with_cls_assn \<Rightarrow> assn\<close> where
- \<open>conflict_with_cls_int_assn \<equiv>
-    (array_assn unat_lit_assn *assn array_assn (option_assn bool_assn))\<close>
-
-definition conflict_with_cls_assn :: \<open>nat clause option \<Rightarrow> conflict_with_cls_assn \<Rightarrow> assn\<close> where
- \<open>conflict_with_cls_assn \<equiv> hr_comp conflict_with_cls_int_assn option_conflict_rel_with_cls\<close>
-
 
 definition (in -) extract_shorter_conflict_l_trivial :: \<open>('v, 'a) ann_lits \<Rightarrow> 'v cconflict \<Rightarrow> 'v cconflict\<close> where
   \<open>extract_shorter_conflict_l_trivial M D = Some (filter_mset (\<lambda>L. get_level M L > 0) (the D))\<close>
@@ -5067,74 +5042,11 @@ lemma extract_shorter_conflict_st_trivial_int_alt_def:
      (extract_shorter_conflict_l_trivial M D), oth))\<close>
   unfolding extract_shorter_conflict_st_trivial_int_def ASSN_ANNOT_def ..
 
-
-type_synonym (in -) twl_st_wl_int_W_confl_with_cls =
-  \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times> nat \<times>
-    conflict_rel_with_cls \<times> nat clause \<times> nat list list \<times> vmtf_remove_int \<times> bool list\<close>
-
-definition twl_st_wl_int_W_confl_with_cls :: \<open>(twl_st_wl_int_W_confl_with_cls \<times> twl_st_wl_int) set\<close> where
-  \<open>twl_st_wl_int_W_confl_with_cls =
-     (Id :: ((nat,nat) ann_lits \<times> _) set) \<times>\<^sub>r
-     (Id :: (nat clauses_l  \<times> _) set) \<times>\<^sub>r
-     nat_rel \<times>\<^sub>r
-     option_conflict_rel_with_cls \<times>\<^sub>r
-     Id  \<times>\<^sub>r
-     (Id :: (nat list list \<times> _)set) \<times>\<^sub>r
-     Id \<times>\<^sub>r
-     Id\<close>
-
-definition twl_st_wl_int_W_confl_with_cls_assn
-  :: \<open>twl_st_wl_int_W_confl_with_cls \<Rightarrow> twl_st_wll_confl_with_cls \<Rightarrow> assn\<close> where
-\<open>twl_st_wl_int_W_confl_with_cls_assn =
-  (trail_assn *assn clauses_ll_assn *assn nat_assn *assn
-  conflict_with_cls_int_assn *assn
-  (list_mset_assn unat_lit_assn) *assn
-  arrayO_assn (arl_assn nat_assn) *assn
-  vmtf_remove_conc *assn phase_saver_conc
-  )\<close>
-
-lemma twl_st_wl_int_W_confl_with_cls_twl_st_rel: \<open>twl_st_wl_int_W_confl_with_cls O twl_st_ref =
-   {((M', N', U', D', Q', W', vm, \<phi>), M, N, U, D, NP, UP, Q, W).
-     M = M' \<and>
-     N' = N \<and>
-     U' = U \<and>
-     (D', D) \<in> option_conflict_rel_with_cls \<and>
-     Q' = Q \<and>
-     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
-     vm \<in> vmtf_imp M \<and> phase_saving \<phi> \<and> no_dup M}\<close>
-  unfolding twl_st_ref_def twl_st_wl_int_W_confl_with_cls_def
-  by force
-
-definition twl_st_assn_confl_cls_int :: \<open>twl_st_wl_int \<Rightarrow> twl_st_wll_confl_with_cls \<Rightarrow> assn\<close> where
-  \<open>twl_st_assn_confl_cls_int = hr_comp twl_st_wl_int_W_confl_with_cls_assn
-     (twl_st_wl_int_W_confl_with_cls)\<close>
-
-definition twl_st_assn_confl_cls :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_confl_with_cls \<Rightarrow> assn\<close> where
-  \<open>twl_st_assn_confl_cls = hr_comp twl_st_wl_int_W_confl_with_cls_assn
-     (twl_st_wl_int_W_confl_with_cls O twl_st_ref)\<close>
-
-lemma twl_st_assn_confl_cls_int_alt_def:
-  \<open>twl_st_assn_confl_cls_int = trail_assn *assn
-         clauses_ll_assn *assn
-         nat_assn *assn
-         conflict_with_cls_assn *assn
-         clause_l_assn *assn arrayO_assn (arl_assn nat_assn) *assn vmtf_remove_conc *assn phase_saver_conc\<close>
-  unfolding twl_st_assn_confl_cls_int_def twl_st_wl_int_W_confl_with_cls_assn_def twl_st_wl_int_W_confl_with_cls_def
-  hr_comp_prod_conv conflict_with_cls_assn_def[symmetric]
-  by auto
-
-lemma twl_st_assn_confl_cls_alt_def:
-  \<open>twl_st_assn_confl_cls = hr_comp twl_st_assn_confl_cls_int twl_st_ref\<close>
-  unfolding twl_st_assn_confl_cls_def twl_st_assn_confl_cls_int_def hr_comp_assoc ..
-
 definition extract_shorter_conflict_list_st_int:: \<open>twl_st_wl_int_conflict \<Rightarrow> _ nres\<close> where
   \<open>extract_shorter_conflict_list_st_int = (\<lambda>(M, N, U, D, oth). do {
      D \<leftarrow> extract_shorter_conflict_list_int M D;
      RETURN (M, N, U, D, oth)})
 \<close>
-
-typ twl_st_wl_confl_extracted_int
-term extract_shorter_conflict_list_st_int
 
 definition extract_shorter_conflict_list_st where
   \<open>extract_shorter_conflict_list_st =
@@ -5692,11 +5604,10 @@ lemma find_decomp_wl_st_int_find_decomp_wl_st:
    nat_lit_lit_rel \<times>\<^sub>r twl_st_ref \<rightarrow>
    \<langle>{(S', S). (S', S) \<in> twl_st_ref \<and>
      (\<forall>L \<in># remove1_mset (-lit_of (hd M)) (the (get_conflict_wl S)). get_level (get_trail_wl S) L = get_level M L)}\<rangle>nres_rel\<close>
-  unfolding twl_st_wl_int_W_confl_with_cls_twl_st_rel
   apply (intro frefI nres_relI)
   apply clarify
   subgoal for L' M' N' U' D' K' W' Q' A' m'  _ _ \<phi> L M N U D NP UP W Q
-    apply (auto simp: find_decomp_wl_st_int_def find_decomp_wl_st_def option_conflict_rel_with_cls_def
+    apply (auto simp: find_decomp_wl_st_int_def find_decomp_wl_st_def
         list_mset_rel_def br_def twl_st_ref_def
         intro!: bind_refine[where R' =
           \<open>{((Ms', vm'), Ms). Ms = Ms' \<and> (\<exists>M''. M = M'' @ Ms) \<and> vm' \<in> vmtf_imp Ms &
@@ -5723,7 +5634,6 @@ definition twl_st_confl_extracted_int_assn' where
       clause_l_assn *assn
       arrayO_assn (arl_assn nat_assn) *assn
       vmtf_remove_conc *assn phase_saver_conc)\<close>
-term twl_st_confl_extracted_int_assn
 
 sepref_thm find_decomp_wl_imp'_code
   is \<open>uncurry (PR_CONST find_decomp_wl_st_int)\<close>
@@ -6358,16 +6268,61 @@ lemma propgate_bt_wl_D_alt_def:
   by (auto simp: SPEC_RETURN_RES SPEC_RETURN_RES2 uncurry_def intro!: ext)
 
 
-definition conflict_to_conflict_with_cls :: \<open>conflict_option_rel \<Rightarrow> conflict_rel_with_cls nres\<close> where
-  \<open>conflict_to_conflict_with_cls = (\<lambda>(_, n, xs). do {
-     let D = replicate n (Pos 0);
-     (_, _, C, zs) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, m, C, zs). i \<le> length zs \<and> length zs = length xs \<and> length C = n \<and>
-          m \<le> length C\<^esup>
-       (\<lambda>(i, m, C, zs). m > 0)
+lemma extract_shorter_conflict_l_trivial_int_extract_shorter_conflict_l_trivial:
+  \<open>(extract_shorter_conflict_st_trivial_int, extract_shorter_conflict_st_trivial) \<in>
+    [\<lambda>S. get_conflict_wl S \<noteq> None]\<^sub>f twl_st_ref \<rightarrow> \<langle>twl_st_ref\<rangle> nres_rel\<close>
+  by (intro frefI nres_relI)
+     (auto simp: extract_shorter_conflict_st_trivial_int_def
+        extract_shorter_conflict_st_trivial_def twl_st_ref_def RETURN_def
+     intro!: RES_refine)
+
+
+type_synonym (in -) conflict_rel_with_cls = \<open>nat clause_l \<times> bool option list\<close>
+type_synonym (in -) conflict_with_cls_assn = \<open>uint32 array \<times> bool option array\<close>
+
+type_synonym twl_st_wll_confl_with_cls =
+  \<open>trail_int_assn \<times> clauses_wl \<times> nat \<times> conflict_with_cls_assn \<times>
+    lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn\<close>
+
+definition option_conflict_rel_with_cls 
+  :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> (conflict_rel_with_cls \<times> nat clause option) set\<close>
+where
+  \<open>option_conflict_rel_with_cls L L' = {((C, xs), D). D \<noteq> None \<and> (drop 2 C, the D) \<in> list_mset_rel \<and>
+    mset_as_position xs {#} \<and> (\<forall>L\<in>atms_of N\<^sub>1. L < length xs) \<and> C!0 = L \<and> C!1 = L'}\<close>
+
+definition option_conflict_rel_with_cls1 :: \<open>(nat clause_l \<times> nat clause option) set\<close> where
+  \<open>option_conflict_rel_with_cls1 = {(C, D). D \<noteq> None \<and> (C, the D) \<in> list_mset_rel}\<close>
+
+abbreviation (in -) conflict_with_cls_int_assn :: \<open>conflict_rel_with_cls \<Rightarrow> conflict_with_cls_assn \<Rightarrow> assn\<close> where
+ \<open>conflict_with_cls_int_assn \<equiv>
+    (array_assn unat_lit_assn *assn array_assn (option_assn bool_assn))\<close>
+
+definition conflict_with_cls_assn :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow>nat clause option \<Rightarrow> conflict_with_cls_assn \<Rightarrow> assn\<close> where
+ \<open>conflict_with_cls_assn L L' \<equiv> hr_comp conflict_with_cls_int_assn (option_conflict_rel_with_cls L L')\<close>
+
+definition option_conflict_rel_removed :: \<open>_ set\<close> where
+  \<open>option_conflict_rel_removed =
+   {((b, n, xs), C). C \<noteq> None \<and> n \<ge> 2 \<and> n \<le> length xs \<and>
+      ((b, n - 2, xs), C) \<in> option_conflict_rel}\<close>
+
+
+type_synonym (in -) twl_st_wl_int_W_confl_with_cls =
+  \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times> nat \<times>
+    conflict_rel_with_cls \<times> nat clause \<times> nat list list \<times> vmtf_remove_int \<times> bool list\<close>
+
+text \<open>
+  \<^item> We are filling D starting from the end (index \<^term>\<open>n\<close>)
+  \<^item> We are changing position one and two. 
+\<close>
+definition conflict_to_conflict_with_cls :: \<open>nat literal list \<Rightarrow> conflict_option_rel \<Rightarrow> conflict_rel_with_cls nres\<close> where
+  \<open>conflict_to_conflict_with_cls = (\<lambda>D (_, n, xs). do {
+     (_, _, C, zs) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, m, C, zs). i \<le> length zs \<and> length zs = length xs \<and> 
+          length C = n \<and> m \<le> length C \<and> C!0 = D!0 \<and> C!1 = D!1\<^esup>
+       (\<lambda>(i, m, C, zs). m > 2)
        (\<lambda>(i, m, C, zs). do {
            ASSERT(i < length xs);
            ASSERT(i < upperN div 2);
-           ASSERT(m > 0);
+           ASSERT(m > 2);
            ASSERT(zs ! i \<noteq> None \<longrightarrow> Pos i \<in># N\<^sub>1);
            case zs ! i of
              None \<Rightarrow> RETURN (i+1, m, C, zs)
@@ -6378,50 +6333,71 @@ definition conflict_to_conflict_with_cls :: \<open>conflict_option_rel \<Rightar
   }
   )\<close>
 
-definition conflict_to_conflict_with_cls_spec where
-  \<open>conflict_to_conflict_with_cls_spec = id\<close>
+(* TODO Move *)
+lemma (in -) length_filter_update_true:
+  \<open>i < length xs \<Longrightarrow> P (xs ! i) \<Longrightarrow> length (filter P (xs[i := x])) = length (filter P xs) - (if P x then 0 else 1)\<close>
+  apply (subst (5) append_take_drop_id[of i, symmetric])
+  using upd_conv_take_nth_drop[of i xs x] Cons_nth_drop_Suc[of i xs, symmetric]
+  unfolding filter_append length_append
+  by simp
 
-lemma extract_shorter_conflict_l_trivial_int_extract_shorter_conflict_l_trivial:
-  \<open>(extract_shorter_conflict_st_trivial_int, extract_shorter_conflict_st_trivial) \<in>
-    [\<lambda>S. get_conflict_wl S \<noteq> None]\<^sub>f twl_st_ref \<rightarrow> \<langle>twl_st_ref\<rangle> nres_rel\<close>
-  by (intro frefI nres_relI)
-     (auto simp: extract_shorter_conflict_st_trivial_int_def conflict_to_conflict_with_cls_spec_def
-        extract_shorter_conflict_st_trivial_def twl_st_ref_def RETURN_def
-     intro!: RES_refine)
+lemma (in -) length_filter_update_falte:
+  \<open>i < length xs \<Longrightarrow> \<not>P (xs ! i) \<Longrightarrow> length (filter P (xs[i := x])) = length (filter P xs) + (if P x then 1 else 0)\<close>
+  apply (subst (5) append_take_drop_id[of i, symmetric])
+  using upd_conv_take_nth_drop[of i xs x] Cons_nth_drop_Suc[of i xs, symmetric]
+  unfolding filter_append length_append
+  by simp
+(* End Move *)
+
+definition conflict_to_conflict_with_cls_spec where
+  \<open>conflict_to_conflict_with_cls_spec _ D = D\<close>
 
 lemma conflict_to_conflict_with_cls_id:
-  \<open>(conflict_to_conflict_with_cls, RETURN o id) \<in>
-    [\<lambda>C. C \<noteq> None \<and> literals_are_in_N\<^sub>0 (the C)]\<^sub>f option_conflict_rel \<rightarrow> \<langle>option_conflict_rel_with_cls\<rangle> nres_rel\<close>
+  \<open>(uncurry conflict_to_conflict_with_cls, uncurry (RETURN oo conflict_to_conflict_with_cls_spec)) \<in>
+    [\<lambda>(D, C). C \<noteq> None \<and> literals_are_in_N\<^sub>0 (the C) \<and> length D = size (the C) + 2 \<and>
+      D!0 = L \<and> D!1 = L']\<^sub>f 
+      Id \<times>\<^sub>r option_conflict_rel_removed  \<rightarrow> 
+       \<langle>option_conflict_rel_with_cls L L'\<rangle> nres_rel\<close>
 proof -
-  have H: \<open>conflict_to_conflict_with_cls (b, n, xs) \<le> \<Down> option_conflict_rel_with_cls (RETURN (Some C))\<close>
-    if ocr: \<open>((b, n, xs), Some C) \<in> option_conflict_rel\<close> and lits_N\<^sub>0: \<open>literals_are_in_N\<^sub>0 C\<close>
-    for b n xs C
+  have H: \<open>conflict_to_conflict_with_cls D (b, n, xs) \<le> \<Down> (option_conflict_rel_with_cls L L') (RETURN (Some C))\<close>
+    if
+      ocr: \<open>((b, n, xs), Some C) \<in> option_conflict_rel_removed\<close> and 
+      lits_N\<^sub>0: \<open>literals_are_in_N\<^sub>0 C\<close> and
+      len_D: \<open>length D = size C + 2\<close> and
+      [simp]: \<open>D!0 = L\<close>\<open>D!Suc 0 = L'\<close>
+    for b n xs C D
   proof -
     define I' where
-      [simp]: \<open>I' = (\<lambda>(i, m, D, zs). ((b, m, zs), Some (filter_mset (\<lambda>L. atm_of L \<ge> i) C)) \<in> option_conflict_rel \<and>
-               i + m \<le> length zs \<and> (\<forall>k < i. zs ! k = None) \<and>
-              mset (drop m D) = filter_mset (\<lambda>L. atm_of L < i) C)\<close>
+      [simp]: \<open>I' = (\<lambda>(i, m, D, zs). 
+              ((b, m, zs), Some (filter_mset (\<lambda>L. atm_of L \<ge> i) C)) \<in> option_conflict_rel_removed \<and>
+               m - 2 = length (filter (op \<noteq> None) zs) \<and>
+               i + (m - 2) + length (filter (op = None) (drop i zs)) = length zs \<and> (\<forall>k < i. zs ! k = None) \<and>
+               mset (drop m D) = filter_mset (\<lambda>L. atm_of L < i) C \<and>
+               m \<ge> 2)\<close>
     let ?I' = I'
-
-    let ?I = \<open>\<lambda>xs n (i, m, D, zs). i \<le> length zs \<and> length zs = length xs \<and> length D = n \<and>
-      m \<le> length D\<close>
+    let ?C = \<open>C\<close>
+    let ?I = \<open>\<lambda>xs n (i, m, E, zs). i \<le> length zs \<and> length zs = length xs \<and> length E = n \<and>
+          m \<le> length E \<and> E!0 = D!0 \<and> E!1 = D!1\<close>
+    let ?cond = \<open>\<lambda>s. case s of (i, m, C, zs) \<Rightarrow> 2 < m\<close>
     have n_le: \<open>n \<le> length xs\<close> and b: \<open>b = False\<close> and
-       dist_C: \<open> distinct_mset C\<close> and
+       dist_C: \<open>distinct_mset C\<close> and
        tauto_C: \<open>\<not> tautology C\<close> and
        atms_le_xs: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length xs\<close> and
-       n_size: \<open>n = size C\<close>
-      using mset_as_position_length_not_None[of xs C] that  mset_as_position_distinct_mset[of xs C]
-        mset_as_position_tautology[of xs C]
-      by (auto simp: option_conflict_rel_def conflict_rel_def)
+       n_size: \<open>n = 2 + size C\<close> and
+       map: \<open>mset_as_position xs C\<close>
+      using mset_as_position_length_not_None[of xs ?C] that  mset_as_position_distinct_mset[of xs ?C]
+        mset_as_position_tautology[of xs ?C] len_D
+      by (auto simp: option_conflict_rel_def option_conflict_rel_removed_def conflict_rel_def
+          tautology_add_mset)
     have size_C: \<open>size C \<le> upperN div 2\<close>
       using simple_clss_size_upper_div2[OF lits_N\<^sub>0 dist_C tauto_C] .
 
-    have final: "((ad, bd), Some C) \<in> option_conflict_rel_with_cls"
+    have final: "((ad, bd), Some C) \<in> option_conflict_rel_with_cls L L'"
       if
         s0: "?I baa aa s" and
         s1: "?I' s" and
         s:
-          "\<not> (case s of (i, m, C, zs) \<Rightarrow> 0 < m)"
+          "\<not> ?cond s"
           "s = (ab, bb)"
           "bb = (ac, bc)"
           "bc = (ad, bd)"
@@ -6429,37 +6405,40 @@ proof -
           "ba = (aa, baa)"
       for a ba aa baa s ab bb ac bc ad bd
     proof -
-      have [simp]: \<open>ac = 0\<close> \<open>s = (ab, 0, ad, bd)\<close> \<open>bb = (0, ad, bd)\<close> \<open>bc = (ad, bd)\<close> \<open>ba = (aa, baa)\<close>
+      have [simp]: \<open>ac = 2\<close> \<open>s = (ab, 2, ad, bd)\<close> \<open>bb = (2, ad, bd)\<close> \<open>bc = (ad, bd)\<close> \<open>ba = (aa, baa)\<close>
         \<open>n = aa\<close>\<open>xs = baa\<close>
-        using s by auto
-      have \<open>((b, 0, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_conflict_rel\<close>
+        using s s1 by auto
+      have \<open>((b, 2, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_conflict_rel_removed\<close>
         using s1 by auto
       then have [simp]: \<open>{#L \<in># C. ab \<le> atm_of L#} = {#}\<close> and map': \<open>mset_as_position bd {#}\<close>
-        unfolding option_conflict_rel_def conflict_rel_def by auto
+        unfolding option_conflict_rel_removed_def option_conflict_rel_def conflict_rel_def by auto
       have [simp]: \<open>length bd = length xs\<close>
         using s0 by auto
       have [iff]: \<open>\<not>x < ab \<longleftrightarrow> ab \<le> x\<close> for x
         by auto
       have \<open>{#L \<in># C. atm_of L < ab#} = C\<close>
         using multiset_partition[of C \<open>\<lambda>L. atm_of L < ab\<close>] by auto
-      then have [simp]: \<open>mset ad = C\<close>
+      then have [simp]: \<open>mset (drop 2 ad) = C\<close>
         using s1 by auto
-
+      have [simp]: \<open>ad ! 0 = L\<close> \<open>ad ! Suc 0 = L'\<close>
+        using s0 unfolding s by auto
       show ?thesis
         using map' atms_le_xs by (auto simp: option_conflict_rel_with_cls_def list_mset_rel_def br_def)
     qed
-    have init: "I' (0, aa, replicate aa (Pos 0), baa)"
+    have init: "I' (0, aa, D, baa)"
       if
         "(b, n, xs) = (a, ba)" and
         "ba = (aa, baa)"
       for a ba aa baa
-      using ocr that n_le n_size size_C by auto
+      using ocr that n_le n_size size_C len_D mset_as_position_length_not_None[OF map]
+      sum_length_filter_compl[of \<open>op = None\<close> xs]
+      by auto
 
     have in_N\<^sub>1: "Pos ab \<in># N\<^sub>1"
       if
         I: "?I baa aa s" and
         I': "I' s" and
-        cond: "case s of (i, m, C, zs) \<Rightarrow> 0 < m" and
+        cond: "?cond s" and
         s: "s = (ab, bb)"
           "bb = (ac, bc)"
           "bc = (ad, bd)"
@@ -6469,11 +6448,12 @@ proof -
         bd_ab: "bd ! ab \<noteq> None"
       for a ba aa baa s ab bb ac bc ad bd
     proof -
-      have \<open>((b, ac, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_conflict_rel\<close>
+      have \<open>((b, ac, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_conflict_rel_removed\<close>
         using I' unfolding I'_def s by auto
       then have map: \<open>mset_as_position bd {#L \<in># C. ab \<le> atm_of L#}\<close> and
         le_bd: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length bd\<close>
-        using b unfolding option_conflict_rel_def conflict_rel_def by auto
+        using b unfolding option_conflict_rel_removed_def option_conflict_rel_def conflict_rel_def 
+        by auto
       have \<open>ab < length bd\<close>
         using I I' cond s unfolding I' by auto
       then have ab_in_C: \<open>Pos ab \<in># C \<or> Neg ab \<in># C\<close>
@@ -6489,7 +6469,7 @@ proof -
         "ba = (aa, baa)" and
         "?I baa aa s" and
         I': "I' s" and
-        m: "case s of (i, m, C, zs) \<Rightarrow> 0 < m" and
+        m: "?cond s" and
         s:
           "s = (ab, bb)"
           "bb = (ac, bc)"
@@ -6499,7 +6479,7 @@ proof -
     proof (rule ccontr)
       assume le: \<open>\<not> ?thesis\<close>
       have \<open>mset (drop ac ad) = {#L \<in># C. atm_of L < ab#}\<close> and
-        ocr: \<open>((b, ac, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_conflict_rel\<close>
+        ocr: \<open>((b, ac, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_conflict_rel_removed\<close>
         using I' s unfolding I'_def by auto
       have \<open>L \<in># C \<Longrightarrow> atm_of L < upperN div 2\<close> for L
         using lits_N\<^sub>0 in_N1_less_than_upperN
@@ -6507,13 +6487,13 @@ proof -
       then have \<open>{#L \<in># C. ab \<le> atm_of L#} = {#}\<close>
         using le by (force simp: filter_mset_empty_conv)
       then show False
-        using m s ocr unfolding option_conflict_rel_def conflict_rel_def by auto
+        using m s ocr unfolding option_conflict_rel_removed_def option_conflict_rel_def conflict_rel_def by auto
     qed
     have IH_I': "I' (ab + 1, ac, ad, bd)"
       if
         I: "?I baa aa s" and
         I': "I' s" and
-        m: "case s of (i, m, C, zs) \<Rightarrow> 0 < m" and
+        m: "?cond s" and
         s: "s = (ab, bb)"
           "bb = (ac, bc)"
           "bc = (ad, bd)"
@@ -6521,7 +6501,7 @@ proof -
           "ba = (aa, baa)" and
         ab_le: "ab < length baa" and
         "ab < upperN div 2" and
-        "0 < ac" and
+        "2 < ac" and
         "bd ! ab \<noteq> None \<longrightarrow> Pos ab \<in># N\<^sub>1" and
         bd_ab: "bd ! ab = None"
       for a ba aa baa s ab bb ac bc ad bd
@@ -6530,13 +6510,15 @@ proof -
         \<open>ba = (aa, baa)\<close> \<open>n = aa\<close> \<open>xs = baa \<close> \<open>length bd = length baa\<close>
         using s I by auto
       have
-        ocr: \<open>((b, ac, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_conflict_rel\<close> and
-        \<open>ab + ac \<le> length bd\<close> and
-        le_ab_None: \<open>\<forall>k<ab. bd ! k = None\<close>
+        ocr: \<open>((b, ac, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_conflict_rel_removed\<close> and
+        eq: \<open>ab + length (filter (op \<noteq> None) bd) + length (filter (op = None) (drop ab bd)) = length baa\<close> and
+        le_ab_None: \<open>\<forall>k<ab. bd ! k = None\<close> and
+        ac: \<open>ac - 2 = length (filter (op \<noteq> None) bd)\<close> and
+        ac2: \<open>ac \<ge> 2\<close>
         using I' unfolding I'_def by auto
       then have map: \<open>mset_as_position bd {#L \<in># C. ab \<le> atm_of L#}\<close> and
         le_bd: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length bd\<close>
-        using b unfolding option_conflict_rel_def conflict_rel_def by auto
+        using b unfolding option_conflict_rel_removed_def option_conflict_rel_def conflict_rel_def by auto
       have \<open>ab < length bd\<close>
         using I I' m by auto
       then have ab_in_C: \<open>Pos ab \<notin># C\<close> \<open>Neg ab \<notin># C\<close>
@@ -6557,45 +6539,38 @@ proof -
         using bd_ab ocr
         mset_as_position_nth[of bd \<open>{#L \<in># C. ab \<le> atm_of L#}\<close> x]
         mset_as_position_nth[of bd \<open>{#L \<in># C. ab \<le> atm_of L#}\<close> \<open>-x\<close>]
-        unfolding option_conflict_rel_def conflict_rel_def
+        unfolding option_conflict_rel_def conflict_rel_def option_conflict_rel_removed_def
         by force
       then have \<open>{#L \<in># C. ab \<le> atm_of L#} = {#L \<in># C. Suc ab \<le> atm_of L#}\<close>
         using s by (force intro!: filter_mset_cong2)
-      then have ocr': \<open>((b, ac, bd), Some {#L \<in># C. Suc ab \<le> atm_of L#}) \<in> option_conflict_rel\<close>
+      then have ocr': \<open>((b, ac, bd), Some {#L \<in># C. Suc ab \<le> atm_of L#}) \<in> option_conflict_rel_removed\<close>
         using I' s by auto
 
       have
-        x1a: \<open>ac = size {#L \<in># C. ab \<le> atm_of L#}\<close> and
+        x1a: \<open>ac - 2 = size {#L \<in># C. ab \<le> atm_of L#}\<close> \<open>ac \<ge> 2\<close> and
         map: \<open>mset_as_position bd {#L \<in># C. ab \<le> atm_of L#}\<close>
-        using ocr unfolding option_conflict_rel_def conflict_rel_def by auto
+        using ocr unfolding option_conflict_rel_def conflict_rel_def option_conflict_rel_removed_def
+        by auto
 
       have [iff]: \<open>ab + length (filter (op \<noteq> None) x2b) = length x2b \<longleftrightarrow> ab = length (filter (op = None) x2b)\<close> for x2b
         using sum_length_filter_compl[of \<open>op \<noteq> None\<close> x2b] by auto
       have filter_take_ab: \<open>filter (op = None) (take ab bd) = take ab bd\<close>
         apply (rule filter_id_conv[THEN iffD2])
         using le_ab_None by (auto simp: nth_append take_set split: if_splits)
-      have \<open>filter (op = None) (drop ab bd) \<noteq> []\<close>
-        using hd_drop_conv_nth[of ab bd] bd_ab ab_le
-        by (cases \<open>drop ab bd\<close>) auto
-      then have \<open>ab < length (filter (op = None) bd)\<close>
-        apply (subst (2) append_take_drop_id[symmetric, of _ ab])
-        unfolding filter_append length_append filter_take_ab
-        using I' ab_le by auto
-      then have Suc_le_bd: \<open>Suc (ab + ac) \<le> length bd\<close>
-        using b mset_as_position_length_not_None[OF map] x1a
-          sum_length_filter_compl[of \<open>op \<noteq> None\<close> bd]
-        by auto
+      have Suc_le_bd: \<open>Suc ab + length (filter (op \<noteq> None) bd) + length (filter (op = None) (drop (Suc ab )bd)) =
+          length baa\<close>
+        using b ac Cons_nth_drop_Suc[of ab bd, symmetric] ab_le eq bd_ab by auto
       have le_Suc_None: \<open>k < Suc ab \<Longrightarrow> bd ! k = None\<close> for k
         using le_ab_None bd_ab  by (auto simp: less_Suc_eq)
 
-      show ?thesis using mset_drop ocr' Suc_le_bd le_Suc_None unfolding I'_def by auto
+      show ?thesis using mset_drop ocr' Suc_le_bd le_Suc_None ac ac2 unfolding I'_def by auto
     qed
     have IH_I'_notin: "I' (ab + 1, ac - 1, ad[ac - 1 := if x then Pos ab else Neg ab],
           bd[ab := None])"
       if
         I: "?I baa aa s" and
         I': "I' s" and
-        m: "case s of (i, m, C, zs) \<Rightarrow> 0 < m" and
+        m: "?cond s" and
         s:
           "s = (ab, bb)"
           "bb = (ac, bc)"
@@ -6604,7 +6579,7 @@ proof -
           "ba = (aa, baa)" and
         ab_le: "ab < length baa" and
         "ab < upperN div 2" and
-        "0 < ac" and
+        "2 < ac" and
         "bd ! ab \<noteq> None \<longrightarrow> Pos ab \<in># N\<^sub>1" and
         bd_ab_x: "bd ! ab = Some x"
       for a ba aa baa s ab bb ac bc ad bd x
@@ -6613,12 +6588,16 @@ proof -
         \<open>s = (ab, (ac, (ad, bd)))\<close>
         \<open>length baa = length bd\<close>
         using I s by auto
-      have \<open>((b, ac, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_conflict_rel\<close>
-        using I' by auto
+      have \<open>((b, ac, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_conflict_rel_removed\<close> and
+        ac: \<open>ac - 2 = length (filter (op \<noteq> None) bd)\<close> and
+        eq: \<open>ab + (ac - 2) + length (filter (op = None) (drop ab bd)) = length bd\<close> and
+        ac2: \<open>ac \<ge> 2\<close>
+        using I' unfolding I'_def s by auto
       then have map: \<open>mset_as_position bd {#L \<in># C. ab \<le> atm_of L#}\<close> and
         le_bd: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length bd\<close> and
-        ocr: \<open>((b, ac, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_conflict_rel\<close>
-        using b unfolding option_conflict_rel_def conflict_rel_def by auto
+        ocr: \<open>((b, ac, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_conflict_rel_removed\<close>
+        using b unfolding option_conflict_rel_def conflict_rel_def option_conflict_rel_removed_def
+        by auto
       have \<open>ab < length bd\<close>
         using I I' m by auto
       then have ab_in_C: \<open>(if x then Pos ab else Neg ab) \<in># C\<close>
@@ -6639,8 +6618,9 @@ proof -
         unfolding H2
         apply (rule mset_as_position_remove)
         using map ab_le by auto
-      have c_r: \<open>((b, ac - Suc 0, bd[ab := None]), Some {#L \<in># C. Suc ab \<le> atm_of L#}) \<in> option_conflict_rel\<close>
-        using ocr b map' by (auto simp: option_conflict_rel_def conflict_rel_def H1)
+      have c_r: \<open>((b, ac - Suc 0, bd[ab := None]), Some {#L \<in># C. Suc ab \<le> atm_of L#}) \<in> option_conflict_rel_removed\<close>
+        using ocr b map' m ac by (cases x) (auto simp: option_conflict_rel_removed_def
+            option_conflict_rel_def conflict_rel_def H1)
       have H3: \<open>(if x then add_mset (Pos ab) else add_mset (Neg ab)) {#L \<in># C. atm_of L < ab#} = {#L \<in># C. atm_of L < Suc ab#}\<close>
         using ab_in_C unfolding Suc_le_eq unfolding le_eq_less_or_eq
         using dist_C tauto_C filter_mset_cong_inner_outer[of C \<open>\<lambda>L. ab = atm_of L\<close> \<open>\<lambda>L. ab = atm_of L\<close> \<open>{#Neg ab#}\<close>]
@@ -6652,25 +6632,34 @@ proof -
       have ac_ge0: \<open>ac > 0\<close>
         using m by auto
       then have \<open>ac - Suc 0 < length ad\<close> and \<open>mset (drop ac ad) = {#L \<in># C. atm_of L < ab#}\<close>
-        using I' I by auto
+        using I' I m by auto
       then have 3: \<open>mset (drop (ac - Suc 0) (ad[ac - Suc 0 := (if x then Pos ab else Neg ab)])) = {#L \<in># C. atm_of L < Suc ab#}\<close>
         using Cons_nth_drop_Suc[symmetric, of \<open>ac - 1\<close> \<open>ad\<close>] ac_ge0
         by (auto simp: drop_update_swap H3[symmetric])
-
+      have ac_filter: \<open>ac - Suc (Suc (Suc 0)) = length (filter (op \<noteq> None) (bd[ab := None]))\<close>
+        apply (subst length_filter_update_true)
+        using ac bd_ab_x ab_le by auto
+      have \<open>length (filter (op \<noteq> None) bd) \<ge> Suc 0\<close>
+        using bd_ab_x ab_le nth_mem by (fastforce simp: filter_empty_conv)
+      then have eq': \<open>Suc ab + length (filter (op \<noteq> None) (bd[ab := None])) + length (filter (op = None) (drop (Suc ab) bd)) = length bd\<close>
+        using b ac Cons_nth_drop_Suc[of ab bd, symmetric] ab_le eq bd_ab_x ac2
+        by (auto simp: length_filter_update_true)
       show ?thesis
-          using b c_r that 3 s unfolding I'_def by auto
+        using b c_r that s ac_filter 3 eq' unfolding I'_def by auto
     qed
     show ?thesis
       supply WHILEIT_rule[refine_vcg del]
       unfolding conflict_to_conflict_with_cls_def Let_def
       apply (refine_vcg WHILEIT_rule_stronger_inv[where
             R = \<open>measure (\<lambda>(i :: nat, m :: nat, D :: nat clause_l, zs :: bool option list). length zs - i)\<close> and
-            I' = \<open>?I'\<close>])
+            I' = \<open>I'\<close>])
       subgoal by simp
       subgoal by simp
       subgoal by simp
-      subgoal by auto
-      subgoal by auto
+      subgoal using len_D n_size by auto
+      subgoal using len_D n_size by auto
+      subgoal by simp
+      subgoal by simp
       subgoal by (rule init)
       subgoal using n_le by auto
       subgoal by (rule le_upperN_div2)
@@ -6680,11 +6669,15 @@ proof -
       subgoal by auto
       subgoal by auto
       subgoal by auto
+      subgoal by auto
+      subgoal by auto
       subgoal by (rule IH_I')
       subgoal by auto
-      subgoal by auto
-      subgoal by auto
       subgoal using b by (auto simp: less_Suc_eq)
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
       subgoal by auto
       subgoal by (rule IH_I'_notin)
       subgoal by auto
@@ -6693,7 +6686,12 @@ proof -
     qed
 
   show ?thesis
-    by (intro frefI nres_relI) (auto intro!: H)
+    apply (intro frefI nres_relI)
+    apply clarify
+    subgoal for a aa ab b ac ba y
+      using H[of aa ab b y ac]
+      by (auto simp: conflict_to_conflict_with_cls_spec_def)
+    done
 qed
 
 
