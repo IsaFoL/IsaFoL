@@ -6705,33 +6705,35 @@ lemma conflict_to_conflict_with_cls_code_helper:
 lemmas uint32_nat_assn_plus'[sepref_fr_rules] = uint32_nat_assn_plus[unfolded upperN_def[symmetric]]
 declare uint32_nat_assn_plus[sepref_fr_rules del]
 
+(* TODO Move *)
+definition (in -) two_uint32 where \<open>two_uint32 = (2 :: nat)\<close>
+lemma (in -) uint32_2_hnr: \<open>(uncurry0 (return 2), uncurry0 (RETURN two_uint32)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_012 two_uint32_def)
+(* End Move *)
+
 sepref_register conflict_to_conflict_with_cls
 sepref_thm conflict_to_conflict_with_cls_code
-  is \<open>PR_CONST conflict_to_conflict_with_cls\<close>
-  :: \<open>conflict_option_rel_assn\<^sup>d \<rightarrow>\<^sub>a conflict_with_cls_int_assn\<close>
+  is \<open>uncurry (PR_CONST conflict_to_conflict_with_cls)\<close>
+  :: \<open>(array_assn unat_lit_assn)\<^sup>d *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow>\<^sub>a 
+      conflict_with_cls_int_assn\<close>
   supply uint32_nat_assn_zero_uint32[sepref_fr_rules] [[goals_limit=1]]
    Pot_unat_lit_assn'[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
-   conflict_to_conflict_with_cls_code_helper[simp]
+   conflict_to_conflict_with_cls_code_helper[simp] uint32_2_hnr[sepref_fr_rules]
   unfolding conflict_to_conflict_with_cls_def array_fold_custom_replicate
     fast_minus_def[of \<open>_ :: nat\<close>, symmetric] PR_CONST_def
   apply (rewrite at "\<hole> < length _" annotate_assn[where A=uint32_nat_assn])
   apply (rewrite at "_ ! \<hole> \<noteq> None" annotate_assn[where A=uint32_nat_assn])
-  apply (rewrite at "\<hole> < _" zero_uint32_def[symmetric])
-  apply (rewrite at \<open>Pos \<hole>\<close> zero_uint32_def[symmetric])
+  apply (rewrite at "\<hole> < _" two_uint32_def[symmetric])
+  apply (rewrite at "\<hole> < _" annotate_assn[where A=uint32_nat_assn])
   apply (rewrite at \<open>(\<hole>, _, _, _)\<close> zero_uint32_def[symmetric])
   apply (rewrite at "(zero_uint32, \<hole>, _, _)" annotate_assn[where A=uint32_nat_assn])
   apply (rewrite at \<open>_ + \<hole>\<close> one_nat_uint32_def[symmetric])+
   apply (rewrite at \<open>fast_minus _ \<hole>\<close> one_nat_uint32_def[symmetric])+
   by sepref
-(*   apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-                    apply sepref_dbg_trans_step_keep
-                    apply sepref_dbg_side_unfold apply (auto simp: )[] *)
-
 
 concrete_definition (in -) conflict_to_conflict_with_cls_code
    uses twl_array_code.conflict_to_conflict_with_cls_code.refine_raw
-   is \<open>(?f, _)\<in>_\<close>
+   is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) conflict_to_conflict_with_cls_code_def
 
