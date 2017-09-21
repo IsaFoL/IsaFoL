@@ -7595,8 +7595,8 @@ definition propgate_bt_wl_D_int
     })\<close>
 
 sepref_register list_of_mset2_None rescore_clause rescore
-sepref_thm propgate_bt_wl_D
-  is \<open>uncurry2 propgate_bt_wl_D_int\<close>
+sepref_thm propgate_bt_wl_D_code
+  is \<open>uncurry2 (PR_CONST propgate_bt_wl_D_int)\<close>
   :: \<open>[\<lambda>((L, L'), S). get_conflict_wl_int S \<noteq> None \<and> -L \<in># the (get_conflict_wl_int S) \<and>
          L' \<in># the (get_conflict_wl_int S) \<and> -L \<noteq> L' \<and>
        literals_are_in_N\<^sub>0 (the (get_conflict_wl_int S)) \<and>
@@ -7612,9 +7612,18 @@ sepref_thm propgate_bt_wl_D
   unfolding propgate_bt_wl_D_int_def twl_st_int_assn_def cons_trail_Propagated_def[symmetric]
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] append_ll_def[symmetric]
-    cons_trail_Propagated_def[symmetric]
+    cons_trail_Propagated_def[symmetric] PR_CONST_def
   apply (rewrite at \<open>(_, add_mset _ \<hole>, _)\<close> lms_fold_custom_empty)+
   by sepref
+
+concrete_definition (in -) propgate_bt_wl_D_code
+  uses "twl_array_code.propgate_bt_wl_D_code.refine_raw"
+  is \<open>(uncurry2 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) propgate_bt_wl_D_code_def
+
+lemmas propgate_bt_wl_D_int_hnr[sepref_fr_rules] =
+  propgate_bt_wl_D_code.refine[OF twl_array_code_axioms]
 
 lemma propgate_bt_wl_D_int_propgate_bt_wl_D:
   \<open>(uncurry2 propgate_bt_wl_D_int, uncurry2 propgate_bt_wl_D) \<in>
@@ -7632,8 +7641,69 @@ lemma propgate_bt_wl_D_int_propgate_bt_wl_D:
       map_fun_rel_def rescore_clause_def rescore_def RES_RETURN_RES
       intro!: RES_refine vmtf_imp_consD)
   done
-end
 
+
+lemma propgate_bt_wl_D_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 propgate_bt_wl_D_code, uncurry2 propgate_bt_wl_D) \<in> [\<lambda>((L, L'), S).
+         get_conflict_wl S \<noteq> None \<and>
+         - L \<in># the (get_conflict_wl S) \<and>
+         L' \<in># the (get_conflict_wl S) \<and>
+         - L \<noteq> L' \<and>
+         literals_are_in_N\<^sub>0 (the (get_conflict_wl S)) \<and>
+         distinct_mset (the (get_conflict_wl S)) \<and>
+         L \<in># N\<^sub>1 \<and>
+         L' \<in># N\<^sub>1 \<and>
+         undefined_lit (get_trail_wl S) L]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>d \<rightarrow> 
+        twl_st_assn\<close>
+    (is \<open>?fun \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?fun \<in>
+     [comp_PRE (nat_lit_lit_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_ref)
+     (\<lambda>((L, L'), S).
+         get_conflict_wl S \<noteq> None \<and>
+         - L \<noteq> L' \<and>
+         undefined_lit (get_trail_wl S) L \<and>
+         literals_are_in_N\<^sub>0 (the (get_conflict_wl S)))
+     (\<lambda>_ ((L, L'), S).
+         get_conflict_wl_int S \<noteq> None \<and>
+         - L \<in># the (get_conflict_wl_int S) \<and>
+         L' \<in># the (get_conflict_wl_int S) \<and>
+         - L \<noteq> L' \<and>
+         literals_are_in_N\<^sub>0 (the (get_conflict_wl_int S)) \<and>
+         distinct_mset (the (get_conflict_wl_int S)) \<and>
+         L \<in># N\<^sub>1 \<and>
+         L' \<in># N\<^sub>1 \<and>
+         undefined_lit (get_trail_wl_int S) L \<and>
+         nat_of_lit (- L) < length (get_watched_list_int S) \<and>
+         nat_of_lit L' < length (get_watched_list_int S) \<and>
+         local.get_vmtf_int S \<in> vmtf_imp (get_trail_wl_int S) \<and>
+         phase_saving (get_phase_saver_int S))
+     (\<lambda>_. True)]\<^sub>a hrp_comp
+                     (unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
+                      twl_st_int_assn\<^sup>d)
+                     (nat_lit_lit_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f
+                      twl_st_ref) \<rightarrow> hr_comp twl_st_int_assn twl_st_ref
+\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF propgate_bt_wl_D_int_hnr[unfolded PR_CONST_def]
+       propgate_bt_wl_D_int_propgate_bt_wl_D]
+    .
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
+    using that unfolding comp_PRE_def twl_st_ref_def map_fun_rel_def
+    by (auto simp: image_image uminus_N\<^sub>0_iff)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def[symmetric]
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
+qed
+end
 
 setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close>
 
@@ -7671,6 +7741,8 @@ sepref_thm backtrack_wl_D
               apply sepref_dbg_trans_step_keep
              apply sepref_dbg_trans_step_keep
                apply sepref_dbg_trans_step_keep
+               apply sepref_dbg_trans_step_keep
+           apply sepref_dbg_side_unfold apply (auto simp: )[]
               apply sepref_dbg_trans_step_keep
               apply sepref_dbg_trans_step_keep
               apply sepref_dbg_trans_step_keep
