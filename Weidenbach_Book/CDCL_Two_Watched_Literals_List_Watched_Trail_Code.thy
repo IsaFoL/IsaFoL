@@ -7351,13 +7351,143 @@ proof -
 qed
 
 
-definition propgate_bt_wl_D_int 
-  :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_int \<Rightarrow> twl_st_wl_int nres\<close> where
-  \<open>propgate_bt_wl_D_int = (\<lambda>L L' (M, N, U, D, Q, W, vm, \<phi>). do {
-      (D'', C) \<leftarrow> list_of_mset2_None (- L) L' D;
-      RETURN (Propagated (- L) (length N) # M, N @ [D''], U, C, {#L#}, 
-        W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [length N], nat_of_lit L' := W!nat_of_lit L' @ [length N]], vm, \<phi>)
-    })\<close>
+definition rescore_clause :: \<open>nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> phase_saver \<Rightarrow>
+    (vmtf_remove_int \<times> phase_saver) nres\<close> where
+\<open>rescore_clause C M vm \<phi> = SPEC (\<lambda>(vm', \<phi>' :: bool list). vm' \<in> vmtf_imp M \<and> phase_saving \<phi>')\<close>
+
+definition (in twl_array_code_ops) vmtf_rescore_body
+ :: \<open>nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> phase_saver \<Rightarrow>
+    (nat \<times> vmtf_remove_int \<times> phase_saver) nres\<close>
+where
+  \<open>vmtf_rescore_body C _ vm \<phi> = do {
+         WHILE\<^sub>T\<^bsup>\<lambda>(i, vm, \<phi>). i \<le> length C  \<and>
+            (\<forall>c \<in> set C. atm_of c < length \<phi> \<and> atm_of c < length (fst (fst vm)))\<^esup>
+           (\<lambda>(i, vm, \<phi>). i < length C)
+           (\<lambda>(i, vm, \<phi>). do {
+               ASSERT(i < length C);
+               let vm' = vmtf_dump (atm_of (C!i)) vm;
+               let \<phi>' = save_phase_inv (C!i) \<phi>;
+               RETURN(i+1, vm', \<phi>')
+             })
+           (0, vm, \<phi>)
+    }\<close>
+
+definition (in twl_array_code_ops) vmtf_rescore
+ :: \<open>nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> phase_saver \<Rightarrow>
+       (vmtf_remove_int \<times> phase_saver) nres\<close>
+where
+  \<open>vmtf_rescore C M vm \<phi> = do {
+      (_, vm, \<phi>) \<leftarrow> vmtf_rescore_body C M vm \<phi>;
+      RETURN (vm, \<phi>)
+    }\<close>
+
+sepref_thm vmtf_rescore_code
+  is \<open>uncurry3 vmtf_rescore\<close>
+  :: \<open>(array_assn unat_lit_assn)\<^sup>k *\<^sub>a trail_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d *\<^sub>a phase_saver_conc\<^sup>d \<rightarrow>\<^sub>a
+       vmtf_remove_conc *assn phase_saver_conc\<close>
+  unfolding vmtf_rescore_def vmtf_dump_and_unset_def save_phase_inv_def vmtf_dump_def vmtf_unset_def
+  vmtf_rescore_body_def
+  supply [[goals_limit = 1]] is_None_def[simp] fold_is_None[simp]
+  by sepref
+
+concrete_definition (in -) vmtf_rescore_code
+   uses twl_array_code.vmtf_rescore_code.refine_raw
+   is \<open>(uncurry3 ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) vmtf_rescore_code_def
+
+lemmas vmtf_rescore_code_refine[sepref_fr_rules] =
+   vmtf_rescore_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma vmtf_rescore_score_clause:
+  \<open>(uncurry3 vmtf_rescore, uncurry3 rescore_clause) \<in>
+     [\<lambda>(((C, M), vm), \<phi>). literals_are_in_N\<^sub>0 (mset C) \<and> vm \<in> vmtf_imp M \<and> phase_saving \<phi>]\<^sub>f
+     (\<langle>Id\<rangle>list_rel \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id) \<rightarrow> \<langle>Id \<times>\<^sub>f Id\<rangle> nres_rel\<close>
+proof -
+  have H: \<open>vmtf_rescore_body C M vm \<phi> \<le>
+        SPEC (\<lambda>(n :: nat, vm', \<phi>' :: bool list). phase_saving \<phi>' \<and> vm' \<in> vmtf_imp M)\<close>
+    if M: \<open>vm \<in> vmtf_imp M\<close>\<open>phase_saving \<phi>\<close> and C: \<open>\<forall>c\<in>set C. atm_of c \<in> atms_of N\<^sub>1\<close>
+    for C vm \<phi> M
+    unfolding vmtf_rescore_body_def vmtf_dump_def
+    apply (refine_vcg WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(i, _). length C - i)\<close> and
+       I' = \<open>\<lambda>(i, vm', \<phi>'). phase_saving \<phi>' \<and> vm' \<in> vmtf_imp M\<close>])
+    subgoal by auto
+    subgoal by auto
+    subgoal using C M by (auto simp: vmtf_imp_def phase_saving_def)
+    subgoal using C M by auto
+    subgoal using M by auto
+    subgoal by auto
+    subgoal unfolding save_phase_inv_def by auto
+    subgoal using C unfolding phase_saving_def save_phase_inv_def
+      by (auto simp: vmtf_imp_append_remove_iff)
+    subgoal unfolding save_phase_inv_def phase_saving_def by auto
+    subgoal using C by (auto simp: vmtf_imp_append_remove_iff)
+    subgoal by auto
+    done
+  have K: \<open>((a, b),(a', b')) \<in> A \<times>\<^sub>f B \<longleftrightarrow> (a, a') \<in> A \<and> (b, b') \<in> B\<close> for a b a' b' A B
+    by auto
+  show ?thesis
+    unfolding vmtf_rescore_def rescore_clause_def uncurry_def
+    apply (intro frefI nres_relI)
+    apply clarify
+    apply (rule bind_refine_spec)
+     prefer 2
+     apply (subst (asm) K)
+     apply (rule H; auto)
+    subgoal
+      by (meson atm_of_lit_in_atms_of contra_subsetD in_all_lits_of_m_ain_atms_of_iff
+          in_multiset_in_set literals_are_in_N\<^sub>0_def)
+    subgoal by auto
+    done
+qed
+
+lemma vmtf_rescore_code_rescore_clause[sepref_fr_rules]:
+  \<open>(uncurry3 vmtf_rescore_code, uncurry3 (PR_CONST rescore_clause))
+     \<in> [\<lambda>(((b, a), c), d). literals_are_in_N\<^sub>0 (mset b) \<and> c \<in> vmtf_imp a \<and>
+         phase_saving d]\<^sub>a
+       clause_ll_assn\<^sup>k *\<^sub>a trail_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d *\<^sub>a phase_saver_conc\<^sup>d \<rightarrow>
+        vmtf_remove_conc *assn phase_saver_conc\<close>
+  using vmtf_rescore_code.refine[FCOMP vmtf_rescore_score_clause, OF twl_array_code_axioms]
+  by auto
+
+definition vmtf_bump where
+   \<open>vmtf_bump _ = vmtf_flush\<close>
+
+sepref_thm vmtf_flush_all_code
+  is \<open>uncurry vmtf_bump\<close>
+  :: \<open>[\<lambda>(M, vm). vm \<in> vmtf_imp M]\<^sub>a trail_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
+  supply [[goals_limit=1]] trail_dump_code_refine[sepref_fr_rules]
+  unfolding vmtf_bump_def
+  by sepref
+
+concrete_definition (in -) vmtf_flush_all_code
+   uses twl_array_code.vmtf_flush_all_code.refine_raw
+   is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) vmtf_flush_all_code_def
+
+lemmas vmtf_flush_all_code_hnr[sepref_fr_rules] =
+   vmtf_flush_all_code.refine[of N\<^sub>0, OF twl_array_code_axioms, unfolded twl_st_assn_def]
+
+
+definition rescore :: \<open>(nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> vmtf_remove_int nres\<close> where
+\<open>rescore M _ = SPEC (\<lambda>vm'. vm' \<in> vmtf_imp M)\<close>
+
+lemma trail_bump_rescore:
+  \<open>(uncurry vmtf_bump, uncurry rescore) \<in> [\<lambda>(M, vm). vm \<in> vmtf_imp M]\<^sub>f Id \<times>\<^sub>r Id  \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  unfolding vmtf_bump_def rescore_def
+  apply (intro nres_relI frefI)
+  apply clarify
+  subgoal for a aa ab ac b ba ad ae af ag bb bc
+    using vmtf_imp_change_removed_order[of ae af ag bb bc ad bc]
+    by auto
+  done
+
+lemma trail_dump_code_rescore[sepref_fr_rules]:
+   \<open>(uncurry vmtf_flush_all_code, uncurry (PR_CONST rescore)) \<in> [\<lambda>(M, vm). vm \<in> vmtf_imp M]\<^sub>a
+        trail_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
+   (is \<open>_ \<in> [?cond]\<^sub>a ?pre \<rightarrow> ?im\<close>)
+  using vmtf_flush_all_code_hnr[FCOMP trail_bump_rescore] by simp
 
 definition st_remove_highest_lvl_from_confl :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl\<close> where
    \<open>st_remove_highest_lvl_from_confl S = S\<close>
@@ -7452,23 +7582,56 @@ definition twl_st_confl_extracted_int_assn2
   vmtf_remove_conc *assn phase_saver_conc
   )\<close>
 
-sepref_register list_of_mset2_None
+definition propgate_bt_wl_D_int
+  :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_int \<Rightarrow> twl_st_wl_int nres\<close> where
+  \<open>propgate_bt_wl_D_int = (\<lambda>L L' (M, N, U, D, Q, W, vm, \<phi>). do {
+      (D'', C) \<leftarrow> list_of_mset2_None (- L) L' D;
+      ASSERT(literals_are_in_N\<^sub>0 (mset D''));
+      (vm, \<phi>) \<leftarrow> rescore_clause D'' M vm \<phi>;
+      vm \<leftarrow> rescore M vm;
+      let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [length N]];
+      let W = W[nat_of_lit L' := W!nat_of_lit L' @ [length N]];
+      RETURN (Propagated (- L) (length N) # M, N @ [D''], U, C, {#L#}, W, vm, \<phi>)
+    })\<close>
+
+sepref_register list_of_mset2_None rescore_clause rescore
 sepref_thm propgate_bt_wl_D
   is \<open>uncurry2 propgate_bt_wl_D_int\<close>
   :: \<open>[\<lambda>((L, L'), S). get_conflict_wl_int S \<noteq> None \<and> -L \<in># the (get_conflict_wl_int S) \<and>
          L' \<in># the (get_conflict_wl_int S) \<and> -L \<noteq> L' \<and>
        literals_are_in_N\<^sub>0 (the (get_conflict_wl_int S)) \<and>
-       distinct_mset (the (get_conflict_wl_int S)) \<and> L \<in># N\<^sub>1 \<and> L' \<in># N\<^sub>1]\<^sub>a 
+       distinct_mset (the (get_conflict_wl_int S)) \<and> L \<in># N\<^sub>1 \<and> L' \<in># N\<^sub>1 \<and>
+       undefined_lit (get_trail_wl_int S) L \<and>
+     nat_of_lit (-L) < length (get_watched_list_int S) \<and>
+     nat_of_lit L' < length (get_watched_list_int S) \<and>
+     get_vmtf_int S \<in> vmtf_imp (get_trail_wl_int S) \<and>
+     phase_saving (get_phase_saver_int S)]\<^sub>a
    unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a twl_st_int_assn\<^sup>d \<rightarrow> twl_st_int_assn\<close>
-  supply [[goals_limit = 1]] uminus_N\<^sub>0_iff[simp]
-  unfolding propgate_bt_wl_D_int_def twl_st_int_assn_def
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-                  apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_side_unfold apply (auto simp: )[] 
-  thm list_of_mset2_None_hnr[to_hnr]
-  oops
+  supply [[goals_limit = 1]] uminus_N\<^sub>0_iff[simp] image_image[simp] append_ll_def[simp]
+  rescore_clause_def[simp] rescore_def[simp]
+  unfolding propgate_bt_wl_D_int_def twl_st_int_assn_def cons_trail_Propagated_def[symmetric]
+  unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
+    append_ll_def[symmetric] append_ll_def[symmetric]
+    cons_trail_Propagated_def[symmetric]
+  apply (rewrite at \<open>(_, add_mset _ \<hole>, _)\<close> lms_fold_custom_empty)+
+  by sepref
 
+lemma propgate_bt_wl_D_int_propgate_bt_wl_D:
+  \<open>(uncurry2 propgate_bt_wl_D_int, uncurry2 propgate_bt_wl_D) \<in>
+     [\<lambda>((L, L'), S). get_conflict_wl S \<noteq> None \<and> -L \<noteq> L' \<and> undefined_lit (get_trail_wl S) L \<and>
+    literals_are_in_N\<^sub>0 (the (get_conflict_wl S))]\<^sub>f
+     Id \<times>\<^sub>f Id \<times>\<^sub>f twl_st_ref \<rightarrow> \<langle>twl_st_ref\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  unfolding propgate_bt_wl_D_int_def propgate_bt_wl_D_alt_def twl_st_ref_def list_of_mset2_None_def
+  uncurry_def
+  apply clarify
+  apply refine_vcg
+  apply
+    (auto simp: propgate_bt_wl_D_int_def propgate_bt_wl_D_def Let_def
+      list_of_mset2_def list_of_mset2_None_def SPEC_RETURN_RES2 SPEC_RETURN_RES twl_st_ref_def
+      map_fun_rel_def rescore_clause_def rescore_def RES_RETURN_RES
+      intro!: RES_refine vmtf_imp_consD)
+  done
 end
 
 
