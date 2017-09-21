@@ -277,6 +277,17 @@ fun get_clauses_wl_int :: \<open>twl_st_wl_int \<Rightarrow> nat clauses_l\<clos
 fun get_trail_wl_int :: \<open>twl_st_wl_int \<Rightarrow> (nat,nat) ann_lits\<close> where
   \<open>get_trail_wl_int (M, N, U, D, _) = M\<close>
 
+fun get_conflict_wl_int :: \<open>twl_st_wl_int \<Rightarrow> nat cconflict\<close> where
+  \<open>get_conflict_wl_int (_, _, _, D, _) = D\<close>
+
+fun get_watched_list_int :: \<open>twl_st_wl_int \<Rightarrow> nat list list\<close> where
+  \<open>get_watched_list_int (_, _, _, _, _, W, _) = W\<close>
+
+fun get_vmtf_int :: \<open>twl_st_wl_int \<Rightarrow> vmtf_remove_int\<close> where
+  \<open>get_vmtf_int (_, _, _, _, _, _, vm, _) = vm\<close>
+
+fun get_phase_saver_int :: \<open>twl_st_wl_int \<Rightarrow> bool list\<close> where
+  \<open>get_phase_saver_int (_, _, _, _, _, _, _, \<phi>) = \<phi>\<close>
 
 context twl_array_code_ops
 begin
@@ -1520,9 +1531,6 @@ lemma mark_conflict_wl'_alt_def:
 
 definition mark_conflict_wl'_int :: \<open>nat \<Rightarrow> twl_st_wl_int \<Rightarrow> twl_st_wl_int\<close> where
   \<open>mark_conflict_wl'_int = (\<lambda>C (M, N, U, D, Q, W). (M, N, U, set_conflict N C D, {#}, W))\<close>
-
-fun get_conflict_wl_int :: \<open>twl_st_wl_int \<Rightarrow> nat cconflict\<close> where
-  \<open>get_conflict_wl_int (_, _, _, D, _) = D\<close>
 
 sepref_thm mark_conflict_wl'_int_code
   is \<open>uncurry (RETURN (* PR_CONST *) oo mark_conflict_wl'_int)\<close>
