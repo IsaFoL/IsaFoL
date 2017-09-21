@@ -6318,7 +6318,7 @@ where
  \<open>conflict_with_cls_assn_removed L L' \<equiv>
    hr_comp conflict_with_cls_int_assn (option_conflict_rel_with_cls_removed L L')\<close>
 
-definition conflict_with_cls_assn :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> nat clause option \<Rightarrow> 
+definition conflict_with_cls_assn :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> nat clause option \<Rightarrow>
    conflict_with_cls_assn \<Rightarrow> assn\<close> where
  \<open>conflict_with_cls_assn L L' \<equiv> hr_comp conflict_with_cls_int_assn (option_conflict_rel_with_cls L L')\<close>
 
@@ -6892,11 +6892,11 @@ lemmas add2_from_conflict_code_hnr[sepref_fr_rules] =
 
 lemma ad_from_conflict_hnr[sepref_fr_rules]:
   \<open>(uncurry2 add2_from_conflict_code, uncurry2 (RETURN \<circ>\<circ>\<circ> add2_from_conflict))
-    \<in> [\<lambda>((a, b), ba). a = L \<and> b = L' \<and> ba \<noteq> None \<and> L \<notin># the ba \<and> L' \<notin># the ba]\<^sub>a 
+    \<in> [\<lambda>((a, b), ba). a = L \<and> b = L' \<and> ba \<noteq> None \<and> L \<notin># the ba \<and> L' \<notin># the ba]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (conflict_with_cls_assn_removed L L')\<^sup>d \<rightarrow>
       (conflict_with_cls_assn L L')\<close>
   using add2_from_conflict_code_hnr[FCOMP add2_from_conflict_int_add2_from_conflict,
-    unfolded conflict_with_cls_assn_removed_def[symmetric] conflict_with_cls_assn_def[symmetric], 
+    unfolded conflict_with_cls_assn_removed_def[symmetric] conflict_with_cls_assn_def[symmetric],
     of L L'] by simp
 
 term conflict_to_conflict_with_cls_spec
@@ -6964,7 +6964,7 @@ definition conflict_with_cls_split where
   \<open>conflict_with_cls_split = (\<lambda>_ _ (a, b). (a, (True, 0, b)))\<close>
 lemma conflict_with_cls_split_list_of_mset2_None:
    \<open>(uncurry2 (RETURN ooo conflict_with_cls_split), uncurry2 list_of_mset2_None) \<in>
-     [\<lambda>((K, K'), C). C \<noteq> None \<and> K = L \<and> K' = L']\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f (option_conflict_rel_with_cls L L') \<rightarrow> 
+     [\<lambda>((K, K'), C). C \<noteq> None \<and> K = L \<and> K' = L']\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f (option_conflict_rel_with_cls L L') \<rightarrow>
        \<langle>\<langle>Id\<rangle> list_rel \<times>\<^sub>f option_conflict_rel\<rangle>nres_rel\<close>
   by (intro nres_relI frefI)
      (auto simp: option_conflict_rel_def option_conflict_rel_with_cls_def
@@ -6973,7 +6973,7 @@ lemma conflict_with_cls_split_list_of_mset2_None:
 
 text \<open>This lemma is only a trick For the code. The real refinement lemma comes later.\<close>
 lemma conflict_with_cls_split_conflict_with_cls_split:
-   \<open>(uncurry2 (return ooo conflict_with_cls_split),uncurry2 (RETURN ooo conflict_with_cls_split)) \<in> 
+   \<open>(uncurry2 (return ooo conflict_with_cls_split),uncurry2 (RETURN ooo conflict_with_cls_split)) \<in>
       unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (clause_ll_assn *assn array_assn (option_assn bool_assn))\<^sup>d \<rightarrow>\<^sub>a
       clause_ll_assn *assn conflict_option_rel_assn\<close>
   by sepref_to_hoare
@@ -6982,7 +6982,7 @@ lemma conflict_with_cls_split_conflict_with_cls_split:
 
 lemma DONT_USE_conflict_with_cls_split_list_of_mset2_None_hnr_DONT_USE:
   \<open>(uncurry2 (return \<circ>\<circ>\<circ> conflict_with_cls_split), uncurry2 list_of_mset2_None)
-  \<in> [\<lambda>((a, b), ba). ba \<noteq> None \<and> a = L \<and> b = L']\<^sub>a 
+  \<in> [\<lambda>((a, b), ba). ba \<noteq> None \<and> a = L \<and> b = L']\<^sub>a
     unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (conflict_with_cls_assn L L')\<^sup>d \<rightarrow>
     clause_ll_assn  *assn conflict_option_assn\<close> for L L' :: \<open>nat literal\<close>
   using conflict_with_cls_split_conflict_with_cls_split[FCOMP conflict_with_cls_split_list_of_mset2_None, of L L']
@@ -6997,7 +6997,7 @@ sepref_thm list_of_mset2_None_code
   is \<open>uncurry2 (PR_CONST list_of_mset2_None_int)\<close>
   :: \<open>[\<lambda>((L, L'), C). C \<noteq> None \<and> L \<in># the C \<and> L' \<in># the C \<and> L \<noteq> L' \<and> L \<in># N\<^sub>1 \<and> L' \<in># N\<^sub>1 \<and>
        literals_are_in_N\<^sub>0 (the C)]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a 
+      unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
          conflict_option_assn\<^sup>d \<rightarrow> clause_ll_assn *assn conflict_option_assn\<close>
   supply [[goals_limit=1]] size_conflict_def[simp]
   DONT_USE_conflict_with_cls_split_list_of_mset2_None_hnr_DONT_USE[sepref_fr_rules]
@@ -7049,7 +7049,7 @@ lemmas list_of_mset2_None_int_hnr[sepref_fr_rules] =
 lemma list_of_mset2_None_hnr[sepref_fr_rules]:
   \<open>(uncurry2 list_of_mset2_None_code, uncurry2 list_of_mset2_None)
    \<in> [\<lambda>((a, b), ba). ba \<noteq> None \<and> a \<in># the ba \<and> b \<in># the ba \<and> a \<noteq> b \<and>
-       literals_are_in_N\<^sub>0 (the ba) \<and> distinct_mset (the ba) \<and> a \<in># N\<^sub>1 \<and> b \<in># N\<^sub>1]\<^sub>a 
+       literals_are_in_N\<^sub>0 (the ba) \<and> distinct_mset (the ba) \<and> a \<in># N\<^sub>1 \<and> b \<in># N\<^sub>1]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a conflict_option_assn\<^sup>d \<rightarrow>
       clause_ll_assn *assn conflict_option_assn\<close>
   using list_of_mset2_None_int_hnr[unfolded PR_CONST_def, FCOMP list_of_mset2_None_int_list_of_mset2_None]
@@ -7527,7 +7527,7 @@ definition twl_st_W_conflict_int_assn :: \<open>twl_st_wl_int_conflict \<Rightar
   )\<close>
 
 lemma st_remove_highest_lvl_from_confl_int_st_remove_highest_lvl_from_confl:
-  \<open>(RETURN o st_remove_highest_lvl_from_confl_int, RETURN o st_remove_highest_lvl_from_confl) \<in> 
+  \<open>(RETURN o st_remove_highest_lvl_from_confl_int, RETURN o st_remove_highest_lvl_from_confl) \<in>
    (twl_st_ref_confl_extracted2 L O twl_st_ref) \<rightarrow>\<^sub>f \<langle>twl_st_wl_W_conflict\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
      (auto simp: st_remove_highest_lvl_from_confl_int_def st_remove_highest_lvl_from_confl_def
@@ -7541,7 +7541,7 @@ sepref_thm st_remove_highest_lvl_from_confl_code
   unfolding st_remove_highest_lvl_from_confl_int_def twl_st_confl_extracted_int_assn_def
   twl_st_W_conflict_int_assn_def
   by sepref
-  
+
 
 concrete_definition (in -) st_remove_highest_lvl_from_confl_code
    uses twl_array_code.st_remove_highest_lvl_from_confl_code.refine_raw
@@ -7566,9 +7566,9 @@ lemma st_remove_highest_lvl_from_confl_hnr[sepref_fr_rules]:
   by simp
 
 (* twl_st_confl_extracted_assn2 *)
-definition conflict_with_cls_with_cls_with_highest_assn2 where 
+definition conflict_with_cls_with_cls_with_highest_assn2 where
   \<open>conflict_with_cls_with_cls_with_highest_assn2 L M =
-     hr_comp (conflict_option_rel_assn *assn option_assn (unat_lit_assn *assn uint32_nat_assn)) 
+     hr_comp (conflict_option_rel_assn *assn option_assn (unat_lit_assn *assn uint32_nat_assn))
    (option_conflict_rel_with_cls_with_highest2 L M)\<close>
 
 
