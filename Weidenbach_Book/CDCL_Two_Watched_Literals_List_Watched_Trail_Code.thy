@@ -6248,7 +6248,7 @@ proof -
 qed
 
 definition list_of_mset2_None where
-  \<open>list_of_mset2_None L L' D = SPEC(\<lambda>(E, F). mset E = D \<and> E!0 = L \<and> E!1 = L' \<and>
+  \<open>list_of_mset2_None L L' D = SPEC(\<lambda>(E, F). mset E = the D \<and> E!0 = L \<and> E!1 = L' \<and>
      F = None)\<close>
 
 
@@ -6260,7 +6260,7 @@ lemma (in -) SPEC_RETURN_RES2:
 
 lemma propgate_bt_wl_D_alt_def:
   \<open>propgate_bt_wl_D = (\<lambda>L L' (M, N, U, D, NP, UP, Q, W).
-    list_of_mset2_None (- L) L' (the D) \<bind>
+    list_of_mset2_None (- L) L' D \<bind>
     (\<lambda>(D'', E). RETURN
              (Propagated (- L) (length N) # M, N @ [D''], U, E, NP, UP, {#L#},
               W(- L := W (- L) @ [length N], L' := W L' @ [length N]))))\<close>
@@ -6292,10 +6292,10 @@ where
 
 
 definition option_conflict_rel_with_cls
-  :: \<open>(conflict_rel_with_cls \<times> nat clause option) set\<close>
+  :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> (conflict_rel_with_cls \<times> nat clause option) set\<close>
 where
-  \<open>option_conflict_rel_with_cls = {((C, xs), D). D \<noteq> None \<and> (C, the D) \<in> list_mset_rel \<and>
-    mset_as_position xs {#} \<and> (\<forall>L\<in>atms_of N\<^sub>1. L < length xs)}\<close>
+  \<open>option_conflict_rel_with_cls L L' = {((C, xs), D). D \<noteq> None \<and> (C, the D) \<in> list_mset_rel \<and>
+    mset_as_position xs {#} \<and> (\<forall>L\<in>atms_of N\<^sub>1. L < length xs) \<and> C!0 = L \<and> C!1 = L' \<and> length C \<ge> 2}\<close>
 
 definition option_conflict_rel_with_cls_removed1 :: \<open>(nat clause_l \<times> nat clause option) set\<close> where
   \<open>option_conflict_rel_with_cls_removed1 = {(C, D). D \<noteq> None \<and> (C, the D) \<in> list_mset_rel}\<close>
@@ -6305,13 +6305,14 @@ abbreviation (in -) conflict_with_cls_int_assn :: \<open>conflict_rel_with_cls \
     (array_assn unat_lit_assn *assn array_assn (option_assn bool_assn))\<close>
 
 definition conflict_with_cls_assn_removed
- :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow>nat clause option \<Rightarrow> conflict_with_cls_assn \<Rightarrow> assn\<close>
+ :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> nat clause option \<Rightarrow> conflict_with_cls_assn \<Rightarrow> assn\<close>
 where
  \<open>conflict_with_cls_assn_removed L L' \<equiv>
    hr_comp conflict_with_cls_int_assn (option_conflict_rel_with_cls_removed L L')\<close>
 
-definition conflict_with_cls_assn :: \<open>nat clause option \<Rightarrow> conflict_with_cls_assn \<Rightarrow> assn\<close> where
- \<open>conflict_with_cls_assn \<equiv> hr_comp conflict_with_cls_int_assn option_conflict_rel_with_cls\<close>
+definition conflict_with_cls_assn :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> nat clause option \<Rightarrow> 
+   conflict_with_cls_assn \<Rightarrow> assn\<close> where
+ \<open>conflict_with_cls_assn L L' \<equiv> hr_comp conflict_with_cls_int_assn (option_conflict_rel_with_cls L L')\<close>
 
 definition option_conflict_rel_removed :: \<open>_ set\<close> where
   \<open>option_conflict_rel_removed =
@@ -6368,7 +6369,7 @@ definition conflict_to_conflict_with_cls_spec where
 lemma conflict_to_conflict_with_cls_id:
   \<open>(uncurry conflict_to_conflict_with_cls, uncurry (RETURN oo conflict_to_conflict_with_cls_spec)) \<in>
     [\<lambda>(D, C). C \<noteq> None \<and> literals_are_in_N\<^sub>0 (the C) \<and> length D = size (the C) + 2 \<and>
-      D!0 = L \<and> D!1 = L']\<^sub>f
+      L = D!0 \<and> L' = D!1]\<^sub>f
       Id \<times>\<^sub>r option_conflict_rel_removed  \<rightarrow>
        \<langle>option_conflict_rel_with_cls_removed L L'\<rangle> nres_rel\<close>
 proof -
@@ -6761,7 +6762,7 @@ lemmas conflict_to_conflict_with_cls_code_refine[sepref_fr_rules] =
 lemma extract_shorter_conflict_with_cls_code_conflict_to_conflict_with_cls_spec[sepref_fr_rules]:
   \<open>(uncurry conflict_to_conflict_with_cls_code,  uncurry (RETURN \<circ>\<circ> conflict_to_conflict_with_cls_spec))
     \<in> [\<lambda>(D, C). C \<noteq> None \<and> literals_are_in_N\<^sub>0 (the C) \<and>
-           length D = size (the C) + 2 \<and> D ! 0 = L \<and> D ! 1 = L']\<^sub>a
+           length D = size (the C) + 2 \<and> L = D ! 0 \<and> L' = D ! 1]\<^sub>a
       clause_ll_assn\<^sup>d *\<^sub>a (hr_comp conflict_option_rel_assn option_conflict_rel_removed)\<^sup>d \<rightarrow>
       conflict_with_cls_assn_removed L L'\<close>
   using conflict_to_conflict_with_cls_code_refine[unfolded PR_CONST_def,
@@ -6857,7 +6858,7 @@ lemma add2_from_conflict_int_add2_from_conflict:
   \<open>(uncurry2 (RETURN ooo add2_from_conflict_int), uncurry2 (RETURN ooo add2_from_conflict)) \<in>
       [\<lambda>((K, K'), C). K = L \<and> K' = L' \<and> C \<noteq> None \<and> L \<notin># the C \<and> L' \<notin># the C]\<^sub>f
        nat_lit_lit_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f option_conflict_rel_with_cls_removed L L' \<rightarrow>
-      \<langle>option_conflict_rel_with_cls\<rangle> nres_rel\<close>
+      \<langle>option_conflict_rel_with_cls L L'\<rangle> nres_rel\<close>
   apply (intro nres_relI frefI)
   apply clarify
   subgoal for K K' D zs ab bb bc C
@@ -6881,14 +6882,172 @@ prepare_code_thms (in -) add2_from_conflict_code_def
 lemmas add2_from_conflict_code_hnr[sepref_fr_rules] =
    add2_from_conflict_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
 
-thm add2_from_conflict_code_hnr[FCOMP add2_from_conflict_int_add2_from_conflict,
-  unfolded conflict_with_cls_assn_removed_def[symmetric] conflict_with_cls_assn_def[symmetric]]
+lemma ad_from_conflict_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 add2_from_conflict_code, uncurry2 (RETURN \<circ>\<circ>\<circ> add2_from_conflict))
+    \<in> [\<lambda>((a, b), ba). a = L \<and> b = L' \<and> ba \<noteq> None \<and> L \<notin># the ba \<and> L' \<notin># the ba]\<^sub>a 
+      unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (conflict_with_cls_assn_removed L L')\<^sup>d \<rightarrow>
+      (conflict_with_cls_assn L L')\<close>
+  using add2_from_conflict_code_hnr[FCOMP add2_from_conflict_int_add2_from_conflict,
+    unfolded conflict_with_cls_assn_removed_def[symmetric] conflict_with_cls_assn_def[symmetric], 
+    of L L'] by simp
 
-(*
-hr_comp (clause_ll_assn *assn array_assn (option_assn bool_assn))
-         (option_conflict_rel_with_cls_removed L L')
+term conflict_to_conflict_with_cls_spec
+definition list_of_mset2_None_int where
+  \<open>list_of_mset2_None_int L L' C\<^sub>0 =  do {
+     let n = size (the C\<^sub>0);
+     ASSERT(n \<ge> 2);
+     let D = replicate n L;
+     let D = D[1 := L'];
+     let C = remove2_from_conflict L L' C\<^sub>0;
+     ASSERT(C \<noteq> None \<and> literals_are_in_N\<^sub>0 (the C) \<and> size (the C\<^sub>0) = size (the C) + 2 \<and>
+       D!0 = L \<and> D!1 = L');
+     let D = ASSN_ANNOT (conflict_with_cls_assn_removed L L') (conflict_to_conflict_with_cls_spec D C);
+     ASSERT(D \<noteq> None \<and> L \<notin># the D \<and> L' \<notin># the D);
+     let D = add2_from_conflict L L' D;
+     ASSERT(D \<noteq> None);
+     list_of_mset2_None L L' D}\<close>
 
-twl_st_confl_extracted_assn2 (- lit_of (hd (get_trail_wl x))))
+
+lemma list_of_mset2_None_int_list_of_mset2_None:
+  \<open>(uncurry2 (list_of_mset2_None_int), uncurry2 list_of_mset2_None) \<in>
+     [\<lambda>((L, L'), C). C \<noteq> None \<and> L \<in># the C \<and> L' \<in># the C \<and> L \<noteq> L' \<and>
+        literals_are_in_N\<^sub>0 (the C) \<and> distinct_mset (the C)]\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+   (auto simp: list_of_mset2_None_int_def list_of_mset2_None_def
+      list_of_mset2_def add2_from_conflict_def conflict_to_conflict_with_cls_spec_def
+      remove2_from_conflict_def add_mset_eq_add_mset SPEC_RETURN_RES
+      literals_are_in_N\<^sub>0_sub literals_are_in_N\<^sub>0_add_mset
+      dest!: multi_member_split)
+
+
+definition size_conflict :: \<open>nat clause option \<Rightarrow> nat\<close> where
+  \<open>size_conflict D = size (the D)\<close>
+
+definition size_conflict_int :: \<open>conflict_option_rel \<Rightarrow> nat\<close> where
+  \<open>size_conflict_int = (\<lambda>(_, n, _). n)\<close>
+
+lemma size_conflict_code_refine_raw:
+  \<open>(return o (\<lambda>(_, n, _). n), RETURN o size_conflict_int) \<in> conflict_option_rel_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare  (sep_auto simp: size_conflict_int_def)
+
+concrete_definition (in -) size_conflict_code
+   uses twl_array_code.size_conflict_code_refine_raw
+   is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) size_conflict_code_def
+
+lemmas size_conflict_code_hnr[sepref_fr_rules] =
+   size_conflict_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma size_conflict_int_size_conflict:
+  \<open>(RETURN o size_conflict_int, RETURN o size_conflict) \<in> [\<lambda>D. D \<noteq> None]\<^sub>f option_conflict_rel \<rightarrow>
+     \<langle>Id\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: size_conflict_int_def size_conflict_def option_conflict_rel_def
+      conflict_rel_def)
+
+lemma size_conflict_hnr[sepref_fr_rules]:
+  \<open>(size_conflict_code, RETURN \<circ> size_conflict) \<in> [\<lambda>x. x \<noteq> None]\<^sub>a conflict_option_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  using size_conflict_code_hnr[FCOMP size_conflict_int_size_conflict]
+  unfolding conflict_option_assn_def[symmetric]
+  by simp
+
+definition conflict_with_cls_split where
+  \<open>conflict_with_cls_split = (\<lambda>_ _ (a, b). (a, (True, 0, b)))\<close>
+lemma conflict_with_cls_split_list_of_mset2_None:
+   \<open>(uncurry2 (RETURN ooo conflict_with_cls_split), uncurry2 list_of_mset2_None) \<in>
+     [\<lambda>((K, K'), C). C \<noteq> None \<and> K = L \<and> K' = L']\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f (option_conflict_rel_with_cls L L') \<rightarrow> 
+       \<langle>\<langle>Id\<rangle> list_rel \<times>\<^sub>f option_conflict_rel\<rangle>nres_rel\<close>
+  by (intro nres_relI frefI)
+     (auto simp: option_conflict_rel_def option_conflict_rel_with_cls_def
+      list_of_mset2_None_def conflict_rel_def conflict_with_cls_split_def
+       list_mset_rel_def br_def intro!: RETURN_SPEC_refine)
+
+lemma conflict_with_cls_split_conflict_with_cls_split:
+   \<open>(uncurry2 (return ooo conflict_with_cls_split),uncurry2 (RETURN ooo conflict_with_cls_split)) \<in> 
+      unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (clause_ll_assn *assn array_assn (option_assn bool_assn))\<^sup>d \<rightarrow>\<^sub>a
+      clause_ll_assn *assn conflict_option_rel_assn\<close>
+  by sepref_to_hoare
+     (sep_auto simp: conflict_with_cls_split_def uint32_nat_rel_def
+      br_def nat_of_uint32_012)
+
+lemma conflict_with_cls_split_list_of_mset2_None_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 (return \<circ>\<circ>\<circ> conflict_with_cls_split), uncurry2 list_of_mset2_None)
+  \<in> [\<lambda>((a, b), ba). ba \<noteq> None \<and> a = L \<and> b = L']\<^sub>a 
+    unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (conflict_with_cls_assn L L')\<^sup>d \<rightarrow>
+    clause_ll_assn  *assn conflict_option_assn\<close> for L L' :: \<open>nat literal\<close>
+  using conflict_with_cls_split_conflict_with_cls_split[FCOMP conflict_with_cls_split_list_of_mset2_None, of L L']
+  unfolding conflict_option_assn_def[symmetric] conflict_with_cls_assn_def[symmetric]
+  by auto
+
+lemma two_different_multiset_sizeD:
+  assumes \<open>a \<in># y\<close> and \<open>ba \<in># y\<close> \<open>a \<noteq> ba\<close>
+  shows \<open>Suc 0 < size y\<close> \<open>size y = Suc (Suc (size (y - {#a, ba#})))\<close>
+  using assms by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
+sepref_thm list_of_mset2_None_code
+  is \<open>uncurry2 (PR_CONST list_of_mset2_None_int)\<close>
+  :: \<open>[\<lambda>((L, L'), C). C \<noteq> None \<and> L \<in># the C \<and> L' \<in># the C \<and> L \<noteq> L' \<and> L \<in># N\<^sub>1 \<and> L' \<in># N\<^sub>1 \<and>
+       literals_are_in_N\<^sub>0 (the C)]\<^sub>a
+      unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a 
+         conflict_option_assn\<^sup>d \<rightarrow> clause_ll_assn *assn conflict_option_assn\<close>
+  supply [[goals_limit=1]] size_conflict_def[simp](*  size_conflict_def[simp] two_different_multiset_sizeD[dest]
+  literals_are_in_N\<^sub>0_sub[simp]
+    add_mset_eq_add_mset[simp] remove2_from_conflict_def[simp]
+    literals_are_in_N\<^sub>0_add_mset[simp] conflict_to_conflict_with_cls_spec_def[simp] *)
+  unfolding list_of_mset2_None_int_def size_conflict_def[symmetric]
+    array_fold_custom_replicate PR_CONST_def
+  apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+                  apply sepref_dbg_trans_step_keep
+                   apply sepref_dbg_side_unfold apply auto[]
+                  apply sepref_dbg_side_unfold apply auto[]
+                 apply sepref_dbg_trans_step_keep
+                apply sepref_dbg_trans_step_keep
+               apply sepref_dbg_trans_step_keep
+                 apply sepref_dbg_trans_step_keep
+                apply sepref_dbg_trans_step_keep
+                apply sepref_dbg_trans_step_keep
+                  apply sepref_dbg_trans_step_keep
+                 apply sepref_dbg_trans_step_keep
+                   apply sepref_dbg_trans_step_keep
+                  apply sepref_dbg_trans_step_keep
+                  apply sepref_dbg_trans_step_keep
+                 apply sepref_dbg_trans_step_keep
+                apply sepref_dbg_trans_step_keep
+               apply sepref_dbg_trans_step_keep
+              apply sepref_dbg_trans_step_keep
+             apply sepref_dbg_trans_step_keep
+            apply sepref_dbg_trans_step_keep
+           apply sepref_dbg_trans_step_keep
+          apply sepref_dbg_trans_step_keep
+         apply sepref_dbg_trans_step_keep
+        apply sepref_dbg_trans_step_keep
+       apply sepref_dbg_trans_step_keep
+      apply sepref_dbg_trans_step_keep
+     apply simp
+    apply sepref_dbg_trans_step_keep
+   apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_constraints
+  done
+
+concrete_definition (in -) list_of_mset2_None_code
+   uses twl_array_code.list_of_mset2_None_code.refine_raw
+   is \<open>(uncurry2 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) list_of_mset2_None_code_def
+
+lemmas list_of_mset2_None_int_hnr[sepref_fr_rules] =
+  list_of_mset2_None_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma list_of_mset2_None_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 list_of_mset2_None_code, uncurry2 list_of_mset2_None)
+   \<in> [\<lambda>((a, b), ba). ba \<noteq> None \<and> a \<in># the ba \<and> b \<in># the ba \<and> a \<noteq> b \<and>
+       literals_are_in_N\<^sub>0 (the ba) \<and> distinct_mset (the ba) \<and> a \<in># N\<^sub>1 \<and> b \<in># N\<^sub>1]\<^sub>a 
+      unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a conflict_option_assn\<^sup>d \<rightarrow>
+      clause_ll_assn *assn conflict_option_assn\<close>
+  using list_of_mset2_None_int_hnr[unfolded PR_CONST_def, FCOMP list_of_mset2_None_int_list_of_mset2_None]
+  by simp
+  (*
 propgate_bt_wl_D
  *)
 (*extract_shorter_conflict_list_removed  *)
