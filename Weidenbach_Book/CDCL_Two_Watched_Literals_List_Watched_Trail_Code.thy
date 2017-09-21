@@ -6963,6 +6963,7 @@ lemma conflict_with_cls_split_list_of_mset2_None:
       list_of_mset2_None_def conflict_rel_def conflict_with_cls_split_def
        list_mset_rel_def br_def intro!: RETURN_SPEC_refine)
 
+text \<open>This lemma is only a trick For the code. The real refinement lemma comes later.\<close>
 lemma conflict_with_cls_split_conflict_with_cls_split:
    \<open>(uncurry2 (return ooo conflict_with_cls_split),uncurry2 (RETURN ooo conflict_with_cls_split)) \<in> 
       unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (clause_ll_assn *assn array_assn (option_assn bool_assn))\<^sup>d \<rightarrow>\<^sub>a
@@ -6971,7 +6972,7 @@ lemma conflict_with_cls_split_conflict_with_cls_split:
      (sep_auto simp: conflict_with_cls_split_def uint32_nat_rel_def
       br_def nat_of_uint32_012)
 
-lemma conflict_with_cls_split_list_of_mset2_None_hnr[sepref_fr_rules]:
+lemma DONT_USE_conflict_with_cls_split_list_of_mset2_None_hnr_DONT_USE:
   \<open>(uncurry2 (return \<circ>\<circ>\<circ> conflict_with_cls_split), uncurry2 list_of_mset2_None)
   \<in> [\<lambda>((a, b), ba). ba \<noteq> None \<and> a = L \<and> b = L']\<^sub>a 
     unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (conflict_with_cls_assn L L')\<^sup>d \<rightarrow>
@@ -6990,10 +6991,8 @@ sepref_thm list_of_mset2_None_code
        literals_are_in_N\<^sub>0 (the C)]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a 
          conflict_option_assn\<^sup>d \<rightarrow> clause_ll_assn *assn conflict_option_assn\<close>
-  supply [[goals_limit=1]] size_conflict_def[simp](*  size_conflict_def[simp] two_different_multiset_sizeD[dest]
-  literals_are_in_N\<^sub>0_sub[simp]
-    add_mset_eq_add_mset[simp] remove2_from_conflict_def[simp]
-    literals_are_in_N\<^sub>0_add_mset[simp] conflict_to_conflict_with_cls_spec_def[simp] *)
+  supply [[goals_limit=1]] size_conflict_def[simp]
+  DONT_USE_conflict_with_cls_split_list_of_mset2_None_hnr_DONT_USE[sepref_fr_rules]
   unfolding list_of_mset2_None_int_def size_conflict_def[symmetric]
     array_fold_custom_replicate PR_CONST_def
   apply sepref_dbg_keep
@@ -7047,10 +7046,7 @@ lemma list_of_mset2_None_hnr[sepref_fr_rules]:
       clause_ll_assn *assn conflict_option_assn\<close>
   using list_of_mset2_None_int_hnr[unfolded PR_CONST_def, FCOMP list_of_mset2_None_int_list_of_mset2_None]
   by simp
-  (*
-propgate_bt_wl_D
- *)
-(*extract_shorter_conflict_list_removed  *)
+
 sepref_thm extract_shorter_conflict_list_removed_code
   is \<open>uncurry (PR_CONST extract_shorter_conflict_list_removed)\<close>
   :: \<open>[\<lambda>(M, (b, n, xs)). M \<noteq> []]\<^sub>a
@@ -7196,6 +7192,8 @@ sepref_thm extract_shorter_conflict_st_trivial_code
 concrete_definition (in -) extract_shorter_conflict_st_trivial_code
    uses twl_array_code.extract_shorter_conflict_st_trivial_code.refine_raw
    is \<open>(?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) extract_shorter_conflict_st_trivial_code_def
 
 lemmas extract_shorter_conflict_st_code_refine[sepref_fr_rules] =
    extract_shorter_conflict_st_trivial_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
@@ -7344,7 +7342,6 @@ proof -
     using pre ..
 qed
 
-thm propgate_bt_wl_D_def
 
 definition propgate_bt_wl_D_int 
   :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_int \<Rightarrow> twl_st_wl_int nres\<close> where
@@ -7365,28 +7362,6 @@ type_synonym (in -) twl_st_wl_W_int =
   \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times> nat \<times>
     nat clause option \<times> nat clauses \<times> nat clauses \<times> nat clause \<times> (nat literal \<Rightarrow> nat list)\<close>
 
-(*
-(((nat literal, nat literal, nat) annotated_lit list \<times>
-     nat literal list list \<times>
-     nat \<times>
-     (bool \<times> nat \<times> bool option list) \<times>
-     nat literal multiset \<times>
-     nat list list \<times>
-     ((nat al_vmtf_atm list \<times>
-       nat \<times> nat option \<times> nat option) \<times>
-      nat list) \<times>
-     bool list) \<times>
-
-(nat literal, nat literal, nat) annotated_lit list \<times>
-    nat literal list list \<times>
-    nat \<times>
-    nat literal multiset option \<times>
-    nat literal multiset multiset \<times>
-    nat literal multiset multiset \<times>
-    nat literal multiset \<times> (nat literal \<Rightarrow> nat list)) set
-  *)
-typ twl_st_wl_int_conflict
-typ twl_st_wl_W_int
 definition twl_st_wl_W_conflict :: \<open>(twl_st_wl_int_conflict \<times> twl_st_wl_W_int) set\<close>where
   \<open>twl_st_wl_W_conflict =
    {((M', N', U', D', Q', W', vm, \<phi>), M, N, U, D, NP, UP, Q, W).
@@ -7398,30 +7373,92 @@ definition twl_st_wl_W_conflict :: \<open>(twl_st_wl_int_conflict \<times> twl_s
      (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
      vm \<in> vmtf_imp M \<and> phase_saving \<phi> \<and> no_dup M}\<close>
 
+lemma twl_st_wl_W_conflict_alt_def:
+  \<open>twl_st_wl_W_conflict =
+     (Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r option_conflict_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id) O twl_st_ref\<close>
+  unfolding twl_st_wl_W_conflict_def twl_st_ref_def
+  by force
+
+definition twl_st_W_conflict_int_assn :: \<open>twl_st_wl_int_conflict \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
+\<open>twl_st_W_conflict_int_assn =
+  (trail_assn *assn clauses_ll_assn *assn nat_assn *assn
+  conflict_option_rel_assn *assn
+  clause_l_assn *assn
+  arrayO_assn (arl_assn nat_assn) *assn
+  vmtf_remove_conc *assn phase_saver_conc
+  )\<close>
+
 lemma st_remove_highest_lvl_from_confl_int_st_remove_highest_lvl_from_confl:
   \<open>(RETURN o st_remove_highest_lvl_from_confl_int, RETURN o st_remove_highest_lvl_from_confl) \<in> 
-   [\<lambda>S. True]\<^sub>f (twl_st_ref_confl_extracted2 L O twl_st_ref) \<rightarrow> \<langle>twl_st_wl_W_conflict\<rangle> nres_rel\<close>
+   (twl_st_ref_confl_extracted2 L O twl_st_ref) \<rightarrow>\<^sub>f \<langle>twl_st_wl_W_conflict\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
      (auto simp: st_remove_highest_lvl_from_confl_int_def st_remove_highest_lvl_from_confl_def
       twl_st_wl_W_conflict_def twl_st_ref_confl_extracted2_def twl_st_ref_def
       option_conflict_rel_with_cls_with_highest2_def)
 
+
+sepref_thm st_remove_highest_lvl_from_confl_code
+  is \<open>RETURN o st_remove_highest_lvl_from_confl_int\<close>
+  :: \<open>twl_st_confl_extracted_int_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_W_conflict_int_assn\<close>
+  unfolding st_remove_highest_lvl_from_confl_int_def twl_st_confl_extracted_int_assn_def
+  twl_st_W_conflict_int_assn_def
+  by sepref
+  
+
+concrete_definition (in -) st_remove_highest_lvl_from_confl_code
+   uses twl_array_code.st_remove_highest_lvl_from_confl_code.refine_raw
+   is \<open>(?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) st_remove_highest_lvl_from_confl_code_def
+
+lemmas st_remove_highest_lvl_from_confl_int_hnr[sepref_fr_rules] =
+   st_remove_highest_lvl_from_confl_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma twl_st_assn_twl_st_wl_W_conflict:
+  \<open>twl_st_assn = hr_comp twl_st_W_conflict_int_assn twl_st_wl_W_conflict\<close>
+  unfolding twl_st_assn_def twl_st_wl_W_conflict_alt_def twl_st_W_conflict_int_assn_def
+    twl_st_int_assn_def hr_comp_assoc[symmetric] conflict_option_assn_def
+  by simp
+
+lemma st_remove_highest_lvl_from_confl_hnr[sepref_fr_rules]:
+  \<open>(st_remove_highest_lvl_from_confl_code, RETURN \<circ> st_remove_highest_lvl_from_confl)
+   \<in> (twl_st_confl_extracted_assn2 L)\<^sup>d \<rightarrow>\<^sub>a twl_st_assn\<close>
+  using st_remove_highest_lvl_from_confl_int_hnr[FCOMP st_remove_highest_lvl_from_confl_int_st_remove_highest_lvl_from_confl]
+  unfolding twl_st_confl_extracted_assn2_def[symmetric] twl_st_assn_twl_st_wl_W_conflict[symmetric]
+  by simp
+
 (* twl_st_confl_extracted_assn2 *)
+definition conflict_with_cls_with_cls_with_highest_assn2 where 
+  \<open>conflict_with_cls_with_cls_with_highest_assn2 L M =
+     hr_comp (conflict_option_rel_assn *assn option_assn (unat_lit_assn *assn uint32_nat_assn)) 
+   (option_conflict_rel_with_cls_with_highest2 L M)\<close>
 
 
-  term twl_st_wl_int_conflict_rel
-term twl_st_confl_extracted_assn2
-term twl_st_confl_extracted_int_assn
-term  twl_st_assn
+definition twl_st_confl_extracted_int_assn2
+  :: \<open>nat literal \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> twl_st_wll_trail_confl_extracted \<Rightarrow> assn\<close> where
+\<open>twl_st_confl_extracted_int_assn2 L M =
+  (trail_assn *assn clauses_ll_assn *assn nat_assn *assn
+  conflict_with_cls_with_cls_with_highest_assn2 L M *assn
+  clause_l_assn *assn
+  arrayO_assn (arl_assn nat_assn) *assn
+  vmtf_remove_conc *assn phase_saver_conc
+  )\<close>
+
+sepref_register list_of_mset2_None
 sepref_thm propgate_bt_wl_D
   is \<open>uncurry2 propgate_bt_wl_D_int\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (hr_comp twl_st_confl_extracted_int_assn (twl_st_ref_confl_extracted2 L))\<^sup>d \<rightarrow>\<^sub>a twl_st_int_assn\<close>
-  supply [[goals_limit = 1]]
-  unfolding propgate_bt_wl_D_int_def
+  :: \<open>[\<lambda>((L, L'), S). get_conflict_wl_int S \<noteq> None \<and> -L \<in># the (get_conflict_wl_int S) \<and>
+         L' \<in># the (get_conflict_wl_int S) \<and> -L \<noteq> L' \<and>
+       literals_are_in_N\<^sub>0 (the (get_conflict_wl_int S)) \<and>
+       distinct_mset (the (get_conflict_wl_int S)) \<and> L \<in># N\<^sub>1 \<and> L' \<in># N\<^sub>1]\<^sub>a 
+   unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a twl_st_int_assn\<^sup>d \<rightarrow> twl_st_int_assn\<close>
+  supply [[goals_limit = 1]] uminus_N\<^sub>0_iff[simp]
+  unfolding propgate_bt_wl_D_int_def twl_st_int_assn_def
   apply sepref_dbg_keep
   apply sepref_dbg_trans_keep
                   apply sepref_dbg_trans_step_keep
-                    apply sepref_dbg_side_unfold apply (auto simp: )[] 
+  apply sepref_dbg_side_unfold apply (auto simp: )[] 
+  thm list_of_mset2_None_hnr[to_hnr]
   oops
 
 end
