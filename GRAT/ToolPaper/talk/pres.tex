@@ -1,0 +1,826 @@
+\documentclass[fleqn]{beamer}
+
+
+\mode<presentation>
+{
+  \usetheme{default}
+%   \useinnertheme[shadow=true]{rounded}
+
+  \useinnertheme{circles}
+  
+%    \useoutertheme{infolines}
+  % or ...
+  \setbeamersize{text margin left=1em,text margin right=1em}
+
+%   \setbeamercovered{transparent}
+  % or whatever (possibly just delete it)
+
+  \beamertemplatenavigationsymbolsempty
+  
+% Display frame numbers in footline
+  \setbeamertemplate{footline}[frame number]
+}
+
+\usepackage{etex}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[ngerman]{babel}
+\usepackage{amsmath}
+% \usepackage{amsthm}
+% \usepackage{stmaryrd}
+\usepackage{times}
+\usepackage{mathpartir}
+
+\usepackage{centernot}
+
+\usepackage{colortbl}
+\usepackage{multirow}
+
+\usepackage[purexy]{qsymbols}
+\usepackage{graphicx}
+
+\usepackage{listings}
+\usepackage{lstautogobble}
+\usepackage{relsize}
+
+\usepackage{ifthen}
+\usepackage{pgf}
+\usepackage{tikz}
+\usetikzlibrary{scopes}
+\usetikzlibrary{decorations}
+  \usetikzlibrary{decorations.pathmorphing}
+\usetikzlibrary{arrows}
+\usetikzlibrary{automata}
+\usetikzlibrary{positioning}
+\usetikzlibrary{chains}
+\usetikzlibrary{shapes.geometric}
+\usetikzlibrary{shapes.callouts}
+\usetikzlibrary{shapes.misc}
+\usetikzlibrary{shapes.multipart}
+\usetikzlibrary{fit}
+\usetikzlibrary{calc}
+\usepackage{pgfplots}
+
+% \tikzstyle{stack}=[inner sep=0pt,minimum size=2mm]
+% \tikzstyle{ssline}=[->,snake=snake,segment amplitude=.2mm,segment length=3mm,line after snake=1mm]
+% \tikzstyle{fgnode}=[circle,draw,inner sep=0pt,minimum size=2mm]
+
+
+\usepackage{packages/isabelle}
+\usepackage{packages/isabelletags}
+\usepackage{packages/isabellesym}
+\usepackage{packages/comment}
+
+% \isabellestyle{it}
+
+\def\isachardoublequote{}%
+\def\isachardoublequoteopen{}%
+\def\isachardoublequoteclose{}%
+
+\newcommand{\isainnerkeyword}[1]{{\textbf{#1}}}
+\newcommand{\isasymexistsA}{\isamath{\exists_{\textsc A}\,}}
+
+
+\def\isadelimproof{}
+\def\endisadelimproof{}
+\def\isatagproof{}
+\def\endisatagproof{}
+\def\isafoldproof{}
+\def\isadelimproof{}
+\def\endisadelimproof{}
+
+\def\isastylescript{\sl}%
+
+
+\input{lstisabelle}
+\newcommand{\isai}{\lstinline[language=isabelle,basicstyle=\normalsize\ttfamily\slshape]}
+
+\newcommand\CC{C\nolinebreak[4]\hspace{-.05em}\raisebox{.3ex}{\relsize{-1}{\textbf{++}}}}
+
+\newcommand{\eqdef}{\mathrel{{=}_{def}}}
+\newcommand{\iffdef}{\mathrel{{\mathord{\iff}\!\!}_{def}}}
+
+
+\makeatletter
+\newcommand*{\overlaynumber}{\number\beamer@slideinframe}
+\makeatother
+
+\AtBeginSection[] % Do nothing for \section*
+{
+  \begin{frame}<beamer>
+    \frametitle{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+
+\title{The GRAT Tool Chain}
+\subtitle{Efficient (UN)SAT Certificate Checking with Formal Correctness Guarantees}
+
+% \subtitle
+% {Subtitle} % (optional)
+
+\author[Peter Lammich]{\underline{Peter Lammich}}
+% - Use the \inst{?} command only if the authors have different
+%   affiliation.
+
+\institute[TUM/VT] % (optional, but mostly needed)
+{ TU M\"unchen / Virginia Tech %, Institut f\"ur Informatik, Chair for Logic and Verification
+}
+% - Use the \inst command only if there are several affiliations.
+% - Keep it simple, no one is interested in your street address.
+
+\date {September 2017}
+% {2008-12-01}
+
+
+% If you have a file called "university-logo-filename.xxx", where xxx
+% is a graphic format that can be processed by latex or pdflatex,
+% resp., then you can add a logo as follows:
+
+% \pgfdeclareimage[height=0.5cm]{university-logo}{university-logo-filename}
+% \logo{\pgfuseimage{university-logo}}
+
+
+% Delete this, if you do not want the table of contents to pop up at
+% the beginning of each subsection:
+
+
+% If you wish to uncover everything in a step-wise fashion, uncomment
+% the following command: 
+
+%\beamerdefaultoverlayspecification{<+->}
+
+%\mathchardef\-="2D
+%\renewcommand\-{\text{-}}
+
+\newcommand{\mc}{\color{blue}}
+\newcommand{\term}[1]{{\mc#1}}
+
+\let\olddisplaystyle\displaystyle
+\newcommand{\mydisplaystyle}{\olddisplaystyle\mc}
+\let\displaystyle\mydisplaystyle
+
+\newcommand{\smc}{\everymath{\mc}}
+\smc
+
+\lstset{basicstyle=\color{blue}}
+
+% \newcommand<>{\btikzset}[2]{\alt#3{\tikzset{#1}}{\tikzset{#2}}}
+
+\tikzset{onslide/.code args={<#1>#2}{%
+  \only<#1>{\pgfkeysalso{#2}} % \pgfkeysalso doesn't change the path
+}}
+
+\tikzset{>=latex}
+
+
+\lstset{autogobble}
+
+\newcommand{\natN}{{\text{nat}_{\mathord{<}N}}}
+
+
+\begin{document}
+% \input{macros}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+
+\begin{frame}{Motivation}
+  \begin{itemize}
+   \item<+-> SAT solvers
+    \begin{itemize}
+     \item Elaborate optimizations + heuristics
+     \item Highly complex $\implies$ error prone
+     \item Used in safety critical applications
+    \end{itemize}
+   \item<+-> Certification
+    \begin{itemize}
+     \item SAT: Solution. Easy!
+     \item UNSAT: De-facto standard: DRAT
+    \end{itemize}
+   \item<+-> DRAT certificate
+    \begin{itemize}
+     \item Still requires highly optimized checker
+     \item Main work spent on unit propagation (BCP)
+     \item drat-trim is optimized C program
+      \begin{itemize}
+       \item We found several bugs (now fixed)
+    
+      \end{itemize}
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+\begin{frame}{DRAT}
+  \begin{itemize}
+   \item Certificate is list of clause additions and deletions
+   \item Added clauses proved redundant
+    \begin{itemize}
+     \item Must have RUP or RAT property
+     \item Proof based on BCP
+    \end{itemize}
+   \item Last clause: Empty clause
+  
+  \end{itemize}
+\end{frame}
+\begin{frame}{Enriched Certificates}
+  Crucial idea 
+    \begin{itemize}
+     \item Unverified \emph{generator} records unit/conflict clauses
+     \item Verified \emph{checker} replays BCP
+     \item \emph{Finding} unit clause replaced by \emph{checking} unit clause
+    \end{itemize}
+  \pause  
+  
+  History
+    \begin{itemize}
+     \item Cruz-Filipe et al.~[TACAS 2017] for DRUP
+     \item P.~L. [CADE 2017] extended to DRAT
+     \item independently: Cruz-Filipe et al.~[CADE 2017] extended to DRAT
+  
+  
+    \end{itemize}
+\end{frame}
+\begin{frame}{Workflow}
+  \begin{tikzpicture}[node distance = 1.5cm, auto]
+    \tikzstyle{tool}=[shape=rectangle,draw, minimum size = 5mm]
+    \tikzstyle{artf}=[minimum size = 5mm]
+    
+    \node[tool] (sats) {SAT Solver};
+    \uncover<2->{\node[artf] (drat) [below of = sats] {DRAT certificate};}
+    \uncover<3->{\node[tool] (gratgen) [below of = drat] {gratgen};}
+    \uncover<1->{\node[artf] (cnf) [left of = gratgen, anchor=east] {CNF formula};}
+    \uncover<4->{\node[artf] (grat) [below of = gratgen] {GRAT certificate};}
+    \uncover<5->{\node[tool] (gratchk) [below of = grat] {gratchk};}
+    \uncover<6->{\node[artf] (res) [right of = gratchk, anchor=west] {s UNSAT / s ERROR};}
+    
+  
+    \draw[->] (cnf) |- (sats);
+    \uncover<2->{\draw[->] (sats) to (drat);}
+    \uncover<3->{\draw[->] (cnf) to (gratgen);}
+    \uncover<3->{\draw[->] (drat) to (gratgen);}
+    \uncover<4->{\draw[->] (gratgen) to (grat);}
+    \uncover<5->{\draw[->] (grat) to (gratchk);}
+    \uncover<6->{\draw[->] (gratchk) to (res);}
+    \uncover<5->{\draw[->] (cnf) |- (gratchk);}
+    
+    
+    \node<7->[rectangle callout, draw, callout absolute pointer=(gratgen.east), above right = of gratgen, align=left] {Expensive \\ Complex \\ Highly optimized};
+    \node<8->[rectangle callout, draw, callout absolute pointer=(gratchk.east), above right = of gratchk, align=left] {Cheap \\ Simple \\ Formally verified};
+    
+  \end{tikzpicture}  
+  
+\end{frame}
+\begin{frame}{Backwards Checking}
+  \begin{itemize}
+   \item Forward phase: Add lemmas, but do no proofs
+   \item Backwards phase: Remove lemma and prove it
+    \begin{itemize}
+     \item Mark lemmas required for proof
+     \item Skip unmarked lemmas
+    \end{itemize}
+   \item Core first heuristics
+    \begin{itemize}
+     \item Prefer marked lemmas when searching for proof
+     \item Goal: Reduce newly marked lemmas
+  
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+\begin{frame}{Novel Optimizations (Compared to drat-trim)}
+  \begin{itemize}
+   \item Multithreaded proving
+    \begin{itemize}
+     \item Multiple threads in backwards phase
+     \item Synchronize on proved/marked lemmas
+     \item Significantly decreases wall-clock time
+     \item Significantly increases memory usage
+    \end{itemize}
+   \item Separate watchlists
+    \begin{itemize}
+     \item Maintain separate watchlists for marked/unmarked clauses
+     \item Less work in (hot) unit propagation loop
+     \item More work in (cool) analyzer that marks clauses
+    \end{itemize}
+   \item RAT-run heuristics
+    \begin{itemize}
+     \item Re-use gathered RAT candidates for next lemma's proof
+     \item RAT candidates are particular expensive to gather
+     \item Reuse possible in many cases
+
+% # Perhaps animation:
+%   * One thread: Goto next marked lemma, unit-propagation, analyze conflict, mark lemmas
+%   
+%   * Multiple threads: Goto next marked lemma, try to acquire, up, ana-conf, mark
+    
+    
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+\newcommand{\annot}[1]{{\footnotesize\color{red}{#1}}}
+
+\newcommand{\uc}[2]{\uncover<#1->{#2}}  
+\begin{frame}{Benchmark Results}
+  \begin{uncoverenv}<1->
+  Using 2016 SAT competition main track:
+    \begin{itemize}
+     \item cmsat: 110 UNSAT, 64 SAT  (many RAT lemmas)
+     \item riss6: 128 UNSAT          (Silver medalist, but only RUP)
+    \end{itemize}
+  \end{uncoverenv}  
+
+  \vfill
+    
+    
+  \begin{uncoverenv}<2->
+  \begin{tabular}{c|c|c|c|c|}
+            & lrat*                             & drat-trim                         & grat/1          & grat/8                    \\\hline
+      cmsat & \uc{3}{51h \annot{2xT/O, 1xSEGF}} & \uc{4}{42h \annot{2xT/O, 1xSEGF}} & \uc{5}{17h}     & \uc{6}{7h               } \\\hline
+      riss6 & \uc{3}{42h}                       & \uc{4}{30h                      } & \uc{5}{26h}     & \uc{6}{14h \annot{1xOOM}} \\\hline\hline
+    $\Sigma$& \uc{3}{93h}                       & \uc{4}{72h                      } & \uc{5}{44h}     & \uc{6}{21h              } \\\hline
+  \end{tabular}
+  {\tiny\vspace*{1em}}
+  
+  {\tiny Wall-clock times, excluded the 3 certificates that drat-trim failed on\\
+  \begin{tabular}{ll}
+  {\color{red} T/O} &--- Timeout after 20.000s \\
+  {\color{red} SEGF} &--- crashed with SIGSEGV \\
+  {\color{red} OOM} &--- out of memory (128GiB) \\
+   {*} &--- Incremental version, [Heule et al., ITP'17] \\
+  \end{tabular}
+  }
+  \end{uncoverenv}  
+  
+  \vfill
+  \begin{uncoverenv}<7->
+  gratchk time: 12\% (cmsat: 6\%, riss6: 16\%)
+  \end{uncoverenv}  
+  
+  \vfill
+  
+  \begin{uncoverenv}<8->
+  SAT mode: gratchk verified all 64 certificates in 40s
+  \end{uncoverenv}  
+  
+
+\end{frame}
+\begin{frame}[t,fragile]{Demo}
+%   * Gratgen, gratchk, gratgen/8
+%   * If possible, on lxcisa0!
+% 
+%   * Perhaps gratgen no-core-first?
+%   
+%   * Use rotmul.miter.shuffled-as.sat03-356 ... good to demonstrate RAT-run heuristics, multithreading speedup
+  \scriptsize
+  \begin{onlyenv}<1>
+  \begin{verbatim}  
+  ls -1hs rotmul.miter.shuffled-as.sat03-356.{cnf,drat}
+  688K rotmul.miter.shuffled-as.sat03-356.cnf
+   30M rotmul.miter.shuffled-as.sat03-356.drat
+  \end{verbatim}
+  \end{onlyenv}
+
+  \begin{onlyenv}<2>
+  \begin{verbatim}  
+  $ drat-trim rotmul.miter.shuffled-as.sat03-356.{cnf,drat}
+  c parsing input formula with 5980 variables and 35229 clauses
+  c finished parsing
+  c detected empty clause; start verification via backward checking
+  c 30476 of 35229 clauses in core
+  c 84401 of 219768 lemmas in core using 3834963 resolution steps
+  c 2162 RAT lemmas in core; 37038 redundant literals in core lemmas
+  s VERIFIED
+  c verification time: 13.773 seconds
+  \end{verbatim}  
+  \end{onlyenv}
+
+  \begin{onlyenv}<3>
+  \begin{verbatim}  
+  $ time ./grat.sh rotmul.miter.shuffled-as.sat03-356
+  [... output shortened ...]
+  c Timing statistics (ms)
+  c Overall:  7246
+
+  c Lemma statistics
+  c RUP lemmas:  79298
+  c RAT lemmas:  2183
+  c   RAT run heuristics:   1292
+
+  c Reading cnf
+  c Reading lemmas
+  c Done
+  c Verifying unsat (split certificate)
+  s VERIFIED UNSAT
+
+  real    0m1.012s
+  user    0m0.984s
+  sys     0m0.028s
+
+  real    0m8.268s
+  user    0m8.168s
+  sys     0m0.100s
+
+  \end{verbatim}  
+  \end{onlyenv}
+
+  \begin{onlyenv}<4>
+  \begin{verbatim}  
+  $ time ./grat.sh rotmul.miter.shuffled-as.sat03-356 -j 3
+  [... output shortened ...]
+  c Timing statistics (ms)
+  c Overall:  4386
+
+  c Lemma statistics
+  c RUP lemmas:  79529
+  c RAT lemmas:  2169
+  c   RAT run heuristics:   1269
+
+  c Reading cnf
+  c Reading lemmas
+  c Done
+  c Verifying unsat (split certificate)
+  s VERIFIED UNSAT
+
+  real    0m1.011s
+  user    0m0.988s
+  sys     0m0.020s
+
+  real    0m5.407s
+  user    0m12.120s
+  sys     0m0.124s
+  
+  \end{verbatim}  
+  \end{onlyenv}
+
+  \begin{onlyenv}<5>
+  \begin{verbatim}  
+  $ ls -1hs rotmul.miter.shuffled-as.sat03-356.grat?
+  5,5M rotmul.miter.shuffled-as.sat03-356.gratl
+   17M rotmul.miter.shuffled-as.sat03-356.gratp
+  \end{verbatim}  
+  \end{onlyenv}
+
+  
+  \begin{onlyenv}<6>
+  \begin{verbatim}  
+  $ ls -1hs unif-c500-v250-s1228594393.{cnf,sat}
+  8,0K unif-c500-v250-s1228594393.cnf
+  4,0K unif-c500-v250-s1228594393.sat
+  
+  $ time gratchk sat unif-c500-v250-s1228594393.{cnf,sat}
+  c Reading cnf
+  c Reading proof
+  c Done
+  c Verifying sat
+  s VERIFIED SAT
+
+  real    0m0.001s
+  user    0m0.000s
+  sys     0m0.000s
+  \end{verbatim}  
+  \end{onlyenv}
+  
+  
+\end{frame}
+\begin{frame}{Conclusions}
+  Fast SAT solver certification tool
+  \begin{itemize}
+   \item SAT and UNSAT certificates
+   \item Strong formal correctness guarantees
+    \begin{itemize}
+     \item formally verified down to int array representing formula
+    \end{itemize}
+   \item Available under BSD-style license
+    
+  \end{itemize}
+  \vfill 
+  \center \url{http://www21.in.tum.de/~lammich/grat/}
+  
+  
+%   Plot:
+%     *# Use rotmul.miter.shuffled-as.sat03-356
+%     * run drat-trim
+%     * run grat toolchain
+%     * run grat toolchain with multiple threads (laptop 3, lxcisa0 8)
+%     * Show sizes of certificates - effective trimming!
+    
+  
+  
+  
+  
+  
+  
+
+% % ORIGINAL CADE TALK
+% 
+% # SAT
+% %   *<+-> Find solution to cnf formula
+% %     * Widely used, e.g. in hardware verification
+% %     * NP-complete (intractable)
+%   *<+-> SAT solvers
+%     * Elaborate optimizations + heuristics
+%     * Highly complex $\implies$ error prone
+%     * Safety critical
+%   *<+-> Certification
+%     * SAT solver produces certificate
+%     * Checked by simpler program
+%   *<+-> SAT certificate
+%     * Valuation, almost trivial to check
+%   *<+-> UNSAT certificate
+%     * De-facto standard: DRAT
+%     * Demanded by SAT competitions
+%     * Supported by most modern SAT solvers
+%     
+% # DRAT-Certificate
+%   *<+-> List of clause additions (lemmas) and deletions
+%   *<+-> Each lemma is \emph{redundant} wrt. current clauses
+%     *<+-> Must have RAT property
+%   *<+-> Last lemma is empty clause
+%     
+%   \uncover<+->{  
+%   \begin{definition}
+%     Clause $C$ has RAT wrt.\ formula $F$ iff 
+%       *{}: $(F \wedge \neg C)^{\textrm u} = \{\square\}$
+%       *or: $\exists l\in C.~\forall D\in F.~\neg l\in D \implies ((F\wedge \neg C)^{\textrm u}\wedge\neg D)^{\textrm u} = \{\square\}$
+%     where $F^{\textrm u}$ means \emph{unit propagation}.
+%   \end{definition}
+%   }
+%     
+%     
+% # DRAT in Practice
+%   *<+-> Unit propagation and finding RAT candidates
+%     * Computationally expensive
+%   *<+-> Requires highly optimized code and data structures
+%     * Error prone + hard to (formally) verify
+%   *<+-> drat-trim (Heule et al.) 
+%     * Standard tool used in SAT competitions
+%     * Written in C, highly optimized, and many features
+%     * Two-watched-literals, backwards checking, core-first, ...
+%     * Sat/Unsat, trimming, unsat core, resolution graph, ...
+% %     * Optimizations: 2wl, bwd checking, core-first, ...
+% %     * Features: Sat/Unsat, trimming, unsat core, resolution graph, ...
+%     *<+-> We found a few bugs (now mostly fixed)
+%       * Erroneous pivot literal check
+%       * Numeric overflows in parser
+%       * Buffer overflows
+%       
+% 
+% # Story of GRAT      
+%   *<+-> I was verifying fast DRAT-checker (in Isabelle)
+%   *<+-> Heard about GRIT [Cruz-Filipe et al., TACAS'17]
+%     * Two-phase checker, but only for DRUP
+%     * First phase: adapted drat-trim tool
+%     * Second phase: verified in Coq
+%     * Both phases: Approx. 2x slower than drat-trim
+%   *<+-> Re-targeted my work to extend this to full DRAT
+%     * Adding multi-threading to first phase
+%     * Using my powerful refinement tools for fast second phase
+%     * My tool was on par with drat-trim, albeit formally verified
+%   *<+-> After CADE-deadline
+%     * Added novel optimizations
+%     * Now significantly faster than drat-trim
+%     * New results included in this talk + proceedings paper
+%   *<+-> Independently: LRAT was developed
+%     * Cruz-Filipe, Heule, et al.
+%       
+%     
+% # Enriched Certificates
+%   \begin{onlyenv}<1>
+%   \begin{tikzpicture}[node distance = 1.5cm, auto]
+%     \tikzstyle{tool}=[shape=rectangle,draw, minimum size = 5mm]
+%     \tikzstyle{artf}=[minimum size = 5mm]
+%     
+%     \node[artf] (drat) {DRAT certificate};
+%     \node[tool] (drat-trim) [below of = drat] {drat-trim};
+%     \node[artf] (cnf) [left of = drat-trim, anchor=east] {CNF formula};
+%     \node[artf] (res) [right of = drat-trim, anchor=west] {s UNSAT / s ERROR};
+%   
+%     \draw[->] (cnf) to (drat-trim);
+%     \draw[->] (drat) to (drat-trim);
+%     \draw[->] (drat-trim) to (res);
+%   \end{tikzpicture}  
+%   \end{onlyenv}
+%   
+%   \begin{onlyenv}<2->
+%   \begin{tikzpicture}[node distance = 1.5cm, auto]
+%     \tikzstyle{tool}=[shape=rectangle,draw, minimum size = 5mm]
+%     \tikzstyle{artf}=[minimum size = 5mm]
+%     
+%     \node[artf] (drat) {DRAT certificate};
+%     \node[tool] (gratgen) [below of = drat] {gratgen};
+%     \node[artf] (cnf) [left of = gratgen, anchor=east] {CNF formula};
+%     \node[artf] (grat) [below of = gratgen] {GRAT certificate};
+%     \node[tool] (gratchk) [below of = grat] {gratchk};
+%     \node[artf] (res) [right of = gratchk, anchor=west] {s UNSAT / s ERROR};
+%     
+%   
+%     \draw[->] (cnf) to (gratgen);
+%     \draw[->] (drat) to (gratgen);
+%     \draw[->] (gratgen) to (grat);
+%     \draw[->] (grat) to (gratchk);
+%     \draw[->] (gratchk) to (res);
+%     \draw[->] (cnf) |- (gratchk);
+%     
+%     \begin{uncoverenv}<3->
+%     \node[rectangle callout, draw, callout absolute pointer=(gratgen.east), above right = of gratgen, align=left] {Expensive \\ Complex \\ Highly optimized};
+%     \end{uncoverenv}
+%     \node<4->[rectangle callout, draw, callout absolute pointer=(gratchk.east), above right = of gratchk, align=left] {Cheap \\ Simple \\ Formally verified};
+%     
+%   \end{tikzpicture}  
+%   \end{onlyenv}
+%   
+% # Moving Complexity to gratgen
+%   *<+-> Checking direction
+%     * gratgen works in backwards mode, trims certificate
+%     * gratchk works in forward mode
+%   *<+-> Unit propagation
+%     * gratgen outputs unit/conflict clauses
+%     * gratchk only checks that clauses are unit/conflict
+%     * Cruz-Filipe et al. [TACAS'17]
+%   *<+-> RAT candidate counts
+%     * gratgen gathers RAT candidates, and outputs RAT counts
+%     * gratchk only checks that candidates are exhaustive
+%       * maintaining candidate lists based on RAT counts
+%     
+% # gratgen
+%   *<+-> Initially: Clone of drat-trim's backwards mode
+%     * Uses two-watched literals, core-first unit propagation
+%     * Implemented in \CC11
+%   *<+->+: Separate watchlists: Faster core-first propagation
+%   *<+->+: RAT-run heuristics: Faster RAT-candidate finding
+%   *<+->+: Optional multithreading: Parallel checking of lemmas
+%     
+% # gratchk
+%   *<+-> Streaming for lower memory footprint
+%     * Unit/conflict clauses and deletion information not kept in memory
+%   *<+-> Formally verified with Isabelle/HOL
+% %     * LCF-style prover, reducing trust to small logical inference kernel
+% %   * Uses imperative data structures
+% %     * quite fast for verified program!
+%   *<+-> Verification uses stepwise refinement approach
+%     
+% # Stepwise Refinement    
+%   *<+-> Abstract description of algorithm
+%     * Easy to verify
+%   *<+-> Refine towards implementation
+%     * Small, independent, correctness preserving steps
+%   *<+-> Goal: Modularization of proofs
+%     * Efficient implementation does not affect abstract correctness proof
+%     * Making big proofs manageable in first place
+%   *<+-> Isabelle Refinement Framework
+%     * Powerful tool support for refinement proofs
+%     * Library of verified (imperative) data structures
+%     
+% #! Refinement of gratchk --- Checker State
+%   \begin{uncoverenv}<1->
+%   Abstract: Using Sets and Functions
+%   \begin{lstlisting}
+%     literal = Pos var | Neg var
+%     clause = literal set  
+%     clausemap = (id => clause option) \<times> (literal => id set option)
+%     state = id \<times> clausemap \<times> (var => bool option)
+%   \end{lstlisting}
+%   \end{uncoverenv}
+%     
+%   \begin{uncoverenv}<2->
+%   Refinement \#1: Using iterators for clauses, lists for RAT candidates  
+%   \begin{lstlisting}
+%     clausemap1 = (id => $\color{red}\textsf{it}$) \<times> (literal => id $\color{red}\textsf{list}$ option)
+%     state1 = id \<times> clausemap1 \<times> (var => bool option)
+%   \end{lstlisting}
+%   \end{uncoverenv}
+%     
+%   \begin{uncoverenv}<3->
+%   Refinement \#2: Iterators as indexes into array, literals as integers, functions as arrays
+%   \begin{lstlisting}
+%     clausedb2 = $\color{red}\textsf{int array}$
+%     clausemap2 = $\color{red}\textsf{nat array}$ \<times> id list option $\color{red}\textsf{array}$
+%     state2 = id \<times> clausemap2 \<times> $\color{red}\textsf{nat array}$
+%   \end{lstlisting}
+%   \end{uncoverenv}
+%     
+% #! Final Correctness Statement    
+%   \begin{uncoverenv}<+->
+%   \begin{lstlisting}
+%       <DBi |->$_a$ DB> 
+%         verify_unsat_impl DBi F_end it prf
+%       <\<lambda>r. DBi |->$_a$ DB * \<up>(r ==> /@formula_unsat_spec@/ DB F_end)>
+%   \end{lstlisting}
+%   \end{uncoverenv}
+% 
+%   \begin{uncoverenv}<+->
+%   where
+%   \begin{lstlisting}
+%     /@formula_unsat_spec@/ :: "int list => nat => bool"
+%     /@formula_unsat_spec@/ DB F_end == (
+%       let lst = tl (take F_end DB) in
+%         1 < F_end \<and> F_end \<le> length DB \<and> last lst = 0 
+%         \<and> (\<nexists>\<sigma>. /@assn_consistent@/ \<sigma> \<and> (\<forall>C\<in>set (tokenize 0 lst). \<exists>l\<in>set C. \<sigma> l)))
+%   \end{lstlisting}
+%   \end{uncoverenv}
+% 
+%   \begin{uncoverenv}<+->
+%   where
+%   \begin{lstlisting}
+%     /@assn_consistent@/ :: "(int => bool) => bool"
+%     "/@assn_consistent@/ \<sigma> = (\<forall>x. x\<noteq>0 ==> \<not> \<sigma> (-x) = \<sigma> x)"
+%   \end{lstlisting}
+%   \end{uncoverenv}
+% 
+%   \begin{uncoverenv}<+->
+%   Trusted base: Hoare triples + standard list functions  
+%   \end{uncoverenv}
+%     
+% #! Generating gratchk
+%   *<+-> Export from Isabelle to Standard/ML 
+%     * Trusted: Isabelle code generator (extended pretty printing)
+%   *<+-> Add parser and command line interface
+%     * Trusted: Parsing DIMACS to int array (<100 LOC, simple)
+%       * Standard ML detects overflows by design
+%     * Trusted: CLI (straightforward)
+%   *<+-> Compile with MLton
+%     * Trusted: Compiler
+% 
+% \newcommand{\annot}[1]{{\footnotesize\color{red}{#1}}}
+% 
+% \newcommand{\uc}[2]{\uncover<#1->{#2}}  
+% 
+% 
+% # Benchmark Results
+%   \begin{uncoverenv}<1->
+%   Using 2016 SAT competition main track:
+%     * cmsat: 110 UNSAT, 64 SAT  (many RAT lemmas)
+%     * riss6: 128 UNSAT          (Silver medalist, but only RUP) 
+%   \end{uncoverenv}  
+% 
+%   \vfill
+%     
+%     
+%   \begin{uncoverenv}<2->
+%   \begin{tabular}{c|c|c|c|c|}
+%             & lrat*                             & drat-trim                         & grat/1          & grat/8                    \\\hline
+%       cmsat & \uc{3}{51h \annot{2xT/O, 1xSEGF}} & \uc{4}{42h \annot{2xT/O, 1xSEGF}} & \uc{5}{17h}     & \uc{6}{7h               } \\\hline
+%       riss6 & \uc{3}{42h}                       & \uc{4}{30h                      } & \uc{5}{26h}     & \uc{6}{14h \annot{1xOOM}} \\\hline\hline
+%     $\Sigma$& \uc{3}{93h}                       & \uc{4}{72h                      } & \uc{5}{44h}     & \uc{6}{21h              } \\\hline
+%   \end{tabular}
+%   {\tiny\vspace*{1em}}
+%   
+%   {\tiny Wall-clock times, excluded the 3 certificates that drat-trim failed on\\
+%   \begin{tabular}{ll}
+%   {\color{red} T/O} &--- Timeout after 20.000s \\
+%   {\color{red} SEGF} &--- crashed with SIGSEGV \\
+%   {\color{red} OOM} &--- out of memory (128GiB) \\
+%    {*} &--- Incremental version, [Heule et al., ITP'17] \\
+%   \end{tabular}
+%   }
+%   \end{uncoverenv}  
+%   
+%   \vfill
+%   \begin{uncoverenv}<7->
+%   gratchk time: 12\% (cmsat: 6\%, riss6: 16\%)
+%   \end{uncoverenv}  
+%   
+%   \vfill
+%   
+%   \begin{uncoverenv}<8->
+%   SAT mode: cmsat: 40s
+%   \end{uncoverenv}  
+% 
+% # Conclusions
+%   Fast SAT solver certification tool
+%   * SAT and UNSAT certificates
+%   * Strong formal correctness guarantees
+%     * formally verified down to int array representing formula
+%   * Available under BSD-style license
+%     
+%   \vfill 
+%   \center \url{http://www21.in.tum.de/~lammich/grat/}
+%     
+%   \vfill
+%   Tool Paper on SAT'2017
+%     
+%     
+%     
+% %   
+% % # Enriched Certificates
+% %   * Idea: Replace unit-propagation by unit checking
+% %     * Cruz-Filipe et al. [TACAS'17]: For (weaker) DRUP certificates
+% %   * During certificate checking: $(F \wedge \neg C)^{\textrm u} = \lightning$
+% %     * Output list of clauses in order they become unit
+% %     * Output conflict clause
+% %     * Trim certificate
+% %   * Then run 2nd checker
+% %     * Against original formula, using enriched certificate
+% %     * Only check that clauses are actually unit/conflict
+% %     * Simple + cheap $\implies$ amenable to formal verification
+% %     
+%     
+    
+\end{frame}
+\end{document}
+
+
+
+

@@ -852,16 +852,6 @@ definition (in -) SAT_wl :: \<open>nat clauses_l \<Rightarrow> nat twl_st_wl nre
     else RETURN T
   }\<close>
 
-(*TODO Move*)
-lemma (in -) word_of_int_int_unat[simp]: \<open>word_of_int (int (unat x)) = x\<close>
-  unfolding unat_def
-  apply transfer
-  by (simp add: bintr_ge0)
-
-lemma (in-) uint32_of_nat_nat_of_uint32[simp]: \<open>uint32_of_nat (nat_of_uint32 x) = x\<close>
-  unfolding uint32_of_nat_def
-  by transfer auto
-(*End Move*)
 
 definition (in -)map_uint32_of_lit where
   \<open>map_uint32_of_lit = map (uint32_of_nat)\<close>
@@ -1398,12 +1388,6 @@ proof -
     list_assn  clause_l_assn clauses_l_assn
     by simp
 qed
-
-
-(* TODO Move *)
-lemma fold_cons_replicate: \<open>fold (\<lambda>_ xs. a # xs) [0..<n] xs = replicate n a @ xs\<close>
-  by (induction n) auto
-(* END Move *)
 
 
 text \<open>It is not possible to discharge assumption of the rule directly, but here, it works. This avoids

@@ -212,6 +212,9 @@ abbreviation literals_are_N\<^sub>0 where
 definition literals_are_in_N\<^sub>0 :: \<open>nat clause \<Rightarrow> bool\<close> where
   \<open>literals_are_in_N\<^sub>0 C \<longleftrightarrow> set_mset (all_lits_of_m C) \<subseteq> set_mset N\<^sub>1\<close>
 
+lemma literals_are_in_N\<^sub>0_empty[simp]: \<open>literals_are_in_N\<^sub>0 {#}\<close>
+  by (auto simp: literals_are_in_N\<^sub>0_def)
+
 lemma all_lits_of_m_subset_all_lits_of_mmD:
   \<open>a \<in># b \<Longrightarrow> set_mset (all_lits_of_m a) \<subseteq> set_mset (all_lits_of_mm b)\<close>
   by (auto simp: all_lits_of_m_def all_lits_of_mm_def)
@@ -234,6 +237,25 @@ qed
 
 lemma in_N\<^sub>1_atm_of_in_atms_of_iff: \<open>x \<in># N\<^sub>1 \<longleftrightarrow> atm_of x \<in> atms_of N\<^sub>1\<close>
   by (cases x) (auto simp: N\<^sub>1_def atms_of_def atm_of_eq_atm_of image_Un image_image)
+
+definition literals_are_in_N\<^sub>0_mm :: \<open>nat clauses \<Rightarrow> bool\<close> where
+  \<open>literals_are_in_N\<^sub>0_mm C \<longleftrightarrow> set_mset (all_lits_of_mm C) \<subseteq> set_mset N\<^sub>1\<close>
+
+lemma literals_are_in_N\<^sub>0_mm_in_N\<^sub>1:
+  assumes
+    N1: \<open>literals_are_in_N\<^sub>0_mm (mset `# mset xs)\<close> and
+    i_xs: \<open>i < length xs\<close> and j_xs: \<open>j < length (xs ! i)\<close>
+  shows \<open>xs ! i ! j \<in># N\<^sub>1\<close>
+proof -
+  have \<open>xs ! i \<in># mset xs\<close>
+    using i_xs by auto
+  thm in_all_lits_of_m_ain_atms_of_iff
+  then have \<open>xs ! i ! j \<in> set_mset (all_lits_of_mm (mset `# mset xs))\<close>
+    using j_xs by (auto simp: in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def Bex_def
+      intro!: exI[of _ \<open>xs ! i\<close>])
+  then show ?thesis
+    using N1 unfolding literals_are_in_N\<^sub>0_mm_def by blast
+qed
 
 abbreviation D\<^sub>0 :: \<open>(nat \<times> nat literal) set\<close> where
   \<open>D\<^sub>0 \<equiv> (\<lambda>L. (nat_of_lit L, L)) ` set_mset N\<^sub>1\<close>

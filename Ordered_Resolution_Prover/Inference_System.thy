@@ -1,31 +1,32 @@
 (*  Title:       Refutational Inference Systems
-    Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
+    Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2014, 2017
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
-    Maintainer:  Anders Schlichtkrull
+    Author:      Anders Schlichtkrull <andschl at dtu.dk>, 2017
+    Maintainer:  Anders Schlichtkrull <andschl at dtu.dk>
 *)
 
-section {* Refutational Inference Systems *}
+section \<open>Refutational Inference Systems\<close>
 
 theory Inference_System
-imports "../lib/Herbrand_Interpretation"
+  imports "../lib/Herbrand_Interpretation"
 begin
 
-text {*
+text \<open>
 This theory gathers results from Section 2.4 (``Refutational Theorem Proving''), 3 (``Standard
 Resolution''), and 4.2 (``Counterexample-Reducing Inference Systems'') of Bachmair and Ganzinger's
 chapter.
-*}
+\<close>
 
 
-subsection {* Preliminaries *}
+subsection \<open>Preliminaries\<close>
 
-text {*
+text \<open>
 Inferences have one distinguished main premise, any number of side premises, and a conclusion.
-*}
+\<close>
 
 datatype 'a inference =
   Infer (side_prems_of: "'a clause multiset") (main_prem_of: "'a clause") (concl_of: "'a clause")
-  
+
 abbreviation prems_of :: "'a inference \<Rightarrow> 'a clause multiset" where
   "prems_of \<gamma> \<equiv> side_prems_of \<gamma> + {# main_prem_of \<gamma> #}"
 
@@ -41,7 +42,7 @@ begin
 
 definition inferences_from :: "'a clause set \<Rightarrow> 'a inference set" where
   "inferences_from CC = {\<gamma>. \<gamma> \<in> \<Gamma> \<and> infer_from CC \<gamma>}"
-  
+
 definition inferences_between :: "'a clause set \<Rightarrow> 'a clause \<Rightarrow> 'a inference set" where
   "inferences_between CC C = {\<gamma>. \<gamma> \<in> \<Gamma> \<and> infer_from (CC \<union> {C}) \<gamma> \<and> C \<in># prems_of \<gamma>}"
 
@@ -51,27 +52,28 @@ lemma inferences_from_mono: "CC \<subseteq> DD \<Longrightarrow> inferences_from
 definition saturated :: "'a clause set \<Rightarrow> bool" where
   "saturated N \<longleftrightarrow> concls_of (inferences_from N) \<subseteq> N"
 
+(* FIXME: D was renamed to C. So should the theorem be saturatedC? Or can we come up with an even better name? *)
 lemma saturatedD:
   assumes
     satur: "saturated N" and
-    inf: "Infer DD C E \<in> \<Gamma>" and
-    dd_subs_n: "set_mset DD \<subseteq> N" and
-    c_in_n: "C \<in> N"
+    inf: "Infer CC D E \<in> \<Gamma>" and
+    cc_subs_n: "set_mset CC \<subseteq> N" and
+    d_in_n: "D \<in> N"
   shows "E \<in> N"
 proof -
-  have "Infer DD C E \<in> inferences_from N"
-    unfolding inferences_from_def infer_from_def using inf dd_subs_n c_in_n by simp
-  hence "E \<in> concls_of (inferences_from N)"
+  have "Infer CC D E \<in> inferences_from N"
+    unfolding inferences_from_def infer_from_def using inf cc_subs_n d_in_n by simp
+  then have "E \<in> concls_of (inferences_from N)"
     unfolding image_iff by (metis inference.sel(3))
-  thus "E \<in> N"
+  then show "E \<in> N"
     using satur unfolding saturated_def by blast
 qed
 
 end
 
-text {*
+text \<open>
 Satisfiability preservation is a weaker requirement than soundness.
-*}
+\<close>
 
 locale sat_preserving_inference_system = inference_system +
   assumes \<Gamma>_sat_preserving: "satisfiable N \<Longrightarrow> satisfiable (N \<union> concls_of (inferences_from N))"
@@ -86,15 +88,15 @@ lemma \<Gamma>_sat_preserving:
 proof -
   obtain I where i: "I \<Turnstile>s N"
     using sat_n by blast
-  hence "\<And>CC D E. Infer CC D E \<in> \<Gamma> \<Longrightarrow> set_mset CC \<subseteq> N \<Longrightarrow> D \<in> N \<Longrightarrow> I \<Turnstile> E"
+  then have "\<And>CC D E. Infer CC D E \<in> \<Gamma> \<Longrightarrow> set_mset CC \<subseteq> N \<Longrightarrow> D \<in> N \<Longrightarrow> I \<Turnstile> E"
     using \<Gamma>_sound unfolding true_clss_def true_cls_mset_def by (simp add: subset_eq)
-  hence "\<And>\<gamma>. \<gamma> \<in> \<Gamma> \<Longrightarrow> infer_from N \<gamma> \<Longrightarrow> I \<Turnstile> concl_of \<gamma>"
+  then have "\<And>\<gamma>. \<gamma> \<in> \<Gamma> \<Longrightarrow> infer_from N \<gamma> \<Longrightarrow> I \<Turnstile> concl_of \<gamma>"
     unfolding infer_from_def by (case_tac \<gamma>) clarsimp
-  hence "I \<Turnstile>s concls_of (inferences_from N)"
+  then have "I \<Turnstile>s concls_of (inferences_from N)"
     unfolding inferences_from_def image_def true_clss_def infer_from_def by blast
-  hence "I \<Turnstile>s N \<union> concls_of (inferences_from N)"
+  then have "I \<Turnstile>s N \<union> concls_of (inferences_from N)"
     using i by simp
-  thus ?thesis
+  then show ?thesis
     by blast
 qed
 
@@ -104,12 +106,12 @@ sublocale sat_preserving_inference_system
 end
 
 locale reductive_inference_system = inference_system \<Gamma> for \<Gamma> :: "('a :: wellorder) inference set" +
-  assumes \<Gamma>_reductive: "\<And>\<gamma>. \<gamma> \<in> \<Gamma> \<Longrightarrow> concl_of \<gamma> < main_prem_of \<gamma>"
+  assumes \<Gamma>_reductive: "\<gamma> \<in> \<Gamma> \<Longrightarrow> concl_of \<gamma> < main_prem_of \<gamma>"
 
 
-subsection {* Refutational Completeness *}
+subsection \<open>Refutational Completeness\<close>
 
-text {*
+text \<open>
 Refutational completeness can be established once and for all for counterexample-reducing inference
 systems. The material formalized here draws from both the general framework of Section 4.2 and the
 concrete instances of Section 3.
@@ -118,15 +120,14 @@ concrete instances of Section 3.
 The chapter uses the phrase ``true in $N$'' to mean ``true in $I_N$ and element of $N$.'' This is
 formalized by the condition @{prop "set_mset DD \<subseteq> N \<and> interp N \<Turnstile>m DD"} below.
 \end{nit}
-*}
+\<close>
 
 locale counterex_reducing_inference_system =
   inference_system \<Gamma> for \<Gamma> :: "('a :: wellorder) inference set" +
   fixes INTERP :: "'a clause set \<Rightarrow> 'a interp"
   assumes \<Gamma>_counterex_reducing:
-    "\<And>N. {#} \<notin> N \<Longrightarrow> C \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> C \<Longrightarrow> (\<And>D. D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> C \<le> D) \<Longrightarrow>
-       \<exists>DD E. set_mset DD \<subseteq> N \<and> INTERP N \<Turnstile>m DD \<and> Infer DD C E \<in> \<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E < C"
-    (* Here the side-clauses are D's and the main clauses are C's. This is backwards... *)
+    "{#} \<notin> N \<Longrightarrow> D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> (\<And>C. C \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> C \<Longrightarrow> D \<le> C) \<Longrightarrow>
+     \<exists>CC E. set_mset CC \<subseteq> N \<and> INTERP N \<Turnstile>m CC \<and> Infer CC D E \<in> \<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E < D"
 begin
 
 lemma ex_min_counterex:
@@ -136,7 +137,7 @@ lemma ex_min_counterex:
 proof -
   obtain C where "C \<in> N" and "\<not> I \<Turnstile> C"
     using assms unfolding true_clss_def by auto
-  hence c_in: "C \<in> {C \<in> N. \<not> I \<Turnstile> C}"
+  then have c_in: "C \<in> {C \<in> N. \<not> I \<Turnstile> C}"
     by blast
   show ?thesis
     using wf_eq_minimal[THEN iffD1, rule_format, OF wf_less_multiset c_in] by blast
@@ -153,43 +154,45 @@ proof -
   have ec_ni_n: "{#} \<notin> N"
     using ec_ni_n by auto
 
-  { assume "\<not> INTERP N \<Turnstile>s N"
-    then obtain C where
-      c_in_n: "C \<in> N" and
-      c_cex: "\<not> INTERP N \<Turnstile> C" and
-      c_min: "\<And>D. D \<in> N \<Longrightarrow> D < C \<Longrightarrow> INTERP N \<Turnstile> D"
+  {
+    assume "\<not> INTERP N \<Turnstile>s N"
+    then obtain D where
+      d_in_n: "D \<in> N" and
+      d_cex: "\<not> INTERP N \<Turnstile> D" and
+      d_min: "\<And>C. C \<in> N \<Longrightarrow> C < D \<Longrightarrow> INTERP N \<Turnstile> C"
       using ex_min_counterex by meson
-    then obtain DD E where
-      dd_subs_n: "set_mset DD \<subseteq> N" and
-      inf_e: "Infer DD C E \<in> \<Gamma>" and
+    then obtain CC E where
+      cc_subs_n: "set_mset CC \<subseteq> N" and
+      inf_e: "Infer CC D E \<in> \<Gamma>" and
       e_cex: "\<not> INTERP N \<Turnstile> E" and
-      e_lt_c: "E < C"
+      e_lt_d: "E < D"
       using \<Gamma>_counterex_reducing[OF ec_ni_n] not_less by metis
-    from dd_subs_n inf_e have "E \<in> N"
-      using c_in_n satur by (blast dest: saturatedD)
-    hence False
-      using e_cex e_lt_c c_min not_less by blast }
-  thus ?thesis
+    from cc_subs_n inf_e have "E \<in> N"
+      using d_in_n satur by (blast dest: saturatedD)
+    then have False
+      using e_cex e_lt_d d_min not_less by blast
+  }
+  then show ?thesis
     by satx
 qed
 
-text {*
+text \<open>
 Cf. Corollary 3.10:
-*}
+\<close>
 
 corollary saturated_refute_complete: "saturated N \<Longrightarrow> \<not> satisfiable N \<Longrightarrow> {#} \<in> N"
-  by (metis saturated_no_empty_imp_model)
+  using saturated_no_empty_imp_model by blast
 
 end
 
 
-subsection {* Compactness *}
+subsection \<open>Compactness\<close>
 
-text {*
+text \<open>
 Bachmair and Ganzinger claim that compactness follows from refutational completeness but leave the
 proof to the readers' imagination. Our proof relies on an inductive definition of saturation in
 terms of a base set of clauses.
-*}
+\<close>
 
 context inference_system
 begin
@@ -209,19 +212,19 @@ lemma saturated_saturate[simp, intro]: "saturated (saturate N)"
 lemma saturate_imp_finite_subset: "C \<in> saturate CC \<Longrightarrow> \<exists>DD. DD \<subseteq> CC \<and> finite DD \<and> C \<in> saturate DD"
 proof (induct rule: saturate.induct)
   case (base C)
-  hence "{C} \<subseteq> CC" and "finite {C}" and "C \<in> saturate {C}"
+  then have "{C} \<subseteq> CC" and "finite {C}" and "C \<in> saturate {C}"
     by (auto intro: saturate.intros)
-  thus ?case
+  then show ?case
     by blast
 next
   case (step CC' D E)
   obtain DD_of where
     "\<And>C. C \<in># CC' \<Longrightarrow> DD_of C \<subseteq> CC \<and> finite (DD_of C) \<and> C \<in> saturate (DD_of C)"
     using step(3) by metis
-  hence "(\<Union>C \<in> set_mset CC'. DD_of C) \<subseteq> CC \<and>
+  then have "(\<Union>C \<in> set_mset CC'. DD_of C) \<subseteq> CC \<and>
     finite (\<Union>C \<in> set_mset CC'. DD_of C) \<and> set_mset CC' \<subseteq> saturate (\<Union>C \<in> set_mset CC'. DD_of C)"
     by (auto intro: saturate_mono)
-  hence "\<exists>DD \<subseteq> CC. finite DD \<and> set_mset CC' \<subseteq> saturate DD" ..
+  then have "\<exists>DD \<subseteq> CC. finite DD \<and> set_mset CC' \<subseteq> saturate DD" ..
   then obtain DD where
     d_sub: "DD \<subseteq> CC" and d_fin: "finite DD" and in_sat_d: "set_mset CC' \<subseteq> saturate DD"
     by blast
@@ -237,11 +240,11 @@ next
     obtain C_of where
       c_of: "\<And>CC DD :: 'a clause set. \<not> CC \<subseteq> DD \<longrightarrow> C_of CC DD \<in> CC \<and> C_of CC DD \<notin> DD"
       by (metis subsetI)
-    hence c_of': "\<And>CC DD EE. C_of CC (DD \<union> EE) \<in> DD \<longrightarrow> CC \<subseteq> DD \<union> EE"
+    then have c_of': "\<And>CC DD EE. C_of CC (DD \<union> EE) \<in> DD \<longrightarrow> CC \<subseteq> DD \<union> EE"
       by (meson Un_iff)
-    hence "D \<in> saturate (DD \<union> EE)"
+    then have "D \<in> saturate (DD \<union> EE)"
       using c_of by (metis in_sat_ee saturate_mono sup_commute)
-    thus ?thesis
+    then show ?thesis
       using c_of' c_of in_sat_d step.hyps(1)
       by (meson saturated_saturate saturate_mono saturatedD subsetCE)
   qed
@@ -262,11 +265,12 @@ end
 context sat_preserving_inference_system
 begin
 
-text {*
+text \<open>
 This result surely holds, but we have yet to prove it.
-*}
+\<close>
 
 theorem saturate_sat_preserving: "satisfiable CC \<Longrightarrow> satisfiable (saturate CC)"
+  thm saturate.induct
   oops
 
 end
@@ -275,12 +279,12 @@ locale sound_counterex_reducing_inference_system =
   counterex_reducing_inference_system + sound_inference_system
 begin
 
-text {*
+text \<open>
 Compactness of clausal logic is stated as Theorem 3.12 for the case of unordered ground resolution.
 The proof below is a generalization to any sound counterexample-reducing inference system. The
 actual theorem will become available once the locale has been instantiated with a concrete inference
 system.
-*}
+\<close>
 
 theorem clausal_logic_compact:
   fixes N :: "('a :: wellorder) clause set"
@@ -297,12 +301,12 @@ proof
       using saturate_imp_finite_subset by meson
     from ec_in_satur have "\<not> satisfiable DD"
       by (auto dest: saturate_sound)
-    thus ?thesis
+    then show ?thesis
       using subs fin by blast
   qed
 next
   assume "\<exists>DD. DD \<subseteq> N \<and> finite DD \<and> \<not> satisfiable DD"
-  thus "\<not> satisfiable N"
+  then show "\<not> satisfiable N"
     by (blast intro: true_clss_mono)
 qed
 

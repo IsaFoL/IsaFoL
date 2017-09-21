@@ -1,19 +1,20 @@
 (*  Title:       The Standard Redundancy Criterion
-    Author:      Jasmin Blanchette <jasmin.blanchette at inria.fr>, 2014
+    Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2014, 2017
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
-    Maintainer:  Anders Schlichtkrull 2017
+    Author:      Anders Schlichtkrull <andschl at dtu.dk>, 2017
+    Maintainer:  Anders Schlichtkrull <andschl at dtu.dk>
 *)
 
-section {* The Standard Redundancy Criterion *}
+section \<open>The Standard Redundancy Criterion\<close>
 
 theory Standard_Redundancy
-imports Proving_Process
+  imports Proving_Process
 begin
 
-text {*
+text \<open>
 This material is based on Section 4.2.2 (``The Standard Redundancy Criterion'') of Bachmair and
 Ganzinger's chapter.
-*}
+\<close>
 
 locale standard_redundancy_criterion = counterex_reducing_inference_system
 begin
@@ -28,7 +29,7 @@ definition Rf :: "'a clause set \<Rightarrow> 'a clause set" where
 
 definition Ri :: "'a clause set \<Rightarrow> 'a inference set" where
   "Ri N = {\<gamma> \<in> \<Gamma>. redundant_infer N \<gamma>}"
-  
+
 lemma tautology_redundant:
   assumes "Pos A \<in># C"
   assumes "Neg A \<in># C"
@@ -36,14 +37,14 @@ lemma tautology_redundant:
 proof -
   have "set_mset {#} \<subseteq> N \<and> (\<forall>I. I \<Turnstile>m {#} \<longrightarrow> I \<Turnstile> C) \<and> (\<forall>D. D \<in># {#} \<longrightarrow> D < C)"
     using assms by auto
-  then show "C \<in> Rf N" 
+  then show "C \<in> Rf N"
     unfolding Rf_def by blast
 qed
 
-text {*
+text \<open>
 The following results correspond to Lemma 4.5. The lemma @{text assume_non_Rf} generalizes the core
 of the argument.
-*}
+\<close>
 
 lemma Rf_mono: "N \<subseteq> N' \<Longrightarrow> Rf N \<subseteq> Rf N'"
   unfolding Rf_def by auto
@@ -78,10 +79,10 @@ proof -
       unfolding Rf_def by blast
     define DD where  DD_def: "DD = CC - {#D#} + CC'"
     have "set_mset DD \<subseteq> N"
-      unfolding DD_def using cc_subs_n cc'_subs_n 
+      unfolding DD_def using cc_subs_n cc'_subs_n
       by (meson contra_subsetD in_diffD subsetI union_iff)
     moreover have "\<forall>I. I \<Turnstile>m DD + EE \<longrightarrow> I \<Turnstile> E"
-      using cc'_imp_d cc_imp_c d_in_cc unfolding DD_def true_cls_mset_def 
+      using cc'_imp_d cc_imp_c d_in_cc unfolding DD_def true_cls_mset_def
       by (metis in_remove1_mset_neq union_iff)
     moreover have "\<forall>C'. C' \<in># DD \<longrightarrow> C' < C"
       using cc_lt_c cc'_lt_d d_in_cc unfolding DD_def
@@ -96,10 +97,10 @@ proof -
           using cc'_lt_d ex_gt_imp_less_multiset unfolding Bex_def  by (metis multi_member_last)
       qed
     ultimately show False
-      using c_min antisym[of "_ :: 'a literal multiset multiset"] 
+      using c_min antisym[of "_ :: 'a literal multiset multiset"]
       unfolding less_eq_multiset_def by blast
   qed
-  thus ?thesis
+  then show ?thesis
     using cc_subs_n cc_imp_c cc_lt_c by auto
 qed
 
@@ -122,21 +123,21 @@ proof
     using Rf_imp_ex_non_Rf by blast
   have "\<forall>D. D \<in># CC \<longrightarrow> D \<notin> Rf N"
     using cc_subs by (simp add: subset_iff)
-  hence cc_nr:
+  then have cc_nr:
     "\<And>C DD. C \<in># CC \<Longrightarrow> set_mset DD \<subseteq> N \<Longrightarrow> \<forall>I. I \<Turnstile>m DD \<longrightarrow> I \<Turnstile> C \<Longrightarrow> \<exists>D. D \<in># DD \<and> ~ D < C"
       unfolding Rf_def by auto metis
   have "set_mset CC \<subseteq> N"
     using cc_subs by auto
-  hence "set_mset CC \<subseteq> N - {C. \<exists>DD. set_mset DD \<subseteq> N \<and> (\<forall>I. I \<Turnstile>m DD \<longrightarrow> I \<Turnstile> C) \<and> (\<forall>D. D \<in># DD \<longrightarrow> D < C)}"
+  then have "set_mset CC \<subseteq> N - {C. \<exists>DD. set_mset DD \<subseteq> N \<and> (\<forall>I. I \<Turnstile>m DD \<longrightarrow> I \<Turnstile> C) \<and> (\<forall>D. D \<in># DD \<longrightarrow> D < C)}"
     using cc_nr by auto
-  thus "C \<in> Rf (N - Rf N)"
+  then show "C \<in> Rf (N - Rf N)"
     using cc_imp_c cc_lt_c unfolding Rf_def by auto
 qed
 
 lemma Rf_eq_Rf_diff_Rf: "Rf N = Rf (N - Rf N)"
   by (metis Diff_subset Rf_mono Rf_subs_Rf_diff_Rf subset_antisym)
 
-text {*
+text \<open>
 The following results correspond to Lemma 4.6.
 
 \begin{nit}
@@ -144,7 +145,7 @@ Lemma 4.6 does not seem to be derivable from Lemma 4.5, unlike what the chapter 
 appears necessary to generalize the argument of Lemma 4.5 (cf.\ the @{thm [source] assume_non_Rf}
 lemma).
 \end{nit}
-*}
+\<close>
 
 lemma Ri_mono: "N \<subseteq> N' \<Longrightarrow> Ri N \<subseteq> Ri N'"
   unfolding Ri_def by auto
@@ -153,29 +154,29 @@ lemma Ri_subs_Ri_diff_Rf: "Ri N \<subseteq> Ri (N - Rf N)"
 proof
   fix \<gamma>
   assume \<gamma>_ri: "\<gamma> \<in> Ri N"
-  then obtain CC C D where \<gamma>: "\<gamma> = Infer CC C D"
+  then obtain CC D E where \<gamma>: "\<gamma> = Infer CC D E"
     by (cases \<gamma>)
-  have cc: "CC = side_prems_of \<gamma>" and c: "C = main_prem_of \<gamma>" and d: "D = concl_of \<gamma>"
+  have cc: "CC = side_prems_of \<gamma>" and d: "D = main_prem_of \<gamma>" and e: "E = concl_of \<gamma>"
     unfolding \<gamma> by simp_all
   obtain DD where
-    "set_mset DD \<subseteq> N" and "\<forall>I. I \<Turnstile>m DD + CC \<longrightarrow> I \<Turnstile> D" and "\<forall>D. D \<in># DD \<longrightarrow> D < C"
-    using \<gamma>_ri unfolding Ri_def cc c d by blast
+    "set_mset DD \<subseteq> N" and "\<forall>I. I \<Turnstile>m DD + CC \<longrightarrow> I \<Turnstile> E" and "\<forall>C. C \<in># DD \<longrightarrow> C < D"
+    using \<gamma>_ri unfolding Ri_def cc d e by blast
   then obtain DD' where
-    "set_mset DD' \<subseteq> N - Rf N" and "\<forall>I. I \<Turnstile>m DD' + CC \<longrightarrow> I \<Turnstile> D" and "\<forall>D'. D' \<in># DD' \<longrightarrow> D' < C"
+    "set_mset DD' \<subseteq> N - Rf N" and "\<forall>I. I \<Turnstile>m DD' + CC \<longrightarrow> I \<Turnstile> E" and "\<forall>D'. D' \<in># DD' \<longrightarrow> D' < D"
     using assume_non_Rf by atomize_elim blast
-  thus "\<gamma> \<in> Ri (N - Rf N)"
-    using \<gamma>_ri unfolding Ri_def c cc d by blast
+  then show "\<gamma> \<in> Ri (N - Rf N)"
+    using \<gamma>_ri unfolding Ri_def d cc e by blast
 qed
 
 lemma Ri_eq_Ri_diff_Rf: "Ri N = Ri (N - Rf N)"
   by (metis Diff_subset Ri_mono Ri_subs_Ri_diff_Rf subset_antisym)
-  
+
 lemma Ri_subset_\<Gamma>: "Ri N \<subseteq> \<Gamma>"
   unfolding Ri_def by blast
 
 lemma Rf_indep: "N' \<subseteq> Rf N \<Longrightarrow> Rf N \<subseteq> Rf (N - N')"
   by (metis Diff_cancel Diff_eq_empty_iff Diff_mono Rf_eq_Rf_diff_Rf Rf_mono)
-  
+
 lemma Ri_indep: "N' \<subseteq> Rf N \<Longrightarrow> Ri N \<subseteq> Ri (N - N')"
   by (metis Diff_mono Ri_eq_Ri_diff_Rf Ri_mono order_refl)
 
@@ -186,29 +187,29 @@ proof -
   have "I \<Turnstile>s Rf (N - Rf N)"
     unfolding true_clss_def
     by (subst Rf_def) (auto, metis assms subset_eq true_cls_mset_def true_clss_def)
-  hence "I \<Turnstile>s Rf N"
+  then have "I \<Turnstile>s Rf N"
     using Rf_subs_Rf_diff_Rf true_clss_mono by blast
-  thus ?thesis
+  then show ?thesis
     using assms by (metis Un_Diff_cancel true_clss_union)
 qed
 
 lemma Rf_sat: "satisfiable (N - Rf N) \<Longrightarrow> satisfiable N"
   by (metis Rf_true)
 
-text {*
+text \<open>
 The following corresponds to Theorem 4.7:
-*}
+\<close>
 
 sublocale redundancy_criterion \<Gamma> Rf Ri
   by unfold_locales (rule Ri_subset_\<Gamma>, (elim Rf_mono Ri_mono Rf_indep Ri_indep Rf_sat)+)
 
-text {*
+text \<open>
 The following result corresponds to Theorem 4.9. (The ``if'' direction is omitted because trivial.)
 
 \begin{nit}
 The invocation of Lemma 4.5 does not fit. What is needed is a generalized version of Lemma 4.6.
 \end{nit}
-*}
+\<close>
 
 theorem saturated_upto_refute_complete:
   assumes
@@ -217,47 +218,47 @@ theorem saturated_upto_refute_complete:
   shows "{#} \<in> N"
 proof (rule ccontr)
   assume ec_ni_n: "{#} \<notin> N"
-  def M \<equiv> "N - Rf N"
+  define M where "M = N - Rf N"
   have ec_ni_m: "{#} \<notin> M"
     unfolding M_def using ec_ni_n by fast
   have "INTERP M \<Turnstile>s M"
   proof (rule ccontr)
     assume "\<not> INTERP M \<Turnstile>s M"
-    then obtain C where
-      c_in_m: "C \<in> M" and
-      c_cex: "\<not> INTERP M \<Turnstile> C" and
-      c_min: "\<And>D. D \<in> M \<Longrightarrow> D < C \<Longrightarrow> INTERP M \<Turnstile> D"
+    then obtain D where
+      d_in_m: "D \<in> M" and
+      d_cex: "\<not> INTERP M \<Turnstile> D" and
+      d_min: "\<And>C. C \<in> M \<Longrightarrow> C < D \<Longrightarrow> INTERP M \<Turnstile> C"
       using ex_min_counterex by meson
-    then obtain \<gamma> CC D where
-      \<gamma>: "\<gamma> = Infer CC C D" and
+    then obtain \<gamma> CC E where
+      \<gamma>: "\<gamma> = Infer CC D E" and
       cc_subs_m: "set_mset CC \<subseteq> M" and
       cc_true: "INTERP M \<Turnstile>m CC" and
       \<gamma>_in: "\<gamma> \<in> \<Gamma>" and
-      d_cex: "\<not> INTERP M \<Turnstile> D" and
-      d_lt_c: "D < C"
+      e_cex: "\<not> INTERP M \<Turnstile> E" and
+      e_lt_d: "E < D"
       using \<Gamma>_counterex_reducing[OF ec_ni_m] not_less by metis
-    have cc: "CC = side_prems_of \<gamma>" and c: "C = main_prem_of \<gamma>" and d: "D = concl_of \<gamma>"
+    have cc: "CC = side_prems_of \<gamma>" and c: "D = main_prem_of \<gamma>" and d: "E = concl_of \<gamma>"
       unfolding \<gamma> by simp_all
     have "\<gamma> \<in> Ri N"
       by (rule set_mp[OF satur[unfolded saturated_upto_def inferences_from_def infer_from_def]])
-        (simp add: \<gamma>_in c_in_m cc_subs_m cc[symmetric] c[symmetric] d[symmetric] M_def[symmetric])
-    hence "\<gamma> \<in> Ri M"
+        (simp add: \<gamma>_in d_in_m cc_subs_m cc[symmetric] c[symmetric] d[symmetric] M_def[symmetric])
+    then have "\<gamma> \<in> Ri M"
       unfolding M_def using Ri_subs_Ri_diff_Rf by fast
     then obtain DD where
       dd_subs_m: "set_mset DD \<subseteq> M" and
-      dd_cc_imp_d: "\<forall>I. I \<Turnstile>m DD + CC \<longrightarrow> I \<Turnstile> D" and
-      dd_lt_c: "\<forall>D. D \<in># DD \<longrightarrow> D < C"
+      dd_cc_imp_d: "\<forall>I. I \<Turnstile>m DD + CC \<longrightarrow> I \<Turnstile> E" and
+      dd_lt_d: "\<forall>C. C \<in># DD \<longrightarrow> C < D"
       unfolding Ri_def cc c d by blast
-    from dd_subs_m dd_lt_c have "INTERP M \<Turnstile>m DD"
-      using c_min unfolding true_cls_mset_def by (metis contra_subsetD)
-    hence "INTERP M \<Turnstile> D"
+    from dd_subs_m dd_lt_d have "INTERP M \<Turnstile>m DD"
+      using d_min unfolding true_cls_mset_def by (metis contra_subsetD)
+    then have "INTERP M \<Turnstile> E"
       using dd_cc_imp_d cc_true by auto
-    thus False
-      using d_cex by auto
+    then show False
+      using e_cex by auto
   qed
-  hence "INTERP M \<Turnstile>s N"
+  then have "INTERP M \<Turnstile>s N"
     using M_def Rf_true by blast
-  thus False
+  then show False
     using unsat by blast
 qed
 
@@ -269,31 +270,34 @@ locale standard_redundancy_criterion_reductive =
   standard_redundancy_criterion + reductive_inference_system
 begin
 
-text {*
+text \<open>
 The following corresponds to Theorem 4.8:
-*}
+\<close>
 
 sublocale effective_redundancy_criterion \<Gamma> Rf Ri
 unfolding effective_redundancy_criterion_def
 proof (intro conjI redudancy_criterion, unfold_locales)
   fix \<gamma> N
   assume in_\<gamma>: "\<gamma> \<in> \<Gamma>" and concl_of_in_n_un_rf_n: "concl_of \<gamma> \<in> N \<union> Rf N"
-  obtain CC D E where \<gamma>: "\<gamma> = Infer CC D E"  
+  obtain CC D E where \<gamma>: "\<gamma> = Infer CC D E"
     by (cases \<gamma>)
-  hence cc: "CC = side_prems_of \<gamma>" and d: "D = main_prem_of \<gamma>" and e: "E = concl_of \<gamma>"
+  then have cc: "CC = side_prems_of \<gamma>" and d: "D = main_prem_of \<gamma>" and e: "E = concl_of \<gamma>"
     unfolding \<gamma> by simp_all
   note e_in_n_un_rf_n = concl_of_in_n_un_rf_n[folded e]
 
-  { assume "E \<in> N"
+  {
+    assume "E \<in> N"
     moreover have "E < D"
       using \<Gamma>_reductive e d in_\<gamma> by auto
     ultimately have
       "set_mset {#E#} \<subseteq> N" and "\<forall>I. I \<Turnstile>m {#E#} + CC \<longrightarrow> I \<Turnstile> E" and "\<forall>D'. D' \<in># {#E#} \<longrightarrow> D' < D"
       by simp_all
-    hence "redundant_infer N \<gamma>"
-      using cc d e by blast }
+    then have "redundant_infer N \<gamma>"
+      using cc d e by blast
+  }
   moreover
-  { assume "E \<in> Rf N"
+  {
+    assume "E \<in> Rf N"
     then obtain DD where
       dd_sset: "set_mset DD \<subseteq> N" and
       dd_imp_e: "\<forall>I. I \<Turnstile>m DD \<longrightarrow> I \<Turnstile> E" and
@@ -301,8 +305,9 @@ proof (intro conjI redudancy_criterion, unfold_locales)
       unfolding Rf_def by blast
     from dd_lt_e have "\<forall>Da. Da \<in># DD \<longrightarrow> Da < D"
       using d e in_\<gamma> \<Gamma>_reductive less_trans by blast
-    hence "redundant_infer N \<gamma>"
-      using dd_sset dd_imp_e cc d e by blast }
+    then have "redundant_infer N \<gamma>"
+      using dd_sset dd_imp_e cc d e by blast
+  }
   ultimately show "\<gamma> \<in> Ri N"
     using in_\<gamma> e_in_n_un_rf_n unfolding Ri_def by blast
 qed

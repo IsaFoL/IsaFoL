@@ -48,12 +48,12 @@ fun isar_skeleton ctxt aim (fixes, assms, shows) =
     val kw_goal = keyword_goal aim
     val fixes_s = if null fixes then NONE
       else SOME (kw_fix ^ space_implode " and "
-        (map (fn (v, T) => v ^ " :: " ^ quote (Syntax.string_of_typ ctxt T)) fixes));
+        (map (fn (v, T) => v ^ " :: " ^ cartouche (Syntax.string_of_typ ctxt T)) fixes));
     val (_, ctxt') = Variable.add_fixes (map fst fixes) ctxt; 
     val assumes_s = if null assms then NONE
       else SOME (kw_assume ^ space_implode_with_line_break
-        (map (quote o Syntax.string_of_term ctxt') assms))
-    val shows_s = (kw_goal ^ (quote o Syntax.string_of_term ctxt') shows)
+        (map (cartouche o Syntax.string_of_term ctxt') assms))
+    val shows_s = (kw_goal ^ (cartouche o Syntax.string_of_term ctxt') shows)
     val s = 
       (case aim of
         HAVE_IF =>  (map_filter I [fixes_s], map_filter I [assumes_s], shows_s)

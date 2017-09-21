@@ -252,7 +252,6 @@ proof -
     done
 qed
 
-
 definition append_el_aa :: "('a::{default,heap} array_list) array \<Rightarrow>
   nat \<Rightarrow> 'a \<Rightarrow> ('a array_list) array Heap"where
 "append_el_aa \<equiv> \<lambda>a i x. do {
