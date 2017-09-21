@@ -7344,14 +7344,85 @@ proof -
     using pre ..
 qed
 
-lemma conflict_to_conflict_with_cls_code_id[sepref_fr_rules]:
-  \<open>(conflict_to_conflict_with_cls_code, RETURN \<circ> conflict_to_conflict_with_cls_spec)
-      \<in> [\<lambda>x. x \<noteq> None \<and> literals_are_in_N\<^sub>0 (the x)]\<^sub>a
-       conflict_option_assn\<^sup>d \<rightarrow> conflict_with_cls_assn\<close>
-  using conflict_to_conflict_with_cls_code_refine[unfolded PR_CONST_def,
-      FCOMP conflict_to_conflict_with_cls_id]
-  unfolding conflict_with_cls_assn_def conflict_option_assn_def conflict_to_conflict_with_cls_spec_def
-  by auto
+thm propgate_bt_wl_D_def
+
+definition propgate_bt_wl_D_int 
+  :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_int \<Rightarrow> twl_st_wl_int nres\<close> where
+  \<open>propgate_bt_wl_D_int = (\<lambda>L L' (M, N, U, D, Q, W, vm, \<phi>). do {
+      (D'', C) \<leftarrow> list_of_mset2_None (- L) L' D;
+      RETURN (Propagated (- L) (length N) # M, N @ [D''], U, C, {#L#}, 
+        W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [length N], nat_of_lit L' := W!nat_of_lit L' @ [length N]], vm, \<phi>)
+    })\<close>
+
+definition st_remove_highest_lvl_from_confl :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl\<close> where
+   \<open>st_remove_highest_lvl_from_confl S = S\<close>
+
+definition st_remove_highest_lvl_from_confl_int :: \<open>twl_st_wl_confl_extracted_int \<Rightarrow> twl_st_wl_int_conflict\<close> where
+  \<open>st_remove_highest_lvl_from_confl_int = (\<lambda>(M, N, U, (D, _), oth). (M, N, U, D, oth))\<close>
+
+
+type_synonym (in -) twl_st_wl_W_int =
+  \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times> nat \<times>
+    nat clause option \<times> nat clauses \<times> nat clauses \<times> nat clause \<times> (nat literal \<Rightarrow> nat list)\<close>
+
+(*
+(((nat literal, nat literal, nat) annotated_lit list \<times>
+     nat literal list list \<times>
+     nat \<times>
+     (bool \<times> nat \<times> bool option list) \<times>
+     nat literal multiset \<times>
+     nat list list \<times>
+     ((nat al_vmtf_atm list \<times>
+       nat \<times> nat option \<times> nat option) \<times>
+      nat list) \<times>
+     bool list) \<times>
+
+(nat literal, nat literal, nat) annotated_lit list \<times>
+    nat literal list list \<times>
+    nat \<times>
+    nat literal multiset option \<times>
+    nat literal multiset multiset \<times>
+    nat literal multiset multiset \<times>
+    nat literal multiset \<times> (nat literal \<Rightarrow> nat list)) set
+  *)
+typ twl_st_wl_int_conflict
+typ twl_st_wl_W_int
+definition twl_st_wl_W_conflict :: \<open>(twl_st_wl_int_conflict \<times> twl_st_wl_W_int) set\<close>where
+  \<open>twl_st_wl_W_conflict =
+   {((M', N', U', D', Q', W', vm, \<phi>), M, N, U, D, NP, UP, Q, W).
+     M = M' \<and>
+     N' = N \<and>
+     U' = U \<and>
+     (D', D) \<in> option_conflict_rel \<and>
+     Q' = Q \<and>
+     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
+     vm \<in> vmtf_imp M \<and> phase_saving \<phi> \<and> no_dup M}\<close>
+
+lemma st_remove_highest_lvl_from_confl_int_st_remove_highest_lvl_from_confl:
+  \<open>(RETURN o st_remove_highest_lvl_from_confl_int, RETURN o st_remove_highest_lvl_from_confl) \<in> 
+   [\<lambda>S. True]\<^sub>f (twl_st_ref_confl_extracted2 L O twl_st_ref) \<rightarrow> \<langle>twl_st_wl_W_conflict\<rangle> nres_rel\<close>
+  by (intro frefI nres_relI)
+     (auto simp: st_remove_highest_lvl_from_confl_int_def st_remove_highest_lvl_from_confl_def
+      twl_st_wl_W_conflict_def twl_st_ref_confl_extracted2_def twl_st_ref_def
+      option_conflict_rel_with_cls_with_highest2_def)
+
+(* twl_st_confl_extracted_assn2 *)
+
+
+  term twl_st_wl_int_conflict_rel
+term twl_st_confl_extracted_assn2
+term twl_st_confl_extracted_int_assn
+term  twl_st_assn
+sepref_thm propgate_bt_wl_D
+  is \<open>uncurry2 propgate_bt_wl_D_int\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (hr_comp twl_st_confl_extracted_int_assn (twl_st_ref_confl_extracted2 L))\<^sup>d \<rightarrow>\<^sub>a twl_st_int_assn\<close>
+  supply [[goals_limit = 1]]
+  unfolding propgate_bt_wl_D_int_def
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+                  apply sepref_dbg_trans_step_keep
+                    apply sepref_dbg_side_unfold apply (auto simp: )[] 
+  oops
 
 end
 
