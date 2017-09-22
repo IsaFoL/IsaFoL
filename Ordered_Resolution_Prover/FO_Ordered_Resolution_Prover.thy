@@ -1704,13 +1704,6 @@ proof -
   let ?Ps = "\<lambda>i. P_of_state (lnth Sts i)"
   let ?Qs = "\<lambda>i. Q_of_state (lnth Sts i)"
 
-  define \<Gamma>x :: "'a inference set" where
-    "\<Gamma>x = undefined"
-  define Rf :: "'a clause set \<Rightarrow> 'a clause set" where
-    "Rf = standard_redundancy_criterion.Rf"
-  define derive :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" where
-    "derive = redundancy_criterion.derive \<Gamma>x Rf"
-
   have SQinf: "clss_of_state (limit_state Sts) = limit_llist (lmap Q_of_state Sts)"
     using fair unfolding fair_state_seq_def limit_state_def clss_of_state_def by auto
 
