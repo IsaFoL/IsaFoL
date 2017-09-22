@@ -498,10 +498,10 @@ lemma subst_cls_lists_nth[simp]:
 
 subsubsection \<open>Substitute on an image\<close>
 
-lemma subst_clss_image[simp]: "image f A \<cdot>cs \<sigma> = {f x \<cdot> \<sigma> | x. x \<in> A }"
+lemma subst_clss_image[simp]: "image f X \<cdot>cs \<sigma> = {f x \<cdot> \<sigma> | x. x \<in> X}"
   unfolding subst_clss_def by auto
 
-lemma subst_cls_mset_image_mset[simp]: "image_mset f A \<cdot>cm \<sigma> = {# f x \<cdot> \<sigma>. x \<in># A #}"
+lemma subst_cls_mset_image_mset[simp]: "image_mset f X \<cdot>cm \<sigma> = {# f x \<cdot> \<sigma>. x \<in># X #}"
   unfolding subst_cls_mset_def by auto
 
 
@@ -546,10 +546,10 @@ subsubsection \<open>Renamings\<close>
 lemma is_renaming_id_subst[simp]: "is_renaming id_subst"
   unfolding is_renaming_def by simp
 
-lemma is_renamingD: "is_renaming \<sigma> \<Longrightarrow> (\<forall>x y. x \<cdot>a \<sigma> = y \<cdot>a \<sigma> \<longleftrightarrow> x = y)"
+lemma is_renamingD: "is_renaming \<sigma> \<Longrightarrow> (\<forall>A1 A2. A1 \<cdot>a \<sigma> = A2 \<cdot>a \<sigma> \<longleftrightarrow> A1 = A2)"
   by (metis is_renaming_def subst_atm_comp_subst subst_atm_id_subst)
 
-lemma "is_renaming \<sigma> \<Longrightarrow> range (\<lambda>x. x \<cdot>a \<sigma>) = UNIV"
+lemma "is_renaming \<sigma> \<Longrightarrow> range (\<lambda>A. A \<cdot>a \<sigma>) = UNIV"
   by (metis subst_atm_comp_subst subst_atm_id_subst substitution_ops.is_renaming_def surj_def)
 
 lemma "is_renaming r1 \<Longrightarrow> is_renaming r2 \<Longrightarrow> \<tau> \<odot> r1 = r2 \<Longrightarrow> is_renaming \<tau>"
@@ -579,10 +579,10 @@ lemma Nil_comp_substs[simp]: "[] \<odot>s s = []"
 lemma comp_substs_Nil[simp]: "s \<odot>s [] = []"
   unfolding comp_substs_def by auto
 
-lemma is_renaming_idempotent_id_subst: "is_renaming x \<Longrightarrow> x \<odot> x = x \<Longrightarrow> x = id_subst"
+lemma is_renaming_idempotent_id_subst: "is_renaming s \<Longrightarrow> s \<odot> s = s \<Longrightarrow> s = id_subst"
   by (metis comp_subst_assoc comp_subst_id_subst inv_ren_cancel_r)
 
-lemma is_renaming_left_id_subst_right_id_subst: "is_renaming x \<Longrightarrow> is_renaming y \<Longrightarrow> x \<odot> y = id_subst \<Longrightarrow> y \<odot> x = id_subst"
+lemma is_renaming_left_id_subst_right_id_subst: "is_renaming r \<Longrightarrow> s \<odot> r = id_subst \<Longrightarrow> r \<odot> s = id_subst"
   by (metis comp_subst_assoc comp_subst_id_subst is_renaming_def)
 
 (* Closure *)

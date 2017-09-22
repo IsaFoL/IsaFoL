@@ -141,7 +141,8 @@ fun subst_inf :: "'a inference \<Rightarrow> 's \<Rightarrow> 'a inference" (inf
 lemma prems_of_subst_inf_subst_cls_mset: "(prems_of (\<gamma> \<cdot>i \<mu>)) = ((prems_of \<gamma>) \<cdot>cm \<mu>)"
   by (induction \<gamma>) auto
 
-lemma infer_from_superset: "infer_from x y \<Longrightarrow> z \<supseteq> x \<Longrightarrow> infer_from z y"
+(* FIXME: move? *)
+lemma infer_from_superset: "infer_from CC \<gamma> \<Longrightarrow> CC' \<supseteq> CC \<Longrightarrow> infer_from CC' \<gamma>"
   by (meson infer_from_def lfp.leq_trans)
 
 lemma strict_subsumption_redundant_clause:

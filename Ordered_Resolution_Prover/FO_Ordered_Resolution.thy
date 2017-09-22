@@ -274,15 +274,15 @@ proof -
   then have true_cp: "\<forall>i. i < length CAi \<longrightarrow> (I \<Turnstile>fo (CAi ! i \<cdot> P ! i))"
     by auto
   {
-    fix x
-    assume "x \<in># mset (CAi \<cdot>\<cdot>cl P)"
-    then have "x \<in> set_mset (mset ((CAi \<cdot>\<cdot>cl P)))"
+    fix CA
+    assume "CA \<in># mset (CAi \<cdot>\<cdot>cl P)"
+    then have "CA \<in> set_mset (mset ((CAi \<cdot>\<cdot>cl P)))"
       by -
-    then have "x \<in> set (CAi \<cdot>\<cdot>cl P)"
+    then have "CA \<in> set (CAi \<cdot>\<cdot>cl P)"
       by auto
-    then obtain i where i_x: "i < length (CAi \<cdot>\<cdot>cl P) \<and> x = (CAi \<cdot>\<cdot>cl P) ! i"
+    then obtain i where i_x: "i < length (CAi \<cdot>\<cdot>cl P) \<and> CA = (CAi \<cdot>\<cdot>cl P) ! i"
       using in_set_conv_nth by metis
-    then have "I \<Turnstile>fo x"
+    then have "I \<Turnstile>fo CA"
       using true_cp unfolding subst_cls_lists_def by (simp add: len)
   }
   then show ?thesis unfolding true_fo_cls_mset_def2 by auto
@@ -379,8 +379,9 @@ lemma (in linorder) multiset_mset_sorted_list_of_multiset[simp]:
 lemma grounding_ground: "C \<in> grounding_of_clss M \<Longrightarrow> is_ground_cls C"
   unfolding grounding_of_clss_def grounding_of_cls_def by auto
 
+(* FIXME: move? *)
 lemma eql_map_neg_lit_eql_atm:
-  assumes "map (\<lambda>x. x \<cdot>l \<eta>) (map Neg Ai') = map Neg Ai"
+  assumes "map (\<lambda>L. L \<cdot>l \<eta>) (map Neg Ai') = map Neg Ai"
   shows "Ai' \<cdot>al \<eta> = Ai"
   using assms
 by (induction Ai' arbitrary: Ai) auto
@@ -392,18 +393,18 @@ proof -
   from assms have negL: "\<forall>L \<in># SDA'. is_neg L"
     using Melem_subst_cls subst_lit_in_negs_is_neg by metis
 
-  from assms(1) have "{#x \<cdot>l \<eta>. x \<in># SDA'#} = mset (map Neg Ai)"
+  from assms(1) have "{#L \<cdot>l \<eta>. L \<in># SDA'#} = mset (map Neg Ai)"
     using subst_cls_def by auto
-  then have "\<exists>NAi'. map (\<lambda>x. x \<cdot>l \<eta>) NAi' = map Neg Ai \<and> mset NAi' = SDA'"
-    using image_mset_of_subset_list[of "\<lambda>x. x \<cdot>l \<eta>" SDA' "map Neg Ai"] by auto
+  then have "\<exists>NAi'. map (\<lambda>L. L \<cdot>l \<eta>) NAi' = map Neg Ai \<and> mset NAi' = SDA'"
+    using image_mset_of_subset_list[of "\<lambda>L. L \<cdot>l \<eta>" SDA' "map Neg Ai"] by auto
   then obtain Ai' where Ai'_p:
-    "map (\<lambda>x. x \<cdot>l \<eta>) (map Neg Ai') = map Neg Ai \<and> mset (map Neg Ai') = SDA'"
+    "map (\<lambda>L. L \<cdot>l \<eta>) (map Neg Ai') = map Neg Ai \<and> mset (map Neg Ai') = SDA'"
     by (metis (no_types, lifting) Neg_atm_of_iff negL ex_map_conv set_mset_mset)
 
   have "negs (mset Ai') = SDA'"
     using Ai'_p by auto
   moreover
-  have "map (\<lambda>x. x \<cdot>l \<eta>) (map Neg Ai') = map Neg Ai"
+  have "map (\<lambda>L. L \<cdot>l \<eta>) (map Neg Ai') = map Neg Ai"
     using Ai'_p by auto
   then have "Ai' \<cdot>al \<eta> = Ai"
     using eql_map_neg_lit_eql_atm by auto
