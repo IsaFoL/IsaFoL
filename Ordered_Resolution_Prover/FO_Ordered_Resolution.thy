@@ -11,7 +11,7 @@ theory FO_Ordered_Resolution
   imports Abstract_Substitution Ordered_Ground_Resolution Standard_Redundancy
 begin
 
-locale FO_resolution = unification subst_atm id_subst comp_subst mk_var_dis mgu 
+locale FO_resolution = unification subst_atm id_subst comp_subst mk_var_dis mgu
   for
     subst_atm :: "'a :: wellorder \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and

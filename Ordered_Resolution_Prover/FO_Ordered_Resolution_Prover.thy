@@ -947,7 +947,7 @@ proof (rule ccontr)
   then have "\<exists>f. \<forall>i. proper_instance_of (f (Suc i)) (f i)"
     by meson
   then show False
-    using proper_instance_of_wf wf_iff_no_infinite_down_chain[of "{(x,y). proper_instance_of x y}"] 
+    using proper_instance_of_wf wf_iff_no_infinite_down_chain[of "{(x,y). proper_instance_of x y}"]
     unfolding wfP_def by auto
 qed
 

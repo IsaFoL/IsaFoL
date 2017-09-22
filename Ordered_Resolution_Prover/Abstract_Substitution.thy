@@ -154,7 +154,7 @@ locale substitution = substitution_ops subst_atm id_subst comp_subst
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: 's and
     comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" +
-  fixes 
+  fixes
 (* FIXME: Come up with a better name? Function gives substitutions that standardize clauses apart. Also rename it in the other locales. *)
     mk_var_dis :: "'a literal multiset list \<Rightarrow> 's list"
   assumes
@@ -857,6 +857,7 @@ lemma is_ground_subst_lit_iff: "is_ground_lit L \<longleftrightarrow> (\<forall>
 
 lemma is_ground_subst_cls_iff: "is_ground_cls C \<longleftrightarrow> (\<forall>\<sigma>. C = C \<cdot> \<sigma>)"
   by (metis ex_ground_subst ground_subst_ground_cls is_ground_subst_cls)
+
 
 paragraph \<open>Members of ground expressions are ground\<close>
 
