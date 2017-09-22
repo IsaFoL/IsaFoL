@@ -7,9 +7,20 @@
 
 section \<open>First-Order Ordered Resolution Calculus with Selection\<close>
 
+text \<open>
+This material is based on Section 4.3 (``A Simple Resolution Prover for First-Order Clauses) of 
+Bachmair and Ganzinger's chapter. Specifically, it formalizes the calculus in Figure 4 called
+Ordered Resolution for First-Order Standard Clauses and its related lemmas and theorems including 
+soundness and Lemma 4.12 (the lifting lemma).
+\<close>
+
 theory FO_Ordered_Resolution
   imports Abstract_Substitution Ordered_Ground_Resolution Standard_Redundancy
 begin
+
+text \<open>
+The following corresponds to to pages 41 and 42 of 4.3, until Figure 5 and its explanation.
+\<close>
 
 locale FO_resolution = unification subst_atm id_subst comp_subst mk_var_dis mgu
   for
@@ -24,6 +35,48 @@ locale FO_resolution = unification subst_atm id_subst comp_subst mk_var_dis mgu
     less_atm_iff: "less_atm A B \<longleftrightarrow> (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> A \<cdot>a \<sigma> < B \<cdot>a \<sigma>)"
 begin
 
+subsection \<open>Library\<close>
+(* FIXME: Where do we want these lemmas? *)
+lemma (in linorder) set_sorted_list_of_multiset[simp]:
+  "set (sorted_list_of_multiset M) = set_mset M"
+  by (induct M) (simp_all add: local.set_insort_key)
+
+lemma (in linorder) multiset_mset_sorted_list_of_multiset[simp]:
+  "mset (sorted_list_of_multiset M) = M"
+  by (induct M) (simp_all add: ac_simps)
+
+(* FIXME: move? *)
+lemma eql_map_neg_lit_eql_atm:
+  assumes "map (\<lambda>L. L \<cdot>l \<eta>) (map Neg Ai') = map Neg Ai"
+  shows "Ai' \<cdot>al \<eta> = Ai"
+  using assms
+by (induction Ai' arbitrary: Ai) auto
+
+lemma instance_list:
+  assumes "negs (mset Ai) = SDA' \<cdot> \<eta>"
+  shows "\<exists>Ai'. negs (mset Ai') = SDA' \<and> Ai' \<cdot>al \<eta> = Ai"
+proof -
+  from assms have negL: "\<forall>L \<in># SDA'. is_neg L"
+    using Melem_subst_cls subst_lit_in_negs_is_neg by metis
+
+  from assms(1) have "{#L \<cdot>l \<eta>. L \<in># SDA'#} = mset (map Neg Ai)"
+    using subst_cls_def by auto
+  then have "\<exists>NAi'. map (\<lambda>L. L \<cdot>l \<eta>) NAi' = map Neg Ai \<and> mset NAi' = SDA'"
+    using image_mset_of_subset_list[of "\<lambda>L. L \<cdot>l \<eta>" SDA' "map Neg Ai"] by auto
+  then obtain Ai' where Ai'_p:
+    "map (\<lambda>L. L \<cdot>l \<eta>) (map Neg Ai') = map Neg Ai \<and> mset (map Neg Ai') = SDA'"
+    by (metis (no_types, lifting) Neg_atm_of_iff negL ex_map_conv set_mset_mset)
+
+  have "negs (mset Ai') = SDA'"
+    using Ai'_p by auto
+  moreover
+  have "map (\<lambda>L. L \<cdot>l \<eta>) (map Neg Ai') = map Neg Ai"
+    using Ai'_p by auto
+  then have "Ai' \<cdot>al \<eta> = Ai"
+    using eql_map_neg_lit_eql_atm by auto
+  ultimately
+  show ?thesis by auto
+qed
 
 subsection \<open>First-order logic\<close>
 
@@ -73,6 +126,10 @@ begin
 
 subsection \<open>Calculus\<close>
 
+text \<open>
+The following corresponds to Figure 4.
+\<close>
+
 definition maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where (* Would "'a \<Rightarrow> 'a set \<Rightarrow> bool" be cleaner?  *)
    "maximal_in A DAs = (\<forall>B \<in> atms_of DAs. \<not> less_atm A B)"
 
@@ -112,6 +169,10 @@ inductive ord_resolve_rename :: "'a clause list \<Rightarrow> 'a clause \<Righta
 
 subsection \<open>Soundness\<close>
 
+text \<open>
+The following is the soundness of the calculus. This is not discussed in the chapter.
+\<close>
+
 lemma ground_prems_ord_resolve_rename_imp_ord_resolve:
   assumes
     gr_cc: "is_ground_cls_list CAi" and
@@ -136,7 +197,12 @@ proof (cases rule: ord_resolve_rename.cases)
     using res_e by auto
 qed
 
-lemma ord_resolve_ground_inst_sound: (* This theorem can be used to prove FO soundness. And it will also be used in 4.10. *)
+text \<open>
+The following lemma is used to prove first-order soundness. It is also used to prove lemma 4.10
+which is a lemma of the completeness theorem.
+\<close>
+
+lemma ord_resolve_ground_inst_sound:
   assumes
     res_e: "ord_resolve CAi DA \<sigma> E"
   assumes
@@ -288,7 +354,11 @@ proof -
   then show ?thesis unfolding true_fo_cls_mset_def2 by auto
 qed
 
-lemma ord_resolve_rename_ground_inst_sound: (* This theorem will be used in 4.11. *)
+text \<open>
+This is a lemma of 4.11
+\<close>
+
+lemma ord_resolve_rename_ground_inst_sound:
   assumes
     res_e: "ord_resolve_rename CAi DA \<sigma> E" and
     \<rho>s: "\<rho>s = tl (mk_var_dis (DA # CAi))" and
@@ -327,6 +397,10 @@ qed
 
 subsection \<open>Lifting\<close>
 
+text \<open>
+The following corresponds to the section between lemmas 4.11 and 4.12
+\<close>
+
 context
   fixes M :: "'a clause set"
   assumes select: "selection S"
@@ -353,7 +427,7 @@ qed
 lemma S_M_not_grounding_of_clss: "C \<notin> grounding_of_clss M \<Longrightarrow> S_M C = S C"
   unfolding S_M_def by simp
 
-lemma S_M_selects_subseteq: "S_M C \<le># C"
+lemma S_M_selects_subseteq: "S_M C \<subseteq># C"
   by (metis S_M_grounding_of_clss S_M_not_grounding_of_clss S_selects_subseteq subst_cls_mono_mset)
 
 lemma S_M_selects_neg_lits: "L \<in># S_M C \<Longrightarrow> is_neg L"
@@ -367,53 +441,6 @@ end
 text \<open>
 The following corresponds to Lemma 4.12:
 \<close>
-
-lemma (in linorder) set_sorted_list_of_multiset[simp]:
-  "set (sorted_list_of_multiset M) = set_mset M"
-  by (induct M) (simp_all add: local.set_insort_key)
-
-lemma (in linorder) multiset_mset_sorted_list_of_multiset[simp]:
-  "mset (sorted_list_of_multiset M) = M"
-  by (induct M) (simp_all add: ac_simps)
-
-lemma grounding_ground: "C \<in> grounding_of_clss M \<Longrightarrow> is_ground_cls C"
-  unfolding grounding_of_clss_def grounding_of_cls_def by auto
-
-(* FIXME: move? *)
-lemma eql_map_neg_lit_eql_atm:
-  assumes "map (\<lambda>L. L \<cdot>l \<eta>) (map Neg Ai') = map Neg Ai"
-  shows "Ai' \<cdot>al \<eta> = Ai"
-  using assms
-by (induction Ai' arbitrary: Ai) auto
-
-lemma instance_list:
-  assumes "negs (mset Ai) = SDA' \<cdot> \<eta>"
-  shows "\<exists>Ai'. negs (mset Ai') = SDA' \<and> Ai' \<cdot>al \<eta> = Ai"
-proof -
-  from assms have negL: "\<forall>L \<in># SDA'. is_neg L"
-    using Melem_subst_cls subst_lit_in_negs_is_neg by metis
-
-  from assms(1) have "{#L \<cdot>l \<eta>. L \<in># SDA'#} = mset (map Neg Ai)"
-    using subst_cls_def by auto
-  then have "\<exists>NAi'. map (\<lambda>L. L \<cdot>l \<eta>) NAi' = map Neg Ai \<and> mset NAi' = SDA'"
-    using image_mset_of_subset_list[of "\<lambda>L. L \<cdot>l \<eta>" SDA' "map Neg Ai"] by auto
-  then obtain Ai' where Ai'_p:
-    "map (\<lambda>L. L \<cdot>l \<eta>) (map Neg Ai') = map Neg Ai \<and> mset (map Neg Ai') = SDA'"
-    by (metis (no_types, lifting) Neg_atm_of_iff negL ex_map_conv set_mset_mset)
-
-  have "negs (mset Ai') = SDA'"
-    using Ai'_p by auto
-  moreover
-  have "map (\<lambda>L. L \<cdot>l \<eta>) (map Neg Ai') = map Neg Ai"
-    using Ai'_p by auto
-  then have "Ai' \<cdot>al \<eta> = Ai"
-    using eql_map_neg_lit_eql_atm by auto
-  ultimately
-  show ?thesis by auto
-qed
-
-lemma length_subst_atm_mset_list[simp]: "length (Aij' \<cdot>aml \<eta>) = length Aij'"
-  unfolding subst_atm_mset_list_def by auto
 
 lemma map2_add_mset_map:
   assumes "length Aij' = n"
@@ -497,15 +524,6 @@ proof -
     by auto
 qed
 
-lemma sum_list_subseteq_mset_is_ground_cls_list[simp]:
-  "sum_list Ci \<subseteq># sum_list CAi \<Longrightarrow> is_ground_cls_list CAi \<Longrightarrow> is_ground_cls_list Ci"
-  by (metis is_ground_cls_Union_mset is_ground_cls_list_def is_ground_cls_mono
-      is_ground_cls_mset_def set_mset_mset sum_mset_sum_list)
-
-lemma is_ground_cls_list_is_ground_cls_sum_list[simp]:
-  "is_ground_cls_list Ci \<Longrightarrow> is_ground_cls (sum_list Ci)"
-  by (meson in_mset_sum_list2 is_ground_cls_def is_ground_cls_list_def)
-
 lemma ground_resolvent_subset:
   assumes gr_c: "is_ground_cls_list CAi"
   assumes gr_d: "is_ground_cls DA"
@@ -571,7 +589,7 @@ proof (cases rule: ord_resolve.cases)
 
   interpret S: selection S by (rule select)
 
-    (* Obtain CAi'' *)
+  -- \<open>Obtain FO side premises\<close>
   have "\<forall>CA \<in> set CAi. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> CA'' \<cdot> \<eta>c'' = CA \<and> S CA'' \<cdot> \<eta>c'' = S_M S M CA"
     using grounding S_M_grounding_of_clss select by (metis le_supE subset_iff)
   then have "\<forall>i < n. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> CA'' \<cdot> \<eta>c'' = (CAi ! i) \<and> S CA'' \<cdot> \<eta>c'' = S_M S M (CAi ! i)"
@@ -589,7 +607,7 @@ proof (cases rule: ord_resolve.cases)
     unfolding \<eta>s''_def CAi''_def by auto
   note n = \<open>length \<eta>s'' = n\<close> \<open>length CAi'' = n\<close> n
 
-    (* The properties we need of CAi'' *)
+  -- \<open>The properties we need of the FO side premises\<close>
   have CAi''_in_M: "\<forall>CA'' \<in> set CAi''. CA'' \<in> M"
     unfolding CAi''_def using f_p(1) by auto
   have CAi''_to_CAi: "CAi'' \<cdot>\<cdot>cl \<eta>s'' = CAi"
@@ -597,12 +615,12 @@ proof (cases rule: ord_resolve.cases)
   have SCAi''_to_SMCAi: "(map S CAi'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAi"
     unfolding CAi''_def \<eta>s''_def using f_p(3) n by (force intro: nth_equalityI)
 
-    (* Obtain DA''  *)
+  -- \<open>Obtain FO main premise\<close>
   have "\<exists>DA'' \<eta>''. DA'' \<in> M \<and> DA = DA'' \<cdot> \<eta>'' \<and> S DA'' \<cdot> \<eta>'' = S_M S M DA"
     using grounding S_M_grounding_of_clss select by (metis le_supE singletonI subsetCE)
   then obtain DA'' \<eta>'' where DA''_\<eta>''_p: "DA'' \<in> M \<and> DA = DA'' \<cdot> \<eta>'' \<and> S DA'' \<cdot> \<eta>'' = S_M S M DA"
     by auto
-      (* The properties we need of DA'' *)
+  -- \<open>The properties we need of the FO main premise\<close>
   have DA''_in_M: "DA'' \<in> M"
     using DA''_\<eta>''_p by auto
   have DA''_to_DA: "DA'' \<cdot> \<eta>'' = DA"
@@ -610,7 +628,7 @@ proof (cases rule: ord_resolve.cases)
   have SDA''_to_SMDA: "S DA'' \<cdot> \<eta>'' = S_M S M DA"
     using DA''_\<eta>''_p by auto
 
-    (* Obtain ground substitutions *)
+  -- \<open>Obtain ground substitutions\<close>
 
   have "is_ground_cls_list (CAi'' \<cdot>\<cdot>cl \<eta>s'')"
     using CAi''_to_CAi grounding grounding_ground is_ground_cls_list_def by auto
@@ -733,7 +751,7 @@ proof (cases rule: ord_resolve.cases)
     unfolding DA'_def CAi'_def using mk_var_dis_p[of "DA'' # CAi''"]
     by (metis length_greater_0_conv list.exhaust_sel n(3) substitution.subst_cls_lists_Cons substitution_axioms zero_less_Suc)
 
-  (* Introduce \<eta> *)
+  -- \<open>Introduce ground substitution\<close>
   from vd DA'_DA CAi'_CAi have "\<exists>\<eta>. \<forall>i<Suc n. \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> (\<eta>'#\<eta>s') ! i = S \<cdot> \<eta>"
     unfolding var_disjoint_def using n by auto
   then obtain \<eta> where \<eta>_p: "\<forall>i<Suc n. \<forall>S. S \<subseteq># (DA' # CAi') ! i \<longrightarrow> S \<cdot> (\<eta>'#\<eta>s') ! i = S \<cdot> \<eta>"
@@ -758,7 +776,7 @@ proof (cases rule: ord_resolve.cases)
   then have SCAi'_\<eta>_fo_SMCAi: "(map S CAi') \<cdot>cl \<eta> = map (S_M S M) CAi"
     using \<open>(map S CAi') \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAi\<close> by auto
 
-    (* Split in to D's and A's *)
+  -- \<open>Split main premise in to D' and A's\<close>
   obtain Ai' D' where ai':
     "length Ai' = n"
 
@@ -821,7 +839,7 @@ proof (cases rule: ord_resolve.cases)
 
   note n = n \<open>length Ai' = n\<close>
 
-    (* Split in to C's and A's *)
+  -- \<open>Split side premise in to C's and A's\<close>
   obtain Aij' Ci'  where Aij'_Ci'_p:
     "length Aij' = n"
     "length Ci' = n"
@@ -892,7 +910,7 @@ proof (cases rule: ord_resolve.cases)
 
   note n = n \<open>length Aij' = n\<close> \<open>length Ci' = n\<close>
 
-  (* Obtain mgu and substitution *)
+  -- \<open>Obtain MGU and subsitution\<close>
   obtain \<tau>  \<phi> where \<tau>\<phi>:
     "Some \<tau> = mgu (set_mset ` set (map2 add_mset Ai' Aij'))"
     "\<tau> \<odot> \<phi> = \<eta> \<odot> \<sigma>"
@@ -924,7 +942,7 @@ proof (cases rule: ord_resolve.cases)
       by auto
   qed
 
-  (* Lifting eligibility *)
+  -- \<open>Lifting eligibility\<close>
   have eligibility: "eligible S \<tau> Ai' (D' + negs (mset Ai'))"
   proof -
     have "eligible (S_M S M) \<sigma> Ai (D + negs (mset Ai))"
@@ -970,7 +988,7 @@ proof (cases rule: ord_resolve.cases)
     qed
   qed
 
-    (* Lifting maximality *)
+  -- \<open>Lifting maximality\<close>
   have maximality: "\<forall>i<n. str_maximal_in (Ai' ! i \<cdot>a \<tau>) (Ci' ! i \<cdot> \<tau>)"
     (* Reformulate in list notation? *)
   proof -
@@ -988,7 +1006,7 @@ proof (cases rule: ord_resolve.cases)
       using str_maximal_in_gen \<tau>\<phi> by blast
   qed
 
-    (* Lifting nothing selected *)
+  -- \<open>Lifting nothing being selected\<close>
   have nothing_selected: "\<forall>i < n. S (CAi' ! i) = {#}"
   proof -
     have "\<forall>i < n. (map S CAi' \<cdot>cl \<eta>) ! i = (map (S_M S M) CAi) ! i"
@@ -1001,11 +1019,11 @@ proof (cases rule: ord_resolve.cases)
       using subst_cls_empty_iff by blast
   qed
 
-    (* Lifting Aij's non-empty *)
+  -- \<open>Lifting Aij's being non-empty\<close>
   have "\<forall>i<n. Aij' ! i \<noteq> {#}"
     using n ord_resolve(9) \<open>Aij' \<cdot>aml \<eta> = Aij\<close> by auto
 
-    (* Resolve the lifted clauses *)
+ -- \<open>Resolve the lifted clauses\<close>
   define E' where "E' = ((\<Union># (mset Ci')) + D') \<cdot> \<tau>"
 
   have res_e: "ord_resolve S CAi' DA' \<tau> E'"
@@ -1014,7 +1032,7 @@ proof (cases rule: ord_resolve.cases)
         \<open>\<forall>i<n. str_maximal_in (Ai' ! i \<cdot>a \<tau>) (Ci' ! i \<cdot> \<tau>)\<close> \<open>\<forall>i<n. S (CAi' ! i) = {#}\<close>]
     unfolding E'_def using ai' n Aij'_Ci'_p by blast
 
-  (* Prove resolvent instantiates to ground resolvent *)
+  -- \<open>Prove resolvent instantiates to ground resolvent\<close>
   have e'\<phi>e: "E' \<cdot> \<phi> = E"
   proof -
     have "E' \<cdot> \<phi> = ((\<Union># (mset Ci')) + D') \<cdot> (\<tau> \<odot> \<phi>)"
@@ -1031,7 +1049,7 @@ proof (cases rule: ord_resolve.cases)
       .
   qed
 
-  (* Replace \<eta> with ground substitution *)
+  -- \<open>Replace @{term \<eta>} with a true ground substitution\<close>
   obtain \<eta>2 where ground_\<eta>2: "is_ground_subst \<eta>2" "E' \<cdot> \<eta>2 = E"
   proof -
     have "is_ground_cls_list CAi" "is_ground_cls DA"

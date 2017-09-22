@@ -7,9 +7,20 @@
 
 section \<open>A Simple Ordered Resolution Prover for First-Order Clauses\<close>
 
+text \<open>
+This material is based on Section 4.3 (``A Simple Resolution Prover for First-Order Clauses) of 
+Bachmair and Ganzinger's chapter. Specifically, it formalizes the prover in Figure 5 called
+The Resolution Prover RP and its related lemmas and theorems including 
+4.10, 4.11 and 4.13 (completeness of the prover).
+\<close>
+
 theory FO_Ordered_Resolution_Prover
   imports FO_Ordered_Resolution
 begin
+
+text \<open>
+The following corresponds to page 42 and 43 of Section 4.3 from the explanation RP to Lemma 4.10.
+\<close>
 
 type_synonym 'a state = "'a clause set \<times> 'a clause set \<times> 'a clause set"
 
@@ -32,6 +43,10 @@ fun N_of_state :: "'a state \<Rightarrow> 'a clause set" where
 fun P_of_state :: "'a state \<Rightarrow> 'a clause set" where
   "P_of_state (N, P, Q) = P"
 
+text \<open>
+@{text O} denotes relation composition in Isabelle, so the formalization uses @{text Q} instead.
+\<close>
+
 fun Q_of_state :: "'a state \<Rightarrow> 'a clause set" where
   "Q_of_state (N, P, Q) = Q"
 
@@ -50,7 +65,7 @@ inductive subsume_resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a
   "subsume_resolve (D + {#L#}) (C + (D + {#- L#}) \<cdot> \<sigma>) (C + D \<cdot> \<sigma>)"
 
 text \<open>
-@{text O} denotes relation composition in Isabelle, so the formalization uses @{text Q} instead.
+The following inductive predicate formalizes the resolution prover in Figure 5.
 \<close>
 
 inductive resolution_prover :: "'a state \<Rightarrow> 'a state \<Rightarrow> bool" (infix "\<leadsto>" 50)  where
@@ -79,6 +94,10 @@ definition limit_state :: "('a state) llist \<Rightarrow> 'a state" where
 
 definition fair_state_seq where
   "fair_state_seq Sts \<longleftrightarrow> N_of_state (limit_state Sts) = {} \<and> P_of_state (limit_state Sts) = {}"
+
+text \<open>
+The following formalizes Lemma 4.10.
+\<close>
 
 context
   fixes
@@ -112,6 +131,10 @@ The extension of ordered resolution mentioned in 4.10. We let it consist of all 
 definition gd_ord_\<Gamma>':: "'a inference set" where
   "gd_ord_\<Gamma>' = {Infer CC D E | CC D E. (\<forall>I. I \<Turnstile>m CC \<longrightarrow>  I \<Turnstile> D \<longrightarrow> I \<Turnstile> E)}"
 
+text \<open>
+We prove that we indeed defined an extension.
+\<close>
+
 lemma gd_ord_\<Gamma>_ngd_ord_\<Gamma>: "gd.ord_\<Gamma> \<subseteq> gd_ord_\<Gamma>'"
   unfolding gd_ord_\<Gamma>'_def
   using gd.ord_\<Gamma>_def gd.ord_resolve_sound by fastforce
@@ -130,10 +153,6 @@ interpretation src_ext:
   sat_preserving_redundancy_criterion "gd_ord_\<Gamma>'" "src.Rf" "src_ext_Ri"
   unfolding sat_preserving_redundancy_criterion_def src_ext_Ri_def
   using sat_preserving_gd_ord_\<Gamma>' using standard_redundancy_criterion_extension gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redudancy_criterion by auto
-
-text \<open>
-The following corresponds to Lemma 4.10:
-\<close>
 
 fun subst_inf :: "'a inference \<Rightarrow> 's \<Rightarrow> 'a inference" (infixl "\<cdot>i" 67) where
   "(Infer CC D E) \<cdot>i \<sigma> = Infer (CC \<cdot>cm \<sigma>) (D \<cdot> \<sigma>) (E \<cdot> \<sigma>)"
@@ -184,16 +203,16 @@ proof -
     done
 qed
 
-text \<open>
-The following corresponds to Lemma 4.10:
-\<close>
-
 lemma subst_cls_eq_grounding_of_cls_subset_eq: "D \<cdot> \<sigma> = C \<Longrightarrow> grounding_of_cls C \<subseteq> grounding_of_cls D"
   unfolding grounding_of_cls_def
   apply auto
   apply (rule_tac x="\<sigma> \<odot> \<sigma>'" in exI)
   apply auto
   done
+
+text \<open>
+The following corresponds the part of Lemma 4.10, that states we have a theorem proving process:
+\<close>
 
 lemma resolution_prover_ground_derive:
   "St \<leadsto> St' \<Longrightarrow> src_ext.derive (grounding_of_state St) (grounding_of_state St')"
@@ -634,7 +653,7 @@ next
 qed
 
 text \<open>
-Another formulation of the last part of lemma 4.10
+Another formulation of the part of Lemma 4.10, that states we have a theorem proving process:
 \<close>
 
 lemma resolution_prover_ground_derivation:
