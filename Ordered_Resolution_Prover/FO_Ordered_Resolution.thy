@@ -19,7 +19,7 @@ theory FO_Ordered_Resolution
 begin
 
 text \<open>
-The following corresponds to to pages 41 and 42 of 4.3, until Figure 5 and its explanation.
+The following corresponds to to pages 41 and 42 of Section 4.3, until Figure 5 and its explanation.
 \<close>
 
 locale FO_resolution = unification subst_atm id_subst comp_subst mk_var_dis mgu
