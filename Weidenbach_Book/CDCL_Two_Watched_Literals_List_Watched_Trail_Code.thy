@@ -7790,6 +7790,24 @@ proof -
     done
 qed
 
+definition propgate_unit_bt_wl_D_int :: \<open>nat literal \<Rightarrow> twl_st_wl_int \<Rightarrow> twl_st_wl_int nres\<close> where
+  \<open>propgate_unit_bt_wl_D_int = (\<lambda>L (M, N, U, D, Q, W, vm, \<phi>). do {
+      D \<leftarrow> remove_last L D;
+      vm \<leftarrow> rescore M vm;
+      RETURN (Propagated (- L) 0 # M, N, U, D, {#L#}, W, vm, \<phi>)})\<close>
+
+lemma (in -) RES_RES_RETURN_RES: \<open>RES A \<bind> (\<lambda>T. RES (f T)) = RES (\<Union>(f ` A))\<close>
+  by (auto simp:  pw_eq_iff refine_pw_simps)
+
+lemma propgate_unit_bt_wl_D_int_propgate_unit_bt_wl_D:
+  \<open>(uncurry propgate_unit_bt_wl_D_int, uncurry propgate_unit_bt_wl_D) \<in>
+     [\<lambda>(L, S). get_conflict_wl S \<noteq> None \<and> undefined_lit (get_trail_wl S) L \<and> 
+        size(the (get_conflict_wl S)) = 1]\<^sub>f
+     Id \<times>\<^sub>f twl_st_ref \<rightarrow> \<langle>twl_st_ref\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+     (auto simp: propgate_unit_bt_wl_D_int_def propgate_unit_bt_wl_D_def RES_RETURN_RES
+      twl_st_ref_def rescore_def RES_RES_RETURN_RES single_of_mset_def remove_last_def
+      intro!: RES_refine vmtf_imp_consD size_1_singleton_mset)
 end
 
 setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close>
