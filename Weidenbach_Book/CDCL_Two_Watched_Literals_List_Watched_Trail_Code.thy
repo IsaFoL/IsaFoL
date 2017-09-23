@@ -7891,7 +7891,7 @@ qed
 
 sepref_thm propgate_unit_bt_wl_D_code
   is \<open>uncurry (PR_CONST propgate_unit_bt_wl_D_int)\<close>
-  :: \<open>[\<lambda>(L, S). get_conflict_wl_int S \<noteq> None \<and> size (the (get_conflict_wl_int S)) = 1 \<and> 
+  :: \<open>[\<lambda>(L, S). get_conflict_wl_int S \<noteq> None \<and> size (the (get_conflict_wl_int S)) = 1 \<and>
         undefined_lit (get_trail_wl_int S) L \<and>
          -L \<in># the (get_conflict_wl_int S) \<and> L \<in># N\<^sub>1 \<and> get_vmtf_int S \<in> vmtf_imp (get_trail_wl_int S)]\<^sub>a
    unat_lit_assn\<^sup>k *\<^sub>a twl_st_int_assn\<^sup>d \<rightarrow> twl_st_int_assn\<close>
@@ -7911,7 +7911,7 @@ lemmas propgate_unit_bt_wl_D_int_hnr[sepref_fr_rules] =
   propgate_unit_bt_wl_D_code.refine[OF twl_array_code_axioms]
 
 definition propgate_unit_bt_wl_D_pre :: \<open>nat literal \<times> nat twl_st_wl \<Rightarrow> bool\<close> where
-   \<open>propgate_unit_bt_wl_D_pre = 
+   \<open>propgate_unit_bt_wl_D_pre =
       (\<lambda>(L, S). get_conflict_wl S \<noteq> None \<and> undefined_lit (get_trail_wl S) L \<and>
         size(the (get_conflict_wl S)) = 1 \<and> -L \<in># the (get_conflict_wl S) \<and>
         L \<in># N\<^sub>1)\<close>
@@ -7929,8 +7929,8 @@ proof -
        (\<lambda>_ (L, S). get_conflict_wl_int S \<noteq> None \<and> size (the (get_conflict_wl_int S)) = 1 \<and>
            undefined_lit (get_trail_wl_int S) L \<and> -L \<in># the (get_conflict_wl_int S) \<and>
            L \<in># N\<^sub>1 \<and> local.get_vmtf_int S \<in> vmtf_imp (get_trail_wl_int S))
-       (\<lambda>_. True)]\<^sub>a 
-   hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a twl_st_int_assn\<^sup>d) (nat_lit_lit_rel \<times>\<^sub>f twl_st_ref) \<rightarrow> 
+       (\<lambda>_. True)]\<^sub>a
+   hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a twl_st_int_assn\<^sup>d) (nat_lit_lit_rel \<times>\<^sub>f twl_st_ref) \<rightarrow>
    hr_comp twl_st_int_assn twl_st_ref\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF propgate_unit_bt_wl_D_int_hnr[unfolded PR_CONST_def]
@@ -7951,7 +7951,7 @@ proof -
 qed
 
 lemma backtrack_wl_D_helper4[simp]:
-  assumes 
+  assumes
     invs: \<open>backtrack_wl_D_inv x\<close> and
     extract_shorter: \<open>RETURN xc \<le> extract_shorter_conflict_wl x\<close> and
     decomp: \<open>RETURN xd \<le> find_decomp_wl (lit_of_hd_trail_st x) xc\<close> and
@@ -8239,7 +8239,7 @@ lemma (in -) RES_RES2_RETURN_RES: \<open>RES A \<bind> (\<lambda>(T, T'). RES (f
 (* End Move *)
 
 lemma find_unassigned_lit_wl_D'_find_unassigned_lit_wl_D:
-  \<open>(find_unassigned_lit_wl_D_int, find_unassigned_lit_wl_D) \<in> 
+  \<open>(find_unassigned_lit_wl_D_int, find_unassigned_lit_wl_D) \<in>
      [\<lambda>S. twl_struct_invs (twl_st_of_wl None S) \<and> literals_are_N\<^sub>0 S \<and> get_conflict_wl S = None]\<^sub>f
     twl_st_ref \<rightarrow> \<langle>twl_st_ref \<times>\<^sub>r \<langle>nat_lit_lit_rel\<rangle>option_rel\<rangle>nres_rel\<close>
 proof -
@@ -8306,7 +8306,7 @@ lemma vmtf_find_next_undef_upd:
 
 lemma find_undefined_atm_hnr[sepref_fr_rules]:
   \<open>(uncurry vmtf_find_next_undef_upd_code, uncurry (PR_CONST find_undefined_atm))
-    \<in> [\<lambda>(b, a). a \<in> vmtf_imp b]\<^sub>a trail_assn\<^sup>d *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> 
+    \<in> [\<lambda>(b, a). a \<in> vmtf_imp b]\<^sub>a trail_assn\<^sup>d *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>
    (trail_assn *assn vmtf_remove_conc) *assn option_assn uint32_nat_assn\<close>
   using vmtf_find_next_undef_upd_code_ref[unfolded PR_CONST_def, FCOMP vmtf_find_next_undef_upd]
   unfolding PR_CONST_def
@@ -8327,7 +8327,7 @@ definition (in twl_array_code_ops) lit_of_found_atm_D_pre where
 
 sepref_thm lit_of_found_atm_D_code
   is \<open>uncurry (PR_CONST lit_of_found_atm_D)\<close>
-  :: \<open>[lit_of_found_atm_D_pre]\<^sub>a 
+  :: \<open>[lit_of_found_atm_D_pre]\<^sub>a
       (array_assn bool_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>d \<rightarrow>
           option_assn unat_lit_assn\<close>
   supply [[goals_limit=1]]
@@ -8354,13 +8354,13 @@ lemma lit_of_found_atm_D_lit_of_found_atm:
 
 lemma lit_of_found_atm_hnr[sepref_fr_rules]:
   \<open>(uncurry lit_of_found_atm_D_code, uncurry lit_of_found_atm)
-   \<in> [lit_of_found_atm_D_pre]\<^sub>a 
+   \<in> [lit_of_found_atm_D_pre]\<^sub>a
      phase_saver_conc\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>d \<rightarrow>
      option_assn unat_lit_assn\<close>
   using lit_of_found_atm_D_hnr[FCOMP lit_of_found_atm_D_lit_of_found_atm] by simp
-                      
+
 lemma find_unassigned_lit_wl_D_code_helper:
-  assumes 
+  assumes
     \<open>RETURN ((a1'h, (db, dc, dd, de), df), a2'g) \<le> find_undefined_atm a1' ((cj, ck, cl, cm), cn)\<close> and
     \<open>phase_saving a2'f\<close>
   shows \<open>lit_of_found_atm_D_pre (a2'f, a2'g)\<close>
@@ -8371,7 +8371,7 @@ lemma find_unassigned_lit_wl_D_code_helper:
 sepref_register find_undefined_atm
 sepref_thm find_unassigned_lit_wl_D_code
   is \<open>PR_CONST find_unassigned_lit_wl_D_int\<close>
-  :: \<open>[\<lambda>(M, N, U, D, WS, Q, vm, \<phi>). vm \<in> vmtf_imp M \<and> phase_saving \<phi>]\<^sub>a 
+  :: \<open>[\<lambda>(M, N, U, D, WS, Q, vm, \<phi>). vm \<in> vmtf_imp M \<and> phase_saving \<phi>]\<^sub>a
      twl_st_int_assn\<^sup>d \<rightarrow> (twl_st_int_assn *assn option_assn unat_lit_assn)\<close>
   supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
   unfolding find_unassigned_lit_wl_D_int_def twl_st_int_assn_def PR_CONST_def
@@ -8391,7 +8391,7 @@ definition find_unassigned_lit_wl_D_pre where
              get_conflict_wl S = None)\<close>
 lemma find_unassigned_lit_wl_D_hnr[sepref_fr_rules]:
   \<open>(find_unassigned_lit_wl_D_code, PR_CONST find_unassigned_lit_wl_D)
-  \<in> [find_unassigned_lit_wl_D_pre]\<^sub>a 
+  \<in> [find_unassigned_lit_wl_D_pre]\<^sub>a
     twl_st_assn\<^sup>d \<rightarrow> twl_st_assn *assn option_assn unat_lit_assn\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
@@ -8429,7 +8429,7 @@ proof -
 qed
 
 lemma decide_wl_or_skip_D_helper:
-  assumes 
+  assumes
     \<open>decide_wl_or_skip_D_pre
       (a, aa, ab, ac, ad, ae, af, b)\<close>
   shows \<open>find_unassigned_lit_wl_D_pre
@@ -8447,7 +8447,7 @@ lemma decide_lit_wl_int_decide_lit_wl:
      [\<lambda>(L, S). undefined_lit (get_trail_wl S) L]\<^sub>f nat_lit_lit_rel \<times>\<^sub>r twl_st_ref \<rightarrow> \<langle>twl_st_ref\<rangle>nres_rel\<close>
   unfolding decide_lit_wl_int_def decide_lit_wl_def
   by (intro frefI nres_relI)
-    (auto simp: twl_st_ref_def intro: vmtf_imp_consD) 
+    (auto simp: twl_st_ref_def intro: vmtf_imp_consD)
 
 definition cons_trail_Decided :: \<open>nat literal \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
   \<open>cons_trail_Decided L M' = Decided L # M'\<close>
@@ -8520,7 +8520,7 @@ qed
 
 sepref_thm decide_lit_wl_int_code
   is \<open>uncurry (RETURN oo (PR_CONST decide_lit_wl_int))\<close>
-  :: \<open>[\<lambda>(L, (M, N, U, D, WS, Q, vm, \<phi>)). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0]\<^sub>a 
+  :: \<open>[\<lambda>(L, (M, N, U, D, WS, Q, vm, \<phi>)). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0]\<^sub>a
      unat_lit_assn\<^sup>k *\<^sub>a twl_st_int_assn\<^sup>d \<rightarrow> twl_st_int_assn\<close>
   supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
   unfolding decide_lit_wl_int_def twl_st_int_assn_def PR_CONST_def cons_trail_Decided_def[symmetric]
