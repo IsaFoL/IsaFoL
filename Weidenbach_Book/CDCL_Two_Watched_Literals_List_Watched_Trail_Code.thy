@@ -7637,7 +7637,7 @@ definition propgate_bt_wl_D_pre :: \<open>(nat literal \<times> nat literal) \<t
 
 lemma propgate_bt_wl_D_hnr[sepref_fr_rules]:
   \<open>(uncurry2 propgate_bt_wl_D_code, uncurry2 propgate_bt_wl_D) \<in>
-    [propgate_bt_wl_D_pre]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>d \<rightarrow> 
+    [propgate_bt_wl_D_pre]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>d \<rightarrow>
         twl_st_assn\<close>
     (is \<open>?fun \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
@@ -7709,7 +7709,7 @@ lemma backtrack_wl_D_alt_def:
   unfolding backtrack_wl_D_def st_remove_highest_lvl_from_confl_def by auto
 
 lemma backtrack_wl_D_helper3:
-  assumes 
+  assumes
     invs: \<open>backtrack_wl_D_inv x\<close> and
     extract_shorter: \<open>RETURN xc \<le> extract_shorter_conflict_wl x\<close> and
     decomp: \<open>RETURN xd \<le> find_decomp_wl (lit_of_hd_trail_st x) xc\<close> and
@@ -7737,11 +7737,11 @@ proof -
      decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
      \<open>get_level M K = get_maximum_level M (remove1_mset (- lit_of_hd_trail_st x) D') + 1\<close>
     using decomp unfolding xc find_decomp_wl_def by auto
-  have 
+  have
     xf: \<open>xf \<in># remove1_mset (- lit_of_hd_trail_st x) D'\<close> and
     lev_xf: \<open>get_level M1 xf = get_maximum_level M1 (remove1_mset (- lit_of_hd_trail_st x) D')\<close>
     using lit2 unfolding find_lit_of_max_level_wl_def xd by simp_all
-  have 
+  have
     lits: \<open>literals_are_N\<^sub>0 x\<close> and
     D: \<open>D \<noteq> None\<close> and
     struct_invs: \<open>twl_struct_invs (twl_st_of_wl None x)\<close> and
@@ -7784,7 +7784,7 @@ proof -
     subgoal
       using literals_are_N\<^sub>0_trail_literals_are_in_N\<^sub>0[OF lits struct_invs] M_nempty
       unfolding x by (cases M) (auto simp: lit_of_hd_trail_st_def literals_are_in_N\<^sub>0_add_mset)
-    subgoal 
+    subgoal
       using xf lits_D' by (auto dest!: multi_member_split in_diffD simp: literals_are_in_N\<^sub>0_add_mset)
     subgoal using undef unfolding x xd by auto
     done
@@ -7804,7 +7804,7 @@ lemma (in -) RES_RES_RETURN_RES: \<open>RES A \<bind> (\<lambda>T. RES (f T)) = 
 
 lemma propgate_unit_bt_wl_D_int_propgate_unit_bt_wl_D:
   \<open>(uncurry propgate_unit_bt_wl_D_int, uncurry propgate_unit_bt_wl_D) \<in>
-     [\<lambda>(L, S). get_conflict_wl S \<noteq> None \<and> undefined_lit (get_trail_wl S) L \<and> 
+     [\<lambda>(L, S). get_conflict_wl S \<noteq> None \<and> undefined_lit (get_trail_wl S) L \<and>
         size(the (get_conflict_wl S)) = 1]\<^sub>f
      Id \<times>\<^sub>f twl_st_ref \<rightarrow> \<langle>twl_st_ref\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
@@ -7847,7 +7847,7 @@ lemmas remove_last_int_hnr[sepref_fr_rules] =
 
 theorem remove_last_hnr[sepref_fr_rules]:
   \<open>(uncurry remove_last_code, uncurry remove_last)
-    \<in> [\<lambda>(L, D). D \<noteq> None \<and> L \<in># the D \<and> size (the D) = 1 \<and> L \<in># N\<^sub>1]\<^sub>a 
+    \<in> [\<lambda>(L, D). D \<noteq> None \<and> L \<in># the D \<and> size (the D) = 1 \<and> L \<in># N\<^sub>1]\<^sub>a
      unat_lit_assn\<^sup>k *\<^sub>a conflict_option_assn\<^sup>d \<rightarrow> conflict_option_assn\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
@@ -7857,7 +7857,7 @@ proof -
        (\<lambda>_ (L, b, n, xs). atm_of L < length xs)
        (\<lambda>_. True)]\<^sub>a
      hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d)
-              (nat_lit_lit_rel \<times>\<^sub>f option_conflict_rel) \<rightarrow> 
+              (nat_lit_lit_rel \<times>\<^sub>f option_conflict_rel) \<rightarrow>
     hr_comp conflict_option_rel_assn option_conflict_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF remove_last_int_hnr[unfolded PR_CONST_def]
