@@ -7790,6 +7790,9 @@ proof -
     done
 qed
 
+definition remove_last :: \<open>nat literal \<Rightarrow> nat clause option \<Rightarrow> nat clause option nres\<close> where
+  \<open>remove_last _ _  = SPEC(op = None)\<close>
+
 definition propgate_unit_bt_wl_D_int :: \<open>nat literal \<Rightarrow> twl_st_wl_int \<Rightarrow> twl_st_wl_int nres\<close> where
   \<open>propgate_unit_bt_wl_D_int = (\<lambda>L (M, N, U, D, Q, W, vm, \<phi>). do {
       D \<leftarrow> remove_last L D;
@@ -7808,6 +7811,72 @@ lemma propgate_unit_bt_wl_D_int_propgate_unit_bt_wl_D:
      (auto simp: propgate_unit_bt_wl_D_int_def propgate_unit_bt_wl_D_def RES_RETURN_RES
       twl_st_ref_def rescore_def RES_RES_RETURN_RES single_of_mset_def remove_last_def
       intro!: RES_refine vmtf_imp_consD size_1_singleton_mset)
+
+definition remove_last_int :: \<open>nat literal \<Rightarrow> _ \<Rightarrow> _\<close> where
+  \<open>remove_last_int = (\<lambda>L (b, n, xs). (True, 0, xs[atm_of L := None]))\<close>
+
+lemma remove_last_int_remove_last:
+  \<open>(uncurry (RETURN oo remove_last_int), uncurry remove_last) \<in>
+    [\<lambda>(L, D). D \<noteq> None \<and> L \<in># the D \<and> size (the D) = 1 \<and> L \<in># N\<^sub>1]\<^sub>f Id \<times>\<^sub>r option_conflict_rel \<rightarrow>
+      \<langle>option_conflict_rel\<rangle> nres_rel\<close>
+  apply (intro frefI nres_relI)
+  apply (clarify dest!: size_1_singleton_mset)
+  subgoal for a aa ab b ac ba y L
+    using mset_as_position_remove[of b \<open>{#L#}\<close> \<open>atm_of L\<close>]
+    by (cases L)
+      (auto simp: remove_last_int_def remove_last_def option_conflict_rel_def
+        RETURN_RES_refine_iff conflict_rel_def in_N\<^sub>1_atm_of_in_atms_of_iff)
+  done
+
+sepref_thm remove_last_code
+  is \<open>uncurry (RETURN oo (PR_CONST remove_last_int))\<close>
+  :: \<open>[\<lambda>(L, (b, n, xs)). atm_of L < length xs]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow>
+     conflict_option_rel_assn\<close>
+  supply [[goals_limit=1]] uint32_nat_assn_zero_uint32[sepref_fr_rules]
+  unfolding remove_last_int_def PR_CONST_def zero_uint32_def[symmetric]
+  by sepref
+
+concrete_definition (in -) remove_last_code
+   uses twl_array_code.remove_last_code.refine_raw
+   is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) remove_last_code_def
+
+lemmas remove_last_int_hnr[sepref_fr_rules] =
+   remove_last_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+theorem remove_last_hnr[sepref_fr_rules]:
+  \<open>(uncurry remove_last_code, uncurry remove_last)
+    \<in> [\<lambda>(L, D). D \<noteq> None \<and> L \<in># the D \<and> size (the D) = 1 \<and> L \<in># N\<^sub>1]\<^sub>a 
+     unat_lit_assn\<^sup>k *\<^sub>a conflict_option_assn\<^sup>d \<rightarrow> conflict_option_assn\<close>
+    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c \<in>
+    [comp_PRE (nat_lit_lit_rel \<times>\<^sub>f option_conflict_rel)
+       (\<lambda>(L, D). D \<noteq> None \<and> L \<in># the D \<and> size (the D) = 1 \<and> L \<in># N\<^sub>1)
+       (\<lambda>_ (L, b, n, xs). atm_of L < length xs)
+       (\<lambda>_. True)]\<^sub>a
+     hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d)
+              (nat_lit_lit_rel \<times>\<^sub>f option_conflict_rel) \<rightarrow> 
+    hr_comp conflict_option_rel_assn option_conflict_rel\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF remove_last_int_hnr[unfolded PR_CONST_def]
+    remove_last_int_remove_last] .
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
+    using that by (auto simp: comp_PRE_def option_conflict_rel_def conflict_rel_def
+        in_N\<^sub>1_atm_of_in_atms_of_iff)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep conflict_option_assn_def by simp
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep conflict_option_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
+qed
+
 end
 
 setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close>
