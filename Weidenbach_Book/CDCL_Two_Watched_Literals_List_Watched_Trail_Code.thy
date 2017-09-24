@@ -5266,15 +5266,6 @@ definition (in -) get_maximum_level_remove_int :: \<open>(nat, 'a) ann_lits \<Ri
   \<open>get_maximum_level_remove_int = (\<lambda>_ (_, D) _.
     (case D of None \<Rightarrow> 0 | Some i \<Rightarrow> snd i))\<close>
 
-(* TODO Move *)
-lemma (in -)snd_hnr_pure:
-   \<open>CONSTRAINT is_pure B \<Longrightarrow> (return \<circ> snd, RETURN \<circ> snd) \<in> (A *assn B)\<^sup>k \<rightarrow>\<^sub>a B\<close>
-  apply sepref_to_hoare
-  apply sep_auto
-  by (metis SLN_def SLN_left assn_times_comm ent_pure_pre_iff_sng ent_refl ent_star_mono
-      ent_true is_pure_assn_def is_pure_iff_pure_assn)
-(* End Move *)
-
 sepref_thm get_maximum_level_remove_code
   is \<open>uncurry2 (RETURN ooo get_maximum_level_remove_int)\<close>
   :: \<open>trail_assn\<^sup>k  *\<^sub>a conflict_with_cls_int_with_highest_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a
@@ -5566,25 +5557,6 @@ lemma find_decomp_wl_imp_code_find_decomp_wl'[sepref_fr_rules]:
   unfolding PR_CONST_def find_decomp_wl_pre_full_alt_def[symmetric]
   .
 
-
-(* TODO Move *)
-lemma (in -) Down_itself_via_SPEC:
-  assumes \<open>I \<le> SPEC P\<close> and \<open>\<And>x. P x \<Longrightarrow> (x, x) \<in> R\<close>
-  shows \<open>I \<le> \<Down> R I\<close>
-  using assms by (meson inres_SPEC pw_ref_I)
-(* End Move *)
-
-thm backtrack_wl_def
-
-lemma (in -) bind_if_inverse:
-  \<open>do {
-    S \<leftarrow> H;
-    if b then f S else g S
-    } =
-    (if b then do {S \<leftarrow> H; f S} else do {S \<leftarrow> H; g S})
-  \<close> for H :: \<open>'a nres\<close>
-  by auto
-
 lemma get_all_ann_decomposition_get_level:
   assumes
     L': \<open>L' = lit_of (hd M')\<close> and
@@ -5679,61 +5651,6 @@ lemma find_decomp_wl_st_find_decomp_wl:
         SPEC_RETURN_RES)
   done
 
-
-(* TODO Move *)
-lemma (in -) hfref_imp2: "(\<And>x y. S x y \<Longrightarrow>\<^sub>t S' x y) \<Longrightarrow> [P]\<^sub>a RR \<rightarrow> S \<subseteq> [P]\<^sub>a RR \<rightarrow> S'"
-    apply clarsimp
-    apply (erule hfref_cons)
-    apply (simp_all add: hrp_imp_def)
-    done
-
-lemma (in -)hr_comp_mono_entails: \<open>B \<subseteq> C \<Longrightarrow> hr_comp a B x y \<Longrightarrow>\<^sub>A hr_comp a C x y\<close>
-  unfolding hr_comp_def entails_def
-  by auto
-
-lemma (in -)hfref_imp_mono_result:
-  "B \<subseteq> C \<Longrightarrow> [P]\<^sub>a RR \<rightarrow> hr_comp a B \<subseteq> [P]\<^sub>a RR \<rightarrow> hr_comp a C"
-  unfolding hfref_def hn_refine_def
-  apply clarify
-  subgoal for aa b c aaa
-    apply (rule cons_post_rule[of _ _
-          \<open>\<lambda>r. snd RR aaa c * (\<exists>\<^sub>Ax. hr_comp a B x r * \<up> (RETURN x \<le> b aaa)) * true\<close>])
-     apply (solves auto)
-    using hr_comp_mono_entails[of B C a ]
-    apply (auto intro!: ent_ex_preI)
-    apply (rule_tac x=xa in ent_ex_postI)
-    apply (auto intro!: ent_star_mono ac_simps)
-    done
-  done
-
-lemma (in -)hfref_imp_mono_result2:
-  "(\<And>x. P L x \<Longrightarrow> B L \<subseteq> C L) \<Longrightarrow> [P L]\<^sub>a RR \<rightarrow> hr_comp a (B L) \<subseteq> [P L]\<^sub>a RR \<rightarrow> hr_comp a (C L)"
-  unfolding hfref_def hn_refine_def
-  apply clarify
-  subgoal for aa b c aaa
-    apply (rule cons_post_rule[of _ _
-          \<open>\<lambda>r. snd RR aaa c * (\<exists>\<^sub>Ax. hr_comp a (B L) x r * \<up> (RETURN x \<le> b aaa)) * true\<close>])
-     apply (solves auto)
-    using hr_comp_mono_entails[of \<open>B L\<close> \<open>C L\<close> a ]
-    apply (auto intro!: ent_ex_preI)
-    apply (rule_tac x=xa in ent_ex_postI)
-    apply (auto intro!: ent_star_mono ac_simps)
-    done
-  done
-
-lemma (in -) hfref_weaken_change_pre:
-  assumes "(f,h) \<in> hfref P R S"
-  assumes "\<And>x. P x \<Longrightarrow> (fst R x, snd R x) = (fst R' x, snd R' x)"
-  assumes "\<And>y x. S y x \<Longrightarrow>\<^sub>t S' y x"
-  shows "(f,h) \<in> hfref P R' S'"
-proof -
-  have \<open>(f,h) \<in> hfref P R' S\<close>
-    using assms
-    by (auto simp: hfref_def)
-  then show ?thesis
-    using hfref_imp2[of S S' P R'] assms(3) by auto
-qed
-(* End Move *)
 
 lemma twl_st_ref_confl_extracted_twl_st_ref:
   \<open>twl_st_ref_confl_extracted O twl_st_ref =
@@ -6341,22 +6258,6 @@ definition conflict_to_conflict_with_cls :: \<open>nat literal list \<Rightarrow
   }
   )\<close>
 
-(* TODO Move *)
-lemma (in -) length_filter_update_true:
-  \<open>i < length xs \<Longrightarrow> P (xs ! i) \<Longrightarrow> length (filter P (xs[i := x])) = length (filter P xs) - (if P x then 0 else 1)\<close>
-  apply (subst (5) append_take_drop_id[of i, symmetric])
-  using upd_conv_take_nth_drop[of i xs x] Cons_nth_drop_Suc[of i xs, symmetric]
-  unfolding filter_append length_append
-  by simp
-
-lemma (in -) length_filter_update_falte:
-  \<open>i < length xs \<Longrightarrow> \<not>P (xs ! i) \<Longrightarrow> length (filter P (xs[i := x])) = length (filter P xs) + (if P x then 1 else 0)\<close>
-  apply (subst (5) append_take_drop_id[of i, symmetric])
-  using upd_conv_take_nth_drop[of i xs x] Cons_nth_drop_Suc[of i xs, symmetric]
-  unfolding filter_append length_append
-  by simp
-(* End Move *)
-
 definition conflict_to_conflict_with_cls_spec where
   \<open>conflict_to_conflict_with_cls_spec _ D = D\<close>
 
@@ -6717,12 +6618,6 @@ lemma conflict_to_conflict_with_cls_code_helper:
 
 lemmas uint32_nat_assn_plus'[sepref_fr_rules] = uint32_nat_assn_plus[unfolded upperN_def[symmetric]]
 declare uint32_nat_assn_plus[sepref_fr_rules del]
-
-(* TODO Move *)
-definition (in -) two_uint32 where \<open>two_uint32 = (2 :: nat)\<close>
-lemma (in -) uint32_2_hnr: \<open>(uncurry0 (return 2), uncurry0 (RETURN two_uint32)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_012 two_uint32_def)
-(* End Move *)
 
 sepref_register conflict_to_conflict_with_cls
 sepref_thm conflict_to_conflict_with_cls_code
@@ -7808,11 +7703,6 @@ definition propgate_unit_bt_wl_D_int :: \<open>nat literal \<Rightarrow> twl_st_
       vm \<leftarrow> rescore M vm;
       RETURN (Propagated (- L) 0 # M, N, U, D, {#L#}, W, vm, \<phi>)})\<close>
 
-(* TODO Move *)
-lemma (in -) RES_RES_RETURN_RES: \<open>RES A \<bind> (\<lambda>T. RES (f T)) = RES (\<Union>(f ` A))\<close>
-  by (auto simp:  pw_eq_iff refine_pw_simps)
-(* End Move *)
-
 lemma propgate_unit_bt_wl_D_int_propgate_unit_bt_wl_D:
   \<open>(uncurry propgate_unit_bt_wl_D_int, uncurry propgate_unit_bt_wl_D) \<in>
      [\<lambda>(L, S). get_conflict_wl S \<noteq> None \<and> undefined_lit (get_trail_wl S) L \<and>
@@ -8232,11 +8122,6 @@ where
       L \<leftarrow> lit_of_found_atm \<phi> L;
       RETURN ((M, N, U, D, WS, Q, vm, \<phi>), L)
     })\<close>
-
-(* TODO Move *)
-lemma (in -) RES_RES2_RETURN_RES: \<open>RES A \<bind> (\<lambda>(T, T'). RES (f T T')) = RES (\<Union>(uncurry f ` A))\<close>
-  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def)
-(* End Move *)
 
 lemma find_unassigned_lit_wl_D'_find_unassigned_lit_wl_D:
   \<open>(find_unassigned_lit_wl_D_int, find_unassigned_lit_wl_D) \<in>

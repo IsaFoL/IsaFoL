@@ -766,6 +766,13 @@ lemma list_mset_assn_pure_conv:
 lemma ex_assn_pair_split: \<open>(\<exists>\<^sub>Ab. P b) = (\<exists>\<^sub>Aa b. P (a, b))\<close>
   by (subst ex_assn_def, subst (1) ex_assn_def, auto)+
 
+lemma snd_hnr_pure:
+   \<open>CONSTRAINT is_pure B \<Longrightarrow> (return \<circ> snd, RETURN \<circ> snd) \<in> (prod_assn A B)\<^sup>k \<rightarrow>\<^sub>a B\<close>
+  apply sepref_to_hoare
+  apply sep_auto
+  by (metis SLN_def SLN_left assn_times_comm ent_pure_pre_iff_sng ent_refl ent_star_mono
+      ent_true is_pure_assn_def is_pure_iff_pure_assn)
+
 
 subsection \<open>More Functions, Relations, and Theorems\<close>
 
@@ -789,6 +796,78 @@ lemma nempty_list_mset_rel_iff: \<open>M \<noteq> {#} \<Longrightarrow>
          (tl xs, remove1_mset (hd xs) M) \<in> list_mset_rel)\<close>
   by (cases xs) (auto simp: list_mset_rel_def br_def dest!: multi_member_split)
 
+lemma Down_itself_via_SPEC:
+  assumes \<open>I \<le> SPEC P\<close> and \<open>\<And>x. P x \<Longrightarrow> (x, x) \<in> R\<close>
+  shows \<open>I \<le> \<Down> R I\<close>
+  using assms by (meson inres_SPEC pw_ref_I)
+
+lemma bind_if_inverse:
+  \<open>do {
+    S \<leftarrow> H;
+    if b then f S else g S
+    } =
+    (if b then do {S \<leftarrow> H; f S} else do {S \<leftarrow> H; g S})
+  \<close> for H :: \<open>'a nres\<close>
+  by auto
+
+lemma hfref_imp2: "(\<And>x y. S x y \<Longrightarrow>\<^sub>t S' x y) \<Longrightarrow> [P]\<^sub>a RR \<rightarrow> S \<subseteq> [P]\<^sub>a RR \<rightarrow> S'"
+    apply clarsimp
+    apply (erule hfref_cons)
+    apply (simp_all add: hrp_imp_def)
+    done
+
+lemma hr_comp_mono_entails: \<open>B \<subseteq> C \<Longrightarrow> hr_comp a B x y \<Longrightarrow>\<^sub>A hr_comp a C x y\<close>
+  unfolding hr_comp_def entails_def
+  by auto
+
+lemma hfref_imp_mono_result:
+  "B \<subseteq> C \<Longrightarrow> [P]\<^sub>a RR \<rightarrow> hr_comp a B \<subseteq> [P]\<^sub>a RR \<rightarrow> hr_comp a C"
+  unfolding hfref_def hn_refine_def
+  apply clarify
+  subgoal for aa b c aaa
+    apply (rule cons_post_rule[of _ _
+          \<open>\<lambda>r. snd RR aaa c * (\<exists>\<^sub>Ax. hr_comp a B x r * \<up> (RETURN x \<le> b aaa)) * true\<close>])
+     apply (solves auto)
+    using hr_comp_mono_entails[of B C a ]
+    apply (auto intro!: ent_ex_preI)
+    apply (rule_tac x=xa in ent_ex_postI)
+    apply (auto intro!: ent_star_mono ac_simps)
+    done
+  done
+
+lemma hfref_imp_mono_result2:
+  "(\<And>x. P L x \<Longrightarrow> B L \<subseteq> C L) \<Longrightarrow> [P L]\<^sub>a RR \<rightarrow> hr_comp a (B L) \<subseteq> [P L]\<^sub>a RR \<rightarrow> hr_comp a (C L)"
+  unfolding hfref_def hn_refine_def
+  apply clarify
+  subgoal for aa b c aaa
+    apply (rule cons_post_rule[of _ _
+          \<open>\<lambda>r. snd RR aaa c * (\<exists>\<^sub>Ax. hr_comp a (B L) x r * \<up> (RETURN x \<le> b aaa)) * true\<close>])
+     apply (solves auto)
+    using hr_comp_mono_entails[of \<open>B L\<close> \<open>C L\<close> a ]
+    apply (auto intro!: ent_ex_preI)
+    apply (rule_tac x=xa in ent_ex_postI)
+    apply (auto intro!: ent_star_mono ac_simps)
+    done
+  done
+
+lemma hfref_weaken_change_pre:
+  assumes "(f,h) \<in> hfref P R S"
+  assumes "\<And>x. P x \<Longrightarrow> (fst R x, snd R x) = (fst R' x, snd R' x)"
+  assumes "\<And>y x. S y x \<Longrightarrow>\<^sub>t S' y x"
+  shows "(f,h) \<in> hfref P R' S'"
+proof -
+  have \<open>(f,h) \<in> hfref P R' S\<close>
+    using assms
+    by (auto simp: hfref_def)
+  then show ?thesis
+    using hfref_imp2[of S S' P R'] assms(3) by auto
+qed
+
+lemma RES_RES_RETURN_RES: \<open>RES A \<bind> (\<lambda>T. RES (f T)) = RES (\<Union>(f ` A))\<close>
+  by (auto simp:  pw_eq_iff refine_pw_simps)
+
+lemma RES_RES2_RETURN_RES: \<open>RES A \<bind> (\<lambda>(T, T'). RES (f T T')) = RES (\<Union>(uncurry f ` A))\<close>
+  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def)
 
 subsection \<open>Sorting\<close>
 

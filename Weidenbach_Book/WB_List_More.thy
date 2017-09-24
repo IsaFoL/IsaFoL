@@ -594,6 +594,20 @@ lemma distinct_filter_eq_if:
   \<open>distinct C \<Longrightarrow> length (filter (op = L) C) = (if L \<in> set C then 1 else 0)\<close>
   by (induction C) auto
 
+lemma (in -) length_filter_update_true:
+  \<open>i < length xs \<Longrightarrow> P (xs ! i) \<Longrightarrow> length (filter P (xs[i := x])) = length (filter P xs) - (if P x then 0 else 1)\<close>
+  apply (subst (5) append_take_drop_id[of i, symmetric])
+  using upd_conv_take_nth_drop[of i xs x] Cons_nth_drop_Suc[of i xs, symmetric]
+  unfolding filter_append length_append
+  by simp
+
+lemma (in -) length_filter_update_falte:
+  \<open>i < length xs \<Longrightarrow> \<not>P (xs ! i) \<Longrightarrow> length (filter P (xs[i := x])) = length (filter P xs) + (if P x then 1 else 0)\<close>
+  apply (subst (5) append_take_drop_id[of i, symmetric])
+  using upd_conv_take_nth_drop[of i xs x] Cons_nth_drop_Suc[of i xs, symmetric]
+  unfolding filter_append length_append
+  by simp
+
 
 subsection \<open>Multisets\<close>
 

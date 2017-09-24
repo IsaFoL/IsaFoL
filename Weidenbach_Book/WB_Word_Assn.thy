@@ -390,6 +390,12 @@ lemma uint32_nat_assn_less[sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def max_def
       nat_of_uint32_less_iff)
 
+definition two_uint32 where \<open>two_uint32 = (2 :: nat)\<close>
+
+lemma uint32_2_hnr: \<open>(uncurry0 (return 2), uncurry0 (RETURN two_uint32)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_012 two_uint32_def)
+
+
 text \<open>Do NOT declare this theorem as \<open>sepref_fr_rules\<close> to avoid bad unexpected conversions.\<close>
 lemma le_uint32_nat_hnr:
   \<open>(uncurry (return oo (\<lambda>a b. nat_of_uint32 a < b)), uncurry (RETURN oo op <)) \<in>
