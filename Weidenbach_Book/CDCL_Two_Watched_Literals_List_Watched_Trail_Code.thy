@@ -470,8 +470,8 @@ sepref_thm conflict_merge_code
         clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow> conflict_option_rel_assn\<close>
   supply length_rll_def[simp] nth_rll_def[simp] upperN_def[simp] uint32_nat_assn_one[sepref_fr_rules]
   unfolding conflict_merge_aa_def conflict_merge_def conflict_add_def PR_CONST_def
+  nth_rll_def[symmetric] length_rll_def[symmetric]
   apply (rewrite at \<open>_ + \<hole>\<close> annotate_assn[where A = \<open>uint32_nat_assn\<close>])
-  apply (subst nth_rll_def[symmetric])
   supply [[goals_limit = 1]]
   by sepref
 
@@ -1134,6 +1134,7 @@ sepref_thm access_lit_in_clauses_int_code
       twl_st_int_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k  *\<^sub>a nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   supply length_rll_def[simp]
   unfolding twl_st_int_assn_def access_lit_in_clauses_int_def
+    nth_rll_def[symmetric]
   by sepref
 
 concrete_definition (in -) access_lit_in_clauses_int_code
@@ -1326,9 +1327,10 @@ sepref_thm find_unwatched_wl_s_int_code
   is \<open>uncurry ((PR_CONST find_unwatched_wl_s_int))\<close>
   :: \<open>[\<lambda>(S, i). i < length (get_clauses_wl_int S) \<and> i > 0 \<and> literals_are_in_N\<^sub>0_int S]\<^sub>a
          twl_st_int_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> option_assn nat_assn\<close>
-  supply [[goals_limit = 1]] literals_are_in_N\<^sub>0_int_in_D\<^sub>0'[intro]
+  supply [[goals_limit = 1]] literals_are_in_N\<^sub>0_int_in_D\<^sub>0'[intro] nth_rll_def[simp]
+    length_rll_def[simp]
   unfolding find_unwatched_wl_s_int_def twl_st_int_assn_def PR_CONST_def
-  find_unwatched_def
+  find_unwatched_def nth_rll_def[symmetric] length_rll_def[symmetric]
   by sepref
 
 concrete_definition (in -) find_unwatched_wl_s_int_code
