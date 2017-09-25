@@ -533,22 +533,6 @@ fun int_of_nat n = Int_of_integer (integer_of_nat n);
 
 fun uint32_of_nat x = (uint32_of_int o int_of_nat) x;
 
-fun array_copy A_ a =
-  (fn () =>
-    let
-      val l = len A_ a ();
-    in
-      (if equal_nat l zero_nata then (fn () => Array.fromList [])
-        else (fn f_ => fn () => f_ ((nth A_ a zero_nata) ()) ())
-               (fn s =>
-                 (fn f_ => fn () => f_ ((new A_ l s) ()) ())
-                   (fn aa =>
-                     (fn f_ => fn () => f_ ((blit A_ a zero_nata aa zero_nata l)
-                       ()) ())
-                       (fn _ => (fn () => aa)))))
-        ()
-    end);
-
 fun array_grow A_ a s x =
   (fn () =>
     let
@@ -586,13 +570,6 @@ fun array_shrink A_ a s =
                               (fn _ => (fn () => aa))))))
         ()
     end);
-
-fun nth_rl A_ xs n =
-  (fn () => let
-              val x = arl_get (heap_array (typerep_heap A_)) xs n ();
-            in
-              array_copy A_ x ()
-            end);
 
 fun arl_set A_ =
   (fn (a, n) => fn i => fn x => fn () => let
@@ -724,6 +701,13 @@ fun imp_nfoldli (x :: ls) c f s =
         ()
     end)
   | imp_nfoldli [] c f s = (fn () => s);
+
+fun length_raa A_ xs i =
+  (fn () => let
+              val x = arl_get (heap_array (typerep_heap A_)) xs i ();
+            in
+              len A_ x ()
+            end);
 
 val minimum_capacity : nat = nat_of_integer (16 : IntInf.int);
 
@@ -1162,16 +1146,11 @@ fun select_and_remove_from_literals_to_update_wl_int_code x =
     x;
 
 fun access_lit_in_clauses_int_code x =
-  (fn ai => fn bia => fn bi =>
-    let
-      val (_, (a1a, _)) = ai;
-    in
-      (fn () => let
-                  val xa = nth_rl heap_uint32 a1a bia ();
-                in
-                  nth heap_uint32 xa bi ()
-                end)
-    end)
+  (fn ai => fn bia => fn bi => let
+                                 val (_, (a1a, _)) = ai;
+                               in
+                                 nth_raa heap_uint32 a1a bia bi
+                               end)
     x;
 
 fun valued_trail_code x =
@@ -1204,23 +1183,17 @@ fun find_unwatched_wl_s_int_code x =
           val xa =
             heap_WHILET
               (fn (a1g, a2g) =>
-                (fn f_ => fn () => f_ ((nth_rl heap_uint32 a1a bi) ()) ())
-                  (fn xa =>
-                    (fn f_ => fn () => f_ ((len heap_uint32 xa) ()) ())
-                      (fn xb =>
-                        (fn () => (is_None a1g andalso less_nat a2g xb)))))
+                (fn f_ => fn () => f_ ((length_raa heap_uint32 a1a bi) ()) ())
+                  (fn xa => (fn () => (is_None a1g andalso less_nat a2g xa))))
               (fn (_, a2g) =>
-                (fn f_ => fn () => f_ ((nth_rl heap_uint32 a1a bi) ()) ())
+                (fn f_ => fn () => f_ ((nth_raa heap_uint32 a1a bi a2g) ()) ())
                   (fn xa =>
-                    (fn f_ => fn () => f_ ((nth heap_uint32 xa a2g) ()) ())
-                      (fn xb =>
-                        (fn f_ => fn () => f_ ((valued_trail_code a1 xb) ()) ())
-                          (fn x_a =>
-                            (fn () =>
-                              (case x_a of NONE => (SOME a2g, a2g)
-                                | SOME true => (SOME a2g, a2g)
-                                | SOME false =>
-                                  (NONE, plus_nat a2g one_nat)))))))
+                    (fn f_ => fn () => f_ ((valued_trail_code a1 xa) ()) ())
+                      (fn x_a =>
+                        (fn () =>
+                          (case x_a of NONE => (SOME a2g, a2g)
+                            | SOME true => (SOME a2g, a2g)
+                            | SOME false => (NONE, plus_nat a2g one_nat))))))
               (NONE, nat_of_integer (2 : IntInf.int)) ();
         in
           fst xa
@@ -1234,10 +1207,8 @@ fun conflict_merge_code x =
       val a =
         heap_WHILET
           (fn (a1a, _) =>
-            (fn f_ => fn () => f_ ((nth_rl heap_uint32 ai bia) ()) ())
-              (fn xa =>
-                (fn f_ => fn () => f_ ((len heap_uint32 xa) ()) ())
-                  (fn x_a => (fn () => (less_nat a1a x_a)))))
+            (fn f_ => fn () => f_ ((length_raa heap_uint32 ai bia) ()) ())
+              (fn x_a => (fn () => (less_nat a1a x_a))))
           (fn (a1a, a2a) =>
             (fn f_ => fn () => f_
               (let
@@ -1250,28 +1221,25 @@ fun conflict_merge_code x =
                           (nat_of_uint32 (shiftr_uint32 xa one_nat)))
                        ()) ())
                        (fn xb =>
-                         (fn f_ => fn () => f_ ((nth_rl heap_uint32 ai bia) ())
-                           ())
+                         (fn f_ => fn () => f_ ((nth_raa heap_uint32 ai bia a1a)
+                           ()) ())
                            (fn xaa =>
-                             (fn f_ => fn () => f_ ((nth heap_uint32 xaa a1a)
-                               ()) ())
-                               (fn xab =>
+                             (fn f_ => fn () => f_
+                               ((nth_raa heap_uint32 ai bia a1a) ()) ())
+                               (fn xba =>
                                  (fn f_ => fn () => f_
-                                   ((nth_rl heap_uint32 ai bia) ()) ())
-                                   (fn xba =>
-                                     (fn f_ => fn () => f_
-                                       ((nth heap_uint32 xba a1a) ()) ())
-                                       (fn xbb =>
- (fn f_ => fn () => f_
-   ((upd (heap_option heap_bool) (nat_of_uint32 (shiftr_uint32 xab one_nat))
-      (SOME (((Word32.andb (xbb,
-                (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0)))
-      a2b)
-   ()) ())
-   (fn x_c =>
-     (fn () =>
-       ((if is_none xb then Word32.+ (a1b, (Word32.fromInt 1)) else a1b),
-         x_c)))))))))
+                                   ((upd (heap_option heap_bool)
+                                      (nat_of_uint32
+(shiftr_uint32 xaa one_nat))
+                                      (SOME
+(((Word32.andb (xba, (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0)))
+                                      a2b)
+                                   ()) ())
+                                   (fn x_c =>
+                                     (fn () =>
+                                       ((if is_none xb
+  then Word32.+ (a1b, (Word32.fromInt 1)) else a1b),
+ x_c)))))))
                end
               ()) ())
               (fn x_b => (fn () => (suc a1a, x_b))))
