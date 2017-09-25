@@ -2106,7 +2106,7 @@ proof -
        ({#literal_of_nat (nat_of_uint32 x). x \<in># mset x#} = y)\<close>
     for x y
     by auto
-find_theorems \<open>list_all2 (\<lambda>x. op = _)\<close>
+
   show ?thesis
     unfolding list_assn_pure_conv list_mset_assn_pure_conv list_mset_assn_pure_conv list_rel_mset_rel_internal
     apply (auto simp: hr_comp_def)
@@ -2189,6 +2189,6 @@ proof -
     using SAT_wl_code.refine[FCOMP SAT_wl'_SAT] unfolding list_assn_list_mset_rel_clauses_l_assn .
 qed
 
-lemmas SAT_wl_code_full_correctness = SAT_wl_code[FCOMP SAT_is_SAT, unfolded is_SAT_def]
+theorem SAT_wl_code_full_correctness = SAT_wl_code[FCOMP SAT_is_SAT, unfolded is_SAT_def]
 
 end
