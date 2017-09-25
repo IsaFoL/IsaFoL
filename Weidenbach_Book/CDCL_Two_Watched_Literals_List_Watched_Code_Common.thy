@@ -1271,7 +1271,8 @@ lemma literals_to_update_wl_literals_to_update_wl_empty:
   \<open>literals_to_update_wl S = {#} \<longleftrightarrow> literals_to_update_wl_empty S\<close>
   by (cases S) (auto simp: literals_to_update_wl_empty_def)
 
-lemma list_assn_list_mset_rel_eq_list_mset_assn:
+(* TODO Move *)
+lemma (in -) list_assn_list_mset_rel_eq_list_mset_assn:
   assumes p: \<open>is_pure R\<close>
   shows \<open>hr_comp (list_assn R) list_mset_rel = list_mset_assn R\<close>
 proof -
@@ -1285,6 +1286,7 @@ proof -
         p2rel_def rel2p_def[abs_def] rel_mset_def R list_mset_rel_def list_rel_def)
       using list_all2_reorder_left_invariance by fastforce
 qed
+(* End Move *)
 
 lemmas [safe_constraint_rules] = CN_FALSEI[of is_pure "hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)"]
   CN_FALSEI[of is_pure "twl_st_l_assn"]

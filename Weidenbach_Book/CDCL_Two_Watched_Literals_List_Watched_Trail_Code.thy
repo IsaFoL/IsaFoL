@@ -7329,7 +7329,7 @@ lemma vmtf_rescore_code_rescore_clause[sepref_fr_rules]:
          phase_saving d]\<^sub>a
        clause_ll_assn\<^sup>k *\<^sub>a trail_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d *\<^sub>a phase_saver_conc\<^sup>d \<rightarrow>
         vmtf_remove_conc *assn phase_saver_conc\<close>
-  using vmtf_rescore_code.refine[FCOMP vmtf_rescore_score_clause, OF twl_array_code_axioms]
+  using vmtf_rescore_code_refine[FCOMP vmtf_rescore_score_clause]
   by auto
 
 definition vmtf_bump where
