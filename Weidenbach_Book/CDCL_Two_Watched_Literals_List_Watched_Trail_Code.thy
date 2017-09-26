@@ -265,7 +265,7 @@ abbreviation phase_saver_conc where
 
 type_synonym twl_st_wl_int =
   \<open>(nat,nat)ann_lits \<times> nat clause_l list \<times> nat \<times>
-    nat cconflict \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int \<times> bool list\<close>
+    conflict_option_rel \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int \<times> bool list\<close>
 
 type_synonym twl_st_wl_int_trail_ref =
   \<open>trail_int \<times> nat clause_l list \<times> nat \<times>
@@ -277,7 +277,7 @@ fun get_clauses_wl_int :: \<open>twl_st_wl_int \<Rightarrow> nat clauses_l\<clos
 fun get_trail_wl_int :: \<open>twl_st_wl_int \<Rightarrow> (nat,nat) ann_lits\<close> where
   \<open>get_trail_wl_int (M, N, U, D, _) = M\<close>
 
-fun get_conflict_wl_int :: \<open>twl_st_wl_int \<Rightarrow> nat cconflict\<close> where
+fun get_conflict_wl_int :: \<open>twl_st_wl_int \<Rightarrow> conflict_option_rel\<close> where
   \<open>get_conflict_wl_int (_, _, _, D, _) = D\<close>
 
 fun get_watched_list_int :: \<open>twl_st_wl_int \<Rightarrow> nat list list\<close> where
@@ -298,7 +298,8 @@ abbreviation trail_assn :: \<open>(nat, nat) ann_lits \<Rightarrow> trail_int_as
 definition twl_st_ref :: \<open>(twl_st_wl_int \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_ref =
   {((M', N', U', D', Q', W', vm, \<phi>), (M, N, U, D, NP, UP, Q, W)).
-    M = M' \<and> N' = N \<and> U' = U \<and> D = D' \<and>
+    M = M' \<and> N' = N \<and> U' = U \<and> 
+    (D', D) \<in> option_conflict_rel M \<and>
      Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
     vm \<in> vmtf_imp M \<and>
@@ -309,7 +310,7 @@ definition twl_st_ref :: \<open>(twl_st_wl_int \<times> nat twl_st_wl) set\<clos
 definition twl_st_int_assn :: \<open>twl_st_wl_int \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>twl_st_int_assn =
   (trail_assn *assn clauses_ll_assn *assn nat_assn *assn
-  conflict_option_assn *assn
+  conflict_option_rel_assn *assn
   clause_l_assn *assn
   arrayO_assn (arl_assn nat_assn) *assn
   vmtf_remove_conc *assn phase_saver_conc
@@ -420,34 +421,27 @@ proof -
   qed
 qed
 
-definition conflict_merge where
-  \<open>conflict_merge D  = (\<lambda>(b, xs). do {
-     (_, (i, xs)) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, zs). i \<le> length D \<and> length (snd zs) = length (snd xs) \<and>
-             Suc i < upperN \<and> Suc (fst zs) < upperN \<^esup>
-       (\<lambda>(i, zs). i < length D)
-       (\<lambda>(i, zs). do{
+definition conflict_merge 
+  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clause_l \<Rightarrow> conflict_option_rel \<Rightarrow> conflict_option_rel nres\<close>
+where
+  \<open>conflict_merge M D  = (\<lambda>(b, clvls, xs :: conflict_rel). do {
+     (_, clvls, zs) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i::nat, clvls :: nat, zs :: conflict_rel). i \<le> length D \<and> length (snd zs) = length (snd xs) \<and>
+             Suc i < upperN \<and> Suc (fst zs) < upperN \<and> Suc clvls < upperN \<^esup>
+       (\<lambda>(i :: nat, clvls :: nat, zs :: conflict_rel). i < length D)
+       (\<lambda>(i :: nat, clvls :: nat, zs :: conflict_rel). do{
            ASSERT(i < length D);
            ASSERT(Suc i < upperN);
-           RETURN(Suc i, conflict_add (D!i) zs)})
-       (0, xs);
-     RETURN (False, i, xs)
+            if get_level M (D!i) = count_decided M then
+             RETURN(Suc i, clvls + 1, conflict_add (D!i) zs)
+           else
+             RETURN(Suc i, clvls, conflict_add (D!i) zs)
+           })
+       (0, clvls, xs);
+     RETURN (False, clvls, zs)
    })\<close>
 
 definition conflict_merge_aa where
-  \<open>conflict_merge_aa C i xs = conflict_merge (C ! i) xs\<close>
-
-type_synonym (in -) conflict_assn = \<open>uint32 \<times> bool option array\<close>
-type_synonym (in -) conflict_rel = \<open>nat \<times> bool option list\<close>
-
-abbreviation (in -) conflict_rel_assn :: \<open>conflict_rel \<Rightarrow> conflict_assn \<Rightarrow> assn\<close> where
- \<open>conflict_rel_assn \<equiv> (uint32_nat_assn *assn array_assn (option_assn bool_assn))\<close>
-
-
-type_synonym (in -) conflict_option_assn = \<open>bool \<times> uint32 \<times> bool option array\<close>
-type_synonym (in -) conflict_option_rel = \<open>bool \<times> nat \<times> bool option list\<close>
-
-abbreviation (in -)conflict_option_rel_assn :: \<open>conflict_option_rel \<Rightarrow> conflict_option_assn \<Rightarrow> assn\<close> where
- \<open>conflict_option_rel_assn \<equiv> (bool_assn *assn conflict_rel_assn)\<close>
+  \<open>conflict_merge_aa M C i xs = conflict_merge M (C ! i) xs\<close>
 
 lemma literals_are_in_N\<^sub>0_in_N\<^sub>1:
   assumes
@@ -463,12 +457,89 @@ proof -
     using N1 unfolding literals_are_in_N\<^sub>0_def by blast
 qed
 
+
+definition get_level_trail :: \<open>trail_int \<Rightarrow> uint32 \<Rightarrow> nat\<close> where
+  \<open>get_level_trail = (\<lambda>(M, xs, lvls, k) L. lvls ! (nat_of_uint32 (L >> 1)))\<close>
+
+sepref_thm get_level_code
+  is \<open>uncurry (RETURN oo get_level_trail)\<close>
+  :: \<open>[\<lambda>((M, xs, lvls, k), L). nat_of_uint32 L div 2 < length lvls]\<^sub>a
+  trailt_conc\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  unfolding get_level_trail_def nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) get_level_code
+   uses twl_array_code.get_level_code.refine_raw
+   is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) get_level_code_def
+
+lemmas get_level_code_get_level_code[sepref_fr_rules] =
+   get_level_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma get_level_code_get_level[sepref_fr_rules]:
+  \<open>(uncurry get_level_code, uncurry (RETURN oo get_level)) \<in>
+   [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a trail_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+    (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have [simp]: \<open>(ba, bb) \<in> nat_lit_rel \<Longrightarrow> ba div 2 = atm_of bb\<close> for ba bb
+    by (auto simp: p2rel_def lit_of_natP_def atm_of_lit_of_nat nat_lit_rel_def
+        simp del: literal_of_nat.simps)
+
+  have 1: \<open>(uncurry (RETURN oo get_level_trail), uncurry (RETURN oo get_level)) \<in>
+     [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>f trailt_ref \<times>\<^sub>f unat_lit_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
+    by (intro nres_relI frefI, rename_tac x y, case_tac x) (auto simp: image_image trailt_ref_def get_level_trail_def
+        nat_shiftr_div2 shiftr1_def unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def
+        nat_of_uint32_shiftr trailt_ref_def)
+
+  have H: \<open>(uncurry get_level_code, uncurry (RETURN \<circ>\<circ> get_level))
+\<in> [comp_PRE (trailt_ref \<times>\<^sub>f unat_lit_rel)
+     (\<lambda>(M, L). L \<in> snd ` D\<^sub>0)
+     (\<lambda>_ ((M, xs, lvls, k), L).
+         nat_of_uint32 L div 2 < length lvls)
+     (\<lambda>_. True)]\<^sub>a hrp_comp
+                     (trailt_conc\<^sup>k *\<^sub>a
+                      uint32_assn\<^sup>k)
+                     (trailt_ref \<times>\<^sub>f
+                      unat_lit_rel) \<rightarrow> hr_comp
+                 uint32_nat_assn nat_rel\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF get_level_code.refine 1, OF twl_array_code_axioms] .
+  have pre: \<open>?pre' = ?pre\<close>
+    by (auto simp: comp_PRE_def trailt_ref_def unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def
+        br_def intro!: ext)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    using H unfolding im pre f by simp
+qed
+
+
+lemma count_decided_trail_ref:
+  \<open>(RETURN o (\<lambda>(_, _, _, k). k), RETURN o count_decided) \<in> trailt_ref \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI) (auto simp: trailt_ref_def)
+
+lemma count_decided_trail:
+   \<open>(return o (\<lambda>(_, _, _, k). k), RETURN o (\<lambda>(_, _, _, k). k)) \<in> trailt_conc\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  supply [[goals_limit = 1]]
+  by sepref_to_hoare sep_auto
+
+lemmas count_decided_trail_code[sepref_fr_rules] =
+   count_decided_trail[FCOMP count_decided_trail_ref]
+
 sepref_register conflict_merge_aa
 sepref_thm conflict_merge_code
-  is \<open>uncurry2 (PR_CONST conflict_merge_aa)\<close>
-  :: \<open>[\<lambda>((N, i), (_, xs)). i < length N \<and> (\<forall>j<length (N!i). atm_of (N!i!j) < length (snd xs))]\<^sub>a
-        clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow> conflict_option_rel_assn\<close>
+  is \<open>uncurry3 (PR_CONST conflict_merge_aa)\<close>
+  :: \<open>[\<lambda>(((M, N), i), (_, _, xs)). i < length N \<and> (\<forall>j<length (N!i). atm_of (N!i!j) < length (snd xs)) \<and>
+        literals_are_in_N\<^sub>0 (mset (N!i))]\<^sub>a
+       trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow> conflict_option_rel_assn\<close>
   supply length_rll_def[simp] nth_rll_def[simp] upperN_def[simp] uint32_nat_assn_one[sepref_fr_rules]
+  image_image[simp] literals_are_in_N\<^sub>0_in_N\<^sub>1[simp]
   unfolding conflict_merge_aa_def conflict_merge_def conflict_add_def PR_CONST_def
   nth_rll_def[symmetric] length_rll_def[symmetric]
   apply (rewrite at \<open>_ + \<hole>\<close> annotate_assn[where A = \<open>uint32_nat_assn\<close>])
@@ -477,18 +548,19 @@ sepref_thm conflict_merge_code
 
 concrete_definition (in -) conflict_merge_code
    uses twl_array_code.conflict_merge_code.refine_raw
-   is \<open>(uncurry2 ?f, _) \<in> _\<close>
+   is \<open>(uncurry3 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) conflict_merge_code_def
 
 lemmas conflict_merge_aa_refine[sepref_fr_rules] =
    conflict_merge_code.refine[OF twl_array_code_axioms]
 
-definition conflict_merge'_step where
-  \<open>conflict_merge'_step i zs D C = (
+definition conflict_merge'_step :: \<open>(nat, nat) ann_lits \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> conflict_rel \<Rightarrow> nat clause_l \<Rightarrow>
+      nat clause \<Rightarrow> bool\<close> where
+  \<open>conflict_merge'_step M i clvls zs D C = (
       let D' = mset (take i D);
           E = remdups_mset (D' + (C - D' - image_mset uminus D')) in
-      ((False, fst zs, snd zs), Some E) \<in> option_conflict_rel \<and>
+      ((False, clvls, zs), Some E) \<in> option_conflict_rel M \<and>
       literals_are_in_N\<^sub>0 E)\<close>
 
 lemma mset_as_position_remove:
@@ -521,7 +593,7 @@ qed
 
 lemma option_conflict_rel_update_None:
   assumes  \<open>((False, (n, xs)), Some D) \<in> option_conflict_rel\<close> and L_xs : \<open>L < length xs\<close>
-  shows \<open>((False, (if xs!L = None then n else n - 1, xs[L := None])), Some (D - {# Pos L, Neg L #})) \<in> option_conflict_rel\<close>
+  shows \<open>((False, (if xs!L = None then n else n - 1, xs[L := None])), Some (D - {# Pos L, Neg L #})) \<in> option_conflict_rel M\<close>
 proof -
   have [simp]: "L \<notin># A \<Longrightarrow> A - add_mset L' (add_mset L B) = A - add_mset L' B"
     for A B :: \<open>'a multiset\<close> and L L'
@@ -613,23 +685,28 @@ lemma mset_as_position_tautology: \<open>mset_as_position xs C \<Longrightarrow>
 
 lemma conflict_merge'_spec:
   assumes
-      o: \<open>((b, n, xs), Some C) \<in> option_conflict_rel\<close> and
+      o: \<open>((b, clvls, n, xs), Some C) \<in> option_conflict_rel M\<close> and
       dist: \<open>distinct D\<close> and
       lits: \<open>literals_are_in_N\<^sub>0 (mset D)\<close> and
       tauto: \<open>\<not>tautology (mset D)\<close> and
       \<open>literals_are_in_N\<^sub>0 C\<close>
-  shows \<open>conflict_merge D (b, n, xs) \<le> \<Down> option_conflict_rel
+  shows \<open>conflict_merge M D (b, clvls, n, xs) \<le> \<Down> (option_conflict_rel M)
             (RETURN (Some (mset D \<union># (C - image_mset uminus (mset D)))))\<close>
 proof -
   have [simp]: \<open>a < length D \<Longrightarrow> Suc (Suc a) < upperN\<close> for a
     using simple_clss_size_upper_div2[of \<open>mset D\<close>] assms by (auto simp: upperN_def)
-  have Suc_N_upperN: \<open>Suc n < upperN\<close>
+  have Suc_N_upperN: \<open>Suc n < upperN\<close> and
+     size_C_upperN: \<open>size C \<le> upperN div 2\<close> and
+     clvls: \<open>clvls = size {#L \<in># C. get_level M L = count_decided M#}\<close>
     using assms simple_clss_size_upper_div2[of C] mset_as_position_distinct_mset[of xs C]
       conflict_rel_not_tautolgy[of n xs C]
     unfolding option_conflict_rel_def conflict_rel_def
     by (auto simp: upperN_def)
-  have [intro]: \<open>((b, a, ba), Some C) \<in> option_conflict_rel \<Longrightarrow> literals_are_in_N\<^sub>0 C \<Longrightarrow>
-        Suc (Suc a) < upperN\<close> for b a ba C
+  then have clvls_upperN: \<open>clvls \<le> upperN div 2\<close>
+    using size_filter_mset_lesseq[of \<open>\<lambda>L. get_level M L = count_decided M\<close> C]
+    unfolding upperN_def by linarith
+  have [intro]: \<open>((b, b', a, ba), Some C) \<in> option_conflict_rel M \<Longrightarrow> literals_are_in_N\<^sub>0 C \<Longrightarrow>
+        Suc (Suc a) < upperN\<close> for b a ba C b'
     using conflict_rel_size[of a ba C] by (auto simp: option_conflict_rel_def
         conflict_rel_def upperN_def)
   have [simp]: \<open>remdups_mset C = C\<close>
@@ -641,7 +718,7 @@ proof -
   have \<open>distinct_mset C\<close>
     using mset_as_position_distinct_mset[of _ C] o
     unfolding option_conflict_rel_def conflict_rel_def by auto
-  have inv: "conflict_merge'_step x1 x2 D C"
+  have inv: "conflict_merge'_step M x1 x2 D C"
     if
       "(b, n, xs) = (b', n')" and
       "case s of
@@ -779,24 +856,27 @@ proof -
     using dist by auto
   have dist_CD: \<open>distinct_mset (C - mset D - uminus `# mset D)\<close>
     using \<open>distinct_mset C\<close> by auto
-
-  have confl: \<open>conflict_merge D (b, n, xs)
-    \<le> \<Down> option_conflict_rel
+  define I where
+     \<open>I xs = (\<lambda>(i, clvls, zs :: conflict_rel). i \<le> length D \<and> length (snd zs) = length (snd xs) \<and> Suc i < upperN \<and>
+         Suc (fst zs) < upperN \<and> Suc clvls < upperN)\<close>
+   for xs :: conflict_rel
+  have confl: \<open>conflict_merge M D (b, clvls, n, xs)
+    \<le> \<Down> (option_conflict_rel M)
        (RETURN (Some (mset D \<union># (C - mset D - uminus `# mset D))))\<close>
     unfolding conflict_merge_aa_def conflict_merge_def PR_CONST_def
-    distinct_mset_rempdups_union_mset[OF dist_D dist_CD]
+    distinct_mset_rempdups_union_mset[OF dist_D dist_CD] I_def[symmetric]
     apply (refine_vcg WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(j, _). length D - j)\<close> and
-          I' = \<open>\<lambda>(i, zs). conflict_merge'_step i zs D C\<close>])
+          I' = \<open>\<lambda>(i, clvls, zs). conflict_merge'_step M i clvls zs D C\<close>])
+    subgoal by auto
+    subgoal using clvls_upperN Suc_N_upperN unfolding upperN_def I_def by auto
+    subgoal using assms
+      unfolding conflict_merge'_step_def Let_def option_conflict_rel_def
+      by (auto simp add: upperN_def conflict_merge'_step_def option_conflict_rel_def)
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by (auto simp: upperN_def)
-    subgoal using Suc_N_upperN by auto
-    subgoal using assms by (simp add: upperN_def conflict_merge'_step_def option_conflict_rel_def)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal for b' n' s i zs by (cases \<open>snd s\<close>) (auto simp: conflict_add_def split: if_splits)
+    subgoal for b' n' aa s i zs ac bc bd
+        by (cases bc; cases \<open>bd\<close>) (auto simp: conflict_add_def split: if_splits)
     subgoal for b' n' s j zs
       using dist lits tauto
       by (auto simp: option_conflict_rel_def take_Suc_conv_app_nth
@@ -806,6 +886,7 @@ proof -
     subgoal for b' n' s j zs
       by (rule inv)
     subgoal by auto
+    subgoal using assms by (auto simp: option_conflict_rel_def conflict_merge'_step_def Let_def)
     subgoal using assms by (auto simp: option_conflict_rel_def conflict_merge'_step_def Let_def)
     done
   have count_D: \<open>count (mset D) a = 1 \<or> count (mset D) a = 0\<close> for a
@@ -2410,67 +2491,6 @@ lemma in_literals_are_in_N\<^sub>0_in_D\<^sub>0:
 
 paragraph \<open>Level of a literal\<close>
 
-definition get_level_trail :: \<open>trail_int \<Rightarrow> uint32 \<Rightarrow> nat\<close> where
-  \<open>get_level_trail = (\<lambda>(M, xs, lvls, k) L. lvls ! (nat_of_uint32 (L >> 1)))\<close>
-
-sepref_thm get_level_code
-  is \<open>uncurry (RETURN oo get_level_trail)\<close>
-  :: \<open>[\<lambda>((M, xs, lvls, k), L). nat_of_uint32 L div 2 < length lvls]\<^sub>a
-  trailt_conc\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  unfolding get_level_trail_def nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
-  supply [[goals_limit = 1]]
-  by sepref
-
-concrete_definition (in -) get_level_code
-   uses twl_array_code.get_level_code.refine_raw
-   is \<open>(uncurry ?f, _)\<in>_\<close>
-
-prepare_code_thms (in -) get_level_code_def
-
-lemmas get_level_code_get_level_code[sepref_fr_rules] =
-   get_level_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
-
-lemma get_level_code_get_level[sepref_fr_rules]:
-  \<open>(uncurry get_level_code, uncurry (RETURN oo get_level)) \<in>
-   [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a trail_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-    (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
-proof -
-  have [simp]: \<open>(ba, bb) \<in> nat_lit_rel \<Longrightarrow> ba div 2 = atm_of bb\<close> for ba bb
-    by (auto simp: p2rel_def lit_of_natP_def atm_of_lit_of_nat nat_lit_rel_def
-        simp del: literal_of_nat.simps)
-
-  have 1: \<open>(uncurry (RETURN oo get_level_trail), uncurry (RETURN oo get_level)) \<in>
-     [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>f trailt_ref \<times>\<^sub>f unat_lit_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
-    by (intro nres_relI frefI, rename_tac x y, case_tac x) (auto simp: image_image trailt_ref_def get_level_trail_def
-        nat_shiftr_div2 shiftr1_def unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def
-        nat_of_uint32_shiftr trailt_ref_def)
-
-  have H: \<open>(uncurry get_level_code, uncurry (RETURN \<circ>\<circ> get_level))
-\<in> [comp_PRE (trailt_ref \<times>\<^sub>f unat_lit_rel)
-     (\<lambda>(M, L). L \<in> snd ` D\<^sub>0)
-     (\<lambda>_ ((M, xs, lvls, k), L).
-         nat_of_uint32 L div 2 < length lvls)
-     (\<lambda>_. True)]\<^sub>a hrp_comp
-                     (trailt_conc\<^sup>k *\<^sub>a
-                      uint32_assn\<^sup>k)
-                     (trailt_ref \<times>\<^sub>f
-                      unat_lit_rel) \<rightarrow> hr_comp
-                 uint32_nat_assn nat_rel\<close>
-    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF get_level_code.refine 1, OF twl_array_code_axioms] .
-  have pre: \<open>?pre' = ?pre\<close>
-    by (auto simp: comp_PRE_def trailt_ref_def unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def
-        br_def intro!: ext)
-  have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
-    by (auto simp: hrp_comp_def hr_comp_def)
-  have f: \<open>?f' = ?f\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
-    by (auto simp: hrp_comp_def hr_comp_def)
-  show ?thesis
-    using H unfolding im pre f by simp
-qed
-
 (* TODO: get_level M (Pos i) is inefficient (i*2 div 2) *)
 definition maximum_level_remove' :: \<open>(nat, nat) ann_lits \<Rightarrow> conflict_rel \<Rightarrow> nat literal \<Rightarrow> nat nres\<close> where
   \<open>maximum_level_remove'  = (\<lambda>M (n, xs) L. do {
@@ -2499,10 +2519,10 @@ sepref_thm maximum_level_remove_code
   :: \<open>trail_assn\<^sup>k *\<^sub>a (uint32_nat_assn *assn array_assn (option_assn bool_assn))\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k
        \<rightarrow>\<^sub>a
        uint32_nat_assn\<close>
-  unfolding maximum_level_remove'_def[abs_def] zero_uint32_def[symmetric] one_nat_uint32_def[symmetric]
+  unfolding maximum_level_remove'_def[abs_def] zero_uint32_nat_def[symmetric] one_nat_uint32_def[symmetric]
     fast_minus_def[symmetric] upperN_def PR_CONST_def
   supply in_literals_are_in_N\<^sub>0_in_D\<^sub>0[intro] one_nat_uint32_def[simp] fast_minus_def[simp]
-  supply uint32_nat_assn_zero_uint32[sepref_fr_rules] Pot_unat_lit_assn[sepref_fr_rules]
+  supply uint32_nat_assn_zero_uint32_nat[sepref_fr_rules] Pot_unat_lit_assn[sepref_fr_rules]
   supply [[goals_limit = 1]]
   apply (rewrite in "ASSERT (\<hole> < length _)" annotate_assn[where A=uint32_nat_assn])
   apply (rewrite in "If _ _ (If _ (RETURN (_, \<hole>, _)) _)" annotate_assn[where A=uint32_nat_assn])
@@ -3406,18 +3426,6 @@ proof -
     using pre ..
 qed
 
-
-lemma count_decided_trail_ref:
-  \<open>(RETURN o (\<lambda>(_, _, _, k). k), RETURN o count_decided) \<in> trailt_ref \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI) (auto simp: trailt_ref_def)
-
-lemma count_decided_trail:
-   \<open>(return o (\<lambda>(_, _, _, k). k), RETURN o (\<lambda>(_, _, _, k). k)) \<in> trailt_conc\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  supply [[goals_limit = 1]]
-  by sepref_to_hoare sep_auto
-
-lemmas count_decided_trail_code[sepref_fr_rules] =
-   count_decided_trail[FCOMP count_decided_trail_ref]
 
 definition count_decided_st where
   \<open>count_decided_st = (\<lambda>(M, _). count_decided M)\<close>
@@ -5272,9 +5280,9 @@ sepref_thm get_maximum_level_remove_code
   is \<open>uncurry2 (RETURN ooo get_maximum_level_remove_int)\<close>
   :: \<open>trail_assn\<^sup>k  *\<^sub>a conflict_with_cls_int_with_highest_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a
        uint32_nat_assn\<close>
-  supply uint32_nat_assn_zero_uint32[sepref_fr_rules]
+  supply uint32_nat_assn_zero_uint32_nat[sepref_fr_rules]
     snd_hnr_pure[sepref_fr_rules]
-  unfolding get_maximum_level_remove_int_def zero_uint32_def[symmetric]
+  unfolding get_maximum_level_remove_int_def zero_uint32_nat_def[symmetric]
   by sepref
 
 concrete_definition (in -) get_maximum_level_remove_code
@@ -6612,11 +6620,11 @@ qed
 
 
 lemma conflict_to_conflict_with_cls_code_helper:
-  \<open>zero_uint32 < upperN div 2\<close>
+  \<open>zero_uint32_nat < upperN div 2\<close>
   \<open>a1'b < upperN div 2 \<Longrightarrow> a1'b + one_nat_uint32 < upperN\<close>
   \<open> 0 < a1'c \<Longrightarrow> one_nat_uint32 \<le> a1'c\<close>
   \<open>fast_minus a1'c one_nat_uint32  = a1'c - 1\<close>
-  by (auto simp: upperN_def zero_uint32_def one_nat_uint32_def fast_minus_def)
+  by (auto simp: upperN_def zero_uint32_nat_def one_nat_uint32_def fast_minus_def)
 
 lemmas uint32_nat_assn_plus'[sepref_fr_rules] = uint32_nat_assn_plus[unfolded upperN_def[symmetric]]
 declare uint32_nat_assn_plus[sepref_fr_rules del]
@@ -6626,7 +6634,7 @@ sepref_thm conflict_to_conflict_with_cls_code
   is \<open>uncurry (PR_CONST conflict_to_conflict_with_cls)\<close>
   :: \<open>(array_assn unat_lit_assn)\<^sup>d *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow>\<^sub>a
       conflict_with_cls_int_assn\<close>
-  supply uint32_nat_assn_zero_uint32[sepref_fr_rules] [[goals_limit=1]]
+  supply uint32_nat_assn_zero_uint32_nat[sepref_fr_rules] [[goals_limit=1]]
    Pot_unat_lit_assn'[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
    conflict_to_conflict_with_cls_code_helper[simp] uint32_2_hnr[sepref_fr_rules]
   unfolding conflict_to_conflict_with_cls_def array_fold_custom_replicate
@@ -6635,8 +6643,8 @@ sepref_thm conflict_to_conflict_with_cls_code
   apply (rewrite at "_ ! \<hole> \<noteq> None" annotate_assn[where A=uint32_nat_assn])
   apply (rewrite at "\<hole> < _" two_uint32_def[symmetric])
   apply (rewrite at "\<hole> < _" annotate_assn[where A=uint32_nat_assn])
-  apply (rewrite at \<open>(\<hole>, _, _, _)\<close> zero_uint32_def[symmetric])
-  apply (rewrite at "(zero_uint32, \<hole>, _, _)" annotate_assn[where A=uint32_nat_assn])
+  apply (rewrite at \<open>(\<hole>, _, _, _)\<close> zero_uint32_nat_def[symmetric])
+  apply (rewrite at "(zero_uint32_nat, \<hole>, _, _)" annotate_assn[where A=uint32_nat_assn])
   apply (rewrite at \<open>_ + \<hole>\<close> one_nat_uint32_def[symmetric])+
   apply (rewrite at \<open>fast_minus _ \<hole>\<close> one_nat_uint32_def[symmetric])+
   by sepref
@@ -6944,13 +6952,13 @@ sepref_thm extract_shorter_conflict_list_removed_code
   :: \<open>[\<lambda>(M, (b, n, xs)). M \<noteq> []]\<^sub>a
       trail_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow> conflict_option_rel_assn *assn
        option_assn (unat_lit_assn *assn uint32_nat_assn)\<close>
-  supply [[goals_limit = 1]] uint32_nat_assn_zero_uint32[sepref_fr_rules]
+  supply [[goals_limit = 1]] uint32_nat_assn_zero_uint32_nat[sepref_fr_rules]
     Pot_unat_lit_assn[sepref_fr_rules] one_nat_uint32_def[simp]
-    Neg_unat_lit_assn[sepref_fr_rules] zero_uint32_def[simp]
+    Neg_unat_lit_assn[sepref_fr_rules] zero_uint32_nat_def[simp]
   unfolding extract_shorter_conflict_list_removed_def PR_CONST_def
   extract_shorter_conflict_list_int_def
   lit_of_hd_trail_def[symmetric] Let_def
-   zero_uint32_def[symmetric]
+   zero_uint32_nat_def[symmetric]
   fast_minus_def[symmetric] one_nat_uint32_def[symmetric]
   by sepref
 
@@ -7736,8 +7744,8 @@ sepref_thm remove_last_code
   is \<open>uncurry (RETURN oo (PR_CONST remove_last_int))\<close>
   :: \<open>[\<lambda>(L, (b, n, xs)). atm_of L < length xs]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow>
      conflict_option_rel_assn\<close>
-  supply [[goals_limit=1]] uint32_nat_assn_zero_uint32[sepref_fr_rules]
-  unfolding remove_last_int_def PR_CONST_def zero_uint32_def[symmetric]
+  supply [[goals_limit=1]] uint32_nat_assn_zero_uint32_nat[sepref_fr_rules]
+  unfolding remove_last_int_def PR_CONST_def zero_uint32_nat_def[symmetric]
   by sepref
 
 concrete_definition (in -) remove_last_code
