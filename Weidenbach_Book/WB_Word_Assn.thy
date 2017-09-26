@@ -297,7 +297,7 @@ lemma max_uint32_nat[sepref_fr_rules]:
      uint32_nat_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_max)
 
-lemma array_set_hnr_u[sepref_fr_rules]:
+lemma array_set_hnr_u:
     \<open>CONSTRAINT is_pure A \<Longrightarrow>
     (uncurry2 (\<lambda>xs i. heap_array_set xs (nat_of_uint32 i)), uncurry2 (RETURN \<circ>\<circ>\<circ> op_list_set)) \<in>
      [pre_list_set]\<^sub>a (array_assn A)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a A\<^sup>k \<rightarrow> array_assn A\<close>
@@ -305,7 +305,7 @@ lemma array_set_hnr_u[sepref_fr_rules]:
     (sep_auto simp: uint32_nat_rel_def br_def ex_assn_up_eq2 array_assn_def is_array_def
       hr_comp_def list_rel_pres_length list_rel_update)
 
-lemma  array_get_hnr_u[sepref_fr_rules]:
+lemma  array_get_hnr_u:
   assumes \<open>CONSTRAINT is_pure A\<close>
   shows \<open>(uncurry (\<lambda>xs i. Array.nth xs (nat_of_uint32 i)),
       uncurry (RETURN \<circ>\<circ> op_list_get)) \<in> [pre_list_get]\<^sub>a (array_assn A)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> A\<close>
@@ -324,7 +324,7 @@ proof -
      list_rel_eq_listrel listrel_iff_nth pure_def)
 qed
 
-lemma arl_get_hnr_u[sepref_fr_rules]:
+lemma arl_get_hnr_u:
   assumes \<open>CONSTRAINT is_pure A\<close>
   shows \<open>(uncurry (\<lambda>xs i. arl_get xs (nat_of_uint32 i)), uncurry (RETURN \<circ>\<circ> op_list_get))
 \<in> [pre_list_get]\<^sub>a (arl_assn A)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> A\<close>
