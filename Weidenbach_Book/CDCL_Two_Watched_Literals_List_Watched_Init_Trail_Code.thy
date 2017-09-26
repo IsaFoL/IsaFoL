@@ -2189,6 +2189,6 @@ proof -
     using SAT_wl_code.refine[FCOMP SAT_wl'_SAT] unfolding list_assn_list_mset_rel_clauses_l_assn .
 qed
 
-theorem SAT_wl_code_full_correctness = SAT_wl_code[FCOMP SAT_is_SAT, unfolded is_SAT_def]
+lemmas SAT_wl_code_full_correctness = SAT_wl_code[FCOMP SAT_is_SAT, unfolded is_SAT_def]
 
 end
