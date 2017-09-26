@@ -435,6 +435,16 @@ fun ht_upd (A1_, A2_, A3_) B_ k v ht =
 
 fun the (SOME x2) = x2;
 
+fun arl_get A_ = (fn (a, _) => nth A_ a);
+
+fun nth_aa A_ xs i j =
+  (fn () => let
+              val x = (fn () => Array.sub (xs, IntInf.toInt i)) ();
+              val xa = arl_get A_ x j ();
+            in
+              xa
+            end);
+
 fun ht_insls (A1_, A2_, A3_) B_ [] ht = (fn () => ht)
   | ht_insls (A1_, A2_, A3_) B_ ((k, v) :: l) ht =
     (fn () => let
@@ -455,18 +465,8 @@ fun ht_copy (A1_, A2_, A3_) B_ n src dst =
              ht_copy (A1_, A2_, A3_) B_ (minus_nat n one_nat) src x ()
            end));
 
-fun arl_get A_ = (fn (a, _) => nth A_ a);
-
-fun nth_aa A_ xs i j =
-  (fn () =>
-    let
-      val x = nth (heap_prod (heap_array (typerep_heap A_)) heap_nat) xs i ();
-      val xa = arl_get A_ x j ();
-    in
-      xa
-    end);
-
-fun nth_aa_u A_ x la l = nth_aa A_ x (nat_of_uint32 la) l;
+fun nth_aa_u A_ x la l =
+  nth_aa A_ x (IntInf.fromLarge (Word32.toLargeInt la) : IntInf.int) l;
 
 fun app f a = f a;
 
@@ -546,6 +546,10 @@ fun array_grow A_ a s x =
                    (fn _ => (fn () => aa))))
         ()
     end);
+
+fun nth_u_code A_ xs n =
+  (fn () => Array.sub (xs,
+    IntInf.toInt (IntInf.fromLarge (Word32.toLargeInt n) : IntInf.int)));
 
 fun hs_memb (A1_, A2_, A3_) x s =
   (fn () => let
@@ -689,6 +693,23 @@ fun arl_append (A1_, A2_) =
         ()
     end);
 
+fun append_el_aa_u (A1_, A2_) =
+  (fn a => fn i => fn x => fn () =>
+    let
+      val j =
+        (fn () => Array.sub (a,
+          IntInf.toInt (IntInf.fromLarge (Word32.toLargeInt i) : IntInf.int)))
+          ();
+      val aa = arl_append (A1_, A2_) j x ();
+      val _ =
+        (fn () => Array.update (a,
+          IntInf.toInt (IntInf.fromLarge (Word32.toLargeInt i) : IntInf.int),
+          aa))
+          ();
+    in
+      a
+    end);
+
 fun op_list_is_empty x = null x;
 
 fun imp_nfoldli (x :: ls) c f s =
@@ -744,15 +765,6 @@ fun heap_WHILET b f s =
       (if bv then (fn f_ => fn () => f_ ((f s) ()) ()) (heap_WHILET b f)
         else (fn () => s))
         ()
-    end);
-
-fun append_el_aa (A1_, A2_) =
-  (fn a => fn i => fn x => fn () =>
-    let
-      val j = nth (heap_prod (heap_array (typerep_heap A2_)) heap_nat) a i ();
-      val aa = arl_append (A1_, A2_) j x ();
-    in
-      upd (heap_prod (heap_array (typerep_heap A2_)) heap_nat) i aa a ()
     end);
 
 fun emptied_arl x = (fn (a, _) => (a, zero_nata)) x;
@@ -848,12 +860,11 @@ fun propagated l c = (l, SOME c);
 fun hd_trail_code x = (fn (m, _) => hd m) x;
 
 fun get_level_code x =
-  (fn ai => fn bi =>
-    let
-      val (_, (_, (a1b, _))) = ai;
-    in
-      nth heap_uint32 a1b (nat_of_uint32 (shiftr_uint32 bi one_nat))
-    end)
+  (fn ai => fn bi => let
+                       val (_, (_, (a1b, _))) = ai;
+                     in
+                       nth_u_code heap_uint32 a1b (shiftr_uint32 bi one_nat)
+                     end)
     x;
 
 fun vmtf_enqueue_code x =
@@ -1278,8 +1289,7 @@ fun update_clause_wl_int_code x =
       val xa = nth_raa heap_uint32 a1a bid bia ();
       val x_b = swap_aa (default_uint32, heap_uint32) a1a bid bib bia ();
       val x_d = delete_index_and_swap_aa heap_nat a1e (nat_of_uint32 ai) bic ();
-      val xb =
-        append_el_aa (default_nat, heap_nat) x_d (nat_of_uint32 xa) bid ();
+      val xb = append_el_aa_u (default_nat, heap_nat) x_d xa bid ();
     in
       (bic, (a1, (x_b, (a1b, (a1c, (a1d, (xb, a2e)))))))
     end)
@@ -2279,17 +2289,16 @@ fun propgate_bt_wl_D_code x =
                 (fn f_ => fn () => f_ ((length_ra heap_uint32 a1a) ()) ())
                   (fn xa =>
                     (fn f_ => fn () => f_
-                      ((append_el_aa (default_nat, heap_nat) a1e
-                         (nat_of_uint32 (Word32.xorb (ai, (Word32.fromInt 1))))
-                         xa)
+                      ((append_el_aa_u (default_nat, heap_nat) a1e
+                         (Word32.xorb (ai, (Word32.fromInt 1))) xa)
                       ()) ())
                       (fn x_c =>
                         (fn f_ => fn () => f_ ((length_ra heap_uint32 a1a) ())
                           ())
                           (fn xb =>
                             (fn f_ => fn () => f_
-                              ((append_el_aa (default_nat, heap_nat) x_c
-                                 (nat_of_uint32 bia) xb)
+                              ((append_el_aa_u (default_nat, heap_nat) x_c bia
+                                 xb)
                               ()) ())
                               (fn x_e =>
                                 (fn f_ => fn () => f_
@@ -2537,11 +2546,10 @@ fun add_init_cls_code x =
     let
       val xa = length_ra heap_uint32 a1a ();
       val x_b =
-        append_el_aa (default_nat, heap_nat) a1e (nat_of_uint32 (op_list_hd ai))
-          xa ();
+        append_el_aa_u (default_nat, heap_nat) a1e (op_list_hd ai) xa ();
       val x_d =
-        append_el_aa (default_nat, heap_nat) x_b
-          (nat_of_uint32 (op_list_hd (op_list_tl ai))) xa ();
+        append_el_aa_u (default_nat, heap_nat) x_b (op_list_hd (op_list_tl ai))
+          xa ();
       val xaa = (fn () => Array.fromList ai) ();
       val xab = arrayO_raa_append (default_uint32, heap_uint32) a1a xaa ();
     in

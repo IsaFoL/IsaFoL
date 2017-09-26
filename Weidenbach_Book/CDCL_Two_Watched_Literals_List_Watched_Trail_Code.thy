@@ -1613,15 +1613,6 @@ lemma update_clause_wl_int_update_clause_wl:
     (auto simp: update_clause_wl_int_def update_clause_wl_def twl_st_ref_def Let_def
       map_fun_rel_def)
 
-lemma append_el_aa_hnr'[sepref_fr_rules]:
-  shows \<open>(uncurry2 (\<lambda>xs i j. append_el_aa xs (nat_of_uint32 i) j), uncurry2 (RETURN ooo append_ll))
-     \<in> [\<lambda>((W,L), j). L < length W]\<^sub>a
-        (arrayO_assn (arl_assn nat_assn))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> (arrayO_assn (arl_assn nat_assn))\<close>
-    (is \<open>?a \<in> [?pre]\<^sub>a ?init \<rightarrow> ?post\<close>)
-  using append_aa_hnr_u[of nat_assn, simplified] unfolding hfref_def  uint32_nat_rel_def br_def pure_def
-   hn_refine_def
-  by auto
-
 lemma length_delete_index_and_swap_ll[simp]: \<open>length (delete_index_and_swap_ll s i j) = length s\<close>
   by (auto simp: delete_index_and_swap_ll_def)
 
@@ -2418,6 +2409,7 @@ sepref_thm get_level_code
   :: \<open>[\<lambda>((M, xs, lvls, k), L). nat_of_uint32 L div 2 < length lvls]\<^sub>a
   trailt_conc\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   unfolding get_level_trail_def nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
+    nth_u_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -4084,7 +4076,7 @@ definition extract_shorter_conflict_st_trivial_int :: \<open>twl_st_wl_int \<Rig
 \<open>extract_shorter_conflict_st_trivial_int = (\<lambda>(M, N, U, D, oth).
   RETURN (M, N, U, extract_shorter_conflict_l_trivial M D, oth))\<close>
 
-
+(* TODO Move *)
 definition (in -) sum_mod_upperN where
   \<open>sum_mod_upperN a b = (a + b) mod upperN\<close>
 
@@ -4096,6 +4088,7 @@ lemma (in -) sum_mod_upperN: \<open>(uncurry (return oo op +), uncurry (RETURN o
   uint32_nat_assn\<close>
   by sepref_to_hoare
      (sep_auto simp: sum_mod_upperN_def uint32_nat_rel_def br_def nat_of_uint32_plus upperN_def)
+(* End Move *)
 
 definition extract_shorter_conflict_list_removed :: \<open>(nat, nat) ann_lits \<Rightarrow> conflict_option_rel \<Rightarrow>
   (conflict_option_rel \<times> (nat literal \<times> nat) option) nres\<close> where
