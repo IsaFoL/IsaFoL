@@ -20,7 +20,8 @@ type_synonym phase_saver_assn = \<open>bool array\<close>
 
 type_synonym twl_st_wll_trail =
   \<open>trail_int_assn \<times> clauses_wl \<times> nat \<times> conflict_option_assn \<times>
-    lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn\<close>
+    lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
+    uint32\<close>
 
 definition valued_atm_on_trail where
   \<open>valued_atm_on_trail M L =
@@ -265,7 +266,8 @@ abbreviation phase_saver_conc where
 
 type_synonym twl_st_wl_int =
   \<open>(nat,nat)ann_lits \<times> nat clause_l list \<times> nat \<times>
-    conflict_option_rel \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int \<times> bool list\<close>
+    nat clause option \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int \<times> bool list \<times>
+    nat\<close>
 
 type_synonym twl_st_wl_int_trail_ref =
   \<open>trail_int \<times> nat clause_l list \<times> nat \<times>
@@ -277,7 +279,7 @@ fun get_clauses_wl_int :: \<open>twl_st_wl_int \<Rightarrow> nat clauses_l\<clos
 fun get_trail_wl_int :: \<open>twl_st_wl_int \<Rightarrow> (nat,nat) ann_lits\<close> where
   \<open>get_trail_wl_int (M, N, U, D, _) = M\<close>
 
-fun get_conflict_wl_int :: \<open>twl_st_wl_int \<Rightarrow> conflict_option_rel\<close> where
+fun get_conflict_wl_int :: \<open>twl_st_wl_int \<Rightarrow> nat clause option\<close> where
   \<open>get_conflict_wl_int (_, _, _, D, _) = D\<close>
 
 fun get_watched_list_int :: \<open>twl_st_wl_int \<Rightarrow> nat list list\<close> where
@@ -287,7 +289,11 @@ fun get_vmtf_int :: \<open>twl_st_wl_int \<Rightarrow> vmtf_remove_int\<close> w
   \<open>get_vmtf_int (_, _, _, _, _, _, vm, _) = vm\<close>
 
 fun get_phase_saver_int :: \<open>twl_st_wl_int \<Rightarrow> bool list\<close> where
-  \<open>get_phase_saver_int (_, _, _, _, _, _, _, \<phi>) = \<phi>\<close>
+  \<open>get_phase_saver_int (_, _, _, _, _, _, _, \<phi>, _) = \<phi>\<close>
+
+
+fun get_count_max_lvls :: \<open>twl_st_wl_int \<Rightarrow> nat\<close> where
+  \<open>get_count_max_lvls (_, _, _, _, _, _, _, _, clvls) = clvls\<close>
 
 context twl_array_code_ops
 begin
@@ -295,26 +301,34 @@ begin
 abbreviation trail_assn :: \<open>(nat, nat) ann_lits \<Rightarrow> trail_int_assn \<Rightarrow> assn\<close> where
   \<open>trail_assn \<equiv> hr_comp trailt_conc trailt_ref\<close>
 
+abbreviation (in -) counts_max_lvl where
+  \<open>counts_max_lvl M C \<equiv> size (filter_mset (\<lambda>L. get_level M L = count_decided M) C)\<close>
+
+definition counts_maximum_level where
+  \<open>counts_maximum_level M C = 
+      {i. C \<noteq> None \<longrightarrow> i = counts_max_lvl M (the C)}\<close>
+
 definition twl_st_ref :: \<open>(twl_st_wl_int \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_ref =
-  {((M', N', U', D', Q', W', vm, \<phi>), (M, N, U, D, NP, UP, Q, W)).
+  {((M', N', U', D', Q', W', vm, \<phi>, clvls), (M, N, U, D, NP, UP, Q, W)).
     M = M' \<and> N' = N \<and> U' = U \<and> 
-    (D', D) \<in> option_conflict_rel M \<and>
+    D' = D \<and>
      Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
     vm \<in> vmtf_imp M \<and>
     phase_saving \<phi> \<and>
-    no_dup M
+    no_dup M \<and>
+    clvls \<in> counts_maximum_level M D
   }\<close>
 
 definition twl_st_int_assn :: \<open>twl_st_wl_int \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>twl_st_int_assn =
-  (trail_assn *assn clauses_ll_assn *assn nat_assn *assn
-  conflict_option_rel_assn *assn
+  trail_assn *assn clauses_ll_assn *assn nat_assn *assn
+  conflict_option_assn *assn
   clause_l_assn *assn
   arrayO_assn (arl_assn nat_assn) *assn
-  vmtf_remove_conc *assn phase_saver_conc
-  )\<close>
+  vmtf_remove_conc *assn phase_saver_conc *assn
+  uint32_nat_assn\<close>
 
 definition twl_st_assn :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>twl_st_assn = hr_comp twl_st_int_assn twl_st_ref\<close>
@@ -371,18 +385,17 @@ end
 
 subsubsection \<open>Refining code\<close>
 
+definition set_conflict :: \<open>nat clauses_l \<Rightarrow> nat \<Rightarrow> nat clause option \<Rightarrow> nat clause option\<close> where
+\<open>set_conflict N i _ = Some (mset (N!i))\<close>
+
+definition conflict_add :: \<open>nat literal \<Rightarrow> conflict_rel \<Rightarrow> conflict_rel\<close> where
+  \<open>conflict_add = (\<lambda>L (n, xs). (if xs ! atm_of L = None then n + 1 else n,
+      xs[atm_of L := Some (is_pos L)]))\<close>
 
 context twl_array_code
 begin
 
 paragraph \<open>Unit propagation, body of the inner loop\<close>
-
-definition (in -) set_conflict :: \<open>nat clauses_l \<Rightarrow> nat \<Rightarrow> nat clause option \<Rightarrow> nat clause option\<close> where
-\<open>set_conflict N i _ = Some (mset (N!i))\<close>
-
-definition (in -) conflict_add :: \<open>nat literal \<Rightarrow> conflict_rel \<Rightarrow> conflict_rel\<close> where
-  \<open>conflict_add = (\<lambda>L (n, xs). (if xs ! atm_of L = None then n + 1 else n,
-      xs[atm_of L := Some (is_pos L)]))\<close>
 
 
 lemma conflict_add_conflict_rel:
@@ -420,28 +433,50 @@ proof -
           intro!: mset_as_position.intros)
   qed
 qed
+definition is_in_conflict_rel where
+  \<open>is_in_conflict_rel = (\<lambda>(n, xs) L. \<not>is_None (xs ! atm_of L))\<close>
+
+sepref_thm is_in_conflict_code
+  is \<open>uncurry (RETURN oo is_in_conflict_rel)\<close>
+  :: \<open>[\<lambda>((n, xs), L). atm_of L < length xs]\<^sub>a
+       conflict_rel_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  supply length_rll_def[simp] nth_rll_def[simp] upperN_def[simp] uint32_nat_assn_one[sepref_fr_rules]
+  image_image[simp]
+  unfolding is_in_conflict_rel_def
+  by sepref
+
+concrete_definition (in -) is_in_conflict_code
+   uses twl_array_code.is_in_conflict_code.refine_raw
+   is \<open>(uncurry ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) is_in_conflict_code_def
+
+lemmas is_in_conflict_hnr[sepref_fr_rules] =
+   is_in_conflict_code.refine[OF twl_array_code_axioms]
 
 definition conflict_merge 
-  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clause_l \<Rightarrow> conflict_option_rel \<Rightarrow> conflict_option_rel nres\<close>
+  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clause_l \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow> (conflict_option_rel \<times> nat) nres\<close>
 where
-  \<open>conflict_merge M D  = (\<lambda>(b, clvls, xs :: conflict_rel). do {
-     (_, clvls, zs) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i::nat, clvls :: nat, zs :: conflict_rel). i \<le> length D \<and> length (snd zs) = length (snd xs) \<and>
-             Suc i < upperN \<and> Suc (fst zs) < upperN \<and> Suc clvls < upperN \<^esup>
-       (\<lambda>(i :: nat, clvls :: nat, zs :: conflict_rel). i < length D)
-       (\<lambda>(i :: nat, clvls :: nat, zs :: conflict_rel). do{
+  \<open>conflict_merge M D  = (\<lambda>(b, xs) clvls. do {
+     (_, clvls, zs) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i::nat, clvls :: nat, zs). i \<le> length D \<and> 
+         length (snd zs) = length (snd xs) \<and>
+             Suc i < upperN \<and> Suc (fst zs) < upperN \<and> Suc clvls < upperN\<^esup>
+       (\<lambda>(i :: nat, clvls, zs). i < length D)
+       (\<lambda>(i :: nat, clvls, zs). do{
            ASSERT(i < length D);
            ASSERT(Suc i < upperN);
-            if get_level M (D!i) = count_decided M then
+            if get_level M (D!i) = count_decided M \<and> \<not>is_in_conflict_rel zs (D!i) then
              RETURN(Suc i, clvls + 1, conflict_add (D!i) zs)
            else
              RETURN(Suc i, clvls, conflict_add (D!i) zs)
            })
        (0, clvls, xs);
-     RETURN (False, clvls, zs)
+     RETURN ((False, zs), clvls)
    })\<close>
 
 definition conflict_merge_aa where
   \<open>conflict_merge_aa M C i xs = conflict_merge M (C ! i) xs\<close>
+
 
 lemma literals_are_in_N\<^sub>0_in_N\<^sub>1:
   assumes
@@ -489,9 +524,10 @@ proof -
 
   have 1: \<open>(uncurry (RETURN oo get_level_trail), uncurry (RETURN oo get_level)) \<in>
      [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>f trailt_ref \<times>\<^sub>f unat_lit_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
-    by (intro nres_relI frefI, rename_tac x y, case_tac x) (auto simp: image_image trailt_ref_def get_level_trail_def
+    by (intro nres_relI frefI, rename_tac x y, case_tac x) 
+      (auto simp: image_image trailt_ref_def get_level_trail_def
         nat_shiftr_div2 shiftr1_def unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def
-        nat_of_uint32_shiftr trailt_ref_def)
+        nat_of_uint32_shiftr)
 
   have H: \<open>(uncurry get_level_code, uncurry (RETURN \<circ>\<circ> get_level))
 \<in> [comp_PRE (trailt_ref \<times>\<^sub>f unat_lit_rel)
@@ -534,10 +570,11 @@ lemmas count_decided_trail_code[sepref_fr_rules] =
 
 sepref_register conflict_merge_aa
 sepref_thm conflict_merge_code
-  is \<open>uncurry3 (PR_CONST conflict_merge_aa)\<close>
-  :: \<open>[\<lambda>(((M, N), i), (_, _, xs)). i < length N \<and> (\<forall>j<length (N!i). atm_of (N!i!j) < length (snd xs)) \<and>
+  is \<open>uncurry4 (PR_CONST conflict_merge_aa)\<close>
+  :: \<open>[\<lambda>((((M, N), i), (_, xs)), _). i < length N \<and> (\<forall>j<length (N!i). atm_of (N!i!j) < length (snd xs)) \<and>
         literals_are_in_N\<^sub>0 (mset (N!i))]\<^sub>a
-       trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow> conflict_option_rel_assn\<close>
+       trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
+      conflict_option_rel_assn *assn uint32_nat_assn\<close>
   supply length_rll_def[simp] nth_rll_def[simp] upperN_def[simp] uint32_nat_assn_one[sepref_fr_rules]
   image_image[simp] literals_are_in_N\<^sub>0_in_N\<^sub>1[simp]
   unfolding conflict_merge_aa_def conflict_merge_def conflict_add_def PR_CONST_def
@@ -548,7 +585,7 @@ sepref_thm conflict_merge_code
 
 concrete_definition (in -) conflict_merge_code
    uses twl_array_code.conflict_merge_code.refine_raw
-   is \<open>(uncurry3 ?f, _) \<in> _\<close>
+   is \<open>(uncurry4 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) conflict_merge_code_def
 
@@ -560,8 +597,8 @@ definition conflict_merge'_step :: \<open>(nat, nat) ann_lits \<Rightarrow> nat 
   \<open>conflict_merge'_step M i clvls zs D C = (
       let D' = mset (take i D);
           E = remdups_mset (D' + (C - D' - image_mset uminus D')) in
-      ((False, clvls, zs), Some E) \<in> option_conflict_rel M \<and>
-      literals_are_in_N\<^sub>0 E)\<close>
+      ((False, zs), Some E) \<in> option_conflict_rel \<and>
+      literals_are_in_N\<^sub>0 E \<and> clvls = counts_max_lvl M C)\<close>
 
 lemma mset_as_position_remove:
   \<open>mset_as_position xs D \<Longrightarrow> L < length xs \<Longrightarrow> mset_as_position (xs[L := None]) (remove1_mset (Pos L) (remove1_mset (Neg L) D))\<close>
@@ -593,7 +630,8 @@ qed
 
 lemma option_conflict_rel_update_None:
   assumes  \<open>((False, (n, xs)), Some D) \<in> option_conflict_rel\<close> and L_xs : \<open>L < length xs\<close>
-  shows \<open>((False, (if xs!L = None then n else n - 1, xs[L := None])), Some (D - {# Pos L, Neg L #})) \<in> option_conflict_rel M\<close>
+  shows \<open>((False, (if xs!L = None then n else n - 1, xs[L := None])), 
+      Some (D - {# Pos L, Neg L #})) \<in> option_conflict_rel\<close>
 proof -
   have [simp]: "L \<notin># A \<Longrightarrow> A - add_mset L' (add_mset L B) = A - add_mset L' B"
     for A B :: \<open>'a multiset\<close> and L L'
@@ -685,15 +723,17 @@ lemma mset_as_position_tautology: \<open>mset_as_position xs C \<Longrightarrow>
 
 lemma conflict_merge'_spec:
   assumes
-      o: \<open>((b, clvls, n, xs), Some C) \<in> option_conflict_rel M\<close> and
+      o: \<open>((b, n, xs), Some C) \<in> option_conflict_rel\<close> and
       dist: \<open>distinct D\<close> and
       lits: \<open>literals_are_in_N\<^sub>0 (mset D)\<close> and
       tauto: \<open>\<not>tautology (mset D)\<close> and
-      \<open>literals_are_in_N\<^sub>0 C\<close>
-  shows \<open>conflict_merge M D (b, clvls, n, xs) \<le> \<Down> (option_conflict_rel M)
-            (RETURN (Some (mset D \<union># (C - image_mset uminus (mset D)))))\<close>
+      \<open>literals_are_in_N\<^sub>0 C\<close> and
+      \<open>clvls = counts_max_lvl M C\<close>
+  shows \<open>conflict_merge M D (b, n, xs) clvls \<le> \<Down> (option_conflict_rel \<times>\<^sub>r Id)
+            (SPEC (\<lambda>(E, clvls). E = Some (mset D \<union># (C - image_mset uminus (mset D))) \<and>
+                 clvls = counts_max_lvl M (the E)))\<close>
 proof -
-  have [simp]: \<open>a < length D \<Longrightarrow> Suc (Suc a) < upperN\<close> for a
+  have le_D_le_upper[simp]: \<open>a < length D \<Longrightarrow> Suc (Suc a) < upperN\<close> for a
     using simple_clss_size_upper_div2[of \<open>mset D\<close>] assms by (auto simp: upperN_def)
   have Suc_N_upperN: \<open>Suc n < upperN\<close> and
      size_C_upperN: \<open>size C \<le> upperN div 2\<close> and
@@ -705,8 +745,8 @@ proof -
   then have clvls_upperN: \<open>clvls \<le> upperN div 2\<close>
     using size_filter_mset_lesseq[of \<open>\<lambda>L. get_level M L = count_decided M\<close> C]
     unfolding upperN_def by linarith
-  have [intro]: \<open>((b, b', a, ba), Some C) \<in> option_conflict_rel M \<Longrightarrow> literals_are_in_N\<^sub>0 C \<Longrightarrow>
-        Suc (Suc a) < upperN\<close> for b a ba C b'
+  have [intro]: \<open>((b, a, ba), Some C) \<in> option_conflict_rel \<Longrightarrow> literals_are_in_N\<^sub>0 C \<Longrightarrow>
+        Suc (Suc a) < upperN\<close> for b a ba C
     using conflict_rel_size[of a ba C] by (auto simp: option_conflict_rel_def
         conflict_rel_def upperN_def)
   have [simp]: \<open>remdups_mset C = C\<close>
@@ -718,7 +758,7 @@ proof -
   have \<open>distinct_mset C\<close>
     using mset_as_position_distinct_mset[of _ C] o
     unfolding option_conflict_rel_def conflict_rel_def by auto
-  have inv: "conflict_merge'_step M x1 x2 D C"
+(*   have inv: "conflict_merge'_step M x1 x2 D C"
     if
       "(b, n, xs) = (b', n')" and
       "case s of
@@ -726,8 +766,8 @@ proof -
          i \<le> length D \<and>
          length (snd zs) = length (snd n') \<and>
          Suc i < upperN \<and> Suc (fst zs) < upperN" and
-      "case s of (i, zs) \<Rightarrow> conflict_merge'_step i zs D C" and
-      "case s of (i, zs) \<Rightarrow> i < length D" and
+      "case s of (i, clvls, zs) \<Rightarrow> conflict_merge'_step M i clvls zs D C" and
+      "case s of (i, clvls, zs) \<Rightarrow> i < length D" and
       "s = (j, zs)" and
       j_le_D: "j < length D" and
       "Suc j < upperN" and
@@ -851,31 +891,88 @@ proof -
           intro!: H[OF thesis]) }
     ultimately show ?thesis
       unfolding conflict_merge'_step_def Let_def by simp
+  qed *)
+
+  define I where
+     \<open>I xs = (\<lambda>(i, clvls, zs :: conflict_rel).
+                     i \<le> length D \<and>
+                     length (snd zs) =
+                     length (snd xs) \<and>
+                     Suc i < upperN \<and>
+                     Suc (fst zs) < upperN \<and>
+                     Suc clvls < upperN)\<close>
+   for xs :: conflict_rel
+  define I' where \<open>I' = (\<lambda>(i, clvls, zs). conflict_merge'_step M i clvls zs D C)\<close>
+  have if_True_I: \<open>I x2 (Suc a, aa + 1, conflict_add (D ! a) baa)\<close>
+    if
+      I: \<open>I x2 s\<close> and
+      I': \<open>I' s\<close> and
+      \<open>case s of (i, clvls, zs) \<Rightarrow> i < length D\<close> and
+      s: \<open>s = (a, ba)\<close> \<open>ba = (aa, baa)\<close> \<open>(b, n, xs) = (x1, x2)\<close> and
+      a_le_D: \<open>a < length D\<close> and
+      a_upperN: \<open>Suc a < upperN\<close> and
+      \<open>get_level M (D ! a) = count_decided M \<and>
+     \<not> is_in_conflict_rel baa (D ! a)\<close>
+    for x1 x2 s a ba aa baa
+  proof -
+    have [simp]:
+      \<open>s = (a, aa, baa)\<close> 
+      \<open>ba = (aa, baa)\<close> 
+      \<open>x2 = (n, xs)\<close>
+      using s by auto
+    obtain ab b where baa[simp]: \<open>baa = (ab, b)\<close> by (cases baa)
+    let ?C = \<open>mset (take a D) + (C - (mset (take a D) + uminus `# mset (take a D)))\<close>
+    have aa: \<open>aa = counts_max_lvl M C\<close> and
+      ocr: \<open>((False, ab, b), Some (remdups_mset ?C)) \<in> option_conflict_rel\<close> and
+      lits: \<open>literals_are_in_N\<^sub>0 (remdups_mset ?C)\<close> 
+      using I'
+      unfolding I'_def conflict_merge'_step_def Let_def
+      by auto
+    have
+      ab: \<open>ab = size (remdups_mset ?C)\<close> and
+      map: \<open>mset_as_position b (remdups_mset ?C)\<close> and
+      \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length b\<close> and
+      cr: \<open>((ab, b), remdups_mset ?C) \<in> conflict_rel\<close>
+      using ocr unfolding option_conflict_rel_def conflict_rel_def
+      by auto
+    have \<open>size (counts_max_lvl M C) \<le> size C\<close>
+      by auto
+    then have [simp]: \<open>Suc (Suc aa) < upperN\<close>
+      using size_C_upperN unfolding upperN_def aa[symmetric] by auto
+    have [simp]: \<open>length b = length xs\<close> and
+      \<open>a \<le> length D\<close>
+      using I unfolding I_def by simp_all
+
+    have ab_upper: \<open>Suc (Suc ab) < upperN\<close>
+      using  simple_clss_size_upper_div2[of \<open>remdups_mset ?C\<close>] mset_as_position_distinct_mset[OF map]
+      conflict_rel_not_tautolgy[OF cr] a_le_D lits
+      unfolding ab literals_are_in_N\<^sub>0_remdups upperN_def by auto 
+    show ?thesis
+      using le_D_le_upper a_le_D ab_upper
+      unfolding I_def conflict_add_def baa by auto
   qed
+
   have dist_D: \<open>distinct_mset (mset D)\<close>
     using dist by auto
   have dist_CD: \<open>distinct_mset (C - mset D - uminus `# mset D)\<close>
     using \<open>distinct_mset C\<close> by auto
-  define I where
-     \<open>I xs = (\<lambda>(i, clvls, zs :: conflict_rel). i \<le> length D \<and> length (snd zs) = length (snd xs) \<and> Suc i < upperN \<and>
-         Suc (fst zs) < upperN \<and> Suc clvls < upperN)\<close>
-   for xs :: conflict_rel
-  have confl: \<open>conflict_merge M D (b, clvls, n, xs)
-    \<le> \<Down> (option_conflict_rel M)
-       (RETURN (Some (mset D \<union># (C - mset D - uminus `# mset D))))\<close>
+  have confl: \<open>conflict_merge M D (b, n, xs) clvls
+    \<le> \<Down> (option_conflict_rel \<times>\<^sub>r Id)
+       (SPEC (\<lambda>(E, clvls). E = Some (mset D \<union># (C - mset D - uminus `# mset D)) \<and>
+         clvls = counts_max_lvl M (the E)))\<close>
     unfolding conflict_merge_aa_def conflict_merge_def PR_CONST_def
-    distinct_mset_rempdups_union_mset[OF dist_D dist_CD] I_def[symmetric]
+    distinct_mset_rempdups_union_mset[OF dist_D dist_CD] I_def[symmetric] conc_fun_SPEC
     apply (refine_vcg WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(j, _). length D - j)\<close> and
-          I' = \<open>\<lambda>(i, clvls, zs). conflict_merge'_step M i clvls zs D C\<close>])
+          I' = I'])
     subgoal by auto
     subgoal using clvls_upperN Suc_N_upperN unfolding upperN_def I_def by auto
     subgoal using assms
-      unfolding conflict_merge'_step_def Let_def option_conflict_rel_def
+      unfolding conflict_merge'_step_def Let_def option_conflict_rel_def I'_def
       by (auto simp add: upperN_def conflict_merge'_step_def option_conflict_rel_def)
     subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal for b' n' aa s i zs ac bc bd
+    subgoal unfolding I_def by fast
+    subgoal by (rule if_True_I)
+    subgoal for b' n' aa s i zs ac
         by (cases bc; cases \<open>bd\<close>) (auto simp: conflict_add_def split: if_splits)
     subgoal for b' n' s j zs
       using dist lits tauto
@@ -886,7 +983,6 @@ proof -
     subgoal for b' n' s j zs
       by (rule inv)
     subgoal by auto
-    subgoal using assms by (auto simp: option_conflict_rel_def conflict_merge'_step_def Let_def)
     subgoal using assms by (auto simp: option_conflict_rel_def conflict_merge'_step_def Let_def)
     done
   have count_D: \<open>count (mset D) a = 1 \<or> count (mset D) a = 0\<close> for a

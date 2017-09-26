@@ -144,41 +144,39 @@ definition conflict_assn :: "nat clause \<Rightarrow> conflict_assn \<Rightarrow
 \<open>conflict_assn = hr_comp (uint32_nat_assn *assn array_assn (option_assn bool_assn)) conflict_rel\<close>
 
 definition option_conflict_rel where
-\<open>option_conflict_rel M = {((b,(lvl, n,xs)), C). b = (C = None) \<and>
+\<open>option_conflict_rel = {((b,(n,xs)), C). b = (C = None) \<and>
    (C = None \<longrightarrow> ((n,xs), {#}) \<in> conflict_rel) \<and>
-   (C \<noteq> None \<longrightarrow> (((n,xs), the C) \<in> conflict_rel \<and> 
-     lvl = size (filter_mset (\<lambda>L. get_level M L = count_decided M) (the C))))}
+   (C \<noteq> None \<longrightarrow> ((n,xs), the C) \<in> conflict_rel)}
    \<close>
 
 lemma option_conflict_rel_conflict_rel_iff: 
-   \<open>((False, (m, n, xs)), Some C) \<in> option_conflict_rel M \<longleftrightarrow>
-   ((n, xs), C) \<in> conflict_rel \<and> m = size (filter_mset (\<lambda>L. get_level M L = count_decided M) C)\<close>
+   \<open>((False, (n, xs)), Some C) \<in> option_conflict_rel \<longleftrightarrow>
+   ((n, xs), C) \<in> conflict_rel\<close>
    unfolding option_conflict_rel_def by auto
 
 
-type_synonym (in -) conflict_option_assn = "bool \<times> uint32 \<times> uint32 \<times> bool option array"
+type_synonym (in -) conflict_option_assn = "bool \<times> uint32 \<times> bool option array"
 
 abbreviation (in -) conflict_rel_assn :: \<open>conflict_rel \<Rightarrow> conflict_assn \<Rightarrow> assn\<close> where
  \<open>conflict_rel_assn \<equiv> (uint32_nat_assn *assn array_assn (option_assn bool_assn))\<close>
 
-type_synonym (in -) conflict_option_rel = \<open>bool \<times> nat \<times> nat \<times> bool option list\<close>
+type_synonym (in -) conflict_option_rel = \<open>bool \<times>nat \<times> bool option list\<close>
 
 abbreviation (in -)conflict_option_rel_assn :: \<open>conflict_option_rel \<Rightarrow> conflict_option_assn \<Rightarrow> assn\<close> where
- \<open>conflict_option_rel_assn \<equiv> (bool_assn *assn uint32_nat_assn *assn conflict_rel_assn)\<close>
+ \<open>conflict_option_rel_assn \<equiv> (bool_assn *assn conflict_rel_assn)\<close>
 
 definition conflict_option_assn
-  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clause option \<Rightarrow> conflict_option_assn \<Rightarrow> assn\<close>
+  :: \<open>nat clause option \<Rightarrow> conflict_option_assn \<Rightarrow> assn\<close>
 where
-  \<open>conflict_option_assn M =
-     hr_comp (bool_assn *assn uint32_nat_assn *assn uint32_nat_assn *assn 
-         array_assn (option_assn bool_assn))
-       (option_conflict_rel M)\<close>
+  \<open>conflict_option_assn =
+     hr_comp (bool_assn *assn uint32_nat_assn *assn array_assn (option_assn bool_assn))
+       option_conflict_rel\<close>
 
 definition (in -) conflict_assn_is_None :: \<open>_ \<Rightarrow> bool\<close> where
   \<open>conflict_assn_is_None = (\<lambda>(b, _, _). b)\<close>
 
 lemma conflict_assn_is_None_is_None: \<open>(RETURN o conflict_assn_is_None, RETURN o is_None) \<in>
-  (option_conflict_rel M) \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
+  option_conflict_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
   by (intro nres_relI frefI)
    (auto simp: option_conflict_rel_def conflict_assn_is_None_def split: option.splits)
 
@@ -189,17 +187,17 @@ lemma conflict_assn_is_None_conflict_assn_is_None:
    (sep_auto simp: conflict_assn_is_None_def)
 
 lemma conflict_assn_is_None_is_none_Code[sepref_fr_rules]:
-  \<open>(return \<circ> conflict_assn_is_None, RETURN \<circ> is_None) \<in> (conflict_option_assn M)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  \<open>(return \<circ> conflict_assn_is_None, RETURN \<circ> is_None) \<in> conflict_option_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
     (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
-  using conflict_assn_is_None_conflict_assn_is_None[FCOMP conflict_assn_is_None_is_None[of M],
+  using conflict_assn_is_None_conflict_assn_is_None[FCOMP conflict_assn_is_None_is_None,
   unfolded conflict_option_assn_def[symmetric]] .
 
 definition (in -) conflict_assn_is_empty :: \<open>_ \<Rightarrow> bool\<close> where
-  \<open>conflict_assn_is_empty = (\<lambda>(_, _,  n, _). n = 0)\<close>
+  \<open>conflict_assn_is_empty = (\<lambda>(_, n, _). n = 0)\<close>
 
 lemma conflict_assn_is_empty_is_empty: 
   \<open>(RETURN o conflict_assn_is_empty, RETURN o (\<lambda>D. Multiset.is_empty(the D))) \<in>
-  [\<lambda>D. D \<noteq> None]\<^sub>f (option_conflict_rel M) \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
+  [\<lambda>D. D \<noteq> None]\<^sub>f option_conflict_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
   by (intro nres_relI frefI)
    (auto simp: option_conflict_rel_def conflict_assn_is_empty_def conflict_rel_def
      Multiset.is_empty_def split: option.splits)
@@ -212,9 +210,9 @@ lemma conflict_assn_is_empty_conflict_assn_is_empty:
 
 lemma conflict_assn_is_empty_is_empty_code[sepref_fr_rules]:
   \<open>(return \<circ> conflict_assn_is_empty, RETURN \<circ> the_is_empty) \<in>
-      [\<lambda>D. D \<noteq> None]\<^sub>a (conflict_option_assn M)\<^sup>k \<rightarrow> bool_assn\<close>
+      [\<lambda>D. D \<noteq> None]\<^sub>a conflict_option_assn\<^sup>k \<rightarrow> bool_assn\<close>
   using conflict_assn_is_empty_conflict_assn_is_empty[FCOMP conflict_assn_is_empty_is_empty,
-  unfolded conflict_option_assn_def[symmetric], of M] unfolding the_is_empty_def
+  unfolded conflict_option_assn_def[symmetric]] unfolding the_is_empty_def
   conflict_option_assn_def[symmetric]
   by simp
 
