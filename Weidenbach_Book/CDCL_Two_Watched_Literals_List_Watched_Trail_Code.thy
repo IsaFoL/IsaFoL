@@ -1694,15 +1694,6 @@ lemma update_clause_wl_int_update_clause_wl:
     (auto simp: update_clause_wl_int_def update_clause_wl_def twl_st_ref_def Let_def
       map_fun_rel_def)
 
-lemma append_el_aa_hnr'[sepref_fr_rules]:
-  shows \<open>(uncurry2 (\<lambda>xs i j. append_el_aa xs (nat_of_uint32 i) j), uncurry2 (RETURN ooo append_ll))
-     \<in> [\<lambda>((W,L), j). L < length W]\<^sub>a
-        (arrayO_assn (arl_assn nat_assn))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> (arrayO_assn (arl_assn nat_assn))\<close>
-    (is \<open>?a \<in> [?pre]\<^sub>a ?init \<rightarrow> ?post\<close>)
-  using append_aa_hnr_u[of nat_assn, simplified] unfolding hfref_def  uint32_nat_rel_def br_def pure_def
-   hn_refine_def
-  by auto
-
 lemma length_delete_index_and_swap_ll[simp]: \<open>length (delete_index_and_swap_ll s i j) = length s\<close>
   by (auto simp: delete_index_and_swap_ll_def)
 
@@ -2490,6 +2481,68 @@ lemma in_literals_are_in_N\<^sub>0_in_D\<^sub>0:
 
 
 paragraph \<open>Level of a literal\<close>
+
+definition get_level_trail :: \<open>trail_int \<Rightarrow> uint32 \<Rightarrow> nat\<close> where
+  \<open>get_level_trail = (\<lambda>(M, xs, lvls, k) L. lvls ! (nat_of_uint32 (L >> 1)))\<close>
+
+sepref_thm get_level_code
+  is \<open>uncurry (RETURN oo get_level_trail)\<close>
+  :: \<open>[\<lambda>((M, xs, lvls, k), L). nat_of_uint32 L div 2 < length lvls]\<^sub>a
+  trailt_conc\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  unfolding get_level_trail_def nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
+    nth_u_def[symmetric]
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) get_level_code
+   uses twl_array_code.get_level_code.refine_raw
+   is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) get_level_code_def
+
+lemmas get_level_code_get_level_code[sepref_fr_rules] =
+   get_level_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma get_level_code_get_level[sepref_fr_rules]:
+  \<open>(uncurry get_level_code, uncurry (RETURN oo get_level)) \<in>
+   [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a trail_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+    (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have [simp]: \<open>(ba, bb) \<in> nat_lit_rel \<Longrightarrow> ba div 2 = atm_of bb\<close> for ba bb
+    by (auto simp: p2rel_def lit_of_natP_def atm_of_lit_of_nat nat_lit_rel_def
+        simp del: literal_of_nat.simps)
+
+  have 1: \<open>(uncurry (RETURN oo get_level_trail), uncurry (RETURN oo get_level)) \<in>
+     [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>f trailt_ref \<times>\<^sub>f unat_lit_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
+    by (intro nres_relI frefI, rename_tac x y, case_tac x) (auto simp: image_image trailt_ref_def get_level_trail_def
+        nat_shiftr_div2 shiftr1_def unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def
+        nat_of_uint32_shiftr trailt_ref_def)
+
+  have H: \<open>(uncurry get_level_code, uncurry (RETURN \<circ>\<circ> get_level))
+\<in> [comp_PRE (trailt_ref \<times>\<^sub>f unat_lit_rel)
+     (\<lambda>(M, L). L \<in> snd ` D\<^sub>0)
+     (\<lambda>_ ((M, xs, lvls, k), L).
+         nat_of_uint32 L div 2 < length lvls)
+     (\<lambda>_. True)]\<^sub>a hrp_comp
+                     (trailt_conc\<^sup>k *\<^sub>a
+                      uint32_assn\<^sup>k)
+                     (trailt_ref \<times>\<^sub>f
+                      unat_lit_rel) \<rightarrow> hr_comp
+                 uint32_nat_assn nat_rel\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF get_level_code.refine 1, OF twl_array_code_axioms] .
+  have pre: \<open>?pre' = ?pre\<close>
+    by (auto simp: comp_PRE_def trailt_ref_def unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def
+        br_def intro!: ext)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    using H unfolding im pre f by simp
+qed
 
 (* TODO: get_level M (Pos i) is inefficient (i*2 div 2) *)
 definition maximum_level_remove' :: \<open>(nat, nat) ann_lits \<Rightarrow> conflict_rel \<Rightarrow> nat literal \<Rightarrow> nat nres\<close> where
@@ -4092,7 +4145,7 @@ definition extract_shorter_conflict_st_trivial_int :: \<open>twl_st_wl_int \<Rig
 \<open>extract_shorter_conflict_st_trivial_int = (\<lambda>(M, N, U, D, oth).
   RETURN (M, N, U, extract_shorter_conflict_l_trivial M D, oth))\<close>
 
-
+(* TODO Move *)
 definition (in -) sum_mod_upperN where
   \<open>sum_mod_upperN a b = (a + b) mod upperN\<close>
 
@@ -4104,6 +4157,7 @@ lemma (in -) sum_mod_upperN: \<open>(uncurry (return oo op +), uncurry (RETURN o
   uint32_nat_assn\<close>
   by sepref_to_hoare
      (sep_auto simp: sum_mod_upperN_def uint32_nat_rel_def br_def nat_of_uint32_plus upperN_def)
+(* End Move *)
 
 definition extract_shorter_conflict_list_removed :: \<open>(nat, nat) ann_lits \<Rightarrow> conflict_option_rel \<Rightarrow>
   (conflict_option_rel \<times> (nat literal \<times> nat) option) nres\<close> where
