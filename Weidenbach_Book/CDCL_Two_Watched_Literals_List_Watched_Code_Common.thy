@@ -1198,43 +1198,13 @@ lemma append_ll_append_update:
       uint32_nat_rel_def
       simp del: literal_of_nat.simps)
 
-
-lemma append_aa_hnr_u:
-  fixes R ::  \<open>'a \<Rightarrow> 'b :: {heap, default} \<Rightarrow> assn\<close>
-  assumes p: \<open>is_pure R\<close>
-  shows
-    \<open>(uncurry2 (\<lambda>xs i. append_el_aa xs (nat_of_uint32 i)), uncurry2 (RETURN \<circ>\<circ>\<circ> (\<lambda>xs i. append_ll xs (nat_of_uint32 i)))) \<in>
-     [\<lambda>((l,i),x). nat_of_uint32 i < length l]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>d *\<^sub>a uint32_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arrayO_assn (arl_assn R))\<close>
-proof -
-  obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
-    using p by fastforce
-  have [simp]: \<open>(\<exists>\<^sub>Ax. arrayO_assn (arl_assn R) a ai * R x r * true * \<up> (x = a ! ba ! b)) =
-     (arrayO_assn (arl_assn R) a ai * R (a ! ba ! b) r * true)\<close> for a ai ba b r
-    by (auto simp: ex_assn_def)
-  show ?thesis -- \<open>TODO tune proof\<close>
-    apply sepref_to_hoare
-    apply (sep_auto simp: append_el_aa_def uint32_nat_rel_def br_def)
-     apply (simp add: arrayO_except_assn_def)
-     apply (rule sep_auto_is_stupid[OF p])
-    apply (sep_auto simp: array_assn_def is_array_def append_ll_def)
-    apply (simp add: arrayO_except_assn_array0[symmetric] arrayO_except_assn_def)
-    apply (subst_tac (2) i = \<open>nat_of_uint32 ba\<close> in heap_list_all_nth_remove1)
-     apply (solves \<open>simp\<close>)
-    apply (simp add: array_assn_def is_array_def)
-    apply (rule_tac x=\<open>p[nat_of_uint32 ba := (ab, bc)]\<close> in ent_ex_postI)
-    apply (subst_tac (2)xs'=a and ys'=p in heap_list_all_nth_cong)
-      apply (solves \<open>auto\<close>)[2]
-    apply (auto simp: star_aci)
-    done
-qed
-
 lemma append_el_aa_hnr[sepref_fr_rules]:
-  shows \<open>(uncurry2 (\<lambda>xs i j. append_el_aa xs (nat_of_uint32 i) j), uncurry2 (RETURN ooo append_update))
+  shows \<open>(uncurry2 append_el_aa_u', uncurry2 (RETURN ooo append_update))
      \<in> [\<lambda>((W,L), j). L \<in> snd ` D\<^sub>0]\<^sub>a
         array_watched_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> array_watched_assn\<close>
     (is \<open>?a \<in> [?pre]\<^sub>a ?init \<rightarrow> ?post\<close>)
 proof -
-  have H: \<open> (uncurry2 (\<lambda>xs i. append_el_aa xs (nat_of_uint32 i)), uncurry2 (RETURN \<circ>\<circ>\<circ> append_update))
+  have H: \<open> (uncurry2 append_el_aa_u', uncurry2 (RETURN \<circ>\<circ>\<circ> append_update))
   \<in> [comp_PRE (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f unat_lit_rel \<times>\<^sub>f nat_rel) (\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0) (\<lambda>x y. case y of (x, xa) \<Rightarrow> (case x of (l, i) \<Rightarrow> \<lambda>x. nat_of_uint32 i < length l) xa)
        (\<lambda>x. nofail (uncurry2 (RETURN \<circ>\<circ>\<circ> append_update)
                       x))]\<^sub>a hrp_comp ((arrayO_assn (arl_assn nat_assn))\<^sup>d *\<^sub>a uint32_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
@@ -1242,7 +1212,7 @@ proof -
      \<close>
     (is \<open>?a \<in> [?pre']\<^sub>a ?init' \<rightarrow> ?post'\<close>)
     using hfref_compI_PRE[OF append_aa_hnr_u
-        append_ll_append_update, of nat_assn] by simp
+        append_ll_append_update, of nat_assn] unfolding append_el_aa_append_el_aa_u' by simp
   have b: \<open>\<exists>bb. (bb, b) \<in> nat_lit_rel\<close> for b
     apply (auto simp: p2rel_def lit_of_natP_def Pos_div2_iff Neg_div2_iff nat_lit_rel_def)
     using even_Suc by blast
@@ -1271,7 +1241,8 @@ lemma literals_to_update_wl_literals_to_update_wl_empty:
   \<open>literals_to_update_wl S = {#} \<longleftrightarrow> literals_to_update_wl_empty S\<close>
   by (cases S) (auto simp: literals_to_update_wl_empty_def)
 
-lemma list_assn_list_mset_rel_eq_list_mset_assn:
+(* TODO Move *)
+lemma (in -) list_assn_list_mset_rel_eq_list_mset_assn:
   assumes p: \<open>is_pure R\<close>
   shows \<open>hr_comp (list_assn R) list_mset_rel = list_mset_assn R\<close>
 proof -
@@ -1285,6 +1256,7 @@ proof -
         p2rel_def rel2p_def[abs_def] rel_mset_def R list_mset_rel_def list_rel_def)
       using list_all2_reorder_left_invariance by fastforce
 qed
+(* End Move *)
 
 lemmas [safe_constraint_rules] = CN_FALSEI[of is_pure "hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)"]
   CN_FALSEI[of is_pure "twl_st_l_assn"]

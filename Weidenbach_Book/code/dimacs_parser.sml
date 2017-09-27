@@ -77,7 +77,7 @@ structure Dimacs_Parser : DIMACS_PARSER = struct
           case state of
             NUM => []
           | NEG => raise Parser_Error "Lone MINUS before EOF"
-          | _ => (print "the end"; [])
+          | _ => []
         )
        | SOME c => (* Character *) (
           case state of

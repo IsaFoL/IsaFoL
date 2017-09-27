@@ -10,6 +10,12 @@ val gn_of_int = SAT_Solver.uint32_of_nat o SAT_Solver.nat_of_integer o IntInf.fr
 
 exception LitTooLarge of Int.int
 
+fun lit_of_nat n =
+  if Word.toLargeInt n mod 2 = 0 then Word.toLargeInt n div 2
+  else ~(Word.toLargeInt n div 2)
+
+val print_model = map (print o (fn n => IntInf.toString n ^ " ") o lit_of_nat)
+
 fun nat_of_lit n =
   let val m = if n < 0 then (2*(~n-1)+1) else (2*(n-1))
   in
@@ -56,25 +62,27 @@ fun print_clauses id a [] = ()
       print_clauses (id+1) a xs
     )
 
-fun checker cnf_name = let
-
-  val _ = print ("Reading cnf\n");
+fun checker print_modelb cnf_name = let
   val problem = Dimacs_Parser.parse_dimacs_file_map_to_list cnf_name nat_of_lit;
-  val _ = print ("Done\n");
-  val _ = print "\nstarting SAT solver\n";
-  val SAT = SAT_Solver.sAT_wl_code problem ();
-  val _ = print "finished SAT solver\n";
-  val _ = if SAT then print "SAT\n" else print "UNSAT\n"
+  val SAT = SAT_Solver.isaSAT_code problem ();
+  val _ =
+      if print_modelb then 
+        (case SAT of
+             NONE => print "UNSAT\n"
+           | SOME SAT => ignore (print_model SAT))
+      else print "UNSAT\n"
   in
     ()
   end
 
 fun print_help () = (
-  println("Usage: " ^ CommandLine.name() ^ " <mode> cnf-file cert-file");
-  println("  where mode is 'sat' or 'unsat'")
+  println("Usage: " ^ CommandLine.name() ^ " cnf-file");
+  println("  where <cnf-file> is a non-compressed file in dimacs format")
 )
 
-fun process_args [cnf_name] = checker cnf_name
+fun process_args [cnf_name] = checker false cnf_name
+  | process_args ["--verbose", cnf_name] = checker true cnf_name
+  | process_args _ = print_help() 
 
 fun main () = let
   val args = CommandLine.arguments ();

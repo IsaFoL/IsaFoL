@@ -312,19 +312,19 @@ qed
 text \<open>We can fully run @{term cdcl\<^sub>W_restart_s} or add a clause. Remark that we use @{term cdcl\<^sub>W_restart_s} to avoid
 an explicit @{term skip}, @{term resolve}, and @{term backtrack} normalisation to get rid of the
 conflict @{term C} if possible.\<close>
-inductive incremental_cdcl\<^sub>W_restart :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S where
+inductive incremental_cdcl\<^sub>W :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S where
 add_confl:
   "trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C \<Longrightarrow> conflicting S = None \<Longrightarrow>
    trail S \<Turnstile>as CNot C \<Longrightarrow>
    full cdcl\<^sub>W_stgy
      (update_conflicting (Some C)
        (add_init_cls C (cut_trail_wrt_clause C (trail S) S))) T \<Longrightarrow>
-   incremental_cdcl\<^sub>W_restart S T" |
+   incremental_cdcl\<^sub>W S T" |
 add_no_confl:
   "trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C \<Longrightarrow> conflicting S = None \<Longrightarrow>
    \<not>trail S \<Turnstile>as CNot C \<Longrightarrow>
    full cdcl\<^sub>W_stgy (add_init_cls C S) T \<Longrightarrow>
-   incremental_cdcl\<^sub>W_restart S T"
+   incremental_cdcl\<^sub>W S T"
 
 lemma cdcl\<^sub>W_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_all_struct_inv:
   assumes
@@ -514,9 +514,9 @@ proof -
     qed
 qed
 
-lemma incremental_cdcl\<^sub>W_restart_inv:
+lemma incremental_cdcl\<^sub>W_inv:
   assumes
-    inc: "incremental_cdcl\<^sub>W_restart S T" and
+    inc: "incremental_cdcl\<^sub>W S T" and
     inv: "cdcl\<^sub>W_all_struct_inv S" and
     s_inv: "cdcl\<^sub>W_stgy_invariant S" and
     learned_entailed: \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
@@ -583,9 +583,9 @@ next
         dest!: rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart)
 qed
 
-lemma rtranclp_incremental_cdcl\<^sub>W_restart_inv:
+lemma rtranclp_incremental_cdcl\<^sub>W_inv:
   assumes
-    inc: "incremental_cdcl\<^sub>W_restart\<^sup>*\<^sup>* S T" and
+    inc: "incremental_cdcl\<^sub>W\<^sup>*\<^sup>* S T" and
     inv: "cdcl\<^sub>W_all_struct_inv S" and
     s_inv: "cdcl\<^sub>W_stgy_invariant S" and
     learned_entailed: \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
@@ -597,11 +597,11 @@ lemma rtranclp_incremental_cdcl\<^sub>W_restart_inv:
     using inv apply simp
    using s_inv apply simp
    using learned_entailed apply simp
-  using incremental_cdcl\<^sub>W_restart_inv by blast+
+  using incremental_cdcl\<^sub>W_inv by blast+
 
 lemma incremental_conclusive_state:
   assumes
-    inc: "incremental_cdcl\<^sub>W_restart S T" and
+    inc: "incremental_cdcl\<^sub>W S T" and
     inv: "cdcl\<^sub>W_all_struct_inv S" and
     s_inv: "cdcl\<^sub>W_stgy_invariant S" and
     learned_entailed: \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
@@ -615,8 +615,8 @@ proof induction
   have "full cdcl\<^sub>W_stgy T T"
     using full unfolding full_def by auto
   then show ?case
-    using C conf dist full incremental_cdcl\<^sub>W_restart.add_confl incremental_cdcl\<^sub>W_restart_inv
-      incremental_cdcl\<^sub>W_restart_inv inv learned_entailed
+    using C conf dist full incremental_cdcl\<^sub>W.add_confl incremental_cdcl\<^sub>W_inv
+      incremental_cdcl\<^sub>W_inv inv learned_entailed
       \<open>full cdcl\<^sub>W_stgy T T\<close> full_cdcl\<^sub>W_stgy_inv_normal_form
       s_inv tr by blast
 next
@@ -627,13 +627,13 @@ next
     using full unfolding full_def by auto
   then show ?case
     using \<open>full cdcl\<^sub>W_stgy T T\<close> full_cdcl\<^sub>W_stgy_inv_normal_form C conf dist full
-      incremental_cdcl\<^sub>W_restart.add_no_confl incremental_cdcl\<^sub>W_restart_inv inv learned_entailed
+      incremental_cdcl\<^sub>W.add_no_confl incremental_cdcl\<^sub>W_inv inv learned_entailed
       s_inv tr by blast
 qed
 
 lemma tranclp_incremental_correct:
   assumes
-    inc: "incremental_cdcl\<^sub>W_restart\<^sup>+\<^sup>+ S T" and
+    inc: "incremental_cdcl\<^sub>W\<^sup>+\<^sup>+ S T" and
     inv: "cdcl\<^sub>W_all_struct_inv S" and
     s_inv: "cdcl\<^sub>W_stgy_invariant S" and
     learned_entailed: \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
@@ -641,7 +641,7 @@ lemma tranclp_incremental_correct:
     \<or> conflicting T = None \<and> trail T \<Turnstile>asm init_clss T \<and> satisfiable (set_mset (init_clss T))"
   using inc apply induction
    using assms incremental_conclusive_state apply blast
-  by (meson incremental_conclusive_state inv rtranclp_incremental_cdcl\<^sub>W_restart_inv s_inv
+  by (meson incremental_conclusive_state inv rtranclp_incremental_cdcl\<^sub>W_inv s_inv
     tranclp_into_rtranclp learned_entailed)
 
 end

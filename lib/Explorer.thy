@@ -87,7 +87,7 @@ fun generate_text ASSUME_SHOW context clauses =
     let
       val raw_lines = map (isar_skeleton context ASSUMES_SHOWS) clauses
       fun treat_line (fixes_s, assumes_s, shows_s) =
-        let val combined_line = assumes_s @ fixes_s @ [shows_s] |> cat_lines
+        let val combined_line = fixes_s @ assumes_s @ [shows_s] |> cat_lines
         in
           "lemma\n" ^ combined_line ^ "\nproof -\n  show ?thesis sorry\nqed"
        end
@@ -135,7 +135,7 @@ val _ =
 subsection {* Examples *}
 
 lemma
-  "distinct xs \<Longrightarrow> P xs \<Longrightarrow> length (filter (\<lambda>x. x = y) xs) \<le> 1"
+  "distinct xs \<Longrightarrow> P xs \<Longrightarrow> length (filter (\<lambda>x. x = y) xs) \<le> 1" for xs
   apply (induct xs)
 (*   apply simp_all
   apply auto *)

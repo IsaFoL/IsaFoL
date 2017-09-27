@@ -1,8 +1,8 @@
 chapter Ordered_Resolution_Prover
 
-session Ordered_Resolution_Prover_Base = HOL +
+session Ordered_Resolution_Prover_Base = "HOL-Library" +
   theories [document = false]
-    "~~/src/HOL/Library/Multiset"
+    "HOL-Library.Multiset"
     "$AFP/Coinductive/Coinductive_List"
 
 session Ordered_Resolution_Prover = Ordered_Resolution_Prover_Base +

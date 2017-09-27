@@ -147,14 +147,14 @@ definition var_disjoint :: "'a clause list \<Rightarrow> bool" where
 end
 
 
-subsection \<open>Substitution theorems\<close>
+subsection \<open>Substitution lemmas\<close>
 
 locale substitution = substitution_ops subst_atm id_subst comp_subst
   for
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: 's and
     comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" +
-  fixes 
+  fixes
 (* FIXME: Come up with a better name? Function gives substitutions that standardize clauses apart. Also rename it in the other locales. *)
     mk_var_dis :: "'a literal multiset list \<Rightarrow> 's list"
   assumes
@@ -498,10 +498,10 @@ lemma subst_cls_lists_nth[simp]:
 
 subsubsection \<open>Substitute on an image\<close>
 
-lemma subst_clss_image[simp]: "image f A \<cdot>cs \<sigma> = {f x \<cdot> \<sigma> | x. x \<in> A }"
+lemma subst_clss_image[simp]: "image f X \<cdot>cs \<sigma> = {f x \<cdot> \<sigma> | x. x \<in> X}"
   unfolding subst_clss_def by auto
 
-lemma subst_cls_mset_image_mset[simp]: "image_mset f A \<cdot>cm \<sigma> = {# f x \<cdot> \<sigma>. x \<in># A #}"
+lemma subst_cls_mset_image_mset[simp]: "image_mset f X \<cdot>cm \<sigma> = {# f x \<cdot> \<sigma>. x \<in># X #}"
   unfolding subst_cls_mset_def by auto
 
 
@@ -546,10 +546,10 @@ subsubsection \<open>Renamings\<close>
 lemma is_renaming_id_subst[simp]: "is_renaming id_subst"
   unfolding is_renaming_def by simp
 
-lemma is_renamingD: "is_renaming \<sigma> \<Longrightarrow> (\<forall>x y. x \<cdot>a \<sigma> = y \<cdot>a \<sigma> \<longleftrightarrow> x = y)"
+lemma is_renamingD: "is_renaming \<sigma> \<Longrightarrow> (\<forall>A1 A2. A1 \<cdot>a \<sigma> = A2 \<cdot>a \<sigma> \<longleftrightarrow> A1 = A2)"
   by (metis is_renaming_def subst_atm_comp_subst subst_atm_id_subst)
 
-lemma "is_renaming \<sigma> \<Longrightarrow> range (\<lambda>x. x \<cdot>a \<sigma>) = UNIV"
+lemma "is_renaming \<sigma> \<Longrightarrow> range (\<lambda>A. A \<cdot>a \<sigma>) = UNIV"
   by (metis subst_atm_comp_subst subst_atm_id_subst substitution_ops.is_renaming_def surj_def)
 
 lemma "is_renaming r1 \<Longrightarrow> is_renaming r2 \<Longrightarrow> \<tau> \<odot> r1 = r2 \<Longrightarrow> is_renaming \<tau>"
@@ -579,19 +579,14 @@ lemma Nil_comp_substs[simp]: "[] \<odot>s s = []"
 lemma comp_substs_Nil[simp]: "s \<odot>s [] = []"
   unfolding comp_substs_def by auto
 
-lemma is_renaming_idempotent_id_subst: "is_renaming x \<Longrightarrow> x \<odot> x = x \<Longrightarrow> x = id_subst"
+lemma is_renaming_idempotent_id_subst: "is_renaming s \<Longrightarrow> s \<odot> s = s \<Longrightarrow> s = id_subst"
   by (metis comp_subst_assoc comp_subst_id_subst inv_ren_cancel_r)
 
-lemma is_renaming_left_id_subst_right_id_subst: "is_renaming x \<Longrightarrow> is_renaming y \<Longrightarrow> x \<odot> y = id_subst \<Longrightarrow> y \<odot> x = id_subst"
+lemma is_renaming_left_id_subst_right_id_subst: "is_renaming r \<Longrightarrow> s \<odot> r = id_subst \<Longrightarrow> r \<odot> s = id_subst"
   by (metis comp_subst_assoc comp_subst_id_subst is_renaming_def)
 
-(* Closure *)
-lemma "is_renaming a \<Longrightarrow> is_renaming b \<Longrightarrow> is_renaming (a \<odot> b)"
+lemma is_renaming_closure: "is_renaming a \<Longrightarrow> is_renaming b \<Longrightarrow> is_renaming (a \<odot> b)"
   unfolding is_renaming_def by (metis comp_subst_assoc comp_subst_id_subst)
-
-(* inverse element *)
-
-(* s and (inv_ren s) cancel out *)
 
 lemma inv_ren_is_renaming[simp]: "is_renaming s \<Longrightarrow> is_renaming (inv_ren s)"
   using inv_ren_cancel_l inv_ren_cancel_r is_renaming_def by blast
@@ -631,6 +626,9 @@ subsubsection \<open>Length after substitution\<close>
 
 lemma subst_atm_list_length[simp]: "length (As \<cdot>al \<sigma>) = length As"
   unfolding subst_atm_list_def by auto
+
+lemma length_subst_atm_mset_list[simp]: "length (Aij' \<cdot>aml \<eta>) = length Aij'"
+  unfolding subst_atm_mset_list_def by auto
 
 lemma subst_cls_list_length[simp]: "length (CC \<cdot>cl \<sigma>) = length CC"
   unfolding subst_cls_list_def by auto
@@ -772,6 +770,10 @@ lemma is_ground_cls_mset_union[simp]:
 lemma is_ground_cls_Union_mset[iff]: "is_ground_cls (\<Union># CC) \<longleftrightarrow> is_ground_cls_mset CC"
   unfolding is_ground_cls_mset_def is_ground_cls_def by blast
 
+lemma is_ground_cls_list_is_ground_cls_sum_list[simp]:
+  "is_ground_cls_list Ci \<Longrightarrow> is_ground_cls (sum_list Ci)"
+  by (meson in_mset_sum_list2 is_ground_cls_def is_ground_cls_list_def)
+
 
 paragraph \<open>Ground mono\<close>
 
@@ -786,6 +788,11 @@ lemma is_ground_cls_mset_mono: "CC \<subseteq># DD \<Longrightarrow> is_ground_c
 
 lemma grounding_of_clss_mono: "CC \<subseteq> DD \<Longrightarrow> grounding_of_clss CC \<subseteq> grounding_of_clss DD"
   using grounding_of_clss_def by auto
+
+lemma sum_list_subseteq_mset_is_ground_cls_list[simp]:
+  "sum_list Ci \<subseteq># sum_list CAi \<Longrightarrow> is_ground_cls_list CAi \<Longrightarrow> is_ground_cls_list Ci"
+  by (metis is_ground_cls_Union_mset is_ground_cls_list_def is_ground_cls_mono
+      is_ground_cls_mset_def set_mset_mset sum_mset_sum_list)
 
 
 paragraph \<open>Substituting on ground expression preserves ground\<close>
@@ -858,6 +865,7 @@ lemma is_ground_subst_lit_iff: "is_ground_lit L \<longleftrightarrow> (\<forall>
 lemma is_ground_subst_cls_iff: "is_ground_cls C \<longleftrightarrow> (\<forall>\<sigma>. C = C \<cdot> \<sigma>)"
   by (metis ex_ground_subst ground_subst_ground_cls is_ground_subst_cls)
 
+
 paragraph \<open>Members of ground expressions are ground\<close>
 
 lemma is_ground_cls_as_atms: "is_ground_cls C \<longleftrightarrow> (\<forall>A \<in> atms_of C. is_ground_atm A)"
@@ -871,6 +879,9 @@ lemma is_ground_cls_imp_is_ground_atm: "A \<in> atms_of C \<Longrightarrow> is_g
 
 lemma is_ground_cls_is_ground_atms_atms_of[simp]: "is_ground_cls D \<Longrightarrow> is_ground_atms (atms_of D)"
   by (simp add: is_ground_cls_imp_is_ground_atm is_ground_atms_def)
+
+lemma grounding_ground: "C \<in> grounding_of_clss M \<Longrightarrow> is_ground_cls C"
+  unfolding grounding_of_clss_def grounding_of_cls_def by auto
 
 lemma in_subset_eq_grounding_of_clss_is_ground_cls[simp]:
   "C \<in> CC \<Longrightarrow> CC \<subseteq> grounding_of_clss DD \<Longrightarrow> is_ground_cls C"
