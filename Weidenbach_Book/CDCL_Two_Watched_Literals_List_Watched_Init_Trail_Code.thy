@@ -1407,8 +1407,8 @@ proof -
     by simp
 qed
 
-definition SAT_wl' :: \<open>nat clauses_l \<Rightarrow> nat literal list option nres\<close> where
-  \<open>SAT_wl' CS = do{
+definition IsaSAT :: \<open>nat clauses_l \<Rightarrow> nat literal list option nres\<close> where
+  \<open>IsaSAT CS = do{
     let n = length CS;
     let N\<^sub>0' = mset (extract_atms_clss CS []);
     ASSERT(twl_array_code N\<^sub>0');
@@ -1817,10 +1817,10 @@ sepref_definition extract_model_of_state_code
 
 declare extract_model_of_state_code.refine[sepref_fr_rules]
 
-sepref_definition SAT_wl_code
-  is \<open>SAT_wl'\<close>
+sepref_definition IsaSAT_code
+  is \<open>IsaSAT\<close>
   :: \<open>(list_assn (list_assn unat_lit_assn))\<^sup>k \<rightarrow>\<^sub>a option_assn (list_assn unat_lit_assn)\<close>
-  unfolding SAT_wl'_def
+  unfolding IsaSAT_def
     get_conflict_wl_is_None extract_model_of_state_def[symmetric]
   supply twl_array_code.init_dt_wl_code_refine'[sepref_fr_rules]
   twl_array_code.get_conflict_wl_is_None_int_code_get_conflict_wl_is_None[sepref_fr_rules]
@@ -1841,8 +1841,8 @@ sepref_definition SAT_wl_code
 code_printing constant "shiftr :: nat \<Rightarrow> nat \<Rightarrow> nat" \<rightharpoonup>
   (SML) "(nat'_of'_integer(IntInf.~>>/ (integer'_of'_nat((_)),/ Word.fromInt (integer'_of'_nat((_))))))"
  *)
-export_code SAT_wl_code checking SML_imp
-export_code SAT_wl_code
+export_code IsaSAT_code checking SML_imp
+export_code IsaSAT_code
     int_of_integer
     integer_of_int
     integer_of_nat
@@ -2151,7 +2151,7 @@ proof -
         simp del: literal_of_nat.simps)
 qed
 
-lemma SAT_wl_code: \<open>(SAT_wl_code, SAT')
+lemma IsaSAT_code: \<open>(IsaSAT_code, SAT')
     \<in> [\<lambda>x. Multiset.Ball x distinct_mset \<and> (\<forall>C\<in>#x. Suc 0 \<le> size C) \<and>
          (\<forall>C\<in>#x. \<forall>L\<in>#C. nat_of_lit L < upperN)]\<^sub>a
       clauses_l_assn\<^sup>k \<rightarrow> option_assn (list_assn unat_lit_assn)\<close>
@@ -2169,9 +2169,9 @@ proof -
            else RETURN T)) \<bind>
     (\<lambda>U. RETURN (if get_conflict_wl U = None then Some (map lit_of (get_trail_wl U)) else None))\<close> for H CS
     by (smt bind_cong nres_monad1 nres_monad3)
-  have SAT_wl': \<open>SAT_wl' CS = do { ASSERT (twl_array_code (mset (extract_atms_clss CS [])));ASSERT (distinct (extract_atms_clss CS [])); T \<leftarrow> SAT_wl CS;
+  have IsaSAT: \<open>IsaSAT CS = do { ASSERT (twl_array_code (mset (extract_atms_clss CS [])));ASSERT (distinct (extract_atms_clss CS [])); T \<leftarrow> SAT_wl CS;
      RETURN (if get_conflict_wl T = None then Some (map lit_of (get_trail_wl T)) else None)}\<close> for CS
-    unfolding SAT_wl'_def SAT_wl_def Let_def
+    unfolding IsaSAT_def SAT_wl_def Let_def
     by (auto cong: bind_cong simp: 1)
   have 2: \<open>Multiset.Ball y distinct_mset \<and>
        (\<forall>C\<in>#y. 1 \<le> size C)\<Longrightarrow>
@@ -2206,20 +2206,20 @@ proof -
   have 4: \<open>ASSERT (distinct (extract_atms_clss x [])) \<le> \<Down> unit_rel (ASSERT True)\<close> for x
     by (auto simp: distinct_extract_atms_clss)
 
-  have SAT_wl'_SAT: \<open>(SAT_wl', SAT')\<in>
+  have IsaSAT_SAT: \<open>(IsaSAT, SAT')\<in>
      [\<lambda>CS. Multiset.Ball CS distinct_mset \<and> (\<forall>C\<in>#CS. 1 \<le> size C) \<and>
       (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L < upperN)]\<^sub>f
      list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel \<rightarrow> \<langle>\<langle>\<langle>Id\<rangle>list_rel\<rangle> option_rel\<rangle>nres_rel\<close>
-    unfolding SAT' SAT_wl'
+    unfolding SAT' IsaSAT
     apply (intro frefI nres_relI bind_refine)
        apply (rule 3; simp)
       apply (rule 4; simp)
      apply (rule 2; simp)
     by (auto simp: TWL_to_clauses_state_conv_def cdcl\<^sub>W_restart_mset_state convert_lits_l_def)
   show ?thesis
-    using SAT_wl_code.refine[FCOMP SAT_wl'_SAT] unfolding list_assn_list_mset_rel_clauses_l_assn .
+    using IsaSAT_code.refine[FCOMP IsaSAT_SAT] unfolding list_assn_list_mset_rel_clauses_l_assn .
 qed
 
-lemmas SAT_wl_code_full_correctness = SAT_wl_code[FCOMP SAT_is_SAT, unfolded is_SAT_def]
+lemmas IsaSAT_code_full_correctness = IsaSAT_code[FCOMP SAT_is_SAT, unfolded is_SAT_def]
 
 end

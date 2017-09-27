@@ -67,7 +67,7 @@ A recent version of the documentation the theory files is also available [here](
 |Theorem 13               | ``CDCL_Two_Watched_Literals_Transition_System`` | ``full_cdcl_twl_stgy_cdclW_stgy``
 |``propagate_conflict_update_ignore``|``CDCL_Two_Watched_Literals_Algorithm``| ``unit_propagation_inner_loop_body``	
 |Theorem 14               | ``CDCL_Two_Watched_Literals_Transition_System`` | ``cdcl_twl_stgy_prog_spec``
-|Theorem 15               | ``CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code`` | ``SAT_wl_code_full_correctness``
+|Theorem 15               | ``CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code`` | ``IsaSAT_code_full_correctness``
 |``plarity_list_pair``    | ``CDCL_Two_Watched_Literals_List_Watched_Trail_Code`` | `` polarity``
 |``trail_list_pair_trail_ref`` | ``CDCL_Two_Watched_Literals_List_Watched_Trail_Code`` | ``trailt_ref``
 |``lit_assn``             |``CDCL_Two_Watched_Literals_List_Watched_Domain``|``unat_lit_assn``
