@@ -81,7 +81,8 @@ structure SAT_Solver : sig
   type ('a, 'b) hashtable
   val integer_of_int : int -> IntInf.int
   val uint32_of_nat : nat -> Word32.word
-  val sAT_wl_code : (Word32.word list) list -> (unit -> bool)
+  val isaSAT_code :
+    (Word32.word list) list -> (unit -> ((Word32.word list) option))
 end = struct
 
 datatype typerepa = Typerep of string * typerepa list;
@@ -637,6 +638,8 @@ in
   arl_set A_ x_b bi x ()
 end);
 
+fun op_list_concat x = (fn a => x @ a);
+
 fun size_list x = gen_length zero_nata x;
 
 fun op_list_length x = size_list x;
@@ -871,6 +874,26 @@ fun decided l = (l, NONE);
 fun propagated l c = (l, SOME c);
 
 fun hd_trail_code x = (fn (m, _) => hd m) x;
+
+fun polarity_code x =
+  (fn ai => fn bi =>
+    let
+      val (_, (a1a, (_, _))) = ai;
+    in
+      (fn () =>
+        let
+          val xa =
+            nth_u_code (heap_option heap_bool) a1a (shiftr_uint32 bi one_nat)
+              ();
+        in
+          (case xa of NONE => NONE
+            | SOME x_a =>
+              (if (((Word32.andb (bi,
+                      (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0))
+                then SOME x_a else SOME (not x_a)))
+        end)
+    end)
+    x;
 
 fun get_level_code x =
   (fn ai => fn bi => let
@@ -1145,6 +1168,22 @@ fun get_conflict_wl_is_None_int_code x =
                       end))
     x;
 
+fun get_trail_wl_code x = (fn (a, b) => let
+  val (m, _) = a;
+in
+  (fn _ => m)
+end
+  b)
+                            x;
+
+fun extract_model_of_state_code x =
+  (fn xi =>
+    imp_nfoldli (get_trail_wl_code xi) (fn _ => (fn () => true))
+      (fn xc => fn sigma =>
+        (fn () => (op_list_concat sigma (op_list_prepend (fst xc) []))))
+      [])
+    x;
+
 fun select_and_remove_from_literals_to_update_wl_int_code x =
   (fn xi =>
     (fn () =>
@@ -1164,26 +1203,6 @@ fun access_lit_in_clauses_int_code x =
                                end)
     x;
 
-fun valued_trail_code x =
-  (fn ai => fn bi =>
-    let
-      val (_, (a1a, (_, _))) = ai;
-    in
-      (fn () =>
-        let
-          val xa =
-            nth_u_code (heap_option heap_bool) a1a (shiftr_uint32 bi one_nat)
-              ();
-        in
-          (case xa of NONE => NONE
-            | SOME x_a =>
-              (if (((Word32.andb (bi,
-                      (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0))
-                then SOME x_a else SOME (not x_a)))
-        end)
-    end)
-    x;
-
 fun find_unwatched_wl_s_int_code x =
   (fn ai => fn bi =>
     let
@@ -1199,7 +1218,7 @@ fun find_unwatched_wl_s_int_code x =
               (fn (_, a2g) =>
                 (fn f_ => fn () => f_ ((nth_raa heap_uint32 a1a bi a2g) ()) ())
                   (fn xa =>
-                    (fn f_ => fn () => f_ ((valued_trail_code a1 xa) ()) ())
+                    (fn f_ => fn () => f_ ((polarity_code a1 xa) ()) ())
                       (fn x_a =>
                         (fn () =>
                           (case x_a of NONE => (SOME a2g, a2g)
@@ -1329,7 +1348,7 @@ fun watched_by_app_int_code x =
 fun valued_st_int_code x = (fn ai => fn bi => let
         val (a1, _) = ai;
       in
-        valued_trail_code a1 bi
+        polarity_code a1 bi
       end)
                              x;
 
@@ -2571,7 +2590,7 @@ fun init_dt_step_wl_code x =
 fun init_dt_wl_code x =
   (fn ai => imp_nfoldli ai (fn _ => (fn () => true)) init_dt_step_wl_code) x;
 
-fun sAT_wl_code x =
+fun isaSAT_code x =
   (fn xi => fn () =>
     let
       val xa = extract_atms_clss_imp_empty_assn ();
@@ -2582,8 +2601,16 @@ fun sAT_wl_code x =
     in
       (if x_g
         then (fn f_ => fn () => f_ ((cdcl_twl_stgy_prog_wl_D_code x_f) ()) ())
-               get_conflict_wl_is_None_int_code
-        else (fn () => false))
+               (fn x_h =>
+                 (fn f_ => fn () => f_ ((get_conflict_wl_is_None_int_code x_h)
+                   ()) ())
+                   (fn x_i =>
+                     (if x_i
+                       then (fn f_ => fn () => f_
+                              ((extract_model_of_state_code x_h) ()) ())
+                              (fn x_j => (fn () => (SOME x_j)))
+                       else (fn () => NONE))))
+        else (fn () => NONE))
         ()
     end)
     x;

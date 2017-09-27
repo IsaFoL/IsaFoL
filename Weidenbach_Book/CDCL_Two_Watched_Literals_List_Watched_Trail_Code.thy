@@ -1378,8 +1378,8 @@ definition find_unwatched_wl_s_int  :: \<open>twl_st_wl_int \<Rightarrow> nat \<
 
 paragraph \<open>Value of a literal\<close>
 
-definition (in -) valued_trail :: \<open>trail_int \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close> where
-  \<open>valued_trail = (\<lambda>(M, xs, lvls, k) L. do {
+definition (in -) polarity :: \<open>trail_int \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close> where
+  \<open>polarity = (\<lambda>(M, xs, lvls, k) L. do {
      ASSERT(atm_of L < length xs);
      (case xs ! (atm_of L) of
        None \<Rightarrow> RETURN None
@@ -1387,44 +1387,44 @@ definition (in -) valued_trail :: \<open>trail_int \<Rightarrow> nat literal \<R
        else RETURN (Some (\<not>v)))
   })\<close>
 
-sepref_thm valued_trail_code
-  is \<open>uncurry valued_trail\<close>
+sepref_thm polarity_code
+  is \<open>uncurry polarity\<close>
   :: \<open>trailt_conc\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn\<close>
-  unfolding valued_trail_def
+  unfolding polarity_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) valued_trail_code
-   uses twl_array_code.valued_trail_code.refine_raw
+concrete_definition (in -) polarity_code
+   uses twl_array_code.polarity_code.refine_raw
    is \<open>(uncurry ?f, _)\<in>_\<close>
 
-prepare_code_thms (in -) valued_trail_code_def
+prepare_code_thms (in -) polarity_code_def
 
-lemmas valued_trail_code_valued_refine_code[sepref_fr_rules] =
-   valued_trail_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+lemmas polarity_code_valued_refine_code[sepref_fr_rules] =
+   polarity_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
 
-lemma valued_trail_code_valued_refine[sepref_fr_rules]:
-  \<open>(uncurry valued_trail_code, uncurry (RETURN oo valued)) \<in>
+lemma polarity_code_valued_refine[sepref_fr_rules]:
+  \<open>(uncurry polarity_code, uncurry (RETURN oo valued)) \<in>
      [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a trail_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn bool_assn\<close>
 proof -
   have [simp]: \<open>valued_atm_on_trail M (atm_of L) = (if is_pos L then valued M L else map_option uminus (valued M L))\<close>
     if \<open>no_dup M\<close>for M :: \<open>(nat, nat) ann_lits\<close> and L :: \<open>nat literal\<close>
     by (cases L) (use no_dup_consistentD[of M \<open>Neg (atm_of L)\<close>] that in
         \<open>auto simp: valued_atm_on_trail_def valued_def Decided_Propagated_in_iff_in_lits_of_l\<close>)
-  have 2: \<open>(uncurry valued_trail, uncurry (RETURN oo valued)) \<in>
+  have 2: \<open>(uncurry polarity, uncurry (RETURN oo valued)) \<in>
      [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>f trailt_ref \<times>\<^sub>f Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
     by (intro nres_relI frefI)
-      (auto simp: trailt_ref_def valued_def valued_trail_def
+      (auto simp: trailt_ref_def valued_def polarity_def
         split: if_splits option.splits)
   show ?thesis
-    using valued_trail_code.refine[FCOMP 2, OF twl_array_code_axioms] .
+    using polarity_code.refine[FCOMP 2, OF twl_array_code_axioms] .
 qed
 
 definition valued_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> bool option\<close> where
   \<open>valued_st S = valued (get_trail_wl S)\<close>
 
 definition valued_st_int :: \<open>twl_st_wl_int_trail_ref \<Rightarrow> _ \<Rightarrow> bool option nres\<close> where
-  \<open>valued_st_int = (\<lambda>(M, _) L. valued_trail M L)\<close>
+  \<open>valued_st_int = (\<lambda>(M, _) L. polarity M L)\<close>
 
 (* TODO Move? *)
 definition twl_st_int_trail_ref_assn :: \<open>twl_st_wl_int_trail_ref \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
@@ -1492,7 +1492,7 @@ proof -
   have 2: \<open>(uncurry valued_st_int, uncurry (RETURN oo valued_st)) \<in>
      [\<lambda>(_, L). L \<in> snd ` D\<^sub>0]\<^sub>f twl_st_trail_ref \<times>\<^sub>f Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
     by (intro nres_relI frefI)
-       (auto simp: trailt_ref_def valued_st_def valued_trail_def trailt_ref_def
+       (auto simp: trailt_ref_def valued_st_def polarity_def trailt_ref_def
         twl_st_trail_ref_def valued_def valued_st_int_def
         split: if_splits option.splits)
   show ?thesis
