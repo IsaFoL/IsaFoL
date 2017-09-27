@@ -11,4 +11,3 @@ Cambridge University Press, 2009:
 ## Authors ##
 * Variant 1 by [Alexander Birch Jensen](mailto:aleje shtrudel dtu.dk), [Anders Schlichtkrull](mailto:andschl shtrudel dtu.dk) and [Jørgen Villadsen](mailto:jovi shtrudel dtu.dk)
 * Variant 2 and 3 by [Anders Schlichtkrull](mailto:andschl shtrudel dtu.dk)
-
