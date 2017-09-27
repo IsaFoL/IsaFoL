@@ -77,7 +77,7 @@ fun checker print_modelb cnf_name = let
 
 fun print_help () = (
   println("Usage: " ^ CommandLine.name() ^ " cnf-file");
-  println("  where mode is 'sat' or 'unsat'")
+  println("  where <cnf-file> is a non-compressed file in dimacs format")
 )
 
 fun process_args [cnf_name] = checker false cnf_name
