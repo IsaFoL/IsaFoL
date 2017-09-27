@@ -9,6 +9,6 @@ Cambridge University Press, 2009:
 3. A variant characterizing the theorems by a predicate describing the truths. The predicate is lifted to be a type. Available in the file [FOL_Harrison_Lifting_Truths.thy](https://bitbucket.org/isafol/isafol/src/master/FOL_Harrison/FOL_Harrison_Lifting_Truths.thy).
 
 ## Authors ##
-* Variant 1 by [Alexander Birch Jensen](mailto:aleje shtrudel dtu.dk), [Anders Schlichtkrull](mailto:andschl shtrudel dtu.dk) and [Jørgen Villadsen](mailto:jovi shtrudel dtu.dk)
+* Variant 1 by [Alexander Birch Jensen](mailto:aleje shtrudel dtu.dk), [Anders Schlichtkrull](mailto:andschl shtrudel dtu.dk) and [JÃ¸rgen Villadsen](mailto:jovi shtrudel dtu.dk)
 * Variant 2 and 3 by [Anders Schlichtkrull](mailto:andschl shtrudel dtu.dk)
 
