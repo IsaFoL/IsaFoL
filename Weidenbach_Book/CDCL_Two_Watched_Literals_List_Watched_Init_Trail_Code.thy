@@ -16,7 +16,7 @@ lemma distinct_nat_of_uint32[iff]:
 
 
 declare twl_array_code.append_el_aa_hnr[sepref_fr_rules]
-declare twl_array_code.valued_trail_code_valued_refine_code[sepref_fr_rules]
+declare twl_array_code.polarity_code_valued_refine_code[sepref_fr_rules]
   twl_array_code.cons_trail_Propagated_tr_code_cons_trail_Propagated_tr[sepref_fr_rules]
 
 context twl_array_code
