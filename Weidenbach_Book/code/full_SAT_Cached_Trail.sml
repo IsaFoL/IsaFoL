@@ -81,7 +81,8 @@ structure SAT_Solver : sig
   type ('a, 'b) hashtable
   val integer_of_int : int -> IntInf.int
   val uint32_of_nat : nat -> Word32.word
-  val sAT_wl_code : (Word32.word list) list -> (unit -> bool)
+  val sAT_wl_code :
+    (Word32.word list) list -> (unit -> ((Word32.word list) option))
 end = struct
 
 datatype typerepa = Typerep of string * typerepa list;
@@ -637,6 +638,8 @@ in
   arl_set A_ x_b bi x ()
 end);
 
+fun op_list_concat x = (fn a => x @ a);
+
 fun size_list x = gen_length zero_nata x;
 
 fun op_list_length x = size_list x;
@@ -1143,6 +1146,22 @@ fun get_conflict_wl_is_None_int_code x =
                       in
                         conflict_assn_is_None a1c
                       end))
+    x;
+
+fun get_trail_wl_code x = (fn (a, b) => let
+  val (m, _) = a;
+in
+  (fn _ => m)
+end
+  b)
+                            x;
+
+fun extract_model_of_state_code x =
+  (fn xi =>
+    imp_nfoldli (get_trail_wl_code xi) (fn _ => (fn () => true))
+      (fn xc => fn sigma =>
+        (fn () => (op_list_concat sigma (op_list_prepend (fst xc) []))))
+      [])
     x;
 
 fun select_and_remove_from_literals_to_update_wl_int_code x =
@@ -2582,8 +2601,16 @@ fun sAT_wl_code x =
     in
       (if x_g
         then (fn f_ => fn () => f_ ((cdcl_twl_stgy_prog_wl_D_code x_f) ()) ())
-               get_conflict_wl_is_None_int_code
-        else (fn () => false))
+               (fn x_h =>
+                 (fn f_ => fn () => f_ ((get_conflict_wl_is_None_int_code x_h)
+                   ()) ())
+                   (fn x_i =>
+                     (if x_i
+                       then (fn f_ => fn () => f_
+                              ((extract_model_of_state_code x_h) ()) ())
+                              (fn x_j => (fn () => (SOME x_j)))
+                       else (fn () => NONE))))
+        else (fn () => NONE))
         ()
     end)
     x;
