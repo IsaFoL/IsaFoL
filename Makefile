@@ -24,11 +24,11 @@ HOL:
 	$(RUN_ISABELLE) build -b HOL
 
 Weidenbach_Book: HOL
-	$(RUN_ISABELLE) build -d '$$AFP' -b Refine_Imperative_HOL
+	$(RUN_ISABELLE) build -d '$$AFP' -b Sepref_IICF
 	$(RUN_ISABELLE) build -d '$$AFP' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D Weidenbach_Book
 
 Ordered_Resolution_Prover: HOL
-	$(RUN_ISABELLE) build -o browser_info -v -b -D Ordered_Resolution_Prover
+	$(RUN_ISABELLE) build -d '$$AFP' -o browser_info -v -b -D Ordered_Resolution_Prover
 
 Unordered_Resolution: HOL
 	$(RUN_ISABELLE2016-1) build -o browser_info -v -b -D Unordered_Resolution
