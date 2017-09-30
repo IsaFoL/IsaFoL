@@ -1,5 +1,5 @@
 theory Prop_Abstract_Transformation
-imports Main Prop_Logic Wellfounded_More
+imports Prop_Logic Weidenbach_Book_Base.Wellfounded_More
 
 begin
 

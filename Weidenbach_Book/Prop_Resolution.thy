@@ -1,5 +1,7 @@
 theory Prop_Resolution
-imports Partial_Clausal_Logic WB_List_More Wellfounded_More
+imports Entailment_Definition.Partial_Clausal_Logic
+  Weidenbach_Book_Base.WB_List_More
+  Weidenbach_Book_Base.Wellfounded_More
 
 begin
 chapter \<open>Resolution-based techniques\<close>

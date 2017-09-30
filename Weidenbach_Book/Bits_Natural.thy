@@ -1,7 +1,8 @@
 theory Bits_Natural
-imports IICF
-  "~~/src/HOL/Word/Bits_Bit"
-  "~~/src/HOL/Word/Bool_List_Representation"
+  imports
+     "Refine_Imperative_HOL.IICF"
+     "HOL-Word.Bits_Bit"
+     "HOL-Word.Bool_List_Representation"
 begin
 
 instantiation nat :: bits

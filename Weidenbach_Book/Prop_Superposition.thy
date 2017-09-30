@@ -1,5 +1,5 @@
 theory Prop_Superposition
-imports Partial_Clausal_Logic "../lib/Herbrand_Interpretation"
+imports Entailment_Definition.Partial_Clausal_Logic Entailment_Definition.Herbrand_Interpretation
 begin
 section \<open>Superposition\<close>
 

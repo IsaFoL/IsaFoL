@@ -1,7 +1,6 @@
 theory WB_Word_Assn
 imports
-  "$AFP/Word/Word"
-  IICF
+  "HOL-Word.Word"
   Bits_Natural
   WB_More_Refinement
 begin

@@ -1,5 +1,5 @@
 theory CDCL_Abstract_Clause_Representation
-imports Main Partial_Clausal_Logic
+imports Entailment_Definition.Partial_Clausal_Logic
 begin
 
 type_synonym 'v clause = "'v literal multiset"

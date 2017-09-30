@@ -1,5 +1,5 @@
 theory Prop_Normalisation
-imports Prop_Logic Prop_Abstract_Transformation "$AFP/Nested_Multisets_Ordinals/Multiset_More"
+imports Prop_Logic Prop_Abstract_Transformation Nested_Multisets_Ordinals.Multiset_More
 begin
 
 text \<open>Given the previous definition about abstract rewriting and theorem about them, we now have the

@@ -1,9 +1,9 @@
 theory WB_More_Refinement
   imports
-    IICF
-    Eisbach
-    "~~/src/HOL/Eisbach/Eisbach_Tools"
-    WB_List_More
+    Refine_Imperative_HOL.IICF
+    Weidenbach_Book_Base.WB_List_More
+    "HOL-Eisbach.Eisbach"
+    "HOL-Eisbach.Eisbach_Tools"
 begin
 
 subsection \<open>Some Tooling for Refinement\<close>

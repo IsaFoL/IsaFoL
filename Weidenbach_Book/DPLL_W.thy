@@ -1,5 +1,8 @@
 theory DPLL_W
-imports Partial_Clausal_Logic Partial_Annotated_Clausal_Logic WB_List_More Wellfounded_More
+imports
+  Entailment_Definition.Partial_Clausal_Logic
+  Entailment_Definition.Partial_Annotated_Clausal_Logic
+  Weidenbach_Book_Base.Wellfounded_More
 begin
 
 section \<open>Weidenbach's DPLL\<close>

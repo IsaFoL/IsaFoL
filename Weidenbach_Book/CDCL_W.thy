@@ -1,5 +1,5 @@
 theory CDCL_W
-imports WB_List_More CDCL_W_Level Wellfounded_More Partial_Annotated_Clausal_Logic
+imports CDCL_W_Level Weidenbach_Book_Base.Wellfounded_More
 begin
 
 chapter \<open>Weidenbach's CDCL\<close>

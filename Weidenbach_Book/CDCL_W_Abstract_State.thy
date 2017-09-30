@@ -1,5 +1,5 @@
 theory CDCL_W_Abstract_State
-imports CDCL_Abstract_Clause_Representation CDCL_W_Full
+imports CDCL_W_Full
 
 begin
 

@@ -1,5 +1,5 @@
 theory RBT_More
-imports Main "~~/src/HOL/Library/RBT" "$AFP/Nested_Multisets_Ordinals/Multiset_More"
+  imports "HOL-Library.RBT" Nested_Multisets_Ordinals.Multiset_More
 begin
 
 section \<open>More red-black trees\<close>

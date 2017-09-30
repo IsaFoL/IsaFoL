@@ -1,5 +1,7 @@
 theory DPLL_CDCL_W_Implementation
-imports Partial_Annotated_Clausal_Logic CDCL_W_Level
+imports 
+  Entailment_Definition.Partial_Annotated_Clausal_Logic
+  CDCL_W_Level
 begin
 chapter \<open>List-based Implementation of DPLL and CDCL\<close>
 
