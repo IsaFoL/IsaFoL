@@ -2168,7 +2168,10 @@ proof -
                  (mset (extract_atms_clss CS [])) T
            else RETURN T)) \<bind>
     (\<lambda>U. RETURN (if get_conflict_wl U = None then Some (map lit_of (get_trail_wl U)) else None))\<close> for H CS
-    by (smt bind_cong nres_monad1 nres_monad3)
+    apply (subst nres_monad3)
+    apply (rule bind_cong)
+     apply (rule refl)
+    by simp
   have IsaSAT: \<open>IsaSAT CS = do { ASSERT (twl_array_code (mset (extract_atms_clss CS [])));ASSERT (distinct (extract_atms_clss CS [])); T \<leftarrow> SAT_wl CS;
      RETURN (if get_conflict_wl T = None then Some (map lit_of (get_trail_wl T)) else None)}\<close> for CS
     unfolding IsaSAT_def SAT_wl_def Let_def
