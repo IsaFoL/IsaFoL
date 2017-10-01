@@ -13,7 +13,7 @@ session "Weidenbach_Book_Base" (Weidenbach_Book) = "Sepref_IICF" +
     "HOL-Library.Multiset"
     "HOL-Library.Multiset_Order"
     "HOL-Library.Extended_Nat"
-    "Nested_Multisets_Ordinals.Multiset_More"
+    Nested_Multisets_Ordinals.Multiset_More
     "HOL-Eisbach.Eisbach"
     "HOL-Eisbach.Eisbach_Tools"
   theories
@@ -49,7 +49,7 @@ session "Normalisation" (Weidenbach_Book) = "Entailment_Definition" +
     Nested_Multisets_Ordinals
     Entailment_Definition
   theories [document = false]
-    "Nested_Multisets_Ordinals.Multiset_More"
+    Nested_Multisets_Ordinals.Multiset_More
     "../lib/Herbrand_Interpretation"
   theories [document = true]
     Prop_Abstract_Transformation
