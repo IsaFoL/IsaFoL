@@ -106,7 +106,7 @@ lemma append_el_aa_hnr'[sepref_fr_rules]:
 definition nth_u where
   \<open>nth_u xs n = nth xs (nat_of_uint32 n)\<close>
 
-definition nth_u_code where
+definition nth_u_code where   
   \<open>nth_u_code xs n = Array.nth' xs (integer_of_uint32 n)\<close>
 
 lemma nth_u_hnr[sepref_fr_rules]:
@@ -155,6 +155,8 @@ definition arl_get' :: "'a::heap array_list \<Rightarrow> integer \<Rightarrow> 
 definition arl_get_u :: "'a::heap array_list \<Rightarrow> uint32 \<Rightarrow> 'a Heap" where
   "arl_get_u \<equiv> \<lambda>a i. arl_get' a (integer_of_uint32 i)"
 
+code_printing constant arl_get_u \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((_),/ Word32.toInt _))"
+
 lemma arl_get'_nth'[code]: \<open>arl_get' = (\<lambda>(a, n). Array.nth' a)\<close>
   unfolding arl_get_def arl_get'_def Array.nth'_def
   by (intro ext) auto
@@ -180,20 +182,20 @@ proof -
 qed
 
 
-definition heap_array_set' where
-  \<open>heap_array_set' = Array.upd'\<close>
-
 definition heap_array_set'_u where
-  \<open>heap_array_set'_u a i x = heap_array_set' a (integer_of_uint32 i) x \<then> return a\<close>
+  \<open>heap_array_set'_u a i x = Array.upd' a (integer_of_uint32 i) x\<close>
+
+definition heap_array_set_u where
+  \<open>heap_array_set_u a i x = heap_array_set'_u a i x \<then> return a\<close>
 
 lemma array_set_hnr_u[sepref_fr_rules]:
-    \<open>CONSTRAINT is_pure A \<Longrightarrow>
-    (uncurry2 heap_array_set'_u, uncurry2 (RETURN \<circ>\<circ>\<circ> op_list_set)) \<in>
+  \<open>CONSTRAINT is_pure A \<Longrightarrow>
+    (uncurry2 heap_array_set_u, uncurry2 (RETURN \<circ>\<circ>\<circ> op_list_set)) \<in>
      [pre_list_set]\<^sub>a (array_assn A)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a A\<^sup>k \<rightarrow> array_assn A\<close>
   by sepref_to_hoare
     (sep_auto simp: uint32_nat_rel_def br_def ex_assn_up_eq2 array_assn_def is_array_def
       hr_comp_def list_rel_pres_length list_rel_update heap_array_set'_u_def
-      heap_array_set'_def Array.upd'_def
+      heap_array_set_u_def Array.upd'_def
      nat_of_uint32_code[symmetric])
 
 

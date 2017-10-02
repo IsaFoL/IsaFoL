@@ -1,12 +1,10 @@
 theory CDCL_Two_Watched_Literals_Transition_System
-  imports CDCL_W_Abstract_State
-   "$AFP/Refine_Imperative_HOL/IICF/IICF"
+  imports Refine_Imperative_HOL.IICF CDCL.CDCL_W_Abstract_State
 begin
 
 chapter \<open>Two-Watched Literals\<close>
 
 notation image_mset (infixr "`#" 90)
-
 
 section \<open>Rule-based system\<close>
 
@@ -317,7 +315,6 @@ definition twl_struct_invs :: \<open>'v twl_st \<Rightarrow> bool\<close> where
     (twl_st_inv S \<and>
     valid_annotation S \<and>
     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S) \<and>
-(*     (\<forall>D \<in># init_clss (state\<^sub>W_of S). \<not> tautology D) \<and> *)
     cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of S) \<and>
     twl_st_exception_inv S \<and>
     no_duplicate_queued S \<and>
@@ -574,7 +571,7 @@ proof -
   have \<open>count (M C) L = count {#L. L\<in>#M C#} L\<close>
     by simp
   also have \<open>\<dots> = count ((\<lambda>L. Pair L C) `# {#L. L\<in>#M C#}) ((\<lambda>L. Pair L C) L)\<close>
-    by (subst (2) count_image_mset_inj) simp_all
+    by (subst (2) count_image_mset_inj) (simp_all add: inj_on_def)
   finally have C: \<open>count {#(L, C). L \<in># {#L. L \<in># M C#}#} (L, C) = count (M C) L\<close> ..
 
   show ?thesis
@@ -597,7 +594,6 @@ lemma
     twl_excep: \<open>twl_st_exception_inv S\<close> and
     valid: "valid_annotation S" and
     inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)" and
-(*     no_taut: "\<forall>D \<in># init_clss (state\<^sub>W_of S). \<not> tautology D" and *)
     no_dup: \<open>no_duplicate_queued S\<close> and
     dist_q: \<open>distinct_queued S\<close> and
     ws: \<open>clauses_to_update_inv S\<close>
@@ -641,16 +637,10 @@ next
   have "\<forall>s\<in>#clause `# U. \<not> tautology s"
     using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def by (simp_all add: cdcl\<^sub>W_restart_mset_state)
-(*   then have taut: "\<not>tautology (clause D)"
-    using watched no_taut D_N_U by (auto simp: cdcl\<^sub>W_restart_mset_state)
-  then have [simp]: \<open>L \<noteq> -L'\<close>
-    using watched by (cases D) (auto simp: tautology_add_mset) *)
   have [simp]: \<open>L \<noteq> L'\<close>
     using wf_D watched by (cases D) auto
   have [simp]: \<open>- L \<in> lits_of_l M\<close>
     using valid by auto
-(*   have [simp]: \<open>- La \<noteq> L'\<close> if \<open>La\<in>#unwatched D\<close> for La
-    using wf_D watched that by (cases D) (auto dest!: multi_member_split simp: tautology_add_mset) *)
   obtain NU where NU: \<open>N + U = add_mset D NU\<close>
     by (metis D_N_U insert_DiffM)
   have n_d: \<open>no_dup M\<close>

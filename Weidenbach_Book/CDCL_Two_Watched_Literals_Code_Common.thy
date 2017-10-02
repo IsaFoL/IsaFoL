@@ -1,5 +1,5 @@
 theory CDCL_Two_Watched_Literals_Code_Common
-  imports "Partial_Annotated_Clausal_Logic" IICF CDCL_Two_Watched_Literals_Initialisation
+  imports CDCL_Two_Watched_Literals_Initialisation
 begin
 text \<open>
   First we instantiate our types with sort heap, to show compatibility with code generation. The

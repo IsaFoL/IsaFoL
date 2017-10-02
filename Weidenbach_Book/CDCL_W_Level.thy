@@ -1,5 +1,6 @@
 theory CDCL_W_Level
-imports Partial_Annotated_Clausal_Logic
+imports 
+  Entailment_Definition.Partial_Annotated_Clausal_Logic
 begin
 
 subsubsection \<open>Level of literals and clauses\<close>

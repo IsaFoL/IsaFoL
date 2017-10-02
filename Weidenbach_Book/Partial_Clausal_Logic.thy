@@ -6,7 +6,9 @@ This theory is based on Blanchette's and Traytel's Clausal logic
 section \<open>Partial Clausal Logic\<close>
 
 theory Partial_Clausal_Logic
-imports "../lib/Clausal_Logic" WB_List_More
+  imports
+    Weidenbach_Book_Base.WB_List_More
+    "../lib/Clausal_Logic"
 begin
 
 text \<open>We define here entailment by a set of literals. This is \<^emph>\<open>not\<close> an Herbrand interpretation and

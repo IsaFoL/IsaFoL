@@ -1,5 +1,5 @@
 theory CDCL_W_Optimal_Model
-imports CDCL_W_Abstract_State "~~/src/HOL/Library/Extended_Nat"
+imports CDCL_W_Abstract_State "HOL-Library.Extended_Nat"
 begin
 
 section \<open>CDCL Extensions\<close>

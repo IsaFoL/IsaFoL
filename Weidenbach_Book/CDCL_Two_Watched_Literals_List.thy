@@ -1,5 +1,5 @@
 theory CDCL_Two_Watched_Literals_List
-  imports CDCL_Two_Watched_Literals_Algorithm DPLL_CDCL_W_Implementation
+  imports CDCL_Two_Watched_Literals_Algorithm CDCL.DPLL_CDCL_W_Implementation
 begin
 
 lemma mset_take_mset_drop_mset: \<open>(\<lambda>x. mset (take 2 x) + mset (drop 2 x)) = mset\<close>

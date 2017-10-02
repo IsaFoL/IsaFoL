@@ -1,5 +1,5 @@
 theory CDCL_B
-imports CDCL_W
+imports CDCL.CDCL_W
 begin
 
 section \<open>A CDCL variant\<close>
