@@ -2015,8 +2015,8 @@ proof -
     done
 qed
 
-definition is_SAT :: \<open>nat clauses \<Rightarrow> nat literal list option nres\<close> where
-  \<open>is_SAT CS = SPEC (\<lambda>M.
+definition model_if_satisfiable :: \<open>nat clauses \<Rightarrow> nat literal list option nres\<close> where
+  \<open>model_if_satisfiable CS = SPEC (\<lambda>M.
            if satisfiable (set_mset CS) then M \<noteq> None \<and> set (the M) \<Turnstile>sm CS else M = None)\<close>
 
 definition SAT' :: \<open>nat clauses \<Rightarrow> nat literal list option nres\<close> where
@@ -2097,8 +2097,8 @@ proof -
     by (auto simp: cdcl\<^sub>W_restart_mset_state S clauses_def dest: satisfiable_decreasing)
 qed
 
-lemma SAT_is_SAT:
-  \<open>(SAT', is_SAT) \<in> [\<lambda>CS. (\<forall>C \<in># CS. distinct_mset C) \<and> (\<forall>C \<in># CS. size C \<ge> 1)]\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+lemma SAT_model_if_satisfiable:
+  \<open>(SAT', model_if_satisfiable) \<in> [\<lambda>CS. (\<forall>C \<in># CS. distinct_mset C) \<and> (\<forall>C \<in># CS. size C \<ge> 1)]\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
     (is \<open>_ \<in>[\<lambda>CS. ?P CS]\<^sub>f Id \<rightarrow> _\<close>)
 proof -
   have H: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (init_state CS)\<close>
@@ -2114,7 +2114,7 @@ proof -
         cdcl\<^sub>W_restart_mset.no_smaller_confl_def get_unit_learned_def
         distinct_mset_set_def)
   show ?thesis
-    unfolding SAT'_def is_SAT_def SAT_def
+    unfolding SAT'_def model_if_satisfiable_def SAT_def
     apply (intro frefI nres_relI)
     subgoal for CS' CS
       using H[of CS]
@@ -2221,6 +2221,6 @@ proof -
     using IsaSAT_code.refine[FCOMP IsaSAT_SAT] unfolding list_assn_list_mset_rel_clauses_l_assn .
 qed
 
-lemmas IsaSAT_code_full_correctness = IsaSAT_code[FCOMP SAT_is_SAT, unfolded is_SAT_def]
+lemmas IsaSAT_code_full_correctness = IsaSAT_code[FCOMP SAT_model_if_satisfiable, unfolded model_if_satisfiable_def]
 
 end
