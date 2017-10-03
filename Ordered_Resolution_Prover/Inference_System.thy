@@ -274,7 +274,8 @@ theorem saturate_sat_preserving: "satisfiable CC \<Longrightarrow> satisfiable (
   oops 
   (* The challenge is: Every time a new clause is introduced, we also get a new interpretation
      (by the definition of sat_preserving_inference_system).
-     But the interpretation we want here is then one which exists "at the limit". *)
+     But the interpretation we want here is then the one which exists "at the limit".
+     Maybe we can use compactness to prove it. *)
 
 end
 
