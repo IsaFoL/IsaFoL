@@ -271,7 +271,7 @@ type_synonym twl_st_wl_int =
 
 type_synonym twl_st_wl_int_trail_ref =
   \<open>trail_int \<times> nat clause_l list \<times> nat \<times>
-    nat cconflict \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int \<times> bool list\<close>
+    nat cconflict \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int \<times> bool list \<times> nat\<close>
 
 fun get_clauses_wl_int :: \<open>twl_st_wl_int \<Rightarrow> nat clauses_l\<close> where
   \<open>get_clauses_wl_int (M, N, U, D, _) = N\<close>
@@ -382,6 +382,9 @@ definition counts_maximum_level where
   \<open>counts_maximum_level M C = 
       {i. C \<noteq> None \<longrightarrow> i = counts_max_lvl M (the C)}\<close>
 
+lemma counts_maximum_level_None[simp]: \<open>counts_maximum_level M None = Collect (\<lambda>_. True)\<close>
+  by (auto simp: counts_maximum_level_def)
+
 definition twl_st_ref :: \<open>(twl_st_wl_int \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_ref =
   {((M', N', U', D', Q', W', vm, \<phi>, clvls), (M, N, U, D, NP, UP, Q, W)).
@@ -459,9 +462,9 @@ end
 
 subsubsection \<open>Refining code\<close>
 
-definition set_conflict :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> nat clause option \<Rightarrow> nat \<Rightarrow>
+definition set_conflict_and_clvls :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> nat clause option \<Rightarrow> nat \<Rightarrow>
   (nat clause option \<times> nat) nres\<close> where
-\<open>set_conflict M N i _ _ = RES{(Some (mset (N!i)), counts_max_lvl M (mset (N!i)))}\<close>
+\<open>set_conflict_and_clvls M N i _ _ = RES{(Some (mset (N!i)), counts_max_lvl M (mset (N!i)))}\<close>
 
 definition conflict_add :: \<open>nat literal \<Rightarrow> conflict_rel \<Rightarrow> conflict_rel\<close> where
   \<open>conflict_add = (\<lambda>L (n, xs). (if xs ! atm_of L = None then n + 1 else n,
@@ -1250,7 +1253,7 @@ proof -
 qed
 
 lemma conflict_merge_aa_mark_conflict:
-  \<open>(uncurry4 conflict_merge_aa, uncurry4 set_conflict) \<in>
+  \<open>(uncurry4 conflict_merge_aa, uncurry4 set_conflict_and_clvls) \<in>
     [\<lambda>((((M, N), i), xs), clvls). i < length N \<and> xs = None \<and> distinct (N ! i) \<and>
        literals_are_in_N\<^sub>0 (mset (N ! i)) \<and> \<not>tautology (mset (N ! i)) \<and> clvls = 0]\<^sub>f
     \<langle>Id\<rangle>list_rel \<times>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f option_conflict_rel \<times>\<^sub>f nat_rel \<rightarrow>
@@ -1260,7 +1263,7 @@ proof -
     by (meson in_multiset_in_set in_set_takeD nth_mem_mset tautology_minus)
   have [simp]: \<open>distinct C \<Longrightarrow> j < length C \<Longrightarrow> C ! j \<notin> set (take j C)\<close> for j C
     by (simp add: index_nth_id index_take)
-  have H: \<open>conflict_merge_aa M N i (b, n, xs) clvls \<le> \<Down> (option_conflict_rel \<times>\<^sub>r nat_rel) (set_conflict M N i None clvls)\<close>
+  have H: \<open>conflict_merge_aa M N i (b, n, xs) clvls \<le> \<Down> (option_conflict_rel \<times>\<^sub>r nat_rel) (set_conflict_and_clvls M N i None clvls)\<close>
     if
       \<open>i < length N\<close> and
       ocr: \<open>((b, n, xs), None) \<in> option_conflict_rel\<close> and
@@ -1276,7 +1279,7 @@ proof -
       unfolding conflict_merge_def by auto
     have T: \<open>((False, n, xs), Some {#}) \<in> option_conflict_rel\<close>
       using ocr unfolding option_conflict_rel_def by auto
-    then show ?thesis unfolding conflict_merge_aa_def set_conflict_def
+    then show ?thesis unfolding conflict_merge_aa_def set_conflict_and_clvls_def
       using conflict_merge'_spec[of False n xs \<open>{#}\<close> \<open>N!i\<close>] that dist
       by (auto simp: conflict_merge_normalise)
   qed
@@ -1286,7 +1289,7 @@ proof -
 qed
 
 theorem conflict_merge_code_mark_conflict[sepref_fr_rules]:
-  \<open>(uncurry4 conflict_merge_code, uncurry4 set_conflict) \<in>
+  \<open>(uncurry4 conflict_merge_code, uncurry4 set_conflict_and_clvls) \<in>
   [\<lambda>((((M, N), i), xs), clvls). clvls = 0 \<and> i < length N \<and> xs = None \<and> distinct (N ! i) \<and>
     literals_are_in_N\<^sub>0 (mset (N ! i)) \<and> \<not> tautology (mset (N ! i))]\<^sub>a
   trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> 
@@ -1323,7 +1326,9 @@ proof -
                                   (option_conflict_rel \<times>\<^sub>f nat_rel)\<close>
    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
      using hfref_compI_PRE_aux[OF conflict_merge_code.refine[unfolded PR_CONST_def]
-        conflict_merge_aa_mark_conflict[unfolded PR_CONST_def], OF twl_array_code_axioms] .
+        conflict_merge_aa_mark_conflict[unfolded PR_CONST_def], OF twl_array_code_axioms]
+     unfolding PR_CONST_def
+     .
   have pre: \<open>?pre' = ?pre\<close>
     by (intro ext) (auto simp: comp_PRE_def in_br_conv list_mset_rel_def in_N\<^sub>1_atm_of_in_atms_of_iff
         literals_to_update_wl_empty_def option_conflict_rel_def conflict_rel_def
@@ -1494,7 +1499,6 @@ lemma unit_prop_body_wl_D_invD:
     \<open>literals_are_N\<^sub>0 S\<close> and
     \<open>get_conflict_wl S = None\<close> and
     \<open>literals_are_in_N\<^sub>0 (mset (get_clauses_wl S ! watched_by_app S L w))\<close> and
-(*     \<open>\<not> tautology (mset (get_clauses_wl S ! watched_by_app S L w))\<close> and *)
     \<open>distinct (get_clauses_wl S ! watched_by_app S L w)\<close>
 proof -
   show \<open>L \<in> snd ` D\<^sub>0\<close>
@@ -1697,24 +1701,32 @@ definition valued_st_int :: \<open>twl_st_wl_int_trail_ref \<Rightarrow> _ \<Rig
   \<open>valued_st_int = (\<lambda>(M, _) L. polarity M L)\<close>
 
 (* TODO Move? *)
-definition twl_st_int_trail_ref_assn :: \<open>twl_st_wl_int_trail_ref \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
-\<open>twl_st_int_trail_ref_assn =
-  (trailt_conc *assn clauses_ll_assn *assn nat_assn *assn
-  conflict_option_assn *assn
-  clause_l_assn *assn
-  arrayO_assn (arl_assn nat_assn) *assn
-  vmtf_remove_conc *assn phase_saver_conc
-  )\<close>
+type_synonym twl_st_wll_trail_no_lvl =
+  \<open>trail_int_assn \<times> clauses_wl \<times> nat \<times> conflict_option_assn \<times>
+    lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times> uint32\<close>
+
+definition twl_st_int_trail_ref_assn 
+  :: \<open>twl_st_wl_int_trail_ref \<Rightarrow> twl_st_wll_trail_no_lvl \<Rightarrow> assn\<close>
+where
+  \<open>twl_st_int_trail_ref_assn =
+    (trailt_conc *assn clauses_ll_assn *assn nat_assn *assn
+    conflict_option_assn *assn
+    clause_l_assn *assn
+    arrayO_assn (arl_assn nat_assn) *assn
+    vmtf_remove_conc *assn phase_saver_conc *assn
+    uint32_nat_assn
+    )\<close>
 
 definition twl_st_trail_ref :: \<open>(twl_st_wl_int_trail_ref \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_trail_ref =
-  {((M', N', U', D', Q', W', vm, \<phi>), (M, N, U, D, NP, UP, Q, W)).
+  {((M', N', U', D', Q', W', vm, \<phi>, clvls), (M, N, U, D, NP, UP, Q, W)).
     (M', M) \<in> trailt_ref \<and> N' = N \<and> U' = U \<and> D = D' \<and>
      Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
     vm \<in> vmtf_imp M \<and>
     phase_saving \<phi> \<and>
-    no_dup M
+    no_dup M \<and>
+   clvls \<in> counts_maximum_level M D
   }\<close>
 
 lemma twl_st_trail_ref_alt_def:
@@ -1977,16 +1989,20 @@ lemma mark_conflict_wl'_alt_def:
   \<open>mark_conflict_wl' i S = mark_conflict_wl (get_clauses_wl S ! i) S\<close>
   by (cases S) (auto simp: mark_conflict_wl'_def mark_conflict_wl_def)
 
-definition mark_conflict_wl'_int :: \<open>nat \<Rightarrow> twl_st_wl_int \<Rightarrow> twl_st_wl_int\<close> where
-  \<open>mark_conflict_wl'_int = (\<lambda>C (M, N, U, D, Q, W). (M, N, U, set_conflict N C D, {#}, W))\<close>
+definition mark_conflict_wl'_int :: \<open>nat \<Rightarrow> twl_st_wl_int \<Rightarrow> twl_st_wl_int nres\<close> where
+  \<open>mark_conflict_wl'_int = (\<lambda>C (M, N, U, D, Q, W, vmtf, \<phi>, clvls). do {
+    let n = zero_uint32_nat;
+    (D, clvls) \<leftarrow> set_conflict_and_clvls M N C D n;
+    RETURN (M, N, U, D, {#}, W, vmtf, \<phi>, clvls)})\<close>
 
 sepref_thm mark_conflict_wl'_int_code
-  is \<open>uncurry (RETURN (* PR_CONST *) oo mark_conflict_wl'_int)\<close>
+  is \<open>uncurry mark_conflict_wl'_int\<close>
   :: \<open>[\<lambda>(C, S). get_conflict_wl_int S = None \<and> C < length (get_clauses_wl_int S) \<and>
       distinct (get_clauses_wl_int S ! C) \<and> literals_are_in_N\<^sub>0 (mset (get_clauses_wl_int S ! C)) \<and>
       \<not> tautology (mset (get_clauses_wl_int S ! C))]\<^sub>a
     nat_assn\<^sup>k *\<^sub>a twl_st_int_assn\<^sup>d \<rightarrow> twl_st_int_assn\<close>
   supply [[goals_limit=1]]
+    conflict_merge_code_mark_conflict[unfolded twl_st_int_assn_def, sepref_fr_rules]
   unfolding mark_conflict_wl'_int_def twl_st_int_assn_def IICF_List_Mset.lms_fold_custom_empty
   by sepref
 
@@ -2000,11 +2016,12 @@ lemmas mark_conflict_wl'_int_code[sepref_fr_rules] =
   mark_conflict_wl'_int_code.refine[OF twl_array_code_axioms]
 
 lemma mark_conflict_wl'_int_mark_conflict_wl':
-  \<open>(uncurry (RETURN oo mark_conflict_wl'_int), uncurry (RETURN oo mark_conflict_wl')) \<in>
+  \<open>(uncurry mark_conflict_wl'_int, uncurry (RETURN oo mark_conflict_wl')) \<in>
     nat_rel \<times>\<^sub>r twl_st_ref \<rightarrow>\<^sub>f \<langle>twl_st_ref\<rangle>nres_rel\<close>
   by (intro nres_relI frefI)
      (auto simp: twl_st_ref_def mark_conflict_wl'_int_def mark_conflict_wl'_def
-        set_conflict_def)
+        set_conflict_and_clvls_def bind_RES_RETURN2_eq RETURN_def[symmetric]
+        counts_maximum_level_def)
 
 lemma mark_conflict_wl'_int_code_mark_conflict_wl'[sepref_fr_rules]:
   \<open>(uncurry mark_conflict_wl'_int_code, uncurry (RETURN oo mark_conflict_wl')) \<in>
@@ -2314,7 +2331,7 @@ definition propgate_lit_wl_int :: \<open>nat literal \<Rightarrow> nat \<Rightar
 
 lemma propgate_lit_wl_int_propgate_lit_wl:
   \<open>(uncurry2 (RETURN ooo propgate_lit_wl_int), uncurry2 (RETURN ooo propgate_lit_wl)) \<in>
-  [\<lambda>((L, C), S). undefined_lit (get_trail_wl S) L]\<^sub>f
+  [\<lambda>((L, C), S). undefined_lit (get_trail_wl S) L \<and> get_conflict_wl S = None]\<^sub>f
   Id \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_ref \<rightarrow> \<langle>twl_st_ref\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: twl_st_ref_def propgate_lit_wl_int_def propgate_lit_wl_def
@@ -2341,13 +2358,14 @@ lemmas propgate_lit_wl_int_code[sepref_fr_rules] =
 
 lemma propgate_lit_wl_int_code_propgate_lit_wl[sepref_fr_rules]:
   \<open>(uncurry2 propgate_lit_wl_int_code, uncurry2 (RETURN ooo propgate_lit_wl)) \<in>
-    [\<lambda>((L, C), S). undefined_lit (get_trail_wl S) L \<and> L \<in> snd ` D\<^sub>0]\<^sub>a
+    [\<lambda>((L, C), S). undefined_lit (get_trail_wl S) L \<and> L \<in> snd ` D\<^sub>0 \<and> get_conflict_wl S = None]\<^sub>a
      unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>d \<rightarrow> twl_st_assn\<close>
     (is \<open>?fun \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?fun \<in>
      [comp_PRE (Id \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_ref)
-       (\<lambda>((L, C), S). undefined_lit (get_trail_wl S) L)
+       (\<lambda>((L, C), S). undefined_lit (get_trail_wl S) L \<and>
+           get_conflict_wl S = None)
        (\<lambda>_ ((L, C), S). undefined_lit (get_trail_wl_int S) L \<and> L \<in> snd ` D\<^sub>0)
        (\<lambda>_. True)]\<^sub>a
      hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_int_assn\<^sup>d)
@@ -2605,7 +2623,7 @@ paragraph \<open>Unit propagation, outer loop\<close>
 
 type_synonym (in -) twl_st_wl_int_W_list =
   \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times> nat \<times>
-    nat cconflict \<times> nat literal list \<times> nat list list \<times> vmtf_remove_int \<times> bool list\<close>
+    nat cconflict \<times> nat literal list \<times> nat list list \<times> vmtf_remove_int \<times> bool list \<times> nat\<close>
 
 definition (in -) select_and_remove_from_literals_to_update_wl_int
   :: \<open>twl_st_wl_int_W_list \<Rightarrow> twl_st_wl_int_W_list \<times> _\<close> where
@@ -2621,7 +2639,8 @@ definition twl_st_wl_int_W_list_rel :: \<open>(twl_st_wl_int_W_list \<times> twl
      (list_mset_rel :: (nat literal list \<times> nat lit_queue_wl) set)  \<times>\<^sub>r
      (Id :: (nat list list \<times> _)set) \<times>\<^sub>r
      Id \<times>\<^sub>r
-     Id\<close>
+     Id \<times>\<^sub>r
+     nat_rel\<close>
 
 definition twl_st_int_W_list_rel_assn :: \<open>twl_st_wl_int_W_list \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>twl_st_int_W_list_rel_assn =
@@ -2629,18 +2648,18 @@ definition twl_st_int_W_list_rel_assn :: \<open>twl_st_wl_int_W_list \<Rightarro
   conflict_option_assn *assn
   (list_assn unat_lit_assn) *assn
   arrayO_assn (arl_assn nat_assn) *assn
-  vmtf_remove_conc *assn phase_saver_conc
+  vmtf_remove_conc *assn phase_saver_conc *assn uint32_nat_assn
   )\<close>
 
 lemma twl_st_wl_int_W_list_rel_twl_st_rel: \<open>twl_st_wl_int_W_list_rel O twl_st_ref =
-   {((M', N', U', D', Q', W', vm, \<phi>), M, N, U, D, NP, UP, Q, W).
+   {((M', N', U', D', Q', W', vm, \<phi>, clvls), M, N, U, D, NP, UP, Q, W).
      M = M' \<and>
      N' = N \<and>
      U' = U \<and>
      D = D' \<and>
      (Q', Q) \<in> list_mset_rel \<and>
      (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
-     vm \<in> vmtf_imp M \<and> phase_saving \<phi> \<and> no_dup M}\<close>
+     vm \<in> vmtf_imp M \<and> phase_saving \<phi> \<and> no_dup M \<and> clvls \<in> counts_maximum_level M D}\<close>
   unfolding twl_st_ref_def twl_st_wl_int_W_list_rel_def
   by force
 
@@ -2848,68 +2867,7 @@ lemma in_literals_are_in_N\<^sub>0_in_D\<^sub>0:
 
 paragraph \<open>Level of a literal\<close>
 
-definition get_level_trail :: \<open>trail_int \<Rightarrow> uint32 \<Rightarrow> nat\<close> where
-  \<open>get_level_trail = (\<lambda>(M, xs, lvls, k) L. lvls ! (nat_of_uint32 (L >> 1)))\<close>
-
-sepref_thm get_level_code
-  is \<open>uncurry (RETURN oo get_level_trail)\<close>
-  :: \<open>[\<lambda>((M, xs, lvls, k), L). nat_of_uint32 L div 2 < length lvls]\<^sub>a
-  trailt_conc\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  unfolding get_level_trail_def nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
-    nth_u_def[symmetric]
-  supply [[goals_limit = 1]]
-  by sepref
-
-concrete_definition (in -) get_level_code
-   uses twl_array_code.get_level_code.refine_raw
-   is \<open>(uncurry ?f, _)\<in>_\<close>
-
-prepare_code_thms (in -) get_level_code_def
-
-lemmas get_level_code_get_level_code[sepref_fr_rules] =
-   get_level_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
-
-lemma get_level_code_get_level[sepref_fr_rules]:
-  \<open>(uncurry get_level_code, uncurry (RETURN oo get_level)) \<in>
-   [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a trail_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-    (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
-proof -
-  have [simp]: \<open>(ba, bb) \<in> nat_lit_rel \<Longrightarrow> ba div 2 = atm_of bb\<close> for ba bb
-    by (auto simp: p2rel_def lit_of_natP_def atm_of_lit_of_nat nat_lit_rel_def
-        simp del: literal_of_nat.simps)
-
-  have 1: \<open>(uncurry (RETURN oo get_level_trail), uncurry (RETURN oo get_level)) \<in>
-     [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>f trailt_ref \<times>\<^sub>f unat_lit_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
-    by (intro nres_relI frefI, rename_tac x y, case_tac x) (auto simp: image_image trailt_ref_def get_level_trail_def
-        nat_shiftr_div2 shiftr1_def unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def
-        nat_of_uint32_shiftr trailt_ref_def)
-
-  have H: \<open>(uncurry get_level_code, uncurry (RETURN \<circ>\<circ> get_level))
-\<in> [comp_PRE (trailt_ref \<times>\<^sub>f unat_lit_rel)
-     (\<lambda>(M, L). L \<in> snd ` D\<^sub>0)
-     (\<lambda>_ ((M, xs, lvls, k), L).
-         nat_of_uint32 L div 2 < length lvls)
-     (\<lambda>_. True)]\<^sub>a hrp_comp
-                     (trailt_conc\<^sup>k *\<^sub>a
-                      uint32_assn\<^sup>k)
-                     (trailt_ref \<times>\<^sub>f
-                      unat_lit_rel) \<rightarrow> hr_comp
-                 uint32_nat_assn nat_rel\<close>
-    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF get_level_code.refine 1, OF twl_array_code_axioms] .
-  have pre: \<open>?pre' = ?pre\<close>
-    by (auto simp: comp_PRE_def trailt_ref_def unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def
-        br_def intro!: ext)
-  have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
-    by (auto simp: hrp_comp_def hr_comp_def)
-  have f: \<open>?f' = ?f\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
-    by (auto simp: hrp_comp_def hr_comp_def)
-  show ?thesis
-    using H unfolding im pre f by simp
-qed
-
+(* TODO: kill! *)
 (* TODO: get_level M (Pos i) is inefficient (i*2 div 2) *)
 definition maximum_level_remove' :: \<open>(nat, nat) ann_lits \<Rightarrow> conflict_rel \<Rightarrow> nat literal \<Rightarrow> nat nres\<close> where
   \<open>maximum_level_remove'  = (\<lambda>M (n, xs) L. do {
@@ -3528,13 +3486,13 @@ qed
 
 
 definition tl_state_wl_int :: \<open>twl_st_wl_int \<Rightarrow> twl_st_wl_int\<close> where
-  \<open>tl_state_wl_int = (\<lambda>(M, N, U, D, WS, Q, vmtf, \<phi>).
-       (tl M, N, U, D, WS, Q, vmtf_unset (atm_of (lit_of (hd M))) vmtf, \<phi>))\<close>
+  \<open>tl_state_wl_int = (\<lambda>(M, N, U, D, WS, Q, vmtf, \<phi>, clvls).
+       (tl M, N, U, D, WS, Q, vmtf_unset (atm_of (lit_of (hd M))) vmtf, \<phi>, clvls))\<close>
 
 lemma tl_state_wl_int_alt_def:
-    \<open>tl_state_wl_int =  (\<lambda>(M, N, U, D, WS, Q, vmtf, \<phi>).
+    \<open>tl_state_wl_int =  (\<lambda>(M, N, U, D, WS, Q, vmtf, \<phi>, clvls).
       (let L = lit_of (hd M) in
-       (tl M, N, U, D, WS, Q, vmtf_unset (atm_of L) vmtf, \<phi>)))\<close>
+       (tl M, N, U, D, WS, Q, vmtf_unset (atm_of L) vmtf, \<phi>, clvls)))\<close>
   by (auto simp: tl_state_wl_int_def Let_def)
 
 definition (in twl_array_code_ops) tl_trailt_tr :: \<open>trail_int \<Rightarrow> trail_int\<close> where
@@ -3652,7 +3610,7 @@ qed
 
 sepref_thm tl_state_wl_int_code
   is \<open>RETURN o tl_state_wl_int\<close>
-  :: \<open>[\<lambda>(M, N, U, D, WS, Q, ((A, m, lst, next_search), _), \<phi>). M \<noteq> [] \<and>
+  :: \<open>[\<lambda>(M, N, U, D, WS, Q, ((A, m, lst, next_search), _), \<phi>, _). M \<noteq> [] \<and>
          atm_of (lit_of (hd M)) < length \<phi> \<and>
          atm_of (lit_of (hd M)) < length A \<and> (next_search \<noteq> None \<longrightarrow>  the next_search < length A)]\<^sub>a
       twl_st_int_assn\<^sup>d \<rightarrow> twl_st_int_assn\<close>
@@ -3674,27 +3632,77 @@ prepare_code_thms (in -) tl_state_wl_int_code_def
 lemmas tl_state_wl_int_code_refine[sepref_fr_rules] =
    tl_state_wl_int_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
 
+(* TODO: we need early breaks in skip_and_resolve! *)
+lemma counts_max_lvl_Cons:
+  assumes \<open>no_dup (L # a)\<close> \<open>distinct_mset y\<close>\<open>\<not>tautology y\<close> \<open>\<not>is_decided L\<close>
+  shows \<open>counts_max_lvl (L # a) y = 
+    (if (lit_of L \<in># y \<or> -lit_of L \<in># y) \<and> count_decided a \<noteq> 0 then counts_max_lvl a y + 1 
+    else counts_max_lvl a y)\<close>
+proof -
+  have [simp]: \<open>count_decided a = 0 \<Longrightarrow> get_level a L = 0\<close> for L
+    by (simp add: count_decided_0_iff)
+  have [simp]: \<open>lit_of L \<notin># A \<Longrightarrow>
+         - lit_of L \<notin># A \<Longrightarrow>
+          {#La \<in># A. La \<noteq> lit_of L \<and> La \<noteq> - lit_of L \<longrightarrow> get_level a La = b#} = 
+          {#La \<in># A. get_level a La = b#}\<close> for A b
+    apply (rule filter_mset_cong)
+     apply (rule refl)
+    by auto
+  show ?thesis
+    using assms by (auto simp: counts_max_lvl_def get_level_cons_if tautology_add_mset
+        atm_of_eq_atm_of
+        dest!: multi_member_split)
+qed
+
+lemma counts_max_lvl_tl:
+  assumes \<open>a \<noteq> []\<close> \<open>distinct_mset y\<close>\<open>\<not>tautology y\<close> \<open>\<not>is_decided (hd a)\<close> \<open>no_dup a\<close>
+  shows \<open>counts_max_lvl (tl a) y =
+      (if (lit_of(hd a) \<in># y \<or> -lit_of(hd a) \<in># y) \<and> count_decided a \<noteq> 0
+       then counts_max_lvl a y - 1 else counts_max_lvl a y)\<close>
+  using assms by (cases a) (auto simp: counts_max_lvl_Cons)
+
 lemma tl_state_wl_int_tl_state_wl: \<open>(RETURN o tl_state_wl_int, RETURN o tl_state_wl) \<in>
-  [\<lambda>S. get_trail_wl S \<noteq> [] \<and> lit_of(hd (get_trail_wl S)) \<in> snd ` D\<^sub>0]\<^sub>f twl_st_ref \<rightarrow> \<langle>twl_st_ref\<rangle>nres_rel\<close>
+  [\<lambda>S. get_trail_wl S \<noteq> [] \<and> lit_of(hd (get_trail_wl S)) \<in> snd ` D\<^sub>0 \<and>
+     (lit_of (hd (get_trail_wl S))) \<notin># the (get_conflict_wl S) \<and>
+     -(lit_of (hd (get_trail_wl S))) \<notin># the (get_conflict_wl S) \<and>
+    \<not>tautology (the (get_conflict_wl S)) \<and>
+    distinct_mset (the (get_conflict_wl S)) \<and>
+    \<not>is_decided (hd (get_trail_wl S))
+  ]\<^sub>f twl_st_ref \<rightarrow> \<langle>twl_st_ref\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
    (auto simp: twl_st_ref_def tl_state_wl_int_def tl_state_wl_def abs_l_vmtf_unset_vmtf_unset'
-    in_N\<^sub>1_atm_of_in_atms_of_iff phase_saving_def dest: no_dup_tlD)
+    in_N\<^sub>1_atm_of_in_atms_of_iff phase_saving_def counts_maximum_level_def
+    counts_max_lvl_tl
+    dest: no_dup_tlD)
 
 lemma tl_state_wl_refine[sepref_fr_rules]:
   \<open>(tl_state_wl_int_code, RETURN o tl_state_wl) \<in>
-    [\<lambda>S. get_trail_wl S \<noteq> [] \<and> literals_are_N\<^sub>0 S \<and> twl_struct_invs (twl_st_of None (st_l_of_wl None S))]\<^sub>a
+    [\<lambda>S. get_trail_wl S \<noteq> [] \<and> literals_are_N\<^sub>0 S \<and>
+        twl_struct_invs (twl_st_of None (st_l_of_wl None S)) \<and>
+        -lit_of (hd (get_trail_wl S)) \<notin># the (get_conflict_wl S) \<and>
+        \<not>is_decided (hd (get_trail_wl S))]\<^sub>a
       twl_st_assn\<^sup>d \<rightarrow> twl_st_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?c
    \<in> [comp_PRE twl_st_ref
-        (\<lambda>S. get_trail_wl S \<noteq> [] \<and> lit_of (hd (get_trail_wl S)) \<in> snd ` D\<^sub>0)
-         (\<lambda>_ (M, N, U, D, WS, Q, ((A, m, lst, next_search), _), \<phi>).
-            M \<noteq> [] \<and> atm_of (lit_of (hd M)) < length \<phi> \<and>
-            atm_of (lit_of (hd M)) < length A \<and>
-             (next_search \<noteq> None \<longrightarrow> the next_search < length A))
-            (\<lambda>_. True)]\<^sub>a
-      hrp_comp (twl_st_int_assn\<^sup>d) twl_st_ref \<rightarrow> hr_comp twl_st_int_assn twl_st_ref\<close>
+     (\<lambda>S. get_trail_wl S \<noteq> [] \<and>
+          lit_of (hd (get_trail_wl S)) \<in> snd ` D\<^sub>0 \<and>
+          lit_of (hd (get_trail_wl S))
+          \<notin># the (get_conflict_wl S) \<and>
+          - lit_of (hd (get_trail_wl S))
+          \<notin># the (get_conflict_wl S) \<and>
+          \<not> tautology (the (get_conflict_wl S)) \<and>
+          distinct_mset (the (get_conflict_wl S)) \<and>
+          \<not> is_decided (hd (get_trail_wl S)))
+     (\<lambda>_ (M, N, U, D, WS, Q, ((A, m, lst, next_search), _), \<phi>, _).
+         M \<noteq> [] \<and>
+         atm_of (lit_of (hd M)) < length \<phi> \<and>
+         atm_of (lit_of (hd M)) < length A \<and>
+         (next_search \<noteq> None \<longrightarrow> the next_search < length A))
+     (\<lambda>_. True)]\<^sub>a hrp_comp (twl_st_int_assn\<^sup>d)
+                    twl_st_ref \<rightarrow> hr_comp twl_st_int_assn
+    twl_st_ref\<close>
       (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using  hfref_compI_PRE_aux[OF tl_state_wl_int_code_refine tl_state_wl_int_tl_state_wl]
     .
@@ -3729,7 +3737,8 @@ lemma (in -) get_max_lvl_st_alt_def:
 
 type_synonym (in -) twl_st_wl_int_conflict =
   \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times> nat \<times>
-    (bool \<times> nat \<times> bool option list) \<times> nat literal multiset \<times> nat list list \<times> vmtf_remove_int \<times> bool list\<close>
+    (bool \<times> nat \<times> bool option list) \<times> nat literal multiset \<times> nat list list \<times> vmtf_remove_int \<times>
+     bool list \<times> nat\<close>
 
 
 definition get_max_lvl_st_int :: \<open>twl_st_wl_int_conflict \<Rightarrow> nat literal \<Rightarrow> nat nres\<close> where
@@ -3744,7 +3753,8 @@ definition twl_st_wl_int_conflict_rel :: \<open>(twl_st_wl_int_conflict \<times>
      (Id :: (nat lit_queue_wl \<times> _) set)  \<times>\<^sub>r
      (Id :: (nat list list \<times> _)set) \<times>\<^sub>r
      Id \<times>\<^sub>r
-     Id\<close>
+     Id \<times>\<^sub>r
+     nat_rel\<close>
 
 definition twl_st_int_conflict_assn :: \<open>twl_st_wl_int_conflict \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>twl_st_int_conflict_assn =
@@ -3752,18 +3762,18 @@ definition twl_st_int_conflict_assn :: \<open>twl_st_wl_int_conflict \<Rightarro
   conflict_option_rel_assn *assn
   clause_l_assn *assn
   arrayO_assn (arl_assn nat_assn) *assn
-  vmtf_remove_conc *assn phase_saver_conc
+  vmtf_remove_conc *assn phase_saver_conc *assn uint32_nat_assn
   \<close>
 
 lemma twl_st_wl_int_conflict_rel_twl_st_rel: \<open>twl_st_wl_int_conflict_rel O twl_st_ref =
-   {((M', N', U', D', Q', W', vm, \<phi>), M, N, U, D, NP, UP, Q, W).
+   {((M', N', U', D', Q', W', vm, \<phi>, clvls), M, N, U, D, NP, UP, Q, W).
      M = M' \<and>
      N' = N \<and>
      U' = U \<and>
      (D', D) \<in> option_conflict_rel \<and>
      Q' = Q \<and>
      (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
-     vm \<in> vmtf_imp M \<and> phase_saving \<phi> \<and> no_dup M}\<close>
+     vm \<in> vmtf_imp M \<and> phase_saving \<phi> \<and> no_dup M \<and> clvls \<in> counts_maximum_level M D}\<close>
   unfolding twl_st_ref_def twl_st_wl_int_conflict_rel_def
   by force
 
@@ -3974,8 +3984,18 @@ lemma resolve_cls_wl'_union_uminus_zero_index:
 declare cdcl\<^sub>W_restart_mset_state[simp]
 (* End Move *)
 
-definition (in -) conflict_merge_abs_union :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow> 'v clause option \<Rightarrow> 'v cconflict\<close> where
-\<open>conflict_merge_abs_union N i C = Some (mset (N!i) \<union># (the C - uminus `# mset (N!i)))\<close>
+definition (in -) conflict_merge_abs_union' 
+  :: \<open>('v, nat) ann_lits \<Rightarrow> 'v clauses_l \<Rightarrow> nat \<Rightarrow> 'v clause option \<Rightarrow> nat \<Rightarrow> 'v cconflict\<close>
+where
+  \<open>conflict_merge_abs_union' M N i C _ = 
+      Some (mset (N!i) \<union># (the C - (mset (N!i) + uminus `# mset (N!i))))\<close>
+
+definition (in -) conflict_merge_abs_union 
+  :: \<open>('v, nat) ann_lits \<Rightarrow> 'v clauses_l \<Rightarrow> nat \<Rightarrow> 'v clause option \<Rightarrow> nat \<Rightarrow>
+     ('v cconflict \<times> nat) nres\<close>
+where
+  \<open>conflict_merge_abs_union M N i C _ = RES {(Some (mset (N!i) \<union># (the C - (mset (N!i) + uminus `# mset (N!i)))), 
+    counts_max_lvl M (mset (N!i) \<union># (the C - (mset (N!i) + uminus `# mset (N!i)))))}\<close>
 
 lemma
   assumes invs: \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and
@@ -3986,17 +4006,18 @@ lemma
        \<open>is_proped (hd (get_trail_wl S))\<close> \<open>get_trail_wl S \<noteq> []\<close>
   shows
     resolve_cls_wl'_union_uminus_positive_index:
-      \<open>C > 0 \<Longrightarrow> resolve_cls_wl' S C L = remove1_mset L (the (conflict_merge_abs_union (get_clauses_wl S) C (get_conflict_wl S)))\<close>
+      \<open>C > 0 \<Longrightarrow> resolve_cls_wl' S C L =
+          remove1_mset L (the (conflict_merge_abs_union' (get_trail_wl S) (get_clauses_wl S) C (get_conflict_wl S) clvls))\<close>
        (is \<open>_ \<Longrightarrow> ?Res\<close>) and
     resolve_cls_wl'_not_tauto_confl: \<open>\<not>tautology (the (get_conflict_wl S))\<close> (is ?tauto) and
     resolve_cls_wl'_not_tauto_cls: \<open>C > 0 \<Longrightarrow> \<not>tautology (mset (get_clauses_wl S ! C))\<close>
       (is \<open>_ \<Longrightarrow> ?tauto_cls\<close>) and
     resolve_cls_wl'_L_in_cls: \<open>C > 0 \<Longrightarrow> L \<in> set (get_clauses_wl S ! C)\<close> (is \<open>_ \<Longrightarrow> ?L_in_cls\<close>) and
     resolve_cls_wl'_in:
-      \<open>C > 0 \<Longrightarrow> L \<in># (the (conflict_merge_abs_union (get_clauses_wl S) C (get_conflict_wl S)))\<close>
+      \<open>C > 0 \<Longrightarrow> L \<in># (the (conflict_merge_abs_union' (get_trail_wl S)  (get_clauses_wl S) C (get_conflict_wl S) clvls))\<close>
       (is \<open>_ \<Longrightarrow> ?L_in_union\<close>) and
     resolve_cls_wl'_notin:
-      \<open>C > 0 \<Longrightarrow> -L \<notin># (the (conflict_merge_abs_union (get_clauses_wl S) C (get_conflict_wl S)))\<close>
+      \<open>C > 0 \<Longrightarrow> -L \<notin># (the (conflict_merge_abs_union' (get_trail_wl S)  (get_clauses_wl S) C (get_conflict_wl S) clvls))\<close>
       (is \<open>_ \<Longrightarrow> ?L_notin_union\<close>)
 
 proof -
@@ -4053,10 +4074,12 @@ proof -
 
   have n_d_L: \<open>L \<in> lits_of_l M \<Longrightarrow> -L \<in> lits_of_l M \<Longrightarrow> False\<close> for L
     using distinct_consistent_interp[OF n_d] by (auto simp: consistent_interp_def)
-
+  have dist_C: \<open>distinct_mset (mset (N ! C))\<close>
+    using C C' dist unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+    by (auto simp: S)
   have uL_C'': \<open>-L \<notin># C' - uminus `# D'\<close>
     using uL_C' by (auto dest!: in_diffD)
-  moreover have \<open>D' - uminus `# C' = D'\<close>
+  moreover have D'C'D': \<open>D' - uminus `# C' = D'\<close>
     apply (rule minus_eq_id_forall_notin_mset[THEN iffD2])
     unfolding Ball_def
     apply (rule impI conjI allI)
@@ -4065,50 +4088,85 @@ proof -
       by (auto 5 5 simp: C'' D true_annots_true_cls_def_iff_negation_in_model uminus_lit_swap
         Decided_Propagated_in_iff_in_lits_of_l)
     done
+
   moreover have \<open>L \<notin># D'\<close>
     using tauto_D by (auto simp: tautology_add_mset D S)
-  ultimately show ?Res
+  moreover have \<open>L \<notin># D' - add_mset L (C' + uminus `# C')\<close>
+    using \<open>L \<notin># D'\<close> by (auto dest: in_diffD)
+  moreover have [simp]: \<open>distinct_mset D'\<close> \<open>distinct_mset C'\<close>
+    using dist_D dist_C unfolding D C'' C' by auto
+  moreover have \<open>C' \<union># D' = C' \<union># (D' - (C' + uminus `# C'))\<close>
+  proof -
+    have \<open>D' - (C' + uminus `# C') = (D' -uminus `# C') - C'\<close>
+      by (auto simp: ac_simps)
+    also have \<open>\<dots> = D' - C'\<close>
+      unfolding D'C'D' ..
+    finally have A: \<open>C' \<union># (D' - (C' + uminus `# C')) = C' \<union># (D' - C')\<close> by simp
+    show ?thesis
+      unfolding A
+      by (auto simp: ac_simps distinct_mset_rempdups_union_mset distinct_mset_in_diff
+          intro!: distinct_set_mset_eq dest: in_diffD)
+  qed
+  ultimately show ?Res                                                          
     using C C' unfolding S by (auto simp: C'' D resolve_cls_wl'_def ac_simps
-        conflict_merge_abs_union_def)
+        conflict_merge_abs_union'_def minus_notin_trivial)
   show ?L_in_union
     using C C' unfolding S by (auto simp: C'' D resolve_cls_wl'_def ac_simps
-        conflict_merge_abs_union_def)
+        conflict_merge_abs_union'_def)
   show ?L_notin_union
     using C C' uL_C' uL_C'' dist_D unfolding S by (auto simp: C'' D resolve_cls_wl'_def ac_simps
-        conflict_merge_abs_union_def dest: in_diffD)
+        conflict_merge_abs_union'_def dest: in_diffD)
 qed
 
 lemma conflict_merge_aa_conflict_merge_abs_union_aa:
-  \<open>(uncurry2 (conflict_merge_aa), uncurry2 (RETURN ooo conflict_merge_abs_union)) \<in>
-     [\<lambda>((N, i), C). distinct (N!i) \<and> literals_are_in_N\<^sub>0 (mset (N!i)) \<and> \<not> tautology (mset (N!i)) \<and>
-         literals_are_in_N\<^sub>0 (the C) \<and> C \<noteq> None]\<^sub>f
-    Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_conflict_rel \<rightarrow> \<langle>option_conflict_rel\<rangle> nres_rel\<close>
+  \<open>(uncurry4 (conflict_merge_aa), uncurry4 conflict_merge_abs_union) \<in>
+     [\<lambda>((((M, N), i), C), clvls). distinct (N!i) \<and> literals_are_in_N\<^sub>0 (mset (N!i)) \<and>
+          \<not> tautology (mset (N!i)) \<and>
+         literals_are_in_N\<^sub>0 (the C) \<and> C \<noteq> None \<and>
+         clvls = counts_max_lvl M (the C)]\<^sub>f
+    Id \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_conflict_rel \<times>\<^sub>f nat_rel \<rightarrow> \<langle>option_conflict_rel \<times>\<^sub>r nat_rel\<rangle> nres_rel\<close>
   apply (intro frefI nres_relI)
-  subgoal for x y
-    using conflict_merge'_spec[of \<open>fst (snd x)\<close> \<open>fst (snd (snd x))\<close> \<open>snd (snd (snd x))\<close>
-       \<open>the (snd y)\<close> \<open>(fst (fst y)) ! snd (fst y)\<close>]
+  apply clarify
+  subgoal for M N i b j xs clvls M' N' i' _ clvls' C 
+    using conflict_merge'_spec[of b j xs C \<open>N' ! i'\<close> clvls M]
     unfolding conflict_merge_abs_union_def conflict_merge_aa_def
-    by (cases x; cases y) auto
+    by auto
   done
 
 lemma conflict_merge_code_conflict_merge_abs_union[sepref_fr_rules]:
-  \<open>(uncurry2 conflict_merge_code, uncurry2 (RETURN ooo conflict_merge_abs_union)) \<in>
-    [\<lambda>((N, i), C). distinct (N!i) \<and> literals_are_in_N\<^sub>0 (mset (N!i)) \<and> \<not> tautology (mset (N!i)) \<and>
-         literals_are_in_N\<^sub>0 (the C) \<and> C \<noteq> None \<and> i < length N]\<^sub>a
-    clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (conflict_option_assn)\<^sup>d \<rightarrow> conflict_option_assn\<close>
+  \<open>(uncurry4 conflict_merge_code, uncurry4 conflict_merge_abs_union) \<in>
+    [\<lambda>((((M, N), i), C), clvls). distinct (N!i) \<and> literals_are_in_N\<^sub>0 (mset (N!i)) \<and> \<not> tautology (mset (N!i)) \<and>
+         literals_are_in_N\<^sub>0 (the C) \<and> C \<noteq> None \<and> i < length N \<and> clvls = counts_max_lvl M (the C)]\<^sub>a
+    trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (conflict_option_assn)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
+     conflict_option_assn *assn uint32_nat_assn \<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?c
      \<in> [comp_PRE
-           (Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_conflict_rel)
-           (\<lambda>((N, i), C). distinct (N ! i) \<and> literals_are_in_N\<^sub>0 (mset (N ! i)) \<and>
-              \<not> tautology (mset (N ! i)) \<and> literals_are_in_N\<^sub>0 (the C) \<and> C \<noteq> None)
-           (\<lambda>_ ((N, i), _, xs). i < length N \<and>
-              (\<forall>j<length (N ! i). atm_of (N ! i ! j) < length (snd xs)))
-           (\<lambda>_. True)]\<^sub>a
-      hrp_comp (clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (bool_assn *assn conflict_rel_assn)\<^sup>d)
-                   (Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_conflict_rel) \<rightarrow>
-      hr_comp (bool_assn *assn conflict_rel_assn) option_conflict_rel\<close>
+     (Id \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_conflict_rel \<times>\<^sub>f
+      nat_rel)
+     (\<lambda>((((M, N), i), C), clvls).
+         distinct (N ! i) \<and>
+         literals_are_in_N\<^sub>0 (mset (N ! i)) \<and>
+         \<not> tautology (mset (N ! i)) \<and>
+         literals_are_in_N\<^sub>0 (the C) \<and>
+         C \<noteq> None \<and> clvls = counts_max_lvl M (the C))
+     (\<lambda>_ ((((M, N), i), _, xs), _).
+         i < length N \<and>
+         (\<forall>j<length (N ! i).
+             atm_of (N ! i ! j) < length (snd xs)) \<and>
+         literals_are_in_N\<^sub>0 (mset (N ! i)))
+     (\<lambda>_. True)]\<^sub>a hrp_comp
+                    ((hr_comp trailt_conc trailt_ref)\<^sup>k *\<^sub>a
+                     clauses_ll_assn\<^sup>k *\<^sub>a
+                     nat_assn\<^sup>k *\<^sub>a
+                     conflict_option_rel_assn\<^sup>d *\<^sub>a
+                     uint32_nat_assn\<^sup>k)
+                    (Id \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f
+                     option_conflict_rel \<times>\<^sub>f
+                     nat_rel) \<rightarrow> hr_comp
+   (conflict_option_rel_assn *assn uint32_nat_assn)
+   (option_conflict_rel \<times>\<^sub>f nat_rel)\<close>
       (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF conflict_merge_aa_refine[unfolded PR_CONST_def]
       conflict_merge_aa_conflict_merge_abs_union_aa]
@@ -4131,12 +4189,21 @@ proof -
     using pre ..
 qed
 
-definition update_confl_tl_wl_int :: \<open>nat \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_int \<Rightarrow> bool \<times> twl_st_wl_int\<close> where
-  \<open>update_confl_tl_wl_int = (\<lambda>C L (M, N, U, D, Q, W, vmtf, \<phi>).
-     (let D' = if C = 0 then remove1_mset (-L) (the D)
-               else remove1_mset L (the (conflict_merge_abs_union N C D));
-          L' = atm_of L in
-    (D' = {#}, (tl M, N, U, Some D', Q, W, vmtf_dump_and_unset L' vmtf, save_phase L \<phi>))))\<close>
+definition update_confl_tl_wl_int 
+  :: \<open>nat \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_int \<Rightarrow> (bool \<times> twl_st_wl_int) nres\<close>
+where
+  \<open>update_confl_tl_wl_int = (\<lambda>C L (M, N, U, D, Q, W, vmtf, \<phi>, clvls).
+     (if C = 0 then 
+         let D' = remove1_mset (-L) (the D); L' = atm_of L in
+         RETURN (D' = {#}, (tl M, N, U, Some D', Q, W, vmtf_dump_and_unset L' vmtf, save_phase L \<phi>,
+            clvls))
+      else do {
+        let L' = atm_of L;
+        (D', clvls) \<leftarrow> conflict_merge_abs_union M N C D clvls;
+        let D' = remove1_mset L (the D');
+        RETURN (D' = {#}, (tl M, N, U, Some D', Q, W, vmtf_dump_and_unset L' vmtf, save_phase L \<phi>,
+           clvls))
+      }))\<close>
 
 lemma resolve_cls_wl'_if_conflict_merge_abs_union:
   assumes
@@ -4148,7 +4215,7 @@ lemma resolve_cls_wl'_if_conflict_merge_abs_union:
     \<open>is_proped (hd (get_trail_wl S))\<close> and
     \<open>get_trail_wl S \<noteq> []\<close>
   shows \<open>resolve_cls_wl' S C L = (if C = 0 then remove1_mset (-L) (the (get_conflict_wl S))
-               else remove1_mset L (the (conflict_merge_abs_union (get_clauses_wl S) C (get_conflict_wl S))))\<close>
+               else remove1_mset L (the (conflict_merge_abs_union' (get_trail_wl S) (get_clauses_wl S) C (get_conflict_wl S) clvls)))\<close>
   using resolve_cls_wl'_union_uminus_positive_index[of \<open>S\<close> C L] assms
   unfolding conflict_merge_abs_union_def[symmetric]
   by (auto simp: resolve_cls_wl'_def)
@@ -4159,7 +4226,7 @@ lemma update_confl_tl_wl_int_state_helper:
   by (cases S; cases \<open>hd (get_trail_wl S)\<close>) auto
 
 lemma update_confl_tl_wl_int_update_confl_tl_wl:
-  \<open>(uncurry2 (RETURN ooo update_confl_tl_wl_int), uncurry2 (RETURN ooo update_confl_tl_wl)) \<in>
+  \<open>(uncurry2 (update_confl_tl_wl_int), uncurry2 (RETURN ooo update_confl_tl_wl)) \<in>
   [\<lambda>((C, L), S). twl_struct_invs (twl_st_of_wl None S) \<and> C < length (get_clauses_wl S) \<and>
     get_conflict_wl S \<noteq> None \<and> get_trail_wl S \<noteq> [] \<and> - L \<in># the (get_conflict_wl S) \<and>
      (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S)) \<and> L \<in> snd ` D\<^sub>0 \<and>
@@ -4176,14 +4243,17 @@ lemma update_confl_tl_wl_int_update_confl_tl_wl:
        (auto simp: twl_st_ref_def update_confl_tl_wl_int_def update_confl_tl_wl_def
         abs_l_vmtf_unset_vmtf_unset' Let_def save_phase_def
         in_N\<^sub>1_atm_of_in_atms_of_iff phase_saving_def abs_l_vmtf_unset_vmtf_dump_unset
-        dest: no_dup_tlD)
+        conflict_merge_abs_union_def[unfolded conflict_merge_abs_union'_def[symmetric]]
+        RES_RETURN_RES RETURN_def no_dup_tlD counts_maximum_level_def
+        intro!: RES_refine
+        dest: )
   done
 
 lemma uminus_N\<^sub>0_iff: \<open>- L \<in># N\<^sub>1 \<longleftrightarrow> L \<in># N\<^sub>1\<close>
    by (simp add: in_N\<^sub>1_atm_of_in_atms_of_iff)
 
-lemma conflict_merge_abs_union_None: \<open>conflict_merge_abs_union a b c \<noteq> None\<close>
-  unfolding conflict_merge_abs_union_def by auto
+lemma conflict_merge_abs_union_None: \<open>conflict_merge_abs_union' M a b c clvls \<noteq> None\<close>
+  unfolding conflict_merge_abs_union'_def by auto
 
 
 lemma conflict_assn_op_nset_is_emty[sepref_fr_rules]:
@@ -4194,10 +4264,9 @@ lemma conflict_assn_op_nset_is_emty[sepref_fr_rules]:
     uint32_nat_assn_0_eq uint32_nat_rel_def br_def pure_def nat_of_uint32_0_iff
     nat_of_uint32_012)+
 
-
 sepref_thm update_confl_tl_wl_code
-  is \<open>uncurry2 (RETURN ooo update_confl_tl_wl_int)\<close>
-  :: \<open>[\<lambda>((i, L), (M, N, U, D, W, Q, ((A, m, lst, next_search), _), \<phi>)).
+  is \<open>uncurry2 update_confl_tl_wl_int\<close>
+  :: \<open>[\<lambda>((i, L), (M, N, U, D, W, Q, ((A, m, lst, next_search), _), \<phi>, clvls)).
       (i > 0 \<longrightarrow> distinct (N ! i)) \<and>
       (i > 0 \<longrightarrow> literals_are_in_N\<^sub>0 (mset (N! i))) \<and>
       (i > 0 \<longrightarrow> \<not> tautology (mset (N ! i))) \<and>
@@ -4206,10 +4275,12 @@ sepref_thm update_confl_tl_wl_code
       M \<noteq> [] \<and>
       L \<in> snd ` D\<^sub>0 \<and> -L \<in># the D \<and> L \<notin># the D \<and>
       (i > 0 \<longrightarrow> (L \<in> set (N ! i) \<and> -L \<notin> set (N ! i))) \<and>
-      (i > 0 \<longrightarrow> (-L \<notin># the (conflict_merge_abs_union N i D) \<and> L \<in># the (conflict_merge_abs_union N i D))) \<and>
+      (i > 0 \<longrightarrow> (-L \<notin># the (conflict_merge_abs_union' M N i D clvls) \<and> 
+           L \<in># the (conflict_merge_abs_union' M N i D clvls))) \<and>
       atm_of (lit_of (hd M)) < length \<phi> \<and>
       atm_of (lit_of (hd M)) < length A \<and> (next_search \<noteq> None \<longrightarrow>  the next_search < length A) \<and>
-      L = lit_of (hd M)
+      L = lit_of (hd M) \<and>
+      clvls = counts_max_lvl M (the D)
          ]\<^sub>a
   nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a twl_st_int_assn\<^sup>d \<rightarrow> bool_assn *assn twl_st_int_assn\<close>
   supply image_image[simp] uminus_N\<^sub>0_iff[iff] in_diffD[dest] option.splits[split]
@@ -4217,8 +4288,10 @@ sepref_thm update_confl_tl_wl_code
   supply conflict_merge_abs_union_None[simplified, simp]
   unfolding update_confl_tl_wl_int_def twl_st_int_assn_def vmtf_dump_and_unset_def vmtf_dump_def
    vmtf_unset_def save_phase_def
+  supply conflict_merge_abs_union_def[simp] conflict_merge_abs_union'_def[simp]
   apply (rewrite in \<open>If (_ \<or> _)\<close> short_circuit_conv)
-  by sepref
+  apply (rewrite in \<open>If (_ \<or> _)\<close> short_circuit_conv)
+  by sepref (* slow *)
 
 concrete_definition (in -) update_confl_tl_wl_code
   uses twl_array_code.update_confl_tl_wl_code.refine_raw
@@ -4244,36 +4317,42 @@ lemma update_confl_tl_wl_code_update_confl_tl_wl[sepref_fr_rules]:
 proof -
   have H: \<open>?c \<in>
    [comp_PRE (nat_rel \<times>\<^sub>f Id \<times>\<^sub>f twl_st_ref)
-    (\<lambda>((C, L), S).
-        twl_struct_invs (twl_st_of_wl None S) \<and>
-        C < length (get_clauses_wl S) \<and>
-        get_conflict_wl S \<noteq> None \<and>
-        get_trail_wl S \<noteq> [] \<and>
-        - L \<in># the (get_conflict_wl S) \<and>
-        (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S)) \<and>
-        L \<in> snd ` D\<^sub>0 \<and>
-        twl_struct_invs (twl_st_of_wl None S) \<and> is_proped (hd (get_trail_wl S)))
-    (\<lambda>_ ((i, L), M, N, U, D, W, Q, ((A, m, lst, next_search), _), \<phi>).
-        (i > 0 \<longrightarrow> distinct (N ! i)) \<and>
-        (i > 0 \<longrightarrow> literals_are_in_N\<^sub>0 (mset (N ! i))) \<and>
-        (i > 0 \<longrightarrow> \<not> tautology (mset (N ! i))) \<and>
-        i < length N \<and>
-        literals_are_in_N\<^sub>0 (the D) \<and>
-        D \<noteq> None \<and>
-        M \<noteq> [] \<and>
-        L \<in> snd ` D\<^sub>0 \<and>
-        - L \<in># the D \<and>
-        L \<notin># the D \<and>
-        (i > 0 \<longrightarrow> (L \<in> set (N ! i) \<and> - L \<notin> set (N ! i))) \<and>
-        (i > 0 \<longrightarrow> (- L \<notin># the (conflict_merge_abs_union N i D) \<and>
-          L \<in># the (conflict_merge_abs_union N i D))) \<and>
-        atm_of (lit_of (hd M)) < length \<phi> \<and>
-        atm_of (lit_of (hd M)) < length A \<and>
-        (next_search \<noteq> None \<longrightarrow> the next_search < length A) \<and> L = lit_of (hd M))
-    (\<lambda>_. True)]\<^sub>a
-    hrp_comp (nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a twl_st_int_assn\<^sup>d)
-             (nat_rel \<times>\<^sub>f Id \<times>\<^sub>f twl_st_ref) \<rightarrow>
-    hr_comp (bool_assn *assn twl_st_int_assn) (bool_rel \<times>\<^sub>f twl_st_ref)\<close>
+     (\<lambda>((C, L), S).
+         twl_struct_invs (twl_st_of_wl None S) \<and>
+         C < length (get_clauses_wl S) \<and>
+         get_conflict_wl S \<noteq> None \<and>
+         get_trail_wl S \<noteq> [] \<and>
+         - L \<in># the (get_conflict_wl S) \<and>
+         (L, C) =
+         lit_and_ann_of_propagated (hd (get_trail_wl S)) \<and>
+         L \<in> snd ` D\<^sub>0 \<and>
+         twl_struct_invs (twl_st_of_wl None S) \<and>
+         is_proped (hd (get_trail_wl S)))
+     (\<lambda>_ ((i, L), M, N, U, D, W, Q, ((A, m, lst, next_search), _), \<phi>, clvls).
+         (0 < i \<longrightarrow> distinct (N ! i)) \<and>
+         (0 < i \<longrightarrow> literals_are_in_N\<^sub>0 (mset (N ! i))) \<and>
+         (0 < i \<longrightarrow> \<not> tautology (mset (N ! i))) \<and>
+         i < length N \<and>
+         literals_are_in_N\<^sub>0 (the D) \<and>
+         D \<noteq> None \<and>
+         M \<noteq> [] \<and>
+         L \<in> snd ` D\<^sub>0 \<and>
+         - L \<in># the D \<and>
+         L \<notin># the D \<and>
+         (0 < i \<longrightarrow> L \<in> set (N ! i) \<and> - L \<notin> set (N ! i)) \<and>
+         (0 < i \<longrightarrow>
+          - L \<notin># the (conflict_merge_abs_union' M N i D clvls) \<and>
+          L \<in># the (conflict_merge_abs_union' M N i D clvls)) \<and>
+         atm_of (lit_of (hd M)) < length \<phi> \<and>
+         atm_of (lit_of (hd M)) < length A \<and>
+         (next_search \<noteq> None \<longrightarrow> the next_search < length A) \<and>
+         L = lit_of (hd M) \<and> clvls = counts_max_lvl M (the D))
+     (\<lambda>_. True)]\<^sub>a hrp_comp
+                    (nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
+                     twl_st_int_assn\<^sup>d)
+                    (nat_rel \<times>\<^sub>f Id \<times>\<^sub>f
+                     twl_st_ref) \<rightarrow> hr_comp
+    (bool_assn *assn twl_st_int_assn) (bool_rel \<times>\<^sub>f twl_st_ref)\<close>
       (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using  hfref_compI_PRE_aux[OF update_confl_tl_wl_code_refine
        update_confl_tl_wl_int_update_confl_tl_wl]
@@ -4315,11 +4394,12 @@ proof -
     then obtain S' where
       [simp]: \<open>x' = ((C, L), S')\<close>
       by (cases x') auto
-    obtain Q' A m lst next_search oth \<phi> where
-      [simp]: \<open>S' = (M, N, U, D, W, Q', ((A, m, lst, next_search), oth), \<phi>)\<close>
+    obtain Q' A m lst next_search oth \<phi> clvls where
+      [simp]: \<open>S' = (M, N, U, D, W, Q', ((A, m, lst, next_search), oth), \<phi>, clvls)\<close>
       using x'x by (cases S') (auto simp: twl_st_ref_def)
     have in_atms_le: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length A\<close> and \<phi>: \<open>phase_saving \<phi>\<close> and
-      vmtf: \<open>\<exists>xs' ys'. l_vmtf (ys' @ xs') m A \<and> lst = option_hd (ys' @ xs') \<and> next_search = option_hd xs'\<close>
+      vmtf: \<open>\<exists>xs' ys'. l_vmtf (ys' @ xs') m A \<and> lst = option_hd (ys' @ xs') \<and> next_search = option_hd xs'\<close> and
+      clvls: \<open>clvls \<in> counts_maximum_level M D\<close>
       using x'x unfolding twl_st_ref_def vmtf_imp_def by auto
     then have atm_L_le_A: \<open>atm_of L < length A\<close>
       using L_D\<^sub>0 by (auto simp: image_image in_N\<^sub>1_atm_of_in_atms_of_iff)
@@ -4362,19 +4442,19 @@ proof -
     have L_NC': \<open>-L \<notin> set (N ! C)\<close> if \<open>C > 0\<close>
       using tauto that L_NC apply (auto simp: tautology_decomp)
       by (metis (full_types) nat_of_lit.cases uminus_Pos uminus_of_uminus_id)
-    then have uL_conflict_merge: \<open>- L \<notin># the (conflict_merge_abs_union N C D)\<close> if \<open>C > 0\<close>
+    then have uL_conflict_merge: \<open>- L \<notin># the (conflict_merge_abs_union' M N C D clvls)\<close> if \<open>C > 0\<close>
       using confl L_notin_D that resolve_cls_wl'_notin[of S C L] struct_invs C_le LC proped
        trail_nempty
-      by (auto simp: conflict_merge_abs_union_def dest: in_diffD)
-    then have L_conflict_merge: \<open>L \<in># the (conflict_merge_abs_union N C D)\<close> if \<open>C > 0\<close>
+      by (auto simp: conflict_merge_abs_union'_def dest: in_diffD)
+    then have L_conflict_merge: \<open>L \<in># the (conflict_merge_abs_union' M N C D clvls)\<close> if \<open>C > 0\<close>
       using confl L_notin_D that resolve_cls_wl'_in[of S C L] struct_invs C_le LC proped
        trail_nempty L_confl
       by (auto dest: in_diffD)
 
     show \<open>?\<Psi> x x'\<close>
       using confl L_confl dist_NC lits_NC C_le trail_nempty L_D\<^sub>0 tauto lits_D L_notin_D L_NC
-      uL_conflict_merge L_conflict_merge atm_L_le_A atm_L_le_\<phi> next_search
-      by (auto simp: L_hd_M[symmetric])
+      uL_conflict_merge L_conflict_merge atm_L_le_A atm_L_le_\<phi> next_search clvls
+      by (auto simp: L_hd_M[symmetric] counts_maximum_level_def)
   qed
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def
@@ -6037,8 +6117,8 @@ lemma find_decomp_wl_st_int_find_decomp_wl_st:
     done
   done
 
-fun set_conflict_wl where
-  \<open>set_conflict_wl D (M, N, U, _, oth) = (M, N, U, D, oth)\<close>
+fun set_conflict_and_clvls_wl where
+  \<open>set_conflict_and_clvls_wl D (M, N, U, _, oth) = (M, N, U, D, oth)\<close>
 
 definition twl_st_confl_extracted_int_assn' where
  \<open>twl_st_confl_extracted_int_assn' M =
@@ -6114,7 +6194,7 @@ definition find_decomp_wl_pre where
                get_trail_wl S \<noteq> [] \<and>
                ex_decomp_of_max_lvl (get_trail_wl S) D\<^sub>0 L \<and>
                L = lit_of (hd (get_trail_wl S)) \<and>
-               twl_struct_invs (twl_st_of_wl None (set_conflict_wl D\<^sub>0 S)) \<and>
+               twl_struct_invs (twl_st_of_wl None (set_conflict_and_clvls_wl D\<^sub>0 S)) \<and>
                the (get_conflict_wl S) \<subseteq># the D\<^sub>0 \<and> D\<^sub>0 \<noteq> None \<and> get_trail_wl S = M \<and> L = lit_of (hd M) \<and>
                literals_are_in_N\<^sub>0 (lit_of `# mset M) \<and>
                -L \<in># the (get_conflict_wl S) \<and> literals_are_in_N\<^sub>0 (the D\<^sub>0))\<close>
