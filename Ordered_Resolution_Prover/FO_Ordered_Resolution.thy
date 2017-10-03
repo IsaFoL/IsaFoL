@@ -785,9 +785,7 @@ proof (cases rule: ord_resolve.cases)
     "DA' = D' + (negs (mset Ai'))"
     "S_M S M (D + negs (mset Ai)) \<noteq> {#} \<Longrightarrow> negs (mset Ai') = S DA'"
   proof -
-    from ord_resolve(11) have "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> (negs (mset Ai')) \<subseteq># DA' \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')"
-      unfolding eligible.simps[simplified]
-    proof
+    {
       assume a: "S_M S M (D + negs (mset Ai)) = {#} \<and> length Ai = (Suc 0) \<and> maximal_in (Ai ! 0 \<cdot>a \<sigma>) ((D + negs (mset Ai)) \<cdot> \<sigma>)"
       then have "mset Ai = {# Ai ! 0 #}"
         by (auto intro: nth_equalityI)
@@ -801,17 +799,22 @@ proof (cases rule: ord_resolve.cases)
         by (metis Neg_atm_of_iff literal.sel(2) subst_lit_is_pos)
       then have "[atm_of L] \<cdot>al \<eta> = Ai \<and> negs (mset [atm_of L]) \<subseteq># DA'"
         using \<open>mset Ai = {#Ai ! 0#}\<close> subst_lit_def by auto
-      then show "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> negs (mset Ai') \<subseteq># DA' \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')"
+      then have "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> negs (mset Ai') \<subseteq># DA' \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')"
         using a by blast
-    next
+    }
+    moreover
+    {
       assume "S_M S M (D + negs (mset Ai)) = negs (mset Ai)"
       then have "negs (mset Ai) = S DA' \<cdot> \<eta>"
         using ord_resolve(1) \<open>S DA' \<cdot> \<eta> = S_M S M DA\<close> by auto
       then have "\<exists>Ai'. negs (mset Ai') = S DA' \<and> Ai' \<cdot>al \<eta> = Ai"
         using instance_list[of Ai "S DA'" \<eta>] S.S_selects_neg_lits by auto
-      then show "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> negs (mset Ai') \<subseteq># DA'  \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')"
+      then have "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> negs (mset Ai') \<subseteq># DA'  \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')"
         using S.S_selects_subseteq by auto
-    qed
+    }
+    ultimately have "\<exists>Ai'. Ai' \<cdot>al \<eta> = Ai \<and> (negs (mset Ai')) \<subseteq># DA' \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')"
+      using ord_resolve(11) unfolding eligible.simps[simplified] by auto
+    
     then obtain Ai' where Ai'_p: "Ai' \<cdot>al \<eta> = Ai \<and> (negs (mset Ai')) \<subseteq># DA' \<and> (S_M S M (D + negs (mset Ai)) \<noteq> {#} \<longrightarrow> negs (mset Ai') = S DA')"
       by blast
     then have "length Ai' = n"
