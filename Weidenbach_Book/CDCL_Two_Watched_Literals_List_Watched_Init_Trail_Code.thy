@@ -1407,6 +1407,9 @@ proof -
     by simp
 qed
 
+definition extract_model_of_state where
+  \<open>extract_model_of_state U = fold (\<lambda>x s. lit_of x # s) (get_trail_wl U) []\<close>
+
 definition IsaSAT :: \<open>nat clauses_l \<Rightarrow> nat literal list option nres\<close> where
   \<open>IsaSAT CS = do{
     let n = length CS;
@@ -1418,7 +1421,7 @@ definition IsaSAT :: \<open>nat clauses_l \<Rightarrow> nat literal list option 
     if get_conflict_wl T = None
     then do {
        U \<leftarrow> twl_array_code.cdcl_twl_stgy_prog_wl_D N\<^sub>0' T;
-       RETURN (if get_conflict_wl U = None then Some (map lit_of (get_trail_wl U)) else None)}
+       RETURN (if get_conflict_wl U = None then Some (extract_model_of_state U) else None)}
     else RETURN None
   }\<close>
 
@@ -1786,9 +1789,6 @@ lemma init_dt_wl_code_refine[sepref_fr_rules]:
             \<open>list_mset_assn uint32_nat_assn N\<^sub>0 (fst (fst a))\<close>])
   done
 
-definition extract_model_of_state where
-  \<open>extract_model_of_state U = map lit_of (get_trail_wl U)\<close>
-
 lemma pair_nat_ann_lits_assn_alt_def:
   \<open>pair_nat_ann_lits_assn at ag =  list_assn (\<lambda>a c. \<up> ((c, a) \<in> nat_ann_lit_rel)) at ag\<close>
   by (auto simp: nat_ann_lit_rel_def pure_def)
@@ -1807,13 +1807,25 @@ lemma [sepref_fr_rules]:
    RETURN \<circ> get_trail_wl) \<in> [\<lambda>_. twl_array_code N\<^sub>0]\<^sub>a (twl_array_code_ops.twl_st_assn N\<^sub>0)\<^sup>d \<rightarrow> pair_nat_ann_lits_assn\<close>
   using twl_array_code.get_trail_wl[of N\<^sub>0] by (auto simp: hfref_def)
 
+lemma extract_model_of_state_alt_def:
+  \<open>extract_model_of_state U = rev (map lit_of (get_trail_wl U))\<close>
+proof -
+  have [simp]: \<open>fold (\<lambda>x. op # (lit_of x)) U s = rev (map lit_of U) @ s\<close> for U s
+    unfolding foldl_conv_fold[symmetric]
+    by (induction U arbitrary: s)  auto
+  show ?thesis
+    unfolding extract_model_of_state_def by auto
+qed
+
 sepref_definition extract_model_of_state_code
   is \<open>RETURN o extract_model_of_state\<close>
   :: \<open>[\<lambda>_. twl_array_code N\<^sub>0]\<^sub>a (twl_array_code_ops.twl_st_assn N\<^sub>0)\<^sup>d \<rightarrow> list_assn unat_lit_assn\<close>
   unfolding extract_model_of_state_def map_by_foldl[symmetric]
-    HOL_list.fold_custom_empty comp_def fold_eq_nfoldli foldl_conv_fold
+     comp_def foldl_conv_fold foldl_conv_fold
+  unfolding HOL_list.fold_custom_empty  
   supply [[goals_limit = 1]]
   by sepref
+
 
 declare extract_model_of_state_code.refine[sepref_fr_rules]
 
@@ -1838,6 +1850,8 @@ sepref_definition IsaSAT_code
 code_printing constant nth_u_code \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((_),/ Word32.toInt _))"
 
 code_printing constant heap_array_set'_u \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.update/ ((_),/ (Word32.toInt (_)),/ (_)))"
+
+code_printing constant two_uint32 \<rightharpoonup> (SML) "(Word32.fromInt 2)"
 
 export_code IsaSAT_code checking SML_imp
 export_code IsaSAT_code
@@ -2022,7 +2036,7 @@ definition model_if_satisfiable :: \<open>nat clauses \<Rightarrow> nat literal 
 definition SAT' :: \<open>nat clauses \<Rightarrow> nat literal list option nres\<close> where
   \<open>SAT' CS = do {
      T \<leftarrow> SAT CS;
-     RETURN(if conflicting T = None then Some(map lit_of (trail T)) else None)
+     RETURN(if conflicting T = None then Some(rev (map lit_of (trail T))) else None)
   }
 \<close>
 
@@ -2158,20 +2172,20 @@ proof -
     (\<lambda>T. if get_conflict_wl T = None
           then twl_array_code.cdcl_twl_stgy_prog_wl_D
                 (mset (extract_atms_clss CS [])) T \<bind>
-               (\<lambda>U. RETURN (if get_conflict_wl U = None then Some (map lit_of (get_trail_wl U)) else None))
+               (\<lambda>U. RETURN (if get_conflict_wl U = None then Some (extract_model_of_state U) else None))
           else RETURN None)) =
     (H \<bind>
      (\<lambda>T. if get_conflict_wl T = None
            then twl_array_code.cdcl_twl_stgy_prog_wl_D
                  (mset (extract_atms_clss CS [])) T
            else RETURN T)) \<bind>
-    (\<lambda>U. RETURN (if get_conflict_wl U = None then Some (map lit_of (get_trail_wl U)) else None))\<close> for H CS
+    (\<lambda>U. RETURN (if get_conflict_wl U = None then Some (extract_model_of_state U) else None))\<close> for H CS
     apply (subst nres_monad3)
     apply (rule bind_cong)
      apply (rule refl)
     by simp
   have IsaSAT: \<open>IsaSAT CS = do { ASSERT (twl_array_code (mset (extract_atms_clss CS [])));ASSERT (distinct (extract_atms_clss CS [])); T \<leftarrow> SAT_wl CS;
-     RETURN (if get_conflict_wl T = None then Some (map lit_of (get_trail_wl T)) else None)}\<close> for CS
+     RETURN (if get_conflict_wl T = None then Some (extract_model_of_state T) else None)}\<close> for CS
     unfolding IsaSAT_def SAT_wl_def Let_def
     by (auto cong: bind_cong simp: 1)
   have 2: \<open>Multiset.Ball y distinct_mset \<and>
@@ -2180,7 +2194,7 @@ proof -
         (\<forall>C\<in>#y. \<forall>L\<in>#C. nat_of_lit L < upperN) \<Longrightarrow>
        SAT_wl x \<le> \<Down> TWL_to_clauses_state_conv (SAT y)\<close> for x y
     using cdcl_twl_stgy_prog_wl_spec_final2[unfolded fref_def nres_rel_def] by simp
-  have SAT': \<open>SAT' CS = do { ASSERT(True);ASSERT(True); T \<leftarrow> SAT CS; RETURN(if conflicting T = None then Some (map lit_of (trail T)) else None) } \<close> for CS
+  have SAT': \<open>SAT' CS = do { ASSERT(True);ASSERT(True); T \<leftarrow> SAT CS; RETURN(if conflicting T = None then Some (rev (map lit_of (trail T))) else None) } \<close> for CS
     unfolding SAT'_def by auto
   have 3: \<open>ASSERT (twl_array_code (mset (extract_atms_clss x []))) \<le> \<Down> unit_rel (ASSERT True)\<close>
     if CS_p: \<open>(\<forall>C\<in>#y. \<forall>L\<in>#C. nat_of_lit L < upperN)\<close> and
@@ -2216,7 +2230,8 @@ proof -
        apply (rule 3; simp)
       apply (rule 4; simp)
      apply (rule 2; simp)
-    by (auto simp: TWL_to_clauses_state_conv_def cdcl\<^sub>W_restart_mset_state convert_lits_l_def)
+    by (auto simp: TWL_to_clauses_state_conv_def cdcl\<^sub>W_restart_mset_state convert_lits_l_def
+        extract_model_of_state_alt_def)
   show ?thesis
     using IsaSAT_code.refine[FCOMP IsaSAT_SAT] unfolding list_assn_list_mset_rel_clauses_l_assn .
 qed

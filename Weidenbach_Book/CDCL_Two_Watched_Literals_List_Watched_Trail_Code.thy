@@ -340,9 +340,8 @@ lemma literals_are_in_N\<^sub>0_int_in_D\<^sub>0':
 
 end
 
-
 lemma Pot_unat_lit_assn':
-  \<open>(return o (\<lambda>n. 2 * n), RETURN o Pos) \<in> [\<lambda>L. L < upperN div 2]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  \<open>(return o (\<lambda>n. two_uint32 * n), RETURN o Pos) \<in> [\<lambda>L. L < upperN div 2]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   apply sepref_to_hoare
   by (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
       lit_of_natP_def nat_of_uint32_distrib_mult2 upperN_def)
@@ -352,14 +351,14 @@ context twl_array_code
 begin
 
 lemma Pot_unat_lit_assn:
-  \<open>(return o (\<lambda>n. 2 * n), RETURN o Pos) \<in> [\<lambda>L. Pos L \<in># N\<^sub>1]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  \<open>(return o (\<lambda>n. two_uint32 * n), RETURN o Pos) \<in> [\<lambda>L. Pos L \<in># N\<^sub>1]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   apply sepref_to_hoare
   using in_N1_less_than_upperN
   by (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
       lit_of_natP_def nat_of_uint32_distrib_mult2 upperN_def)
 
 lemma Neg_unat_lit_assn:
-  \<open>(return o (\<lambda>n. 2 * n +1), RETURN o Neg) \<in> [\<lambda>L. Pos L \<in># N\<^sub>1]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  \<open>(return o (\<lambda>n. two_uint32 * n +1), RETURN o Neg) \<in> [\<lambda>L. Pos L \<in># N\<^sub>1]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   apply sepref_to_hoare
   using in_N1_less_than_upperN
   by (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
@@ -6626,7 +6625,7 @@ sepref_thm conflict_to_conflict_with_cls_code
     fast_minus_def[of \<open>_ :: nat\<close>, symmetric] PR_CONST_def
   apply (rewrite at "\<hole> < length _" annotate_assn[where A=uint32_nat_assn])
   apply (rewrite at "_ ! \<hole> \<noteq> None" annotate_assn[where A=uint32_nat_assn])
-  apply (rewrite at "\<hole> < _" two_uint32_def[symmetric])
+  apply (rewrite at "\<hole> < _" two_uint32_nat_def[symmetric])
   apply (rewrite at "\<hole> < _" annotate_assn[where A=uint32_nat_assn])
   apply (rewrite at \<open>(\<hole>, _, _, _)\<close> zero_uint32_def[symmetric])
   apply (rewrite at "(zero_uint32, \<hole>, _, _)" annotate_assn[where A=uint32_nat_assn])
