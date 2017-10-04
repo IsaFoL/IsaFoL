@@ -586,16 +586,6 @@ fun imp_for i u f s =
 
 fun fast_minus A_ m n = minus A_ m n;
 
-fun arl_last A_ = (fn (a, n) => nth A_ a (minus_nat n one_nat));
-
-fun last_aa A_ xs i =
-  (fn () =>
-    let
-      val x = nth (heap_prod (heap_array (typerep_heap A_)) heap_nat) xs i ();
-    in
-      arl_last A_ x ()
-    end);
-
 fun nth_raa A_ xs i j =
   (fn () => let
               val x = arl_get (heap_array (typerep_heap A_)) xs i ();
@@ -621,6 +611,8 @@ fun swap_aa (A1_, A2_) xs k i j =
             in
               x
             end);
+
+fun arl_last A_ = (fn (a, n) => nth A_ a (minus_nat n one_nat));
 
 fun arl_swap A_ =
   (fn ai => fn bia => fn bi => fn () => let
@@ -656,15 +648,6 @@ fun length_aa A_ xs i =
       val x = nth (heap_prod (heap_array (typerep_heap A_)) heap_nat) xs i ();
     in
       arl_length A_ x ()
-    end);
-
-fun update_aa A_ a i j y =
-  (fn () =>
-    let
-      val x = nth (heap_prod (heap_array (typerep_heap A_)) heap_nat) a i ();
-      val aa = arl_set A_ x j y ();
-    in
-      upd (heap_prod (heap_array (typerep_heap A_)) heap_nat) i aa a ()
     end);
 
 fun length_ra A_ xs = arl_length (heap_array (typerep_heap A_)) xs;
@@ -777,15 +760,6 @@ fun fast_minus_uint32 x = fast_minus minus_uint32 x;
 fun uint32_safe_minus (A1_, A2_, A3_) m n =
   (if less A3_ m n then zero A2_ else minus A1_ m n);
 
-fun set_butlast_aa A_ a i =
-  (fn () =>
-    let
-      val x = nth (heap_prod (heap_array (typerep_heap A_)) heap_nat) a i ();
-      val aa = arl_butlast A_ x ();
-    in
-      upd (heap_prod (heap_array (typerep_heap A_)) heap_nat) i aa a ()
-    end);
-
 fun imp_option_eq eq a b =
   (case (a, b) of (NONE, NONE) => (fn () => true)
     | (NONE, SOME _) => (fn () => false) | (SOME _, NONE) => (fn () => false)
@@ -858,7 +832,30 @@ fun get_prev (L_vmtf_ATM (x1, x2, x3)) = x2;
 
 fun decided l = (l, NONE);
 
+fun last_aa_u A_ xs i =
+  (fn () => let
+              val x = (fn () => Array.sub (xs, Word32.toInt i)) ();
+            in
+              arl_last A_ x ()
+            end);
+
 fun propagated l c = (l, SOME c);
+
+fun array_upd_u A_ i x a =
+  (fn () => let
+              val _ = (fn () => Array.update (a, (Word32.toInt i), x)) ();
+            in
+              a
+            end);
+
+fun update_aa_u A_ a i j y =
+  (fn () =>
+    let
+      val x = (fn () => Array.sub (a, Word32.toInt i)) ();
+      val aa = arl_set A_ x j y ();
+    in
+      array_upd_u (heap_prod (heap_array (typerep_heap A_)) heap_nat) i aa a ()
+    end);
 
 fun hd_trail_code x = (fn (m, _) => hd m) x;
 
@@ -1277,12 +1274,21 @@ fun mark_conflict_wl_int_code x =
     end)
     x;
 
-fun delete_index_and_swap_aa A_ xs i j =
+fun set_butlast_aa_u A_ a i =
+  (fn () =>
+    let
+      val x = (fn () => Array.sub (a, Word32.toInt i)) ();
+      val aa = arl_butlast A_ x ();
+    in
+      array_upd_u (heap_prod (heap_array (typerep_heap A_)) heap_nat) i aa a ()
+    end);
+
+fun delete_index_and_swap_aa_u A_ xs i j =
   (fn () => let
-              val x = last_aa A_ xs i ();
-              val xsa = update_aa A_ xs i j x ();
+              val x = last_aa_u A_ xs i ();
+              val xsa = update_aa_u A_ xs i j x ();
             in
-              set_butlast_aa A_ xsa i ()
+              set_butlast_aa_u A_ xsa i ()
             end);
 
 fun update_clause_wl_int_code x =
@@ -1291,7 +1297,7 @@ fun update_clause_wl_int_code x =
     let
       val xa = nth_raa heap_uint32 a1a bid bia ();
       val x_b = swap_aa (default_uint32, heap_uint32) a1a bid bib bia ();
-      val x_d = delete_index_and_swap_aa heap_nat a1e (nat_of_uint32 ai) bic ();
+      val x_d = delete_index_and_swap_aa_u heap_nat a1e ai bic ();
       val xb = append_el_aa_u (default_nat, heap_nat) x_d xa bid ();
     in
       (bic, (a1, (x_b, (a1b, (a1c, (a1d, (xb, a2e)))))))
