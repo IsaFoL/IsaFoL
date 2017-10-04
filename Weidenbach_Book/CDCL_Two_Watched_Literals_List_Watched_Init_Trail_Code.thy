@@ -1839,14 +1839,6 @@ code_printing constant nth_u_code \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.su
 
 code_printing constant heap_array_set'_u \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.update/ ((_),/ (Word32.toInt (_)),/ (_)))"
 
-lemma nth_nat_of_uint32_nth': \<open>Array.nth x (nat_of_uint32 L) =  Array.nth' x (integer_of_uint32 L)\<close>
-  by (auto simp: Array.nth'_def nat_of_uint32_code)
-
-lemma [code]:
-  \<open>nth_aa_u x L L' = nth_u_code x L \<bind> (\<lambda>x. arl_get x L' \<bind> return)\<close>
-  unfolding nth_aa_u_def nth_aa_def arl_get_u_def[symmetric]  Array.nth'_def[symmetric]
-   nth_nat_of_uint32_nth' nth_u_code_def[symmetric] ..
-
 code_printing constant two_uint32 \<rightharpoonup> (SML) "(Word32.fromInt 2)"
 
 export_code IsaSAT_code checking SML_imp

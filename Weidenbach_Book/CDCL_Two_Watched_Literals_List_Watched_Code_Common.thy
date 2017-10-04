@@ -214,6 +214,87 @@ lemma delete_index_and_swap_aa_ll_hnr[sepref_fr_rules]:
       simp: delete_index_and_swap_ll_def update_ll_def last_ll_def set_butlast_ll_def
       length_ll_def[symmetric])
 
+
+lemma nth_nat_of_uint32_nth': \<open>Array.nth x (nat_of_uint32 L) =  Array.nth' x (integer_of_uint32 L)\<close>
+  by (auto simp: Array.nth'_def nat_of_uint32_code)
+
+lemma nth_aa_u_code[code]:
+  \<open>nth_aa_u x L L' = nth_u_code x L \<bind> (\<lambda>x. arl_get x L' \<bind> return)\<close>
+  unfolding nth_aa_u_def nth_aa_def arl_get_u_def[symmetric]  Array.nth'_def[symmetric]
+   nth_nat_of_uint32_nth' nth_u_code_def[symmetric] ..
+
+definition last_aa_u where
+  \<open>last_aa_u xs i = last_aa xs (nat_of_uint32 i)\<close>
+
+lemma last_aa_u_code[code]:
+  \<open>last_aa_u xs i = nth_u_code xs i \<bind> arl_last\<close>
+  unfolding last_aa_u_def last_aa_def nth_nat_of_uint32_nth' nth_nat_of_uint32_nth'
+    arl_get_u_def[symmetric] nth_u_code_def[symmetric] ..
+
+definition update_aa_u where  
+  \<open>update_aa_u xs i j = update_aa xs (nat_of_uint32 i) j\<close>
+
+lemma Array_upd_upd': \<open>Array.upd i x a = Array.upd' a (of_nat i) x \<then> return a\<close>
+  by (auto simp: Array.upd'_def upd_return)
+
+definition Array_upd_u where
+  \<open>Array_upd_u i x a = Array.upd (nat_of_uint32 i) x a\<close>
+
+
+lemma Array_upd_u_code[code]: \<open>Array_upd_u i x a = heap_array_set'_u a i x \<then> return a\<close>
+  unfolding Array_upd_u_def heap_array_set'_u_def
+  Array.upd'_def
+  by (auto simp: nat_of_uint32_code upd_return)
+
+
+lemma update_aa_u_code[code]:
+  \<open>update_aa_u a i j y = do {
+      x \<leftarrow> nth_u_code a i;
+      a' \<leftarrow> arl_set x j y;
+      Array_upd_u i a' a 
+    }\<close> -- \<open>is the Array.upd really needed?\<close>
+  unfolding update_aa_u_def update_aa_def nth_nat_of_uint32_nth' nth_nat_of_uint32_nth'
+    arl_get_u_def[symmetric] nth_u_code_def[symmetric]
+    heap_array_set'_u_def[symmetric] Array_upd_u_def[symmetric]
+  by auto
+
+definition set_butlast_aa_u where
+  \<open>set_butlast_aa_u xs i = set_butlast_aa xs (nat_of_uint32 i)\<close>
+
+lemma set_butlast_aa_u_code[code]:
+  \<open>set_butlast_aa_u a i = do {
+      x \<leftarrow> nth_u_code a i;
+      a' \<leftarrow> arl_butlast x;
+      Array_upd_u i a' a
+    }\<close> -- \<open>Replace the \<^term>\<open>i\<close>-th element by the itself execpt the last element.\<close>
+  unfolding set_butlast_aa_u_def set_butlast_aa_def
+   nth_u_code_def Array_upd_u_def
+  by (auto simp: Array.nth'_def nat_of_uint32_code)
+
+
+definition delete_index_and_swap_aa_u where
+   \<open>delete_index_and_swap_aa_u xs i = delete_index_and_swap_aa xs (nat_of_uint32 i)\<close>
+
+lemma delete_index_and_swap_aa_u_code[code]:
+\<open>delete_index_and_swap_aa_u xs i j = do {
+     x \<leftarrow> last_aa_u xs i;
+     xs \<leftarrow> update_aa_u xs i j x;
+     set_butlast_aa_u xs i
+  }\<close>
+  unfolding delete_index_and_swap_aa_u_def delete_index_and_swap_aa_def
+   last_aa_u_def update_aa_u_def set_butlast_aa_u_def
+  by auto
+
+lemma delete_index_and_swap_aa_ll_hnr_u[sepref_fr_rules]:
+  assumes \<open>is_pure R\<close>
+  shows \<open>(uncurry2 delete_index_and_swap_aa_u, uncurry2 (RETURN ooo delete_index_and_swap_ll))
+     \<in> [\<lambda>((l,i), j). i < length l \<and> j < length_ll l i]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k
+         \<rightarrow> (arrayO_assn (arl_assn R))\<close>
+  using assms unfolding delete_index_and_swap_aa_def delete_index_and_swap_aa_u_def
+  by sepref_to_hoare (sep_auto dest: le_length_ll_nemptyD
+      simp: delete_index_and_swap_ll_def update_ll_def last_ll_def set_butlast_ll_def
+      length_ll_def[symmetric] uint32_nat_rel_def br_def)
+
 (* TODO kill *)
 definition find_unwatched' :: "(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> (nat option) nres" where
 \<open>find_unwatched' M N' C = do {
@@ -1117,23 +1198,13 @@ lemma delete_index_and_swap_ll_delete_index_and_swap_update:
       nth_list_update' nat_lit_rel_def
       simp del: literal_of_nat.simps)
 
-lemma (in-) delete_index_and_swap_aa_ll_hnr_u[sepref_fr_rules]:
-  assumes \<open>is_pure R\<close>
-  shows \<open>(uncurry2 (\<lambda>xs i. delete_index_and_swap_aa xs (nat_of_uint32 i)), uncurry2 (RETURN ooo delete_index_and_swap_ll))
-     \<in> [\<lambda>((l,i), j). i < length l \<and> j < length_ll l i]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k
-         \<rightarrow> (arrayO_assn (arl_assn R))\<close>
-  using assms unfolding delete_index_and_swap_aa_def
-  by sepref_to_hoare (sep_auto dest: le_length_ll_nemptyD
-      simp: delete_index_and_swap_ll_def update_ll_def last_ll_def set_butlast_ll_def
-      length_ll_def[symmetric] uint32_nat_rel_def br_def)
-
 lemma delete_index_and_swap_aa_hnr[sepref_fr_rules]:
-  shows \<open>(uncurry2 (\<lambda>xs i j. delete_index_and_swap_aa xs (nat_of_uint32 i) j), uncurry2 (RETURN ooo delete_index_and_swap_update))
+  shows \<open>(uncurry2  delete_index_and_swap_aa_u, uncurry2 (RETURN ooo delete_index_and_swap_update))
      \<in> [\<lambda>((W,L), j). L \<in> snd ` D\<^sub>0 \<and> j < length (W L)]\<^sub>a
         array_watched_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> array_watched_assn\<close>
     (is \<open>?a \<in> [?pre]\<^sub>a ?init \<rightarrow> ?post\<close>)
 proof -
-  have H: \<open>(uncurry2 (\<lambda>xs i. delete_index_and_swap_aa xs (nat_of_uint32 i)), uncurry2 (RETURN \<circ>\<circ>\<circ> delete_index_and_swap_update))
+  have H: \<open>(uncurry2 delete_index_and_swap_aa_u, uncurry2 (RETURN \<circ>\<circ>\<circ> delete_index_and_swap_update))
   \<in> [comp_PRE (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f nat_lit_rel \<times>\<^sub>f nat_rel) (\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0) (\<lambda>x y. case y of (x, xa) \<Rightarrow> (case x of (l, i) \<Rightarrow> \<lambda>j. i < length l \<and> j < length_ll l i) xa)
        (\<lambda>x. nofail (uncurry2 (RETURN \<circ>\<circ>\<circ> delete_index_and_swap_update)
                       x))]\<^sub>a hrp_comp ((arrayO_assn (arl_assn nat_assn))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k)
@@ -1461,20 +1532,6 @@ sepref_definition(in -) single_of_mset_imp_code
   :: \<open>(arl_assn unat_lit_assn)\<^sup>d \<rightarrow>\<^sub>a unat_lit_assn\<close>
   unfolding single_of_mset_imp_def
   by sepref
-
-(* lemma (in -)single_of_mset_imp_code_single_of_mset[sepref_fr_rules]:
-  \<open>(single_of_mset_imp_code, single_of_mset) \<in> [\<lambda>D. D \<noteq> {#} \<and> size D \<le> 1]\<^sub>a
-     conflict_assn\<^sup>d \<rightarrow> unat_lit_assn\<close>
-proof -
-  have 1: \<open>(single_of_mset_imp, single_of_mset) \<in> [\<lambda>D. D \<noteq> {#} \<and> size D \<le> 1]\<^sub>f list_mset_rel \<rightarrow>
-      \<langle>Id\<rangle> nres_rel\<close>
-    apply (intro frefI nres_relI)
-    by (rename_tac x, case_tac x)
-      (auto simp: single_of_mset_def single_of_mset_imp_def list_mset_rel_def br_def
-        intro!: frefI nres_relI)
-  show ?thesis
-    using single_of_mset_imp_code.refine[FCOMP 1] by simp
-qed *)
 
 lemma set_mset_all_lits_of_mm_atms_of_ms_iff:
   \<open>set_mset (all_lits_of_mm A) = set_mset N\<^sub>1 \<longleftrightarrow> atms_of_ms (set_mset A) = atms_of N\<^sub>1\<close>
