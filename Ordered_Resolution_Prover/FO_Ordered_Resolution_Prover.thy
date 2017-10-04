@@ -1644,10 +1644,10 @@ lemma ground_max_ground: "AA \<noteq> {} \<Longrightarrow> finite AA \<Longright
 
 lemma ground_subclauses:
   assumes
-    "\<forall>i < length CAi1. CAi1 ! i = Ci ! i + poss (Aij ! i)" and
-    "length Ci = length CAi1" and
-    "is_ground_cls_list CAi1"
-  shows "is_ground_cls_list Ci"
+    "\<forall>i < length CAs. CAs ! i = Cs ! i + poss (Ass ! i)" and
+    "length Cs = length CAs" and
+    "is_ground_cls_list CAs"
+  shows "is_ground_cls_list Cs"
   unfolding is_ground_cls_list_def
   by (metis assms in_set_conv_nth is_ground_cls_list_def is_ground_cls_union)
 
@@ -1745,36 +1745,36 @@ proof -
   {
     fix \<gamma> :: "'a inference"
     assume \<gamma>_p: "\<gamma> \<in> gd.ord_\<Gamma>"
-    let ?Cs = "side_prems_of \<gamma>"
+    let ?CC = "side_prems_of \<gamma>"
     let ?D = "main_prem_of \<gamma>"
     let ?E = "concl_of \<gamma>"
-    assume a: "set_mset ?Cs \<union> {?D} \<subseteq> limit_llist (lmap grounding_of_state Sts) - src.Rf (limit_llist (lmap grounding_of_state Sts))"
+    assume a: "set_mset ?CC \<union> {?D} \<subseteq> limit_llist (lmap grounding_of_state Sts) - src.Rf (limit_llist (lmap grounding_of_state Sts))"
 
     have ground_ground_limit: "is_ground_clss (limit_llist (lmap grounding_of_state Sts))"
       using limit_llist_grounding_of_state_ground unfolding is_ground_clss_def by auto (* TODO: instead of is_ground_clss_def MAKE a lemma like limit_llist_grounding_of_state_ground *)
 
-    have gc: "is_ground_cls_mset ?Cs"
+    have gc: "is_ground_cls_mset ?CC"
       using a ground_ground_limit is_ground_cls_mset_def is_ground_clss_def by auto
 
     have gd: "is_ground_cls ?D"
       using a grounding_ground singletonI ground_ground_limit
       by (simp add: limit_llist_grounding_of_state_ground)
 
-    from \<gamma>_p obtain CAi1 where
-      CAi1_p: "gd.ord_resolve CAi1 ?D ?E \<and> mset CAi1 = ?Cs"
+    from \<gamma>_p obtain CAs where
+      CAs_p: "gd.ord_resolve CAs ?D ?E \<and> mset CAs = ?CC"
       unfolding gd.ord_\<Gamma>_def by auto
 
-    have DCAi1_in_ground_limit: "{?D} \<union> set CAi1 \<subseteq> grounding_of_clss (Q_of_state (limit_state Sts))"
-      using a CAi1_p unfolding clss_of_state_def using fair unfolding fair_state_seq_def
+    have DCAs_in_ground_limit: "{?D} \<union> set CAs \<subseteq> grounding_of_clss (Q_of_state (limit_state Sts))"
+      using a CAs_p unfolding clss_of_state_def using fair unfolding fair_state_seq_def
       by (metis (no_types, lifting) Un_empty_left \<open>limit_llist Ns - src.Rf (limit_llist Ns) \<subseteq> grounding_of_state (limit_state Sts)\<close> a clss_of_state_def ns set_mset_mset subset_trans sup_commute)
 
-    then have gc1: "is_ground_cls_list CAi1"
-      using CAi1_p unfolding is_ground_cls_list_def by auto
+    then have gc1: "is_ground_cls_list CAs"
+      using CAs_p unfolding is_ground_cls_list_def by auto
 
     have ge: "is_ground_cls ?E"
     proof - (* turn in to a LEMMA? *)
-      have a1: "atms_of ?E \<subseteq> (\<Union>C \<in> set CAi1. atms_of C) \<union> atms_of ?D"
-        using \<gamma>_p gc gd gd.ord_resolve_atms_of_concl_subset[of "CAi1" "?D" "?E"] CAi1_p by auto
+      have a1: "atms_of ?E \<subseteq> (\<Union>CA \<in> set CAs. atms_of CA) \<union> atms_of ?D"
+        using \<gamma>_p gc gd gd.ord_resolve_atms_of_concl_subset[of "CAs" "?D" "?E"] CAs_p by auto
       {
         fix L :: "'a literal"
         assume "L \<in># concl_of \<gamma>"
@@ -1787,137 +1787,137 @@ proof -
         unfolding is_ground_cls_def is_ground_lit_def by simp
     qed
 
-    from CAi1_p have "\<exists>\<sigma>. ord_resolve (S_M S (Q_of_state (limit_state Sts))) CAi1 ?D \<sigma> ?E"
+    from CAs_p have "\<exists>\<sigma>. ord_resolve (S_M S (Q_of_state (limit_state Sts))) CAs ?D \<sigma> ?E"
     proof
-      assume "gd.ord_resolve CAi1 ?D ?E"
-      then show "\<exists>\<sigma>. ord_resolve (S_M S (Q_of_state (limit_state Sts))) CAi1 ?D \<sigma> ?E"
+      assume "gd.ord_resolve CAs ?D ?E"
+      then show "\<exists>\<sigma>. ord_resolve (S_M S (Q_of_state (limit_state Sts))) CAs ?D \<sigma> ?E"
       proof (cases rule: gd.ord_resolve.cases)
-        case (ord_resolve n Ci Aij Ai D)
-        have a: "?D = D + negs (mset Ai)"
+        case (ord_resolve n Cs Ass As D)
+        have a: "?D = D + negs (mset As)"
           using ord_resolve by simp
-        have b: "?E = \<Union>#mset Ci + D"
+        have b: "?E = \<Union>#mset Cs + D"
           using ord_resolve by simp
-        have c: "length CAi1 = n"
+        have len_cas: "length CAs = n"
           using ord_resolve by simp
-        have d: "length Ci = n"
+        have len_cs: "length Cs = n"
           using ord_resolve by simp
-        have e: "length Aij = n"
+        have len_ass: "length Ass = n"
           using ord_resolve by simp
-        have f: "length Ai = n"
+        have len_as: "length As = n"
           using ord_resolve by simp
-        have g: "n \<noteq> 0"
+        have nz: "n \<noteq> 0"
           using ord_resolve by simp
-        have h: "\<forall>i<n. CAi1 ! i = Ci ! i + poss (Aij ! i)"
+        have cas: "\<forall>i<n. CAs ! i = Cs ! i + poss (Ass ! i)"
           using ord_resolve by simp
-        have i: "\<forall>i<n. Aij ! i \<noteq> {#}"
+        have ass_ne: "\<forall>i<n. Ass ! i \<noteq> {#}"
           using ord_resolve by simp
 
-        have "length Aij = length Ai"
-          using e f by auto
-        have j: "\<forall>i<n. \<forall>A\<in>#Aij ! i. A = Ai ! i"
+        have "length Ass = length As"
+          using len_ass len_as by auto
+        have j: "\<forall>i<n. \<forall>A\<in>#Ass ! i. A = As ! i"
           using ord_resolve by simp
-        then have "\<forall>i<n. \<forall>A\<in>#add_mset (Ai ! i) (Aij ! i). A = Ai ! i"
+        then have "\<forall>i<n. \<forall>A\<in>#add_mset (As ! i) (Ass ! i). A = As ! i"
           using ord_resolve by simp
-        then have "\<forall>i<n. card (set_mset (add_mset (Ai ! i) (Aij ! i))) \<le> Suc 0"
+        then have "\<forall>i<n. card (set_mset (add_mset (As ! i) (Ass ! i))) \<le> Suc 0"
           using all_the_same by metis
-        then have "\<forall>i<length Aij. card (set_mset (add_mset (Ai ! i) (Aij ! i))) \<le> Suc 0"
-          using e by auto
-        then have "\<forall>AA \<in> set (map2 add_mset Ai Aij). card (set_mset AA) \<le> Suc 0"
-          using set_map2_ex[of Aij Ai add_mset, OF \<open>length Aij = length Ai\<close>]
+        then have "\<forall>i<length Ass. card (set_mset (add_mset (As ! i) (Ass ! i))) \<le> Suc 0"
+          using len_ass by auto
+        then have "\<forall>AA \<in> set (map2 add_mset As Ass). card (set_mset AA) \<le> Suc 0"
+          using set_map2_ex[of Ass As add_mset, OF \<open>length Ass = length As\<close>]
           by auto
-        then have "is_unifiers id_subst (set_mset ` set (map2 add_mset Ai Aij))"
+        then have "is_unifiers id_subst (set_mset ` set (map2 add_mset As Ass))"
           unfolding is_unifiers_def is_unifier_def
           by auto
-        moreover have "finite (set_mset ` set (map2 add_mset Ai Aij))"
+        moreover have "finite (set_mset ` set (map2 add_mset As Ass))"
           by auto
-        moreover have "\<forall>AA \<in> set_mset ` set (map2 add_mset Ai Aij). finite AA"
+        moreover have "\<forall>AA \<in> set_mset ` set (map2 add_mset As Ass). finite AA"
           by auto
-        ultimately obtain \<sigma> where jj: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset Ai Aij))"
+        ultimately obtain \<sigma> where jj: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset As Ass))"
           using mgu_complete by metis
 
-        have k: "gd.eligible Ai (D + negs (mset Ai))"
+        have k: "gd.eligible As (D + negs (mset As))"
           using ord_resolve by simp
-        have gci: "\<forall>i<n. is_ground_cls (Ci ! i)"
+        have ground_cs: "\<forall>i<n. is_ground_cls (Cs ! i)"
           using ord_resolve(8) ord_resolve(3,4) gc1
-          using ground_subclauses[of CAi1 Ci Aij] unfolding is_ground_cls_list_def by auto
-        have gai: "is_ground_atms (set Ai)"
+          using ground_subclauses[of CAs Cs Ass] unfolding is_ground_cls_list_def by auto
+        have ground_set_as: "is_ground_atms (set As)"
           using ord_resolve(1) gd
           by (metis atms_of_negg is_ground_cls_union set_mset_mset is_ground_cls_is_ground_atms_atms_of)
-        then have gai2: "is_ground_atm_mset (mset Ai)"
+        then have ground_mset_as: "is_ground_atm_mset (mset As)"
           unfolding is_ground_atm_mset_def is_ground_atms_def by auto
-        have gai3: "is_ground_atm_list Ai"
-          using gai is_ground_atm_list_def is_ground_atms_def by auto
-        have gD: "is_ground_cls D"
+        have ground_as: "is_ground_atm_list As"
+          using ground_set_as is_ground_atm_list_def is_ground_atms_def by auto
+        have ground_d: "is_ground_cls D"
           using gd ord_resolve by simp
 
-        from f g have "atms_of D \<union> set Ai \<noteq> {}" "finite (atms_of D \<union> set Ai)"
+        from len_as nz have "atms_of D \<union> set As \<noteq> {}" "finite (atms_of D \<union> set As)"
           by auto
-        then have "Max (atms_of D \<union> set Ai) \<in> atms_of D \<union> set Ai"
+        then have "Max (atms_of D \<union> set As) \<in> atms_of D \<union> set As"
           using Max_in by metis
-        then have is_ground_Max: "is_ground_atm (Max (atms_of D \<union> set Ai))"
-          using gD gai2 is_ground_cls_imp_is_ground_atm unfolding is_ground_atm_mset_def by auto
-        then have Max\<sigma>_is_Max: "\<forall>\<sigma>. Max (atms_of D \<union> set Ai) \<cdot>a \<sigma> = Max (atms_of D \<union> set Ai)"
+        then have is_ground_Max: "is_ground_atm (Max (atms_of D \<union> set As))"
+          using ground_d ground_mset_as is_ground_cls_imp_is_ground_atm unfolding is_ground_atm_mset_def by auto
+        then have Max\<sigma>_is_Max: "\<forall>\<sigma>. Max (atms_of D \<union> set As) \<cdot>a \<sigma> = Max (atms_of D \<union> set As)"
           by auto
 
         from k have
-          ann2: "(Max (atms_of D \<union> set Ai) \<cdot>a \<sigma>) =
-            Max (atms_of D \<union> set Ai) \<and> (D \<cdot> \<sigma> + negs (mset Ai \<cdot>am \<sigma>)) = (D + negs (mset Ai))"
-          unfolding gd.eligible.simps[simplified] using is_ground_Max using gai2 gD by auto
+          ann2: "(Max (atms_of D \<union> set As) \<cdot>a \<sigma>) =
+            Max (atms_of D \<union> set As) \<and> (D \<cdot> \<sigma> + negs (mset As \<cdot>am \<sigma>)) = (D + negs (mset As))"
+          unfolding gd.eligible.simps[simplified] using is_ground_Max using ground_mset_as ground_d by auto
 
-        have ann1: "maximal_in (Max (atms_of D \<union> set Ai)) (D + negs (mset Ai))"
+        have ann1: "maximal_in (Max (atms_of D \<union> set As)) (D + negs (mset As))"
           unfolding gd.eligible.simps[simplified] ann2
           unfolding maximal_in_def
           unfolding less_atm_iff
           using Max\<sigma>_is_Max
-          using gai gD
+          using ground_set_as ground_d
           using ex_ground_subst
-          by (metis Max_less_iff \<open>finite (atms_of D \<union> set Ai)\<close> equals0D infinite_growing is_ground_cls_imp_is_ground_atm is_ground_subst_atm atms_of_negg atms_of_plus gd local.ord_resolve(1) set_mset_mset)
+          by (metis Max_less_iff \<open>finite (atms_of D \<union> set As)\<close> equals0D infinite_growing is_ground_cls_imp_is_ground_atm is_ground_subst_atm atms_of_negg atms_of_plus gd local.ord_resolve(1) set_mset_mset)
             
-        from k have kk: "eligible (S_M S (Q_of_state (limit_state Sts))) \<sigma> Ai (D + negs (mset Ai))"
+        from k have kk: "eligible (S_M S (Q_of_state (limit_state Sts))) \<sigma> As (D + negs (mset As))"
           unfolding gd.eligible.simps eligible.simps using ann1 ann2 by (auto simp: S_Q_def)
 
-        have l: "\<forall>i<n. gd.str_maximal_in (Ai ! i) (Ci ! i)"
+        have l: "\<forall>i<n. gd.str_maximal_in (As ! i) (Cs ! i)"
           using ord_resolve by simp
-        then have ll: "\<forall>i<n. str_maximal_in (Ai ! i \<cdot>a \<sigma>) (Ci ! i \<cdot> \<sigma>)"
-          using f gai3 using ex_ground_subst gci is_ground_cls_imp_is_ground_atm  
+        then have ll: "\<forall>i<n. str_maximal_in (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
+          using len_as ground_as using ex_ground_subst ground_cs is_ground_cls_imp_is_ground_atm  
           unfolding less_eq_atm_def less_atm_iff gd.str_maximal_in_def
           by force
 
-        have m: "\<forall>i<n. S_Q (CAi1 ! i) = {#}"
+        have m: "\<forall>i<n. S_Q (CAs ! i) = {#}"
           using ord_resolve by simp
 
-        have gg: "is_ground_cls (\<Union>#mset Ci + D)"
-          using gD gci b ge by auto
+        have gg: "is_ground_cls (\<Union>#mset Cs + D)"
+          using ground_d ground_cs b ge by auto
         show ?thesis
-          using ord_resolve.intros[OF c d e f g h i jj kk ll _  ]  m a b gg
+          using ord_resolve.intros[OF len_cas len_cs len_ass len_as nz cas ass_ne jj kk ll _  ]  m a b gg
           unfolding S_Q_def
            by auto
       qed
     qed
-    then obtain \<sigma> where sisisgma: "ord_resolve (S_M S (Q_of_state (limit_state Sts))) CAi1 ?D \<sigma> ?E"
+    then obtain \<sigma> where sisisgma: "ord_resolve (S_M S (Q_of_state (limit_state Sts))) CAs ?D \<sigma> ?E"
       by auto
-    then obtain \<eta>s' \<eta>' \<eta>2' CAi' DA' E' \<tau>' where s_p:
+    then obtain \<eta>s' \<eta>' \<eta>2' CAs' DA' E' \<tau>' where s_p:
       "is_ground_subst \<eta>'"
       "is_ground_subst_list \<eta>s'"
       "is_ground_subst \<eta>2'"
-      "ord_resolve_rename S CAi' DA' \<tau>' E'"
-      "CAi' \<cdot>\<cdot>cl \<eta>s' = CAi1"
+      "ord_resolve_rename S CAs' DA' \<tau>' E'"
+      "CAs' \<cdot>\<cdot>cl \<eta>s' = CAs"
       "DA' \<cdot> \<eta>' = ?D"
       "E' \<cdot> \<eta>2' = ?E"
-      "{DA'} \<union> set CAi' \<subseteq> Q_of_state (limit_state Sts)"
-      using selection_renaming_invariant ord_resolve_rename_lifting[of S "Q_of_state (limit_state Sts)" CAi1 "?D" _ "?E", OF sisisgma selection_axioms _ DCAi1_in_ground_limit]
+      "{DA'} \<union> set CAs' \<subseteq> Q_of_state (limit_state Sts)"
+      using selection_renaming_invariant ord_resolve_rename_lifting[of S "Q_of_state (limit_state Sts)" CAs "?D" _ "?E", OF sisisgma selection_axioms _ DCAs_in_ground_limit]
       by smt
-    from this(8) have "\<exists>j. enat j < llength Sts \<and> ((set CAi') \<union> {DA'} \<subseteq> ?Qs j)"
+    from this(8) have "\<exists>j. enat j < llength Sts \<and> ((set CAs') \<union> {DA'} \<subseteq> ?Qs j)"
       unfolding limit_llist_def
-      using subseteq_limit_state_eventually_always[of "{DA'} \<union> set CAi'"]
+      using subseteq_limit_state_eventually_always[of "{DA'} \<union> set CAs'"]
       by auto
-    then obtain j where j_p: "is_least (\<lambda>j. enat j < llength Sts \<and> ((set CAi') \<union> {DA'} \<subseteq> ?Qs j)) j"
-      using least_exists[of "(\<lambda>j. enat j < llength Sts \<and> ((set CAi') \<union> {DA'} \<subseteq> ?Qs j))"] by force
-    then have j_p': "enat j < llength Sts" "(set CAi') \<union> {DA'} \<subseteq> ?Qs j"
+    then obtain j where j_p: "is_least (\<lambda>j. enat j < llength Sts \<and> ((set CAs') \<union> {DA'} \<subseteq> ?Qs j)) j"
+      using least_exists[of "(\<lambda>j. enat j < llength Sts \<and> ((set CAs') \<union> {DA'} \<subseteq> ?Qs j))"] by force
+    then have j_p': "enat j < llength Sts" "(set CAs') \<union> {DA'} \<subseteq> ?Qs j"
       unfolding is_least_def by auto
     then have jn0: "j \<noteq> 0" (* Since there are initially no clauses in Q *)
       using empty_Q0 using insert_subset by fastforce
-    then have j_adds_CAi': "\<not> set CAi' \<union> {DA'} \<subseteq> ?Qs (j - 1)" "set CAi' \<union> {DA'} \<subseteq> ?Qs j"
+    then have j_adds_CAs': "\<not> set CAs' \<union> {DA'} \<subseteq> ?Qs (j - 1)" "set CAs' \<union> {DA'} \<subseteq> ?Qs j"
       using j_p unfolding is_least_def
        apply (metis (no_types, hide_lams) One_nat_def Suc_diff_Suc Suc_ile_eq diff_diff_cancel diff_zero less_imp_le less_one neq0_conv zero_less_diff)
       using j_p'(2) by blast
@@ -1928,16 +1928,16 @@ proof -
       "?Ps (j - 1) = ?Ps j \<union> {C'}"
       "?Qs j = ?Qs (j - 1) \<union> {C'}"
       "?Ns j = concls_of (ord_FO_resolution.inferences_between (?Qs (j - 1)) C')"
-      "C' \<in> set CAi' \<union> {DA'}"
+      "C' \<in> set CAs' \<union> {DA'}"
       "C' \<notin> ?Qs (j - 1)"
-      using j_adds_CAi' by (induction rule: resolution_prover.cases) auto
-    then have ihih: "(set CAi' \<union> {DA'}) - {C'} \<subseteq> ?Qs (j - 1)"
-      using j_adds_CAi' by auto
+      using j_adds_CAs' by (induction rule: resolution_prover.cases) auto
+    then have ihih: "(set CAs' \<union> {DA'}) - {C'} \<subseteq> ?Qs (j - 1)"
+      using j_adds_CAs' by auto
     have "E' \<in> ?Ns j"
     proof -
       have "E' \<in> concls_of (ord_FO_resolution.inferences_between (Q_of_state (lnth Sts (j - 1))) C')"
         unfolding infer_from_def ord_FO_\<Gamma>_def unfolding inference_system.inferences_between_def
-        apply (rule_tac x = "Infer (mset CAi') DA' E'" in image_eqI)
+        apply (rule_tac x = "Infer (mset CAs') DA' E'" in image_eqI)
         subgoal
           apply (auto;fail)
           done
