@@ -131,10 +131,10 @@ The following corresponds to Figure 4.
 \<close>
 
 definition maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where (* Would "'a \<Rightarrow> 'a set \<Rightarrow> bool" be cleaner?  *)
-   "maximal_in A DAs = (\<forall>B \<in> atms_of DAs. \<not> less_atm A B)"
+   "maximal_in A C = (\<forall>B \<in> atms_of C. \<not> less_atm A B)"
 
 abbreviation str_maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where (* Would "'a \<Rightarrow> 'a set \<Rightarrow> bool" be cleaner?  *)
-  "str_maximal_in A CAss \<equiv> (\<forall>B \<in> atms_of CAss. \<not> less_eq_atm A B)"
+  "str_maximal_in A C \<equiv> (\<forall>B \<in> atms_of C. \<not> less_eq_atm A B)"
 
 lemma str_maximal_in_maximal_in: "str_maximal_in A C \<Longrightarrow> maximal_in A C"
   unfolding maximal_in_def less_eq_atm_def by auto
@@ -556,7 +556,7 @@ proof (cases rule: ord_resolve.cases)
 qed
 
 lemma ground_resolvent_ground:
-  assumes "is_ground_cls_list CAs" and "is_ground_cls DA" and "ord_resolve SSS CAs DA \<sigma> E"
+  assumes "is_ground_cls_list CAs" and "is_ground_cls DA" and "ord_resolve S CAs DA \<sigma> E"
   shows "is_ground_cls E"
   by (metis (no_types) assms ground_resolvent_subset is_ground_cls_Union_mset is_ground_cls_list_def
       is_ground_cls_mono is_ground_cls_mset_def is_ground_cls_union set_mset_mset)
@@ -573,7 +573,7 @@ lemma ord_resolve_obtain_clauses:
     "DA'' \<in> M"
     "DA'' \<cdot> \<eta>'' = DA"
     "S DA'' \<cdot> \<eta>'' = S_M S M DA"
-    "\<forall>CA \<in> set CAs''. CA \<in> M" (* Could also use subseteq *)
+    "\<forall>CA'' \<in> set CAs''. CA'' \<in> M" (* Could also use subseteq *)
     "CAs'' \<cdot>\<cdot>cl \<eta>s'' = CAs"
     "(map S CAs'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAs"
     "is_ground_subst \<eta>''"
@@ -704,7 +704,7 @@ proof (cases rule: ord_resolve.cases)
     "DA'' \<cdot> \<eta>'' = DA"
     "S DA'' \<cdot> \<eta>'' = S_M S M DA"
 
-    "\<forall>CA \<in> set CAs''. CA \<in> M" (* Could also use subseteq *)
+    "\<forall>CA'' \<in> set CAs''. CA'' \<in> M" (* Could also use subseteq *)
     "CAs'' \<cdot>\<cdot>cl \<eta>s'' = CAs"
     "(map S CAs'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAs"
 
@@ -769,7 +769,7 @@ proof (cases rule: ord_resolve.cases)
   then have CAs'_\<eta>_fo_CAs: "CAs' \<cdot>cl \<eta> = CAs"
     using CAs'_CAs \<eta>_p n by auto
 
-  from \<eta>_p have "\<forall>i<n. (S ((CAs') ! i)) \<cdot> \<eta>s' ! i = (S ((CAs') ! i)) \<cdot> \<eta>"
+  from \<eta>_p have "\<forall>i<n. (S (CAs' ! i)) \<cdot> \<eta>s' ! i = (S (CAs' ! i)) \<cdot> \<eta>"
     using S.S_selects_subseteq n by auto
   then have "(map S CAs') \<cdot>\<cdot>cl \<eta>s' = (map S CAs') \<cdot>cl \<eta>"
     using n by (auto intro: nth_equalityI)

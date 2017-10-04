@@ -386,10 +386,10 @@ proof -
 
   have "\<forall>i < n. str_maximal_in (As ! i) (Cs ! i)"
     by (simp add: \<open>\<And>i. i < length Ass \<Longrightarrow> str_maximal_in (As ! i) (Cs ! i)\<close> calculation(3))
-  moreover have "\<forall>C \<in> set CAs. S C = {#}"
+  moreover have "\<forall>CA \<in> set CAs. S CA = {#}"
     using prod_c producesD productive_imp_produces_Max_literal by blast
-  have "\<forall>C\<in>set CAs. S C = {#}"
-    using \<open>\<forall>C\<in>set CAs. S C = {#}\<close> by simp
+  have "\<forall>CA\<in>set CAs. S CA = {#}"
+    using \<open>\<forall>CA\<in>set CAs. S CA = {#}\<close> by simp
   then have "\<forall>i < n. S (CAs ! i) = {#}"
     using \<open>length CAs = n\<close> nth_mem by blast
   ultimately have res_e: "ord_resolve CAs (D + negs (mset As)) (\<Union># mset Cs + D)"
@@ -455,11 +455,11 @@ proof (cases rule: ord_resolve.cases)
     by auto (meson in_mset_sum_list2 mset_subset_eqD)
   then have "atms_of (\<Union># mset Cs) \<subseteq> atms_of (\<Union># mset CAs)"
     by (meson lits_subseteq_imp_atms_subseteq mset_subset_eqD subsetI)
-  moreover have "atms_of (\<Union># mset CAs) = (\<Union>C \<in> set CAs. atms_of C)"
+  moreover have "atms_of (\<Union># mset CAs) = (\<Union>CA \<in> set CAs. atms_of CA)"
     apply auto
     apply (metis (no_types, lifting) in_mset_sum_list in_mset_sum_list2 atm_imp_pos_or_neg_lit neg_lit_in_atms_of pos_lit_in_atms_of)+
     done
-  ultimately have "atms_of (\<Union># mset Cs) \<subseteq> (\<Union>C\<in>set CAs. atms_of C)"
+  ultimately have "atms_of (\<Union># mset Cs) \<subseteq> (\<Union>CA\<in>set CAs. atms_of CA)"
     by auto
   moreover have "atms_of D \<subseteq> atms_of DA"
     using DA by auto
