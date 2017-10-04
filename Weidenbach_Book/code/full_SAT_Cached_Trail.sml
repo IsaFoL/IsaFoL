@@ -623,8 +623,6 @@ in
   arl_set A_ x_b bi x ()
 end);
 
-fun op_list_concat x = (fn a => x @ a);
-
 fun size_list x = gen_length zero_nata x;
 
 fun op_list_length x = size_list x;
@@ -1162,9 +1160,7 @@ end
 fun extract_model_of_state_code x =
   (fn xi =>
     imp_nfoldli (get_trail_wl_code xi) (fn _ => (fn () => true))
-      (fn xc => fn sigma =>
-        (fn () => (op_list_concat sigma (op_list_prepend (fst xc) []))))
-      [])
+      (fn xc => fn sigma => (fn () => (fst xc :: sigma))) [])
     x;
 
 fun select_and_remove_from_literals_to_update_wl_int_code x =
