@@ -436,16 +436,6 @@ fun ht_upd (A1_, A2_, A3_) B_ k v ht =
 
 fun the (SOME x2) = x2;
 
-fun arl_get A_ = (fn (a, _) => nth A_ a);
-
-fun nth_aa A_ xs i j =
-  (fn () => let
-              val x = (fn () => Array.sub (xs, IntInf.toInt i)) ();
-              val xa = arl_get A_ x j ();
-            in
-              xa
-            end);
-
 fun ht_insls (A1_, A2_, A3_) B_ [] ht = (fn () => ht)
   | ht_insls (A1_, A2_, A3_) B_ ((k, v) :: l) ht =
     (fn () => let
@@ -466,8 +456,15 @@ fun ht_copy (A1_, A2_, A3_) B_ n src dst =
              ht_copy (A1_, A2_, A3_) B_ (minus_nat n one_nat) src x ()
            end));
 
+fun arl_get A_ = (fn (a, _) => nth A_ a);
+
 fun nth_aa_u A_ x la l =
-  nth_aa A_ x (IntInf.fromLarge (Word32.toLargeInt la) : IntInf.int) l;
+  (fn () => let
+              val xa = (fn () => Array.sub (x, Word32.toInt la)) ();
+              val xb = arl_get A_ xa l ();
+            in
+              xb
+            end);
 
 fun app f a = f a;
 
@@ -1611,7 +1608,7 @@ fun maximum_level_remove_code x =
 fast_minus_uint32 a2b (Word32.fromInt 1))))
                              else (fn f_ => fn () => f_
                                     ((get_level_code ai
-                                       (Word32.* (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int)), a1a)))
+                                       (Word32.* ((Word32.fromInt 2), a1a)))
                                     ()) ())
                                     (fn xb =>
                                       (fn () =>
@@ -1794,9 +1791,8 @@ fun lit_of_found_atm_D_code x =
           let
             val x_a = (fn () => Array.sub (ai, Word32.toInt xa)) ();
           in
-            (if x_a
-              then SOME (Word32.* (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int)), xa))
-              else SOME (Word32.+ (Word32.* (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int)), xa), (Word32.fromInt 1))))
+            (if x_a then SOME (Word32.* ((Word32.fromInt 2), xa))
+              else SOME (Word32.+ (Word32.* ((Word32.fromInt 2), xa), (Word32.fromInt 1))))
           end)))
     x;
 
@@ -1873,8 +1869,7 @@ fun extract_shorter_conflict_list_removed_code x =
                         (a1c, (a1d, (a1e, a2e)))))
                   | SOME x_b =>
                     (fn f_ => fn () => f_
-                      ((get_level_code ai
-                         (Word32.* (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int)), a1b)))
+                      ((get_level_code ai (Word32.* ((Word32.fromInt 2), a1b)))
                       ()) ())
                       (fn xa =>
                         (if Word32.< ((Word32.fromInt 0), xa)
@@ -1882,34 +1877,31 @@ fun extract_shorter_conflict_list_removed_code x =
                                  of NONE =>
                                    (fn f_ => fn () => f_
                                      ((get_level_code ai
-(Word32.* (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int)), a1b)))
+(Word32.* ((Word32.fromInt 2), a1b)))
                                      ()) ())
                                      (fn xb =>
                                        (fn () =>
  (Word32.+ (a1b, (Word32.fromInt 1)),
    (fast_minus_uint32 a1c (Word32.fromInt 1),
-     (a1d, (a1e, SOME ((if x_b
-                         then Word32.* (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int)), a1b)
-                         else Word32.+ (Word32.* (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int)), a1b), (Word32.fromInt 1))),
+     (a1d, (a1e, SOME ((if x_b then Word32.* ((Word32.fromInt 2), a1b)
+                         else Word32.+ (Word32.* ((Word32.fromInt 2), a1b), (Word32.fromInt 1))),
                         xb)))))))
                                  | SOME (_, a2f) =>
                                    (fn f_ => fn () => f_
                                      ((get_level_code ai
-(Word32.* (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int)), a1b)))
+(Word32.* ((Word32.fromInt 2), a1b)))
                                      ()) ())
                                      (fn xb =>
                                        (if Word32.< (a2f, xb)
  then (fn f_ => fn () => f_
-        ((get_level_code ai
-           (Word32.* (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int)), a1b)))
-        ()) ())
+        ((get_level_code ai (Word32.* ((Word32.fromInt 2), a1b))) ()) ())
         (fn xc =>
           (fn () =>
             (Word32.+ (a1b, (Word32.fromInt 1)),
               (fast_minus_uint32 a1c (Word32.fromInt 1),
                 (a1d, (a1e, SOME ((if x_b
-                                    then Word32.* (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int)), a1b)
-                                    else Word32.+ (Word32.* (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int)), a1b), (Word32.fromInt 1))),
+                                    then Word32.* ((Word32.fromInt 2), a1b)
+                                    else Word32.+ (Word32.* ((Word32.fromInt 2), a1b), (Word32.fromInt 1))),
                                    xc)))))))
  else (fn () =>
         (Word32.+ (a1b, (Word32.fromInt 1)),
@@ -2140,8 +2132,7 @@ fun conflict_to_conflict_with_cls_code x =
       val a =
         heap_WHILET
           (fn (_, (a1c, (_, _))) =>
-            (fn () =>
-              (Word32.< (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int)), a1c))))
+            (fn () => (Word32.< ((Word32.fromInt 2), a1c))))
           (fn (a1b, (a1c, (a1d, a2d))) =>
             (fn f_ => fn () => f_
               (((fn () => Array.sub (a2d, Word32.toInt a1b))) ()) ())
@@ -2154,9 +2145,8 @@ fun conflict_to_conflict_with_cls_code x =
                     (fn f_ => fn () => f_
                       ((heap_array_set_u heap_uint32 a1d
                          (fast_minus_uint32 a1c (Word32.fromInt 1))
-                         (if x_b
-                           then Word32.* (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int)), a1b)
-                           else Word32.+ (Word32.* (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int)), a1b), (Word32.fromInt 1))))
+                         (if x_b then Word32.* ((Word32.fromInt 2), a1b)
+                           else Word32.+ (Word32.* ((Word32.fromInt 2), a1b), (Word32.fromInt 1))))
                       ()) ())
                       (fn xa =>
                         (fn f_ => fn () => f_
