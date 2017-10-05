@@ -8049,7 +8049,6 @@ sepref_thm vmtf_find_next_undef_code
   supply not_is_None_not_None[simp]
   unfolding vmtf_find_next_undef_def PR_CONST_def
   apply (rewrite at \<open>WHILE\<^sub>T\<^bsup>_\<^esup> (\<lambda> _ . \<hole>) _ _\<close> short_circuit_conv)
-  apply (rewrite in \<open>If \<hole> _ _\<close> defined_atm_def[symmetric])
   apply (rewrite in \<open>If _ \<hole> _\<close> defined_atm_def[symmetric])
   by sepref
 
