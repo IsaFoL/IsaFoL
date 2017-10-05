@@ -1750,20 +1750,11 @@ fun vmtf_find_next_undef_code x =
         (fn s =>
           (if not (is_None s) then defined_atm_code bi (the s)
             else (fn () => false)))
-        (fn s =>
+        (fn s => fn () =>
           let
-            val xa = the s;
+            val x_b = (fn () => Array.sub (a1a, Word32.toInt (the s))) ();
           in
-            (fn () =>
-              let
-                val xaa = defined_atm_code bi xa ();
-              in
-                (if not xaa then (fn () => (SOME xa))
-                  else (fn f_ => fn () => f_
-                         (((fn () => Array.sub (a1a, Word32.toInt xa))) ()) ())
-                         (fn x_c => (fn () => (get_next x_c))))
-                  ()
-              end)
+            get_next x_b
           end)
         ab
     end)
