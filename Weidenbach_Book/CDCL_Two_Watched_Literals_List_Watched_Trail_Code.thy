@@ -2219,12 +2219,12 @@ proof (rule ccontr)
       mset_set {x. Suc 0 \<le> x \<and> x < length (get_clauses_wl S) \<and> L \<in> set (watched_l (get_clauses_wl S ! x))}\<close>
       using corr by (cases S)
           (auto simp: correct_watching.simps watched_by_app_def clause_to_update_def
-          watched_by.simps get_unit_init_clss_def)
+          get_unit_init_clss_def)
   have L_in_watched: \<open>L \<in> set (watched_l ?C)\<close>
     using in_watched unfolding H
     by (cases S)
         (auto simp: correct_watching.simps watched_by_app_def clause_to_update_def
-        watched_by.simps get_unit_init_clss_def)
+        get_unit_init_clss_def)
   have \<open>xj \<ge> 2\<close> and \<open>xj < length (get_clauses_wl S ! watched_by_app S L C)\<close>
     using find_unw unfolding unit_prop_body_wl_D_find_unwatched_inv_def unit_prop_body_wl_find_unwatched_inv_def
     by (cases S; auto simp: watched_by_app_def)+
@@ -2420,7 +2420,7 @@ proof -
       all_lits_of_mm (mset `# mset (tl (get_clauses_wl S)))\<close>
       using xj
       by (cases S)
-          (auto simp: clauses_def watched_by_app_def mset_take_mset_drop_mset watched_by.simps
+          (auto simp: clauses_def watched_by_app_def mset_take_mset_drop_mset
           in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def nth_in_set_tl
           intro!: bexI[of _ \<open>get_clauses_wl S ! watched_by_app S L C\<close>])
     then have \<open>get_clauses_wl S ! watched_by_app S L C ! xj \<in>#
@@ -2428,7 +2428,7 @@ proof -
       apply (subst (asm)(3) append_take_drop_id[of \<open>get_learned_wl S\<close>, symmetric])
       unfolding mset_append
       by (cases S)
-          (auto simp: clauses_def watched_by_app_def mset_take_mset_drop_mset' watched_by.simps
+          (auto simp: clauses_def watched_by_app_def mset_take_mset_drop_mset'
           all_lits_of_mm_union drop_Suc) }
   ultimately show ?thesis
     by (auto simp: image_image is_N\<^sub>1_def)
@@ -3506,9 +3506,9 @@ sepref_thm tl_state_wl_int_code
          atm_of (lit_of (hd M)) < length \<phi> \<and>
          atm_of (lit_of (hd M)) < length A \<and> (next_search \<noteq> None \<longrightarrow>  the next_search < length A)]\<^sub>a
       twl_st_int_assn\<^sup>d \<rightarrow> twl_st_int_assn\<close>
-  supply [[goals_limit=1]] option.splits[split] get_vmtf_int.simps[simp] if_splits[split]
+  supply [[goals_limit=1]] option.splits[split] if_splits[split]
   option.splits[split]
-  supply [[goals_limit=1]] option.splits[split] get_vmtf_int.simps[simp] literals_are_N\<^sub>0_hd_trail_in_D\<^sub>0[intro]
+  supply [[goals_limit=1]] option.splits[split] literals_are_N\<^sub>0_hd_trail_in_D\<^sub>0[intro]
   unfolding tl_state_wl_int_alt_def[abs_def] twl_st_int_assn_def get_trail_wl_int_def[simp]
     vmtf_unset_def bind_ref_tag_def[simp]
     short_circuit_conv
@@ -3756,7 +3756,7 @@ lemma conflict_remove1:
 sepref_thm conflict_remove1_code
   is \<open>uncurry (RETURN oo conflict_remove1)\<close>
   :: \<open>[\<lambda>(L, (n,xs)). n > 0 \<and> atm_of L < length xs]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a conflict_rel_assn\<^sup>d \<rightarrow> conflict_rel_assn\<close>
-  supply [[goals_limit=2]] one_nat_uint32[sepref_fr_rules] one_nat_uint32_def[simp]
+  supply [[goals_limit=2]] one_nat_uint32[sepref_fr_rules]
   unfolding conflict_remove1_def one_nat_uint32_def[symmetric] fast_minus_def[symmetric]
   by sepref
 
@@ -7449,7 +7449,7 @@ sepref_thm extract_shorter_conflict_list_removed_code
       trail_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow> conflict_option_rel_assn *assn
        option_assn (unat_lit_assn *assn uint32_nat_assn)\<close>
   supply [[goals_limit = 1]] uint32_nat_assn_zero_uint32_nat[sepref_fr_rules]
-    Pot_unat_lit_assn[sepref_fr_rules] one_nat_uint32_def[simp]
+    Pot_unat_lit_assn[sepref_fr_rules]
     Neg_unat_lit_assn[sepref_fr_rules] zero_uint32_nat_def[simp]
   unfolding extract_shorter_conflict_list_removed_def PR_CONST_def
   extract_shorter_conflict_list_int_def
@@ -8431,7 +8431,7 @@ sepref_thm backtrack_wl_D
   :: \<open>twl_st_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_assn\<close>
   supply [[goals_limit=1]] backtrack_wl_D_invD[simp] backtrack_wl_D_inv_find_decomp_wl_preD[intro!, dest]
   backtrack_get_conglit_wl_not_NoneD[dest] lit_of_hd_trail_st_def[symmetric, simp]
-  size_conflict_wl_def[simp] one_nat_uint32_def[simp] st_remove_highest_lvl_from_confl_def[simp]
+  size_conflict_wl_def[simp] st_remove_highest_lvl_from_confl_def[simp]
   backtrack_wl_D_helper3[simp]
   unfolding backtrack_wl_D_alt_def PR_CONST_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
@@ -8869,7 +8869,7 @@ sepref_thm cons_trail_Decided_tr_code
      (\<forall>L\<in>set M. lit_of L \<in># N\<^sub>1) \<and> no_dup M \<and> L \<in> snd ` D\<^sub>0 \<and> k = count_decided M]\<^sub>a
        unat_lit_assn\<^sup>k *\<^sub>a trailt_conc\<^sup>d \<rightarrow> trailt_conc\<close>
   unfolding cons_trail_Decided_tr_def cons_trail_Decided_tr_def one_nat_uint32_def[symmetric]
-  supply [[goals_limit = 1]] one_nat_uint32_def[simp] undefined_lit_count_decided_upperN[dest!]
+  supply [[goals_limit = 1]] undefined_lit_count_decided_upperN[dest!]
   by sepref
 
 concrete_definition (in -) cons_trail_Decided_tr_code

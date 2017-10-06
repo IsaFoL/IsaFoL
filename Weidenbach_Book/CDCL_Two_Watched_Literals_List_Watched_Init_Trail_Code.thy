@@ -528,7 +528,7 @@ proof -
   have 2: \<open>(uncurry valued_st_int, uncurry (RETURN oo valued_st)) \<in>
      [\<lambda>(_, L). L \<in> snd ` D\<^sub>0]\<^sub>f twl_st_trail_ref_no_clvls \<times>\<^sub>f Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
     by (intro nres_relI frefI)
-       (auto simp: trailt_ref_def valued_st_def polarity_def trailt_ref_def
+       (auto simp: trailt_ref_def valued_st_def polarity_def
         twl_st_trail_ref_no_clvls_def valued_def valued_st_int_def
         split: if_splits option.splits)
   show ?thesis
@@ -797,9 +797,9 @@ proof -
     if \<open>twl_array_code_ops.is_N\<^sub>1 N\<^sub>0 B\<close> for A B N\<^sub>0
     using that unfolding twl_array_code_ops.is_N\<^sub>1_def by auto
   have H1: \<open>xa \<in> set N\<^sub>0 \<Longrightarrow> literal_of_nat (2 * xa) \<in> Pos ` set N\<^sub>0\<close> for xa N\<^sub>0
-    by (auto simp: literal_of_nat.simps)
+    by auto
   have H2: \<open>xa \<in> set N\<^sub>0 \<Longrightarrow> - literal_of_nat (2 * xa) \<in> Neg ` set N\<^sub>0\<close> for xa N\<^sub>0
-    by (auto simp: literal_of_nat.simps)
+    by auto
   show ?thesis
     using upper upperN
   proof (induction N arbitrary: N\<^sub>0)
@@ -923,7 +923,6 @@ proof -
       using C_ge2 by (cases C; cases \<open>tl C\<close>) auto
     have [simp]: \<open>L2 \<noteq> L1\<close>
       using dist unfolding C by auto
-    note atms_of_N\<^sub>1_N\<^sub>0[simp]
     have \<open>set_mset (all_lits_of_mm (mset `# mset (tl (N @ [L1 # L2 # C'])) + NP)) \<subseteq> set_mset N\<^sub>1\<close>
       using lits_C H unfolding C
       by (auto simp add: all_lits_of_mm_add_mset in_N\<^sub>1_atm_of_in_atms_of_iff
@@ -1173,7 +1172,7 @@ lemma init_dt_init_dt_l:
        (get_conflict_wl S \<noteq> None \<longrightarrow> literals_to_update_wl S = {#}))\<close>
 proof -
   have clss_empty: \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None (st_l_of_wl None S))) = {#}\<close>
-    by (auto simp: S_def cdcl\<^sub>W_restart_mset.clauses_def cdcl\<^sub>W_restart_mset_state)
+    by (auto simp: S_def cdcl\<^sub>W_restart_mset.clauses_def)
   have
     struct: \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and
     dec:\<open>\<forall>s\<in>set (get_trail_wl S). \<not>is_decided s\<close> and
@@ -1196,7 +1195,7 @@ proof -
         cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
         past_invs.simps clauses_def additional_WS_invs_def twl_stgy_invs_def clause_to_update_def
-        cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
         cdcl\<^sub>W_restart_mset.no_smaller_confl_def get_unit_learned_def)
   note HH = init_dt_init_dt_l_full[of CS S, unfolded clss_empty,
         OF dist length struct dec confl aff_invs learned stgy_invs watch clss _ learned_nil,
@@ -2034,7 +2033,7 @@ proof -
        apply (rule disjI2)
        using N\<^sub>1 struct_invs stgy_invs corr_w UP count_dec U clss trail False
        by (cases S\<^sub>0) (clarsimp simp: twl_struct_invs_def CS twl_array_code_ops.init_state_def full_def
-           cdcl\<^sub>W_restart_mset_state get_unit_learned_def)
+           get_unit_learned_def cdcl\<^sub>W_restart_mset_state)
       done
   next
     case True
@@ -2050,7 +2049,7 @@ proof -
     have n_d: \<open>no_dup M\<close>
       using struct_invs by (auto simp: twl_struct_invs_def S\<^sub>0
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-          cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def)
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset_state)
     have prop_M: \<open>\<forall>L\<in> set M. \<exists>K. L = Propagated K 0\<close>
       using trail by (auto simp: S\<^sub>0)
     have CS: \<open>CS = mset `# mset CS'\<close>
@@ -2064,8 +2063,8 @@ proof -
         apply (rule rtranclp.rtrancl_into_rtrancl)
          apply (simp; fail)
         apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.propagate')
-         apply (auto simp: cdcl\<^sub>W_restart_mset.propagate.simps cdcl\<^sub>W_restart_mset_state clauses_def CS
-            N_NP[symmetric])
+         apply (auto simp: cdcl\<^sub>W_restart_mset.propagate.simps clauses_def CS
+            N_NP[symmetric] cdcl\<^sub>W_restart_mset_state)
         done
       done
     then have 1: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state CS)
@@ -2195,11 +2194,11 @@ lemma conflict_of_level_unsatisfiable:
 proof -
 
   obtain M N U D where S: \<open>S = (M, N, U, Some D)\<close>
-    by (cases S) (use confl in \<open>auto simp: cdcl\<^sub>W_restart_mset_state\<close>)
+    by (cases S) (use confl in \<open>auto simp:  cdcl\<^sub>W_restart_mset_state\<close>)
 
   have [simp]: \<open>get_all_ann_decomposition M = [([], M)]\<close>
     by (rule no_decision_get_all_ann_decomposition)
-      (use dec in \<open>auto simp: count_decided_def filter_empty_conv S cdcl\<^sub>W_restart_mset_state\<close>)
+      (use dec in \<open>auto simp: count_decided_def filter_empty_conv S  cdcl\<^sub>W_restart_mset_state\<close>)
   have
     N_U: \<open>N \<Turnstile>psm U\<close> and
     M_D: \<open>M \<Turnstile>as CNot D\<close> and
@@ -2208,7 +2207,7 @@ proof -
     N_U_D: \<open>set_mset N \<union> set_mset U \<Turnstile>p D\<close>
     using assms
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def all_decomposition_implies_def
-        cdcl\<^sub>W_restart_mset_state S clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+        S clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_restart_mset_state
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
   have \<open>set_mset N \<union> set_mset U \<Turnstile>ps CNot D\<close>
@@ -2219,7 +2218,7 @@ proof -
     by (rule true_clss_clss_CNot_true_clss_cls_unsatisfiable)
 
   then show ?thesis
-    by (auto simp: cdcl\<^sub>W_restart_mset_state S clauses_def dest: satisfiable_decreasing)
+    by (auto simp: S clauses_def dest: satisfiable_decreasing)
 qed
 
 lemma SAT_model_if_satisfiable:
@@ -2235,7 +2234,7 @@ proof -
         cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
         past_invs.simps clauses_def additional_WS_invs_def twl_stgy_invs_def clause_to_update_def
-        cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
         cdcl\<^sub>W_restart_mset.no_smaller_confl_def get_unit_learned_def
         distinct_mset_set_def)
   show ?thesis
@@ -2245,7 +2244,7 @@ proof -
       using H[of CS]
         cdcl\<^sub>W_restart_mset.full_cdcl\<^sub>W_stgy_inv_normal_form[of \<open>init_state CS\<close>]
       by (fastforce intro!: le_SPEC_bindI simp: SPEC_RETURN_RES clauses_def
-          cdcl\<^sub>W_restart_mset_state true_annots_true_cls lits_of_def
+          true_annots_true_cls lits_of_def cdcl\<^sub>W_restart_mset_state
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
           dest: conflict_of_level_unsatisfiable)
     done
@@ -2342,8 +2341,8 @@ proof -
        apply (rule 3; simp)
       apply (rule 4; simp)
      apply (rule 2; simp)
-    by (auto simp: TWL_to_clauses_state_conv_def cdcl\<^sub>W_restart_mset_state convert_lits_l_def
-        extract_model_of_state_alt_def)
+    by (auto simp: TWL_to_clauses_state_conv_def convert_lits_l_def
+        extract_model_of_state_alt_def cdcl\<^sub>W_restart_mset_state)
   show ?thesis
     using IsaSAT_code.refine[FCOMP IsaSAT_SAT] unfolding list_assn_list_mset_rel_clauses_l_assn .
 qed
