@@ -2867,6 +2867,85 @@ lemma in_literals_are_in_N\<^sub>0_in_D\<^sub>0:
 
 paragraph \<open>Level of a literal\<close>
 
+lemma get_maximum_level_remove_count_max_lvls:
+  assumes L: \<open>L = lit_of (hd M)\<close> and LD: \<open>L \<in># D\<close> and \<open>M \<Turnstile>as CNot D\<close> and M_nempty: \<open>M \<noteq> []\<close>
+  shows \<open>get_maximum_level_remove M D L = count_decided M \<longleftrightarrow>
+       (count_decided M = 0 \<or> counts_max_lvl M D > 1)\<close>
+  (is \<open>?max \<longleftrightarrow> ?count\<close>)
+proof
+  assume H: ?max
+  let ?D = \<open>remove1_mset L D\<close>
+  have [simp]: \<open>get_level M L = count_decided M\<close>
+    using M_nempty L by (cases M) auto
+  define MD where \<open>MD \<equiv> {#L \<in># D. get_level M L = count_decided M#}\<close>
+  show ?count
+  proof (cases \<open>?D = {#}\<close>)
+    case True
+    then show ?thesis
+      using LD H by (auto dest!: multi_member_split simp: get_maximum_level_remove_def)
+  next
+    case False
+    then obtain L' where
+      \<open>get_level M L' = get_maximum_level_remove M D L\<close> and L'_D: \<open>L' \<in># ?D\<close>
+      using get_maximum_level_exists_lit_of_max_level[of \<open>remove1_mset L D\<close>]
+      unfolding get_maximum_level_remove_def by blast
+    then have \<open>L' \<in># {#L \<in># D. get_level M L = count_decided M#}\<close>
+      using H by (auto dest: in_diffD simp: get_maximum_level_remove_def)
+    moreover have \<open>L \<in># {#L \<in># D. get_level M L = count_decided M#}\<close>
+      using LD by auto
+    ultimately have \<open>{#L, L'#} \<subseteq># MD\<close>
+      using L'_D LD by (cases \<open>L = L'\<close>)
+        (auto dest!: multi_member_split simp: MD_def add_mset_eq_add_mset)
+    from size_mset_mono[OF this] show ?thesis
+      unfolding counts_max_lvl_def H MD_def[symmetric]
+      by auto
+  qed
+next
+  let ?D = \<open>remove1_mset L D\<close>
+  have [simp]: \<open>get_level M L = count_decided M\<close>
+    using M_nempty L by (cases M) auto
+  define MD where \<open>MD \<equiv> {#L \<in># D. get_level M L = count_decided M#}\<close>
+  have L_MD: \<open>L \<in># MD\<close>
+    using LD unfolding MD_def by auto
+  assume ?count
+  then consider
+    (lev_0) \<open>count_decided M = 0\<close> |
+    (count) \<open>counts_max_lvl M D > 1\<close>
+    by (cases \<open>D \<noteq> {#L#}\<close>) auto
+  then show ?max
+  proof cases
+    case lev_0
+    then show ?thesis
+      using count_decided_ge_get_maximum_level[of M ?D]
+      by (auto simp: get_maximum_level_remove_def)
+  next
+    case count
+    then obtain L' where
+      \<open>L' \<in># MD\<close> and
+      LL': \<open>{#L, L'#} \<subseteq># MD\<close>
+      using L_MD
+      unfolding get_maximum_level_remove_def counts_max_lvl_def MD_def[symmetric]
+      by (force simp: nonempty_has_size[symmetric] 
+          dest!: multi_member_split multi_nonempty_split)
+    then have \<open>get_level M L' = count_decided M\<close> 
+      unfolding MD_def by auto
+    moreover have \<open>L' \<in># remove1_mset L D\<close>
+    proof -
+      have "{#L, L'#} \<subseteq># D"
+        using LL' unfolding MD_def
+        by (meson multiset_filter_subset subset_mset.dual_order.trans)
+      then show ?thesis
+        by (metis (no_types) LD insert_DiffM mset_subset_eq_add_mset_cancel single_subset_iff)
+    qed
+    ultimately have \<open>get_maximum_level M (remove1_mset L D) \<ge> count_decided M\<close>
+      using get_maximum_level_ge_get_level[of L' ?D M]
+      by simp
+    then show ?thesis
+      using count_decided_ge_get_maximum_level[of M ?D]
+      by (auto simp: get_maximum_level_remove_def)
+  qed
+qed
+ 
 (* TODO: kill! *)
 (* TODO: get_level M (Pos i) is inefficient (i*2 div 2) *)
 definition maximum_level_remove' :: \<open>(nat, nat) ann_lits \<Rightarrow> conflict_rel \<Rightarrow> nat literal \<Rightarrow> nat nres\<close> where
