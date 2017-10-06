@@ -107,7 +107,7 @@ lemma nat_of_uint32_ao:
   subgoal apply (transfer, unfold unat_def, transfer, unfold nat_bin_trunc_ao) ..
   done
 
-lemma nat_of_uint32_012: \<open>nat_of_uint32 0 = 0\<close> \<open>nat_of_uint32 2 = 2\<close> \<open>nat_of_uint32 1 = 1\<close>
+lemma nat_of_uint32_012[simp]: \<open>nat_of_uint32 0 = 0\<close> \<open>nat_of_uint32 2 = 2\<close> \<open>nat_of_uint32 1 = 1\<close>
   by (transfer, auto)+
 
 lemma nat_uint_XOR: \<open>nat (uint (a XOR b)) = nat (uint a) XOR nat (uint b)\<close>
@@ -366,22 +366,24 @@ lemma nat_of_uint32_int32_assn:
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
 
 
-definition \<open>zero_uint32 = (0 :: nat)\<close>
+definition zero_uint32_nat where
+  [simp]: \<open>zero_uint32_nat = (0 :: nat)\<close>
 
-lemma uint32_nat_assn_zero_uint32:
-  \<open>(uncurry0 (return 0), uncurry0 (RETURN zero_uint32)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_012 zero_uint32_def)
+lemma uint32_nat_assn_zero_uint32_nat[sepref_fr_rules]:
+  \<open>(uncurry0 (return 0), uncurry0 (RETURN zero_uint32_nat)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
 
 lemma nat_assn_zero:
   \<open>(uncurry0 (return 0), uncurry0 (RETURN 0)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_012)
 
-definition \<open>one_nat_uint32 = (1 :: nat)\<close>
+definition one_nat_uint32 where
+  [simp]: \<open>one_nat_uint32 = (1 :: nat)\<close>
 
 lemma one_nat_uint32[sepref_fr_rules]:
   \<open>(uncurry0 (return 1), uncurry0 (RETURN one_nat_uint32)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   by sepref_to_hoare
-    (sep_auto simp: one_nat_uint32_def uint32_nat_rel_def br_def nat_of_uint32_012)
+    (sep_auto simp: uint32_nat_rel_def br_def)
 
 lemma uint32_nat_assn_less[sepref_fr_rules]:
   \<open>(uncurry (return oo op <), uncurry (RETURN oo op <)) \<in>

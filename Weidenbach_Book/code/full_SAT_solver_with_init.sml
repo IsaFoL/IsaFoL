@@ -65,12 +65,12 @@ fun print_clauses id a [] = ()
 fun checker print_modelb cnf_name = let
   val problem = Dimacs_Parser.parse_dimacs_file_map_to_list cnf_name nat_of_lit;
   val SAT = SAT_Solver.isaSAT_code problem ();
-  val _ = 
-      (case SAT of
-        NONE => print "UNSAT"
-      | SOME SAT =>
-        if print_modelb then ignore (print_model SAT)
-         else print "SAT")
+  val _ =
+      if print_modelb then 
+        (case SAT of
+             NONE => print "SAT\n"
+           | SOME SAT => ignore (print_model SAT))
+      else print "SAT\n"
   in
     ()
   end
