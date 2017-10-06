@@ -1506,6 +1506,27 @@ fun unit_propagation_outer_loop_wl_D x =
       end)
     x;
 
+fun get_count_max_lvls_code x =
+  (fn (_, (_, (_, (_, (_, (_, (_, (_, clvls)))))))) => clvls) x;
+
+fun count_decided_st_code x =
+  (fn xi => (fn () => let
+                        val ((_, (_, (_, k))), _) = xi;
+                      in
+                        k
+                      end))
+    x;
+
+fun maximum_level_removed_eq_count_dec_code x =
+  (fn _ => fn bi => fn () =>
+    let
+      val xa = count_decided_st_code bi ();
+    in
+      ((xa : Word32.word) = (Word32.fromInt 0)) orelse
+        Word32.< ((Word32.fromInt 1), get_count_max_lvls_code bi)
+    end)
+    x;
+
 fun lit_and_ann_of_propagated_st_int_code x =
   (fn xi => (fn () => let
                         val (a1, _) = xi;
@@ -1721,60 +1742,6 @@ else ((a1j, (a1k, (a1l, a2l))), a2i))))
            end))
     x;
 
-fun maximum_level_remove_code x =
-  (fn ai => fn bia => fn bi =>
-    let
-      val (a1, a2) = bia;
-    in
-      (fn () =>
-        let
-          val xa =
-            heap_WHILET
-              (fn (_, (_, b)) => (fn () => (Word32.< ((Word32.fromInt 0), b))))
-              (fn (a1a, (a1b, a2b)) =>
-                (fn f_ => fn () => f_
-                  (((fn () => Array.sub (a2, Word32.toInt a1a))) ()) ())
-                  (fn xa =>
-                    (if is_none xa
-                      then (fn () =>
-                             (Word32.+ (a1a, (Word32.fromInt 1)), (a1b, a2b)))
-                      else (if ((a1a : Word32.word) = (shiftr_uint32 bi
-                one_nat))
-                             then (fn () =>
-                                    (Word32.+ (a1a, (Word32.fromInt 1)),
-                                      (a1b,
-fast_minus_uint32 a2b (Word32.fromInt 1))))
-                             else (fn f_ => fn () => f_
-                                    ((get_level_code ai
-                                       (Word32.* ((Word32.fromInt 2), a1a)))
-                                    ()) ())
-                                    (fn xb =>
-                                      (fn () =>
-(Word32.+ (a1a, (Word32.fromInt 1)),
-  (max ord_uint32 xb a1b, fast_minus_uint32 a2b (Word32.fromInt 1)))))))))
-              ((Word32.fromInt 0), ((Word32.fromInt 0), a1)) ();
-        in
-          fst (snd xa)
-        end)
-    end)
-    x;
-
-fun get_max_lvl_st_int_code x =
-  (fn ai => fn bi => let
-                       val (a1, (_, (_, ((_, a2d), _)))) = ai;
-                     in
-                       maximum_level_remove_code a1 a2d bi
-                     end)
-    x;
-
-fun count_decided_st_code x =
-  (fn xi => (fn () => let
-                        val ((_, (_, (_, k))), _) = xi;
-                      in
-                        k
-                      end))
-    x;
-
 fun tl_state_wl_int_code x =
   (fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f, (a1g, a2g)))))))) =>
     let
@@ -1841,16 +1808,12 @@ fun skip_and_resolve_loop_wl_D_code x =
                              ())
                              (fn x_e => (fn () => (false, x_e)))
                       else (fn f_ => fn () => f_
-                             ((get_max_lvl_st_int_code a2
-                                (Word32.xorb (a1a, (Word32.fromInt 1))))
+                             ((maximum_level_removed_eq_count_dec_code
+                                (Word32.xorb (a1a, (Word32.fromInt 1))) a2)
                              ()) ())
-                             (fn xc =>
-                               (fn f_ => fn () => f_ ((count_decided_st_code a2)
-                                 ()) ())
-                                 (fn xaa =>
-                                   (if ((xc : Word32.word) = xaa)
-                                     then update_confl_tl_wl_code a2a a1a a2
-                                     else (fn () => (true, a2)))))))))
+                             (fn x_d =>
+                               (if x_d then update_confl_tl_wl_code a2a a1a a2
+                                 else (fn () => (true, a2))))))))
           (xa, xi) ();
     in
       let
