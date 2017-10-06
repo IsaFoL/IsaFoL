@@ -292,8 +292,8 @@ fun get_phase_saver_int :: \<open>twl_st_wl_int \<Rightarrow> bool list\<close> 
   \<open>get_phase_saver_int (_, _, _, _, _, _, _, \<phi>, _) = \<phi>\<close>
 
 
-fun get_count_max_lvls :: \<open>twl_st_wl_int \<Rightarrow> nat\<close> where
-  \<open>get_count_max_lvls (_, _, _, _, _, _, _, _, clvls) = clvls\<close>
+fun get_count_max_lvls_int :: \<open>twl_st_wl_int \<Rightarrow> nat\<close> where
+  \<open>get_count_max_lvls_int (_, _, _, _, _, _, _, _, clvls) = clvls\<close>
 
 context twl_array_code_ops
 begin
@@ -2868,7 +2868,7 @@ lemma in_literals_are_in_N\<^sub>0_in_D\<^sub>0:
 paragraph \<open>Level of a literal\<close>
 
 lemma get_maximum_level_remove_count_max_lvls:
-  assumes L: \<open>L = lit_of (hd M)\<close> and LD: \<open>L \<in># D\<close> and \<open>M \<Turnstile>as CNot D\<close> and M_nempty: \<open>M \<noteq> []\<close>
+  assumes L: \<open>L = -lit_of (hd M)\<close> and LD: \<open>L \<in># D\<close> and M_nempty: \<open>M \<noteq> []\<close>
   shows \<open>get_maximum_level_remove M D L = count_decided M \<longleftrightarrow>
        (count_decided M = 0 \<or> counts_max_lvl M D > 1)\<close>
   (is \<open>?max \<longleftrightarrow> ?count\<close>)
@@ -3264,6 +3264,138 @@ proof -
     using pre ..
 qed
 
+
+definition count_decided_st where
+  \<open>count_decided_st = (\<lambda>(M, _). count_decided M)\<close>
+
+sepref_thm count_decided_st_code
+  is \<open>RETURN o count_decided_st\<close>
+  :: \<open>twl_st_int_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  supply [[goals_limit=2]]
+  unfolding count_decided_st_def twl_st_int_assn_def
+  by sepref
+
+concrete_definition (in -) count_decided_st_code
+  uses twl_array_code.count_decided_st_code.refine_raw
+  is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) count_decided_st_code_def
+
+lemmas count_decided_st_code_refine[sepref_fr_rules] =
+   count_decided_st_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma count_decided_st_count_decided_st:
+  \<open>(RETURN o count_decided_st, RETURN o count_decided_st) \<in> twl_st_ref \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+     (auto simp: count_decided_st_def twl_st_ref_def)
+
+lemma count_decided_refine[sepref_fr_rules]:
+  \<open>(count_decided_st_code, RETURN \<circ> count_decided_st) \<in> twl_st_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  using count_decided_st_code_refine[FCOMP count_decided_st_count_decided_st]
+  unfolding twl_st_assn_def
+  .
+
+lemma count_decided_st_alt_def: \<open>count_decided_st S = count_decided (get_trail_wl S)\<close>
+  unfolding count_decided_st_def
+  by (cases S) auto
+
+definition maximum_level_removed_eq_count_dec where
+  \<open>maximum_level_removed_eq_count_dec L S \<longleftrightarrow> 
+      get_maximum_level_remove (get_trail_wl S) (the (get_conflict_wl S)) L =
+       count_decided (get_trail_wl S)\<close>
+
+definition maximum_level_removed_eq_count_dec_int where
+  \<open>maximum_level_removed_eq_count_dec_int L S \<longleftrightarrow> 
+      count_decided_st S = zero_uint32_nat \<or> get_count_max_lvls_int S > one_nat_uint32\<close>
+
+lemma maximum_level_removed_eq_count_dec_int_maximum_level_removed_eq_count_dec:
+  \<open>(uncurry (RETURN oo maximum_level_removed_eq_count_dec_int),
+      uncurry (RETURN oo maximum_level_removed_eq_count_dec)) \<in>
+   [\<lambda>(L, S). L = -lit_of (hd (get_trail_wl S)) \<and> L \<in># the (get_conflict_wl S) \<and>
+      get_conflict_wl S \<noteq> None \<and> get_trail_wl S \<noteq> []]\<^sub>f
+    Id \<times>\<^sub>r twl_st_ref\<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  subgoal for x y
+    using get_maximum_level_remove_count_max_lvls[of \<open>fst x\<close> \<open>get_trail_wl (snd y)\<close>
+      \<open>the (get_conflict_wl (snd y))\<close>]
+    by (cases x)
+       (auto simp: count_decided_st_def counts_maximum_level_def twl_st_ref_def
+     maximum_level_removed_eq_count_dec_int_def maximum_level_removed_eq_count_dec_def)
+  done
+
+definition (in -) get_count_max_lvls_code where
+  \<open>get_count_max_lvls_code = (\<lambda>(_, _, _, _, _, _, _, _, clvls). clvls)\<close>
+
+(* TODO Peter: do I really need this elim! & co? *)
+lemma get_count_max_lvls_int_hnr[sepref_fr_rules]:
+  \<open>(return o get_count_max_lvls_code, RETURN o get_count_max_lvls_int) \<in>
+     twl_st_int_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  apply sepref_to_hoare
+  subgoal for x x'
+    apply (cases x; cases x')
+    apply (sep_auto simp: twl_st_int_assn_def get_count_max_lvls_code_def
+        elim!: mod_starE)
+    apply (case_tac h2)
+    apply sep_auto
+    done
+  done
+
+sepref_thm maximum_level_removed_eq_count_dec_code
+  is \<open>uncurry (RETURN oo maximum_level_removed_eq_count_dec_int)\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a twl_st_int_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding maximum_level_removed_eq_count_dec_int_def
+  by sepref
+
+concrete_definition (in -) maximum_level_removed_eq_count_dec_code
+   uses twl_array_code.maximum_level_removed_eq_count_dec_code.refine_raw
+   is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) maximum_level_removed_eq_count_dec_code_def
+
+lemmas maximum_level_removed_eq_count_dec_code_hnr[sepref_fr_rules] =
+   maximum_level_removed_eq_count_dec_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
+
+lemma maximum_level_removed_eq_count_dec_hnr[sepref_fr_rules]:
+  \<open>(uncurry maximum_level_removed_eq_count_dec_code,
+      uncurry (RETURN oo maximum_level_removed_eq_count_dec)) \<in>
+   [\<lambda>(L, S). L = -lit_of (hd (get_trail_wl S)) \<and> L \<in># the (get_conflict_wl S) \<and>
+      get_conflict_wl S \<noteq> None \<and> get_trail_wl S \<noteq> []]\<^sub>a
+    unat_lit_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c
+    \<in> [comp_PRE (Id \<times>\<^sub>f twl_st_ref)
+     (\<lambda>(L, S).
+         L = -lit_of (hd (get_trail_wl S)) \<and>
+         L \<in># the (get_conflict_wl S) \<and>
+         get_conflict_wl S \<noteq> None \<and> get_trail_wl S \<noteq> [])
+     (\<lambda>_ _. True)
+     (\<lambda>_. True)]\<^sub>a hrp_comp
+                    (unat_lit_assn\<^sup>k *\<^sub>a twl_st_int_assn\<^sup>k)
+                    (Id \<times>\<^sub>f
+                     twl_st_ref) \<rightarrow> hr_comp bool_assn bool_rel\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using  hfref_compI_PRE_aux[OF maximum_level_removed_eq_count_dec_code_hnr[unfolded PR_CONST_def]
+      maximum_level_removed_eq_count_dec_int_maximum_level_removed_eq_count_dec]
+    .
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
+    using that unfolding comp_PRE_def twl_st_ref_def literals_to_update_wl_int_empty_def
+      literals_to_update_wl_empty_def twl_st_wl_int_W_list_rel_def
+    by (auto simp: image_image map_fun_rel_def Nil_list_mset_rel_iff conflict_rel_def)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def[symmetric]
+    twl_st_assn_W_list[symmetric] conflict_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def
+    twl_st_assn_W_list[symmetric] hr_comp_prod_conv
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
+qed
 
 definition is_decided_hd_trail_wl_int :: \<open>twl_st_wl_int \<Rightarrow> bool\<close> where
   \<open>is_decided_hd_trail_wl_int = (\<lambda>(M, _). is_decided (hd M))\<close>
@@ -3992,42 +4124,6 @@ proof -
     using pre ..
 qed
 
-
-definition count_decided_st where
-  \<open>count_decided_st = (\<lambda>(M, _). count_decided M)\<close>
-
-sepref_thm count_decided_st_code
-  is \<open>RETURN o count_decided_st\<close>
-  :: \<open>twl_st_int_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  supply [[goals_limit=2]]
-  unfolding count_decided_st_def twl_st_int_assn_def
-  by sepref
-
-concrete_definition (in -) count_decided_st_code
-  uses twl_array_code.count_decided_st_code.refine_raw
-  is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) count_decided_st_code_def
-
-lemmas count_decided_st_code_refine[sepref_fr_rules] =
-   count_decided_st_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
-
-lemma count_decided_st_count_decided_st:
-  \<open>(RETURN o count_decided_st, RETURN o count_decided_st) \<in> twl_st_ref \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-     (auto simp: count_decided_st_def twl_st_ref_def)
-
-lemma count_decided_refine[sepref_fr_rules]:
-  \<open>(count_decided_st_code, RETURN \<circ> count_decided_st) \<in> twl_st_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  using count_decided_st_code_refine[FCOMP count_decided_st_count_decided_st]
-  unfolding twl_st_assn_def
-  .
-
-lemma count_decided_st_alt_def: \<open>count_decided_st S = count_decided (get_trail_wl S)\<close>
-  unfolding count_decided_st_def
-  by (cases S) auto
-
-
 definition (in -) conflict_remove1 :: \<open>nat literal \<Rightarrow> conflict_rel \<Rightarrow> conflict_rel\<close> where
   \<open>conflict_remove1 =
      (\<lambda>L (n,xs). if xs ! (atm_of L) = None then (n, xs) else (n-1, xs [atm_of L := None]))\<close>
@@ -4459,7 +4555,7 @@ lemma update_confl_tl_wl_int_update_confl_tl_wl:
   subgoal for CLS' CLS
     unfolding case_prod_beta uncurry_def update_confl_tl_wl_int_def comp_def
     using resolve_cls_wl'_if_conflict_merge_abs_union[of \<open>snd CLS\<close> \<open>fst (fst CLS)\<close> 
-      \<open>snd (fst CLS)\<close> \<open>get_count_max_lvls (snd CLS')\<close>, symmetric] twl_struct_invs_confl[of \<open>snd CLS\<close>]
+      \<open>snd (fst CLS)\<close> \<open>get_count_max_lvls_int (snd CLS')\<close>, symmetric] twl_struct_invs_confl[of \<open>snd CLS\<close>]
         update_confl_tl_wl_int_state_helper[of \<open>snd (fst CLS)\<close> \<open>fst (fst CLS)\<close>  \<open>snd CLS\<close>]
       counts_max_lvl_ge_1[of \<open>snd CLS\<close>]
       resolve_cls_wl'_counts_max_lvl[of \<open>snd CLS\<close> \<open>fst (fst CLS)\<close>]
@@ -4774,14 +4870,17 @@ sepref_thm skip_and_resolve_loop_wl_D
     annotated_lit.splits[split] lit_and_ann_of_propagated_st_def[simp]
     annotated_lit.disc_eq_case(2)[simp] 
     skip_and_resolde_hd_D\<^sub>0[simp]
-    not_None_eq[simp del]
+    not_None_eq[simp del] maximum_level_removed_eq_count_dec_def[simp]
   apply (subst PR_CONST_def)
   unfolding skip_and_resolve_loop_wl_D_def
   apply (rewrite at \<open>\<not>_ \<and> \<not> _\<close> short_circuit_conv)
   apply (rewrite at \<open>let _ = the _ in _\<close> Let_def)
+  unfolding 
+    maximum_level_removed_eq_count_dec_def[unfolded get_maximum_level_remove_def, symmetric]
   unfolding
     literals_to_update_wl_literals_to_update_wl_empty
-    get_conflict_wl.simps get_trail_wl.simps get_conflict_wl_get_conflict_wl_is_Nil
+    get_conflict_wl.simps get_trail_wl.simps
+    maximum_level_removed_eq_count_dec_def[symmetric]
     is_decided_hd_trail_wl_def[symmetric]
     skip_and_resolve_loop_inv_def
     maximum_level_remove[symmetric]
@@ -4791,6 +4890,7 @@ sepref_thm skip_and_resolve_loop_wl_D
     lit_and_ann_of_propagated_st_def[symmetric]
     get_max_lvl_st_def[symmetric]
     count_decided_st_alt_def[symmetric]
+    get_conflict_wl_get_conflict_wl_is_Nil
   by sepref (* slow *)
 
 concrete_definition (in -) skip_and_resolve_loop_wl_D_code
