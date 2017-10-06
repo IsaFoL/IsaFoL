@@ -1844,9 +1844,7 @@ definition vmtf_find_next_undef :: \<open>vmtf_remove_int \<Rightarrow> (nat, na
          let n = the next_search;
          ASSERT(Pos n \<in> snd ` D\<^sub>0);
          ASSERT (n < length A);
-         if undefined_lit M (Pos n)
-         then RETURN (Some n)
-         else RETURN (get_next (A!n))
+         RETURN (get_next (A!n))
         }
       )
       next_search
@@ -1895,18 +1893,16 @@ proof -
     subgoal using vmtf by auto
     subgoal using vmtf by auto
     subgoal using vmtf by (auto dest: next_search_le_A')
-    subgoal by (auto dest!: next_search_N\<^sub>1 simp: image_image in_N\<^sub>1_atm_of_in_atms_of_iff)
+    subgoal by (auto simp: image_image in_N\<^sub>1_atm_of_in_atms_of_iff)
+        (metis next_search_N\<^sub>1 option.distinct(1) option.sel wf_vmtf_next_search_take_next)
+    subgoal by (auto simp: image_image in_N\<^sub>1_atm_of_in_atms_of_iff)
+        (metis next_search_N\<^sub>1 option.distinct(1) option.sel wf_vmtf_next_search_take_next)
+    subgoal by (auto dest: no_next_search_all_defined next_search_N\<^sub>1)
     subgoal by (auto dest: next_search_le_A')
     subgoal for x1 A' x2 m' x2a lst' next_search' x2c s
       by (auto dest: no_next_search_all_defined next_search_N\<^sub>1)
     subgoal by (auto dest: wf_vmtf_next_search_take_next)
     subgoal by (auto simp: image_image in_N\<^sub>1_atm_of_in_atms_of_iff)
-        (metis next_search_N\<^sub>1 option.distinct(1) option.sel wf_vmtf_next_search_take_next)
-    subgoal by (auto dest: next_search_N\<^sub>1 no_next_search_all_defined wf_vmtf_next_search_take_next)
-    subgoal by (auto dest: no_next_search_all_defined next_search_N\<^sub>1)
-    subgoal by (auto dest: no_next_search_all_defined)
-    subgoal by auto
-    subgoal by auto
     done
 qed
 
