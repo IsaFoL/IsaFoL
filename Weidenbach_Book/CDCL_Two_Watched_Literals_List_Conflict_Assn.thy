@@ -149,17 +149,28 @@ definition option_conflict_rel where
    (C \<noteq> None \<longrightarrow> ((n,xs), the C) \<in> conflict_rel)}
    \<close>
 
-lemma option_conflict_rel_conflict_rel_iff: \<open>((False, (n, xs)), Some C) \<in> option_conflict_rel \<longleftrightarrow>
+lemma option_conflict_rel_conflict_rel_iff: 
+   \<open>((False, (n, xs)), Some C) \<in> option_conflict_rel \<longleftrightarrow>
    ((n, xs), C) \<in> conflict_rel\<close>
    unfolding option_conflict_rel_def by auto
 
 
 type_synonym (in -) conflict_option_assn = "bool \<times> uint32 \<times> bool option array"
 
-definition conflict_option_assn :: \<open>nat clause option \<Rightarrow> conflict_option_assn \<Rightarrow> assn\<close> where
-\<open>conflict_option_assn =
-   hr_comp (bool_assn *assn uint32_nat_assn *assn array_assn (option_assn bool_assn))
-     option_conflict_rel\<close>
+abbreviation (in -) conflict_rel_assn :: \<open>conflict_rel \<Rightarrow> conflict_assn \<Rightarrow> assn\<close> where
+ \<open>conflict_rel_assn \<equiv> (uint32_nat_assn *assn array_assn (option_assn bool_assn))\<close>
+
+type_synonym (in -) conflict_option_rel = \<open>bool \<times>nat \<times> bool option list\<close>
+
+abbreviation (in -)conflict_option_rel_assn :: \<open>conflict_option_rel \<Rightarrow> conflict_option_assn \<Rightarrow> assn\<close> where
+ \<open>conflict_option_rel_assn \<equiv> (bool_assn *assn conflict_rel_assn)\<close>
+
+definition conflict_option_assn
+  :: \<open>nat clause option \<Rightarrow> conflict_option_assn \<Rightarrow> assn\<close>
+where
+  \<open>conflict_option_assn =
+     hr_comp (bool_assn *assn uint32_nat_assn *assn array_assn (option_assn bool_assn))
+       option_conflict_rel\<close>
 
 definition (in -) conflict_assn_is_None :: \<open>_ \<Rightarrow> bool\<close> where
   \<open>conflict_assn_is_None = (\<lambda>(b, _, _). b)\<close>
@@ -171,12 +182,13 @@ lemma conflict_assn_is_None_is_None: \<open>(RETURN o conflict_assn_is_None, RET
 
 lemma conflict_assn_is_None_conflict_assn_is_None:
  \<open>(return o conflict_assn_is_None, RETURN o conflict_assn_is_None) \<in>
-  (bool_assn *assn uint32_nat_assn *assn array_assn (option_assn bool_assn))\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  conflict_option_rel_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare
    (sep_auto simp: conflict_assn_is_None_def)
 
 lemma conflict_assn_is_None_is_none_Code[sepref_fr_rules]:
   \<open>(return \<circ> conflict_assn_is_None, RETURN \<circ> is_None) \<in> conflict_option_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+    (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
   using conflict_assn_is_None_conflict_assn_is_None[FCOMP conflict_assn_is_None_is_None,
   unfolded conflict_option_assn_def[symmetric]] .
 
@@ -192,7 +204,7 @@ lemma conflict_assn_is_empty_is_empty:
 
 lemma conflict_assn_is_empty_conflict_assn_is_empty:
  \<open>(return o conflict_assn_is_empty, RETURN o conflict_assn_is_empty) \<in>
-  (bool_assn *assn uint32_nat_assn *assn array_assn (option_assn bool_assn))\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  conflict_option_rel_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare
      (sep_auto simp: conflict_assn_is_empty_def uint32_nat_rel_def br_def nat_of_uint32_0_iff)
 
@@ -201,13 +213,14 @@ lemma conflict_assn_is_empty_is_empty_code[sepref_fr_rules]:
       [\<lambda>D. D \<noteq> None]\<^sub>a conflict_option_assn\<^sup>k \<rightarrow> bool_assn\<close>
   using conflict_assn_is_empty_conflict_assn_is_empty[FCOMP conflict_assn_is_empty_is_empty,
   unfolded conflict_option_assn_def[symmetric]] unfolding the_is_empty_def
+  conflict_option_assn_def[symmetric]
   by simp
 
 end
 
 
 lemma (in -) mset_as_position_length_not_None:
-   \<open>mset_as_position x2 C \<Longrightarrow>  size C = length (filter (op \<noteq> None) x2)\<close>
+   \<open>mset_as_position x2 C \<Longrightarrow> size C = length (filter (op \<noteq> None) x2)\<close>
 proof (induction rule: mset_as_position.induct)
   case (empty n)
   then show ?case by auto
