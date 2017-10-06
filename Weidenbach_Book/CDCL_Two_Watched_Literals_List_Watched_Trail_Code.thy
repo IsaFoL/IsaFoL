@@ -1717,7 +1717,7 @@ where
     uint32_nat_assn
     )\<close>
 
-definition twl_st_trail_ref :: \<open>(twl_st_wl_int_trail_ref \<times> nat twl_st_wl) set\<close> where
+definition (in twl_array_code_ops) twl_st_trail_ref :: \<open>(twl_st_wl_int_trail_ref \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_trail_ref =
   {((M', N', U', D', Q', W', vm, \<phi>, clvls), (M, N, U, D, NP, UP, Q, W)).
     (M', M) \<in> trailt_ref \<and> N' = N \<and> U' = U \<and> D = D' \<and>
@@ -5758,7 +5758,7 @@ definition twl_st_confl_extracted_int_assn
   uint32_nat_assn
   )\<close>
 
-definition twl_st_ref_no_clvls :: \<open>(twl_st_wl_int \<times> nat twl_st_wl) set\<close> where
+definition (in twl_array_code_ops) twl_st_ref_no_clvls :: \<open>(twl_st_wl_int \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_ref_no_clvls =
   {((M', N', U', D', Q', W', vm, \<phi>, clvls), (M, N, U, D, NP, UP, Q, W)).
     M = M' \<and> N' = N \<and> U' = U \<and> 
@@ -8149,7 +8149,7 @@ prepare_code_thms (in -) st_remove_highest_lvl_from_confl_code_def
 lemmas st_remove_highest_lvl_from_confl_int_hnr[sepref_fr_rules] =
    st_remove_highest_lvl_from_confl_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
 
-definition twl_st_assn_no_clvls :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
+definition (in twl_array_code_ops) twl_st_assn_no_clvls :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>twl_st_assn_no_clvls = hr_comp twl_st_int_assn twl_st_ref_no_clvls\<close>
 
 lemma twl_st_assn_twl_st_wl_W_conflict:
@@ -9199,9 +9199,6 @@ lemmas decide_wl_or_skip_D_hnr[sepref_fr_rules] =
 
 
 subsubsection \<open>Combining Together: the Other Rules\<close>
-
-definition get_conflict_wl_is_None_int :: \<open>twl_st_wl_int \<Rightarrow> bool\<close> where
-  \<open>get_conflict_wl_is_None_int = (\<lambda>(M, N, U, D, Q, W). is_None D)\<close>
 
 sepref_register get_conflict_wl_is_None
 
