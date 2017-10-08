@@ -2120,7 +2120,7 @@ next
   then show ?case using monotone_nat[of n "Suc n" C] by auto
 qed
 
-lemma resolution_prover_with_weights_prover_drive:
+lemma resolution_prover_with_weights_resolution_prover':
   assumes "St \<leadsto>\<^sub>w St'"
   shows "state_of_nth_state St \<leadsto> state_of_nth_state St'"
   using assms proof (induction rule: resolution_prover_with_weights.induct)
@@ -2192,9 +2192,9 @@ next
     unfolding ord_FO_resolution_inferences_between_def by auto
 qed
 
-lemma resolution_prover_with_weights_prover_derivation:
+lemma resolution_prover_with_weights_resolution_prover:
   "chain (op \<leadsto>\<^sub>w) Sts \<Longrightarrow> chain (op \<leadsto>) (lmap state_of_nth_state Sts)"
-  using resolution_prover_with_weights_prover_drive using chain_lmap monotone_size monotone_nat by metis
+  using resolution_prover_with_weights_resolution_prover' using chain_lmap monotone_size monotone_nat by metis
 
 context
   fixes 
@@ -2229,7 +2229,7 @@ proof -
     using empty_Q0 non_empty_deriv by auto
   moreover
   have "chain op \<leadsto> (lmap state_of_nth_state Sts)"
-    using deriv using resolution_prover_with_weights_prover_derivation by metis
+    using deriv resolution_prover_with_weights_resolution_prover by blast 
   moreover
   have "\<forall>\<rho> C. is_renaming \<rho> \<longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
     using selection_renaming_invariant by auto
