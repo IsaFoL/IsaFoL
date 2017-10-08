@@ -1335,9 +1335,7 @@ proof -
   have l_vmtf_notin_empty: \<open>l_vmtf_notin [] 0 (replicate n (l_vmtf_ATM 0 None None))\<close> for n
     unfolding l_vmtf_notin_def
     by auto
-  have take_Suc_append: \<open>take (Suc a) c = (take a c @ [c ! a])\<close>
-    if  \<open>a < length c\<close> for a b c
-    using that by (auto simp: take_Suc_conv_app_nth)
+
   have K2: \<open>distinct N \<Longrightarrow> lst < length N \<Longrightarrow> N!lst \<in> set (take lst N) \<Longrightarrow> False\<close>
     for lst x N
     by (metis (no_types, lifting) in_set_conv_nth length_take less_not_refl min_less_iff_conj
@@ -1393,15 +1391,15 @@ proof -
       apply (intro conjI)
       subgoal
         using L_N dist
-        by (auto 5 5 simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+        by (auto 5 5 simp: take_Suc_conv_app_nth hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
             option_last_def hd_rev last_map intro!: vmtf_cons dest: K2)
       subgoal
         using L_N dist
-        by (auto 5 5 simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+        by (auto 5 5 simp: take_Suc_conv_app_nth hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
             option_last_def hd_rev last_map intro!: vmtf_cons dest: K2)
       subgoal (*TODO tune proof*)
         using L_N dist List.last_in_set[of \<open>take lst N'\<close>] set_take_subset[of lst N']
-        apply (auto simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+        apply (auto simp: take_Suc_conv_app_nth hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
             option_last_def hd_rev last_map)
         by (metis List.last_in_set diff_le_self diff_less_mono2 l_vmtf_le_length last_map
           le_eq_less_or_eq len_greater_imp_nonempty length_drop length_rev list.map_disc_iff
@@ -1412,11 +1410,11 @@ proof -
         apply (intro conjI)
         subgoal
           using L_N dist
-          by (auto 5 5 simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+          by (auto 5 5 simp: take_Suc_conv_app_nth hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
               option_last_def hd_rev last_map intro!: vmtf_cons dest: K2)
         subgoal
           using L_N dist
-          by (auto 5 5 simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+          by (auto 5 5 simp: take_Suc_conv_app_nth hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
               option_last_def hd_rev last_map intro!: vmtf_cons dest: K2)
         subgoal by (auto simp: drop_Suc tl_drop)
         subgoal by auto
@@ -1425,11 +1423,11 @@ proof -
         subgoal by auto
         subgoal
           using L_N dist
-          by (auto 5 5 simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+          by (auto 5 5 simp: take_Suc_conv_app_nth hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
               option_last_def hd_rev last_map intro!: vmtf_notin_vmtf_cons dest: K2)
         subgoal
           using L_N dist
-          by (auto 5 5 simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+          by (auto 5 5 simp: take_Suc_conv_app_nth hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
               option_last_def hd_rev last_map intro!: vmtf_notin_vmtf_cons dest: K2)
         done
       done
@@ -1917,7 +1915,7 @@ sepref_definition extract_model_of_state_code
   :: \<open>[\<lambda>_. twl_array_code N\<^sub>0]\<^sub>a (twl_array_code_ops.twl_st_assn N\<^sub>0)\<^sup>d \<rightarrow> list_assn unat_lit_assn\<close>
   unfolding extract_model_of_state_def map_by_foldl[symmetric]
      comp_def foldl_conv_fold foldl_conv_fold
-  unfolding HOL_list.fold_custom_empty  
+  unfolding HOL_list.fold_custom_empty
   supply [[goals_limit = 1]]
   by sepref
 
