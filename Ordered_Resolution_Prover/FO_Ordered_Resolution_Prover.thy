@@ -65,6 +65,8 @@ definition ord_FO_\<Gamma> :: "'a inference set" where
 
 interpretation ord_FO_resolution: inference_system ord_FO_\<Gamma> .
 
+definition "ord_FO_resolution_inferences_between = ord_FO_resolution.inferences_between"
+
 inductive subsume_resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where (* This is never used. *)
   "subsume_resolve (D + {#L#}) (C + (D + {#- L#}) \<cdot> \<sigma>) (C + D \<cdot> \<sigma>)"
 
@@ -2027,6 +2029,24 @@ qed
 
 end
 
+end
+
+locale FO_resolution_prover_with_weights =
+  FO_resolution_prover S subst_atm id_subst comp_subst mk_var_dis mgu less_atm
+  for
+    S :: "('a :: wellorder) clause \<Rightarrow> _" and
+    subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
+    id_subst :: "'s" and
+    comp_subst :: "'s => 's => 's" and
+    mk_var_dis :: "'a literal multiset list \<Rightarrow> 's list" and
+    mgu :: "'a set set \<Rightarrow> 's option" and
+    less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
+  +
+  fixes
+    weight :: "('a clause \<times> nat) \<Rightarrow> nat" 
+begin
+
+
 fun state_of_nth_state :: "'a nth_state \<Rightarrow> 'a state" where
   "state_of_nth_state (N, P, Q, n) = (fst ` N, fst ` P, fst ` Q)"
 
@@ -2045,34 +2065,42 @@ abbreviation grounding_of_nth_state :: "'a nth_state \<Rightarrow> 'a clause set
 abbreviation limit_nth_state :: "'a nth_state llist \<Rightarrow> 'a state" where
   "limit_nth_state \<equiv> limit_state \<circ> (lmap state_of_nth_state)"
 
-context
-  fixes
-    weight :: "('a clause \<times> nat) \<Rightarrow> nat"
-begin
-
-inductive prioritizing_prover :: "'a nth_state \<Rightarrow> 'a nth_state \<Rightarrow> bool" (infix "\<leadsto>\<^sub>p" 50)  where
-  tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>p (N, P, Q, Suc n)"
-| forward_subsumption: "(\<exists>(D,j) \<in> P \<union> Q. subsumes D C) \<Longrightarrow> (N \<union> {(C,i)}, P, Q, n) \<leadsto>\<^sub>p (N, P, Q, Suc n)"
-| backward_subsumption_P: "(\<exists>(D,j) \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P \<union> {(C,i)}, Q, n) \<leadsto>\<^sub>p (N, P, Q, Suc n)"
-| backward_subsumption_Q: "(\<exists>(D,j) \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P, Q \<union> {(C,i)}, n) \<leadsto>\<^sub>p (N, P, Q, Suc n)"
+inductive resolution_prover_with_weights :: "'a nth_state \<Rightarrow> 'a nth_state \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w" 50)  where
+  tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, Suc n)"
+| forward_subsumption: "(\<exists>(D,j) \<in> P \<union> Q. subsumes D C) \<Longrightarrow> (N \<union> {(C,i)}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, Suc n)"
+| backward_subsumption_P: "(\<exists>(D,j) \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P \<union> {(C,i)}, Q, n) \<leadsto>\<^sub>w (N, P, Q, Suc n)"
+| backward_subsumption_Q: "(\<exists>(D,j) \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P, Q \<union> {(C,i)}, n) \<leadsto>\<^sub>w (N, P, Q, Suc n)"
 | forward_reduction: "(\<exists>D L'. (D + {#L'#},j) \<in> P \<union> Q \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
-    (N \<union> {(C + {#L#},i)}, P, Q, n) \<leadsto>\<^sub>p (N \<union> {(C, Suc n)}, P, Q, Suc n)"
+    (N \<union> {(C + {#L#},i)}, P, Q, n) \<leadsto>\<^sub>w (N \<union> {(C, Suc n)}, P, Q, Suc n)"
 | backward_reduction_P: "(\<exists>D L'. (D + {#L'#}, j) \<in> N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
-    (N, P \<union> {(C + {#L#},i)}, Q, n) \<leadsto>\<^sub>p (N, P \<union> {(C, Suc n)}, Q, Suc n)"
+    (N, P \<union> {(C + {#L#},i)}, Q, n) \<leadsto>\<^sub>w (N, P \<union> {(C, Suc n)}, Q, Suc n)"
 | backward_reduction_Q: "(\<exists>D L'. (D + {#L'#}, j) \<in> N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
-    (N, P, Q \<union> {(C + {#L#}, i)}, n) \<leadsto>\<^sub>p (N, P \<union> {(C, Suc n)}, Q, Suc n)"
+    (N, P, Q \<union> {(C + {#L#}, i)}, n) \<leadsto>\<^sub>w (N, P \<union> {(C, Suc n)}, Q, Suc n)"
 | clause_processing: 
-    "(N \<union> {C}, P, Q, n) \<leadsto>\<^sub>p (N, P \<union> {C}, Q, Suc n)"
+    "(N \<union> {(C,i)}, P, Q, n) \<leadsto>\<^sub>w (N, P \<union> {(C,i)}, Q, Suc n)"
 | inference_computation:
     "\<forall>(D, j)\<in>P. weight (C, i) \<le> weight (D, j) \<Longrightarrow>
-     N = (\<lambda>D. (D, Suc n)) ` concls_of (ord_FO_resolution.inferences_between (fst ` Q) C) \<Longrightarrow>
-     ({}, P \<union> {(C, i)}, Q, n) \<leadsto>\<^sub>p (N, P, Q \<union> {(C, i)}, Suc n)"
+     N = (\<lambda>D. (D, Suc n)) ` concls_of (ord_FO_resolution_inferences_between (fst ` Q) C) \<Longrightarrow>
+     ({}, P \<union> {(C, i)}, Q, n) \<leadsto>\<^sub>w (N, P, Q \<union> {(C, i)}, Suc n)"
 
-context
-  assumes
+end
+
+locale FO_resolution_prover_with_monotone_weights =
+  FO_resolution_prover_with_weights S subst_atm id_subst comp_subst mk_var_dis mgu less_atm weight
+  for
+    S :: "('a :: wellorder) clause \<Rightarrow> _" and
+    subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
+    id_subst :: "'s" and
+    comp_subst :: "'s => 's => 's" and
+    mk_var_dis :: "'a literal multiset list \<Rightarrow> 's list" and
+    mgu :: "'a set set \<Rightarrow> 's option" and
+    less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
+    weight :: "('a clause \<times> nat) \<Rightarrow> nat" +
+  assumes 
     monotone_size: "size C < size D  \<Longrightarrow> weight (C, m) < weight (D, m)" and
     monotone_nat: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
 begin
+
 
 lemma "size C \<le> weight (C, n)"
 proof(induction C)
@@ -2092,10 +2120,10 @@ next
   then show ?case using monotone_nat[of n "Suc n" C] by auto
 qed
 
-lemma prioritizing_prover_prover_drive:
-  assumes "St \<leadsto>\<^sub>p St'"
+lemma resolution_prover_with_weights_prover_drive:
+  assumes "St \<leadsto>\<^sub>w St'"
   shows "state_of_nth_state St \<leadsto> state_of_nth_state St'"
-  using assms proof (induction rule: prioritizing_prover.induct)
+  using assms proof (induction rule: resolution_prover_with_weights.induct)
   case (tautology_deletion A C N i P Q n)
   then show ?case
     using resolution_prover.tautology_deletion by auto
@@ -2153,19 +2181,20 @@ next
     using resolution_prover.clause_processing by auto
 next
   case (inference_computation P C i N n Q)
-  then have "fst ` N = fst ` (\<lambda>D. (D, Suc n)) ` concls_of (ord_FO_resolution.inferences_between (fst ` Q) C)"
+  then have "fst ` N = fst ` (\<lambda>D. (D, Suc n)) ` concls_of (ord_FO_resolution_inferences_between (fst ` Q) C)"
     by auto
-  then have "fst ` N = (fst \<circ> (\<lambda>D. (D, Suc n))) ` concls_of (ord_FO_resolution.inferences_between (fst ` Q) C)"
+  then have "fst ` N = (fst \<circ> (\<lambda>D. (D, Suc n))) ` concls_of (ord_FO_resolution_inferences_between (fst ` Q) C)"
     using image_comp by simp
-  then have "fst ` N = concls_of (ord_FO_resolution.inferences_between (fst ` Q) C)"
+  then have "fst ` N = concls_of (ord_FO_resolution_inferences_between (fst ` Q) C)"
     by auto
   then show ?case 
-    using resolution_prover.inference_computation[of "fst ` N" "fst ` Q" C] by auto
+    using resolution_prover.inference_computation[of "fst ` N" "fst ` Q" C]
+    unfolding ord_FO_resolution_inferences_between_def by auto
 qed
 
-lemma prioritizing_prover_prover_derivation:
-  "chain (op \<leadsto>\<^sub>p) Sts \<Longrightarrow> chain (op \<leadsto>) (lmap state_of_nth_state Sts)"
-  using prioritizing_prover_prover_drive using chain_lmap monotone_size monotone_nat by metis
+lemma resolution_prover_with_weights_prover_derivation:
+  "chain (op \<leadsto>\<^sub>w) Sts \<Longrightarrow> chain (op \<leadsto>) (lmap state_of_nth_state Sts)"
+  using resolution_prover_with_weights_prover_drive using chain_lmap monotone_size monotone_nat by metis
 
 context
   fixes 
@@ -2174,7 +2203,7 @@ context
     finite_Sts0: "finite (clss_of_nth_state (lnth Sts 0))" and
     empty_P0: "P_of_nth_state (lnth Sts 0) = {}" and
     empty_Q0: "Q_of_nth_state (lnth Sts 0) = {}" and
-    deriv: "chain (op \<leadsto>\<^sub>p) Sts" and
+    deriv: "chain (op \<leadsto>\<^sub>w) Sts" and
     non_empty_deriv: "enat 0 < llength Sts"
 begin
 
@@ -2200,7 +2229,7 @@ proof -
     using empty_Q0 non_empty_deriv by auto
   moreover
   have "chain op \<leadsto> (lmap state_of_nth_state Sts)"
-    using deriv using prioritizing_prover_prover_derivation by metis
+    using deriv using resolution_prover_with_weights_prover_derivation by metis
   moreover
   have "\<forall>\<rho> C. is_renaming \<rho> \<longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
     using selection_renaming_invariant by auto
@@ -2221,32 +2250,8 @@ end
 
 end
 
-end
-
-
-context
-  fixes i j::nat
-  assumes nz: "i > 0" "j > 0"
-begin
-
-fun sum_product_weight :: "('a clause \<times> nat) \<Rightarrow> nat" where
-  "sum_product_weight (C, m) = i * m + j * size C"
-
-lemma sum_product_weight_monotone_size: "size C < size D  \<Longrightarrow> sum_product_weight (C, m) < sum_product_weight (D, m)"
-  using nz by auto
-
-lemma sum_product_weight_monotone_nat: "m < n \<Longrightarrow> sum_product_weight (C, m) < sum_product_weight (C, n)"
-  using nz by auto
-
-thm monotone_completeness
-
-end
-
-end
-
-locale FO_resolution_prover_with_weights =
-  FO_resolution subst_atm id_subst comp_subst mk_var_dis mgu less_atm +
-  selection S
+locale FO_resolution_prover_with_sum_product_weights =
+  FO_resolution_prover S subst_atm id_subst comp_subst mk_var_dis mgu less_atm
   for
     S :: "('a :: wellorder) clause \<Rightarrow> _" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
@@ -2254,8 +2259,20 @@ locale FO_resolution_prover_with_weights =
     comp_subst :: "'s => 's => 's" and
     mk_var_dis :: "'a literal multiset list \<Rightarrow> 's list" and
     mgu :: "'a set set \<Rightarrow> 's option" and
-    less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
+    less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
+    i :: nat and
+    j :: nat and
+    weight :: "('a clause \<times> nat) \<Rightarrow> nat" +
+  assumes ij_gr_zero: "i > 0" "j > 0"
+  assumes weight_def: "weight = (\<lambda>(C, m). i * m + j * size C)"
 begin
+
+sublocale FO_resolution_prover_with_monotone_weights
+   using ij_gr_zero weight_def apply unfold_locales by auto
+
+thm monotone_fairness
+
+thm monotone_completeness
 
 end
 
