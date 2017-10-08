@@ -441,4 +441,16 @@ lemma uint32_nat_assn_nat_assn_nat_of_uint32:
    \<open>uint32_nat_assn aa a = nat_assn aa (nat_of_uint32 a)\<close>
   by (auto simp: pure_def uint32_nat_rel_def br_def)
 
+definition (in -) sum_mod_2_32 where
+  \<open>sum_mod_2_32 a b = (a + b) mod 2 ^32\<close>
+
+lemma (in -) nat_of_uint32_plus:
+  \<open>nat_of_uint32 (a + b) = (nat_of_uint32 a + nat_of_uint32 b) mod (2 ^ 32)\<close>
+  by transfer (auto simp: unat_word_ariths)
+
+lemma (in -) sum_mod_2_32: \<open>(uncurry (return oo op +), uncurry (RETURN oo sum_mod_2_32)) \<in> 
+  uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a
+  uint32_nat_assn\<close>
+  by sepref_to_hoare
+     (sep_auto simp: sum_mod_2_32_def uint32_nat_rel_def br_def nat_of_uint32_plus)
 end

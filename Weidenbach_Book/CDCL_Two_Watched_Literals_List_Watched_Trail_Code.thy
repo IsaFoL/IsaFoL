@@ -312,23 +312,6 @@ lemma counts_max_lvl_add_mset: \<open>counts_max_lvl M (add_mset L C) =
 lemma counts_max_lvl_empty[simp]: \<open>counts_max_lvl M {#} = 0\<close>
   by (auto simp: counts_max_lvl_def)
 
-(* TODO Move *)
-lemma (in -)tautology_decomp':
-  \<open>tautology C \<longleftrightarrow> (\<exists>L. L \<in># C \<and> - L \<in># C)\<close>
-  unfolding tautology_decomp
-  apply auto
-  apply (case_tac L)
-   apply auto
-  done
-
-lemma (in -) in_multiset_minus_notin_snd[simp]: \<open>a \<notin># B \<Longrightarrow> a \<in># A - B \<longleftrightarrow> a \<in># A\<close>
-  by (metis count_greater_zero_iff count_inI in_diff_count)
-
-lemma (in -) distinct_mset_in_diff:
-  \<open>distinct_mset C \<Longrightarrow> a \<in># C - D \<longleftrightarrow> a \<in># C \<and> a \<notin># D\<close>
-  by (meson distinct_mem_diff_mset in_multiset_minus_notin_snd)
-(* End Move *)
-
 lemma counts_max_lvl_all_poss:
    \<open>counts_max_lvl M C = counts_max_lvl M (poss (atm_of `# C))\<close>
   unfolding counts_max_lvl_def
@@ -338,13 +321,6 @@ lemma counts_max_lvl_all_poss:
     using get_level_uminus[of M L] 
     by (cases L) (auto)
   done
-
-lemma (in -) atm_of_notin_atms_of_iff: \<open>atm_of L \<notin> atms_of C' \<longleftrightarrow> L \<notin># C' \<and> -L \<notin># C'\<close> for L C'
-  by (cases L) (auto simp: atm_iff_pos_or_neg_lit)
-
-lemma (in -) atm_of_notin_atms_of_iff_Pos_Neg:
-   \<open>L \<notin> atms_of C' \<longleftrightarrow> Pos L \<notin># C' \<and> Neg L \<notin># C'\<close> for L C'
-  by (auto simp: atm_iff_pos_or_neg_lit)
 
 lemma counts_max_lvl_distinct_cong:
   assumes 
@@ -364,8 +340,6 @@ proof -
   have H: \<open>distinct_mset {#L \<in># poss (atm_of `# C). get_level M L = count_decided M#}\<close>
     if \<open>distinct_mset C\<close> \<open>\<not>tautology C\<close> for C
     using that by (induction C) (auto simp: tautology_add_mset atm_of_eq_atm_of)
-(*   apply (subst counts_max_lvl_all_poss)
-  apply (subst (2) counts_max_lvl_all_poss) *)
   show ?thesis
     apply (subst counts_max_lvl_all_poss)
     apply (subst (2) counts_max_lvl_all_poss)
@@ -379,8 +353,7 @@ proof -
 qed
 
 definition counts_maximum_level where
-  \<open>counts_maximum_level M C = 
-      {i. C \<noteq> None \<longrightarrow> i = counts_max_lvl M (the C)}\<close>
+  \<open>counts_maximum_level M C = {i. C \<noteq> None \<longrightarrow> i = counts_max_lvl M (the C)}\<close>
 
 lemma counts_maximum_level_None[simp]: \<open>counts_maximum_level M None = Collect (\<lambda>_. True)\<close>
   by (auto simp: counts_maximum_level_def)
@@ -432,7 +405,7 @@ lemma literals_are_in_N\<^sub>0_int_in_D\<^sub>0':
 
 end
 
-lemma Pot_unat_lit_assn':
+lemma Pos_unat_lit_assn':
   \<open>(return o (\<lambda>n. two_uint32 * n), RETURN o Pos) \<in> [\<lambda>L. L < upperN div 2]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   apply sepref_to_hoare
   by (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
@@ -442,7 +415,7 @@ lemma Pot_unat_lit_assn':
 context twl_array_code
 begin
 
-lemma Pot_unat_lit_assn:
+lemma Pos_unat_lit_assn:
   \<open>(return o (\<lambda>n. two_uint32 * n), RETURN o Pos) \<in> [\<lambda>L. Pos L \<in># N\<^sub>1]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   apply sepref_to_hoare
   using in_N1_less_than_upperN
@@ -1851,7 +1824,7 @@ proof -
       subgoal
         by (use that in \<open>auto simp: comp_PRE_def unit_prop_body_wl_D_inv_def
             mset_take_mset_drop_mset clauses_def mset_take_mset_drop_mset' drop_Suc
-             unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def watched_by_app_def
+            unit_prop_body_wl_inv_def watched_by_app_def
             unit_propagation_inner_loop_body_l_inv_def twl_st_ref_def
           simp del: twl_st_of.simps st_l_of_wl.simps\<close>)
       done
@@ -1896,7 +1869,7 @@ lemma cons_trail_Propagated_tr:
   [\<lambda>((L, C), M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f trailt_ref \<rightarrow> \<langle>trailt_ref\<rangle>nres_rel\<close>
   by (intro frefI nres_relI, rename_tac x y, case_tac \<open>fst (fst x)\<close>)
     (auto simp: trailt_ref_def valued_atm_on_trail_def cons_trail_Propagated_def uminus_lit_swap
-        trailt_ref_def cons_trail_Propagated_tr_def
+        cons_trail_Propagated_tr_def
         cons_trail_Propagated_tr_def Decided_Propagated_in_iff_in_lits_of_l nth_list_update'
       dest: vmtf_imp_consD)
 
@@ -4589,20 +4562,6 @@ definition extract_shorter_conflict_st_trivial_int :: \<open>twl_st_wl_int \<Rig
 \<open>extract_shorter_conflict_st_trivial_int = (\<lambda>(M, N, U, D, oth).
   RETURN (M, N, U, extract_shorter_conflict_l_trivial M D, oth))\<close>
 
-(* TODO Move *)
-definition (in -) sum_mod_upperN where
-  \<open>sum_mod_upperN a b = (a + b) mod upperN\<close>
-
-lemma (in -) nat_of_uint32_plus:
-  \<open>nat_of_uint32 (a + b) = (nat_of_uint32 a + nat_of_uint32 b) mod (2 ^ 32)\<close>
-  by transfer (auto simp: unat_word_ariths)
-
-lemma (in -) sum_mod_upperN: \<open>(uncurry (return oo op +), uncurry (RETURN oo sum_mod_upperN)) \<in> uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a
-  uint32_nat_assn\<close>
-  by sepref_to_hoare
-     (sep_auto simp: sum_mod_upperN_def uint32_nat_rel_def br_def nat_of_uint32_plus upperN_def)
-(* End Move *)
-
 definition extract_shorter_conflict_list_removed :: \<open>(nat, nat) ann_lits \<Rightarrow> conflict_option_rel \<Rightarrow>
   (conflict_option_rel \<times> (nat literal \<times> nat) option) nres\<close> where
 \<open>extract_shorter_conflict_list_removed = (\<lambda>M (_, (n, xs)). do {
@@ -4988,12 +4947,6 @@ proof -
       have Suc_ab_drop_ae: \<open>Suc (ab + size {#L \<in># C. Suc ab \<le> atm_of L#} + count_list (drop (Suc ab) ae) None) =
         length ae\<close>
         using ab_drop_ae 1[symmetric] Cons_nth_drop_Suc[OF ab_le, symmetric] Some by auto
-      have [simp]: \<open>sum_mod_upperN ab (Suc 0) = ab + Suc 0\<close>
-        unfolding sum_mod_upperN_def
-        apply (rule nat_mod_eq')
-        apply (rule ccontr)
-        using n_ge_upperN[of ab] cond ac
-        by (auto simp: upperN_def not_less_eq)
       have ab_upperN: \<open>0 < size {#L \<in># C. Suc ab \<le> atm_of L#} \<Longrightarrow> Suc ab \<le> upperN div 2\<close>
         using n_ge_upperN[of \<open>Suc ab\<close>] by (cases \<open>upperN div 2 \<le> ab\<close>; auto simp: upperN_def)
       show ?thesis
@@ -7130,7 +7083,7 @@ sepref_thm conflict_to_conflict_with_cls_code
   :: \<open>(array_assn unat_lit_assn)\<^sup>d *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow>\<^sub>a
       conflict_with_cls_int_assn\<close>
   supply uint32_nat_assn_zero_uint32_nat[sepref_fr_rules] [[goals_limit=1]]
-   Pot_unat_lit_assn'[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
+   Pos_unat_lit_assn'[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
    conflict_to_conflict_with_cls_code_helper[simp] uint32_2_hnr[sepref_fr_rules]
    fast_minus_def[simp]
   unfolding conflict_to_conflict_with_cls_def array_fold_custom_replicate
@@ -7449,7 +7402,7 @@ sepref_thm extract_shorter_conflict_list_removed_code
       trail_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow> conflict_option_rel_assn *assn
        option_assn (unat_lit_assn *assn uint32_nat_assn)\<close>
   supply [[goals_limit = 1]] uint32_nat_assn_zero_uint32_nat[sepref_fr_rules]
-    Pot_unat_lit_assn[sepref_fr_rules]
+    Pos_unat_lit_assn[sepref_fr_rules]
     Neg_unat_lit_assn[sepref_fr_rules] zero_uint32_nat_def[simp]
   unfolding extract_shorter_conflict_list_removed_def PR_CONST_def
   extract_shorter_conflict_list_int_def
@@ -8726,7 +8679,7 @@ sepref_thm lit_of_found_atm_D_code
       (array_assn bool_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>d \<rightarrow>
           option_assn unat_lit_assn\<close>
   supply [[goals_limit=1]]
-  supply not_is_None_not_None[simp] Pot_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
+  supply not_is_None_not_None[simp] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
   unfolding lit_of_found_atm_D_def PR_CONST_def lit_of_found_atm_D_pre_def
   by sepref
 

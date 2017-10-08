@@ -11,6 +11,14 @@ theory Partial_Clausal_Logic
     "../lib/Clausal_Logic"
 begin
 
+lemma atm_of_notin_atms_of_iff: \<open>atm_of L \<notin> atms_of C' \<longleftrightarrow> L \<notin># C' \<and> -L \<notin># C'\<close> for L C'
+  by (cases L) (auto simp: atm_iff_pos_or_neg_lit)
+
+lemma atm_of_notin_atms_of_iff_Pos_Neg:
+   \<open>L \<notin> atms_of C' \<longleftrightarrow> Pos L \<notin># C' \<and> Neg L \<notin># C'\<close> for L C'
+  by (auto simp: atm_iff_pos_or_neg_lit)
+
+
 text \<open>We define here entailment by a set of literals. This is \<^emph>\<open>not\<close> an Herbrand interpretation and
   has different properties. One key difference is that such a set can be inconsistent (i.e.\
   containing both @{term "L::'a literal"} and @{term "-L::'a literal"}).
@@ -666,6 +674,13 @@ qed
 lemma not_tautology_mono: \<open>D' \<subseteq># D \<Longrightarrow> \<not>tautology D \<Longrightarrow> \<not>tautology D'\<close>
   by (meson tautology_imp_tautology true_cls_add_mset true_cls_mono_leD)
 
+lemma tautology_decomp':
+  \<open>tautology C \<longleftrightarrow> (\<exists>L. L \<in># C \<and> - L \<in># C)\<close>
+  unfolding tautology_decomp
+  apply auto
+  apply (case_tac L)
+   apply auto
+  done
 
 subsubsection \<open>Entailment for clauses and propositions\<close>
 

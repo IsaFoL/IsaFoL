@@ -737,6 +737,9 @@ lemma distinct_extract_atms_clss: \<open>distinct (extract_atms_clss x N) \<long
 definition (in -) all_lits_of_atms_m :: \<open>'a multiset \<Rightarrow> 'a clause\<close> where
  \<open>all_lits_of_atms_m N = poss N + negs N\<close>
 
+lemma (in -) all_lits_of_atms_m_nil[simp]: \<open>all_lits_of_atms_m {#} = {#}\<close>
+  unfolding all_lits_of_atms_m_def by auto
+
 definition (in -) all_lits_of_atms_mm :: \<open>'a multiset multiset \<Rightarrow> 'a clause\<close> where
  \<open>all_lits_of_atms_mm N = poss (\<Union># N) + negs (\<Union># N)\<close>
 
@@ -1030,12 +1033,6 @@ lemma all_lits_of_mm_in_all_lits_of_m_in_iff:
   \<open>set_mset (all_lits_of_mm (mset `# mset CS)) \<subseteq> A \<longleftrightarrow>
     (\<forall>C\<in>set CS. set_mset (all_lits_of_m (mset C)) \<subseteq> A)\<close>
   by (auto simp: all_lits_of_mm_def all_lits_of_m_def)
-
-
-(*TODO Move*)
-lemma (in -) all_lits_of_atms_m_nil[simp]: \<open>all_lits_of_atms_m {#} = {#}\<close>
-  unfolding all_lits_of_atms_m_def by auto
-(*End Move*)
 
 lemma init_dt_init_dt_l_full:
   assumes
@@ -1624,14 +1621,7 @@ sepref_definition init_state_wl_D'_code
   apply (rewrite at "let _ = _; _ = \<hole> in _" annotate_assn[where A=\<open>clauses_ll_assn\<close>])
   apply (rewrite at "let _ = _ @ _; _= _; _= \<hole> in _" annotate_assn[where A=\<open>(arrayO_assn (arl_assn nat_assn))\<close>])
   supply [[goals_limit = 1]]
-  (*TODO: remove from sepref_frrules: unsafe rule*)
-  supply nat_of_uint32_int32_assn[sepref_fr_rules del]
   by sepref
-
-(* TODO Move *)
-lemma bind_refine_res: \<open>(\<And>x. x \<in> \<Phi> \<Longrightarrow> f x \<le> \<Down> R M) \<Longrightarrow> M' \<le> RES \<Phi> \<Longrightarrow> M' \<bind> f \<le> \<Down> R M\<close>
-  by (auto simp add: pw_le_iff refine_pw_simps)
-(* End Move *)
 
 lemma init_trail_D_ref:
   \<open>(uncurry init_trail_D, uncurry (RETURN oo (\<lambda> _ _. []))) \<in> [\<lambda>(N, n). mset N = N\<^sub>0 \<and>
