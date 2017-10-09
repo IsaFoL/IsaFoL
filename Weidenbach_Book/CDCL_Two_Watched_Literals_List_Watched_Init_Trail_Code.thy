@@ -737,6 +737,9 @@ lemma distinct_extract_atms_clss: \<open>distinct (extract_atms_clss x N) \<long
 definition (in -) all_lits_of_atms_m :: \<open>'a multiset \<Rightarrow> 'a clause\<close> where
  \<open>all_lits_of_atms_m N = poss N + negs N\<close>
 
+lemma (in -) all_lits_of_atms_m_nil[simp]: \<open>all_lits_of_atms_m {#} = {#}\<close>
+  unfolding all_lits_of_atms_m_def by auto
+
 definition (in -) all_lits_of_atms_mm :: \<open>'a multiset multiset \<Rightarrow> 'a clause\<close> where
  \<open>all_lits_of_atms_mm N = poss (\<Union># N) + negs (\<Union># N)\<close>
 
@@ -1030,12 +1033,6 @@ lemma all_lits_of_mm_in_all_lits_of_m_in_iff:
   \<open>set_mset (all_lits_of_mm (mset `# mset CS)) \<subseteq> A \<longleftrightarrow>
     (\<forall>C\<in>set CS. set_mset (all_lits_of_m (mset C)) \<subseteq> A)\<close>
   by (auto simp: all_lits_of_mm_def all_lits_of_m_def)
-
-
-(*TODO Move*)
-lemma (in -) all_lits_of_atms_m_nil[simp]: \<open>all_lits_of_atms_m {#} = {#}\<close>
-  unfolding all_lits_of_atms_m_def by auto
-(*End Move*)
 
 lemma init_dt_init_dt_l_full:
   assumes
@@ -1338,9 +1335,7 @@ proof -
   have l_vmtf_notin_empty: \<open>l_vmtf_notin [] 0 (replicate n (l_vmtf_ATM 0 None None))\<close> for n
     unfolding l_vmtf_notin_def
     by auto
-  have take_Suc_append: \<open>take (Suc a) c = (take a c @ [c ! a])\<close>
-    if  \<open>a < length c\<close> for a b c
-    using that by (auto simp: take_Suc_conv_app_nth)
+
   have K2: \<open>distinct N \<Longrightarrow> lst < length N \<Longrightarrow> N!lst \<in> set (take lst N) \<Longrightarrow> False\<close>
     for lst x N
     by (metis (no_types, lifting) in_set_conv_nth length_take less_not_refl min_less_iff_conj
@@ -1396,15 +1391,15 @@ proof -
       apply (intro conjI)
       subgoal
         using L_N dist
-        by (auto 5 5 simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+        by (auto 5 5 simp: take_Suc_conv_app_nth hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
             option_last_def hd_rev last_map intro!: vmtf_cons dest: K2)
       subgoal
         using L_N dist
-        by (auto 5 5 simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+        by (auto 5 5 simp: take_Suc_conv_app_nth hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
             option_last_def hd_rev last_map intro!: vmtf_cons dest: K2)
       subgoal (*TODO tune proof*)
         using L_N dist List.last_in_set[of \<open>take lst N'\<close>] set_take_subset[of lst N']
-        apply (auto simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+        apply (auto simp: take_Suc_conv_app_nth hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
             option_last_def hd_rev last_map)
         by (metis List.last_in_set diff_le_self diff_less_mono2 l_vmtf_le_length last_map
           le_eq_less_or_eq len_greater_imp_nonempty length_drop length_rev list.map_disc_iff
@@ -1415,11 +1410,11 @@ proof -
         apply (intro conjI)
         subgoal
           using L_N dist
-          by (auto 5 5 simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+          by (auto 5 5 simp: take_Suc_conv_app_nth hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
               option_last_def hd_rev last_map intro!: vmtf_cons dest: K2)
         subgoal
           using L_N dist
-          by (auto 5 5 simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+          by (auto 5 5 simp: take_Suc_conv_app_nth hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
               option_last_def hd_rev last_map intro!: vmtf_cons dest: K2)
         subgoal by (auto simp: drop_Suc tl_drop)
         subgoal by auto
@@ -1428,11 +1423,11 @@ proof -
         subgoal by auto
         subgoal
           using L_N dist
-          by (auto 5 5 simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+          by (auto 5 5 simp: take_Suc_conv_app_nth hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
               option_last_def hd_rev last_map intro!: vmtf_notin_vmtf_cons dest: K2)
         subgoal
           using L_N dist
-          by (auto 5 5 simp: take_Suc_append hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
+          by (auto 5 5 simp: take_Suc_conv_app_nth hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
               option_last_def hd_rev last_map intro!: vmtf_notin_vmtf_cons dest: K2)
         done
       done
@@ -1624,14 +1619,7 @@ sepref_definition init_state_wl_D'_code
   apply (rewrite at "let _ = _; _ = \<hole> in _" annotate_assn[where A=\<open>clauses_ll_assn\<close>])
   apply (rewrite at "let _ = _ @ _; _= _; _= \<hole> in _" annotate_assn[where A=\<open>(arrayO_assn (arl_assn nat_assn))\<close>])
   supply [[goals_limit = 1]]
-  (*TODO: remove from sepref_frrules: unsafe rule*)
-  supply nat_of_uint32_int32_assn[sepref_fr_rules del]
   by sepref
-
-(* TODO Move *)
-lemma bind_refine_res: \<open>(\<And>x. x \<in> \<Phi> \<Longrightarrow> f x \<le> \<Down> R M) \<Longrightarrow> M' \<le> RES \<Phi> \<Longrightarrow> M' \<bind> f \<le> \<Down> R M\<close>
-  by (auto simp add: pw_le_iff refine_pw_simps)
-(* End Move *)
 
 lemma init_trail_D_ref:
   \<open>(uncurry init_trail_D, uncurry (RETURN oo (\<lambda> _ _. []))) \<in> [\<lambda>(N, n). mset N = N\<^sub>0 \<and>
@@ -1927,7 +1915,7 @@ sepref_definition extract_model_of_state_code
   :: \<open>[\<lambda>_. twl_array_code N\<^sub>0]\<^sub>a (twl_array_code_ops.twl_st_assn N\<^sub>0)\<^sup>d \<rightarrow> list_assn unat_lit_assn\<close>
   unfolding extract_model_of_state_def map_by_foldl[symmetric]
      comp_def foldl_conv_fold foldl_conv_fold
-  unfolding HOL_list.fold_custom_empty  
+  unfolding HOL_list.fold_custom_empty
   supply [[goals_limit = 1]]
   by sepref
 

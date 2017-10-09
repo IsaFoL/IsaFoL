@@ -256,6 +256,9 @@ lemma list_assn_map_list_assn: \<open>list_assn g (map f x) xi = list_assn (\<la
 lemma RES_RETURN_RES: \<open>RES \<Phi> \<bind> (\<lambda>T. RETURN (f T)) = RES (f ` \<Phi>)\<close>
   by (simp add: bind_RES_RETURN_eq setcompr_eq_image)
 
+lemma bind_refine_res: \<open>(\<And>x. x \<in> \<Phi> \<Longrightarrow> f x \<le> \<Down> R M) \<Longrightarrow> M' \<le> RES \<Phi> \<Longrightarrow> M' \<bind> f \<le> \<Down> R M\<close>
+  by (auto simp add: pw_le_iff refine_pw_simps)
+
 lemma RECT_WHILEI_body_add_post_condition:
     \<open>REC\<^sub>T (WHILEI_body op \<bind> RETURN I' b' f) x' =
      (REC\<^sub>T (WHILEI_body op \<bind> RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f) x')\<close>
