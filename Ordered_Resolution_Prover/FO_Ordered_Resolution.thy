@@ -148,12 +148,12 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
   ord_resolve:
   "length CAs = n \<Longrightarrow>
    length Cs = n \<Longrightarrow>
-   length Ass = n \<Longrightarrow>
+   length AAs = n \<Longrightarrow>
    length As = n \<Longrightarrow>
    n \<noteq> 0 \<Longrightarrow>
-   \<forall>i < n. CAs ! i = Cs ! i + (poss (Ass ! i)) \<Longrightarrow> (* could be written with map *)
-   \<forall>i < n. Ass ! i \<noteq> {#} \<Longrightarrow>
-   Some \<sigma> = mgu (set_mset ` set (map2 add_mset As Ass)) \<Longrightarrow>
+   \<forall>i < n. CAs ! i = Cs ! i + (poss (AAs ! i)) \<Longrightarrow> (* could be written with map *)
+   \<forall>i < n. AAs ! i \<noteq> {#} \<Longrightarrow>
+   Some \<sigma> = mgu (set_mset ` set (map2 add_mset As AAs)) \<Longrightarrow>
    eligible \<sigma> As (D + negs (mset As)) \<Longrightarrow>
    \<forall>i. i < n \<longrightarrow> str_maximal_in (As ! i \<cdot>a \<sigma>) ((Cs ! i) \<cdot> \<sigma>) \<Longrightarrow>
    \<forall>i < n. S (CAs ! i) = {#} \<Longrightarrow> (* Use the ! style instead maybe, or maybe us the \<forall> \<in> . style above *)
@@ -213,7 +213,7 @@ lemma ord_resolve_ground_inst_sound:
   shows "I \<Turnstile> E \<cdot> \<eta>"
   using assms
 proof (cases rule: ord_resolve.cases)
-  case (ord_resolve n Cs Ass As D)
+  case (ord_resolve n Cs AAs As D)
   have DA: "DA = D + negs (mset As)"
     using ord_resolve by -
   have e: "E = (\<Union># mset Cs + D) \<cdot> \<sigma>"
@@ -222,13 +222,13 @@ proof (cases rule: ord_resolve.cases)
     using ord_resolve by -
   have cas_len: "length CAs = n"
     using ord_resolve by -
-  have ass_len: "length Ass = n"
+  have aas_len: "length AAs = n"
     using ord_resolve by -
   have as_len: "length As = n"
     using ord_resolve by -
-  have cas: "\<forall>i < n. CAs ! i = Cs ! i + poss (Ass ! i)"
+  have cas: "\<forall>i < n. CAs ! i = Cs ! i + poss (AAs ! i)"
     using ord_resolve by -
-  have mgu: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset As Ass))"
+  have mgu: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset As AAs))"
     using ord_resolve by -
   have len: "length CAs = length As"
     using as_len cas_len by auto
@@ -237,8 +237,8 @@ proof (cases rule: ord_resolve.cases)
   then have cc_true: "I \<Turnstile>m (mset CAs) \<cdot>cm \<sigma> \<cdot>cm \<eta>" and d_true: "I \<Turnstile> DA \<cdot> \<sigma> \<cdot> \<eta>"
     using cc_inst_true d_inst_true by auto
 
-  from mgu have unif: "\<forall>i<n. \<forall>A\<in>#Ass ! i. A \<cdot>a \<sigma> = As ! i \<cdot>a \<sigma>"
-    using mgu_unifier as_len ass_len by blast
+  from mgu have unif: "\<forall>i<n. \<forall>A\<in>#AAs ! i. A \<cdot>a \<sigma> = As ! i \<cdot>a \<sigma>"
+    using mgu_unifier as_len aas_len by blast
 
   show "I \<Turnstile> E \<cdot> \<eta>"
   proof (cases "\<forall>A \<in> set As. A \<cdot>a \<sigma> \<cdot>a \<eta> \<in> I")
@@ -254,7 +254,7 @@ proof (cases rule: ord_resolve.cases)
     then obtain i where a_in_aa: "i < length CAs" and a_false: "(As ! i) \<cdot>a \<sigma> \<cdot>a \<eta> \<notin> I"
       using DA len by (metis in_set_conv_nth)
     define C where "C \<equiv> Cs ! i"
-    define BB where "BB \<equiv> Ass ! i"
+    define BB where "BB \<equiv> AAs ! i"
     have c_cf': "C \<subseteq># \<Union># mset CAs"
       unfolding C_def using a_in_aa cas cas_len
       by (metis less_subset_eq_Union_mset mset_subset_eq_add_left subset_mset.order.trans)
@@ -288,7 +288,7 @@ lemma ord_resolve_sound:
 proof (cases rule: ord_resolve.cases)
   fix \<eta>
   assume ground_subst_\<eta>: "is_ground_subst \<eta>"
-  case (ord_resolve n Cs Ass As D)
+  case (ord_resolve n Cs AAs As D)
   have DA: "DA = D + negs (mset As)"
     using ord_resolve by -
   have e: "E = (\<Union># mset Cs + D) \<cdot> \<sigma>"
@@ -297,13 +297,13 @@ proof (cases rule: ord_resolve.cases)
     using ord_resolve by -
   have cas_len: "length CAs = n"
     using ord_resolve by -
-  have ass_len: "length Ass = n"
+  have aas_len: "length AAs = n"
     using ord_resolve by -
   have as_len: "length As = n"
     using ord_resolve by -
-  have cas: "\<forall>i<n. CAs ! i = Cs ! i + poss (Ass ! i)"
+  have cas: "\<forall>i<n. CAs ! i = Cs ! i + poss (AAs ! i)"
     using ord_resolve by -
-  have mgu: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset As Ass))"
+  have mgu: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset As AAs))"
     using ord_resolve by -
   have len: "length CAs = length As"
     using as_len cas_len by auto
@@ -443,44 +443,44 @@ The following corresponds to Lemma 4.12:
 \<close>
 
 lemma map2_add_mset_map:
-  assumes "length Ass' = n"
+  assumes "length AAs' = n"
   assumes "length As' = n"
-  shows "(map2 add_mset (As' \<cdot>al \<eta>) (Ass' \<cdot>aml \<eta>)) = (map2 add_mset As' Ass' \<cdot>aml \<eta>)"
+  shows "(map2 add_mset (As' \<cdot>al \<eta>) (AAs' \<cdot>aml \<eta>)) = (map2 add_mset As' AAs' \<cdot>aml \<eta>)"
   using assms
-proof (induction n arbitrary: Ass' As')
+proof (induction n arbitrary: AAs' As')
   case (Suc n)
-  then have "map2 add_mset (tl As' \<cdot>al \<eta>) (tl Ass' \<cdot>aml \<eta>) = map2 add_mset (tl As') (tl Ass') \<cdot>aml \<eta>"
+  then have "map2 add_mset (tl As' \<cdot>al \<eta>) (tl AAs' \<cdot>aml \<eta>) = map2 add_mset (tl As') (tl AAs') \<cdot>aml \<eta>"
     by simp
-  then have "map2 add_mset (tl (As' \<cdot>al \<eta>)) (tl (Ass' \<cdot>aml \<eta>)) = map2 add_mset (tl As') (tl Ass') \<cdot>aml \<eta>"
+  then have "map2 add_mset (tl (As' \<cdot>al \<eta>)) (tl (AAs' \<cdot>aml \<eta>)) = map2 add_mset (tl As') (tl AAs') \<cdot>aml \<eta>"
     by simp
   moreover
-  have Succ: "length (As' \<cdot>al \<eta>) = Suc n" "length (Ass' \<cdot>aml \<eta>) = Suc n"
+  have Succ: "length (As' \<cdot>al \<eta>) = Suc n" "length (AAs' \<cdot>aml \<eta>) = Suc n"
     using Suc(3) Suc(2) by auto
-  then have "length (tl (As' \<cdot>al \<eta>)) = n" "length (tl (Ass' \<cdot>aml \<eta>)) = n"
+  then have "length (tl (As' \<cdot>al \<eta>)) = n" "length (tl (AAs' \<cdot>aml \<eta>)) = n"
     by auto
-  then have "length (map2 add_mset (tl (As' \<cdot>al \<eta>)) (tl (Ass' \<cdot>aml \<eta>))) = n"
-    "length (map2 add_mset (tl As') (tl Ass') \<cdot>aml \<eta>) = n"
+  then have "length (map2 add_mset (tl (As' \<cdot>al \<eta>)) (tl (AAs' \<cdot>aml \<eta>))) = n"
+    "length (map2 add_mset (tl As') (tl AAs') \<cdot>aml \<eta>) = n"
     using Suc(3) Suc(2) by auto
   ultimately
-  have "\<forall>i < n. (map2 add_mset (tl (As' \<cdot>al \<eta>)) (tl (Ass' \<cdot>aml \<eta>))) ! i = (map2 add_mset (tl As') (tl Ass') \<cdot>aml \<eta>) ! i"
+  have "\<forall>i < n. (map2 add_mset (tl (As' \<cdot>al \<eta>)) (tl (AAs' \<cdot>aml \<eta>))) ! i = (map2 add_mset (tl As') (tl AAs') \<cdot>aml \<eta>) ! i"
     by auto
-  then have "\<forall>i < n. tl (map2 add_mset ( (As' \<cdot>al \<eta>)) ((Ass' \<cdot>aml \<eta>))) ! i = tl (map2 add_mset (As') (Ass') \<cdot>aml \<eta>) ! i"
+  then have "\<forall>i < n. tl (map2 add_mset ( (As' \<cdot>al \<eta>)) ((AAs' \<cdot>aml \<eta>))) ! i = tl (map2 add_mset (As') (AAs') \<cdot>aml \<eta>) ! i"
     using Suc(2) Suc(3) Succ by (simp add: map2_tl map_tl subst_atm_mset_list_def del: subst_atm_list_tl)
   moreover
-  have nn: "length (map2 add_mset ((As' \<cdot>al \<eta>)) ((Ass' \<cdot>aml \<eta>))) = Suc n"
-    "length (map2 add_mset (As') (Ass') \<cdot>aml \<eta>) = Suc n"
+  have nn: "length (map2 add_mset ((As' \<cdot>al \<eta>)) ((AAs' \<cdot>aml \<eta>))) = Suc n"
+    "length (map2 add_mset (As') (AAs') \<cdot>aml \<eta>) = Suc n"
     using Succ Suc by auto
   ultimately
-  have "\<forall>i. i < Suc n \<longrightarrow> i > 0 \<longrightarrow> map2 add_mset (As' \<cdot>al \<eta>) (Ass' \<cdot>aml \<eta>) ! i = (map2 add_mset As' Ass' \<cdot>aml \<eta>) ! i"
-    by (metis (no_types) Suc.prems(1) Suc.prems(2) Succ(1) Succ(2) \<open>length (map2 add_mset (tl (As' \<cdot>al \<eta>)) (tl (Ass' \<cdot>aml \<eta>))) = n\<close>
-        \<open>map2 add_mset (tl (As' \<cdot>al \<eta>)) (tl (Ass' \<cdot>aml \<eta>)) = map2 add_mset (tl As') (tl Ass') \<cdot>aml \<eta>\<close> less_Suc_eq_0_disj map2_tl map_tl neq0_conv nth_tl subst_atm_mset_list_def)
+  have "\<forall>i. i < Suc n \<longrightarrow> i > 0 \<longrightarrow> map2 add_mset (As' \<cdot>al \<eta>) (AAs' \<cdot>aml \<eta>) ! i = (map2 add_mset As' AAs' \<cdot>aml \<eta>) ! i"
+    by (metis (no_types) Suc.prems(1) Suc.prems(2) Succ(1) Succ(2) \<open>length (map2 add_mset (tl (As' \<cdot>al \<eta>)) (tl (AAs' \<cdot>aml \<eta>))) = n\<close>
+        \<open>map2 add_mset (tl (As' \<cdot>al \<eta>)) (tl (AAs' \<cdot>aml \<eta>)) = map2 add_mset (tl As') (tl AAs') \<cdot>aml \<eta>\<close> less_Suc_eq_0_disj map2_tl map_tl neq0_conv nth_tl subst_atm_mset_list_def)
   moreover
-  have "add_mset (hd As' \<cdot>a \<eta>) (hd Ass' \<cdot>am \<eta>) = add_mset (hd As') (hd Ass') \<cdot>am \<eta>"
+  have "add_mset (hd As' \<cdot>a \<eta>) (hd AAs' \<cdot>am \<eta>) = add_mset (hd As') (hd AAs') \<cdot>am \<eta>"
     unfolding subst_atm_mset_def by auto
-  then have "(map2 add_mset (As' \<cdot>al \<eta>) (Ass' \<cdot>aml \<eta>)) ! 0  = (map2 add_mset (As') (Ass') \<cdot>aml \<eta>) ! 0"
+  then have "(map2 add_mset (As' \<cdot>al \<eta>) (AAs' \<cdot>aml \<eta>)) ! 0  = (map2 add_mset (As') (AAs') \<cdot>aml \<eta>) ! 0"
     using Suc by (simp add: Succ(2) subst_atm_mset_def)
   ultimately
-  have "\<forall>i < Suc n. (map2 add_mset (As' \<cdot>al \<eta>) (Ass' \<cdot>aml \<eta>)) ! i  = (map2 add_mset (As') (Ass') \<cdot>aml \<eta>) ! i"
+  have "\<forall>i < Suc n. (map2 add_mset (As' \<cdot>al \<eta>) (AAs' \<cdot>aml \<eta>)) ! i  = (map2 add_mset (As') (AAs') \<cdot>aml \<eta>) ! i"
     using Suc by auto
   then show ?case
     using nn list_eq_iff_nth_eq by metis
@@ -531,7 +531,7 @@ lemma ground_resolvent_subset:
   shows "E \<subseteq># (\<Union># mset CAs) + DA"
   using resolve
 proof (cases rule: ord_resolve.cases)
-  case (ord_resolve n Cs Ass As D)
+  case (ord_resolve n Cs AAs As D)
   then have "\<forall>i<n.  Cs ! i \<subseteq># CAs ! i "
     by auto
   then have cs_sub_cas: "\<Union># mset Cs \<subseteq># \<Union># mset CAs"
@@ -580,12 +580,12 @@ lemma ord_resolve_obtain_clauses:
     "is_ground_subst_list \<eta>s''"
   using resolve
 proof (cases rule: ord_resolve.cases)
-  case (ord_resolve nn Cs Ass As D)
+  case (ord_resolve nn Cs AAs As D)
   then have "nn = n"
     using n by auto
-  then have "n \<noteq> 0" "length Cs = n" "length Ass = n" "length As = n"
+  then have "n \<noteq> 0" "length Cs = n" "length AAs = n" "length As = n"
     using ord_resolve by force+
-  note n = \<open>n \<noteq> 0\<close> \<open>length CAs = n\<close> \<open>length Cs = n\<close> \<open>length Ass = n\<close> \<open>length As = n\<close>
+  note n = \<open>n \<noteq> 0\<close> \<open>length CAs = n\<close> \<open>length Cs = n\<close> \<open>length AAs = n\<close> \<open>length As = n\<close>
 
   interpret S: selection S by (rule select)
 
@@ -687,12 +687,12 @@ lemma ord_resolve_rename_lifting:
     "{DA''} \<union> set CAs'' \<subseteq> M"
   using resolve
 proof (cases rule: ord_resolve.cases)
-  case (ord_resolve n Cs Ass As D)
+  case (ord_resolve n Cs AAs As D)
 
   have selection_renaming_list_invariant: "\<And>\<rho>s Cs. length \<rho>s = length Cs \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> map S (Cs \<cdot>\<cdot>cl \<rho>s) = (map S Cs) \<cdot>\<cdot>cl \<rho>s"
     using selection_renaming_invariant unfolding is_renaming_list_def by (auto intro: nth_equalityI)
 
-  note n = \<open>n \<noteq> 0\<close> \<open>length CAs = n\<close> \<open>length Cs = n\<close> \<open>length Ass = n\<close> \<open>length As = n\<close>
+  note n = \<open>n \<noteq> 0\<close> \<open>length CAs = n\<close> \<open>length Cs = n\<close> \<open>length AAs = n\<close> \<open>length As = n\<close>
 
   interpret S: selection S by (rule select)
 
@@ -843,99 +843,99 @@ proof (cases rule: ord_resolve.cases)
   note n = n \<open>length As' = n\<close>
 
   -- \<open>Split side premise in to C's and A's\<close>
-  obtain Ass' Cs'  where Ass'_Cs'_p:
-    "length Ass' = n"
+  obtain AAs' Cs'  where AAs'_Cs'_p:
+    "length AAs' = n"
     "length Cs' = n"
 
-    "Ass' \<cdot>aml \<eta> = Ass"
+    "AAs' \<cdot>aml \<eta> = AAs"
     "Cs' \<cdot>cl \<eta> = Cs"
-    "\<forall>i < n. CAs' ! i = Cs' ! i + poss (Ass' ! i)" (* Write in list notation? *)
+    "\<forall>i < n. CAs' ! i = Cs' ! i + poss (AAs' ! i)" (* Write in list notation? *)
   proof -
-    have "\<forall>i<n. \<exists>AA'. AA' \<cdot>am \<eta> = Ass ! i \<and> (poss AA') \<subseteq># CAs' ! i"
+    have "\<forall>i<n. \<exists>AA'. AA' \<cdot>am \<eta> = AAs ! i \<and> (poss AA') \<subseteq># CAs' ! i"
     proof (rule, rule)
       fix i
       assume "i < n"
       have "CAs' ! i \<cdot> \<eta> = CAs ! i"
         using \<open>i < n\<close> \<open>CAs' \<cdot>cl \<eta> = CAs\<close> n by force
       moreover
-      have "poss (Ass ! i) \<subseteq># CAs !i"
+      have "poss (AAs ! i) \<subseteq># CAs !i"
         using \<open>i<n\<close> ord_resolve(8) by auto
       ultimately
-      obtain poss_AA' where nn: "poss_AA' \<cdot> \<eta> = poss (Ass ! i) \<and> poss_AA' \<subseteq># CAs' ! i"
+      obtain poss_AA' where nn: "poss_AA' \<cdot> \<eta> = poss (AAs ! i) \<and> poss_AA' \<subseteq># CAs' ! i"
         using ord_resolve(8) image_mset_of_subset unfolding subst_cls_def by metis
       then have l: "\<forall>L \<in># poss_AA'. is_pos L"
         unfolding subst_cls_def by (metis Melem_subst_cls imageE literal.disc(1) literal.map_disc_iff set_image_mset subst_cls_def subst_lit_def)
       define AA' where "AA' = image_mset atm_of poss_AA'"
       have na: "poss AA' = poss_AA'"
         using l unfolding AA'_def by auto
-      then have "AA' \<cdot>am \<eta> = Ass ! i"
+      then have "AA' \<cdot>am \<eta> = AAs ! i"
         using nn by (metis literal.inject(1) multiset.inj_map_strong subst_cls_poss)
       moreover
       have "poss AA' \<subseteq># CAs' ! i"
         using na nn by auto
       ultimately
-      show "\<exists>AA'. AA' \<cdot>am \<eta> = Ass ! i \<and> poss AA' \<subseteq># CAs' ! i"
+      show "\<exists>AA'. AA' \<cdot>am \<eta> = AAs ! i \<and> poss AA' \<subseteq># CAs' ! i"
         by blast
     qed
-    then obtain Ass'f where Ass'f_p: "\<forall>i<n. Ass'f i \<cdot>am \<eta> = Ass ! i \<and> (poss (Ass'f i)) \<subseteq># CAs' ! i"
+    then obtain AAs'f where AAs'f_p: "\<forall>i<n. AAs'f i \<cdot>am \<eta> = AAs ! i \<and> (poss (AAs'f i)) \<subseteq># CAs' ! i"
       by metis
 
-    define Ass' where "Ass' = map Ass'f [0 ..<n]"
+    define AAs' where "AAs' = map AAs'f [0 ..<n]"
 
-    then have "length Ass' = n"
+    then have "length AAs' = n"
       by auto
-    note n = n \<open>length Ass' = n\<close>
+    note n = n \<open>length AAs' = n\<close>
 
-    from Ass'_def have "\<forall>i<n. Ass' ! i \<cdot>am \<eta> = Ass ! i"
-      using Ass'f_p by auto
-    then have Ass'_Ass: "Ass' \<cdot>aml \<eta> = Ass"
+    from AAs'_def have "\<forall>i<n. AAs' ! i \<cdot>am \<eta> = AAs ! i"
+      using AAs'f_p by auto
+    then have AAs'_AAs: "AAs' \<cdot>aml \<eta> = AAs"
       using n unfolding subst_atm_mset_list_def by (auto intro: nth_equalityI) (* unfolding should not be necessary *)
 
-    from Ass'_def have Ass'_in_CAs': "\<forall>i<n. (poss (Ass' ! i)) \<subseteq># CAs' ! i"
-      using Ass'f_p by auto
+    from AAs'_def have AAs'_in_CAs': "\<forall>i<n. (poss (AAs' ! i)) \<subseteq># CAs' ! i"
+      using AAs'f_p by auto
 
-    define Cs' where "Cs' = map2 (op -) CAs' (map poss Ass')"
+    define Cs' where "Cs' = map2 (op -) CAs' (map poss AAs')"
 
     have "length Cs' = n"
       using Cs'_def n by auto
     note n = n \<open>length Cs' = n\<close>
 
-    have "\<forall>i < n. CAs' ! i = Cs' ! i + poss (Ass' ! i)"
-      using Ass'_in_CAs' Cs'_def n by auto
+    have "\<forall>i < n. CAs' ! i = Cs' ! i + poss (AAs' ! i)"
+      using AAs'_in_CAs' Cs'_def n by auto
     then have "Cs' \<cdot>cl \<eta> = Cs"
-      using \<open>CAs' \<cdot>cl \<eta> = CAs\<close> Ass'_Ass ord_resolve(8) n by (auto intro: nth_equalityI)
+      using \<open>CAs' \<cdot>cl \<eta> = CAs\<close> AAs'_AAs ord_resolve(8) n by (auto intro: nth_equalityI)
 
     show ?thesis
-      using that \<open>Ass' \<cdot>aml \<eta> = Ass\<close> \<open>Cs' \<cdot>cl \<eta> = Cs\<close> \<open>\<forall>i < n. CAs' ! i = Cs' ! i + poss (Ass' ! i)\<close>
-        \<open>length Ass' = n\<close> \<open>length Cs' = n\<close>
+      using that \<open>AAs' \<cdot>aml \<eta> = AAs\<close> \<open>Cs' \<cdot>cl \<eta> = Cs\<close> \<open>\<forall>i < n. CAs' ! i = Cs' ! i + poss (AAs' ! i)\<close>
+        \<open>length AAs' = n\<close> \<open>length Cs' = n\<close>
       by blast
   qed
 
-  note n = n \<open>length Ass' = n\<close> \<open>length Cs' = n\<close>
+  note n = n \<open>length AAs' = n\<close> \<open>length Cs' = n\<close>
 
   -- \<open>Obtain MGU and subsitution\<close>
   obtain \<tau>  \<phi> where \<tau>\<phi>:
-    "Some \<tau> = mgu (set_mset ` set (map2 add_mset As' Ass'))"
+    "Some \<tau> = mgu (set_mset ` set (map2 add_mset As' AAs'))"
     "\<tau> \<odot> \<phi> = \<eta> \<odot> \<sigma>"
   proof -
-    have "Some \<sigma> = mgu (set_mset ` set (map2 add_mset As Ass))"
+    have "Some \<sigma> = mgu (set_mset ` set (map2 add_mset As AAs))"
       using ord_resolve by -
-    then have uu: "is_unifiers \<sigma> (set_mset ` set (map2 add_mset (As' \<cdot>al \<eta>) (Ass' \<cdot>aml \<eta>)))"
-      using mgu_sound is_mgu_def unfolding \<open>Ass' \<cdot>aml \<eta> = Ass\<close> using as' by auto
-    have \<eta>\<sigma>uni: "is_unifiers (\<eta> \<odot> \<sigma>) (set_mset ` set (map2 add_mset As' Ass'))"
+    then have uu: "is_unifiers \<sigma> (set_mset ` set (map2 add_mset (As' \<cdot>al \<eta>) (AAs' \<cdot>aml \<eta>)))"
+      using mgu_sound is_mgu_def unfolding \<open>AAs' \<cdot>aml \<eta> = AAs\<close> using as' by auto
+    have \<eta>\<sigma>uni: "is_unifiers (\<eta> \<odot> \<sigma>) (set_mset ` set (map2 add_mset As' AAs'))"
     proof -
-      have eq: "(set_mset ` set (map2 add_mset As' Ass' \<cdot>aml \<eta>)) = (set_mset ` set (map2 add_mset As' Ass') \<cdot>ass \<eta>)"
+      have eq: "(set_mset ` set (map2 add_mset As' AAs' \<cdot>aml \<eta>)) = (set_mset ` set (map2 add_mset As' AAs') \<cdot>ass \<eta>)"
         unfolding subst_atmss_def subst_atm_mset_list_def using subst_atm_mset_def subst_atms_def
         by (simp add: image_image subst_atm_mset_def subst_atms_def)
-      have "is_unifiers \<sigma> (set_mset ` set ((map2 add_mset As' Ass') \<cdot>aml \<eta>))"
+      have "is_unifiers \<sigma> (set_mset ` set ((map2 add_mset As' AAs') \<cdot>aml \<eta>))"
         using uu n map2_add_mset_map by auto
-      then have "is_unifiers \<sigma> (set_mset ` set ((map2 add_mset As' Ass')) \<cdot>ass \<eta>)"
+      then have "is_unifiers \<sigma> (set_mset ` set ((map2 add_mset As' AAs')) \<cdot>ass \<eta>)"
         using eq by auto
       then show ?thesis
         using is_unifiers_comp by auto
     qed
     then obtain \<tau> where
-      \<tau>_p: "Some \<tau> = mgu (set_mset ` set (map2 add_mset As' Ass'))"
+      \<tau>_p: "Some \<tau> = mgu (set_mset ` set (map2 add_mset As' AAs'))"
       using mgu_complete
       by (metis (mono_tags, hide_lams) List.finite_set finite_imageI finite_set_mset image_iff)
     moreover then obtain \<phi> where \<phi>_p: "\<tau> \<odot> \<phi> = \<eta> \<odot> \<sigma>"
@@ -1022,18 +1022,18 @@ proof (cases rule: ord_resolve.cases)
       using subst_cls_empty_iff by blast
   qed
 
-  -- \<open>Lifting Ass's being non-empty\<close>
-  have "\<forall>i<n. Ass' ! i \<noteq> {#}"
-    using n ord_resolve(9) \<open>Ass' \<cdot>aml \<eta> = Ass\<close> by auto
+  -- \<open>Lifting AAs's being non-empty\<close>
+  have "\<forall>i<n. AAs' ! i \<noteq> {#}"
+    using n ord_resolve(9) \<open>AAs' \<cdot>aml \<eta> = AAs\<close> by auto
 
  -- \<open>Resolve the lifted clauses\<close>
   define E' where "E' = ((\<Union># (mset Cs')) + D') \<cdot> \<tau>"
 
   have res_e: "ord_resolve S CAs' DA' \<tau> E'"
-    using ord_resolve.intros[of CAs' n Cs' Ass' As' \<tau> S D',
-      OF _ _ _ _ _ _ \<open>\<forall>i<n. Ass' ! i \<noteq> {#}\<close> \<tau>\<phi>(1) eligibility
+    using ord_resolve.intros[of CAs' n Cs' AAs' As' \<tau> S D',
+      OF _ _ _ _ _ _ \<open>\<forall>i<n. AAs' ! i \<noteq> {#}\<close> \<tau>\<phi>(1) eligibility
         \<open>\<forall>i<n. str_maximal_in (As' ! i \<cdot>a \<tau>) (Cs' ! i \<cdot> \<tau>)\<close> \<open>\<forall>i<n. S (CAs' ! i) = {#}\<close>]
-    unfolding E'_def using as' n Ass'_Cs'_p by blast
+    unfolding E'_def using as' n AAs'_Cs'_p by blast
 
   -- \<open>Prove resolvent instantiates to ground resolvent\<close>
   have e'\<phi>e: "E' \<cdot> \<phi> = E"

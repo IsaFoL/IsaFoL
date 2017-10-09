@@ -1650,7 +1650,7 @@ lemma ground_max_ground: "AA \<noteq> {} \<Longrightarrow> finite AA \<Longright
 
 lemma ground_subclauses:
   assumes
-    "\<forall>i < length CAs. CAs ! i = Cs ! i + poss (Ass ! i)" and
+    "\<forall>i < length CAs. CAs ! i = Cs ! i + poss (AAs ! i)" and
     "length Cs = length CAs" and
     "is_ground_cls_list CAs"
   shows "is_ground_cls_list Cs"
@@ -1797,7 +1797,7 @@ proof -
       assume "gd.ord_resolve CAs ?D ?E"
       then show "\<exists>\<sigma>. ord_resolve (S_M S (Q_of_state (limit_state Sts))) CAs ?D \<sigma> ?E"
       proof (cases rule: gd.ord_resolve.cases)
-        case (ord_resolve n Cs Ass As D)
+        case (ord_resolve n Cs AAs As D)
         have a: "?D = D + negs (mset As)"
           using ord_resolve by simp
         have b: "?E = \<Union>#mset Cs + D"
@@ -1806,45 +1806,45 @@ proof -
           using ord_resolve by simp
         have len_cs: "length Cs = n"
           using ord_resolve by simp
-        have len_ass: "length Ass = n"
+        have len_ass: "length AAs = n"
           using ord_resolve by simp
         have len_as: "length As = n"
           using ord_resolve by simp
         have nz: "n \<noteq> 0"
           using ord_resolve by simp
-        have cas: "\<forall>i<n. CAs ! i = Cs ! i + poss (Ass ! i)"
+        have cas: "\<forall>i<n. CAs ! i = Cs ! i + poss (AAs ! i)"
           using ord_resolve by simp
-        have ass_ne: "\<forall>i<n. Ass ! i \<noteq> {#}"
+        have ass_ne: "\<forall>i<n. AAs ! i \<noteq> {#}"
           using ord_resolve by simp
 
-        have "length Ass = length As"
+        have "length AAs = length As"
           using len_ass len_as by auto
-        have j: "\<forall>i<n. \<forall>A\<in>#Ass ! i. A = As ! i"
+        have j: "\<forall>i<n. \<forall>A\<in>#AAs ! i. A = As ! i"
           using ord_resolve by simp
-        then have "\<forall>i<n. \<forall>A\<in>#add_mset (As ! i) (Ass ! i). A = As ! i"
+        then have "\<forall>i<n. \<forall>A\<in>#add_mset (As ! i) (AAs ! i). A = As ! i"
           using ord_resolve by simp
-        then have "\<forall>i<n. card (set_mset (add_mset (As ! i) (Ass ! i))) \<le> Suc 0"
+        then have "\<forall>i<n. card (set_mset (add_mset (As ! i) (AAs ! i))) \<le> Suc 0"
           using all_the_same by metis
-        then have "\<forall>i<length Ass. card (set_mset (add_mset (As ! i) (Ass ! i))) \<le> Suc 0"
+        then have "\<forall>i<length AAs. card (set_mset (add_mset (As ! i) (AAs ! i))) \<le> Suc 0"
           using len_ass by auto
-        then have "\<forall>AA \<in> set (map2 add_mset As Ass). card (set_mset AA) \<le> Suc 0"
-          using set_map2_ex[of Ass As add_mset, OF \<open>length Ass = length As\<close>]
+        then have "\<forall>AA \<in> set (map2 add_mset As AAs). card (set_mset AA) \<le> Suc 0"
+          using set_map2_ex[of AAs As add_mset, OF \<open>length AAs = length As\<close>]
           by auto
-        then have "is_unifiers id_subst (set_mset ` set (map2 add_mset As Ass))"
+        then have "is_unifiers id_subst (set_mset ` set (map2 add_mset As AAs))"
           unfolding is_unifiers_def is_unifier_def
           by auto
-        moreover have "finite (set_mset ` set (map2 add_mset As Ass))"
+        moreover have "finite (set_mset ` set (map2 add_mset As AAs))"
           by auto
-        moreover have "\<forall>AA \<in> set_mset ` set (map2 add_mset As Ass). finite AA"
+        moreover have "\<forall>AA \<in> set_mset ` set (map2 add_mset As AAs). finite AA"
           by auto
-        ultimately obtain \<sigma> where jj: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset As Ass))"
+        ultimately obtain \<sigma> where jj: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset As AAs))"
           using mgu_complete by metis
 
         have k: "gd.eligible As (D + negs (mset As))"
           using ord_resolve by simp
         have ground_cs: "\<forall>i<n. is_ground_cls (Cs ! i)"
           using ord_resolve(8) ord_resolve(3,4) gc1
-          using ground_subclauses[of CAs Cs Ass] unfolding is_ground_cls_list_def by auto
+          using ground_subclauses[of CAs Cs AAs] unfolding is_ground_cls_list_def by auto
         have ground_set_as: "is_ground_atms (set As)"
           using ord_resolve(1) gd
           by (metis atms_of_negg is_ground_cls_union set_mset_mset is_ground_cls_is_ground_atms_atms_of)

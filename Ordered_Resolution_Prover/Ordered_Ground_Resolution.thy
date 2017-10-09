@@ -52,12 +52,12 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
   ord_resolve:
     "length CAs = n \<Longrightarrow>
      length Cs = n \<Longrightarrow>
-     length Ass = n \<Longrightarrow>
+     length AAs = n \<Longrightarrow>
      length As = n \<Longrightarrow>
      n \<noteq> 0 \<Longrightarrow>
-     (\<forall>i < n. CAs ! i = Cs ! i + poss (Ass ! i)) \<Longrightarrow>
-     (\<forall>i < n. Ass ! i \<noteq> {#}) \<Longrightarrow>
-     (\<forall>i < n. \<forall>A \<in># Ass ! i. A = As ! i) \<Longrightarrow>
+     (\<forall>i < n. CAs ! i = Cs ! i + poss (AAs ! i)) \<Longrightarrow>
+     (\<forall>i < n. AAs ! i \<noteq> {#}) \<Longrightarrow>
+     (\<forall>i < n. \<forall>A \<in># AAs ! i. A = As ! i) \<Longrightarrow>
      eligible As (D + negs (mset As)) \<Longrightarrow>
      (\<forall>i < n. str_maximal_in (As ! i) (Cs ! i)) \<Longrightarrow>
      (\<forall>i < n. S (CAs ! i) = {#}) \<Longrightarrow>
@@ -71,7 +71,7 @@ lemma ord_resolve_sound:
   shows "I \<Turnstile> E"
   using res_e
 proof (cases rule: ord_resolve.cases)
-  case (ord_resolve n Cs Ass As D)
+  case (ord_resolve n Cs AAs As D)
   have DA: "DA = D + negs (mset As)"
     using ord_resolve by -
   have e: "E = (\<Union># (mset Cs)) + D"
@@ -82,11 +82,11 @@ proof (cases rule: ord_resolve.cases)
     using ord_resolve by -
   have as_len: "length As = n"
     using ord_resolve by -
-  have cas: "\<forall>i < n. CAs ! i = Cs ! i + poss (Ass ! i) "
+  have cas: "\<forall>i < n. CAs ! i = Cs ! i + poss (AAs ! i) "
     using ord_resolve by -
-  have ass_ne: "\<forall>i < n. Ass ! i \<noteq> {#}"
+  have aas_ne: "\<forall>i < n. AAs ! i \<noteq> {#}"
     using ord_resolve by -
-  have a_eq: "\<forall>i < n. \<forall>A \<in># Ass ! i. A = As ! i "
+  have a_eq: "\<forall>i < n. \<forall>A \<in># AAs ! i. A = As ! i "
     using ord_resolve by -
 
   have cs_as_len: "length CAs = length As"
@@ -107,8 +107,8 @@ proof (cases rule: ord_resolve.cases)
       a_in_aa: "i < n" and
       a_false: "As ! i \<notin> I"
       using cs_as_len cas_len by (metis in_set_conv_nth)
-    have "\<not> I \<Turnstile> poss (Ass ! i)"
-      using a_false a_eq ass_ne a_in_aa unfolding true_cls_def by auto
+    have "\<not> I \<Turnstile> poss (AAs ! i)"
+      using a_false a_eq aas_ne a_in_aa unfolding true_cls_def by auto
     moreover have "I \<Turnstile> CAs ! i"
       using a_in_aa cc_true unfolding true_cls_mset_def using cas_len by auto
     ultimately have "I \<Turnstile> Cs ! i"
@@ -131,7 +131,7 @@ lemma ord_resolve_reductive:
   shows "E < DA"
   using assms
 proof (cases rule: ord_resolve.cases)
-  case (ord_resolve n Cs Ass As D)
+  case (ord_resolve n Cs AAs As D)
   have DA: "DA = D + negs (mset As)"
     using ord_resolve by -
   have e: "E = \<Union># mset Cs + D"
@@ -144,7 +144,7 @@ proof (cases rule: ord_resolve.cases)
     using ord_resolve by -
   have nz: "n \<noteq> 0"
     using ord_resolve by -
-  have cas: "\<forall>i < n. CAs ! i = Cs ! i + poss (Ass ! i) "
+  have cas: "\<forall>i < n. CAs ! i = Cs ! i + poss (AAs ! i) "
     using ord_resolve by -
   have maxim: " \<forall>i < n. str_maximal_in (As ! i) (Cs ! i)"
     using ord_resolve by -
@@ -305,8 +305,8 @@ proof -
     "n = length As"
   define Cs :: "'a clause list" where
     "Cs = map C_of As"
-  define Ass :: "'a multiset list" where
-    "Ass = map Aj_of As"
+  define AAs :: "'a multiset list" where
+    "AAs = map Aj_of As"
   define CAs :: "'a literal multiset list" where
     "CAs = map CA_of As"
 
@@ -353,14 +353,14 @@ proof -
     by (simp add: le_cs_as n_def)
   moreover have "length Cs = n"
     by (simp add: Cs_def n_def)
-  moreover have "length Ass = n"
-    by (simp add: Ass_def n_def)
+  moreover have "length AAs = n"
+    by (simp add: AAs_def n_def)
   moreover have "length As = n"
     using n_def by auto
   moreover have "n \<noteq> 0"
     by (simp add: as_ne n_def)
-  moreover have " \<forall>i. i < length Ass \<longrightarrow> (\<forall>A \<in># Ass ! i. A = As ! i)"
-    using Ass_def Aj_of_def by auto
+  moreover have " \<forall>i. i < length AAs \<longrightarrow> (\<forall>A \<in># AAs ! i. A = As ! i)"
+    using AAs_def Aj_of_def by auto
 
   have "\<And>x B. production N (CA_of x) = {x} \<Longrightarrow> B \<in># CA_of x \<Longrightarrow> B \<noteq> Pos x \<Longrightarrow> atm_of B < x"
     by (metis atm_of_lit_in_atms_of insert_not_empty le_imp_less_or_eq Pos_atm_of_iff
@@ -368,24 +368,24 @@ proof -
         productive_imp_false_interp)
   then have "\<And>B A. A\<in>set As \<Longrightarrow> B \<in># CA_of A \<Longrightarrow> B \<noteq> Pos A \<Longrightarrow> atm_of B < A"
     using prod_c0 by auto
-  have "\<forall>i. i < length Ass \<longrightarrow> Ass ! i \<noteq> {#}"
-    unfolding Ass_def using m_nz by simp
-  have "\<forall>i < n. CAs ! i = Cs ! i + poss (Ass ! i)"
-    unfolding CAs_def Cs_def Ass_def using ca_of_c_of_aj_of by (simp add: n_def)
+  have "\<forall>i. i < length AAs \<longrightarrow> AAs ! i \<noteq> {#}"
+    unfolding AAs_def using m_nz by simp
+  have "\<forall>i < n. CAs ! i = Cs ! i + poss (AAs ! i)"
+    unfolding CAs_def Cs_def AAs_def using ca_of_c_of_aj_of by (simp add: n_def)
 
-  moreover have "\<forall>i < n. Ass ! i \<noteq> {#}"
-    using \<open>\<forall>i<length Ass. Ass ! i \<noteq> {#}\<close> calculation(3) by blast
-  moreover have "\<forall>i < n. \<forall>A \<in># Ass ! i. A = As ! i"
-    by (simp add: \<open>\<forall>i<length Ass. \<forall>A \<in># Ass ! i. A = As ! i\<close> calculation(3))
+  moreover have "\<forall>i < n. AAs ! i \<noteq> {#}"
+    using \<open>\<forall>i<length AAs. AAs ! i \<noteq> {#}\<close> calculation(3) by blast
+  moreover have "\<forall>i < n. \<forall>A \<in># AAs ! i. A = As ! i"
+    by (simp add: \<open>\<forall>i<length AAs. \<forall>A \<in># AAs ! i. A = As ! i\<close> calculation(3))
   moreover have "eligible As DA"
     using s_d by auto
   then have "eligible As (D + negs (mset As))"
     using D_def negs_as_le_d by auto
-  moreover have "\<And>i. i < length Ass \<Longrightarrow> str_maximal_in (As ! i) ((Cs ! i))"
+  moreover have "\<And>i. i < length AAs \<Longrightarrow> str_maximal_in (As ! i) ((Cs ! i))"
     by (simp add: C_of_def Cs_def \<open>\<And>x B. \<lbrakk>production N (CA_of x) = {x}; B \<in># CA_of x; B \<noteq> Pos x\<rbrakk> \<Longrightarrow> atm_of B < x\<close> atms_of_def calculation(3) n_def prod_c0 str_maximal_in_def)
 
   have "\<forall>i < n. str_maximal_in (As ! i) (Cs ! i)"
-    by (simp add: \<open>\<And>i. i < length Ass \<Longrightarrow> str_maximal_in (As ! i) (Cs ! i)\<close> calculation(3))
+    by (simp add: \<open>\<And>i. i < length AAs \<Longrightarrow> str_maximal_in (As ! i) (Cs ! i)\<close> calculation(3))
   moreover have "\<forall>CA \<in> set CAs. S CA = {#}"
     using prod_c producesD productive_imp_produces_Max_literal by blast
   have "\<forall>CA\<in>set CAs. S CA = {#}"
@@ -433,7 +433,7 @@ lemma ord_resolve_atms_of_concl_subset:
   shows "atms_of E \<subseteq> (\<Union>C \<in> set CAs. atms_of C) \<union> atms_of DA"
   using assms
 proof (cases rule: ord_resolve.cases)
-  case (ord_resolve n Cs Ass As D)
+  case (ord_resolve n Cs AAs As D)
   have DA: "DA = D + negs (mset As)"
     using ord_resolve by -
   have e: "E = \<Union># mset Cs + D"
@@ -442,7 +442,7 @@ proof (cases rule: ord_resolve.cases)
     using ord_resolve by -
   have cs_len: "length Cs = n"
     using ord_resolve by -
-  have cas: "\<forall>i < n. CAs ! i = Cs ! i + poss (Ass ! i)"
+  have cas: "\<forall>i < n. CAs ! i = Cs ! i + poss (AAs ! i)"
     using ord_resolve by -
 
   from cas have "\<forall>i < n. set_mset (Cs ! i) \<subseteq> set_mset (CAs ! i)"
