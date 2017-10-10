@@ -611,6 +611,9 @@ lemma (in -) length_filter_update_falte:
 
 subsection \<open>Multisets\<close>
 
+lemma in_multiset_nempty: \<open>L \<in># D \<Longrightarrow> D \<noteq> {#}\<close>
+  by auto
+
 text \<open>The definition and the correctness theorem are from the multiset theory
   @{file \<open>~~/src/HOL/Library/Multiset.thy\<close>}, but a name is necessary to refer to them:\<close>
 definition union_mset_list where

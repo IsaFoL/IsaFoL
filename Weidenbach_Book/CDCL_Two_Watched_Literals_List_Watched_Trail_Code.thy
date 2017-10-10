@@ -4118,14 +4118,6 @@ lemma counts_max_lvl_ge_1:
      cdcl\<^sub>W_restart_mset.conflict_is_false_with_level_def
   by (cases S) (auto simp: counts_max_lvl_def not_ge_Suc0 filter_mset_empty_conv)
 
-(* TODO Move *)
-declare fast_minus_def[simp]
-
-lemma (in -) in_multiset_nempty: \<open>L \<in># D \<Longrightarrow> D \<noteq> {#}\<close>
-  by auto
-
-(* End Move *)
-
 lemma update_confl_tl_wl_int_update_confl_tl_wl:
   \<open>(uncurry2 (update_confl_tl_wl_int), uncurry2 (RETURN ooo update_confl_tl_wl)) \<in>
   [\<lambda>((C, L), S). twl_struct_invs (twl_st_of_wl None S) \<and>
@@ -6125,7 +6117,7 @@ lemma find_decomp_wl_st_find_decomp_wl:
     by (cases S, cases S')
         (auto intro!: find_decomp_wl_imp_le_find_decomp_wl'
         simp: find_decomp_wl_st_def find_decomp_wl'_def find_decomp_wl_def
-        SPEC_RETURN_RES)
+        RES_RETURN_RES)
   done
 
 
@@ -6620,14 +6612,6 @@ definition list_of_mset2_None where
   \<open>list_of_mset2_None L L' D = SPEC(\<lambda>(E, F). mset E = the D \<and> E!0 = L \<and> E!1 = L' \<and>
      F = None)\<close>
 
-(* TODO Move *)
-lemma (in -) SPEC_RETURN_RES2:
-   \<open>SPEC \<Phi> \<bind> (\<lambda>(T, T'). RETURN (f T T')) = RES (uncurry f ` {T. \<Phi> T})\<close>
-  using SPEC_RETURN_RES[of \<Phi> \<open>uncurry f\<close>]
-  apply (subst (asm)(2) split_prod_bound)
-  by auto
-(* END Move *)
-
 lemma propgate_bt_wl_D_alt_def:
   \<open>propgate_bt_wl_D = (\<lambda>L L' (M, N, U, D, NP, UP, Q, W).
     list_of_mset2_None (- L) L' D \<bind>
@@ -6635,7 +6619,7 @@ lemma propgate_bt_wl_D_alt_def:
              (Propagated (- L) (length N) # M, N @ [D''], U, E, NP, UP, {#L#},
               W(- L := W (- L) @ [length N], L' := W L' @ [length N]))))\<close>
   unfolding propgate_bt_wl_D_def list_of_mset2_def list_of_mset2_None_def
-  by (auto simp: SPEC_RETURN_RES SPEC_RETURN_RES2 uncurry_def intro!: ext)
+  by (auto simp: RES_RETURN_RES RES_RETURN_RES2 uncurry_def intro!: ext)
 
 
 lemma extract_shorter_conflict_l_trivial_int_extract_shorter_conflict_l_trivial:
@@ -7264,7 +7248,7 @@ lemma list_of_mset2_None_int_list_of_mset2_None:
   by (intro frefI nres_relI)
    (auto simp: list_of_mset2_None_int_def list_of_mset2_None_def
       list_of_mset2_def add2_from_conflict_def conflict_to_conflict_with_cls_spec_def
-      remove2_from_conflict_def add_mset_eq_add_mset SPEC_RETURN_RES
+      remove2_from_conflict_def add_mset_eq_add_mset RES_RETURN_RES
       literals_are_in_\<L>\<^sub>i\<^sub>n_sub literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
       dest!: multi_member_split)
 
@@ -7983,7 +7967,7 @@ lemma propgate_bt_wl_D_int_propgate_bt_wl_D:
   apply refine_vcg
   apply
     (auto simp: propgate_bt_wl_D_int_def propgate_bt_wl_D_def Let_def
-      list_of_mset2_def list_of_mset2_None_def SPEC_RETURN_RES2 SPEC_RETURN_RES twl_st_ref_def
+      list_of_mset2_def list_of_mset2_None_def RES_RETURN_RES2 RES_RETURN_RES twl_st_ref_def
       map_fun_rel_def rescore_clause_def rescore_def RES_RETURN_RES
       intro!: RES_refine vmtf_imp_consD)
   done

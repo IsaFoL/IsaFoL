@@ -2,17 +2,11 @@ theory CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code
 imports CDCL_Two_Watched_Literals_List_Watched_Trail_Code
 begin
 
-(* TODO Move? *)
-lemma valued_None_undefined_lit: \<open>is_None (valued M L) \<Longrightarrow> undefined_lit M L\<close>
-  by (auto simp: valued_def split: if_splits)
-
 lemma distinct_nat_of_uint32[iff]:
   \<open>distinct_mset (nat_of_uint32 `# A) \<longleftrightarrow> distinct_mset A\<close>
   \<open>distinct (map nat_of_uint32 xs) \<longleftrightarrow> distinct xs\<close>
   using distinct_image_mset_inj[of nat_of_uint32]
   by (auto simp: inj_on_def distinct_map)
-
-(* End Move *)
 
 
 declare twl_array_code.append_el_aa_hnr[sepref_fr_rules]
@@ -1245,7 +1239,7 @@ lemma (in twl_array_code_ops) init_state_wl_int_init_state_wl:
      unit_rel \<rightarrow>\<^sub>f \<langle>twl_st_ref_no_clvls\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
       (auto simp: init_state_wl_int_def init_state_wl_def RES_RETURN_RES
-        SPEC_RETURN_RES bind_RES_RETURN_eq RES_RES_RETURN_RES RETURN_def
+        RES_RETURN_RES bind_RES_RETURN_eq RES_RES_RETURN_RES RETURN_def
         twl_st_ref_no_clvls_def
         intro!: RES_refine)
 
@@ -2231,7 +2225,7 @@ proof -
     subgoal for CS' CS
       using H[of CS]
         cdcl\<^sub>W_restart_mset.full_cdcl\<^sub>W_stgy_inv_normal_form[of \<open>init_state CS\<close>]
-      by (fastforce intro!: le_SPEC_bindI simp: SPEC_RETURN_RES clauses_def
+      by (fastforce intro!: le_SPEC_bindI simp: RES_RETURN_RES clauses_def
           true_annots_true_cls lits_of_def cdcl\<^sub>W_restart_mset_state
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
           dest: conflict_of_level_unsatisfiable)

@@ -412,7 +412,7 @@ lemma le_nat_uint32_hnr:
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
 
 definition fast_minus :: \<open>'a::minus \<Rightarrow> 'a \<Rightarrow> 'a\<close> where
-  \<open>fast_minus m n = m - n\<close>
+  [simp]: \<open>fast_minus m n = m - n\<close>
 
 definition fast_minus_uint32 :: \<open>uint32 \<Rightarrow> uint32 \<Rightarrow> uint32\<close> where
   \<open>fast_minus_uint32 = fast_minus\<close>

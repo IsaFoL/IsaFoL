@@ -183,6 +183,9 @@ definition additional_WS_invs where
 definition valued where
   \<open>valued M L = (if undefined_lit M L then None else if L \<in> lits_of_l M then Some True else Some False)\<close>
 
+lemma valued_None_undefined_lit: \<open>is_None (valued M L) \<Longrightarrow> undefined_lit M L\<close>
+  by (auto simp: valued_def split: if_splits)
+
 lemma valued_spec:
   assumes \<open>no_dup M\<close>
   shows
@@ -1524,7 +1527,7 @@ proof -
       \<open>L' = lit_of (hd (get_trail S'))\<close> \<open>get_trail_l S \<noteq> []\<close>
     for S S' L' L
     unfolding find_decomp_def reduce_trail_bt_def
-    apply (subst SPEC_RETURN_RES)
+    apply (subst RES_RETURN_RES)
     apply (cases S; cases S')
     apply clarify
     apply (rule RES_refine)
@@ -1669,7 +1672,7 @@ proof -
     ultimately have DT: \<open>DT = add_mset (- lit_of (hd MS)) (add_mset L' (DT - {#- lit_of (hd MS), L'#}))\<close>
       by (metis (no_types, lifting) add_mset_diff_bothsides diff_single_eq_union)
     show ?thesis
-      unfolding propgate_bt_l_def list_of_mset_def propgate_bt_def U SPEC_RETURN_RES
+      unfolding propgate_bt_l_def list_of_mset_def propgate_bt_def U RES_RETURN_RES
       apply clarify
       apply (rule RES_rule)
       apply (subst in_pair_collect_simp)
