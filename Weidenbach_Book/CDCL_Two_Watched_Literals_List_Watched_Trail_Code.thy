@@ -6620,12 +6620,13 @@ definition list_of_mset2_None where
   \<open>list_of_mset2_None L L' D = SPEC(\<lambda>(E, F). mset E = the D \<and> E!0 = L \<and> E!1 = L' \<and>
      F = None)\<close>
 
-
+(* TODO Move *)
 lemma (in -) SPEC_RETURN_RES2:
    \<open>SPEC \<Phi> \<bind> (\<lambda>(T, T'). RETURN (f T T')) = RES (uncurry f ` {T. \<Phi> T})\<close>
   using SPEC_RETURN_RES[of \<Phi> \<open>uncurry f\<close>]
   apply (subst (asm)(2) split_prod_bound)
   by auto
+(* END Move *)
 
 lemma propgate_bt_wl_D_alt_def:
   \<open>propgate_bt_wl_D = (\<lambda>L L' (M, N, U, D, NP, UP, Q, W).
@@ -7387,6 +7388,7 @@ prepare_code_thms (in -) list_of_mset2_None_code_def
 lemmas list_of_mset2_None_int_hnr[sepref_fr_rules] =
   list_of_mset2_None_code.refine[of N\<^sub>0, OF twl_array_code_axioms]
 
+thm list_of_mset2_None_code_def
 lemma list_of_mset2_None_hnr[sepref_fr_rules]:
   \<open>(uncurry2 list_of_mset2_None_code, uncurry2 list_of_mset2_None)
    \<in> [\<lambda>((a, b), ba). ba \<noteq> None \<and> a \<in># the ba \<and> b \<in># the ba \<and> a \<noteq> b \<and>
