@@ -1217,15 +1217,15 @@ proof -
     apply (auto simp: p2rel_def lit_of_natP_def Pos_div2_iff Neg_div2_iff nat_lit_rel_def)
     using even_Suc by blast
   have ba_length_a_b: \<open>ba < length (a b)\<close>
-    if bN: \<open>b \<in># N\<^sub>1\<close> and
-      H: \<open>\<And>aa bb. (\<forall>x\<in>#N\<^sub>1. nat_of_lit x < length aa \<and> aa ! nat_of_lit x = a x) \<and>
+    if bN: \<open>b \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
+      H: \<open>\<And>aa bb. (\<forall>x\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit x < length aa \<and> aa ! nat_of_lit x = a x) \<and>
           (bb, b) \<in> nat_lit_rel \<longrightarrow>
           bb < length aa \<and>
           ba < length (aa ! bb)\<close>
     for a :: \<open>nat literal \<Rightarrow> nat list\<close> and b :: \<open>nat literal\<close> and ba :: nat
   proof -
     obtain aa where
-      aa: \<open>\<forall>x\<in>#N\<^sub>1. nat_of_lit x < length aa \<and> aa ! nat_of_lit x = a x\<close>
+      aa: \<open>\<forall>x\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit x < length aa \<and> aa ! nat_of_lit x = a x\<close>
       using ex_list_watched[of a] by blast
     then have \<open>nat_of_lit b < length aa\<close> and aa_b_a_b: \<open>aa ! nat_of_lit b = a b\<close>
       using bN by blast+
@@ -1534,9 +1534,9 @@ sepref_definition(in -) single_of_mset_imp_code
   by sepref
 
 lemma set_mset_all_lits_of_mm_atms_of_ms_iff:
-  \<open>set_mset (all_lits_of_mm A) = set_mset N\<^sub>1 \<longleftrightarrow> atms_of_ms (set_mset A) = atms_of N\<^sub>1\<close>
+  \<open>set_mset (all_lits_of_mm A) = set_mset \<L>\<^sub>a\<^sub>l\<^sub>l \<longleftrightarrow> atms_of_ms (set_mset A) = atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
   apply (auto simp: atms_of_s_def in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def
-      atms_of_def atm_of_eq_atm_of in_N\<^sub>1_atm_of_in_atms_of_iff)
+      atms_of_def atm_of_eq_atm_of in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
   apply (auto simp: in_all_lits_of_mm_ain_atms_of_iff in_implies_atm_of_on_atms_of_ms)
   done -- \<open>TODO tune proof\<close>
 

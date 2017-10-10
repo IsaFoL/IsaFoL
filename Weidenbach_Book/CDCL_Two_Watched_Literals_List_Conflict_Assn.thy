@@ -87,34 +87,34 @@ type_synonym (in -) conflict_rel = "nat \<times> bool option list"
 
 definition conflict_rel :: "(conflict_rel \<times> nat literal multiset) set" where
 \<open>conflict_rel = {((n, xs), C). n = size C \<and> mset_as_position xs C \<and>
-   (\<forall>L\<in>atms_of N\<^sub>1. L < length xs)}\<close>
+   (\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length xs)}\<close>
 
 lemma conflict_rel_empty_iff: \<open>((n, xs), C) \<in> conflict_rel \<Longrightarrow> n = 0 \<longleftrightarrow> C = {#}\<close>
   by (auto simp: conflict_rel_def)
 
-lemma conflict_atm_le_length: \<open>((n, xs), C) \<in> conflict_rel \<Longrightarrow> L \<in> atms_of N\<^sub>1 \<Longrightarrow> L < length xs\<close>
+lemma conflict_atm_le_length: \<open>((n, xs), C) \<in> conflict_rel \<Longrightarrow> L \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> L < length xs\<close>
   by (auto simp: conflict_rel_def)
 
 
 lemma conflict_le_length:
   assumes
     c_rel: \<open>((n, xs), C) \<in> conflict_rel\<close> and
-    L_N\<^sub>1: \<open>L \<in># N\<^sub>1\<close>
+    L_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
   shows \<open>atm_of L < length xs\<close>
 proof -
   have
     size: \<open>n = size C\<close> and
     mset_pos: \<open>mset_as_position xs C\<close> and
-    atms_le: \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length xs\<close>
+    atms_le: \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length xs\<close>
     using c_rel unfolding conflict_rel_def by blast+
-  have \<open>atm_of L \<in> atms_of N\<^sub>1\<close>
-    using L_N\<^sub>1 by (simp add: atms_of_def)
+  have \<open>atm_of L \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+    using L_\<L>\<^sub>a\<^sub>l\<^sub>l by (simp add: atms_of_def)
   then show ?thesis
     using atms_le by blast
 qed
 
 lemma conflict_rel_atm_in_iff:
-  \<open>((n, xs), C) \<in> conflict_rel \<Longrightarrow> L \<in># N\<^sub>1 \<Longrightarrow> L \<in>#C \<longleftrightarrow> xs!(atm_of L) = Some (is_pos L)\<close>
+  \<open>((n, xs), C) \<in> conflict_rel \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> L \<in>#C \<longleftrightarrow> xs!(atm_of L) = Some (is_pos L)\<close>
   by (rule mset_as_position_in_iff_nth)
      (auto simp: conflict_rel_def atms_of_def)
 
@@ -122,19 +122,19 @@ lemma (in twl_array_code)
   assumes c: \<open>((n,xs), C) \<in> conflict_rel\<close>
   shows
     conflict_rel_not_tautolgy: \<open>\<not>tautology C\<close> and
-    conflict_rel_size: \<open>literals_are_in_N\<^sub>0 C \<Longrightarrow> size C \<le> upperN div 2\<close>
+    conflict_rel_size: \<open>literals_are_in_\<A>\<^sub>i\<^sub>n C \<Longrightarrow> size C \<le> upperN div 2\<close>
 proof -
-  have mset: \<open>mset_as_position xs C\<close> and \<open>n = size C\<close> and \<open>\<forall>L\<in>atms_of N\<^sub>1. L < length xs\<close>
+  have mset: \<open>mset_as_position xs C\<close> and \<open>n = size C\<close> and \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length xs\<close>
     using c unfolding conflict_rel_def by fast+
   show \<open>\<not>tautology C\<close>
     using mset
     apply (induction rule: mset_as_position.induct)
-    subgoal by (auto simp: literals_are_in_N\<^sub>0_def)
+    subgoal by (auto simp: literals_are_in_\<A>\<^sub>i\<^sub>n_def)
     subgoal by (auto simp: tautology_add_mset)
     done
   have \<open>distinct_mset C\<close>
     using mset mset_as_position_distinct_mset by blast
-  then show \<open>literals_are_in_N\<^sub>0 C \<Longrightarrow> size C \<le> upperN div 2\<close>
+  then show \<open>literals_are_in_\<A>\<^sub>i\<^sub>n C \<Longrightarrow> size C \<le> upperN div 2\<close>
     using simple_clss_size_upper_div2[of \<open>C\<close>] \<open>\<not>tautology C\<close> by auto
 qed
 
