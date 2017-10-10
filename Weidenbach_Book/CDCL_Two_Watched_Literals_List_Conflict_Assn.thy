@@ -122,19 +122,19 @@ lemma (in twl_array_code)
   assumes c: \<open>((n,xs), C) \<in> conflict_rel\<close>
   shows
     conflict_rel_not_tautolgy: \<open>\<not>tautology C\<close> and
-    conflict_rel_size: \<open>literals_are_in_\<A>\<^sub>i\<^sub>n C \<Longrightarrow> size C \<le> upperN div 2\<close>
+    conflict_rel_size: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C \<Longrightarrow> size C \<le> upperN div 2\<close>
 proof -
   have mset: \<open>mset_as_position xs C\<close> and \<open>n = size C\<close> and \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length xs\<close>
     using c unfolding conflict_rel_def by fast+
   show \<open>\<not>tautology C\<close>
     using mset
     apply (induction rule: mset_as_position.induct)
-    subgoal by (auto simp: literals_are_in_\<A>\<^sub>i\<^sub>n_def)
+    subgoal by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def)
     subgoal by (auto simp: tautology_add_mset)
     done
   have \<open>distinct_mset C\<close>
     using mset mset_as_position_distinct_mset by blast
-  then show \<open>literals_are_in_\<A>\<^sub>i\<^sub>n C \<Longrightarrow> size C \<le> upperN div 2\<close>
+  then show \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C \<Longrightarrow> size C \<le> upperN div 2\<close>
     using simple_clss_size_upper_div2[of \<open>C\<close>] \<open>\<not>tautology C\<close> by auto
 qed
 

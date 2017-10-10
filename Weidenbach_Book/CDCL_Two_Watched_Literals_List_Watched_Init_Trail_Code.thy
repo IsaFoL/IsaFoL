@@ -346,7 +346,7 @@ lemmas add_init_cls_int_hnr[sepref_fr_rules] =
 
 lemma add_init_cls_int_add_init_cls:
   \<open>(uncurry add_init_cls_int, uncurry (add_init_cls)) \<in>
-   [\<lambda>(C, S). length C \<ge> 2 \<and> literals_are_in_\<A>\<^sub>i\<^sub>n (mset C)]\<^sub>f
+   [\<lambda>(C, S). length C \<ge> 2 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)]\<^sub>f
    Id \<times>\<^sub>r twl_st_ref_no_clvls \<rightarrow> \<langle>twl_st_ref_no_clvls\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: twl_st_ref_no_clvls_def add_init_cls_int_def add_init_cls_def Let_def
@@ -354,14 +354,14 @@ lemma add_init_cls_int_add_init_cls:
 
 theorem add_init_cls_hnr[sepref_fr_rules]:
   \<open>(uncurry add_init_cls_code, uncurry add_init_cls)
-    \<in> [\<lambda>(C, S). length C \<ge> 2 \<and> literals_are_in_\<A>\<^sub>i\<^sub>n (mset C)]\<^sub>a
+    \<in> [\<lambda>(C, S). length C \<ge> 2 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)]\<^sub>a
       (list_assn unat_lit_assn)\<^sup>k *\<^sub>a twl_st_assn_no_clvls\<^sup>d  \<rightarrow> twl_st_assn_no_clvls\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?c
     \<in> [comp_PRE (Id \<times>\<^sub>f twl_st_ref_no_clvls)
      (\<lambda>(C, S).
-         2 \<le> length C \<and> literals_are_in_\<A>\<^sub>i\<^sub>n (mset C))
+         2 \<le> length C \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (mset C))
      (\<lambda>_ (C, S).
          C \<noteq> [] \<and>
          tl C \<noteq> [] \<and>
@@ -381,7 +381,7 @@ proof -
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     apply (cases \<open>fst x\<close>; cases \<open>tl (fst x)\<close>)
     using that by (auto simp: comp_PRE_def twl_st_ref_no_clvls_def image_image map_fun_rel_def
-        literals_are_in_\<A>\<^sub>i\<^sub>n_add_mset)
+        literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_no_clvls_def by simp
   have f: \<open>?f' = ?f\<close>
@@ -460,7 +460,7 @@ definition init_dt_step_wl :: \<open>nat clause_l \<Rightarrow> nat twl_st_wl \<
            }
          else do {
           ASSERT(length C \<ge> 2);
-          ASSERT(literals_are_in_\<A>\<^sub>i\<^sub>n (mset C));
+          ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n (mset C));
           add_init_cls C S}}
     else do {
         if length C = 1
@@ -471,7 +471,7 @@ definition init_dt_step_wl :: \<open>nat clause_l \<Rightarrow> nat twl_st_wl \<
         else do {
           ASSERT(hd C \<in> snd ` D\<^sub>0);
           ASSERT(length C \<ge> 2);
-          ASSERT(literals_are_in_\<A>\<^sub>i\<^sub>n (mset C));
+          ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n (mset C));
           add_init_cls C S}}
   }\<close>
 
@@ -854,16 +854,16 @@ definition HH :: \<open>(nat twl_st_wl \<times> nat twl_st_l) set\<close> where
                (D \<noteq> None \<longrightarrow> Q = {#})}\<close>
 
 
-lemma literals_are_in_\<A>\<^sub>i\<^sub>n_add_mset:
-  \<open>literals_are_in_\<A>\<^sub>i\<^sub>n (add_mset L M) \<longleftrightarrow> literals_are_in_\<A>\<^sub>i\<^sub>n M \<and> atm_of L \<in># \<A>\<^sub>i\<^sub>n\<close>
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (add_mset L M) \<longleftrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n M \<and> atm_of L \<in># \<A>\<^sub>i\<^sub>n\<close>
   by (cases L)
-   (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def literals_are_in_\<A>\<^sub>i\<^sub>n_def image_image all_lits_of_m_add_mset uminus_lit_swap
+   (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def literals_are_in_\<L>\<^sub>i\<^sub>n_def image_image all_lits_of_m_add_mset uminus_lit_swap
          simp del: literal_of_nat.simps)
 
 lemma init_dt_step_wl_init_dt_step_l:
   assumes
     S'S: \<open>(S', S) \<in> HH\<close> and
-    lits_C: \<open>literals_are_in_\<A>\<^sub>i\<^sub>n (mset C)\<close> and
+    lits_C: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)\<close> and
     dist_C: \<open>distinct C\<close>
   shows \<open>init_dt_step_wl C S' \<le> \<Down> HH (init_dt_step_l C S)\<close>
 proof -
@@ -882,14 +882,14 @@ proof -
     by (cases C; cases \<open>hd C\<close>;
         auto simp: HH_def correct_watching.simps clause_to_update_def image_image
         all_lits_of_mm_add_mset all_lits_of_m_add_mset twl_array_code_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def
-        clauses_def mset_take_mset_drop_mset' literals_are_in_\<A>\<^sub>i\<^sub>n_add_mset)+
+        clauses_def mset_take_mset_drop_mset' literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset)+
 
   have hd_tl_C: \<open>hd (tl C) \<in> snd ` (\<lambda>L. (nat_of_lit L, L)) ` set_mset (twl_array_code_ops.\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)\<close>
     if \<open>C \<noteq> []\<close> and \<open>tl C \<noteq> []\<close>
     using assms(3-) that lits_C by (cases C; cases \<open>tl C\<close>)
       (auto simp: HH_def Let_def clause_to_update_append
         clauses_def mset_take_mset_drop_mset' image_image all_lits_of_m_add_mset
-        twl_array_code_ops.literals_are_in_\<A>\<^sub>i\<^sub>n_def)
+        twl_array_code_ops.literals_are_in_\<L>\<^sub>i\<^sub>n_def)
 
   obtain M N U D NP Q WS where
     S': \<open>S' = (M, N, U, D, NP, {#}, Q, WS)\<close> and
@@ -920,7 +920,7 @@ proof -
       \<open>C \<noteq> []\<close> and
       \<open>tl C \<noteq> []\<close> and
       C_ge2: \<open>2 \<le> length C\<close> and
-      \<open>literals_are_in_\<A>\<^sub>i\<^sub>n (mset C)\<close>
+      \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)\<close>
   proof -
     obtain L1 L2 C' where C: \<open>C = L1 # L2 # C'\<close>
       using C_ge2 by (cases C; cases \<open>tl C\<close>) auto
@@ -929,8 +929,8 @@ proof -
     have \<open>set_mset (all_lits_of_mm (mset `# mset (tl (N @ [L1 # L2 # C'])) + NP)) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
       using lits_C H unfolding C
       by (auto simp add: all_lits_of_mm_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-          all_lits_of_m_add_mset literals_are_in_\<A>\<^sub>i\<^sub>n_add_mset
-          literals_are_in_\<A>\<^sub>i\<^sub>n_def)
+          all_lits_of_m_add_mset literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
+          literals_are_in_\<L>\<^sub>i\<^sub>n_def)
     then show ?thesis
       using H
       unfolding HH_def C
@@ -950,7 +950,7 @@ proof -
       using H D lits_C
       unfolding HH_def
       by (cases C) (auto simp: clause_to_update_append all_lits_of_mm_add_mset
-          all_lits_of_m_add_mset literals_are_in_\<A>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+          all_lits_of_m_add_mset literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
   qed
   have le1_propa_no_confl:
     \<open>((Propagated (hd C) 0 # M, N, U, D, add_mset {#hd C#} NP,
@@ -978,7 +978,7 @@ proof -
     using H hd_C hd_tl_C dist_C C lits_C
     by (cases C; cases \<open>tl C\<close>)
       (auto simp: HH_def all_lits_of_mm_add_mset all_lits_of_m_add_mset
-        clause_to_update_append uminus_\<A>\<^sub>i\<^sub>n_iff literals_are_in_\<A>\<^sub>i\<^sub>n_def)
+        clause_to_update_append uminus_\<A>\<^sub>i\<^sub>n_iff literals_are_in_\<L>\<^sub>i\<^sub>n_def)
   have C_ge_2_iff: \<open>2 \<le> length C \<longleftrightarrow> C \<noteq> [] \<and> tl C \<noteq> []\<close>
     by (cases C; cases \<open>tl C\<close>) auto
   show ?thesis
@@ -1013,7 +1013,7 @@ qed
 lemma init_dt_wl_init_dt_l:
   assumes
     S'S: \<open>(S', S) \<in> HH\<close> and
-    \<open>\<forall>C\<in>set CS. literals_are_in_\<A>\<^sub>i\<^sub>n (mset C)\<close> and
+    \<open>\<forall>C\<in>set CS. literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)\<close> and
     \<open>\<forall>C\<in>set CS. distinct C\<close>
   shows \<open>init_dt_wl CS S' \<le> \<Down> HH (init_dt_l CS S)\<close>
   using assms
@@ -1074,8 +1074,8 @@ lemma init_dt_init_dt_l_full:
       (get_conflict_wl T \<noteq> None \<longrightarrow> literals_to_update_wl T = {#}))\<close>
 proof -
   define T where \<open>T = st_l_of_wl None S\<close>
-  have CS_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>\<forall>C\<in>set CS. literals_are_in_\<A>\<^sub>i\<^sub>n (mset C)\<close>
-    using is_\<L>\<^sub>a\<^sub>l\<^sub>l all_lits_of_mm_in_all_lits_of_m_in_iff unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def literals_are_in_\<A>\<^sub>i\<^sub>n_def
+  have CS_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>\<forall>C\<in>set CS. literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)\<close>
+    using is_\<L>\<^sub>a\<^sub>l\<^sub>l all_lits_of_mm_in_all_lits_of_m_in_iff unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def literals_are_in_\<L>\<^sub>i\<^sub>n_def
     by blast
   have w_q: \<open>clauses_to_update_l T = {#}\<close>
     by (cases S) (simp add: T_def)
@@ -1115,7 +1115,7 @@ proof -
   have [simp]: \<open>twl_array_code_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n (A + all_lits_of_mm B) \<longleftrightarrow>
        set_mset (all_lits_of_mm B) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
     if \<open>twl_array_code_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n A\<close> for A B
-    using that by (simp add: twl_array_code_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l_def twl_array_code_ops.literals_are_in_\<A>\<^sub>i\<^sub>n_def
+    using that by (simp add: twl_array_code_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l_def twl_array_code_ops.literals_are_in_\<L>\<^sub>i\<^sub>n_def
         Un_eq_iff_subset)
   have CS_\<L>\<^sub>a\<^sub>l\<^sub>l': \<open>set_mset (all_lits_of_mm (mset `# mset CS)) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
     using is_\<L>\<^sub>a\<^sub>l\<^sub>l unfolding twl_array_code_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l_def by (clarsimp simp: HH_def all_lits_of_mm_union)
