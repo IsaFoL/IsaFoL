@@ -951,8 +951,8 @@ lemmas is_mgu_most_general = mgu_sound[unfolded is_mgu_def, THEN conjunct2]
 
 lemma mgu_unifier:
   assumes
-    ailen: "length As = n" and
-    aijlen: "length AAs = n" and
+    aslen: "length As = n" and
+    aaslen: "length AAs = n" and
     mgu: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset As AAs))"
   shows "\<forall>i < n. \<forall>A \<in># AAs ! i. A \<cdot>a \<sigma> = As ! i \<cdot>a \<sigma>"
 proof (intro allI impI)
@@ -964,10 +964,10 @@ proof (intro allI impI)
   then have "is_unifiers \<sigma> (set_mset ` set (map2 add_mset As AAs))"
     using is_mgu_is_unifiers by auto
   then have "is_unifier \<sigma> (set_mset (add_mset (As ! i) (AAs ! i)))"
-    using i ailen aijlen unfolding is_unifiers_def is_unifier_def
+    using i aslen aaslen unfolding is_unifiers_def is_unifier_def
     by simp (metis length_zip min.idem nth_mem nth_zip old.prod.case set_mset_add_mset_insert)
   then show "\<forall>A \<in># AAs ! i. A \<cdot>a \<sigma> = As ! i \<cdot>a \<sigma>"
-    using ailen aijlen is_unifier_subst_atm_eqI
+    using aslen aaslen is_unifier_subst_atm_eqI
     by (metis finite_set_mset insertCI set_mset_add_mset_insert)
 qed
 
