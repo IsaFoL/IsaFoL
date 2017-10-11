@@ -4,6 +4,7 @@
 The relevant part of the book can be found [here](http://people.mpi-inf.mpg.de/~mfleury/paper/Weidenback_Book_CDCL.pdf)
 
 ## Organisation of the Development ##
+
 * The branch [master](https://bitbucket.org/isafol/isafol/src/master/Weidenbach_Book/) contains the latest development and is based on Isabelle's repository version.
 * The branch [IJCAR2016](https://bitbucket.org/isafol/isafol/src/IJCAR2016/Weidenbach_Book/) contains the version of the development related to the paper. Please refer to [this page](https://bitbucket.org/isafol/isafol/src/IJCAR2016/Weidenbach_Book/Readme.md).
 
