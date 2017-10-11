@@ -1951,7 +1951,7 @@ export_code IsaSAT_code
     integer_of_nat
     nat_of_integer
     uint32_of_nat
-  in SML_imp module_name SAT_Solver file "code/full_SAT_Cached_Trail.sml"
+  in SML_imp module_name SAT_Solver file "code/IsaSAT_solver.sml"
 
 definition TWL_to_clauses_state_conv :: \<open>(nat twl_st_wl \<times> nat cdcl\<^sub>W_restart_mset) set\<close> where
   \<open>TWL_to_clauses_state_conv = {(S', S). S = state\<^sub>W_of (twl_st_of_wl None S')}\<close>
