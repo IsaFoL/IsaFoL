@@ -394,6 +394,12 @@ proof -
   finally show ?thesis .
 qed
 
+lemma RES_RETURN_RES2:
+   \<open>SPEC \<Phi> \<bind> (\<lambda>(T, T'). RETURN (f T T')) = RES (uncurry f ` {T. \<Phi> T})\<close>
+  using RES_RETURN_RES[of \<open>Collect \<Phi>\<close> \<open>uncurry f\<close>]
+  apply (subst (asm)(2) split_prod_bound)
+  by auto
+
 
 subsubsection \<open>More Simplification Theorems\<close>
 
@@ -430,9 +436,6 @@ lemma nofail_Down_nofail: \<open>nofail gS \<Longrightarrow> fS \<le> \<Down> R 
 
 
 subsection \<open>Some Refinement\<close>
-
-lemma SPEC_RETURN_RES: \<open>SPEC \<Phi> \<bind> (\<lambda>T. RETURN (f T)) = RES (f ` {T. \<Phi> T})\<close>
-  by (simp add: bind_RES_RETURN_eq setcompr_eq_image)
 
 lemma fr_refl': \<open>A \<Longrightarrow>\<^sub>A B \<Longrightarrow> C * A \<Longrightarrow>\<^sub>A C * B\<close>
   unfolding assn_times_comm[of C]

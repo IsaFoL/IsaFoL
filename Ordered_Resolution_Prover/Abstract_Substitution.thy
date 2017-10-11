@@ -288,7 +288,7 @@ lemma subst_lit_is_neg[simp]: "is_neg (L \<cdot>l \<sigma>) = is_neg L"
 lemma subst_lit_is_pos[simp]: "is_pos (L \<cdot>l \<sigma>) = is_pos L"
   unfolding subst_lit_def by auto
 
-lemma subst_minus[simp]: "(- (L)) \<cdot>l \<mu> = - (L  \<cdot>l \<mu>)"
+lemma subst_minus[simp]: "(- L) \<cdot>l \<mu> = - (L  \<cdot>l \<mu>)"
   by (simp add: literal.map_sel subst_lit_def uminus_literal_def)
 
 
@@ -953,7 +953,7 @@ lemma mgu_unifier:
   assumes
     ailen: "length As = n" and
     aijlen: "length AAs = n" and
-    mgu: "Some \<sigma> = mgu (set_mset ` (set (map2 add_mset As AAs)))"
+    mgu: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset As AAs))"
   shows "\<forall>i < n. \<forall>A \<in># AAs ! i. A \<cdot>a \<sigma> = As ! i \<cdot>a \<sigma>"
 proof (intro allI impI)
   fix i

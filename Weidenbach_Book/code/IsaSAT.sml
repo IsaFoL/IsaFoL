@@ -74,8 +74,10 @@ fun checker print_modelb cnf_name = let
   end
 
 fun print_help () = (
-  println("Usage: " ^ CommandLine.name() ^ " cnf-file");
-  println("  where <cnf-file> is a non-compressed file in dimacs format")
+  println("Usage: [--verbose] " ^ CommandLine.name() ^ " cnf-file");
+  println("  where <cnf-file> is a non-compressed file in dimacs format");
+  println("  The result (SAT or UNSAT) is printed");
+  println("  Use option --verbose to print the model if one exists")
 )
 
 fun process_args [cnf_name] = checker false cnf_name
