@@ -921,7 +921,7 @@ proof (cases rule: ord_resolve.cases)
     have "Some \<sigma> = mgu (set_mset ` set (map2 add_mset As AAs))"
       using ord_resolve by -
     then have uu: "is_unifiers \<sigma> (set_mset ` set (map2 add_mset (As' \<cdot>al \<eta>) (AAs' \<cdot>aml \<eta>)))"
-      using mgu_sound is_mgu_def unfolding \<open>AAs' \<cdot>aml \<eta> = AAs\<close> using as' by auto
+      using mgu_sound is_mgu_def unfolding \<open>AAs' \<cdot>aml \<eta> = AAs\<close> using as'(2) by auto
     have \<eta>\<sigma>uni: "is_unifiers (\<eta> \<odot> \<sigma>) (set_mset ` set (map2 add_mset As' AAs'))"
     proof -
       have eq: "(set_mset ` set (map2 add_mset As' AAs' \<cdot>aml \<eta>)) = (set_mset ` set (map2 add_mset As' AAs') \<cdot>ass \<eta>)"
