@@ -866,7 +866,7 @@ definition find_lit_of_max_level_wl' :: "_ \<Rightarrow> _ \<Rightarrow> _ \<Rig
 
 definition (in -) list_of_mset2 :: "nat literal \<Rightarrow> nat literal \<Rightarrow> nat clause \<Rightarrow> nat clause_l nres" where
   \<open>list_of_mset2 L L' D =
-    SPEC (\<lambda>E. mset E = D \<and> E!0 = L \<and> E!1 = L')\<close>
+    SPEC (\<lambda>E. mset E = D \<and> E!0 = L \<and> E!1 = L' \<and> length E \<ge> 2)\<close>
 
 definition (in -) single_of_mset where
   \<open>single_of_mset D = SPEC(\<lambda>L. D = mset [L])\<close>
@@ -965,7 +965,7 @@ proof -
     unfolding list_of_mset_def list_of_mset2_def
   proof (rule RES_refine)
     fix s
-    assume s: \<open>s \<in> {E. mset E = D \<and> E ! 0 = L \<and> E ! 1 = L'}\<close>
+    assume s: \<open>s \<in> {E. mset E = D \<and> E ! 0 = L \<and> E ! 1 = L' \<and> length E \<ge> 2}\<close>
     then show \<open>\<exists>s'\<in>{D'a. D' = mset D'a}.
             (s, s')
             \<in> {(E, F).

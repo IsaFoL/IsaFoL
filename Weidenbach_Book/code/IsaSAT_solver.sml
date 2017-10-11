@@ -2220,7 +2220,7 @@ fun size_conflict_wl_code x =
     x;
 
 fun conflict_to_conflict_with_cls_code x =
-  (fn ai => fn (_, (a1a, a2a)) => fn () =>
+  (fn _ => fn _ => fn bia => fn (_, (a1a, a2a)) => fn () =>
     let
       val a =
         heap_WHILET
@@ -2251,14 +2251,12 @@ fun conflict_to_conflict_with_cls_code x =
                               (Word32.+ (a1b, (Word32.fromInt 1)),
                                 (fast_minus_uint32 a1c (Word32.fromInt 1),
                                   (xa, xaa)))))))))
-          ((Word32.fromInt 0), (a1a, (ai, a2a))) ();
+          ((Word32.fromInt 0), (a1a, (bia, a2a))) ();
     in
       let
-        val (_, aa) = a;
-        val (_, ab) = aa;
-        val (ac, b) = ab;
+        val (_, (_, (a1d, a2d))) = a;
       in
-        (fn () => (ac, b))
+        (fn () => (a1d, (true, ((Word32.fromInt 0), a2d))))
       end
         ()
     end)
@@ -2278,11 +2276,6 @@ fun remove2_from_conflict_code x =
     end)
     x;
 
-fun conflict_with_cls_split E_ =
-  (fn _ => fn _ => fn (a, b) => (a, (true, (zero E_, b))));
-
-fun add2_from_conflict_code x = (fn _ => fn _ => (fn a => (fn () => a))) x;
-
 fun size_conflict_code x = ((fn a => (fn () => a)) o (fn (_, (n, _)) => n)) x;
 
 fun list_of_mset2_None_code x =
@@ -2290,12 +2283,10 @@ fun list_of_mset2_None_code x =
     let
       val xa = size_conflict_code bi ();
       val x_b = new heap_uint32 (nat_of_uint32 xa) ai ();
-      val x_d = upd heap_uint32 (suc zero_nata) bia x_b ();
-      val x_f = remove2_from_conflict_code ai bia bi ();
-      val x_h = conflict_to_conflict_with_cls_code x_d x_f ();
-      val x_j = add2_from_conflict_code ai bia x_h ();
+      val x_d = upd heap_uint32 one_nat bia x_b ();
+      val xb = remove2_from_conflict_code ai bia bi ();
     in
-      conflict_with_cls_split zero_uint32 ai bia x_j
+      conflict_to_conflict_with_cls_code ai bia x_d xb ()
     end)
     x;
 
