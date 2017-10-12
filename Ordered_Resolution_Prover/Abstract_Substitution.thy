@@ -84,10 +84,10 @@ definition proper_instance_of :: "'a clause \<Rightarrow> 'a clause \<Rightarrow
   "proper_instance_of C D \<longleftrightarrow> instance_of C D \<and> \<not> instance_of D C"
 
 definition is_renaming :: "'s \<Rightarrow> bool" where
-  "is_renaming \<sigma> = (\<exists>\<tau>. \<sigma> \<odot> \<tau> = id_subst \<and> \<tau> \<odot> \<sigma> = id_subst)"
+  "is_renaming \<sigma> \<longleftrightarrow> (\<exists>\<tau>. \<sigma> \<odot> \<tau> = id_subst \<and> \<tau> \<odot> \<sigma> = id_subst)"
 
 definition is_renaming_list :: "'s list \<Rightarrow> bool" where
-  "is_renaming_list \<sigma>s = (\<forall>\<sigma> \<in> set \<sigma>s. is_renaming \<sigma>)"
+  "is_renaming_list \<sigma>s \<longleftrightarrow> (\<forall>\<sigma> \<in> set \<sigma>s. is_renaming \<sigma>)"
 
 definition inv_ren :: "'s \<Rightarrow> 's" where
   "inv_ren \<sigma> = (SOME \<tau>. \<sigma> \<odot> \<tau> = id_subst)"
@@ -99,10 +99,10 @@ definition is_ground_atms :: "'a set \<Rightarrow> bool" where
   "is_ground_atms AA = (\<forall>A \<in> AA. is_ground_atm A)"
 
 definition is_ground_atm_list :: "'a list \<Rightarrow> bool" where
-  "is_ground_atm_list As = (\<forall>A \<in> set As. is_ground_atm A)"
+  "is_ground_atm_list As \<longleftrightarrow> (\<forall>A \<in> set As. is_ground_atm A)"
 
 definition is_ground_atm_mset :: "'a multiset \<Rightarrow> bool" where
-  "is_ground_atm_mset AA = (\<forall>A. A \<in># AA \<longrightarrow> is_ground_atm A)"
+  "is_ground_atm_mset AA \<longleftrightarrow> (\<forall>A. A \<in># AA \<longrightarrow> is_ground_atm A)"
 
 definition is_ground_lit :: "'a literal \<Rightarrow> bool" where
   "is_ground_lit L \<longleftrightarrow> is_ground_atm (atm_of L)"
@@ -123,7 +123,7 @@ definition is_ground_subst :: "'s \<Rightarrow> bool" where
   "is_ground_subst \<sigma> \<longleftrightarrow> (\<forall>A. is_ground_atm (A \<cdot>a \<sigma>))"
 
 definition is_ground_subst_list :: "'s list \<Rightarrow> bool" where
-  "is_ground_subst_list \<sigma>s \<longleftrightarrow>  (\<forall>\<sigma> \<in> set \<sigma>s. is_ground_subst \<sigma>)"
+  "is_ground_subst_list \<sigma>s \<longleftrightarrow> (\<forall>\<sigma> \<in> set \<sigma>s. is_ground_subst \<sigma>)"
 
 definition grounding_of_cls :: "'a clause \<Rightarrow> 'a clause set" where
   "grounding_of_cls C = {C \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>}"

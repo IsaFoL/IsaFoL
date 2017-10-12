@@ -52,7 +52,6 @@ lemma inferences_from_mono: "CC \<subseteq> DD \<Longrightarrow> inferences_from
 definition saturated :: "'a clause set \<Rightarrow> bool" where
   "saturated N \<longleftrightarrow> concls_of (inferences_from N) \<subseteq> N"
 
-(* FIXME: D was renamed to C. So should the theorem be saturatedC? Or can we come up with an even better name? *)
 lemma saturatedD:
   assumes
     satur: "saturated N" and
