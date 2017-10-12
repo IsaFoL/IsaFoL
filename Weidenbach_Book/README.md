@@ -50,6 +50,15 @@ A recent version of the documentation the theory files is also available [here](
 
 ## Names Correspondance and Publications
 
+
+### SAT solver ###
+
+The code of the SAT solver is in the ``code`` folder. To run it:
+  * download [MLton](http://mlton.org);
+  * compile IsaSAT with ``make`` or ``make MLTON=/path/to/mlton`` (if MLton is not in the $PATH);
+  * run the solver with ``./IsaSAT <cnf-file>`` or ``./IsaSAT --verbose <cnf-file>`` (to print the model)
+  
+
 ### A Verified SAT Solver with Watched Literals Using Imperative HOL ###
 
 
