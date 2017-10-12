@@ -34,6 +34,9 @@ lemma mset_as_position_in_iff_nth:
     (auto simp: nth_list_update' atm_of_eq_atm_of is_pos_neg_not_is_pos
       dest: mset_as_position_atm_le_length)
 
+lemma mset_as_position_tautology: \<open>mset_as_position xs C \<Longrightarrow> \<not>tautology C\<close>
+  by (induction rule: mset_as_position.induct) (auto simp: tautology_add_mset)
+
 lemma mset_as_position_mset_union:
   fixes P xs
   defines \<open>xs' \<equiv> fold (\<lambda>L xs. xs[atm_of L := Some (is_pos L)]) P xs\<close>
@@ -215,6 +218,25 @@ lemma conflict_assn_is_empty_is_empty_code[sepref_fr_rules]:
   unfolded conflict_option_assn_def[symmetric]] unfolding the_is_empty_def
   conflict_option_assn_def[symmetric]
   by simp
+
+definition size_conflict_extract :: \<open>_ \<Rightarrow> nat\<close> where
+  \<open>size_conflict_extract = (\<lambda>((_, n, _), _). n)\<close>
+
+definition size_conflict_wl_int :: \<open>_ \<Rightarrow> nat\<close> where
+  \<open>size_conflict_wl_int = (\<lambda>(M, N, U, D, _, _, _, _). size_conflict_extract D)\<close>
+
+lemma size_conflict_extract[sepref_fr_rules]:
+   \<open>(return o (\<lambda>((_, n, _), _). n), RETURN o size_conflict_extract) \<in>
+   (((bool_assn *assn conflict_rel_assn) *assn
+         option_assn (unat_lit_assn *assn uint32_nat_assn)))\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding size_conflict_extract_def
+  apply sep_auto
+  apply sepref_to_hoare
+  subgoal for x xi
+    apply (cases x, cases xi)
+    apply sep_auto
+    done
+  done
 
 end
 

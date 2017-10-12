@@ -740,12 +740,16 @@ lemma minus_eq_id_forall_notin_mset:
   by (induction A)
    (auto dest!: multi_member_split simp: subset_mset_minus_eq_add_mset_noteq)
 
-lemma (in -) in_multiset_minus_notin_snd[simp]: \<open>a \<notin># B \<Longrightarrow> a \<in># A - B \<longleftrightarrow> a \<in># A\<close>
+lemma in_multiset_minus_notin_snd[simp]: \<open>a \<notin># B \<Longrightarrow> a \<in># A - B \<longleftrightarrow> a \<in># A\<close>
   by (metis count_greater_zero_iff count_inI in_diff_count)
 
-lemma (in -) distinct_mset_in_diff:
+lemma distinct_mset_in_diff:
   \<open>distinct_mset C \<Longrightarrow> a \<in># C - D \<longleftrightarrow> a \<in># C \<and> a \<notin># D\<close>
   by (meson distinct_mem_diff_mset in_multiset_minus_notin_snd)
+
+lemma diff_le_mono2_mset: \<open>A \<subseteq># B \<Longrightarrow> C - B \<subseteq># C - A\<close>
+  apply (auto simp: subseteq_mset_def ac_simps)
+  by (simp add: diff_le_mono2)
 
 lemma filter_mset_cong2:
   "(\<And>x. x \<in># M \<Longrightarrow> f x = g x) \<Longrightarrow> M = N \<Longrightarrow> filter_mset f M = filter_mset g N"
