@@ -15,14 +15,21 @@ A recent version of the documentation the theory files is also available [here](
 ## Authors ##
 
 * [Mathias Fleury](mailto:mathias.fleury shtrudel mpi-inf.mpg.de)
-* [Jasmin Christian Blanchette](mailto:jasmin.blanchette shtrudel inria.fr)
+* [Jasmin Christian Blanchette](mailto:j.c.blanchette shtrudel vu.nl>)
+* [Peter Lammich](mailto:lammich shtrudel in.tum.de)
+
 
 ## Additional Collaborators ##
 
 * [Dmitriy Traytel](mailto:traytel shtrudel inf.ethz.ch)
 * [Christoph Weidenbach](mailto:weidenbach shtrudel mpi-inf.mpg.de)
 
+
 ## Publications ##
+
+* [A verified SAT solver framework with learn, forget, restart, and incrementality](http://matryoshka.gforge.inria.fr/pubs/sat_sister.pdf)
+  J. C. Blanchette, M. Fleury, and C. Weidenbach.
+  In Sierra, C. (ed.) 26th International Joint Conference on Artificial Intelligence (IJCAI-17), pp. 4786–4790, ijcai.org, 2017. 
 
 * [A Verified SAT Solver Framework with Learn, Forget, Restart, and Incrementality](http://people.mpi-inf.mpg.de/~jblanche/sat.pdf).
   J. C. Blanchette, M. Fleury, and C. Weidenbach.
@@ -32,7 +39,19 @@ A recent version of the documentation the theory files is also available [here](
   M. Fleury.
   M.Sc. thesis, École normale supérieure Rennes, 2015.
 
+## Execution ##
+
+* Please install [Isabelle2017](http://isabelle.in.tum.de) is needed to process the files.
+* Install the [Archive of Formal proofs](https://www.isa-afp.org/using.html) as mentionned
+* To process all the theory files, clone the repository and load ``CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code.thy``, using:
+   ``/path/to/isabelle jedit -d . -l CDCL CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code.thy``
+   (``-d .`` ensures that Isabelle knows about the sessions of this formalisation, and ``-l CDCL`` means that we build the formalisation on top of CDCL)
+
+
 ## Names Correspondance and Publications
+
+* 
+
 
 * A Verified SAT Solver Framework with Learn, Forget, Restart, and Incrementality, submitted to JAR
 
