@@ -458,8 +458,8 @@ proof unfold_locales
     using dd_sset_n dd_true e_cex e_lt_c by (metis set_mset_mset)
 next
   fix CC DA E and I
-  assume inf: "Infer CC DA E \<in> ord_\<Gamma>" and icc: "I \<Turnstile>m CC" and id: "I \<Turnstile> DA"
-  from inf obtain CAs where
+  assume "Infer CC DA E \<in> ord_\<Gamma>" and icc: "I \<Turnstile>m CC" and id: "I \<Turnstile> DA"
+  then obtain CAs where
     "mset CAs = CC"
     "ord_resolve CAs DA E"
     using ord_\<Gamma>_def by auto

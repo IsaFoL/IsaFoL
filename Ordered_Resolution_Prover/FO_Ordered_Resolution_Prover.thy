@@ -963,10 +963,6 @@ proof (rule ccontr)
     using wf_less_than by (simp add: wf_iff_no_infinite_down_chain)
 qed
 
-(* FIXME: move to Multiset_More *)
-lemma subseteq_mset_size_eql: "X \<subseteq># Y \<Longrightarrow> size Y = size X \<Longrightarrow> X = Y"
-  using mset_subset_size subset_mset_def by fastforce
-
 lemma strictly_subsumes_has_minimum:
   assumes "CC \<noteq> {}"
   shows "\<exists>C \<in> CC. \<forall>D \<in> CC. \<not> strictly_subsumes D C"
@@ -1000,7 +996,7 @@ proof (rule ccontr)
   then have "\<forall>i. proper_instance_of (c (Suc i + l)) (c (i + l))"
     unfolding proper_instance_of_def instance_of_def by auto
   then have "\<exists>f. \<forall>i. proper_instance_of (f (Suc i)) (f i)"
-    by meson
+    by fast
   then show False
     using proper_instance_of_wf wf_iff_no_infinite_down_chain[of "{(x,y). proper_instance_of x y}"]
     unfolding wfP_def by auto
@@ -2221,27 +2217,20 @@ proof -
     by auto
   then have "finite (clss_of_state (lnth (lmap state_of_nth_state Sts) 0))"
     using finite_Sts0 by auto
-  moreover
-  have "P_of_state (lnth (lmap state_of_nth_state Sts) 0) = {}"
+  moreover have "P_of_state (lnth (lmap state_of_nth_state Sts) 0) = {}"
     using empty_P0 non_empty_deriv by auto
-  moreover
-  have "Q_of_state (lnth (lmap state_of_nth_state Sts) 0) = {}"
+  moreover have "Q_of_state (lnth (lmap state_of_nth_state Sts) 0) = {}"
     using empty_Q0 non_empty_deriv by auto
-  moreover
-  have "chain op \<leadsto> (lmap state_of_nth_state Sts)"
+  moreover have "chain op \<leadsto> (lmap state_of_nth_state Sts)"
     using deriv resolution_prover_with_weights_resolution_prover by blast 
-  moreover
-  have "\<forall>\<rho> C. is_renaming \<rho> \<longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
+  moreover have "\<forall>\<rho> C. is_renaming \<rho> \<longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
     using selection_renaming_invariant by auto
-  moreover
-  have "fair_state_seq (lmap state_of_nth_state Sts)"
+  moreover have "fair_state_seq (lmap state_of_nth_state Sts)"
     using monotone_fairness by auto
-  moreover
-  have "\<not> satisfiable (grounding_of_state (limit_state (lmap state_of_nth_state Sts)))"
+  moreover have "\<not> satisfiable (grounding_of_state (limit_state (lmap state_of_nth_state Sts)))"
     using unsat by auto
   ultimately have "{#} \<in> clss_of_state (limit_state (lmap state_of_nth_state Sts))" 
-    using completeness[of "lmap state_of_nth_state Sts",OF] 
-    by auto
+    using completeness[of "lmap state_of_nth_state Sts"] by auto
   then show "{#} \<in> clss_of_state (limit_nth_state Sts)"
     by auto
 qed 
