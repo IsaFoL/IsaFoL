@@ -18,12 +18,10 @@ A recent version of the documentation the theory files is also available [here](
 * [Jasmin Christian Blanchette](mailto:j.c.blanchette shtrudel vu.nl>)
 * [Peter Lammich](mailto:lammich shtrudel in.tum.de)
 
-
 ## Additional Collaborators ##
 
 * [Dmitriy Traytel](mailto:traytel shtrudel inf.ethz.ch)
 * [Christoph Weidenbach](mailto:weidenbach shtrudel mpi-inf.mpg.de)
-
 
 ## Publications ##
 
@@ -57,7 +55,6 @@ The code of the SAT solver is in the ``code`` folder. To run it:
   
 ## Names Correspondance and Publications
 
-
 ### A Verified SAT Solver with Watched Literals Using Imperative HOL ###
 
 |Paper                    |  Theory file                      |   Isabelle name
@@ -77,9 +74,7 @@ The code of the SAT solver is in the ``code`` folder. To run it:
 |``find_next_undef``      | ``CDCL_Two_Watched_Literals_VMTF`` |  ``find_next_undef``
 |``conflict_is_empty_lookup``| ``CDCL_Two_Watched_Literals_List_Conflict_Assn`` | ``conflict_assn_is_empty``
 
-
 ### A Verified SAT Solver Framework with Learn, Forget, Restart, and Incrementality, submitted to JAR ###
-
 
 |Paper                    |  Theory file                      |   Isabelle name
 |-------------------------|-----------------------------------|---------------------------------------------------------------------
