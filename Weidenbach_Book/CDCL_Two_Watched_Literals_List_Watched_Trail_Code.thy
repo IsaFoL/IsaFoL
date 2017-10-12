@@ -728,7 +728,7 @@ proof -
          zs[atm_of L := None])), Some (D - {#L, -L#})) \<in> option_conflict_rel\<close>
     using option_conflict_rel_update_None[OF ocr L]
     by (metis (no_types, lifting) add_mset_commute literal.exhaust_sel uminus_Neg uminus_Pos)
-  then have \<open>((if zs ! atm_of L = None then n else n - 1, zs[atm_of L := None]), D - {#L, - L#}) 
+  then have \<open>((if zs ! atm_of L = None then n else n - 1, zs[atm_of L := None]), D - {#L, - L#})
      \<in> conflict_rel\<close>
     by (auto simp: option_conflict_rel_def)
   from conflict_add_conflict_rel[OF this _ L_\<L>\<^sub>a\<^sub>l\<^sub>l] have
@@ -6672,7 +6672,7 @@ text \<open>
   \<^item> We are filling D starting from the end (index \<^term>\<open>n\<close>)
   \<^item> We are changing position one and two.
 \<close>
-definition conflict_to_conflict_with_cls 
+definition conflict_to_conflict_with_cls
   :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat literal list \<Rightarrow> conflict_option_rel \<Rightarrow> (nat literal list \<times> conflict_option_rel) nres\<close>
 where
   \<open>conflict_to_conflict_with_cls = (\<lambda>_ _ D (_, n, xs). do {
@@ -6785,7 +6785,7 @@ proof -
       obtain ab bb ac bc ad bd where
         s': "s = (ab, bb)"
           "bb = (ac, bc)"
-          "bc = (ad, bd)" 
+          "bc = (ad, bd)"
         by (cases s) auto
       then have [simp]: \<open>ac = 2\<close> \<open>s = (ab, 2, ad, bd)\<close> \<open>bb = (2, ad, bd)\<close> \<open>bc = (ad, bd)\<close> \<open>ba = (aa, baa)\<close>
         \<open>n = aa\<close>\<open>xs = baa\<close>
@@ -7126,7 +7126,7 @@ lemma extract_shorter_conflict_with_cls_code_conflict_to_conflict_with_cls_spec[
   \<open>(uncurry3 conflict_to_conflict_with_cls_code, uncurry3 list_of_mset2_None_droped)
     \<in> [\<lambda>(((L, L'), D), C). C \<noteq> None \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the C) \<and>
            length D = size (the C) + 2 \<and> L = D ! 0 \<and> L' = D ! 1]\<^sub>a
-       unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a 
+       unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a
      (hr_comp conflict_option_rel_assn option_conflict_rel_removed)\<^sup>d \<rightarrow>
      clause_ll_assn *assn conflict_option_assn\<close>
   using conflict_to_conflict_with_cls_code_refine[unfolded PR_CONST_def,
