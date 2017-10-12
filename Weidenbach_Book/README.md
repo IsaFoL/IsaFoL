@@ -5,7 +5,7 @@ The relevant part of the book can be found [here](http://people.mpi-inf.mpg.de/~
 
 ## Organisation of the Development ##
 
-* The branch [master](https://bitbucket.org/isafol/isafol/src/master/Weidenbach_Book/) contains the latest development and is based on Isabelle's repository version.
+* The branch [master](https://bitbucket.org/isafol/isafol/src/master/Weidenbach_Book/) contains the latest development and is based on Isabelle version 2017.
 * The branch [IJCAR2016](https://bitbucket.org/isafol/isafol/src/IJCAR2016/Weidenbach_Book/) contains the version of the development related to the paper. Please refer to [this page](https://bitbucket.org/isafol/isafol/src/IJCAR2016/Weidenbach_Book/Readme.md).
 
 ## Documentation ##
@@ -41,7 +41,7 @@ A recent version of the documentation the theory files is also available [here](
 
 ## Execution ##
 
-* Please install [Isabelle2017](http://isabelle.in.tum.de) is needed to process the files.
+* Please install [Isabelle2017](http://isabelle.in.tum.de).
 * Install the [Archive of Formal proofs](https://www.isa-afp.org/using.html) as mentionned
 * To process all the theory files, clone the repository and load ``CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code.thy``, using:
    ``/path/to/isabelle jedit -d . -l CDCL CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code.thy``
@@ -50,10 +50,10 @@ A recent version of the documentation the theory files is also available [here](
 
 ## Names Correspondance and Publications
 
-* 
+### A Verified SAT Solver with Watched Literals Using Imperative HOL ###
 
 
-* A Verified SAT Solver Framework with Learn, Forget, Restart, and Incrementality, submitted to JAR
+### A Verified SAT Solver Framework with Learn, Forget, Restart, and Incrementality, submitted to JAR ###
 
 
 |Paper                    |  Theory file                      |   Isabelle name
