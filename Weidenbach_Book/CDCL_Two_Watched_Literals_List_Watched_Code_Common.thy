@@ -40,7 +40,7 @@ lemma uminus_lit_imp_uminus:
   by (intro frefI nres_relI) (auto simp: nat_ann_lit_rel_def uminus_lit_imp_def case_prod_beta p2rel_def
       lit_of_natP_def nat_lit_rel_def split: option.splits, presburger)
 
-definition uminus_code where
+definition uminus_code :: \<open>uint32 \<Rightarrow> uint32\<close> where
   \<open>uminus_code L = bitXOR L 1\<close>
 
 lemma uminus_lit_hnr[sepref_fr_rules]:
@@ -565,16 +565,16 @@ proof -
     using H unfolding 1 2 3 op_watched_app_def .
 qed
 
-definition (in -) is_pos_code where
+definition (in -) is_pos_code :: \<open>uint32 \<Rightarrow> bool\<close> where
   \<open>is_pos_code L \<longleftrightarrow> bitAND L 1 = 0\<close>
 
 lemma (in -) is_pos_hnr[sepref_fr_rules]:
   \<open>(return o is_pos_code, RETURN o is_pos) \<in> unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
 proof -
-  have 1: \<open>(RETURN o is_pos_code, RETURN o is_pos) \<in> nat_lit_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
+  have 1: \<open>(RETURN o (\<lambda>L. bitAND L 1 = 0), RETURN o is_pos) \<in> nat_lit_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
     unfolding bitAND_1_mod_2 is_pos_code_def
     by (intro nres_relI frefI) (auto simp: nat_lit_rel_def lit_of_natP_def split: if_splits)
-  have 2: \<open>(return o is_pos_code, RETURN o is_pos_code) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  have 2: \<open>(return o is_pos_code, RETURN o (\<lambda>L. bitAND L 1 = 0)) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
     apply sepref_to_hoare
     using nat_of_uint32_ao[of _ 1]
     by (sep_auto simp: p2rel_def lit_of_natP_def unat_lit_rel_def uint32_nat_rel_def
