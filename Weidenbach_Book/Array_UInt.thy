@@ -211,4 +211,12 @@ lemma length_aa_u_hnr[sepref_fr_rules]: \<open>(uncurry length_aa_u, uncurry (RE
      [\<lambda>(xs, i). i < length xs]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def length_aa_u_def br_def)
 
+
+lemma append_el_aa_u'_code[code]:
+  "append_el_aa_u' = (\<lambda>a i x. nth_u_code a i \<bind>
+     (\<lambda>j. arl_append j x \<bind>
+      (\<lambda>a'. heap_array_set'_u a i a' \<bind> (\<lambda>_. return a))))"
+  unfolding append_el_aa_u'_def nth_u_code_def heap_array_set'_u_def
+  by auto
+
 end
