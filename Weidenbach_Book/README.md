@@ -46,7 +46,7 @@ A recent version of the documentation the theory files is also available [here](
 * To process all the theory files, clone the repository and load ``CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code.thy``, using:
    ``/path/to/isabelle jedit -d . -l CDCL CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code.thy``
    (``-d .`` ensures that Isabelle knows about the sessions of this formalisation, and ``-l CDCL`` means that we build the formalisation on top of CDCL)
-
+  (The whole compilation will take around 30 min).
 
 ## The SAT solver IsaSAT ##
 
