@@ -127,12 +127,13 @@ proof (cases rule: ord_resolve.cases)
        unfolding True e DA by auto
   next
     case False
-    moreover
+
     define max_A_of_Cs where "max_A_of_Cs = Max (atms_of (\<Union># mset Cs))"
-    ultimately have
+
+    have
       mc_in: "max_A_of_Cs \<in> atms_of (\<Union># mset Cs)" and
       mc_max: "\<And>B. B \<in> atms_of (\<Union># mset Cs) \<Longrightarrow> B \<le> max_A_of_Cs"
-      by auto
+      using max_A_of_Cs_def False by auto
 
     then have "\<exists>C_max \<in> set Cs. max_A_of_Cs \<in> atms_of (C_max)"
       by (metis atm_imp_pos_or_neg_lit in_Union_mset_iff neg_lit_in_atms_of pos_lit_in_atms_of
@@ -190,6 +191,7 @@ proof -
   have "\<exists>As. As \<noteq> [] \<and> negs (mset As) \<le># DA \<and> eligible As DA"
   proof (cases "S DA = {#}")
     assume s_d_e: "S DA = {#}"
+
     define A where "A = Max (atms_of DA)"
     define As where "As = [A]"
     define D where "D = DA-{#Neg A #}"
@@ -278,18 +280,16 @@ proof -
     unfolding Aj_of_def using prod_c0 produces_imp_Pos_in_lits
     by (metis (full_types) filter_mset_empty_conv image_mset_is_empty_iff)
 
-  {
-    fix CA
-    assume "CA \<in> set CAs"
-    then obtain i where i_p: "i < length CAs" "CAs ! i = CA"
-      by (meson in_set_conv_nth)
+  have prod_c: "productive N CA" if ca_in: "CA \<in> set CAs" for CA
+  proof -
+    obtain i where i_p: "i < length CAs" "CAs ! i = CA"
+      using ca_in by (meson in_set_conv_nth)
 
     have "production N (CA_of (As ! i)) = {As ! i}"
       using i_p CAs_def prod_c0 by auto
-    then have "productive N CA"
+    then show "productive N CA"
       using i_p CAs_def by auto
-  }
-  then have prod_c: "\<And>CA. CA \<in> set CAs \<Longrightarrow> productive N CA" .
+  qed
   then have cs_subs_n: "set CAs \<subseteq> N"
     using productive_in_N by auto
   have cs_true: "INTERP N \<Turnstile>m mset CAs"
@@ -411,11 +411,9 @@ proof (cases rule: ord_resolve.cases)
   then have "atms_of (\<Union># mset Cs) \<subseteq> atms_of (\<Union># mset CAs)"
     by (meson lits_subseteq_imp_atms_subseteq mset_subset_eqD subsetI)
   moreover have "atms_of (\<Union># mset CAs) = (\<Union>CA \<in> set CAs. atms_of CA)"
-    apply simp
     apply auto
-    apply (metis (no_types, lifting) in_mset_sum_list in_mset_sum_list2 atm_imp_pos_or_neg_lit
-      neg_lit_in_atms_of pos_lit_in_atms_of)+
-    done
+     by (metis (no_types, lifting) in_mset_sum_list in_mset_sum_list2 atm_imp_pos_or_neg_lit
+       neg_lit_in_atms_of pos_lit_in_atms_of)+
   ultimately have "atms_of (\<Union># mset Cs) \<subseteq> (\<Union>CA \<in> set CAs. atms_of CA)"
     by auto
   moreover have "atms_of D \<subseteq> atms_of DA"
@@ -455,7 +453,8 @@ proof unfold_locales
     by (simp add: res_e)
   then have "Infer (mset CAs) DA E \<in> ord_\<Gamma>"
     unfolding ord_\<Gamma>_def by (metis (mono_tags, lifting) mem_Collect_eq)
-  then show "\<exists>CC E. set_mset CC \<subseteq> N \<and> INTERP N \<Turnstile>m CC \<and> Infer CC DA E \<in> ord_\<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E < DA"
+  then show "\<exists>CC E. set_mset CC \<subseteq> N \<and> INTERP N \<Turnstile>m CC \<and> Infer CC DA E \<in> ord_\<Gamma>
+    \<and> \<not> INTERP N \<Turnstile> E \<and> E < DA"
     using dd_sset_n dd_true e_cex e_lt_c by (metis set_mset_mset)
 next
   fix CC DA E and I
