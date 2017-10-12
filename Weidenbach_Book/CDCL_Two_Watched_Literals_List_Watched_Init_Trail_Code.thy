@@ -539,7 +539,7 @@ sepref_thm init_dt_step_wl_code
   option.splits[split] get_conflict_wl_is_None_no_clvls_def[simp]
   unfolding init_dt_step_wl_def lms_fold_custom_empty PR_CONST_def
   unfolding watched_app_def[symmetric]
-  unfolding nth_rll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
+  unfolding nth_rll_def[symmetric]
   unfolding lms_fold_custom_empty swap_ll_def[symmetric]
   unfolding
     cons_trail_Propagated_def[symmetric] get_conflict_wl_is_None
@@ -680,27 +680,6 @@ lemma extract_atms_clss_imp_empty_assn[sepref_fr_rules]:
 
 declare extract_atms_clss_imp_list_assn.refine[sepref_fr_rules]
 declare atm_of_hnr[sepref_fr_rules]
-
-sepref_definition find_first_eq_map_atm_of_code
-  is \<open>uncurry (find_first_eq_map atm_of)\<close>
-  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a (list_assn unat_lit_assn)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  unfolding find_first_eq_map_def short_circuit_conv
-  by sepref
-
-definition index_atm_of where
-  \<open>index_atm_of L \<A>\<^sub>i\<^sub>n = index (map atm_of \<A>\<^sub>i\<^sub>n) L\<close>
-
-lemma find_first_eq_map_atm_of_code_index_atm_of[sepref_fr_rules]:
-  \<open>(uncurry find_first_eq_map_atm_of_code, uncurry (RETURN oo index_atm_of)) \<in>
-     uint32_nat_assn\<^sup>k *\<^sub>a (list_assn unat_lit_assn)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-proof -
-  have 1: \<open>(uncurry (find_first_eq_map atm_of), uncurry (RETURN oo index_atm_of)) \<in>
-    Id \<times>\<^sub>f \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
-    unfolding uncurry_def index_atm_of_def using find_first_eq_map_index
-    by (intro nres_relI frefI, rename_tac x y) (case_tac x, case_tac y, fastforce)
-  show ?thesis
-    using find_first_eq_map_atm_of_code.refine[FCOMP 1] .
-qed
 
 lemma extract_atms_cls_Cons:
   \<open>extract_atms_cls (L # C) \<A>\<^sub>i\<^sub>n = extract_atms_cls C (if atm_of L \<in> set \<A>\<^sub>i\<^sub>n then \<A>\<^sub>i\<^sub>n else atm_of L # \<A>\<^sub>i\<^sub>n)\<close>

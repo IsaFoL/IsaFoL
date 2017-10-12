@@ -94,6 +94,11 @@ definition unat_lit_rel :: "(uint32 \<times> nat literal) set" where
 abbreviation unat_lit_assn :: "nat literal \<Rightarrow> uint32 \<Rightarrow> assn" where
   \<open>unat_lit_assn \<equiv> pure unat_lit_rel\<close>
 
+lemma hr_comp_uint32_nat_assn_nat_lit_rel[simp]:
+  \<open>hr_comp uint32_nat_assn nat_lit_rel = unat_lit_assn\<close>
+  by (auto simp: hrp_comp_def hr_comp_def uint32_nat_rel_def
+        lit_of_natP_def hr_comp_pure br_def unat_lit_rel_def)
+
 fun pair_of_ann_lit :: "('a, 'b) ann_lit \<Rightarrow> 'a literal \<times> 'b option" where
   \<open>pair_of_ann_lit (Propagated L D) = (L, Some D)\<close>
 | \<open>pair_of_ann_lit (Decided L) = (L, None)\<close>
@@ -101,6 +106,10 @@ fun pair_of_ann_lit :: "('a, 'b) ann_lit \<Rightarrow> 'a literal \<times> 'b op
 fun ann_lit_of_pair :: "'a literal \<times> 'b option \<Rightarrow> ('a, 'b) ann_lit" where
   \<open>ann_lit_of_pair (L, Some D) = Propagated L D\<close>
 | \<open>ann_lit_of_pair (L, None) = Decided L\<close>
+
+lemma ann_lit_of_pair_alt_def:
+  \<open>ann_lit_of_pair (L, D) = (if D = None then Decided L else Propagated L (the D))\<close>
+  by (cases D) auto
 
 lemma ann_lit_of_pair_pair_of_ann_lit: \<open>ann_lit_of_pair (pair_of_ann_lit L) = L\<close>
   by (cases L) auto
@@ -321,18 +330,6 @@ proof -
   then show ?thesis
     by blast
 qed
-
-definition length_aa_u :: \<open>('a::heap array_list) array \<Rightarrow> uint32 \<Rightarrow> nat Heap\<close> where
-  \<open>length_aa_u xs i = length_aa xs (nat_of_uint32 i)\<close>
-
-lemma length_aa_u_hnr[sepref_fr_rules]: \<open>(uncurry length_aa_u, uncurry (RETURN \<circ>\<circ> length_ll)) \<in>
-     [\<lambda>(xs, i). i < length xs]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def length_aa_u_def br_def)
-
-lemma hr_comp_uint32_nat_assn_nat_lit_rel[simp]:
-  \<open>hr_comp uint32_nat_assn nat_lit_rel = unat_lit_assn\<close>
-  by (auto simp: hrp_comp_def hr_comp_def uint32_nat_rel_def
-        lit_of_natP_def hr_comp_pure br_def unat_lit_rel_def)
 
 lemma length_aa_length_ll_f[sepref_fr_rules]:
   \<open>(uncurry length_aa_u, uncurry (RETURN oo length_ll_f)) \<in>

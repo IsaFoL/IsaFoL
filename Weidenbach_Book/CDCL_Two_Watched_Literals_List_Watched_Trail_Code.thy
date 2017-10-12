@@ -1,5 +1,6 @@
 theory CDCL_Two_Watched_Literals_List_Watched_Trail_Code
-  imports CDCL_Two_Watched_Literals_List_Watched_Code_Common CDCL_Two_Watched_Literals_VMTF
+  imports CDCL_Two_Watched_Literals_List_Watched_Code_Common
+    CDCL_Two_Watched_Literals_VMTF
 begin
 
 no_notation Ref.update ("_ := _" 62)
@@ -548,6 +549,7 @@ sepref_thm get_level_code
   :: \<open>[\<lambda>((M, xs, lvls, k), L). nat_of_uint32 L div 2 < length lvls]\<^sub>a
   trailt_conc\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   unfolding get_level_trail_def nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
+  nth_u_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -2423,7 +2425,7 @@ sepref_thm unit_propagation_inner_loop_body_wl_D
   unfolding unit_propagation_inner_loop_body_wl_D_def length_rll_def[symmetric] PR_CONST_def
   unfolding watched_by_app_def[symmetric] access_lit_in_clauses_def[symmetric]
     find_unwatched_l_find_unwatched_wl_s
-  unfolding nth_rll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
+  unfolding nth_rll_def[symmetric]
   unfolding lms_fold_custom_empty swap_ll_def[symmetric]
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
   find_unwatched_wl_s_int_def[symmetric] valued_st_def[symmetric]
@@ -2549,7 +2551,7 @@ sepref_thm unit_propagation_inner_loop_wl_loop_D
   unfolding unit_propagation_inner_loop_wl_loop_D_def PR_CONST_def
   unfolding watched_by_nth_watched_app watched_app_def[symmetric]
     length_ll_f_def[symmetric] length_ll_fs_alt_def[symmetric]
-  unfolding nth_ll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
+  unfolding nth_ll_def[symmetric]
   unfolding swap_ll_def[symmetric]
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     is_None_def[symmetric] get_conflict_wl_is_None length_ll_fs_def[symmetric]
@@ -4471,7 +4473,6 @@ sepref_thm skip_and_resolve_loop_wl_D
     maximum_level_removed_eq_count_dec_def[symmetric]
     is_decided_hd_trail_wl_def[symmetric]
     skip_and_resolve_loop_inv_def
-    maximum_level_remove[symmetric]
     Multiset.is_empty_def[symmetric]
     get_maximum_level_remove_def[symmetric]
     literal_is_in_conflict_def[symmetric]

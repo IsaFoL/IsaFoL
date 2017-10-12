@@ -1,4 +1,4 @@
-theory CDCL_Two_Watched_Literals_List_Conflict_Assn
+theory CDCL_Two_Watched_Literals_Lookup_Conflict
   imports CDCL_Two_Watched_Literals_List_Watched_Domain
 begin
 
