@@ -142,7 +142,7 @@ proof -
     using wf_eq_minimal[THEN iffD1, rule_format, OF wf_less_multiset c_in] by blast
 qed
 
-(* Theorem 4.4 (generalizes Theorem 3.9) *)
+(* Theorem 4.4 (generalizes Theorems 3.9 and 3.16) *)
 
 theorem saturated_no_empty_imp_model:
   assumes
@@ -159,7 +159,7 @@ proof -
       d_in_n: "D \<in> N" and
       d_cex: "\<not> INTERP N \<Turnstile> D" and
       d_min: "\<And>C. C \<in> N \<Longrightarrow> C < D \<Longrightarrow> INTERP N \<Turnstile> C"
-      using ex_min_counterex by meson
+      by (meson ex_min_counterex)
     then obtain CC E where
       cc_subs_n: "set_mset CC \<subseteq> N" and
       inf_e: "Infer CC D E \<in> \<Gamma>" and
@@ -220,10 +220,10 @@ next
   obtain DD_of where
     "\<And>C. C \<in># CC' \<Longrightarrow> DD_of C \<subseteq> CC \<and> finite (DD_of C) \<and> C \<in> saturate (DD_of C)"
     using step(3) by metis
-  then have "(\<Union>C \<in> set_mset CC'. DD_of C) \<subseteq> CC \<and>
-    finite (\<Union>C \<in> set_mset CC'. DD_of C) \<and> set_mset CC' \<subseteq> saturate (\<Union>C \<in> set_mset CC'. DD_of C)"
+  then have
+    "(\<Union>C \<in> set_mset CC'. DD_of C) \<subseteq> CC"
+    "finite (\<Union>C \<in> set_mset CC'. DD_of C) \<and> set_mset CC' \<subseteq> saturate (\<Union>C \<in> set_mset CC'. DD_of C)"
     by (auto intro: saturate_mono)
-  then have "\<exists>DD \<subseteq> CC. finite DD \<and> set_mset CC' \<subseteq> saturate DD" ..
   then obtain DD where
     d_sub: "DD \<subseteq> CC" and d_fin: "finite DD" and in_sat_d: "set_mset CC' \<subseteq> saturate DD"
     by blast
@@ -235,18 +235,8 @@ next
   moreover have "finite (DD \<union> EE)"
     using d_fin e_fin by fast
   moreover have "E \<in> saturate (DD \<union> EE)"
-  proof -
-    obtain C_of where
-      c_of: "\<And>CC DD :: 'a clause set. \<not> CC \<subseteq> DD \<longrightarrow> C_of CC DD \<in> CC \<and> C_of CC DD \<notin> DD"
-      by (metis subsetI)
-    then have c_of': "\<And>CC DD EE. C_of CC (DD \<union> EE) \<in> DD \<longrightarrow> CC \<subseteq> DD \<union> EE"
-      by (meson Un_iff)
-    then have "D \<in> saturate (DD \<union> EE)"
-      using c_of by (metis in_sat_ee saturate_mono sup_commute)
-    then show ?thesis
-      using c_of' c_of in_sat_d step.hyps(1)
-      by (meson saturated_saturate saturate_mono saturatedD subsetCE)
-  qed
+    by (smt in_sat_d in_sat_ee inference_system.saturate.step saturate_mono step.hyps(1)
+        subset_iff sup.cobounded1 sup.cobounded2)
   ultimately show ?case
     by blast
 qed
@@ -265,16 +255,14 @@ context sat_preserving_inference_system
 begin
 
 text \<open>
-This result surely holds, but we have yet to prove it.
+This result surely holds, but we have yet to prove it. The challenge is: Every time a new clause is
+introduced, we also get a new interpretation (by the definition of
+@{text sat_preserving_inference_system}). But the interpretation we want here is then the one that
+exists "at the limit". Maybe we can use compactness to prove it.
 \<close>
 
 theorem saturate_sat_preserving: "satisfiable CC \<Longrightarrow> satisfiable (saturate CC)"
-  thm saturate.induct
-  oops 
-  (* The challenge is: Every time a new clause is introduced, we also get a new interpretation
-     (by the definition of sat_preserving_inference_system).
-     But the interpretation we want here is then the one which exists "at the limit".
-     Maybe we can use compactness to prove it. *)
+  oops
 
 end
 

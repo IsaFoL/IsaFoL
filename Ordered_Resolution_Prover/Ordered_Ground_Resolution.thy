@@ -72,25 +72,8 @@ lemma ord_resolve_sound:
   using res_e
 proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Cs AAs As D)
-  have DA: "DA = D + negs (mset As)"
-    using ord_resolve by -
-  have e: "E = (\<Union># (mset Cs)) + D"
-    using ord_resolve by -
-  have cas_len: "length CAs = n"
-    using ord_resolve by -
-  have cs_len: "length Cs = n"
-    using ord_resolve by -
-  have as_len: "length As = n"
-    using ord_resolve by -
-  have cas: "\<forall>i < n. CAs ! i = Cs ! i + poss (AAs ! i) "
-    using ord_resolve by -
-  have aas_ne: "\<forall>i < n. AAs ! i \<noteq> {#}"
-    using ord_resolve by -
-  have a_eq: "\<forall>i < n. \<forall>A \<in># AAs ! i. A = As ! i "
-    using ord_resolve by -
-
-  have cs_as_len: "length CAs = length As"
-    using cas_len as_len by auto
+  note DA = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and
+    as_len = this(6) and cas = this(8) and aas_ne = this(9) and a_eq = this(10)
 
   show ?thesis
   proof (cases "\<forall>A \<in> set As. A \<in> I")
@@ -106,7 +89,7 @@ proof (cases rule: ord_resolve.cases)
     then obtain i where
       a_in_aa: "i < n" and
       a_false: "As ! i \<notin> I"
-      using cs_as_len cas_len by (metis in_set_conv_nth)
+      using cas_len as_len by (metis in_set_conv_nth)
     have "\<not> I \<Turnstile> poss (AAs ! i)"
       using a_false a_eq aas_ne a_in_aa unfolding true_cls_def by auto
     moreover have "I \<Turnstile> CAs ! i"
@@ -132,33 +115,14 @@ lemma ord_resolve_reductive:
   using assms
 proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Cs AAs As D)
-  have DA: "DA = D + negs (mset As)"
-    using ord_resolve by -
-  have e: "E = \<Union># mset Cs + D"
-    using ord_resolve by -
-  have cas_len: "length CAs = n"
-    using ord_resolve by -
-  have cs_len: "length Cs = n"
-    using ord_resolve by -
-  have ai_len: "length As = n"
-    using ord_resolve by -
-  have nz: "n \<noteq> 0"
-    using ord_resolve by -
-  have cas: "\<forall>i < n. CAs ! i = Cs ! i + poss (AAs ! i) "
-    using ord_resolve by -
-  have maxim: " \<forall>i < n. str_maximal_in (As ! i) (Cs ! i)"
-    using ord_resolve by -
-
-  have as_ne: "As \<noteq> []"
-    using nz ai_len by auto
-  have cs_as_len: "length CAs = length As"
-    using cas_len ai_len by auto
+  note DA = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and
+    ai_len = this(6) and nz = this(7) and cas = this(8) and maxim = this(12)
 
   show ?thesis
   proof (cases "\<Union># mset Cs = {#}")
     case True
     have "negs (mset As) \<noteq> {#}"
-       using as_ne by auto
+       using nz ai_len by auto
     then show ?thesis
        unfolding True e DA by auto
   next
@@ -186,14 +150,14 @@ proof (cases rule: ord_resolve.cases)
       using maxim cm_in_cas mc_in_cm cas_len unfolding str_maximal_in_def A_max_def by auto
 
     then have ucas_ne_neg_aa: "(\<Union># mset Cs) \<noteq> negs (mset As)"
-      using mc_in mc_max mc_lt_ma cm_in_cas cs_as_len unfolding A_max_def
+      using mc_in mc_max mc_lt_ma cm_in_cas cas_len ai_len unfolding A_max_def
       by (metis atms_of_negg nth_mem set_mset_mset leD)
     moreover have ucas_lt_ma: "\<forall>B \<in> atms_of (\<Union># mset Cs). B < A_max"
       using mc_max mc_lt_ma by fastforce
     moreover have "\<not> Neg A_max \<in># (\<Union># mset Cs)"
       using ucas_lt_ma neg_lit_in_atms_of[of A_max "\<Union># mset Cs"] by auto
     moreover have "Neg A_max \<in># negs (mset As)"
-      using cm_in_cas cs_as_len A_max_def by auto
+      using cm_in_cas cas_len ai_len A_max_def by auto
     ultimately have "(\<Union># mset Cs) < negs (mset As)"
       unfolding less_multiset\<^sub>H\<^sub>O
       by (metis (no_types) atms_less_eq_imp_lit_less_eq_neg count_greater_zero_iff
@@ -434,19 +398,10 @@ lemma ord_resolve_atms_of_concl_subset:
   using assms
 proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Cs AAs As D)
-  have DA: "DA = D + negs (mset As)"
-    using ord_resolve by -
-  have e: "E = \<Union># mset Cs + D"
-    using ord_resolve by -
-  have cas_len: "length CAs = n"
-    using ord_resolve by -
-  have cs_len: "length Cs = n"
-    using ord_resolve by -
-  have cas: "\<forall>i < n. CAs ! i = Cs ! i + poss (AAs ! i)"
-    using ord_resolve by -
+  note DA = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and cas = this(8)
 
-  from cas have "\<forall>i < n. set_mset (Cs ! i) \<subseteq> set_mset (CAs ! i)"
-    by auto
+  have "\<forall>i < n. set_mset (Cs ! i) \<subseteq> set_mset (CAs ! i)"
+    using cas by auto
   then have "\<forall>i < n. Cs ! i \<subseteq># \<Union># mset CAs"
     by (metis cas cas_len mset_subset_eq_add_left nth_mem_mset sum_mset.remove union_assoc)
   then have "\<forall>C \<in> set Cs. C \<subseteq># \<Union># mset CAs"
@@ -456,10 +411,12 @@ proof (cases rule: ord_resolve.cases)
   then have "atms_of (\<Union># mset Cs) \<subseteq> atms_of (\<Union># mset CAs)"
     by (meson lits_subseteq_imp_atms_subseteq mset_subset_eqD subsetI)
   moreover have "atms_of (\<Union># mset CAs) = (\<Union>CA \<in> set CAs. atms_of CA)"
+    apply simp
     apply auto
-    apply (metis (no_types, lifting) in_mset_sum_list in_mset_sum_list2 atm_imp_pos_or_neg_lit neg_lit_in_atms_of pos_lit_in_atms_of)+
+    apply (metis (no_types, lifting) in_mset_sum_list in_mset_sum_list2 atm_imp_pos_or_neg_lit
+      neg_lit_in_atms_of pos_lit_in_atms_of)+
     done
-  ultimately have "atms_of (\<Union># mset Cs) \<subseteq> (\<Union>CA\<in>set CAs. atms_of CA)"
+  ultimately have "atms_of (\<Union># mset Cs) \<subseteq> (\<Union>CA \<in> set CAs. atms_of CA)"
     by auto
   moreover have "atms_of D \<subseteq> atms_of DA"
     using DA by auto
