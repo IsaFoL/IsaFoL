@@ -14,29 +14,10 @@ subsubsection \<open>Types and Refinement Relations\<close>
 type_synonym trail_int = \<open>(nat, nat) ann_lits \<times> bool option list \<times> nat list \<times> nat\<close>
 type_synonym trail_int_assn = \<open>(uint32 \<times> nat option) list \<times> bool option array \<times> uint32 array \<times> uint32\<close>
 
-type_synonym vmtf_assn = \<open>uint32 al_vmtf_atm array \<times> nat \<times> uint32 option \<times> uint32 option\<close>
-type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> uint32 array_list\<close>
-
-type_synonym phase_saver_assn = \<open>bool array\<close>
-
 type_synonym twl_st_wll_trail =
   \<open>trail_int_assn \<times> clauses_wl \<times> nat \<times> conflict_option_assn \<times>
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
     uint32\<close>
-
-instance al_vmtf_atm :: (heap) heap
-proof intro_classes
-  let ?to_pair = \<open>\<lambda>x::'a al_vmtf_atm. (stamp x, get_prev x, get_next x)\<close>
-  have inj': \<open>inj ?to_pair\<close>
-    unfolding inj_def by (intro allI) (case_tac x; case_tac y; auto)
-  obtain to_nat :: \<open>nat \<times> 'a option \<times> 'a option \<Rightarrow> nat\<close> where
-    \<open>inj to_nat\<close>
-    by blast
-  then have \<open>inj (to_nat o ?to_pair)\<close>
-    using inj' by (blast intro: inj_comp)
-  then show \<open>\<exists>to_nat :: 'a al_vmtf_atm \<Rightarrow> nat. inj to_nat\<close>
-    by blast
-qed
 
 definition valued_atm_on_trail where
   \<open>valued_atm_on_trail M L =
@@ -62,206 +43,6 @@ end
 abbreviation trailt_conc :: \<open>trail_int \<Rightarrow> trail_int_assn \<Rightarrow> assn\<close> where
   \<open>trailt_conc \<equiv> pair_nat_ann_lits_assn *assn array_assn (option_assn bool_assn) *assn
       array_assn uint32_nat_assn *assn uint32_nat_assn\<close>
-
-definition l_vmtf_atm_rel where
-\<open>l_vmtf_atm_rel = {(a', a). stamp a = stamp a' \<and>
-   (get_prev a', get_prev a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel \<and>
-   (get_next a', get_next a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel}\<close>
-
-abbreviation l_vmtf_atm_assn where
-\<open>l_vmtf_atm_assn \<equiv> pure l_vmtf_atm_rel\<close>
-
-lemma l_vmtf_ATM_ref[sepref_fr_rules]:
-  \<open>(uncurry2 (return ooo l_vmtf_ATM), uncurry2 (RETURN ooo l_vmtf_ATM)) \<in>
-    nat_assn\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a
-    l_vmtf_atm_assn\<close>
-  by sepref_to_hoare
-   (sep_auto simp: l_vmtf_atm_rel_def uint32_nat_rel_def br_def option_assn_alt_def
-     split: option.splits)
-
-lemma stamp_ref[sepref_fr_rules]: \<open>(return o stamp, RETURN o stamp) \<in> l_vmtf_atm_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  by sepref_to_hoare
-    (auto simp: ex_assn_move_out(2)[symmetric] return_cons_rule ent_ex_up_swap l_vmtf_atm_rel_def
-      simp del: ex_assn_move_out)
-
-lemma get_next_ref[sepref_fr_rules]: \<open>(return o get_next, RETURN o get_next) \<in> l_vmtf_atm_assn\<^sup>k \<rightarrow>\<^sub>a
-   option_assn uint32_nat_assn\<close>
-  unfolding option_assn_pure_conv
-  by sepref_to_hoare (sep_auto simp: return_cons_rule l_vmtf_atm_rel_def)
-
-lemma get_prev_ref[sepref_fr_rules]: \<open>(return o get_prev, RETURN o get_prev) \<in> l_vmtf_atm_assn\<^sup>k \<rightarrow>\<^sub>a
-   option_assn uint32_nat_assn\<close>
-  unfolding option_assn_pure_conv
-  by sepref_to_hoare (sep_auto simp: return_cons_rule l_vmtf_atm_rel_def)
-
-abbreviation vmtf_conc where
-  \<open>vmtf_conc \<equiv> (array_assn l_vmtf_atm_assn *assn nat_assn *assn option_assn uint32_nat_assn
-    *assn option_assn uint32_nat_assn)\<close>
-
-
-abbreviation vmtf_remove_conc :: \<open>vmtf_remove_int \<Rightarrow> vmtf_remove_assn \<Rightarrow> assn\<close> where
-  \<open>vmtf_remove_conc \<equiv> vmtf_conc *assn arl_assn uint32_nat_assn\<close>
-
-definition update_next_search where
-  \<open>update_next_search L = (\<lambda>((A, m, lst, next_search), removed). ((A, m, lst, L), removed))\<close>
-
-lemma update_next_search_ref[sepref_fr_rules]:
-  \<open>(uncurry (return oo update_next_search), uncurry (RETURN oo update_next_search)) \<in>
-      (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
-  unfolding option_assn_pure_conv
-  by sepref_to_hoare (sep_auto simp: update_next_search_def)
-
-sepref_definition (in -)l_vmtf_dequeue_code
-   is \<open>uncurry (RETURN oo l_vmtf_dequeue)\<close>
-   :: \<open>[vmtf_dequeue_pre]\<^sub>a
-        uint32_nat_assn\<^sup>k *\<^sub>a (array_assn l_vmtf_atm_assn)\<^sup>d \<rightarrow> array_assn l_vmtf_atm_assn\<close>
-  supply [[goals_limit = 1]]
-  supply option.splits[split]
-  unfolding l_vmtf_dequeue_def vmtf_dequeue_pre_alt_def
-  by sepref
-
-declare l_vmtf_dequeue_code.refine[sepref_fr_rules]
-
-sepref_definition vmtf_dequeue_code
-   is \<open>uncurry (RETURN oo vmtf_dequeue)\<close>
-   :: \<open>[\<lambda>(L,(A,m,lst,next_search)). L < length A \<and> vmtf_dequeue_pre (L, A)]\<^sub>a
-        uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc\<^sup>d \<rightarrow> vmtf_conc\<close>
-  supply [[goals_limit = 1]]
-  unfolding vmtf_dequeue_def
-  by sepref
-
-declare vmtf_dequeue_code.refine[sepref_fr_rules]
-
-sepref_definition vmtf_enqueue_code
-   is \<open>uncurry (RETURN oo vmtf_enqueue)\<close>
-   :: \<open>[\<lambda>(L,(A,m,lst,next_search)). L < length A \<and> (lst \<noteq> None \<longrightarrow> the lst < length A)]\<^sub>a
-        uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc\<^sup>d \<rightarrow> vmtf_conc\<close>
-  supply [[goals_limit = 1]]
-  unfolding vmtf_enqueue_def
-  by sepref
-
-declare vmtf_enqueue_code.refine[sepref_fr_rules]
-
-sepref_definition vmtf_en_dequeue_code
-   is \<open>uncurry (RETURN oo vmtf_en_dequeue)\<close>
-   :: \<open>[\<lambda>(L,(A,m,lst,next_search)). L < length A \<and> (lst \<noteq> None \<longrightarrow> the lst < length A) \<and>
-        vmtf_dequeue_pre (L,A)]\<^sub>a
-        uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc\<^sup>d \<rightarrow> vmtf_conc\<close>
-  supply [[goals_limit = 1]]
-  supply vmtf_dequeue_def[simp] if_splits[split] vmtf_dequeue_pre_def[simp]
-  unfolding vmtf_en_dequeue_def
-  by sepref
-
-declare vmtf_en_dequeue_code.refine[sepref_fr_rules]
-
-
-definition insert_sort_inner_nth where
-  \<open>insert_sort_inner_nth A = insert_sort_inner (\<lambda>remove n. stamp (A ! (remove ! n)))\<close>
-
-definition insert_sort_nth where
-  \<open>insert_sort_nth = (\<lambda>(A, _). insert_sort (\<lambda>remove n. stamp (A ! (remove ! n))))\<close>
-
-
-lemma insert_sort_inner_nth_code_helper:
-  assumes \<open>\<forall>x\<in>set ba. x < length a\<close>  and
-      \<open>b < length ba\<close> and
-     mset: \<open>mset ba = mset a2'\<close>  and
-      \<open>a1' < length a2'\<close>
-  shows \<open>a2' ! b < length a\<close>
-  using nth_mem[of b a2'] mset_eq_setD[OF mset] mset_eq_length[OF mset] assms
-  by (auto simp del: nth_mem)
-
-sepref_definition (in -) insert_sort_inner_nth_code
-   is \<open>uncurry2 insert_sort_inner_nth\<close>
-   :: \<open>[\<lambda>((xs, remove), n). (\<forall>x\<in>#mset remove. x < length xs) \<and> n < length remove]\<^sub>a
-  (array_assn l_vmtf_atm_assn)\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>
-  arl_assn uint32_nat_assn\<close>
-  unfolding insert_sort_inner_nth_def insert_sort_inner_def
-  supply [[goals_limit = 1]]
-  supply mset_eq_setD[dest] mset_eq_length[dest]  insert_sort_inner_nth_code_helper[intro]
-  by sepref
-
-declare insert_sort_inner_nth_code.refine[sepref_fr_rules]
-
-sepref_definition (in -) insert_sort_nth_code
-   is \<open>uncurry insert_sort_nth\<close>
-   :: \<open>[\<lambda>(vm, remove). (\<forall>x\<in>#mset remove. x < length (fst vm))]\<^sub>a
-      vmtf_conc\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d  \<rightarrow>
-       arl_assn uint32_nat_assn\<close>
-  unfolding insert_sort_nth_def insert_sort_def insert_sort_inner_nth_def[symmetric]
-  supply [[goals_limit = 1]]
-  supply mset_eq_setD[dest] mset_eq_length[dest]
-  by sepref
-
-declare insert_sort_nth_code.refine[sepref_fr_rules]
-
-lemma (in -) id_ref: \<open>(return o id, RETURN o id) \<in> R\<^sup>d \<rightarrow>\<^sub>a R\<close>
-  by sepref_to_hoare sep_auto
-
-lemma insert_sort_nth_reorder:
-   \<open>(uncurry insert_sort_nth, uncurry reorder_remove) \<in>
-      Id \<times>\<^sub>r \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
-  using insert_sort_reorder_remove[unfolded fref_def nres_rel_def]
-  by (intro frefI nres_relI) (fastforce simp: insert_sort_nth_def)
-
-lemma (in -) insert_sort_nth_code_reorder_remove[sepref_fr_rules]:
-   \<open>(uncurry insert_sort_nth_code, uncurry reorder_remove) \<in>
-      [\<lambda>((a, _), b). \<forall>x\<in>set b. x < length a]\<^sub>a
-      vmtf_conc\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d \<rightarrow> arl_assn uint32_nat_assn\<close>
-  using insert_sort_nth_code.refine[FCOMP insert_sort_nth_reorder]
-  by auto
-
-context twl_array_code_ops
-begin
-
-lemma vmtf_imp_insert_sort_nth_code_preD:
-  assumes vmtf: \<open>vm \<in> vmtf_imp M\<close>
-  shows \<open>\<forall>x\<in>set (snd vm). x < length (fst (fst vm))\<close>
-proof -
-  obtain A m lst next_search remove where
-    vm: \<open>vm = ((A, m, lst, next_search), remove)\<close>
-    by (cases vm) auto
-
-  obtain xs' ys' where
-    l_vmtf: \<open>l_vmtf (ys' @ xs') m A\<close> and
-    lst: \<open>lst = option_hd (ys' @ xs')\<close> and
-    next_search: \<open>next_search = option_hd xs'\<close> and
-    abs_vmtf: \<open>abs_l_vmtf_remove_inv M ((set xs', set ys'), set remove)\<close> and
-    notin: \<open>l_vmtf_notin (ys' @ xs') m A\<close> and
-    atm_A: \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length A\<close> and
-    \<open>\<forall>L\<in>set (ys' @ xs'). L \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-    using vmtf unfolding vmtf_imp_def vm by fast
-  show ?thesis
-    using atm_A abs_vmtf unfolding abs_l_vmtf_remove_inv_def
-    by (auto simp: vm)
-qed
-
-sepref_thm vmtf_flush_code
-   is \<open>vmtf_flush\<close>
-   :: \<open>[\<lambda>a. \<exists>M. a \<in> vmtf_imp M]\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
-  supply [[goals_limit = 1]]
-  supply vmtf_en_dequeue_pre_def[simp] vmtf_imp_insert_sort_nth_code_preD[dest]
-  unfolding vmtf_flush_def
-  apply (rewrite
-        at \<open>[]\<close> in \<open>\<lambda>(_, removed). do {removed' \<leftarrow> _; (vm, _) \<leftarrow> _; RETURN (_, \<hole>)}\<close>
-        to \<open>emptied_list removed'\<close>
-          emptied_list_def[symmetric]
-     )
-  by sepref
-
-
-concrete_definition (in -) vmtf_flush_code
-   uses twl_array_code_ops.vmtf_flush_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) vmtf_flush_code_def
-
-lemmas trail_dump_code_refine[sepref_fr_rules] =
-   vmtf_flush_code.refine[of \<A>\<^sub>i\<^sub>n]
-
-declare vmtf_flush_code.refine[sepref_fr_rules]
-
-end
 
 abbreviation phase_saver_conc where
   \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
@@ -765,6 +546,7 @@ proof -
     by (auto simp: conflict_add_def)
 qed
 
+(* TODO Move *)
 lemma (in -) notin_add_mset_remdups_mset:
   \<open>a \<notin># A \<Longrightarrow> add_mset a (remdups_mset A) = remdups_mset (add_mset a A)\<close>
   by auto
@@ -775,18 +557,7 @@ lemma (in -) not_tautology_minus:
 
 lemma (in -)remdups_mset_inv: \<open>remdups_mset (remdups_mset S) = remdups_mset S\<close>
   by (auto simp: remdups_mset_def)
-
-lemma literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (add_mset L A) \<longleftrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n A \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def all_lits_of_m_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-
-lemma all_lits_of_m_remdups_mset:
-  \<open>set_mset (all_lits_of_m (remdups_mset N)) = set_mset (all_lits_of_m N)\<close>
-  by (auto simp: all_lits_of_m_def)
-
-lemma literals_are_in_\<L>\<^sub>i\<^sub>n_remdups[simp]:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (remdups_mset N) = literals_are_in_\<L>\<^sub>i\<^sub>n N\<close>
-  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def all_lits_of_m_remdups_mset)
+(* TODO Move *)
 
 lemma conflict_merge'_spec:
   assumes
@@ -4168,8 +3939,6 @@ lemma update_confl_tl_wl_int_update_confl_tl_wl:
         intro!: RES_refine ASSERT_refine_left) (* slow *)
   done
 
-lemma uminus_\<A>\<^sub>i\<^sub>n_iff: \<open>- L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<longleftrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-   by (simp add: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
 
 lemma conflict_merge_abs_union_None: \<open>conflict_merge_abs_union' M a b c clvls \<noteq> None\<close>
   unfolding conflict_merge_abs_union'_def by auto
@@ -4184,27 +3953,7 @@ lemma conflict_assn_op_nset_is_emty[sepref_fr_rules]:
 
 thm vmtf_dump_and_unset_def
 
-sepref_thm vmtf_dump_and_unset_code
-  is \<open>uncurry (RETURN oo vmtf_dump_and_unset)\<close>
-  :: \<open>[\<lambda>(L, ((A, m, lst, next_search), _)).
-      L < length A \<and> (next_search \<noteq> None \<longrightarrow> the next_search < length A)]\<^sub>a
-      uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
-  supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
-  supply [[goals_limit=1]]
-  unfolding  vmtf_dump_and_unset_def vmtf_dump_def
-   vmtf_unset_def save_phase_def
-  supply conflict_merge_abs_union'_def[simp] conflict_merge_abs_union_def[simp]
-  apply (rewrite in \<open>If (_ \<or> _)\<close> short_circuit_conv)
-  by sepref
 
-concrete_definition (in -) vmtf_dump_and_unset_code
-  uses twl_array_code.vmtf_dump_and_unset_code.refine_raw
-  is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) vmtf_dump_and_unset_code_def
-
-lemmas vmtf_dump_and_unset_hnr[sepref_fr_rules] =
-   vmtf_dump_and_unset_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
 
 sepref_thm update_confl_tl_wl_code
   is \<open>uncurry2 update_confl_tl_wl_int\<close>
@@ -5737,25 +5486,6 @@ definition find_decomp_wl_imp :: "(nat, nat) ann_lits \<Rightarrow> nat clause o
     RETURN (M, vm')
   })\<close>
 
-sepref_thm vmtf_unset_code
-  is \<open>uncurry (RETURN oo vmtf_unset)\<close>
-  :: \<open>[\<lambda>(L, vm). \<exists>M. L = atm_of(lit_of (hd M)) \<and> vm \<in> vmtf_imp M \<and> M \<noteq> [] \<and>
-          literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M)]\<^sub>a
-     uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
-  supply [[goals_limit=1]] option.splits[split] vmtf_imp_def[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[simp]
-    neq_NilE[elim!] literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset[simp]
-  unfolding vmtf_unset_def
-  apply (rewrite in \<open>If (_ \<or> _)\<close> short_circuit_conv)
-  by sepref
-
-concrete_definition (in -) vmtf_unset_code
-   uses twl_array_code.vmtf_unset_code.refine_raw
-   is \<open>(uncurry ?f, _) \<in> _\<close>
-
-prepare_code_thms (in -) vmtf_unset_code_def
-
-lemmas vmtf_unset_code_code[sepref_fr_rules] =
-   vmtf_unset_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
 
 definition find_decomp_wl_imp_pre where
   \<open>find_decomp_wl_imp_pre = (\<lambda>(((M, D), L), vm). M \<noteq> [] \<and> D \<noteq> None \<and>
@@ -5869,10 +5599,7 @@ lemma
    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M\<^sub>0)\<close>
   shows
     find_decomp_wl_imp_le_find_decomp_wl':
-      \<open>find_decomp_wl_imp M\<^sub>0 E L vm \<le>
-          (* \<Down> {((M', vm'), (M, vm)). M = M' \<and> vm \<in> vmtf_imp M \<and> vm = vm' \<and>
-               count_decided M' = get_maximum_level M\<^sub>0 (remove1_mset (-L) (the E)) } *)
-            (find_decomp_wl_vmtf M\<^sub>0 E L vm)\<close>
+      \<open>find_decomp_wl_imp M\<^sub>0 E L vm \<le> find_decomp_wl_vmtf M\<^sub>0 E L vm\<close>
      (is ?decomp)
 proof -
   have 1: \<open>((count_decided x1g, x1g), count_decided x1, x1) \<in> Id\<close>
