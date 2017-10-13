@@ -219,17 +219,17 @@ lemma conflict_assn_is_empty_is_empty_code[sepref_fr_rules]:
   conflict_option_assn_def[symmetric]
   by simp
 
-definition size_conflict_extract :: \<open>_ \<Rightarrow> nat\<close> where
-  \<open>size_conflict_extract = (\<lambda>((_, n, _), _). n)\<close>
+definition size_lookup_conflict :: \<open>_ \<Rightarrow> nat\<close> where
+  \<open>size_lookup_conflict = (\<lambda>((_, n, _), _). n)\<close>
 
-definition size_conflict_wl_int :: \<open>_ \<Rightarrow> nat\<close> where
-  \<open>size_conflict_wl_int = (\<lambda>(M, N, U, D, _, _, _, _). size_conflict_extract D)\<close>
+definition size_conflict_wl_heur :: \<open>_ \<Rightarrow> nat\<close> where
+  \<open>size_conflict_wl_heur = (\<lambda>(M, N, U, D, _, _, _, _). size_lookup_conflict D)\<close>
 
-lemma size_conflict_extract[sepref_fr_rules]:
-   \<open>(return o (\<lambda>((_, n, _), _). n), RETURN o size_conflict_extract) \<in>
+lemma size_lookup_conflict[sepref_fr_rules]:
+   \<open>(return o (\<lambda>((_, n, _), _). n), RETURN o size_lookup_conflict) \<in>
    (((bool_assn *assn conflict_rel_assn) *assn
          option_assn (unat_lit_assn *assn uint32_nat_assn)))\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  unfolding size_conflict_extract_def
+  unfolding size_lookup_conflict_def
   apply sep_auto
   apply sepref_to_hoare
   subgoal for x xi

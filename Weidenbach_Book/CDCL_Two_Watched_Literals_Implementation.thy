@@ -419,7 +419,7 @@ locale abs_state\<^sub>W_twl_ops =
     add_confl_to_learned_cls_abs :: "'st \<Rightarrow> 'st \<times> 'cls_it" and
     remove_cls_abs :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
 
-    mark_conflicting_abs :: "'cls_it \<Rightarrow> 'st \<Rightarrow> 'st" and
+    set_conflicting_abs :: "'cls_it \<Rightarrow> 'st \<Rightarrow> 'st" and
     resolve_conflicting_abs :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     get_undecided_lit :: "'st \<Rightarrow> 'v literal option" and
@@ -456,7 +456,7 @@ sublocale abs_state\<^sub>W_ops where
   tl_conc_trail = "\<lambda>S. tl_trail_abs S" and
   add_conc_confl_to_learned_cls = "\<lambda>S. fst (add_confl_to_learned_cls_abs S)" and
   remove_cls = remove_cls_abs and
-  mark_conflicting = mark_conflicting_abs and
+  set_conflicting = set_conflicting_abs and
   reduce_conc_trail_to = "\<lambda>M S. reduce_trail_to_abs M (prop_queue_to_trail_abs S)" and
   resolve_conflicting = "\<lambda>L D S. resolve_conflicting_abs L D S" and
   conc_init_state = init_state_abs and
@@ -534,7 +534,7 @@ locale abs_state\<^sub>W_twl =
 
     add_confl_to_learned_cls_abs remove_cls_abs
 
-    mark_conflicting_abs resolve_conflicting_abs
+    set_conflicting_abs resolve_conflicting_abs
 
     get_undecided_lit get_clause_watched_by update_clause
 
@@ -582,7 +582,7 @@ locale abs_state\<^sub>W_twl =
     add_confl_to_learned_cls_abs :: "'st \<Rightarrow> 'st \<times> 'cls_it" and
     remove_cls_abs :: "'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
 
-    mark_conflicting_abs :: "'cls_it \<Rightarrow> 'st \<Rightarrow> 'st" and
+    set_conflicting_abs :: "'cls_it \<Rightarrow> 'st \<Rightarrow> 'st" and
     resolve_conflicting_abs :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     get_undecided_lit :: "'st \<Rightarrow> 'v literal option" and
@@ -634,9 +634,9 @@ locale abs_state\<^sub>W_twl =
          cls_lookup (raw_clauses_abs (fst (add_confl_to_learned_cls_abs st)))
            (snd (add_confl_to_learned_cls_abs st)) \<noteq> None" and
 
-    mark_conflicting_abs_prop_state:
+    set_conflicting_abs_prop_state:
       "prop_state st = (P, M, N, U, None) \<Longrightarrow> E \<in>\<Down> raw_clauses_abs st \<Longrightarrow>
-        prop_state (mark_conflicting_abs E st) =
+        prop_state (set_conflicting_abs E st) =
           (P, M, N, U, Some (clause_of_cls (raw_clauses_abs st \<Down> E)))"
       and
 
@@ -798,13 +798,13 @@ lemma add_conc_confl_to_learned_cls:
   using add_confl_to_learned_cls_abs[of st _ _ N U k F] assms
   unfolding prop_state_def state_def by (auto simp: full_trail_abs_def)
 
-lemma mark_conflicting_abs:
+lemma set_conflicting_abs:
   assumes
     "state st = (M, N, U, k, None)" and
     "E \<in>\<Down> raw_clauses_abs st"
-  shows "state (mark_conflicting_abs E st) =
+  shows "state (set_conflicting_abs E st) =
     (M, N, U, k, Some (clause_of_cls (raw_clauses_abs st \<Down> E)))"
-  using mark_conflicting_abs_prop_state[of st _ _ N U k E] assms
+  using set_conflicting_abs_prop_state[of st _ _ N U k E] assms
   unfolding prop_state_def state_def by (auto simp: full_trail_abs_def)
 
 lemma init_state_abs:
@@ -847,7 +847,7 @@ sublocale abs_state\<^sub>W where
   add_conc_confl_to_learned_cls = "\<lambda>S. fst (add_confl_to_learned_cls_abs S)" and
   remove_cls = remove_cls_abs and
   update_conc_backtrack_lvl = update_backtrack_lvl_abs and
-  mark_conflicting = "\<lambda>i S. mark_conflicting_abs i S" and
+  set_conflicting = "\<lambda>i S. set_conflicting_abs i S" and
   reduce_conc_trail_to = "\<lambda>M S. reduce_trail_to_abs M (prop_queue_to_trail_abs S)" and
   resolve_conflicting = "\<lambda>L D S. resolve_conflicting_abs L D S" and
   conc_init_state = init_state_abs and
@@ -859,7 +859,7 @@ sublocale abs_state\<^sub>W where
                using remove_cls apply (simp; fail)
               using add_conc_confl_to_learned_cls apply (simp; fail)
              using prop_state_def prop_state_state update_backtrack_lvl_abs apply (auto; fail)[1]
-            using mark_conflicting_abs apply (simp; fail)
+            using set_conflicting_abs apply (simp; fail)
            using resolve_conflicting apply (blast; fail)
           using init_state_abs apply (simp; fail)
          apply (simp add: full_trail_abs_def; fail)
@@ -1026,7 +1026,7 @@ locale abs_conflict_driven_clause_learning\<^sub>W_clss =
 
     add_confl_to_learned_cls_abs remove_cls_abs
 
-    update_backtrack_lvl_abs mark_conflicting_abs resolve_conflicting_abs
+    update_backtrack_lvl_abs set_conflicting_abs resolve_conflicting_abs
 
     get_undecided_lit get_clause_watched_by update_clause
 
@@ -1078,7 +1078,7 @@ locale abs_conflict_driven_clause_learning\<^sub>W_clss =
 
     update_backtrack_lvl_abs :: "nat \<Rightarrow> 'st \<Rightarrow> 'st" and
 
-    mark_conflicting_abs :: "'cls_it \<Rightarrow> 'st \<Rightarrow> 'st" and
+    set_conflicting_abs :: "'cls_it \<Rightarrow> 'st \<Rightarrow> 'st" and
     resolve_conflicting_abs :: "'v literal \<Rightarrow> 'cls \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     get_undecided_lit :: "'st \<Rightarrow> 'v literal option" and
@@ -1113,7 +1113,7 @@ sublocale abs_conflict_driven_clause_learning\<^sub>W where
   add_conc_confl_to_learned_cls = "\<lambda>S. fst (add_confl_to_learned_cls_abs S)" and
   remove_cls = remove_cls_abs and
   update_conc_backtrack_lvl = update_backtrack_lvl_abs and
-  mark_conflicting = "\<lambda>i S. mark_conflicting_abs i S" and
+  set_conflicting = "\<lambda>i S. set_conflicting_abs i S" and
   reduce_conc_trail_to = "\<lambda>M S. reduce_trail_to_abs M (prop_queue_to_trail_abs S)" and
   resolve_conflicting = "\<lambda>L D S. resolve_conflicting_abs L D S" and
   conc_init_state = init_state_abs and
@@ -1163,8 +1163,8 @@ definition tl_trail_abs_inv :: "'inv \<Rightarrow> 'inv" where
 definition wf_resolve :: "'inv \<Rightarrow> 'inv \<Rightarrow> bool" where
 "wf_resolve S T \<equiv> resolve_abs (rough_state_of S) (rough_state_of T)"
 
-abbreviation mark_conflicting_abs_and_flush where
-"mark_conflicting_abs_and_flush i S \<equiv> mark_conflicting_abs i (prop_queue_to_trail_abs S)"
+abbreviation set_conflicting_abs_and_flush where
+"set_conflicting_abs_and_flush i S \<equiv> set_conflicting_abs i (prop_queue_to_trail_abs S)"
 
 lemma true_annots_CNot_uminus_incl_iff:
   "M \<Turnstile>as CNot C \<longleftrightarrow> uminus ` set_mset C \<subseteq> lits_of_l M"
@@ -1595,12 +1595,12 @@ text \<open>When we update a clause with respect to the literal L, there are sev
 fun update_watched_clause :: "'st \<Rightarrow> 'v literal \<Rightarrow> 'cls_it \<Rightarrow> 'st" where
 "update_watched_clause S L i =
   (case it_of_watched_ordered (raw_clauses_abs S \<Down> i) L of
-    [_] \<Rightarrow> mark_conflicting_abs i S
+    [_] \<Rightarrow> set_conflicting_abs i S
   | [j, k] \<Rightarrow>
     if ((raw_clauses_abs S \<Down> i) \<down> k) \<in> lits_of_l (trail_abs S)
     then S
     else if -((raw_clauses_abs S \<Down> i) \<down> k) \<in> lits_of_l (trail_abs S)
-    then mark_conflicting_abs i S
+    then set_conflicting_abs i S
     else
       (case find_undef_in_unwatched S (raw_clauses_abs S \<Down> i) of
         None \<Rightarrow> cons_prop_queue_abs (Propagated L i) S
@@ -1634,7 +1634,7 @@ proof -
         have iL: "clause_of_cls (raw_clauses_abs S \<Down> i) = {#L#}"
           by (auto simp: clause_map_wf_twl_clause_wf_clause wf_clause_def C
              W lit unwatched_twl_clause_twl_cls_wff_iff[symmetric] clause_of_cls_def)
-        have "conflict_abs S (mark_conflicting_abs i S)"
+        have "conflict_abs S (set_conflicting_abs i S)"
           apply (rule conflict_abs_rule[of _ i])
              using confl apply auto[]
             using i apply simp
@@ -1670,11 +1670,11 @@ definition propagate_and_conflict_one_lit where
 "propagate_and_conflict_one_lit S L =
   update_watched_clauses S L (get_clause_watched_by S L)"
 
-lemma raw_conflicting_abs_mark_conflicting_abs:
+lemma raw_conflicting_abs_set_conflicting_abs:
   assumes "i \<in>\<Down> raw_clauses_abs S" and "raw_conflicting_abs S = None"
-  shows "raw_conflicting_abs (mark_conflicting_abs i S) \<noteq> None"
+  shows "raw_conflicting_abs (set_conflicting_abs i S) \<noteq> None"
   by (metis (no_types) \<open>i \<in>\<Down> raw_clauses_abs S\<close> \<open>raw_conflicting_abs S = None\<close>
-    conc_conflicting_mark_conflicting conflicting_None_iff_raw_conflicting
+    conc_conflicting_set_conflicting conflicting_None_iff_raw_conflicting
     conflicting_conc_conflicting option.distinct(1))
 
 lemma
@@ -1698,8 +1698,8 @@ next
 
   have "L \<in># watched (twl_clause ?C)" and "i \<in>\<Down> raw_clauses_abs S"
     using get_clause_watched_by[of i S L] unfolding watched by auto
-  then have [simp]: "\<not>Option.is_none (raw_conflicting_abs (mark_conflicting_abs i S))"
-    using confl raw_conflicting_abs_mark_conflicting_abs[of i S] by (auto simp: Option.is_none_def)
+  then have [simp]: "\<not>Option.is_none (raw_conflicting_abs (set_conflicting_abs i S))"
+    using confl raw_conflicting_abs_set_conflicting_abs[of i S] by (auto simp: Option.is_none_def)
   show ?case
     unfolding watched
     apply (auto simp: )

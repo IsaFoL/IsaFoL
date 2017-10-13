@@ -185,7 +185,7 @@ definition init_dt_step_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l \<Righ
       ASSERT (no_dup M);
       ASSERT (C \<noteq> []);
       let L = hd C;
-      let val_L = valued M L;
+      let val_L = polarity M L;
       if val_L = None
       then do {RETURN (Propagated L 0 # M, N, U, None, add_mset {#L#} NP, UP, WS, add_mset (-L) Q)}
       else
@@ -228,7 +228,7 @@ proof -
     using le_C that by (cases C) auto
   show ?thesis
     using n_d le_C unfolding init_dt_step_def init_dt_step_l_def Let_def
-    by (cases S) (auto simp: valued_def length_ge_Suc_0_tl_not_nil split: option.splits cong: bind_cong
+    by (cases S) (auto simp: polarity_def length_ge_Suc_0_tl_not_nil split: option.splits cong: bind_cong
         dest!: tl_C_nempty)
 qed
 

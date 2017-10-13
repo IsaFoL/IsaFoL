@@ -472,7 +472,7 @@ definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> n
       let C = (watched_by S L) ! w;
       let i = (if ((get_clauses_wl S)!C) ! 0 = L then 0 else 1);
       let L' = ((get_clauses_wl S)!C) ! (1 - i);
-      let val_L' = valued (get_trail_wl S) L';
+      let val_L' = polarity (get_trail_wl S) L';
       if val_L' = Some True
       then RETURN (w+1, S)
       else do {
@@ -481,7 +481,7 @@ definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> n
         case f of
           None \<Rightarrow>
             if val_L' = Some False
-            then do {RETURN (w+1, mark_conflict_wl ((get_clauses_wl S)!C) S)}
+            then do {RETURN (w+1, set_conflict_wl ((get_clauses_wl S)!C) S)}
             else do {RETURN (w+1, propgate_lit_wl L' C S)}
         | Some f \<Rightarrow> do {
             update_clause_wl L C w i f S
@@ -604,7 +604,7 @@ proof -
       by (auto simp: unit_prop_body_wl_D_inv_clauses_distinct_eq)
     subgoal by simp
     subgoal by simp
-    subgoal by (auto simp: mark_conflict_wl_def S unit_prop_body_wl_D_inv_def clauses_def)
+    subgoal by (auto simp: set_conflict_wl_def S unit_prop_body_wl_D_inv_def clauses_def)
     subgoal by (auto simp: propgate_lit_wl_def S unit_prop_body_wl_D_inv_def clauses_def)
     subgoal by (rule update_clause_wl) assumption+
     done

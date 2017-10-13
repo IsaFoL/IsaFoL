@@ -180,30 +180,30 @@ definition additional_WS_invs where
     distinct_mset (clauses_to_update_l S) \<and> get_clauses_l S \<noteq> [] \<and>
     get_learned_l S < length (get_clauses_l S)\<close>
 
-definition valued where
-  \<open>valued M L = (if undefined_lit M L then None else if L \<in> lits_of_l M then Some True else Some False)\<close>
+definition polarity where
+  \<open>polarity M L = (if undefined_lit M L then None else if L \<in> lits_of_l M then Some True else Some False)\<close>
 
-lemma valued_None_undefined_lit: \<open>is_None (valued M L) \<Longrightarrow> undefined_lit M L\<close>
-  by (auto simp: valued_def split: if_splits)
+lemma polarity_None_undefined_lit: \<open>is_None (polarity M L) \<Longrightarrow> undefined_lit M L\<close>
+  by (auto simp: polarity_def split: if_splits)
 
-lemma valued_spec:
+lemma polarity_spec:
   assumes \<open>no_dup M\<close>
   shows
-  \<open>RETURN (valued M L) \<le> SPEC(\<lambda>v. (v = None \<longleftrightarrow> undefined_lit M L) \<and>
+  \<open>RETURN (polarity M L) \<le> SPEC(\<lambda>v. (v = None \<longleftrightarrow> undefined_lit M L) \<and>
     (v = Some True \<longleftrightarrow> L \<in> lits_of_l M) \<and> (v = Some False \<longleftrightarrow> -L \<in> lits_of_l M))\<close>
-  unfolding valued_def
+  unfolding polarity_def
   by refine_vcg
     (use assms in \<open>auto simp: defined_lit_map lits_of_def atm_of_eq_atm_of uminus_lit_swap
       no_dup_cannot_not_lit_and_uminus
       split: option.splits\<close>)
 
-lemma valued_spec':
+lemma polarity_spec':
   assumes \<open>no_dup M\<close>
   shows
-    \<open>valued M L = None \<longleftrightarrow> undefined_lit M L\<close> and
-    \<open>valued M L = Some True \<longleftrightarrow> L \<in> lits_of_l M\<close> and
-    \<open>valued M L = Some False \<longleftrightarrow> -L \<in> lits_of_l M\<close>
-  unfolding valued_def
+    \<open>polarity M L = None \<longleftrightarrow> undefined_lit M L\<close> and
+    \<open>polarity M L = Some True \<longleftrightarrow> L \<in> lits_of_l M\<close> and
+    \<open>polarity M L = Some False \<longleftrightarrow> -L \<in> lits_of_l M\<close>
+  unfolding polarity_def
   by (use assms in \<open>auto simp: defined_lit_map lits_of_def atm_of_eq_atm_of uminus_lit_swap
       no_dup_cannot_not_lit_and_uminus
       split: option.splits\<close>)
@@ -215,7 +215,7 @@ definition find_unwatched :: "('a, 'b) ann_lits \<Rightarrow> 'a clause_l \<Righ
     (\<lambda>(found, i). found = None \<and> i < length C)
     (\<lambda>(_, i). do {
       ASSERT(i < length C);
-      case valued M (C!i) of
+      case polarity M (C!i) of
         None \<Rightarrow> do { RETURN (Some i, i)}
       | Some v \<Rightarrow>
          (if v then do { RETURN (Some i, i)} else do { RETURN (None, i+1)})
@@ -227,7 +227,7 @@ definition find_unwatched :: "('a, 'b) ann_lits \<Rightarrow> 'a clause_l \<Righ
 
 (* Example of code generation *)
 (* schematic_goal find_unwatched_impl: "RETURN ?c \<le> find_unwatched M C"
-  unfolding find_unwatched_def valued_def
+  unfolding find_unwatched_def polarity_def
   apply (refine_transfer)
   done
 
@@ -257,15 +257,15 @@ lemma find_unwatched:
   subgoal by auto
   subgoal by auto
   subgoal for s
-    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq valued_def
+    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq polarity_def
         split: if_splits intro!: exI[of _ \<open>snd s - 2\<close>])
   subgoal for s
     by (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq
         split: if_splits intro: exI[of _ \<open>snd s - 2\<close>])
   subgoal for s
-    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq valued_def
+    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq polarity_def
         split: if_splits intro: exI[of _ \<open>snd s - 2\<close>])
-  subgoal by (auto simp: valued_def split: if_splits)
+  subgoal by (auto simp: polarity_def split: if_splits)
   subgoal by auto
   subgoal by auto
   subgoal by auto
@@ -273,7 +273,7 @@ lemma find_unwatched:
   subgoal by auto
   subgoal by auto
   subgoal by auto
-  subgoal by (auto simp: valued_def split: if_splits)
+  subgoal by (auto simp: polarity_def split: if_splits)
   subgoal by auto
   subgoal by auto
   subgoal by auto
@@ -281,7 +281,7 @@ lemma find_unwatched:
   subgoal by auto
   subgoal for s using distinct_consistent_interp[OF assms(1)]
     apply (auto simp: Decided_Propagated_in_iff_in_lits_of_l consistent_interp_def all_set_conv_nth
-       valued_def split: if_splits intro: exI[of _ \<open>snd s - 2\<close>])
+       polarity_def split: if_splits intro: exI[of _ \<open>snd s - 2\<close>])
     by (metis atLeastLessThan_iff less_antisym)
   subgoal by auto
   subgoal by auto
@@ -297,8 +297,8 @@ lemma find_unwatched:
   subgoal by auto
   done
 
-definition mark_conflict_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
-  \<open>mark_conflict_l = (\<lambda>C (M, N, U, D, NP, UP, WS, Q). (M, N, U, Some (mset C), NP, UP, {#}, {#}))\<close>
+definition set_conflict_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
+  \<open>set_conflict_l = (\<lambda>C (M, N, U, D, NP, UP, WS, Q). (M, N, U, Some (mset C), NP, UP, {#}, {#}))\<close>
 
 definition propgate_lit_l :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
   \<open>propgate_lit_l = (\<lambda>L' C (M, N, U, D, NP, UP, WS, Q).
@@ -325,7 +325,7 @@ definition unit_propagation_inner_loop_body_l :: "'v literal \<Rightarrow> nat \
       ASSERT(unit_propagation_inner_loop_body_l_inv L C S);
       let i = (if (get_clauses_l S!C) ! 0 = L then 0 else 1);
       let L' = (get_clauses_l S ! C) ! (1 - i);
-      let val_L' = valued (get_trail_l S) L';
+      let val_L' = polarity (get_trail_l S) L';
       if val_L' = Some True
       then RETURN S
       else do {
@@ -333,7 +333,7 @@ definition unit_propagation_inner_loop_body_l :: "'v literal \<Rightarrow> nat \
           case f of
             None \<Rightarrow>
                if val_L' = Some False
-               then RETURN (mark_conflict_l (get_clauses_l S!C) S)
+               then RETURN (set_conflict_l (get_clauses_l S!C) S)
                else RETURN (propgate_lit_l L' C S)
           | Some f \<Rightarrow> do {
                ASSERT(f < length (get_clauses_l S!C));
@@ -741,10 +741,10 @@ proof -
     unfolding unit_propagation_inner_loop_body_l_def unit_propagation_inner_loop_body_def
       S' st_of_S' option.case_eq_if find_unwatched_l_def
     apply (rewrite at \<open>let _ = if _ ! _ = _then _ else _ in _\<close> Let_def)
-    apply (rewrite at \<open>let _ =  valued _ _ in _\<close> Let_def)
+    apply (rewrite at \<open>let _ =  polarity _ _ in _\<close> Let_def)
     apply clarify
     apply (refine_vcg
-        bind_refine_spec[where M' = \<open>RETURN (valued _ _)\<close>, OF _ valued_spec] update_clause_l
+        bind_refine_spec[where M' = \<open>RETURN (polarity _ _)\<close>, OF _ polarity_spec] update_clause_l
         case_prod_bind[of _ \<open>If _ _\<close>]; remove_dummy_vars)
     unfolding i_def' i_def[symmetric] i_def''[symmetric]
     supply twl_st_of.simps[simp]
@@ -755,18 +755,18 @@ proof -
           consistent split: option.splits bool.splits simp del: watched_l.simps unwatched_l.simps)
           (simp add: i_def)+
     subgoal by (vc_solve simp: mset_watched_C watched_C' in_set_unwatched_conv C'[symmetric] N_C_C'
-          consistent valued_spec' n_d S split: option.splits bool.splits)
+          consistent polarity_spec' n_d S split: option.splits bool.splits)
     subgoal using init_invs S C_le_N add_mset_C'_i dist_WS by (vc_solve simp: mset_watched_C
           in_set_unwatched_conv set_take_2_watched watched_C' consistent additional_WS_invs_def
           N_C_C' split: option.splits bool.splits dest: in_diffD)
     subgoal by (auto simp: N_C_C' S)
     subgoal using init_invs S C_le_N add_mset_C'_i dist_WS
       by (vc_solve simp: mset_watched_C watched_C' in_set_unwatched_conv C'[symmetric] N_C_C'
-          consistent valued_spec' n_d split: option.splits bool.splits)
+          consistent polarity_spec' n_d split: option.splits bool.splits)
     subgoal using add_inv S stgy_inv struct_invs add_mset_C'_i
       by (vc_solve simp: mset_watched_C watched_C' in_set_unwatched_conv consistent
         Decided_Propagated_in_iff_in_lits_of_l additional_WS_invs_def C'[symmetric] N_C_C'
-        mark_conflict_def mark_conflict_l_def
+        set_conflict_def set_conflict_l_def
         split: option.splits bool.splits)
     subgoal using add_inv S stgy_inv struct_invs add_mset_C'_i C_le_N  init_invs dist_WS
       by (vc_solve simp: mset_watched_C watched_C' in_set_unwatched_conv consistent

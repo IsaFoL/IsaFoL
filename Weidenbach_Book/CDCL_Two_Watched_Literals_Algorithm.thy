@@ -8,8 +8,8 @@ section \<open>First Refinement: Deterministic Rule Application\<close>
 
 subsection \<open>Unit Propagation Loops\<close>
 
-definition mark_conflict :: \<open>'v twl_cls \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
-  \<open>mark_conflict = (\<lambda>C (M, N, U, D, NP, UP, WS, Q). (M, N, U, Some (clause C), NP, UP, {#}, {#}))\<close>
+definition set_conflict :: \<open>'v twl_cls \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
+  \<open>set_conflict = (\<lambda>C (M, N, U, D, NP, UP, WS, Q). (M, N, U, Some (clause C), NP, UP, {#}, {#}))\<close>
 
 definition propgate_lit :: \<open>'v literal \<Rightarrow> 'v twl_cls \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
   \<open>propgate_lit = (\<lambda>L' C (M, N, U, D, NP, UP, WS, Q).
@@ -33,7 +33,7 @@ definition unit_propagation_inner_loop_body :: "'v literal \<times> 'v twl_cls \
       if \<forall>L \<in># unwatched C. -L \<in> lits_of_l (get_trail S)
       then
         if -L' \<in> lits_of_l (get_trail S)
-        then do {RETURN (mark_conflict C S)}
+        then do {RETURN (set_conflict C S)}
         else do {RETURN (propgate_lit L' C S)}
       else do {
         update_clauseS L C S
@@ -129,23 +129,23 @@ proof -
 
         { \<comment> \<open>if \<^term>\<open>-L' \<in> lits_of_l ?M\<close> then\<close>
           let ?T' = \<open>(M, N, U, Some (clause C), NP, UP, {#}, {#})\<close>
-          let ?T = \<open>mark_conflict C (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)\<close>
+          let ?T = \<open>set_conflict C (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)\<close>
           assume uL': \<open>-L' \<in> lits_of_l ?M\<close>
           have cdcl: \<open>cdcl_twl_cp ?S' ?T'\<close>
             by (rule cdcl_twl_cp.conflict) (use uL' L' watched unwatched S in simp_all)
           then have cdcl: \<open>cdcl_twl_cp S ?T\<close>
-            using uL' L' watched unwatched by (simp add: mark_conflict_def WS_WS' S D)
+            using uL' L' watched unwatched by (simp add: set_conflict_def WS_WS' S D)
 
           show \<open>twl_struct_invs ?T\<close>
-            using cdcl inv D unfolding WS_WS' mark_conflict_def
+            using cdcl inv D unfolding WS_WS' set_conflict_def
             by (force intro: cdcl_twl_cp_twl_struct_invs)
           show \<open>twl_stgy_invs ?T\<close>
-            using cdcl inv inv_s D unfolding WS_WS' mark_conflict_def
+            using cdcl inv inv_s D unfolding WS_WS' set_conflict_def
             by (force intro: cdcl_twl_cp_twl_stgy_invs)
           show \<open>cdcl_twl_cp\<^sup>*\<^sup>* S ?T\<close>
-            using D WS_WS' cdcl S mark_conflict_def by auto
+            using D WS_WS' cdcl S set_conflict_def by auto
           show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
-            by (simp add: S WS'_def[symmetric] WS_WS' mark_conflict_def)
+            by (simp add: S WS'_def[symmetric] WS_WS' set_conflict_def)
         }
 
 
