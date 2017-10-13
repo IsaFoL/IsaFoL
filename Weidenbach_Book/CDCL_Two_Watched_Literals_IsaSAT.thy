@@ -1217,7 +1217,7 @@ lemma (in isasat_input_ops) init_state_wl_heur_init_state_wl:
   \<open>(uncurry0 init_state_wl_heur, uncurry0 (RETURN init_state_wl)) \<in>
      unit_rel \<rightarrow>\<^sub>f \<langle>twl_st_heur_no_clvls\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-      (auto simp: init_state_wl_heur_def init_state_wl_def RES_RETURN_RES
+      (auto simp: init_state_wl_heur_def init_state_wl_def
         RES_RETURN_RES bind_RES_RETURN_eq RES_RES_RETURN_RES RETURN_def
         twl_st_heur_no_clvls_def
         intro!: RES_refine)
@@ -2090,7 +2090,7 @@ proof -
     have n_d: \<open>no_dup M\<close>
       using struct_invs by (auto simp: twl_struct_invs_def S\<^sub>0
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset_state)
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def)
     have prop_M: \<open>\<forall>L\<in> set M. \<exists>K. L = Propagated K 0\<close>
       using trail by (auto simp: S\<^sub>0)
     have CS: \<open>CS = mset `# mset CS'\<close>
@@ -2105,7 +2105,7 @@ proof -
          apply (simp; fail)
         apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.propagate')
          apply (auto simp: cdcl\<^sub>W_restart_mset.propagate.simps clauses_def CS
-            N_NP[symmetric] cdcl\<^sub>W_restart_mset_state)
+            N_NP[symmetric])
         done
       done
     then have 1: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state CS)
@@ -2165,8 +2165,7 @@ proof -
         using that CS'_CS by (auto simp: list_mset_rel_def br_def)
       show ?thesis
         unfolding TWL_to_clauses_state_conv_def
-        by (rule RETURN_SPEC_refine)
-          (use full_cdcl\<^sub>W_init_state in \<open>auto simp: cdcl\<^sub>W_restart_mset_state\<close>)
+        by (rule RETURN_SPEC_refine) (use full_cdcl\<^sub>W_init_state in auto)
     qed
     have \<open>isasat_input_bounded.cdcl_twl_stgy_prog_wl_D (mset (extract_atms_clss CS' [])) S\<^sub>0
       \<le> \<Down> TWL_to_clauses_state_conv
@@ -2256,8 +2255,8 @@ lemma rtranclp_cdcl\<^sub>W_stgy_learned_clauses_entailed:
     \<open>cdcl\<^sub>W_all_struct_inv S\<close> and
     \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
   shows \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init T\<close>
-  using assms rtranclp_cdcl\<^sub>W_restart_learned_clauses_entailed rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart
-  by blast
+  using assms rtranclp_cdcl\<^sub>W_restart_learned_clauses_entailed
+    rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart by blast
 end
 
 lemma conflict_of_level_unsatisfiable:
@@ -2270,11 +2269,11 @@ lemma conflict_of_level_unsatisfiable:
 proof -
 
   obtain M N U D where S: \<open>S = (M, N, U, Some D)\<close>
-    by (cases S) (use confl in \<open>auto simp:  cdcl\<^sub>W_restart_mset_state\<close>)
+    by (cases S) (use confl in auto)
 
   have [simp]: \<open>get_all_ann_decomposition M = [([], M)]\<close>
     by (rule no_decision_get_all_ann_decomposition)
-      (use dec in \<open>auto simp: count_decided_def filter_empty_conv S  cdcl\<^sub>W_restart_mset_state\<close>)
+      (use dec in \<open>auto simp: count_decided_def filter_empty_conv S \<close>)
   have
     N_U: \<open>N \<Turnstile>psm U\<close> and
     M_D: \<open>M \<Turnstile>as CNot D\<close> and
@@ -2283,7 +2282,7 @@ proof -
     N_U_D: \<open>set_mset N \<union> set_mset U \<Turnstile>p D\<close>
     using assms
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def all_decomposition_implies_def
-        S clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_restart_mset_state
+        S clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
   have \<open>set_mset N \<union> set_mset U \<Turnstile>ps CNot D\<close>
@@ -2298,7 +2297,7 @@ proof -
 qed
 
 lemma SAT_model_if_satisfiable:
-  \<open>(SAT', model_if_satisfiable) \<in> [\<lambda>CS. (\<forall>C \<in># CS. distinct_mset C) \<and> (\<forall>C \<in># CS. size C \<ge> 1)]\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  \<open>(SAT', model_if_satisfiable) \<in> [\<lambda>CS. (\<forall>C \<in># CS. distinct_mset C) \<and> (\<forall>C \<in># CS. size C \<ge> 1)]\<^sub>f Id\<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
     (is \<open>_ \<in>[\<lambda>CS. ?P CS]\<^sub>f Id \<rightarrow> _\<close>)
 proof -
   have H: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (init_state CS)\<close>
@@ -2320,7 +2319,7 @@ proof -
       using H[of CS]
         cdcl\<^sub>W_restart_mset.full_cdcl\<^sub>W_stgy_inv_normal_form[of \<open>init_state CS\<close>]
       by (fastforce intro!: le_SPEC_bindI simp: RES_RETURN_RES clauses_def
-          true_annots_true_cls lits_of_def cdcl\<^sub>W_restart_mset_state
+          true_annots_true_cls lits_of_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
           dest: conflict_of_level_unsatisfiable)
     done
@@ -2342,10 +2341,10 @@ proof -
     using ex_mset[of \<open>map (\<lambda>x. literal_of_nat (nat_of_uint32 x)) `# mset xs'\<close>]
     by (auto simp add: list_mset_rel_def br_def mset_rel_def unat_lit_rel_def
         uint32_nat_rel_def nat_lit_rel_def
-        p2rel_def Collect_eq_comp rel2p_def lit_of_natP_def[abs_def] list_all2_op_eq_map_map_left_iff
+        p2rel_def Collect_eq_comp rel2p_def lit_of_natP_def[abs_def]
         list_all2_op_eq_map_map_right_iff rel_mset_def rel2p_def[abs_def]
         list_all2_op_eq_map_right_iff' ex_remove_xs list_rel_def
-        list_all2_op_eq_map_right_iff list_all2_op_eq_map_right_iff
+        list_all2_op_eq_map_right_iff
         simp del: literal_of_nat.simps)
 qed
 
