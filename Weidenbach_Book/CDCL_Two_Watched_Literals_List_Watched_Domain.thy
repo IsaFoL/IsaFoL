@@ -389,7 +389,9 @@ end
 locale twl_array_code =
   twl_array_code_ops \<A>\<^sub>i\<^sub>n
   for \<A>\<^sub>i\<^sub>n :: \<open>nat multiset\<close> +
-  assumes in_N1_less_than_upperN: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < upperN\<close>
+  assumes
+    in_N1_less_than_upperN: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < upperN\<close>(*  and
+    \<A>\<^sub>i\<^sub>n_nempty: \<open>\<A>\<^sub>i\<^sub>n \<noteq> {#}\<close> *)
 begin
 
 lemma simple_clss_size_upper_div2:
