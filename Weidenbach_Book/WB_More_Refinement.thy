@@ -779,6 +779,21 @@ lemma snd_hnr_pure:
   by (metis SLN_def SLN_left assn_times_comm ent_pure_pre_iff_sng ent_refl ent_star_mono
       ent_true is_pure_assn_def is_pure_iff_pure_assn)
 
+lemma (in -) list_assn_list_mset_rel_eq_list_mset_assn:
+  assumes p: \<open>is_pure R\<close>
+  shows \<open>hr_comp (list_assn R) list_mset_rel = list_mset_assn R\<close>
+proof -
+  define R' where \<open>R' = the_pure R\<close>
+  then have R: \<open>R = pure R'\<close>
+    using p by auto
+  show ?thesis
+    apply (auto simp: list_mset_assn_def
+        list_assn_pure_conv
+        relcomp.simps hr_comp_pure mset_rel_def br_def
+        p2rel_def rel2p_def[abs_def] rel_mset_def R list_mset_rel_def list_rel_def)
+      using list_all2_reorder_left_invariance by fastforce
+  qed
+
 
 subsection \<open>More Functions, Relations, and Theorems\<close>
 

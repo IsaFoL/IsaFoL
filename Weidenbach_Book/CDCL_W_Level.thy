@@ -259,7 +259,7 @@ lemma Suc_count_decided_gt_get_level:
   \<open>get_level M L < Suc (count_decided M)\<close>
   by (induction M rule: ann_lit_list_induct) (auto simp: get_level_cons_if)
 
-lemma get_level_Succ_count_decided_neq[simp]:
+lemma get_level_neq_Suc_count_decided[simp]:
   \<open>get_level M L \<noteq> Suc (count_decided M)\<close>
   using Suc_count_decided_gt_get_level[of M L] by auto
 

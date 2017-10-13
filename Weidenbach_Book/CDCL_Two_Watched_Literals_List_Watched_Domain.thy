@@ -94,6 +94,11 @@ definition unat_lit_rel :: "(uint32 \<times> nat literal) set" where
 abbreviation unat_lit_assn :: "nat literal \<Rightarrow> uint32 \<Rightarrow> assn" where
   \<open>unat_lit_assn \<equiv> pure unat_lit_rel\<close>
 
+lemma hr_comp_uint32_nat_assn_nat_lit_rel[simp]:
+  \<open>hr_comp uint32_nat_assn nat_lit_rel = unat_lit_assn\<close>
+  by (auto simp: hrp_comp_def hr_comp_def uint32_nat_rel_def
+        lit_of_natP_def hr_comp_pure br_def unat_lit_rel_def)
+
 fun pair_of_ann_lit :: "('a, 'b) ann_lit \<Rightarrow> 'a literal \<times> 'b option" where
   \<open>pair_of_ann_lit (Propagated L D) = (L, Some D)\<close>
 | \<open>pair_of_ann_lit (Decided L) = (L, None)\<close>
@@ -101,6 +106,10 @@ fun pair_of_ann_lit :: "('a, 'b) ann_lit \<Rightarrow> 'a literal \<times> 'b op
 fun ann_lit_of_pair :: "'a literal \<times> 'b option \<Rightarrow> ('a, 'b) ann_lit" where
   \<open>ann_lit_of_pair (L, Some D) = Propagated L D\<close>
 | \<open>ann_lit_of_pair (L, None) = Decided L\<close>
+
+lemma ann_lit_of_pair_alt_def:
+  \<open>ann_lit_of_pair (L, D) = (if D = None then Decided L else Propagated L (the D))\<close>
+  by (cases D) auto
 
 lemma ann_lit_of_pair_pair_of_ann_lit: \<open>ann_lit_of_pair (pair_of_ann_lit L) = L\<close>
   by (cases L) auto
@@ -194,7 +203,7 @@ definition upperN :: nat where
   \<open>upperN = 2 ^32\<close>
 
 text \<open>We start in a context where we have an initial set of atoms. \<close>
-locale twl_array_code_ops =
+locale isasat_input_ops =
   fixes \<A>\<^sub>i\<^sub>n :: \<open>nat multiset\<close>
 begin
 
@@ -215,9 +224,24 @@ definition literals_are_in_\<L>\<^sub>i\<^sub>n :: \<open>nat clause \<Rightarro
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_empty[simp]: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n {#}\<close>
   by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def)
 
+lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff: \<open>x \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<longleftrightarrow> atm_of x \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  by (cases x) (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_def atm_of_eq_atm_of image_Un image_image)
+
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (add_mset L A) \<longleftrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n A \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def all_lits_of_m_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+
 lemma all_lits_of_m_subset_all_lits_of_mmD:
   \<open>a \<in># b \<Longrightarrow> set_mset (all_lits_of_m a) \<subseteq> set_mset (all_lits_of_mm b)\<close>
   by (auto simp: all_lits_of_m_def all_lits_of_mm_def)
+
+lemma all_lits_of_m_remdups_mset:
+  \<open>set_mset (all_lits_of_m (remdups_mset N)) = set_mset (all_lits_of_m N)\<close>
+  by (auto simp: all_lits_of_m_def)
+
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_remdups[simp]:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (remdups_mset N) = literals_are_in_\<L>\<^sub>i\<^sub>n N\<close>
+  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def all_lits_of_m_remdups_mset)
 
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_nth:
   fixes C :: nat
@@ -235,8 +259,8 @@ proof -
     using assms(3) unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def literals_are_in_\<L>\<^sub>i\<^sub>n_def by blast
 qed
 
-lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff: \<open>x \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<longleftrightarrow> atm_of x \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-  by (cases x) (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_def atm_of_eq_atm_of image_Un image_image)
+lemma uminus_\<A>\<^sub>i\<^sub>n_iff: \<open>- L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<longleftrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  by (simp add: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
 
 definition literals_are_in_\<L>\<^sub>i\<^sub>n_mm :: \<open>nat clauses \<Rightarrow> bool\<close> where
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm C \<longleftrightarrow> set_mset (all_lits_of_mm C) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
@@ -322,18 +346,6 @@ proof -
     by blast
 qed
 
-definition length_aa_u :: \<open>('a::heap array_list) array \<Rightarrow> uint32 \<Rightarrow> nat Heap\<close> where
-  \<open>length_aa_u xs i = length_aa xs (nat_of_uint32 i)\<close>
-
-lemma length_aa_u_hnr[sepref_fr_rules]: \<open>(uncurry length_aa_u, uncurry (RETURN \<circ>\<circ> length_ll)) \<in>
-     [\<lambda>(xs, i). i < length xs]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def length_aa_u_def br_def)
-
-lemma hr_comp_uint32_nat_assn_nat_lit_rel[simp]:
-  \<open>hr_comp uint32_nat_assn nat_lit_rel = unat_lit_assn\<close>
-  by (auto simp: hrp_comp_def hr_comp_def uint32_nat_rel_def
-        lit_of_natP_def hr_comp_pure br_def unat_lit_rel_def)
-
 lemma length_aa_length_ll_f[sepref_fr_rules]:
   \<open>(uncurry length_aa_u, uncurry (RETURN oo length_ll_f)) \<in>
    [\<lambda>(W, L). L \<in> snd ` D\<^sub>0]\<^sub>a
@@ -374,10 +386,19 @@ lemma atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n: \<open>atms_of 
 end
 
 
-locale twl_array_code =
-  twl_array_code_ops \<A>\<^sub>i\<^sub>n
+locale isasat_input_bounded =
+  isasat_input_ops \<A>\<^sub>i\<^sub>n
   for \<A>\<^sub>i\<^sub>n :: \<open>nat multiset\<close> +
-  assumes in_N1_less_than_upperN: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < upperN\<close>
+  assumes
+    in_N1_less_than_upperN: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < upperN\<close>
+
+locale isasat_input_bounded_nempty =
+  isasat_input_bounded \<A>\<^sub>i\<^sub>n
+  for \<A>\<^sub>i\<^sub>n :: \<open>nat multiset\<close> +
+  assumes
+    \<A>\<^sub>i\<^sub>n_nempty: \<open>\<A>\<^sub>i\<^sub>n \<noteq> {#}\<close>
+
+context isasat_input_bounded
 begin
 
 lemma simple_clss_size_upper_div2:
@@ -866,7 +887,7 @@ definition find_lit_of_max_level_wl' :: "_ \<Rightarrow> _ \<Rightarrow> _ \<Rig
 
 definition (in -) list_of_mset2 :: "nat literal \<Rightarrow> nat literal \<Rightarrow> nat clause \<Rightarrow> nat clause_l nres" where
   \<open>list_of_mset2 L L' D =
-    SPEC (\<lambda>E. mset E = D \<and> E!0 = L \<and> E!1 = L')\<close>
+    SPEC (\<lambda>E. mset E = D \<and> E!0 = L \<and> E!1 = L' \<and> length E \<ge> 2)\<close>
 
 definition (in -) single_of_mset where
   \<open>single_of_mset D = SPEC(\<lambda>L. D = mset [L])\<close>
@@ -965,7 +986,7 @@ proof -
     unfolding list_of_mset_def list_of_mset2_def
   proof (rule RES_refine)
     fix s
-    assume s: \<open>s \<in> {E. mset E = D \<and> E ! 0 = L \<and> E ! 1 = L'}\<close>
+    assume s: \<open>s \<in> {E. mset E = D \<and> E ! 0 = L \<and> E ! 1 = L' \<and> length E \<ge> 2}\<close>
     then show \<open>\<exists>s'\<in>{D'a. D' = mset D'a}.
             (s, s')
             \<in> {(E, F).
@@ -1426,6 +1447,6 @@ theorem cdcl_twl_stgy_prog_wl_spec_final2:
   using cdcl_twl_stgy_prog_wl_D_spec_final2_Down[OF assms] unfolding conc_fun_SPEC
   by auto
 
-end -- \<open>end of locale @{locale twl_array_code}\<close>
+end -- \<open>end of locale @{locale isasat_input_bounded}\<close>
 
 end

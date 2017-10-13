@@ -198,5 +198,25 @@ lemma array_set_hnr_u[sepref_fr_rules]:
       heap_array_set_u_def Array.upd'_def
      nat_of_uint32_code[symmetric])
 
+definition (in -)length_aa_u :: \<open>('a::heap array_list) array \<Rightarrow> uint32 \<Rightarrow> nat Heap\<close> where
+  \<open>length_aa_u xs i = length_aa xs (nat_of_uint32 i)\<close>
+
+lemma length_aa_u_code[code]:
+  \<open>length_aa_u xs i = nth_u_code xs i \<bind> arl_length\<close>
+  unfolding length_aa_u_def length_aa_def  nth_u_def[symmetric] nth_u_code_def
+   Array.nth'_def 
+  by (auto simp: nat_of_uint32_code)
+
+lemma length_aa_u_hnr[sepref_fr_rules]: \<open>(uncurry length_aa_u, uncurry (RETURN \<circ>\<circ> length_ll)) \<in>
+     [\<lambda>(xs, i). i < length xs]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def length_aa_u_def br_def)
+
+
+lemma append_el_aa_u'_code[code]:
+  "append_el_aa_u' = (\<lambda>a i x. nth_u_code a i \<bind>
+     (\<lambda>j. arl_append j x \<bind>
+      (\<lambda>a'. heap_array_set'_u a i a' \<bind> (\<lambda>_. return a))))"
+  unfolding append_el_aa_u'_def nth_u_code_def heap_array_set'_u_def
+  by auto
 
 end

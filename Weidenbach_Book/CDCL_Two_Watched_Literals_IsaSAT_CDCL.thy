@@ -1,5 +1,6 @@
-theory CDCL_Two_Watched_Literals_List_Watched_Trail_Code
-  imports CDCL_Two_Watched_Literals_List_Watched_Code_Common CDCL_Two_Watched_Literals_VMTF
+theory CDCL_Two_Watched_Literals_IsaSAT_CDCL
+  imports CDCL_Two_Watched_Literals_List_Watched_Code_Common
+    CDCL_Two_Watched_Literals_VMTF
 begin
 
 no_notation Ref.update ("_ := _" 62)
@@ -13,11 +14,6 @@ subsubsection \<open>Types and Refinement Relations\<close>
 type_synonym trail_int = \<open>(nat, nat) ann_lits \<times> bool option list \<times> nat list \<times> nat\<close>
 type_synonym trail_int_assn = \<open>(uint32 \<times> nat option) list \<times> bool option array \<times> uint32 array \<times> uint32\<close>
 
-type_synonym vmtf_assn = \<open>uint32 al_vmtf_atm array \<times> nat \<times> uint32 option \<times> uint32 option\<close>
-type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> uint32 array_list\<close>
-
-type_synonym phase_saver_assn = \<open>bool array\<close>
-
 type_synonym twl_st_wll_trail =
   \<open>trail_int_assn \<times> clauses_wl \<times> nat \<times> conflict_option_assn \<times>
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
@@ -29,25 +25,12 @@ definition valued_atm_on_trail where
     else if Neg L \<in> lits_of_l M then Some False
     else None)\<close>
 
-instance al_vmtf_atm :: (heap) heap
-proof intro_classes
-  let ?to_pair = \<open>\<lambda>x::'a al_vmtf_atm. (stamp x, get_prev x, get_next x)\<close>
-  have inj': \<open>inj ?to_pair\<close>
-    unfolding inj_def by (intro allI) (case_tac x; case_tac y; auto)
-  obtain to_nat :: \<open>nat \<times> 'a option \<times> 'a option \<Rightarrow> nat\<close> where
-    \<open>inj to_nat\<close>
-    by blast
-  then have \<open>inj (to_nat o ?to_pair)\<close>
-    using inj' by (blast intro: inj_comp)
-  then show \<open>\<exists>to_nat :: 'a al_vmtf_atm \<Rightarrow> nat. inj to_nat\<close>
-    by blast
-qed
+definition get_level_atm where
+  \<open>get_level_atm M L = get_level M (Pos L)\<close>
 
-context twl_array_code_ops
+context isasat_input_ops
 begin
 
-text \<open>TODO: It would be more performant to have:
-   \<^term>\<open>defined_lit M L \<longrightarrow> lvls ! (atm_of L) = get_level M L\<close>\<close>
 definition trailt_ref :: \<open>(trail_int \<times> (nat, nat) ann_lits) set\<close> where
   \<open>trailt_ref = {((M', xs, lvls, k), M). M = M' \<and> no_dup M \<and>
     (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. atm_of L < length xs \<and> xs ! (atm_of L) = valued_atm_on_trail M (atm_of L)) \<and>
@@ -60,206 +43,6 @@ end
 abbreviation trailt_conc :: \<open>trail_int \<Rightarrow> trail_int_assn \<Rightarrow> assn\<close> where
   \<open>trailt_conc \<equiv> pair_nat_ann_lits_assn *assn array_assn (option_assn bool_assn) *assn
       array_assn uint32_nat_assn *assn uint32_nat_assn\<close>
-
-definition l_vmtf_atm_rel where
-\<open>l_vmtf_atm_rel = {(a', a). stamp a = stamp a' \<and>
-   (get_prev a', get_prev a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel \<and>
-   (get_next a', get_next a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel}\<close>
-
-abbreviation l_vmtf_atm_assn where
-\<open>l_vmtf_atm_assn \<equiv> pure l_vmtf_atm_rel\<close>
-
-lemma l_vmtf_ATM_ref[sepref_fr_rules]:
-  \<open>(uncurry2 (return ooo l_vmtf_ATM), uncurry2 (RETURN ooo l_vmtf_ATM)) \<in>
-    nat_assn\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a
-    l_vmtf_atm_assn\<close>
-  by sepref_to_hoare
-   (sep_auto simp: l_vmtf_atm_rel_def uint32_nat_rel_def br_def option_assn_alt_def
-     split: option.splits)
-
-lemma stamp_ref[sepref_fr_rules]: \<open>(return o stamp, RETURN o stamp) \<in> l_vmtf_atm_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  by sepref_to_hoare
-    (auto simp: ex_assn_move_out(2)[symmetric] return_cons_rule ent_ex_up_swap l_vmtf_atm_rel_def
-      simp del: ex_assn_move_out)
-
-lemma get_next_ref[sepref_fr_rules]: \<open>(return o get_next, RETURN o get_next) \<in> l_vmtf_atm_assn\<^sup>k \<rightarrow>\<^sub>a
-   option_assn uint32_nat_assn\<close>
-  unfolding option_assn_pure_conv
-  by sepref_to_hoare (sep_auto simp: return_cons_rule l_vmtf_atm_rel_def)
-
-lemma get_prev_ref[sepref_fr_rules]: \<open>(return o get_prev, RETURN o get_prev) \<in> l_vmtf_atm_assn\<^sup>k \<rightarrow>\<^sub>a
-   option_assn uint32_nat_assn\<close>
-  unfolding option_assn_pure_conv
-  by sepref_to_hoare (sep_auto simp: return_cons_rule l_vmtf_atm_rel_def)
-
-abbreviation vmtf_conc where
-  \<open>vmtf_conc \<equiv> (array_assn l_vmtf_atm_assn *assn nat_assn *assn option_assn uint32_nat_assn
-    *assn option_assn uint32_nat_assn)\<close>
-
-
-abbreviation vmtf_remove_conc :: \<open>vmtf_remove_int \<Rightarrow> vmtf_remove_assn \<Rightarrow> assn\<close> where
-  \<open>vmtf_remove_conc \<equiv> vmtf_conc *assn arl_assn uint32_nat_assn\<close>
-
-definition update_next_search where
-  \<open>update_next_search L = (\<lambda>((A, m, lst, next_search), removed). ((A, m, lst, L), removed))\<close>
-
-lemma update_next_search_ref[sepref_fr_rules]:
-  \<open>(uncurry (return oo update_next_search), uncurry (RETURN oo update_next_search)) \<in>
-      (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
-  unfolding option_assn_pure_conv
-  by sepref_to_hoare (sep_auto simp: update_next_search_def)
-
-sepref_definition (in -)l_vmtf_dequeue_code
-   is \<open>uncurry (RETURN oo l_vmtf_dequeue)\<close>
-   :: \<open>[vmtf_dequeue_pre]\<^sub>a
-        uint32_nat_assn\<^sup>k *\<^sub>a (array_assn l_vmtf_atm_assn)\<^sup>d \<rightarrow> array_assn l_vmtf_atm_assn\<close>
-  supply [[goals_limit = 1]]
-  supply option.splits[split]
-  unfolding l_vmtf_dequeue_def vmtf_dequeue_pre_alt_def
-  by sepref
-
-declare l_vmtf_dequeue_code.refine[sepref_fr_rules]
-
-sepref_definition vmtf_dequeue_code
-   is \<open>uncurry (RETURN oo vmtf_dequeue)\<close>
-   :: \<open>[\<lambda>(L,(A,m,lst,next_search)). L < length A \<and> vmtf_dequeue_pre (L, A)]\<^sub>a
-        uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc\<^sup>d \<rightarrow> vmtf_conc\<close>
-  supply [[goals_limit = 1]]
-  unfolding vmtf_dequeue_def
-  by sepref
-
-declare vmtf_dequeue_code.refine[sepref_fr_rules]
-
-sepref_definition vmtf_enqueue_code
-   is \<open>uncurry (RETURN oo vmtf_enqueue)\<close>
-   :: \<open>[\<lambda>(L,(A,m,lst,next_search)). L < length A \<and> (lst \<noteq> None \<longrightarrow> the lst < length A)]\<^sub>a
-        uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc\<^sup>d \<rightarrow> vmtf_conc\<close>
-  supply [[goals_limit = 1]]
-  unfolding vmtf_enqueue_def
-  by sepref
-
-declare vmtf_enqueue_code.refine[sepref_fr_rules]
-
-sepref_definition vmtf_en_dequeue_code
-   is \<open>uncurry (RETURN oo vmtf_en_dequeue)\<close>
-   :: \<open>[\<lambda>(L,(A,m,lst,next_search)). L < length A \<and> (lst \<noteq> None \<longrightarrow> the lst < length A) \<and>
-        vmtf_dequeue_pre (L,A)]\<^sub>a
-        uint32_nat_assn\<^sup>k *\<^sub>a vmtf_conc\<^sup>d \<rightarrow> vmtf_conc\<close>
-  supply [[goals_limit = 1]]
-  supply vmtf_dequeue_def[simp] if_splits[split] vmtf_dequeue_pre_def[simp]
-  unfolding vmtf_en_dequeue_def
-  by sepref
-
-declare vmtf_en_dequeue_code.refine[sepref_fr_rules]
-
-
-definition insert_sort_inner_nth where
-  \<open>insert_sort_inner_nth A = insert_sort_inner (\<lambda>remove n. stamp (A ! (remove ! n)))\<close>
-
-definition insert_sort_nth where
-  \<open>insert_sort_nth = (\<lambda>(A, _). insert_sort (\<lambda>remove n. stamp (A ! (remove ! n))))\<close>
-
-
-lemma insert_sort_inner_nth_code_helper:
-  assumes \<open>\<forall>x\<in>set ba. x < length a\<close>  and
-      \<open>b < length ba\<close> and
-     mset: \<open>mset ba = mset a2'\<close>  and
-      \<open>a1' < length a2'\<close>
-  shows \<open>a2' ! b < length a\<close>
-  using nth_mem[of b a2'] mset_eq_setD[OF mset] mset_eq_length[OF mset] assms
-  by (auto simp del: nth_mem)
-
-sepref_definition (in -) insert_sort_inner_nth_code
-   is \<open>uncurry2 insert_sort_inner_nth\<close>
-   :: \<open>[\<lambda>((xs, remove), n). (\<forall>x\<in>#mset remove. x < length xs) \<and> n < length remove]\<^sub>a
-  (array_assn l_vmtf_atm_assn)\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>
-  arl_assn uint32_nat_assn\<close>
-  unfolding insert_sort_inner_nth_def insert_sort_inner_def
-  supply [[goals_limit = 1]]
-  supply mset_eq_setD[dest] mset_eq_length[dest]  insert_sort_inner_nth_code_helper[intro]
-  by sepref
-
-declare insert_sort_inner_nth_code.refine[sepref_fr_rules]
-
-sepref_definition (in -) insert_sort_nth_code
-   is \<open>uncurry insert_sort_nth\<close>
-   :: \<open>[\<lambda>(vm, remove). (\<forall>x\<in>#mset remove. x < length (fst vm))]\<^sub>a
-      vmtf_conc\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d  \<rightarrow>
-       arl_assn uint32_nat_assn\<close>
-  unfolding insert_sort_nth_def insert_sort_def insert_sort_inner_nth_def[symmetric]
-  supply [[goals_limit = 1]]
-  supply mset_eq_setD[dest] mset_eq_length[dest]
-  by sepref
-
-declare insert_sort_nth_code.refine[sepref_fr_rules]
-
-lemma (in -) id_ref: \<open>(return o id, RETURN o id) \<in> R\<^sup>d \<rightarrow>\<^sub>a R\<close>
-  by sepref_to_hoare sep_auto
-
-lemma insert_sort_nth_reorder:
-   \<open>(uncurry insert_sort_nth, uncurry reorder_remove) \<in>
-      Id \<times>\<^sub>r \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
-  using insert_sort_reorder_remove[unfolded fref_def nres_rel_def]
-  by (intro frefI nres_relI) (fastforce simp: insert_sort_nth_def)
-
-lemma (in -) insert_sort_nth_code_reorder_remove[sepref_fr_rules]:
-   \<open>(uncurry insert_sort_nth_code, uncurry reorder_remove) \<in>
-      [\<lambda>((a, _), b). \<forall>x\<in>set b. x < length a]\<^sub>a
-      vmtf_conc\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d \<rightarrow> arl_assn uint32_nat_assn\<close>
-  using insert_sort_nth_code.refine[FCOMP insert_sort_nth_reorder]
-  by auto
-
-context twl_array_code_ops
-begin
-
-lemma vmtf_imp_insert_sort_nth_code_preD:
-  assumes vmtf: \<open>vm \<in> vmtf_imp M\<close>
-  shows \<open>\<forall>x\<in>set (snd vm). x < length (fst (fst vm))\<close>
-proof -
-  obtain A m lst next_search remove where
-    vm: \<open>vm = ((A, m, lst, next_search), remove)\<close>
-    by (cases vm) auto
-
-  obtain xs' ys' where
-    l_vmtf: \<open>l_vmtf (ys' @ xs') m A\<close> and
-    lst: \<open>lst = option_hd (ys' @ xs')\<close> and
-    next_search: \<open>next_search = option_hd xs'\<close> and
-    abs_vmtf: \<open>abs_l_vmtf_remove_inv M ((set xs', set ys'), set remove)\<close> and
-    notin: \<open>l_vmtf_notin (ys' @ xs') m A\<close> and
-    atm_A: \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length A\<close> and
-    \<open>\<forall>L\<in>set (ys' @ xs'). L \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-    using vmtf unfolding vmtf_imp_def vm by fast
-  show ?thesis
-    using atm_A abs_vmtf unfolding abs_l_vmtf_remove_inv_def
-    by (auto simp: vm)
-qed
-
-sepref_thm vmtf_flush_code
-   is \<open>vmtf_flush\<close>
-   :: \<open>[\<lambda>a. \<exists>M. a \<in> vmtf_imp M]\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
-  supply [[goals_limit = 1]]
-  supply vmtf_en_dequeue_pre_def[simp] vmtf_imp_insert_sort_nth_code_preD[dest]
-  unfolding vmtf_flush_def
-  apply (rewrite
-        at \<open>[]\<close> in \<open>\<lambda>(_, removed). do {removed' \<leftarrow> _; (vm, _) \<leftarrow> _; RETURN (_, \<hole>)}\<close>
-        to \<open>emptied_list removed'\<close>
-          emptied_list_def[symmetric]
-     )
-  by sepref
-
-
-concrete_definition (in -) vmtf_flush_code
-   uses twl_array_code_ops.vmtf_flush_code.refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) vmtf_flush_code_def
-
-lemmas trail_dump_code_refine[sepref_fr_rules] =
-   vmtf_flush_code.refine[of \<A>\<^sub>i\<^sub>n]
-
-declare vmtf_flush_code.refine[sepref_fr_rules]
-
-end
 
 abbreviation phase_saver_conc where
   \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
@@ -295,7 +78,7 @@ fun get_phase_saver_int :: \<open>twl_st_wl_int \<Rightarrow> bool list\<close> 
 fun get_count_max_lvls_int :: \<open>twl_st_wl_int \<Rightarrow> nat\<close> where
   \<open>get_count_max_lvls_int (_, _, _, _, _, _, _, _, clvls) = clvls\<close>
 
-context twl_array_code_ops
+context isasat_input_ops
 begin
 
 abbreviation trail_assn :: \<open>(nat, nat) ann_lits \<Rightarrow> trail_int_assn \<Rightarrow> assn\<close> where
@@ -412,7 +195,7 @@ lemma Pos_unat_lit_assn':
       lit_of_natP_def nat_of_uint32_distrib_mult2 upperN_def)
 
 
-context twl_array_code
+context isasat_input_bounded
 begin
 
 lemma Pos_unat_lit_assn:
@@ -442,7 +225,7 @@ definition conflict_add :: \<open>nat literal \<Rightarrow> conflict_rel \<Right
   \<open>conflict_add = (\<lambda>L (n, xs). (if xs ! atm_of L = None then n + 1 else n,
       xs[atm_of L := Some (is_pos L)]))\<close>
 
-context twl_array_code
+context isasat_input_bounded
 begin
 
 paragraph \<open>Unit propagation, body of the inner loop\<close>
@@ -496,13 +279,13 @@ sepref_thm is_in_conflict_code
   by sepref
 
 concrete_definition (in -) is_in_conflict_code
-   uses twl_array_code.is_in_conflict_code.refine_raw
+   uses isasat_input_bounded.is_in_conflict_code.refine_raw
    is \<open>(uncurry ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) is_in_conflict_code_def
 
 lemmas is_in_conflict_hnr[sepref_fr_rules] =
-   is_in_conflict_code.refine[OF twl_array_code_axioms]
+   is_in_conflict_code.refine[OF isasat_input_bounded_axioms]
 
 definition conflict_merge
   :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clause_l \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow> (conflict_option_rel \<times> nat) nres\<close>
@@ -541,59 +324,56 @@ proof -
     using N1 unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_def by blast
 qed
 
+definition get_level_atm_trail :: \<open>trail_int \<Rightarrow> uint32 \<Rightarrow> nat\<close> where
+  \<open>get_level_atm_trail = (\<lambda>(M, xs, lvls, k) L. lvls ! (nat_of_uint32 L))\<close>
 
-definition get_level_trail :: \<open>trail_int \<Rightarrow> uint32 \<Rightarrow> nat\<close> where
-  \<open>get_level_trail = (\<lambda>(M, xs, lvls, k) L. lvls ! (nat_of_uint32 (L >> 1)))\<close>
-
-sepref_thm get_level_code
-  is \<open>uncurry (RETURN oo get_level_trail)\<close>
-  :: \<open>[\<lambda>((M, xs, lvls, k), L). nat_of_uint32 L div 2 < length lvls]\<^sub>a
+sepref_thm get_level_atm_code
+  is \<open>uncurry (RETURN oo get_level_atm_trail)\<close>
+  :: \<open>[\<lambda>((M, xs, lvls, k), L). nat_of_uint32 L < length lvls]\<^sub>a
   trailt_conc\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  unfolding get_level_trail_def nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
+  unfolding get_level_atm_trail_def nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
+  nth_u_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) get_level_code
-   uses twl_array_code.get_level_code.refine_raw
+concrete_definition (in -) get_level_atm_code
+   uses isasat_input_bounded.get_level_atm_code.refine_raw
    is \<open>(uncurry ?f, _)\<in>_\<close>
 
-prepare_code_thms (in -) get_level_code_def
+prepare_code_thms (in -) get_level_atm_code_def
 
-lemmas get_level_code_get_level_code[sepref_fr_rules] =
-   get_level_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+lemmas get_level_atm_code_hnr[sepref_fr_rules] =
+   get_level_atm_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
-lemma get_level_code_get_level[sepref_fr_rules]:
-  \<open>(uncurry get_level_code, uncurry (RETURN oo get_level)) \<in>
-   [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a trail_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+lemma get_level_atm_hnr[sepref_fr_rules]:
+  \<open>(uncurry get_level_atm_code, uncurry (RETURN oo get_level_atm)) \<in>
+   [\<lambda>(M, L). Pos L \<in> snd ` D\<^sub>0]\<^sub>a trail_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
     (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have [simp]: \<open>(ba, bb) \<in> nat_lit_rel \<Longrightarrow> ba div 2 = atm_of bb\<close> for ba bb
     by (auto simp: p2rel_def lit_of_natP_def atm_of_lit_of_nat nat_lit_rel_def
         simp del: literal_of_nat.simps)
 
-  have 1: \<open>(uncurry (RETURN oo get_level_trail), uncurry (RETURN oo get_level)) \<in>
-     [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>f trailt_ref \<times>\<^sub>f unat_lit_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
+  have 1: \<open>(uncurry (RETURN oo get_level_atm_trail), uncurry (RETURN oo get_level_atm)) \<in>
+     [\<lambda>(M, L). Pos L \<in> snd ` D\<^sub>0]\<^sub>f trailt_ref \<times>\<^sub>f uint32_nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
     by (intro nres_relI frefI, rename_tac x y, case_tac x)
-      (auto simp: image_image trailt_ref_def get_level_trail_def
+      (auto 5 5 simp: image_image trailt_ref_def get_level_atm_trail_def get_level_atm_def
         nat_shiftr_div2 shiftr1_def unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def
-        nat_of_uint32_shiftr)
+        nat_of_uint32_shiftr get_level_def)
 
-  have H: \<open>(uncurry get_level_code, uncurry (RETURN \<circ>\<circ> get_level))
-\<in> [comp_PRE (trailt_ref \<times>\<^sub>f unat_lit_rel)
-     (\<lambda>(M, L). L \<in> snd ` D\<^sub>0)
-     (\<lambda>_ ((M, xs, lvls, k), L).
-         nat_of_uint32 L div 2 < length lvls)
-     (\<lambda>_. True)]\<^sub>a hrp_comp
-                     (trailt_conc\<^sup>k *\<^sub>a
-                      uint32_assn\<^sup>k)
-                     (trailt_ref \<times>\<^sub>f
-                      unat_lit_rel) \<rightarrow> hr_comp
-                 uint32_nat_assn nat_rel\<close>
+  have H: \<open>(uncurry get_level_atm_code, uncurry (RETURN \<circ>\<circ> get_level_atm))
+  \<in> [comp_PRE (trailt_ref \<times>\<^sub>f uint32_nat_rel)
+       (\<lambda>(M, L). Pos L \<in> snd ` D\<^sub>0)
+       (\<lambda>_ ((M, xs, lvls, k), L). nat_of_uint32 L < length lvls)
+       (\<lambda>_. True)]\<^sub>a hrp_comp (trailt_conc\<^sup>k *\<^sub>a uint32_assn\<^sup>k)
+                      (trailt_ref \<times>\<^sub>f
+                       uint32_nat_rel) \<rightarrow> hr_comp uint32_nat_assn
+          nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF get_level_code.refine 1, OF twl_array_code_axioms] .
+    using hfref_compI_PRE_aux[OF get_level_atm_code.refine 1, OF isasat_input_bounded_axioms] .
   have pre: \<open>?pre' = ?pre\<close>
-    by (auto simp: comp_PRE_def trailt_ref_def unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def
-        br_def intro!: ext)
+    by (auto 5 5 simp: comp_PRE_def trailt_ref_def unat_lit_rel_def nat_lit_rel_def
+        uint32_nat_rel_def br_def intro!: ext)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
     by (auto simp: hrp_comp_def hr_comp_def)
@@ -604,6 +384,27 @@ proof -
     using H unfolding im pre f by simp
 qed
 
+lemma (in -) get_level_get_level_atm: \<open>get_level M L = get_level_atm M (atm_of L)\<close>
+  unfolding get_level_atm_def
+  by (cases L) (auto simp: get_level_Neg_Pos)
+
+sepref_thm get_level_code
+  is \<open>uncurry (RETURN oo get_level)\<close>
+  :: \<open>[\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a
+      trail_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  unfolding get_level_get_level_atm nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
+  nth_u_def[symmetric]
+  supply [[goals_limit = 1]] image_image[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[simp]
+  by sepref
+
+concrete_definition (in -) get_level_code
+   uses isasat_input_bounded.get_level_code.refine_raw
+   is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) get_level_code_def
+
+lemmas get_level_code_get_level_code[sepref_fr_rules] =
+   get_level_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma count_decided_trail_ref:
   \<open>(RETURN o (\<lambda>(_, _, _, k). k), RETURN o count_decided) \<in> trailt_ref \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
@@ -633,13 +434,13 @@ sepref_thm conflict_merge_code
   by sepref
 
 concrete_definition (in -) conflict_merge_code
-   uses twl_array_code.conflict_merge_code.refine_raw
+   uses isasat_input_bounded.conflict_merge_code.refine_raw
    is \<open>(uncurry4 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) conflict_merge_code_def
 
 lemmas conflict_merge_aa_refine[sepref_fr_rules] =
-   conflict_merge_code.refine[OF twl_array_code_axioms]
+   conflict_merge_code.refine[OF isasat_input_bounded_axioms]
 
 definition conflict_merge'_step :: \<open>(nat, nat) ann_lits \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> conflict_rel \<Rightarrow> nat clause_l \<Rightarrow>
       nat clause \<Rightarrow> bool\<close> where
@@ -724,15 +525,18 @@ proof -
   then have uL_DLL: \<open>- L \<notin># D - {#L, - L#}\<close> and L_DLL: \<open>L \<notin># D - {#L, - L#}\<close>
     using distinct_mem_diff_mset by force+
   have [simp]: \<open>zs ! atm_of L \<noteq> None \<Longrightarrow> n > 0\<close>
-    using mset_as_position_in_iff_nth[of zs D L] mset_as_position_in_iff_nth[of zs D \<open>-L\<close>] L c_r unfolding conflict_rel_def
-    by (cases L) (auto dest: size_diff_se)
+    using mset_as_position_in_iff_nth[of zs D L] mset_as_position_in_iff_nth[of zs D \<open>-L\<close>] L c_r
+    unfolding conflict_rel_def by (cases L) (auto dest: size_diff_se)
   have \<open>((False, (if zs!(atm_of L) = None then n else n - 1,
          zs[atm_of L := None])), Some (D - {#L, -L#})) \<in> option_conflict_rel\<close>
     using option_conflict_rel_update_None[OF ocr L]
     by (metis (no_types, lifting) add_mset_commute literal.exhaust_sel uminus_Neg uminus_Pos)
-  then have \<open>((if zs ! atm_of L = None then n else n - 1, zs[atm_of L := None]), D - {#L, - L#}) \<in> conflict_rel\<close>
+  then have \<open>((if zs ! atm_of L = None then n else n - 1, zs[atm_of L := None]), D - {#L, - L#})
+     \<in> conflict_rel\<close>
     by (auto simp: option_conflict_rel_def)
-  from conflict_add_conflict_rel[OF this _ L_\<L>\<^sub>a\<^sub>l\<^sub>l] have \<open>((False, (if zs!(atm_of L) = None then n+1 else n, zs[atm_of L := Some (is_pos L)])), Some (add_mset L (D - {#L, -L#}))) \<in> option_conflict_rel\<close>
+  from conflict_add_conflict_rel[OF this _ L_\<L>\<^sub>a\<^sub>l\<^sub>l] have
+    \<open>((False, (if zs!(atm_of L) = None then n+1 else n, zs[atm_of L := Some (is_pos L)])),
+      Some (add_mset L (D - {#L, -L#}))) \<in> option_conflict_rel\<close>
     using uL_DLL L_DLL L by (auto simp: option_conflict_rel_def conflict_add_def)
   moreover have \<open>add_mset L (D - {#L, - L#}) = remdups_mset (remove1_mset (- L) (add_mset L D))\<close>
     using uL_DLL L_DLL unfolding minus_remove1_mset
@@ -741,35 +545,6 @@ proof -
   ultimately show ?thesis
     by (auto simp: conflict_add_def)
 qed
-
-lemma (in -) notin_add_mset_remdups_mset:
-  \<open>a \<notin># A \<Longrightarrow> add_mset a (remdups_mset A) = remdups_mset (add_mset a A)\<close>
-  by auto
-
-lemma (in -) not_tautology_minus:
-  \<open>\<not>tautology A \<Longrightarrow> \<not>tautology (A - B)\<close>
-  by (auto simp: tautology_decomp dest: in_diffD)
-
-lemma (in -)remdups_mset_inv: \<open>remdups_mset (remdups_mset S) = remdups_mset S\<close>
-  by (auto simp: remdups_mset_def)
-
-lemma literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (add_mset L A) \<longleftrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n A \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-  unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_def by (auto simp: all_lits_of_m_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-
-lemma all_lits_of_m_remdups_mset:
-  \<open>set_mset (all_lits_of_m (remdups_mset N)) = set_mset (all_lits_of_m N)\<close>
-  by (auto simp: all_lits_of_m_def)
-
-lemma literals_are_in_\<L>\<^sub>i\<^sub>n_remdups[simp]: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (remdups_mset N) = literals_are_in_\<L>\<^sub>i\<^sub>n N\<close>
-  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def all_lits_of_m_remdups_mset)
-
-lemma (in -) diff_le_mono2_mset: \<open>A \<subseteq># B \<Longrightarrow> C - B \<subseteq># C - A\<close>
-  apply (auto simp: subseteq_mset_def ac_simps)
-  by (simp add: diff_le_mono2)
-
-lemma mset_as_position_tautology: \<open>mset_as_position xs C \<Longrightarrow> \<not>tautology C\<close>
-  by (induction rule: mset_as_position.induct) (auto simp: tautology_add_mset)
-
 
 lemma conflict_merge'_spec:
   assumes
@@ -815,10 +590,7 @@ proof -
   let ?C' = \<open>\<lambda>a. mset (take a D) + (C - (mset (take a D) + uminus `# mset (take a D)))\<close>
   have tauto_C': \<open>\<not> tautology (?C' a)\<close> for a
     using tauto tauto_C dist dist_C unfolding tautology_decomp'
-    apply (auto dest: in_set_takeD in_diffD)
-     apply (metis (mono_tags, lifting) atm_of_eq_atm_of distinct_mem_diff_mset image_eqI
-        set_image_mset set_mset_mset union_iff)+
-    done
+    by (auto dest: in_set_takeD in_diffD simp: distinct_mset_in_diff in_image_uminus_uminus)
 
   define I where
      \<open>I xs = (\<lambda>(i, clvls, zs :: conflict_rel).
@@ -877,8 +649,8 @@ proof -
       using I unfolding I_def by simp_all
 
     have ab_upper: \<open>Suc (Suc ab) < upperN\<close>
-      using simple_clss_size_upper_div2[of \<open>remdups_mset (?C' a)\<close>] mset_as_position_distinct_mset[OF map]
-      conflict_rel_not_tautolgy[OF cr] a_le_D lits
+      using simple_clss_size_upper_div2[of \<open>remdups_mset (?C' a)\<close>]
+      conflict_rel_not_tautolgy[OF cr] a_le_D lits mset_as_position_distinct_mset[OF map]
       unfolding ab literals_are_in_\<L>\<^sub>i\<^sub>n_remdups upperN_def by auto
     show ?I
       using le_D_le_upper a_le_D ab_upper
@@ -903,7 +675,8 @@ proof -
       using literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset D)\<close> a_le_D] atms_le_xs
       by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
 
-    have ocr: \<open>((False, conflict_add (D ! a) (ab, b)), Some (remdups_mset (?C' (Suc a)))) \<in> option_conflict_rel\<close>
+    have ocr: \<open>((False, conflict_add (D ! a) (ab, b)), Some (remdups_mset (?C' (Suc a))))
+        \<in> option_conflict_rel\<close>
       using ocr D_a_notin uD_a_notin
       unfolding option_conflict_rel_def conflict_rel_def conflict_add_def
       by (auto dest: in_diffD simp: minus_notin_trivial
@@ -964,15 +737,15 @@ proof -
       using I unfolding I_def by simp_all
 
     have ab_upper: \<open>Suc (Suc ab) < upperN\<close>
-      using simple_clss_size_upper_div2[of \<open>remdups_mset (?C' a)\<close>] mset_as_position_distinct_mset[OF map']
-      conflict_rel_not_tautolgy[OF cr] a_le_D lits
+      using simple_clss_size_upper_div2[of \<open>remdups_mset (?C' a)\<close>]
+      conflict_rel_not_tautolgy[OF cr] a_le_D lits mset_as_position_distinct_mset[OF map']
       unfolding ab literals_are_in_\<L>\<^sub>i\<^sub>n_remdups upperN_def by auto
     show ?I
       using a_le_D ab_upper Suc_Suc_aa
       unfolding I_def conflict_add_def baa by auto
     have take_Suc_a[simp]: \<open>take (Suc a) D = take a D @ [D ! a]\<close>
       using take_Suc_conv_app_nth[OF a_le_D] .
-    have [simp]: \<open>D ! a \<notin> set (take a D)\<close> \<open>- D ! a \<notin> set (take a D)\<close>
+    have Da_take[simp]: \<open>D ! a \<notin> set (take a D)\<close> \<open>- D ! a \<notin> set (take a D)\<close>
       using dist tauto apply (subst (asm) append_take_drop_id[symmetric, of _ \<open>Suc a\<close>]; auto)
       using tauto apply (subst (asm) append_take_drop_id[symmetric, of _ \<open>Suc a\<close>])
       unfolding mset_append take_Suc_a by (auto simp: tautology_add_mset)
@@ -997,24 +770,24 @@ proof -
        (SomeT) \<open>b ! atm_of (D ! a) = Some True\<close> |
        (SomeF) \<open>b ! atm_of (D ! a) = Some False\<close>
       by (cases \<open>b ! atm_of (D ! a)\<close>) auto
-    then have ocr: \<open>((False, conflict_add (D ! a) (ab, b)), Some (remdups_mset (?C' (Suc a)))) \<in> option_conflict_rel\<close>
+    then have ocr: \<open>((False, conflict_add (D ! a) (ab, b)), Some (remdups_mset (?C' (Suc a))))
+      \<in> option_conflict_rel\<close>
     proof cases
       case [simp]: None
+      have [simp]: \<open>D ! a \<notin># C\<close> \<open>-D ! a \<notin># C\<close>
+        using if_cond mset_as_position_nth[OF map', of \<open>D ! a\<close>]
+          if_cond mset_as_position_nth[OF map', of \<open>-D ! a\<close>] D_a_notin uD_a_notin
+        by (auto simp: is_in_conflict_rel_def split: option.splits bool.splits
+            dest: in_diffD)
+      have [simp]: \<open>atm_of (D ! a) < length xs\<close> \<open>D ! a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+        using literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset D)\<close> a_le_D] atms_le_xs
+        by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
 
-    have [simp]: \<open>D ! a \<notin># C\<close> \<open>-D ! a \<notin># C\<close>
-      using if_cond mset_as_position_nth[OF map', of \<open>D ! a\<close>]
-        if_cond mset_as_position_nth[OF map', of \<open>-D ! a\<close>] D_a_notin uD_a_notin
-      by (auto simp: is_in_conflict_rel_def split: option.splits bool.splits
-          dest: in_diffD)
-    have [simp]: \<open>atm_of (D ! a) < length xs\<close> \<open>D ! a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-      using literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset D)\<close> a_le_D] atms_le_xs
-      by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-
-    show ocr: \<open>((False, conflict_add (D ! a) (ab, b)), Some (remdups_mset (?C' (Suc a)))) \<in> option_conflict_rel\<close>
-      using ocr D_a_notin uD_a_notin
-      unfolding option_conflict_rel_def conflict_rel_def conflict_add_def
-      by (auto dest: in_diffD simp: minus_notin_trivial
-          intro!: mset_as_position.intros)
+      show ocr: \<open>((False, conflict_add (D ! a) (ab, b)), Some (remdups_mset (?C' (Suc a)))) \<in> option_conflict_rel\<close>
+        using ocr D_a_notin uD_a_notin
+        unfolding option_conflict_rel_def conflict_rel_def conflict_add_def
+        by (auto dest: in_diffD simp: minus_notin_trivial
+            intro!: mset_as_position.intros)
     next
       case SomeT
       have atm_Da_le: \<open>atm_of (D ! a) < length xs\<close> \<open>D ! a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
@@ -1107,7 +880,8 @@ proof -
         by (auto simp: C')
 
       have map'':\<open>mset_as_position (b[atm_of Da := Some (is_pos (D ! a))])
-        (add_mset (D ! a) (remdups_mset (mset (take a D) + (C' - (mset (take a D) + uminus `# mset (take a D))))))\<close>
+        (add_mset (D ! a) (remdups_mset (mset (take a D) +
+          (C' - (mset (take a D) + uminus `# mset (take a D))))))\<close>
         apply (rule mset_as_position.add[OF map''])
         subgoal using atm_Da_le by simp
         subgoal using dist_C by (auto simp: C' distinct_mset_in_diff)
@@ -1133,7 +907,7 @@ proof -
           Pos L \<notin># C \<Longrightarrow> Neg L \<notin># C \<Longrightarrow> False\<close>
         for L
       using  mset_as_position_in_iff_nth[OF map', of \<open>Pos L\<close>] that
-        mset_as_position_in_iff_nth[OF map', of \<open>Neg L\<close>] \<open>D ! a \<notin> set (take a D)\<close> \<open>- D ! a \<notin> set (take a D)\<close>
+        mset_as_position_in_iff_nth[OF map', of \<open>Neg L\<close>] Da_take
       by (cases \<open>D ! a\<close>)
        (auto simp: is_in_conflict_rel_def dist_C distinct_mset_in_diff
           split: option.splits bool.splits
@@ -1142,7 +916,7 @@ proof -
           Pos L \<notin># C \<Longrightarrow> Neg L \<notin># C \<Longrightarrow> False\<close>
         for L
       using  mset_as_position_in_iff_nth[OF map', of \<open>Pos L\<close>] that
-        mset_as_position_in_iff_nth[OF map', of \<open>Neg L\<close>] \<open>D ! a \<notin> set (take a D)\<close> \<open>- D ! a \<notin> set (take a D)\<close>
+        mset_as_position_in_iff_nth[OF map', of \<open>Neg L\<close>] Da_take
       by (cases \<open>D ! a\<close>)
        (auto simp: is_in_conflict_rel_def dist_C distinct_mset_in_diff
           split: option.splits bool.splits
@@ -1215,7 +989,8 @@ proof -
     using dist_D unfolding distinct_mset_def by auto
   have count_C: \<open>count C a = 1 \<or> count C a = 0\<close> for a
     using \<open>distinct_mset C\<close> unfolding distinct_mset_def by auto
-  have \<open>mset D \<union># (C - mset D - image_mset uminus (mset D)) = mset D \<union># (C - image_mset uminus (mset D))\<close>
+  have \<open>mset D \<union># (C - mset D - image_mset uminus (mset D)) =
+      mset D \<union># (C - image_mset uminus (mset D))\<close>
     apply (rule multiset_eqI)
     subgoal for a
       using count_D[of a] count_C[of a] by (auto simp: max_def)
@@ -1235,7 +1010,8 @@ proof -
     by (meson in_multiset_in_set in_set_takeD nth_mem_mset tautology_minus)
   have [simp]: \<open>distinct C \<Longrightarrow> j < length C \<Longrightarrow> C ! j \<notin> set (take j C)\<close> for j C
     by (simp add: index_nth_id index_take)
-  have H: \<open>conflict_merge_aa M N i (b, n, xs) clvls \<le> \<Down> (option_conflict_rel \<times>\<^sub>r nat_rel) (set_conflict_and_clvls M N i None clvls)\<close>
+  have H: \<open>conflict_merge_aa M N i (b, n, xs) clvls \<le> \<Down> (option_conflict_rel \<times>\<^sub>r nat_rel)
+      (set_conflict_and_clvls M N i None clvls)\<close>
     if
       \<open>i < length N\<close> and
       ocr: \<open>((b, n, xs), None) \<in> option_conflict_rel\<close> and
@@ -1247,7 +1023,8 @@ proof -
   proof -
     have [simp]: \<open>remdups_mset (mset (N ! i)) = mset (N!i)\<close>
       using distinct_mset_remdups_mset_id[of \<open>mset (N!i)\<close>] dist by auto
-    have conflict_merge_normalise: \<open>conflict_merge M C (b, zs) = conflict_merge M C (False, zs)\<close> for M C zs
+    have conflict_merge_normalise: \<open>conflict_merge M C (b, zs) = conflict_merge M C (False, zs)\<close>
+      for M C zs
       unfolding conflict_merge_def by auto
     have T: \<open>((False, n, xs), Some {#}) \<in> option_conflict_rel\<close>
       using ocr unfolding option_conflict_rel_def by auto
@@ -1298,7 +1075,7 @@ proof -
                                   (option_conflict_rel \<times>\<^sub>f nat_rel)\<close>
    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
      using hfref_compI_PRE_aux[OF conflict_merge_code.refine[unfolded PR_CONST_def]
-        conflict_merge_aa_mark_conflict[unfolded PR_CONST_def], OF twl_array_code_axioms]
+        conflict_merge_aa_mark_conflict[unfolded PR_CONST_def], OF isasat_input_bounded_axioms]
      unfolding PR_CONST_def
      .
   have pre: \<open>?pre' = ?pre\<close>
@@ -1398,13 +1175,13 @@ sepref_thm watched_by_app_int_code
   by sepref
 
 concrete_definition (in -) watched_by_app_int_code
-   uses twl_array_code.watched_by_app_int_code.refine_raw
+   uses isasat_input_bounded.watched_by_app_int_code.refine_raw
    is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) watched_by_app_int_code_def
 
 lemmas watched_by_app_int_code_refine[sepref_fr_rules] =
-   watched_by_app_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   watched_by_app_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma watched_by_app_code_refine[sepref_fr_rules]:
   \<open>(uncurry2 watched_by_app_int_code, uncurry2 (RETURN ooo watched_by_app)) \<in>
@@ -1561,13 +1338,13 @@ sepref_thm access_lit_in_clauses_int_code
   by sepref
 
 concrete_definition (in -) access_lit_in_clauses_int_code
-   uses twl_array_code.access_lit_in_clauses_int_code.refine_raw
+   uses isasat_input_bounded.access_lit_in_clauses_int_code.refine_raw
    is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) access_lit_in_clauses_int_code_def
 
 lemmas access_lit_in_clauses_int_code_refine[sepref_fr_rules] =
-   access_lit_in_clauses_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   access_lit_in_clauses_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma access_lit_in_clauses_int_access_lit_in_clauses:
   \<open>(uncurry2 (RETURN ooo access_lit_in_clauses_int), uncurry2 (RETURN ooo access_lit_in_clauses)) \<in>
@@ -1641,13 +1418,13 @@ sepref_thm polarity_code
   by sepref
 
 concrete_definition (in -) polarity_code
-   uses twl_array_code.polarity_code.refine_raw
+   uses isasat_input_bounded.polarity_code.refine_raw
    is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) polarity_code_def
 
 lemmas polarity_code_valued_refine_code[sepref_fr_rules] =
-   polarity_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   polarity_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma polarity_code_valued_refine[sepref_fr_rules]:
   \<open>(uncurry polarity_code, uncurry (RETURN oo valued)) \<in>
@@ -1663,7 +1440,7 @@ proof -
       (auto simp: trailt_ref_def valued_def polarity_def
         split: if_splits option.splits)
   show ?thesis
-    using polarity_code.refine[FCOMP 2, OF twl_array_code_axioms] .
+    using polarity_code.refine[FCOMP 2, OF isasat_input_bounded_axioms] .
 qed
 
 definition valued_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> bool option\<close> where
@@ -1689,7 +1466,7 @@ where
     uint32_nat_assn
     )\<close>
 
-definition (in twl_array_code_ops) twl_st_trail_ref :: \<open>(twl_st_wl_int_trail_ref \<times> nat twl_st_wl) set\<close> where
+definition (in isasat_input_ops) twl_st_trail_ref :: \<open>(twl_st_wl_int_trail_ref \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_trail_ref =
   {((M', N', U', D', Q', W', vm, \<phi>, clvls), (M, N, U, D, NP, UP, Q, W)).
     (M', M) \<in> trailt_ref \<and> N' = N \<and> U' = U \<and> D = D' \<and>
@@ -1727,13 +1504,13 @@ sepref_thm valued_st_int_code
   by sepref
 
 concrete_definition (in -) valued_st_int_code
-   uses twl_array_code.valued_st_int_code.refine_raw
+   uses isasat_input_bounded.valued_st_int_code.refine_raw
    is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) valued_st_int_code_def
 
 lemmas valued_st_int_code_valued_refine_code[sepref_fr_rules] =
-   valued_st_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   valued_st_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma valued_st_int_code_valued_st_refine[sepref_fr_rules]:
   \<open>(uncurry valued_st_int_code, uncurry (RETURN oo valued_st)) \<in>
@@ -1746,11 +1523,10 @@ proof -
   have 2: \<open>(uncurry valued_st_int, uncurry (RETURN oo valued_st)) \<in>
      [\<lambda>(_, L). L \<in> snd ` D\<^sub>0]\<^sub>f twl_st_trail_ref \<times>\<^sub>f Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
     by (intro nres_relI frefI)
-       (auto simp: trailt_ref_def valued_st_def polarity_def trailt_ref_def
-        twl_st_trail_ref_def valued_def valued_st_int_def
-        split: if_splits option.splits)
+       (auto simp: trailt_ref_def valued_st_def polarity_def
+        valued_def valued_st_int_def twl_st_trail_ref_def)
   show ?thesis
-    using valued_st_int_code.refine[FCOMP 2, OF twl_array_code_axioms,
+    using valued_st_int_code.refine[FCOMP 2, OF isasat_input_bounded_axioms,
       unfolded twl_st_ref_assn_assn] .
 qed
 
@@ -1765,13 +1541,13 @@ sepref_thm find_unwatched_wl_s_int_code
   by sepref
 
 concrete_definition (in -) find_unwatched_wl_s_int_code
-   uses twl_array_code.find_unwatched_wl_s_int_code.refine_raw
+   uses isasat_input_bounded.find_unwatched_wl_s_int_code.refine_raw
    is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) find_unwatched_wl_s_int_code_def
 
 lemmas find_unwatched_wl_s_int_code_find_unwatched_wl_s_int[sepref_fr_rules] =
-   find_unwatched_wl_s_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   find_unwatched_wl_s_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 theorem find_unwatched_wl_s_int_find_unwatched_wl_s:
   \<open>(uncurry find_unwatched_wl_s_int, uncurry find_unwatched_wl_s)
@@ -1869,7 +1645,6 @@ lemma cons_trail_Propagated_tr:
   [\<lambda>((L, C), M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f trailt_ref \<rightarrow> \<langle>trailt_ref\<rangle>nres_rel\<close>
   by (intro frefI nres_relI, rename_tac x y, case_tac \<open>fst (fst x)\<close>)
     (auto simp: trailt_ref_def valued_atm_on_trail_def cons_trail_Propagated_def uminus_lit_swap
-        cons_trail_Propagated_tr_def
         cons_trail_Propagated_tr_def Decided_Propagated_in_iff_in_lits_of_l nth_list_update'
       dest: vmtf_imp_consD)
 
@@ -1917,13 +1692,13 @@ sepref_thm cons_trail_Propagated_tr_code
   by sepref
 
 concrete_definition (in -) cons_trail_Propagated_tr_code
-  uses "twl_array_code.cons_trail_Propagated_tr_code.refine_raw"
+  uses "isasat_input_bounded.cons_trail_Propagated_tr_code.refine_raw"
   is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) cons_trail_Propagated_tr_code_def
 
 lemmas cons_trail_Propagated_tr_code[sepref_fr_rules] =
-  cons_trail_Propagated_tr_code.refine[OF twl_array_code_axioms]
+  cons_trail_Propagated_tr_code.refine[OF isasat_input_bounded_axioms]
 
 lemma cons_trail_Propagated_tr_code_cons_trail_Propagated_tr[sepref_fr_rules]:
   \<open>(uncurry2 cons_trail_Propagated_tr_code, uncurry2 (RETURN ooo cons_trail_Propagated)) \<in>
@@ -1941,7 +1716,7 @@ proof -
                       trailt_ref) \<rightarrow> hr_comp trailt_conc trailt_ref\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF cons_trail_Propagated_tr_code.refine cons_trail_Propagated_tr,
-        OF twl_array_code_axioms] .
+        OF isasat_input_bounded_axioms] .
   have pre: \<open>?pre' = ?pre\<close>
     by (auto simp: comp_PRE_def trailt_ref_def trailt_ref_def intro!: ext)
   have im: \<open>?im' = ?im\<close>
@@ -1979,13 +1754,13 @@ sepref_thm mark_conflict_wl'_int_code
   by sepref
 
 concrete_definition (in -) mark_conflict_wl'_int_code
-  uses "twl_array_code.mark_conflict_wl'_int_code.refine_raw"
+  uses "isasat_input_bounded.mark_conflict_wl'_int_code.refine_raw"
   is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) mark_conflict_wl'_int_code_def
 
 lemmas mark_conflict_wl'_int_code[sepref_fr_rules] =
-  mark_conflict_wl'_int_code.refine[OF twl_array_code_axioms]
+  mark_conflict_wl'_int_code.refine[OF isasat_input_bounded_axioms]
 
 lemma mark_conflict_wl'_int_mark_conflict_wl':
   \<open>(uncurry mark_conflict_wl'_int, uncurry (RETURN oo mark_conflict_wl')) \<in>
@@ -2072,13 +1847,13 @@ sepref_thm update_clause_wl_int_code
 
 
 concrete_definition (in -) update_clause_wl_int_code
-  uses "twl_array_code.update_clause_wl_int_code.refine_raw"
+  uses "isasat_input_bounded.update_clause_wl_int_code.refine_raw"
   is \<open>(uncurry5 ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) update_clause_wl_int_code_def
 
 lemmas update_clause_wl_int_code[sepref_fr_rules] =
-  update_clause_wl_int_code.refine[OF twl_array_code_axioms]
+  update_clause_wl_int_code.refine[OF isasat_input_bounded_axioms]
 
 lemma
   find_unwatched_not_tauto:
@@ -2320,13 +2095,13 @@ sepref_thm propgate_lit_wl_int_code
 
 
 concrete_definition (in -) propgate_lit_wl_int_code
-  uses "twl_array_code.propgate_lit_wl_int_code.refine_raw"
+  uses "isasat_input_bounded.propgate_lit_wl_int_code.refine_raw"
   is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) propgate_lit_wl_int_code_def
 
 lemmas propgate_lit_wl_int_code[sepref_fr_rules] =
-  propgate_lit_wl_int_code.refine[OF twl_array_code_axioms]
+  propgate_lit_wl_int_code.refine[OF isasat_input_bounded_axioms]
 
 lemma propgate_lit_wl_int_code_propgate_lit_wl[sepref_fr_rules]:
   \<open>(uncurry2 propgate_lit_wl_int_code, uncurry2 (RETURN ooo propgate_lit_wl)) \<in>
@@ -2412,7 +2187,7 @@ end
 text \<open>Find a less hack-like solution\<close>
 setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper "split_all_tac")\<close>
 
-context twl_array_code
+context isasat_input_bounded
 begin
 
 sepref_thm unit_propagation_inner_loop_body_wl_D
@@ -2428,7 +2203,7 @@ sepref_thm unit_propagation_inner_loop_body_wl_D
   unfolding unit_propagation_inner_loop_body_wl_D_def length_rll_def[symmetric] PR_CONST_def
   unfolding watched_by_app_def[symmetric] access_lit_in_clauses_def[symmetric]
     find_unwatched_l_find_unwatched_wl_s
-  unfolding nth_rll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
+  unfolding nth_rll_def[symmetric]
   unfolding lms_fold_custom_empty swap_ll_def[symmetric]
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
   find_unwatched_wl_s_int_def[symmetric] valued_st_def[symmetric]
@@ -2437,7 +2212,7 @@ sepref_thm unit_propagation_inner_loop_body_wl_D
   by sepref
 
 concrete_definition (in -) unit_propagation_inner_loop_body_wl_D_code
-   uses twl_array_code.unit_propagation_inner_loop_body_wl_D.refine_raw
+   uses isasat_input_bounded.unit_propagation_inner_loop_body_wl_D.refine_raw
    is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) unit_propagation_inner_loop_body_wl_D_code_def
@@ -2445,7 +2220,7 @@ prepare_code_thms (in -) unit_propagation_inner_loop_body_wl_D_code_def
 sepref_register unit_propagation_inner_loop_body_wl_D
 
 lemmas unit_propagation_inner_loop_body_wl_D_code_refine[sepref_fr_rules] =
-   unit_propagation_inner_loop_body_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   unit_propagation_inner_loop_body_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 definition (in -) length_ll_fs :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
   \<open>length_ll_fs = (\<lambda>(_, _, _, _, _, _, _, W) L. length (W L))\<close>
@@ -2471,13 +2246,13 @@ sepref_thm length_ll_fs_int_code
   by sepref
 
 concrete_definition (in -) length_ll_fs_int_code
-   uses twl_array_code.length_ll_fs_int_code.refine_raw
+   uses isasat_input_bounded.length_ll_fs_int_code.refine_raw
    is \<open>(uncurry ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) length_ll_fs_int_code_def
 
 lemmas length_ll_fs_int_code_refine[sepref_fr_rules] =
-   length_ll_fs_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   length_ll_fs_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma length_ll_fs_int_code_length_ll_fs[sepref_fr_rules]:
   \<open>(uncurry length_ll_fs_int_code, uncurry (RETURN oo length_ll_fs)) \<in>
@@ -2531,13 +2306,13 @@ sepref_thm get_conflict_wl_is_None_int_code
   by sepref
 
 concrete_definition (in -) get_conflict_wl_is_None_int_code
-   uses twl_array_code.get_conflict_wl_is_None_int_code.refine_raw
+   uses isasat_input_bounded.get_conflict_wl_is_None_int_code.refine_raw
    is \<open>(?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) get_conflict_wl_is_None_int_code_def
 
 lemmas get_conflict_wl_is_None_int_code_refine[sepref_fr_rules] =
-   get_conflict_wl_is_None_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   get_conflict_wl_is_None_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma get_conflict_wl_is_None_int_code_get_conflict_wl_is_None[sepref_fr_rules]:
   \<open>(get_conflict_wl_is_None_int_code, RETURN o get_conflict_wl_is_None) \<in>
@@ -2554,7 +2329,7 @@ sepref_thm unit_propagation_inner_loop_wl_loop_D
   unfolding unit_propagation_inner_loop_wl_loop_D_def PR_CONST_def
   unfolding watched_by_nth_watched_app watched_app_def[symmetric]
     length_ll_f_def[symmetric] length_ll_fs_alt_def[symmetric]
-  unfolding nth_ll_def[symmetric] find_unwatched'_find_unwatched[symmetric]
+  unfolding nth_ll_def[symmetric]
   unfolding swap_ll_def[symmetric]
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     is_None_def[symmetric] get_conflict_wl_is_None length_ll_fs_def[symmetric]
@@ -2563,13 +2338,13 @@ sepref_thm unit_propagation_inner_loop_wl_loop_D
 
 
 concrete_definition (in -) unit_propagation_inner_loop_wl_loop_D_code
-   uses twl_array_code.unit_propagation_inner_loop_wl_loop_D.refine_raw
+   uses isasat_input_bounded.unit_propagation_inner_loop_wl_loop_D.refine_raw
    is \<open>(uncurry ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) unit_propagation_inner_loop_wl_loop_D_code_def
 
 lemmas unit_propagation_inner_loop_wl_loop_D_code_refine[sepref_fr_rules] =
-   unit_propagation_inner_loop_wl_loop_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   unit_propagation_inner_loop_wl_loop_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 paragraph \<open>Unit propagation, inner loop\<close>
 
@@ -2582,13 +2357,13 @@ sepref_thm unit_propagation_inner_loop_wl_D
   by sepref
 
 concrete_definition (in -) unit_propagation_inner_loop_wl_D_code
-   uses twl_array_code.unit_propagation_inner_loop_wl_D.refine_raw
+   uses isasat_input_bounded.unit_propagation_inner_loop_wl_D.refine_raw
    is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) unit_propagation_inner_loop_wl_D_code_def
 
 lemmas unit_propagation_inner_loop_wl_D_code_refine[sepref_fr_rules] =
-   unit_propagation_inner_loop_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   unit_propagation_inner_loop_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 
 paragraph \<open>Unit propagation, outer loop\<close>
@@ -2683,13 +2458,13 @@ sepref_thm select_and_remove_from_literals_to_update_wl_int_code
 
 
 concrete_definition (in -) select_and_remove_from_literals_to_update_wl_int_code
-   uses twl_array_code.select_and_remove_from_literals_to_update_wl_int_code.refine_raw
+   uses isasat_input_bounded.select_and_remove_from_literals_to_update_wl_int_code.refine_raw
    is \<open>(?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) select_and_remove_from_literals_to_update_wl_int_code_def
 
 lemmas select_and_remove_from_literals_to_update_wl_int_code_refine[sepref_fr_rules] =
-   select_and_remove_from_literals_to_update_wl_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   select_and_remove_from_literals_to_update_wl_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 theorem select_and_remove_from_literals_to_update_wl_int_code_select_and_remove_from_literals_to_update_wl
   [sepref_fr_rules]:
@@ -2740,13 +2515,13 @@ sepref_thm literals_to_update_wl_int_empty_code
   by sepref
 
 concrete_definition (in -) literals_to_update_wl_int_empty_code
-   uses twl_array_code.literals_to_update_wl_int_empty_code.refine_raw
+   uses isasat_input_bounded.literals_to_update_wl_int_empty_code.refine_raw
    is \<open>(?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) literals_to_update_wl_int_empty_code_def
 
 lemmas literals_to_update_wl_int_empty_code_refine[sepref_fr_rules] =
-   literals_to_update_wl_int_empty_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   literals_to_update_wl_int_empty_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma literals_to_update_wl_int_empty_literals_to_update_wl_empty:
   \<open>(RETURN o literals_to_update_wl_int_empty, RETURN o literals_to_update_wl_empty) \<in>
@@ -2776,13 +2551,13 @@ sepref_thm unit_propagation_outer_loop_wl_D
   by sepref
 
 concrete_definition (in -) unit_propagation_outer_loop_wl_D
-   uses twl_array_code.unit_propagation_outer_loop_wl_D.refine_raw
+   uses isasat_input_bounded.unit_propagation_outer_loop_wl_D.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) unit_propagation_outer_loop_wl_D_def
 
 lemmas unit_propagation_outer_loop_wl_D[sepref_fr_rules] =
-   unit_propagation_outer_loop_wl_D.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   unit_propagation_outer_loop_wl_D.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 paragraph \<open>Skip and resolve\<close>
 
@@ -2805,13 +2580,13 @@ sepref_thm get_conflict_wll_is_Nil_code
   by sepref
 
 concrete_definition (in -) get_conflict_wll_is_Nil_code
-   uses twl_array_code.get_conflict_wll_is_Nil_code.refine_raw
+   uses isasat_input_bounded.get_conflict_wll_is_Nil_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) get_conflict_wll_is_Nil_code_def
 
 lemmas get_conflict_wll_is_Nil_code[sepref_fr_rules] =
-  get_conflict_wll_is_Nil_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+  get_conflict_wll_is_Nil_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma get_conflict_wll_is_Nil_int_get_conflict_wll_is_Nil:
   \<open>(PR_CONST get_conflict_wll_is_Nil_int, get_conflict_wll_is_Nil) \<in> twl_st_ref \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
@@ -2930,13 +2705,13 @@ sepref_thm count_decided_st_code
   by sepref
 
 concrete_definition (in -) count_decided_st_code
-  uses twl_array_code.count_decided_st_code.refine_raw
+  uses isasat_input_bounded.count_decided_st_code.refine_raw
   is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) count_decided_st_code_def
 
 lemmas count_decided_st_code_refine[sepref_fr_rules] =
-   count_decided_st_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   count_decided_st_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma count_decided_st_count_decided_st:
   \<open>(RETURN o count_decided_st, RETURN o count_decided_st) \<in> twl_st_ref \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
@@ -3001,13 +2776,13 @@ sepref_thm maximum_level_removed_eq_count_dec_code
   by sepref
 
 concrete_definition (in -) maximum_level_removed_eq_count_dec_code
-   uses twl_array_code.maximum_level_removed_eq_count_dec_code.refine_raw
+   uses isasat_input_bounded.maximum_level_removed_eq_count_dec_code.refine_raw
    is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) maximum_level_removed_eq_count_dec_code_def
 
 lemmas maximum_level_removed_eq_count_dec_code_hnr[sepref_fr_rules] =
-   maximum_level_removed_eq_count_dec_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   maximum_level_removed_eq_count_dec_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma maximum_level_removed_eq_count_dec_hnr[sepref_fr_rules]:
   \<open>(uncurry maximum_level_removed_eq_count_dec_code,
@@ -3083,13 +2858,13 @@ sepref_thm is_decided_hd_trail_wl_int_code
 
 
 concrete_definition (in -) is_decided_hd_trail_wl_int_code
-   uses twl_array_code.is_decided_hd_trail_wl_int_code.refine_raw
+   uses isasat_input_bounded.is_decided_hd_trail_wl_int_code.refine_raw
    is \<open>(?f, _) \<in> _\<close>
 
 prepare_code_thms is_decided_hd_trail_wl_int_code_def
 
 lemmas is_decided_hd_trail_wl_int_code[sepref_fr_rules] =
-   is_decided_hd_trail_wl_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   is_decided_hd_trail_wl_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma is_decided_hd_trail_wl_int_code_is_decided_hd_trail_wl[sepref_fr_rules]:
   \<open>(is_decided_hd_trail_wl_int_code, RETURN o is_decided_hd_trail_wl) \<in>
@@ -3209,13 +2984,13 @@ sepref_thm literal_is_in_conflict_int_code
   by sepref
 
 concrete_definition (in -) literal_is_in_conflict_int_code
-   uses twl_array_code.literal_is_in_conflict_int_code.refine_raw
+   uses isasat_input_bounded.literal_is_in_conflict_int_code.refine_raw
    is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) literal_is_in_conflict_int_code_def
 
 lemmas literal_is_in_conflict_int_code_refine[sepref_fr_rules] =
-   literal_is_in_conflict_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   literal_is_in_conflict_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma literal_is_in_conflict_int_code_literal_is_in_conflict[sepref_fr_rules]:
   \<open>(uncurry literal_is_in_conflict_int_code,
@@ -3274,13 +3049,13 @@ sepref_thm lit_and_ann_of_propagated_st_int_code
   by sepref
 
 concrete_definition (in -) lit_and_ann_of_propagated_st_int_code
-   uses twl_array_code.lit_and_ann_of_propagated_st_int_code.refine_raw
+   uses isasat_input_bounded.lit_and_ann_of_propagated_st_int_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) lit_and_ann_of_propagated_st_int_code_def
 
 lemmas lit_and_ann_of_propagated_st_int_code_refine[sepref_fr_rules] =
-   lit_and_ann_of_propagated_st_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   lit_and_ann_of_propagated_st_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma lit_and_ann_of_propagated_st_int_lit_and_ann_of_propagated_st:
    \<open>(RETURN o lit_and_ann_of_propagated_st_int, RETURN o lit_and_ann_of_propagated_st) \<in>
@@ -3360,7 +3135,7 @@ lemma tl_state_wl_int_alt_def:
        (tl M, N, U, D, WS, Q, vmtf_unset (atm_of L) vmtf, \<phi>, clvls)))\<close>
   by (auto simp: tl_state_wl_int_def Let_def)
 
-definition (in twl_array_code_ops) tl_trailt_tr :: \<open>trail_int \<Rightarrow> trail_int\<close> where
+definition (in isasat_input_ops) tl_trailt_tr :: \<open>trail_int \<Rightarrow> trail_int\<close> where
   \<open>tl_trailt_tr = (\<lambda>(M', xs, lvls, k). (tl M', xs[atm_of (lit_of (hd M')) := None], lvls[atm_of (lit_of (hd M')) := 0],
     if is_decided (hd M') then k-1 else k))\<close>
 
@@ -3378,13 +3153,13 @@ sepref_thm tl_trail_tr_code
   by sepref
 
 concrete_definition (in -) tl_trail_tr_code
-  uses twl_array_code.tl_trail_tr_code.refine_raw
+  uses isasat_input_bounded.tl_trail_tr_code.refine_raw
   is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) tl_trail_tr_code_def
 
 lemmas tl_trail_tr_coded_refine[sepref_fr_rules] =
-   tl_trail_tr_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   tl_trail_tr_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma tl_trail_tr:
   \<open>((RETURN o tl_trailt_tr), (RETURN o tl)) \<in>
@@ -3434,7 +3209,7 @@ proof -
             (\<lambda>_. True)]\<^sub>a
          hrp_comp (trailt_conc\<^sup>d) trailt_ref \<rightarrow> hr_comp trailt_conc trailt_ref\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF tl_trail_tr_code.refine tl_trail_tr, OF twl_array_code_axioms] .
+    using hfref_compI_PRE_aux[OF tl_trail_tr_code.refine tl_trail_tr, OF isasat_input_bounded_axioms] .
   have pre: \<open>?pre' = ?pre\<close>
     by (auto simp: comp_PRE_def trailt_ref_def phase_saving_def
         in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff vmtf_imp_def intro!: ext)
@@ -3453,7 +3228,7 @@ end
 
 setup \<open>map_theory_claset (fn ctxt => ctxt addSbefore ("split_all_tac", split_all_tac))\<close>
 
-context twl_array_code
+context isasat_input_bounded
 begin
 
 lemma literals_are_\<L>\<^sub>i\<^sub>n_hd_trail_in_D\<^sub>0:
@@ -3489,13 +3264,13 @@ sepref_thm tl_state_wl_int_code
 
 
 concrete_definition (in -) tl_state_wl_int_code
-  uses twl_array_code.tl_state_wl_int_code.refine_raw
+  uses isasat_input_bounded.tl_state_wl_int_code.refine_raw
   is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) tl_state_wl_int_code_def
 
 lemmas tl_state_wl_int_code_refine[sepref_fr_rules] =
-   tl_state_wl_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   tl_state_wl_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 (* TODO: we need early breaks in skip_and_resolve! *)
 lemma counts_max_lvl_Cons:
@@ -3652,12 +3427,6 @@ qed
 definition (in -) get_max_lvl_st :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
   \<open>get_max_lvl_st S L = get_maximum_level_remove (get_trail_wl S) (the (get_conflict_wl S)) L\<close>
 
-lemma (in -) get_max_lvl_st_alt_def:
-  \<open>get_max_lvl_st = (\<lambda>(M, N, U, D, _) L. get_maximum_level_remove M (the D) L)\<close>
-  unfolding get_max_lvl_st_def
-  by (intro ext, rename_tac S L, case_tac S) auto
-
-
 type_synonym (in -) twl_st_wl_int_conflict =
   \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times> nat \<times>
     (bool \<times> nat \<times> bool option list) \<times> nat literal multiset \<times> nat list list \<times> vmtf_remove_int \<times>
@@ -3734,13 +3503,13 @@ sepref_thm conflict_remove1_code
   by sepref
 
 concrete_definition (in -) conflict_remove1_code
-  uses twl_array_code.conflict_remove1_code.refine_raw
+  uses isasat_input_bounded.conflict_remove1_code.refine_raw
   is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) conflict_remove1_code_def
 
 lemmas conflict_remove1_code_refine[sepref_fr_rules] =
-   conflict_remove1_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   conflict_remove1_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma conflict_remove1_code_op_nset_delete[sepref_fr_rules]:
   \<open>(uncurry conflict_remove1_code, uncurry (RETURN \<circ>\<circ> op_mset_delete))
@@ -4137,26 +3906,20 @@ lemma update_confl_tl_wl_int_update_confl_tl_wl:
       counts_max_lvl_ge_1[of \<open>snd CLS\<close>]
       resolve_cls_wl'_counts_max_lvl[of \<open>snd CLS\<close> \<open>fst (fst CLS)\<close>]
       resolve_cls_wl'_not_tauto[of \<open>snd CLS\<close> \<open>fst (fst CLS)\<close>]
-    apply (cases \<open>CLS'\<close>; cases CLS)
-    apply (auto simp: twl_st_ref_def update_confl_tl_wl_int_def update_confl_tl_wl_def
+    by (cases \<open>CLS'\<close>; cases CLS)
+       (auto simp: twl_st_ref_def update_confl_tl_wl_int_def update_confl_tl_wl_def
         abs_l_vmtf_unset_vmtf_unset' Let_def save_phase_def
         in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff phase_saving_def abs_l_vmtf_unset_vmtf_dump_unset
         conflict_merge_abs_union_alt_def
         RES_RETURN_RES RETURN_def no_dup_tlD counts_maximum_level_def
         RES_RES_RETURN_RES (* conflict_merge_abs_union'_def *)
         eq_commute[of \<open>remove1_mset _ _\<close> \<open>resolve_cls_wl' _ _ _\<close>]
-        in_multiset_nempty
-        intro!: RES_refine ASSERT_refine_left
-        dest: )
-    subgoal
-      by (subst counts_max_lvl_tl)
-         (auto simp: counts_max_lvl_tl distinct_mset_in_diff not_tautology_minus
-          counts_max_lvl_remove1_mset_hd)
-  done
+        in_multiset_nempty counts_max_lvl_tl
+        distinct_mset_in_diff not_tautology_minus
+          counts_max_lvl_remove1_mset_hd is_decided_no_proped_iff
+        intro!: RES_refine ASSERT_refine_left) (* slow *)
   done
 
-lemma uminus_\<A>\<^sub>i\<^sub>n_iff: \<open>- L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<longleftrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-   by (simp add: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
 
 lemma conflict_merge_abs_union_None: \<open>conflict_merge_abs_union' M a b c clvls \<noteq> None\<close>
   unfolding conflict_merge_abs_union'_def by auto
@@ -4167,8 +3930,11 @@ lemma conflict_assn_op_nset_is_emty[sepref_fr_rules]:
   apply sepref_to_hoare
   apply (rename_tac x xi, case_tac xi)
   by (sep_auto simp: conflict_assn_def conflict_rel_def hr_comp_def
-    uint32_nat_assn_0_eq uint32_nat_rel_def br_def pure_def nat_of_uint32_0_iff
-    nat_of_uint32_012)+
+    uint32_nat_assn_0_eq uint32_nat_rel_def br_def pure_def nat_of_uint32_0_iff)+
+
+thm vmtf_dump_and_unset_def
+
+
 
 sepref_thm update_confl_tl_wl_code
   is \<open>uncurry2 update_confl_tl_wl_int\<close>
@@ -4193,21 +3959,18 @@ sepref_thm update_confl_tl_wl_code
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
   supply [[goals_limit=1]]
   supply conflict_merge_abs_union_None[simplified, simp]
-  unfolding update_confl_tl_wl_int_def twl_st_int_assn_def vmtf_dump_and_unset_def vmtf_dump_def
-   vmtf_unset_def save_phase_def
+  unfolding update_confl_tl_wl_int_def twl_st_int_assn_def save_phase_def
   supply conflict_merge_abs_union'_def[simp] conflict_merge_abs_union_def[simp]
-  apply (rewrite in \<open>If (_ \<or> _)\<close> short_circuit_conv)
-  apply (rewrite in \<open>If (_ \<or> _)\<close> short_circuit_conv)
   by sepref (* slow *)
 
 concrete_definition (in -) update_confl_tl_wl_code
-  uses twl_array_code.update_confl_tl_wl_code.refine_raw
+  uses isasat_input_bounded.update_confl_tl_wl_code.refine_raw
   is \<open>(uncurry2 ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) update_confl_tl_wl_code_def
 
 lemmas update_confl_tl_wl_code_refine[sepref_fr_rules] =
-   update_confl_tl_wl_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   update_confl_tl_wl_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma update_confl_tl_wl_code_update_confl_tl_wl[sepref_fr_rules]:
   \<open>(uncurry2 update_confl_tl_wl_code, uncurry2 (RETURN ooo update_confl_tl_wl))
@@ -4433,7 +4196,7 @@ end
 
 setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close>
 
-context twl_array_code
+context isasat_input_bounded
 begin
 
 sepref_register skip_and_resolve_loop_wl_D literal_is_in_conflict
@@ -4460,7 +4223,6 @@ sepref_thm skip_and_resolve_loop_wl_D
     maximum_level_removed_eq_count_dec_def[symmetric]
     is_decided_hd_trail_wl_def[symmetric]
     skip_and_resolve_loop_inv_def
-    maximum_level_remove[symmetric]
     Multiset.is_empty_def[symmetric]
     get_maximum_level_remove_def[symmetric]
     literal_is_in_conflict_def[symmetric]
@@ -4471,19 +4233,19 @@ sepref_thm skip_and_resolve_loop_wl_D
   by sepref (* slow *)
 
 concrete_definition (in -) skip_and_resolve_loop_wl_D_code
-  uses twl_array_code.skip_and_resolve_loop_wl_D.refine_raw
+  uses isasat_input_bounded.skip_and_resolve_loop_wl_D.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) skip_and_resolve_loop_wl_D_code_def
 
 lemmas skip_and_resolve_loop_wl_D_code_refine[sepref_fr_rules] =
-   skip_and_resolve_loop_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   skip_and_resolve_loop_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 end
 
 
 setup \<open>map_theory_claset (fn ctxt => ctxt addSbefore ("split_all_tac", split_all_tac))\<close>
 
-context twl_array_code
+context isasat_input_bounded
 begin
 term twl_st_assn
 definition (in -) lit_of_hd_trail_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal\<close> where
@@ -4505,13 +4267,13 @@ sepref_thm lit_of_hd_trail_st_code
   by sepref
 
 concrete_definition (in -) lit_of_hd_trail_st_code
-   uses twl_array_code.lit_of_hd_trail_st_code.refine_raw
+   uses isasat_input_bounded.lit_of_hd_trail_st_code.refine_raw
    is \<open>(?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) lit_of_hd_trail_st_code_def
 
 lemmas lit_of_hd_trail_st_code_refine_code[sepref_fr_rules] =
-   lit_of_hd_trail_st_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   lit_of_hd_trail_st_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 theorem lit_of_hd_trail_st_code_lit_of_hd_trail_st[sepref_fr_rules]:
   \<open>(lit_of_hd_trail_st_code, RETURN o lit_of_hd_trail_st)
@@ -4567,7 +4329,7 @@ definition extract_shorter_conflict_list_removed :: \<open>(nat, nat) ann_lits \
             None \<Rightarrow> RETURN (i+1, m', m, zs, L)
           | Some b \<Rightarrow>  do {
                ASSERT(Pos i \<in> snd ` D\<^sub>0);
-               let k = get_level M (Pos i) in
+               let k = get_level_atm M i in
                if k > 0 then (* Keep *)
                  (case L of
                    None \<Rightarrow> RETURN (i+1, m' - 1, m, zs, Some (if b then Pos i else Neg i, k))
@@ -5239,16 +5001,16 @@ proof -
       subgoal unfolding I'_def by auto
       subgoal unfolding I'_def by auto
       subgoal by (auto simp: I'_def I_def upperN_def)
-      subgoal by (rule in_I'_no_found)
+      subgoal unfolding get_level_atm_def by (rule in_I'_no_found)
       subgoal unfolding I'_def by auto
       subgoal unfolding I_def upperN_def I'_def by auto
-      subgoal by (rule in_I'_found_upd)
+      subgoal unfolding get_level_atm_def by (rule in_I'_found_upd)
       subgoal unfolding I'_def by auto
       subgoal unfolding I_def I'_def upperN_def by auto
-      subgoal by (rule in_I'_found_no_upd)
+      subgoal unfolding get_level_atm_def by (rule in_I'_found_no_upd)
       subgoal unfolding I'_def by auto
       subgoal unfolding I_def I'_def upperN_def by auto
-      subgoal by (rule I'_in_remove)
+      subgoal unfolding get_level_atm_def by (rule I'_in_remove)
       subgoal unfolding I'_def by auto
       subgoal by (rule final)
       done
@@ -5494,7 +5256,7 @@ definition twl_st_confl_extracted_int_assn
   uint32_nat_assn
   )\<close>
 
-definition (in twl_array_code_ops) twl_st_ref_no_clvls :: \<open>(twl_st_wl_int \<times> nat twl_st_wl) set\<close> where
+definition (in isasat_input_ops) twl_st_ref_no_clvls :: \<open>(twl_st_wl_int \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_ref_no_clvls =
   {((M', N', U', D', Q', W', vm, \<phi>, clvls), (M, N, U, D, NP, UP, Q, W)).
     M = M' \<and> N' = N \<and> U' = U \<and>
@@ -5705,25 +5467,6 @@ definition find_decomp_wl_imp :: "(nat, nat) ann_lits \<Rightarrow> nat clause o
     RETURN (M, vm')
   })\<close>
 
-sepref_thm vmtf_unset_code
-  is \<open>uncurry (RETURN oo vmtf_unset)\<close>
-  :: \<open>[\<lambda>(L, vm). \<exists>M. L = atm_of(lit_of (hd M)) \<and> vm \<in> vmtf_imp M \<and> M \<noteq> [] \<and>
-          literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M)]\<^sub>a
-     uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
-  supply [[goals_limit=1]] option.splits[split] vmtf_imp_def[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[simp]
-    neq_NilE[elim!] literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset[simp]
-  unfolding vmtf_unset_def
-  apply (rewrite in \<open>If (_ \<or> _)\<close> short_circuit_conv)
-  by sepref
-
-concrete_definition (in -) vmtf_unset_code
-   uses twl_array_code.vmtf_unset_code.refine_raw
-   is \<open>(uncurry ?f, _) \<in> _\<close>
-
-prepare_code_thms (in -) vmtf_unset_code_def
-
-lemmas vmtf_unset_code_code[sepref_fr_rules] =
-   vmtf_unset_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
 
 definition find_decomp_wl_imp_pre where
   \<open>find_decomp_wl_imp_pre = (\<lambda>(((M, D), L), vm). M \<noteq> [] \<and> D \<noteq> None \<and>
@@ -5745,13 +5488,13 @@ sepref_thm get_maximum_level_remove_code
   by sepref
 
 concrete_definition (in -) get_maximum_level_remove_code
-   uses twl_array_code.get_maximum_level_remove_code.refine_raw
+   uses isasat_input_bounded.get_maximum_level_remove_code.refine_raw
    is \<open>(uncurry2 ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) get_maximum_level_remove_code_def
 
 lemmas get_maximum_level_remove_code_hnr[sepref_fr_rules] =
-   get_maximum_level_remove_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   get_maximum_level_remove_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 definition (in -) get_maximum_level_remove' where
   \<open>get_maximum_level_remove' M D L = get_maximum_level_remove M (the D) L\<close>
@@ -5794,13 +5537,13 @@ sepref_thm find_decomp_wl_imp_code
   by sepref
 
 concrete_definition (in -) find_decomp_wl_imp_code
-   uses twl_array_code.find_decomp_wl_imp_code.refine_raw
+   uses isasat_input_bounded.find_decomp_wl_imp_code.refine_raw
    is \<open>(uncurry3 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) find_decomp_wl_imp_code_def
 
 lemmas find_decomp_wl_imp_code[sepref_fr_rules] =
-   find_decomp_wl_imp_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   find_decomp_wl_imp_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 abbreviation (in -) nat_lit_lit_rel where
   \<open>nat_lit_lit_rel \<equiv> Id :: (nat literal \<times> _) set\<close>
@@ -5837,10 +5580,7 @@ lemma
    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M\<^sub>0)\<close>
   shows
     find_decomp_wl_imp_le_find_decomp_wl':
-      \<open>find_decomp_wl_imp M\<^sub>0 E L vm \<le>
-          (* \<Down> {((M', vm'), (M, vm)). M = M' \<and> vm \<in> vmtf_imp M \<and> vm = vm' \<and>
-               count_decided M' = get_maximum_level M\<^sub>0 (remove1_mset (-L) (the E)) } *)
-            (find_decomp_wl_vmtf M\<^sub>0 E L vm)\<close>
+      \<open>find_decomp_wl_imp M\<^sub>0 E L vm \<le> find_decomp_wl_vmtf M\<^sub>0 E L vm\<close>
      (is ?decomp)
 proof -
   have 1: \<open>((count_decided x1g, x1g), count_decided x1, x1) \<in> Id\<close>
@@ -5931,10 +5671,12 @@ proof -
           eq_commute[of \<open>[_]\<close>] intro: butlast
           cong: if_cong split: if_splits)
     subgoal
-      using ex_decomp get_level_Succ_count_decided_neq (*TODO Proof*)
-      apply (auto simp: count_decided_butlast butlast_nil_iff eq_commute[of \<open>[_]\<close>] ex_decomp_of_max_lvl_def
+      using ex_decomp get_level_neq_Suc_count_decided E_D\<^sub>0 (*TODO Proof*)
+      apply (auto simp: count_decided_butlast butlast_nil_iff eq_commute[of \<open>[_]\<close>] mset_le_subtract
+          ex_decomp_of_max_lvl_def
           intro: butlast)
-      by (metis E_D\<^sub>0 count_decided_ge_get_level get_maximum_level_mono mset_le_subtract
+      using get_maximum_level_mono[of \<open>remove1_mset (-L) (the E)\<close> \<open>remove1_mset (-L) (the D)\<close>]
+      by (metis E_D\<^sub>0 count_decided_ge_get_level mset_le_subtract
           not_less_eq_eq)
     subgoal using vm by auto
     subgoal using lits by auto
@@ -6099,13 +5841,13 @@ sepref_thm find_decomp_wl_imp'_code
   by sepref
 
 concrete_definition (in -) find_decomp_wl_imp'_code
-   uses twl_array_code.find_decomp_wl_imp'_code.refine_raw
+   uses isasat_input_bounded.find_decomp_wl_imp'_code.refine_raw
    is \<open>(uncurry ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) find_decomp_wl_imp'_code_def
 
 lemmas find_decomp_wl_imp'_code_hnr[sepref_fr_rules] =
-  find_decomp_wl_imp'_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+  find_decomp_wl_imp'_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 
 lemma find_decomp_wl_st_find_decomp_wl:
@@ -6447,43 +6189,20 @@ qed
 definition size_conflict_wl where
   \<open>size_conflict_wl S = size (the (get_conflict_wl S))\<close>
 
-(* TODO: mention in publication, sepref_thm does not work *)
-definition size_conflict_extract :: \<open>conflict_rel_with_cls_with_highest \<Rightarrow> nat\<close> where
-  \<open>size_conflict_extract = (\<lambda>((_, n, _), _). n)\<close>
-
-definition size_conflict_wl_int :: \<open>twl_st_wl_confl_extracted_int \<Rightarrow> nat\<close> where
-  \<open>size_conflict_wl_int = (\<lambda>(M, N, U, D, _, _, _, _). size_conflict_extract D)\<close>
-
-
-
-lemma size_conflict_extract[sepref_fr_rules]:
-   \<open>(return o (\<lambda>((_, n, _), _). n), RETURN o size_conflict_extract) \<in>
-   (((bool_assn *assn conflict_rel_assn) *assn
-         option_assn (unat_lit_assn *assn uint32_nat_assn)))\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  unfolding size_conflict_extract_def
-  apply sep_auto
-  apply sepref_to_hoare
-  subgoal for x xi
-    apply (cases x, cases xi)
-    apply sep_auto
-    done
-  done
-
 sepref_thm size_conflict_wl_code
   is \<open>RETURN o size_conflict_wl_int\<close>
   :: \<open>twl_st_confl_extracted_int_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   unfolding size_conflict_wl_int_def twl_st_confl_extracted_int_assn_def
   by sepref
 
-
 concrete_definition (in -) size_conflict_wl_code
-   uses twl_array_code.size_conflict_wl_code.refine_raw
+   uses isasat_input_bounded.size_conflict_wl_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) size_conflict_wl_code_def
 
 lemmas size_conflict_wl_code_hnr[sepref_fr_rules] =
-   size_conflict_wl_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   size_conflict_wl_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma size_conflict_wl_int_size_conflict_wl:
   \<open>(RETURN o size_conflict_wl_int, RETURN o size_conflict_wl) \<in>
@@ -6558,13 +6277,13 @@ sepref_thm find_lit_of_max_level_wl_code
   by sepref
 
 concrete_definition (in -) find_lit_of_max_level_wl_code
-   uses twl_array_code.find_lit_of_max_level_wl_code.refine_raw
+   uses isasat_input_bounded.find_lit_of_max_level_wl_code.refine_raw
    is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) find_lit_of_max_level_wl_code_def
 
 lemmas find_lit_of_max_level_wl_code_hnr[sepref_fr_rules] =
-   find_lit_of_max_level_wl_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   find_lit_of_max_level_wl_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma find_lit_of_max_level_wl_int_find_lit_of_max_level_wl:
   \<open>(uncurry (RETURN oo find_lit_of_max_level_wl_int), uncurry find_lit_of_max_level_wl) \<in>
@@ -6610,7 +6329,7 @@ qed
 
 definition list_of_mset2_None where
   \<open>list_of_mset2_None L L' D = SPEC(\<lambda>(E, F). mset E = the D \<and> E!0 = L \<and> E!1 = L' \<and>
-     F = None)\<close>
+     F = None \<and> length E \<ge> 2)\<close>
 
 lemma propgate_bt_wl_D_alt_def:
   \<open>propgate_bt_wl_D = (\<lambda>L L' (M, N, U, D, NP, UP, Q, W).
@@ -6682,8 +6401,10 @@ text \<open>
   \<^item> We are filling D starting from the end (index \<^term>\<open>n\<close>)
   \<^item> We are changing position one and two.
 \<close>
-definition conflict_to_conflict_with_cls :: \<open>nat literal list \<Rightarrow> conflict_option_rel \<Rightarrow> conflict_rel_with_cls nres\<close> where
-  \<open>conflict_to_conflict_with_cls = (\<lambda>D (_, n, xs). do {
+definition conflict_to_conflict_with_cls
+  :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat literal list \<Rightarrow> conflict_option_rel \<Rightarrow> (nat literal list \<times> conflict_option_rel) nres\<close>
+where
+  \<open>conflict_to_conflict_with_cls = (\<lambda>_ _ D (_, n, xs). do {
      (_, _, C, zs) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, m, C, zs). i \<le> length zs \<and> length zs = length xs \<and>
           length C = n \<and> m \<le> length C \<and> C!0 = D!0 \<and> C!1 = D!1\<^esup>
        (\<lambda>(i, m, C, zs). m > 2)
@@ -6697,27 +6418,54 @@ definition conflict_to_conflict_with_cls :: \<open>nat literal list \<Rightarrow
            | Some b \<Rightarrow> RETURN (i+1, m-1, C[m-1 := (if b then Pos i else Neg i)], zs[i := None])
        })
        (0, n, D, xs);
-     RETURN (C, zs)
+     RETURN (C, (True, zero_uint32_nat, zs))
   }
   )\<close>
 
 definition conflict_to_conflict_with_cls_spec where
   \<open>conflict_to_conflict_with_cls_spec _ D = D\<close>
 
-lemma conflict_to_conflict_with_cls_id:
-  \<open>(uncurry conflict_to_conflict_with_cls, uncurry (RETURN oo conflict_to_conflict_with_cls_spec)) \<in>
-    [\<lambda>(D, C). C \<noteq> None \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the C) \<and> length D = size (the C) + 2 \<and>
-      L = D!0 \<and> L' = D!1]\<^sub>f
-      Id \<times>\<^sub>r option_conflict_rel_removed  \<rightarrow>
-       \<langle>option_conflict_rel_with_cls_removed L L'\<rangle> nres_rel\<close>
+definition list_of_mset2_None_droped where
+  \<open>list_of_mset2_None_droped L L' _ D = SPEC(\<lambda>(E, F). mset (drop 2 E) = the D \<and> E!0 = L \<and> E!1 = L' \<and>
+     F = None \<and> length E \<ge> 2)\<close>
+
+lemma (in -) bind_rule_complete_RES: \<open>(M \<bind> f \<le> RES \<Phi>) = (M \<le> SPEC (\<lambda>x. f x \<le> RES \<Phi>))\<close>
+  by (auto simp: pw_le_iff refine_pw_simps)
+
+lemma WHILEIT_rule_stronger_inv_RES:
+  assumes
+    \<open>wf R\<close> and
+    \<open>I s\<close> and
+    \<open>I' s\<close>
+    \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> b s \<Longrightarrow> f s \<le> SPEC (\<lambda>s'. I s' \<and>  I' s' \<and> (s', s) \<in> R)\<close> and
+   \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> \<not> b s \<Longrightarrow> s \<in> \<Phi>\<close>
+ shows \<open>WHILE\<^sub>T\<^bsup>I\<^esup> b f s \<le> RES \<Phi>\<close>
 proof -
-  have H: \<open>conflict_to_conflict_with_cls D (b, n, xs) \<le> \<Down> (option_conflict_rel_with_cls_removed L L') (RETURN (Some C))\<close>
+  have RES_SPEC: \<open>RES \<Phi> = SPEC(\<lambda>s. s \<in> \<Phi>)\<close>
+    by auto
+  have \<open>WHILE\<^sub>T\<^bsup>I\<^esup> b f s \<le> WHILE\<^sub>T\<^bsup>\<lambda>s. I s \<and> I' s\<^esup> b f s\<close>
+    by (metis (mono_tags, lifting) WHILEIT_weaken)
+  also have \<open>WHILE\<^sub>T\<^bsup>\<lambda>s. I s \<and> I' s\<^esup> b f s \<le> RES \<Phi>\<close>
+    unfolding RES_SPEC
+    by (rule WHILEIT_rule) (use assms in \<open>auto simp: \<close>)
+  finally show ?thesis .
+qed
+
+lemma conflict_to_conflict_with_cls_id:
+  \<open>(uncurry3 conflict_to_conflict_with_cls, uncurry3 list_of_mset2_None_droped) \<in>
+    [\<lambda>(((L, L'),D), C). C \<noteq> None \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the C) \<and> length D = size (the C) + 2 \<and>
+      L = D!0 \<and> L' = D!1]\<^sub>f
+      Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f option_conflict_rel_removed  \<rightarrow>
+       \<langle>Id \<times>\<^sub>f option_conflict_rel\<rangle> nres_rel\<close>
+   (is \<open>_ \<in> [_]\<^sub>f _ \<rightarrow> \<langle>?R\<rangle>nres_rel\<close>)
+proof -
+  have H: \<open>conflict_to_conflict_with_cls L L' D (b, n, xs) \<le> \<Down> ?R (list_of_mset2_None_droped L L' D (Some C))\<close>
     if
       ocr: \<open>((b, n, xs), Some C) \<in> option_conflict_rel_removed\<close> and
       lits_\<A>\<^sub>i\<^sub>n: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C\<close> and
       len_D: \<open>length D = size C + 2\<close> and
       [simp]: \<open>D!0 = L\<close>\<open>D!Suc 0 = L'\<close>
-    for b n xs C D
+    for b n xs C D L L'
   proof -
     define I' where
       [simp]: \<open>I' = (\<lambda>(i, m, D, zs).
@@ -6745,20 +6493,30 @@ proof -
     have size_C: \<open>size C \<le> upperN div 2\<close>
       using simple_clss_size_upper_div2[OF lits_\<A>\<^sub>i\<^sub>n dist_C tauto_C] .
 
-    have final: "((ad, bd), Some C) \<in> option_conflict_rel_with_cls_removed L L'"
+    have final: "\<not> (case s of (i, m, C, zs) \<Rightarrow> 2 < m) \<Longrightarrow>
+    s \<in> {x. (case x of (_, _, C, zs) \<Rightarrow> RETURN (C, True, zero_uint32_nat, zs))
+              \<le> RES ((Id \<times>\<^sub>f option_conflict_rel)\<inverse> ``
+                      {(E, F).
+                       mset (drop 2 E) = the (Some C) \<and>
+                       E ! 0 = L \<and> E ! 1 = L' \<and> F = None \<and> 2 \<le> length E})}"
       if
         s0: "?I baa aa s" and
         s1: "?I' s" and
         s:
           "\<not> ?cond s"
-          "s = (ab, bb)"
+(*           "s = (ab, bb)"
           "bb = (ac, bc)"
-          "bc = (ad, bd)"
+          "bc = (ad, bd)" *)
           "(b, n, xs) = (a, ba)"
           "ba = (aa, baa)"
-      for a ba aa baa s ab bb ac bc ad bd
+      for a ba aa baa s (* ab bb ac bc ad bd *)
     proof -
-      have [simp]: \<open>ac = 2\<close> \<open>s = (ab, 2, ad, bd)\<close> \<open>bb = (2, ad, bd)\<close> \<open>bc = (ad, bd)\<close> \<open>ba = (aa, baa)\<close>
+      obtain ab bb ac bc ad bd where
+        s': "s = (ab, bb)"
+          "bb = (ac, bc)"
+          "bc = (ad, bd)"
+        by (cases s) auto
+      then have [simp]: \<open>ac = 2\<close> \<open>s = (ab, 2, ad, bd)\<close> \<open>bb = (2, ad, bd)\<close> \<open>bc = (ad, bd)\<close> \<open>ba = (aa, baa)\<close>
         \<open>n = aa\<close>\<open>xs = baa\<close>
         using s s1 by auto
       have \<open>((b, 2, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_conflict_rel_removed\<close> and
@@ -6778,7 +6536,7 @@ proof -
         using s0 unfolding s by auto
       show ?thesis
         using map' atms_le_xs le_ad by (auto simp: option_conflict_rel_with_cls_removed_def
-            list_mset_rel_def br_def)
+            list_mset_rel_def br_def Image_iff option_conflict_rel_def conflict_rel_def)
     qed
     have init: "I' (0, aa, D, baa)"
       if
@@ -7006,10 +6764,12 @@ proof -
     qed
     show ?thesis
       supply WHILEIT_rule[refine_vcg del]
-      unfolding conflict_to_conflict_with_cls_def Let_def
-      apply (refine_vcg WHILEIT_rule_stronger_inv[where
+      unfolding conflict_to_conflict_with_cls_def Let_def list_of_mset2_None_droped_def conc_fun_RES
+      apply refine_rcg
+      unfolding bind_rule_complete_RES
+      apply (refine_vcg WHILEIT_rule_stronger_inv_RES[where
             R = \<open>measure (\<lambda>(i :: nat, m :: nat, D :: nat clause_l, zs :: bool option list). length zs - i)\<close> and
-            I' = \<open>I'\<close>])
+            I' = \<open>I'\<close>] bind_rule_complete_RES)
       subgoal by simp
       subgoal by simp
       subgoal by simp
@@ -7046,14 +6806,12 @@ proof -
     apply (intro frefI nres_relI)
     apply clarify
     subgoal for a aa ab b ac ba y
-      using H[of aa ab b y ac]
-      by (auto simp: conflict_to_conflict_with_cls_spec_def)
+      using H by (auto simp: conflict_to_conflict_with_cls_spec_def)
     done
 qed
 
 
 lemma conflict_to_conflict_with_cls_code_helper:
-  \<open>zero_uint32_nat < upperN div 2\<close>
   \<open>a1'b < upperN div 2 \<Longrightarrow> a1'b + one_nat_uint32 < upperN\<close>
   \<open> 0 < a1'c \<Longrightarrow> one_nat_uint32 \<le> a1'c\<close>
   \<open>fast_minus a1'c one_nat_uint32  = a1'c - 1\<close>
@@ -7064,9 +6822,9 @@ declare uint32_nat_assn_plus[sepref_fr_rules del]
 
 sepref_register conflict_to_conflict_with_cls
 sepref_thm conflict_to_conflict_with_cls_code
-  is \<open>uncurry (PR_CONST conflict_to_conflict_with_cls)\<close>
-  :: \<open>(array_assn unat_lit_assn)\<^sup>d *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow>\<^sub>a
-      conflict_with_cls_int_assn\<close>
+  is \<open>uncurry3 (PR_CONST conflict_to_conflict_with_cls)\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a(array_assn unat_lit_assn)\<^sup>d *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow>\<^sub>a
+      array_assn unat_lit_assn *assn conflict_option_rel_assn\<close>
   supply uint32_nat_assn_zero_uint32_nat[sepref_fr_rules] [[goals_limit=1]]
    Pos_unat_lit_assn'[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
    conflict_to_conflict_with_cls_code_helper[simp] uint32_2_hnr[sepref_fr_rules]
@@ -7084,23 +6842,24 @@ sepref_thm conflict_to_conflict_with_cls_code
   by sepref
 
 concrete_definition (in -) conflict_to_conflict_with_cls_code
-   uses twl_array_code.conflict_to_conflict_with_cls_code.refine_raw
-   is \<open>(uncurry ?f, _)\<in>_\<close>
+   uses isasat_input_bounded.conflict_to_conflict_with_cls_code.refine_raw
+   is \<open>(uncurry3 ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) conflict_to_conflict_with_cls_code_def
 
 lemmas conflict_to_conflict_with_cls_code_refine[sepref_fr_rules] =
-   conflict_to_conflict_with_cls_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   conflict_to_conflict_with_cls_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma extract_shorter_conflict_with_cls_code_conflict_to_conflict_with_cls_spec[sepref_fr_rules]:
-  \<open>(uncurry conflict_to_conflict_with_cls_code,  uncurry (RETURN \<circ>\<circ> conflict_to_conflict_with_cls_spec))
-    \<in> [\<lambda>(D, C). C \<noteq> None \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the C) \<and>
+  \<open>(uncurry3 conflict_to_conflict_with_cls_code, uncurry3 list_of_mset2_None_droped)
+    \<in> [\<lambda>(((L, L'), D), C). C \<noteq> None \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the C) \<and>
            length D = size (the C) + 2 \<and> L = D ! 0 \<and> L' = D ! 1]\<^sub>a
-      clause_ll_assn\<^sup>d *\<^sub>a (hr_comp conflict_option_rel_assn option_conflict_rel_removed)\<^sup>d \<rightarrow>
-      conflict_with_cls_assn_removed L L'\<close>
+       unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a
+     (hr_comp conflict_option_rel_assn option_conflict_rel_removed)\<^sup>d \<rightarrow>
+     clause_ll_assn *assn conflict_option_assn\<close>
   using conflict_to_conflict_with_cls_code_refine[unfolded PR_CONST_def,
-    FCOMP conflict_to_conflict_with_cls_id, of L L']
-  unfolding conflict_with_cls_assn_removed_def[symmetric]
+    FCOMP conflict_to_conflict_with_cls_id]
+  unfolding conflict_option_assn_def
   by simp
 
 definition remove2_from_conflict :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> nat cconflict \<Rightarrow> nat cconflict\<close> where
@@ -7137,13 +6896,13 @@ sepref_thm remove2_from_conflict_code
   by sepref
 
 concrete_definition (in -) remove2_from_conflict_code
-   uses twl_array_code.remove2_from_conflict_code.refine_raw
+   uses isasat_input_bounded.remove2_from_conflict_code.refine_raw
    is \<open>(uncurry2 ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) remove2_from_conflict_code_def
 
 lemmas remove2_from_conflict_code_hnr[sepref_fr_rules] =
-   remove2_from_conflict_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   remove2_from_conflict_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 theorem remove2_from_conflict_hnr[sepref_fr_rules]:
   \<open>(uncurry2 remove2_from_conflict_code, uncurry2 (RETURN ooo remove2_from_conflict))
@@ -7179,52 +6938,6 @@ proof -
     using pre ..
 qed
 
-definition add2_from_conflict :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> nat cconflict \<Rightarrow> nat cconflict\<close> where
-  \<open>add2_from_conflict L L' C = Some (add_mset L (add_mset L' (the C)))\<close>
-
-definition add2_from_conflict_int
-  :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> conflict_rel_with_cls \<Rightarrow> conflict_rel_with_cls\<close> where
-  \<open>add2_from_conflict_int _ _ C = C\<close>
-
-
-lemma add2_from_conflict_int_add2_from_conflict:
-  \<open>(uncurry2 (RETURN ooo add2_from_conflict_int), uncurry2 (RETURN ooo add2_from_conflict)) \<in>
-      [\<lambda>((K, K'), C). K = L \<and> K' = L' \<and> C \<noteq> None \<and> L \<notin># the C \<and> L' \<notin># the C]\<^sub>f
-       nat_lit_lit_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f option_conflict_rel_with_cls_removed L L' \<rightarrow>
-      \<langle>option_conflict_rel_with_cls L L'\<rangle> nres_rel\<close>
-  apply (intro nres_relI frefI)
-  apply clarify
-  subgoal for K K' D zs ab bb bc C
-    by (cases D; cases \<open>tl D\<close>)
-      (auto simp: option_conflict_rel_with_cls_def add2_from_conflict_int_def
-        add2_from_conflict_def list_mset_rel_def option_conflict_rel_with_cls_removed_def
-        br_def)
-  done
-
-sepref_thm add2_from_conflict_code
-  is \<open>uncurry2 (RETURN ooo add2_from_conflict_int)\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a conflict_with_cls_int_assn\<^sup>d \<rightarrow>\<^sub>a conflict_with_cls_int_assn\<close>
-  unfolding add2_from_conflict_int_def by sepref
-
-concrete_definition (in -) add2_from_conflict_code
-   uses twl_array_code.add2_from_conflict_code.refine_raw
-   is \<open>(uncurry2 ?f, _)\<in>_\<close>
-
-prepare_code_thms (in -) add2_from_conflict_code_def
-
-lemmas add2_from_conflict_code_hnr[sepref_fr_rules] =
-   add2_from_conflict_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
-
-lemma ad_from_conflict_hnr[sepref_fr_rules]:
-  \<open>(uncurry2 add2_from_conflict_code, uncurry2 (RETURN \<circ>\<circ>\<circ> add2_from_conflict))
-    \<in> [\<lambda>((a, b), ba). a = L \<and> b = L' \<and> ba \<noteq> None \<and> L \<notin># the ba \<and> L' \<notin># the ba]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (conflict_with_cls_assn_removed L L')\<^sup>d \<rightarrow>
-      (conflict_with_cls_assn L L')\<close>
-  using add2_from_conflict_code_hnr[FCOMP add2_from_conflict_int_add2_from_conflict,
-    unfolded conflict_with_cls_assn_removed_def[symmetric] conflict_with_cls_assn_def[symmetric],
-    of L L'] by simp
-
-term conflict_to_conflict_with_cls_spec
 definition list_of_mset2_None_int where
   \<open>list_of_mset2_None_int L L' C\<^sub>0 =  do {
      let n = size (the C\<^sub>0);
@@ -7234,12 +6947,15 @@ definition list_of_mset2_None_int where
      let C = remove2_from_conflict L L' C\<^sub>0;
      ASSERT(C \<noteq> None \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the C) \<and> size (the C\<^sub>0) = size (the C) + 2 \<and>
        D!0 = L \<and> D!1 = L');
-     let D = ASSN_ANNOT (conflict_with_cls_assn_removed L L') (conflict_to_conflict_with_cls_spec D C);
-     ASSERT(D \<noteq> None \<and> L \<notin># the D \<and> L' \<notin># the D);
-     let D = add2_from_conflict L L' D;
-     ASSERT(D \<noteq> None);
-     list_of_mset2_None L L' D}\<close>
+(*      let D = ASSN_ANNOT (conflict_with_cls_assn_removed L L') (conflict_to_conflict_with_cls_spec D C); *)
+(*      ASSERT(D \<noteq> None \<and> L \<notin># the D \<and> L' \<notin># the D); *)
+(*      let D = add2_from_conflict L L' D;
+     ASSERT(D \<noteq> None); *)
+     list_of_mset2_None_droped L L' D C}\<close>
 
+lemma (in -) list_length2E:
+  \<open>length xs \<ge> 2 \<Longrightarrow> (\<And>x y zs. xs = x # y # zs \<Longrightarrow> zs = tl (tl xs) \<Longrightarrow> P) \<Longrightarrow> P\<close>
+  by (cases xs; cases \<open>tl xs\<close>) auto
 
 lemma list_of_mset2_None_int_list_of_mset2_None:
   \<open>(uncurry2 (list_of_mset2_None_int), uncurry2 list_of_mset2_None) \<in>
@@ -7247,11 +6963,11 @@ lemma list_of_mset2_None_int_list_of_mset2_None:
         literals_are_in_\<L>\<^sub>i\<^sub>n (the C) \<and> distinct_mset (the C)]\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
    (auto simp: list_of_mset2_None_int_def list_of_mset2_None_def
-      list_of_mset2_def add2_from_conflict_def conflict_to_conflict_with_cls_spec_def
+      list_of_mset2_def conflict_to_conflict_with_cls_spec_def
       remove2_from_conflict_def add_mset_eq_add_mset RES_RETURN_RES
-      literals_are_in_\<L>\<^sub>i\<^sub>n_sub literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
-      dest!: multi_member_split)
-
+      literals_are_in_\<L>\<^sub>i\<^sub>n_sub literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset list_of_mset2_None_droped_def
+      dest!: multi_member_split
+      elim!: list_length2E)
 
 definition size_conflict :: \<open>nat clause option \<Rightarrow> nat\<close> where
   \<open>size_conflict D = size (the D)\<close>
@@ -7264,13 +6980,13 @@ lemma size_conflict_code_refine_raw:
   by sepref_to_hoare  (sep_auto simp: size_conflict_int_def)
 
 concrete_definition (in -) size_conflict_code
-   uses twl_array_code.size_conflict_code_refine_raw
+   uses isasat_input_bounded.size_conflict_code_refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) size_conflict_code_def
 
 lemmas size_conflict_code_hnr[sepref_fr_rules] =
-   size_conflict_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   size_conflict_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma size_conflict_int_size_conflict:
   \<open>(RETURN o size_conflict_int, RETURN o size_conflict) \<in> [\<lambda>D. D \<noteq> None]\<^sub>f option_conflict_rel \<rightarrow>
@@ -7285,36 +7001,6 @@ lemma size_conflict_hnr[sepref_fr_rules]:
   unfolding conflict_option_assn_def[symmetric]
   by simp
 
-definition (in -) conflict_with_cls_split where
-  \<open>conflict_with_cls_split = (\<lambda>_ _ (a, b). (a, (True, 0, b)))\<close>
-
-lemma conflict_with_cls_split_list_of_mset2_None:
-   \<open>(uncurry2 (RETURN ooo conflict_with_cls_split), uncurry2 list_of_mset2_None) \<in>
-     [\<lambda>((K, K'), C). C \<noteq> None \<and> K = L \<and> K' = L']\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f (option_conflict_rel_with_cls L L') \<rightarrow>
-       \<langle>\<langle>Id\<rangle> list_rel \<times>\<^sub>f option_conflict_rel\<rangle>nres_rel\<close>
-  by (intro nres_relI frefI)
-     (auto simp: option_conflict_rel_def option_conflict_rel_with_cls_def
-      list_of_mset2_None_def conflict_rel_def conflict_with_cls_split_def
-       list_mset_rel_def br_def intro!: RETURN_SPEC_refine)
-
-text \<open>This lemma is only a trick For the code. The real refinement lemma comes later.\<close>
-lemma conflict_with_cls_split_conflict_with_cls_split:
-   \<open>(uncurry2 (return ooo conflict_with_cls_split),uncurry2 (RETURN ooo conflict_with_cls_split)) \<in>
-      unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (clause_ll_assn *assn array_assn (option_assn bool_assn))\<^sup>d \<rightarrow>\<^sub>a
-      clause_ll_assn *assn conflict_option_rel_assn\<close>
-  by sepref_to_hoare
-     (sep_auto simp: conflict_with_cls_split_def uint32_nat_rel_def
-      br_def nat_of_uint32_012)
-
-lemma DONT_USE_conflict_with_cls_split_list_of_mset2_None_hnr_DONT_USE:
-  \<open>(uncurry2 (return \<circ>\<circ>\<circ> conflict_with_cls_split), uncurry2 list_of_mset2_None)
-  \<in> [\<lambda>((a, b), ba). ba \<noteq> None \<and> a = L \<and> b = L']\<^sub>a
-    unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (conflict_with_cls_assn L L')\<^sup>d \<rightarrow>
-    clause_ll_assn  *assn conflict_option_assn\<close> for L L' :: \<open>nat literal\<close>
-  using conflict_with_cls_split_conflict_with_cls_split[FCOMP conflict_with_cls_split_list_of_mset2_None, of L L']
-  unfolding conflict_option_assn_def[symmetric] conflict_with_cls_assn_def[symmetric]
-  by auto
-
 lemma two_different_multiset_sizeD:
   assumes \<open>a \<in># y\<close> and \<open>ba \<in># y\<close> \<open>a \<noteq> ba\<close>
   shows \<open>Suc 0 < size y\<close> \<open>size y = Suc (Suc (size (y - {#a, ba#})))\<close>
@@ -7326,53 +7012,19 @@ sepref_thm list_of_mset2_None_code
       unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
          conflict_option_assn\<^sup>d \<rightarrow> clause_ll_assn *assn conflict_option_assn\<close>
   supply [[goals_limit=1]] size_conflict_def[simp]
-  DONT_USE_conflict_with_cls_split_list_of_mset2_None_hnr_DONT_USE[sepref_fr_rules]
   unfolding list_of_mset2_None_int_def size_conflict_def[symmetric]
     array_fold_custom_replicate PR_CONST_def
-  apply sepref_dbg_keep
-      apply sepref_dbg_trans_keep
-                  apply sepref_dbg_trans_step_keep
-                   apply sepref_dbg_side_unfold apply auto[]
-                  apply sepref_dbg_side_unfold apply auto[]
-                 apply sepref_dbg_trans_step_keep
-                apply sepref_dbg_trans_step_keep
-               apply sepref_dbg_trans_step_keep
-                 apply sepref_dbg_trans_step_keep
-                apply sepref_dbg_trans_step_keep
-                apply sepref_dbg_trans_step_keep
-                  apply sepref_dbg_trans_step_keep
-                 apply sepref_dbg_trans_step_keep
-                   apply sepref_dbg_trans_step_keep
-                  apply sepref_dbg_trans_step_keep
-                  apply sepref_dbg_trans_step_keep
-                 apply sepref_dbg_trans_step_keep
-                apply sepref_dbg_trans_step_keep
-               apply sepref_dbg_trans_step_keep
-              apply sepref_dbg_trans_step_keep
-             apply sepref_dbg_trans_step_keep
-            apply sepref_dbg_trans_step_keep
-           apply sepref_dbg_trans_step_keep
-          apply sepref_dbg_trans_step_keep
-         apply sepref_dbg_trans_step_keep
-        apply sepref_dbg_trans_step_keep
-       apply sepref_dbg_trans_step_keep
-      apply sepref_dbg_trans_step_keep
-     apply simp
-    apply sepref_dbg_trans_step_keep
-   apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_constraints
-  done
+  by sepref
 
 concrete_definition (in -) list_of_mset2_None_code
-   uses twl_array_code.list_of_mset2_None_code.refine_raw
+   uses isasat_input_bounded.list_of_mset2_None_code.refine_raw
    is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) list_of_mset2_None_code_def
 
 lemmas list_of_mset2_None_int_hnr[sepref_fr_rules] =
-  list_of_mset2_None_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+  list_of_mset2_None_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
-thm list_of_mset2_None_code_def
 lemma list_of_mset2_None_hnr[sepref_fr_rules]:
   \<open>(uncurry2 list_of_mset2_None_code, uncurry2 list_of_mset2_None)
    \<in> [\<lambda>((a, b), ba). ba \<noteq> None \<and> a \<in># the ba \<and> b \<in># the ba \<and> a \<noteq> b \<and>
@@ -7389,23 +7041,23 @@ sepref_thm extract_shorter_conflict_list_removed_code
        option_assn (unat_lit_assn *assn uint32_nat_assn)\<close>
   supply [[goals_limit = 1]] uint32_nat_assn_zero_uint32_nat[sepref_fr_rules]
     Pos_unat_lit_assn[sepref_fr_rules]
-    Neg_unat_lit_assn[sepref_fr_rules] zero_uint32_nat_def[simp]
+    Neg_unat_lit_assn[sepref_fr_rules]
   unfolding extract_shorter_conflict_list_removed_def PR_CONST_def
   extract_shorter_conflict_list_int_def
   lit_of_hd_trail_def[symmetric] Let_def
-   zero_uint32_nat_def[symmetric]
+  zero_uint32_nat_def[symmetric]
   fast_minus_def[symmetric] one_nat_uint32_def[symmetric]
   by sepref
 
 concrete_definition (in -) extract_shorter_conflict_list_removed_code
-   uses twl_array_code.extract_shorter_conflict_list_removed_code.refine_raw
+   uses isasat_input_bounded.extract_shorter_conflict_list_removed_code.refine_raw
    is \<open>(uncurry ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) extract_shorter_conflict_list_removed_code_def
 
 lemmas extract_shorter_conflict_list_removed_code_extract_shorter_conflict_list_removed[sepref_fr_rules] =
   extract_shorter_conflict_list_removed_code.refine[of \<A>\<^sub>i\<^sub>n,
-      OF twl_array_code_axioms]
+      OF isasat_input_bounded_axioms]
 
 sepref_thm extract_shorter_conflict_l_trivial'
   is \<open>uncurry (PR_CONST extract_shorter_conflict_list_int)\<close>
@@ -7420,14 +7072,14 @@ sepref_thm extract_shorter_conflict_l_trivial'
   by sepref
 
 concrete_definition (in -) extract_shorter_conflict_l_trivial_code
-   uses twl_array_code.extract_shorter_conflict_l_trivial'.refine_raw
+   uses isasat_input_bounded.extract_shorter_conflict_l_trivial'.refine_raw
    is \<open>(uncurry ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) extract_shorter_conflict_l_trivial_code_def
 
 lemmas extract_shorter_conflict_l_trivial_code_wl_D[sepref_fr_rules] =
   extract_shorter_conflict_l_trivial_code.refine[of \<A>\<^sub>i\<^sub>n,
-      OF twl_array_code_axioms]
+      OF isasat_input_bounded_axioms]
 
 text \<open>
   This is the \<^emph>\<open>direct\<close> composition of the refinement theorems. Only the version lifted to
@@ -7506,14 +7158,14 @@ sepref_thm extract_shorter_conflict_list_st_int_code
   by sepref
 
 concrete_definition (in -) extract_shorter_conflict_list_st_int_code
-   uses twl_array_code.extract_shorter_conflict_list_st_int_code.refine_raw
+   uses isasat_input_bounded.extract_shorter_conflict_list_st_int_code.refine_raw
    is \<open>(?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) extract_shorter_conflict_list_st_int_code_def
 
 lemmas extract_shorter_conflict_list_st_int_code[sepref_fr_rules] =
   extract_shorter_conflict_list_st_int_code.refine[of \<A>\<^sub>i\<^sub>n,
-      OF twl_array_code_axioms]
+      OF isasat_input_bounded_axioms]
 
 sepref_register extract_shorter_conflict_list_st_int
 sepref_thm extract_shorter_conflict_st_trivial_code
@@ -7525,13 +7177,13 @@ sepref_thm extract_shorter_conflict_st_trivial_code
   by sepref
 
 concrete_definition (in -) extract_shorter_conflict_st_trivial_code
-   uses twl_array_code.extract_shorter_conflict_st_trivial_code.refine_raw
+   uses isasat_input_bounded.extract_shorter_conflict_st_trivial_code.refine_raw
    is \<open>(?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) extract_shorter_conflict_st_trivial_code_def
 
 lemmas extract_shorter_conflict_st_code_refine[sepref_fr_rules] =
-   extract_shorter_conflict_st_trivial_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   extract_shorter_conflict_st_trivial_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 
 definition extract_shorter_conflict_st_trivial_pre where
@@ -7682,7 +7334,7 @@ definition rescore_clause :: \<open>nat clause_l \<Rightarrow> (nat,nat) ann_lit
     (vmtf_remove_int \<times> phase_saver) nres\<close> where
 \<open>rescore_clause C M vm \<phi> = SPEC (\<lambda>(vm', \<phi>' :: bool list). vm' \<in> vmtf_imp M \<and> phase_saving \<phi>')\<close>
 
-definition (in twl_array_code_ops) vmtf_rescore_body
+definition (in isasat_input_ops) vmtf_rescore_body
  :: \<open>nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> phase_saver \<Rightarrow>
     (nat \<times> vmtf_remove_int \<times> phase_saver) nres\<close>
 where
@@ -7699,7 +7351,7 @@ where
            (0, vm, \<phi>)
     }\<close>
 
-definition (in twl_array_code_ops) vmtf_rescore
+definition (in isasat_input_ops) vmtf_rescore
  :: \<open>nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> phase_saver \<Rightarrow>
        (vmtf_remove_int \<times> phase_saver) nres\<close>
 where
@@ -7718,13 +7370,13 @@ sepref_thm vmtf_rescore_code
   by sepref
 
 concrete_definition (in -) vmtf_rescore_code
-   uses twl_array_code.vmtf_rescore_code.refine_raw
+   uses isasat_input_bounded.vmtf_rescore_code.refine_raw
    is \<open>(uncurry3 ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) vmtf_rescore_code_def
 
 lemmas vmtf_rescore_code_refine[sepref_fr_rules] =
-   vmtf_rescore_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   vmtf_rescore_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma vmtf_rescore_score_clause:
   \<open>(uncurry3 vmtf_rescore, uncurry3 rescore_clause) \<in>
@@ -7788,13 +7440,13 @@ sepref_thm vmtf_flush_all_code
   by sepref
 
 concrete_definition (in -) vmtf_flush_all_code
-   uses twl_array_code.vmtf_flush_all_code.refine_raw
+   uses isasat_input_bounded.vmtf_flush_all_code.refine_raw
    is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) vmtf_flush_all_code_def
 
 lemmas vmtf_flush_all_code_hnr[sepref_fr_rules] =
-   vmtf_flush_all_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   vmtf_flush_all_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 
 definition rescore :: \<open>(nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> vmtf_remove_int nres\<close> where
@@ -7871,15 +7523,15 @@ sepref_thm st_remove_highest_lvl_from_confl_code
 
 
 concrete_definition (in -) st_remove_highest_lvl_from_confl_code
-   uses twl_array_code.st_remove_highest_lvl_from_confl_code.refine_raw
+   uses isasat_input_bounded.st_remove_highest_lvl_from_confl_code.refine_raw
    is \<open>(?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) st_remove_highest_lvl_from_confl_code_def
 
 lemmas st_remove_highest_lvl_from_confl_int_hnr[sepref_fr_rules] =
-   st_remove_highest_lvl_from_confl_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   st_remove_highest_lvl_from_confl_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
-definition (in twl_array_code_ops) twl_st_assn_no_clvls :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
+definition (in isasat_input_ops) twl_st_assn_no_clvls :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>twl_st_assn_no_clvls = hr_comp twl_st_int_assn twl_st_ref_no_clvls\<close>
 
 lemma twl_st_assn_twl_st_wl_W_conflict:
@@ -7947,13 +7599,13 @@ sepref_thm propgate_bt_wl_D_code
   by sepref
 
 concrete_definition (in -) propgate_bt_wl_D_code
-  uses "twl_array_code.propgate_bt_wl_D_code.refine_raw"
+  uses "isasat_input_bounded.propgate_bt_wl_D_code.refine_raw"
   is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) propgate_bt_wl_D_code_def
 
 lemmas propgate_bt_wl_D_int_hnr[sepref_fr_rules] =
-  propgate_bt_wl_D_code.refine[OF twl_array_code_axioms]
+  propgate_bt_wl_D_code.refine[OF isasat_input_bounded_axioms]
 
 lemma propgate_bt_wl_D_int_propgate_bt_wl_D:
   \<open>(uncurry2 propgate_bt_wl_D_int, uncurry2 propgate_bt_wl_D) \<in>
@@ -8189,13 +7841,13 @@ sepref_thm remove_last_code
   by sepref
 
 concrete_definition (in -) remove_last_code
-   uses twl_array_code.remove_last_code.refine_raw
+   uses isasat_input_bounded.remove_last_code.refine_raw
    is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) remove_last_code_def
 
 lemmas remove_last_int_hnr[sepref_fr_rules] =
-   remove_last_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   remove_last_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 theorem remove_last_hnr[sepref_fr_rules]:
   \<open>(uncurry remove_last_code, uncurry remove_last)
@@ -8242,13 +7894,13 @@ sepref_thm propgate_unit_bt_wl_D_code
   by sepref
 
 concrete_definition (in -) propgate_unit_bt_wl_D_code
-  uses "twl_array_code.propgate_unit_bt_wl_D_code.refine_raw"
+  uses "isasat_input_bounded.propgate_unit_bt_wl_D_code.refine_raw"
   is \<open>(uncurry ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) propgate_unit_bt_wl_D_code_def
 
 lemmas propgate_unit_bt_wl_D_int_hnr[sepref_fr_rules] =
-  propgate_unit_bt_wl_D_code.refine[OF twl_array_code_axioms]
+  propgate_unit_bt_wl_D_code.refine[OF isasat_input_bounded_axioms]
 
 definition propgate_unit_bt_wl_D_pre :: \<open>nat literal \<times> nat twl_st_wl \<Rightarrow> bool\<close> where
    \<open>propgate_unit_bt_wl_D_pre =
@@ -8360,7 +8012,7 @@ end
 
 setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close>
 
-context twl_array_code
+context isasat_input_bounded
 begin
 
 sepref_register find_lit_of_max_level_wl propgate_bt_wl_D propgate_unit_bt_wl_D
@@ -8420,19 +8072,19 @@ sepref_thm backtrack_wl_D
   done
 
 concrete_definition (in -) backtrack_wl_D_code
-   uses twl_array_code.backtrack_wl_D.refine_raw
+   uses isasat_input_bounded.backtrack_wl_D.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) backtrack_wl_D_code_def
 
 lemmas backtrack_wl_D_code_refine[sepref_fr_rules] =
-   backtrack_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   backtrack_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 end
 
 
 setup \<open>map_theory_claset (fn ctxt => ctxt addSbefore ("split_all_tac", split_all_tac))\<close>
 
-context twl_array_code
+context isasat_input_bounded
 begin
 paragraph \<open>Decide\<close>
 
@@ -8455,13 +8107,13 @@ sepref_thm defined_atm_impl
   by sepref
 
 concrete_definition (in -) defined_atm_code
-   uses twl_array_code.defined_atm_impl.refine_raw
+   uses isasat_input_bounded.defined_atm_impl.refine_raw
    is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) defined_atm_code_def
 
 lemmas undefined_atm_impl_refine[sepref_fr_rules] =
-   defined_atm_code.refine[OF twl_array_code_axioms]
+   defined_atm_code.refine[OF isasat_input_bounded_axioms]
 
 lemma undefined_atm_impl:
   \<open>(uncurry defined_atm_impl, uncurry (RETURN oo defined_atm)) \<in>
@@ -8509,15 +8161,15 @@ sepref_thm vmtf_find_next_undef_code
   by sepref
 
 concrete_definition (in -) vmtf_find_next_undef_code
-  uses twl_array_code.vmtf_find_next_undef_code.refine_raw
+  uses isasat_input_bounded.vmtf_find_next_undef_code.refine_raw
   is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) vmtf_find_next_undef_code_def
 
 lemmas vmtf_find_next_undef_code_ref[sepref_fr_rules] =
-   vmtf_find_next_undef_code.refine[OF twl_array_code_axioms]
+   vmtf_find_next_undef_code.refine[OF isasat_input_bounded_axioms]
 
-definition (in twl_array_code_ops) vmtf_find_next_undef_upd
+definition (in isasat_input_ops) vmtf_find_next_undef_upd
   :: \<open>(nat, nat)ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow>
         (((nat, nat)ann_lits \<times> vmtf_remove_int) \<times> nat option)nres\<close> where
   \<open>vmtf_find_next_undef_upd = (\<lambda>M vm. do{
@@ -8544,20 +8196,20 @@ sepref_thm vmtf_find_next_undef_upd_code
   by sepref
 
 concrete_definition (in -) vmtf_find_next_undef_upd_code
-  uses twl_array_code.vmtf_find_next_undef_upd_code.refine_raw
+  uses isasat_input_bounded.vmtf_find_next_undef_upd_code.refine_raw
   is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) vmtf_find_next_undef_upd_code_def
 
 lemmas vmtf_find_next_undef_upd_code_ref[sepref_fr_rules] =
-   vmtf_find_next_undef_upd_code.refine[OF twl_array_code_axioms]
+   vmtf_find_next_undef_upd_code.refine[OF isasat_input_bounded_axioms]
 
 
 definition lit_of_found_atm where
 \<open>lit_of_found_atm \<phi> L = SPEC (\<lambda>K. (L = None \<longrightarrow> K = None) \<and>
     (L \<noteq> None \<longrightarrow> K \<noteq> None \<and> atm_of (the K) = the L))\<close>
 
-definition (in twl_array_code_ops) find_undefined_atm
+definition (in isasat_input_ops) find_undefined_atm
   :: \<open>(nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow>
        (((nat,nat) ann_lits \<times> vmtf_remove_int) \<times> nat option) nres\<close>
 where
@@ -8646,7 +8298,7 @@ lemma find_undefined_atm_hnr[sepref_fr_rules]:
   unfolding PR_CONST_def
   .
 
-definition (in twl_array_code_ops) lit_of_found_atm_D
+definition (in isasat_input_ops) lit_of_found_atm_D
   :: \<open>bool list \<Rightarrow> nat option \<Rightarrow> (nat literal option)nres\<close> where
   \<open>lit_of_found_atm_D = (\<lambda>(\<phi>::bool list) L. do{
       case L of
@@ -8656,7 +8308,7 @@ definition (in twl_array_code_ops) lit_of_found_atm_D
         }
   })\<close>
 
-definition (in twl_array_code_ops) lit_of_found_atm_D_pre where
+definition (in isasat_input_ops) lit_of_found_atm_D_pre where
 \<open>lit_of_found_atm_D_pre = (\<lambda>(\<phi>, L). L \<noteq> None \<longrightarrow> (Pos (the L) \<in> snd ` D\<^sub>0 \<and> the L < length \<phi>))\<close>
 
 sepref_thm lit_of_found_atm_D_code
@@ -8670,13 +8322,13 @@ sepref_thm lit_of_found_atm_D_code
   by sepref
 
 concrete_definition (in -) lit_of_found_atm_D_code
-   uses twl_array_code.lit_of_found_atm_D_code.refine_raw
+   uses isasat_input_bounded.lit_of_found_atm_D_code.refine_raw
    is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) lit_of_found_atm_D_code_def
 
 lemmas lit_of_found_atm_D_hnr[sepref_fr_rules] =
-   lit_of_found_atm_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   lit_of_found_atm_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma lit_of_found_atm_D_lit_of_found_atm:
   \<open>(uncurry (PR_CONST lit_of_found_atm_D), uncurry lit_of_found_atm) \<in>
@@ -8712,13 +8364,13 @@ sepref_thm find_unassigned_lit_wl_D_code
   by sepref
 
 concrete_definition (in -) find_unassigned_lit_wl_D_code
-   uses twl_array_code.find_unassigned_lit_wl_D_code.refine_raw
+   uses isasat_input_bounded.find_unassigned_lit_wl_D_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) find_unassigned_lit_wl_D_code_def
 
 lemmas find_unassigned_lit_wl_D_int_hnr[sepref_fr_rules] =
-   find_unassigned_lit_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   find_unassigned_lit_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 definition find_unassigned_lit_wl_D_pre where
   \<open>find_unassigned_lit_wl_D_pre = (\<lambda>S. twl_struct_invs (twl_st_of_wl None S) \<and> literals_are_\<L>\<^sub>i\<^sub>n S \<and>
@@ -8812,13 +8464,13 @@ sepref_thm cons_trail_Decided_tr_code
   by sepref
 
 concrete_definition (in -) cons_trail_Decided_tr_code
-  uses "twl_array_code.cons_trail_Decided_tr_code.refine_raw"
+  uses "isasat_input_bounded.cons_trail_Decided_tr_code.refine_raw"
   is \<open>(uncurry ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) cons_trail_Decided_tr_code_def
 
 lemmas cons_trail_Decided_tr_code[sepref_fr_rules] =
-  cons_trail_Decided_tr_code.refine[OF twl_array_code_axioms]
+  cons_trail_Decided_tr_code.refine[OF isasat_input_bounded_axioms]
 
 lemma cons_trail_Decided_tr_code_cons_trail_Decided_tr[sepref_fr_rules]:
   \<open>(uncurry cons_trail_Decided_tr_code, uncurry (RETURN oo cons_trail_Decided)) \<in>
@@ -8841,7 +8493,7 @@ proof -
          trailt_ref\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF cons_trail_Decided_tr_code.refine cons_trail_Decided_tr,
-        OF twl_array_code_axioms] .
+        OF isasat_input_bounded_axioms] .
   have pre: \<open>?pre' = ?pre\<close>
     by (auto simp: comp_PRE_def trailt_ref_def trailt_ref_def image_image intro!: ext)
   have im: \<open>?im' = ?im\<close>
@@ -8864,13 +8516,13 @@ sepref_thm decide_lit_wl_int_code
   by sepref
 
 concrete_definition (in -) decide_lit_wl_int_code
-  uses "twl_array_code.decide_lit_wl_int_code.refine_raw"
+  uses "isasat_input_bounded.decide_lit_wl_int_code.refine_raw"
   is \<open>(uncurry ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) decide_lit_wl_int_code_def
 
 lemmas decide_lit_wl_int_hnr[sepref_fr_rules] =
-  decide_lit_wl_int_code.refine[OF twl_array_code_axioms]
+  decide_lit_wl_int_code.refine[OF isasat_input_bounded_axioms]
 
 lemma decide_lit_wl_hnr[sepref_fr_rules]:
   \<open>(uncurry decide_lit_wl_int_code, uncurry (RETURN \<circ>\<circ> decide_lit_wl))
@@ -8918,13 +8570,13 @@ sepref_thm decide_wl_or_skip_D_code
   by sepref
 
 concrete_definition (in -) decide_wl_or_skip_D_code
-  uses "twl_array_code.decide_wl_or_skip_D_code.refine_raw"
+  uses "isasat_input_bounded.decide_wl_or_skip_D_code.refine_raw"
   is \<open>(?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) decide_wl_or_skip_D_code_def
 
 lemmas decide_wl_or_skip_D_hnr[sepref_fr_rules] =
-  decide_wl_or_skip_D_code.refine[OF twl_array_code_axioms]
+  decide_wl_or_skip_D_code.refine[OF isasat_input_bounded_axioms]
 
 
 subsubsection \<open>Combining Together: the Other Rules\<close>
@@ -8943,13 +8595,13 @@ sepref_thm cdcl_twl_o_prog_wl_D_code
   by sepref
 
 concrete_definition (in -) cdcl_twl_o_prog_wl_D_code
-   uses twl_array_code.cdcl_twl_o_prog_wl_D_code.refine_raw
+   uses isasat_input_bounded.cdcl_twl_o_prog_wl_D_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) cdcl_twl_o_prog_wl_D_code_def
 
 lemmas cdcl_twl_o_prog_wl_D_code[sepref_fr_rules] =
-   cdcl_twl_o_prog_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   cdcl_twl_o_prog_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 
 subsubsection \<open>Combining Together: Full Strategy\<close>
@@ -8963,7 +8615,7 @@ sepref_thm cdcl_twl_stgy_prog_wl_D_code
   by sepref
 
 concrete_definition (in -) cdcl_twl_stgy_prog_wl_D_code
-   uses twl_array_code.cdcl_twl_stgy_prog_wl_D_code.refine_raw
+   uses isasat_input_bounded.cdcl_twl_stgy_prog_wl_D_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) cdcl_twl_stgy_prog_wl_D_code_def

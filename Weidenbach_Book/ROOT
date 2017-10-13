@@ -160,8 +160,8 @@ session "Two_Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     WB_More_Refinement
 
     CDCL_Two_Watched_Literals_VMTF
-    CDCL_Two_Watched_Literals_List_Watched_Trail_Code
-    CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code
+    CDCL_Two_Watched_Literals_IsaSAT_CDCL
+    CDCL_Two_Watched_Literals_IsaSAT
   document_files
     "root.tex"
     "biblio.bib"
