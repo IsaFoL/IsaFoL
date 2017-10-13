@@ -6,6 +6,9 @@ begin
 no_notation Ref.update ("_ := _" 62)
 
 notation prod_rel_syn (infixl "\<times>\<^sub>f" 70)
+(* TODO Move *)
+declare cdcl\<^sub>W_restart_mset_state[simp]
+(* End Move *)
 
 subsection \<open>Code Generation\<close>
 
@@ -1136,7 +1139,7 @@ proof -
     apply (subst image_Un)
     apply (subst distinct_mset_set_union)
     using dist
-    by (auto simp: C_def S cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset_state
+    by (auto simp: C_def S cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
         mset_take_mset_drop_mset drop_Suc)
   moreover have NC: \<open>N!C \<in> set (tl N)\<close>
      using w_ge_0 w_le_length_S unfolding C_def S
@@ -1318,13 +1321,13 @@ proof -
     unfolding set_append
     using dist
     apply (cases S)
-    by (auto simp: drop_Suc cdcl\<^sub>W_restart_mset_state clauses_def mset_take_mset_drop_mset
+    by (auto simp: drop_Suc clauses_def mset_take_mset_drop_mset
         watched_by_app_def cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def distinct_mset_set_distinct)
   then show \<open>distinct (get_clauses_wl S ! watched_by_app S L w)\<close>
     using S_L_W_le_S S_L_W_ge_0 nempty
     by (cases S; cases \<open>get_clauses_wl S\<close>)
-       (auto simp:  cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def distinct_mset_set_distinct
-         cdcl\<^sub>W_restart_mset_state clauses_def mset_take_mset_drop_mset watched_by_app_def)
+       (auto simp: cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def distinct_mset_set_distinct
+         clauses_def mset_take_mset_drop_mset watched_by_app_def)
 qed
 
 definition (in -) access_lit_in_clauses where
@@ -1884,7 +1887,7 @@ proof  -
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
     by blast+
   then have cons: \<open>consistent_interp (lits_of_l (get_trail_wl S))\<close>
-    by (cases S) (auto simp: cdcl\<^sub>W_restart_mset_state)
+    by (cases S) (auto)
 
   have \<open>additional_WS_invs (st_l_of_wl (Some (L, C)) S)\<close> and C_le: \<open>C < length (watched_by S L)\<close> and
     confl: \<open>get_conflict_wl S = None\<close> and \<open>no_duplicate_queued (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S))\<close>
@@ -1966,7 +1969,7 @@ proof (rule ccontr)
     using alien
     by (cases S)
         (auto 5 5 simp: get_unit_init_clss_def clauses_def mset_take_mset_drop_mset drop_Suc
-        mset_take_mset_drop_mset' cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
+        mset_take_mset_drop_mset' cdcl\<^sub>W_restart_mset.no_strange_atm_def
         is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def_sym in_all_lits_of_mm_ain_atms_of_iff in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
         dest: in_atms_of_mset_takeD)
     then have H: \<open>mset (watched_by S L) =
@@ -1989,10 +1992,9 @@ proof (rule ccontr)
     apply (subst append_take_drop_id[of \<open>get_learned_wl S\<close>, symmetric])
     using dist unfolding  cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def set_append
     by (cases S)
-        (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset image_Un drop_Suc)
+        (auto simp: mset_take_mset_drop_mset image_Un drop_Suc)
   then have dist_C: \<open>distinct ?C\<close>
-    using inv by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset
-      intro: unit_prop_body_wl_D_invD)
+    using inv by (auto simp: mset_take_mset_drop_mset intro: unit_prop_body_wl_D_invD)
   then show False
     using L_in_watched L_in_unwatched by (cases ?C; cases \<open>tl ?C\<close>; cases \<open>tl (tl ?C)\<close>) auto
 qed
@@ -3126,7 +3128,7 @@ proof -
   then show ?thesis
     using \<L>\<^sub>a\<^sub>l\<^sub>l M' unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
     by (cases a2')
-     (auto simp: cdcl\<^sub>W_restart_mset_state image_image mset_take_mset_drop_mset'
+     (auto image_image mset_take_mset_drop_mset'
         in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff clauses_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def)
 qed
 
@@ -3249,7 +3251,7 @@ proof -
     by fast
   then show ?thesis
      using nil \<L>\<^sub>a\<^sub>l\<^sub>l by (cases S; cases \<open>get_trail_wl S\<close>)
-        (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
+        (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def
           in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff image_image mset_take_mset_drop_mset' clauses_def
           is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def)
 qed
@@ -3321,9 +3323,6 @@ lemma tl_state_wl_heur_tl_state_wl: \<open>(RETURN o tl_state_wl_heur, RETURN o 
     card_max_lvl_tl
     dest: no_dup_tlD)
 
-(* TODO Move *)
-declare cdcl\<^sub>W_restart_mset_state[simp]
-(* End Move *)
 
 lemma twl_struct_invs_confl:
   assumes
@@ -3353,7 +3352,7 @@ proof -
 
   have M_D: \<open>convert_lits_l N M \<Turnstile>as CNot D\<close>
     using confl unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-    by (auto simp: S cdcl\<^sub>W_restart_mset_state true_annots_true_cls)
+    by (auto simp: S true_annots_true_cls)
 
   have M_D': \<open>M \<Turnstile>as CNot D\<close>
     using M_D by (auto simp: true_annots_true_cls split: if_splits)
@@ -3663,10 +3662,10 @@ proof -
     by (auto simp: S)
   have undef_L: \<open>undefined_lit M L\<close> and n_d: \<open>no_dup M\<close>
     using M_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-    by (auto simp: S cdcl\<^sub>W_restart_mset_state split: if_splits)
+    by (auto simp: S split: if_splits)
   have M_D: \<open>Propagated L (mset (N ! C)) # convert_lits_l N M \<Turnstile>as CNot D\<close>
     using confl unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-    by (cases C) (auto simp: S cdcl\<^sub>W_restart_mset_state true_annots_true_cls)
+    by (cases C) (auto simp: S true_annots_true_cls)
 
   have M_D': \<open>Propagated L C # M \<Turnstile>as CNot D\<close>
     using M_D by (auto simp: true_annots_true_cls split: if_splits)
@@ -3680,7 +3679,7 @@ proof -
   have \<open>L \<in># mset (N ! C)\<close> and
     M_C: \<open>M \<Turnstile>as CNot (mset (N!C) - {#L#})\<close>
     using C C' confl unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-    by (fastforce simp: S cdcl\<^sub>W_restart_mset_state)+
+    by (fastforce simp: S)+
   from multi_member_split[OF this(1)] obtain C' where
     C'': \<open>mset (N ! C) = add_mset L C'\<close>
     by auto
@@ -5403,14 +5402,14 @@ proof -
       by fast+
     have \<open>M \<Turnstile>as CNot (the D)\<close>
       using confl D unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-      by (auto simp: cdcl\<^sub>W_restart_mset_state clauses_def mset_take_mset_drop_mset'
+      by (auto clauses_def mset_take_mset_drop_mset'
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
     then have M_nempty: \<open>M ~= []\<close>
       using D by auto
     have \<open>mset ` set (take U (tl N)) \<union> set_mset NP \<union>
         (mset ` set (drop (Suc U) N) \<union> set_mset UP) \<Turnstile>p the D\<close>
       using that(2-) learned
-      by (auto simp: cdcl\<^sub>W_restart_mset_state clauses_def mset_take_mset_drop_mset'
+      by (auto clauses_def mset_take_mset_drop_mset'
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
     moreover have \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of ?S) \<Turnstile>pm
         filter_mset (\<lambda>L. get_level (trail (state\<^sub>W_of ?S)) L > 0) (the (conflicting (state\<^sub>W_of ?S)))\<close>
@@ -5419,9 +5418,9 @@ proof -
       subgoal using n_s_r unfolding no_resolve_def by fast
       subgoal using stgy_invs unfolding twl_stgy_invs_def by fast
       subgoal using struct_invs unfolding twl_struct_invs_def by fast
-      subgoal using D by (auto simp: cdcl\<^sub>W_restart_mset_state)
-      subgoal using D by (auto simp: cdcl\<^sub>W_restart_mset_state)
-      subgoal using M_nempty by (cases M, auto simp: cdcl\<^sub>W_restart_mset_state)
+      subgoal using D by (auto)
+      subgoal using D by (auto)
+      subgoal using M_nempty by (cases M, auto)
       done
     moreover have \<open>- lit_of (cdcl\<^sub>W_restart_mset.hd_trail (state\<^sub>W_of ?S)) \<in>#
       {#L \<in># the (conflicting (state\<^sub>W_of ?S)). 0 < get_level (trail (state\<^sub>W_of ?S)) L#}\<close>
@@ -5430,9 +5429,9 @@ proof -
       subgoal using n_s_r unfolding no_resolve_def by fast
       subgoal using stgy_invs unfolding twl_stgy_invs_def by fast
       subgoal using struct_invs unfolding twl_struct_invs_def by fast
-      subgoal using D by (auto simp: cdcl\<^sub>W_restart_mset_state)
-      subgoal using D by (auto simp: cdcl\<^sub>W_restart_mset_state)
-      subgoal using M_nempty by (cases M, auto simp: cdcl\<^sub>W_restart_mset_state)
+      subgoal using D by (auto)
+      subgoal using D by (auto)
+      subgoal using M_nempty by (cases M, auto)
       done
     moreover have \<open>mset ` set (take U (tl N)) \<union> set_mset NP \<union>
         (mset ` set (drop (Suc U) N) \<union> set_mset UP) =
@@ -5442,7 +5441,7 @@ proof -
       by auto
     ultimately show ?thesis
       using that(2-) D M_nempty
-      by (auto simp: cdcl\<^sub>W_restart_mset_state clauses_def mset_take_mset_drop_mset'
+      by (auto simp: clauses_def mset_take_mset_drop_mset'
           extract_shorter_conflict_st_trivial_def extract_shorter_conflict_wl_def
           extract_shorter_conflict_l_trivial_def)
   qed
@@ -5621,18 +5620,18 @@ proof -
     lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close>
     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
   have \<open>distinct_mset (the D)\<close>
-    using D\<^sub>0 dist by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset'
+    using D\<^sub>0 dist by (auto mset_take_mset_drop_mset'
         cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def)
   then have dist_D: \<open>distinct_mset (the E)\<close>
     using distinct_mset_mono[OF E_D\<^sub>0] by fast
   have \<open>M\<^sub>0 \<Turnstile>as CNot (the D)\<close>
-    using D\<^sub>0 confl by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset'
+    using D\<^sub>0 confl by (auto mset_take_mset_drop_mset'
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def)
   then have M\<^sub>0_CNot_D: \<open>M\<^sub>0 \<Turnstile>as CNot (the E)\<close>
     using E_D\<^sub>0 by (simp add: mset_subset_eqD true_annots_true_cls_def_iff_negation_in_model)
 
   have n_d: \<open>no_dup M\<^sub>0\<close>
-    using lev_inv by (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset'
+    using lev_inv by (auto mset_take_mset_drop_mset'
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def)
   have \<open>atm_of L \<notin> atms_of (remove1_mset (- L) (the E))\<close>
   proof (rule ccontr)
@@ -5650,8 +5649,7 @@ proof -
   moreover have \<open>L \<in> set (N!C)\<close> if \<open> hd M\<^sub>0 = Propagated L C\<close> and \<open>C > 0\<close> for C
     using confl D M\<^sub>0 L that
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-    by (cases M\<^sub>0; cases \<open>hd M\<^sub>0\<close>) (auto 5 5 simp: cdcl\<^sub>W_restart_mset_state
-        split: if_splits)
+    by (cases M\<^sub>0; cases \<open>hd M\<^sub>0\<close>) (auto 5 5 split: if_splits)
   have count_decided_not_Nil[simp]:  \<open>0 < count_decided M \<Longrightarrow> M \<noteq> []\<close> for M :: \<open>(nat, nat) ann_lits\<close>
     by auto
   have get_lev_last: \<open>get_level (M' @ M) (lit_of (last M')) = Suc (count_decided M)\<close>
@@ -8249,7 +8247,7 @@ proof -
     qed
     ultimately show ?thesis
       using \<A>\<^sub>i\<^sub>n unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def
-      by (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
+      by (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def
         mset_take_mset_drop_mset mset_take_mset_drop_mset' clauses_def simp del: unit_clss_inv.simps)
   qed
   show ?thesis
