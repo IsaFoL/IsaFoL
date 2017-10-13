@@ -3489,7 +3489,7 @@ lemma twl_st_heur_assn_int_conflict_assn:
 
 
 lemma twl_st_assn_confl_assn:
-  \<open>twl_st_assn = hr_comp twl_st_heur_lookup_conflict_assn 
+  \<open>twl_st_assn = hr_comp twl_st_heur_lookup_conflict_assn
     (twl_st_wl_heur_lookup_conflict_rel O twl_st_heur)\<close>
   apply (subst hr_comp_assoc[symmetric])
   apply (subst twl_st_heur_assn_int_conflict_assn[symmetric])
@@ -8130,7 +8130,7 @@ proof -
           Decided_Propagated_in_iff_in_lits_of_l split: if_splits)
   qed
   show ?thesis
-    unfolding defined_atm_pol_def 
+    unfolding defined_atm_pol_def
     by (intro frefI nres_relI) (auto 5 5 simp: none H intro!: ASSERT_leI)
 qed
 

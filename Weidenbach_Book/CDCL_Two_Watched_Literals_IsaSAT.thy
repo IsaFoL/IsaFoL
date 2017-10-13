@@ -2148,7 +2148,7 @@ proof -
     have [simp]: \<open>isasat_input_bounded_nempty (mset (extract_atms_clss CS' []))\<close> if \<open>CS' \<noteq> []\<close>
       by (auto simp: isasat_input_bounded_nempty_def
           isasat_input_bounded_nempty_axioms_def that)
-     
+
     have empty_trail: \<open>RETURN ([], [], 0, None, {#}, {#}, {#}, \<lambda>_. undefined)
     \<le> \<Down> TWL_to_clauses_state_conv
         (SPEC
