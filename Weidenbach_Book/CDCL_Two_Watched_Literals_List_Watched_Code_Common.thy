@@ -498,7 +498,7 @@ lemma watched_by_nth_watched_app':
   by (cases S) (auto simp: watched_app_def)
 
 
-context twl_array_code
+context isasat_input_bounded
 begin
 
 lemma (in -) safe_minus_nat_assn:
@@ -659,7 +659,7 @@ proof -
     using H unfolding pre init .
 qed
 
-definition (in twl_array_code_ops) append_update :: "('a \<Rightarrow> 'b list) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> 'a \<Rightarrow> 'b list" where
+definition (in isasat_input_ops) append_update :: "('a \<Rightarrow> 'b list) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> 'a \<Rightarrow> 'b list" where
   \<open>append_update W L a = W(L:= W (L) @ [a])\<close>
 
 lemma append_ll_append_update:

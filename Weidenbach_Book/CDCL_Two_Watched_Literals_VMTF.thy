@@ -969,7 +969,7 @@ next
 qed
 
 
-context twl_array_code_ops
+context isasat_input_ops
 begin
 
 paragraph \<open>Abstract Invariants\<close>
@@ -2034,7 +2034,7 @@ proof -
     by fast
 qed
 
-definition (in twl_array_code_ops) vmtf_dump_and_unset  :: \<open>nat \<Rightarrow> vmtf_remove_int \<Rightarrow> vmtf_remove_int\<close> where
+definition (in isasat_input_ops) vmtf_dump_and_unset  :: \<open>nat \<Rightarrow> vmtf_remove_int \<Rightarrow> vmtf_remove_int\<close> where
   \<open>vmtf_dump_and_unset L M = vmtf_dump L (vmtf_unset L M)\<close>
 
 lemma vmtf_imp_append_remove_iff:
@@ -2215,18 +2215,18 @@ subsection \<open>Phase saving\<close>
 
 type_synonym phase_saver = \<open>bool list\<close>
 
-definition (in twl_array_code_ops) phase_saving :: \<open>phase_saver \<Rightarrow> bool\<close> where
+definition (in isasat_input_ops) phase_saving :: \<open>phase_saver \<Rightarrow> bool\<close> where
 \<open>phase_saving \<phi> \<longleftrightarrow> (\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length \<phi>)\<close>
 
 definition get_saved_lit :: \<open>phase_saver \<Rightarrow> nat \<Rightarrow> nat literal\<close> where
 \<open>get_saved_lit \<phi> L = (if \<phi>!L then Pos L else Neg L)\<close>
 
 text \<open>Save phase as given (e.g. for literals in the trail):\<close>
-definition (in twl_array_code_ops) save_phase :: \<open>nat literal \<Rightarrow> phase_saver \<Rightarrow> phase_saver\<close> where
+definition (in isasat_input_ops) save_phase :: \<open>nat literal \<Rightarrow> phase_saver \<Rightarrow> phase_saver\<close> where
   \<open>save_phase L \<phi> = \<phi>[atm_of L := is_pos L]\<close>
 
 text \<open>Save opposite of the phase (e.g. for literals in the conflict clause):\<close>
-definition  (in twl_array_code_ops) save_phase_inv :: \<open>nat literal \<Rightarrow> phase_saver \<Rightarrow> phase_saver\<close> where
+definition  (in isasat_input_ops) save_phase_inv :: \<open>nat literal \<Rightarrow> phase_saver \<Rightarrow> phase_saver\<close> where
   \<open>save_phase_inv L \<phi> = \<phi>[atm_of L := \<not>is_pos L]\<close>
 
 
@@ -2397,7 +2397,7 @@ lemma (in -) insert_sort_nth_code_reorder_remove[sepref_fr_rules]:
   using insert_sort_nth_code.refine[FCOMP insert_sort_nth_reorder]
   by auto
 
-context twl_array_code_ops
+context isasat_input_ops
 begin
 
 sepref_thm vmtf_flush_code
@@ -2415,7 +2415,7 @@ sepref_thm vmtf_flush_code
 
 
 concrete_definition (in -) vmtf_flush_code
-   uses twl_array_code_ops.vmtf_flush_code.refine_raw
+   uses isasat_input_ops.vmtf_flush_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) vmtf_flush_code_def
@@ -2438,7 +2438,7 @@ sepref_thm vmtf_dump_and_unset_code
   by sepref
 
 concrete_definition (in -) vmtf_dump_and_unset_code
-  uses twl_array_code_ops.vmtf_dump_and_unset_code.refine_raw
+  uses isasat_input_ops.vmtf_dump_and_unset_code.refine_raw
   is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) vmtf_dump_and_unset_code_def
@@ -2458,7 +2458,7 @@ sepref_thm vmtf_unset_code
   by sepref
 
 concrete_definition (in -) vmtf_unset_code
-   uses twl_array_code_ops.vmtf_unset_code.refine_raw
+   uses isasat_input_ops.vmtf_unset_code.refine_raw
    is \<open>(uncurry ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) vmtf_unset_code_def

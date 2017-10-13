@@ -83,7 +83,7 @@ next
   qed
 qed
 
-context twl_array_code_ops
+context isasat_input_ops
 begin
 
 type_synonym (in -) conflict_rel = "nat \<times> bool option list"
@@ -121,7 +121,7 @@ lemma conflict_rel_atm_in_iff:
   by (rule mset_as_position_in_iff_nth)
      (auto simp: conflict_rel_def atms_of_def)
 
-lemma (in twl_array_code)
+lemma (in isasat_input_bounded)
   assumes c: \<open>((n,xs), C) \<in> conflict_rel\<close>
   shows
     conflict_rel_not_tautolgy: \<open>\<not>tautology C\<close> and

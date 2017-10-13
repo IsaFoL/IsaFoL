@@ -28,7 +28,7 @@ definition valued_atm_on_trail where
 definition get_level_atm where
   \<open>get_level_atm M L = get_level M (Pos L)\<close>
 
-context twl_array_code_ops
+context isasat_input_ops
 begin
 
 definition trailt_ref :: \<open>(trail_int \<times> (nat, nat) ann_lits) set\<close> where
@@ -78,7 +78,7 @@ fun get_phase_saver_int :: \<open>twl_st_wl_int \<Rightarrow> bool list\<close> 
 fun get_count_max_lvls_int :: \<open>twl_st_wl_int \<Rightarrow> nat\<close> where
   \<open>get_count_max_lvls_int (_, _, _, _, _, _, _, _, clvls) = clvls\<close>
 
-context twl_array_code_ops
+context isasat_input_ops
 begin
 
 abbreviation trail_assn :: \<open>(nat, nat) ann_lits \<Rightarrow> trail_int_assn \<Rightarrow> assn\<close> where
@@ -195,7 +195,7 @@ lemma Pos_unat_lit_assn':
       lit_of_natP_def nat_of_uint32_distrib_mult2 upperN_def)
 
 
-context twl_array_code
+context isasat_input_bounded
 begin
 
 lemma Pos_unat_lit_assn:
@@ -225,7 +225,7 @@ definition conflict_add :: \<open>nat literal \<Rightarrow> conflict_rel \<Right
   \<open>conflict_add = (\<lambda>L (n, xs). (if xs ! atm_of L = None then n + 1 else n,
       xs[atm_of L := Some (is_pos L)]))\<close>
 
-context twl_array_code
+context isasat_input_bounded
 begin
 
 paragraph \<open>Unit propagation, body of the inner loop\<close>
@@ -279,13 +279,13 @@ sepref_thm is_in_conflict_code
   by sepref
 
 concrete_definition (in -) is_in_conflict_code
-   uses twl_array_code.is_in_conflict_code.refine_raw
+   uses isasat_input_bounded.is_in_conflict_code.refine_raw
    is \<open>(uncurry ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) is_in_conflict_code_def
 
 lemmas is_in_conflict_hnr[sepref_fr_rules] =
-   is_in_conflict_code.refine[OF twl_array_code_axioms]
+   is_in_conflict_code.refine[OF isasat_input_bounded_axioms]
 
 definition conflict_merge
   :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clause_l \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow> (conflict_option_rel \<times> nat) nres\<close>
@@ -337,13 +337,13 @@ sepref_thm get_level_atm_code
   by sepref
 
 concrete_definition (in -) get_level_atm_code
-   uses twl_array_code.get_level_atm_code.refine_raw
+   uses isasat_input_bounded.get_level_atm_code.refine_raw
    is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) get_level_atm_code_def
 
 lemmas get_level_atm_code_hnr[sepref_fr_rules] =
-   get_level_atm_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   get_level_atm_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma get_level_atm_hnr[sepref_fr_rules]:
   \<open>(uncurry get_level_atm_code, uncurry (RETURN oo get_level_atm)) \<in>
@@ -370,7 +370,7 @@ proof -
                        uint32_nat_rel) \<rightarrow> hr_comp uint32_nat_assn
           nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF get_level_atm_code.refine 1, OF twl_array_code_axioms] .
+    using hfref_compI_PRE_aux[OF get_level_atm_code.refine 1, OF isasat_input_bounded_axioms] .
   have pre: \<open>?pre' = ?pre\<close>
     by (auto 5 5 simp: comp_PRE_def trailt_ref_def unat_lit_rel_def nat_lit_rel_def
         uint32_nat_rel_def br_def intro!: ext)
@@ -398,13 +398,13 @@ sepref_thm get_level_code
   by sepref
 
 concrete_definition (in -) get_level_code
-   uses twl_array_code.get_level_code.refine_raw
+   uses isasat_input_bounded.get_level_code.refine_raw
    is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) get_level_code_def
 
 lemmas get_level_code_get_level_code[sepref_fr_rules] =
-   get_level_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   get_level_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma count_decided_trail_ref:
   \<open>(RETURN o (\<lambda>(_, _, _, k). k), RETURN o count_decided) \<in> trailt_ref \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
@@ -434,13 +434,13 @@ sepref_thm conflict_merge_code
   by sepref
 
 concrete_definition (in -) conflict_merge_code
-   uses twl_array_code.conflict_merge_code.refine_raw
+   uses isasat_input_bounded.conflict_merge_code.refine_raw
    is \<open>(uncurry4 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) conflict_merge_code_def
 
 lemmas conflict_merge_aa_refine[sepref_fr_rules] =
-   conflict_merge_code.refine[OF twl_array_code_axioms]
+   conflict_merge_code.refine[OF isasat_input_bounded_axioms]
 
 definition conflict_merge'_step :: \<open>(nat, nat) ann_lits \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> conflict_rel \<Rightarrow> nat clause_l \<Rightarrow>
       nat clause \<Rightarrow> bool\<close> where
@@ -1075,7 +1075,7 @@ proof -
                                   (option_conflict_rel \<times>\<^sub>f nat_rel)\<close>
    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
      using hfref_compI_PRE_aux[OF conflict_merge_code.refine[unfolded PR_CONST_def]
-        conflict_merge_aa_mark_conflict[unfolded PR_CONST_def], OF twl_array_code_axioms]
+        conflict_merge_aa_mark_conflict[unfolded PR_CONST_def], OF isasat_input_bounded_axioms]
      unfolding PR_CONST_def
      .
   have pre: \<open>?pre' = ?pre\<close>
@@ -1175,13 +1175,13 @@ sepref_thm watched_by_app_int_code
   by sepref
 
 concrete_definition (in -) watched_by_app_int_code
-   uses twl_array_code.watched_by_app_int_code.refine_raw
+   uses isasat_input_bounded.watched_by_app_int_code.refine_raw
    is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) watched_by_app_int_code_def
 
 lemmas watched_by_app_int_code_refine[sepref_fr_rules] =
-   watched_by_app_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   watched_by_app_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma watched_by_app_code_refine[sepref_fr_rules]:
   \<open>(uncurry2 watched_by_app_int_code, uncurry2 (RETURN ooo watched_by_app)) \<in>
@@ -1338,13 +1338,13 @@ sepref_thm access_lit_in_clauses_int_code
   by sepref
 
 concrete_definition (in -) access_lit_in_clauses_int_code
-   uses twl_array_code.access_lit_in_clauses_int_code.refine_raw
+   uses isasat_input_bounded.access_lit_in_clauses_int_code.refine_raw
    is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) access_lit_in_clauses_int_code_def
 
 lemmas access_lit_in_clauses_int_code_refine[sepref_fr_rules] =
-   access_lit_in_clauses_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   access_lit_in_clauses_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma access_lit_in_clauses_int_access_lit_in_clauses:
   \<open>(uncurry2 (RETURN ooo access_lit_in_clauses_int), uncurry2 (RETURN ooo access_lit_in_clauses)) \<in>
@@ -1418,13 +1418,13 @@ sepref_thm polarity_code
   by sepref
 
 concrete_definition (in -) polarity_code
-   uses twl_array_code.polarity_code.refine_raw
+   uses isasat_input_bounded.polarity_code.refine_raw
    is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) polarity_code_def
 
 lemmas polarity_code_valued_refine_code[sepref_fr_rules] =
-   polarity_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   polarity_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma polarity_code_valued_refine[sepref_fr_rules]:
   \<open>(uncurry polarity_code, uncurry (RETURN oo valued)) \<in>
@@ -1440,7 +1440,7 @@ proof -
       (auto simp: trailt_ref_def valued_def polarity_def
         split: if_splits option.splits)
   show ?thesis
-    using polarity_code.refine[FCOMP 2, OF twl_array_code_axioms] .
+    using polarity_code.refine[FCOMP 2, OF isasat_input_bounded_axioms] .
 qed
 
 definition valued_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> bool option\<close> where
@@ -1466,7 +1466,7 @@ where
     uint32_nat_assn
     )\<close>
 
-definition (in twl_array_code_ops) twl_st_trail_ref :: \<open>(twl_st_wl_int_trail_ref \<times> nat twl_st_wl) set\<close> where
+definition (in isasat_input_ops) twl_st_trail_ref :: \<open>(twl_st_wl_int_trail_ref \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_trail_ref =
   {((M', N', U', D', Q', W', vm, \<phi>, clvls), (M, N, U, D, NP, UP, Q, W)).
     (M', M) \<in> trailt_ref \<and> N' = N \<and> U' = U \<and> D = D' \<and>
@@ -1504,13 +1504,13 @@ sepref_thm valued_st_int_code
   by sepref
 
 concrete_definition (in -) valued_st_int_code
-   uses twl_array_code.valued_st_int_code.refine_raw
+   uses isasat_input_bounded.valued_st_int_code.refine_raw
    is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) valued_st_int_code_def
 
 lemmas valued_st_int_code_valued_refine_code[sepref_fr_rules] =
-   valued_st_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   valued_st_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma valued_st_int_code_valued_st_refine[sepref_fr_rules]:
   \<open>(uncurry valued_st_int_code, uncurry (RETURN oo valued_st)) \<in>
@@ -1526,7 +1526,7 @@ proof -
        (auto simp: trailt_ref_def valued_st_def polarity_def
         valued_def valued_st_int_def twl_st_trail_ref_def)
   show ?thesis
-    using valued_st_int_code.refine[FCOMP 2, OF twl_array_code_axioms,
+    using valued_st_int_code.refine[FCOMP 2, OF isasat_input_bounded_axioms,
       unfolded twl_st_ref_assn_assn] .
 qed
 
@@ -1541,13 +1541,13 @@ sepref_thm find_unwatched_wl_s_int_code
   by sepref
 
 concrete_definition (in -) find_unwatched_wl_s_int_code
-   uses twl_array_code.find_unwatched_wl_s_int_code.refine_raw
+   uses isasat_input_bounded.find_unwatched_wl_s_int_code.refine_raw
    is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) find_unwatched_wl_s_int_code_def
 
 lemmas find_unwatched_wl_s_int_code_find_unwatched_wl_s_int[sepref_fr_rules] =
-   find_unwatched_wl_s_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   find_unwatched_wl_s_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 theorem find_unwatched_wl_s_int_find_unwatched_wl_s:
   \<open>(uncurry find_unwatched_wl_s_int, uncurry find_unwatched_wl_s)
@@ -1692,13 +1692,13 @@ sepref_thm cons_trail_Propagated_tr_code
   by sepref
 
 concrete_definition (in -) cons_trail_Propagated_tr_code
-  uses "twl_array_code.cons_trail_Propagated_tr_code.refine_raw"
+  uses "isasat_input_bounded.cons_trail_Propagated_tr_code.refine_raw"
   is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) cons_trail_Propagated_tr_code_def
 
 lemmas cons_trail_Propagated_tr_code[sepref_fr_rules] =
-  cons_trail_Propagated_tr_code.refine[OF twl_array_code_axioms]
+  cons_trail_Propagated_tr_code.refine[OF isasat_input_bounded_axioms]
 
 lemma cons_trail_Propagated_tr_code_cons_trail_Propagated_tr[sepref_fr_rules]:
   \<open>(uncurry2 cons_trail_Propagated_tr_code, uncurry2 (RETURN ooo cons_trail_Propagated)) \<in>
@@ -1716,7 +1716,7 @@ proof -
                       trailt_ref) \<rightarrow> hr_comp trailt_conc trailt_ref\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF cons_trail_Propagated_tr_code.refine cons_trail_Propagated_tr,
-        OF twl_array_code_axioms] .
+        OF isasat_input_bounded_axioms] .
   have pre: \<open>?pre' = ?pre\<close>
     by (auto simp: comp_PRE_def trailt_ref_def trailt_ref_def intro!: ext)
   have im: \<open>?im' = ?im\<close>
@@ -1754,13 +1754,13 @@ sepref_thm mark_conflict_wl'_int_code
   by sepref
 
 concrete_definition (in -) mark_conflict_wl'_int_code
-  uses "twl_array_code.mark_conflict_wl'_int_code.refine_raw"
+  uses "isasat_input_bounded.mark_conflict_wl'_int_code.refine_raw"
   is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) mark_conflict_wl'_int_code_def
 
 lemmas mark_conflict_wl'_int_code[sepref_fr_rules] =
-  mark_conflict_wl'_int_code.refine[OF twl_array_code_axioms]
+  mark_conflict_wl'_int_code.refine[OF isasat_input_bounded_axioms]
 
 lemma mark_conflict_wl'_int_mark_conflict_wl':
   \<open>(uncurry mark_conflict_wl'_int, uncurry (RETURN oo mark_conflict_wl')) \<in>
@@ -1847,13 +1847,13 @@ sepref_thm update_clause_wl_int_code
 
 
 concrete_definition (in -) update_clause_wl_int_code
-  uses "twl_array_code.update_clause_wl_int_code.refine_raw"
+  uses "isasat_input_bounded.update_clause_wl_int_code.refine_raw"
   is \<open>(uncurry5 ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) update_clause_wl_int_code_def
 
 lemmas update_clause_wl_int_code[sepref_fr_rules] =
-  update_clause_wl_int_code.refine[OF twl_array_code_axioms]
+  update_clause_wl_int_code.refine[OF isasat_input_bounded_axioms]
 
 lemma
   find_unwatched_not_tauto:
@@ -2095,13 +2095,13 @@ sepref_thm propgate_lit_wl_int_code
 
 
 concrete_definition (in -) propgate_lit_wl_int_code
-  uses "twl_array_code.propgate_lit_wl_int_code.refine_raw"
+  uses "isasat_input_bounded.propgate_lit_wl_int_code.refine_raw"
   is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) propgate_lit_wl_int_code_def
 
 lemmas propgate_lit_wl_int_code[sepref_fr_rules] =
-  propgate_lit_wl_int_code.refine[OF twl_array_code_axioms]
+  propgate_lit_wl_int_code.refine[OF isasat_input_bounded_axioms]
 
 lemma propgate_lit_wl_int_code_propgate_lit_wl[sepref_fr_rules]:
   \<open>(uncurry2 propgate_lit_wl_int_code, uncurry2 (RETURN ooo propgate_lit_wl)) \<in>
@@ -2187,7 +2187,7 @@ end
 text \<open>Find a less hack-like solution\<close>
 setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper "split_all_tac")\<close>
 
-context twl_array_code
+context isasat_input_bounded
 begin
 
 sepref_thm unit_propagation_inner_loop_body_wl_D
@@ -2212,7 +2212,7 @@ sepref_thm unit_propagation_inner_loop_body_wl_D
   by sepref
 
 concrete_definition (in -) unit_propagation_inner_loop_body_wl_D_code
-   uses twl_array_code.unit_propagation_inner_loop_body_wl_D.refine_raw
+   uses isasat_input_bounded.unit_propagation_inner_loop_body_wl_D.refine_raw
    is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) unit_propagation_inner_loop_body_wl_D_code_def
@@ -2220,7 +2220,7 @@ prepare_code_thms (in -) unit_propagation_inner_loop_body_wl_D_code_def
 sepref_register unit_propagation_inner_loop_body_wl_D
 
 lemmas unit_propagation_inner_loop_body_wl_D_code_refine[sepref_fr_rules] =
-   unit_propagation_inner_loop_body_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   unit_propagation_inner_loop_body_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 definition (in -) length_ll_fs :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
   \<open>length_ll_fs = (\<lambda>(_, _, _, _, _, _, _, W) L. length (W L))\<close>
@@ -2246,13 +2246,13 @@ sepref_thm length_ll_fs_int_code
   by sepref
 
 concrete_definition (in -) length_ll_fs_int_code
-   uses twl_array_code.length_ll_fs_int_code.refine_raw
+   uses isasat_input_bounded.length_ll_fs_int_code.refine_raw
    is \<open>(uncurry ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) length_ll_fs_int_code_def
 
 lemmas length_ll_fs_int_code_refine[sepref_fr_rules] =
-   length_ll_fs_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   length_ll_fs_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma length_ll_fs_int_code_length_ll_fs[sepref_fr_rules]:
   \<open>(uncurry length_ll_fs_int_code, uncurry (RETURN oo length_ll_fs)) \<in>
@@ -2306,13 +2306,13 @@ sepref_thm get_conflict_wl_is_None_int_code
   by sepref
 
 concrete_definition (in -) get_conflict_wl_is_None_int_code
-   uses twl_array_code.get_conflict_wl_is_None_int_code.refine_raw
+   uses isasat_input_bounded.get_conflict_wl_is_None_int_code.refine_raw
    is \<open>(?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) get_conflict_wl_is_None_int_code_def
 
 lemmas get_conflict_wl_is_None_int_code_refine[sepref_fr_rules] =
-   get_conflict_wl_is_None_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   get_conflict_wl_is_None_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma get_conflict_wl_is_None_int_code_get_conflict_wl_is_None[sepref_fr_rules]:
   \<open>(get_conflict_wl_is_None_int_code, RETURN o get_conflict_wl_is_None) \<in>
@@ -2338,13 +2338,13 @@ sepref_thm unit_propagation_inner_loop_wl_loop_D
 
 
 concrete_definition (in -) unit_propagation_inner_loop_wl_loop_D_code
-   uses twl_array_code.unit_propagation_inner_loop_wl_loop_D.refine_raw
+   uses isasat_input_bounded.unit_propagation_inner_loop_wl_loop_D.refine_raw
    is \<open>(uncurry ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) unit_propagation_inner_loop_wl_loop_D_code_def
 
 lemmas unit_propagation_inner_loop_wl_loop_D_code_refine[sepref_fr_rules] =
-   unit_propagation_inner_loop_wl_loop_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   unit_propagation_inner_loop_wl_loop_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 paragraph \<open>Unit propagation, inner loop\<close>
 
@@ -2357,13 +2357,13 @@ sepref_thm unit_propagation_inner_loop_wl_D
   by sepref
 
 concrete_definition (in -) unit_propagation_inner_loop_wl_D_code
-   uses twl_array_code.unit_propagation_inner_loop_wl_D.refine_raw
+   uses isasat_input_bounded.unit_propagation_inner_loop_wl_D.refine_raw
    is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) unit_propagation_inner_loop_wl_D_code_def
 
 lemmas unit_propagation_inner_loop_wl_D_code_refine[sepref_fr_rules] =
-   unit_propagation_inner_loop_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   unit_propagation_inner_loop_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 
 paragraph \<open>Unit propagation, outer loop\<close>
@@ -2458,13 +2458,13 @@ sepref_thm select_and_remove_from_literals_to_update_wl_int_code
 
 
 concrete_definition (in -) select_and_remove_from_literals_to_update_wl_int_code
-   uses twl_array_code.select_and_remove_from_literals_to_update_wl_int_code.refine_raw
+   uses isasat_input_bounded.select_and_remove_from_literals_to_update_wl_int_code.refine_raw
    is \<open>(?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) select_and_remove_from_literals_to_update_wl_int_code_def
 
 lemmas select_and_remove_from_literals_to_update_wl_int_code_refine[sepref_fr_rules] =
-   select_and_remove_from_literals_to_update_wl_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   select_and_remove_from_literals_to_update_wl_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 theorem select_and_remove_from_literals_to_update_wl_int_code_select_and_remove_from_literals_to_update_wl
   [sepref_fr_rules]:
@@ -2515,13 +2515,13 @@ sepref_thm literals_to_update_wl_int_empty_code
   by sepref
 
 concrete_definition (in -) literals_to_update_wl_int_empty_code
-   uses twl_array_code.literals_to_update_wl_int_empty_code.refine_raw
+   uses isasat_input_bounded.literals_to_update_wl_int_empty_code.refine_raw
    is \<open>(?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) literals_to_update_wl_int_empty_code_def
 
 lemmas literals_to_update_wl_int_empty_code_refine[sepref_fr_rules] =
-   literals_to_update_wl_int_empty_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   literals_to_update_wl_int_empty_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma literals_to_update_wl_int_empty_literals_to_update_wl_empty:
   \<open>(RETURN o literals_to_update_wl_int_empty, RETURN o literals_to_update_wl_empty) \<in>
@@ -2551,13 +2551,13 @@ sepref_thm unit_propagation_outer_loop_wl_D
   by sepref
 
 concrete_definition (in -) unit_propagation_outer_loop_wl_D
-   uses twl_array_code.unit_propagation_outer_loop_wl_D.refine_raw
+   uses isasat_input_bounded.unit_propagation_outer_loop_wl_D.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) unit_propagation_outer_loop_wl_D_def
 
 lemmas unit_propagation_outer_loop_wl_D[sepref_fr_rules] =
-   unit_propagation_outer_loop_wl_D.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   unit_propagation_outer_loop_wl_D.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 paragraph \<open>Skip and resolve\<close>
 
@@ -2580,13 +2580,13 @@ sepref_thm get_conflict_wll_is_Nil_code
   by sepref
 
 concrete_definition (in -) get_conflict_wll_is_Nil_code
-   uses twl_array_code.get_conflict_wll_is_Nil_code.refine_raw
+   uses isasat_input_bounded.get_conflict_wll_is_Nil_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) get_conflict_wll_is_Nil_code_def
 
 lemmas get_conflict_wll_is_Nil_code[sepref_fr_rules] =
-  get_conflict_wll_is_Nil_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+  get_conflict_wll_is_Nil_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma get_conflict_wll_is_Nil_int_get_conflict_wll_is_Nil:
   \<open>(PR_CONST get_conflict_wll_is_Nil_int, get_conflict_wll_is_Nil) \<in> twl_st_ref \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
@@ -2705,13 +2705,13 @@ sepref_thm count_decided_st_code
   by sepref
 
 concrete_definition (in -) count_decided_st_code
-  uses twl_array_code.count_decided_st_code.refine_raw
+  uses isasat_input_bounded.count_decided_st_code.refine_raw
   is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) count_decided_st_code_def
 
 lemmas count_decided_st_code_refine[sepref_fr_rules] =
-   count_decided_st_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   count_decided_st_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma count_decided_st_count_decided_st:
   \<open>(RETURN o count_decided_st, RETURN o count_decided_st) \<in> twl_st_ref \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
@@ -2776,13 +2776,13 @@ sepref_thm maximum_level_removed_eq_count_dec_code
   by sepref
 
 concrete_definition (in -) maximum_level_removed_eq_count_dec_code
-   uses twl_array_code.maximum_level_removed_eq_count_dec_code.refine_raw
+   uses isasat_input_bounded.maximum_level_removed_eq_count_dec_code.refine_raw
    is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) maximum_level_removed_eq_count_dec_code_def
 
 lemmas maximum_level_removed_eq_count_dec_code_hnr[sepref_fr_rules] =
-   maximum_level_removed_eq_count_dec_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   maximum_level_removed_eq_count_dec_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma maximum_level_removed_eq_count_dec_hnr[sepref_fr_rules]:
   \<open>(uncurry maximum_level_removed_eq_count_dec_code,
@@ -2858,13 +2858,13 @@ sepref_thm is_decided_hd_trail_wl_int_code
 
 
 concrete_definition (in -) is_decided_hd_trail_wl_int_code
-   uses twl_array_code.is_decided_hd_trail_wl_int_code.refine_raw
+   uses isasat_input_bounded.is_decided_hd_trail_wl_int_code.refine_raw
    is \<open>(?f, _) \<in> _\<close>
 
 prepare_code_thms is_decided_hd_trail_wl_int_code_def
 
 lemmas is_decided_hd_trail_wl_int_code[sepref_fr_rules] =
-   is_decided_hd_trail_wl_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   is_decided_hd_trail_wl_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma is_decided_hd_trail_wl_int_code_is_decided_hd_trail_wl[sepref_fr_rules]:
   \<open>(is_decided_hd_trail_wl_int_code, RETURN o is_decided_hd_trail_wl) \<in>
@@ -2984,13 +2984,13 @@ sepref_thm literal_is_in_conflict_int_code
   by sepref
 
 concrete_definition (in -) literal_is_in_conflict_int_code
-   uses twl_array_code.literal_is_in_conflict_int_code.refine_raw
+   uses isasat_input_bounded.literal_is_in_conflict_int_code.refine_raw
    is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) literal_is_in_conflict_int_code_def
 
 lemmas literal_is_in_conflict_int_code_refine[sepref_fr_rules] =
-   literal_is_in_conflict_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   literal_is_in_conflict_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma literal_is_in_conflict_int_code_literal_is_in_conflict[sepref_fr_rules]:
   \<open>(uncurry literal_is_in_conflict_int_code,
@@ -3049,13 +3049,13 @@ sepref_thm lit_and_ann_of_propagated_st_int_code
   by sepref
 
 concrete_definition (in -) lit_and_ann_of_propagated_st_int_code
-   uses twl_array_code.lit_and_ann_of_propagated_st_int_code.refine_raw
+   uses isasat_input_bounded.lit_and_ann_of_propagated_st_int_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) lit_and_ann_of_propagated_st_int_code_def
 
 lemmas lit_and_ann_of_propagated_st_int_code_refine[sepref_fr_rules] =
-   lit_and_ann_of_propagated_st_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   lit_and_ann_of_propagated_st_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma lit_and_ann_of_propagated_st_int_lit_and_ann_of_propagated_st:
    \<open>(RETURN o lit_and_ann_of_propagated_st_int, RETURN o lit_and_ann_of_propagated_st) \<in>
@@ -3135,7 +3135,7 @@ lemma tl_state_wl_int_alt_def:
        (tl M, N, U, D, WS, Q, vmtf_unset (atm_of L) vmtf, \<phi>, clvls)))\<close>
   by (auto simp: tl_state_wl_int_def Let_def)
 
-definition (in twl_array_code_ops) tl_trailt_tr :: \<open>trail_int \<Rightarrow> trail_int\<close> where
+definition (in isasat_input_ops) tl_trailt_tr :: \<open>trail_int \<Rightarrow> trail_int\<close> where
   \<open>tl_trailt_tr = (\<lambda>(M', xs, lvls, k). (tl M', xs[atm_of (lit_of (hd M')) := None], lvls[atm_of (lit_of (hd M')) := 0],
     if is_decided (hd M') then k-1 else k))\<close>
 
@@ -3153,13 +3153,13 @@ sepref_thm tl_trail_tr_code
   by sepref
 
 concrete_definition (in -) tl_trail_tr_code
-  uses twl_array_code.tl_trail_tr_code.refine_raw
+  uses isasat_input_bounded.tl_trail_tr_code.refine_raw
   is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) tl_trail_tr_code_def
 
 lemmas tl_trail_tr_coded_refine[sepref_fr_rules] =
-   tl_trail_tr_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   tl_trail_tr_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma tl_trail_tr:
   \<open>((RETURN o tl_trailt_tr), (RETURN o tl)) \<in>
@@ -3209,7 +3209,7 @@ proof -
             (\<lambda>_. True)]\<^sub>a
          hrp_comp (trailt_conc\<^sup>d) trailt_ref \<rightarrow> hr_comp trailt_conc trailt_ref\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF tl_trail_tr_code.refine tl_trail_tr, OF twl_array_code_axioms] .
+    using hfref_compI_PRE_aux[OF tl_trail_tr_code.refine tl_trail_tr, OF isasat_input_bounded_axioms] .
   have pre: \<open>?pre' = ?pre\<close>
     by (auto simp: comp_PRE_def trailt_ref_def phase_saving_def
         in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff vmtf_imp_def intro!: ext)
@@ -3228,7 +3228,7 @@ end
 
 setup \<open>map_theory_claset (fn ctxt => ctxt addSbefore ("split_all_tac", split_all_tac))\<close>
 
-context twl_array_code
+context isasat_input_bounded
 begin
 
 lemma literals_are_\<L>\<^sub>i\<^sub>n_hd_trail_in_D\<^sub>0:
@@ -3264,13 +3264,13 @@ sepref_thm tl_state_wl_int_code
 
 
 concrete_definition (in -) tl_state_wl_int_code
-  uses twl_array_code.tl_state_wl_int_code.refine_raw
+  uses isasat_input_bounded.tl_state_wl_int_code.refine_raw
   is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) tl_state_wl_int_code_def
 
 lemmas tl_state_wl_int_code_refine[sepref_fr_rules] =
-   tl_state_wl_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   tl_state_wl_int_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 (* TODO: we need early breaks in skip_and_resolve! *)
 lemma counts_max_lvl_Cons:
@@ -3503,13 +3503,13 @@ sepref_thm conflict_remove1_code
   by sepref
 
 concrete_definition (in -) conflict_remove1_code
-  uses twl_array_code.conflict_remove1_code.refine_raw
+  uses isasat_input_bounded.conflict_remove1_code.refine_raw
   is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) conflict_remove1_code_def
 
 lemmas conflict_remove1_code_refine[sepref_fr_rules] =
-   conflict_remove1_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   conflict_remove1_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma conflict_remove1_code_op_nset_delete[sepref_fr_rules]:
   \<open>(uncurry conflict_remove1_code, uncurry (RETURN \<circ>\<circ> op_mset_delete))
@@ -3964,13 +3964,13 @@ sepref_thm update_confl_tl_wl_code
   by sepref (* slow *)
 
 concrete_definition (in -) update_confl_tl_wl_code
-  uses twl_array_code.update_confl_tl_wl_code.refine_raw
+  uses isasat_input_bounded.update_confl_tl_wl_code.refine_raw
   is \<open>(uncurry2 ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) update_confl_tl_wl_code_def
 
 lemmas update_confl_tl_wl_code_refine[sepref_fr_rules] =
-   update_confl_tl_wl_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   update_confl_tl_wl_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma update_confl_tl_wl_code_update_confl_tl_wl[sepref_fr_rules]:
   \<open>(uncurry2 update_confl_tl_wl_code, uncurry2 (RETURN ooo update_confl_tl_wl))
@@ -4196,7 +4196,7 @@ end
 
 setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close>
 
-context twl_array_code
+context isasat_input_bounded
 begin
 
 sepref_register skip_and_resolve_loop_wl_D literal_is_in_conflict
@@ -4233,19 +4233,19 @@ sepref_thm skip_and_resolve_loop_wl_D
   by sepref (* slow *)
 
 concrete_definition (in -) skip_and_resolve_loop_wl_D_code
-  uses twl_array_code.skip_and_resolve_loop_wl_D.refine_raw
+  uses isasat_input_bounded.skip_and_resolve_loop_wl_D.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) skip_and_resolve_loop_wl_D_code_def
 
 lemmas skip_and_resolve_loop_wl_D_code_refine[sepref_fr_rules] =
-   skip_and_resolve_loop_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   skip_and_resolve_loop_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 end
 
 
 setup \<open>map_theory_claset (fn ctxt => ctxt addSbefore ("split_all_tac", split_all_tac))\<close>
 
-context twl_array_code
+context isasat_input_bounded
 begin
 term twl_st_assn
 definition (in -) lit_of_hd_trail_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal\<close> where
@@ -4267,13 +4267,13 @@ sepref_thm lit_of_hd_trail_st_code
   by sepref
 
 concrete_definition (in -) lit_of_hd_trail_st_code
-   uses twl_array_code.lit_of_hd_trail_st_code.refine_raw
+   uses isasat_input_bounded.lit_of_hd_trail_st_code.refine_raw
    is \<open>(?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) lit_of_hd_trail_st_code_def
 
 lemmas lit_of_hd_trail_st_code_refine_code[sepref_fr_rules] =
-   lit_of_hd_trail_st_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   lit_of_hd_trail_st_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 theorem lit_of_hd_trail_st_code_lit_of_hd_trail_st[sepref_fr_rules]:
   \<open>(lit_of_hd_trail_st_code, RETURN o lit_of_hd_trail_st)
@@ -5256,7 +5256,7 @@ definition twl_st_confl_extracted_int_assn
   uint32_nat_assn
   )\<close>
 
-definition (in twl_array_code_ops) twl_st_ref_no_clvls :: \<open>(twl_st_wl_int \<times> nat twl_st_wl) set\<close> where
+definition (in isasat_input_ops) twl_st_ref_no_clvls :: \<open>(twl_st_wl_int \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_ref_no_clvls =
   {((M', N', U', D', Q', W', vm, \<phi>, clvls), (M, N, U, D, NP, UP, Q, W)).
     M = M' \<and> N' = N \<and> U' = U \<and>
@@ -5488,13 +5488,13 @@ sepref_thm get_maximum_level_remove_code
   by sepref
 
 concrete_definition (in -) get_maximum_level_remove_code
-   uses twl_array_code.get_maximum_level_remove_code.refine_raw
+   uses isasat_input_bounded.get_maximum_level_remove_code.refine_raw
    is \<open>(uncurry2 ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) get_maximum_level_remove_code_def
 
 lemmas get_maximum_level_remove_code_hnr[sepref_fr_rules] =
-   get_maximum_level_remove_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   get_maximum_level_remove_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 definition (in -) get_maximum_level_remove' where
   \<open>get_maximum_level_remove' M D L = get_maximum_level_remove M (the D) L\<close>
@@ -5537,13 +5537,13 @@ sepref_thm find_decomp_wl_imp_code
   by sepref
 
 concrete_definition (in -) find_decomp_wl_imp_code
-   uses twl_array_code.find_decomp_wl_imp_code.refine_raw
+   uses isasat_input_bounded.find_decomp_wl_imp_code.refine_raw
    is \<open>(uncurry3 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) find_decomp_wl_imp_code_def
 
 lemmas find_decomp_wl_imp_code[sepref_fr_rules] =
-   find_decomp_wl_imp_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   find_decomp_wl_imp_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 abbreviation (in -) nat_lit_lit_rel where
   \<open>nat_lit_lit_rel \<equiv> Id :: (nat literal \<times> _) set\<close>
@@ -5841,13 +5841,13 @@ sepref_thm find_decomp_wl_imp'_code
   by sepref
 
 concrete_definition (in -) find_decomp_wl_imp'_code
-   uses twl_array_code.find_decomp_wl_imp'_code.refine_raw
+   uses isasat_input_bounded.find_decomp_wl_imp'_code.refine_raw
    is \<open>(uncurry ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) find_decomp_wl_imp'_code_def
 
 lemmas find_decomp_wl_imp'_code_hnr[sepref_fr_rules] =
-  find_decomp_wl_imp'_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+  find_decomp_wl_imp'_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 
 lemma find_decomp_wl_st_find_decomp_wl:
@@ -6196,13 +6196,13 @@ sepref_thm size_conflict_wl_code
   by sepref
 
 concrete_definition (in -) size_conflict_wl_code
-   uses twl_array_code.size_conflict_wl_code.refine_raw
+   uses isasat_input_bounded.size_conflict_wl_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) size_conflict_wl_code_def
 
 lemmas size_conflict_wl_code_hnr[sepref_fr_rules] =
-   size_conflict_wl_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   size_conflict_wl_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma size_conflict_wl_int_size_conflict_wl:
   \<open>(RETURN o size_conflict_wl_int, RETURN o size_conflict_wl) \<in>
@@ -6277,13 +6277,13 @@ sepref_thm find_lit_of_max_level_wl_code
   by sepref
 
 concrete_definition (in -) find_lit_of_max_level_wl_code
-   uses twl_array_code.find_lit_of_max_level_wl_code.refine_raw
+   uses isasat_input_bounded.find_lit_of_max_level_wl_code.refine_raw
    is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) find_lit_of_max_level_wl_code_def
 
 lemmas find_lit_of_max_level_wl_code_hnr[sepref_fr_rules] =
-   find_lit_of_max_level_wl_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   find_lit_of_max_level_wl_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma find_lit_of_max_level_wl_int_find_lit_of_max_level_wl:
   \<open>(uncurry (RETURN oo find_lit_of_max_level_wl_int), uncurry find_lit_of_max_level_wl) \<in>
@@ -6842,13 +6842,13 @@ sepref_thm conflict_to_conflict_with_cls_code
   by sepref
 
 concrete_definition (in -) conflict_to_conflict_with_cls_code
-   uses twl_array_code.conflict_to_conflict_with_cls_code.refine_raw
+   uses isasat_input_bounded.conflict_to_conflict_with_cls_code.refine_raw
    is \<open>(uncurry3 ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) conflict_to_conflict_with_cls_code_def
 
 lemmas conflict_to_conflict_with_cls_code_refine[sepref_fr_rules] =
-   conflict_to_conflict_with_cls_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   conflict_to_conflict_with_cls_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma extract_shorter_conflict_with_cls_code_conflict_to_conflict_with_cls_spec[sepref_fr_rules]:
   \<open>(uncurry3 conflict_to_conflict_with_cls_code, uncurry3 list_of_mset2_None_droped)
@@ -6896,13 +6896,13 @@ sepref_thm remove2_from_conflict_code
   by sepref
 
 concrete_definition (in -) remove2_from_conflict_code
-   uses twl_array_code.remove2_from_conflict_code.refine_raw
+   uses isasat_input_bounded.remove2_from_conflict_code.refine_raw
    is \<open>(uncurry2 ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) remove2_from_conflict_code_def
 
 lemmas remove2_from_conflict_code_hnr[sepref_fr_rules] =
-   remove2_from_conflict_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   remove2_from_conflict_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 theorem remove2_from_conflict_hnr[sepref_fr_rules]:
   \<open>(uncurry2 remove2_from_conflict_code, uncurry2 (RETURN ooo remove2_from_conflict))
@@ -6980,13 +6980,13 @@ lemma size_conflict_code_refine_raw:
   by sepref_to_hoare  (sep_auto simp: size_conflict_int_def)
 
 concrete_definition (in -) size_conflict_code
-   uses twl_array_code.size_conflict_code_refine_raw
+   uses isasat_input_bounded.size_conflict_code_refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) size_conflict_code_def
 
 lemmas size_conflict_code_hnr[sepref_fr_rules] =
-   size_conflict_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   size_conflict_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma size_conflict_int_size_conflict:
   \<open>(RETURN o size_conflict_int, RETURN o size_conflict) \<in> [\<lambda>D. D \<noteq> None]\<^sub>f option_conflict_rel \<rightarrow>
@@ -7017,13 +7017,13 @@ sepref_thm list_of_mset2_None_code
   by sepref
 
 concrete_definition (in -) list_of_mset2_None_code
-   uses twl_array_code.list_of_mset2_None_code.refine_raw
+   uses isasat_input_bounded.list_of_mset2_None_code.refine_raw
    is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) list_of_mset2_None_code_def
 
 lemmas list_of_mset2_None_int_hnr[sepref_fr_rules] =
-  list_of_mset2_None_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+  list_of_mset2_None_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma list_of_mset2_None_hnr[sepref_fr_rules]:
   \<open>(uncurry2 list_of_mset2_None_code, uncurry2 list_of_mset2_None)
@@ -7050,14 +7050,14 @@ sepref_thm extract_shorter_conflict_list_removed_code
   by sepref
 
 concrete_definition (in -) extract_shorter_conflict_list_removed_code
-   uses twl_array_code.extract_shorter_conflict_list_removed_code.refine_raw
+   uses isasat_input_bounded.extract_shorter_conflict_list_removed_code.refine_raw
    is \<open>(uncurry ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) extract_shorter_conflict_list_removed_code_def
 
 lemmas extract_shorter_conflict_list_removed_code_extract_shorter_conflict_list_removed[sepref_fr_rules] =
   extract_shorter_conflict_list_removed_code.refine[of \<A>\<^sub>i\<^sub>n,
-      OF twl_array_code_axioms]
+      OF isasat_input_bounded_axioms]
 
 sepref_thm extract_shorter_conflict_l_trivial'
   is \<open>uncurry (PR_CONST extract_shorter_conflict_list_int)\<close>
@@ -7072,14 +7072,14 @@ sepref_thm extract_shorter_conflict_l_trivial'
   by sepref
 
 concrete_definition (in -) extract_shorter_conflict_l_trivial_code
-   uses twl_array_code.extract_shorter_conflict_l_trivial'.refine_raw
+   uses isasat_input_bounded.extract_shorter_conflict_l_trivial'.refine_raw
    is \<open>(uncurry ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) extract_shorter_conflict_l_trivial_code_def
 
 lemmas extract_shorter_conflict_l_trivial_code_wl_D[sepref_fr_rules] =
   extract_shorter_conflict_l_trivial_code.refine[of \<A>\<^sub>i\<^sub>n,
-      OF twl_array_code_axioms]
+      OF isasat_input_bounded_axioms]
 
 text \<open>
   This is the \<^emph>\<open>direct\<close> composition of the refinement theorems. Only the version lifted to
@@ -7158,14 +7158,14 @@ sepref_thm extract_shorter_conflict_list_st_int_code
   by sepref
 
 concrete_definition (in -) extract_shorter_conflict_list_st_int_code
-   uses twl_array_code.extract_shorter_conflict_list_st_int_code.refine_raw
+   uses isasat_input_bounded.extract_shorter_conflict_list_st_int_code.refine_raw
    is \<open>(?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) extract_shorter_conflict_list_st_int_code_def
 
 lemmas extract_shorter_conflict_list_st_int_code[sepref_fr_rules] =
   extract_shorter_conflict_list_st_int_code.refine[of \<A>\<^sub>i\<^sub>n,
-      OF twl_array_code_axioms]
+      OF isasat_input_bounded_axioms]
 
 sepref_register extract_shorter_conflict_list_st_int
 sepref_thm extract_shorter_conflict_st_trivial_code
@@ -7177,13 +7177,13 @@ sepref_thm extract_shorter_conflict_st_trivial_code
   by sepref
 
 concrete_definition (in -) extract_shorter_conflict_st_trivial_code
-   uses twl_array_code.extract_shorter_conflict_st_trivial_code.refine_raw
+   uses isasat_input_bounded.extract_shorter_conflict_st_trivial_code.refine_raw
    is \<open>(?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) extract_shorter_conflict_st_trivial_code_def
 
 lemmas extract_shorter_conflict_st_code_refine[sepref_fr_rules] =
-   extract_shorter_conflict_st_trivial_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   extract_shorter_conflict_st_trivial_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 
 definition extract_shorter_conflict_st_trivial_pre where
@@ -7334,7 +7334,7 @@ definition rescore_clause :: \<open>nat clause_l \<Rightarrow> (nat,nat) ann_lit
     (vmtf_remove_int \<times> phase_saver) nres\<close> where
 \<open>rescore_clause C M vm \<phi> = SPEC (\<lambda>(vm', \<phi>' :: bool list). vm' \<in> vmtf_imp M \<and> phase_saving \<phi>')\<close>
 
-definition (in twl_array_code_ops) vmtf_rescore_body
+definition (in isasat_input_ops) vmtf_rescore_body
  :: \<open>nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> phase_saver \<Rightarrow>
     (nat \<times> vmtf_remove_int \<times> phase_saver) nres\<close>
 where
@@ -7351,7 +7351,7 @@ where
            (0, vm, \<phi>)
     }\<close>
 
-definition (in twl_array_code_ops) vmtf_rescore
+definition (in isasat_input_ops) vmtf_rescore
  :: \<open>nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> phase_saver \<Rightarrow>
        (vmtf_remove_int \<times> phase_saver) nres\<close>
 where
@@ -7370,13 +7370,13 @@ sepref_thm vmtf_rescore_code
   by sepref
 
 concrete_definition (in -) vmtf_rescore_code
-   uses twl_array_code.vmtf_rescore_code.refine_raw
+   uses isasat_input_bounded.vmtf_rescore_code.refine_raw
    is \<open>(uncurry3 ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) vmtf_rescore_code_def
 
 lemmas vmtf_rescore_code_refine[sepref_fr_rules] =
-   vmtf_rescore_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   vmtf_rescore_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma vmtf_rescore_score_clause:
   \<open>(uncurry3 vmtf_rescore, uncurry3 rescore_clause) \<in>
@@ -7440,13 +7440,13 @@ sepref_thm vmtf_flush_all_code
   by sepref
 
 concrete_definition (in -) vmtf_flush_all_code
-   uses twl_array_code.vmtf_flush_all_code.refine_raw
+   uses isasat_input_bounded.vmtf_flush_all_code.refine_raw
    is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) vmtf_flush_all_code_def
 
 lemmas vmtf_flush_all_code_hnr[sepref_fr_rules] =
-   vmtf_flush_all_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   vmtf_flush_all_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 
 definition rescore :: \<open>(nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> vmtf_remove_int nres\<close> where
@@ -7523,15 +7523,15 @@ sepref_thm st_remove_highest_lvl_from_confl_code
 
 
 concrete_definition (in -) st_remove_highest_lvl_from_confl_code
-   uses twl_array_code.st_remove_highest_lvl_from_confl_code.refine_raw
+   uses isasat_input_bounded.st_remove_highest_lvl_from_confl_code.refine_raw
    is \<open>(?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) st_remove_highest_lvl_from_confl_code_def
 
 lemmas st_remove_highest_lvl_from_confl_int_hnr[sepref_fr_rules] =
-   st_remove_highest_lvl_from_confl_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   st_remove_highest_lvl_from_confl_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
-definition (in twl_array_code_ops) twl_st_assn_no_clvls :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
+definition (in isasat_input_ops) twl_st_assn_no_clvls :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>twl_st_assn_no_clvls = hr_comp twl_st_int_assn twl_st_ref_no_clvls\<close>
 
 lemma twl_st_assn_twl_st_wl_W_conflict:
@@ -7599,13 +7599,13 @@ sepref_thm propgate_bt_wl_D_code
   by sepref
 
 concrete_definition (in -) propgate_bt_wl_D_code
-  uses "twl_array_code.propgate_bt_wl_D_code.refine_raw"
+  uses "isasat_input_bounded.propgate_bt_wl_D_code.refine_raw"
   is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) propgate_bt_wl_D_code_def
 
 lemmas propgate_bt_wl_D_int_hnr[sepref_fr_rules] =
-  propgate_bt_wl_D_code.refine[OF twl_array_code_axioms]
+  propgate_bt_wl_D_code.refine[OF isasat_input_bounded_axioms]
 
 lemma propgate_bt_wl_D_int_propgate_bt_wl_D:
   \<open>(uncurry2 propgate_bt_wl_D_int, uncurry2 propgate_bt_wl_D) \<in>
@@ -7841,13 +7841,13 @@ sepref_thm remove_last_code
   by sepref
 
 concrete_definition (in -) remove_last_code
-   uses twl_array_code.remove_last_code.refine_raw
+   uses isasat_input_bounded.remove_last_code.refine_raw
    is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) remove_last_code_def
 
 lemmas remove_last_int_hnr[sepref_fr_rules] =
-   remove_last_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   remove_last_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 theorem remove_last_hnr[sepref_fr_rules]:
   \<open>(uncurry remove_last_code, uncurry remove_last)
@@ -7894,13 +7894,13 @@ sepref_thm propgate_unit_bt_wl_D_code
   by sepref
 
 concrete_definition (in -) propgate_unit_bt_wl_D_code
-  uses "twl_array_code.propgate_unit_bt_wl_D_code.refine_raw"
+  uses "isasat_input_bounded.propgate_unit_bt_wl_D_code.refine_raw"
   is \<open>(uncurry ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) propgate_unit_bt_wl_D_code_def
 
 lemmas propgate_unit_bt_wl_D_int_hnr[sepref_fr_rules] =
-  propgate_unit_bt_wl_D_code.refine[OF twl_array_code_axioms]
+  propgate_unit_bt_wl_D_code.refine[OF isasat_input_bounded_axioms]
 
 definition propgate_unit_bt_wl_D_pre :: \<open>nat literal \<times> nat twl_st_wl \<Rightarrow> bool\<close> where
    \<open>propgate_unit_bt_wl_D_pre =
@@ -8012,7 +8012,7 @@ end
 
 setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close>
 
-context twl_array_code
+context isasat_input_bounded
 begin
 
 sepref_register find_lit_of_max_level_wl propgate_bt_wl_D propgate_unit_bt_wl_D
@@ -8072,19 +8072,19 @@ sepref_thm backtrack_wl_D
   done
 
 concrete_definition (in -) backtrack_wl_D_code
-   uses twl_array_code.backtrack_wl_D.refine_raw
+   uses isasat_input_bounded.backtrack_wl_D.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) backtrack_wl_D_code_def
 
 lemmas backtrack_wl_D_code_refine[sepref_fr_rules] =
-   backtrack_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   backtrack_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 end
 
 
 setup \<open>map_theory_claset (fn ctxt => ctxt addSbefore ("split_all_tac", split_all_tac))\<close>
 
-context twl_array_code
+context isasat_input_bounded
 begin
 paragraph \<open>Decide\<close>
 
@@ -8107,13 +8107,13 @@ sepref_thm defined_atm_impl
   by sepref
 
 concrete_definition (in -) defined_atm_code
-   uses twl_array_code.defined_atm_impl.refine_raw
+   uses isasat_input_bounded.defined_atm_impl.refine_raw
    is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) defined_atm_code_def
 
 lemmas undefined_atm_impl_refine[sepref_fr_rules] =
-   defined_atm_code.refine[OF twl_array_code_axioms]
+   defined_atm_code.refine[OF isasat_input_bounded_axioms]
 
 lemma undefined_atm_impl:
   \<open>(uncurry defined_atm_impl, uncurry (RETURN oo defined_atm)) \<in>
@@ -8161,15 +8161,15 @@ sepref_thm vmtf_find_next_undef_code
   by sepref
 
 concrete_definition (in -) vmtf_find_next_undef_code
-  uses twl_array_code.vmtf_find_next_undef_code.refine_raw
+  uses isasat_input_bounded.vmtf_find_next_undef_code.refine_raw
   is \<open>(uncurry ?f, _)\<in>_\<close>
 
 prepare_code_thms (in -) vmtf_find_next_undef_code_def
 
 lemmas vmtf_find_next_undef_code_ref[sepref_fr_rules] =
-   vmtf_find_next_undef_code.refine[OF twl_array_code_axioms]
+   vmtf_find_next_undef_code.refine[OF isasat_input_bounded_axioms]
 
-definition (in twl_array_code_ops) vmtf_find_next_undef_upd
+definition (in isasat_input_ops) vmtf_find_next_undef_upd
   :: \<open>(nat, nat)ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow>
         (((nat, nat)ann_lits \<times> vmtf_remove_int) \<times> nat option)nres\<close> where
   \<open>vmtf_find_next_undef_upd = (\<lambda>M vm. do{
@@ -8196,20 +8196,20 @@ sepref_thm vmtf_find_next_undef_upd_code
   by sepref
 
 concrete_definition (in -) vmtf_find_next_undef_upd_code
-  uses twl_array_code.vmtf_find_next_undef_upd_code.refine_raw
+  uses isasat_input_bounded.vmtf_find_next_undef_upd_code.refine_raw
   is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) vmtf_find_next_undef_upd_code_def
 
 lemmas vmtf_find_next_undef_upd_code_ref[sepref_fr_rules] =
-   vmtf_find_next_undef_upd_code.refine[OF twl_array_code_axioms]
+   vmtf_find_next_undef_upd_code.refine[OF isasat_input_bounded_axioms]
 
 
 definition lit_of_found_atm where
 \<open>lit_of_found_atm \<phi> L = SPEC (\<lambda>K. (L = None \<longrightarrow> K = None) \<and>
     (L \<noteq> None \<longrightarrow> K \<noteq> None \<and> atm_of (the K) = the L))\<close>
 
-definition (in twl_array_code_ops) find_undefined_atm
+definition (in isasat_input_ops) find_undefined_atm
   :: \<open>(nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow>
        (((nat,nat) ann_lits \<times> vmtf_remove_int) \<times> nat option) nres\<close>
 where
@@ -8298,7 +8298,7 @@ lemma find_undefined_atm_hnr[sepref_fr_rules]:
   unfolding PR_CONST_def
   .
 
-definition (in twl_array_code_ops) lit_of_found_atm_D
+definition (in isasat_input_ops) lit_of_found_atm_D
   :: \<open>bool list \<Rightarrow> nat option \<Rightarrow> (nat literal option)nres\<close> where
   \<open>lit_of_found_atm_D = (\<lambda>(\<phi>::bool list) L. do{
       case L of
@@ -8308,7 +8308,7 @@ definition (in twl_array_code_ops) lit_of_found_atm_D
         }
   })\<close>
 
-definition (in twl_array_code_ops) lit_of_found_atm_D_pre where
+definition (in isasat_input_ops) lit_of_found_atm_D_pre where
 \<open>lit_of_found_atm_D_pre = (\<lambda>(\<phi>, L). L \<noteq> None \<longrightarrow> (Pos (the L) \<in> snd ` D\<^sub>0 \<and> the L < length \<phi>))\<close>
 
 sepref_thm lit_of_found_atm_D_code
@@ -8322,13 +8322,13 @@ sepref_thm lit_of_found_atm_D_code
   by sepref
 
 concrete_definition (in -) lit_of_found_atm_D_code
-   uses twl_array_code.lit_of_found_atm_D_code.refine_raw
+   uses isasat_input_bounded.lit_of_found_atm_D_code.refine_raw
    is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) lit_of_found_atm_D_code_def
 
 lemmas lit_of_found_atm_D_hnr[sepref_fr_rules] =
-   lit_of_found_atm_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   lit_of_found_atm_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma lit_of_found_atm_D_lit_of_found_atm:
   \<open>(uncurry (PR_CONST lit_of_found_atm_D), uncurry lit_of_found_atm) \<in>
@@ -8364,13 +8364,13 @@ sepref_thm find_unassigned_lit_wl_D_code
   by sepref
 
 concrete_definition (in -) find_unassigned_lit_wl_D_code
-   uses twl_array_code.find_unassigned_lit_wl_D_code.refine_raw
+   uses isasat_input_bounded.find_unassigned_lit_wl_D_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) find_unassigned_lit_wl_D_code_def
 
 lemmas find_unassigned_lit_wl_D_int_hnr[sepref_fr_rules] =
-   find_unassigned_lit_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   find_unassigned_lit_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 definition find_unassigned_lit_wl_D_pre where
   \<open>find_unassigned_lit_wl_D_pre = (\<lambda>S. twl_struct_invs (twl_st_of_wl None S) \<and> literals_are_\<L>\<^sub>i\<^sub>n S \<and>
@@ -8464,13 +8464,13 @@ sepref_thm cons_trail_Decided_tr_code
   by sepref
 
 concrete_definition (in -) cons_trail_Decided_tr_code
-  uses "twl_array_code.cons_trail_Decided_tr_code.refine_raw"
+  uses "isasat_input_bounded.cons_trail_Decided_tr_code.refine_raw"
   is \<open>(uncurry ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) cons_trail_Decided_tr_code_def
 
 lemmas cons_trail_Decided_tr_code[sepref_fr_rules] =
-  cons_trail_Decided_tr_code.refine[OF twl_array_code_axioms]
+  cons_trail_Decided_tr_code.refine[OF isasat_input_bounded_axioms]
 
 lemma cons_trail_Decided_tr_code_cons_trail_Decided_tr[sepref_fr_rules]:
   \<open>(uncurry cons_trail_Decided_tr_code, uncurry (RETURN oo cons_trail_Decided)) \<in>
@@ -8493,7 +8493,7 @@ proof -
          trailt_ref\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF cons_trail_Decided_tr_code.refine cons_trail_Decided_tr,
-        OF twl_array_code_axioms] .
+        OF isasat_input_bounded_axioms] .
   have pre: \<open>?pre' = ?pre\<close>
     by (auto simp: comp_PRE_def trailt_ref_def trailt_ref_def image_image intro!: ext)
   have im: \<open>?im' = ?im\<close>
@@ -8516,13 +8516,13 @@ sepref_thm decide_lit_wl_int_code
   by sepref
 
 concrete_definition (in -) decide_lit_wl_int_code
-  uses "twl_array_code.decide_lit_wl_int_code.refine_raw"
+  uses "isasat_input_bounded.decide_lit_wl_int_code.refine_raw"
   is \<open>(uncurry ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) decide_lit_wl_int_code_def
 
 lemmas decide_lit_wl_int_hnr[sepref_fr_rules] =
-  decide_lit_wl_int_code.refine[OF twl_array_code_axioms]
+  decide_lit_wl_int_code.refine[OF isasat_input_bounded_axioms]
 
 lemma decide_lit_wl_hnr[sepref_fr_rules]:
   \<open>(uncurry decide_lit_wl_int_code, uncurry (RETURN \<circ>\<circ> decide_lit_wl))
@@ -8570,13 +8570,13 @@ sepref_thm decide_wl_or_skip_D_code
   by sepref
 
 concrete_definition (in -) decide_wl_or_skip_D_code
-  uses "twl_array_code.decide_wl_or_skip_D_code.refine_raw"
+  uses "isasat_input_bounded.decide_wl_or_skip_D_code.refine_raw"
   is \<open>(?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) decide_wl_or_skip_D_code_def
 
 lemmas decide_wl_or_skip_D_hnr[sepref_fr_rules] =
-  decide_wl_or_skip_D_code.refine[OF twl_array_code_axioms]
+  decide_wl_or_skip_D_code.refine[OF isasat_input_bounded_axioms]
 
 
 subsubsection \<open>Combining Together: the Other Rules\<close>
@@ -8595,13 +8595,13 @@ sepref_thm cdcl_twl_o_prog_wl_D_code
   by sepref
 
 concrete_definition (in -) cdcl_twl_o_prog_wl_D_code
-   uses twl_array_code.cdcl_twl_o_prog_wl_D_code.refine_raw
+   uses isasat_input_bounded.cdcl_twl_o_prog_wl_D_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) cdcl_twl_o_prog_wl_D_code_def
 
 lemmas cdcl_twl_o_prog_wl_D_code[sepref_fr_rules] =
-   cdcl_twl_o_prog_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+   cdcl_twl_o_prog_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 
 subsubsection \<open>Combining Together: Full Strategy\<close>
@@ -8615,7 +8615,7 @@ sepref_thm cdcl_twl_stgy_prog_wl_D_code
   by sepref
 
 concrete_definition (in -) cdcl_twl_stgy_prog_wl_D_code
-   uses twl_array_code.cdcl_twl_stgy_prog_wl_D_code.refine_raw
+   uses isasat_input_bounded.cdcl_twl_stgy_prog_wl_D_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) cdcl_twl_stgy_prog_wl_D_code_def
