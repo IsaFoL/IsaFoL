@@ -68,7 +68,7 @@ The code of the SAT solver is in the ``code`` folder. To run it:
 |``PCUI_algo``            |``CDCL_Two_Watched_Literals_Algorithm``| ``unit_propagation_inner_loop_body``	
 |Theorem 4.2              | ``CDCL_Two_Watched_Literals_Transition_System`` | ``cdcl_twl_stgy_prog_spec``
 |``PCUI_list``            |``CDCL_Two_Watched_Literals_List``  |  ``unit_propagation_inner_loop_body_l``
-|``PCUI_wlist``           |``CDCL_Two_Watched_Literals_List_Watched``| ``unit_propagation_inner_loop_body_wl``	
+|``PCUI_wlist``           |``CDCL_Two_Watched_Literals_Watch_List``| ``unit_propagation_inner_loop_body_wl``	
 |Theorem 7.1              | ``CDCL_Two_Watched_Literals_IsaSAT`` | ``IsaSAT_code_full_correctness``
 | VMTF                    | ``CDCL_Two_Watched_Literals_VMTF`` |  ``l_vmtf``
 |``find_next_undef``      | ``CDCL_Two_Watched_Literals_VMTF`` |  ``find_next_undef``
@@ -110,7 +110,7 @@ The code of the SAT solver is in the ``code`` folder. To run it:
 |Theorem 15               | ``CDCL_Two_Watched_Literals_IsaSAT`` | ``IsaSAT_code_full_correctness``
 |``polarity_list_pair``    | ``CDCL_Two_Watched_Literals_IsaSAT_CDCL`` | `` polarity``
 |``trail_list_pair_trail_ref`` | ``CDCL_Two_Watched_Literals_IsaSAT_CDCL`` | ``trailt_ref``
-|``lit_assn``             |``CDCL_Two_Watched_Literals_List_Watched_Domain``|``unat_lit_assn``
+|``lit_assn``             |``CDCL_Two_Watched_Literals_Watch_List_Domain``|``unat_lit_assn``
 |``trail_list_pair_assn`` | ``CDCL_Two_Watched_Literals_IsaSAT_CDCL`` | ``trail_conc``
 |``polarity_code`` correctness |``CDCL_Two_Watched_Literals_IsaSAT_CDCL`` | ``polarity_code_valued_refine_code`` [4]
 

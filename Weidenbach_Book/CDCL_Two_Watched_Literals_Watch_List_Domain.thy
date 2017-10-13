@@ -1,5 +1,5 @@
-theory CDCL_Two_Watched_Literals_List_Watched_Domain
-  imports CDCL_Two_Watched_Literals_List_Watched
+theory CDCL_Two_Watched_Literals_Watch_List_Domain
+  imports CDCL_Two_Watched_Literals_Watch_List
     Array_UInt "../lib/Explorer"
 begin
 

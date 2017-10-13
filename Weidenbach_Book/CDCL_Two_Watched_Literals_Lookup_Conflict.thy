@@ -1,5 +1,5 @@
 theory CDCL_Two_Watched_Literals_Lookup_Conflict
-  imports CDCL_Two_Watched_Literals_List_Watched_Domain
+  imports CDCL_Two_Watched_Literals_Watch_List_Domain
 begin
 
 no_notation Ref.update ("_ := _" 62)
