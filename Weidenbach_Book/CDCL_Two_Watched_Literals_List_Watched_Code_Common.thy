@@ -126,7 +126,7 @@ subsubsection \<open>Refinement of the Watched Function\<close>
 
 sepref_register \<open>watched_by :: nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> watched\<close>
    :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> watched\<close>
-term watched_by_nth
+
 definition watched_by_nth :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>watched_by_nth = (\<lambda>(M, N, U, D, NP, UP, Q, W) L i. W L ! i)\<close>
 
