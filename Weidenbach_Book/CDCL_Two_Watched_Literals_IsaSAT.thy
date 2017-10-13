@@ -324,7 +324,7 @@ sepref_thm add_init_cls_code
   supply [[goals_limit=1]] append_ll_def[simp]
   unfolding add_init_cls_heur_def twl_st_heur_assn_def is_in_conflict_def[symmetric]
   PR_CONST_def cons_trail_Propagated_def[symmetric]
-  unfolding update_clause_wl_heur_def twl_st_heur_assn_def Array_List_Array.swap_ll_def[symmetric]
+  unfolding twl_st_heur_assn_def Array_List_Array.swap_ll_def[symmetric]
     nth_rll_def[symmetric] delete_index_and_swap_update_def[symmetric] delete_index_and_swap_ll_def[symmetric]
    append_ll_def[symmetric]
   by sepref
@@ -1247,6 +1247,7 @@ definition (in -) SAT_wl :: \<open>nat clauses_l \<Rightarrow> nat twl_st_wl nre
     else if CS = [] then RETURN (([], [], 0, None, {#}, {#}, {#}, \<lambda>_. undefined))
     else do {
        ASSERT (extract_atms_clss CS [] \<noteq> []);
+       ASSERT(isasat_input_bounded_nempty (mset \<A>\<^sub>i\<^sub>n'));
        isasat_input_bounded.cdcl_twl_stgy_prog_wl_D (mset \<A>\<^sub>i\<^sub>n') (finalise_init T)
     }
   }\<close>
@@ -1498,6 +1499,7 @@ definition IsaSAT :: \<open>nat clauses_l \<Rightarrow> nat literal list option 
     else if CS = [] then RETURN (Some [])
     else do {
        ASSERT(\<A>\<^sub>i\<^sub>n' \<noteq> {#});
+       ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n');
        let T = finalise_init T;
        U \<leftarrow> isasat_input_bounded.cdcl_twl_stgy_prog_wl_D \<A>\<^sub>i\<^sub>n' T;
        RETURN (if get_conflict_wl U = None then Some (extract_model_of_state U) else None)
@@ -1824,7 +1826,7 @@ qed
 
 lemma cdcl_twl_stgy_prog_wl_D_code_ref':
   \<open>(uncurry (\<lambda>_. cdcl_twl_stgy_prog_wl_D_code), uncurry isasat_input_bounded.cdcl_twl_stgy_prog_wl_D)
-  \<in> [\<lambda>(N, _). N = \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>a
+  \<in> [\<lambda>(N, _). N = \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n]\<^sub>a
      (list_mset_assn uint32_nat_assn)\<^sup>k *\<^sub>a
     (isasat_input_ops.twl_st_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow> isasat_input_ops.twl_st_assn \<A>\<^sub>i\<^sub>n\<close>
   unfolding hfref_def hn_refine_def
@@ -1947,9 +1949,9 @@ lemma full_cdcl\<^sub>W_init_state:
   by (subst tranclp_unfold_begin)
      (auto simp:  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.simps
       cdcl\<^sub>W_restart_mset.conflict.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.simps
-       cdcl\<^sub>W_restart_mset.propagate.simps  cdcl\<^sub>W_restart_mset.decide.simps
-       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.simps  cdcl\<^sub>W_restart_mset.backtrack.simps
-      cdcl\<^sub>W_restart_mset.skip.simps  cdcl\<^sub>W_restart_mset.resolve.simps
+       cdcl\<^sub>W_restart_mset.propagate.simps cdcl\<^sub>W_restart_mset.decide.simps
+       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.simps cdcl\<^sub>W_restart_mset.backtrack.simps
+      cdcl\<^sub>W_restart_mset.skip.simps cdcl\<^sub>W_restart_mset.resolve.simps
       cdcl\<^sub>W_restart_mset_state clauses_def)
 
 (* End Move *)
@@ -2019,6 +2021,7 @@ proof -
       else if CS' = [] then RETURN ([], [], 0, None, {#}, {#}, {#}, \<lambda>_. undefined)
        else
          do{ ASSERT (extract_atms_clss CS' [] \<noteq> []);
+             ASSERT(isasat_input_bounded_nempty (mset (extract_atms_clss CS' [])));
              isasat_input_bounded.cdcl_twl_stgy_prog_wl_D (mset (extract_atms_clss CS' [])) S\<^sub>0})
     \<le> \<Down> TWL_to_clauses_state_conv
         (SPEC (\<lambda>U. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state CS) U \<or>
@@ -2113,7 +2116,7 @@ proof -
       by (auto simp add: isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l_def isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def
         all_lits_of_mm_add_mset in_extract_atms_clssD in_extract_atms_clsD
         all_lits_of_mm_def atms_of_s_def image_image image_Un)
-    have \<open>isasat_input_bounded (mset (extract_atms_clss CS' []))\<close>
+    have [simp]: \<open>isasat_input_bounded (mset (extract_atms_clss CS' []))\<close>
       unfolding isasat_input_bounded_def
     proof
       fix L
@@ -2142,6 +2145,10 @@ proof -
         apply (rule CS_p)
        apply (rule CS'_CS)
       using that by (auto simp: extract_atms_clss_empty_iff)
+    have [simp]: \<open>isasat_input_bounded_nempty (mset (extract_atms_clss CS' []))\<close> if \<open>CS' \<noteq> []\<close>
+      by (auto simp: isasat_input_bounded_nempty_def
+          isasat_input_bounded_nempty_axioms_def that)
+     
     have empty_trail: \<open>RETURN ([], [], 0, None, {#}, {#}, {#}, \<lambda>_. undefined)
     \<le> \<Down> TWL_to_clauses_state_conv
         (SPEC
@@ -2409,8 +2416,7 @@ proof -
          apply (rule 3; simp; fail)
         apply (rule 4; simp; fail)
      apply (rule 2)
-    by (auto simp: TWL_to_clauses_state_conv_def convert_lits_l_def
-        extract_model_of_state_alt_def cdcl\<^sub>W_restart_mset_state)
+    by (auto simp: TWL_to_clauses_state_conv_def convert_lits_l_def extract_model_of_state_alt_def)
   show ?thesis
     using IsaSAT_code.refine[FCOMP IsaSAT_SAT] unfolding list_assn_list_mset_rel_clauses_l_assn .
 qed

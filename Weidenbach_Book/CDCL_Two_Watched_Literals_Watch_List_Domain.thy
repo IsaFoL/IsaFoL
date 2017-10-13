@@ -398,6 +398,7 @@ locale isasat_input_bounded_nempty =
   assumes
     \<A>\<^sub>i\<^sub>n_nempty: \<open>\<A>\<^sub>i\<^sub>n \<noteq> {#}\<close>
 
+
 context isasat_input_bounded
 begin
 
