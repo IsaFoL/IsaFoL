@@ -590,14 +590,15 @@ proof (cases rule: ord_resolve.cases)
   interpret S: selection S by (rule select)
 
   -- \<open>Obtain FO side premises\<close>
-  have "\<forall>CA \<in> set CAs. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> CA'' \<cdot> \<eta>c'' = CA \<and> S CA'' \<cdot> \<eta>c'' = S_M S M CA"
+  have "\<forall>CA \<in> set CAs. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> CA'' \<cdot> \<eta>c'' = CA \<and> S CA'' \<cdot> \<eta>c'' = S_M S M CA \<and> is_ground_subst \<eta>c''"
     using grounding S_M_grounding_of_clss select by (metis le_supE subset_iff)
-  then have "\<forall>i < n. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> CA'' \<cdot> \<eta>c'' = (CAs ! i) \<and> S CA'' \<cdot> \<eta>c'' = S_M S M (CAs ! i)"
-    using n by auto
+  then have "\<forall>i < n. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> CA'' \<cdot> \<eta>c'' = (CAs ! i) \<and> S CA'' \<cdot> \<eta>c'' = S_M S M (CAs ! i) \<and> is_ground_subst \<eta>c''"
+    using n by force
   then obtain \<eta>s''f CAs''f where f_p:
     "\<forall>i < n. CAs''f i \<in> M"
     "\<forall>i < n. (CAs''f i) \<cdot> (\<eta>s''f i) = (CAs ! i)"
     "\<forall>i < n. S (CAs''f i)  \<cdot> (\<eta>s''f i) = S_M S M (CAs ! i)"
+    "\<forall>i < n. is_ground_subst (\<eta>s''f i)"
     using n by metis
 
   define \<eta>s'' where "\<eta>s'' = map \<eta>s''f [0 ..<n]"
@@ -614,11 +615,15 @@ proof (cases rule: ord_resolve.cases)
     unfolding CAs''_def \<eta>s''_def using f_p(2)  by (auto simp: n intro: nth_equalityI)
   have SCAs''_to_SMCAs: "(map S CAs'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAs"
     unfolding CAs''_def \<eta>s''_def using f_p(3) n by (force intro: nth_equalityI)
+  have sub_ground: "\<forall>\<eta>c'' \<in> set \<eta>s''. is_ground_subst \<eta>c''"
+    unfolding \<eta>s''_def using f_p n by auto
+  then have "is_ground_subst_list \<eta>s''"
+    using n unfolding is_ground_subst_list_def by auto
 
   -- \<open>Obtain FO main premise\<close>
-  have "\<exists>DA'' \<eta>''. DA'' \<in> M \<and> DA = DA'' \<cdot> \<eta>'' \<and> S DA'' \<cdot> \<eta>'' = S_M S M DA"
+  have "\<exists>DA'' \<eta>''. DA'' \<in> M \<and> DA = DA'' \<cdot> \<eta>'' \<and> S DA'' \<cdot> \<eta>'' = S_M S M DA \<and> is_ground_subst \<eta>''"
     using grounding S_M_grounding_of_clss select by (metis le_supE singletonI subsetCE)
-  then obtain DA'' \<eta>'' where DA''_\<eta>''_p: "DA'' \<in> M \<and> DA = DA'' \<cdot> \<eta>'' \<and> S DA'' \<cdot> \<eta>'' = S_M S M DA"
+  then obtain DA'' \<eta>'' where DA''_\<eta>''_p: "DA'' \<in> M \<and> DA = DA'' \<cdot> \<eta>'' \<and> S DA'' \<cdot> \<eta>'' = S_M S M DA \<and> is_ground_subst \<eta>''"
     by auto
   -- \<open>The properties we need of the FO main premise\<close>
   have DA''_in_M: "DA'' \<in> M"
@@ -627,49 +632,11 @@ proof (cases rule: ord_resolve.cases)
     using DA''_\<eta>''_p by auto
   have SDA''_to_SMDA: "S DA'' \<cdot> \<eta>'' = S_M S M DA"
     using DA''_\<eta>''_p by auto
-
-  -- \<open>Obtain ground substitutions\<close>
-
-  have "is_ground_cls_list (CAs'' \<cdot>\<cdot>cl \<eta>s'')"
-    using CAs''_to_CAs grounding grounding_ground is_ground_cls_list_def by auto
-  then obtain \<eta>s''g where \<eta>s''g_p:
-    "is_ground_subst_list \<eta>s''g"
-    "length \<eta>s''g = n"
-    "\<forall>i<n. \<forall>S. S \<subseteq># CAs'' ! i \<longrightarrow> S \<cdot> \<eta>s'' ! i = S \<cdot> \<eta>s''g ! i"
-    using make_ground_subst_list_clauses[of CAs'' \<eta>s''] n by metis
-
-  note n = \<open>length \<eta>s''g = n\<close> n
-
-  from \<eta>s''g_p have CAs''_to_CAs: "CAs'' \<cdot>\<cdot>cl \<eta>s''g = CAs"
-    using CAs''_to_CAs n by (auto intro: nth_equalityI)
-
-  {
-    fix i
-    assume a: "i<n"
-    then have "(map S CAs'' \<cdot>\<cdot>cl \<eta>s'') ! i = (map (S_M S M) CAs) ! i"
-      using SCAs''_to_SMCAs by (simp add: nth_equalityI)
-    then have "((map S CAs'') \<cdot>\<cdot>cl \<eta>s''g) ! i = (map (S_M S M) CAs) ! i"
-      using \<eta>s''g_p S.S_selects_subseteq a n by auto
-  }
-  then have SCAs''_to_SMCAs: "(map S CAs'') \<cdot>\<cdot>cl \<eta>s''g = map (S_M S M) CAs"
-    using n by (auto intro: nth_equalityI)
-
-  have "is_ground_cls (DA'' \<cdot> \<eta>'')"
-    using DA''_to_DA grounding grounding_ground by auto
-  then obtain \<eta>''g where \<eta>''g_p:
-    "is_ground_subst \<eta>''g"
-    "\<forall>S. S \<subseteq># DA'' \<longrightarrow> S \<cdot> \<eta>'' = S \<cdot> \<eta>''g"
-    using DA''_to_DA make_single_ground_subst by metis
-
-  have DA''_to_DA: "DA'' \<cdot> \<eta>''g = DA"
-    using DA''_\<eta>''_p \<eta>''g_p by auto
-  have SDA''_to_SMDA: "S DA'' \<cdot> \<eta>''g = S_M S M DA"
-    using SDA''_to_SMDA \<eta>''g_p S.S_selects_subseteq by auto
-
+  have "is_ground_subst \<eta>''"
+    using DA''_\<eta>''_p by auto
   show ?thesis
-    using that DA''_in_M DA''_to_DA SDA''_to_SMDA CAs''_in_M CAs''_to_CAs SCAs''_to_SMCAs n
-      \<eta>''g_p \<eta>s''g_p
-    by auto
+    using that[OF n(2) n(1) DA''_in_M  DA''_to_DA SDA''_to_SMDA CAs''_in_M CAs''_to_CAs SCAs''_to_SMCAs \<open>is_ground_subst \<eta>''\<close> \<open>is_ground_subst_list \<eta>s''\<close>]
+      by auto
 qed
 
 lemma ord_resolve_rename_lifting:
