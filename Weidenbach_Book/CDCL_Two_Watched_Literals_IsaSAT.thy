@@ -1,5 +1,5 @@
-theory CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code
-imports CDCL_Two_Watched_Literals_List_Watched_Trail_Code
+theory CDCL_Two_Watched_Literals_IsaSAT
+imports CDCL_Two_Watched_Literals_IsaSAT_CDCL
 begin
 
 lemma distinct_nat_of_uint32[iff]:

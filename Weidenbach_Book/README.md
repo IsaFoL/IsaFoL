@@ -41,8 +41,8 @@ A recent version of the documentation the theory files is also available [here](
 
 * Please install [Isabelle2017](http://isabelle.in.tum.de).
 * Install the [Archive of Formal proofs](https://www.isa-afp.org/using.html) as mentionned
-* To process all the theory files, clone the repository and load ``CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code.thy``, using:
-   ``/path/to/isabelle jedit -d . -l CDCL CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code.thy``
+* To process all the theory files, clone the repository and load ``CDCL_Two_Watched_Literals_IsaSAT.thy``, using:
+   ``/path/to/isabelle jedit -d . -l CDCL CDCL_Two_Watched_Literals_IsaSAT.thy``
    (``-d .`` ensures that Isabelle knows about the sessions of this formalisation, and ``-l CDCL`` means that we build the formalisation on top of CDCL)
   (The whole compilation will take around 30 min).
 
@@ -69,10 +69,10 @@ The code of the SAT solver is in the ``code`` folder. To run it:
 |Theorem 4.2              | ``CDCL_Two_Watched_Literals_Transition_System`` | ``cdcl_twl_stgy_prog_spec``
 |``PCUI_list``            |``CDCL_Two_Watched_Literals_List``  |  ``unit_propagation_inner_loop_body_l``
 |``PCUI_wlist``           |``CDCL_Two_Watched_Literals_List_Watched``| ``unit_propagation_inner_loop_body_wl``	
-|Theorem 7.1              | ``CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code`` | ``IsaSAT_code_full_correctness``
+|Theorem 7.1              | ``CDCL_Two_Watched_Literals_IsaSAT`` | ``IsaSAT_code_full_correctness``
 | VMTF                    | ``CDCL_Two_Watched_Literals_VMTF`` |  ``l_vmtf``
 |``find_next_undef``      | ``CDCL_Two_Watched_Literals_VMTF`` |  ``find_next_undef``
-|``conflict_is_empty_lookup``| ``CDCL_Two_Watched_Literals_List_Conflict_Assn`` | ``conflict_assn_is_empty``
+|``conflict_is_empty_lookup``| ``CDCL_Two_Watched_Literals_Lookup_Conflict`` | ``conflict_assn_is_empty``
 
 ### A Verified SAT Solver Framework with Learn, Forget, Restart, and Incrementality, submitted to JAR ###
 
@@ -93,7 +93,7 @@ The code of the SAT solver is in the ``code`` folder. To run it:
 |Theorem 7                |  ``DPLL_W``                       |   ``dpll\<^sub>W_conclusive_state_correctness``
 |Theorem 8                |  ``DPLL_W``                       |   ``dpll\<^sub>W_dpll\<^sub>N\<^sub>O\<^sub>T``
 |``CDCL_W``               |  ``CDCL_W``                       |   ``CDCL\<^sub>W`` [3]
-|``cdcl_W+stgy``          |  ``CDCL_W``                       |   ``cdcl<^sub>W_s``
+|``cdcl_W+stgy``          |  ``CDCL_W``                       |   ``cdcl\<^sub>W_s``
 |Theorem 9                |  ``CDCL_W``                       |   ``full_cdcl\<^sub>W_stgy_final_state_conclusive_from_init_state``
 |Theorem 10               |  ``CDCL_W_Termination``           |   ``cdcl\<^sub>W_stgy_distinct_mset_clauses``
 |``cdcl_W_merge``         |  ``CDCL_W_Merge``                 |   ``cdcl<^sub>W_merge``
@@ -107,12 +107,12 @@ The code of the SAT solver is in the ``code`` folder. To run it:
 |Theorem 13               | ``CDCL_Two_Watched_Literals_Transition_System`` | ``full_cdcl_twl_stgy_cdclW_stgy``
 |``propagate_conflict_update_ignore``|``CDCL_Two_Watched_Literals_Algorithm``| ``unit_propagation_inner_loop_body``	
 |Theorem 14               | ``CDCL_Two_Watched_Literals_Transition_System`` | ``cdcl_twl_stgy_prog_spec``
-|Theorem 15               | ``CDCL_Two_Watched_Literals_List_Watched_Init_Trail_Code`` | ``IsaSAT_code_full_correctness``
-|``polarity_list_pair``    | ``CDCL_Two_Watched_Literals_List_Watched_Trail_Code`` | `` polarity``
-|``trail_list_pair_trail_ref`` | ``CDCL_Two_Watched_Literals_List_Watched_Trail_Code`` | ``trailt_ref``
+|Theorem 15               | ``CDCL_Two_Watched_Literals_IsaSAT`` | ``IsaSAT_code_full_correctness``
+|``polarity_list_pair``    | ``CDCL_Two_Watched_Literals_IsaSAT_CDCL`` | `` polarity``
+|``trail_list_pair_trail_ref`` | ``CDCL_Two_Watched_Literals_IsaSAT_CDCL`` | ``trailt_ref``
 |``lit_assn``             |``CDCL_Two_Watched_Literals_List_Watched_Domain``|``unat_lit_assn``
-|``trail_list_pair_assn`` | ``CDCL_Two_Watched_Literals_List_Watched_Trail_Code`` | ``trail_conc``
-|``polarity_code`` correctness |``CDCL_Two_Watched_Literals_List_Watched_Trail_Code`` | ``polarity_code_valued_refine_code`` [4]
+|``trail_list_pair_assn`` | ``CDCL_Two_Watched_Literals_IsaSAT_CDCL`` | ``trail_conc``
+|``polarity_code`` correctness |``CDCL_Two_Watched_Literals_IsaSAT_CDCL`` | ``polarity_code_valued_refine_code`` [4]
 
 [1] More precisely, the type synonym ``('v, 'mark) ann_lit`` corresponds to what
 is defined in the paper. ``('v, 'w, 'mark) annotated_lit`` is slightly more
