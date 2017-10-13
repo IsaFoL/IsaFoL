@@ -39,7 +39,7 @@ subsection \<open>Library\<close>
 (* FIXME: Where do we want these lemmas? *)
 lemma (in linorder) set_sorted_list_of_multiset[simp]:
   "set (sorted_list_of_multiset M) = set_mset M"
-  by (induct M) (simp_all add: local.set_insort_key)
+  by (induct M) (simp_all add: set_insort_key)
 
 lemma (in linorder) multiset_mset_sorted_list_of_multiset[simp]:
   "mset (sorted_list_of_multiset M) = M"
@@ -443,9 +443,8 @@ The following corresponds to Lemma 4.12:
 \<close>
 
 lemma map2_add_mset_map:
-  assumes "length AAs' = n"
-  assumes "length As' = n"
-  shows "(map2 add_mset (As' \<cdot>al \<eta>) (AAs' \<cdot>aml \<eta>)) = (map2 add_mset As' AAs' \<cdot>aml \<eta>)"
+  assumes "length AAs' = n" and "length As' = n"
+  shows "map2 add_mset (As' \<cdot>al \<eta>) (AAs' \<cdot>aml \<eta>) = map2 add_mset As' AAs' \<cdot>aml \<eta>"
   using assms
 proof (induction n arbitrary: AAs' As')
   case (Suc n)
@@ -525,21 +524,22 @@ proof -
 qed
 
 lemma ground_resolvent_subset:
-  assumes gr_cas: "is_ground_cls_list CAs"
-  assumes gr_da: "is_ground_cls DA"
-  assumes resolve: "ord_resolve S CAs DA \<sigma> E"
+  assumes
+    gr_cas: "is_ground_cls_list CAs" and
+    gr_da: "is_ground_cls DA" and
+    resolve: "ord_resolve S CAs DA \<sigma> E"
   shows "E \<subseteq># (\<Union># mset CAs) + DA"
   using resolve
 proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Cs AAs As D)
-  then have "\<forall>i<n.  Cs ! i \<subseteq># CAs ! i "
+  then have "\<forall>i < n.  Cs ! i \<subseteq># CAs ! i "
     by auto
   then have cs_sub_cas: "\<Union># mset Cs \<subseteq># \<Union># mset CAs"
-    using subseteq_list_Union_mset ord_resolve(3) ord_resolve(4) by force
+    using subseteq_list_Union_mset ord_resolve(3,4) by force
   then have gr_cs: "is_ground_cls_list Cs"
     using gr_cas by simp
   have d_sub_da: "D \<subseteq># DA"
-    by (simp add: local.ord_resolve(1))
+    by (simp add: ord_resolve(1))
   then have gr_d: "is_ground_cls D"
     using gr_da is_ground_cls_mono by auto
 
@@ -818,7 +818,7 @@ proof (cases rule: ord_resolve.cases)
     then obtain As' where As'_p: "As' \<cdot>al \<eta> = As \<and> (negs (mset As')) \<subseteq># DA' \<and> (S_M S M (D + negs (mset As)) \<noteq> {#} \<longrightarrow> negs (mset As') = S DA')"
       by blast
     then have "length As' = n"
-      using local.ord_resolve(6) by auto
+      using ord_resolve(6) by auto
     note n = n \<open>length As' = n\<close>
 
     have "As' \<cdot>al \<eta> = As"

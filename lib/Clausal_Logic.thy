@@ -8,7 +8,7 @@
 section \<open>Clausal Logic\<close>
 
 theory Clausal_Logic
-imports "Nested_Multisets_Ordinals.Multiset_More"
+imports Nested_Multisets_Ordinals.Multiset_More
 begin
 
 text \<open>
@@ -95,8 +95,7 @@ instantiation literal :: (order) order
 begin
 
 instance
-  apply intro_classes
-  unfolding less_eq_literal_def by (auto intro: literal.expand)
+  by intro_classes (auto simp: less_eq_literal_def intro: literal.expand)
 
 end
 
