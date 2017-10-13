@@ -1941,7 +1941,7 @@ lemma (in -) true_clss_cls_empty_empty[iff]:
   \<open>{} \<Turnstile>p {#} \<longleftrightarrow> False\<close>
   unfolding true_clss_cls_def consistent_interp_def by auto
 
-lemma full_cdcl\<^sub>W_init_state[iff]:
+lemma full_cdcl\<^sub>W_init_state:
   \<open>full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state {#}) S \<longleftrightarrow> S = init_state {#}\<close>
   unfolding full_def rtranclp_unfold
   by (subst tranclp_unfold_begin)
@@ -2367,8 +2367,8 @@ proof -
        SAT_wl x \<le> \<Down> TWL_to_clauses_state_conv (SAT y)\<close> for x y
     using cdcl_twl_stgy_prog_wl_spec_final2[unfolded fref_def nres_rel_def] by simp
   have [simp]: \<open>SAT {#} = SPEC (\<lambda>U. U = init_state {#})\<close>
-    unfolding SAT_def Let_def
-    by (auto simp:)
+    using full_cdcl\<^sub>W_init_state unfolding SAT_def Let_def
+    by auto
   have SAT': \<open>SAT' CS =
        do {
         ASSERT(True);ASSERT(True);
