@@ -3427,12 +3427,6 @@ qed
 definition (in -) get_max_lvl_st :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
   \<open>get_max_lvl_st S L = get_maximum_level_remove (get_trail_wl S) (the (get_conflict_wl S)) L\<close>
 
-lemma (in -) get_max_lvl_st_alt_def:
-  \<open>get_max_lvl_st = (\<lambda>(M, N, U, D, _) L. get_maximum_level_remove M (the D) L)\<close>
-  unfolding get_max_lvl_st_def
-  by (intro ext, rename_tac S L, case_tac S) auto
-
-
 type_synonym (in -) twl_st_wl_int_conflict =
   \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times> nat \<times>
     (bool \<times> nat \<times> bool option list) \<times> nat literal multiset \<times> nat list list \<times> vmtf_remove_int \<times>
@@ -6818,7 +6812,6 @@ qed
 
 
 lemma conflict_to_conflict_with_cls_code_helper:
-  \<open>zero_uint32_nat < upperN div 2\<close>
   \<open>a1'b < upperN div 2 \<Longrightarrow> a1'b + one_nat_uint32 < upperN\<close>
   \<open> 0 < a1'c \<Longrightarrow> one_nat_uint32 \<le> a1'c\<close>
   \<open>fast_minus a1'c one_nat_uint32  = a1'c - 1\<close>
