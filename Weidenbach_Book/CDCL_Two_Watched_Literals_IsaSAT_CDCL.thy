@@ -5409,7 +5409,7 @@ proof -
     have \<open>mset ` set (take U (tl N)) \<union> set_mset NP \<union>
         (mset ` set (drop (Suc U) N) \<union> set_mset UP) \<Turnstile>p the D\<close>
       using that(2-) learned
-      by (auto clauses_def mset_take_mset_drop_mset'
+      by (auto simp: clauses_def mset_take_mset_drop_mset'
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
     moreover have \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of ?S) \<Turnstile>pm
         filter_mset (\<lambda>L. get_level (trail (state\<^sub>W_of ?S)) L > 0) (the (conflicting (state\<^sub>W_of ?S)))\<close>
