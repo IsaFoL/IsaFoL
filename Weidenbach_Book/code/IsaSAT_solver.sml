@@ -2559,24 +2559,25 @@ fun isaSAT_code x =
   (fn xi => fn () =>
     let
       val xa = extract_atms_clss_imp_empty_assn ();
-      val x_b = extract_atms_clss_imp_list_assn xi xa ();
-      val x_d = init_state_wl_D_code x_b ();
-      val x_f = init_dt_wl_code xi x_d ();
-      val x_g = get_conflict_wl_is_None_int_code x_f ();
+      val xb = extract_atms_clss_imp_list_assn xi xa ();
+      val x_b = init_state_wl_D_code xb ();
+      val x_d = init_dt_wl_code xi x_b ();
+      val xc = get_conflict_wl_is_None_int_code x_d ();
     in
-      (if x_g
-        then (fn f_ => fn () => f_
-               ((cdcl_twl_stgy_prog_wl_D_code (finalise_init x_f)) ()) ())
-               (fn x_j =>
-                 (fn f_ => fn () => f_ ((get_conflict_wl_is_None_int_code x_j)
-                   ()) ())
-                   (fn x_k =>
-                     (if x_k
-                       then (fn f_ => fn () => f_
-                              ((extract_model_of_state_code x_j) ()) ())
-                              (fn x_l => (fn () => (SOME x_l)))
-                       else (fn () => NONE))))
-        else (fn () => NONE))
+      (if not xc then (fn () => NONE)
+        else (if op_list_is_empty xi then (fn () => (SOME []))
+               else (fn f_ => fn () => f_
+                      ((cdcl_twl_stgy_prog_wl_D_code (finalise_init x_d)) ())
+                      ())
+                      (fn x_i =>
+                        (fn f_ => fn () => f_
+                          ((get_conflict_wl_is_None_int_code x_i) ()) ())
+                          (fn x_j =>
+                            (if x_j
+                              then (fn f_ => fn () => f_
+                                     ((extract_model_of_state_code x_i) ()) ())
+                                     (fn x_k => (fn () => (SOME x_k)))
+                              else (fn () => NONE))))))
         ()
     end)
     x;
