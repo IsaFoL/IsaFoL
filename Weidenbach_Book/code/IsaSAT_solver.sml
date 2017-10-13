@@ -818,7 +818,7 @@ fun arrayO_ara_empty_sz_code (A1_, A2_) =
 
 fun conflict_assn_is_None x = (fn (b, (_, _)) => b) x;
 
-fun get_conflict_wl_is_None_int_code x =
+fun get_conflict_wl_is_None_code x =
   (fn xi => (fn () => let
                         val (_, (_, (_, (a1c, (_, (_, _)))))) = xi;
                       in
@@ -826,7 +826,7 @@ fun get_conflict_wl_is_None_int_code x =
                       end))
     x;
 
-fun select_and_remove_from_literals_to_update_wl_int_code x =
+fun select_and_remove_from_literals_to_update_wl_code x =
   (fn xi =>
     (fn () =>
       let
@@ -837,7 +837,7 @@ fun select_and_remove_from_literals_to_update_wl_int_code x =
       end))
     x;
 
-fun access_lit_in_clauses_int_code x =
+fun access_lit_in_clauses_heur_code x =
   (fn ai => fn bia => fn bi => let
                                  val (_, (a1a, _)) = ai;
                                in
@@ -850,7 +850,7 @@ fun is_pos_code l =
 
 fun atm_of_code l = shiftr_uint32 l one_nat;
 
-fun polarity_code x =
+fun polarity_pol_code x =
   (fn ai => fn bi =>
     let
       val (_, (a1a, (_, _))) = ai;
@@ -865,7 +865,7 @@ fun polarity_code x =
     end)
     x;
 
-fun find_unwatched_wl_s_int_code x =
+fun find_unwatched_wl_st_heur_code x =
   (fn ai => fn bi =>
     let
       val (a1, (a1a, (_, (_, (_, (_, (_, _))))))) = ai;
@@ -880,7 +880,7 @@ fun find_unwatched_wl_s_int_code x =
               (fn (_, a2g) =>
                 (fn f_ => fn () => f_ ((nth_raa heap_uint32 a1a bi a2g) ()) ())
                   (fn xa =>
-                    (fn f_ => fn () => f_ ((polarity_code a1 xa) ()) ())
+                    (fn f_ => fn () => f_ ((polarity_pol_code a1 xa) ()) ())
                       (fn x_a =>
                         (fn () =>
                           (case x_a of NONE => (SOME a2g, a2g)
@@ -907,6 +907,8 @@ fun is_in_conflict_code x =
     end)
     x;
 
+fun count_decided_pol x = (fn (_, (_, (_, k))) => k) x;
+
 fun get_level_atm_code x =
   (fn ai => fn bi => let
                        val (_, (_, (a1b, _))) = ai;
@@ -918,7 +920,7 @@ fun get_level_atm_code x =
 fun get_level_code x =
   (fn ai => fn bi => get_level_atm_code ai (atm_of_code bi)) x;
 
-fun conflict_merge_code x =
+fun lookup_conflict_merge_code x =
   (fn ai => fn bic => fn bib => fn bia => fn bi =>
     let
       val (_, a2) = bia;
@@ -941,11 +943,8 @@ fun conflict_merge_code x =
                             (fn f_ => fn () => f_ ((is_in_conflict_code a2b xaa)
                               ()) ())
                               (fn xab =>
-                                (if ((xb : Word32.word) = let
-                    val (_, (_, (_, k))) = ai;
-                  in
-                    k
-                  end) andalso
+                                (if ((xb : Word32.word) = (count_decided_pol
+                    ai)) andalso
                                       not xab
                                   then (fn f_ => fn () => f_
  (let
@@ -1009,11 +1008,11 @@ fun conflict_merge_code x =
     end)
     x;
 
-fun mark_conflict_wl_int_code x =
+fun set_conflict_wl_int_code x =
   (fn ai => fn (a1, (a1a, (a1b, (a1c, (_, (a1e, (a1f, (a1g, _)))))))) =>
     fn () =>
     let
-      val a = conflict_merge_code a1 a1a ai a1c (Word32.fromInt 0) ();
+      val a = lookup_conflict_merge_code a1 a1a ai a1c (Word32.fromInt 0) ();
     in
       let
         val (a1h, a2h) = a;
@@ -1022,6 +1021,14 @@ fun mark_conflict_wl_int_code x =
       end
         ()
     end)
+    x;
+
+fun watched_by_app_heur_code x =
+  (fn ai => fn bia => fn bi => let
+                                 val (_, (_, (_, (_, (_, (a1e, _)))))) = ai;
+                               in
+                                 nth_aa_u heap_nat a1e bia bi
+                               end)
     x;
 
 fun array_upd_u A_ i x a =
@@ -1064,7 +1071,7 @@ fun delete_index_and_swap_aa_u A_ xs i j =
               set_butlast_aa_u A_ xsa i ()
             end);
 
-fun update_clause_wl_int_code x =
+fun update_clause_wl_code x =
   (fn ai => fn bid => fn bic => fn bib => fn bia =>
     fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, a2e)))))) => fn () =>
     let
@@ -1076,6 +1083,13 @@ fun update_clause_wl_int_code x =
       (bic, (a1, (x_b, (a1b, (a1c, (a1d, (xb, a2e)))))))
     end)
     x;
+
+fun polarity_st_heur_code x = (fn ai => fn bi => let
+           val (a1, _) = ai;
+         in
+           polarity_pol_code a1 bi
+         end)
+                                x;
 
 fun propagated l c = (l, SOME c);
 
@@ -1093,7 +1107,7 @@ fun cons_trail_Propagated_tr_code x =
 
 fun uminus_code l = Word32.xorb (l, (Word32.fromInt 1));
 
-fun propgate_lit_wl_int_code x =
+fun propgate_lit_wl_code x =
   (fn ai => fn bia => fn (a1, (a1a, (a1b, (a1c, (a1d, a2d))))) => fn () =>
     let
       val xa = cons_trail_Propagated_tr_code ai bia a1 ();
@@ -1102,59 +1116,43 @@ fun propgate_lit_wl_int_code x =
     end)
     x;
 
-fun watched_by_app_int_code x =
-  (fn ai => fn bia => fn bi => let
-                                 val (_, (_, (_, (_, (_, (a1e, _)))))) = ai;
-                               in
-                                 nth_aa_u heap_nat a1e bia bi
-                               end)
-    x;
-
-fun valued_st_int_code x = (fn ai => fn bi => let
-        val (a1, _) = ai;
-      in
-        polarity_code a1 bi
-      end)
-                             x;
-
 fun unit_propagation_inner_loop_body_wl_D_code x =
   (fn ai => fn bia => fn bi => fn () =>
     let
-      val xa = watched_by_app_int_code bi ai bia ();
-      val xaa = access_lit_in_clauses_int_code bi xa zero_nata ();
+      val xa = watched_by_app_heur_code bi ai bia ();
+      val xaa = access_lit_in_clauses_heur_code bi xa zero_nata ();
     in
       let
         val x_b = (if ((xaa : Word32.word) = ai) then zero_nata else one_nat);
       in
         (fn f_ => fn () => f_
-          ((access_lit_in_clauses_int_code bi xa (minus_nat one_nat x_b)) ())
+          ((access_lit_in_clauses_heur_code bi xa (minus_nat one_nat x_b)) ())
           ())
           (fn x_d =>
-            (fn f_ => fn () => f_ ((valued_st_int_code bi x_d) ()) ())
+            (fn f_ => fn () => f_ ((polarity_st_heur_code bi x_d) ()) ())
               (fn x_f =>
                 (if equal_option equal_bool x_f (SOME true)
                   then (fn () => (plus_nat bia one_nat, bi))
                   else (fn f_ => fn () => f_
-                         ((find_unwatched_wl_s_int_code bi xa) ()) ())
+                         ((find_unwatched_wl_st_heur_code bi xa) ()) ())
                          (fn a =>
                            (case a
                              of NONE =>
                                (if equal_option equal_bool x_f (SOME false)
                                  then (fn f_ => fn () => f_
-((mark_conflict_wl_int_code xa bi) ()) ())
+((set_conflict_wl_int_code xa bi) ()) ())
 (fn x_l => (fn () => (plus_nat bia one_nat, x_l)))
                                  else (fn f_ => fn () => f_
-((propgate_lit_wl_int_code x_d xa bi) ()) ())
+((propgate_lit_wl_code x_d xa bi) ()) ())
 (fn x_l => (fn () => (plus_nat bia one_nat, x_l))))
                              | SOME x_j =>
-                               update_clause_wl_int_code ai xa bia x_b x_j
-                                 bi)))))
+                               update_clause_wl_code ai xa bia x_b x_j bi)))))
       end
         ()
     end)
     x;
 
-fun length_ll_fs_int_code x =
+fun length_ll_fs_heur_code x =
   (fn ai => fn bi => let
                        val (_, (_, (_, (_, (_, (a1e, _)))))) = ai;
                      in
@@ -1165,13 +1163,12 @@ fun length_ll_fs_int_code x =
 fun unit_propagation_inner_loop_wl_loop_D_code x =
   (fn ai => fn bi =>
     heap_WHILET
-      (fn (a1, a2) => fn () =>
-        let
-          val xa = length_ll_fs_int_code a2 ai ();
-          val x_b = get_conflict_wl_is_None_int_code a2 ();
-        in
-          less_nat a1 xa andalso x_b
-        end)
+      (fn (a1, a2) => fn () => let
+                                 val xa = length_ll_fs_heur_code a2 ai ();
+                                 val x_b = get_conflict_wl_is_None_code a2 ();
+                               in
+                                 less_nat a1 xa andalso x_b
+                               end)
       (fn (a, b) => unit_propagation_inner_loop_body_wl_D_code ai a b)
       (zero_nata, bi))
     x;
@@ -1185,7 +1182,7 @@ fun unit_propagation_inner_loop_wl_D_code x =
     end)
     x;
 
-fun literals_to_update_wl_int_empty_code x =
+fun literals_to_update_wl_empty_heur_code x =
   (fn xi => (fn () => let
                         val (_, (_, (_, (_, (a1d, (_, _)))))) = xi;
                       in
@@ -1196,13 +1193,13 @@ fun literals_to_update_wl_int_empty_code x =
 fun unit_propagation_outer_loop_wl_D x =
   heap_WHILET
     (fn s => fn () => let
-                        val xa = literals_to_update_wl_int_empty_code s ();
+                        val xa = literals_to_update_wl_empty_heur_code s ();
                       in
                         not xa
                       end)
     (fn s => fn () =>
       let
-        val a = select_and_remove_from_literals_to_update_wl_int_code s ();
+        val a = select_and_remove_from_literals_to_update_wl_code s ();
       in
         let
           val (a1, a2) = a;
@@ -1216,13 +1213,12 @@ fun unit_propagation_outer_loop_wl_D x =
 fun get_count_max_lvls_code x =
   (fn (_, (_, (_, (_, (_, (_, (_, (_, clvls)))))))) => clvls) x;
 
-fun count_decided_st_code x =
-  (fn xi => (fn () => let
-                        val ((_, (_, (_, k))), _) = xi;
-                      in
-                        k
-                      end))
-    x;
+fun count_decided_st_code x = (fn xi => (fn () => let
+            val (a1, _) = xi;
+          in
+            count_decided_pol a1
+          end))
+                                x;
 
 fun maximum_level_removed_eq_count_dec_code x =
   (fn _ => fn bi => fn () =>
@@ -1236,7 +1232,7 @@ fun maximum_level_removed_eq_count_dec_code x =
 
 fun hd_trail_code x = (fn (m, _) => hd m) x;
 
-fun lit_and_ann_of_propagated_st_int_code x =
+fun lit_and_ann_of_propagated_st_heur_code x =
   (fn xi => (fn () => let
                         val (a1, _) = xi;
                       in
@@ -1244,7 +1240,7 @@ fun lit_and_ann_of_propagated_st_int_code x =
                       end))
     x;
 
-fun is_in_conflict_option_assn_code x =
+fun is_in_lookup_option_conflict_code x =
   (fn ai => fn (_, (_, a2a)) => fn () =>
     let
       val xa = (fn () => Array.sub (a2a, Word32.toInt (atm_of_code ai))) ();
@@ -1253,15 +1249,10 @@ fun is_in_conflict_option_assn_code x =
     end)
     x;
 
-fun literal_is_in_conflict_int_code x =
+fun literal_is_in_conflict_heur_code x =
   (fn ai => fn (_, (_, (_, (a1c, _)))) =>
-    is_in_conflict_option_assn_code ai a1c)
+    is_in_lookup_option_conflict_code ai a1c)
     x;
-
-fun is_decided_wl_code x = (fn xi => (fn () => (is_None (snd xi)))) x;
-
-fun is_decided_hd_trail_wl_int_code x =
-  (fn (a1, _) => is_decided_wl_code (hd_trail_code a1)) x;
 
 fun conflict_assn_is_empty (B1_, B2_) = (fn (_, (n, _)) => eq B2_ n (zero B1_));
 
@@ -1275,6 +1266,11 @@ fun get_conflict_wll_is_Nil_code x =
           else conflict_assn_is_empty (zero_uint32, equal_uint32) a1c)
       end))
     x;
+
+fun is_decided_wl_code x = (fn xi => (fn () => (is_None (snd xi)))) x;
+
+fun is_decided_hd_trail_wl_code x =
+  (fn (a1, _) => is_decided_wl_code (hd_trail_code a1)) x;
 
 fun stamp (VMTF_Node (x1, x2, x3)) = x1;
 
@@ -1372,7 +1368,7 @@ fun update_confl_tl_wl_code x =
              end)
       else (fn () =>
              let
-               val a = conflict_merge_code a1 a1a ai a1c a2g ();
+               val a = lookup_conflict_merge_code a1 a1a ai a1c a2g ();
              in
                let
                  val (a1h, a2h) = a;
@@ -1407,7 +1403,7 @@ fun update_confl_tl_wl_code x =
              end)))
     x;
 
-fun tl_state_wl_int_code x =
+fun tl_state_wl_heur_code x =
   (fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f, (a1g, a2g)))))))) =>
     let
       val xa = fst (hd_trail_code a1);
@@ -1453,20 +1449,20 @@ fun skip_and_resolve_loop_wl_D_code x =
         heap_WHILET
           (fn (a1, a2) =>
             (if not a1
-              then (fn f_ => fn () => f_ ((is_decided_hd_trail_wl_int_code a2)
-                     ()) ())
+              then (fn f_ => fn () => f_ ((is_decided_hd_trail_wl_code a2) ())
+                     ())
                      (fn x_b => (fn () => (not x_b)))
               else (fn () => false)))
           (fn (_, a2) =>
-            (fn f_ => fn () => f_ ((lit_and_ann_of_propagated_st_int_code a2)
+            (fn f_ => fn () => f_ ((lit_and_ann_of_propagated_st_heur_code a2)
               ()) ())
               (fn (a1a, a2a) =>
                 (fn f_ => fn () => f_
-                  ((literal_is_in_conflict_int_code (uminus_code a1a) a2) ())
+                  ((literal_is_in_conflict_heur_code (uminus_code a1a) a2) ())
                   ())
                   (fn xb =>
                     (if not xb
-                      then (fn f_ => fn () => f_ ((tl_state_wl_int_code a2) ())
+                      then (fn f_ => fn () => f_ ((tl_state_wl_heur_code a2) ())
                              ())
                              (fn x_e => (fn () => (false, x_e)))
                       else (fn f_ => fn () => f_
@@ -1587,7 +1583,7 @@ fun cons_trail_Decided_tr_code x =
     end)
     x;
 
-fun decide_lit_wl_int_code x =
+fun decide_lit_wl_code x =
   (fn ai => fn (a1, (a1a, (a1b, (a1c, (_, a2d))))) => fn () =>
     let
       val xa = cons_trail_Decided_tr_code ai a1 ();
@@ -1603,7 +1599,7 @@ fun decide_wl_or_skip_D_code x =
     in
       (case a of (a1, NONE) => (fn () => (true, a1))
         | (a1, SOME x_a) =>
-          (fn f_ => fn () => f_ ((decide_lit_wl_int_code x_a a1) ()) ())
+          (fn f_ => fn () => f_ ((decide_lit_wl_code x_a a1) ()) ())
             (fn x_c => (fn () => (false, x_c))))
         ()
     end)
@@ -2015,13 +2011,7 @@ fun find_decomp_wl_imp_code x =
                                 (atm_of_code (fst (hd_trail_code a1a))) a2a)
                              ()) ())
                              (fn xaa => (fn () => (a1, (xb, xaa))))))))
-          (let
-             val (_, (_, (_, k))) = ai;
-           in
-             k
-           end,
-            (ai, bi))
-          ();
+          (count_decided_pol ai, (ai, bi)) ();
     in
       let
         val (_, aa) = a;
@@ -2258,7 +2248,7 @@ fun backtrack_wl_D_code x =
 fun cdcl_twl_o_prog_wl_D_code x =
   (fn xi => fn () =>
     let
-      val xa = get_conflict_wl_is_None_int_code xi ();
+      val xa = get_conflict_wl_is_None_code xi ();
     in
       (if xa then decide_wl_or_skip_D_code xi
         else (fn f_ => fn () => f_ ((skip_and_resolve_loop_wl_D_code xi) ()) ())
@@ -2529,14 +2519,15 @@ fun add_init_cls_code x =
 fun init_dt_step_wl_code x =
   (fn ai => fn bi => fn () =>
     let
-      val xa = get_conflict_wl_is_None_int_code bi ();
+      val xa = get_conflict_wl_is_None_code bi ();
     in
       (if xa
         then (if equal_nat (op_list_length ai) one_nat
                then let
                       val x_b = op_list_hd ai;
                     in
-                      (fn f_ => fn () => f_ ((valued_st_int_code bi x_b) ()) ())
+                      (fn f_ => fn () => f_ ((polarity_st_heur_code bi x_b) ())
+                        ())
                         (fn x_d =>
                           (if is_none x_d then propagate_unit_cls_code x_b bi
                             else (if equal_option equal_bool x_d (SOME true)
@@ -2564,7 +2555,7 @@ fun isaSAT_code x =
       val xb = extract_atms_clss_imp_list_assn xi xa ();
       val x_b = init_state_wl_D_code xb ();
       val x_d = init_dt_wl_code xi x_b ();
-      val xc = get_conflict_wl_is_None_int_code x_d ();
+      val xc = get_conflict_wl_is_None_code x_d ();
     in
       (if not xc then (fn () => NONE)
         else (if op_list_is_empty xi then (fn () => (SOME []))
@@ -2573,7 +2564,7 @@ fun isaSAT_code x =
                       ())
                       (fn x_i =>
                         (fn f_ => fn () => f_
-                          ((get_conflict_wl_is_None_int_code x_i) ()) ())
+                          ((get_conflict_wl_is_None_code x_i) ()) ())
                           (fn x_j =>
                             (if x_j
                               then (fn f_ => fn () => f_
