@@ -3128,7 +3128,7 @@ proof -
   then show ?thesis
     using \<L>\<^sub>a\<^sub>l\<^sub>l M' unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
     by (cases a2')
-     (auto image_image mset_take_mset_drop_mset'
+     (auto simp: image_image mset_take_mset_drop_mset'
         in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff clauses_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def)
 qed
 
@@ -5402,7 +5402,7 @@ proof -
       by fast+
     have \<open>M \<Turnstile>as CNot (the D)\<close>
       using confl D unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-      by (auto clauses_def mset_take_mset_drop_mset'
+      by (auto simp: clauses_def mset_take_mset_drop_mset'
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
     then have M_nempty: \<open>M ~= []\<close>
       using D by auto
@@ -5620,18 +5620,18 @@ proof -
     lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of (twl_st_of_wl None (M\<^sub>0, N, U, D, NP, UP, Q, W)))\<close>
     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
   have \<open>distinct_mset (the D)\<close>
-    using D\<^sub>0 dist by (auto mset_take_mset_drop_mset'
+    using D\<^sub>0 dist by (auto simp: mset_take_mset_drop_mset'
         cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def)
   then have dist_D: \<open>distinct_mset (the E)\<close>
     using distinct_mset_mono[OF E_D\<^sub>0] by fast
   have \<open>M\<^sub>0 \<Turnstile>as CNot (the D)\<close>
-    using D\<^sub>0 confl by (auto mset_take_mset_drop_mset'
+    using D\<^sub>0 confl by (auto simp: mset_take_mset_drop_mset'
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def)
   then have M\<^sub>0_CNot_D: \<open>M\<^sub>0 \<Turnstile>as CNot (the E)\<close>
     using E_D\<^sub>0 by (simp add: mset_subset_eqD true_annots_true_cls_def_iff_negation_in_model)
 
   have n_d: \<open>no_dup M\<^sub>0\<close>
-    using lev_inv by (auto mset_take_mset_drop_mset'
+    using lev_inv by (auto simp: mset_take_mset_drop_mset'
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def)
   have \<open>atm_of L \<notin> atms_of (remove1_mset (- L) (the E))\<close>
   proof (rule ccontr)
