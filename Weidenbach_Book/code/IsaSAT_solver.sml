@@ -907,14 +907,16 @@ fun is_in_conflict_code x =
     end)
     x;
 
-fun get_level_code x =
-  (fn ai => fn bi =>
-    let
-      val (_, (_, (a1b, _))) = ai;
-    in
-      (fn () => Array.sub (a1b, Word32.toInt (shiftr_uint32 bi one_nat)))
-    end)
+fun get_level_atm_code x =
+  (fn ai => fn bi => let
+                       val (_, (_, (a1b, _))) = ai;
+                     in
+                       (fn () => Array.sub (a1b, Word32.toInt bi))
+                     end)
     x;
+
+fun get_level_code x =
+  (fn ai => fn bi => get_level_atm_code ai (atm_of_code bi)) x;
 
 fun conflict_merge_code x =
   (fn ai => fn bic => fn bib => fn bia => fn bi =>
@@ -1274,6 +1276,22 @@ fun get_conflict_wll_is_Nil_code x =
       end))
     x;
 
+fun conflict_remove1_code x =
+  (fn ai => fn (a1, a2) => fn () =>
+    let
+      val xa = (fn () => Array.sub (a2, Word32.toInt (atm_of_code ai))) ();
+    in
+      (if is_none xa then (fn () => (a1, a2))
+        else (fn f_ => fn () => f_
+               ((heap_array_set_u (heap_option heap_bool) a2 (atm_of_code ai)
+                  NONE)
+               ()) ())
+               (fn x_b =>
+                 (fn () => (fast_minus_uint32 a1 (Word32.fromInt 1), x_b))))
+        ()
+    end)
+    x;
+
 fun stamp (L_vmtf_ATM (x1, x2, x3)) = x1;
 
 fun vmtf_dump_and_unset_code x =
@@ -1308,22 +1326,6 @@ fun vmtf_dump_and_unset_code x =
           ()) ())
           (fn x_b => (fn () => ((a1a, (a1b, (a1c, a2c))), x_b)))
       end
-        ()
-    end)
-    x;
-
-fun conflict_remove1_code x =
-  (fn ai => fn (a1, a2) => fn () =>
-    let
-      val xa = (fn () => Array.sub (a2, Word32.toInt (atm_of_code ai))) ();
-    in
-      (if is_none xa then (fn () => (a1, a2))
-        else (fn f_ => fn () => f_
-               ((heap_array_set_u (heap_option heap_bool) a2 (atm_of_code ai)
-                  NONE)
-               ()) ())
-               (fn x_b =>
-                 (fn () => (fast_minus_uint32 a1 (Word32.fromInt 1), x_b))))
         ()
     end)
     x;
@@ -1621,17 +1623,13 @@ fun extract_shorter_conflict_list_removed_code x =
                       (Word32.+ (a1b, (Word32.fromInt 1)),
                         (a1c, (a1d, (a1e, a2e)))))
                   | SOME x_b =>
-                    (fn f_ => fn () => f_
-                      ((get_level_code ai (Word32.* ((Word32.fromInt 2), a1b)))
-                      ()) ())
+                    (fn f_ => fn () => f_ ((get_level_atm_code ai a1b) ()) ())
                       (fn xa =>
                         (if Word32.< ((Word32.fromInt 0), xa)
                           then (case a2e
                                  of NONE =>
                                    (fn f_ => fn () => f_
-                                     ((get_level_code ai
-(Word32.* ((Word32.fromInt 2), a1b)))
-                                     ()) ())
+                                     ((get_level_atm_code ai a1b) ()) ())
                                      (fn xb =>
                                        (fn () =>
  (Word32.+ (a1b, (Word32.fromInt 1)),
@@ -1641,13 +1639,10 @@ fun extract_shorter_conflict_list_removed_code x =
                         xb)))))))
                                  | SOME (_, a2f) =>
                                    (fn f_ => fn () => f_
-                                     ((get_level_code ai
-(Word32.* ((Word32.fromInt 2), a1b)))
-                                     ()) ())
+                                     ((get_level_atm_code ai a1b) ()) ())
                                      (fn xb =>
                                        (if Word32.< (a2f, xb)
- then (fn f_ => fn () => f_
-        ((get_level_code ai (Word32.* ((Word32.fromInt 2), a1b))) ()) ())
+ then (fn f_ => fn () => f_ ((get_level_atm_code ai a1b) ()) ())
         (fn xc =>
           (fn () =>
             (Word32.+ (a1b, (Word32.fromInt 1)),
