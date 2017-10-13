@@ -24,12 +24,6 @@ type_synonym twl_st_wll_trail =
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
     uint32\<close>
 
-definition valued_atm_on_trail where
-  \<open>valued_atm_on_trail M L =
-    (if Pos L \<in> lits_of_l M then Some True
-    else if Neg L \<in> lits_of_l M then Some False
-    else None)\<close>
-
 instance al_vmtf_atm :: (heap) heap
 proof intro_classes
   let ?to_pair = \<open>\<lambda>x::'a al_vmtf_atm. (stamp x, get_prev x, get_next x)\<close>
@@ -43,6 +37,15 @@ proof intro_classes
   then show \<open>\<exists>to_nat :: 'a al_vmtf_atm \<Rightarrow> nat. inj to_nat\<close>
     by blast
 qed
+
+definition valued_atm_on_trail where
+  \<open>valued_atm_on_trail M L =
+    (if Pos L \<in> lits_of_l M then Some True
+    else if Neg L \<in> lits_of_l M then Some False
+    else None)\<close>
+
+definition get_level_atm where
+  \<open>get_level_atm M L = get_level M (Pos L)\<close>
 
 context twl_array_code_ops
 begin
@@ -540,60 +543,56 @@ proof -
     using N1 unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_def by blast
 qed
 
+definition get_level_atm_trail :: \<open>trail_int \<Rightarrow> uint32 \<Rightarrow> nat\<close> where
+  \<open>get_level_atm_trail = (\<lambda>(M, xs, lvls, k) L. lvls ! (nat_of_uint32 L))\<close>
 
-definition get_level_trail :: \<open>trail_int \<Rightarrow> uint32 \<Rightarrow> nat\<close> where
-  \<open>get_level_trail = (\<lambda>(M, xs, lvls, k) L. lvls ! (nat_of_uint32 (L >> 1)))\<close>
-
-sepref_thm get_level_code
-  is \<open>uncurry (RETURN oo get_level_trail)\<close>
-  :: \<open>[\<lambda>((M, xs, lvls, k), L). nat_of_uint32 L div 2 < length lvls]\<^sub>a
+sepref_thm get_level_atm_code
+  is \<open>uncurry (RETURN oo get_level_atm_trail)\<close>
+  :: \<open>[\<lambda>((M, xs, lvls, k), L). nat_of_uint32 L < length lvls]\<^sub>a
   trailt_conc\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  unfolding get_level_trail_def nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
+  unfolding get_level_atm_trail_def nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
   nth_u_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) get_level_code
-   uses twl_array_code.get_level_code.refine_raw
+concrete_definition (in -) get_level_atm_code
+   uses twl_array_code.get_level_atm_code.refine_raw
    is \<open>(uncurry ?f, _)\<in>_\<close>
 
-prepare_code_thms (in -) get_level_code_def
+prepare_code_thms (in -) get_level_atm_code_def
 
-lemmas get_level_code_get_level_code[sepref_fr_rules] =
-   get_level_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
+lemmas get_level_atm_code_hnr[sepref_fr_rules] =
+   get_level_atm_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
 
-lemma get_level_code_get_level[sepref_fr_rules]:
-  \<open>(uncurry get_level_code, uncurry (RETURN oo get_level)) \<in>
-   [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a trail_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+lemma get_level_atm_hnr[sepref_fr_rules]:
+  \<open>(uncurry get_level_atm_code, uncurry (RETURN oo get_level_atm)) \<in>
+   [\<lambda>(M, L). Pos L \<in> snd ` D\<^sub>0]\<^sub>a trail_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
     (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have [simp]: \<open>(ba, bb) \<in> nat_lit_rel \<Longrightarrow> ba div 2 = atm_of bb\<close> for ba bb
     by (auto simp: p2rel_def lit_of_natP_def atm_of_lit_of_nat nat_lit_rel_def
         simp del: literal_of_nat.simps)
 
-  have 1: \<open>(uncurry (RETURN oo get_level_trail), uncurry (RETURN oo get_level)) \<in>
-     [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>f trailt_ref \<times>\<^sub>f unat_lit_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
+  have 1: \<open>(uncurry (RETURN oo get_level_atm_trail), uncurry (RETURN oo get_level_atm)) \<in>
+     [\<lambda>(M, L). Pos L \<in> snd ` D\<^sub>0]\<^sub>f trailt_ref \<times>\<^sub>f uint32_nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
     by (intro nres_relI frefI, rename_tac x y, case_tac x)
-      (auto simp: image_image trailt_ref_def get_level_trail_def
+      (auto 5 5 simp: image_image trailt_ref_def get_level_atm_trail_def get_level_atm_def
         nat_shiftr_div2 shiftr1_def unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def
-        nat_of_uint32_shiftr)
+        nat_of_uint32_shiftr get_level_def)
 
-  have H: \<open>(uncurry get_level_code, uncurry (RETURN \<circ>\<circ> get_level))
-\<in> [comp_PRE (trailt_ref \<times>\<^sub>f unat_lit_rel)
-     (\<lambda>(M, L). L \<in> snd ` D\<^sub>0)
-     (\<lambda>_ ((M, xs, lvls, k), L).
-         nat_of_uint32 L div 2 < length lvls)
-     (\<lambda>_. True)]\<^sub>a hrp_comp
-                     (trailt_conc\<^sup>k *\<^sub>a
-                      uint32_assn\<^sup>k)
-                     (trailt_ref \<times>\<^sub>f
-                      unat_lit_rel) \<rightarrow> hr_comp
-                 uint32_nat_assn nat_rel\<close>
+  have H: \<open>(uncurry get_level_atm_code, uncurry (RETURN \<circ>\<circ> get_level_atm))
+  \<in> [comp_PRE (trailt_ref \<times>\<^sub>f uint32_nat_rel)
+       (\<lambda>(M, L). Pos L \<in> snd ` D\<^sub>0)
+       (\<lambda>_ ((M, xs, lvls, k), L). nat_of_uint32 L < length lvls)
+       (\<lambda>_. True)]\<^sub>a hrp_comp (trailt_conc\<^sup>k *\<^sub>a uint32_assn\<^sup>k)
+                      (trailt_ref \<times>\<^sub>f
+                       uint32_nat_rel) \<rightarrow> hr_comp uint32_nat_assn
+          nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF get_level_code.refine 1, OF twl_array_code_axioms] .
+    using hfref_compI_PRE_aux[OF get_level_atm_code.refine 1, OF twl_array_code_axioms] .
   have pre: \<open>?pre' = ?pre\<close>
-    by (auto simp: comp_PRE_def trailt_ref_def unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def
-        br_def intro!: ext)
+    by (auto 5 5 simp: comp_PRE_def trailt_ref_def unat_lit_rel_def nat_lit_rel_def
+        uint32_nat_rel_def br_def intro!: ext)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
     by (auto simp: hrp_comp_def hr_comp_def)
@@ -604,6 +603,27 @@ proof -
     using H unfolding im pre f by simp
 qed
 
+lemma (in -) get_level_get_level_atm: \<open>get_level M L = get_level_atm M (atm_of L)\<close>
+  unfolding get_level_atm_def
+  by (cases L) (auto simp: get_level_Neg_Pos)
+
+sepref_thm get_level_code
+  is \<open>uncurry (RETURN oo get_level)\<close>
+  :: \<open>[\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a
+      trail_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  unfolding get_level_get_level_atm nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
+  nth_u_def[symmetric]
+  supply [[goals_limit = 1]] image_image[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[simp]
+  by sepref
+
+concrete_definition (in -) get_level_code
+   uses twl_array_code.get_level_code.refine_raw
+   is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) get_level_code_def
+
+lemmas get_level_code_get_level_code[sepref_fr_rules] =
+   get_level_code.refine[of \<A>\<^sub>i\<^sub>n, OF twl_array_code_axioms]
 
 lemma count_decided_trail_ref:
   \<open>(RETURN o (\<lambda>(_, _, _, k). k), RETURN o count_decided) \<in> trailt_ref \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
@@ -4579,7 +4599,7 @@ definition extract_shorter_conflict_list_removed :: \<open>(nat, nat) ann_lits \
             None \<Rightarrow> RETURN (i+1, m', m, zs, L)
           | Some b \<Rightarrow>  do {
                ASSERT(Pos i \<in> snd ` D\<^sub>0);
-               let k = get_level M (Pos i) in
+               let k = get_level_atm M i in
                if k > 0 then (* Keep *)
                  (case L of
                    None \<Rightarrow> RETURN (i+1, m' - 1, m, zs, Some (if b then Pos i else Neg i, k))
@@ -5251,16 +5271,16 @@ proof -
       subgoal unfolding I'_def by auto
       subgoal unfolding I'_def by auto
       subgoal by (auto simp: I'_def I_def upperN_def)
-      subgoal by (rule in_I'_no_found)
+      subgoal unfolding get_level_atm_def by (rule in_I'_no_found)
       subgoal unfolding I'_def by auto
       subgoal unfolding I_def upperN_def I'_def by auto
-      subgoal by (rule in_I'_found_upd)
+      subgoal unfolding get_level_atm_def by (rule in_I'_found_upd)
       subgoal unfolding I'_def by auto
       subgoal unfolding I_def I'_def upperN_def by auto
-      subgoal by (rule in_I'_found_no_upd)
+      subgoal unfolding get_level_atm_def by (rule in_I'_found_no_upd)
       subgoal unfolding I'_def by auto
       subgoal unfolding I_def I'_def upperN_def by auto
-      subgoal by (rule I'_in_remove)
+      subgoal unfolding get_level_atm_def by (rule I'_in_remove)
       subgoal unfolding I'_def by auto
       subgoal by (rule final)
       done
@@ -7314,11 +7334,11 @@ sepref_thm extract_shorter_conflict_list_removed_code
        option_assn (unat_lit_assn *assn uint32_nat_assn)\<close>
   supply [[goals_limit = 1]] uint32_nat_assn_zero_uint32_nat[sepref_fr_rules]
     Pos_unat_lit_assn[sepref_fr_rules]
-    Neg_unat_lit_assn[sepref_fr_rules] zero_uint32_nat_def[simp]
+    Neg_unat_lit_assn[sepref_fr_rules]
   unfolding extract_shorter_conflict_list_removed_def PR_CONST_def
   extract_shorter_conflict_list_int_def
   lit_of_hd_trail_def[symmetric] Let_def
-   zero_uint32_nat_def[symmetric]
+  zero_uint32_nat_def[symmetric]
   fast_minus_def[symmetric] one_nat_uint32_def[symmetric]
   by sepref
 
