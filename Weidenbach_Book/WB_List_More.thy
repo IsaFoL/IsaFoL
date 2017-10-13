@@ -879,6 +879,10 @@ lemma distinct_mset_set_distinct: \<open>distinct_mset_set (mset ` set Cs) \<lon
 lemma distinct_mset_remdups_mset_id: \<open>distinct_mset C \<Longrightarrow> remdups_mset C = C\<close>
   by (induction C)  auto
 
+lemma notin_add_mset_remdups_mset:
+  \<open>a \<notin># A \<Longrightarrow> add_mset a (remdups_mset A) = remdups_mset (add_mset a A)\<close>
+  by auto
+
 
 subsection \<open>Sublists\<close>
 

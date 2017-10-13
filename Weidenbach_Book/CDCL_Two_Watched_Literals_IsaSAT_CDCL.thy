@@ -546,19 +546,6 @@ proof -
     by (auto simp: conflict_add_def)
 qed
 
-(* TODO Move *)
-lemma (in -) notin_add_mset_remdups_mset:
-  \<open>a \<notin># A \<Longrightarrow> add_mset a (remdups_mset A) = remdups_mset (add_mset a A)\<close>
-  by auto
-
-lemma (in -) not_tautology_minus:
-  \<open>\<not>tautology A \<Longrightarrow> \<not>tautology (A - B)\<close>
-  by (auto simp: tautology_decomp dest: in_diffD)
-
-lemma (in -)remdups_mset_inv: \<open>remdups_mset (remdups_mset S) = remdups_mset S\<close>
-  by (auto simp: remdups_mset_def)
-(* TODO Move *)
-
 lemma conflict_merge'_spec:
   assumes
       o: \<open>((b, n, xs), Some C) \<in> option_conflict_rel\<close> and

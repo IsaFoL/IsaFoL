@@ -630,6 +630,10 @@ lemma tautology_decomp:
   "tautology \<psi> \<longleftrightarrow> (\<exists>p. Pos p \<in># \<psi> \<and> Neg p \<in># \<psi>)"
   using tautology_exists_Pos_Neg by auto
 
+lemma not_tautology_minus:
+  \<open>\<not>tautology A \<Longrightarrow> \<not>tautology (A - B)\<close>
+  by (auto simp: tautology_decomp dest: in_diffD)
+
 lemma tautology_false[simp]: "\<not>tautology {#}"
   unfolding tautology_def by auto
 
