@@ -76,9 +76,8 @@ session "Resolution_Superposition" (Weidenbach_Book) = "Entailment_Definition" +
     "biblio.bib"
 
 session "CDCL_no_Sepref" (Weidenbach_Book) = "HOL"  +
-  description \<open>This session the CDCL calculi (Weidenbach and Nieuwenhuis et al.) and the links between
-  both. It also contains a very simple implementation based on lists and two extensions (restart and
-  incremental).
+  description \<open>This session is the same as the CDCL session, but des not import
+  the Refinement Framework.
   \<close>
   options [document = pdf, document = false]
   sessions
