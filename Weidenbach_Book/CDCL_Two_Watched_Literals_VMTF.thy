@@ -969,7 +969,7 @@ next
 qed
 
 
-context isasat_input_ops
+context isasat_input_bounded_nempty
 begin
 
 paragraph \<open>Abstract Invariants\<close>
@@ -982,7 +982,7 @@ text \<open>
   \<^item> The atoms of \<^term>\<open>zs\<close> are either in \<^term>\<open>xs\<close> and \<^term>\<open>ys\<close>.
 \<close>
 
-definition vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l :: \<open>(nat, nat) ann_lits \<Rightarrow> nat abs_vmtf_ns_remove \<Rightarrow> bool\<close> where
+definition (in isasat_input_ops) vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l :: \<open>(nat, nat) ann_lits \<Rightarrow> nat abs_vmtf_ns_remove \<Rightarrow> bool\<close> where
 \<open>vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l M \<equiv> \<lambda>((xs, ys), zs).
   (\<forall>L\<in>ys. L \<in> atm_of ` lits_of_l M) \<and>
   xs \<inter> ys = {} \<and>
@@ -1004,7 +1004,7 @@ text \<open>
   the beginning.
 \<close>
 
-definition vmtf :: \<open>(nat, nat) ann_lits \<Rightarrow> vmtf_remove_int set\<close> where
+definition (in isasat_input_ops) vmtf :: \<open>(nat, nat) ann_lits \<Rightarrow> vmtf_remove_int set\<close> where
 \<open>vmtf M = {((ns, m, lst, next_search), to_remove).
    (\<exists>xs' ys'.
      vmtf_ns (ys' @ xs') m ns \<and> lst = option_hd (ys' @ xs') \<and> next_search = option_hd xs'
@@ -1012,7 +1012,7 @@ definition vmtf :: \<open>(nat, nat) ann_lits \<Rightarrow> vmtf_remove_int set\
    \<and> (\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length ns) \<and> (\<forall>L\<in>set (ys' @ xs'). L \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l)
   )}\<close>
 
-lemma vmtf_consD:
+lemma (in isasat_input_ops) vmtf_consD:
   assumes vmtf: \<open>((ns, m, lst, next_search), remove) \<in> vmtf M\<close>
   shows \<open>((ns, m, lst, next_search), remove) \<in> vmtf (L # M)\<close>
 proof -
@@ -1311,7 +1311,7 @@ proof clarify
     by simp
 qed
 
-definition vmtf_unset :: \<open>nat \<Rightarrow> vmtf_remove_int \<Rightarrow> vmtf_remove_int\<close> where
+definition (in -) vmtf_unset :: \<open>nat \<Rightarrow> vmtf_remove_int \<Rightarrow> vmtf_remove_int\<close> where
 \<open>vmtf_unset = (\<lambda>L ((ns, m, lst, next_search), to_remove).
   (if next_search = None \<or> stamp (ns ! (the next_search)) < stamp (ns ! L)
   then ((ns, m, lst, Some L), to_remove)
@@ -1834,7 +1834,7 @@ proof clarify
 qed
 
 
-definition vmtf_find_next_undef :: \<open>vmtf_remove_int \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat option) nres\<close> where
+definition (in isasat_input_ops) vmtf_find_next_undef :: \<open>vmtf_remove_int \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat option) nres\<close> where
 \<open>vmtf_find_next_undef \<equiv> (\<lambda>((ns, m, lst, next_search), to_remove) M. do {
     WHILE\<^sub>T\<^bsup>\<lambda>next_search. ((ns, m, lst, next_search), to_remove) \<in> vmtf M \<and>
          (next_search \<noteq> None \<longrightarrow> Pos (the next_search) \<in> snd ` D\<^sub>0)\<^esup>
@@ -1906,8 +1906,11 @@ proof -
     done
 qed
 
-definition vmtf_mark_to_rescore :: \<open>nat \<Rightarrow> vmtf_remove_int \<Rightarrow> vmtf_remove_int\<close> where
-\<open>vmtf_mark_to_rescore L = (\<lambda>((ns, m, lst, next_search), to_remove). ((ns, m, lst, next_search), to_remove @ [L]))\<close>
+definition (in isasat_input_ops) vmtf_mark_to_rescore 
+  :: \<open>nat \<Rightarrow> vmtf_remove_int \<Rightarrow> vmtf_remove_int\<close>
+where
+  \<open>vmtf_mark_to_rescore L = (\<lambda>((ns, m, lst, next_search), to_remove).
+     ((ns, m, lst, next_search), to_remove @ [L]))\<close>
 
 lemma vmtf_mark_to_rescore:
   assumes L: \<open>L \<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and vmtf: \<open>((ns, m, lst, next_search), to_remove) \<in> vmtf M\<close>
@@ -2247,12 +2250,12 @@ proof intro_classes
 qed
 
 
-definition nat_vmtf_node_rel where
+definition (in -) nat_vmtf_node_rel where
 \<open>nat_vmtf_node_rel = {(a', a). stamp a = stamp a' \<and>
    (get_prev a', get_prev a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel \<and>
    (get_next a', get_next a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel}\<close>
 
-abbreviation nat_vmtf_node_assn where
+abbreviation (in -)nat_vmtf_node_assn where
 \<open>nat_vmtf_node_assn \<equiv> pure nat_vmtf_node_rel\<close>
 
 lemma VMTF_Node_ref[sepref_fr_rules]:
@@ -2378,9 +2381,6 @@ sepref_definition vmtf_en_dequeue_code
 
 declare vmtf_en_dequeue_code.refine[sepref_fr_rules]
 
-lemma (in -) id_ref: \<open>(return o id, RETURN o id) \<in> R\<^sup>d \<rightarrow>\<^sub>a R\<close>
-  by sepref_to_hoare sep_auto
-
 lemma insert_sort_nth_reorder:
    \<open>(uncurry insert_sort_nth, uncurry reorder_remove) \<in>
       Id \<times>\<^sub>r \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
@@ -2394,7 +2394,7 @@ lemma (in -) insert_sort_nth_code_reorder_remove[sepref_fr_rules]:
   using insert_sort_nth_code.refine[FCOMP insert_sort_nth_reorder]
   by auto
 
-context isasat_input_ops
+context isasat_input_bounded_nempty
 begin
 
 sepref_thm vmtf_flush_code
@@ -2412,13 +2412,13 @@ sepref_thm vmtf_flush_code
 
 
 concrete_definition (in -) vmtf_flush_code
-   uses isasat_input_ops.vmtf_flush_code.refine_raw
+   uses isasat_input_bounded_nempty.vmtf_flush_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) vmtf_flush_code_def
 
 lemmas trail_dump_code_refine[sepref_fr_rules] =
-   vmtf_flush_code.refine[of \<A>\<^sub>i\<^sub>n]
+   vmtf_flush_code.refine[OF isasat_input_bounded_nempty_axioms]
 
 declare vmtf_flush_code.refine[sepref_fr_rules]
 
@@ -2435,13 +2435,13 @@ sepref_thm vmtf_mark_to_rescore_and_unset_code
   by sepref
 
 concrete_definition (in -) vmtf_mark_to_rescore_and_unset_code
-  uses isasat_input_ops.vmtf_mark_to_rescore_and_unset_code.refine_raw
+  uses isasat_input_bounded_nempty.vmtf_mark_to_rescore_and_unset_code.refine_raw
   is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) vmtf_mark_to_rescore_and_unset_code_def
 
 lemmas vmtf_mark_to_rescore_and_unset_hnr[sepref_fr_rules] =
-   vmtf_mark_to_rescore_and_unset_code.refine
+   vmtf_mark_to_rescore_and_unset_code.refine[OF isasat_input_bounded_nempty_axioms]
 
 sepref_thm vmtf_unset_code
   is \<open>uncurry (RETURN oo vmtf_unset)\<close>
@@ -2455,13 +2455,13 @@ sepref_thm vmtf_unset_code
   by sepref
 
 concrete_definition (in -) vmtf_unset_code
-   uses isasat_input_ops.vmtf_unset_code.refine_raw
+   uses isasat_input_bounded_nempty.vmtf_unset_code.refine_raw
    is \<open>(uncurry ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) vmtf_unset_code_def
 
 lemmas vmtf_unset_code_code[sepref_fr_rules] =
-   vmtf_unset_code.refine[of \<A>\<^sub>i\<^sub>n]
+   vmtf_unset_code.refine[OF isasat_input_bounded_nempty_axioms]
 
 end
 end

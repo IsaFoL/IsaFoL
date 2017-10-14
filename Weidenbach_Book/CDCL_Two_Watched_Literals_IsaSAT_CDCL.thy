@@ -1554,8 +1554,7 @@ lemma cons_trail_Propagated_tr:
   [\<lambda>((L, C), M). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f trail_pol \<rightarrow> \<langle>trail_pol\<rangle>nres_rel\<close>
   by (intro frefI nres_relI, rename_tac x y, case_tac \<open>fst (fst x)\<close>)
     (auto simp: trail_pol_def polarity_atm_def cons_trail_Propagated_def uminus_lit_swap
-        cons_trail_Propagated_tr_def Decided_Propagated_in_iff_in_lits_of_l nth_list_update'
-      dest: vmtf_consD)
+        cons_trail_Propagated_tr_def Decided_Propagated_in_iff_in_lits_of_l nth_list_update')
 
 lemma undefined_lit_count_decided_upperN:
   assumes
