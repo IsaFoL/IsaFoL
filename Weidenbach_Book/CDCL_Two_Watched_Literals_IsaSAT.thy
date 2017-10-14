@@ -13,11 +13,12 @@ declare isasat_input_bounded.append_el_aa_hnr[sepref_fr_rules]
 declare isasat_input_bounded.polarity_pol_code_polarity_refine[sepref_fr_rules]
   isasat_input_bounded.cons_trail_Propagated_tr_code_cons_trail_Propagated_tr[sepref_fr_rules]
 
+definition finalise_init where
+  \<open>finalise_init = id\<close>
+
 context isasat_input_bounded
 begin
 
-definition (in -) finalise_init where
-  \<open>finalise_init = id\<close>
 
 lemma (in isasat_input_ops)finalise_init_finalise_init:
   \<open>(RETURN o finalise_init, RETURN o finalise_init) \<in>
