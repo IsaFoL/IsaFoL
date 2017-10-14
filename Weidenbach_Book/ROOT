@@ -165,7 +165,7 @@ session "Two_Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     "root.tex"
     "biblio.bib"
 
-session "CDCL_B" (Weidenbach_Book) = "CDCL"  +
+session "CDCL_B" (Weidenbach_Book) = "CDCL_no_Sepref"  +
   description \<open>This session contains Sophie Tourret's variants of Weidenbach's
   CDCL calculus, where multiple decisions are done at the same time.
   \<close>
