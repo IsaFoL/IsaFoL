@@ -4095,7 +4095,8 @@ proof -
       [simp]: \<open>S' = (M, N, U, D, W, Q', ((A, m, lst, next_search), oth), \<phi>, clvls)\<close>
       using x'x by (cases S') (auto simp: twl_st_heur_def)
     have in_atms_le: \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length A\<close> and \<phi>: \<open>phase_saving \<phi>\<close> and
-      vmtf: \<open>\<exists>xs' ys'. vmtf_ns (ys' @ xs') m A \<and> lst = option_hd (ys' @ xs') \<and> next_search = option_hd xs'\<close> and
+      vmtf: \<open>\<exists>xs' ys'. vmtf_ns (ys' @ xs') m A \<and> lst = hd (ys' @ xs')
+         \<and> next_search = option_hd xs'\<close> and
       clvls: \<open>clvls \<in> counts_maximum_level M D\<close>
       using x'x unfolding twl_st_heur_def vmtf_def by auto
     then have atm_L_le_A: \<open>atm_of L < length A\<close>
@@ -4103,7 +4104,7 @@ proof -
     have atm_L_le_\<phi>: \<open>atm_of L < length \<phi>\<close>
       using L_D\<^sub>0 \<phi> unfolding phase_saving_def by (auto simp: image_image in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
     obtain xs' ys' where
-      \<open>vmtf_ns (ys' @ xs') m A\<close> and \<open>lst = option_hd (ys' @ xs')\<close> and \<open>next_search = option_hd xs'\<close>
+      \<open>vmtf_ns (ys' @ xs') m A\<close> and \<open>lst = hd (ys' @ xs')\<close> and \<open>next_search = option_hd xs'\<close>
       using vmtf by blast
     then have next_search: \<open>the next_search < length A\<close> if \<open>next_search \<noteq> None\<close>
       apply - by (rule vmtf_ns_le_length[of \<open>ys' @ xs'\<close> m A]) (use that in auto)
@@ -4115,7 +4116,7 @@ proof -
       apply (subst append_take_drop_id[of U, symmetric])
       unfolding set_append image_Un
       by (auto simp: cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def mset_take_mset_drop_mset drop_Suc)
-    then have dist_NC:  \<open>distinct (N ! C)\<close> if \<open>C > 0\<close>
+    then have dist_NC: \<open>distinct (N ! C)\<close> if \<open>C > 0\<close>
       using that C_le nth_in_set_tl[of C N] by (auto simp: distinct_mset_set_def)
 
     have lits_NC: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N ! C))\<close> if \<open>C > 0\<close>
