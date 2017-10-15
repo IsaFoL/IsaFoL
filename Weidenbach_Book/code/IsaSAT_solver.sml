@@ -282,8 +282,6 @@ datatype int = Int_of_integer of IntInf.int;
 
 datatype ('a, 'b) hashtable = HashTable of (('a * 'b) list) array * nat;
 
-fun id x = (fn xa => xa) x;
-
 fun eq A_ a b = equal A_ a b;
 
 fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
@@ -1752,7 +1750,7 @@ fun vmtf_enqueue_code x =
               heap_array_set_u (heap_vmtf_node heap_uint32) a1 ai
                 (VMTF_Node (a1a, a1b, NONE)) ();
           in
-            (xa, (plus_nat a1a one_nat, (SOME ai, SOME ai)))
+            (xa, (plus_nat a1a one_nat, (ai, SOME ai)))
           end)
       | SOME xa =>
         (fn () =>
@@ -1766,7 +1764,7 @@ fun vmtf_enqueue_code x =
               heap_array_set_u (heap_vmtf_node heap_uint32) xc xa
                 (VMTF_Node (stamp xaa, SOME ai, get_next xb)) ();
           in
-            (x_b, (plus_nat a1a one_nat, (SOME ai, SOME ai)))
+            (x_b, (plus_nat a1a one_nat, (ai, SOME ai)))
           end)))
     x;
 
@@ -1811,14 +1809,11 @@ fun vmtf_dequeue_code x =
   (fn ai => fn (a1, (a1a, (a1b, a2b))) => fn () =>
     let
       val xa =
-        imp_option_eq (fn va => fn vb => (fn () => ((va : Word32.word) = vb)))
-          a1b (SOME ai) ();
-      val xb =
-        (if xa
+        (if ((a1b : Word32.word) = ai)
           then (fn f_ => fn () => f_
                  (((fn () => Array.sub (a1, Word32.toInt ai))) ()) ())
                  (fn x_a => (fn () => (get_next x_a)))
-          else (fn () => a1b))
+          else (fn () => (SOME a1b)))
           ();
       val xaa =
         imp_option_eq (fn va => fn vb => (fn () => ((va : Word32.word) = vb)))
@@ -1832,7 +1827,7 @@ fun vmtf_dequeue_code x =
           ();
       val x_b = ns_vmtf_dequeue_code ai a1 ();
     in
-      (x_b, (a1a, (xb, x_a)))
+      (x_b, (a1a, (xa, x_a)))
     end)
     x;
 
@@ -2284,6 +2279,14 @@ fun cdcl_twl_stgy_prog_wl_D_code x =
     end)
     x;
 
+fun get_conflict_wl_is_None_init_code x =
+  (fn xi => (fn () => let
+                        val (_, (_, (_, (a1c, (_, (_, _)))))) = xi;
+                      in
+                        conflict_assn_is_None a1c
+                      end))
+    x;
+
 val extract_atms_clss_imp_empty_assn :
   (unit -> ((Word32.word, unit) hashtable * Word32.word list))
   = (fn () => let
@@ -2454,6 +2457,19 @@ fun init_state_wl_D_code x =
     end)
     x;
 
+fun finalise_init_code x =
+  (fn xi =>
+    (fn () =>
+      let
+        val (a1, (a1a, (a1b, (a1c, (a1d, (a1e,
+   (((a1h, (a1i, (a1j, a2j))), a2g), (a1k, a2k))))))))
+          = xi;
+      in
+        (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (((a1h, (a1i, (the a1j, a2j))), a2g),
+     (a1k, a2k))))))))
+      end))
+    x;
+
 fun already_propagated_unit_cls_conflict_code x =
   (fn _ => fn bi => (fn () => let
                                 val (a1, (a1a, (a1b, (a1c, (_, a2d))))) = bi;
@@ -2491,6 +2507,14 @@ fun already_propagated_unit_cls_code x =
               end))
     x;
 
+fun polarity_st_heur_init_code x =
+  (fn ai => fn bi => let
+                       val (a1, _) = ai;
+                     in
+                       polarity_pol_code a1 bi
+                     end)
+    x;
+
 fun propagate_unit_cls_code x =
   (fn ai => fn (a1, (a1a, (a1b, (a1c, (a1d, a2d))))) => fn () =>
     let
@@ -2519,15 +2543,15 @@ fun add_init_cls_code x =
 fun init_dt_step_wl_code x =
   (fn ai => fn bi => fn () =>
     let
-      val xa = get_conflict_wl_is_None_code bi ();
+      val xa = get_conflict_wl_is_None_init_code bi ();
     in
       (if xa
         then (if equal_nat (op_list_length ai) one_nat
                then let
                       val x_b = op_list_hd ai;
                     in
-                      (fn f_ => fn () => f_ ((polarity_st_heur_code bi x_b) ())
-                        ())
+                      (fn f_ => fn () => f_ ((polarity_st_heur_init_code bi x_b)
+                        ()) ())
                         (fn x_d =>
                           (if is_none x_d then propagate_unit_cls_code x_b bi
                             else (if equal_option equal_bool x_d (SOME true)
@@ -2546,8 +2570,6 @@ fun init_dt_step_wl_code x =
 fun init_dt_wl_code x =
   (fn ai => imp_nfoldli ai (fn _ => (fn () => true)) init_dt_step_wl_code) x;
 
-fun finalise_init x = id x;
-
 fun isaSAT_code x =
   (fn xi => fn () =>
     let
@@ -2555,22 +2577,23 @@ fun isaSAT_code x =
       val xb = extract_atms_clss_imp_list_assn xi xa ();
       val x_b = init_state_wl_D_code xb ();
       val x_d = init_dt_wl_code xi x_b ();
-      val xc = get_conflict_wl_is_None_code x_d ();
+      val xc = get_conflict_wl_is_None_init_code x_d ();
     in
       (if not xc then (fn () => NONE)
         else (if op_list_is_empty xi then (fn () => (SOME []))
-               else (fn f_ => fn () => f_
-                      ((cdcl_twl_stgy_prog_wl_D_code (finalise_init x_d)) ())
-                      ())
-                      (fn x_i =>
+               else (fn f_ => fn () => f_ ((finalise_init_code x_d) ()) ())
+                      (fn x_g =>
                         (fn f_ => fn () => f_
-                          ((get_conflict_wl_is_None_code x_i) ()) ())
-                          (fn x_j =>
-                            (if x_j
-                              then (fn f_ => fn () => f_
-                                     ((extract_model_of_state_code x_i) ()) ())
-                                     (fn x_k => (fn () => (SOME x_k)))
-                              else (fn () => NONE))))))
+                          ((cdcl_twl_stgy_prog_wl_D_code x_g) ()) ())
+                          (fn x_i =>
+                            (fn f_ => fn () => f_
+                              ((get_conflict_wl_is_None_code x_i) ()) ())
+                              (fn x_j =>
+                                (if x_j
+                                  then (fn f_ => fn () => f_
+ ((extract_model_of_state_code x_i) ()) ())
+ (fn x_k => (fn () => (SOME x_k)))
+                                  else (fn () => NONE)))))))
         ()
     end)
     x;
