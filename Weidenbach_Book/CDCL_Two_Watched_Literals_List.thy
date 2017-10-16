@@ -87,6 +87,7 @@ lemma resolve_cls_l_nil_iff:
   \<open>resolve_cls_l L D' E = [] \<longleftrightarrow> cdcl\<^sub>W_restart_mset.resolve_cls L (mset D') (mset E) = {#}\<close>
   by (metis mset_resolve_cls_l_resolve_cls mset_zero_iff)
 
+
 fun twl_st_of :: \<open>'v literal option \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st\<close> where
 \<open>twl_st_of (Some L) (M, N, U, C, NP, UP, WS, Q) =
   (convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop (Suc U) N),
@@ -170,6 +171,32 @@ lemma get_trail_twl_st_of_nil_iff: \<open>get_trail (twl_st_of L T) = [] \<longl
   by (cases T; cases L) (auto simp: convert_lits_l_def)
 
 
+lemma lit_of_hd_convert_lits_l[simp]: \<open>M \<noteq> [] \<Longrightarrow> lit_of (hd (convert_lits_l N M)) = lit_of (hd M)\<close>
+  by (cases M) auto
+
+lemma convert_lits_l_Nil_off[iff]: \<open>convert_lits_l b a = [] \<longleftrightarrow> a = []\<close>
+  by (auto simp: convert_lits_l_def)
+
+fun equality_except_trail where
+\<open>equality_except_trail (M, N, U, D, NP, UP, WS, Q) (M', N', U', D', NP', UP', WS', Q') \<longleftrightarrow>
+    N = N' \<and> U = U' \<and> D = D' \<and> NP = NP' \<and> UP = UP' \<and> WS = WS' \<and> Q = Q'\<close>
+
+fun equality_except_conflict where
+\<open>equality_except_conflict (M, N, U, D, NP, UP, WS, Q) (M', N', U', D', NP', UP', WS', Q') \<longleftrightarrow>
+    M = M' \<and> N = N' \<and> U = U' \<and> NP = NP' \<and> UP = UP' \<and> WS = WS' \<and> Q = Q'\<close>
+
+lemma equality_except_conflict_rewrite:
+  assumes \<open>equality_except_conflict S T\<close>
+  shows
+    \<open>get_trail_l S = get_trail_l T\<close> and
+    \<open>get_clauses_l S = get_clauses_l T\<close>
+  using assms by (cases S; cases T; auto; fail)+
+
+lemma get_conflict_twl_st_of_get_conflict_l[simp]:
+  \<open>get_conflict (twl_st_of b S) = get_conflict_l S\<close>
+  by (cases S; cases b) auto
+
+
 subsection \<open>Additional Invariants and Definitions\<close>
 
 definition additional_WS_invs where
@@ -208,85 +235,11 @@ lemma polarity_spec':
       no_dup_cannot_not_lit_and_uminus
       split: option.splits\<close>)
 
-definition find_unwatched :: "('a, 'b) ann_lits \<Rightarrow> 'a clause_l \<Rightarrow> (nat option) nres" where
-\<open>find_unwatched M C = do {
-   S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> 2 \<and> i \<le> length C \<and> (\<forall>j\<in>{2..<i}. -(C!j) \<in> lits_of_l M) \<and>
-    (\<forall>j. found = Some j \<longrightarrow> (i = j \<and> (undefined_lit M (C!j) \<or> C!j \<in> lits_of_l M) \<and> j < length C \<and> j \<ge> 2))\<^esup>
-    (\<lambda>(found, i). found = None \<and> i < length C)
-    (\<lambda>(_, i). do {
-      ASSERT(i < length C);
-      case polarity M (C!i) of
-        None \<Rightarrow> do { RETURN (Some i, i)}
-      | Some v \<Rightarrow>
-         (if v then do { RETURN (Some i, i)} else do { RETURN (None, i+1)})
-    })
-    (None, 2::nat);
-  RETURN (fst S)
-  }
-\<close>
-
-
 definition find_unwatched_l where
   \<open>find_unwatched_l M C = SPEC (\<lambda>(found).
       (found = None \<longleftrightarrow> (\<forall>L\<in>set (unwatched_l C). -L \<in> lits_of_l M)) \<and>
       (\<forall>j. found = Some j \<longrightarrow> (j < length C \<and> (undefined_lit M (C!j) \<or> C!j \<in> lits_of_l M) \<and> j \<ge> 2)))\<close>
 
-lemma find_unwatched:
-  assumes \<open>no_dup M\<close> and \<open>length C \<ge> 2\<close>
-  shows \<open>find_unwatched M C \<le> find_unwatched_l M C\<close>
-  unfolding find_unwatched_def find_unwatched_l_def
-  apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(found, i). Suc (length C) - i +
-        If (found = None) 1 0)\<close>])
-  subgoal by auto
-  subgoal by auto
-  subgoal using assms by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal for s
-    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq polarity_def
-        split: if_splits intro!: exI[of _ \<open>snd s - 2\<close>])
-  subgoal for s
-    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq
-        split: if_splits intro: exI[of _ \<open>snd s - 2\<close>])
-  subgoal for s
-    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq polarity_def
-        split: if_splits intro: exI[of _ \<open>snd s - 2\<close>])
-  subgoal by (auto simp: polarity_def split: if_splits)
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by (auto simp: polarity_def split: if_splits)
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal for s using distinct_consistent_interp[OF assms(1)]
-    apply (auto simp: Decided_Propagated_in_iff_in_lits_of_l consistent_interp_def all_set_conv_nth
-       polarity_def split: if_splits intro: exI[of _ \<open>snd s - 2\<close>])
-    by (metis atLeastLessThan_iff less_antisym)
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal for s using no_dup_consistentD[OF assms(1)]
-    by (cases s, cases \<open>fst s\<close>)
-      (auto simp: Decided_Propagated_in_iff_in_lits_of_l all_set_conv_nth
-        intro!: exI[of _ \<open>snd s - 2\<close>])
-  subgoal by auto
-  subgoal for s j by auto
-  subgoal by auto
-  done
 
 definition set_conflict_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
   \<open>set_conflict_l = (\<lambda>C (M, N, U, D, NP, UP, WS, Q). (M, N, U, Some (mset C), NP, UP, {#}, {#}))\<close>
@@ -1149,7 +1102,7 @@ lemma get_conflict_l_get_conflict_state_spec:
   shows \<open>((get_conflict_l S = Some {#}, S), (get_conflict S' = Some {#}, S'))
   \<in> {((brk, S), (brk', S')). brk = brk' \<and> S' = twl_st_of None S \<and> additional_WS_invs S \<and>
     clauses_to_update_l S = {#}}\<close>
-  using assms by (auto simp: get_conflict_l_Some_nil_iff)
+  using assms by auto
 
 fun lit_and_ann_of_propagated where
   \<open>lit_and_ann_of_propagated (Propagated L C) = (L, C)\<close>
@@ -1446,32 +1399,6 @@ lemma image_filter_mset_take_drep_tl_id[simp]:
    {#f L. L \<in># mset (tl x1h)#}\<close>
   unfolding image_mset_union[symmetric] mset_take_drep_tl_id ..
 
-(*TODO Move up  *)
-lemma lit_of_hd_convert_lits_l[simp]: \<open>M \<noteq> [] \<Longrightarrow> lit_of (hd (convert_lits_l N M)) = lit_of (hd M)\<close>
-  by (cases M) auto
-
-lemma convert_lits_l_Nil_off[iff]: \<open>convert_lits_l b a = [] \<longleftrightarrow> a = []\<close>
-  by (auto simp: convert_lits_l_def)
-
-lemma get_conflict_twl_st_of_get_conflict_l[simp]:
-  \<open>get_conflict (twl_st_of b S) = get_conflict_l S\<close>
-  by (cases S; cases b) auto
-
-fun equality_except_trail where
-\<open>equality_except_trail (M, N, U, D, NP, UP, WS, Q) (M', N', U', D', NP', UP', WS', Q') \<longleftrightarrow>
-    N = N' \<and> U = U' \<and> D = D' \<and> NP = NP' \<and> UP = UP' \<and> WS = WS' \<and> Q = Q'\<close>
-
-fun equality_except_conflict where
-\<open>equality_except_conflict (M, N, U, D, NP, UP, WS, Q) (M', N', U', D', NP', UP', WS', Q') \<longleftrightarrow>
-    M = M' \<and> N = N' \<and> U = U' \<and> NP = NP' \<and> UP = UP' \<and> WS = WS' \<and> Q = Q'\<close>
-
-lemma equality_except_conflict_rewrite:
-  assumes \<open>equality_except_conflict S T\<close>
-  shows
-    \<open>get_trail_l S = get_trail_l T\<close> and
-    \<open>get_clauses_l S = get_clauses_l T\<close>
-  using assms by (cases S; cases T; auto; fail)+
-(*End Move  *)
 
 lemma backtrack_l_spec:
   \<open>(backtrack_l, backtrack) \<in>
@@ -1764,6 +1691,7 @@ proof -
          twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S)} \<rightarrow>
      \<langle>{(T, T'). (T' = twl_st_of None T \<and> clauses_to_update_l T = {#} \<and> additional_WS_invs T) \<and>
          get_conflict T' = None \<and> twl_struct_invs T' \<and> twl_stgy_invs T' \<and> literals_to_update T' \<noteq> {#}}\<rangle>nres_rel\<close>
+    using bt backtrack_spec apply -
     apply (rule refine_add_inv_generalised[OF bt, of \<open>Collect (\<lambda>T'::'v twl_st. get_conflict T' = None \<and>
           twl_struct_invs T' \<and>
          twl_stgy_invs T' \<and>

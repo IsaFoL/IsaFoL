@@ -1403,6 +1403,23 @@ lemma find_unwatched_l_find_unwatched_wl_s:
   \<open>find_unwatched_l (get_trail_wl S) (get_clauses_wl S ! C) = find_unwatched_wl_st S C\<close>
   by (cases S) (auto simp: find_unwatched_wl_st_def)
 
+definition (in -) find_unwatched :: "('a, 'b) ann_lits \<Rightarrow> 'a clause_l \<Rightarrow> (nat option) nres" where
+\<open>find_unwatched M C = do {
+   S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> 2 \<and> i \<le> length C \<and> (\<forall>j\<in>{2..<i}. -(C!j) \<in> lits_of_l M) \<and>
+    (\<forall>j. found = Some j \<longrightarrow> (i = j \<and> (undefined_lit M (C!j) \<or> C!j \<in> lits_of_l M) \<and> j < length C \<and> j \<ge> 2))\<^esup>
+    (\<lambda>(found, i). found = None \<and> i < length C)
+    (\<lambda>(_, i). do {
+      ASSERT(i < length C);
+      case polarity M (C!i) of
+        None \<Rightarrow> do { RETURN (Some i, i)}
+      | Some v \<Rightarrow>
+         (if v then do { RETURN (Some i, i)} else do { RETURN (None, i+1)})
+    })
+    (None, 2::nat);
+  RETURN (fst S)
+  }
+\<close>
+
 definition find_unwatched_wl_st_heur  :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat option nres\<close> where
 \<open>find_unwatched_wl_st_heur = (\<lambda>(M, N, U, D, Q, W, vm, \<phi>) i. do {
     find_unwatched M (N ! i)
@@ -1695,6 +1712,63 @@ prepare_code_thms (in -) find_unwatched_wl_st_heur_code_def
 
 lemmas find_unwatched_wl_st_heur_code_find_unwatched_wl_st_heur[sepref_fr_rules] =
    find_unwatched_wl_st_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+lemma (in -) find_unwatched:
+  assumes \<open>no_dup M\<close> and \<open>length C \<ge> 2\<close>
+  shows \<open>find_unwatched M C \<le> find_unwatched_l M C\<close>
+  unfolding find_unwatched_def find_unwatched_l_def
+  apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(found, i). Suc (length C) - i +
+        If (found = None) 1 0)\<close>])
+  subgoal by auto
+  subgoal by auto
+  subgoal using assms by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal for s
+    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq polarity_def
+        split: if_splits intro!: exI[of _ \<open>snd s - 2\<close>])
+  subgoal for s
+    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq
+        split: if_splits intro: exI[of _ \<open>snd s - 2\<close>])
+  subgoal for s
+    by (auto simp: Decided_Propagated_in_iff_in_lits_of_l not_less_less_Suc_eq polarity_def
+        split: if_splits intro: exI[of _ \<open>snd s - 2\<close>])
+  subgoal by (auto simp: polarity_def split: if_splits)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by (auto simp: polarity_def split: if_splits)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal for s using distinct_consistent_interp[OF assms(1)]
+    apply (auto simp: Decided_Propagated_in_iff_in_lits_of_l consistent_interp_def all_set_conv_nth
+       polarity_def split: if_splits intro: exI[of _ \<open>snd s - 2\<close>])
+    by (metis atLeastLessThan_iff less_antisym)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal for s using no_dup_consistentD[OF assms(1)]
+    by (cases s, cases \<open>fst s\<close>)
+      (auto simp: Decided_Propagated_in_iff_in_lits_of_l all_set_conv_nth
+        intro!: exI[of _ \<open>snd s - 2\<close>])
+  subgoal by auto
+  subgoal for s j by auto
+  subgoal by auto
+  done
 
 theorem find_unwatched_wl_st_heur_find_unwatched_wl_s:
   \<open>(uncurry find_unwatched_wl_st_heur, uncurry find_unwatched_wl_st)
