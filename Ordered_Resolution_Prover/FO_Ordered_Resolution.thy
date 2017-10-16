@@ -39,7 +39,7 @@ subsection \<open>Library\<close>
 (* FIXME: Where do we want these lemmas? *)
 lemma (in linorder) set_sorted_list_of_multiset[simp]:
   "set (sorted_list_of_multiset M) = set_mset M"
-  by (induct M) (simp_all add: local.set_insort_key)
+  by (induct M) (simp_all add: set_insort_key)
 
 lemma (in linorder) multiset_mset_sorted_list_of_multiset[simp]:
   "mset (sorted_list_of_multiset M) = M"
@@ -418,9 +418,8 @@ The following corresponds to Lemma 4.12:
 \<close>
 
 lemma map2_add_mset_map:
-  assumes "length AAs' = n"
-  assumes "length As' = n"
-  shows "(map2 add_mset (As' \<cdot>al \<eta>) (AAs' \<cdot>aml \<eta>)) = (map2 add_mset As' AAs' \<cdot>aml \<eta>)"
+  assumes "length AAs' = n" and "length As' = n"
+  shows "map2 add_mset (As' \<cdot>al \<eta>) (AAs' \<cdot>aml \<eta>) = map2 add_mset As' AAs' \<cdot>aml \<eta>"
   using assms
 proof (induction n arbitrary: AAs' As')
   case (Suc n)
@@ -498,17 +497,20 @@ proof -
 qed
 
 lemma ground_resolvent_subset:
-  assumes gr_cas: "is_ground_cls_list CAs"
-  assumes gr_da: "is_ground_cls DA"
-  assumes resolve: "ord_resolve S CAs DA \<sigma> E"
+  assumes
+    gr_cas: "is_ground_cls_list CAs" and
+    gr_da: "is_ground_cls DA" and
+    resolve: "ord_resolve S CAs DA \<sigma> E"
   shows "E \<subseteq># (\<Union># mset CAs) + DA"
   using resolve
 proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Cs AAs As D)
   note DA = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4)
     and aas_len = this(5) and as_len = this(6) and cas = this(8) and mgu = this(10)
-  then have "\<forall>i<n.  Cs ! i \<subseteq># CAs ! i "
+  then have "\<forall>i<n.  Cs ! i \<subseteq># CAs ! i"
     by auto
+  then have cs_sub_cas: "\<Union># mset Cs \<subseteq># \<Union># mset CAs"
+    using subseteq_list_Union_mset cas_len cs_len by force
   then have cs_sub_cas: "\<Union># mset Cs \<subseteq># \<Union># mset CAs"
     using subseteq_list_Union_mset cas_len cs_len by force
   then have gr_cs: "is_ground_cls_list Cs"

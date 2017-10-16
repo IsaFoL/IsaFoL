@@ -1,4 +1,4 @@
-theory CDCL_Two_Watched_Literals_List_Watched_Initialisation
+theory CDCL_Two_Watched_Literals_Watch_List_Initialisation
   imports CDCL_Two_Watched_Literals_Initialisation
 begin
 

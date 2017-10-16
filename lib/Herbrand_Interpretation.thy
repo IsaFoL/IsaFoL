@@ -7,7 +7,7 @@
 section \<open>Herbrand Intepretation\<close>
 
 theory Herbrand_Interpretation
-imports Clausal_Logic
+  imports Clausal_Logic
 begin
 
 text \<open>

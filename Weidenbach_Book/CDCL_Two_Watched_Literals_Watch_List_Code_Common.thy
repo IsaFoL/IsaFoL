@@ -1,5 +1,5 @@
-theory CDCL_Two_Watched_Literals_List_Watched_Code_Common
-  imports CDCL_Two_Watched_Literals_Code_Common CDCL_Two_Watched_Literals_List_Watched_Domain
+theory CDCL_Two_Watched_Literals_Watch_List_Code_Common
+  imports CDCL_Two_Watched_Literals_Code_Common CDCL_Two_Watched_Literals_Watch_List_Domain
     Bits_Natural WB_Word_Assn CDCL_Two_Watched_Literals_Lookup_Conflict
 begin
 

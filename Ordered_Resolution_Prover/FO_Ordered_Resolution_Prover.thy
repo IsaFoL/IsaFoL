@@ -2245,19 +2245,20 @@ locale FO_resolution_prover_with_sum_product_weights =
     S :: "('a :: wellorder) clause \<Rightarrow> _" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and
-    comp_subst :: "'s => 's => 's" and
+    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
     mk_var_dis :: "'a literal multiset list \<Rightarrow> 's list" and
     mgu :: "'a set set \<Rightarrow> 's option" and
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
     i :: nat and
     j :: nat and
-    weight :: "('a clause \<times> nat) \<Rightarrow> nat" +
-  assumes ij_gr_zero: "i > 0" "j > 0"
-  assumes weight_def: "weight = (\<lambda>(C, m). i * m + j * size C)"
+    weight :: "'a clause \<times> nat \<Rightarrow> nat" +
+  assumes
+    ij_gr_zero: "i > 0" "j > 0" and
+    weight_def: "weight = (\<lambda>(C, m). i * m + j * size C)"
 begin
 
 sublocale FO_resolution_prover_with_monotone_weights
-   using ij_gr_zero weight_def apply unfold_locales by auto
+  using ij_gr_zero weight_def apply unfold_locales by auto
 
 thm monotone_fairness
 

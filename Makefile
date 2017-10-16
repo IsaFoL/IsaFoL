@@ -1,11 +1,11 @@
-ISABELLE2016-1=/home/zmaths/Documents/isabelle/Isabelle2016-1
+ISABELLE2017=/home/zmaths/Documents/isabelle/Isabelle2017
 ISABELLE=/home/zmaths/Documents/isabelle/isabelle
 
 RUN_ISABELLE="$(ISABELLE)/bin/isabelle"
-RUN_ISABELLE2016-1="$(ISABELLE2016-1)/bin/isabelle"
+RUN_ISABELLE2017="$(ISABELLE2017)/bin/isabelle"
 
 ISABELLE_HOME=/home/zmaths/.isabelle/browser_info
-ISABELLE2016-1_HOME=/home/zmaths/.isabelle/Isabelle2016-1/browser_info
+ISABELLE2017_HOME=/home/zmaths/.isabelle/Isabelle2017/browser_info
 
 AFP=$(ISABELLE)/../afp-devel
 DESTINATION="$(shell pwd)/html"
@@ -23,15 +23,15 @@ test_vars:
 HOL:
 	$(RUN_ISABELLE) build -b HOL
 
-Weidenbach_Book: HOL
-	$(RUN_ISABELLE) build -d '$$AFP' -b Sepref_IICF
-	$(RUN_ISABELLE) build -d '$$AFP' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D Weidenbach_Book
+Weidenbach_Book:
+	$(RUN_ISABELLE2017) build -d '$$AFP' -b Sepref_IICF
+	$(RUN_ISABELLE2017) build -d '$$AFP' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D Weidenbach_Book
 
-Ordered_Resolution_Prover: HOL
+Ordered_Resolution_Prover:
 	$(RUN_ISABELLE) build -d '$$AFP' -o browser_info -v -b -D Ordered_Resolution_Prover
 
-Unordered_Resolution: HOL
-	$(RUN_ISABELLE2016-1) build -o browser_info -v -b -D Unordered_Resolution
+Unordered_Resolution:
+	$(RUN_ISABELLE2017) build -o browser_info -v -b -D Unordered_Resolution
 
 GRAT: HOL
 	$(RUN_ISABELLE2016-1) build -d '$$AFP' -b Refine_Imperative_HOL
@@ -44,21 +44,24 @@ all: Weidenbach_Book Ordered_Resolution_Prover Unordered_Resolution GRAT FOL_Ber
 
 # build the documentation and the files
 current: Ordered_Resolution_Prover Unordered_Resolution
-	$(RUN_ISABELLE) build -d '$$AFP' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -d Weidenbach_Book Full
+	$(RUN_ISABELLE2017) build -d '$$AFP' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -d Weidenbach_Book Full
 
 # move the html documentation to the locale directory
 doc:
 	mkdir -p $(DESTINATION)/current
-	cp -R $(ISABELLE_HOME)/Weidenbach_Book $(DESTINATION)/current || :
-	cp -R $(ISABELLE_HOME)/Ordered_Resolution_Prover $(DESTINATION)/current || :
-	cp -R $(ISABELLE2016-1_HOME)/Unsorted/Unordered_Resolution $(DESTINATION)/current || :
+	cp -R $(ISABELLE_HOME2017)/Weidenbach_Book $(DESTINATION)/current || :
+	cp -R $(ISABELLE_HOME2017)/Ordered_Resolution_Prover $(DESTINATION)/current || :
+	cp -R $(ISABELLE2017_HOME)/Unsorted/Unordered_Resolution $(DESTINATION)/current || :
 	./add_dates.pl --noverbose --unsafe --isabelle="$(ISABELLE_version)" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP_version)"
 
 refs:
 	../isafol-private/Other/update_refs.pl  --unsafe
 
 clean:
-	$(RUN_ISABELLE) build -d '$$AFP' -c -v -n -D Weidenbach_Book
-	$(RUN_ISABELLE) build -c -v -n -D Ordered_Resolution_Prover
-	$(RUN_ISABELLE2016-1) build -c -v -n -D Unordered_Resolution
+	$(RUN_ISABELLE2017) build -d '$$AFP' -c -v -n -D Weidenbach_Book
+	$(RUN_ISABELLE2017) build -c -v -n -D Ordered_Resolution_Prover
+	$(RUN_ISABELLE2017) build -c -v -n -D Unordered_Resolution
 	rm -rf $(DESTINATION)/current
+
+
+.PHONY: Weidenbach_Book Ordered_Resolution_Prover Unordered_Resolution

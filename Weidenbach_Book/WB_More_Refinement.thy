@@ -797,6 +797,9 @@ proof -
 
 subsection \<open>More Functions, Relations, and Theorems\<close>
 
+lemma id_ref: \<open>(return o id, RETURN o id) \<in> R\<^sup>d \<rightarrow>\<^sub>a R\<close>
+  by sepref_to_hoare sep_auto
+
 definition emptied_list :: \<open>'a list \<Rightarrow> 'a list\<close> where
   \<open>emptied_list l = []\<close>
 

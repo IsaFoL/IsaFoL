@@ -2,17 +2,17 @@ theory CDCL_Two_Watched_Literals_Code_Export_Test
   imports CDCL_Two_Watched_Literals_List_Simple_Code
 begin
 
-schematic_goal valued_impl: "RETURN ?c \<le> valued M L"
-  unfolding unit_propagation_inner_loop_body_l_def valued_def Let_def
+schematic_goal polarity_impl: "RETURN ?c \<le> polarity M L"
+  unfolding unit_propagation_inner_loop_body_l_def polarity_def Let_def
   apply (refine_transfer find_unwatched_impl)
   done
 
-concrete_definition valued_impl uses valued_impl
+concrete_definition polarity_impl uses polarity_impl
 
-prepare_code_thms valued_impl_def
-export_code valued_impl in SML
+prepare_code_thms polarity_impl_def
+export_code polarity_impl in SML
 
-declare find_unwatched_impl[refine_transfer] valued_impl[refine_transfer]
+declare find_unwatched_impl[refine_transfer] polarity_impl[refine_transfer]
 schematic_goal unit_propagation_inner_loop_body_list: "RETURN ?c \<le> unit_propagation_inner_loop_body_l L C S"
   unfolding unit_propagation_inner_loop_body_l_def
   apply refine_transfer
@@ -27,11 +27,11 @@ thm backtrack_l''_impl_def
 export_code backtrack_l''_impl in Haskell *)
 term nat_assn
 
-term valued
+term polarity
 term nfoldli
 
-definition valued'  :: "('a, 'b) ann_lit list \<Rightarrow> 'a literal \<Rightarrow> bool option nres" where
-  \<open>valued' M L = nfoldli [0..<length M]
+definition polarity'  :: "('a, 'b) ann_lit list \<Rightarrow> 'a literal \<Rightarrow> bool option nres" where
+  \<open>polarity' M L = nfoldli [0..<length M]
   (\<lambda>v. is_None v)
   (\<lambda>i v.
     do {
@@ -47,7 +47,7 @@ definition valued'  :: "('a, 'b) ann_lit list \<Rightarrow> 'a literal \<Rightar
 definition test :: "('a, 'b) ann_lit list \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>test M i = do {ASSERT(i < length M); RETURN (op_list_get M i = op_list_get M i)}\<close>
 
-sepref_register \<open>valued\<close>
+sepref_register \<open>polarity\<close>
 
 term set_rel term map2
 

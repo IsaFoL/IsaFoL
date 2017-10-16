@@ -117,7 +117,7 @@ concrete instances of Section 3.
 
 \begin{nit}
 The chapter uses the phrase ``true in $N$'' to mean ``true in $I_N$ and element of $N$.'' This is
-formalized by the condition @{prop "set_mset DD \<subseteq> N \<and> interp N \<Turnstile>m DD"} below.
+formalized by the condition @{prop "set_mset CC \<subseteq> N \<and> interp N \<Turnstile>m CC"} below.
 \end{nit}
 \<close>
 

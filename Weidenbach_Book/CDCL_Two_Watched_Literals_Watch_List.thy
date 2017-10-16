@@ -1,5 +1,5 @@
-theory CDCL_Two_Watched_Literals_List_Watched
-  imports CDCL_Two_Watched_Literals_List CDCL_Two_Watched_Literals_List_Watched_Initialisation
+theory CDCL_Two_Watched_Literals_Watch_List
+  imports CDCL_Two_Watched_Literals_List CDCL_Two_Watched_Literals_Watch_List_Initialisation
 begin
 
 text \<open>Less ambiguities in the notations (TODO: using a bundle would probably be better):\<close>
@@ -189,8 +189,8 @@ definition unit_prop_body_wl_inv where
   \<close>
 
 
-definition mark_conflict_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-  \<open>mark_conflict_wl = (\<lambda>C (M, N, U, D, NP, UP, Q, W). (M, N, U, Some (mset C), NP, UP, {#}, W))\<close>
+definition set_conflict_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
+  \<open>set_conflict_wl = (\<lambda>C (M, N, U, D, NP, UP, Q, W). (M, N, U, Some (mset C), NP, UP, {#}, W))\<close>
 
 
 definition propgate_lit_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
@@ -210,7 +210,7 @@ definition unit_prop_body_wl_find_unwatched_inv where
 \<open>unit_prop_body_wl_find_unwatched_inv f C S \<longleftrightarrow>
    (get_clauses_wl S)!C \<noteq> [] \<and>
    (f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l ((get_clauses_wl S)!C)). - L \<in> lits_of_l (get_trail_wl S)))\<close>
-
+term polarity
 definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
     (nat \<times> 'v twl_st_wl) nres" where
   \<open>unit_propagation_inner_loop_body_wl L w S = do {
@@ -218,7 +218,7 @@ definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat 
       let C = (watched_by S L) ! w;
       let i = (if ((get_clauses_wl S)!C) ! 0 = L then 0 else 1);
       let L' = ((get_clauses_wl S)!C) ! (1 - i);
-      let val_L' = valued (get_trail_wl S) L';
+      let val_L' = polarity (get_trail_wl S) L';
       if val_L' = Some True
       then RETURN (w+1, S)
       else do {
@@ -227,7 +227,7 @@ definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat 
         case f of
           None \<Rightarrow>
             if val_L' = Some False
-            then do {RETURN (w+1, mark_conflict_wl ((get_clauses_wl S)!C) S)}
+            then do {RETURN (w+1, set_conflict_wl ((get_clauses_wl S)!C) S)}
             else do {RETURN (w+1, propgate_lit_wl L' C S)}
         | Some f \<Rightarrow> do {
             update_clause_wl L C w i f S
@@ -266,7 +266,7 @@ lemma unit_propagation_inner_loop_body_wl_spec:
         i \<le> length (watched_by T' L)}
      (unit_propagation_inner_loop_body_l L C' T)\<close>
 proof -
-  have val: \<open>(valued a b, valued a' b') \<in> Id\<close>
+  have val: \<open>(polarity a b, polarity a' b') \<in> Id\<close>
     if \<open>a = a'\<close> and \<open>b = b'\<close> for a a' :: \<open>('a, 'b) ann_lits\<close> and b b' :: \<open>'a literal\<close>
     by (auto simp: that)
   let ?M = \<open>get_trail_wl S\<close>
@@ -376,7 +376,7 @@ proof -
         (update_clause_l C' i f' T)\<close>
     if
       init_inv: \<open>unit_prop_body_wl_inv S w L\<close> and
-      val_L'_not_Some_True: \<open>valued (get_trail_wl S) (get_clauses_wl S ! (watched_by S L ! w) ! (1 - i)) \<noteq> Some True\<close> and
+      val_L'_not_Some_True: \<open>polarity (get_trail_wl S) (get_clauses_wl S ! (watched_by S L ! w) ! (1 - i)) \<noteq> Some True\<close> and
       f'_f: \<open>(Some f, Some f') \<in> ?find\<close> and
       ff': \<open>(f, f') \<in> nat_rel\<close> and
       \<open>f' < length (get_clauses_l T ! C')\<close> and
@@ -551,8 +551,8 @@ proof -
         by (auto simp add: S unit_prop_body_wl_find_unwatched_inv_def)
     subgoal by (simp add: S)
     subgoal by (simp add: S)
-    subgoal by (auto simp add: clause_to_update_def correct_watching.simps mark_conflict_wl_def S
-       mark_conflict_l_def)
+    subgoal by (auto simp add: clause_to_update_def correct_watching.simps set_conflict_wl_def S
+       set_conflict_l_def)
     subgoal by (simp add: clause_to_update_def correct_watching.simps propgate_lit_wl_def S
        propgate_lit_l_def)
     subgoal by (rule ref) assumption

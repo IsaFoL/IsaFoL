@@ -25,14 +25,8 @@ lemma map2_empty_iff[simp]: "map2 f xs ys = [] \<longleftrightarrow> xs = [] \<o
 lemma image_map2: "length t = length s \<Longrightarrow> g ` set (map2 f t s) = set (map2 (\<lambda>a b. g (f a b)) t s)"
   by auto
 
-lemma map2_nth[simp]: "length t = length s \<Longrightarrow> i < length s \<Longrightarrow> map2 f s t ! i = f (s ! i) (t ! i)"
-  by auto
-
 lemma map2_tl: "length t = length s \<Longrightarrow> map2 f (tl t) (tl s) = tl (map2 f t s)"
   by (metis (no_types, lifting) hd_Cons_tl list.sel(3) map2_empty_iff map_tl tl_Nil zip_Cons_Cons)
-
-lemma map2_Cons[simp]: "map2 f (x # xs) (y # ys) = f x y # map2 f xs ys"
-  by simp
 
 lemma map_zip_assoc:
   "map f (zip (zip xs ys) zs) = map (\<lambda>(x, y, z). f ((x, y), z)) (zip xs (zip ys zs))"
@@ -49,7 +43,7 @@ proof (rule; rule)
   from i_p have "i < length t"
     by auto
   moreover from this i_p have "x = f (s ! i) (t ! i)"
-    using map2_nth assms by auto
+    using assms by auto
   ultimately show "x \<in> {x. \<exists>i < length t. x = f (s ! i) (t ! i)}"
     using assms by auto
 next
@@ -60,7 +54,7 @@ next
   then have "i < length (map2 f s t)"
     using assms by auto
   moreover from i_p have "x = map2 f s t ! i"
-    using map2_nth assms by auto
+    using assms by auto
   ultimately show "x \<in> set (map2 f s t)"
     by (metis in_set_conv_nth)
 qed
