@@ -654,6 +654,18 @@ method match_Down =
        \<Rightarrow> \<open>rule "weaken_\<Down>"[OF _ I]\<close>\<close>)
 
 
+lemma refine_SPEC_refine_Down:
+  \<open>f \<le> SPEC C \<longleftrightarrow> f \<le> \<Down> {(T', T). T = T' \<and> C T'} (SPEC C)\<close>
+  apply (rule iffI)
+  subgoal
+    by (rule SPEC_refine)  auto
+  subgoal
+    by (metis (no_types, lifting) RETURN_ref_SPECD SPEC_cons_rule dual_order.trans
+        in_pair_collect_simp no_fail_spec_le_RETURN_itself nofail_Down_nofail nofail_simps(2))
+  done
+
+
+
 subsection \<open>More declarations\<close>
 
 (* TODO: only input notation? *)
