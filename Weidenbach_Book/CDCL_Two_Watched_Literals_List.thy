@@ -225,16 +225,7 @@ definition find_unwatched :: "('a, 'b) ann_lits \<Rightarrow> 'a clause_l \<Righ
   }
 \<close>
 
-(* Example of code generation *)
-(* schematic_goal find_unwatched_impl: "RETURN ?c \<le> find_unwatched M C"
-  unfolding find_unwatched_def polarity_def
-  apply (refine_transfer)
-  done
 
-concrete_definition find_unwatched_impl uses find_unwatched_impl
-prepare_code_thms find_unwatched_impl_def
-export_code find_unwatched_impl in SML *)
-(* End of code generation *)
 definition find_unwatched_l where
   \<open>find_unwatched_l M C = SPEC (\<lambda>(found).
       (found = None \<longleftrightarrow> (\<forall>L\<in>set (unwatched_l C). -L \<in> lits_of_l M)) \<and>
