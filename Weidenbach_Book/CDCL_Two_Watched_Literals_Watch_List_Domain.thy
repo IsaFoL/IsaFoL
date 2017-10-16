@@ -450,7 +450,7 @@ proof -
     unfolding card[symmetric] size .
 qed
 
-definition unit_prop_body_wl_D_inv where
+definition (in isasat_input_ops) unit_prop_body_wl_D_inv where
 \<open>unit_prop_body_wl_D_inv T' i L \<longleftrightarrow>
     unit_prop_body_wl_inv T' i L \<and> literals_are_\<L>\<^sub>i\<^sub>n T' \<and> L \<in> snd ` D\<^sub>0
   \<close>
@@ -466,7 +466,7 @@ definition (in -) unit_prop_body_wl_D_find_unwatched_inv where
    get_clauses_wl S ! C ! (the f) \<noteq> get_clauses_wl S ! C ! 0  \<and>
    get_clauses_wl S ! C ! (the f) \<noteq> get_clauses_wl S ! C ! 1)\<close>
 
-definition unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> nat \<Rightarrow> nat twl_st_wl \<Rightarrow>
+definition (in isasat_input_ops) unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> nat \<Rightarrow> nat twl_st_wl \<Rightarrow>
     (nat \<times> nat twl_st_wl) nres" where
   \<open>unit_propagation_inner_loop_body_wl_D L w S = do {
       ASSERT(unit_prop_body_wl_D_inv S w L);
@@ -634,7 +634,7 @@ proof -
     by fastforce+
 qed
 
-definition unit_propagation_inner_loop_wl_loop_D :: "nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres" where
+definition (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D :: "nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres" where
   \<open>unit_propagation_inner_loop_wl_loop_D L S\<^sub>0 = do {
     WHILE\<^sub>T\<^bsup>\<lambda>(w, S). twl_struct_invs (twl_st_of_wl (Some (L, w)) S) \<and>
         twl_stgy_invs (twl_st_of_wl (Some (L, w)) S) \<and>
@@ -682,7 +682,7 @@ proof -
     done
 qed
 
-definition unit_propagation_inner_loop_wl_D :: "nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+definition (in isasat_input_ops) unit_propagation_inner_loop_wl_D :: "nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
   \<open>unit_propagation_inner_loop_wl_D L S\<^sub>0 = do {
      wS \<leftarrow> unit_propagation_inner_loop_wl_loop_D L S\<^sub>0;
      RETURN (snd wS)
@@ -703,7 +703,7 @@ proof -
     done
 qed
 
-definition unit_propagation_outer_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+definition (in isasat_input_ops) unit_propagation_outer_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
   \<open>unit_propagation_outer_loop_wl_D S\<^sub>0 =
     WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs (twl_st_of_wl None S) \<and> twl_stgy_invs (twl_st_of_wl None S) \<and>
       correct_watching S \<and> additional_WS_invs (st_l_of_wl None S)\<^esup>
@@ -753,7 +753,7 @@ proof -
     done
 qed
 
-definition skip_and_resolve_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+definition (in isasat_input_ops) skip_and_resolve_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
   \<open>skip_and_resolve_loop_wl_D S\<^sub>0 =
     do {
       ASSERT(get_conflict_wl S\<^sub>0 \<noteq> None);
@@ -893,10 +893,10 @@ definition (in -) list_of_mset2 :: "nat literal \<Rightarrow> nat literal \<Righ
 definition (in -) single_of_mset where
   \<open>single_of_mset D = SPEC(\<lambda>L. D = mset [L])\<close>
 
-definition backtrack_wl_D_inv where
+definition (in isasat_input_ops) backtrack_wl_D_inv where
   \<open>backtrack_wl_D_inv S \<longleftrightarrow> backtrack_wl_inv S \<and> literals_are_\<L>\<^sub>i\<^sub>n S\<close>
 
-definition propgate_bt_wl_D :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
+definition (in isasat_input_ops) propgate_bt_wl_D :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>propgate_bt_wl_D = (\<lambda>L L' (M, N, U, D, NP, UP, Q, W). do {
     D'' \<leftarrow> list_of_mset2 (-L) L' (the D);
     RETURN (Propagated (-L) (length N) # M,
@@ -904,13 +904,13 @@ definition propgate_bt_wl_D :: \<open>nat literal \<Rightarrow> nat literal \<Ri
           None, NP, UP, {#L#}, W(-L:= W (-L) @ [length N], L':= W L' @ [length N]))
       })\<close>
 
-definition propgate_unit_bt_wl_D :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close> where
+definition (in isasat_input_ops) propgate_unit_bt_wl_D :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close> where
   \<open>propgate_unit_bt_wl_D = (\<lambda>L (M, N, U, D, NP, UP, Q, W). do {
         D' \<leftarrow> single_of_mset (the D);
         RETURN (Propagated (-L) 0 # M, N, U, None, NP, add_mset {#D'#} UP, {#L#}, W)
     })\<close>
 
-definition backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+definition (in isasat_input_ops) backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
   \<open>backtrack_wl_D S =
     do {
       ASSERT(backtrack_wl_D_inv S);
@@ -1218,7 +1218,7 @@ qed
 
 subsubsection \<open>Decide or Skip\<close>
 
-definition find_unassigned_lit_wl_D:: \<open>nat twl_st_wl \<Rightarrow> (nat twl_st_wl \<times> nat literal option) nres\<close> where
+definition (in isasat_input_ops) find_unassigned_lit_wl_D:: \<open>nat twl_st_wl \<Rightarrow> (nat twl_st_wl \<times> nat literal option) nres\<close> where
   \<open>find_unassigned_lit_wl_D S = (
      SPEC(\<lambda>((M, N, U, D, NP, UP, WS, Q), L).
          S = (M, N, U, D, NP, UP, WS, Q) \<and>
@@ -1230,11 +1230,11 @@ definition find_unassigned_lit_wl_D:: \<open>nat twl_st_wl \<Rightarrow> (nat tw
 \<close>
 
 
-definition decide_wl_or_skip_D_pre :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
+definition (in isasat_input_ops) decide_wl_or_skip_D_pre :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
 \<open>decide_wl_or_skip_D_pre S \<longleftrightarrow>
    decide_wl_or_skip_pre S \<and> literals_are_\<L>\<^sub>i\<^sub>n S\<close>
 
-definition decide_wl_or_skip_D :: "nat twl_st_wl \<Rightarrow> (bool \<times> nat twl_st_wl) nres" where
+definition(in isasat_input_ops)  decide_wl_or_skip_D :: "nat twl_st_wl \<Rightarrow> (bool \<times> nat twl_st_wl) nres" where
   \<open>decide_wl_or_skip_D S = (do {
     ASSERT(decide_wl_or_skip_D_pre S);
     (S, L) \<leftarrow> find_unassigned_lit_wl_D S;
@@ -1306,7 +1306,7 @@ qed
 
 subsubsection \<open>Backtrack, Skip, Resolve or Decide\<close>
 
-definition cdcl_twl_o_prog_wl_D :: "nat twl_st_wl \<Rightarrow> (bool \<times> nat twl_st_wl) nres" where
+definition (in isasat_input_ops) cdcl_twl_o_prog_wl_D :: "nat twl_st_wl \<Rightarrow> (bool \<times> nat twl_st_wl) nres" where
   \<open>cdcl_twl_o_prog_wl_D S =
     do {
       ASSERT(twl_struct_invs (twl_st_of_wl None S));
@@ -1359,7 +1359,7 @@ qed
 
 subsubsection \<open>Full Strategy\<close>
 
-definition cdcl_twl_stgy_prog_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+definition (in isasat_input_ops) cdcl_twl_stgy_prog_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
   \<open>cdcl_twl_stgy_prog_wl_D S\<^sub>0 =
   do {
     do {

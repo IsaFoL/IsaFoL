@@ -1336,7 +1336,7 @@ definition (in -) SAT_wl :: \<open>nat clauses_l \<Rightarrow> nat twl_st_wl nre
     else do {
        ASSERT (extract_atms_clss CS [] \<noteq> []);
        ASSERT(isasat_input_bounded_nempty (mset \<A>\<^sub>i\<^sub>n'));
-       isasat_input_bounded.cdcl_twl_stgy_prog_wl_D (mset \<A>\<^sub>i\<^sub>n') (finalise_init T)
+       isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset \<A>\<^sub>i\<^sub>n') (finalise_init T)
     }
   }\<close>
 
@@ -1656,7 +1656,7 @@ definition IsaSAT :: \<open>nat clauses_l \<Rightarrow> nat literal list option 
        ASSERT(\<A>\<^sub>i\<^sub>n' \<noteq> {#});
        ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n');
        let T = finalise_init T;
-       U \<leftarrow> isasat_input_bounded.cdcl_twl_stgy_prog_wl_D \<A>\<^sub>i\<^sub>n' T;
+       U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_prog_wl_D \<A>\<^sub>i\<^sub>n' T;
        RETURN (if get_conflict_wl U = None then Some (extract_model_of_state U) else None)
    }
   }\<close>
@@ -1981,7 +1981,7 @@ proof -
 qed
 
 lemma cdcl_twl_stgy_prog_wl_D_code_ref':
-  \<open>(uncurry (\<lambda>_. cdcl_twl_stgy_prog_wl_D_code), uncurry isasat_input_bounded.cdcl_twl_stgy_prog_wl_D)
+  \<open>(uncurry (\<lambda>_. cdcl_twl_stgy_prog_wl_D_code), uncurry isasat_input_ops.cdcl_twl_stgy_prog_wl_D)
   \<in> [\<lambda>(N, _). N = \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n]\<^sub>a
      (list_mset_assn uint32_nat_assn)\<^sup>k *\<^sub>a
     (isasat_input_ops.twl_st_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow> isasat_input_ops.twl_st_assn \<A>\<^sub>i\<^sub>n\<close>
@@ -2176,7 +2176,7 @@ proof -
        else
          do{ ASSERT (extract_atms_clss CS' [] \<noteq> []);
              ASSERT(isasat_input_bounded_nempty (mset (extract_atms_clss CS' [])));
-             isasat_input_bounded.cdcl_twl_stgy_prog_wl_D (mset (extract_atms_clss CS' [])) S\<^sub>0})
+             isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset (extract_atms_clss CS' [])) S\<^sub>0})
     \<le> \<Down> TWL_to_clauses_state_conv
         (SPEC (\<lambda>U. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state CS) U \<or>
                     (CS \<noteq> {#} \<and> cdcl\<^sub>W_restart_mset.clauses U = CS \<and> learned_clss U = {#} \<and> conflicting U \<noteq> None
@@ -2287,7 +2287,7 @@ proof -
         using L
         by (cases L) (auto simp: CS in_extract_atms_clssD upperN_def)
     qed
-    then have 2: \<open>isasat_input_bounded.cdcl_twl_stgy_prog_wl_D (mset (extract_atms_clss CS' [])) S\<^sub>0
+    then have 2: \<open>isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset (extract_atms_clss CS' [])) S\<^sub>0
        \<le> SPEC (\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy
                      (state\<^sub>W_of (twl_st_of None (st_l_of_wl None S\<^sub>0)))
                      (state\<^sub>W_of (twl_st_of None (st_l_of_wl None T))))\<close>
@@ -2321,7 +2321,7 @@ proof -
         unfolding TWL_to_clauses_state_conv_def
         by (rule RETURN_SPEC_refine) (use full_cdcl\<^sub>W_init_state in auto)
     qed
-    have \<open>isasat_input_bounded.cdcl_twl_stgy_prog_wl_D (mset (extract_atms_clss CS' [])) S\<^sub>0
+    have \<open>isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset (extract_atms_clss CS' [])) S\<^sub>0
       \<le> \<Down> TWL_to_clauses_state_conv
       (SPEC (full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state CS)))\<close>
       by (auto simp: TWL_to_clauses_state_conv_def conc_fun_RES rtranclp_fullI
