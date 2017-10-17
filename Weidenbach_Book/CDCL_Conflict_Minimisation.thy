@@ -5,23 +5,46 @@ begin
 declare cdcl\<^sub>W_restart_mset_state[simp]
 
 context
+  fixes M :: \<open>('v, 'v clause) ann_lits\<close>
+begin
+
+inductive_set minimize_conflict_tree:: \<open>'v literal \<Rightarrow> 'v literal set\<close> for L :: \<open>'v literal\<close> where
+\<open>L \<in> minimize_conflict_tree L\<close> |
+\<open>Propagated L C \<in> set M \<Longrightarrow> K \<in># C \<Longrightarrow> L \<in> minimize_conflict_tree L\<close>
+
+
+inductive resolution_chain :: \<open>'v clause \<Rightarrow> 'v clause \<Rightarrow> bool\<close> where
+  \<open>Propagated (-L) C \<in> set M \<Longrightarrow> resolution_chain (add_mset L E) (remdups_mset (E + (C - {#-L#})))\<close>
+
+inductive conflict_minimization :: \<open>'v clause \<Rightarrow> 'v clause \<Rightarrow> bool\<close> where
+  \<open>resolution_chain C D \<Longrightarrow> D \<subseteq># C \<Longrightarrow> conflict_minimization C D\<close>
+
+
+inductive minimize_conflict where
+resolve_propa: \<open>Propagated L E \<in> set M \<Longrightarrow> minimize_conflict (add_mset (-L) C) (C + remove1_mset L E)\<close> |
+remdups: \<open>L \<in># C \<Longrightarrow> minimize_conflict (add_mset (-L) C) C\<close>
+
+definition minimize_conflict_mes :: \<open>'v clause \<Rightarrow> nat list\<close> where
+\<open>minimize_conflict_mes C = map (\<lambda>L. count C (-(lit_of L))) M\<close>
+
+end
+
+
+context
   fixes M :: \<open>('v, 'v clause) ann_lits\<close> and N U :: \<open>'v clauses\<close> and
     D :: \<open>'v clause\<close>
   assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N, U, Some D)\<close>
 begin
 
-private lemma 
-   no_dup: \<open>no_dup M\<close> and 
+private lemma
+   no_dup: \<open>no_dup M\<close> and
    consistent: \<open>consistent_interp (lits_of_l M)\<close>
   using invs unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
   by simp_all
 
-inductive resolution_chain :: \<open>'v clause \<Rightarrow> 'v clause \<Rightarrow> bool\<close> where
-  \<open>Propagated (-L) C \<in> set M \<Longrightarrow> resolution_chain (add_mset L E) (remdups_mset (E + (C - {#-L#})))\<close>
-
 lemma resolution_chain_resolve:
-  assumes \<open>resolution_chain C E\<close> and  \<open>set_mset N \<union> set_mset U \<Turnstile>p C\<close>
+  assumes \<open>resolution_chain M C E\<close> and  \<open>set_mset N \<union> set_mset U \<Turnstile>p C\<close>
   shows \<open>set_mset N \<union> set_mset U \<Turnstile>p E\<close>
   using assms
 proof (induction)
@@ -34,7 +57,7 @@ proof (induction)
     by fast
   then have [simp]: \<open>-L \<in># C\<close>
     by (metis in_trail split_list trail.simps)
-  
+
   have \<open>set (get_all_mark_of_propagated (trail (M, N, U, Some D)))
     \<subseteq> set_mset (cdcl\<^sub>W_restart_mset.clauses (M, N, U, Some D))\<close>
     using invs
@@ -53,22 +76,13 @@ proof (induction)
 qed
 
 lemma rtranclp_resolution_chain_resolve:
-  assumes \<open>resolution_chain\<^sup>*\<^sup>* C E\<close> and  \<open>N + U \<Turnstile>pm C\<close>
+  assumes \<open>(resolution_chain M)\<^sup>*\<^sup>* C E\<close> and  \<open>N + U \<Turnstile>pm C\<close>
   shows \<open>N + U \<Turnstile>pm E\<close>
   using assms by (induction) (auto dest!: resolution_chain_resolve)
 
-inductive conflict_minimization :: \<open>'v clause \<Rightarrow> 'v clause \<Rightarrow> bool\<close> where
-  \<open>resolution_chain C D \<Longrightarrow> D \<subseteq># C \<Longrightarrow> conflict_minimization C D\<close>
-
-inductive minimize_conflict where
-resolve_propa: \<open>Propagated L E \<in> set M \<Longrightarrow> minimize_conflict (add_mset (-L) C) (C + remove1_mset L E)\<close> |
-remdups: \<open>L \<in># C \<Longrightarrow> minimize_conflict (add_mset (-L) C) C\<close>
-
-definition minimize_conflict_mes :: \<open>'v clause \<Rightarrow> nat list\<close> where
-\<open>minimize_conflict_mes C = map (\<lambda>L. count C (-(lit_of L))) M\<close>
 
 lemma minimize_conflict_entailed_trail:
-  assumes \<open>minimize_conflict C E\<close> and \<open>M \<Turnstile>as CNot C\<close>
+  assumes \<open>minimize_conflict M C E\<close> and \<open>M \<Turnstile>as CNot C\<close>
   shows \<open>M \<Turnstile>as CNot E\<close>
   using assms
 proof (induction rule: minimize_conflict.induct)
@@ -95,8 +109,8 @@ next
 qed
 
 lemma minimize_conflict_mes:
-  assumes \<open>minimize_conflict C E\<close> and \<open>M \<Turnstile>as CNot C\<close>
-  shows \<open>(minimize_conflict_mes E, minimize_conflict_mes C) \<in> lexn less_than (length M)\<close>
+  assumes \<open>minimize_conflict M C E\<close> and \<open>M \<Turnstile>as CNot C\<close>
+  shows \<open>(minimize_conflict_mes M E, minimize_conflict_mes M C) \<in> lexn less_than (length M)\<close>
   using assms
 proof (induction rule: minimize_conflict.induct)
   case (resolve_propa L E C) note in_trail = this(1) and M_C = this(2)
@@ -111,7 +125,7 @@ proof (induction rule: minimize_conflict.induct)
     by fast
   then have L_E: \<open>L \<in># E\<close> and M_E: \<open>M1 \<Turnstile>as CNot (remove1_mset L E)\<close>
     unfolding M by force+
-  then have [simp]: \<open>count E (- L) = 0\<close> and uL_E: \<open>-L \<notin># E\<close> 
+  then have [simp]: \<open>count E (- L) = 0\<close> and uL_E: \<open>-L \<notin># E\<close>
     using no_dup by (auto simp: count_eq_zero_iff add_mset_eq_add_mset M
        true_annots_true_cls_def_iff_negation_in_model Decided_Propagated_in_iff_in_lits_of_l
       dest!: multi_member_split)
@@ -126,11 +140,11 @@ proof (induction rule: minimize_conflict.induct)
     unfolding M  by (auto dest!: consistent_interp_unionD multi_member_split
        simp: consistent_interp_insert_iff true_annots_true_cls tautology_add_mset)
   have H: \<open>count E (- lit_of x) = 0\<close>
-    if 
+    if
       x: \<open>x \<in> set M2\<close> and
       \<open>lit_of x \<noteq> - L\<close> and
       \<open>L \<noteq> lit_of x\<close> for x
-    unfolding count_eq_zero_iff 
+    unfolding count_eq_zero_iff
   proof
     assume \<open>- lit_of x \<in># E\<close>
     then have \<open>-lit_of x \<in># remove1_mset L E\<close>
@@ -194,6 +208,8 @@ next
     by (auto simp: uminus_lit_swap prepend_same_lexn lexn_Suc simp del: lexn.simps)
 qed
 
+definition cut_conflict_at  :: \<open>'v literal \<Rightarrow> 'v clause \<Rightarrow> 'v clause\<close> where
+\<open>cut_conflict_at L E = filter_mset (\<lambda>K. -K \<in> lit_of ` set (takeWhile (\<lambda>K. lit_of K \<noteq> L) M)) E\<close>
 
 end
 
