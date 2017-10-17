@@ -198,9 +198,9 @@ lemma [safe_constraint_rules]:
   by (auto simp: IS_LEFT_UNIQUE_def single_valued_def uint32_nat_rel_def br_def)
 
 definition uint32_max :: nat where
-  \<open>uint32_max = 2 ^32\<close>
+  \<open>uint32_max = 2 ^32 - 1\<close>
 
-lemma nat_of_uint32_uint32_of_nat_id: \<open>n < uint32_max \<Longrightarrow> nat_of_uint32 (uint32_of_nat n) = n\<close>
+lemma nat_of_uint32_uint32_of_nat_id: \<open>n \<le> uint32_max \<Longrightarrow> nat_of_uint32 (uint32_of_nat n) = n\<close>
   unfolding uint32_of_nat_def uint32_max_def
   apply simp
   apply transfer
@@ -279,7 +279,7 @@ proof -
 qed
 
 lemma nat_of_uint32_distrib_mult2_plus1:
-  assumes \<open>nat_of_uint32 xi < uint32_max div 2\<close>
+  assumes \<open>nat_of_uint32 xi \<le> uint32_max div 2\<close>
   shows \<open>nat_of_uint32 (2 * xi + 1) = 2 * nat_of_uint32 xi + 1\<close>
 proof -
   have mod_is_id: \<open>\<And>xi::32 Word.word. nat (uint xi) < (2147483648::nat) \<Longrightarrow>
@@ -346,12 +346,12 @@ proof -
 qed
 
 lemma nat_of_uint32_add:
-  \<open>nat_of_uint32 ai + nat_of_uint32 bi < uint32_max \<Longrightarrow>
+  \<open>nat_of_uint32 ai + nat_of_uint32 bi \<le> uint32_max \<Longrightarrow>
     nat_of_uint32 (ai + bi) = nat_of_uint32 ai + nat_of_uint32 bi\<close>
   by transfer (auto simp: unat_def uint_plus_if' nat_add_distrib uint32_max_def)
 
 lemma uint32_nat_assn_plus[sepref_fr_rules]:
-  \<open>(uncurry (return oo op +), uncurry (RETURN oo op +)) \<in> [\<lambda>(m, n). m + n < uint32_max]\<^sub>a
+  \<open>(uncurry (return oo op +), uncurry (RETURN oo op +)) \<in> [\<lambda>(m, n). m + n \<le> uint32_max]\<^sub>a
      uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def nat_of_uint32_add br_def)
 
@@ -445,10 +445,10 @@ lemma uint32_nat_assn_nat_assn_nat_of_uint32:
   by (auto simp: pure_def uint32_nat_rel_def br_def)
 
 definition (in -) sum_mod_uint32_max where
-  \<open>sum_mod_uint32_max a b = (a + b) mod uint32_max\<close>
+  \<open>sum_mod_uint32_max a b = (a + b) mod (uint32_max + 1)\<close>
 
 lemma (in -) nat_of_uint32_plus:
-  \<open>nat_of_uint32 (a + b) = (nat_of_uint32 a + nat_of_uint32 b) mod uint32_max\<close>
+  \<open>nat_of_uint32 (a + b) = (nat_of_uint32 a + nat_of_uint32 b) mod (uint32_max + 1)\<close>
   by transfer (auto simp: unat_word_ariths uint32_max_def)
 
 lemma (in -) sum_mod_uint32_max: \<open>(uncurry (return oo op +), uncurry (RETURN oo sum_mod_uint32_max)) \<in> 
