@@ -199,8 +199,11 @@ definition (in -)the_is_empty where
 
 subsection \<open>Refinement\<close>
 
-definition upperN :: nat where
-  \<open>upperN = 2 ^32\<close>
+abbreviation uint_max :: nat where
+  \<open>uint_max \<equiv> uint32_max\<close>
+
+lemmas uint_max_def = uint32_max_def
+
 
 text \<open>We start in a context where we have an initial set of atoms. \<close>
 locale isasat_input_ops =
@@ -390,7 +393,7 @@ locale isasat_input_bounded =
   isasat_input_ops \<A>\<^sub>i\<^sub>n
   for \<A>\<^sub>i\<^sub>n :: \<open>nat multiset\<close> +
   assumes
-    in_N1_less_than_upperN: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < upperN\<close>
+    in_N1_less_than_uint_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < uint_max\<close>
 
 locale isasat_input_bounded_nempty =
   isasat_input_bounded \<A>\<^sub>i\<^sub>n
@@ -407,7 +410,7 @@ lemma simple_clss_size_upper_div2:
    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C\<close> and
    dist: \<open>distinct_mset C\<close> and
    tauto: \<open>\<not>tautology C\<close>
-  shows \<open>size C \<le> upperN div 2\<close>
+  shows \<open>size C \<le> uint_max div 2\<close>
 proof -
   let ?C = \<open>atm_of `# C\<close>
   have \<open>distinct_mset ?C\<close>
@@ -429,7 +432,7 @@ proof -
   have size: \<open>size ?C = size C\<close>
     using dist tauto
     by (induction C) (auto simp: tautology_add_mset)
-  have m: \<open>set_mset ?C \<subseteq> {0..< upperN div 2}\<close>
+  have m: \<open>set_mset ?C \<subseteq> {0..< uint_max div 2}\<close>
   proof
     fix L
     assume \<open>L \<in> set_mset ?C\<close>
@@ -438,13 +441,13 @@ proof -
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
     then have \<open>Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
       using lits by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-    then show \<open>L \<in> {0..< upperN div 2}\<close>
-      using in_N1_less_than_upperN by (auto simp: atm_of_lit_in_atms_of
-        in_all_lits_of_m_ain_atms_of_iff subset_iff upperN_def)
+    then show \<open>L \<in> {0..< uint_max div 2}\<close>
+      using in_N1_less_than_uint_max by (auto simp: atm_of_lit_in_atms_of
+        in_all_lits_of_m_ain_atms_of_iff subset_iff uint32_max_def)
   qed
-  moreover have \<open>card \<dots> = upperN div 2\<close>
+  moreover have \<open>card \<dots> = uint_max div 2\<close>
     by auto
-  ultimately have \<open>card (set_mset ?C) \<le> upperN div 2\<close>
+  ultimately have \<open>card (set_mset ?C) \<le> uint_max div 2\<close>
     using card_mono[OF _ m] by auto
   then show ?thesis
     unfolding card[symmetric] size .
