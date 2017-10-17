@@ -41,8 +41,9 @@ $S(C_i \lor A_i \lor \cdots \lor A_i)$. Apparently, the latter was meant.
 abbreviation maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where
   "maximal_in A DA \<equiv> (A = Max (atms_of DA))" (* FIXME: Change to (\<forall>B \<in> atms_of CA. B \<le> A)? *)
 
-definition str_maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where
-  "str_maximal_in A CA \<equiv> (\<forall>B \<in> atms_of CA. B < A)"
+(* FIXME: why is "maximal_in" an abbreviation and "strict_maximal_in" a definition? *)
+definition strict_maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where
+  "strict_maximal_in A CA \<longleftrightarrow> (\<forall>B \<in> atms_of CA. B < A)"
 
 inductive eligible :: "'a list \<Rightarrow> 'a clause \<Rightarrow> bool" where
   eligible: "S DA = negs (mset As) \<or> S DA = {#} \<and> length As = 1 \<and> maximal_in (As ! 0) DA \<Longrightarrow>
@@ -59,9 +60,9 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
      (\<forall>i < n. AAs ! i \<noteq> {#}) \<Longrightarrow>
      (\<forall>i < n. \<forall>A \<in># AAs ! i. A = As ! i) \<Longrightarrow>
      eligible As (D + negs (mset As)) \<Longrightarrow>
-     (\<forall>i < n. str_maximal_in (As ! i) (Cs ! i)) \<Longrightarrow>
+     (\<forall>i < n. strict_maximal_in (As ! i) (Cs ! i)) \<Longrightarrow>
      (\<forall>i < n. S (CAs ! i) = {#}) \<Longrightarrow>
-     ord_resolve CAs (D + negs (mset As)) (\<Union># (mset Cs) + D)"
+     ord_resolve CAs (D + negs (mset As)) (\<Union># mset Cs + D)"
 
 lemma ord_resolve_sound:
   assumes
@@ -148,7 +149,7 @@ proof (cases rule: ord_resolve.cases)
     define C_max where "C_max = Cs ! max_i"
 
     have mc_lt_ma: "max_A_of_Cs < A_max"
-      using maxim cm_in_cas mc_in_cm cas_len unfolding str_maximal_in_def A_max_def by auto
+      using maxim cm_in_cas mc_in_cm cas_len unfolding strict_maximal_in_def A_max_def by auto
 
     then have ucas_ne_neg_aa: "(\<Union># mset Cs) \<noteq> negs (mset As)"
       using mc_in mc_max mc_lt_ma cm_in_cas cas_len ai_len unfolding A_max_def
@@ -345,11 +346,11 @@ proof -
     using s_d by auto
   then have "eligible As (D + negs (mset As))"
     using D_def negs_as_le_d by auto
-  moreover have "\<And>i. i < length AAs \<Longrightarrow> str_maximal_in (As ! i) ((Cs ! i))"
-    by (simp add: C_of_def Cs_def \<open>\<And>x B. \<lbrakk>production N (CA_of x) = {x}; B \<in># CA_of x; B \<noteq> Pos x\<rbrakk> \<Longrightarrow> atm_of B < x\<close> atms_of_def calculation(3) n_def prod_c0 str_maximal_in_def)
+  moreover have "\<And>i. i < length AAs \<Longrightarrow> strict_maximal_in (As ! i) ((Cs ! i))"
+    by (simp add: C_of_def Cs_def \<open>\<And>x B. \<lbrakk>production N (CA_of x) = {x}; B \<in># CA_of x; B \<noteq> Pos x\<rbrakk> \<Longrightarrow> atm_of B < x\<close> atms_of_def calculation(3) n_def prod_c0 strict_maximal_in_def)
 
-  have "\<forall>i < n. str_maximal_in (As ! i) (Cs ! i)"
-    by (simp add: \<open>\<And>i. i < length AAs \<Longrightarrow> str_maximal_in (As ! i) (Cs ! i)\<close> calculation(3))
+  have "\<forall>i < n. strict_maximal_in (As ! i) (Cs ! i)"
+    by (simp add: \<open>\<And>i. i < length AAs \<Longrightarrow> strict_maximal_in (As ! i) (Cs ! i)\<close> calculation(3))
   moreover have "\<forall>CA \<in> set CAs. S CA = {#}"
     using prod_c producesD productive_imp_produces_Max_literal by blast
   have "\<forall>CA\<in>set CAs. S CA = {#}"

@@ -21,7 +21,7 @@ parameter.
 locale selection =
   fixes S :: "'a clause \<Rightarrow> 'a clause"
   assumes
-    S_selects_subseteq: "S C \<le># C" and
+    S_selects_subseteq: "S C \<subseteq># C" and
     S_selects_neg_lits: "L \<in># S C \<Longrightarrow> is_neg L"
 
 locale ground_resolution_with_selection = selection S
@@ -142,7 +142,7 @@ lemma production_subseteq_INTERP: "production C \<subseteq> INTERP"
   unfolding INTERP_def using production_unfold by blast
 
 lemma Interp_subseteq_INTERP: "Interp C \<subseteq> INTERP"
-  unfolding Interp_def by (auto intro!: interp_subseteq_INTERP production_subseteq_INTERP)
+  by (simp add: Interp_def interp_subseteq_INTERP production_subseteq_INTERP)
 
 lemma produces_imp_in_interp:
   assumes a_in_c: "Neg A \<in># C" and d: "produces D A"
@@ -198,8 +198,8 @@ qed
 lemma true_Interp_imp_interp: "C \<le> D \<Longrightarrow> D < D' \<Longrightarrow> Interp D \<Turnstile> C \<Longrightarrow> interp D' \<Turnstile> C"
   using interp_def true_Interp_imp_general by simp
 
-lemma true_Interp_imp_Interp: "C \<le> D \<Longrightarrow> D < D' \<Longrightarrow> Interp D \<Turnstile> C \<Longrightarrow> Interp D' \<Turnstile> C"
-  using Interp_as_UNION interp_subseteq_Interp true_Interp_imp_general by simp
+lemma true_Interp_imp_Interp: "C \<le> D \<Longrightarrow> D \<le> D' \<Longrightarrow> Interp D \<Turnstile> C \<Longrightarrow> Interp D' \<Turnstile> C"
+  using Interp_as_UNION interp_subseteq_Interp true_Interp_imp_general by (metis antisym_conv2)
 
 lemma true_Interp_imp_INTERP: "C \<le> D \<Longrightarrow> Interp D \<Turnstile> C \<Longrightarrow> INTERP \<Turnstile> C"
   using INTERP_def interp_subseteq_INTERP true_Interp_imp_general[OF _ le_multiset_right_total]
@@ -208,7 +208,7 @@ lemma true_Interp_imp_INTERP: "C \<le> D \<Longrightarrow> Interp D \<Turnstile>
 lemma true_interp_imp_general:
   assumes
     c_le_d: "C \<le> D" and
-    d_lt_d': "D < D'" and
+    d_le_d': "D \<le> D'" and
     c_at_d: "interp D \<Turnstile> C" and
     subs: "interp D' \<subseteq> (\<Union>C \<in> CC. production C)"
   shows "(\<Union>C \<in> CC. production C) \<Turnstile> C"
@@ -217,7 +217,7 @@ proof (cases "\<exists>A. Pos A \<in># C \<and> A \<in> interp D")
   then obtain A where a_in_c: "Pos A \<in># C" and a_at_d: "A \<in> interp D"
     by blast
   from a_at_d have "A \<in> interp D'"
-    using d_lt_d' less_eq_imp_interp_subseteq_interp[OF less_imp_le] by blast
+    using d_le_d' less_eq_imp_interp_subseteq_interp by blast
   then show ?thesis
     using subs a_in_c by (blast dest: contra_subsetD)
 next
@@ -230,15 +230,15 @@ next
     using a_in_c subs not_produces_imp_notin_production by auto
 qed
 
-lemma true_interp_imp_interp: "C \<le> D \<Longrightarrow> D < D' \<Longrightarrow> interp D \<Turnstile> C \<Longrightarrow> interp D' \<Turnstile> C"
+lemma true_interp_imp_interp: "C \<le> D \<Longrightarrow> D \<le> D' \<Longrightarrow> interp D \<Turnstile> C \<Longrightarrow> interp D' \<Turnstile> C"
   using interp_def true_interp_imp_general by simp
 
-lemma true_interp_imp_Interp: "C \<le> D \<Longrightarrow> D < D' \<Longrightarrow> interp D \<Turnstile> C \<Longrightarrow> Interp D' \<Turnstile> C"
+lemma true_interp_imp_Interp: "C \<le> D \<Longrightarrow> D \<le> D' \<Longrightarrow> interp D \<Turnstile> C \<Longrightarrow> Interp D' \<Turnstile> C"
   using Interp_as_UNION interp_subseteq_Interp[of D'] true_interp_imp_general by simp
 
+
 lemma true_interp_imp_INTERP: "C \<le> D \<Longrightarrow> interp D \<Turnstile> C \<Longrightarrow> INTERP \<Turnstile> C"
-  using INTERP_def interp_subseteq_INTERP true_interp_imp_general[OF _ le_multiset_right_total]
-  by simp
+  using INTERP_def interp_subseteq_INTERP true_interp_imp_general linear by metis
 
 lemma productive_imp_false_interp: "productive C \<Longrightarrow> \<not> interp C \<Turnstile> C"
   unfolding production_unfold by simp
@@ -394,7 +394,7 @@ lemma
   oops
 
 lemma
-  assumes d: "D = {#}" and n: "N = {D}" and c: "C = {#Pos A#}"
+  assumes d: "D = {#}" and n: "N = {D, C}" and c: "C = {#Pos A#}"
   shows "D \<in> N" and "\<And>D'. D' < D \<Longrightarrow> Interp D' \<Turnstile> C" and "\<not> interp D \<Turnstile> C"
   using n unfolding d c interp_def by auto
 

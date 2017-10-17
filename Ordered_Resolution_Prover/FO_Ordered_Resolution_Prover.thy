@@ -1866,23 +1866,18 @@ proof -
           unfolding gd.eligible.simps[simplified] using is_ground_Max using ground_mset_as ground_d by auto
 
         have ann1: "maximal_in (Max (atms_of D \<union> set As)) (D + negs (mset As))"
-          unfolding gd.eligible.simps[simplified] ann2
-          unfolding maximal_in_def
-          unfolding less_atm_iff
-          using Max\<sigma>_is_Max
-          using ground_set_as ground_d
-          using ex_ground_subst
+          unfolding gd.eligible.simps[simplified] ann2 maximal_in_def less_atm_iff
+          using Max\<sigma>_is_Max ground_set_as ground_d ex_ground_subst
           by (metis Max_less_iff \<open>finite (atms_of D \<union> set As)\<close> equals0D infinite_growing is_ground_cls_imp_is_ground_atm is_ground_subst_atm atms_of_negg atms_of_plus gd local.ord_resolve(1) set_mset_mset)
             
         from k have kk: "eligible (S_M S (Q_of_state (limit_state Sts))) \<sigma> As (D + negs (mset As))"
           unfolding gd.eligible.simps eligible.simps using ann1 ann2 by (auto simp: S_Q_def)
 
-        have l: "\<forall>i<n. gd.str_maximal_in (As ! i) (Cs ! i)"
+        have l: "\<forall>i < n. gd.strict_maximal_in (As ! i) (Cs ! i)"
           using ord_resolve by simp
-        then have ll: "\<forall>i<n. str_maximal_in (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
+        then have ll: "\<forall>i < n. str_maximal_in (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
           using len_as ground_as using ex_ground_subst ground_cs is_ground_cls_imp_is_ground_atm  
-          unfolding less_eq_atm_def less_atm_iff gd.str_maximal_in_def
-          by force
+          unfolding less_eq_atm_def less_atm_iff gd.strict_maximal_in_def by force
 
         have m: "\<forall>i<n. S_Q (CAs ! i) = {#}"
           using ord_resolve by simp
@@ -1890,9 +1885,8 @@ proof -
         have gg: "is_ground_cls (\<Union>#mset Cs + D)"
           using ground_d ground_cs b ge by auto
         show ?thesis
-          using ord_resolve.intros[OF len_cas len_cs len_ass len_as nz cas ass_ne jj kk ll _  ]  m a b gg
-          unfolding S_Q_def
-           by auto
+          using ord_resolve.intros[OF len_cas len_cs len_ass len_as nz cas ass_ne jj kk ll] m a b gg
+          unfolding S_Q_def by auto
       qed
     qed
     then obtain \<sigma> where sisisgma: "ord_resolve (S_M S (Q_of_state (limit_state Sts))) CAs ?D \<sigma> ?E"
@@ -1957,7 +1951,6 @@ proof -
       using N_of_state_subset j_p' by auto
     then have "?E \<in> grounding_of_state (lnth Sts j)"
       using s_p(7) s_p(3) unfolding grounding_of_clss_def grounding_of_cls_def by force
-    find_theorems 
     then have "\<gamma> \<in> src.Ri (grounding_of_state (lnth Sts j))"
       using src.Ri_effective \<gamma>_p by auto
     then have "\<gamma> \<in> src_ext_Ri (?N j)"
