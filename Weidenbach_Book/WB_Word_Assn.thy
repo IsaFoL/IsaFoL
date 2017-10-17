@@ -251,7 +251,7 @@ lemma mult_mod_mod_mult:
   done
 
 lemma nat_of_uint32_distrib_mult2:
-  assumes \<open>nat_of_uint32 xi < uint32_max div 2\<close>
+  assumes \<open>nat_of_uint32 xi \<le> uint32_max div 2\<close>
   shows \<open>nat_of_uint32 (2 * xi) = 2 * nat_of_uint32 xi\<close>
 proof -
   have H: \<open>\<And>xi::32 Word.word. nat (uint xi) < (2147483648::nat) \<Longrightarrow>
