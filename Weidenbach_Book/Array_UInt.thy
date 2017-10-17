@@ -25,7 +25,7 @@ lemma nth_aa_uint_hnr[sepref_fr_rules]:
        (arrayO_assn (arl_assn R))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
   unfolding nth_aa_u_def
   by sepref_to_hoare
-    (use assms in \<open>sep_auto simp: uint32_nat_rel_def br_def length_ll_def nth_ll_def
+    (use assms in \<open>sep_auto simp: uint32_nat_rel_def br_def length_ll_def nth_lrl_def
      nth_rll_def\<close>)
 
 definition nth_raa_u where

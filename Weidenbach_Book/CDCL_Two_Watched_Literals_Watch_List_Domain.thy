@@ -1,6 +1,6 @@
 theory CDCL_Two_Watched_Literals_Watch_List_Domain
   imports CDCL_Two_Watched_Literals_Watch_List
-    Array_UInt "../lib/Explorer"
+    BigNat_UInt_Wrapper "../lib/Explorer"
 begin
 
 text \<open>We refine the implementation by adding a \<^emph>\<open>domain\<close> on the literals\<close>
@@ -14,11 +14,11 @@ subsubsection \<open>Functions and Types:\<close>
 type_synonym ann_lits_l = \<open>(nat, nat) ann_lits\<close>
 type_synonym clauses_to_update_ll = \<open>nat list\<close>
 type_synonym lit_queue_l = \<open>uint32 list\<close>
-type_synonym nat_trail = \<open>(uint32 \<times> nat option) list\<close>
+type_synonym nat_trail = \<open>(uint32 \<times> bignat_uint option) list\<close>
 type_synonym clause_wl = \<open>uint32 array\<close>
 type_synonym unit_lits_wl = \<open>uint32 list list\<close>
 
-type_synonym watched_wl = \<open>(nat array_list) array\<close>
+type_synonym watched_wl = \<open>(bignat_uint array_list) array\<close>
 
 notation prod_assn (infixr "*assn" 90)
 
@@ -141,12 +141,12 @@ definition ann_lit_rel:: "('a \<times> nat) set \<Rightarrow> ('b \<times> nat o
   \<open>ann_lit_rel R R' = {(a, b). \<exists>c d. (fst a, c) \<in> R \<and> (snd a, d) \<in> R' \<and>
       b = ann_lit_of_pair (literal_of_nat c, d)}\<close>
 
-type_synonym ann_lit_wl = \<open>uint32 \<times> nat option\<close>
+type_synonym ann_lit_wl = \<open>uint32 \<times> bignat_uint option\<close>
 type_synonym ann_lits_wl = \<open>ann_lit_wl list\<close>
 term \<open> \<langle>uint32_nat_rel\<rangle>option_rel\<close>
 
 definition nat_ann_lit_rel :: "(ann_lit_wl \<times> (nat, nat) ann_lit) set" where
-  nat_ann_lit_rel_internal_def: \<open>nat_ann_lit_rel = \<langle>uint32_nat_rel, \<langle>nat_rel\<rangle>option_rel\<rangle>ann_lit_rel\<close>
+  nat_ann_lit_rel_internal_def: \<open>nat_ann_lit_rel = \<langle>uint32_nat_rel, \<langle>bignat_uint_rel\<rangle>option_rel\<rangle>ann_lit_rel\<close>
 
 lemma ann_lit_rel_def:
   \<open>\<langle>R, R'\<rangle>ann_lit_rel = {(a, b). \<exists>c d. (fst a, c) \<in> R \<and> (snd a, d) \<in> R' \<and>
@@ -154,8 +154,8 @@ lemma ann_lit_rel_def:
   unfolding nat_ann_lit_rel_internal_def ann_lit_rel_internal_def relAPP_def ..
 
 lemma nat_ann_lit_rel_def:
-  \<open>nat_ann_lit_rel = {(a, b). b = ann_lit_of_pair ((\<lambda>(a,b). (literal_of_nat (nat_of_uint32 a), b)) a)}\<close>
-  unfolding nat_ann_lit_rel_internal_def ann_lit_rel_def
+  \<open>nat_ann_lit_rel = {(a, b). b = ann_lit_of_pair ((\<lambda>(a,b). (literal_of_nat (nat_of_uint32 a), map_option nat_of_bignat_uint b)) a)}\<close>
+  unfolding nat_ann_lit_rel_internal_def ann_lit_rel_def bignat_uint_rel_def
   apply (auto simp: option_rel_def ex_disj_distrib uint32_nat_rel_def br_def)
    apply (case_tac b)
     apply auto
