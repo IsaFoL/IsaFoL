@@ -7,7 +7,7 @@
 section \<open>Limits of Lazy Lists\<close>
 
 theory Lazy_List_Limit
-  imports "Coinductive.Coinductive_List"
+  imports Coinductive.Coinductive_List
 begin
 
 text \<open>
@@ -18,7 +18,7 @@ generally in terms of lattices. The basis for this theory is Section 4.1 (``Theo
 Processes'') of Bachmair and Ganzinger's chapter.
 \<close>
 
-definition Sup_llist :: "('a::complete_distrib_lattice) llist \<Rightarrow> 'a" where
+definition Sup_llist :: "('a :: Sup) llist \<Rightarrow> 'a" where
   "Sup_llist As = (\<Squnion>i \<in> {i. enat i < llength As}. lnth As i)"
 
 lemma lnth_subset_Sup_llist: "enat i < llength xs \<Longrightarrow> lnth xs i \<subseteq> Sup_llist xs"
@@ -45,7 +45,7 @@ qed ((auto)[], metis i0_lb lnth_0 zero_enat_def, metis Suc_ile_eq lnth_Suc_LCons
 lemma lhd_subset_Sup_llist: "\<not> lnull As \<Longrightarrow> lhd As \<subseteq> Sup_llist As"
   by (cases As) simp_all
 
-definition Sup_upto_llist :: "('a::Sup) llist \<Rightarrow> nat \<Rightarrow> 'a" where
+definition Sup_upto_llist :: "('a :: Sup) llist \<Rightarrow> nat \<Rightarrow> 'a" where
   "Sup_upto_llist As j = (\<Squnion>i \<in> {i. enat i < llength As \<and> i \<le> j}. lnth As i)"
 
 lemma Sup_upto_llist_mono: "j \<le> k \<Longrightarrow> Sup_upto_llist As j \<subseteq> Sup_upto_llist As k"
@@ -62,13 +62,9 @@ lemma finite_Sup_llist_imp_Sup_upto_llist:
   shows "\<exists>k. A \<subseteq> Sup_upto_llist As k"
   using assms
 proof induct
-  case empty
-  then show ?case
-    by simp
-next
   case (insert x A)
-  from insert.prems have x: "x \<in> Sup_llist As" and a: "A \<subseteq> Sup_llist As"
-    by simp_all
+  hence x: "x \<in> Sup_llist As" and a: "A \<subseteq> Sup_llist As"
+    by simp+
   from x obtain k where k: "x \<in> Sup_upto_llist As k"
     using elem_Sup_llist_imp_Sup_upto_llist by fast
   from a obtain k' where k': "A \<subseteq> Sup_upto_llist As k'"
@@ -78,7 +74,7 @@ next
     by (metis insert_absorb insert_subset Sup_upto_llist_mono max.cobounded2 max.commute order_trans)
   then show ?case
     by fast
-qed
+qed simp
 
 text \<open>
 \begin{nit}
@@ -88,8 +84,9 @@ expand to be the universal set for values of $i$ beyond the length of a finite l
 \end{nit}
 \<close>
 
-definition limit_llist :: "('a::{Inf,Sup}) llist \<Rightarrow> 'a" where
-  "limit_llist As = (\<Squnion>i \<in> {i. enat i < llength As}. \<Sqinter>j \<in> {j. i \<le> j \<and> enat j < llength As}. lnth As j)"
+definition limit_llist :: "('a :: {Inf,Sup}) llist \<Rightarrow> 'a" where
+  "limit_llist As =
+   (\<Squnion>i \<in> {i. enat i < llength As}. \<Sqinter>j \<in> {j. i \<le> j \<and> enat j < llength As}. lnth As j)"
 
 lemma limit_llist_subset_Sup_llist: "limit_llist As \<subseteq> Sup_llist As"
   unfolding limit_llist_def Sup_llist_def by fast
