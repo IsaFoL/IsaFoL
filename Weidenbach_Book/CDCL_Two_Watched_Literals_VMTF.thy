@@ -3,6 +3,7 @@ imports CDCL_Two_Watched_Literals_Watch_List_Domain
 begin
 
 
+  
 subsection \<open>Variable-Move-to-Front\<close>
 
 subsubsection \<open>Variants around head and last\<close>
@@ -2712,9 +2713,43 @@ definition update_stamp where
 
 
 inductive tight_vmtf where
-empty:  \<open>tight_vmtf [] ns fst_As st\<close> |
-add_one: \<open>tight_vmtf A ns fst_As st \<Longrightarrow> tight_vmtf (L # A) (update_stamp ns L st) A (st + 1)\<close>
+empty:  \<open>vmtf_ns A st ns \<Longrightarrow> tight_vmtf ns [] ns fst_As st\<close> |
+add_one: \<open>tight_vmtf ms A ns fst_As st \<Longrightarrow> tight_vmtf ms (L # A) (update_stamp ns L st) L (st + 1)\<close>
 
+inductive_cases vmtf_ns_empty[elim!]: \<open>tight_vmtf ns [] ns' fst_As st\<close>
+inductive_cases vmtf_ns_Cons: \<open>tight_vmtf ns (L # As) ns' fst_As st\<close>
+inductive_cases vmtf_nsE: \<open>tight_vmtf ns As ns' fst_As st\<close>
+
+
+fun option_prev where
+  \<open>option_prev L [] = None\<close> |
+  \<open>option_prev L [_] = None\<close> |
+  \<open>option_prev L (K # K' # xs) = (if L = K' then Some K else option_prev L (K' # xs))\<close>
+
+fun option_next where
+  \<open>option_next L [] = None\<close> |
+  \<open>option_next L [_] = None\<close> |
+  \<open>option_next L (K # K' # xs) = (if L = K then Some K' else option_next L (K' # xs))\<close>
+
+lemma option_prev_notin_None:
+  \<open>L \<notin> set xs \<Longrightarrow> option_prev L xs = None\<close>
+  by (induction L xs rule: option_next.induct) auto
+  
+lemma vmtf_ns_get_next_option_next:
+  \<open>vmtf_ns A st ns \<Longrightarrow> L \<in> set A \<Longrightarrow> get_next (ns ! L) = option_next L A\<close>
+  by (induction rule: vmtf_ns.induct) (auto simp: vmtf_ns_le_length)
+
+lemma vmtf_ns_get_prev_option_prev:
+  \<open>vmtf_ns A st ns \<Longrightarrow> L \<in> set A \<Longrightarrow> get_prev (ns ! L) = option_prev L A\<close>
+  by (induction rule: vmtf_ns.induct) (auto simp: vmtf_ns_le_length option_prev_notin_None)
+
+lemma option_prev_nth:
+  \<open>distinct xs \<Longrightarrow> i < length xs \<Longrightarrow> option_prev (xs ! i) xs = (if i = 0 then None else Some (xs ! (i - 1)))\<close>
+  apply (induction xs arbitrary: i)
+  subgoal by auto
+  subgoal for x xs
+    by (cases xs) (auto simp: option_prev_notin_None)
+  done
 
 lemma
   assumes vmtf: \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> vmtf M\<close>
@@ -2784,8 +2819,11 @@ proof -
       unfolding new_scores_def I_def s by auto
     have cond: \<open>get_prev (a ! aa) \<noteq> None\<close>
       using cond unfolding s by simp
-    have \<open>get_prev (a ! aa) = Some (As ! (length As - (ba + 2)))\<close>
+    have \<open>F\<close>
+      using vmtf_ns_rescale[OF vmtf_ns, of \<open>map stamp a\<close>] unfolding As_def[symmetric]
 
+    have \<open>get_prev (a ! aa) = option_prev aa As\<close>
+      apply (rule vmtf_ns_get_prev_option_prev)
       sorry
     have [simp]: \<open>the (get_prev (a ! aa)) \<notin> set (take ba (rev As))\<close>
       sorry
