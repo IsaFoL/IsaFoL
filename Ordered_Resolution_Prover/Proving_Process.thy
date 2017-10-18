@@ -117,52 +117,6 @@ abbreviation derivation :: "'a clause set llist \<Rightarrow> bool" where
 lemma derive_subset: "M \<triangleright> N \<Longrightarrow> N \<subseteq> M \<union> concls_of (inferences_from M)"
   by (meson Diff_subset_conv derive.cases)
 
-inductive derive2 :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<triangleright>\<triangleright>" 50) where
-  deduction: "M \<subseteq> concls_of (inferences_from N) \<Longrightarrow> N \<triangleright>\<triangleright> N \<union> M"
-| deletion: "M \<subseteq> Rf N \<Longrightarrow> N \<union> M \<triangleright>\<triangleright> N"
-
-lemma derive_derive2: "rtranclp derive N1 N2 \<Longrightarrow> rtranclp derive2 N1 N2"
-proof (induction rule: rtranclp_induct)
-  case base
-  then show ?case by auto
-next
-  case (step y z)
-  from \<open>y \<triangleright> z\<close> step show ?case
-  proof (induction rule: derive.induct)
-    case (deduction_deletion M N)
-    moreover from deduction_deletion have "N \<triangleright>\<triangleright> N \<union> (M - N)"
-      using derive2.intros(1)[of "M - N" N] by auto
-    moreover from deduction_deletion have "N \<union> (M - N) \<triangleright>\<triangleright> M"
-      using derive2.intros(2)[of _ _] by (metis Un_Diff_cancel2 sup_commute)
-    ultimately show ?case using deduction_deletion by auto
-  qed
-qed
-
-lemma derive2_derive: "rtranclp derive2 N1 N2 \<Longrightarrow> rtranclp derive N1 N2"
-proof (induction rule: rtranclp_induct)
-  case base
-  then show ?case by auto
-next
-  case (step y z)
-  from \<open>y \<triangleright>\<triangleright> z\<close> step show ?case
-  proof (induction rule: derive2.induct)
-    case (deduction M N)
-    then have "N \<triangleright> N \<union> M"
-      using derive.intros[of "N \<union> M" N] by blast
-    then show ?case
-      using deduction by auto
-  next
-    case (deletion M N)
-    then have "N \<union> M \<triangleright> N"
-      by (blast intro: derive.intros[of N])
-    then show ?case using deletion
-      by auto
-  qed
-qed
-
-lemma derive_eq_derive2: "rtranclp derive = rtranclp derive2"
-  using derive_derive2 derive2_derive by blast
-
 end
 
 text \<open>
@@ -187,7 +141,8 @@ proof -
     using deriv by (metis lnull_chain lhd_conv_lnth)
   have len_ns: "llength Ns > 0"
     using deriv by (case_tac Ns) auto
-  { fix DD
+  {
+    fix DD
     assume fin: "finite DD" and sset_lun: "DD \<subseteq> Sup_llist Ns"
     then obtain k where dd_sset: "DD \<subseteq> Sup_upto_llist Ns k"
       using finite_Sup_llist_imp_Sup_upto_llist by blast
@@ -234,7 +189,8 @@ proof -
       qed
     qed
     then have "satisfiable DD"
-      using dd_sset unfolding Sup_upto_llist_def by (blast intro: true_clss_mono) }
+      using dd_sset unfolding Sup_upto_llist_def by (blast intro: true_clss_mono)
+  }
   then show ?thesis
     using ground_resolution_without_selection.clausal_logic_compact[THEN iffD1] by metis
 qed
@@ -250,7 +206,8 @@ lemma derivation_supremum_limit_llist_satisfiable:
     Ri_Sup_llist_subset_Ri_limit_llist: "Ri (Sup_llist Ns) \<subseteq> Ri (limit_llist Ns)" and
     satisfiable_limit_llist_iff: "satisfiable (limit_llist Ns) \<longleftrightarrow> satisfiable (lhd Ns)"
 proof -
-  { fix C i j
+  {
+    fix C i j
     assume
       c_in: "C \<in> lnth Ns i" and
       c_ni: "C \<notin> Rf (Sup_llist Ns)" and
@@ -369,17 +326,21 @@ proof
     then have "concl_of \<gamma> \<in> Sup_llist Ns \<union> Rf (Sup_llist Ns)"
       using False \<gamma> by auto
     moreover
-    { assume "concl_of \<gamma> \<in> Sup_llist Ns"
+    {
+      assume "concl_of \<gamma> \<in> Sup_llist Ns"
       then have "\<gamma> \<in> Ri (Sup_llist Ns)"
         using \<gamma> Ri_effective inferences_from_def by blast
       then have "\<gamma> \<in> Ri (limit_llist Ns)"
-        using deriv Ri_Sup_llist_subset_Ri_limit_llist by fast }
+        using deriv Ri_Sup_llist_subset_Ri_limit_llist by fast
+    }
     moreover
-    { assume "concl_of \<gamma> \<in> Rf (Sup_llist Ns)"
+    {
+      assume "concl_of \<gamma> \<in> Rf (Sup_llist Ns)"
       then have "concl_of \<gamma> \<in> Rf (limit_llist Ns)"
         using deriv Rf_Sup_llist_subset_Rf_limit_llist by blast
       then have "\<gamma> \<in> Ri (limit_llist Ns)"
-        using \<gamma> Ri_effective inferences_from_def by auto }
+        using \<gamma> Ri_effective inferences_from_def by auto
+    }
     ultimately show "\<gamma> \<in> Ri (limit_llist Ns)"
       by blast
   qed
