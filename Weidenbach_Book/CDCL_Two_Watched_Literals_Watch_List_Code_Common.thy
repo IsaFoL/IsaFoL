@@ -15,9 +15,9 @@ definition propagated where
 
 lemma propagated_hnr[sepref_fr_rules]:
   \<open>(uncurry (return oo propagated), uncurry (RETURN oo Propagated)) \<in>
-     unat_lit_assn\<^sup>k *\<^sub>a bignat_uint_assn\<^sup>k \<rightarrow>\<^sub>a pair_nat_ann_lit_assn\<close>
+     unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a pair_nat_ann_lit_assn\<close>
   by sepref_to_hoare (sep_auto simp: nat_ann_lit_rel_def propagated_def case_prod_beta p2rel_def
-      lit_of_natP_def br_def uint32_nat_rel_def unat_lit_rel_def nat_lit_rel_def bignat_uint_rel_def
+      lit_of_natP_def br_def uint32_nat_rel_def unat_lit_rel_def nat_lit_rel_def
       split: option.splits)
 
 definition decided where
@@ -89,7 +89,7 @@ subsubsection \<open>Functions and Types:\<close>
 type_synonym clauses_wl = \<open>uint32 arrayO_raa\<close>
 
 abbreviation ann_lit_wl_assn :: \<open>ann_lit_wl \<Rightarrow> ann_lit_wl \<Rightarrow> assn\<close> where
-  \<open>ann_lit_wl_assn \<equiv> prod_assn uint32_assn (option_assn id_assn)\<close>
+  \<open>ann_lit_wl_assn \<equiv> prod_assn uint32_assn (option_assn nat_assn)\<close>
 
 abbreviation ann_lits_wl_assn :: \<open>ann_lits_wl \<Rightarrow> ann_lits_wl \<Rightarrow> assn\<close> where
   \<open>ann_lits_wl_assn \<equiv> list_assn ann_lit_wl_assn\<close>
@@ -517,35 +517,36 @@ definition (in -) find_decomp_wl_imp' :: \<open>(nat, nat) ann_lits \<Rightarrow
     (nat literal \<Rightarrow> watched) \<Rightarrow> _ \<Rightarrow> (nat, nat) ann_lits nres\<close> where
   \<open>find_decomp_wl_imp' = (\<lambda>M N U D NP UP W Q L. find_decomp_wl_imp M D L)\<close>
 
-lemma nth_lrl_watched_app:
-  \<open>(uncurry2 (RETURN ooo nth_lrl), uncurry2 (RETURN ooo watched_app)) \<in>
+lemma nth_ll_watched_app:
+  \<open>(uncurry2 (RETURN ooo nth_rll), uncurry2 (RETURN ooo watched_app)) \<in>
      [\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0) \<times>\<^sub>r p2rel lit_of_natP) \<times>\<^sub>r nat_rel \<rightarrow>
        \<langle>nat_rel\<rangle> nres_rel\<close>
-  unfolding watched_app_def nth_lrl_def
+  unfolding watched_app_def nth_rll_def
   by (fastforce simp: fref_def map_fun_rel_def prod_rel_def nres_rel_def p2rel_def lit_of_natP_def)
 
 lemma nth_aa_watched_app[sepref_fr_rules]:
-  \<open>(uncurry2 nth_aa_big_nat_u, uncurry2 (RETURN ooo op_watched_app)) \<in>
+  \<open>(uncurry2 nth_aa_u, uncurry2 (RETURN ooo op_watched_app)) \<in>
    [\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0 \<and> i < length (W L)]\<^sub>a
-     array_watched_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a bignat_uint_assn\<^sup>k \<rightarrow> nat_assn\<close>
+     array_watched_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have P: \<open>CONSTRAINT is_pure nat_assn\<close>
     by auto
-  have H: \<open>(uncurry2 nth_aa_big_nat_u, uncurry2 (RETURN \<circ>\<circ>\<circ> watched_app))
-    \<in> [comp_PRE
-       (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f
-        p2rel lit_of_natP \<times>\<^sub>f
-        nat_rel)
+  have H: \<open>(uncurry2 nth_aa_u, uncurry2 (RETURN \<circ>\<circ>\<circ> watched_app))
+  \<in> [comp_PRE
+       (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f p2rel lit_of_natP \<times>\<^sub>f nat_rel)
        (\<lambda>((W, L), i). L \<in> snd ` D\<^sub>0)
-       (\<lambda>_ ((x, L), L').
-           L < length x \<and> L' < length (x ! L))
-       (\<lambda>_. True)]\<^sub>a 
-    hrp_comp ((arrayO_assn (arl_assn nat_assn))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a bignat_uint_assn\<^sup>k)
-                      (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f p2rel lit_of_natP \<times>\<^sub>f nat_rel) \<rightarrow>
-    hr_comp nat_assn nat_rel\<close>
+       (\<lambda>_ ((x, L), L'). L < length x \<and> L' < length (x ! L))
+       (\<lambda>_. True)]\<^sub>a hrp_comp
+                       ((arrayO_assn
+                          (arl_assn nat_assn))\<^sup>k *\<^sub>a
+                        uint32_nat_assn\<^sup>k *\<^sub>a
+                        nat_assn\<^sup>k)
+                       (\<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<times>\<^sub>f
+                        p2rel lit_of_natP \<times>\<^sub>f
+                        nat_rel) \<rightarrow> hr_comp nat_assn nat_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF nth_aa_big_nat_u_hnr nth_lrl_watched_app, OF P]
+    using hfref_compI_PRE_aux[OF nth_aa_uint_hnr nth_ll_watched_app, OF P]
      .
 
   have 1: \<open>?pre' = ?pre\<close>
@@ -759,14 +760,14 @@ definition lit_and_ann_of_propagated_code where
 
 lemma lit_and_ann_of_propagated_hnr[sepref_fr_rules]:
   \<open>(return o lit_and_ann_of_propagated_code, RETURN o lit_and_ann_of_propagated) \<in>
-   [\<lambda>L. \<not>is_decided L]\<^sub>a pair_nat_ann_lit_assn\<^sup>k \<rightarrow> (unat_lit_assn *assn bignat_uint_assn)\<close>
+   [\<lambda>L. \<not>is_decided L]\<^sub>a pair_nat_ann_lit_assn\<^sup>k \<rightarrow> (unat_lit_assn *assn nat_assn)\<close>
   unfolding lit_and_ann_of_propagated_code_def
   apply sepref_to_hoare
   apply (rename_tac x x')
   apply (case_tac x)
   by (sep_auto simp: nat_ann_lit_rel_def p2rel_def lit_of_natP_def
       Propagated_eq_ann_lit_of_pair_iff unat_lit_rel_def uint32_nat_rel_def Collect_eq_comp
-      br_def Collect_eq_comp nat_lit_rel_def bignat_uint_rel_def
+      br_def Collect_eq_comp nat_lit_rel_def
       simp del: literal_of_nat.simps)+
 
 lemma set_mset_all_lits_of_mm_atms_of_ms_iff:

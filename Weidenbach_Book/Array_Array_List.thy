@@ -225,13 +225,13 @@ lemma models_heap_list_all_models_nth:
   by (induction R a b arbitrary: as i rule: heap_list_all.induct)
     (auto simp: mod_star_conv nth_Cons elim!: less_SucE split: nat.splits)
 
-definition nth_lrl :: "'a list list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a" where
-  \<open>nth_lrl l i j = l ! i ! j\<close>
+definition nth_ll :: "'a list list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a" where
+  \<open>nth_ll l i j = l ! i ! j\<close>
 
 lemma nth_aa_hnr[sepref_fr_rules]:
   assumes p: \<open>is_pure R\<close>
   shows
-    \<open>(uncurry2 nth_aa, uncurry2 (RETURN \<circ>\<circ>\<circ> nth_lrl)) \<in>
+    \<open>(uncurry2 nth_aa, uncurry2 (RETURN \<circ>\<circ>\<circ> nth_ll)) \<in>
        [\<lambda>((l,i),j). i < length l \<and> j < length_ll l i]\<^sub>a
        (arrayO_assn (arl_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
 proof -
@@ -245,7 +245,7 @@ proof -
   apply sepref_to_hoare
   apply (subst (2) arrayO_except_assn_array0_index[symmetric])
     apply (solves \<open>auto\<close>)[]
-  apply (sep_auto simp: nth_aa_def nth_lrl_def length_ll_def)
+  apply (sep_auto simp: nth_aa_def nth_ll_def length_ll_def)
     apply (sep_auto simp: arrayO_except_assn_def arrayO_assn_def arl_assn_def hr_comp_def list_rel_def
         list_all2_lengthD
       star_aci(3) R R' pure_def H)
@@ -571,7 +571,7 @@ lemma nth_aa_heap[sep_heap_rules]:
    nth_aa a b ba
    <\<lambda>r. \<exists>\<^sub>Ax. arrayO_assn (arl_assn R) aa a *
                (R x r *
-                \<up> (x = nth_lrl aa b ba)) *
+                \<up> (x = nth_ll aa b ba)) *
                true>\<close>
 proof -
   have \<open><arrayO_assn (arl_assn R) aa a *
@@ -583,7 +583,7 @@ proof -
                    nat_assn ba ba *
                    R x r *
                    true *
-                   \<up> (x = nth_lrl aa b ba)>\<close>
+                   \<up> (x = nth_ll aa b ba)>\<close>
     using p assms nth_aa_hnr[of R] unfolding hfref_def hn_refine_def
     by auto
   then show ?thesis
@@ -642,7 +642,7 @@ proof -
     apply sepref_to_hoare
     apply (sep_auto simp: swap_aa_def swap_ll_def (* arl_get_def *) arrayO_except_assn_def
         length_ll_update_ll)
-    by (sep_auto simp: update_ll_def swap_def nth_lrl_def list_update_swap)
+    by (sep_auto simp: update_ll_def swap_def nth_ll_def list_update_swap)
 qed
 
 text \<open>It is not possible to do a direct initialisation: there is no element that can be put
