@@ -123,10 +123,10 @@ formalized by the condition @{prop "set_mset CC \<subseteq> N \<and> interp N \<
 
 locale counterex_reducing_inference_system =
   inference_system \<Gamma> for \<Gamma> :: "('a :: wellorder) inference set" +
-  fixes INTERP :: "'a clause set \<Rightarrow> 'a interp"
+  fixes I_of :: "'a clause set \<Rightarrow> 'a interp"
   assumes \<Gamma>_counterex_reducing:
-    "{#} \<notin> N \<Longrightarrow> D \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> D \<Longrightarrow> (\<And>C. C \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> C \<Longrightarrow> D \<le> C) \<Longrightarrow>
-     \<exists>CC E. set_mset CC \<subseteq> N \<and> INTERP N \<Turnstile>m CC \<and> Infer CC D E \<in> \<Gamma> \<and> \<not> INTERP N \<Turnstile> E \<and> E < D"
+    "{#} \<notin> N \<Longrightarrow> D \<in> N \<Longrightarrow> \<not> I_of N \<Turnstile> D \<Longrightarrow> (\<And>C. C \<in> N \<Longrightarrow> \<not> I_of N \<Turnstile> C \<Longrightarrow> D \<le> C) \<Longrightarrow>
+     \<exists>CC E. set_mset CC \<subseteq> N \<and> I_of N \<Turnstile>m CC \<and> Infer CC D E \<in> \<Gamma> \<and> \<not> I_of N \<Turnstile> E \<and> E < D"
 begin
 
 lemma ex_min_counterex:
@@ -148,22 +148,22 @@ theorem saturated_no_empty_imp_model:
   assumes
     satur: "saturated N" and
     ec_ni_n: "{#} \<notin> N"
-  shows "INTERP N \<Turnstile>s N"
+  shows "I_of N \<Turnstile>s N"
 proof -
   have ec_ni_n: "{#} \<notin> N"
     using ec_ni_n by auto
 
   {
-    assume "\<not> INTERP N \<Turnstile>s N"
+    assume "\<not> I_of N \<Turnstile>s N"
     then obtain D where
       d_in_n: "D \<in> N" and
-      d_cex: "\<not> INTERP N \<Turnstile> D" and
-      d_min: "\<And>C. C \<in> N \<Longrightarrow> C < D \<Longrightarrow> INTERP N \<Turnstile> C"
+      d_cex: "\<not> I_of N \<Turnstile> D" and
+      d_min: "\<And>C. C \<in> N \<Longrightarrow> C < D \<Longrightarrow> I_of N \<Turnstile> C"
       by (meson ex_min_counterex)
     then obtain CC E where
       cc_subs_n: "set_mset CC \<subseteq> N" and
       inf_e: "Infer CC D E \<in> \<Gamma>" and
-      e_cex: "\<not> INTERP N \<Turnstile> E" and
+      e_cex: "\<not> I_of N \<Turnstile> E" and
       e_lt_d: "E < D"
       using \<Gamma>_counterex_reducing[OF ec_ni_n] not_less by metis
     from cc_subs_n inf_e have "E \<in> N"
