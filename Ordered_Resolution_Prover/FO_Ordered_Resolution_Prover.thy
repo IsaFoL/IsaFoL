@@ -2246,12 +2246,13 @@ locale FO_resolution_prover_with_sum_product_weights =
     j :: nat and
     weight :: "'a clause \<times> nat \<Rightarrow> nat" +
   assumes
-    ij_gr_zero: "i > 0" "j > 0" and
+    i_pos: "i > 0" and
+    j_pos:"j > 0" and
     weight_def: "weight = (\<lambda>(C, m). i * m + j * size C)"
 begin
 
 sublocale FO_resolution_prover_with_monotone_weights
-  using ij_gr_zero weight_def apply unfold_locales by auto
+  using i_pos j_pos weight_def by unfold_locales auto
 
 thm monotone_fairness
 
