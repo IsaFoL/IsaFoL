@@ -386,11 +386,10 @@ lemma standard_redundancy_criterion_extension_effective:
   shows "effective_redundancy_criterion \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>))"
   using assms unfolding effective_redundancy_criterion_def
   using standard_redundancy_criterion_extension[of \<Gamma>]
-  unfolding effective_redundancy_criterion_axioms_def
-  by auto
+  unfolding effective_redundancy_criterion_axioms_def by auto
 
 lemma standard_redundancy_criterion_extension_fair_iff:
-  assumes "\<Gamma> \<subseteq> \<Gamma>'" and  "effective_redundancy_criterion \<Gamma> Rf Ri"
+  assumes "\<Gamma> \<subseteq> \<Gamma>'" and "effective_redundancy_criterion \<Gamma> Rf Ri"
   shows "effective_redundancy_criterion.fair_clss_seq \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>)) Ns \<longleftrightarrow> effective_redundancy_criterion.fair_clss_seq \<Gamma> Rf Ri Ns"
   using assms standard_redundancy_criterion_extension_effective[of \<Gamma> \<Gamma>' Rf Ri] assms(1) assms(2)
     effective_redundancy_criterion.fair_clss_seq_def[of \<Gamma> Rf Ri Ns]
@@ -401,7 +400,6 @@ lemma standard_redundancy_criterion_extension_saturated_up_iff:
   assumes "\<Gamma> \<subseteq> \<Gamma>'" and "redundancy_criterion \<Gamma> Rf Ri"
   shows "redundancy_criterion.saturated_upto \<Gamma> Rf Ri M \<longleftrightarrow> redundancy_criterion.saturated_upto \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>)) M"
   using assms redundancy_criterion.saturated_upto_def redundancy_criterion.saturated_upto_def standard_redundancy_criterion_extension
-  unfolding inference_system.inferences_from_def
-  by blast
+  unfolding inference_system.inferences_from_def by blast
 
 end
