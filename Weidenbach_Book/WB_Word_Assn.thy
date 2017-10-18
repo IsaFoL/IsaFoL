@@ -407,8 +407,8 @@ definition two_uint32_nat where [simp]: \<open>two_uint32_nat = (2 :: nat)\<clos
 definition two_uint32 where
   [simp]: \<open>two_uint32 = (2 :: uint32)\<close>
 
-lemma uint32_2_hnr: \<open>(uncurry0 (return two_uint32), uncurry0 (RETURN two_uint32_nat)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_012 two_uint32_nat_def)
+lemma uint32_2_hnr[sepref_fr_rules]: \<open>(uncurry0 (return two_uint32), uncurry0 (RETURN two_uint32_nat)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def two_uint32_nat_def)
 
 
 text \<open>Do NOT declare this theorem as \<open>sepref_fr_rules\<close> to avoid bad unexpected conversions.\<close>
