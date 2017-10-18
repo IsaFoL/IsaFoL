@@ -111,9 +111,6 @@ definition saturated_upto :: "'a clause set \<Rightarrow> bool" where
 inductive derive :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<triangleright>" 50) where
   deduction_deletion: "M - N \<subseteq> concls_of (inferences_from N) \<Longrightarrow> N - M \<subseteq> Rf M \<Longrightarrow> N \<triangleright> M"
 
-abbreviation derivation :: "'a clause set llist \<Rightarrow> bool" where
-  "derivation \<equiv> chain (op \<triangleright>)"
-
 lemma derive_subset: "M \<triangleright> N \<Longrightarrow> N \<subseteq> M \<union> concls_of (inferences_from M)"
   by (meson Diff_subset_conv derive.cases)
 
@@ -133,7 +130,7 @@ begin
 
 lemma deriv_sat_preserving:
   assumes
-    deriv: "derivation Ns" and
+    deriv: "chain (op \<triangleright>) Ns" and
     sat_n0: "satisfiable (lhd Ns)"
   shows "satisfiable (Sup_llist Ns)"
 proof -
@@ -199,8 +196,8 @@ text \<open>
 This corresponds to Lemma 4.2:
 \<close>
 
-lemma derivation_supremum_limit_llist_satisfiable:
-  assumes deriv: "derivation Ns"
+lemma deriv_supremum_limit_llist_satisfiable:
+  assumes deriv: "chain (op \<triangleright>) Ns"
   shows
     Rf_Sup_llist_subset_Rf_limit_llist: "Rf (Sup_llist Ns) \<subseteq> Rf (limit_llist Ns)" and
     Ri_Sup_llist_subset_Ri_limit_llist: "Ri (Sup_llist Ns) \<subseteq> Ri (limit_llist Ns)" and
@@ -306,7 +303,7 @@ The case where $\gamma \in \mathcal{R}_{\mathcal{I}}(N_\infty \backslash
 
 theorem fair_derive_saturated:
   assumes
-    deriv: "derivation Ns" and
+    deriv: "chain (op \<triangleright>) Ns" and
     fair: "fair_clss_seq Ns"
   shows "saturated_upto (limit_llist Ns)"
 unfolding saturated_upto_def

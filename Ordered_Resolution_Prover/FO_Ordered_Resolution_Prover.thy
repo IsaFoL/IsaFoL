@@ -1958,7 +1958,7 @@ proof -
     then have "\<gamma> \<in> src_ext_Ri (Sup_llist (lmap grounding_of_state Sts))"
       using j_p' contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist src_ext.Ri_mono by metis
     then have "\<gamma> \<in> src_ext_Ri (limit_llist (lmap grounding_of_state Sts))"
-      using src_ext.derivation_supremum_limit_llist_satisfiable[of Ns] derivns ns by blast
+      using src_ext.deriv_supremum_limit_llist_satisfiable[of Ns] derivns ns by blast
   }
   then have "src_ext.saturated_upto (limit_llist (lmap grounding_of_state Sts))"
     unfolding src_ext.saturated_upto_def src_ext.inferences_from_def
