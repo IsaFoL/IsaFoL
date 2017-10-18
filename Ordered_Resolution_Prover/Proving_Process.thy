@@ -200,12 +200,12 @@ text \<open>
 This corresponds to Lemma 4.2:
 \<close>
 
-lemma deriv_supremum_limit_llist_satisfiable:
+lemma
   assumes deriv: "chain (op \<triangleright>) Ns"
   shows
-    Rf_Sup_llist_subset_Rf_limit_llist: "Rf (Sup_llist Ns) \<subseteq> Rf (limit_llist Ns)" and
-    Ri_Sup_llist_subset_Ri_limit_llist: "Ri (Sup_llist Ns) \<subseteq> Ri (limit_llist Ns)" and
-    satisfiable_limit_llist_iff: "satisfiable (limit_llist Ns) \<longleftrightarrow> satisfiable (lhd Ns)"
+    Rf_Sup_subset_Rf_limit: "Rf (Sup_llist Ns) \<subseteq> Rf (limit_llist Ns)" and
+    Ri_Sup_subset_Ri_limit: "Ri (Sup_llist Ns) \<subseteq> Ri (limit_llist Ns)" and
+    sat_deriv_limit_iff: "satisfiable (limit_llist Ns) \<longleftrightarrow> satisfiable (lhd Ns)"
 proof -
   {
     fix C i j
@@ -332,13 +332,13 @@ proof
       then have "\<gamma> \<in> Ri (Sup_llist Ns)"
         using \<gamma> Ri_effective inferences_from_def by blast
       then have "\<gamma> \<in> Ri (limit_llist Ns)"
-        using deriv Ri_Sup_llist_subset_Ri_limit_llist by fast
+        using deriv Ri_Sup_subset_Ri_limit by fast
     }
     moreover
     {
       assume "concl_of \<gamma> \<in> Rf (Sup_llist Ns)"
       then have "concl_of \<gamma> \<in> Rf (limit_llist Ns)"
-        using deriv Rf_Sup_llist_subset_Rf_limit_llist by blast
+        using deriv Rf_Sup_subset_Rf_limit by blast
       then have "\<gamma> \<in> Ri (limit_llist Ns)"
         using \<gamma> Ri_effective inferences_from_def by auto
     }

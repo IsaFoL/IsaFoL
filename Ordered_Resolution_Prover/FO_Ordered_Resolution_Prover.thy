@@ -1044,7 +1044,7 @@ proof -
       then have "C \<in> src.Rf (Sup_llist Ns)"
         using d ns by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist src.Rf_mono)
       then have "C \<in> src.Rf (limit_llist Ns)"
-        unfolding ns using local.src_ext.Rf_Sup_llist_subset_Rf_limit_llist derivns ns by auto
+        unfolding ns using local.src_ext.Rf_Sup_subset_Rf_limit derivns ns by auto
       then show False
         using c by auto
     qed
@@ -1181,13 +1181,14 @@ proof -
         using d ns
         by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist src.Rf_mono)
       then have "C \<in> src.Rf (limit_llist Ns)"
-        unfolding ns using local.src_ext.Rf_Sup_llist_subset_Rf_limit_llist derivns ns by auto
-      then show False using c by auto
+        unfolding ns using src_ext.Rf_Sup_subset_Rf_limit derivns ns by auto
+      then show False
+        using c by auto
     qed
     then obtain \<sigma> where "D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
-      using ground_C
-      by (metis make_single_ground_subst subset_mset.order_refl)
-    then show ?thesis by auto
+      using ground_C by (metis make_single_ground_subst subset_mset.order_refl)
+    then show ?thesis
+      by auto
   qed
   then obtain \<sigma> where \<sigma>: "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
     by auto
@@ -1370,7 +1371,7 @@ proof -
         using d ns
         by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist src.Rf_mono)
       then have "C \<in> src.Rf (limit_llist Ns)"
-        unfolding ns using local.src_ext.Rf_Sup_llist_subset_Rf_limit_llist derivns ns by auto
+        unfolding ns using src_ext.Rf_Sup_subset_Rf_limit derivns ns by auto
       then show False
         using c by auto
     qed
@@ -1540,7 +1541,7 @@ proof -
         using D_p ns src.Rf_mono
         by (metis (lifting) i_p(1) contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist)
       then have "C \<in> src.Rf (limit_llist Ns)"
-        unfolding ns using local.src_ext.Rf_Sup_llist_subset_Rf_limit_llist derivns ns by auto
+        unfolding ns using src_ext.Rf_Sup_subset_Rf_limit derivns ns by auto
       then show False
         using c by auto
     qed
@@ -1958,14 +1959,13 @@ proof -
     then have "\<gamma> \<in> src_ext_Ri (Sup_llist (lmap grounding_of_state Sts))"
       using j_p' contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist src_ext.Ri_mono by metis
     then have "\<gamma> \<in> src_ext_Ri (limit_llist (lmap grounding_of_state Sts))"
-      using src_ext.deriv_supremum_limit_llist_satisfiable[of Ns] derivns ns by blast
+      using src_ext.Ri_Sup_subset_Ri_limit[of Ns] derivns ns by blast
   }
-  then have "src_ext.saturated_upto (limit_llist (lmap grounding_of_state Sts))"
+  then have sat_limit_gr_sts: "src_ext.saturated_upto (limit_llist (lmap grounding_of_state Sts))"
     unfolding src_ext.saturated_upto_def src_ext.inferences_from_def
     using gd_ord_\<Gamma>_ngd_ord_\<Gamma>
     unfolding src_ext.saturated_upto_def src_ext.inferences_from_def infer_from_def src_ext_Ri_def
     by auto
-  note continue_from_this = this
 
   have "limit_llist (lmap grounding_of_state Sts) \<supseteq> grounding_of_state (limit_state Sts)"
   proof
@@ -2006,7 +2006,7 @@ proof -
   then have unsat2: "\<not> satisfiable (limit_llist (lmap grounding_of_state Sts))"
     using unsat unfolding true_clss_def by (meson contra_subsetD)
 
-  from continue_from_this have "src.saturated_upto (limit_llist (lmap grounding_of_state Sts))"
+  from sat_limit_gr_sts have "src.saturated_upto (limit_llist (lmap grounding_of_state Sts))"
     using gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redudancy_criterion
       standard_redundancy_criterion_extension_saturated_up_iff[of gd.ord_\<Gamma>]
     unfolding src_ext_Ri_def by auto
