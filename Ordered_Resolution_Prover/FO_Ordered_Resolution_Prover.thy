@@ -2092,22 +2092,18 @@ locale FO_resolution_prover_with_monotone_weights =
     mgu :: "'a set set \<Rightarrow> 's option" and
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
     weight :: "('a clause \<times> nat) \<Rightarrow> nat" +
+  fixes
+    cls_size:: "'a clause \<Rightarrow> nat"
   assumes 
-    monotone_size: "size C < size D  \<Longrightarrow> weight (C, m) < weight (D, m)" and
+    monotone_size: "cls_size C < cls_size D  \<Longrightarrow> weight (C, m) < weight (D, m)" and
     monotone_nat: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
 begin
 
 
-lemma "size C \<le> weight (C, n)"
-proof(induction C)
-  case empty
-  then show ?case by auto
-next
-  case (add L C)
-  then show ?case using monotone_size[of C "add_mset L C" n] by auto
-qed
+lemma cls_size_lte_weight: "cls_size C \<le> weight (C, n)"
+  sorry (* I need some assumptions on cls_size to prove this. *)
 
-lemma "n \<le> weight (C,n)"
+lemma generation_no_lte_weight: "n \<le> weight (C,n)"
 proof(induction n)
   case 0
   then show ?case by auto
@@ -2204,7 +2200,23 @@ context
 begin
 
 lemma monotone_fairness: "fair_state_seq (lmap state_of_nth_state Sts)"
-  sorry
+proof (rule ccontr)
+  assume "\<not> fair_state_seq (lmap state_of_nth_state Sts)"
+  then obtain C where "C \<in> limit_llist (lmap N_of_state (lmap state_of_nth_state Sts)) \<union> limit_llist (lmap P_of_state (lmap state_of_nth_state Sts))" 
+    unfolding fair_state_seq_def limit_state_def by auto
+  then show False
+  proof
+    assume "C \<in> limit_llist (lmap N_of_state (lmap state_of_nth_state Sts))"
+    then obtain i where "enat i < llength Sts" "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_nth_state (lnth Sts j))" 
+      unfolding limit_llist_def by auto
+    then show False
+      sorry (* *)
+  next
+    assume "C \<in> limit_llist (lmap P_of_state (lmap state_of_nth_state Sts))"
+    then show False 
+      sorry
+  qed
+qed
 
 lemma monotone_completeness:
   assumes 
@@ -2258,7 +2270,7 @@ locale FO_resolution_prover_with_sum_product_weights =
 begin
 
 sublocale FO_resolution_prover_with_monotone_weights
-  using ij_gr_zero weight_def apply unfold_locales by auto
+  using ij_gr_zero weight_def apply unfold_locales sorry (* by auto *)
 
 thm monotone_fairness
 

@@ -45,8 +45,13 @@ definition str_maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow>
   "str_maximal_in A CA \<equiv> (\<forall>B \<in> atms_of CA. B < A)"
 
 inductive eligible :: "'a list \<Rightarrow> 'a clause \<Rightarrow> bool" where
-  eligible: "S DA = negs (mset As) \<or> S DA = {#} \<and> length As = 1 \<and> maximal_in (As ! 0) DA \<Longrightarrow>
+  eligible: "(S DA = negs (mset As)) \<or> (S DA = {#} \<and> length As = 1 \<and> maximal_in (As ! 0) DA) \<Longrightarrow>
     eligible As DA"
+
+lemma "(S DA = negs (mset As) \<or> S DA = {#} \<and> length As = 1 \<and> maximal_in (As ! 0) DA) \<longleftrightarrow>
+    eligible As DA"
+  using eligible.intros ground_resolution_with_selection.eligible.cases ground_resolution_with_selection_axioms by blast
+
 
 inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve:
