@@ -74,7 +74,7 @@ text \<open>
 The following inductive predicate formalizes the resolution prover in Figure 5.
 \<close>
 
-inductive resolution_prover :: "'a state \<Rightarrow> 'a state \<Rightarrow> bool" (infix "\<leadsto>" 50)  where
+inductive resolution_prover :: "'a state \<Rightarrow> 'a state \<Rightarrow> bool" (infix "\<leadsto>" 50) where
   tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N \<union> {C}, P, Q) \<leadsto> (N, P, Q)"
 | forward_subsumption: "(\<exists>D \<in> P \<union> Q. subsumes D C) \<Longrightarrow> (N \<union> {C}, P, Q) \<leadsto> (N, P, Q)"
 | backward_subsumption_P: "(\<exists>D \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P \<union> {C}, Q) \<leadsto> (N, P, Q)"
@@ -91,7 +91,7 @@ inductive resolution_prover :: "'a state \<Rightarrow> 'a state \<Rightarrow> bo
      ({}, P \<union> {C}, Q) \<leadsto> (N, P, Q \<union> {C})"
 
 (* I could also have proved that state is a distributive lattice and define sup_state directly as Sup_llist *)
-definition sup_state :: "('a state) llist \<Rightarrow> 'a state" where
+definition sup_state :: "'a state llist \<Rightarrow> 'a state" where
   "sup_state Sts = (Sup_llist (lmap N_of_state Sts), Sup_llist (lmap P_of_state Sts), Sup_llist (lmap Q_of_state Sts))"
 
 definition limit_state :: "('a state) llist \<Rightarrow> 'a state" where
@@ -1176,9 +1176,10 @@ proof -
     then have subc: "subsumes D' C"
       using d(3) subsumes_trans unfolding strictly_subsumes_def by auto
     from D'_p have "D' \<in> clss_of_state (sup_state Sts)"
-       using l_p
-       by (metis (no_types, lifting) UnI1 clss_of_state_def P_of_state.simps llength_lmap lnth_lmap lnth_subset_Sup_llist subsetCE sup_ge2 sup_state_def)
-    then have False using d_least D'_p subc by auto
+      using l_p by (metis (no_types) UnI1 clss_of_state_def P_of_state.simps llength_lmap lnth_lmap
+          lnth_subset_Sup_llist subsetCE sup_ge2 sup_state_def)
+    then have False
+      using d_least D'_p subc by auto
     then show ?case
       by auto
   next
@@ -1923,7 +1924,7 @@ proof -
 
   from sat_limit_gr_sts have "src.saturated_upto (limit_llist (lmap grounding_of_state Sts))"
     using gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redudancy_criterion
-      standard_redundancy_criterion_extension_saturated_up_iff[of gd.ord_\<Gamma>]
+      standard_redundancy_criterion_extension_saturated_upto_iff[of gd.ord_\<Gamma>]
     unfolding src_ext_Ri_def by auto
   then have "{#} \<in> limit_llist (lmap grounding_of_state Sts)"
     using src.saturated_upto_refute_complete unsat2 by auto
