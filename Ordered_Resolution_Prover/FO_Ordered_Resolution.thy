@@ -155,7 +155,7 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
    \<forall>i < n. AAs ! i \<noteq> {#} \<Longrightarrow>
    Some \<sigma> = mgu (set_mset ` set (map2 add_mset As AAs)) \<Longrightarrow>
    eligible \<sigma> As (D + negs (mset As)) \<Longrightarrow>
-   \<forall>i. i < n \<longrightarrow> str_maximal_in (As ! i \<cdot>a \<sigma>) ((Cs ! i) \<cdot> \<sigma>) \<Longrightarrow>
+   \<forall>i < n. str_maximal_in (As ! i \<cdot>a \<sigma>) ((Cs ! i) \<cdot> \<sigma>) \<Longrightarrow>
    \<forall>i < n. S (CAs ! i) = {#} \<Longrightarrow> (* Use the ! style instead maybe, or maybe us the \<forall> \<in> . style above *)
    ord_resolve CAs (D + negs (mset As)) \<sigma> (((\<Union># (mset Cs)) + D) \<cdot> \<sigma>)"
 
