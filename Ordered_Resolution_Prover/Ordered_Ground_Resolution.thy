@@ -199,8 +199,7 @@ proof -
 
     have na_in_d: "Neg A \<in># DA"
       unfolding A_def using s_d_e d_ne d_in_n d_cex d_min
-      by (metis Max_in_lits Max_lit_eq_pos_or_neg_Max_atm max_pos_imp_true_in_Interp
-        true_Interp_imp_INTERP)
+      by (metis Max_in_lits Max_lit_eq_pos_or_neg_Max_atm max_pos_imp_Interp Interp_imp_INTERP)
     then have das: "DA = D + negs (mset As)" unfolding D_def As_def by auto
     moreover from na_in_d have "negs (mset As) \<subseteq># DA"
       by (simp add: As_def)
@@ -294,7 +293,7 @@ proof -
   then have cs_subs_n: "set CAs \<subseteq> N"
     using productive_in_N by auto
   have cs_true: "INTERP N \<Turnstile>m mset CAs"
-    unfolding true_cls_mset_def using prod_c productive_imp_true_in_INTERP by auto
+    unfolding true_cls_mset_def using prod_c productive_imp_INTERP by auto
 
   have "\<And>A. A \<in> set As \<Longrightarrow> \<not> Neg A \<in># CA_of A"
     using prod_c0 produces_imp_neg_notin_lits by auto
@@ -330,7 +329,7 @@ proof -
   have "\<And>x B. production N (CA_of x) = {x} \<Longrightarrow> B \<in># CA_of x \<Longrightarrow> B \<noteq> Pos x \<Longrightarrow> atm_of B < x"
     by (metis atm_of_lit_in_atms_of insert_not_empty le_imp_less_or_eq Pos_atm_of_iff
         Neg_atm_of_iff pos_neg_in_imp_true produces_imp_Pos_in_lits produces_imp_atms_leq
-        productive_imp_false_interp)
+        productive_imp_not_interp)
   then have "\<And>B A. A\<in>set As \<Longrightarrow> B \<in># CA_of A \<Longrightarrow> B \<noteq> Pos A \<Longrightarrow> atm_of B < A"
     using prod_c0 by auto
   have "\<forall>i. i < length AAs \<longrightarrow> AAs ! i \<noteq> {#}"
@@ -366,7 +365,7 @@ proof -
     unfolding prod_c0 C_of_def Interp_def true_cls_def using true_lit_def not_gr_zero prod_c0
     by auto
   then have c'_at_n: "\<And>A. A \<in> set As \<Longrightarrow> \<not> INTERP N \<Turnstile> C_of A"
-    using a_max_c c'_le_c max_c'_lt_a false_Interp_imp_INTERP unfolding true_cls_def
+    using a_max_c c'_le_c max_c'_lt_a not_Interp_imp_not_INTERP unfolding true_cls_def
     by (metis true_cls_def true_cls_empty)
 
   have "\<not> INTERP N \<Turnstile> \<Union># mset Cs"
