@@ -20,6 +20,9 @@ type_synonym unit_lits_wl = \<open>uint32 list list\<close>
 
 type_synonym watched_wl = \<open>(bignat_uint array_list) array\<close>
 
+abbreviation clause_idx_assn where
+  \<open>clause_idx_assn \<equiv> bignat_uint_assn\<close>
+
 notation prod_assn (infixr "*assn" 90)
 
 

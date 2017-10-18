@@ -444,6 +444,15 @@ lemma count_decided_trail:
 lemmas count_decided_trail_code[sepref_fr_rules] =
    count_decided_trail[FCOMP count_decided_trail_ref]
 
+definition (in -)length_raa_bignat where
+  \<open>length_raa_bignat xs n = length_raa xs (nat_of_bignat_uint n)\<close>
+
+lemma (in -)length_raa_hnr[sepref_fr_rules]: 
+  \<open>(uncurry length_raa_bignat, uncurry (RETURN \<circ>\<circ> length_rll)) \<in>
+     [\<lambda>(xs, i). i < length xs]\<^sub>a (arlO_assn (array_assn R))\<^sup>k *\<^sub>a clause_idx_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  unfolding length_raa_bignat_def
+  by sepref_to_hoare (sep_auto simp: bignat_uint_rel_def)
+
 sepref_register lookup_conflict_merge_aa
 sepref_thm lookup_conflict_merge_code
   is \<open>uncurry4 (PR_CONST lookup_conflict_merge_aa)\<close>
@@ -453,17 +462,11 @@ sepref_thm lookup_conflict_merge_code
       conflict_option_rel_assn *assn uint32_nat_assn\<close>
   supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp] uint32_nat_assn_one[sepref_fr_rules]
   image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
+  nth_raa_big_nat_hnr[sepref_fr_rules]
   unfolding lookup_conflict_merge_aa_def lookup_conflict_merge_def add_to_lookup_conflict_def PR_CONST_def
   nth_rll_def[symmetric] length_rll_def[symmetric]
   apply (rewrite at \<open>_ + \<hole>\<close> annotate_assn[where A = \<open>uint32_nat_assn\<close>])
   supply [[goals_limit = 1]]
-  apply sepref_dbg_keep
-      apply sepref_dbg_trans_keep
-           apply sepref_dbg_trans_step_keep
-  text \<open>We need an \<^term>\<open>ASSN_ANNOT\<close> for type \<^typ>\<open>'a nres\<close>, but this does not exist and
-   it is not clear how to do it.\<close>
-           apply sepref_dbg_side_unfold apply (auto simp: )[]
-          apply sepref_dbg_trans_step_keep
   by sepref
 
 concrete_definition (in -) lookup_conflict_merge_code
@@ -1364,7 +1367,7 @@ definition (in -) access_lit_in_clauses_heur where
 sepref_thm access_lit_in_clauses_heur_code
   is \<open>uncurry2 (RETURN ooo access_lit_in_clauses_heur)\<close>
   :: \<open>[\<lambda>(((_,N,_), i), j). i < length N \<and> j < length_rll N i]\<^sub>a
-      twl_st_heur_assn\<^sup>k *\<^sub>a bignat_uint_assn\<^sup>k  *\<^sub>a bignat_uint_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+      twl_st_heur_assn\<^sup>k *\<^sub>a bignat_uint_assn\<^sup>k  *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   supply length_rll_def[simp]
   unfolding twl_st_heur_assn_def access_lit_in_clauses_heur_def
     nth_rll_def[symmetric]
@@ -1388,14 +1391,14 @@ lemma access_lit_in_clauses_heur_access_lit_in_clauses:
 lemma access_lit_in_clauses_refine[sepref_fr_rules]:
   \<open>(uncurry2 access_lit_in_clauses_heur_code, uncurry2 (RETURN ooo access_lit_in_clauses)) \<in>
     [\<lambda>((S, i), j). i < length (get_clauses_wl S) \<and> j < length_rll (get_clauses_wl S) i]\<^sub>a
-       twl_st_assn\<^sup>k *\<^sub>a bignat_uint_assn\<^sup>k *\<^sub>a bignat_uint_assn\<^sup>k \<rightarrow>
+       twl_st_assn\<^sup>k *\<^sub>a bignat_uint_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
     unat_lit_assn\<close>
     (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>(uncurry2 access_lit_in_clauses_heur_code, uncurry2 (RETURN \<circ>\<circ>\<circ> access_lit_in_clauses))
   \<in> [comp_PRE (twl_st_heur \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel) (\<lambda>_. True)
       (\<lambda>_ (((_, N, _), i), j). i < length N \<and> j < length_rll N i) (\<lambda>_. True)]\<^sub>a
-    hrp_comp (twl_st_heur_assn\<^sup>k *\<^sub>a bignat_uint_assn\<^sup>k *\<^sub>a bignat_uint_assn\<^sup>k)
+    hrp_comp (twl_st_heur_assn\<^sup>k *\<^sub>a bignat_uint_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k)
              (twl_st_heur \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel) \<rightarrow>
     hr_comp unat_lit_assn Id\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
@@ -1501,7 +1504,7 @@ definition polarity_st_heur :: \<open>twl_st_wl_heur_trail_ref \<Rightarrow> _ \
 
 (* TODO Move? *)
 type_synonym twl_st_heur_pol_no_clvls =
-  \<open>trail_pol_assn \<times> clauses_wl \<times> nat \<times> conflict_option_assn \<times>
+  \<open>trail_pol_assn \<times> clauses_wl \<times> bignat_uint \<times> conflict_option_assn \<times>
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times> uint32\<close>
 
 definition twl_st_heur_pol_assn
@@ -1722,9 +1725,9 @@ begin
 sepref_thm find_unwatched_wl_st_heur_code
   is \<open>uncurry ((PR_CONST find_unwatched_wl_st_heur))\<close>
   :: \<open>[\<lambda>(S, i). i < length (get_clauses_wl_heur S) \<and> i > 0 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_heur S]\<^sub>a
-         twl_st_heur_assn\<^sup>k *\<^sub>a bignat_uint_assn\<^sup>k \<rightarrow> option_assn bignat_uint_assn\<close>
+         twl_st_heur_assn\<^sup>k *\<^sub>a bignat_uint_assn\<^sup>k \<rightarrow> option_assn nat_assn\<close>
   supply [[goals_limit = 1]] literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0'[intro] nth_rll_def[simp]
-    length_rll_def[simp]
+    length_rll_def[simp] nth_raa_big_nat_hnr[sepref_fr_rules]
   unfolding find_unwatched_wl_st_heur_def twl_st_heur_assn_def PR_CONST_def
   find_unwatched_def nth_rll_def[symmetric] length_rll_def[symmetric]
   by sepref
@@ -1807,7 +1810,7 @@ theorem find_unwatched_wl_st_heur_find_unwatched_wl_s:
 theorem find_unwatched_wl_st_heur_code_find_unwatched_wl_s[sepref_fr_rules]:
   \<open>(uncurry find_unwatched_wl_st_heur_code, uncurry find_unwatched_wl_st)
     \<in> [\<lambda>(S, i). \<exists>w L. unit_prop_body_wl_D_inv S w L \<and> i = watched_by_app S L w]\<^sub>a
-      twl_st_assn\<^sup>k *\<^sub>a bignat_uint_assn\<^sup>k \<rightarrow> option_assn bignat_uint_assn\<close>
+      twl_st_assn\<^sup>k *\<^sub>a bignat_uint_assn\<^sup>k \<rightarrow> option_assn nat_assn\<close>
     (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>(uncurry find_unwatched_wl_st_heur_code, uncurry find_unwatched_wl_st)
@@ -1818,7 +1821,7 @@ proof -
          (\<lambda>_. True)]\<^sub>a
        hrp_comp (twl_st_heur_assn\<^sup>k *\<^sub>a bignat_uint_assn\<^sup>k)
                    (twl_st_heur \<times>\<^sub>f nat_rel) \<rightarrow>
-       hr_comp (option_assn bignat_uint_assn) Id\<close>
+       hr_comp (option_assn nat_assn) Id\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF find_unwatched_wl_st_heur_code_find_unwatched_wl_st_heur[unfolded PR_CONST_def]
     find_unwatched_wl_st_heur_find_unwatched_wl_s] .
@@ -1985,9 +1988,10 @@ sepref_thm update_clause_wl_code
       nat_of_lit L < length (get_watched_wl_heur S) \<and>
       nat_of_lit ((get_clauses_wl_heur S ! C) ! f)  < length (get_watched_wl_heur S) \<and>
       w < length (get_watched_wl_heur S ! nat_of_lit L)]\<^sub>a
-     unat_lit_assn\<^sup>k *\<^sub>a bignat_uint_assn\<^sup>k *\<^sub>a  bignat_uint_assn\<^sup>k *\<^sub>a bignat_uint_assn\<^sup>k *\<^sub>a bignat_uint_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d \<rightarrow>
+     unat_lit_assn\<^sup>k *\<^sub>a bignat_uint_assn\<^sup>k *\<^sub>a  bignat_uint_assn\<^sup>k *\<^sub>a bignat_uint_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d \<rightarrow>
        bignat_uint_assn *assn twl_st_heur_assn\<close>
   supply [[goals_limit=1]] length_rll_def[simp] length_ll_def[simp]
+    nth_raa_big_nat_hnr[sepref_fr_rules]
   unfolding update_clause_wl_heur_def twl_st_heur_assn_def Array_List_Array.swap_ll_def[symmetric]
     nth_rll_def[symmetric] delete_index_and_swap_update_def[symmetric] delete_index_and_swap_ll_def[symmetric]
    append_ll_def[symmetric]
@@ -1996,7 +2000,8 @@ sepref_thm update_clause_wl_code
            apply sepref_dbg_trans_step_keep
   text \<open>We need an \<^term>\<open>ASSN_ANNOT\<close> for type \<^typ>\<open>'a nres\<close>, but this does not exist and
    it is not clear how to do it.\<close>
-
+  supply [[unify_trace_failure]]
+  apply (rule nth_raa_big_nat_u_hnr[to_hnr])
           apply sepref_dbg_trans_step_keep
   by sepref
 
