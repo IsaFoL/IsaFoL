@@ -36,6 +36,7 @@ locale FO_resolution = unification subst_atm id_subst comp_subst mk_var_dis mgu
 begin
 
 subsection \<open>Library\<close>
+
 (* FIXME: Where do we want these lemmas? *)
 lemma (in linorder) set_sorted_list_of_multiset[simp]:
   "set (sorted_list_of_multiset M) = set_mset M"
@@ -49,8 +50,7 @@ lemma (in linorder) multiset_mset_sorted_list_of_multiset[simp]:
 lemma eql_map_neg_lit_eql_atm:
   assumes "map (\<lambda>L. L \<cdot>l \<eta>) (map Neg As') = map Neg As"
   shows "As' \<cdot>al \<eta> = As"
-  using assms
-by (induction As' arbitrary: As) auto
+  using assms by (induction As' arbitrary: As) auto
 
 lemma instance_list:
   assumes "negs (mset As) = SDA' \<cdot> \<eta>"
@@ -69,14 +69,14 @@ proof -
 
   have "negs (mset As') = SDA'"
     using As'_p by auto
-  moreover
-  have "map (\<lambda>L. L \<cdot>l \<eta>) (map Neg As') = map Neg As"
+  moreover have "map (\<lambda>L. L \<cdot>l \<eta>) (map Neg As') = map Neg As"
     using As'_p by auto
   then have "As' \<cdot>al \<eta> = As"
     using eql_map_neg_lit_eql_atm by auto
-  ultimately
-  show ?thesis by auto
+  ultimately show ?thesis
+    by auto
 qed
+
 
 subsection \<open>First-order logic\<close>
 
@@ -131,12 +131,13 @@ The following corresponds to Figure 4.
 \<close>
 
 definition maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where (* Would "'a \<Rightarrow> 'a set \<Rightarrow> bool" be cleaner?  *)
-   "maximal_in A C = (\<forall>B \<in> atms_of C. \<not> less_atm A B)"
+   "maximal_in A C \<longleftrightarrow> (\<forall>B \<in> atms_of C. \<not> less_atm A B)"
 
-abbreviation str_maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where (* Would "'a \<Rightarrow> 'a set \<Rightarrow> bool" be cleaner?  *)
-  "str_maximal_in A C \<equiv> (\<forall>B \<in> atms_of C. \<not> less_eq_atm A B)"
+(* FIXME: Why is the nonstrict version a definition and the strict version an abbreviation? *)
+abbreviation strictly_maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where (* Would "'a \<Rightarrow> 'a set \<Rightarrow> bool" be cleaner?  *)
+  "strictly_maximal_in A C \<equiv> (\<forall>B \<in> atms_of C. \<not> less_eq_atm A B)"
 
-lemma str_maximal_in_maximal_in: "str_maximal_in A C \<Longrightarrow> maximal_in A C"
+lemma strictly_maximal_in_maximal_in: "strictly_maximal_in A C \<Longrightarrow> maximal_in A C"
   unfolding maximal_in_def less_eq_atm_def by auto
 
 inductive eligible :: "'s \<Rightarrow> 'a list \<Rightarrow> 'a clause \<Rightarrow> bool" where
@@ -155,7 +156,7 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
    \<forall>i < n. AAs ! i \<noteq> {#} \<Longrightarrow>
    Some \<sigma> = mgu (set_mset ` set (map2 add_mset As AAs)) \<Longrightarrow>
    eligible \<sigma> As (D + negs (mset As)) \<Longrightarrow>
-   \<forall>i < n. str_maximal_in (As ! i \<cdot>a \<sigma>) ((Cs ! i) \<cdot> \<sigma>) \<Longrightarrow>
+   \<forall>i < n. strictly_maximal_in (As ! i \<cdot>a \<sigma>) ((Cs ! i) \<cdot> \<sigma>) \<Longrightarrow>
    \<forall>i < n. S (CAs ! i) = {#} \<Longrightarrow> (* Use the ! style instead maybe, or maybe us the \<forall> \<in> . style above *)
    ord_resolve CAs (D + negs (mset As)) \<sigma> (((\<Union># (mset Cs)) + D) \<cdot> \<sigma>)"
 
@@ -480,9 +481,9 @@ proof -
   then show ?thesis unfolding less_eq_atm_def maximal_in_def by auto
 qed
 
-lemma str_maximal_in_gen:
-  assumes "str_maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>)"
-  shows "str_maximal_in A C"
+lemma strictly_maximal_in_gen:
+  assumes "strictly_maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>)"
+  shows "strictly_maximal_in A C"
 proof -
   have "\<forall>B \<in> atms_of (C \<cdot> \<sigma>). \<not> (less_atm (A \<cdot>a \<sigma>) B \<or> A \<cdot>a \<sigma> = B)"
     using assms unfolding less_eq_atm_def by -
@@ -940,21 +941,21 @@ proof (cases rule: ord_resolve.cases)
   qed
 
   -- \<open>Lifting maximality\<close>
-  have maximality: "\<forall>i<n. str_maximal_in (As' ! i \<cdot>a \<tau>) (Cs' ! i \<cdot> \<tau>)"
+  have maximality: "\<forall>i<n. strictly_maximal_in (As' ! i \<cdot>a \<tau>) (Cs' ! i \<cdot> \<tau>)"
     (* Reformulate in list notation? *)
   proof -
-    from str_max have "\<forall>i<n. str_maximal_in (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
+    from str_max have "\<forall>i<n. strictly_maximal_in (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
       by -
-    then have "\<forall>i<n. str_maximal_in ((As' \<cdot>al \<eta>) ! i \<cdot>a \<sigma>) ((Cs' \<cdot>cl \<eta>) ! i \<cdot> \<sigma>)"
+    then have "\<forall>i<n. strictly_maximal_in ((As' \<cdot>al \<eta>) ! i \<cdot>a \<sigma>) ((Cs' \<cdot>cl \<eta>) ! i \<cdot> \<sigma>)"
       using \<open>As' \<cdot>al \<eta> = As\<close>  \<open>Cs' \<cdot>cl \<eta> = Cs\<close> by simp
-    then have "\<forall>i<n. str_maximal_in ((As' ! i) \<cdot>a (\<eta> \<odot> \<sigma>)) ((Cs' ! i) \<cdot> (\<eta> \<odot> \<sigma>))"
+    then have "\<forall>i<n. strictly_maximal_in ((As' ! i) \<cdot>a (\<eta> \<odot> \<sigma>)) ((Cs' ! i) \<cdot> (\<eta> \<odot> \<sigma>))"
       using n by auto
-    then have "\<forall>i<n. str_maximal_in ((As' ! i) \<cdot>a (\<tau> \<odot> \<phi>)) ((Cs' ! i) \<cdot> (\<tau> \<odot> \<phi>))"
+    then have "\<forall>i<n. strictly_maximal_in ((As' ! i) \<cdot>a (\<tau> \<odot> \<phi>)) ((Cs' ! i) \<cdot> (\<tau> \<odot> \<phi>))"
       using \<tau>\<phi> by auto
-    then have "\<forall>i<n. str_maximal_in ((As' ! i \<cdot>a \<tau>) \<cdot>a \<phi>) ((Cs' ! i \<cdot> \<tau>) \<cdot> \<phi>)"
+    then have "\<forall>i<n. strictly_maximal_in ((As' ! i \<cdot>a \<tau>) \<cdot>a \<phi>) ((Cs' ! i \<cdot> \<tau>) \<cdot> \<phi>)"
       by auto
-    then show e: "\<forall>i<n. str_maximal_in (As' ! i \<cdot>a \<tau>) (Cs' ! i \<cdot> \<tau>)"
-      using str_maximal_in_gen \<tau>\<phi> by blast
+    then show e: "\<forall>i<n. strictly_maximal_in (As' ! i \<cdot>a \<tau>) (Cs' ! i \<cdot> \<tau>)"
+      using strictly_maximal_in_gen \<tau>\<phi> by blast
   qed
 
   -- \<open>Lifting nothing being selected\<close>
@@ -980,7 +981,7 @@ proof (cases rule: ord_resolve.cases)
   have res_e: "ord_resolve S CAs' DA' \<tau> E'"
     using ord_resolve.intros[of CAs' n Cs' AAs' As' \<tau> S D',
       OF _ _ _ _ _ _ \<open>\<forall>i<n. AAs' ! i \<noteq> {#}\<close> \<tau>\<phi>(1) eligibility
-        \<open>\<forall>i<n. str_maximal_in (As' ! i \<cdot>a \<tau>) (Cs' ! i \<cdot> \<tau>)\<close> \<open>\<forall>i<n. S (CAs' ! i) = {#}\<close>]
+        \<open>\<forall>i<n. strictly_maximal_in (As' ! i \<cdot>a \<tau>) (Cs' ! i \<cdot> \<tau>)\<close> \<open>\<forall>i<n. S (CAs' ! i) = {#}\<close>]
     unfolding E'_def using as' n AAs'_Cs'_p by blast
 
   -- \<open>Prove resolvent instantiates to ground resolvent\<close>

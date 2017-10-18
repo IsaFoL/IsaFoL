@@ -1791,7 +1791,7 @@ proof -
 
         have l: "\<forall>i < n. gd.strict_maximal_in (As ! i) (Cs ! i)"
           using ord_resolve by simp
-        then have ll: "\<forall>i < n. str_maximal_in (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
+        then have ll: "\<forall>i < n. strictly_maximal_in (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
           using len_as ground_as using ex_ground_subst ground_cs is_ground_cls_imp_is_ground_atm  
           unfolding less_eq_atm_def less_atm_iff gd.strict_maximal_in_def by force
 
