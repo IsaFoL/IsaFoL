@@ -19,28 +19,28 @@ definition finalise_init where
 context isasat_input_bounded
 begin
 
-type_synonym (in -) vmtf_remove_int_option_lst = \<open>vmtf_option_lst \<times> nat list\<close>
+type_synonym (in -) vmtf_remove_int_option_fst_As = \<open>vmtf_option_fst_As \<times> nat list\<close>
 
-definition (in isasat_input_ops) vmtf_init :: \<open>(nat, nat) ann_lits \<Rightarrow> vmtf_remove_int_option_lst set\<close> where
-\<open>vmtf_init M = {((ns, m, lst, next_search), to_remove).
-   \<A>\<^sub>i\<^sub>n \<noteq> {#} \<longrightarrow> (lst \<noteq> None \<and> ((ns, m, the lst, next_search), to_remove) \<in> vmtf M)}\<close>
+definition (in isasat_input_ops) vmtf_init :: \<open>(nat, nat) ann_lits \<Rightarrow> vmtf_remove_int_option_fst_As set\<close> where
+\<open>vmtf_init M = {((ns, m, fst_As, lst_As, next_search), to_remove).
+   \<A>\<^sub>i\<^sub>n \<noteq> {#} \<longrightarrow> (fst_As \<noteq> None \<and> lst_As \<noteq> None \<and> ((ns, m, the fst_As, the lst_As, next_search), to_remove) \<in> vmtf M)}\<close>
 
 type_synonym (in -) twl_st_wl_heur_init =
   \<open>(nat,nat)ann_lits \<times> nat clause_l list \<times> nat \<times>
-    nat clause option \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int_option_lst \<times> bool list \<times>
+    nat clause option \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int_option_fst_As \<times> bool list \<times>
     nat\<close>
 
-abbreviation (in -) vmtf_conc_option_lst where
-  \<open>vmtf_conc_option_lst \<equiv> (array_assn nat_vmtf_node_assn *assn nat_assn *assn option_assn uint32_nat_assn
-    *assn option_assn uint32_nat_assn)\<close>
+abbreviation (in -) vmtf_conc_option_fst_As where
+  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn nat_vmtf_node_assn *assn nat_assn *assn option_assn uint32_nat_assn
+    *assn option_assn uint32_nat_assn *assn option_assn uint32_nat_assn)\<close>
 
-type_synonym (in -)vmtf_assn_option_lst = \<open>uint32 vmtf_node array \<times> nat \<times> uint32 option \<times> uint32 option\<close>
-type_synonym (in -)vmtf_remove_assn_option_lst = \<open>vmtf_assn_option_lst \<times> uint32 array_list\<close>
+type_synonym (in -)vmtf_assn_option_fst_As = \<open>uint32 vmtf_node array \<times> nat \<times> uint32 option \<times> uint32 option \<times> uint32 option\<close>
+type_synonym (in -)vmtf_remove_assn_option_fst_As = \<open>vmtf_assn_option_fst_As \<times> uint32 array_list\<close>
 
-abbreviation (in -)vmtf_remove_conc_option_lst 
-  :: \<open>vmtf_remove_int_option_lst \<Rightarrow> vmtf_remove_assn_option_lst \<Rightarrow> assn\<close>
+abbreviation (in -)vmtf_remove_conc_option_fst_As 
+  :: \<open>vmtf_remove_int_option_fst_As \<Rightarrow> vmtf_remove_assn_option_fst_As \<Rightarrow> assn\<close>
 where
-  \<open>vmtf_remove_conc_option_lst \<equiv> vmtf_conc_option_lst *assn arl_assn uint32_nat_assn\<close>
+  \<open>vmtf_remove_conc_option_fst_As \<equiv> vmtf_conc_option_fst_As *assn arl_assn uint32_nat_assn\<close>
 
 definition (in isasat_input_ops) twl_st_heur_init :: \<open>(twl_st_wl_heur_init \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_init =
@@ -56,7 +56,7 @@ definition (in isasat_input_ops) twl_st_heur_init :: \<open>(twl_st_wl_heur_init
 
 type_synonym (in -)twl_st_wll_trail_init =
   \<open>trail_pol_assn \<times> clauses_wl \<times> nat \<times> conflict_option_assn \<times>
-    lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn_option_lst \<times> phase_saver_assn \<times>
+    lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn_option_fst_As \<times> phase_saver_assn \<times>
     uint32\<close>
 
 definition (in isasat_input_ops) twl_st_heur_init_assn :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wll_trail_init \<Rightarrow> assn\<close> where
@@ -65,7 +65,7 @@ definition (in isasat_input_ops) twl_st_heur_init_assn :: \<open>twl_st_wl_heur_
   conflict_option_assn *assn
   clause_l_assn *assn
   arrayO_assn (arl_assn nat_assn) *assn
-  vmtf_remove_conc_option_lst *assn phase_saver_conc *assn
+  vmtf_remove_conc_option_fst_As *assn phase_saver_conc *assn
   uint32_nat_assn\<close>
 
 definition (in isasat_input_ops) twl_st_init_assn :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_trail_init \<Rightarrow> assn\<close> where
@@ -532,7 +532,7 @@ lemma get_conflict_wl_is_None_code_get_conflict_wl_is_None_no_lvls[sepref_fr_rul
 
 type_synonym (in -) twl_st_wl_heur_init_trail_ref =
   \<open>trail_pol \<times> nat clause_l list \<times> nat \<times>
-    nat cconflict \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int_option_lst \<times> bool list \<times> nat\<close>
+    nat cconflict \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int_option_fst_As \<times> bool list \<times> nat\<close>
 
 definition (in isasat_input_ops) twl_st_heur_pol_init
    :: \<open>(twl_st_wl_heur_init_trail_ref \<times> nat twl_st_wl) set\<close>
@@ -554,7 +554,7 @@ where
     conflict_option_assn *assn
     clause_l_assn *assn
     arrayO_assn (arl_assn nat_assn) *assn
-    vmtf_remove_conc_option_lst *assn phase_saver_conc *assn
+    vmtf_remove_conc_option_fst_As *assn phase_saver_conc *assn
     uint32_nat_assn
     )\<close>
 
@@ -1356,7 +1356,7 @@ lemma (in -) map_uint32_of_lit[sepref_fr_rules]:
 
 
 
-definition initialise_VMTF :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> vmtf_remove_int_option_lst nres\<close> where
+definition initialise_VMTF :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> vmtf_remove_int_option_fst_As nres\<close> where
 \<open>initialise_VMTF N n = do {
    let A = replicate n (VMTF_Node 0 None None);
    (_, A, n, cnext) \<leftarrow> WHILE\<^sub>T
@@ -1369,12 +1369,12 @@ definition initialise_VMTF :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow>
         RETURN (tl N, vmtf_cons A L cnext st, st+1, Some L)
       })
       (N, A, 0::nat, None);
-   RETURN ((A, n, cnext, cnext), [])
+   RETURN ((A, n, cnext, (if N = [] then None else Some (nat_of_uint32 (hd N))), cnext), [])
   }\<close>
 
 sepref_definition initialise_VMTF_code
   is \<open>uncurry initialise_VMTF\<close>
-  :: \<open>(list_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a vmtf_remove_conc_option_lst\<close>
+  :: \<open>(list_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a vmtf_remove_conc_option_fst_As\<close>
   supply nat_of_uint32_int32_assn[sepref_fr_rules]
   unfolding initialise_VMTF_def vmtf_cons_def
   apply (rewrite in "((_, _, _, _), \<hole>)" annotate_assn[where A=\<open>arl_assn uint32_nat_assn\<close>])
@@ -1395,7 +1395,7 @@ lemma initialise_VMTF:
   shows \<open>(uncurry initialise_VMTF, uncurry (\<lambda>N n. RES (isasat_input_ops.vmtf_init N []))) \<in>
       [\<lambda>(N,n). (\<forall>L\<in># N. L < n) \<and> (distinct_mset N)]\<^sub>f
       (\<langle>uint32_nat_rel\<rangle>list_rel_mset_rel) \<times>\<^sub>f nat_rel \<rightarrow>
-      \<langle>(\<langle>Id\<rangle>list_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r \<langle>nat_rel\<rangle> option_rel \<times>\<^sub>r \<langle>nat_rel\<rangle> option_rel)
+      \<langle>(\<langle>Id\<rangle>list_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r \<langle>nat_rel\<rangle> option_rel \<times>\<^sub>r \<langle>nat_rel\<rangle> option_rel \<times>\<^sub>r \<langle>nat_rel\<rangle> option_rel)
         \<times>\<^sub>r \<langle>Id\<rangle>list_rel\<rangle>nres_rel\<close>
     (is \<open>(?init, ?R) \<in> _\<close>)
 proof -
@@ -1403,8 +1403,8 @@ proof -
     unfolding vmtf_ns_notin_def
     by auto
 
-  have K2: \<open>distinct N \<Longrightarrow> lst < length N \<Longrightarrow> N!lst \<in> set (take lst N) \<Longrightarrow> False\<close>
-    for lst x N
+  have K2: \<open>distinct N \<Longrightarrow> fst_As < length N \<Longrightarrow> N!fst_As \<in> set (take fst_As N) \<Longrightarrow> False\<close>
+    for fst_As x N
     by (metis (no_types, lifting) in_set_conv_nth length_take less_not_refl min_less_iff_conj
       nth_eq_iff_index_eq nth_take)
   have W_ref: \<open>WHILE\<^sub>T (\<lambda>(N, A, st, cnext). N \<noteq> [])
@@ -1453,7 +1453,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by (auto simp: vmtf_ns_notin_empty)
-    subgoal for S N' x2 A' x2a lst cnext
+    subgoal for S N' x2 A' x2a fst_As cnext
       unfolding assert_bind_spec_conv
       apply (intro conjI)
       subgoal
@@ -1465,7 +1465,7 @@ proof -
         by (auto 5 5 simp: take_Suc_conv_app_nth hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
             option_last_def hd_rev last_map intro!: vmtf_cons dest: K2)
       subgoal (*TODO tune proof*)
-        using L_N dist List.last_in_set[of \<open>take lst N'\<close>] set_take_subset[of lst N']
+        using L_N dist List.last_in_set[of \<open>take fst_As N'\<close>] set_take_subset[of fst_As N']
         apply (auto simp: take_Suc_conv_app_nth hd_drop_conv_nth nat_shiftr_div2 nat_of_uint32_shiftr
             option_last_def hd_rev last_map)
         by (metis List.last_in_set diff_le_self diff_less_mono2 vmtf_ns_le_length last_map
@@ -1537,7 +1537,7 @@ proof -
       apply (subst RETURN_RES_refine_iff)
       apply (unfold isasat_input_ops.vmtf_def)
       apply (clarsimp)
-      apply (intro conjI)
+      apply (intro conjI impI)
       subgoal N' by (auto simp: list_rel_mset_rel_def br_def list_mset_rel_def)
       subgoal
         apply (rule exI[of _ \<open>map nat_of_uint32 (rev N')\<close>])
@@ -1549,7 +1549,11 @@ proof -
           by (auto simp: rev_map[symmetric] isasat_input_ops.vmtf_def option_last_def last_map
               hd_rev list_rel_mset_rel_def br_def list_mset_rel_def)
         subgoal by (auto simp: rev_map[symmetric] isasat_input_ops.vmtf_def option_hd_rev
-              map_option_option_last)
+              map_option_option_last hd_map)
+        subgoal by (auto simp: rev_map[symmetric] isasat_input_ops.vmtf_def option_hd_rev
+              map_option_option_last hd_map)
+        subgoal by (auto simp: rev_map[symmetric] isasat_input_ops.vmtf_def option_hd_rev
+              map_option_option_last hd_rev last_map)
         subgoal by (auto simp: rev_map[symmetric] isasat_input_ops.vmtf_def option_hd_rev
               map_option_option_last list_rel_mset_rel_def)
         subgoal by (auto simp: rev_map[symmetric] isasat_input_ops.vmtf_def option_hd_rev
@@ -1566,7 +1570,7 @@ qed
 lemma initialise_VMTF_href:
   \<open>(uncurry initialise_VMTF_code, uncurry (\<lambda>N (_::nat). RES (isasat_input_ops.vmtf_init N []))) \<in>
    [\<lambda>(N, n). (\<forall>L\<in>#N. L < n) \<and> distinct_mset N]\<^sub>a
-   (list_mset_assn uint32_nat_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> vmtf_remove_conc_option_lst\<close>
+   (list_mset_assn uint32_nat_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> vmtf_remove_conc_option_fst_As\<close>
 proof -
   have H: \<open>hr_comp (list_assn uint32_assn)
                 (\<langle>uint32_nat_rel\<rangle>list_rel O list_mset_rel) = list_mset_assn uint32_nat_assn\<close>
@@ -1580,8 +1584,8 @@ proof -
 qed
 
 definition finalise_init_code where
-  \<open>finalise_init_code = (\<lambda>(M', N', U', D', Q', W', ((ns, m, lst, next_search), to_remove), \<phi>, clvls). 
-     (M', N', U', D', Q', W', ((ns, m, the lst, next_search), to_remove), \<phi>, clvls))\<close>
+  \<open>finalise_init_code = (\<lambda>(M', N', U', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). 
+     (M', N', U', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove), \<phi>, clvls))\<close>
 
 lemma (in isasat_input_ops)finalise_init_finalise_init:
   \<open>(RETURN o finalise_init_code, RETURN o finalise_init) \<in>
@@ -1592,7 +1596,8 @@ lemma (in isasat_input_ops)finalise_init_finalise_init:
 
 sepref_thm (in isasat_input_ops) finalise_init_code'
   is \<open>RETURN o finalise_init_code\<close>
-  :: \<open> [\<lambda>(M', N', U', D', Q', W', ((ns, m, lst, next_search), to_remove), \<phi>, clvls). lst \<noteq> None]\<^sub>a
+  :: \<open> [\<lambda>(M', N', U', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
+         lst_As \<noteq> None]\<^sub>a
      twl_st_heur_init_assn\<^sup>d \<rightarrow> twl_st_heur_assn\<close>
   unfolding finalise_init_code_def twl_st_heur_init_assn_def twl_st_heur_assn_def
   by sepref
@@ -1615,8 +1620,8 @@ proof -
   have H: \<open>?c
     \<in> [comp_PRE twl_st_heur_init
      (\<lambda>S. get_conflict_wl S = None \<and> \<A>\<^sub>i\<^sub>n \<noteq> {#})
-     (\<lambda>_ (M', N', U', D', Q', W', ((ns, m, lst,
-         next_search), to_remove), \<phi>, clvls). lst \<noteq> None)
+     (\<lambda>_ (M', N', U', D', Q', W', ((ns, m, fst_As, lst_As,
+         next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and> lst_As \<noteq> None)
      (\<lambda>_. True)]\<^sub>a hrp_comp (twl_st_heur_init_assn\<^sup>d)
                     twl_st_heur_init \<rightarrow> hr_comp
            twl_st_heur_assn twl_st_heur\<close>
@@ -1626,7 +1631,7 @@ proof -
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     using that by (auto simp: comp_PRE_def twl_st_heur_init_def trail_pol_def option_conflict_rel_def
         conflict_rel_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff vmtf_init_def)
-
+  thm vmtf_init_def
   have im: \<open>?im' = ?im\<close> and f: \<open>?f' = ?f\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep conflict_option_assn_def
     twl_st_assn_def twl_st_heur_init_assn_def twl_st_init_assn_def
@@ -1743,7 +1748,7 @@ sepref_definition init_state_wl_D'_code
     conflict_option_rel_assn *assn
     list_assn unat_lit_assn *assn
     (arrayO_assn (arl_assn nat_assn)) *assn
-    vmtf_remove_conc_option_lst *assn
+    vmtf_remove_conc_option_fst_As *assn
     phase_saver_conc *assn uint32_nat_assn\<close>
   unfolding init_state_wl_D'_def
   apply (rewrite at \<open>(_, _, _, \<hole>, _, _)\<close> HOL_list.fold_custom_empty)
@@ -1899,7 +1904,7 @@ proof -
       hr_comp conflict_option_rel_assn (isasat_input_ops.option_conflict_rel \<A>\<^sub>i\<^sub>n) *assn
       hr_comp (list_assn unat_lit_assn) list_mset_rel *assn
       hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>\<langle>nat_rel\<rangle>list_rel\<rangle>list_rel) *assn
-      vmtf_remove_conc_option_lst *assn hr_comp phase_saver_conc (\<langle>bool_rel\<rangle>list_rel) *assn
+      vmtf_remove_conc_option_fst_As *assn hr_comp phase_saver_conc (\<langle>bool_rel\<rangle>list_rel) *assn
       uint32_nat_assn\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using  init_state_wl_D'_code.refine[FCOMP init_state_wl_D', of \<A>\<^sub>i\<^sub>n] .

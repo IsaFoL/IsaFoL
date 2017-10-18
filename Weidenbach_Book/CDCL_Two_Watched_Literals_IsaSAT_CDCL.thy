@@ -3340,7 +3340,7 @@ qed
 
 sepref_thm tl_state_wl_heur_code
   is \<open>RETURN o tl_state_wl_heur\<close>
-  :: \<open>[\<lambda>(M, N, U, D, WS, Q, ((A, m, lst, next_search), _), \<phi>, _). M \<noteq> [] \<and>
+  :: \<open>[\<lambda>(M, N, U, D, WS, Q, ((A, m, fst_As, lst_As, next_search), _), \<phi>, _). M \<noteq> [] \<and>
          atm_of (lit_of (hd M)) < length \<phi> \<and>
          atm_of (lit_of (hd M)) < length A \<and> (next_search \<noteq> None \<longrightarrow>  the next_search < length A)]\<^sub>a
       twl_st_heur_assn\<^sup>d \<rightarrow> twl_st_heur_assn\<close>
@@ -3478,7 +3478,7 @@ proof -
           \<not> tautology (the (get_conflict_wl S)) \<and>
           distinct_mset (the (get_conflict_wl S)) \<and>
           \<not> is_decided (hd (get_trail_wl S)))
-     (\<lambda>_ (M, N, U, D, WS, Q, ((A, m, lst, next_search), _), \<phi>, _).
+     (\<lambda>_ (M, N, U, D, WS, Q, ((A, m, fst_As, lst_As, next_search), _), \<phi>, _).
          M \<noteq> [] \<and>
          atm_of (lit_of (hd M)) < length \<phi> \<and>
          atm_of (lit_of (hd M)) < length A \<and>
@@ -4028,7 +4028,7 @@ lemma conflict_assn_op_nset_is_emty[sepref_fr_rules]:
 
 sepref_thm update_confl_tl_wl_code
   is \<open>uncurry2 update_confl_tl_wl_heur\<close>
-  :: \<open>[\<lambda>((i, L), (M, N, U, D, W, Q, ((A, m, lst, next_search), _), \<phi>, clvls)).
+  :: \<open>[\<lambda>((i, L), (M, N, U, D, W, Q, ((A, m, fst_As, lst_As, next_search), _), \<phi>, clvls)).
       (i > 0 \<longrightarrow> distinct (N ! i)) \<and>
       (i > 0 \<longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N! i))) \<and>
       (i > 0 \<longrightarrow> \<not> tautology (mset (N ! i))) \<and>
@@ -4089,7 +4089,7 @@ proof -
            L \<in> snd ` D\<^sub>0 \<and>
            twl_struct_invs (twl_st_of_wl None S) \<and>
            is_proped (hd (get_trail_wl S)))
-       (\<lambda>_ ((i, L), M, N, U, D, W, Q, ((A, m, lst,
+       (\<lambda>_ ((i, L), M, N, U, D, W, Q, ((A, m, fst_As, lst_As,
            next_search), _), \<phi>, clvls).
            (0 < i \<longrightarrow> distinct (N ! i)) \<and>
            (0 < i \<longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N ! i))) \<and>
@@ -4166,12 +4166,12 @@ proof -
     then obtain S' where
       [simp]: \<open>x' = ((C, L), S')\<close>
       by (cases x') auto
-    obtain Q' A m lst next_search oth \<phi> clvls where
-      [simp]: \<open>S' = (M, N, U, D, W, Q', ((A, m, lst, next_search), oth), \<phi>, clvls)\<close>
+    obtain Q' A m fst_As lst_As next_search oth \<phi> clvls where
+      [simp]: \<open>S' = (M, N, U, D, W, Q', ((A, m, fst_As, lst_As, next_search), oth), \<phi>, clvls)\<close>
       using x'x by (cases S') (auto simp: twl_st_heur_def)
     have in_atms_le: \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length A\<close> and \<phi>: \<open>phase_saving \<phi>\<close> and
-      vmtf: \<open>\<exists>xs' ys'. vmtf_ns (ys' @ xs') m A \<and> lst = hd (ys' @ xs')
-         \<and> next_search = option_hd xs'\<close> and
+      vmtf: \<open>\<exists>xs' ys'. vmtf_ns (ys' @ xs') m A \<and> fst_As = hd (ys' @ xs') \<and>
+           lst_As = last (ys' @ xs') \<and> next_search = option_hd xs'\<close> and
       clvls: \<open>clvls \<in> counts_maximum_level M D\<close>
       using x'x unfolding twl_st_heur_def vmtf_def by auto
     then have atm_L_le_A: \<open>atm_of L < length A\<close>
@@ -4179,7 +4179,8 @@ proof -
     have atm_L_le_\<phi>: \<open>atm_of L < length \<phi>\<close>
       using L_D\<^sub>0 \<phi> unfolding phase_saving_def by (auto simp: image_image in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
     obtain xs' ys' where
-      \<open>vmtf_ns (ys' @ xs') m A\<close> and \<open>lst = hd (ys' @ xs')\<close> and \<open>next_search = option_hd xs'\<close>
+      \<open>vmtf_ns (ys' @ xs') m A\<close> and \<open>fst_As = hd (ys' @ xs')\<close> and \<open>next_search = option_hd xs'\<close> and
+      \<open>lst_As = last (ys' @ xs')\<close>
       using vmtf by blast
     then have next_search: \<open>the next_search < length A\<close> if \<open>next_search \<noteq> None\<close>
       apply - by (rule vmtf_ns_le_length[of \<open>ys' @ xs'\<close> m A]) (use that in auto)
@@ -5887,7 +5888,7 @@ lemma find_decomp_wl_st_int_find_decomp_wl_st:
      (\<forall>L \<in># remove1_mset (-lit_of (hd M)) (the (get_conflict_wl S)). get_level (get_trail_wl S) L = get_level M L)}\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   apply clarify
-  subgoal for L' M' N' U' D' K' W' Q' A' m'  _ _ _ \<phi> L M N U D NP UP W Q
+  subgoal for L' M' N' U' D' K' W' Q' A' m'  _ _ _ _ \<phi> L M N U D NP UP W Q
     apply (auto simp: find_decomp_wl_st_int_def find_decomp_wl_st_def
         list_mset_rel_def br_def twl_st_heur_def twl_st_heur_no_clvls_def
         intro!: bind_refine[where R' =
@@ -7459,6 +7460,12 @@ prepare_code_thms (in -) vmtf_rescore_code_def
 lemmas vmtf_rescore_code_refine[sepref_fr_rules] =
    vmtf_rescore_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
+(* TODO Move *)
+lemma vmtf_append_remove_iff':
+  \<open>(vm, b @ [L]) \<in> vmtf M \<longleftrightarrow>
+     L \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l \<and> (vm, b) \<in> vmtf M\<close>
+  by (cases vm) (auto simp: vmtf_append_remove_iff)
+(* ENd Move *)
 lemma vmtf_rescore_score_clause:
   \<open>(uncurry3 vmtf_rescore, uncurry3 rescore_clause) \<in>
      [\<lambda>(((C, M), vm), \<phi>). literals_are_in_\<L>\<^sub>i\<^sub>n (mset C) \<and> vm \<in> vmtf M \<and> phase_saving \<phi>]\<^sub>f
@@ -7478,10 +7485,9 @@ proof -
     subgoal using M by auto
     subgoal by auto
     subgoal unfolding save_phase_inv_def by auto
-    subgoal using C unfolding phase_saving_def save_phase_inv_def
-      by (auto simp: vmtf_append_remove_iff)
+    subgoal using C unfolding phase_saving_def save_phase_inv_def by auto
     subgoal unfolding save_phase_inv_def phase_saving_def by auto
-    subgoal using C by (auto simp: vmtf_append_remove_iff)
+    subgoal using C by (auto simp: vmtf_append_remove_iff')
     subgoal by auto
     done
   have K: \<open>((a, b),(a', b')) \<in> A \<times>\<^sub>f B \<longleftrightarrow> (a, a') \<in> A \<and> (b, b') \<in> B\<close> for a b a' b' A B
@@ -7539,7 +7545,7 @@ lemma trail_bump_rescore:
   apply (intro nres_relI frefI)
   apply clarify
   subgoal for a aa ab ac b ba ad ae af ag bb bc
-    using vmtf_change_to_remove_order[of ae af ag bb bc ad bc]
+    using vmtf_change_to_remove_order
     by auto
   done
 
@@ -8242,8 +8248,8 @@ definition (in isasat_input_ops) vmtf_find_next_undef_upd
   })\<close>
 
 definition trail_ref_except_ann_lits where
- \<open>trail_ref_except_ann_lits = {((M, ((A, m, lst, next_search), removed)), M').
-        M = M' \<and> ((A, m, lst, next_search), removed) \<in> vmtf M}\<close>
+ \<open>trail_ref_except_ann_lits = {((M, ((A, m, fst_As, lst_As, next_search), removed)), M').
+        M = M' \<and> ((A, m, fst_As, lst_As, next_search), removed) \<in> vmtf M}\<close>
 
 definition phase_saver_ref where
   \<open>phase_saver_ref = {(M, M'). M = M' \<and> phase_saving M}\<close>
