@@ -3,7 +3,12 @@ imports
   "HOL-Word.Word"
   Bits_Natural
   WB_More_Refinement
+  "Native_Word.Uint64"
 begin
+
+subsection \<open>More Setup for Fixed Size Natural Numbers\<close>
+
+subsubsection \<open>Words\<close> 
 
 lemma less_upper_bintrunc_id: \<open>n < 2 ^b \<Longrightarrow> n \<ge> 0 \<Longrightarrow> bintrunc b n = n\<close>
   unfolding uint32_of_nat_def
@@ -19,6 +24,9 @@ lemma op_eq_word_nat:
   \<open>(uncurry (return oo (op = :: 'a :: len Word.word \<Rightarrow> _)), uncurry (RETURN oo op =)) \<in>
     word_nat_assn\<^sup>k *\<^sub>a word_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare (sep_auto simp: word_nat_rel_def br_def)
+
+
+subsubsection \<open>32-bits\<close> 
 
 definition uint32_nat_rel :: "(uint32 \<times> nat) set" where
   \<open>uint32_nat_rel = br nat_of_uint32 (\<lambda>_. True)\<close>
@@ -378,13 +386,13 @@ lemma uint32_nat_assn_zero_uint32_nat[sepref_fr_rules]:
 
 lemma nat_assn_zero:
   \<open>(uncurry0 (return 0), uncurry0 (RETURN 0)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_012)
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
 
-definition one_nat_uint32 where
-  [simp]: \<open>one_nat_uint32 = (1 :: nat)\<close>
+definition one_uint32_nat where
+  [simp]: \<open>one_uint32_nat = (1 :: nat)\<close>
 
-lemma one_nat_uint32[sepref_fr_rules]:
-  \<open>(uncurry0 (return 1), uncurry0 (RETURN one_nat_uint32)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+lemma one_uint32_nat[sepref_fr_rules]:
+  \<open>(uncurry0 (return 1), uncurry0 (RETURN one_uint32_nat)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   by sepref_to_hoare
     (sep_auto simp: uint32_nat_rel_def br_def)
 
@@ -456,4 +464,89 @@ lemma (in -) sum_mod_uint32_max: \<open>(uncurry (return oo op +), uncurry (RETU
   uint32_nat_assn\<close>
   by sepref_to_hoare
      (sep_auto simp: sum_mod_uint32_max_def uint32_nat_rel_def br_def nat_of_uint32_plus)
+
+
+subsubsection \<open>64-bits\<close> 
+
+definition uint64_nat_rel :: "(uint64 \<times> nat) set" where
+  \<open>uint64_nat_rel = br nat_of_uint64 (\<lambda>_. True)\<close>
+
+abbreviation uint64_nat_assn :: "nat \<Rightarrow> uint64 \<Rightarrow> assn" where
+  \<open>uint64_nat_assn \<equiv> pure uint64_nat_rel\<close>
+
+lemma word_nat_of_uint64_Rep_inject[simp]: \<open>nat_of_uint64 ai = nat_of_uint64 bi \<longleftrightarrow> ai = bi\<close>
+  by transfer simp
+
+lemma op_eq_uint64_nat[sepref_fr_rules]:
+  \<open>(uncurry (return oo (op = :: uint64 \<Rightarrow> _)), uncurry (RETURN oo op =)) \<in>
+    uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def)
+
+instantiation uint64 :: default
+begin
+definition default_uint64 :: uint64 where
+  \<open>default_uint64 = 0\<close>
+instance
+  ..
+end
+
+instance uint64 :: heap
+  by standard (auto simp: inj_def exI[of _ nat_of_uint64])
+
+lemma nat_of_uint64_012[simp]: \<open>nat_of_uint64 0 = 0\<close> \<open>nat_of_uint64 2 = 2\<close> \<open>nat_of_uint64 1 = 1\<close>
+  by (transfer, auto)+
+
+definition zero_uint64_nat where
+  [simp]: \<open>zero_uint64_nat = (0 :: nat)\<close>
+
+lemma uint64_nat_assn_zero_uint64_nat[sepref_fr_rules]:
+  \<open>(uncurry0 (return 0), uncurry0 (RETURN zero_uint64_nat)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def)
+
+
+definition uint64_max :: nat where
+  \<open>uint64_max = 2 ^64 - 1\<close>
+
+lemma nat_of_uint64_uint64_of_nat_id: \<open>n \<le> uint64_max \<Longrightarrow> nat_of_uint64 (uint64_of_nat n) = n\<close>
+  unfolding uint64_of_nat_def uint64_max_def
+  apply simp
+  apply transfer
+  apply (auto simp: unat_def)
+  apply transfer
+  by (auto simp: less_upper_bintrunc_id)
+
+lemma nat_of_uint64_add:
+  \<open>nat_of_uint64 ai + nat_of_uint64 bi \<le> uint64_max \<Longrightarrow>
+    nat_of_uint64 (ai + bi) = nat_of_uint64 ai + nat_of_uint64 bi\<close>
+  by transfer (auto simp: unat_def uint_plus_if' nat_add_distrib uint64_max_def)
+
+lemma uint64_nat_assn_plus[sepref_fr_rules]:
+  \<open>(uncurry (return oo op +), uncurry (RETURN oo op +)) \<in> [\<lambda>(m, n). m + n \<le> uint64_max]\<^sub>a
+     uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def nat_of_uint64_add br_def)
+
+
+definition one_uint64_nat where
+  [simp]: \<open>one_uint64_nat = (1 :: nat)\<close>
+
+lemma one_uint64_nat[sepref_fr_rules]:
+  \<open>(uncurry0 (return 1), uncurry0 (RETURN one_uint64_nat)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint64_nat_rel_def br_def)
+
+lemma uint64_less_than_0[iff]: \<open>(a::uint64) \<le> 0 \<longleftrightarrow> a = 0\<close>
+  by transfer auto
+
+lemma nat_of_uint64_less_iff: \<open>nat_of_uint64 a < nat_of_uint64 b \<longleftrightarrow> a < b\<close>
+  apply transfer
+  apply (auto simp: unat_def word_less_def)
+  apply transfer
+  by (smt bintr_ge0)
+
+lemma uint64_nat_assn_less[sepref_fr_rules]:
+  \<open>(uncurry (return oo op <), uncurry (RETURN oo op <)) \<in>
+    uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def max_def
+      nat_of_uint64_less_iff)
+
 end

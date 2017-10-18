@@ -56,8 +56,8 @@ subsubsection \<open>Specification\<close>
 type_synonym 'v abs_vmtf_ns = \<open>'v set \<times> 'v set\<close>
 type_synonym 'v abs_vmtf_ns_remove = \<open>'v abs_vmtf_ns \<times> 'v set\<close>
 
-datatype 'v vmtf_node = VMTF_Node (stamp : nat) (get_prev: \<open>'v option\<close>) (get_next: \<open>'v option\<close>)
-type_synonym nat_vmtf_node = \<open>nat vmtf_node\<close>
+datatype ('v, 'n) vmtf_node = VMTF_Node (stamp : 'n) (get_prev: \<open>'v option\<close>) (get_next: \<open>'v option\<close>)
+type_synonym nat_vmtf_node = \<open>(nat, nat) vmtf_node\<close>
 
 inductive vmtf_ns :: \<open>nat list \<Rightarrow> nat \<Rightarrow> nat_vmtf_node list \<Rightarrow> bool\<close> where
 Nil: \<open>vmtf_ns [] st xs\<close> |
@@ -723,7 +723,7 @@ next
          y' := VMTF_Node (stamp (ns' ! y')) (Some x') (get_next (ns' ! y')),
          x := VMTF_Node (stamp (ns' ! x)) None None] = ns_vmtf_dequeue x ns\<close>
       using vmtf_ns_last_mid_get_next[OF vmtf_ns_x_y] vmtf_ns_last_mid_get_prev[OF vmtf_ns_x'_x]
-      list_update_swap[of x' y' _ \<open>_ :: nat vmtf_node\<close>]
+      list_update_swap[of x' y' _ \<open>_ :: nat_vmtf_node\<close>]
       unfolding ns'_def ns_vmtf_dequeue_def
       by (auto simp: Let_def)
     ultimately show ?thesis
@@ -1710,7 +1710,7 @@ proof -
        le: \<open>a < length to_remove''\<close> and
        de: \<open>(a + 1, vmtf_en_dequeue (to_remove'' ! a) vm') = (x1, x2)\<close>
        \<open>x1 < length to_remove''\<close>
-     for to_remove'' x1 x1a x1b a  x2 and vm vm' :: \<open>nat vmtf_node list \<times> nat \<times> nat \<times> nat \<times> nat option\<close> and s
+     for to_remove'' x1 x1a x1b a  x2 and vm vm' :: \<open>nat_vmtf_node list \<times> nat \<times> nat \<times> nat \<times> nat option\<close> and s
   proof -
     have to_remove_i: \<open>to_remove'' ! a \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
       apply (rule H'')
@@ -2327,22 +2327,22 @@ definition  (in isasat_input_ops) save_phase_inv :: \<open>nat literal \<Rightar
   \<open>save_phase_inv L \<phi> = \<phi>[atm_of L := \<not>is_pos L]\<close>
 
 
-type_synonym vmtf_assn = \<open>uint32 vmtf_node array \<times> nat \<times> uint32 \<times> uint32 \<times> uint32 option\<close>
+type_synonym vmtf_assn = \<open>(uint32, nat) vmtf_node array \<times> nat \<times> uint32 \<times> uint32 \<times> uint32 option\<close>
 type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> uint32 array_list\<close>
 
 type_synonym phase_saver_assn = \<open>bool array\<close>
 
-instance vmtf_node :: (heap) heap
+instance vmtf_node :: (heap, heap) heap
 proof intro_classes
-  let ?to_pair = \<open>\<lambda>x::'a vmtf_node. (stamp x, get_prev x, get_next x)\<close>
+  let ?to_pair = \<open>\<lambda>x::('a, 'b) vmtf_node. (stamp x, get_prev x, get_next x)\<close>
   have inj': \<open>inj ?to_pair\<close>
     unfolding inj_def by (intro allI) (case_tac x; case_tac y; auto)
-  obtain to_nat :: \<open>nat \<times> 'a option \<times> 'a option \<Rightarrow> nat\<close> where
+  obtain to_nat :: \<open>'b \<times> 'a option \<times> 'a option \<Rightarrow> nat\<close> where
     \<open>inj to_nat\<close>
     by blast
   then have \<open>inj (to_nat o ?to_pair)\<close>
     using inj' by (blast intro: inj_comp)
-  then show \<open>\<exists>to_nat :: 'a vmtf_node \<Rightarrow> nat. inj to_nat\<close>
+  then show \<open>\<exists>to_nat :: ('a, 'b) vmtf_node \<Rightarrow> nat. inj to_nat\<close>
     by blast
 qed
 
@@ -2437,10 +2437,10 @@ sepref_definition vmtf_enqueue_code
 
 declare vmtf_enqueue_code.refine[sepref_fr_rules]
 
-definition insert_sort_inner_nth where
+definition insert_sort_inner_nth :: "nat_vmtf_node list \<Rightarrow> nat list \<Rightarrow> nat \<Rightarrow> nat list nres" where
   \<open>insert_sort_inner_nth ns = insert_sort_inner (\<lambda>remove n. stamp (ns ! (remove ! n)))\<close>
 
-definition insert_sort_nth where
+definition insert_sort_nth :: "nat_vmtf_node list \<times> 'c \<Rightarrow> nat list \<Rightarrow> nat list nres" where
   \<open>insert_sort_nth = (\<lambda>(ns, _). insert_sort (\<lambda>remove n. stamp (ns ! (remove ! n))))\<close>
 
 
