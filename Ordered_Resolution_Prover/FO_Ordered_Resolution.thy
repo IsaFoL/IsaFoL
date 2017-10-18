@@ -373,7 +373,7 @@ qed
 subsection \<open>Lifting\<close>
 
 text \<open>
-The following corresponds to the section between lemmas 4.11 and 4.12
+The following corresponds to the section between lemmas 4.11 and 4.12.
 \<close>
 
 context

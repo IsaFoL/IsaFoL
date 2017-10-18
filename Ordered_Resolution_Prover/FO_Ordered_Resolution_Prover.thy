@@ -1044,7 +1044,7 @@ proof -
       then have "C \<in> src.Rf (Sup_llist Ns)"
         using d ns by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist src.Rf_mono)
       then have "C \<in> src.Rf (limit_llist Ns)"
-        unfolding ns using local.src_ext.Rf_Sup_llist_subset_Rf_limit_llist derivns ns by auto
+        unfolding ns using local.src_ext.Rf_Sup_subset_Rf_limit derivns ns by auto
       then show False
         using c by auto
     qed
@@ -1181,13 +1181,14 @@ proof -
         using d ns
         by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist src.Rf_mono)
       then have "C \<in> src.Rf (limit_llist Ns)"
-        unfolding ns using local.src_ext.Rf_Sup_llist_subset_Rf_limit_llist derivns ns by auto
-      then show False using c by auto
+        unfolding ns using src_ext.Rf_Sup_subset_Rf_limit derivns ns by auto
+      then show False
+        using c by auto
     qed
     then obtain \<sigma> where "D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
-      using ground_C
-      by (metis make_single_ground_subst subset_mset.order_refl)
-    then show ?thesis by auto
+      using ground_C by (metis make_single_ground_subst subset_mset.order_refl)
+    then show ?thesis
+      by auto
   qed
   then obtain \<sigma> where \<sigma>: "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
     by auto
@@ -1370,7 +1371,7 @@ proof -
         using d ns
         by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist src.Rf_mono)
       then have "C \<in> src.Rf (limit_llist Ns)"
-        unfolding ns using local.src_ext.Rf_Sup_llist_subset_Rf_limit_llist derivns ns by auto
+        unfolding ns using src_ext.Rf_Sup_subset_Rf_limit derivns ns by auto
       then show False
         using c by auto
     qed
@@ -1540,7 +1541,7 @@ proof -
         using D_p ns src.Rf_mono
         by (metis (lifting) i_p(1) contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist)
       then have "C \<in> src.Rf (limit_llist Ns)"
-        unfolding ns using local.src_ext.Rf_Sup_llist_subset_Rf_limit_llist derivns ns by auto
+        unfolding ns using src_ext.Rf_Sup_subset_Rf_limit derivns ns by auto
       then show False
         using c by auto
     qed
@@ -1866,23 +1867,18 @@ proof -
           unfolding gd.eligible.simps[simplified] using is_ground_Max using ground_mset_as ground_d by auto
 
         have ann1: "maximal_in (Max (atms_of D \<union> set As)) (D + negs (mset As))"
-          unfolding gd.eligible.simps[simplified] ann2
-          unfolding maximal_in_def
-          unfolding less_atm_iff
-          using Max\<sigma>_is_Max
-          using ground_set_as ground_d
-          using ex_ground_subst
+          unfolding gd.eligible.simps[simplified] ann2 maximal_in_def less_atm_iff
+          using Max\<sigma>_is_Max ground_set_as ground_d ex_ground_subst
           by (metis Max_less_iff \<open>finite (atms_of D \<union> set As)\<close> equals0D infinite_growing is_ground_cls_imp_is_ground_atm is_ground_subst_atm atms_of_negg atms_of_plus gd local.ord_resolve(1) set_mset_mset)
             
         from k have kk: "eligible (S_M S (Q_of_state (limit_state Sts))) \<sigma> As (D + negs (mset As))"
           unfolding gd.eligible.simps eligible.simps using ann1 ann2 by (auto simp: S_Q_def)
 
-        have l: "\<forall>i<n. gd.str_maximal_in (As ! i) (Cs ! i)"
+        have l: "\<forall>i < n. gd.strict_maximal_in (As ! i) (Cs ! i)"
           using ord_resolve by simp
-        then have ll: "\<forall>i<n. str_maximal_in (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
+        then have ll: "\<forall>i < n. str_maximal_in (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
           using len_as ground_as using ex_ground_subst ground_cs is_ground_cls_imp_is_ground_atm  
-          unfolding less_eq_atm_def less_atm_iff gd.str_maximal_in_def
-          by force
+          unfolding less_eq_atm_def less_atm_iff gd.strict_maximal_in_def by force
 
         have m: "\<forall>i<n. S_Q (CAs ! i) = {#}"
           using ord_resolve by simp
@@ -1890,9 +1886,8 @@ proof -
         have gg: "is_ground_cls (\<Union>#mset Cs + D)"
           using ground_d ground_cs b ge by auto
         show ?thesis
-          using ord_resolve.intros[OF len_cas len_cs len_ass len_as nz cas ass_ne jj kk ll _  ]  m a b gg
-          unfolding S_Q_def
-           by auto
+          using ord_resolve.intros[OF len_cas len_cs len_ass len_as nz cas ass_ne jj kk ll] m a b gg
+          unfolding S_Q_def by auto
       qed
     qed
     then obtain \<sigma> where sisisgma: "ord_resolve (S_M S (Q_of_state (limit_state Sts))) CAs ?D \<sigma> ?E"
@@ -1957,7 +1952,6 @@ proof -
       using N_of_state_subset j_p' by auto
     then have "?E \<in> grounding_of_state (lnth Sts j)"
       using s_p(7) s_p(3) unfolding grounding_of_clss_def grounding_of_cls_def by force
-    find_theorems 
     then have "\<gamma> \<in> src.Ri (grounding_of_state (lnth Sts j))"
       using src.Ri_effective \<gamma>_p by auto
     then have "\<gamma> \<in> src_ext_Ri (?N j)"
@@ -1965,14 +1959,13 @@ proof -
     then have "\<gamma> \<in> src_ext_Ri (Sup_llist (lmap grounding_of_state Sts))"
       using j_p' contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist src_ext.Ri_mono by metis
     then have "\<gamma> \<in> src_ext_Ri (limit_llist (lmap grounding_of_state Sts))"
-      using src_ext.derivation_supremum_limit_llist_satisfiable[of Ns] derivns ns by blast
+      using src_ext.Ri_Sup_subset_Ri_limit[of Ns] derivns ns by blast
   }
-  then have "src_ext.saturated_upto (limit_llist (lmap grounding_of_state Sts))"
+  then have sat_limit_gr_sts: "src_ext.saturated_upto (limit_llist (lmap grounding_of_state Sts))"
     unfolding src_ext.saturated_upto_def src_ext.inferences_from_def
     using gd_ord_\<Gamma>_ngd_ord_\<Gamma>
     unfolding src_ext.saturated_upto_def src_ext.inferences_from_def infer_from_def src_ext_Ri_def
     by auto
-  note continue_from_this = this
 
   have "limit_llist (lmap grounding_of_state Sts) \<supseteq> grounding_of_state (limit_state Sts)"
   proof
@@ -2013,7 +2006,7 @@ proof -
   then have unsat2: "\<not> satisfiable (limit_llist (lmap grounding_of_state Sts))"
     using unsat unfolding true_clss_def by (meson contra_subsetD)
 
-  from continue_from_this have "src.saturated_upto (limit_llist (lmap grounding_of_state Sts))"
+  from sat_limit_gr_sts have "src.saturated_upto (limit_llist (lmap grounding_of_state Sts))"
     using gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redudancy_criterion
       standard_redundancy_criterion_extension_saturated_up_iff[of gd.ord_\<Gamma>]
     unfolding src_ext_Ri_def by auto
@@ -2265,12 +2258,13 @@ locale FO_resolution_prover_with_sum_product_weights =
     j :: nat and
     weight :: "'a clause \<times> nat \<Rightarrow> nat" +
   assumes
-    ij_gr_zero: "i > 0" "j > 0" and
+    i_pos: "i > 0" and
+    j_pos:"j > 0" and
     weight_def: "weight = (\<lambda>(C, m). i * m + j * size C)"
 begin
 
 sublocale FO_resolution_prover_with_monotone_weights
-  using ij_gr_zero weight_def apply unfold_locales sorry (* by auto *)
+  using i_pos j_pos weight_def apply unfold_locales sorry (* by auto *)
 
 thm monotone_fairness
 

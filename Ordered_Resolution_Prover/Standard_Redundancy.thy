@@ -275,7 +275,7 @@ The following corresponds to Theorem 4.8:
 \<close>
 
 sublocale effective_redundancy_criterion \<Gamma> Rf Ri
-unfolding effective_redundancy_criterion_def
+  unfolding effective_redundancy_criterion_def
 proof (intro conjI redudancy_criterion, unfold_locales)
   fix \<gamma> N
   assume in_\<gamma>: "\<gamma> \<in> \<Gamma>" and concl_of_in_n_un_rf_n: "concl_of \<gamma> \<in> N \<union> Rf N"

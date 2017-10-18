@@ -60,8 +60,8 @@ proof -
   have "\<exists>A. A \<in> atms_of C \<and> A = Max (atms_of C)"
     using c_ne by (blast intro: Max_in_lits atm_of_Max_lit atm_of_lit_in_atms_of)
   then have "\<exists>A. Neg A \<in># C"
-    using c_ne c_in_n c_cex c_min Max_in_lits Max_lit_eq_pos_or_neg_Max_atm
-      max_pos_imp_true_in_Interp true_Interp_imp_INTERP by metis
+    using c_ne c_in_n c_cex c_min Max_in_lits Max_lit_eq_pos_or_neg_Max_atm  max_pos_imp_Interp
+      Interp_imp_INTERP by metis
   then obtain A where neg_a_in_c: "Neg A \<in># C"
     by blast
   then obtain C' where c: "C = add_mset (Neg A) C'"
@@ -75,7 +75,7 @@ proof -
   then have d_in_n: "D \<in> N"
     using productive_in_N by fast
   have d_true: "INTERP N \<Turnstile> D"
-    using prod_d productive_imp_true_in_INTERP by blast
+    using prod_d productive_imp_INTERP by blast
 
   obtain D' AAA where
     d: "D = D' + AAA" and
@@ -108,11 +108,11 @@ proof -
     using dual_order.strict_iff_order by blast
 
   have "\<not> interp N D \<Turnstile> D"
-    using d0 productive_imp_false_interp by blast
+    using d0 productive_imp_not_interp by blast
   then have "\<not> Interp N D \<Turnstile> D'"
     unfolding d0 d' Interp_def true_cls_def by (auto simp: true_lit_def simp del: not_gr_zero)
   then have "\<not> INTERP N \<Turnstile> D'"
-    using a_max_d d'_le_d max_d'_lt_a false_Interp_imp_INTERP by blast
+    using a_max_d d'_le_d max_d'_lt_a not_Interp_imp_not_INTERP by blast
   moreover have "\<not> INTERP N \<Turnstile> C'"
     using c_cex unfolding c by simp
   ultimately have e_cex: "\<not> INTERP N \<Turnstile> D' + C'"

@@ -821,9 +821,9 @@ lemma all_lits_of_m_extract_atms_cls: \<open>set_mset (all_lits_of_atms_m (mset 
         in_all_lits_of_m_ain_atms_of_iff insert_absorb all_lits_of_atms_m_all_lits_of_m)
   done
 
-lemma nat_of_lit_upperN_nat_of_lit_uminus_upperN:
-  \<open>nat_of_lit (-L) < upperN \<longleftrightarrow> nat_of_lit L < upperN\<close>
-  by (cases L) (auto simp: upperN_def)
+lemma nat_of_lit_uint_max_nat_of_lit_uminus_uint_max:
+  \<open>nat_of_lit (-L) \<le> uint_max \<longleftrightarrow> nat_of_lit L \<le> uint_max\<close>
+  by (cases L) (auto simp: uint_max_def)
 
 lemma in_extract_atms_clsD:
   \<open>set (extract_atms_cls C \<A>\<^sub>i\<^sub>n) = atms_of_s (set C) \<union> set \<A>\<^sub>i\<^sub>n\<close>
@@ -846,8 +846,8 @@ lemma in_extract_atms_clssD:
   done
 
 lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_extract_atms_clss:
-  assumes upper: \<open>\<forall>L \<in> set \<A>\<^sub>i\<^sub>n. L < upperN div 2\<close>
-  assumes upperN: \<open>\<forall>C \<in> set N. \<forall>L \<in> set C. nat_of_lit L < upperN\<close>
+  assumes upper: \<open>\<forall>L \<in> set \<A>\<^sub>i\<^sub>n. L \<le> uint_max div 2\<close>
+  assumes uint_max: \<open>\<forall>C \<in> set N. \<forall>L \<in> set C. nat_of_lit L \<le> uint_max\<close>
   shows
    \<open>isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l (mset (extract_atms_clss N \<A>\<^sub>i\<^sub>n))
      (all_lits_of_mm (mset `# mset N) + all_lits_of_atms_m (mset \<A>\<^sub>i\<^sub>n))\<close>
@@ -864,7 +864,7 @@ proof -
   have H2: \<open>xa \<in> set \<A>\<^sub>i\<^sub>n \<Longrightarrow> - literal_of_nat (2 * xa) \<in> Neg ` set \<A>\<^sub>i\<^sub>n\<close> for xa \<A>\<^sub>i\<^sub>n
     by auto
   show ?thesis
-    using upper upperN
+    using upper uint_max
   proof (induction N arbitrary: \<A>\<^sub>i\<^sub>n)
     case Nil
     then show ?case
@@ -876,11 +876,11 @@ proof -
           simp del: nat_of_lit.simps literal_of_nat.simps)
   next
     case (Cons C Cs \<A>\<^sub>i\<^sub>n) note IH = this(1) and H=this(2-)
-    have \<open>2 * L < upperN \<longleftrightarrow> L < upperN div 2\<close> for L
-      by (auto simp: upperN_def)
-    then have \<open>\<forall>L\<in>set (extract_atms_cls C \<A>\<^sub>i\<^sub>n). L < upperN div 2\<close>
+    have \<open>2 * L \<le> uint_max \<longleftrightarrow> L \<le> uint_max div 2\<close> for L
+      by (auto simp: uint_max_def)
+    then have \<open>\<forall>L\<in>set (extract_atms_cls C \<A>\<^sub>i\<^sub>n). L \<le> uint_max div 2\<close>
       using Cons
-      by (auto simp: in_extract_atms_clsD nat_of_lit_upperN_nat_of_lit_uminus_upperN)
+      by (auto simp: in_extract_atms_clsD nat_of_lit_uint_max_nat_of_lit_uminus_uint_max)
     then show ?case
       using IH[of \<open>extract_atms_cls C \<A>\<^sub>i\<^sub>n\<close>, unfolded isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l_def] H
       by (simp add: all_lits_of_mm_add_mset isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
@@ -1112,7 +1112,7 @@ lemma init_dt_init_dt_l_full:
     confl_in_clss: \<open>get_conflict_wl S \<noteq> None \<longrightarrow> the (get_conflict_wl S) \<in># mset `# mset CS\<close> and
     trail_in_NP: \<open>\<forall>L \<in> lits_of_l (get_trail_wl S). {#L#} \<in># get_unit_init_clss S\<close> and
     prop_NP: \<open>\<forall>L \<in> set (get_trail_wl S). \<exists>K. L = Propagated K 0\<close> and
-    upper: \<open>\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L < upperN\<close> and
+    upper: \<open>\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max\<close> and
     is_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (mset `# mset CS))\<close> and
     lits_upd_confl: \<open>get_conflict_wl S \<noteq> None \<longrightarrow> literals_to_update_wl S = {#}\<close>
   shows
@@ -1210,7 +1210,7 @@ lemma init_dt_init_dt_l:
   assumes
     dist: \<open>\<forall>C \<in> set CS. distinct C\<close> and
     length: \<open>\<forall>C \<in> set CS. length C \<ge> 1\<close> and
-    upper: \<open>\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L < upperN\<close> and
+    upper: \<open>\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max\<close> and
     is_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (mset `# mset CS))\<close>
   shows
     \<open>init_dt_wl CS S \<le> SPEC(\<lambda>S.
@@ -2129,7 +2129,7 @@ qed
 lemma cdcl_twl_stgy_prog_wl_spec_final2:
   shows
     \<open>(SAT_wl, SAT) \<in> [\<lambda>CS. (\<forall>C \<in># CS. distinct_mset C) \<and> (\<forall>C \<in># CS. size C \<ge> 1) \<and>
-        (\<forall>C \<in># CS. \<forall>L \<in># C. nat_of_lit L < upperN)]\<^sub>f
+        (\<forall>C \<in># CS. \<forall>L \<in># C. nat_of_lit L \<le> uint_max)]\<^sub>f
      (list_mset_rel O \<langle>list_mset_rel\<rangle> mset_rel) \<rightarrow> \<langle>TWL_to_clauses_state_conv\<rangle>nres_rel\<close>
 proof -
   have in_list_mset_rel: \<open>(CS', y) \<in> list_mset_rel \<longleftrightarrow> y = mset CS'\<close> for CS' y
@@ -2150,7 +2150,7 @@ proof -
       all_lits_of_mm_def atms_of_s_def image_image image_Un)
   have extract_nempty: \<open>extract_atms_clss xs [] \<noteq> []\<close>
   if
-    H: \<open>Multiset.Ball ys distinct_mset \<and> (\<forall>C\<in>#ys. 1 \<le> size C) \<and> (\<forall>C\<in>#ys. \<forall>L\<in>#C. nat_of_lit L < upperN)\<close> and
+    H: \<open>Multiset.Ball ys distinct_mset \<and> (\<forall>C\<in>#ys. 1 \<le> size C) \<and> (\<forall>C\<in>#ys. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max)\<close> and
     rel: \<open>(xs, ys) \<in> list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel\<close> and
     le_xs: \<open>length xs \<noteq> 0\<close>
   for xs ys
@@ -2183,7 +2183,7 @@ proof -
                     \<and> backtrack_lvl U = 0 \<and> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv U)))\<close>
     if
       CS_p: \<open>Multiset.Ball CS distinct_mset \<and> (\<forall>C\<in>#CS. 1 \<le> size C) \<and>
-         (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L < upperN)\<close> and
+         (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max)\<close> and
       CS'_CS: \<open>(CS', CS) \<in> list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel\<close> and
       struct_invs: \<open>twl_struct_invs (twl_st_of_wl None S\<^sub>0)\<close> and
       stgy_invs: \<open>twl_stgy_invs (twl_st_of_wl None S\<^sub>0)\<close> and
@@ -2277,15 +2277,15 @@ proof -
       assume L: \<open>L \<in># isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l (mset (extract_atms_clss CS' []))\<close>
       then obtain C where
         L: \<open>C\<in>set CS' \<and> (L \<in>set C \<or> - L \<in> set C)\<close>
-        by (cases L) (auto simp: in_extract_atms_clssD upperN_def nat_of_uint32_uint32_of_nat_id
+        by (cases L) (auto simp: in_extract_atms_clssD uint_max_def nat_of_uint32_uint32_of_nat_id
            isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def)
-      have \<open>\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L < upperN\<close>
+      have \<open>\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max\<close>
         using CS_p by auto
-      then have \<open>nat_of_lit L < upperN \<or> nat_of_lit (-L) < upperN\<close>
+      then have \<open>nat_of_lit L \<le> uint_max \<or> nat_of_lit (-L) \<le> uint_max\<close>
         using L unfolding CS by auto
-      then show \<open>nat_of_lit L < upperN\<close>
+      then show \<open>nat_of_lit L \<le> uint_max\<close>
         using L
-        by (cases L) (auto simp: CS in_extract_atms_clssD upperN_def)
+        by (cases L) (auto simp: CS in_extract_atms_clssD uint_max_def)
     qed
     then have 2: \<open>isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset (extract_atms_clss CS' [])) S\<^sub>0
        \<le> SPEC (\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy
@@ -2331,7 +2331,7 @@ proof -
       by (auto intro: ref_two_step empty_trail)
   qed
   have [simp]: \<open>isasat_input_bounded (mset (extract_atms_clss CS' []))\<close>
-    if CS_p: \<open>\<forall>C\<in>set CS'. \<forall>L\<in>set C. nat_of_lit L < upperN\<close>
+    if CS_p: \<open>\<forall>C\<in>set CS'. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max\<close>
     for CS'
   unfolding isasat_input_bounded_def
       proof
@@ -2339,13 +2339,13 @@ proof -
     assume L: \<open>L \<in># isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l (mset (extract_atms_clss CS' []))\<close>
     then obtain C where
       L: \<open>C\<in>set CS' \<and> (L \<in>set C \<or> - L \<in> set C)\<close>
-      by (cases L) (auto simp: in_extract_atms_clssD upperN_def nat_of_uint32_uint32_of_nat_id
+      by (cases L) (auto simp: in_extract_atms_clssD uint_max_def nat_of_uint32_uint32_of_nat_id
           isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def)
-    have \<open>nat_of_lit L < upperN \<or> nat_of_lit (-L) < upperN\<close>
+    have \<open>nat_of_lit L \<le> uint_max \<or> nat_of_lit (-L) \<le> uint_max\<close>
       using L CS_p by auto
-    then show \<open>nat_of_lit L < upperN\<close>
+    then show \<open>nat_of_lit L \<le> uint_max\<close>
       using L
-      by (cases L) (auto simp: in_extract_atms_clssD upperN_def)
+      by (cases L) (auto simp: in_extract_atms_clssD uint_max_def)
   qed
 
   show ?thesis
@@ -2504,7 +2504,7 @@ qed
 
 lemma IsaSAT_code: \<open>(IsaSAT_code, SAT')
     \<in> [\<lambda>x. Multiset.Ball x distinct_mset \<and> (\<forall>C\<in>#x. Suc 0 \<le> size C) \<and>
-         (\<forall>C\<in>#x. \<forall>L\<in>#C. nat_of_lit L < upperN)]\<^sub>a
+         (\<forall>C\<in>#x. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max)]\<^sub>a
       clauses_l_assn\<^sup>k \<rightarrow> option_assn (list_assn unat_lit_assn)\<close>
 proof -
   define empty_trail where
@@ -2523,7 +2523,7 @@ proof -
   have 2: \<open>Multiset.Ball y distinct_mset \<and>
        (\<forall>C\<in>#y. 1 \<le> size C)\<Longrightarrow>
        (x, y) \<in> list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel \<Longrightarrow>
-        (\<forall>C\<in>#y. \<forall>L\<in>#C. nat_of_lit L < upperN) \<Longrightarrow>
+        (\<forall>C\<in>#y. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max) \<Longrightarrow>
        SAT_wl x \<le> \<Down> TWL_to_clauses_state_conv (SAT y)\<close> for x y
     using cdcl_twl_stgy_prog_wl_spec_final2[unfolded fref_def nres_rel_def] by simp
   have [simp]: \<open>SAT {#} = SPEC (\<lambda>U. U = init_state {#})\<close>
@@ -2537,7 +2537,7 @@ proof -
       } \<close> for CS
     unfolding SAT'_def SAT_def empty_trail_def by (auto simp: RES_RETURN_RES)
   have 3: \<open>ASSERT (isasat_input_bounded (mset (extract_atms_clss x []))) \<le> \<Down> unit_rel (ASSERT True)\<close>
-    if CS_p: \<open>(\<forall>C\<in>#y. \<forall>L\<in>#C. nat_of_lit L < upperN)\<close> and
+    if CS_p: \<open>(\<forall>C\<in>#y. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max)\<close> and
        CS: \<open>(x, y) \<in> list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel\<close>
        for x y
     apply (rule ASSERT_refine)
@@ -2547,22 +2547,22 @@ proof -
     assume L: \<open>L \<in># isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l (mset (extract_atms_clss x []))\<close>
     then obtain C where
       L: \<open>C\<in>set x \<and> (L \<in>set C \<or> - L \<in> set C)\<close>
-      by (cases L) (auto simp: in_extract_atms_clssD upperN_def nat_of_uint32_uint32_of_nat_id
+      by (cases L) (auto simp: in_extract_atms_clssD uint_max_def nat_of_uint32_uint32_of_nat_id
          isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def)
-    have \<open>\<forall>C\<in>#y. \<forall>L\<in>#C. nat_of_lit L < upperN\<close>
+    have \<open>\<forall>C\<in>#y. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max\<close>
       using CS_p by auto
-    then have \<open>nat_of_lit L < upperN \<or> nat_of_lit (-L) < upperN\<close>
+    then have \<open>nat_of_lit L \<le> uint_max \<or> nat_of_lit (-L) \<le> uint_max\<close>
       using L CS by (auto simp: list_mset_rel_def br_def mset_rel_def rel2p_def[abs_def] p2rel_def
         rel_mset_def list_all2_op_eq_map_right_iff')
-    then show \<open>nat_of_lit L < upperN\<close>
+    then show \<open>nat_of_lit L \<le> uint_max\<close>
       using L
-      by (cases L) (auto simp: in_extract_atms_clssD upperN_def)
+      by (cases L) (auto simp: in_extract_atms_clssD uint_max_def)
   qed
   have 4: \<open>ASSERT (distinct (extract_atms_clss x [])) \<le> \<Down> unit_rel (ASSERT True)\<close> for x
     by (auto simp: distinct_extract_atms_clss)
   have IsaSAT_SAT: \<open>(IsaSAT, SAT')\<in>
      [\<lambda>CS. Multiset.Ball CS distinct_mset \<and> (\<forall>C\<in>#CS. 1 \<le> size C) \<and>
-      (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L < upperN)]\<^sub>f
+      (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max)]\<^sub>f
      list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel \<rightarrow> \<langle>\<langle>\<langle>Id\<rangle>list_rel\<rangle> option_rel\<rangle>nres_rel\<close>
     unfolding SAT' IsaSAT
     apply (intro frefI nres_relI bind_refine if_refine)

@@ -111,57 +111,8 @@ definition saturated_upto :: "'a clause set \<Rightarrow> bool" where
 inductive derive :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<triangleright>" 50) where
   deduction_deletion: "M - N \<subseteq> concls_of (inferences_from N) \<Longrightarrow> N - M \<subseteq> Rf M \<Longrightarrow> N \<triangleright> M"
 
-abbreviation derivation :: "'a clause set llist \<Rightarrow> bool" where
-  "derivation \<equiv> chain (op \<triangleright>)"
-
 lemma derive_subset: "M \<triangleright> N \<Longrightarrow> N \<subseteq> M \<union> concls_of (inferences_from M)"
   by (meson Diff_subset_conv derive.cases)
-
-inductive derive2 :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<triangleright>\<triangleright>" 50) where
-  deduction: "M \<subseteq> concls_of (inferences_from N) \<Longrightarrow> N \<triangleright>\<triangleright> N \<union> M"
-| deletion: "M \<subseteq> Rf N \<Longrightarrow> N \<union> M \<triangleright>\<triangleright> N"
-
-lemma derive_derive2: "rtranclp derive N1 N2 \<Longrightarrow> rtranclp derive2 N1 N2"
-proof (induction rule: rtranclp_induct)
-  case base
-  then show ?case by auto
-next
-  case (step y z)
-  from \<open>y \<triangleright> z\<close> step show ?case
-  proof (induction rule: derive.induct)
-    case (deduction_deletion M N)
-    moreover from deduction_deletion have "N \<triangleright>\<triangleright> N \<union> (M - N)"
-      using derive2.intros(1)[of "M - N" N] by auto
-    moreover from deduction_deletion have "N \<union> (M - N) \<triangleright>\<triangleright> M"
-      using derive2.intros(2)[of _ _] by (metis Un_Diff_cancel2 sup_commute)
-    ultimately show ?case using deduction_deletion by auto
-  qed
-qed
-
-lemma derive2_derive: "rtranclp derive2 N1 N2 \<Longrightarrow> rtranclp derive N1 N2"
-proof (induction rule: rtranclp_induct)
-  case base
-  then show ?case by auto
-next
-  case (step y z)
-  from \<open>y \<triangleright>\<triangleright> z\<close> step show ?case
-  proof (induction rule: derive2.induct)
-    case (deduction M N)
-    then have "N \<triangleright> N \<union> M"
-      using derive.intros[of "N \<union> M" N] by blast
-    then show ?case
-      using deduction by auto
-  next
-    case (deletion M N)
-    then have "N \<union> M \<triangleright> N"
-      by (blast intro: derive.intros[of N])
-    then show ?case using deletion
-      by auto
-  qed
-qed
-
-lemma derive_eq_derive2: "rtranclp derive = rtranclp derive2"
-  using derive_derive2 derive2_derive by blast
 
 end
 
@@ -179,7 +130,7 @@ begin
 
 lemma deriv_sat_preserving:
   assumes
-    deriv: "derivation Ns" and
+    deriv: "chain (op \<triangleright>) Ns" and
     sat_n0: "satisfiable (lhd Ns)"
   shows "satisfiable (Sup_llist Ns)"
 proof -
@@ -187,7 +138,8 @@ proof -
     using deriv by (metis lnull_chain lhd_conv_lnth)
   have len_ns: "llength Ns > 0"
     using deriv by (case_tac Ns) auto
-  { fix DD
+  {
+    fix DD
     assume fin: "finite DD" and sset_lun: "DD \<subseteq> Sup_llist Ns"
     then obtain k where dd_sset: "DD \<subseteq> Sup_upto_llist Ns k"
       using finite_Sup_llist_imp_Sup_upto_llist by blast
@@ -207,18 +159,22 @@ proof -
           using Suc by simp
       next
         case False
-        have sat: "satisfiable (Sup_upto_llist Ns k \<union> concls_of (inferences_from (Sup_upto_llist Ns k)))"
+        have sat:
+          "satisfiable (Sup_upto_llist Ns k \<union> concls_of (inferences_from (Sup_upto_llist Ns k)))"
           using Suc \<Gamma>_sat_preserving unfolding sat_preserving_inference_system_def by simp
         have rel: "lnth Ns k \<triangleright> lnth Ns (Suc k)"
           using False deriv by (auto simp: chain_lnth_rel)
-        then have suc_k_subs: "lnth Ns (Suc k) \<subseteq> lnth Ns k \<union> concls_of (inferences_from (lnth Ns k))"
+        then have suc_k_subs:
+          "lnth Ns (Suc k) \<subseteq> lnth Ns k \<union> concls_of (inferences_from (lnth Ns k))"
           by (rule derive_subset)
         have k_subs: "lnth Ns k \<subseteq> Sup_upto_llist Ns k"
           unfolding Sup_upto_llist_def using False Suc_ile_eq linear by blast
-        then have "\<And>M. lnth Ns (Suc k) \<subseteq> Sup_upto_llist Ns k \<union> (M \<union> concls_of (inferences_from (lnth Ns k)))"
+        then have "\<And>M. lnth Ns (Suc k)
+          \<subseteq> Sup_upto_llist Ns k \<union> (M \<union> concls_of (inferences_from (lnth Ns k)))"
           using suc_k_subs by force
         then have suc_k_subs':
-          "lnth Ns (Suc k) \<subseteq> Sup_upto_llist Ns k \<union> concls_of (inferences_from (Sup_upto_llist Ns k))"
+          "lnth Ns (Suc k)
+           \<subseteq> Sup_upto_llist Ns k \<union> concls_of (inferences_from (Sup_upto_llist Ns k))"
           using k_subs suc_k_subs
           by clarsimp (metis UnCI UnE image_Un inferences_from_mono le_iff_sup)
         have upto: "Sup_upto_llist Ns (Suc k) = Sup_upto_llist Ns k \<union> lnth Ns (Suc k)"
@@ -234,7 +190,8 @@ proof -
       qed
     qed
     then have "satisfiable DD"
-      using dd_sset unfolding Sup_upto_llist_def by (blast intro: true_clss_mono) }
+      using dd_sset unfolding Sup_upto_llist_def by (blast intro: true_clss_mono)
+  }
   then show ?thesis
     using ground_resolution_without_selection.clausal_logic_compact[THEN iffD1] by metis
 qed
@@ -243,14 +200,15 @@ text \<open>
 This corresponds to Lemma 4.2:
 \<close>
 
-lemma derivation_supremum_limit_llist_satisfiable:
-  assumes deriv: "derivation Ns"
+lemma
+  assumes deriv: "chain (op \<triangleright>) Ns"
   shows
-    Rf_Sup_llist_subset_Rf_limit_llist: "Rf (Sup_llist Ns) \<subseteq> Rf (limit_llist Ns)" and
-    Ri_Sup_llist_subset_Ri_limit_llist: "Ri (Sup_llist Ns) \<subseteq> Ri (limit_llist Ns)" and
-    satisfiable_limit_llist_iff: "satisfiable (limit_llist Ns) \<longleftrightarrow> satisfiable (lhd Ns)"
+    Rf_Sup_subset_Rf_limit: "Rf (Sup_llist Ns) \<subseteq> Rf (limit_llist Ns)" and
+    Ri_Sup_subset_Ri_limit: "Ri (Sup_llist Ns) \<subseteq> Ri (limit_llist Ns)" and
+    sat_deriv_limit_iff: "satisfiable (limit_llist Ns) \<longleftrightarrow> satisfiable (lhd Ns)"
 proof -
-  { fix C i j
+  {
+    fix C i j
     assume
       c_in: "C \<in> lnth Ns i" and
       c_ni: "C \<notin> Rf (Sup_llist Ns)" and
@@ -349,7 +307,7 @@ The case where $\gamma \in \mathcal{R}_{\mathcal{I}}(N_\infty \backslash
 
 theorem fair_derive_saturated:
   assumes
-    deriv: "derivation Ns" and
+    deriv: "chain (op \<triangleright>) Ns" and
     fair: "fair_clss_seq Ns"
   shows "saturated_upto (limit_llist Ns)"
 unfolding saturated_upto_def
@@ -369,17 +327,21 @@ proof
     then have "concl_of \<gamma> \<in> Sup_llist Ns \<union> Rf (Sup_llist Ns)"
       using False \<gamma> by auto
     moreover
-    { assume "concl_of \<gamma> \<in> Sup_llist Ns"
+    {
+      assume "concl_of \<gamma> \<in> Sup_llist Ns"
       then have "\<gamma> \<in> Ri (Sup_llist Ns)"
         using \<gamma> Ri_effective inferences_from_def by blast
       then have "\<gamma> \<in> Ri (limit_llist Ns)"
-        using deriv Ri_Sup_llist_subset_Ri_limit_llist by fast }
+        using deriv Ri_Sup_subset_Ri_limit by fast
+    }
     moreover
-    { assume "concl_of \<gamma> \<in> Rf (Sup_llist Ns)"
+    {
+      assume "concl_of \<gamma> \<in> Rf (Sup_llist Ns)"
       then have "concl_of \<gamma> \<in> Rf (limit_llist Ns)"
-        using deriv Rf_Sup_llist_subset_Rf_limit_llist by blast
+        using deriv Rf_Sup_subset_Rf_limit by blast
       then have "\<gamma> \<in> Ri (limit_llist Ns)"
-        using \<gamma> Ri_effective inferences_from_def by auto }
+        using \<gamma> Ri_effective inferences_from_def by auto
+    }
     ultimately show "\<gamma> \<in> Ri (limit_llist Ns)"
       by blast
   qed
@@ -423,24 +385,24 @@ lemma standard_redundancy_criterion_extension:
 lemma standard_redundancy_criterion_extension_effective:
   assumes "\<Gamma> \<subseteq> \<Gamma>'" and "effective_redundancy_criterion \<Gamma> Rf Ri"
   shows "effective_redundancy_criterion \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>))"
-  using assms unfolding effective_redundancy_criterion_def
-  using standard_redundancy_criterion_extension[of \<Gamma>]
-  unfolding effective_redundancy_criterion_axioms_def
-  by auto
+  using assms standard_redundancy_criterion_extension[of \<Gamma>]
+  unfolding effective_redundancy_criterion_def effective_redundancy_criterion_axioms_def by auto
 
 lemma standard_redundancy_criterion_extension_fair_iff:
-  assumes "\<Gamma> \<subseteq> \<Gamma>'" and  "effective_redundancy_criterion \<Gamma> Rf Ri"
-  shows "effective_redundancy_criterion.fair_clss_seq \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>)) Ns \<longleftrightarrow> effective_redundancy_criterion.fair_clss_seq \<Gamma> Rf Ri Ns"
-  using assms standard_redundancy_criterion_extension_effective[of \<Gamma> \<Gamma>' Rf Ri] assms(1) assms(2)
+  assumes "\<Gamma> \<subseteq> \<Gamma>'" and "effective_redundancy_criterion \<Gamma> Rf Ri"
+  shows "effective_redundancy_criterion.fair_clss_seq \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>)) Ns \<longleftrightarrow>
+    effective_redundancy_criterion.fair_clss_seq \<Gamma> Rf Ri Ns"
+  using assms standard_redundancy_criterion_extension_effective[of \<Gamma> \<Gamma>' Rf Ri]
     effective_redundancy_criterion.fair_clss_seq_def[of \<Gamma> Rf Ri Ns]
     effective_redundancy_criterion.fair_clss_seq_def[of \<Gamma>' Rf "(\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>))" Ns]
   unfolding inference_system.inferences_from_def Let_def by auto
 
 lemma standard_redundancy_criterion_extension_saturated_up_iff:
   assumes "\<Gamma> \<subseteq> \<Gamma>'" and "redundancy_criterion \<Gamma> Rf Ri"
-  shows "redundancy_criterion.saturated_upto \<Gamma> Rf Ri M \<longleftrightarrow> redundancy_criterion.saturated_upto \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>)) M"
-  using assms redundancy_criterion.saturated_upto_def redundancy_criterion.saturated_upto_def standard_redundancy_criterion_extension
-  unfolding inference_system.inferences_from_def
-  by blast
+  shows "redundancy_criterion.saturated_upto \<Gamma> Rf Ri M \<longleftrightarrow>
+    redundancy_criterion.saturated_upto \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>)) M"
+  using assms redundancy_criterion.saturated_upto_def redundancy_criterion.saturated_upto_def
+    standard_redundancy_criterion_extension
+  unfolding inference_system.inferences_from_def by blast
 
 end

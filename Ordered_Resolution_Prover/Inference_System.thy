@@ -279,24 +279,18 @@ system.
 
 theorem clausal_logic_compact:
   fixes N :: "('a :: wellorder) clause set"
-  shows "\<not> satisfiable N \<longleftrightarrow> (\<exists>DD. DD \<subseteq> N \<and> finite DD \<and> \<not> satisfiable DD)"
+  shows "\<not> satisfiable N \<longleftrightarrow> (\<exists>DD \<subseteq> N. finite DD \<and> \<not> satisfiable DD)"
 proof
-  assume unsat: "\<not> satisfiable N"
-  show "\<exists>DD. DD \<subseteq> N \<and> finite DD \<and> \<not> satisfiable DD"
-  proof -
-    have "{#} \<in> saturate N"
-      using unsat saturated_refute_complete saturated_saturate saturate.base
-      unfolding true_clss_mono true_clss_def by meson
-    then obtain DD where
-      subs: "DD \<subseteq> N" and fin: "finite DD" and ec_in_satur: "{#} \<in> saturate DD"
-      using saturate_imp_finite_subset by meson
-    from ec_in_satur have "\<not> satisfiable DD"
-      by (auto dest: saturate_sound)
-    then show ?thesis
-      using subs fin by blast
-  qed
+  assume "\<not> satisfiable N"
+  then have "{#} \<in> saturate N"
+    using saturated_refute_complete saturated_saturate saturate.base unfolding true_clss_def
+    by meson
+  then have "\<exists>DD \<subseteq> N. finite DD \<and> {#} \<in> saturate DD"
+    using saturate_imp_finite_subset by fastforce
+  then show "\<exists>DD \<subseteq> N. finite DD \<and> \<not> satisfiable DD"
+    using saturate_sound by auto
 next
-  assume "\<exists>DD. DD \<subseteq> N \<and> finite DD \<and> \<not> satisfiable DD"
+  assume "\<exists>DD \<subseteq> N. finite DD \<and> \<not> satisfiable DD"
   then show "\<not> satisfiable N"
     by (blast intro: true_clss_mono)
 qed
