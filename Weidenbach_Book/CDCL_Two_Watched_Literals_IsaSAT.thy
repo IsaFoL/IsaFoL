@@ -34,7 +34,7 @@ abbreviation (in -) vmtf_conc_option_fst_As where
   \<open>vmtf_conc_option_fst_As \<equiv> (array_assn nat_vmtf_node_assn *assn nat_assn *assn option_assn uint32_nat_assn
     *assn option_assn uint32_nat_assn *assn option_assn uint32_nat_assn)\<close>
 
-type_synonym (in -)vmtf_assn_option_fst_As = \<open>uint32 vmtf_node array \<times> nat \<times> uint32 option \<times> uint32 option \<times> uint32 option\<close>
+type_synonym (in -)vmtf_assn_option_fst_As = \<open>(uint32, nat) vmtf_node array \<times> nat \<times> uint32 option \<times> uint32 option \<times> uint32 option\<close>
 type_synonym (in -)vmtf_remove_assn_option_fst_As = \<open>vmtf_assn_option_fst_As \<times> uint32 array_list\<close>
 
 abbreviation (in -)vmtf_remove_conc_option_fst_As 
@@ -213,8 +213,8 @@ sepref_thm set_conflict_unit_code
   is \<open>uncurry (RETURN oo set_conflict_unit_heur)\<close>
   :: \<open>[\<lambda>(L, (b, n, xs)). atm_of L < length xs]\<^sub>a
         unat_lit_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow> conflict_option_rel_assn\<close>
-  supply one_nat_uint32[sepref_fr_rules]
-  unfolding set_conflict_unit_heur_def one_nat_uint32_def[symmetric]
+  supply one_uint32_nat[sepref_fr_rules]
+  unfolding set_conflict_unit_heur_def one_uint32_nat_def[symmetric]
   by sepref
 
 concrete_definition (in -) set_conflict_unit_code

@@ -2825,7 +2825,7 @@ definition maximum_level_removed_eq_count_dec where
 
 definition maximum_level_removed_eq_count_dec_heur where
   \<open>maximum_level_removed_eq_count_dec_heur L S \<longleftrightarrow>
-      count_decided_st S = zero_uint32_nat \<or> get_count_max_lvls_heur S > one_nat_uint32\<close>
+      count_decided_st S = zero_uint32_nat \<or> get_count_max_lvls_heur S > one_uint32_nat\<close>
 
 lemma maximum_level_removed_eq_count_dec_heur_maximum_level_removed_eq_count_dec:
   \<open>(uncurry (RETURN oo maximum_level_removed_eq_count_dec_heur),
@@ -3590,8 +3590,8 @@ sepref_thm conflict_remove1_code
   is \<open>uncurry (RETURN oo lookup_conflict_remove1)\<close>
   :: \<open>[\<lambda>(L, (n,xs)). n > 0 \<and> atm_of L < length xs]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a conflict_rel_assn\<^sup>d \<rightarrow>
      conflict_rel_assn\<close>
-  supply [[goals_limit=2]] one_nat_uint32[sepref_fr_rules]
-  unfolding lookup_conflict_remove1_def one_nat_uint32_def[symmetric] fast_minus_def[symmetric]
+  supply [[goals_limit=2]] one_uint32_nat[sepref_fr_rules]
+  unfolding lookup_conflict_remove1_def one_uint32_nat_def[symmetric] fast_minus_def[symmetric]
   by sepref
 
 concrete_definition (in -) conflict_remove1_code
@@ -3930,14 +3930,14 @@ where
          let L' = atm_of L;
          ASSERT (clvls \<ge> 1);
          RETURN (D' = {#}, (tl M, N, U, Some D', Q, W, vmtf_mark_to_rescore_and_unset L' vmtf, save_phase L \<phi>,
-            fast_minus clvls one_nat_uint32))
+            fast_minus clvls one_uint32_nat))
          }
       else do {
         let L' = atm_of L;
         (D', clvls) \<leftarrow> lookup_conflict_merge_abs_union M N C D clvls;
         let D' = remove1_mset L (the D');
         RETURN (D' = {#}, (tl M, N, U, Some D', Q, W, vmtf_mark_to_rescore_and_unset L' vmtf, save_phase L \<phi>,
-           fast_minus clvls one_nat_uint32))
+           fast_minus clvls one_uint32_nat))
       }))\<close>
 
 lemma card_max_lvl_remove1_mset_hd:
@@ -6899,8 +6899,8 @@ qed
 
 lemma conflict_to_conflict_with_cls_code_helper:
   \<open>a1'b \<le> uint_max div 2 \<Longrightarrow> Suc a1'b \<le> uint_max\<close>
-  \<open> 0 < a1'c \<Longrightarrow> one_nat_uint32 \<le> a1'c\<close>
-  \<open>fast_minus a1'c one_nat_uint32  = a1'c - 1\<close>
+  \<open> 0 < a1'c \<Longrightarrow> one_uint32_nat \<le> a1'c\<close>
+  \<open>fast_minus a1'c one_uint32_nat  = a1'c - 1\<close>
   by (auto simp: uint_max_def)
 
 sepref_register conflict_to_conflict_with_cls
@@ -6919,8 +6919,8 @@ sepref_thm conflict_to_conflict_with_cls_code
   apply (rewrite at "\<hole> < _" annotate_assn[where A=uint32_nat_assn])
   apply (rewrite at \<open>(\<hole>, _, _, _)\<close> zero_uint32_nat_def[symmetric])
   apply (rewrite at "(zero_uint32_nat, \<hole>, _, _)" annotate_assn[where A=uint32_nat_assn])
-  apply (rewrite at \<open>_ + \<hole>\<close> one_nat_uint32_def[symmetric])+
-  apply (rewrite at \<open>fast_minus _ \<hole>\<close> one_nat_uint32_def[symmetric])+
+  apply (rewrite at \<open>_ + \<hole>\<close> one_uint32_nat_def[symmetric])+
+  apply (rewrite at \<open>fast_minus _ \<hole>\<close> one_uint32_nat_def[symmetric])+
   by sepref
 
 concrete_definition (in -) conflict_to_conflict_with_cls_code
@@ -7128,7 +7128,7 @@ sepref_thm extract_shorter_conflict_list_removed_code
   extract_shorter_conflict_list_heur_def
   lit_of_hd_trail_def[symmetric] Let_def
   zero_uint32_nat_def[symmetric]
-  fast_minus_def[symmetric] one_nat_uint32_def[symmetric]
+  fast_minus_def[symmetric] one_uint32_nat_def[symmetric]
   by sepref
 
 concrete_definition (in -) extract_shorter_conflict_list_removed_code
@@ -7149,7 +7149,7 @@ sepref_thm extract_shorter_conflict_l_trivial'
   supply [[goals_limit = 1]]
   unfolding extract_shorter_conflict_list_def PR_CONST_def
   extract_shorter_conflict_list_heur_def
-  lit_of_hd_trail_def[symmetric] Let_def one_nat_uint32_def[symmetric]
+  lit_of_hd_trail_def[symmetric] Let_def one_uint32_nat_def[symmetric]
   fast_minus_def[symmetric]
   by sepref
 
@@ -8098,7 +8098,7 @@ sepref_thm backtrack_wl_D
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] lit_of_hd_trail_st_def[symmetric]
     cons_trail_Propagated_def[symmetric]
-    size_conflict_wl_def[symmetric] one_nat_uint32_def[symmetric]
+    size_conflict_wl_def[symmetric] one_uint32_nat_def[symmetric]
   apply sepref_dbg_keep
       apply sepref_dbg_trans_keep
            apply sepref_dbg_trans_step_keep
@@ -8529,7 +8529,7 @@ sepref_thm cons_trail_Decided_tr_code
   :: \<open>[\<lambda>(L, (M, xs, lvls, k)). undefined_lit M L \<and> atm_of L < length xs \<and> atm_of L < length lvls \<and>
      (\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) \<and> no_dup M \<and> L \<in> snd ` D\<^sub>0 \<and> k = count_decided M]\<^sub>a
        unat_lit_assn\<^sup>k *\<^sub>a trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
-  unfolding cons_trail_Decided_tr_def cons_trail_Decided_tr_def one_nat_uint32_def[symmetric]
+  unfolding cons_trail_Decided_tr_def cons_trail_Decided_tr_def one_uint32_nat_def[symmetric]
   supply [[goals_limit = 1]] undefined_lit_count_decided_uint_max[dest!]
   by sepref
 
