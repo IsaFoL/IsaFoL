@@ -382,6 +382,14 @@ lemma standard_redundancy_criterion_extension:
   using assms unfolding redundancy_criterion_def
   by (intro conjI) ((auto simp: rev_subsetD)[5], satx)
 
+lemma standard_redundancy_criterion_extension_saturated_upto_iff:
+  assumes "\<Gamma> \<subseteq> \<Gamma>'" and "redundancy_criterion \<Gamma> Rf Ri"
+  shows "redundancy_criterion.saturated_upto \<Gamma> Rf Ri M \<longleftrightarrow>
+    redundancy_criterion.saturated_upto \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>)) M"
+  using assms redundancy_criterion.saturated_upto_def redundancy_criterion.saturated_upto_def
+    standard_redundancy_criterion_extension
+  unfolding inference_system.inferences_from_def by blast
+
 lemma standard_redundancy_criterion_extension_effective:
   assumes "\<Gamma> \<subseteq> \<Gamma>'" and "effective_redundancy_criterion \<Gamma> Rf Ri"
   shows "effective_redundancy_criterion \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>))"
@@ -396,13 +404,5 @@ lemma standard_redundancy_criterion_extension_fair_iff:
     effective_redundancy_criterion.fair_clss_seq_def[of \<Gamma> Rf Ri Ns]
     effective_redundancy_criterion.fair_clss_seq_def[of \<Gamma>' Rf "(\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>))" Ns]
   unfolding inference_system.inferences_from_def Let_def by auto
-
-lemma standard_redundancy_criterion_extension_saturated_up_iff:
-  assumes "\<Gamma> \<subseteq> \<Gamma>'" and "redundancy_criterion \<Gamma> Rf Ri"
-  shows "redundancy_criterion.saturated_upto \<Gamma> Rf Ri M \<longleftrightarrow>
-    redundancy_criterion.saturated_upto \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>)) M"
-  using assms redundancy_criterion.saturated_upto_def redundancy_criterion.saturated_upto_def
-    standard_redundancy_criterion_extension
-  unfolding inference_system.inferences_from_def by blast
 
 end

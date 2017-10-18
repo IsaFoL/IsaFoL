@@ -35,6 +35,7 @@ locale FO_resolution = unification subst_atm id_subst comp_subst mk_var_dis mgu
     less_atm_iff: "less_atm A B \<longleftrightarrow> (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> A \<cdot>a \<sigma> < B \<cdot>a \<sigma>)"
 begin
 
+
 subsection \<open>Library\<close>
 
 (* FIXME: Where do we want these lemmas? *)
