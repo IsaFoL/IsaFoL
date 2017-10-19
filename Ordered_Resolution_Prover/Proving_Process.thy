@@ -151,7 +151,7 @@ proof -
     next
       case (Suc k)
       show ?case
-      proof (cases "llength Ns \<le> enat (Suc k)")
+      proof (cases "enat (Suc k) \<ge> llength Ns")
         case True
         then have "Sup_upto_llist Ns k = Sup_upto_llist Ns (Suc k)"
           unfolding Sup_upto_llist_def using le_Suc_eq not_less by blast
@@ -299,7 +299,7 @@ theorem fair_derive_saturated:
     deriv: "chain (op \<triangleright>) Ns" and
     fair: "fair_clss_seq Ns"
   shows "saturated_upto (limit_llist Ns)"
-unfolding saturated_upto_def
+  unfolding saturated_upto_def
 proof
   fix \<gamma>
   let ?N' = "limit_llist Ns - Rf (limit_llist Ns)"
