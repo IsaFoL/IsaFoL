@@ -137,7 +137,7 @@ proof -
   have ns0: "lnth Ns 0 = lhd Ns"
     using deriv by (metis lnull_chain lhd_conv_lnth)
   have len_ns: "llength Ns > 0"
-    using deriv by (case_tac Ns) auto
+    using deriv by (case_tac Ns) simp+
   {
     fix DD
     assume fin: "finite DD" and sset_lun: "DD \<subseteq> Sup_llist Ns"
@@ -159,34 +159,22 @@ proof -
           using Suc by simp
       next
         case False
-        have sat:
+        then have "lnth Ns k \<triangleright> lnth Ns (Suc k)"
+          using deriv by (auto simp: chain_lnth_rel)
+        then have "lnth Ns (Suc k) \<subseteq> lnth Ns k \<union> concls_of (inferences_from (lnth Ns k))"
+          by (rule derive_subset)
+        moreover have "lnth Ns k \<subseteq> Sup_upto_llist Ns k"
+          unfolding Sup_upto_llist_def using False Suc_ile_eq linear by blast
+        ultimately have "lnth Ns (Suc k)
+          \<subseteq> Sup_upto_llist Ns k \<union> concls_of (inferences_from (Sup_upto_llist Ns k))"
+          by clarsimp (metis UnCI UnE image_Un inferences_from_mono le_iff_sup)
+        moreover have "Sup_upto_llist Ns (Suc k) = Sup_upto_llist Ns k \<union> lnth Ns (Suc k)"
+          unfolding Sup_upto_llist_def using False by (force elim: le_SucE)
+        moreover have
           "satisfiable (Sup_upto_llist Ns k \<union> concls_of (inferences_from (Sup_upto_llist Ns k)))"
           using Suc \<Gamma>_sat_preserving unfolding sat_preserving_inference_system_def by simp
-        have rel: "lnth Ns k \<triangleright> lnth Ns (Suc k)"
-          using False deriv by (auto simp: chain_lnth_rel)
-        then have suc_k_subs:
-          "lnth Ns (Suc k) \<subseteq> lnth Ns k \<union> concls_of (inferences_from (lnth Ns k))"
-          by (rule derive_subset)
-        have k_subs: "lnth Ns k \<subseteq> Sup_upto_llist Ns k"
-          unfolding Sup_upto_llist_def using False Suc_ile_eq linear by blast
-        then have "\<And>M. lnth Ns (Suc k)
-          \<subseteq> Sup_upto_llist Ns k \<union> (M \<union> concls_of (inferences_from (lnth Ns k)))"
-          using suc_k_subs by force
-        then have suc_k_subs':
-          "lnth Ns (Suc k)
-           \<subseteq> Sup_upto_llist Ns k \<union> concls_of (inferences_from (Sup_upto_llist Ns k))"
-          using k_subs suc_k_subs
-          by clarsimp (metis UnCI UnE image_Un inferences_from_mono le_iff_sup)
-        have upto: "Sup_upto_llist Ns (Suc k) = Sup_upto_llist Ns k \<union> lnth Ns (Suc k)"
-        proof
-          show "Sup_upto_llist Ns (Suc k) \<subseteq> Sup_upto_llist Ns k \<union> lnth Ns (Suc k)"
-            unfolding Sup_upto_llist_def by (auto elim: le_SucE)
-        next
-          show "Sup_upto_llist Ns k \<union> lnth Ns (Suc k) \<subseteq> Sup_upto_llist Ns (Suc k)"
-            unfolding Sup_upto_llist_def using False by force
-        qed
-        show ?thesis
-          unfolding upto true_clss_union using suc_k_subs' sat by (metis sup_ge1 true_clss_mono)
+        ultimately show ?thesis
+          by (metis le_iff_sup true_clss_union)
       qed
     qed
     then have "satisfiable DD"
@@ -294,7 +282,8 @@ locale sat_preserving_effective_redundancy_criterion =
   effective_redundancy_criterion
 begin
 
-sublocale sat_preserving_redundancy_criterion ..
+sublocale sat_preserving_redundancy_criterion
+  ..
 
 text \<open>
 The result below corresponds to Theorem 4.3.
