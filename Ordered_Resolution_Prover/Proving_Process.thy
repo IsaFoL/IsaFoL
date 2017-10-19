@@ -20,68 +20,63 @@ chapter.
 subsection \<open>Chains\<close>
 
 coinductive chain :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a llist \<Rightarrow> bool" for R :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
-	singleton: "chain R (LCons N LNil)"
-| cons: "chain R Ns \<Longrightarrow> R M (lhd Ns) \<Longrightarrow> chain R (LCons M Ns)"
+	singleton: "chain R (LCons x LNil)"
+| cons: "chain R xs \<Longrightarrow> R x (lhd xs) \<Longrightarrow> chain R (LCons x xs)"
 
 lemma
   chain_LNil[simp]: "\<not> chain R LNil" and
-  lnull_chain: "lnull Ns \<Longrightarrow> \<not> chain R Ns"
+  lnull_chain: "lnull xs \<Longrightarrow> \<not> chain R xs"
   by (auto elim: chain.cases)
 
 lemma chain_ldropn:
-  assumes "chain R Ns" and "enat n < llength Ns"
-  shows "chain R (ldropn n Ns)"
+  assumes "chain R xs" and "enat n < llength xs"
+  shows "chain R (ldropn n xs)"
   using assms
-  by (induct n arbitrary: Ns, simp,
+  by (induct n arbitrary: xs, simp,
       metis chain.cases ldrop_eSuc_ltl ldropn_LNil ldropn_eq_LNil ltl_simps(2) not_less)
 
 lemma chain_lnth_rel:
   assumes
-    deriv: "chain R Ns" and
-    len: "enat (Suc j) < llength Ns"
-  shows "R (lnth Ns j) (lnth Ns (Suc j))"
+    deriv: "chain R xs" and
+    len: "enat (Suc j) < llength xs"
+  shows "R (lnth xs j) (lnth xs (Suc j))"
 proof -
-  define Ms where "Ms = ldropn j Ns"
-  have "llength Ms > 1"
-    unfolding Ms_def using len
+  define ys where "ys = ldropn j xs"
+  have "llength ys > 1"
+    unfolding ys_def using len
     by (metis One_nat_def funpow_swap1 ldropn_0 ldropn_def ldropn_eq_LNil ldropn_ltl not_less
         one_enat_def)
-  obtain M0 M1 Ms' where ms: "Ms = LCons M0 (LCons M1 Ms')"
-    unfolding Ms_def by (metis Suc_ile_eq ldropn_Suc_conv_ldropn len less_imp_not_less not_less)
-  have "chain R Ms"
-    unfolding Ms_def using Suc_ile_eq deriv chain_ldropn len less_imp_le by blast
-  then have "R M0 M1"
-    unfolding ms by (auto elim: chain.cases)
+  obtain y0 y1 ys' where
+    ys: "ys = LCons y0 (LCons y1 ys')"
+    unfolding ys_def by (metis Suc_ile_eq ldropn_Suc_conv_ldropn len less_imp_not_less not_less)
+  have "chain R ys"
+    unfolding ys_def using Suc_ile_eq deriv chain_ldropn len less_imp_le by blast
+  then have "R y0 y1"
+    unfolding ys by (auto elim: chain.cases)
   then show ?thesis
-    using Ms_def unfolding ms by (metis ldropn_Suc_conv_ldropn ldropn_eq_LConsD llist.inject)
+    using ys_def unfolding ys by (metis ldropn_Suc_conv_ldropn ldropn_eq_LConsD llist.inject)
 qed
 
-(* FIXME: split into a monotonicity lemma and a composition lemma *)
+(* FIXME: split into a monotonicity lemma and a composition lemma? *)
 lemma chain_lmap:
-  assumes "\<forall>x y. R x y \<longrightarrow> T (f x) (f y)" and "chain R Ms"
-  shows "chain T (lmap f Ms)"
+  assumes "\<forall>x y. R x y \<longrightarrow> T (f x) (f y)" and "chain R xs"
+  shows "chain T (lmap f xs)"
   using assms
-proof (coinduction arbitrary: Ms)
+proof (coinduction arbitrary: xs)
   case chain
-  then have "(\<exists>N. Ms = LCons N LNil) \<or> (\<exists>Ns M. Ms = LCons M Ns \<and> chain R Ns \<and> R M (lhd Ns))"
-    using chain.simps[of R Ms] by auto
+  then have "(\<exists>y. xs = LCons y LNil) \<or> (\<exists>ys x. xs = LCons x ys \<and> chain R ys \<and> R x (lhd ys))"
+    using chain.simps[of R xs] by auto
   then show ?case
   proof
-    assume "\<exists>N. Ms = LCons N LNil"
-    then have "\<exists>N. lmap f Ms = LCons N LNil"
-      by auto
-    then show ?thesis
-      by auto
-  next
-    assume "\<exists>Ns M. Ms = LCons M Ns \<and> chain R Ns \<and> R M (lhd Ns)"
-    then have "\<exists>Ns M. lmap f Ms = LCons M Ns \<and>
-      (\<exists>Ms. Ns = lmap f Ms \<and> (\<forall>x y. R x y \<longrightarrow> T (f x) (f y)) \<and> chain R Ms) \<and> T M (lhd Ns)"
+    assume "\<exists>ys x. xs = LCons x ys \<and> chain R ys \<and> R x (lhd ys)"
+    then have "\<exists>ys x. lmap f xs = LCons x ys \<and>
+      (\<exists>xs. ys = lmap f xs \<and> (\<forall>x y. R x y \<longrightarrow> T (f x) (f y)) \<and> chain R xs) \<and> T x (lhd ys)"
       using chain
-      by (metis (no_types, lifting) lhd_LCons llist.distinct(1) llist.exhaust_sel llist.map_sel(1)
+      by (metis (no_types) lhd_LCons llist.distinct(1) llist.exhaust_sel llist.map_sel(1)
           lmap_eq_LNil lnull_chain ltl_lmap ltl_simps(2))
     then show ?thesis
       by auto
-  qed
+  qed auto
 qed
 
 
@@ -109,7 +104,7 @@ definition saturated_upto :: "'a clause set \<Rightarrow> bool" where
   "saturated_upto N \<longleftrightarrow> inferences_from (N - Rf N) \<subseteq> Ri N"
 
 inductive derive :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<triangleright>" 50) where
-  deduction_deletion: "M - N \<subseteq> concls_of (inferences_from N) \<Longrightarrow> N - M \<subseteq> Rf M \<Longrightarrow> N \<triangleright> M"
+  deduction_deletion: "N - M \<subseteq> concls_of (inferences_from M) \<Longrightarrow> M - N \<subseteq> Rf N \<Longrightarrow> M \<triangleright> N"
 
 lemma derive_subset: "M \<triangleright> N \<Longrightarrow> N \<subseteq> M \<union> concls_of (inferences_from M)"
   by (meson Diff_subset_conv derive.cases)
