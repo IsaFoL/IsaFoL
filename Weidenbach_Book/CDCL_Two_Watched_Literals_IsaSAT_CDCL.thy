@@ -3,11 +3,18 @@ theory CDCL_Two_Watched_Literals_IsaSAT_CDCL
     CDCL_Two_Watched_Literals_VMTF
 begin
 
+
 no_notation Ref.update ("_ := _" 62)
 
 notation prod_rel_syn (infixl "\<times>\<^sub>f" 70)
 (* TODO Move *)
 declare cdcl\<^sub>W_restart_mset_state[simp]
+lemma [sepref_fr_rules]:
+  \<open>(uncurry (return oo (op =)), uncurry (RETURN oo (op =))) \<in>
+    (option_assn bool_assn)\<^sup>k *\<^sub>a (option_assn bool_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare (sep_auto simp: option_assn_alt_def split:option.splits)
+
+declare option_assn_eq[sepref_comb_rules del]
 (* End Move *)
 
 subsection \<open>Code Generation\<close>

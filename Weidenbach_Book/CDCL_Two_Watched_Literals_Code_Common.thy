@@ -33,7 +33,6 @@ proof standard
   let ?f = \<open>\<lambda>L:: ('a, 'b, 'c) annotated_lit.
       (if is_decided L then Some (lit_dec L) else None,
        if is_decided L then None else Some (lit_prop L), if is_decided L then None else Some (mark_of L))\<close>
-    term ?f
   have f: \<open>inj ?f\<close>
     unfolding inj_on_def Ball_def
     apply (intro allI impI)
@@ -66,21 +65,6 @@ end
 
 subsection \<open>Declaration of some Operators and Implementation\<close>
 
-sepref_decl_op nat_lit_eq: "op = :: nat literal \<Rightarrow> nat literal \<Rightarrow> bool" ::
-  "(Id :: (nat literal \<times> _) set) \<rightarrow> (Id :: (nat literal \<times> _) set) \<rightarrow> (Id :: (bool \<times> _) set)" .
-
-lemma [def_pat_rules]:
-  "op = $ a $ b \<equiv> op_nat_lit_eq $ a $ b"
-  by auto
-
-definition nat_lit_eq_cases :: "nat literal \<Rightarrow> nat literal \<Rightarrow> bool" where
-  \<open>nat_lit_eq_cases K L =
-    (case (K, L) of
-      (Pos K, Pos L) \<Rightarrow> K = L
-    | (Neg K, Neg L) \<Rightarrow> K = L
-    | (_, _) \<Rightarrow> False)\<close>
-
-
 sepref_decl_op atm_of: "atm_of :: nat literal \<Rightarrow> nat" ::
   "(Id :: (nat literal \<times> _) set) \<rightarrow> (Id :: (nat \<times> _) set)" .
 
@@ -95,83 +79,6 @@ lemma [def_pat_rules]:
   "lit_of \<equiv> op_lit_of"
   by auto
 
-sepref_decl_op option_bool_eq: "op = :: bool option \<Rightarrow> bool option \<Rightarrow> bool" ::
-  "(Id :: ((bool option \<times> _) set)) \<rightarrow> (Id :: (bool option \<times> _) set) \<rightarrow> (Id :: (bool \<times> _) set)" .
-
-lemma [def_pat_rules]:
-  "op = $ a $ b \<equiv> op_option_bool_eq $ a $ b"
-  by auto
-
-sepref_decl_op case_bool: "case_bool :: 'a \<Rightarrow> 'a \<Rightarrow> bool \<Rightarrow> 'a" ::
-  "(Id :: (('a \<times> 'a) set)) \<rightarrow> (Id :: ('a \<times> 'a) set) \<rightarrow> (Id :: (bool \<times> _) set) \<rightarrow> (Id :: ('a \<times> 'a) set)" .
-
-
-lemma [def_pat_rules]:
-  "case_bool $ a $ b $ v \<equiv> op_case_bool $ a $ b $ v"
-  by auto
-
-definition option_bool_eq_impl :: \<open>bool option \<Rightarrow> bool option \<Rightarrow> bool\<close> where
-  \<open>option_bool_eq_impl L L' =
-   (if is_None L
-   then
-     if is_None L' then True else False
-   else
-    (if is_None L' then False else the L = the L'))\<close>
-
-definition lit_of_impl :: "(nat, nat) ann_lit \<Rightarrow> nat literal" where
-  \<open>lit_of_impl L = do {
-    case L of
-      Propagated K _ \<Rightarrow> K
-    | Decided K \<Rightarrow> K}\<close>
-
-
-definition case_bool_impl :: \<open>bool \<Rightarrow> bool \<Rightarrow> bool \<Rightarrow> bool\<close> where
-  \<open>case_bool_impl L L' v = do {if v then L else L'}\<close>
-
-
-type_synonym ann_lits_l = \<open>(nat, nat) ann_lits\<close>
-
-context
-  notes [intro!] = hfrefI hn_refineI[THEN hn_refine_preI] frefI
-  notes [simp] = pure_def hn_ctxt_def invalid_assn_def
-begin
-
-lemma option_bool_eq_impl_option_op_bool_eq_impl: \<open>option_bool_eq_impl = op_option_bool_eq\<close>
-  unfolding option_bool_eq_impl_def op_option_bool_eq_def by (auto split: option.splits intro!: ext)
-
-lemma option_bool_eq_refine[sepref_fr_rules]:
-  \<open>(uncurry (return oo (op =)), uncurry (RETURN oo op_option_bool_eq)) \<in>
-    (option_assn bool_assn)\<^sup>k *\<^sub>a (option_assn bool_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding option_bool_eq_impl_option_op_bool_eq_impl
-  unfolding op_option_bool_eq_def
-  apply sep_auto
-  subgoal for b aa ba ab bb ac bc by (cases b; cases ba; cases aa; auto)
-  subgoal for b aa ba ab bb ac bc by (cases b; cases ba; cases aa; auto)
-  done
-
-sepref_decl_impl option_bool_eq: option_bool_eq_refine .
-
-lemma case_bool_impl_refine[sepref_fr_rules]:
-  \<open>(uncurry2 (return ooo (case_bool_impl :: bool \<Rightarrow> bool \<Rightarrow> bool \<Rightarrow> bool)),
-       uncurry2 (RETURN ooo op_case_bool)) \<in>
-    (id_assn :: bool \<Rightarrow> _)\<^sup>k *\<^sub>a (id_assn :: bool \<Rightarrow> _)\<^sup>k *\<^sub>a (bool_assn)\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
-  unfolding case_bool_impl_def
-  unfolding op_option_bool_eq_def
-  apply (sep_auto split!: if_splits option.splits)
-  apply (case_tac bc)
-  apply auto
-  done
-
-sepref_decl_impl case_bool: case_bool_impl_refine .
-
-end
-
-sepref_decl_op defined_lit_imp: "defined_lit:: (nat, nat) ann_lit list \<Rightarrow> nat literal \<Rightarrow> bool" ::
-  "(Id :: ((nat, nat) ann_lit list \<times> _) set) \<rightarrow> (Id :: (nat literal \<times> _) set) \<rightarrow> bool_rel" .
-
-lemma [def_pat_rules]:
-  "defined_lit $ a $ b \<equiv> op_defined_lit_imp $ a $ b"
-  by auto
 
 section \<open>Code for the initialisation of the Data Structure\<close>
 

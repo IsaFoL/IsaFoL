@@ -168,7 +168,7 @@ lemma lit_of_hnr[sepref_fr_rules]:
       split: if_splits)
 
 lemma op_eq_op_nat_lit_eq[sepref_fr_rules]:
-  \<open>(uncurry (return oo (op =)), uncurry (RETURN oo op_nat_lit_eq)) \<in>
+  \<open>(uncurry (return oo (op =)), uncurry (RETURN oo (op =))) \<in>
     (pure unat_lit_rel)\<^sup>k *\<^sub>a (pure unat_lit_rel)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
 proof -
   have [simp]: \<open>even bi \<Longrightarrow> even ai \<Longrightarrow> ai div 2 = bi div 2 \<Longrightarrow> ai = bi\<close> for ai bi :: nat
