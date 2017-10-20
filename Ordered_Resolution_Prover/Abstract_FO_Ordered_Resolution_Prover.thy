@@ -971,7 +971,8 @@ proof -
       then show False
         using c by auto
     qed
-    then obtain \<sigma> where "D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
+    then obtain \<sigma> where
+      "D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
       using ground_C by (metis make_single_ground_subst subset_mset.order_refl)
     then show ?thesis
       by auto
@@ -1108,7 +1109,8 @@ proof -
       then show False
         using c by auto
     qed
-    then obtain \<sigma> where "D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
+    then obtain \<sigma> where
+      "D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
       using ground_C by (metis make_single_ground_subst subset_mset.order_refl)
     then show ?thesis
       by auto
@@ -1465,7 +1467,8 @@ proof -
       then show False
         using c by auto
     qed
-    then obtain \<sigma> where "D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
+    then obtain \<sigma> where
+      "D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
       using ground_C by (metis make_single_ground_subst subset_mset.order_refl)
     then show ?thesis
       by auto
