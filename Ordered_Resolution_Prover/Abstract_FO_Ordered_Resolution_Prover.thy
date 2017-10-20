@@ -126,6 +126,9 @@ interpretation gd: ground_resolution_with_selection "S_Q"
   by unfold_locales
 
 interpretation src: standard_redundancy_criterion_reductive gd.ord_\<Gamma>
+  by unfold_locales
+
+interpretation src: standard_redundancy_criterion_counterex_reducing gd.ord_\<Gamma>
   "ground_resolution_with_selection.INTERP S_Q"
   by unfold_locales
 

@@ -16,7 +16,8 @@ This material is based on Section 4.2.2 (``The Standard Redundancy Criterion'') 
 Ganzinger's chapter.
 \<close>
 
-locale standard_redundancy_criterion = counterex_reducing_inference_system
+locale standard_redundancy_criterion =
+  inference_system \<Gamma> for \<Gamma> :: "('a :: wellorder) inference set"
 begin
 
 abbreviation redundant_infer :: "'a clause set \<Rightarrow> 'a inference \<Rightarrow> bool" where
@@ -203,6 +204,62 @@ The following corresponds to Theorem 4.7:
 sublocale redundancy_criterion \<Gamma> Rf Ri
   by unfold_locales (rule Ri_subset_\<Gamma>, (elim Rf_mono Ri_mono Rf_indep Ri_indep Rf_sat)+)
 
+end
+
+locale standard_redundancy_criterion_reductive =
+  standard_redundancy_criterion + reductive_inference_system
+begin
+
+text \<open>
+The following corresponds to Theorem 4.8:
+\<close>
+
+sublocale effective_redundancy_criterion \<Gamma> Rf Ri
+  unfolding effective_redundancy_criterion_def
+proof (intro conjI redundancy_criterion_axioms, unfold_locales)
+  fix \<gamma> N
+  assume in_\<gamma>: "\<gamma> \<in> \<Gamma>" and concl_of_in_n_un_rf_n: "concl_of \<gamma> \<in> N \<union> Rf N"
+
+  obtain CC D E where
+    \<gamma>: "\<gamma> = Infer CC D E"
+    by (cases \<gamma>)
+  then have cc: "CC = side_prems_of \<gamma>" and d: "D = main_prem_of \<gamma>" and e: "E = concl_of \<gamma>"
+    unfolding \<gamma> by simp_all
+  note e_in_n_un_rf_n = concl_of_in_n_un_rf_n[folded e]
+
+  {
+    assume "E \<in> N"
+    moreover have "E < D"
+      using \<Gamma>_reductive e d in_\<gamma> by auto
+    ultimately have
+      "set_mset {#E#} \<subseteq> N" and "\<forall>I. I \<Turnstile>m {#E#} + CC \<longrightarrow> I \<Turnstile> E" and "\<forall>D'. D' \<in># {#E#} \<longrightarrow> D' < D"
+      by simp_all
+    then have "redundant_infer N \<gamma>"
+      using cc d e by blast
+  }
+  moreover
+  {
+    assume "E \<in> Rf N"
+    then obtain DD where
+      dd_sset: "set_mset DD \<subseteq> N" and
+      dd_imp_e: "\<forall>I. I \<Turnstile>m DD \<longrightarrow> I \<Turnstile> E" and
+      dd_lt_e: "\<forall>C'. C' \<in># DD \<longrightarrow> C' < E"
+      unfolding Rf_def by blast
+    from dd_lt_e have "\<forall>Da. Da \<in># DD \<longrightarrow> Da < D"
+      using d e in_\<gamma> \<Gamma>_reductive less_trans by blast
+    then have "redundant_infer N \<gamma>"
+      using dd_sset dd_imp_e cc d e by blast
+  }
+  ultimately show "\<gamma> \<in> Ri N"
+    using in_\<gamma> e_in_n_un_rf_n unfolding Ri_def by blast
+qed
+
+end
+
+locale standard_redundancy_criterion_counterex_reducing =
+  standard_redundancy_criterion + counterex_reducing_inference_system
+begin
+
 text \<open>
 The following result corresponds to Theorem 4.9.
 
@@ -266,56 +323,6 @@ theorem saturated_upto_refute_complete:
   assumes "saturated_upto N"
   shows "\<not> satisfiable N \<longleftrightarrow> {#} \<in> N"
   using assms saturated_upto_refute_complete_if true_clss_def by auto
-
-end
-
-locale standard_redundancy_criterion_reductive =
-  standard_redundancy_criterion + reductive_inference_system
-begin
-
-text \<open>
-The following corresponds to Theorem 4.8:
-\<close>
-
-sublocale effective_redundancy_criterion \<Gamma> Rf Ri
-  unfolding effective_redundancy_criterion_def
-proof (intro conjI redundancy_criterion_axioms, unfold_locales)
-  fix \<gamma> N
-  assume in_\<gamma>: "\<gamma> \<in> \<Gamma>" and concl_of_in_n_un_rf_n: "concl_of \<gamma> \<in> N \<union> Rf N"
-
-  obtain CC D E where
-    \<gamma>: "\<gamma> = Infer CC D E"
-    by (cases \<gamma>)
-  then have cc: "CC = side_prems_of \<gamma>" and d: "D = main_prem_of \<gamma>" and e: "E = concl_of \<gamma>"
-    unfolding \<gamma> by simp_all
-  note e_in_n_un_rf_n = concl_of_in_n_un_rf_n[folded e]
-
-  {
-    assume "E \<in> N"
-    moreover have "E < D"
-      using \<Gamma>_reductive e d in_\<gamma> by auto
-    ultimately have
-      "set_mset {#E#} \<subseteq> N" and "\<forall>I. I \<Turnstile>m {#E#} + CC \<longrightarrow> I \<Turnstile> E" and "\<forall>D'. D' \<in># {#E#} \<longrightarrow> D' < D"
-      by simp_all
-    then have "redundant_infer N \<gamma>"
-      using cc d e by blast
-  }
-  moreover
-  {
-    assume "E \<in> Rf N"
-    then obtain DD where
-      dd_sset: "set_mset DD \<subseteq> N" and
-      dd_imp_e: "\<forall>I. I \<Turnstile>m DD \<longrightarrow> I \<Turnstile> E" and
-      dd_lt_e: "\<forall>C'. C' \<in># DD \<longrightarrow> C' < E"
-      unfolding Rf_def by blast
-    from dd_lt_e have "\<forall>Da. Da \<in># DD \<longrightarrow> Da < D"
-      using d e in_\<gamma> \<Gamma>_reductive less_trans by blast
-    then have "redundant_infer N \<gamma>"
-      using dd_sset dd_imp_e cc d e by blast
-  }
-  ultimately show "\<gamma> \<in> Ri N"
-    using in_\<gamma> e_in_n_un_rf_n unfolding Ri_def by blast
-qed
 
 end
 
