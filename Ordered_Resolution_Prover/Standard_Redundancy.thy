@@ -214,12 +214,12 @@ text \<open>
 The following corresponds to Theorem 4.8:
 \<close>
 
-sublocale effective_redundancy_criterion \<Gamma> Rf Ri
-  unfolding effective_redundancy_criterion_def
-proof (intro conjI redundancy_criterion_axioms, unfold_locales)
-  fix \<gamma> N
-  assume in_\<gamma>: "\<gamma> \<in> \<Gamma>" and concl_of_in_n_un_rf_n: "concl_of \<gamma> \<in> N \<union> Rf N"
-
+lemma Ri_effective:
+  assumes
+    in_\<gamma>: "\<gamma> \<in> \<Gamma>" and
+    concl_of_in_n_un_rf_n: "concl_of \<gamma> \<in> N \<union> Rf N"
+  shows "\<gamma> \<in> Ri N"
+proof -
   obtain CC D E where
     \<gamma>: "\<gamma> = Infer CC D E"
     by (cases \<gamma>)
@@ -253,6 +253,10 @@ proof (intro conjI redundancy_criterion_axioms, unfold_locales)
   ultimately show "\<gamma> \<in> Ri N"
     using in_\<gamma> e_in_n_un_rf_n unfolding Ri_def by blast
 qed
+
+sublocale effective_redundancy_criterion \<Gamma> Rf Ri
+  unfolding effective_redundancy_criterion_def
+  by (intro conjI redundancy_criterion_axioms, unfold_locales, rule Ri_effective)
 
 end
 
