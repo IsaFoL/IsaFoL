@@ -298,7 +298,7 @@ The case where $\gamma \in \mathcal{R}_{\mathcal{I}}(N_\infty \backslash
 \end{nit}
 \<close>
 
-theorem fair_derive_saturated:
+theorem fair_derive_saturated_upto:
   assumes
     deriv: "chain (op \<triangleright>) Ns" and
     fair: "fair_clss_seq Ns"

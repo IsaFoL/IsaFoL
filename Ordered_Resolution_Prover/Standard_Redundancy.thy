@@ -272,7 +272,7 @@ The invocation of Lemma 4.5 does not fit. What is needed is a generalized versio
 \end{nit}
 \<close>
 
-lemma saturated_upto_refute_complete_if:
+lemma saturated_upto_complete_if:
   assumes
     satur: "saturated_upto N" and
     unsat: "\<not> satisfiable N"
@@ -323,10 +323,10 @@ proof (rule ccontr)
     using unsat by blast
 qed
 
-theorem saturated_upto_refute_complete:
+theorem saturated_upto_complete:
   assumes "saturated_upto N"
   shows "\<not> satisfiable N \<longleftrightarrow> {#} \<in> N"
-  using assms saturated_upto_refute_complete_if true_clss_def by auto
+  using assms saturated_upto_complete_if true_clss_def by auto
 
 end
 

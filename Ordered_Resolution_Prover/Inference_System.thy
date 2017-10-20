@@ -144,7 +144,7 @@ qed
 
 (* Theorem 4.4 (generalizes Theorems 3.9 and 3.16) *)
 
-theorem saturated_no_empty_imp_model:
+theorem saturated_model:
   assumes
     satur: "saturated N" and
     ec_ni_n: "{#} \<notin> N"
@@ -179,8 +179,8 @@ text \<open>
 Cf. Corollary 3.10:
 \<close>
 
-corollary saturated_refute_complete: "saturated N \<Longrightarrow> \<not> satisfiable N \<Longrightarrow> {#} \<in> N"
-  using saturated_no_empty_imp_model by blast
+corollary saturated_complete: "saturated N \<Longrightarrow> \<not> satisfiable N \<Longrightarrow> {#} \<in> N"
+  using saturated_model by blast
 
 end
 
@@ -208,7 +208,7 @@ lemma saturated_saturate[simp, intro]: "saturated (saturate N)"
   unfolding saturated_def inferences_from_def infer_from_def image_def
   by clarify (rename_tac x, case_tac x, auto elim!: saturate.step)
 
-lemma saturate_imp_finite_subset: "C \<in> saturate CC \<Longrightarrow> \<exists>DD. DD \<subseteq> CC \<and> finite DD \<and> C \<in> saturate DD"
+lemma saturate_finite: "C \<in> saturate CC \<Longrightarrow> \<exists>DD. DD \<subseteq> CC \<and> finite DD \<and> C \<in> saturate DD"
 proof (induct rule: saturate.induct)
   case (base C)
   then have "{C} \<subseteq> CC" and "finite {C}" and "C \<in> saturate {C}"
@@ -283,10 +283,9 @@ theorem clausal_logic_compact:
 proof
   assume "\<not> satisfiable N"
   then have "{#} \<in> saturate N"
-    using saturated_refute_complete saturated_saturate saturate.base unfolding true_clss_def
-    by meson
+    using saturated_complete saturated_saturate saturate.base unfolding true_clss_def by meson
   then have "\<exists>DD \<subseteq> N. finite DD \<and> {#} \<in> saturate DD"
-    using saturate_imp_finite_subset by fastforce
+    using saturate_finite by fastforce
   then show "\<exists>DD \<subseteq> N. finite DD \<and> \<not> satisfiable DD"
     using saturate_sound by auto
 next
