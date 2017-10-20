@@ -279,9 +279,13 @@ lemma saturated_upto_complete_if:
   shows "{#} \<in> N"
 proof (rule ccontr)
   assume ec_ni_n: "{#} \<notin> N"
-  define M where "M = N - Rf N"
+
+  define M where
+    "M = N - Rf N"
+
   have ec_ni_m: "{#} \<notin> M"
     unfolding M_def using ec_ni_n by fast
+
   have "I_of M \<Turnstile>s M"
   proof (rule ccontr)
     assume "\<not> I_of M \<Turnstile>s M"
@@ -298,18 +302,18 @@ proof (rule ccontr)
       e_cex: "\<not> I_of M \<Turnstile> E" and
       e_lt_d: "E < D"
       using \<Gamma>_counterex_reducing[OF ec_ni_m] not_less by metis
-    have cc: "CC = side_prems_of \<gamma>" and c: "D = main_prem_of \<gamma>" and d: "E = concl_of \<gamma>"
+    have cc: "CC = side_prems_of \<gamma>" and d: "D = main_prem_of \<gamma>" and e: "E = concl_of \<gamma>"
       unfolding \<gamma> by simp_all
     have "\<gamma> \<in> Ri N"
       by (rule set_mp[OF satur[unfolded saturated_upto_def inferences_from_def infer_from_def]])
-        (simp add: \<gamma>_in d_in_m cc_subs_m cc[symmetric] c[symmetric] d[symmetric] M_def[symmetric])
+        (simp add: \<gamma>_in d_in_m cc_subs_m cc[symmetric] d[symmetric] M_def[symmetric])
     then have "\<gamma> \<in> Ri M"
-      unfolding M_def using Ri_subs_Ri_diff_Rf by fast
+      unfolding M_def using Ri_indep by fast
     then obtain DD where
       dd_subs_m: "set_mset DD \<subseteq> M" and
       dd_cc_imp_d: "\<forall>I. I \<Turnstile>m DD + CC \<longrightarrow> I \<Turnstile> E" and
       dd_lt_d: "\<forall>C. C \<in># DD \<longrightarrow> C < D"
-      unfolding Ri_def cc c d by blast
+      unfolding Ri_def cc d e by blast
     from dd_subs_m dd_lt_d have "I_of M \<Turnstile>m DD"
       using d_min unfolding true_cls_mset_def by (metis contra_subsetD)
     then have "I_of M \<Turnstile> E"
