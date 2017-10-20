@@ -204,14 +204,14 @@ sublocale redundancy_criterion \<Gamma> Rf Ri
   by unfold_locales (rule Ri_subset_\<Gamma>, (elim Rf_mono Ri_mono Rf_indep Ri_indep Rf_sat)+)
 
 text \<open>
-The following result corresponds to Theorem 4.9. (The ``if'' direction is omitted because trivial.)
+The following result corresponds to Theorem 4.9.
 
 \begin{nit}
 The invocation of Lemma 4.5 does not fit. What is needed is a generalized version of Lemma 4.6.
 \end{nit}
 \<close>
 
-theorem saturated_upto_refute_complete:
+lemma saturated_upto_refute_complete_if:
   assumes
     satur: "saturated_upto N" and
     unsat: "\<not> satisfiable N"
@@ -262,8 +262,10 @@ proof (rule ccontr)
     using unsat by blast
 qed
 
-lemma redudancy_criterion: "redundancy_criterion \<Gamma> Rf Ri"
-  ..
+theorem saturated_upto_refute_complete:
+  assumes "saturated_upto N"
+  shows "\<not> satisfiable N \<longleftrightarrow> {#} \<in> N"
+  using assms saturated_upto_refute_complete_if true_clss_def by auto
 
 end
 
@@ -277,7 +279,7 @@ The following corresponds to Theorem 4.8:
 
 sublocale effective_redundancy_criterion \<Gamma> Rf Ri
   unfolding effective_redundancy_criterion_def
-proof (intro conjI redudancy_criterion, unfold_locales)
+proof (intro conjI redundancy_criterion_axioms, unfold_locales)
   fix \<gamma> N
   assume in_\<gamma>: "\<gamma> \<in> \<Gamma>" and concl_of_in_n_un_rf_n: "concl_of \<gamma> \<in> N \<union> Rf N"
 

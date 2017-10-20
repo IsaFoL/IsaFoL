@@ -157,7 +157,8 @@ definition src_ext_Ri where
 interpretation src_ext:
   sat_preserving_redundancy_criterion "gd_ord_\<Gamma>'" "src.Rf" "src_ext_Ri"
   unfolding sat_preserving_redundancy_criterion_def src_ext_Ri_def
-  using sat_preserving_gd_ord_\<Gamma>' using standard_redundancy_criterion_extension gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redudancy_criterion by auto
+  using sat_preserving_gd_ord_\<Gamma>' standard_redundancy_criterion_extension gd_ord_\<Gamma>_ngd_ord_\<Gamma>
+    src.redundancy_criterion_axioms by auto
 
 lemma strict_subsumption_redundant_clause:
   assumes "D \<cdot> \<sigma> \<subset># C" and "is_ground_subst \<sigma>"
@@ -1926,7 +1927,7 @@ proof -
     using unsat unfolding true_clss_def by (meson contra_subsetD)
 
   from sat_limit_gr_sts have "src.saturated_upto (limit_llist (lmap grounding_of_state Sts))"
-    using gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redudancy_criterion
+    using gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redundancy_criterion_axioms
       standard_redundancy_criterion_extension_saturated_upto_iff[of gd.ord_\<Gamma>]
     unfolding src_ext_Ri_def by auto
   then have "{#} \<in> limit_llist (lmap grounding_of_state Sts)"
