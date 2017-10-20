@@ -416,9 +416,9 @@ proof (cases rule: ord_resolve.cases)
   then have "atms_of (\<Union># mset Cs) \<subseteq> atms_of (\<Union># mset CAs)"
     by (meson lits_subseteq_imp_atms_subseteq mset_subset_eqD subsetI)
   moreover have "atms_of (\<Union># mset CAs) = (\<Union>CA \<in> set CAs. atms_of CA)"
-    apply auto
-     by (metis (no_types, lifting) in_mset_sum_list in_mset_sum_list2 atm_imp_pos_or_neg_lit
-       neg_lit_in_atms_of pos_lit_in_atms_of)+
+    by (intro set_eqI iffI, simp_all,
+      metis in_mset_sum_list2 atm_imp_pos_or_neg_lit neg_lit_in_atms_of pos_lit_in_atms_of,
+      metis in_mset_sum_list atm_imp_pos_or_neg_lit neg_lit_in_atms_of pos_lit_in_atms_of)
   ultimately have "atms_of (\<Union># mset Cs) \<subseteq> (\<Union>CA \<in> set CAs. atms_of CA)"
     by auto
   moreover have "atms_of D \<subseteq> atms_of DA"
@@ -465,7 +465,7 @@ next
   fix CC DA E and I
   assume "Infer CC DA E \<in> ord_\<Gamma>" and icc: "I \<Turnstile>m CC" and id: "I \<Turnstile> DA"
   then obtain CAs where
-    "mset CAs = CC"
+    "mset CAs = CC" and
     "ord_resolve CAs DA E"
     using ord_\<Gamma>_def by auto
   then show "I \<Turnstile> E"

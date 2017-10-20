@@ -256,6 +256,15 @@ proof -
   qed
 qed
 
+lemma
+  assumes "chain (op \<triangleright>) Ns"
+  shows
+    Rf_Sup_eq_Rf_limit: "Rf (limit_llist Ns) = Rf (Sup_llist Ns)" and
+    Ri_Sup_eq_Ri_limit: "Ri (limit_llist Ns) = Ri (Sup_llist Ns)"
+  using assms
+  by (auto simp: Rf_Sup_subset_Rf_limit Rf_mono Ri_Sup_subset_Ri_limit Ri_mono
+      limit_llist_subset_Sup_llist subset_antisym)
+
 end
 
 text \<open>
