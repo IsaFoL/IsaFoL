@@ -4,9 +4,37 @@ begin
 
 declare cdcl\<^sub>W_restart_mset_state[simp]
 
+lemma conflict_minimize_step:
+  assumes
+    \<open>NU \<Turnstile>p add_mset L C\<close> and  
+    \<open>NU \<Turnstile>p add_mset (-L) D\<close> and
+    \<open>\<And>K'. K' \<in># C \<Longrightarrow> NU \<Turnstile>p add_mset (-K') D\<close>
+  shows \<open>NU \<Turnstile>p D\<close>
+proof -
+  have \<open>NU \<Turnstile>p D + C\<close>
+    using assms(1,2) true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or by blast
+  then show ?thesis
+    using assms(3)
+  proof (induction C)
+    case empty
+    then show ?case
+      using true_clss_cls_in true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or by fastforce
+  next
+    case (add x C) note IH =this(1) and NU_DC = this(2) and entailed = this(3)
+    have \<open>NU \<Turnstile>p D + C + D\<close>
+      using entailed[of x] NU_DC
+        true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or[of NU \<open>-x\<close> \<open>D + C\<close> D]
+      by auto
+    then have \<open>NU \<Turnstile>p D + C\<close>
+      by (metis add.comm_neutral diff_add_zero sup_subset_mset_def true_clss_cls_sup_iff_add)
+    from IH[OF this] entailed show ?case by auto
+  qed
+qed
+
 context
   fixes M :: \<open>('v, 'v clause) ann_lits\<close>
 begin
+
 
 inductive_set minimize_conflict_tree:: \<open>'v literal \<Rightarrow> 'v literal set\<close> for L :: \<open>'v literal\<close> where
 \<open>L \<in> minimize_conflict_tree L\<close> |
