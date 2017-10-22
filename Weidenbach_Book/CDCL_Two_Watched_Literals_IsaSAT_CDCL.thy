@@ -2346,7 +2346,7 @@ sepref_thm unit_propagation_inner_loop_body_wl_D
   unfolding lms_fold_custom_empty swap_ll_def[symmetric]
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
   find_unwatched_wl_st_heur_def[symmetric] polarity_st_def[symmetric]
-  set_conflict_wl'_alt_def[symmetric]
+  set_conflict_wl'_alt_def[symmetric] fast_minus_def[symmetric]
   supply [[goals_limit=1]]
   by sepref
 
