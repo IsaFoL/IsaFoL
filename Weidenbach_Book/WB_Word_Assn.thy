@@ -8,7 +8,7 @@ begin
 
 subsection \<open>More Setup for Fixed Size Natural Numbers\<close>
 
-subsubsection \<open>Words\<close> 
+subsubsection \<open>Words\<close>
 
 lemma less_upper_bintrunc_id: \<open>n < 2 ^b \<Longrightarrow> n \<ge> 0 \<Longrightarrow> bintrunc b n = n\<close>
   unfolding uint32_of_nat_def
@@ -26,7 +26,7 @@ lemma op_eq_word_nat:
   by sepref_to_hoare (sep_auto simp: word_nat_rel_def br_def)
 
 
-subsubsection \<open>32-bits\<close> 
+subsubsection \<open>32-bits\<close>
 
 definition uint32_nat_rel :: "(uint32 \<times> nat) set" where
   \<open>uint32_nat_rel = br nat_of_uint32 (\<lambda>_. True)\<close>
@@ -480,14 +480,14 @@ lemma (in -) nat_of_uint32_plus:
   \<open>nat_of_uint32 (a + b) = (nat_of_uint32 a + nat_of_uint32 b) mod (uint32_max + 1)\<close>
   by transfer (auto simp: unat_word_ariths uint32_max_def)
 
-lemma (in -) sum_mod_uint32_max: \<open>(uncurry (return oo op +), uncurry (RETURN oo sum_mod_uint32_max)) \<in> 
+lemma (in -) sum_mod_uint32_max: \<open>(uncurry (return oo op +), uncurry (RETURN oo sum_mod_uint32_max)) \<in>
   uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a
   uint32_nat_assn\<close>
   by sepref_to_hoare
      (sep_auto simp: sum_mod_uint32_max_def uint32_nat_rel_def br_def nat_of_uint32_plus)
 
 
-subsubsection \<open>64-bits\<close> 
+subsubsection \<open>64-bits\<close>
 
 definition uint64_nat_rel :: "(uint64 \<times> nat) set" where
   \<open>uint64_nat_rel = br nat_of_uint64 (\<lambda>_. True)\<close>

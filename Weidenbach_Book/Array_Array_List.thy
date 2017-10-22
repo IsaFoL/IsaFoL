@@ -386,7 +386,7 @@ definition set_butlast_aa :: "('a::{heap} array_list) array \<Rightarrow> nat \<
       x \<leftarrow> Array.nth a i;
       a' \<leftarrow> arl_butlast x;
       Array.upd i a' a
-    }\<close> -- \<open>Replace the \<^term>\<open>i\<close>-th element by the itself execpt the last element.\<close>
+    }\<close> -- \<open>Replace the \<^term>\<open>i\<close>-th element by the itself except the last element.\<close>
 
 
 lemma list_rel_butlast:
