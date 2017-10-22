@@ -851,7 +851,7 @@ fun heap_WHILET b f s =
 
 fun emptied_arl x = (fn (a, _) => (a, zero_nata)) x;
 
-fun fast_minus_uint32 _ _ = raise Fail "WB_Word_Assn.fast_minus_uint32";
+fun fast_minus_uint32 x = fast_minus minus_uint32 x;
 
 fun uint32_safe_minus (A1_, A2_, A3_) m n =
   (if less A3_ m n then zero A2_ else minus A1_ m n);
