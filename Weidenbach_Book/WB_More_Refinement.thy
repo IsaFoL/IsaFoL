@@ -960,6 +960,7 @@ lemma insert_sort_inner:
   subgoal by auto
   subgoal by auto
   subgoal by auto
+  subgoal by auto
   done
 
 lemma insert_sort_reorder_remove: \<open>(insert_sort f, reorder_remove vm) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
