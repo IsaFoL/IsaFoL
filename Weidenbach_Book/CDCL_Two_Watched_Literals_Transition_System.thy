@@ -4715,5 +4715,4 @@ lemma wf_cdcl_twl_o:
 lemma tranclp_wf_cdcl_twl_o:
   \<open>wf {(T, S::'v twl_st). twl_struct_invs S \<and> cdcl_twl_o\<^sup>+\<^sup>+ S T}\<close>
   by (rule wf_subset[OF tranclp_wf_cdcl_twl_stgy]) (auto dest: tranclp_cdcl_twl_o_stgyD)
-
 end

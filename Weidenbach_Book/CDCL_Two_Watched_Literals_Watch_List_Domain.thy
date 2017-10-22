@@ -489,7 +489,7 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_body_wl_D :: "nat l
           None \<Rightarrow>
             if val_L' = Some False
             then do {RETURN (w+1, set_conflict_wl ((get_clauses_wl S)!C) S)}
-            else do {RETURN (w+1, propgate_lit_wl L' C S)}
+            else do {RETURN (w+1, propgate_lit_wl L' C i S)}
         | Some f \<Rightarrow> do {
             update_clause_wl L C w i f S
           }
@@ -549,10 +549,25 @@ next
   then show ?eq by blast
 qed
 
+(* TODO Move *)
+lemma tl_update_0[simp]: \<open>tl (N[0 := x]) = tl N\<close>
+  by (cases N) auto
+(* End Move *)
+
 lemma unit_propagation_inner_loop_body_wl_D_spec:
+  fixes S :: \<open>nat twl_st_wl\<close> and K :: \<open>nat literal\<close> and w :: nat
+  defines
+    [simp]: \<open>S' \<equiv> st_l_of_wl (Some (K, w)) S\<close> and
+    [simp]: \<open>S'' \<equiv> twl_st_of_wl (Some (K, w)) S\<close>
   assumes
     K: \<open>K \<in> snd ` D\<^sub>0\<close> and
-    \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close>
+    \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
+    w_le: \<open>w < length (watched_by S K)\<close> and
+    confl: \<open>get_conflict_wl S = None\<close> and
+    corr_w: \<open>correct_watching S\<close> and
+    struct_invs: \<open>twl_struct_invs S''\<close> and
+    add_inv: \<open>additional_WS_invs S'\<close> and
+    stgy_inv: \<open>twl_stgy_invs S''\<close>
   shows \<open>unit_propagation_inner_loop_body_wl_D K w S \<le>
       \<Down> {((n', T'), (n, T)). n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}
         (unit_propagation_inner_loop_body_wl K w S)\<close>
@@ -581,6 +596,22 @@ proof -
          (mset `# mset (tl xs)) + a + b\<close>
     for a b and xs :: \<open>'a list list\<close> and n :: nat
     by auto
+
+  have [simp]: \<open>{#mset (take 2 x) + mset (drop 2 x)
+        . x \<in># mset (take U
+                       (tl (N[W K ! w := swap (N ! (W K ! w)) 0 (Suc 0)])))#} +
+        NP +
+        ({#mset (take 2 x) + mset (drop 2 x)
+         . x \<in># mset (drop (Suc U)
+                        (N[W K ! w := swap (N ! (W K ! w)) 0 (Suc 0)]))#} +
+         UP) =
+     {#mset (take 2 x) + mset (drop 2 x)
+        . x \<in># mset (take U (tl N))#} +
+        NP + ({#mset (take 2 x) + mset (drop 2 x) . x \<in># mset (drop (Suc U) N)#} + UP)\<close>
+    if \<open>N ! (W K ! w) ! 0 = K\<close>
+    using unit_propagation_inner_loop_body_wl_update[of w S K, OF assms(5-10)[unfolded assms(1-3)]]
+      that
+    by (auto simp: mset_take_mset_drop_mset' tl_update_swap mset_update S split: if_splits)
 
   have update_clause_wl: \<open>update_clause_wl K (watched_by S K ! w) w
      (if get_clauses_wl S ! (watched_by S K ! w) ! 0 = K then 0 else 1) n S
@@ -620,11 +651,16 @@ qed
 lemma
   shows unit_propagation_inner_loop_body_wl_D_unit_propagation_inner_loop_body_wl_D:
   \<open>(uncurry2 unit_propagation_inner_loop_body_wl_D, uncurry2 unit_propagation_inner_loop_body_wl) \<in>
-    [\<lambda>((K, w), S). literals_are_\<L>\<^sub>i\<^sub>n S \<and> K \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel \<times>\<^sub>r {(T', T).
+    [\<lambda>((K, w), S). literals_are_\<L>\<^sub>i\<^sub>n S \<and> K \<in> snd ` D\<^sub>0 \<and> w < length (watched_by S K) \<and>
+      get_conflict_wl S = None \<and> correct_watching S \<and> twl_struct_invs (twl_st_of_wl (Some (K, w)) S) \<and>
+      additional_WS_invs (st_l_of_wl (Some (K, w)) S) \<and> twl_stgy_invs (twl_st_of_wl (Some (K, w)) S)]\<^sub>f 
+    Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel \<times>\<^sub>r {(T', T).
        T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<rangle> nres_rel\<close> (is \<open>?G1\<close>) and
   unit_propagation_inner_loop_body_wl_D_unit_propagation_inner_loop_body_wl_D_weak:
    \<open>(uncurry2 unit_propagation_inner_loop_body_wl_D, uncurry2 unit_propagation_inner_loop_body_wl) \<in>
-    [\<lambda>((K, w), S). literals_are_\<L>\<^sub>i\<^sub>n S \<and> K \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel \<times>\<^sub>r Id\<rangle> nres_rel\<close>
+    [\<lambda>((K, w), S). literals_are_\<L>\<^sub>i\<^sub>n S \<and> K \<in> snd ` D\<^sub>0 \<and> w < length (watched_by S K) \<and>
+      get_conflict_wl S = None \<and> correct_watching S \<and> twl_struct_invs (twl_st_of_wl (Some (K, w)) S) \<and>
+      additional_WS_invs (st_l_of_wl (Some (K, w)) S) \<and> twl_stgy_invs (twl_st_of_wl (Some (K, w)) S)]\<^sub>f Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel \<times>\<^sub>r Id\<rangle> nres_rel\<close>
    (is \<open>?G2\<close>)
 proof -
   have 1: \<open>nat_rel \<times>\<^sub>r {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T} =
@@ -665,7 +701,12 @@ proof -
          \<Down> {((n', T'), n, T). n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}
            (unit_propagation_inner_loop_body_wl K' w' S')\<close>
   if \<open>K \<in> snd ` local.D\<^sub>0\<close> and \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
-    \<open>K = K'\<close> and \<open>w = w'\<close> and \<open>S = S'\<close> for S S' and w w' and K K'
+    \<open>K = K'\<close> and \<open>w = w'\<close> and \<open>S = S'\<close> and \<open>w < length (watched_by S K)\<close> and
+    \<open>get_conflict_wl S = None \<and> correct_watching S\<close> and
+    \<open>twl_struct_invs (twl_st_of_wl (Some (K, w)) S)\<close> and
+    \<open>additional_WS_invs (st_l_of_wl (Some (K, w)) S)\<close> and
+    \<open>twl_stgy_invs (twl_st_of_wl (Some (K, w)) S)\<close>
+  for S S' and w w' and K K'
     using unit_propagation_inner_loop_body_wl_D_spec[of K S w] that by auto
 
   show ?thesis
@@ -679,6 +720,12 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal using K by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto

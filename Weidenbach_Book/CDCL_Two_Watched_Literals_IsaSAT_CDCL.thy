@@ -2202,31 +2202,35 @@ proof -
 qed
 
 
-definition propgate_lit_wl_heur :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
-  \<open>propgate_lit_wl_heur = (\<lambda>L' C (M, N, U, D, Q, W).
-      (Propagated L' C # M, N, U, D, add_mset (-L') Q, W))\<close>
+definition propgate_lit_wl_heur :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
+  \<open>propgate_lit_wl_heur = (\<lambda>L' C i (M, N, U, D, Q, W).
+      let N' = list_update N C (swap (N!C) 0 (1 - i)) in
+      (Propagated L' C # M, N', U, D, add_mset (-L') Q, W))\<close>
 
 lemma propgate_lit_wl_heur_propgate_lit_wl:
-  \<open>(uncurry2 (RETURN ooo propgate_lit_wl_heur), uncurry2 (RETURN ooo propgate_lit_wl)) \<in>
-  [\<lambda>((L, C), S). undefined_lit (get_trail_wl S) L \<and> get_conflict_wl S = None]\<^sub>f
-  Id \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur \<rightarrow> \<langle>twl_st_heur\<rangle>nres_rel\<close>
+  \<open>(uncurry3 (RETURN oooo propgate_lit_wl_heur), uncurry3 (RETURN oooo propgate_lit_wl)) \<in>
+  [\<lambda>(((L, C), i), S). undefined_lit (get_trail_wl S) L \<and> get_conflict_wl S = None]\<^sub>f
+  Id \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur \<rightarrow> \<langle>twl_st_heur\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: twl_st_heur_def propgate_lit_wl_heur_def propgate_lit_wl_def
       vmtf_consD)
 
 sepref_thm propgate_lit_wl_code
-  is \<open>uncurry2 (RETURN ooo (PR_CONST propgate_lit_wl_heur))\<close>
-  :: \<open>[\<lambda>((L, C), S). undefined_lit (get_trail_wl_heur S) L \<and> L \<in> snd ` D\<^sub>0]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d \<rightarrow> twl_st_heur_assn\<close>
+  is \<open>uncurry3 (RETURN oooo (PR_CONST propgate_lit_wl_heur))\<close>
+  :: \<open>[\<lambda>(((L, C), i), S). undefined_lit (get_trail_wl_heur S) L \<and> L \<in> snd ` D\<^sub>0 \<and> 
+       1 - i < length (get_clauses_wl_heur S ! C)\<and> 
+       C < length (get_clauses_wl_heur S)]\<^sub>a
+      unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d \<rightarrow> twl_st_heur_assn\<close>
   unfolding PR_CONST_def propgate_lit_wl_heur_def twl_st_heur_assn_def
     cons_trail_Propagated_def[symmetric]
-  supply [[goals_limit=1]]
+  supply [[goals_limit=1]]length_rll_def[simp] length_ll_def[simp]
+  unfolding update_clause_wl_heur_def twl_st_heur_assn_def Array_List_Array.swap_ll_def[symmetric]
   by sepref
 
 
 concrete_definition (in -) propgate_lit_wl_code
   uses isasat_input_bounded_nempty.propgate_lit_wl_code.refine_raw
-  is \<open>(uncurry2 ?f, _) \<in> _\<close>
+  is \<open>(uncurry3 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) propgate_lit_wl_code_def
 
@@ -2234,21 +2238,19 @@ lemmas propgate_lit_wl_code[sepref_fr_rules] =
   propgate_lit_wl_code.refine[OF isasat_input_bounded_nempty_axioms]
 
 lemma propgate_lit_wl_code_propgate_lit_wl[sepref_fr_rules]:
-  \<open>(uncurry2 propgate_lit_wl_code, uncurry2 (RETURN ooo propgate_lit_wl)) \<in>
-    [\<lambda>((L, C), S). undefined_lit (get_trail_wl S) L \<and> L \<in> snd ` D\<^sub>0 \<and> get_conflict_wl S = None]\<^sub>a
-     unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>d \<rightarrow> twl_st_assn\<close>
+  \<open>(uncurry3 propgate_lit_wl_code, uncurry3 (RETURN oooo propgate_lit_wl)) \<in>
+    [\<lambda>(((L, C), i), S). undefined_lit (get_trail_wl S) L \<and> L \<in> snd ` D\<^sub>0 \<and> get_conflict_wl S = None \<and> 
+          1 - i < length (get_clauses_wl S ! C) \<and> C < length (get_clauses_wl S)]\<^sub>a
+     unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>d \<rightarrow> twl_st_assn\<close>
     (is \<open>?fun \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?fun \<in>
-     [comp_PRE (Id \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur)
-       (\<lambda>((L, C), S). undefined_lit (get_trail_wl S) L \<and>
-           get_conflict_wl S = None)
-       (\<lambda>_ ((L, C), S). undefined_lit (get_trail_wl_heur S) L \<and> L \<in> snd ` D\<^sub>0)
-       (\<lambda>_. True)]\<^sub>a
-     hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d)
-        (Id \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur) \<rightarrow>
-     hr_comp twl_st_heur_assn twl_st_heur
-\<close>
+     [comp_PRE (Id \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur)
+       (\<lambda>(((L, C), i), S). undefined_lit (get_trail_wl S) L \<and> get_conflict_wl S = None)
+       (\<lambda>_ (((L, C), i), S). undefined_lit (get_trail_wl_heur S) L \<and> L \<in> snd ` D\<^sub>0 \<and> 
+          1 - i < length (get_clauses_wl_heur S ! C) \<and> C < length (get_clauses_wl_heur S))
+       (\<lambda>_. True)]\<^sub>a hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d)
+                      (Id \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur) \<rightarrow> hr_comp twl_st_heur_assn twl_st_heur\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF propgate_lit_wl_code[unfolded PR_CONST_def]
        propgate_lit_wl_heur_propgate_lit_wl]

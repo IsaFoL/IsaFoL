@@ -193,8 +193,9 @@ definition set_conflict_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl \<Ri
   \<open>set_conflict_wl = (\<lambda>C (M, N, U, D, NP, UP, Q, W). (M, N, U, Some (mset C), NP, UP, {#}, W))\<close>
 
 
-definition propgate_lit_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-  \<open>propgate_lit_wl = (\<lambda>L' C (M, N, U, D, NP, UP, Q, W).
+definition propgate_lit_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
+  \<open>propgate_lit_wl = (\<lambda>L' C i (M, N, U, D, NP, UP, Q, W).
+      let N = list_update N C (swap (N!C) 0 (Suc 0 - i)) in
       (Propagated L' C # M, N, U, D, NP, UP, add_mset (-L') Q, W))\<close>
 
 definition update_clause_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
@@ -210,7 +211,7 @@ definition unit_prop_body_wl_find_unwatched_inv where
 \<open>unit_prop_body_wl_find_unwatched_inv f C S \<longleftrightarrow>
    (get_clauses_wl S)!C \<noteq> [] \<and>
    (f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l ((get_clauses_wl S)!C)). - L \<in> lits_of_l (get_trail_wl S)))\<close>
-term polarity
+
 definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
     (nat \<times> 'v twl_st_wl) nres" where
   \<open>unit_propagation_inner_loop_body_wl L w S = do {
@@ -228,7 +229,7 @@ definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat 
           None \<Rightarrow>
             if val_L' = Some False
             then do {RETURN (w+1, set_conflict_wl ((get_clauses_wl S)!C) S)}
-            else do {RETURN (w+1, propgate_lit_wl L' C S)}
+            else do {RETURN (w+1, propgate_lit_wl L' C i S)}
         | Some f \<Rightarrow> do {
             update_clause_wl L C w i f S
           }
@@ -240,7 +241,10 @@ subsection \<open>The Functions\<close>
 
 subsubsection \<open>Inner Loop\<close>
 
-lemma unit_propagation_inner_loop_body_wl_spec:
+lemma image_mset_mset_update: \<open>f `# mset (xs [i := x]) = mset ((map f xs) [i := f x])\<close>
+  by (auto simp: map_update[symmetric])
+
+lemma
   fixes S :: \<open>'v twl_st_wl\<close> and L :: \<open>'v literal\<close> and w :: nat
   defines
     [simp]: \<open>T \<equiv> remove_one_lit_from_wq (watched_by S L ! w) (st_l_of_wl (Some (L, w)) S)\<close> and
@@ -256,7 +260,7 @@ lemma unit_propagation_inner_loop_body_wl_spec:
     struct_invs: \<open>twl_struct_invs S''\<close> and
     add_inv: \<open>additional_WS_invs S'\<close> and
     stgy_inv: \<open>twl_stgy_invs S''\<close>
-  shows \<open>unit_propagation_inner_loop_body_wl L w S \<le>
+  shows  unit_propagation_inner_loop_body_wl_spec: \<open>unit_propagation_inner_loop_body_wl L w S \<le>
    \<Down> {((i, T'), T).
         T = st_l_of_wl (Some (L, i)) T' \<and>
         twl_struct_invs (twl_st_of (Some L) (st_l_of_wl (Some (L, i)) T')) \<and>
@@ -264,7 +268,12 @@ lemma unit_propagation_inner_loop_body_wl_spec:
         additional_WS_invs T \<and>
         correct_watching T' \<and>
         i \<le> length (watched_by T' L)}
-     (unit_propagation_inner_loop_body_l L C' T)\<close>
+     (unit_propagation_inner_loop_body_l L C' T)\<close> (is \<open>?propa\<close>)and
+    unit_propagation_inner_loop_body_wl_update:
+      \<open>mset `# mset (tl (get_clauses_wl S[watched_by S L ! w :=
+                     swap (get_clauses_wl S ! (watched_by S L ! w)) 0
+                           (1 - (if (get_clauses_wl S)!(watched_by S L ! w) ! 0 = L then 0 else 1))])) =
+        mset `# mset ((tl (get_clauses_wl S)))\<close>
 proof -
   have val: \<open>(polarity a b, polarity a' b') \<in> Id\<close>
     if \<open>a = a'\<close> and \<open>b = b'\<close> for a a' :: \<open>('a, 'b) ann_lits\<close> and b b' :: \<open>'a literal\<close>
@@ -367,7 +376,7 @@ proof -
     using corr_w by (auto simp: S correct_watching.simps clause_to_update_def)
   moreover have \<open>W L ! w \<in># mset (W L)\<close>
     using WL_w_in_drop by (auto dest: in_set_dropD)
-  ultimately have zero_le_W_L_w: \<open>0 < W L ! w\<close>
+  ultimately have zero_le_W_L_w: \<open>0 < W L ! w\<close> and W_L_w_le_N: \<open>W L ! w < length N\<close>
     by (auto simp: S correct_watching.simps clause_to_update_def)
 
   have ref:
@@ -529,6 +538,30 @@ proof -
     using that by auto
   have i_alt_def: \<open>i = (if get_clauses_l T ! C' ! 0 = L then 0 else 1)\<close>
     by (cases S, cases T) (auto simp: i_def)
+
+  have [simp]: \<open>set (take 2 (N[W L ! w := swap (N ! (W L ! w)) 0 (Suc 0 - i)] ! x)) = set (take 2 (N ! x))\<close> for x
+    using i_alt_def C''_def two_le_length_C
+    by (auto simp: nth_list_update' swap_def take_2_if S split: if_splits)
+  have \<open>mset (swap (N ! (W L ! w)) 0 (Suc 0 - i)) = mset (N ! (W L ! w))\<close>
+    apply (rule swap_multiset)
+    using i_alt_def C''_def two_le_length_C
+    by (auto simp: nth_list_update' take_2_if S mset_update split: if_splits)
+  moreover {
+    have \<open>tl N ! (W L ! w - Suc 0) = N ! (W L ! w)\<close>
+      using C_N_U zero_le_W_L_w
+      by (auto simp: S nth_tl)
+    then have \<open>map mset (tl N)[W L ! w - Suc 0 := mset (N ! (W L ! w))] = map mset (tl N)\<close>
+      using list_update_id[of \<open>map mset (tl N)\<close> \<open>W L ! w - Suc 0\<close>] C''_def two_le_length_C W_L_w_le_N
+        zero_le_W_L_w
+      by (auto simp del: list_update_id simp: nth_tl S map_tl[symmetric] W_L_w_le_N) }
+  ultimately have [simp]: \<open>mset `# mset (tl (N[W L ! w := swap (N ! (W L ! w)) 0 (Suc 0 - i)])) = mset `# mset (tl N)\<close>
+    using zero_le_W_L_w w_le by (auto simp: tl_update_swap S image_mset_mset_update)
+  show \<open>mset `# mset (
+             (tl (get_clauses_wl S[watched_by S L ! w :=
+                  swap (get_clauses_wl S ! (watched_by S L ! w)) 0
+                        (1 - (if ((get_clauses_wl S)!(watched_by S L ! w)) ! 0 = L then 0 else 1))]))) =
+     mset `# mset ((tl (get_clauses_wl S)))\<close>
+    unfolding i_def[symmetric] by (auto simp: S)
   have 1: \<open>unit_propagation_inner_loop_body_wl L w S
     \<le> \<Down> {((i, T'), T).
           T = st_l_of_wl (Some (L, i)) T' \<and> correct_watching T' \<and>
@@ -591,7 +624,7 @@ proof -
       by (rule unit_propagation_inner_loop_body(2))
        (use struct_invs stgy_inv add_inv WL_w_in_drop in \<open>auto simp: S\<close>)
      done
-   then show ?thesis
+   then show ?propa
      apply -
      apply match_Down
      by blast
