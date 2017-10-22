@@ -428,9 +428,6 @@ definition fast_minus :: \<open>'a::{minus} \<Rightarrow> 'a \<Rightarrow> 'a\<c
 definition fast_minus_code :: \<open>'a::{minus,ord} \<Rightarrow> 'a \<Rightarrow> 'a\<close> where
   [simp]: \<open>fast_minus_code m n = (SOME p. (p = m - n \<and> m \<ge> n))\<close>
 
-definition fast_minus_uint32 :: \<open>uint32 \<Rightarrow> uint32 \<Rightarrow> uint32\<close> where
-  [simp, code del]: \<open>fast_minus_uint32 = fast_minus_code\<close>
-
 definition fast_minus_nat :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat\<close> where
   [simp, code del]: \<open>fast_minus_nat = fast_minus_code\<close>
 
@@ -442,16 +439,19 @@ lemma [code]: \<open>fast_minus_nat = fast_minus_nat'\<close>
 
 code_printing constant fast_minus_nat' \<rightharpoonup> (SML_imp) "(Nat(integer'_of'_nat/ (_)/ -/ integer'_of'_nat/ (_)))"
 
-lemma fast_minus_uint32[sepref_fr_rules]:
-  \<open>(uncurry (return oo fast_minus_uint32), uncurry (RETURN oo fast_minus)) \<in>
-     [\<lambda>(m, n). m \<ge> n]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+lemma fast_minus_nat[sepref_fr_rules]:
+  \<open>(uncurry (return oo fast_minus_nat), uncurry (RETURN oo fast_minus)) \<in>
+     [\<lambda>(m, n). m \<ge> n]\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
   by sepref_to_hoare
    (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_le_minus
       nat_of_uint32_notle_minus nat_of_uint32_le_iff)
 
-lemma fast_minus_nat[sepref_fr_rules]:
-  \<open>(uncurry (return oo fast_minus_nat), uncurry (RETURN oo fast_minus)) \<in>
-     [\<lambda>(m, n). m \<ge> n]\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
+definition fast_minus_uint32 :: \<open>uint32 \<Rightarrow> uint32 \<Rightarrow> uint32\<close> where
+  [simp]: \<open>fast_minus_uint32 = fast_minus\<close>
+
+lemma fast_minus_uint32[sepref_fr_rules]:
+  \<open>(uncurry (return oo fast_minus_uint32), uncurry (RETURN oo fast_minus)) \<in>
+     [\<lambda>(m, n). m \<ge> n]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   by sepref_to_hoare
    (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_le_minus
       nat_of_uint32_notle_minus nat_of_uint32_le_iff)
