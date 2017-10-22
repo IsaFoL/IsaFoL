@@ -915,6 +915,7 @@ definition insert_sort_inner :: \<open>('a list \<Rightarrow> nat \<Rightarrow> 
          (\<lambda>(j, ys). j > 0 \<and> f ys j > f ys i)
          (\<lambda>(j, ys). do {
              ASSERT(j < length ys);
+             ASSERT(j > 0);
              ASSERT(j-1 < length ys);
              let xs = swap ys j (j - 1);
              RETURN (j-1, xs)

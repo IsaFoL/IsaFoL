@@ -2458,7 +2458,7 @@ sepref_definition (in -) insert_sort_inner_nth_code
    :: \<open>[\<lambda>((xs, remove), n). (\<forall>x\<in>#mset remove. x < length xs) \<and> n < length remove]\<^sub>a
   (array_assn nat_vmtf_node_assn)\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>
   arl_assn uint32_nat_assn\<close>
-  unfolding insert_sort_inner_nth_def insert_sort_inner_def
+  unfolding insert_sort_inner_nth_def insert_sort_inner_def fast_minus_def[symmetric]
   supply [[goals_limit = 1]]
   supply mset_eq_setD[dest] mset_eq_length[dest]  insert_sort_inner_nth_code_helper[intro]
   by sepref
