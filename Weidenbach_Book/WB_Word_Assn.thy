@@ -422,18 +422,39 @@ lemma le_nat_uint32_hnr:
    nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def)
 
-definition fast_minus :: \<open>'a::minus \<Rightarrow> 'a \<Rightarrow> 'a\<close> where
+definition fast_minus :: \<open>'a::{minus} \<Rightarrow> 'a \<Rightarrow> 'a\<close> where
   [simp]: \<open>fast_minus m n = m - n\<close>
 
-definition fast_minus_uint32 :: \<open>uint32 \<Rightarrow> uint32 \<Rightarrow> uint32\<close> where
-  \<open>fast_minus_uint32 = fast_minus\<close>
+definition fast_minus_code :: \<open>'a::{minus,ord} \<Rightarrow> 'a \<Rightarrow> 'a\<close> where
+  [simp]: \<open>fast_minus_code m n = (SOME p. (p = m - n \<and> m \<ge> n))\<close>
 
-lemma safe_minus[sepref_fr_rules]:
+definition fast_minus_uint32 :: \<open>uint32 \<Rightarrow> uint32 \<Rightarrow> uint32\<close> where
+  [simp, code del]: \<open>fast_minus_uint32 = fast_minus_code\<close>
+
+definition fast_minus_nat :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  [simp, code del]: \<open>fast_minus_nat = fast_minus_code\<close>
+
+definition fast_minus_nat' :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  [simp, code del]: \<open>fast_minus_nat' = fast_minus_code\<close>
+
+lemma [code]: \<open>fast_minus_nat = fast_minus_nat'\<close>
+  unfolding fast_minus_nat_def fast_minus_nat'_def ..
+
+code_printing constant fast_minus_nat' \<rightharpoonup> (SML_imp) "(Nat(integer'_of'_nat/ (_)/ -/ integer'_of'_nat/ (_)))"
+
+lemma fast_minus_uint32[sepref_fr_rules]:
   \<open>(uncurry (return oo fast_minus_uint32), uncurry (RETURN oo fast_minus)) \<in>
      [\<lambda>(m, n). m \<ge> n]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   by sepref_to_hoare
    (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_le_minus
-      nat_of_uint32_notle_minus nat_of_uint32_le_iff fast_minus_uint32_def)
+      nat_of_uint32_notle_minus nat_of_uint32_le_iff)
+
+lemma fast_minus_nat[sepref_fr_rules]:
+  \<open>(uncurry (return oo fast_minus_nat), uncurry (RETURN oo fast_minus)) \<in>
+     [\<lambda>(m, n). m \<ge> n]\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  by sepref_to_hoare
+   (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_le_minus
+      nat_of_uint32_notle_minus nat_of_uint32_le_iff)
 
 lemma word_of_int_int_unat[simp]: \<open>word_of_int (int (unat x)) = x\<close>
   unfolding unat_def
