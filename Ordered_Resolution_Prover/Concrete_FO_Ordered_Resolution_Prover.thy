@@ -231,7 +231,7 @@ proof -
   moreover have "\<not> satisfiable (grounding_of_state (limit_state (lmap state_of_nth_state Sts)))"
     using unsat by auto
   ultimately have "{#} \<in> clss_of_state (limit_state (lmap state_of_nth_state Sts))" 
-    using completeness[of "lmap state_of_nth_state Sts"] by auto
+    using fair_state_seq_complete[of "lmap state_of_nth_state Sts"] by auto
   then show "{#} \<in> clss_of_state (limit_nth_state Sts)"
     by auto
 qed 

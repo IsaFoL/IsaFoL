@@ -1608,7 +1608,7 @@ proof -
     unfolding limit_state_def clss_of_state_def by simp
 qed
 
-theorem completeness:
+theorem fair_state_seq_complete:
   assumes
     selection_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
     fair: "fair_state_seq Sts" and
