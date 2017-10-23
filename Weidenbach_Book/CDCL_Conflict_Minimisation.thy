@@ -1,62 +1,19 @@
 theory CDCL_Conflict_Minimisation
-  imports CDCL.CDCL_W_Abstract_State "../lib/Explorer"
+  imports CDCL.CDCL_W_Abstract_State "../lib/Explorer" WB_More_Refinement
 begin
+
+no_notation Ref.update ("_ := _" 62)
 
 declare cdcl\<^sub>W_restart_mset_state[simp]
 
-lemma conflict_minimize_step:
-  assumes
-    \<open>NU \<Turnstile>p add_mset L C\<close> and  
-    \<open>NU \<Turnstile>p add_mset (-L) D\<close> and
-    \<open>\<And>K'. K' \<in># C \<Longrightarrow> NU \<Turnstile>p add_mset (-K') D\<close>
-  shows \<open>NU \<Turnstile>p D\<close>
-proof -
-  have \<open>NU \<Turnstile>p D + C\<close>
-    using assms(1,2) true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or by blast
-  then show ?thesis
-    using assms(3)
-  proof (induction C)
-    case empty
-    then show ?case
-      using true_clss_cls_in true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or by fastforce
-  next
-    case (add x C) note IH =this(1) and NU_DC = this(2) and entailed = this(3)
-    have \<open>NU \<Turnstile>p D + C + D\<close>
-      using entailed[of x] NU_DC
-        true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or[of NU \<open>-x\<close> \<open>D + C\<close> D]
-      by auto
-    then have \<open>NU \<Turnstile>p D + C\<close>
-      by (metis add.comm_neutral diff_add_zero sup_subset_mset_def true_clss_cls_sup_iff_add)
-    from IH[OF this] entailed show ?case by auto
-  qed
-qed
 
-context
-  fixes M :: \<open>('v, 'v clause) ann_lits\<close>
-begin
+inductive minimize_conflict :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clause \<Rightarrow> 'v clause \<Rightarrow> bool\<close> for M where
+resolve_propa: \<open>Propagated L E \<in> set M \<Longrightarrow> minimize_conflict M (add_mset (-L) C) (C + remove1_mset L E)\<close> |
+remdups: \<open>L \<in># C \<Longrightarrow> minimize_conflict M (add_mset (-L) C) C\<close>
 
 
-inductive_set minimize_conflict_tree:: \<open>'v literal \<Rightarrow> 'v literal set\<close> for L :: \<open>'v literal\<close> where
-\<open>L \<in> minimize_conflict_tree L\<close> |
-\<open>Propagated L C \<in> set M \<Longrightarrow> K \<in># C \<Longrightarrow> L \<in> minimize_conflict_tree L\<close>
-
-
-inductive resolution_chain :: \<open>'v clause \<Rightarrow> 'v clause \<Rightarrow> bool\<close> where
-  \<open>Propagated (-L) C \<in> set M \<Longrightarrow> resolution_chain (add_mset L E) (remdups_mset (E + (C - {#-L#})))\<close>
-
-inductive conflict_minimization :: \<open>'v clause \<Rightarrow> 'v clause \<Rightarrow> bool\<close> where
-  \<open>resolution_chain C D \<Longrightarrow> D \<subseteq># C \<Longrightarrow> conflict_minimization C D\<close>
-
-
-inductive minimize_conflict where
-resolve_propa: \<open>Propagated L E \<in> set M \<Longrightarrow> minimize_conflict (add_mset (-L) C) (C + remove1_mset L E)\<close> |
-remdups: \<open>L \<in># C \<Longrightarrow> minimize_conflict (add_mset (-L) C) C\<close>
-
-definition minimize_conflict_mes :: \<open>'v clause \<Rightarrow> nat list\<close> where
-\<open>minimize_conflict_mes C = map (\<lambda>L. count C (-(lit_of L))) M\<close>
-
-end
-
+definition minimize_conflict_mes :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clause \<Rightarrow> nat list\<close> where
+\<open>minimize_conflict_mes M C = map (\<lambda>L. count C (-(lit_of L))) M\<close>
 
 context
   fixes M :: \<open>('v, 'v clause) ann_lits\<close> and N U :: \<open>'v clauses\<close> and
@@ -70,44 +27,6 @@ private lemma
   using invs unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
   by simp_all
-
-lemma resolution_chain_resolve:
-  assumes \<open>resolution_chain M C E\<close> and  \<open>set_mset N \<union> set_mset U \<Turnstile>p C\<close>
-  shows \<open>set_mset N \<union> set_mset U \<Turnstile>p E\<close>
-  using assms
-proof (induction)
-  case (1 L C) note in_trail = this(1) and entailed = this(2)
-  have \<open>a @ Propagated L mark # b = trail (M, N, U, Some D) \<longrightarrow>
-       b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> for L mark a b
-    using invs
-    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-    by fast
-  then have [simp]: \<open>-L \<in># C\<close>
-    by (metis in_trail split_list trail.simps)
-
-  have \<open>set (get_all_mark_of_propagated (trail (M, N, U, Some D)))
-    \<subseteq> set_mset (cdcl\<^sub>W_restart_mset.clauses (M, N, U, Some D))\<close>
-    using invs
-    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
-    by fast
-  then have \<open>C \<in># N + U\<close>
-    using in_trail cdcl\<^sub>W_restart_mset.in_get_all_mark_of_propagated_in_trail[of C M]
-    by (auto simp: clauses_def)
-  then have NU_C: \<open>N + U \<Turnstile>pm add_mset (- L) (remove1_mset (-L) C)\<close>
-    by auto
-  show ?case
-    unfolding true_clss_cls_remdups_mset
-    apply (rule true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or[of _ \<open>-L\<close>])
-    using  entailed NU_C by simp_all
-qed
-
-lemma rtranclp_resolution_chain_resolve:
-  assumes \<open>(resolution_chain M)\<^sup>*\<^sup>* C E\<close> and  \<open>N + U \<Turnstile>pm C\<close>
-  shows \<open>N + U \<Turnstile>pm E\<close>
-  using assms by (induction) (auto dest!: resolution_chain_resolve)
-
 
 lemma minimize_conflict_entailed_trail:
   assumes \<open>minimize_conflict M C E\<close> and \<open>M \<Turnstile>as CNot C\<close>
@@ -186,7 +105,8 @@ proof (induction rule: minimize_conflict.induct)
       unfolding true_annots_true_cls_def_iff_negation_in_model
       by (auto dest: in_diffD simp: lits_of_def no_dup_def)
   qed
-  have 1: \<open>map (\<lambda>L'. count (C + remove1_mset L E) (- lit_of L')) M2 = map (\<lambda>L'. count (add_mset (-L) C) (- lit_of L')) M2\<close>
+  have 1: \<open>map (\<lambda>L'. count (C + remove1_mset L E) (- lit_of L')) M2 =
+    map (\<lambda>L'. count (add_mset (-L) C) (- lit_of L')) M2\<close>
     apply (rule map_cong)
     apply (rule refl)
     using no_dup M_E unfolding M true_annots_true_cls_def_iff_negation_in_model
@@ -236,9 +156,285 @@ next
     by (auto simp: uminus_lit_swap prepend_same_lexn lexn_Suc simp del: lexn.simps)
 qed
 
-definition cut_conflict_at  :: \<open>'v literal \<Rightarrow> 'v clause \<Rightarrow> 'v clause\<close> where
-\<open>cut_conflict_at L E = filter_mset (\<lambda>K. -K \<in> lit_of ` set (takeWhile (\<lambda>K. lit_of K \<noteq> L) M)) E\<close>
-
 end
+
+lemma conflict_minimize_step:
+  assumes
+    \<open>NU \<Turnstile>p add_mset L C\<close> and
+    \<open>NU \<Turnstile>p add_mset (-L) D\<close> and
+    \<open>\<And>K'. K' \<in># C \<Longrightarrow> NU \<Turnstile>p add_mset (-K') D\<close>
+  shows \<open>NU \<Turnstile>p D\<close>
+proof -
+  have \<open>NU \<Turnstile>p D + C\<close>
+    using assms(1,2) true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or by blast
+  then show ?thesis
+    using assms(3)
+  proof (induction C)
+    case empty
+    then show ?case
+      using true_clss_cls_in true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or by fastforce
+  next
+    case (add x C) note IH =this(1) and NU_DC = this(2) and entailed = this(3)
+    have \<open>NU \<Turnstile>p D + C + D\<close>
+      using entailed[of x] NU_DC
+        true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or[of NU \<open>-x\<close> \<open>D + C\<close> D]
+      by auto
+    then have \<open>NU \<Turnstile>p D + C\<close>
+      by (metis add.comm_neutral diff_add_zero sup_subset_mset_def true_clss_cls_sup_iff_add)
+    from IH[OF this] entailed show ?case by auto
+  qed
+qed
+
+lemma conflict_minimize_intermediate_step:
+  assumes
+    \<open>NU \<Turnstile>p add_mset L C\<close> and
+    \<open>\<And>K'. K' \<in># C \<Longrightarrow> NU \<Turnstile>p add_mset (-K') D\<close>
+  shows \<open>NU \<Turnstile>p add_mset L D\<close>
+proof -
+  have \<open>NU \<Turnstile>p add_mset L C + D\<close>
+    using assms(1) true_clss_cls_mono_r by blast
+  then show ?thesis
+    using assms(2)
+  proof (induction C)
+    case empty
+    then show ?case
+      using true_clss_cls_in true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or by fastforce
+  next
+    case (add x C) note IH =this(1) and NU_DC = this(2) and entailed = this(3)
+    have \<open>NU \<Turnstile>p add_mset x (add_mset L (D + C))\<close>
+      using NU_DC by (auto simp: add_mset_commute ac_simps)
+    then have \<open>NU \<Turnstile>p add_mset L (D + C + D)\<close>
+      using entailed[of x] NU_DC
+        true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or[of NU \<open>-x\<close> \<open>add_mset L D + C\<close> D]
+      by auto
+    moreover have \<open>remdups_mset (add_mset L (D + C + D)) = remdups_mset (add_mset L (C + D))\<close>
+      by (auto simp: remdups_mset_def)
+    ultimately have \<open>NU \<Turnstile>p add_mset L C + D\<close>
+      apply (subst  true_clss_cls_remdups_mset[symmetric])
+      apply (subst (asm) true_clss_cls_remdups_mset[symmetric])
+      by simp
+    from IH[OF this] entailed show ?case by auto
+  qed
+qed
+
+datatype minimizer = SEEN_FAILED | SEEN_REMOVABLE | SEEN_UNKNOWN
+
+type_synonym 'v conflict_min_analyse = \<open>('v literal \<times> 'v clause) list\<close>
+type_synonym 'v conflict_min_cach = \<open>'v literal \<Rightarrow> minimizer\<close>
+
+definition get_literal_and_remove_of_analyse
+   :: \<open>'v conflict_min_analyse \<Rightarrow> ('v literal \<times> 'v conflict_min_analyse) nres\<close> where
+  \<open>get_literal_and_remove_of_analyse analyse =
+    SPEC(\<lambda>(L, ana). L \<in># snd (hd analyse) \<and> tl ana = tl analyse \<and>
+         hd ana = (fst (hd analyse), snd (hd (analyse))- {#L#}))\<close>
+
+definition get_propagation_reason where
+  \<open>get_propagation_reason M L = SPEC(\<lambda>C. C \<noteq> None \<longrightarrow> Propagated (-L) (the C) \<in> set M)\<close>
+
+definition mark_failed_lits
+  :: \<open>'v conflict_min_analyse \<Rightarrow> 'v conflict_min_cach \<Rightarrow> 'v conflict_min_cach nres\<close>
+where
+  \<open>mark_failed_lits analyse cach = SPEC(\<lambda>cach'. (\<forall>L. cach L = SEEN_FAILED \<longrightarrow> cach' L = SEEN_FAILED))\<close>
+
+definition conflict_min_analysis_inv
+  :: \<open>'v conflict_min_cach \<Rightarrow> 'v clauses \<Rightarrow> 'v clause \<Rightarrow> bool\<close>
+where
+  \<open>conflict_min_analysis_inv cach NU D \<longleftrightarrow>
+    (\<forall>L. cach L = SEEN_REMOVABLE \<longrightarrow> set_mset NU \<Turnstile>p add_mset (-L) D)\<close>
+
+lemma conflict_min_analysis_inv_update_removable:
+  \<open>conflict_min_analysis_inv (cach(L := SEEN_REMOVABLE)) NU D \<longleftrightarrow>
+       conflict_min_analysis_inv cach NU D \<and> set_mset NU \<Turnstile>p add_mset (-L) D\<close>
+  by (auto simp: conflict_min_analysis_inv_def)
+
+lemma conflict_min_analysis_inv_update_failed:
+  \<open> conflict_min_analysis_inv cach NU D \<Longrightarrow> conflict_min_analysis_inv (cach(L := SEEN_FAILED)) NU D\<close>
+  by (auto simp: conflict_min_analysis_inv_def)
+
+definition conflict_min_analysis_stack
+  :: \<open>'v clauses \<Rightarrow> 'v clause \<Rightarrow> 'v conflict_min_analyse \<Rightarrow> bool\<close>
+where
+  \<open>conflict_min_analysis_stack NU D analyse \<longleftrightarrow>
+     (\<forall>(L, E) \<in> set analyse. (\<exists>C. set_mset NU \<Turnstile>p add_mset (-L) C \<and>
+                  (\<forall>K\<in>#C-E. set_mset NU \<Turnstile>p D + {#-K#})))\<close>
+
+lemma conflict_min_analysis_stack_tl:
+  \<open>conflict_min_analysis_stack NU D analyse \<Longrightarrow> conflict_min_analysis_stack NU D (tl analyse)\<close>
+  by (cases analyse) (auto simp: conflict_min_analysis_stack_def)
+
+definition lit_redundant_inv where
+  \<open>lit_redundant_inv M NU D init_analyse = (\<lambda>(cach, analyse, b).
+           conflict_min_analysis_inv cach NU D \<and>
+           (analyse \<noteq> [] \<longrightarrow> fst (hd init_analyse) = fst (last analyse)) \<and>
+           (analyse = [] \<longrightarrow> b \<longrightarrow> cach (fst (hd init_analyse)) = SEEN_REMOVABLE) \<and>
+           conflict_min_analysis_stack NU D analyse)\<close>
+
+definition lit_redundant_rec :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'v clause \<Rightarrow>
+     'v conflict_min_cach \<Rightarrow> 'v conflict_min_analyse \<Rightarrow>
+      ('v conflict_min_cach \<times> 'v conflict_min_analyse \<times> bool) nres\<close>
+where
+  \<open>lit_redundant_rec M NU D cach analysis =
+      WHILE\<^sub>T\<^bsup>lit_redundant_inv M NU D analysis\<^esup>
+        (\<lambda>(cach, analyse, b). analyse \<noteq> [])
+        (\<lambda>(cach, analyse, b). do {
+            ASSERT(analyse \<noteq> []);
+            if snd (hd analyse) = {#}
+            then
+               RETURN(cach ((fst (hd analyse)) := SEEN_REMOVABLE), tl analyse, True)
+            else do {
+               (L, analyse) \<leftarrow> get_literal_and_remove_of_analyse analyse;
+               if (get_level M L = 0 \<or> cach L = SEEN_REMOVABLE)
+               then RETURN (cach, analyse, False)
+               else do {
+                  C \<leftarrow> get_propagation_reason M L;
+                  case C of
+                    Some C \<Rightarrow> RETURN (cach, (L, C - {#L#}) # analyse, False)
+                  | None \<Rightarrow> do {
+                      cach \<leftarrow> mark_failed_lits analyse cach;
+                      RETURN (cach, [], False)
+                  }
+              }
+          }
+        })
+       (cach, analysis, False)\<close>
+
+definition lit_redundant_rec_spec where
+  \<open>lit_redundant_rec_spec NU D L =
+    SPEC(\<lambda>(cach, analysis, b). (b \<longrightarrow> set_mset NU \<Turnstile>p add_mset (-L) D) \<and>
+     conflict_min_analysis_inv cach NU D)\<close>
+
+lemma
+  fixes L :: \<open>'v literal\<close>
+  assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N, U, Some D)\<close>
+  assumes analysis:
+    \<open>init_analysis = [(L, C)]\<close> and
+    in_trail: \<open>Propagated (-L) (add_mset (-L) C) \<in> set M\<close> and
+    \<open>conflict_min_analysis_inv cach (N + U) D\<close>
+  shows
+    \<open>lit_redundant_rec M (N + U) D cach init_analysis \<le> lit_redundant_rec_spec (N + U) D L\<close>
+proof -
+  have \<open>a @ Propagated L mark # b = trail (M, N, U, Some D) \<longrightarrow>
+       b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> for L mark a b
+    using invs
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+    by fast
+
+  have \<open>set (get_all_mark_of_propagated (trail (M, N, U, Some D)))
+    \<subseteq> set_mset (cdcl\<^sub>W_restart_mset.clauses (M, N, U, Some D))\<close>
+    using invs
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+    by fast
+  then have \<open>add_mset (-L) C \<in># N + U\<close>
+    using in_trail cdcl\<^sub>W_restart_mset.in_get_all_mark_of_propagated_in_trail[of \<open>add_mset (-L) C\<close> M]
+    by (auto simp: clauses_def)
+  then have NU_C: \<open>N + U \<Turnstile>pm add_mset (- L) C\<close>
+    by auto
+  let ?f = \<open>\<lambda>analysis. fold_mset (op +) D (snd `# mset analysis)\<close>
+  define R where
+    \<open>R = {((cach :: 'v conflict_min_cach, analysis :: 'v conflict_min_analyse, b::bool),
+           (cach' :: 'v conflict_min_cach, analysis' :: 'v conflict_min_analyse, b' :: bool)).
+          minimize_conflict M (?f analysis) (?f analysis') \<or>
+          (analysis' \<noteq> [] \<and> analysis = tl analysis' \<and> snd (hd analysis') = {#})}\<close>
+  have \<open>wf R\<close>
+  proof -
+    have R: \<open>R = {((cach, analysis, b), (cach', analysis', b')).
+                  minimize_conflict M (?f analysis) (?f analysis')} \<union>
+              {((cach, analysis, b), (cach', analysis', b')).
+                  analysis' \<noteq> [] \<and> analysis = tl analysis' \<and> snd (hd analysis') = {#}}\<close>
+      (is \<open>_ = ?Min \<union> ?ana\<close>)
+      unfolding R_def by auto
+    have 1: \<open>wf {((cach:: 'v conflict_min_cach, analysis:: 'v conflict_min_analyse, b::bool),
+         (cach':: 'v conflict_min_cach, analysis':: 'v conflict_min_analyse, b'::bool)).
+       length analysis < length analysis'}\<close>
+      using wf_if_measure_f[of \<open>measure length\<close>, of \<open>\<lambda>(_, xs, _). xs\<close>] apply auto
+      apply (rule subst[of _ _ wf])
+       prefer 2 apply assumption
+      apply auto
+      done
+    have wf_ana: \<open>wf ?ana\<close>
+      by (rule wf_subset[OF 1])  auto
+    thm arg_cong[of _ _ \<open>wf\<close>]
+    show ?thesis
+      unfolding R
+      apply (rule wf_union_compatible)
+      subgoal sorry
+      subgoal by (rule wf_ana)
+      subgoal by (auto elim!: neq_NilE)
+      sorry
+  qed
+  have init: \<open>lit_redundant_inv M (N + U) D init_analysis (cach, init_analysis, False)\<close>
+    using assms NU_C unfolding lit_redundant_inv_def conflict_min_analysis_stack_def
+    by auto
+  have all_removed: \<open>lit_redundant_inv M (N + U) D init_analysis
+       (cach(fst (hd analysis) := SEEN_REMOVABLE), tl analysis, True)\<close>
+    if
+      inv: \<open>lit_redundant_inv M (N + U) D init_analysis s\<close> and
+      \<open>case s of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
+      s: \<open>s = (cach, s')\<close>
+         \<open>s' = (analysis, b)\<close> and
+      nemtpy_stack: \<open>analysis \<noteq> []\<close> and
+      finished: \<open>snd (hd analysis) = {#}\<close>
+    for s cach s' analysis b
+  proof -
+    obtain L ana' where analysis: \<open>analysis = (L, {#}) # ana'\<close>
+      using nemtpy_stack finished by (cases analysis)  auto
+    have
+      cach: \<open>conflict_min_analysis_inv cach (N + U) D\<close> and
+      ana: \<open>conflict_min_analysis_stack (N + U) D analysis\<close> and
+      stack: \<open>conflict_min_analysis_stack (N + U) D analysis\<close> and
+      last_analysis: \<open>analysis \<noteq> [] \<longrightarrow> fst (last analysis) = fst (hd init_analysis)\<close> and
+      b: \<open>analysis = [] \<longrightarrow> b \<longrightarrow> cach (fst (hd init_analysis)) = SEEN_REMOVABLE\<close>
+      using inv unfolding lit_redundant_inv_def s by auto
+    obtain C where
+       NU_C: \<open>N + U \<Turnstile>pm add_mset (-L) C\<close> and
+       IH: \<open>\<And>K. K \<in># C \<Longrightarrow> N + U \<Turnstile>pm add_mset (-K) D\<close>
+      using stack unfolding conflict_min_analysis_stack_def analysis by auto
+
+    have NU_D: \<open>N + U \<Turnstile>pm add_mset (- fst (hd analysis)) D\<close>
+      using conflict_minimize_intermediate_step[OF NU_C IH] unfolding analysis by auto
+    have ana': \<open>conflict_min_analysis_stack (N + U) D (tl analysis)\<close>
+      using ana by (auto simp: conflict_min_analysis_stack_tl)
+    have cach': \<open>conflict_min_analysis_inv (cach(fst (hd analysis) := SEEN_REMOVABLE)) (N + U) D\<close>
+      using NU_D by (auto simp: conflict_min_analysis_inv_update_removable cach)
+    have \<open>fst (hd init_analysis) = fst (last (tl analysis))\<close> if \<open>tl analysis \<noteq> []\<close>
+      using last_analysis tl_last[symmetric, OF that] that unfolding ana' by auto
+    then show ?thesis
+      using ana' cach' last_analysis unfolding lit_redundant_inv_def
+      by (auto simp: analysis)
+  qed
+  have all_removed_R: \<open>((cach(fst (hd analyse) := SEEN_REMOVABLE), tl analyse, True), s) \<in> R\<close>
+    if
+      \<open>lit_redundant_inv M (N + U) D init_analysis s\<close> and
+      s: \<open>s = (cach, s')\<close> \<open>s' = (analyse, b)\<close> and
+      nempty: \<open>analyse \<noteq> []\<close> and
+      finished: \<open>snd (hd analyse) = {#}\<close>
+    for s cach s' analyse b
+    using nempty finished unfolding R_def s by auto
+  show ?thesis
+    unfolding lit_redundant_rec_def lit_redundant_rec_spec_def mark_failed_lits_def
+      get_literal_and_remove_of_analyse_def get_propagation_reason_def
+    apply (refine_vcg WHILEIT_rule[where R = R])
+    subgoal sorry -- \<open>Well foundedness\<close>
+    subgoal by (rule init)
+    subgoal by simp
+      -- \<open>We finished one stage:\<close>
+    subgoal by (rule all_removed)
+    subgoal by (rule all_removed_R)
+      -- \<open>Cached or level 0:\<close>
+    subgoal sorry
+    subgoal sorry
+      -- \<open>Failed:\<close>
+    subgoal sorry
+    subgoal sorry
+      -- \<open>The literal was propagated:\<close>
+    subgoal sorry
+    subgoal sorry
+     -- \<open>End of Loop invariant:\<close>
+    subgoal by (auto simp: lit_redundant_inv_def conflict_min_analysis_inv_def analysis)
+    subgoal by (auto simp: lit_redundant_inv_def conflict_min_analysis_inv_def analysis)
+    done
+qed
 
 end
