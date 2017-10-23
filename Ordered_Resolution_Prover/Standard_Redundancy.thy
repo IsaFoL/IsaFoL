@@ -140,12 +140,6 @@ lemma Rf_eq_Rf_diff_Rf: "Rf N = Rf (N - Rf N)"
 
 text \<open>
 The following results correspond to Lemma 4.6.
-
-\begin{nit}
-Lemma 4.6 does not seem to be derivable from Lemma 4.5, unlike what the chapter claims. Instead, it
-appears necessary to generalize the argument of Lemma 4.5 (cf.\ the @{thm [source] wlog_non_Rf}
-lemma).
-\end{nit}
 \<close>
 
 lemma Ri_mono: "N \<subseteq> N' \<Longrightarrow> Ri N \<subseteq> Ri N'"
@@ -266,10 +260,6 @@ begin
 
 text \<open>
 The following result corresponds to Theorem 4.9.
-
-\begin{nit}
-The invocation of Lemma 4.5 does not fit. What is needed is a generalized version of Lemma 4.6.
-\end{nit}
 \<close>
 
 lemma saturated_upto_complete_if:

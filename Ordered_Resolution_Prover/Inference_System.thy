@@ -114,11 +114,6 @@ text \<open>
 Refutational completeness can be established once and for all for counterexample-reducing inference
 systems. The material formalized here draws from both the general framework of Section 4.2 and the
 concrete instances of Section 3.
-
-\begin{nit}
-The chapter uses the phrase ``true in $N$'' to mean ``true in $I_N$ and element of $N$.'' This is
-formalized by the condition @{prop "set_mset CC \<subseteq> N \<and> interp N \<Turnstile>m CC"} below.
-\end{nit}
 \<close>
 
 locale counterex_reducing_inference_system =

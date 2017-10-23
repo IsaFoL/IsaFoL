@@ -1934,7 +1934,7 @@ proof -
       standard_redundancy_criterion_extension_saturated_upto_iff[of gd.ord_\<Gamma>]
     unfolding src_ext_Ri_def by auto
   then have "{#} \<in> limit_llist (lmap grounding_of_state Sts)"
-    using src.saturated_upto_refute_complete unsat2 by auto
+    using src.saturated_upto_complete unsat2 by auto
   then show "{#} \<in> clss_of_state (limit_state Sts)"
     using empty_in_limit_state fair ns by auto
 qed

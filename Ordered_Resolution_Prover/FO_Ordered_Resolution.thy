@@ -114,12 +114,6 @@ lemma true_fo_cls_mset_inst: "I \<Turnstile>fom C \<Longrightarrow> is_ground_su
 lemma true_fo_cls_mset_def2: "I \<Turnstile>fom CC \<longleftrightarrow> (\<forall>C \<in># CC. I \<Turnstile>fo C)"
   unfolding true_fo_cls_mset.simps true_fo_cls.simps true_cls_mset_def by auto
 
-text \<open>
-\begin{nit}
-$A_{ii}$ vs.\ $A_i$
-\end{nit}
-\<close>
-
 context
   fixes S :: "'a clause \<Rightarrow> 'a clause"
 begin

@@ -77,14 +77,6 @@ proof induct
     by fast
 qed simp
 
-text \<open>
-\begin{nit}
-The chapter does not specify the range of $i$ and $j$. Clearly, $j$ must be bounded by the length of
-the list, but it is less obvious that $i$ also must be bounded, to avoid the inner intersection to
-expand to be the universal set for values of $i$ beyond the length of a finite list.
-\end{nit}
-\<close>
-
 definition limit_llist :: "('a :: {Inf,Sup}) llist \<Rightarrow> 'a" where
   "limit_llist Xs =
    (\<Squnion>i \<in> {i. enat i < llength Xs}. \<Sqinter>j \<in> {j. i \<le> j \<and> enat j < llength Xs}. lnth Xs j)"

@@ -29,13 +29,6 @@ begin
 
 text \<open>
 The following inductive definition corresponds to Figure 2.
-
-\begin{nit}
-References to $S(D)$ should have been to $S(\lnot\,A_1 \lor \cdots \lor \lnot\,A_n \lor D)$.
-In condition (iii), it is not clear with respect to which clause the ``selected atom'' must be
-seen. The two candidates are $S(\lnot\,A_1 \lor \cdots \lor \lnot\,A_n \lor D)$ and
-$S(C_i \lor A_i \lor \cdots \lor A_i)$. Apparently, the latter was meant.
-\end{nit}
 \<close>
 
 abbreviation maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where

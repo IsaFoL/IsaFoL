@@ -111,14 +111,6 @@ lemma derive_subset: "M \<triangleright> N \<Longrightarrow> N \<subseteq> M \<u
 
 end
 
-text \<open>
-\begin{nit}
-Section 4.1 requires soundness, even though it is claimed in Section 2.4 that only
-consistency-preserving inference systems will be considered. It turns out that consistency
-preservation is enough, but a different proof is needed.
-\end{nit}
-\<close>
-
 locale sat_preserving_redundancy_criterion =
   sat_preserving_inference_system "\<Gamma> :: ('a :: wellorder) inference set" + redundancy_criterion
 begin
@@ -291,11 +283,6 @@ sublocale sat_preserving_redundancy_criterion
 
 text \<open>
 The result below corresponds to Theorem 4.3.
-
-\begin{nit}
-The case where $\gamma \in \mathcal{R}_{\mathcal{I}}(N_\infty \backslash
-\mathcal{R}_{\mathcal{F}}(N_\infty))$ is not covered by the proof.
-\end{nit}
 \<close>
 
 theorem fair_derive_saturated_upto:

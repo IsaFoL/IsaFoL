@@ -15,8 +15,6 @@
 
 \renewcommand{\isacharunderscore}{\_}
 
-\newenvironment{nit}{\textbf{Nitpicking:}}{}
-
 \begin{document}
 
 \title{Formalized ``Resolution Theorem Proving''}
@@ -54,15 +52,16 @@ the calculus implemented in the popular automatic theorem provers E
 
 \medskip
 
-This Isabelle/HOL formalization covers Sections 2.1, 2.2, 2.4, 2.5, 3, 4.1, and
-4.2 of Bachmair and Ganzinger's chapter. Section 2 focuses on preliminaries.
-Section 3 introduces unordered and ordered variants of ground resolution with
-and without literal selection and proves them refutationally complete. Section
-4.1 presents a framework for theorem provers based on refutation and saturation.
-Finally, Section 4.2 generalizes the refutational completeness argument and
-introduces the standard redundancy criterion, which can be used in conjunction
-with ordered resolution. Figure~\ref{fig:thys} shows the corresponding Isabelle
-theory structure.
+This Isabelle/HOL formalization covers Sections 2.1, 2.2, 2.4, 2.5, 3, 4.1,
+4.2, and 4.3 of Bachmair and Ganzinger's chapter. Section 2 focuses on
+preliminaries. Section 3 introduces unordered and ordered variants of ground
+resolution with and without literal selection and proves them refutationally
+complete. Section 4.1 presents a framework for theorem provers based on
+refutation and saturation. Finally, Section 4.2 generalizes the refutational
+completeness argument and introduces the standard redundancy criterion, which
+can be used in conjunction with ordered resolution. Section 4.3 lifts the
+result to a first-order prover, specified as a calculus. Figure~\ref{fig:thys}
+shows the corresponding Isabelle theory structure.
 
 \medskip
 

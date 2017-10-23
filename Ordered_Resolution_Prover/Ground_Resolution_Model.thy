@@ -164,10 +164,6 @@ lemma not_produces_imp_notin_interp: "(\<And>D. \<not> produces D A) \<Longright
 
 text \<open>
 The results below corresponds to Lemma 3.4.
-
-\begin{nit}
-If $D = D'$ and $D$ is productive, $I^D \subseteq I_{D'}$ does not hold.
-\end{nit}
 \<close>
 
 lemma Interp_imp_general:
@@ -376,13 +372,6 @@ lemma not_Interp_imp_not_INTERP:
 text \<open>
 Lemma 3.7 is a problem child. It is stated below but not proved; instead, a counterexample is
 displayed. This is not much of a problem, because it is not invoked in the rest of the chapter.
-
-\begin{nit}
-In the lemma's statement, ``then $D'$'' should be ``then $C$.'' It is also not clear whether
-``another clause $C$'' means that $C \not= D$; the counterexample works in both cases. In the
-lemma's proof, the case distinction is incomplete (as can be seen by instantiating the proof with
-the counterexample).
-\end{nit}
 \<close>
 
 lemma
