@@ -160,7 +160,7 @@ definition src_ext_Ri where
 interpretation src_ext:
   sat_preserving_redundancy_criterion "gd_ord_\<Gamma>'" "src.Rf" "src_ext_Ri"
   unfolding sat_preserving_redundancy_criterion_def src_ext_Ri_def
-  using sat_preserving_gd_ord_\<Gamma>' standard_redundancy_criterion_extension gd_ord_\<Gamma>_ngd_ord_\<Gamma>
+  using sat_preserving_gd_ord_\<Gamma>' redundancy_criterion_standard_extension gd_ord_\<Gamma>_ngd_ord_\<Gamma>
     src.redundancy_criterion_axioms by auto
 
 lemma strict_subsumption_redundant_clause:
@@ -681,7 +681,7 @@ lemma Sup_llist_grounding_of_state_ground:
   assumes "C \<in> Sup_llist (lmap grounding_of_state Sts)"
   shows "is_ground_cls C"
 proof -
-  have "\<exists>j. enat j < llength (lmap grounding_of_state Sts) \<and> (C \<in> (lnth (lmap grounding_of_state Sts) j))"
+  have "\<exists>j. enat j < llength (lmap grounding_of_state Sts) \<and> C \<in> lnth (lmap grounding_of_state Sts) j"
     using assms in_Sup_llist_in_nth by metis
   then obtain j where
     "enat j < llength (lmap grounding_of_state Sts)"
@@ -1821,9 +1821,7 @@ proof -
       have "E' \<in> concls_of (ord_FO_resolution.inferences_between (Q_of_state (lnth Sts (j - 1))) C')"
         unfolding infer_from_def ord_FO_\<Gamma>_def unfolding inference_system.inferences_between_def
         apply (rule_tac x = "Infer (mset CAs') DA' E'" in image_eqI)
-        subgoal
-          apply (auto;fail)
-          done
+        subgoal by auto
         subgoal
           using s_p(4)
           unfolding infer_from_def
@@ -1895,7 +1893,7 @@ proof -
 
   from sat_limit_gr_sts have "src.saturated_upto (limit_llist (lmap grounding_of_state Sts))"
     using gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redundancy_criterion_axioms
-      standard_redundancy_criterion_extension_saturated_upto_iff[of gd.ord_\<Gamma>]
+      redundancy_criterion_standard_extension_saturated_upto_iff[of gd.ord_\<Gamma>]
     unfolding src_ext_Ri_def by auto
   then have "{#} \<in> limit_llist (lmap grounding_of_state Sts)"
     using src.saturated_upto_complete unsat2 by auto
