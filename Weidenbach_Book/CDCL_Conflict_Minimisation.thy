@@ -60,7 +60,7 @@ lemma minimize_conflict_mes:
   shows \<open>(minimize_conflict_mes M E, minimize_conflict_mes M C) \<in> lexn less_than (length M)\<close>
   using assms
 proof (induction rule: minimize_conflict.induct)
-  case (resolve_propa L E C) note in_trail = this(1) and M_C = this(2)
+  case (resolve_propa L E C) note in_trail = this(1) (* and M_C = this(2) *)
     obtain M2 M1 where
     M: \<open>M = M2 @ Propagated L E # M1\<close>
     using split_list[OF in_trail] by metis
@@ -156,6 +156,57 @@ next
     by (auto simp: uminus_lit_swap prepend_same_lexn lexn_Suc simp del: lexn.simps)
 qed
 
+lemma wf_minimize_conflict:
+  shows \<open>wf {(C', C). M \<Turnstile>as CNot C \<and> minimize_conflict M C C'}\<close>
+  apply (rule wf_if_measure_in_wf[of \<open>lexn less_than (length M)\<close> _ \<open>minimize_conflict_mes M\<close>])
+  subgoal by (rule wf_lexn) auto
+  subgoal using minimize_conflict_mes by auto
+  done
+
+lemma wf_minimize_conflict_tranclp:
+  shows \<open>wf {(C', C). M \<Turnstile>as CNot C \<and> (minimize_conflict M)\<^sup>+\<^sup>+ C C'}\<close> (is \<open>wf ?R\<close>)
+proof -
+  have wf: \<open>wf ({(C', C). M \<Turnstile>as CNot C \<and> minimize_conflict M C C'}\<^sup>+)\<close>
+    by (rule wf_trancl) (rule wf_minimize_conflict)
+  have [intro]: \<open>(a, b) \<in> {(C', C). M \<Turnstile>as CNot C \<and> minimize_conflict M C C'}\<^sup>+ \<Longrightarrow> M \<Turnstile>as CNot b\<close> for a b
+    apply (induction rule: trancl_induct)
+    by auto
+  have [simp]: \<open>(a, b) \<in> {(C', C). M \<Turnstile>as CNot C \<and> minimize_conflict M C C'}\<^sup>+ \<Longrightarrow>
+     (minimize_conflict M)\<^sup>+\<^sup>+ b a\<close> for a b
+    apply (induction rule: trancl_induct)
+    by auto
+  have \<open>(C', C) \<in> {(C', C). M \<Turnstile>as CNot C \<and> minimize_conflict M C C'}\<^sup>+ \<and> M \<Turnstile>as CNot C'\<close>
+    if 
+      \<open>M \<Turnstile>as CNot C\<close> and
+      \<open>(minimize_conflict M)\<^sup>+\<^sup>+ C C'\<close>
+    for C C' :: \<open>'v literal multiset\<close>
+    using that(2,1)
+  proof (induction)
+    case (base y)
+    then show ?case 
+      using minimize_conflict_entailed_trail[of C y]  that by auto
+  next
+    case (step y z)
+    have IH: \<open>(y, C) \<in> {a. case a of (C', C) \<Rightarrow> M \<Turnstile>as CNot C \<and> minimize_conflict M C C'}\<^sup>+\<close>
+      using step by auto
+    have 1: \<open>(z, C) \<in> {a. case a of (C', C) \<Rightarrow> M \<Turnstile>as CNot C \<and> minimize_conflict M C C'}\<^sup>+\<close>
+      apply (rule trancl_into_trancl2[OF _ IH])
+      subgoal using minimize_conflict_entailed_trail[of y z] step by auto
+      done
+    have 2: \<open>M \<Turnstile>as CNot z\<close>
+      using minimize_conflict_entailed_trail[of y z] step by auto
+    show ?case
+      using 1 2 by auto
+  qed
+  then have 1: \<open>?R \<subseteq> {(C', C). M \<Turnstile>as CNot C \<and> minimize_conflict M C C'}\<^sup>+\<close>
+    by auto
+  show ?thesis
+    apply (rule wf_subset)
+     apply (rule wf)
+    apply (rule 1)
+    done
+qed
+
 end
 
 lemma conflict_minimize_step:
@@ -248,7 +299,7 @@ lemma conflict_min_analysis_inv_update_removable:
   by (auto simp: conflict_min_analysis_inv_def)
 
 lemma conflict_min_analysis_inv_update_failed:
-  \<open> conflict_min_analysis_inv cach NU D \<Longrightarrow> conflict_min_analysis_inv (cach(L := SEEN_FAILED)) NU D\<close>
+  \<open>conflict_min_analysis_inv cach NU D \<Longrightarrow> conflict_min_analysis_inv (cach(L := SEEN_FAILED)) NU D\<close>
   by (auto simp: conflict_min_analysis_inv_def)
 
 definition conflict_min_analysis_stack
@@ -335,12 +386,12 @@ proof -
   define R where
     \<open>R = {((cach :: 'v conflict_min_cach, analysis :: 'v conflict_min_analyse, b::bool),
            (cach' :: 'v conflict_min_cach, analysis' :: 'v conflict_min_analyse, b' :: bool)).
-          minimize_conflict M (?f analysis) (?f analysis') \<or>
+                M \<Turnstile>as CNot (?f analysis') \<and>  (minimize_conflict M) (?f analysis') (?f analysis) \<or>
           (analysis' \<noteq> [] \<and> analysis = tl analysis' \<and> snd (hd analysis') = {#})}\<close>
-  have \<open>wf R\<close>
+  have wf_R: \<open>wf R\<close>
   proof -
-    have R: \<open>R = {((cach, analysis, b), (cach', analysis', b')).
-                  minimize_conflict M (?f analysis) (?f analysis')} \<union>
+    have R: \<open>R = {((cach, analysis, b), (cach', analysis', b')). M \<Turnstile>as CNot (?f analysis') \<and>
+                  (minimize_conflict M) (?f analysis') (?f analysis)} \<union>
               {((cach, analysis, b), (cach', analysis', b')).
                   analysis' \<noteq> [] \<and> analysis = tl analysis' \<and> snd (hd analysis') = {#}}\<close>
       (is \<open>_ = ?Min \<union> ?ana\<close>)
@@ -353,16 +404,37 @@ proof -
        prefer 2 apply assumption
       apply auto
       done
+
+    have 2: \<open>wf {(C', C). M \<Turnstile>as CNot C \<and> minimize_conflict M C C'}\<close>
+      by (rule wf_minimize_conflict[OF invs])
+    from wf_if_measure_f[OF this, of ?f] 
+    have 2: \<open>wf {(C', C). M \<Turnstile>as CNot (?f C) \<and> minimize_conflict M (?f C) (?f C')}\<close>
+      by auto
+    from wf_fst_wf_pair[OF this, where 'b = bool]
+    have \<open>wf {((analysis':: 'v conflict_min_analyse, _ :: bool), (analysis:: 'v conflict_min_analyse,  _:: bool)).
+         M \<Turnstile>as CNot (?f analysis) \<and> (minimize_conflict M) (?f analysis) (?f analysis')}\<close>
+      by blast
+    from wf_snd_wf_pair[OF this, where 'b = \<open>'v conflict_min_cach\<close>]
+    have \<open>wf {((M' :: 'v conflict_min_cach, N'), Ma, N).
+      (case N' of
+       (analysis' :: 'v conflict_min_analyse, _ :: bool) \<Rightarrow>
+         \<lambda>(analysis, _).
+            M \<Turnstile>as CNot (fold_mset op + D (snd `# mset analysis)) \<and>
+            minimize_conflict M (fold_mset op + D (snd `# mset analysis))
+              (fold_mset op + D (snd `# mset analysis'))) N}\<close>
+      by blast
+    then have wf_Min: \<open>wf ?Min\<close>
+      apply (rule wf_subset)
+      by auto
     have wf_ana: \<open>wf ?ana\<close>
       by (rule wf_subset[OF 1])  auto
-    thm arg_cong[of _ _ \<open>wf\<close>]
     show ?thesis
       unfolding R
       apply (rule wf_union_compatible)
-      subgoal sorry
+      subgoal by (rule wf_Min)
       subgoal by (rule wf_ana)
       subgoal by (auto elim!: neq_NilE)
-      sorry
+      done
   qed
   have init: \<open>lit_redundant_inv M (N + U) D init_analysis (cach, init_analysis, False)\<close>
     using assms NU_C unfolding lit_redundant_inv_def conflict_min_analysis_stack_def
@@ -416,7 +488,8 @@ proof -
     unfolding lit_redundant_rec_def lit_redundant_rec_spec_def mark_failed_lits_def
       get_literal_and_remove_of_analyse_def get_propagation_reason_def
     apply (refine_vcg WHILEIT_rule[where R = R])
-    subgoal sorry -- \<open>Well foundedness\<close>
+      -- \<open>Well foundedness\<close>
+    subgoal by (rule wf_R)
     subgoal by (rule init)
     subgoal by simp
       -- \<open>We finished one stage:\<close>
