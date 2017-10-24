@@ -395,7 +395,8 @@ theorem redundancy_criterion_standard_extension_fair_derive_saturated_upto:
   shows "redundancy_criterion.saturated_upto \<Gamma> Rf Ri (limit_llist Ns)"
 proof -
   have "redundancy_criterion.saturated_upto \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>)) (limit_llist Ns)"
-    by (rule sat_preserving_effective_redundancy_criterion.fair_derive_saturated_upto[OF red' deriv fair])
+    by (rule sat_preserving_effective_redundancy_criterion.fair_derive_saturated_upto
+        [OF red' deriv fair])
   then show ?thesis
     by (rule redundancy_criterion_standard_extension_saturated_upto_iff[THEN iffD2, OF subs red])
 qed
