@@ -13,7 +13,7 @@ remdups: \<open>L \<in># C \<Longrightarrow> minimize_conflict M (add_mset (-L) 
 
 
 definition minimize_conflict_mes :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clause \<Rightarrow> nat list\<close> where
-\<open>minimize_conflict_mes M C = map (\<lambda>L. count C (-(lit_of L))) M\<close>
+\<open>minimize_conflict_mes M C = map (\<lambda>L. count C (-(lit_of L))) M @ [size {#L \<in># C. -L \<notin> lits_of_l M#}]\<close>
 
 context
   fixes M :: \<open>('v, 'v clause) ann_lits\<close> and N U :: \<open>'v clauses\<close> and
@@ -64,8 +64,47 @@ lemma rtranclp_minimize_conflict_entailed_trail:
   done
 
 lemma minimize_conflict_mes:
-  assumes \<open>minimize_conflict M C E\<close> and \<open>M \<Turnstile>as CNot C\<close>
-  shows \<open>(minimize_conflict_mes M E, minimize_conflict_mes M C) \<in> lexn less_than (length M)\<close>
+  assumes \<open>minimize_conflict M C E\<close>
+  shows \<open>index (map (atm_of o lit_of) (rev M)) `# atm_of `# E <
+         index (map (atm_of o lit_of) (rev M)) `# atm_of `# C\<close>
+   (is \<open>?f `# atm_of `# E < _\<close>)
+  using assms
+proof (induction rule: minimize_conflict.induct)
+  case (resolve_propa L E C) note in_trail = this
+  have \<open>?f (atm_of x) < ?f (atm_of L)\<close> if x: \<open>x \<in># remove1_mset L E\<close> for x
+  proof -
+    obtain M2 M1 where
+      M: \<open>M = M2 @ Propagated L E # M1\<close>
+      using split_list[OF in_trail] by metis
+    have \<open>a @ Propagated L mark # b = trail (M, N, U, Some D) \<longrightarrow>
+       b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> for L mark a b
+      using invs
+      unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+      by fast
+    then have L_E: \<open>L \<in># E\<close> and M_E: \<open>M1 \<Turnstile>as CNot (remove1_mset L E)\<close>
+      unfolding M by force+
+    then have \<open>-x \<in> lits_of_l M1\<close>
+      using x unfolding true_annots_true_cls_def_iff_negation_in_model by auto
+    then have \<open>?f (atm_of x) < length M1\<close>
+      using no_dup
+      by (auto simp: M lits_of_def index_append Decided_Propagated_in_iff_in_lits_of_l
+          uminus_lit_swap)
+    moreover have \<open>?f (atm_of L) = length M1\<close>
+      using no_dup unfolding M by (auto simp: index_append Decided_Propagated_in_iff_in_lits_of_l
+          atm_of_eq_atm_of lits_of_def)
+    ultimately show ?thesis by auto
+  qed
+
+  then show ?case by (auto simp: comp_def)
+next
+  case (remdups L C)
+  then show ?case by auto
+qed
+
+lemma minimize_conflict_mes:
+  assumes \<open>minimize_conflict M C E\<close>
+  shows \<open>(minimize_conflict_mes M E, minimize_conflict_mes M C) \<in> lexn less_than (Suc (length M))\<close>
   using assms
 proof (induction rule: minimize_conflict.induct)
   case (resolve_propa L E C) note in_trail = this(1) (* and M_C = this(2) *)
@@ -122,13 +161,21 @@ proof (induction rule: minimize_conflict.induct)
       H)
   have [simp]: \<open>length M - length M2 = Suc (length M1)\<close>
     unfolding M by auto
+  have notin_same: \<open>{#L \<in># C + remove1_mset L E. - L \<notin> lits_of_l M#} = 
+       {#L \<in># add_mset (- L) C. - L \<notin> lits_of_l M#}\<close>
+    using M_E multi_member_split[OF L_E]
+    by (auto simp: M filter_mset_empty_conv remove1_mset_empty_iff
+        true_annots_true_cls_def_iff_negation_in_model Ball_def
+        dest!: in_diffD)
   show ?case
-    unfolding minimize_conflict_mes_def
+    unfolding minimize_conflict_mes_def notin_same
+    apply (subst append_same_lexn)
+    apply (solves auto)
     apply (subst M)
     apply (subst M)
     unfolding map_append list.map(2) 1
     apply (subst prepend_same_lexn)
-    apply auto[]
+    apply (solves auto)
     apply (simp del: lexn.simps)
     apply (subst lexn_Suc)
     apply (intro conjI)
@@ -137,31 +184,47 @@ proof (induction rule: minimize_conflict.induct)
     subgoal by (rule disjI1) simp
     done
 next
-  case (remdups L C) note LC = this(1) and MC = this(2)
-  have \<open>L \<in> lits_of_l M\<close>
-    using MC LC unfolding true_annots_true_cls_def_iff_negation_in_model
-    by auto
-  then obtain M1 K M2 where
-     M: \<open>M = M2 @ K # M1\<close> and
-     [simp]: \<open>lit_of K = L\<close>
-    using split_list by (metis (no_types, lifting) imageE lits_of_def)
-  have 1: \<open>map (\<lambda>La. count (add_mset (- L) C) (- lit_of La)) M2 = map (\<lambda>La. count C (- lit_of La)) M2\<close>
-    apply (rule map_cong)
-    apply (rule refl)
-    using no_dup LC MC by (fastforce dest: no_dup_consistentD multi_member_split)
-  have 2: \<open>map (\<lambda>La. count (add_mset (- L) C) (- lit_of La)) M1 = map (\<lambda>La. count C (- lit_of La)) M1\<close>
-    apply (rule map_cong)
-    apply (rule refl)
-    using no_dup LC MC by (fastforce dest: no_dup_consistentD multi_member_split)
-  have [simp]: \<open>length M - length M2 = Suc (length M1)\<close>
-    unfolding M by auto
-
+  case (remdups L C) note LC = this(1)
+    (*  and MC = this(2) *)
   show ?case
-    unfolding minimize_conflict_mes_def
-    apply (subst M)
-    apply (subst M)
-    unfolding map_append list.map(2) 1 2
-    by (auto simp: uminus_lit_swap prepend_same_lexn lexn_Suc simp del: lexn.simps)
+  proof (cases \<open>L \<in> lits_of_l M\<close>)
+    case MC: True
+    then obtain M1 K M2 where
+      M: \<open>M = M2 @ K # M1\<close> and
+      [simp]: \<open>lit_of K = L\<close>
+      using split_list by (metis (no_types, lifting) imageE lits_of_def)
+    have 1: \<open>map (\<lambda>La. count (add_mset (- L) C) (- lit_of La)) M2 = map (\<lambda>La. count C (- lit_of La)) M2\<close>
+      apply (rule map_cong)
+       apply (rule refl)
+      using no_dup LC MC by (auto dest: no_dup_consistentD multi_member_split
+          simp: M Decided_Propagated_in_iff_in_lits_of_l lits_of_def)
+    have 2: \<open>map (\<lambda>La. count (add_mset (- L) C) (- lit_of La)) M1 = map (\<lambda>La. count C (- lit_of La)) M1\<close>
+      apply (rule map_cong)
+       apply (rule refl)
+      using no_dup LC MC by (fastforce dest: no_dup_consistentD multi_member_split
+          simp: M Decided_Propagated_in_iff_in_lits_of_l lits_of_def)
+    have [simp]: \<open>length M - length M2 = Suc (length M1)\<close>
+      unfolding M by auto
+    have same_notin: \<open>{#L \<in># add_mset (- L) C. - L \<notin> lits_of_l M#} = {#L \<in># C. - L \<notin> lits_of_l M#}\<close>
+      using MC by auto
+    show ?thesis
+      unfolding minimize_conflict_mes_def same_notin
+      apply (subst append_same_lexn)
+       apply (solves auto)
+      apply (subst M)
+      apply (subst M)
+      unfolding map_append list.map(2) 1 2
+      by (auto simp: uminus_lit_swap prepend_same_lexn lexn_Suc simp del: lexn.simps)
+  next
+    case False
+    have \<open>map (\<lambda>La. count (add_mset (- L) C) (- lit_of La)) M = 
+         map (\<lambda>La. count C (- lit_of La)) M\<close>
+      by (rule map_cong) (use False in auto)
+    then show ?thesis
+      unfolding minimize_conflict_mes_def
+      apply (subst prepend_same_lexn)
+      apply (auto simp: minimize_conflict_mes_def)
+
 qed
 
 lemma wf_minimize_conflict:
