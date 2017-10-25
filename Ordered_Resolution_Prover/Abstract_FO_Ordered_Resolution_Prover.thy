@@ -1887,7 +1887,6 @@ proof -
     then show "C \<in> limit_llist (lmap grounding_of_state Sts)"
       unfolding limit_llist_def clss_of_state_def grounding_of_clss_def by auto
   qed
-
   then have unsat2: "\<not> satisfiable (limit_llist (lmap grounding_of_state Sts))"
     using unsat unfolding true_clss_def by (meson contra_subsetD)
 
