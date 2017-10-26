@@ -202,22 +202,25 @@ lemma conflict_min_analysis_inv_update_failed:
   \<open>conflict_min_analysis_inv cach NU D \<Longrightarrow> conflict_min_analysis_inv (cach(L := SEEN_FAILED)) NU D\<close>
   by (auto simp: conflict_min_analysis_inv_def)
 
-definition conflict_min_analysis_stack
+fun conflict_min_analysis_stack
   :: \<open>'v clauses \<Rightarrow> 'v clause \<Rightarrow> 'v conflict_min_analyse \<Rightarrow> bool\<close>
 where
-  \<open>conflict_min_analysis_stack NU D analyse \<longleftrightarrow>
-     (\<forall>(L, E) \<in> set analyse. (\<exists>C. set_mset NU \<Turnstile>p add_mset (-L) C \<and>
-                  (\<forall>K\<in>#C-E. set_mset NU \<Turnstile>p D + {#-K#})))\<close>
+  \<open>conflict_min_analysis_stack NU D [] \<longleftrightarrow> True\<close> |
+  \<open>conflict_min_analysis_stack NU D ((L, E) # []) \<longleftrightarrow> True\<close> |
+  \<open>conflict_min_analysis_stack NU D ((L, E) # (L', E') # analyse) \<longleftrightarrow>
+     (\<exists>C. set_mset NU \<Turnstile>p add_mset (-L') C \<and> (\<forall>K\<in>#C-add_mset L E'. set_mset NU \<Turnstile>p D + {#-K#})) \<and>
+      conflict_min_analysis_stack NU D ((L', E') # analyse)\<close>
+
+fun conflict_min_analysis_stack_hd
+  :: \<open>'v clauses \<Rightarrow> 'v clause \<Rightarrow> 'v conflict_min_analyse \<Rightarrow> bool\<close>
+where
+  \<open>conflict_min_analysis_stack_hd NU D [] \<longleftrightarrow> True\<close> |
+  \<open>conflict_min_analysis_stack_hd NU D ((L, E) # _) \<longleftrightarrow>
+     (\<exists>C. set_mset NU \<Turnstile>p add_mset (-L) C \<and> (\<forall>K\<in>#C-E. set_mset NU \<Turnstile>p D + {#-K#}))\<close>
 
 lemma conflict_min_analysis_stack_tl:
   \<open>conflict_min_analysis_stack NU D analyse \<Longrightarrow> conflict_min_analysis_stack NU D (tl analyse)\<close>
-  by (cases analyse) (auto simp: conflict_min_analysis_stack_def)
-
-lemma conflict_min_analysis_stack_Cons:
-  \<open>conflict_min_analysis_stack NU D ((L, E) # analyse) \<longleftrightarrow>
-    conflict_min_analysis_stack NU D (analyse) \<and>
-    (\<exists>C. set_mset NU \<Turnstile>p add_mset (-L) C \<and> (\<forall>K\<in>#C-E. set_mset NU \<Turnstile>p D + {#-K#}))\<close>
-  by (cases analyse) (auto simp: conflict_min_analysis_stack_def)
+  by (cases \<open>(NU, D, analyse)\<close> rule: conflict_min_analysis_stack.cases) auto
 
 definition lit_redundant_inv
   :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'v clause \<Rightarrow> 'v conflict_min_analyse \<Rightarrow> 
@@ -226,7 +229,8 @@ definition lit_redundant_inv
            conflict_min_analysis_inv cach NU D \<and>
            (analyse \<noteq> [] \<longrightarrow> fst (hd init_analyse) = fst (last analyse)) \<and>
            (analyse = [] \<longrightarrow> b \<longrightarrow> cach (fst (hd init_analyse)) = SEEN_REMOVABLE) \<and>
-           conflict_min_analysis_stack NU D analyse)\<close>
+           conflict_min_analysis_stack NU D analyse \<and>
+           conflict_min_analysis_stack_hd NU D analyse)\<close>
 
 definition lit_redundant_rec :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'v clause \<Rightarrow>
      'v conflict_min_cach \<Rightarrow> 'v conflict_min_analyse \<Rightarrow>
@@ -448,7 +452,7 @@ proof -
       done
   qed
   have init_I: \<open>lit_redundant_inv M (N + U) D init_analysis (cach, init_analysis, False)\<close>
-    using assms NU_C unfolding lit_redundant_inv_def conflict_min_analysis_stack_def
+    using assms NU_C unfolding lit_redundant_inv_def
     by auto
   have \<open>(minimize_conflict M) D (remove1_mset L (C + D))\<close>
     using minimize_conflict.resolve_propa[OF in_trail, of \<open>remove1_mset L D\<close>] L_D
@@ -475,13 +479,14 @@ proof -
       cach: \<open>conflict_min_analysis_inv cach (N + U) D\<close> and
       ana: \<open>conflict_min_analysis_stack (N + U) D analysis\<close> and
       stack: \<open>conflict_min_analysis_stack (N + U) D analysis\<close> and
+      stack_hd: \<open>conflict_min_analysis_stack_hd (N + U) D analysis\<close> and
       last_analysis: \<open>analysis \<noteq> [] \<longrightarrow> fst (last analysis) = fst (hd init_analysis)\<close> and
       b: \<open>analysis = [] \<longrightarrow> b \<longrightarrow> cach (fst (hd init_analysis)) = SEEN_REMOVABLE\<close>
       using inv unfolding lit_redundant_inv_def s by auto
     obtain C where
        NU_C: \<open>N + U \<Turnstile>pm add_mset (-L) C\<close> and
        IH: \<open>\<And>K. K \<in># C \<Longrightarrow> N + U \<Turnstile>pm add_mset (-K) D\<close>
-      using stack unfolding conflict_min_analysis_stack_def analysis by auto
+      using stack_hd unfolding analysis by auto
 
     have NU_D: \<open>N + U \<Turnstile>pm add_mset (- fst (hd analysis)) D\<close>
       using conflict_minimize_intermediate_step[OF NU_C IH] unfolding analysis by auto
@@ -489,10 +494,33 @@ proof -
       using ana by (auto simp: conflict_min_analysis_stack_tl)
     have cach': \<open>conflict_min_analysis_inv (cach(fst (hd analysis) := SEEN_REMOVABLE)) (N + U) D\<close>
       using NU_D by (auto simp: conflict_min_analysis_inv_update_removable cach)
+    have stack_hd': \<open>conflict_min_analysis_stack_hd (N + U) D ana'\<close>
+    proof (cases \<open>ana' = []\<close>)
+      case True
+      then show ?thesis by auto
+    next
+      case False
+      then obtain L' C' ana'' where ana'': \<open>ana' = (L', C') # ana''\<close> by (cases ana'; cases \<open>hd ana'\<close>) auto
+      then obtain E' where
+         NU_E': \<open>N+U \<Turnstile>pm add_mset (- L') E'\<close> and
+         \<open>\<forall>K\<in>#E' - add_mset L C'. N+U \<Turnstile>pm add_mset (- K) D\<close>
+         using stack
+         by (auto simp: analysis ana'')
+       moreover have \<open>N+U \<Turnstile>pm add_mset (- L) D\<close>
+         using NU_D analysis by auto
+       moreover have \<open>K \<in># E' - C' \<Longrightarrow> K \<in># E' - add_mset L C' \<or> K = L\<close> for K
+         by (cases \<open>L \<in># E'\<close>)
+           (fastforce simp: minus_notin_trivial dest!: multi_member_split[of L] dest: in_remove1_msetI)+
+       ultimately have \<open>K \<in># E' - C' \<Longrightarrow> set_mset N \<union> set_mset U \<Turnstile>p add_mset (- K) D\<close> for K
+         by auto
+       then show ?thesis using NU_E'
+         unfolding ana'' by auto
+    qed
+
     have \<open>fst (hd init_analysis) = fst (last (tl analysis))\<close> if \<open>tl analysis \<noteq> []\<close>
       using last_analysis tl_last[symmetric, OF that] that unfolding ana' by auto
     then show ?I
-      using ana' cach' last_analysis unfolding lit_redundant_inv_def
+      using ana' cach' last_analysis stack_hd' unfolding lit_redundant_inv_def
       by (auto simp: analysis)
     show ?I'
       using inv_I' unfolding I'_def s by (auto simp: analysis)
@@ -530,6 +558,7 @@ proof -
       cach: \<open>conflict_min_analysis_inv cach (N + U) D\<close> and
       ana: \<open>conflict_min_analysis_stack (N + U) D analyse\<close> and
       stack: \<open>conflict_min_analysis_stack (N + U) D analyse\<close> and
+      stack_hd: \<open>conflict_min_analysis_stack_hd (N + U) D analyse\<close> and
       last_analysis: \<open>analyse \<noteq> [] \<longrightarrow> fst (last analyse) = fst (hd init_analysis)\<close> and
       b: \<open>analyse = [] \<longrightarrow> b \<longrightarrow> cach (fst (hd init_analysis)) = SEEN_REMOVABLE\<close>
       using inv unfolding lit_redundant_inv_def s by auto
@@ -547,8 +576,7 @@ proof -
       obtain CK where
         \<open>N + U \<Turnstile>pm add_mset (- K) CK\<close> and
         \<open>\<forall>K\<in>#CK - C. N + U \<Turnstile>pm D + {#- K#}\<close>
-        using stack unfolding analysis conflict_min_analysis_stack_Cons
-        by auto
+        using stack_hd unfolding analysis by auto
       then have \<open>?P CK\<close>
         using L by (auto simp: minus_remove1_mset_if)
       then show ?thesis by blast
@@ -564,21 +592,18 @@ proof -
       moreover obtain CK where
         \<open>N + U \<Turnstile>pm add_mset (- K) CK\<close> and
         \<open>\<forall>K\<in>#CK - C. N + U \<Turnstile>pm D + {#- K#}\<close>
-        using stack unfolding analysis conflict_min_analysis_stack_Cons
-        by auto
+        using stack_hd unfolding analysis by auto
       ultimately have \<open>?P CK\<close>
         by (auto simp: minus_remove1_mset_if intro: conflict_minimize_intermediate_step)
       then show ?thesis by blast
     qed note H = this
     have stack': \<open>conflict_min_analysis_stack (N + U) D ana\<close>
-      unfolding ana' conflict_min_analysis_stack_Cons
-      apply (intro conjI)
-      subgoal using stack unfolding ana' analysis conflict_min_analysis_stack_Cons
-        by auto
-      subgoal using H .
-      done
+      using stack unfolding ana' analysis by (cases ana') auto
+    have stack_hd': \<open>conflict_min_analysis_stack_hd (N + U) D ana\<close>
+      using stack unfolding ana' analysis sorry
+
     show ?I
-      using last_analysis' cach stack' unfolding lit_redundant_inv_def s
+      using last_analysis' cach stack' stack_hd' unfolding lit_redundant_inv_def s
       by auto
     have \<open>M \<Turnstile>as CNot (?f ana)\<close>
       using inv_I' unfolding I'_def s ana analysis ana'
@@ -622,7 +647,7 @@ proof -
     have \<open>conflict_min_analysis_inv cach' (N + U) D\<close>
       using cach cach_update by (auto simp: conflict_min_analysis_inv_def)
     moreover have \<open>conflict_min_analysis_stack (N + U) D []\<close>
-      unfolding conflict_min_analysis_stack_def by simp
+      by simp
     ultimately show ?I
       unfolding lit_redundant_inv_def by simp
     show ?I'
@@ -630,8 +655,10 @@ proof -
     show ?R
       using nempty unfolding R_def s by auto
   qed
-  have \<open>lit_redundant_inv M (N + U) D init_analysis
-       (cach, (L, remove1_mset L E') # ana, False)\<close> (is ?I)
+  have is_propagation_inv: \<open>lit_redundant_inv M (N + U) D init_analysis
+       (cach, (L, remove1_mset (-L) E') # ana, False)\<close> (is ?I) and
+    is_propagation_I': \<open>I' (cach, (L, remove1_mset (-L) E') # ana, False)\<close> (is ?I') and
+    is_propagation_R: \<open>((cach, (L, remove1_mset (-L) E') # ana, False), s) \<in> R\<close> (is ?R)
     if 
       inv: \<open>lit_redundant_inv M (N + U) D init_analysis s\<close> and
       inv_I': \<open>I' s\<close> and
@@ -664,14 +691,15 @@ proof -
     have NU_E: \<open>N + U \<Turnstile>pm add_mset (- L) (remove1_mset (-L) E')\<close> and uL_E: \<open>-L \<in># E'\<close>
       sorry
     have \<open>conflict_min_analysis_stack (N + U) D ((L, remove1_mset (-L) E') # ana)\<close>
-      using stack E next_lit NU_E uL_E unfolding s 
-      apply (auto simp: conflict_min_analysis_stack_def analysis ana'
-          intro: exI[of _ \<open>remove1_mset (-L) E'\<close>])
-      apply (rule_tac x=C in exI)
-      apply auto
-      sorry
+      using stack E next_lit NU_E uL_E unfolding s analysis ana'
+      by (cases ana') (auto simp: analysis ana')
     show ?I
       using cach unfolding lit_redundant_inv_def apply clarify
+      sorry
+    show ?I' sorry
+    show ?R
+      using nemtpy_stack unfolding s analysis ana' apply (auto simp: R_def
+          intro: resolve_propa)
       sorry
   qed
   show ?thesis
@@ -696,10 +724,9 @@ proof -
     subgoal by (rule failed_I')
     subgoal by (rule failed_R)
         -- \<open>The literal was propagated:\<close>
-    subgoal 
-      sorry
-    subgoal sorry
-    subgoal sorry
+    subgoal by (rule is_propagation_inv)
+    subgoal by (rule is_propagation_I')
+    subgoal by (rule is_propagation_R)
         -- \<open>End of Loop invariant:\<close>
     subgoal by (auto simp: lit_redundant_inv_def conflict_min_analysis_inv_def analysis)
     subgoal by (auto simp: lit_redundant_inv_def conflict_min_analysis_inv_def analysis)
