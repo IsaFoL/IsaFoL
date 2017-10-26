@@ -7,6 +7,39 @@ no_notation Ref.update ("_ := _" 62)
 declare cdcl\<^sub>W_restart_mset_state[simp]
 
 
+lemma Propagated_in_trail_entailed:
+  assumes
+    invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N, U, Some D)\<close> and
+    in_trail: \<open>Propagated L C \<in> set M\<close>
+  shows \<open>M \<Turnstile>as CNot (remove1_mset L C)\<close> and \<open>L \<in># C\<close> and \<open>N + U \<Turnstile>pm C\<close>
+proof -
+  obtain M2 M1 where
+    M: \<open>M = M2 @ Propagated L C # M1\<close>
+    using split_list[OF in_trail] by metis
+  have \<open>a @ Propagated L mark # b = trail (M, N, U, Some D) \<longrightarrow>
+       b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> for L mark a b
+    using invs
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+    by fast
+  then have L_E: \<open>L \<in># C\<close> and M_E: \<open>M1 \<Turnstile>as CNot (remove1_mset L C)\<close>
+    unfolding M by force+
+  then have M_E: \<open>M \<Turnstile>as CNot (remove1_mset L C)\<close>
+    unfolding M by (simp add: true_annots_append_l)
+  show \<open>M \<Turnstile>as CNot (remove1_mset L C)\<close> and \<open>L \<in># C\<close>
+    using L_E M_E by fast+
+  have \<open>set (get_all_mark_of_propagated (trail (M, N, U, Some D)))
+    \<subseteq> set_mset (cdcl\<^sub>W_restart_mset.clauses (M, N, U, Some D))\<close>
+    using invs
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+    by fast
+  then have \<open>C \<in># N + U\<close>
+    using in_trail cdcl\<^sub>W_restart_mset.in_get_all_mark_of_propagated_in_trail[of C M]
+    by (auto simp: clauses_def)
+  then show \<open>N + U \<Turnstile>pm C\<close> by auto
+qed
+
 inductive minimize_conflict :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clause \<Rightarrow> 'v clause \<Rightarrow> bool\<close> for M where
 resolve_propa: \<open>Propagated L E \<in> set M \<Longrightarrow> minimize_conflict M (add_mset (-L) C) (C + remove1_mset L E)\<close> |
 remdups: \<open>minimize_conflict M (add_mset L C) C\<close>
@@ -34,21 +67,8 @@ lemma minimize_conflict_entailed_trail:
   using assms
 proof (induction rule: minimize_conflict.induct)
   case (resolve_propa L E C) note in_trail = this(1) and M_C = this(2)
-  obtain M2 M1 where
-    M: \<open>M = M2 @ Propagated L E # M1\<close>
-    using split_list[OF in_trail] by metis
-  have \<open>a @ Propagated L mark # b = trail (M, N, U, Some D) \<longrightarrow>
-       b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> for L mark a b
-    using invs
-    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-    by fast
-  then have L_E: \<open>L \<in># E\<close> and M_E: \<open>M1 \<Turnstile>as CNot (remove1_mset L E)\<close>
-    unfolding M by force+
-  then have M_E: \<open>M \<Turnstile>as CNot (remove1_mset L E)\<close>
-    unfolding M by (simp add: true_annots_append_l)
-  show ?case
-    using M_E M_C L_E by (auto dest!: multi_member_split)
+  then show ?case
+    using Propagated_in_trail_entailed[OF invs in_trail] by (auto dest!: multi_member_split)
 next
   case (remdups L C)
   then show ?case
@@ -211,6 +231,10 @@ where
      (\<exists>C. set_mset NU \<Turnstile>p add_mset (-L') C \<and> (\<forall>K\<in>#C-add_mset L E'. set_mset NU \<Turnstile>p D + {#-K#})) \<and>
       conflict_min_analysis_stack NU D ((L', E') # analyse)\<close>
 
+lemma conflict_min_analysis_stack_change_hd:
+  \<open>conflict_min_analysis_stack NU D ((L, E) # ana) \<Longrightarrow> conflict_min_analysis_stack NU D ((L, E') # ana)\<close>
+  by (cases ana, auto)
+
 fun conflict_min_analysis_stack_hd
   :: \<open>'v clauses \<Rightarrow> 'v clause \<Rightarrow> 'v conflict_min_analyse \<Rightarrow> bool\<close>
 where
@@ -334,11 +358,12 @@ proof -
 qed
 end
 
+
 lemma
   fixes L :: \<open>'v literal\<close>
   assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N, U, Some D)\<close>
-  assumes analysis:
-    \<open>init_analysis = [(L, C)]\<close> and
+  assumes 
+    init_analysis: \<open>init_analysis = [(L, C)]\<close> and
     in_trail: \<open>Propagated (-L) (add_mset (-L) C) \<in> set M\<close> and
     \<open>conflict_min_analysis_inv cach (N + U) D\<close> and
     L_D: \<open>L \<in># D\<close>
@@ -459,7 +484,7 @@ proof -
     by (auto simp: ac_simps)
 
   then have init_I': \<open>I' (cach, init_analysis, False)\<close>
-    using M_D L_D M_C unfolding I'_def by (auto simp: analysis)
+    using M_D L_D M_C unfolding I'_def by (auto simp: init_analysis)
   have all_removed: \<open>lit_redundant_inv M (N + U) D init_analysis
        (cach(fst (hd analysis) := SEEN_REMOVABLE), tl analysis, True)\<close> (is ?I) and
      all_removed_I': \<open>I' (cach(fst (hd analysis) := SEEN_REMOVABLE), tl analysis, True)\<close> (is ?I')
@@ -566,7 +591,7 @@ proof -
     have last_analysis': \<open>ana \<noteq> [] \<Longrightarrow> fst (hd init_analysis) = fst (last ana)\<close>
       using last_analysis next_lit unfolding analysis s 
       by (cases ana) (auto split: if_splits)
-    have \<open>\<exists>CK. N + U \<Turnstile>pm add_mset (- K) CK \<and> (\<forall>K\<in>#CK - remove1_mset L C. N + U \<Turnstile>pm D + {#- K#})\<close>
+    have H: \<open>\<exists>CK. N + U \<Turnstile>pm add_mset (- K) CK \<and> (\<forall>K\<in>#CK - remove1_mset L C. N + U \<Turnstile>pm D + {#- K#})\<close>
       (is \<open>\<exists>C. ?P C\<close>)
       using lev0_removable
     proof
@@ -600,7 +625,7 @@ proof -
     have stack': \<open>conflict_min_analysis_stack (N + U) D ana\<close>
       using stack unfolding ana' analysis by (cases ana') auto
     have stack_hd': \<open>conflict_min_analysis_stack_hd (N + U) D ana\<close>
-      using stack unfolding ana' analysis sorry
+      using H unfolding ana' by auto
 
     show ?I
       using last_analysis' cach stack' stack_hd' unfolding lit_redundant_inv_def s
@@ -685,22 +710,42 @@ proof -
       cach: \<open>conflict_min_analysis_inv cach (N + U) D\<close> and
       ana: \<open>conflict_min_analysis_stack (N + U) D analyse\<close> and
       stack: \<open>conflict_min_analysis_stack (N + U) D analyse\<close> and
+      stack_hd: \<open>conflict_min_analysis_stack_hd (N + U) D analyse\<close> and
       last_analysis: \<open>analyse \<noteq> [] \<longrightarrow> fst (last analyse) = fst (hd init_analysis)\<close> and
       b: \<open>analyse = [] \<longrightarrow> b \<longrightarrow> cach (fst (hd init_analysis)) = SEEN_REMOVABLE\<close>
       using inv unfolding lit_redundant_inv_def s by auto
-    have NU_E: \<open>N + U \<Turnstile>pm add_mset (- L) (remove1_mset (-L) E')\<close> and uL_E: \<open>-L \<in># E'\<close>
-      sorry
+    have NU_E: \<open>N + U \<Turnstile>pm add_mset (- L) (remove1_mset (-L) E')\<close> and uL_E: \<open>-L \<in># E'\<close> and
+       M_E': \<open>M \<Turnstile>as CNot (remove1_mset (- L) E')\<close>
+      using Propagated_in_trail_entailed[OF invs, of \<open>-L\<close> E'] E by auto
     have \<open>conflict_min_analysis_stack (N + U) D ((L, remove1_mset (-L) E') # ana)\<close>
-      using stack E next_lit NU_E uL_E unfolding s analysis ana'
-      by (cases ana') (auto simp: analysis ana')
-    show ?I
-      using cach unfolding lit_redundant_inv_def apply clarify
-      sorry
-    show ?I' sorry
-    show ?R
-      using nemtpy_stack unfolding s analysis ana' apply (auto simp: R_def
+      using stack E next_lit NU_E uL_E stack_hd unfolding s ana'[symmetric]
+      by (auto simp: analysis ana' conflict_min_analysis_stack_change_hd)
+    moreover have \<open>conflict_min_analysis_stack_hd (N + U) D ((L, remove1_mset (- L) E') # ana)\<close>
+      using NU_E by auto
+    moreover have \<open>fst (hd init_analysis) = fst (last ((L, remove1_mset (- L) E') # ana))\<close>
+      using last_analysis unfolding analysis ana' by auto
+    ultimately show ?I
+      using cach b unfolding lit_redundant_inv_def analysis by auto
+
+    show ?I'
+      using M_E' inv_I' unfolding I'_def s ana analysis ana' by (auto simp: true_annot_CNot_diff)
+
+    have \<open>L \<in># C\<close> and in_trail: \<open>Propagated (- L) (the E) \<in> set M\<close> and E: \<open>the E = E'\<close>
+      using next_lit E by (auto simp: analysis ana' s)
+    then obtain E'' C' where 
+      E': \<open>E' = add_mset (-L) E''\<close> and
+      C: \<open>C = add_mset L C'\<close>
+      using uL_E by (blast dest: multi_member_split)
+
+    have \<open>minimize_conflict M (C + fold_mset op + D (snd `# mset ana'))
+           (remove1_mset (- L) E' + (remove1_mset L C + fold_mset op + D (snd `# mset ana')))\<close>
+      using minimize_conflict.resolve_propa[OF in_trail, of \<open>C' + fold_mset op + D (snd `# mset ana')\<close>]
+      unfolding C E' E
+      by (auto simp: ac_simps)
+
+    then show ?R
+      using nemtpy_stack unfolding s analysis ana' by (auto simp: R_def
           intro: resolve_propa)
-      sorry
   qed
   show ?thesis
     unfolding lit_redundant_rec_def lit_redundant_rec_spec_def mark_failed_lits_def
@@ -728,8 +773,8 @@ proof -
     subgoal by (rule is_propagation_I')
     subgoal by (rule is_propagation_R)
         -- \<open>End of Loop invariant:\<close>
-    subgoal by (auto simp: lit_redundant_inv_def conflict_min_analysis_inv_def analysis)
-    subgoal by (auto simp: lit_redundant_inv_def conflict_min_analysis_inv_def analysis)
+    subgoal by (auto simp: lit_redundant_inv_def conflict_min_analysis_inv_def init_analysis)
+    subgoal by (auto simp: lit_redundant_inv_def conflict_min_analysis_inv_def init_analysis)
     done
 qed
 
