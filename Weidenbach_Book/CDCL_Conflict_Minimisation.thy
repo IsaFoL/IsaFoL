@@ -177,7 +177,7 @@ definition get_literal_and_remove_of_analyse
    :: \<open>'v conflict_min_analyse \<Rightarrow> ('v literal \<times> 'v conflict_min_analyse) nres\<close> where
   \<open>get_literal_and_remove_of_analyse analyse =
     SPEC(\<lambda>(L, ana). L \<in># snd (hd analyse) \<and> tl ana = tl analyse \<and> ana \<noteq> [] \<and>
-         hd ana = (fst (hd analyse), snd (hd (analyse))- {#L#}))\<close>
+         hd ana = (fst (hd analyse), snd (hd (analyse)) - {#L#}))\<close>
 
 definition get_propagation_reason where
   \<open>get_propagation_reason M L = SPEC(\<lambda>C. C \<noteq> None \<longrightarrow> Propagated (-L) (the C) \<in> set M)\<close>
@@ -219,7 +219,9 @@ lemma conflict_min_analysis_stack_Cons:
     (\<exists>C. set_mset NU \<Turnstile>p add_mset (-L) C \<and> (\<forall>K\<in>#C-E. set_mset NU \<Turnstile>p D + {#-K#}))\<close>
   by (cases analyse) (auto simp: conflict_min_analysis_stack_def)
 
-definition lit_redundant_inv where
+definition lit_redundant_inv
+  :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'v clause \<Rightarrow> 'v conflict_min_analyse \<Rightarrow> 
+        'v conflict_min_cach \<times> 'v conflict_min_analyse \<times> bool \<Rightarrow> bool\<close> where
   \<open>lit_redundant_inv M NU D init_analyse = (\<lambda>(cach, analyse, b).
            conflict_min_analysis_inv cach NU D \<and>
            (analyse \<noteq> [] \<longrightarrow> fst (hd init_analyse) = fst (last analyse)) \<and>
@@ -245,7 +247,7 @@ where
                else do {
                   C \<leftarrow> get_propagation_reason M L;
                   case C of
-                    Some C \<Rightarrow> RETURN (cach, (L, C - {#L#}) # analyse, False)
+                    Some C \<Rightarrow> RETURN (cach, (L, C - {#-L#}) # analyse, False)
                   | None \<Rightarrow> do {
                       cach \<leftarrow> mark_failed_lits analyse cach;
                       RETURN (cach, [], False)
@@ -375,15 +377,19 @@ proof -
   define R where
     \<open>R = {((cach :: 'v conflict_min_cach, analysis :: 'v conflict_min_analyse, b::bool),
            (cach' :: 'v conflict_min_cach, analysis' :: 'v conflict_min_analyse, b' :: bool)).
-                (minimize_conflict M) (?f analysis') (?f analysis) \<or>
-          (analysis' \<noteq> [] \<and> analysis = tl analysis' \<and> snd (hd analysis') = {#})}\<close>
+           (analysis' \<noteq> [] \<and> (minimize_conflict M) (?f analysis') (?f analysis)) \<or>
+           (analysis' \<noteq> [] \<and> analysis = tl analysis' \<and> snd (hd analysis') = {#}) \<or>
+           (analysis' \<noteq> [] \<and>analysis = [])}\<close>
   have wf_R: \<open>wf R\<close>
   proof -
-    have R: \<open>R = {((cach, analysis, b), (cach', analysis', b')).
-                  (minimize_conflict M) (?f analysis') (?f analysis)} \<union>
+    have R: \<open>R = 
               {((cach, analysis, b), (cach', analysis', b')).
-                  analysis' \<noteq> [] \<and> analysis = tl analysis' \<and> snd (hd analysis') = {#}}\<close>
-      (is \<open>_ = ?Min \<union> ?ana\<close>)
+                 analysis' \<noteq> [] \<and>analysis = []} \<union>
+              ({((cach, analysis, b), (cach', analysis', b')).
+                  analysis' \<noteq> [] \<and> (minimize_conflict M) (?f analysis') (?f analysis)} \<union>
+              {((cach, analysis, b), (cach', analysis', b')).
+                  analysis' \<noteq> [] \<and> analysis = tl analysis' \<and> snd (hd analysis') = {#}})\<close>
+      (is \<open>_ = ?end \<union> (?Min \<union> ?ana)\<close>)
       unfolding R_def by auto
     have 1: \<open>wf {((cach:: 'v conflict_min_cach, analysis:: 'v conflict_min_analyse, b::bool),
          (cach':: 'v conflict_min_cach, analysis':: 'v conflict_min_analyse, b'::bool)).
@@ -416,12 +422,29 @@ proof -
       by auto
     have wf_ana: \<open>wf ?ana\<close>
       by (rule wf_subset[OF 1])  auto
-    show ?thesis
-      unfolding R
+    have wf: \<open>wf (?Min \<union> ?ana)\<close>
       apply (rule wf_union_compatible)
       subgoal by (rule wf_Min)
       subgoal by (rule wf_ana)
       subgoal by (auto elim!: neq_NilE)
+      done
+    have wf_end: \<open>wf ?end\<close>
+    proof (rule ccontr)
+      assume \<open>\<not> ?thesis\<close>
+      then obtain f where f: \<open>(f (Suc i), f i) \<in> ?end\<close> for i
+        unfolding wf_iff_no_infinite_down_chain by auto
+      have \<open>fst (snd (f (Suc 0))) = []\<close>
+        using f[of 0] by auto
+      moreover have \<open>fst (snd (f (Suc 0))) \<noteq> []\<close>
+        using f[of 1] by auto
+      ultimately show False by blast
+    qed
+    show ?thesis
+      unfolding R   
+      apply (rule wf_Un)
+      subgoal by (rule wf_end)
+      subgoal by (rule wf)
+      subgoal by auto
       done
   qed
   have init_I: \<open>lit_redundant_inv M (N + U) D init_analysis (cach, init_analysis, False)\<close>
@@ -638,8 +661,14 @@ proof -
       last_analysis: \<open>analyse \<noteq> [] \<longrightarrow> fst (last analyse) = fst (hd init_analysis)\<close> and
       b: \<open>analyse = [] \<longrightarrow> b \<longrightarrow> cach (fst (hd init_analysis)) = SEEN_REMOVABLE\<close>
       using inv unfolding lit_redundant_inv_def s by auto
-    have \<open>conflict_min_analysis_stack (N + U) D ((L, remove1_mset L E') # ana)\<close>
-      using stack E next_lit unfolding s apply (auto simp: conflict_min_analysis_stack_def analysis ana')
+    have NU_E: \<open>N + U \<Turnstile>pm add_mset (- L) (remove1_mset (-L) E')\<close> and uL_E: \<open>-L \<in># E'\<close>
+      sorry
+    have \<open>conflict_min_analysis_stack (N + U) D ((L, remove1_mset (-L) E') # ana)\<close>
+      using stack E next_lit NU_E uL_E unfolding s 
+      apply (auto simp: conflict_min_analysis_stack_def analysis ana'
+          intro: exI[of _ \<open>remove1_mset (-L) E'\<close>])
+      apply (rule_tac x=C in exI)
+      apply auto
       sorry
     show ?I
       using cach unfolding lit_redundant_inv_def apply clarify
