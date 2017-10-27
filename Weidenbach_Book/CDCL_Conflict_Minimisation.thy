@@ -287,7 +287,7 @@ where
 
 definition lit_redundant_rec_spec where
   \<open>lit_redundant_rec_spec NU D L =
-    SPEC(\<lambda>(cach, analysis, b). (b \<longrightarrow> set_mset NU \<Turnstile>p add_mset (-L) D) \<and>
+    SPEC(\<lambda>(cach, analysis, b). (b \<longrightarrow> NU \<Turnstile>pm add_mset (-L) D) \<and>
      conflict_min_analysis_inv cach NU D)\<close>
 
 (* TODO Move *)
@@ -408,7 +408,7 @@ proof -
            (cach' :: 'v conflict_min_cach, analysis' :: 'v conflict_min_analyse, b' :: bool)).
            (analysis' \<noteq> [] \<and> (minimize_conflict M) (?f analysis') (?f analysis)) \<or>
            (analysis' \<noteq> [] \<and> analysis = tl analysis' \<and> snd (hd analysis') = {#}) \<or>
-           (analysis' \<noteq> [] \<and>analysis = [])}\<close>
+           (analysis' \<noteq> [] \<and> analysis = [])}\<close>
   have wf_R: \<open>wf R\<close>
   proof -
     have R: \<open>R = 
