@@ -349,11 +349,13 @@ where
         (\<lambda>(cach, analyse, b). analyse \<noteq> [])
         (\<lambda>(cach, analyse, b). do {
             ASSERT(analyse \<noteq> []);
+            ASSERT(-fst (hd analyse) \<in> lits_of_l M);
             if snd (hd analyse) = {#}
             then
                RETURN(cach (atm_of (fst (hd analyse)) := SEEN_REMOVABLE), tl analyse, True)
             else do {
                (L, analyse) \<leftarrow> get_literal_and_remove_of_analyse analyse;
+               ASSERT(-L \<in> lits_of_l M);
                if (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D)
                then RETURN (cach, analyse, False)
                else do {
@@ -930,10 +932,16 @@ proof -
     subgoal by (rule init_I)
     subgoal by (rule init_I')
     subgoal by simp
+      -- \<open>Assertion:\<close>
+    subgoal for s cach s' analyse ba
+      by (cases \<open>analyse\<close>) (auto simp: lit_redundant_inv_def)
         -- \<open>We finished one stage:\<close>
     subgoal by (rule all_removed)
     subgoal by (rule all_removed_I')
     subgoal by (rule all_removed_R)
+      -- \<open>Assertion:\<close>
+    subgoal for s cach s' analyse ba
+      by (cases \<open>analyse\<close>) (auto simp: I'_def dest!: multi_member_split)
         -- \<open>Cached or level 0:\<close>
     subgoal by (rule seen_removable_inv)
     subgoal by (rule seen_removable_I')
