@@ -264,7 +264,7 @@ qed
 datatype minimizer = SEEN_FAILED | SEEN_REMOVABLE | SEEN_UNKNOWN
 
 type_synonym 'v conflict_min_analyse = \<open>('v literal \<times> 'v clause) list\<close>
-type_synonym 'v conflict_min_cach = \<open>'v literal \<Rightarrow> minimizer\<close>
+type_synonym 'v conflict_min_cach = \<open>'v \<Rightarrow> minimizer\<close>
 
 definition get_literal_and_remove_of_analyse
    :: \<open>'v conflict_min_analyse \<Rightarrow> ('v literal \<times> 'v conflict_min_analyse) nres\<close> where
@@ -278,20 +278,21 @@ definition get_propagation_reason where
 definition mark_failed_lits
   :: \<open>'v conflict_min_analyse \<Rightarrow> 'v conflict_min_cach \<Rightarrow> 'v conflict_min_cach nres\<close>
 where
-  \<open>mark_failed_lits analyse cach = SPEC(\<lambda>cach'. (\<forall>L. cach' L = SEEN_REMOVABLE \<longrightarrow> cach L = SEEN_REMOVABLE))\<close>
+  \<open>mark_failed_lits analyse cach = SPEC(\<lambda>cach'.
+     (\<forall>L. cach' L = SEEN_REMOVABLE \<longrightarrow> cach L = SEEN_REMOVABLE))\<close>
 
 
 definition conflict_min_analysis_inv
   :: \<open>('v, 'a) ann_lits \<Rightarrow> 'v conflict_min_cach \<Rightarrow> 'v clauses \<Rightarrow> 'v clause \<Rightarrow> bool\<close>
 where
   \<open>conflict_min_analysis_inv M cach NU D \<longleftrightarrow>
-    (\<forall>L. cach L = SEEN_REMOVABLE \<longrightarrow>
-        set_mset NU \<Turnstile>p add_mset (-L) (filter_to_poslev M L D))\<close>
+    (\<forall>L. -L \<in> lits_of_l M \<longrightarrow> cach (atm_of L) = SEEN_REMOVABLE \<longrightarrow> set_mset NU \<Turnstile>p add_mset (-L) (filter_to_poslev M L D))\<close>
 
 lemma conflict_min_analysis_inv_update_removable:
-  \<open>conflict_min_analysis_inv M (cach(L := SEEN_REMOVABLE)) NU D \<longleftrightarrow>
+  \<open>no_dup M \<Longrightarrow> -L \<in> lits_of_l M \<Longrightarrow> conflict_min_analysis_inv M (cach(atm_of L := SEEN_REMOVABLE)) NU D \<longleftrightarrow>
        conflict_min_analysis_inv M cach NU D \<and> set_mset NU \<Turnstile>p add_mset (-L) (filter_to_poslev M L D)\<close>
-  by (auto simp: conflict_min_analysis_inv_def)
+  by (auto simp: conflict_min_analysis_inv_def atm_of_eq_atm_of dest: no_dup_consistentD)
+
 
 lemma conflict_min_analysis_inv_update_failed:
   \<open>conflict_min_analysis_inv M cach NU D \<Longrightarrow> conflict_min_analysis_inv M (cach(L := SEEN_FAILED)) NU D\<close>
@@ -308,6 +309,7 @@ where
            K \<in># filter_to_poslev M L' D) \<and>
        (\<forall>K\<in>#C. index_in_trail M K < index_in_trail M L') \<and>
        E' \<subseteq># C) \<and>
+     -L' \<in> lits_of_l M \<and>
      index_in_trail M L < index_in_trail M L' \<and>
      conflict_min_analysis_stack M NU D ((L', E') # analyse)\<close>
 
@@ -321,7 +323,7 @@ where
   \<open>conflict_min_analysis_stack_hd M NU D [] \<longleftrightarrow> True\<close> |
   \<open>conflict_min_analysis_stack_hd M NU D ((L, E) # _) \<longleftrightarrow>
      (\<exists>C. set_mset NU \<Turnstile>p add_mset (-L) C \<and>
-     (\<forall>K\<in>#C. index_in_trail M K < index_in_trail M L) \<and> E \<subseteq># C \<and>
+     (\<forall>K\<in>#C. index_in_trail M K < index_in_trail M L) \<and> E \<subseteq># C \<and> -L \<in> lits_of_l M \<and>
      (\<forall>K\<in>#C-E. set_mset NU \<Turnstile>p (filter_to_poslev M L D) + {#-K#} \<or> K \<in># filter_to_poslev M L D))\<close>
 
 lemma conflict_min_analysis_stack_tl:
@@ -334,7 +336,7 @@ definition lit_redundant_inv
   \<open>lit_redundant_inv M NU D init_analyse = (\<lambda>(cach, analyse, b).
            conflict_min_analysis_inv M cach NU D \<and>
            (analyse \<noteq> [] \<longrightarrow> fst (hd init_analyse) = fst (last analyse)) \<and>
-           (analyse = [] \<longrightarrow> b \<longrightarrow> cach (fst (hd init_analyse)) = SEEN_REMOVABLE) \<and>
+           (analyse = [] \<longrightarrow> b \<longrightarrow> cach (atm_of (fst (hd init_analyse))) = SEEN_REMOVABLE) \<and>
            conflict_min_analysis_stack M NU D analyse \<and>
            conflict_min_analysis_stack_hd M NU D analyse)\<close>
 
@@ -349,10 +351,10 @@ where
             ASSERT(analyse \<noteq> []);
             if snd (hd analyse) = {#}
             then
-               RETURN(cach ((fst (hd analyse)) := SEEN_REMOVABLE), tl analyse, True)
+               RETURN(cach (atm_of (fst (hd analyse)) := SEEN_REMOVABLE), tl analyse, True)
             else do {
                (L, analyse) \<leftarrow> get_literal_and_remove_of_analyse analyse;
-               if (get_level M L = 0 \<or> cach L = SEEN_REMOVABLE \<or> L \<in># D)
+               if (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D)
                then RETURN (cach, analyse, False)
                else do {
                   C \<leftarrow> get_propagation_reason M L;
@@ -480,6 +482,11 @@ proof -
     by (auto simp: clauses_def)
   then have NU_C: \<open>N + U \<Turnstile>pm add_mset (- L) C\<close>
     by auto
+  have n_d: \<open>no_dup M\<close>
+    using invs
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by auto
 
   let ?f = \<open>\<lambda>analysis. fold_mset (op +) D (snd `# mset analysis)\<close>
   define I' where
@@ -558,8 +565,9 @@ proof -
       subgoal by auto
       done
   qed
-
-  have init_I: \<open>lit_redundant_inv M (N + U) D init_analysis (cach, init_analysis, False)\<close>
+  have uL_M: \<open>- L \<in> lits_of_l M\<close>
+    using in_trail by (force simp: lits_of_def)
+  then have init_I: \<open>lit_redundant_inv M (N + U) D init_analysis (cach, init_analysis, False)\<close>
     using assms NU_C  Propagated_in_trail_entailed[OF invs in_trail]
     unfolding lit_redundant_inv_def
     by auto
@@ -571,8 +579,8 @@ proof -
   then have init_I': \<open>I' (cach, init_analysis, False)\<close>
     using M_D L_D M_C unfolding I'_def by (auto simp: init_analysis)
   have all_removed: \<open>lit_redundant_inv M (N + U) D init_analysis
-       (cach(fst (hd analysis) := SEEN_REMOVABLE), tl analysis, True)\<close> (is ?I) and
-     all_removed_I': \<open>I' (cach(fst (hd analysis) := SEEN_REMOVABLE), tl analysis, True)\<close> (is ?I')
+       (cach(atm_of (fst (hd analysis)) := SEEN_REMOVABLE), tl analysis, True)\<close> (is ?I) and
+     all_removed_I': \<open>I' (cach(atm_of (fst (hd analysis)) := SEEN_REMOVABLE), tl analysis, True)\<close> (is ?I')
     if
       inv: \<open>lit_redundant_inv M (N + U) D init_analysis s\<close> and
       inv_I': \<open>I' s\<close>
@@ -591,12 +599,13 @@ proof -
       stack: \<open>conflict_min_analysis_stack M (N + U) D analysis\<close> and
       stack_hd: \<open>conflict_min_analysis_stack_hd M (N + U) D analysis\<close> and
       last_analysis: \<open>analysis \<noteq> [] \<longrightarrow> fst (last analysis) = fst (hd init_analysis)\<close> and
-      b: \<open>analysis = [] \<longrightarrow> b \<longrightarrow> cach (fst (hd init_analysis)) = SEEN_REMOVABLE\<close>
+      b: \<open>analysis = [] \<longrightarrow> b \<longrightarrow> cach (atm_of (fst (hd init_analysis))) = SEEN_REMOVABLE\<close>
       using inv unfolding lit_redundant_inv_def s by auto
     obtain C where
        NU_C: \<open>N + U \<Turnstile>pm add_mset (-L) C\<close> and
        IH: \<open>\<And>K. K \<in># C \<Longrightarrow> N + U \<Turnstile>pm add_mset (-K) (filter_to_poslev M L D) \<or> K \<in># filter_to_poslev M L D\<close> and
-       index_K: \<open>K\<in>#C \<Longrightarrow> index_in_trail M K < index_in_trail M L\<close> for K
+       index_K: \<open>K\<in>#C \<Longrightarrow> index_in_trail M K < index_in_trail M L\<close> and
+       L_M: \<open>-L \<in> lits_of_l M\<close> for K
       using stack_hd unfolding analysis by auto
 
     have NU_D: \<open>N + U \<Turnstile>pm add_mset (- fst (hd analysis)) (filter_to_poslev M (fst (hd analysis)) D)\<close>
@@ -605,8 +614,10 @@ proof -
       unfolding analysis by auto
     have ana': \<open>conflict_min_analysis_stack M (N + U) D (tl analysis)\<close>
       using ana by (auto simp: conflict_min_analysis_stack_tl)
-    have cach': \<open>conflict_min_analysis_inv M (cach(fst (hd analysis) := SEEN_REMOVABLE)) (N + U) D\<close>
-      using NU_D by (auto simp: conflict_min_analysis_inv_update_removable cach)
+    have \<open>-fst (hd analysis) \<in> lits_of_l M\<close>
+      using L_M by (auto simp: analysis I'_def s ana)
+    then have cach': \<open>conflict_min_analysis_inv M (cach(atm_of (fst (hd analysis)) := SEEN_REMOVABLE)) (N + U) D\<close>
+      using NU_D n_d by (auto simp: conflict_min_analysis_inv_update_removable cach)
     have stack_hd': \<open>conflict_min_analysis_stack_hd M (N + U) D ana'\<close>
     proof (cases \<open>ana' = []\<close>)
       case True
@@ -619,7 +630,8 @@ proof -
          \<open>\<forall>K\<in>#E' - add_mset L C'. N+U \<Turnstile>pm add_mset (- K) (filter_to_poslev M L' D) \<or> K \<in># filter_to_poslev M L' D\<close> and
          index_C': \<open>\<forall>K\<in>#E'. index_in_trail M K < index_in_trail M L'\<close> and
          index_L'_L: \<open>index_in_trail M L < index_in_trail M L'\<close> and
-         C'_E': \<open>C' \<subseteq># E'\<close>
+         C'_E': \<open>C' \<subseteq># E'\<close> and
+         uL'_M: \<open>- L' \<in> lits_of_l M\<close>
          using stack by (auto simp: analysis ana'')
        moreover have \<open>N+U \<Turnstile>pm add_mset (- L) (filter_to_poslev M L D)\<close>
          using NU_D analysis by auto
@@ -633,8 +645,8 @@ proof -
          using filter_to_poslev_mono_entailement_add_mset[of M K L']
            filter_to_poslev_mono[of M L L']
          by fastforce
-       then show ?thesis using NU_E'
-         using index_C' C'_E' unfolding ana'' by (auto intro!: exI[of _ E'])
+       then show ?thesis
+         using NU_E' uL'_M index_C' C'_E' unfolding ana'' by (auto intro!: exI[of _ E'])
     qed
 
     have \<open>fst (hd init_analysis) = fst (last (tl analysis))\<close> if \<open>tl analysis \<noteq> []\<close>
@@ -645,7 +657,7 @@ proof -
     show ?I'
       using inv_I' unfolding I'_def s by (auto simp: analysis)
   qed
-  have all_removed_R: \<open>((cach(fst (hd analyse) := SEEN_REMOVABLE), tl analyse, True), s) \<in> R\<close>
+  have all_removed_R: \<open>((cach(atm_of (fst (hd analyse)) := SEEN_REMOVABLE), tl analyse, True), s) \<in> R\<close>
     if
       \<open>lit_redundant_inv M (N + U) D init_analysis s\<close> and
       s: \<open>s = (cach, s')\<close> \<open>s' = (analyse, b)\<close> and
@@ -667,7 +679,7 @@ proof -
       next_lit: \<open>case x of
         (L, ana) \<Rightarrow> L \<in># snd (hd analyse) \<and> tl ana = tl analyse \<and> ana \<noteq> [] \<and>
           hd ana = (fst (hd analyse), remove1_mset L (snd (hd analyse)))\<close> and
-      lev0_removable: \<open>get_level M L = 0 \<or> cach L = SEEN_REMOVABLE \<or> L \<in># D\<close>
+      lev0_removable: \<open>get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D\<close>
     for s cach s' analyse b x L ana
   proof -
     obtain K C ana' where analysis: \<open>analyse = (K, C) # ana'\<close>
@@ -680,15 +692,20 @@ proof -
       stack: \<open>conflict_min_analysis_stack M (N + U) D analyse\<close> and
       stack_hd: \<open>conflict_min_analysis_stack_hd M (N + U) D analyse\<close> and
       last_analysis: \<open>analyse \<noteq> [] \<longrightarrow> fst (last analyse) = fst (hd init_analysis)\<close> and
-      b: \<open>analyse = [] \<longrightarrow> b \<longrightarrow> cach (fst (hd init_analysis)) = SEEN_REMOVABLE\<close>
+      b: \<open>analyse = [] \<longrightarrow> b \<longrightarrow> cach (atm_of (fst (hd init_analysis))) = SEEN_REMOVABLE\<close>
       using inv unfolding lit_redundant_inv_def s by auto
 
     have last_analysis': \<open>ana \<noteq> [] \<Longrightarrow> fst (hd init_analysis) = fst (last ana)\<close>
       using last_analysis next_lit unfolding analysis s
       by (cases ana) (auto split: if_splits)
+    have uL_M: \<open>-L \<in> lits_of_l M\<close>
+      using inv_I' L_C unfolding analysis ana s I'_def
+      by (auto dest!: multi_member_split)
+    have uK_M: \<open>- K \<in> lits_of_l M\<close>
+      using stack_hd unfolding analysis by auto
     consider
       (lev0) \<open>get_level M L = 0\<close> |
-      (Removable) \<open>cach L = SEEN_REMOVABLE\<close> |
+      (Removable) \<open>cach (atm_of L) = SEEN_REMOVABLE\<close> |
       (in_D) \<open>L \<in># D\<close>
       using lev0_removable by fast
     then have H: \<open>\<exists>CK. N + U \<Turnstile>pm add_mset (- K) CK \<and>
@@ -699,7 +716,7 @@ proof -
     proof cases
       case Removable
       then have L: \<open>set_mset N \<union> set_mset U \<Turnstile>p add_mset (- L) (filter_to_poslev M L D)\<close>
-        using cach unfolding conflict_min_analysis_inv_def by auto
+        using cach uL_M unfolding conflict_min_analysis_inv_def by auto
       obtain CK where
         \<open>N + U \<Turnstile>pm add_mset (- K) CK\<close> and
         \<open>\<forall>K'\<in>#CK - C. N + U \<Turnstile>pm (filter_to_poslev M K D) + {#- K'#} \<or> K' \<in># filter_to_poslev M K D\<close> and
@@ -760,7 +777,7 @@ proof -
     have stack': \<open>conflict_min_analysis_stack M (N + U) D ana\<close>
       using stack unfolding ana' analysis by (cases ana') auto
     have stack_hd': \<open>conflict_min_analysis_stack_hd M (N + U) D ana\<close>
-      using H unfolding ana' by auto
+      using H uL_M uK_M unfolding ana' by auto
 
     show ?I
       using last_analysis' cach stack' stack_hd' unfolding lit_redundant_inv_def s
@@ -791,7 +808,7 @@ proof -
       \<open>case x of (L, ana) \<Rightarrow> L \<in># snd (hd analyse) \<and> tl ana = tl analyse \<and>
         ana \<noteq> [] \<and> hd ana = (fst (hd analyse), remove1_mset L (snd (hd analyse)))\<close> and
       \<open>x = (L, ana)\<close> and
-      \<open>\<not> (get_level M L = 0 \<or> cach L = SEEN_REMOVABLE \<or> L \<in># D)\<close> and
+      \<open>\<not> (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D)\<close> and
       \<open>E \<noteq> None \<longrightarrow> Propagated (- L) (the E) \<in> set M\<close> and
       \<open>E = None\<close> and
       cach_update: \<open>\<forall>L. cach' L = SEEN_REMOVABLE \<longrightarrow> cach L = SEEN_REMOVABLE\<close>
@@ -802,7 +819,7 @@ proof -
       ana: \<open>conflict_min_analysis_stack M (N + U) D analyse\<close> and
       stack: \<open>conflict_min_analysis_stack M (N + U) D analyse\<close> and
       last_analysis: \<open>analyse \<noteq> [] \<longrightarrow> fst (last analyse) = fst (hd init_analysis)\<close> and
-      b: \<open>analyse = [] \<longrightarrow> b \<longrightarrow> cach (fst (hd init_analysis)) = SEEN_REMOVABLE\<close>
+      b: \<open>analyse = [] \<longrightarrow> b \<longrightarrow> cach (atm_of (fst (hd init_analysis))) = SEEN_REMOVABLE\<close>
       using inv unfolding lit_redundant_inv_def s by auto
     have \<open>conflict_min_analysis_inv M cach' (N + U) D\<close>
       using cach cach_update by (auto simp: conflict_min_analysis_inv_def)
@@ -833,7 +850,7 @@ proof -
        hd ana =
        (fst (hd analyse),
         remove1_mset L (snd (hd analyse)))\<close> and
-      \<open>\<not> (get_level M L = 0 \<or> cach L = SEEN_REMOVABLE \<or> L \<in># D)\<close> and
+      \<open>\<not> (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D)\<close> and
       E: \<open>E \<noteq> None \<longrightarrow> Propagated (- L) (the E) \<in> set M\<close> \<open>E = Some E'\<close>
     for s cach s' analyse b x L ana E E'
   proof -
@@ -847,7 +864,7 @@ proof -
       stack: \<open>conflict_min_analysis_stack M (N + U) D analyse\<close> and
       stack_hd: \<open>conflict_min_analysis_stack_hd M (N + U) D analyse\<close> and
       last_analysis: \<open>analyse \<noteq> [] \<longrightarrow> fst (last analyse) = fst (hd init_analysis)\<close> and
-      b: \<open>analyse = [] \<longrightarrow> b \<longrightarrow> cach (fst (hd init_analysis)) = SEEN_REMOVABLE\<close>
+      b: \<open>analyse = [] \<longrightarrow> b \<longrightarrow> cach (atm_of (fst (hd init_analysis))) = SEEN_REMOVABLE\<close>
       using inv unfolding lit_redundant_inv_def s by auto
     have
       NU_E: \<open>N + U \<Turnstile>pm add_mset (- L) (remove1_mset (-L) E')\<close> and
@@ -855,6 +872,8 @@ proof -
       M_E': \<open>M \<Turnstile>as CNot (remove1_mset (- L) E')\<close> and
       lev_E': \<open>K \<in># remove1_mset (- L) E' \<Longrightarrow> index_in_trail M K < index_in_trail M (- L)\<close> for K
       using Propagated_in_trail_entailed[OF invs, of \<open>-L\<close> E'] E by auto
+    have uL_M: \<open>- L \<in> lits_of_l M\<close>
+      using next_lit inv_I' unfolding s analysis I'_def by (auto dest!: multi_member_split)
     obtain C' where
       \<open>set_mset N \<union> set_mset U \<Turnstile>p add_mset (- K) C'\<close> and
       \<open>\<forall>Ka\<in>#C'. index_in_trail M Ka < index_in_trail M K\<close> and
@@ -862,7 +881,8 @@ proof -
       \<open>\<forall>Ka\<in>#C' - C.
         set_mset N \<union> set_mset U \<Turnstile>p
         add_mset (- Ka) (filter_to_poslev M K D) \<or>
-        Ka \<in># filter_to_poslev M K D\<close>
+        Ka \<in># filter_to_poslev M K D\<close> and
+      uK_M: \<open>- K \<in> lits_of_l M\<close>
       using stack_hd
       unfolding s ana'[symmetric]
       by (auto simp: analysis ana' conflict_min_analysis_stack_change_hd)
@@ -875,7 +895,7 @@ proof -
       by (auto simp: analysis ana' conflict_min_analysis_stack_change_hd
           intro!: )
     moreover have \<open>conflict_min_analysis_stack_hd M (N + U) D ((L, remove1_mset (- L) E') # ana)\<close>
-      using NU_E lev_E' by (auto intro!:exI[of _ \<open>remove1_mset (- L) E'\<close>])
+      using NU_E lev_E' uL_M by (auto intro!:exI[of _ \<open>remove1_mset (- L) E'\<close>])
     moreover have \<open>fst (hd init_analysis) = fst (last ((L, remove1_mset (- L) E') # ana))\<close>
       using last_analysis unfolding analysis ana' by auto
     ultimately show ?I
@@ -927,7 +947,7 @@ proof -
     subgoal by (rule is_propagation_I')
     subgoal by (rule is_propagation_R)
         -- \<open>End of Loop invariant:\<close>
-    subgoal by (auto simp: lit_redundant_inv_def conflict_min_analysis_inv_def init_analysis)
+    subgoal using uL_M by (auto simp: lit_redundant_inv_def conflict_min_analysis_inv_def init_analysis)
     subgoal by (auto simp: lit_redundant_inv_def conflict_min_analysis_inv_def init_analysis)
     done
 qed
@@ -979,7 +999,7 @@ lemma filter_to_poslev_conflict_min_analysis_inv:
   unfolding conflict_min_analysis_inv_def
 proof (intro allI impI)
   fix K
-  assume \<open>cach K = SEEN_REMOVABLE\<close>
+  assume \<open>-K \<in> lits_of_l M\<close> and \<open>cach (atm_of K) = SEEN_REMOVABLE\<close>
   then have K: \<open>N + U \<Turnstile>pm add_mset (- K) (filter_to_poslev M K D)\<close>
     using inv unfolding conflict_min_analysis_inv_def by blast
   obtain D' where D: \<open>D = add_mset L D'\<close>
@@ -1074,5 +1094,18 @@ proof -
       by (rule lit_redundant_rec)
     done
 qed
+
+definition set_all_to_list where
+  \<open>set_all_to_list e ys = do {
+     S \<leftarrow> WHILE\<^bsup>\<lambda>(i, xs). \<forall>x \<in> set (take i xs). x = e \<and> length xs = length ys\<^esup>
+       (\<lambda>(i, xs). i < length xs)
+       (\<lambda>(i, xs). do {
+         ASSERT(i < length xs);
+         RETURN(i+1, xs[i := e])
+        })
+       (0, ys);
+    RETURN (snd S)
+    }\<close>
+
 
 end
