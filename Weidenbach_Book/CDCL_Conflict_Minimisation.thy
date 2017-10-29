@@ -1,5 +1,5 @@
 theory CDCL_Conflict_Minimisation
-  imports CDCL.CDCL_W_Abstract_State "../lib/Explorer" WB_More_Refinement
+  imports CDCL_Two_Watched_Literals_Watch_List_Domain "../lib/Explorer" WB_More_Refinement
 begin
 
 no_notation Ref.update ("_ := _" 62)
@@ -1081,7 +1081,6 @@ proof -
       by auto
     have H: \<open>lit_redundant_rec_spec M (N + U) D L \<le> literal_redundant_spec M (N + U) D L\<close>
       by (auto simp: lit_redundant_rec_spec_def literal_redundant_spec_def)
-
     show ?thesis
       apply (rule order.trans)
        apply (rule lit_redundant_rec_spec[OF invs _ in_trail])
@@ -1105,7 +1104,7 @@ qed
 
 definition set_all_to_list where
   \<open>set_all_to_list e ys = do {
-     S \<leftarrow> WHILE\<^bsup>\<lambda>(i, xs). \<forall>x \<in> set (take i xs). x = e \<and> length xs = length ys\<^esup>
+     S \<leftarrow> WHILE\<^bsup>\<lambda>(i, xs). i \<le> length xs \<and> (\<forall>x \<in> set (take i xs). x = e) \<and> length xs = length ys\<^esup>
        (\<lambda>(i, xs). i < length xs)
        (\<lambda>(i, xs). do {
          ASSERT(i < length xs);
@@ -1115,5 +1114,159 @@ definition set_all_to_list where
     RETURN (snd S)
     }\<close>
 
+lemma
+  \<open>set_all_to_list e ys \<le> SPEC(\<lambda>xs. length xs = length ys \<and> (\<forall>x \<in> set xs. x = e))\<close>
+  unfolding set_all_to_list_def
+  apply (refine_vcg)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by (auto simp: take_Suc_conv_app_nth list_update_append) 
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  done
+
+definition get_literal_and_remove_of_analyse_wl
+   :: \<open>'v clause_l \<Rightarrow> (nat \<times> nat) list \<Rightarrow> 'v literal \<times> (nat \<times> nat) list\<close> where
+  \<open>get_literal_and_remove_of_analyse_wl C analyse =
+    (let (i, j) = last analyse in
+     (C ! j, analyse[length analyse - 1 := (i, j + 1)]))\<close>
+
+definition get_propagation_reason_wl where
+  \<open>get_propagation_reason_wl M L = SPEC(\<lambda>C. C \<noteq> None \<longrightarrow> Propagated (-L) (the C) \<in> set M)\<close>
+
+definition mark_failed_lits_wl
+where
+  \<open>mark_failed_lits_wl analyse cach = SPEC(\<lambda>cach'.
+     (\<forall>L. cach' L = SEEN_REMOVABLE \<longrightarrow> cach L = SEEN_REMOVABLE))\<close>
+
+context isasat_input_bounded
+begin
+
+definition lit_redundant_rec_wl :: \<open>('v, nat) ann_lits \<Rightarrow> 'v clauses_l \<Rightarrow> 'v clause \<Rightarrow>
+     _ \<Rightarrow> _ \<Rightarrow>
+      (_ \<times> _ \<times> bool) nres\<close>
+where
+  \<open>lit_redundant_rec_wl M NU D cach analysis =
+      WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup>
+        (\<lambda>(cach, analyse, b). analyse \<noteq> [])
+        (\<lambda>(cach, analyse, b). do {
+            ASSERT(analyse \<noteq> []);
+            let C = NU ! fst (last analyse);
+            let i = snd (last analyse);
+            ASSERT(-C!0 \<in> lits_of_l M);
+            if i \<ge> length C
+            then
+               RETURN(cach (atm_of (C ! 0) := SEEN_REMOVABLE), butlast analyse, True)
+            else do {
+               let (L, analyse) = get_literal_and_remove_of_analyse_wl C analyse;
+               ASSERT(-L \<in> lits_of_l M);
+               if (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D)
+               then RETURN (cach, analyse, False)
+               else do {
+                  C \<leftarrow> get_propagation_reason M L;
+                  case C of
+                    Some C \<Rightarrow> RETURN (cach, (C, 1) # analyse, False)
+                  | None \<Rightarrow> do {
+                      cach \<leftarrow> mark_failed_lits_wl analyse cach;
+                      RETURN (cach, [], False)
+                  }
+              }
+          }
+        })
+       (cach, analysis, False)\<close>
+
+fun convert_analysis_l where
+  \<open>convert_analysis_l NU (i, j) = (NU ! i ! 0, mset (drop j (NU ! i)))\<close>
+
+definition convert_analysis_list where
+  \<open>convert_analysis_list NU analyse = map (convert_analysis_l NU) (rev analyse)\<close>
+
+lemma convert_analysis_list_empty[simp]:
+  \<open>convert_analysis_list NU [] = []\<close>
+  \<open>convert_analysis_list NU a = [] \<longleftrightarrow> a = []\<close>
+  by (auto simp: convert_analysis_list_def)
+
+lemma
+  fixes NU M analyse
+  defines
+    \<open>M' \<equiv> convert_lits_l NU M\<close> and
+    \<open>analyse' \<equiv> convert_analysis_list NU analyse\<close> and
+    \<open>NU' \<equiv> mset `# mset NU\<close>
+  assumes bounds_init: \<open>\<forall>(i, j)\<in> set analyse. j \<le> length (NU!i)\<close>
+  shows
+    \<open>lit_redundant_rec_wl M NU D cach analyse \<le> \<Down>
+       (Id \<times>\<^sub>r {(analyse, analyse'). analyse' = convert_analysis_list NU analyse \<and>
+          (\<forall>(i, j)\<in> set analyse. j \<le> length (NU!i))} \<times>\<^sub>r bool_rel)
+       (lit_redundant_rec M' NU' D cach analyse')\<close>
+   (is \<open>_ \<le> \<Down> (_ \<times>\<^sub>r ?A \<times>\<^sub>r _) _\<close> is \<open>_ \<le> \<Down> ?R _\<close>)
+proof -
+  have [simp]: \<open>lits_of_l M' = lits_of_l M\<close>
+    unfolding M'_def by auto
+  have [simp]: \<open>fst (convert_analysis_l NU x) = NU ! (fst x) ! 0\<close> for x
+    by (cases x) auto
+  have [simp]: \<open>snd (convert_analysis_l NU x) = mset (drop (snd x) (NU ! fst x))\<close> for x
+    by (cases x) auto
+  have \<open>RETURN
+       (get_literal_and_remove_of_analyse_wl (NU ! fst (last x1c))
+         x1c)
+      \<le> \<Down> (Id \<times>\<^sub>r ?A)
+          (get_literal_and_remove_of_analyse x1a)\<close>
+    if 
+      xx': \<open>(x, x') \<in> ?R\<close> and
+      \<open>case x of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
+      \<open>case x' of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
+      \<open>lit_redundant_inv M' NU' D analyse' x'\<close> and
+      s: \<open>x2 = (x1a, x2a)\<close>
+      \<open>x' = (x1, x2)\<close>
+      \<open>x2b = (x1c, x2c)\<close>
+      \<open>x = (x1b, x2b)\<close> and
+      \<open>x1a \<noteq> []\<close> and
+      \<open>- fst (hd x1a) \<in> lits_of_l M'\<close> and
+      x1c: \<open>x1c \<noteq> []\<close> and
+      \<open>- NU ! fst (last x1c) ! 0 \<in> lits_of_l M\<close> and
+      length: \<open>\<not> length (NU ! fst (last x1c)) \<le> snd (last x1c)\<close> and
+      \<open>snd (hd x1a) \<noteq> {#}\<close>
+    for x x' x1 x2 x1a x2a x1b x2b x1c x2c
+  proof -
+    have \<open>last x1c = (a, b) \<Longrightarrow> b \<le> length (NU ! a)\<close> for aa ba list a b
+      using xx' x1c length unfolding s convert_analysis_list_def
+      by (cases x1c rule: rev_cases) auto
+    then show ?thesis
+    supply convert_analysis_list_def[simp] hd_rev[simp] last_map[simp] rev_map[symmetric, simp]
+      using x1c xx' length
+      using Cons_nth_drop_Suc[of \<open>snd (last x1c)\<close> \<open>NU ! fst (last x1c)\<close>, symmetric]
+      unfolding s
+      apply (cases x1c; cases \<open>last x1c\<close>)
+      apply (auto simp: get_literal_and_remove_of_analyse_wl_def (* in_set_drop_conv_nth *)
+          get_literal_and_remove_of_analyse_def convert_analysis_list_def
+          map_butlast[symmetric]
+          rev_butlast_is_tl_rev[symmetric] simp del: butlast_rev
+          intro!: RETURN_SPEC_refine dest!: neq_NilE split: if_splits nat.splits)
+
+      sorry
+  qed
+  show ?thesis
+    supply convert_analysis_list_def[simp] hd_rev[simp] last_map[simp] rev_map[symmetric, simp]
+    unfolding lit_redundant_rec_wl_def lit_redundant_rec_def
+    apply (rewrite at \<open>let _ = _ ! _ in _\<close> Let_def)
+    apply (rewrite at \<open>let _ = snd _ in _\<close> Let_def)
+    apply refine_rcg
+    subgoal using bounds_init unfolding analyse'_def by auto
+    subgoal ..
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto dest!: neq_NilE)
+    subgoal by auto
+    subgoal by (auto simp: map_butlast rev_butlast_is_tl_rev dest: in_set_butlastD)
+    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c
+      explore_have
+      
+      apply auto sorry
+    subgoal apply auto
+end
 
 end
