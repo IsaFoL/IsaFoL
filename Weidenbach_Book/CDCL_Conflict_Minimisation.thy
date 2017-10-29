@@ -996,7 +996,7 @@ proof (intro allI impI)
     have 2: \<open>N+U \<Turnstile>pm add_mset (-L) (filter_to_poslev M K D')\<close>
       using filter_to_poslev_mono_entailement_add_mset[OF H] NU_uLD
       by (metis (no_types, hide_lams) D NU_uLD filter_to_poslev_add_mset
-          order_less_irrefl subset_mset.le_iff_add true_clss_cls_mono_r union_mset_add_mset_left)
+          order_less_irrefl)
     show ?thesis
       using true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or[OF 2 1]
       by (auto simp: true_clss_cls_add_add_mset_self)
