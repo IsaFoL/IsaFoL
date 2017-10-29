@@ -422,21 +422,22 @@ qed
 end
 
 
-lemma
+lemma lit_redundant_rec_spec:
   fixes L :: \<open>'v literal\<close>
-  assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N, U, Some D)\<close>
+  assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N, U, Some D')\<close>
   assumes
     init_analysis: \<open>init_analysis = [(L, C)]\<close> and
     in_trail: \<open>Propagated (-L) (add_mset (-L) C) \<in> set M\<close> and
     \<open>conflict_min_analysis_inv M cach (N + U) D\<close> and
-    L_D: \<open>L \<in># D\<close>
+    L_D: \<open>L \<in># D\<close> and
+    M_D: \<open>M \<Turnstile>as CNot D\<close>
   shows
     \<open>lit_redundant_rec M (N + U) D cach init_analysis \<le> lit_redundant_rec_spec M (N + U) D L\<close>
 proof -
   obtain M2 M1 where
     M: \<open>M = M2 @ Propagated (- L) (add_mset (- L) C) # M1\<close>
     using split_list[OF in_trail] by (auto 5 5)
-  have \<open>a @ Propagated L mark # b = trail (M, N, U, Some D) \<longrightarrow>
+  have \<open>a @ Propagated L mark # b = trail (M, N, U, Some D') \<longrightarrow>
        b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> for L mark a b
     using invs
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -446,8 +447,8 @@ proof -
     by (force simp: M)
   then have M_C: \<open>M \<Turnstile>as CNot C\<close>
     unfolding M by (simp add: true_annots_append_l)
-  have \<open>set (get_all_mark_of_propagated (trail (M, N, U, Some D)))
-    \<subseteq> set_mset (cdcl\<^sub>W_restart_mset.clauses (M, N, U, Some D))\<close>
+  have \<open>set (get_all_mark_of_propagated (trail (M, N, U, Some D')))
+    \<subseteq> set_mset (cdcl\<^sub>W_restart_mset.clauses (M, N, U, Some D'))\<close>
     using invs
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
@@ -457,11 +458,6 @@ proof -
     by (auto simp: clauses_def)
   then have NU_C: \<open>N + U \<Turnstile>pm add_mset (- L) C\<close>
     by auto
-  have M_D: \<open>M \<Turnstile>as CNot D\<close>
-    using invs
-    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def by auto
-
 
   let ?f = \<open>\<lambda>analysis. fold_mset (op +) D (snd `# mset analysis)\<close>
   define I' where
@@ -851,6 +847,149 @@ proof -
         -- \<open>End of Loop invariant:\<close>
     subgoal by (auto simp: lit_redundant_inv_def conflict_min_analysis_inv_def init_analysis)
     subgoal by (auto simp: lit_redundant_inv_def conflict_min_analysis_inv_def init_analysis)
+    done
+qed
+
+definition literal_redundant_spec where
+  \<open>literal_redundant_spec M NU D L =
+    SPEC(\<lambda>(cach, analysis, b). (b \<longrightarrow> NU \<Turnstile>pm add_mset (-L) (filter_to_poslev M L D)) \<and>
+     conflict_min_analysis_inv M cach NU D)\<close>
+
+definition literal_redundant where
+  \<open>literal_redundant M NU D cach L = do {
+     C \<leftarrow> get_propagation_reason M L;
+     case C of
+       Some C \<Rightarrow> lit_redundant_rec M NU D cach [(L, C - {#-L#})]
+     | None \<Rightarrow> do {
+         cach \<leftarrow> mark_failed_lits [(L, {#})] cach;
+         RETURN (cach, [(L, {#})], False)
+     }
+  }\<close>
+
+lemma true_clss_cls_add_self: \<open>NU \<Turnstile>p D' + D' \<longleftrightarrow> NU \<Turnstile>p D'\<close>
+  by (metis subset_mset.sup_idem true_clss_cls_sup_iff_add)
+
+lemma true_clss_cls_add_add_mset_self: \<open>NU \<Turnstile>p add_mset L (D' + D') \<longleftrightarrow> NU \<Turnstile>p add_mset L D'\<close>
+  using true_clss_cls_add_self true_clss_cls_mono_r by fastforce
+
+
+lemma can_filter_to_poslev_can_remove:
+  assumes
+    L_D: \<open>L \<in># D\<close> and
+    \<open>M \<Turnstile>as CNot D\<close> and
+    NU_D: \<open>NU \<Turnstile>pm D\<close> and
+    NU_uLD: \<open>NU \<Turnstile>pm add_mset (-L) (filter_to_poslev M L D)\<close>
+  shows \<open>NU \<Turnstile>pm remove1_mset L D\<close>
+proof -
+  obtain D' where
+    D: \<open>D = add_mset L D'\<close>
+    using multi_member_split[OF L_D] by blast
+  then have \<open>filter_to_poslev M L D \<subseteq># D'\<close>
+    by (auto simp: filter_to_poslev_def)
+  then have \<open>NU \<Turnstile>pm add_mset (-L) D'\<close>
+    using NU_uLD true_clss_cls_mono_r[of _ \<open> add_mset (- L) (filter_to_poslev M (-L) D)\<close> ]
+    by (auto simp: mset_subset_eq_exists_conv)
+  from true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or[OF this, of D']
+  show \<open>NU \<Turnstile>pm remove1_mset L D\<close>
+    using NU_D by (auto simp: D true_clss_cls_add_self)
+qed
+
+lemma filter_to_poslev_remove1:
+  \<open>filter_to_poslev M L (remove1_mset K D) =
+      (if index_in_trail M K \<le> index_in_trail M L then remove1_mset K (filter_to_poslev M L D)
+   else filter_to_poslev M L D)\<close>
+  unfolding filter_to_poslev_def
+  by (auto simp: multiset_filter_mono2)
+
+
+lemma filter_to_poslev_add_mset:
+  \<open>filter_to_poslev M L (add_mset K D) =
+      (if index_in_trail M K < index_in_trail M L then add_mset K (filter_to_poslev M L D)
+   else filter_to_poslev M L D)\<close>
+  unfolding filter_to_poslev_def
+  by (auto simp: multiset_filter_mono2)
+
+lemma filter_to_poslev_conflict_min_analysis_inv:
+  assumes
+    L_D: \<open>L \<in># D\<close> and
+    NU_uLD: \<open>N+U \<Turnstile>pm add_mset (-L) (filter_to_poslev M L D)\<close> and
+    inv: \<open>conflict_min_analysis_inv M cach (N + U) D\<close>
+  shows \<open>conflict_min_analysis_inv M cach (N + U) (remove1_mset L D)\<close>
+  unfolding conflict_min_analysis_inv_def
+proof (intro allI impI)
+  fix K
+  assume \<open>cach K = SEEN_REMOVABLE\<close>
+  then have K: \<open>N + U \<Turnstile>pm add_mset (- K) (filter_to_poslev M K D)\<close>
+    using inv unfolding conflict_min_analysis_inv_def by blast
+  obtain D' where D: \<open>D = add_mset L D'\<close>
+    using multi_member_split[OF L_D] by blast
+  have \<open>N + U \<Turnstile>pm add_mset (- K) (filter_to_poslev M K D')\<close>
+  proof (cases \<open>index_in_trail M L < index_in_trail M K\<close>)
+    case True
+    then have \<open>N + U \<Turnstile>pm add_mset (- K) (add_mset L (filter_to_poslev M K D'))\<close>
+      using K by (auto simp: filter_to_poslev_add_mset D)
+    then have 1: \<open>N + U \<Turnstile>pm add_mset L (add_mset (-K) (filter_to_poslev M K D'))\<close>
+      by (simp add: add_mset_commute)
+    have H: \<open>index_in_trail M L \<le> index_in_trail M K\<close>
+      using True by simp
+    have 2: \<open>N+U \<Turnstile>pm add_mset (-L) (filter_to_poslev M K D')\<close>
+      using filter_to_poslev_mono[OF H]
+      by (metis (no_types, hide_lams) D NU_uLD filter_to_poslev_add_mset
+          order_less_irrefl subset_mset.le_iff_add true_clss_cls_mono_r union_mset_add_mset_left)
+    show ?thesis
+      using true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or[OF 2 1]
+      by (auto simp: true_clss_cls_add_add_mset_self)
+  next
+    case False
+    then show ?thesis using K by (auto simp: filter_to_poslev_add_mset D)
+  qed
+  then show \<open>N + U \<Turnstile>pm add_mset (- K) (filter_to_poslev M K (remove1_mset L D))\<close>
+    by (simp add: D)
+qed
+
+lemma literal_redundant_spec:
+  fixes L :: \<open>'v literal\<close>
+  assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N, U, Some D')\<close>
+  assumes
+    inv: \<open>conflict_min_analysis_inv M cach (N + U) D\<close> and
+    L_D: \<open>L \<in># D\<close> and
+    M_D: \<open>M \<Turnstile>as CNot D\<close>
+  shows
+    \<open>literal_redundant M (N + U) D cach L \<le> literal_redundant_spec M (N + U) D L\<close>
+proof -
+  have lit_redundant_rec: \<open>lit_redundant_rec M (N + U) D cach [(L, remove1_mset (- L) E')]
+      \<le> literal_redundant_spec M (N + U) D L\<close>
+    if
+      E: \<open>E \<noteq> None \<longrightarrow> Propagated (- L) (the E) \<in> set M\<close> and
+      E': \<open>E = Some E'\<close>
+    for E E'
+  proof -
+    have
+      [simp]: \<open>-L \<in># E'\<close> and
+      in_trail: \<open>Propagated (- L) (add_mset (-L) (remove1_mset (-L) E')) \<in> set M\<close>
+      using Propagated_in_trail_entailed[OF invs, of \<open>-L\<close> E'] E E'
+      by auto
+    have H: \<open>lit_redundant_rec_spec M (N + U) D L \<le> literal_redundant_spec M (N + U) D L\<close>
+      by (auto simp: lit_redundant_rec_spec_def literal_redundant_spec_def)
+
+    show ?thesis
+      apply (rule order.trans)
+       apply (rule lit_redundant_rec_spec[OF invs _ in_trail])
+      subgoal ..
+      subgoal by (rule inv)
+      subgoal using assms by fast
+      subgoal by (rule M_D)
+      subgoal unfolding literal_redundant_spec_def[symmetric] by (rule H)
+      done
+  qed
+  show ?thesis
+    unfolding literal_redundant_def get_propagation_reason_def literal_redundant_spec_def
+    apply (refine_vcg)
+    subgoal
+      using inv by (auto simp: mark_failed_lits_def conflict_min_analysis_inv_def)
+    subgoal for E E'
+      unfolding literal_redundant_spec_def[symmetric]
+      by (rule lit_redundant_rec)
     done
 qed
 
