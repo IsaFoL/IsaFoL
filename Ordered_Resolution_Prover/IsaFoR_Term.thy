@@ -83,9 +83,14 @@ next
     sorry
 next
   have noninj_subst_if_same_shape:
-    "\<exists>x \<in> vars_term s. \<exists>y \<in> vars_term s. x \<noteq> y \<and> \<sigma> x = \<sigma> y \<and> s \<cdot> \<sigma> = t"
+    "\<exists>\<sigma>. \<exists>x \<in> vars_term s. \<exists>y \<in> vars_term s. x \<noteq> y \<and> \<sigma> x = \<sigma> y \<and> s \<cdot> \<sigma> = t"
     if "same_shape_tm s t" and "strictly_generalizes_atm s t"
-    for s t :: "('f, 'v) term" and \<sigma>
+    for s t :: "('f, 'v) term"
+    sorry
+
+  have same_shape_if_gen_gsize: "same_shape_tm s t"
+    if "generalizes_atm s t" and "gsize_tm s = gsize_tm t"
+    for s t :: "('f, 'v) term"
     sorry
 
   have generalizes_atm_imp_gsize_tm:
@@ -190,6 +195,14 @@ next
       define s where "s = Fun ?f ?As"
       define t where "t = Fun ?f ?Bs"
 
+      have g': "generalizes_atm s t"
+        using g
+        sorry
+      have ng': "\<not> generalizes_atm t s"
+        sorry
+      have sg': "strictly_generalizes_atm s t"
+        sorry
+
       have gsize': "gsize_tm s = gsize_tm t"
         using gsize unfolding gsize_cls_def s_def t_def
         by simp (metis c d gsize gsize_cls_def mset_map sum_mset_sum_list)
@@ -198,15 +211,22 @@ next
       then have card_vars: "card (vars_term s) \<le> card (vars_term t)"
         by (metis card_vars_le_gsize gsize' gvars_tm_def le_diff_iff')
 
-      have g: "generalizes_atm s t"
-        sorry
-      have ng: "\<not> generalizes_atm t s"
-        sorry
+      have same_shape: "same_shape_tm s t"
+        by (rule same_shape_if_gen_gsize[OF g' gsize'])
 
-      {
-        have "card (vars_term s) > card (vars_term t)"
+      have "card (vars_term s) \<ge> card (vars_term t)"
+        using same_shape
+      proof induct
+        case (Var x y)
+        then show ?case
           sorry
-      }
+      next
+        case (Fun f ss g ts)
+        show ?case
+          sorry
+      qed
+      then have "card (vars_term s) > card (vars_term t)"
+        sorry
       then have False
         using card_vars by arith
     }
