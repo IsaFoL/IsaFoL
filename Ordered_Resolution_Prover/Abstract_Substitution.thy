@@ -83,6 +83,12 @@ definition generalization_of_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" whe
 definition proper_generalization_of_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
   "proper_generalization_of_atm A B \<longleftrightarrow> generalization_of_atm A B \<and> \<not> generalization_of_atm B A"
 
+definition generalization_of_lit :: "'a literal \<Rightarrow> 'a literal \<Rightarrow> bool" where
+  "generalization_of_lit L M \<longleftrightarrow> (\<exists>\<sigma>. L \<cdot>l \<sigma> = M)"
+
+definition proper_generalization_of_lit :: "'a literal \<Rightarrow> 'a literal \<Rightarrow> bool" where
+  "proper_generalization_of_lit L M \<longleftrightarrow> generalization_of_lit L M \<and> \<not> generalization_of_lit M L"
+
 definition generalization_of_cls :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   "generalization_of_cls C D \<longleftrightarrow> (\<exists>\<sigma>. C \<cdot> \<sigma> = D)"
 
@@ -936,7 +942,29 @@ lemma is_unifiers_is_unifier: "is_unifiers \<sigma> AAA \<Longrightarrow> AA \<i
 
 subsubsection \<open>Well-foundedness of clause generalization\<close>
 
+lemma generalization_of_cls_lit: "generalization_of_cls C D \<Longrightarrow> rel_mset generalization_of_lit C D"
+  unfolding generalization_of_cls_def generalization_of_lit_def
+  sorry
+
+lemma generalization_of_cls_imp_len: "generalization_of_cls C D \<Longrightarrow> size C = size D"
+  using generalization_of_cls_lit rel_mset_size by blast
+
+lemma generalization_of_cls_imp_ex_lits:
+  assumes "generalization_of_cls C D"
+  shows "\<exists>Ls Ms. mset Ls = C \<and> mset Ms = D \<and> list_all2 generalization_of_lit Ls Ms"
+  using assms generalization_of_cls_lit rel_mset_def by blast
+
+
+
+
+thm wf_proper_generalization_of_atm
+thm wf_iff_no_infinite_down_chain
+
 lemma wf_proper_generalization_of_cls: "wfP proper_generalization_of_cls"
+  unfolding wfP_def wf_iff_no_infinite_down_chain
+  apply auto
+
+
   sorry
 
 end
