@@ -892,16 +892,17 @@ proof (rule ccontr)
     using f_Suc_decr_eventually_const comp_def by auto
   then obtain l where l_p: "\<forall>l' \<ge> l. size (c l') = size (c (Suc l'))"
     by metis
-  then have "\<forall>l' \<ge> l. proper_instance_of  (c (Suc l')) (c l')"
-    using ps unfolding proper_instance_of_def instance_of_def
+  then have "\<forall>l' \<ge> l. proper_generalization_of  (c (Suc l')) (c l')"
+    using ps unfolding proper_generalization_of_def generalization_of_def
     by (metis size_subst less_irrefl strictly_subsumes_def mset_subset_size
         subset_mset_def subsumes_def strictly_subsumes_neq)
-  then have "\<forall>i. proper_instance_of (c (Suc i + l)) (c (i + l))"
-    unfolding proper_instance_of_def instance_of_def by auto
-  then have "\<exists>f. \<forall>i. proper_instance_of (f (Suc i)) (f i)"
+  then have "\<forall>i. proper_generalization_of (c (Suc i + l)) (c (i + l))"
+    unfolding proper_generalization_of_def generalization_of_def by auto
+  then have "\<exists>f. \<forall>i. proper_generalization_of (f (Suc i)) (f i)"
     by fast
   then show False
-    using proper_instance_of_wf wf_iff_no_infinite_down_chain[of "{(x,y). proper_instance_of x y}"]
+    using wf_proper_generalization_of
+      wf_iff_no_infinite_down_chain[of "{(x,y). proper_generalization_of x y}"]
     unfolding wfP_def by auto
 qed
 

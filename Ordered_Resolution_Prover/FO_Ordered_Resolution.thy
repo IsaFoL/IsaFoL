@@ -430,12 +430,12 @@ proof (induction n arbitrary: AAs' As')
     by auto
   then have "length (map2 add_mset (tl (As' \<cdot>al \<eta>)) (tl (AAs' \<cdot>aml \<eta>))) = n"
     "length (map2 add_mset (tl As') (tl AAs') \<cdot>aml \<eta>) = n"
-    using Suc(3) Suc(2) by auto
+    using Suc(2,3) by auto
   ultimately
   have "\<forall>i < n. (map2 add_mset (tl (As' \<cdot>al \<eta>)) (tl (AAs' \<cdot>aml \<eta>))) ! i = (map2 add_mset (tl As') (tl AAs') \<cdot>aml \<eta>) ! i"
     by auto
   then have "\<forall>i < n. tl (map2 add_mset ( (As' \<cdot>al \<eta>)) ((AAs' \<cdot>aml \<eta>))) ! i = tl (map2 add_mset (As') (AAs') \<cdot>aml \<eta>) ! i"
-    using Suc(2) Suc(3) Succ by (simp add: map2_tl map_tl subst_atm_mset_list_def del: subst_atm_list_tl)
+    using Suc(2,3) Succ by (simp add: map2_tl map_tl subst_atm_mset_list_def del: subst_atm_list_tl)
   moreover
   have nn: "length (map2 add_mset ((As' \<cdot>al \<eta>)) ((AAs' \<cdot>aml \<eta>))) = Suc n"
     "length (map2 add_mset (As') (AAs') \<cdot>aml \<eta>) = Suc n"
