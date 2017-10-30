@@ -66,16 +66,16 @@ proof -
   qed
 qed
 
-inductive minimize_conflict :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clause \<Rightarrow> 'v clause \<Rightarrow> bool\<close> for M where
-resolve_propa: \<open>Propagated L E \<in> set M \<Longrightarrow> minimize_conflict M (add_mset (-L) C) (C + remove1_mset L E)\<close> |
-remdups: \<open>minimize_conflict M (add_mset L C) C\<close>
+inductive minimize_conflict_support :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clause \<Rightarrow> 'v clause \<Rightarrow> bool\<close> for M where
+resolve_propa: \<open>Propagated L E \<in> set M \<Longrightarrow> minimize_conflict_support M (add_mset (-L) C) (C + remove1_mset L E)\<close> |
+remdups: \<open>minimize_conflict_support M (add_mset L C) C\<close>
 
 
 lemma index_in_trail_uminus[simp]: \<open>index_in_trail M (-L) = index_in_trail M L\<close>
   by (auto simp: index_in_trail_def)
 
-definition minimize_conflict_mes :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clause \<Rightarrow> nat multiset\<close> where
-\<open>minimize_conflict_mes M C = index_in_trail M `# C\<close>
+definition minimize_conflict_support_mes :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clause \<Rightarrow> nat multiset\<close> where
+\<open>minimize_conflict_support_mes M C = index_in_trail M `# C\<close>
 
 context
   fixes M :: \<open>('v, 'v clause) ann_lits\<close> and N U :: \<open>'v clauses\<close> and
@@ -90,11 +90,11 @@ private lemma
   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
   by simp_all
 
-lemma minimize_conflict_entailed_trail:
-  assumes \<open>minimize_conflict M C E\<close> and \<open>M \<Turnstile>as CNot C\<close>
+lemma minimize_conflict_support_entailed_trail:
+  assumes \<open>minimize_conflict_support M C E\<close> and \<open>M \<Turnstile>as CNot C\<close>
   shows \<open>M \<Turnstile>as CNot E\<close>
   using assms
-proof (induction rule: minimize_conflict.induct)
+proof (induction rule: minimize_conflict_support.induct)
   case (resolve_propa L E C) note in_trail = this(1) and M_C = this(2)
   then show ?case
     using Propagated_in_trail_entailed[OF invs in_trail] by (auto dest!: multi_member_split)
@@ -104,19 +104,19 @@ next
     by auto
 qed
 
-lemma rtranclp_minimize_conflict_entailed_trail:
-  assumes \<open>(minimize_conflict M)\<^sup>*\<^sup>* C E\<close> and \<open>M \<Turnstile>as CNot C\<close>
+lemma rtranclp_minimize_conflict_support_entailed_trail:
+  assumes \<open>(minimize_conflict_support M)\<^sup>*\<^sup>* C E\<close> and \<open>M \<Turnstile>as CNot C\<close>
   shows \<open>M \<Turnstile>as CNot E\<close>
   using assms apply (induction rule: rtranclp_induct)
   subgoal by fast
-  subgoal using minimize_conflict_entailed_trail by fast
+  subgoal using minimize_conflict_support_entailed_trail by fast
   done
 
-lemma minimize_conflict_mes:
-  assumes \<open>minimize_conflict M C E\<close>
-  shows \<open>minimize_conflict_mes M E < minimize_conflict_mes M C\<close>
-  using assms unfolding minimize_conflict_mes_def
-proof (induction rule: minimize_conflict.induct)
+lemma minimize_conflict_support_mes:
+  assumes \<open>minimize_conflict_support M C E\<close>
+  shows \<open>minimize_conflict_support_mes M E < minimize_conflict_support_mes M C\<close>
+  using assms unfolding minimize_conflict_support_mes_def
+proof (induction rule: minimize_conflict_support.induct)
   case (resolve_propa L E C) note in_trail = this
   let ?f = \<open>\<lambda>xa. index (map (\<lambda>a. atm_of (lit_of a)) (rev M)) xa\<close>
   have \<open>?f (atm_of x) < ?f (atm_of L)\<close> if x: \<open>x \<in># remove1_mset L E\<close> for x
@@ -150,11 +150,11 @@ next
   then show ?case by auto
 qed
 
-lemma wf_minimize_conflict:
-  shows \<open>wf {(C', C). minimize_conflict M C C'}\<close>
-  apply (rule wf_if_measure_in_wf[of \<open>{(C', C). C' < C}\<close> _ \<open>minimize_conflict_mes M\<close>])
+lemma wf_minimize_conflict_support:
+  shows \<open>wf {(C', C). minimize_conflict_support M C C'}\<close>
+  apply (rule wf_if_measure_in_wf[of \<open>{(C', C). C' < C}\<close> _ \<open>minimize_conflict_support_mes M\<close>])
   subgoal using wf .
-  subgoal using minimize_conflict_mes by auto
+  subgoal using minimize_conflict_support_mes by auto
   done
 end
 
@@ -261,10 +261,10 @@ proof -
     using conflict_minimize_intermediate_step[OF NU_LC C_entailed]  by fast
 qed
 
-datatype minimizer = SEEN_FAILED | SEEN_REMOVABLE | SEEN_UNKNOWN
+datatype minimize_status = SEEN_FAILED | SEEN_REMOVABLE | SEEN_UNKNOWN
 
 type_synonym 'v conflict_min_analyse = \<open>('v literal \<times> 'v clause) list\<close>
-type_synonym 'v conflict_min_cach = \<open>'v \<Rightarrow> minimizer\<close>
+type_synonym 'v conflict_min_cach = \<open>'v \<Rightarrow> minimize_status\<close>
 
 definition get_literal_and_remove_of_analyse
    :: \<open>'v conflict_min_analyse \<Rightarrow> ('v literal \<times> 'v conflict_min_analyse) nres\<close> where
@@ -498,7 +498,7 @@ proof -
   define R where
     \<open>R = {((cach :: 'v conflict_min_cach, analysis :: 'v conflict_min_analyse, b::bool),
            (cach' :: 'v conflict_min_cach, analysis' :: 'v conflict_min_analyse, b' :: bool)).
-           (analysis' \<noteq> [] \<and> (minimize_conflict M) (?f analysis') (?f analysis)) \<or>
+           (analysis' \<noteq> [] \<and> (minimize_conflict_support M) (?f analysis') (?f analysis)) \<or>
            (analysis' \<noteq> [] \<and> analysis = tl analysis' \<and> snd (hd analysis') = {#}) \<or>
            (analysis' \<noteq> [] \<and> analysis = [])}\<close>
   have wf_R: \<open>wf R\<close>
@@ -507,7 +507,7 @@ proof -
               {((cach, analysis, b), (cach', analysis', b')).
                  analysis' \<noteq> [] \<and>analysis = []} \<union>
               ({((cach, analysis, b), (cach', analysis', b')).
-                  analysis' \<noteq> [] \<and> (minimize_conflict M) (?f analysis') (?f analysis)} \<union>
+                  analysis' \<noteq> [] \<and> (minimize_conflict_support M) (?f analysis') (?f analysis)} \<union>
               {((cach, analysis, b), (cach', analysis', b')).
                   analysis' \<noteq> [] \<and> analysis = tl analysis' \<and> snd (hd analysis') = {#}})\<close>
       (is \<open>_ = ?end \<union> (?Min \<union> ?ana)\<close>)
@@ -521,21 +521,21 @@ proof -
       apply auto
       done
 
-    have 2: \<open>wf {(C', C).minimize_conflict M C C'}\<close>
-      by (rule wf_minimize_conflict[OF invs])
+    have 2: \<open>wf {(C', C).minimize_conflict_support M C C'}\<close>
+      by (rule wf_minimize_conflict_support[OF invs])
     from wf_if_measure_f[OF this, of ?f]
-    have 2: \<open>wf {(C', C). minimize_conflict M (?f C) (?f C')}\<close>
+    have 2: \<open>wf {(C', C). minimize_conflict_support M (?f C) (?f C')}\<close>
       by auto
     from wf_fst_wf_pair[OF this, where 'b = bool]
     have \<open>wf {((analysis':: 'v conflict_min_analyse, _ :: bool), (analysis:: 'v conflict_min_analyse,  _:: bool)).
-            (minimize_conflict M) (?f analysis) (?f analysis')}\<close>
+            (minimize_conflict_support M) (?f analysis) (?f analysis')}\<close>
       by blast
     from wf_snd_wf_pair[OF this, where 'b = \<open>'v conflict_min_cach\<close>]
     have \<open>wf {((M' :: 'v conflict_min_cach, N'), Ma, N).
       (case N' of
        (analysis' :: 'v conflict_min_analyse, _ :: bool) \<Rightarrow>
          \<lambda>(analysis, _).
-            minimize_conflict M (fold_mset op + D (snd `# mset analysis))
+            minimize_conflict_support M (fold_mset op + D (snd `# mset analysis))
               (fold_mset op + D (snd `# mset analysis'))) N}\<close>
       by blast
     then have wf_Min: \<open>wf ?Min\<close>
@@ -575,8 +575,8 @@ proof -
     unfolding lit_redundant_inv_def
     by auto
 
-  have \<open>(minimize_conflict M) D (remove1_mset L (C + D))\<close>
-    using minimize_conflict.resolve_propa[OF in_trail, of \<open>remove1_mset L D\<close>] L_D
+  have \<open>(minimize_conflict_support M) D (remove1_mset L (C + D))\<close>
+    using minimize_conflict_support.resolve_propa[OF in_trail, of \<open>remove1_mset L D\<close>] L_D
     by (auto simp: ac_simps)
 
   then have init_I': \<open>I' (cach, init_analysis, False)\<close>
@@ -794,7 +794,7 @@ proof -
     show ?R
       using next_lit
       unfolding R_def s by (auto simp: ana' analysis dest!: multi_member_split
-          intro: minimize_conflict.intros)
+          intro: minimize_conflict_support.intros)
   qed
   have
     failed_I: \<open>lit_redundant_inv M (N + U) D init_analysis
@@ -914,9 +914,9 @@ proof -
       C: \<open>C = add_mset L C'\<close>
       using uL_E by (blast dest: multi_member_split)
 
-    have \<open>minimize_conflict M (C + fold_mset op + D (snd `# mset ana'))
+    have \<open>minimize_conflict_support M (C + fold_mset op + D (snd `# mset ana'))
            (remove1_mset (- L) E' + (remove1_mset L C + fold_mset op + D (snd `# mset ana')))\<close>
-      using minimize_conflict.resolve_propa[OF in_trail, of \<open>C' + fold_mset op + D (snd `# mset ana')\<close>]
+      using minimize_conflict_support.resolve_propa[OF in_trail, of \<open>C' + fold_mset op + D (snd `# mset ana')\<close>]
       unfolding C E' E
       by (auto simp: ac_simps)
 
@@ -1191,7 +1191,7 @@ lemma convert_analysis_list_empty[simp]:
   \<open>convert_analysis_list NU a = [] \<longleftrightarrow> a = []\<close>
   by (auto simp: convert_analysis_list_def)
 
-lemma
+lemma lit_redundant_rec_wl:
   fixes S :: \<open>nat twl_st_wl\<close> and NU M analyse
   defines
     [simp]: \<open>S' \<equiv> st_l_of_wl None S\<close> and
@@ -1431,11 +1431,72 @@ proof -
     done
 qed
 
-abbreviation minimize_status_rel where
-  \<open>minimize_status_rel \<equiv> Id :: (minimizer \<times> minimizer) set\<close>
+definition literal_redundant_wl where
+  \<open>literal_redundant_wl M NU D cach L = do {
+     C \<leftarrow> get_propagation_reason_wl M L;
+     case C of
+       Some C \<Rightarrow> lit_redundant_rec_wl M NU D cach [(C, 1)]
+     | None \<Rightarrow> do {
+         cach \<leftarrow> mark_failed_lits_wl [(0::nat, 1::nat)] cach;
+         RETURN (cach, [(0 :: nat, 1::nat)], False)
+     }
+  }\<close>
 
-definition cach_refinement :: \<open>(minimizer list \<times> (nat conflict_min_cach)) set\<close>  where
-  \<open>cach_refinement = \<langle>Id\<rangle>map_fun_rel Id\<close>
+lemma
+  fixes S :: \<open>nat twl_st_wl\<close> and NU M
+  defines
+    [simp]: \<open>S' \<equiv> st_l_of_wl None S\<close> and
+    [simp]: \<open>S'' \<equiv> twl_st_of_wl None S\<close> and
+    [simp]: \<open>S''' \<equiv> state\<^sub>W_of (twl_st_of_wl None S)\<close>
+  defines
+    \<open>M \<equiv> get_trail_wl S\<close> and
+    M': \<open>M' \<equiv> trail S'''\<close> and
+    NU: \<open>NU \<equiv> get_clauses_wl S\<close> and
+    NU': \<open>NU' \<equiv> cdcl\<^sub>W_restart_mset.clauses S'''\<close>
+  assumes
+    struct_invs: \<open>twl_struct_invs S''\<close> and
+    add_inv: \<open>additional_WS_invs S'\<close>
+  shows
+    \<open>literal_redundant_wl M NU D cach L \<le> \<Down>
+       (Id \<times>\<^sub>r {(analyse, analyse'). analyse' = convert_analysis_list NU analyse \<and>
+          (\<forall>(i, j)\<in> set analyse. j \<le> length (NU!i))} \<times>\<^sub>r bool_rel)
+       (literal_redundant M' NU' D cach L)\<close>
+   (is \<open>_ \<le> \<Down> (_ \<times>\<^sub>r ?A \<times>\<^sub>r _) _\<close> is \<open>_ \<le> \<Down> ?R _\<close>)
+proof -
+  have H: \<open>lit_redundant_rec_wl M NU D cach analyse
+  \<le> \<Down> (Id \<times>\<^sub>f
+        ({(analyse, analyse').
+          analyse' = convert_analysis_list NU analyse \<and>
+          (\<forall>(i, j)\<in>set analyse. j \<le> length (NU ! i))} \<times>\<^sub>f
+         bool_rel))
+      (lit_redundant_rec M' NU' D cach analyse')\<close>
+    if \<open>analyse' = convert_analysis_list NU analyse\<close> and
+       \<open> \<forall>(i, j)\<in>set analyse. j \<le> length (NU ! i)\<close>
+     for analyse analyse'
+  using lit_redundant_rec_wl[of analyse S D cach, unfolded S'''_def[symmetric],
+      unfolded S'_def[symmetric] S''_def[symmetric]
+      M_def[symmetric] M'[symmetric] NU[symmetric] NU'[symmetric], OF _ struct_invs add_inv]
+    that by auto
+
+  show ?thesis
+    unfolding literal_redundant_wl_def literal_redundant_def
+    apply (refine_rcg H)
+    sorry
+qed
+
+abbreviation (in -)  minimize_status_rel where
+  \<open>minimize_status_rel \<equiv> Id :: (minimize_status \<times> minimize_status) set\<close>
+
+definition cach_refinement :: \<open>(minimize_status list \<times> (nat conflict_min_cach)) set\<close>  where
+  \<open>cach_refinement = \<langle>Id\<rangle>map_fun_rel {(a, a'). a = a \<and> a \<in># \<A>\<^sub>i\<^sub>n}\<close>
+
+definition (in -) conflict_min_cach :: \<open>nat conflict_min_cach \<Rightarrow> nat \<Rightarrow> minimize_status\<close> where
+  [simp]: \<open>conflict_min_cach cach L = cach L\<close>
+
+lemma nth_conflict_min_cach:
+  \<open>(uncurry (RETURN oo nth), uncurry (RETURN oo conflict_min_cach)) \<in>
+     [\<lambda>(cach, L). L \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f cach_refinement \<times>\<^sub>r nat_rel \<rightarrow> \<langle>minimize_status_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI) (auto simp: cach_refinement_def map_fun_rel_def)
 
 end
 
