@@ -25,7 +25,7 @@ notation prod_assn (infixr "*assn" 90)
 
 subsubsection \<open>Refinement of the Watched Function\<close>
 
-definition map_fun_rel :: "(nat \<times> nat literal) set \<Rightarrow> ('b \<times> 'a) set \<Rightarrow> ('b list \<times> (nat literal \<Rightarrow> 'a)) set" where
+definition map_fun_rel :: "(nat \<times> 'key) set \<Rightarrow> ('b \<times> 'a) set \<Rightarrow> ('b list \<times> ('key \<Rightarrow> 'a)) set" where
   map_fun_rel_def_internal: \<open>map_fun_rel D R = {(m, f). \<forall>(i, j)\<in>D. i < length m \<and> (m ! i, f j) \<in> R}\<close>
 
 lemma map_fun_rel_def:
