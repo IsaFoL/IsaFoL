@@ -23,6 +23,9 @@ derive linorder prod
 derive linorder list
 derive linorder "term"
 
+abbreviation same_shape_tm :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" where
+  "same_shape_tm \<equiv> rel_term (op =) (\<lambda>x y. True)"
+
 primrec gsize_tm :: "('f, 'v) term \<Rightarrow> nat" where
   "gsize_tm (Var _) = 1"
 | "gsize_tm (Fun _ ss) = 2 + sum_list (map gsize_tm ss)"
@@ -79,6 +82,12 @@ next
     Ball (set (mk_var_dis Cs)) is_renaming \<and> var_disjoint (subst_cls_lists Cs (mk_var_dis Cs))"
     sorry
 next
+  have noninj_subst_if_same_shape:
+    "\<exists>x \<in> vars_term s. \<exists>y \<in> vars_term s. x \<noteq> y \<and> \<sigma> x = \<sigma> y \<and> s \<cdot> \<sigma> = t"
+    if "same_shape_tm s t" and "strictly_generalizes_atm s t"
+    for s t :: "('f, 'v) term" and \<sigma>
+    sorry
+
   have generalizes_atm_imp_gsize_tm:
     "generalizes_atm s t \<Longrightarrow> gsize_tm s \<le> gsize_tm t" for s t :: "('f, 'v) term"
   proof (induct s arbitrary: t)
@@ -177,33 +186,29 @@ next
       let ?As = "map atm_of Ls"
       let ?Bs = "map atm_of Ms"
       let ?f = undefined
-      let ?s = "Fun ?f ?As"
-      let ?t = "Fun ?f ?Bs"
 
-      have gsize': "gsize_tm ?s = gsize_tm ?t"
-        using gsize unfolding gsize_cls_def
+      define s where "s = Fun ?f ?As"
+      define t where "t = Fun ?f ?Bs"
+
+      have gsize': "gsize_tm s = gsize_tm t"
+        using gsize unfolding gsize_cls_def s_def t_def
         by simp (metis c d gsize gsize_cls_def mset_map sum_mset_sum_list)
-      have gvars': "gvars_tm ?s \<ge> gvars_tm ?t"
+      have gvars': "gvars_tm s \<ge> gvars_tm t"
         sorry
+      then have card_vars: "card (vars_term s) \<le> card (vars_term t)"
+        by (metis card_vars_le_gsize gsize' gvars_tm_def le_diff_iff')
 
-      have g: "generalizes_atm ?s ?t"
+      have g: "generalizes_atm s t"
         sorry
-      have ng: "\<not> generalizes_atm ?t ?s"
+      have ng: "\<not> generalizes_atm t s"
         sorry
 
       {
-        assume gvars_gt: "gvars_tm ?s > gvars_tm ?t"
-        have False
+        have "card (vars_term s) > card (vars_term t)"
           sorry
       }
-      moreover
-      {
-        assume gvars_eq: "gvars_tm ?s = gvars_tm ?t"
-        have False
-          sorry
-      }
-      ultimately have False
-        using gvars' by arith
+      then have False
+        using card_vars by arith
     }
     ultimately show False
       using not_mlexD[OF ni_gp[unfolded gpair_def]] by fastforce
