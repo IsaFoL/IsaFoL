@@ -77,11 +77,17 @@ lemma subst_cls_add_mset[simp]: "add_mset L C \<cdot> \<sigma> = add_mset (L \<c
 lemma subst_cls_mset_add_mset[simp]: "add_mset C CC \<cdot>cm \<sigma> = add_mset (C \<cdot> \<sigma>) (CC \<cdot>cm \<sigma>)"
   unfolding subst_cls_mset_def by auto
 
-definition generalization_of :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
-  "generalization_of C D \<longleftrightarrow> (\<exists>\<sigma>. C \<cdot> \<sigma> = D)"
+definition generalization_of_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
+  "generalization_of_atm A B \<longleftrightarrow> (\<exists>\<sigma>. A \<cdot>a \<sigma> = B)"
 
-definition proper_generalization_of :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
-  "proper_generalization_of C D \<longleftrightarrow> generalization_of C D \<and> \<not> generalization_of D C"
+definition proper_generalization_of_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
+  "proper_generalization_of_atm A B \<longleftrightarrow> generalization_of_atm A B \<and> \<not> generalization_of_atm B A"
+
+definition generalization_of_cls :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  "generalization_of_cls C D \<longleftrightarrow> (\<exists>\<sigma>. C \<cdot> \<sigma> = D)"
+
+definition proper_generalization_of_cls :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  "proper_generalization_of_cls C D \<longleftrightarrow> generalization_of_cls C D \<and> \<not> generalization_of_cls D C"
 
 definition is_renaming :: "'s \<Rightarrow> bool" where
   "is_renaming \<sigma> \<longleftrightarrow> (\<exists>\<tau>. \<sigma> \<odot> \<tau> = id_subst \<and> \<tau> \<odot> \<sigma> = id_subst)"
@@ -166,7 +172,7 @@ locale substitution = substitution_ops subst_atm id_subst comp_subst
        \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)" and
     mk_var_dis_p: "\<And>Cs. length (mk_var_dis Cs) = length Cs \<and> (\<forall>\<rho> \<in> set (mk_var_dis Cs). is_renaming \<rho>) \<and>
        var_disjoint (Cs \<cdot>\<cdot>cl (mk_var_dis Cs))" and
-    wf_proper_generalization_of: "wfP proper_generalization_of"
+    wf_proper_generalization_of_atm: "wfP proper_generalization_of_atm"
 begin
 
 lemma make_var_disjoint: "\<And>Cs. \<exists>\<rho>s. length \<rho>s = length Cs \<and> (\<forall>\<rho> \<in> set \<rho>s. is_renaming \<rho>) \<and>
@@ -916,7 +922,7 @@ theorem is_unifiers_comp:
   unfolding is_unifiers_def is_unifier_def subst_atmss_def by auto
 
 
-subsubsection \<open>Most General Unifier\<close>
+subsubsection \<open>Most general unifier\<close>
 
 lemma is_mgu_is_unifiers: "is_mgu \<sigma> AAA \<Longrightarrow> is_unifiers \<sigma> AAA"
   using is_mgu_def by blast
@@ -927,12 +933,18 @@ lemma is_mgu_is_more_general: "is_mgu \<sigma> AAA \<Longrightarrow> is_unifiers
 lemma is_unifiers_is_unifier: "is_unifiers \<sigma> AAA \<Longrightarrow> AA \<in> AAA \<Longrightarrow> is_unifier \<sigma> AA"
   using is_unifiers_def by auto
 
+
+subsubsection \<open>Well-foundedness of clause generalization\<close>
+
+lemma wf_proper_generalization_of_cls: "wfP proper_generalization_of_cls"
+  sorry
+
 end
 
 
-subsection \<open>Unification\<close>
+subsection \<open>Most general unifiers\<close>
 
-locale unification = substitution subst_atm id_subst comp_subst mk_var_dis
+locale mgu = substitution subst_atm id_subst comp_subst mk_var_dis
   for
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: 's and

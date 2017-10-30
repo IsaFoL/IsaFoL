@@ -22,7 +22,7 @@ text \<open>
 The following corresponds to to pages 41 and 42 of Section 4.3, until Figure 5 and its explanation.
 \<close>
 
-locale FO_resolution = unification subst_atm id_subst comp_subst mk_var_dis mgu
+locale FO_resolution = mgu subst_atm id_subst comp_subst mk_var_dis mgu
   for
     subst_atm :: "'a :: wellorder \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and
