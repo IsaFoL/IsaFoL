@@ -76,7 +76,13 @@ next
 
     {
       have "gsize_cls C \<le> gsize_cls D"
-        sorry
+      proof (induct "size C")
+        case 0
+        then show ?case sorry
+      next
+        case (Suc x)
+        then show ?case sorry
+      qed
     }
     moreover
     {
