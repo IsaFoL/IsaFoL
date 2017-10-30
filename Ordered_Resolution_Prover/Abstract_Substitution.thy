@@ -27,11 +27,11 @@ locale substitution_ops =
     comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's"
 begin
 
-abbreviation subst_atm_syntax :: "'a \<Rightarrow> 's \<Rightarrow> 'a" (infixl "\<cdot>a" 67) where
-  "subst_atm_syntax \<equiv> subst_atm"
+abbreviation subst_atm_abbrev :: "'a \<Rightarrow> 's \<Rightarrow> 'a" (infixl "\<cdot>a" 67) where
+  "op \<cdot>a \<equiv> subst_atm"
 
-abbreviation comp_subst_syntax :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 67) where
-  "comp_subst_syntax \<equiv> comp_subst"
+abbreviation comp_subst_abbrev :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 67) where
+  "op \<odot> \<equiv> comp_subst"
 
 definition comp_substs :: "'s list \<Rightarrow> 's list \<Rightarrow> 's list" (infixl "\<odot>s" 67) where
   "\<sigma>s \<odot>s \<tau>s = map2 comp_subst \<sigma>s \<tau>s"

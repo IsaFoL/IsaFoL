@@ -6,7 +6,7 @@
 section \<open>Integration of IsaFoR Terms\<close>
 
 theory IsaFoR_Term
-  imports "$AFP/Deriving/Derive" "$ISAFOR/Rewriting/Unification" Abstract_Substitution
+  imports "Deriving.Derive" "$ISAFOR/Rewriting/Unification" Abstract_Substitution
 begin
 
 hide_const (open) mgu
@@ -19,6 +19,34 @@ interpretation substitution_ops "op \<cdot>" Var "op \<circ>\<^sub>s" .
 
 interpretation substitution "op \<cdot>" Var "op \<circ>\<^sub>s"
 proof
+  show "\<And>A. subst_atm_abbrev A Var = A"
+    sorry
+next
+  show "\<And>A \<tau> \<sigma>. subst_atm_abbrev A (comp_subst_abbrev \<tau> \<sigma>) = subst_atm_abbrev (subst_atm_abbrev A \<tau>) \<sigma>"
+    sorry
+next
+  show "\<And>\<sigma> \<tau>. (\<And>A. subst_atm_abbrev A \<sigma> = subst_atm_abbrev A \<tau>) \<Longrightarrow> \<sigma> = \<tau>"
+    sorry
+next
+  show "\<And>Cs \<sigma>. is_ground_cls_list (subst_cls_list Cs \<sigma>) \<Longrightarrow>
+            \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> subst_cls S \<sigma> = subst_cls S \<tau>)"
+    sorry
+next
+  show "\<And>Cs. length (mk_var_dis Cs) = length Cs \<and>
+    Ball (set (mk_var_dis Cs)) is_renaming \<and> var_disjoint (subst_cls_lists Cs (mk_var_dis Cs))"
+    sorry
+next
+  show "wfP proper_generalization_of"
+    sorry
+qed
+
+
+
+
+
+
+
+
   fix CC and \<sigma>::"'b \<Rightarrow> ('a, 'b) term"
   assume "substitution_ops.is_ground_cls_list op \<cdot> (substitution_ops.subst_cls_list op \<cdot> CC \<sigma>) "
   show "\<exists>\<tau>. is_ground_subst (\<tau> :: 'b \<Rightarrow> ('a, 'b) term)  \<and> substitution_ops.subst_cls_list op \<cdot> CC \<sigma> = substitution_ops.subst_cls_list op \<cdot> CC \<tau>"
