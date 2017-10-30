@@ -9,6 +9,10 @@ theory IsaFoR_Term
   imports Deriving.Derive "$ISAFOR/Rewriting/Unification" Abstract_Substitution
 begin
 
+(* TODO: Move to "Multiset_More" *)
+lemma sum_image_mset_sum_map[simp]: "sum_mset (image_mset f (mset xs)) = sum_list (map f xs)"
+  by (metis mset_map sum_mset_sum_list)
+
 hide_const (open) mgu
 
 derive linorder prod
@@ -110,7 +114,7 @@ proof (induct xs ys rule: list_induct2)
     proof (cases i)
       case 0
       then show ?thesis
-        using fxs_eq_fys sum_fxs_eq_fys Cons(3)[rule_format, of 0] Cons(4) by simp
+        using sum_fxs_eq_fys Cons(3)[rule_format, of 0] Cons(4) by simp
     next
       case (Suc j)
       then show ?thesis
@@ -292,19 +296,24 @@ next
       define s where "s = Fun ?f ?As"
       define t where "t = Fun ?f ?Bs"
 
-      have g': "generalizes_atm s t"
-        using g
-        sorry
-      have ng': "\<not> generalizes_atm t s"
-        sorry
       have sg': "strictly_generalizes_atm s t"
+        using g[unfolded c d]
+        unfolding s_def t_def generalizes_atm_def generalizes_cls_def subst_cls_def
+        apply (simp add: comp_def subst_lit_def)
         sorry
+      then have g': "generalizes_atm s t" and ng': "\<not> generalizes_atm t s"
+        unfolding strictly_generalizes_atm_def by blast+
 
       have gsize': "gsize_tm s = gsize_tm t"
         using gsize unfolding gsize_cls_def s_def t_def
         by simp (metis c d gsize gsize_cls_def mset_map sum_mset_sum_list)
 
-      have "gvars_tm s \<ge> gvars_tm t"
+      have gvars': "gvars_tm s \<ge> gvars_tm t"
+        unfolding s_def t_def
+        using gvars[unfolded gvars_cls_def c d]
+        apply simp
+        unfolding gvars_tm_def
+        apply (simp add: comp_def)
         sorry
       then have "card (vars_term s) \<le> card (vars_term t)"
         by (metis card_vars_le_gsize gsize' gvars_tm_def le_diff_iff')
