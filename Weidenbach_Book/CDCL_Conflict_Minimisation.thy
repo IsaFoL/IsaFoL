@@ -726,7 +726,7 @@ proof -
         index_CK: \<open>\<forall>Ka\<in>#CK. index_in_trail M Ka < index_in_trail M K\<close> and
         C_CK: \<open>C \<subseteq># CK\<close>
         using stack_hd unfolding analysis by auto
-      moreover have \<open> remove1_mset L C \<subseteq># CK\<close>
+      moreover have \<open>remove1_mset L C \<subseteq># CK\<close>
         using C_CK by (meson diff_subset_eq_self subset_mset.dual_order.trans)
       moreover have \<open>index_in_trail M L < index_in_trail M K\<close>
         using index_CK C_CK L_C unfolding analysis ana' by auto
@@ -968,13 +968,20 @@ definition literal_redundant_spec where
 
 definition literal_redundant where
   \<open>literal_redundant M NU D cach L = do {
-     C \<leftarrow> get_propagation_reason M L;
-     case C of
-       Some C \<Rightarrow> lit_redundant_rec M NU D cach [(L, C - {#-L#})]
-     | None \<Rightarrow> do {
-         cach \<leftarrow> mark_failed_lits [(L, {#})] cach;
-         RETURN (cach, [(L, {#})], False)
+     ASSERT(-L \<in> lits_of_l M);
+     if get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE
+     then RETURN (cach, [], True)
+     else if cach (atm_of L) = SEEN_FAILED
+     then RETURN (cach, [], False)
+     else do {
+       C \<leftarrow> get_propagation_reason M L;
+       case C of
+         Some C \<Rightarrow> lit_redundant_rec M NU D cach [(L, C - {#-L#})]
+       | None \<Rightarrow> do {
+           cach \<leftarrow> mark_failed_lits [(L, {#})] cach;
+           RETURN (cach, [], False)
      }
+    }
   }\<close>
 
 lemma true_clss_cls_add_self: \<open>NU \<Turnstile>p D' + D' \<longleftrightarrow> NU \<Turnstile>p D'\<close>
@@ -1092,11 +1099,22 @@ proof -
       subgoal unfolding literal_redundant_spec_def[symmetric] by (rule H)
       done
   qed
+
+  have uL_M: \<open>-L \<in> lits_of_l M\<close>
+    using L_D M_D by (auto dest!: multi_member_split)
   show ?thesis
     unfolding literal_redundant_def get_propagation_reason_def literal_redundant_spec_def
     apply (refine_vcg)
+    subgoal using uL_M .
     subgoal
-      using inv by (auto simp: mark_failed_lits_def conflict_min_analysis_inv_def)
+      using inv uL_M cdcl\<^sub>W_restart_mset.literals_of_level0_entailed[OF invs, of \<open>-L\<close>]
+        true_clss_cls_mono_r'
+      by (fastforce simp: mark_failed_lits_def conflict_min_analysis_inv_def
+          clauses_def)
+    subgoal using inv by auto
+    subgoal by auto
+    subgoal using inv by auto
+    subgoal using inv by (auto simp: mark_failed_lits_def conflict_min_analysis_inv_def)
     subgoal for E E'
       unfolding literal_redundant_spec_def[symmetric]
       by (rule lit_redundant_rec)
@@ -1433,12 +1451,19 @@ qed
 
 definition literal_redundant_wl where
   \<open>literal_redundant_wl M NU D cach L = do {
-     C \<leftarrow> get_propagation_reason_wl M L;
-     case C of
-       Some C \<Rightarrow> lit_redundant_rec_wl M NU D cach [(C, 1)]
-     | None \<Rightarrow> do {
-         cach \<leftarrow> mark_failed_lits_wl [(0::nat, 1::nat)] cach;
-         RETURN (cach, [(0 :: nat, 1::nat)], False)
+     ASSERT(-L \<in> lits_of_l M);
+     if get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE
+     then RETURN (cach, [], True)
+     else if cach (atm_of L) = SEEN_FAILED
+     then RETURN (cach, [], False)
+     else do {
+       C \<leftarrow> get_propagation_reason_wl M L;
+       case C of
+         Some C \<Rightarrow> lit_redundant_rec_wl M NU D cach [(C, 1)]
+       | None \<Rightarrow> do {
+           cach \<leftarrow> mark_failed_lits_wl [(0::nat, 1::nat)] cach;
+           RETURN (cach, [], False)
+       }
      }
   }\<close>
 
@@ -1455,7 +1480,9 @@ lemma
     NU': \<open>NU' \<equiv> cdcl\<^sub>W_restart_mset.clauses S'''\<close>
   assumes
     struct_invs: \<open>twl_struct_invs S''\<close> and
-    add_inv: \<open>additional_WS_invs S'\<close>
+    add_inv: \<open>additional_WS_invs S'\<close> and
+    L_D: \<open>L \<in># D\<close> and
+    M_D: \<open>M \<Turnstile>as CNot D\<close>
   shows
     \<open>literal_redundant_wl M NU D cach L \<le> \<Down>
        (Id \<times>\<^sub>r {(analyse, analyse'). analyse' = convert_analysis_list NU analyse \<and>
@@ -1463,6 +1490,31 @@ lemma
        (literal_redundant M' NU' D cach L)\<close>
    (is \<open>_ \<le> \<Down> (_ \<times>\<^sub>r ?A \<times>\<^sub>r _) _\<close> is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
+  obtain u D' NP UP Q W where
+    S: \<open>S = (M, NU, u, D', NP, UP, Q, W)\<close>
+    using M_def NU by (cases S) auto
+  have M'_def: \<open>M' = convert_lits_l NU M\<close>
+    using NU unfolding M' by (auto simp: S)
+  have [simp]: \<open>lits_of_l M' = lits_of_l M\<close>
+    unfolding M'_def by auto
+  have
+    no_smaller_propa: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa S'''\<close> and
+    struct_invs': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv S'''\<close>
+    using struct_invs unfolding twl_struct_invs_def S''_def S'''_def[symmetric]
+    by fast+
+  have annots: \<open>set (get_all_mark_of_propagated (trail S''')) \<subseteq> set_mset (cdcl\<^sub>W_restart_mset.clauses S''')\<close>
+    using struct_invs'
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+    by fast
+  have n_d: \<open>no_dup M\<close>
+    using struct_invs' unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by (auto simp: S)
+  then have n_d': \<open>no_dup M'\<close>
+    unfolding M'_def by (auto simp: S)
+  have uL_M: \<open>-L \<in> lits_of_l M\<close>
+    using L_D M_D by (auto dest!: multi_member_split)
   have H: \<open>lit_redundant_rec_wl M NU D cach analyse
   \<le> \<Down> (Id \<times>\<^sub>f
         ({(analyse, analyse').
@@ -1477,11 +1529,114 @@ proof -
       unfolded S'_def[symmetric] S''_def[symmetric]
       M_def[symmetric] M'[symmetric] NU[symmetric] NU'[symmetric], OF _ struct_invs add_inv]
     that by auto
+   have get_propagation_reason: \<open>get_propagation_reason_wl M L
+      \<le> \<Down> (\<langle>{(C', C).  C = mset (NU ! C') \<and> C' \<noteq> 0 \<and> Propagated (- L) (mset (NU!C')) \<in> set M'
+                \<and> Propagated (- L) C' \<in> set M}\<rangle>
+              option_rel)
+          (get_propagation_reason M' L)\<close>
+    (is \<open>_ \<le> \<Down> (\<langle>?get_propagation_reason\<rangle>option_rel) _\<close> is ?G1) and
+     propagated_L: \<open>Propagated (-L) a \<in> set M \<Longrightarrow> a \<noteq> 0 \<and> Propagated (- L) (mset (NU ! a)) \<in> set M'\<close>
+    (is \<open>?H2 \<Longrightarrow> ?G2\<close>)
+    if
+      lev0_rem: \<open>\<not> (get_level M' L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE)\<close> and
+      ux1e_M: \<open>- L \<in> lits_of_l M\<close>
+    for a
+   proof -
+     have \<open>Propagated (- L) (mset (NU ! a)) \<in> set M'\<close> (is ?propa) and
+       \<open>a \<noteq> 0\<close> (is ?a)
+       if \<open>Propagated (-L) a \<in> set M\<close>
+       for a
+     proof -
+       have [simp]: \<open>a \<noteq> 0\<close>
+       proof
+         assume [simp]: \<open>a = 0\<close>
+         have H: \<open>\<not> M \<Turnstile>as CNot D\<close>
+           if \<open>trail S''' = M' @ Decided K # M\<close> and
+             \<open>D + {#L#} \<in># cdcl\<^sub>W_restart_mset.clauses S'''\<close>
+             \<open>undefined_lit M L\<close> for M K M' D L
+           using no_smaller_propa that unfolding cdcl\<^sub>W_restart_mset.no_smaller_propa_def by blast
+         have x1d_M': \<open>Propagated (- L) {#-L#} \<in> set M'\<close>
+           using that by (auto simp: M'_def dest!: split_list)
+
+         then have x1d_clss:  \<open>{#-L#} \<in># cdcl\<^sub>W_restart_mset.clauses S'''\<close>
+           using annots by (auto simp: S M'_def[symmetric] clauses_def mset_take_mset_drop_mset
+               dest!: split_list)
+         have \<open>no_dup M'\<close>
+           using n_d unfolding M'_def by auto
+         then have count_M': \<open>count_decided M' \<ge> 1\<close>
+           using x1d_M' lev0_rem by (auto dest!: split_list)
+         have \<open>get_level M (-L) = 0\<close>
+         proof (rule ccontr)
+           assume lev: \<open>\<not> ?thesis\<close>
+           then have lev': \<open>0 < get_level M' L\<close>
+             unfolding M'_def by auto
+           obtain M2 K M1 where
+             M': \<open>M' = M2 @ Decided K # M1\<close> and
+             lev_K: \<open>get_level M K = Suc 0\<close>
+             using le_count_decided_decomp[OF n_d, of 0] count_M' unfolding M'_def by auto
+           have lev_K: \<open>get_level M' K = Suc 0\<close>
+             using lev_K unfolding M'_def by auto
+           have \<open>defined_lit M' L\<close>
+             using ux1e_M by (simp add: Decided_Propagated_in_iff_in_lits_of_l)
+           then have \<open>undefined_lit M1 L\<close>
+             using lev' n_d' lev_K  Suc_count_decided_gt_get_level[of M1]
+             unfolding M_def
+             by (auto simp: S clauses_def mset_take_mset_drop_mset' M'_def[symmetric] defined_lit_cons
+                 M' defined_lit_append atm_of_eq_atm_of get_level_cons_if
+                 dest: defined_lit_no_dupD split: if_splits)
+           then show False
+             using H[of _ _ _ \<open>{#}\<close> \<open>-L\<close>] x1d_clss
+             by (auto simp: S clauses_def mset_take_mset_drop_mset' M'_def[symmetric] M')
+         qed
+         then show False using lev0_rem unfolding M'_def by auto
+       qed
+       show ?propa and ?a
+         using that by (auto simp: M'_def dest!: split_list)
+     qed note H = this
+     show \<open>?H2 \<Longrightarrow> ?G2\<close>
+       using H by auto
+     show ?G1
+       using H
+       apply (auto simp: get_propagation_reason_def refine_rel_defs
+           get_propagation_reason_wl_def intro!: RES_refine)
+       apply (case_tac s)
+       by auto
+   qed
+  have mark_failed_lits_wl: \<open>mark_failed_lits_wl [(0, 1)] cach \<le> \<Down> Id (mark_failed_lits  [(L, {#})] cach)\<close>
+    unfolding mark_failed_lits_wl_def mark_failed_lits_def by auto
+
+  have [simp]: \<open>mset (tl C) = remove1_mset (C!0) (mset C)\<close> for C
+    by (cases C) auto
+  have [simp]: \<open>NU ! C ! 0 = -L\<close> if
+    in_trail: \<open>Propagated (- L) C \<in> set M\<close> and
+    lev: \<open>\<not> (get_level M' L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE)\<close>
+  for C
+    using add_inv that propagated_L[OF lev _ in_trail] uL_M
+    by (auto simp: S additional_WS_invs_def)
+  have [dest]: \<open>C \<noteq> {#}\<close> if \<open>Propagated (- L) C \<in> set M'\<close> for C
+  proof -
+    have \<open>a @ Propagated L mark # b = trail S''' \<Longrightarrow> b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close>
+      for L mark a b
+      using struct_invs' unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+      by fast
+    then show ?thesis
+      using that by (fastforce simp: S M'_def[symmetric] dest!: split_list)
+  qed
 
   show ?thesis
     unfolding literal_redundant_wl_def literal_redundant_def
-    apply (refine_rcg H)
-    sorry
+    apply (refine_rcg H get_propagation_reason mark_failed_lits_wl)
+    subgoal by (simp add: M'_def)
+    subgoal by (simp add: M'_def)
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    apply (assumption)
+    subgoal by auto
+    subgoal for x x' C x'a by (auto simp: convert_analysis_list_def drop_Suc)
+    subgoal by auto
+    done
 qed
 
 abbreviation (in -)  minimize_status_rel where
