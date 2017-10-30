@@ -15,17 +15,65 @@ derive linorder prod
 derive linorder list
 derive linorder "term"
 
+context substitution
+begin
+
+primrec gsize_tm :: "('f, 'v) term \<Rightarrow> nat" where
+  "gsize_tm (Var _) = 1"
+| "gsize_tm (Fun _ ts) = 2 + sum_list (map gsize_tm ts)"
+
+definition gsize_cls :: "('f, 'v) term clause \<Rightarrow> nat" where
+  "gsize_cls C = sum_mset (image_mset (gsize_tm \<circ> atm_of) C)"
+
+definition gvars_cls :: "('f, 'v) term clause \<Rightarrow> nat" where
+  "gvars_cls C = gsize_cls C - card (Union (set_mset (image_mset (vars_term \<circ> atm_of) C)))"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+definition gpair :: "('f, 'v) term rel" where
+  "gpair = gsize <*mlex*> measure gvars"
+
+
+
+
+lemma
+  assumes "proper_generalization_of C D"
+  shows "(C, D) \<in> gpair"
+  sorry
+
+end
+
+
 interpretation substitution_ops "op \<cdot>" Var "op \<circ>\<^sub>s" .
 
 interpretation substitution "op \<cdot>" Var "op \<circ>\<^sub>s"
 proof
-  show "\<And>A. subst_atm_abbrev A Var = A"
+  show "\<And>A. subst_tm_abbrev A Var = A"
     sorry
 next
-  show "\<And>A \<tau> \<sigma>. subst_atm_abbrev A (comp_subst_abbrev \<tau> \<sigma>) = subst_atm_abbrev (subst_atm_abbrev A \<tau>) \<sigma>"
+  show "\<And>A \<tau> \<sigma>. subst_tm_abbrev A (comp_subst_abbrev \<tau> \<sigma>) = subst_tm_abbrev (subst_tm_abbrev A \<tau>) \<sigma>"
     sorry
 next
-  show "\<And>\<sigma> \<tau>. (\<And>A. subst_atm_abbrev A \<sigma> = subst_atm_abbrev A \<tau>) \<Longrightarrow> \<sigma> = \<tau>"
+  show "\<And>\<sigma> \<tau>. (\<And>A. subst_tm_abbrev A \<sigma> = subst_tm_abbrev A \<tau>) \<Longrightarrow> \<sigma> = \<tau>"
     sorry
 next
   show "\<And>Cs \<sigma>. is_ground_cls_list (subst_cls_list Cs \<sigma>) \<Longrightarrow>
@@ -58,7 +106,7 @@ qed
         by (induct t) (auto simp add: \<tau>_def)
     }
     then show "substitution_ops.is_ground_subst op \<cdot> \<tau> \<and> substitution_ops.subst_cls_list op \<cdot> CC \<sigma> = substitution_ops.subst_cls_list op \<cdot> CC \<tau>"
-      unfolding is_ground_subst_def is_ground_atm_def by simp
+      unfolding is_ground_subst_def is_ground_tm_def by simp
   qed
 qed (auto intro: subst_term_eqI)
 
