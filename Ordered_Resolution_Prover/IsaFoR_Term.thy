@@ -71,18 +71,18 @@ next
       pg: "proper_generalization_of C D" and
       ni_gp: "(C, D) \<notin> gpair"
 
+    have g: "generalization_of C D" and ng: "\<not> generalization_of D C"
+      using pg unfolding proper_generalization_of_def by blast+
+
     {
-      assume "gsize_cls C > gsize_cls D"
-      have False
+      have "gsize_cls C \<le> gsize_cls D"
         sorry
     }
     moreover
     {
-      assume
-        gsize: "gsize_cls C = gsize_cls D" and
-        gvar: "gvars_cls C > gvars_cls D"
+      assume gsize: "gsize_cls C = gsize_cls D"
 
-      have False
+      have "gvars_cls C \<le> gvars_cls D"
         sorry
     }
     moreover
