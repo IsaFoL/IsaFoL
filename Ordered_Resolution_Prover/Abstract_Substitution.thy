@@ -178,7 +178,7 @@ locale substitution = substitution_ops subst_atm id_subst comp_subst
        \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)" and
     mk_var_dis_p: "\<And>Cs. length (mk_var_dis Cs) = length Cs \<and> (\<forall>\<rho> \<in> set (mk_var_dis Cs). is_renaming \<rho>) \<and>
        var_disjoint (Cs \<cdot>\<cdot>cl (mk_var_dis Cs))" and
-    wf_proper_generalization_of_atm: "wfP proper_generalization_of_atm"
+    wf_proper_generalization_of_cls: "wfP proper_generalization_of_cls"
 begin
 
 lemma make_var_disjoint: "\<And>Cs. \<exists>\<rho>s. length \<rho>s = length Cs \<and> (\<forall>\<rho> \<in> set \<rho>s. is_renaming \<rho>) \<and>
@@ -938,34 +938,6 @@ lemma is_mgu_is_more_general: "is_mgu \<sigma> AAA \<Longrightarrow> is_unifiers
 
 lemma is_unifiers_is_unifier: "is_unifiers \<sigma> AAA \<Longrightarrow> AA \<in> AAA \<Longrightarrow> is_unifier \<sigma> AA"
   using is_unifiers_def by auto
-
-
-subsubsection \<open>Well-foundedness of clause generalization\<close>
-
-lemma generalization_of_cls_lit: "generalization_of_cls C D \<Longrightarrow> rel_mset generalization_of_lit C D"
-  unfolding generalization_of_cls_def generalization_of_lit_def
-  sorry
-
-lemma generalization_of_cls_imp_len: "generalization_of_cls C D \<Longrightarrow> size C = size D"
-  using generalization_of_cls_lit rel_mset_size by blast
-
-lemma generalization_of_cls_imp_ex_lits:
-  assumes "generalization_of_cls C D"
-  shows "\<exists>Ls Ms. mset Ls = C \<and> mset Ms = D \<and> list_all2 generalization_of_lit Ls Ms"
-  using assms generalization_of_cls_lit rel_mset_def by blast
-
-
-
-
-thm wf_proper_generalization_of_atm
-thm wf_iff_no_infinite_down_chain
-
-lemma wf_proper_generalization_of_cls: "wfP proper_generalization_of_cls"
-  unfolding wfP_def wf_iff_no_infinite_down_chain
-  apply auto
-
-
-  sorry
 
 end
 
