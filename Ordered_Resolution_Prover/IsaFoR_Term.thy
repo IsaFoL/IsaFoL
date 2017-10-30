@@ -6,8 +6,18 @@
 section \<open>Integration of IsaFoR Terms\<close>
 
 theory IsaFoR_Term
-  imports "Deriving.Derive" "$ISAFOR/Rewriting/Unification" Abstract_Substitution
+  imports Deriving.Derive "$ISAFOR/Rewriting/Unification" Abstract_Substitution
 begin
+
+(* TODO: Move to Isabelle's "Wellfounded.thy" theory file *)
+lemma mlexD: "(x, y) \<in> f <*mlex*> R \<Longrightarrow> f x < f y \<or> f x = f y \<and> (x, y) \<in> R"
+  by (simp add: mlex_prod_def)
+
+(* TODO: Move to Isabelle's "Wellfounded.thy" theory file *)
+lemma not_mlexD: "(x, y) \<notin> f <*mlex*> R \<Longrightarrow> f x > f y \<or> f x = f y \<and> (x, y) \<notin> R"
+  by (meson antisym_conv3 mlex_leq mlex_less not_less)
+
+
 
 hide_const (open) mgu
 
@@ -55,10 +65,29 @@ next
     Ball (set (mk_var_dis Cs)) is_renaming \<and> var_disjoint (subst_cls_lists Cs (mk_var_dis Cs))"
     sorry
 next
-  have in_gpair: "(C, D) \<in> gpair"
-    if pg: "proper_generalization_of C D" for C D :: "('f, 'v) term clause"
-    sorry
+  have in_gpair: "proper_generalization_of C D \<Longrightarrow> (C, D) \<in> gpair" for C D :: "('f, 'v) term clause"
+  proof (rule ccontr)
+    assume
+      pg: "proper_generalization_of C D" and
+      ni_gp: "(C, D) \<notin> gpair"
 
+    {
+      assume "gsize_cls C > gsize_cls D"
+      have False
+        sorry
+    }
+    moreover
+    {
+      assume
+        gsize: "gsize_cls C = gsize_cls D" and
+        gvar: "gvars_cls C \<ge> gvars_cls D"
+
+      have False
+        sorry
+    }
+    ultimately show False
+      using not_mlexD[OF ni_gp[unfolded gpair_def]] by fastforce
+  qed
   show "wfP (proper_generalization_of :: ('f, 'v) term clause \<Rightarrow> _ \<Rightarrow> _)"
     unfolding wfP_def by (auto intro: wf_subset[OF wf_gpair] in_gpair)
 qed
