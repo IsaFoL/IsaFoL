@@ -444,9 +444,10 @@ proof -
 qed
 end
 
-
+(* TODO Move *)
 lemma subseteq_remove1[simp]: \<open>C \<subseteq># C' \<Longrightarrow> remove1_mset L C \<subseteq># C'\<close>
   by (meson diff_subset_eq_self subset_mset.dual_order.trans)
+(* End Move *)
 
 lemma lit_redundant_rec_spec:
   fixes L :: \<open>'v literal\<close>
@@ -1415,7 +1416,7 @@ proof -
     subgoal ..
     subgoal by auto
     subgoal by auto
-    subgoal by (auto dest!: (* neq_NilE *))
+    subgoal by auto
     subgoal by auto
     subgoal by (auto simp: map_butlast rev_butlast_is_tl_rev dest: in_set_butlastD)
             apply (rule get_literal_and_remove_of_analyse_wl; assumption)
@@ -1429,6 +1430,13 @@ proof -
     subgoal by (rule resolve)
     done
 qed
+
+abbreviation minimize_status_rel where
+  \<open>minimize_status_rel \<equiv> Id :: (minimizer \<times> minimizer) set\<close>
+
+definition cach_refinement :: \<open>(minimizer list \<times> (nat conflict_min_cach)) set\<close>  where
+  \<open>cach_refinement = \<langle>Id\<rangle>map_fun_rel Id\<close>
+
 end
 
 end
