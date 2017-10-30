@@ -39,6 +39,22 @@ definition gvars_cls :: "('f, 'v) term clause \<Rightarrow> nat" where
 definition gpair :: "('f, 'v) term clause rel" where
   "gpair = gsize_cls <*mlex*> measure gvars_cls"
 
+lemma card_vars_le_gsize: "card (vars_term s) \<le> gsize_tm s"
+proof (induct s)
+  case (Fun f ss)
+  then show ?case
+  proof (induct ss)
+    case (Cons s ss)
+    have "card (vars_term s \<union> (\<Union>x\<in>set ss. vars_term x))
+      \<le> card (vars_term s) + card (\<Union>x\<in>set ss. vars_term x)"
+      using card_Un_le by blast
+    also have "\<dots> \<le> 2 + gsize_tm s + sum_list (map gsize_tm ss)"
+      using Cons.hyps Cons.prems by fastforce
+    finally show ?case
+      by simp
+  qed simp
+qed simp
+
 lemma wf_gpair: "wf gpair"
   by (simp add: gpair_def wf_mlex)
 
@@ -149,16 +165,7 @@ next
     {
       assume gsize: "gsize_cls C = gsize_cls D"
 
-      have "gvars_cls C \<le> gvars_cls D"
-        sorry
-    }
-    moreover
-    {
-      assume
-        gsize: "gsize_cls C = gsize_cls D" and
-        gvar: "gvars_cls C = gvars_cls D"
-
-      have False
+      have "gvars_cls C < gvars_cls D"
         sorry
     }
     ultimately show False
