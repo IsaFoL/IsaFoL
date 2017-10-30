@@ -127,7 +127,8 @@ next
           d: "D = D' + {#M#}" and
           c'_g_d': "generalizes_cls C' D'" and
           l_g_m: "generalizes_lit L M"
-          sorry
+          by (metis Suc.prems(1) add_mset_add_single c generalizes_cls_def generalizes_lit_def
+              subst_cls_add_mset)
 
         let ?A = "atm_of L"
         let ?B = "atm_of M"
