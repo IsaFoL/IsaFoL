@@ -77,11 +77,23 @@ lemma subst_cls_add_mset[simp]: "add_mset L C \<cdot> \<sigma> = add_mset (L \<c
 lemma subst_cls_mset_add_mset[simp]: "add_mset C CC \<cdot>cm \<sigma> = add_mset (C \<cdot> \<sigma>) (CC \<cdot>cm \<sigma>)"
   unfolding subst_cls_mset_def by auto
 
-definition generalization_of :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
-  "generalization_of C D \<longleftrightarrow> (\<exists>\<sigma>. C \<cdot> \<sigma> = D)"
+definition generalizes_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
+  "generalizes_atm C D \<longleftrightarrow> (\<exists>\<sigma>. C \<cdot>a \<sigma> = D)"
 
-definition proper_generalization_of :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
-  "proper_generalization_of C D \<longleftrightarrow> generalization_of C D \<and> \<not> generalization_of D C"
+definition strictly_generalizes_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
+  "strictly_generalizes_atm C D \<longleftrightarrow> generalizes_atm C D \<and> \<not> generalizes_atm D C"
+
+definition generalizes_lit :: "'a literal \<Rightarrow> 'a literal \<Rightarrow> bool" where
+  "generalizes_lit C D \<longleftrightarrow> (\<exists>\<sigma>. C \<cdot>l \<sigma> = D)"
+
+definition strictly_generalizes_lit :: "'a literal \<Rightarrow> 'a literal \<Rightarrow> bool" where
+  "strictly_generalizes_lit C D \<longleftrightarrow> generalizes_lit C D \<and> \<not> generalizes_lit D C"
+
+definition generalizes_cls :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  "generalizes_cls C D \<longleftrightarrow> (\<exists>\<sigma>. C \<cdot> \<sigma> = D)"
+
+definition strictly_generalizes_cls :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  "strictly_generalizes_cls C D \<longleftrightarrow> generalizes_cls C D \<and> \<not> generalizes_cls D C"
 
 definition is_renaming :: "'s \<Rightarrow> bool" where
   "is_renaming \<sigma> \<longleftrightarrow> (\<exists>\<tau>. \<sigma> \<odot> \<tau> = id_subst \<and> \<tau> \<odot> \<sigma> = id_subst)"
@@ -144,6 +156,12 @@ definition var_disjoint :: "'a clause list \<Rightarrow> bool" where
   "var_disjoint Cs \<longleftrightarrow>
    (\<forall>\<sigma>s. length \<sigma>s = length Cs \<longrightarrow> (\<exists>\<tau>. \<forall>i < length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma>s ! i = S \<cdot> \<tau>))"
 
+
+subsubsection \<open>Generalization of\<close>
+
+lemma generalizes_cls_size: "generalizes_cls C D \<Longrightarrow> size C = size D"
+  unfolding generalizes_cls_def subst_cls_def by fastforce
+
 end
 
 
@@ -166,7 +184,7 @@ locale substitution = substitution_ops subst_atm id_subst comp_subst
        \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)" and
     mk_var_dis_p: "\<And>Cs. length (mk_var_dis Cs) = length Cs \<and> (\<forall>\<rho> \<in> set (mk_var_dis Cs). is_renaming \<rho>) \<and>
        var_disjoint (Cs \<cdot>\<cdot>cl (mk_var_dis Cs))" and
-    wf_proper_generalization_of: "wfP proper_generalization_of"
+    wf_strictly_generalizes_cls: "wfP strictly_generalizes_cls"
 begin
 
 lemma make_var_disjoint: "\<And>Cs. \<exists>\<rho>s. length \<rho>s = length Cs \<and> (\<forall>\<rho> \<in> set \<rho>s. is_renaming \<rho>) \<and>

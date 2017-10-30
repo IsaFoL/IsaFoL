@@ -17,8 +17,6 @@ lemma mlexD: "(x, y) \<in> f <*mlex*> R \<Longrightarrow> f x < f y \<or> f x = 
 lemma not_mlexD: "(x, y) \<notin> f <*mlex*> R \<Longrightarrow> f x > f y \<or> f x = f y \<and> (x, y) \<notin> R"
   by (meson antisym_conv3 mlex_leq mlex_less not_less)
 
-
-
 hide_const (open) mgu
 
 derive linorder prod
@@ -65,24 +63,39 @@ next
     Ball (set (mk_var_dis Cs)) is_renaming \<and> var_disjoint (subst_cls_lists Cs (mk_var_dis Cs))"
     sorry
 next
-  have in_gpair: "proper_generalization_of C D \<Longrightarrow> (C, D) \<in> gpair" for C D :: "('f, 'v) term clause"
+  have in_gpair: "strictly_generalizes_cls C D \<Longrightarrow> (C, D) \<in> gpair" for C D :: "('f, 'v) term clause"
   proof (rule ccontr)
     assume
-      pg: "proper_generalization_of C D" and
+      pg: "strictly_generalizes_cls C D" and
       ni_gp: "(C, D) \<notin> gpair"
 
-    have g: "generalization_of C D" and ng: "\<not> generalization_of D C"
-      using pg unfolding proper_generalization_of_def by blast+
+    have g: "generalizes_cls C D" and ng: "\<not> generalizes_cls D C"
+      using pg unfolding strictly_generalizes_cls_def by blast+
 
     {
       have "gsize_cls C \<le> gsize_cls D"
-      proof (induct "size C")
-        case 0
-        then show ?case sorry
-      next
-        case (Suc x)
-        then show ?case sorry
-      qed
+        using g generalizes_cls_size[OF g]
+      proof (induct "size C" arbitrary: C D)
+        case (Suc k)
+        obtain C' L where
+          c: "C = C' + {#L#}"
+          sorry
+        obtain D' M where
+          d: "D = D' + {#M#}" and
+          c'_g_d': "generalizes_cls C' D'" and
+          l_g_m: "generalizes_lit L M"
+          sorry
+
+        have "gsize_cls C' \<le> gsize_cls D'"
+          using Suc(1)[of C' D']
+          sorry
+
+        have "gsize_tm (atm_of L) \<le> gsize_tm (atm_of M)"
+          sorry
+
+        show ?case
+          sorry
+      qed simp
     }
     moreover
     {
@@ -103,7 +116,7 @@ next
     ultimately show False
       using not_mlexD[OF ni_gp[unfolded gpair_def]] by fastforce
   qed
-  show "wfP (proper_generalization_of :: ('f, 'v) term clause \<Rightarrow> _ \<Rightarrow> _)"
+  show "wfP (strictly_generalizes :: ('f, 'v) term clause \<Rightarrow> _ \<Rightarrow> _)"
     unfolding wfP_def by (auto intro: wf_subset[OF wf_gpair] in_gpair)
 qed
 

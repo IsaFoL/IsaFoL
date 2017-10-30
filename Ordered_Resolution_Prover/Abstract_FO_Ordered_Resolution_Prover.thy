@@ -892,17 +892,17 @@ proof (rule ccontr)
     using f_Suc_decr_eventually_const comp_def by auto
   then obtain l where l_p: "\<forall>l' \<ge> l. size (c l') = size (c (Suc l'))"
     by metis
-  then have "\<forall>l' \<ge> l. proper_generalization_of  (c (Suc l')) (c l')"
-    using ps unfolding proper_generalization_of_def generalization_of_def
+  then have "\<forall>l' \<ge> l. strictly_generalizes_cls  (c (Suc l')) (c l')"
+    using ps unfolding strictly_generalizes_cls_def generalizes_cls_def
     by (metis size_subst less_irrefl strictly_subsumes_def mset_subset_size
         subset_mset_def subsumes_def strictly_subsumes_neq)
-  then have "\<forall>i. proper_generalization_of (c (Suc i + l)) (c (i + l))"
-    unfolding proper_generalization_of_def generalization_of_def by auto
-  then have "\<exists>f. \<forall>i. proper_generalization_of (f (Suc i)) (f i)"
+  then have "\<forall>i. strictly_generalizes_cls (c (Suc i + l)) (c (i + l))"
+    unfolding strictly_generalizes_cls_def generalizes_cls_def by auto
+  then have "\<exists>f. \<forall>i. strictly_generalizes_cls (f (Suc i)) (f i)"
     by fast
   then show False
-    using wf_proper_generalization_of
-      wf_iff_no_infinite_down_chain[of "{(x,y). proper_generalization_of x y}"]
+    using wf_strictly_generalizes_cls
+      wf_iff_no_infinite_down_chain[of "{(x,y). strictly_generalizes_cls x y}"]
     unfolding wfP_def by auto
 qed
 
