@@ -56,7 +56,7 @@ next
     sorry
 next
   show "\<And>Cs \<sigma>. is_ground_cls_list (subst_cls_list Cs \<sigma>) \<Longrightarrow>
-            \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> subst_cls S \<sigma> = subst_cls S \<tau>)"
+    \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> subst_cls S \<sigma> = subst_cls S \<tau>)"
     sorry
 next
   show "\<And>Cs. length (mk_var_dis Cs) = length Cs \<and>
@@ -75,33 +75,30 @@ next
     obtain ts where
       t: "t = Fun f ts" and
       len_ts: "length ts = length ss"
-      sorry
+      by (metis Fun.prems generalizes_atm_def length_map subst_apply_term.simps(2))
 
     have "generalizes_atm (Fun f ss) (Fun f ts)"
-      sorry
+      using Fun(2) unfolding t .
+    hence "\<exists>\<sigma>. map (\<lambda>s. s \<cdot> \<sigma>) ss = ts"
+      by (simp add: generalizes_atm_def)
     hence ss_g_ts: "list_all2 generalizes_atm ss ts"
-      sorry
+      unfolding generalizes_atm_def using list_all2_conv_all_nth by fastforce
 
     have gsz_ss_ts: "list_all2 (\<lambda>s t. gsize_tm s \<le> gsize_tm t) ss ts"
-      using Fun(1)
-      sorry
+      using Fun(1) list.rel_mono_strong ss_g_ts by force
 
     have "sum_list (map gsize_tm ss) \<le> sum_list (map gsize_tm ts)"
       using len_ts gsz_ss_ts
     proof (induct ss arbitrary: ts)
       case (Cons s ss')
-
       obtain t ts' where
         ts: "ts = t # ts'"
         by (metis Cons.prems length_Suc_conv)
       have len_ts': "length ts' = length ss'"
         using Cons.prems ts by auto
-
-      have
-        gsz_s_t: "gsize_tm s \<le> gsize_tm t" and
+      have gsz_s_t: "gsize_tm s \<le> gsize_tm t" and
         gsz_ss'_ts': "list_all2 (\<lambda>s t. gsize_tm s \<le> gsize_tm t) ss' ts'"
         using Cons(3) unfolding ts by simp_all
-
       show ?case
         unfolding ts using gsz_s_t Cons(1)[OF len_ts' gsz_ss'_ts'] by simp
     qed simp

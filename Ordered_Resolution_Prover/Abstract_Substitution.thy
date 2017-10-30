@@ -78,16 +78,16 @@ lemma subst_cls_mset_add_mset[simp]: "add_mset C CC \<cdot>cm \<sigma> = add_mse
   unfolding subst_cls_mset_def by auto
 
 definition generalizes_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
-  "generalizes_atm C D \<longleftrightarrow> (\<exists>\<sigma>. C \<cdot>a \<sigma> = D)"
+  "generalizes_atm A B \<longleftrightarrow> (\<exists>\<sigma>. A \<cdot>a \<sigma> = B)"
 
 definition strictly_generalizes_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
-  "strictly_generalizes_atm C D \<longleftrightarrow> generalizes_atm C D \<and> \<not> generalizes_atm D C"
+  "strictly_generalizes_atm A B \<longleftrightarrow> generalizes_atm A B \<and> \<not> generalizes_atm B A"
 
 definition generalizes_lit :: "'a literal \<Rightarrow> 'a literal \<Rightarrow> bool" where
-  "generalizes_lit C D \<longleftrightarrow> (\<exists>\<sigma>. C \<cdot>l \<sigma> = D)"
+  "generalizes_lit L M \<longleftrightarrow> (\<exists>\<sigma>. L \<cdot>l \<sigma> = M)"
 
 definition strictly_generalizes_lit :: "'a literal \<Rightarrow> 'a literal \<Rightarrow> bool" where
-  "strictly_generalizes_lit C D \<longleftrightarrow> generalizes_lit C D \<and> \<not> generalizes_lit D C"
+  "strictly_generalizes_lit L M \<longleftrightarrow> generalizes_lit L M \<and> \<not> generalizes_lit M L"
 
 definition generalizes_cls :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   "generalizes_cls C D \<longleftrightarrow> (\<exists>\<sigma>. C \<cdot> \<sigma> = D)"
