@@ -77,18 +77,6 @@ lemma subst_cls_add_mset[simp]: "add_mset L C \<cdot> \<sigma> = add_mset (L \<c
 lemma subst_cls_mset_add_mset[simp]: "add_mset C CC \<cdot>cm \<sigma> = add_mset (C \<cdot> \<sigma>) (CC \<cdot>cm \<sigma>)"
   unfolding subst_cls_mset_def by auto
 
-definition generalization_of_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
-  "generalization_of_atm A B \<longleftrightarrow> (\<exists>\<sigma>. A \<cdot>a \<sigma> = B)"
-
-definition proper_generalization_of_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
-  "proper_generalization_of_atm A B \<longleftrightarrow> generalization_of_atm A B \<and> \<not> generalization_of_atm B A"
-
-definition generalization_of_lit :: "'a literal \<Rightarrow> 'a literal \<Rightarrow> bool" where
-  "generalization_of_lit L M \<longleftrightarrow> (\<exists>\<sigma>. L \<cdot>l \<sigma> = M)"
-
-definition proper_generalization_of_lit :: "'a literal \<Rightarrow> 'a literal \<Rightarrow> bool" where
-  "proper_generalization_of_lit L M \<longleftrightarrow> generalization_of_lit L M \<and> \<not> generalization_of_lit M L"
-
 definition generalization_of_cls :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   "generalization_of_cls C D \<longleftrightarrow> (\<exists>\<sigma>. C \<cdot> \<sigma> = D)"
 
