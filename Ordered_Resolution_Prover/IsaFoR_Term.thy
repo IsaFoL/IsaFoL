@@ -9,14 +9,6 @@ theory IsaFoR_Term
   imports Deriving.Derive "$ISAFOR/Rewriting/Unification" Abstract_Substitution
 begin
 
-(* TODO: Move to Isabelle's "Wellfounded.thy" theory file *)
-lemma mlexD: "(x, y) \<in> f <*mlex*> R \<Longrightarrow> f x < f y \<or> f x = f y \<and> (x, y) \<in> R"
-  by (simp add: mlex_prod_def)
-
-(* TODO: Move to Isabelle's "Wellfounded.thy" theory file *)
-lemma not_mlexD: "(x, y) \<notin> f <*mlex*> R \<Longrightarrow> f x > f y \<or> f x = f y \<and> (x, y) \<notin> R"
-  by (meson antisym_conv3 mlex_leq mlex_less not_less)
-
 hide_const (open) mgu
 
 derive linorder prod
@@ -64,6 +56,69 @@ qed simp
 lemma wf_gpair: "wf gpair"
   by (simp add: gpair_def wf_mlex)
 
+lemma
+  "sum_list (map f (y # ys)) \<le> sum_list (map f (x # xs)) \<Longrightarrow> f x \<le> (f y::'a::linordered_semiring) \<Longrightarrow>
+sum_list (map f ys) \<le> sum_list (map f xs)"
+proof -
+  assume a1: "f x \<le> f y"
+  assume a2: "sum_list (map f (y # ys)) \<le> sum_list (map f (x # xs))"
+  have f3: "\<forall>a aa ab. (a::'a) \<le> aa \<or> \<not> ab + a \<le> aa + ab"
+    by (simp add: Groups.add_ac(2))
+  have "\<forall>bs b f. (f (b::'b)::'a) + sum_list (map f bs) = sum_list (map f (b # bs))"
+    by simp
+  then have "\<exists>a aa. a + sum_list (map f ys) \<le> aa \<and> aa \<le> sum_list (map f xs) + a"
+    using a2 a1 by (metis (no_types) Groups.add_ac(2) add_le_cancel_left)
+  then show ?thesis
+    using f3 by (meson add_mono_thms_linordered_semiring(1))
+qed
+
+lemma list_elem_le_sum_map_gt_imp_elem_eq:
+  fixes f :: "_ \<Rightarrow> 'a::linordered_semiring"
+  assumes
+    "length xs = length ys" and
+    "\<forall>i < length xs. f (xs ! i) \<le> f (ys ! i)" and
+    "sum_list (map f xs) \<ge> sum_list (map f ys)"
+  shows "\<forall>i < length xs. f (xs ! i) = f (ys ! i)"
+  using assms
+proof (induct xs ys rule: list_induct2)
+  case (Cons x xs y ys)
+
+  have "\<forall>i < length xs. f (xs ! i) \<le> f (ys ! i)"
+    using Cons(3) by fastforce
+  moreover have "sum_list (map f xs) \<ge> sum_list (map f ys)"
+  proof -
+    have "\<forall>bs b f. (f (b::'b)::'a) + sum_list (map f bs) = sum_list (map f (b # bs))"
+      by simp
+    then have "\<exists>a aa. a + sum_list (map f ys) \<le> aa \<and> aa \<le> sum_list (map f xs) + a"
+      using Cons(3)[rule_format, of 0, simplified] Cons(4)
+      by (metis (no_types) Groups.add_ac(2) add_le_cancel_left)
+    moreover have "\<forall>a aa ab. (a::'a) \<le> aa \<or> \<not> ab + a \<le> aa + ab"
+      by (simp add: Groups.add_ac(2))
+    ultimately show ?thesis
+      by (meson add_mono_thms_linordered_semiring(1))
+  qed
+  ultimately have fxs_eq_fys: "\<forall>i < length xs. f (xs ! i) = f (ys ! i)"
+    by (rule Cons(2))
+  then have sum_fxs_eq_fys: "sum_list (map f xs) = sum_list (map f ys)"
+    by (metis Cons.hyps(1) map_eq_conv')
+
+  show ?case
+  proof (intro allI impI)
+    fix i
+    assume i_lt: "i < length (x # xs)"
+    show "f ((x # xs) ! i) = f ((y # ys) ! i)"
+    proof (cases i)
+      case 0
+      then show ?thesis
+        using fxs_eq_fys sum_fxs_eq_fys Cons(3)[rule_format, of 0] Cons(4) by simp
+    next
+      case (Suc j)
+      then show ?thesis
+        using i_lt fxs_eq_fys by auto
+    qed
+  qed
+qed simp
+
 interpretation substitution_ops "op \<cdot>" Var "op \<circ>\<^sub>s" .
 
 interpretation substitution "op \<cdot>" "Var :: _ \<Rightarrow> ('f, 'v) term" "op \<circ>\<^sub>s"
@@ -85,23 +140,7 @@ next
     Ball (set (mk_var_dis Cs)) is_renaming \<and> var_disjoint (subst_cls_lists Cs (mk_var_dis Cs))"
     sorry
 next
-  have subst_if_same_shape: "\<exists>\<sigma>. var_subst \<sigma> \<and> s \<cdot> \<sigma> = t"
-    if "same_shape_tm s t" and "generalizes_atm s t"
-    for s t :: "('f, 'v) term"
-    sorry
-
-  have noninj_subst_if_same_shape:
-    "\<exists>\<sigma>. \<exists>x \<in> vars_term s. \<exists>y \<in> vars_term s. var_subst \<sigma> \<and> x \<noteq> y \<and> \<sigma> x = \<sigma> y \<and> s \<cdot> \<sigma> = t"
-    if "same_shape_tm s t" and "strictly_generalizes_atm s t"
-    for s t :: "('f, 'v) term"
-    sorry
-
-  have same_shape_if_gen_gsize: "same_shape_tm s t"
-    if "generalizes_atm s t" and "gsize_tm s = gsize_tm t"
-    for s t :: "('f, 'v) term"
-    sorry
-
-  have generalizes_atm_imp_gsize_tm:
+  have gsize_tm_if_generalizes_atm:
     "generalizes_atm s t \<Longrightarrow> gsize_tm s \<le> gsize_tm t" for s t :: "('f, 'v) term"
   proof (induct s arbitrary: t)
     case (Var x)
@@ -143,7 +182,57 @@ next
     then show ?case
       unfolding t by simp
   qed
-  
+
+  have same_shape_if_gen_gsize: "same_shape_tm s t"
+    if "generalizes_atm s t" and "gsize_tm s = gsize_tm t"
+    for s t :: "('f, 'v) term"
+    using that
+  proof (induct s arbitrary: t)
+    case (Var x)
+    then show ?case
+      by (cases t) auto
+  next
+    case (Fun f ss)
+    note ih = this(1) and gen = this(2) and gsize = this(3)
+
+    show ?case
+    proof (cases t)
+      case t: (Fun g ts)
+      show ?thesis
+      proof (simp add: t; intro conjI)
+        show "f = g"
+          using gen[unfolded t] unfolding generalizes_atm_def by simp
+      next
+        show "list_all2 same_shape_tm ss ts"
+        proof (unfold list_all2_conv_all_nth, intro conjI allI impI)
+          show len_eq: "length ss = length ts"
+            using gen[unfolded t] unfolding generalizes_atm_def by auto
+
+          have gen_nth: "generalizes_atm (ss ! i) (ts ! i)" if "i < length ss" for i
+            using that Fun.prems(1) unfolding generalizes_atm_def
+            by (metis (no_types) nth_map subst_apply_term.simps(2) t term.inject(2))
+          have gsize_nth: "gsize_tm (ss ! i) = gsize_tm (ts ! i)" if "i < length ss" for i
+            using gsize_tm_if_generalizes_atm[OF gen_nth] gsize[unfolded t]
+            by simp (metis list_elem_le_sum_map_gt_imp_elem_eq len_eq order_refl that)
+
+          show "same_shape_tm (ss ! i) (ts ! i)" if "i < length ss" for i
+            using that by (auto intro!: ih gen_nth gsize_nth)
+        qed
+      qed
+    qed (use Fun(3) in auto)
+  qed
+
+  have var_noninj_subst_if_same_shape:
+    "\<exists>\<sigma>. \<exists>x \<in> vars_term s. \<exists>y \<in> vars_term s. var_subst \<sigma> \<and> x \<noteq> y \<and> \<sigma> x = \<sigma> y \<and> s \<cdot> \<sigma> = t"
+    if "same_shape_tm s t" and "strictly_generalizes_atm s t"
+    for s t :: "('f, 'v) term"
+    sorry
+
+  have card_vars_gt: "card (vars_term s) > card (vars_term t)"
+    if "\<exists>\<sigma>. \<exists>x \<in> vars_term s. \<exists>y \<in> vars_term s. var_subst \<sigma> \<and> x \<noteq> y \<and> \<sigma> x = \<sigma> y \<and> s \<cdot> \<sigma> = t"
+    for s t :: "('f, 'v) term"
+    sorry
+
   have in_gpair: "strictly_generalizes_cls C D \<Longrightarrow> (C, D) \<in> gpair" for C D :: "('f, 'v) term clause"
   proof (rule ccontr)
     assume
@@ -178,7 +267,7 @@ next
         have "gsize_cls C' \<le> gsize_cls D'"
           using Suc.hyps Suc.prems(2) c'_g_d' d generalizes_cls_size by auto
         moreover have "gsize_tm ?A \<le> gsize_tm ?B"
-          by (rule generalizes_atm_imp_gsize_tm[OF a_g_b])
+          by (rule gsize_tm_if_generalizes_atm[OF a_g_b])
         ultimately show ?case
           unfolding c d gsize_cls_def by simp
       qed simp
@@ -214,30 +303,19 @@ next
       have gsize': "gsize_tm s = gsize_tm t"
         using gsize unfolding gsize_cls_def s_def t_def
         by simp (metis c d gsize gsize_cls_def mset_map sum_mset_sum_list)
-      have gvars': "gvars_tm s \<ge> gvars_tm t"
+
+      have "gvars_tm s \<ge> gvars_tm t"
         sorry
-      then have card_vars: "card (vars_term s) \<le> card (vars_term t)"
+      then have "card (vars_term s) \<le> card (vars_term t)"
         by (metis card_vars_le_gsize gsize' gvars_tm_def le_diff_iff')
-
-      have same_shape: "same_shape_tm s t"
-        by (rule same_shape_if_gen_gsize[OF g' gsize'])
-
-      have "card (vars_term s) \<ge> card (vars_term t)"
-        using same_shape same_shape g'
-      proof induct
-        case (Fun f ss g ts)
-        show ?case
-          using subst_if_same_shape[OF Fun(3,4)]
-          (* 1234 *)
-          sorry
-      qed simp
-      then have "card (vars_term s) > card (vars_term t)"
-        sorry
-      then have False
-        using card_vars by arith
+      moreover have "card (vars_term s) > card (vars_term t)"
+        by (rule card_vars_gt[OF var_noninj_subst_if_same_shape
+              [OF same_shape_if_gen_gsize[OF g' gsize'] sg']])
+      ultimately have False
+        by arith
     }
     ultimately show False
-      using not_mlexD[OF ni_gp[unfolded gpair_def]] by fastforce
+      using ni_gp[unfolded gpair_def] by (simp add: mlex_prod_def not_less)
   qed
   show "wfP (strictly_generalizes_cls :: ('f, 'v) term clause \<Rightarrow> _ \<Rightarrow> _)"
     unfolding wfP_def by (auto intro: wf_subset[OF wf_gpair] in_gpair)
