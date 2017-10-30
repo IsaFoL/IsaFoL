@@ -37,6 +37,7 @@ next
     sorry
 next
   show "wfP proper_generalization_of"
+    unfolding wfP_def
     sorry
 qed
 
