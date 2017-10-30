@@ -809,8 +809,7 @@ lemma subset_subst_strictly_subsumes:
   shows "strictly_subsumes C D"
 proof -
   have "\<nexists>\<sigma>. D \<cdot> \<sigma> \<subseteq># C"
-    by (metis (no_types) c\<eta>_sub size_subst subset_mset.dual_order.strict_trans1
-        subset_mset.less_le_not_le subset_mset.order_refl subseteq_mset_size_eql subst_subset_mono)
+    by (metis c\<eta>_sub leD mset_subset_size size_mset_mono size_subst)
   moreover have "C \<cdot> \<eta> \<subseteq># D"
     using c\<eta>_sub by auto
   ultimately show ?thesis
@@ -895,8 +894,8 @@ proof (rule ccontr)
     by metis
   then have "\<forall>l' \<ge> l. proper_instance_of  (c (Suc l')) (c l')"
     using ps unfolding proper_instance_of_def instance_of_def
-    by (metis size_subst strictly_subsumes_def subseteq_mset_size_eql subsumes_def
-        strictly_subsumes_neq)
+    by (metis size_subst less_irrefl strictly_subsumes_def mset_subset_size
+        subset_mset_def subsumes_def strictly_subsumes_neq)
   then have "\<forall>i. proper_instance_of (c (Suc i + l)) (c (i + l))"
     unfolding proper_instance_of_def instance_of_def by auto
   then have "\<exists>f. \<forall>i. proper_instance_of (f (Suc i)) (f i)"
