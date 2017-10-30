@@ -79,7 +79,7 @@ next
         case (Suc k)
         obtain C' L where
           c: "C = C' + {#L#}"
-          sorry
+          by (metis Suc.hyps(2) size_mset_SucE union_commute)
         obtain D' M where
           d: "D = D' + {#M#}" and
           c'_g_d': "generalizes_cls C' D'" and
@@ -87,14 +87,11 @@ next
           sorry
 
         have "gsize_cls C' \<le> gsize_cls D'"
-          using Suc(1)[of C' D']
+          using Suc.hyps Suc.prems(2) c'_g_d' d generalizes_cls_size by auto
+        moreover have "gsize_tm (atm_of L) \<le> gsize_tm (atm_of M)"
           sorry
-
-        have "gsize_tm (atm_of L) \<le> gsize_tm (atm_of M)"
-          sorry
-
-        show ?case
-          sorry
+        ultimately show ?case
+          unfolding c d gsize_cls_def by simp
       qed simp
     }
     moreover
