@@ -1123,7 +1123,7 @@ lemma
   subgoal by auto
   subgoal by auto
   subgoal by auto
-  subgoal by (auto simp: take_Suc_conv_app_nth list_update_append) 
+  subgoal by (auto simp: take_Suc_conv_app_nth list_update_append)
   subgoal by auto
   subgoal by auto
   subgoal by auto
@@ -1202,7 +1202,7 @@ lemma
     NU: \<open>NU \<equiv> get_clauses_wl S\<close> and
     NU': \<open>NU' \<equiv> cdcl\<^sub>W_restart_mset.clauses S'''\<close> and
     \<open>analyse' \<equiv> convert_analysis_list NU analyse\<close>
-  assumes 
+  assumes
     bounds_init: \<open>\<forall>(i, j) \<in> set analyse. j \<le> length (NU!i)\<close> and
     struct_invs: \<open>twl_struct_invs S''\<close> and
     add_inv: \<open>additional_WS_invs S'\<close>
@@ -1245,7 +1245,7 @@ proof -
   have get_literal_and_remove_of_analyse_wl: \<open>RETURN
        (get_literal_and_remove_of_analyse_wl (NU ! fst (last x1c)) x1c)
       \<le> \<Down> (Id \<times>\<^sub>r ?A) (get_literal_and_remove_of_analyse x1a)\<close>
-    if 
+    if
       xx': \<open>(x, x') \<in> ?R\<close> and
       s: \<open>x2 = (x1a, x2a)\<close>
         \<open>x' = (x1, x2)\<close>
@@ -1286,7 +1286,7 @@ proof -
               option_rel)
           (get_propagation_reason M' x1d)\<close>
     (is \<open>_ \<le> \<Down> (\<langle>?get_propagation_reason\<rangle>option_rel) _\<close>)
-    if 
+    if
       \<open>(x, x')
      \<in> Id \<times>\<^sub>f
         ({(analyse, analyse').
@@ -1309,7 +1309,7 @@ proof -
       ux1e_M: \<open>- x1e \<in> lits_of_l M\<close> and
       \<open>\<not> (get_level M x1e = 0 \<or> x1b (atm_of x1e) = SEEN_REMOVABLE \<or> x1e \<in># D)\<close> and
       cond: \<open>\<not> (get_level M' x1d = 0 \<or> x1 (atm_of x1d) = SEEN_REMOVABLE \<or> x1d \<in># D)\<close>
-    for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1e x1d x'a x2d x2e 
+    for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1e x1d x'a x2d x2e
   proof -
     have [simp]: \<open>x1d = x1e\<close>
       using s H by auto
@@ -1319,7 +1319,7 @@ proof -
       for a
     proof -
       have [simp]: \<open>a \<noteq> 0\<close>
-      proof 
+      proof
         assume [simp]: \<open>a = 0\<close>
         have H: \<open>\<not> M \<Turnstile>as CNot D\<close>
           if \<open>trail S''' = M' @ Decided K # M\<close> and
@@ -1341,7 +1341,7 @@ proof -
           assume lev: \<open>\<not> ?thesis\<close>
           then have lev': \<open>0 < get_level M' x1e\<close>
             unfolding M'_def by auto
-          obtain M2 K M1 where 
+          obtain M2 K M1 where
             M': \<open>M' = M2 @ Decided K # M1\<close> and
             lev_K: \<open>get_level M K = Suc 0\<close>
             using le_count_decided_decomp[OF n_d, of 0] count_M' unfolding M'_def by auto
@@ -1371,10 +1371,10 @@ proof -
   qed
   have resolve: \<open>((x1b, x2e @ [(xb, 1)], False), x1, (x1d, remove1_mset (- x1d) x'c) # x2d, False)
       \<in> Id \<times>\<^sub>r ?A \<times>\<^sub>r bool_rel\<close>
-    if 
+    if
       xx': \<open>(x, x') \<in> Id \<times>\<^sub>r ?A \<times>\<^sub>r bool_rel\<close> and
       s: \<open>x2 = (x1a, x2a)\<close> \<open>x' = (x1, x2)\<close> \<open>x2b = (x1c, x2c)\<close> \<open>x = (x1b, x2b)\<close> \<open>x'a = (x1d, x2d)\<close> and
-      get_literal_and_remove_of_analyse_wl: 
+      get_literal_and_remove_of_analyse_wl:
         \<open>(get_literal_and_remove_of_analyse_wl (NU ! fst (last x1c)) x1c, x'a) \<in> Id \<times>\<^sub>f ?A\<close> and
       get_lit:
         \<open>get_literal_and_remove_of_analyse_wl (NU ! fst (last x1c)) x1c = (x1e, x2e)\<close> and
@@ -1395,7 +1395,7 @@ proof -
       by (auto simp: drop_Suc)
   qed
   have mark_failed_lits_wl: \<open>mark_failed_lits_wl x2e x1b \<le> \<Down> Id (mark_failed_lits x2d x1)\<close>
-    if 
+    if
       \<open>(x, x') \<in> Id \<times>\<^sub>f
         ({(analyse, analyse').
           analyse' = convert_analysis_list NU analyse \<and>
