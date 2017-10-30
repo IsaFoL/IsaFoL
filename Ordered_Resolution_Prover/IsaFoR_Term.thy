@@ -25,13 +25,13 @@ derive linorder "term"
 
 primrec gsize_tm :: "('f, 'v) term \<Rightarrow> nat" where
   "gsize_tm (Var _) = 1"
-| "gsize_tm (Fun _ ts) = 2 + sum_list (map gsize_tm ts)"
+| "gsize_tm (Fun _ ss) = 2 + sum_list (map gsize_tm ss)"
 
 definition gsize_cls :: "('f, 'v) term clause \<Rightarrow> nat" where
   "gsize_cls C = sum_mset (image_mset (gsize_tm \<circ> atm_of) C)"
 
 definition gvars_tm :: "('f, 'v) Term.term \<Rightarrow> nat" where
-  "gvars_tm t = gsize_tm t - card (vars_term t)"
+  "gvars_tm s = gsize_tm s - card (vars_term s)"
 
 definition gvars_cls :: "('f, 'v) term clause \<Rightarrow> nat" where
   "gvars_cls C = sum_mset (image_mset (gvars_tm \<circ> atm_of) C)"
@@ -163,10 +163,47 @@ next
     }
     moreover
     {
-      assume gsize: "gsize_cls C = gsize_cls D"
+      assume
+        gsize: "gsize_cls C = gsize_cls D" and
+        gvars: "gvars_cls C \<ge> gvars_cls D"
 
-      have "gvars_cls C < gvars_cls D"
+      obtain Ls Ms where
+        c: "C = mset Ls" and
+        d: "D = mset Ms" and
+        ls_g_ms: "list_all2 generalizes_lit Ls Ms"
+        (* prove by induction *)
         sorry
+
+      let ?As = "map atm_of Ls"
+      let ?Bs = "map atm_of Ms"
+      let ?f = undefined
+      let ?s = "Fun ?f ?As"
+      let ?t = "Fun ?f ?Bs"
+
+      have gsize': "gsize_tm ?s = gsize_tm ?t"
+        using gsize unfolding gsize_cls_def
+        by simp (metis c d gsize gsize_cls_def mset_map sum_mset_sum_list)
+      have gvars': "gvars_tm ?s \<ge> gvars_tm ?t"
+        sorry
+
+      have g: "generalizes_atm ?s ?t"
+        sorry
+      have ng: "\<not> generalizes_atm ?t ?s"
+        sorry
+
+      {
+        assume gvars_gt: "gvars_tm ?s > gvars_tm ?t"
+        have False
+          sorry
+      }
+      moreover
+      {
+        assume gvars_eq: "gvars_tm ?s = gvars_tm ?t"
+        have False
+          sorry
+      }
+      ultimately have False
+        using gvars' by arith
     }
     ultimately show False
       using not_mlexD[OF ni_gp[unfolded gpair_def]] by fastforce
