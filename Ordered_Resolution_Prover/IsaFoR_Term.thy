@@ -82,9 +82,12 @@ next
     hence ss_g_ts: "list_all2 generalizes_atm ss ts"
       sorry
 
+    have gsz_ss_ts: "list_all2 (\<lambda>s t. gsize_tm s \<le> gsize_tm t) ss ts"
+      using Fun(1)
+      sorry
 
     have "sum_list (map gsize_tm ss) \<le> sum_list (map gsize_tm ts)"
-      using len_ts Fun(1) ss_g_ts
+      using len_ts gsz_ss_ts
     proof (induct ss arbitrary: ts)
       case (Cons s ss')
 
@@ -94,16 +97,13 @@ next
       have len_ts': "length ts' = length ss'"
         using Cons.prems ts by auto
 
-      have "s \<in> set (s # ss')"
-        by simp
-      moreover have "generalizes_atm s t"
-        using Cons(4) unfolding ts by simp
-      ultimately have gsz_s_t: "gsize_tm s \<le> gsize_tm t"
-        by (rule Cons(3))
+      have
+        gsz_s_t: "gsize_tm s \<le> gsize_tm t" and
+        gsz_ss'_ts': "list_all2 (\<lambda>s t. gsize_tm s \<le> gsize_tm t) ss' ts'"
+        using Cons(3) unfolding ts by simp_all
 
       show ?case
-        unfolding ts using gsz_s_t Cons(1)[OF len_ts']
-        by simp
+        unfolding ts using gsz_s_t Cons(1)[OF len_ts' gsz_ss'_ts'] by simp
     qed simp
     then show ?case
       unfolding t by simp
