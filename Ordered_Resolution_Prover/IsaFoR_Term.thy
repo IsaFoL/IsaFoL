@@ -23,6 +23,9 @@ derive linorder prod
 derive linorder list
 derive linorder "term"
 
+definition var_subst :: "('v \<Rightarrow> ('f, 'w) Term.term) \<Rightarrow> bool" where
+  "var_subst \<sigma> \<longleftrightarrow> (\<forall>x. is_Var (\<sigma> x))"
+
 abbreviation same_shape_tm :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" where
   "same_shape_tm \<equiv> rel_term (op =) (\<lambda>x y. True)"
 
@@ -82,8 +85,13 @@ next
     Ball (set (mk_var_dis Cs)) is_renaming \<and> var_disjoint (subst_cls_lists Cs (mk_var_dis Cs))"
     sorry
 next
+  have subst_if_same_shape: "\<exists>\<sigma>. var_subst \<sigma> \<and> s \<cdot> \<sigma> = t"
+    if "same_shape_tm s t" and "generalizes_atm s t"
+    for s t :: "('f, 'v) term"
+    sorry
+
   have noninj_subst_if_same_shape:
-    "\<exists>\<sigma>. \<exists>x \<in> vars_term s. \<exists>y \<in> vars_term s. x \<noteq> y \<and> \<sigma> x = \<sigma> y \<and> s \<cdot> \<sigma> = t"
+    "\<exists>\<sigma>. \<exists>x \<in> vars_term s. \<exists>y \<in> vars_term s. var_subst \<sigma> \<and> x \<noteq> y \<and> \<sigma> x = \<sigma> y \<and> s \<cdot> \<sigma> = t"
     if "same_shape_tm s t" and "strictly_generalizes_atm s t"
     for s t :: "('f, 'v) term"
     sorry
@@ -215,16 +223,14 @@ next
         by (rule same_shape_if_gen_gsize[OF g' gsize'])
 
       have "card (vars_term s) \<ge> card (vars_term t)"
-        using same_shape
+        using same_shape same_shape g'
       proof induct
-        case (Var x y)
-        then show ?case
-          sorry
-      next
         case (Fun f ss g ts)
         show ?case
+          using subst_if_same_shape[OF Fun(3,4)]
+          (* 1234 *)
           sorry
-      qed
+      qed simp
       then have "card (vars_term s) > card (vars_term t)"
         sorry
       then have False
