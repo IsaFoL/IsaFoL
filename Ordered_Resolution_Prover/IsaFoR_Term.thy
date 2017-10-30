@@ -80,7 +80,16 @@ next
     {
       assume
         gsize: "gsize_cls C = gsize_cls D" and
-        gvar: "gvars_cls C \<ge> gvars_cls D"
+        gvar: "gvars_cls C > gvars_cls D"
+
+      have False
+        sorry
+    }
+    moreover
+    {
+      assume
+        gsize: "gsize_cls C = gsize_cls D" and
+        gvar: "gvars_cls C = gvars_cls D"
 
       have False
         sorry
