@@ -63,6 +63,41 @@ next
     Ball (set (mk_var_dis Cs)) is_renaming \<and> var_disjoint (subst_cls_lists Cs (mk_var_dis Cs))"
     sorry
 next
+  have generalizes_atm_imp_gsize_tm:
+    "generalizes_atm s t \<Longrightarrow> gsize_tm s \<le> gsize_tm t" for s t :: "('f, 'v) term"
+  proof (induct s arbitrary: t)
+    case (Var x)
+    show ?case
+      by (cases t) auto
+  next
+    case (Fun f ss)
+
+    obtain ts where
+      t: "t = Fun f ts" and
+      len_ts: "length ts = length ss"
+      sorry
+
+    have "sum_list (map gsize_tm ss) \<le> sum_list (map gsize_tm ts)"
+      using len_ts
+    proof (induct ss arbitrary: ts)
+      case (Cons s ss')
+
+      obtain t ts' where
+        ts: "ts = t # ts'"
+        by (metis Cons.prems length_Suc_conv)
+      have len_ts': "length ts' = length ss'"
+        using Cons.prems ts by auto
+
+      have gsz_s_t: "gsize_tm s \<le> gsize_tm t"
+        sorry
+
+      show ?case
+        unfolding ts using gsz_s_t Cons(1)[OF len_ts'] by simp
+    qed simp
+    then show ?case
+      unfolding t by simp
+  qed
+  
   have in_gpair: "strictly_generalizes_cls C D \<Longrightarrow> (C, D) \<in> gpair" for C D :: "('f, 'v) term clause"
   proof (rule ccontr)
     assume
@@ -86,10 +121,17 @@ next
           l_g_m: "generalizes_lit L M"
           sorry
 
+        let ?A = "atm_of L"
+        let ?B = "atm_of M"
+
+        have a_g_b: "generalizes_atm ?A ?B"
+          using l_g_m by (metis (mono_tags) generalizes_atm_def generalizes_lit_def literal.map_sel
+              subst_lit_def)
+
         have "gsize_cls C' \<le> gsize_cls D'"
           using Suc.hyps Suc.prems(2) c'_g_d' d generalizes_cls_size by auto
-        moreover have "gsize_tm (atm_of L) \<le> gsize_tm (atm_of M)"
-          sorry
+        moreover have "gsize_tm ?A \<le> gsize_tm ?B"
+          by (rule generalizes_atm_imp_gsize_tm[OF a_g_b])
         ultimately show ?case
           unfolding c d gsize_cls_def by simp
       qed simp
@@ -113,7 +155,7 @@ next
     ultimately show False
       using not_mlexD[OF ni_gp[unfolded gpair_def]] by fastforce
   qed
-  show "wfP (strictly_generalizes :: ('f, 'v) term clause \<Rightarrow> _ \<Rightarrow> _)"
+  show "wfP (strictly_generalizes_cls :: ('f, 'v) term clause \<Rightarrow> _ \<Rightarrow> _)"
     unfolding wfP_def by (auto intro: wf_subset[OF wf_gpair] in_gpair)
 qed
 
