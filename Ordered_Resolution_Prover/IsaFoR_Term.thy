@@ -56,6 +56,40 @@ definition gvars_cls :: "('f, 'v) term clause \<Rightarrow> nat" where
 definition gpair :: "('f, 'v) term clause rel" where
   "gpair = gsize_cls <*mlex*> measure gvars_cls"
 
+term subst_apply_term
+term subst_apply_set
+
+abbreviation subst_apply_literal :: "('f, 'v) term literal \<Rightarrow> ('f, 'v, 'w) gsubst \<Rightarrow> ('f, 'w) term literal" (infixl "\<cdot>lit" 60) where
+  "L \<cdot>lit \<sigma> \<equiv> map_literal (\<lambda>A. A \<cdot> \<sigma>) L"
+
+definition subst_apply_clause :: "('f, 'v) term clause \<Rightarrow> ('f, 'v, 'w) gsubst \<Rightarrow> ('f, 'w) term clause" (infixl "\<cdot>cls" 60) where
+  "C \<cdot>cls \<sigma> = image_mset (\<lambda>L. L \<cdot>lit \<sigma>) C"
+
+abbreviation var_lit :: "('f, 'v) term literal \<Rightarrow> 'v set" where
+  "var_lit L \<equiv> vars_term (atm_of L)"
+
+definition var_clause :: "('f, 'v) term clause \<Rightarrow> 'v set" where
+  "var_clause C = Union (set_mset (image_mset var_lit C))"
+
+fun renamings_apart' :: "nat set \<Rightarrow> ('f, nat) term clause list \<Rightarrow>  (('f, nat) subst) list" where
+  "renamings_apart' _ [] = []"
+| "renamings_apart' X (C#Cs) = 
+    (let \<sigma> = (\<lambda>v. Var (v + Max X + 1)) in 
+      \<sigma> # renamings_apart' (X \<union> var_clause (C \<cdot>cls \<sigma>)) Cs)
+   "
+
+abbreviation renamings_apart :: "('f, nat) term clause list \<Rightarrow>  (('f, nat) subst) list" where
+  "renamings_apart Cs \<equiv> renamings_apart' {} Cs"
+
+lemma "length (renamings_apart' X Cs) = length Cs"
+  apply (induction rule: renamings_apart'.induct)
+   apply simp
+  apply (metis length_nth_simps renamings_apart'.simps(2)) 
+  done
+
+lemma "length (renamings_apart Cs) = length Cs"
+  oops
+
 lemma card_vars_le_gsize_tm: "card (vars_term s) \<le> gsize_tm s"
 proof (induct s)
   case (Fun f ss)
@@ -159,24 +193,41 @@ proof -
     .
 qed
 
-interpretation substitution "op \<cdot>" "Var :: _ \<Rightarrow> ('f, 'v) term" "op \<circ>\<^sub>s"
+interpretation substitution "op \<cdot>" "Var :: _ \<Rightarrow> ('f, nat) term" "op \<circ>\<^sub>s" "renamings_apart"
 proof
   show "\<And>A. subst_atm_abbrev A Var = A"
-    sorry
+    by auto
 next
   show "\<And>A \<tau> \<sigma>. subst_atm_abbrev A (comp_subst_abbrev \<tau> \<sigma>) = subst_atm_abbrev (subst_atm_abbrev A \<tau>) \<sigma>"
-    sorry
+    by auto
 next
   show "\<And>\<sigma> \<tau>. (\<And>A. subst_atm_abbrev A \<sigma> = subst_atm_abbrev A \<tau>) \<Longrightarrow> \<sigma> = \<tau>"
+    by (simp add: subst_term_eqI)
+next
+  fix Cs :: "('f, nat) term clause list"
+  fix \<sigma>
+  assume "is_ground_cls_list (subst_cls_list Cs \<sigma>)"
+  show "\<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> subst_cls S \<sigma> = subst_cls S \<tau>)"
     sorry
 next
-  show "\<And>Cs \<sigma>. is_ground_cls_list (subst_cls_list Cs \<sigma>) \<Longrightarrow>
-    \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> subst_cls S \<sigma> = subst_cls S \<tau>)"
-    sorry
-next
-  show "\<And>Cs. length (renamings_apart Cs) = length Cs \<and>
+  fix Cs :: "('f, nat) term clause list"
+  {
+    have "length (renamings_apart Cs) = length Cs"
+      sorry
+  }
+  moreover
+  {
+    have "Ball (set (renamings_apart Cs)) is_renaming"
+      sorry
+  }
+  moreover
+  {
+    have "var_disjoint (subst_cls_lists Cs (renamings_apart Cs))"
+      sorry
+  }
+  ultimately show "length (renamings_apart Cs) = length Cs \<and>
     Ball (set (renamings_apart Cs)) is_renaming \<and> var_disjoint (subst_cls_lists Cs (renamings_apart Cs))"
-    sorry
+    by simp
 next
   have gsize_tm_if_generalizes_atm:
     "generalizes_atm s t \<Longrightarrow> gsize_tm s \<le> gsize_tm t" for s t :: "('f, 'v) term"
