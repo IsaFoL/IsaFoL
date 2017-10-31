@@ -232,27 +232,11 @@ val default_nat = {default = default_nata} : nat default;
 
 fun integer_of_nat (Nat x) = x;
 
+fun less_eq_nat m n = IntInf.<= (integer_of_nat m, integer_of_nat n);
+
 type 'a ord = {less_eq : 'a -> 'a -> bool, less : 'a -> 'a -> bool};
 val less_eq = #less_eq : 'a ord -> 'a -> 'a -> bool;
 val less = #less : 'a ord -> 'a -> 'a -> bool;
-
-fun max A_ a b = (if less_eq A_ a b then b else a);
-
-val ord_integer =
-  {less_eq = (fn a => fn b => IntInf.<= (a, b)),
-    less = (fn a => fn b => IntInf.< (a, b))}
-  : IntInf.int ord;
-
-fun minus_nata m n =
-  Nat (max ord_integer (0 : IntInf.int)
-        (IntInf.- (integer_of_nat m, integer_of_nat n)));
-
-type 'a minus = {minus : 'a -> 'a -> 'a};
-val minus = #minus : 'a minus -> 'a -> 'a -> 'a;
-
-val minus_nat = {minus = minus_nata} : nat minus;
-
-fun less_eq_nat m n = IntInf.<= (integer_of_nat m, integer_of_nat n);
 
 fun less_nat m n = IntInf.< (integer_of_nat m, integer_of_nat n);
 
@@ -328,6 +312,9 @@ val default_uint32a : Word32.word = (Word32.fromInt 0);
 
 val default_uint32 = {default = default_uint32a} : Word32.word default;
 
+type 'a minus = {minus : 'a -> 'a -> 'a};
+val minus = #minus : 'a minus -> 'a -> 'a -> 'a;
+
 val minus_uint32 = {minus = (fn a => fn b => Word32.- (a, b))} :
   Word32.word minus;
 
@@ -335,6 +322,13 @@ val ord_uint32 =
   {less_eq = (fn a => fn b => Word32.<= (a, b)),
     less = (fn a => fn b => Word32.< (a, b))}
   : Word32.word ord;
+
+fun max A_ a b = (if less_eq A_ a b then b else a);
+
+val ord_integer =
+  {less_eq = (fn a => fn b => IntInf.<= (a, b)),
+    less = (fn a => fn b => IntInf.< (a, b))}
+  : IntInf.int ord;
 
 fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
 
@@ -430,11 +424,15 @@ fun hd (x21 :: x22) = x21;
 fun tl [] = []
   | tl (x21 :: x22) = x22;
 
+fun minus_nat m n =
+  Nat (max ord_integer (0 : IntInf.int)
+        (IntInf.- (integer_of_nat m, integer_of_nat n)));
+
 fun equal_nat m n = (((integer_of_nat m) : IntInf.int) = (integer_of_nat n));
 
 fun replicate n x =
   (if equal_nat n zero_nata then []
-    else x :: replicate (minus_nata n one_nat) x);
+    else x :: replicate (minus_nat n one_nat) x);
 
 fun blit A_ src si dst di len =
   (fn () => 
@@ -554,10 +552,10 @@ fun ht_copy (A1_, A2_, A3_) B_ n src dst =
            let
              val l =
                nth (heap_list (heap_prod A3_ B_)) (the_array src)
-                 (minus_nata n one_nat) ();
+                 (minus_nat n one_nat) ();
              val x = ht_insls (A1_, A2_, A3_) B_ l dst ();
            in
-             ht_copy (A1_, A2_, A3_) B_ (minus_nata n one_nat) src x ()
+             ht_copy (A1_, A2_, A3_) B_ (minus_nat n one_nat) src x ()
            end));
 
 fun arl_get A_ = (fn (a, _) => nth A_ a);
@@ -725,7 +723,7 @@ fun swap_aa (A1_, A2_) xs k i j =
               x
             end);
 
-fun arl_last A_ = (fn (a, n) => nth A_ a (minus_nata n one_nat));
+fun arl_last A_ = (fn (a, n) => nth A_ a (minus_nat n one_nat));
 
 fun arl_swap A_ =
   (fn ai => fn bia => fn bi => fn () => let
@@ -815,7 +813,7 @@ val minimum_capacity : nat = nat_of_integer (16 : IntInf.int);
 fun arl_butlast A_ =
   (fn (a, n) =>
     let
-      val na = minus_nata n one_nat;
+      val na = minus_nat n one_nat;
     in
       (fn () =>
         let
@@ -1217,7 +1215,7 @@ fun propgate_lit_wl_code x =
     let
       val xa =
         swap_aa (default_uint32, heap_uint32) a1a bib zero_nata
-          (fast_minus minus_nat one_nat bia) ();
+          (fast_minus_nat one_nat bia) ();
       val x_a = cons_trail_Propagated_tr_code ai bib a1 ();
     in
       (x_a, (xa, (a1b, (a1c, (uminus_code ai :: a1d, a2d)))))
