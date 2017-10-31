@@ -233,11 +233,8 @@ next
         unfolding is_renaming_def
         apply (rule exI)
         apply (rule conjI)
-        
-        
-     
-       
-
+        sorry
+      done
   }
   moreover
   {
