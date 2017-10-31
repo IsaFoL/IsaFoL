@@ -25,6 +25,12 @@ definition var_subst :: "('v \<Rightarrow> ('f, 'w) term) \<Rightarrow> bool" wh
 abbreviation same_shape_tm :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" where
   "same_shape_tm \<equiv> rel_term (op =) (\<lambda>x y. True)"
 
+abbreviation same_shape_lit :: "('f, 'v) term literal \<Rightarrow> ('f, 'v) term literal \<Rightarrow> bool" where
+  "same_shape_lit \<equiv> rel_literal same_shape_tm"
+
+abbreviation same_shape_cls :: "('f, 'v) term clause \<Rightarrow> ('f, 'v) term clause \<Rightarrow> bool" where
+  "same_shape_cls \<equiv> rel_mset same_shape_lit"
+
 primrec gsize_tm :: "('f, 'v) term \<Rightarrow> nat" where
   "gsize_tm (Var _) = 1"
 | "gsize_tm (Fun _ ss) = 2 + sum_list (map gsize_tm ss)"
