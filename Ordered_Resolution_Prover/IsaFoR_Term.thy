@@ -238,13 +238,13 @@ next
 *)
 
   have var_noninj_subst_if_same_shape:
-    "\<exists>\<sigma>. \<exists>x \<in> vars_cls C. \<exists>y \<in> vars_cls D. var_subst \<sigma> \<and> x \<noteq> y \<and> \<sigma> x = \<sigma> y \<and> subst_cls C \<sigma> = D"
+    "\<exists>\<sigma>. \<exists>x \<in> vars_cls C. \<exists>y \<in> vars_cls C. var_subst \<sigma> \<and> x \<noteq> y \<and> \<sigma> x = \<sigma> y \<and> subst_cls C \<sigma> = D"
     if "same_shape_cls C D" and "strictly_generalizes_cls C D"
     for C D :: "('f, 'v) term clause"
     sorry
 
   have card_vars_gt: "card (vars_cls C) > card (vars_cls D)"
-    if x_in: "x \<in> vars_cls C" and y_in: "y \<in> vars_cls D" and vs: "var_subst \<sigma>" and
+    if x_in: "x \<in> vars_cls C" and y_in: "y \<in> vars_cls C" and vs: "var_subst \<sigma>" and
       x_ne_y: "x \<noteq> y" and \<sigma>x_eq_\<sigma>y: "\<sigma> x = \<sigma> y" and c\<sigma>_eq_d: "subst_cls C \<sigma> = D"
     for C D :: "('f, 'v) term clause" and x y \<sigma>
     unfolding c\<sigma>_eq_d[symmetric]
