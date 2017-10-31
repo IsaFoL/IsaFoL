@@ -147,12 +147,12 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
    length AAs = n \<Longrightarrow>
    length As = n \<Longrightarrow>
    n \<noteq> 0 \<Longrightarrow>
-   \<forall>i < n. CAs ! i = Cs ! i + (poss (AAs ! i)) \<Longrightarrow> (* could be written with map *)
+   \<forall>i < n. CAs ! i = Cs ! i + (poss (AAs ! i)) \<Longrightarrow>
    \<forall>i < n. AAs ! i \<noteq> {#} \<Longrightarrow>
    Some \<sigma> = mgu (set_mset ` set (map2 add_mset As AAs)) \<Longrightarrow>
    eligible \<sigma> As (D + negs (mset As)) \<Longrightarrow>
    \<forall>i < n. strictly_maximal_in (As ! i \<cdot>a \<sigma>) ((Cs ! i) \<cdot> \<sigma>) \<Longrightarrow>
-   \<forall>i < n. S (CAs ! i) = {#} \<Longrightarrow> (* Use the ! style instead maybe, or maybe us the \<forall> \<in> . style above *)
+   \<forall>i < n. S (CAs ! i) = {#} \<Longrightarrow>
    ord_resolve CAs (D + negs (mset As)) \<sigma> (((\<Union># (mset Cs)) + D) \<cdot> \<sigma>)"
 
 inductive ord_resolve_rename :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 's \<Rightarrow> 'a clause \<Rightarrow> bool" where

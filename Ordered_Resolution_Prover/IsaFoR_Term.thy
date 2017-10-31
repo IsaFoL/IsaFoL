@@ -124,8 +124,8 @@ next
     \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> subst_cls S \<sigma> = subst_cls S \<tau>)"
     sorry
 next
-  show "\<And>Cs. length ( Cs) = length Cs \<and>
-    Ball (set ( Cs)) is_renaming \<and> var_disjoint (subst_cls_lists Cs ( Cs))"
+  show "\<And>Cs. length (renamings_apart Cs) = length Cs \<and>
+    Ball (set (renamings_apart Cs)) is_renaming \<and> var_disjoint (subst_cls_lists Cs (renamings_apart Cs))"
     sorry
 next
   have gsize_tm_if_generalizes_atm:
