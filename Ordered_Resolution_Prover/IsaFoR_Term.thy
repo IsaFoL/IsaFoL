@@ -61,9 +61,6 @@ definition gvars_cls :: "('f, 'v) term clause \<Rightarrow> nat" where
 definition gpair :: "('f, 'v) term clause rel" where
   "gpair = gsize_cls <*mlex*> measure gvars_cls"
 
-term subst_apply_term
-term subst_apply_set
-
 abbreviation subst_apply_literal :: "('f, 'v) term literal \<Rightarrow> ('f, 'v, 'w) gsubst \<Rightarrow> ('f, 'w) term literal" (infixl "\<cdot>lit" 60) where
   "L \<cdot>lit \<sigma> \<equiv> map_literal (\<lambda>A. A \<cdot> \<sigma>) L"
 
@@ -202,15 +199,15 @@ proof -
     .
 qed
 
-interpretation substitution "op \<cdot>" "Var :: _ \<Rightarrow> ('f, nat) term" "op \<circ>\<^sub>s" "renamings_apart"
+interpretation substitution "op \<cdot>" "Var :: _ \<Rightarrow> ('f, nat) term" "op \<circ>\<^sub>s" renamings_apart
 proof
-  show "\<And>A. subst_atm_abbrev A Var = A"
+  show "\<And>A. A \<cdot> Var = A"
     by auto
 next
-  show "\<And>A \<tau> \<sigma>. subst_atm_abbrev A (comp_subst_abbrev \<tau> \<sigma>) = subst_atm_abbrev (subst_atm_abbrev A \<tau>) \<sigma>"
+  show "\<And>A \<tau> \<sigma>. A \<cdot> \<tau> \<circ>\<^sub>s \<sigma> = A \<cdot> \<tau> \<cdot> \<sigma>"
     by auto
 next
-  show "\<And>\<sigma> \<tau>. (\<And>A. subst_atm_abbrev A \<sigma> = subst_atm_abbrev A \<tau>) \<Longrightarrow> \<sigma> = \<tau>"
+  show "\<And>\<sigma> \<tau>. (\<And>A. A \<cdot> \<sigma> = A \<cdot> \<tau>) \<Longrightarrow> \<sigma> = \<tau>"
     by (simp add: subst_term_eqI)
 next
   fix Cs :: "('f, nat) term clause list"
@@ -352,9 +349,26 @@ next
       by (rule var_subst_on_if_same_shape_cls[OF ss[folded c\<sigma>_eq_d]])
 
     {
-      assume "inj_on \<sigma> (vars_cls C)"
-      have False
+      assume inj: "inj_on \<sigma> (vars_cls C)"
+
+      define \<tau> :: "'v \<Rightarrow> ('f, 'v) term" where
+        "\<And>x. \<tau> x = Var (inv \<sigma> (Var x))"
+
+      have "subst_lit (subst_lit L \<sigma>) (\<lambda>x. Var (inv \<sigma> (Var x))) = L" if l_in: "L \<in># C" for L
+        unfolding subst_lit_def literal.map_comp comp_def subst_subst
+        unfolding subst_compose_def
+
+
+        apply (simp only: substitution.subst_lit_comp_subst[symmetric])
         sorry
+
+      have "subst_cls D \<tau> = C"
+        unfolding c\<sigma>_eq_d[symmetric]
+        unfolding subst_cls_def \<tau>_def
+        apply simp
+        sorry
+      then have False
+        using sg[unfolded strictly_generalizes_cls_def generalizes_cls_def] by blast
     }
     then show ?thesis
       using vs c\<sigma>_eq_d by blast
