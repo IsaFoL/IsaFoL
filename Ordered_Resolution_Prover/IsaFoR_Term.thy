@@ -28,6 +28,11 @@ definition var_subst_on :: "'v set \<Rightarrow> ('v \<Rightarrow> ('f, 'w) term
 definition vars_cls :: "('f, 'v) term clause \<Rightarrow> 'v set" where
   "vars_cls C = \<Union> (set_mset (image_mset (vars_term \<circ> atm_of) C))"
 
+lemma vars_cls_simps[simp]:
+  "vars_cls {#} = {}"
+  "vars_cls (add_mset L C) = vars_term (atm_of L) \<union> vars_cls C"
+  unfolding vars_cls_def by auto
+
 lemma finite_vars_cls[simp]: "finite (vars_cls C)"
   unfolding vars_cls_def by simp
 
@@ -320,6 +325,11 @@ next
   qed
 *)
 
+  have var_subst_on_if_same_shape_cls:
+    "var_subst_on (vars_cls C) \<sigma>" if "same_shape_cls C (subst_cls C \<sigma>)"
+    for C :: "('f, 'v) term clause" and \<sigma>
+    sorry
+
   have var_noninj_subst_if_same_shape:
     "\<exists>\<sigma>. \<exists>x \<in> vars_cls C. \<exists>y \<in> vars_cls C. var_subst_on (vars_cls C) \<sigma> \<and> x \<noteq> y \<and> \<sigma> x = \<sigma> y \<and>
        subst_cls C \<sigma> = D"
@@ -331,7 +341,7 @@ next
       using sg unfolding strictly_generalizes_cls_def generalizes_cls_def by blast
 
     have vs: "var_subst_on (vars_cls C) \<sigma>"
-      sorry
+      by (rule var_subst_on_if_same_shape_cls[OF ss[folded c\<sigma>_eq_d]])
 
     obtain x y where
       x_in: "x \<in> vars_cls C" and
