@@ -298,8 +298,10 @@ next
 *)
       have g': "generalizes_atm s t"
         unfolding s_def t_def generalizes_atm_def
-        using ls_g_ms unfolding generalizes_lit_def
-        sorry
+        apply (rule exI[of _ \<sigma>])
+        using \<sigma>[unfolded subst_lit_def]
+        apply (clarsimp simp: comp_def list_all2_conv_all_nth map_eq_conv')
+        by (metis (mono_tags) literal.map_sel)
 
       have ng': "\<not> generalizes_atm t s"
         sorry

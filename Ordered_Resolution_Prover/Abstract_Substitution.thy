@@ -181,7 +181,7 @@ locale substitution = substitution_ops subst_atm id_subst comp_subst
     make_ground_subst:
       "is_ground_cls_list (Cs \<cdot>cl \<sigma>) \<Longrightarrow>
        \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)" and
-    renamings_apart_p:
+    renames_apart:
       "\<And>Cs. length (renamings_apart Cs) = length Cs \<and>
          (\<forall>\<rho> \<in> set (renamings_apart Cs). is_renaming \<rho>) \<and>
          var_disjoint (Cs \<cdot>\<cdot>cl (renamings_apart Cs))" and
