@@ -275,7 +275,8 @@ next
       obtain Ls Ms \<sigma> where
         c: "C = mset Ls" and
         d: "D = mset Ms" and
-        \<sigma>: "list_all2 (\<lambda>L M. subst_lit L \<sigma> = M) Ls Ms"
+        \<sigma>: "list_all2 (\<lambda>L M. subst_lit L \<sigma> = M) Ls Ms" and
+        no_subst: "\<forall>\<tau>. \<not> list_all2 (\<lambda>M L. subst_lit M \<tau> = L) Ms Ls"
         (* prove by induction *)
         sorry
 
@@ -304,6 +305,9 @@ next
         by (metis (mono_tags) literal.map_sel)
 
       have ng': "\<not> generalizes_atm t s"
+        unfolding s_def t_def generalizes_atm_def
+        using no_subst[unfolded subst_lit_def]
+        apply (clarsimp simp: comp_def list_all2_conv_all_nth map_eq_conv')
         sorry
 
       have sg': "strictly_generalizes_atm s t"
