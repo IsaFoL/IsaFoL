@@ -599,7 +599,7 @@ next
           by simp
         moreover from a have "Cl ! i \<in> {C} \<union> Q" 
           using \<gamma>_p2 \<gamma>_p unfolding infer_from_def
-          by (metis (no_types, lifting) Un_subset_iff inference.sel(1) set_mset_union sup_commute  nth_mem_mset subsetCE) 
+          by (metis (no_types, lifting) Un_subset_iff inference.sel(1) set_mset_union sup_commute nth_mem_mset subsetCE) 
         ultimately have "((Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>) ! i \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<or> ((Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>) ! i \<in> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>})) \<or> (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>) ! i \<in> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))"
           unfolding \<gamma>_ground_def using E_\<mu>_p \<gamma>_p2 \<gamma>_p unfolding infer_from_def
           unfolding clss_of_state_def grounding_of_clss_def
@@ -610,7 +610,7 @@ next
             apply (rule disjI1)
             apply (rule Set.CollectI)
             apply (rule_tac x="(\<rho>s ! i) \<odot> \<sigma> \<odot> \<mu>" in exI)
-            using \<rho>s_def using renamings_apart_p apply (auto;fail)
+            using \<rho>s_def using renames_apart apply (auto;fail)
             done
           subgoal
             apply (rule disjI2)
@@ -622,7 +622,7 @@ next
             subgoal
               apply (rule Set.CollectI)
               apply (rule_tac x="(\<rho>s ! i) \<odot> \<sigma> \<odot> \<mu>" in exI)
-              using \<rho>s_def using renamings_apart_p apply (auto;fail)
+              using \<rho>s_def using renames_apart apply (auto;fail)
               done
             done
           done
