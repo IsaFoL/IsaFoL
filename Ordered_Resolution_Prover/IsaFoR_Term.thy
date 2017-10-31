@@ -264,14 +264,13 @@ next
         let ?A = "atm_of L"
         let ?B = "atm_of M"
 
-        have a_g_b: "generalizes_atm ?A ?B"
+        have "generalizes_atm ?A ?B"
           using l_g_m by (metis (mono_tags) generalizes_atm_def generalizes_lit_def literal.map_sel
               subst_lit_def)
-
-        have "gsize_cls C' \<le> gsize_cls D'"
+        then have "gsize_tm ?A \<le> gsize_tm ?B"
+          by (rule gsize_tm_if_generalizes_atm)
+        moreover have "gsize_cls C' \<le> gsize_cls D'"
           using Suc.hyps Suc.prems(2) c'_g_d' d generalizes_cls_size by auto
-        moreover have "gsize_tm ?A \<le> gsize_tm ?B"
-          by (rule gsize_tm_if_generalizes_atm[OF a_g_b])
         ultimately show ?case
           unfolding c d gsize_cls_def by simp
       qed simp
