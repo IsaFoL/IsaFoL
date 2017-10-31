@@ -19,7 +19,7 @@ derive linorder prod
 derive linorder list
 derive linorder "term"
 
-definition var_subst :: "('v \<Rightarrow> ('f, 'w) Term.term) \<Rightarrow> bool" where
+definition var_subst :: "('v \<Rightarrow> ('f, 'w) term) \<Rightarrow> bool" where
   "var_subst \<sigma> \<longleftrightarrow> (\<forall>x. is_Var (\<sigma> x))"
 
 abbreviation same_shape_tm :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" where
@@ -32,11 +32,11 @@ primrec gsize_tm :: "('f, 'v) term \<Rightarrow> nat" where
 definition gsize_cls :: "('f, 'v) term clause \<Rightarrow> nat" where
   "gsize_cls C = sum_mset (image_mset (gsize_tm \<circ> atm_of) C)"
 
-definition gvars_tm :: "('f, 'v) Term.term \<Rightarrow> int" where
+definition gvars_tm :: "('f, 'v) term \<Rightarrow> int" where
   "gvars_tm s = int (gsize_tm s) - int (card (vars_term s))"
 
 definition gvars_cls :: "('f, 'v) term clause \<Rightarrow> int" where
-  "gvars_cls C = sum_mset (image_mset (gvars_tm \<circ> atm_of) C)"
+  "gvars_cls C = Sum (set_mset (image_mset (gvars_tm \<circ> atm_of) C))"
 
 definition gpair :: "('f, 'v) term clause rel" where
   "gpair = gsize_cls <*mlex*> measure (nat \<circ> gvars_cls)"
@@ -124,8 +124,8 @@ next
     \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> subst_cls S \<sigma> = subst_cls S \<tau>)"
     sorry
 next
-  show "\<And>Cs. length (mk_var_dis Cs) = length Cs \<and>
-    Ball (set (mk_var_dis Cs)) is_renaming \<and> var_disjoint (subst_cls_lists Cs (mk_var_dis Cs))"
+  show "\<And>Cs. length ( Cs) = length Cs \<and>
+    Ball (set ( Cs)) is_renaming \<and> var_disjoint (subst_cls_lists Cs ( Cs))"
     sorry
 next
   have gsize_tm_if_generalizes_atm:

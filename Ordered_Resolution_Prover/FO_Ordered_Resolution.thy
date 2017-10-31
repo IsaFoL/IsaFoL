@@ -22,12 +22,12 @@ text \<open>
 The following corresponds to to pages 41 and 42 of Section 4.3, until Figure 5 and its explanation.
 \<close>
 
-locale FO_resolution = mgu subst_atm id_subst comp_subst mk_var_dis mgu
+locale FO_resolution = mgu subst_atm id_subst comp_subst renamings_apart mgu
   for
     subst_atm :: "'a :: wellorder \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and
     comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
-    mk_var_dis :: "'a literal multiset list \<Rightarrow> 's list" and
+    renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
     mgu :: "'a set set \<Rightarrow> 's option" +
   fixes
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
@@ -157,8 +157,8 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
 
 inductive ord_resolve_rename :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 's \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve_rename:
-  "\<rho> = hd (mk_var_dis (DA # CAs)) \<Longrightarrow>
-   \<rho>s = tl (mk_var_dis (DA # CAs)) \<Longrightarrow>
+  "\<rho> = hd (renamings_apart (DA # CAs)) \<Longrightarrow>
+   \<rho>s = tl (renamings_apart (DA # CAs)) \<Longrightarrow>
    ord_resolve (CAs \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) \<sigma> E \<Longrightarrow>
    ord_resolve_rename CAs DA \<sigma> E"
 
@@ -180,9 +180,9 @@ proof (cases rule: ord_resolve_rename.cases)
   case (ord_resolve_rename \<rho> P)
   note \<rho> = this(1) and P = this(2) and res = this(3)
   then have rename_P: "\<forall>\<rho> \<in> set P. is_renaming \<rho>"
-    using mk_var_dis_p by (metis list.sel(2) list.set_sel(2))
+    using renamings_apart_p by (metis list.sel(2) list.set_sel(2))
   from P have len: "length P = length CAs"
-    using mk_var_dis_p by auto
+    using renamings_apart_p by auto
   have res_e: "ord_resolve (CAs \<cdot>\<cdot>cl P) (DA \<cdot> \<rho>) \<sigma> E"
     using res by auto
   have "CAs \<cdot>\<cdot>cl P = CAs"
@@ -333,8 +333,8 @@ This is a lemma of 4.11
 lemma ord_resolve_rename_ground_inst_sound:
   assumes
     res_e: "ord_resolve_rename CAs DA \<sigma> E" and
-    \<rho>s: "\<rho>s = tl (mk_var_dis (DA # CAs))" and
-    \<rho>: "\<rho> = hd (mk_var_dis (DA # CAs))" and
+    \<rho>s: "\<rho>s = tl (renamings_apart (DA # CAs))" and
+    \<rho>: "\<rho> = hd (renamings_apart (DA # CAs))" and
     cc_inst_true: "I \<Turnstile>m (mset (CAs \<cdot>\<cdot>cl \<rho>s)) \<cdot>cm \<sigma> \<cdot>cm \<eta>" and
     d_inst_true: "I \<Turnstile> DA \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<eta>" and
     ground_subst_\<eta>: "is_ground_subst \<eta>"
@@ -357,7 +357,7 @@ proof (cases rule: ord_resolve_rename.cases)
   case (ord_resolve_rename \<rho> P)
   note \<rho> = this(1) and P = this(2) and res = this(3)
   then have len: "length P = length CAs"
-    using mk_var_dis_p by auto
+    using renamings_apart_p by auto
   have "I \<Turnstile>fom (mset (CAs \<cdot>\<cdot>cl P)) + {#DA \<cdot> \<rho>#}"
     using subst_sound_scl[OF len, of I] subst_sound[of I DA] cc_d_true
     by (simp add: true_fo_cls_mset_def2)
@@ -659,22 +659,22 @@ proof (cases rule: ord_resolve.cases)
 
   note n = \<open>length CAs'' = n\<close> \<open>length \<eta>s'' = n\<close> n
 
-  have "length (mk_var_dis (DA''#CAs'')) = Suc n"
-    using n mk_var_dis_p by auto
+  have "length (renamings_apart (DA''#CAs'')) = Suc n"
+    using n renamings_apart_p by auto
 
-  note n = \<open>length (mk_var_dis (DA''#CAs'')) = Suc n\<close> n
+  note n = \<open>length (renamings_apart (DA''#CAs'')) = Suc n\<close> n
 
-  define DA' where "DA' = DA'' \<cdot> hd (mk_var_dis (DA''#CAs''))"
-  define CAs' where "CAs' = CAs'' \<cdot>\<cdot>cl tl (mk_var_dis (DA''#CAs''))"
-  define \<eta>' where "\<eta>' = (inv_ren (hd (mk_var_dis (DA''#CAs'')))) \<odot> \<eta>''"
-  define \<eta>s' where "\<eta>s' = (map inv_ren (tl (mk_var_dis (DA''#CAs'')))) \<odot>s \<eta>s''"
+  define DA' where "DA' = DA'' \<cdot> hd (renamings_apart (DA''#CAs''))"
+  define CAs' where "CAs' = CAs'' \<cdot>\<cdot>cl tl (renamings_apart (DA''#CAs''))"
+  define \<eta>' where "\<eta>' = (inv_ren (hd (renamings_apart (DA''#CAs'')))) \<odot> \<eta>''"
+  define \<eta>s' where "\<eta>s' = (map inv_ren (tl (renamings_apart (DA''#CAs'')))) \<odot>s \<eta>s''"
 
-  have renames_DA'': "is_renaming (hd (mk_var_dis (DA''#CAs'')))"
-    using mk_var_dis_p[of "DA'' # CAs''"]
+  have renames_DA'': "is_renaming (hd (renamings_apart (DA''#CAs'')))"
+    using renamings_apart_p[of "DA'' # CAs''"]
     by (metis length_greater_0_conv list.exhaust_sel list.set_intros(1) list.simps(3))
 
-  have renames_CAs'': "is_renaming_list (tl (mk_var_dis (DA''#CAs'')))"
-    using mk_var_dis_p[of "DA'' # CAs''"]
+  have renames_CAs'': "is_renaming_list (tl (renamings_apart (DA''#CAs'')))"
+    using renamings_apart_p[of "DA'' # CAs''"]
     by (metis is_renaming_list_def length_greater_0_conv list.set_sel(2) list.simps(3))
 
   have "length CAs' = n"
@@ -688,11 +688,11 @@ proof (cases rule: ord_resolve.cases)
   have "S DA' \<cdot> \<eta>' = S_M S M DA"
     using as''(5) unfolding \<eta>'_def DA'_def using renames_DA'' selection_renaming_invariant by auto
   have CAs'_CAs: "CAs' \<cdot>\<cdot>cl \<eta>s' = CAs"
-    using as''(7) unfolding CAs'_def \<eta>s'_def using n(3) mk_var_dis_p renames_CAs'' by auto
+    using as''(7) unfolding CAs'_def \<eta>s'_def using n(3) renamings_apart_p renames_CAs'' by auto
   have "(map S CAs') \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAs"
     unfolding CAs'_def \<eta>s'_def using as''(8) n(3,4) renames_CAs'' selection_renaming_list_invariant by auto
   have vd: "var_disjoint (DA' # CAs')"
-    unfolding DA'_def CAs'_def using mk_var_dis_p[of "DA'' # CAs''"]
+    unfolding DA'_def CAs'_def using renamings_apart_p[of "DA'' # CAs''"]
     by (metis length_greater_0_conv list.exhaust_sel n(3) substitution.subst_cls_lists_Cons substitution_axioms zero_less_Suc)
 
   -- \<open>Introduce ground substitution\<close>

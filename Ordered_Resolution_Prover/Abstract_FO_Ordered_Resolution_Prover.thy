@@ -29,14 +29,14 @@ type_synonym 'a weighted_clause = "'a clause \<times> nat"
 type_synonym 'a nth_state = "'a weighted_clause set \<times> 'a weighted_clause set \<times> 'a weighted_clause set \<times> nat"
 
 locale FO_resolution_prover =
-  FO_resolution subst_atm id_subst comp_subst mk_var_dis mgu less_atm +
+  FO_resolution subst_atm id_subst comp_subst renamings_apart mgu less_atm +
   selection S
   for
     S :: "('a :: wellorder) clause \<Rightarrow> _" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and
     comp_subst :: "'s => 's => 's" and
-    mk_var_dis :: "'a literal multiset list \<Rightarrow> 's list" and
+    renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
     mgu :: "'a set set \<Rightarrow> 's option" and
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
 begin
@@ -572,8 +572,8 @@ next
       unfolding ord_FO_resolution.inferences_between_def by auto
     then obtain CC D Cl \<sigma> where \<gamma>_p2: "\<gamma> = Infer CC D E \<and> ord_resolve_rename S Cl D \<sigma> E \<and> mset Cl = CC"
       unfolding ord_FO_\<Gamma>_def by auto
-    define \<rho> where "\<rho> = hd (mk_var_dis (D # Cl))"
-    define \<rho>s where "\<rho>s = tl (mk_var_dis (D # Cl))"
+    define \<rho> where "\<rho> = hd (renamings_apart (D # Cl))"
+    define \<rho>s where "\<rho>s = tl (renamings_apart (D # Cl))"
     define \<gamma>_ground where "\<gamma>_ground = Infer (mset (Cl \<cdot>\<cdot>cl \<rho>s) \<cdot>cm \<sigma> \<cdot>cm \<mu>) (D \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<mu>) (E \<cdot> \<mu>)"
     have "\<forall>I. I \<Turnstile>m mset (Cl \<cdot>\<cdot>cl \<rho>s) \<cdot>cm \<sigma> \<cdot>cm \<mu> \<longrightarrow> I \<Turnstile> D \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> E \<cdot> \<mu>"
       using ord_resolve_rename_ground_inst_sound[of S Cl D \<sigma> E _ _ _ \<mu>] \<rho>_def \<rho>s_def E_\<mu>_p \<gamma>_p2 by auto
@@ -610,7 +610,7 @@ next
             apply (rule disjI1)
             apply (rule Set.CollectI)
             apply (rule_tac x="(\<rho>s ! i) \<odot> \<sigma> \<odot> \<mu>" in exI)
-            using \<rho>s_def using mk_var_dis_p apply (auto;fail)
+            using \<rho>s_def using renamings_apart_p apply (auto;fail)
             done
           subgoal
             apply (rule disjI2)
@@ -622,7 +622,7 @@ next
             subgoal
               apply (rule Set.CollectI)
               apply (rule_tac x="(\<rho>s ! i) \<odot> \<sigma> \<odot> \<mu>" in exI)
-              using \<rho>s_def using mk_var_dis_p apply (auto;fail)
+              using \<rho>s_def using renamings_apart_p apply (auto;fail)
               done
             done
           done

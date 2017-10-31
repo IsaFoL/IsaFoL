@@ -173,8 +173,7 @@ locale substitution = substitution_ops subst_atm id_subst comp_subst
     id_subst :: 's and
     comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" +
   fixes
-(* FIXME: Come up with a better name? Function gives substitutions that standardize clauses apart. Also rename it in the other locales. *)
-    mk_var_dis :: "'a literal multiset list \<Rightarrow> 's list"
+    renamings_apart :: "'a clause list \<Rightarrow> 's list"
   assumes
     subst_atm_id_subst[simp]: "subst_atm A id_subst = A" and
     subst_atm_comp_subst[simp]: "subst_atm A (comp_subst \<tau> \<sigma>) = subst_atm (subst_atm A \<tau>) \<sigma>" and
@@ -182,14 +181,14 @@ locale substitution = substitution_ops subst_atm id_subst comp_subst
     make_ground_subst:
       "is_ground_cls_list (Cs \<cdot>cl \<sigma>) \<Longrightarrow>
        \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)" and
-    mk_var_dis_p: "\<And>Cs. length (mk_var_dis Cs) = length Cs \<and> (\<forall>\<rho> \<in> set (mk_var_dis Cs). is_renaming \<rho>) \<and>
-       var_disjoint (Cs \<cdot>\<cdot>cl (mk_var_dis Cs))" and
+    renamings_apart_p: "\<And>Cs. length (renamings_apart Cs) = length Cs \<and> (\<forall>\<rho> \<in> set (renamings_apart Cs). is_renaming \<rho>) \<and>
+       var_disjoint (Cs \<cdot>\<cdot>cl (renamings_apart Cs))" and
     wf_strictly_generalizes_cls: "wfP strictly_generalizes_cls"
 begin
 
 lemma make_var_disjoint: "\<And>Cs. \<exists>\<rho>s. length \<rho>s = length Cs \<and> (\<forall>\<rho> \<in> set \<rho>s. is_renaming \<rho>) \<and>
       var_disjoint (Cs \<cdot>\<cdot>cl \<rho>s)"
-  using mk_var_dis_p by auto
+  using renamings_apart_p by auto
 
 lemma subst_ext_iff: "\<sigma> = \<tau> \<longleftrightarrow> (\<forall>A. A \<cdot>a \<sigma> = A \<cdot>a \<tau>)"
   by (blast intro: subst_ext)
@@ -950,12 +949,12 @@ end
 
 subsection \<open>Most general unifiers\<close>
 
-locale mgu = substitution subst_atm id_subst comp_subst mk_var_dis
+locale mgu = substitution subst_atm id_subst comp_subst renamings_apart
   for
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: 's and
     comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
-    mk_var_dis :: "'a literal multiset list \<Rightarrow> 's list" +
+    renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" +
   fixes
     mgu :: "'a set set \<Rightarrow> 's option"
   assumes
