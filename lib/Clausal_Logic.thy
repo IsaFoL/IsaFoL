@@ -32,10 +32,13 @@ abbreviation is_neg :: "'a literal \<Rightarrow> bool" where
   "is_neg L \<equiv> \<not> is_pos L"
 
 lemma Pos_atm_of_iff[simp]: "Pos (atm_of L) = L \<longleftrightarrow> is_pos L"
-  by (cases L) auto
+  by (cases L) simp+
 
 lemma Neg_atm_of_iff[simp]: "Neg (atm_of L) = L \<longleftrightarrow> is_neg L"
-  by (cases L) auto
+  by (cases L) simp+
+
+lemma set_literal_atm_of: "set_literal L = {atm_of L}"
+  by (cases L) simp+
 
 lemma ex_lit_cases: "(\<exists>L. P L) \<longleftrightarrow> (\<exists>A. P (Pos A) \<or> P (Neg A))"
   by (metis literal.exhaust)

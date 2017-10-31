@@ -354,19 +354,23 @@ next
       define \<tau> :: "'v \<Rightarrow> ('f, 'v) term" where
         "\<And>x. \<tau> x = Var (inv \<sigma> (Var x))"
 
-      have "subst_lit (subst_lit L \<sigma>) (\<lambda>x. Var (inv \<sigma> (Var x))) = L" if l_in: "L \<in># C" for L
+      have \<sigma>\<tau>_var: "\<sigma> x \<cdot> \<tau> = Var x" if "x \<in> vars_cls C" for x
+        sorry
+
+      have \<sigma>\<tau>_lit: "subst_lit (subst_lit L \<sigma>) \<tau> = L" if l_in: "L \<in># C" for L
         unfolding subst_lit_def literal.map_comp comp_def subst_subst
         unfolding subst_compose_def
-
-
-        apply (simp only: substitution.subst_lit_comp_subst[symmetric])
-        sorry
+        apply (rule trans[OF literal.map_cong, OF refl])
+        apply (rule trans[OF term_subst_eq])
+          apply (rule \<sigma>\<tau>_var)
+        using l_in
+          apply (simp add: set_literal_atm_of)
+        using vars_cls_def apply fastforce
+        apply (simp add: literal.map_ident)+
+        done
 
       have "subst_cls D \<tau> = C"
-        unfolding c\<sigma>_eq_d[symmetric]
-        unfolding subst_cls_def \<tau>_def
-        apply simp
-        sorry
+        unfolding c\<sigma>_eq_d[symmetric] subst_cls_def by (simp add: \<sigma>\<tau>_lit)
       then have False
         using sg[unfolded strictly_generalizes_cls_def generalizes_cls_def] by blast
     }
