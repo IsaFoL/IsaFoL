@@ -28,6 +28,9 @@ definition var_subst :: "('v \<Rightarrow> ('f, 'w) term) \<Rightarrow> bool" wh
 definition vars_cls :: "('f, 'v) term clause \<Rightarrow> 'v set" where
   "vars_cls C = \<Union> (set_mset (image_mset (vars_term \<circ> atm_of) C))"
 
+lemma finite_vars_cls[simp]: "finite (vars_cls C)"
+  unfolding vars_cls_def by simp
+
 abbreviation same_shape_tm :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" where
   "same_shape_tm \<equiv> rel_term (op =) (\<lambda>x y. True)"
 
@@ -123,13 +126,38 @@ proof (induct xs ys rule: list_induct2)
   qed
 qed simp
 
+interpretation substitution_ops "op \<cdot>" Var "op \<circ>\<^sub>s" .
+
 lemma vars_term_subst: "vars_term (s \<cdot> \<sigma>) = \<Union> ((vars_term \<circ> \<sigma>) ` vars_term s)"
   sorry
 
 lemma vars_term_var_subst: "var_subst \<sigma> \<Longrightarrow> vars_term (t \<cdot> \<sigma>) = (the_Var \<circ> \<sigma>) ` vars_term t"
   unfolding vars_term_subst var_subst_def comp_def image_def by (auto simp: vars_term_is_Var)
 
-interpretation substitution_ops "op \<cdot>" Var "op \<circ>\<^sub>s" .
+lemma vars_cls_var_subst: "var_subst \<sigma> \<Longrightarrow> vars_cls (subst_cls C \<sigma>) = (the_Var \<circ> \<sigma>) ` vars_cls C"
+  unfolding vars_cls_def subst_cls_def by (auto simp: vars_term_var_subst)
+
+lemma card_lt_if_noninj_subst:
+  assumes fin: "finite V" and x_in: "x \<in> V" and y_in: "y \<in> V" and x_ne_y: "x \<noteq> y" and
+    \<sigma>x_eq_\<sigma>y: "\<sigma> x = \<sigma> y"
+  shows "card ((the_Var \<circ> \<sigma>) ` V) < card V"
+proof -
+  have v: "V = (V - {x, y}) \<union> {x, y}"
+    using x_in y_in by blast
+
+  have "card ((the_Var \<circ> \<sigma>) ` V) \<le> card ((the_Var \<circ> \<sigma>) ` (V - {x, y})) + 1"
+    by (subst v, unfold image_Un, simp add: \<sigma>x_eq_\<sigma>y card_insert_le_m1)
+  also have "\<dots> \<le> card (V - {x, y}) + 1"
+    by (simp add: card_image_le fin)
+  also have "\<dots> < card (V - {x, y}) + 2"
+    by arith
+  also have "\<dots> = card (V - {x, y}) + card {x, y}"
+    by (simp add: x_ne_y)
+  also have "\<dots> = card V"
+    by (subst (2) v) (auto simp: card_Un_disjoint[symmetric] fin)
+  finally show ?thesis
+    .
+qed
 
 interpretation substitution "op \<cdot>" "Var :: _ \<Rightarrow> ('f, 'v) term" "op \<circ>\<^sub>s"
 proof
@@ -243,14 +271,12 @@ next
     for C D :: "('f, 'v) term clause"
     sorry
 
-  have card_vars_gt: "card (vars_cls C) > card (vars_cls D)"
+  have card_vars_cls_lt_if_noninj_subst: "card (vars_cls C) > card (vars_cls D)"
     if x_in: "x \<in> vars_cls C" and y_in: "y \<in> vars_cls C" and vs: "var_subst \<sigma>" and
       x_ne_y: "x \<noteq> y" and \<sigma>x_eq_\<sigma>y: "\<sigma> x = \<sigma> y" and c\<sigma>_eq_d: "subst_cls C \<sigma> = D"
     for C D :: "('f, 'v) term clause" and x y \<sigma>
-    unfolding c\<sigma>_eq_d[symmetric]
-    unfolding vars_cls_def subst_cls_def
-    apply (simp add: vars_term_var_subst[OF vs] comp_def)
-    sorry
+    unfolding c\<sigma>_eq_d[symmetric] vars_cls_var_subst[OF vs]
+    by (rule card_lt_if_noninj_subst[OF finite_vars_cls x_in y_in x_ne_y \<sigma>x_eq_\<sigma>y])
 
   have in_gpair: "strictly_generalizes_cls C D \<Longrightarrow> (C, D) \<in> gpair" for C D :: "('f, 'v) term clause"
   proof (rule ccontr)
@@ -295,7 +321,7 @@ next
       assume gsize: "gsize_cls C = gsize_cls D" and
         "gvars_cls C \<ge> gvars_cls D"
       moreover have "card (vars_cls C) > card (vars_cls D)"
-        by (metis card_vars_gt var_noninj_subst_if_same_shape[OF _ sg]
+        by (metis card_vars_cls_lt_if_noninj_subst var_noninj_subst_if_same_shape[OF _ sg]
             same_shape_if_gen_gsize[OF g gsize])
       ultimately have False
         using card_vars_le_gsize_cls unfolding gvars_cls_def by (metis leD le_diff_iff')
