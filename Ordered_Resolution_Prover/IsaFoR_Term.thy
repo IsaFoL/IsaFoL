@@ -32,14 +32,14 @@ primrec gsize_tm :: "('f, 'v) term \<Rightarrow> nat" where
 definition gsize_cls :: "('f, 'v) term clause \<Rightarrow> nat" where
   "gsize_cls C = sum_mset (image_mset (gsize_tm \<circ> atm_of) C)"
 
-definition gvars_tm :: "('f, 'v) term \<Rightarrow> int" where
-  "gvars_tm s = int (gsize_tm s) - int (card (vars_term s))"
+definition gvars_tm :: "('f, 'v) term \<Rightarrow> nat" where
+  "gvars_tm s = gsize_tm s - card (vars_term s)"
 
-definition gvars_cls :: "('f, 'v) term clause \<Rightarrow> int" where
+definition gvars_cls :: "('f, 'v) term clause \<Rightarrow> nat" where
   "gvars_cls C = Sum (set_mset (image_mset (gvars_tm \<circ> atm_of) C))"
 
 definition gpair :: "('f, 'v) term clause rel" where
-  "gpair = gsize_cls <*mlex*> measure (nat \<circ> gvars_cls)"
+  "gpair = gsize_cls <*mlex*> measure gvars_cls"
 
 lemma card_vars_le_gsize: "card (vars_term s) \<le> gsize_tm s"
 proof (induct s)
@@ -300,17 +300,13 @@ next
         apply simp
         unfolding gvars_tm_def
         apply (simp add: comp_def sum_list_subtractf)
-
-
-
         sorry
-      then have "card (vars_term s) \<le> card (vars_term t)"
-        by (metis card_vars_le_gsize gsize' gvars_tm_def le_diff_iff')
-      moreover have "card (vars_term s) > card (vars_term t)"
+
+      have "card (vars_term s) > card (vars_term t)"
         by (rule card_vars_gt[OF var_noninj_subst_if_same_shape
               [OF same_shape_if_gen_gsize[OF g' gsize'] sg']])
-      ultimately have False
-        by arith
+      then have False
+        using gsize' gvars' card_vars_le_gsize[of s] unfolding gvars_tm_def by arith
     }
     ultimately show False
       using ni_gp[unfolded gpair_def] by (simp add: mlex_prod_def not_less)
