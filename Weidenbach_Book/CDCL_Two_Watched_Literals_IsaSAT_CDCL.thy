@@ -8705,6 +8705,6 @@ lemmas cdcl_twl_stgy_prog_wl_D_code[sepref_fr_rules] =
 end
 
 export_code cdcl_twl_stgy_prog_wl_D_code in SML_imp module_name SAT_Solver
-  file "code/CDCL_Cached_Array_Trail.ML"
+  file "code/CDCL_Cached_Array_Trail.sml"
 
 end
