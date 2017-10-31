@@ -353,20 +353,11 @@ next
 
     {
       assume "inj_on \<sigma> (vars_cls C)"
-      
+      have False
+        sorry
     }
-    show ?thesis
-      by (rule exI[of _ \<sigma>])
-
-    obtain x y where
-      x_in: "x \<in> vars_cls C" and
-      y_in: "y \<in> vars_cls C" and
-      x_ne_y: "x \<noteq> y" and
-      \<sigma>x_eq_\<sigma>y: "\<sigma> x = \<sigma> y"
-      sorry
-
-    show ?thesis
-      using c\<sigma>_eq_d vs x_in y_in x_ne_y \<sigma>x_eq_\<sigma>y by blast
+    then show ?thesis
+      using vs c\<sigma>_eq_d by blast
   qed
 
   have card_vars_cls_lt_if_noninj_subst: "card (vars_cls C) > card (vars_cls D)"
