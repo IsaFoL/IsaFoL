@@ -581,13 +581,14 @@ lemma comp_substs_Nil[simp]: "s \<odot>s [] = []"
 lemma is_renaming_idempotent_id_subst: "is_renaming r \<Longrightarrow> r \<odot> r = r \<Longrightarrow> r = id_subst"
   by (metis comp_subst_assoc comp_subst_id_subst inv_ren_cancel_r)
 
-lemma is_renaming_left_id_subst_right_id_subst: "is_renaming r \<Longrightarrow> s \<odot> r = id_subst \<Longrightarrow> r \<odot> s = id_subst"
+lemma is_renaming_left_id_subst_right_id_subst:
+  "is_renaming r \<Longrightarrow> s \<odot> r = id_subst \<Longrightarrow> r \<odot> s = id_subst"
   by (metis comp_subst_assoc comp_subst_id_subst is_renaming_def)
 
 lemma is_renaming_closure: "is_renaming r1 \<Longrightarrow> is_renaming r2 \<Longrightarrow> is_renaming (r1 \<odot> r2)"
   unfolding is_renaming_def by (metis comp_subst_assoc comp_subst_id_subst)
 
-lemma is_renaming_inv_ren_cancel[simp]: "is_renaming \<rho> \<Longrightarrow> C  \<cdot> \<rho> \<cdot> (inv_ren \<rho>) = C"
+lemma is_renaming_inv_ren_cancel[simp]: "is_renaming \<rho> \<Longrightarrow> C  \<cdot> \<rho> \<cdot> inv_ren \<rho> = C"
   by (metis inv_ren_cancel_r subst_cls_comp_subst subst_cls_id_subst)
 
 lemma is_renaming_list_inv_ren_cancel[simp]:
@@ -604,8 +605,7 @@ lemma subst_cls_mono_mset: "C \<subseteq># D \<Longrightarrow> C \<cdot> \<sigma
   unfolding subst_clss_def by (metis mset_subset_eq_exists_conv subst_cls_union)
 
 lemma subst_subset_mono: "D \<subset># C \<Longrightarrow> D \<cdot> \<sigma> \<subset># C \<cdot> \<sigma>"
-  unfolding subst_cls_def
-  by (simp add: image_mset_subset_mono)
+  unfolding subst_cls_def by (simp add: image_mset_subset_mono)
 
 
 subsubsection \<open>Length after substitution\<close>
