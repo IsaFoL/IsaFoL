@@ -9,15 +9,6 @@ theory IsaFoR_Term
   imports Deriving.Derive "$ISAFOR/Rewriting/Unification" Abstract_Substitution
 begin
 
-lemma sum_list_mono_minus_nat:
-  fixes f :: "_ \<Rightarrow> nat"
-  assumes "\<And>x. g x \<le> f x"
-  shows "sum_list (map (\<lambda>x. f x - g x) xs) = sum_list (map f xs) - sum_list (map g xs)"
-  using assms by (induct xs) (simp_all add: sum_list_mono)
-
-lemma card_Un_set_le_sum_list_card: "card (\<Union>x \<in> set xs. f x) \<le> (\<Sum>x\<leftarrow>xs. card (f x))"
-  by (induct xs) (simp_all add: le_trans[OF card_Un_le])
-
 (* TODO: Move to "Multiset_More" *)
 lemma sum_image_mset_sum_map[simp]: "sum_mset (image_mset f (mset xs)) = sum_list (map f xs)"
   by (metis mset_map sum_mset_sum_list)
@@ -41,14 +32,14 @@ primrec gsize_tm :: "('f, 'v) term \<Rightarrow> nat" where
 definition gsize_cls :: "('f, 'v) term clause \<Rightarrow> nat" where
   "gsize_cls C = sum_mset (image_mset (gsize_tm \<circ> atm_of) C)"
 
-definition gvars_tm :: "('f, 'v) Term.term \<Rightarrow> nat" where
-  "gvars_tm s = gsize_tm s - card (vars_term s)"
+definition gvars_tm :: "('f, 'v) Term.term \<Rightarrow> int" where
+  "gvars_tm s = int (gsize_tm s) - int (card (vars_term s))"
 
-definition gvars_cls :: "('f, 'v) term clause \<Rightarrow> nat" where
+definition gvars_cls :: "('f, 'v) term clause \<Rightarrow> int" where
   "gvars_cls C = sum_mset (image_mset (gvars_tm \<circ> atm_of) C)"
 
 definition gpair :: "('f, 'v) term clause rel" where
-  "gpair = gsize_cls <*mlex*> measure gvars_cls"
+  "gpair = gsize_cls <*mlex*> measure (nat \<circ> gvars_cls)"
 
 lemma card_vars_le_gsize: "card (vars_term s) \<le> gsize_tm s"
 proof (induct s)
@@ -68,22 +59,6 @@ qed simp
 
 lemma wf_gpair: "wf gpair"
   by (simp add: gpair_def wf_mlex)
-
-lemma
-  "sum_list (map f (y # ys)) \<le> sum_list (map f (x # xs)) \<Longrightarrow> f x \<le> (f y::'a::linordered_semiring) \<Longrightarrow>
-sum_list (map f ys) \<le> sum_list (map f xs)"
-proof -
-  assume a1: "f x \<le> f y"
-  assume a2: "sum_list (map f (y # ys)) \<le> sum_list (map f (x # xs))"
-  have f3: "\<forall>a aa ab. (a::'a) \<le> aa \<or> \<not> ab + a \<le> aa + ab"
-    by (simp add: Groups.add_ac(2))
-  have "\<forall>bs b f. (f (b::'b)::'a) + sum_list (map f bs) = sum_list (map f (b # bs))"
-    by simp
-  then have "\<exists>a aa. a + sum_list (map f ys) \<le> aa \<and> aa \<le> sum_list (map f xs) + a"
-    using a2 a1 by (metis (no_types) Groups.add_ac(2) add_le_cancel_left)
-  then show ?thesis
-    using f3 by (meson add_mono_thms_linordered_semiring(1))
-qed
 
 lemma list_elem_le_sum_map_gt_imp_elem_eq:
   fixes f :: "_ \<Rightarrow> 'a::linordered_semiring"
@@ -317,25 +292,16 @@ next
         using gsize unfolding gsize_cls_def s_def t_def
         by simp (metis c d gsize gsize_cls_def mset_map sum_mset_sum_list)
 
+
+
       have gvars': "gvars_tm s \<ge> gvars_tm t"
         unfolding s_def t_def
         using gvars[unfolded gvars_cls_def c d]
         apply simp
         unfolding gvars_tm_def
-        apply (simp add: comp_def)
-        apply (simp add: sum_list_mono_minus_nat[OF card_vars_le_gsize])
-        using sum_list_mono[OF card_vars_le_gsize] le_SucI[OF le_SucI[OF le_trans[OF card_Un_set_le_sum_list_card, OF sum_list_mono[OF card_vars_le_gsize]]]]
+        apply (simp add: comp_def sum_list_subtractf)
 
-        apply (simp add: le_diff_conv le_diff_conv2[OF sum_list_mono[OF card_vars_le_gsize]]
-le_diff_conv2[OF le_SucI[OF le_SucI[OF le_trans[OF card_Un_set_le_sum_list_card, OF sum_list_mono[OF card_vars_le_gsize]]]]])
 
-        
-        thm card_Un_set_le_sum_list_card
-
-        using le_diff_conv2[OF le_SucI[OF le_SucI[OF le_trans[OF card_Un_set_le_sum_list_card, OF sum_list_mono[OF card_vars_le_gsize]]]]]
-
-        using sum_list_mono[OF card_vars_le_gsize]
-        using [[smt_nat_as_int]]
 
         sorry
       then have "card (vars_term s) \<le> card (vars_term t)"
