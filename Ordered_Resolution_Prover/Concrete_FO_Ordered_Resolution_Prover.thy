@@ -17,6 +17,13 @@ theory Concrete_FO_Ordered_Resolution_Prover
   imports Abstract_FO_Ordered_Resolution_Prover
 begin
 
+partial_function (option) while where
+ "while b c s = (if b s then while b c (c s) else Some s)"
+
+print_theorems
+term while
+
+
 locale FO_resolution_prover_with_weights =
   FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart mgu less_atm
   for
@@ -84,7 +91,7 @@ locale FO_resolution_prover_with_monotone_weights =
   fixes
     cls_size:: "'a clause \<Rightarrow> nat"
   assumes 
-    monotone_size: "cls_size C < cls_size D  \<Longrightarrow> weight (C, m) < weight (D, m)" and
+    monotone_size: "cls_size C < cls_size D \<Longrightarrow> weight (C, m) < weight (D, m)" and
     monotone_nat: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
 begin
 
