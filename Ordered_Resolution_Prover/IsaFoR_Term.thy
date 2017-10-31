@@ -71,24 +71,21 @@ abbreviation var_lit :: "('f, 'v) term literal \<Rightarrow> 'v set" where
 definition var_clause :: "('f, 'v) term clause \<Rightarrow> 'v set" where
   "var_clause C = Union (set_mset (image_mset var_lit C))"
 
-fun renamings_apart' :: "nat set \<Rightarrow> ('f, nat) term clause list \<Rightarrow>  (('f, nat) subst) list" where
+fun renamings_apart' :: "nat set \<Rightarrow> ('f, nat) term clause list \<Rightarrow> (('f, nat) subst) list" where
   "renamings_apart' _ [] = []"
 | "renamings_apart' X (C#Cs) = 
     (let \<sigma> = (\<lambda>v. Var (v + Max X + 1)) in 
       \<sigma> # renamings_apart' (X \<union> var_clause (C \<cdot>cls \<sigma>)) Cs)
    "
 
-abbreviation renamings_apart :: "('f, nat) term clause list \<Rightarrow>  (('f, nat) subst) list" where
+abbreviation renamings_apart :: "('f, nat) term clause list \<Rightarrow> (('f, nat) subst) list" where
   "renamings_apart Cs \<equiv> renamings_apart' {} Cs"
 
-lemma "length (renamings_apart' X Cs) = length Cs"
+lemma len_renamings_apart': "length (renamings_apart' X Cs) = length Cs"
   apply (induction rule: renamings_apart'.induct)
    apply simp
   apply (metis length_nth_simps renamings_apart'.simps(2)) 
   done
-
-lemma "length (renamings_apart Cs) = length Cs"
-  oops
 
 lemma card_vars_le_gsize_tm: "card (vars_term s) \<le> gsize_tm s"
 proof (induct s)
@@ -213,12 +210,25 @@ next
   fix Cs :: "('f, nat) term clause list"
   {
     have "length (renamings_apart Cs) = length Cs"
-      sorry
+      using len_renamings_apart' by auto
   }
   moreover
   {
-    have "Ball (set (renamings_apart Cs)) is_renaming"
-      sorry
+    thm is_renaming_def
+    find_theorems is_renaming
+    have "\<And>Cs X. Ball (set (renamings_apart' X Cs)) is_renaming"
+      subgoal for Cs X
+        apply (induction Cs)
+         apply simp
+        apply auto
+        unfolding is_renaming_def
+        apply (rule exI)
+        apply (rule conjI)
+        
+        
+     
+       
+
   }
   moreover
   {
