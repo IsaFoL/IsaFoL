@@ -352,10 +352,18 @@ next
       assume inj: "inj_on \<sigma> (vars_cls C)"
 
       define \<tau> :: "'v \<Rightarrow> ('f, 'v) term" where
-        "\<And>x. \<tau> x = Var (inv \<sigma> (Var x))"
+        "\<And>x. \<tau> x = Var (inv_into (vars_cls C) \<sigma> (Var x))"
 
-      have \<sigma>\<tau>_var: "\<sigma> x \<cdot> \<tau> = Var x" if "x \<in> vars_cls C" for x
-        sorry
+      have \<sigma>\<tau>_var: "\<sigma> x \<cdot> \<tau> = Var x" if x_in: "x \<in> vars_cls C" for x
+      proof (cases "\<sigma> x")
+        case y: (Var y)
+        show ?thesis
+          apply (unfold y)
+          apply simp
+          apply (unfold \<tau>_def)
+          apply (fold y)
+          by (simp add: inj x_in)
+      qed (metis is_FunI var_subst_on_def vs x_in)
 
       have \<sigma>\<tau>_lit: "subst_lit (subst_lit L \<sigma>) \<tau> = L" if l_in: "L \<in># C" for L
         unfolding subst_lit_def literal.map_comp comp_def subst_subst
