@@ -22,11 +22,16 @@ derive linorder prod
 derive linorder list
 derive linorder "term"
 
-definition var_subst :: "('v \<Rightarrow> ('f, 'w) term) \<Rightarrow> bool" where
-  "var_subst \<sigma> \<longleftrightarrow> (\<forall>x. is_Var (\<sigma> x))"
+definition var_subst_on :: "'v set \<Rightarrow> ('v \<Rightarrow> ('f, 'w) term) \<Rightarrow> bool" where
+  "var_subst_on V \<sigma> \<longleftrightarrow> (\<forall>x \<in> V. is_Var (\<sigma> x))"
 
 definition vars_cls :: "('f, 'v) term clause \<Rightarrow> 'v set" where
   "vars_cls C = \<Union> (set_mset (image_mset (vars_term \<circ> atm_of) C))"
+
+lemma vars_cls_simps[simp]:
+  "vars_cls {#} = {}"
+  "vars_cls (add_mset L C) = vars_term (atm_of L) \<union> vars_cls C"
+  unfolding vars_cls_def by auto
 
 lemma finite_vars_cls[simp]: "finite (vars_cls C)"
   unfolding vars_cls_def by simp
@@ -162,11 +167,15 @@ interpretation substitution_ops "op \<cdot>" Var "op \<circ>\<^sub>s" .
 lemma vars_term_subst: "vars_term (s \<cdot> \<sigma>) = \<Union> ((vars_term \<circ> \<sigma>) ` vars_term s)"
   sorry
 
-lemma vars_term_var_subst: "var_subst \<sigma> \<Longrightarrow> vars_term (t \<cdot> \<sigma>) = (the_Var \<circ> \<sigma>) ` vars_term t"
-  unfolding vars_term_subst var_subst_def comp_def image_def by (auto simp: vars_term_is_Var)
+lemma vars_term_var_subst_on:
+  "var_subst_on (vars_term t) \<sigma> \<Longrightarrow> vars_term (t \<cdot> \<sigma>) = (the_Var \<circ> \<sigma>) ` vars_term t"
+  unfolding vars_term_subst var_subst_on_def comp_def image_def by (auto simp: vars_term_is_Var)
 
-lemma vars_cls_var_subst: "var_subst \<sigma> \<Longrightarrow> vars_cls (subst_cls C \<sigma>) = (the_Var \<circ> \<sigma>) ` vars_cls C"
-  unfolding vars_cls_def subst_cls_def by (auto simp: vars_term_var_subst)
+lemma vars_cls_var_subst_on:
+  "var_subst_on (vars_cls C) \<sigma> \<Longrightarrow> vars_cls (subst_cls C \<sigma>) = (the_Var \<circ> \<sigma>) ` vars_cls C"
+  unfolding vars_cls_def subst_cls_def
+  by clarsimp
+    (metis (no_types, lifting) SUP_cong UN_I image_UN var_subst_on_def vars_term_var_subst_on)
 
 lemma card_lt_if_noninj_subst:
   assumes fin: "finite V" and x_in: "x \<in> V" and y_in: "y \<in> V" and x_ne_y: "x \<noteq> y" and
@@ -326,17 +335,40 @@ next
   qed
 *)
 
-  have var_noninj_subst_if_same_shape:
-    "\<exists>\<sigma>. \<exists>x \<in> vars_cls C. \<exists>y \<in> vars_cls C. var_subst \<sigma> \<and> x \<noteq> y \<and> \<sigma> x = \<sigma> y \<and> subst_cls C \<sigma> = D"
-    if "same_shape_cls C D" and "strictly_generalizes_cls C D"
-    for C D :: "('f, 'v) term clause"
+  have var_subst_on_if_same_shape_cls:
+    "var_subst_on (vars_cls C) \<sigma>" if "same_shape_cls C (subst_cls C \<sigma>)"
+    for C :: "('f, 'v) term clause" and \<sigma>
     sorry
 
+  have var_noninj_subst_if_same_shape:
+    "\<exists>\<sigma>. \<exists>x \<in> vars_cls C. \<exists>y \<in> vars_cls C. var_subst_on (vars_cls C) \<sigma> \<and> x \<noteq> y \<and> \<sigma> x = \<sigma> y \<and>
+       subst_cls C \<sigma> = D"
+    if ss: "same_shape_cls C D" and sg: "strictly_generalizes_cls C D"
+    for C D :: "('f, 'v) term clause"
+  proof -
+    obtain \<sigma> where
+      c\<sigma>_eq_d: "subst_cls C \<sigma> = D"
+      using sg unfolding strictly_generalizes_cls_def generalizes_cls_def by blast
+
+    have vs: "var_subst_on (vars_cls C) \<sigma>"
+      by (rule var_subst_on_if_same_shape_cls[OF ss[folded c\<sigma>_eq_d]])
+
+    obtain x y where
+      x_in: "x \<in> vars_cls C" and
+      y_in: "y \<in> vars_cls C" and
+      x_ne_y: "x \<noteq> y" and
+      \<sigma>x_eq_\<sigma>y: "\<sigma> x = \<sigma> y"
+      sorry
+
+    show ?thesis
+      using c\<sigma>_eq_d vs x_in y_in x_ne_y \<sigma>x_eq_\<sigma>y by blast
+  qed
+
   have card_vars_cls_lt_if_noninj_subst: "card (vars_cls C) > card (vars_cls D)"
-    if x_in: "x \<in> vars_cls C" and y_in: "y \<in> vars_cls C" and vs: "var_subst \<sigma>" and
+    if x_in: "x \<in> vars_cls C" and y_in: "y \<in> vars_cls C" and vs: "var_subst_on (vars_cls C) \<sigma>" and
       x_ne_y: "x \<noteq> y" and \<sigma>x_eq_\<sigma>y: "\<sigma> x = \<sigma> y" and c\<sigma>_eq_d: "subst_cls C \<sigma> = D"
     for C D :: "('f, 'v) term clause" and x y \<sigma>
-    unfolding c\<sigma>_eq_d[symmetric] vars_cls_var_subst[OF vs]
+    unfolding c\<sigma>_eq_d[symmetric] vars_cls_var_subst_on[OF vs]
     by (rule card_lt_if_noninj_subst[OF finite_vars_cls x_in y_in x_ne_y \<sigma>x_eq_\<sigma>y])
 
   have in_gpair: "strictly_generalizes_cls C D \<Longrightarrow> (C, D) \<in> gpair" for C D :: "('f, 'v) term clause"
