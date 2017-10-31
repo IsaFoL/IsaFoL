@@ -9,6 +9,15 @@ theory IsaFoR_Term
   imports Deriving.Derive "$ISAFOR/Rewriting/Unification" Abstract_Substitution
 begin
 
+lemma sum_list_mono_minus_nat:
+  fixes f :: "_ \<Rightarrow> nat"
+  assumes "\<And>x. g x \<le> f x"
+  shows "sum_list (map (\<lambda>x. f x - g x) xs) = sum_list (map f xs) - sum_list (map g xs)"
+  using assms by (induct xs) (simp_all add: sum_list_mono)
+
+lemma card_Un_set_le_sum_list_card: "card (\<Union>x \<in> set xs. f x) \<le> (\<Sum>x\<leftarrow>xs. card (f x))"
+  by (induct xs) (simp_all add: le_trans[OF card_Un_le])
+
 (* TODO: Move to "Multiset_More" *)
 lemma sum_image_mset_sum_map[simp]: "sum_mset (image_mset f (mset xs)) = sum_list (map f xs)"
   by (metis mset_map sum_mset_sum_list)
@@ -314,6 +323,20 @@ next
         apply simp
         unfolding gvars_tm_def
         apply (simp add: comp_def)
+        apply (simp add: sum_list_mono_minus_nat[OF card_vars_le_gsize])
+        using sum_list_mono[OF card_vars_le_gsize] le_SucI[OF le_SucI[OF le_trans[OF card_Un_set_le_sum_list_card, OF sum_list_mono[OF card_vars_le_gsize]]]]
+
+        apply (simp add: le_diff_conv le_diff_conv2[OF sum_list_mono[OF card_vars_le_gsize]]
+le_diff_conv2[OF le_SucI[OF le_SucI[OF le_trans[OF card_Un_set_le_sum_list_card, OF sum_list_mono[OF card_vars_le_gsize]]]]])
+
+        
+        thm card_Un_set_le_sum_list_card
+
+        using le_diff_conv2[OF le_SucI[OF le_SucI[OF le_trans[OF card_Un_set_le_sum_list_card, OF sum_list_mono[OF card_vars_le_gsize]]]]]
+
+        using sum_list_mono[OF card_vars_le_gsize]
+        using [[smt_nat_as_int]]
+
         sorry
       then have "card (vars_term s) \<le> card (vars_term t)"
         by (metis card_vars_le_gsize gsize' gvars_tm_def le_diff_iff')
