@@ -267,9 +267,26 @@ next
 
   have var_noninj_subst_if_same_shape:
     "\<exists>\<sigma>. \<exists>x \<in> vars_cls C. \<exists>y \<in> vars_cls C. var_subst \<sigma> \<and> x \<noteq> y \<and> \<sigma> x = \<sigma> y \<and> subst_cls C \<sigma> = D"
-    if "same_shape_cls C D" and "strictly_generalizes_cls C D"
+    if ss: "same_shape_cls C D" and sg: "strictly_generalizes_cls C D"
     for C D :: "('f, 'v) term clause"
-    sorry
+  proof -
+    obtain \<sigma> where
+      c\<sigma>_eq_d: "subst_cls C \<sigma> = D"
+      using sg unfolding strictly_generalizes_cls_def generalizes_cls_def by blast
+
+    have vs: "var_subst \<sigma>"
+      sorry
+
+    obtain x y where
+      x_in: "x \<in> vars_cls C" and
+      y_in: "y \<in> vars_cls C" and
+      x_ne_y: "x \<noteq> y" and
+      \<sigma>x_eq_\<sigma>y: "\<sigma> x = \<sigma> y"
+      sorry
+
+    show ?thesis
+      using c\<sigma>_eq_d vs x_in y_in x_ne_y \<sigma>x_eq_\<sigma>y by blast
+  qed
 
   have card_vars_cls_lt_if_noninj_subst: "card (vars_cls C) > card (vars_cls D)"
     if x_in: "x \<in> vars_cls C" and y_in: "y \<in> vars_cls C" and vs: "var_subst \<sigma>" and
