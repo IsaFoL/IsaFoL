@@ -36,7 +36,8 @@ definition gvars_tm :: "('f, 'v) term \<Rightarrow> nat" where
   "gvars_tm s = gsize_tm s - card (vars_term s)"
 
 definition gvars_cls :: "('f, 'v) term clause \<Rightarrow> nat" where
-  "gvars_cls C = Sum (set_mset (image_mset (gvars_tm \<circ> atm_of) C))"
+  "gvars_cls C = sum_mset (image_mset (gsize_tm \<circ> atm_of) C)
+     - card (Union (set_mset (image_mset (vars_term \<circ> atm_of) C)))"
 
 definition gpair :: "('f, 'v) term clause rel" where
   "gpair = gsize_cls <*mlex*> measure gvars_cls"
