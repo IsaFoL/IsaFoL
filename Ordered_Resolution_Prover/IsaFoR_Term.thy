@@ -81,7 +81,8 @@ abbreviation renamings_apart :: "('f, nat) term clause list \<Rightarrow>  (('f,
 lemma "length (renamings_apart' X Cs) = length Cs"
   apply (induction rule: renamings_apart'.induct)
    apply simp
-  using length_nth_simps apply metis
+  apply (metis length_nth_simps renamings_apart'.simps(2)) 
+  done
 
 lemma "length (renamings_apart Cs) = length Cs"
   oops
