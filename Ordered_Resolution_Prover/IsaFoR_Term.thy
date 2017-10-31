@@ -42,7 +42,7 @@ definition gvars_cls :: "('f, 'v) term clause \<Rightarrow> nat" where
 definition gpair :: "('f, 'v) term clause rel" where
   "gpair = gsize_cls <*mlex*> measure gvars_cls"
 
-lemma card_vars_le_gsize: "card (vars_term s) \<le> gsize_tm s"
+lemma card_vars_le_gsize_tm: "card (vars_term s) \<le> gsize_tm s"
 proof (induct s)
   case (Fun f ss)
   then show ?case
@@ -57,6 +57,11 @@ proof (induct s)
       by simp
   qed simp
 qed simp
+
+lemma card_vars_le_gsize_cls:
+  "card (Union (set_mset (image_mset (vars_term \<circ> atm_of) C)))
+   \<le> sum_mset (image_mset (gsize_tm \<circ> atm_of) C)"
+  by (induct C; simp) (smt add.assoc add.left_commute card_Un_le card_vars_le_gsize_tm le_iff_add)
 
 lemma wf_gpair: "wf gpair"
   by (simp add: gpair_def wf_mlex)
@@ -292,22 +297,16 @@ next
       have gsize': "gsize_tm s = gsize_tm t"
         using gsize unfolding gsize_cls_def s_def t_def
         by simp (metis c d gsize gsize_cls_def mset_map sum_mset_sum_list)
-
-
-
-      have gvars': "gvars_tm s \<ge> gvars_tm t"
-        unfolding s_def t_def
-        using gvars[unfolded gvars_cls_def c d]
-        apply simp
-        unfolding gvars_tm_def
-        apply (simp add: comp_def sum_list_subtractf)
-        sorry
-
-      have "card (vars_term s) > card (vars_term t)"
+      moreover have gvars': "gvars_tm s \<ge> gvars_tm t"
+        unfolding s_def t_def gvars_tm_def
+        using card_vars_le_gsize_cls[of "mset Ls"] card_vars_le_gsize_cls[of "mset Ms"]
+          gvars[unfolded gvars_cls_def c d]
+        by (simp add: comp_def)
+      moreover have "card (vars_term s) > card (vars_term t)"
         by (rule card_vars_gt[OF var_noninj_subst_if_same_shape
               [OF same_shape_if_gen_gsize[OF g' gsize'] sg']])
-      then have False
-        using gsize' gvars' card_vars_le_gsize[of s] unfolding gvars_tm_def by arith
+      ultimately have False
+        using card_vars_le_gsize_tm[of s] unfolding gvars_tm_def by arith
     }
     ultimately show False
       using ni_gp[unfolded gpair_def] by (simp add: mlex_prod_def not_less)
