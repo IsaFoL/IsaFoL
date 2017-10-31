@@ -2207,13 +2207,6 @@ definition propgate_lit_wl_heur :: \<open>nat literal \<Rightarrow> nat \<Righta
       let N' = list_update N C (swap (N!C) 0 (fast_minus 1 i)) in
       (Propagated L' C # M, N', U, D, add_mset (-L') Q, W))\<close>
 
-lemma (in -) safe_minus_nat_assn:
-  \<open>(uncurry (return oo fast_minus), uncurry (RETURN oo fast_minus)) \<in>
-     [\<lambda>(m, n). m \<ge> n]\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
-  by sepref_to_hoare
-   (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_le_minus
-      nat_of_uint32_notle_minus nat_of_uint32_le_iff)
-
 lemma propgate_lit_wl_heur_propgate_lit_wl:
   \<open>(uncurry3 (RETURN oooo propgate_lit_wl_heur), uncurry3 (RETURN oooo propgate_lit_wl)) \<in>
   [\<lambda>(((L, C), i), S). undefined_lit (get_trail_wl S) L \<and> get_conflict_wl S = None]\<^sub>f
@@ -2230,7 +2223,7 @@ sepref_thm propgate_lit_wl_code
       unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d \<rightarrow> twl_st_heur_assn\<close>
   unfolding PR_CONST_def propgate_lit_wl_heur_def twl_st_heur_assn_def
     cons_trail_Propagated_def[symmetric]
-  supply [[goals_limit=1]]length_rll_def[simp] length_ll_def[simp] safe_minus_nat_assn[sepref_fr_rules] 
+  supply [[goals_limit=1]]length_rll_def[simp] length_ll_def[simp]
   unfolding update_clause_wl_heur_def twl_st_heur_assn_def Array_List_Array.swap_ll_def[symmetric]
   by sepref
 
@@ -8712,6 +8705,6 @@ lemmas cdcl_twl_stgy_prog_wl_D_code[sepref_fr_rules] =
 end
 
 export_code cdcl_twl_stgy_prog_wl_D_code in SML_imp module_name SAT_Solver
-  file "code/CDCL_Cached_Array_Trail.ML"
+  file "code/CDCL_Cached_Array_Trail.sml"
 
 end

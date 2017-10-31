@@ -27,11 +27,11 @@ locale substitution_ops =
     comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's"
 begin
 
-abbreviation subst_atm_syntax :: "'a \<Rightarrow> 's \<Rightarrow> 'a" (infixl "\<cdot>a" 67) where
-  "subst_atm_syntax \<equiv> subst_atm"
+abbreviation subst_atm_abbrev :: "'a \<Rightarrow> 's \<Rightarrow> 'a" (infixl "\<cdot>a" 67) where
+  "op \<cdot>a \<equiv> subst_atm"
 
-abbreviation comp_subst_syntax :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 67) where
-  "comp_subst_syntax \<equiv> comp_subst"
+abbreviation comp_subst_abbrev :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 67) where
+  "op \<odot> \<equiv> comp_subst"
 
 definition comp_substs :: "'s list \<Rightarrow> 's list \<Rightarrow> 's list" (infixl "\<odot>s" 67) where
   "\<sigma>s \<odot>s \<tau>s = map2 comp_subst \<sigma>s \<tau>s"
@@ -77,11 +77,23 @@ lemma subst_cls_add_mset[simp]: "add_mset L C \<cdot> \<sigma> = add_mset (L \<c
 lemma subst_cls_mset_add_mset[simp]: "add_mset C CC \<cdot>cm \<sigma> = add_mset (C \<cdot> \<sigma>) (CC \<cdot>cm \<sigma>)"
   unfolding subst_cls_mset_def by auto
 
-definition instance_of :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
-  "instance_of C D \<longleftrightarrow> (\<exists>\<sigma>. C \<cdot> \<sigma> = D)"
+definition generalizes_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
+  "generalizes_atm A B \<longleftrightarrow> (\<exists>\<sigma>. A \<cdot>a \<sigma> = B)"
 
-definition proper_instance_of :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
-  "proper_instance_of C D \<longleftrightarrow> instance_of C D \<and> \<not> instance_of D C"
+definition strictly_generalizes_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
+  "strictly_generalizes_atm A B \<longleftrightarrow> generalizes_atm A B \<and> \<not> generalizes_atm B A"
+
+definition generalizes_lit :: "'a literal \<Rightarrow> 'a literal \<Rightarrow> bool" where
+  "generalizes_lit L M \<longleftrightarrow> (\<exists>\<sigma>. L \<cdot>l \<sigma> = M)"
+
+definition strictly_generalizes_lit :: "'a literal \<Rightarrow> 'a literal \<Rightarrow> bool" where
+  "strictly_generalizes_lit L M \<longleftrightarrow> generalizes_lit L M \<and> \<not> generalizes_lit M L"
+
+definition generalizes_cls :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  "generalizes_cls C D \<longleftrightarrow> (\<exists>\<sigma>. C \<cdot> \<sigma> = D)"
+
+definition strictly_generalizes_cls :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  "strictly_generalizes_cls C D \<longleftrightarrow> generalizes_cls C D \<and> \<not> generalizes_cls D C"
 
 definition is_renaming :: "'s \<Rightarrow> bool" where
   "is_renaming \<sigma> \<longleftrightarrow> (\<exists>\<tau>. \<sigma> \<odot> \<tau> = id_subst \<and> \<tau> \<odot> \<sigma> = id_subst)"
@@ -144,6 +156,12 @@ definition var_disjoint :: "'a clause list \<Rightarrow> bool" where
   "var_disjoint Cs \<longleftrightarrow>
    (\<forall>\<sigma>s. length \<sigma>s = length Cs \<longrightarrow> (\<exists>\<tau>. \<forall>i < length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma>s ! i = S \<cdot> \<tau>))"
 
+
+subsubsection \<open>Generalization of\<close>
+
+lemma generalizes_cls_size: "generalizes_cls C D \<Longrightarrow> size C = size D"
+  unfolding generalizes_cls_def subst_cls_def by fastforce
+
 end
 
 
@@ -166,7 +184,7 @@ locale substitution = substitution_ops subst_atm id_subst comp_subst
        \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)" and
     mk_var_dis_p: "\<And>Cs. length (mk_var_dis Cs) = length Cs \<and> (\<forall>\<rho> \<in> set (mk_var_dis Cs). is_renaming \<rho>) \<and>
        var_disjoint (Cs \<cdot>\<cdot>cl (mk_var_dis Cs))" and
-    proper_instance_of_wf: "wfP proper_instance_of"
+    wf_strictly_generalizes_cls: "wfP strictly_generalizes_cls"
 begin
 
 lemma make_var_disjoint: "\<And>Cs. \<exists>\<rho>s. length \<rho>s = length Cs \<and> (\<forall>\<rho> \<in> set \<rho>s. is_renaming \<rho>) \<and>
@@ -916,7 +934,7 @@ theorem is_unifiers_comp:
   unfolding is_unifiers_def is_unifier_def subst_atmss_def by auto
 
 
-subsubsection \<open>Most General Unifier\<close>
+subsubsection \<open>Most general unifier\<close>
 
 lemma is_mgu_is_unifiers: "is_mgu \<sigma> AAA \<Longrightarrow> is_unifiers \<sigma> AAA"
   using is_mgu_def by blast
@@ -930,9 +948,9 @@ lemma is_unifiers_is_unifier: "is_unifiers \<sigma> AAA \<Longrightarrow> AA \<i
 end
 
 
-subsection \<open>Unification\<close>
+subsection \<open>Most general unifiers\<close>
 
-locale unification = substitution subst_atm id_subst comp_subst mk_var_dis
+locale mgu = substitution subst_atm id_subst comp_subst mk_var_dis
   for
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: 's and

@@ -25,7 +25,7 @@ notation prod_assn (infixr "*assn" 90)
 
 subsubsection \<open>Refinement of the Watched Function\<close>
 
-definition map_fun_rel :: "(nat \<times> nat literal) set \<Rightarrow> ('b \<times> 'a) set \<Rightarrow> ('b list \<times> (nat literal \<Rightarrow> 'a)) set" where
+definition map_fun_rel :: "(nat \<times> 'key) set \<Rightarrow> ('b \<times> 'a) set \<Rightarrow> ('b list \<times> ('key \<Rightarrow> 'a)) set" where
   map_fun_rel_def_internal: \<open>map_fun_rel D R = {(m, f). \<forall>(i, j)\<in>D. i < length m \<and> (m ! i, f j) \<in> R}\<close>
 
 lemma map_fun_rel_def:
@@ -393,7 +393,7 @@ locale isasat_input_bounded =
   isasat_input_ops \<A>\<^sub>i\<^sub>n
   for \<A>\<^sub>i\<^sub>n :: \<open>nat multiset\<close> +
   assumes
-    in_N1_less_than_uint_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L \<le> uint_max\<close>
+    in_N1_less_than_uint_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < uint_max\<close>
 
 locale isasat_input_bounded_nempty =
   isasat_input_bounded \<A>\<^sub>i\<^sub>n
@@ -404,6 +404,62 @@ locale isasat_input_bounded_nempty =
 
 context isasat_input_bounded
 begin
+
+lemma simple_clss_size_upper_div2':
+  assumes
+   lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C\<close> and
+   dist: \<open>distinct_mset C\<close> and
+   tauto: \<open>\<not>tautology C\<close> and
+    in_N1_less_than_uint_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < uint_max - 1\<close>
+  shows \<open>size C \<le> uint_max div 2\<close>
+proof -
+  let ?C = \<open>atm_of `# C\<close>
+  have \<open>distinct_mset ?C\<close>
+  proof (rule ccontr)
+    assume \<open>\<not> ?thesis\<close>
+    then obtain K where \<open>\<not>count (atm_of `# C) K \<le> Suc 0\<close>
+      unfolding distinct_mset_count_less_1
+      by auto
+    then have \<open>count (atm_of `# C) K \<ge> 2\<close>
+      by auto
+    then obtain L L' C' where
+      C: \<open>C = {#L, L'#} + C'\<close> and L_L': \<open>atm_of L = atm_of L'\<close>
+      by (auto dest!: count_image_mset_multi_member_split_2)
+    then show False
+      using dist tauto by (auto simp: atm_of_eq_atm_of tautology_add_mset)
+  qed
+  then have card: \<open>size ?C = card (set_mset ?C)\<close>
+    using distinct_mset_size_eq_card by blast
+  have size: \<open>size ?C = size C\<close>
+    using dist tauto
+    by (induction C) (auto simp: tautology_add_mset)
+  have m: \<open>set_mset ?C \<subseteq> {0..<uint_max div 2}\<close>
+  proof
+    fix L
+    assume \<open>L \<in> set_mset ?C\<close>
+    then have \<open>L \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+    using lits by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def atm_of_lit_in_atms_of
+        in_all_lits_of_m_ain_atms_of_iff subset_iff)
+    then have \<open>Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+      using lits by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+    then have \<open>nat_of_lit (Pos L) < uint_max - 1\<close>
+      using in_N1_less_than_uint_max by (auto simp: atm_of_lit_in_atms_of
+        in_all_lits_of_m_ain_atms_of_iff subset_iff)
+    then have \<open>L < uint_max div 2\<close>
+       by (auto simp: atm_of_lit_in_atms_of
+        in_all_lits_of_m_ain_atms_of_iff subset_iff uint_max_def)
+    then show \<open>L \<in> {0..<uint_max div 2}\<close>
+       by (auto simp: atm_of_lit_in_atms_of uint_max_def
+        in_all_lits_of_m_ain_atms_of_iff subset_iff)
+  qed
+  moreover have \<open>card \<dots> =  uint_max div 2\<close>
+    by auto
+  ultimately have \<open>card (set_mset ?C) \<le> uint_max div 2\<close>
+    using card_mono[OF _ m] by auto
+  then show ?thesis
+    unfolding card[symmetric] size .
+qed
+
 
 lemma simple_clss_size_upper_div2:
   assumes
@@ -432,7 +488,7 @@ proof -
   have size: \<open>size ?C = size C\<close>
     using dist tauto
     by (induction C) (auto simp: tautology_add_mset)
-  have m: \<open>set_mset ?C \<subseteq> {0.. uint_max div 2}\<close>
+  have m: \<open>set_mset ?C \<subseteq> {0..uint_max div 2}\<close>
   proof
     fix L
     assume \<open>L \<in> set_mset ?C\<close>
@@ -441,19 +497,69 @@ proof -
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
     then have \<open>Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
       using lits by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-    then have \<open>L \<le> uint_max div 2\<close>
+    then have \<open>nat_of_lit (Pos L) < uint_max\<close>
       using in_N1_less_than_uint_max by (auto simp: atm_of_lit_in_atms_of
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
-    then show \<open>L \<in> {0.. uint_max div 2}\<close>
+    then have \<open>L \<le> uint_max div 2\<close>
+       by (auto simp: atm_of_lit_in_atms_of
+        in_all_lits_of_m_ain_atms_of_iff subset_iff uint_max_def)
+    then show \<open>L \<in> {0 .. uint_max div 2}\<close>
        by (auto simp: atm_of_lit_in_atms_of uint_max_def
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
   qed
-  moreover have \<open>card \<dots> = 1 + uint_max div 2\<close>
+  moreover have \<open>card \<dots> =  1 + uint_max div 2\<close>
     by auto
   ultimately have \<open>card (set_mset ?C) \<le> 1 + uint_max div 2\<close>
     using card_mono[OF _ m] by auto
   then show ?thesis
     unfolding card[symmetric] size .
+qed
+
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_poss_remdups_mset: 
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (poss (remdups_mset (atm_of `# C))) \<longleftrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n C\<close>
+  by (induction C)
+    (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff atm_of_eq_atm_of
+      dest!: multi_member_split)
+
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_negs_remdups_mset: 
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (negs (remdups_mset (atm_of `# C))) \<longleftrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n C\<close>
+  by (induction C)
+    (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff atm_of_eq_atm_of
+      dest!: multi_member_split)
+
+lemma clss_size_upper:
+  assumes
+   lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C\<close> and
+   dist: \<open>distinct_mset C\<close> and
+   in_N1_less_than_uint_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < uint_max - 1\<close>
+ shows \<open>size C \<le> uint_max\<close>
+proof -
+  let ?A = \<open>remdups_mset (atm_of `# C)\<close>
+  have [simp]: \<open>distinct_mset (poss ?A)\<close> \<open>distinct_mset (negs ?A)\<close>
+    by (simp_all add: distinct_image_mset_inj inj_on_def) 
+    
+  have \<open>C \<subseteq># poss ?A + negs ?A\<close>
+    apply (rule distinct_subseteq_iff[THEN iffD1])
+    subgoal by (auto simp: dist distinct_mset_add disjunct_not_in)
+    subgoal by (auto simp: dist distinct_mset_add disjunct_not_in)
+    subgoal
+      apply rule
+      using literal.exhaust_sel by (auto simp: image_iff)
+    done
+  have [simp]: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (poss ?A)\<close> \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (negs ?A)\<close>
+    using lits
+    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_negs_remdups_mset literals_are_in_\<L>\<^sub>i\<^sub>n_poss_remdups_mset)
+
+  have \<open>\<not> tautology (poss ?A)\<close> \<open>\<not> tautology (negs ?A)\<close>
+    by (auto simp: tautology_decomp)
+  then have \<open>size (poss ?A) \<le> uint_max div 2\<close> and \<open>size (negs ?A) \<le> uint_max div 2\<close>
+    using simple_clss_size_upper_div2'[of \<open>poss ?A\<close>]
+      simple_clss_size_upper_div2'[of \<open>negs ?A\<close>] in_N1_less_than_uint_max
+    by auto
+  then have \<open>size C \<le> uint_max div 2 + uint_max div 2\<close>
+    using \<open>C \<subseteq># poss (remdups_mset (atm_of `# C)) + negs (remdups_mset (atm_of `# C))\<close>
+      size_mset_mono by fastforce
+  then show ?thesis by (auto simp: uint_max_def)
 qed
 
 definition (in isasat_input_ops) unit_prop_body_wl_D_inv where
