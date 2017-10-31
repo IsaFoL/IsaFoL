@@ -6,7 +6,7 @@
 section \<open>Integration of IsaFoR Terms\<close>
 
 theory IsaFoR_Term
-  imports Deriving.Derive "$ISAFOR/Rewriting/Unification" Abstract_Substitution
+  imports Deriving.Derive "$ISAFOR/Normalization_Equivalence/Encompassment" Abstract_Substitution
 begin
 
 (* TODO: Move to "Multiset_More" *)
@@ -21,6 +21,8 @@ hide_const (open) mgu
 derive linorder prod
 derive linorder list
 derive linorder "term"
+
+term wf_subsumes
 
 definition var_subst_on :: "'v set \<Rightarrow> ('v \<Rightarrow> ('f, 'w) term) \<Rightarrow> bool" where
   "var_subst_on V \<sigma> \<longleftrightarrow> (\<forall>x \<in> V. is_Var (\<sigma> x))"
