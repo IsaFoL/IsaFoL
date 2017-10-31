@@ -175,20 +175,18 @@ locale substitution = substitution_ops subst_atm id_subst comp_subst
   fixes
     renamings_apart :: "'a clause list \<Rightarrow> 's list"
   assumes
-    subst_atm_id_subst[simp]: "subst_atm A id_subst = A" and
-    subst_atm_comp_subst[simp]: "subst_atm A (comp_subst \<tau> \<sigma>) = subst_atm (subst_atm A \<tau>) \<sigma>" and
-    subst_ext: "(\<And>A. subst_atm A \<sigma> = subst_atm A \<tau>) \<Longrightarrow> \<sigma> = \<tau>" and
+    subst_atm_id_subst[simp]: "A \<cdot>a id_subst = A" and
+    subst_atm_comp_subst[simp]: "A \<cdot>a (\<tau> \<odot> \<sigma>) = (A \<cdot>a \<tau>) \<cdot>a \<sigma>" and
+    subst_ext: "(\<And>A. A \<cdot>a \<sigma> = A \<cdot>a \<tau>) \<Longrightarrow> \<sigma> = \<tau>" and
     make_ground_subst:
       "is_ground_cls_list (Cs \<cdot>cl \<sigma>) \<Longrightarrow>
        \<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i < length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma> = S \<cdot> \<tau>)" and
-    renamings_apart_p: "\<And>Cs. length (renamings_apart Cs) = length Cs \<and> (\<forall>\<rho> \<in> set (renamings_apart Cs). is_renaming \<rho>) \<and>
-       var_disjoint (Cs \<cdot>\<cdot>cl (renamings_apart Cs))" and
+    renamings_apart_p:
+      "\<And>Cs. length (renamings_apart Cs) = length Cs \<and>
+         (\<forall>\<rho> \<in> set (renamings_apart Cs). is_renaming \<rho>) \<and>
+         var_disjoint (Cs \<cdot>\<cdot>cl (renamings_apart Cs))" and
     wf_strictly_generalizes_cls: "wfP strictly_generalizes_cls"
 begin
-
-lemma make_var_disjoint: "\<And>Cs. \<exists>\<rho>s. length \<rho>s = length Cs \<and> (\<forall>\<rho> \<in> set \<rho>s. is_renaming \<rho>) \<and>
-      var_disjoint (Cs \<cdot>\<cdot>cl \<rho>s)"
-  using renamings_apart_p by auto
 
 lemma subst_ext_iff: "\<sigma> = \<tau> \<longleftrightarrow> (\<forall>A. A \<cdot>a \<sigma> = A \<cdot>a \<tau>)"
   by (blast intro: subst_ext)

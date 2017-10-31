@@ -180,9 +180,9 @@ proof (cases rule: ord_resolve_rename.cases)
   case (ord_resolve_rename \<rho> P)
   note \<rho> = this(1) and P = this(2) and res = this(3)
   then have rename_P: "\<forall>\<rho> \<in> set P. is_renaming \<rho>"
-    using renamings_apart_p by (metis list.sel(2) list.set_sel(2))
+    using renames_apart by (metis list.sel(2) list.set_sel(2))
   from P have len: "length P = length CAs"
-    using renamings_apart_p by auto
+    using renames_apart by auto
   have res_e: "ord_resolve (CAs \<cdot>\<cdot>cl P) (DA \<cdot> \<rho>) \<sigma> E"
     using res by auto
   have "CAs \<cdot>\<cdot>cl P = CAs"
@@ -357,7 +357,7 @@ proof (cases rule: ord_resolve_rename.cases)
   case (ord_resolve_rename \<rho> P)
   note \<rho> = this(1) and P = this(2) and res = this(3)
   then have len: "length P = length CAs"
-    using renamings_apart_p by auto
+    using renames_apart by auto
   have "I \<Turnstile>fom (mset (CAs \<cdot>\<cdot>cl P)) + {#DA \<cdot> \<rho>#}"
     using subst_sound_scl[OF len, of I] subst_sound[of I DA] cc_d_true
     by (simp add: true_fo_cls_mset_def2)
@@ -660,7 +660,7 @@ proof (cases rule: ord_resolve.cases)
   note n = \<open>length CAs'' = n\<close> \<open>length \<eta>s'' = n\<close> n
 
   have "length (renamings_apart (DA''#CAs'')) = Suc n"
-    using n renamings_apart_p by auto
+    using n renames_apart by auto
 
   note n = \<open>length (renamings_apart (DA''#CAs'')) = Suc n\<close> n
 
@@ -670,11 +670,11 @@ proof (cases rule: ord_resolve.cases)
   define \<eta>s' where "\<eta>s' = (map inv_ren (tl (renamings_apart (DA''#CAs'')))) \<odot>s \<eta>s''"
 
   have renames_DA'': "is_renaming (hd (renamings_apart (DA''#CAs'')))"
-    using renamings_apart_p[of "DA'' # CAs''"]
+    using renames_apart[of "DA'' # CAs''"]
     by (metis length_greater_0_conv list.exhaust_sel list.set_intros(1) list.simps(3))
 
   have renames_CAs'': "is_renaming_list (tl (renamings_apart (DA''#CAs'')))"
-    using renamings_apart_p[of "DA'' # CAs''"]
+    using renames_apart[of "DA'' # CAs''"]
     by (metis is_renaming_list_def length_greater_0_conv list.set_sel(2) list.simps(3))
 
   have "length CAs' = n"
@@ -688,11 +688,11 @@ proof (cases rule: ord_resolve.cases)
   have "S DA' \<cdot> \<eta>' = S_M S M DA"
     using as''(5) unfolding \<eta>'_def DA'_def using renames_DA'' selection_renaming_invariant by auto
   have CAs'_CAs: "CAs' \<cdot>\<cdot>cl \<eta>s' = CAs"
-    using as''(7) unfolding CAs'_def \<eta>s'_def using n(3) renamings_apart_p renames_CAs'' by auto
+    using as''(7) unfolding CAs'_def \<eta>s'_def using n(3) renames_apart renames_CAs'' by auto
   have "(map S CAs') \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAs"
     unfolding CAs'_def \<eta>s'_def using as''(8) n(3,4) renames_CAs'' selection_renaming_list_invariant by auto
   have vd: "var_disjoint (DA' # CAs')"
-    unfolding DA'_def CAs'_def using renamings_apart_p[of "DA'' # CAs''"]
+    unfolding DA'_def CAs'_def using renames_apart[of "DA'' # CAs''"]
     by (metis length_greater_0_conv list.exhaust_sel n(3) substitution.subst_cls_lists_Cons substitution_axioms zero_less_Suc)
 
   -- \<open>Introduce ground substitution\<close>

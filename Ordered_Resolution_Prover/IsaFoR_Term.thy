@@ -230,11 +230,11 @@ next
   have in_gpair: "strictly_generalizes_cls C D \<Longrightarrow> (C, D) \<in> gpair" for C D :: "('f, 'v) term clause"
   proof (rule ccontr)
     assume
-      pg: "strictly_generalizes_cls C D" and
+      sg: "strictly_generalizes_cls C D" and
       ni_gp: "(C, D) \<notin> gpair"
 
     have g: "generalizes_cls C D" and ng: "\<not> generalizes_cls D C"
-      using pg unfolding strictly_generalizes_cls_def by blast+
+      using sg unfolding strictly_generalizes_cls_def by blast+
 
     {
       have "gsize_cls C \<le> gsize_cls D"
@@ -272,12 +272,13 @@ next
         gsize: "gsize_cls C = gsize_cls D" and
         gvars: "gvars_cls C \<ge> gvars_cls D"
 
-      obtain Ls Ms where
+      obtain Ls Ms \<sigma> where
         c: "C = mset Ls" and
         d: "D = mset Ms" and
-        ls_g_ms: "list_all2 generalizes_lit Ls Ms"
+        \<sigma>: "list_all2 (\<lambda>L M. subst_lit L \<sigma> = M) Ls Ms"
         (* prove by induction *)
         sorry
+
 
       let ?As = "map atm_of Ls"
       let ?Bs = "map atm_of Ms"
@@ -286,21 +287,33 @@ next
       define s where "s = Fun ?f ?As"
       define t where "t = Fun ?f ?Bs"
 
+(*
       have sg': "strictly_generalizes_atm s t"
-        using g[unfolded c d]
-        unfolding s_def t_def generalizes_atm_def generalizes_cls_def subst_cls_def
+        using sg[unfolded c d]
+        unfolding s_def t_def strictly_generalizes_atm_def strictly_generalizes_cls_def subst_cls_def
         apply (simp add: comp_def subst_lit_def)
         sorry
       then have g': "generalizes_atm s t" and ng': "\<not> generalizes_atm t s"
         unfolding strictly_generalizes_atm_def by blast+
+*)
+      have g': "generalizes_atm s t"
+        unfolding s_def t_def generalizes_atm_def
+        using ls_g_ms unfolding generalizes_lit_def
+        sorry
+
+      have ng': "\<not> generalizes_atm t s"
+        sorry
+
+      have sg': "strictly_generalizes_atm s t"
+        unfolding strictly_generalizes_atm_def using g' ng' by blast
+
 
       have gsize': "gsize_tm s = gsize_tm t"
         using gsize unfolding gsize_cls_def s_def t_def
         by simp (metis c d gsize gsize_cls_def mset_map sum_mset_sum_list)
       moreover have gvars': "gvars_tm s \<ge> gvars_tm t"
         unfolding s_def t_def gvars_tm_def
-        using card_vars_le_gsize_cls[of "mset Ls"] card_vars_le_gsize_cls[of "mset Ms"]
-          gvars[unfolded gvars_cls_def c d]
+        using card_vars_le_gsize_cls[of "mset Ls"] gvars[unfolded c d gvars_cls_def]
         by (simp add: comp_def)
       moreover have "card (vars_term s) > card (vars_term t)"
         by (rule card_vars_gt[OF var_noninj_subst_if_same_shape
