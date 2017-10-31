@@ -12,9 +12,7 @@ theory Abstract_Substitution
 begin
 
 text \<open>
-  Conventions:
-    's substitution
-    'a atoms
+  Conventions: @{text 's} substitution, @{text 'a} atoms.
 \<close>
 
 
@@ -55,6 +53,9 @@ where
 
 definition subst_lit :: "'a literal \<Rightarrow> 's \<Rightarrow> 'a literal" (infixl "\<cdot>l" 67) where
   "L \<cdot>l \<sigma> = map_literal (\<lambda>A. A \<cdot>a \<sigma>) L"
+
+lemma atm_of_subst_lit[simp]: "atm_of (L \<cdot>l \<sigma>) = atm_of L \<cdot>a \<sigma>"
+  unfolding subst_lit_def by (cases L) simp+
 
 definition subst_cls :: "'a clause \<Rightarrow> 's \<Rightarrow> 'a clause" (infixl "\<cdot>" 67) where
   "AA \<cdot> \<sigma> = image_mset (\<lambda>A. A \<cdot>l \<sigma>) AA"

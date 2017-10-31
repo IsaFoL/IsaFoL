@@ -13,6 +13,9 @@ begin
 lemma sum_image_mset_sum_map[simp]: "sum_mset (image_mset f (mset xs)) = sum_list (map f xs)"
   by (metis mset_map sum_mset_sum_list)
 
+lemma vars_term_is_Var: "is_Var s \<Longrightarrow> vars_term s = {the_Var s}"
+  by force
+
 hide_const (open) mgu
 
 derive linorder prod
@@ -23,7 +26,7 @@ definition var_subst :: "('v \<Rightarrow> ('f, 'w) term) \<Rightarrow> bool" wh
   "var_subst \<sigma> \<longleftrightarrow> (\<forall>x. is_Var (\<sigma> x))"
 
 definition vars_cls :: "('f, 'v) term clause \<Rightarrow> 'v set" where
-  "vars_cls C = Union (set_mset (image_mset (vars_term \<circ> atm_of) C))"
+  "vars_cls C = \<Union> (set_mset (image_mset (vars_term \<circ> atm_of) C))"
 
 abbreviation same_shape_tm :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" where
   "same_shape_tm \<equiv> rel_term (op =) (\<lambda>x y. True)"
@@ -56,8 +59,8 @@ proof (induct s)
   then show ?case
   proof (induct ss)
     case (Cons s ss)
-    have "card (vars_term s \<union> (\<Union>x\<in>set ss. vars_term x))
-      \<le> card (vars_term s) + card (\<Union>x\<in>set ss. vars_term x)"
+    have "card (vars_term s \<union> (\<Union>x \<in> set ss. vars_term x))
+      \<le> card (vars_term s) + card (\<Union>x \<in> set ss. vars_term x)"
       using card_Un_le by blast
     also have "\<dots> \<le> 2 + gsize_tm s + sum_list (map gsize_tm ss)"
       using Cons.hyps Cons.prems by fastforce
@@ -119,6 +122,12 @@ proof (induct xs ys rule: list_induct2)
     qed
   qed
 qed simp
+
+lemma vars_term_subst: "vars_term (s \<cdot> \<sigma>) = \<Union> ((vars_term \<circ> \<sigma>) ` vars_term s)"
+  sorry
+
+lemma vars_term_var_subst: "var_subst \<sigma> \<Longrightarrow> vars_term (t \<cdot> \<sigma>) = (the_Var \<circ> \<sigma>) ` vars_term t"
+  unfolding vars_term_subst var_subst_def comp_def image_def by (auto simp: vars_term_is_Var)
 
 interpretation substitution_ops "op \<cdot>" Var "op \<circ>\<^sub>s" .
 
@@ -184,6 +193,8 @@ next
       unfolding t by simp
   qed
 
+  (* FIXME: move out *)
+
   have same_shape_if_gen_gsize: "same_shape_cls C D"
     if "generalizes_cls C D" and "gsize_cls C = gsize_cls D"
     for C D :: "('f, 'v) term clause"
@@ -233,8 +244,12 @@ next
     sorry
 
   have card_vars_gt: "card (vars_cls C) > card (vars_cls D)"
-    if "\<exists>\<sigma>. \<exists>x \<in> vars_cls C. \<exists>y \<in> vars_cls D. var_subst \<sigma> \<and> x \<noteq> y \<and> \<sigma> x = \<sigma> y \<and> subst_cls C \<sigma> = D"
-    for C D :: "('f, 'v) term clause"
+    if x_in: "x \<in> vars_cls C" and y_in: "y \<in> vars_cls D" and vs: "var_subst \<sigma>" and
+      x_ne_y: "x \<noteq> y" and \<sigma>x_eq_\<sigma>y: "\<sigma> x = \<sigma> y" and c\<sigma>_eq_d: "subst_cls C \<sigma> = D"
+    for C D :: "('f, 'v) term clause" and x y \<sigma>
+    unfolding c\<sigma>_eq_d[symmetric]
+    unfolding vars_cls_def subst_cls_def
+    apply (simp add: vars_term_var_subst[OF vs] comp_def)
     sorry
 
   have in_gpair: "strictly_generalizes_cls C D \<Longrightarrow> (C, D) \<in> gpair" for C D :: "('f, 'v) term clause"
@@ -280,7 +295,7 @@ next
       assume gsize: "gsize_cls C = gsize_cls D" and
         "gvars_cls C \<ge> gvars_cls D"
       moreover have "card (vars_cls C) > card (vars_cls D)"
-        by (blast intro: card_vars_gt var_noninj_subst_if_same_shape[OF _ sg]
+        by (metis card_vars_gt var_noninj_subst_if_same_shape[OF _ sg]
             same_shape_if_gen_gsize[OF g gsize])
       ultimately have False
         using card_vars_le_gsize_cls unfolding gvars_cls_def by (metis leD le_diff_iff')
