@@ -178,10 +178,13 @@ lemma vars_cls_var_subst_on:
     (metis (no_types, lifting) SUP_cong UN_I image_UN var_subst_on_def vars_term_var_subst_on)
 
 lemma card_lt_if_noninj_subst:
-  assumes fin: "finite V" and x_in: "x \<in> V" and y_in: "y \<in> V" and x_ne_y: "x \<noteq> y" and
-    \<sigma>x_eq_\<sigma>y: "\<sigma> x = \<sigma> y"
+  assumes fin: "finite V" and ninj: "\<not> inj_on \<sigma> V"
   shows "card ((the_Var \<circ> \<sigma>) ` V) < card V"
 proof -
+  obtain x y where
+    x_in: "x \<in> V" and y_in: "y \<in> V" and x_ne_y: "x \<noteq> y" and \<sigma>x_eq_\<sigma>y: "\<sigma> x = \<sigma> y"
+    using ninj by (meson inj_onI)
+
   have v: "V = (V - {x, y}) \<union> {x, y}"
     using x_in y_in by blast
 
@@ -232,7 +235,6 @@ next
         apply auto
         unfolding is_renaming_def
         apply (rule exI)
-        apply (rule conjI)
         sorry
       done
   }
@@ -338,8 +340,7 @@ next
     sorry
 
   have var_noninj_subst_if_same_shape:
-    "\<exists>\<sigma>. \<exists>x \<in> vars_cls C. \<exists>y \<in> vars_cls C. var_subst_on (vars_cls C) \<sigma> \<and> x \<noteq> y \<and> \<sigma> x = \<sigma> y \<and>
-       subst_cls C \<sigma> = D"
+    "\<exists>\<sigma>. var_subst_on (vars_cls C) \<sigma> \<and> \<not> inj_on \<sigma> (vars_cls C) \<and> subst_cls C \<sigma> = D"
     if ss: "same_shape_cls C D" and sg: "strictly_generalizes_cls C D"
     for C D :: "('f, 'v) term clause"
   proof -
@@ -351,17 +352,10 @@ next
       by (rule var_subst_on_if_same_shape_cls[OF ss[folded c\<sigma>_eq_d]])
 
     {
-      assume "inj_on (vars_cls C) \<sigma>"
-
-      assume "\<forall>x \<in> vars_cls C. \<forall>y \<in> vars_cls C. x \<noteq> y \<longrightarrow> \<sigma> x = \<sigma> y
-      \<and> subst_cls C \<sigma> = D"
-
+      assume "inj_on \<sigma> (vars_cls C)"
+      
     }
-    have "\<exists>x \<in> vars_cls C. \<exists>y \<in> vars_cls C. var_subst_on (vars_cls C) \<sigma> \<and> x \<noteq> y \<and> \<sigma> x = \<sigma> y
-      \<and> subst_cls C \<sigma> = D"
-    proof (rule ccontr, simp, elim impE[OF _ vs])
-      sorry
-    then show ?thesis
+    show ?thesis
       by (rule exI[of _ \<sigma>])
 
     obtain x y where
@@ -376,11 +370,11 @@ next
   qed
 
   have card_vars_cls_lt_if_noninj_subst: "card (vars_cls C) > card (vars_cls D)"
-    if x_in: "x \<in> vars_cls C" and y_in: "y \<in> vars_cls C" and vs: "var_subst_on (vars_cls C) \<sigma>" and
-      x_ne_y: "x \<noteq> y" and \<sigma>x_eq_\<sigma>y: "\<sigma> x = \<sigma> y" and c\<sigma>_eq_d: "subst_cls C \<sigma> = D"
-    for C D :: "('f, 'v) term clause" and x y \<sigma>
+    if vs: "var_subst_on (vars_cls C) \<sigma>" and ninj: "\<not> inj_on \<sigma> (vars_cls C)" and
+      c\<sigma>_eq_d: "subst_cls C \<sigma> = D"
+    for C D :: "('f, 'v) term clause" and \<sigma>
     unfolding c\<sigma>_eq_d[symmetric] vars_cls_var_subst_on[OF vs]
-    by (rule card_lt_if_noninj_subst[OF finite_vars_cls x_in y_in x_ne_y \<sigma>x_eq_\<sigma>y])
+    by (rule card_lt_if_noninj_subst[OF finite_vars_cls ninj])
 
   have in_gpair: "strictly_generalizes_cls C D \<Longrightarrow> (C, D) \<in> gpair" for C D :: "('f, 'v) term clause"
   proof (rule ccontr)
