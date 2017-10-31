@@ -650,12 +650,11 @@ proof (cases rule: ord_resolve.cases)
 
     "\<forall>CA'' \<in> set CAs''. CA'' \<in> M" (* Could also use subseteq *)
     "CAs'' \<cdot>\<cdot>cl \<eta>s'' = CAs"
-    "(map S CAs'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAs"
+    "map S CAs'' \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAs"
 
     "is_ground_subst \<eta>''"
     "is_ground_subst_list \<eta>s''"
-    using resolve grounding select ord_resolve_obtain_clauses[of S M CAs DA] n
-      by metis
+    using resolve grounding select ord_resolve_obtain_clauses[of S M CAs DA] n by metis
 
   note n = \<open>length CAs'' = n\<close> \<open>length \<eta>s'' = n\<close> n
 
@@ -666,8 +665,8 @@ proof (cases rule: ord_resolve.cases)
 
   define DA' where "DA' = DA'' \<cdot> hd (renamings_apart (DA''#CAs''))"
   define CAs' where "CAs' = CAs'' \<cdot>\<cdot>cl tl (renamings_apart (DA''#CAs''))"
-  define \<eta>' where "\<eta>' = (inv_ren (hd (renamings_apart (DA''#CAs'')))) \<odot> \<eta>''"
-  define \<eta>s' where "\<eta>s' = (map inv_ren (tl (renamings_apart (DA''#CAs'')))) \<odot>s \<eta>s''"
+  define \<eta>' where "\<eta>' = inv_ren (hd (renamings_apart (DA''#CAs''))) \<odot> \<eta>''"
+  define \<eta>s' where "\<eta>s' = map inv_ren (tl (renamings_apart (DA''#CAs''))) \<odot>s \<eta>s''"
 
   have renames_DA'': "is_renaming (hd (renamings_apart (DA''#CAs'')))"
     using renames_apart[of "DA'' # CAs''"]

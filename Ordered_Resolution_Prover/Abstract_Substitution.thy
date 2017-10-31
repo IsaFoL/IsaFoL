@@ -97,7 +97,7 @@ definition strictly_generalizes_cls :: "'a clause \<Rightarrow> 'a clause \<Righ
   "strictly_generalizes_cls C D \<longleftrightarrow> generalizes_cls C D \<and> \<not> generalizes_cls D C"
 
 definition is_renaming :: "'s \<Rightarrow> bool" where
-  "is_renaming \<sigma> \<longleftrightarrow> (\<exists>\<tau>. \<sigma> \<odot> \<tau> = id_subst \<and> \<tau> \<odot> \<sigma> = id_subst)"
+  "is_renaming \<sigma> \<longleftrightarrow> (\<exists>\<tau>. \<sigma> \<odot> \<tau> = id_subst)"
 
 definition is_renaming_list :: "'s list \<Rightarrow> bool" where
   "is_renaming_list \<sigma>s \<longleftrightarrow> (\<forall>\<sigma> \<in> set \<sigma>s. is_renaming \<sigma>)"
@@ -565,28 +565,11 @@ lemma is_renaming_id_subst[simp]: "is_renaming id_subst"
 lemma is_renamingD: "is_renaming \<sigma> \<Longrightarrow> (\<forall>A1 A2. A1 \<cdot>a \<sigma> = A2 \<cdot>a \<sigma> \<longleftrightarrow> A1 = A2)"
   by (metis is_renaming_def subst_atm_comp_subst subst_atm_id_subst)
 
-lemma "is_renaming \<sigma> \<Longrightarrow> range (\<lambda>A. A \<cdot>a \<sigma>) = UNIV"
-  by (metis subst_atm_comp_subst subst_atm_id_subst substitution_ops.is_renaming_def surj_def)
-
-lemma "is_renaming r1 \<Longrightarrow> is_renaming r2 \<Longrightarrow> \<tau> \<odot> r1 = r2 \<Longrightarrow> is_renaming \<tau>"
-  by (metis comp_subst_assoc comp_subst_id_subst is_renaming_def)
-
-lemma "is_renaming r1 \<Longrightarrow> is_renaming r2 \<Longrightarrow> r1 \<odot> \<tau> = r2 \<Longrightarrow> is_renaming \<tau>"
-  by (metis comp_subst_assoc id_subst_comp_subst is_renaming_def)
-
-lemma inv_ren_cancel_r[simp]: "is_renaming r \<Longrightarrow> r \<odot> (inv_ren r) = id_subst"
+lemma inv_ren_cancel_r[simp]: "is_renaming r \<Longrightarrow> r \<odot> inv_ren r = id_subst"
   unfolding inv_ren_def is_renaming_def by (metis (mono_tags) someI_ex)
 
 lemma inv_ren_cancel_r_list[simp]:
-  "is_renaming_list rs \<Longrightarrow> rs \<odot>s (map inv_ren rs) = replicate (length rs) id_subst"
-  unfolding is_renaming_list_def by (induction rs) (auto simp add: comp_substs_def)
-
-lemma inv_ren_cancel_l[simp]: "is_renaming r \<Longrightarrow> (inv_ren r) \<odot> r = id_subst"
-  by (metis comp_subst_assoc id_subst_comp_subst inv_ren_cancel_r is_renaming_def
-      substitution.comp_subst_id_subst substitution_axioms)
-
-lemma inv_ren_cancel_l_list[simp]:
-  "is_renaming_list rs \<Longrightarrow> (map inv_ren rs) \<odot>s rs = replicate (length rs) id_subst"
+  "is_renaming_list rs \<Longrightarrow> rs \<odot>s map inv_ren rs = replicate (length rs) id_subst"
   unfolding is_renaming_list_def by (induction rs) (auto simp add: comp_substs_def)
 
 lemma Nil_comp_substs[simp]: "[] \<odot>s s = []"
@@ -604,25 +587,12 @@ lemma is_renaming_left_id_subst_right_id_subst: "is_renaming r \<Longrightarrow>
 lemma is_renaming_closure: "is_renaming r1 \<Longrightarrow> is_renaming r2 \<Longrightarrow> is_renaming (r1 \<odot> r2)"
   unfolding is_renaming_def by (metis comp_subst_assoc comp_subst_id_subst)
 
-lemma inv_ren_is_renaming[simp]: "is_renaming r \<Longrightarrow> is_renaming (inv_ren r)"
-  using inv_ren_cancel_l inv_ren_cancel_r is_renaming_def by blast
-
-lemma inv_ren_is_renaming_list[simp]: "is_renaming_list rs \<Longrightarrow> is_renaming_list (map inv_ren rs)"
-  unfolding is_renaming_list_def by (induction rs) auto
-
 lemma is_renaming_inv_ren_cancel[simp]: "is_renaming \<rho> \<Longrightarrow> C  \<cdot> \<rho> \<cdot> (inv_ren \<rho>) = C"
   by (metis inv_ren_cancel_r subst_cls_comp_subst subst_cls_id_subst)
-
-lemma is_renaming_inv_ren_cancel2[simp]: "is_renaming \<rho> \<Longrightarrow> C  \<cdot> (inv_ren \<rho>) \<cdot> \<rho> = C"
-  by (metis inv_ren_cancel_l subst_cls_comp_subst subst_cls_id_subst)
 
 lemma is_renaming_list_inv_ren_cancel[simp]:
   "length Cs = length \<rho>s \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> Cs \<cdot>\<cdot>cl \<rho>s \<cdot>\<cdot>cl map inv_ren \<rho>s = Cs"
   by (metis inv_ren_cancel_r_list subst_cls_lists_comp_substs subst_cls_lists_id_subst)
-
-lemma is_renaming_list_inv_ren_cancel2[simp]:
-  "length Cs = length \<rho>s \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> Cs \<cdot>\<cdot>cl map inv_ren \<rho>s \<cdot>\<cdot>cl \<rho>s = Cs"
-  by (metis inv_ren_cancel_l_list subst_cls_lists_comp_substs subst_cls_lists_id_subst)
 
 
 subsubsection \<open>Monotonicity\<close>

@@ -343,6 +343,20 @@ next
     have vs: "var_subst_on (vars_cls C) \<sigma>"
       by (rule var_subst_on_if_same_shape_cls[OF ss[folded c\<sigma>_eq_d]])
 
+    {
+      assume "inj_on (vars_cls C) \<sigma>"
+
+      assume "\<forall>x \<in> vars_cls C. \<forall>y \<in> vars_cls C. x \<noteq> y \<longrightarrow> \<sigma> x = \<sigma> y
+      \<and> subst_cls C \<sigma> = D"
+
+    }
+    have "\<exists>x \<in> vars_cls C. \<exists>y \<in> vars_cls C. var_subst_on (vars_cls C) \<sigma> \<and> x \<noteq> y \<and> \<sigma> x = \<sigma> y
+      \<and> subst_cls C \<sigma> = D"
+    proof (rule ccontr, simp, elim impE[OF _ vs])
+      sorry
+    then show ?thesis
+      by (rule exI[of _ \<sigma>])
+
     obtain x y where
       x_in: "x \<in> vars_cls C" and
       y_in: "y \<in> vars_cls C" and
