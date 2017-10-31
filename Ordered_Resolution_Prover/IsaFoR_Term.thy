@@ -22,6 +22,9 @@ derive linorder "term"
 definition var_subst :: "('v \<Rightarrow> ('f, 'w) term) \<Rightarrow> bool" where
   "var_subst \<sigma> \<longleftrightarrow> (\<forall>x. is_Var (\<sigma> x))"
 
+definition vars_cls :: "('f, 'v) term clause \<Rightarrow> 'v set" where
+  "vars_cls C = Union (set_mset (image_mset (vars_term \<circ> atm_of) C))"
+
 abbreviation same_shape_tm :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" where
   "same_shape_tm \<equiv> rel_term (op =) (\<lambda>x y. True)"
 
@@ -42,8 +45,7 @@ definition gvars_tm :: "('f, 'v) term \<Rightarrow> nat" where
   "gvars_tm s = gsize_tm s - card (vars_term s)"
 
 definition gvars_cls :: "('f, 'v) term clause \<Rightarrow> nat" where
-  "gvars_cls C = sum_mset (image_mset (gsize_tm \<circ> atm_of) C)
-     - card (Union (set_mset (image_mset (vars_term \<circ> atm_of) C)))"
+  "gvars_cls C = gsize_cls C - card (vars_cls C)"
 
 definition gpair :: "('f, 'v) term clause rel" where
   "gpair = gsize_cls <*mlex*> measure gvars_cls"
@@ -64,10 +66,9 @@ proof (induct s)
   qed simp
 qed simp
 
-lemma card_vars_le_gsize_cls:
-  "card (Union (set_mset (image_mset (vars_term \<circ> atm_of) C)))
-   \<le> sum_mset (image_mset (gsize_tm \<circ> atm_of) C)"
-  by (induct C; simp) (smt add.assoc add.left_commute card_Un_le card_vars_le_gsize_tm le_iff_add)
+lemma card_vars_le_gsize_cls: "card (vars_cls C) \<le> gsize_cls C"
+  by (induct C; simp add: vars_cls_def gsize_cls_def)
+    (smt add.assoc add.left_commute card_Un_le card_vars_le_gsize_tm le_iff_add)
 
 lemma wf_gpair: "wf gpair"
   by (simp add: gpair_def wf_mlex)
@@ -183,9 +184,11 @@ next
       unfolding t by simp
   qed
 
-  have same_shape_if_gen_gsize: "same_shape_tm s t"
-    if "generalizes_atm s t" and "gsize_tm s = gsize_tm t"
-    for s t :: "('f, 'v) term"
+  have same_shape_if_gen_gsize: "same_shape_cls C D"
+    if "generalizes_cls C D" and "gsize_cls C = gsize_cls D"
+    for C D :: "('f, 'v) term clause"
+    sorry
+(* FIXME
     using that
   proof (induct s arbitrary: t)
     case (Var x)
@@ -221,16 +224,17 @@ next
       qed
     qed (use Fun(3) in auto)
   qed
+*)
 
   have var_noninj_subst_if_same_shape:
-    "\<exists>\<sigma>. \<exists>x \<in> vars_term s. \<exists>y \<in> vars_term s. var_subst \<sigma> \<and> x \<noteq> y \<and> \<sigma> x = \<sigma> y \<and> s \<cdot> \<sigma> = t"
-    if "same_shape_tm s t" and "strictly_generalizes_atm s t"
-    for s t :: "('f, 'v) term"
+    "\<exists>\<sigma>. \<exists>x \<in> vars_cls C. \<exists>y \<in> vars_cls D. var_subst \<sigma> \<and> x \<noteq> y \<and> \<sigma> x = \<sigma> y \<and> subst_cls C \<sigma> = D"
+    if "same_shape_cls C D" and "strictly_generalizes_cls C D"
+    for C D :: "('f, 'v) term clause"
     sorry
 
-  have card_vars_gt: "card (vars_term s) > card (vars_term t)"
-    if "\<exists>\<sigma>. \<exists>x \<in> vars_term s. \<exists>y \<in> vars_term s. var_subst \<sigma> \<and> x \<noteq> y \<and> \<sigma> x = \<sigma> y \<and> s \<cdot> \<sigma> = t"
-    for s t :: "('f, 'v) term"
+  have card_vars_gt: "card (vars_cls C) > card (vars_cls D)"
+    if "\<exists>\<sigma>. \<exists>x \<in> vars_cls C. \<exists>y \<in> vars_cls D. var_subst \<sigma> \<and> x \<noteq> y \<and> \<sigma> x = \<sigma> y \<and> subst_cls C \<sigma> = D"
+    for C D :: "('f, 'v) term clause"
     sorry
 
   have in_gpair: "strictly_generalizes_cls C D \<Longrightarrow> (C, D) \<in> gpair" for C D :: "('f, 'v) term clause"
@@ -274,64 +278,13 @@ next
     }
     moreover
     {
-      assume
-        gsize: "gsize_cls C = gsize_cls D" and
-        gvars: "gvars_cls C \<ge> gvars_cls D"
-
-      obtain Ls Ms \<sigma> where
-        c: "C = mset Ls" and
-        d: "D = mset Ms" and
-        \<sigma>: "list_all2 (\<lambda>L M. subst_lit L \<sigma> = M) Ls Ms" and
-        no_subst: "\<forall>\<tau>. \<not> list_all2 (\<lambda>M L. subst_lit M \<tau> = L) Ms Ls"
-        (* prove by induction *)
-        sorry
-
-
-      let ?As = "map atm_of Ls"
-      let ?Bs = "map atm_of Ms"
-      let ?f = undefined
-
-      define s where "s = Fun ?f ?As"
-      define t where "t = Fun ?f ?Bs"
-
-(*
-      have sg': "strictly_generalizes_atm s t"
-        using sg[unfolded c d]
-        unfolding s_def t_def strictly_generalizes_atm_def strictly_generalizes_cls_def subst_cls_def
-        apply (simp add: comp_def subst_lit_def)
-        sorry
-      then have g': "generalizes_atm s t" and ng': "\<not> generalizes_atm t s"
-        unfolding strictly_generalizes_atm_def by blast+
-*)
-      have g': "generalizes_atm s t"
-        unfolding s_def t_def generalizes_atm_def
-        apply (rule exI[of _ \<sigma>])
-        using \<sigma>[unfolded subst_lit_def]
-        apply (clarsimp simp: comp_def list_all2_conv_all_nth map_eq_conv')
-        by (metis (mono_tags) literal.map_sel)
-
-      have ng': "\<not> generalizes_atm t s"
-        unfolding s_def t_def generalizes_atm_def
-        using no_subst[unfolded subst_lit_def]
-        apply (clarsimp simp: comp_def list_all2_conv_all_nth map_eq_conv')
-        sorry
-
-      have sg': "strictly_generalizes_atm s t"
-        unfolding strictly_generalizes_atm_def using g' ng' by blast
-
-
-      have gsize': "gsize_tm s = gsize_tm t"
-        using gsize unfolding gsize_cls_def s_def t_def
-        by simp (metis c d gsize gsize_cls_def mset_map sum_mset_sum_list)
-      moreover have gvars': "gvars_tm s \<ge> gvars_tm t"
-        unfolding s_def t_def gvars_tm_def
-        using card_vars_le_gsize_cls[of "mset Ls"] gvars[unfolded c d gvars_cls_def]
-        by (simp add: comp_def)
-      moreover have "card (vars_term s) > card (vars_term t)"
-        by (rule card_vars_gt[OF var_noninj_subst_if_same_shape
-              [OF same_shape_if_gen_gsize[OF g' gsize'] sg']])
+      assume gsize: "gsize_cls C = gsize_cls D" and
+        "gvars_cls C \<ge> gvars_cls D"
+      moreover have "card (vars_cls C) > card (vars_cls D)"
+        by (blast intro: card_vars_gt var_noninj_subst_if_same_shape[OF _ sg]
+            same_shape_if_gen_gsize[OF g gsize])
       ultimately have False
-        using card_vars_le_gsize_tm[of s] unfolding gvars_tm_def by arith
+        using card_vars_le_gsize_cls unfolding gvars_cls_def by (metis leD le_diff_iff')
     }
     ultimately show False
       using ni_gp[unfolded gpair_def] by (simp add: mlex_prod_def not_less)
