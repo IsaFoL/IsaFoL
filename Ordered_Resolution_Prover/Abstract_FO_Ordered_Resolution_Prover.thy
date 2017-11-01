@@ -62,7 +62,11 @@ definition ord_FO_\<Gamma> :: "'a inference set" where
 
 interpretation ord_FO_resolution: inference_system ord_FO_\<Gamma> .
 
-definition "ord_FO_resolution_inferences_between = ord_FO_resolution.inferences_between"
+definition
+  ord_FO_resolution_inferences_between
+  :: "'a literal multiset set \<Rightarrow> 'a literal multiset \<Rightarrow> 'a inference set"
+where
+  "ord_FO_resolution_inferences_between = ord_FO_resolution.inferences_between"
 
 inductive subsume_resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where (* This is never used. *)
   "subsume_resolve (D + {#L#}) (C + (D + {#- L#}) \<cdot> \<sigma>) (C + D \<cdot> \<sigma>)"

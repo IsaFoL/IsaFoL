@@ -271,6 +271,12 @@ definition is_reducible_lit :: "'a clause list \<Rightarrow> 'a clause \<Rightar
 definition reduce :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a clause" where
   "reduce Ds C = filter_mset (is_reducible_lit Ds C) C"
 
+definition resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause list" where
+  "resolve C D = undefined" (* FIXME *)
+
+definition resolve_both_ways :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause list" where
+  "resolve_both_ways C D = resolve C D @ resolve D C"
+
 definition
   find_next_clause :: "'a weighted_clause \<Rightarrow> 'a weighted_clause list \<Rightarrow> 'a weighted_clause"
 where
@@ -287,11 +293,13 @@ where
          [] \<Rightarrow>
          (case P of
             [] \<Rightarrow> Some (Sat (map fst Q))
-          | (C, i) # P \<Rightarrow>
-
-
-
-            undefined)
+          | (C, i) # P' \<Rightarrow>
+            let
+              (C, i) = find_next_clause (C, i) P';
+              P = remove1 (C, i) P;
+              N = resolve C C @ concat (map (resolve_both_ways C \<circ> fst) Q)
+            in
+              undefined)
        | (C, i) # N \<Rightarrow>
          let
            C = reduce (map fst (P @ Q)) C
