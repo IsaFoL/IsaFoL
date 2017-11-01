@@ -106,8 +106,11 @@ next
     define tm_at :: "nat \<Rightarrow> ('f, 'v) term" where
       "\<And>i. tm_at i = Fun ?f (map atm_of (Ls_at i))"
 
-    have "tm_at (Suc i) <\<cdot> tm_at i" for i
+    have "strictly_generalizes_atm (tm_at (Suc i)) (tm_at i)" for i
       sorry
+    then have "tm_at (Suc i) <\<cdot> tm_at i" for i
+      unfolding strictly_generalizes_atm_def generalizes_atm_def term_subsumable.subsumes_def
+      by (metis subsumeseq_term.simps)
     then have False
       using wf_subsumes[unfolded wf_iff_no_infinite_down_chain mem_Collect_eq prod.case] by blast
   }
