@@ -34,6 +34,9 @@ fun renamings_apart' :: "nat set \<Rightarrow> ('f, nat) term clause list \<Righ
       \<sigma> # renamings_apart' (X \<union> var_clause (C \<cdot>cls \<sigma>)) Cs)
    "
 
+definition subst_of_inverse :: "(('f, nat) term \<Rightarrow> nat) \<Rightarrow> nat \<Rightarrow> ('f, nat) term" where 
+  "subst_of_inverse \<sigma> v = (Var (\<sigma> (Var v)))"
+
 abbreviation renamings_apart :: "('f, nat) term clause list \<Rightarrow> (('f, nat) subst) list" where
   "renamings_apart Cs \<equiv> renamings_apart' {} Cs"
 
@@ -69,14 +72,13 @@ next
   }
   moreover
   {
-    define subst_of_inverse 
-      where "subst_of_inverse = (\<lambda>\<sigma> v. the_Var (\<sigma> (Var v)))"
+
 
     find_consts name: var_renaming
     have inj_is_renaming: "\<And>\<sigma> :: ('f, nat) subst. var_renaming \<sigma> \<Longrightarrow> is_renaming \<sigma>"
       subgoal for \<sigma>
-      unfolding var_renaming_def is_renaming_def subst_domain_def inj_on_def apply auto
-      apply (rule_tac x="undefined ((inv \<sigma>))" in exI)
+      unfolding var_renaming_def is_renaming_def subst_domain_def apply auto
+      apply (rule_tac x="subst_of_inverse ((inv \<sigma>))" in exI)
       sorry
     done
 
