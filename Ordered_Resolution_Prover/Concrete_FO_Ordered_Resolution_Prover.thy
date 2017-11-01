@@ -260,6 +260,13 @@ definition is_tautology :: "'a clause \<Rightarrow> bool" where
 definition is_subsumed_by :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> bool" where
   "is_subsumed_by Ds C \<longleftrightarrow> (\<exists>D \<in> set Ds. subsumes D C)"
 
+definition is_reducible_lit :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a literal \<Rightarrow> bool" where
+  "is_reducible_lit Ds C L \<longleftrightarrow>
+    (\<exists>D \<in> set Ds. \<exists>L' \<in># D. \<exists>\<sigma>. - L = L' \<cdot>l \<sigma> \<and> (D - {#L'#}) \<cdot> \<sigma> \<subseteq># C - {#L#})"
+
+definition reduce :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a clause" where
+  "reduce Ds C = filter_mset (is_reducible_lit Ds C) C"
+
 partial_function (option)
   deterministic_resolution_prover :: "'a weighted_list_state \<Rightarrow> bool option"
 where
@@ -268,7 +275,10 @@ where
       (N, P, Q, n) = NPQn;
       N = filter (\<lambda>(C, _). is_tautology C \<or> is_subsumed_by (map fst (P @ Q)) C) N;
       P = filter (\<lambda>(C, _). is_subsumed_by (map fst N) C) P;
-      Q = filter (\<lambda>(C, _). is_subsumed_by (map fst N) C) Q
+      Q = filter (\<lambda>(C, _). is_subsumed_by (map fst N) C) Q;
+      N = map (apfst (reduce (map fst (P @ Q)))) N;
+      P = map (apfst (reduce (map fst N))) P;
+      Q = map (apfst (reduce (map fst N))) Q
     in
       deterministic_resolution_prover (N, P, Q, n)
    )"
