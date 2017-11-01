@@ -151,14 +151,6 @@ definition var_disjoint :: "'a clause list \<Rightarrow> bool" where
   "var_disjoint Cs \<longleftrightarrow>
    (\<forall>\<sigma>s. length \<sigma>s = length Cs \<longrightarrow> (\<exists>\<tau>. \<forall>i < length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> S \<cdot> \<sigma>s ! i = S \<cdot> \<tau>))"
 
-
-subsubsection \<open>Generalization of\<close>
-
-lemma generalizes_lit_atm:
-  "generalizes_lit L M \<longleftrightarrow> generalizes_atm (atm_of L) (atm_of M) \<and> (is_pos L \<longleftrightarrow> is_pos M)"
-  unfolding generalizes_lit_def generalizes_atm_def subst_lit_def
-  by (cases L; cases M; simp)
-
 end
 
 

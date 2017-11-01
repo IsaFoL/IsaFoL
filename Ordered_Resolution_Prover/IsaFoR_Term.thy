@@ -137,7 +137,7 @@ next
       then show ?case
         by (subst (1 2) Ls_at_simps(2)) (rule someI_ex, metis C_\<sigma> image_mset_of_subset_list)
     qed
-    note mset_Ls_at = this[THEN conjunct1] and Ls_\<sigma> = this[THEN conjunct2]
+    note mset_Ls = this[THEN conjunct1] and Ls_\<sigma> = this[THEN conjunct2]
 
     have len_Ls: "length (Ls_at i) = n" for i
     proof (induct i)
@@ -150,15 +150,25 @@ next
         by (metis Ls_\<sigma> length_map)
     qed
 
-    have Ls_\<sigma>_strict_lit: "\<exists>j < n. \<not> generalizes_lit (Ls_at i ! j) (Ls_at (Suc i) ! j)" for i
-      sorry
+    have Ls_\<sigma>_strict_lit: "map (\<lambda>L. subst_lit L \<tau>) (Ls_at i) \<noteq> Ls_at (Suc i)" for i \<tau>
+      by (metis C_\<sigma> mset_Ls Ls_\<sigma> mset_map sg_C generalizes_cls_def strictly_generalizes_cls_def
+          subst_cls_def)
 
     have is_pos_Ls: "is_pos (Ls_at (Suc i) ! j) \<longleftrightarrow> is_pos (Ls_at i ! j)" if "j < n" for i j
       using that Ls_\<sigma> len_Ls by (metis literal.map_disc_iff nth_map subst_lit_def)
 
     have Ls_\<sigma>_strict_tm:
-      "\<exists>j < n. \<not> generalizes_atm (atm_of (Ls_at i ! j)) (atm_of (Ls_at (Suc i) ! j))" for i
-      using is_pos_Ls Ls_\<sigma>_strict_lit generalizes_lit_atm by blast
+      "map ((\<lambda>t. t \<cdot> \<tau>) \<circ> atm_of) (Ls_at i) \<noteq> map atm_of (Ls_at (Suc i))" (is "?lhs \<noteq> ?rhs") for i \<tau>
+    proof -
+      obtain j where
+        j_lt: "j < n" and
+        j_\<tau>: "subst_lit (Ls_at i ! j) \<tau> \<noteq> Ls_at (Suc i) ! j"
+        using Ls_\<sigma>_strict_lit[of \<tau> i] len_Ls by (metis (no_types) map_nth_eq_conv)
+
+      show ?thesis
+        using is_pos_Ls
+        sorry
+    qed
 
     let ?f = undefined
 
@@ -170,14 +180,8 @@ next
       by (auto simp: comp_def)
     moreover have "\<not> generalizes_atm (tm_at i) (tm_at (Suc i))" for i
       unfolding tm_at_def generalizes_atm_def
-    proof -
-      obtain j where
-        "j < n" and "\<nexists>\<sigma>. atm_of (Ls_at i ! j) \<cdot> \<sigma> = atm_of (Ls_at (Suc i) ! j)"
-        using Ls_\<sigma>_strict_tm unfolding generalizes_atm_def by blast
-      then show "\<nexists>\<sigma>. Fun undefined (map atm_of (Ls_at i)) \<cdot> \<sigma> =
-        Fun undefined (map atm_of (Ls_at (Suc i)))"
-        using len_Ls by (auto simp: comp_def map_nth_eq_conv)
-    qed
+      apply simp
+      sorry
     ultimately have "strictly_generalizes_atm (tm_at (Suc i)) (tm_at i)" for i
       unfolding strictly_generalizes_atm_def by blast
     then have "tm_at (Suc i) <\<cdot> tm_at i" for i
