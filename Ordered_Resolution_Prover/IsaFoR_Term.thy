@@ -108,13 +108,21 @@ next
         by (metis size_image_mset)
     qed (simp add: n_def)
 
-    obtain
-      Ls_at :: "nat \<Rightarrow> ('f, 'v) term literal list" and
-      \<sigma>_at :: "nat \<Rightarrow> 'v \<Rightarrow> ('f, 'v) term"
-    where
-      len_Ls: "length (Ls_at i) = n" and 
-      Ls_\<sigma>: "map (\<lambda>L. subst_lit L (\<sigma>_at i)) (Ls_at (Suc i)) = Ls_at i" and
-      Ls_\<sigma>_strict_lit: "\<exists>j < n. \<not> generalizes_lit (Ls_at i ! j) (Ls_at (Suc i) ! j)" for i
+    obtain \<sigma>_at :: "nat \<Rightarrow> 'v \<Rightarrow> ('f, 'v) term" where
+      C_\<sigma>: "image_mset (\<lambda>L. subst_lit L (\<sigma>_at i)) (C_at (Suc i)) = C_at i" for i
+      sorry
+
+    define Ls_at :: "nat \<Rightarrow> ('f, 'v) term literal list" where
+      "Ls_at = rec_nat (SOME Ls. mset Ls = C_at 0) (\<lambda>i Lsi.
+         SOME Ls. mset Ls = C_at (i + 1) \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) Ls = Lsi)"
+
+    have Ls_\<sigma>: "map (\<lambda>L. subst_lit L (\<sigma>_at i)) (Ls_at (Suc i)) = Ls_at i" for i
+      sorry
+
+    have len_Ls: "length (Ls_at i) = n" for i
+      sorry
+
+    have Ls_\<sigma>_strict_lit: "\<exists>j < n. \<not> generalizes_lit (Ls_at i ! j) (Ls_at (Suc i) ! j)" for i
       sorry
 
     have is_pos_Ls: "is_pos (Ls_at (Suc i) ! j) \<longleftrightarrow> is_pos (Ls_at i ! j)" if "j < n" for i j
