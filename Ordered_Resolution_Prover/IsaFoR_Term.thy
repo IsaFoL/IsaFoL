@@ -117,7 +117,7 @@ next
       "Ls_at = rec_nat (SOME Ls. mset Ls = C_at 0)
          (\<lambda>i Lsi. SOME Ls. mset Ls = C_at (Suc i) \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) Ls = Lsi)"
 
-    have Ls_at_simps[simp]:
+    have Ls_at_simps:
       "Ls_at 0 = (SOME Ls. mset Ls = C_at 0)"
       "Ls_at (Suc i) =
        (SOME Ls. mset Ls = C_at (Suc i) \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) Ls = Ls_at i)" for i
@@ -129,7 +129,7 @@ next
 
     have Ls_\<sigma>: "map (\<lambda>L. subst_lit L (\<sigma>_at i)) (Ls_at (Suc i)) = Ls_at i" for i
       apply (induct i)
-      apply simp
+      apply (simp add: Ls_at_simps)
 
       sorry
 
