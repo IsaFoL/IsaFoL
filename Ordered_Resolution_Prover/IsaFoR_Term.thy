@@ -94,21 +94,26 @@ next
     assume "\<exists>C_at :: nat \<Rightarrow> ('f, 'v) term clause.
       \<forall>i. strictly_generalizes_cls (C_at (Suc i)) (C_at i)"
     then obtain C_at :: "nat \<Rightarrow> ('f, 'v) term clause" where
-      f: "\<And>i. strictly_generalizes_cls (C_at (Suc i)) (C_at i)"
+      f: "strictly_generalizes_cls (C_at (Suc i)) (C_at i)" for i
       by blast
 
     define n where
       "n = size (C_at 0)"
 
-    have sz_C_n: "size (C_at i) = n" for i
+    have sz_C: "size (C_at i) = n" for i
       sorry
 
     obtain
       Ls_at :: "nat \<Rightarrow> ('f, 'v) term literal list" and
       \<sigma>_at :: "nat \<Rightarrow> 'v \<Rightarrow> ('f, 'v) term"
     where
-      Ls_\<sigma>: "\<And>i. map (\<lambda>L. subst_lit L (\<sigma>_at i)) (Ls_at (Suc i)) = Ls_at i" and
-      Ls_\<sigma>_strict: "\<And>i. \<exists>j < n. \<not> generalizes_lit (Ls_at (Suc i) ! j) (Ls_at i ! j)"
+      len_Ls: "length (Ls_at i) = n" and 
+      Ls_\<sigma>: "map (\<lambda>L. subst_lit L (\<sigma>_at i)) (Ls_at (Suc i)) = Ls_at i" and
+      Ls_\<sigma>_strict_lit: "\<exists>j < n. \<not> generalizes_lit (Ls_at i ! j) (Ls_at (Suc i) ! j)" for i
+      sorry
+
+    have Ls_\<sigma>_strict_tm:
+      "\<exists>j < n. \<not> generalizes_atm (atm_of (Ls_at i ! j)) (atm_of (Ls_at (Suc i) ! j))" for i
       sorry
 
     let ?f = undefined
@@ -120,7 +125,16 @@ next
       unfolding tm_at_def generalizes_atm_def using Ls_\<sigma>[THEN arg_cong, of "map atm_of"]
       by (auto simp: comp_def)
     moreover have "\<not> generalizes_atm (tm_at i) (tm_at (Suc i))" for i
-      sorry
+      unfolding tm_at_def generalizes_atm_def
+    proof -
+      obtain j where
+        j_le: "j < n" and
+        no_\<sigma>: "\<nexists>\<sigma>. atm_of (Ls_at i ! j) \<cdot> \<sigma> = atm_of (Ls_at (Suc i) ! j)"
+        using Ls_\<sigma>_strict_tm unfolding generalizes_atm_def by blast
+      then show "\<nexists>\<sigma>. Fun undefined (map atm_of (Ls_at i)) \<cdot> \<sigma> =
+        Fun undefined (map atm_of (Ls_at (Suc i)))"
+        using len_Ls by (auto simp: comp_def map_nth_eq_conv)
+    qed
     ultimately have "strictly_generalizes_atm (tm_at (Suc i)) (tm_at i)" for i
       unfolding strictly_generalizes_atm_def by blast
     then have "tm_at (Suc i) <\<cdot> tm_at i" for i
