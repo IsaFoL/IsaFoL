@@ -286,14 +286,17 @@ where
           C = reduce (map fst (P @ Q)) C
         in
           if is_tautology C \<or> is_subsumed_by (map fst (P @ Q)) C then
+            deterministic_resolution_prover (N, P, Q, n)
+          else
             if C = {#} then
               Some True
             else
               let
                 P = map (apfst (reduce [C])) P;
-                P = filter (is_subsumed_by (map fst [C]) \<circ> fst) N;
+                P = filter (is_subsumed_by [C] \<circ> fst) N;
+                P = (C, i) # P;
                 Q = map (apfst (reduce [C])) Q;
-                Q = filter (is_subsumed_by (map fst [C]) \<circ> fst) N
+                Q = filter (is_subsumed_by [C] \<circ> fst) N
               in
                 deterministic_resolution_prover (N, P, Q, n)))"
 
