@@ -125,10 +125,21 @@ next
     have mset_Lt_at_0: "mset (Ls_at 0) = C_at 0"
       unfolding Ls_at_simps by (rule someI_ex) (metis list_of_mset_exi)
 
-    have
-      mset_Ls_at: "mset (Ls_at (Suc i)) = C_at (Suc i)" and
-      Ls_\<sigma>: "map (\<lambda>L. subst_lit L (\<sigma>_at i)) (Ls_at (Suc i)) = Ls_at i" for i
-      sorry
+    have "mset (Ls_at (Suc i)) = C_at (Suc i)
+      \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) (Ls_at (Suc i)) = Ls_at i" for i
+    proof (induct i)
+      case 0
+      then show ?case
+        by (simp add: Ls_at_simps(2), rule someI_ex,
+            metis C_\<sigma> image_mset_of_subset_list mset_Lt_at_0)
+    next
+      case (Suc i)
+      then show ?case
+        
+        
+        sorry
+    qed
+    note mset_Ls_at = this[THEN conjunct1] and Ls_\<sigma> = this[THEN conjunct2]
 
     have len_Ls: "length (Ls_at i) = n" for i
     proof (induct i)
