@@ -244,7 +244,8 @@ end
 end
 
 locale FO_resolution_prover_with_sum_product_weights =
-  FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu less_atm
+  FO_resolution_prover_with_weights S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu
+    less_atm weight
   for
     S :: "('a :: wellorder) clause \<Rightarrow> _" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
@@ -254,17 +255,18 @@ locale FO_resolution_prover_with_sum_product_weights =
     atm_of_atms :: "'a list \<Rightarrow> 'a" and
     mgu :: "'a set set \<Rightarrow> 's option" and
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
-    i :: nat and
-    j :: nat and
     weight :: "'a clause \<times> nat \<Rightarrow> nat" +
+  fixes
+    size_atm :: "'a \<Rightarrow> nat" and
+    generation_factor :: nat and
+    size_factor :: nat
   assumes
-    i_pos: "i > 0" and
-    j_pos:"j > 0" and
-    weight_def: "weight = (\<lambda>(C, m). i * m + j * size_multiset (size_literal size) C)"
+    generation_factor_pos: "generation_factor > 0" and
+    weight_def: "weight (C, m) = generation_factor * m + size_factor * size_multiset (size_literal size_atm) C"
 begin
 
 sublocale FO_resolution_prover_with_monotone_weights
-  using i_pos j_pos weight_def apply unfold_locales sorry (* by auto *)
+  using generation_factor_pos by unfold_locales (simp add: weight_def)
 
 thm monotone_fairness
 
