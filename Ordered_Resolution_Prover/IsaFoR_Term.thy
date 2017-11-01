@@ -69,17 +69,35 @@ next
   }
   moreover
   {
-    thm is_renaming_def
-    find_theorems is_renaming
-    have "\<And>Cs X. Ball (set (renamings_apart' X Cs)) is_renaming"
+    define subst_of_inverse 
+      where "subst_of_inverse = (\<lambda>\<sigma> v. the_Var (\<sigma> (Var v)))"
+
+    find_consts name: var_renaming
+    have inj_is_renaming: "\<And>\<sigma> :: ('f, nat) subst. var_renaming \<sigma> \<Longrightarrow> is_renaming \<sigma>"
+      subgoal for \<sigma>
+      unfolding var_renaming_def is_renaming_def subst_domain_def inj_on_def apply auto
+      apply (rule_tac x="undefined ((inv \<sigma>))" in exI)
+      sorry
+    done
+
+    have "\<And>(Cs :: ('f, nat) term clause list) X. Ball (set (renamings_apart' X Cs)) var_renaming"
       subgoal for Cs X
-        apply (induction Cs)
-         apply simp
-        apply auto
-        unfolding is_renaming_def
-        apply (rule exI)
-        sorry
+      proof (induction rule: renamings_apart'.induct)
+        case (1 uu)
+        then show ?case by auto
+      next
+        case (2 X C Cs)
+        note this[of "\<lambda>v. Var (v + Max X + 1)", simplified]
+        then show ?case
+          unfolding var_renaming_def
+          apply auto
+          apply (metis is_VarI set_ConsD)
+          apply (smt Suc_inject inj_onI nat_add_right_cancel set_ConsD term.inject(1))
+          done
+      qed
       done
+    then have "Ball (set (renamings_apart Cs)) is_renaming"
+      using inj_is_renaming by blast
   }
   moreover
   {
