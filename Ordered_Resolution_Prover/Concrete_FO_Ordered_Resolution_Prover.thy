@@ -267,21 +267,43 @@ definition is_reducible_lit :: "'a clause list \<Rightarrow> 'a clause \<Rightar
 definition reduce :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a clause" where
   "reduce Ds C = filter_mset (is_reducible_lit Ds C) C"
 
+definition
+  find_next_clause :: "'a weighted_clause \<Rightarrow> 'a weighted_clause list \<Rightarrow> 'a weighted_clause"
+where
+  "find_next_clause = undefined" (* FIXME *)
+
 partial_function (option)
   deterministic_resolution_prover :: "'a weighted_list_state \<Rightarrow> bool option"
 where
   "deterministic_resolution_prover NPQn =
    (let
-      (N, P, Q, n) = NPQn;
-      N = filter (\<lambda>(C, _). is_tautology C \<or> is_subsumed_by (map fst (P @ Q)) C) N;
-      P = filter (\<lambda>(C, _). is_subsumed_by (map fst N) C) P;
-      Q = filter (\<lambda>(C, _). is_subsumed_by (map fst N) C) Q;
-      N = map (apfst (reduce (map fst (P @ Q)))) N;
-      P = map (apfst (reduce (map fst N))) P;
-      Q = map (apfst (reduce (map fst N))) Q
+      (N, P, Q, n) = NPQn
     in
-      deterministic_resolution_prover (N, P, Q, n)
-   )"
+      (case N of
+        [] \<Rightarrow> undefined (* FIXME *)
+      | (C, i) # N \<Rightarrow>
+        let
+          C = reduce (map fst (P @ Q)) C
+        in
+          if is_tautology C \<or> is_subsumed_by (map fst (P @ Q)) C then
+            if C = {#} then
+              Some True
+            else
+              let
+                P = map (apfst (reduce [C])) P;
+                P = filter (is_subsumed_by (map fst [C]) \<circ> fst) N;
+                Q = map (apfst (reduce [C])) Q;
+                Q = filter (is_subsumed_by (map fst [C]) \<circ> fst) N
+              in
+                deterministic_resolution_prover (N, P, Q, n)))"
+
+
+(*
+      (case N of
+        [] \<Rightarrow> Some undefined (*FIXME*)
+      | Ci # N' \<Rightarrow> find_next_clause Ci N')
+*)
+
 
 print_theorems
 term deterministic_resolution_prover
