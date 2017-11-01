@@ -110,11 +110,12 @@ next
 
     obtain \<sigma>_at :: "nat \<Rightarrow> 'v \<Rightarrow> ('f, 'v) term" where
       C_\<sigma>: "image_mset (\<lambda>L. subst_lit L (\<sigma>_at i)) (C_at (Suc i)) = C_at i" for i
-      sorry
+      using sg_C[unfolded strictly_generalizes_cls_def generalizes_cls_def subst_cls_def]
+      by metis
 
     define Ls_at :: "nat \<Rightarrow> ('f, 'v) term literal list" where
-      "Ls_at = rec_nat (SOME Ls. mset Ls = C_at 0) (\<lambda>i Lsi.
-         SOME Ls. mset Ls = C_at (i + 1) \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) Ls = Lsi)"
+      "Ls_at = rec_nat (SOME Ls. mset Ls = C_at 0)
+         (\<lambda>i Lsi. SOME Ls. mset Ls = C_at (i + 1) \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) Ls = Lsi)"
 
     have Ls_\<sigma>: "map (\<lambda>L. subst_lit L (\<sigma>_at i)) (Ls_at (Suc i)) = Ls_at i" for i
       sorry
