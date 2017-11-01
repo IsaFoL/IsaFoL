@@ -115,9 +115,22 @@ next
 
     define Ls_at :: "nat \<Rightarrow> ('f, 'v) term literal list" where
       "Ls_at = rec_nat (SOME Ls. mset Ls = C_at 0)
-         (\<lambda>i Lsi. SOME Ls. mset Ls = C_at (i + 1) \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) Ls = Lsi)"
+         (\<lambda>i Lsi. SOME Ls. mset Ls = C_at (Suc i) \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) Ls = Lsi)"
+
+    have Ls_at_simps[simp]:
+      "Ls_at 0 = (SOME Ls. mset Ls = C_at 0)"
+      "Ls_at (Suc i) =
+       (SOME Ls. mset Ls = C_at (Suc i) \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) Ls = Ls_at i)" for i
+      unfolding Ls_at_def by simp+
+
+    have ex_Ls: "\<exists>Ls. mset Ls = C_at (Suc i) \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) Ls = Lsi"
+      if "mset Lsi = C_at i" for Lsi i
+      sorry
 
     have Ls_\<sigma>: "map (\<lambda>L. subst_lit L (\<sigma>_at i)) (Ls_at (Suc i)) = Ls_at i" for i
+      apply (induct i)
+      apply simp
+
       sorry
 
     have len_Ls: "length (Ls_at i) = n" for i
