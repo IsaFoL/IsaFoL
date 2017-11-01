@@ -171,6 +171,12 @@ Clauses are (finite) multisets of literals.
 
 type_synonym 'a clause = "'a literal multiset"
 
+abbreviation map_clause :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a clause \<Rightarrow> 'b clause" where
+  "map_clause f \<equiv> image_mset (map_literal f)"
+
+abbreviation rel_clause :: "('a \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> 'a clause \<Rightarrow> 'b clause \<Rightarrow> bool" where
+  "rel_clause R \<equiv> rel_mset (rel_literal R)"
+
 abbreviation poss :: "'a multiset \<Rightarrow> 'a clause" where "poss AA \<equiv> {#Pos A. A \<in># AA#}"
 abbreviation negs :: "'a multiset \<Rightarrow> 'a clause" where "negs AA \<equiv> {#Neg A. A \<in># AA#}"
 
