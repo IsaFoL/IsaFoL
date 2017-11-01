@@ -97,13 +97,19 @@ next
       f: "\<And>i. strictly_generalizes_cls (C_at (Suc i)) (C_at i)"
       by blast
 
-
-
-    thm wf_subsumes
-
-    have False
+    obtain Ls_at :: "nat \<Rightarrow> ('f, 'v) term literal list" where
+      "\<And>i. list_all2 (rel_literal strictly_generalizes_atm) (Ls_at (Suc i)) (Ls_at i)"
       sorry
-thm wf_subsumes
+
+    let ?f = undefined
+
+    define tm_at :: "nat \<Rightarrow> ('f, 'v) term" where
+      "\<And>i. tm_at i = Fun ?f (map atm_of (Ls_at i))"
+
+    have "tm_at (Suc i) <\<cdot> tm_at i" for i
+      sorry
+    then have False
+      using wf_subsumes[unfolded wf_iff_no_infinite_down_chain mem_Collect_eq prod.case] by blast
   }
   then show "wfP (strictly_generalizes_cls :: ('f, 'v) term clause \<Rightarrow> _ \<Rightarrow> _)"
     unfolding wfP_def by (blast intro: wf_iff_no_infinite_down_chain[THEN iffD2])
