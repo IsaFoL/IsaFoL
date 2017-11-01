@@ -112,9 +112,12 @@ next
       Ls_\<sigma>_strict_lit: "\<exists>j < n. \<not> generalizes_lit (Ls_at i ! j) (Ls_at (Suc i) ! j)" for i
       sorry
 
+    have is_pos_Ls: "is_pos (Ls_at (Suc i) ! j) \<longleftrightarrow> is_pos (Ls_at i ! j)" for i j
+      sorry
+
     have Ls_\<sigma>_strict_tm:
       "\<exists>j < n. \<not> generalizes_atm (atm_of (Ls_at i ! j)) (atm_of (Ls_at (Suc i) ! j))" for i
-      sorry
+      using is_pos_Ls Ls_\<sigma>_strict_lit generalizes_lit_atm by blast
 
     let ?f = undefined
 
@@ -128,8 +131,7 @@ next
       unfolding tm_at_def generalizes_atm_def
     proof -
       obtain j where
-        j_le: "j < n" and
-        no_\<sigma>: "\<nexists>\<sigma>. atm_of (Ls_at i ! j) \<cdot> \<sigma> = atm_of (Ls_at (Suc i) ! j)"
+        "j < n" and "\<nexists>\<sigma>. atm_of (Ls_at i ! j) \<cdot> \<sigma> = atm_of (Ls_at (Suc i) ! j)"
         using Ls_\<sigma>_strict_tm unfolding generalizes_atm_def by blast
       then show "\<nexists>\<sigma>. Fun undefined (map atm_of (Ls_at i)) \<cdot> \<sigma> =
         Fun undefined (map atm_of (Ls_at (Suc i)))"

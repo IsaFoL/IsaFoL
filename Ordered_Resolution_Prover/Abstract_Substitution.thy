@@ -154,8 +154,10 @@ definition var_disjoint :: "'a clause list \<Rightarrow> bool" where
 
 subsubsection \<open>Generalization of\<close>
 
-lemma generalizes_cls_size: "generalizes_cls C D \<Longrightarrow> size C = size D"
-  unfolding generalizes_cls_def subst_cls_def by fastforce
+lemma generalizes_lit_atm:
+  "generalizes_lit L M \<longleftrightarrow> generalizes_atm (atm_of L) (atm_of M) \<and> (is_pos L \<longleftrightarrow> is_pos M)"
+  unfolding generalizes_lit_def generalizes_atm_def subst_lit_def
+  by (cases L; cases M; simp)
 
 end
 
