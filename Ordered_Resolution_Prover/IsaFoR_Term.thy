@@ -94,14 +94,19 @@ next
     assume "\<exists>C_at :: nat \<Rightarrow> ('f, 'v) term clause.
       \<forall>i. strictly_generalizes_cls (C_at (Suc i)) (C_at i)"
     then obtain C_at :: "nat \<Rightarrow> ('f, 'v) term clause" where
-      f: "strictly_generalizes_cls (C_at (Suc i)) (C_at i)" for i
+      sg_C: "strictly_generalizes_cls (C_at (Suc i)) (C_at i)" for i
       by blast
 
     define n where
       "n = size (C_at 0)"
 
     have sz_C: "size (C_at i) = n" for i
-      sorry
+    proof (induct i)
+      case (Suc i)
+      then show ?case
+        using sg_C[of i] unfolding strictly_generalizes_cls_def generalizes_cls_def subst_cls_def
+        by (metis size_image_mset)
+    qed (simp add: n_def)
 
     obtain
       Ls_at :: "nat \<Rightarrow> ('f, 'v) term literal list" and
