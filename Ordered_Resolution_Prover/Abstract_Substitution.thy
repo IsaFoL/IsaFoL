@@ -20,10 +20,16 @@ subsection \<open>Substitution operators\<close>
 
 locale substitution_ops =
   fixes
-    subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" (infixl "\<cdot>a" 67) and
+    subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: 's and
-    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 67)
+    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's"
 begin
+
+abbreviation subst_atm_abbrev :: "'a \<Rightarrow> 's \<Rightarrow> 'a" (infixl "\<cdot>a" 67) where
+  "subst_atm_abbrev \<equiv> subst_atm"
+
+abbreviation comp_subst_abbrev :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 67) where
+  "comp_subst_abbrev \<equiv> comp_subst"
 
 definition comp_substs :: "'s list \<Rightarrow> 's list \<Rightarrow> 's list" (infixl "\<odot>s" 67) where
   "\<sigma>s \<odot>s \<tau>s = map2 comp_subst \<sigma>s \<tau>s"
@@ -158,9 +164,9 @@ subsection \<open>Substitution lemmas\<close>
 
 locale substitution = substitution_ops subst_atm id_subst comp_subst
   for
-    subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" (infixl "\<cdot>a" 67) and
+    subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: 's and
-    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 67) +
+    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" +
   fixes
     atm_of_atms :: "'a list \<Rightarrow> 'a" and
     renamings_apart :: "'a clause list \<Rightarrow> 's list"
@@ -1007,9 +1013,9 @@ subsection \<open>Most general unifiers\<close>
 
 locale mgu = substitution subst_atm id_subst comp_subst atm_of_atms renamings_apart
   for
-    subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" (infixl "\<cdot>a" 67) and
+    subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: 's and
-    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 67) and
+    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
     atm_of_atms :: "'a list \<Rightarrow> 'a" and
     renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" +
   fixes

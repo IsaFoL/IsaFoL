@@ -22,12 +22,13 @@ text \<open>
 The following corresponds to to pages 41 and 42 of Section 4.3, until Figure 5 and its explanation.
 \<close>
 
-locale FO_resolution = mgu subst_atm id_subst comp_subst renamings_apart mgu
+locale FO_resolution = mgu subst_atm id_subst comp_subst atm_of_atms renamings_apart mgu
   for
     subst_atm :: "'a :: wellorder \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and
     comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
     renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
+    atm_of_atms :: "'a list \<Rightarrow> 'a" and
     mgu :: "'a set set \<Rightarrow> 's option" +
   fixes
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool"

@@ -25,13 +25,14 @@ term while
 
 
 locale FO_resolution_prover_with_weights =
-  FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart mgu less_atm
+  FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu less_atm
   for
     S :: "('a :: wellorder) clause \<Rightarrow> _" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and
     comp_subst :: "'s => 's => 's" and
     renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
+    atm_of_atms :: "'a list \<Rightarrow> 'a" and
     mgu :: "'a set set \<Rightarrow> 's option" and
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
   +
@@ -78,13 +79,15 @@ inductive resolution_prover_with_weights :: "'a nth_state \<Rightarrow> 'a nth_s
 end
 
 locale FO_resolution_prover_with_monotone_weights =
-  FO_resolution_prover_with_weights S subst_atm id_subst comp_subst renamings_apart mgu less_atm weight
+  FO_resolution_prover_with_weights S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu
+    less_atm weight
   for
     S :: "('a :: wellorder) clause \<Rightarrow> _" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and
     comp_subst :: "'s => 's => 's" and
     renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
+    atm_of_atms :: "'a list \<Rightarrow> 'a" and
     mgu :: "'a set set \<Rightarrow> 's option" and
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
     weight :: "('a clause \<times> nat) \<Rightarrow> nat" +
@@ -248,13 +251,14 @@ end
 end
 
 locale FO_resolution_prover_with_sum_product_weights =
-  FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart mgu less_atm
+  FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu less_atm
   for
     S :: "('a :: wellorder) clause \<Rightarrow> _" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and
     comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
     renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
+    atm_of_atms :: "'a list \<Rightarrow> 'a" and
     mgu :: "'a set set \<Rightarrow> 's option" and
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
     i :: nat and

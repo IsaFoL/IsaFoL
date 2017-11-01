@@ -29,14 +29,15 @@ type_synonym 'a weighted_clause = "'a clause \<times> nat"
 type_synonym 'a nth_state = "'a weighted_clause set \<times> 'a weighted_clause set \<times> 'a weighted_clause set \<times> nat"
 
 locale FO_resolution_prover =
-  FO_resolution subst_atm id_subst comp_subst renamings_apart mgu less_atm +
+  FO_resolution subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu less_atm +
   selection S
   for
     S :: "('a :: wellorder) clause \<Rightarrow> _" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and
-    comp_subst :: "'s => 's => 's" and
+    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
     renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
+    atm_of_atms :: "'a list \<Rightarrow> 'a" and
     mgu :: "'a set set \<Rightarrow> 's option" and
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
 begin
