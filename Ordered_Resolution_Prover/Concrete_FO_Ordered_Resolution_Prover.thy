@@ -273,8 +273,8 @@ definition is_reducible_lit :: "'a list_clause list \<Rightarrow> 'a list_clause
 definition reduce :: "'a list_clause list \<Rightarrow> 'a list_clause \<Rightarrow> 'a list_clause" where
   "reduce Ds C = filter (is_reducible_lit Ds C) C"
 
-function resolve_on :: "'a \<Rightarrow> 'a list_clause \<Rightarrow> 'a list_clause \<Rightarrow> 'a list_clause list" where
-  "resolve_on B C D =
+fun resolve_on :: "'a list_clause \<Rightarrow> 'a \<Rightarrow> 'a list_clause \<Rightarrow> 'a list_clause list" where
+  "resolve_on C B D =
    concat (map (\<lambda>L.
       (case L of
          Neg _ \<Rightarrow> []
@@ -283,19 +283,16 @@ function resolve_on :: "'a \<Rightarrow> 'a list_clause \<Rightarrow> 'a list_cl
             None \<Rightarrow> []
           | Some \<sigma> \<Rightarrow>
             let
-              D' = map (\<lambda>M. M \<cdot>l \<sigma>) (remove1 (Neg B) D);
+              D' = map (\<lambda>M. M \<cdot>l \<sigma>) D;
               B' = B \<cdot>a \<sigma>
             in
               if maximal_in B' (mset D') then
                 let
                   C' = map (\<lambda>L. L \<cdot>l \<sigma>) (removeAll L C)
                 in
-                  (if strictly_maximal_in B' (mset C') then [C' @ D'] else [])
-                  @ resolve_on B' C' (Neg B' # D')
+                  (if strictly_maximal_in B' (mset C') then [C' @ D'] else []) @ resolve_on C' B' D'
               else
-                []))) D)"
-  by auto
-  termination sorry (* FIXME *)
+                []))) C)"
 
 definition resolve :: "'a list_clause \<Rightarrow> 'a list_clause \<Rightarrow> 'a list_clause list" where
   "resolve C D =
@@ -304,7 +301,7 @@ definition resolve :: "'a list_clause \<Rightarrow> 'a list_clause \<Rightarrow>
         Pos A \<Rightarrow> []
       | Neg A \<Rightarrow>
         if maximal_in A (mset D) then
-          resolve_on A C D
+          resolve_on C A (remove1 M D)
         else
           [])) D)"
 
