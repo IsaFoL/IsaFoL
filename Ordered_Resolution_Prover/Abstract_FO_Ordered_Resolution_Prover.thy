@@ -24,10 +24,6 @@ The following corresponds to page 42 and 43 of Section 4.3 from the explanation 
 
 type_synonym 'a state = "'a clause set \<times> 'a clause set \<times> 'a clause set"
 
-type_synonym 'a weighted_clause = "'a clause \<times> nat"
-
-type_synonym 'a nth_state = "'a weighted_clause set \<times> 'a weighted_clause set \<times> 'a weighted_clause set \<times> nat"
-
 locale FO_resolution_prover =
   FO_resolution subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu less_atm +
   selection S
