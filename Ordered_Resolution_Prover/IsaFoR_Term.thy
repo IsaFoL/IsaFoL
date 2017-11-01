@@ -165,9 +165,11 @@ next
         j_\<tau>: "subst_lit (Ls_at i ! j) \<tau> \<noteq> Ls_at (Suc i) ! j"
         using Ls_\<sigma>_strict_lit[of \<tau> i] len_Ls by (metis (no_types) map_nth_eq_conv)
 
-      show ?thesis
-        using is_pos_Ls
-        sorry
+      have "atm_of (Ls_at i ! j) \<cdot> \<tau> \<noteq> atm_of (Ls_at (Suc i) ! j)"
+        using j_\<tau> is_pos_Ls[OF j_lt]
+        by (metis (mono_guards) literal.expand literal.map_disc_iff literal.map_sel subst_lit_def)
+      then show ?thesis
+        using j_lt len_Ls map_nth_conv by fastforce
     qed
 
     let ?f = undefined
