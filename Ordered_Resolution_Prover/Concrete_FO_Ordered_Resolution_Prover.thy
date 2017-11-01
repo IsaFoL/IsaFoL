@@ -224,6 +224,10 @@ end
 type_synonym 'a weighted_list_state =
   "'a weighted_clause list \<times> 'a weighted_clause list \<times> 'a weighted_clause list \<times> nat"
 
+datatype 'a solution =
+  Sat "'a clause list"
+| Unsat
+
 locale FO_resolution_prover_with_sum_product_weights =
   FO_resolution_prover_with_weights S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu
     less_atm weight
@@ -273,31 +277,38 @@ where
   "find_next_clause = undefined" (* FIXME *)
 
 partial_function (option)
-  deterministic_resolution_prover :: "'a weighted_list_state \<Rightarrow> bool option"
+  deterministic_resolution_prover :: "'a weighted_list_state \<Rightarrow> 'a solution option"
 where
   "deterministic_resolution_prover NPQn =
    (let
       (N, P, Q, n) = NPQn
     in
       (case N of
-        [] \<Rightarrow> undefined (* FIXME *)
-      | (C, i) # N \<Rightarrow>
-        let
-          C = reduce (map fst (P @ Q)) C
-        in
-          if C = {#} then
-            Some True
-          else if is_tautology C \<or> is_subsumed_by (map fst (P @ Q)) C then
-            deterministic_resolution_prover (N, P, Q, n)
-          else
-            let
-              P = map (apfst (reduce [C])) P;
-              P = filter (is_subsumed_by [C] \<circ> fst) N;
-              Q = map (apfst (reduce [C])) Q;
-              Q = filter (is_subsumed_by [C] \<circ> fst) N;
-              P = (C, i) # P
-            in
-              deterministic_resolution_prover (N, P, Q, n)))"
+         [] \<Rightarrow>
+         (case P of
+            [] \<Rightarrow> Some (Sat (map fst Q))
+          | (C, i) # P \<Rightarrow>
+
+
+
+            undefined)
+       | (C, i) # N \<Rightarrow>
+         let
+           C = reduce (map fst (P @ Q)) C
+         in
+           if C = {#} then
+             Some Unsat
+           else if is_tautology C \<or> is_subsumed_by (map fst (P @ Q)) C then
+             deterministic_resolution_prover (N, P, Q, n)
+           else
+             let
+               P = map (apfst (reduce [C])) P;
+               P = filter (is_subsumed_by [C] \<circ> fst) N;
+               Q = map (apfst (reduce [C])) Q;
+               Q = filter (is_subsumed_by [C] \<circ> fst) N;
+               P = (C, i) # P
+             in
+               deterministic_resolution_prover (N, P, Q, n)))"
 
 
 (*
