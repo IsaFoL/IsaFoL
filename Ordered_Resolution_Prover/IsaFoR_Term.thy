@@ -110,8 +110,7 @@ next
 
     obtain \<sigma>_at :: "nat \<Rightarrow> 'v \<Rightarrow> ('f, 'v) term" where
       C_\<sigma>: "image_mset (\<lambda>L. subst_lit L (\<sigma>_at i)) (C_at (Suc i)) = C_at i" for i
-      using sg_C[unfolded strictly_generalizes_cls_def generalizes_cls_def subst_cls_def]
-      by metis
+      using sg_C[unfolded strictly_generalizes_cls_def generalizes_cls_def subst_cls_def] by metis
 
     define Ls_at :: "nat \<Rightarrow> ('f, 'v) term literal list" where
       "Ls_at = rec_nat (SOME Ls. mset Ls = C_at 0)
@@ -123,15 +122,12 @@ next
        (SOME Ls. mset Ls = C_at (Suc i) \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) Ls = Ls_at i)" for i
       unfolding Ls_at_def by simp+
 
-    have ex_Ls: "\<exists>Ls. mset Ls = C_at (Suc i) \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) Ls = Lsi"
-      if "mset Lsi = C_at i" for Lsi i
+    have ex_Ls: "\<exists>Ls. mset Ls = C_at (Suc i) \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) Ls = Ls_at i" for i
       sorry
 
     have Ls_\<sigma>: "map (\<lambda>L. subst_lit L (\<sigma>_at i)) (Ls_at (Suc i)) = Ls_at i" for i
-      apply (induct i)
-      apply (simp add: Ls_at_simps)
-
-      sorry
+      by (simp add: Ls_at_simps)
+        (rule someI_ex[of "\<lambda>x. P x \<and> f x = y" for P f y, THEN conjunct2, OF ex_Ls])
 
     have len_Ls: "length (Ls_at i) = n" for i
       sorry
