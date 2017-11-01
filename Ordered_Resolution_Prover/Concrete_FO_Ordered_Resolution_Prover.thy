@@ -277,9 +277,7 @@ definition resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause
 definition resolve_both_ways :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause list" where
   "resolve_both_ways C D = resolve C D @ resolve D C"
 
-primrec
-  pick_clause :: "'a weighted_clause \<Rightarrow> 'a weighted_clause list \<Rightarrow> 'a weighted_clause"
-where
+primrec pick_clause :: "'a weighted_clause \<Rightarrow> 'a weighted_clause list \<Rightarrow> 'a weighted_clause" where
   "pick_clause Ci [] = Ci"
 | "pick_clause Ci (Dj # Ds) = pick_clause (if weight Dj < weight Ci then Dj else Ci) Ds"
 
