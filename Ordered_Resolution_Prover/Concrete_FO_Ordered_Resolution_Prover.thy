@@ -221,8 +221,10 @@ end
 
 end
 
+type_synonym 'a list_clause = "'a literal list"
+type_synonym 'a weighted_list_clause = "'a list_clause \<times> nat"
 type_synonym 'a weighted_list_state =
-  "'a weighted_clause list \<times> 'a weighted_clause list \<times> 'a weighted_clause list \<times> nat"
+  "'a weighted_list_clause list \<times> 'a weighted_list_clause list \<times> 'a weighted_list_clause list \<times> nat"
 
 datatype 'a solution =
   Sat "'a clause list"
@@ -232,7 +234,7 @@ locale FO_resolution_prover_with_sum_product_weights =
   FO_resolution_prover_with_weights S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu
     less_atm weight
   for
-    S :: "('a :: wellorder) clause \<Rightarrow> _" and
+    S :: "('a :: wellorder) clause \<Rightarrow> _" and (* FIXME: assumption that no selection takes place? *)
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and
     comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
@@ -258,28 +260,29 @@ thm monotone_fairness
 
 thm monotone_completeness
 
-definition is_tautology :: "'a clause \<Rightarrow> bool" where
-  "is_tautology C \<longleftrightarrow> (\<exists>A \<in> atms_of C. Pos A \<in># C \<and> Neg A \<in># C)"
+definition is_tautology :: "'a list_clause \<Rightarrow> bool" where
+  "is_tautology C \<longleftrightarrow> (\<exists>A \<in> set (map atm_of C). Pos A \<in> set C \<and> Neg A \<in> set C)"
 
-definition is_subsumed_by :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> bool" where
-  "is_subsumed_by Ds C \<longleftrightarrow> (\<exists>D \<in> set Ds. subsumes D C)"
+definition is_subsumed_by :: "'a list_clause list \<Rightarrow> 'a list_clause \<Rightarrow> bool" where
+  "is_subsumed_by Ds C \<longleftrightarrow> (\<exists>D \<in> set Ds. subsumes (mset D) (mset C))"
 
-definition is_reducible_lit :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a literal \<Rightarrow> bool" where
+definition is_reducible_lit :: "'a list_clause list \<Rightarrow> 'a list_clause \<Rightarrow> 'a literal \<Rightarrow> bool" where
   "is_reducible_lit Ds C L \<longleftrightarrow>
-    (\<exists>D \<in> set Ds. \<exists>L' \<in># D. \<exists>\<sigma>. - L = L' \<cdot>l \<sigma> \<and> (D - {#L'#}) \<cdot> \<sigma> \<subseteq># C - {#L#})"
+   (\<exists>D \<in> set Ds. \<exists>L' \<in> set D. \<exists>\<sigma>. - L = L' \<cdot>l \<sigma> \<and> mset (remove1 L' D) \<cdot> \<sigma> \<subseteq># mset (remove1 L C))"
 
-definition reduce :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a clause" where
-  "reduce Ds C = filter_mset (is_reducible_lit Ds C) C"
+definition reduce :: "'a list_clause list \<Rightarrow> 'a list_clause \<Rightarrow> 'a list_clause" where
+  "reduce Ds C = filter (is_reducible_lit Ds C) C"
 
-definition resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause list" where
+definition resolve :: "'a list_clause \<Rightarrow> 'a list_clause \<Rightarrow> 'a list_clause list" where
   "resolve C D = undefined" (* FIXME *)
 
-definition resolve_both_ways :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause list" where
+definition resolve_both_ways :: "'a list_clause \<Rightarrow> 'a list_clause \<Rightarrow> 'a list_clause list" where
   "resolve_both_ways C D = resolve C D @ resolve D C"
 
-primrec pick_clause :: "'a weighted_clause \<Rightarrow> 'a weighted_clause list \<Rightarrow> 'a weighted_clause" where
-  "pick_clause Ci [] = Ci"
-| "pick_clause Ci (Dj # Ds) = pick_clause (if weight Dj < weight Ci then Dj else Ci) Ds"
+fun pick_clause :: "'a weighted_list_clause \<Rightarrow> 'a weighted_list_clause list \<Rightarrow> 'a weighted_list_clause" where
+  "pick_clause (C, i) [] = (C, i)"
+| "pick_clause (C, i) ((D, j) # Ds) =
+   pick_clause (if weight (mset D, j) < weight (mset C, i) then (D, j) else (C, i)) Ds"
 
 partial_function (option)
   deterministic_resolution_prover :: "'a weighted_list_state \<Rightarrow> 'a solution option"
