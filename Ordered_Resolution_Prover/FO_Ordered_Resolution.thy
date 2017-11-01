@@ -91,15 +91,6 @@ lemma ground_less_atm_iff: "is_ground_atm A \<Longrightarrow> is_ground_atm B \<
 lemma ground_less_eq_atm_iff: "is_ground_atm A \<Longrightarrow> is_ground_atm B \<Longrightarrow> less_eq_atm A B \<longleftrightarrow> A \<le> B"
   unfolding less_eq_atm_def ground_less_atm_iff by fastforce
 
-definition subsumes :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
-  "subsumes C D \<longleftrightarrow> (\<exists>\<sigma>. C \<cdot> \<sigma> \<subseteq># D)"
-
-definition strictly_subsumes :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
-  "strictly_subsumes C D \<longleftrightarrow> subsumes C D \<and> \<not> subsumes D C"
-
-definition variants :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
-  "variants C D \<longleftrightarrow> subsumes C D \<and> subsumes D C"
-
 inductive true_fo_cls :: "'a interp \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>fo" 50) where
   true_fo_cls: "(\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile> C \<cdot> \<sigma>) \<Longrightarrow> I \<Turnstile>fo C"
 
