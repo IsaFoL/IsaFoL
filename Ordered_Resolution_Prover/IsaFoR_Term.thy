@@ -181,9 +181,7 @@ next
       unfolding tm_at_def generalizes_atm_def using Ls_\<sigma>[THEN arg_cong, of "map atm_of"]
       by (auto simp: comp_def)
     moreover have "\<not> generalizes_atm (tm_at i) (tm_at (Suc i))" for i
-      unfolding tm_at_def generalizes_atm_def
-      apply simp
-      sorry
+      unfolding tm_at_def generalizes_atm_def by (simp add: Ls_\<sigma>_strict_tm)
     ultimately have "strictly_generalizes_atm (tm_at (Suc i)) (tm_at i)" for i
       unfolding strictly_generalizes_atm_def by blast
     then have "tm_at (Suc i) <\<cdot> tm_at i" for i
