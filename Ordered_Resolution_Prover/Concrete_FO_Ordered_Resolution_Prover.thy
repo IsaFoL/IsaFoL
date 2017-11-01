@@ -266,7 +266,9 @@ where
   "deterministic_resolution_prover NPQn =
    (let
       (N, P, Q, n) = NPQn;
-      N = filter (\<lambda>(C, _). is_tautology C \<or> is_subsumed_by (map fst (P @ Q)) C) N
+      N = filter (\<lambda>(C, _). is_tautology C \<or> is_subsumed_by (map fst (P @ Q)) C) N;
+      P = filter (\<lambda>(C, _). is_subsumed_by (map fst N) C) P;
+      Q = filter (\<lambda>(C, _). is_subsumed_by (map fst N) C) Q
     in
       deterministic_resolution_prover (N, P, Q, n)
    )"
