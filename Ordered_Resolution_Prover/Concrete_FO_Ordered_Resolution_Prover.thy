@@ -260,7 +260,7 @@ locale FO_resolution_prover_with_sum_product_weights =
   assumes
     i_pos: "i > 0" and
     j_pos:"j > 0" and
-    weight_def: "weight = (\<lambda>(C, m). i * m + j * size C)"
+    weight_def: "weight = (\<lambda>(C, m). i * m + j * size_multiset (size_literal size) C)"
 begin
 
 sublocale FO_resolution_prover_with_monotone_weights
