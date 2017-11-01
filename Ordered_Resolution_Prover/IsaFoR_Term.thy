@@ -145,17 +145,17 @@ next
     have is_pos_Ls: "is_pos (Ls_at (Suc i) ! j) \<longleftrightarrow> is_pos (Ls_at i ! j)" if "j < n" for i j
       using that Ls_\<sigma> len_Ls by (metis literal.map_disc_iff nth_map subst_lit_def)
 
-    have Ls_\<sigma>_strict_lit: "map (\<lambda>L. subst_lit L \<tau>) (Ls_at i) \<noteq> Ls_at (Suc i)" for i \<tau>
+    have Ls_\<tau>_strict_lit: "map (\<lambda>L. subst_lit L \<tau>) (Ls_at i) \<noteq> Ls_at (Suc i)" for i \<tau>
       by (metis C_\<sigma> mset_Ls Ls_\<sigma> mset_map sg_C generalizes_cls_def strictly_generalizes_cls_def
           subst_cls_def)
 
-    have Ls_\<sigma>_strict_tm:
+    have Ls_\<tau>_strict_tm:
       "map ((\<lambda>t. t \<cdot> \<tau>) \<circ> atm_of) (Ls_at i) \<noteq> map atm_of (Ls_at (Suc i))" (is "?lhs \<noteq> ?rhs") for i \<tau>
     proof -
       obtain j :: nat where
         j_lt: "j < n" and
         j_\<tau>: "subst_lit (Ls_at i ! j) \<tau> \<noteq> Ls_at (Suc i) ! j"
-        using Ls_\<sigma>_strict_lit[of \<tau> i] len_Ls by (metis (no_types) map_nth_eq_conv)
+        using Ls_\<tau>_strict_lit[of \<tau> i] len_Ls by (metis (no_types) map_nth_eq_conv)
 
       have "atm_of (Ls_at i ! j) \<cdot> \<tau> \<noteq> atm_of (Ls_at (Suc i) ! j)"
         using j_\<tau> is_pos_Ls[OF j_lt]
@@ -171,7 +171,7 @@ next
       unfolding tm_at_def generalizes_atm_def using Ls_\<sigma>[THEN arg_cong, of "map atm_of"]
       by (auto simp: comp_def)
     moreover have "\<not> generalizes_atm (tm_at i) (tm_at (Suc i))" for i
-      unfolding tm_at_def generalizes_atm_def by (simp add: Ls_\<sigma>_strict_tm)
+      unfolding tm_at_def generalizes_atm_def by (simp add: Ls_\<tau>_strict_tm)
     ultimately have "strictly_generalizes_atm (tm_at (Suc i)) (tm_at i)" for i
       unfolding strictly_generalizes_atm_def by blast
     then have "tm_at (Suc i) <\<cdot> tm_at i" for i
