@@ -277,10 +277,11 @@ definition resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause
 definition resolve_both_ways :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause list" where
   "resolve_both_ways C D = resolve C D @ resolve D C"
 
-definition
-  find_next_clause :: "'a weighted_clause \<Rightarrow> 'a weighted_clause list \<Rightarrow> 'a weighted_clause"
+primrec
+  pick_clause :: "'a weighted_clause \<Rightarrow> 'a weighted_clause list \<Rightarrow> 'a weighted_clause"
 where
-  "find_next_clause = undefined" (* FIXME *)
+  "pick_clause Ci [] = Ci"
+| "pick_clause Ci (Dj # Ds) = pick_clause (if weight Dj < weight Ci then Dj else Ci) Ds"
 
 partial_function (option)
   deterministic_resolution_prover :: "'a weighted_list_state \<Rightarrow> 'a solution option"
@@ -295,7 +296,7 @@ where
             [] \<Rightarrow> Some (Sat (map fst Q))
           | (C, i) # P' \<Rightarrow>
             let
-              (C, i) = find_next_clause (C, i) P';
+              (C, i) = pick_clause (C, i) P';
               P = remove1 (C, i) P;
               N = map (\<lambda>D. (D, Suc n)) (resolve C C @ concat (map (resolve_both_ways C \<circ> fst) Q))
             in
@@ -318,16 +319,7 @@ where
              in
                deterministic_resolution_prover (N, P, Q, n)))"
 
-
-(*
-      (case N of
-        [] \<Rightarrow> Some undefined (*FIXME*)
-      | Ci # N' \<Rightarrow> find_next_clause Ci N')
-*)
-
-
 print_theorems
-term deterministic_resolution_prover
 
 end
 
