@@ -253,11 +253,14 @@ thm monotone_completeness
 
 end
 
+type_synonym 'a weighted_list_state =
+  "'a weighted_clause list \<times> 'a weighted_clause list \<times> 'a weighted_clause list \<times> nat"
+
 definition is_tautology :: "'a clause \<Rightarrow> bool" where
   "is_tautology C \<longleftrightarrow> (\<exists>A \<in> atms_of C. Pos A \<in># C \<and> Neg A \<in># C)"
 
-type_synonym 'a weighted_list_state =
-  "'a weighted_clause list \<times> 'a weighted_clause list \<times> 'a weighted_clause list \<times> nat"
+definition is_subsumed_by :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  "is_subsumed_by Ds C \<longleftrightarrow> (\<exists>D \<in> set Ds. subsumes )"
 
 partial_function (option)
   deterministic_resolution_prover :: "'a weighted_list_state \<Rightarrow> bool option"
@@ -265,9 +268,10 @@ where
   "deterministic_resolution_prover NPQn =
    (let
       (N, P, Q, n) = NPQn;
-      N1 = filter (is_tautology \<circ> fst) N
+      N = filter (\<lambda>(C, _). is_tautology C \<or> is_subsumed_by (P @ Q) C) N;
+      N = filter ( ) N
     in
-      deterministic_resolution_prover (N1, P, Q, n)
+      deterministic_resolution_prover (N, P, Q, n)
    )"
 
 print_theorems

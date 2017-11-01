@@ -96,6 +96,15 @@ definition generalizes_cls :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> b
 definition strictly_generalizes_cls :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   "strictly_generalizes_cls C D \<longleftrightarrow> generalizes_cls C D \<and> \<not> generalizes_cls D C"
 
+definition subsumes :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  "subsumes C D \<longleftrightarrow> (\<exists>\<sigma>. C \<cdot> \<sigma> \<subseteq># D)"
+
+definition strictly_subsumes :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  "strictly_subsumes C D \<longleftrightarrow> subsumes C D \<and> \<not> subsumes D C"
+
+definition variants :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  "variants C D \<longleftrightarrow> generalizes_cls C D \<and> generalizes_cls D C"
+
 definition is_renaming :: "'s \<Rightarrow> bool" where
   "is_renaming \<sigma> \<longleftrightarrow> (\<exists>\<tau>. \<sigma> \<odot> \<tau> = id_subst)"
 
@@ -911,7 +920,23 @@ lemma is_unifiers_is_unifier: "is_unifiers \<sigma> AAA \<Longrightarrow> AA \<i
   using is_unifiers_def by auto
 
 
-subsubsection \<open>Wellfoundness of strict generalization\<close>
+subsubsection \<open>Generalization and subsumption\<close>
+
+lemma variants_iff_subsumes: "variants C D \<longleftrightarrow> subsumes C D \<and> subsumes D C"
+proof
+  assume "variants C D"
+  then show "subsumes C D \<and> subsumes D C"
+    unfolding variants_def generalizes_cls_def subsumes_def by (metis subset_mset.dual_order.refl)
+next
+  assume sub: "subsumes C D \<and> subsumes D C"
+  then have "size C = size D"
+    unfolding subsumes_def
+    by (metis antisym size_image_mset size_mset_mono substitution_ops.subst_cls_def)
+  then show "variants C D"
+    using sub unfolding subsumes_def variants_def generalizes_cls_def
+    by (smt add.right_neutral cancel_comm_monoid_add_class.diff_cancel size_Diff_submset
+        size_eq_0_iff_empty size_image_mset subset_mset.add_diff_inverse subst_cls_def)
+qed
 
 lemma wf_strictly_generalizes_cls: "wfP strictly_generalizes_cls"
 proof -

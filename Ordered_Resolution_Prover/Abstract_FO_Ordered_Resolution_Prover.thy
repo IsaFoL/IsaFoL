@@ -1176,7 +1176,7 @@ lemma variants_sym: "variants D D' \<longleftrightarrow> variants D' D"
   unfolding variants_def by auto
 
 lemma variants_imp_exists_subtitution: "variants D D' \<Longrightarrow> \<exists>\<sigma>. D \<cdot> \<sigma> = D'"
-  unfolding variants_def subsumes_def
+  unfolding variants_iff_subsumes subsumes_def
   by (meson strictly_subsumes_def subset_mset_def subset_subst_strictly_subsumes subsumes_def)
 
 lemma properly_subsume_variants:
@@ -1316,7 +1316,7 @@ proof -
     then have "subsumes D D'"
       unfolding strictly_subsumes_def using D'_p by auto
     then have v: "variants D D'"
-      using D'_p unfolding variants_def by auto
+      using D'_p unfolding variants_iff_subsumes by auto
     then have mini: "\<forall>E \<in> {E \<in> clss_of_state (sup_state Sts). subsumes E C}. \<not> strictly_subsumes E D'"
       using d_least D'_p neg_properly_subsume_variants[of _ D D'] by auto
 
