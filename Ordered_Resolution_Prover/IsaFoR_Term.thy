@@ -45,7 +45,7 @@ lemma len_renamings_apart': "length (renamings_apart' X Cs) = length Cs"
 
 interpretation substitution_ops "op \<cdot>" Var "op \<circ>\<^sub>s" .
 
-interpretation substitution "op \<cdot>" "Var :: _ \<Rightarrow> ('f, nat) term" "op \<circ>\<^sub>s" renamings_apart
+interpretation substitution "op \<cdot>" "Var :: _ \<Rightarrow> ('f, nat) term" "op \<circ>\<^sub>s" "Fun undefined" renamings_apart
 proof
   show "\<And>A. A \<cdot> Var = A"
     by auto
@@ -90,98 +90,13 @@ next
     Ball (set (renamings_apart Cs)) is_renaming \<and> var_disjoint (subst_cls_lists Cs (renamings_apart Cs))"
     by simp
 next
-  {
-    assume "\<exists>C_at :: nat \<Rightarrow> ('f, 'v) term clause.
-      \<forall>i. strictly_generalizes_cls (C_at (Suc i)) (C_at i)"
-    then obtain C_at :: "nat \<Rightarrow> ('f, 'v) term clause" where
-      sg_C: "strictly_generalizes_cls (C_at (Suc i)) (C_at i)" for i
-      by blast
-
-    define n :: nat where
-      "n = size (C_at 0)"
-
-    have sz_C: "size (C_at i) = n" for i
-    proof (induct i)
-      case (Suc i)
-      then show ?case
-        using sg_C[of i] unfolding strictly_generalizes_cls_def generalizes_cls_def subst_cls_def
-        by (metis size_image_mset)
-    qed (simp add: n_def)
-
-    obtain \<sigma>_at :: "nat \<Rightarrow> 'v \<Rightarrow> ('f, 'v) term" where
-      C_\<sigma>: "image_mset (\<lambda>L. subst_lit L (\<sigma>_at i)) (C_at (Suc i)) = C_at i" for i
-      using sg_C[unfolded strictly_generalizes_cls_def generalizes_cls_def subst_cls_def] by metis
-
-    define Ls_at :: "nat \<Rightarrow> ('f, 'v) term literal list" where
-      "Ls_at = rec_nat (SOME Ls. mset Ls = C_at 0)
-         (\<lambda>i Lsi. SOME Ls. mset Ls = C_at (Suc i) \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) Ls = Lsi)"
-
-    have
-      Ls_at_0: "Ls_at 0 = (SOME Ls. mset Ls = C_at 0)" and
-      Ls_at_Suc: "Ls_at (Suc i) =
-        (SOME Ls. mset Ls = C_at (Suc i) \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) Ls = Ls_at i)" for i
-      unfolding Ls_at_def by simp+
-
-    have mset_Lt_at_0: "mset (Ls_at 0) = C_at 0"
-      unfolding Ls_at_0 by (rule someI_ex) (metis list_of_mset_exi)
-
-    have "mset (Ls_at (Suc i)) = C_at (Suc i)
-      \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) (Ls_at (Suc i)) = Ls_at i" for i
-    proof (induct i)
-      case 0
-      then show ?case
-        by (simp add: Ls_at_Suc, rule someI_ex,
-            metis C_\<sigma> image_mset_of_subset_list mset_Lt_at_0)
-    next
-      case Suc
-      then show ?case
-        by (subst (1 2) Ls_at_Suc) (rule someI_ex, metis C_\<sigma> image_mset_of_subset_list)
-    qed
-    note mset_Ls = this[THEN conjunct1] and Ls_\<sigma> = this[THEN conjunct2]
-
-    have len_Ls: "length (Ls_at i) = n" for i
-      by (metis mset_Ls mset_Lt_at_0 not0_implies_Suc size_mset sz_C)
-
-    have is_pos_Ls: "is_pos (Ls_at (Suc i) ! j) \<longleftrightarrow> is_pos (Ls_at i ! j)" if "j < n" for i j
-      using that Ls_\<sigma> len_Ls by (metis literal.map_disc_iff nth_map subst_lit_def)
-
-    have Ls_\<tau>_strict_lit: "map (\<lambda>L. subst_lit L \<tau>) (Ls_at i) \<noteq> Ls_at (Suc i)" for i \<tau>
-      by (metis C_\<sigma> mset_Ls Ls_\<sigma> mset_map sg_C generalizes_cls_def strictly_generalizes_cls_def
-          subst_cls_def)
-
-    have Ls_\<tau>_strict_tm:
-      "map ((\<lambda>t. t \<cdot> \<tau>) \<circ> atm_of) (Ls_at i) \<noteq> map atm_of (Ls_at (Suc i))" (is "?lhs \<noteq> ?rhs") for i \<tau>
-    proof -
-      obtain j :: nat where
-        j_lt: "j < n" and
-        j_\<tau>: "subst_lit (Ls_at i ! j) \<tau> \<noteq> Ls_at (Suc i) ! j"
-        using Ls_\<tau>_strict_lit[of \<tau> i] len_Ls by (metis (no_types) map_nth_eq_conv)
-
-      have "atm_of (Ls_at i ! j) \<cdot> \<tau> \<noteq> atm_of (Ls_at (Suc i) ! j)"
-        using j_\<tau> is_pos_Ls[OF j_lt]
-        by (metis (mono_guards) literal.expand literal.map_disc_iff literal.map_sel subst_lit_def)
-      then show ?thesis
-        using j_lt len_Ls map_nth_conv by fastforce
-    qed
-
-    define tm_at :: "nat \<Rightarrow> ('f, 'v) term" where
-      "\<And>i. tm_at i = Fun undefined (map atm_of (Ls_at i))"
-
-    have "generalizes_atm (tm_at (Suc i)) (tm_at i)" for i
-      unfolding tm_at_def generalizes_atm_def using Ls_\<sigma>[THEN arg_cong, of "map atm_of"]
-      by (auto simp: comp_def)
-    moreover have "\<not> generalizes_atm (tm_at i) (tm_at (Suc i))" for i
-      unfolding tm_at_def generalizes_atm_def by (simp add: Ls_\<tau>_strict_tm)
-    ultimately have "strictly_generalizes_atm (tm_at (Suc i)) (tm_at i)" for i
-      unfolding strictly_generalizes_atm_def by blast
-    then have "tm_at (Suc i) <\<cdot> tm_at i" for i
-      unfolding strictly_generalizes_atm_def generalizes_atm_def term_subsumable.subsumes_def
-      by (metis subsumeseq_term.simps)
-    then have False
-      using wf_subsumes[unfolded wf_iff_no_infinite_down_chain mem_Collect_eq prod.case] by blast
-  }
-  then show "wfP (strictly_generalizes_cls :: ('f, 'v) term clause \<Rightarrow> _ \<Rightarrow> _)"
-    unfolding wfP_def by (blast intro: wf_iff_no_infinite_down_chain[THEN iffD2])
+  show "\<And>\<sigma> As Bs. Fun undefined As \<cdot> \<sigma> = Fun undefined Bs \<longleftrightarrow> map (\<lambda>A. A \<cdot> \<sigma>) As = Bs"
+    by simp
+next
+  show "wfP (strictly_generalizes_atm :: ('f, 'v) term \<Rightarrow> _ \<Rightarrow> _)"
+    unfolding wfP_def
+    by (rule wf_subset[OF wf_subsumes])
+      (auto simp: strictly_generalizes_atm_def generalizes_atm_def term_subsumable.subsumes_def subsumeseq_term.simps)
 qed
 
 
