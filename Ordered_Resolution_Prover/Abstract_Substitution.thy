@@ -61,7 +61,7 @@ definition subst_cls_list :: "'a clause list \<Rightarrow> 's \<Rightarrow> 'a c
   "CC \<cdot>cl \<sigma> = map (\<lambda>A. A \<cdot> \<sigma>) CC"
 
 definition subst_cls_lists :: "'a clause list \<Rightarrow> 's list \<Rightarrow> 'a clause list" (infixl "\<cdot>\<cdot>cl" 67) where
-  "CC \<cdot>\<cdot>cl \<sigma>s = map2 subst_cls CC \<sigma>s"
+  "CC \<cdot>\<cdot>cl \<sigma>s = map2 (op \<cdot>) CC \<sigma>s"
 
 definition subst_cls_mset :: "'a clause multiset \<Rightarrow> 's \<Rightarrow> 'a clause multiset" (infixl "\<cdot>cm" 67) where
   "CC \<cdot>cm \<sigma> = image_mset (\<lambda>A. A \<cdot> \<sigma>) CC"
@@ -912,7 +912,7 @@ proof -
   {
     assume "\<exists>C_at. \<forall>i. strictly_generalizes_cls (C_at (Suc i)) (C_at i)"
     then obtain C_at :: "nat \<Rightarrow> 'a clause" where
-      sg_C: "strictly_generalizes_cls (C_at (Suc i)) (C_at i)" for i
+      sg_C: "\<And>i. strictly_generalizes_cls (C_at (Suc i)) (C_at i)"
       by blast
 
     define n :: nat where
@@ -927,24 +927,24 @@ proof -
     qed (simp add: n_def)
 
     obtain \<sigma>_at :: "nat \<Rightarrow> 's" where
-      C_\<sigma>: "image_mset (\<lambda>L. subst_lit L (\<sigma>_at i)) (C_at (Suc i)) = C_at i" for i
+      C_\<sigma>: "\<And>i. image_mset (\<lambda>L. L \<cdot>l \<sigma>_at i) (C_at (Suc i)) = C_at i"
       using sg_C[unfolded strictly_generalizes_cls_def generalizes_cls_def subst_cls_def] by metis
 
     define Ls_at :: "nat \<Rightarrow> 'a literal list" where
       "Ls_at = rec_nat (SOME Ls. mset Ls = C_at 0)
-         (\<lambda>i Lsi. SOME Ls. mset Ls = C_at (Suc i) \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) Ls = Lsi)"
+         (\<lambda>i Lsi. SOME Ls. mset Ls = C_at (Suc i) \<and> map (\<lambda>L. L \<cdot>l \<sigma>_at i) Ls = Lsi)"
 
     have
       Ls_at_0: "Ls_at 0 = (SOME Ls. mset Ls = C_at 0)" and
-      Ls_at_Suc: "Ls_at (Suc i) =
-        (SOME Ls. mset Ls = C_at (Suc i) \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) Ls = Ls_at i)" for i
+      Ls_at_Suc: "\<And>i. Ls_at (Suc i) =
+        (SOME Ls. mset Ls = C_at (Suc i) \<and> map (\<lambda>L. L \<cdot>l \<sigma>_at i) Ls = Ls_at i)"
       unfolding Ls_at_def by simp+
 
     have mset_Lt_at_0: "mset (Ls_at 0) = C_at 0"
       unfolding Ls_at_0 by (rule someI_ex) (metis list_of_mset_exi)
 
-    have "mset (Ls_at (Suc i)) = C_at (Suc i)
-      \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) (Ls_at (Suc i)) = Ls_at i" for i
+    have "mset (Ls_at (Suc i)) = C_at (Suc i) \<and> map (\<lambda>L. L \<cdot>l \<sigma>_at i) (Ls_at (Suc i)) = Ls_at i"
+      for i
     proof (induct i)
       case 0
       then show ?case
@@ -957,22 +957,22 @@ proof -
     qed
     note mset_Ls = this[THEN conjunct1] and Ls_\<sigma> = this[THEN conjunct2]
 
-    have len_Ls: "length (Ls_at i) = n" for i
+    have len_Ls: "\<And>i. length (Ls_at i) = n"
       by (metis mset_Ls mset_Lt_at_0 not0_implies_Suc size_mset sz_C)
 
-    have is_pos_Ls: "is_pos (Ls_at (Suc i) ! j) \<longleftrightarrow> is_pos (Ls_at i ! j)" if "j < n" for i j
-      using that Ls_\<sigma> len_Ls by (metis literal.map_disc_iff nth_map subst_lit_def)
+    have is_pos_Ls: "\<And>i j. j < n \<Longrightarrow> is_pos (Ls_at (Suc i) ! j) \<longleftrightarrow> is_pos (Ls_at i ! j)"
+      using Ls_\<sigma> len_Ls by (metis literal.map_disc_iff nth_map subst_lit_def)
 
-    have Ls_\<tau>_strict_lit: "map (\<lambda>L. subst_lit L \<tau>) (Ls_at i) \<noteq> Ls_at (Suc i)" for i \<tau>
+    have Ls_\<tau>_strict_lit: "\<And>i \<tau>. map (\<lambda>L. L \<cdot>l \<tau>) (Ls_at i) \<noteq> Ls_at (Suc i)"
       by (metis C_\<sigma> mset_Ls Ls_\<sigma> mset_map sg_C generalizes_cls_def strictly_generalizes_cls_def
           subst_cls_def)
 
     have Ls_\<tau>_strict_tm:
-      "map ((\<lambda>t. t \<cdot>a \<tau>) \<circ> atm_of) (Ls_at i) \<noteq> map atm_of (Ls_at (Suc i))" (is "?lhs \<noteq> ?rhs") for i \<tau>
+      "map ((\<lambda>t. t \<cdot>a \<tau>) \<circ> atm_of) (Ls_at i) \<noteq> map atm_of (Ls_at (Suc i))" for i \<tau>
     proof -
       obtain j :: nat where
         j_lt: "j < n" and
-        j_\<tau>: "subst_lit (Ls_at i ! j) \<tau> \<noteq> Ls_at (Suc i) ! j"
+        j_\<tau>: "Ls_at i ! j \<cdot>l \<tau> \<noteq> Ls_at (Suc i) ! j"
         using Ls_\<tau>_strict_lit[of \<tau> i] len_Ls
         by (metis (no_types, lifting) length_map list_eq_iff_nth_eq nth_map)
 
@@ -986,12 +986,12 @@ proof -
     define tm_at :: "nat \<Rightarrow> 'a" where
       "\<And>i. tm_at i = atm_of_atms (map atm_of (Ls_at i))"
 
-    have "generalizes_atm (tm_at (Suc i)) (tm_at i)" for i
+    have "\<And>i. generalizes_atm (tm_at (Suc i)) (tm_at i)"
       unfolding tm_at_def generalizes_atm_def atm_of_atms_subst
       using Ls_\<sigma>[THEN arg_cong, of "map atm_of"] by (auto simp: comp_def)
-    moreover have "\<not> generalizes_atm (tm_at i) (tm_at (Suc i))" for i
+    moreover have "\<And>i. \<not> generalizes_atm (tm_at i) (tm_at (Suc i))"
       unfolding tm_at_def generalizes_atm_def atm_of_atms_subst by (simp add: Ls_\<tau>_strict_tm)
-    ultimately have "strictly_generalizes_atm (tm_at (Suc i)) (tm_at i)" for i
+    ultimately have "\<And>i. strictly_generalizes_atm (tm_at (Suc i)) (tm_at i)"
       unfolding strictly_generalizes_atm_def by blast
     then have False
       using wf_strictly_generalizes_atm[unfolded wfP_def wf_iff_no_infinite_down_chain] by blast
