@@ -221,6 +221,9 @@ end
 
 end
 
+type_synonym 'a weighted_list_state =
+  "'a weighted_clause list \<times> 'a weighted_clause list \<times> 'a weighted_clause list \<times> nat"
+
 locale FO_resolution_prover_with_sum_product_weights =
   FO_resolution_prover_with_weights S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu
     less_atm weight
@@ -251,16 +254,11 @@ thm monotone_fairness
 
 thm monotone_completeness
 
-end
-
-type_synonym 'a weighted_list_state =
-  "'a weighted_clause list \<times> 'a weighted_clause list \<times> 'a weighted_clause list \<times> nat"
-
 definition is_tautology :: "'a clause \<Rightarrow> bool" where
   "is_tautology C \<longleftrightarrow> (\<exists>A \<in> atms_of C. Pos A \<in># C \<and> Neg A \<in># C)"
 
 definition is_subsumed_by :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> bool" where
-  "is_subsumed_by Ds C \<longleftrightarrow> (\<exists>D \<in> set Ds. subsumes )"
+  "is_subsumed_by Ds C \<longleftrightarrow> (\<exists>D \<in> set Ds. subsumes D C)"
 
 partial_function (option)
   deterministic_resolution_prover :: "'a weighted_list_state \<Rightarrow> bool option"
@@ -268,13 +266,14 @@ where
   "deterministic_resolution_prover NPQn =
    (let
       (N, P, Q, n) = NPQn;
-      N = filter (\<lambda>(C, _). is_tautology C \<or> is_subsumed_by (P @ Q) C) N;
-      N = filter ( ) N
+      N = filter (\<lambda>(C, _). is_tautology C \<or> is_subsumed_by (map fst (P @ Q)) C) N
     in
       deterministic_resolution_prover (N, P, Q, n)
    )"
 
 print_theorems
 term deterministic_resolution_prover
+
+end
 
 end
