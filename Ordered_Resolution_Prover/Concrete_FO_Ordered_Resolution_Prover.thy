@@ -227,7 +227,7 @@ type_synonym 'a weighted_list_state =
   "'a weighted_list_clause list \<times> 'a weighted_list_clause list \<times> 'a weighted_list_clause list \<times> nat"
 
 datatype 'a solution =
-  Sat "'a clause list"
+  Sat "'a list_clause list"
 | Unsat
 
 locale FO_resolution_prover_with_sum_product_weights =
@@ -306,7 +306,7 @@ where
          let
            C = reduce (map fst (P @ Q)) C
          in
-           if C = {#} then
+           if C = [] then
              Some Unsat
            else if is_tautology C \<or> is_subsumed_by (map fst (P @ Q)) C then
              deterministic_resolution_prover (N, P, Q, n)
