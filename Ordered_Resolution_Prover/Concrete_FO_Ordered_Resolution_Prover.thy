@@ -17,13 +17,6 @@ theory Concrete_FO_Ordered_Resolution_Prover
   imports Abstract_FO_Ordered_Resolution_Prover
 begin
 
-partial_function (option) while where
- "while b c s = (if b s then while b c (c s) else Some s)"
-
-print_theorems
-term while
-
-
 locale FO_resolution_prover_with_weights =
   FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu less_atm
   for
@@ -34,10 +27,11 @@ locale FO_resolution_prover_with_weights =
     renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
     atm_of_atms :: "'a list \<Rightarrow> 'a" and
     mgu :: "'a set set \<Rightarrow> 's option" and
-    less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
-  +
+    less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" +
   fixes
-    weight :: "('a clause \<times> nat) \<Rightarrow> nat" 
+    weight :: "'a clause \<times> nat \<Rightarrow> nat" 
+  assumes
+    weight_monotone: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
 begin
 
 fun state_of_nth_state :: "'a nth_state \<Rightarrow> 'a state" where
@@ -75,25 +69,6 @@ inductive resolution_prover_with_weights :: "'a nth_state \<Rightarrow> 'a nth_s
     "\<forall>(D, j)\<in>P. weight (C, i) \<le> weight (D, j) \<Longrightarrow>
      N = (\<lambda>D. (D, Suc n)) ` concls_of (ord_FO_resolution_inferences_between (fst ` Q) C) \<Longrightarrow>
      ({}, P \<union> {(C, i)}, Q, n) \<leadsto>\<^sub>w (N, P, Q \<union> {(C, i)}, Suc n)"
-
-end
-
-locale FO_resolution_prover_with_monotone_weights =
-  FO_resolution_prover_with_weights S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu
-    less_atm weight
-  for
-    S :: "('a :: wellorder) clause \<Rightarrow> _" and
-    subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
-    id_subst :: "'s" and
-    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
-    renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
-    atm_of_atms :: "'a list \<Rightarrow> 'a" and
-    mgu :: "'a set set \<Rightarrow> 's option" and
-    less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
-    weight :: "'a clause \<times> nat \<Rightarrow> nat" +
-  assumes 
-    weight_monotone: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
-begin
 
 lemma generation_no_lte_weight: "n \<le> weight (C, n)"
 proof(induction n)
@@ -262,10 +237,11 @@ locale FO_resolution_prover_with_sum_product_weights =
     size_factor :: nat
   assumes
     generation_factor_pos: "generation_factor > 0" and
-    weight_def: "weight (C, m) = generation_factor * m + size_factor * size_multiset (size_literal size_atm) C"
+    weight_def: "weight (C, m) =
+      generation_factor * m + size_factor * size_multiset (size_literal size_atm) C"
 begin
 
-sublocale FO_resolution_prover_with_monotone_weights
+sublocale FO_resolution_prover_with_weights
   using generation_factor_pos by unfold_locales (simp add: weight_def)
 
 thm monotone_fairness
@@ -273,5 +249,13 @@ thm monotone_fairness
 thm monotone_completeness
 
 end
+
+
+(* FIXME: example from Dmitriy *)
+partial_function (option) while where
+ "while b c s = (if b s then while b c (c s) else Some s)"
+
+print_theorems
+term while
 
 end
