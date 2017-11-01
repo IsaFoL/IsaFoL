@@ -97,8 +97,18 @@ next
       f: "\<And>i. strictly_generalizes_cls (C_at (Suc i)) (C_at i)"
       by blast
 
-    obtain Ls_at :: "nat \<Rightarrow> ('f, 'v) term literal list" where
-      "\<And>i. list_all2 (rel_literal strictly_generalizes_atm) (Ls_at (Suc i)) (Ls_at i)"
+    define n where
+      "n = size (C_at 0)"
+
+    have sz_C_n: "size (C_at i) = n" for i
+      sorry
+
+    obtain
+      Ls_at :: "nat \<Rightarrow> ('f, 'v) term literal list" and
+      \<sigma>_at :: "nat \<Rightarrow> 'v \<Rightarrow> ('f, 'v) term"
+    where
+      Ls_\<sigma>: "\<And>i. map (\<lambda>L. subst_lit L (\<sigma>_at i)) (Ls_at (Suc i)) = Ls_at i" and
+      Ls_\<sigma>_strict: "\<And>i. \<exists>j < n. \<not> generalizes_lit (Ls_at (Suc i) ! j) (Ls_at i ! j)"
       sorry
 
     let ?f = undefined
@@ -107,7 +117,8 @@ next
       "\<And>i. tm_at i = Fun ?f (map atm_of (Ls_at i))"
 
     have "generalizes_atm (tm_at (Suc i)) (tm_at i)" for i
-      sorry
+      unfolding tm_at_def generalizes_atm_def using Ls_\<sigma>[THEN arg_cong, of "map atm_of"]
+      by (auto simp: comp_def)
     moreover have "\<not> generalizes_atm (tm_at i) (tm_at (Suc i))" for i
       sorry
     ultimately have "strictly_generalizes_atm (tm_at (Suc i)) (tm_at i)" for i
