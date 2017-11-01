@@ -133,11 +133,9 @@ next
         by (simp add: Ls_at_simps(2), rule someI_ex,
             metis C_\<sigma> image_mset_of_subset_list mset_Lt_at_0)
     next
-      case (Suc i)
+      case Suc
       then show ?case
-        
-        
-        sorry
+        by (subst (1 2) Ls_at_simps(2)) (rule someI_ex, metis C_\<sigma> image_mset_of_subset_list)
     qed
     note mset_Ls_at = this[THEN conjunct1] and Ls_\<sigma> = this[THEN conjunct2]
 
