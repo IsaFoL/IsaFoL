@@ -112,8 +112,8 @@ next
       Ls_\<sigma>_strict_lit: "\<exists>j < n. \<not> generalizes_lit (Ls_at i ! j) (Ls_at (Suc i) ! j)" for i
       sorry
 
-    have is_pos_Ls: "is_pos (Ls_at (Suc i) ! j) \<longleftrightarrow> is_pos (Ls_at i ! j)" for i j
-      sorry
+    have is_pos_Ls: "is_pos (Ls_at (Suc i) ! j) \<longleftrightarrow> is_pos (Ls_at i ! j)" if "j < n" for i j
+      using that Ls_\<sigma> len_Ls by (metis literal.map_disc_iff nth_map subst_lit_def)
 
     have Ls_\<sigma>_strict_tm:
       "\<exists>j < n. \<not> generalizes_atm (atm_of (Ls_at i ! j)) (atm_of (Ls_at (Suc i) ! j))" for i
