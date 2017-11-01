@@ -16,7 +16,7 @@ session Ordered_Resolution_Prover = Ordered_Resolution_Prover_Base +
     timeout=200]
   theories [document = false]
   theories
-    Concrete_FO_Ordered_Resolution_Prover
+    Executable_FO_Ordered_Resolution_Prover
   document_files
     "bib.bib"
     "root.tex"
