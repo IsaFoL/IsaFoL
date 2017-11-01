@@ -122,18 +122,19 @@ next
        (SOME Ls. mset Ls = C_at (Suc i) \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) Ls = Ls_at i)" for i
       unfolding Ls_at_def by simp+
 
-    have ex_Ls: "\<exists>Ls. mset Ls = C_at (Suc i) \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) Ls = Ls_at i" for i
-      sorry
+    have mset_Lt_at_0: "mset (Ls_at 0) = C_at 0"
+      unfolding Ls_at_simps by (rule someI_ex) (metis list_of_mset_exi)
 
-    have Ls_\<sigma>: "map (\<lambda>L. subst_lit L (\<sigma>_at i)) (Ls_at (Suc i)) = Ls_at i" for i
-      by (simp add: Ls_at_simps)
-        (rule someI_ex[of "\<lambda>x. P x \<and> f x = y" for P f y, THEN conjunct2, OF ex_Ls])
+    have
+      mset_Ls_at: "mset (Ls_at (Suc i)) = C_at (Suc i)" and
+      Ls_\<sigma>: "map (\<lambda>L. subst_lit L (\<sigma>_at i)) (Ls_at (Suc i)) = Ls_at i" for i
+      sorry
 
     have len_Ls: "length (Ls_at i) = n" for i
     proof (induct i)
       case 0
       then show ?case
-        by (simp add: Ls_at_simps) (metis Ls_at_simps(1) ex_Ls length_map size_mset sz_C)
+        by (simp add: Ls_at_simps) (metis Ls_at_simps(1) mset_Lt_at_0 size_mset sz_C)
     next
       case (Suc i)
       then show ?case
