@@ -106,8 +106,12 @@ next
     define tm_at :: "nat \<Rightarrow> ('f, 'v) term" where
       "\<And>i. tm_at i = Fun ?f (map atm_of (Ls_at i))"
 
-    have "strictly_generalizes_atm (tm_at (Suc i)) (tm_at i)" for i
+    have "generalizes_atm (tm_at (Suc i)) (tm_at i)" for i
       sorry
+    moreover have "\<not> generalizes_atm (tm_at i) (tm_at (Suc i))" for i
+      sorry
+    ultimately have "strictly_generalizes_atm (tm_at (Suc i)) (tm_at i)" for i
+      unfolding strictly_generalizes_atm_def by blast
     then have "tm_at (Suc i) <\<cdot> tm_at i" for i
       unfolding strictly_generalizes_atm_def generalizes_atm_def term_subsumable.subsumes_def
       by (metis subsumeseq_term.simps)
