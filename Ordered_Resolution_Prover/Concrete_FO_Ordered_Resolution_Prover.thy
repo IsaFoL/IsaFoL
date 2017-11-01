@@ -297,9 +297,9 @@ where
             let
               (C, i) = find_next_clause (C, i) P';
               P = remove1 (C, i) P;
-              N = resolve C C @ concat (map (resolve_both_ways C \<circ> fst) Q)
+              N = map (\<lambda>D. (D, Suc n)) (resolve C C @ concat (map (resolve_both_ways C \<circ> fst) Q))
             in
-              undefined)
+              deterministic_resolution_prover (N, P, Q, Suc n))
        | (C, i) # N \<Rightarrow>
          let
            C = reduce (map fst (P @ Q)) C
