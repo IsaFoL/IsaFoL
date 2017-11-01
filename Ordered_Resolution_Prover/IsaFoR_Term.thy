@@ -130,7 +130,15 @@ next
         (rule someI_ex[of "\<lambda>x. P x \<and> f x = y" for P f y, THEN conjunct2, OF ex_Ls])
 
     have len_Ls: "length (Ls_at i) = n" for i
-      sorry
+    proof (induct i)
+      case 0
+      then show ?case
+        by (simp add: Ls_at_simps) (metis Ls_at_simps(1) ex_Ls length_map size_mset sz_C)
+    next
+      case (Suc i)
+      then show ?case
+        by (metis Ls_\<sigma> length_map)
+    qed
 
     have Ls_\<sigma>_strict_lit: "\<exists>j < n. \<not> generalizes_lit (Ls_at i ! j) (Ls_at (Suc i) ! j)" for i
       sorry
