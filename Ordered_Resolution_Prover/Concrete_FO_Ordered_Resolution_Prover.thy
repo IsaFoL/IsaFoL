@@ -351,6 +351,12 @@ where
              in
                deterministic_resolution_prover (N, P, Q, n)))"
 
+thm
+  deterministic_resolution_prover.fixp_induct
+  deterministic_resolution_prover.raw_induct
+  deterministic_resolution_prover.mono
+  deterministic_resolution_prover.simps
+
 print_theorems
 
 end
