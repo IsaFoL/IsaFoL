@@ -305,8 +305,8 @@ definition resolve :: "'a list_clause \<Rightarrow> 'a list_clause \<Rightarrow>
         else
           [])) D)"
 
-definition resolve_both_ways :: "'a list_clause \<Rightarrow> 'a list_clause \<Rightarrow> 'a list_clause list" where
-  "resolve_both_ways C D = resolve C D @ resolve D C"
+definition resolve_either_way :: "'a list_clause \<Rightarrow> 'a list_clause \<Rightarrow> 'a list_clause list" where
+  "resolve_either_way C D = resolve C D @ resolve D C"
 
 fun
   pick_clause :: "'a weighted_list_clause \<Rightarrow> 'a weighted_list_clause list \<Rightarrow> 'a weighted_list_clause"
@@ -330,7 +330,7 @@ where
             let
               (C, i) = pick_clause (C, i) P';
               P = remove1 (C, i) P;
-              N = map (\<lambda>D. (D, Suc n)) (resolve C C @ concat (map (resolve_both_ways C \<circ> fst) Q))
+              N = map (\<lambda>D. (D, Suc n)) (resolve C C @ concat (map (resolve_either_way C \<circ> fst) Q))
             in
               deterministic_resolution_prover (N, P, Q, Suc n))
        | (C, i) # N \<Rightarrow>
