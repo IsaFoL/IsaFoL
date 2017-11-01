@@ -30,7 +30,7 @@ locale FO_resolution_prover_with_weights =
     S :: "('a :: wellorder) clause \<Rightarrow> _" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and
-    comp_subst :: "'s => 's => 's" and
+    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
     renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
     atm_of_atms :: "'a list \<Rightarrow> 'a" and
     mgu :: "'a set set \<Rightarrow> 's option" and
@@ -60,17 +60,17 @@ abbreviation limit_nth_state :: "'a nth_state llist \<Rightarrow> 'a state" wher
 
 inductive resolution_prover_with_weights :: "'a nth_state \<Rightarrow> 'a nth_state \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w" 50)  where
   tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, Suc n)"
-| forward_subsumption: "(\<exists>(D,j) \<in> P \<union> Q. subsumes D C) \<Longrightarrow> (N \<union> {(C,i)}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, Suc n)"
-| backward_subsumption_P: "(\<exists>(D,j) \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P \<union> {(C,i)}, Q, n) \<leadsto>\<^sub>w (N, P, Q, Suc n)"
-| backward_subsumption_Q: "(\<exists>(D,j) \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P, Q \<union> {(C,i)}, n) \<leadsto>\<^sub>w (N, P, Q, Suc n)"
-| forward_reduction: "(\<exists>D L'. (D + {#L'#},j) \<in> P \<union> Q \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
-    (N \<union> {(C + {#L#},i)}, P, Q, n) \<leadsto>\<^sub>w (N \<union> {(C, Suc n)}, P, Q, Suc n)"
+| forward_subsumption: "(\<exists>(D, j) \<in> P \<union> Q. subsumes D C) \<Longrightarrow> (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, Suc n)"
+| backward_subsumption_P: "(\<exists>(D, j) \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P \<union> {(C, i)}, Q, n) \<leadsto>\<^sub>w (N, P, Q, Suc n)"
+| backward_subsumption_Q: "(\<exists>(D, j) \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P, Q \<union> {(C, i)}, n) \<leadsto>\<^sub>w (N, P, Q, Suc n)"
+| forward_reduction: "(\<exists>D L'. (D + {#L'#}, j) \<in> P \<union> Q \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
+    (N \<union> {(C + {#L#}, i)}, P, Q, n) \<leadsto>\<^sub>w (N \<union> {(C, Suc n)}, P, Q, Suc n)"
 | backward_reduction_P: "(\<exists>D L'. (D + {#L'#}, j) \<in> N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
-    (N, P \<union> {(C + {#L#},i)}, Q, n) \<leadsto>\<^sub>w (N, P \<union> {(C, Suc n)}, Q, Suc n)"
+    (N, P \<union> {(C + {#L#}, i)}, Q, n) \<leadsto>\<^sub>w (N, P \<union> {(C, Suc n)}, Q, Suc n)"
 | backward_reduction_Q: "(\<exists>D L'. (D + {#L'#}, j) \<in> N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
     (N, P, Q \<union> {(C + {#L#}, i)}, n) \<leadsto>\<^sub>w (N, P \<union> {(C, Suc n)}, Q, Suc n)"
-| clause_processing: 
-    "(N \<union> {(C,i)}, P, Q, n) \<leadsto>\<^sub>w (N, P \<union> {(C,i)}, Q, Suc n)"
+| clause_processing:
+    "(N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P \<union> {(C, i)}, Q, Suc n)"
 | inference_computation:
     "\<forall>(D, j)\<in>P. weight (C, i) \<le> weight (D, j) \<Longrightarrow>
      N = (\<lambda>D. (D, Suc n)) ` concls_of (ord_FO_resolution_inferences_between (fst ` Q) C) \<Longrightarrow>
@@ -85,30 +85,23 @@ locale FO_resolution_prover_with_monotone_weights =
     S :: "('a :: wellorder) clause \<Rightarrow> _" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and
-    comp_subst :: "'s => 's => 's" and
+    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
     renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
     atm_of_atms :: "'a list \<Rightarrow> 'a" and
     mgu :: "'a set set \<Rightarrow> 's option" and
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
-    weight :: "('a clause \<times> nat) \<Rightarrow> nat" +
-  fixes
-    cls_size:: "'a clause \<Rightarrow> nat"
+    weight :: "'a clause \<times> nat \<Rightarrow> nat" +
   assumes 
-    monotone_size: "cls_size C < cls_size D \<Longrightarrow> weight (C, m) < weight (D, m)" and
-    monotone_nat: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
+    weight_monotone: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
 begin
 
-
-lemma cls_size_lte_weight: "cls_size C \<le> weight (C, n)"
-  sorry (* I need some assumptions on cls_size to prove this. *)
-
-lemma generation_no_lte_weight: "n \<le> weight (C,n)"
+lemma generation_no_lte_weight: "n \<le> weight (C, n)"
 proof(induction n)
   case 0
   then show ?case by auto
 next
   case (Suc n)
-  then show ?case using monotone_nat[of n "Suc n" C] by auto
+  then show ?case using weight_monotone[of n "Suc n" C] by auto
 qed
 
 lemma resolution_prover_with_weights_resolution_prover':
@@ -185,7 +178,7 @@ qed
 
 lemma resolution_prover_with_weights_resolution_prover:
   "chain (op \<leadsto>\<^sub>w) Sts \<Longrightarrow> chain (op \<leadsto>) (lmap state_of_nth_state Sts)"
-  using resolution_prover_with_weights_resolution_prover' using chain_lmap monotone_size monotone_nat by metis
+  using resolution_prover_with_weights_resolution_prover' using chain_lmap weight_monotone by metis
 
 context
   fixes 
