@@ -1582,10 +1582,12 @@ qed
 lemma empty_in_limit_state:
   assumes
     empty_in: "{#} \<in> limit_llist (lmap grounding_of_state Sts)" and
-    fair: "fair_state_seq Sts" and
-    ns: "Ns = lmap grounding_of_state Sts"
+    fair: "fair_state_seq Sts"
   shows "{#} \<in> clss_of_state (limit_state Sts)"
 proof -
+  define Ns :: "'a clause set llist" where
+    ns: "Ns = lmap grounding_of_state Sts"
+
   from empty_in have in_limit_not_Rf: "{#} \<in> limit_llist Ns - src.Rf (limit_llist Ns)"
     unfolding ns src.Rf_def by auto
 
@@ -1613,10 +1615,12 @@ theorem fair_state_seq_complete:
   assumes
     selection_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
     fair: "fair_state_seq Sts" and
-    unsat: "\<not> satisfiable (grounding_of_state (limit_state Sts))" and
-    ns: "Ns = lmap grounding_of_state Sts"
+    unsat: "\<not> satisfiable (grounding_of_state (limit_state Sts))"
   shows "{#} \<in> clss_of_state (limit_state Sts)"
 proof -
+  define Ns :: "'a clause set llist" where
+    ns: "Ns = lmap grounding_of_state Sts"
+
   let ?N = "\<lambda>i. grounding_of_state (lnth Sts i)"
 
   let ?Ns = "\<lambda>i. N_of_state (lnth Sts i)"
