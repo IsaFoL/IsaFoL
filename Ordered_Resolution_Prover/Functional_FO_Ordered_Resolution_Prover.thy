@@ -140,18 +140,33 @@ where
                deterministic_resolution_prover (N, P, Q, n)))"
 
 lemma reduce_simulate_N:
-  "(N \<union> {(mset (C @ D), i)}, set (map (apfst mset) P), set (map (apfst mset) Q), n)
-    \<leadsto>\<^sub>w\<^sup>* (N \<union> {(mset (C @ reduce (map fst (P @ Q)) C D), i)}, set (map (apfst mset) P),
+  "(N \<union> {(mset (C @ C'), i)}, set (map (apfst mset) P), set (map (apfst mset) Q), n)
+    \<leadsto>\<^sub>w\<^sup>* (N \<union> {(mset (C @ reduce (map fst (P @ Q)) C C'), i)}, set (map (apfst mset) P),
          set (map (apfst mset) Q), n)"
-proof (induct D arbitrary: C)
-  case (Cons L D)
+proof (induct C' arbitrary: C)
+  case (Cons L C')
   note ih = this
   show ?case
-  proof (cases "is_reducible_lit (map fst P @ map fst Q) (C @ D) L")
-    case red: True
-    then show ?thesis sorry
+  proof (cases "is_reducible_lit (map fst P @ map fst Q) (C @ C') L")
+    case True
+    then have red: "reduce (map fst (P @ Q)) C (L # C') = reduce (map fst (P @ Q)) C C'"
+      by simp
+    show ?thesis
+      apply (rule converse_rtranclp_into_rtranclp)
+       defer
+      apply (simp only: red)
+       apply (rule ih[of C])
+      using forward_reduction[of _ "set (map (apfst mset) P)" "set (map (apfst mset) Q)" L _ "mset (C @ C')" N i n]
+
+      apply (rule forward_reduction)
+
+
+      apply (rule rtranclp.transI)
+      using 
+      apply simp
+      sorry
   next
-    case irred: False
+    case False
     then show ?thesis
       using ih[of "L # C"] by simp
   qed
