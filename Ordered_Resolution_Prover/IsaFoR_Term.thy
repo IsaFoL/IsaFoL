@@ -27,24 +27,33 @@ abbreviation var_lit :: "('f, 'v) term literal \<Rightarrow> 'v set" where
 definition var_clause :: "('f, 'v) term clause \<Rightarrow> 'v set" where
   "var_clause C = Union (set_mset (image_mset var_lit C))"
 
-fun renamings_apart' :: "nat set \<Rightarrow> ('f, nat) term clause list \<Rightarrow> (('f, nat) subst) list" where
+primrec renamings_apart' :: "nat set \<Rightarrow> ('f, nat) term clause list \<Rightarrow> (('f, nat) subst) list" where
   "renamings_apart' _ [] = []"
 | "renamings_apart' X (C#Cs) = 
     (let \<sigma> = (\<lambda>v. Var (v + Max X + 1)) in 
       \<sigma> # renamings_apart' (X \<union> var_clause (C \<cdot>cls \<sigma>)) Cs)
    "
 
-definition subst_of_inverse :: "(('f, nat) term \<Rightarrow> nat) \<Rightarrow> nat \<Rightarrow> ('f, nat) term" where 
-  "subst_of_inverse \<sigma> v = (Var (\<sigma> (Var v)))"
+fun renamings_apart'_inv :: "nat set \<Rightarrow> ('f, nat) term clause list \<Rightarrow> (('f, nat) subst) list" where
+  "renamings_apart'_inv _ [] = []"
+| "renamings_apart'_inv X (C#Cs) = 
+    (let \<sigma> = (\<lambda>v. Var (v - Max X - 1)) in 
+      \<sigma> # renamings_apart'_inv (X \<union> var_clause (C \<cdot>cls \<sigma>)) Cs)
+   "
+
+definition var_map_of_subst :: "('f, nat) subst \<Rightarrow> nat \<Rightarrow> nat" where
+  "var_map_of_subst \<sigma> v = the_Var (\<sigma> v)"
+
+definition var_map_of_inverse :: "(('f, nat) term \<Rightarrow> nat) \<Rightarrow> nat \<Rightarrow> nat" where 
+  "var_map_of_inverse \<sigma> v = (\<sigma> (Var v))"
 
 abbreviation renamings_apart :: "('f, nat) term clause list \<Rightarrow> (('f, nat) subst) list" where
   "renamings_apart Cs \<equiv> renamings_apart' {} Cs"
 
 lemma len_renamings_apart': "length (renamings_apart' X Cs) = length Cs"
-  apply (induction rule: renamings_apart'.induct)
+  apply (induction Cs arbitrary: X)
    apply simp
-  apply (metis length_nth_simps(2) renamings_apart'.simps(2))
-  done
+  by (metis length_Cons renamings_apart'.simps(2))
 
 interpretation substitution_ops "op \<cdot>" Var "op \<circ>\<^sub>s" .
 
@@ -72,39 +81,63 @@ next
   }
   moreover
   {
-
-
     find_consts name: var_renaming
-    have inj_is_renaming: "\<And>\<sigma> :: ('f, nat) subst. var_renaming \<sigma> \<Longrightarrow> is_renaming \<sigma>"
-      subgoal for \<sigma>
-      unfolding var_renaming_def is_renaming_def subst_domain_def apply auto
-      apply (rule_tac x="subst_of_inverse ((inv \<sigma>))" in exI)
-      sorry
-    done
+    have inj_is_renaming: 
+      "\<And>\<sigma> :: ('f, nat) subst. (\<And>x. is_Var (\<sigma> x)) \<Longrightarrow> inj \<sigma> \<Longrightarrow> is_renaming \<sigma>"
+    proof -
+      fix \<sigma> :: "('f, nat) subst"
+      fix x
+      assume is_var_\<sigma>: "(\<And>x. is_Var (\<sigma> x))"
+      assume inj_\<sigma>: "inj \<sigma>"
+      define \<sigma>' where "\<sigma>' = var_map_of_subst \<sigma>"
 
-    have "\<And>(Cs :: ('f, nat) term clause list) X. Ball (set (renamings_apart' X Cs)) var_renaming"
-      subgoal for Cs X
-      proof (induction rule: renamings_apart'.induct)
-        case (1 uu)
+      from is_var_\<sigma> inj_\<sigma> have "inj \<sigma>'"
+        unfolding var_renaming_def unfolding subst_domain_def inj_on_def \<sigma>'_def var_map_of_subst_def
+        by (metis term.collapse(1))
+      then have "inv \<sigma>' \<circ> \<sigma>' = id" 
+        using inv_o_cancel[of \<sigma>'] by simp
+      then have "the_Var \<circ> (\<sigma> \<circ>\<^sub>s (Var \<circ> (inv \<sigma>'))) = id"
+        sorry
+      then have "\<sigma> \<circ>\<^sub>s (Var \<circ> (inv \<sigma>')) = Var"
+        unfolding subst_compose \<sigma>'_def
+        using is_var_\<sigma> 
+        sorry
+      then show "is_renaming \<sigma>"
+        unfolding is_renaming_def by blast
+    qed
+
+    have "\<And>X (Cs :: ('f, nat) term clause list). Ball (set (renamings_apart' X Cs)) (\<lambda>\<sigma>. (\<forall>x. is_Var (\<sigma> x) \<and> inj \<sigma>))"
+      subgoal for X Cs
+      proof (induction Cs arbitrary: X)
+        case Nil
         then show ?case by auto
       next
-        case (2 X C Cs)
-        note this[of "\<lambda>v. Var (v + Max X + 1)", simplified]
-        then show ?case
-          unfolding var_renaming_def
-          apply auto
-          apply (metis is_VarI set_ConsD)
-          apply (smt Suc_inject inj_onI nat_add_right_cancel set_ConsD term.inject(1))
-          done
+        case (Cons a Cs)
+        then show ?case apply auto
+           apply (metis is_VarI set_ConsD)
+          by (metis (mono_tags, lifting)  injD inj_Suc inj_onI nat_add_right_cancel set_ConsD term.inject(1))
       qed
       done
     then have "Ball (set (renamings_apart Cs)) is_renaming"
-      using inj_is_renaming by blast
+      using inj_is_renaming by auto
   }
   moreover
   {
-    have "var_disjoint (subst_cls_lists Cs (renamings_apart Cs))"
-      sorry
+    have "\<And>X. var_disjoint (subst_cls_lists Cs (renamings_apart' X Cs))"
+      subgoal for X
+      proof (induction Cs arbitrary: X)
+        case Nil
+        then show ?case unfolding var_disjoint_def subst_cls_lists_def by auto
+      next
+        thm var_disjoint_def
+        case (Cons a Cs)
+        then show ?case
+          unfolding var_disjoint_def
+          sorry
+      qed
+      done
+    then have "var_disjoint (subst_cls_lists Cs (renamings_apart Cs))"
+      by auto
   }
   ultimately show "length (renamings_apart Cs) = length Cs \<and>
     Ball (set (renamings_apart Cs)) is_renaming \<and> var_disjoint (subst_cls_lists Cs (renamings_apart Cs))"
