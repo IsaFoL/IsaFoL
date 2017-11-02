@@ -123,12 +123,11 @@ where
              in
                deterministic_resolution_prover (N, P, Q, n)))"
 
-(* FIXME 
 lemma reduce_simulate_N:
-  "(N \<union> {(map mset C, i)}, set (map (apfst mset) P), set (map (apfst mset) Q), n)
-    \<leadsto>\<^sub>w (N \<union> {(map mset (reduce (P @ Q) C), i)}, set (map (apfst mset) P), set (map (apfst mset) Q), n)"
+  "(N \<union> {(mset C, i)}, set (map (apfst mset) P), set (map (apfst mset) Q), n)
+    \<leadsto>\<^sub>w (N \<union> {(mset (reduce (map fst (P @ Q)) C), i)}, set (map (apfst mset) P),
+         set (map (apfst mset) Q), n)"
   sorry
-*)
 
 theorem deterministic_resolution_prover_sound_unsat:
   assumes
