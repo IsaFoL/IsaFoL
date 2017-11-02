@@ -32,6 +32,12 @@ datatype 'a solution =
 context FO_resolution_prover_with_sum_product_weights
 begin
 
+(* FIXME: prove and move to right locale/file *)
+lemma resolution_prover_with_weights_sound:
+  "St \<leadsto>\<^sub>w St' \<Longrightarrow> I \<Turnstile>s grounding_of_state (state_of_wstate St) \<Longrightarrow>
+   I \<Turnstile>s grounding_of_state (state_of_wstate St')"
+  sorry
+
 definition is_tautology :: "'a lclause \<Rightarrow> bool" where
   "is_tautology C \<longleftrightarrow> (\<exists>A \<in> set (map atm_of C). Pos A \<in> set C \<and> Neg A \<in> set C)"
 
@@ -81,18 +87,18 @@ definition resolve_either_way :: "'a lclause \<Rightarrow> 'a lclause \<Rightarr
   "resolve_either_way C D = resolve C D @ resolve D C"
 
 fun
-  pick_clause :: "'a wlclause \<Rightarrow> 'a wlclause list \<Rightarrow> 'a wlclause"
+  select_clause :: "'a wlclause \<Rightarrow> 'a wlclause list \<Rightarrow> 'a wlclause"
 where
-  "pick_clause (C, i) [] = (C, i)"
-| "pick_clause (C, i) ((D, j) # Ds) =
-   pick_clause (if weight (mset D, j) < weight (mset C, i) then (D, j) else (C, i)) Ds"
+  "select_clause (C, i) [] = (C, i)"
+| "select_clause (C, i) ((D, j) # Ds) =
+   select_clause (if weight (mset D, j) < weight (mset C, i) then (D, j) else (C, i)) Ds"
 
 partial_function (option)
   deterministic_resolution_prover :: "'a wlstate \<Rightarrow> 'a solution option"
 where
-  "deterministic_resolution_prover NPQn =
+  "deterministic_resolution_prover St =
    (let
-      (N, P, Q, n) = NPQn
+      (N, P, Q, n) = St
     in
       (case N of
          [] \<Rightarrow>
@@ -100,7 +106,7 @@ where
             [] \<Rightarrow> Some (Sat (map fst Q))
           | (C, i) # P' \<Rightarrow>
             let
-              (C, i) = pick_clause (C, i) P';
+              (C, i) = select_clause (C, i) P';
               P = remove1 (C, i) P;
               N = map (\<lambda>D. (D, Suc n)) (resolve C C @ concat (map (resolve_either_way C \<circ> fst) Q))
             in
@@ -131,20 +137,20 @@ lemma reduce_simulate_N:
 
 theorem deterministic_resolution_prover_sound_unsat:
   assumes
-    su: "deterministic_resolution_prover NPQn = Some sol" and
+    su: "deterministic_resolution_prover St = Some sol" and
     sol_unsat: "sol = Unsat"
-  shows "\<not> satisfiable (grounding_of_state (state_of_wlstate NPQn))"
+  shows "\<not> satisfiable (grounding_of_state (state_of_wlstate St))"
   using sol_unsat
 proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
-  case (1 self_call NPQn sol)
+  case (1 self_call St sol)
   note ih = this(1)[OF _ refl] and call = this(2) and sol_unsat = this(3)
 
   obtain N P Q :: "'a wlclause list" and n :: nat where
-    npqn: "NPQn = (N, P, Q, n)"
-    by (cases NPQn) blast
+    st: "St = (N, P, Q, n)"
+    by (cases St) blast
 
-  note ih = ih[unfolded npqn]
-  note call = call[unfolded sol_unsat npqn, simplified]
+  note ih = ih[unfolded st]
+  note call = call[unfolded sol_unsat st, simplified]
 
   show ?case
   proof (cases N)
@@ -161,13 +167,15 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
       note call = call[unfolded p_cons, simplified]
 
       obtain C :: "'a lclause" and i :: nat where
-        pick: "pick_clause Ci P' = (C, i)"
-        by (cases "pick_clause Ci P'") simp
+        pick: "select_clause Ci P' = (C, i)"
+        by (cases "select_clause Ci P'") simp
       note call = call[unfolded pick, simplified, folded remove1.simps(2)]
 
       show ?thesis
         apply (rule contrapos_nn[OF ih[OF call]])
         apply (auto simp: comp_def simp del: remove1.simps(2))
+
+
         sorry
     qed
   next
@@ -187,12 +195,16 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
     proof (cases "C' = Nil")
       case c'_nil: True
       show ?thesis
-        unfolding npqn n_cons ci
-        using c'_nil
-        unfolding C'_def
-        apply simp
-        (* use soundness of reduction at calculus level *)
-        sorry
+      proof (rule; erule exE)
+        fix I
+        assume "I \<Turnstile>s grounding_of_state (state_of_wlstate St)"
+        then show False
+          unfolding st n_cons ci
+          using c'_nil[unfolded C'_def]
+            resolution_prover_with_weights_sound[OF reduce_simulate_N,
+              of I "set (map (apfst mset) N')" C i P Q n]
+          by (simp add: clss_of_state_def grounding_of_clss_def)
+      qed
     next
       case c'_nnil: False
       note call = call[simplified c'_nnil, simplified]
@@ -201,13 +213,13 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
         case taut_or_subs: True
         note call = call[simplified taut_or_subs, simplified]
         show ?thesis
-          unfolding npqn n_cons ci using ih[OF call]
+          unfolding st n_cons ci using ih[OF call]
           by (auto simp: clss_of_state_def grounding_of_clss_def)
       next
         case not_taut_or_subs: False
         note call = call[simplified not_taut_or_subs, simplified]
         show ?thesis
-          unfolding npqn n_cons ci
+          unfolding st n_cons ci
           using ih[OF call]
           (* use soundness of subsumption at calculus level *)
           sorry

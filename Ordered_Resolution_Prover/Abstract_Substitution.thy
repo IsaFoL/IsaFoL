@@ -879,6 +879,15 @@ lemma in_subset_eq_grounding_of_clss_is_ground_cls[simp]:
   "C \<in> CC \<Longrightarrow> CC \<subseteq> grounding_of_clss DD \<Longrightarrow> is_ground_cls C"
   unfolding grounding_of_clss_def grounding_of_cls_def by auto
 
+lemma is_ground_cls_empty[simp]: "is_ground_cls {#}"
+  unfolding is_ground_cls_def by simp
+
+lemma grounding_of_cls_ground: "is_ground_cls C \<Longrightarrow> grounding_of_cls C = {C}"
+  unfolding grounding_of_cls_def by (simp add: ex_ground_subst)
+
+lemma grounding_of_cls_empty[simp]: "grounding_of_cls {#} = {{#}}"
+  by (simp add: grounding_of_cls_ground)
+
 
 subsubsection \<open>Unifiers\<close>
 
