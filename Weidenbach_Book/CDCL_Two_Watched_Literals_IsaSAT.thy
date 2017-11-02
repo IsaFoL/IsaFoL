@@ -2187,8 +2187,7 @@ proof -
     have empty_trail: \<open>RETURN ([], [], 0, None, {#}, {#}, {#}, \<lambda>_. undefined)
     \<le> \<Down> TWL_to_clauses_state_conv
         (SPEC
-          (\<lambda>U. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state CS)
-                U \<or>
+          (\<lambda>U. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state CS) U \<or>
                CS \<noteq> {#} \<and>
                cdcl\<^sub>W_restart_mset.clauses U = CS \<and>
                learned_clss U = {#} \<and>
