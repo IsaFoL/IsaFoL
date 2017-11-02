@@ -1775,6 +1775,18 @@ lemma conflict_min_cach_set_removable_hnr[sepref_fr_rules]:
   using conflict_min_cach_set_removable_l_code.refine[FCOMP conflict_min_cach_set_removable,
     unfolded cach_refinement_assn_def[symmetric]] .
 
+definition mark_failed_lits_stack where
+  \<open>mark_failed_lits_stack NU analyse cach = 
+    WHILE\<^sub>T
+      (\<lambda>(i, cach). i < length analyse)
+      (\<lambda>(i, cach). do {
+        ASSERT(i < length analyse);
+        let (cls_idx, idx) = analyse ! i;
+        ASSERT(atm_of (NU ! cls_idx ! idx) \<in># \<A>\<^sub>i\<^sub>n);
+        RETURN (i+1, cach (atm_of (NU ! cls_idx ! idx) := SEEN_FAILED))
+      })
+      (0, cach)\<close>
+
 end
 
 end
