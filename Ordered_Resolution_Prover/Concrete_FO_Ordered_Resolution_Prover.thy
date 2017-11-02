@@ -376,20 +376,27 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
   note call = call[unfolded npqn, simplified]
 
   show ?case
-  proof (cases "N = []")
-    case n_nil: True
+  proof (cases N)
+    case n_nil: Nil
     note call = call[unfolded n_nil, simplified]
     show ?thesis
-    proof (cases "P = []")
-      case p_nil: True
+    proof (cases P)
+      case p_nil: Nil
       note call = call[unfolded p_nil, simplified]
       show ?thesis
         using call sol_unsat by simp
     next
-      case p_nnil: False
-      note call = call[unfolded p_nnil, simplified]
+      case p_cons: (Cons Ci P')
+      note call = call[unfolded p_cons, simplified]
+
+      obtain C :: "'a list_clause" and i :: nat where
+        pick: "pick_clause Ci P' = (C, i)"
+        by (cases "pick_clause Ci P'") simp
+      note call = call[unfolded pick, simplified]
+
       show ?thesis
-        
+        using ih[OF call sol_unsat]
+
         sorry
     qed
     
