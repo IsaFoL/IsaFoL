@@ -32,6 +32,9 @@ datatype 'a solution =
 context FO_resolution_prover_with_sum_product_weights
 begin
 
+abbreviation rtrancl_resolution_prover_with_weights (infix "\<leadsto>\<^sub>w*" 50) where
+  "op \<leadsto>\<^sub>w* \<equiv> (op \<leadsto>\<^sub>w)\<^sup>*\<^sup>*"
+
 (* FIXME: prove and move to right locale/file *)
 lemma resolution_prover_with_weights_sound:
   "St \<leadsto>\<^sub>w St' \<Longrightarrow> I \<Turnstile>s grounding_of_state (state_of_wstate St) \<Longrightarrow>
@@ -131,9 +134,14 @@ where
 
 lemma reduce_simulate_N:
   "(N \<union> {(mset C, i)}, set (map (apfst mset) P), set (map (apfst mset) Q), n)
-    \<leadsto>\<^sub>w (N \<union> {(mset (reduce (map fst (P @ Q)) C), i)}, set (map (apfst mset) P),
+    \<leadsto>\<^sub>w* (N \<union> {(mset (reduce (map fst (P @ Q)) C), i)}, set (map (apfst mset) P),
          set (map (apfst mset) Q), n)"
-  sorry
+proof (induct C)
+  case (Cons L C')
+  then show ?case
+    apply auto
+    sorry
+qed (simp add: reduce_def)
 
 theorem deterministic_resolution_prover_sound_unsat:
   assumes
