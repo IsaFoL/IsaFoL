@@ -147,7 +147,8 @@ proof (induct "length (filter (\<lambda>L. is_reducible_lit (map fst (P @ Q)) C 
     by simp
 next
   case (Suc k)
-  then show ?case sorry
+  then show ?case
+    sorry
 qed
 
 theorem deterministic_resolution_prover_sound_unsat:
