@@ -141,9 +141,21 @@ where
 
 lemma reduce_simulate_N:
   "(N \<union> {(mset (C @ D), i)}, set (map (apfst mset) P), set (map (apfst mset) Q), n)
-    \<leadsto>\<^sub>w\<^sup>* (N \<union> {(mset (reduce (map fst (P @ Q)) C D), i)}, set (map (apfst mset) P),
+    \<leadsto>\<^sub>w\<^sup>* (N \<union> {(mset (C @ reduce (map fst (P @ Q)) C D), i)}, set (map (apfst mset) P),
          set (map (apfst mset) Q), n)"
-
+proof (induct D arbitrary: C)
+  case (Cons L D)
+  note ih = this
+  show ?case
+  proof (cases "is_reducible_lit (map fst P @ map fst Q) (C @ D) L")
+    case red: True
+    then show ?thesis sorry
+  next
+    case irred: False
+    then show ?thesis
+      using ih[of "L # C"] by simp
+  qed
+qed simp
 
 (* FIXME
 proof (induct "length (filter (\<lambda>L. is_reducible_lit (map fst (P @ Q)) C L) C)")
