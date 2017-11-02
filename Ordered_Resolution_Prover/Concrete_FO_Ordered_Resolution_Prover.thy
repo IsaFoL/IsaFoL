@@ -419,7 +419,9 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
       show ?thesis
         unfolding npqn n_cons ci
         using c'_nil
-
+        unfolding C'_def
+        apply simp
+        (* use soundness of reduction at calculus level *)
         sorry
     next
       case c'_nnil: False
@@ -429,23 +431,20 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
         case taut_or_subs: True
         note call = call[simplified taut_or_subs, simplified]
         show ?thesis
-          unfolding npqn n_cons ci
-          using ih[OF call]
-
-          sorry
+          unfolding npqn n_cons ci using ih[OF call]
+          by (auto simp: clss_of_state_def grounding_of_clss_def)
       next
         case not_taut_or_subs: False
+        note call = call[simplified not_taut_or_subs, simplified]
         show ?thesis
+          unfolding npqn n_cons ci
+          using ih[OF call]
+          (* use soundness of subsumption at calculus level *)
           sorry
       qed
     qed
   qed
 qed
-
-(*
-  using su
-  apply (induct rule: deterministic_resolution_prover.fixp_induct)
-*)
 
 thm
   deterministic_resolution_prover.fixp_induct
@@ -453,7 +452,10 @@ thm
   deterministic_resolution_prover.mono
   deterministic_resolution_prover.simps
 
-print_theorems
+(*
+  using su
+  apply (induct rule: deterministic_resolution_prover.fixp_induct)
+*)
 
 end
 
