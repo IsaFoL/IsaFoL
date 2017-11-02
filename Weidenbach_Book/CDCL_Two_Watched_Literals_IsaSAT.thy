@@ -1705,8 +1705,6 @@ definition init_trail_D :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> tr
 
 sepref_register initialise_VMTF
 
-lemma Pair_hnr:\<open>(uncurry (return oo (\<lambda>a b. Pair a b)), uncurry (RETURN oo (\<lambda>a b. Pair a b))) \<in> A\<^sup>d *\<^sub>a B\<^sup>d \<rightarrow>\<^sub>a A *assn B\<close>
-  by sepref_to_hoare sep_auto
 
 sepref_definition init_trail_D_code
   is \<open>uncurry init_trail_D\<close>
