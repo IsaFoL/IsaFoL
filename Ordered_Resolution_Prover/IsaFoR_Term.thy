@@ -44,9 +44,6 @@ fun renamings_apart'_inv :: "nat set \<Rightarrow> ('f, nat) term clause list \<
 definition var_map_of_subst :: "('f, nat) subst \<Rightarrow> nat \<Rightarrow> nat" where
   "var_map_of_subst \<sigma> v = the_Var (\<sigma> v)"
 
-definition var_map_of_inverse :: "(('f, nat) term \<Rightarrow> nat) \<Rightarrow> nat \<Rightarrow> nat" where 
-  "var_map_of_inverse \<sigma> v = (\<sigma> (Var v))"
-
 abbreviation renamings_apart :: "('f, nat) term clause list \<Rightarrow> (('f, nat) subst) list" where
   "renamings_apart Cs \<equiv> renamings_apart' {} Cs"
 
@@ -54,6 +51,28 @@ lemma len_renamings_apart': "length (renamings_apart' X Cs) = length Cs"
   apply (induction Cs arbitrary: X)
    apply simp
   by (metis length_Cons renamings_apart'.simps(2))
+
+lemma renamings_apart'_is_Var: "\<forall>\<sigma> \<in> set (renamings_apart' X Cs). \<forall>x. is_Var (\<sigma> x)"
+proof (induction Cs arbitrary: X)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons a Cs)
+  then show ?case 
+    using is_VarI set_ConsD
+    by (metis (no_types, lifting) renamings_apart'.simps(2))
+qed
+
+lemma renamings_apart'_inj: "\<forall>\<sigma> \<in> set (renamings_apart' X Cs). inj \<sigma>"
+proof (induction Cs arbitrary: X)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons a Cs)
+  then show ?case 
+    by (metis (mono_tags, lifting) renamings_apart'.simps(2) inj_onI
+        nat_add_right_cancel set_ConsD term.inject(1))
+qed
 
 interpretation substitution_ops "op \<cdot>" Var "op \<circ>\<^sub>s" .
 
@@ -81,45 +100,36 @@ next
   }
   moreover
   {
-    find_consts name: var_renaming
     have inj_is_renaming: 
       "\<And>\<sigma> :: ('f, nat) subst. (\<And>x. is_Var (\<sigma> x)) \<Longrightarrow> inj \<sigma> \<Longrightarrow> is_renaming \<sigma>"
     proof -
       fix \<sigma> :: "('f, nat) subst"
       fix x
-      assume is_var_\<sigma>: "(\<And>x. is_Var (\<sigma> x))"
+      assume is_var_\<sigma>: "\<And>x. is_Var (\<sigma> x)"
       assume inj_\<sigma>: "inj \<sigma>"
       define \<sigma>' where "\<sigma>' = var_map_of_subst \<sigma>"
+
+      have \<sigma>: "\<sigma> = Var \<circ> \<sigma>'"
+        unfolding \<sigma>'_def var_map_of_subst_def using is_var_\<sigma> by auto
 
       from is_var_\<sigma> inj_\<sigma> have "inj \<sigma>'"
         unfolding var_renaming_def unfolding subst_domain_def inj_on_def \<sigma>'_def var_map_of_subst_def
         by (metis term.collapse(1))
-      then have "inv \<sigma>' \<circ> \<sigma>' = id" 
+      then have "inv \<sigma>' \<circ> \<sigma>' = id"
         using inv_o_cancel[of \<sigma>'] by simp
-      then have "the_Var \<circ> (\<sigma> \<circ>\<^sub>s (Var \<circ> (inv \<sigma>'))) = id"
-        sorry
+      then have "Var \<circ> (inv \<sigma>' \<circ> \<sigma>') = Var"
+        by simp
+      then have "\<forall>x. (Var \<circ> (inv \<sigma>' \<circ> \<sigma>')) x = Var x"
+        by metis
+      then have "\<forall>x. ((Var \<circ> \<sigma>') \<circ>\<^sub>s (Var \<circ> (inv \<sigma>'))) x = Var x"
+        unfolding subst_compose_def by auto
       then have "\<sigma> \<circ>\<^sub>s (Var \<circ> (inv \<sigma>')) = Var"
-        unfolding subst_compose \<sigma>'_def
-        using is_var_\<sigma> 
-        sorry
+        using \<sigma> by auto
       then show "is_renaming \<sigma>"
         unfolding is_renaming_def by blast
     qed
-
-    have "\<And>X (Cs :: ('f, nat) term clause list). Ball (set (renamings_apart' X Cs)) (\<lambda>\<sigma>. (\<forall>x. is_Var (\<sigma> x) \<and> inj \<sigma>))"
-      subgoal for X Cs
-      proof (induction Cs arbitrary: X)
-        case Nil
-        then show ?case by auto
-      next
-        case (Cons a Cs)
-        then show ?case apply auto
-           apply (metis is_VarI set_ConsD)
-          by (metis (mono_tags, lifting)  injD inj_Suc inj_onI nat_add_right_cancel set_ConsD term.inject(1))
-      qed
-      done
-    then have "Ball (set (renamings_apart Cs)) is_renaming"
-      using inj_is_renaming by auto
+    then have "\<forall>\<sigma> \<in> (set (renamings_apart Cs)). is_renaming \<sigma>"
+      using renamings_apart'_is_Var renamings_apart'_inj by blast
   }
   moreover
   {
@@ -129,7 +139,6 @@ next
         case Nil
         then show ?case unfolding var_disjoint_def subst_cls_lists_def by auto
       next
-        thm var_disjoint_def
         case (Cons a Cs)
         then show ?case
           unfolding var_disjoint_def
