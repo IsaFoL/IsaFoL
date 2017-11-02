@@ -51,9 +51,13 @@ abbreviation renamings_apart :: "('f, nat) term clause list \<Rightarrow> (('f, 
   "renamings_apart Cs \<equiv> renamings_apart' {} Cs"
 
 lemma len_renamings_apart': "length (renamings_apart' X Cs) = length Cs"
-  apply (induction Cs arbitrary: X)
-   apply simp
-  by (metis length_Cons renamings_apart'.simps(2))
+proof (induction Cs arbitrary: X)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a Cs)
+  then show ?case by (metis length_Cons renamings_apart'.simps(2))
+qed
 
 lemma renamings_apart'_is_Var: "\<forall>\<sigma> \<in> set (renamings_apart' X Cs). \<forall>x. is_Var (\<sigma> x)"
 proof (induction Cs arbitrary: X)
@@ -80,6 +84,10 @@ qed
 definition var_disjoint' :: "('f,'v) term clause \<Rightarrow> ('f,'v) term clause \<Rightarrow> bool" where
   "var_disjoint' C D = (vars_clause C \<inter> vars_clause D = {})"
 
+lemma vars_clause_mono: "S \<subseteq># C \<Longrightarrow> vars_clause S \<subseteq> vars_clause C"
+  unfolding vars_clause_def
+  by auto
+
 interpretation substitution_ops "op \<cdot>" Var "op \<circ>\<^sub>s" .
 
 interpretation substitution "op \<cdot>" "Var :: _ \<Rightarrow> ('f, nat) term" "op \<circ>\<^sub>s" "Fun undefined" renamings_apart
@@ -98,45 +106,51 @@ next
   assume "is_ground_cls_list (subst_cls_list Cs \<sigma>)"
   then have ground_atms_\<sigma>: "\<And>v. v \<in> vars_clause_list Cs \<Longrightarrow> is_ground_atm (\<sigma> v)"
     sorry
+
+  have same_on_vars: "\<And>S \<sigma> \<tau>. (\<forall>v \<in> vars_clause S. \<sigma> v = \<tau> v) \<longrightarrow> subst_cls S \<sigma> = subst_cls S \<tau>"
+    sorry
+
   define some_ground_trm :: "('f, nat) term" where "some_ground_trm = undefined"
   have exi_ground_atm: "is_ground_atm some_ground_trm"
     sorry
   term vars_clause
   define \<tau> where "\<tau> = (\<lambda>v. if v \<in> vars_clause_list Cs then \<sigma> v else some_ground_trm)"
-  have "is_ground_atm (\<tau> v)" for v
+  then have \<tau>_\<sigma>: "\<forall>v \<in> vars_clause_list Cs. \<sigma> v = \<tau> v"
+    unfolding \<tau>_def by auto
+
+  have all_ground_\<tau>: "is_ground_atm (\<tau> v)" for v
   proof (cases "v \<in> vars_clause_list Cs")
     case True
     then show ?thesis
-      unfolding \<tau>_def using ground_atms_\<sigma> by auto
+      using ground_atms_\<sigma> \<tau>_\<sigma> by auto
   next
     case False
     then show ?thesis
       unfolding \<tau>_def using exi_ground_atm by auto
   qed
-  then have "is_ground_subst \<tau>"
+  have "is_ground_subst \<tau>"
     unfolding is_ground_subst_def 
-    apply -
-    apply (rule allI)
-    subgoal for A
-      apply (induction A)
-       apply auto[]
+  proof 
+    fix A
+    show "is_ground_atm (subst_atm_abbrev A \<tau>)"
+    proof (induction A)
+      case (Var x)
+      then show ?case using all_ground_\<tau> by auto
+    next
+      case (Fun x1a x2)
+      then show ?case using all_ground_\<tau>
       by (simp add: is_ground_atm_def)
-    done
+  qed
   moreover have "\<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> subst_cls S \<sigma> = subst_cls S \<tau>"
-    apply rule
-    subgoal for i
-      using \<tau>_def
-      apply (induction Cs)
-       apply auto[]
-      subgoal for a Cs
-      apply (cases "i < length Cs")
-      subgoal 
-        sorry
-      subgoal
-        sorry
-      done
-    done
-  done
+  proof (rule, rule, rule, rule)
+    fix i S
+    assume "i < length Cs" "S \<subseteq># Cs ! i"
+    then have "\<forall>v\<in>vars_clause S. \<sigma> v = \<tau> v"
+      using \<tau>_\<sigma> unfolding vars_clause_list_def using vars_clause_mono[of S "Cs ! i"]
+      by (meson UN_I nth_mem subsetCE) 
+    then show "subst_cls S \<sigma> = subst_cls S \<tau>"
+      using same_on_vars by auto
+  qed
   ultimately show "\<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> subst_cls S \<sigma> = subst_cls S \<tau>)"
     by auto
 next
@@ -155,7 +169,6 @@ next
       assume is_var_\<sigma>: "\<And>x. is_Var (\<sigma> x)"
       assume inj_\<sigma>: "inj \<sigma>"
       define \<sigma>' where "\<sigma>' = var_map_of_subst \<sigma>"
-
       have \<sigma>: "\<sigma> = Var \<circ> \<sigma>'"
         unfolding \<sigma>'_def var_map_of_subst_def using is_var_\<sigma> by auto
 
