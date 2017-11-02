@@ -367,13 +367,13 @@ theorem deterministic_resolution_prover_sound_unsat:
   using sol_unsat
 proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
   case (1 self_call NPQn sol)
-  note ih = this(1) and call = this(2) and sol_unsat = this(3)
+  note ih = this(1)[OF _ refl] and call = this(2) and sol_unsat = this(3)
 
   obtain N P Q :: "'a weighted_list_clause list" and n :: nat where
     npqn: "NPQn = (N, P, Q, n)"
     by (cases NPQn) blast
 
-  note call = call[unfolded npqn, simplified]
+  note call = call[unfolded sol_unsat npqn, simplified]
 
   show ?case
   proof (cases N)
@@ -384,7 +384,7 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
       case p_nil: Nil
       note call = call[unfolded p_nil, simplified]
       show ?thesis
-        using call sol_unsat by simp
+        using call by simp
     next
       case p_cons: (Cons Ci P')
       note call = call[unfolded p_cons, simplified]
@@ -395,7 +395,7 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
       note call = call[unfolded pick, simplified, folded remove1.simps(2)]
 
       show ?thesis
-        using ih[OF call sol_unsat]
+        using ih[OF call]
 
         sorry
     qed
