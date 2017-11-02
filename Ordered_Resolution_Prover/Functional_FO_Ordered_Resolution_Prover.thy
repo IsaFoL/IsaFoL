@@ -147,6 +147,17 @@ proof (induct "length (filter (\<lambda>L. is_reducible_lit (map fst (P @ Q)) C 
     by simp
 next
   case (Suc k)
+
+  let ?is_red = "is_reducible_lit (map fst (P @ Q)) C"
+
+  let ?D = "takeWhile (\<lambda>L. \<not> ?is_red L) C"
+  let ?E = "dropWhile (\<lambda>L. \<not> ?is_red L) C"
+
+
+  term List.extract
+
+  thm split_list_first[of _ "filter ?is_red C"]
+
   then show ?case
     sorry
 qed
