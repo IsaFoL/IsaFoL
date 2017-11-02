@@ -17,9 +17,9 @@ theory Concrete_FO_Ordered_Resolution_Prover
   imports Abstract_FO_Ordered_Resolution_Prover
 begin
 
-type_synonym 'a weighted_clause = "'a clause \<times> nat"
+type_synonym 'a wclause = "'a clause \<times> nat"
 type_synonym 'a weighted_state =
-  "'a weighted_clause set \<times> 'a weighted_clause set \<times> 'a weighted_clause set \<times> nat"
+  "'a wclause set \<times> 'a wclause set \<times> 'a wclause set \<times> nat"
 
 locale FO_resolution_prover_with_weights =
   FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu less_atm
@@ -222,20 +222,13 @@ end
 end
 
 type_synonym 'a lclause = "'a literal list"
-type_synonym 'a weighted_lclause = "'a lclause \<times> nat"
-type_synonym 'a weighted_lstate =
-  "'a weighted_lclause list \<times> 'a weighted_lclause list \<times> 'a weighted_lclause list \<times> nat"
+type_synonym 'a wlclause = "'a lclause \<times> nat"
+type_synonym 'a wlstate =
+  "'a wlclause list \<times> 'a wlclause list \<times> 'a wlclause list \<times> nat"
 
-fun clause_of_weighted_lclause :: "'a weighted_lclause \<Rightarrow> 'a clause" where
-  "clause_of_weighted_lclause (C, _) = mset C"
-
-fun state_of_weighted_lstate :: "'a weighted_lstate \<Rightarrow> 'a state" where
-  "state_of_weighted_lstate (N, P, Q, _) =
-   (set (map clause_of_weighted_lclause N), set (map clause_of_weighted_lclause P),
-    set (map clause_of_weighted_lclause Q))"
-
-abbreviation clause_set_of_lclauses :: "'a list list \<Rightarrow> 'a multiset set" where
-  "clause_set_of_lclauses Cs \<equiv> set (map mset Cs)"
+fun state_of_wlstate :: "'a wlstate \<Rightarrow> 'a state" where
+  "state_of_wlstate (N, P, Q, _) =
+   (set (map (mset \<circ> fst) N), set (map (mset \<circ> fst) P), set (map (mset \<circ> fst) Q))"
 
 datatype 'a solution =
   Sat "'a lclause list"
@@ -320,14 +313,14 @@ definition resolve_either_way :: "'a lclause \<Rightarrow> 'a lclause \<Rightarr
   "resolve_either_way C D = resolve C D @ resolve D C"
 
 fun
-  pick_clause :: "'a weighted_lclause \<Rightarrow> 'a weighted_lclause list \<Rightarrow> 'a weighted_lclause"
+  pick_clause :: "'a wlclause \<Rightarrow> 'a wlclause list \<Rightarrow> 'a wlclause"
 where
   "pick_clause (C, i) [] = (C, i)"
 | "pick_clause (C, i) ((D, j) # Ds) =
    pick_clause (if weight (mset D, j) < weight (mset C, i) then (D, j) else (C, i)) Ds"
 
 partial_function (option)
-  deterministic_resolution_prover :: "'a weighted_lstate \<Rightarrow> 'a solution option"
+  deterministic_resolution_prover :: "'a wlstate \<Rightarrow> 'a solution option"
 where
   "deterministic_resolution_prover NPQn =
    (let
@@ -362,56 +355,22 @@ where
              in
                deterministic_resolution_prover (N, P, Q, n)))"
 
-lemma foo:
-  assumes "list_all2 (\<lambda>C D. set_mset C \<subseteq> set_mset D) Cs Ds"
-  shows "list_all2 (\<lambda>C D. rel_set (op \<subseteq>#) (grounding_of_cls C) (grounding_of_cls D)) Cs Ds"
+lemma reduce_simulate_N:
+  "(N \<union> {(map mset C, i)}, set (map (apfst mset) P), set (map (apfst mset) Q), n)
+    \<leadsto>\<^sub>w (N \<union> {(map mset (reduce (P @ Q) C), i)}, set (map (apfst mset) P), set (map (apfst mset) Q), n)"
   sorry
-
-lemma bar:
-  assumes
-    "I \<Turnstile>s grounding_of_clss (clause_set_of_lclauses Cs)" and
-    "list_all2 (\<lambda>C D. set_mset C \<subseteq> set_mset D) (map mset Cs) (map mset Ds)"
-  shows "I \<Turnstile>s grounding_of_clss (clause_set_of_lclauses Ds)"
-  using foo[OF assms(2)] assms(1)
-  unfolding grounding_of_clss_def true_clss_def true_cls_def
-  sorry
-
-
-lemma reduce_true_iff:
-  "I \<Turnstile>s grounding_of_clss (clause_set_of_lclauses (reduce Ds C # Ds)) \<longleftrightarrow> I \<Turnstile>s grounding_of_clss (clause_set_of_lclauses (C # Ds))"
-  (is "?lhs = ?rhs")
-
-
-lemma reduce_true_iff:
-  "I \<Turnstile>s grounding_of_clss (clause_set_of_lclauses (reduce Ds C # Ds)) \<longleftrightarrow> I \<Turnstile>s grounding_of_clss (clause_set_of_lclauses (C # Ds))"
-  (is "?lhs = ?rhs")
-proof
-  assume tru: "?lhs"
-  then show "?rhs"
-    apply (auto simp: reduce_def true_clss_def true_cls_def grounding_of_clss_def grounding_of_cls_def)
-    sorry
-next
-  assume tru: "?rhs"
-  show "?lhs"
-    using tru
-    unfolding reduce_def true_clss_def true_cls_def is_reducible_lit_def
-    apply auto
-    sorry
-qed
-
-
 
 theorem deterministic_resolution_prover_sound_unsat:
   assumes
     su: "deterministic_resolution_prover NPQn = Some sol" and
     sol_unsat: "sol = Unsat"
-  shows "\<not> satisfiable (grounding_of_state (state_of_weighted_lstate NPQn))"
+  shows "\<not> satisfiable (grounding_of_state (state_of_wlstate NPQn))"
   using sol_unsat
 proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
   case (1 self_call NPQn sol)
   note ih = this(1)[OF _ refl] and call = this(2) and sol_unsat = this(3)
 
-  obtain N P Q :: "'a weighted_lclause list" and n :: nat where
+  obtain N P Q :: "'a wlclause list" and n :: nat where
     npqn: "NPQn = (N, P, Q, n)"
     by (cases NPQn) blast
 
