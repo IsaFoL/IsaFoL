@@ -395,7 +395,8 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
       note call = call[unfolded pick, simplified, folded remove1.simps(2)]
 
       show ?thesis
-        using ih[OF call]
+        apply (rule contrapos_nn[OF ih[OF call]])
+        apply (auto simp: comp_def simp del: remove1.simps(2))
 
         sorry
     qed
