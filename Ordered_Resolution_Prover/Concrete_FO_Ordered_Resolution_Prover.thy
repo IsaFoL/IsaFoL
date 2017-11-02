@@ -17,100 +17,74 @@ theory Concrete_FO_Ordered_Resolution_Prover
   imports Abstract_FO_Ordered_Resolution_Prover
 begin
 
-partial_function (option) while where
- "while b c s = (if b s then while b c (c s) else Some s)"
-
-print_theorems
-term while
-
+type_synonym 'a weighted_clause = "'a clause \<times> nat"
+type_synonym 'a weighted_state =
+  "'a weighted_clause set \<times> 'a weighted_clause set \<times> 'a weighted_clause set \<times> nat"
 
 locale FO_resolution_prover_with_weights =
-  FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart mgu less_atm
+  FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu less_atm
   for
     S :: "('a :: wellorder) clause \<Rightarrow> _" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and
-    comp_subst :: "'s => 's => 's" and
+    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
     renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
+    atm_of_atms :: "'a list \<Rightarrow> 'a" and
     mgu :: "'a set set \<Rightarrow> 's option" and
-    less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
-  +
+    less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" +
   fixes
-    weight :: "('a clause \<times> nat) \<Rightarrow> nat" 
+    weight :: "'a clause \<times> nat \<Rightarrow> nat" 
+  assumes
+    weight_monotone: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
 begin
 
-fun state_of_nth_state :: "'a nth_state \<Rightarrow> 'a state" where
-  "state_of_nth_state (N, P, Q, n) = (fst ` N, fst ` P, fst ` Q)"
+fun state_of_weighted_state :: "'a weighted_state \<Rightarrow> 'a state" where
+  "state_of_weighted_state (N, P, Q, n) = (fst ` N, fst ` P, fst ` Q)"
 
-abbreviation clss_of_nth_state :: "'a nth_state \<Rightarrow> 'a clause set" where 
-  "clss_of_nth_state \<equiv> clss_of_state \<circ> state_of_nth_state"
+abbreviation clss_of_weighted_state :: "'a weighted_state \<Rightarrow> 'a clause set" where 
+  "clss_of_weighted_state \<equiv> clss_of_state \<circ> state_of_weighted_state"
 
-abbreviation P_of_nth_state :: "'a nth_state \<Rightarrow> 'a clause set" where 
-  "P_of_nth_state \<equiv> P_of_state \<circ> state_of_nth_state"
+abbreviation P_of_weighted_state :: "'a weighted_state \<Rightarrow> 'a clause set" where 
+  "P_of_weighted_state \<equiv> P_of_state \<circ> state_of_weighted_state"
 
-abbreviation Q_of_nth_state :: "'a nth_state \<Rightarrow> 'a clause set" where 
-  "Q_of_nth_state \<equiv> Q_of_state \<circ> state_of_nth_state"
+abbreviation Q_of_weighted_state :: "'a weighted_state \<Rightarrow> 'a clause set" where 
+  "Q_of_weighted_state \<equiv> Q_of_state \<circ> state_of_weighted_state"
 
-abbreviation grounding_of_nth_state :: "'a nth_state \<Rightarrow> 'a clause set" where 
-  "grounding_of_nth_state \<equiv> grounding_of_state \<circ> state_of_nth_state"
+abbreviation grounding_of_weighted_state :: "'a weighted_state \<Rightarrow> 'a clause set" where 
+  "grounding_of_weighted_state \<equiv> grounding_of_state \<circ> state_of_weighted_state"
 
-abbreviation limit_nth_state :: "'a nth_state llist \<Rightarrow> 'a state" where
-  "limit_nth_state \<equiv> limit_state \<circ> lmap state_of_nth_state"
+abbreviation limit_weighted_state :: "'a weighted_state llist \<Rightarrow> 'a state" where
+  "limit_weighted_state \<equiv> limit_state \<circ> lmap state_of_weighted_state"
 
-inductive resolution_prover_with_weights :: "'a nth_state \<Rightarrow> 'a nth_state \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w" 50)  where
-  tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, Suc n)"
-| forward_subsumption: "(\<exists>(D,j) \<in> P \<union> Q. subsumes D C) \<Longrightarrow> (N \<union> {(C,i)}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, Suc n)"
-| backward_subsumption_P: "(\<exists>(D,j) \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P \<union> {(C,i)}, Q, n) \<leadsto>\<^sub>w (N, P, Q, Suc n)"
-| backward_subsumption_Q: "(\<exists>(D,j) \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P, Q \<union> {(C,i)}, n) \<leadsto>\<^sub>w (N, P, Q, Suc n)"
-| forward_reduction: "(\<exists>D L'. (D + {#L'#},j) \<in> P \<union> Q \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
-    (N \<union> {(C + {#L#},i)}, P, Q, n) \<leadsto>\<^sub>w (N \<union> {(C, Suc n)}, P, Q, Suc n)"
+inductive resolution_prover_with_weights :: "'a weighted_state \<Rightarrow> 'a weighted_state \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w" 50)  where
+  tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
+| forward_subsumption: "(\<exists>(D, j) \<in> P \<union> Q. subsumes D C) \<Longrightarrow> (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
+| backward_subsumption_P: "(\<exists>(D, j) \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P \<union> {(C, i)}, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
+| backward_subsumption_Q: "(\<exists>(D, j) \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P, Q \<union> {(C, i)}, n) \<leadsto>\<^sub>w (N, P, Q, n)"
+| forward_reduction: "(\<exists>D L'. (D + {#L'#}, j) \<in> P \<union> Q \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
+    (N \<union> {(C + {#L#}, i)}, P, Q, n) \<leadsto>\<^sub>w (N \<union> {(C, i)}, P, Q, n)"
 | backward_reduction_P: "(\<exists>D L'. (D + {#L'#}, j) \<in> N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
-    (N, P \<union> {(C + {#L#},i)}, Q, n) \<leadsto>\<^sub>w (N, P \<union> {(C, Suc n)}, Q, Suc n)"
+    (N, P \<union> {(C + {#L#}, i)}, Q, n) \<leadsto>\<^sub>w (N, P \<union> {(C, i)}, Q, n)"
 | backward_reduction_Q: "(\<exists>D L'. (D + {#L'#}, j) \<in> N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
-    (N, P, Q \<union> {(C + {#L#}, i)}, n) \<leadsto>\<^sub>w (N, P \<union> {(C, Suc n)}, Q, Suc n)"
-| clause_processing: 
-    "(N \<union> {(C,i)}, P, Q, n) \<leadsto>\<^sub>w (N, P \<union> {(C,i)}, Q, Suc n)"
+    (N, P, Q \<union> {(C + {#L#}, i)}, n) \<leadsto>\<^sub>w (N, P \<union> {(C, i)}, Q, n)"
+| clause_processing: "(N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P \<union> {(C, i)}, Q, n)"
 | inference_computation:
-    "\<forall>(D, j)\<in>P. weight (C, i) \<le> weight (D, j) \<Longrightarrow>
+    "(\<forall>(D, j) \<in> P. weight (C, i) \<le> weight (D, j)) \<Longrightarrow>
      N = (\<lambda>D. (D, Suc n)) ` concls_of (ord_FO_resolution_inferences_between (fst ` Q) C) \<Longrightarrow>
      ({}, P \<union> {(C, i)}, Q, n) \<leadsto>\<^sub>w (N, P, Q \<union> {(C, i)}, Suc n)"
 
-end
-
-locale FO_resolution_prover_with_monotone_weights =
-  FO_resolution_prover_with_weights S subst_atm id_subst comp_subst renamings_apart mgu less_atm weight
-  for
-    S :: "('a :: wellorder) clause \<Rightarrow> _" and
-    subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
-    id_subst :: "'s" and
-    comp_subst :: "'s => 's => 's" and
-    renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
-    mgu :: "'a set set \<Rightarrow> 's option" and
-    less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
-    weight :: "('a clause \<times> nat) \<Rightarrow> nat" +
-  fixes
-    cls_size:: "'a clause \<Rightarrow> nat"
-  assumes 
-    monotone_size: "cls_size C < cls_size D \<Longrightarrow> weight (C, m) < weight (D, m)" and
-    monotone_nat: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
-begin
-
-
-lemma cls_size_lte_weight: "cls_size C \<le> weight (C, n)"
-  sorry (* I need some assumptions on cls_size to prove this. *)
-
-lemma generation_no_lte_weight: "n \<le> weight (C,n)"
+lemma generation_no_lte_weight: "n \<le> weight (C, n)"
 proof(induction n)
   case 0
   then show ?case by auto
 next
   case (Suc n)
-  then show ?case using monotone_nat[of n "Suc n" C] by auto
+  then show ?case using weight_monotone[of n "Suc n" C] by auto
 qed
 
 lemma resolution_prover_with_weights_resolution_prover':
   assumes "St \<leadsto>\<^sub>w St'"
-  shows "state_of_nth_state St \<leadsto> state_of_nth_state St'"
+  shows "state_of_weighted_state St \<leadsto> state_of_weighted_state St'"
   using assms proof (induction rule: resolution_prover_with_weights.induct)
   case (tautology_deletion A C N i P Q n)
   then show ?case
@@ -181,34 +155,34 @@ next
 qed
 
 lemma resolution_prover_with_weights_resolution_prover:
-  "chain (op \<leadsto>\<^sub>w) Sts \<Longrightarrow> chain (op \<leadsto>) (lmap state_of_nth_state Sts)"
-  using resolution_prover_with_weights_resolution_prover' using chain_lmap monotone_size monotone_nat by metis
+  "chain (op \<leadsto>\<^sub>w) Sts \<Longrightarrow> chain (op \<leadsto>) (lmap state_of_weighted_state Sts)"
+  using resolution_prover_with_weights_resolution_prover' using chain_lmap weight_monotone by metis
 
 context
   fixes 
-    Sts :: "('a nth_state) llist"
+    Sts :: "('a weighted_state) llist"
   assumes
-    finite_Sts0: "finite (clss_of_nth_state (lnth Sts 0))" and
-    empty_P0: "P_of_nth_state (lnth Sts 0) = {}" and
-    empty_Q0: "Q_of_nth_state (lnth Sts 0) = {}" and
+    finite_Sts0: "finite (clss_of_weighted_state (lnth Sts 0))" and
+    empty_P0: "P_of_weighted_state (lnth Sts 0) = {}" and
+    empty_Q0: "Q_of_weighted_state (lnth Sts 0) = {}" and
     deriv: "chain (op \<leadsto>\<^sub>w) Sts" and
     non_empty_deriv: "enat 0 < llength Sts"
 begin
 
-lemma monotone_fairness: "fair_state_seq (lmap state_of_nth_state Sts)"
+lemma monotone_fairness: "fair_state_seq (lmap state_of_weighted_state Sts)"
 proof (rule ccontr)
-  assume "\<not> fair_state_seq (lmap state_of_nth_state Sts)"
-  then obtain C where "C \<in> limit_llist (lmap N_of_state (lmap state_of_nth_state Sts)) \<union> limit_llist (lmap P_of_state (lmap state_of_nth_state Sts))" 
+  assume "\<not> fair_state_seq (lmap state_of_weighted_state Sts)"
+  then obtain C where "C \<in> limit_llist (lmap N_of_state (lmap state_of_weighted_state Sts)) \<union> limit_llist (lmap P_of_state (lmap state_of_weighted_state Sts))" 
     unfolding fair_state_seq_def limit_state_def by auto
   then show False
   proof
-    assume "C \<in> limit_llist (lmap N_of_state (lmap state_of_nth_state Sts))"
-    then obtain i where "enat i < llength Sts" "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_nth_state (lnth Sts j))" 
+    assume "C \<in> limit_llist (lmap N_of_state (lmap state_of_weighted_state Sts))"
+    then obtain i where "enat i < llength Sts" "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_weighted_state (lnth Sts j))" 
       unfolding limit_llist_def by auto
     then show False
       sorry (* *)
   next
-    assume "C \<in> limit_llist (lmap P_of_state (lmap state_of_nth_state Sts))"
+    assume "C \<in> limit_llist (lmap P_of_state (lmap state_of_weighted_state Sts))"
     then show False 
       sorry
   qed
@@ -217,29 +191,29 @@ qed
 lemma monotone_completeness:
   assumes 
     selection_renaming_invariant: "(\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>)" and
-    unsat: "\<not> satisfiable (grounding_of_state (limit_nth_state Sts))" 
-  shows "{#} \<in> clss_of_state (limit_nth_state Sts)"
+    unsat: "\<not> satisfiable (grounding_of_state (limit_weighted_state Sts))" 
+  shows "{#} \<in> clss_of_state (limit_weighted_state Sts)"
 proof -
-  have "state_of_nth_state (lnth Sts 0) = lnth (lmap state_of_nth_state Sts) 0"
-    using lnth_lmap[of 0 Sts state_of_nth_state] non_empty_deriv
+  have "state_of_weighted_state (lnth Sts 0) = lnth (lmap state_of_weighted_state Sts) 0"
+    using lnth_lmap[of 0 Sts state_of_weighted_state] non_empty_deriv
     by auto
-  then have "finite (clss_of_state (lnth (lmap state_of_nth_state Sts) 0))"
+  then have "finite (clss_of_state (lnth (lmap state_of_weighted_state Sts) 0))"
     using finite_Sts0 by auto
-  moreover have "P_of_state (lnth (lmap state_of_nth_state Sts) 0) = {}"
+  moreover have "P_of_state (lnth (lmap state_of_weighted_state Sts) 0) = {}"
     using empty_P0 non_empty_deriv by auto
-  moreover have "Q_of_state (lnth (lmap state_of_nth_state Sts) 0) = {}"
+  moreover have "Q_of_state (lnth (lmap state_of_weighted_state Sts) 0) = {}"
     using empty_Q0 non_empty_deriv by auto
-  moreover have "chain op \<leadsto> (lmap state_of_nth_state Sts)"
+  moreover have "chain op \<leadsto> (lmap state_of_weighted_state Sts)"
     using deriv resolution_prover_with_weights_resolution_prover by blast 
   moreover have "\<forall>\<rho> C. is_renaming \<rho> \<longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
     using selection_renaming_invariant by auto
-  moreover have "fair_state_seq (lmap state_of_nth_state Sts)"
+  moreover have "fair_state_seq (lmap state_of_weighted_state Sts)"
     using monotone_fairness by auto
-  moreover have "\<not> satisfiable (grounding_of_state (limit_state (lmap state_of_nth_state Sts)))"
+  moreover have "\<not> satisfiable (grounding_of_state (limit_state (lmap state_of_weighted_state Sts)))"
     using unsat by auto
-  ultimately have "{#} \<in> clss_of_state (limit_state (lmap state_of_nth_state Sts))" 
-    using fair_state_seq_complete[of "lmap state_of_nth_state Sts"] by auto
-  then show "{#} \<in> clss_of_state (limit_nth_state Sts)"
+  ultimately have "{#} \<in> clss_of_state (limit_state (lmap state_of_weighted_state Sts))" 
+    using fair_state_seq_complete[of "lmap state_of_weighted_state Sts"] by auto
+  then show "{#} \<in> clss_of_state (limit_weighted_state Sts)"
     by auto
 qed 
 
@@ -247,31 +221,204 @@ end
 
 end
 
+type_synonym 'a list_clause = "'a literal list"
+type_synonym 'a weighted_list_clause = "'a list_clause \<times> nat"
+type_synonym 'a weighted_list_state =
+  "'a weighted_list_clause list \<times> 'a weighted_list_clause list \<times> 'a weighted_list_clause list \<times> nat"
+
+fun clause_of_weighted_list_clause :: "'a weighted_list_clause \<Rightarrow> 'a clause" where
+  "clause_of_weighted_list_clause (C, _) = mset C"
+
+fun state_of_weighted_list_state :: "'a weighted_list_state \<Rightarrow> 'a state" where
+  "state_of_weighted_list_state (N, P, Q, _) =
+   (set (map clause_of_weighted_list_clause N), set (map clause_of_weighted_list_clause P),
+    set (map clause_of_weighted_list_clause Q))"
+
+datatype 'a solution =
+  Sat "'a list_clause list"
+| Unsat
+
 locale FO_resolution_prover_with_sum_product_weights =
-  FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart mgu less_atm
+  FO_resolution_prover_with_weights S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu
+    less_atm weight
   for
-    S :: "('a :: wellorder) clause \<Rightarrow> _" and
+    S :: "('a :: wellorder) clause \<Rightarrow> _" and (* FIXME: assumption that no selection takes place? *)
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and
     comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
     renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
+    atm_of_atms :: "'a list \<Rightarrow> 'a" and
     mgu :: "'a set set \<Rightarrow> 's option" and
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
-    i :: nat and
-    j :: nat and
     weight :: "'a clause \<times> nat \<Rightarrow> nat" +
+  fixes
+    size_atm :: "'a \<Rightarrow> nat" and
+    generation_factor :: nat and
+    size_factor :: nat
   assumes
-    i_pos: "i > 0" and
-    j_pos:"j > 0" and
-    weight_def: "weight = (\<lambda>(C, m). i * m + j * size C)"
+    generation_factor_pos: "generation_factor > 0" and
+    weight_def: "weight (C, m) =
+      generation_factor * m + size_factor * size_multiset (size_literal size_atm) C"
 begin
 
-sublocale FO_resolution_prover_with_monotone_weights
-  using i_pos j_pos weight_def apply unfold_locales sorry (* by auto *)
+sublocale FO_resolution_prover_with_weights
+  using generation_factor_pos by unfold_locales (simp add: weight_def)
 
 thm monotone_fairness
 
 thm monotone_completeness
+
+definition is_tautology :: "'a list_clause \<Rightarrow> bool" where
+  "is_tautology C \<longleftrightarrow> (\<exists>A \<in> set (map atm_of C). Pos A \<in> set C \<and> Neg A \<in> set C)"
+
+definition is_subsumed_by :: "'a list_clause list \<Rightarrow> 'a list_clause \<Rightarrow> bool" where
+  "is_subsumed_by Ds C \<longleftrightarrow> (\<exists>D \<in> set Ds. subsumes (mset D) (mset C))"
+
+definition is_reducible_lit :: "'a list_clause list \<Rightarrow> 'a list_clause \<Rightarrow> 'a literal \<Rightarrow> bool" where
+  "is_reducible_lit Ds C L \<longleftrightarrow>
+   (\<exists>D \<in> set Ds. \<exists>L' \<in> set D. \<exists>\<sigma>. - L = L' \<cdot>l \<sigma> \<and> mset (remove1 L' D) \<cdot> \<sigma> \<subseteq># mset (remove1 L C))"
+
+definition reduce :: "'a list_clause list \<Rightarrow> 'a list_clause \<Rightarrow> 'a list_clause" where
+  "reduce Ds C = filter (is_reducible_lit Ds C) C"
+
+fun resolve_on :: "'a list_clause \<Rightarrow> 'a \<Rightarrow> 'a list_clause \<Rightarrow> 'a list_clause list" where
+  "resolve_on C B D =
+   concat (map (\<lambda>L.
+      (case L of
+         Neg _ \<Rightarrow> []
+       | Pos A \<Rightarrow>
+         (case mgu {{A, B}} of
+            None \<Rightarrow> []
+          | Some \<sigma> \<Rightarrow>
+            let
+              D' = map (\<lambda>M. M \<cdot>l \<sigma>) D;
+              B' = B \<cdot>a \<sigma>
+            in
+              if maximal_in B' (mset D') then
+                let
+                  C' = map (\<lambda>L. L \<cdot>l \<sigma>) (removeAll L C)
+                in
+                  (if strictly_maximal_in B' (mset C') then [C' @ D'] else []) @ resolve_on C' B' D'
+              else
+                []))) C)"
+
+definition resolve :: "'a list_clause \<Rightarrow> 'a list_clause \<Rightarrow> 'a list_clause list" where
+  "resolve C D =
+   concat (map (\<lambda>M.
+     (case M of
+        Pos A \<Rightarrow> []
+      | Neg A \<Rightarrow>
+        if maximal_in A (mset D) then
+          resolve_on C A (remove1 M D)
+        else
+          [])) D)"
+
+definition resolve_either_way :: "'a list_clause \<Rightarrow> 'a list_clause \<Rightarrow> 'a list_clause list" where
+  "resolve_either_way C D = resolve C D @ resolve D C"
+
+fun
+  pick_clause :: "'a weighted_list_clause \<Rightarrow> 'a weighted_list_clause list \<Rightarrow> 'a weighted_list_clause"
+where
+  "pick_clause (C, i) [] = (C, i)"
+| "pick_clause (C, i) ((D, j) # Ds) =
+   pick_clause (if weight (mset D, j) < weight (mset C, i) then (D, j) else (C, i)) Ds"
+
+partial_function (option)
+  deterministic_resolution_prover :: "'a weighted_list_state \<Rightarrow> 'a solution option"
+where
+  "deterministic_resolution_prover NPQn =
+   (let
+      (N, P, Q, n) = NPQn
+    in
+      (case N of
+         [] \<Rightarrow>
+         (case P of
+            [] \<Rightarrow> Some (Sat (map fst Q))
+          | (C, i) # P' \<Rightarrow>
+            let
+              (C, i) = pick_clause (C, i) P';
+              P = remove1 (C, i) P;
+              N = map (\<lambda>D. (D, Suc n)) (resolve C C @ concat (map (resolve_either_way C \<circ> fst) Q))
+            in
+              deterministic_resolution_prover (N, P, Q, Suc n))
+       | (C, i) # N \<Rightarrow>
+         let
+           C = reduce (map fst (P @ Q)) C
+         in
+           if C = [] then
+             Some Unsat
+           else if is_tautology C \<or> is_subsumed_by (map fst (P @ Q)) C then
+             deterministic_resolution_prover (N, P, Q, n)
+           else
+             let
+               P = map (apfst (reduce [C])) P;
+               P = filter (is_subsumed_by [C] \<circ> fst) N;
+               Q = map (apfst (reduce [C])) Q;
+               Q = filter (is_subsumed_by [C] \<circ> fst) N;
+               P = (C, i) # P
+             in
+               deterministic_resolution_prover (N, P, Q, n)))"
+
+theorem deterministic_resolution_prover_sound_unsat:
+  assumes
+    su: "deterministic_resolution_prover NPQn = Some sol" and
+    sol_unsat: "sol = Unsat"
+  shows "\<not> satisfiable (grounding_of_state (state_of_weighted_list_state NPQn))"
+  using sol_unsat
+proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
+  case (1 self_call NPQn sol)
+  note ih = this(1)[OF _ refl] and call = this(2) and sol_unsat = this(3)
+
+  obtain N P Q :: "'a weighted_list_clause list" and n :: nat where
+    npqn: "NPQn = (N, P, Q, n)"
+    by (cases NPQn) blast
+
+  note call = call[unfolded sol_unsat npqn, simplified]
+
+  show ?case
+  proof (cases N)
+    case n_nil: Nil
+    note call = call[unfolded n_nil, simplified]
+    show ?thesis
+    proof (cases P)
+      case p_nil: Nil
+      note call = call[unfolded p_nil, simplified]
+      show ?thesis
+        using call by simp
+    next
+      case p_cons: (Cons Ci P')
+      note call = call[unfolded p_cons, simplified]
+
+      obtain C :: "'a list_clause" and i :: nat where
+        pick: "pick_clause Ci P' = (C, i)"
+        by (cases "pick_clause Ci P'") simp
+      note call = call[unfolded pick, simplified, folded remove1.simps(2)]
+
+      show ?thesis
+        using ih[OF call]
+
+        sorry
+    qed
+  next
+    case n_Cons: (Cons Ci N)
+    note call = call[unfolded n_Cons, simplified]
+    show ?thesis
+      sorry
+  qed
+qed
+
+(*
+  using su
+  apply (induct rule: deterministic_resolution_prover.fixp_induct)
+*)
+
+thm
+  deterministic_resolution_prover.fixp_induct
+  deterministic_resolution_prover.raw_induct
+  deterministic_resolution_prover.mono
+  deterministic_resolution_prover.simps
+
+print_theorems
 
 end
 

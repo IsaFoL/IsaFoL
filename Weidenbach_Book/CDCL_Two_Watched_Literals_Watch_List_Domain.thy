@@ -393,7 +393,7 @@ locale isasat_input_bounded =
   isasat_input_ops \<A>\<^sub>i\<^sub>n
   for \<A>\<^sub>i\<^sub>n :: \<open>nat multiset\<close> +
   assumes
-    in_N1_less_than_uint_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < uint_max\<close>
+    in_N1_less_than_uint_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L \<le> uint_max\<close>
 
 locale isasat_input_bounded_nempty =
   isasat_input_bounded \<A>\<^sub>i\<^sub>n
@@ -497,7 +497,7 @@ proof -
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
     then have \<open>Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
       using lits by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-    then have \<open>nat_of_lit (Pos L) < uint_max\<close>
+    then have \<open>nat_of_lit (Pos L) \<le> uint_max\<close>
       using in_N1_less_than_uint_max by (auto simp: atm_of_lit_in_atms_of
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
     then have \<open>L \<le> uint_max div 2\<close>

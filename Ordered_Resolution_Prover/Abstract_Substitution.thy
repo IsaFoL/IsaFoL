@@ -20,10 +20,16 @@ subsection \<open>Substitution operators\<close>
 
 locale substitution_ops =
   fixes
-    subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" (infixl "\<cdot>a" 67) and
+    subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: 's and
-    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 67)
+    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's"
 begin
+
+abbreviation subst_atm_abbrev :: "'a \<Rightarrow> 's \<Rightarrow> 'a" (infixl "\<cdot>a" 67) where
+  "subst_atm_abbrev \<equiv> subst_atm"
+
+abbreviation comp_subst_abbrev :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 67) where
+  "comp_subst_abbrev \<equiv> comp_subst"
 
 definition comp_substs :: "'s list \<Rightarrow> 's list \<Rightarrow> 's list" (infixl "\<odot>s" 67) where
   "\<sigma>s \<odot>s \<tau>s = map2 comp_subst \<sigma>s \<tau>s"
@@ -61,7 +67,7 @@ definition subst_cls_list :: "'a clause list \<Rightarrow> 's \<Rightarrow> 'a c
   "CC \<cdot>cl \<sigma> = map (\<lambda>A. A \<cdot> \<sigma>) CC"
 
 definition subst_cls_lists :: "'a clause list \<Rightarrow> 's list \<Rightarrow> 'a clause list" (infixl "\<cdot>\<cdot>cl" 67) where
-  "CC \<cdot>\<cdot>cl \<sigma>s = map2 subst_cls CC \<sigma>s"
+  "CC \<cdot>\<cdot>cl \<sigma>s = map2 (op \<cdot>) CC \<sigma>s"
 
 definition subst_cls_mset :: "'a clause multiset \<Rightarrow> 's \<Rightarrow> 'a clause multiset" (infixl "\<cdot>cm" 67) where
   "CC \<cdot>cm \<sigma> = image_mset (\<lambda>A. A \<cdot> \<sigma>) CC"
@@ -89,6 +95,15 @@ definition generalizes_cls :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> b
 
 definition strictly_generalizes_cls :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   "strictly_generalizes_cls C D \<longleftrightarrow> generalizes_cls C D \<and> \<not> generalizes_cls D C"
+
+definition subsumes :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  "subsumes C D \<longleftrightarrow> (\<exists>\<sigma>. C \<cdot> \<sigma> \<subseteq># D)"
+
+definition strictly_subsumes :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  "strictly_subsumes C D \<longleftrightarrow> subsumes C D \<and> \<not> subsumes D C"
+
+definition variants :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  "variants C D \<longleftrightarrow> generalizes_cls C D \<and> generalizes_cls D C"
 
 definition is_renaming :: "'s \<Rightarrow> bool" where
   "is_renaming \<sigma> \<longleftrightarrow> (\<exists>\<tau>. \<sigma> \<odot> \<tau> = id_subst)"
@@ -158,9 +173,9 @@ subsection \<open>Substitution lemmas\<close>
 
 locale substitution = substitution_ops subst_atm id_subst comp_subst
   for
-    subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" (infixl "\<cdot>a" 67) and
+    subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: 's and
-    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 67) +
+    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" +
   fixes
     atm_of_atms :: "'a list \<Rightarrow> 'a" and
     renamings_apart :: "'a clause list \<Rightarrow> 's list"
@@ -905,14 +920,30 @@ lemma is_unifiers_is_unifier: "is_unifiers \<sigma> AAA \<Longrightarrow> AA \<i
   using is_unifiers_def by auto
 
 
-subsubsection \<open>Wellfoundness of strict generalization\<close>
+subsubsection \<open>Generalization and subsumption\<close>
+
+lemma variants_iff_subsumes: "variants C D \<longleftrightarrow> subsumes C D \<and> subsumes D C"
+proof
+  assume "variants C D"
+  then show "subsumes C D \<and> subsumes D C"
+    unfolding variants_def generalizes_cls_def subsumes_def by (metis subset_mset.dual_order.refl)
+next
+  assume sub: "subsumes C D \<and> subsumes D C"
+  then have "size C = size D"
+    unfolding subsumes_def
+    by (metis antisym size_image_mset size_mset_mono substitution_ops.subst_cls_def)
+  then show "variants C D"
+    using sub unfolding subsumes_def variants_def generalizes_cls_def
+    by (smt add.right_neutral cancel_comm_monoid_add_class.diff_cancel size_Diff_submset
+        size_eq_0_iff_empty size_image_mset subset_mset.add_diff_inverse subst_cls_def)
+qed
 
 lemma wf_strictly_generalizes_cls: "wfP strictly_generalizes_cls"
 proof -
   {
     assume "\<exists>C_at. \<forall>i. strictly_generalizes_cls (C_at (Suc i)) (C_at i)"
     then obtain C_at :: "nat \<Rightarrow> 'a clause" where
-      sg_C: "strictly_generalizes_cls (C_at (Suc i)) (C_at i)" for i
+      sg_C: "\<And>i. strictly_generalizes_cls (C_at (Suc i)) (C_at i)"
       by blast
 
     define n :: nat where
@@ -927,24 +958,24 @@ proof -
     qed (simp add: n_def)
 
     obtain \<sigma>_at :: "nat \<Rightarrow> 's" where
-      C_\<sigma>: "image_mset (\<lambda>L. subst_lit L (\<sigma>_at i)) (C_at (Suc i)) = C_at i" for i
+      C_\<sigma>: "\<And>i. image_mset (\<lambda>L. L \<cdot>l \<sigma>_at i) (C_at (Suc i)) = C_at i"
       using sg_C[unfolded strictly_generalizes_cls_def generalizes_cls_def subst_cls_def] by metis
 
     define Ls_at :: "nat \<Rightarrow> 'a literal list" where
       "Ls_at = rec_nat (SOME Ls. mset Ls = C_at 0)
-         (\<lambda>i Lsi. SOME Ls. mset Ls = C_at (Suc i) \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) Ls = Lsi)"
+         (\<lambda>i Lsi. SOME Ls. mset Ls = C_at (Suc i) \<and> map (\<lambda>L. L \<cdot>l \<sigma>_at i) Ls = Lsi)"
 
     have
       Ls_at_0: "Ls_at 0 = (SOME Ls. mset Ls = C_at 0)" and
-      Ls_at_Suc: "Ls_at (Suc i) =
-        (SOME Ls. mset Ls = C_at (Suc i) \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) Ls = Ls_at i)" for i
+      Ls_at_Suc: "\<And>i. Ls_at (Suc i) =
+        (SOME Ls. mset Ls = C_at (Suc i) \<and> map (\<lambda>L. L \<cdot>l \<sigma>_at i) Ls = Ls_at i)"
       unfolding Ls_at_def by simp+
 
     have mset_Lt_at_0: "mset (Ls_at 0) = C_at 0"
       unfolding Ls_at_0 by (rule someI_ex) (metis list_of_mset_exi)
 
-    have "mset (Ls_at (Suc i)) = C_at (Suc i)
-      \<and> map (\<lambda>L. subst_lit L (\<sigma>_at i)) (Ls_at (Suc i)) = Ls_at i" for i
+    have "mset (Ls_at (Suc i)) = C_at (Suc i) \<and> map (\<lambda>L. L \<cdot>l \<sigma>_at i) (Ls_at (Suc i)) = Ls_at i"
+      for i
     proof (induct i)
       case 0
       then show ?case
@@ -957,22 +988,22 @@ proof -
     qed
     note mset_Ls = this[THEN conjunct1] and Ls_\<sigma> = this[THEN conjunct2]
 
-    have len_Ls: "length (Ls_at i) = n" for i
+    have len_Ls: "\<And>i. length (Ls_at i) = n"
       by (metis mset_Ls mset_Lt_at_0 not0_implies_Suc size_mset sz_C)
 
-    have is_pos_Ls: "is_pos (Ls_at (Suc i) ! j) \<longleftrightarrow> is_pos (Ls_at i ! j)" if "j < n" for i j
-      using that Ls_\<sigma> len_Ls by (metis literal.map_disc_iff nth_map subst_lit_def)
+    have is_pos_Ls: "\<And>i j. j < n \<Longrightarrow> is_pos (Ls_at (Suc i) ! j) \<longleftrightarrow> is_pos (Ls_at i ! j)"
+      using Ls_\<sigma> len_Ls by (metis literal.map_disc_iff nth_map subst_lit_def)
 
-    have Ls_\<tau>_strict_lit: "map (\<lambda>L. subst_lit L \<tau>) (Ls_at i) \<noteq> Ls_at (Suc i)" for i \<tau>
+    have Ls_\<tau>_strict_lit: "\<And>i \<tau>. map (\<lambda>L. L \<cdot>l \<tau>) (Ls_at i) \<noteq> Ls_at (Suc i)"
       by (metis C_\<sigma> mset_Ls Ls_\<sigma> mset_map sg_C generalizes_cls_def strictly_generalizes_cls_def
           subst_cls_def)
 
     have Ls_\<tau>_strict_tm:
-      "map ((\<lambda>t. t \<cdot>a \<tau>) \<circ> atm_of) (Ls_at i) \<noteq> map atm_of (Ls_at (Suc i))" (is "?lhs \<noteq> ?rhs") for i \<tau>
+      "map ((\<lambda>t. t \<cdot>a \<tau>) \<circ> atm_of) (Ls_at i) \<noteq> map atm_of (Ls_at (Suc i))" for i \<tau>
     proof -
       obtain j :: nat where
         j_lt: "j < n" and
-        j_\<tau>: "subst_lit (Ls_at i ! j) \<tau> \<noteq> Ls_at (Suc i) ! j"
+        j_\<tau>: "Ls_at i ! j \<cdot>l \<tau> \<noteq> Ls_at (Suc i) ! j"
         using Ls_\<tau>_strict_lit[of \<tau> i] len_Ls
         by (metis (no_types, lifting) length_map list_eq_iff_nth_eq nth_map)
 
@@ -986,12 +1017,12 @@ proof -
     define tm_at :: "nat \<Rightarrow> 'a" where
       "\<And>i. tm_at i = atm_of_atms (map atm_of (Ls_at i))"
 
-    have "generalizes_atm (tm_at (Suc i)) (tm_at i)" for i
+    have "\<And>i. generalizes_atm (tm_at (Suc i)) (tm_at i)"
       unfolding tm_at_def generalizes_atm_def atm_of_atms_subst
       using Ls_\<sigma>[THEN arg_cong, of "map atm_of"] by (auto simp: comp_def)
-    moreover have "\<not> generalizes_atm (tm_at i) (tm_at (Suc i))" for i
+    moreover have "\<And>i. \<not> generalizes_atm (tm_at i) (tm_at (Suc i))"
       unfolding tm_at_def generalizes_atm_def atm_of_atms_subst by (simp add: Ls_\<tau>_strict_tm)
-    ultimately have "strictly_generalizes_atm (tm_at (Suc i)) (tm_at i)" for i
+    ultimately have "\<And>i. strictly_generalizes_atm (tm_at (Suc i)) (tm_at i)"
       unfolding strictly_generalizes_atm_def by blast
     then have False
       using wf_strictly_generalizes_atm[unfolded wfP_def wf_iff_no_infinite_down_chain] by blast
@@ -1007,9 +1038,9 @@ subsection \<open>Most general unifiers\<close>
 
 locale mgu = substitution subst_atm id_subst comp_subst atm_of_atms renamings_apart
   for
-    subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" (infixl "\<cdot>a" 67) and
+    subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: 's and
-    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" (infixl "\<odot>" 67) and
+    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
     atm_of_atms :: "'a list \<Rightarrow> 'a" and
     renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" +
   fixes

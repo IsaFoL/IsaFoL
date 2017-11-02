@@ -24,19 +24,16 @@ The following corresponds to page 42 and 43 of Section 4.3 from the explanation 
 
 type_synonym 'a state = "'a clause set \<times> 'a clause set \<times> 'a clause set"
 
-type_synonym 'a weighted_clause = "'a clause \<times> nat"
-
-type_synonym 'a nth_state = "'a weighted_clause set \<times> 'a weighted_clause set \<times> 'a weighted_clause set \<times> nat"
-
 locale FO_resolution_prover =
-  FO_resolution subst_atm id_subst comp_subst renamings_apart mgu less_atm +
+  FO_resolution subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu less_atm +
   selection S
   for
     S :: "('a :: wellorder) clause \<Rightarrow> _" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and
-    comp_subst :: "'s => 's => 's" and
+    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
     renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
+    atm_of_atms :: "'a list \<Rightarrow> 'a" and
     mgu :: "'a set set \<Rightarrow> 's option" and
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
 begin
@@ -65,7 +62,11 @@ definition ord_FO_\<Gamma> :: "'a inference set" where
 
 interpretation ord_FO_resolution: inference_system ord_FO_\<Gamma> .
 
-definition "ord_FO_resolution_inferences_between = ord_FO_resolution.inferences_between"
+definition
+  ord_FO_resolution_inferences_between
+  :: "'a literal multiset set \<Rightarrow> 'a literal multiset \<Rightarrow> 'a inference set"
+where
+  "ord_FO_resolution_inferences_between = ord_FO_resolution.inferences_between"
 
 inductive subsume_resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where (* This is never used. *)
   "subsume_resolve (D + {#L#}) (C + (D + {#- L#}) \<cdot> \<sigma>) (C + D \<cdot> \<sigma>)"
@@ -107,12 +108,12 @@ The following formalizes Lemma 4.10.
 
 context
   fixes
-    Sts :: "('a state) llist"
+    Sts :: "'a state llist"
   assumes
+    deriv: "chain (op \<leadsto>) Sts" and
     finite_Sts0: "finite (clss_of_state (lnth Sts 0))" and
     empty_P0: "P_of_state (lnth Sts 0) = {}" and
-    empty_Q0: "Q_of_state (lnth Sts 0) = {}" and
-    deriv: "chain (op \<leadsto>) Sts"
+    empty_Q0: "Q_of_state (lnth Sts 0) = {}"
 begin
 
 definition S_Q :: "'a clause \<Rightarrow> 'a clause" where
@@ -1179,7 +1180,7 @@ lemma variants_sym: "variants D D' \<longleftrightarrow> variants D' D"
   unfolding variants_def by auto
 
 lemma variants_imp_exists_subtitution: "variants D D' \<Longrightarrow> \<exists>\<sigma>. D \<cdot> \<sigma> = D'"
-  unfolding variants_def subsumes_def
+  unfolding variants_iff_subsumes subsumes_def
   by (meson strictly_subsumes_def subset_mset_def subset_subst_strictly_subsumes subsumes_def)
 
 lemma properly_subsume_variants:
@@ -1319,7 +1320,7 @@ proof -
     then have "subsumes D D'"
       unfolding strictly_subsumes_def using D'_p by auto
     then have v: "variants D D'"
-      using D'_p unfolding variants_def by auto
+      using D'_p unfolding variants_iff_subsumes by auto
     then have mini: "\<forall>E \<in> {E \<in> clss_of_state (sup_state Sts). subsumes E C}. \<not> strictly_subsumes E D'"
       using d_least D'_p neg_properly_subsume_variants[of _ D D'] by auto
 
@@ -1581,10 +1582,12 @@ qed
 lemma empty_in_limit_state:
   assumes
     empty_in: "{#} \<in> limit_llist (lmap grounding_of_state Sts)" and
-    fair: "fair_state_seq Sts" and
-    ns: "Ns = lmap grounding_of_state Sts"
+    fair: "fair_state_seq Sts"
   shows "{#} \<in> clss_of_state (limit_state Sts)"
 proof -
+  define Ns :: "'a clause set llist" where
+    ns: "Ns = lmap grounding_of_state Sts"
+
   from empty_in have in_limit_not_Rf: "{#} \<in> limit_llist Ns - src.Rf (limit_llist Ns)"
     unfolding ns src.Rf_def by auto
 
@@ -1612,10 +1615,12 @@ theorem fair_state_seq_complete:
   assumes
     selection_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
     fair: "fair_state_seq Sts" and
-    unsat: "\<not> satisfiable (grounding_of_state (limit_state Sts))" and
-    ns: "Ns = lmap grounding_of_state Sts"
+    unsat: "\<not> satisfiable (grounding_of_state (limit_state Sts))"
   shows "{#} \<in> clss_of_state (limit_state Sts)"
 proof -
+  define Ns :: "'a clause set llist" where
+    ns: "Ns = lmap grounding_of_state Sts"
+
   let ?N = "\<lambda>i. grounding_of_state (lnth Sts i)"
 
   let ?Ns = "\<lambda>i. N_of_state (lnth Sts i)"
