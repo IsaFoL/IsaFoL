@@ -20,8 +20,6 @@ type_synonym unit_lits_wl = \<open>uint32 list list\<close>
 
 type_synonym watched_wl = \<open>(nat array_list) array\<close>
 
-notation prod_assn (infixr "*assn" 90)
-
 
 subsubsection \<open>Refinement of the Watched Function\<close>
 
@@ -55,7 +53,7 @@ fun nat_of_lit :: \<open>nat literal \<Rightarrow> nat\<close> where
   \<open>nat_of_lit (Pos L) = 2*L\<close>
 | \<open>nat_of_lit (Neg L) = 2*L + 1\<close>
 
-lemma nat_of_lit_def: \<open>nat_of_lit L = (if is_pos L then 2*atm_of L else 2*atm_of L + 1)\<close>
+lemma nat_of_lit_def: \<open>nat_of_lit L = (if is_pos L then 2 * atm_of L else 2 * atm_of L + 1)\<close>
   by (cases L) auto
 
 fun literal_of_nat :: \<open>nat \<Rightarrow> nat literal\<close> where

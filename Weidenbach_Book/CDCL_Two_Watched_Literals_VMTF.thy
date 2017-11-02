@@ -2379,12 +2379,12 @@ lemma get_prev_ref[sepref_fr_rules]: \<open>(return o get_prev, RETURN o get_pre
   by sepref_to_hoare (sep_auto simp: return_cons_rule nat_vmtf_node_rel_def)
 
 abbreviation vmtf_conc where
-  \<open>vmtf_conc \<equiv> (array_assn nat_vmtf_node_assn *assn nat_assn *assn uint32_nat_assn *assn uint32_nat_assn
-    *assn option_assn uint32_nat_assn)\<close>
+  \<open>vmtf_conc \<equiv> (array_assn nat_vmtf_node_assn *a nat_assn *a uint32_nat_assn *a uint32_nat_assn
+    *a option_assn uint32_nat_assn)\<close>
 
 
 abbreviation vmtf_remove_conc :: \<open>vmtf_remove_int \<Rightarrow> vmtf_remove_assn \<Rightarrow> assn\<close> where
-  \<open>vmtf_remove_conc \<equiv> vmtf_conc *assn arl_assn uint32_nat_assn\<close>
+  \<open>vmtf_remove_conc \<equiv> vmtf_conc *a arl_assn uint32_nat_assn\<close>
 
 definition update_next_search where
   \<open>update_next_search L = (\<lambda>((ns, m, fst_As, lst_As, next_search), to_remove). ((ns, m, fst_As, lst_As, L), to_remove))\<close>
@@ -2407,9 +2407,9 @@ sepref_definition (in -)ns_vmtf_dequeue_code
 declare ns_vmtf_dequeue_code.refine[sepref_fr_rules]
 
 abbreviation vmtf_conc_option_fst_As where
-  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn nat_vmtf_node_assn *assn nat_assn *assn option_assn uint32_nat_assn
-    *assn option_assn uint32_nat_assn
-    *assn option_assn uint32_nat_assn)\<close>
+  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn nat_vmtf_node_assn *a nat_assn *a option_assn uint32_nat_assn
+    *a option_assn uint32_nat_assn
+    *a option_assn uint32_nat_assn)\<close>
 
 sepref_definition vmtf_dequeue_code
    is \<open>uncurry (RETURN oo vmtf_dequeue)\<close>

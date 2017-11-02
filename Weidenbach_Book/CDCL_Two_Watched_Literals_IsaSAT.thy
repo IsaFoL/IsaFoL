@@ -31,8 +31,8 @@ type_synonym (in -) twl_st_wl_heur_init =
     nat\<close>
 
 abbreviation (in -) vmtf_conc_option_fst_As where
-  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn nat_vmtf_node_assn *assn nat_assn *assn option_assn uint32_nat_assn
-    *assn option_assn uint32_nat_assn *assn option_assn uint32_nat_assn)\<close>
+  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn nat_vmtf_node_assn *a nat_assn *a option_assn uint32_nat_assn
+    *a option_assn uint32_nat_assn *a option_assn uint32_nat_assn)\<close>
 
 type_synonym (in -)vmtf_assn_option_fst_As = \<open>(uint32, nat) vmtf_node array \<times> nat \<times> uint32 option \<times> uint32 option \<times> uint32 option\<close>
 type_synonym (in -)vmtf_remove_assn_option_fst_As = \<open>vmtf_assn_option_fst_As \<times> uint32 array_list\<close>
@@ -40,7 +40,7 @@ type_synonym (in -)vmtf_remove_assn_option_fst_As = \<open>vmtf_assn_option_fst_
 abbreviation (in -)vmtf_remove_conc_option_fst_As
   :: \<open>vmtf_remove_int_option_fst_As \<Rightarrow> vmtf_remove_assn_option_fst_As \<Rightarrow> assn\<close>
 where
-  \<open>vmtf_remove_conc_option_fst_As \<equiv> vmtf_conc_option_fst_As *assn arl_assn uint32_nat_assn\<close>
+  \<open>vmtf_remove_conc_option_fst_As \<equiv> vmtf_conc_option_fst_As *a arl_assn uint32_nat_assn\<close>
 
 definition (in isasat_input_ops) twl_st_heur_init :: \<open>(twl_st_wl_heur_init \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_init =
@@ -61,11 +61,11 @@ type_synonym (in -)twl_st_wll_trail_init =
 
 definition (in isasat_input_ops) twl_st_heur_init_assn :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wll_trail_init \<Rightarrow> assn\<close> where
 \<open>twl_st_heur_init_assn =
-  trail_assn *assn clauses_ll_assn *assn nat_assn *assn
-  conflict_option_assn *assn
-  clause_l_assn *assn
-  arrayO_assn (arl_assn nat_assn) *assn
-  vmtf_remove_conc_option_fst_As *assn phase_saver_conc *assn
+  trail_assn *a clauses_ll_assn *a nat_assn *a
+  conflict_option_assn *a
+  clause_l_assn *a
+  arrayO_assn (arl_assn nat_assn) *a
+  vmtf_remove_conc_option_fst_As *a phase_saver_conc *a
   uint32_nat_assn\<close>
 
 definition (in isasat_input_ops) twl_st_init_assn
@@ -556,11 +556,11 @@ definition twl_st_heur_pol_init_assn
   :: \<open>twl_st_wl_heur_init_trail_ref \<Rightarrow> _ \<Rightarrow> assn\<close>
 where
   \<open>twl_st_heur_pol_init_assn =
-    (trail_pol_assn *assn clauses_ll_assn *assn nat_assn *assn
-    conflict_option_assn *assn
-    clause_l_assn *assn
-    arrayO_assn (arl_assn nat_assn) *assn
-    vmtf_remove_conc_option_fst_As *assn phase_saver_conc *assn
+    (trail_pol_assn *a clauses_ll_assn *a nat_assn *a
+    conflict_option_assn *a
+    clause_l_assn *a
+    arrayO_assn (arl_assn nat_assn) *a
+    vmtf_remove_conc_option_fst_As *a phase_saver_conc *a
     uint32_nat_assn
     )\<close>
 
@@ -678,7 +678,7 @@ definition nat_lit_list_hm_ref_rel :: "(('a set \<times> 'a list) \<times> 'a li
   \<open>nat_lit_list_hm_ref_rel = {((s, xs), l). l = xs \<and> s = set l}\<close>
 
 abbreviation nat_lit_lits_init_ref_assn where
-  \<open>nat_lit_lits_init_ref_assn \<equiv> hs.assn uint32_nat_assn *assn list_assn uint32_nat_assn\<close>
+  \<open>nat_lit_lits_init_ref_assn \<equiv> hs.assn uint32_nat_assn *a list_assn uint32_nat_assn\<close>
 
 abbreviation nat_lit_list_hm_assn where
   \<open>nat_lit_list_hm_assn \<equiv> hr_comp nat_lit_lits_init_ref_assn nat_lit_list_hm_ref_rel\<close>
@@ -1755,12 +1755,12 @@ lemma shiftr1_uint_fref: \<open>(return o (\<lambda>n. n >> 1), RETURN o shiftr1
 term isasat_input_ops.twl_st_assn
 sepref_definition init_state_wl_D'_code
   is \<open>init_state_wl_D'\<close>
-  :: \<open>(list_assn uint32_assn)\<^sup>k \<rightarrow>\<^sub>a trail_pol_assn *assn clauses_ll_assn *assn nat_assn *assn
-    conflict_option_rel_assn *assn
-    list_assn unat_lit_assn *assn
-    (arrayO_assn (arl_assn nat_assn)) *assn
-    vmtf_remove_conc_option_fst_As *assn
-    phase_saver_conc *assn uint32_nat_assn\<close>
+  :: \<open>(list_assn uint32_assn)\<^sup>k \<rightarrow>\<^sub>a trail_pol_assn *a clauses_ll_assn *a nat_assn *a
+    conflict_option_rel_assn *a
+    list_assn unat_lit_assn *a
+    (arrayO_assn (arl_assn nat_assn)) *a
+    vmtf_remove_conc_option_fst_As *a
+    phase_saver_conc *a uint32_nat_assn\<close>
   unfolding init_state_wl_D'_def
   apply (rewrite at \<open>(_, _, _, \<hole>, _, _)\<close> HOL_list.fold_custom_empty)
   apply (rewrite at \<open>(_, _, _, _, \<hole>, _)\<close> annotate_assn[where A=\<open>list_assn unat_lit_assn\<close>])
@@ -1910,13 +1910,13 @@ proof -
           distinct_mset
            \<A>\<^sub>i\<^sub>n]\<^sub>a (hr_comp (list_assn uint32_assn)
                     (\<langle>uint32_nat_rel\<rangle>list_rel_mset_rel))\<^sup>k \<rightarrow>
-      hr_comp trail_pol_assn (isasat_input_ops.trail_pol \<A>\<^sub>i\<^sub>n) *assn
-      hr_comp clauses_ll_assn (\<langle>\<langle>nat_lit_lit_rel\<rangle>list_rel\<rangle>list_rel) *assn
-      nat_assn *assn
-      hr_comp conflict_option_rel_assn (isasat_input_ops.option_conflict_rel \<A>\<^sub>i\<^sub>n) *assn
-      hr_comp (list_assn unat_lit_assn) list_mset_rel *assn
-      hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>\<langle>nat_rel\<rangle>list_rel\<rangle>list_rel) *assn
-      vmtf_remove_conc_option_fst_As *assn hr_comp phase_saver_conc (\<langle>bool_rel\<rangle>list_rel) *assn
+      hr_comp trail_pol_assn (isasat_input_ops.trail_pol \<A>\<^sub>i\<^sub>n) *a
+      hr_comp clauses_ll_assn (\<langle>\<langle>nat_lit_lit_rel\<rangle>list_rel\<rangle>list_rel) *a
+      nat_assn *a
+      hr_comp conflict_option_rel_assn (isasat_input_ops.option_conflict_rel \<A>\<^sub>i\<^sub>n) *a
+      hr_comp (list_assn unat_lit_assn) list_mset_rel *a
+      hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>\<langle>nat_rel\<rangle>list_rel\<rangle>list_rel) *a
+      vmtf_remove_conc_option_fst_As *a hr_comp phase_saver_conc (\<langle>bool_rel\<rangle>list_rel) *a
       uint32_nat_assn\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using  init_state_wl_D'_code.refine[FCOMP init_state_wl_D', of \<A>\<^sub>i\<^sub>n] .

@@ -89,7 +89,7 @@ subsubsection \<open>Functions and Types:\<close>
 type_synonym clauses_wl = \<open>uint32 arrayO_raa\<close>
 
 abbreviation ann_lit_wl_assn :: \<open>ann_lit_wl \<Rightarrow> ann_lit_wl \<Rightarrow> assn\<close> where
-  \<open>ann_lit_wl_assn \<equiv> prod_assn uint32_assn (option_assn nat_assn)\<close>
+  \<open>ann_lit_wl_assn \<equiv> uint32_assn *a (option_assn nat_assn)\<close>
 
 abbreviation ann_lits_wl_assn :: \<open>ann_lits_wl \<Rightarrow> ann_lits_wl \<Rightarrow> assn\<close> where
   \<open>ann_lits_wl_assn \<equiv> list_assn ann_lit_wl_assn\<close>
@@ -760,7 +760,7 @@ definition lit_and_ann_of_propagated_code where
 
 lemma lit_and_ann_of_propagated_hnr[sepref_fr_rules]:
   \<open>(return o lit_and_ann_of_propagated_code, RETURN o lit_and_ann_of_propagated) \<in>
-   [\<lambda>L. \<not>is_decided L]\<^sub>a pair_nat_ann_lit_assn\<^sup>k \<rightarrow> (unat_lit_assn *assn nat_assn)\<close>
+   [\<lambda>L. \<not>is_decided L]\<^sub>a pair_nat_ann_lit_assn\<^sup>k \<rightarrow> (unat_lit_assn *a nat_assn)\<close>
   unfolding lit_and_ann_of_propagated_code_def
   apply sepref_to_hoare
   apply (rename_tac x x')

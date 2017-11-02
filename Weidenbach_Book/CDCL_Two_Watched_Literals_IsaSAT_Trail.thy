@@ -40,9 +40,9 @@ end
 
 abbreviation trail_pol_assn :: \<open>trail_pol \<Rightarrow> trail_pol_assn \<Rightarrow> assn\<close> where
   \<open>trail_pol_assn \<equiv>
-      list_assn unat_lit_assn *assn array_assn (option_assn bool_assn) *assn
-      array_assn uint32_nat_assn *assn
-      array_assn (option_assn nat_assn) *assn uint32_nat_assn\<close>
+      list_assn unat_lit_assn *a array_assn (option_assn bool_assn) *a
+      array_assn uint32_nat_assn *a
+      array_assn (option_assn nat_assn) *a uint32_nat_assn\<close>
 
 abbreviation phase_saver_conc where
   \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
@@ -382,7 +382,7 @@ definition (in -) hd_trail_pol :: \<open>trail_pol \<Rightarrow> (nat literal \<
 sepref_definition (in -)hd_trail_code
   is \<open>hd_trail_pol\<close>
   :: \<open>[\<lambda>(M, xs, lvls, reasons, k). M \<noteq> []]\<^sub>a
-       trail_pol_assn\<^sup>k \<rightarrow> unat_lit_assn *assn (option_assn nat_assn)\<close>
+       trail_pol_assn\<^sup>k \<rightarrow> unat_lit_assn *a (option_assn nat_assn)\<close>
   unfolding hd_trail_pol_def nth_u_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
@@ -425,7 +425,7 @@ proof -
        (\<lambda>_ (M, xs, lvls, reasons, k). M \<noteq> [])
        (\<lambda>_. True)]\<^sub>a hrp_comp (trail_pol_assn\<^sup>k)
                       trail_pol \<rightarrow> hr_comp
-  (unat_lit_assn *assn option_assn nat_assn)
+  (unat_lit_assn *a option_assn nat_assn)
   {((L, C), L').
    (C = None \<longrightarrow> L' = Decided L) \<and>
    (C \<noteq> None \<longrightarrow> L' = Propagated L (the C))}\<close>

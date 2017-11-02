@@ -144,7 +144,7 @@ qed
 type_synonym (in -) conflict_assn = "uint32 \<times> bool option array"
 
 definition conflict_assn :: "nat clause \<Rightarrow> conflict_assn \<Rightarrow> assn" where
-\<open>conflict_assn = hr_comp (uint32_nat_assn *assn array_assn (option_assn bool_assn)) conflict_rel\<close>
+\<open>conflict_assn = hr_comp (uint32_nat_assn *a array_assn (option_assn bool_assn)) conflict_rel\<close>
 
 definition option_conflict_rel where
 \<open>option_conflict_rel = {((b,(n,xs)), C). b = (C = None) \<and>
@@ -161,18 +161,18 @@ lemma option_conflict_rel_conflict_rel_iff:
 type_synonym (in -) conflict_option_assn = "bool \<times> uint32 \<times> bool option array"
 
 abbreviation (in -) conflict_rel_assn :: \<open>conflict_rel \<Rightarrow> conflict_assn \<Rightarrow> assn\<close> where
- \<open>conflict_rel_assn \<equiv> (uint32_nat_assn *assn array_assn (option_assn bool_assn))\<close>
+ \<open>conflict_rel_assn \<equiv> (uint32_nat_assn *a array_assn (option_assn bool_assn))\<close>
 
 type_synonym (in -) conflict_option_rel = \<open>bool \<times>nat \<times> bool option list\<close>
 
 abbreviation (in -)conflict_option_rel_assn :: \<open>conflict_option_rel \<Rightarrow> conflict_option_assn \<Rightarrow> assn\<close> where
- \<open>conflict_option_rel_assn \<equiv> (bool_assn *assn conflict_rel_assn)\<close>
+ \<open>conflict_option_rel_assn \<equiv> (bool_assn *a conflict_rel_assn)\<close>
 
 definition conflict_option_assn
   :: \<open>nat clause option \<Rightarrow> conflict_option_assn \<Rightarrow> assn\<close>
 where
   \<open>conflict_option_assn =
-     hr_comp (bool_assn *assn uint32_nat_assn *assn array_assn (option_assn bool_assn))
+     hr_comp (bool_assn *a uint32_nat_assn *a array_assn (option_assn bool_assn))
        option_conflict_rel\<close>
 
 definition (in -) conflict_assn_is_None :: \<open>_ \<Rightarrow> bool\<close> where
@@ -227,8 +227,8 @@ definition size_conflict_wl_heur :: \<open>_ \<Rightarrow> nat\<close> where
 
 lemma size_lookup_conflict[sepref_fr_rules]:
    \<open>(return o (\<lambda>((_, n, _), _). n), RETURN o size_lookup_conflict) \<in>
-   (((bool_assn *assn conflict_rel_assn) *assn
-         option_assn (unat_lit_assn *assn uint32_nat_assn)))\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+   (((bool_assn *a conflict_rel_assn) *a
+         option_assn (unat_lit_assn *a uint32_nat_assn)))\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   unfolding size_lookup_conflict_def
   apply sep_auto
   apply sepref_to_hoare
