@@ -21,24 +21,24 @@ abbreviation subst_apply_literal :: "('f, 'v) term literal \<Rightarrow> ('f, 'v
 definition subst_apply_clause :: "('f, 'v) term clause \<Rightarrow> ('f, 'v, 'w) gsubst \<Rightarrow> ('f, 'w) term clause" (infixl "\<cdot>cls" 60) where
   "C \<cdot>cls \<sigma> = image_mset (\<lambda>L. L \<cdot>lit \<sigma>) C"
 
-abbreviation var_lit :: "('f, 'v) term literal \<Rightarrow> 'v set" where
-  "var_lit L \<equiv> vars_term (atm_of L)"
+abbreviation vars_lit :: "('f, 'v) term literal \<Rightarrow> 'v set" where
+  "vars_lit L \<equiv> vars_term (atm_of L)"
 
-definition var_clause :: "('f, 'v) term clause \<Rightarrow> 'v set" where
-  "var_clause C = Union (set_mset (image_mset var_lit C))"
+definition vars_clause :: "('f, 'v) term clause \<Rightarrow> 'v set" where
+  "vars_clause C = Union (set_mset (image_mset vars_lit C))"
 
 primrec renamings_apart' :: "nat set \<Rightarrow> ('f, nat) term clause list \<Rightarrow> (('f, nat) subst) list" where
   "renamings_apart' _ [] = []"
 | "renamings_apart' X (C#Cs) = 
-    (let \<sigma> = (\<lambda>v. Var (v + Max X + 1)) in 
-      \<sigma> # renamings_apart' (X \<union> var_clause (C \<cdot>cls \<sigma>)) Cs)
+    (let \<sigma> = (\<lambda>v. Var (v + Max (X \<union> {0}) + 1)) in 
+      \<sigma> # renamings_apart' (X \<union> vars_clause (C \<cdot>cls \<sigma>)) Cs)
    "
 
 fun renamings_apart'_inv :: "nat set \<Rightarrow> ('f, nat) term clause list \<Rightarrow> (('f, nat) subst) list" where
   "renamings_apart'_inv _ [] = []"
 | "renamings_apart'_inv X (C#Cs) = 
     (let \<sigma> = (\<lambda>v. Var (v - Max X - 1)) in 
-      \<sigma> # renamings_apart'_inv (X \<union> var_clause (C \<cdot>cls \<sigma>)) Cs)
+      \<sigma> # renamings_apart'_inv (X \<union> vars_clause (C \<cdot>cls \<sigma>)) Cs)
    "
 
 definition var_map_of_subst :: "('f, nat) subst \<Rightarrow> nat \<Rightarrow> nat" where
@@ -73,6 +73,9 @@ next
     by (metis (mono_tags, lifting) renamings_apart'.simps(2) inj_onI
         nat_add_right_cancel set_ConsD term.inject(1))
 qed
+
+definition var_disjoint' :: "('f,'v) term clause \<Rightarrow> ('f,'v) term clause \<Rightarrow> bool" where
+  "var_disjoint' C D = (vars_clause C \<inter> vars_clause D = {})"
 
 interpretation substitution_ops "op \<cdot>" Var "op \<circ>\<^sub>s" .
 
@@ -133,6 +136,7 @@ next
   }
   moreover
   {
+    
     have "\<And>X. var_disjoint (subst_cls_lists Cs (renamings_apart' X Cs))"
       subgoal for X
       proof (induction Cs arbitrary: X)
