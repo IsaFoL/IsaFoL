@@ -32,14 +32,19 @@ datatype 'a solution =
 context FO_resolution_prover_with_sum_product_weights
 begin
 
-abbreviation rtrancl_resolution_prover_with_weights (infix "\<leadsto>\<^sub>w*" 50) where
-  "op \<leadsto>\<^sub>w* \<equiv> (op \<leadsto>\<^sub>w)\<^sup>*\<^sup>*"
+abbreviation rtrancl_resolution_prover_with_weights (infix "\<leadsto>\<^sub>w\<^sup>*" 50) where
+  "op \<leadsto>\<^sub>w\<^sup>* \<equiv> (op \<leadsto>\<^sub>w)\<^sup>*\<^sup>*"
 
 (* FIXME: prove and move to right locale/file *)
 lemma resolution_prover_with_weights_sound:
   "St \<leadsto>\<^sub>w St' \<Longrightarrow> I \<Turnstile>s grounding_of_state (state_of_wstate St) \<Longrightarrow>
    I \<Turnstile>s grounding_of_state (state_of_wstate St')"
   sorry
+
+lemma rtrancl_resolution_prover_with_weights_sound:
+  "St \<leadsto>\<^sub>w\<^sup>* St' \<Longrightarrow> I \<Turnstile>s grounding_of_state (state_of_wstate St) \<Longrightarrow>
+   I \<Turnstile>s grounding_of_state (state_of_wstate St')"
+  by (induct rule: rtranclp.induct, assumption, metis resolution_prover_with_weights_sound)
 
 definition is_tautology :: "'a lclause \<Rightarrow> bool" where
   "is_tautology C \<longleftrightarrow> (\<exists>A \<in> set (map atm_of C). Pos A \<in> set C \<and> Neg A \<in> set C)"
@@ -49,10 +54,12 @@ definition is_subsumed_by :: "'a lclause list \<Rightarrow> 'a lclause \<Rightar
 
 definition is_reducible_lit :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> 'a literal \<Rightarrow> bool" where
   "is_reducible_lit Ds C L \<longleftrightarrow>
-   (\<exists>D \<in> set Ds. \<exists>L' \<in> set D. \<exists>\<sigma>. - L = L' \<cdot>l \<sigma> \<and> mset (remove1 L' D) \<cdot> \<sigma> \<subseteq># mset (remove1 L C))"
+   (\<exists>D \<in> set Ds. \<exists>L' \<in> set D. \<exists>\<sigma>. - L = L' \<cdot>l \<sigma> \<and> mset (remove1 L' D) \<cdot> \<sigma> \<subseteq># mset C)"
 
-definition reduce :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause" where
-  "reduce Ds C = filter (\<lambda>L. \<not> is_reducible_lit Ds C L) C"
+primrec reduce :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause" where
+  "reduce _ _ [] = []"
+| "reduce Ds C (L # C') =
+   (if is_reducible_lit Ds (C @ C') L then reduce Ds C C' else L # reduce Ds (L # C) C')"
 
 fun resolve_on :: "'a lclause \<Rightarrow> 'a \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve_on C B D =
@@ -116,7 +123,7 @@ where
               deterministic_resolution_prover (N, P, Q, Suc n))
        | (C, i) # N \<Rightarrow>
          let
-           C = reduce (map fst (P @ Q)) C
+           C = reduce (map fst (P @ Q)) [] C
          in
            if C = [] then
              Some Unsat
@@ -134,8 +141,9 @@ where
 
 lemma reduce_simulate_N:
   "(N \<union> {(mset C, i)}, set (map (apfst mset) P), set (map (apfst mset) Q), n)
-    \<leadsto>\<^sub>w* (N \<union> {(mset (reduce (map fst (P @ Q)) C), i)}, set (map (apfst mset) P),
+    \<leadsto>\<^sub>w\<^sup>* (N \<union> {(mset (reduce (map fst (P @ Q)) [] C), i)}, set (map (apfst mset) P),
          set (map (apfst mset) Q), n)"
+(* FIXME
 proof (induct "length (filter (\<lambda>L. is_reducible_lit (map fst (P @ Q)) C L) C)")
   case 0
   then have "length (reduce (map fst (P @ Q)) C) = length C"
@@ -161,6 +169,8 @@ next
   then show ?case
     sorry
 qed
+*)
+  sorry
 
 theorem deterministic_resolution_prover_sound_unsat:
   assumes
@@ -215,7 +225,7 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
     note call = call[unfolded ci, simplified]
 
     define C' :: "'a lclause" where
-      "C' = reduce (map fst P @ map fst Q) C"
+      "C' = reduce (map fst P @ map fst Q) [] C"
     note call = call[unfolded ci C'_def[symmetric], simplified]
 
     show ?thesis
@@ -228,7 +238,7 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
         then show False
           unfolding st n_cons ci
           using c'_nil[unfolded C'_def]
-            resolution_prover_with_weights_sound[OF reduce_simulate_N,
+            rtrancl_resolution_prover_with_weights_sound[OF reduce_simulate_N,
               of I "set (map (apfst mset) N')" C i P Q n]
           by (simp add: clss_of_state_def grounding_of_clss_def)
       qed
