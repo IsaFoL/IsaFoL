@@ -593,7 +593,7 @@ definition (in isasat_input_ops) unit_propagation_inner_loop_body_wl_D :: "nat l
           None \<Rightarrow>
             if val_L' = Some False
             then do {RETURN (w+1, set_conflict_wl ((get_clauses_wl S)!C) S)}
-            else do {RETURN (w+1, propgate_lit_wl L' C i S)}
+            else do {RETURN (w+1, propagate_lit_wl L' C i S)}
         | Some f \<Rightarrow> do {
             update_clause_wl L C w i f S
           }
@@ -747,7 +747,7 @@ proof -
     subgoal by simp
     subgoal by simp
     subgoal by (auto simp: set_conflict_wl_def S unit_prop_body_wl_D_inv_def clauses_def)
-    subgoal by (auto simp: propgate_lit_wl_def S unit_prop_body_wl_D_inv_def clauses_def)
+    subgoal by (auto simp: propagate_lit_wl_def S unit_prop_body_wl_D_inv_def clauses_def)
     subgoal by (rule update_clause_wl) assumption+
     done
 qed
@@ -1053,16 +1053,16 @@ definition (in -) single_of_mset where
 definition (in isasat_input_ops) backtrack_wl_D_inv where
   \<open>backtrack_wl_D_inv S \<longleftrightarrow> backtrack_wl_inv S \<and> literals_are_\<L>\<^sub>i\<^sub>n S\<close>
 
-definition (in isasat_input_ops) propgate_bt_wl_D :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
-  \<open>propgate_bt_wl_D = (\<lambda>L L' (M, N, U, D, NP, UP, Q, W). do {
+definition (in isasat_input_ops) propagate_bt_wl_D :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
+  \<open>propagate_bt_wl_D = (\<lambda>L L' (M, N, U, D, NP, UP, Q, W). do {
     D'' \<leftarrow> list_of_mset2 (-L) L' (the D);
     RETURN (Propagated (-L) (length N) # M,
         N @ [D''], U,
           None, NP, UP, {#L#}, W(-L:= W (-L) @ [length N], L':= W L' @ [length N]))
       })\<close>
 
-definition (in isasat_input_ops) propgate_unit_bt_wl_D :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close> where
-  \<open>propgate_unit_bt_wl_D = (\<lambda>L (M, N, U, D, NP, UP, Q, W). do {
+definition (in isasat_input_ops) propagate_unit_bt_wl_D :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close> where
+  \<open>propagate_unit_bt_wl_D = (\<lambda>L (M, N, U, D, NP, UP, Q, W). do {
         D' \<leftarrow> single_of_mset (the D);
         RETURN (Propagated (-L) 0 # M, N, U, None, NP, add_mset {#D'#} UP, {#L#}, W)
     })\<close>
@@ -1078,10 +1078,10 @@ definition (in isasat_input_ops) backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> 
       if size (the (get_conflict_wl S)) > 1
       then do {
         L' \<leftarrow> find_lit_of_max_level_wl S L;
-        propgate_bt_wl_D L L' S
+        propagate_bt_wl_D L L' S
       }
       else do {
-        propgate_unit_bt_wl_D L S
+        propagate_unit_bt_wl_D L S
      }
   }\<close>
 
@@ -1205,9 +1205,9 @@ proof -
   have is_\<L>\<^sub>a\<^sub>l\<^sub>l_add: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (A + B) \<longleftrightarrow> set_mset A \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close> if \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l B\<close> for A B
     using that unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def by auto
 
-  have propgate_bt_wl_D: "propgate_bt_wl_D (lit_of (hd (get_trail_wl S))) L U
+  have propagate_bt_wl_D: "propagate_bt_wl_D (lit_of (hd (get_trail_wl S))) L U
         \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
-           (propgate_bt_wl (lit_of (hd (get_trail_wl S))) L' U')"
+           (propagate_bt_wl (lit_of (hd (get_trail_wl S))) L' U')"
     if
       "backtrack_wl_inv S" and
       bt: "backtrack_wl_D_inv S" and
@@ -1294,7 +1294,7 @@ proof -
            all_lits_of_mm_add_mset is_\<L>\<^sub>a\<^sub>l\<^sub>l_add Suc_leI literals_are_in_\<L>\<^sub>i\<^sub>n_def)
     qed
     show ?thesis
-      unfolding propgate_bt_wl_D_def propgate_bt_wl_def propgate_bt_wl_D_def U U' S T
+      unfolding propagate_bt_wl_D_def propagate_bt_wl_def propagate_bt_wl_D_def U U' S T
       apply clarify
       apply (refine_vcg list_of_mset)
       subgoal ..
@@ -1307,8 +1307,8 @@ proof -
       done
   qed
 
-  have propgate_unit_bt_wl_D: "propgate_unit_bt_wl_D (lit_of (hd (get_trail_wl S))) U
-    \<le> SPEC (\<lambda>c. (c, propgate_unit_bt_wl (lit_of (hd (get_trail_wl S))) U')
+  have propagate_unit_bt_wl_D: "propagate_unit_bt_wl_D (lit_of (hd (get_trail_wl S))) U
+    \<le> SPEC (\<lambda>c. (c, propagate_unit_bt_wl (lit_of (hd (get_trail_wl S))) U')
                  \<in> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T})"
     if
       "backtrack_wl_inv S" and
@@ -1353,7 +1353,7 @@ proof -
     then have \<A>\<^sub>i\<^sub>n_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n DT\<close>
       using DT by (blast intro: literals_are_in_\<L>\<^sub>i\<^sub>n_mono)
     show ?thesis
-      unfolding propgate_unit_bt_wl_D_def propgate_unit_bt_wl_def U U' single_of_mset_def
+      unfolding propagate_unit_bt_wl_D_def propagate_unit_bt_wl_def U U' single_of_mset_def
       apply clarify
       apply refine_vcg
       using \<A>\<^sub>i\<^sub>n_D by (auto simp: clauses_def mset_take_mset_drop_mset mset_take_mset_drop_mset'
@@ -1366,7 +1366,7 @@ proof -
     apply (subst find_lit_of_max_level_wl'_def[symmetric])
     supply [[goals_limit=1]]
     apply (refine_vcg extract_shorter_conflict_wl find_lit_of_max_level_wl find_decomp_wl
-       find_lit_of_max_level_wl' propgate_bt_wl_D propgate_unit_bt_wl_D)
+       find_lit_of_max_level_wl' propagate_bt_wl_D propagate_unit_bt_wl_D)
     subgoal using \<A>\<^sub>i\<^sub>n unfolding backtrack_wl_D_inv_def by fast
     subgoal by auto
     by assumption+

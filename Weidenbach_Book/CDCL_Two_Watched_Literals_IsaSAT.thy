@@ -1659,6 +1659,9 @@ sepref_definition init_state_wl_D'_code
   supply [[goals_limit = 1]]
   by sepref
 
+lemma (in isasat_input_ops) in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n:\<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<longleftrightarrow> atm_of L \<in># \<A>\<^sub>i\<^sub>n\<close>
+  by (cases L) (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def)
+
 lemma init_trail_D_ref:
   \<open>(uncurry init_trail_D, uncurry (RETURN oo (\<lambda> _ _. []))) \<in> [\<lambda>(N, n). mset N = \<A>\<^sub>i\<^sub>n \<and>
     distinct N \<and> (\<forall>L\<in>set N. L< n)]\<^sub>f
@@ -1668,9 +1671,11 @@ proof -
   have K: \<open>(\<forall>L\<in>set N. nat_of_uint32 L < n) \<longleftrightarrow>
      (\<forall>L \<in># (isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l (nat_of_uint32 `# mset N)). atm_of L < n)\<close> for N n
      (*TODO proof*)
-    apply (auto simp: nat_shiftr_div2 nat_of_uint32_shiftr isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def)
-    by (metis (full_types) UnCI image_eqI literal.sel(1))
-
+    apply (rule iffI)
+    subgoal by (auto simp: isasat_input_ops.in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
+    subgoal by (metis (full_types) image_eqI isasat_input_ops.in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n literal.sel(1)
+          set_image_mset set_mset_mset)
+    done
   show ?thesis
     unfolding init_trail_D_def
     apply (intro frefI nres_relI)
