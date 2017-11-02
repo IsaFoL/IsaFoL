@@ -27,6 +27,9 @@ abbreviation vars_lit :: "('f, 'v) term literal \<Rightarrow> 'v set" where
 definition vars_clause :: "('f, 'v) term clause \<Rightarrow> 'v set" where
   "vars_clause C = Union (set_mset (image_mset vars_lit C))"
 
+definition vars_clause_list :: "('f, 'v) term clause list \<Rightarrow> 'v set" where
+  "vars_clause_list Cs = Union (vars_clause `set Cs) "
+
 primrec renamings_apart' :: "nat set \<Rightarrow> ('f, nat) term clause list \<Rightarrow> (('f, nat) subst) list" where
   "renamings_apart' _ [] = []"
 | "renamings_apart' X (C#Cs) = 
@@ -93,8 +96,49 @@ next
   fix Cs :: "('f, nat) term clause list"
   fix \<sigma>
   assume "is_ground_cls_list (subst_cls_list Cs \<sigma>)"
-  show "\<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> subst_cls S \<sigma> = subst_cls S \<tau>)"
+  then have ground_atms_\<sigma>: "\<And>v. v \<in> vars_clause_list Cs \<Longrightarrow> is_ground_atm (\<sigma> v)"
     sorry
+  define some_ground_trm :: "('f, nat) term" where "some_ground_trm = undefined"
+  have exi_ground_atm: "is_ground_atm some_ground_trm"
+    sorry
+  term vars_clause
+  define \<tau> where "\<tau> = (\<lambda>v. if v \<in> vars_clause_list Cs then \<sigma> v else some_ground_trm)"
+  have "is_ground_atm (\<tau> v)" for v
+  proof (cases "v \<in> vars_clause_list Cs")
+    case True
+    then show ?thesis
+      unfolding \<tau>_def using ground_atms_\<sigma> by auto
+  next
+    case False
+    then show ?thesis
+      unfolding \<tau>_def using exi_ground_atm by auto
+  qed
+  then have "is_ground_subst \<tau>"
+    unfolding is_ground_subst_def 
+    apply -
+    apply (rule allI)
+    subgoal for A
+      apply (induction A)
+       apply auto[]
+      by (simp add: is_ground_atm_def)
+    done
+  moreover have "\<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> subst_cls S \<sigma> = subst_cls S \<tau>"
+    apply rule
+    subgoal for i
+      using \<tau>_def
+      apply (induction Cs)
+       apply auto[]
+      subgoal for a Cs
+      apply (cases "i < length Cs")
+      subgoal 
+        sorry
+      subgoal
+        sorry
+      done
+    done
+  done
+  ultimately show "\<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> subst_cls S \<sigma> = subst_cls S \<tau>)"
+    by auto
 next
   fix Cs :: "('f, nat) term clause list"
   {
@@ -136,7 +180,6 @@ next
   }
   moreover
   {
-    
     have "\<And>X. var_disjoint (subst_cls_lists Cs (renamings_apart' X Cs))"
       subgoal for X
       proof (induction Cs arbitrary: X)
