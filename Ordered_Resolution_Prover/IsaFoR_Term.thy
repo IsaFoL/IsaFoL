@@ -90,6 +90,84 @@ lemma vars_clause_mono: "S \<subseteq># C \<Longrightarrow> vars_clause S \<subs
 
 interpretation substitution_ops "op \<cdot>" Var "op \<circ>\<^sub>s" .
 
+lemma is_ground_atm_is_ground_on_var:
+  assumes "is_ground_atm (A \<cdot> \<sigma>)" and "v \<in> vars_term A"
+  shows "is_ground_atm (\<sigma> v)"
+using assms proof (induction A)
+  case (Var x)
+  then show ?case by auto
+next
+  case (Fun f ts)
+  then show ?case unfolding is_ground_atm_def
+    by auto
+qed
+
+lemma is_ground_lit_is_ground_on_var:
+  assumes ground_lit: "is_ground_lit (subst_lit L \<sigma>)" and v_in_L: "v \<in> vars_lit L"
+  shows "is_ground_atm (\<sigma> v)"
+proof -
+  let ?A = "atm_of L"
+  from v_in_L have A_p: "v \<in> vars_term ?A"
+    by auto
+  then have "is_ground_atm (?A \<cdot> \<sigma>)"
+    using ground_lit unfolding is_ground_lit_def by auto
+  then show ?thesis
+    using A_p is_ground_atm_is_ground_on_var by metis
+qed
+
+lemma is_ground_cls_is_ground_on_var:
+  assumes ground_clause: "is_ground_cls (subst_cls C \<sigma>)" and v_in_C: "v \<in> vars_clause C"
+  shows "is_ground_atm (\<sigma> v)"
+proof -
+  from v_in_C obtain L where L_p: "L \<in># C" "v \<in> vars_lit L"
+    unfolding vars_clause_def by auto
+  then have "is_ground_lit (subst_lit L \<sigma>)"
+    using ground_clause unfolding is_ground_cls_def subst_cls_def by auto
+  then show ?thesis
+    using L_p is_ground_lit_is_ground_on_var by metis
+qed
+
+lemma is_ground_cls_list_is_ground_on_var:
+  assumes ground_list: "is_ground_cls_list (subst_cls_list Cs \<sigma>)" 
+    and v_in_Cs: "v \<in> vars_clause_list Cs"
+  shows "is_ground_atm (\<sigma> v)"
+proof -
+  from v_in_Cs obtain C where C_p: "C \<in> set Cs" "v \<in> vars_clause C"
+    unfolding vars_clause_list_def by auto
+  then have "is_ground_cls (subst_cls C \<sigma>)"
+    using ground_list unfolding is_ground_cls_list_def subst_cls_list_def by auto
+  then show ?thesis
+    using C_p is_ground_cls_is_ground_on_var by metis
+qed
+
+thm term_subst_eq
+
+lemma same_on_vars_lit: 
+  assumes "\<forall>v \<in> vars_lit L. \<sigma> v = \<tau> v"
+  shows "subst_lit L \<sigma> = subst_lit L \<tau>"
+  using assms apply (induction L)
+  unfolding subst_lit_def apply auto
+  using term_subst_eq apply metis+
+  done
+
+lemma in_list_of_mset_in_S:
+  assumes "i < length (list_of_mset S)"
+  shows "list_of_mset S ! i \<in># S"
+proof -
+  from assms have "list_of_mset S ! i \<in> set (list_of_mset S)"
+    by auto
+  then have "list_of_mset S ! i \<in># mset (list_of_mset S)"
+    by (meson in_multiset_in_set)
+  then show ?thesis 
+    by auto
+qed
+
+lemma same_on_vars_clause: 
+  assumes "\<forall>v \<in> vars_clause S. \<sigma> v = \<tau> v"
+  shows "subst_cls S \<sigma> = subst_cls S \<tau>"
+    by (smt assms image_eqI image_mset_cong2 mem_simps(9) same_on_vars_lit set_image_mset
+          subst_cls_def vars_clause_def)
+
 interpretation substitution "op \<cdot>" "Var :: _ \<Rightarrow> ('f, nat) term" "op \<circ>\<^sub>s" "Fun undefined" renamings_apart
 proof
   show "\<And>A. A \<cdot> Var = A"
@@ -105,15 +183,11 @@ next
   fix \<sigma>
   assume "is_ground_cls_list (subst_cls_list Cs \<sigma>)"
   then have ground_atms_\<sigma>: "\<And>v. v \<in> vars_clause_list Cs \<Longrightarrow> is_ground_atm (\<sigma> v)"
-    sorry
-
-  have same_on_vars: "\<And>S \<sigma> \<tau>. (\<forall>v \<in> vars_clause S. \<sigma> v = \<tau> v) \<longrightarrow> subst_cls S \<sigma> = subst_cls S \<tau>"
-    sorry
+    using is_ground_cls_list_is_ground_on_var by metis
 
   define some_ground_trm :: "('f, nat) term" where "some_ground_trm = undefined"
   have exi_ground_atm: "is_ground_atm some_ground_trm"
     sorry
-  term vars_clause
   define \<tau> where "\<tau> = (\<lambda>v. if v \<in> vars_clause_list Cs then \<sigma> v else some_ground_trm)"
   then have \<tau>_\<sigma>: "\<forall>v \<in> vars_clause_list Cs. \<sigma> v = \<tau> v"
     unfolding \<tau>_def by auto
@@ -139,7 +213,8 @@ next
     next
       case (Fun x1a x2)
       then show ?case using all_ground_\<tau>
-      by (simp add: is_ground_atm_def)
+        by (simp add: is_ground_atm_def)
+    qed
   qed
   moreover have "\<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> subst_cls S \<sigma> = subst_cls S \<tau>"
   proof (rule, rule, rule, rule)
@@ -149,7 +224,7 @@ next
       using \<tau>_\<sigma> unfolding vars_clause_list_def using vars_clause_mono[of S "Cs ! i"]
       by (meson UN_I nth_mem subsetCE) 
     then show "subst_cls S \<sigma> = subst_cls S \<tau>"
-      using same_on_vars by auto
+      using same_on_vars_clause by auto
   qed
   ultimately show "\<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> subst_cls S \<sigma> = subst_cls S \<tau>)"
     by auto
