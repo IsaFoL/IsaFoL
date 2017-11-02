@@ -360,11 +360,61 @@ where
                deterministic_resolution_prover (N, P, Q, n)))"
 
 theorem deterministic_resolution_prover_sound_unsat:
-  assumes su: "deterministic_resolution_prover NPQn = Some Unsat"
+  assumes
+    su: "deterministic_resolution_prover NPQn = Some sol" and
+    sol_unsat: "sol = Unsat"
   shows "\<not> satisfiable (grounding_of_state (state_of_weighted_list_state NPQn))"
+  using sol_unsat
 proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
-  case (1 deterministic_resolution_prover NPQn NPQn')
-  note ih = this(1) and npqn' = this(2)
+  case (1 self_call NPQn sol)
+  note ih = this(1) and call = this(2) and sol_unsat = this(3)
+
+  obtain N P Q :: "'a weighted_list_clause list" and n :: nat where
+    npqn: "NPQn = (N, P, Q, n)"
+    by (cases NPQn) blast
+
+  note call = call[unfolded npqn, simplified]
+
+  show ?case
+  proof (cases "N = []")
+    case n_nil: True
+    note call = call[unfolded n_nil, simplified]
+    show ?thesis
+    proof (cases "P = []")
+      case p_nil: True
+      note call = call[unfolded p_nil, simplified]
+      show ?thesis
+        using call sol_unsat by simp
+    next
+      case p_nnil: False
+      note call = call[unfolded p_nnil, simplified]
+      show ?thesis
+        
+        sorry
+    qed
+    
+      sorry
+  next
+    case n_ne_nil: False
+    then show ?thesis sorry
+  qed
+
+  {
+    assume n_nil: "N = []"
+
+  }
+  moreover
+  {
+    assume n_ne_nil: "N \<noteq> []"
+
+    {
+      assume p_nil: "P = []"
+    }
+    moreover
+    {
+
+    }
+  }
 
   show ?case
     sorry
