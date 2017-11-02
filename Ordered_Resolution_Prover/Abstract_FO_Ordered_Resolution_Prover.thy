@@ -108,12 +108,12 @@ The following formalizes Lemma 4.10.
 
 context
   fixes
-    Sts :: "('a state) llist"
+    Sts :: "'a state llist"
   assumes
+    deriv: "chain (op \<leadsto>) Sts" and
     finite_Sts0: "finite (clss_of_state (lnth Sts 0))" and
     empty_P0: "P_of_state (lnth Sts 0) = {}" and
-    empty_Q0: "Q_of_state (lnth Sts 0) = {}" and
-    deriv: "chain (op \<leadsto>) Sts"
+    empty_Q0: "Q_of_state (lnth Sts 0) = {}"
 begin
 
 definition S_Q :: "'a clause \<Rightarrow> 'a clause" where
