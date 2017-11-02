@@ -15,8 +15,7 @@ theory Fair_FO_Ordered_Resolution_Prover
 begin
 
 type_synonym 'a wclause = "'a clause \<times> nat"
-type_synonym 'a weighted_state =
-  "'a wclause set \<times> 'a wclause set \<times> 'a wclause set \<times> nat"
+type_synonym 'a wstate = "'a wclause set \<times> 'a wclause set \<times> 'a wclause set \<times> nat"
 
 locale FO_resolution_prover_with_weights =
   FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu less_atm
@@ -35,25 +34,25 @@ locale FO_resolution_prover_with_weights =
     weight_monotone: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
 begin
 
-fun state_of_weighted_state :: "'a weighted_state \<Rightarrow> 'a state" where
-  "state_of_weighted_state (N, P, Q, n) = (fst ` N, fst ` P, fst ` Q)"
+fun state_of_wstate :: "'a wstate \<Rightarrow> 'a state" where
+  "state_of_wstate (N, P, Q, n) = (fst ` N, fst ` P, fst ` Q)"
 
-abbreviation clss_of_weighted_state :: "'a weighted_state \<Rightarrow> 'a clause set" where 
-  "clss_of_weighted_state \<equiv> clss_of_state \<circ> state_of_weighted_state"
+abbreviation clss_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where 
+  "clss_of_wstate \<equiv> clss_of_state \<circ> state_of_wstate"
 
-abbreviation P_of_weighted_state :: "'a weighted_state \<Rightarrow> 'a clause set" where 
-  "P_of_weighted_state \<equiv> P_of_state \<circ> state_of_weighted_state"
+abbreviation P_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where 
+  "P_of_wstate \<equiv> P_of_state \<circ> state_of_wstate"
 
-abbreviation Q_of_weighted_state :: "'a weighted_state \<Rightarrow> 'a clause set" where 
-  "Q_of_weighted_state \<equiv> Q_of_state \<circ> state_of_weighted_state"
+abbreviation Q_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where 
+  "Q_of_wstate \<equiv> Q_of_state \<circ> state_of_wstate"
 
-abbreviation grounding_of_weighted_state :: "'a weighted_state \<Rightarrow> 'a clause set" where 
-  "grounding_of_weighted_state \<equiv> grounding_of_state \<circ> state_of_weighted_state"
+abbreviation grounding_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where 
+  "grounding_of_wstate \<equiv> grounding_of_state \<circ> state_of_wstate"
 
-abbreviation limit_weighted_state :: "'a weighted_state llist \<Rightarrow> 'a state" where
-  "limit_weighted_state \<equiv> limit_state \<circ> lmap state_of_weighted_state"
+abbreviation limit_wstate :: "'a wstate llist \<Rightarrow> 'a state" where
+  "limit_wstate \<equiv> limit_state \<circ> lmap state_of_wstate"
 
-inductive resolution_prover_with_weights :: "'a weighted_state \<Rightarrow> 'a weighted_state \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w" 50)  where
+inductive resolution_prover_with_weights :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w" 50)  where
   tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
 | forward_subsumption: "(\<exists>(D, j) \<in> P \<union> Q. subsumes D C) \<Longrightarrow> (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
 | backward_subsumption_P: "(\<exists>(D, j) \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P \<union> {(C, i)}, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
@@ -81,7 +80,7 @@ qed
 
 lemma resolution_prover_with_weights_resolution_prover':
   assumes "St \<leadsto>\<^sub>w St'"
-  shows "state_of_weighted_state St \<leadsto> state_of_weighted_state St'"
+  shows "state_of_wstate St \<leadsto> state_of_wstate St'"
   using assms proof (induction rule: resolution_prover_with_weights.induct)
   case (tautology_deletion A C N i P Q n)
   then show ?case
@@ -152,34 +151,34 @@ next
 qed
 
 lemma resolution_prover_with_weights_resolution_prover:
-  "chain (op \<leadsto>\<^sub>w) Sts \<Longrightarrow> chain (op \<leadsto>) (lmap state_of_weighted_state Sts)"
+  "chain (op \<leadsto>\<^sub>w) Sts \<Longrightarrow> chain (op \<leadsto>) (lmap state_of_wstate Sts)"
   using resolution_prover_with_weights_resolution_prover' using chain_lmap weight_monotone by metis
 
 context
   fixes 
-    Sts :: "('a weighted_state) llist"
+    Sts :: "('a wstate) llist"
   assumes
-    finite_Sts0: "finite (clss_of_weighted_state (lnth Sts 0))" and
-    empty_P0: "P_of_weighted_state (lnth Sts 0) = {}" and
-    empty_Q0: "Q_of_weighted_state (lnth Sts 0) = {}" and
+    finite_Sts0: "finite (clss_of_wstate (lnth Sts 0))" and
+    empty_P0: "P_of_wstate (lnth Sts 0) = {}" and
+    empty_Q0: "Q_of_wstate (lnth Sts 0) = {}" and
     deriv: "chain (op \<leadsto>\<^sub>w) Sts" and
     non_empty_deriv: "enat 0 < llength Sts"
 begin
 
-lemma monotone_fairness: "fair_state_seq (lmap state_of_weighted_state Sts)"
+lemma monotone_fairness: "fair_state_seq (lmap state_of_wstate Sts)"
 proof (rule ccontr)
-  assume "\<not> fair_state_seq (lmap state_of_weighted_state Sts)"
-  then obtain C where "C \<in> limit_llist (lmap N_of_state (lmap state_of_weighted_state Sts)) \<union> limit_llist (lmap P_of_state (lmap state_of_weighted_state Sts))" 
+  assume "\<not> fair_state_seq (lmap state_of_wstate Sts)"
+  then obtain C where "C \<in> limit_llist (lmap N_of_state (lmap state_of_wstate Sts)) \<union> limit_llist (lmap P_of_state (lmap state_of_wstate Sts))" 
     unfolding fair_state_seq_def limit_state_def by auto
   then show False
   proof
-    assume "C \<in> limit_llist (lmap N_of_state (lmap state_of_weighted_state Sts))"
-    then obtain i where "enat i < llength Sts" "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_weighted_state (lnth Sts j))" 
+    assume "C \<in> limit_llist (lmap N_of_state (lmap state_of_wstate Sts))"
+    then obtain i where "enat i < llength Sts" "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_wstate (lnth Sts j))" 
       unfolding limit_llist_def by auto
     then show False
       sorry (* *)
   next
-    assume "C \<in> limit_llist (lmap P_of_state (lmap state_of_weighted_state Sts))"
+    assume "C \<in> limit_llist (lmap P_of_state (lmap state_of_wstate Sts))"
     then show False 
       sorry
   qed
@@ -188,29 +187,29 @@ qed
 lemma monotone_completeness:
   assumes 
     selection_renaming_invariant: "(\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>)" and
-    unsat: "\<not> satisfiable (grounding_of_state (limit_weighted_state Sts))" 
-  shows "{#} \<in> clss_of_state (limit_weighted_state Sts)"
+    unsat: "\<not> satisfiable (grounding_of_state (limit_wstate Sts))" 
+  shows "{#} \<in> clss_of_state (limit_wstate Sts)"
 proof -
-  have "state_of_weighted_state (lnth Sts 0) = lnth (lmap state_of_weighted_state Sts) 0"
-    using lnth_lmap[of 0 Sts state_of_weighted_state] non_empty_deriv
+  have "state_of_wstate (lnth Sts 0) = lnth (lmap state_of_wstate Sts) 0"
+    using lnth_lmap[of 0 Sts state_of_wstate] non_empty_deriv
     by auto
-  then have "finite (clss_of_state (lnth (lmap state_of_weighted_state Sts) 0))"
+  then have "finite (clss_of_state (lnth (lmap state_of_wstate Sts) 0))"
     using finite_Sts0 by auto
-  moreover have "P_of_state (lnth (lmap state_of_weighted_state Sts) 0) = {}"
+  moreover have "P_of_state (lnth (lmap state_of_wstate Sts) 0) = {}"
     using empty_P0 non_empty_deriv by auto
-  moreover have "Q_of_state (lnth (lmap state_of_weighted_state Sts) 0) = {}"
+  moreover have "Q_of_state (lnth (lmap state_of_wstate Sts) 0) = {}"
     using empty_Q0 non_empty_deriv by auto
-  moreover have "chain op \<leadsto> (lmap state_of_weighted_state Sts)"
+  moreover have "chain op \<leadsto> (lmap state_of_wstate Sts)"
     using deriv resolution_prover_with_weights_resolution_prover by blast 
   moreover have "\<forall>\<rho> C. is_renaming \<rho> \<longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
     using selection_renaming_invariant by auto
-  moreover have "fair_state_seq (lmap state_of_weighted_state Sts)"
+  moreover have "fair_state_seq (lmap state_of_wstate Sts)"
     using monotone_fairness by auto
-  moreover have "\<not> satisfiable (grounding_of_state (limit_state (lmap state_of_weighted_state Sts)))"
+  moreover have "\<not> satisfiable (grounding_of_state (limit_state (lmap state_of_wstate Sts)))"
     using unsat by auto
-  ultimately have "{#} \<in> clss_of_state (limit_state (lmap state_of_weighted_state Sts))" 
-    using fair_state_seq_complete[of "lmap state_of_weighted_state Sts"] by auto
-  then show "{#} \<in> clss_of_state (limit_weighted_state Sts)"
+  ultimately have "{#} \<in> clss_of_state (limit_state (lmap state_of_wstate Sts))" 
+    using fair_state_seq_complete[of "lmap state_of_wstate Sts"] by auto
+  then show "{#} \<in> clss_of_state (limit_wstate Sts)"
     by auto
 qed 
 

@@ -44,10 +44,10 @@ lemma true_cls_empty[iff]: "\<not> I \<Turnstile> {#}"
 lemma true_cls_singleton[iff]: "I \<Turnstile> {#L#} \<longleftrightarrow> I \<Turnstile>l L"
   unfolding true_cls_def by simp
 
-lemma true_cls_union[iff]: "I \<Turnstile> C + D \<longleftrightarrow> I \<Turnstile> C \<or> I \<Turnstile> D"
+lemma true_cls_add_mset[iff]: "I \<Turnstile> add_mset C D \<longleftrightarrow> I \<Turnstile>l C \<or> I \<Turnstile> D"
   unfolding true_cls_def by auto
 
-lemma true_cls_add_mset[iff]: "I \<Turnstile> add_mset C D \<longleftrightarrow> I \<Turnstile>l C \<or> I \<Turnstile> D"
+lemma true_cls_union[iff]: "I \<Turnstile> C + D \<longleftrightarrow> I \<Turnstile> C \<or> I \<Turnstile> D"
   unfolding true_cls_def by auto
 
 lemma true_cls_mono: "set_mset C \<subseteq> set_mset D \<Longrightarrow> I \<Turnstile> C \<Longrightarrow> I \<Turnstile> D"
@@ -79,6 +79,9 @@ lemma true_clss_empty[iff]: "I \<Turnstile>s {}"
   by (simp add: true_clss_def)
 
 lemma true_clss_singleton[iff]: "I \<Turnstile>s {C} \<longleftrightarrow> I \<Turnstile> C"
+  unfolding true_clss_def by blast
+
+lemma true_clss_insert[iff]: "I \<Turnstile>s insert C DD \<longleftrightarrow> I \<Turnstile> C \<and> I \<Turnstile>s DD"
   unfolding true_clss_def by blast
 
 lemma true_clss_union[iff]: "I \<Turnstile>s CC \<union> DD \<longleftrightarrow> I \<Turnstile>s CC \<and> I \<Turnstile>s DD"
