@@ -279,7 +279,7 @@ definition is_reducible_lit :: "'a list_clause list \<Rightarrow> 'a list_clause
    (\<exists>D \<in> set Ds. \<exists>L' \<in> set D. \<exists>\<sigma>. - L = L' \<cdot>l \<sigma> \<and> mset (remove1 L' D) \<cdot> \<sigma> \<subseteq># mset (remove1 L C))"
 
 definition reduce :: "'a list_clause list \<Rightarrow> 'a list_clause \<Rightarrow> 'a list_clause" where
-  "reduce Ds C = filter (is_reducible_lit Ds C) C"
+  "reduce Ds C = filter (\<lambda>L. \<not> is_reducible_lit Ds C L) C"
 
 fun resolve_on :: "'a list_clause \<Rightarrow> 'a \<Rightarrow> 'a list_clause \<Rightarrow> 'a list_clause list" where
   "resolve_on C B D =
@@ -373,6 +373,7 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
     npqn: "NPQn = (N, P, Q, n)"
     by (cases NPQn) blast
 
+  note ih = ih[unfolded npqn]
   note call = call[unfolded sol_unsat npqn, simplified]
 
   show ?case
@@ -395,22 +396,55 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
       note call = call[unfolded pick, simplified, folded remove1.simps(2)]
 
       show ?thesis
-        using ih[OF call]
-
+        apply (rule contrapos_nn[OF ih[OF call]])
+        apply (auto simp: comp_def simp del: remove1.simps(2))
         sorry
     qed
   next
-    case n_Cons: (Cons Ci N)
-    note call = call[unfolded n_Cons, simplified]
+    case n_cons: (Cons Ci N')
+    note call = call[unfolded n_cons, simplified]
+
+    obtain C :: "'a list_clause" and i :: nat where
+      ci: "Ci = (C, i)"
+      by (cases Ci) simp
+    note call = call[unfolded ci, simplified]
+
+    define C' :: "'a list_clause" where
+      "C' = reduce (map fst P @ map fst Q) C"
+    note call = call[unfolded ci C'_def[symmetric], simplified]
+
     show ?thesis
-      sorry
+    proof (cases "C' = Nil")
+      case c'_nil: True
+      show ?thesis
+        unfolding npqn n_cons ci
+        using c'_nil
+        unfolding C'_def
+        apply simp
+        (* use soundness of reduction at calculus level *)
+        sorry
+    next
+      case c'_nnil: False
+      note call = call[simplified c'_nnil, simplified]
+      show ?thesis
+      proof (cases "is_tautology C' \<or> is_subsumed_by (map fst P @ map fst Q) C'")
+        case taut_or_subs: True
+        note call = call[simplified taut_or_subs, simplified]
+        show ?thesis
+          unfolding npqn n_cons ci using ih[OF call]
+          by (auto simp: clss_of_state_def grounding_of_clss_def)
+      next
+        case not_taut_or_subs: False
+        note call = call[simplified not_taut_or_subs, simplified]
+        show ?thesis
+          unfolding npqn n_cons ci
+          using ih[OF call]
+          (* use soundness of subsumption at calculus level *)
+          sorry
+      qed
+    qed
   qed
 qed
-
-(*
-  using su
-  apply (induct rule: deterministic_resolution_prover.fixp_induct)
-*)
 
 thm
   deterministic_resolution_prover.fixp_induct
@@ -418,7 +452,10 @@ thm
   deterministic_resolution_prover.mono
   deterministic_resolution_prover.simps
 
-print_theorems
+(*
+  using su
+  apply (induct rule: deterministic_resolution_prover.fixp_induct)
+*)
 
 end
 
