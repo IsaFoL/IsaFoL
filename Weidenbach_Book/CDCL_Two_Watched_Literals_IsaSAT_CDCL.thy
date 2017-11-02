@@ -3270,13 +3270,6 @@ lemma lookup_conflict_merge_abs_union_alt_def:
     card_max_lvl M (the (lookup_conflict_merge_abs_union' M N i C clvls)))}\<close>
   unfolding lookup_conflict_merge_abs_union_def lookup_conflict_merge_abs_union'_def by auto
 
-lemma (in -) tautology_union_add_iff[simp]:
-  \<open>tautology (A \<union># B) \<longleftrightarrow> tautology (A + B)\<close>
-  by (auto simp: tautology_decomp)
-lemma (in -) tautology_add_mset_union_add_iff[simp]:
-  \<open>tautology (add_mset L (A \<union># B)) \<longleftrightarrow> tautology (add_mset L (A + B))\<close>
-  by (auto simp: tautology_decomp)
-
 lemma
   fixes S and C clvls :: nat
   defines [simp]: \<open>E \<equiv> the (lookup_conflict_merge_abs_union' (get_trail_wl S)  (get_clauses_wl S) C (get_conflict_wl S) clvls)\<close>

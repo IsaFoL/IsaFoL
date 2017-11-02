@@ -630,6 +630,13 @@ lemma tautology_decomp:
   "tautology \<psi> \<longleftrightarrow> (\<exists>p. Pos p \<in># \<psi> \<and> Neg p \<in># \<psi>)"
   using tautology_exists_Pos_Neg by auto
 
+lemma tautology_union_add_iff[simp]:
+  \<open>tautology (A \<union># B) \<longleftrightarrow> tautology (A + B)\<close>
+  by (auto simp: tautology_decomp)
+lemma tautology_add_mset_union_add_iff[simp]:
+  \<open>tautology (add_mset L (A \<union># B)) \<longleftrightarrow> tautology (add_mset L (A + B))\<close>
+  by (auto simp: tautology_decomp)
+
 lemma not_tautology_minus:
   \<open>\<not>tautology A \<Longrightarrow> \<not>tautology (A - B)\<close>
   by (auto simp: tautology_decomp dest: in_diffD)
