@@ -140,9 +140,11 @@ where
                deterministic_resolution_prover (N, P, Q, n)))"
 
 lemma reduce_simulate_N:
-  "(N \<union> {(mset C, i)}, set (map (apfst mset) P), set (map (apfst mset) Q), n)
-    \<leadsto>\<^sub>w\<^sup>* (N \<union> {(mset (reduce (map fst (P @ Q)) [] C), i)}, set (map (apfst mset) P),
+  "(N \<union> {(mset (C @ D), i)}, set (map (apfst mset) P), set (map (apfst mset) Q), n)
+    \<leadsto>\<^sub>w\<^sup>* (N \<union> {(mset (reduce (map fst (P @ Q)) C D), i)}, set (map (apfst mset) P),
          set (map (apfst mset) Q), n)"
+
+
 (* FIXME
 proof (induct "length (filter (\<lambda>L. is_reducible_lit (map fst (P @ Q)) C L) C)")
   case 0
@@ -239,7 +241,7 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
           unfolding st n_cons ci
           using c'_nil[unfolded C'_def]
             rtrancl_resolution_prover_with_weights_sound[OF reduce_simulate_N,
-              of I "set (map (apfst mset) N')" C i P Q n]
+              of I "set (map (apfst mset) N')" "[]" C i P Q n]
           by (simp add: clss_of_state_def grounding_of_clss_def)
       qed
     next
