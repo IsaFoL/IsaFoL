@@ -360,10 +360,25 @@ where
                deterministic_resolution_prover (N, P, Q, n)))"
 
 theorem deterministic_resolution_prover_sound_unsat:
-  assumes "deterministic_resolution_prover NPQn = Some Unsat"
+  assumes su: "deterministic_resolution_prover NPQn = Some Unsat"
   shows "\<not> satisfiable (grounding_of_state (state_of_weighted_list_state NPQn))"
+proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
+  case (1 deterministic_resolution_prover NPQn NPQn')
+  note ih = this(1) and npqn' = this(2)
+
+  show ?case
+    sorry
+qed
+
+
+
   sorry
 
+
+(*
+  using su
+  apply (induct rule: deterministic_resolution_prover.fixp_induct)
+*)
 
 
 thm
