@@ -1186,13 +1186,6 @@ fun update_clause_wl_code x =
     end)
     x;
 
-fun polarity_st_heur_code x = (fn ai => fn bi => let
-           val (a1, _) = ai;
-         in
-           polarity_pol_code a1 bi
-         end)
-                                x;
-
 fun cons_trail_Propagated_tr_code x =
   (fn ai => fn bia => fn (a1, (a1a, (a1b, (a1c, a2c)))) => fn () =>
     let
@@ -1210,7 +1203,7 @@ fun cons_trail_Propagated_tr_code x =
 
 fun uminus_code l = Word32.xorb (l, (Word32.fromInt 1));
 
-fun propgate_lit_wl_code x =
+fun propagate_lit_wl_code x =
   (fn ai => fn bib => fn bia => fn (a1, (a1a, (a1b, (a1c, (a1d, a2d))))) =>
     fn () =>
     let
@@ -1222,6 +1215,13 @@ fun propgate_lit_wl_code x =
       (x_a, (xa, (a1b, (a1c, (uminus_code ai :: a1d, a2d)))))
     end)
     x;
+
+fun polarity_st_heur_code x = (fn ai => fn bi => let
+           val (a1, _) = ai;
+         in
+           polarity_pol_code a1 bi
+         end)
+                                x;
 
 fun unit_propagation_inner_loop_body_wl_D_code x =
   (fn ai => fn bia => fn bi => fn () =>
@@ -1250,7 +1250,7 @@ fun unit_propagation_inner_loop_body_wl_D_code x =
 ((set_conflict_wl_int_code xa bi) ()) ())
 (fn x_l => (fn () => (plus_nat bia one_nat, x_l)))
                                  else (fn f_ => fn () => f_
-((propgate_lit_wl_code x_d xa x_b bi) ()) ())
+((propagate_lit_wl_code x_d xa x_b bi) ()) ())
 (fn x_l => (fn () => (plus_nat bia one_nat, x_l))))
                              | SOME x_j =>
                                update_clause_wl_code ai xa bia x_b x_j bi)))))
@@ -2081,7 +2081,7 @@ fun remove_last_code x =
     end)
     x;
 
-fun propgate_unit_bt_wl_D_code x =
+fun propagate_unit_bt_wl_D_code x =
   (fn ai => fn (a1, (a1a, (a1b, (a1c, (_, (a1e, (a1f, a2f))))))) => fn () =>
     let
       val xa = remove_last_code ai a1c ();
@@ -2186,22 +2186,6 @@ fun lit_of_hd_trail_st_code x =
                         val ((a1a, _), _) = xi;
                       in
                         op_list_hd a1a
-                      end))
-    x;
-
-fun size_conflict_wl_code x =
-  (fn xi => (fn () => let
-                        val (_, a) = xi;
-                        val (_, aa) = a;
-                        val (_, ab) = aa;
-                        val ((ac, b), (_, (_, (_, _)))) = ab;
-                      in
-                        let
-                          val (_, (n, _)) = ac;
-                        in
-                          (fn _ => n)
-                        end
-                          b
                       end))
     x;
 
@@ -2319,7 +2303,7 @@ fun vmtf_rescore_code x =
     end)
     x;
 
-fun propgate_bt_wl_D_code x =
+fun propagate_bt_wl_D_code x =
   (fn ai => fn bia =>
     fn (a1, (a1a, (a1b, (a1c, (_, (a1e, (a1f, (a1g, _)))))))) => fn () =>
     let
@@ -2367,6 +2351,22 @@ fun propgate_bt_wl_D_code x =
     end)
     x;
 
+fun size_conflict_wl_code x =
+  (fn xi => (fn () => let
+                        val (_, a) = xi;
+                        val (_, aa) = a;
+                        val (_, ab) = aa;
+                        val ((ac, b), (_, (_, (_, _)))) = ab;
+                      in
+                        let
+                          val (_, (n, _)) = ac;
+                        in
+                          (fn _ => n)
+                        end
+                          b
+                      end))
+    x;
+
 fun backtrack_wl_D_code x =
   (fn xi => fn () =>
     let
@@ -2381,10 +2381,10 @@ fun backtrack_wl_D_code x =
                (fn x_e =>
                  (fn f_ => fn () => f_
                    ((app st_remove_highest_lvl_from_confl_code x_c) ()) ())
-                   (app (app (app propgate_bt_wl_D_code xa) x_e)))
+                   (app (app (app propagate_bt_wl_D_code xa) x_e)))
         else (fn f_ => fn () => f_
                ((app st_remove_highest_lvl_from_confl_code x_c) ()) ())
-               (fn a => app (app propgate_unit_bt_wl_D_code xa) a))
+               (fn a => app (app propagate_unit_bt_wl_D_code xa) a))
         ()
     end)
     x;
