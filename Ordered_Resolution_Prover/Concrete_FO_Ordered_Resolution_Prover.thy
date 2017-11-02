@@ -392,51 +392,25 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
       obtain C :: "'a list_clause" and i :: nat where
         pick: "pick_clause Ci P' = (C, i)"
         by (cases "pick_clause Ci P'") simp
-      note call = call[unfolded pick, simplified]
+      note call = call[unfolded pick, simplified, folded remove1.simps(2)]
 
       show ?thesis
         using ih[OF call sol_unsat]
 
         sorry
     qed
-    
-      sorry
   next
-    case n_ne_nil: False
-    then show ?thesis sorry
+    case n_Cons: (Cons Ci N)
+    note call = call[unfolded n_Cons, simplified]
+    show ?thesis
+      sorry
   qed
-
-  {
-    assume n_nil: "N = []"
-
-  }
-  moreover
-  {
-    assume n_ne_nil: "N \<noteq> []"
-
-    {
-      assume p_nil: "P = []"
-    }
-    moreover
-    {
-
-    }
-  }
-
-  show ?case
-    sorry
 qed
-
-
-
-  sorry
-
 
 (*
   using su
   apply (induct rule: deterministic_resolution_prover.fixp_induct)
 *)
-
 
 thm
   deterministic_resolution_prover.fixp_induct
