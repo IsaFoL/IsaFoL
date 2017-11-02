@@ -37,7 +37,7 @@ abbreviation (in -) vmtf_conc_option_fst_As where
 type_synonym (in -)vmtf_assn_option_fst_As = \<open>(uint32, nat) vmtf_node array \<times> nat \<times> uint32 option \<times> uint32 option \<times> uint32 option\<close>
 type_synonym (in -)vmtf_remove_assn_option_fst_As = \<open>vmtf_assn_option_fst_As \<times> uint32 array_list\<close>
 
-abbreviation (in -)vmtf_remove_conc_option_fst_As 
+abbreviation (in -)vmtf_remove_conc_option_fst_As
   :: \<open>vmtf_remove_int_option_fst_As \<Rightarrow> vmtf_remove_assn_option_fst_As \<Rightarrow> assn\<close>
 where
   \<open>vmtf_remove_conc_option_fst_As \<equiv> vmtf_conc_option_fst_As *assn arl_assn uint32_nat_assn\<close>
@@ -68,7 +68,7 @@ definition (in isasat_input_ops) twl_st_heur_init_assn :: \<open>twl_st_wl_heur_
   vmtf_remove_conc_option_fst_As *assn phase_saver_conc *assn
   uint32_nat_assn\<close>
 
-definition (in isasat_input_ops) twl_st_init_assn 
+definition (in isasat_input_ops) twl_st_init_assn
   :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_trail_init \<Rightarrow> assn\<close>
 where
   \<open>twl_st_init_assn = hr_comp twl_st_heur_init_assn twl_st_heur_init\<close>
@@ -190,7 +190,7 @@ definition (in isasat_input_ops) conflict_propagated_unit_cls :: \<open>nat lite
   \<open>conflict_propagated_unit_cls = (\<lambda>L (M, N, U, D, NP, UP, Q, WS).
      (M, N, U, set_conflict_unit L D, add_mset {#L#} NP, UP, {#}, WS))\<close>
 
-definition conflict_propagated_unit_cls_heur 
+definition conflict_propagated_unit_cls_heur
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init\<close>
 where
   \<open>conflict_propagated_unit_cls_heur = (\<lambda>L (M, N, U, D, Q, oth).
@@ -462,7 +462,7 @@ lemma already_propagated_unit_cls_conflict_hnr[sepref_fr_rules]:
     [FCOMP already_propagated_unit_cls_conflict_heur_already_propagated_unit_cls_conflict]
   unfolding twl_st_init_assn_def[symmetric] by simp
 
-definition (in isasat_input_ops) init_dt_step_wl 
+definition (in isasat_input_ops) init_dt_step_wl
   :: \<open>nat clause_l \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat twl_st_wl) nres\<close>
 where
   \<open>init_dt_step_wl C S = do {
@@ -1590,7 +1590,7 @@ proof -
 qed
 
 definition finalise_init_code where
-  \<open>finalise_init_code = (\<lambda>(M', N', U', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). 
+  \<open>finalise_init_code = (\<lambda>(M', N', U', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls).
      (M', N', U', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove), \<phi>, clvls))\<close>
 
 lemma (in isasat_input_ops)finalise_init_finalise_init:
