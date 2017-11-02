@@ -10,7 +10,7 @@ TODO.
 \<close>
 
 theory Executable_FO_Ordered_Resolution_Prover
-  imports Concrete_FO_Ordered_Resolution_Prover
+  imports Functional_FO_Ordered_Resolution_Prover IsaFoR_Term
 begin
 
 end
