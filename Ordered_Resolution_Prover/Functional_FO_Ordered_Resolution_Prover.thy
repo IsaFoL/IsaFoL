@@ -136,12 +136,19 @@ lemma reduce_simulate_N:
   "(N \<union> {(mset C, i)}, set (map (apfst mset) P), set (map (apfst mset) Q), n)
     \<leadsto>\<^sub>w* (N \<union> {(mset (reduce (map fst (P @ Q)) C), i)}, set (map (apfst mset) P),
          set (map (apfst mset) Q), n)"
-proof (induct C)
-  case (Cons L C')
+proof (induct "length (filter (\<lambda>L. is_reducible_lit (map fst (P @ Q)) C L) C)")
+  case 0
+  then have "length (reduce (map fst (P @ Q)) C) = length C"
+    unfolding reduce_def using sum_length_filter_compl[of "is_reducible_lit (map fst (P @ Q)) C" C]
+    by simp
+  then have "reduce (map fst (P @ Q)) C = C"
+    unfolding reduce_def  by (metis filter_True length_filter_less less_irrefl)
   then show ?case
-    apply auto
-    sorry
-qed (simp add: reduce_def)
+    by simp
+next
+  case (Suc k)
+  then show ?case sorry
+qed
 
 theorem deterministic_resolution_prover_sound_unsat:
   assumes
