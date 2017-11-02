@@ -53,26 +53,26 @@ lemma len_renamings_apart': "length (renamings_apart' X Cs) = length Cs"
   by (metis length_Cons renamings_apart'.simps(2))
 
 lemma renamings_apart'_is_Var: "\<forall>\<sigma> \<in> set (renamings_apart' X Cs). \<forall>x. is_Var (\<sigma> x)"
-      proof (induction Cs arbitrary: X)
-        case Nil
-        then show ?case by auto
-      next
-        case (Cons a Cs)
-        then show ?case 
-          using is_VarI set_ConsD
-          by (metis (no_types, lifting) renamings_apart'.simps(2))
-      qed
+proof (induction Cs arbitrary: X)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons a Cs)
+  then show ?case 
+    using is_VarI set_ConsD
+    by (metis (no_types, lifting) renamings_apart'.simps(2))
+qed
 
 lemma renamings_apart'_inj: "\<forall>\<sigma> \<in> set (renamings_apart' X Cs). inj \<sigma>"
-      proof (induction Cs arbitrary: X)
-        case Nil
-        then show ?case by auto
-      next
-        case (Cons a Cs)
-        then show ?case 
-          by (metis (mono_tags, lifting) renamings_apart'.simps(2) inj_onI
-                nat_add_right_cancel set_ConsD term.inject(1))
-      qed
+proof (induction Cs arbitrary: X)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons a Cs)
+  then show ?case 
+    by (metis (mono_tags, lifting) renamings_apart'.simps(2) inj_onI
+        nat_add_right_cancel set_ConsD term.inject(1))
+qed
 
 interpretation substitution_ops "op \<cdot>" Var "op \<circ>\<^sub>s" .
 
