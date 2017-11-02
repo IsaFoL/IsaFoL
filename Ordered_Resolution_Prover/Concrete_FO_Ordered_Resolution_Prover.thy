@@ -226,6 +226,14 @@ type_synonym 'a weighted_list_clause = "'a list_clause \<times> nat"
 type_synonym 'a weighted_list_state =
   "'a weighted_list_clause list \<times> 'a weighted_list_clause list \<times> 'a weighted_list_clause list \<times> nat"
 
+fun clause_of_weighted_list_clause :: "'a weighted_list_clause \<Rightarrow> 'a clause" where
+  "clause_of_weighted_list_clause (C, _) = mset C"
+
+fun state_of_weighted_list_state :: "'a weighted_list_state \<Rightarrow> 'a state" where
+  "state_of_weighted_list_state (N, P, Q, _) =
+   (set (map clause_of_weighted_list_clause N), set (map clause_of_weighted_list_clause P),
+    set (map clause_of_weighted_list_clause Q))"
+
 datatype 'a solution =
   Sat "'a list_clause list"
 | Unsat
@@ -350,6 +358,13 @@ where
                P = (C, i) # P
              in
                deterministic_resolution_prover (N, P, Q, n)))"
+
+theorem deterministic_resolution_prover_sound_unsat:
+  assumes "deterministic_resolution_prover NPQn = Some Unsat"
+  shows "\<not> satisfiable (grounding_of_state (state_of_weighted_list_state NPQn))"
+  sorry
+
+
 
 thm
   deterministic_resolution_prover.fixp_induct
