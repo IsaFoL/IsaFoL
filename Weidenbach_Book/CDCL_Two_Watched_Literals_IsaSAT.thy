@@ -45,7 +45,7 @@ where
 definition (in isasat_input_ops) twl_st_heur_init :: \<open>(twl_st_wl_heur_init \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_init =
   {((M', N', U', D', Q', W', vm, \<phi>, clvls), (M, N, U, D, NP, UP, Q, W)).
-    M = M' \<and> N' = N \<and> U' = U \<and>
+    M' = M \<and> N' = N \<and> U' = U \<and>
     D' = D \<and>
      Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
@@ -68,14 +68,20 @@ definition (in isasat_input_ops) twl_st_heur_init_assn :: \<open>twl_st_wl_heur_
   vmtf_remove_conc_option_fst_As *assn phase_saver_conc *assn
   uint32_nat_assn\<close>
 
-definition (in isasat_input_ops) twl_st_init_assn :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_trail_init \<Rightarrow> assn\<close> where
-\<open>twl_st_init_assn = hr_comp twl_st_heur_init_assn twl_st_heur_init\<close>
+definition (in isasat_input_ops) twl_st_init_assn 
+  :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_trail_init \<Rightarrow> assn\<close>
+where
+  \<open>twl_st_init_assn = hr_comp twl_st_heur_init_assn twl_st_heur_init\<close>
 
-definition (in isasat_input_ops) propagate_unit_cls :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl\<close> where
+definition (in isasat_input_ops) propagate_unit_cls
+  :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl\<close>
+where
   \<open>propagate_unit_cls = (\<lambda>L (M, N, U, D, NP, UP, Q, WS).
      (Propagated L 0 # M, N, U, D, add_mset {#L#} NP, UP, add_mset (-L) Q, WS))\<close>
 
-definition (in isasat_input_ops) propagate_unit_cls_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init\<close> where
+definition (in isasat_input_ops) propagate_unit_cls_heur
+ :: \<open>nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init\<close>
+where
   \<open>propagate_unit_cls_heur = (\<lambda>L (M, N, U, D, Q, oth).
      (Propagated L 0 # M, N, U, D, add_mset (-L) Q, oth))\<close>
 
@@ -604,7 +610,7 @@ lemma polarity_st_heur_code_polarity_st_refine[sepref_fr_rules]:
      [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a twl_st_init_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn bool_assn\<close>
 proof -
   have [simp]: \<open>polarity_atm M (atm_of L) = (if is_pos L then polarity M L else map_option uminus (polarity M L))\<close>
-    if \<open>no_dup M\<close>for M :: \<open>(nat, nat) ann_lits\<close> and L :: \<open>nat literal\<close>
+    if \<open>no_dup M\<close> for M :: \<open>(nat, nat) ann_lits\<close> and L :: \<open>nat literal\<close>
     by (cases L) (use no_dup_consistentD[of M \<open>Neg (atm_of L)\<close>] that in
         \<open>auto simp: polarity_atm_def polarity_def Decided_Propagated_in_iff_in_lits_of_l\<close>)
   have 2: \<open>(uncurry polarity_st_heur_init, uncurry (RETURN oo polarity_st)) \<in>
@@ -1645,7 +1651,7 @@ qed
 
 
 definition extract_model_of_state where
-  \<open>extract_model_of_state U = fold (\<lambda>x s. lit_of x # s) (get_trail_wl U) []\<close>
+  \<open>extract_model_of_state U = map lit_of (get_trail_wl U)\<close>
 
 definition IsaSAT :: \<open>nat clauses_l \<Rightarrow> nat literal list option nres\<close> where
   \<open>IsaSAT CS = do{
@@ -1693,20 +1699,25 @@ definition init_trail_D :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> tr
   \<open>init_trail_D \<A>\<^sub>i\<^sub>n n = do {
      let M = replicate n None;
      let M' = replicate n zero_uint32_nat;
-     RETURN (([], M, M', zero_uint32_nat))
+     let M'' = replicate n None;
+     RETURN (([], M, M', M'', zero_uint32_nat))
   }\<close>
 
 sepref_register initialise_VMTF
+
+lemma Pair_hnr:\<open>(uncurry (return oo (\<lambda>a b. Pair a b)), uncurry (RETURN oo (\<lambda>a b. Pair a b))) \<in> A\<^sup>d *\<^sub>a B\<^sup>d \<rightarrow>\<^sub>a A *assn B\<close>
+  by sepref_to_hoare sep_auto
 
 sepref_definition init_trail_D_code
   is \<open>uncurry init_trail_D\<close>
   :: \<open>(list_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_pol_assn\<close>
   unfolding init_trail_D_def PR_CONST_def
   apply (rewrite in "((\<hole>, _, _, _))" HOL_list.fold_custom_empty)
-  apply (rewrite in "((\<hole>, _, _, _))" annotate_assn[where A=pair_nat_ann_lits_assn])
+  apply (rewrite in "((\<hole>, _, _, _))" annotate_assn[where A=\<open>list_assn unat_lit_assn\<close>])
 
   apply (rewrite in "let _ = \<hole> in _" annotate_assn[where A=\<open>array_assn (option_assn bool_assn)\<close>])
   apply (rewrite in "let _ = \<hole> in _" annotate_assn[where A=\<open>array_assn uint32_nat_assn\<close>])
+  apply (rewrite in "let _ = _ in _" array_fold_custom_replicate)
   apply (rewrite in "let _ = _ in _" array_fold_custom_replicate)
   apply (rewrite in "let _ = _ in _" array_fold_custom_replicate)
   supply [[goals_limit = 1]]
@@ -1783,6 +1794,7 @@ proof -
         polarity_atm_def isasat_input_ops.trail_pol_def K atms_of_def
         isasat_input_ops.phase_saving_def list_rel_mset_rel_def
         list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
+        isasat_input_ops.ann_lits_split_reasons_def
       list_mset_rel_def Collect_eq_comp)
 qed
 
@@ -2027,41 +2039,24 @@ lemma pair_nat_ann_lits_assn_alt_def:
   \<open>pair_nat_ann_lits_assn at ag =  list_assn (\<lambda>a c. \<up> ((c, a) \<in> nat_ann_lit_rel)) at ag\<close>
   by (auto simp: nat_ann_lit_rel_def pure_def)
 
-definition get_trail_wl_code :: \<open> twl_st_wll_trail \<Rightarrow> (uint32 \<times> nat option) list\<close> where
+definition get_trail_wl_code :: \<open>twl_st_wll_trail \<Rightarrow> uint32 list\<close> where
   \<open>get_trail_wl_code = (\<lambda>((M, _), _). M)\<close>
 
-lemma (in isasat_input_bounded) get_trail_wl[sepref_fr_rules]:
-  \<open>(return o get_trail_wl_code, RETURN o get_trail_wl) \<in>  twl_st_assn\<^sup>d \<rightarrow>\<^sub>a  pair_nat_ann_lits_assn\<close>
-  by sepref_to_hoare
-     (sep_auto simp: twl_st_assn_def twl_st_heur_def hr_comp_def trail_pol_def twl_st_heur_assn_def
-      pair_nat_ann_lits_assn_alt_def[symmetric] twl_st_heur_init_assn_def get_trail_wl_code_def)
-
-lemma [sepref_fr_rules]:
-  \<open>(return o get_trail_wl_code,
-   RETURN \<circ> get_trail_wl) \<in> [\<lambda>_. isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>a (isasat_input_ops.twl_st_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow> pair_nat_ann_lits_assn\<close>
-  using isasat_input_bounded.get_trail_wl[of \<A>\<^sub>i\<^sub>n] by (auto simp: hfref_def)
-
-lemma extract_model_of_state_alt_def:
-  \<open>extract_model_of_state U = rev (map lit_of (get_trail_wl U))\<close>
+lemma (in isasat_input_ops) get_trail_wl[sepref_fr_rules]:
+  \<open>(return o get_trail_wl_code, RETURN o extract_model_of_state) \<in> twl_st_assn\<^sup>d \<rightarrow>\<^sub>a
+       list_assn unat_lit_assn\<close>
 proof -
-  have [simp]: \<open>fold (\<lambda>x. op # (lit_of x)) U s = rev (map lit_of U) @ s\<close> for U s
-    unfolding foldl_conv_fold[symmetric]
-    by (induction U arbitrary: s)  auto
+  have [simp]: \<open>(\<lambda>a c. \<up> ((c, a) \<in> unat_lit_rel)) = unat_lit_assn\<close>
+    by (auto simp: unat_lit_rel_def pure_def)
   show ?thesis
-    unfolding extract_model_of_state_def by auto
+    by sepref_to_hoare
+      (sep_auto simp: twl_st_assn_def twl_st_heur_def hr_comp_def trail_pol_def twl_st_heur_assn_def
+        twl_st_heur_init_assn_def get_trail_wl_code_def
+        extract_model_of_state_def
+        dest!: ann_lits_split_reasons_map_lit_of)
 qed
 
-sepref_definition extract_model_of_state_code
-  is \<open>RETURN o extract_model_of_state\<close>
-  :: \<open>[\<lambda>_. isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>a (isasat_input_ops.twl_st_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow> list_assn unat_lit_assn\<close>
-  unfolding extract_model_of_state_def map_by_foldl[symmetric]
-     comp_def foldl_conv_fold foldl_conv_fold
-  unfolding HOL_list.fold_custom_empty
-  supply [[goals_limit = 1]]
-  by sepref
-
-
-declare extract_model_of_state_code.refine[sepref_fr_rules]
+declare isasat_input_ops.get_trail_wl[sepref_fr_rules]
 declare isasat_input_ops.finalise_init_code_hnr[unfolded PR_CONST_def, sepref_fr_rules]
 
 sepref_definition IsaSAT_code
@@ -2380,7 +2375,7 @@ definition model_if_satisfiable :: \<open>nat clauses \<Rightarrow> nat literal 
 definition SAT' :: \<open>nat clauses \<Rightarrow> nat literal list option nres\<close> where
   \<open>SAT' CS = do {
      T \<leftarrow> SAT CS;
-     RETURN(if conflicting T = None then Some(rev (map lit_of (trail T))) else None)
+     RETURN(if conflicting T = None then Some (map lit_of (trail T)) else None)
   }
 \<close>
 
@@ -2538,7 +2533,7 @@ proof -
        do {
         ASSERT(True);ASSERT(True);
           U \<leftarrow> SAT CS;
-          RETURN(if conflicting U = None then Some (rev (map lit_of (trail U))) else None)
+          RETURN(if conflicting U = None then Some (map lit_of (trail U)) else None)
       } \<close> for CS
     unfolding SAT'_def SAT_def empty_trail_def by (auto simp: RES_RETURN_RES)
   have 3: \<open>ASSERT (isasat_input_bounded (mset (extract_atms_clss x []))) \<le> \<Down> unit_rel (ASSERT True)\<close>
@@ -2574,7 +2569,7 @@ proof -
          apply (rule 3; simp; fail)
         apply (rule 4; simp; fail)
      apply (rule 2)
-    by (auto simp: TWL_to_clauses_state_conv_def convert_lits_l_def extract_model_of_state_alt_def)
+    by (auto simp: TWL_to_clauses_state_conv_def convert_lits_l_def extract_model_of_state_def)
   show ?thesis
     using IsaSAT_code.refine[FCOMP IsaSAT_SAT] unfolding list_assn_list_mset_rel_clauses_l_assn .
 qed
