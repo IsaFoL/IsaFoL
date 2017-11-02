@@ -148,15 +148,21 @@ proof (induct C' arbitrary: C)
   note ih = this
   show ?case
   proof (cases "is_reducible_lit (map fst P @ map fst Q) (C @ C') L")
-    case True
-    then have red: "reduce (map fst (P @ Q)) C (L # C') = reduce (map fst (P @ Q)) C C'"
+    case red: True
+    then have red_c: "reduce (map fst (P @ Q)) C (L # C') = reduce (map fst (P @ Q)) C C'"
       by simp
+
+    have foo: "\<exists>D L' j \<sigma>. (D + {#L'#}, j) \<in> set (map (apfst mset) P) \<union> set (map (apfst mset) Q) \<and>
+       - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># mset (C @ C')"
+      sorry
+
     show ?thesis
       apply (rule converse_rtranclp_into_rtranclp)
        defer
-      apply (simp only: red)
+      apply (simp only: red_c)
        apply (rule ih[of C])
       using forward_reduction[of _ "set (map (apfst mset) P)" "set (map (apfst mset) Q)" L _ "mset (C @ C')" N i n]
+      apply simp
 
       apply (rule forward_reduction)
 
