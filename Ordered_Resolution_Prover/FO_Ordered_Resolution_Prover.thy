@@ -1,20 +1,20 @@
-(*  Title:       An Abstract Simple Ordered Resolution Prover for First-Order Clauses
+(*  Title:       An Ordered Resolution Prover for First-Order Clauses
     Author:      Anders Schlichtkrull <andschl at dtu.dk>, 2016, 2017
     Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2014, 2017
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
     Maintainer:  Anders Schlichtkrull <andschl at dtu.dk>
 *)
 
-section \<open>An Abstract Simple Ordered Resolution Prover for First-Order Clauses\<close>
+section \<open>An Ordered Resolution Prover for First-Order Clauses\<close>
 
 text \<open>
-This material is based on Section 4.3 (``A Simple Resolution Prover for First-Order Clauses) of 
+This material is based on Section 4.3 (``A Simple Resolution Prover for First-Order Clauses) of
 Bachmair and Ganzinger's chapter. Specifically, it formalizes the prover in Figure 5 called
-The Resolution Prover RP and its related lemmas and theorems including 
+The Resolution Prover RP and its related lemmas and theorems including
 4.10, 4.11 and 4.13 (completeness of the prover).
 \<close>
 
-theory Abstract_FO_Ordered_Resolution_Prover
+theory FO_Ordered_Resolution_Prover
   imports FO_Ordered_Resolution
 begin
 
@@ -257,20 +257,9 @@ next
     then have gC_gD: "grounding_of_cls C \<subseteq> grounding_of_cls D"
       using subst_cls_eq_grounding_of_cls_subset_eq by simp
     have "grounding_of_state (N \<union> {C}, P, Q) = grounding_of_state (N, P, Q)"
-    proof (rule; rule)
-      fix x
-      assume "x \<in> grounding_of_state (N \<union> {C}, P, Q)"
-      then show "x \<in> grounding_of_state (N, P, Q)"
-        using gC_gD D_p unfolding clss_of_state_def grounding_of_clss_def by auto
-    next
-      fix x
-      assume "x \<in> grounding_of_state (N, P, Q)"
-      then show "x \<in> grounding_of_state (N \<union> {C}, P, Q)"
-        unfolding clss_of_state_def grounding_of_clss_def by auto
-    qed
+      using gC_gD D_p unfolding clss_of_state_def grounding_of_clss_def by auto
     then show ?case
-      using src_ext.derive.intros[of "grounding_of_state (N, P, Q)" "grounding_of_state (N, P, Q)"]
-        by auto
+      by (auto intro: src_ext.derive.intros)
   next
     assume a: "D \<cdot> \<sigma> \<subset># C"
     have "grounding_of_cls C \<subseteq> src.Rf (grounding_of_state (N, P, Q))"
@@ -285,8 +274,7 @@ next
         using \<mu>_p strict_subsumption_redundant_state[of D "\<sigma> \<odot> \<mu>" "C \<cdot> \<mu>" "(N, P, Q)"] D_p unfolding clss_of_state_def by auto
     qed
     then show ?case
-      using src_ext.derive.intros[of "grounding_of_state (N, P, Q)" "grounding_of_state (N \<union> {C}, P, Q)"]
-      unfolding clss_of_state_def grounding_of_clss_def by force
+      unfolding clss_of_state_def grounding_of_clss_def by (force intro: src_ext.derive.intros)
   qed
 next
   case (backward_subsumption_P N C P Q) (* Adapted from previous proof *) (* Arguably I should extract some lemma that says: if subsumed then redundant... *)
@@ -301,21 +289,10 @@ next
     then have gC_gD: "grounding_of_cls C \<subseteq> grounding_of_cls D"
       using subst_cls_eq_grounding_of_cls_subset_eq by simp
     have "grounding_of_state (N, P \<union> {C}, Q) = grounding_of_state (N, P, Q)"
-    proof (rule; rule)
-      fix x
-      assume "x \<in> grounding_of_state (N, P \<union> {C}, Q)"
-      then show "x \<in> grounding_of_state (N, P, Q)"
-        using gC_gD D_p unfolding clss_of_state_def grounding_of_clss_def by auto
-    next
-      fix x
-      assume "x \<in> grounding_of_state (N, P, Q)"
-      then show "x \<in> grounding_of_state (N, P  \<union> {C}, Q)"
-        unfolding clss_of_state_def grounding_of_clss_def by auto
-    qed
+      using gC_gD D_p unfolding clss_of_state_def grounding_of_clss_def by auto
     then show ?case
-      using src_ext.derive.intros[of "grounding_of_state (N, P, Q)" "grounding_of_state (N, P, Q)"]
-      by auto
-  next
+      by (auto intro: src_ext.derive.intros)
+ next
     assume a: "D \<cdot> \<sigma> \<subset># C"
     have "grounding_of_cls C \<subseteq> src.Rf (grounding_of_state (N, P, Q))"
     proof
@@ -329,8 +306,7 @@ next
         using \<mu>_p strict_subsumption_redundant_state[of D "\<sigma> \<odot> \<mu>" "C \<cdot> \<mu>" "(N, P, Q)"] D_p unfolding clss_of_state_def by auto
     qed
     then show ?case
-      using src_ext.derive.intros[of "grounding_of_state (N, P, Q)" "grounding_of_state (N \<union> {C}, P, Q)"]
-      unfolding clss_of_state_def grounding_of_clss_def by force
+      unfolding clss_of_state_def grounding_of_clss_def by (force intro: src_ext.derive.intros)
   qed
 next
   case (backward_subsumption_Q N C P Q) (* Adapted from previous proof *)
@@ -345,20 +321,9 @@ next
     then have gC_gD: "grounding_of_cls C \<subseteq> grounding_of_cls D"
       using subst_cls_eq_grounding_of_cls_subset_eq by simp
     have "grounding_of_state (N, P, Q \<union> {C}) = grounding_of_state (N, P, Q)"
-    proof (rule; rule)
-      fix x
-      assume "x \<in> grounding_of_state (N, P, Q \<union> {C})"
-      then show "x \<in> grounding_of_state (N, P, Q)"
-        using gC_gD D_p unfolding clss_of_state_def grounding_of_clss_def by auto
-    next
-      fix x
-      assume "x \<in> grounding_of_state (N, P, Q)"
-      then show "x \<in> grounding_of_state (N, P, Q  \<union> {C})"
-        unfolding clss_of_state_def grounding_of_clss_def by auto
-    qed
+      using gC_gD D_p unfolding clss_of_state_def grounding_of_clss_def by auto
     then show ?case
-      using src_ext.derive.intros[of "grounding_of_state (N, P, Q)" "grounding_of_state (N, P, Q)"]
-      by auto
+      by (auto intro: src_ext.derive.intros)
   next
     assume a: "D \<cdot> \<sigma> \<subset># C"
     have "grounding_of_cls C \<subseteq> src.Rf (grounding_of_state (N, P, Q))"
@@ -373,8 +338,7 @@ next
         using \<mu>_p strict_subsumption_redundant_state[of D "\<sigma> \<odot> \<mu>" "C \<cdot> \<mu>" "(N, P, Q)"] D_p unfolding clss_of_state_def by auto
     qed
     then show ?case
-      using src_ext.derive.intros[of "grounding_of_state (N, P, Q)" "grounding_of_state (N \<union> {C}, P, Q)"]
-      unfolding clss_of_state_def grounding_of_clss_def by force
+      unfolding clss_of_state_def grounding_of_clss_def by (force intro: src_ext.derive.intros)
   qed
 next
   case (forward_reduction P Q L \<sigma> C N)
