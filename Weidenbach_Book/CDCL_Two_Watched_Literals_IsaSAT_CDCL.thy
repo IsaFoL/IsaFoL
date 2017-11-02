@@ -3270,17 +3270,6 @@ lemma lookup_conflict_merge_abs_union_alt_def:
     card_max_lvl M (the (lookup_conflict_merge_abs_union' M N i C clvls)))}\<close>
   unfolding lookup_conflict_merge_abs_union_def lookup_conflict_merge_abs_union'_def by auto
 
-lemma card_max_lvl_tl_remove_hd:
-  assumes
-    \<open>M \<noteq> []\<close> and
-    \<open>distinct_mset C\<close> \<open>no_dup M\<close> \<open>distinct_mset C\<close>\<open>\<not>tautology C\<close> \<open>\<not>is_decided (hd M)\<close>
-    \<open>lit_of (hd M) \<in># C\<close>
-  shows \<open>card_max_lvl (tl M) (C - unmark (hd M)) =
-         card_max_lvl M C - 1\<close>
-  using assms
-  by (cases M) (auto simp: card_max_lvl_Cons card_max_lvl_add_mset
-      dest!: multi_member_split)
-
 lemma (in -) tautology_union_add_iff[simp]:
   \<open>tautology (A \<union># B) \<longleftrightarrow> tautology (A + B)\<close>
   by (auto simp: tautology_decomp)

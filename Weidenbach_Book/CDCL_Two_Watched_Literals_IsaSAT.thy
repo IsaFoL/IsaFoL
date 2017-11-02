@@ -602,9 +602,6 @@ concrete_definition (in -) polarity_st_heur_init_code
 
 prepare_code_thms (in -) polarity_st_heur_init_code_def
 
-lemmas polarity_st_heur_init_code_polarity_refine_code[sepref_fr_rules] =
-   polarity_st_heur_init_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
-
 lemma polarity_st_heur_code_polarity_st_refine[sepref_fr_rules]:
   \<open>(uncurry polarity_st_heur_init_code, uncurry (RETURN oo polarity_st)) \<in>
      [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a twl_st_init_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn bool_assn\<close>
@@ -668,9 +665,6 @@ concrete_definition (in -) init_dt_wl_code
   is "(uncurry ?f,_)\<in>_"
 
 prepare_code_thms (in -) init_dt_wl_code_def
-
-lemmas init_dt_wl_code_refine[sepref_fr_rules] =
-  init_dt_wl_code.refine[OF isasat_input_bounded_axioms]
 
 end
 
@@ -809,27 +803,10 @@ lemma (in -) all_lits_of_atms_m_nil[simp]: \<open>all_lits_of_atms_m {#} = {#}\<
 definition (in -) all_lits_of_atms_mm :: \<open>'a multiset multiset \<Rightarrow> 'a clause\<close> where
  \<open>all_lits_of_atms_mm N = poss (\<Union># N) + negs (\<Union># N)\<close>
 
-lemma all_lits_of_atms_mm_all_lits_of_mm:
-  \<open>all_lits_of_atms_mm N = all_lits_of_mm (poss `# N)\<close>
-  unfolding all_lits_of_atms_mm_def all_lits_of_mm_def
-  by (induction N) auto
-
 lemma all_lits_of_atms_m_all_lits_of_m:
   \<open>all_lits_of_atms_m N = all_lits_of_m (poss N)\<close>
   unfolding all_lits_of_atms_m_def all_lits_of_m_def
   by (induction N) auto
-
-lemma all_lits_of_m_extract_atms_cls: \<open>set_mset (all_lits_of_atms_m (mset (extract_atms_cls C \<A>\<^sub>i\<^sub>n))) =
-   set_mset (all_lits_of_m (mset C) + all_lits_of_atms_m (mset \<A>\<^sub>i\<^sub>n))\<close>
-  apply (induction C arbitrary: \<A>\<^sub>i\<^sub>n)
-  subgoal by simp
-  subgoal by (auto simp add: extract_atms_cls_Cons all_lits_of_m_add_mset uminus_literal_def
-        in_all_lits_of_m_ain_atms_of_iff insert_absorb all_lits_of_atms_m_all_lits_of_m)
-  done
-
-lemma nat_of_lit_uint_max_nat_of_lit_uminus_uint_max:
-  \<open>nat_of_lit (-L) \<le> uint_max \<longleftrightarrow> nat_of_lit L \<le> uint_max\<close>
-  by (cases L) (auto simp: uint_max_def)
 
 lemma in_extract_atms_clsD:
   \<open>set (extract_atms_cls C \<A>\<^sub>i\<^sub>n) = atms_of_s (set C) \<union> set \<A>\<^sub>i\<^sub>n\<close>
@@ -850,49 +827,6 @@ lemma in_extract_atms_clssD:
     using IH(1)[of \<open>extract_atms_cls L' \<A>\<^sub>i\<^sub>n\<close>]
     by (auto simp: extract_atms_clss_def in_extract_atms_clsD split: if_splits)
   done
-
-lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_extract_atms_clss:
-  assumes upper: \<open>\<forall>L \<in> set \<A>\<^sub>i\<^sub>n. L \<le> uint_max div 2\<close>
-  assumes uint_max: \<open>\<forall>C \<in> set N. \<forall>L \<in> set C. nat_of_lit L \<le> uint_max\<close>
-  shows
-   \<open>isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l (mset (extract_atms_clss N \<A>\<^sub>i\<^sub>n))
-     (all_lits_of_mm (mset `# mset N) + all_lits_of_atms_m (mset \<A>\<^sub>i\<^sub>n))\<close>
-proof -
-  have atm_of_\<A>\<^sub>i\<^sub>n_iff: \<open>atm_of x \<in> set \<A>\<^sub>i\<^sub>n \<longleftrightarrow>
-         x \<in> (- literal_of_nat \<circ>\<circ> op *) 2 ` set \<A>\<^sub>i\<^sub>n \<or> x \<in> (literal_of_nat \<circ>\<circ> op *) 2 ` set \<A>\<^sub>i\<^sub>n\<close>
-    for x \<A>\<^sub>i\<^sub>n
-    by (cases x) auto
-  have is_\<L>\<^sub>a\<^sub>l\<^sub>l_add: \<open>isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n (A + B) \<longleftrightarrow> set_mset A \<subseteq> set_mset (isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)\<close>
-    if \<open>isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n B\<close> for A B \<A>\<^sub>i\<^sub>n
-    using that unfolding isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l_def by auto
-  have H1: \<open>xa \<in> set \<A>\<^sub>i\<^sub>n \<Longrightarrow> literal_of_nat (2 * xa) \<in> Pos ` set \<A>\<^sub>i\<^sub>n\<close> for xa \<A>\<^sub>i\<^sub>n
-    by auto
-  have H2: \<open>xa \<in> set \<A>\<^sub>i\<^sub>n \<Longrightarrow> - literal_of_nat (2 * xa) \<in> Neg ` set \<A>\<^sub>i\<^sub>n\<close> for xa \<A>\<^sub>i\<^sub>n
-    by auto
-  show ?thesis
-    using upper uint_max
-  proof (induction N arbitrary: \<A>\<^sub>i\<^sub>n)
-    case Nil
-    then show ?case
-      using H1 H2
-      by (auto simp: extract_atms_cls_def extract_atms_clss_def isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
-          isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def in_all_lits_of_m_ain_atms_of_iff
-          atm_of_eq_atm_of all_lits_of_atms_m_all_lits_of_m
-          atm_of_\<A>\<^sub>i\<^sub>n_iff
-          simp del: nat_of_lit.simps literal_of_nat.simps)
-  next
-    case (Cons C Cs \<A>\<^sub>i\<^sub>n) note IH = this(1) and H=this(2-)
-    have \<open>2 * L \<le> uint_max \<longleftrightarrow> L \<le> uint_max div 2\<close> for L
-      by (auto simp: uint_max_def)
-    then have \<open>\<forall>L\<in>set (extract_atms_cls C \<A>\<^sub>i\<^sub>n). L \<le> uint_max div 2\<close>
-      using Cons
-      by (auto simp: in_extract_atms_clsD nat_of_lit_uint_max_nat_of_lit_uminus_uint_max)
-    then show ?case
-      using IH[of \<open>extract_atms_cls C \<A>\<^sub>i\<^sub>n\<close>, unfolded isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l_def] H
-      by (simp add: all_lits_of_mm_add_mset isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
-          all_lits_of_m_extract_atms_cls ac_simps comp_def)
-  qed
-qed
 
 
 context isasat_input_bounded
@@ -1347,21 +1281,6 @@ definition (in -) SAT_wl :: \<open>nat clauses_l \<Rightarrow> nat twl_st_wl nre
   }\<close>
 
 
-definition (in -)map_uint32_of_lit where
-  \<open>map_uint32_of_lit = map (uint32_of_nat)\<close>
-
-lemma (in -) map_uint32_of_lit[sepref_fr_rules]:
-  \<open>(return o id, RETURN o map_uint32_of_lit) \<in>
-     (list_assn uint32_nat_assn)\<^sup>d \<rightarrow>\<^sub>a list_assn uint32_assn\<close>
-  unfolding list_assn_pure_conv
-  by sepref_to_hoare
-   (sep_auto simp: unat_lit_rel_def uint32_nat_rel_def Collect_eq_comp br_def nat_lit_rel_def
-      lit_of_natP_def map_uint32_of_lit_def list_rel_def list_all2_op_eq_map_right_iff' comp_def
-      list.rel_eq
-      simp del: literal_of_nat.simps)
-
-
-
 definition initialise_VMTF :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> vmtf_remove_int_option_fst_As nres\<close> where
 \<open>initialise_VMTF N n = do {
    let A = replicate n (VMTF_Node 0 None None);
@@ -1573,22 +1492,6 @@ proof -
     done
 qed
 
-lemma initialise_VMTF_href:
-  \<open>(uncurry initialise_VMTF_code, uncurry (\<lambda>N (_::nat). RES (isasat_input_ops.vmtf_init N []))) \<in>
-   [\<lambda>(N, n). (\<forall>L\<in>#N. L < n) \<and> distinct_mset N]\<^sub>a
-   (list_mset_assn uint32_nat_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> vmtf_remove_conc_option_fst_As\<close>
-proof -
-  have H: \<open>hr_comp (list_assn uint32_assn)
-                (\<langle>uint32_nat_rel\<rangle>list_rel O list_mset_rel) = list_mset_assn uint32_nat_assn\<close>
-    unfolding list_mset_assn_def list_assn_pure_conv
-    by (auto simp: mset_rel_def p2rel_def rel_mset_def list_mset_rel_def list_rel_def
-      br_def uint32_nat_rel_def list_all2_op_eq_map_right_iff' Collect_eq_comp list.rel_eq hr_comp_pure
-        rel2p_def[abs_def])
-  show ?thesis
-    using initialise_VMTF_code.refine[FCOMP initialise_VMTF] unfolding H list_rel_mset_rel_def
-    by simp
-qed
-
 definition finalise_init_code where
   \<open>finalise_init_code = (\<lambda>(M', N', U', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls).
      (M', N', U', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove), \<phi>, clvls))\<close>
@@ -1691,10 +1594,6 @@ lemma (in -)arrayO_raa_empty_sz_init_lrl[sepref_fr_rules]:
     nat_assn\<^sup>k \<rightarrow>\<^sub>a arrayO_assn (arl_assn R)\<close>
   using arrayO_ara_empty_sz_code.refine unfolding arrayO_ara_empty_sz_init_lrl .
 
-lemma shiftr1_fref[sepref_fr_rules]: \<open>(return o shiftr1, RETURN o shiftr1) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  by sepref_to_hoare sep_auto
-
-
 definition init_trail_D :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> trail_pol nres\<close> where
   \<open>init_trail_D \<A>\<^sub>i\<^sub>n n = do {
      let M = replicate n None;
@@ -1740,17 +1639,7 @@ definition init_state_wl_D' :: \<open>uint32 list \<Rightarrow>  (trail_pol \<ti
      RETURN (M, N, 0, D, [], WS, vm, \<phi>, zero_uint32_nat)
   }\<close>
 
-lemma (in -)atm_of_uminus_lit_of_nat: \<open>atm_of (- literal_of_nat x) = x div 2\<close>
-  by (cases x) auto
 
-
-lemma shiftr1_uint_fref: \<open>(return o (\<lambda>n. n >> 1), RETURN o shiftr1) \<in>
-   uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  by (sepref_to_hoare)
-   (sep_auto simp: shiftr1_def uint32_nat_rel_def br_def nat_of_uint32_shiftr)
-
-
-term isasat_input_ops.twl_st_assn
 sepref_definition init_state_wl_D'_code
   is \<open>init_state_wl_D'\<close>
   :: \<open>(list_assn uint32_assn)\<^sup>k \<rightarrow>\<^sub>a trail_pol_assn *a clauses_ll_assn *a nat_assn *a
@@ -1972,13 +1861,6 @@ text \<open>It is not possible to discharge assumption of the rule directly, but
   guessing form the \<open>sepref\<close> tools:\<close>
 declare init_state_wl_D'_code_ref[to_hnr, OF refl, sepref_fr_rules]
 
-lemma [sepref_fr_rules]:
-  \<open>(return o uint32_of_nat, RETURN o uint32_of_nat) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
-  by sepref_to_hoare sep_auto
-
-lemmas (in isasat_input_bounded)init_dt_wl_code_refine'[sepref_fr_rules] =
-  init_dt_wl_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
-
 lemma (in -)id_mset_list_assn_list_mset_assn:
   assumes \<open>CONSTRAINT is_pure R\<close>
   shows \<open>(return o id, RETURN o mset) \<in> (list_assn R)\<^sup>d \<rightarrow>\<^sub>a list_mset_assn R\<close>
@@ -2033,10 +1915,6 @@ lemma init_dt_wl_code_refine[sepref_fr_rules]:
             \<open>list_mset_assn uint32_nat_assn \<A>\<^sub>i\<^sub>n (fst (fst a))\<close>])
   done
 
-lemma pair_nat_ann_lits_assn_alt_def:
-  \<open>pair_nat_ann_lits_assn at ag =  list_assn (\<lambda>a c. \<up> ((c, a) \<in> nat_ann_lit_rel)) at ag\<close>
-  by (auto simp: nat_ann_lit_rel_def pure_def)
-
 definition get_trail_wl_code :: \<open>twl_st_wll_trail \<Rightarrow> uint32 list\<close> where
   \<open>get_trail_wl_code = (\<lambda>((M, _), _). M)\<close>
 
@@ -2062,7 +1940,7 @@ sepref_definition IsaSAT_code
   :: \<open>(list_assn (list_assn unat_lit_assn))\<^sup>k \<rightarrow>\<^sub>a option_assn (list_assn unat_lit_assn)\<close>
   unfolding IsaSAT_def
     get_conflict_wl_is_None extract_model_of_state_def[symmetric]
-  supply isasat_input_bounded.init_dt_wl_code_refine'[sepref_fr_rules] get_conflict_wl_is_None_init_def[simp]
+  supply get_conflict_wl_is_None_init_def[simp]
   isasat_input_bounded.get_conflict_wl_is_None_code_get_conflict_wl_is_None[sepref_fr_rules]
   isasat_input_bounded.get_conflict_wl_is_None_code_get_conflict_wl_is_None_no_lvls[sepref_fr_rules]
   supply id_mset_list_assn_list_mset_assn[sepref_fr_rules] get_conflict_wl_is_None_def[simp]
@@ -2377,40 +2255,6 @@ definition SAT' :: \<open>nat clauses \<Rightarrow> nat literal list option nres
   }
 \<close>
 
-
-context conflict_driven_clause_learning\<^sub>W
-begin
-
-lemma rtranclp_cdcl\<^sub>W_restart_learned_clauses_entailed:
-  assumes
-    \<open>cdcl\<^sub>W_restart\<^sup>*\<^sup>* S T\<close> and
-    \<open>cdcl\<^sub>W_all_struct_inv S\<close> and
-    \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
-  shows \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init T\<close>
-  using assms(1)
-proof induction
-  case base
-  then show ?case using assms by fast
-next
-  case (step T U) note ST = this(1) and TU = this(2) and learned = this(3)
-  have \<open>cdcl\<^sub>W_all_struct_inv T\<close>
-    using assms(2) rtranclp_cdcl\<^sub>W_all_struct_inv_inv step.hyps(1) by blast
-  then have l: \<open>cdcl\<^sub>W_learned_clause T\<close>
-    by (auto simp: cdcl\<^sub>W_all_struct_inv_def)
-  from TU l learned show ?case
-    by (rule cdcl\<^sub>W_learned_clauses_entailed)
-qed
-
-lemma rtranclp_cdcl\<^sub>W_stgy_learned_clauses_entailed:
-  assumes
-    \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S T\<close> and
-    \<open>cdcl\<^sub>W_all_struct_inv S\<close> and
-    \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init S\<close>
-  shows \<open>cdcl\<^sub>W_learned_clauses_entailed_by_init T\<close>
-  using assms rtranclp_cdcl\<^sub>W_restart_learned_clauses_entailed
-    rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart by blast
-end
-
 lemma conflict_of_level_unsatisfiable:
   assumes
     struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv S\<close> and
@@ -2572,6 +2416,7 @@ proof -
     using IsaSAT_code.refine[FCOMP IsaSAT_SAT] unfolding list_assn_list_mset_rel_clauses_l_assn .
 qed
 
+text \<open>Final correctness theorem:\<close>
 lemmas IsaSAT_code_full_correctness = IsaSAT_code[FCOMP SAT_model_if_satisfiable]
 
 end
