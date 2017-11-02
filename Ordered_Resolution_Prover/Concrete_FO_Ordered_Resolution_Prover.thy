@@ -221,21 +221,24 @@ end
 
 end
 
-type_synonym 'a list_clause = "'a literal list"
-type_synonym 'a weighted_list_clause = "'a list_clause \<times> nat"
-type_synonym 'a weighted_list_state =
-  "'a weighted_list_clause list \<times> 'a weighted_list_clause list \<times> 'a weighted_list_clause list \<times> nat"
+type_synonym 'a lclause = "'a literal list"
+type_synonym 'a weighted_lclause = "'a lclause \<times> nat"
+type_synonym 'a weighted_lstate =
+  "'a weighted_lclause list \<times> 'a weighted_lclause list \<times> 'a weighted_lclause list \<times> nat"
 
-fun clause_of_weighted_list_clause :: "'a weighted_list_clause \<Rightarrow> 'a clause" where
-  "clause_of_weighted_list_clause (C, _) = mset C"
+fun clause_of_weighted_lclause :: "'a weighted_lclause \<Rightarrow> 'a clause" where
+  "clause_of_weighted_lclause (C, _) = mset C"
 
-fun state_of_weighted_list_state :: "'a weighted_list_state \<Rightarrow> 'a state" where
-  "state_of_weighted_list_state (N, P, Q, _) =
-   (set (map clause_of_weighted_list_clause N), set (map clause_of_weighted_list_clause P),
-    set (map clause_of_weighted_list_clause Q))"
+fun state_of_weighted_lstate :: "'a weighted_lstate \<Rightarrow> 'a state" where
+  "state_of_weighted_lstate (N, P, Q, _) =
+   (set (map clause_of_weighted_lclause N), set (map clause_of_weighted_lclause P),
+    set (map clause_of_weighted_lclause Q))"
+
+abbreviation clause_set_of_lclauses :: "'a list list \<Rightarrow> 'a multiset set" where
+  "clause_set_of_lclauses Cs \<equiv> set (map mset Cs)"
 
 datatype 'a solution =
-  Sat "'a list_clause list"
+  Sat "'a lclause list"
 | Unsat
 
 locale FO_resolution_prover_with_sum_product_weights =
@@ -268,20 +271,20 @@ thm monotone_fairness
 
 thm monotone_completeness
 
-definition is_tautology :: "'a list_clause \<Rightarrow> bool" where
+definition is_tautology :: "'a lclause \<Rightarrow> bool" where
   "is_tautology C \<longleftrightarrow> (\<exists>A \<in> set (map atm_of C). Pos A \<in> set C \<and> Neg A \<in> set C)"
 
-definition is_subsumed_by :: "'a list_clause list \<Rightarrow> 'a list_clause \<Rightarrow> bool" where
+definition is_subsumed_by :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> bool" where
   "is_subsumed_by Ds C \<longleftrightarrow> (\<exists>D \<in> set Ds. subsumes (mset D) (mset C))"
 
-definition is_reducible_lit :: "'a list_clause list \<Rightarrow> 'a list_clause \<Rightarrow> 'a literal \<Rightarrow> bool" where
+definition is_reducible_lit :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> 'a literal \<Rightarrow> bool" where
   "is_reducible_lit Ds C L \<longleftrightarrow>
    (\<exists>D \<in> set Ds. \<exists>L' \<in> set D. \<exists>\<sigma>. - L = L' \<cdot>l \<sigma> \<and> mset (remove1 L' D) \<cdot> \<sigma> \<subseteq># mset (remove1 L C))"
 
-definition reduce :: "'a list_clause list \<Rightarrow> 'a list_clause \<Rightarrow> 'a list_clause" where
+definition reduce :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause" where
   "reduce Ds C = filter (\<lambda>L. \<not> is_reducible_lit Ds C L) C"
 
-fun resolve_on :: "'a list_clause \<Rightarrow> 'a \<Rightarrow> 'a list_clause \<Rightarrow> 'a list_clause list" where
+fun resolve_on :: "'a lclause \<Rightarrow> 'a \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve_on C B D =
    concat (map (\<lambda>L.
       (case L of
@@ -302,7 +305,7 @@ fun resolve_on :: "'a list_clause \<Rightarrow> 'a \<Rightarrow> 'a list_clause 
               else
                 []))) C)"
 
-definition resolve :: "'a list_clause \<Rightarrow> 'a list_clause \<Rightarrow> 'a list_clause list" where
+definition resolve :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve C D =
    concat (map (\<lambda>M.
      (case M of
@@ -313,18 +316,18 @@ definition resolve :: "'a list_clause \<Rightarrow> 'a list_clause \<Rightarrow>
         else
           [])) D)"
 
-definition resolve_either_way :: "'a list_clause \<Rightarrow> 'a list_clause \<Rightarrow> 'a list_clause list" where
+definition resolve_either_way :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve_either_way C D = resolve C D @ resolve D C"
 
 fun
-  pick_clause :: "'a weighted_list_clause \<Rightarrow> 'a weighted_list_clause list \<Rightarrow> 'a weighted_list_clause"
+  pick_clause :: "'a weighted_lclause \<Rightarrow> 'a weighted_lclause list \<Rightarrow> 'a weighted_lclause"
 where
   "pick_clause (C, i) [] = (C, i)"
 | "pick_clause (C, i) ((D, j) # Ds) =
    pick_clause (if weight (mset D, j) < weight (mset C, i) then (D, j) else (C, i)) Ds"
 
 partial_function (option)
-  deterministic_resolution_prover :: "'a weighted_list_state \<Rightarrow> 'a solution option"
+  deterministic_resolution_prover :: "'a weighted_lstate \<Rightarrow> 'a solution option"
 where
   "deterministic_resolution_prover NPQn =
    (let
@@ -359,17 +362,56 @@ where
              in
                deterministic_resolution_prover (N, P, Q, n)))"
 
+lemma foo:
+  assumes "list_all2 (\<lambda>C D. set_mset C \<subseteq> set_mset D) Cs Ds"
+  shows "list_all2 (\<lambda>C D. rel_set (op \<subseteq>#) (grounding_of_cls C) (grounding_of_cls D)) Cs Ds"
+  sorry
+
+lemma bar:
+  assumes
+    "I \<Turnstile>s grounding_of_clss (clause_set_of_lclauses Cs)" and
+    "list_all2 (\<lambda>C D. set_mset C \<subseteq> set_mset D) (map mset Cs) (map mset Ds)"
+  shows "I \<Turnstile>s grounding_of_clss (clause_set_of_lclauses Ds)"
+  using foo[OF assms(2)] assms(1)
+  unfolding grounding_of_clss_def true_clss_def true_cls_def
+  sorry
+
+
+lemma reduce_true_iff:
+  "I \<Turnstile>s grounding_of_clss (clause_set_of_lclauses (reduce Ds C # Ds)) \<longleftrightarrow> I \<Turnstile>s grounding_of_clss (clause_set_of_lclauses (C # Ds))"
+  (is "?lhs = ?rhs")
+
+
+lemma reduce_true_iff:
+  "I \<Turnstile>s grounding_of_clss (clause_set_of_lclauses (reduce Ds C # Ds)) \<longleftrightarrow> I \<Turnstile>s grounding_of_clss (clause_set_of_lclauses (C # Ds))"
+  (is "?lhs = ?rhs")
+proof
+  assume tru: "?lhs"
+  then show "?rhs"
+    apply (auto simp: reduce_def true_clss_def true_cls_def grounding_of_clss_def grounding_of_cls_def)
+    sorry
+next
+  assume tru: "?rhs"
+  show "?lhs"
+    using tru
+    unfolding reduce_def true_clss_def true_cls_def is_reducible_lit_def
+    apply auto
+    sorry
+qed
+
+
+
 theorem deterministic_resolution_prover_sound_unsat:
   assumes
     su: "deterministic_resolution_prover NPQn = Some sol" and
     sol_unsat: "sol = Unsat"
-  shows "\<not> satisfiable (grounding_of_state (state_of_weighted_list_state NPQn))"
+  shows "\<not> satisfiable (grounding_of_state (state_of_weighted_lstate NPQn))"
   using sol_unsat
 proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
   case (1 self_call NPQn sol)
   note ih = this(1)[OF _ refl] and call = this(2) and sol_unsat = this(3)
 
-  obtain N P Q :: "'a weighted_list_clause list" and n :: nat where
+  obtain N P Q :: "'a weighted_lclause list" and n :: nat where
     npqn: "NPQn = (N, P, Q, n)"
     by (cases NPQn) blast
 
@@ -390,7 +432,7 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
       case p_cons: (Cons Ci P')
       note call = call[unfolded p_cons, simplified]
 
-      obtain C :: "'a list_clause" and i :: nat where
+      obtain C :: "'a lclause" and i :: nat where
         pick: "pick_clause Ci P' = (C, i)"
         by (cases "pick_clause Ci P'") simp
       note call = call[unfolded pick, simplified, folded remove1.simps(2)]
@@ -404,12 +446,12 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
     case n_cons: (Cons Ci N')
     note call = call[unfolded n_cons, simplified]
 
-    obtain C :: "'a list_clause" and i :: nat where
+    obtain C :: "'a lclause" and i :: nat where
       ci: "Ci = (C, i)"
       by (cases Ci) simp
     note call = call[unfolded ci, simplified]
 
-    define C' :: "'a list_clause" where
+    define C' :: "'a lclause" where
       "C' = reduce (map fst P @ map fst Q) C"
     note call = call[unfolded ci C'_def[symmetric], simplified]
 
@@ -421,6 +463,7 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
         using c'_nil
         unfolding C'_def
         apply simp
+        using reduce_satisfiable
         (* use soundness of reduction at calculus level *)
         sorry
     next
