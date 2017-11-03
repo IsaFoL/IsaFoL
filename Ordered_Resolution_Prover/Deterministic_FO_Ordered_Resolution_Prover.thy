@@ -117,7 +117,8 @@ fun deterministic_resolution_prover_step :: "'a glstate \<Rightarrow> 'a glstate
        | (C, i) # P' \<Rightarrow>
          let
            (C, i) = select_min_weight_clause (C, i) P';
-           N = map (\<lambda>D. (D, n)) (resolve C C @ concat (map (resolve_either_way C \<circ> fst) Q));
+           N = map (\<lambda>D. (D, n))
+             (remdups (resolve C C @ concat (map (resolve_either_way C \<circ> fst) Q)));
            P = remove1 (C, i) P;
            Q = (C, i) # Q;
            n = Suc n
@@ -134,8 +135,8 @@ fun deterministic_resolution_prover_step :: "'a glstate \<Rightarrow> 'a glstate
         else
           let
             (back_to_P, Q) = reduce_all [C] Q;
-            P = back_to_P @ P;
-            P = case_prod (op @) (reduce_all [C] P);
+            P = remdups (back_to_P @ P);
+            P = remdups (case_prod (op @) (reduce_all [C] P));
             Q = filter (is_subsumed_by [C] \<circ> fst) Q;
             P = filter (is_subsumed_by [C] \<circ> fst) P;
             P = (C, i) # P
@@ -154,6 +155,7 @@ where
     else
       deterministic_resolution_prover (deterministic_resolution_prover_step St))"
 
+(* FIXME: inline below? *)
 lemma reduce_N_simulation:
   "(N \<union> {(mset (C @ C'), i)}, set (map (apfst mset) P), set (map (apfst mset) Q), n)
     \<leadsto>\<^sub>f\<^sup>* (N \<union> {(mset (C @ reduce (map fst (P @ Q)) C C'), i)}, set (map (apfst mset) P),
