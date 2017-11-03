@@ -191,49 +191,49 @@ qed simp
 lemma deterministic_resolution_prover_step_simulation_nonfinal:
   assumes
     nonfinal: "\<not> is_final_glstate St" and
-    call: "St' = deterministic_resolution_prover_step St"
+    step: "St' = deterministic_resolution_prover_step St"
   shows "gstate_of_glstate St \<leadsto>\<^sub>f\<^sup>+ gstate_of_glstate St'"
 proof -
   obtain N P Q :: "'a glclause list" and n :: nat where
     st: "St = (N, P, Q, n)"
     by (cases St) blast
-  note call = call[unfolded st, simplified]
+  note step = step[unfolded st, simplified]
 
   show ?thesis
   proof (cases N)
     case n_nil: Nil
-    note call = call[unfolded n_nil, simplified]
+    note step = step[unfolded n_nil, simplified]
     show ?thesis
     proof (cases P)
       case Nil
       then have False
         using n_nil nonfinal[unfolded st] by simp
       then show ?thesis
-        using call by simp
+        using step by simp
     next
       case p_cons: (Cons Ci P')
-      note call = call[unfolded p_cons, simplified]
+      note step = step[unfolded p_cons, simplified]
 
       obtain C :: "'a lclause" and i :: nat where
         pick: "select_clause Ci P' = (C, i)"
         by (cases "select_clause Ci P'") simp
-      note call = call[unfolded pick, simplified, folded remove1.simps(2)]
+      note step = step[unfolded pick, simplified, folded remove1.simps(2)]
 
       show ?thesis
         sorry
     qed
   next
     case n_cons: (Cons Ci N')
-    note call = call[unfolded n_cons, simplified]
+    note step = step[unfolded n_cons, simplified]
 
     obtain C :: "'a lclause" and i :: nat where
       ci: "Ci = (C, i)"
       by (cases Ci) simp
-    note call = call[unfolded ci, simplified]
+    note step = step[unfolded ci, simplified]
 
     define C' :: "'a lclause" where
       "C' = reduce (map fst P @ map fst Q) [] C"
-    note call = call[unfolded ci C'_def[symmetric], simplified]
+    note step = step[unfolded ci C'_def[symmetric], simplified]
 
     show ?thesis
     proof (cases "C' = Nil")
@@ -254,11 +254,11 @@ proof -
 *)
     next
       case c'_nnil: False
-      note call = call[simplified c'_nnil, simplified]
+      note step = step[simplified c'_nnil, simplified]
       show ?thesis
       proof (cases "is_tautology C' \<or> is_subsumed_by (map fst P @ map fst Q) C'")
         case taut_or_subs: True
-        note call = call[simplified taut_or_subs, simplified]
+        note step = step[simplified taut_or_subs, simplified]
         show ?thesis
           unfolding st n_cons ci
           sorry
@@ -267,7 +267,7 @@ proof -
 *)
       next
         case not_taut_or_subs: False
-        note call = call[simplified not_taut_or_subs, simplified]
+        note step = step[simplified not_taut_or_subs, simplified]
         show ?thesis
           unfolding st n_cons ci
           (* use soundness of subsumption at calculus level *)
