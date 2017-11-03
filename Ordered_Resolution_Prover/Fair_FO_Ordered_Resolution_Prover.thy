@@ -54,14 +54,14 @@ abbreviation limit_wstate :: "'a wstate llist \<Rightarrow> 'a state" where
 
 inductive resolution_prover_with_weights :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w" 50)  where
   tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
-| forward_subsumption: "(\<exists>(D, j) \<in> P \<union> Q. subsumes D C) \<Longrightarrow> (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
-| backward_subsumption_P: "(\<exists>(D, j) \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P \<union> {(C, i)}, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
-| backward_subsumption_Q: "(\<exists>(D, j) \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P, Q \<union> {(C, i)}, n) \<leadsto>\<^sub>w (N, P, Q, n)"
-| forward_reduction: "(\<exists>D L'. (D + {#L'#}, j) \<in> P \<union> Q \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
+| forward_subsumption: "(\<exists>D \<in> fst ` (P \<union> Q). subsumes D C) \<Longrightarrow> (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
+| backward_subsumption_P: "(\<exists>D \<in> fst ` N. strictly_subsumes D C) \<Longrightarrow> (N, P \<union> {(C, i)}, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
+| backward_subsumption_Q: "(\<exists>D \<in> fst ` N. strictly_subsumes D C) \<Longrightarrow> (N, P, Q \<union> {(C, i)}, n) \<leadsto>\<^sub>w (N, P, Q, n)"
+| forward_reduction: "(\<exists>D L'. D + {#L'#} \<in> fst ` (P \<union> Q) \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
     (N \<union> {(C + {#L#}, i)}, P, Q, n) \<leadsto>\<^sub>w (N \<union> {(C, i)}, P, Q, n)"
-| backward_reduction_P: "(\<exists>D L'. (D + {#L'#}, j) \<in> N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
+| backward_reduction_P: "(\<exists>D L'. D + {#L'#} \<in> fst ` N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
     (N, P \<union> {(C + {#L#}, i)}, Q, n) \<leadsto>\<^sub>w (N, P \<union> {(C, i)}, Q, n)"
-| backward_reduction_Q: "(\<exists>D L'. (D + {#L'#}, j) \<in> N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
+| backward_reduction_Q: "(\<exists>D L'. D + {#L'#} \<in> fst ` N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
     (N, P, Q \<union> {(C + {#L#}, i)}, n) \<leadsto>\<^sub>w (N, P \<union> {(C, i)}, Q, n)"
 | clause_processing: "(N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P \<union> {(C, i)}, Q, n)"
 | inference_computation:
@@ -87,67 +87,37 @@ lemma resolution_prover_with_weights_resolution_prover':
     using resolution_prover.tautology_deletion by auto
 next
   case (forward_subsumption P Q C N i n)
-  then have "\<exists>D\<in>fst ` P \<union> fst ` Q. subsumes D C"
-    by force
   then show ?case 
-    using resolution_prover.forward_subsumption[of "fst ` P" "fst ` Q" C] by auto
+    using resolution_prover.forward_subsumption by (simp add: image_Un)
 next
   case (backward_subsumption_P N C P i Q n)
-  then have "\<exists>D\<in>fst ` N. strictly_subsumes D C"
-    by force
   then show ?case
-    using resolution_prover.backward_subsumption_P[of "fst ` N" C] by auto
+    using resolution_prover.backward_subsumption_P by simp
 next
   case (backward_subsumption_Q N C P Q i n)
-  then have "\<exists>D\<in>fst ` N. strictly_subsumes D C"
-    by force
   then show ?case 
-    using resolution_prover.backward_subsumption_Q[of "fst ` N" C] by auto
+    using resolution_prover.backward_subsumption_Q by simp
 next
-  case (forward_reduction j P Q L \<sigma> C N i n)
-  then obtain D L' where "(D + {#L'#}, j) \<in> P \<union> Q \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C"
-    by blast
-  then have "D + {#L'#} \<in> fst ` P \<union> fst ` Q \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C"
-    by force
-  then have "\<exists>D L'. D + {#L'#} \<in> fst ` P \<union> fst ` Q \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C"
-    by blast
-  then show ?case 
-    using resolution_prover.forward_reduction[of "fst ` P" "fst ` Q" L \<sigma> C ] by auto
+  case (forward_reduction P Q L \<sigma> C N i n)
+  then show ?case
+    using resolution_prover.forward_reduction by (simp add: image_Un)
 next
-  case (backward_reduction_P j N L \<sigma> C P i Q n)
-  then obtain D L' where "(D + {#L'#}, j) \<in> N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C"
-    by blast
-  then have "D + {#L'#} \<in> fst ` N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C"
-    by force
-  then have "\<exists>D L'. D + {#L'#} \<in> fst ` N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C"
-    by blast
+  case (backward_reduction_P N L \<sigma> C P i Q n)
   then show ?case 
-    using resolution_prover.backward_reduction_P[of "fst ` N" L \<sigma> C] by auto
+    using resolution_prover.backward_reduction_P by simp
 next
-  case (backward_reduction_Q j N L \<sigma> C P Q i n)
-  then obtain D L' where "(D + {#L'#}, j) \<in> N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C"
-    by blast
-  then have "D + {#L'#} \<in> fst ` N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C" 
-    by force
-  then have "\<exists>D L'. D + {#L'#} \<in> fst ` N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C"
-    by blast
+  case (backward_reduction_Q N L \<sigma> C P Q i n)
   then show ?case 
-    using resolution_prover.backward_reduction_Q[of "fst ` N" L \<sigma> C] by auto
+    using resolution_prover.backward_reduction_Q by simp
 next
   case (clause_processing N C P Q n)
   show ?case 
-    using resolution_prover.clause_processing by auto
+    using resolution_prover.clause_processing by simp
 next
   case (inference_computation P C i N n Q)
-  then have "fst ` N = fst ` (\<lambda>D. (D, Suc n)) ` concls_of (ord_FO_resolution_inferences_between (fst ` Q) C)"
-    by auto
-  then have "fst ` N = (fst \<circ> (\<lambda>D. (D, Suc n))) ` concls_of (ord_FO_resolution_inferences_between (fst ` Q) C)"
-    using image_comp by simp
-  then have "fst ` N = concls_of (ord_FO_resolution_inferences_between (fst ` Q) C)"
-    by auto
   then show ?case 
-    using resolution_prover.inference_computation[of "fst ` N" "fst ` Q" C]
-    unfolding ord_FO_resolution_inferences_between_def by auto
+    using resolution_prover.inference_computation
+    unfolding ord_FO_resolution_inferences_between_def by (auto simp: comp_def image_comp)
 qed
 
 lemma resolution_prover_with_weights_resolution_prover:

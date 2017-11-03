@@ -20,6 +20,10 @@ type_synonym 'a lclause = "'a literal list"
 type_synonym 'a wlclause = "'a lclause \<times> nat"
 type_synonym 'a wlstate = "'a wlclause list \<times> 'a wlclause list \<times> 'a lclause list \<times> nat"
 
+fun wstate_of_wlstate :: "'a wlstate \<Rightarrow> 'a state" where
+  "state_of_wlstate (N, P, Q, n) =
+   (set (map (apfst mset) N), set (map (apfst mset) P), set (map mset Q), n)"
+
 fun state_of_wlstate :: "'a wlstate \<Rightarrow> 'a state" where
   "state_of_wlstate (N, P, Q, _) =
    (set (map (mset \<circ> fst) N), set (map (mset \<circ> fst) P), set (map mset Q))"
@@ -142,14 +146,6 @@ where
       Some Q \<Rightarrow> Some Q
     | None \<Rightarrow> deterministic_resolution_prover (deterministic_resolution_prover_step St))"
 
-
-
-
-
-
-
-
-
 lemma reduce_simulate_N:
   "(N \<union> {(mset (C @ C'), i)}, set (map (apfst mset) P), set (map (apfst mset) Q), n)
     \<leadsto>\<^sub>w\<^sup>* (N \<union> {(mset (C @ reduce (map fst (P @ Q)) C C'), i)}, set (map (apfst mset) P),
@@ -168,12 +164,6 @@ proof (induct C' arbitrary: C)
       apply (simp only: red)
        apply (rule ih[of C])
       using forward_reduction[of _ "set (map (apfst mset) P)" "set (map (apfst mset) Q)" L _ "mset (C @ C')" N i n]
-
-      apply (rule forward_reduction)
-
-
-      apply (rule rtranclp.transI)
-      using 
       apply simp
       sorry
   next
@@ -183,35 +173,11 @@ proof (induct C' arbitrary: C)
   qed
 qed simp
 
-(* FIXME
-proof (induct "length (filter (\<lambda>L. is_reducible_lit (map fst (P @ Q)) C L) C)")
-  case 0
-  then have "length (reduce (map fst (P @ Q)) C) = length C"
-    unfolding reduce_def using sum_length_filter_compl[of "is_reducible_lit (map fst (P @ Q)) C" C]
-    by simp
-  then have "reduce (map fst (P @ Q)) C = C"
-    unfolding reduce_def  by (metis filter_True length_filter_less less_irrefl)
-  then show ?case
-    by simp
-next
-  case (Suc k)
-
-  let ?is_red = "is_reducible_lit (map fst (P @ Q)) C"
-
-  let ?D = "takeWhile (\<lambda>L. \<not> ?is_red L) C"
-  let ?E = "dropWhile (\<lambda>L. \<not> ?is_red L) C"
+lemma deterministic_resolution_prover_step_simulate:
+  "wstate_of_wlstate St \<leadsto>\<^sub>w\<^sup>* wstate_of_wlstate (deterministic_resolution_prover_step St)"
 
 
-  term List.extract
-
-  thm split_list_first[of _ "filter ?is_red C"]
-
-  then show ?case
-    sorry
-qed
-*)
-  sorry
-
+(* FIXME: old stuff
 theorem deterministic_resolution_prover_sound_unsat:
   assumes
     su: "deterministic_resolution_prover St = Some sol" and
@@ -304,16 +270,6 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
     qed
   qed
 qed
-
-thm
-  deterministic_resolution_prover.fixp_induct
-  deterministic_resolution_prover.raw_induct
-  deterministic_resolution_prover.mono
-  deterministic_resolution_prover.simps
-
-(*
-  using su
-  apply (induct rule: deterministic_resolution_prover.fixp_induct)
 *)
 
 end
