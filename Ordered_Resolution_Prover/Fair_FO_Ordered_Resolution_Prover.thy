@@ -14,8 +14,8 @@ theory Fair_FO_Ordered_Resolution_Prover
   imports FO_Ordered_Resolution_Prover
 begin
 
-type_synonym 'a wclause = "'a clause \<times> nat"
-type_synonym 'a wstate = "'a wclause set \<times> 'a wclause set \<times> 'a wclause set \<times> nat"
+type_synonym 'a gclause = "'a clause \<times> nat"
+type_synonym 'a gstate = "'a gclause set \<times> 'a gclause set \<times> 'a gclause set \<times> nat"
 
 locale fair_FO_resolution_provers =
   FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu less_atm
@@ -34,43 +34,43 @@ locale fair_FO_resolution_provers =
     weight_monotone: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
 begin
 
-fun state_of_wstate :: "'a wstate \<Rightarrow> 'a state" where
-  "state_of_wstate (N, P, Q, n) = (fst ` N, fst ` P, fst ` Q)"
+fun state_of_gstate :: "'a gstate \<Rightarrow> 'a state" where
+  "state_of_gstate (N, P, Q, n) = (fst ` N, fst ` P, fst ` Q)"
 
-abbreviation clss_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where 
-  "clss_of_wstate \<equiv> clss_of_state \<circ> state_of_wstate"
+abbreviation clss_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" where 
+  "clss_of_gstate \<equiv> clss_of_state \<circ> state_of_gstate"
 
-abbreviation P_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where 
-  "P_of_wstate \<equiv> P_of_state \<circ> state_of_wstate"
+abbreviation P_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" where 
+  "P_of_gstate \<equiv> P_of_state \<circ> state_of_gstate"
 
-abbreviation Q_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where 
-  "Q_of_wstate \<equiv> Q_of_state \<circ> state_of_wstate"
+abbreviation Q_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" where 
+  "Q_of_gstate \<equiv> Q_of_state \<circ> state_of_gstate"
 
-abbreviation grounding_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where 
-  "grounding_of_wstate \<equiv> grounding_of_state \<circ> state_of_wstate"
+abbreviation grounding_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" where 
+  "grounding_of_gstate \<equiv> grounding_of_state \<circ> state_of_gstate"
 
-abbreviation limit_wstate :: "'a wstate llist \<Rightarrow> 'a state" where
-  "limit_wstate \<equiv> limit_state \<circ> lmap state_of_wstate"
+abbreviation limit_gstate :: "'a gstate llist \<Rightarrow> 'a state" where
+  "limit_gstate \<equiv> limit_state \<circ> lmap state_of_gstate"
 
-inductive resolution_prover_with_weights :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w" 50)  where
+inductive fair_resolution_prover :: "'a gstate \<Rightarrow> 'a gstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>f" 50)  where
   tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (C, i) \<notin> N \<Longrightarrow>
-    (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
+    (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>f (N, P, Q, n)"
 | forward_subsumption: "(\<exists>D \<in> fst ` (P \<union> Q). subsumes D C) \<Longrightarrow> (C, i) \<notin> N \<Longrightarrow>
-    (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
+    (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>f (N, P, Q, n)"
 | backward_subsumption_P: "(\<exists>D \<in> fst ` N. strictly_subsumes D C) \<Longrightarrow> (C, i) \<notin> P \<Longrightarrow>
-    (N, P \<union> {(C, i)}, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
+    (N, P \<union> {(C, i)}, Q, n) \<leadsto>\<^sub>f (N, P, Q, n)"
 | backward_subsumption_Q: "(\<exists>D \<in> fst ` N. strictly_subsumes D C) \<Longrightarrow> (C, i) \<notin> Q \<Longrightarrow>
-    (N, P, Q \<union> {(C, i)}, n) \<leadsto>\<^sub>w (N, P, Q, n)"
+    (N, P, Q \<union> {(C, i)}, n) \<leadsto>\<^sub>f (N, P, Q, n)"
 | forward_reduction: "(\<exists>D L'. D + {#L'#} \<in> fst ` (P \<union> Q) \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
-    (C + {#L#}, i) \<notin> N \<Longrightarrow> (N \<union> {(C + {#L#}, i)}, P, Q, n) \<leadsto>\<^sub>w (N \<union> {(C, i)}, P, Q, n)"
+    (C + {#L#}, i) \<notin> N \<Longrightarrow> (N \<union> {(C + {#L#}, i)}, P, Q, n) \<leadsto>\<^sub>f (N \<union> {(C, i)}, P, Q, n)"
 | backward_reduction_P: "(\<exists>D L'. D + {#L'#} \<in> fst ` N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
-    (C + {#L#}, i) \<notin> P \<Longrightarrow> (N, P \<union> {(C + {#L#}, i)}, Q, n) \<leadsto>\<^sub>w (N, P \<union> {(C, i)}, Q, n)"
+    (C + {#L#}, i) \<notin> P \<Longrightarrow> (N, P \<union> {(C + {#L#}, i)}, Q, n) \<leadsto>\<^sub>f (N, P \<union> {(C, i)}, Q, n)"
 | backward_reduction_Q: "(\<exists>D L'. D + {#L'#} \<in> fst ` N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
-    (C + {#L#}, i) \<notin> Q \<Longrightarrow>(N, P, Q \<union> {(C + {#L#}, i)}, n) \<leadsto>\<^sub>w (N, P \<union> {(C, i)}, Q, n)"
-| clause_processing: "(C, i) \<notin> N \<Longrightarrow> (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P \<union> {(C, i)}, Q, n)"
+    (C + {#L#}, i) \<notin> Q \<Longrightarrow> (N, P, Q \<union> {(C + {#L#}, i)}, n) \<leadsto>\<^sub>f (N, P \<union> {(C, i)}, Q, n)"
+| clause_processing: "(C, i) \<notin> N \<Longrightarrow> (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>f (N, P \<union> {(C, i)}, Q, n)"
 | inference_computation: "(\<forall>(D, j) \<in> P. weight (C, i) \<le> weight (D, j)) \<Longrightarrow>
     N = (\<lambda>D. (D, n)) ` concls_of (ord_FO_resolution_inferences_between (fst ` Q) C) \<Longrightarrow>
-    (C, i) \<notin> P \<Longrightarrow>  ({}, P \<union> {(C, i)}, Q, n) \<leadsto>\<^sub>w (N, P, Q \<union> {(C, i)}, Suc n)"
+    (C, i) \<notin> P \<Longrightarrow> ({}, P \<union> {(C, i)}, Q, n) \<leadsto>\<^sub>f (N, P, Q \<union> {(C, i)}, Suc n)"
 
 lemma generation_no_lte_weight: "n \<le> weight (C, n)"
 proof(induction n)
@@ -81,10 +81,10 @@ next
   then show ?case using weight_monotone[of n "Suc n" C] by auto
 qed
 
-lemma resolution_prover_with_weights_resolution_prover':
-  assumes "St \<leadsto>\<^sub>w St'"
-  shows "state_of_wstate St \<leadsto> state_of_wstate St'"
-  using assms proof (induction rule: resolution_prover_with_weights.induct)
+lemma fair_resolution_prover_resolution_prover':
+  assumes "St \<leadsto>\<^sub>f St'"
+  shows "state_of_gstate St \<leadsto> state_of_gstate St'"
+  using assms proof (induction rule: fair_resolution_prover.induct)
   case (tautology_deletion A C N i P Q n)
   then show ?case
     using resolution_prover.tautology_deletion by auto
@@ -123,34 +123,34 @@ next
     unfolding ord_FO_resolution_inferences_between_def by (auto simp: comp_def image_comp)
 qed
 
-lemma resolution_prover_with_weights_resolution_prover:
-  "chain (op \<leadsto>\<^sub>w) Sts \<Longrightarrow> chain (op \<leadsto>) (lmap state_of_wstate Sts)"
-  using resolution_prover_with_weights_resolution_prover' using chain_lmap weight_monotone by metis
+lemma fair_resolution_prover_resolution_prover:
+  "chain (op \<leadsto>\<^sub>f) Sts \<Longrightarrow> chain (op \<leadsto>) (lmap state_of_gstate Sts)"
+  using fair_resolution_prover_resolution_prover' using chain_lmap weight_monotone by metis
 
 context
   fixes 
-    Sts :: "'a wstate llist"
+    Sts :: "'a gstate llist"
   assumes
-    deriv: "chain (op \<leadsto>\<^sub>w) Sts" and
-    finite_Sts0: "finite (clss_of_wstate (lnth Sts 0))" and
-    empty_P0: "P_of_wstate (lnth Sts 0) = {}" and
-    empty_Q0: "Q_of_wstate (lnth Sts 0) = {}"
+    deriv: "chain (op \<leadsto>\<^sub>f) Sts" and
+    finite_Sts0: "finite (clss_of_gstate (lnth Sts 0))" and
+    empty_P0: "P_of_gstate (lnth Sts 0) = {}" and
+    empty_Q0: "Q_of_gstate (lnth Sts 0) = {}"
 begin
 
-lemma monotone_fairness: "fair_state_seq (lmap state_of_wstate Sts)"
+lemma monotone_fairness: "fair_state_seq (lmap state_of_gstate Sts)"
 proof (rule ccontr)
-  assume "\<not> fair_state_seq (lmap state_of_wstate Sts)"
-  then obtain C where "C \<in> limit_llist (lmap N_of_state (lmap state_of_wstate Sts)) \<union> limit_llist (lmap P_of_state (lmap state_of_wstate Sts))" 
+  assume "\<not> fair_state_seq (lmap state_of_gstate Sts)"
+  then obtain C where "C \<in> limit_llist (lmap N_of_state (lmap state_of_gstate Sts)) \<union> limit_llist (lmap P_of_state (lmap state_of_gstate Sts))" 
     unfolding fair_state_seq_def limit_state_def by auto
   then show False
   proof
-    assume "C \<in> limit_llist (lmap N_of_state (lmap state_of_wstate Sts))"
-    then obtain i where "enat i < llength Sts" "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_wstate (lnth Sts j))" 
+    assume "C \<in> limit_llist (lmap N_of_state (lmap state_of_gstate Sts))"
+    then obtain i where "enat i < llength Sts" "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_gstate (lnth Sts j))" 
       unfolding limit_llist_def by auto
     then show False
       sorry (* *)
   next
-    assume "C \<in> limit_llist (lmap P_of_state (lmap state_of_wstate Sts))"
+    assume "C \<in> limit_llist (lmap P_of_state (lmap state_of_gstate Sts))"
     then show False 
       sorry
   qed
@@ -159,28 +159,28 @@ qed
 lemma monotone_completeness:
   assumes 
     selection_renaming_invariant: "(\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>)" and
-    unsat: "\<not> satisfiable (grounding_of_state (limit_wstate Sts))" 
-  shows "{#} \<in> clss_of_state (limit_wstate Sts)"
+    unsat: "\<not> satisfiable (grounding_of_state (limit_gstate Sts))" 
+  shows "{#} \<in> clss_of_state (limit_gstate Sts)"
 proof -
-  have "state_of_wstate (lnth Sts 0) = lnth (lmap state_of_wstate Sts) 0"
-    using lnth_lmap[of 0 Sts state_of_wstate, unfolded enat_0] chain_length_pos[OF deriv] by auto
-  then have "finite (clss_of_state (lnth (lmap state_of_wstate Sts) 0))"
+  have "state_of_gstate (lnth Sts 0) = lnth (lmap state_of_gstate Sts) 0"
+    using lnth_lmap[of 0 Sts state_of_gstate, unfolded enat_0] chain_length_pos[OF deriv] by auto
+  then have "finite (clss_of_state (lnth (lmap state_of_gstate Sts) 0))"
     using finite_Sts0 by auto
-  moreover have "P_of_state (lnth (lmap state_of_wstate Sts) 0) = {}"
+  moreover have "P_of_state (lnth (lmap state_of_gstate Sts) 0) = {}"
     using empty_P0 chain_length_pos[OF deriv] by (auto simp: enat_0)
-  moreover have "Q_of_state (lnth (lmap state_of_wstate Sts) 0) = {}"
+  moreover have "Q_of_state (lnth (lmap state_of_gstate Sts) 0) = {}"
     using empty_Q0 chain_length_pos[OF deriv] by (auto simp: enat_0)
-  moreover have "chain op \<leadsto> (lmap state_of_wstate Sts)"
-    using deriv resolution_prover_with_weights_resolution_prover by blast 
+  moreover have "chain op \<leadsto> (lmap state_of_gstate Sts)"
+    using deriv fair_resolution_prover_resolution_prover by blast 
   moreover have "\<forall>\<rho> C. is_renaming \<rho> \<longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
     using selection_renaming_invariant by auto
-  moreover have "fair_state_seq (lmap state_of_wstate Sts)"
+  moreover have "fair_state_seq (lmap state_of_gstate Sts)"
     using monotone_fairness by auto
-  moreover have "\<not> satisfiable (grounding_of_state (limit_state (lmap state_of_wstate Sts)))"
+  moreover have "\<not> satisfiable (grounding_of_state (limit_state (lmap state_of_gstate Sts)))"
     using unsat by auto
-  ultimately have "{#} \<in> clss_of_state (limit_state (lmap state_of_wstate Sts))" 
-    using fair_state_seq_complete[of "lmap state_of_wstate Sts"] by auto
-  then show "{#} \<in> clss_of_state (limit_wstate Sts)"
+  ultimately have "{#} \<in> clss_of_state (limit_state (lmap state_of_gstate Sts))" 
+    using fair_state_seq_complete[of "lmap state_of_gstate Sts"] by auto
+  then show "{#} \<in> clss_of_state (limit_gstate Sts)"
     by auto
 qed 
 

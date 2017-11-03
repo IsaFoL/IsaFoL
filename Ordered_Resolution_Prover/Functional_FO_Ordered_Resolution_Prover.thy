@@ -1,15 +1,12 @@
-(*  Title:       A Functional Implementation of an Ordered Resolution Prover for First-Order Clauses
+(*  Title:       A Deterministic Ordered Resolution Prover for First-Order Clauses
     Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2017
     Maintainer:  Anders Schlichtkrull <andschl at dtu.dk>
 *)
 
-section \<open>A Functional Implementation of an Ordered Resolution Prover for First-Order Clauses\<close>
+section \<open>A Deterministic Ordered Resolution Prover for First-Order Clauses\<close>
 
 text \<open>
-This material is based on Section 4.3 (``A Simple Resolution Prover for First-Order Clauses) of 
-Bachmair and Ganzinger's chapter. Specifically, it formalizes the prover in Figure 5 called
-The Resolution Prover RP and its related lemmas and theorems including 
-4.10, 4.11 and 4.13 (completeness of the prover).
+TODO.
 \<close>
 
 theory Functional_FO_Ordered_Resolution_Prover
@@ -17,35 +14,35 @@ theory Functional_FO_Ordered_Resolution_Prover
 begin
 
 type_synonym 'a lclause = "'a literal list"
-type_synonym 'a wlclause = "'a lclause \<times> nat"
-type_synonym 'a wlstate = "'a wlclause list \<times> 'a wlclause list \<times> 'a wlclause list \<times> nat"
+type_synonym 'a glclause = "'a lclause \<times> nat"
+type_synonym 'a glstate = "'a glclause list \<times> 'a glclause list \<times> 'a glclause list \<times> nat"
 
 context fair_FO_resolution_prover_with_sum_product
 begin
 
-fun wstate_of_wlstate :: "'a wlstate \<Rightarrow> 'a wstate" where
-  "wstate_of_wlstate (N, P, Q, n) =
+fun gstate_of_glstate :: "'a glstate \<Rightarrow> 'a gstate" where
+  "gstate_of_glstate (N, P, Q, n) =
    (set (map (apfst mset) N), set (map (apfst mset) P), set (map (apfst mset) Q), n)"
 
-fun state_of_wlstate :: "'a wlstate \<Rightarrow> 'a state" where
-  "state_of_wlstate (N, P, Q, _) =
+fun state_of_glstate :: "'a glstate \<Rightarrow> 'a state" where
+  "state_of_glstate (N, P, Q, _) =
    (set (map (mset \<circ> fst) N), set (map (mset \<circ> fst) P), set (map (mset \<circ> fst) Q))"
 
-abbreviation rtrancl_resolution_prover_with_weights (infix "\<leadsto>\<^sub>w\<^sup>*" 50) where
-  "op \<leadsto>\<^sub>w\<^sup>* \<equiv> (op \<leadsto>\<^sub>w)\<^sup>*\<^sup>*"
+abbreviation rtrancl_resolution_prover_with_weights (infix "\<leadsto>\<^sub>f\<^sup>*" 50) where
+  "op \<leadsto>\<^sub>f\<^sup>* \<equiv> (op \<leadsto>\<^sub>f)\<^sup>*\<^sup>*"
 
-abbreviation trancl_resolution_prover_with_weights (infix "\<leadsto>\<^sub>w\<^sup>+" 50) where
-  "op \<leadsto>\<^sub>w\<^sup>+ \<equiv> (op \<leadsto>\<^sub>w)\<^sup>+\<^sup>+"
+abbreviation trancl_resolution_prover_with_weights (infix "\<leadsto>\<^sub>f\<^sup>+" 50) where
+  "op \<leadsto>\<^sub>f\<^sup>+ \<equiv> (op \<leadsto>\<^sub>f)\<^sup>+\<^sup>+"
 
 (* FIXME: prove and move to right locale/file *)
 lemma resolution_prover_with_weights_sound:
-  "St \<leadsto>\<^sub>w St' \<Longrightarrow> I \<Turnstile>s grounding_of_state (state_of_wstate St) \<Longrightarrow>
-   I \<Turnstile>s grounding_of_state (state_of_wstate St')"
+  "St \<leadsto>\<^sub>f St' \<Longrightarrow> I \<Turnstile>s grounding_of_state (state_of_gstate St) \<Longrightarrow>
+   I \<Turnstile>s grounding_of_state (state_of_gstate St')"
   sorry
 
 lemma rtrancl_resolution_prover_with_weights_sound:
-  "St \<leadsto>\<^sub>w\<^sup>* St' \<Longrightarrow> I \<Turnstile>s grounding_of_state (state_of_wstate St) \<Longrightarrow>
-   I \<Turnstile>s grounding_of_state (state_of_wstate St')"
+  "St \<leadsto>\<^sub>f\<^sup>* St' \<Longrightarrow> I \<Turnstile>s grounding_of_state (state_of_gstate St) \<Longrightarrow>
+   I \<Turnstile>s grounding_of_state (state_of_gstate St')"
   by (induct rule: rtranclp.induct, assumption, metis resolution_prover_with_weights_sound)
 
 definition is_tautology :: "'a lclause \<Rightarrow> bool" where
@@ -63,7 +60,7 @@ primrec reduce :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> 'a lcl
 | "reduce Ds C (L # C') =
    (if is_reducible_lit Ds (C @ C') L then reduce Ds C C' else L # reduce Ds (L # C) C')"
 
-fun reduce_all :: "'a lclause list \<Rightarrow> 'a wlclause list \<Rightarrow> 'a wlclause list \<times> 'a wlclause list" where
+fun reduce_all :: "'a lclause list \<Rightarrow> 'a glclause list \<Rightarrow> 'a glclause list \<times> 'a glclause list" where
   "reduce_all _ [] = ([], [])"
 | "reduce_all Ds ((C, i) # Cs) =
    (let C' = reduce Ds [] C in
@@ -105,13 +102,13 @@ definition resolve_either_way :: "'a lclause \<Rightarrow> 'a lclause \<Rightarr
   "resolve_either_way C D = resolve C D @ resolve D C"
 
 fun
-  select_clause :: "'a wlclause \<Rightarrow> 'a wlclause list \<Rightarrow> 'a wlclause"
+  select_clause :: "'a glclause \<Rightarrow> 'a glclause list \<Rightarrow> 'a glclause"
 where
   "select_clause (C, i) [] = (C, i)"
 | "select_clause (C, i) ((D, j) # Ds) =
    select_clause (if weight (mset D, j) < weight (mset C, i) then (D, j) else (C, i)) Ds"
 
-fun deterministic_resolution_prover_step :: "'a wlstate \<Rightarrow> 'a wlstate" where
+fun deterministic_resolution_prover_step :: "'a glstate \<Rightarrow> 'a glstate" where
   "deterministic_resolution_prover_step (N, P, Q, n) =
    (case N of
       [] \<Rightarrow>
@@ -145,21 +142,21 @@ fun deterministic_resolution_prover_step :: "'a wlstate \<Rightarrow> 'a wlstate
           in
             (N, P, Q, n))"
 
-fun is_final_wlstate :: "'a wlstate \<Rightarrow> bool" where
-  "is_final_wlstate (N, P, Q, n) \<longleftrightarrow> N = [] \<and> P = []"
+fun is_final_glstate :: "'a glstate \<Rightarrow> bool" where
+  "is_final_glstate (N, P, Q, n) \<longleftrightarrow> N = [] \<and> P = []"
 
 partial_function (option)
-  deterministic_resolution_prover :: "'a wlstate \<Rightarrow> 'a lclause list option"
+  deterministic_resolution_prover :: "'a glstate \<Rightarrow> 'a lclause list option"
 where
   "deterministic_resolution_prover St =
-   (if is_final_wlstate St then
+   (if is_final_glstate St then
       let (_, _, Q, _) = St in Some (map fst Q)
     else
       deterministic_resolution_prover (deterministic_resolution_prover_step St))"
 
 lemma reduce_N_simulation:
   "(N \<union> {(mset (C @ C'), i)}, set (map (apfst mset) P), set (map (apfst mset) Q), n)
-    \<leadsto>\<^sub>w\<^sup>* (N \<union> {(mset (C @ reduce (map fst (P @ Q)) C C'), i)}, set (map (apfst mset) P),
+    \<leadsto>\<^sub>f\<^sup>* (N \<union> {(mset (C @ reduce (map fst (P @ Q)) C C'), i)}, set (map (apfst mset) P),
          set (map (apfst mset) Q), n)"
 proof (induct C' arbitrary: C)
   case (Cons L C')
@@ -192,13 +189,13 @@ proof (induct C' arbitrary: C)
 qed simp
 
 lemma deterministic_resolution_prover_step_simulation_nonfinal:
-  assumes "\<not> is_final_wlstate St"
-  shows "wstate_of_wlstate St \<leadsto>\<^sub>w\<^sup>+ wstate_of_wlstate (deterministic_resolution_prover_step St)"
+  assumes "\<not> is_final_glstate St"
+  shows "gstate_of_glstate St \<leadsto>\<^sub>f\<^sup>+ gstate_of_glstate (deterministic_resolution_prover_step St)"
   sorry
 
 lemma deterministic_resolution_prover_step_simulation_final:
-  assumes "is_final_wlstate St"
-  shows "\<not> wstate_of_wlstate St \<leadsto>\<^sub>w St'"
+  assumes "is_final_glstate St"
+  shows "\<not> gstate_of_glstate St \<leadsto>\<^sub>f St'"
   sorry
 
 (*
@@ -214,13 +211,13 @@ theorem deterministic_resolution_prover_sound_unsat:
   assumes
     su: "deterministic_resolution_prover St = Some sol" and
     sol_unsat: "sol = Unsat"
-  shows "\<not> satisfiable (grounding_of_state (state_of_wlstate St))"
+  shows "\<not> satisfiable (grounding_of_state (state_of_glstate St))"
   using sol_unsat
 proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
   case (1 self_call St sol)
   note ih = this(1)[OF _ refl] and call = this(2) and sol_unsat = this(3)
 
-  obtain N P Q :: "'a wlclause list" and n :: nat where
+  obtain N P Q :: "'a glclause list" and n :: nat where
     st: "St = (N, P, Q, n)"
     by (cases St) blast
 
@@ -272,7 +269,7 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
       show ?thesis
       proof (rule; erule exE)
         fix I
-        assume "I \<Turnstile>s grounding_of_state (state_of_wlstate St)"
+        assume "I \<Turnstile>s grounding_of_state (state_of_glstate St)"
         then show False
           unfolding st n_cons ci
           using c'_nil[unfolded C'_def]
