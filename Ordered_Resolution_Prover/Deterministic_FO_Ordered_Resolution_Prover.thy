@@ -9,7 +9,7 @@ text \<open>
 TODO.
 \<close>
 
-theory Functional_FO_Ordered_Resolution_Prover
+theory Deterministic_FO_Ordered_Resolution_Prover
   imports Fair_FO_Ordered_Resolution_Prover
 begin
 
