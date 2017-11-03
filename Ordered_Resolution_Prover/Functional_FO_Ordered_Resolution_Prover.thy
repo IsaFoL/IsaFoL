@@ -18,15 +18,15 @@ begin
 
 type_synonym 'a lclause = "'a literal list"
 type_synonym 'a wlclause = "'a lclause \<times> nat"
-type_synonym 'a wlstate = "'a wlclause list \<times> 'a wlclause list \<times> 'a lclause list \<times> nat"
+type_synonym 'a wlstate = "'a wlclause list \<times> 'a wlclause list \<times> 'a wlclause list \<times> nat"
 
-fun wstate_of_wlstate :: "'a wlstate \<Rightarrow> 'a state" where
-  "state_of_wlstate (N, P, Q, n) =
-   (set (map (apfst mset) N), set (map (apfst mset) P), set (map mset Q), n)"
+fun wstate_of_wlstate :: "'a wlstate \<Rightarrow> 'a wstate" where
+  "wstate_of_wlstate (N, P, Q, n) =
+   (set (map (apfst mset) N), set (map (apfst mset) P), set (map (apfst mset) Q), n)"
 
 fun state_of_wlstate :: "'a wlstate \<Rightarrow> 'a state" where
   "state_of_wlstate (N, P, Q, _) =
-   (set (map (mset \<circ> fst) N), set (map (mset \<circ> fst) P), set (map mset Q))"
+   (set (map (mset \<circ> fst) N), set (map (mset \<circ> fst) P), set (map (mset \<circ> fst) Q))"
 
 context FO_resolution_prover_with_sum_product_weights
 begin
@@ -111,32 +111,32 @@ fun deterministic_resolution_prover_step :: "'a wlstate \<Rightarrow> 'a wlstate
        | (C, i) # P' \<Rightarrow>
          let
            (C, i) = select_clause (C, i) P';
-           N = map (\<lambda>D. (D, Suc n)) (resolve C C @ concat (map (resolve_either_way C) Q));
+           N = map (\<lambda>D. (D, Suc n)) (resolve C C @ concat (map (resolve_either_way C \<circ> fst) Q));
            P = remove1 (C, i) P;
-           Q = C # Q;
+           Q = (C, i) # Q;
            n = Suc n
          in
            (N, P, Q, n))
     | (C, i) # N \<Rightarrow>
       let
-        C = reduce (map fst P @ Q) [] C
+        C = reduce (map fst (P @ Q)) [] C
       in
         if C = [] then
-          ([], [], [[]], Suc n)
-        else if is_tautology C \<or> is_subsumed_by (map fst P @ Q) C then
+          ([], [], [([], Suc n)], Suc n)
+        else if is_tautology C \<or> is_subsumed_by (map fst (P @ Q)) C then
           (N, P, Q, n)
         else
           let
             P = map (apfst (reduce [C] [])) P;
             P = filter (is_subsumed_by [C] \<circ> fst) P;
-            Q = map (reduce [C] []) Q;
-            Q = filter (is_subsumed_by [C]) Q;
+            Q = map (apfst (reduce [C] [])) Q;
+            Q = filter (is_subsumed_by [C] \<circ> fst) Q;
             P = (C, i) # P
           in
             (N, P, Q, n))"
 
 fun dest_final_wlstate :: "'a wlstate \<Rightarrow> 'a lclause list option" where
-  "dest_final_wlstate (N, P, Q, n) = (if N = [] \<and> P = [] then Some Q else None)"
+  "dest_final_wlstate (N, P, Q, n) = (if N = [] \<and> P = [] then Some (map fst Q) else None)"
 
 partial_function (option)
   deterministic_resolution_prover :: "'a wlstate \<Rightarrow> 'a lclause list option"
@@ -163,7 +163,7 @@ proof (induct C' arbitrary: C)
        defer
       apply (simp only: red)
        apply (rule ih[of C])
-      using forward_reduction[of _ "set (map (apfst mset) P)" "set (map (apfst mset) Q)" L _ "mset (C @ C')" N i n]
+      using forward_reduction[of "set (map (apfst mset) P)" "set (map (apfst mset) Q)" L _ "mset (C @ C')" N i n]
       apply simp
       sorry
   next
@@ -175,7 +175,7 @@ qed simp
 
 lemma deterministic_resolution_prover_step_simulate:
   "wstate_of_wlstate St \<leadsto>\<^sub>w\<^sup>* wstate_of_wlstate (deterministic_resolution_prover_step St)"
-
+  sorry
 
 (* FIXME: old stuff
 theorem deterministic_resolution_prover_sound_unsat:
