@@ -31,9 +31,6 @@ fun state_of_glstate :: "'a glstate \<Rightarrow> 'a state" where
 fun is_final_glstate :: "'a glstate \<Rightarrow> bool" where
   "is_final_glstate (N, P, Q, n) \<longleftrightarrow> N = [] \<and> P = []"
 
-fun is_duplicate_free_glstate where
-  "is_duplicate_free_glstate (N, P, Q, _) \<longleftrightarrow> distinct N \<and> distinct P \<and> distinct Q"
-
 abbreviation rtrancl_resolution_prover_with_weights (infix "\<leadsto>\<^sub>f\<^sup>*" 50) where
   "op \<leadsto>\<^sub>f\<^sup>* \<equiv> (op \<leadsto>\<^sub>f)\<^sup>*\<^sup>*"
 
@@ -193,13 +190,6 @@ proof (induct C' arbitrary: C)
   qed
 qed simp
 
-lemma deterministic_resolution_prover_step_duplicate_free:
-  assumes
-    df: "is_duplicate_free_glstate St" and
-    step: "St' = deterministic_resolution_prover_step St"
-  shows "is_duplicate_free_glstate St'"
-  sorry
-
 lemma deterministic_resolution_prover_step_simulation_nonfinal:
   assumes
     nonfinal: "\<not> is_final_glstate St" and
@@ -253,7 +243,6 @@ proof -
           sorry
       next
         show "(mset C, i) \<notin> set (map (apfst mset) P)"
-          using deterministic_resolution_prover_step_duplicate_free
           sorry
       qed
 
