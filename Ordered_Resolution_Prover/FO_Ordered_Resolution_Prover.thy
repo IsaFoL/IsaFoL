@@ -134,7 +134,7 @@ The extension of ordered resolution mentioned in 4.10. We let it consist of all 
 \<close>
 
 definition gd_ord_\<Gamma>':: "'a inference set" where
-  "gd_ord_\<Gamma>' = {Infer CC D E | CC D E. (\<forall>I. I \<Turnstile>m CC \<longrightarrow>  I \<Turnstile> D \<longrightarrow> I \<Turnstile> E)}"
+  "gd_ord_\<Gamma>' = {Infer CC D E | CC D E. (\<forall>I. I \<Turnstile>m CC \<longrightarrow> I \<Turnstile> D \<longrightarrow> I \<Turnstile> E)}"
 
 text \<open>
 We prove that we indeed defined an extension.
@@ -151,7 +151,7 @@ lemma sat_preserving_gd_ord_\<Gamma>': "sat_preserving_inference_system gd_ord_\
     sound_inference_system.\<Gamma>_sat_preserving by blast
 
 definition src_ext_Ri :: "'a literal multiset set \<Rightarrow> 'a inference set" where
-  "src_ext_Ri = (\<lambda>N. src.Ri N \<union> (gd_ord_\<Gamma>' - gd.ord_\<Gamma>))"
+  "src_ext_Ri N = src.Ri N \<union> (gd_ord_\<Gamma>' - gd.ord_\<Gamma>)"
 
 interpretation src_ext:
   sat_preserving_redundancy_criterion "gd_ord_\<Gamma>'" "src.Rf" "src_ext_Ri"
@@ -214,7 +214,7 @@ proof (rule)
 qed
 
 text \<open>
-The following corresponds the part of Lemma 4.10, that states we have a theorem proving process:
+The following corresponds the part of Lemma 4.10 that states we have a theorem proving process:
 \<close>
 
 lemma resolution_prover_ground_derive:
