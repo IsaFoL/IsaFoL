@@ -303,64 +303,6 @@ definition select_and_remove_from_literals_to_update_wl' :: \<open>twl_st_wll \<
   \<open>select_and_remove_from_literals_to_update_wl' =
     (\<lambda>(M, N, U, D, NP, UP, Q, W).  ((M, N, U, D, NP, UP, tl Q, W), hd Q))\<close>
 
-lemma nat_lit_eq[sepref_fr_rules]: \<open>(uncurry (return oo op =), uncurry (RETURN oo op =)) \<in>
-   nat_lit_assn\<^sup>k *\<^sub>a nat_lit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  by sepref_to_hoare (sep_auto simp: p2rel_def nat_lit_rel_def
-      dest: lit_of_natP_same_rightD lit_of_natP_same_leftD)
-
-lemma unat_lit_eq[sepref_fr_rules]: \<open>(uncurry (return oo op =), uncurry (RETURN oo op =)) \<in>
-   (unat_lit_assn)\<^sup>k *\<^sub>a (unat_lit_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  by sepref_to_hoare (sep_auto simp: p2rel_def unat_lit_rel_def
-      uint32_nat_rel_def br_def nat_lit_rel_def
-      dest: lit_of_natP_same_rightD lit_of_natP_same_leftD)
-
-sepref_thm list_contains_WHILE_array
-  is \<open>uncurry (\<lambda>(l::nat) xs. do{ b \<leftarrow> list_contains_WHILE l xs; RETURN (fst b)})\<close>
-  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a (array_assn uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding list_contains_WHILE_def
-  by sepref
-
-concrete_definition list_contains_WHILE_array_code
-   uses list_contains_WHILE_array.refine_raw
-   is "(uncurry ?f,_)\<in>_"
-
-lemma list_contains_WHILE_in_set: \<open>list_contains_WHILE l xs \<le>
-      \<Down> ({((b', i), b, ys). b' = b \<and>  ys = nths xs {i..<length xs} \<and> i \<le> length xs} O
-          Collect (case_prod (\<lambda>(b', ys). op = b')))
-        (RETURN (l \<in> set xs))\<close>
-  (is \<open>_ \<le> \<Down> ?A _\<close>)
-proof -
-  show \<open>list_contains_WHILE l xs \<le>
-      \<Down> ({((b', i), b, ys). b' = b \<and>  ys = nths xs {i..<length xs} \<and> i \<le> length xs} O
-          Collect (case_prod (\<lambda>(b', ys). op = b')))
-        (RETURN (l \<in> set xs))\<close>
-    (is \<open>_ \<le> \<Down> ?B _\<close>)
-    unfolding list_contains_WHILE_def op_list_contains_def
-    using ref_two_step[OF WHILE\<^sub>T_nth_WHILE\<^sub>T_list[of \<open>\<lambda>_. True\<close> xs \<open>op = l\<close>]
-        op_list_contains, unfolded conc_fun_chain]
-    by simp
-qed
-
-definition list_contains_WHILE_f where
-  \<open>list_contains_WHILE_f l xs = do{ b \<leftarrow> list_contains_WHILE l xs; RETURN (fst b)}\<close>
-
-lemma list_contains_WHILE_f_op_list_contains:
-  \<open>(uncurry list_contains_WHILE_f, uncurry (RETURN oo op_list_contains)) \<in>
-   Id \<times>\<^sub>r \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel
-\<close>
-proof -
-  have 1: \<open>RETURN oo op_list_contains = (\<lambda>l xs. do {b \<leftarrow> RETURN (op_list_contains l xs); RETURN b})\<close>
-    by fastforce
-  note bind_refine' = bind_refine[where R=Id, simplified]
-
-  show ?thesis
-    unfolding list_contains_WHILE_f_def 1
-    by (intro frefI nres_relI)
-      (auto simp add: fref_def nres_rel_def uncurry_def
-        simp del: nres_monad1 nres_monad2
-        intro!: bind_refine'  intro!: list_contains_WHILE_in_set)
-qed
-
 lemma in_nat_list_rel_list_all2_in_set_iff:
     \<open>(a, aa) \<in> nat_lit_rel \<Longrightarrow>
        list_all2 (\<lambda>x x'. (x, x') \<in> nat_lit_rel) b ba \<Longrightarrow>
@@ -374,25 +316,6 @@ lemma in_nat_list_rel_list_all2_in_set_iff:
     done
   subgoal using list_all2_lengthD by auto
   done
-
-lemma list_contains_WHILE_code_op_list_contains[sepref_fr_rules]:
-  \<open>(uncurry list_contains_WHILE_array_code,
-    uncurry (RETURN oo op_list_contains)) \<in>
-    unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-proof -
-  have 1: \<open>(uncurry (RETURN oo op_list_contains), uncurry (RETURN oo op_list_contains)) \<in>
-         nat_lit_rel \<times>\<^sub>r \<langle>nat_lit_rel\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
-    by (intro frefI nres_relI) (auto simp: list_rel_def in_nat_list_rel_list_all2_in_set_iff)
-  term nat_lit_rel
-  have 2: \<open>hr_comp (hr_comp (array_assn uint32_nat_assn) (\<langle>nat_rel\<rangle>list_rel))
-       (\<langle>nat_lit_rel\<rangle>list_rel) = array_assn unat_lit_assn\<close>
-    by (simp add: array_assn_def unat_lit_rel_def hr_comp_assoc list_rel_compp)
-
-  show ?thesis
-    using list_contains_WHILE_array_code.refine[unfolded list_contains_WHILE_f_def[symmetric],
-        FCOMP list_contains_WHILE_f_op_list_contains, FCOMP 1]
-    unfolding 2 unfolding unat_lit_rel_def .
-qed
 
 definition is_decided_wl where
   \<open>is_decided_wl L \<longleftrightarrow> snd L = None\<close>
