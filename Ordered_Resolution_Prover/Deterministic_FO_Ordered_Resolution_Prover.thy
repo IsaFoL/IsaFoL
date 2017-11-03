@@ -193,7 +193,7 @@ proof (induct P arbitrary: P0 Ci Dj)
       then have "Ci = select_min_weight_clause P1 P"
         using ci by simp
       then show ?thesis
-        using dj by (metis (no_types) dual_order.strict_implies_order dual_order.strict_trans2 ih
+        using ih dj by (metis (no_types) dual_order.strict_implies_order dual_order.strict_trans2
           list.set_intros(1) set_ConsD w_lt)
     next
       case w_ge: False
@@ -203,7 +203,6 @@ proof (induct P arbitrary: P0 Ci Dj)
     qed
   qed
 qed force
-
 
 (* FIXME: inline below?
 lemma reduce_N_simulation:
@@ -284,6 +283,8 @@ proof -
              mset (map (apfst mset) Q) + {#(mset C, i)#}, Suc n)"
       proof (rule inference_computation)
         show "\<forall>(D, j) \<in># mset (map (apfst mset) P). weight (mset C, i) \<le> weight (D, j)"
+          using select_min_weight_clause_min_weight
+          apply simp
           (* ensured by semantics of "select_min_weight_clause" *)
           sorry
       next
