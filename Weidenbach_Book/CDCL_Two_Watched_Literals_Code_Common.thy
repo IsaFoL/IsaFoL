@@ -2,9 +2,8 @@ theory CDCL_Two_Watched_Literals_Code_Common
   imports CDCL_Two_Watched_Literals_Initialisation
 begin
 text \<open>
-  First we instantiate our types with sort heap, to show compatibility with code generation. The
-  idea is simplify to create injections into the components of our datatypes. This wirks since we
-  are not recursing through steps.
+  First we instantiate our types with sort heap and default, to have compatibility with code
+  generation. The idea is simplify to create injections into the components of our datatypes.
 \<close>
 instance literal :: (heap) heap
 proof standard
