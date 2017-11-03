@@ -22,7 +22,7 @@ begin
 
 fun gstate_of_glstate :: "'a glstate \<Rightarrow> 'a gstate" where
   "gstate_of_glstate (N, P, Q, n) =
-   (set (map (apfst mset) N), set (map (apfst mset) P), set (map (apfst mset) Q), n)"
+   (mset (map (apfst mset) N), mset (map (apfst mset) P), mset (map (apfst mset) Q), n)"
 
 fun state_of_glstate :: "'a glstate \<Rightarrow> 'a state" where
   "state_of_glstate (N, P, Q, _) =
@@ -37,7 +37,7 @@ abbreviation rtrancl_resolution_prover_with_weights (infix "\<leadsto>\<^sub>f\<
 abbreviation trancl_resolution_prover_with_weights (infix "\<leadsto>\<^sub>f\<^sup>+" 50) where
   "op \<leadsto>\<^sub>f\<^sup>+ \<equiv> (op \<leadsto>\<^sub>f)\<^sup>+\<^sup>+"
 
-(* FIXME: prove and move to right locale/file *)
+(* FIXME: prove and move to right locale/file, and prove for non-fair version first *)
 lemma resolution_prover_with_weights_sound:
   "St \<leadsto>\<^sub>f St' \<Longrightarrow> I \<Turnstile>s grounding_of_state (state_of_gstate St) \<Longrightarrow>
    I \<Turnstile>s grounding_of_state (state_of_gstate St')"
@@ -72,23 +72,23 @@ fun reduce_all :: "'a lclause list \<Rightarrow> 'a glclause list \<Rightarrow> 
 fun resolve_on :: "'a lclause \<Rightarrow> 'a \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve_on C B D =
    concat (map (\<lambda>L.
-      (case L of
-         Neg _ \<Rightarrow> []
-       | Pos A \<Rightarrow>
-         (case mgu {{A, B}} of
-            None \<Rightarrow> []
-          | Some \<sigma> \<Rightarrow>
-            let
-              D' = map (\<lambda>M. M \<cdot>l \<sigma>) D;
-              B' = B \<cdot>a \<sigma>
-            in
-              if maximal_in B' (mset D') then
-                let
-                  C' = map (\<lambda>L. L \<cdot>l \<sigma>) (removeAll L C)
-                in
-                  (if strictly_maximal_in B' (mset C') then [C' @ D'] else []) @ resolve_on C' B' D'
-              else
-                []))) C)"
+     (case L of
+        Neg _ \<Rightarrow> []
+      | Pos A \<Rightarrow>
+        (case mgu {{A, B}} of
+           None \<Rightarrow> []
+         | Some \<sigma> \<Rightarrow>
+           let
+             D' = map (\<lambda>M. M \<cdot>l \<sigma>) D;
+             B' = B \<cdot>a \<sigma>
+           in
+             if maximal_in B' (mset D') then
+               let
+                 C' = map (\<lambda>L. L \<cdot>l \<sigma>) (removeAll L C)
+               in
+                 (if strictly_maximal_in B' (mset C') then [C' @ D'] else []) @ resolve_on C' B' D'
+             else
+               []))) C)"
 
 definition resolve :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve C D =
