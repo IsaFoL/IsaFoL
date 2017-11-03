@@ -20,6 +20,9 @@ type_synonym 'a lclause = "'a literal list"
 type_synonym 'a wlclause = "'a lclause \<times> nat"
 type_synonym 'a wlstate = "'a wlclause list \<times> 'a wlclause list \<times> 'a wlclause list \<times> nat"
 
+context FO_resolution_prover_with_sum_product_weights
+begin
+
 fun wstate_of_wlstate :: "'a wlstate \<Rightarrow> 'a wstate" where
   "wstate_of_wlstate (N, P, Q, n) =
    (set (map (apfst mset) N), set (map (apfst mset) P), set (map (apfst mset) Q), n)"
@@ -28,11 +31,11 @@ fun state_of_wlstate :: "'a wlstate \<Rightarrow> 'a state" where
   "state_of_wlstate (N, P, Q, _) =
    (set (map (mset \<circ> fst) N), set (map (mset \<circ> fst) P), set (map (mset \<circ> fst) Q))"
 
-context FO_resolution_prover_with_sum_product_weights
-begin
-
 abbreviation rtrancl_resolution_prover_with_weights (infix "\<leadsto>\<^sub>w\<^sup>*" 50) where
   "op \<leadsto>\<^sub>w\<^sup>* \<equiv> (op \<leadsto>\<^sub>w)\<^sup>*\<^sup>*"
+
+abbreviation trancl_resolution_prover_with_weights (infix "\<leadsto>\<^sub>w\<^sup>+" 50) where
+  "op \<leadsto>\<^sub>w\<^sup>+ \<equiv> (op \<leadsto>\<^sub>w)\<^sup>+\<^sup>+"
 
 (* FIXME: prove and move to right locale/file *)
 lemma resolution_prover_with_weights_sound:
@@ -135,18 +138,19 @@ fun deterministic_resolution_prover_step :: "'a wlstate \<Rightarrow> 'a wlstate
           in
             (N, P, Q, n))"
 
-fun dest_final_wlstate :: "'a wlstate \<Rightarrow> 'a lclause list option" where
-  "dest_final_wlstate (N, P, Q, n) = (if N = [] \<and> P = [] then Some (map fst Q) else None)"
+fun is_final_wlstate :: "'a wlstate \<Rightarrow> bool" where
+  "is_final_wlstate (N, P, Q, n) \<longleftrightarrow> N = [] \<and> P = []"
 
 partial_function (option)
   deterministic_resolution_prover :: "'a wlstate \<Rightarrow> 'a lclause list option"
 where
   "deterministic_resolution_prover St =
-   (case dest_final_wlstate St of
-      Some Q \<Rightarrow> Some Q
-    | None \<Rightarrow> deterministic_resolution_prover (deterministic_resolution_prover_step St))"
+   (if is_final_wlstate St then
+      let (_, _, Q, _) = St in Some (map fst Q)
+    else
+      deterministic_resolution_prover (deterministic_resolution_prover_step St))"
 
-lemma reduce_simulate_N:
+lemma reduce_N_simulation:
   "(N \<union> {(mset (C @ C'), i)}, set (map (apfst mset) P), set (map (apfst mset) Q), n)
     \<leadsto>\<^sub>w\<^sup>* (N \<union> {(mset (C @ reduce (map fst (P @ Q)) C C'), i)}, set (map (apfst mset) P),
          set (map (apfst mset) Q), n)"
@@ -178,8 +182,14 @@ proof (induct C' arbitrary: C)
   qed
 qed simp
 
-lemma deterministic_resolution_prover_step_simulate:
-  "wstate_of_wlstate St \<leadsto>\<^sub>w\<^sup>* wstate_of_wlstate (deterministic_resolution_prover_step St)"
+lemma deterministic_resolution_prover_step_simulation_nonfinal:
+  assumes "\<not> is_final_wlstate St"
+  shows "wstate_of_wlstate St \<leadsto>\<^sub>w\<^sup>+ wstate_of_wlstate (deterministic_resolution_prover_step St)"
+  sorry
+
+lemma deterministic_resolution_prover_step_simulation_final:
+  assumes "is_final_wlstate St"
+  shows "\<not> wstate_of_wlstate St \<leadsto>\<^sub>w St'"
   sorry
 
 (* FIXME: old stuff
