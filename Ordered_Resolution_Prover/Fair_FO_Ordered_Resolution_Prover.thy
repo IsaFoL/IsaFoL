@@ -86,11 +86,11 @@ lemma fair_resolution_prover_resolution_prover':
 proof (induction rule: fair_resolution_prover.induct)
   case (tautology_deletion A C N i P Q n)
   then show ?case
-    using resolution_prover.tautology_deletion by auto
+    using resolution_prover.tautology_deletion by simp
 next
   case (forward_subsumption P Q C N i n)
   then show ?case 
-    using resolution_prover.forward_subsumption by (simp add: image_Un)
+    using resolution_prover.forward_subsumption by simp
 next
   case (backward_subsumption_P N C P i Q n)
   then show ?case
@@ -102,14 +102,14 @@ next
 next
   case (forward_reduction P Q L \<sigma> C N i n)
   then show ?case
-    using resolution_prover.forward_reduction by (simp add: image_Un)
+    using resolution_prover.forward_reduction by simp
 next
   case (backward_reduction_P N L \<sigma> C P i Q n)
   then show ?case 
     using resolution_prover.backward_reduction_P by simp
 next
   case (backward_reduction_Q N L \<sigma> C P Q i n)
-  then show ?case 
+  then show ?case
     using resolution_prover.backward_reduction_Q by simp
 next
   case (clause_processing N C P Q n)

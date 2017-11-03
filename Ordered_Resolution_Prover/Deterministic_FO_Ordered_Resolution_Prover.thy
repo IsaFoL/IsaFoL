@@ -155,9 +155,9 @@ where
     else
       deterministic_resolution_prover (deterministic_resolution_prover_step St))"
 
-(* FIXME: inline below? *)
+(* FIXME: inline below?
 lemma reduce_N_simulation:
-  "(N \<union> {(mset (C @ C'), i)}, set (map (apfst mset) P), set (map (apfst mset) Q), n)
+  "(N + {(mset (C @ C'), i)}, set (map (apfst mset) P), set (map (apfst mset) Q), n)
     \<leadsto>\<^sub>f\<^sup>* (N \<union> {(mset (C @ reduce (map fst (P @ Q)) C C'), i)}, set (map (apfst mset) P),
          set (map (apfst mset) Q), n)"
 proof (induct C' arbitrary: C)
@@ -189,6 +189,7 @@ proof (induct C' arbitrary: C)
       using ih[of "L # C"] by simp
   qed
 qed simp
+*)
 
 lemma deterministic_resolution_prover_step_simulation_nonfinal:
   assumes
@@ -228,21 +229,19 @@ proof -
            Q = (C, i) # Q;
            n = Suc n
 *)
-
-      have "({}, set (map (apfst mset) P) \<union> {(mset C, i)}, set (map (apfst mset) Q), n)
-        \<leadsto>\<^sub>f (set (map (apfst mset) N), set (map (apfst mset) P),
-             set (map (apfst mset) Q) \<union> {(mset C, i)}, Suc n)"
+      have "({#}, mset (map (apfst mset) P) + {#(mset C, i)#}, mset (map (apfst mset) Q), n)
+        \<leadsto>\<^sub>f (mset (map (apfst mset) N), mset (map (apfst mset) P),
+             mset (map (apfst mset) Q) + {#(mset C, i)#}, Suc n)"
       proof (rule inference_computation)
-        show "\<forall>(D, j) \<in> set (map (apfst mset) P). weight (mset C, i) \<le> weight (D, j)"
+        show "\<forall>(D, j) \<in># mset (map (apfst mset) P). weight (mset C, i) \<le> weight (D, j)"
           (* ensured by semantics of "select_min_weight_clause" *)
           sorry
       next
-        show "set (map (apfst mset) N) =
-          (\<lambda>D. (D, n)) ` concls_of (ord_FO_resolution_inferences_between (fst ` set (map (apfst mset) Q)) (mset C))"
-
-          sorry
-      next
-        show "(mset C, i) \<notin> set (map (apfst mset) P)"
+        show "mset (map (apfst mset) N) =
+          mset_set
+     ((\<lambda>D. (D, n)) `
+      concls_of
+       (ord_FO_resolution_inferences_between (set_mset (image_mset fst (mset (map (apfst mset) Q)))) (mset C)))"
           sorry
       qed
 
