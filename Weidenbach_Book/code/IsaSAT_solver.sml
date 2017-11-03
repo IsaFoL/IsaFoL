@@ -1362,7 +1362,8 @@ fun is_in_lookup_option_conflict_code x =
     let
       val xa = (fn () => Array.sub (a2a, Word32.toInt (atm_of_code ai))) ();
     in
-      equal_option equal_bool xa (SOME (is_pos_code ai))
+      imp_option_eq (fn va => fn vb => (fn () => (equal_boola va vb))) xa
+        (SOME (is_pos_code ai)) ()
     end)
     x;
 
