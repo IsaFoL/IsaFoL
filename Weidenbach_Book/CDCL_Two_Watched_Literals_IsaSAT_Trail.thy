@@ -17,6 +17,11 @@ definition polarity_atm where
     else if Neg L \<in> lits_of_l M then Some False
     else None)\<close>
 
+definition defined_atm :: \<open>('v, nat) ann_lits \<Rightarrow> 'v \<Rightarrow> bool\<close> where
+\<open>defined_atm M L = defined_lit M (Pos L)\<close>
+
+abbreviation undefined_atm where
+  \<open>undefined_atm M L \<equiv> \<not>defined_atm M L\<close>
 
 context isasat_input_ops
 begin
@@ -55,56 +60,6 @@ abbreviation trail_assn :: \<open>(nat, nat) ann_lits \<Rightarrow> trail_pol_as
   \<open>trail_assn \<equiv> hr_comp trail_pol_assn trail_pol\<close>
 
 end
-
-definition (in -) card_max_lvl where
-  \<open>card_max_lvl M C \<equiv> size (filter_mset (\<lambda>L. get_level M L = count_decided M) C)\<close>
-
-lemma card_max_lvl_add_mset: \<open>card_max_lvl M (add_mset L C) =
-  (if get_level M L = count_decided M then 1 else 0) +
-    card_max_lvl M C\<close>
-  by (auto simp: card_max_lvl_def)
-
-lemma card_max_lvl_empty[simp]: \<open>card_max_lvl M {#} = 0\<close>
-  by (auto simp: card_max_lvl_def)
-
-lemma card_max_lvl_all_poss:
-   \<open>card_max_lvl M C = card_max_lvl M (poss (atm_of `# C))\<close>
-  unfolding card_max_lvl_def
-  apply (induction C)
-  subgoal by auto
-  subgoal for L C
-    using get_level_uminus[of M L]
-    by (cases L) (auto)
-  done
-
-lemma card_max_lvl_distinct_cong:
-  assumes
-    \<open>\<And>L. get_level M (Pos L) = count_decided M \<Longrightarrow> (L \<in> atms_of C) \<Longrightarrow> (L \<in> atms_of C')\<close> and
-    \<open>\<And>L. get_level M (Pos L) = count_decided M \<Longrightarrow> (L \<in> atms_of C') \<Longrightarrow> (L \<in> atms_of C)\<close> and
-    \<open>distinct_mset C\<close> \<open>\<not>tautology C\<close> and
-    \<open>distinct_mset C'\<close> \<open>\<not>tautology C'\<close>
-  shows \<open>card_max_lvl M C = card_max_lvl M C'\<close>
-proof -
-  have [simp]: \<open>NO_MATCH (Pos x) L \<Longrightarrow> get_level M L = get_level M (Pos (atm_of L))\<close> for x L
-    by (simp add: get_level_def)
-  have [simp]: \<open>atm_of L \<notin> atms_of C' \<longleftrightarrow> L \<notin># C' \<and> -L \<notin># C'\<close> for L C'
-    by (cases L) (auto simp: atm_iff_pos_or_neg_lit)
-  then have [iff]: \<open>atm_of L \<in> atms_of C' \<longleftrightarrow> L \<in># C' \<or> -L \<in># C'\<close> for L C'
-    by blast
-  have H: \<open>distinct_mset {#L \<in># poss (atm_of `# C). get_level M L = count_decided M#}\<close>
-    if \<open>distinct_mset C\<close> \<open>\<not>tautology C\<close> for C
-    using that by (induction C) (auto simp: tautology_add_mset atm_of_eq_atm_of)
-  show ?thesis
-    apply (subst card_max_lvl_all_poss)
-    apply (subst (2) card_max_lvl_all_poss)
-    unfolding card_max_lvl_def
-    apply (rule arg_cong[of _ _ size])
-    apply (rule distinct_set_mset_eq)
-    subgoal by (rule H) (use assms in fast)+
-    subgoal by (rule H) (use assms in fast)+
-    subgoal using assms by (auto simp: atms_of_def imageI image_iff) blast+
-    done
-qed
 
 definition counts_maximum_level where
   \<open>counts_maximum_level M C = {i. C \<noteq> None \<longrightarrow> i = card_max_lvl M (the C)}\<close>
@@ -661,6 +616,58 @@ proof -
   show ?thesis
     using H unfolding im pre .
 qed
+
+definition (in -) defined_atm_pol where
+  \<open>defined_atm_pol = (\<lambda>(M, xs, lvls, k) L. do {
+      ASSERT(L < length xs);
+      RETURN (xs!L \<noteq> None)
+    })\<close>
+
+sepref_thm defined_atm_code
+  is \<open>uncurry defined_atm_pol\<close>
+  :: \<open>(trail_pol_assn)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding defined_atm_pol_def
+  by sepref
+
+concrete_definition (in -) defined_atm_code
+   uses isasat_input_bounded.defined_atm_code.refine_raw
+   is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) defined_atm_code_def
+
+lemmas undefined_atm_code_refine[sepref_fr_rules] =
+   defined_atm_code.refine[OF isasat_input_bounded_axioms]
+
+lemma undefined_atm_code:
+  \<open>(uncurry defined_atm_pol, uncurry (RETURN oo defined_atm)) \<in>
+   [\<lambda>(M, L). Pos L \<in> snd ` D\<^sub>0]\<^sub>f trail_pol \<times>\<^sub>r Id \<rightarrow> \<langle>bool_rel\<rangle> nres_rel\<close>
+proof -
+  have H: \<open>L < length xs\<close> (is \<open>?length\<close>) and
+    none: \<open>defined_atm M L \<longleftrightarrow> xs ! L \<noteq> None\<close> (is ?undef)
+    if L_N: \<open>Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and  tr: \<open>((M', xs, lvls, k), M) \<in> trail_pol\<close>
+    for M xs lvls k M' L
+  proof -
+    have
+       \<open>M' = map lit_of M\<close> and
+       \<open>\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l. atm_of L < length xs \<and> xs ! atm_of L = polarity_atm M (atm_of L)\<close>
+      using tr unfolding trail_pol_def ann_lits_split_reasons_def by fast+
+    then have L: \<open>L < length xs\<close> and xsL: \<open>xs ! L = polarity_atm M L\<close>
+      using L_N by force+
+    show ?length
+      using L .
+    show ?undef
+      using xsL by (auto simp: polarity_atm_def defined_atm_def
+          Decided_Propagated_in_iff_in_lits_of_l split: if_splits)
+  qed
+  show ?thesis
+    unfolding defined_atm_pol_def
+    by (intro frefI nres_relI) (auto 5 5 simp: none H intro!: ASSERT_leI)
+qed
+
+lemma undefined_atm_code_ref[sepref_fr_rules]:
+  \<open>(uncurry defined_atm_code, uncurry (RETURN \<circ>\<circ> defined_atm)) \<in>
+     [\<lambda>(a, b). Pos b \<in> snd ` D\<^sub>0]\<^sub>a (hr_comp trail_pol_assn trail_pol)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  using undefined_atm_code_refine[FCOMP undefined_atm_code] .
 
 end
 

@@ -73,6 +73,12 @@ definition (in isasat_input_ops) twl_st_init_assn
 where
   \<open>twl_st_init_assn = hr_comp twl_st_heur_init_assn twl_st_heur_init\<close>
 
+fun get_conflict_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> nat clause option\<close> where
+  \<open>get_conflict_wl_heur_init (_, _, _, D, _) = D\<close>
+
+fun get_watched_list_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> nat list list\<close> where
+  \<open>get_watched_list_heur_init (_, _, _, _, _, W, _) = W\<close>
+
 definition (in isasat_input_ops) propagate_unit_cls
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl\<close>
 where
@@ -266,14 +272,6 @@ proof -
     using H unfolding im f PR_CONST_def apply assumption
     using pre ..
 qed
-
-(* TODO Move *)
-fun get_conflict_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> nat clause option\<close> where
-  \<open>get_conflict_wl_heur_init (_, _, _, D, _) = D\<close>
-
-fun get_watched_list_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> nat list list\<close> where
-  \<open>get_watched_list_heur_init (_, _, _, _, _, W, _) = W\<close>
-(* End Move *)
 
 sepref_thm conflict_propagated_unit_cls_code
   is \<open>uncurry (RETURN oo conflict_propagated_unit_cls_heur)\<close>
@@ -2377,7 +2375,7 @@ proof -
     by auto
   have SAT': \<open>SAT' CS =
        do {
-        ASSERT(True);ASSERT(True);
+          ASSERT(True);ASSERT(True);
           U \<leftarrow> SAT CS;
           RETURN(if conflicting U = None then Some (map lit_of (trail U)) else None)
       } \<close> for CS

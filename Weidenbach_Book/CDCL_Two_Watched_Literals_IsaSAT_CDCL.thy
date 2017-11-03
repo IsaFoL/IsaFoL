@@ -1,6 +1,6 @@
 theory CDCL_Two_Watched_Literals_IsaSAT_CDCL
-  imports CDCL_Two_Watched_Literals_IsaSAT_Trail
-    CDCL_Two_Watched_Literals_VMTF
+  imports CDCL_Two_Watched_Literals_IsaSAT_Trail CDCL_Conflict_Minimisation
+    CDCL_Two_Watched_Literals_VMTF CDCL_Two_Watched_Literals_Lookup_Conflict
 begin
 
 
@@ -8,7 +8,6 @@ no_notation Ref.update ("_ := _" 62)
 
 notation prod_rel_syn (infixl "\<times>\<^sub>f" 70)
 (* TODO Move *)
-declare cdcl\<^sub>W_restart_mset_state[simp]
 lemma [sepref_fr_rules]:
   \<open>(uncurry (return oo (op =)), uncurry (RETURN oo (op =))) \<in>
     (option_assn bool_assn)\<^sup>k *\<^sub>a (option_assn bool_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
@@ -89,6 +88,52 @@ definition twl_st_heur_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_tr
 definition twl_st_assn :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>twl_st_assn = hr_comp twl_st_heur_assn twl_st_heur\<close>
 
+type_synonym twl_st_heur_pol_no_clvls =
+  \<open>trail_pol_assn \<times> clauses_wl \<times> nat \<times> conflict_option_assn \<times>
+    lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times> uint32\<close>
+
+definition twl_st_heur_pol_assn
+  :: \<open>twl_st_wl_heur_trail_ref \<Rightarrow> twl_st_heur_pol_no_clvls \<Rightarrow> assn\<close>
+where
+  \<open>twl_st_heur_pol_assn =
+    (trail_pol_assn *a clauses_ll_assn *a nat_assn *a
+    conflict_option_assn *a
+    clause_l_assn *a
+    arrayO_assn (arl_assn nat_assn) *a
+    vmtf_remove_conc *a phase_saver_conc *a
+    uint32_nat_assn
+    )\<close>
+
+definition (in isasat_input_ops) twl_st_heur_pol :: \<open>(twl_st_wl_heur_trail_ref \<times> nat twl_st_wl) set\<close> where
+\<open>twl_st_heur_pol =
+  {((M', N', U', D', Q', W', vm, \<phi>, clvls), (M, N, U, D, NP, UP, Q, W)).
+    (M', M) \<in> trail_pol \<and> N' = N \<and> U' = U \<and> D = D' \<and>
+     Q' = Q \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
+    vm \<in> vmtf M \<and>
+    phase_saving \<phi> \<and>
+    no_dup M \<and>
+   clvls \<in> counts_maximum_level M D
+  }\<close>
+
+lemma twl_st_heur_pol_alt_def:
+  \<open>twl_st_heur_pol =
+    (trail_pol \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id) O twl_st_heur\<close>
+  by (force simp: twl_st_heur_pol_def twl_st_heur_def)
+
+lemma twl_st_heur_pol_assn_twl_st_heur_assn:
+  \<open>hr_comp twl_st_heur_pol_assn
+    (trail_pol \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id) =
+     twl_st_heur_assn\<close>
+  unfolding twl_st_heur_pol_assn_def twl_st_heur_assn_def
+  by simp
+
+lemma twl_st_heur_assn_assn:
+  \<open>hr_comp twl_st_heur_pol_assn twl_st_heur_pol = twl_st_assn\<close>
+  unfolding twl_st_assn_def twl_st_heur_pol_alt_def
+  hr_comp_assoc[symmetric] twl_st_heur_pol_assn_twl_st_heur_assn
+  ..
+
 definition literals_are_in_\<L>\<^sub>i\<^sub>n_heur where
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur S = literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl (get_clauses_wl_heur S)))\<close>
 
@@ -108,6 +153,49 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0':
     \<open>i > 0\<close> and N: \<open>N = get_clauses_wl_heur S\<close>
   shows \<open>N ! i ! j \<in> snd ` D\<^sub>0\<close>
   using literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0[OF assms(1-4)] unfolding N .
+
+
+type_synonym (in -) twl_st_wl_heur_lookup_conflict =
+  \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times> nat \<times>
+    (bool \<times> nat \<times> bool option list) \<times> nat literal multiset \<times> nat list list \<times> vmtf_remove_int \<times>
+     bool list \<times> nat\<close>
+
+definition twl_st_wl_heur_lookup_conflict_rel :: \<open>(twl_st_wl_heur_lookup_conflict \<times> twl_st_wl_heur) set\<close> where
+  \<open>twl_st_wl_heur_lookup_conflict_rel =
+     (Id :: ((nat,nat) ann_lits \<times> _) set) \<times>\<^sub>r
+     (Id :: (nat clauses_l  \<times> _) set) \<times>\<^sub>r
+     nat_rel \<times>\<^sub>r
+     (option_conflict_rel :: _ set) \<times>\<^sub>r
+     (Id :: (nat lit_queue_wl \<times> _) set)  \<times>\<^sub>r
+     (Id :: (nat list list \<times> _)set) \<times>\<^sub>r
+     Id \<times>\<^sub>r
+     Id \<times>\<^sub>r
+     nat_rel\<close>
+
+definition twl_st_heur_lookup_conflict_assn
+  :: \<open>twl_st_wl_heur_lookup_conflict \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close>
+where
+  \<open>twl_st_heur_lookup_conflict_assn =
+    trail_assn *a clauses_ll_assn *a nat_assn *a
+    conflict_option_rel_assn *a
+    clause_l_assn *a
+    arrayO_assn (arl_assn nat_assn) *a
+    vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn
+  \<close>
+
+lemma twl_st_heur_assn_int_conflict_assn:
+  \<open>twl_st_heur_assn = hr_comp twl_st_heur_lookup_conflict_assn twl_st_wl_heur_lookup_conflict_rel\<close>
+  unfolding twl_st_heur_assn_def twl_st_heur_lookup_conflict_assn_def
+    twl_st_wl_heur_lookup_conflict_rel_def
+  by (auto simp: list_assn_list_mset_rel_eq_list_mset_assn conflict_option_assn_def)
+
+
+lemma twl_st_assn_confl_assn:
+  \<open>twl_st_assn = hr_comp twl_st_heur_lookup_conflict_assn
+    (twl_st_wl_heur_lookup_conflict_rel O twl_st_heur)\<close>
+  apply (subst hr_comp_assoc[symmetric])
+  apply (subst twl_st_heur_assn_int_conflict_assn[symmetric])
+  unfolding twl_st_assn_def ..
 
 end
 
@@ -141,750 +229,193 @@ lemma Neg_unat_lit_assn:
 end
 
 
-subsubsection \<open>Refining code\<close>
-
-definition conflict_merge :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> nat clause option \<Rightarrow> nat \<Rightarrow>
-  (nat clause option \<times> nat) nres\<close> where
-\<open>conflict_merge M N i _ _ = RES{(Some (mset (N!i)), card_max_lvl M (mset (N!i)))}\<close>
-
-definition add_to_lookup_conflict :: \<open>nat literal \<Rightarrow> conflict_rel \<Rightarrow> conflict_rel\<close> where
-  \<open>add_to_lookup_conflict = (\<lambda>L (n, xs). (if xs ! atm_of L = None then n + 1 else n,
-      xs[atm_of L := Some (is_pos L)]))\<close>
+subsubsection \<open>Lift Operations to State\<close>
 
 context isasat_input_bounded
 begin
 
-paragraph \<open>Unit propagation, body of the inner loop\<close>
+definition polarity_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> bool option\<close> where
+  \<open>polarity_st S = polarity (get_trail_wl S)\<close>
 
+definition polarity_st_heur :: \<open>twl_st_wl_heur_trail_ref \<Rightarrow> _ \<Rightarrow> bool option nres\<close> where
+  \<open>polarity_st_heur = (\<lambda>(M, _) L. polarity_pol M L)\<close>
 
-lemma add_to_lookup_conflict_conflict_rel:
-  assumes confl: \<open>((n, xs), C) \<in> conflict_rel\<close> and uL_C: \<open>-L \<notin># C\<close> and L_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-  shows \<open>(add_to_lookup_conflict L (n, xs), {#L#} \<union># C) \<in> conflict_rel\<close>
-proof -
-  have
-    n: \<open>n = size C\<close> and
-    mset: \<open>mset_as_position xs C\<close> and
-    atm: \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length xs\<close>
-    using confl unfolding conflict_rel_def by blast+
-  have \<open>distinct_mset C\<close>
-    using mset by (blast dest: mset_as_position_distinct_mset)
-  have atm_L_xs: \<open>atm_of L < length xs\<close>
-    using atm L_\<L>\<^sub>a\<^sub>l\<^sub>l by (auto simp: atms_of_def)
-  then show ?thesis
-  proof (cases \<open>L \<in># C\<close>)
-    case True
-    with mset have xs: \<open>xs ! atm_of L = Some (is_pos L)\<close> \<open>xs ! atm_of L \<noteq> None\<close>
-      by (auto dest: mset_as_position_nth)
-    moreover have \<open>{#L#} \<union># C = C\<close>
-      using True by (simp add: subset_mset.sup.absorb2)
-    ultimately show ?thesis
-      using n mset atm True
-      by (auto simp: conflict_rel_def add_to_lookup_conflict_def xs[symmetric])
-  next
-    case False
-    with mset have \<open>xs ! atm_of L = None\<close>
-      using mset_as_position_in_iff_nth[of xs C L]
-       mset_as_position_in_iff_nth[of xs C \<open>-L\<close>]  atm_L_xs uL_C
-      by (cases L; cases \<open>xs ! atm_of L\<close>) auto
-    then show ?thesis
-      using n mset atm False atm_L_xs uL_C
-      by (auto simp: conflict_rel_def add_to_lookup_conflict_def
-          intro!: mset_as_position.intros)
-  qed
-qed
-
-definition is_in_lookup_conflict where
-  \<open>is_in_lookup_conflict = (\<lambda>(n, xs) L. \<not>is_None (xs ! atm_of L))\<close>
-
-sepref_thm is_in_conflict_code
-  is \<open>uncurry (RETURN oo is_in_lookup_conflict)\<close>
-  :: \<open>[\<lambda>((n, xs), L). atm_of L < length xs]\<^sub>a
-       conflict_rel_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> bool_assn\<close>
-  supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp] uint32_nat_assn_one[sepref_fr_rules]
-  image_image[simp]
-  unfolding is_in_lookup_conflict_def
-  by sepref
-
-concrete_definition (in -) is_in_conflict_code
-   uses isasat_input_bounded.is_in_conflict_code.refine_raw
-   is \<open>(uncurry ?f, _) \<in> _\<close>
-
-prepare_code_thms (in -) is_in_conflict_code_def
-
-lemmas is_in_conflict_hnr[sepref_fr_rules] =
-   is_in_conflict_code.refine[OF isasat_input_bounded_axioms]
-
-definition lookup_conflict_merge
-  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clause_l \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow> (conflict_option_rel \<times> nat) nres\<close>
-where
-  \<open>lookup_conflict_merge M D  = (\<lambda>(b, xs) clvls. do {
-     (_, clvls, zs) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i::nat, clvls :: nat, zs). i \<le> length D \<and>
-         length (snd zs) = length (snd xs) \<and>
-             Suc i \<le> uint_max \<and> Suc (fst zs) \<le> uint_max \<and> Suc clvls \<le> uint_max\<^esup>
-       (\<lambda>(i :: nat, clvls, zs). i < length D)
-       (\<lambda>(i :: nat, clvls, zs). do{
-           ASSERT(i < length D);
-           ASSERT(Suc i \<le> uint_max);
-            if get_level M (D!i) = count_decided M \<and> \<not>is_in_lookup_conflict zs (D!i) then
-             RETURN(Suc i, clvls + 1, add_to_lookup_conflict (D!i) zs)
-           else
-             RETURN(Suc i, clvls, add_to_lookup_conflict (D!i) zs)
-           })
-       (0, clvls, xs);
-     RETURN ((False, zs), clvls)
-   })\<close>
-
-definition lookup_conflict_merge_aa :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow> (conflict_option_rel \<times> nat) nres\<close> where
-  \<open>lookup_conflict_merge_aa M C i xs = lookup_conflict_merge M (C ! i) xs\<close>
-
-lemma literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l:
-  assumes
-    N1: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset xs)\<close> and
-    i_xs: \<open>i < length xs\<close>
-  shows \<open>xs ! i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-proof -
-  have \<open>xs ! i \<in># mset xs\<close>
-    using i_xs by auto
-  then have \<open>xs ! i \<in> set_mset (all_lits_of_m (mset xs))\<close>
-    by (auto simp: in_all_lits_of_m_ain_atms_of_iff)
-  then show ?thesis
-    using N1 unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_def by blast
-qed
-
-
-sepref_register lookup_conflict_merge_aa
-sepref_thm lookup_conflict_merge_code
-  is \<open>uncurry4 (PR_CONST lookup_conflict_merge_aa)\<close>
-  :: \<open>[\<lambda>((((M, N), i), (_, xs)), _). i < length N \<and> (\<forall>j<length (N!i). atm_of (N!i!j) < length (snd xs)) \<and>
-        literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N!i))]\<^sub>a
-       trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
-      conflict_option_rel_assn *a uint32_nat_assn\<close>
-  supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp] uint32_nat_assn_one[sepref_fr_rules]
-  image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
-  unfolding lookup_conflict_merge_aa_def lookup_conflict_merge_def add_to_lookup_conflict_def PR_CONST_def
-  nth_rll_def[symmetric] length_rll_def[symmetric]
-  apply (rewrite at \<open>_ + \<hole>\<close> annotate_assn[where A = \<open>uint32_nat_assn\<close>])
+sepref_thm polarity_st_heur_code
+  is \<open>uncurry polarity_st_heur\<close>
+  :: \<open>twl_st_heur_pol_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn\<close>
+  unfolding polarity_st_heur_def twl_st_heur_pol_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) lookup_conflict_merge_code
-   uses isasat_input_bounded.lookup_conflict_merge_code.refine_raw
-   is \<open>(uncurry4 ?f, _) \<in> _\<close>
+concrete_definition (in -) polarity_st_heur_code
+   uses isasat_input_bounded.polarity_st_heur_code.refine_raw
+   is \<open>(uncurry ?f, _)\<in>_\<close>
 
-prepare_code_thms (in -) lookup_conflict_merge_code_def
+prepare_code_thms (in -) polarity_st_heur_code_def
 
-lemmas lookup_conflict_merge_aa_hnr[sepref_fr_rules] =
-   lookup_conflict_merge_code.refine[OF isasat_input_bounded_axioms]
+lemmas polarity_st_heur_code_polarity_refine_code[sepref_fr_rules] =
+   polarity_st_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
-definition lookup_conflict_merge'_step :: \<open>(nat, nat) ann_lits \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> conflict_rel \<Rightarrow> nat clause_l \<Rightarrow>
-      nat clause \<Rightarrow> bool\<close> where
-  \<open>lookup_conflict_merge'_step M i clvls zs D C = (
-      let D' = mset (take i D);
-          E = remdups_mset (D' + (C - D' - image_mset uminus D')) in
-      ((False, zs), Some E) \<in> option_conflict_rel \<and>
-      literals_are_in_\<L>\<^sub>i\<^sub>n E \<and> clvls = card_max_lvl M E)\<close>
-
-lemma mset_as_position_remove:
-  \<open>mset_as_position xs D \<Longrightarrow> L < length xs \<Longrightarrow> mset_as_position (xs[L := None]) (remove1_mset (Pos L) (remove1_mset (Neg L) D))\<close>
-proof (induction rule: mset_as_position.induct)
-  case (empty n)
-  then have [simp]: \<open>replicate n None[L := None] = replicate n None\<close>
-    using list_update_id[of \<open>replicate n None\<close> L] by auto
-  show ?case by (auto intro: mset_as_position.intros)
-next
-  case (add xs P K xs')
-  show ?case
-  proof (cases \<open>L = atm_of K\<close>)
-    case True
-    then show ?thesis
-      using add by (cases K) auto
-  next
-    case False
-    have map: \<open>mset_as_position (xs[L := None]) (remove1_mset (Pos L) (remove1_mset (Neg L) P))\<close>
-      using add by auto
-    have \<open>K \<notin># P - {#Pos L, Neg L#}\<close> \<open>-K \<notin># P - {#Pos L, Neg L#}\<close>
-      by (auto simp: add.hyps dest!: in_diffD)
-    then show ?thesis
-      using mset_as_position.add[OF map, of \<open>K\<close> \<open>xs[L := None, atm_of K := Some (is_pos K)]\<close>]
-        add False list_update_swap[of \<open>atm_of K\<close> L xs] apply simp
-      apply (subst diff_add_mset_swap)
-      by auto
-  qed
-qed
-
-lemma option_conflict_rel_update_None:
-  assumes  \<open>((False, (n, xs)), Some D) \<in> option_conflict_rel\<close> and L_xs : \<open>L < length xs\<close>
-  shows \<open>((False, (if xs!L = None then n else n - 1, xs[L := None])),
-      Some (D - {# Pos L, Neg L #})) \<in> option_conflict_rel\<close>
+lemma polarity_st_heur_code_polarity_st_refine[sepref_fr_rules]:
+  \<open>(uncurry polarity_st_heur_code, uncurry (RETURN oo polarity_st)) \<in>
+     [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a twl_st_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn bool_assn\<close>
 proof -
-  have [simp]: "L \<notin># A \<Longrightarrow> A - add_mset L' (add_mset L B) = A - add_mset L' B"
-    for A B :: \<open>'a multiset\<close> and L L'
-    by (metis add_mset_commute minus_notin_trivial)
-  have "n = size D" and map: "mset_as_position xs D"
-    using assms by (auto simp: option_conflict_rel_def conflict_rel_def)
-  have xs_None_iff: "xs ! L = None \<longleftrightarrow> Pos L \<notin># D \<and> Neg L \<notin># D"
-    using map L_xs mset_as_position_in_iff_nth[of xs D "Pos L"] mset_as_position_in_iff_nth[of xs D "Neg L"]
-    by (cases \<open>xs ! L\<close>) auto
-
-  have 1: \<open>xs ! L = None \<Longrightarrow> D - {#Pos L, Neg L#} = D\<close>
-    using assms by (auto simp: xs_None_iff minus_notin_trivial)
-  have 2: \<open>xs ! L = None \<Longrightarrow> xs[L := None] = xs\<close>
-   using map list_update_id[of xs L] by (auto simp: 1)
-  have 3: \<open>xs ! L = Some y \<longleftrightarrow> (y \<and> Pos L \<in># D \<and> Neg L \<notin># D) \<or> (\<not>y \<and> Pos L \<notin># D \<and> Neg L \<in># D)\<close> for y
-    using map L_xs mset_as_position_in_iff_nth[of xs D "Pos L"] mset_as_position_in_iff_nth[of xs D "Neg L"]
-    by (cases \<open>xs ! L\<close>) auto
-
+  have [simp]: \<open>polarity_atm M (atm_of L) = (if is_pos L then polarity M L else map_option uminus (polarity M L))\<close>
+    if \<open>no_dup M\<close>for M :: \<open>(nat, nat) ann_lits\<close> and L :: \<open>nat literal\<close>
+    by (cases L) (use no_dup_consistentD[of M \<open>Neg (atm_of L)\<close>] that in
+        \<open>auto simp: polarity_atm_def polarity_def Decided_Propagated_in_iff_in_lits_of_l\<close>)
+  have 2: \<open>(uncurry polarity_st_heur, uncurry (RETURN oo polarity_st)) \<in>
+     [\<lambda>(_, L). L \<in> snd ` D\<^sub>0]\<^sub>f twl_st_heur_pol \<times>\<^sub>f Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
+    by (intro nres_relI frefI)
+       (auto simp: trail_pol_def polarity_st_def polarity_pol_def
+        polarity_def polarity_st_heur_def twl_st_heur_pol_def)
   show ?thesis
-    using assms mset_as_position_remove[of xs D L]
-    by (auto simp: option_conflict_rel_def conflict_rel_def 1 2 3 size_remove1_mset_If minus_notin_trivial
-        mset_as_position_remove)
+    using polarity_st_heur_code.refine[FCOMP 2, OF isasat_input_bounded_axioms,
+      unfolded twl_st_heur_assn_assn] .
 qed
 
-lemma lookup_conflict_merge'_spec:
-  assumes
-      o: \<open>((b, n, xs), Some C) \<in> option_conflict_rel\<close> and
-      dist: \<open>distinct D\<close> and
-      lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset D)\<close> and
-      tauto: \<open>\<not>tautology (mset D)\<close> and
-      \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C\<close> and
-      \<open>clvls = card_max_lvl M C\<close>
-  shows \<open>lookup_conflict_merge M D (b, n, xs) clvls \<le> \<Down> (option_conflict_rel \<times>\<^sub>r Id)
-             (RES {(Some (mset D \<union># (C - mset D - uminus `# mset D)),
-              card_max_lvl M (mset D \<union># (C - mset D - uminus `# mset D)))})\<close>
+
+definition (in -) get_conflict_wl_is_None_heur :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+  \<open>get_conflict_wl_is_None_heur = (\<lambda>(M, N, U, D, Q, W, _). is_None D)\<close>
+
+lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None:
+    \<open>(RETURN o get_conflict_wl_is_None_heur,  RETURN o get_conflict_wl_is_None) \<in>
+    twl_st_heur \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  apply (rename_tac x y, case_tac x, case_tac y)
+  by (auto simp: twl_st_heur_def get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def
+     split: option.splits)
+
+sepref_thm get_conflict_wl_is_None_code
+  is \<open>RETURN o get_conflict_wl_is_None_heur\<close>
+  :: \<open>twl_st_heur_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding get_conflict_wl_is_None_heur_def twl_st_heur_assn_def length_ll_def[symmetric]
+  supply [[goals_limit=1]]
+  by sepref
+
+concrete_definition (in -) get_conflict_wl_is_None_code
+   uses isasat_input_bounded.get_conflict_wl_is_None_code.refine_raw
+   is \<open>(?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) get_conflict_wl_is_None_code_def
+
+lemmas get_conflict_wl_is_None_code_refine[sepref_fr_rules] =
+   get_conflict_wl_is_None_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
+lemma get_conflict_wl_is_None_code_get_conflict_wl_is_None[sepref_fr_rules]:
+  \<open>(get_conflict_wl_is_None_code, RETURN o get_conflict_wl_is_None) \<in>
+     twl_st_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  using get_conflict_wl_is_None_code_refine[FCOMP get_conflict_wl_is_None_heur_get_conflict_wl_is_None]
+  unfolding twl_st_assn_def by fast
+
+
+definition count_decided_st where
+  \<open>count_decided_st = (\<lambda>(M, _). count_decided M)\<close>
+
+sepref_thm count_decided_st_code
+  is \<open>RETURN o count_decided_st\<close>
+  :: \<open>twl_st_heur_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  supply [[goals_limit=2]]
+  unfolding count_decided_st_def twl_st_heur_assn_def
+  by sepref
+
+concrete_definition (in -) count_decided_st_code
+  uses isasat_input_bounded.count_decided_st_code.refine_raw
+  is \<open>(?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) count_decided_st_code_def
+
+lemmas count_decided_st_code_refine[sepref_fr_rules] =
+   count_decided_st_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
+lemma count_decided_st_count_decided_st:
+  \<open>(RETURN o count_decided_st, RETURN o count_decided_st) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+     (auto simp: count_decided_st_def twl_st_heur_def)
+
+lemma count_decided_refine[sepref_fr_rules]:
+  \<open>(count_decided_st_code, RETURN \<circ> count_decided_st) \<in> twl_st_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  using count_decided_st_code_refine[FCOMP count_decided_st_count_decided_st]
+  unfolding twl_st_assn_def
+  .
+
+lemma count_decided_st_alt_def: \<open>count_decided_st S = count_decided (get_trail_wl S)\<close>
+  unfolding count_decided_st_def
+  by (cases S) auto
+
+
+definition (in -)literal_is_in_conflict :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>literal_is_in_conflict L S \<longleftrightarrow> L \<in># the (get_conflict_wl S)\<close>
+
+definition literal_is_in_conflict_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> bool\<close> where
+  \<open>literal_is_in_conflict_heur = (\<lambda>L (M, N, U, D, _). L \<in># the D)\<close>
+
+lemma literal_is_in_conflict_heur_literal_is_in_conflict:
+  \<open>(uncurry (RETURN oo literal_is_in_conflict_heur), uncurry (RETURN oo literal_is_in_conflict)) \<in>
+   Id \<times>\<^sub>r twl_st_heur \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
+  apply (intro frefI nres_relI)
+  apply (case_tac x, case_tac y)
+  by (auto simp: literal_is_in_conflict_heur_def literal_is_in_conflict_def twl_st_heur_def)
+
+sepref_thm literal_is_in_conflict_heur_code
+  is \<open>uncurry (RETURN oo literal_is_in_conflict_heur)\<close>
+  :: \<open>[\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl_heur S)) \<and> get_conflict_wl_heur S \<noteq> None]\<^sub>a
+      unat_lit_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>k  \<rightarrow> bool_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding literal_is_in_conflict_heur_def twl_st_heur_assn_def is_in_conflict_def[symmetric]
+  PR_CONST_def
+  by sepref
+
+concrete_definition (in -) literal_is_in_conflict_heur_code
+   uses isasat_input_bounded.literal_is_in_conflict_heur_code.refine_raw
+   is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) literal_is_in_conflict_heur_code_def
+
+lemmas literal_is_in_conflict_heur_code_refine[sepref_fr_rules] =
+   literal_is_in_conflict_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
+lemma literal_is_in_conflict_heur_code_literal_is_in_conflict[sepref_fr_rules]:
+  \<open>(uncurry literal_is_in_conflict_heur_code,
+     uncurry (RETURN oo literal_is_in_conflict)) \<in>
+    [\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl S)) \<and> get_conflict_wl S \<noteq> None]\<^sub>a
+      unat_lit_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>k  \<rightarrow> bool_assn\<close>
+  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
-  have le_D_le_upper[simp]: \<open>a < length D \<Longrightarrow> Suc (Suc a) \<le> uint_max\<close> for a
-    using simple_clss_size_upper_div2[of \<open>mset D\<close>] assms by (auto simp: uint_max_def)
-  have Suc_N_uint_max: \<open>Suc n \<le> uint_max\<close> and
-     size_C_uint_max: \<open>size C \<le> 1 + uint_max div 2\<close> and
-     clvls: \<open>clvls = card_max_lvl M C\<close> and
-     tauto_C: \<open>\<not> tautology C\<close> and
-     dist_C: \<open>distinct_mset C\<close> and
-     atms_le_xs: \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length xs\<close> and
-     map: \<open>mset_as_position xs C\<close>
-    using assms simple_clss_size_upper_div2[of C] mset_as_position_distinct_mset[of xs C]
-      conflict_rel_not_tautolgy[of n xs C]
-    unfolding option_conflict_rel_def conflict_rel_def
-    by (auto simp: uint_max_def)
-  then have clvls_uint_max: \<open>clvls \<le> 1 + uint_max div 2\<close>
-    using size_filter_mset_lesseq[of \<open>\<lambda>L. get_level M L = count_decided M\<close> C]
-    unfolding uint_max_def card_max_lvl_def by linarith
-  have [intro]: \<open>((b, a, ba), Some C) \<in> option_conflict_rel \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n C \<Longrightarrow>
-        Suc (Suc a) \<le> uint_max\<close> for b a ba C
-    using conflict_rel_size[of a ba C] by (auto simp: option_conflict_rel_def
-        conflict_rel_def uint_max_def)
-  have [simp]: \<open>remdups_mset C = C\<close>
-    using o mset_as_position_distinct_mset[of xs C] by (auto simp: option_conflict_rel_def conflict_rel_def
-        distinct_mset_remdups_mset_id)
-  have \<open>\<not>tautology C\<close>
-    using mset_as_position_tautology o by (auto simp: option_conflict_rel_def
-        conflict_rel_def)
-  have \<open>distinct_mset C\<close>
-    using mset_as_position_distinct_mset[of _ C] o
-    unfolding option_conflict_rel_def conflict_rel_def by auto
-  let ?C' = \<open>\<lambda>a. mset (take a D) + (C - (mset (take a D) + uminus `# mset (take a D)))\<close>
-  have tauto_C': \<open>\<not> tautology (?C' a)\<close> for a
-    using tauto tauto_C dist dist_C unfolding tautology_decomp'
-    by (auto dest: in_set_takeD in_diffD simp: distinct_mset_in_diff in_image_uminus_uminus)
-
-  define I where
-     \<open>I xs = (\<lambda>(i, clvls, zs :: conflict_rel).
-                     i \<le> length D \<and>
-                     length (snd zs) =
-                     length (snd xs) \<and>
-                     Suc i \<le> uint_max \<and>
-                     Suc (fst zs) \<le> uint_max \<and>
-                     Suc clvls \<le> uint_max)\<close>
-   for xs :: conflict_rel
-  define I' where \<open>I' = (\<lambda>(i, clvls, zs). lookup_conflict_merge'_step M i clvls zs D C)\<close>
-  have
-    if_True_I: \<open>I x2 (Suc a, aa + 1, add_to_lookup_conflict (D ! a) baa)\<close> (is ?I) and
-    if_true_I': \<open>I' (Suc a, aa + 1, add_to_lookup_conflict (D ! a) baa)\<close> (is ?I')
-    if
-      I: \<open>I x2 s\<close> and
-      I': \<open>I' s\<close> and
-      \<open>case s of (i, clvls, zs) \<Rightarrow> i < length D\<close> and
-      s: \<open>s = (a, ba)\<close> \<open>ba = (aa, baa)\<close> \<open>(b, n, xs) = (x1, x2)\<close> and
-      a_le_D: \<open>a < length D\<close> and
-      a_uint_max: \<open>Suc a \<le> uint_max\<close> and
-      if_cond: \<open>get_level M (D ! a) = count_decided M \<and> \<not> is_in_lookup_conflict baa (D ! a)\<close>
-    for x1 x2 s a ba aa baa
-  proof -
-    have [simp]:
-      \<open>s = (a, aa, baa)\<close>
-      \<open>ba = (aa, baa)\<close>
-      \<open>x2 = (n, xs)\<close>
-      using s by auto
-    obtain ab b where baa[simp]: \<open>baa = (ab, b)\<close> by (cases baa)
-
-    have aa: \<open>aa = card_max_lvl M (remdups_mset (?C' a))\<close> and
-      ocr: \<open>((False, ab, b), Some (remdups_mset (?C' a))) \<in> option_conflict_rel\<close> and
-      lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (remdups_mset (?C' a))\<close>
-      using I'
-      unfolding I'_def lookup_conflict_merge'_step_def Let_def
-      by auto
-    have
-      ab: \<open>ab = size (remdups_mset (?C' a))\<close> and
-      map: \<open>mset_as_position b (remdups_mset (?C' a))\<close> and
-      \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length b\<close> and
-      cr: \<open>((ab, b), remdups_mset (?C' a)) \<in> conflict_rel\<close>
-      using ocr unfolding option_conflict_rel_def conflict_rel_def
-      by auto
-
-    have \<open>size (card_max_lvl M (remdups_mset (?C' a))) \<le> size (remdups_mset (?C' a))\<close>
-      unfolding card_max_lvl_def
-      by auto
-    then have [simp]: \<open>Suc (Suc aa) \<le> uint_max\<close>
-      using size_C_uint_max lits
-      simple_clss_size_upper_div2[of \<open>remdups_mset (?C' a)\<close>]
-      unfolding uint_max_def aa[symmetric]
-      by (auto simp: tauto_C')
-    have [simp]: \<open>length b = length xs\<close> and
-      \<open>a \<le> length D\<close>
-      using I unfolding I_def by simp_all
-
-    have ab_upper: \<open>Suc (Suc ab) \<le> uint_max\<close>
-      using simple_clss_size_upper_div2[of \<open>remdups_mset (?C' a)\<close>]
-      conflict_rel_not_tautolgy[OF cr] a_le_D lits mset_as_position_distinct_mset[OF map]
-      unfolding ab literals_are_in_\<L>\<^sub>i\<^sub>n_remdups uint_max_def by auto
-    show ?I
-      using le_D_le_upper a_le_D ab_upper
-      unfolding I_def add_to_lookup_conflict_def baa by auto
-    have take_Suc_a[simp]: \<open>take (Suc a) D = take a D @ [D ! a]\<close>
-      using take_Suc_conv_app_nth[OF a_le_D] .
-    have [simp]: \<open>D ! a \<notin> set (take a D)\<close> \<open>- D ! a \<notin> set (take a D)\<close>
-      using dist tauto apply (subst (asm) append_take_drop_id[symmetric, of _ \<open>Suc a\<close>]; auto)
-      using tauto apply (subst (asm) append_take_drop_id[symmetric, of _ \<open>Suc a\<close>])
-      unfolding mset_append take_Suc_a by (auto simp: tautology_add_mset)
-    have D_a_notin: \<open>D ! a \<notin># (mset (take a D) + uminus `# mset (take a D))\<close>
-      by (auto simp: uminus_lit_swap[symmetric])
-    have uD_a_notin: \<open>-D ! a \<notin># (mset (take a D) + uminus `# mset (take a D))\<close>
-      by (auto simp: uminus_lit_swap[symmetric])
-
-    have [simp]: \<open>D ! a \<notin># C\<close> \<open>-D ! a \<notin># C\<close> \<open>b ! atm_of (D ! a) = None\<close>
-      using if_cond mset_as_position_nth[OF map, of \<open>D ! a\<close>]
-        if_cond mset_as_position_nth[OF map, of \<open>-D ! a\<close>] D_a_notin uD_a_notin
-      by (auto simp: is_in_lookup_conflict_def  split: option.splits bool.splits
-          dest: in_diffD)
-    have [simp]: \<open>atm_of (D ! a) < length xs\<close> \<open>D ! a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-      using literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset D)\<close> a_le_D] atms_le_xs
-      by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-
-    have ocr: \<open>((False, add_to_lookup_conflict (D ! a) (ab, b)), Some (remdups_mset (?C' (Suc a))))
-        \<in> option_conflict_rel\<close>
-      using ocr D_a_notin uD_a_notin
-      unfolding option_conflict_rel_def conflict_rel_def add_to_lookup_conflict_def
-      by (auto dest: in_diffD simp: minus_notin_trivial
-          intro!: mset_as_position.intros)
-
-    show ?I'
-      using D_a_notin uD_a_notin ocr lits if_cond
-      unfolding I'_def lookup_conflict_merge'_step_def Let_def
-      by (auto simp: minus_notin_trivial literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
-          card_max_lvl_add_mset aa)
-  qed
-  have uL_C_if_L_C: \<open>-L \<notin># C\<close> if \<open>L \<in># C\<close> for L
-    using tauto_C that unfolding tautology_decomp' by blast
-  have
-    if_False_I: \<open>I x2 (Suc a, aa, add_to_lookup_conflict (D ! a) baa)\<close> (is ?I) and
-    if_False_I': \<open>I' (Suc a, aa, add_to_lookup_conflict (D ! a) baa)\<close> (is ?I')
-    if
-      I: \<open>I x2 s\<close> and
-      I': \<open>I' s\<close> and
-      \<open>case s of (i, clvls, zs) \<Rightarrow> i < length D\<close> and
-      s: \<open>s = (a, ba)\<close> \<open>ba = (aa, baa)\<close> \<open>(b, n, xs) = (x1, x2)\<close> and
-      a_le_D: \<open>a < length D\<close> and
-      a_uint_max: \<open>Suc a \<le> uint_max\<close> and
-      if_cond: \<open>\<not>(get_level M (D ! a) = count_decided M \<and> \<not> is_in_lookup_conflict baa (D ! a))\<close>
-    for x1 x2 s a ba aa baa
-  proof -
-    have [simp]:
-      \<open>s = (a, aa, baa)\<close>
-      \<open>ba = (aa, baa)\<close>
-      \<open>x2 = (n, xs)\<close>
-      using s by auto
-    obtain ab b where baa[simp]: \<open>baa = (ab, b)\<close> by (cases baa)
-
-    have aa: \<open>aa = card_max_lvl M (remdups_mset (?C' a))\<close> and
-      ocr: \<open>((False, ab, b), Some (remdups_mset (?C' a))) \<in> option_conflict_rel\<close> and
-      lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (remdups_mset (?C' a))\<close>
-      using I'
-      unfolding I'_def lookup_conflict_merge'_step_def Let_def
-      by auto
-    have
-      ab: \<open>ab = size (remdups_mset (?C' a))\<close> and
-      map': \<open>mset_as_position b (remdups_mset (?C' a))\<close> and
-      \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length b\<close> and
-      cr: \<open>((ab, b), remdups_mset (?C' a)) \<in> conflict_rel\<close>
-      using ocr unfolding option_conflict_rel_def conflict_rel_def
-      by auto
-
-    have \<open>size (card_max_lvl M (remdups_mset (?C' a))) \<le> size (remdups_mset (?C' a))\<close>
-      unfolding card_max_lvl_def
-      by auto
-    then have Suc_Suc_aa: \<open>Suc (Suc aa) \<le> uint_max\<close>
-      using size_C_uint_max lits
-      simple_clss_size_upper_div2[of \<open>remdups_mset (?C' a)\<close>]
-      unfolding uint_max_def aa[symmetric]
-      by (auto simp: tauto_C')
-    have [simp]: \<open>length b = length xs\<close> and
-      \<open>a \<le> length D\<close>
-      using I unfolding I_def by simp_all
-
-    have ab_upper: \<open>Suc (Suc ab) \<le> uint_max\<close>
-      using simple_clss_size_upper_div2[of \<open>remdups_mset (?C' a)\<close>]
-      conflict_rel_not_tautolgy[OF cr] a_le_D lits mset_as_position_distinct_mset[OF map']
-      unfolding ab literals_are_in_\<L>\<^sub>i\<^sub>n_remdups uint_max_def by auto
-    show ?I
-      using a_le_D ab_upper Suc_Suc_aa
-      unfolding I_def add_to_lookup_conflict_def baa by auto
-    have take_Suc_a[simp]: \<open>take (Suc a) D = take a D @ [D ! a]\<close>
-      using take_Suc_conv_app_nth[OF a_le_D] .
-    have Da_take[simp]: \<open>D ! a \<notin> set (take a D)\<close> \<open>- D ! a \<notin> set (take a D)\<close>
-      using dist tauto apply (subst (asm) append_take_drop_id[symmetric, of _ \<open>Suc a\<close>]; auto)
-      using tauto apply (subst (asm) append_take_drop_id[symmetric, of _ \<open>Suc a\<close>])
-      unfolding mset_append take_Suc_a by (auto simp: tautology_add_mset)
-    have D_a_notin: \<open>D ! a \<notin># (mset (take a D) + uminus `# mset (take a D))\<close>
-      by (auto simp: uminus_lit_swap[symmetric])
-    have uD_a_notin: \<open>-D ! a \<notin># (mset (take a D) + uminus `# mset (take a D))\<close>
-      by (auto simp: uminus_lit_swap[symmetric])
-
-    have atm_D_a_le_xs: \<open>atm_of (D ! a) < length xs\<close> \<open>D ! a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-      using literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset D)\<close> a_le_D] atms_le_xs
-      by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-    have [simp]: \<open>D ! a \<notin># C - add_mset (- D ! a)
-             (add_mset (D ! a)
-               (mset (take a D) + uminus `# mset (take a D)))\<close>
-      using dist_C in_diffD[of \<open>D ! a\<close> C \<open>add_mset (- D ! a)
-               (mset (take a D) + uminus `# mset (take a D))\<close>,
-          THEN multi_member_split]
-      by (meson distinct_mem_diff_mset member_add_mset)
-
-    consider
-       (None) \<open>b ! atm_of (D ! a) = None\<close> |
-       (SomeT) \<open>b ! atm_of (D ! a) = Some True\<close> |
-       (SomeF) \<open>b ! atm_of (D ! a) = Some False\<close>
-      by (cases \<open>b ! atm_of (D ! a)\<close>) auto
-    then have ocr: \<open>((False, add_to_lookup_conflict (D ! a) (ab, b)), Some (remdups_mset (?C' (Suc a))))
-      \<in> option_conflict_rel\<close>
-    proof cases
-      case [simp]: None
-      have [simp]: \<open>D ! a \<notin># C\<close> \<open>-D ! a \<notin># C\<close>
-        using if_cond mset_as_position_nth[OF map', of \<open>D ! a\<close>]
-          if_cond mset_as_position_nth[OF map', of \<open>-D ! a\<close>] D_a_notin uD_a_notin
-        by (auto simp: is_in_lookup_conflict_def split: option.splits bool.splits
-            dest: in_diffD)
-      have [simp]: \<open>atm_of (D ! a) < length xs\<close> \<open>D ! a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-        using literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset D)\<close> a_le_D] atms_le_xs
-        by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-
-      show ocr: \<open>((False, add_to_lookup_conflict (D ! a) (ab, b)), Some (remdups_mset (?C' (Suc a)))) \<in> option_conflict_rel\<close>
-        using ocr D_a_notin uD_a_notin
-        unfolding option_conflict_rel_def conflict_rel_def add_to_lookup_conflict_def
-        by (auto dest: in_diffD simp: minus_notin_trivial
-            intro!: mset_as_position.intros)
-    next
-      case SomeT
-      have atm_Da_le: \<open>atm_of (D ! a) < length xs\<close> \<open>D ! a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-        using literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset D)\<close> a_le_D] atms_le_xs
-        by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-      define Da where
-        \<open>Da = Pos (atm_of (D ! a))\<close>
-      have uDa_C:  \<open>-Da \<notin># C\<close> and DaC: \<open>Da \<in># C\<close>
-        using if_cond mset_as_position_in_iff_nth[OF map', of \<open>D ! a\<close>] SomeT
-          if_cond mset_as_position_in_iff_nth[OF map', of \<open>-D ! a\<close>] D_a_notin uD_a_notin atm_Da_le
-        by (cases \<open>D!a\<close>; auto simp: is_in_lookup_conflict_def is_pos_neg_not_is_pos Da_def
-            split: option.splits bool.splits
-            dest: in_diffD)+
-      have [simp]: \<open>add_mset (- D ! a) (add_mset (D ! a) E) =  add_mset (- Da) (add_mset (Da) E)\<close> for E
-        by (cases \<open>D!a\<close>; auto simp: is_in_lookup_conflict_def is_pos_neg_not_is_pos Da_def
-            split: option.splits bool.splits
-            dest: in_diffD)+
-      have \<open>D ! a = Da \<or> D ! a = -Da\<close>
-        by (cases \<open>D ! a\<close>) (auto simp: Da_def)
-      obtain C' where C': \<open>C = add_mset Da C'\<close>
-        using multi_member_split[OF DaC] by blast
-      have [simp]: \<open>- Da \<notin># C'\<close> \<open>D ! a \<notin># C'\<close> \<open>Da \<notin># C'\<close> \<open>-D ! a \<notin># C'\<close>
-        using uL_C_if_L_C[of \<open>D ! a\<close>] uL_C_if_L_C[of \<open>D ! a\<close>] C' dist_C unfolding Da_def
-        by (cases \<open>D ! a\<close>; auto simp: Da_def)+
-      have [simp]: \<open>atm_of (D ! a) = atm_of Da\<close>
-        by (cases \<open>D ! a\<close>; auto simp: Da_def)+
-
-      have [simp]: \<open>Da \<notin> set (take a D)\<close> \<open>Da \<notin> uminus ` set (take a D)\<close>
-        \<open>- Da \<notin> set (take a D) \<close> \<open>-Da \<notin>  uminus ` set (take a D)\<close>
-        using D_a_notin uD_a_notin
-        by (cases \<open>D ! a\<close>; auto simp: Da_def)+
-      have [simp]: \<open>{#Pos (atm_of Da), Neg (atm_of Da)#} = {#Da, - Da#}\<close>
-        by (cases \<open>D ! a\<close>; auto simp: Da_def)+
-
-      have map'': \<open>mset_as_position (b[atm_of Da := None])
-          (remdups_mset (mset (take a D) + (C' - (mset (take a D) + uminus `# mset (take a D)))))\<close>
-        using mset_as_position_remove[of b _ \<open>atm_of Da\<close>, OF map'] atm_Da_le
-        by (auto simp: C')
-
-      have map'':\<open>mset_as_position (b[atm_of Da := Some (is_pos (D ! a))])
-        (add_mset (D ! a) (remdups_mset (mset (take a D) + (C' - (mset (take a D) + uminus `# mset (take a D))))))\<close>
-        apply (rule mset_as_position.add[OF map''])
-        subgoal using atm_Da_le by simp
-        subgoal using dist_C by (auto simp: C' distinct_mset_in_diff)
-        subgoal using dist_C by (auto simp: C' distinct_mset_in_diff)
-        subgoal by auto
-        done
-      show ?thesis
-        using uDa_C SomeT dist_C  map'' atms_le_xs
-        unfolding option_conflict_rel_def conflict_rel_def add_to_lookup_conflict_def ab Da_def[symmetric] C'
-        by (auto dest:  simp: distinct_mset_in_diff minus_notin_trivial
-            intro: mset_as_position.intros)
-    next
-      case SomeF
-      have atm_Da_le: \<open>atm_of (D ! a) < length xs\<close> \<open>D ! a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-        using literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset D)\<close> a_le_D] atms_le_xs
-        by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-      define Da where
-        \<open>Da = Neg (atm_of (D ! a))\<close>
-      have uDa_C:  \<open>-Da \<notin># C\<close> and DaC: \<open>Da \<in># C\<close>
-        using if_cond mset_as_position_in_iff_nth[OF map', of \<open>D ! a\<close>] SomeF
-          if_cond mset_as_position_in_iff_nth[OF map', of \<open>-D ! a\<close>] D_a_notin uD_a_notin atm_Da_le
-        by (cases \<open>D!a\<close>; auto simp: is_in_lookup_conflict_def is_pos_neg_not_is_pos Da_def
-            split: option.splits bool.splits
-            dest: in_diffD)+
-      have [simp]: \<open>add_mset (- D ! a) (add_mset (D ! a) E) =  add_mset (- Da) (add_mset (Da) E)\<close> for E
-        by (cases \<open>D!a\<close>; auto simp: is_in_lookup_conflict_def is_pos_neg_not_is_pos Da_def
-            split: option.splits bool.splits
-            dest: in_diffD)+
-      have \<open>D ! a = Da \<or> D ! a = -Da\<close>
-        by (cases \<open>D ! a\<close>) (auto simp: Da_def)
-      obtain C' where C': \<open>C = add_mset Da C'\<close>
-        using multi_member_split[OF DaC] by blast
-      have [simp]: \<open>- Da \<notin># C'\<close> \<open>D ! a \<notin># C'\<close> \<open>Da \<notin># C'\<close> \<open>-D ! a \<notin># C'\<close>
-        using uL_C_if_L_C[of \<open>D ! a\<close>] uL_C_if_L_C[of \<open>D ! a\<close>] C' dist_C unfolding Da_def
-        by (cases \<open>D ! a\<close>; auto simp: Da_def)+
-      have [simp]: \<open>atm_of (D ! a) = atm_of Da\<close>
-        by (cases \<open>D ! a\<close>; auto simp: Da_def)+
-
-      have [simp]: \<open>Da \<notin> set (take a D)\<close> \<open>Da \<notin> uminus ` set (take a D)\<close>
-        \<open>- Da \<notin> set (take a D) \<close> \<open>-Da \<notin>  uminus ` set (take a D)\<close>
-        using D_a_notin uD_a_notin
-        by (cases \<open>D ! a\<close>; auto simp: Da_def)+
-      have [simp]: \<open>{#Pos (atm_of Da), Neg (atm_of Da)#} = {#Da, - Da#}\<close>
-        by (cases \<open>D ! a\<close>; auto simp: Da_def)+
-
-      have map'': \<open>mset_as_position (b[atm_of Da := None])
-          (remdups_mset (mset (take a D) + (C' - (mset (take a D) + uminus `# mset (take a D)))))\<close>
-        using mset_as_position_remove[of b _ \<open>atm_of Da\<close>, OF map'] atm_Da_le
-        by (auto simp: C')
-
-      have map'':\<open>mset_as_position (b[atm_of Da := Some (is_pos (D ! a))])
-        (add_mset (D ! a) (remdups_mset (mset (take a D) +
-          (C' - (mset (take a D) + uminus `# mset (take a D))))))\<close>
-        apply (rule mset_as_position.add[OF map''])
-        subgoal using atm_Da_le by simp
-        subgoal using dist_C by (auto simp: C' distinct_mset_in_diff)
-        subgoal using dist_C by (auto simp: C' distinct_mset_in_diff)
-        subgoal by auto
-        done
-      show ?thesis
-        using uDa_C SomeF dist_C  map'' atms_le_xs
-        unfolding option_conflict_rel_def conflict_rel_def add_to_lookup_conflict_def ab Da_def[symmetric] C'
-        by (auto dest:  simp: distinct_mset_in_diff minus_notin_trivial
-            intro: mset_as_position.intros)
-    qed
-    have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n
-     ((mset (take a D) +
-      (C -
-       add_mset (- D ! a)
-        (add_mset (D ! a)
-          (mset (take a D) + uminus `# mset (take a D))))))\<close>
-      by (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mono[OF lits[unfolded literals_are_in_\<L>\<^sub>i\<^sub>n_remdups]])
-         (auto simp: diff_le_mono2_mset)
-    moreover {
-      have K: \<open>D ! a = Neg L \<Longrightarrow>is_in_lookup_conflict (ab, b) (Neg L) \<Longrightarrow> L < length xs  \<Longrightarrow>
-          Pos L \<notin># C \<Longrightarrow> Neg L \<notin># C \<Longrightarrow> False\<close>
-        for L
-      using  mset_as_position_in_iff_nth[OF map', of \<open>Pos L\<close>] that
-        mset_as_position_in_iff_nth[OF map', of \<open>Neg L\<close>] Da_take
-      by (cases \<open>D ! a\<close>)
-       (auto simp: is_in_lookup_conflict_def dist_C distinct_mset_in_diff
-          split: option.splits bool.splits
-          dest: in_diffD)
-      have K': \<open>D ! a = Pos L \<Longrightarrow>is_in_lookup_conflict (ab, b) (Pos L) \<Longrightarrow> L < length xs  \<Longrightarrow>
-          Pos L \<notin># C \<Longrightarrow> Neg L \<notin># C \<Longrightarrow> False\<close>
-        for L
-      using  mset_as_position_in_iff_nth[OF map', of \<open>Pos L\<close>] that
-        mset_as_position_in_iff_nth[OF map', of \<open>Neg L\<close>] Da_take
-      by (cases \<open>D ! a\<close>)
-       (auto simp: is_in_lookup_conflict_def dist_C distinct_mset_in_diff
-          split: option.splits bool.splits
-          dest: in_diffD)
-      have \<open>card_max_lvl M (remdups_mset (?C' a)) = card_max_lvl M (remdups_mset (?C' (Suc a)))\<close>
-      apply (rule card_max_lvl_distinct_cong)
-      subgoal for L
-        apply (cases \<open>D ! a\<close>)
-        supply get_level_uminus[of M \<open>Pos L\<close>, simplified, simp]
-        using if_cond \<open>D ! a \<notin> set (take a D)\<close> \<open>- D ! a \<notin> set (take a D)\<close>
-          get_level_uminus[of M \<open>Pos L\<close>, simplified]
-        by (auto simp: distinct_mset_in_diff dist_C image_Un atm_of_notin_atms_of_iff
-            atm_iff_pos_or_neg_lit uminus_lit_swap eq_commute[of \<open>Neg _\<close> \<open>- _\<close>]
-             eq_commute[of \<open>Pos _\<close> \<open>- _\<close>])
-      subgoal for L
-        apply (cases \<open>D ! a\<close>)
-        supply get_level_uminus[of M \<open>Pos L\<close>, simplified, simp]
-        using if_cond \<open>D ! a \<notin> set (take a D)\<close> \<open>- D ! a \<notin> set (take a D)\<close>
-          get_level_uminus[of M \<open>Pos L\<close>, simplified] atm_D_a_le_xs K[of L] K'[of L]
-        apply (auto split: )
-        apply (auto simp: distinct_mset_in_diff dist_C image_Un atm_of_notin_atms_of_iff
-            atm_iff_pos_or_neg_lit uminus_lit_swap eq_commute[of \<open>Neg _\<close> \<open>- _\<close>]
-             eq_commute[of \<open>Pos _\<close> \<open>- _\<close>])
-        done
-      subgoal by simp
-      subgoal using map' mset_as_position_tautology by blast
-      subgoal by simp
-      subgoal using ocr unfolding option_conflict_rel_def conflict_rel_def
-        by (auto dest!: mset_as_position_tautology)
-      done }
-    ultimately show ?I'
-      using D_a_notin uD_a_notin ocr lits if_cond atm_D_a_le_xs
-      unfolding I'_def lookup_conflict_merge'_step_def Let_def
-      by (auto simp: minus_notin_trivial literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
-          card_max_lvl_add_mset aa)
-  qed
-
-  have dist_D: \<open>distinct_mset (mset D)\<close>
-    using dist by auto
-  have dist_CD: \<open>distinct_mset (C - mset D - uminus `# mset D)\<close>
-    using \<open>distinct_mset C\<close> by auto
-  have confl: \<open>lookup_conflict_merge M D (b, n, xs) clvls
-    \<le> \<Down> (option_conflict_rel \<times>\<^sub>r Id)
-       (RES {(Some (mset D \<union># (C - mset D - uminus `# mset D)),
-              card_max_lvl M (mset D \<union># (C - mset D - uminus `# mset D)))})\<close>
-    unfolding lookup_conflict_merge_aa_def lookup_conflict_merge_def PR_CONST_def
-    distinct_mset_rempdups_union_mset[OF dist_D dist_CD] I_def[symmetric] conc_fun_SPEC
-    apply (refine_vcg WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(j, _). length D - j)\<close> and
-          I' = I'])
-    subgoal by auto
-    subgoal using clvls_uint_max Suc_N_uint_max unfolding uint_max_def I_def by auto
-    subgoal using assms
-      unfolding lookup_conflict_merge'_step_def Let_def option_conflict_rel_def I'_def
-      by (auto simp add: uint_max_def lookup_conflict_merge'_step_def option_conflict_rel_def)
-    subgoal by auto
-    subgoal unfolding I_def by fast
-    subgoal by (rule if_True_I)
-    subgoal by (rule if_true_I')
-    subgoal for b' n' s j zs
-      using dist lits tauto
-      by (auto simp: option_conflict_rel_def take_Suc_conv_app_nth
-          literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l)
-    subgoal by (rule if_False_I)
-    subgoal by (rule if_False_I')
-    subgoal by auto
-    subgoal using assms by (auto simp: option_conflict_rel_def lookup_conflict_merge'_step_def Let_def
-          I_def I'_def)
-    done
-  have count_D: \<open>count (mset D) a = 1 \<or> count (mset D) a = 0\<close> for a
-    using dist_D unfolding distinct_mset_def by auto
-  have count_C: \<open>count C a = 1 \<or> count C a = 0\<close> for a
-    using \<open>distinct_mset C\<close> unfolding distinct_mset_def by auto
-  have \<open>mset D \<union># (C - mset D - image_mset uminus (mset D)) =
-      mset D \<union># (C - image_mset uminus (mset D))\<close>
-    apply (rule multiset_eqI)
-    subgoal for a
-      using count_D[of a] count_C[of a] by (auto simp: max_def)
-    done
-  then show ?thesis
-    using confl by simp
-qed
-
-lemma lookup_conflict_merge_aa_set_conflict:
-  \<open>(uncurry4 lookup_conflict_merge_aa, uncurry4 conflict_merge) \<in>
-    [\<lambda>((((M, N), i), xs), clvls). i < length N \<and> xs = None \<and> distinct (N ! i) \<and>
-       literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N ! i)) \<and> \<not>tautology (mset (N ! i)) \<and> clvls = 0]\<^sub>f
-    \<langle>Id\<rangle>list_rel \<times>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f option_conflict_rel \<times>\<^sub>f nat_rel \<rightarrow>
-      \<langle>option_conflict_rel \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
-proof -
-  have [simp]: \<open>\<not>tautology (mset C) \<Longrightarrow> j < length C \<Longrightarrow> -C ! j \<notin> set (take j C)\<close> for j C
-    by (meson in_multiset_in_set in_set_takeD nth_mem_mset tautology_minus)
-  have [simp]: \<open>distinct C \<Longrightarrow> j < length C \<Longrightarrow> C ! j \<notin> set (take j C)\<close> for j C
-    by (simp add: index_nth_id index_take)
-  have H: \<open>lookup_conflict_merge_aa M N i (b, n, xs) clvls \<le> \<Down> (option_conflict_rel \<times>\<^sub>r nat_rel)
-      (conflict_merge M N i None clvls)\<close>
-    if
-      \<open>i < length N\<close> and
-      ocr: \<open>((b, n, xs), None) \<in> option_conflict_rel\<close> and
-     dist: \<open>distinct (N! i)\<close> and
-     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N ! i))\<close> and
-     tauto: \<open>\<not>tautology (mset (N ! i))\<close> and
-     \<open>clvls = 0\<close>
-    for b n xs N i M clvls
-  proof -
-    have [simp]: \<open>remdups_mset (mset (N ! i)) = mset (N!i)\<close>
-      using distinct_mset_remdups_mset_id[of \<open>mset (N!i)\<close>] dist by auto
-    have lookup_conflict_merge_normalise: \<open>lookup_conflict_merge M C (b, zs) = lookup_conflict_merge M C (False, zs)\<close>
-      for M C zs
-      unfolding lookup_conflict_merge_def by auto
-    have T: \<open>((False, n, xs), Some {#}) \<in> option_conflict_rel\<close>
-      using ocr unfolding option_conflict_rel_def by auto
-    then show ?thesis unfolding lookup_conflict_merge_aa_def conflict_merge_def
-      using lookup_conflict_merge'_spec[of False n xs \<open>{#}\<close> \<open>N!i\<close>] that dist
-      by (auto simp: lookup_conflict_merge_normalise)
-  qed
-  show ?thesis
-    unfolding lookup_conflict_merge_def uncurry_def
-    by (intro nres_relI frefI) (auto simp: H)
-qed
-
-theorem lookup_conflict_merge_code_set_conflict[sepref_fr_rules]:
-  \<open>(uncurry4 lookup_conflict_merge_code, uncurry4 conflict_merge) \<in>
-  [\<lambda>((((M, N), i), xs), clvls). clvls = 0 \<and> i < length N \<and> xs = None \<and> distinct (N ! i) \<and>
-    literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N ! i)) \<and> \<not> tautology (mset (N ! i))]\<^sub>a
-  trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
-    conflict_option_assn *a uint32_nat_assn\<close>
-   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
-proof -
-   have H: \<open>?c
-  \<in> [comp_PRE
-     (\<langle>Id\<rangle>list_rel \<times>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f
-      option_conflict_rel \<times>\<^sub>f
-      nat_rel)
-     (\<lambda>((((M, N), i), xs), clvls).
-         i < length N \<and>
-         xs = None \<and>
-         distinct (N ! i) \<and>
-         literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N ! i)) \<and>
-         \<not> tautology (mset (N ! i)) \<and> clvls = 0)
-     (\<lambda>_ ((((M, N), i), _, xs), _).
-         i < length N \<and>
-         (\<forall>j<length (N ! i). atm_of (N ! i ! j) < length (snd xs)) \<and>
-         literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N ! i)))
-     (\<lambda>_. True)]\<^sub>a hrp_comp
-                    ((hr_comp trail_pol_assn trail_pol)\<^sup>k *\<^sub>a
-                     clauses_ll_assn\<^sup>k *\<^sub>a
-                     nat_assn\<^sup>k *\<^sub>a
-                     conflict_option_rel_assn\<^sup>d *\<^sub>a
-                     uint32_nat_assn\<^sup>k)
-                    (\<langle>Id\<rangle>list_rel \<times>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f
-                     nat_rel \<times>\<^sub>f
-                     option_conflict_rel \<times>\<^sub>f
-                     nat_rel) \<rightarrow> hr_comp
-                                  (conflict_option_rel_assn *a
-                                   uint32_nat_assn)
-                                  (option_conflict_rel \<times>\<^sub>f nat_rel)\<close>
-   (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-     using hfref_compI_PRE_aux[OF lookup_conflict_merge_code.refine[unfolded PR_CONST_def]
-        lookup_conflict_merge_aa_set_conflict[unfolded PR_CONST_def], OF isasat_input_bounded_axioms]
-     unfolding PR_CONST_def
-     .
-  have pre: \<open>?pre' = ?pre\<close>
-    by (intro ext) (auto simp: comp_PRE_def in_br_conv list_mset_rel_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-        literals_to_update_wl_empty_def option_conflict_rel_def conflict_rel_def
-        dest: literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l)
+  have H: \<open>?c
+    \<in> [comp_PRE (Id \<times>\<^sub>f twl_st_heur) (\<lambda>_. True)
+         (\<lambda>_ (L, S). L \<in> snd ` D\<^sub>0 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl_heur S)) \<and>
+           get_conflict_wl_heur S \<noteq> None)
+         (\<lambda>_. True)]\<^sub>a
+      hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>k) (Id \<times>\<^sub>f twl_st_heur) \<rightarrow>
+      hr_comp bool_assn bool_rel\<close>
+      (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using  hfref_compI_PRE_aux[OF literal_is_in_conflict_heur_code_refine literal_is_in_conflict_heur_literal_is_in_conflict]
+    .
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
+    using that unfolding comp_PRE_def option_conflict_rel_def conflict_rel_def
+    by (auto simp: image_image twl_st_heur_def)
   have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp conflict_option_assn_def
-    by (auto simp: prod_hrp_comp hrp_comp_def hr_comp_invalid)
-
-  have post: \<open>?f' = ?f\<close>
-    by (auto simp: twl_st_assn_def list_assn_list_mset_rel_eq_list_mset_assn
-       conflict_option_assn_def)
-  show ?thesis using H unfolding PR_CONST_def pre post im .
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def
+    by (auto simp: hrp_comp_def hr_comp_def)
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def hr_comp_prod_conv
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
 qed
+
+end
+
+subsubsection \<open>Refining code\<close>
+
+paragraph \<open>Propagation, Inner Loop\<close>
+
+context isasat_input_bounded
+begin
 
 lemma unit_prop_body_wl_invD:
   fixes S w K
@@ -1209,130 +740,6 @@ definition find_unwatched_wl_st_heur  :: \<open>twl_st_wl_heur \<Rightarrow> nat
 \<open>find_unwatched_wl_st_heur = (\<lambda>(M, N, U, D, Q, W, vm, \<phi>) i. do {
     find_unwatched M (N ! i)
   })\<close>
-
-
-paragraph \<open>Value of a literal\<close>
-
-definition polarity_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> bool option\<close> where
-  \<open>polarity_st S = polarity (get_trail_wl S)\<close>
-
-definition polarity_st_heur :: \<open>twl_st_wl_heur_trail_ref \<Rightarrow> _ \<Rightarrow> bool option nres\<close> where
-  \<open>polarity_st_heur = (\<lambda>(M, _) L. polarity_pol M L)\<close>
-
-(* TODO Move? *)
-type_synonym twl_st_heur_pol_no_clvls =
-  \<open>trail_pol_assn \<times> clauses_wl \<times> nat \<times> conflict_option_assn \<times>
-    lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times> uint32\<close>
-
-definition twl_st_heur_pol_assn
-  :: \<open>twl_st_wl_heur_trail_ref \<Rightarrow> twl_st_heur_pol_no_clvls \<Rightarrow> assn\<close>
-where
-  \<open>twl_st_heur_pol_assn =
-    (trail_pol_assn *a clauses_ll_assn *a nat_assn *a
-    conflict_option_assn *a
-    clause_l_assn *a
-    arrayO_assn (arl_assn nat_assn) *a
-    vmtf_remove_conc *a phase_saver_conc *a
-    uint32_nat_assn
-    )\<close>
-
-definition (in isasat_input_ops) twl_st_heur_pol :: \<open>(twl_st_wl_heur_trail_ref \<times> nat twl_st_wl) set\<close> where
-\<open>twl_st_heur_pol =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls), (M, N, U, D, NP, UP, Q, W)).
-    (M', M) \<in> trail_pol \<and> N' = N \<and> U' = U \<and> D = D' \<and>
-     Q' = Q \<and>
-    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
-    vm \<in> vmtf M \<and>
-    phase_saving \<phi> \<and>
-    no_dup M \<and>
-   clvls \<in> counts_maximum_level M D
-  }\<close>
-
-lemma twl_st_heur_pol_alt_def:
-  \<open>twl_st_heur_pol =
-    (trail_pol \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id) O twl_st_heur\<close>
-  by (force simp: twl_st_heur_pol_def twl_st_heur_def)
-
-lemma twl_st_heur_pol_assn_twl_st_heur_assn:
-  \<open>hr_comp twl_st_heur_pol_assn
-    (trail_pol \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id) =
-     twl_st_heur_assn\<close>
-  unfolding twl_st_heur_pol_assn_def twl_st_heur_assn_def
-  by simp
-
-lemma twl_st_heur_assn_assn:
-  \<open>hr_comp twl_st_heur_pol_assn twl_st_heur_pol = twl_st_assn\<close>
-  unfolding twl_st_assn_def twl_st_heur_pol_alt_def
-  hr_comp_assoc[symmetric] twl_st_heur_pol_assn_twl_st_heur_assn
-  ..
-
-sepref_thm polarity_st_heur_code
-  is \<open>uncurry polarity_st_heur\<close>
-  :: \<open>twl_st_heur_pol_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn\<close>
-  unfolding polarity_st_heur_def twl_st_heur_pol_assn_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-concrete_definition (in -) polarity_st_heur_code
-   uses isasat_input_bounded.polarity_st_heur_code.refine_raw
-   is \<open>(uncurry ?f, _)\<in>_\<close>
-
-prepare_code_thms (in -) polarity_st_heur_code_def
-
-lemmas polarity_st_heur_code_polarity_refine_code[sepref_fr_rules] =
-   polarity_st_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
-
-lemma polarity_st_heur_code_polarity_st_refine[sepref_fr_rules]:
-  \<open>(uncurry polarity_st_heur_code, uncurry (RETURN oo polarity_st)) \<in>
-     [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a twl_st_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn bool_assn\<close>
-proof -
-  have [simp]: \<open>polarity_atm M (atm_of L) = (if is_pos L then polarity M L else map_option uminus (polarity M L))\<close>
-    if \<open>no_dup M\<close>for M :: \<open>(nat, nat) ann_lits\<close> and L :: \<open>nat literal\<close>
-    by (cases L) (use no_dup_consistentD[of M \<open>Neg (atm_of L)\<close>] that in
-        \<open>auto simp: polarity_atm_def polarity_def Decided_Propagated_in_iff_in_lits_of_l\<close>)
-  have 2: \<open>(uncurry polarity_st_heur, uncurry (RETURN oo polarity_st)) \<in>
-     [\<lambda>(_, L). L \<in> snd ` D\<^sub>0]\<^sub>f twl_st_heur_pol \<times>\<^sub>f Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
-    by (intro nres_relI frefI)
-       (auto simp: trail_pol_def polarity_st_def polarity_pol_def
-        polarity_def polarity_st_heur_def twl_st_heur_pol_def)
-  show ?thesis
-    using polarity_st_heur_code.refine[FCOMP 2, OF isasat_input_bounded_axioms,
-      unfolded twl_st_heur_assn_assn] .
-qed
-
-
-definition (in -) get_conflict_wl_is_None_heur :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>get_conflict_wl_is_None_heur = (\<lambda>(M, N, U, D, Q, W, _). is_None D)\<close>
-
-lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None:
-    \<open>(RETURN o get_conflict_wl_is_None_heur,  RETURN o get_conflict_wl_is_None) \<in>
-    twl_st_heur \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
-  apply (intro frefI nres_relI)
-  apply (rename_tac x y, case_tac x, case_tac y)
-  by (auto simp: twl_st_heur_def get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def
-     split: option.splits)
-
-sepref_thm get_conflict_wl_is_None_code
-  is \<open>RETURN o get_conflict_wl_is_None_heur\<close>
-  :: \<open>twl_st_heur_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding get_conflict_wl_is_None_heur_def twl_st_heur_assn_def length_ll_def[symmetric]
-  supply [[goals_limit=1]]
-  by sepref
-
-concrete_definition (in -) get_conflict_wl_is_None_code
-   uses isasat_input_bounded.get_conflict_wl_is_None_code.refine_raw
-   is \<open>(?f, _) \<in> _\<close>
-
-prepare_code_thms (in -) get_conflict_wl_is_None_code_def
-
-lemmas get_conflict_wl_is_None_code_refine[sepref_fr_rules] =
-   get_conflict_wl_is_None_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
-
-lemma get_conflict_wl_is_None_code_get_conflict_wl_is_None[sepref_fr_rules]:
-  \<open>(get_conflict_wl_is_None_code, RETURN o get_conflict_wl_is_None) \<in>
-     twl_st_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  using get_conflict_wl_is_None_code_refine[FCOMP get_conflict_wl_is_None_heur_get_conflict_wl_is_None]
-  unfolding twl_st_assn_def by fast
 
 end
 
@@ -1984,6 +1391,9 @@ sepref_register unit_propagation_inner_loop_body_wl_D
 lemmas unit_propagation_inner_loop_body_wl_D_code_refine[sepref_fr_rules] =
    unit_propagation_inner_loop_body_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
+
+paragraph \<open>Unit Propagation, Inner Loop\<close>
+
 definition (in -) length_ll_fs :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
   \<open>length_ll_fs = (\<lambda>(_, _, _, _, _, _, _, W) L. length (W L))\<close>
 
@@ -2075,8 +1485,6 @@ prepare_code_thms (in -) unit_propagation_inner_loop_wl_loop_D_code_def
 lemmas unit_propagation_inner_loop_wl_loop_D_code_refine[sepref_fr_rules] =
    unit_propagation_inner_loop_wl_loop_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
-paragraph \<open>Unit propagation, inner loop\<close>
-
 sepref_register unit_propagation_inner_loop_wl_D
 sepref_thm unit_propagation_inner_loop_wl_D
   is \<open>uncurry (PR_CONST unit_propagation_inner_loop_wl_D)\<close>
@@ -2095,7 +1503,7 @@ lemmas unit_propagation_inner_loop_wl_D_code_refine[sepref_fr_rules] =
    unit_propagation_inner_loop_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 
-paragraph \<open>Unit propagation, outer loop\<close>
+paragraph \<open>Unit propagation, Outer Loop\<close>
 
 type_synonym (in -) twl_st_wl_heur_W_list =
   \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times> nat \<times>
@@ -2335,14 +1743,6 @@ lemma get_conflict_wll_is_Nil_code_get_conflict_wl_is_Nil[sepref_fr_rules]:
    get_conflict_wll_is_Nil_get_conflict_wl_is_Nil[unfolded PR_CONST_def]]
   by auto
 
-lemma in_literals_are_in_\<L>\<^sub>i\<^sub>n_in_D\<^sub>0:
-  assumes \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close> and \<open>L \<in># D\<close>
-  shows \<open>L \<in> snd ` D\<^sub>0\<close>
-  using assms by (cases L) (auto simp: image_image literals_are_in_\<L>\<^sub>i\<^sub>n_def all_lits_of_m_def)
-
-
-paragraph \<open>Level of a literal\<close>
-
 lemma get_maximum_level_remove_count_max_lvls:
   assumes L: \<open>L = -lit_of (hd M)\<close> and LD: \<open>L \<in># D\<close> and M_nempty: \<open>M \<noteq> []\<close>
   shows \<open>get_maximum_level_remove M D L = count_decided M \<longleftrightarrow>
@@ -2422,40 +1822,6 @@ next
   qed
 qed
 
-
-definition count_decided_st where
-  \<open>count_decided_st = (\<lambda>(M, _). count_decided M)\<close>
-
-sepref_thm count_decided_st_code
-  is \<open>RETURN o count_decided_st\<close>
-  :: \<open>twl_st_heur_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  supply [[goals_limit=2]]
-  unfolding count_decided_st_def twl_st_heur_assn_def
-  by sepref
-
-concrete_definition (in -) count_decided_st_code
-  uses isasat_input_bounded_nempty.count_decided_st_code.refine_raw
-  is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) count_decided_st_code_def
-
-lemmas count_decided_st_code_refine[sepref_fr_rules] =
-   count_decided_st_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
-lemma count_decided_st_count_decided_st:
-  \<open>(RETURN o count_decided_st, RETURN o count_decided_st) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-     (auto simp: count_decided_st_def twl_st_heur_def)
-
-lemma count_decided_refine[sepref_fr_rules]:
-  \<open>(count_decided_st_code, RETURN \<circ> count_decided_st) \<in> twl_st_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  using count_decided_st_code_refine[FCOMP count_decided_st_count_decided_st]
-  unfolding twl_st_assn_def
-  .
-
-lemma count_decided_st_alt_def: \<open>count_decided_st S = count_decided (get_trail_wl S)\<close>
-  unfolding count_decided_st_def
-  by (cases S) auto
 
 definition maximum_level_removed_eq_count_dec where
   \<open>maximum_level_removed_eq_count_dec L S \<longleftrightarrow>
@@ -2566,7 +1932,7 @@ lemma is_decided_hd_trail_wl_heur_is_decided_hd_trail_wl:
 
 lemma get_trail_wl_heur_def: \<open>get_trail_wl_heur = (\<lambda>(M, S). M)\<close>
   by (intro ext, rename_tac S, case_tac S) auto
-
+ 
 sepref_thm is_decided_hd_trail_wl_code
   is \<open>RETURN o is_decided_hd_trail_wl_heur\<close>
   :: \<open>[\<lambda>S. get_trail_wl_heur S \<noteq> []]\<^sub>a twl_st_heur_assn\<^sup>k \<rightarrow> bool_assn\<close>
@@ -2619,131 +1985,6 @@ qed
 lemma get_trail_twl_st_of_wl_get_trail_wl_empty_iff:
   \<open>get_trail (twl_st_of None (st_l_of_wl None S)) = [] \<longleftrightarrow> get_trail_wl S = []\<close>
   by (cases S) auto
-
-definition (in -) is_in_conflict :: \<open>nat literal \<Rightarrow> nat clause option \<Rightarrow> bool\<close> where
-  \<open>is_in_conflict L C \<longleftrightarrow> L \<in># the C\<close>
-
-definition (in -) is_in_lookup_option_conflict :: \<open>nat literal \<Rightarrow> (bool \<times> nat \<times> bool option list) \<Rightarrow> bool\<close> where
-  \<open>is_in_lookup_option_conflict = (\<lambda>L (_, _, xs). xs ! atm_of L = Some (is_pos L))\<close>
-
-lemma is_in_lookup_option_conflict_is_in_conflict:
-  \<open>(uncurry (RETURN oo is_in_lookup_option_conflict), uncurry (RETURN oo is_in_conflict)) \<in>
-     [\<lambda>(L, C). C \<noteq> None \<and> L \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>r option_conflict_rel \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
-  apply (intro nres_relI frefI)
-  subgoal for Lxs LC
-    using conflict_rel_atm_in_iff[of _ \<open>snd (snd (snd Lxs))\<close>]
-    apply (cases Lxs)
-    by (auto simp: is_in_lookup_option_conflict_def is_in_conflict_def option_conflict_rel_def)
-  done
-
-sepref_definition (in -) is_in_lookup_option_conflict_code
-  is \<open>uncurry (RETURN oo is_in_lookup_option_conflict)\<close>
-  :: \<open>[\<lambda>(L, (b, n, xs)). atm_of L < length xs]\<^sub>a
-        unat_lit_assn\<^sup>k *\<^sub>a (bool_assn *a conflict_rel_assn)\<^sup>k \<rightarrow> bool_assn\<close>
-  unfolding is_in_lookup_option_conflict_def
-  by sepref
-
-
-lemma is_in_lookup_option_conflict_code_is_in_conflict[sepref_fr_rules]:
-  \<open>(uncurry is_in_lookup_option_conflict_code,
-     uncurry (RETURN oo is_in_conflict)) \<in>
-    [\<lambda>(L, C). L \<in> snd ` D\<^sub>0 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the C) \<and> C \<noteq> None]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a conflict_option_assn\<^sup>k  \<rightarrow> bool_assn\<close>
-  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
-proof -
-  have H: \<open>?c
-    \<in> [comp_PRE (Id \<times>\<^sub>f option_conflict_rel) (\<lambda>(L, C). C \<noteq> None \<and> L \<in> snd ` D\<^sub>0)
-          (\<lambda>_ (L, b, n, xs). atm_of L < length xs)
-          (\<lambda>_. True)]\<^sub>a
-      hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a (bool_assn *a conflict_rel_assn)\<^sup>k) (Id \<times>\<^sub>f option_conflict_rel)
-       \<rightarrow>
-      hr_comp bool_assn bool_rel\<close>
-     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using  hfref_compI_PRE_aux[OF is_in_lookup_option_conflict_code.refine is_in_lookup_option_conflict_is_in_conflict]
-    .
-  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
-    using that unfolding comp_PRE_def option_conflict_rel_def conflict_rel_def
-    by (auto simp: image_image in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff conflict_rel_def)
-  have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
-    twl_st_assn_W_list[symmetric] conflict_assn_def conflict_option_assn_def
-    by (auto simp: hrp_comp_def hr_comp_def)
-  have f: \<open>?f' = ?f\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def
-    twl_st_assn_W_list[symmetric] hr_comp_prod_conv
-    by (auto simp: hrp_comp_def hr_comp_def)
-  show ?thesis
-    apply (rule hfref_weaken_pre[OF ])
-     defer
-    using H unfolding im f PR_CONST_def apply assumption
-    using pre ..
-qed
-
-definition (in -)literal_is_in_conflict :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>literal_is_in_conflict L S \<longleftrightarrow> L \<in># the (get_conflict_wl S)\<close>
-
-definition literal_is_in_conflict_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>literal_is_in_conflict_heur = (\<lambda>L (M, N, U, D, _). L \<in># the D)\<close>
-
-lemma literal_is_in_conflict_heur_literal_is_in_conflict:
-  \<open>(uncurry (RETURN oo literal_is_in_conflict_heur), uncurry (RETURN oo literal_is_in_conflict)) \<in>
-   Id \<times>\<^sub>r twl_st_heur \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
-  apply (intro frefI nres_relI)
-  apply (case_tac x, case_tac y)
-  by (auto simp: literal_is_in_conflict_heur_def literal_is_in_conflict_def twl_st_heur_def)
-
-sepref_thm literal_is_in_conflict_heur_code
-  is \<open>uncurry (RETURN oo literal_is_in_conflict_heur)\<close>
-  :: \<open>[\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl_heur S)) \<and> get_conflict_wl_heur S \<noteq> None]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>k  \<rightarrow> bool_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding literal_is_in_conflict_heur_def twl_st_heur_assn_def is_in_conflict_def[symmetric]
-  PR_CONST_def
-  by sepref
-
-concrete_definition (in -) literal_is_in_conflict_heur_code
-   uses isasat_input_bounded_nempty.literal_is_in_conflict_heur_code.refine_raw
-   is \<open>(uncurry ?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) literal_is_in_conflict_heur_code_def
-
-lemmas literal_is_in_conflict_heur_code_refine[sepref_fr_rules] =
-   literal_is_in_conflict_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
-lemma literal_is_in_conflict_heur_code_literal_is_in_conflict[sepref_fr_rules]:
-  \<open>(uncurry literal_is_in_conflict_heur_code,
-     uncurry (RETURN oo literal_is_in_conflict)) \<in>
-    [\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl S)) \<and> get_conflict_wl S \<noteq> None]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>k  \<rightarrow> bool_assn\<close>
-  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
-proof -
-  have H: \<open>?c
-    \<in> [comp_PRE (Id \<times>\<^sub>f twl_st_heur) (\<lambda>_. True)
-         (\<lambda>_ (L, S). L \<in> snd ` D\<^sub>0 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl_heur S)) \<and>
-           get_conflict_wl_heur S \<noteq> None)
-         (\<lambda>_. True)]\<^sub>a
-      hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>k) (Id \<times>\<^sub>f twl_st_heur) \<rightarrow>
-      hr_comp bool_assn bool_rel\<close>
-      (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using  hfref_compI_PRE_aux[OF literal_is_in_conflict_heur_code_refine literal_is_in_conflict_heur_literal_is_in_conflict]
-    .
-  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
-    using that unfolding comp_PRE_def option_conflict_rel_def conflict_rel_def
-    by (auto simp: image_image twl_st_heur_def)
-  have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
-    twl_st_assn_W_list[symmetric] twl_st_assn_def
-    by (auto simp: hrp_comp_def hr_comp_def)
-  have f: \<open>?f' = ?f\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def
-    twl_st_assn_W_list[symmetric] hr_comp_prod_conv
-    by (auto simp: hrp_comp_def hr_comp_def)
-  show ?thesis
-    apply (rule hfref_weaken_pre[OF ])
-     defer
-    using H unfolding im f PR_CONST_def apply assumption
-    using pre ..
-qed
 
 definition lit_and_ann_of_propagated_st :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<times> nat\<close> where
   \<open>lit_and_ann_of_propagated_st S = lit_and_ann_of_propagated (hd (get_trail_wl S))\<close>
@@ -3057,48 +2298,6 @@ qed
 
 definition (in -) get_max_lvl_st :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
   \<open>get_max_lvl_st S L = get_maximum_level_remove (get_trail_wl S) (the (get_conflict_wl S)) L\<close>
-
-type_synonym (in -) twl_st_wl_heur_lookup_conflict =
-  \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times> nat \<times>
-    (bool \<times> nat \<times> bool option list) \<times> nat literal multiset \<times> nat list list \<times> vmtf_remove_int \<times>
-     bool list \<times> nat\<close>
-
-definition twl_st_wl_heur_lookup_conflict_rel :: \<open>(twl_st_wl_heur_lookup_conflict \<times> twl_st_wl_heur) set\<close> where
-  \<open>twl_st_wl_heur_lookup_conflict_rel =
-     (Id :: ((nat,nat) ann_lits \<times> _) set) \<times>\<^sub>r
-     (Id :: (nat clauses_l  \<times> _) set) \<times>\<^sub>r
-     nat_rel \<times>\<^sub>r
-     (option_conflict_rel :: _ set) \<times>\<^sub>r
-     (Id :: (nat lit_queue_wl \<times> _) set)  \<times>\<^sub>r
-     (Id :: (nat list list \<times> _)set) \<times>\<^sub>r
-     Id \<times>\<^sub>r
-     Id \<times>\<^sub>r
-     nat_rel\<close>
-
-definition twl_st_heur_lookup_conflict_assn
-  :: \<open>twl_st_wl_heur_lookup_conflict \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close>
-where
-  \<open>twl_st_heur_lookup_conflict_assn =
-    trail_assn *a clauses_ll_assn *a nat_assn *a
-    conflict_option_rel_assn *a
-    clause_l_assn *a
-    arrayO_assn (arl_assn nat_assn) *a
-    vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn
-  \<close>
-
-lemma twl_st_heur_assn_int_conflict_assn:
-  \<open>twl_st_heur_assn = hr_comp twl_st_heur_lookup_conflict_assn twl_st_wl_heur_lookup_conflict_rel\<close>
-  unfolding twl_st_heur_assn_def twl_st_heur_lookup_conflict_assn_def
-    twl_st_wl_heur_lookup_conflict_rel_def
-  by (auto simp: list_assn_list_mset_rel_eq_list_mset_assn conflict_option_assn_def)
-
-
-lemma twl_st_assn_confl_assn:
-  \<open>twl_st_assn = hr_comp twl_st_heur_lookup_conflict_assn
-    (twl_st_wl_heur_lookup_conflict_rel O twl_st_heur)\<close>
-  apply (subst hr_comp_assoc[symmetric])
-  apply (subst twl_st_heur_assn_int_conflict_assn[symmetric])
-  unfolding twl_st_assn_def ..
 
 
 definition (in -) lookup_conflict_remove1 :: \<open>nat literal \<Rightarrow> conflict_rel \<Rightarrow> conflict_rel\<close> where
@@ -3923,8 +3122,8 @@ definition extract_shorter_conflict_st_trivial_heur :: \<open>twl_st_wl_heur \<R
   RETURN (M, N, U, extract_shorter_conflict_l_trivial M D, oth))\<close>
 
 definition extract_shorter_conflict_list_removed :: \<open>(nat, nat) ann_lits \<Rightarrow> conflict_option_rel \<Rightarrow>
-  (conflict_option_rel \<times> (nat literal \<times> nat) option) nres\<close> where
-\<open>extract_shorter_conflict_list_removed = (\<lambda>M (_, (n, xs)). do {
+ (conflict_option_rel \<times> (nat literal \<times> nat) option) nres\<close> where
+\<open>extract_shorter_conflict_list_removed = (\<lambda>M (_, (n, xs)) (* cach *). do {
    (_, _, m, zs, L) \<leftarrow>
      WHILE\<^sub>T\<^bsup>\<lambda>(i, m', m, xs, L). i \<le> length xs \<and> m \<le> n \<and> i + 1 \<le> uint_max \<and> m \<ge> m'\<^esup>
        (\<lambda>(i, m', _). m' > 0)
@@ -4666,9 +3865,9 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_sub:
   using literals_are_in_\<L>\<^sub>i\<^sub>n_mono[of y \<open>y - z\<close>] by auto
 
 lemma extract_shorter_conflict_l_trivial_subset_msetD:
-  \<open>extract_shorter_conflict_l_trivial M (Some (remove1_mset (- lit_of (hd M)) D)) = Some D' \<Longrightarrow> D' \<subseteq># D\<close>
-  apply (auto simp: extract_shorter_conflict_l_trivial_def)
-  by (metis Diff_eq_empty_iff_mset diff_le_mono2_mset diff_subset_eq_self diff_zero multiset_filter_subset)
+  \<open>extract_shorter_conflict_l_trivial M (Some (remove1_mset (- lit_of (hd M)) D)) = Some D' \<Longrightarrow> 
+   D' \<subseteq># D\<close>
+  by (auto simp: extract_shorter_conflict_l_trivial_def)
 
 lemma extract_shorter_conflict_list_heur_extract_shorter_conflict_list:
   \<open>(uncurry extract_shorter_conflict_list_heur, uncurry extract_shorter_conflict_list)
@@ -7624,70 +6823,14 @@ end
 
 setup \<open>map_theory_claset (fn ctxt => ctxt addSbefore ("split_all_tac", split_all_tac))\<close>
 
+
+paragraph \<open>Decide\<close>
+
 context isasat_input_bounded_nempty
 begin
-paragraph \<open>Decide\<close>
 
 lemma (in -)not_is_None_not_None: \<open>\<not>is_None s \<Longrightarrow> s \<noteq> None\<close>
   by (auto split: option.splits)
-
-definition (in -) defined_atm :: \<open>('v, nat) ann_lits \<Rightarrow> 'v \<Rightarrow> bool\<close> where
-\<open>defined_atm M L = defined_lit M (Pos L)\<close>
-
-definition (in -) defined_atm_pol where
-  \<open>defined_atm_pol = (\<lambda>(M, xs, lvls, k) L. do {
-      ASSERT(L < length xs);
-      RETURN (xs!L \<noteq> None)
-    })\<close>
-
-sepref_thm defined_atm_code
-  is \<open>uncurry defined_atm_pol\<close>
-  :: \<open>(trail_pol_assn)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding defined_atm_pol_def
-  by sepref
-
-concrete_definition (in -) defined_atm_code
-   uses isasat_input_bounded_nempty.defined_atm_code.refine_raw
-   is \<open>(uncurry ?f, _)\<in>_\<close>
-
-prepare_code_thms (in -) defined_atm_code_def
-
-lemmas undefined_atm_code_refine[sepref_fr_rules] =
-   defined_atm_code.refine[OF isasat_input_bounded_nempty_axioms]
-
-lemma undefined_atm_code:
-  \<open>(uncurry defined_atm_pol, uncurry (RETURN oo defined_atm)) \<in>
-   [\<lambda>(M, L). Pos L \<in> snd ` D\<^sub>0]\<^sub>f trail_pol \<times>\<^sub>r Id \<rightarrow> \<langle>bool_rel\<rangle> nres_rel\<close>
-proof -
-  have H: \<open>L < length xs\<close> (is \<open>?length\<close>) and
-    none: \<open>defined_atm M L \<longleftrightarrow> xs ! L \<noteq> None\<close> (is ?undef)
-    if L_N: \<open>Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and  tr: \<open>((M', xs, lvls, k), M) \<in> trail_pol\<close>
-    for M xs lvls k M' L
-  proof -
-    have
-       \<open>M' = map lit_of M\<close> and
-       \<open>\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l. atm_of L < length xs \<and> xs ! atm_of L = polarity_atm M (atm_of L)\<close>
-      using tr unfolding trail_pol_def ann_lits_split_reasons_def by fast+
-    then have L: \<open>L < length xs\<close> and xsL: \<open>xs ! L = polarity_atm M L\<close>
-      using L_N by force+
-    show ?length
-      using L .
-    show ?undef
-      using xsL by (auto simp: polarity_atm_def defined_atm_def
-          Decided_Propagated_in_iff_in_lits_of_l split: if_splits)
-  qed
-  show ?thesis
-    unfolding defined_atm_pol_def
-    by (intro frefI nres_relI) (auto 5 5 simp: none H intro!: ASSERT_leI)
-qed
-
-lemma undefined_atm_code_ref[sepref_fr_rules]:
-  \<open>(uncurry defined_atm_code, uncurry (RETURN \<circ>\<circ> defined_atm)) \<in>
-     [\<lambda>(a, b). Pos b \<in> snd ` D\<^sub>0]\<^sub>a (hr_comp trail_pol_assn trail_pol)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
-  using undefined_atm_code_refine[FCOMP undefined_atm_code] .
-
-abbreviation (in -) undefined_atm where
-  \<open>undefined_atm M L \<equiv> \<not>defined_atm M L\<close>
 
 sepref_register vmtf_find_next_undef
 sepref_thm vmtf_find_next_undef_code
@@ -7957,10 +7100,8 @@ qed
 
 lemma decide_wl_or_skip_D_helper:
   assumes
-    \<open>decide_wl_or_skip_D_pre
-      (a, aa, ab, ac, ad, ae, af, b)\<close>
-  shows \<open>find_unassigned_lit_wl_D_pre
-          (a, aa, ab, ac, ad, ae, af, b)\<close> and
+    \<open>decide_wl_or_skip_D_pre (a, aa, ab, ac, ad, ae, af, b)\<close>
+  shows \<open>find_unassigned_lit_wl_D_pre (a, aa, ab, ac, ad, ae, af, b)\<close> and
      \<open>get_conflict_wl (a, aa, ab, ac, ad, ae, af, b) = None\<close>
   using assms unfolding decide_wl_or_skip_D_pre_def find_unassigned_lit_wl_D_pre_def
   decide_wl_or_skip_pre_def decide_l_or_skip_pre_def
@@ -8051,7 +7192,7 @@ lemmas decide_wl_or_skip_D_hnr[sepref_fr_rules] =
   decide_wl_or_skip_D_code.refine[OF isasat_input_bounded_nempty_axioms]
 
 
-subsubsection \<open>Combining Together: the Other Rules\<close>
+paragraph \<open>Combining Together: the Other Rules\<close>
 
 sepref_register get_conflict_wl_is_None
 
@@ -8075,7 +7216,7 @@ lemmas cdcl_twl_o_prog_wl_D_code[sepref_fr_rules] =
    cdcl_twl_o_prog_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 
-subsubsection \<open>Combining Together: Full Strategy\<close>
+paragraph \<open>Combining Together: Full Strategy\<close>
 
 sepref_register cdcl_twl_stgy_prog_wl_D
 sepref_thm cdcl_twl_stgy_prog_wl_D_code
