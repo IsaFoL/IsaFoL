@@ -189,54 +189,26 @@ proof (induct C' arbitrary: C)
 qed simp
 
 lemma deterministic_resolution_prover_step_simulation_nonfinal:
-  assumes "\<not> is_final_glstate St"
-  shows "gstate_of_glstate St \<leadsto>\<^sub>f\<^sup>+ gstate_of_glstate (deterministic_resolution_prover_step St)"
-  sorry
-
-lemma deterministic_resolution_prover_step_simulation_final:
-  assumes "is_final_glstate St"
-  shows "\<not> gstate_of_glstate St \<leadsto>\<^sub>f St'"
-  sorry
-
-theorem deterministic_resolution_prover_sound:
-  assumes "deterministic_resolution_prover (map (\<lambda>D. (D, 0)) N, [], [], 1) = Some Q"
-  shows
-    "saturated_upto (set (map mset Q))"
-    "satisfiable (set (map mset Q)) \<longleftrightarrow> satisfiable (set (map mset N))"
-  sorry
-
-theorem deterministic_resolution_prover_complete:
-  assumes "\<exists>Q. saturated_upto Q \<and> satisfiable Q \<longleftrightarrow> satisfiable (set (map mset N))"
-  shows "deterministic_resolution_prover (map (\<lambda>D. (D, 0)) N, [], [], 1) \<noteq> None"
-  sorry
-
-(* FIXME: old stuff
-theorem deterministic_resolution_prover_sound_unsat:
   assumes
-    su: "deterministic_resolution_prover St = Some sol" and
-    sol_unsat: "sol = Unsat"
-  shows "\<not> satisfiable (grounding_of_state (state_of_glstate St))"
-  using sol_unsat
-proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
-  case (1 self_call St sol)
-  note ih = this(1)[OF _ refl] and call = this(2) and sol_unsat = this(3)
-
+    nonfinal: "\<not> is_final_glstate St" and
+    call: "St' = deterministic_resolution_prover_step St"
+  shows "gstate_of_glstate St \<leadsto>\<^sub>f\<^sup>+ gstate_of_glstate St'"
+proof -
   obtain N P Q :: "'a glclause list" and n :: nat where
     st: "St = (N, P, Q, n)"
     by (cases St) blast
+  note call = call[unfolded st, simplified]
 
-  note ih = ih[unfolded st]
-  note call = call[unfolded sol_unsat st, simplified]
-
-  show ?case
+  show ?thesis
   proof (cases N)
     case n_nil: Nil
     note call = call[unfolded n_nil, simplified]
     show ?thesis
     proof (cases P)
-      case p_nil: Nil
-      note call = call[unfolded p_nil, simplified]
-      show ?thesis
+      case Nil
+      then have False
+        using n_nil nonfinal[unfolded st] by simp
+      then show ?thesis
         using call by simp
     next
       case p_cons: (Cons Ci P')
@@ -248,10 +220,6 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
       note call = call[unfolded pick, simplified, folded remove1.simps(2)]
 
       show ?thesis
-        apply (rule contrapos_nn[OF ih[OF call]])
-        apply (auto simp: comp_def simp del: remove1.simps(2))
-
-
         sorry
     qed
   next
@@ -271,6 +239,8 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
     proof (cases "C' = Nil")
       case c'_nil: True
       show ?thesis
+        sorry
+(* FIXME
       proof (rule; erule exE)
         fix I
         assume "I \<Turnstile>s grounding_of_state (state_of_glstate St)"
@@ -281,6 +251,7 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
               of I "set (map (apfst mset) N')" "[]" C i P Q n]
           by (simp add: clss_of_state_def grounding_of_clss_def)
       qed
+*)
     next
       case c'_nnil: False
       note call = call[simplified c'_nnil, simplified]
@@ -289,21 +260,39 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ su])
         case taut_or_subs: True
         note call = call[simplified taut_or_subs, simplified]
         show ?thesis
-          unfolding st n_cons ci using ih[OF call]
+          unfolding st n_cons ci
+          sorry
+(* FIXME
           by (auto simp: clss_of_state_def grounding_of_clss_def)
+*)
       next
         case not_taut_or_subs: False
         note call = call[simplified not_taut_or_subs, simplified]
         show ?thesis
           unfolding st n_cons ci
-          using ih[OF call]
           (* use soundness of subsumption at calculus level *)
           sorry
       qed
     qed
   qed
 qed
-*)
+
+lemma deterministic_resolution_prover_step_simulation_final:
+  assumes "is_final_glstate St"
+  shows "\<not> gstate_of_glstate St \<leadsto>\<^sub>f St'"
+  sorry
+
+theorem deterministic_resolution_prover_sound:
+  assumes "deterministic_resolution_prover (map (\<lambda>D. (D, 0)) N, [], [], 1) = Some Q"
+  shows
+    "saturated_upto (set (map mset Q))"
+    "satisfiable (set (map mset Q)) \<longleftrightarrow> satisfiable (set (map mset N))"
+  sorry
+
+theorem deterministic_resolution_prover_complete:
+  assumes "\<exists>Q. saturated_upto Q \<and> satisfiable Q \<longleftrightarrow> satisfiable (set (map mset N))"
+  shows "deterministic_resolution_prover (map (\<lambda>D. (D, 0)) N, [], [], 1) \<noteq> None"
+  sorry
 
 end
 
