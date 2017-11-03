@@ -80,16 +80,15 @@ inductive resolution_prover :: "'a state \<Rightarrow> 'a state \<Rightarrow> bo
 | forward_subsumption: "(\<exists>D \<in> P \<union> Q. subsumes D C) \<Longrightarrow> (N \<union> {C}, P, Q) \<leadsto> (N, P, Q)"
 | backward_subsumption_P: "(\<exists>D \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P \<union> {C}, Q) \<leadsto> (N, P, Q)"
 | backward_subsumption_Q: "(\<exists>D \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P, Q \<union> {C}) \<leadsto> (N, P, Q)"
-| forward_reduction: "(\<exists>D L'. D + {#L'#} \<in> P \<union> Q \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
+| forward_reduction: "(\<exists>D L'. D + {#L'#} \<in> P \<union> Q \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
     (N \<union> {C + {#L#}}, P, Q) \<leadsto> (N \<union> {C}, P, Q)"
-| backward_reduction_P: "(\<exists>D L'. D + {#L'#} \<in> N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
+| backward_reduction_P: "(\<exists>D L'. D + {#L'#} \<in> N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
     (N, P \<union> {C + {#L#}}, Q) \<leadsto> (N, P \<union> {C}, Q)"
-| backward_reduction_Q: "(\<exists>D L'. D + {#L'#} \<in> N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
+| backward_reduction_Q: "(\<exists>D L'. D + {#L'#} \<in> N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
     (N, P, Q \<union> {C + {#L#}}) \<leadsto> (N, P \<union> {C}, Q)"
 | clause_processing: "(N \<union> {C}, P, Q) \<leadsto> (N, P \<union> {C}, Q)"
-| inference_computation:
-    "N = concls_of (ord_FO_resolution.inferences_between Q C) \<Longrightarrow>
-     ({}, P \<union> {C}, Q) \<leadsto> (N, P, Q \<union> {C})"
+| inference_computation: "N = concls_of (ord_FO_resolution.inferences_between Q C) \<Longrightarrow>
+    ({}, P \<union> {C}, Q) \<leadsto> (N, P, Q \<union> {C})"
 
 (* I could also have proved that state is a distributive lattice and define sup_state directly as Sup_llist *)
 definition sup_state :: "'a state llist \<Rightarrow> 'a state" where

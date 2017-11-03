@@ -17,7 +17,7 @@ begin
 type_synonym 'a wclause = "'a clause \<times> nat"
 type_synonym 'a wstate = "'a wclause set \<times> 'a wclause set \<times> 'a wclause set \<times> nat"
 
-locale FO_resolution_prover_with_weights =
+locale fair_FO_resolution_provers =
   FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu less_atm
   for
     S :: "('a :: wellorder) clause \<Rightarrow> _" and
@@ -53,21 +53,24 @@ abbreviation limit_wstate :: "'a wstate llist \<Rightarrow> 'a state" where
   "limit_wstate \<equiv> limit_state \<circ> lmap state_of_wstate"
 
 inductive resolution_prover_with_weights :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w" 50)  where
-  tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
-| forward_subsumption: "(\<exists>D \<in> fst ` (P \<union> Q). subsumes D C) \<Longrightarrow> (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
-| backward_subsumption_P: "(\<exists>D \<in> fst ` N. strictly_subsumes D C) \<Longrightarrow> (N, P \<union> {(C, i)}, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
-| backward_subsumption_Q: "(\<exists>D \<in> fst ` N. strictly_subsumes D C) \<Longrightarrow> (N, P, Q \<union> {(C, i)}, n) \<leadsto>\<^sub>w (N, P, Q, n)"
-| forward_reduction: "(\<exists>D L'. D + {#L'#} \<in> fst ` (P \<union> Q) \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
-    (N \<union> {(C + {#L#}, i)}, P, Q, n) \<leadsto>\<^sub>w (N \<union> {(C, i)}, P, Q, n)"
-| backward_reduction_P: "(\<exists>D L'. D + {#L'#} \<in> fst ` N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
-    (N, P \<union> {(C + {#L#}, i)}, Q, n) \<leadsto>\<^sub>w (N, P \<union> {(C, i)}, Q, n)"
-| backward_reduction_Q: "(\<exists>D L'. D + {#L'#} \<in> fst ` N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<le># C) \<Longrightarrow>
-    (N, P, Q \<union> {(C + {#L#}, i)}, n) \<leadsto>\<^sub>w (N, P \<union> {(C, i)}, Q, n)"
-| clause_processing: "(N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P \<union> {(C, i)}, Q, n)"
-| inference_computation:
-    "(\<forall>(D, j) \<in> P. weight (C, i) \<le> weight (D, j)) \<Longrightarrow>
-     N = (\<lambda>D. (D, n)) ` concls_of (ord_FO_resolution_inferences_between (fst ` Q) C) \<Longrightarrow>
-     ({}, P \<union> {(C, i)}, Q, n) \<leadsto>\<^sub>w (N, P, Q \<union> {(C, i)}, Suc n)"
+  tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (C, i) \<notin> N \<Longrightarrow>
+    (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
+| forward_subsumption: "(\<exists>D \<in> fst ` (P \<union> Q). subsumes D C) \<Longrightarrow> (C, i) \<notin> N \<Longrightarrow>
+    (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
+| backward_subsumption_P: "(\<exists>D \<in> fst ` N. strictly_subsumes D C) \<Longrightarrow> (C, i) \<notin> P \<Longrightarrow>
+    (N, P \<union> {(C, i)}, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
+| backward_subsumption_Q: "(\<exists>D \<in> fst ` N. strictly_subsumes D C) \<Longrightarrow> (C, i) \<notin> Q \<Longrightarrow>
+    (N, P, Q \<union> {(C, i)}, n) \<leadsto>\<^sub>w (N, P, Q, n)"
+| forward_reduction: "(\<exists>D L'. D + {#L'#} \<in> fst ` (P \<union> Q) \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
+    (C + {#L#}, i) \<notin> N \<Longrightarrow> (N \<union> {(C + {#L#}, i)}, P, Q, n) \<leadsto>\<^sub>w (N \<union> {(C, i)}, P, Q, n)"
+| backward_reduction_P: "(\<exists>D L'. D + {#L'#} \<in> fst ` N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
+    (C + {#L#}, i) \<notin> P \<Longrightarrow> (N, P \<union> {(C + {#L#}, i)}, Q, n) \<leadsto>\<^sub>w (N, P \<union> {(C, i)}, Q, n)"
+| backward_reduction_Q: "(\<exists>D L'. D + {#L'#} \<in> fst ` N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
+    (C + {#L#}, i) \<notin> Q \<Longrightarrow>(N, P, Q \<union> {(C + {#L#}, i)}, n) \<leadsto>\<^sub>w (N, P \<union> {(C, i)}, Q, n)"
+| clause_processing: "(C, i) \<notin> N \<Longrightarrow> (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>w (N, P \<union> {(C, i)}, Q, n)"
+| inference_computation: "(\<forall>(D, j) \<in> P. weight (C, i) \<le> weight (D, j)) \<Longrightarrow>
+    N = (\<lambda>D. (D, n)) ` concls_of (ord_FO_resolution_inferences_between (fst ` Q) C) \<Longrightarrow>
+    (C, i) \<notin> P \<Longrightarrow>  ({}, P \<union> {(C, i)}, Q, n) \<leadsto>\<^sub>w (N, P, Q \<union> {(C, i)}, Suc n)"
 
 lemma generation_no_lte_weight: "n \<le> weight (C, n)"
 proof(induction n)
@@ -126,13 +129,12 @@ lemma resolution_prover_with_weights_resolution_prover:
 
 context
   fixes 
-    Sts :: "('a wstate) llist"
+    Sts :: "'a wstate llist"
   assumes
+    deriv: "chain (op \<leadsto>\<^sub>w) Sts" and
     finite_Sts0: "finite (clss_of_wstate (lnth Sts 0))" and
     empty_P0: "P_of_wstate (lnth Sts 0) = {}" and
-    empty_Q0: "Q_of_wstate (lnth Sts 0) = {}" and
-    deriv: "chain (op \<leadsto>\<^sub>w) Sts" and
-    non_empty_deriv: "enat 0 < llength Sts"
+    empty_Q0: "Q_of_wstate (lnth Sts 0) = {}"
 begin
 
 lemma monotone_fairness: "fair_state_seq (lmap state_of_wstate Sts)"
@@ -161,14 +163,13 @@ lemma monotone_completeness:
   shows "{#} \<in> clss_of_state (limit_wstate Sts)"
 proof -
   have "state_of_wstate (lnth Sts 0) = lnth (lmap state_of_wstate Sts) 0"
-    using lnth_lmap[of 0 Sts state_of_wstate] non_empty_deriv
-    by auto
+    using lnth_lmap[of 0 Sts state_of_wstate, unfolded enat_0] chain_length_pos[OF deriv] by auto
   then have "finite (clss_of_state (lnth (lmap state_of_wstate Sts) 0))"
     using finite_Sts0 by auto
   moreover have "P_of_state (lnth (lmap state_of_wstate Sts) 0) = {}"
-    using empty_P0 non_empty_deriv by auto
+    using empty_P0 chain_length_pos[OF deriv] by (auto simp: enat_0)
   moreover have "Q_of_state (lnth (lmap state_of_wstate Sts) 0) = {}"
-    using empty_Q0 non_empty_deriv by auto
+    using empty_Q0 chain_length_pos[OF deriv] by (auto simp: enat_0)
   moreover have "chain op \<leadsto> (lmap state_of_wstate Sts)"
     using deriv resolution_prover_with_weights_resolution_prover by blast 
   moreover have "\<forall>\<rho> C. is_renaming \<rho> \<longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
@@ -187,8 +188,8 @@ end
 
 end
 
-locale FO_resolution_prover_with_sum_product_weights =
-  FO_resolution_prover_with_weights S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu
+locale fair_FO_resolution_prover_with_sum_product =
+  fair_FO_resolution_provers S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu
     less_atm weight
   for
     S :: "('a :: wellorder) clause \<Rightarrow> _" and (* FIXME: assumption that no selection takes place? *)
@@ -210,7 +211,7 @@ locale FO_resolution_prover_with_sum_product_weights =
       generation_factor * m + size_factor * size_multiset (size_literal size_atm) C"
 begin
 
-sublocale FO_resolution_prover_with_weights
+sublocale fair_FO_resolution_provers
   using generation_factor_pos by unfold_locales (simp add: weight_def)
 
 end

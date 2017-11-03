@@ -28,6 +28,9 @@ lemma
   lnull_chain: "lnull xs \<Longrightarrow> \<not> chain R xs"
   by (auto elim: chain.cases)
 
+lemma chain_length_pos: "chain R xs \<Longrightarrow> llength xs > 0"
+  by (cases xs) simp+
+
 lemma chain_ldropn:
   assumes "chain R xs" and "enat n < llength xs"
   shows "chain R (ldropn n xs)"

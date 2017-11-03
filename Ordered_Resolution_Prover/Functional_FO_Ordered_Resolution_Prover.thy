@@ -20,7 +20,7 @@ type_synonym 'a lclause = "'a literal list"
 type_synonym 'a wlclause = "'a lclause \<times> nat"
 type_synonym 'a wlstate = "'a wlclause list \<times> 'a wlclause list \<times> 'a wlclause list \<times> nat"
 
-context FO_resolution_prover_with_sum_product_weights
+context fair_FO_resolution_prover_with_sum_product
 begin
 
 fun wstate_of_wlstate :: "'a wlstate \<Rightarrow> 'a wstate" where
@@ -179,7 +179,9 @@ proof (induct C' arbitrary: C)
        defer
       apply (simp only: red_c)
        apply (rule ih[of C])
+(*
       using forward_reduction[of "set (map (apfst mset) P)" "set (map (apfst mset) Q)" L _ "mset (C @ C')" N i n]
+*)
       apply simp
       sorry
   next
@@ -198,6 +200,14 @@ lemma deterministic_resolution_prover_step_simulation_final:
   assumes "is_final_wlstate St"
   shows "\<not> wstate_of_wlstate St \<leadsto>\<^sub>w St'"
   sorry
+
+(*
+theorem deterministic_resolution_prover_complete:
+  assumes
+    "finite M" and
+    "saturated_upto M"
+  shows ""
+*)
 
 (* FIXME: old stuff
 theorem deterministic_resolution_prover_sound_unsat:
