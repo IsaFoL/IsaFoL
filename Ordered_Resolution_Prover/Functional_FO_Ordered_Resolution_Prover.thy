@@ -63,6 +63,12 @@ primrec reduce :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> 'a lcl
 | "reduce Ds C (L # C') =
    (if is_reducible_lit Ds (C @ C') L then reduce Ds C C' else L # reduce Ds (L # C) C')"
 
+fun reduce_all :: "'a lclause list \<Rightarrow> 'a wlclause list \<Rightarrow> 'a wlclause list \<times> 'a wlclause list" where
+  "reduce_all _ [] = ([], [])"
+| "reduce_all Ds ((C, i) # Cs) =
+   (let C' = reduce Ds [] C in
+      (if length C' = length C then apsnd else apfst) (Cons (C', i)) (reduce_all Ds Cs))"
+
 fun resolve_on :: "'a lclause \<Rightarrow> 'a \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve_on C B D =
    concat (map (\<lambda>L.
@@ -130,10 +136,11 @@ fun deterministic_resolution_prover_step :: "'a wlstate \<Rightarrow> 'a wlstate
           (N, P, Q, n)
         else
           let
-            P = map (apfst (reduce [C] [])) P;
-            P = filter (is_subsumed_by [C] \<circ> fst) P;
-            Q = map (apfst (reduce [C] [])) Q;
+            (back_to_P, Q) = reduce_all [C] Q;
+            P = back_to_P @ P;
+            P = case_prod (op @) (reduce_all [C] P);
             Q = filter (is_subsumed_by [C] \<circ> fst) Q;
+            P = filter (is_subsumed_by [C] \<circ> fst) P;
             P = (C, i) # P
           in
             (N, P, Q, n))"
