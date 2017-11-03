@@ -1,6 +1,6 @@
 theory CDCL_Two_Watched_Literals_Watch_List_Code_Common
   imports CDCL_Two_Watched_Literals_Code_Common CDCL_Two_Watched_Literals_Watch_List_Domain
-    Bits_Natural WB_Word_Assn CDCL_Two_Watched_Literals_Lookup_Conflict
+    Bits_Natural WB_Word_Assn
 begin
 
 lemma \<open>(return o (\<lambda>n. shiftr n 1), RETURN o shiftr1) \<in> word_nat_assn\<^sup>k \<rightarrow>\<^sub>a word_nat_assn\<close>
@@ -776,6 +776,57 @@ lemma set_mset_all_lits_of_mm_atms_of_ms_iff:
       atms_of_def atm_of_eq_atm_of in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
   apply (auto simp: in_all_lits_of_mm_ain_atms_of_iff in_implies_atm_of_on_atms_of_ms)
   done -- \<open>TODO tune proof\<close>
+
+
+definition (in -) card_max_lvl where
+  \<open>card_max_lvl M C \<equiv> size (filter_mset (\<lambda>L. get_level M L = count_decided M) C)\<close>
+
+lemma card_max_lvl_add_mset: \<open>card_max_lvl M (add_mset L C) =
+  (if get_level M L = count_decided M then 1 else 0) +
+    card_max_lvl M C\<close>
+  by (auto simp: card_max_lvl_def)
+
+lemma card_max_lvl_empty[simp]: \<open>card_max_lvl M {#} = 0\<close>
+  by (auto simp: card_max_lvl_def)
+
+lemma card_max_lvl_all_poss:
+   \<open>card_max_lvl M C = card_max_lvl M (poss (atm_of `# C))\<close>
+  unfolding card_max_lvl_def
+  apply (induction C)
+  subgoal by auto
+  subgoal for L C
+    using get_level_uminus[of M L]
+    by (cases L) (auto)
+  done
+
+lemma card_max_lvl_distinct_cong:
+  assumes
+    \<open>\<And>L. get_level M (Pos L) = count_decided M \<Longrightarrow> (L \<in> atms_of C) \<Longrightarrow> (L \<in> atms_of C')\<close> and
+    \<open>\<And>L. get_level M (Pos L) = count_decided M \<Longrightarrow> (L \<in> atms_of C') \<Longrightarrow> (L \<in> atms_of C)\<close> and
+    \<open>distinct_mset C\<close> \<open>\<not>tautology C\<close> and
+    \<open>distinct_mset C'\<close> \<open>\<not>tautology C'\<close>
+  shows \<open>card_max_lvl M C = card_max_lvl M C'\<close>
+proof -
+  have [simp]: \<open>NO_MATCH (Pos x) L \<Longrightarrow> get_level M L = get_level M (Pos (atm_of L))\<close> for x L
+    by (simp add: get_level_def)
+  have [simp]: \<open>atm_of L \<notin> atms_of C' \<longleftrightarrow> L \<notin># C' \<and> -L \<notin># C'\<close> for L C'
+    by (cases L) (auto simp: atm_iff_pos_or_neg_lit)
+  then have [iff]: \<open>atm_of L \<in> atms_of C' \<longleftrightarrow> L \<in># C' \<or> -L \<in># C'\<close> for L C'
+    by blast
+  have H: \<open>distinct_mset {#L \<in># poss (atm_of `# C). get_level M L = count_decided M#}\<close>
+    if \<open>distinct_mset C\<close> \<open>\<not>tautology C\<close> for C
+    using that by (induction C) (auto simp: tautology_add_mset atm_of_eq_atm_of)
+  show ?thesis
+    apply (subst card_max_lvl_all_poss)
+    apply (subst (2) card_max_lvl_all_poss)
+    unfolding card_max_lvl_def
+    apply (rule arg_cong[of _ _ size])
+    apply (rule distinct_set_mset_eq)
+    subgoal by (rule H) (use assms in fast)+
+    subgoal by (rule H) (use assms in fast)+
+    subgoal using assms by (auto simp: atms_of_def imageI image_iff) blast+
+    done
+qed
 
 end
 

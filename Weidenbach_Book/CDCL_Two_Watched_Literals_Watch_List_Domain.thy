@@ -384,6 +384,25 @@ qed
 lemma atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n: \<open>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l = set_mset \<A>\<^sub>i\<^sub>n\<close>
   unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_def by (auto simp: atms_of_def image_Un image_image)
 
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l:
+  assumes
+    N1: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset xs)\<close> and
+    i_xs: \<open>i < length xs\<close>
+  shows \<open>xs ! i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+proof -
+  have \<open>xs ! i \<in># mset xs\<close>
+    using i_xs by auto
+  then have \<open>xs ! i \<in> set_mset (all_lits_of_m (mset xs))\<close>
+    by (auto simp: in_all_lits_of_m_ain_atms_of_iff)
+  then show ?thesis
+    using N1 unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_def by blast
+qed
+
+lemma in_literals_are_in_\<L>\<^sub>i\<^sub>n_in_D\<^sub>0:
+  assumes \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close> and \<open>L \<in># D\<close>
+  shows \<open>L \<in> snd ` D\<^sub>0\<close>
+  using assms by (cases L) (auto simp: image_image literals_are_in_\<L>\<^sub>i\<^sub>n_def all_lits_of_m_def)
+
 end
 
 
