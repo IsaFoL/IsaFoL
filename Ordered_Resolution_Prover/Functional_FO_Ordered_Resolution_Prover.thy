@@ -198,6 +198,18 @@ lemma deterministic_resolution_prover_step_simulation_final:
   shows "\<not> gstate_of_glstate St \<leadsto>\<^sub>f St'"
   sorry
 
+theorem deterministic_resolution_prover_sound:
+  assumes "deterministic_resolution_prover (map (\<lambda>D. (D, 0)) N, [], [], 1) = Some Q"
+  shows
+    "saturated_upto (set (map mset Q))"
+    "satisfiable (set (map mset Q)) \<longleftrightarrow> satisfiable (set (map mset N))"
+  sorry
+
+theorem deterministic_resolution_prover_complete:
+  assumes "\<exists>Q. saturated_upto Q \<and> satisfiable Q \<longleftrightarrow> satisfiable (set (map mset N))"
+  shows "deterministic_resolution_prover (map (\<lambda>D. (D, 0)) N, [], [], 1) \<noteq> None"
+  sorry
+
 (*
 theorem deterministic_resolution_prover_complete:
   assumes
