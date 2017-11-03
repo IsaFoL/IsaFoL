@@ -107,9 +107,9 @@ definition resolve_either_way :: "'a lclause \<Rightarrow> 'a lclause \<Rightarr
 fun
   select_min_weight_clause :: "'a glclause \<Rightarrow> 'a glclause list \<Rightarrow> 'a glclause"
 where
-  "select_min_weight_clause (C, i) [] = (C, i)"
-| "select_min_weight_clause (C, i) ((D, j) # Ds) =
-   select_min_weight_clause (if weight (mset D, j) < weight (mset C, i) then (D, j) else (C, i)) Ds"
+  "select_min_weight_clause Ci [] = Ci"
+| "select_min_weight_clause Ci (Dj # Ds) =
+   select_min_weight_clause (if weight (apfst mset Dj) < weight (apfst mset Ci) then Dj else Ci) Ds"
 
 fun deterministic_resolution_prover_step :: "'a glstate \<Rightarrow> 'a glstate" where
   "deterministic_resolution_prover_step (N, P, Q, n) =
@@ -117,9 +117,9 @@ fun deterministic_resolution_prover_step :: "'a glstate \<Rightarrow> 'a glstate
       [] \<Rightarrow>
       (case P of
          [] \<Rightarrow> (N, P, Q, n)
-       | (C, i) # P' \<Rightarrow>
+       | P0 # P' \<Rightarrow>
          let
-           (C, i) = select_min_weight_clause (C, i) P';
+           (C, i) = select_min_weight_clause P0 P';
            N = map (\<lambda>D. (D, n))
              (remdups (resolve C C @ concat (map (resolve_either_way C \<circ> fst) Q)));
            P = remove1 (C, i) P;
@@ -154,6 +154,65 @@ where
       let (_, _, Q, _) = St in Some (map fst Q)
     else
       deterministic_resolution_prover (deterministic_resolution_prover_step St))"
+
+lemma select_min_weight_clause_min_weight:
+  assumes
+    "Ci = select_min_weight_clause P0 P"
+    "Dj \<in> set (P0 # P)"
+  shows "weight (apfst mset Ci) \<le> weight (apfst mset Dj)"
+  using assms
+proof (induct P arbitrary: P0 Ci Dj)
+  case (Cons P1 P)
+  note ih = this(1) and ci = this(2) and dj = this(3)
+  show ?case
+  proof (cases "P1 = Dj")
+    case p1_eq_dj: True
+    show ?thesis
+    proof (cases "weight (apfst mset P1) < weight (apfst mset P0)")
+      case w_lt: True
+      show ?thesis
+        by (rule ih[OF ci[unfolded select_min_weight_clause.simps, simplified w_lt]])
+          (simp add: p1_eq_dj)
+    next
+      case w_ge: False
+      show ?thesis
+      proof -
+        have f3: "weight (apfst mset P0) \<le> weight (apfst mset Dj)"
+          using w_ge by (simp add: p1_eq_dj)
+        have "weight (apfst mset Ci) \<le> weight (apfst mset P0)"
+          using ci w_ge by (simp add: ih)
+        then show ?thesis
+          using f3 by (meson le_trans)
+      qed
+    qed
+  next
+    case p1_ne_dj: False
+    show ?thesis sorry
+
+      using dj p1_ne_dj
+
+
+  qed
+
+  proof (cases "P1 = (D, j)")
+    case True
+    show ?thesis
+      using ci dj
+
+
+      sorry
+  next
+    case False
+    then show ?thesis sorry
+  qed
+
+    apply (rule ih)
+    apply (rule ci[unfolded select_min_weight_clause.simps])
+    using dj
+    apply auto
+    sorry
+qed force
+
 
 (* FIXME: inline below?
 lemma reduce_N_simulation:
@@ -313,10 +372,10 @@ lemma deterministic_resolution_prover_step_simulation_final:
   sorry
 
 theorem deterministic_resolution_prover_sound:
-  assumes "deterministic_resolution_prover (map (\<lambda>D. (D, 0)) N, [], [], 1) = Some Q"
+  assumes "deterministic_resolution_prover (N, [], [], 1) = Some Q"
   shows
     "saturated_upto (set (map mset Q))"
-    "satisfiable (set (map mset Q)) \<longleftrightarrow> satisfiable (set (map mset N))"
+    "satisfiable (set (map mset Q)) \<longleftrightarrow> satisfiable (set (map (mset \<circ> fst) N))"
   sorry
 
 theorem deterministic_resolution_prover_complete:
