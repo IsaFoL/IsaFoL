@@ -1781,7 +1781,8 @@ proof -
           unfolding S_Q_def by auto
       qed
     qed
-    then obtain \<sigma> where sisisgma: "ord_resolve (S_M S (Q_of_state (limit_state Sts))) CAs ?D \<sigma> ?E"
+    then obtain \<sigma> where
+      sisisgma: "ord_resolve (S_M S (Q_of_state (limit_state Sts))) CAs ?D \<sigma> ?E"
       by auto
     then obtain \<eta>s' \<eta>' \<eta>2' CAs' DA' E' \<tau>' where s_p:
       "is_ground_subst \<eta>'"
@@ -1798,7 +1799,8 @@ proof -
       unfolding limit_llist_def
       using subseteq_limit_state_eventually_always[of "{DA'} \<union> set CAs'"]
       by auto
-    then obtain j where j_p: "is_least (\<lambda>j. enat j < llength Sts \<and> ((set CAs') \<union> {DA'} \<subseteq> ?Qs j)) j"
+    then obtain j where
+      j_p: "is_least (\<lambda>j. enat j < llength Sts \<and> ((set CAs') \<union> {DA'} \<subseteq> ?Qs j)) j"
       using least_exists[of "(\<lambda>j. enat j < llength Sts \<and> ((set CAs') \<union> {DA'} \<subseteq> ?Qs j))"] by force
     then have j_p': "enat j < llength Sts" "(set CAs') \<union> {DA'} \<subseteq> ?Qs j"
       unfolding is_least_def by auto
@@ -1846,7 +1848,8 @@ proof -
     then have "\<gamma> \<in> src_ext_Ri (?N j)"
       unfolding src_ext_Ri_def by auto
     then have "\<gamma> \<in> src_ext_Ri (Sup_llist (lmap grounding_of_state Sts))"
-      using j_p' contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist src_ext.Ri_mono by metis
+      using j_p' contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist src_ext.Ri_mono
+      by metis
     then have "\<gamma> \<in> src_ext_Ri (limit_llist (lmap grounding_of_state Sts))"
       using src_ext.Ri_Sup_subset_Ri_limit[of Ns] derivns ns by blast
   }
