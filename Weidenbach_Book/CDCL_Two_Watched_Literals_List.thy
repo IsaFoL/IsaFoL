@@ -244,8 +244,8 @@ definition find_unwatched_l where
 definition set_conflict_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
   \<open>set_conflict_l = (\<lambda>C (M, N, U, D, NP, UP, WS, Q). (M, N, U, Some (mset C), NP, UP, {#}, {#}))\<close>
 
-definition propgate_lit_l :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
-  \<open>propgate_lit_l = (\<lambda>L' C i (M, N, U, D, NP, UP, WS, Q).
+definition propagate_lit_l :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
+  \<open>propagate_lit_l = (\<lambda>L' C i (M, N, U, D, NP, UP, WS, Q).
       let N = list_update N C (swap (N!C) 0 (Suc 0 - i)) in
       (Propagated L' C # M, N, U, D, NP, UP, WS, add_mset (-L') Q))\<close>
 
@@ -279,7 +279,7 @@ definition unit_propagation_inner_loop_body_l :: "'v literal \<Rightarrow> nat \
             None \<Rightarrow>
                if val_L' = Some False
                then RETURN (set_conflict_l (get_clauses_l S!C) S)
-               else RETURN (propgate_lit_l L' C i S)
+               else RETURN (propagate_lit_l L' C i S)
           | Some f \<Rightarrow> do {
                ASSERT(f < length (get_clauses_l S!C));
                update_clause_l C i f S
@@ -839,7 +839,7 @@ proof -
     subgoal using add_inv S stgy_inv struct_invs add_mset_C'_i C_le_N  init_invs dist_WS conv C_notin_M
       by (vc_solve simp: mset_watched_C watched_C' in_set_unwatched_conv consistent
         Decided_Propagated_in_iff_in_lits_of_l additional_WS_invs_def C'[symmetric] N_C_C'
-        propgate_lit_l_def propgate_lit_def 
+        propagate_lit_l_def propagate_lit_def 
         split: option.splits bool.splits if_splits)
     subgoal by auto
     subgoal by (rule update_clause_l) auto
@@ -1457,16 +1457,16 @@ definition backtrack_l_inv where
       get_conflict_l S \<noteq> Some {#}
   \<close>
 
-definition propgate_bt_l :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
-  \<open>propgate_bt_l = (\<lambda>L L' (M, N, U, D, NP, UP, WS, Q). do {
+definition propagate_bt_l :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+  \<open>propagate_bt_l = (\<lambda>L L' (M, N, U, D, NP, UP, WS, Q). do {
     D'' \<leftarrow> list_of_mset (the D);
     RETURN (Propagated (-L) (length N) # M,
         N @ [[-L, L'] @ (remove1 (-L) (remove1 L' D''))], U,
           None, NP, UP, WS, {#L#})
       })\<close>
 
-definition propgate_unit_bt_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
-  \<open>propgate_unit_bt_l = (\<lambda>L (M, N, U, D, NP, UP, WS, Q).
+definition propagate_unit_bt_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
+  \<open>propagate_unit_bt_l = (\<lambda>L (M, N, U, D, NP, UP, WS, Q).
     (Propagated (-L) 0 # M, N, U, None, NP, add_mset (the D) UP, WS, {#L#}))\<close>
 
 definition backtrack_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
@@ -1480,10 +1480,10 @@ definition backtrack_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
       if size (the (get_conflict_l S)) > 1
       then do {
         L' \<leftarrow> find_lit_of_max_level S L;
-        propgate_bt_l L L' S
+        propagate_bt_l L L' S
       }
       else do {
-        RETURN (propgate_unit_bt_l L S)
+        RETURN (propagate_unit_bt_l L S)
      }
   }\<close>
 
@@ -1651,8 +1651,8 @@ proof -
   qed
 
   have propagate_bt:
-    \<open>propgate_bt_l (lit_of (hd (get_trail_l S))) L U
-    \<le> SPEC (\<lambda>c. (c, propgate_bt (lit_of (hd (get_trail S'))) L' U') \<in>
+    \<open>propagate_bt_l (lit_of (hd (get_trail_l S))) L U
+    \<le> SPEC (\<lambda>c. (c, propagate_bt (lit_of (hd (get_trail S'))) L' U') \<in>
         {(T, T'). T' = twl_st_of None T \<and> clauses_to_update_l T = {#} \<and> additional_WS_invs T})\<close>
     if
       SS': \<open>(S, S') \<in> ?R\<close> and
@@ -1706,7 +1706,7 @@ proof -
     ultimately have DT: \<open>DT = add_mset (- lit_of (hd MS)) (add_mset L' (DT - {#- lit_of (hd MS), L'#}))\<close>
       by (metis (no_types, lifting) add_mset_diff_bothsides diff_single_eq_union)
     show ?thesis
-      unfolding propgate_bt_l_def list_of_mset_def propgate_bt_def U RES_RETURN_RES
+      unfolding propagate_bt_l_def list_of_mset_def propagate_bt_def U RES_RETURN_RES
       apply clarify
       apply (rule RES_rule)
       apply (subst in_pair_collect_simp)
@@ -1718,7 +1718,7 @@ proof -
   qed
 
   have propagate_unit_bt:
-    \<open>(propgate_unit_bt_l (lit_of (hd (get_trail_l S))) U , propgate_unit_bt (lit_of (hd (get_trail S'))) U') \<in>
+    \<open>(propagate_unit_bt_l (lit_of (hd (get_trail_l S))) U , propagate_unit_bt (lit_of (hd (get_trail S'))) U') \<in>
         {(T, T'). T' = twl_st_of None T \<and> clauses_to_update_l T = {#} \<and> additional_WS_invs T}\<close>
     if
       SS': \<open>(S, S') \<in> ?R\<close> and
@@ -1757,9 +1757,9 @@ proof -
     show ?thesis
       apply (subst in_pair_collect_simp)
       apply (intro conjI)
-      subgoal by (auto simp: propgate_unit_bt_def propgate_unit_bt_l_def S T U DT)
-      subgoal by (auto simp: propgate_unit_bt_def propgate_unit_bt_l_def S T U DT)
-      subgoal  using add_invs by (auto 5 5 simp: propgate_unit_bt_def propgate_unit_bt_l_def S T U DT
+      subgoal by (auto simp: propagate_unit_bt_def propagate_unit_bt_l_def S T U DT)
+      subgoal by (auto simp: propagate_unit_bt_def propagate_unit_bt_l_def S T U DT)
+      subgoal  using add_invs by (auto 5 5 simp: propagate_unit_bt_def propagate_unit_bt_l_def S T U DT
         additional_WS_invs_def MU)
       done
   qed
@@ -1776,8 +1776,8 @@ proof -
     subgoal by simp
     subgoal by (auto simp: backtrack_inv_def equality_except_conflict_rewrite)
     subgoal by (auto simp: hd_get_trail_twl_st_of_get_trail_l backtrack_l_inv_def equality_except_conflict_rewrite)
-    subgoal by (auto simp: propgate_bt_l_def propgate_bt_def backtrack_l_inv_def equality_except_conflict_rewrite)
-    subgoal by (auto simp: propgate_unit_bt_def propgate_unit_bt_l_def)
+    subgoal by (auto simp: propagate_bt_l_def propagate_bt_def backtrack_l_inv_def equality_except_conflict_rewrite)
+    subgoal by (auto simp: propagate_unit_bt_def propagate_unit_bt_l_def)
     subgoal by (rule find_lit) assumption+
     subgoal by (rule propagate_bt) assumption+
     subgoal by (rule propagate_unit_bt) assumption+

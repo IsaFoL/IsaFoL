@@ -193,8 +193,8 @@ definition set_conflict_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl \<Ri
   \<open>set_conflict_wl = (\<lambda>C (M, N, U, D, NP, UP, Q, W). (M, N, U, Some (mset C), NP, UP, {#}, W))\<close>
 
 
-definition propgate_lit_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-  \<open>propgate_lit_wl = (\<lambda>L' C i (M, N, U, D, NP, UP, Q, W).
+definition propagate_lit_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
+  \<open>propagate_lit_wl = (\<lambda>L' C i (M, N, U, D, NP, UP, Q, W).
       let N = list_update N C (swap (N!C) 0 (Suc 0 - i)) in
       (Propagated L' C # M, N, U, D, NP, UP, add_mset (-L') Q, W))\<close>
 
@@ -229,7 +229,7 @@ definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat 
           None \<Rightarrow>
             if val_L' = Some False
             then do {RETURN (w+1, set_conflict_wl ((get_clauses_wl S)!C) S)}
-            else do {RETURN (w+1, propgate_lit_wl L' C i S)}
+            else do {RETURN (w+1, propagate_lit_wl L' C i S)}
         | Some f \<Rightarrow> do {
             update_clause_wl L C w i f S
           }
@@ -586,8 +586,8 @@ proof -
     subgoal by (simp add: S)
     subgoal by (auto simp add: clause_to_update_def correct_watching.simps set_conflict_wl_def S
        set_conflict_l_def)
-    subgoal by (simp add: clause_to_update_def correct_watching.simps propgate_lit_wl_def S
-       propgate_lit_l_def)
+    subgoal by (simp add: clause_to_update_def correct_watching.simps propagate_lit_wl_def S
+       propagate_lit_l_def)
     subgoal by (rule ref) assumption
     done
 
@@ -1196,16 +1196,16 @@ definition backtrack_wl_inv where
   \<open>backtrack_wl_inv S \<longleftrightarrow> backtrack_l_inv (st_l_of_wl None S) \<and> correct_watching S
   \<close>
 
-definition propgate_bt_wl :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>propgate_bt_wl = (\<lambda>L L' (M, N, U, D, NP, UP, Q, W). do {
+definition propagate_bt_wl :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>propagate_bt_wl = (\<lambda>L L' (M, N, U, D, NP, UP, Q, W). do {
     D'' \<leftarrow> list_of_mset (the D);
     RETURN (Propagated (-L) (length N) # M,
         N @ [[-L, L'] @ (remove1 (-L) (remove1 L' D''))], U,
           None, NP, UP, {#L#}, W(-L:= W (-L) @ [length N], L':= W L' @ [length N]))
       })\<close>
 
-definition propgate_unit_bt_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-  \<open>propgate_unit_bt_wl = (\<lambda>L (M, N, U, D, NP, UP, Q, W).
+definition propagate_unit_bt_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
+  \<open>propagate_unit_bt_wl = (\<lambda>L (M, N, U, D, NP, UP, Q, W).
     (Propagated (-L) 0 # M, N, U, None, NP, add_mset (the D) UP, {#L#}, W))\<close>
 
 definition backtrack_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
@@ -1219,10 +1219,10 @@ definition backtrack_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
       if size (the (get_conflict_wl S)) > 1
       then do {
         L' \<leftarrow> find_lit_of_max_level_wl S L;
-        propgate_bt_wl L L' S
+        propagate_bt_wl L L' S
       }
       else do {
-        RETURN (propgate_unit_bt_wl L S)
+        RETURN (propagate_unit_bt_wl L S)
      }
   }\<close>
 
@@ -1449,9 +1449,9 @@ proof -
      dest: in_diffD)
     done
 
-  have propgate_bt_wl: \<open>propgate_bt_wl (lit_of (hd (get_trail_wl S'))) L' U'
+  have propagate_bt_wl: \<open>propagate_bt_wl (lit_of (hd (get_trail_wl S'))) L' U'
     \<le> \<Down> {(T', T). st_l_of_wl None T' = T \<and> correct_watching T'}
-        (propgate_bt_l (lit_of (hd (get_trail_l S))) L U)\<close>
+        (propagate_bt_l (lit_of (hd (get_trail_l S))) L U)\<close>
     (is \<open>_ \<le> \<Down> ?propa _\<close>)
     if  SS': \<open>(S', S) \<in> ?A\<close> and
      UU': \<open>(U', U) \<in> ?find T'\<close> and
@@ -1492,7 +1492,7 @@ proof -
       by (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state S'
           mset_take_mset_drop_mset dest!: atm_of_lit_in_atms_of in_atms_of_mset_takeD)
     show ?thesis
-      unfolding propgate_bt_wl_def propgate_bt_l_def S' T' U' U st_l_of_wl.simps get_trail_wl.simps
+      unfolding propagate_bt_wl_def propagate_bt_l_def S' T' U' U st_l_of_wl.simps get_trail_wl.simps
       list_of_mset_def K'_def[symmetric]
       apply clarify
       apply (refine_rcg ref)
@@ -1510,10 +1510,10 @@ proof -
       done
   qed
 
-  have propgate_unit_bt_wl: \<open>(propgate_unit_bt_wl (lit_of (hd (get_trail_wl S'))) U',
-     propgate_unit_bt_l (lit_of (hd (get_trail_l S))) U)
+  have propagate_unit_bt_wl: \<open>(propagate_unit_bt_wl (lit_of (hd (get_trail_wl S'))) U',
+     propagate_unit_bt_l (lit_of (hd (get_trail_l S))) U)
     \<in> {(T', T). st_l_of_wl None T' = T \<and> correct_watching T'} \<close>
-    (is \<open>(_, _) \<in> ?propgate_unit_bt_wl _\<close>)
+    (is \<open>(_, _) \<in> ?propagate_unit_bt_wl _\<close>)
     if
      SS': \<open>(S', S) \<in> ?A\<close> and
      TT': \<open>(T', T) \<in> ?extract S'\<close> and
@@ -1543,7 +1543,7 @@ proof -
        unfolding S' correct_watching.simps clause_to_update_def get_clauses_l.simps .
 
     show ?thesis
-      unfolding propgate_unit_bt_wl_def propgate_unit_bt_l_def S' T' U U' st_l_of_wl.simps get_trail_wl.simps
+      unfolding propagate_unit_bt_wl_def propagate_unit_bt_l_def S' T' U U' st_l_of_wl.simps get_trail_wl.simps
       list_of_mset_def
       apply clarify
       apply (refine_rcg)
@@ -1559,8 +1559,8 @@ proof -
     subgoal by (auto simp: get_trail_l_st_l_of_wl)
     subgoal by (auto simp: get_conflict_l_st_l_of_wl)
     subgoal by (auto simp: get_trail_l_st_l_of_wl)
-    subgoal by (rule propgate_bt_wl ) assumption+
-    subgoal by (rule propgate_unit_bt_wl) assumption+
+    subgoal by (rule propagate_bt_wl ) assumption+
+    subgoal by (rule propagate_unit_bt_wl) assumption+
     done
 
   have bt: \<open>backtrack_wl S \<le> \<Down> ?B (backtrack_l T)\<close>

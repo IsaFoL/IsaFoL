@@ -1681,7 +1681,7 @@ definition cach_refinement :: \<open>((minimize_status list \<times> nat list) \
   \<open>cach_refinement = cach_refinement_nonull O cach_refinement_list\<close>
 
 abbreviation (in -) cach_refinement_l_assn where
-  \<open>cach_refinement_l_assn \<equiv> array_assn minimize_status_assn *assn arl_assn nat_assn\<close>
+  \<open>cach_refinement_l_assn \<equiv> array_assn minimize_status_assn *a arl_assn nat_assn\<close>
 
 definition cach_refinement_assn where
   \<open>cach_refinement_assn = hr_comp cach_refinement_l_assn cach_refinement\<close>

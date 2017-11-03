@@ -11,8 +11,8 @@ subsection \<open>Unit Propagation Loops\<close>
 definition set_conflict :: \<open>'v twl_cls \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
   \<open>set_conflict = (\<lambda>C (M, N, U, D, NP, UP, WS, Q). (M, N, U, Some (clause C), NP, UP, {#}, {#}))\<close>
 
-definition propgate_lit :: \<open>'v literal \<Rightarrow> 'v twl_cls \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
-  \<open>propgate_lit = (\<lambda>L' C (M, N, U, D, NP, UP, WS, Q).
+definition propagate_lit :: \<open>'v literal \<Rightarrow> 'v twl_cls \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
+  \<open>propagate_lit = (\<lambda>L' C (M, N, U, D, NP, UP, WS, Q).
       (Propagated L' (clause C) # M, N, U, D, NP, UP, WS, add_mset (-L') Q))\<close>
 
 definition update_clauseS :: \<open>'v literal \<Rightarrow> 'v twl_cls \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
@@ -34,7 +34,7 @@ definition unit_propagation_inner_loop_body :: "'v literal \<times> 'v twl_cls \
       then
         if -L' \<in> lits_of_l (get_trail S)
         then do {RETURN (set_conflict C S)}
-        else do {RETURN (propgate_lit L' C S)}
+        else do {RETURN (propagate_lit L' C S)}
       else do {
         update_clauseS L C S
      }
@@ -153,7 +153,7 @@ proof -
           let ?S = \<open>(M, N, U, D, NP, UP, WS, Q)\<close>
           let ?T' = \<open>(Propagated L' (clause C) # M, N, U, None, NP, UP, WS', add_mset (- L') Q)\<close>
           let ?S' = \<open>(M, N, U, None, NP, UP, add_mset (L, C) WS', Q)\<close>
-          let ?T = \<open>propgate_lit L' C (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)\<close>
+          let ?T = \<open>propagate_lit L' C (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)\<close>
           assume uL': \<open>- L' \<notin> lits_of_l ?M\<close>
 
           have undef: \<open>undefined_lit M L'\<close>
@@ -162,7 +162,7 @@ proof -
           have cdcl: \<open>cdcl_twl_cp ?S' ?T'\<close>
             by (rule cdcl_twl_cp.propagate) (use uL' L' undef watched unwatched D S in simp_all)
           then have cdcl: \<open>cdcl_twl_cp S ?T\<close>
-            using uL' L' undef watched unwatched D S WS_WS' by (simp add: propgate_lit_def)
+            using uL' L' undef watched unwatched D S WS_WS' by (simp add: propagate_lit_def)
 
           show \<open>twl_struct_invs ?T\<close>
             using cdcl inv D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_struct_invs)
@@ -172,7 +172,7 @@ proof -
           show \<open>twl_stgy_invs ?T\<close>
             using cdcl inv inv_s D unfolding S WS_WS' by (force intro: cdcl_twl_cp_twl_stgy_invs)
           show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
-            by (simp add: WS'_def[symmetric] WS_WS' S propgate_lit_def)
+            by (simp add: WS'_def[symmetric] WS_WS' S propagate_lit_def)
         }
       }
       fix La
@@ -691,13 +691,13 @@ definition reduce_trail_bt :: \<open>'v literal \<Rightarrow> 'v twl_st \<Righta
         RETURN (M1, N, U, D', NP, UP, WS, Q)
   })\<close>
 
-definition propgate_bt :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
-  \<open>propgate_bt = (\<lambda>L L' (M, N, U, D, NP, UP, WS, Q).
+definition propagate_bt :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
+  \<open>propagate_bt = (\<lambda>L L' (M, N, U, D, NP, UP, WS, Q).
     (Propagated (-L) (the D) # M, N, add_mset (TWL_Clause {#-L, L'#} (the D - {#-L, L'#})) U, None,
       NP, UP, WS, {#L#}))\<close>
 
-definition propgate_unit_bt :: \<open>'v literal \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
-  \<open>propgate_unit_bt = (\<lambda>L (M, N, U, D, NP, UP, WS, Q).
+definition propagate_unit_bt :: \<open>'v literal \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
+  \<open>propagate_unit_bt = (\<lambda>L (M, N, U, D, NP, UP, WS, Q).
     (Propagated (-L) (the D) # M, N, U, None, NP, add_mset (the D) UP, WS, {#L#}))\<close>
 
 definition backtrack_inv where
@@ -715,10 +715,10 @@ definition backtrack :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
       then do {
         L' \<leftarrow> SPEC(\<lambda>L'. L' \<in># the (get_conflict S) - {#-L#} \<and> L \<noteq> -L' \<and>
           get_level (get_trail S) L' = get_maximum_level (get_trail S) (the (get_conflict S) - {#-L#}));
-        RETURN (propgate_bt L L' S)
+        RETURN (propagate_bt L L' S)
       }
       else do {
-        RETURN (propgate_unit_bt L S)
+        RETURN (propagate_unit_bt L S)
       }
     }
   \<close>
@@ -808,7 +808,7 @@ proof -
     by (cases S) (auto simp: cdcl\<^sub>W_restart_mset_state)
   show ?thesis
     unfolding backtrack_def extract_shorter_conflict_def reduce_trail_bt_def
-     (*  propgate_bt_def propgate_unit_bt_def *)
+     (*  propagate_bt_def propagate_unit_bt_def *)
   proof (refine_vcg; remove_dummy_vars; clarify?)
     show \<open>backtrack_inv S\<close>
       using trail confl unfolding backtrack_inv_def by fast
@@ -995,25 +995,25 @@ proof -
         subgoal using K_D by (auto dest: in_diffD)
         subgoal using lev_K lev_M_M1 K_D by (simp add: i_def max_M1_M1_D)
         done
-    then show cdcl: \<open>cdcl_twl_o ?S (propgate_bt (lit_of (hd (get_trail ?S))) K ?U)\<close>
-      unfolding WS Q by (auto simp: propgate_bt_def)
+    then show cdcl: \<open>cdcl_twl_o ?S (propagate_bt (lit_of (hd (get_trail ?S))) K ?U)\<close>
+      unfolding WS Q by (auto simp: propagate_bt_def)
 
-      show \<open>get_conflict (propgate_bt (lit_of (hd (get_trail ?S))) K ?U) = None\<close>
-        by (auto simp: propgate_bt_def)
+      show \<open>get_conflict (propagate_bt (lit_of (hd (get_trail ?S))) K ?U) = None\<close>
+        by (auto simp: propagate_bt_def)
 
-      show \<open>twl_struct_invs (propgate_bt (lit_of (hd (get_trail ?S))) K ?U)\<close>
-        using S cdcl cdcl_twl_o_twl_struct_invs twl_struct by (auto simp: propgate_bt_def)
-      show \<open>twl_stgy_invs (propgate_bt (lit_of (hd (get_trail ?S))) K ?U)\<close>
+      show \<open>twl_struct_invs (propagate_bt (lit_of (hd (get_trail ?S))) K ?U)\<close>
+        using S cdcl cdcl_twl_o_twl_struct_invs twl_struct by (auto simp: propagate_bt_def)
+      show \<open>twl_stgy_invs (propagate_bt (lit_of (hd (get_trail ?S))) K ?U)\<close>
         using S cdcl cdcl_twl_o_twl_stgy_invs twl_struct twl_stgy by blast
-      show \<open>clauses_to_update (propgate_bt (lit_of (hd (get_trail ?S))) K ?U) = {#}\<close>
-        using WS by (auto simp: propgate_bt_def)
+      show \<open>clauses_to_update (propagate_bt (lit_of (hd (get_trail ?S))) K ?U) = {#}\<close>
+        using WS by (auto simp: propagate_bt_def)
 
-      show False if \<open>cdcl_twl_o (propgate_bt (lit_of (hd (get_trail ?S))) K ?U) (an, ao, ap, aq, ar, as, at, b)\<close>
+      show False if \<open>cdcl_twl_o (propagate_bt (lit_of (hd (get_trail ?S))) K ?U) (an, ao, ap, aq, ar, as, at, b)\<close>
         for  an ao ap aq ar as at b
-        using that by (auto simp: cdcl_twl_o.simps propgate_bt_def)
+        using that by (auto simp: cdcl_twl_o.simps propagate_bt_def)
 
-      show False if \<open>literals_to_update (propgate_bt (lit_of (hd (get_trail ?S))) K ?U) = {#}\<close>
-        using that by (auto simp: propgate_bt_def)
+      show False if \<open>literals_to_update (propagate_bt (lit_of (hd (get_trail ?S))) K ?U) = {#}\<close>
+        using that by (auto simp: propagate_bt_def)
 
     }
 
@@ -1043,23 +1043,23 @@ proof -
         subgoal using N_U_NP_UP_D' .
         done
       then show cdcl: \<open>cdcl_twl_o (M, N, U, D, NP, UP, WS, Q)
-             (propgate_unit_bt (lit_of (hd (get_trail ?S))) ?U)\<close>
-        by (auto simp add: propgate_unit_bt_def)
-      show \<open>get_conflict (propgate_unit_bt (lit_of (hd (get_trail ?S))) ?U) = None\<close>
-        by (auto simp add: propgate_unit_bt_def)
+             (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U)\<close>
+        by (auto simp add: propagate_unit_bt_def)
+      show \<open>get_conflict (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U) = None\<close>
+        by (auto simp add: propagate_unit_bt_def)
 
-      show \<open>twl_struct_invs (propgate_unit_bt (lit_of (hd (get_trail ?S))) ?U)\<close>
+      show \<open>twl_struct_invs (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U)\<close>
         using S cdcl cdcl_twl_o_twl_struct_invs twl_struct by blast
 
-      show \<open>twl_stgy_invs (propgate_unit_bt (lit_of (hd (get_trail ?S))) ?U)\<close>
+      show \<open>twl_stgy_invs (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U)\<close>
         using S cdcl cdcl_twl_o_twl_stgy_invs twl_struct twl_stgy by blast
-      show \<open>clauses_to_update (propgate_unit_bt (lit_of (hd (get_trail ?S))) ?U) = {#}\<close>
-        using WS by (auto simp add: propgate_unit_bt_def)
-      show False if \<open>literals_to_update (propgate_unit_bt (lit_of (hd (get_trail ?S))) ?U) = {#}\<close>
-        using that by (auto simp add: propgate_unit_bt_def)
+      show \<open>clauses_to_update (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U) = {#}\<close>
+        using WS by (auto simp add: propagate_unit_bt_def)
+      show False if \<open>literals_to_update (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U) = {#}\<close>
+        using that by (auto simp add: propagate_unit_bt_def)
       fix an ao ap aq ar as at b
-      show False if \<open>cdcl_twl_o (propgate_unit_bt (lit_of (hd (get_trail ?S))) ?U) (an, ao, ap, aq, ar, as, at, b) \<close>
-        using that by (auto simp: cdcl_twl_o.simps propgate_unit_bt_def)
+      show False if \<open>cdcl_twl_o (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U) (an, ao, ap, aq, ar, as, at, b) \<close>
+        using that by (auto simp: cdcl_twl_o.simps propagate_unit_bt_def)
     }
   qed
 qed
