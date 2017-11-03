@@ -111,7 +111,7 @@ fun deterministic_resolution_prover_step :: "'a wlstate \<Rightarrow> 'a wlstate
        | (C, i) # P' \<Rightarrow>
          let
            (C, i) = select_clause (C, i) P';
-           N = map (\<lambda>D. (D, Suc n)) (resolve C C @ concat (map (resolve_either_way C \<circ> fst) Q));
+           N = map (\<lambda>D. (D, n)) (resolve C C @ concat (map (resolve_either_way C \<circ> fst) Q));
            P = remove1 (C, i) P;
            Q = (C, i) # Q;
            n = Suc n
@@ -122,7 +122,7 @@ fun deterministic_resolution_prover_step :: "'a wlstate \<Rightarrow> 'a wlstate
         C = reduce (map fst (P @ Q)) [] C
       in
         if C = [] then
-          ([], [], [([], Suc n)], Suc n)
+          ([], [], [([], n)], Suc n)
         else if is_tautology C \<or> is_subsumed_by (map fst (P @ Q)) C then
           (N, P, Q, n)
         else
