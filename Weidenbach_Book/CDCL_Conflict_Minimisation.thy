@@ -1,5 +1,5 @@
 theory CDCL_Conflict_Minimisation
-  imports CDCL_Two_Watched_Literals_Watch_List_Domain "../lib/Explorer" WB_More_Refinement
+  imports CDCL_Two_Watched_Literals_Watch_List_Domain WB_More_Refinement
 begin
 
 no_notation Ref.update ("_ := _" 62)
