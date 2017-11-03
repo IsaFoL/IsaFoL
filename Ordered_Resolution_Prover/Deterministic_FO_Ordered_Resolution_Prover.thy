@@ -187,30 +187,21 @@ proof (induct P arbitrary: P0 Ci Dj)
     qed
   next
     case p1_ne_dj: False
-    show ?thesis sorry
-
-      using dj p1_ne_dj
-
-
-  qed
-
-  proof (cases "P1 = (D, j)")
-    case True
     show ?thesis
-      using ci dj
-
-
-      sorry
-  next
-    case False
-    then show ?thesis sorry
+    proof (cases "weight (apfst mset P1) < weight (apfst mset P0)")
+      case w_lt: True
+      then have "Ci = select_min_weight_clause P1 P"
+        using ci by simp
+      then show ?thesis
+        using dj by (metis (no_types) dual_order.strict_implies_order dual_order.strict_trans2 ih
+          list.set_intros(1) set_ConsD w_lt)
+    next
+      case w_ge: False
+      show ?thesis
+        by (rule ih[OF ci[unfolded select_min_weight_clause.simps, simplified w_ge]])
+          (use dj p1_ne_dj in simp)
+    qed
   qed
-
-    apply (rule ih)
-    apply (rule ci[unfolded select_min_weight_clause.simps])
-    using dj
-    apply auto
-    sorry
 qed force
 
 
