@@ -671,4 +671,38 @@ lemma undefined_atm_code_ref[sepref_fr_rules]:
 
 end
 
+definition get_propagation_reason :: \<open>('v, 'mark) ann_lits \<Rightarrow> 'v literal \<Rightarrow> 'mark option nres\<close> where
+  \<open>get_propagation_reason M L = SPEC(\<lambda>C. C \<noteq> None \<longrightarrow> Propagated L (the C) \<in> set M)\<close>
+
+definition get_propagation_reason_pol :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> nat option nres\<close> where
+  \<open>get_propagation_reason_pol = (\<lambda>(_, _, _, reasons, _) L. do {
+        ASSERT(atm_of L < length reasons);
+        RETURN (reasons ! atm_of L)})\<close>
+
+sepref_definition get_propagation_reason_code
+  is \<open>uncurry get_propagation_reason_pol\<close>
+  :: \<open>trail_pol_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn nat_assn\<close>
+  unfolding get_propagation_reason_pol_def
+  by sepref
+
+context isasat_input_ops
+begin
+
+lemma get_propagation_reason_pol:
+  \<open>(uncurry get_propagation_reason_pol, uncurry get_propagation_reason) \<in>
+       [\<lambda>(M, L). L \<in> lits_of_l M]\<^sub>f trail_pol \<times>\<^sub>r Id \<rightarrow> \<langle>\<langle>nat_rel\<rangle>option_rel\<rangle> nres_rel\<close>
+  apply (intro frefI nres_relI)
+  unfolding lits_of_def
+  apply clarify
+  apply (rename_tac a aa ab ac b ba ad bb x, case_tac x)
+  by (auto simp: get_propagation_reason_def get_propagation_reason_pol_def
+      trail_pol_def ann_lits_split_reasons_def lits_of_def assert_bind_spec_conv)
+
+lemma get_propagation_reason_hnr[sepref_fr_rules]:
+   \<open>(uncurry get_propagation_reason_code, uncurry get_propagation_reason)
+     \<in> [\<lambda>(a, b). b \<in> lits_of_l a]\<^sub>a trail_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn nat_assn\<close>
+  using get_propagation_reason_code.refine[FCOMP get_propagation_reason_pol] .
+
+end
+
 end

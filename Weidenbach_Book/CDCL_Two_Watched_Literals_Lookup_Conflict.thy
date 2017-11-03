@@ -1017,7 +1017,7 @@ qed
 
 
 definition (in -) is_in_conflict :: \<open>nat literal \<Rightarrow> nat clause option \<Rightarrow> bool\<close> where
-  \<open>is_in_conflict L C \<longleftrightarrow> L \<in># the C\<close>
+  [simp]: \<open>is_in_conflict L C \<longleftrightarrow> L \<in># the C\<close>
 
 definition (in -) is_in_lookup_option_conflict :: \<open>nat literal \<Rightarrow> (bool \<times> nat \<times> bool option list) \<Rightarrow> bool\<close> where
   \<open>is_in_lookup_option_conflict = (\<lambda>L (_, _, xs). xs ! atm_of L = Some (is_pos L))\<close>

@@ -1737,7 +1737,7 @@ lemma conflict_min_cach_set_failed:
   \<open>(uncurry conflict_min_cach_set_failed_l, uncurry (RETURN oo conflict_min_cach_set_failed)) \<in>
      [\<lambda>(cach, L). L \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f cach_refinement \<times>\<^sub>r nat_rel \<rightarrow> \<langle>cach_refinement\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-     (auto simp: cach_refinement_alt_def map_fun_rel_def  cach_refinement_list_def
+     (auto simp: cach_refinement_alt_def map_fun_rel_def cach_refinement_list_def
       conflict_min_cach_set_failed_l_def)
 
 
