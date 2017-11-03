@@ -258,6 +258,7 @@ definition update_clause_l :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat \<R
 definition unit_propagation_inner_loop_body_l_inv where
   \<open>unit_propagation_inner_loop_body_l_inv L C S \<longleftrightarrow>
     C < length (get_clauses_l S) \<and>
+    C > 0 \<and>
     0 < length (get_clauses_l S!C) \<and>
     no_dup (get_trail_l S) \<and>
     (if (get_clauses_l S!C) ! 0 = L then 0 else 1) < length (get_clauses_l S!C) \<and>
