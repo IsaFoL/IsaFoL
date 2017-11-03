@@ -58,8 +58,8 @@ abbreviation Q_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" where
 abbreviation grounding_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" where 
   "grounding_of_gstate \<equiv> grounding_of_state \<circ> state_of_gstate"
 
-abbreviation limit_gstate :: "'a gstate llist \<Rightarrow> 'a state" where
-  "limit_gstate \<equiv> limit_state \<circ> lmap state_of_gstate"
+abbreviation Liminf_gstate :: "'a gstate llist \<Rightarrow> 'a state" where
+  "Liminf_gstate \<equiv> Liminf_state \<circ> lmap state_of_gstate"
 
 inductive fair_resolution_prover :: "'a gstate \<Rightarrow> 'a gstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>f" 50)  where
   tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>f (N, P, Q, n)"
@@ -140,20 +140,20 @@ lemma monotone_fairness: "fair_state_seq (lmap state_of_gstate Sts)"
 proof (rule ccontr)
   assume "\<not> fair_state_seq (lmap state_of_gstate Sts)"
   then obtain C where
-    "C \<in> limit_llist (lmap N_of_state (lmap state_of_gstate Sts))
-       \<union> limit_llist (lmap P_of_state (lmap state_of_gstate Sts))" 
-    unfolding fair_state_seq_def limit_state_def by auto
+    "C \<in> Liminf_llist (lmap N_of_state (lmap state_of_gstate Sts))
+       \<union> Liminf_llist (lmap P_of_state (lmap state_of_gstate Sts))" 
+    unfolding fair_state_seq_def Liminf_state_def by auto
   then show False
   proof
-    assume "C \<in> limit_llist (lmap N_of_state (lmap state_of_gstate Sts))"
+    assume "C \<in> Liminf_llist (lmap N_of_state (lmap state_of_gstate Sts))"
     then obtain i where
       "enat i < llength Sts"
       "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_gstate (lnth Sts j))" 
-      unfolding limit_llist_def by auto
+      unfolding Liminf_llist_def by auto
     then show False
       sorry (* *)
   next
-    assume "C \<in> limit_llist (lmap P_of_state (lmap state_of_gstate Sts))"
+    assume "C \<in> Liminf_llist (lmap P_of_state (lmap state_of_gstate Sts))"
     then show False 
       sorry
   qed
@@ -162,8 +162,8 @@ qed
 lemma monotone_completeness:
   assumes 
     selection_renaming_invariant: "(\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>)" and
-    unsat: "\<not> satisfiable (grounding_of_state (limit_gstate Sts))" 
-  shows "{#} \<in> clss_of_state (limit_gstate Sts)"
+    unsat: "\<not> satisfiable (grounding_of_state (Liminf_gstate Sts))" 
+  shows "{#} \<in> clss_of_state (Liminf_gstate Sts)"
 proof -
   have "state_of_gstate (lnth Sts 0) = lnth (lmap state_of_gstate Sts) 0"
     using lnth_lmap[of 0 Sts state_of_gstate, unfolded enat_0] chain_length_pos[OF deriv] by auto
@@ -179,11 +179,11 @@ proof -
     using selection_renaming_invariant by auto
   moreover have "fair_state_seq (lmap state_of_gstate Sts)"
     using monotone_fairness by auto
-  moreover have "\<not> satisfiable (grounding_of_state (limit_state (lmap state_of_gstate Sts)))"
+  moreover have "\<not> satisfiable (grounding_of_state (Liminf_state (lmap state_of_gstate Sts)))"
     using unsat by auto
-  ultimately have "{#} \<in> clss_of_state (limit_state (lmap state_of_gstate Sts))" 
+  ultimately have "{#} \<in> clss_of_state (Liminf_state (lmap state_of_gstate Sts))" 
     using fair_state_seq_complete[of "lmap state_of_gstate Sts"] by auto
-  then show "{#} \<in> clss_of_state (limit_gstate Sts)"
+  then show "{#} \<in> clss_of_state (Liminf_gstate Sts)"
     by auto
 qed 
 

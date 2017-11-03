@@ -413,12 +413,11 @@ proof (induction n arbitrary: AAs' As')
   moreover have nn: "length (map2 add_mset ((As' \<cdot>al \<eta>)) ((AAs' \<cdot>aml \<eta>))) = Suc n"
     "length (map2 add_mset (As') (AAs') \<cdot>aml \<eta>) = Suc n"
     using Succ Suc by auto
-  ultimately
-  have "\<forall>i. i < Suc n \<longrightarrow> i > 0 \<longrightarrow> map2 add_mset (As' \<cdot>al \<eta>) (AAs' \<cdot>aml \<eta>) ! i = (map2 add_mset As' AAs' \<cdot>aml \<eta>) ! i"
-    by (metis (no_types) Suc.prems(1) Suc.prems(2) Succ(1) Succ(2) \<open>length (map2 add_mset (tl (As' \<cdot>al \<eta>)) (tl (AAs' \<cdot>aml \<eta>))) = n\<close>
+  ultimately have "\<forall>i. i < Suc n \<longrightarrow> i > 0 \<longrightarrow>
+    map2 add_mset (As' \<cdot>al \<eta>) (AAs' \<cdot>aml \<eta>) ! i = (map2 add_mset As' AAs' \<cdot>aml \<eta>) ! i"
+    by (metis (no_types) Suc.prems(1,2) Succ(1,2) \<open>length (map2 add_mset (tl (As' \<cdot>al \<eta>)) (tl (AAs' \<cdot>aml \<eta>))) = n\<close>
         \<open>map2 add_mset (tl (As' \<cdot>al \<eta>)) (tl (AAs' \<cdot>aml \<eta>)) = map2 add_mset (tl As') (tl AAs') \<cdot>aml \<eta>\<close> less_Suc_eq_0_disj map2_tl map_tl neq0_conv nth_tl subst_atm_mset_list_def)
-  moreover
-  have "add_mset (hd As' \<cdot>a \<eta>) (hd AAs' \<cdot>am \<eta>) = add_mset (hd As') (hd AAs') \<cdot>am \<eta>"
+  moreover have "add_mset (hd As' \<cdot>a \<eta>) (hd AAs' \<cdot>am \<eta>) = add_mset (hd As') (hd AAs') \<cdot>am \<eta>"
     unfolding subst_atm_mset_def by auto
   then have "(map2 add_mset (As' \<cdot>al \<eta>) (AAs' \<cdot>aml \<eta>)) ! 0  = (map2 add_mset (As') (AAs') \<cdot>aml \<eta>) ! 0"
     using Suc by (simp add: Succ(2) subst_atm_mset_def)

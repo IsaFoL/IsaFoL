@@ -1,12 +1,12 @@
-(*  Title:       Limits of Lazy Lists
+(*  Title:       Liminf of Lazy Lists
     Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2014, 2017
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
     Maintainer:  Jasmin Blanchette <j.c.blanchette at vu.nl>
 *)
 
-section \<open>Limits of Lazy Lists\<close>
+section \<open>Liminf of Lazy Lists\<close>
 
-theory Lazy_List_Limit
+theory Lazy_List_Liminf
   imports Coinductive.Coinductive_List
 begin
 
@@ -18,8 +18,8 @@ generally in terms of lattices. The basis for this theory is Section 4.1 (``Theo
 Processes'') of Bachmair and Ganzinger's chapter.
 \<close>
 
-definition Sup_llist :: "('a :: Sup) llist \<Rightarrow> 'a" where
-  "Sup_llist xs = (\<Squnion>i \<in> {i. enat i < llength xs}. lnth xs i)"
+definition Sup_llist :: "'a set llist \<Rightarrow> 'a set" where
+  "Sup_llist Xs = (\<Union>i \<in> {i. enat i < llength Xs}. lnth Xs i)"
 
 lemma lnth_subset_Sup_llist: "enat i < llength xs \<Longrightarrow> lnth xs i \<subseteq> Sup_llist xs"
   unfolding Sup_llist_def by auto
@@ -31,22 +31,22 @@ lemma Sup_llist_LCons[simp]: "Sup_llist (LCons X Xs) = X \<union> Sup_llist Xs"
   unfolding Sup_llist_def
 proof (intro subset_antisym subsetI)
   fix x
-  assume "x \<in> (\<Squnion>i \<in> {i. enat i < llength (LCons X Xs)}. lnth (LCons X Xs) i)"
+  assume "x \<in> (\<Union>i \<in> {i. enat i < llength (LCons X Xs)}. lnth (LCons X Xs) i)"
   then obtain i where len: "enat i < llength (LCons X Xs)" and nth: "x \<in> lnth (LCons X Xs) i"
     by blast
   from nth have "x \<in> X \<or> i > 0 \<and> x \<in> lnth Xs (i - 1)"
     by (metis lnth_LCons' neq0_conv)
   then have "x \<in> X \<or> (\<exists>i. enat i < llength Xs \<and> x \<in> lnth Xs i)"
     by (metis len Suc_pred' eSuc_enat iless_Suc_eq less_irrefl llength_LCons not_less order_trans)
-  then show "x \<in> X \<union> (\<Squnion>i \<in> {i. enat i < llength Xs}. lnth Xs i)"
+  then show "x \<in> X \<union> (\<Union>i \<in> {i. enat i < llength Xs}. lnth Xs i)"
     by blast
 qed ((auto)[], metis i0_lb lnth_0 zero_enat_def, metis Suc_ile_eq lnth_Suc_LCons)
 
 lemma lhd_subset_Sup_llist: "\<not> lnull Xs \<Longrightarrow> lhd Xs \<subseteq> Sup_llist Xs"
   by (cases Xs) simp_all
 
-definition Sup_upto_llist :: "('a :: Sup) llist \<Rightarrow> nat \<Rightarrow> 'a" where
-  "Sup_upto_llist Xs j = (\<Squnion>i \<in> {i. enat i < llength Xs \<and> i \<le> j}. lnth Xs i)"
+definition Sup_upto_llist :: "'a set llist \<Rightarrow> nat \<Rightarrow> 'a set" where
+  "Sup_upto_llist Xs j = (\<Union>i \<in> {i. enat i < llength Xs \<and> i \<le> j}. lnth Xs i)"
 
 lemma Sup_upto_llist_mono: "j \<le> k \<Longrightarrow> Sup_upto_llist Xs j \<subseteq> Sup_upto_llist Xs k"
   unfolding Sup_upto_llist_def by auto
@@ -63,9 +63,9 @@ lemma finite_Sup_llist_imp_Sup_upto_llist:
   using assms
 proof induct
   case (insert x X)
-  hence "x \<in> Sup_llist Xs" and X: "X \<subseteq> Sup_llist Xs"
+  hence x: "x \<in> Sup_llist Xs" and X: "X \<subseteq> Sup_llist Xs"
     by simp+
-  then obtain k where k: "x \<in> Sup_upto_llist Xs k"
+  from x obtain k where k: "x \<in> Sup_upto_llist Xs k"
     using elem_Sup_llist_imp_Sup_upto_llist by fast
   from X obtain k' where k': "X \<subseteq> Sup_upto_llist Xs k'"
     using insert.hyps(3) by fast
@@ -77,11 +77,11 @@ proof induct
     by fast
 qed simp
 
-definition limit_llist :: "('a :: {Inf,Sup}) llist \<Rightarrow> 'a" where
-  "limit_llist Xs =
-   (\<Squnion>i \<in> {i. enat i < llength Xs}. \<Sqinter>j \<in> {j. i \<le> j \<and> enat j < llength Xs}. lnth Xs j)"
+definition Liminf_llist :: "'a set llist \<Rightarrow> 'a set" where
+  "Liminf_llist Xs =
+   (\<Union>i \<in> {i. enat i < llength Xs}. \<Inter>j \<in> {j. i \<le> j \<and> enat j < llength Xs}. lnth Xs j)"
 
-lemma limit_llist_subset_Sup_llist: "limit_llist Xs \<subseteq> Sup_llist Xs"
-  unfolding limit_llist_def Sup_llist_def by fast
+lemma Liminf_llist_subset_Sup_llist: "Liminf_llist Xs \<subseteq> Sup_llist Xs"
+  unfolding Liminf_llist_def Sup_llist_def by fast
 
 end

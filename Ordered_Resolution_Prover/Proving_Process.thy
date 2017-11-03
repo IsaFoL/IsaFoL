@@ -8,7 +8,7 @@
 section \<open>Theorem Proving Processes\<close>
 
 theory Proving_Process
-  imports Unordered_Ground_Resolution Lazy_List_Limit
+  imports Unordered_Ground_Resolution Lazy_List_Liminf
 begin
 
 text \<open>
@@ -181,9 +181,9 @@ This corresponds to Lemma 4.2:
 lemma
   assumes deriv: "chain (op \<triangleright>) Ns"
   shows
-    Rf_Sup_subset_Rf_limit: "Rf (Sup_llist Ns) \<subseteq> Rf (limit_llist Ns)" and
-    Ri_Sup_subset_Ri_limit: "Ri (Sup_llist Ns) \<subseteq> Ri (limit_llist Ns)" and
-    sat_deriv_limit_iff: "satisfiable (limit_llist Ns) \<longleftrightarrow> satisfiable (lhd Ns)"
+    Rf_Sup_subset_Rf_Liminf: "Rf (Sup_llist Ns) \<subseteq> Rf (Liminf_llist Ns)" and
+    Ri_Sup_subset_Ri_Liminf: "Ri (Sup_llist Ns) \<subseteq> Ri (Liminf_llist Ns)" and
+    sat_deriv_Liminf_iff: "satisfiable (Liminf_llist Ns) \<longleftrightarrow> satisfiable (lhd Ns)"
 proof -
   {
     fix C i j
@@ -222,26 +222,26 @@ proof -
       qed
     qed
   }
-  then have lu_ll: "Sup_llist Ns - Rf (Sup_llist Ns) \<subseteq> limit_llist Ns"
-    unfolding Sup_llist_def limit_llist_def by blast
-  have rf: "Rf (Sup_llist Ns - Rf (Sup_llist Ns)) \<subseteq> Rf (limit_llist Ns)"
+  then have lu_ll: "Sup_llist Ns - Rf (Sup_llist Ns) \<subseteq> Liminf_llist Ns"
+    unfolding Sup_llist_def Liminf_llist_def by blast
+  have rf: "Rf (Sup_llist Ns - Rf (Sup_llist Ns)) \<subseteq> Rf (Liminf_llist Ns)"
     using lu_ll Rf_mono by simp
-  have ri: "Ri (Sup_llist Ns - Rf (Sup_llist Ns)) \<subseteq> Ri (limit_llist Ns)"
+  have ri: "Ri (Sup_llist Ns - Rf (Sup_llist Ns)) \<subseteq> Ri (Liminf_llist Ns)"
     using lu_ll Ri_mono by simp
-  show "Rf (Sup_llist Ns) \<subseteq> Rf (limit_llist Ns)"
+  show "Rf (Sup_llist Ns) \<subseteq> Rf (Liminf_llist Ns)"
     using rf Rf_indep by blast
-  show "Ri (Sup_llist Ns) \<subseteq> Ri (limit_llist Ns)"
+  show "Ri (Sup_llist Ns) \<subseteq> Ri (Liminf_llist Ns)"
     using ri Ri_indep by blast
 
-  show "satisfiable (limit_llist Ns) \<longleftrightarrow> satisfiable (lhd Ns)"
+  show "satisfiable (Liminf_llist Ns) \<longleftrightarrow> satisfiable (lhd Ns)"
   proof
     assume "satisfiable (lhd Ns)"
     then have "satisfiable (Sup_llist Ns)"
       using deriv deriv_sat_preserving by simp
-    then show "satisfiable (limit_llist Ns)"
-      using true_clss_mono[OF limit_llist_subset_Sup_llist] by blast
+    then show "satisfiable (Liminf_llist Ns)"
+      using true_clss_mono[OF Liminf_llist_subset_Sup_llist] by blast
   next
-    assume "satisfiable (limit_llist Ns)"
+    assume "satisfiable (Liminf_llist Ns)"
     then have "satisfiable (Sup_llist Ns - Rf (Sup_llist Ns))"
       using true_clss_mono[OF lu_ll] by blast
     then have "satisfiable (Sup_llist Ns)"
@@ -254,11 +254,11 @@ qed
 lemma
   assumes "chain (op \<triangleright>) Ns"
   shows
-    Rf_limit_eq_Rf_Sup: "Rf (limit_llist Ns) = Rf (Sup_llist Ns)" and
-    Ri_limit_eq_Ri_Sup: "Ri (limit_llist Ns) = Ri (Sup_llist Ns)"
+    Rf_Liminf_eq_Rf_Sup: "Rf (Liminf_llist Ns) = Rf (Sup_llist Ns)" and
+    Ri_Liminf_eq_Ri_Sup: "Ri (Liminf_llist Ns) = Ri (Sup_llist Ns)"
   using assms
-  by (auto simp: Rf_Sup_subset_Rf_limit Rf_mono Ri_Sup_subset_Ri_limit Ri_mono
-      limit_llist_subset_Sup_llist subset_antisym)
+  by (auto simp: Rf_Sup_subset_Rf_Liminf Rf_mono Ri_Sup_subset_Ri_Liminf Ri_mono
+      Liminf_llist_subset_Sup_llist subset_antisym)
 
 end
 
@@ -271,7 +271,7 @@ locale effective_redundancy_criterion = redundancy_criterion +
 begin
 
 definition fair_clss_seq :: "'a clause set llist \<Rightarrow> bool" where
-  "fair_clss_seq Ns \<longleftrightarrow> (let N' = limit_llist Ns - Rf (limit_llist Ns) in
+  "fair_clss_seq Ns \<longleftrightarrow> (let N' = Liminf_llist Ns - Rf (Liminf_llist Ns) in
      concls_of (inferences_from N' - Ri N') \<subseteq> Sup_llist Ns \<union> Rf (Sup_llist Ns))"
 
 end
@@ -292,13 +292,13 @@ theorem fair_derive_saturated_upto:
   assumes
     deriv: "chain (op \<triangleright>) Ns" and
     fair: "fair_clss_seq Ns"
-  shows "saturated_upto (limit_llist Ns)"
+  shows "saturated_upto (Liminf_llist Ns)"
   unfolding saturated_upto_def
 proof
   fix \<gamma>
-  let ?N' = "limit_llist Ns - Rf (limit_llist Ns)"
+  let ?N' = "Liminf_llist Ns - Rf (Liminf_llist Ns)"
   assume \<gamma>: "\<gamma> \<in> inferences_from ?N'"
-  show "\<gamma> \<in> Ri (limit_llist Ns)"
+  show "\<gamma> \<in> Ri (Liminf_llist Ns)"
   proof (cases "\<gamma> \<in> Ri ?N'")
     case True
     then show ?thesis
@@ -314,18 +314,18 @@ proof
       assume "concl_of \<gamma> \<in> Sup_llist Ns"
       then have "\<gamma> \<in> Ri (Sup_llist Ns)"
         using \<gamma> Ri_effective inferences_from_def by blast
-      then have "\<gamma> \<in> Ri (limit_llist Ns)"
-        using deriv Ri_Sup_subset_Ri_limit by fast
+      then have "\<gamma> \<in> Ri (Liminf_llist Ns)"
+        using deriv Ri_Sup_subset_Ri_Liminf by fast
     }
     moreover
     {
       assume "concl_of \<gamma> \<in> Rf (Sup_llist Ns)"
-      then have "concl_of \<gamma> \<in> Rf (limit_llist Ns)"
-        using deriv Rf_Sup_subset_Rf_limit by blast
-      then have "\<gamma> \<in> Ri (limit_llist Ns)"
+      then have "concl_of \<gamma> \<in> Rf (Liminf_llist Ns)"
+        using deriv Rf_Sup_subset_Rf_Liminf by blast
+      then have "\<gamma> \<in> Ri (Liminf_llist Ns)"
         using \<gamma> Ri_effective inferences_from_def by auto
     }
-    ultimately show "\<gamma> \<in> Ri (limit_llist Ns)"
+    ultimately show "\<gamma> \<in> Ri (Liminf_llist Ns)"
       by blast
   qed
 qed
@@ -395,9 +395,9 @@ theorem redundancy_criterion_standard_extension_fair_derive_saturated_upto:
     red': "sat_preserving_effective_redundancy_criterion \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>))" and
     deriv: "chain (redundancy_criterion.derive \<Gamma>' Rf) Ns" and
     fair: "effective_redundancy_criterion.fair_clss_seq \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>)) Ns"
-  shows "redundancy_criterion.saturated_upto \<Gamma> Rf Ri (limit_llist Ns)"
+  shows "redundancy_criterion.saturated_upto \<Gamma> Rf Ri (Liminf_llist Ns)"
 proof -
-  have "redundancy_criterion.saturated_upto \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>)) (limit_llist Ns)"
+  have "redundancy_criterion.saturated_upto \<Gamma>' Rf (\<lambda>N. Ri N \<union> (\<Gamma>' - \<Gamma>)) (Liminf_llist Ns)"
     by (rule sat_preserving_effective_redundancy_criterion.fair_derive_saturated_upto
         [OF red' deriv fair])
   then show ?thesis
