@@ -1574,12 +1574,48 @@ proof -
     unfolding limit_state_def clss_of_state_def by simp
 qed
 
-theorem fair_state_seq_complete:
+lemma grounding_of_state_limit_state_subseteq:
+  "grounding_of_state (limit_state Sts) \<subseteq> limit_llist (lmap grounding_of_state Sts)"
+proof
+  fix C :: "'a clause"
+  assume "C \<in> grounding_of_state (limit_state Sts)"
+  then obtain D \<sigma> where D_\<sigma>_p: "D \<in> clss_of_state (limit_state Sts)" "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
+    unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def by auto
+  then have ii: "D \<in> limit_llist (lmap N_of_state Sts) \<or> D \<in> limit_llist (lmap P_of_state Sts) \<or> D \<in> limit_llist (lmap Q_of_state Sts)"
+    unfolding clss_of_state_def  limit_state_def by simp
+  then have "C \<in> limit_llist (lmap grounding_of_clss (lmap N_of_state Sts)) \<or>
+    C \<in> limit_llist (lmap grounding_of_clss (lmap P_of_state Sts)) \<or>
+    C \<in> limit_llist (lmap grounding_of_clss (lmap Q_of_state Sts))"
+    apply -
+    unfolding limit_llist_def grounding_of_clss_def grounding_of_cls_def
+    apply (erule disjE)
+    subgoal
+      apply (rule disjI1)
+      using D_\<sigma>_p apply (auto; fail)
+      done
+    subgoal
+      apply (erule HOL.disjE)
+      subgoal
+        apply (rule disjI2)
+        apply (rule disjI1)
+        using D_\<sigma>_p apply auto
+        done
+      subgoal
+        apply (rule disjI2)
+        apply (rule disjI2)
+        using D_\<sigma>_p apply auto
+        done
+      done
+    done
+  then show "C \<in> limit_llist (lmap grounding_of_state Sts)"
+    unfolding limit_llist_def clss_of_state_def grounding_of_clss_def by auto
+qed
+
+theorem fair_state_seq_saturated:
   assumes
-    selection_renaming_invariant: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
-    fair: "fair_state_seq Sts" and
-    unsat: "\<not> satisfiable (grounding_of_state (limit_state Sts))"
-  shows "{#} \<in> clss_of_state (limit_state Sts)"
+    sel_ren_inv: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
+    fair: "fair_state_seq Sts"
+  shows "src.saturated_upto (limit_llist (lmap grounding_of_state Sts))"
 proof -
   define Ns :: "'a clause set llist" where
     ns: "Ns = lmap grounding_of_state Sts"
@@ -1756,7 +1792,7 @@ proof -
       "DA' \<cdot> \<eta>' = ?D"
       "E' \<cdot> \<eta>2' = ?E"
       "{DA'} \<union> set CAs' \<subseteq> Q_of_state (limit_state Sts)"
-      using selection_renaming_invariant ord_resolve_rename_lifting[of S "Q_of_state (limit_state Sts)" CAs "?D" _ "?E", OF sisisgma selection_axioms _ DCAs_in_ground_limit]
+      using sel_ren_inv ord_resolve_rename_lifting[of S "Q_of_state (limit_state Sts)" CAs "?D" _ "?E", OF sisisgma selection_axioms _ DCAs_in_ground_limit]
       by smt
     from this(8) have "\<exists>j. enat j < llength Sts \<and> ((set CAs') \<union> {DA'} \<subseteq> ?Qs j)"
       unfolding limit_llist_def
@@ -1820,52 +1856,28 @@ proof -
     unfolding src_ext.saturated_upto_def src_ext.inferences_from_def infer_from_def src_ext_Ri_def
     by auto
 
-  have "limit_llist (lmap grounding_of_state Sts) \<supseteq> grounding_of_state (limit_state Sts)"
-  proof
-    fix C :: "'a clause"
-    assume "C \<in> grounding_of_state (limit_state Sts)"
-    then obtain D \<sigma> where D_\<sigma>_p: "D \<in> clss_of_state (limit_state Sts)" "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
-      unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def by auto
-    then have ii: "D \<in> limit_llist (lmap N_of_state Sts) \<or> D \<in> limit_llist (lmap P_of_state Sts) \<or> D \<in> limit_llist (lmap Q_of_state Sts)"
-      unfolding clss_of_state_def  limit_state_def by simp
-    then have "C \<in> limit_llist (lmap grounding_of_clss (lmap N_of_state Sts)) \<or>
-      C \<in> limit_llist (lmap grounding_of_clss (lmap P_of_state Sts)) \<or>
-      C \<in> limit_llist (lmap grounding_of_clss (lmap Q_of_state Sts))"
-      apply -
-      unfolding limit_llist_def grounding_of_clss_def grounding_of_cls_def
-      apply (erule disjE)
-      subgoal
-        apply (rule disjI1)
-        using D_\<sigma>_p apply (auto; fail)
-        done
-      subgoal
-        apply (erule HOL.disjE)
-        subgoal
-          apply (rule disjI2)
-          apply (rule disjI1)
-          using D_\<sigma>_p apply auto
-          done
-        subgoal
-          apply (rule disjI2)
-          apply (rule disjI2)
-          using D_\<sigma>_p apply auto
-          done
-        done
-      done
-    then show "C \<in> limit_llist (lmap grounding_of_state Sts)"
-      unfolding limit_llist_def clss_of_state_def grounding_of_clss_def by auto
-  qed
-  then have unsat2: "\<not> satisfiable (limit_llist (lmap grounding_of_state Sts))"
-    using unsat unfolding true_clss_def by (meson contra_subsetD)
-
-  from sat_limit_gr_sts have "src.saturated_upto (limit_llist (lmap grounding_of_state Sts))"
+  from sat_limit_gr_sts show ?thesis
     using gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redundancy_criterion_axioms
       redundancy_criterion_standard_extension_saturated_upto_iff[of gd.ord_\<Gamma>]
     unfolding src_ext_Ri_def by auto
-  then have "{#} \<in> limit_llist (lmap grounding_of_state Sts)"
-    using src.saturated_upto_complete unsat2 by auto
+qed
+
+corollary fair_state_seq_complete:
+  assumes
+    sel_ren_inv: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
+    fair: "fair_state_seq Sts" and
+    unsat: "\<not> satisfiable (grounding_of_state (limit_state Sts))"
+  shows "{#} \<in> clss_of_state (limit_state Sts)"
+proof -
+  have "\<not> satisfiable (limit_llist (lmap grounding_of_state Sts))"
+    using unsat grounding_of_state_limit_state_subseteq unfolding true_clss_def
+    by (meson contra_subsetD)
+  moreover have "src.saturated_upto (limit_llist (lmap grounding_of_state Sts))"
+    by (rule fair_state_seq_saturated[OF sel_ren_inv fair, simplified])
+  ultimately have "{#} \<in> limit_llist (lmap grounding_of_state Sts)"
+    using src.saturated_upto_complete by auto
   then show "{#} \<in> clss_of_state (limit_state Sts)"
-    using empty_in_limit_state fair ns by auto
+    using empty_in_limit_state fair by auto
 qed
 
 end
