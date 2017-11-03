@@ -17,7 +17,7 @@ type_synonym 'a lclause = "'a literal list"
 type_synonym 'a glclause = "'a lclause \<times> nat"
 type_synonym 'a glstate = "'a glclause list \<times> 'a glclause list \<times> 'a glclause list \<times> nat"
 
-context fair_FO_resolution_prover_with_sum_product
+locale deterministic_FO_resolution_prover = fair_FO_resolution_prover_with_sum_product
 begin
 
 fun gstate_of_glstate :: "'a glstate \<Rightarrow> 'a gstate" where
