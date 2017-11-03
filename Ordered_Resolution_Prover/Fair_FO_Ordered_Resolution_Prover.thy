@@ -15,7 +15,7 @@ theory Fair_FO_Ordered_Resolution_Prover
 begin
 
 type_synonym 'a gclause = "'a clause \<times> nat"
-type_synonym 'a gstate = "'a gclause set \<times> 'a gclause set \<times> 'a gclause set \<times> nat"
+type_synonym 'a gstate = "'a gclause multiset \<times> 'a gclause multiset \<times> 'a gclause multiset \<times> nat"
 
 locale fair_FO_resolution_provers =
   FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu less_atm
@@ -34,8 +34,17 @@ locale fair_FO_resolution_provers =
     weight_monotone: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
 begin
 
+lemma generation_le_weight: "n \<le> weight (C, n)"
+  by (induct n, simp, metis weight_monotone[of k "Suc k" for k] Suc_le_eq le_less le_trans)
+
+lemma finite_ord_FO_resolution_inferences_between:
+  assumes "finite CC"
+  shows "finite (ord_FO_resolution_inferences_between CC D)"
+  sorry
+
 fun state_of_gstate :: "'a gstate \<Rightarrow> 'a state" where
-  "state_of_gstate (N, P, Q, n) = (fst ` N, fst ` P, fst ` Q)"
+  "state_of_gstate (N, P, Q, n) =
+   (set_mset (image_mset fst N), set_mset (image_mset fst P), set_mset (image_mset fst Q))"
 
 abbreviation clss_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" where 
   "clss_of_gstate \<equiv> clss_of_state \<circ> state_of_gstate"
@@ -53,38 +62,28 @@ abbreviation limit_gstate :: "'a gstate llist \<Rightarrow> 'a state" where
   "limit_gstate \<equiv> limit_state \<circ> lmap state_of_gstate"
 
 inductive fair_resolution_prover :: "'a gstate \<Rightarrow> 'a gstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>f" 50)  where
-  tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (C, i) \<notin> N \<Longrightarrow>
-    (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>f (N, P, Q, n)"
-| forward_subsumption: "(\<exists>D \<in> fst ` (P \<union> Q). subsumes D C) \<Longrightarrow> (C, i) \<notin> N \<Longrightarrow>
-    (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>f (N, P, Q, n)"
-| backward_subsumption_P: "(\<exists>D \<in> fst ` N. strictly_subsumes D C) \<Longrightarrow> (C, i) \<notin> P \<Longrightarrow>
-    (N, P \<union> {(C, i)}, Q, n) \<leadsto>\<^sub>f (N, P, Q, n)"
-| backward_subsumption_Q: "(\<exists>D \<in> fst ` N. strictly_subsumes D C) \<Longrightarrow> (C, i) \<notin> Q \<Longrightarrow>
-    (N, P, Q \<union> {(C, i)}, n) \<leadsto>\<^sub>f (N, P, Q, n)"
-| forward_reduction: "(\<exists>D L'. D + {#L'#} \<in> fst ` (P \<union> Q) \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
-    (C + {#L#}, i) \<notin> N \<Longrightarrow> (N \<union> {(C + {#L#}, i)}, P, Q, n) \<leadsto>\<^sub>f (N \<union> {(C, i)}, P, Q, n)"
-| backward_reduction_P: "(\<exists>D L'. D + {#L'#} \<in> fst ` N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
-    (C + {#L#}, i) \<notin> P \<Longrightarrow> (N, P \<union> {(C + {#L#}, i)}, Q, n) \<leadsto>\<^sub>f (N, P \<union> {(C, i)}, Q, n)"
-| backward_reduction_Q: "(\<exists>D L'. D + {#L'#} \<in> fst ` N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
-    (C + {#L#}, i) \<notin> Q \<Longrightarrow> (N, P, Q \<union> {(C + {#L#}, i)}, n) \<leadsto>\<^sub>f (N, P \<union> {(C, i)}, Q, n)"
-| clause_processing: "(C, i) \<notin> N \<Longrightarrow> (N \<union> {(C, i)}, P, Q, n) \<leadsto>\<^sub>f (N, P \<union> {(C, i)}, Q, n)"
-| inference_computation: "(\<forall>(D, j) \<in> P. weight (C, i) \<le> weight (D, j)) \<Longrightarrow>
-    N = (\<lambda>D. (D, n)) ` concls_of (ord_FO_resolution_inferences_between (fst ` Q) C) \<Longrightarrow>
-    (C, i) \<notin> P \<Longrightarrow> ({}, P \<union> {(C, i)}, Q, n) \<leadsto>\<^sub>f (N, P, Q \<union> {(C, i)}, Suc n)"
-
-lemma generation_no_lte_weight: "n \<le> weight (C, n)"
-proof(induction n)
-  case 0
-  then show ?case by auto
-next
-  case (Suc n)
-  then show ?case using weight_monotone[of n "Suc n" C] by auto
-qed
+  tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>f (N, P, Q, n)"
+| forward_subsumption: "(\<exists>D \<in># image_mset fst (P + Q). subsumes D C) \<Longrightarrow>
+    (N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>f (N, P, Q, n)"
+| backward_subsumption_P: "(\<exists>D \<in># image_mset fst N. strictly_subsumes D C) \<Longrightarrow>
+    (N, P + {#(C, i)#}, Q, n) \<leadsto>\<^sub>f (N, P, Q, n)"
+| backward_subsumption_Q: "(\<exists>D \<in># image_mset fst N. strictly_subsumes D C) \<Longrightarrow>
+    (N, P, Q + {#(C, i)#}, n) \<leadsto>\<^sub>f (N, P, Q, n)"
+| forward_reduction: "(\<exists>D L'. D + {#L'#} \<in># image_mset fst (P + Q) \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
+    (N + {#(C + {#L#}, i)#}, P, Q, n) \<leadsto>\<^sub>f (N + {#(C, i)#}, P, Q, n)"
+| backward_reduction_P: "(\<exists>D L'. D + {#L'#} \<in># image_mset fst N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
+    (N, P + {#(C + {#L#}, i)#}, Q, n) \<leadsto>\<^sub>f (N, P + {#(C, i)#}, Q, n)"
+| backward_reduction_Q: "(\<exists>D L'. D + {#L'#} \<in># image_mset fst N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
+    (N, P, Q + {#(C + {#L#}, i)#}, n) \<leadsto>\<^sub>f (N, P + {#(C, i)#}, Q, n)"
+| clause_processing: "(N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>f (N, P + {#(C, i)#}, Q, n)"
+| inference_computation: "(\<forall>(D, j) \<in># P. weight (C, i) \<le> weight (D, j)) \<Longrightarrow>
+    N = mset_set ((\<lambda>D. (D, n))
+      ` concls_of (ord_FO_resolution_inferences_between (set_mset (image_mset fst Q)) C)) \<Longrightarrow>
+    ({#}, P + {#(C, i)#}, Q, n) \<leadsto>\<^sub>f (N, P, Q + {#(C, i)#}, Suc n)"
 
 lemma fair_resolution_prover_resolution_prover':
-  assumes "St \<leadsto>\<^sub>f St'"
-  shows "state_of_gstate St \<leadsto> state_of_gstate St'"
-  using assms proof (induction rule: fair_resolution_prover.induct)
+  "St \<leadsto>\<^sub>f St' \<Longrightarrow> state_of_gstate St \<leadsto> state_of_gstate St'"
+proof (induction rule: fair_resolution_prover.induct)
   case (tautology_deletion A C N i P Q n)
   then show ?case
     using resolution_prover.tautology_deletion by auto
@@ -119,8 +118,8 @@ next
 next
   case (inference_computation P C i N n Q)
   then show ?case 
-    using resolution_prover.inference_computation
-    unfolding ord_FO_resolution_inferences_between_def by (auto simp: comp_def image_comp)
+    using resolution_prover.inference_computation finite_ord_FO_resolution_inferences_between
+    by (auto simp: comp_def image_comp ord_FO_resolution_inferences_between_def)
 qed
 
 lemma fair_resolution_prover_resolution_prover:
@@ -140,12 +139,16 @@ begin
 lemma monotone_fairness: "fair_state_seq (lmap state_of_gstate Sts)"
 proof (rule ccontr)
   assume "\<not> fair_state_seq (lmap state_of_gstate Sts)"
-  then obtain C where "C \<in> limit_llist (lmap N_of_state (lmap state_of_gstate Sts)) \<union> limit_llist (lmap P_of_state (lmap state_of_gstate Sts))" 
+  then obtain C where
+    "C \<in> limit_llist (lmap N_of_state (lmap state_of_gstate Sts))
+       \<union> limit_llist (lmap P_of_state (lmap state_of_gstate Sts))" 
     unfolding fair_state_seq_def limit_state_def by auto
   then show False
   proof
     assume "C \<in> limit_llist (lmap N_of_state (lmap state_of_gstate Sts))"
-    then obtain i where "enat i < llength Sts" "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_gstate (lnth Sts j))" 
+    then obtain i where
+      "enat i < llength Sts"
+      "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_gstate (lnth Sts j))" 
       unfolding limit_llist_def by auto
     then show False
       sorry (* *)
