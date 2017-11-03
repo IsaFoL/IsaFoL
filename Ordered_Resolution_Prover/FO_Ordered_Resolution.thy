@@ -193,14 +193,12 @@ which is a lemma of the completeness theorem.
 
 lemma ord_resolve_ground_inst_sound:
   assumes
-    res_e: "ord_resolve CAs DA \<sigma> E"
-  assumes
-    cc_inst_true: "I \<Turnstile>m (mset CAs) \<cdot>cm \<sigma> \<cdot>cm \<eta>"
-  assumes
-    d_inst_true: "I \<Turnstile> DA \<cdot> \<sigma> \<cdot> \<eta>"
-  assumes ground_subst_\<eta>: "is_ground_subst \<eta>"
+    res_e: "ord_resolve CAs DA \<sigma> E" and
+    cc_inst_true: "I \<Turnstile>m mset CAs \<cdot>cm \<sigma> \<cdot>cm \<eta>" and
+    d_inst_true: "I \<Turnstile> DA \<cdot> \<sigma> \<cdot> \<eta>" and
+    ground_subst_\<eta>: "is_ground_subst \<eta>"
   shows "I \<Turnstile> E \<cdot> \<eta>"
-  using assms
+  using res_e
 proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Cs AAs As D)
   note DA = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and 
@@ -260,17 +258,13 @@ lemma ord_resolve_sound:
     res_e: "ord_resolve CAs DA \<sigma> E" and
     cc_d_true: "I \<Turnstile>fom mset CAs + {#DA#}"
   shows "I \<Turnstile>fo E"
-  apply (rule true_fo_cls)
-  using assms
-proof (cases rule: ord_resolve.cases)
+proof (rule true_fo_cls, use res_e in \<open>cases rule: ord_resolve.cases\<close>)
   fix \<eta>
   assume ground_subst_\<eta>: "is_ground_subst \<eta>"
   case (ord_resolve n Cs AAs As D)
   note DA = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4)
     and aas_len = this(5) and as_len = this(6) and cas = this(8) and mgu = this(10)
 
-  have len: "length CAs = length As"
-    using as_len cas_len by auto
   have "is_ground_subst (\<sigma> \<odot> \<eta>)"
     using ground_subst_\<eta> by (rule is_ground_comp_subst)
   then have cas_true: "I \<Turnstile>m (mset CAs) \<cdot>cm \<sigma> \<cdot>cm \<eta>" and da_true: "I \<Turnstile> DA \<cdot> \<sigma> \<cdot> \<eta>"
@@ -279,43 +273,41 @@ proof (cases rule: ord_resolve.cases)
     using ord_resolve_ground_inst_sound[OF res_e cas_true da_true] ground_subst_\<eta> by auto
 qed
 
-lemma subst_sound:
-  assumes "I \<Turnstile>fo C"
-  shows "I \<Turnstile>fo (C \<cdot> \<rho>)"
-  using assms
+lemma subst_sound: "I \<Turnstile>fo C \<Longrightarrow> I \<Turnstile>fo (C \<cdot> \<rho>)"
   by (metis is_ground_comp_subst subst_cls_comp_subst true_fo_cls true_fo_cls_inst)
 
-lemma true_fo_cls_mset_true_fo_cls: "(I \<Turnstile>fom CC) \<Longrightarrow> C \<in># CC \<Longrightarrow> I \<Turnstile>fo C"
+lemma true_fo_cls_mset_true_fo_cls: "I \<Turnstile>fom CC \<Longrightarrow> C \<in># CC \<Longrightarrow> I \<Turnstile>fo C"
   using true_fo_cls_mset_def2 by auto
 
 lemma subst_sound_scl:
-  assumes len: "length P = length CAs"
-  assumes true_cas: "I \<Turnstile>fom mset CAs"
+  assumes
+    len: "length P = length CAs" and
+    true_cas: "I \<Turnstile>fom mset CAs"
   shows "I \<Turnstile>fom mset (CAs \<cdot>\<cdot>cl P)"
 proof -
-  from true_cas have "\<forall>CA. CA\<in># mset CAs \<longrightarrow> (I \<Turnstile>fo CA)"
+  from true_cas have "\<forall>CA. CA\<in># mset CAs \<longrightarrow> I \<Turnstile>fo CA"
     using true_fo_cls_mset_true_fo_cls by auto
-  then have "\<forall>CA. CA \<in> set CAs \<longrightarrow> (I \<Turnstile>fo CA)"
+  then have "\<forall>CA. CA \<in> set CAs \<longrightarrow> I \<Turnstile>fo CA"
     by auto
-  then have "\<forall>i. i < length CAs \<longrightarrow> (I \<Turnstile>fo  (CAs ! i))"
+  then have "\<forall>i < length CAs. I \<Turnstile>fo  (CAs ! i)"
     using in_set_conv_nth[of _ CAs] by blast
-  then have "\<forall>i. i < length CAs \<longrightarrow> (I \<Turnstile>fo  (CAs ! i) \<cdot> P ! i)"
+  then have "\<forall>i < length CAs. I \<Turnstile>fo  (CAs ! i) \<cdot> P ! i"
     using subst_sound len by auto
-  then have true_cp: "\<forall>i. i < length CAs \<longrightarrow> (I \<Turnstile>fo (CAs ! i \<cdot> P ! i))"
+  then have true_cp: "\<forall>i < length CAs. I \<Turnstile>fo CAs ! i \<cdot> P ! i"
     by auto
   {
     fix CA
     assume "CA \<in># mset (CAs \<cdot>\<cdot>cl P)"
-    then have "CA \<in> set_mset (mset ((CAs \<cdot>\<cdot>cl P)))"
-      by -
     then have "CA \<in> set (CAs \<cdot>\<cdot>cl P)"
       by auto
-    then obtain i where i_x: "i < length (CAs \<cdot>\<cdot>cl P) \<and> CA = (CAs \<cdot>\<cdot>cl P) ! i"
+    then obtain i where
+      i_x: "i < length (CAs \<cdot>\<cdot>cl P)" "CA = (CAs \<cdot>\<cdot>cl P) ! i"
       using in_set_conv_nth by metis
     then have "I \<Turnstile>fo CA"
       using true_cp unfolding subst_cls_lists_def by (simp add: len)
   }
-  then show ?thesis unfolding true_fo_cls_mset_def2 by auto
+  then show ?thesis
+    unfolding true_fo_cls_mset_def2 by auto
 qed
 
 text \<open>
@@ -324,20 +316,14 @@ This is a lemma of 4.11
 
 lemma ord_resolve_rename_ground_inst_sound:
   assumes
-    res_e: "ord_resolve_rename CAs DA \<sigma> E" and
-    \<rho>s: "\<rho>s = tl (renamings_apart (DA # CAs))" and
-    \<rho>: "\<rho> = hd (renamings_apart (DA # CAs))" and
-    cc_inst_true: "I \<Turnstile>m (mset (CAs \<cdot>\<cdot>cl \<rho>s)) \<cdot>cm \<sigma> \<cdot>cm \<eta>" and
-    d_inst_true: "I \<Turnstile> DA \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<eta>" and
-    ground_subst_\<eta>: "is_ground_subst \<eta>"
+    "ord_resolve_rename CAs DA \<sigma> E" and
+    "\<rho>s = tl (renamings_apart (DA # CAs))" and
+    "\<rho> = hd (renamings_apart (DA # CAs))" and
+    "I \<Turnstile>m (mset (CAs \<cdot>\<cdot>cl \<rho>s)) \<cdot>cm \<sigma> \<cdot>cm \<eta>" and
+    "I \<Turnstile> DA \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<eta>" and
+    "is_ground_subst \<eta>"
   shows "I \<Turnstile> E \<cdot> \<eta>"
-  using assms
-proof (cases rule: ord_resolve_rename.cases)
-  case (ord_resolve_rename \<rho>_twin \<rho>s_twin)
-  then show ?thesis
-    using ord_resolve_ground_inst_sound[of _ _ \<sigma> E I \<eta>] \<rho>s \<rho> cc_inst_true d_inst_true ground_subst_\<eta>
-    by simp
-qed
+  using assms by (cases rule: ord_resolve_rename.cases) (fast intro: ord_resolve_ground_inst_sound)
 
 lemma ord_resolve_rename_sound:
   assumes
@@ -351,10 +337,9 @@ proof (cases rule: ord_resolve_rename.cases)
   then have len: "length P = length CAs"
     using renames_apart by auto
   have "I \<Turnstile>fom (mset (CAs \<cdot>\<cdot>cl P)) + {#DA \<cdot> \<rho>#}"
-    using subst_sound_scl[OF len, of I] subst_sound[of I DA] cc_d_true
-    by (simp add: true_fo_cls_mset_def2)
+    using subst_sound_scl[OF len, of I] subst_sound cc_d_true by (simp add: true_fo_cls_mset_def2)
   then show "I \<Turnstile>fo E"
-    using ord_resolve_sound[of "CAs \<cdot>\<cdot>cl P" "DA \<cdot> \<rho>" \<sigma> E I, OF res] by simp
+    using ord_resolve_sound[OF res] by simp
 qed
 
 

@@ -210,14 +210,6 @@ theorem deterministic_resolution_prover_complete:
   shows "deterministic_resolution_prover (map (\<lambda>D. (D, 0)) N, [], [], 1) \<noteq> None"
   sorry
 
-(*
-theorem deterministic_resolution_prover_complete:
-  assumes
-    "finite M" and
-    "saturated_upto M"
-  shows ""
-*)
-
 (* FIXME: old stuff
 theorem deterministic_resolution_prover_sound_unsat:
   assumes
