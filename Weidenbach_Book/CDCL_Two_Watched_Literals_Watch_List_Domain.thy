@@ -1,6 +1,6 @@
 theory CDCL_Two_Watched_Literals_Watch_List_Domain
   imports CDCL_Two_Watched_Literals_Watch_List
-    Array_UInt "../lib/Explorer"
+    Array_UInt
 begin
 
 text \<open>We refine the implementation by adding a \<^emph>\<open>domain\<close> on the literals\<close>
@@ -231,6 +231,20 @@ lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff: \<open>x \<in># \<L
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset:
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (add_mset L A) \<longleftrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n A \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
   by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def all_lits_of_m_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mono:
+  assumes N: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D'\<close> and D: \<open>D \<subseteq># D'\<close>
+  shows \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close>
+proof -
+  have \<open>set_mset (all_lits_of_m D) \<subseteq> set_mset (all_lits_of_m D')\<close>
+    using D by (auto simp: in_all_lits_of_m_ain_atms_of_iff atm_iff_pos_or_neg_lit)
+  then show ?thesis
+     using N unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_def by fast
+qed
+
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_sub:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n y \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n (y - z)\<close>
+  using literals_are_in_\<L>\<^sub>i\<^sub>n_mono[of y \<open>y - z\<close>] by auto
 
 lemma all_lits_of_m_subset_all_lits_of_mmD:
   \<open>a \<in># b \<Longrightarrow> set_mset (all_lits_of_m a) \<subseteq> set_mset (all_lits_of_mm b)\<close>
@@ -1124,16 +1138,6 @@ proof -
   then show ?thesis
     using N in_all_lits_of_m_ain_atms_of_iff in_all_lits_of_mm_ain_atms_of_iff
     by (fastforce simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_def )
-qed
-
-lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mono:
-  assumes N: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D'\<close> and D: \<open>D \<subseteq># D'\<close>
-  shows \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close>
-proof -
-  have \<open>set_mset (all_lits_of_m D) \<subseteq> set_mset (all_lits_of_m D')\<close>
-    using D by (auto simp: in_all_lits_of_m_ain_atms_of_iff atm_iff_pos_or_neg_lit)
-  then show ?thesis
-     using N unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_def by fast
 qed
 
 lemma backtrack_wl_D_spec:

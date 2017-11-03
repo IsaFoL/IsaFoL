@@ -1,6 +1,7 @@
 (* Title: Explorer
    Initial author: Florian Haftmann
    Initial author: Fabian Immler
+   Maintainer: Mathias Fleury
    License:    
    From: The isabelle-dev mailing list. "Re: [isabelle-dev] The coming release of Isabelle2017"
    Link: http://www.mail-archive.com/isabelle-dev@mailbroy.informatik.tu-muenchen.de/msg07448.html

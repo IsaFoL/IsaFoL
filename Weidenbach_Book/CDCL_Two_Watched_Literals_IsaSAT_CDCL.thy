@@ -344,18 +344,18 @@ lemma count_decided_st_alt_def: \<open>count_decided_st S = count_decided (get_t
   by (cases S) auto
 
 
-definition (in -)literal_is_in_conflict :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>literal_is_in_conflict L S \<longleftrightarrow> L \<in># the (get_conflict_wl S)\<close>
+definition (in -) is_in_conflict_st :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>is_in_conflict_st L S \<longleftrightarrow> is_in_conflict L (get_conflict_wl S)\<close>
 
 definition literal_is_in_conflict_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>literal_is_in_conflict_heur = (\<lambda>L (M, N, U, D, _). L \<in># the D)\<close>
 
-lemma literal_is_in_conflict_heur_literal_is_in_conflict:
-  \<open>(uncurry (RETURN oo literal_is_in_conflict_heur), uncurry (RETURN oo literal_is_in_conflict)) \<in>
+lemma literal_is_in_conflict_heur_is_in_conflict_st:
+  \<open>(uncurry (RETURN oo literal_is_in_conflict_heur), uncurry (RETURN oo is_in_conflict_st)) \<in>
    Id \<times>\<^sub>r twl_st_heur \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
   apply (intro frefI nres_relI)
   apply (case_tac x, case_tac y)
-  by (auto simp: literal_is_in_conflict_heur_def literal_is_in_conflict_def twl_st_heur_def)
+  by (auto simp: literal_is_in_conflict_heur_def is_in_conflict_st_def twl_st_heur_def)
 
 sepref_thm literal_is_in_conflict_heur_code
   is \<open>uncurry (RETURN oo literal_is_in_conflict_heur)\<close>
@@ -375,9 +375,9 @@ prepare_code_thms (in -) literal_is_in_conflict_heur_code_def
 lemmas literal_is_in_conflict_heur_code_refine[sepref_fr_rules] =
    literal_is_in_conflict_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
-lemma literal_is_in_conflict_heur_code_literal_is_in_conflict[sepref_fr_rules]:
+lemma literal_is_in_conflict_heur_code_is_in_conflict_st[sepref_fr_rules]:
   \<open>(uncurry literal_is_in_conflict_heur_code,
-     uncurry (RETURN oo literal_is_in_conflict)) \<in>
+     uncurry (RETURN oo is_in_conflict_st)) \<in>
     [\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl S)) \<and> get_conflict_wl S \<noteq> None]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>k  \<rightarrow> bool_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
@@ -390,7 +390,7 @@ proof -
       hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>k) (Id \<times>\<^sub>f twl_st_heur) \<rightarrow>
       hr_comp bool_assn bool_rel\<close>
       (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using  hfref_compI_PRE_aux[OF literal_is_in_conflict_heur_code_refine literal_is_in_conflict_heur_literal_is_in_conflict]
+    using  hfref_compI_PRE_aux[OF literal_is_in_conflict_heur_code_refine literal_is_in_conflict_heur_is_in_conflict_st]
     .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     using that unfolding comp_PRE_def option_conflict_rel_def conflict_rel_def
@@ -3002,14 +3002,14 @@ setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<
 context isasat_input_bounded_nempty
 begin
 
-sepref_register skip_and_resolve_loop_wl_D literal_is_in_conflict
+sepref_register skip_and_resolve_loop_wl_D is_in_conflict_st
 sepref_thm skip_and_resolve_loop_wl_D
   is \<open>PR_CONST skip_and_resolve_loop_wl_D\<close>
   :: \<open>twl_st_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_assn\<close>
   supply [[goals_limit=1]] get_trail_twl_st_of_wl_get_trail_wl_empty_iff[simp] is_decided_hd_trail_wl_def[simp]
     is_decided_no_proped_iff[simp] skip_and_resolve_hd_in_D\<^sub>0[intro]
     literals_are_\<L>\<^sub>i\<^sub>n_conflict_literals_are_in_\<L>\<^sub>i\<^sub>n[intro]
-    get_conflict_l_st_l_of_wl[simp] literal_is_in_conflict_def[simp]  neq_NilE[elim!]
+    get_conflict_l_st_l_of_wl[simp] is_in_conflict_st_def[simp]  neq_NilE[elim!]
     annotated_lit.splits[split] lit_and_ann_of_propagated_st_def[simp]
     annotated_lit.disc_eq_case(2)[simp]
     skip_and_resolde_hd_D\<^sub>0[simp]
@@ -3028,11 +3028,12 @@ sepref_thm skip_and_resolve_loop_wl_D
     skip_and_resolve_loop_inv_def
     Multiset.is_empty_def[symmetric]
     get_maximum_level_remove_def[symmetric]
-    literal_is_in_conflict_def[symmetric]
+    is_in_conflict_st_def[symmetric]
     lit_and_ann_of_propagated_st_def[symmetric]
     get_max_lvl_st_def[symmetric]
     count_decided_st_alt_def[symmetric]
     get_conflict_wl_get_conflict_wl_is_Nil
+    is_in_conflict_def[symmetric]
   by sepref (* slow *)
 
 concrete_definition (in -) skip_and_resolve_loop_wl_D_code
@@ -3859,10 +3860,6 @@ lemma extract_shorter_conflict_list_extract_shorter_conflict_l_trivial_spec:
     apply (rule extract_shorter_conflict_list_removed_extract_shorter_conflict_l_trivial[
         unfolded fref_def nres_rel_def, simplified, rule_format])
   by fast
-
-lemma literals_are_in_\<L>\<^sub>i\<^sub>n_sub:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n y \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n (y - z)\<close>
-  using literals_are_in_\<L>\<^sub>i\<^sub>n_mono[of y \<open>y - z\<close>] by auto
 
 lemma extract_shorter_conflict_l_trivial_subset_msetD:
   \<open>extract_shorter_conflict_l_trivial M (Some (remove1_mset (- lit_of (hd M)) D)) = Some D' \<Longrightarrow> 
