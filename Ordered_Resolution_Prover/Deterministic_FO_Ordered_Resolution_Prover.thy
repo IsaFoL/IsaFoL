@@ -232,11 +232,12 @@ proof -
              set (map (apfst mset) Q) \<union> {(mset C, i)}, Suc n)"
       proof (rule inference_computation)
         show "\<forall>(D, j) \<in> set (map (apfst mset) P). weight (mset C, i) \<le> weight (D, j)"
-          (* ensured by *)
+          (* ensured by semantics of "select_min_weight_clause" *)
           sorry
       next
         show "set (map (apfst mset) N) =
           (\<lambda>D. (D, n)) ` concls_of (ord_FO_resolution_inferences_between (fst ` set (map (apfst mset) Q)) (mset C))"
+
           sorry
       next
         show "(mset C, i) \<notin> set (map (apfst mset) P)"
