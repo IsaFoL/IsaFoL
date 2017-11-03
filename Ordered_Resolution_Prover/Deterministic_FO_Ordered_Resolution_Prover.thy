@@ -138,8 +138,8 @@ fun deterministic_resolution_prover_step :: "'a glstate \<Rightarrow> 'a glstate
         else
           let
             (back_to_P, Q) = reduce_all [C] Q;
-            P = remdups (back_to_P @ P);
-            P = remdups (case_prod (op @) (reduce_all [C] P));
+            P = back_to_P @ P;
+            P = case_prod (op @) (reduce_all [C] P);
             Q = filter (is_subsumed_by [C] \<circ> fst) Q;
             P = filter (is_subsumed_by [C] \<circ> fst) P;
             P = (C, i) # P
