@@ -219,7 +219,37 @@ proof -
         by (cases "select_clause Ci P'") simp
       note step = step[unfolded pick, simplified, folded remove1.simps(2)]
 
+(*
+           (C, i) = select_clause (C, i) P';
+           N = map (\<lambda>D. (D, n)) (resolve C C @ concat (map (resolve_either_way C \<circ> fst) Q));
+           P = remove1 (C, i) P;
+           Q = (C, i) # Q;
+           n = Suc n
+*)
+
+      thm inference_computation[of "set (map (apfst mset) P)" "mset C" i "set (map (apfst mset) N)"
+          n "set (map (apfst mset) Q)"]
+
+      have "({}, set (map (apfst mset) P) \<union> {(mset C, i)}, set (map (apfst mset) Q), n)
+        \<leadsto>\<^sub>f (set (map (apfst mset) N), set (map (apfst mset) P),
+             set (map (apfst mset) Q) \<union> {(mset C, i)}, Suc n)"
+      proof (rule inference_computation)
+        show "\<forall>(D, j)\<in>set (map (apfst mset) P). weight (mset C, i) \<le> weight (D, j)"
+          sorry
+      next
+        show "set (map (apfst mset) N) =
+          (\<lambda>D. (D, n)) ` concls_of (ord_FO_resolution_inferences_between (fst ` set (map (apfst mset) Q)) (mset C))"
+          sorry
+      next
+        show "(mset C, i) \<notin> set (map (apfst mset) P)"
+          sorry
+      qed
+
       show ?thesis
+        unfolding st n_nil step
+        apply (rule tranclp.r_into_trancl)
+        apply (unfold gstate_of_glstate.simps)
+
         sorry
     qed
   next
