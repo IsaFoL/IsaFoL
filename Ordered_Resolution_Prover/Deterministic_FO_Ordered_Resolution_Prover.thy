@@ -156,53 +156,33 @@ where
       deterministic_resolution_prover (deterministic_resolution_prover_step St))"
 
 lemma select_min_weight_clause_min_weight:
-  assumes
-    "Ci = select_min_weight_clause P0 P"
-    "Dj \<in> set (P0 # P)"
-  shows "weight (apfst mset Ci) \<le> weight (apfst mset Dj)"
+  assumes "Ci = select_min_weight_clause P0 P"
+  shows "weight (apfst mset Ci) = Min (set (map (weight \<circ> apfst mset) (P0 # P)))"
   using assms
-proof (induct P arbitrary: P0 Ci Dj)
+proof (induct P arbitrary: P0 Ci)
   case (Cons P1 P)
-  note ih = this(1) and ci = this(2) and dj = this(3)
+  note ih = this(1) and ci = this(2)
   show ?case
-  proof (cases "P1 = Dj")
-    case p1_eq_dj: True
+  proof (cases "weight (apfst mset P1) < weight (apfst mset P0)")
+    case True
+    then have min: "Min (set (map (weight \<circ> apfst mset) (P0 # P1 # P))) =
+      Min (set (map (weight \<circ> apfst mset) (P1 # P)))"
+      by (simp add: min_def)
     show ?thesis
-    proof (cases "weight (apfst mset P1) < weight (apfst mset P0)")
-      case w_lt: True
-      show ?thesis
-        by (rule ih[OF ci[unfolded select_min_weight_clause.simps, simplified w_lt]])
-          (simp add: p1_eq_dj)
-    next
-      case w_ge: False
-      show ?thesis
-      proof -
-        have f3: "weight (apfst mset P0) \<le> weight (apfst mset Dj)"
-          using w_ge by (simp add: p1_eq_dj)
-        have "weight (apfst mset Ci) \<le> weight (apfst mset P0)"
-          using ci w_ge by (simp add: ih)
-        then show ?thesis
-          using f3 by (meson le_trans)
-      qed
-    qed
+      unfolding min by (rule ih[of Ci P1]) (simp add: ih[of Ci P1] ci True)
   next
-    case p1_ne_dj: False
+    case False
+    have "Min (set (map (weight \<circ> apfst mset) (P0 # P1 # P))) =
+      Min (set (map (weight \<circ> apfst mset) (P1 # P0 # P)))"
+      by (rule arg_cong[of _ _ Min]) auto
+    then have min: "Min (set (map (weight \<circ> apfst mset) (P0 # P1 # P))) =
+      Min (set (map (weight \<circ> apfst mset) (P0 # P)))"
+      by (simp add: min_def) (smt False List.finite_set Min_insert2 Suc_le_eq antisym finite_imageI
+          imageE not_less_eq_eq o_def)
     show ?thesis
-    proof (cases "weight (apfst mset P1) < weight (apfst mset P0)")
-      case w_lt: True
-      then have "Ci = select_min_weight_clause P1 P"
-        using ci by simp
-      then show ?thesis
-        using ih dj by (metis (no_types) dual_order.strict_implies_order dual_order.strict_trans2
-          list.set_intros(1) set_ConsD w_lt)
-    next
-      case w_ge: False
-      show ?thesis
-        by (rule ih[OF ci[unfolded select_min_weight_clause.simps, simplified w_ge]])
-          (use dj p1_ne_dj in simp)
-    qed
+      unfolding min by (rule ih[of Ci P0]) (simp add: ih[of Ci P1] ci False)
   qed
-qed force
+qed simp
 
 (* FIXME: inline below?
 lemma reduce_N_simulation:
