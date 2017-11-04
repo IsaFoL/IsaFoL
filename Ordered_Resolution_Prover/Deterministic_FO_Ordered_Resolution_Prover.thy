@@ -157,7 +157,7 @@ where
 
 lemma select_min_weight_clause_min_weight:
   assumes "Ci = select_min_weight_clause P0 P"
-  shows "weight (apfst mset Ci) = Min (set (map (weight \<circ> apfst mset) (P0 # P)))"
+  shows "weight (apfst mset Ci) = Min ((weight \<circ> apfst mset) ` set (P0 # P))"
   using assms
 proof (induct P arbitrary: P0 Ci)
   case (Cons P1 P)
@@ -165,18 +165,18 @@ proof (induct P arbitrary: P0 Ci)
   show ?case
   proof (cases "weight (apfst mset P1) < weight (apfst mset P0)")
     case True
-    then have min: "Min (set (map (weight \<circ> apfst mset) (P0 # P1 # P))) =
-      Min (set (map (weight \<circ> apfst mset) (P1 # P)))"
+    then have min: "Min ((weight \<circ> apfst mset) ` set (P0 # P1 # P)) =
+      Min ((weight \<circ> apfst mset) ` set (P1 # P))"
       by (simp add: min_def)
     show ?thesis
       unfolding min by (rule ih[of Ci P1]) (simp add: ih[of Ci P1] ci True)
   next
     case False
-    have "Min (set (map (weight \<circ> apfst mset) (P0 # P1 # P))) =
-      Min (set (map (weight \<circ> apfst mset) (P1 # P0 # P)))"
+    have "Min ((weight \<circ> apfst mset) ` set (P0 # P1 # P)) =
+      Min ((weight \<circ> apfst mset) ` set (P1 # P0 # P))"
       by (rule arg_cong[of _ _ Min]) auto
-    then have min: "Min (set (map (weight \<circ> apfst mset) (P0 # P1 # P))) =
-      Min (set (map (weight \<circ> apfst mset) (P0 # P)))"
+    then have min: "Min ((weight \<circ> apfst mset) ` set (P0 # P1 # P)) =
+      Min ((weight \<circ> apfst mset) ` set (P0 # P))"
       by (simp add: min_def) (smt False List.finite_set Min_insert2 Suc_le_eq antisym finite_imageI
           imageE not_less_eq_eq o_def)
     show ?thesis
