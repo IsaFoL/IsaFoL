@@ -243,36 +243,33 @@ proof -
       then show ?thesis
         using step by simp
     next
-      case p_cons: (Cons Ci P')
+      case p_cons: (Cons P0 P')
       note step = step[unfolded p_cons, simplified]
 
       obtain C :: "'a lclause" and i :: nat where
-        pick: "select_min_weight_clause Ci P' = (C, i)"
-        by (cases "select_min_weight_clause Ci P'") simp
-      note step = step[unfolded pick, simplified, folded remove1.simps(2)]
+        ci: "(C, i) = select_min_weight_clause P0 P'"
+        by (cases "select_min_weight_clause P0 P'") simp
+      note step = step[unfolded select, simplified, folded remove1.simps(2)]
 
-(*
-           (C, i) = select_min_weight_clause (C, i) P';
-           N = map (\<lambda>D. (D, n)) (resolve C C @ concat (map (resolve_either_way C \<circ> fst) Q));
-           P = remove1 (C, i) P;
-           Q = (C, i) # Q;
-           n = Suc n
-*)
-      have "({#}, mset (map (apfst mset) P) + {#(mset C, i)#}, mset (map (apfst mset) Q), n)
-        \<leadsto>\<^sub>f (mset (map (apfst mset) N), mset (map (apfst mset) P),
+      define N' :: "'a glclause list" where
+        "N' =
+         map (\<lambda>D. (D, n)) (remdups (resolve C C @ concat (map (resolve_either_way C \<circ> fst) Q)))"
+      define P'' :: "'a glclause list" where
+        "P'' = remove1 (C, i) P"
+
+      have "({#}, mset (map (apfst mset) P'') + {#(mset C, i)#}, mset (map (apfst mset) Q), n)
+        \<leadsto>\<^sub>f (mset (map (apfst mset) N'), mset (map (apfst mset) P''),
              mset (map (apfst mset) Q) + {#(mset C, i)#}, Suc n)"
       proof (rule inference_computation)
-        show "\<forall>(D, j) \<in># mset (map (apfst mset) P). weight (mset C, i) \<le> weight (D, j)"
-          using select_min_weight_clause_min_weight
-          apply simp
-          (* ensured by semantics of "select_min_weight_clause" *)
-          sorry
+        have "\<forall>(D, j) \<in># mset (map (apfst mset) P). weight (mset C, i) \<le> weight (D, j)"
+          unfolding select_min_weight_clause_min_weight[OF ci, simplified] p_cons by simp
+        moreover have "mset (map (apfst mset) P'') \<subseteq># mset (map (apfst mset) P)"
+          unfolding P''_def by (simp add: image_mset_subseteq_mono)
+        ultimately show "\<forall>(D, j) \<in># mset (map (apfst mset) P''). weight (mset C, i) \<le> weight (D, j)"
+          by fast
       next
-        show "mset (map (apfst mset) N) =
-          mset_set
-     ((\<lambda>D. (D, n)) `
-      concls_of
-       (ord_FO_resolution_inferences_between (set_mset (image_mset fst (mset (map (apfst mset) Q)))) (mset C)))"
+        show "mset (map (apfst mset) N') = mset_set ((\<lambda>D. (D, n)) `
+          concls_of (ord_FO_resolution_inferences_between (set_mset (image_mset fst (mset (map (apfst mset) Q)))) (mset C)))"
           sorry
       qed
 
@@ -280,6 +277,7 @@ proof -
         unfolding st n_nil step
         apply (rule tranclp.r_into_trancl)
         apply (unfold gstate_of_glstate.simps)
+        apply simp
 
         sorry
     qed
