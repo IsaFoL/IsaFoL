@@ -81,38 +81,33 @@ lemma [def_pat_rules]:
 
 section \<open>Code for the initialisation of the Data Structure\<close>
 
-definition init_dt_step_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l \<Rightarrow> ('v twl_st_l) nres\<close> where
+definition init_dt_step_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \<Rightarrow> ('v twl_st_l_init) nres\<close> where
   \<open>init_dt_step_l C S = do {
-   (let (M, N, U, D, NP, UP, WS, Q) = S in
+   (let ((M, N, U, D, NP, UP, WS, Q), OC) = S in
    (case D of
-    None \<Rightarrow>
-    if length C = 1
-    then do {
-      ASSERT (no_dup M);
-      ASSERT (C \<noteq> []);
-      let L = hd C;
-      let val_L = polarity M L;
-      if val_L = None
-      then do {RETURN (Propagated L 0 # M, N, U, None, add_mset {#L#} NP, UP, WS, add_mset (-L) Q)}
-      else
-        if val_L = Some True
-        then do {RETURN (M, N, U, None, add_mset {#L#} NP, UP, WS, Q)}
-        else do {RETURN (M, N, U, Some (mset C), add_mset {#L#} NP, UP, {#}, {#})}
-      }
-    else do {
-      ASSERT(C \<noteq> []);
-      ASSERT(tl C \<noteq> []);
-      RETURN (M, N @ [C], length N, None, NP, UP, WS, Q)}
+      None \<Rightarrow>
+        if length C = 0
+        then RETURN ((M, N, U, Some {#}, NP, UP, {#}, {#}), add_mset {#} OC)
+        else if length C = 1
+        then do {
+          ASSERT (no_dup M);
+          ASSERT (C \<noteq> []);
+          let L = hd C;
+          let val_L = polarity M L;
+          if val_L = None
+          then RETURN ((Propagated L 0 # M, N, U, None, add_mset {#L#} NP, UP, WS, add_mset (-L) Q),
+             OC)
+          else
+            if val_L = Some True
+            then RETURN ((M, N, U, None, add_mset {#L#} NP, UP, WS, Q), OC)
+            else RETURN ((M, N, U, Some (mset C), add_mset {#L#} NP, UP, {#}, {#}), OC)
+          }
+        else do {
+          ASSERT(C \<noteq> []);
+          ASSERT(tl C \<noteq> []);
+          RETURN ((M, N @ [C], length N, None, NP, UP, WS, Q), OC)}
   | Some D \<Rightarrow>
-    if length C = 1
-    then do {
-      ASSERT (C \<noteq> []);
-      let L = hd C;
-      RETURN (M, N, U, Some D, add_mset {#L#} NP, UP, {#}, {#})}
-    else do {
-      ASSERT(C \<noteq> []);
-      ASSERT(tl C \<noteq> []);
-      RETURN (M, N @ [C], length N, Some D, NP, UP, {#}, {#})}))
+      RETURN ((M, N, U, Some D, NP, UP, WS, Q), add_mset (mset C) OC)))
   }\<close>
 
 lemma length_ge_Suc_0_tl_not_nil: \<open>length C > Suc 0 \<Longrightarrow> tl C \<noteq> []\<close>
@@ -120,38 +115,39 @@ lemma length_ge_Suc_0_tl_not_nil: \<open>length C > Suc 0 \<Longrightarrow> tl C
 
 lemma init_dt_step_init_dt_step_l:
   assumes
-    le_C: \<open>length C \<ge> 1\<close> and
-    struct_invs: \<open>twl_struct_invs (twl_st_of None S)\<close>
+    struct_invs: \<open>twl_struct_invs_init (twl_st_of_init S)\<close>
   shows \<open>RETURN (init_dt_step C S) = init_dt_step_l C S\<close>
 proof -
-  have \<open>no_dup (trail (state\<^sub>W_of (twl_st_of None S)))\<close>
-    using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by fast
-  then have n_d: \<open>no_dup (get_trail_l S)\<close>
+  have \<open>no_dup (trail (state\<^sub>W_of_init (twl_st_of_init S)))\<close>
+    using struct_invs unfolding twl_struct_invs_init_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def twl_st_of_init.simps
+      by fast
+  then have n_d: \<open>no_dup (get_trail_l (fst S))\<close>
     by (cases S) (auto simp add: cdcl\<^sub>W_restart_mset_state)
 
-  have tl_C_nempty: \<open>tl C \<noteq> []\<close> if \<open>length C \<noteq> Suc 0\<close>
-    using le_C that by (cases C) auto
   show ?thesis
-    using n_d le_C unfolding init_dt_step_def init_dt_step_l_def Let_def
-    by (cases S) (auto simp: polarity_def length_ge_Suc_0_tl_not_nil split: option.splits cong: bind_cong
-        dest!: tl_C_nempty)
+    using n_d  unfolding init_dt_step_def init_dt_step_l_def Let_def
+    by (cases S; cases C; cases \<open>tl C\<close>)
+      (auto simp: polarity_def length_ge_Suc_0_tl_not_nil split: option.splits cong: bind_cong)
 qed
+
 
 definition init_dt_l where
   \<open>init_dt_l CS S = nfoldli CS (\<lambda>_. True) init_dt_step_l S\<close>
 
+
 lemma init_dt_init_dt_l:
   assumes
     \<open>\<forall>C \<in> set CS. distinct C\<close> and
-    \<open>\<forall>C \<in> set CS. length C \<ge> 1\<close> and
-    \<open>twl_struct_invs (twl_st_of None S)\<close> and
-    \<open>clauses_to_update_l S = {#}\<close> and
-    \<open>\<forall>s\<in>set (get_trail_l S). \<not>is_decided s\<close> and
-    \<open>get_conflict_l S = None \<longrightarrow> literals_to_update_l S = uminus `# lit_of `# mset (get_trail_l S)\<close> and
-    \<open>additional_WS_invs S\<close> and
-    \<open>get_learned_l S = length (get_clauses_l S) - 1\<close> and
-    \<open>twl_stgy_invs (twl_st_of None S)\<close>
+    \<open>twl_struct_invs_init (twl_st_of_init S)\<close> and
+    \<open>clauses_to_update_l (fst S) = {#}\<close> and
+    \<open>\<forall>s\<in>set (get_trail_l (fst S)). \<not>is_decided s\<close> and
+    \<open>get_conflict_l (fst S) = None \<longrightarrow> 
+        literals_to_update_l (fst S) = uminus `# lit_of `# mset (get_trail_l (fst S))\<close> and
+    \<open>additional_WS_invs (fst S)\<close> and
+    \<open>get_learned_l (fst S) = length (get_clauses_l (fst S)) - 1\<close> and
+    \<open>twl_stgy_invs (twl_st_of None (fst S))\<close> and
+    \<open>snd S \<noteq> {#} \<longrightarrow> get_conflict_l (fst S) \<noteq> None\<close>
   shows \<open>RETURN (init_dt CS S) = init_dt_l (rev CS) S\<close>
   using assms unfolding init_dt_l_def
 proof (induction CS)
@@ -166,8 +162,8 @@ next
   have step:
     \<open>RETURN (init_dt_step a (init_dt CS S)) = init_dt_step_l a (init_dt CS S)\<close>
     apply (rule init_dt_step_init_dt_step_l)
-    subgoal using Cons(3) by auto
-    subgoal by (rule init_dt_full[of CS S]) (use Cons(2-) in \<open>solves simp\<close>)+
+    subgoal by (rule init_dt_full[of CS \<open>fst S\<close> \<open>snd S\<close>, unfolded prod.collapse])
+        (use Cons(2-) in \<open>solves simp\<close>)+
     done
   show ?case
     by (auto simp: IH[symmetric] step)

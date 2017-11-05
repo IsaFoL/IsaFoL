@@ -712,6 +712,10 @@ lemma true_cls_cls_refl[simp]:
   "A \<Turnstile>f A"
   unfolding true_cls_cls_def by auto
 
+lemma (in -) true_clss_cls_empty_empty[iff]:
+  \<open>{} \<Turnstile>p {#} \<longleftrightarrow> False\<close>
+  unfolding true_clss_cls_def consistent_interp_def by auto
+
 lemma true_cls_cls_insert_l[simp]:
   "a \<Turnstile>f C \<Longrightarrow> insert a A \<Turnstile>p C"
   unfolding true_cls_cls_def true_clss_cls_def true_clss_def by fastforce
