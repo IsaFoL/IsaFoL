@@ -404,7 +404,7 @@ lemma RES_RETURN_RES2:
 
 text \<open>
   This theorem is useful to debug situation where sepref is not able to synthesize a program (with
-  the ``[[unify_trace_failure]]'' for rule and the \<^text>\<open>to_hnr\<close>). 
+  the ``[[unify\_trace\_failure]]'' for rule and the \<^text>\<open>to_hnr\<close>). 
 \<close>
 lemma Pair_hnr: \<open>(uncurry (return oo (\<lambda>a b. Pair a b)), uncurry (RETURN oo (\<lambda>a b. Pair a b))) \<in>
     A\<^sup>d *\<^sub>a B\<^sup>d \<rightarrow>\<^sub>a prod_assn A B\<close>
