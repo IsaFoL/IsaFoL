@@ -1,6 +1,7 @@
 chapter Ordered_Resolution_Prover
 
 session Ordered_Resolution_Prover_Base = "HOL-Library" +
+  options [document=false]
   sessions
     "HOL-Library"
     Coinductive
