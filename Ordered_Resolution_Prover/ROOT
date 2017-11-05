@@ -15,6 +15,11 @@ session Ordered_Resolution_Prover = Ordered_Resolution_Prover_Base +
   options [document = pdf, document_output = "output",
     document_variants = "document:outline=/proof,/ML",
     timeout=200]
+  sessions
+    "Abstract-Rewriting"
+    "Decreasing-Diagrams-II"
+    "Polynomial_Factorization"
+    Show
   theories [document = false]
   theories
     Executable_FO_Ordered_Resolution_Prover
