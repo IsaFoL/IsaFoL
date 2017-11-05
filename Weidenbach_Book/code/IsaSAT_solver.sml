@@ -387,6 +387,8 @@ datatype int = Int_of_integer of IntInf.int;
 
 datatype ('a, 'b) hashtable = HashTable of (('a * 'b) list) array * nat;
 
+fun id x = (fn xa => xa) x;
+
 fun eq A_ a b = equal A_ a b;
 
 fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
@@ -2599,6 +2601,8 @@ fun init_state_wl_D_code x =
     end)
     x;
 
+fun from_init_state_code x = id x;
+
 fun finalise_init_code x =
   (fn xi =>
     (fn () =>
@@ -2614,6 +2618,8 @@ fun finalise_init_code x =
       end))
     x;
 
+fun to_init_state_code x = id x;
+
 fun get_trail_wl_code x = (fn (a, b) => let
   val (m, _) = a;
 in
@@ -2622,12 +2628,20 @@ end
   b)
                             x;
 
-fun already_propagated_unit_cls_conflict_code x =
-  (fn _ => fn bi => (fn () => let
-                                val (a1, (a1a, (a1b, (a1c, (_, a2d))))) = bi;
-                              in
-                                (a1, (a1a, (a1b, (a1c, ([], a2d)))))
-                              end))
+fun set_conflict_empty_code x = (fn xi => (fn () => let
+              val (_, a) = xi;
+            in
+              (false, a)
+            end))
+                                  x;
+
+fun set_empty_clause_as_conflict_code x =
+  (fn (a1, (a1a, (a1b, (a1c, (_, a2d))))) => fn () =>
+    let
+      val xa = set_conflict_empty_code a1c ();
+    in
+      (a1, (a1a, (a1b, (xa, ([], a2d)))))
+    end)
     x;
 
 fun set_conflict_unit_code x =
@@ -2667,6 +2681,14 @@ fun polarity_st_heur_init_code x =
                      end)
     x;
 
+fun add_clause_to_others_code x =
+  (fn _ => fn bi => (fn () => let
+                                val (a1, (a1a, (a1b, (a1c, (_, a2d))))) = bi;
+                              in
+                                (a1, (a1a, (a1b, (a1c, ([], a2d)))))
+                              end))
+    x;
+
 fun propagate_unit_cls_code x =
   (fn ai => fn (a1, (a1a, (a1b, (a1c, (a1d, a2d))))) => fn () =>
     let
@@ -2698,23 +2720,24 @@ fun init_dt_step_wl_code x =
       val xa = get_conflict_wl_is_None_init_code bi ();
     in
       (if xa
-        then (if equal_nat (op_list_length ai) one_nat
-               then let
-                      val x_b = op_list_hd ai;
-                    in
-                      (fn f_ => fn () => f_ ((polarity_st_heur_init_code bi x_b)
-                        ()) ())
-                        (fn x_d =>
-                          (if is_None x_d then propagate_unit_cls_code x_b bi
-                            else (if equal_option equal_bool x_d (SOME true)
-                                   then already_propagated_unit_cls_code x_b bi
-                                   else conflict_propagated_unit_cls_code x_b
-  bi)))
-                    end
-               else add_init_cls_code ai bi)
-        else (if equal_nat (op_list_length ai) one_nat
-               then already_propagated_unit_cls_conflict_code (op_list_hd ai) bi
-               else add_init_cls_code ai bi))
+        then (if equal_nat (op_list_length ai) zero_nata
+               then set_empty_clause_as_conflict_code bi
+               else (if equal_nat (op_list_length ai) one_nat
+                      then let
+                             val x_c = op_list_hd ai;
+                           in
+                             (fn f_ => fn () => f_
+                               ((polarity_st_heur_init_code bi x_c) ()) ())
+                               (fn x_e =>
+                                 (if is_None x_e
+                                   then propagate_unit_cls_code x_c bi
+                                   else (if equal_option equal_bool x_e
+      (SOME true)
+  then already_propagated_unit_cls_code x_c bi
+  else conflict_propagated_unit_cls_code x_c bi)))
+                           end
+                      else add_init_cls_code ai bi))
+        else add_clause_to_others_code ai bi)
         ()
     end)
     x;
@@ -2728,22 +2751,27 @@ fun isaSAT_code x =
       val xa = extract_atms_clss_imp_empty_assn ();
       val xb = extract_atms_clss_imp_list_assn xi xa ();
       val x_b = init_state_wl_D_code xb ();
-      val x_d = init_dt_wl_code xi x_b ();
-      val xc = get_conflict_wl_is_None_init_code x_d ();
+      val x_f = init_dt_wl_code xi (to_init_state_code x_b) ();
     in
-      (if not xc then (fn () => NONE)
-        else (if op_list_is_empty xi then (fn () => (SOME []))
-               else (fn f_ => fn () => f_ ((finalise_init_code x_d) ()) ())
-                      (fn x_g =>
-                        (fn f_ => fn () => f_
-                          ((cdcl_twl_stgy_prog_wl_D_code x_g) ()) ())
-                          (fn x_i =>
-                            (fn f_ => fn () => f_
-                              ((get_conflict_wl_is_None_code x_i) ()) ())
-                              (fn x_j =>
-                                (fn () =>
-                                  (if x_j then SOME (get_trail_wl_code x_i)
-                                    else NONE)))))))
+      let
+        val x_g = from_init_state_code x_f;
+      in
+        (fn f_ => fn () => f_ ((get_conflict_wl_is_None_init_code x_g) ()) ())
+          (fn xc =>
+            (if not xc then (fn () => NONE)
+              else (if op_list_is_empty xi then (fn () => (SOME []))
+                     else (fn f_ => fn () => f_ ((finalise_init_code x_g) ())
+                            ())
+                            (fn x_k =>
+                              (fn f_ => fn () => f_
+                                ((cdcl_twl_stgy_prog_wl_D_code x_k) ()) ())
+                                (fn x_m =>
+                                  (fn f_ => fn () => f_
+                                    ((get_conflict_wl_is_None_code x_m) ()) ())
+                                    (fn x_n =>
+                                      (fn () =>
+(if x_n then SOME (get_trail_wl_code x_m) else NONE))))))))
+      end
         ()
     end)
     x;
