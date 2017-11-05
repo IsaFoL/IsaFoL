@@ -267,7 +267,7 @@ lemma RECT_WHILEI_body_add_post_condition:
   (is \<open>REC\<^sub>T ?f x' = REC\<^sub>T ?f' x'\<close>)
 proof -
   have le: \<open>flatf_gfp ?f x' \<le> flatf_gfp ?f' x'\<close> for x'
-  proof (induct arbitrary: x' rule: flatf_ord.fixp_induct[where b = top and 
+  proof (induct arbitrary: x' rule: flatf_ord.fixp_induct[where b = top and
         f = ?f'])
     case 1
     then show ?case
@@ -319,12 +319,12 @@ proof -
   qed
 
   have ge: \<open>flatf_gfp ?f x' \<ge>  flatf_gfp ?f' x'\<close> for x'
-  proof (induct arbitrary: x' rule: flatf_ord.fixp_induct[where b = top and 
+  proof (induct arbitrary: x' rule: flatf_ord.fixp_induct[where b = top and
         f = ?f])
     case 1
     then show ?case
       unfolding fun_lub_def pw_le_iff
-      by (rule ccpo.admissibleI) (smt chain_fun flat_lub_in_chain mem_Collect_eq nofail_simps(1)) 
+      by (rule ccpo.admissibleI) (smt chain_fun flat_lub_in_chain mem_Collect_eq nofail_simps(1))
   next
     case 2
     then show ?case by (auto simp: WHILEI_mono_ge)
@@ -370,13 +370,13 @@ proof -
       unfolding WHILEI_body_def
       by (auto intro: bind_refine'[where R = \<open>Id\<close>, simplified])
   qed
-  show ?thesis                  
+  show ?thesis
     unfolding RECT_def
     using le[of x'] ge[of x'] by (auto simp: WHILEI_body_trimono)
 qed
 
 lemma WHILEIT_add_post_condition: \<open>(WHILEIT I' b' f' x') = (WHILEIT (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f' x' = FAIL \<or> f' x' \<le> SPEC I')) b' f' x')\<close>
-  unfolding WHILEIT_def 
+  unfolding WHILEIT_def
   apply (subst RECT_WHILEI_body_add_post_condition)
   ..
 
@@ -404,7 +404,7 @@ lemma RES_RETURN_RES2:
 
 text \<open>
   This theorem is useful to debug situation where sepref is not able to synthesize a program (with
-  the ``[[unify\_trace\_failure]]'' for rule and the \<^text>\<open>to_hnr\<close>). 
+  the ``[[unify\_trace\_failure]]'' for rule and the \<^text>\<open>to_hnr\<close>).
 \<close>
 lemma Pair_hnr: \<open>(uncurry (return oo (\<lambda>a b. Pair a b)), uncurry (RETURN oo (\<lambda>a b. Pair a b))) \<in>
     A\<^sup>d *\<^sub>a B\<^sup>d \<rightarrow>\<^sub>a prod_assn A B\<close>

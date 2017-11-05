@@ -142,7 +142,7 @@ lemma init_dt_init_dt_l:
     \<open>twl_struct_invs_init (twl_st_of_init S)\<close> and
     \<open>clauses_to_update_l (fst S) = {#}\<close> and
     \<open>\<forall>s\<in>set (get_trail_l (fst S)). \<not>is_decided s\<close> and
-    \<open>get_conflict_l (fst S) = None \<longrightarrow> 
+    \<open>get_conflict_l (fst S) = None \<longrightarrow>
         literals_to_update_l (fst S) = uminus `# lit_of `# mset (get_trail_l (fst S))\<close> and
     \<open>additional_WS_invs (fst S)\<close> and
     \<open>get_learned_l (fst S) = length (get_clauses_l (fst S)) - 1\<close> and

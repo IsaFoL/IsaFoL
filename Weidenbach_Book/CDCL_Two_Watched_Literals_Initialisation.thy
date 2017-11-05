@@ -152,7 +152,7 @@ next
   case (Cons a CS) note IH = this(1-)
   note init_dt_step_def[simp]
   case 2 note dist = this(1) and inv = this(2) and
-    WS = this(3) and dec = this(4) and in_literals_to_update = this(5) and add_inv = this(6) and 
+    WS = this(3) and dec = this(4) and in_literals_to_update = this(5) and add_inv = this(6) and
     len = this(7) and stgy_inv = this(8) and OC'_empty = this(9)
   let ?SOC' = \<open>init_dt CS (S, OC)\<close>
   let ?S' = \<open>fst (init_dt CS (S, OC))\<close>
@@ -161,7 +161,7 @@ next
     twl: \<open>twl_struct_invs_init (twl_st_of_init ?SOC')\<close> and
     w_q: \<open>clauses_to_update_l ?S' = {#}\<close> and
     dec': \<open>\<forall>s\<in>set (get_trail_l ?S'). \<not> is_decided s\<close> and
-    literals_to_update': \<open>get_conflict_l ?S' = None \<longrightarrow> 
+    literals_to_update': \<open>get_conflict_l ?S' = None \<longrightarrow>
         literals_to_update_l ?S' = uminus `# lit_of `# mset (get_trail_l ?S')\<close>
       and
     clss': \<open>mset `# mset CS + cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None S)) + OC =
@@ -324,7 +324,7 @@ next
     apply (intro conjI)
     subgoal
       using alien by (auto simp: a S cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
-          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def Let_def 
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def Let_def
           mset_take_mset_drop_mset atms_of_def
           dest: in_lits_of_l_defined_litD split: if_splits)
     subgoal
@@ -448,7 +448,7 @@ next
       subgoal
         using H S' valid by (auto simp: twl_struct_invs_def a S twl_st_inv.simps
             get_level_cons_if split: if_splits)
-      subgoal using all_inv' 
+      subgoal using all_inv'
         using S' by (auto simp: a S cdcl\<^sub>W_restart_mset_state
             twl_exception_inv.simps uminus_lit_swap
             cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
@@ -494,7 +494,7 @@ next
             cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def split: if_splits)
       done
   next
-    case False note [simp] = this(1) and a = this(2) 
+    case False note [simp] = this(1) and a = this(2)
     then have [simp]: \<open>length a \<noteq> Suc 0\<close> by auto
     then obtain x y a' where a: \<open>a = x # y # a'\<close>
       apply (case_tac a, (use False in simp; fail))
@@ -654,7 +654,7 @@ theorem init_dt:
     \<open>\<forall>C \<in> set CS. distinct C\<close>
   shows
     \<open>twl_struct_invs_init (twl_st_of_init (init_dt CS S))\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None (fst (init_dt CS S)))) + snd (init_dt CS S) = 
+    \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None (fst (init_dt CS S)))) + snd (init_dt CS S) =
          mset `# mset CS\<close> and
     \<open>twl_stgy_invs (twl_st_of None (fst (init_dt CS S)))\<close> and
     \<open>clauses_to_update_l (fst (init_dt CS S)) = {#}\<close> and
@@ -663,7 +663,7 @@ theorem init_dt:
          the (get_conflict_l (fst (init_dt CS S))) \<in># mset `# mset CS\<close> and
    \<open>snd (init_dt CS S) \<noteq> {#} \<longrightarrow> get_conflict_l (fst (init_dt CS S)) \<noteq> None\<close> and
    \<open>{#} \<in># mset `# mset CS \<longrightarrow> get_conflict_l (fst (init_dt CS S)) \<noteq> None\<close>
-   
+
 proof -
   have [simp]: \<open>twl_struct_invs_init (twl_st_of_init S)\<close>
     unfolding S
@@ -702,7 +702,7 @@ proof -
     by auto
   show
     \<open>twl_struct_invs_init (twl_st_of_init (init_dt CS S))\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None (fst (init_dt CS S)))) + snd (init_dt CS S) = 
+    \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None (fst (init_dt CS S)))) + snd (init_dt CS S) =
       mset `# mset CS\<close> and
     \<open>twl_stgy_invs (twl_st_of None (fst (init_dt CS S)))\<close> and
     \<open>clauses_to_update_l (fst (init_dt CS S)) = {#}\<close> and
