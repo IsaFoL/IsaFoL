@@ -909,9 +909,59 @@ proof (rule ccontr)
     unfolding wfP_def by auto
 qed
 
+(* FIXME: come up with a better name *)
+lemma instance_if_subsumed_and_in_limit:
+  assumes
+    ns: "Ns = lmap grounding_of_state Sts" and
+    c: "C \<in> Liminf_llist Ns - src.Rf (Liminf_llist Ns)" and
+    d: "D \<in> N_of_state (lnth Sts i) \<union> P_of_state (lnth Sts i) \<union> Q_of_state (lnth Sts i)" "enat i < llength Sts" "subsumes D C"
+  shows "\<exists>\<sigma>. D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
+proof -
+  let ?Ps = "\<lambda>i. P_of_state (lnth Sts i)"
+  let ?Qs = "\<lambda>i. Q_of_state (lnth Sts i)"
+
+  have ground_C: "is_ground_cls C"
+    using c using Liminf_grounding_of_state_ground ns by auto
+
+  have derivns: "chain src_ext.derive Ns"
+    using resolution_prover_ground_derivation deriv ns by auto
+
+  show "\<exists>\<sigma>. D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
+  proof -
+    have "\<exists>\<sigma>. D \<cdot> \<sigma> = C"
+    proof (rule ccontr)
+      assume "\<nexists>\<sigma>. D \<cdot> \<sigma> = C"
+      moreover from d(3) obtain \<tau>_proto where
+        "D \<cdot> \<tau>_proto \<subseteq># C" unfolding subsumes_def
+        by blast
+      then obtain \<tau> where
+        \<tau>_p: "D \<cdot> \<tau> \<subseteq># C \<and> is_ground_subst \<tau>"
+        using ground_C by (metis is_ground_cls_mono make_single_ground_subst subset_mset.order_refl)
+      ultimately have subsub: "D \<cdot> \<tau> \<subset># C"
+        using subset_mset.le_imp_less_or_eq by auto
+      moreover have "is_ground_subst \<tau>"
+        using \<tau>_p by auto
+      moreover have "D \<in> clss_of_state (lnth Sts i)"
+        using d N_of_state_subset Q_of_state_subset P_of_state_subset by blast
+      ultimately have "C \<in> src.Rf (grounding_of_state (lnth Sts i))"
+        using strict_subsumption_redundant_state[of D \<tau> C "lnth Sts i"] by auto
+      then have "C \<in> src.Rf (Sup_llist Ns)"
+        using d ns by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist src.Rf_mono)
+      then have "C \<in> src.Rf (Liminf_llist Ns)"
+        unfolding ns using local.src_ext.Rf_Sup_subset_Rf_Liminf derivns ns by auto
+      then show False
+        using c by auto
+    qed
+    then obtain \<sigma> where
+      "D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
+      using ground_C by (metis make_single_ground_subst subset_mset.order_refl)
+    then show ?thesis
+      by auto
+  qed
+qed
+
 lemma from_Q_to_Q_inf:
   assumes
-    deriv: "chain (op \<leadsto>) Sts" and
     fair: "fair_state_seq Sts" and
     ns: "Ns = lmap grounding_of_state Sts" and
     c: "C \<in> Liminf_llist Ns - src.Rf (Liminf_llist Ns)" and
@@ -929,37 +979,7 @@ proof -
     using resolution_prover_ground_derivation deriv ns by auto
 
   have "\<exists>\<sigma>. D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
-  proof -
-    have "\<exists>\<sigma>. D \<cdot> \<sigma> = C"
-    proof (rule ccontr)
-      assume "\<nexists>\<sigma>. D \<cdot> \<sigma> = C"
-      moreover from d(3) obtain \<tau>_proto where
-        "D \<cdot> \<tau>_proto \<subseteq># C" unfolding subsumes_def
-        by blast
-      then obtain \<tau> where
-        \<tau>_p: "D \<cdot> \<tau> \<subseteq># C \<and> is_ground_subst \<tau>"
-        using ground_C by (metis is_ground_cls_mono make_single_ground_subst subset_mset.order_refl)
-      ultimately have subsub: "D \<cdot> \<tau> \<subset># C"
-        using subset_mset.le_imp_less_or_eq by auto
-      moreover have "is_ground_subst \<tau>"
-        using \<tau>_p by auto
-      moreover have "D \<in> clss_of_state (lnth Sts i)"
-        using d Q_of_state_subset by auto
-      ultimately have "C \<in> src.Rf (grounding_of_state (lnth Sts i))"
-        using strict_subsumption_redundant_state[of D \<tau> C "lnth Sts i"] by auto
-      then have "C \<in> src.Rf (Sup_llist Ns)"
-        using d ns by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist src.Rf_mono)
-      then have "C \<in> src.Rf (Liminf_llist Ns)"
-        unfolding ns using local.src_ext.Rf_Sup_subset_Rf_Liminf derivns ns by auto
-      then show False
-        using c by auto
-    qed
-    then obtain \<sigma> where
-      "D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
-      using ground_C by (metis make_single_ground_subst subset_mset.order_refl)
-    then show ?thesis
-      by auto
-  qed
+    using instance_if_subsumed_and_in_limit ns c d by blast
   then obtain \<sigma> where
     \<sigma>: "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
     by auto
@@ -1041,7 +1061,6 @@ qed
 
 lemma from_P_to_Q:
   assumes
-    deriv: "chain (op \<leadsto>) Sts" and
     fair: "fair_state_seq Sts" and
     ns: "Ns = lmap grounding_of_state Sts" and
     c: "C \<in> Liminf_llist Ns - src.Rf (Liminf_llist Ns)" and
@@ -1060,38 +1079,7 @@ proof -
     using resolution_prover_ground_derivation deriv ns by auto
 
   have "\<exists>\<sigma>. D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
-  proof -
-    have "\<exists>\<sigma>. D \<cdot> \<sigma> = C"
-    proof (rule ccontr)
-      assume "\<nexists>\<sigma>. D \<cdot> \<sigma> = C"
-      moreover from d(3) obtain \<tau>_proto where
-        "D \<cdot> \<tau>_proto \<subseteq># C"
-        unfolding subsumes_def by blast
-      then obtain \<tau> where
-        \<tau>_p: "D \<cdot> \<tau> \<subseteq># C \<and> is_ground_subst \<tau>"
-        using ground_C by (metis is_ground_cls_mono make_single_ground_subst subset_mset.order_refl)
-      ultimately have subsub: "D \<cdot> \<tau> \<subset># C"
-        using subset_mset.le_imp_less_or_eq by auto
-      moreover have "is_ground_subst \<tau>"
-        using \<tau>_p by auto
-      moreover have "D \<in> clss_of_state (lnth Sts i)"
-        using d P_of_state_subset by auto
-      ultimately have "C \<in> src.Rf (grounding_of_state (lnth Sts i))"
-        using strict_subsumption_redundant_state[of D \<tau> C "lnth Sts i"] by auto
-      then have "C \<in> src.Rf (Sup_llist Ns)"
-        using d ns
-        by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist src.Rf_mono)
-      then have "C \<in> src.Rf (Liminf_llist Ns)"
-        unfolding ns using src_ext.Rf_Sup_subset_Rf_Liminf derivns ns by auto
-      then show False
-        using c by auto
-    qed
-    then obtain \<sigma> where
-      "D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
-      using ground_C by (metis make_single_ground_subst subset_mset.order_refl)
-    then show ?thesis
-      by auto
-  qed
+    using instance_if_subsumed_and_in_limit ns c d by blast
   then obtain \<sigma> where
     \<sigma>: "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
     by auto
@@ -1234,7 +1222,6 @@ lemma neg_properly_subsume_variants:
 
 lemma from_N_to_P_or_Q:
   assumes
-    deriv: "chain (op \<leadsto>) Sts" and
     fair: "fair_state_seq Sts" and
     ns: "Ns = lmap grounding_of_state Sts" and
     c: "C \<in> Liminf_llist Ns - src.Rf (Liminf_llist Ns)" and
@@ -1253,38 +1240,7 @@ proof -
     using resolution_prover_ground_derivation deriv ns by auto
 
   have "\<exists>\<sigma>. D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
-  proof -
-    have "\<exists>\<sigma>. D \<cdot> \<sigma> = C"
-    proof (rule ccontr)
-      assume "\<nexists>\<sigma>. D \<cdot> \<sigma> = C"
-      moreover from d(3) obtain \<tau>_proto where
-        "D \<cdot> \<tau>_proto \<subseteq># C" unfolding subsumes_def
-        by blast
-      then obtain \<tau> where
-        \<tau>_p: "D \<cdot> \<tau> \<subseteq># C \<and> is_ground_subst \<tau>"
-        using ground_C by (metis is_ground_cls_mono make_single_ground_subst subset_mset.order_refl)
-      ultimately have subsub: "D \<cdot> \<tau> \<subset># C"
-        using subset_mset.le_imp_less_or_eq by auto
-      moreover have "is_ground_subst \<tau>"
-        using \<tau>_p by auto
-      moreover have "D \<in> clss_of_state (lnth Sts i)"
-        using d N_of_state_subset by auto
-      ultimately have "C \<in> src.Rf (grounding_of_state (lnth Sts i))"
-        using strict_subsumption_redundant_state[of D \<tau> C "lnth Sts i"] by auto
-      then have "C \<in> src.Rf (Sup_llist Ns)"
-        using d ns
-        by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist src.Rf_mono)
-      then have "C \<in> src.Rf (Liminf_llist Ns)"
-        unfolding ns using src_ext.Rf_Sup_subset_Rf_Liminf derivns ns by auto
-      then show False
-        using c by auto
-    qed
-    then obtain \<sigma> where
-      "D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
-      using ground_C by (metis make_single_ground_subst subset_mset.order_refl)
-    then show ?thesis
-      by auto
-  qed
+    using instance_if_subsumed_and_in_limit ns c d by blast
   then obtain \<sigma> where
     \<sigma>: "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
     by auto
@@ -1424,45 +1380,11 @@ proof -
   have derivns: "chain src_ext.derive Ns" using resolution_prover_ground_derivation deriv ns by auto
 
   have "\<exists>\<sigma>. D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
-  proof - (* copy paste *)
-    have "\<exists>\<sigma>. D \<cdot> \<sigma> = C"
-    proof (rule ccontr)
-      assume "\<nexists>\<sigma>. D \<cdot> \<sigma> = C"
-      moreover from D_p obtain \<tau>_proto where
-        "D \<cdot> \<tau>_proto \<subseteq># C"
-        unfolding subsumes_def by blast
-      then obtain \<tau> where
-        \<tau>_p: "D \<cdot> \<tau> \<subseteq># C \<and> is_ground_subst \<tau>"
-        using ground_C by (metis is_ground_cls_mono make_single_ground_subst subset_mset.order_refl)
-      ultimately have subsub: "D \<cdot> \<tau> \<subset># C"
-        using subset_mset.le_imp_less_or_eq by auto
-      moreover have "is_ground_subst \<tau>"
-        using \<tau>_p by auto
-      moreover have "D \<in> clss_of_state (lnth Sts i)"
-        using D_p N_of_state_subset
-        by (meson contra_subsetD P_of_state_subset Q_of_state_subset i_p)
-      ultimately have "C \<in> src.Rf (grounding_of_state (lnth Sts i))"
-        using strict_subsumption_redundant_state by auto
-      then have "C \<in> src.Rf (Sup_llist Ns)"
-        using D_p ns src.Rf_mono
-        by (metis (lifting) i_p(1) contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist)
-      then have "C \<in> src.Rf (Liminf_llist Ns)"
-        unfolding ns using src_ext.Rf_Sup_subset_Rf_Liminf derivns ns by auto
-      then show False
-        using c by auto
-    qed
-    then obtain \<sigma> where
-      "D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
-      using ground_C by (metis make_single_ground_subst subset_mset.order_refl)
-    then show ?thesis
-      by auto
-  qed
+    using instance_if_subsumed_and_in_limit[OF ns c] D_p i_p by blast
   then obtain \<sigma> where
     \<sigma>: "D \<cdot> \<sigma> = C" "is_ground_subst \<sigma>"
     by blast
 
-  note i_p
-  moreover
   {
     assume a: "D \<in> ?Ns i"
     then obtain D' \<sigma>' l where D'_p:
@@ -1475,9 +1397,9 @@ proof -
       using from_N_to_P_or_Q deriv fair ns c i_p(1) D_p(2) D_p(3) by blast
     then obtain l' where
       l'_p: "D' \<in> ?Qs l'" "l' < llength Sts" (* Do I also need that l is later than l'? Probably not*)
-      using from_P_to_Q[OF deriv fair ns c _ D'_p(3) D'_p(6) D'_p(5)] by blast
+      using from_P_to_Q[OF fair ns c _ D'_p(3) D'_p(6) D'_p(5)] by blast
     then have "D' \<in> Q_of_state (Liminf_state Sts)"
-      using from_Q_to_Q_inf[OF deriv fair ns c _ l'_p(2)] D'_p by auto
+      using from_Q_to_Q_inf[OF fair ns c _ l'_p(2)] D'_p by auto
     then have "\<exists>D' \<sigma>'. D' \<in> Q_of_state (Liminf_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
       using D'_p by auto
   }
@@ -1486,9 +1408,9 @@ proof -
     assume a: "D \<in> ?Ps i"
     then obtain l' where
       l'_p: "D \<in> ?Qs l'" "l' < llength Sts" (* Do I also need that l is later than l'? Probably not*)
-      using from_P_to_Q[OF deriv fair ns c a i_p(1) D_p(2) D_p(3)] by auto
+      using from_P_to_Q[OF fair ns c a i_p(1) D_p(2) D_p(3)] by auto
     then have "D \<in> Q_of_state (Liminf_state Sts)"
-      using from_Q_to_Q_inf[OF deriv fair ns c l'_p(1) l'_p(2)] D_p(3) \<sigma>(1) \<sigma>(2) D_p(2) by auto
+      using from_Q_to_Q_inf[OF fair ns c l'_p(1) l'_p(2)] D_p(3) \<sigma>(1) \<sigma>(2) D_p(2) by auto
     then have "\<exists>D' \<sigma>'. D' \<in> Q_of_state (Liminf_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
       using D_p \<sigma> by auto
   }
@@ -1496,12 +1418,12 @@ proof -
   {
     assume a: "D \<in> ?Qs i"
     then have "D \<in> Q_of_state (Liminf_state Sts)"
-      using from_Q_to_Q_inf[OF deriv fair ns c a i_p(1)] \<sigma> D_p(2,3) by auto
+      using from_Q_to_Q_inf[OF fair ns c a i_p(1)] \<sigma> D_p(2,3) by auto
     then have "\<exists>D' \<sigma>'. D' \<in> Q_of_state (Liminf_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
       using D_p \<sigma> by auto
   }
   ultimately show "\<exists>D' \<sigma>'. D' \<in> Q_of_state (Liminf_state Sts) \<and> D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
-    by auto
+    using i_p by auto
 qed
 
 text \<open>
