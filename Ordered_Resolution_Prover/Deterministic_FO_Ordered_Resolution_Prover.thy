@@ -104,6 +104,11 @@ definition resolve :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lcla
 definition resolve_either_way :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve_either_way C D = resolve C D @ resolve D C"
 
+definition resolve_rename_either_way :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
+  "resolve_rename_either_way C D =
+   (let \<sigma>s = renamings_apart [mset C, mset D] in
+    resolve_either_way (map (\<lambda>L. L \<cdot>l (\<sigma>s ! 0)) C) (map (\<lambda>L. L \<cdot>l (\<sigma>s ! 1)) D))"
+
 fun
   select_min_weight_clause :: "'a glclause \<Rightarrow> 'a glclause list \<Rightarrow> 'a glclause"
 where
@@ -121,7 +126,7 @@ fun deterministic_resolution_prover_step :: "'a glstate \<Rightarrow> 'a glstate
          let
            (C, i) = select_min_weight_clause P0 P';
            N = map (\<lambda>D. (D, n))
-             (remdups (resolve C C @ concat (map (resolve_either_way C \<circ> fst) Q)));
+             (remdups (resolve C C @ concat (map (resolve_rename_either_way C \<circ> fst) Q)));
            P = remove1 (C, i) P;
            Q = (C, i) # Q;
            n = Suc n
@@ -258,8 +263,8 @@ proof -
         by (rule select_min_weight_clause_in[of P0 P', folded ci p_cons])
 
       define N' :: "'a glclause list" where
-        "N' =
-         map (\<lambda>D. (D, n)) (remdups (resolve C C @ concat (map (resolve_either_way C \<circ> fst) Q)))"
+        "N' = map (\<lambda>D. (D, n))
+           (remdups (resolve C C @ concat (map (resolve_rename_either_way C \<circ> fst) Q)))"
       define P'' :: "'a glclause list" where
         "P'' = remove1 (C, i) P"
 
