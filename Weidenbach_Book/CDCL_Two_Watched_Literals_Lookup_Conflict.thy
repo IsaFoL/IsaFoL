@@ -155,7 +155,7 @@ definition option_conflict_rel where
    (C \<noteq> None \<longrightarrow> ((n,xs), the C) \<in> conflict_rel)}
    \<close>
 
-lemma option_conflict_rel_conflict_rel_iff: 
+lemma option_conflict_rel_conflict_rel_iff:
    \<open>((False, (n, xs)), Some C) \<in> option_conflict_rel \<longleftrightarrow>
    ((n, xs), C) \<in> conflict_rel\<close>
    unfolding option_conflict_rel_def by auto
@@ -201,7 +201,7 @@ lemma conflict_assn_is_None_is_none_Code[sepref_fr_rules]:
 definition (in -) conflict_assn_is_empty :: \<open>_ \<Rightarrow> bool\<close> where
   \<open>conflict_assn_is_empty = (\<lambda>(_, n, _). n = 0)\<close>
 
-lemma conflict_assn_is_empty_is_empty: 
+lemma conflict_assn_is_empty_is_empty:
   \<open>(RETURN o conflict_assn_is_empty, RETURN o (\<lambda>D. Multiset.is_empty(the D))) \<in>
   [\<lambda>D. D \<noteq> None]\<^sub>f option_conflict_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
   by (intro nres_relI frefI)
@@ -1075,4 +1075,43 @@ proof -
 qed
 
 end
+
+definition conflict_from_lookup where
+  \<open>conflict_from_lookup xs = SPEC(mset_as_position xs)\<close>
+
+lemma Ex_mset_as_position:
+  \<open>Ex (mset_as_position xs)\<close>
+proof (induction \<open>size {#x \<in># mset xs. x \<noteq> None#}\<close> arbitrary: xs)
+  case 0
+  then have xs: \<open>xs = replicate (length xs) None\<close>
+    by (auto simp: filter_mset_empty_conv dest: replicate_length_same)
+  show ?case
+    by (subst xs) (auto simp: mset_as_position.empty intro!: exI[of _ \<open>{#}\<close>])
+next
+  case (Suc x) note IH = this(1) and xs = this(2)
+  obtain i where
+     [simp]: \<open>i < length xs\<close> and
+    xs_i: \<open>xs ! i \<noteq> None\<close>
+    using xs[symmetric]
+    by (auto dest!: size_eq_Suc_imp_elem simp: in_set_conv_nth)
+  let ?xs = \<open>xs [i := None]\<close>
+  have \<open>x = size {#x \<in># mset ?xs. x \<noteq> None#}\<close>
+    using xs[symmetric] xs_i by (auto simp: mset_update size_remove1_mset_If)
+  from IH[OF this] obtain D where
+     map: \<open>mset_as_position ?xs D\<close>
+    by blast
+  have [simp]: \<open>Pos i \<notin># D\<close> \<open>Neg i \<notin># D\<close>
+    using xs_i mset_as_position_nth[OF map, of \<open>Pos i\<close>]
+      mset_as_position_nth[OF map, of \<open>Neg i\<close>]
+    by auto
+  have [simp]: \<open>xs ! i = a \<Longrightarrow> xs[i := a] = xs\<close> for a
+    by auto
+
+  have \<open>mset_as_position xs (add_mset (if the (xs ! i) then Pos i else Neg i) D)\<close>
+    using mset_as_position.add[OF map, of \<open>if the (xs ! i) then Pos i else Neg i\<close> xs]
+      xs_i[symmetric]
+    by (cases \<open>xs ! i\<close>) auto
+  then show ?case by blast
+qed
+
 end
