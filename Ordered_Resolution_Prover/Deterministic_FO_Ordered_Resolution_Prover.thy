@@ -390,7 +390,9 @@ proof -
       qed simp
       have inf_C_trans:
         "gstate_of_glstate ([], [([], i)], [], n) \<leadsto>\<^sub>f gstate_of_glstate ([], [], [([], i)], Suc n)"
-        sorry
+        by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+              inference_computation[of "{#}" "{#}" i "{#}" n "{#}"]],
+            auto simp: ord_FO_resolution_inferences_between_empty_empty)
 
       show ?thesis
         unfolding step st n_cons ci

@@ -9,9 +9,6 @@ theory Map2
   imports Main
 begin
 
-abbreviation image2 :: "('a \<Rightarrow> 'b \<Rightarrow> 'c) \<Rightarrow> ('a \<times> 'b) set \<Rightarrow> 'c set" where
-  "image2 f s \<equiv> case_prod f ` s"
-
 text \<open>
 This definition is taken from @{url "https://www.isa-afp.org/browser_info/current/AFP/Jinja/Listn.html"}.
 \<close>

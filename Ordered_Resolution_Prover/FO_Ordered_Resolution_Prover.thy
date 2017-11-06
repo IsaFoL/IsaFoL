@@ -68,6 +68,12 @@ definition
 where
   "ord_FO_resolution_inferences_between = ord_FO_resolution.inferences_between"
 
+lemma ord_FO_resolution_inferences_between_empty_empty:
+  "ord_FO_resolution_inferences_between {} {#} = {}"
+  unfolding ord_FO_resolution_inferences_between_def inference_system.inferences_between_def
+    infer_from_def ord_FO_\<Gamma>_def
+  using ord_resolve_rename_nonempty_prems by auto
+
 text \<open>
 The following inductive predicate formalizes the resolution prover in Figure 5.
 \<close>

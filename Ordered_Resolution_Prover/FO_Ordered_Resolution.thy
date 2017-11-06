@@ -117,8 +117,8 @@ text \<open>
 The following corresponds to Figure 4.
 \<close>
 
-definition maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where (* Would "'a \<Rightarrow> 'a set \<Rightarrow> bool" be cleaner?  *)
-   "maximal_in A C \<longleftrightarrow> (\<forall>B \<in> atms_of C. \<not> less_atm A B)"
+definition maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where
+  "maximal_in A C \<longleftrightarrow> (\<forall>B \<in> atms_of C. \<not> less_atm A B)"
 
 (* FIXME: Why is the nonstrict version a definition and the strict version an abbreviation? *)
 abbreviation strictly_maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where (* Would "'a \<Rightarrow> 'a set \<Rightarrow> bool" be cleaner?  *)
@@ -139,7 +139,7 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
    length AAs = n \<Longrightarrow>
    length As = n \<Longrightarrow>
    n \<noteq> 0 \<Longrightarrow>
-   \<forall>i < n. CAs ! i = Cs ! i + (poss (AAs ! i)) \<Longrightarrow>
+   \<forall>i < n. CAs ! i = Cs ! i + poss (AAs ! i) \<Longrightarrow>
    \<forall>i < n. AAs ! i \<noteq> {#} \<Longrightarrow>
    Some \<sigma> = mgu (set_mset ` set (map2 add_mset As AAs)) \<Longrightarrow>
    eligible \<sigma> As (D + negs (mset As)) \<Longrightarrow>
@@ -153,6 +153,12 @@ inductive ord_resolve_rename :: "'a clause list \<Rightarrow> 'a clause \<Righta
    \<rho>s = tl (renamings_apart (DA # CAs)) \<Longrightarrow>
    ord_resolve (CAs \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) \<sigma> E \<Longrightarrow>
    ord_resolve_rename CAs DA \<sigma> E"
+
+lemma ord_resolve_nonempty_main_prem: "\<not> ord_resolve Cs {#} \<sigma> E"
+  by (simp add: ord_resolve.simps)
+
+lemma ord_resolve_rename_nonempty_prems: "\<not> ord_resolve_rename Cs {#} \<sigma> E"
+  by (simp add: ord_resolve_nonempty_main_prem ord_resolve_rename.simps)
 
 
 subsection \<open>Soundness\<close>
@@ -179,16 +185,15 @@ proof (cases rule: ord_resolve_rename.cases)
     using res by auto
   have "CAs \<cdot>\<cdot>cl P = CAs"
     using len gr_cc by auto
-  moreover
-  have "DA \<cdot> \<rho> = DA"
+  moreover have "DA \<cdot> \<rho> = DA"
     using gr_d by auto
   ultimately show ?thesis
     using res_e by auto
 qed
 
 text \<open>
-The following lemma is used to prove first-order soundness. It is also used to prove lemma 4.10
-which is a lemma of the completeness theorem.
+The following lemma is used to prove first-order soundness. It is also used to prove Lemma 4.10,
+which is used to prove completeness.
 \<close>
 
 lemma ord_resolve_ground_inst_sound:
@@ -311,7 +316,7 @@ proof -
 qed
 
 text \<open>
-This is a lemma of 4.11
+This is a lemma needed to prove Lemma 4.11.
 \<close>
 
 lemma ord_resolve_rename_ground_inst_sound:
