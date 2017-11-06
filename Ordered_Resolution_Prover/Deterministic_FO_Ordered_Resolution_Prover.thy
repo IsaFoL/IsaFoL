@@ -335,16 +335,31 @@ proof -
       have red_C_trans:
         "gstate_of_glstate ((C, i) # N', P, Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (([], i) # N', P, Q, n)"
         sorry
-      have red_P_trans:
+      have sub_P_trans:
         "gstate_of_glstate (([], i) # N', P, Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (([], i) # N', [], Q, n)"
-        sorry
-      have red_Q_trans:
+      proof (induct P)
+        case (Cons P0 P)
+        note ih = this
+        have "gstate_of_glstate (([], i) # N', P0 # P, Q, n)
+          \<leadsto>\<^sub>f gstate_of_glstate (([], i) # N', P, Q, n)"
+          apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+                backward_subsumption_P[of "mset (map (apfst mset) (([], i) # N'))" "mset (fst P0)"
+                  "mset (map (apfst mset) P)" "snd P0" "mset (map (apfst mset) Q)" n]])
+            apply (cases "P0")
+            apply simp
+           apply simp
+          apply simp
+          sorry
+        then show ?case
+          using ih by (rule converse_rtranclp_into_rtranclp)
+      qed simp
+      have sub_Q_trans:
         "gstate_of_glstate (([], i) # N', [], Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (([], i) # N', [], [], n)"
         sorry
       have proc_C_trans:
         "gstate_of_glstate (([], i) # N', [], [], n) \<leadsto>\<^sub>f gstate_of_glstate (N', [([], i)], [], n)"
         sorry
-      have red_N_trans:
+      have sub_N_trans:
         "gstate_of_glstate (N', [([], i)], [], n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ([], [([], i)], [], n)"
         sorry
       have inf_C_trans:
@@ -353,10 +368,10 @@ proof -
 
       show ?thesis
         unfolding step st n_cons ci
-        using red_C_trans[THEN rtranclp_trans, OF red_P_trans,
-          THEN rtranclp_trans, OF red_Q_trans,
+        using red_C_trans[THEN rtranclp_trans, OF sub_P_trans,
+          THEN rtranclp_trans, OF sub_Q_trans,
           THEN rtranclp_into_tranclp1, OF proc_C_trans,
-          THEN tranclp_rtranclp_tranclp, OF red_N_trans,
+          THEN tranclp_rtranclp_tranclp, OF sub_N_trans,
           THEN tranclp.trancl_into_trancl, OF inf_C_trans] .
     next
       case c'_nnil: False
