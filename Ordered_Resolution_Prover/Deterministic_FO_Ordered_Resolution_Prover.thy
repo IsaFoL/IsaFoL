@@ -276,8 +276,19 @@ proof -
           by fast
       next
         show "mset (map (apfst mset) N') = mset_set ((\<lambda>D. (D, n)) `
-          concls_of (ord_FO_resolution_inferences_between (set_mset (image_mset fst (mset (map (apfst mset) Q)))) (mset C)))"
-          sorry
+          concls_of (ord_FO_resolution_inferences_between (set_mset (image_mset fst
+            (mset (map (apfst mset) Q)))) (mset C)))"
+          unfolding N'_def ord_FO_resolution_inferences_between_def
+            inference_system.inferences_between_def ord_FO_\<Gamma>_def infer_from_def
+        proof (induct Q)
+          case Nil
+          then show ?case
+            apply simp
+            sorry
+        next
+          case (Cons a Q)
+          then show ?case sorry
+        qed
       qed
 
       show ?thesis
