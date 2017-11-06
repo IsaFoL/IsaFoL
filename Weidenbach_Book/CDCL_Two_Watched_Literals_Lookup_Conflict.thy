@@ -1077,7 +1077,7 @@ qed
 end
 
 definition conflict_from_lookup where
-  \<open>conflict_from_lookup xs = SPEC(mset_as_position xs)\<close>
+  \<open>conflict_from_lookup = (\<lambda>(n, xs). SPEC(\<lambda>D. mset_as_position xs D \<and> n = size D))\<close>
 
 lemma Ex_mset_as_position:
   \<open>Ex (mset_as_position xs)\<close>
@@ -1114,4 +1114,14 @@ next
   then show ?case by blast
 qed
 
+context isasat_input_ops
+begin
+
+lemma id_conflict_from_lookup:
+  \<open>(RETURN o id, conflict_from_lookup) \<in> [\<lambda>(n, xs). \<exists>D. ((n, xs), D) \<in> conflict_rel]\<^sub>f Id \<rightarrow>
+    \<langle>conflict_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: conflict_rel_def conflict_from_lookup_def RETURN_RES_refine_iff)
+
+end
 end
