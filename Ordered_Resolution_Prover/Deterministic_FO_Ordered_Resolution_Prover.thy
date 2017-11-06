@@ -376,7 +376,18 @@ proof -
             auto)
       have sub_N_trans:
         "gstate_of_glstate (N', [([], i)], [], n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ([], [([], i)], [], n)"
-        sorry
+      proof (induct N')
+        case (Cons N'0 N')
+        note ih = this
+        have " gstate_of_glstate (N'0 # N', [([], i)], [], n)
+          \<leadsto>\<^sub>f gstate_of_glstate (N', [([], i)], [], n)"
+          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+                forward_subsumption[of "{#({#}, i)#}" "{#}" "mset (fst N'0)"
+                  "mset (map (apfst mset) N')" "snd N'0" n]],
+              cases N'0, auto)
+        then show ?case
+          using ih by (rule converse_rtranclp_into_rtranclp)
+      qed simp
       have inf_C_trans:
         "gstate_of_glstate ([], [([], i)], [], n) \<leadsto>\<^sub>f gstate_of_glstate ([], [], [([], i)], Suc n)"
         sorry
