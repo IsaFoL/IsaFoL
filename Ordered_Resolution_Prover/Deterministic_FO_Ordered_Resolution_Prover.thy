@@ -54,6 +54,9 @@ definition is_tautology :: "'a lclause \<Rightarrow> bool" where
 definition is_subsumed_by :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> bool" where
   "is_subsumed_by Ds C \<longleftrightarrow> (\<exists>D \<in> set Ds. subsumes (mset D) (mset C))"
 
+definition is_strictly_subsumed_by :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> bool" where
+  "is_strictly_subsumed_by Ds C \<longleftrightarrow> (\<exists>D \<in> set Ds. strictly_subsumes (mset D) (mset C))"
+
 definition is_reducible_lit :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> 'a literal \<Rightarrow> bool" where
   "is_reducible_lit Ds C L \<longleftrightarrow>
    (\<exists>D \<in> set Ds. \<exists>L' \<in> set D. \<exists>\<sigma>. - L = L' \<cdot>l \<sigma> \<and> mset (remove1 L' D) \<cdot> \<sigma> \<subseteq># mset C)"
@@ -141,7 +144,7 @@ fun deterministic_resolution_prover_step :: "'a glstate \<Rightarrow> 'a glstate
       let
         C = reduce (map fst (P @ Q)) [] C
       in
-        if C = [] then
+        if C = [] \<and> [] \<notin> set (map fst (P @ Q)) then
           ([], [], [([], i)], Suc n)
         else if is_tautology C \<or> is_subsumed_by (map fst (P @ Q)) C then
           (N, P, Q, n)
@@ -150,8 +153,8 @@ fun deterministic_resolution_prover_step :: "'a glstate \<Rightarrow> 'a glstate
             (back_to_P, Q) = reduce_all [C] Q;
             P = back_to_P @ P;
             P = case_prod (op @) (reduce_all [C] P);
-            Q = filter (is_subsumed_by [C] \<circ> fst) Q;
-            P = filter (is_subsumed_by [C] \<circ> fst) P;
+            Q = filter (is_strictly_subsumed_by [C] \<circ> fst) Q;
+            P = filter (is_strictly_subsumed_by [C] \<circ> fst) P;
             P = (C, i) # P
           in
             (N, P, Q, n))"
@@ -328,9 +331,10 @@ proof -
     note step = step[unfolded ci C'_def[symmetric], simplified]
 
     show ?thesis
-    proof (cases "C' = Nil")
-      case c'_nil: True
-      note step = step[unfolded c'_nil, simplified]
+    proof (cases "C' = [] \<and> [] \<notin> fst ` set P \<and> [] \<notin> fst ` set Q")
+      case True
+      note c'_nil = this[THEN conjunct1] and nil_ni_pq = this[THEN conjunct2]
+      note step = step[simplified c'_nil nil_ni_pq, simplified]
 
       have red_C_trans:
         "gstate_of_glstate ((C, i) # N', P, Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (([], i) # N', P, Q, n)"
@@ -349,6 +353,7 @@ proof -
             apply simp
            apply simp
           apply simp
+          apply (rule disjI1)
           sorry
         then show ?case
           using ih by (rule converse_rtranclp_into_rtranclp)
