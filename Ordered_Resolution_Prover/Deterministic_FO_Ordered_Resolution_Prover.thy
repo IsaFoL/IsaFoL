@@ -155,6 +155,9 @@ where
     else
       deterministic_resolution_prover (deterministic_resolution_prover_step St))"
 
+lemma select_min_weight_clause_in: "select_min_weight_clause P0 P \<in> set (P0 # P)"
+  by (induct P arbitrary: P0) auto
+
 lemma select_min_weight_clause_min_weight:
   assumes "Ci = select_min_weight_clause P0 P"
   shows "weight (apfst mset Ci) = Min ((weight \<circ> apfst mset) ` set (P0 # P))"
@@ -251,15 +254,19 @@ proof -
         by (cases "select_min_weight_clause P0 P'") simp
       note step = step[unfolded select, simplified, folded remove1.simps(2)]
 
+      have ci_in: "(C, i) \<in> set P"
+        by (rule select_min_weight_clause_in[of P0 P', folded ci p_cons])
+
       define N' :: "'a glclause list" where
         "N' =
          map (\<lambda>D. (D, n)) (remdups (resolve C C @ concat (map (resolve_either_way C \<circ> fst) Q)))"
       define P'' :: "'a glclause list" where
         "P'' = remove1 (C, i) P"
 
-      have "({#}, mset (map (apfst mset) P'') + {#(mset C, i)#}, mset (map (apfst mset) Q), n)
-        \<leadsto>\<^sub>f (mset (map (apfst mset) N'), mset (map (apfst mset) P''),
-             mset (map (apfst mset) Q) + {#(mset C, i)#}, Suc n)"
+      have trans:
+        "({#}, mset (map (apfst mset) P'') + {#(mset C, i)#}, mset (map (apfst mset) Q), n)
+         \<leadsto>\<^sub>f (mset (map (apfst mset) N'), mset (map (apfst mset) P''),
+              mset (map (apfst mset) Q) + {#(mset C, i)#}, Suc n)"
       proof (rule inference_computation)
         have "\<forall>(D, j) \<in># mset (map (apfst mset) P). weight (mset C, i) \<le> weight (D, j)"
           unfolding select_min_weight_clause_min_weight[OF ci, simplified] p_cons by simp
@@ -277,9 +284,14 @@ proof -
         unfolding st n_nil step
         apply (rule tranclp.r_into_trancl)
         apply (unfold gstate_of_glstate.simps)
-        apply simp
-
-        sorry
+        apply (fold ci)
+        apply (simp del: remove1.simps)
+        apply (rule arg_cong2[of _ _ _ _ "op \<leadsto>\<^sub>f", THEN iffD1, OF _ _ trans[unfolded P''_def N'_def]])
+         apply simp
+        using ci_in
+         apply (metis (no_types) apfst_conv image_mset_add_mset insert_DiffM set_mset_mset)
+        apply (simp add: p_cons)
+        done
     qed
   next
     case n_cons: (Cons Ci N')
