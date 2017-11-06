@@ -341,9 +341,10 @@ proof -
         sorry
       have sub_P_trans:
         "gstate_of_glstate (([], i) # N', P, Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (([], i) # N', [], Q, n)"
+        using nil_ni_pq
       proof (induct P)
         case (Cons P0 P)
-        note ih = this
+        note ih = this(1) and nil_ni_pq = this(2)
         have "gstate_of_glstate (([], i) # N', P0 # P, Q, n)
           \<leadsto>\<^sub>f gstate_of_glstate (([], i) # N', P, Q, n)"
           apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
@@ -353,10 +354,12 @@ proof -
             apply simp
            apply simp
           apply simp
-          apply (rule disjI1)
-          sorry
+          using nil_ni_pq
+          apply auto
+          done
         then show ?case
-          using ih by (rule converse_rtranclp_into_rtranclp)
+          using ih apply (rule converse_rtranclp_into_rtranclp)
+          using nil_ni_pq by auto
       qed simp
       have sub_Q_trans:
         "gstate_of_glstate (([], i) # N', [], Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (([], i) # N', [], [], n)"

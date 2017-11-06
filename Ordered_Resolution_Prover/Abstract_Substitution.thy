@@ -889,6 +889,15 @@ lemma grounding_of_cls_empty[simp]: "grounding_of_cls {#} = {{#}}"
   by (simp add: grounding_of_cls_ground)
 
 
+subsubsection \<open>Subsumption\<close>
+
+lemma subsumes_empty_left[simp]: "subsumes {#} C"
+  unfolding subsumes_def subst_cls_def by simp
+
+lemma strictly_subsumes_empty_left[simp]: "strictly_subsumes {#} C \<longleftrightarrow> C \<noteq> {#}"
+  unfolding strictly_subsumes_def subsumes_def subst_cls_def by simp
+
+
 subsubsection \<open>Unifiers\<close>
 
 lemma card_le_one_alt: "finite X \<Longrightarrow> card X \<le> 1 \<longleftrightarrow> X = {} \<or> (\<exists>x. X = {x})"
