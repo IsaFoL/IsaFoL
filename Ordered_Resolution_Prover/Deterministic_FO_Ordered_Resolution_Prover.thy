@@ -371,7 +371,9 @@ proof -
       qed simp
       have proc_C_trans:
         "gstate_of_glstate (([], i) # N', [], [], n) \<leadsto>\<^sub>f gstate_of_glstate (N', [([], i)], [], n)"
-        sorry
+        by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+              clause_processing[of "mset (map (apfst mset) N')" "{#}" i "{#}" "{#}" n]],
+            auto)
       have sub_N_trans:
         "gstate_of_glstate (N', [([], i)], [], n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ([], [([], i)], [], n)"
         sorry
