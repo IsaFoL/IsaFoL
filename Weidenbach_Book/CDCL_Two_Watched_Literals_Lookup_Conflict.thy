@@ -1312,9 +1312,8 @@ proof -
       by (rule f'_f) (solves \<open>rule 2\<close>, solves \<open>rule 1\<close>)
   qed
   have loop_keep: \<open>(((x1c, x2b), x1d - 1, xa + 1, x1g), x1, remove1_mset xb x1a, x1f) \<in> R\<close> and
-     loop_dont_keep_prepare:
-       \<open>((x1c - Suc 0, x2b[xa := None]), remove1_mset xb x1) \<in> conflict_rel\<close>
-       \<open>x1d - Suc 0 \<le> x1c - Suc 0\<close>
+   loop_dont_keep: \<open>(((x1c - 1, x2b[xa := None]), x1d - 1, xa + 1, x1g),
+           remove1_mset xb x1, remove1_mset xb x1a, x1f) \<in> R\<close>
     if
       R: \<open>(x, x') \<in> R\<close> and
       st:
@@ -1398,7 +1397,7 @@ proof -
         \<in> conflict_rel\<close>
       using xb_x1a x1d L_all_x2b
       by (auto simp: size_remove1_mset_If conflict_rel_def simp del: replicate_Suc)
-    show \<open>(((x1c, x2b), x1d - 1, xa + 1, x1g), x1, remove1_mset xb x1a, x1f) \<in> R\<close>
+    show H: \<open>(((x1c, x2b), x1d - 1, xa + 1, x1g), x1, remove1_mset xb x1a, x1f) \<in> R\<close>
       using xa_xb x1d_x1c map' unfolding R_def
       by auto
 
@@ -1416,54 +1415,14 @@ proof -
       using mset_as_position_remove[OF map, of \<open>xa\<close>] xa_le_x2b
       by (auto simp del: replicate_Suc simp: 3 4)
 
-    then show \<open>((x1c - Suc 0, x2b[xa := None]), remove1_mset xb x1) \<in> conflict_rel\<close>
+    then have \<open>((x1c - Suc 0, x2b[xa := None]), remove1_mset xb x1) \<in> conflict_rel\<close>
       using x1c_x1 unfolding conflict_rel_def
       by (auto simp: size_remove1_mset_If)
-    show  \<open>x1d - Suc 0 \<le> x1c - Suc 0\<close>
+    moreover have  \<open>x1d - Suc 0 \<le> x1c - Suc 0\<close>
       using diff_le_mono x1d_x1c by blast
-
-  qed
-  have loop_dont_keep: \<open>(((x1c - 1, x2b[xa := None]), x1d - 1, xa + 1, x1g),
-       remove1_mset xb x1, remove1_mset xb x1a, x1f)
-      \<in> R\<close>
-    if
-      R: \<open>(x, x') \<in> R\<close> and
-      \<open>case x of (x, xa) \<Rightarrow> (case x of (n, xs) \<Rightarrow> \<lambda>(m, i, s). 0 < m) xa\<close> and
-      \<open>case x' of (D, D', s) \<Rightarrow> D' \<noteq> {#}\<close> and
-      \<open>iterate_over_lookup_conflict_inv (n\<^sub>0, xs\<^sub>0) x\<close> and
-      \<open>iterate_over_conflict_inv D x'\<close> and
-      st:
-        \<open>x2 = (x1a, x2a)\<close>
-        \<open>x' = (x1, x2)\<close>
-        \<open>x1b = (x1c, x2b)\<close>
-        \<open>x2d = (x1e, x2e)\<close>
-        \<open>x2c = (x1d, x2d)\<close>
-        \<open>x = (x1b, x2c)\<close>
-        \<open>x'a = (x1f, x2f)\<close>
-        \<open>xc = (x1g, x2g)\<close> and
-      \<open>x1 \<noteq> {#}\<close> and
-      \<open>0 < x1d\<close> and
-      xa_xb: \<open>(xa, xb) \<in> ?confl x2b x1e\<close> and
-      xb_x1a: \<open>xb \<in> {x. x \<in># x1a}\<close> and
-      F: \<open>(xc, x'a) \<in> Rstate \<times>\<^sub>f bool_rel\<close> and
-      xa_length_xb: \<open>xa < length x2b\<close> and
-      \<open>1 \<le> x1d\<close> and
-      \<open>1 \<le> x1c\<close> and
-      \<open>\<not> x2g\<close> and
-      \<open>\<not> x2f\<close>
-    for x x' x1 x2 x1a x2a x1b x1c x2b x2c x1d x2d x1e x2e xa xb xc x'a x1f
-       x2f x1g x2g
-  proof -
-    have
-      \<open>(((x1c, x2b), x1d - 1, xa + 1, x1g), x1, remove1_mset xb x1a, x1f) \<in> R\<close> and
-      \<open>((x1c - Suc 0, x2b[xa := None]), remove1_mset xb x1) \<in> conflict_rel\<close> and
-      \<open>x1d - Suc 0 \<le> x1c - Suc 0\<close>
-      using loop_keep[OF R st xa_xb xb_x1a F xa_length_xb]
-      loop_dont_keep_prepare[OF R st xa_xb xb_x1a F xa_length_xb]
-      .
-    then show ?thesis
-      unfolding R_def
-      by auto
+    ultimately show \<open>(((x1c - 1, x2b[xa := None]), x1d - 1, xa + 1, x1g),
+           remove1_mset xb x1, remove1_mset xb x1a, x1f) \<in> R\<close>
+      using xa_le_x2b H unfolding R_def by auto
   qed
   show ?thesis
     unfolding iterate_over_lookup_conflict_def iterate_over_conflict_def D' prod.case
