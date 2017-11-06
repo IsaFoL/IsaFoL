@@ -195,7 +195,7 @@ locale fair_FO_resolution_prover_with_sum_product =
   fair_FO_resolution_provers S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu
     less_atm weight
   for
-    S :: "('a :: wellorder) clause \<Rightarrow> _" and (* FIXME: assumption that no selection takes place? *)
+    S :: "('a :: wellorder) clause \<Rightarrow> _" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and
     comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
