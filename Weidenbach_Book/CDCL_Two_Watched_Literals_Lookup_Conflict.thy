@@ -328,7 +328,7 @@ definition lookup_conflict_merge'_step :: \<open>(nat, nat) ann_lits \<Rightarro
       ((False, zs), Some E) \<in> option_conflict_rel \<and>
       literals_are_in_\<L>\<^sub>i\<^sub>n E \<and> clvls = card_max_lvl M E)\<close>
 
-lemma mset_as_position_remove:
+lemma (in isasat_input_ops)mset_as_position_remove:
   \<open>mset_as_position xs D \<Longrightarrow> L < length xs \<Longrightarrow> mset_as_position (xs[L := None]) (remove1_mset (Pos L) (remove1_mset (Neg L) D))\<close>
 proof (induction rule: mset_as_position.induct)
   case (empty n)
@@ -1114,6 +1114,7 @@ next
   then show ?case by blast
 qed
 
+
 context isasat_input_ops
 begin
 
@@ -1124,4 +1125,369 @@ lemma id_conflict_from_lookup:
     (auto simp: conflict_rel_def conflict_from_lookup_def RETURN_RES_refine_iff)
 
 end
+
+definition confl_find_next_index where
+ \<open>confl_find_next_index = (\<lambda>(n, xs) i.
+     SPEC(\<lambda>j. n \<noteq> 0 \<longrightarrow>
+        (j \<ge> i \<and> j < length xs \<and> xs ! j \<noteq> None \<and>
+        (\<forall>k. k \<ge> i \<longrightarrow> k < j \<longrightarrow> xs ! k = None))))\<close>
+
+definition iterate_over_conflict_inv where
+  \<open>iterate_over_conflict_inv D\<^sub>0 = (\<lambda>(D, D', s). D \<subseteq># D\<^sub>0)\<close>
+
+definition iterate_over_conflict
+  :: \<open>('v clause \<Rightarrow> 'v literal \<Rightarrow> 'state \<Rightarrow> ('state \<times> bool) nres) \<Rightarrow>
+      'v clause \<Rightarrow> 'state \<Rightarrow> ('v clause \<times> 'state) nres\<close>
+where
+  \<open>iterate_over_conflict f D\<^sub>0 s = do {
+    (D, _, s) \<leftarrow>
+       WHILE\<^sub>T\<^bsup>iterate_over_conflict_inv D\<^sub>0\<^esup>
+       (\<lambda>(D, D', s). D' \<noteq> {#})
+       (\<lambda>(D, D', s). do{
+          ASSERT(D \<noteq> {#});
+          x \<leftarrow> SPEC (\<lambda>x. x \<in># D');
+          (s', keep) \<leftarrow> f D x s;
+          if keep
+          then RETURN (D, remove1_mset x D', s')
+          else RETURN (remove1_mset x D, remove1_mset x D', s')
+          })
+       (D\<^sub>0, D\<^sub>0, s);
+     RETURN (D, s)
+}\<close>
+
+
+definition iterate_over_lookup_conflict_inv where
+  \<open>iterate_over_lookup_conflict_inv D = (\<lambda>((n, xs), m, i, s). n \<ge> m)\<close>
+
+definition iterate_over_lookup_conflict
+  :: \<open>(conflict_rel \<Rightarrow> nat literal \<Rightarrow> 'state \<Rightarrow> ('state \<times> bool) nres) \<Rightarrow>
+      conflict_rel \<Rightarrow> 'state \<Rightarrow> (conflict_rel \<times> 'state) nres\<close>
+where
+  \<open>iterate_over_lookup_conflict  = (\<lambda>f (n, xs) s. do {
+    (D, _, _, s) \<leftarrow>
+       WHILE\<^sub>T\<^bsup>iterate_over_lookup_conflict_inv (n, xs)\<^esup>
+         (\<lambda>((n, xs), m, i, s). m > 0)
+         (\<lambda>((n, xs), m, i, s). do{
+            ASSERT(m > 0);
+            x \<leftarrow> confl_find_next_index (m, xs) i;
+            (s', keep) \<leftarrow> f (n, xs) (if the (xs ! x) then Pos x else Neg x) s;
+            ASSERT(x < length xs);
+            ASSERT(m \<ge> 1);
+            ASSERT(n \<ge> 1);
+            if keep
+            then RETURN ((n, xs), m - 1, x+1, s')
+            else RETURN ((n - 1, xs[x := None]), m - 1, x+1, s')
+          })
+         ((n, xs), n, 0, s);
+     RETURN (D, s)
+  })\<close>
+
+lemma drop_take_drop_drop:
+  \<open>j \<ge> i \<Longrightarrow> drop i xs = take (j - i) (drop i xs) @ drop j xs\<close>
+  apply (induction \<open>j - i\<close> arbitrary: j i)
+   apply auto
+  apply (case_tac j)
+  by (auto simp add: atd_lem)
+
+lemma list_eq_replicate_iff:
+  \<open>n > 0 \<Longrightarrow> xs = replicate n x \<longleftrightarrow> n = length xs \<and> set xs = {x}\<close>
+  by (metis length_replicate neq0_conv replicate_length_same set_replicate singletonD)
+
+lemma in_set_take_conv_nth:
+  \<open>x \<in> set (take n xs) \<longleftrightarrow> (\<exists>m<min n (length xs). xs ! m = x)\<close>
+  by (metis in_set_conv_nth length_take min.commute min.strict_boundedE nth_take)
+
+context isasat_input_ops
+begin
+
+lemma
+  fixes D :: \<open>nat clause\<close> and s :: 'state and s' :: 'state2 and Rstate :: \<open>('state2 \<times> 'state) set\<close> and
+    f' :: \<open>conflict_rel \<Rightarrow> nat literal \<Rightarrow> 'state2 \<Rightarrow> ('state2 \<times> bool) nres\<close> and
+    f :: \<open>nat clause \<Rightarrow> nat literal \<Rightarrow> 'state \<Rightarrow> ('state \<times> bool) nres\<close>
+  assumes
+    D'_D: \<open>(D', D) \<in> conflict_rel\<close> and
+    f'_f: \<open>\<And>D' D s s' x. (D', D) \<in> conflict_rel \<Longrightarrow> (s', s) \<in> Rstate \<Longrightarrow> f' D' x s' \<le> \<Down> (Rstate \<times>\<^sub>r bool_rel) (f D x s)\<close> and
+    s'_s: \<open>(s', s) \<in> Rstate\<close>
+  shows
+    \<open>iterate_over_lookup_conflict f' D' s' \<le> \<Down> (conflict_rel \<times>\<^sub>r Rstate) (iterate_over_conflict f D s)\<close>
+proof -
+  obtain n\<^sub>0 xs\<^sub>0 where D'[simp]: \<open>D' = (n\<^sub>0, xs\<^sub>0)\<close>
+    by (cases D')
+  define R where
+    \<open>R = {(((n, xs), m, i, s' :: 'state2), (D :: nat clause, E :: nat clause, s :: 'state)).
+            ((n, xs), D) \<in> conflict_rel \<and>
+            i \<le> length xs \<and>
+            ((m, replicate i None @ drop i xs), E) \<in> conflict_rel \<and>
+            (s', s) \<in> Rstate \<and>
+            n \<ge> m
+           }\<close>
+  have init_args_ref:
+    \<open>iterate_over_conflict_inv D (D, D, s) \<Longrightarrow> (((n\<^sub>0, xs\<^sub>0), n\<^sub>0, 0, s'), D, D, s) \<in> R\<close>
+    using D'_D s'_s unfolding R_def by auto
+
+  have init_lo_inv: \<open>iterate_over_lookup_conflict_inv (n\<^sub>0, xs\<^sub>0) s'\<close>
+    if
+      \<open>(s', s) \<in> R\<close> and
+      \<open>iterate_over_conflict_inv D s\<close>
+    for s' s
+  proof -
+    show ?thesis
+      using that unfolding iterate_over_lookup_conflict_inv_def by (auto simp: R_def)
+  qed
+  have cond: \<open>(0 < m) = (D' \<noteq> {#})\<close>
+    if
+      st'_st: \<open>(st', st) \<in> R\<close> and
+      \<open>iterate_over_lookup_conflict_inv (n\<^sub>0, xs\<^sub>0) st'\<close> and
+      \<open>iterate_over_conflict_inv D st\<close> and
+      st:
+        \<open>nxs = (n, xs)\<close>
+        \<open>x2b = (j, x2c)\<close>
+        \<open>x2a = (m, x2b)\<close>
+        \<open>st' = (nxs, x2a)\<close>
+        \<open>x2d = (D', s)\<close>
+        \<open>st = (E, x2d)\<close>
+    for st' st nxs n xs x2a m x2b j x2c x2d D' s E
+  proof -
+    show ?thesis
+      using st'_st unfolding st
+      by (cases D') (auto simp: R_def conflict_rel_def)
+  qed
+  have confl_find_next_index_le:
+    \<open>confl_find_next_index (x1d, x2b) x1e
+      \<le> \<Down> {(j, x). x2b ! j \<noteq> None \<and> x = (if the (x2b!j) then Pos j else Neg j) \<and>
+             j < length x2b \<and> x1e \<le> j \<and> (\<forall>k\<ge>x1e. k < j \<longrightarrow> x2b ! k = None)}
+          (SPEC (\<lambda>x. x \<in># x1a))\<close>
+    (is \<open>_ \<le> \<Down> ?confl _\<close>)
+    if
+      R: \<open>(x, x') \<in> R\<close> and
+      st:
+        \<open>x2 = (x1a, x2a)\<close>
+        \<open>x' = (x1, x2)\<close>
+        \<open>x1b = (x1c, x2b)\<close>
+        \<open>x2d = (x1e, x2e)\<close>
+        \<open>x2c = (x1d, x2d)\<close>
+        \<open>x = (x1b, x2c)\<close> and
+        \<open>x1 \<noteq> {#}\<close> and
+      x1d: \<open>0 < x1d\<close>
+    for x x' x1 x2 x1a x2a x1b x1c x2b x2c x1d x2d x1e x2e
+  proof -
+    have map: \<open>mset_as_position (replicate x1e None @ drop x1e x2b) x1a\<close>
+      using R unfolding st R_def conflict_rel_def
+      by auto
+    show ?thesis
+      unfolding confl_find_next_index_def st
+      apply clarify
+      apply (rule RES_refine)
+      subgoal for s
+        using x1d mset_as_position_in_iff_nth[OF map, of \<open>Pos s\<close>]
+          x1d mset_as_position_in_iff_nth[OF map, of \<open>Neg s\<close>]
+        by (auto simp: nth_append intro!: )
+      done
+  qed
+  have f'_f_ref: \<open>f' (x1c, x2b) (if the (x2b ! xa) then Pos xa else Neg xa) x2e
+      \<le> \<Down> (Rstate \<times>\<^sub>r bool_rel)
+          (f x1 xb x2a)\<close>
+    if
+      R: \<open>(x, x') \<in> R\<close> and
+      st:
+        \<open>x2 = (x1a, x2a)\<close>
+        \<open>x' = (x1, x2)\<close>
+        \<open>x1b = (x1c, x2b)\<close>
+        \<open>x2d = (x1e, x2e)\<close>
+        \<open>x2c = (x1d, x2d)\<close>
+        \<open>x = (x1b, x2c)\<close> and
+      \<open>x1 \<noteq> {#}\<close> and
+      \<open>0 < x1d\<close> and
+      x: \<open>(xa, xb) \<in> ?confl x2b x1e\<close>
+    for x x' x1 x2 x1a x2a x1b x1c x2b x2c x1d x2d x1e x2e xa xb
+  proof -
+    have xb: \<open>(if the (x2b ! xa) then Pos xa else Neg xa) = xb\<close>
+      using x st by auto
+    have 1: \<open>(x2e, x2a) \<in> Rstate\<close>
+      using R x unfolding R_def st by auto
+    have 2: \<open>((x1c, x2b), x1) \<in> conflict_rel\<close>
+      using R x unfolding R_def st by auto
+    show ?thesis
+      unfolding xb
+      by (rule f'_f) (solves \<open>rule 2\<close>, solves \<open>rule 1\<close>)
+  qed
+  have loop_keep: \<open>(((x1c, x2b), x1d - 1, xa + 1, x1g), x1, remove1_mset xb x1a, x1f) \<in> R\<close> and
+     loop_dont_keep_prepare:
+       \<open>((x1c - Suc 0, x2b[xa := None]), remove1_mset xb x1) \<in> conflict_rel\<close>
+       \<open>x1d - Suc 0 \<le> x1c - Suc 0\<close>
+    if
+      R: \<open>(x, x') \<in> R\<close> and
+      st:
+        \<open>x2 = (x1a, x2a)\<close>
+        \<open>x' = (x1, x2)\<close>
+        \<open>x1b = (x1c, x2b)\<close>
+        \<open>x2d = (x1e, x2e)\<close>
+        \<open>x2c = (x1d, x2d)\<close>
+        \<open>x = (x1b, x2c)\<close>
+        \<open>x'a = (x1f, x2f)\<close>
+        \<open>xc = (x1g, x2g)\<close> and
+      xa_xb: \<open>(xa, xb) \<in> ?confl x2b x1e\<close> and
+      xb_x1a: \<open>xb \<in> {x. x \<in># x1a}\<close> and
+      F: \<open>(xc, x'a) \<in> Rstate \<times>\<^sub>f bool_rel\<close> and
+      xa_length_xb: \<open>xa < length x2b\<close>
+    for x x' x1 x2 x1a x2a x1b x1c x2b x2c x1d x2d x1e x2e xa xb xc x'a x1f
+       x2f x1g x2g
+  proof -
+    have [simp]: \<open>(x1g, x1f) \<in> Rstate\<close>
+      using F unfolding st by auto
+    have
+      x1c_x1[simp]: \<open>((x1c, x2b), x1) \<in> conflict_rel\<close> and
+      [simp]: \<open>x1e \<le> length x2b\<close> and
+      x1d_x1a: \<open>((x1d, replicate x1e None @ drop x1e x2b), x1a) \<in> conflict_rel\<close> and
+      \<open>(x2e, x2a) \<in> Rstate\<close> and
+      x1d_x1c: \<open>x1d \<le> x1c\<close>
+      using R unfolding R_def st
+      by auto
+    have
+      xa_le_x2b: \<open>xa < length x2b\<close> and
+      x1e_xa: \<open>x1e \<le> xa\<close> and
+      x1e_xa_None: \<open>\<forall>k\<ge>x1e. k < xa \<longrightarrow> x2b ! k = None\<close> and
+      xb: \<open>xb = (if the (x2b ! xa) then Pos xa else Neg xa)\<close> and
+      no_none: \<open>x2b ! xa \<noteq> None\<close>
+      using xa_xb by auto
+    have 1: \<open>drop x1e x2b = take (xa - x1e) (drop x1e x2b) @ drop xa x2b\<close>
+      by (rule drop_take_drop_drop) (use x1e_xa in auto)
+    have 2: \<open>take (xa - x1e) (drop x1e x2b) = replicate (xa - x1e) None\<close>
+    proof (cases \<open>0 < xa - x1e\<close>)
+      case True
+      show ?thesis
+        apply (rule list_eq_replicate_iff[THEN iffD2])
+        subgoal using True by auto
+        subgoal using x1e_xa x1e_xa_None xa_le_x2b True
+          apply (auto simp: in_set_take_conv_nth Bex_def)
+          by (metis \<open>0 < xa - x1e\<close> \<open>x1e \<le> length x2b\<close> add.right_neutral nth_drop order_mono_setup.refl)
+        done
+    next
+      case False
+      then show ?thesis by auto
+    qed
+
+    have 3: \<open>replicate x1e None @ drop x1e x2b = replicate xa None @ drop xa x2b\<close>
+      apply (subst 1)
+      apply (subst 2)
+      using x1e_xa by (auto simp: replicate_add[symmetric])
+    have
+      x1d: \<open>x1d = size x1a\<close> and
+      map: \<open>mset_as_position (replicate x1e None @ drop x1e x2b) x1a\<close> and
+      L_all_x2b: \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length x2b\<close>
+      using x1d_x1a unfolding conflict_rel_def by auto
+
+    have 4: \<open>(replicate xa None @ drop xa x2b)[xa := None] = replicate (Suc xa) None @ drop (Suc xa) x2b\<close>
+      apply (subst Cons_nth_drop_Suc[symmetric])
+      subgoal by (rule xa_le_x2b)
+      subgoal by (auto simp: list_update_append replicate_Suc_conv_snoc simp del: replicate_Suc)
+      done
+    have [simp]: \<open>x1a - {#Pos xa, Neg xa#} = remove1_mset xb x1a\<close>
+      using mset_as_position_in_iff_nth[OF map, of \<open>Pos xa\<close>]
+        mset_as_position_in_iff_nth[OF map, of \<open>Neg xa\<close>] xa_le_x2b no_none
+      unfolding 3 4 xb
+      by (auto simp: nth_append dest!: multi_member_split)
+
+    have \<open>mset_as_position (replicate (Suc xa) None @ drop (Suc xa) x2b)
+        (remove1_mset xb x1a)\<close>
+      using mset_as_position_remove[OF map, of \<open>xa\<close>] xa_le_x2b
+      by (auto simp del: replicate_Suc simp: 3 4)
+
+    then have map':
+      \<open>((x1d - Suc 0, replicate (Suc xa) None @ drop (Suc xa) x2b), remove1_mset xb x1a)
+        \<in> conflict_rel\<close>
+      using xb_x1a x1d L_all_x2b
+      by (auto simp: size_remove1_mset_If conflict_rel_def simp del: replicate_Suc)
+    show \<open>(((x1c, x2b), x1d - 1, xa + 1, x1g), x1, remove1_mset xb x1a, x1f) \<in> R\<close>
+      using xa_xb x1d_x1c map' unfolding R_def
+      by auto
+
+    have
+      \<open>x1c = size x1\<close> and
+      map: \<open>mset_as_position x2b x1\<close> and
+      \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length x2b\<close>
+      using x1c_x1 unfolding conflict_rel_def by auto
+    have [simp]: \<open>x1 - {#Pos xa, Neg xa#} = remove1_mset xb x1\<close> \<open>xb \<in># x1\<close>
+      using mset_as_position_in_iff_nth[OF map, of \<open>Pos xa\<close>]
+        mset_as_position_in_iff_nth[OF map, of \<open>Neg xa\<close>] xa_le_x2b no_none
+      unfolding 3 4 xb
+      by (auto simp: nth_append dest!: multi_member_split)
+    have \<open>mset_as_position (x2b[xa := None]) (remove1_mset xb x1)\<close>
+      using mset_as_position_remove[OF map, of \<open>xa\<close>] xa_le_x2b
+      by (auto simp del: replicate_Suc simp: 3 4)
+
+    then show \<open>((x1c - Suc 0, x2b[xa := None]), remove1_mset xb x1) \<in> conflict_rel\<close>
+      using x1c_x1 unfolding conflict_rel_def
+      by (auto simp: size_remove1_mset_If)
+    show  \<open>x1d - Suc 0 \<le> x1c - Suc 0\<close>
+      using diff_le_mono x1d_x1c by blast
+
+  qed
+  have loop_dont_keep: \<open>(((x1c - 1, x2b[xa := None]), x1d - 1, xa + 1, x1g),
+       remove1_mset xb x1, remove1_mset xb x1a, x1f)
+      \<in> R\<close>
+    if
+      R: \<open>(x, x') \<in> R\<close> and
+      \<open>case x of (x, xa) \<Rightarrow> (case x of (n, xs) \<Rightarrow> \<lambda>(m, i, s). 0 < m) xa\<close> and
+      \<open>case x' of (D, D', s) \<Rightarrow> D' \<noteq> {#}\<close> and
+      \<open>iterate_over_lookup_conflict_inv (n\<^sub>0, xs\<^sub>0) x\<close> and
+      \<open>iterate_over_conflict_inv D x'\<close> and
+      st:
+        \<open>x2 = (x1a, x2a)\<close>
+        \<open>x' = (x1, x2)\<close>
+        \<open>x1b = (x1c, x2b)\<close>
+        \<open>x2d = (x1e, x2e)\<close>
+        \<open>x2c = (x1d, x2d)\<close>
+        \<open>x = (x1b, x2c)\<close>
+        \<open>x'a = (x1f, x2f)\<close>
+        \<open>xc = (x1g, x2g)\<close> and
+      \<open>x1 \<noteq> {#}\<close> and
+      \<open>0 < x1d\<close> and
+      xa_xb: \<open>(xa, xb) \<in> ?confl x2b x1e\<close> and
+      xb_x1a: \<open>xb \<in> {x. x \<in># x1a}\<close> and
+      F: \<open>(xc, x'a) \<in> Rstate \<times>\<^sub>f bool_rel\<close> and
+      xa_length_xb: \<open>xa < length x2b\<close> and
+      \<open>1 \<le> x1d\<close> and
+      \<open>1 \<le> x1c\<close> and
+      \<open>\<not> x2g\<close> and
+      \<open>\<not> x2f\<close>
+    for x x' x1 x2 x1a x2a x1b x1c x2b x2c x1d x2d x1e x2e xa xb xc x'a x1f
+       x2f x1g x2g
+  proof -
+    have
+      \<open>(((x1c, x2b), x1d - 1, xa + 1, x1g), x1, remove1_mset xb x1a, x1f) \<in> R\<close> and
+      \<open>((x1c - Suc 0, x2b[xa := None]), remove1_mset xb x1) \<in> conflict_rel\<close> and
+      \<open>x1d - Suc 0 \<le> x1c - Suc 0\<close>
+      using loop_keep[OF R st xa_xb xb_x1a F xa_length_xb]
+      loop_dont_keep_prepare[OF R st xa_xb xb_x1a F xa_length_xb]
+      .
+    then show ?thesis
+      unfolding R_def
+      by auto
+  qed
+  show ?thesis
+    unfolding iterate_over_lookup_conflict_def iterate_over_conflict_def D' prod.case
+    apply (refine_vcg  WHILEIT_refine[where R = R])
+    subgoal by (rule init_args_ref)
+    subgoal for s' s by (rule init_lo_inv)
+    subgoal for st' st nxs n xs x2a m x2b j x2c E x2d E' s by (rule cond)
+    subgoal by auto
+    apply (rule confl_find_next_index_le; assumption)
+           apply (rule f'_f_ref; assumption)
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: iterate_over_lookup_conflict_inv_def)
+    subgoal by auto
+    subgoal for x x' x1 x2 x1a x2a x1b x1c x2b x2c x1d x2d x1e x2e xa xb xc x'a x1f
+       x2f x1g x2g
+      by (rule loop_keep)
+    subgoal for x x' x1 x2 x1a x2a x1b x1c x2b x2c x1d x2d x1e x2e xa xb xc x'a x1f
+       x2f x1g x2g
+      by (rule loop_dont_keep)
+    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d
+      unfolding R_def by (cases x1b) auto
+    done
+qed
+end
+
 end
