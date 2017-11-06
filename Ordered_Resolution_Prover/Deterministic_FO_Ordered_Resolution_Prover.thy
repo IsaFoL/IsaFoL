@@ -347,19 +347,12 @@ proof -
         note ih = this(1) and nil_ni_pq = this(2)
         have "gstate_of_glstate (([], i) # N', P0 # P, Q, n)
           \<leadsto>\<^sub>f gstate_of_glstate (([], i) # N', P, Q, n)"
-          apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
                 backward_subsumption_P[of "mset (map (apfst mset) (([], i) # N'))" "mset (fst P0)"
-                  "mset (map (apfst mset) P)" "snd P0" "mset (map (apfst mset) Q)" n]])
-            apply (cases "P0")
-            apply simp
-           apply simp
-          apply simp
-          using nil_ni_pq
-          apply auto
-          done
+                  "mset (map (apfst mset) P)" "snd P0" "mset (map (apfst mset) Q)" n]],
+              cases P0, use nil_ni_pq in auto)
         then show ?case
-          using ih apply (rule converse_rtranclp_into_rtranclp)
-          using nil_ni_pq by auto
+          using ih by (rule converse_rtranclp_into_rtranclp, use nil_ni_pq in auto)
       qed simp
       have sub_Q_trans:
         "gstate_of_glstate (([], i) # N', [], Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (([], i) # N', [], [], n)"
