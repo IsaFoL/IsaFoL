@@ -185,9 +185,9 @@ next
   then have ground_atms_\<sigma>: "\<And>v. v \<in> vars_clause_list Cs \<Longrightarrow> is_ground_atm (\<sigma> v)"
     using is_ground_cls_list_is_ground_on_var by metis
 
-  define some_ground_trm :: "('f, nat) term" where "some_ground_trm = undefined"
-  have exi_ground_atm: "is_ground_atm some_ground_trm"
-    sorry
+  define some_ground_trm :: "('f, nat) term" where "some_ground_trm = (Fun undefined [])"
+  have ground_trm: "is_ground_atm some_ground_trm"
+    unfolding is_ground_atm_def some_ground_trm_def by auto
   define \<tau> where "\<tau> = (\<lambda>v. if v \<in> vars_clause_list Cs then \<sigma> v else some_ground_trm)"
   then have \<tau>_\<sigma>: "\<forall>v \<in> vars_clause_list Cs. \<sigma> v = \<tau> v"
     unfolding \<tau>_def by auto
@@ -200,7 +200,7 @@ next
   next
     case False
     then show ?thesis
-      unfolding \<tau>_def using exi_ground_atm by auto
+      unfolding \<tau>_def using ground_trm by auto
   qed
   have "is_ground_subst \<tau>"
     unfolding is_ground_subst_def 
