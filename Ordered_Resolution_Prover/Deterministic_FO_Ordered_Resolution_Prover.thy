@@ -341,22 +341,34 @@ proof -
         sorry
       have sub_P_trans:
         "gstate_of_glstate (([], i) # N', P, Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (([], i) # N', [], Q, n)"
-        using nil_ni_pq
+        using nil_ni_pq[THEN conjunct1]
       proof (induct P)
         case (Cons P0 P)
-        note ih = this(1) and nil_ni_pq = this(2)
+        note ih = this(1) and nil_ni_p = this(2)
         have "gstate_of_glstate (([], i) # N', P0 # P, Q, n)
           \<leadsto>\<^sub>f gstate_of_glstate (([], i) # N', P, Q, n)"
           by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
                 backward_subsumption_P[of "mset (map (apfst mset) (([], i) # N'))" "mset (fst P0)"
                   "mset (map (apfst mset) P)" "snd P0" "mset (map (apfst mset) Q)" n]],
-              cases P0, use nil_ni_pq in auto)
+              cases P0, use nil_ni_p in auto)
         then show ?case
-          using ih by (rule converse_rtranclp_into_rtranclp, use nil_ni_pq in auto)
+          using ih by (rule converse_rtranclp_into_rtranclp, use nil_ni_p in auto)
       qed simp
       have sub_Q_trans:
         "gstate_of_glstate (([], i) # N', [], Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (([], i) # N', [], [], n)"
-        sorry
+        using nil_ni_pq[THEN conjunct2]
+      proof (induct Q)
+        case (Cons Q0 Q)
+        note ih = this(1) and nil_ni_q = this(2)
+        have "gstate_of_glstate (([], i) # N', [], Q0 # Q, n)
+          \<leadsto>\<^sub>f gstate_of_glstate (([], i) # N', [], Q, n)"
+          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+                backward_subsumption_Q[of "mset (map (apfst mset) (([], i) # N'))" "mset (fst Q0)"
+                  "{#}" "mset (map (apfst mset) Q)" "snd Q0" n]],
+              cases Q0, use nil_ni_q in auto)
+        then show ?case
+          using ih by (rule converse_rtranclp_into_rtranclp, use nil_ni_q in auto)
+      qed simp
       have proc_C_trans:
         "gstate_of_glstate (([], i) # N', [], [], n) \<leadsto>\<^sub>f gstate_of_glstate (N', [([], i)], [], n)"
         sorry
