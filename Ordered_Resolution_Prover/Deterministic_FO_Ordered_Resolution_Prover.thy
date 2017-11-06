@@ -142,7 +142,7 @@ fun deterministic_resolution_prover_step :: "'a glstate \<Rightarrow> 'a glstate
         C = reduce (map fst (P @ Q)) [] C
       in
         if C = [] then
-          ([], [], [([], n)], Suc n)
+          ([], [], [([], i)], Suc n)
         else if is_tautology C \<or> is_subsumed_by (map fst (P @ Q)) C then
           (N, P, Q, n)
         else
@@ -330,20 +330,34 @@ proof -
     show ?thesis
     proof (cases "C' = Nil")
       case c'_nil: True
-      show ?thesis
+      note step = step[unfolded c'_nil, simplified]
+
+      have red_C_trans:
+        "gstate_of_glstate ((C, i) # N', P, Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (([], i) # N', P, Q, n)"
         sorry
-(* FIXME
-      proof (rule; erule exE)
-        fix I
-        assume "I \<Turnstile>s grounding_of_state (state_of_glstate St)"
-        then show False
-          unfolding st n_cons ci
-          using c'_nil[unfolded C'_def]
-            rtrancl_resolution_prover_with_weights_sound[OF reduce_simulate_N,
-              of I "set (map (apfst mset) N')" "[]" C i P Q n]
-          by (simp add: clss_of_state_def grounding_of_clss_def)
-      qed
-*)
+      have red_P_trans:
+        "gstate_of_glstate (([], i) # N', P, Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (([], i) # N', [], Q, n)"
+        sorry
+      have red_Q_trans:
+        "gstate_of_glstate (([], i) # N', [], Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (([], i) # N', [], [], n)"
+        sorry
+      have proc_C_trans:
+        "gstate_of_glstate (([], i) # N', [], [], n) \<leadsto>\<^sub>f gstate_of_glstate (N', [([], i)], [], n)"
+        sorry
+      have red_N_trans:
+        "gstate_of_glstate (N', [([], i)], [], n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ([], [([], i)], [], n)"
+        sorry
+      have inf_C_trans:
+        "gstate_of_glstate ([], [([], i)], [], n) \<leadsto>\<^sub>f gstate_of_glstate ([], [], [([], i)], Suc n)"
+        sorry
+
+      show ?thesis
+        unfolding step st n_cons ci
+        using red_C_trans[THEN rtranclp_trans, OF red_P_trans,
+          THEN rtranclp_trans, OF red_Q_trans,
+          THEN rtranclp_into_tranclp1, OF proc_C_trans,
+          THEN tranclp_rtranclp_tranclp, OF red_N_trans,
+          THEN tranclp.trancl_into_trancl, OF inf_C_trans] .
     next
       case c'_nnil: False
       note step = step[simplified c'_nnil, simplified]
