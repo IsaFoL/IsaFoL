@@ -922,6 +922,62 @@ fun arrayO_ara_empty_sz_code (A1_, A2_) =
 
 fun conflict_assn_is_None x = (fn (b, (_, _)) => b) x;
 
+fun get_conflict_wl_is_None_init_code x =
+  (fn xi => (fn () => let
+                        val (_, (_, (_, (a1c, (_, (_, _)))))) = xi;
+                      in
+                        conflict_assn_is_None a1c
+                      end))
+    x;
+
+val extract_atms_clss_imp_empty_assn :
+  (unit -> ((Word32.word, unit) hashtable * Word32.word list))
+  = (fn () => let
+                val x = hs_new (hashable_uint32, heap_uint32) ();
+              in
+                (x, [])
+              end);
+
+fun nat_lit_lits_init_assn_assn_prepend x =
+  (fn ai => fn (a1, a2) => fn () =>
+    let
+      val xa = hs_ins (equal_uint32, hashable_uint32, heap_uint32) ai a1 ();
+    in
+      (xa, op_list_prepend ai a2)
+    end)
+    x;
+
+fun nat_lit_lits_init_assn_assn_in x =
+  (fn ai => fn (a1, _) =>
+    hs_memb (equal_uint32, hashable_uint32, heap_uint32) ai a1)
+    x;
+
+fun atm_of_code l = shiftr_uint32 l one_nat;
+
+fun extract_atms_cls_imp x =
+  (fn ai =>
+    imp_nfoldli ai (fn _ => (fn () => true))
+      (fn xa => fn sigma => fn () =>
+        let
+          val x_a = nat_lit_lits_init_assn_assn_in (atm_of_code xa) sigma ();
+        in
+          (if x_a then (fn () => sigma)
+            else nat_lit_lits_init_assn_assn_prepend (atm_of_code xa) sigma)
+            ()
+        end))
+    x;
+
+fun extract_atms_clss_imp x =
+  (fn ai => imp_nfoldli ai (fn _ => (fn () => true)) extract_atms_cls_imp) x;
+
+fun extract_atms_clss_imp_list_assn x =
+  (fn ai => fn bi => fn () => let
+                                val xa = extract_atms_clss_imp ai bi ();
+                              in
+                                snd xa
+                              end)
+    x;
+
 fun get_conflict_wl_is_None_code x =
   (fn xi => (fn () => let
                         val (_, (_, (_, (a1c, (_, (_, _)))))) = xi;
@@ -951,8 +1007,6 @@ fun access_lit_in_clauses_heur_code x =
 
 fun is_pos_code l =
   (((Word32.andb (l, (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0));
-
-fun atm_of_code l = shiftr_uint32 l one_nat;
 
 fun polarity_pol_code x =
   (fn ai => fn bi =>
@@ -1135,6 +1189,13 @@ fun watched_by_app_heur_code x =
                                end)
     x;
 
+fun polarity_st_heur_code x = (fn ai => fn bi => let
+           val (a1, _) = ai;
+         in
+           polarity_pol_code a1 bi
+         end)
+                                x;
+
 fun array_upd_u A_ i x a =
   (fn () => let
               val _ = (fn () => Array.update (a, (Word32.toInt i), x)) ();
@@ -1217,13 +1278,6 @@ fun propagate_lit_wl_code x =
       (x_a, (xa, (a1b, (a1c, (uminus_code ai :: a1d, a2d)))))
     end)
     x;
-
-fun polarity_st_heur_code x = (fn ai => fn bi => let
-           val (a1, _) = ai;
-         in
-           polarity_pol_code a1 bi
-         end)
-                                x;
 
 fun unit_propagation_inner_loop_body_wl_D_code x =
   (fn ai => fn bia => fn bi => fn () =>
@@ -2431,60 +2485,6 @@ fun cdcl_twl_stgy_prog_wl_D_code x =
     end)
     x;
 
-fun get_conflict_wl_is_None_init_code x =
-  (fn xi => (fn () => let
-                        val (_, (_, (_, (a1c, (_, (_, _)))))) = xi;
-                      in
-                        conflict_assn_is_None a1c
-                      end))
-    x;
-
-val extract_atms_clss_imp_empty_assn :
-  (unit -> ((Word32.word, unit) hashtable * Word32.word list))
-  = (fn () => let
-                val x = hs_new (hashable_uint32, heap_uint32) ();
-              in
-                (x, [])
-              end);
-
-fun nat_lit_lits_init_assn_assn_prepend x =
-  (fn ai => fn (a1, a2) => fn () =>
-    let
-      val xa = hs_ins (equal_uint32, hashable_uint32, heap_uint32) ai a1 ();
-    in
-      (xa, op_list_prepend ai a2)
-    end)
-    x;
-
-fun nat_lit_lits_init_assn_assn_in x =
-  (fn ai => fn (a1, _) =>
-    hs_memb (equal_uint32, hashable_uint32, heap_uint32) ai a1)
-    x;
-
-fun extract_atms_cls_imp x =
-  (fn ai =>
-    imp_nfoldli ai (fn _ => (fn () => true))
-      (fn xa => fn sigma => fn () =>
-        let
-          val x_a = nat_lit_lits_init_assn_assn_in (atm_of_code xa) sigma ();
-        in
-          (if x_a then (fn () => sigma)
-            else nat_lit_lits_init_assn_assn_prepend (atm_of_code xa) sigma)
-            ()
-        end))
-    x;
-
-fun extract_atms_clss_imp x =
-  (fn ai => imp_nfoldli ai (fn _ => (fn () => true)) extract_atms_cls_imp) x;
-
-fun extract_atms_clss_imp_list_assn x =
-  (fn ai => fn bi => fn () => let
-                                val xa = extract_atms_clss_imp ai bi ();
-                              in
-                                snd xa
-                              end)
-    x;
-
 fun initialise_VMTF_code x =
   (fn ai => fn bi => fn () =>
     let
@@ -2620,14 +2620,6 @@ fun finalise_init_code x =
 
 fun to_init_state_code x = id x;
 
-fun get_trail_wl_code x = (fn (a, b) => let
-  val (m, _) = a;
-in
-  (fn _ => m)
-end
-  b)
-                            x;
-
 fun set_conflict_empty_code x = (fn xi => (fn () => let
               val (_, a) = xi;
             in
@@ -2744,6 +2736,14 @@ fun init_dt_step_wl_code x =
 
 fun init_dt_wl_code x =
   (fn ai => imp_nfoldli ai (fn _ => (fn () => true)) init_dt_step_wl_code) x;
+
+fun get_trail_wl_code x = (fn (a, b) => let
+  val (m, _) = a;
+in
+  (fn _ => m)
+end
+  b)
+                            x;
 
 fun isaSAT_code x =
   (fn xi => fn () =>
