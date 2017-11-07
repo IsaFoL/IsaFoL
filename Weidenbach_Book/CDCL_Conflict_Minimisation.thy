@@ -1175,7 +1175,7 @@ where
 context isasat_input_ops
 begin
 
-definition lit_redundant_rec_wl :: \<open>('v, nat) ann_lits \<Rightarrow> 'v clauses_l \<Rightarrow> 'v clause \<Rightarrow>
+definition (in -) lit_redundant_rec_wl :: \<open>('v, nat) ann_lits \<Rightarrow> 'v clauses_l \<Rightarrow> 'v clause \<Rightarrow>
      _ \<Rightarrow> _ \<Rightarrow>
       (_ \<times> _ \<times> bool) nres\<close>
 where
@@ -1477,7 +1477,7 @@ definition literal_redundant_wl where
      }
   }\<close>
 
-lemma
+lemma literal_redundant_wl_literal_redundant:
   fixes S :: \<open>nat twl_st_wl\<close> and NU M
   defines
     [simp]: \<open>S' \<equiv> st_l_of_wl None S\<close> and

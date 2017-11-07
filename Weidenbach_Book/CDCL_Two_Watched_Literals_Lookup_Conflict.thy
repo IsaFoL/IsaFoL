@@ -2,6 +2,7 @@ theory CDCL_Two_Watched_Literals_Lookup_Conflict
   imports CDCL_Two_Watched_Literals_Watch_List_Domain
     CDCL_Two_Watched_Literals_Watch_List_Code_Common
     CDCL_Two_Watched_Literals_IsaSAT_Trail
+    CDCL_Conflict_Minimisation
 begin
 
 no_notation Ref.update ("_ := _" 62)
@@ -306,7 +307,7 @@ lemma sum_length_filter_compl': \<open>length [x\<leftarrow>xs . \<not> P x] + l
 context isasat_input_bounded
 begin
 
-definition is_in_lookup_conflict where
+definition (in -) is_in_lookup_conflict where
   \<open>is_in_lookup_conflict = (\<lambda>(n, xs) L. \<not>is_None (xs ! atm_of L))\<close>
 
 sepref_thm is_in_conflict_code
@@ -1275,7 +1276,8 @@ lemma
     f :: \<open>nat clause \<Rightarrow> nat literal \<Rightarrow> 'state \<Rightarrow> ('state \<times> bool) nres\<close>
   assumes
     D'_D: \<open>(D', D) \<in> conflict_rel\<close> and
-    f'_f: \<open>\<And>D' D s s' x. (D', D) \<in> conflict_rel \<Longrightarrow> (s', s) \<in> Rstate \<Longrightarrow> f' D' x s' \<le> \<Down> (Rstate \<times>\<^sub>r bool_rel) (f D x s)\<close> and
+    f'_f: \<open>\<And>E' E s s' x. (E', E) \<in> conflict_rel \<Longrightarrow> (s', s) \<in> Rstate \<Longrightarrow> x \<in># D \<Longrightarrow>
+          f' E' x s' \<le> \<Down> (Rstate \<times>\<^sub>r bool_rel) (f E x s)\<close> and
     s'_s: \<open>(s', s) \<in> Rstate\<close>
   shows
     \<open>iterate_over_lookup_conflict f' D' s' \<le> \<Down> (conflict_rel \<times>\<^sub>r Rstate) (iterate_over_conflict f D s)\<close>
@@ -1283,13 +1285,15 @@ proof -
   obtain n\<^sub>0 xs\<^sub>0 where D'[simp]: \<open>D' = (n\<^sub>0, xs\<^sub>0)\<close>
     by (cases D')
   define R where
-    \<open>R = {(((n, xs), m, i, s' :: 'state2), (D :: nat clause, E :: nat clause, s :: 'state)).
-            ((n, xs), D) \<in> conflict_rel \<and>
+    \<open>R = {(((n, xs), m, i, s' :: 'state2), (F :: nat clause, E :: nat clause, s :: 'state)).
+            ((n, xs), F) \<in> conflict_rel \<and>
             i \<le> length xs \<and>
             ((m, replicate i None @ drop i xs), E) \<in> conflict_rel \<and>
             (s', s) \<in> Rstate \<and>
-            n \<ge> m
-           }\<close>
+            n \<ge> m \<and>
+            F \<subseteq># D \<and>
+            E \<subseteq># F
+        }\<close>
   have init_args_ref:
     \<open>iterate_over_conflict_inv D (D, D, s) \<Longrightarrow> (((n\<^sub>0, xs\<^sub>0), n\<^sub>0, 0, s'), D, D, s) \<in> R\<close>
     using D'_D s'_s unfolding R_def by auto
@@ -1365,6 +1369,7 @@ proof -
         \<open>x2d = (x1e, x2e)\<close>
         \<open>x2c = (x1d, x2d)\<close>
         \<open>x = (x1b, x2c)\<close> and
+      xb_x1a: \<open>xb \<in> {x. x \<in># x1a}\<close> and
       \<open>x1 \<noteq> {#}\<close> and
       \<open>0 < x1d\<close> and
       x: \<open>(xa, xb) \<in> ?confl x2b x1e\<close>
@@ -1372,13 +1377,15 @@ proof -
   proof -
     have xb: \<open>(if the (x2b ! xa) then Pos xa else Neg xa) = xb\<close>
       using x st by auto
-    have 1: \<open>(x2e, x2a) \<in> Rstate\<close>
-      using R x unfolding R_def st by auto
     have 2: \<open>((x1c, x2b), x1) \<in> conflict_rel\<close>
       using R x unfolding R_def st by auto
-    show ?thesis
+    moreover have 1: \<open>(x2e, x2a) \<in> Rstate\<close>
+      using R x unfolding R_def st by auto
+    moreover have 3: \<open>xb \<in># D\<close>
+      using xb_x1a R unfolding R_def st by auto
+    ultimately show ?thesis
       unfolding xb
-      by (rule f'_f) (solves \<open>rule 2\<close>, solves \<open>rule 1\<close>)
+      by (rule f'_f)
   qed
   have loop_keep: \<open>(((x1c, x2b), x1d - 1, xa + 1, x1g), x1, remove1_mset xb x1a, x1f) \<in> R\<close> and
    loop_dont_keep: \<open>(((x1c - 1, x2b[xa := None]), x1d - 1, xa + 1, x1g),
@@ -1408,7 +1415,8 @@ proof -
       [simp]: \<open>x1e \<le> length x2b\<close> and
       x1d_x1a: \<open>((x1d, replicate x1e None @ drop x1e x2b), x1a) \<in> conflict_rel\<close> and
       \<open>(x2e, x2a) \<in> Rstate\<close> and
-      x1d_x1c: \<open>x1d \<le> x1c\<close>
+      x1d_x1c: \<open>x1d \<le> x1c\<close> and
+      incls: \<open>x1 \<subseteq># D\<close> \<open>x1a \<subseteq># x1\<close>
       using R unfolding R_def st
       by auto
     have
@@ -1467,8 +1475,8 @@ proof -
       using xb_x1a x1d L_all_x2b
       by (auto simp: size_remove1_mset_If conflict_rel_def simp del: replicate_Suc)
     show H: \<open>(((x1c, x2b), x1d - 1, xa + 1, x1g), x1, remove1_mset xb x1a, x1f) \<in> R\<close>
-      using xa_xb x1d_x1c map' unfolding R_def
-      by auto
+      using xa_xb x1d_x1c map' incls unfolding R_def
+      by (auto intro: subset_mset.order.trans diff_subset_eq_self)
 
     have
       \<open>x1c = size x1\<close> and
@@ -1491,7 +1499,8 @@ proof -
       using diff_le_mono x1d_x1c by blast
     ultimately show \<open>(((x1c - 1, x2b[xa := None]), x1d - 1, xa + 1, x1g),
            remove1_mset xb x1, remove1_mset xb x1a, x1f) \<in> R\<close>
-      using xa_le_x2b H unfolding R_def by auto
+      using xa_le_x2b H incls unfolding R_def
+      by (auto intro: subset_mset.order.trans diff_subset_eq_self mset_le_subtract)
   qed
   show ?thesis
     unfolding iterate_over_lookup_conflict_def iterate_over_conflict_def D' prod.case
@@ -1514,6 +1523,102 @@ proof -
       by (rule loop_dont_keep)
     subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d
       unfolding R_def by (cases x1b) auto
+    done
+qed
+
+end
+
+
+definition lit_redundant_rec_wl_lookup :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> conflict_rel \<Rightarrow>
+     _ \<Rightarrow> _ \<Rightarrow>
+      (_ \<times> _ \<times> bool) nres\<close>
+where
+  \<open>lit_redundant_rec_wl_lookup M NU D cach analysis =
+      WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup>
+        (\<lambda>(cach, analyse, b). analyse \<noteq> [])
+        (\<lambda>(cach, analyse, b). do {
+            ASSERT(analyse \<noteq> []);
+            let C = NU ! fst (last analyse);
+            let i = snd (last analyse);
+            ASSERT(C!0 \<in> lits_of_l M);
+            if i \<ge> length C
+            then
+               RETURN(cach (atm_of (C ! 0) := SEEN_REMOVABLE), butlast analyse, True)
+            else do {
+               let (L, analyse) = get_literal_and_remove_of_analyse_wl C analyse;
+               ASSERT(-L \<in> lits_of_l M);
+               if (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> is_in_lookup_conflict D L)
+               then RETURN (cach, analyse, False)
+               else do {
+                  C \<leftarrow> get_propagation_reason M L;
+                  case C of
+                    Some C \<Rightarrow> RETURN (cach, analyse @ [(C, 1)], False)
+                  | None \<Rightarrow> do {
+                      cach \<leftarrow> mark_failed_lits_wl analyse cach;
+                      RETURN (cach, [], False)
+                  }
+              }
+          }
+        })
+       (cach, analysis, False)\<close>
+
+context isasat_input_ops
+begin
+
+lemma lit_redundant_rec_wl_lookup_lit_redundant_rec_wl:
+  assumes D'_D: \<open>(D', D) \<in> conflict_rel\<close> and
+    M: \<open>\<forall>a \<in> lits_of_l M. a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
+    \<open>M \<Turnstile>as CNot D\<close> and
+    n_d: \<open>no_dup M\<close>
+  shows \<open>lit_redundant_rec_wl_lookup M NU D' cach analysis \<le> \<Down> Id (lit_redundant_rec_wl M NU D cach analysis)\<close>
+proof -
+  have [simp]: \<open>is_in_lookup_conflict D' x \<longleftrightarrow> x \<in># D\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>) if \<open>-x \<in> lits_of_l M\<close> for x
+  proof
+    assume ?B
+    then show ?A
+      using D'_D mset_as_position_nth[of \<open>snd D'\<close> D x] M that
+      unfolding conflict_rel_def
+      by (auto simp: is_in_lookup_conflict_def split: option.splits)
+  next
+    assume ?A
+    moreover have \<open>atm_of x < length (snd D')\<close>
+      using M that D'_D
+      unfolding conflict_rel_def
+      by (cases D') (auto simp: atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+    moreover have \<open>-x \<notin># D\<close>
+      using \<open>M \<Turnstile>as CNot D\<close> n_d in_CNot_implies_uminus(2) no_dup_consistentD that by blast
+    ultimately show ?B
+      using D'_D mset_as_position_in_iff_nth[of \<open>snd D'\<close> D x] M that
+        mset_as_position_in_iff_nth[of \<open>snd D'\<close> D \<open>-x\<close>]
+      unfolding conflict_rel_def
+      by (cases x) (auto simp: is_in_lookup_conflict_def split: option.splits)
+  qed
+
+  have [refine_vcg]: \<open>(a, b) \<in> Id \<Longrightarrow> (a, b) \<in> \<langle>Id\<rangle>option_rel\<close> for a b by auto
+  have [refine_vcg]: \<open>get_propagation_reason M x
+    \<le> \<Down> Id (get_propagation_reason M y)\<close> if \<open>x = y\<close> for x y
+    unfolding that by auto
+  have [refine_vcg]: \<open>mark_failed_lits_wl a b
+    \<le> \<Down> Id
+        (mark_failed_lits_wl a' b')\<close> if \<open>a = a'\<close> and \<open>b = b'\<close> for a a' b b'
+    unfolding that by auto
+  show ?thesis
+    unfolding lit_redundant_rec_wl_lookup_def lit_redundant_rec_wl_def
+    apply (refine_vcg)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
     done
 qed
 
