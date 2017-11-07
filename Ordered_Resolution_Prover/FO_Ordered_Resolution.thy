@@ -553,7 +553,7 @@ qed
 
 lemma ord_resolve_rename_lifting:
   assumes
-    sel_ren_inv: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
+    sel_stable: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
     res_e: "ord_resolve (S_M S M) CAs DA \<sigma> E" and
     select: "selection S" and
     grounding: "{DA} \<union> (set CAs) \<subseteq> grounding_of_clss M"
@@ -574,7 +574,7 @@ proof (cases rule: ord_resolve.cases)
 
   have sel_ren_list_inv:
     "\<And>\<rho>s Cs. length \<rho>s = length Cs \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> map S (Cs \<cdot>\<cdot>cl \<rho>s) = map S Cs \<cdot>\<cdot>cl \<rho>s"
-    using sel_ren_inv unfolding is_renaming_list_def by (auto intro: nth_equalityI)
+    using sel_stable unfolding is_renaming_list_def by (auto intro: nth_equalityI)
 
   note n = \<open>n \<noteq> 0\<close> \<open>length CAs = n\<close> \<open>length Cs = n\<close> \<open>length AAs = n\<close> \<open>length As = n\<close>
 
@@ -626,7 +626,7 @@ proof (cases rule: ord_resolve.cases)
   have DA'_DA: "DA' \<cdot> \<eta>' = DA"
     using as''(4) unfolding \<eta>'_def DA'_def using renames_DA'' by auto
   have "S DA' \<cdot> \<eta>' = S_M S M DA"
-    using as''(5) unfolding \<eta>'_def DA'_def using renames_DA'' sel_ren_inv by auto
+    using as''(5) unfolding \<eta>'_def DA'_def using renames_DA'' sel_stable by auto
   have CAs'_CAs: "CAs' \<cdot>\<cdot>cl \<eta>s' = CAs"
     using as''(7) unfolding CAs'_def \<eta>s'_def using n(3) renames_apart renames_CAs'' by auto
   have "map S CAs' \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAs"

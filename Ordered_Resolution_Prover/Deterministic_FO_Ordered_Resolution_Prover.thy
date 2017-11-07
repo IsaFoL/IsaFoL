@@ -556,7 +556,7 @@ next
     sorry
 qed
 
-theorem sound:
+theorem deterministic_RP_sound:
   assumes some: "deterministic_RP (N, [], [], n) = Some Q"
   shows
     "src.saturated_upto (set (map mset Q)) \<and>
@@ -565,7 +565,7 @@ theorem sound:
   using saturated
   sorry
 
-theorem complete:
+theorem deterministic_RP_complete:
   assumes "\<exists>Q. finite Q \<and> src.saturated_upto Q \<and> (satisfiable Q \<longleftrightarrow> satisfiable (set (map mset N)))"
   shows "deterministic_RP (map (\<lambda>D. (D, 0)) N, [], [], 1) \<noteq> None"
   sorry

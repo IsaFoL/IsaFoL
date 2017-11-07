@@ -37,7 +37,7 @@ locale FO_resolution_prover =
     mgu :: "'a set set \<Rightarrow> 's option" and
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" +
   assumes
-    sel_ren_inv: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
+    sel_stable: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
     less_atm_ground: "is_ground_atm A \<Longrightarrow> is_ground_atm B \<Longrightarrow> less_atm A B \<Longrightarrow> A < B"
 begin
 
@@ -1704,7 +1704,7 @@ proof -
       "DA' \<cdot> \<eta>' = ?DA"
       "E' \<cdot> \<eta>2' = ?E"
       "{DA'} \<union> set CAs' \<subseteq> Q_of_state (Liminf_state Sts)"
-      using ord_resolve_rename_lifting[OF sel_ren_inv, of "Q_of_state (Liminf_state Sts)" CAs ?DA]
+      using ord_resolve_rename_lifting[OF sel_stable, of "Q_of_state (Liminf_state Sts)" CAs ?DA]
         \<sigma>_p selection_axioms DA_CAs_in_ground_Liminf by smt
     from this(8) have "\<exists>j. enat j < llength Sts \<and> ((set CAs') \<union> {DA'} \<subseteq> ?Qs j)"
       unfolding Liminf_llist_def
