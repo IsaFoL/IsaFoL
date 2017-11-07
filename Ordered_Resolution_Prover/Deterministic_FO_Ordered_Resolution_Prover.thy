@@ -17,8 +17,24 @@ type_synonym 'a lclause = "'a literal list"
 type_synonym 'a glclause = "'a lclause \<times> nat"
 type_synonym 'a glstate = "'a glclause list \<times> 'a glclause list \<times> 'a glclause list \<times> nat"
 
-locale deterministic_FO_resolution_prover = fair_FO_resolution_prover_with_sum_product +
-  assumes S_empty: "S C = {#}"
+locale deterministic_FO_resolution_prover = fair_FO_resolution_prover_with_sum_product S subst_atm
+    id_subst comp_subst renamings_apart atm_of_atms mgu less_atm weight size_atm generation_factor
+    size_factor
+  for
+    S :: "('a :: wellorder) clause \<Rightarrow> 'a clause" and
+    subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
+    id_subst :: "'s" and
+    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
+    renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
+    atm_of_atms :: "'a list \<Rightarrow> 'a" and
+    mgu :: "'a set set \<Rightarrow> 's option" and
+    less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
+    weight :: "'a literal multiset \<times> nat \<Rightarrow> nat" and
+    size_atm :: "'a \<Rightarrow> nat" and
+    generation_factor :: nat and
+    size_factor :: nat +
+  assumes
+    S_empty: "S C = {#}"
 begin
 
 fun gstate_of_glstate :: "'a glstate \<Rightarrow> 'a gstate" where
@@ -309,14 +325,25 @@ proof -
         note ih = this(1) and red_lc = this(2)
         have red_c: "[] = reduce (map fst P @ map fst Q) [] C"
           using red_lc by (metis list.distinct(1) reduce.simps(2))
-        obtain \<sigma> where
-          \<sigma>: "\<exists>D L'. D + {#L'#} \<in> set (map (mset \<circ> fst) (P @ Q)) \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># mset C"
-          sorry
-        have "gstate_of_glstate ((L # C, i) # N', P, Q, n) \<leadsto>\<^sub>f gstate_of_glstate ((C, i) # N', P, Q, n)"
+
+        have "is_reducible_lit (map fst P @ map fst Q) C L"
+          using red_lc list.discI by fastforce
+        then obtain D D' :: "'a literal list" and L' :: "'a literal" and \<sigma> :: 's where
+          "D \<in> set (map fst P @ map fst Q)" and
+          "D' = remove1 L' D" and
+          "L' \<in> set D" and
+          "- L = L' \<cdot>l \<sigma>" and
+          "mset D' \<cdot> \<sigma> \<subseteq># mset C"
+          unfolding is_reducible_lit_def comp_def by blast
+        then have \<sigma>:
+          "mset D' + {#L'#} \<in> set (map (mset \<circ> fst) (P @ Q)) \<and> - L = L' \<cdot>l \<sigma> \<and> mset D' \<cdot> \<sigma> \<subseteq># mset C"
+          unfolding is_reducible_lit_def by (auto simp: comp_def)
+        have "gstate_of_glstate ((L # C, i) # N', P, Q, n)
+          \<leadsto>\<^sub>f gstate_of_glstate ((C, i) # N', P, Q, n)"
           by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
-                forward_reduction[of "mset (map (apfst mset) P)" "mset (map (apfst mset) Q)" L _
+                forward_reduction[of "mset (map (apfst mset) P)" "mset (map (apfst mset) Q)" L \<sigma>
                   "mset C" "mset (map (apfst mset) N')" i n]])
-            (use \<sigma> in \<open>simp_all add: \<sigma> comp_def\<close>)
+            (use \<sigma> in \<open>auto simp: comp_def\<close>)
         then show ?case
           using ih[OF red_c] by (rule converse_rtranclp_into_rtranclp)
       qed simp
