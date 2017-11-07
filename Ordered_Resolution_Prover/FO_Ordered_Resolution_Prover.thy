@@ -28,11 +28,11 @@ locale FO_resolution_prover =
   FO_resolution subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu less_atm +
   selection S
   for
-    S :: "('a :: wellorder) clause \<Rightarrow> _" and
+    S :: "('a :: wellorder) clause \<Rightarrow> 'a clause" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and
     comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
-    renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
+    renamings_apart :: "'a clause list \<Rightarrow> 's list" and
     atm_of_atms :: "'a list \<Rightarrow> 'a" and
     mgu :: "'a set set \<Rightarrow> 's option" and
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" +
@@ -65,8 +65,7 @@ definition ord_FO_\<Gamma> :: "'a inference set" where
 interpretation ord_FO_resolution: inference_system ord_FO_\<Gamma> .
 
 definition
-  ord_FO_resolution_inferences_between
-  :: "'a literal multiset set \<Rightarrow> 'a literal multiset \<Rightarrow> 'a inference set"
+  ord_FO_resolution_inferences_between :: "'a clause set \<Rightarrow> 'a clause \<Rightarrow> 'a inference set"
 where
   "ord_FO_resolution_inferences_between = ord_FO_resolution.inferences_between"
 
@@ -124,10 +123,10 @@ definition S_Q :: "'a clause \<Rightarrow> 'a clause" where
   "S_Q = S_M S (Q_of_state (Liminf_state Sts))"
 
 interpretation sq: selection S_Q
-  unfolding S_Q_def
-  using S_M_selects_subseteq S_M_selects_neg_lits selection_axioms by unfold_locales auto
+  unfolding S_Q_def using S_M_selects_subseteq S_M_selects_neg_lits selection_axioms
+  by unfold_locales auto
 
-interpretation gd: ground_resolution_with_selection "S_Q"
+interpretation gd: ground_resolution_with_selection S_Q
   by unfold_locales
 
 interpretation src: standard_redundancy_criterion_reductive gd.ord_\<Gamma>
@@ -158,7 +157,7 @@ lemma sat_preserving_gd_ord_\<Gamma>': "sat_preserving_inference_system gd_ord_\
   using sound_gd_ord_\<Gamma>' sat_preserving_inference_system.intro
     sound_inference_system.\<Gamma>_sat_preserving by blast
 
-definition src_ext_Ri :: "'a literal multiset set \<Rightarrow> 'a inference set" where
+definition src_ext_Ri :: "'a clause set \<Rightarrow> 'a inference set" where
   "src_ext_Ri N = src.Ri N \<union> (gd_ord_\<Gamma>' - gd.ord_\<Gamma>)"
 
 interpretation src_ext:
@@ -191,7 +190,7 @@ lemma strict_subsumption_redundant_state:
   shows "C \<in> src.Rf (grounding_of_state St)"
   using assms
 proof (induction St)
-  fix N :: "'a literal multiset set" and P :: "'a literal multiset set" and Q :: "'a literal multiset set"
+  fix N P Q :: "'a clause set"
   assume asm: "D \<cdot> \<sigma> \<subset># C" 
     "is_ground_subst \<sigma>" 
     "D \<in> clss_of_state (N, P, Q)"
@@ -237,7 +236,6 @@ proof (induction rule: resolution_prover.induct)
       unfolding grounding_of_cls_def by auto
     then have "Neg (A \<cdot>a \<sigma>) \<in># C\<sigma> \<and> Pos (A \<cdot>a \<sigma>) \<in># C\<sigma>"
       using tautology_deletion Neg_Melem_subst_atm_subst_cls Pos_Melem_subst_atm_subst_cls by auto
-
     then have "C\<sigma> \<in> src.Rf (grounding_of_state (N, P, Q))"
       using src.tautology_redundant by auto
   }
@@ -1826,13 +1824,10 @@ proof -
     then have "\<gamma> \<in> src_ext_Ri (Liminf_llist (lmap grounding_of_state Sts))"
       using src_ext.Ri_Sup_subset_Ri_Liminf[of Ns] derivns ns by blast
   }
-  then have sat_Liminf_gr_sts: "src_ext.saturated_upto (Liminf_llist (lmap grounding_of_state Sts))"
-    unfolding src_ext.saturated_upto_def src_ext.inferences_from_def
-    using gd_ord_\<Gamma>_ngd_ord_\<Gamma>
+  then have "src_ext.saturated_upto (Liminf_llist (lmap grounding_of_state Sts))"
     unfolding src_ext.saturated_upto_def src_ext.inferences_from_def infer_from_def src_ext_Ri_def
     by auto
-
-  from sat_Liminf_gr_sts show ?thesis
+  then show ?thesis
     using gd_ord_\<Gamma>_ngd_ord_\<Gamma> src.redundancy_criterion_axioms
       redundancy_criterion_standard_extension_saturated_upto_iff[of gd.ord_\<Gamma>]
     unfolding src_ext_Ri_def by auto

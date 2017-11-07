@@ -17,26 +17,27 @@ begin
 type_synonym 'a gclause = "'a clause \<times> nat"
 type_synonym 'a gstate = "'a gclause multiset \<times> 'a gclause multiset \<times> 'a gclause multiset \<times> nat"
 
-locale fair_FO_resolution_provers =
+locale fair_FO_resolution_prover =
   FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu less_atm
   for
-    S :: "('a :: wellorder) clause \<Rightarrow> _" and
+    S :: "('a :: wellorder) clause \<Rightarrow> 'a clause" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and
     comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
-    renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
+    renamings_apart :: "'a clause list \<Rightarrow> 's list" and
     atm_of_atms :: "'a list \<Rightarrow> 'a" and
     mgu :: "'a set set \<Rightarrow> 's option" and
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" +
   fixes
     weight :: "'a clause \<times> nat \<Rightarrow> nat" 
   assumes
-    weight_monotone: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
+    weight_mono: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
 begin
 
 lemma generation_le_weight: "n \<le> weight (C, n)"
-  by (induct n, simp, metis weight_monotone[of k "Suc k" for k] Suc_le_eq le_less le_trans)
+  by (induct n, simp, metis weight_mono[of k "Suc k" for k] Suc_le_eq le_less le_trans)
 
+(* FIXME: move to FO_Ordered_Resolution_Prover *)
 lemma finite_ord_FO_resolution_inferences_between:
   assumes "finite CC"
   shows "finite (ord_FO_resolution_inferences_between CC D)"
@@ -59,9 +60,9 @@ abbreviation grounding_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" wher
   "grounding_of_gstate \<equiv> grounding_of_state \<circ> state_of_gstate"
 
 abbreviation Liminf_gstate :: "'a gstate llist \<Rightarrow> 'a state" where
-  "Liminf_gstate \<equiv> Liminf_state \<circ> lmap state_of_gstate"
+  "Liminf_gstate Sts \<equiv> Liminf_state (lmap state_of_gstate Sts)"
 
-inductive fair_resolution_prover :: "'a gstate \<Rightarrow> 'a gstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>f" 50)  where
+inductive fair_resolution_prover :: "'a gstate \<Rightarrow> 'a gstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>f" 50) where
   tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>f (N, P, Q, n)"
 | forward_subsumption: "(\<exists>D \<in># image_mset fst (P + Q). subsumes D C) \<Longrightarrow>
     (N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>f (N, P, Q, n)"
@@ -81,8 +82,7 @@ inductive fair_resolution_prover :: "'a gstate \<Rightarrow> 'a gstate \<Rightar
       ` concls_of (ord_FO_resolution_inferences_between (set_mset (image_mset fst Q)) C)) \<Longrightarrow>
     ({#}, P + {#(C, i)#}, Q, n) \<leadsto>\<^sub>f (N, P, Q + {#(C, i)#}, Suc n)"
 
-lemma fair_resolution_prover_resolution_prover':
-  "St \<leadsto>\<^sub>f St' \<Longrightarrow> state_of_gstate St \<leadsto> state_of_gstate St'"
+lemma fair_resolution_prover_imp_nonfair: "St \<leadsto>\<^sub>f St' \<Longrightarrow> state_of_gstate St \<leadsto> state_of_gstate St'"
 proof (induction rule: fair_resolution_prover.induct)
   case (tautology_deletion A C N i P Q n)
   then show ?case
@@ -122,10 +122,6 @@ next
     by (auto simp: comp_def image_comp ord_FO_resolution_inferences_between_def)
 qed
 
-lemma fair_resolution_prover_resolution_prover:
-  "chain (op \<leadsto>\<^sub>f) Sts \<Longrightarrow> chain (op \<leadsto>) (lmap state_of_gstate Sts)"
-  using fair_resolution_prover_resolution_prover' using chain_lmap weight_monotone by metis
-
 context
   fixes 
     Sts :: "'a gstate llist"
@@ -136,7 +132,43 @@ context
     empty_Q0: "Q_of_gstate (lnth Sts 0) = {}"
 begin
 
-lemma monotone_fairness: "fair_state_seq (lmap state_of_gstate Sts)"
+definition S_Q' :: "'a clause \<Rightarrow> 'a clause" where
+  "S_Q' = S_Q (lmap state_of_gstate Sts)"
+
+interpretation sq: selection S_Q'
+  unfolding S_Q'_def
+  apply (subst S_Q_def)
+(*
+  unfolding S_Q_def using S_M_selects_subseteq S_M_selects_neg_lits selection_axioms
+  by unfold_locales auto
+*)
+  sorry
+
+interpretation gd: ground_resolution_with_selection S_Q'
+  by unfold_locales
+
+interpretation src: standard_redundancy_criterion_reductive gd.ord_\<Gamma>
+  by unfold_locales
+
+(* FIXME: needed? *)
+interpretation src: standard_redundancy_criterion_counterex_reducing gd.ord_\<Gamma>
+  "ground_resolution_with_selection.INTERP S_Q'"
+  by unfold_locales
+
+lemma deriv_nonfair: "chain (op \<leadsto>) (lmap state_of_gstate Sts)"
+  using deriv fair_resolution_prover_imp_nonfair by (metis chain_lmap)
+
+lemma finite_Sts0_nonfair: "finite (clss_of_state (lnth (lmap state_of_gstate Sts) 0))"
+  using finite_Sts0 lnth_lmap[of 0 _ state_of_gstate] chain_length_pos[OF deriv]
+  by (auto simp: enat_0)
+
+lemma empty_P0_nonfair: "P_of_state (lnth (lmap state_of_gstate Sts) 0) = {}"
+  using empty_P0 chain_length_pos[OF deriv] by (auto simp: enat_0)
+
+lemma empty_Q0_nonfair: "Q_of_state (lnth (lmap state_of_gstate Sts) 0) = {}"
+  using empty_Q0 chain_length_pos[OF deriv] by (auto simp: enat_0)
+
+theorem fair: "fair_state_seq (lmap state_of_gstate Sts)"
 proof (rule ccontr)
   assume "\<not> fair_state_seq (lmap state_of_gstate Sts)"
   then obtain C where
@@ -159,41 +191,29 @@ proof (rule ccontr)
   qed
 qed
 
-lemma monotone_completeness:
+(* FIXME: put sel_ren_inv in a locale assumption, throughout *)
+corollary saturated:
+  assumes sel_ren_inv: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
+  shows "src.saturated_upto (Liminf_llist (lmap grounding_of_gstate Sts))"
+  unfolding S_Q'_def llist.map_comp[symmetric]
+  by (rule fair_state_seq_saturated[OF deriv_nonfair finite_Sts0_nonfair empty_P0_nonfair
+        empty_Q0_nonfair sel_ren_inv fair])
+
+corollary complete:
   assumes 
-    selection_renaming_invariant: "(\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>)" and
+    sel_ren_inv: "(\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>)" and
     unsat: "\<not> satisfiable (grounding_of_state (Liminf_gstate Sts))" 
   shows "{#} \<in> clss_of_state (Liminf_gstate Sts)"
-proof -
-  have "state_of_gstate (lnth Sts 0) = lnth (lmap state_of_gstate Sts) 0"
-    using lnth_lmap[of 0 Sts state_of_gstate, unfolded enat_0] chain_length_pos[OF deriv] by auto
-  then have "finite (clss_of_state (lnth (lmap state_of_gstate Sts) 0))"
-    using finite_Sts0 by auto
-  moreover have "P_of_state (lnth (lmap state_of_gstate Sts) 0) = {}"
-    using empty_P0 chain_length_pos[OF deriv] by (auto simp: enat_0)
-  moreover have "Q_of_state (lnth (lmap state_of_gstate Sts) 0) = {}"
-    using empty_Q0 chain_length_pos[OF deriv] by (auto simp: enat_0)
-  moreover have "chain op \<leadsto> (lmap state_of_gstate Sts)"
-    using deriv fair_resolution_prover_resolution_prover by blast 
-  moreover have "\<forall>\<rho> C. is_renaming \<rho> \<longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
-    using selection_renaming_invariant by auto
-  moreover have "fair_state_seq (lmap state_of_gstate Sts)"
-    using monotone_fairness by auto
-  moreover have "\<not> satisfiable (grounding_of_state (Liminf_state (lmap state_of_gstate Sts)))"
-    using unsat by auto
-  ultimately have "{#} \<in> clss_of_state (Liminf_state (lmap state_of_gstate Sts))" 
-    using fair_state_seq_complete[of "lmap state_of_gstate Sts"] by auto
-  then show "{#} \<in> clss_of_state (Liminf_gstate Sts)"
-    by auto
-qed 
+  by (rule fair_state_seq_complete[OF deriv_nonfair finite_Sts0_nonfair empty_P0_nonfair
+        empty_Q0_nonfair sel_ren_inv fair unsat])
 
 end
 
 end
 
 locale fair_FO_resolution_prover_with_sum_product =
-  fair_FO_resolution_provers S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu
-    less_atm weight
+  FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu
+    less_atm
   for
     S :: "('a :: wellorder) clause \<Rightarrow> 'a clause" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
@@ -202,20 +222,27 @@ locale fair_FO_resolution_prover_with_sum_product =
     renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
     atm_of_atms :: "'a list \<Rightarrow> 'a" and
     mgu :: "'a set set \<Rightarrow> 's option" and
-    less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
-    weight :: "'a clause \<times> nat \<Rightarrow> nat" +
+    less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" +
   fixes
     size_atm :: "'a \<Rightarrow> nat" and
     generation_factor :: nat and
     size_factor :: nat
   assumes
-    generation_factor_pos: "generation_factor > 0" and
-    weight_def: "weight (C, m) =
-      generation_factor * m + size_factor * size_multiset (size_literal size_atm) C"
+    generation_factor_pos: "generation_factor > 0"
 begin
 
-sublocale fair_FO_resolution_provers
-  using generation_factor_pos by unfold_locales (simp add: weight_def)
+fun weight :: "'a gclause \<Rightarrow> nat" where
+  "weight (C, m) = generation_factor * m + size_factor * size_multiset (size_literal size_atm) C"
+
+lemma weight_mono: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
+  using generation_factor_pos by simp
+
+declare weight.simps [simp del]
+
+sublocale fair_FO_resolution_prover _ _ _ _ _ _ _ _ weight
+  by unfold_locales (rule weight_mono)
+
+notation fair_resolution_prover (infix "\<leadsto>\<^sub>f" 50)
 
 end
 

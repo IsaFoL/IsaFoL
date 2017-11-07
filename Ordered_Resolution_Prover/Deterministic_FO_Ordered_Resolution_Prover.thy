@@ -18,7 +18,7 @@ type_synonym 'a glclause = "'a lclause \<times> nat"
 type_synonym 'a glstate = "'a glclause list \<times> 'a glclause list \<times> 'a glclause list \<times> nat"
 
 locale deterministic_FO_resolution_prover = fair_FO_resolution_prover_with_sum_product S subst_atm
-    id_subst comp_subst renamings_apart atm_of_atms mgu less_atm weight size_atm generation_factor
+    id_subst comp_subst renamings_apart atm_of_atms mgu less_atm size_atm generation_factor
     size_factor
   for
     S :: "('a :: wellorder) clause \<Rightarrow> 'a clause" and
@@ -29,7 +29,6 @@ locale deterministic_FO_resolution_prover = fair_FO_resolution_prover_with_sum_p
     atm_of_atms :: "'a list \<Rightarrow> 'a" and
     mgu :: "'a set set \<Rightarrow> 's option" and
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
-    weight :: "'a literal multiset \<times> nat \<Rightarrow> nat" and
     size_atm :: "'a \<Rightarrow> nat" and
     generation_factor :: nat and
     size_factor :: nat +
@@ -497,7 +496,7 @@ proof -
   qed
 qed
 
-lemma deterministic_resolution_prover_step_simulation_final:
+lemma deterministic_resolution_prover_step_final:
   assumes "is_final_glstate St"
   shows "\<not> gstate_of_glstate St \<leadsto>\<^sub>f St'"
   sorry
