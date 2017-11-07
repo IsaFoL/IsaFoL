@@ -47,22 +47,22 @@ fun state_of_glstate :: "'a glstate \<Rightarrow> 'a state" where
 fun is_final_glstate :: "'a glstate \<Rightarrow> bool" where
   "is_final_glstate (N, P, Q, n) \<longleftrightarrow> N = [] \<and> P = []"
 
-abbreviation rtrancl_resolution_prover_with_weights (infix "\<leadsto>\<^sub>w\<^sup>*" 50) where
+abbreviation rtrancl_weighted_RP (infix "\<leadsto>\<^sub>w\<^sup>*" 50) where
   "op \<leadsto>\<^sub>w\<^sup>* \<equiv> (op \<leadsto>\<^sub>w)\<^sup>*\<^sup>*"
 
-abbreviation trancl_resolution_prover_with_weights (infix "\<leadsto>\<^sub>w\<^sup>+" 50) where
+abbreviation trancl_weighted_RP (infix "\<leadsto>\<^sub>w\<^sup>+" 50) where
   "op \<leadsto>\<^sub>w\<^sup>+ \<equiv> (op \<leadsto>\<^sub>w)\<^sup>+\<^sup>+"
 
-(* FIXME: prove and move to right locale/file, and prove for non-fair version first *)
-lemma resolution_prover_with_weights_sound:
+(* FIXME: prove and move to right locale/file, and prove for nonweighted version first *)
+lemma weighted_RP_sound:
   "St \<leadsto>\<^sub>w St' \<Longrightarrow> I \<Turnstile>s grounding_of_state (state_of_gstate St) \<Longrightarrow>
    I \<Turnstile>s grounding_of_state (state_of_gstate St')"
   sorry
 
-lemma rtrancl_resolution_prover_with_weights_sound:
+lemma rtrancl_weighted_RP_sound:
   "St \<leadsto>\<^sub>w\<^sup>* St' \<Longrightarrow> I \<Turnstile>s grounding_of_state (state_of_gstate St) \<Longrightarrow>
    I \<Turnstile>s grounding_of_state (state_of_gstate St')"
-  by (induct rule: rtranclp.induct, assumption, metis resolution_prover_with_weights_sound)
+  by (induct rule: rtranclp.induct, assumption, metis weighted_RP_sound)
 
 definition is_tautology :: "'a lclause \<Rightarrow> bool" where
   "is_tautology C \<longleftrightarrow> (\<exists>A \<in> set (map atm_of C). Pos A \<in> set C \<and> Neg A \<in> set C)"
@@ -140,8 +140,8 @@ where
 | "select_min_weight_clause Ci (Dj # Ds) =
    select_min_weight_clause (if weight (apfst mset Dj) < weight (apfst mset Ci) then Dj else Ci) Ds"
 
-fun deterministic_resolution_prover_step :: "'a glstate \<Rightarrow> 'a glstate" where
-  "deterministic_resolution_prover_step (N, P, Q, n) =
+fun deterministic_RP_step :: "'a glstate \<Rightarrow> 'a glstate" where
+  "deterministic_RP_step (N, P, Q, n) =
    (case N of
       [] \<Rightarrow>
       (case P of
@@ -175,16 +175,14 @@ fun deterministic_resolution_prover_step :: "'a glstate \<Rightarrow> 'a glstate
           in
             (N, P, Q, n))"
 
-declare deterministic_resolution_prover_step.simps [simp del]
+declare deterministic_RP_step.simps [simp del]
 
-partial_function (option)
-  deterministic_resolution_prover :: "'a glstate \<Rightarrow> 'a lclause list option"
-where
-  "deterministic_resolution_prover St =
+partial_function (option) deterministic_RP :: "'a glstate \<Rightarrow> 'a lclause list option" where
+  "deterministic_RP St =
    (if is_final_glstate St then
       let (_, _, Q, _) = St in Some (map fst Q)
     else
-      deterministic_resolution_prover (deterministic_resolution_prover_step St))"
+      deterministic_RP (deterministic_RP_step St))"
 
 lemma select_min_weight_clause_in: "select_min_weight_clause P0 P \<in> set (P0 # P)"
   by (induct P arbitrary: P0) auto
@@ -218,16 +216,16 @@ proof (induct P arbitrary: P0 Ci)
   qed
 qed simp
 
-lemma nonfinal_step:
+lemma nonfinal_deterministic_RP_step:
   assumes
     nonfinal: "\<not> is_final_glstate St" and
-    step: "St' = deterministic_resolution_prover_step St"
+    step: "St' = deterministic_RP_step St"
   shows "gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>+ gstate_of_glstate St'"
 proof -
   obtain N P Q :: "'a glclause list" and n :: nat where
     st: "St = (N, P, Q, n)"
     by (cases St) blast
-  note step = step[unfolded st deterministic_resolution_prover_step.simps, simplified]
+  note step = step[unfolded st deterministic_RP_step.simps, simplified]
 
   show ?thesis
   proof (cases N)
@@ -498,15 +496,15 @@ proof -
   qed
 qed
 
-lemma final_step: "is_final_glstate St \<Longrightarrow> deterministic_resolution_prover_step St = St"
-  by (cases St) (simp add: deterministic_resolution_prover_step.simps)
+lemma final_deterministic_RP_step: "is_final_glstate St \<Longrightarrow> deterministic_RP_step St = St"
+  by (cases St) (simp add: deterministic_RP_step.simps)
 
-lemma deterministic_resolution_prover_SomeD:
-  assumes "deterministic_resolution_prover (N, P, Q, n) = Some R"
+lemma deterministic_RP_SomeD:
+  assumes "deterministic_RP (N, P, Q, n) = Some R"
   shows "\<exists>N' P' Q' n'.
-    (\<exists>k. (deterministic_resolution_prover_step ^^ k) (N, P, Q, n) = (N', P', Q', n'))
+    (\<exists>k. (deterministic_RP_step ^^ k) (N, P, Q, n) = (N', P', Q', n'))
      \<and> N' = [] \<and> P' = [] \<and> R = map fst Q'"
-proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ assms])
+proof (induct rule: deterministic_RP.raw_induct[OF _ assms])
   case (1 self_call St R)
   note ih = this(1) and step = this(2)
 
@@ -518,7 +516,7 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ assms])
   show ?case
   proof (cases "N = [] \<and> P = []")
     case True
-    then have "(deterministic_resolution_prover_step ^^ 0) (N, P, Q, n) = (N, P, Q, n)
+    then have "(deterministic_RP_step ^^ 0) (N, P, Q, n) = (N, P, Q, n)
       \<and> N = [] \<and> P = [] \<and> R = map fst Q"
       using step by simp
     then show ?thesis
@@ -528,8 +526,8 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ assms])
     note step = step[simplified nonfinal, simplified]
 
     obtain k N' P' Q' n' where
-      "(deterministic_resolution_prover_step ^^ k)
-        (deterministic_resolution_prover_step (N, P, Q, n)) = (N', P', Q', n')
+      "(deterministic_RP_step ^^ k)
+        (deterministic_RP_step (N, P, Q, n)) = (N', P', Q', n')
        \<and> N' = [] \<and> P' = [] \<and> R = map fst Q'"
       using ih[OF step] by blast
     then show ?thesis
@@ -537,18 +535,20 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ assms])
   qed
 qed
 
-lemma step: "gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate (deterministic_resolution_prover_step St)"
-  by (cases "is_final_glstate St") (simp add: final_step nonfinal_step tranclp_into_rtranclp)+
+lemma deterministic_RP_step_weighted:
+  "gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate (deterministic_RP_step St)"
+  by (cases "is_final_glstate St")
+    (simp add: final_deterministic_RP_step nonfinal_deterministic_RP_step tranclp_into_rtranclp)+
 
-lemma step_funpow:
-  "gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate ((deterministic_resolution_prover_step ^^ k) St)"
-  by (induct k; simp) (meson step rtranclp_trans)
+lemma deterministic_RP_step_funpow_weighted:
+  "gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate ((deterministic_RP_step ^^ k) St)"
+  by (induct k; simp) (meson deterministic_RP_step_weighted rtranclp_trans)
 
-lemma step_funpow_iff: "(\<exists>k. (deterministic_resolution_prover_step ^^ k) St = St') \<longleftrightarrow>
+lemma deterministic_RP_step_funpow_iff: "(\<exists>k. (deterministic_RP_step ^^ k) St = St') \<longleftrightarrow>
   gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate St'" (is "?lhs \<longleftrightarrow> ?rhs")
 proof
   show "?lhs \<Longrightarrow> ?rhs"
-    using step_funpow by blast
+    using deterministic_RP_step_funpow_weighted by blast
 next
   show "?rhs \<Longrightarrow> ?lhs"
     apply (rule rtranclp.induct[of "\<lambda>St St'. gstate_of_glstate St \<leadsto>\<^sub>w gstate_of_glstate St'"])
@@ -557,17 +557,17 @@ next
 qed
 
 theorem sound:
-  assumes some: "deterministic_resolution_prover (N, [], [], n) = Some Q"
+  assumes some: "deterministic_RP (N, [], [], n) = Some Q"
   shows
     "src.saturated_upto (set (map mset Q)) \<and>
      (satisfiable (set (map mset Q)) \<longleftrightarrow> satisfiable (set (map (mset \<circ> fst) N)))"
-  using deterministic_resolution_prover_SomeD[OF some, unfolded step_funpow_iff]
+  using deterministic_RP_SomeD[OF some, unfolded step_funpow_iff]
   using saturated
   sorry
 
 theorem complete:
   assumes "\<exists>Q. finite Q \<and> src.saturated_upto Q \<and> (satisfiable Q \<longleftrightarrow> satisfiable (set (map mset N)))"
-  shows "deterministic_resolution_prover (map (\<lambda>D. (D, 0)) N, [], [], 1) \<noteq> None"
+  shows "deterministic_RP (map (\<lambda>D. (D, 0)) N, [], [], 1) \<noteq> None"
   sorry
 
 end

@@ -79,7 +79,7 @@ text \<open>
 The following inductive predicate formalizes the resolution prover in Figure 5.
 \<close>
 
-inductive resolution_prover :: "'a state \<Rightarrow> 'a state \<Rightarrow> bool" (infix "\<leadsto>" 50) where
+inductive RP :: "'a state \<Rightarrow> 'a state \<Rightarrow> bool" (infix "\<leadsto>" 50) where
   tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N \<union> {C}, P, Q) \<leadsto> (N, P, Q)"
 | forward_subsumption: "(\<exists>D \<in> P \<union> Q. subsumes D C) \<Longrightarrow> (N \<union> {C}, P, Q) \<leadsto> (N, P, Q)"
 | backward_subsumption_P: "(\<exists>D \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P \<union> {C}, Q) \<leadsto> (N, P, Q)"
@@ -95,7 +95,7 @@ inductive resolution_prover :: "'a state \<Rightarrow> 'a state \<Rightarrow> bo
     ({}, P \<union> {C}, Q) \<leadsto> (N, P, Q \<union> {C})"
 
 lemma final: "\<not> ({}, {}, Q) \<leadsto> St"
-  by (auto elim: resolution_prover.cases)
+  by (auto elim: RP.cases)
 
 definition sup_state :: "'a state llist \<Rightarrow> 'a state" where
   "sup_state Sts =
@@ -231,7 +231,7 @@ The following corresponds the part of Lemma 4.10 that states we have a theorem p
 
 lemma resolution_prover_ground_derive:
   "St \<leadsto> St' \<Longrightarrow> src_ext.derive (grounding_of_state St) (grounding_of_state St')"
-proof (induction rule: resolution_prover.induct)
+proof (induction rule: RP.induct)
   case (tautology_deletion A C N P Q)
   {
     fix C\<sigma>
@@ -1003,7 +1003,7 @@ proof -
     have "lnth Sts l \<leadsto> lnth Sts (Suc l)"
       using llen deriv chain_lnth_rel by blast
     then show "D \<in> Q_of_state (lnth Sts (Suc l))"
-    proof (induction rule: resolution_prover.cases)
+    proof (cases rule: RP.cases)
       case (backward_subsumption_Q N D_removed P Q)
       moreover
       {
@@ -1019,7 +1019,7 @@ proof -
         ultimately have False
           using d_least unfolding subsumes_def by auto
       }
-      ultimately show ?case
+      ultimately show ?thesis
         using d_in_q by auto
     next
       case (backward_reduction_Q N L \<sigma> D' P Q)
@@ -1032,9 +1032,10 @@ proof -
         from D'_p have "D' \<in> clss_of_state (sup_state Sts)"
           using llen
           by (metis (no_types, lifting) UnI1 clss_of_state_def P_of_state.simps llength_lmap lnth_lmap lnth_subset_Sup_llist subsetCE sup_ge2 sup_state_def)
-        then have False using d_least D'_p subc by auto
+        then have False
+          using d_least D'_p subc by auto
       }
-      then show ?case
+      then show ?thesis
         using backward_reduction_Q d_in_q by auto
     qed (use d_in_q in auto)
   qed
@@ -1102,19 +1103,7 @@ proof -
   from l_p have "lnth Sts l \<leadsto> lnth Sts (Suc l)"
     using deriv using chain_lnth_rel by auto
   then show ?thesis
-  proof (induction rule: resolution_prover.cases)
-    case (tautology_deletion A D_twin N P Q)
-    then have False
-      using l_p by auto
-    then show ?case
-      by auto
-  next
-    case (forward_subsumption P Q D_twin N)
-    then have False
-      using l_p by auto
-    then show ?case
-      by auto
-  next
+  proof (cases rule: RP.cases)
     case (backward_subsumption_P N D_twin P Q)
     then have twins: "D_twin = D" "?Ns (Suc l) = N" "?Ns l = N"  "?Ps (Suc l) = P" "?Ps l = P \<union> {D_twin}" "?Qs (Suc l) = Q" "?Qs l = Q"
       using l_p by auto
@@ -1126,21 +1115,11 @@ proof -
       by (metis subst_cls_comp_subst subst_cls_mono_mset)
     from D'_p have "D' \<in> clss_of_state (sup_state Sts)"
       unfolding twins(2)[symmetric] using l_p
-      by (metis (no_types, lifting) UnI1 clss_of_state_def N_of_state.simps llength_lmap lnth_lmap lnth_subset_Sup_llist subsetCE sup_state_def)
-    then have False using d_least D'_p subc by auto
-    then show ?case
-      by auto
-  next
-    case (backward_subsumption_Q N D_twin P Q)
+      by (metis (no_types) UnI1 clss_of_state_def N_of_state.simps llength_lmap lnth_lmap
+          lnth_subset_Sup_llist subsetCE sup_state_def)
     then have False
-      using l_p by auto
-    then show ?case
-      by auto
-  next
-    case (forward_reduction P Q L \<sigma> D_twin N)
-    then have False
-      using l_p by auto
-    then show ?case
+      using d_least D'_p subc by auto
+    then show ?thesis
       by auto
   next
     case (backward_reduction_P N L \<sigma> D' P Q)
@@ -1155,19 +1134,7 @@ proof -
           lnth_subset_Sup_llist subsetCE sup_ge2 sup_state_def)
     then have False
       using d_least D'_p subc by auto
-    then show ?case
-      by auto
-  next
-    case (backward_reduction_Q N L \<sigma> D_twin P Q)
-    then have False
-      using l_p by auto
-    then show ?case
-      by auto
-  next
-    case (clause_processing N D_twin P Q)
-    then have False
-      using l_p by auto
-    then show ?case
+    then show ?thesis
       by auto
   next
     case (inference_computation N Q D_twin P)
@@ -1175,7 +1142,7 @@ proof -
       using l_p by auto
     then show ?thesis
       using d \<sigma> l_p by auto
-  qed
+  qed (use l_p in auto)
 qed
 
 lemma variants_sym: "variants D D' \<longleftrightarrow> variants D' D"
@@ -1186,8 +1153,7 @@ lemma variants_imp_exists_subtitution: "variants D D' \<Longrightarrow> \<exists
   by (meson strictly_subsumes_def subset_mset_def subset_subst_strictly_subsumes subsumes_def)
 
 lemma properly_subsume_variants:
-  assumes "strictly_subsumes E D"
-  assumes "variants D D'"
+  assumes "strictly_subsumes E D" and "variants D D'"
   shows "strictly_subsumes E D'"
 proof -
   from assms obtain \<sigma> \<sigma>' where
@@ -1266,7 +1232,7 @@ proof -
   from l_p have "lnth Sts l \<leadsto> lnth Sts (Suc l)"
     using deriv using chain_lnth_rel by auto
   then show ?thesis
-  proof (induction rule: resolution_prover.cases)
+  proof (cases rule: RP.cases)
     case (tautology_deletion A D_twin N P Q)
     then have "D_twin = D"
       using l_p by auto
@@ -1275,7 +1241,7 @@ proof -
       by (metis Melem_subst_cls eql_neg_lit_eql_atm eql_pos_lit_eql_atm)
     then have False
       using no_taut by metis
-    then show ?case
+    then show ?thesis
       by blast
   next
     case (forward_subsumption P Q D_twin N)
@@ -1306,20 +1272,8 @@ proof -
       \<sigma>'_p: "D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
       by metis
 
-    show ?case
+    show ?thesis
       using D'_p twins l_p subs mini \<sigma>'_p by auto
-  next
-    case (backward_subsumption_P N D_twin P Q)
-    then have False
-      using l_p by auto
-    then show ?case
-      by auto
-  next
-    case (backward_subsumption_Q N D_twin P Q)
-    then have False
-      using l_p by auto
-    then show ?case
-      by auto
   next
     case (forward_reduction P Q L \<sigma> D' N)
     then have twins: "D' + {#L#} = D" "?Ns (Suc l) = N \<union> {D'}" "?Ns l = N \<union> {D' + {#L#}}"  "?Ps (Suc l) = P " "?Ps l = P" "?Qs (Suc l) = Q" "?Qs l = Q"
@@ -1329,23 +1283,11 @@ proof -
     then have subc: "subsumes D' C"
       using d(3) subsumes_trans unfolding strictly_subsumes_def by blast
     from D'_p have "D' \<in> clss_of_state (sup_state Sts)"
-       using l_p
-       by (metis (no_types, lifting) UnI1 clss_of_state_def N_of_state.simps llength_lmap lnth_lmap lnth_subset_Sup_llist subsetCE sup_state_def)
+       using l_p by (metis (no_types) UnI1 clss_of_state_def N_of_state.simps llength_lmap lnth_lmap
+           lnth_subset_Sup_llist subsetCE sup_state_def)
     then have False
       using d_least D'_p subc by auto
-    then show ?case
-      by auto
-  next
-    case (backward_reduction_P N L \<sigma> D' P Q)
-    then have False
-      using l_p by auto
-    then show ?case
-      by auto
-  next
-    case (backward_reduction_Q N L \<sigma> C P Q)
-    then have False
-      using l_p by auto
-    then show ?case
+    then show ?thesis
       by auto
   next
     case (clause_processing N D_twin P Q)
@@ -1353,13 +1295,7 @@ proof -
       using l_p by auto
     then show ?thesis
       using d \<sigma> l_p d_least by blast
-  next
-    case (inference_computation N Q C P)
-    then have False
-      using l_p by auto
-    then show ?case
-      by auto
-  qed
+  qed (use l_p in auto)
 qed
 
 lemma eventually_in_Qinf:
@@ -1594,7 +1530,7 @@ proof
     unfolding Liminf_llist_def clss_of_state_def grounding_of_clss_def by auto
 qed
 
-theorem saturated_if_fair:
+theorem RP_saturated_if_fair:
   assumes
     sel_ren_inv: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
     fair: "fair_state_seq Sts"
@@ -1795,7 +1731,7 @@ proof -
       "?Ns j = concls_of (ord_FO_resolution.inferences_between (?Qs (j - 1)) C')"
       "C' \<in> set CAs' \<union> {DA'}"
       "C' \<notin> ?Qs (j - 1)"
-      using j_adds_CAs' by (induction rule: resolution_prover.cases) auto
+      using j_adds_CAs' by (induction rule: RP.cases) auto
     then have ihih: "(set CAs' \<union> {DA'}) - {C'} \<subseteq> ?Qs (j - 1)"
       using j_adds_CAs' by auto
     have "E' \<in> ?Ns j"
@@ -1838,7 +1774,7 @@ proof -
     unfolding src_ext_Ri_def by auto
 qed
 
-corollary complete_if_fair:
+corollary RP_complete_if_fair:
   assumes
     sel_ren_inv: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
     fair: "fair_state_seq Sts" and
@@ -1849,7 +1785,7 @@ proof -
     using unsat grounding_of_state_Liminf_state_subseteq unfolding true_clss_def
     by (meson contra_subsetD)
   moreover have "src.saturated_upto (Liminf_llist (lmap grounding_of_state Sts))"
-    by (rule saturated_if_fair[OF sel_ren_inv fair, simplified])
+    by (rule RP_saturated_if_fair[OF sel_ren_inv fair, simplified])
   ultimately have "{#} \<in> Liminf_llist (lmap grounding_of_state Sts)"
     using src.saturated_upto_complete by auto
   then show "{#} \<in> clss_of_state (Liminf_state Sts)"

@@ -62,7 +62,7 @@ abbreviation grounding_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" wher
 abbreviation Liminf_gstate :: "'a gstate llist \<Rightarrow> 'a state" where
   "Liminf_gstate Sts \<equiv> Liminf_state (lmap state_of_gstate Sts)"
 
-inductive weighted_resolution_prover :: "'a gstate \<Rightarrow> 'a gstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w" 50) where
+inductive weighted_RP :: "'a gstate \<Rightarrow> 'a gstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w" 50) where
   tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
 | forward_subsumption: "(\<exists>D \<in># image_mset fst (P + Q). subsumes D C) \<Longrightarrow>
     (N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
@@ -83,47 +83,15 @@ inductive weighted_resolution_prover :: "'a gstate \<Rightarrow> 'a gstate \<Rig
     ({#}, P + {#(C, i)#}, Q, n) \<leadsto>\<^sub>w (N, P, Q + {#(C, i)#}, Suc n)"
 
 lemma weighted_imp_nonweighted: "St \<leadsto>\<^sub>w St' \<Longrightarrow> state_of_gstate St \<leadsto> state_of_gstate St'"
-proof (induction rule: weighted_resolution_prover.induct)
-  case (tautology_deletion A C N i P Q n)
-  then show ?case
-    using resolution_prover.tautology_deletion by simp
-next
-  case (forward_subsumption P Q C N i n)
-  then show ?case 
-    using resolution_prover.forward_subsumption by simp
-next
-  case (backward_subsumption_P N C P i Q n)
-  then show ?case
-    using resolution_prover.backward_subsumption_P by simp
-next
-  case (backward_subsumption_Q N C P Q i n)
-  then show ?case 
-    using resolution_prover.backward_subsumption_Q by simp
-next
-  case (forward_reduction P Q L \<sigma> C N i n)
-  then show ?case
-    using resolution_prover.forward_reduction by simp
-next
-  case (backward_reduction_P N L \<sigma> C P i Q n)
-  then show ?case 
-    using resolution_prover.backward_reduction_P by simp
-next
-  case (backward_reduction_Q N L \<sigma> C P Q i n)
-  then show ?case
-    using resolution_prover.backward_reduction_Q by simp
-next
-  case (clause_processing N C P Q n)
-  show ?case 
-    using resolution_prover.clause_processing by simp
-next
+proof (induction rule: weighted_RP.induct)
   case (inference_computation P C i N n Q)
   then show ?case 
-    using resolution_prover.inference_computation finite_ord_FO_resolution_inferences_between
+    using RP.inference_computation finite_ord_FO_resolution_inferences_between
     by (auto simp: comp_def image_comp ord_FO_resolution_inferences_between_def)
-qed
+qed (use RP.intros in simp_all)
 
 lemma final: "\<not> ({#}, {#}, Q, n) \<leadsto>\<^sub>w St"
-  by (auto elim: weighted_resolution_prover.cases)
+  by (auto elim: weighted_RP.cases)
 
 context
   fixes 
@@ -171,7 +139,7 @@ lemma empty_P0_nonweighted: "P_of_state (lnth (lmap state_of_gstate Sts) 0) = {}
 lemma empty_Q0_nonweighted: "Q_of_state (lnth (lmap state_of_gstate Sts) 0) = {}"
   using empty_Q0 chain_length_pos[OF deriv] by (auto simp: enat_0)
 
-theorem fair: "fair_state_seq (lmap state_of_gstate Sts)"
+theorem weighted_RP_fair: "fair_state_seq (lmap state_of_gstate Sts)"
 proof (rule ccontr)
   assume "\<not> fair_state_seq (lmap state_of_gstate Sts)"
   then obtain C where
@@ -195,20 +163,20 @@ proof (rule ccontr)
 qed
 
 (* FIXME: put sel_ren_inv in a locale assumption, throughout *)
-corollary saturated:
+corollary weighted_RP_saturated:
   assumes sel_ren_inv: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
   shows "src.saturated_upto (Liminf_llist (lmap grounding_of_gstate Sts))"
   unfolding S_Q'_def llist.map_comp[symmetric]
-  by (rule saturated_if_fair[OF deriv_nonweighted finite_Sts0_nonweighted empty_P0_nonweighted
-        empty_Q0_nonweighted sel_ren_inv fair])
+  by (rule RP_saturated_if_fair[OF deriv_nonweighted finite_Sts0_nonweighted empty_P0_nonweighted
+        empty_Q0_nonweighted sel_ren_inv weighted_RP_fair])
 
-corollary complete:
+corollary weighted_RP_complete:
   assumes 
     sel_ren_inv: "(\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>)" and
     unsat: "\<not> satisfiable (grounding_of_state (Liminf_gstate Sts))" 
   shows "{#} \<in> clss_of_state (Liminf_gstate Sts)"
-  by (rule complete_if_fair[OF deriv_nonweighted finite_Sts0_nonweighted empty_P0_nonweighted
-        empty_Q0_nonweighted sel_ren_inv fair unsat])
+  by (rule RP_complete_if_fair[OF deriv_nonweighted finite_Sts0_nonweighted empty_P0_nonweighted
+        empty_Q0_nonweighted sel_ren_inv weighted_RP_fair unsat])
 
 end
 
@@ -244,7 +212,7 @@ declare weight.simps [simp del]
 sublocale weighted_FO_resolution_prover _ _ _ _ _ _ _ _ weight
   by unfold_locales (rule weight_mono)
 
-notation weighted_resolution_prover (infix "\<leadsto>\<^sub>w" 50)
+notation weighted_RP (infix "\<leadsto>\<^sub>w" 50)
 
 end
 
