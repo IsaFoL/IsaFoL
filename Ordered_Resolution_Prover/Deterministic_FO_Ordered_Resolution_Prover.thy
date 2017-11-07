@@ -438,14 +438,10 @@ proof -
           hence subs: "is_subsumed_by (map fst P @ map fst Q) C'"
             using taut_or_subs by blast
           show ?thesis
-            apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+            by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
                   forward_subsumption[of "mset (map (apfst mset) P)" "mset (map (apfst mset) Q)"
                     "mset C'" "mset (map (apfst mset) N')" i n]])
-            apply simp
-             apply simp
-            using subs unfolding is_subsumed_by_def
-            apply auto
-            done
+              (use subs in \<open>auto simp: is_subsumed_by_def\<close>)
         qed
         then show ?thesis
           unfolding step st n_cons ci using red_C_trans by (rule rtranclp_into_tranclp1[rotated])
@@ -453,7 +449,7 @@ proof -
         case not_taut_or_subs: False
         note step = step[simplified not_taut_or_subs, simplified]
         show ?thesis
-          unfolding st n_cons ci
+          unfolding step st n_cons ci
           (* use soundness of subsumption at calculus level *)
           sorry
       qed
