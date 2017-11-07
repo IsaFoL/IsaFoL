@@ -1664,6 +1664,7 @@ proof -
       then show "\<exists>\<sigma>. ord_resolve (S_M S (Q_of_state (Liminf_state Sts))) CAs ?DA \<sigma> ?E"
       proof (cases rule: gd.ord_resolve.cases)
         case (ord_resolve n Cs AAs As D)
+        (* FIXME: use note a = this(1) etc. idiom *)
         have a: "?DA = D + negs (mset As)"
           using ord_resolve by simp
         have b: "?E = \<Union>#mset Cs + D"
@@ -1678,18 +1679,18 @@ proof -
           using ord_resolve by simp
         have nz: "n \<noteq> 0"
           using ord_resolve by simp
-        have cas: "\<forall>i<n. CAs ! i = Cs ! i + poss (AAs ! i)"
+        have cas: "\<forall>i < n. CAs ! i = Cs ! i + poss (AAs ! i)"
           using ord_resolve by simp
-        have ass_ne: "\<forall>i<n. AAs ! i \<noteq> {#}"
+        have ass_ne: "\<forall>i < n. AAs ! i \<noteq> {#}"
           using ord_resolve by simp
 
         have "length AAs = length As"
           using len_ass len_as by auto
-        have j: "\<forall>i<n. \<forall>A\<in>#AAs ! i. A = As ! i"
+        have j: "\<forall>i < n. \<forall>A\<in>#AAs ! i. A = As ! i"
           using ord_resolve by simp
-        then have "\<forall>i<n. \<forall>A\<in>#add_mset (As ! i) (AAs ! i). A = As ! i"
+        then have "\<forall>i < n. \<forall>A\<in>#add_mset (As ! i) (AAs ! i). A = As ! i"
           using ord_resolve by simp
-        then have "\<forall>i<n. card (set_mset (add_mset (As ! i) (AAs ! i))) \<le> Suc 0"
+        then have "\<forall>i < n. card (set_mset (add_mset (As ! i) (AAs ! i))) \<le> Suc 0"
           using all_the_same by metis
         then have "\<forall>i<length AAs. card (set_mset (add_mset (As ! i) (AAs ! i))) \<le> Suc 0"
           using len_ass by auto
@@ -1709,7 +1710,7 @@ proof -
 
         have k: "gd.eligible As (D + negs (mset As))"
           using ord_resolve by simp
-        have ground_cs: "\<forall>i<n. is_ground_cls (Cs ! i)"
+        have ground_cs: "\<forall>i < n. is_ground_cls (Cs ! i)"
           using ord_resolve(8) ord_resolve(3,4) ground_cas
           using ground_subclauses[of CAs Cs AAs] unfolding is_ground_cls_list_def by auto
         have ground_set_as: "is_ground_atms (set As)"
@@ -1731,31 +1732,35 @@ proof -
         then have Max\<sigma>_is_Max: "\<forall>\<sigma>. Max (atms_of D \<union> set As) \<cdot>a \<sigma> = Max (atms_of D \<union> set As)"
           by auto
 
-        from k have
-          ann2: "(Max (atms_of D \<union> set As) \<cdot>a \<sigma>) =
-            Max (atms_of D \<union> set As) \<and> (D \<cdot> \<sigma> + negs (mset As \<cdot>am \<sigma>)) = (D + negs (mset As))"
-          unfolding gd.eligible.simps[simplified] using is_ground_Max using ground_mset_as ground_d by auto
-
-        thm ground_da ground_d
-
         have ann1: "maximal_in (Max (atms_of D \<union> set As)) (D + negs (mset As))"
-          unfolding gd.eligible.simps[simplified] ann2 maximal_in_def less_atm_iff
-          using Max\<sigma>_is_Max ground_set_as ground_d ex_ground_subst
-          by (metis Max_less_iff \<open>finite (atms_of D \<union> set As)\<close> equals0D infinite_growing is_ground_cls_imp_is_ground_atm is_ground_subst_atm atms_of_negg atms_of_plus ground_da local.ord_resolve(1) set_mset_mset)
-            
+          unfolding maximal_in_def
+          by clarsimp (metis Max_less_iff UnCI \<open>atms_of D \<union> set As \<noteq> {}\<close>
+              \<open>finite (atms_of D \<union> set As)\<close> ground_d ground_set_as infinite_growing is_ground_Max
+              is_ground_atms_def is_ground_cls_imp_is_ground_atm less_atm_ground)
+
+        from k have ann2:
+          "Max (atms_of D \<union> set As) \<cdot>a \<sigma> = Max (atms_of D \<union> set As)"
+          "D \<cdot> \<sigma> + negs (mset As \<cdot>am \<sigma>) = D + negs (mset As)"
+          using is_ground_Max ground_mset_as ground_d by auto
+
         from k have kk: "eligible (S_M S (Q_of_state (Liminf_state Sts))) \<sigma> As (D + negs (mset As))"
-          unfolding gd.eligible.simps eligible.simps gd.maximal_in_def using ann1 ann2 by (auto simp: S_Q_def)
+          unfolding gd.eligible.simps eligible.simps gd.maximal_in_def using ann1 ann2
+          by (auto simp: S_Q_def)
 
         have l: "\<forall>i < n. gd.strictly_maximal_in (As ! i) (Cs ! i)"
           using ord_resolve by simp
-        then have ll: "\<forall>i < n. strictly_maximal_in (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
-          using len_as ground_as using ex_ground_subst ground_cs is_ground_cls_imp_is_ground_atm  
-          unfolding less_eq_atm_def less_atm_iff gd.strictly_maximal_in_def strictly_maximal_in_def by force
+        then have "\<forall>i < n. strictly_maximal_in (As ! i) (Cs ! i)"
+          unfolding gd.strictly_maximal_in_def strictly_maximal_in_def
+          using ground_as[unfolded is_ground_atm_list_def] ground_cs len_as less_atm_ground
+          by clarsimp (fastforce simp: is_ground_cls_as_atms)+
 
-        have m: "\<forall>i<n. S_Q (CAs ! i) = {#}"
+        then have ll: "\<forall>i < n. strictly_maximal_in (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
+          by (simp add: ground_as ground_cs len_as)
+
+        have m: "\<forall>i < n. S_Q (CAs ! i) = {#}"
           using ord_resolve by simp
 
-        have gg: "is_ground_cls (\<Union>#mset Cs + D)"
+        have gg: "is_ground_cls (\<Union># mset Cs + D)"
           using ground_d ground_cs b ground_e by auto
         show ?thesis
           using ord_resolve.intros[OF len_cas len_cs len_ass len_as nz cas ass_ne jj kk ll] m a b gg
@@ -1782,7 +1787,7 @@ proof -
       by auto
     then obtain j where
       j_p: "is_least (\<lambda>j. enat j < llength Sts \<and> ((set CAs') \<union> {DA'} \<subseteq> ?Qs j)) j"
-      using least_exists[of "(\<lambda>j. enat j < llength Sts \<and> ((set CAs') \<union> {DA'} \<subseteq> ?Qs j))"] by force
+      using least_exists[of "\<lambda>j. enat j < llength Sts \<and> set CAs' \<union> {DA'} \<subseteq> ?Qs j"] by force
     then have j_p': "enat j < llength Sts" "(set CAs') \<union> {DA'} \<subseteq> ?Qs j"
       unfolding is_least_def by auto
     then have jn0: "j \<noteq> 0" (* Since there are initially no clauses in Q *)
