@@ -463,30 +463,24 @@ proof -
           by (metis prod.exhaust)
         note step = step[unfolded red_Q[symmetric], simplified]
 
+        define P' :: "('a literal list \<times> nat) list" where
+          "P' = case_prod (op @) (reduce_all [C'] (back_to_P @ P))"
+        define Q'' :: "('a literal list \<times> nat) list" where
+          "Q'' = filter (is_strictly_subsumed_by [C'] \<circ> fst) Q'"
+        define P'' :: "('a literal list \<times> nat) list" where
+          "P'' = filter (is_strictly_subsumed_by [C'] \<circ> fst) P'"
+        note step = step[unfolded P'_def[symmetric] Q''_def[symmetric] P''_def[symmetric],
+            simplified]
+
         have red_Q: "gstate_of_glstate ((C', i) # N', P, Q, n)
           \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((C', i) # N', back_to_P @ P, Q', n)"
           sorry
-
-        define P' :: "('a literal list \<times> nat) list" where
-          "P' = case_prod (op @) (reduce_all [C'] (back_to_P @ P))"
-        note step = step[unfolded P'_def[symmetric], simplified]
-
         have red_P: "gstate_of_glstate ((C', i) # N', back_to_P @ P, Q', n)
           \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((C', i) # N', P', Q', n)"
           sorry
-
-        define Q'' :: "('a literal list \<times> nat) list" where
-          "Q'' = filter (is_strictly_subsumed_by [C'] \<circ> fst) Q'"
-        note step = step[unfolded Q''_def[symmetric], simplified]
-
         have subs_Q: "gstate_of_glstate ((C', i) # N', P', Q', n)
           \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((C', i) # N', P', Q'', n)"
           sorry
-
-        define P'' :: "('a literal list \<times> nat) list" where
-          "P'' = filter (is_strictly_subsumed_by [C'] \<circ> fst) P'"
-        note step = step[unfolded P''_def[symmetric], simplified]
-
         have subs_P: "gstate_of_glstate ((C', i) # N', P', Q'', n)
           \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((C', i) # N', P'', Q'', n)"
           sorry
