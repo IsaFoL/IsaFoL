@@ -348,7 +348,7 @@ proof -
           using ih[of "L # E"] by simp
       qed
     qed simp
-    then have red_C_trans:
+    then have red_C:
       "gstate_of_glstate ((C, i) # N', P, Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((C', i) # N', P, Q, n)"
       unfolding C'_def by (metis self_append_conv2)
 
@@ -358,7 +358,7 @@ proof -
       note c'_nil = this[THEN conjunct1] and nil_ni_pq = this[THEN conjunct2]
       note step = step[simplified c'_nil nil_ni_pq, simplified]
 
-      have sub_P_trans:
+      have sub_P:
         "gstate_of_glstate (([], i) # N', P, Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (([], i) # N', [], Q, n)"
         using nil_ni_pq[THEN conjunct1]
       proof (induct P)
@@ -373,7 +373,7 @@ proof -
         then show ?case
           using ih by (rule converse_rtranclp_into_rtranclp, use nil_ni_p in auto)
       qed simp
-      have sub_Q_trans:
+      have sub_Q:
         "gstate_of_glstate (([], i) # N', [], Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (([], i) # N', [], [], n)"
         using nil_ni_pq[THEN conjunct2]
       proof (induct Q)
@@ -388,12 +388,12 @@ proof -
         then show ?case
           using ih by (rule converse_rtranclp_into_rtranclp, use nil_ni_q in auto)
       qed simp
-      have proc_C_trans:
+      have proc_C:
         "gstate_of_glstate (([], i) # N', [], [], n) \<leadsto>\<^sub>f gstate_of_glstate (N', [([], i)], [], n)"
         by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
               clause_processing[of "mset (map (apfst mset) N')" "{#}" i "{#}" "{#}" n]],
             auto)
-      have sub_N_trans:
+      have sub_N:
         "gstate_of_glstate (N', [([], i)], [], n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ([], [([], i)], [], n)"
       proof (induct N')
         case (Cons N'0 N')
@@ -407,7 +407,7 @@ proof -
         then show ?case
           using ih by (rule converse_rtranclp_into_rtranclp)
       qed simp
-      have inf_C_trans:
+      have inf_C:
         "gstate_of_glstate ([], [([], i)], [], n) \<leadsto>\<^sub>f gstate_of_glstate ([], [], [([], i)], Suc n)"
         by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
               inference_computation[of "{#}" "{#}" i "{#}" n "{#}"]],
@@ -415,11 +415,11 @@ proof -
 
       show ?thesis
         unfolding step st n_cons ci
-        using red_C_trans[unfolded c'_nil, THEN rtranclp_trans, OF sub_P_trans,
-          THEN rtranclp_trans, OF sub_Q_trans,
-          THEN rtranclp_into_tranclp1, OF proc_C_trans,
-          THEN tranclp_rtranclp_tranclp, OF sub_N_trans,
-          THEN tranclp.trancl_into_trancl, OF inf_C_trans] .
+        using red_C[unfolded c'_nil, THEN rtranclp_trans, OF sub_P,
+          THEN rtranclp_trans, OF sub_Q,
+          THEN rtranclp_into_tranclp1, OF proc_C,
+          THEN tranclp_rtranclp_tranclp, OF sub_N,
+          THEN tranclp.trancl_into_trancl, OF inf_C] .
     next
       case c'_nnil: False
       note step = step[simplified c'_nnil, simplified]
@@ -450,7 +450,7 @@ proof -
               (use subs in \<open>auto simp: is_subsumed_by_def\<close>)
         qed
         then show ?thesis
-          unfolding step st n_cons ci using red_C_trans by (rule rtranclp_into_tranclp1[rotated])
+          unfolding step st n_cons ci using red_C by (rule rtranclp_into_tranclp1[rotated])
       next
         case not_taut_or_subs: False
         note step = step[simplified not_taut_or_subs, simplified]
@@ -458,28 +458,47 @@ proof -
         obtain back_to_P Q' :: "('a literal list \<times> nat) list" where
           red_Q: "(back_to_P, Q') = reduce_all [C'] Q"
           by (metis prod.exhaust)
+        note step = step[unfolded red_Q[symmetric], simplified]
+
+        have red_Q: "gstate_of_glstate ((C', i) # N', P, Q, n)
+          \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((C', i) # N', back_to_P @ P, Q', n)"
+          sorry
 
         define P' :: "('a literal list \<times> nat) list" where
           "P' = case_prod (op @) (reduce_all [C'] (back_to_P @ P))"
+        note step = step[unfolded P'_def[symmetric], simplified]
+
+        have red_P: "gstate_of_glstate ((C', i) # N', back_to_P @ P, Q', n)
+          \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((C', i) # N', P', Q', n)"
+          sorry
+
         define Q'' :: "('a literal list \<times> nat) list" where
           "Q'' = filter (is_strictly_subsumed_by [C'] \<circ> fst) Q'"
+        note step = step[unfolded Q''_def[symmetric], simplified]
+
+        have subs_Q: "gstate_of_glstate ((C', i) # N', P', Q', n)
+          \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((C', i) # N', P', Q'', n)"
+          sorry
+
         define P'' :: "('a literal list \<times> nat) list" where
           "P'' = filter (is_strictly_subsumed_by [C'] \<circ> fst) P'"
+        note step = step[unfolded P''_def[symmetric], simplified]
 
-(*
-            (back_to_P, Q) = reduce_all [C] Q;
-            P = back_to_P @ P;
-            P = case_prod (op @) (reduce_all [C] P);
-            Q = filter (is_strictly_subsumed_by [C] \<circ> fst) Q;
-            P = filter (is_strictly_subsumed_by [C] \<circ> fst) P;
-          in
-            (N, (C, i) # P, Q, n))"
-*)
+        have subs_P: "gstate_of_glstate ((C', i) # N', P', Q'', n)
+          \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((C', i) # N', P'', Q'', n)"
+          sorry
+
+        have proc_C: "gstate_of_glstate ((C', i) # N', P'', Q'', n)
+          \<leadsto>\<^sub>f gstate_of_glstate (N', (C', i) # P'', Q'', n)"
+          sorry
 
         show ?thesis
           unfolding step st n_cons ci
-          (* use soundness of subsumption at calculus level *)
-          sorry
+          by (rule red_C[THEN rtranclp_trans, OF red_Q,
+              THEN rtranclp_trans, OF red_P,
+              THEN rtranclp_trans, OF subs_Q,
+              THEN rtranclp_trans, OF subs_P,
+              THEN rtranclp_into_tranclp1, OF proc_C])
       qed
     qed
   qed
