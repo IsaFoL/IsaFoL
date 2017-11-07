@@ -344,7 +344,8 @@ proof -
           unfolding red_lc using ih[of E] by (rule converse_rtranclp_into_rtranclp)
       next
         case l_irred: False
-        then show ?thesis sorry
+        then show ?thesis
+          using ih[of "L # E"] by simp
       qed
     qed simp
     then have red_C_trans:
