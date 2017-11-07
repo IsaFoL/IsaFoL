@@ -1126,11 +1126,115 @@ lemma id_conflict_from_lookup:
 
 end
 
-definition confl_find_next_index where
- \<open>confl_find_next_index = (\<lambda>(n, xs) i.
-     SPEC(\<lambda>j. n \<noteq> 0 \<longrightarrow>
-        (j \<ge> i \<and> j < length xs \<and> xs ! j \<noteq> None \<and>
+definition confl_find_next_index_spec where
+ \<open>confl_find_next_index_spec = (\<lambda>(n, xs) i.
+     SPEC(\<lambda>j. (j \<ge> i \<and> j < length xs \<and> xs ! j \<noteq> None \<and>
         (\<forall>k. k \<ge> i \<longrightarrow> k < j \<longrightarrow> xs ! k = None))))\<close>
+
+definition confl_find_next_index :: \<open>conflict_rel \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
+   \<open>confl_find_next_index = (\<lambda>(n, xs) i.
+      WHILE\<^sub>T\<^bsup>\<lambda>j. j < length xs \<and> (\<forall>k. k \<ge> i \<longrightarrow> k < j \<longrightarrow> xs ! k = None) \<and> j \<ge> i\<^esup>
+           (\<lambda>j. xs ! j = None)
+           (\<lambda>j. RETURN (j + 1))
+           i
+    )
+\<close>
+
+(* TODO Move *)
+lemma list_eq_replicate_iff_nempty:
+  \<open>n > 0 \<Longrightarrow> xs = replicate n x \<longleftrightarrow> n = length xs \<and> set xs = {x}\<close>
+  by (metis length_replicate neq0_conv replicate_length_same set_replicate singletonD)
+
+lemma list_eq_replicate_iff:
+  \<open>xs = replicate n x \<longleftrightarrow> (n = 0 \<and> xs = []) \<or> (n = length xs \<and> set xs = {x})\<close>
+  by (cases n) (auto simp: list_eq_replicate_iff_nempty simp del: replicate.simps)
+
+lemma in_set_take_conv_nth:
+  \<open>x \<in> set (take n xs) \<longleftrightarrow> (\<exists>m<min n (length xs). xs ! m = x)\<close>
+  by (metis in_set_conv_nth length_take min.commute min.strict_boundedE nth_take)
+
+lemma drop_take_drop_drop:
+  \<open>j \<ge> i \<Longrightarrow> drop i xs = take (j - i) (drop i xs) @ drop j xs\<close>
+  apply (induction \<open>j - i\<close> arbitrary: j i)
+   apply auto
+  apply (case_tac j)
+  by (auto simp add: atd_lem)
+(* End Move *)
+
+lemma mset_as_position_right_unique:
+  assumes
+    map: \<open>mset_as_position xs D\<close> and
+    map': \<open>mset_as_position xs D'\<close>
+  shows \<open>D = D'\<close>
+proof (rule distinct_set_mset_eq)
+  show \<open>distinct_mset D\<close>
+    using mset_as_position_distinct_mset[OF map] .
+  show \<open>distinct_mset D'\<close>
+    using mset_as_position_distinct_mset[OF map'] .
+  show \<open>set_mset D = set_mset D'\<close>
+    using mset_as_position_in_iff_nth[OF map] mset_as_position_in_iff_nth[OF map']
+      mset_as_position_atm_le_length[OF map] mset_as_position_atm_le_length[OF map']
+    by blast
+qed
+
+context isasat_input_ops
+begin
+
+lemma confl_find_next_index_confl_find_next_index_spec:
+  assumes ocr: \<open>((n, xs), D) \<in> conflict_rel\<close> and \<open>n > 0\<close> and i_xs: \<open>i < length xs\<close> and
+    le_i: \<open>\<forall>k<i. xs ! k = None\<close>
+  shows
+    \<open>confl_find_next_index (n, xs) i \<le> confl_find_next_index_spec (n,xs) i\<close>
+proof -
+  have
+    n_D: \<open>n = size D\<close> and
+    map: \<open>mset_as_position xs D\<close> and
+    \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length xs\<close>
+    using ocr unfolding conflict_rel_def by auto
+  have map_empty: \<open>mset_as_position xs {#} \<longleftrightarrow> (xs = [] \<or> set xs = {None})\<close>
+    by (subst mset_as_position.simps) (auto simp add: list_eq_replicate_iff)
+  have ex_not_none: \<open>\<exists>j. j \<ge> i \<and> j < length xs \<and> xs ! j \<noteq> None\<close>
+  proof (rule ccontr)
+    assume \<open>\<not> ?thesis\<close>
+    then have \<open>xs = [] \<or> set xs = {None}\<close>
+      using le_i by (fastforce simp: in_set_conv_nth)
+    then have \<open>mset_as_position xs {#}\<close>
+      using map_empty by auto
+    then show False
+      using mset_as_position_right_unique[OF map] \<open>n > 0\<close> n_D by (cases D) auto
+  qed
+
+  have Sucj_le_xs: \<open>j + 1 < length xs\<close>
+    if
+      j_xs: \<open>j < length xs \<and> (\<forall>k\<ge>i. k < j \<longrightarrow> xs ! k = None) \<and> i \<le> j\<close> and
+      xs_j: \<open>xs ! j = None\<close>
+    for j
+  proof (rule ccontr)
+    assume \<open>\<not> ?thesis\<close>
+    then have \<open>\<forall>k\<ge>i. k \<le> length xs - 1 \<longrightarrow> xs ! k = None\<close>
+      using j_xs xs_j by (auto simp: linorder_not_less le_Suc_eq)
+    then show False
+      using ex_not_none by fastforce
+  qed
+  show ?thesis
+    unfolding confl_find_next_index_def confl_find_next_index_spec_def prod.case
+    apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>i. length xs - i)\<close>])
+    subgoal by auto
+    subgoal by (rule i_xs)
+    subgoal by auto
+    subgoal by auto
+    subgoal for j by (rule Sucj_le_xs)
+    subgoal for j j'
+      using nat_less_le by fastforce
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+end
 
 definition iterate_over_conflict_inv where
   \<open>iterate_over_conflict_inv D\<^sub>0 = (\<lambda>(D, D', s). D \<subseteq># D\<^sub>0)\<close>
@@ -1169,7 +1273,7 @@ where
          (\<lambda>((n, xs), m, i, s). m > 0)
          (\<lambda>((n, xs), m, i, s). do{
             ASSERT(m > 0);
-            x \<leftarrow> confl_find_next_index (m, xs) i;
+            x \<leftarrow> confl_find_next_index_spec (m, xs) i;
             (s', keep) \<leftarrow> f (n, xs) (if the (xs ! x) then Pos x else Neg x) s;
             ASSERT(x < length xs);
             ASSERT(m \<ge> 1);
@@ -1181,21 +1285,6 @@ where
          ((n, xs), n, 0, s);
      RETURN (D, s)
   })\<close>
-
-lemma drop_take_drop_drop:
-  \<open>j \<ge> i \<Longrightarrow> drop i xs = take (j - i) (drop i xs) @ drop j xs\<close>
-  apply (induction \<open>j - i\<close> arbitrary: j i)
-   apply auto
-  apply (case_tac j)
-  by (auto simp add: atd_lem)
-
-lemma list_eq_replicate_iff:
-  \<open>n > 0 \<Longrightarrow> xs = replicate n x \<longleftrightarrow> n = length xs \<and> set xs = {x}\<close>
-  by (metis length_replicate neq0_conv replicate_length_same set_replicate singletonD)
-
-lemma in_set_take_conv_nth:
-  \<open>x \<in> set (take n xs) \<longleftrightarrow> (\<exists>m<min n (length xs). xs ! m = x)\<close>
-  by (metis in_set_conv_nth length_take min.commute min.strict_boundedE nth_take)
 
 context isasat_input_ops
 begin
@@ -1252,8 +1341,8 @@ proof -
       using st'_st unfolding st
       by (cases D') (auto simp: R_def conflict_rel_def)
   qed
-  have confl_find_next_index_le:
-    \<open>confl_find_next_index (x1d, x2b) x1e
+  have confl_find_next_index_spec_le:
+    \<open>confl_find_next_index_spec (x1d, x2b) x1e
       \<le> \<Down> {(j, x). x2b ! j \<noteq> None \<and> x = (if the (x2b!j) then Pos j else Neg j) \<and>
              j < length x2b \<and> x1e \<le> j \<and> (\<forall>k\<ge>x1e. k < j \<longrightarrow> x2b ! k = None)}
           (SPEC (\<lambda>x. x \<in># x1a))\<close>
@@ -1275,7 +1364,7 @@ proof -
       using R unfolding st R_def conflict_rel_def
       by auto
     show ?thesis
-      unfolding confl_find_next_index_def st
+      unfolding confl_find_next_index_spec_def st
       apply clarify
       apply (rule RES_refine)
       subgoal for s
@@ -1355,7 +1444,7 @@ proof -
     proof (cases \<open>0 < xa - x1e\<close>)
       case True
       show ?thesis
-        apply (rule list_eq_replicate_iff[THEN iffD2])
+        apply (rule list_eq_replicate_iff_nempty[THEN iffD2])
         subgoal using True by auto
         subgoal using x1e_xa x1e_xa_None xa_le_x2b True
           apply (auto simp: in_set_take_conv_nth Bex_def)
@@ -1431,7 +1520,7 @@ proof -
     subgoal for s' s by (rule init_lo_inv)
     subgoal for st' st nxs n xs x2a m x2b j x2c E x2d E' s by (rule cond)
     subgoal by auto
-    apply (rule confl_find_next_index_le; assumption)
+    apply (rule confl_find_next_index_spec_le; assumption)
            apply (rule f'_f_ref; assumption)
     subgoal by auto
     subgoal by auto
@@ -1447,6 +1536,7 @@ proof -
       unfolding R_def by (cases x1b) auto
     done
 qed
+
 end
 
 end
