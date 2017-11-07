@@ -323,13 +323,13 @@ proof -
         then have red_lc:
           "reduce (map fst P @ map fst Q) E (L # C) = reduce (map fst P @ map fst Q) E C"
           by simp
-        obtain D D' :: "'a literal list" and L' :: "'a literal" and \<sigma> :: 's where
+        from l_red obtain D D' :: "'a literal list" and L' :: "'a literal" and \<sigma> :: 's where
           "D \<in> set (map fst P @ map fst Q)" and
           "D' = remove1 L' D" and
           "L' \<in> set D" and
           "- L = L' \<cdot>l \<sigma>" and
           "mset D' \<cdot> \<sigma> \<subseteq># mset (E @ C)"
-          using l_red unfolding is_reducible_lit_def comp_def by blast
+          unfolding is_reducible_lit_def comp_def by blast
         then have \<sigma>:
           "mset D' + {#L'#} \<in> set (map (mset \<circ> fst) (P @ Q))"
           "- L = L' \<cdot>l \<sigma> \<and> mset D' \<cdot> \<sigma> \<subseteq># mset (E @ C)"
@@ -343,7 +343,7 @@ proof -
         then show ?thesis
           unfolding red_lc using ih[of E] by (rule converse_rtranclp_into_rtranclp)
       next
-        case l_irred: False
+        case False
         then show ?thesis
           using ih[of "L # E"] by simp
       qed
@@ -427,7 +427,8 @@ proof -
       proof (cases "is_tautology C' \<or> is_subsumed_by (map fst P @ map fst Q) C'")
         case taut_or_subs: True
         note step = step[simplified taut_or_subs, simplified]
-        have "gstate_of_glstate ((C, i) # N', P, Q, n) \<leadsto>\<^sub>f gstate_of_glstate (N', P, Q, n)"
+
+        have "gstate_of_glstate ((C', i) # N', P, Q, n) \<leadsto>\<^sub>f gstate_of_glstate (N', P, Q, n)"
         proof (cases "is_tautology C'")
           case taut: True
           show ?thesis
@@ -439,15 +440,15 @@ proof -
           show ?thesis
             apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
                   forward_subsumption[of "mset (map (apfst mset) P)" "mset (map (apfst mset) Q)"
-                    "mset C" "mset (map (apfst mset) N')" i n]])
+                    "mset C'" "mset (map (apfst mset) N')" i n]])
             apply simp
              apply simp
             using subs unfolding is_subsumed_by_def
-            apply simp
-            sorry
+            apply auto
+            done
         qed
         then show ?thesis
-          unfolding step st n_cons ci by (rule tranclp.r_into_trancl)
+          unfolding step st n_cons ci using red_C_trans by (rule rtranclp_into_tranclp1[rotated])
       next
         case not_taut_or_subs: False
         note step = step[simplified not_taut_or_subs, simplified]
