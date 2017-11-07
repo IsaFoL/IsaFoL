@@ -1729,7 +1729,8 @@ proof -
           "D \<cdot> \<sigma> + negs (mset As \<cdot>am \<sigma>) = D + negs (mset As)"
           using is_ground_Max ground_mset_as ground_d by auto
 
-        from ground_elig have fo_elig: "eligible (S_M S (Q_of_state (Liminf_state Sts))) \<sigma> As (D + negs (mset As))"
+        from ground_elig have fo_elig:
+          "eligible (S_M S (Q_of_state (Liminf_state Sts))) \<sigma> As (D + negs (mset As))"
           unfolding gd.eligible.simps eligible.simps gd.maximal_in_def using ann1 ann2
           by (auto simp: S_Q_def)
 
@@ -1746,10 +1747,10 @@ proof -
         have m: "\<forall>i < n. S_Q (CAs ! i) = {#}"
           using ord_resolve by simp
 
-        have gg: "is_ground_cls (\<Union>#mset Cs + D)"
+        have ground_e: "is_ground_cls (\<Union>#mset Cs + D)"
           using ground_d ground_cs ground_e e by simp
         show ?thesis
-          using ord_resolve.intros[OF cas_len cs_len aas_len as_len nz cas aas_not_empt \<sigma>_p fo_elig ll] m DA e gg
+          using ord_resolve.intros[OF cas_len cs_len aas_len as_len nz cas aas_not_empt \<sigma>_p fo_elig ll] m DA e ground_e
           unfolding S_Q_def by auto
       qed
     qed
