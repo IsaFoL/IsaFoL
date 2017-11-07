@@ -39,6 +39,22 @@ lemma mset_as_position_in_iff_nth:
 lemma mset_as_position_tautology: \<open>mset_as_position xs C \<Longrightarrow> \<not>tautology C\<close>
   by (induction rule: mset_as_position.induct) (auto simp: tautology_add_mset)
 
+lemma mset_as_position_right_unique:
+  assumes
+    map: \<open>mset_as_position xs D\<close> and
+    map': \<open>mset_as_position xs D'\<close>
+  shows \<open>D = D'\<close>
+proof (rule distinct_set_mset_eq)
+  show \<open>distinct_mset D\<close>
+    using mset_as_position_distinct_mset[OF map] .
+  show \<open>distinct_mset D'\<close>
+    using mset_as_position_distinct_mset[OF map'] .
+  show \<open>set_mset D = set_mset D'\<close>
+    using mset_as_position_in_iff_nth[OF map] mset_as_position_in_iff_nth[OF map']
+      mset_as_position_atm_le_length[OF map] mset_as_position_atm_le_length[OF map']
+    by blast
+qed
+
 lemma mset_as_position_mset_union:
   fixes P xs
   defines \<open>xs' \<equiv> fold (\<lambda>L xs. xs[atm_of L := Some (is_pos L)]) P xs\<close>
@@ -1140,42 +1156,6 @@ definition confl_find_next_index :: \<open>conflict_rel \<Rightarrow> nat \<Righ
     )
 \<close>
 
-(* TODO Move *)
-lemma list_eq_replicate_iff_nempty:
-  \<open>n > 0 \<Longrightarrow> xs = replicate n x \<longleftrightarrow> n = length xs \<and> set xs = {x}\<close>
-  by (metis length_replicate neq0_conv replicate_length_same set_replicate singletonD)
-
-lemma list_eq_replicate_iff:
-  \<open>xs = replicate n x \<longleftrightarrow> (n = 0 \<and> xs = []) \<or> (n = length xs \<and> set xs = {x})\<close>
-  by (cases n) (auto simp: list_eq_replicate_iff_nempty simp del: replicate.simps)
-
-lemma in_set_take_conv_nth:
-  \<open>x \<in> set (take n xs) \<longleftrightarrow> (\<exists>m<min n (length xs). xs ! m = x)\<close>
-  by (metis in_set_conv_nth length_take min.commute min.strict_boundedE nth_take)
-
-lemma drop_take_drop_drop:
-  \<open>j \<ge> i \<Longrightarrow> drop i xs = take (j - i) (drop i xs) @ drop j xs\<close>
-  apply (induction \<open>j - i\<close> arbitrary: j i)
-   apply auto
-  apply (case_tac j)
-  by (auto simp add: atd_lem)
-(* End Move *)
-
-lemma mset_as_position_right_unique:
-  assumes
-    map: \<open>mset_as_position xs D\<close> and
-    map': \<open>mset_as_position xs D'\<close>
-  shows \<open>D = D'\<close>
-proof (rule distinct_set_mset_eq)
-  show \<open>distinct_mset D\<close>
-    using mset_as_position_distinct_mset[OF map] .
-  show \<open>distinct_mset D'\<close>
-    using mset_as_position_distinct_mset[OF map'] .
-  show \<open>set_mset D = set_mset D'\<close>
-    using mset_as_position_in_iff_nth[OF map] mset_as_position_in_iff_nth[OF map']
-      mset_as_position_atm_le_length[OF map] mset_as_position_atm_le_length[OF map']
-    by blast
-qed
 
 context isasat_input_ops
 begin
