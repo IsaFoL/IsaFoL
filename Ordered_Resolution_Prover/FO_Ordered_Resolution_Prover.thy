@@ -35,7 +35,9 @@ locale FO_resolution_prover =
     renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
     atm_of_atms :: "'a list \<Rightarrow> 'a" and
     mgu :: "'a set set \<Rightarrow> 's option" and
-    less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
+    less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" +
+  assumes
+    less_atm_ground: "is_ground_atm A \<Longrightarrow> is_ground_atm B \<Longrightarrow> less_atm A B \<Longrightarrow> A < B"
 begin
 
 fun N_of_state :: "'a state \<Rightarrow> 'a clause set" where

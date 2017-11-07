@@ -33,8 +33,7 @@ locale FO_resolution = mgu subst_atm id_subst comp_subst atm_of_atms renamings_a
   fixes
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
   assumes
-    less_atm_stable: "less_atm A B \<Longrightarrow> less_atm (A \<cdot>a \<sigma>) (B \<cdot>a \<sigma>)" and
-    less_atm_ground: "is_ground_atm A \<Longrightarrow> is_ground_atm B \<Longrightarrow> less_atm A B \<longleftrightarrow> A < B"
+    less_atm_stable: "less_atm A B \<Longrightarrow> less_atm (A \<cdot>a \<sigma>) (B \<cdot>a \<sigma>)"
 begin
 
 
