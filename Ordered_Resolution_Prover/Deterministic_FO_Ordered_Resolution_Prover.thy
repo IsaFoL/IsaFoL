@@ -430,9 +430,15 @@ proof -
 
         have "gstate_of_glstate ((C', i) # N', P, Q, n) \<leadsto>\<^sub>f gstate_of_glstate (N', P, Q, n)"
         proof (cases "is_tautology C'")
-          case taut: True
+          case True
+          then obtain A :: 'a where
+            neg_a: "Neg A \<in> set C'" and pos_a: "Pos A \<in> set C'"
+            unfolding is_tautology_def by blast
           show ?thesis
-            sorry
+            by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+                  tautology_deletion[of A "mset C'" "mset (map (apfst mset) N')" i
+                    "mset (map (apfst mset) P)" "mset (map (apfst mset) Q)" n]])
+              (use neg_a pos_a in simp_all)
         next
           case False
           hence subs: "is_subsumed_by (map fst P @ map fst Q) C'"
