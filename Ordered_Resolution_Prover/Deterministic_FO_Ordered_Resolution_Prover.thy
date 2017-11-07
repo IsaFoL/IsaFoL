@@ -311,42 +311,52 @@ proof -
       "C' = reduce (map fst P @ map fst Q) [] C"
     note step = step[unfolded ci C'_def[symmetric], simplified]
 
+    have "gstate_of_glstate ((E @ C, i) # N', P, Q, n)
+       \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((E @ reduce (map fst P @ map fst Q) E C, i) # N', P, Q, n)" for E
+      unfolding C'_def
+    proof (induct C arbitrary: E)
+      case (Cons L C)
+      note ih = this(1)
+      show ?case
+      proof (cases "is_reducible_lit (map fst P @ map fst Q) (E @ C) L")
+        case l_red: True
+        then have red_lc:
+          "reduce (map fst P @ map fst Q) E (L # C) = reduce (map fst P @ map fst Q) E C"
+          by simp
+        obtain D D' :: "'a literal list" and L' :: "'a literal" and \<sigma> :: 's where
+          "D \<in> set (map fst P @ map fst Q)" and
+          "D' = remove1 L' D" and
+          "L' \<in> set D" and
+          "- L = L' \<cdot>l \<sigma>" and
+          "mset D' \<cdot> \<sigma> \<subseteq># mset (E @ C)"
+          using l_red unfolding is_reducible_lit_def comp_def by blast
+        then have \<sigma>:
+          "mset D' + {#L'#} \<in> set (map (mset \<circ> fst) (P @ Q))"
+          "- L = L' \<cdot>l \<sigma> \<and> mset D' \<cdot> \<sigma> \<subseteq># mset (E @ C)"
+          unfolding is_reducible_lit_def by (auto simp: comp_def)
+        have "gstate_of_glstate ((E @ L # C, i) # N', P, Q, n)
+          \<leadsto>\<^sub>f gstate_of_glstate ((E @ C, i) # N', P, Q, n)"
+          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+                forward_reduction[of "mset (map (apfst mset) P)" "mset (map (apfst mset) Q)" L \<sigma>
+                  "mset (E @ C)" "mset (map (apfst mset) N')" i n]])
+            (use \<sigma> in \<open>auto simp: comp_def\<close>)
+        then show ?thesis
+          unfolding red_lc using ih[of E] by (rule converse_rtranclp_into_rtranclp)
+      next
+        case l_irred: False
+        then show ?thesis sorry
+      qed
+    qed simp
+    then have red_C_trans:
+      "gstate_of_glstate ((C, i) # N', P, Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((C', i) # N', P, Q, n)"
+      unfolding C'_def by (metis self_append_conv2)
+
     show ?thesis
     proof (cases "C' = [] \<and> [] \<notin> fst ` set P \<and> [] \<notin> fst ` set Q")
       case True
       note c'_nil = this[THEN conjunct1] and nil_ni_pq = this[THEN conjunct2]
       note step = step[simplified c'_nil nil_ni_pq, simplified]
 
-      have red_C_trans:
-        "gstate_of_glstate ((C, i) # N', P, Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (([], i) # N', P, Q, n)"
-        using C'_def[unfolded c'_nil]
-      proof (induct C)
-        case (Cons L C)
-        note ih = this(1) and red_lc = this(2)
-        have red_c: "[] = reduce (map fst P @ map fst Q) [] C"
-          using red_lc by (metis list.distinct(1) reduce.simps(2))
-
-        have "is_reducible_lit (map fst P @ map fst Q) C L"
-          using red_lc list.discI by fastforce
-        then obtain D D' :: "'a literal list" and L' :: "'a literal" and \<sigma> :: 's where
-          "D \<in> set (map fst P @ map fst Q)" and
-          "D' = remove1 L' D" and
-          "L' \<in> set D" and
-          "- L = L' \<cdot>l \<sigma>" and
-          "mset D' \<cdot> \<sigma> \<subseteq># mset C"
-          unfolding is_reducible_lit_def comp_def by blast
-        then have \<sigma>:
-          "mset D' + {#L'#} \<in> set (map (mset \<circ> fst) (P @ Q)) \<and> - L = L' \<cdot>l \<sigma> \<and> mset D' \<cdot> \<sigma> \<subseteq># mset C"
-          unfolding is_reducible_lit_def by (auto simp: comp_def)
-        have "gstate_of_glstate ((L # C, i) # N', P, Q, n)
-          \<leadsto>\<^sub>f gstate_of_glstate ((C, i) # N', P, Q, n)"
-          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
-                forward_reduction[of "mset (map (apfst mset) P)" "mset (map (apfst mset) Q)" L \<sigma>
-                  "mset C" "mset (map (apfst mset) N')" i n]])
-            (use \<sigma> in \<open>auto simp: comp_def\<close>)
-        then show ?case
-          using ih[OF red_c] by (rule converse_rtranclp_into_rtranclp)
-      qed simp
       have sub_P_trans:
         "gstate_of_glstate (([], i) # N', P, Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (([], i) # N', [], Q, n)"
         using nil_ni_pq[THEN conjunct1]
@@ -404,7 +414,7 @@ proof -
 
       show ?thesis
         unfolding step st n_cons ci
-        using red_C_trans[THEN rtranclp_trans, OF sub_P_trans,
+        using red_C_trans[unfolded c'_nil, THEN rtranclp_trans, OF sub_P_trans,
           THEN rtranclp_trans, OF sub_Q_trans,
           THEN rtranclp_into_tranclp1, OF proc_C_trans,
           THEN tranclp_rtranclp_tranclp, OF sub_N_trans,
@@ -416,12 +426,27 @@ proof -
       proof (cases "is_tautology C' \<or> is_subsumed_by (map fst P @ map fst Q) C'")
         case taut_or_subs: True
         note step = step[simplified taut_or_subs, simplified]
-        show ?thesis
-          unfolding st n_cons ci
-          sorry
-(* FIXME
-          by (auto simp: clss_of_state_def grounding_of_clss_def)
-*)
+        have "gstate_of_glstate ((C, i) # N', P, Q, n) \<leadsto>\<^sub>f gstate_of_glstate (N', P, Q, n)"
+        proof (cases "is_tautology C'")
+          case taut: True
+          show ?thesis
+            sorry
+        next
+          case False
+          hence subs: "is_subsumed_by (map fst P @ map fst Q) C'"
+            using taut_or_subs by blast
+          show ?thesis
+            apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+                  forward_subsumption[of "mset (map (apfst mset) P)" "mset (map (apfst mset) Q)"
+                    "mset C" "mset (map (apfst mset) N')" i n]])
+            apply simp
+             apply simp
+            using subs unfolding is_subsumed_by_def
+            apply simp
+            sorry
+        qed
+        then show ?thesis
+          unfolding step st n_cons ci by (rule tranclp.r_into_trancl)
       next
         case not_taut_or_subs: False
         note step = step[simplified not_taut_or_subs, simplified]
