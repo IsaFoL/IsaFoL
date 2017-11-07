@@ -201,42 +201,6 @@ proof (induct P arbitrary: P0 Ci)
   qed
 qed simp
 
-(* FIXME: inline below?
-lemma reduce_N_simulation:
-  "(N + {(mset (C @ C'), i)}, set (map (apfst mset) P), set (map (apfst mset) Q), n)
-    \<leadsto>\<^sub>f\<^sup>* (N \<union> {(mset (C @ reduce (map fst (P @ Q)) C C'), i)}, set (map (apfst mset) P),
-         set (map (apfst mset) Q), n)"
-proof (induct C' arbitrary: C)
-  case (Cons L C')
-  note ih = this
-  show ?case
-  proof (cases "is_reducible_lit (map fst P @ map fst Q) (C @ C') L")
-    case red: True
-    then have red_c: "reduce (map fst (P @ Q)) C (L # C') = reduce (map fst (P @ Q)) C C'"
-      by simp
-
-    have foo: "\<exists>D L' j \<sigma>. (D + {#L'#}, j) \<in> set (map (apfst mset) P) \<union> set (map (apfst mset) Q) \<and>
-       - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># mset (C @ C')"
-      sorry
-
-    show ?thesis
-      apply (rule converse_rtranclp_into_rtranclp)
-       defer
-      apply (simp only: red_c)
-       apply (rule ih[of C])
-(*
-      using forward_reduction[of "set (map (apfst mset) P)" "set (map (apfst mset) Q)" L _ "mset (C @ C')" N i n]
-*)
-      apply simp
-      sorry
-  next
-    case False
-    then show ?thesis
-      using ih[of "L # C"] by simp
-  qed
-qed simp
-*)
-
 lemma deterministic_resolution_prover_step_simulation_nonfinal:
   assumes
     nonfinal: "\<not> is_final_glstate St" and
@@ -339,7 +303,23 @@ proof -
 
       have red_C_trans:
         "gstate_of_glstate ((C, i) # N', P, Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (([], i) # N', P, Q, n)"
-        sorry
+        using C'_def[unfolded c'_nil]
+      proof (induct C)
+        case (Cons L C)
+        note ih = this(1) and red_lc = this(2)
+        have red_c: "[] = reduce (map fst P @ map fst Q) [] C"
+          using red_lc by (metis list.distinct(1) reduce.simps(2))
+        obtain \<sigma> where
+          \<sigma>: "\<exists>D L'. D + {#L'#} \<in> set (map (mset \<circ> fst) (P @ Q)) \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># mset C"
+          sorry
+        have "gstate_of_glstate ((L # C, i) # N', P, Q, n) \<leadsto>\<^sub>f gstate_of_glstate ((C, i) # N', P, Q, n)"
+          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+                forward_reduction[of "mset (map (apfst mset) P)" "mset (map (apfst mset) Q)" L _
+                  "mset C" "mset (map (apfst mset) N')" i n]])
+            (use \<sigma> in \<open>simp_all add: \<sigma> comp_def\<close>)
+        then show ?case
+          using ih[OF red_c] by (rule converse_rtranclp_into_rtranclp)
+      qed simp
       have sub_P_trans:
         "gstate_of_glstate (([], i) # N', P, Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (([], i) # N', [], Q, n)"
         using nil_ni_pq[THEN conjunct1]
