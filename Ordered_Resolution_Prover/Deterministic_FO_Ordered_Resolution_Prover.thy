@@ -454,6 +454,28 @@ proof -
       next
         case not_taut_or_subs: False
         note step = step[simplified not_taut_or_subs, simplified]
+
+        obtain back_to_P Q' :: "('a literal list \<times> nat) list" where
+          red_Q: "(back_to_P, Q') = reduce_all [C'] Q"
+          by (metis prod.exhaust)
+
+        define P' :: "('a literal list \<times> nat) list" where
+          "P' = case_prod (op @) (reduce_all [C'] (back_to_P @ P))"
+        define Q'' :: "('a literal list \<times> nat) list" where
+          "Q'' = filter (is_strictly_subsumed_by [C'] \<circ> fst) Q'"
+        define P'' :: "('a literal list \<times> nat) list" where
+          "P'' = filter (is_strictly_subsumed_by [C'] \<circ> fst) P'"
+
+(*
+            (back_to_P, Q) = reduce_all [C] Q;
+            P = back_to_P @ P;
+            P = case_prod (op @) (reduce_all [C] P);
+            Q = filter (is_strictly_subsumed_by [C] \<circ> fst) Q;
+            P = filter (is_strictly_subsumed_by [C] \<circ> fst) P;
+          in
+            (N, (C, i) # P, Q, n))"
+*)
+
         show ?thesis
           unfolding step st n_cons ci
           (* use soundness of subsumption at calculus level *)
