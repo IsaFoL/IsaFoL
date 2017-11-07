@@ -605,9 +605,9 @@ proof (cases rule: ord_resolve.cases)
   define CAs' where
     "CAs' = CAs'' \<cdot>\<cdot>cl tl (renamings_apart (DA''#CAs''))"
   define \<eta>' where
-    "\<eta>' = inv_ren (hd (renamings_apart (DA''#CAs''))) \<odot> \<eta>''"
+    "\<eta>' = inv_renaming (hd (renamings_apart (DA''#CAs''))) \<odot> \<eta>''"
   define \<eta>s' where
-    "\<eta>s' = map inv_ren (tl (renamings_apart (DA''#CAs''))) \<odot>s \<eta>s''"
+    "\<eta>s' = map inv_renaming (tl (renamings_apart (DA''#CAs''))) \<odot>s \<eta>s''"
 
   have renames_DA'': "is_renaming (hd (renamings_apart (DA''#CAs'')))"
     using renames_apart

@@ -111,8 +111,8 @@ definition is_renaming :: "'s \<Rightarrow> bool" where
 definition is_renaming_list :: "'s list \<Rightarrow> bool" where
   "is_renaming_list \<sigma>s \<longleftrightarrow> (\<forall>\<sigma> \<in> set \<sigma>s. is_renaming \<sigma>)"
 
-definition inv_ren :: "'s \<Rightarrow> 's" where
-  "inv_ren \<sigma> = (SOME \<tau>. \<sigma> \<odot> \<tau> = id_subst)"
+definition inv_renaming :: "'s \<Rightarrow> 's" where
+  "inv_renaming \<sigma> = (SOME \<tau>. \<sigma> \<odot> \<tau> = id_subst)"
 
 definition is_ground_atm :: "'a \<Rightarrow> bool" where
   "is_ground_atm A \<longleftrightarrow> (\<forall>\<sigma>. A = A \<cdot>a \<sigma>)"
@@ -571,11 +571,11 @@ lemma is_renaming_id_subst[simp]: "is_renaming id_subst"
 lemma is_renamingD: "is_renaming \<sigma> \<Longrightarrow> (\<forall>A1 A2. A1 \<cdot>a \<sigma> = A2 \<cdot>a \<sigma> \<longleftrightarrow> A1 = A2)"
   by (metis is_renaming_def subst_atm_comp_subst subst_atm_id_subst)
 
-lemma inv_ren_cancel_r[simp]: "is_renaming r \<Longrightarrow> r \<odot> inv_ren r = id_subst"
-  unfolding inv_ren_def is_renaming_def by (metis (mono_tags) someI_ex)
+lemma inv_renaming_cancel_r[simp]: "is_renaming r \<Longrightarrow> r \<odot> inv_renaming r = id_subst"
+  unfolding inv_renaming_def is_renaming_def by (metis (mono_tags) someI_ex)
 
-lemma inv_ren_cancel_r_list[simp]:
-  "is_renaming_list rs \<Longrightarrow> rs \<odot>s map inv_ren rs = replicate (length rs) id_subst"
+lemma inv_renaming_cancel_r_list[simp]:
+  "is_renaming_list rs \<Longrightarrow> rs \<odot>s map inv_renaming rs = replicate (length rs) id_subst"
   unfolding is_renaming_list_def by (induction rs) (auto simp add: comp_substs_def)
 
 lemma Nil_comp_substs[simp]: "[] \<odot>s s = []"
@@ -585,7 +585,7 @@ lemma comp_substs_Nil[simp]: "s \<odot>s [] = []"
   unfolding comp_substs_def by auto
 
 lemma is_renaming_idempotent_id_subst: "is_renaming r \<Longrightarrow> r \<odot> r = r \<Longrightarrow> r = id_subst"
-  by (metis comp_subst_assoc comp_subst_id_subst inv_ren_cancel_r)
+  by (metis comp_subst_assoc comp_subst_id_subst inv_renaming_cancel_r)
 
 lemma is_renaming_left_id_subst_right_id_subst:
   "is_renaming r \<Longrightarrow> s \<odot> r = id_subst \<Longrightarrow> r \<odot> s = id_subst"
@@ -594,12 +594,12 @@ lemma is_renaming_left_id_subst_right_id_subst:
 lemma is_renaming_closure: "is_renaming r1 \<Longrightarrow> is_renaming r2 \<Longrightarrow> is_renaming (r1 \<odot> r2)"
   unfolding is_renaming_def by (metis comp_subst_assoc comp_subst_id_subst)
 
-lemma is_renaming_inv_ren_cancel[simp]: "is_renaming \<rho> \<Longrightarrow> C  \<cdot> \<rho> \<cdot> inv_ren \<rho> = C"
-  by (metis inv_ren_cancel_r subst_cls_comp_subst subst_cls_id_subst)
+lemma is_renaming_inv_renaming_cancel[simp]: "is_renaming \<rho> \<Longrightarrow> C  \<cdot> \<rho> \<cdot> inv_renaming \<rho> = C"
+  by (metis inv_renaming_cancel_r subst_cls_comp_subst subst_cls_id_subst)
 
-lemma is_renaming_list_inv_ren_cancel[simp]:
-  "length Cs = length \<rho>s \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> Cs \<cdot>\<cdot>cl \<rho>s \<cdot>\<cdot>cl map inv_ren \<rho>s = Cs"
-  by (metis inv_ren_cancel_r_list subst_cls_lists_comp_substs subst_cls_lists_id_subst)
+lemma is_renaming_list_inv_renaming_cancel[simp]:
+  "length Cs = length \<rho>s \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> Cs \<cdot>\<cdot>cl \<rho>s \<cdot>\<cdot>cl map inv_renaming \<rho>s = Cs"
+  by (metis inv_renaming_cancel_r_list subst_cls_lists_comp_substs subst_cls_lists_id_subst)
 
 
 subsubsection \<open>Monotonicity\<close>
