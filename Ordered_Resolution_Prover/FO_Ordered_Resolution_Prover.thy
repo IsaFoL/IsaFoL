@@ -1666,38 +1666,22 @@ proof -
       then show "\<exists>\<sigma>. ord_resolve (S_M S (Q_of_state (Liminf_state Sts))) CAs ?DA \<sigma> ?E"
       proof (cases rule: gd.ord_resolve.cases)
         case (ord_resolve n Cs AAs As D)
-        (* FIXME: use note a = this(1) etc. idiom *)
-        have a: "?DA = D + negs (mset As)"
-          using ord_resolve by simp
-        have b: "?E = \<Union>#mset Cs + D"
-          using ord_resolve by simp
-        have len_cas: "length CAs = n"
-          using ord_resolve by simp
-        have len_cs: "length Cs = n"
-          using ord_resolve by simp
-        have len_ass: "length AAs = n"
-          using ord_resolve by simp
-        have len_as: "length As = n"
-          using ord_resolve by simp
-        have nz: "n \<noteq> 0"
-          using ord_resolve by simp
-        have cas: "\<forall>i < n. CAs ! i = Cs ! i + poss (AAs ! i)"
-          using ord_resolve by simp
-        have ass_ne: "\<forall>i < n. AAs ! i \<noteq> {#}"
-          using ord_resolve by simp
+        note DA = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and
+          aas_len = this(5) and as_len = this(6) and nz = this(7) and cas = this(8) and 
+          aas_not_empt = this(9) and as_aas = this(10) and eligibility = this(11) and str_max = this(12) and
+          sel_empt = this(13)
 
-        have "length AAs = length As"
-          using len_ass len_as by auto
-        have j: "\<forall>i < n. \<forall>A\<in>#AAs ! i. A = As ! i"
-          using ord_resolve by simp
-        then have "\<forall>i < n. \<forall>A\<in>#add_mset (As ! i) (AAs ! i). A = As ! i"
+        have len_aas_len_as: "length AAs = length As"
+          using aas_len as_len by auto
+        
+        from as_aas have "\<forall>i<n. \<forall>A\<in>#add_mset (As ! i) (AAs ! i). A = As ! i"
           using ord_resolve by simp
         then have "\<forall>i < n. card (set_mset (add_mset (As ! i) (AAs ! i))) \<le> Suc 0"
           using all_the_same by metis
         then have "\<forall>i<length AAs. card (set_mset (add_mset (As ! i) (AAs ! i))) \<le> Suc 0"
-          using len_ass by auto
+          using aas_len by auto
         then have "\<forall>AA \<in> set (map2 add_mset As AAs). card (set_mset AA) \<le> Suc 0"
-          using set_map2_ex[of AAs As add_mset, OF \<open>length AAs = length As\<close>]
+          using set_map2_ex[of AAs As add_mset, OF len_aas_len_as]
           by auto
         then have "is_unifiers id_subst (set_mset ` set (map2 add_mset As AAs))"
           unfolding is_unifiers_def is_unifier_def
@@ -1707,10 +1691,10 @@ proof -
         moreover have "\<forall>AA \<in> set_mset ` set (map2 add_mset As AAs). finite AA"
           by auto
         ultimately obtain \<sigma> where
-          jj: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset As AAs))"
+          \<sigma>_p: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset As AAs))"
           using mgu_complete by metis
 
-        have k: "gd.eligible As (D + negs (mset As))"
+        have ground_elig: "gd.eligible As (D + negs (mset As))"
           using ord_resolve by simp
         have ground_cs: "\<forall>i < n. is_ground_cls (Cs ! i)"
           using ord_resolve(8) ord_resolve(3,4) ground_cas
@@ -1725,7 +1709,7 @@ proof -
         have ground_d: "is_ground_cls D"
           using ground_da ord_resolve by simp
 
-        from len_as nz have "atms_of D \<union> set As \<noteq> {}" "finite (atms_of D \<union> set As)"
+        from as_len nz have "atms_of D \<union> set As \<noteq> {}" "finite (atms_of D \<union> set As)"
           by auto
         then have "Max (atms_of D \<union> set As) \<in> atms_of D \<union> set As"
           using Max_in by metis
@@ -1740,12 +1724,13 @@ proof -
               \<open>finite (atms_of D \<union> set As)\<close> ground_d ground_set_as infinite_growing is_ground_Max
               is_ground_atms_def is_ground_cls_imp_is_ground_atm less_atm_ground)
 
-        from k have ann2:
+        from ground_elig have ann2:
           "Max (atms_of D \<union> set As) \<cdot>a \<sigma> = Max (atms_of D \<union> set As)"
           "D \<cdot> \<sigma> + negs (mset As \<cdot>am \<sigma>) = D + negs (mset As)"
           using is_ground_Max ground_mset_as ground_d by auto
 
-        from k have kk: "eligible (S_M S (Q_of_state (Liminf_state Sts))) \<sigma> As (D + negs (mset As))"
+        from ground_elig have fo_elig:
+          "eligible (S_M S (Q_of_state (Liminf_state Sts))) \<sigma> As (D + negs (mset As))"
           unfolding gd.eligible.simps eligible.simps gd.maximal_in_def using ann1 ann2
           by (auto simp: S_Q_def)
 
@@ -1753,24 +1738,24 @@ proof -
           using ord_resolve by simp
         then have "\<forall>i < n. strictly_maximal_in (As ! i) (Cs ! i)"
           unfolding gd.strictly_maximal_in_def strictly_maximal_in_def
-          using ground_as[unfolded is_ground_atm_list_def] ground_cs len_as less_atm_ground
+          using ground_as[unfolded is_ground_atm_list_def] ground_cs as_len less_atm_ground
           by clarsimp (fastforce simp: is_ground_cls_as_atms)+
 
         then have ll: "\<forall>i < n. strictly_maximal_in (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
-          by (simp add: ground_as ground_cs len_as)
+          by (simp add: ground_as ground_cs as_len)
 
         have m: "\<forall>i < n. S_Q (CAs ! i) = {#}"
           using ord_resolve by simp
 
-        have gg: "is_ground_cls (\<Union># mset Cs + D)"
-          using ground_d ground_cs b ground_e by auto
+        have ground_e: "is_ground_cls (\<Union>#mset Cs + D)"
+          using ground_d ground_cs ground_e e by simp
         show ?thesis
-          using ord_resolve.intros[OF len_cas len_cs len_ass len_as nz cas ass_ne jj kk ll] m a b gg
+          using ord_resolve.intros[OF cas_len cs_len aas_len as_len nz cas aas_not_empt \<sigma>_p fo_elig ll] m DA e ground_e
           unfolding S_Q_def by auto
       qed
     qed
     then obtain \<sigma> where
-      sisisgma: "ord_resolve (S_M S (Q_of_state (Liminf_state Sts))) CAs ?DA \<sigma> ?E"
+      \<sigma>_p: "ord_resolve (S_M S (Q_of_state (Liminf_state Sts))) CAs ?DA \<sigma> ?E"
       by auto
     then obtain \<eta>s' \<eta>' \<eta>2' CAs' DA' E' \<tau>' where s_p:
       "is_ground_subst \<eta>'"
@@ -1781,7 +1766,7 @@ proof -
       "DA' \<cdot> \<eta>' = ?DA"
       "E' \<cdot> \<eta>2' = ?E"
       "{DA'} \<union> set CAs' \<subseteq> Q_of_state (Liminf_state Sts)"
-      using sel_ren_inv ord_resolve_rename_lifting[of S "Q_of_state (Liminf_state Sts)" CAs "?DA" _ "?E", OF sisisgma selection_axioms _ DA_CAs_in_ground_Liminf]
+      using sel_ren_inv ord_resolve_rename_lifting[of S "Q_of_state (Liminf_state Sts)" CAs "?DA" _ "?E", OF \<sigma>_p selection_axioms _ DA_CAs_in_ground_Liminf]
       by smt
     from this(8) have "\<exists>j. enat j < llength Sts \<and> ((set CAs') \<union> {DA'} \<subseteq> ?Qs j)"
       unfolding Liminf_llist_def
