@@ -17,8 +17,24 @@ type_synonym 'a lclause = "'a literal list"
 type_synonym 'a glclause = "'a lclause \<times> nat"
 type_synonym 'a glstate = "'a glclause list \<times> 'a glclause list \<times> 'a glclause list \<times> nat"
 
-locale deterministic_FO_resolution_prover = fair_FO_resolution_prover_with_sum_product +
-  assumes S_empty: "S C = {#}"
+locale deterministic_FO_resolution_prover = fair_FO_resolution_prover_with_sum_product S subst_atm
+    id_subst comp_subst renamings_apart atm_of_atms mgu less_atm weight size_atm generation_factor
+    size_factor
+  for
+    S :: "('a :: wellorder) clause \<Rightarrow> 'a clause" and
+    subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
+    id_subst :: "'s" and
+    comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
+    renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
+    atm_of_atms :: "'a list \<Rightarrow> 'a" and
+    mgu :: "'a set set \<Rightarrow> 's option" and
+    less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
+    weight :: "'a literal multiset \<times> nat \<Rightarrow> nat" and
+    size_atm :: "'a \<Rightarrow> nat" and
+    generation_factor :: nat and
+    size_factor :: nat +
+  assumes
+    S_empty: "S C = {#}"
 begin
 
 fun gstate_of_glstate :: "'a glstate \<Rightarrow> 'a gstate" where
@@ -201,42 +217,6 @@ proof (induct P arbitrary: P0 Ci)
   qed
 qed simp
 
-(* FIXME: inline below?
-lemma reduce_N_simulation:
-  "(N + {(mset (C @ C'), i)}, set (map (apfst mset) P), set (map (apfst mset) Q), n)
-    \<leadsto>\<^sub>f\<^sup>* (N \<union> {(mset (C @ reduce (map fst (P @ Q)) C C'), i)}, set (map (apfst mset) P),
-         set (map (apfst mset) Q), n)"
-proof (induct C' arbitrary: C)
-  case (Cons L C')
-  note ih = this
-  show ?case
-  proof (cases "is_reducible_lit (map fst P @ map fst Q) (C @ C') L")
-    case red: True
-    then have red_c: "reduce (map fst (P @ Q)) C (L # C') = reduce (map fst (P @ Q)) C C'"
-      by simp
-
-    have foo: "\<exists>D L' j \<sigma>. (D + {#L'#}, j) \<in> set (map (apfst mset) P) \<union> set (map (apfst mset) Q) \<and>
-       - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># mset (C @ C')"
-      sorry
-
-    show ?thesis
-      apply (rule converse_rtranclp_into_rtranclp)
-       defer
-      apply (simp only: red_c)
-       apply (rule ih[of C])
-(*
-      using forward_reduction[of "set (map (apfst mset) P)" "set (map (apfst mset) Q)" L _ "mset (C @ C')" N i n]
-*)
-      apply simp
-      sorry
-  next
-    case False
-    then show ?thesis
-      using ih[of "L # C"] by simp
-  qed
-qed simp
-*)
-
 lemma deterministic_resolution_prover_step_simulation_nonfinal:
   assumes
     nonfinal: "\<not> is_final_glstate St" and
@@ -331,15 +311,53 @@ proof -
       "C' = reduce (map fst P @ map fst Q) [] C"
     note step = step[unfolded ci C'_def[symmetric], simplified]
 
+    have "gstate_of_glstate ((E @ C, i) # N', P, Q, n)
+       \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((E @ reduce (map fst P @ map fst Q) E C, i) # N', P, Q, n)" for E
+      unfolding C'_def
+    proof (induct C arbitrary: E)
+      case (Cons L C)
+      note ih = this(1)
+      show ?case
+      proof (cases "is_reducible_lit (map fst P @ map fst Q) (E @ C) L")
+        case l_red: True
+        then have red_lc:
+          "reduce (map fst P @ map fst Q) E (L # C) = reduce (map fst P @ map fst Q) E C"
+          by simp
+        from l_red obtain D D' :: "'a literal list" and L' :: "'a literal" and \<sigma> :: 's where
+          "D \<in> set (map fst P @ map fst Q)" and
+          "D' = remove1 L' D" and
+          "L' \<in> set D" and
+          "- L = L' \<cdot>l \<sigma>" and
+          "mset D' \<cdot> \<sigma> \<subseteq># mset (E @ C)"
+          unfolding is_reducible_lit_def comp_def by blast
+        then have \<sigma>:
+          "mset D' + {#L'#} \<in> set (map (mset \<circ> fst) (P @ Q))"
+          "- L = L' \<cdot>l \<sigma> \<and> mset D' \<cdot> \<sigma> \<subseteq># mset (E @ C)"
+          unfolding is_reducible_lit_def by (auto simp: comp_def)
+        have "gstate_of_glstate ((E @ L # C, i) # N', P, Q, n)
+          \<leadsto>\<^sub>f gstate_of_glstate ((E @ C, i) # N', P, Q, n)"
+          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+                forward_reduction[of "mset (map (apfst mset) P)" "mset (map (apfst mset) Q)" L \<sigma>
+                  "mset (E @ C)" "mset (map (apfst mset) N')" i n]])
+            (use \<sigma> in \<open>auto simp: comp_def\<close>)
+        then show ?thesis
+          unfolding red_lc using ih[of E] by (rule converse_rtranclp_into_rtranclp)
+      next
+        case False
+        then show ?thesis
+          using ih[of "L # E"] by simp
+      qed
+    qed simp
+    then have red_C_trans:
+      "gstate_of_glstate ((C, i) # N', P, Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((C', i) # N', P, Q, n)"
+      unfolding C'_def by (metis self_append_conv2)
+
     show ?thesis
     proof (cases "C' = [] \<and> [] \<notin> fst ` set P \<and> [] \<notin> fst ` set Q")
       case True
       note c'_nil = this[THEN conjunct1] and nil_ni_pq = this[THEN conjunct2]
       note step = step[simplified c'_nil nil_ni_pq, simplified]
 
-      have red_C_trans:
-        "gstate_of_glstate ((C, i) # N', P, Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (([], i) # N', P, Q, n)"
-        sorry
       have sub_P_trans:
         "gstate_of_glstate (([], i) # N', P, Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (([], i) # N', [], Q, n)"
         using nil_ni_pq[THEN conjunct1]
@@ -397,7 +415,7 @@ proof -
 
       show ?thesis
         unfolding step st n_cons ci
-        using red_C_trans[THEN rtranclp_trans, OF sub_P_trans,
+        using red_C_trans[unfolded c'_nil, THEN rtranclp_trans, OF sub_P_trans,
           THEN rtranclp_trans, OF sub_Q_trans,
           THEN rtranclp_into_tranclp1, OF proc_C_trans,
           THEN tranclp_rtranclp_tranclp, OF sub_N_trans,
@@ -409,17 +427,57 @@ proof -
       proof (cases "is_tautology C' \<or> is_subsumed_by (map fst P @ map fst Q) C'")
         case taut_or_subs: True
         note step = step[simplified taut_or_subs, simplified]
-        show ?thesis
-          unfolding st n_cons ci
-          sorry
-(* FIXME
-          by (auto simp: clss_of_state_def grounding_of_clss_def)
-*)
+
+        have "gstate_of_glstate ((C', i) # N', P, Q, n) \<leadsto>\<^sub>f gstate_of_glstate (N', P, Q, n)"
+        proof (cases "is_tautology C'")
+          case True
+          then obtain A :: 'a where
+            neg_a: "Neg A \<in> set C'" and pos_a: "Pos A \<in> set C'"
+            unfolding is_tautology_def by blast
+          show ?thesis
+            by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+                  tautology_deletion[of A "mset C'" "mset (map (apfst mset) N')" i
+                    "mset (map (apfst mset) P)" "mset (map (apfst mset) Q)" n]])
+              (use neg_a pos_a in simp_all)
+        next
+          case False
+          hence subs: "is_subsumed_by (map fst P @ map fst Q) C'"
+            using taut_or_subs by blast
+          show ?thesis
+            by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+                  forward_subsumption[of "mset (map (apfst mset) P)" "mset (map (apfst mset) Q)"
+                    "mset C'" "mset (map (apfst mset) N')" i n]])
+              (use subs in \<open>auto simp: is_subsumed_by_def\<close>)
+        qed
+        then show ?thesis
+          unfolding step st n_cons ci using red_C_trans by (rule rtranclp_into_tranclp1[rotated])
       next
         case not_taut_or_subs: False
         note step = step[simplified not_taut_or_subs, simplified]
+
+        obtain back_to_P Q' :: "('a literal list \<times> nat) list" where
+          red_Q: "(back_to_P, Q') = reduce_all [C'] Q"
+          by (metis prod.exhaust)
+
+        define P' :: "('a literal list \<times> nat) list" where
+          "P' = case_prod (op @) (reduce_all [C'] (back_to_P @ P))"
+        define Q'' :: "('a literal list \<times> nat) list" where
+          "Q'' = filter (is_strictly_subsumed_by [C'] \<circ> fst) Q'"
+        define P'' :: "('a literal list \<times> nat) list" where
+          "P'' = filter (is_strictly_subsumed_by [C'] \<circ> fst) P'"
+
+(*
+            (back_to_P, Q) = reduce_all [C] Q;
+            P = back_to_P @ P;
+            P = case_prod (op @) (reduce_all [C] P);
+            Q = filter (is_strictly_subsumed_by [C] \<circ> fst) Q;
+            P = filter (is_strictly_subsumed_by [C] \<circ> fst) P;
+          in
+            (N, (C, i) # P, Q, n))"
+*)
+
         show ?thesis
-          unfolding st n_cons ci
+          unfolding step st n_cons ci
           (* use soundness of subsumption at calculus level *)
           sorry
       qed

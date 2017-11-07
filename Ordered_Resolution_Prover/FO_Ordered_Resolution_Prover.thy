@@ -35,7 +35,9 @@ locale FO_resolution_prover =
     renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
     atm_of_atms :: "'a list \<Rightarrow> 'a" and
     mgu :: "'a set set \<Rightarrow> 's option" and
-    less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
+    less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" +
+  assumes
+    less_atm_ground: "is_ground_atm A \<Longrightarrow> is_ground_atm B \<Longrightarrow> less_atm A B \<Longrightarrow> A < B"
 begin
 
 fun N_of_state :: "'a state \<Rightarrow> 'a clause set" where
@@ -1674,7 +1676,7 @@ proof -
         
         from as_aas have "\<forall>i<n. \<forall>A\<in>#add_mset (As ! i) (AAs ! i). A = As ! i"
           using ord_resolve by simp
-        then have "\<forall>i<n. card (set_mset (add_mset (As ! i) (AAs ! i))) \<le> Suc 0"
+        then have "\<forall>i < n. card (set_mset (add_mset (As ! i) (AAs ! i))) \<le> Suc 0"
           using all_the_same by metis
         then have "\<forall>i<length AAs. card (set_mset (add_mset (As ! i) (AAs ! i))) \<le> Suc 0"
           using aas_len by auto
@@ -1694,7 +1696,7 @@ proof -
 
         have ground_elig: "gd.eligible As (D + negs (mset As))"
           using ord_resolve by simp
-        have ground_cs: "\<forall>i<n. is_ground_cls (Cs ! i)"
+        have ground_cs: "\<forall>i < n. is_ground_cls (Cs ! i)"
           using ord_resolve(8) ord_resolve(3,4) ground_cas
           using ground_subclauses[of CAs Cs AAs] unfolding is_ground_cls_list_def by auto
         have ground_set_as: "is_ground_atms (set As)"
@@ -1716,26 +1718,32 @@ proof -
         then have Max\<sigma>_is_Max: "\<forall>\<sigma>. Max (atms_of D \<union> set As) \<cdot>a \<sigma> = Max (atms_of D \<union> set As)"
           by auto
 
-        from ground_elig have
-          ann2: "(Max (atms_of D \<union> set As) \<cdot>a \<sigma>) =
-            Max (atms_of D \<union> set As) \<and> (D \<cdot> \<sigma> + negs (mset As \<cdot>am \<sigma>)) = (D + negs (mset As))"
-          unfolding gd.eligible.simps[simplified] using is_ground_Max using ground_mset_as ground_d by auto
-
         have ann1: "maximal_in (Max (atms_of D \<union> set As)) (D + negs (mset As))"
-          unfolding gd.eligible.simps[simplified] ann2 maximal_in_def less_atm_iff
-          using Max\<sigma>_is_Max ground_set_as ground_d ex_ground_subst
-          by (metis Max_less_iff \<open>finite (atms_of D \<union> set As)\<close> equals0D infinite_growing is_ground_cls_imp_is_ground_atm is_ground_subst_atm atms_of_negg atms_of_plus ground_da local.ord_resolve(1) set_mset_mset)
-            
+          unfolding maximal_in_def
+          by clarsimp (metis Max_less_iff UnCI \<open>atms_of D \<union> set As \<noteq> {}\<close>
+              \<open>finite (atms_of D \<union> set As)\<close> ground_d ground_set_as infinite_growing is_ground_Max
+              is_ground_atms_def is_ground_cls_imp_is_ground_atm less_atm_ground)
+
+        from ground_elig have ann2:
+          "Max (atms_of D \<union> set As) \<cdot>a \<sigma> = Max (atms_of D \<union> set As)"
+          "D \<cdot> \<sigma> + negs (mset As \<cdot>am \<sigma>) = D + negs (mset As)"
+          using is_ground_Max ground_mset_as ground_d by auto
+
         from ground_elig have fo_elig: "eligible (S_M S (Q_of_state (Liminf_state Sts))) \<sigma> As (D + negs (mset As))"
-          unfolding gd.eligible.simps eligible.simps gd.maximal_in_def using ann1 ann2 by (auto simp: S_Q_def)
+          unfolding gd.eligible.simps eligible.simps gd.maximal_in_def using ann1 ann2
+          by (auto simp: S_Q_def)
 
         have l: "\<forall>i < n. gd.strictly_maximal_in (As ! i) (Cs ! i)"
           using ord_resolve by simp
-        then have ll: "\<forall>i < n. strictly_maximal_in (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
-          using as_len ground_as using ex_ground_subst ground_cs is_ground_cls_imp_is_ground_atm  
-          unfolding less_eq_atm_def less_atm_iff gd.strictly_maximal_in_def strictly_maximal_in_def by force
+        then have "\<forall>i < n. strictly_maximal_in (As ! i) (Cs ! i)"
+          unfolding gd.strictly_maximal_in_def strictly_maximal_in_def
+          using ground_as[unfolded is_ground_atm_list_def] ground_cs as_len less_atm_ground
+          by clarsimp (fastforce simp: is_ground_cls_as_atms)+
 
-        have m: "\<forall>i<n. S_Q (CAs ! i) = {#}"
+        then have ll: "\<forall>i < n. strictly_maximal_in (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
+          by (simp add: ground_as ground_cs as_len)
+
+        have m: "\<forall>i < n. S_Q (CAs ! i) = {#}"
           using ord_resolve by simp
 
         have gg: "is_ground_cls (\<Union>#mset Cs + D)"
@@ -1765,7 +1773,7 @@ proof -
       by auto
     then obtain j where
       j_p: "is_least (\<lambda>j. enat j < llength Sts \<and> ((set CAs') \<union> {DA'} \<subseteq> ?Qs j)) j"
-      using least_exists[of "(\<lambda>j. enat j < llength Sts \<and> ((set CAs') \<union> {DA'} \<subseteq> ?Qs j))"] by force
+      using least_exists[of "\<lambda>j. enat j < llength Sts \<and> set CAs' \<union> {DA'} \<subseteq> ?Qs j"] by force
     then have j_p': "enat j < llength Sts" "(set CAs') \<union> {DA'} \<subseteq> ?Qs j"
       unfolding is_least_def by auto
     then have jn0: "j \<noteq> 0" (* Since there are initially no clauses in Q *)

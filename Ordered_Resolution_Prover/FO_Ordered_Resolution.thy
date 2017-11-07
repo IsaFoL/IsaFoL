@@ -33,7 +33,7 @@ locale FO_resolution = mgu subst_atm id_subst comp_subst atm_of_atms renamings_a
   fixes
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
   assumes
-    less_atm_iff: "less_atm A B \<longleftrightarrow> (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> A \<cdot>a \<sigma> < B \<cdot>a \<sigma>)"
+    less_atm_stable: "less_atm A B \<Longrightarrow> less_atm (A \<cdot>a \<sigma>) (B \<cdot>a \<sigma>)"
 begin
 
 
@@ -82,15 +82,6 @@ qed
 
 subsection \<open>First-order logic\<close>
 
-definition less_eq_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
-  "less_eq_atm A B \<longleftrightarrow> less_atm A B \<or> A = B"
-
-lemma ground_less_atm_iff: "is_ground_atm A \<Longrightarrow> is_ground_atm B \<Longrightarrow> less_atm A B \<longleftrightarrow> A < B"
-  unfolding is_ground_atm_def less_atm_iff by (auto intro: ex_ground_subst)
-
-lemma ground_less_eq_atm_iff: "is_ground_atm A \<Longrightarrow> is_ground_atm B \<Longrightarrow> less_eq_atm A B \<longleftrightarrow> A \<le> B"
-  unfolding less_eq_atm_def ground_less_atm_iff by fastforce
-
 inductive true_fo_cls :: "'a interp \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>fo" 50) where
   true_fo_cls: "(\<And>\<sigma>. is_ground_subst \<sigma> \<Longrightarrow> I \<Turnstile> C \<cdot> \<sigma>) \<Longrightarrow> I \<Turnstile>fo C"
 
@@ -121,10 +112,10 @@ definition maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> boo
   "maximal_in A C \<longleftrightarrow> (\<forall>B \<in> atms_of C. \<not> less_atm A B)"
 
 definition strictly_maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where (* Would "'a \<Rightarrow> 'a set \<Rightarrow> bool" be cleaner?  *)
-  "strictly_maximal_in A C \<equiv> (\<forall>B \<in> atms_of C. \<not> less_eq_atm A B)"
+  "strictly_maximal_in A C \<equiv> \<forall>B \<in> atms_of C. A \<noteq> B \<and> \<not> less_atm A B"
 
 lemma strictly_maximal_in_maximal_in: "strictly_maximal_in A C \<Longrightarrow> maximal_in A C"
-  unfolding maximal_in_def less_eq_atm_def strictly_maximal_in_def by auto
+  unfolding maximal_in_def strictly_maximal_in_def by auto
 
 inductive eligible :: "'s \<Rightarrow> 'a list \<Rightarrow> 'a clause \<Rightarrow> bool" where
   eligible:
@@ -432,33 +423,11 @@ proof (induction n arbitrary: AAs' As')
     using nn list_eq_iff_nth_eq by metis
 qed auto
 
-lemma maximal_in_gen:
-  assumes max: "maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>)"
-  shows "maximal_in A C"
-proof -
-  have "\<forall>B \<in> atms_of (C \<cdot> \<sigma>). \<not> (\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma>')"
-    using max unfolding maximal_in_def less_atm_iff by -
-  then have "\<forall>B \<in> atms_of C. \<not> (\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma> \<cdot>a \<sigma>')"
-    by auto
-  then have "\<forall>B \<in> atms_of C. \<not> (\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma>' < B \<cdot>a \<sigma>')"
-    using is_ground_comp_subst by fastforce
-  then show ?thesis
-    unfolding less_atm_iff less_eq_atm_def maximal_in_def by auto
-qed
+lemma maximal_in_gen: "maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>) \<Longrightarrow> maximal_in A C"
+  unfolding maximal_in_def using in_atms_of_subst less_atm_stable by blast
 
-lemma strictly_maximal_in_gen:
-  assumes max: "strictly_maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>)"
-  shows "strictly_maximal_in A C"
-proof -
-  have "\<forall>B \<in> atms_of (C \<cdot> \<sigma>). \<not> (less_atm (A \<cdot>a \<sigma>) B \<or> A \<cdot>a \<sigma> = B)"
-    using max unfolding less_eq_atm_def strictly_maximal_in_def by -
-  then have "\<forall>B \<in> atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma> \<cdot>a \<sigma>') \<or> A \<cdot>a \<sigma> = B \<cdot>a \<sigma>)"
-    unfolding subst_atms_def less_atm_iff using atms_of_subst_atms by auto
-  then have "\<forall>B \<in> atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma>' < B \<cdot>a \<sigma>') \<or> A = B)"
-    using is_ground_comp_subst by fastforce
-  then show ?thesis
-    unfolding less_atm_iff less_eq_atm_def strictly_maximal_in_def by auto
-qed
+lemma strictly_maximal_in_gen: "strictly_maximal_in (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>) \<Longrightarrow> strictly_maximal_in A C"
+  unfolding strictly_maximal_in_def using in_atms_of_subst less_atm_stable by blast
 
 lemma ground_resolvent_subset:
   assumes

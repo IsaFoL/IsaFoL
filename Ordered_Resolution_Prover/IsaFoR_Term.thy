@@ -140,8 +140,6 @@ proof -
     using C_p is_ground_cls_is_ground_on_var by metis
 qed
 
-thm term_subst_eq
-
 lemma same_on_vars_lit: 
   assumes "\<forall>v \<in> vars_lit L. \<sigma> v = \<tau> v"
   shows "subst_lit L \<sigma> = subst_lit L \<tau>"

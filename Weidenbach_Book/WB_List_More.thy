@@ -100,10 +100,6 @@ lemma take_length_takeWhile_eq_takeWhile:
 lemma fold_cons_replicate: \<open>fold (\<lambda>_ xs. a # xs) [0..<n] xs = replicate n a @ xs\<close>
   by (induction n) auto
 
-lemma take_2_if:
-  \<open>take 2 C = (if C = [] then [] else if length C = 1 then [hd C] else [C!0, C!1])\<close>
-  by (cases C; cases \<open>tl C\<close>) auto
-
 lemma Collect_minus_single_Collect: \<open>{x. P x} - {a} = {x . P x \<and> x \<noteq> a}\<close>
   by auto
 
@@ -133,6 +129,39 @@ text \<open>
 lemma nth_list_update_le'[simp]:
   "j < length xs \<Longrightarrow> (xs[i:=x])!j = (if i = j then x else xs!j)"
   by (induct xs arbitrary: i j) (auto simp add: nth_Cons split: nat.split)
+
+
+subsection \<open>Take and drop\<close>
+
+lemma take_2_if:
+  \<open>take 2 C = (if C = [] then [] else if length C = 1 then [hd C] else [C!0, C!1])\<close>
+  by (cases C; cases \<open>tl C\<close>) auto
+
+
+lemma in_set_take_conv_nth:
+  \<open>x \<in> set (take n xs) \<longleftrightarrow> (\<exists>m<min n (length xs). xs ! m = x)\<close>
+  by (metis in_set_conv_nth length_take min.commute min.strict_boundedE nth_take)
+
+text \<open>Taken from \<^file>\<open>~~/src/HOL/Word/Word.thy\<close>\<close>
+lemma atd_lem: \<open>take n xs = t \<Longrightarrow> drop n xs = d \<Longrightarrow> xs = t @ d\<close>
+  by (auto intro: append_take_drop_id [symmetric])
+
+lemma drop_take_drop_drop:
+  \<open>j \<ge> i \<Longrightarrow> drop i xs = take (j - i) (drop i xs) @ drop j xs\<close>
+  apply (induction \<open>j - i\<close> arbitrary: j i)
+   apply auto
+  apply (case_tac j)
+  by (auto simp add: atd_lem)
+
+subsection \<open>Replicate\<close>
+
+lemma list_eq_replicate_iff_nempty:
+  \<open>n > 0 \<Longrightarrow> xs = replicate n x \<longleftrightarrow> n = length xs \<and> set xs = {x}\<close>
+  by (metis length_replicate neq0_conv replicate_length_same set_replicate singletonD)
+
+lemma list_eq_replicate_iff:
+  \<open>xs = replicate n x \<longleftrightarrow> (n = 0 \<and> xs = []) \<or> (n = length xs \<and> set xs = {x})\<close>
+  by (cases n) (auto simp: list_eq_replicate_iff_nempty simp del: replicate.simps)
 
 
 subsection \<open>@{term upt}\<close>
