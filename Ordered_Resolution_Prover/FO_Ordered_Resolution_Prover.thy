@@ -1617,25 +1617,25 @@ proof -
     fix \<gamma> :: "'a inference"
     assume \<gamma>_p: "\<gamma> \<in> gd.ord_\<Gamma>"
     let ?CC = "side_prems_of \<gamma>"
-    let ?D = "main_prem_of \<gamma>"
+    let ?DA = "main_prem_of \<gamma>"
     let ?E = "concl_of \<gamma>"
-    assume a: "set_mset ?CC \<union> {?D} \<subseteq> Liminf_llist (lmap grounding_of_state Sts) - src.Rf (Liminf_llist (lmap grounding_of_state Sts))"
+    assume a: "set_mset ?CC \<union> {?DA} \<subseteq> Liminf_llist (lmap grounding_of_state Sts) - src.Rf (Liminf_llist (lmap grounding_of_state Sts))"
 
     have ground_ground_Liminf: "is_ground_clss (Liminf_llist (lmap grounding_of_state Sts))"
       using Liminf_grounding_of_state_ground unfolding is_ground_clss_def by auto (* TODO: instead of is_ground_clss_def MAKE a lemma like Liminf_llist_grounding_of_state_ground *)
 
-    have gc: "is_ground_cls_mset ?CC"
+    have ground_cc: "is_ground_cls_mset ?CC"
       using a ground_ground_Liminf is_ground_cls_mset_def is_ground_clss_def by auto
 
-    have gd: "is_ground_cls ?D"
+    have ground_da: "is_ground_cls ?DA"
       using a grounding_ground singletonI ground_ground_Liminf
       by (simp add: Liminf_grounding_of_state_ground)
 
     from \<gamma>_p obtain CAs where
-      CAs_p: "gd.ord_resolve CAs ?D ?E \<and> mset CAs = ?CC"
+      CAs_p: "gd.ord_resolve CAs ?DA ?E \<and> mset CAs = ?CC"
       unfolding gd.ord_\<Gamma>_def by auto
 
-    have DCAs_in_ground_Liminf: "{?D} \<union> set CAs \<subseteq> grounding_of_clss (Q_of_state (Liminf_state Sts))"
+    have DA_CAs_in_ground_Liminf: "{?DA} \<union> set CAs \<subseteq> grounding_of_clss (Q_of_state (Liminf_state Sts))"
       using a CAs_p unfolding clss_of_state_def using fair unfolding fair_state_seq_def
       by (metis (no_types, lifting) Un_empty_left \<open>Liminf_llist Ns - src.Rf (Liminf_llist Ns) \<subseteq> grounding_of_state (Liminf_state Sts)\<close> a clss_of_state_def ns set_mset_mset subset_trans sup_commute)
 
@@ -1644,27 +1644,27 @@ proof -
 
     have ge: "is_ground_cls ?E"
     proof - (* turn in to a LEMMA? *)
-      have a1: "atms_of ?E \<subseteq> (\<Union>CA \<in> set CAs. atms_of CA) \<union> atms_of ?D"
-        using \<gamma>_p gc gd gd.ord_resolve_atms_of_concl_subset[of "CAs" "?D" "?E"] CAs_p by auto
+      have a1: "atms_of ?E \<subseteq> (\<Union>CA \<in> set CAs. atms_of CA) \<union> atms_of ?DA"
+        using \<gamma>_p ground_cc ground_da gd.ord_resolve_atms_of_concl_subset[of "CAs" "?DA" "?E"] CAs_p by auto
       {
         fix L :: "'a literal"
         assume "L \<in># concl_of \<gamma>"
         then have "atm_of L \<in> atms_of (concl_of \<gamma>)"
           by (meson atm_of_lit_in_atms_of)
         then have "is_ground_atm (atm_of L)"
-          using a1 gc1 gd is_ground_cls_imp_is_ground_atm is_ground_cls_list_def by auto
+          using a1 gc1 ground_da is_ground_cls_imp_is_ground_atm is_ground_cls_list_def by auto
       }
       then show ?thesis
         unfolding is_ground_cls_def is_ground_lit_def by simp
     qed
 
-    from CAs_p have "\<exists>\<sigma>. ord_resolve (S_M S (Q_of_state (Liminf_state Sts))) CAs ?D \<sigma> ?E"
+    from CAs_p have "\<exists>\<sigma>. ord_resolve (S_M S (Q_of_state (Liminf_state Sts))) CAs ?DA \<sigma> ?E"
     proof
-      assume "gd.ord_resolve CAs ?D ?E"
-      then show "\<exists>\<sigma>. ord_resolve (S_M S (Q_of_state (Liminf_state Sts))) CAs ?D \<sigma> ?E"
+      assume "gd.ord_resolve CAs ?DA ?E"
+      then show "\<exists>\<sigma>. ord_resolve (S_M S (Q_of_state (Liminf_state Sts))) CAs ?DA \<sigma> ?E"
       proof (cases rule: gd.ord_resolve.cases)
         case (ord_resolve n Cs AAs As D)
-        have a: "?D = D + negs (mset As)"
+        have a: "?DA = D + negs (mset As)"
           using ord_resolve by simp
         have b: "?E = \<Union>#mset Cs + D"
           using ord_resolve by simp
@@ -1713,14 +1713,14 @@ proof -
           using ord_resolve(8) ord_resolve(3,4) gc1
           using ground_subclauses[of CAs Cs AAs] unfolding is_ground_cls_list_def by auto
         have ground_set_as: "is_ground_atms (set As)"
-          using ord_resolve(1) gd
+          using ord_resolve(1) ground_da
           by (metis atms_of_negg is_ground_cls_union set_mset_mset is_ground_cls_is_ground_atms_atms_of)
         then have ground_mset_as: "is_ground_atm_mset (mset As)"
           unfolding is_ground_atm_mset_def is_ground_atms_def by auto
         have ground_as: "is_ground_atm_list As"
           using ground_set_as is_ground_atm_list_def is_ground_atms_def by auto
         have ground_d: "is_ground_cls D"
-          using gd ord_resolve by simp
+          using ground_da ord_resolve by simp
 
         from len_as nz have "atms_of D \<union> set As \<noteq> {}" "finite (atms_of D \<union> set As)"
           by auto
@@ -1736,19 +1736,21 @@ proof -
             Max (atms_of D \<union> set As) \<and> (D \<cdot> \<sigma> + negs (mset As \<cdot>am \<sigma>)) = (D + negs (mset As))"
           unfolding gd.eligible.simps[simplified] using is_ground_Max using ground_mset_as ground_d by auto
 
+        thm ground_da ground_d
+
         have ann1: "maximal_in (Max (atms_of D \<union> set As)) (D + negs (mset As))"
           unfolding gd.eligible.simps[simplified] ann2 maximal_in_def less_atm_iff
           using Max\<sigma>_is_Max ground_set_as ground_d ex_ground_subst
-          by (metis Max_less_iff \<open>finite (atms_of D \<union> set As)\<close> equals0D infinite_growing is_ground_cls_imp_is_ground_atm is_ground_subst_atm atms_of_negg atms_of_plus gd local.ord_resolve(1) set_mset_mset)
+          by (metis Max_less_iff \<open>finite (atms_of D \<union> set As)\<close> equals0D infinite_growing is_ground_cls_imp_is_ground_atm is_ground_subst_atm atms_of_negg atms_of_plus ground_da local.ord_resolve(1) set_mset_mset)
             
         from k have kk: "eligible (S_M S (Q_of_state (Liminf_state Sts))) \<sigma> As (D + negs (mset As))"
-          unfolding gd.eligible.simps eligible.simps using ann1 ann2 by (auto simp: S_Q_def)
+          unfolding gd.eligible.simps eligible.simps gd.maximal_in_def using ann1 ann2 by (auto simp: S_Q_def)
 
-        have l: "\<forall>i < n. gd.strict_maximal_in (As ! i) (Cs ! i)"
+        have l: "\<forall>i < n. gd.strictly_maximal_in (As ! i) (Cs ! i)"
           using ord_resolve by simp
         then have ll: "\<forall>i < n. strictly_maximal_in (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
           using len_as ground_as using ex_ground_subst ground_cs is_ground_cls_imp_is_ground_atm  
-          unfolding less_eq_atm_def less_atm_iff gd.strict_maximal_in_def by force
+          unfolding less_eq_atm_def less_atm_iff gd.strictly_maximal_in_def strictly_maximal_in_def by force
 
         have m: "\<forall>i<n. S_Q (CAs ! i) = {#}"
           using ord_resolve by simp
@@ -1761,7 +1763,7 @@ proof -
       qed
     qed
     then obtain \<sigma> where
-      sisisgma: "ord_resolve (S_M S (Q_of_state (Liminf_state Sts))) CAs ?D \<sigma> ?E"
+      sisisgma: "ord_resolve (S_M S (Q_of_state (Liminf_state Sts))) CAs ?DA \<sigma> ?E"
       by auto
     then obtain \<eta>s' \<eta>' \<eta>2' CAs' DA' E' \<tau>' where s_p:
       "is_ground_subst \<eta>'"
@@ -1769,10 +1771,10 @@ proof -
       "is_ground_subst \<eta>2'"
       "ord_resolve_rename S CAs' DA' \<tau>' E'"
       "CAs' \<cdot>\<cdot>cl \<eta>s' = CAs"
-      "DA' \<cdot> \<eta>' = ?D"
+      "DA' \<cdot> \<eta>' = ?DA"
       "E' \<cdot> \<eta>2' = ?E"
       "{DA'} \<union> set CAs' \<subseteq> Q_of_state (Liminf_state Sts)"
-      using sel_ren_inv ord_resolve_rename_lifting[of S "Q_of_state (Liminf_state Sts)" CAs "?D" _ "?E", OF sisisgma selection_axioms _ DCAs_in_ground_Liminf]
+      using sel_ren_inv ord_resolve_rename_lifting[of S "Q_of_state (Liminf_state Sts)" CAs "?DA" _ "?E", OF sisisgma selection_axioms _ DA_CAs_in_ground_Liminf]
       by smt
     from this(8) have "\<exists>j. enat j < llength Sts \<and> ((set CAs') \<union> {DA'} \<subseteq> ?Qs j)"
       unfolding Liminf_llist_def

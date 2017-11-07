@@ -61,7 +61,7 @@ proof -
   from assms have negL: "\<forall>L \<in># SDA'. is_neg L"
     using Melem_subst_cls subst_lit_in_negs_is_neg by metis
 
-  from assms(1) have "{#L \<cdot>l \<eta>. L \<in># SDA'#} = mset (map Neg As)"
+  from assms have "{#L \<cdot>l \<eta>. L \<in># SDA'#} = mset (map Neg As)"
     using subst_cls_def by auto
   then have "\<exists>NAs'. map (\<lambda>L. L \<cdot>l \<eta>) NAs' = map Neg As \<and> mset NAs' = SDA'"
     using image_mset_of_subset_list[of "\<lambda>L. L \<cdot>l \<eta>" SDA' "map Neg As"] by auto
@@ -120,12 +120,11 @@ The following corresponds to Figure 4.
 definition maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where
   "maximal_in A C \<longleftrightarrow> (\<forall>B \<in> atms_of C. \<not> less_atm A B)"
 
-(* FIXME: Why is the nonstrict version a definition and the strict version an abbreviation? *)
-abbreviation strictly_maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where (* Would "'a \<Rightarrow> 'a set \<Rightarrow> bool" be cleaner?  *)
+definition strictly_maximal_in :: "'a \<Rightarrow> 'a literal multiset \<Rightarrow> bool" where (* Would "'a \<Rightarrow> 'a set \<Rightarrow> bool" be cleaner?  *)
   "strictly_maximal_in A C \<equiv> (\<forall>B \<in> atms_of C. \<not> less_eq_atm A B)"
 
 lemma strictly_maximal_in_maximal_in: "strictly_maximal_in A C \<Longrightarrow> maximal_in A C"
-  unfolding maximal_in_def less_eq_atm_def by auto
+  unfolding maximal_in_def less_eq_atm_def strictly_maximal_in_def by auto
 
 inductive eligible :: "'s \<Rightarrow> 'a list \<Rightarrow> 'a clause \<Rightarrow> bool" where
   eligible:
@@ -452,13 +451,13 @@ lemma strictly_maximal_in_gen:
   shows "strictly_maximal_in A C"
 proof -
   have "\<forall>B \<in> atms_of (C \<cdot> \<sigma>). \<not> (less_atm (A \<cdot>a \<sigma>) B \<or> A \<cdot>a \<sigma> = B)"
-    using max unfolding less_eq_atm_def by -
+    using max unfolding less_eq_atm_def strictly_maximal_in_def by -
   then have "\<forall>B \<in> atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma> \<cdot>a \<sigma>' < B \<cdot>a \<sigma> \<cdot>a \<sigma>') \<or> A \<cdot>a \<sigma> = B \<cdot>a \<sigma>)"
     unfolding subst_atms_def less_atm_iff using atms_of_subst_atms by auto
   then have "\<forall>B \<in> atms_of C. \<not> ((\<forall>\<sigma>'. is_ground_subst \<sigma>' \<longrightarrow> A \<cdot>a \<sigma>' < B \<cdot>a \<sigma>') \<or> A = B)"
     using is_ground_comp_subst by fastforce
   then show ?thesis
-    unfolding less_atm_iff less_eq_atm_def by auto
+    unfolding less_atm_iff less_eq_atm_def strictly_maximal_in_def by auto
 qed
 
 lemma ground_resolvent_subset:
@@ -584,7 +583,6 @@ proof (cases rule: ord_resolve.cases)
 qed
 
 lemma ord_resolve_rename_lifting:
-  fixes CAs
   assumes
     res_e: "ord_resolve (S_M S M) CAs DA \<sigma> E" and
     select: "selection S" and
