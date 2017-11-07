@@ -1589,7 +1589,7 @@ proof
     unfolding Liminf_llist_def clss_of_state_def grounding_of_clss_def by auto
 qed
 
-theorem fair_state_seq_saturated:
+theorem saturated_if_fair:
   assumes
     sel_ren_inv: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
     fair: "fair_state_seq Sts"
@@ -1833,7 +1833,7 @@ proof -
     unfolding src_ext_Ri_def by auto
 qed
 
-corollary fair_state_seq_complete:
+corollary complete_if_fair:
   assumes
     sel_ren_inv: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
     fair: "fair_state_seq Sts" and
@@ -1844,7 +1844,7 @@ proof -
     using unsat grounding_of_state_Liminf_state_subseteq unfolding true_clss_def
     by (meson contra_subsetD)
   moreover have "src.saturated_upto (Liminf_llist (lmap grounding_of_state Sts))"
-    by (rule fair_state_seq_saturated[OF sel_ren_inv fair, simplified])
+    by (rule saturated_if_fair[OF sel_ren_inv fair, simplified])
   ultimately have "{#} \<in> Liminf_llist (lmap grounding_of_state Sts)"
     using src.saturated_upto_complete by auto
   then show "{#} \<in> clss_of_state (Liminf_state Sts)"

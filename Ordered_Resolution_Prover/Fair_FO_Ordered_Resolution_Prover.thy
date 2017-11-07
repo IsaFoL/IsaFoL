@@ -196,7 +196,7 @@ corollary saturated:
   assumes sel_ren_inv: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
   shows "src.saturated_upto (Liminf_llist (lmap grounding_of_gstate Sts))"
   unfolding S_Q'_def llist.map_comp[symmetric]
-  by (rule fair_state_seq_saturated[OF deriv_nonfair finite_Sts0_nonfair empty_P0_nonfair
+  by (rule saturated_if_fair[OF deriv_nonfair finite_Sts0_nonfair empty_P0_nonfair
         empty_Q0_nonfair sel_ren_inv fair])
 
 corollary complete:
@@ -204,7 +204,7 @@ corollary complete:
     sel_ren_inv: "(\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>)" and
     unsat: "\<not> satisfiable (grounding_of_state (Liminf_gstate Sts))" 
   shows "{#} \<in> clss_of_state (Liminf_gstate Sts)"
-  by (rule fair_state_seq_complete[OF deriv_nonfair finite_Sts0_nonfair empty_P0_nonfair
+  by (rule complete_if_fair[OF deriv_nonfair finite_Sts0_nonfair empty_P0_nonfair
         empty_Q0_nonfair sel_ren_inv fair unsat])
 
 end
