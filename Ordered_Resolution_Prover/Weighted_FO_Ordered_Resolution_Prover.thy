@@ -1,23 +1,23 @@
-(*  Title:       A Fair Ordered Resolution Prover for First-Order Clauses
+(*  Title:       A Fair Ordered Resolution Prover for First-Order Clauses with Weights
     Author:      Anders Schlichtkrull <andschl at dtu.dk>, 2017
     Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2017
     Maintainer:  Anders Schlichtkrull <andschl at dtu.dk>
 *)
 
-section \<open>A Fair Ordered Resolution Prover for First-Order Clauses\<close>
+section \<open>A Fair Ordered Resolution Prover for First-Order Clauses with Weights\<close>
 
 text \<open>
 TODO. Formalizes footnote.
 \<close>
 
-theory Fair_FO_Ordered_Resolution_Prover
+theory Weighted_FO_Ordered_Resolution_Prover
   imports FO_Ordered_Resolution_Prover
 begin
 
 type_synonym 'a gclause = "'a clause \<times> nat"
 type_synonym 'a gstate = "'a gclause multiset \<times> 'a gclause multiset \<times> 'a gclause multiset \<times> nat"
 
-locale fair_FO_resolution_prover =
+locale weighted_FO_resolution_prover =
   FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu less_atm
   for
     S :: "('a :: wellorder) clause \<Rightarrow> 'a clause" and
@@ -62,28 +62,28 @@ abbreviation grounding_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" wher
 abbreviation Liminf_gstate :: "'a gstate llist \<Rightarrow> 'a state" where
   "Liminf_gstate Sts \<equiv> Liminf_state (lmap state_of_gstate Sts)"
 
-inductive fair_resolution_prover :: "'a gstate \<Rightarrow> 'a gstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>f" 50) where
-  tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>f (N, P, Q, n)"
+inductive weighted_resolution_prover :: "'a gstate \<Rightarrow> 'a gstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w" 50) where
+  tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
 | forward_subsumption: "(\<exists>D \<in># image_mset fst (P + Q). subsumes D C) \<Longrightarrow>
-    (N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>f (N, P, Q, n)"
+    (N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
 | backward_subsumption_P: "(\<exists>D \<in># image_mset fst N. strictly_subsumes D C) \<Longrightarrow>
-    (N, P + {#(C, i)#}, Q, n) \<leadsto>\<^sub>f (N, P, Q, n)"
+    (N, P + {#(C, i)#}, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
 | backward_subsumption_Q: "(\<exists>D \<in># image_mset fst N. strictly_subsumes D C) \<Longrightarrow>
-    (N, P, Q + {#(C, i)#}, n) \<leadsto>\<^sub>f (N, P, Q, n)"
+    (N, P, Q + {#(C, i)#}, n) \<leadsto>\<^sub>w (N, P, Q, n)"
 | forward_reduction: "(\<exists>D L'. D + {#L'#} \<in># image_mset fst (P + Q) \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
-    (N + {#(C + {#L#}, i)#}, P, Q, n) \<leadsto>\<^sub>f (N + {#(C, i)#}, P, Q, n)"
+    (N + {#(C + {#L#}, i)#}, P, Q, n) \<leadsto>\<^sub>w (N + {#(C, i)#}, P, Q, n)"
 | backward_reduction_P: "(\<exists>D L'. D + {#L'#} \<in># image_mset fst N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
-    (N, P + {#(C + {#L#}, i)#}, Q, n) \<leadsto>\<^sub>f (N, P + {#(C, i)#}, Q, n)"
+    (N, P + {#(C + {#L#}, i)#}, Q, n) \<leadsto>\<^sub>w (N, P + {#(C, i)#}, Q, n)"
 | backward_reduction_Q: "(\<exists>D L'. D + {#L'#} \<in># image_mset fst N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
-    (N, P, Q + {#(C + {#L#}, i)#}, n) \<leadsto>\<^sub>f (N, P + {#(C, i)#}, Q, n)"
-| clause_processing: "(N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>f (N, P + {#(C, i)#}, Q, n)"
+    (N, P, Q + {#(C + {#L#}, i)#}, n) \<leadsto>\<^sub>w (N, P + {#(C, i)#}, Q, n)"
+| clause_processing: "(N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>w (N, P + {#(C, i)#}, Q, n)"
 | inference_computation: "(\<forall>(D, j) \<in># P. weight (C, i) \<le> weight (D, j)) \<Longrightarrow>
     N = mset_set ((\<lambda>D. (D, n))
       ` concls_of (ord_FO_resolution_inferences_between (set_mset (image_mset fst Q)) C)) \<Longrightarrow>
-    ({#}, P + {#(C, i)#}, Q, n) \<leadsto>\<^sub>f (N, P, Q + {#(C, i)#}, Suc n)"
+    ({#}, P + {#(C, i)#}, Q, n) \<leadsto>\<^sub>w (N, P, Q + {#(C, i)#}, Suc n)"
 
-lemma fair_imp_nonfair: "St \<leadsto>\<^sub>f St' \<Longrightarrow> state_of_gstate St \<leadsto> state_of_gstate St'"
-proof (induction rule: fair_resolution_prover.induct)
+lemma weighted_imp_nonweighted: "St \<leadsto>\<^sub>w St' \<Longrightarrow> state_of_gstate St \<leadsto> state_of_gstate St'"
+proof (induction rule: weighted_resolution_prover.induct)
   case (tautology_deletion A C N i P Q n)
   then show ?case
     using resolution_prover.tautology_deletion by simp
@@ -122,14 +122,14 @@ next
     by (auto simp: comp_def image_comp ord_FO_resolution_inferences_between_def)
 qed
 
-lemma final: "\<not> ({#}, {#}, Q, n) \<leadsto>\<^sub>f St"
-  by (auto elim: fair_resolution_prover.cases)
+lemma final: "\<not> ({#}, {#}, Q, n) \<leadsto>\<^sub>w St"
+  by (auto elim: weighted_resolution_prover.cases)
 
 context
   fixes 
     Sts :: "'a gstate llist"
   assumes
-    deriv: "chain (op \<leadsto>\<^sub>f) Sts" and
+    deriv: "chain (op \<leadsto>\<^sub>w) Sts" and
     finite_Sts0: "finite (clss_of_gstate (lnth Sts 0))" and
     empty_P0: "P_of_gstate (lnth Sts 0) = {}" and
     empty_Q0: "Q_of_gstate (lnth Sts 0) = {}"
@@ -158,17 +158,17 @@ interpretation src: standard_redundancy_criterion_counterex_reducing gd.ord_\<Ga
   "ground_resolution_with_selection.INTERP S_Q'"
   by unfold_locales
 
-lemma deriv_nonfair: "chain (op \<leadsto>) (lmap state_of_gstate Sts)"
-  using deriv fair_imp_nonfair by (metis chain_lmap)
+lemma deriv_nonweighted: "chain (op \<leadsto>) (lmap state_of_gstate Sts)"
+  using deriv weighted_imp_nonweighted by (metis chain_lmap)
 
-lemma finite_Sts0_nonfair: "finite (clss_of_state (lnth (lmap state_of_gstate Sts) 0))"
+lemma finite_Sts0_nonweighted: "finite (clss_of_state (lnth (lmap state_of_gstate Sts) 0))"
   using finite_Sts0 lnth_lmap[of 0 _ state_of_gstate] chain_length_pos[OF deriv]
   by (auto simp: enat_0)
 
-lemma empty_P0_nonfair: "P_of_state (lnth (lmap state_of_gstate Sts) 0) = {}"
+lemma empty_P0_nonweighted: "P_of_state (lnth (lmap state_of_gstate Sts) 0) = {}"
   using empty_P0 chain_length_pos[OF deriv] by (auto simp: enat_0)
 
-lemma empty_Q0_nonfair: "Q_of_state (lnth (lmap state_of_gstate Sts) 0) = {}"
+lemma empty_Q0_nonweighted: "Q_of_state (lnth (lmap state_of_gstate Sts) 0) = {}"
   using empty_Q0 chain_length_pos[OF deriv] by (auto simp: enat_0)
 
 theorem fair: "fair_state_seq (lmap state_of_gstate Sts)"
@@ -199,24 +199,23 @@ corollary saturated:
   assumes sel_ren_inv: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
   shows "src.saturated_upto (Liminf_llist (lmap grounding_of_gstate Sts))"
   unfolding S_Q'_def llist.map_comp[symmetric]
-  by (rule saturated_if_fair[OF deriv_nonfair finite_Sts0_nonfair empty_P0_nonfair
-        empty_Q0_nonfair sel_ren_inv fair])
+  by (rule saturated_if_fair[OF deriv_nonweighted finite_Sts0_nonweighted empty_P0_nonweighted
+        empty_Q0_nonweighted sel_ren_inv fair])
 
 corollary complete:
   assumes 
     sel_ren_inv: "(\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>)" and
     unsat: "\<not> satisfiable (grounding_of_state (Liminf_gstate Sts))" 
   shows "{#} \<in> clss_of_state (Liminf_gstate Sts)"
-  by (rule complete_if_fair[OF deriv_nonfair finite_Sts0_nonfair empty_P0_nonfair
-        empty_Q0_nonfair sel_ren_inv fair unsat])
+  by (rule complete_if_fair[OF deriv_nonweighted finite_Sts0_nonweighted empty_P0_nonweighted
+        empty_Q0_nonweighted sel_ren_inv fair unsat])
 
 end
 
 end
 
-locale fair_FO_resolution_prover_with_sum_product =
-  FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu
-    less_atm
+locale weighted_FO_resolution_prover_with_size_generation_factors =
+  FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu less_atm
   for
     S :: "('a :: wellorder) clause \<Rightarrow> 'a clause" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
@@ -242,10 +241,10 @@ lemma weight_mono: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
 
 declare weight.simps [simp del]
 
-sublocale fair_FO_resolution_prover _ _ _ _ _ _ _ _ weight
+sublocale weighted_FO_resolution_prover _ _ _ _ _ _ _ _ weight
   by unfold_locales (rule weight_mono)
 
-notation fair_resolution_prover (infix "\<leadsto>\<^sub>f" 50)
+notation weighted_resolution_prover (infix "\<leadsto>\<^sub>w" 50)
 
 end
 

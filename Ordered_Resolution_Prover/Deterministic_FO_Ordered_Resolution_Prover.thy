@@ -10,16 +10,16 @@ TODO.
 \<close>
 
 theory Deterministic_FO_Ordered_Resolution_Prover
-  imports Fair_FO_Ordered_Resolution_Prover
+  imports Weighted_FO_Ordered_Resolution_Prover
 begin
 
 type_synonym 'a lclause = "'a literal list"
 type_synonym 'a glclause = "'a lclause \<times> nat"
 type_synonym 'a glstate = "'a glclause list \<times> 'a glclause list \<times> 'a glclause list \<times> nat"
 
-locale deterministic_FO_resolution_prover = fair_FO_resolution_prover_with_sum_product S subst_atm
-    id_subst comp_subst renamings_apart atm_of_atms mgu less_atm size_atm generation_factor
-    size_factor
+locale deterministic_FO_resolution_prover =
+  weighted_FO_resolution_prover_with_size_generation_factors S subst_atm id_subst comp_subst
+    renamings_apart atm_of_atms mgu less_atm size_atm generation_factor size_factor
   for
     S :: "('a :: wellorder) clause \<Rightarrow> 'a clause" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
@@ -47,20 +47,20 @@ fun state_of_glstate :: "'a glstate \<Rightarrow> 'a state" where
 fun is_final_glstate :: "'a glstate \<Rightarrow> bool" where
   "is_final_glstate (N, P, Q, n) \<longleftrightarrow> N = [] \<and> P = []"
 
-abbreviation rtrancl_resolution_prover_with_weights (infix "\<leadsto>\<^sub>f\<^sup>*" 50) where
-  "op \<leadsto>\<^sub>f\<^sup>* \<equiv> (op \<leadsto>\<^sub>f)\<^sup>*\<^sup>*"
+abbreviation rtrancl_resolution_prover_with_weights (infix "\<leadsto>\<^sub>w\<^sup>*" 50) where
+  "op \<leadsto>\<^sub>w\<^sup>* \<equiv> (op \<leadsto>\<^sub>w)\<^sup>*\<^sup>*"
 
-abbreviation trancl_resolution_prover_with_weights (infix "\<leadsto>\<^sub>f\<^sup>+" 50) where
-  "op \<leadsto>\<^sub>f\<^sup>+ \<equiv> (op \<leadsto>\<^sub>f)\<^sup>+\<^sup>+"
+abbreviation trancl_resolution_prover_with_weights (infix "\<leadsto>\<^sub>w\<^sup>+" 50) where
+  "op \<leadsto>\<^sub>w\<^sup>+ \<equiv> (op \<leadsto>\<^sub>w)\<^sup>+\<^sup>+"
 
 (* FIXME: prove and move to right locale/file, and prove for non-fair version first *)
 lemma resolution_prover_with_weights_sound:
-  "St \<leadsto>\<^sub>f St' \<Longrightarrow> I \<Turnstile>s grounding_of_state (state_of_gstate St) \<Longrightarrow>
+  "St \<leadsto>\<^sub>w St' \<Longrightarrow> I \<Turnstile>s grounding_of_state (state_of_gstate St) \<Longrightarrow>
    I \<Turnstile>s grounding_of_state (state_of_gstate St')"
   sorry
 
 lemma rtrancl_resolution_prover_with_weights_sound:
-  "St \<leadsto>\<^sub>f\<^sup>* St' \<Longrightarrow> I \<Turnstile>s grounding_of_state (state_of_gstate St) \<Longrightarrow>
+  "St \<leadsto>\<^sub>w\<^sup>* St' \<Longrightarrow> I \<Turnstile>s grounding_of_state (state_of_gstate St) \<Longrightarrow>
    I \<Turnstile>s grounding_of_state (state_of_gstate St')"
   by (induct rule: rtranclp.induct, assumption, metis resolution_prover_with_weights_sound)
 
@@ -222,7 +222,7 @@ lemma nonfinal_step:
   assumes
     nonfinal: "\<not> is_final_glstate St" and
     step: "St' = deterministic_resolution_prover_step St"
-  shows "gstate_of_glstate St \<leadsto>\<^sub>f\<^sup>+ gstate_of_glstate St'"
+  shows "gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>+ gstate_of_glstate St'"
 proof -
   obtain N P Q :: "'a glclause list" and n :: nat where
     st: "St = (N, P, Q, n)"
@@ -261,7 +261,7 @@ proof -
       (* FIXME: rename and state at different level of abstraction *)
       have trans:
         "({#}, mset (map (apfst mset) P'') + {#(mset C, i)#}, mset (map (apfst mset) Q), n)
-         \<leadsto>\<^sub>f (mset (map (apfst mset) N'), mset (map (apfst mset) P''),
+         \<leadsto>\<^sub>w (mset (map (apfst mset) N'), mset (map (apfst mset) P''),
               mset (map (apfst mset) Q) + {#(mset C, i)#}, Suc n)"
       proof (rule inference_computation)
         have "\<forall>(D, j) \<in># mset (map (apfst mset) P). weight (mset C, i) \<le> weight (D, j)"
@@ -293,7 +293,7 @@ proof -
         apply (unfold gstate_of_glstate.simps)
         apply (fold ci)
         apply (simp del: remove1.simps)
-        apply (rule arg_cong2[of _ _ _ _ "op \<leadsto>\<^sub>f", THEN iffD1, OF _ _ trans[unfolded P''_def N'_def]])
+        apply (rule arg_cong2[of _ _ _ _ "op \<leadsto>\<^sub>w", THEN iffD1, OF _ _ trans[unfolded P''_def N'_def]])
          apply simp
         using ci_in
          apply (metis (no_types) apfst_conv image_mset_add_mset insert_DiffM set_mset_mset)
@@ -314,7 +314,7 @@ proof -
     note step = step[unfolded ci C'_def[symmetric], simplified]
 
     have "gstate_of_glstate ((E @ C, i) # N', P, Q, n)
-       \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((E @ reduce (map fst P @ map fst Q) E C, i) # N', P, Q, n)" for E
+       \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate ((E @ reduce (map fst P @ map fst Q) E C, i) # N', P, Q, n)" for E
       unfolding C'_def
     proof (induct C arbitrary: E)
       case (Cons L C)
@@ -337,8 +337,8 @@ proof -
           "- L = L' \<cdot>l \<sigma> \<and> mset D' \<cdot> \<sigma> \<subseteq># mset (E @ C)"
           unfolding is_reducible_lit_def by (auto simp: comp_def)
         have "gstate_of_glstate ((E @ L # C, i) # N', P, Q, n)
-          \<leadsto>\<^sub>f gstate_of_glstate ((E @ C, i) # N', P, Q, n)"
-          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+          \<leadsto>\<^sub>w gstate_of_glstate ((E @ C, i) # N', P, Q, n)"
+          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
                 forward_reduction[of "mset (map (apfst mset) P)" "mset (map (apfst mset) Q)" L \<sigma>
                   "mset (E @ C)" "mset (map (apfst mset) N')" i n]])
             (use \<sigma> in \<open>auto simp: comp_def\<close>)
@@ -351,12 +351,12 @@ proof -
       qed
     qed simp
     then have red_C:
-      "gstate_of_glstate ((C, i) # N', P, Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((C', i) # N', P, Q, n)"
+      "gstate_of_glstate ((C, i) # N', P, Q, n) \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate ((C', i) # N', P, Q, n)"
       unfolding C'_def by (metis self_append_conv2)
 
     have proc_C: "gstate_of_glstate ((C', i) # N', P', Q', n')
-      \<leadsto>\<^sub>f gstate_of_glstate (N', (C', i) # P', Q', n')" for P' Q' n'
-      by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+      \<leadsto>\<^sub>w gstate_of_glstate (N', (C', i) # P', Q', n')" for P' Q' n'
+      by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
             clause_processing[of "mset (map (apfst mset) N')" "mset C'" i
               "mset (map (apfst mset) P')" "mset (map (apfst mset) Q')" n']],
           simp+)
@@ -368,14 +368,14 @@ proof -
       note step = step[simplified c'_nil nil_ni_pq, simplified]
 
       have sub_P:
-        "gstate_of_glstate (([], i) # N', P, Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (([], i) # N', [], Q, n)"
+        "gstate_of_glstate (([], i) # N', P, Q, n) \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate (([], i) # N', [], Q, n)"
         using nil_ni_pq[THEN conjunct1]
       proof (induct P)
         case (Cons P0 P)
         note ih = this(1) and nil_ni_p = this(2)
         have "gstate_of_glstate (([], i) # N', P0 # P, Q, n)
-          \<leadsto>\<^sub>f gstate_of_glstate (([], i) # N', P, Q, n)"
-          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+          \<leadsto>\<^sub>w gstate_of_glstate (([], i) # N', P, Q, n)"
+          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
                 backward_subsumption_P[of "mset (map (apfst mset) (([], i) # N'))" "mset (fst P0)"
                   "mset (map (apfst mset) P)" "snd P0" "mset (map (apfst mset) Q)" n]],
               cases P0, use nil_ni_p in auto)
@@ -383,14 +383,14 @@ proof -
           using ih by (rule converse_rtranclp_into_rtranclp, use nil_ni_p in auto)
       qed simp
       have sub_Q:
-        "gstate_of_glstate (([], i) # N', [], Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (([], i) # N', [], [], n)"
+        "gstate_of_glstate (([], i) # N', [], Q, n) \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate (([], i) # N', [], [], n)"
         using nil_ni_pq[THEN conjunct2]
       proof (induct Q)
         case (Cons Q0 Q)
         note ih = this(1) and nil_ni_q = this(2)
         have "gstate_of_glstate (([], i) # N', [], Q0 # Q, n)
-          \<leadsto>\<^sub>f gstate_of_glstate (([], i) # N', [], Q, n)"
-          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+          \<leadsto>\<^sub>w gstate_of_glstate (([], i) # N', [], Q, n)"
+          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
                 backward_subsumption_Q[of "mset (map (apfst mset) (([], i) # N'))" "mset (fst Q0)"
                   "{#}" "mset (map (apfst mset) Q)" "snd Q0" n]],
               cases Q0, use nil_ni_q in auto)
@@ -398,13 +398,13 @@ proof -
           using ih by (rule converse_rtranclp_into_rtranclp, use nil_ni_q in auto)
       qed simp
       have sub_N:
-        "gstate_of_glstate (N', [([], i)], [], n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ([], [([], i)], [], n)"
+        "gstate_of_glstate (N', [([], i)], [], n) \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate ([], [([], i)], [], n)"
       proof (induct N')
         case (Cons N'0 N')
         note ih = this
         have " gstate_of_glstate (N'0 # N', [([], i)], [], n)
-          \<leadsto>\<^sub>f gstate_of_glstate (N', [([], i)], [], n)"
-          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+          \<leadsto>\<^sub>w gstate_of_glstate (N', [([], i)], [], n)"
+          by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
                 forward_subsumption[of "{#({#}, i)#}" "{#}" "mset (fst N'0)"
                   "mset (map (apfst mset) N')" "snd N'0" n]],
               cases N'0, auto)
@@ -412,8 +412,8 @@ proof -
           using ih by (rule converse_rtranclp_into_rtranclp)
       qed simp
       have inf_C:
-        "gstate_of_glstate ([], [([], i)], [], n) \<leadsto>\<^sub>f gstate_of_glstate ([], [], [([], i)], Suc n)"
-        by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+        "gstate_of_glstate ([], [([], i)], [], n) \<leadsto>\<^sub>w gstate_of_glstate ([], [], [([], i)], Suc n)"
+        by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
               inference_computation[of "{#}" "{#}" i "{#}" n "{#}"]],
             auto simp: ord_FO_resolution_inferences_between_empty_empty)
 
@@ -432,14 +432,14 @@ proof -
         case taut_or_subs: True
         note step = step[simplified taut_or_subs, simplified]
 
-        have "gstate_of_glstate ((C', i) # N', P, Q, n) \<leadsto>\<^sub>f gstate_of_glstate (N', P, Q, n)"
+        have "gstate_of_glstate ((C', i) # N', P, Q, n) \<leadsto>\<^sub>w gstate_of_glstate (N', P, Q, n)"
         proof (cases "is_tautology C'")
           case True
           then obtain A :: 'a where
             neg_a: "Neg A \<in> set C'" and pos_a: "Pos A \<in> set C'"
             unfolding is_tautology_def by blast
           show ?thesis
-            by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+            by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
                   tautology_deletion[of A "mset C'" "mset (map (apfst mset) N')" i
                     "mset (map (apfst mset) P)" "mset (map (apfst mset) Q)" n]])
               (use neg_a pos_a in simp_all)
@@ -448,7 +448,7 @@ proof -
           hence subs: "is_subsumed_by (map fst P @ map fst Q) C'"
             using taut_or_subs by blast
           show ?thesis
-            by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+            by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
                   forward_subsumption[of "mset (map (apfst mset) P)" "mset (map (apfst mset) Q)"
                     "mset C'" "mset (map (apfst mset) N')" i n]])
               (use subs in \<open>auto simp: is_subsumed_by_def\<close>)
@@ -474,16 +474,16 @@ proof -
             simplified]
 
         have red_Q: "gstate_of_glstate ((C', i) # N', P, Q, n)
-          \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((C', i) # N', back_to_P @ P, Q', n)"
+          \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate ((C', i) # N', back_to_P @ P, Q', n)"
           sorry
         have red_P: "gstate_of_glstate ((C', i) # N', back_to_P @ P, Q', n)
-          \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((C', i) # N', P', Q', n)"
+          \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate ((C', i) # N', P', Q', n)"
           sorry
         have subs_Q: "gstate_of_glstate ((C', i) # N', P', Q', n)
-          \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((C', i) # N', P', Q'', n)"
+          \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate ((C', i) # N', P', Q'', n)"
           sorry
         have subs_P: "gstate_of_glstate ((C', i) # N', P', Q'', n)
-          \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((C', i) # N', P'', Q'', n)"
+          \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate ((C', i) # N', P'', Q'', n)"
           sorry
 
         show ?thesis
@@ -537,21 +537,21 @@ proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ assms])
   qed
 qed
 
-lemma step: "gstate_of_glstate St \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (deterministic_resolution_prover_step St)"
+lemma step: "gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate (deterministic_resolution_prover_step St)"
   by (cases "is_final_glstate St") (simp add: final_step nonfinal_step tranclp_into_rtranclp)+
 
 lemma step_funpow:
-  "gstate_of_glstate St \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((deterministic_resolution_prover_step ^^ k) St)"
+  "gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate ((deterministic_resolution_prover_step ^^ k) St)"
   by (induct k; simp) (meson step rtranclp_trans)
 
 lemma step_funpow_iff: "(\<exists>k. (deterministic_resolution_prover_step ^^ k) St = St') \<longleftrightarrow>
-  gstate_of_glstate St \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate St'" (is "?lhs \<longleftrightarrow> ?rhs")
+  gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate St'" (is "?lhs \<longleftrightarrow> ?rhs")
 proof
   show "?lhs \<Longrightarrow> ?rhs"
     using step_funpow by blast
 next
   show "?rhs \<Longrightarrow> ?lhs"
-    apply (rule rtranclp.induct[of "\<lambda>St St'. gstate_of_glstate St \<leadsto>\<^sub>f gstate_of_glstate St'"])
+    apply (rule rtranclp.induct[of "\<lambda>St St'. gstate_of_glstate St \<leadsto>\<^sub>w gstate_of_glstate St'"])
       defer
     sorry
 qed
