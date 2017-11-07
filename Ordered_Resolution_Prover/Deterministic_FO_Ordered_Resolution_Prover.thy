@@ -257,6 +257,7 @@ proof -
       define P'' :: "'a glclause list" where
         "P'' = remove1 (C, i) P"
 
+      (* FIXME: rename and state at different level of abstraction *)
       have trans:
         "({#}, mset (map (apfst mset) P'') + {#(mset C, i)#}, mset (map (apfst mset) Q), n)
          \<leadsto>\<^sub>f (mset (map (apfst mset) N'), mset (map (apfst mset) P''),
@@ -352,6 +353,13 @@ proof -
       "gstate_of_glstate ((C, i) # N', P, Q, n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((C', i) # N', P, Q, n)"
       unfolding C'_def by (metis self_append_conv2)
 
+    have proc_C: "gstate_of_glstate ((C', i) # N', P', Q', n')
+      \<leadsto>\<^sub>f gstate_of_glstate (N', (C', i) # P', Q', n')" for P' Q' n'
+      by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
+            clause_processing[of "mset (map (apfst mset) N')" "mset C'" i
+              "mset (map (apfst mset) P')" "mset (map (apfst mset) Q')" n']],
+          simp+)
+
     show ?thesis
     proof (cases "C' = [] \<and> [] \<notin> fst ` set P \<and> [] \<notin> fst ` set Q")
       case True
@@ -388,11 +396,6 @@ proof -
         then show ?case
           using ih by (rule converse_rtranclp_into_rtranclp, use nil_ni_q in auto)
       qed simp
-      have proc_C:
-        "gstate_of_glstate (([], i) # N', [], [], n) \<leadsto>\<^sub>f gstate_of_glstate (N', [([], i)], [], n)"
-        by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>f", OF _ _
-              clause_processing[of "mset (map (apfst mset) N')" "{#}" i "{#}" "{#}" n]],
-            auto)
       have sub_N:
         "gstate_of_glstate (N', [([], i)], [], n) \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ([], [([], i)], [], n)"
       proof (induct N')
@@ -417,7 +420,7 @@ proof -
         unfolding step st n_cons ci
         using red_C[unfolded c'_nil, THEN rtranclp_trans, OF sub_P,
           THEN rtranclp_trans, OF sub_Q,
-          THEN rtranclp_into_tranclp1, OF proc_C,
+          THEN rtranclp_into_tranclp1, OF proc_C[unfolded c'_nil],
           THEN tranclp_rtranclp_tranclp, OF sub_N,
           THEN tranclp.trancl_into_trancl, OF inf_C] .
     next
@@ -486,10 +489,6 @@ proof -
 
         have subs_P: "gstate_of_glstate ((C', i) # N', P', Q'', n)
           \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((C', i) # N', P'', Q'', n)"
-          sorry
-
-        have proc_C: "gstate_of_glstate ((C', i) # N', P'', Q'', n)
-          \<leadsto>\<^sub>f gstate_of_glstate (N', (C', i) # P'', Q'', n)"
           sorry
 
         show ?thesis
