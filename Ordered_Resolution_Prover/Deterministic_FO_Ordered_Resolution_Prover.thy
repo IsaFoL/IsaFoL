@@ -216,7 +216,7 @@ proof (induct P arbitrary: P0 Ci)
   qed
 qed simp
 
-lemma deterministic_resolution_prover_step_simulation_nonfinal:
+lemma nonfinal_step:
   assumes
     nonfinal: "\<not> is_final_glstate St" and
     step: "St' = deterministic_resolution_prover_step St"
@@ -496,19 +496,17 @@ proof -
   qed
 qed
 
-lemma deterministic_resolution_prover_step_final:
-  assumes "is_final_glstate St"
-  shows "\<not> gstate_of_glstate St \<leadsto>\<^sub>f St'"
-  sorry
+lemma final_step: "is_final_glstate St \<Longrightarrow> \<not> gstate_of_glstate St \<leadsto>\<^sub>f St'"
+  by (cases St) (simp add: final)
 
-theorem deterministic_resolution_prover_sound:
+theorem sound:
   assumes "deterministic_resolution_prover (N, [], [], 1) = Some Q"
   shows
     "saturated_upto (set (map mset Q))"
     "satisfiable (set (map mset Q)) \<longleftrightarrow> satisfiable (set (map (mset \<circ> fst) N))"
   sorry
 
-theorem deterministic_resolution_prover_complete:
+theorem complete:
   assumes "\<exists>Q. saturated_upto Q \<and> satisfiable Q \<longleftrightarrow> satisfiable (set (map mset N))"
   shows "deterministic_resolution_prover (map (\<lambda>D. (D, 0)) N, [], [], 1) \<noteq> None"
   sorry

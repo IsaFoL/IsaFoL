@@ -82,7 +82,7 @@ inductive fair_resolution_prover :: "'a gstate \<Rightarrow> 'a gstate \<Rightar
       ` concls_of (ord_FO_resolution_inferences_between (set_mset (image_mset fst Q)) C)) \<Longrightarrow>
     ({#}, P + {#(C, i)#}, Q, n) \<leadsto>\<^sub>f (N, P, Q + {#(C, i)#}, Suc n)"
 
-lemma fair_resolution_prover_imp_nonfair: "St \<leadsto>\<^sub>f St' \<Longrightarrow> state_of_gstate St \<leadsto> state_of_gstate St'"
+lemma fair_imp_nonfair: "St \<leadsto>\<^sub>f St' \<Longrightarrow> state_of_gstate St \<leadsto> state_of_gstate St'"
 proof (induction rule: fair_resolution_prover.induct)
   case (tautology_deletion A C N i P Q n)
   then show ?case
@@ -122,6 +122,9 @@ next
     by (auto simp: comp_def image_comp ord_FO_resolution_inferences_between_def)
 qed
 
+lemma final: "\<not> ({#}, {#}, Q, n) \<leadsto>\<^sub>f St"
+  by (auto elim: fair_resolution_prover.cases)
+
 context
   fixes 
     Sts :: "'a gstate llist"
@@ -156,7 +159,7 @@ interpretation src: standard_redundancy_criterion_counterex_reducing gd.ord_\<Ga
   by unfold_locales
 
 lemma deriv_nonfair: "chain (op \<leadsto>) (lmap state_of_gstate Sts)"
-  using deriv fair_resolution_prover_imp_nonfair by (metis chain_lmap)
+  using deriv fair_imp_nonfair by (metis chain_lmap)
 
 lemma finite_Sts0_nonfair: "finite (clss_of_state (lnth (lmap state_of_gstate Sts) 0))"
   using finite_Sts0 lnth_lmap[of 0 _ state_of_gstate] chain_length_pos[OF deriv]

@@ -94,15 +94,20 @@ inductive resolution_prover :: "'a state \<Rightarrow> 'a state \<Rightarrow> bo
 | inference_computation: "N = concls_of (ord_FO_resolution.inferences_between Q C) \<Longrightarrow>
     ({}, P \<union> {C}, Q) \<leadsto> (N, P, Q \<union> {C})"
 
-(* I could also have proved that state is a distributive lattice and define sup_state directly as Sup_llist *)
+lemma final: "\<not> ({}, {}, Q) \<leadsto> St"
+  by (auto elim: resolution_prover.cases)
+
 definition sup_state :: "'a state llist \<Rightarrow> 'a state" where
-  "sup_state Sts = (Sup_llist (lmap N_of_state Sts), Sup_llist (lmap P_of_state Sts), Sup_llist (lmap Q_of_state Sts))"
+  "sup_state Sts =
+   (Sup_llist (lmap N_of_state Sts), Sup_llist (lmap P_of_state Sts),
+    Sup_llist (lmap Q_of_state Sts))"
 
-definition Liminf_state :: "('a state) llist \<Rightarrow> 'a state" where
+definition Liminf_state :: "'a state llist \<Rightarrow> 'a state" where
   "Liminf_state Sts =
-   (Liminf_llist (lmap N_of_state Sts), Liminf_llist (lmap P_of_state Sts), Liminf_llist (lmap Q_of_state Sts))"
+   (Liminf_llist (lmap N_of_state Sts), Liminf_llist (lmap P_of_state Sts),
+    Liminf_llist (lmap Q_of_state Sts))"
 
-definition fair_state_seq where
+definition fair_state_seq :: "'a state llist \<Rightarrow> bool" where
   "fair_state_seq Sts \<longleftrightarrow> N_of_state (Liminf_state Sts) = {} \<and> P_of_state (Liminf_state Sts) = {}"
 
 text \<open>
