@@ -175,6 +175,8 @@ fun deterministic_resolution_prover_step :: "'a glstate \<Rightarrow> 'a glstate
           in
             (N, P, Q, n))"
 
+declare deterministic_resolution_prover_step.simps [simp del]
+
 partial_function (option)
   deterministic_resolution_prover :: "'a glstate \<Rightarrow> 'a lclause list option"
 where
@@ -225,7 +227,7 @@ proof -
   obtain N P Q :: "'a glclause list" and n :: nat where
     st: "St = (N, P, Q, n)"
     by (cases St) blast
-  note step = step[unfolded st, simplified]
+  note step = step[unfolded st deterministic_resolution_prover_step.simps, simplified]
 
   show ?thesis
   proof (cases N)
@@ -496,18 +498,75 @@ proof -
   qed
 qed
 
-lemma final_step: "is_final_glstate St \<Longrightarrow> \<not> gstate_of_glstate St \<leadsto>\<^sub>f St'"
-  by (cases St) (simp add: final)
+lemma final_step: "is_final_glstate St \<Longrightarrow> deterministic_resolution_prover_step St = St"
+  by (cases St) (simp add: deterministic_resolution_prover_step.simps)
+
+lemma deterministic_resolution_prover_SomeD:
+  assumes "deterministic_resolution_prover (N, P, Q, n) = Some R"
+  shows "\<exists>N' P' Q' n'.
+    (\<exists>k. (deterministic_resolution_prover_step ^^ k) (N, P, Q, n) = (N', P', Q', n'))
+     \<and> N' = [] \<and> P' = [] \<and> R = map fst Q'"
+proof (induct rule: deterministic_resolution_prover.raw_induct[OF _ assms])
+  case (1 self_call St R)
+  note ih = this(1) and step = this(2)
+
+  obtain N P Q :: "'a glclause list" and n :: nat where
+    st: "St = (N, P, Q, n)"
+    by (cases St) blast
+  note step = step[unfolded st, simplified]
+
+  show ?case
+  proof (cases "N = [] \<and> P = []")
+    case True
+    then have "(deterministic_resolution_prover_step ^^ 0) (N, P, Q, n) = (N, P, Q, n)
+      \<and> N = [] \<and> P = [] \<and> R = map fst Q"
+      using step by simp
+    then show ?thesis
+      unfolding st by blast
+  next
+    case nonfinal: False
+    note step = step[simplified nonfinal, simplified]
+
+    obtain k N' P' Q' n' where
+      "(deterministic_resolution_prover_step ^^ k)
+        (deterministic_resolution_prover_step (N, P, Q, n)) = (N', P', Q', n')
+       \<and> N' = [] \<and> P' = [] \<and> R = map fst Q'"
+      using ih[OF step] by blast
+    then show ?thesis
+      unfolding st funpow_Suc_right[symmetric, THEN fun_cong, unfolded comp_apply] by blast
+  qed
+qed
+
+lemma step: "gstate_of_glstate St \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate (deterministic_resolution_prover_step St)"
+  by (cases "is_final_glstate St") (simp add: final_step nonfinal_step tranclp_into_rtranclp)+
+
+lemma step_funpow:
+  "gstate_of_glstate St \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate ((deterministic_resolution_prover_step ^^ k) St)"
+  by (induct k; simp) (meson step rtranclp_trans)
+
+lemma step_funpow_iff: "(\<exists>k. (deterministic_resolution_prover_step ^^ k) St = St') \<longleftrightarrow>
+  gstate_of_glstate St \<leadsto>\<^sub>f\<^sup>* gstate_of_glstate St'" (is "?lhs \<longleftrightarrow> ?rhs")
+proof
+  show "?lhs \<Longrightarrow> ?rhs"
+    using step_funpow by blast
+next
+  show "?rhs \<Longrightarrow> ?lhs"
+    apply (rule rtranclp.induct[of "\<lambda>St St'. gstate_of_glstate St \<leadsto>\<^sub>f gstate_of_glstate St'"])
+      defer
+    sorry
+qed
 
 theorem sound:
-  assumes "deterministic_resolution_prover (N, [], [], 1) = Some Q"
+  assumes some: "deterministic_resolution_prover (N, [], [], n) = Some Q"
   shows
-    "saturated_upto (set (map mset Q))"
-    "satisfiable (set (map mset Q)) \<longleftrightarrow> satisfiable (set (map (mset \<circ> fst) N))"
+    "src.saturated_upto (set (map mset Q)) \<and>
+     (satisfiable (set (map mset Q)) \<longleftrightarrow> satisfiable (set (map (mset \<circ> fst) N)))"
+  using deterministic_resolution_prover_SomeD[OF some, unfolded step_funpow_iff]
+  using saturated
   sorry
 
 theorem complete:
-  assumes "\<exists>Q. saturated_upto Q \<and> satisfiable Q \<longleftrightarrow> satisfiable (set (map mset N))"
+  assumes "\<exists>Q. finite Q \<and> src.saturated_upto Q \<and> (satisfiable Q \<longleftrightarrow> satisfiable (set (map mset N)))"
   shows "deterministic_resolution_prover (map (\<lambda>D. (D, 0)) N, [], [], 1) \<noteq> None"
   sorry
 
