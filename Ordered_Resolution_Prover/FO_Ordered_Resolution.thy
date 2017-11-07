@@ -553,9 +553,9 @@ qed
 
 lemma ord_resolve_rename_lifting:
   assumes
+    sel_ren_inv: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
     res_e: "ord_resolve (S_M S M) CAs DA \<sigma> E" and
     select: "selection S" and
-    sel_ren_inv: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
     grounding: "{DA} \<union> (set CAs) \<subseteq> grounding_of_clss M"
   obtains \<eta>s \<eta> \<eta>2 CAs'' DA'' E'' \<tau> where
     "is_ground_subst \<eta>"
@@ -805,7 +805,7 @@ proof (cases rule: ord_resolve.cases)
   note n = n \<open>length AAs' = n\<close> \<open>length Cs' = n\<close>
 
   -- \<open>Obtain MGU and subsitution\<close>
-  obtain \<tau>  \<phi> where \<tau>\<phi>:
+  obtain \<tau> \<phi> where \<tau>\<phi>:
     "Some \<tau> = mgu (set_mset ` set (map2 add_mset As' AAs'))"
     "\<tau> \<odot> \<phi> = \<eta> \<odot> \<sigma>"
   proof -

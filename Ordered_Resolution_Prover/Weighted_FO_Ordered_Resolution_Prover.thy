@@ -162,21 +162,17 @@ proof (rule ccontr)
   qed
 qed
 
-(* FIXME: put sel_ren_inv in a locale assumption, throughout *)
 corollary weighted_RP_saturated:
-  assumes sel_ren_inv: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
-  shows "src.saturated_upto (Liminf_llist (lmap grounding_of_gstate Sts))"
+  "src.saturated_upto (Liminf_llist (lmap grounding_of_gstate Sts))"
   unfolding S_Q'_def llist.map_comp[symmetric]
   by (rule RP_saturated_if_fair[OF deriv_nonweighted finite_Sts0_nonweighted empty_P0_nonweighted
-        empty_Q0_nonweighted sel_ren_inv weighted_RP_fair])
+        empty_Q0_nonweighted weighted_RP_fair])
 
 corollary weighted_RP_complete:
-  assumes 
-    sel_ren_inv: "(\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>)" and
-    unsat: "\<not> satisfiable (grounding_of_state (Liminf_gstate Sts))" 
+  assumes unsat: "\<not> satisfiable (grounding_of_state (Liminf_gstate Sts))" 
   shows "{#} \<in> clss_of_state (Liminf_gstate Sts)"
   by (rule RP_complete_if_fair[OF deriv_nonweighted finite_Sts0_nonweighted empty_P0_nonweighted
-        empty_Q0_nonweighted sel_ren_inv weighted_RP_fair unsat])
+        empty_Q0_nonweighted weighted_RP_fair unsat])
 
 end
 

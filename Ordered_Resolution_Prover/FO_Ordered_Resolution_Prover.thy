@@ -37,6 +37,7 @@ locale FO_resolution_prover =
     mgu :: "'a set set \<Rightarrow> 's option" and
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" +
   assumes
+    sel_ren_inv: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
     less_atm_ground: "is_ground_atm A \<Longrightarrow> is_ground_atm B \<Longrightarrow> less_atm A B \<Longrightarrow> A < B"
 begin
 
@@ -1531,9 +1532,7 @@ proof
 qed
 
 theorem RP_saturated_if_fair:
-  assumes
-    sel_ren_inv: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
-    fair: "fair_state_seq Sts"
+  assumes fair: "fair_state_seq Sts"
   shows "src.saturated_upto (Liminf_llist (lmap grounding_of_state Sts))"
 proof -
   define Ns :: "'a clause set llist" where
@@ -1705,12 +1704,11 @@ proof -
       "DA' \<cdot> \<eta>' = ?DA"
       "E' \<cdot> \<eta>2' = ?E"
       "{DA'} \<union> set CAs' \<subseteq> Q_of_state (Liminf_state Sts)"
-      using sel_ren_inv ord_resolve_rename_lifting[of S "Q_of_state (Liminf_state Sts)" CAs "?DA" _ "?E", OF \<sigma>_p selection_axioms _ DA_CAs_in_ground_Liminf]
-      by smt
+      using ord_resolve_rename_lifting[OF sel_ren_inv, of "Q_of_state (Liminf_state Sts)" CAs ?DA]
+        \<sigma>_p selection_axioms DA_CAs_in_ground_Liminf by smt
     from this(8) have "\<exists>j. enat j < llength Sts \<and> ((set CAs') \<union> {DA'} \<subseteq> ?Qs j)"
       unfolding Liminf_llist_def
-      using subseteq_Liminf_state_eventually_always[of "{DA'} \<union> set CAs'"]
-      by auto
+      using subseteq_Liminf_state_eventually_always[of "{DA'} \<union> set CAs'"] by auto
     then obtain j where
       j_p: "is_least (\<lambda>j. enat j < llength Sts \<and> ((set CAs') \<union> {DA'} \<subseteq> ?Qs j)) j"
       using least_exists[of "\<lambda>j. enat j < llength Sts \<and> set CAs' \<union> {DA'} \<subseteq> ?Qs j"] by force
@@ -1776,7 +1774,6 @@ qed
 
 corollary RP_complete_if_fair:
   assumes
-    sel_ren_inv: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
     fair: "fair_state_seq Sts" and
     unsat: "\<not> satisfiable (grounding_of_state (Liminf_state Sts))"
   shows "{#} \<in> clss_of_state (Liminf_state Sts)"
@@ -1785,7 +1782,7 @@ proof -
     using unsat grounding_of_state_Liminf_state_subseteq unfolding true_clss_def
     by (meson contra_subsetD)
   moreover have "src.saturated_upto (Liminf_llist (lmap grounding_of_state Sts))"
-    by (rule RP_saturated_if_fair[OF sel_ren_inv fair, simplified])
+    by (rule RP_saturated_if_fair[OF fair, simplified])
   ultimately have "{#} \<in> Liminf_llist (lmap grounding_of_state Sts)"
     using src.saturated_upto_complete by auto
   then show "{#} \<in> clss_of_state (Liminf_state Sts)"
