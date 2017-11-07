@@ -257,6 +257,7 @@ proof -
       define P'' :: "'a glclause list" where
         "P'' = remove1 (C, i) P"
 
+      (* FIXME: rename and state at different level of abstraction *)
       have trans:
         "({#}, mset (map (apfst mset) P'') + {#(mset C, i)#}, mset (map (apfst mset) Q), n)
          \<leadsto>\<^sub>f (mset (map (apfst mset) N'), mset (map (apfst mset) P''),
