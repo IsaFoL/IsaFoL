@@ -1607,8 +1607,8 @@ proof -
   have SQinf: "clss_of_state (Liminf_state Sts) = Liminf_llist (lmap Q_of_state Sts)"
     using fair unfolding fair_state_seq_def Liminf_state_def clss_of_state_def by auto
 
-  from fair deriv have "Liminf_llist Ns - src.Rf (Liminf_llist Ns) \<subseteq> grounding_of_state (Liminf_state Sts)"
-    using fair_imp_Liminf_minus_Rf_subset_ground_Liminf_state ns by blast
+  have ground_ns_in_ground_limit_st: "Liminf_llist Ns - src.Rf (Liminf_llist Ns) \<subseteq> grounding_of_state (Liminf_state Sts)"
+    using fair deriv fair_imp_Liminf_minus_Rf_subset_ground_Liminf_state ns by blast
 
   have derivns: "chain src_ext.derive Ns"
     using resolution_prover_ground_derivation deriv ns by auto
@@ -1622,7 +1622,7 @@ proof -
     assume a: "set_mset ?CC \<union> {?DA} \<subseteq> Liminf_llist (lmap grounding_of_state Sts) - src.Rf (Liminf_llist (lmap grounding_of_state Sts))"
 
     have ground_ground_Liminf: "is_ground_clss (Liminf_llist (lmap grounding_of_state Sts))"
-      using Liminf_grounding_of_state_ground unfolding is_ground_clss_def by auto (* TODO: instead of is_ground_clss_def MAKE a lemma like Liminf_llist_grounding_of_state_ground *)
+      using Liminf_grounding_of_state_ground unfolding is_ground_clss_def by auto 
 
     have ground_cc: "is_ground_cls_mset ?CC"
       using a ground_ground_Liminf is_ground_cls_mset_def is_ground_clss_def by auto
@@ -1637,12 +1637,12 @@ proof -
 
     have DA_CAs_in_ground_Liminf: "{?DA} \<union> set CAs \<subseteq> grounding_of_clss (Q_of_state (Liminf_state Sts))"
       using a CAs_p unfolding clss_of_state_def using fair unfolding fair_state_seq_def
-      by (metis (no_types, lifting) Un_empty_left \<open>Liminf_llist Ns - src.Rf (Liminf_llist Ns) \<subseteq> grounding_of_state (Liminf_state Sts)\<close> a clss_of_state_def ns set_mset_mset subset_trans sup_commute)
+      by (metis (no_types, lifting) Un_empty_left ground_ns_in_ground_limit_st a clss_of_state_def ns set_mset_mset subset_trans sup_commute)
 
-    then have gc1: "is_ground_cls_list CAs"
+    then have ground_cas: "is_ground_cls_list CAs"
       using CAs_p unfolding is_ground_cls_list_def by auto
 
-    have ge: "is_ground_cls ?E"
+    have ground_e: "is_ground_cls ?E"
     proof - (* turn in to a LEMMA? *)
       have a1: "atms_of ?E \<subseteq> (\<Union>CA \<in> set CAs. atms_of CA) \<union> atms_of ?DA"
         using \<gamma>_p ground_cc ground_da gd.ord_resolve_atms_of_concl_subset[of "CAs" "?DA" "?E"] CAs_p by auto
@@ -1652,7 +1652,7 @@ proof -
         then have "atm_of L \<in> atms_of (concl_of \<gamma>)"
           by (meson atm_of_lit_in_atms_of)
         then have "is_ground_atm (atm_of L)"
-          using a1 gc1 ground_da is_ground_cls_imp_is_ground_atm is_ground_cls_list_def by auto
+          using a1 ground_cas ground_da is_ground_cls_imp_is_ground_atm is_ground_cls_list_def by auto
       }
       then show ?thesis
         unfolding is_ground_cls_def is_ground_lit_def by simp
@@ -1710,7 +1710,7 @@ proof -
         have k: "gd.eligible As (D + negs (mset As))"
           using ord_resolve by simp
         have ground_cs: "\<forall>i<n. is_ground_cls (Cs ! i)"
-          using ord_resolve(8) ord_resolve(3,4) gc1
+          using ord_resolve(8) ord_resolve(3,4) ground_cas
           using ground_subclauses[of CAs Cs AAs] unfolding is_ground_cls_list_def by auto
         have ground_set_as: "is_ground_atms (set As)"
           using ord_resolve(1) ground_da
@@ -1756,7 +1756,7 @@ proof -
           using ord_resolve by simp
 
         have gg: "is_ground_cls (\<Union>#mset Cs + D)"
-          using ground_d ground_cs b ge by auto
+          using ground_d ground_cs b ground_e by auto
         show ?thesis
           using ord_resolve.intros[OF len_cas len_cs len_ass len_as nz cas ass_ne jj kk ll] m a b gg
           unfolding S_Q_def by auto
