@@ -70,11 +70,11 @@ inductive weighted_RP :: "'a gstate \<Rightarrow> 'a gstate \<Rightarrow> bool" 
     (N, P + {#(C, i)#}, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
 | backward_subsumption_Q: "D \<in># image_mset fst N \<Longrightarrow> strictly_subsumes D C \<Longrightarrow>
     (N, P, Q + {#(C, i)#}, n) \<leadsto>\<^sub>w (N, P, Q, n)"
-| forward_reduction: "(\<exists>D L'. D + {#L'#} \<in># image_mset fst (P + Q) \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
+| forward_reduction: "D + {#L'#} \<in># image_mset fst (P + Q) \<Longrightarrow> - L = L' \<cdot>l \<sigma> \<Longrightarrow> D \<cdot> \<sigma> \<subseteq># C \<Longrightarrow>
     (N + {#(C + {#L#}, i)#}, P, Q, n) \<leadsto>\<^sub>w (N + {#(C, i)#}, P, Q, n)"
-| backward_reduction_P: "(\<exists>D L'. D + {#L'#} \<in># image_mset fst N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
+| backward_reduction_P: "D + {#L'#} \<in># image_mset fst N \<Longrightarrow> - L = L' \<cdot>l \<sigma> \<Longrightarrow> D \<cdot> \<sigma> \<subseteq># C \<Longrightarrow>
     (N, P + {#(C + {#L#}, i)#}, Q, n) \<leadsto>\<^sub>w (N, P + {#(C, i)#}, Q, n)"
-| backward_reduction_Q: "(\<exists>D L'. D + {#L'#} \<in># image_mset fst N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
+| backward_reduction_Q: "D + {#L'#} \<in># image_mset fst N \<Longrightarrow> - L = L' \<cdot>l \<sigma> \<Longrightarrow> D \<cdot> \<sigma> \<subseteq># C \<Longrightarrow>
     (N, P, Q + {#(C + {#L#}, i)#}, n) \<leadsto>\<^sub>w (N, P + {#(C, i)#}, Q, n)"
 | clause_processing: "(N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>w (N, P + {#(C, i)#}, Q, n)"
 | inference_computation: "(\<forall>(D, j) \<in># P. weight (C, i) \<le> weight (D, j)) \<Longrightarrow>
@@ -82,7 +82,7 @@ inductive weighted_RP :: "'a gstate \<Rightarrow> 'a gstate \<Rightarrow> bool" 
       ` concls_of (ord_FO_resolution_inferences_between (set_mset (image_mset fst Q)) C)) \<Longrightarrow>
     ({#}, P + {#(C, i)#}, Q, n) \<leadsto>\<^sub>w (N, P, Q + {#(C, i)#}, Suc n)"
 
-lemma weighted_imp_nonweighted: "St \<leadsto>\<^sub>w St' \<Longrightarrow> state_of_gstate St \<leadsto> state_of_gstate St'"
+lemma weighted_RP_imp_RP: "St \<leadsto>\<^sub>w St' \<Longrightarrow> state_of_gstate St \<leadsto> state_of_gstate St'"
 proof (induction rule: weighted_RP.induct)
   case (inference_computation P C i N n Q)
   then show ?case 
@@ -90,7 +90,7 @@ proof (induction rule: weighted_RP.induct)
     by (auto simp: comp_def image_comp ord_FO_resolution_inferences_between_def)
 qed (use RP.intros in simp_all)
 
-lemma final: "\<not> ({#}, {#}, Q, n) \<leadsto>\<^sub>w St"
+lemma weighted_RP_final: "\<not> ({#}, {#}, Q, n) \<leadsto>\<^sub>w St"
   by (auto elim: weighted_RP.cases)
 
 context
@@ -126,17 +126,17 @@ interpretation src: standard_redundancy_criterion_counterex_reducing gd.ord_\<Ga
   "ground_resolution_with_selection.INTERP S_Q'"
   by unfold_locales
 
-lemma deriv_nonweighted: "chain (op \<leadsto>) (lmap state_of_gstate Sts)"
-  using deriv weighted_imp_nonweighted by (metis chain_lmap)
+lemma deriv_RP: "chain (op \<leadsto>) (lmap state_of_gstate Sts)"
+  using deriv weighted_RP_imp_RP by (metis chain_lmap)
 
-lemma finite_Sts0_nonweighted: "finite (clss_of_state (lnth (lmap state_of_gstate Sts) 0))"
+lemma finite_Sts0_RP: "finite (clss_of_state (lnth (lmap state_of_gstate Sts) 0))"
   using finite_Sts0 lnth_lmap[of 0 _ state_of_gstate] chain_length_pos[OF deriv]
   by (auto simp: enat_0)
 
-lemma empty_P0_nonweighted: "P_of_state (lnth (lmap state_of_gstate Sts) 0) = {}"
+lemma empty_P0_RP: "P_of_state (lnth (lmap state_of_gstate Sts) 0) = {}"
   using empty_P0 chain_length_pos[OF deriv] by (auto simp: enat_0)
 
-lemma empty_Q0_nonweighted: "Q_of_state (lnth (lmap state_of_gstate Sts) 0) = {}"
+lemma empty_Q0_RP: "Q_of_state (lnth (lmap state_of_gstate Sts) 0) = {}"
   using empty_Q0 chain_length_pos[OF deriv] by (auto simp: enat_0)
 
 theorem weighted_RP_fair: "fair_state_seq (lmap state_of_gstate Sts)"
@@ -165,14 +165,13 @@ qed
 corollary weighted_RP_saturated:
   "src.saturated_upto (Liminf_llist (lmap grounding_of_gstate Sts))"
   unfolding S_Q'_def llist.map_comp[symmetric]
-  by (rule RP_saturated_if_fair[OF deriv_nonweighted finite_Sts0_nonweighted empty_P0_nonweighted
-        empty_Q0_nonweighted weighted_RP_fair])
+  by (rule RP_saturated_if_fair[OF deriv_RP finite_Sts0_RP empty_P0_RP empty_Q0_RP weighted_RP_fair])
 
 corollary weighted_RP_complete:
-  assumes unsat: "\<not> satisfiable (grounding_of_state (Liminf_gstate Sts))" 
+  assumes unsat: "\<not> satisfiable (grounding_of_state (Liminf_gstate Sts))"
   shows "{#} \<in> clss_of_state (Liminf_gstate Sts)"
-  by (rule RP_complete_if_fair[OF deriv_nonweighted finite_Sts0_nonweighted empty_P0_nonweighted
-        empty_Q0_nonweighted weighted_RP_fair unsat])
+  by (rule RP_complete_if_fair[OF deriv_RP finite_Sts0_RP empty_P0_RP empty_Q0_RP weighted_RP_fair
+        unsat])
 
 end
 

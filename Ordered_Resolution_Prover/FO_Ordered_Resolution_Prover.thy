@@ -85,17 +85,17 @@ inductive RP :: "'a state \<Rightarrow> 'a state \<Rightarrow> bool" (infix "\<l
 | forward_subsumption: "D \<in> P \<union> Q \<Longrightarrow> subsumes D C \<Longrightarrow> (N \<union> {C}, P, Q) \<leadsto> (N, P, Q)"
 | backward_subsumption_P: "D \<in> N \<Longrightarrow> strictly_subsumes D C \<Longrightarrow> (N, P \<union> {C}, Q) \<leadsto> (N, P, Q)"
 | backward_subsumption_Q: "D \<in> N \<Longrightarrow> strictly_subsumes D C \<Longrightarrow> (N, P, Q \<union> {C}) \<leadsto> (N, P, Q)"
-| forward_reduction: "(\<exists>D L'. D + {#L'#} \<in> P \<union> Q \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
+| forward_reduction: "D + {#L'#} \<in> P \<union> Q \<Longrightarrow> - L = L' \<cdot>l \<sigma> \<Longrightarrow> D \<cdot> \<sigma> \<subseteq># C \<Longrightarrow>
     (N \<union> {C + {#L#}}, P, Q) \<leadsto> (N \<union> {C}, P, Q)"
-| backward_reduction_P: "(\<exists>D L'. D + {#L'#} \<in> N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
+| backward_reduction_P: "D + {#L'#} \<in> N \<Longrightarrow> - L = L' \<cdot>l \<sigma> \<Longrightarrow> D \<cdot> \<sigma> \<subseteq># C \<Longrightarrow>
     (N, P \<union> {C + {#L#}}, Q) \<leadsto> (N, P \<union> {C}, Q)"
-| backward_reduction_Q: "(\<exists>D L'. D + {#L'#} \<in> N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
+| backward_reduction_Q: "D + {#L'#} \<in> N \<Longrightarrow> - L = L' \<cdot>l \<sigma> \<Longrightarrow> D \<cdot> \<sigma> \<subseteq># C \<Longrightarrow>
     (N, P, Q \<union> {C + {#L#}}) \<leadsto> (N, P \<union> {C}, Q)"
 | clause_processing: "(N \<union> {C}, P, Q) \<leadsto> (N, P \<union> {C}, Q)"
 | inference_computation: "N = concls_of (ord_FO_resolution.inferences_between Q C) \<Longrightarrow>
     ({}, P \<union> {C}, Q) \<leadsto> (N, P, Q \<union> {C})"
 
-lemma final: "\<not> ({}, {}, Q) \<leadsto> St"
+lemma RP_final: "\<not> ({}, {}, Q) \<leadsto> St"
   by (auto elim: RP.cases)
 
 definition sup_state :: "'a state llist \<Rightarrow> 'a state" where
@@ -353,10 +353,8 @@ next
       unfolding clss_of_state_def grounding_of_clss_def by (force intro: src_ext.derive.intros)
   qed
 next
-  case (forward_reduction P Q L \<sigma> C N)
-  then obtain D L' where
-    DL'_p: "D + {#L'#} \<in> P \<union> Q \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C"
-    by auto
+  case (forward_reduction D L' P Q L \<sigma> C N)
+  note DL'_p = this
   {
     fix C\<mu>
     assume "C\<mu> \<in> grounding_of_cls C"
@@ -368,25 +366,19 @@ next
       "\<gamma> = Infer {#(C + {#L#})\<cdot> \<mu>#} ((D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>) (C \<cdot> \<mu>)"
 
     have "(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> \<in> grounding_of_state (N \<union> {C + {#L#}}, P, Q)"
-      using DL'_p \<mu>_p unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def
-      apply (rule_tac a="D + {#L'#}" in Complete_Lattices.UN_I)
-      subgoal
-        apply (simp;fail)
-        done
-      subgoal
-        apply (metis (mono_tags, lifting) is_ground_comp_subst mem_Collect_eq subst_cls_comp_subst)
-        done
-      done
+      unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def
+      by (rule UN_I[of "D + {#L'#}"], use DL'_p(1) in simp,
+          metis (mono_tags, lifting) \<mu>_p is_ground_comp_subst mem_Collect_eq subst_cls_comp_subst)
     moreover have "(C + {#L#}) \<cdot> \<mu> \<in> grounding_of_state (N \<union> {C + {#L#}}, P, Q)"
       using \<mu>_p unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def by auto
-    moreover have "\<forall>I. I \<Turnstile> ((D \<cdot> \<sigma> \<cdot> \<mu>) + ({#- (L  \<cdot>l \<mu>)#})) \<longrightarrow> I \<Turnstile> ((C  \<cdot> \<mu>) + ({#L  \<cdot>l \<mu>#})) \<longrightarrow> I \<Turnstile> (D \<cdot> \<sigma> \<cdot> \<mu>) + (C \<cdot> \<mu>)"
-        by auto
+    moreover have "\<forall>I. I \<Turnstile> D \<cdot> \<sigma> \<cdot> \<mu> + {#- (L  \<cdot>l \<mu>)#} \<longrightarrow> I \<Turnstile> C  \<cdot> \<mu> + {#L  \<cdot>l \<mu>#} \<longrightarrow> I \<Turnstile> D \<cdot> \<sigma> \<cdot> \<mu> + C \<cdot> \<mu>"
+      by auto
     then have "\<forall>I. I \<Turnstile> (D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow> I \<Turnstile> D \<cdot> \<sigma> \<cdot> \<mu> + C \<cdot> \<mu>"
       using DL'_p
       by (metis add_mset_add_single subst_cls_add_mset subst_cls_union subst_minus)
     then have "\<forall>I. I \<Turnstile> (D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>"
       using DL'_p by (metis (no_types, lifting) subset_mset.le_iff_add subst_cls_union true_cls_union)
-    then have "(\<forall>I. I \<Turnstile>m {#(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>)"
+    then have "\<forall>I. I \<Turnstile>m {#(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>"
       by (meson true_cls_mset_singleton)
     ultimately have "\<gamma> \<in> src_ext.inferences_from (grounding_of_state (N \<union> {C + {#L#}}, P, Q))"
       unfolding src_ext.inferences_from_def unfolding gd_ord_\<Gamma>'_def infer_from_def \<gamma>_def by auto
@@ -417,10 +409,8 @@ next
     using src_ext.derive.intros[of "grounding_of_state (N \<union> {C}, P, Q)" "grounding_of_state (N \<union> {C + {#L#}}, P, Q)"]
     by auto
 next
-  case (backward_reduction_P N L \<sigma> C P Q) (* Adapted from previous proof *)
-  then obtain D L' where
-    DL'_p: "D + {#L'#} \<in> N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C"
-    by auto
+  case (backward_reduction_P D L' N L \<sigma> C P Q) (* Adapted from previous proof *)
+  note DL'_p = this
   {
     fix C\<mu>
     assume "C\<mu> \<in> grounding_of_cls C"
@@ -432,19 +422,13 @@ next
       "\<gamma> = Infer {#(C + {#L#})\<cdot> \<mu>#} ((D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>) (C \<cdot> \<mu>)"
 
     have "(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> \<in> grounding_of_state (N, P \<union> {C + {#L#}}, Q)"
-      using DL'_p \<mu>_p unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def
-      apply (rule_tac a="D + {#L'#}" in Complete_Lattices.UN_I)
-      subgoal
-        apply (simp;fail)
-        done
-      subgoal
-        apply (metis (mono_tags, lifting) is_ground_comp_subst mem_Collect_eq subst_cls_comp_subst)
-        done
-      done
+      unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def
+      by (rule UN_I[of "D + {#L'#}"], use DL'_p(1) in simp,
+          metis (mono_tags, lifting) \<mu>_p is_ground_comp_subst mem_Collect_eq subst_cls_comp_subst)
     moreover have "(C + {#L#}) \<cdot> \<mu> \<in> grounding_of_state (N, P \<union> {C + {#L#}}, Q)"
       using \<mu>_p unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def by auto
-    moreover have "\<forall>I. I \<Turnstile> ((D \<cdot> \<sigma> \<cdot> \<mu>) + ({#- (L  \<cdot>l \<mu>)#})) \<longrightarrow> I \<Turnstile> ((C  \<cdot> \<mu>) + ({#L  \<cdot>l \<mu>#})) \<longrightarrow> I \<Turnstile> (D \<cdot> \<sigma> \<cdot> \<mu>) + (C \<cdot> \<mu>)"
-        by auto
+    moreover have "\<forall>I. I \<Turnstile> D \<cdot> \<sigma> \<cdot> \<mu> + {#- (L  \<cdot>l \<mu>)#} \<longrightarrow> I \<Turnstile> C  \<cdot> \<mu> + {#L  \<cdot>l \<mu>#} \<longrightarrow> I \<Turnstile> D \<cdot> \<sigma> \<cdot> \<mu> + C \<cdot> \<mu>"
+      by auto
     then have "\<forall>I. I \<Turnstile> (D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow> I \<Turnstile> D \<cdot> \<sigma> \<cdot> \<mu> + C \<cdot> \<mu>"
       using DL'_p
       by (metis add_mset_add_single subst_cls_add_mset subst_cls_union subst_minus)
@@ -481,10 +465,8 @@ next
     using src_ext.derive.intros[of "grounding_of_state (N, P \<union> {C}, Q)" "grounding_of_state (N, P \<union> {C + {#L#}}, Q)"]
     by auto
 next
-  case (backward_reduction_Q N L \<sigma> C P Q) (* Adapted from previous proof *)
-  then obtain D L' where
-    DL'_p: "D + {#L'#} \<in> N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C"
-    by auto
+  case (backward_reduction_Q D L' N L \<sigma> C P Q) (* Adapted from previous proof *)
+  note DL'_p = this
   {
     fix C\<mu>
     assume "C\<mu> \<in> grounding_of_cls C"
@@ -496,19 +478,13 @@ next
       "\<gamma> = Infer {#(C + {#L#})\<cdot> \<mu>#} ((D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>) (C \<cdot> \<mu>)"
 
     have "(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> \<in> grounding_of_state (N, P, Q \<union> {C + {#L#}})"
-      using DL'_p \<mu>_p unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def
-      apply (rule_tac a="D + {#L'#}" in Complete_Lattices.UN_I)
-      subgoal
-        apply (simp;fail)
-        done
-      subgoal
-        apply (metis (mono_tags, lifting) is_ground_comp_subst mem_Collect_eq subst_cls_comp_subst)
-        done
-      done
+      unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def
+      by (rule UN_I[of "D + {#L'#}"], use DL'_p(1) in simp,
+          metis (mono_tags, lifting) \<mu>_p is_ground_comp_subst mem_Collect_eq subst_cls_comp_subst)
     moreover have "(C + {#L#}) \<cdot> \<mu> \<in> grounding_of_state (N, P, Q \<union> {C + {#L#}})"
       using \<mu>_p unfolding clss_of_state_def grounding_of_clss_def grounding_of_cls_def by auto
-    moreover have "\<forall>I. I \<Turnstile> ((D \<cdot> \<sigma> \<cdot> \<mu>) + ({#- (L  \<cdot>l \<mu>)#})) \<longrightarrow> I \<Turnstile> ((C  \<cdot> \<mu>) + ({#L  \<cdot>l \<mu>#})) \<longrightarrow> I \<Turnstile> (D \<cdot> \<sigma> \<cdot> \<mu>) + (C \<cdot> \<mu>)"
-        by auto
+    moreover have "\<forall>I. I \<Turnstile> D \<cdot> \<sigma> \<cdot> \<mu> + {#- (L  \<cdot>l \<mu>)#} \<longrightarrow> I \<Turnstile> C  \<cdot> \<mu> + {#L  \<cdot>l \<mu>#} \<longrightarrow> I \<Turnstile> D \<cdot> \<sigma> \<cdot> \<mu> + C \<cdot> \<mu>"
+      by auto
     then have "\<forall>I. I \<Turnstile> (D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow> I \<Turnstile> D \<cdot> \<sigma> \<cdot> \<mu> + C \<cdot> \<mu>"
       using DL'_p
       by (metis add_mset_add_single subst_cls_add_mset subst_cls_union subst_minus)
@@ -1014,7 +990,7 @@ proof -
       ultimately show ?thesis
         using d_in_q by auto
     next
-      case (backward_reduction_Q N L \<sigma> D' P Q)
+      case (backward_reduction_Q E L' N L \<sigma> D' P Q)
       {
         assume "D' + {#L#} = D"
         then have D'_p: "strictly_subsumes D' D \<and> D' \<in> ?Ps (Suc l)"
@@ -1113,7 +1089,7 @@ proof -
     then show ?thesis
       by auto
   next
-    case (backward_reduction_P N L \<sigma> D' P Q)
+    case (backward_reduction_P E L' N L \<sigma> D' P Q)
     then have twins: "D' + {#L#} = D" "?Ns (Suc l) = N" "?Ns l = N"  "?Ps (Suc l) = P \<union> {D'}" "?Ps l = P \<union> {D' + {#L#}}" "?Qs (Suc l) = Q" "?Qs l = Q"
       using l_p by auto
     then have D'_p: "strictly_subsumes D' D \<and> D' \<in> ?Ps (Suc l)"
@@ -1265,7 +1241,7 @@ proof -
     show ?thesis
       using D'_p twins l_p subs mini \<sigma>'_p by auto
   next
-    case (forward_reduction P Q L \<sigma> D' N)
+    case (forward_reduction E L' P Q L \<sigma> D' N)
     then have twins: "D' + {#L#} = D" "?Ns (Suc l) = N \<union> {D'}" "?Ns l = N \<union> {D' + {#L#}}"  "?Ps (Suc l) = P " "?Ps l = P" "?Qs (Suc l) = Q" "?Qs l = Q"
       using l_p by auto
     then have D'_p: "strictly_subsumes D' D \<and> D' \<in> ?Ns (Suc l)"

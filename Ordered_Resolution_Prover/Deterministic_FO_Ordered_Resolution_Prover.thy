@@ -337,8 +337,8 @@ proof -
         have "gstate_of_glstate ((E @ L # C, i) # N', P, Q, n)
           \<leadsto>\<^sub>w gstate_of_glstate ((E @ C, i) # N', P, Q, n)"
           by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
-                forward_reduction[of "mset (map (apfst mset) P)" "mset (map (apfst mset) Q)" L \<sigma>
-                  "mset (E @ C)" "mset (map (apfst mset) N')" i n]])
+                forward_reduction[of "mset D'" L' "mset (map (apfst mset) P)"
+                  "mset (map (apfst mset) Q)" L \<sigma> "mset (E @ C)" "mset (map (apfst mset) N')" i n]])
             (use \<sigma> in \<open>auto simp: comp_def\<close>)
         then show ?thesis
           unfolding red_lc using ih[of E] by (rule converse_rtranclp_into_rtranclp)
