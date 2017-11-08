@@ -148,6 +148,7 @@ next
     by blast
 qed
 
+(* FIXME: needed?
 lemma chain_tranclp_imp_exists_chain: "chain (R\<^sup>+\<^sup>+) xs \<Longrightarrow> \<exists>ys. chain R ys"
 proof (rule exI, coinduction)
   case chain
@@ -160,6 +161,7 @@ proof (rule exI, coinduction)
     (\<exists>xsa x. ys = LCons x xsa \<and> (xsa = ys \<and> chain R\<^sup>+\<^sup>+ xs \<or> chain R xsa) \<and> R x (lhd xsa))"
     sorry
 qed
+*)
 
 
 subsection \<open>Processes\<close>
