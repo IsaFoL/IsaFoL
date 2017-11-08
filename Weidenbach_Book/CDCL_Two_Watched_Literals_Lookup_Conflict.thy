@@ -1602,9 +1602,9 @@ proof -
   have [refine_vcg]: \<open>get_propagation_reason M x
     \<le> \<Down> Id (get_propagation_reason M y)\<close> if \<open>x = y\<close> for x y
     unfolding that by auto
-  have [refine_vcg]: \<open>mark_failed_lits_wl a b
+  have [refine_vcg]: \<open>mark_failed_lits_wl NU a b
     \<le> \<Down> Id
-        (mark_failed_lits_wl a' b')\<close> if \<open>a = a'\<close> and \<open>b = b'\<close> for a a' b b'
+        (mark_failed_lits_wl NU a' b')\<close> if \<open>a = a'\<close> and \<open>b = b'\<close> for a a' b b'
     unfolding that by auto
   show ?thesis
     unfolding lit_redundant_rec_wl_lookup_def lit_redundant_rec_wl_def

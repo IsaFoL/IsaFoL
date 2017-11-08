@@ -284,9 +284,9 @@ definition get_literal_and_remove_of_analyse
          hd ana = (fst (hd analyse), snd (hd (analyse)) - {#L#}))\<close>
 
 definition mark_failed_lits
-  :: \<open>'v conflict_min_analyse \<Rightarrow> 'v conflict_min_cach \<Rightarrow> 'v conflict_min_cach nres\<close>
+  :: \<open>_ \<Rightarrow> 'v conflict_min_analyse \<Rightarrow> 'v conflict_min_cach \<Rightarrow> 'v conflict_min_cach nres\<close>
 where
-  \<open>mark_failed_lits analyse cach = SPEC(\<lambda>cach'.
+  \<open>mark_failed_lits NU analyse cach = SPEC(\<lambda>cach'.
      (\<forall>L. cach' L = SEEN_REMOVABLE \<longrightarrow> cach L = SEEN_REMOVABLE))\<close>
 
 
@@ -371,7 +371,7 @@ where
                   case C of
                     Some C \<Rightarrow> RETURN (cach, (L, C - {#-L#}) # analyse, False)
                   | None \<Rightarrow> do {
-                      cach \<leftarrow> mark_failed_lits analyse cach;
+                      cach \<leftarrow> mark_failed_lits NU analyse cach;
                       RETURN (cach, [], False)
                   }
               }
@@ -1165,7 +1165,7 @@ definition get_literal_and_remove_of_analyse_wl
 
 definition mark_failed_lits_wl
 where
-  \<open>mark_failed_lits_wl analyse cach = SPEC(\<lambda>cach'.
+  \<open>mark_failed_lits_wl NU analyse cach = SPEC(\<lambda>cach'.
      (\<forall>L. cach' L = SEEN_REMOVABLE \<longrightarrow> cach L = SEEN_REMOVABLE))\<close>
 
 
@@ -1205,7 +1205,7 @@ where
                   case C of
                     Some C \<Rightarrow> RETURN (cach, analyse @ [(C, 1)], False)
                   | None \<Rightarrow> do {
-                      cach \<leftarrow> mark_failed_lits_wl analyse cach;
+                      cach \<leftarrow> mark_failed_lits_wl NU analyse cach;
                       RETURN (cach, [], False)
                   }
               }
@@ -1428,7 +1428,7 @@ proof -
       unfolding get_lit convert_analysis_list_def lit_redundant_rec_wl_ref_def
       by (auto simp: drop_Suc)
   qed
-  have mark_failed_lits_wl: \<open>mark_failed_lits_wl x2e x1b \<le> \<Down> Id (mark_failed_lits x2d x1)\<close>
+  have mark_failed_lits_wl: \<open>mark_failed_lits_wl NU x2e x1b \<le> \<Down> Id (mark_failed_lits NU' x2d x1)\<close>
     if
       \<open>(x, x') \<in> ?R\<close> and
       \<open>x' = (x1, x2)\<close> and
@@ -1821,12 +1821,12 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l_tl
   using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<open>tl xs\<close> \<open>i - 1\<close> j] assms
   by (cases xs) auto
 
-lemma 
+lemma mark_failed_lits_stack_mark_failed_lits_wl:
   assumes 
     NU_\<L>\<^sub>i\<^sub>n: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU))\<close> and
     init: \<open>mark_failed_lits_stack_inv NU analyse (0::nat, cach)\<close>
   shows
-    \<open>mark_failed_lits_stack NU analyse cach \<le> (mark_failed_lits_wl analyse cach)\<close>
+    \<open>mark_failed_lits_stack NU analyse cach \<le> (mark_failed_lits_wl NU analyse cach)\<close>
 proof -
   define I where
      \<open>I = (\<lambda>(i :: nat, cach'). (\<forall>L. cach' L = SEEN_REMOVABLE \<longrightarrow> cach L = SEEN_REMOVABLE))\<close>
