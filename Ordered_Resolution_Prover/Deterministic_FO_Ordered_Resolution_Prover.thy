@@ -209,8 +209,8 @@ proof (induct P arbitrary: P0 Ci)
       by (rule arg_cong[of _ _ Min]) auto
     then have min: "Min ((weight \<circ> apfst mset) ` set (P0 # P1 # P)) =
       Min ((weight \<circ> apfst mset) ` set (P0 # P))"
-      by (simp add: min_def) (smt False List.finite_set Min_insert2 Suc_le_eq antisym finite_imageI
-          imageE not_less_eq_eq o_def)
+      by (simp add: min_def) (smt False finite_set Min_insert2 Suc_le_eq antisym finite_imageI
+          imageE not_less_eq_eq comp_def)
     show ?thesis
       unfolding min by (rule ih[of Ci P0]) (simp add: ih[of Ci P1] ci False)
   qed
@@ -554,9 +554,9 @@ lemma deterministic_RP_step_funpow_imp_weighted_RP:
 
 definition saturated_upto :: "'a clause set \<Rightarrow> bool" where
   "saturated_upto CC \<longleftrightarrow>
-   (\<exists>Sts. redundancy_criterion.saturated_upto (ground_resolution_with_selection.ord_\<Gamma> (S_gQ Sts))
+   (\<exists>gSts. redundancy_criterion.saturated_upto (ground_resolution_with_selection.ord_\<Gamma> (S_gQ gSts))
       standard_redundancy_criterion.Rf
-      (standard_redundancy_criterion.Ri (ground_resolution_with_selection.ord_\<Gamma> (S_gQ Sts))) CC)"
+      (standard_redundancy_criterion.Ri (ground_resolution_with_selection.ord_\<Gamma> (S_gQ gSts))) CC)"
 
 context
   fixes
@@ -579,7 +579,10 @@ primcorec derivation_from :: "'a glstate \<Rightarrow> 'a glstate llist" where
 abbreviation Sts :: "'a glstate llist" where
   "Sts \<equiv> derivation_from St0"
 
-lemma finite_derivation_from_St0: "lfinite Sts"
+abbreviation gSts :: "'a gstate llist" where
+  "gSts \<equiv> lmap gstate_of_glstate Sts"
+
+lemma lfinite_Sts: "lfinite Sts"
 proof (induct rule: deterministic_RP.raw_induct[OF _ drp_some])
   case (1 self_call St St')
   note ih = this(1) and step = this(2)
@@ -587,29 +590,80 @@ proof (induct rule: deterministic_RP.raw_induct[OF _ drp_some])
     using step by (subst derivation_from.code, cases "is_final_glstate St", auto intro!: ih)
 qed
 
-lemma deriv_Sts_weighted_RP: "chain (op \<leadsto>\<^sub>w\<^sup>+) (lmap gstate_of_glstate Sts)"
-  apply coinduction
+lemma lfinite_gSts: "lfinite gSts"
+  by (rule lfinite_lmap[THEN iffD2, OF lfinite_Sts])
+
+lemma deriv_gSts_trancl_weighted_RP: "chain (op \<leadsto>\<^sub>w\<^sup>+) gSts"
+  using lfinite_Sts
+  apply induct
   using deterministic_RP_SomeD[OF drp_some] deterministic_RP_step_funpow_imp_weighted_RP
   sorry
 
-lemma finite_Sts0_weighted_RP: "finite (clss_of_gstate (lnth (lmap gstate_of_glstate Sts) 0))"
-  by (subst derivation_from.code) (simp add: clss_of_state_def)
+definition flat_gSts :: "'a gstate llist" where
+  "flat_gSts = (SOME gSts'. lfinite gSts' \<and> chain (op \<leadsto>\<^sub>w) gSts' \<and> lhd gSts' = lhd gSts
+     \<and> llast gSts' = llast gSts)"
 
-lemma empty_P0_weighted_RP: "P_of_gstate (lnth (lmap gstate_of_glstate Sts) 0) = {}"
-  by (subst derivation_from.code) simp
+lemma flat_gSts:
+  "lfinite flat_gSts \<and> chain (op \<leadsto>\<^sub>w) flat_gSts \<and> lhd flat_gSts = lhd gSts
+   \<and> llast flat_gSts = llast gSts"
+  unfolding flat_gSts_def
+  by (rule someI_ex[OF lfinite_chain_tranclp_imp_exists_lfinite_chain[OF lfinite_gSts
+          deriv_gSts_trancl_weighted_RP]])
 
-lemma empty_Q0_weighted_RP: "Q_of_gstate (lnth (lmap gstate_of_glstate Sts) 0) = {}"
-  by (subst derivation_from.code) simp
+lemmas lfinite_flat_gSts = flat_gSts[THEN conjunct1]
+lemmas deriv_flat_gSts_weighted_RP = flat_gSts[THEN conjunct2, THEN conjunct1]
+lemmas lhd_flat_gSts = flat_gSts[THEN conjunct2, THEN conjunct2, THEN conjunct1]
+lemmas ltl_flat_gSts = flat_gSts[THEN conjunct2, THEN conjunct2, THEN conjunct2]
 
-theorem deterministic_RP_sound:
-  "saturated_upto (set (map mset R)) \<and>
-   (satisfiable (set (map mset R)) \<longleftrightarrow> satisfiable (set (map (mset \<circ> fst) N)))"
+(* FIXME: avoid lnth 0 altogether *)
+lemma lnth_flat_gSts_0: "lnth flat_gSts 0 = lnth gSts 0"
+  sorry
+
+lemma finite_flat_gSts0: "finite (clss_of_gstate (lnth flat_gSts 0))"
+  unfolding lnth_flat_gSts_0 by (subst derivation_from.code) (simp add: clss_of_state_def)
+
+lemma empty_flat_gP0: "P_of_gstate (lnth flat_gSts 0) = {}"
+  unfolding lnth_flat_gSts_0 by (subst derivation_from.code) simp
+
+lemma empty_flat_gQ0: "Q_of_gstate (lnth flat_gSts 0) = {}"
+  unfolding lnth_flat_gSts_0 by (subst derivation_from.code) simp
+
+theorem
+  deterministic_RP_saturated: "saturated_upto (grounding_of_clss (set (map mset R)))" (is ?satur) and
+  deterministic_RP_sound:
+    "satisfiable (set (map mset R)) \<longleftrightarrow> satisfiable (set (map (mset \<circ> fst) N))" (is ?sound)
 proof -
   obtain N' P' Q' n' where
-    "gstate_of_glstate (N, [], [], n) \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate (N', P', Q', n')
+    "gstate_of_glstate St0 \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate (N', P', Q', n')
      \<and> N' = [] \<and> P' = [] \<and> R = map fst Q'"
+    sorry
 
-  thm weighted_RP_saturated
+  have "Liminf_llist (lmap grounding_of_gstate flat_gSts)"
+    sorry
+
+  show ?satur
+    using weighted_RP_saturated[OF deriv_flat_gSts_weighted_RP finite_flat_gSts0 empty_flat_gP0 empty_flat_gQ0]
+
+    sorry
+  show ?sound
+    sorry
+qed
+
+
+  by blast
+
+  sorry
+
+proof
+  
+
+
+
+
+
+  
+  
+
 
   show ?thesis
     sorry

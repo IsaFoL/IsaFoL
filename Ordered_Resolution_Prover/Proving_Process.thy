@@ -149,7 +149,7 @@ next
 qed
 
 (* FIXME: avoid finiteness assumption, e.g. using "corec"? see commented-out code below *)
-lemma finite_chain_tranclp_imp_exists_finite_chain:
+lemma lfinite_chain_tranclp_imp_exists_lfinite_chain:
   "lfinite xs \<Longrightarrow> chain R\<^sup>+\<^sup>+ xs \<Longrightarrow>
    \<exists>ys. lfinite ys \<and> chain R ys \<and> lhd ys = lhd xs \<and> llast ys = llast xs"
 proof (induction rule: lfinite_induct)
