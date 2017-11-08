@@ -1270,7 +1270,7 @@ where
 context isasat_input_ops
 begin
 
-lemma
+lemma iterate_over_lookup_conflict_iterate_over_conflict:
   fixes D :: \<open>nat clause\<close> and s :: 'state and s' :: 'state2 and Rstate :: \<open>('state2 \<times> 'state) set\<close> and
     f' :: \<open>conflict_rel \<Rightarrow> nat literal \<Rightarrow> 'state2 \<Rightarrow> ('state2 \<times> bool) nres\<close> and
     f :: \<open>nat clause \<Rightarrow> nat literal \<Rightarrow> 'state \<Rightarrow> ('state \<times> bool) nres\<close>
@@ -1534,11 +1534,13 @@ definition lit_redundant_rec_wl_lookup :: \<open>(nat, nat) ann_lits \<Rightarro
       (_ \<times> _ \<times> bool) nres\<close>
 where
   \<open>lit_redundant_rec_wl_lookup M NU D cach analysis =
-      WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup>
+      WHILE\<^sub>T\<^bsup>lit_redundant_rec_wl_inv M NU D\<^esup>
         (\<lambda>(cach, analyse, b). analyse \<noteq> [])
         (\<lambda>(cach, analyse, b). do {
             ASSERT(analyse \<noteq> []);
+            ASSERT(fst (last analyse) < length NU);
             let C = NU ! fst (last analyse);
+            ASSERT(length C > 0); (* \<ge> 2 ? *)
             let i = snd (last analyse);
             ASSERT(C!0 \<in> lits_of_l M);
             if i \<ge> length C
@@ -1547,10 +1549,10 @@ where
             else do {
                let (L, analyse) = get_literal_and_remove_of_analyse_wl C analyse;
                ASSERT(-L \<in> lits_of_l M);
-               if (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> is_in_lookup_conflict D L)
+               if (get_level M L = zero_uint32_nat \<or> conflict_min_cach cach (atm_of L) = SEEN_REMOVABLE \<or> is_in_lookup_conflict D L)
                then RETURN (cach, analyse, False)
                else do {
-                  C \<leftarrow> get_propagation_reason M L;
+                  C \<leftarrow> get_propagation_reason M (-L);
                   case C of
                     Some C \<Rightarrow> RETURN (cach, analyse @ [(C, 1)], False)
                   | None \<Rightarrow> do {
@@ -1570,7 +1572,9 @@ lemma lit_redundant_rec_wl_lookup_lit_redundant_rec_wl:
     M: \<open>\<forall>a \<in> lits_of_l M. a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
     \<open>M \<Turnstile>as CNot D\<close> and
     n_d: \<open>no_dup M\<close>
-  shows \<open>lit_redundant_rec_wl_lookup M NU D' cach analysis \<le> \<Down> Id (lit_redundant_rec_wl M NU D cach analysis)\<close>
+  shows
+   \<open>lit_redundant_rec_wl_lookup M NU D' cach analysis \<le> \<Down> Id
+      (lit_redundant_rec_wl M NU D cach analysis)\<close>
 proof -
   have [simp]: \<open>is_in_lookup_conflict D' x \<longleftrightarrow> x \<in># D\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>) if \<open>-x \<in> lits_of_l M\<close> for x
   proof
@@ -1606,8 +1610,11 @@ proof -
     unfolding lit_redundant_rec_wl_lookup_def lit_redundant_rec_wl_def
     apply (refine_vcg)
     subgoal by auto
+    subgoal by (auto simp: lit_redundant_rec_wl_inv_def)
     subgoal by auto
     subgoal by auto
+    subgoal by (auto simp: lit_redundant_rec_wl_inv_def elim!: neq_Nil_revE)
+    subgoal by (auto simp: lit_redundant_rec_wl_inv_def elim!: neq_Nil_revE)
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -1622,6 +1629,44 @@ proof -
     done
 qed
 
+abbreviation (in -)analyse_refinement_assn where
+  \<open>analyse_refinement_assn \<equiv> arl_assn (nat_assn *a nat_assn)\<close>
+
 end
+
+
+lemma minimize_status_eq_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo (op =)), uncurry (RETURN oo (op =))) \<in>
+    minimize_status_assn\<^sup>k *\<^sub>a minimize_status_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by (sepref_to_hoare) (sep_auto)
+
+context isasat_input_bounded
+begin
+
+sepref_thm sers
+  is \<open>uncurry4 lit_redundant_rec_wl_lookup\<close>
+  :: \<open>[\<lambda>((((M, NU), D), cach), analysis).
+         (\<forall>a \<in> lits_of_l M. atm_of a \<in># \<A>\<^sub>i\<^sub>n) (* replace by the proper function on the trail *) \<and>
+         (\<forall>a \<in> lits_of_l M. -a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) \<and>
+         (\<forall>a \<in> lits_of_l M. atm_of a < length (snd D))
+      ]\<^sub>a
+
+      trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a conflict_rel_assn\<^sup>k *\<^sub>a
+       cach_refinement_assn\<^sup>d *\<^sub>a analyse_refinement_assn\<^sup>d \<rightarrow>
+      cach_refinement_assn *a analyse_refinement_assn *a bool_assn\<close>
+  supply [[goals_limit = 1]] neq_Nil_revE[elim!] image_image[simp]
+  unfolding lit_redundant_rec_wl_lookup_def
+    conflict_min_cach_set_removable_def[symmetric]
+    conflict_min_cach_def[symmetric]
+    get_literal_and_remove_of_analyse_wl_def
+  apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+                      apply sepref_dbg_trans_step_keep
+                      apply sepref_dbg_trans_step_keep
+(*                       apply sepref_dbg_side_unfold apply (auto simp: )[] *)
+  oops
+
+end
+
 
 end
