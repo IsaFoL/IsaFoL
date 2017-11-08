@@ -1635,6 +1635,11 @@ abbreviation (in -)analyse_refinement_assn where
 end
 
 
+lemma minimize_status_eq_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo (op =)), uncurry (RETURN oo (op =))) \<in>
+    minimize_status_assn\<^sup>k *\<^sub>a minimize_status_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by (sepref_to_hoare) (sep_auto)
+
 context isasat_input_bounded
 begin
 
@@ -1642,7 +1647,8 @@ sepref_thm sers
   is \<open>uncurry4 lit_redundant_rec_wl_lookup\<close>
   :: \<open>[\<lambda>((((M, NU), D), cach), analysis).
          (\<forall>a \<in> lits_of_l M. atm_of a \<in># \<A>\<^sub>i\<^sub>n) (* replace by the proper function on the trail *) \<and>
-        (\<forall>a \<in> lits_of_l M. -a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l)
+         (\<forall>a \<in> lits_of_l M. -a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) \<and>
+         (\<forall>a \<in> lits_of_l M. atm_of a < length (snd D))
       ]\<^sub>a
 
       trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a conflict_rel_assn\<^sup>k *\<^sub>a
@@ -1655,8 +1661,10 @@ sepref_thm sers
     get_literal_and_remove_of_analyse_wl_def
   apply sepref_dbg_keep
       apply sepref_dbg_trans_keep
-           apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_side_unfold apply (auto simp: )[]
+                      apply sepref_dbg_trans_step_keep
+                      apply sepref_dbg_trans_step_keep
+  sorry
+(*                       apply sepref_dbg_side_unfold apply (auto simp: )[] *)
   oops
 
 end

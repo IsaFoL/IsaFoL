@@ -688,6 +688,8 @@ sepref_definition get_propagation_reason_code
 context isasat_input_ops
 begin
 
+sepref_register get_propagation_reason
+
 lemma get_propagation_reason_pol:
   \<open>(uncurry get_propagation_reason_pol, uncurry get_propagation_reason) \<in>
        [\<lambda>(M, L). L \<in> lits_of_l M]\<^sub>f trail_pol \<times>\<^sub>r Id \<rightarrow> \<langle>\<langle>nat_rel\<rangle>option_rel\<rangle> nres_rel\<close>
