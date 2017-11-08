@@ -563,12 +563,14 @@ context
     N0 :: "'a glclause list" and
     n0 :: nat and
     R :: "'a lclause list"
-  assumes
-    drp_some: "deterministic_RP (N0, [], [], n0) = Some R"
 begin
 
 abbreviation St0 :: "'a glstate" where
   "St0 \<equiv> (N0, [], [], n0)"
+
+context
+  assumes drp_some: "deterministic_RP St0 = Some R"
+begin
 
 primcorec derivation_from :: "'a glstate \<Rightarrow> 'a glstate llist" where
   "derivation_from St =
@@ -576,6 +578,14 @@ primcorec derivation_from :: "'a glstate \<Rightarrow> 'a glstate llist" where
 
 abbreviation Sts :: "'a glstate llist" where
   "Sts \<equiv> derivation_from St0"
+
+lemma finite_derivation_from_St0: "lfinite Sts"
+proof (induct rule: deterministic_RP.raw_induct[OF _ drp_some])
+  case (1 self_call St St')
+  note ih = this(1) and step = this(2)
+  show ?case
+    using step by (subst derivation_from.code, cases "is_final_glstate St", auto intro!: ih)
+qed
 
 lemma deriv_Sts_weighted_RP: "chain (op \<leadsto>\<^sub>w\<^sup>+) (lmap gstate_of_glstate Sts)"
   apply coinduction
@@ -604,6 +614,8 @@ proof -
   show ?thesis
     sorry
 qed
+
+end
 
 end
 
