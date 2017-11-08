@@ -531,8 +531,7 @@ proof (induct rule: deterministic_RP.raw_induct[OF _ assms])
     note step = step[simplified nonfinal, simplified]
 
     obtain k N' P' Q' n' where
-      "(deterministic_RP_step ^^ k)
-        (deterministic_RP_step (N, P, Q, n)) = (N', P', Q', n')
+      "(deterministic_RP_step ^^ k) (deterministic_RP_step (N, P, Q, n)) = (N', P', Q', n')
        \<and> N' = [] \<and> P' = [] \<and> R = map fst Q'"
       using ih[OF step] by blast
     then show ?thesis
