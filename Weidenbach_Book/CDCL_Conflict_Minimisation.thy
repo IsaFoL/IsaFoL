@@ -1,5 +1,6 @@
 theory CDCL_Conflict_Minimisation
   imports CDCL_Two_Watched_Literals_Watch_List_Domain WB_More_Refinement
+  CDCL_Two_Watched_Literals_IsaSAT_Trail
 begin
 
 no_notation Ref.update ("_ := _" 62)
@@ -282,9 +283,6 @@ definition get_literal_and_remove_of_analyse
     SPEC(\<lambda>(L, ana). L \<in># snd (hd analyse) \<and> tl ana = tl analyse \<and> ana \<noteq> [] \<and>
          hd ana = (fst (hd analyse), snd (hd (analyse)) - {#L#}))\<close>
 
-definition get_propagation_reason where
-  \<open>get_propagation_reason M L = SPEC(\<lambda>C. C \<noteq> None \<longrightarrow> Propagated (-L) (the C) \<in> set M)\<close>
-
 definition mark_failed_lits
   :: \<open>'v conflict_min_analyse \<Rightarrow> 'v conflict_min_cach \<Rightarrow> 'v conflict_min_cach nres\<close>
 where
@@ -369,7 +367,7 @@ where
                if (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D)
                then RETURN (cach, analyse, False)
                else do {
-                  C \<leftarrow> get_propagation_reason M L;
+                  C \<leftarrow> get_propagation_reason M (-L);
                   case C of
                     Some C \<Rightarrow> RETURN (cach, (L, C - {#-L#}) # analyse, False)
                   | None \<Rightarrow> do {
@@ -984,7 +982,7 @@ definition literal_redundant where
      else if cach (atm_of L) = SEEN_FAILED
      then RETURN (cach, [], False)
      else do {
-       C \<leftarrow> get_propagation_reason M L;
+       C \<leftarrow> get_propagation_reason M (-L);
        case C of
          Some C \<Rightarrow> lit_redundant_rec M NU D cach [(L, C - {#-L#})]
        | None \<Rightarrow> do {
@@ -1164,8 +1162,6 @@ definition get_literal_and_remove_of_analyse_wl
     (let (i, j) = last analyse in
      (C ! j, analyse[length analyse - 1 := (i, j + 1)]))\<close>
 
-definition get_propagation_reason_wl where
-  \<open>get_propagation_reason_wl M L = SPEC(\<lambda>C. C \<noteq> None \<longrightarrow> Propagated (-L) (the C) \<in> set M)\<close>
 
 definition mark_failed_lits_wl
 where
@@ -1201,7 +1197,7 @@ where
                if (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D)
                then RETURN (cach, analyse, False)
                else do {
-                  C \<leftarrow> get_propagation_reason M L;
+                  C \<leftarrow> get_propagation_reason M (-L);
                   case C of
                     Some C \<Rightarrow> RETURN (cach, analyse @ [(C, 1)], False)
                   | None \<Rightarrow> do {
@@ -1314,11 +1310,11 @@ proof -
           intro!: RETURN_SPEC_refine elim!: neq_Nil_revE split: if_splits nat.splits
           elim!: in_set_upd_cases)
   qed
-  have get_propagation_reason: \<open>get_propagation_reason M x1e
+  have get_propagation_reason: \<open>get_propagation_reason M (-x1e)
       \<le> \<Down> (\<langle>{(C', C).  C = mset (NU ! C') \<and> C' \<noteq> 0 \<and> Propagated (- x1e) (mset (NU!C')) \<in> set M'
                 \<and> Propagated (- x1e) C' \<in> set M \<and> C' < length NU}\<rangle>
               option_rel)
-          (get_propagation_reason M' x1d)\<close>
+          (get_propagation_reason M' (-x1d))\<close>
     (is \<open>_ \<le> \<Down> (\<langle>?get_propagation_reason\<rangle>option_rel) _\<close>)
     if
       \<open>(x, x') \<in> ?R\<close> and
@@ -1473,7 +1469,7 @@ definition literal_redundant_wl where
      else if cach (atm_of L) = SEEN_FAILED
      then RETURN (cach, [], False)
      else do {
-       C \<leftarrow> get_propagation_reason_wl M L;
+       C \<leftarrow> get_propagation_reason M (-L);
        case C of
          Some C \<Rightarrow> lit_redundant_rec_wl M NU D cach [(C, 1)]
        | None \<Rightarrow> do {
@@ -1540,11 +1536,11 @@ proof -
       unfolded S'_def[symmetric] S''_def[symmetric]
       M_def[symmetric] M'[symmetric] NU[symmetric] NU'[symmetric], OF _ struct_invs add_inv]
     that by auto
-   have get_propagation_reason: \<open>get_propagation_reason_wl M L
-      \<le> \<Down> (\<langle>{(C', C).  C = mset (NU ! C') \<and> C' \<noteq> 0 \<and> Propagated (- L) (mset (NU!C')) \<in> set M'
-                \<and> Propagated (- L) C' \<in> set M}\<rangle>
+   have get_propagation_reason: \<open>get_propagation_reason M (-L)
+      \<le> \<Down> (\<langle>{(C', C).  C = mset (NU ! C') \<and> C' \<noteq> 0 \<and> Propagated (-L) (mset (NU!C')) \<in> set M'
+                \<and> Propagated (-L) C' \<in> set M}\<rangle>
               option_rel)
-          (get_propagation_reason M' L)\<close>
+          (get_propagation_reason M' (-L))\<close>
     (is \<open>_ \<le> \<Down> (\<langle>?get_propagation_reason\<rangle>option_rel) _\<close> is ?G1) and
      propagated_L: \<open>Propagated (-L) a \<in> set M \<Longrightarrow> a \<noteq> 0 \<and> Propagated (- L) (mset (NU ! a)) \<in> set M'\<close>
     (is \<open>?H2 \<Longrightarrow> ?G2\<close>)
@@ -1609,7 +1605,7 @@ proof -
      show ?G1
        using H
        apply (auto simp: get_propagation_reason_def refine_rel_defs
-           get_propagation_reason_wl_def intro!: RES_refine)
+           get_propagation_reason_def intro!: RES_refine)
        apply (case_tac s)
        by auto
    qed

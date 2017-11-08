@@ -1552,7 +1552,7 @@ where
                if (get_level M L = zero_uint32_nat \<or> conflict_min_cach cach (atm_of L) = SEEN_REMOVABLE \<or> is_in_lookup_conflict D L)
                then RETURN (cach, analyse, False)
                else do {
-                  C \<leftarrow> get_propagation_reason M L;
+                  C \<leftarrow> get_propagation_reason M (-L);
                   case C of
                     Some C \<Rightarrow> RETURN (cach, analyse @ [(C, 1)], False)
                   | None \<Rightarrow> do {
