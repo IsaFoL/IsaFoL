@@ -148,6 +148,19 @@ next
     by blast
 qed
 
+lemma chain_tranclp_imp_exists_chain: "chain (R\<^sup>+\<^sup>+) xs \<Longrightarrow> \<exists>ys. chain R ys"
+proof (rule exI, coinduction)
+  case chain
+
+  define ys where
+    "ys = LCons (lhd xs) (lconcat (lmap (\<lambda>(x, y). SOME ys.
+       lfinite ys \<and> chain R ys \<and> lhd ys = x \<and> llast xs = y) (lzip xs (ltl xs))))"
+
+  show "(\<exists>x. ys = LCons x LNil) \<or>
+    (\<exists>xsa x. ys = LCons x xsa \<and> (xsa = ys \<and> chain R\<^sup>+\<^sup>+ xs \<or> chain R xsa) \<and> R x (lhd xsa))"
+    sorry
+qed
+
 
 subsection \<open>Processes\<close>
 

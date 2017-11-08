@@ -998,8 +998,8 @@ proof -
         then have subc: "subsumes D' C"
           using d(3) subsumes_trans unfolding strictly_subsumes_def by auto
         from D'_p have "D' \<in> clss_of_state (sup_state Sts)"
-          using llen
-          by (metis (no_types, lifting) UnI1 clss_of_state_def P_of_state.simps llength_lmap lnth_lmap lnth_subset_Sup_llist subsetCE sup_ge2 sup_state_def)
+          using llen by (metis (no_types) UnI1 clss_of_state_def P_of_state.simps llength_lmap
+              lnth_lmap lnth_subset_Sup_llist subsetCE sup_ge2 sup_state_def)
         then have False
           using d_least D'_p subc by auto
       }
@@ -1008,7 +1008,7 @@ proof -
     qed (use d_in_q in auto)
   qed
   have D_in_Sts: "D \<in> Q_of_state (lnth Sts l)" and D_in_Sts_Suc: "D \<in> Q_of_state (lnth Sts (Suc l))"
-    if l_i: \<open>l \<ge> i\<close> and enat: \<open>enat (Suc l) < llength Sts\<close> for l
+    if l_i: "l \<ge> i" and enat: "enat (Suc l) < llength Sts" for l
   proof -
     show \<open>D \<in> Q_of_state (lnth Sts l)\<close>
       using that
