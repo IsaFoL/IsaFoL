@@ -1613,7 +1613,7 @@ proof -
     subgoal by (auto simp: lit_redundant_rec_wl_inv_def)
     subgoal by auto
     subgoal by auto
-    subgoal by (auto simp: lit_redundant_rec_wl_inv_def elim!: neq_Nil_revE)
+    subgoal by (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def elim!: neq_Nil_revE)
     subgoal by (auto simp: lit_redundant_rec_wl_inv_def elim!: neq_Nil_revE)
     subgoal by auto
     subgoal by auto
@@ -1642,6 +1642,34 @@ lemma minimize_status_eq_hnr[sepref_fr_rules]:
 
 context isasat_input_bounded
 begin
+
+context 
+begin
+private lemma mark_failed_lits_stack_inv_helper1: \<open>mark_failed_lits_stack_inv a ba (a1', a2') \<Longrightarrow>
+       a1' < length ba \<Longrightarrow>
+       (a1'a, a2'a) = ba ! a1' \<Longrightarrow>
+       a1'a < length a\<close>
+  using nth_mem[of a1' ba] unfolding  mark_failed_lits_stack_inv_def
+  by (auto simp del: nth_mem)
+
+private lemma mark_failed_lits_stack_inv_helper2: \<open>mark_failed_lits_stack_inv a ba (a1', a2') \<Longrightarrow>
+       a1' < length ba \<Longrightarrow>
+       (a1'a, a2'a) = ba ! a1' \<Longrightarrow>
+       a2'a - Suc 0 < length (a ! a1'a)\<close>
+  using nth_mem[of a1' ba] unfolding  mark_failed_lits_stack_inv_def
+  by (auto simp del: nth_mem)
+
+sepref_thm mark_failed_lits_stack_code
+  is \<open>uncurry2 mark_failed_lits_stack\<close>
+  :: \<open>clauses_ll_assn\<^sup>k *\<^sub>a analyse_refinement_assn\<^sup>d *\<^sub>a cach_refinement_assn\<^sup>d \<rightarrow>\<^sub>a cach_refinement_assn\<close>
+  supply [[goals_limit = 1]] neq_Nil_revE[elim!] image_image[simp] mark_failed_lits_stack_inv_helper1[dest]
+  mark_failed_lits_stack_inv_helper2[dest]
+  unfolding mark_failed_lits_stack_def
+    conflict_min_cach_set_failed_def[symmetric]
+    conflict_min_cach_def[symmetric]
+    get_literal_and_remove_of_analyse_wl_def
+  by sepref
+  
 
 sepref_thm sers
   is \<open>uncurry4 lit_redundant_rec_wl_lookup\<close>

@@ -1168,9 +1168,13 @@ where
   \<open>mark_failed_lits_wl analyse cach = SPEC(\<lambda>cach'.
      (\<forall>L. cach' L = SEEN_REMOVABLE \<longrightarrow> cach L = SEEN_REMOVABLE))\<close>
 
+
+definition lit_redundant_rec_wl_ref where
+  \<open>lit_redundant_rec_wl_ref NU analyse \<longleftrightarrow>
+       (\<forall>(i, j) \<in> set analyse. j \<le> length (NU ! i) \<and> i < length NU \<and> j \<ge> 1 \<and> i > 0)\<close>
+
 definition lit_redundant_rec_wl_inv where
-  \<open>lit_redundant_rec_wl_inv M NU D = (\<lambda>(cach, analyse, b).
-       (\<forall>(i, j) \<in> set analyse. j \<le> length (NU ! i) \<and> i < length NU \<and> j \<ge> 1))\<close>
+  \<open>lit_redundant_rec_wl_inv M NU D = (\<lambda>(cach, analyse, b). lit_redundant_rec_wl_ref NU analyse)\<close>
 
 context isasat_input_ops
 begin
@@ -1233,13 +1237,13 @@ lemma lit_redundant_rec_wl:
     NU': \<open>NU' \<equiv> cdcl\<^sub>W_restart_mset.clauses S'''\<close> and
     \<open>analyse' \<equiv> convert_analysis_list NU analyse\<close>
   assumes
-    bounds_init: \<open>\<forall>(i, j) \<in> set analyse. j \<le> length (NU!i) \<and> i < length NU \<and> j \<ge> 1\<close> and
+    bounds_init: \<open>lit_redundant_rec_wl_ref NU analyse\<close> and
     struct_invs: \<open>twl_struct_invs S''\<close> and
     add_inv: \<open>additional_WS_invs S'\<close>
   shows
     \<open>lit_redundant_rec_wl M NU D cach analyse \<le> \<Down>
        (Id \<times>\<^sub>r {(analyse, analyse'). analyse' = convert_analysis_list NU analyse \<and>
-          (\<forall>(i, j)\<in> set analyse. j \<le> length (NU!i) \<and> i < length NU \<and> j \<ge> 1)} \<times>\<^sub>r bool_rel)
+          lit_redundant_rec_wl_ref NU analyse} \<times>\<^sub>r bool_rel)
        (lit_redundant_rec M' NU' D cach analyse')\<close>
    (is \<open>_ \<le> \<Down> (_ \<times>\<^sub>r ?A \<times>\<^sub>r _) _\<close> is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
@@ -1302,7 +1306,7 @@ proof -
       supply convert_analysis_list_def[simp] hd_rev[simp] last_map[simp] rev_map[symmetric, simp]
       using x1c xx' length
       using Cons_nth_drop_Suc[of \<open>snd (last x1c)\<close> \<open>NU ! fst (last x1c)\<close>, symmetric]
-      unfolding s
+      unfolding s lit_redundant_rec_wl_ref_def
       by (cases x1c; cases \<open>last x1c\<close>)
          (auto 5 5 simp: get_literal_and_remove_of_analyse_wl_def (* in_set_drop_conv_nth *)
           get_literal_and_remove_of_analyse_def convert_analysis_list_def
@@ -1421,7 +1425,7 @@ proof -
       using add_inv xb_x'c unfolding additional_WS_invs_def by (fastforce simp: S)+
     show ?thesis
       using s xx' get_literal_and_remove_of_analyse_wl xb_x'c
-      unfolding get_lit convert_analysis_list_def
+      unfolding get_lit convert_analysis_list_def lit_redundant_rec_wl_ref_def
       by (auto simp: drop_Suc)
   qed
   have mark_failed_lits_wl: \<open>mark_failed_lits_wl x2e x1b \<le> \<Down> Id (mark_failed_lits x2d x1)\<close>
@@ -1444,10 +1448,11 @@ proof -
     subgoal for x' x by (rule wl_inv)
     subgoal by auto
     subgoal by auto
-    subgoal by (auto simp: lit_redundant_rec_wl_inv_def elim!: neq_Nil_revE)
+    subgoal by (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def elim!: neq_Nil_revE)
     subgoal by auto
     subgoal by auto
-    subgoal by (auto simp: map_butlast rev_butlast_is_tl_rev dest: in_set_butlastD)
+    subgoal by (auto simp: map_butlast rev_butlast_is_tl_rev lit_redundant_rec_wl_ref_def
+          dest: in_set_butlastD)
             apply (rule get_literal_and_remove_of_analyse_wl; assumption)
     subgoal by auto
     subgoal by (auto simp add: M'_def)
@@ -1455,7 +1460,7 @@ proof -
         apply (rule get_propagation_reason; assumption?)
        apply assumption
       apply (rule mark_failed_lits_wl; assumption)
-    subgoal by auto
+    subgoal by (auto simp: lit_redundant_rec_wl_ref_def)
     subgoal by (rule resolve)
     done
 qed
@@ -1498,7 +1503,7 @@ lemma literal_redundant_wl_literal_redundant:
   shows
     \<open>literal_redundant_wl M NU D cach L \<le> \<Down>
        (Id \<times>\<^sub>r {(analyse, analyse'). analyse' = convert_analysis_list NU analyse \<and>
-          (\<forall>(i, j)\<in> set analyse. j \<le> length (NU!i) \<and> i < length NU \<and> j \<ge> 1)} \<times>\<^sub>r bool_rel)
+          (\<forall>(i, j)\<in> set analyse. j \<le> length (NU!i) \<and> i < length NU \<and> j \<ge> 1 \<and> i > 0)} \<times>\<^sub>r bool_rel)
        (literal_redundant M' NU' D cach L)\<close>
    (is \<open>_ \<le> \<Down> (_ \<times>\<^sub>r ?A \<times>\<^sub>r _) _\<close> is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
@@ -1530,12 +1535,12 @@ proof -
   have H: \<open>lit_redundant_rec_wl M NU D cach analyse
   \<le> \<Down> ?R (lit_redundant_rec M' NU' D cach analyse')\<close>
     if \<open>analyse' = convert_analysis_list NU analyse\<close> and
-       \<open>\<forall>(i, j)\<in>set analyse. j \<le> length (NU ! i) \<and> i < length NU \<and> j \<ge> 1\<close>
+       \<open>\<forall>(i, j)\<in>set analyse. j \<le> length (NU ! i) \<and> i < length NU \<and> j \<ge> 1 \<and> i > 0\<close>
      for analyse analyse'
-  using lit_redundant_rec_wl[of analyse S D cach, unfolded S'''_def[symmetric],
+  using lit_redundant_rec_wl[of S analyse D cach, unfolded S'''_def[symmetric],
       unfolded S'_def[symmetric] S''_def[symmetric]
       M_def[symmetric] M'[symmetric] NU[symmetric] NU'[symmetric], OF _ struct_invs add_inv]
-    that by auto
+    that by (auto simp: lit_redundant_rec_wl_ref_def)
    have get_propagation_reason: \<open>get_propagation_reason M (-L)
       \<le> \<Down> (\<langle>{(C', C).  C = mset (NU ! C') \<and> C' \<noteq> 0 \<and> Propagated (-L) (mset (NU!C')) \<in> set M'
                 \<and> Propagated (-L) C' \<in> set M}\<rangle>
@@ -1740,6 +1745,20 @@ lemma conflict_min_cach_set_failed:
       conflict_min_cach_set_failed_l_def)
 
 
+sepref_definition (in -) conflict_min_cach_set_failed_l_code
+  is \<open>uncurry conflict_min_cach_set_failed_l\<close>
+  :: \<open>cach_refinement_l_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
+  supply arl_append_hnr[sepref_fr_rules]
+  unfolding conflict_min_cach_set_failed_l_def
+  by sepref
+
+lemma conflict_min_cach_set_failed_hnr[sepref_fr_rules]:
+   \<open>(uncurry conflict_min_cach_set_failed_l_code,
+        uncurry (RETURN \<circ>\<circ> conflict_min_cach_set_failed))
+    \<in> [\<lambda>(a, b). b \<in># \<A>\<^sub>i\<^sub>n]\<^sub>a cach_refinement_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> cach_refinement_assn\<close>
+  using conflict_min_cach_set_failed_l_code.refine[FCOMP conflict_min_cach_set_failed,
+    unfolded cach_refinement_assn_def[symmetric]] .
+
 definition (in -) conflict_min_cach_set_removable
   :: \<open>nat conflict_min_cach \<Rightarrow> nat \<Rightarrow> nat conflict_min_cach\<close>
 where
@@ -1775,17 +1794,76 @@ lemma conflict_min_cach_set_removable_hnr[sepref_fr_rules]:
   using conflict_min_cach_set_removable_l_code.refine[FCOMP conflict_min_cach_set_removable,
     unfolded cach_refinement_assn_def[symmetric]] .
 
+definition mark_failed_lits_stack_inv where
+  \<open>mark_failed_lits_stack_inv NU analyse = (\<lambda>(j, cach).
+       (\<forall>(i, j) \<in> set analyse. j < length (NU ! i) \<and> i < length NU \<and> j \<ge> 1 \<and> i > 0))\<close>
+
+
 definition mark_failed_lits_stack where
-  \<open>mark_failed_lits_stack NU analyse cach =
-    WHILE\<^sub>T
+  \<open>mark_failed_lits_stack NU analyse cach = do {
+    ( _, cach) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_failed_lits_stack_inv NU analyse\<^esup>
       (\<lambda>(i, cach). i < length analyse)
       (\<lambda>(i, cach). do {
         ASSERT(i < length analyse);
         let (cls_idx, idx) = analyse ! i;
-        ASSERT(atm_of (NU ! cls_idx ! idx) \<in># \<A>\<^sub>i\<^sub>n);
-        RETURN (i+1, cach (atm_of (NU ! cls_idx ! idx) := SEEN_FAILED))
+        ASSERT(atm_of (NU ! cls_idx ! (idx - 1)) \<in># \<A>\<^sub>i\<^sub>n);
+        RETURN (i+1, cach (atm_of (NU ! cls_idx ! (idx - 1)) := SEEN_FAILED))
       })
-      (0, cach)\<close>
+      (0, cach);
+   RETURN cach
+   }\<close>
+
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l_tl:
+  assumes
+    N1: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl xs))\<close> and \<open>xs \<noteq> []\<close> and
+    i_xs: \<open>i < length xs\<close> and j_xs: \<open>j < length (xs ! i)\<close> \<open>i > 0\<close>
+  shows \<open>xs ! i ! j \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<open>tl xs\<close> \<open>i - 1\<close> j] assms
+  by (cases xs) auto
+
+lemma 
+  assumes 
+    NU_\<L>\<^sub>i\<^sub>n: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU))\<close> and
+    init: \<open>mark_failed_lits_stack_inv NU analyse (0::nat, cach)\<close>
+  shows
+    \<open>mark_failed_lits_stack NU analyse cach \<le> (mark_failed_lits_wl analyse cach)\<close>
+proof -
+  define I where
+     \<open>I = (\<lambda>(i :: nat, cach'). (\<forall>L. cach' L = SEEN_REMOVABLE \<longrightarrow> cach L = SEEN_REMOVABLE))\<close>
+  have valid_atm: \<open>atm_of (NU ! cls_idx ! (idx - 1)) \<in># \<A>\<^sub>i\<^sub>n\<close>
+    if 
+      \<open>mark_failed_lits_stack_inv NU analyse s\<close> and
+      \<open>I s\<close> and
+      \<open>case s of (i, cach) \<Rightarrow> i < length analyse\<close> and
+      \<open>s = (i, cach)\<close> and
+      i: \<open>i < length analyse\<close> and
+      \<open>analyse ! i = (cls_idx, idx)\<close>
+    for s i cach cls_idx idx
+  proof -
+    have [iff]: \<open>(\<forall>a b. (a, b) \<notin> set analyse) \<longleftrightarrow> False\<close>
+      using i by (cases analyse) auto
+    show ?thesis
+      unfolding in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n[symmetric]
+      apply (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l_tl)
+      using NU_\<L>\<^sub>i\<^sub>n that  nth_mem[of i analyse]
+      by (auto simp: mark_failed_lits_stack_inv_def I_def)
+  qed
+  show ?thesis
+  unfolding mark_failed_lits_stack_def mark_failed_lits_wl_def
+  apply (refine_vcg WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(i, _). length analyse -i)\<close> and 
+     I' = I])
+  subgoal by auto
+  subgoal by (rule init)
+  subgoal unfolding I_def by auto
+  subgoal by auto
+  subgoal for s i cach cls_idx idx
+    by (rule valid_atm)
+  subgoal unfolding mark_failed_lits_stack_inv_def by auto
+  subgoal unfolding I_def by auto
+  subgoal by auto
+  subgoal unfolding I_def by auto
+  done
+qed
 
 end
 
