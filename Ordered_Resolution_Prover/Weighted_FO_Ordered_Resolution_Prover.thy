@@ -90,7 +90,7 @@ proof (induction rule: weighted_RP.induct)
     by (auto simp: comp_def image_comp ord_FO_resolution_inferences_between_def)
 qed (use RP.intros in simp_all)
 
-lemma weighted_RP_final: "\<not> ({#}, {#}, Q, n) \<leadsto>\<^sub>w St"
+lemma final_weighted_RP: "\<not> ({#}, {#}, Q, n) \<leadsto>\<^sub>w St"
   by (auto elim: weighted_RP.cases)
 
 context

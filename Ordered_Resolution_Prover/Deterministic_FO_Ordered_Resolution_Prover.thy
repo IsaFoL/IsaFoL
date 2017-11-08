@@ -545,21 +545,14 @@ lemma deterministic_RP_step_weighted:
   by (cases "is_final_glstate St")
     (simp add: final_deterministic_RP_step nonfinal_deterministic_RP_step tranclp_into_rtranclp)+
 
-lemma deterministic_RP_step_funpow_weighted:
+lemma deterministic_RP_step_funpow_weighted_RP:
   "gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate ((deterministic_RP_step ^^ k) St)"
   by (induct k; simp) (meson deterministic_RP_step_weighted rtranclp_trans)
 
-lemma deterministic_RP_step_funpow_iff: "(\<exists>k. (deterministic_RP_step ^^ k) St = St') \<longleftrightarrow>
-  gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate St'" (is "?lhs \<longleftrightarrow> ?rhs")
-proof
-  show "?lhs \<Longrightarrow> ?rhs"
-    using deterministic_RP_step_funpow_weighted by blast
-next
-  show "?rhs \<Longrightarrow> ?lhs"
-    apply (rule rtranclp.induct[of "\<lambda>St St'. gstate_of_glstate St \<leadsto>\<^sub>w gstate_of_glstate St'"])
-      defer
-    sorry
-qed
+lemma deterministic_RP_step_funpow_imp_weighted_RP:
+  "\<exists>k. (deterministic_RP_step ^^ k) St = St' \<Longrightarrow>
+   gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate St'"
+    using deterministic_RP_step_funpow_weighted_RP by blast
 
 theorem deterministic_RP_sound:
   assumes some: "deterministic_RP (N, [], [], n) = Some Q"

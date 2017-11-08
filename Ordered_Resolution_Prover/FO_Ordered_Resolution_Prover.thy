@@ -95,7 +95,7 @@ inductive RP :: "'a state \<Rightarrow> 'a state \<Rightarrow> bool" (infix "\<l
 | inference_computation: "N = concls_of (ord_FO_resolution.inferences_between Q C) \<Longrightarrow>
     ({}, P \<union> {C}, Q) \<leadsto> (N, P, Q \<union> {C})"
 
-lemma RP_final: "\<not> ({}, {}, Q) \<leadsto> St"
+lemma final_RP: "\<not> ({}, {}, Q) \<leadsto> St"
   by (auto elim: RP.cases)
 
 definition sup_state :: "'a state llist \<Rightarrow> 'a state" where
