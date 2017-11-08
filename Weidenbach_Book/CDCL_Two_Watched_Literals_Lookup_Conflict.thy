@@ -1556,7 +1556,7 @@ where
                   case C of
                     Some C \<Rightarrow> RETURN (cach, analyse @ [(C, 1)], False)
                   | None \<Rightarrow> do {
-                      cach \<leftarrow> mark_failed_lits_wl analyse cach;
+                      cach \<leftarrow> mark_failed_lits_wl NU analyse cach;
                       RETURN (cach, [], False)
                   }
               }
@@ -1643,7 +1643,7 @@ lemma minimize_status_eq_hnr[sepref_fr_rules]:
 context isasat_input_bounded
 begin
 
-context 
+context
 begin
 private lemma mark_failed_lits_stack_inv_helper1: \<open>mark_failed_lits_stack_inv a ba (a1', a2') \<Longrightarrow>
        a1' < length ba \<Longrightarrow>
@@ -1669,7 +1669,7 @@ sepref_thm mark_failed_lits_stack_code
     conflict_min_cach_def[symmetric]
     get_literal_and_remove_of_analyse_wl_def
   by sepref
-  
+
 
 sepref_thm sers
   is \<open>uncurry4 lit_redundant_rec_wl_lookup\<close>

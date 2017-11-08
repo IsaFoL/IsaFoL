@@ -986,7 +986,6 @@ definition literal_redundant where
        case C of
          Some C \<Rightarrow> lit_redundant_rec M NU D cach [(L, C - {#-L#})]
        | None \<Rightarrow> do {
-           cach \<leftarrow> mark_failed_lits [(L, {#})] cach;
            RETURN (cach, [], False)
      }
     }
@@ -1122,6 +1121,7 @@ proof -
     subgoal using inv by auto
     subgoal by auto
     subgoal using inv by auto
+    subgoal using inv by (auto simp: mark_failed_lits_def conflict_min_analysis_inv_def)
     subgoal using inv by (auto simp: mark_failed_lits_def conflict_min_analysis_inv_def)
     subgoal for E E'
       unfolding literal_redundant_spec_def[symmetric]
@@ -1478,7 +1478,6 @@ definition literal_redundant_wl where
        case C of
          Some C \<Rightarrow> lit_redundant_rec_wl M NU D cach [(C, 1)]
        | None \<Rightarrow> do {
-           cach \<leftarrow> mark_failed_lits_wl [(0::nat, 1::nat)] cach;
            RETURN (cach, [], False)
        }
      }
@@ -1614,8 +1613,6 @@ proof -
        apply (case_tac s)
        by auto
    qed
-  have mark_failed_lits_wl: \<open>mark_failed_lits_wl [(0, 1)] cach \<le> \<Down> Id (mark_failed_lits  [(L, {#})] cach)\<close>
-    unfolding mark_failed_lits_wl_def mark_failed_lits_def by auto
 
   have [simp]: \<open>mset (tl C) = remove1_mset (C!0) (mset C)\<close> for C
     by (cases C) auto
@@ -1640,7 +1637,7 @@ proof -
 
   show ?thesis
     unfolding literal_redundant_wl_def literal_redundant_def
-    apply (refine_rcg H get_propagation_reason mark_failed_lits_wl)
+    apply (refine_rcg H get_propagation_reason)
     subgoal by (simp add: M'_def)
     subgoal by (simp add: M'_def)
     subgoal by simp
