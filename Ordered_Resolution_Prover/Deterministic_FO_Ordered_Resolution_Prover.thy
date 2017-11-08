@@ -400,12 +400,12 @@ proof -
       proof (induct N')
         case (Cons N'0 N')
         note ih = this
-        have " gstate_of_glstate (N'0 # N', [([], i)], [], n)
+        have "gstate_of_glstate (N'0 # N', [([], i)], [], n)
           \<leadsto>\<^sub>w gstate_of_glstate (N', [([], i)], [], n)"
           by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
-                forward_subsumption[of "{#({#}, i)#}" "{#}" "mset (fst N'0)"
-                  "mset (map (apfst mset) N')" "snd N'0" n]],
-              cases N'0, auto)
+                forward_subsumption[of "{#}" "{#({#}, i)#}" "{#}" "mset (fst N'0)"
+                  "mset (map (apfst mset) N')" "snd N'0" n]])
+            (cases N'0, auto)
         then show ?case
           using ih by (rule converse_rtranclp_into_rtranclp)
       qed simp
@@ -443,13 +443,17 @@ proof -
               (use neg_a pos_a in simp_all)
         next
           case False
-          hence subs: "is_subsumed_by (map fst P @ map fst Q) C'"
+          hence "is_subsumed_by (map fst P @ map fst Q) C'"
             using taut_or_subs by blast
+          then obtain D where d:
+            "D \<in> set (map fst P @ map fst Q)"
+            "subsumes (mset D) (mset C')"
+            unfolding is_subsumed_by_def by blast
           show ?thesis
             by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
-                  forward_subsumption[of "mset (map (apfst mset) P)" "mset (map (apfst mset) Q)"
-                    "mset C'" "mset (map (apfst mset) N')" i n]])
-              (use subs in \<open>auto simp: is_subsumed_by_def\<close>)
+                  forward_subsumption[of "mset D" "mset (map (apfst mset) P)"
+                    "mset (map (apfst mset) Q)" "mset C'" "mset (map (apfst mset) N')" i n]])
+              (use d in \<open>auto simp: is_subsumed_by_def\<close>)
         qed
         then show ?thesis
           unfolding step st n_cons ci using red_C by (rule rtranclp_into_tranclp1[rotated])

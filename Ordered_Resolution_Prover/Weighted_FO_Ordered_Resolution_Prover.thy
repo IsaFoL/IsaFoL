@@ -64,7 +64,7 @@ abbreviation Liminf_gstate :: "'a gstate llist \<Rightarrow> 'a state" where
 
 inductive weighted_RP :: "'a gstate \<Rightarrow> 'a gstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w" 50) where
   tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
-| forward_subsumption: "(\<exists>D \<in># image_mset fst (P + Q). subsumes D C) \<Longrightarrow>
+| forward_subsumption: "D \<in># image_mset fst (P + Q) \<Longrightarrow> subsumes D C \<Longrightarrow>
     (N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
 | backward_subsumption_P: "(\<exists>D \<in># image_mset fst N. strictly_subsumes D C) \<Longrightarrow>
     (N, P + {#(C, i)#}, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"

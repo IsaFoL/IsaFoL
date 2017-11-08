@@ -82,7 +82,7 @@ The following inductive predicate formalizes the resolution prover in Figure 5.
 
 inductive RP :: "'a state \<Rightarrow> 'a state \<Rightarrow> bool" (infix "\<leadsto>" 50) where
   tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N \<union> {C}, P, Q) \<leadsto> (N, P, Q)"
-| forward_subsumption: "(\<exists>D \<in> P \<union> Q. subsumes D C) \<Longrightarrow> (N \<union> {C}, P, Q) \<leadsto> (N, P, Q)"
+| forward_subsumption: "D \<in> P \<union> Q \<Longrightarrow> subsumes D C \<Longrightarrow> (N \<union> {C}, P, Q) \<leadsto> (N, P, Q)"
 | backward_subsumption_P: "(\<exists>D \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P \<union> {C}, Q) \<leadsto> (N, P, Q)"
 | backward_subsumption_Q: "(\<exists>D \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P, Q \<union> {C}) \<leadsto> (N, P, Q)"
 | forward_reduction: "(\<exists>D L'. D + {#L'#} \<in> P \<union> Q \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
@@ -253,11 +253,9 @@ proof (induction rule: RP.induct)
     using src_ext.derive.intros[of "grounding_of_state (N, P, Q)" "grounding_of_state (N \<union> {C}, P, Q)"]
     by auto
 next
-  case (forward_subsumption P Q C N)
-  then obtain D where
-    D_p: "D\<in>P \<union> Q \<and> subsumes D C"
-    by auto
-  from D_p obtain \<sigma> where
+  case (forward_subsumption D P Q C N)
+  note D_p = this
+  then obtain \<sigma> where
     \<sigma>_p: "D \<cdot> \<sigma> \<subseteq># C"
     unfolding subsumes_def by auto
   then have "D \<cdot> \<sigma> = C \<or> D \<cdot> \<sigma> \<subset># C"
@@ -1245,14 +1243,13 @@ proof -
     then show ?thesis
       by blast
   next
-    case (forward_subsumption P Q D_twin N)
+    case (forward_subsumption D' P Q D_twin N)
+    note lrhs = this(1,2) and D'_p = this(3,4)
     then have twins: "D_twin = D" "?Ns (Suc l) = N" "?Ns l = N \<union> {D_twin}"  "?Ps (Suc l) = P " "?Ps l = P" "?Qs (Suc l) = Q" "?Qs l = Q"
       using l_p by auto
-    from forward_subsumption obtain D' where
-      D'_p: "D' \<in> P \<union> Q \<and> subsumes D' D"
-      using twins by auto
-    then have subs: "subsumes D' C"
-      using d(3) subsumes_trans by auto
+    note D'_p = D'_p[unfolded twins(1)]
+    from D'_p(2) have subs: "subsumes D' C"
+      using d(3) by (blast intro: subsumes_trans)
     moreover have "D' \<in> clss_of_state (sup_state Sts)"
       using twins D'_p l_p unfolding clss_of_state_def sup_state_def
       by simp (metis (no_types) contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist)
