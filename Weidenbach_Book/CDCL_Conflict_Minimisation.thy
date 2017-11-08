@@ -1819,47 +1819,56 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l_tl
   by (cases xs) auto
 
 lemma mark_failed_lits_stack_mark_failed_lits_wl:
-  assumes 
-    NU_\<L>\<^sub>i\<^sub>n: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU))\<close> and
-    init: \<open>mark_failed_lits_stack_inv NU analyse (0::nat, cach)\<close>
   shows
-    \<open>mark_failed_lits_stack NU analyse cach \<le> (mark_failed_lits_wl NU analyse cach)\<close>
+    \<open>(uncurry2 mark_failed_lits_stack, uncurry2 mark_failed_lits_wl) \<in>
+       [\<lambda>((NU, analyse), cach). literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU)) \<and>
+          mark_failed_lits_stack_inv NU analyse (0::nat, cach)]\<^sub>f
+       Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
 proof -
-  define I where
-     \<open>I = (\<lambda>(i :: nat, cach'). (\<forall>L. cach' L = SEEN_REMOVABLE \<longrightarrow> cach L = SEEN_REMOVABLE))\<close>
-  have valid_atm: \<open>atm_of (NU ! cls_idx ! (idx - 1)) \<in># \<A>\<^sub>i\<^sub>n\<close>
-    if 
-      \<open>mark_failed_lits_stack_inv NU analyse s\<close> and
-      \<open>I s\<close> and
-      \<open>case s of (i, cach) \<Rightarrow> i < length analyse\<close> and
-      \<open>s = (i, cach)\<close> and
-      i: \<open>i < length analyse\<close> and
-      \<open>analyse ! i = (cls_idx, idx)\<close>
-    for s i cach cls_idx idx
+  have \<open>mark_failed_lits_stack NU analyse cach \<le> (mark_failed_lits_wl NU analyse cach)\<close>
+    if
+      NU_\<L>\<^sub>i\<^sub>n: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU))\<close> and
+      init: \<open>mark_failed_lits_stack_inv NU analyse (0::nat, cach)\<close>
+    for NU analyse cach
   proof -
-    have [iff]: \<open>(\<forall>a b. (a, b) \<notin> set analyse) \<longleftrightarrow> False\<close>
-      using i by (cases analyse) auto
+    define I where
+      \<open>I = (\<lambda>(i :: nat, cach'). (\<forall>L. cach' L = SEEN_REMOVABLE \<longrightarrow> cach L = SEEN_REMOVABLE))\<close>
+    have valid_atm: \<open>atm_of (NU ! cls_idx ! (idx - 1)) \<in># \<A>\<^sub>i\<^sub>n\<close>
+      if
+        \<open>mark_failed_lits_stack_inv NU analyse s\<close> and
+        \<open>I s\<close> and
+        \<open>case s of (i, cach) \<Rightarrow> i < length analyse\<close> and
+        \<open>s = (i, cach)\<close> and
+        i: \<open>i < length analyse\<close> and
+        \<open>analyse ! i = (cls_idx, idx)\<close>
+      for s i cach cls_idx idx
+    proof -
+      have [iff]: \<open>(\<forall>a b. (a, b) \<notin> set analyse) \<longleftrightarrow> False\<close>
+        using i by (cases analyse) auto
+      show ?thesis
+        unfolding in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n[symmetric]
+        apply (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l_tl)
+        using NU_\<L>\<^sub>i\<^sub>n that  nth_mem[of i analyse]
+        by (auto simp: mark_failed_lits_stack_inv_def I_def)
+    qed
     show ?thesis
-      unfolding in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n[symmetric]
-      apply (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l_tl)
-      using NU_\<L>\<^sub>i\<^sub>n that  nth_mem[of i analyse]
-      by (auto simp: mark_failed_lits_stack_inv_def I_def)
+      unfolding mark_failed_lits_stack_def mark_failed_lits_wl_def
+      apply (refine_vcg WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(i, _). length analyse -i)\<close> and
+            I' = I])
+      subgoal by auto
+      subgoal by (rule init)
+      subgoal unfolding I_def by auto
+      subgoal by auto
+      subgoal for s i cach cls_idx idx
+        by (rule valid_atm)
+      subgoal unfolding mark_failed_lits_stack_inv_def by auto
+      subgoal unfolding I_def by auto
+      subgoal by auto
+      subgoal unfolding I_def by auto
+      done
   qed
-  show ?thesis
-  unfolding mark_failed_lits_stack_def mark_failed_lits_wl_def
-  apply (refine_vcg WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(i, _). length analyse -i)\<close> and 
-     I' = I])
-  subgoal by auto
-  subgoal by (rule init)
-  subgoal unfolding I_def by auto
-  subgoal by auto
-  subgoal for s i cach cls_idx idx
-    by (rule valid_atm)
-  subgoal unfolding mark_failed_lits_stack_inv_def by auto
-  subgoal unfolding I_def by auto
-  subgoal by auto
-  subgoal unfolding I_def by auto
-  done
+  then show ?thesis
+    by (intro frefI nres_relI) auto
 qed
 
 end
