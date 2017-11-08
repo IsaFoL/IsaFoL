@@ -34,6 +34,7 @@ locale weighted_FO_resolution_prover =
     weight_mono: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
 begin
 
+(* FIXME: generalize and add to Isabelle? *)
 lemma generation_le_weight: "n \<le> weight (C, n)"
   by (induct n, simp, metis weight_mono[of k "Suc k" for k] Suc_le_eq le_less le_trans)
 
@@ -103,29 +104,6 @@ context
     empty_Q0: "Q_of_gstate (lnth Sts 0) = {}"
 begin
 
-definition S_Q' :: "'a clause \<Rightarrow> 'a clause" where
-  "S_Q' = S_Q (lmap state_of_gstate Sts)"
-
-interpretation sq: selection S_Q'
-  unfolding S_Q'_def
-  apply (subst S_Q_def)
-(*
-  unfolding S_Q_def using S_M_selects_subseteq S_M_selects_neg_lits selection_axioms
-  by unfold_locales auto
-*)
-  sorry
-
-interpretation gd: ground_resolution_with_selection S_Q'
-  by unfold_locales
-
-interpretation src: standard_redundancy_criterion_reductive gd.ord_\<Gamma>
-  by unfold_locales
-
-(* FIXME: needed? *)
-interpretation src: standard_redundancy_criterion_counterex_reducing gd.ord_\<Gamma>
-  "ground_resolution_with_selection.INTERP S_Q'"
-  by unfold_locales
-
 lemma deriv_RP: "chain (op \<leadsto>) (lmap state_of_gstate Sts)"
   using deriv weighted_RP_imp_RP by (metis chain_lmap)
 
@@ -138,6 +116,20 @@ lemma empty_P0_RP: "P_of_state (lnth (lmap state_of_gstate Sts) 0) = {}"
 
 lemma empty_Q0_RP: "Q_of_state (lnth (lmap state_of_gstate Sts) 0) = {}"
   using empty_Q0 chain_length_pos[OF deriv] by (auto simp: enat_0)
+
+definition S_Q' :: "'a clause \<Rightarrow> 'a clause" where
+  "S_Q' = S_Q (lmap state_of_gstate Sts)"
+
+interpretation sq: selection S_Q'
+  unfolding S_Q'_def S_Q_def[OF deriv_RP finite_Sts0_RP empty_P0_RP empty_Q0_RP]
+  using S_M_selects_subseteq S_M_selects_neg_lits selection_axioms
+  by unfold_locales blast
+
+interpretation gd: ground_resolution_with_selection S_Q'
+  by unfold_locales
+
+interpretation src: standard_redundancy_criterion gd.ord_\<Gamma>
+  by unfold_locales
 
 theorem weighted_RP_fair: "fair_state_seq (lmap state_of_gstate Sts)"
 proof (rule ccontr)
@@ -162,10 +154,10 @@ proof (rule ccontr)
   qed
 qed
 
-corollary weighted_RP_saturated:
-  "src.saturated_upto (Liminf_llist (lmap grounding_of_gstate Sts))"
+corollary weighted_RP_saturated: "src.saturated_upto (Liminf_llist (lmap grounding_of_gstate Sts))"
   unfolding S_Q'_def llist.map_comp[symmetric]
-  by (rule RP_saturated_if_fair[OF deriv_RP finite_Sts0_RP empty_P0_RP empty_Q0_RP weighted_RP_fair])
+  by (rule RP_saturated_if_fair[OF deriv_RP finite_Sts0_RP empty_P0_RP empty_Q0_RP
+        weighted_RP_fair])
 
 corollary weighted_RP_complete:
   assumes unsat: "\<not> satisfiable (grounding_of_state (Liminf_gstate Sts))"
