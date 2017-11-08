@@ -181,14 +181,14 @@ locale weighted_FO_resolution_prover_with_size_generation_factors =
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" +
   fixes
     size_atm :: "'a \<Rightarrow> nat" and
-    generation_factor :: nat and
-    size_factor :: nat
+    size_factor :: nat and
+    generation_factor :: nat
   assumes
     generation_factor_pos: "generation_factor > 0"
 begin
 
 fun weight :: "'a gclause \<Rightarrow> nat" where
-  "weight (C, m) = generation_factor * m + size_factor * size_multiset (size_literal size_atm) C"
+  "weight (C, m) = size_factor * size_multiset (size_literal size_atm) C + generation_factor * m"
 
 lemma weight_mono: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
   using generation_factor_pos by simp
