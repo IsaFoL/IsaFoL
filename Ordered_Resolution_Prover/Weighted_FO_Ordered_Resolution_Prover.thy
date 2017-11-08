@@ -66,9 +66,9 @@ inductive weighted_RP :: "'a gstate \<Rightarrow> 'a gstate \<Rightarrow> bool" 
   tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
 | forward_subsumption: "D \<in># image_mset fst (P + Q) \<Longrightarrow> subsumes D C \<Longrightarrow>
     (N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
-| backward_subsumption_P: "(\<exists>D \<in># image_mset fst N. strictly_subsumes D C) \<Longrightarrow>
+| backward_subsumption_P: "D \<in># image_mset fst N \<Longrightarrow> strictly_subsumes D C \<Longrightarrow>
     (N, P + {#(C, i)#}, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
-| backward_subsumption_Q: "(\<exists>D \<in># image_mset fst N. strictly_subsumes D C) \<Longrightarrow>
+| backward_subsumption_Q: "D \<in># image_mset fst N \<Longrightarrow> strictly_subsumes D C \<Longrightarrow>
     (N, P, Q + {#(C, i)#}, n) \<leadsto>\<^sub>w (N, P, Q, n)"
 | forward_reduction: "(\<exists>D L'. D + {#L'#} \<in># image_mset fst (P + Q) \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
     (N + {#(C + {#L#}, i)#}, P, Q, n) \<leadsto>\<^sub>w (N + {#(C, i)#}, P, Q, n)"

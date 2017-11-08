@@ -374,8 +374,9 @@ proof -
         have "gstate_of_glstate (([], i) # N', P0 # P, Q, n)
           \<leadsto>\<^sub>w gstate_of_glstate (([], i) # N', P, Q, n)"
           by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
-                backward_subsumption_P[of "mset (map (apfst mset) (([], i) # N'))" "mset (fst P0)"
-                  "mset (map (apfst mset) P)" "snd P0" "mset (map (apfst mset) Q)" n]],
+                backward_subsumption_P[of "{#}" "mset (map (apfst mset) (([], i) # N'))"
+                  "mset (fst P0)" "mset (map (apfst mset) P)" "snd P0" "mset (map (apfst mset) Q)"
+                  n]],
               cases P0, use nil_ni_p in auto)
         then show ?case
           using ih by (rule converse_rtranclp_into_rtranclp, use nil_ni_p in auto)
@@ -389,8 +390,8 @@ proof -
         have "gstate_of_glstate (([], i) # N', [], Q0 # Q, n)
           \<leadsto>\<^sub>w gstate_of_glstate (([], i) # N', [], Q, n)"
           by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
-                backward_subsumption_Q[of "mset (map (apfst mset) (([], i) # N'))" "mset (fst Q0)"
-                  "{#}" "mset (map (apfst mset) Q)" "snd Q0" n]],
+                backward_subsumption_Q[of "{#}" "mset (map (apfst mset) (([], i) # N'))"
+                  "mset (fst Q0)" "{#}" "mset (map (apfst mset) Q)" "snd Q0" n]],
               cases Q0, use nil_ni_q in auto)
         then show ?case
           using ih by (rule converse_rtranclp_into_rtranclp, use nil_ni_q in auto)

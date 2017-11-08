@@ -83,8 +83,8 @@ The following inductive predicate formalizes the resolution prover in Figure 5.
 inductive RP :: "'a state \<Rightarrow> 'a state \<Rightarrow> bool" (infix "\<leadsto>" 50) where
   tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N \<union> {C}, P, Q) \<leadsto> (N, P, Q)"
 | forward_subsumption: "D \<in> P \<union> Q \<Longrightarrow> subsumes D C \<Longrightarrow> (N \<union> {C}, P, Q) \<leadsto> (N, P, Q)"
-| backward_subsumption_P: "(\<exists>D \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P \<union> {C}, Q) \<leadsto> (N, P, Q)"
-| backward_subsumption_Q: "(\<exists>D \<in> N. strictly_subsumes D C) \<Longrightarrow> (N, P, Q \<union> {C}) \<leadsto> (N, P, Q)"
+| backward_subsumption_P: "D \<in> N \<Longrightarrow> strictly_subsumes D C \<Longrightarrow> (N, P \<union> {C}, Q) \<leadsto> (N, P, Q)"
+| backward_subsumption_Q: "D \<in> N \<Longrightarrow> strictly_subsumes D C \<Longrightarrow> (N, P, Q \<union> {C}) \<leadsto> (N, P, Q)"
 | forward_reduction: "(\<exists>D L'. D + {#L'#} \<in> P \<union> Q \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
     (N \<union> {C + {#L#}}, P, Q) \<leadsto> (N \<union> {C}, P, Q)"
 | backward_reduction_P: "(\<exists>D L'. D + {#L'#} \<in> N \<and> - L = L' \<cdot>l \<sigma> \<and> D \<cdot> \<sigma> \<subseteq># C) \<Longrightarrow>
@@ -256,8 +256,8 @@ next
   case (forward_subsumption D P Q C N)
   note D_p = this
   then obtain \<sigma> where
-    \<sigma>_p: "D \<cdot> \<sigma> \<subseteq># C"
-    unfolding subsumes_def by auto
+    "D \<cdot> \<sigma> = C \<or> D \<cdot> \<sigma> \<subset># C"
+    by (auto simp: subsumes_def subset_mset_def)
   then have "D \<cdot> \<sigma> = C \<or> D \<cdot> \<sigma> \<subset># C"
     by (simp add: subset_mset_def)
   then show ?case
@@ -287,14 +287,11 @@ next
       unfolding clss_of_state_def grounding_of_clss_def by (force intro: src_ext.derive.intros)
   qed
 next
-  case (backward_subsumption_P N C P Q) (* Adapted from previous proof *) (* Arguably I should extract some lemma that says: if subsumed then redundant... *)
-  then obtain D where
-    D_p: "D \<in> N" "strictly_subsumes D C"
-    by auto
-  from D_p obtain \<sigma> where
-    \<sigma>_p: "D \<cdot> \<sigma> \<subseteq># C" unfolding strictly_subsumes_def subsumes_def by auto
-  then have "D \<cdot> \<sigma> = C \<or> D \<cdot> \<sigma> \<subset># C"
-    by (simp add: subset_mset_def)
+  case (backward_subsumption_P D N C P Q) (* Adapted from previous proof *) (* FIXME: Arguably I should extract some lemma that says: if subsumed then redundant... *)
+  note D_p = this
+  then obtain \<sigma> where
+    "D \<cdot> \<sigma> = C \<or> D \<cdot> \<sigma> \<subset># C"
+    by (auto simp: strictly_subsumes_def subsumes_def subset_mset_def)
   then show ?case
   proof
     assume "D \<cdot> \<sigma> = C"
@@ -323,15 +320,11 @@ next
       unfolding clss_of_state_def grounding_of_clss_def by (force intro: src_ext.derive.intros)
   qed
 next
-  case (backward_subsumption_Q N C P Q) (* Adapted from previous proof *)
-  then obtain D where
-    D_p: "D\<in>N \<and> strictly_subsumes D C"
-    by auto
-  from D_p obtain \<sigma> where
-    \<sigma>_p: "D \<cdot> \<sigma> \<subseteq># C"
-    unfolding strictly_subsumes_def subsumes_def by auto
-  then have "D \<cdot> \<sigma> = C \<or> D \<cdot> \<sigma> \<subset># C"
-    by (simp add: subset_mset_def)
+  case (backward_subsumption_Q D N C P Q) (* Adapted from previous proof *)
+  note D_p = this
+  then obtain \<sigma> where
+    "D \<cdot> \<sigma> = C \<or> D \<cdot> \<sigma> \<subset># C"
+    by (auto simp: strictly_subsumes_def subsumes_def subset_mset_def)
   then show ?case
   proof
     assume "D \<cdot> \<sigma> = C"
@@ -1003,7 +996,7 @@ proof -
       using llen deriv chain_lnth_rel by blast
     then show "D \<in> Q_of_state (lnth Sts (Suc l))"
     proof (cases rule: RP.cases)
-      case (backward_subsumption_Q N D_removed P Q)
+      case (backward_subsumption_Q D' N D_removed P Q)
       moreover
       {
         assume "D_removed = D"
@@ -1103,12 +1096,11 @@ proof -
     using deriv using chain_lnth_rel by auto
   then show ?thesis
   proof (cases rule: RP.cases)
-    case (backward_subsumption_P N D_twin P Q)
+    case (backward_subsumption_P D' N D_twin P Q)
+    note lrhs = this(1,2) and D'_p = this(3,4)
     then have twins: "D_twin = D" "?Ns (Suc l) = N" "?Ns l = N"  "?Ps (Suc l) = P" "?Ps l = P \<union> {D_twin}" "?Qs (Suc l) = Q" "?Qs l = Q"
       using l_p by auto
-    then obtain D' where
-      D'_p: "strictly_subsumes D' D \<and> D' \<in> N"
-      using backward_subsumption_P by auto
+    note D'_p = D'_p[unfolded twins(1)]
     then have subc: "subsumes D' C"
       unfolding strictly_subsumes_def subsumes_def using \<sigma>
       by (metis subst_cls_comp_subst subst_cls_mono_mset)
