@@ -568,9 +568,11 @@ begin
 abbreviation St0 :: "'a glstate" where
   "St0 \<equiv> (N0, [], [], n0)"
 
-context
-  assumes drp_some: "deterministic_RP St0 = Some R"
-begin
+abbreviation grounded_N0 where
+  "grounded_N0 \<equiv> grounding_of_clss (set (map (mset \<circ> fst) N0))"
+
+abbreviation grounded_R :: "'a clause set" where
+  "grounded_R \<equiv> grounding_of_clss (set (map mset R))"
 
 primcorec derivation_from :: "'a glstate \<Rightarrow> 'a glstate llist" where
   "derivation_from St =
@@ -581,6 +583,10 @@ abbreviation Sts :: "'a glstate llist" where
 
 abbreviation gSts :: "'a gstate llist" where
   "gSts \<equiv> lmap gstate_of_glstate Sts"
+
+context
+  assumes drp_some: "deterministic_RP St0 = Some R"
+begin
 
 lemma lfinite_Sts: "lfinite Sts"
 proof (induct rule: deterministic_RP.raw_induct[OF _ drp_some])
@@ -615,6 +621,9 @@ lemmas deriv_flat_gSts_weighted_RP = flat_gSts[THEN conjunct2, THEN conjunct1]
 lemmas lhd_flat_gSts = flat_gSts[THEN conjunct2, THEN conjunct2, THEN conjunct1]
 lemmas ltl_flat_gSts = flat_gSts[THEN conjunct2, THEN conjunct2, THEN conjunct2]
 
+lemma not_lnull_fat_gSts: "\<not> lnull flat_gSts"
+  using deriv_flat_gSts_weighted_RP by (cases rule: chain.cases) auto
+
 (* FIXME: avoid lnth 0 altogether *)
 lemma lnth_flat_gSts_0: "lnth flat_gSts 0 = lnth gSts 0"
   sorry
@@ -629,54 +638,46 @@ lemma empty_flat_gQ0: "Q_of_gstate (lnth flat_gSts 0) = {}"
   unfolding lnth_flat_gSts_0 by (subst derivation_from.code) simp
 
 theorem
-  deterministic_RP_saturated: "saturated_upto (grounding_of_clss (set (map mset R)))" (is ?satur) and
-  deterministic_RP_sound:
-    "satisfiable (set (map mset R)) \<longleftrightarrow> satisfiable (set (map (mset \<circ> fst) N))" (is ?sound)
+  deterministic_RP_saturated: "saturated_upto grounded_R" (is ?satur) and
+  deterministic_RP_sound: "satisfiable grounded_R \<longleftrightarrow> satisfiable grounded_N" (is ?sound)
 proof -
   obtain N' P' Q' n' where
+    "llast Sts = (N', P', Q', n')" (* FIXME *)
     "gstate_of_glstate St0 \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate (N', P', Q', n')
      \<and> N' = [] \<and> P' = [] \<and> R = map fst Q'"
     sorry
 
-  have "Liminf_llist (lmap grounding_of_gstate flat_gSts) = grounding_of_gstate (llast flat_gSts)"
-    sorry
+  have fin_gr_fgsts: "lfinite (lmap grounding_of_gstate flat_gSts)"
+    by (rule lfinite_lmap[THEN iffD2, OF lfinite_flat_gSts])
+
+  have lim_last: "Liminf_llist (lmap grounding_of_gstate flat_gSts) =
+    grounding_of_gstate (llast flat_gSts)"
+    unfolding lfinite_Liminf_llist[OF fin_gr_fgsts]
+      llast_lmap[OF lfinite_flat_gSts not_lnull_fat_gSts]
+    using not_lnull_fat_gSts by simp
 
   show ?satur
     using weighted_RP_saturated[OF deriv_flat_gSts_weighted_RP finite_flat_gSts0 empty_flat_gP0 empty_flat_gQ0]
-
+    unfolding lim_last saturated_upto_def
     sorry
   show ?sound
     sorry
 qed
 
+end
 
-  by blast
+theorem deterministic_RP_complete:
+  assumes unsat: "\<not> satisfiable grounded_N0"
+  shows "deterministic_RP St0 \<noteq> None"
+proof -
 
-  sorry
-
-proof
-  
-
-
-
-
-
-  
-  
-
+  thm weighted_RP_complete
 
   show ?thesis
     sorry
 qed
 
 end
-
-end
-
-theorem deterministic_RP_complete:
-  assumes "\<exists>Q. finite Q \<and> src.saturated_upto Q \<and> (satisfiable Q \<longleftrightarrow> satisfiable (set (map mset N)))"
-  shows "deterministic_RP (map (\<lambda>D. (D, 0)) N, [], [], 1) \<noteq> None"
-  sorry
 
 end
 
