@@ -1640,7 +1640,7 @@ lemma minimize_status_eq_hnr[sepref_fr_rules]:
     minimize_status_assn\<^sup>k *\<^sub>a minimize_status_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by (sepref_to_hoare) (sep_auto)
 
-context isasat_input_bounded
+context isasat_input_ops
 begin
 
 context
@@ -1669,31 +1669,90 @@ sepref_thm mark_failed_lits_stack_code
     conflict_min_cach_def[symmetric]
     get_literal_and_remove_of_analyse_wl_def
   by sepref
+end
 
+sepref_register mark_failed_lits_stack
+concrete_definition (in -) mark_failed_lits_stack_code
+   uses isasat_input_ops.mark_failed_lits_stack_code.refine_raw
+   is \<open>(uncurry2 ?f, _)\<in>_\<close>
 
-sepref_thm sers
+prepare_code_thms (in -) mark_failed_lits_stack_code_def
+thm mark_failed_lits_stack_code.refine[of \<A>\<^sub>i\<^sub>n]
+
+lemmas mark_failed_lits_stack_code_hnr =
+   mark_failed_lits_stack_code.refine[of \<A>\<^sub>i\<^sub>n]
+
+lemma mark_failed_lits_wl_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 mark_failed_lits_stack_code, uncurry2 mark_failed_lits_wl)
+     \<in> [\<lambda>((a, b), ba). literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl a)) \<and>
+         mark_failed_lits_stack_inv a b (0::nat, ba)]\<^sub>a
+        clauses_ll_assn\<^sup>k *\<^sub>a analyse_refinement_assn\<^sup>d *\<^sub>a cach_refinement_assn\<^sup>d \<rightarrow>
+        cach_refinement_assn\<close>
+  using mark_failed_lits_stack_code_hnr[FCOMP mark_failed_lits_stack_mark_failed_lits_wl]
+  .
+end
+
+context isasat_input_bounded
+begin
+
+lemma lit_redundant_rec_wl_lookup_helper1:
+  assumes
+    inv: \<open>lit_redundant_rec_wl_inv M NU (n, xs) (cach, ana, b)\<close> and
+    ana: \<open>ana \<noteq> []\<close> and
+    le: \<open>\<not> length (NU ! fst (last ana)) \<le> snd (last ana)\<close> and
+    Lj: \<open>RETURN (L, j) \<le> (case last ana of (x, xa) \<Rightarrow>
+       RETURN (NU ! fst (last ana) ! xa, ana [length ana - Suc 0 := (x, Suc xa)]))\<close> and
+    \<open>- L \<in> lits_of_l M\<close>
+  shows \<open>mark_failed_lits_stack_inv NU j (0, cach)\<close>
+proof -
+  show ?thesis
+    using inv Lj ana le
+    unfolding mark_failed_lits_stack_inv_def lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
+    by (cases \<open>ana\<close> rule: rev_cases)
+     (auto simp: elim!: in_set_upd_cases)
+qed
+
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<Longrightarrow> -a \<in> lits_of_l M \<Longrightarrow> a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def lits_of_def uminus_lit_swap uminus_\<A>\<^sub>i\<^sub>n_iff)
+
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<Longrightarrow> -a \<in> lits_of_l M \<Longrightarrow> atm_of a \<in># \<A>\<^sub>i\<^sub>n\<close>
+  using literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[of M a]
+  unfolding in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n[symmetric]
+  .
+
+sepref_thm lit_redundant_rec_wl_lookup_code
   is \<open>uncurry4 lit_redundant_rec_wl_lookup\<close>
   :: \<open>[\<lambda>((((M, NU), D), cach), analysis).
-         (\<forall>a \<in> lits_of_l M. atm_of a \<in># \<A>\<^sub>i\<^sub>n) (* replace by the proper function on the trail *) \<and>
-         (\<forall>a \<in> lits_of_l M. -a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l) \<and>
+         literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU)) \<and>
+         literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
          (\<forall>a \<in> lits_of_l M. atm_of a < length (snd D))
       ]\<^sub>a
 
       trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a conflict_rel_assn\<^sup>k *\<^sub>a
        cach_refinement_assn\<^sup>d *\<^sub>a analyse_refinement_assn\<^sup>d \<rightarrow>
       cach_refinement_assn *a analyse_refinement_assn *a bool_assn\<close>
-  supply [[goals_limit = 1]] neq_Nil_revE[elim!] image_image[simp]
+  supply [[goals_limit = 1]] neq_Nil_revE[elim] image_image[simp]
+    lit_redundant_rec_wl_lookup_helper1[intro] literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l_atms[intro]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms[intro]
   unfolding lit_redundant_rec_wl_lookup_def
     conflict_min_cach_set_removable_def[symmetric]
     conflict_min_cach_def[symmetric]
     get_literal_and_remove_of_analyse_wl_def
-  apply sepref_dbg_keep
-      apply sepref_dbg_trans_keep
-                      apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_trans_step_keep
-(*                       apply sepref_dbg_side_unfold apply (auto simp: )[] *)
-  oops
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)
+  apply (rewrite at \<open>op_arl_empty\<close> annotate_assn[where A=analyse_refinement_assn])
+  by sepref
 
+concrete_definition (in -) lit_redundant_rec_wl_lookup_code
+   uses isasat_input_bounded.lit_redundant_rec_wl_lookup_code.refine_raw
+   is \<open>(uncurry4 ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) lit_redundant_rec_wl_lookup_code_def
+
+lemmas mark_failed_lits_stack_code_hnr =
+   lit_redundant_rec_wl_lookup_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 end
 
 

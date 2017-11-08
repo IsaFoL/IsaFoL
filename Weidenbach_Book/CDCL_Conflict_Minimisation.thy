@@ -1793,10 +1793,10 @@ lemma conflict_min_cach_set_removable_hnr[sepref_fr_rules]:
 
 definition mark_failed_lits_stack_inv where
   \<open>mark_failed_lits_stack_inv NU analyse = (\<lambda>(j, cach).
-       (\<forall>(i, j) \<in> set analyse. j < length (NU ! i) \<and> i < length NU \<and> j \<ge> 1 \<and> i > 0))\<close>
+       (\<forall>(i, j) \<in> set analyse. j \<le> length (NU ! i) \<and> i < length NU \<and> j \<ge> 1 \<and> i > 0))\<close>
 
 
-definition mark_failed_lits_stack where
+definition (in isasat_input_ops) mark_failed_lits_stack where
   \<open>mark_failed_lits_stack NU analyse cach = do {
     ( _, cach) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_failed_lits_stack_inv NU analyse\<^esup>
       (\<lambda>(i, cach). i < length analyse)
