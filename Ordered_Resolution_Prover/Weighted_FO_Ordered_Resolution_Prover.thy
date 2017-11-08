@@ -117,15 +117,14 @@ lemma empty_P0_RP: "P_of_state (lnth (lmap state_of_gstate Sts) 0) = {}"
 lemma empty_Q0_RP: "Q_of_state (lnth (lmap state_of_gstate Sts) 0) = {}"
   using empty_Q0 chain_length_pos[OF deriv] by (auto simp: enat_0)
 
-definition S_Q' :: "'a clause \<Rightarrow> 'a clause" where
-  "S_Q' = S_Q (lmap state_of_gstate Sts)"
+abbreviation S_gQ :: "'a clause \<Rightarrow> 'a clause" where
+  "S_gQ \<equiv> S_Q (lmap state_of_gstate Sts)"
 
-interpretation sq: selection S_Q'
-  unfolding S_Q'_def S_Q_def[OF deriv_RP finite_Sts0_RP empty_P0_RP empty_Q0_RP]
-  using S_M_selects_subseteq S_M_selects_neg_lits selection_axioms
-  by unfold_locales blast
+interpretation sq: selection S_gQ
+  unfolding S_Q_def[OF deriv_RP finite_Sts0_RP empty_P0_RP empty_Q0_RP]
+  using S_M_selects_subseteq S_M_selects_neg_lits selection_axioms by unfold_locales blast
 
-interpretation gd: ground_resolution_with_selection S_Q'
+interpretation gd: ground_resolution_with_selection S_gQ
   by unfold_locales
 
 interpretation src: standard_redundancy_criterion gd.ord_\<Gamma>
@@ -155,7 +154,7 @@ proof (rule ccontr)
 qed
 
 corollary weighted_RP_saturated: "src.saturated_upto (Liminf_llist (lmap grounding_of_gstate Sts))"
-  unfolding S_Q'_def llist.map_comp[symmetric]
+  unfolding llist.map_comp[symmetric]
   by (rule RP_saturated_if_fair[OF deriv_RP finite_Sts0_RP empty_P0_RP empty_Q0_RP
         weighted_RP_fair])
 

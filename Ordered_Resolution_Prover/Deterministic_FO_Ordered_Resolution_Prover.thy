@@ -549,18 +549,63 @@ lemma deterministic_RP_step_funpow_weighted_RP:
   by (induct k; simp) (meson deterministic_RP_step_weighted rtranclp_trans)
 
 lemma deterministic_RP_step_funpow_imp_weighted_RP:
-  "\<exists>k. (deterministic_RP_step ^^ k) St = St' \<Longrightarrow>
-   gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate St'"
+  "\<exists>k. (deterministic_RP_step ^^ k) St = St' \<Longrightarrow> gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate St'"
     using deterministic_RP_step_funpow_weighted_RP by blast
 
-theorem deterministic_RP_sound:
-  assumes some: "deterministic_RP (N, [], [], n) = Some Q"
-  shows
-    "src.saturated_upto (set (map mset Q)) \<and>
-     (satisfiable (set (map mset Q)) \<longleftrightarrow> satisfiable (set (map (mset \<circ> fst) N)))"
-  using deterministic_RP_SomeD[OF some, unfolded step_funpow_iff]
-  using saturated
+definition saturated_upto :: "'a clause set \<Rightarrow> bool" where
+  "saturated_upto CC \<longleftrightarrow>
+   (\<exists>Sts. redundancy_criterion.saturated_upto (ground_resolution_with_selection.ord_\<Gamma> (S_gQ Sts))
+      standard_redundancy_criterion.Rf
+      (standard_redundancy_criterion.Ri (ground_resolution_with_selection.ord_\<Gamma> (S_gQ Sts))) CC)"
+
+context
+  fixes
+    N0 :: "'a glclause list" and
+    n0 :: nat and
+    R :: "'a lclause list"
+  assumes
+    drp_some: "deterministic_RP (N0, [], [], n0) = Some R"
+begin
+
+abbreviation St0 :: "'a glstate" where
+  "St0 \<equiv> (N0, [], [], n0)"
+
+primcorec derivation_from :: "'a glstate \<Rightarrow> 'a glstate llist" where
+  "derivation_from St =
+   LCons St (if is_final_glstate St then LNil else derivation_from (deterministic_RP_step St))"
+
+abbreviation Sts :: "'a glstate llist" where
+  "Sts \<equiv> derivation_from St0"
+
+lemma deriv_Sts_weighted_RP: "chain (op \<leadsto>\<^sub>w\<^sup>+) (lmap gstate_of_glstate Sts)"
+  apply coinduction
+  using deterministic_RP_SomeD[OF drp_some] deterministic_RP_step_funpow_imp_weighted_RP
   sorry
+
+lemma finite_Sts0_weighted_RP: "finite (clss_of_gstate (lnth (lmap gstate_of_glstate Sts) 0))"
+  by (subst derivation_from.code) (simp add: clss_of_state_def)
+
+lemma empty_P0_weighted_RP: "P_of_gstate (lnth (lmap gstate_of_glstate Sts) 0) = {}"
+  by (subst derivation_from.code) simp
+
+lemma empty_Q0_weighted_RP: "Q_of_gstate (lnth (lmap gstate_of_glstate Sts) 0) = {}"
+  by (subst derivation_from.code) simp
+
+theorem deterministic_RP_sound:
+  "saturated_upto (set (map mset R)) \<and>
+   (satisfiable (set (map mset R)) \<longleftrightarrow> satisfiable (set (map (mset \<circ> fst) N)))"
+proof -
+  obtain N' P' Q' n' where
+    "gstate_of_glstate (N, [], [], n) \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate (N', P', Q', n')
+     \<and> N' = [] \<and> P' = [] \<and> R = map fst Q'"
+
+  thm weighted_RP_saturated
+
+  show ?thesis
+    sorry
+qed
+
+end
 
 theorem deterministic_RP_complete:
   assumes "\<exists>Q. finite Q \<and> src.saturated_upto Q \<and> (satisfiable Q \<longleftrightarrow> satisfiable (set (map mset N)))"
