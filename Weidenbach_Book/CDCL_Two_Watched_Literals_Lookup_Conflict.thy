@@ -1663,7 +1663,6 @@ sepref_thm sers
       apply sepref_dbg_trans_keep
                       apply sepref_dbg_trans_step_keep
                       apply sepref_dbg_trans_step_keep
-  sorry
 (*                       apply sepref_dbg_side_unfold apply (auto simp: )[] *)
   oops
 
