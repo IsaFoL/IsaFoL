@@ -1221,22 +1221,25 @@ definition iterate_over_conflict_inv where
   \<open>iterate_over_conflict_inv D\<^sub>0 = (\<lambda>(D, D'). D \<subseteq># D\<^sub>0)\<close>
 
 definition is_literal_redundant_spec where
-   \<open>is_literal_redundant_spec NU D L = SPEC(\<lambda>b. b \<longrightarrow> NU \<Turnstile>pm remove1_mset L D)\<close>
+   \<open>is_literal_redundant_spec NU UNP D L = SPEC(\<lambda>b. b \<longrightarrow> NU + UNP \<Turnstile>pm remove1_mset L D)\<close>
 
 definition iterate_over_conflict
-  :: \<open>'v clauses \<Rightarrow> 'v clause \<Rightarrow> ('v clause) nres\<close>
+  :: \<open>'v clauses \<Rightarrow> 'v clauses \<Rightarrow> 'v literal \<Rightarrow> 'v clause \<Rightarrow> ('v clause) nres\<close>
 where
-  \<open>iterate_over_conflict NU D\<^sub>0 = do {
+  \<open>iterate_over_conflict NU UNP L D\<^sub>0 = do {
     (D, _) \<leftarrow>
        WHILE\<^sub>T\<^bsup>iterate_over_conflict_inv D\<^sub>0\<^esup>
        (\<lambda>(D, D'). D' \<noteq> {#})
        (\<lambda>(D, D'). do{
           ASSERT(D \<noteq> {#});
           x \<leftarrow> SPEC (\<lambda>x. x \<in># D');
-          keep \<leftarrow> is_literal_redundant_spec NU D x;
-          if keep
-          then RETURN (D, remove1_mset x D')
-          else RETURN (remove1_mset x D, remove1_mset x D')
+          if x = -L then RETURN (D, remove1_mset x D')
+          else do {
+            red \<leftarrow> is_literal_redundant_spec NU UNP D x;
+            if \<not>red
+            then RETURN (D, remove1_mset x D')
+            else RETURN (remove1_mset x D, remove1_mset x D')
+            }
           })
        (D\<^sub>0, D\<^sub>0);
      RETURN D
@@ -1250,28 +1253,32 @@ context isasat_input_ops
 begin
 
 definition is_literal_redundant_lookup_spec where
-   \<open>is_literal_redundant_lookup_spec NU D' st_unchanged L s =
-    SPEC(\<lambda>(s', b). b \<longrightarrow> (\<forall>D. (D', D) \<in> conflict_rel \<longrightarrow> NU \<Turnstile>pm remove1_mset L D))\<close>
+   \<open>is_literal_redundant_lookup_spec NU NUP D' st_unchanged L s =
+    SPEC(\<lambda>(s', b). b \<longrightarrow> (\<forall>D. (D', D) \<in> conflict_rel \<longrightarrow> NU + NUP \<Turnstile>pm remove1_mset L D))\<close>
 
 definition iterate_over_lookup_conflict
-  :: \<open>nat clauses \<Rightarrow> conflict_rel \<Rightarrow> 'st_unchanged \<Rightarrow> 'state \<Rightarrow> (conflict_rel \<times> 'state) nres\<close>
+  :: \<open>nat clauses \<Rightarrow> nat clauses \<Rightarrow> nat literal \<Rightarrow> conflict_rel \<Rightarrow> 'st_unchanged \<Rightarrow> 'state \<Rightarrow>
+       (conflict_rel \<times> 'state) nres\<close>
 where
-  \<open>iterate_over_lookup_conflict  = (\<lambda>NU (n, xs) st_unchanged s. do {
+  \<open>iterate_over_lookup_conflict  = (\<lambda>NU NUP L (n, xs) st_unchanged s. do {
     (D, _, _, s) \<leftarrow>
        WHILE\<^sub>T\<^bsup>iterate_over_lookup_conflict_inv\<^esup>
          (\<lambda>((n, xs), m, i, s). m > 0)
          (\<lambda>((n, xs), m, i, s). do {
             ASSERT(m > 0);
             x \<leftarrow> confl_find_next_index_spec (m, xs) i;
-            (s', keep) \<leftarrow> is_literal_redundant_lookup_spec NU (n, xs) st_unchanged
-                (if the (xs ! x) then Pos x else Neg x) s;
-            ASSERT(x < length xs);
-            ASSERT(m \<ge> 1);
-            ASSERT(n \<ge> 1);
-            if keep
-            then RETURN ((n, xs), m - 1, x+1, s')
-            else RETURN ((n - 1, xs[x := None]), m - 1, x+1, s')
-          })
+            if (if the (xs ! x) then Pos x else Neg x) = -L then RETURN ((n, xs), m - 1, x+1, s)
+            else do {
+              (s', red) \<leftarrow> is_literal_redundant_lookup_spec NU NUP (n, xs) st_unchanged
+                  (if the (xs ! x) then Pos x else Neg x) s;
+              ASSERT(x < length xs);
+              ASSERT(m \<ge> 1);
+              ASSERT(n \<ge> 1);
+              if \<not>red
+              then RETURN ((n, xs), m - 1, x+1, s')
+              else RETURN ((n - 1, xs[x := None]), m - 1, x+1, s')
+              }
+         })
          ((n, xs), n, 0, s);
      RETURN (D, s)
   })\<close>
@@ -1281,7 +1288,8 @@ lemma iterate_over_lookup_conflict_iterate_over_conflict:
   assumes
     D'_D: \<open>(D', D) \<in> conflict_rel\<close>
   shows
-    \<open>iterate_over_lookup_conflict NU D' st_unchanged s' \<le> \<Down> ({((D, s), D'). (D, D') \<in> conflict_rel}) (iterate_over_conflict NU D)\<close>
+    \<open>iterate_over_lookup_conflict NU NUP L D' st_unchanged s' \<le>
+       \<Down> ({((D, s), D'). (D, D') \<in> conflict_rel}) (iterate_over_conflict NU NUP L D)\<close>
 proof -
   obtain n\<^sub>0 xs\<^sub>0 where D'[simp]: \<open>D' = (n\<^sub>0, xs\<^sub>0)\<close>
     by (cases D')
@@ -1369,8 +1377,7 @@ proof -
         \<open>x = (x1b, x2c)\<close>
         \<open>xc = (x1g, x2g)\<close> and
       xa_xb: \<open>(xa, xb) \<in> ?confl x2b x1e\<close> and
-      xb_x1a: \<open>xb \<in> {x. x \<in># x1a}\<close> and
-      xa_length_xb: \<open>xa < length x2b\<close>
+      xb_x1a: \<open>xb \<in> {x. x \<in># x1a}\<close>
     for x x' x1 x1a x1b x1c x2b x2c x1d x2d x1e x2e xa xb xc x1g x2g
   proof -
     have
@@ -1464,10 +1471,10 @@ proof -
       using xa_le_x2b H incls unfolding R_def
       by (auto intro: subset_mset.order.trans diff_subset_eq_self mset_le_subtract)
   qed
-  have redundant: \<open>is_literal_redundant_lookup_spec NU (x1c, x2b) st_unchanged
+  have redundant: \<open>is_literal_redundant_lookup_spec NU NUP (x1c, x2b) st_unchanged
        (if the (x2b ! xa) then Pos xa else Neg xa) x2e
       \<le> \<Down> {((s', b'), b). b = b'}
-          (is_literal_redundant_spec NU x1 xb)\<close>
+          (is_literal_redundant_spec NU NUP x1 xb)\<close>
     if
       \<open>(x, x') \<in> R\<close> and
       \<open>x' = (x1, x1a)\<close> and
@@ -1491,7 +1498,9 @@ proof -
     subgoal for s' s by (rule init_lo_inv)
     subgoal by (rule cond)
     subgoal by auto
-            apply (rule confl_find_next_index_spec_le; assumption)
+              apply (rule confl_find_next_index_spec_le; assumption)
+    subgoal by auto
+    subgoal by (rule loop_keep) auto
            apply (rule redundant; assumption)
     subgoal by auto
     subgoal by auto
@@ -1734,5 +1743,74 @@ lemmas mark_failed_lits_stack_code_hnr =
 
 end
 
+lemma iterate_over_conflict_spec:
+  fixes L :: \<open>'v literal\<close>
+  assumes \<open>-L \<in># D\<close> \<open>NU + NUP \<Turnstile>pm D\<close>
+  shows
+    \<open>iterate_over_conflict NU NUP L D \<le> \<Down> Id (SPEC(\<lambda>D'. \<exists>D'. D' \<subseteq># D \<and> NU + NUP \<Turnstile>pm D' \<and> -L \<in># D'))\<close>
+proof -
+  define I' where
+    \<open>I' = (\<lambda>(E:: 'v clause, E':: 'v clause). -L \<in># E \<and> E \<subseteq># D \<and> NU + NUP \<Turnstile>pm E)\<close>
+  have init_I': \<open> I' (D, D)\<close>
+    using \<open>-L \<in># D\<close> \<open>NU + NUP \<Turnstile>pm D\<close> unfolding I'_def by auto
+  have [iff]: \<open>I' ({#}, b) \<longleftrightarrow> False\<close> for b
+    unfolding I'_def by auto
+  have
+    I_L: \<open>iterate_over_conflict_inv D (a, remove1_mset x b)\<close> (is ?I) and
+    I_L': \<open>I' (a, remove1_mset x b)\<close> (is ?I')
+    if
+      I: \<open>iterate_over_conflict_inv D s\<close> and
+      I': \<open>I' s\<close> and
+      \<open>case s of (D, D') \<Rightarrow> D' \<noteq> {#}\<close> and
+      s: \<open>s = (a, b)\<close> and
+      \<open>a \<noteq> {#}\<close> and
+      \<open>x \<in># b\<close> and
+      \<open>x = -L\<close>
+    for s a b x
+  proof -
+    show ?I
+      using I I' s unfolding iterate_over_conflict_inv_def I'_def by auto
+    show ?I'
+      using I I' s unfolding iterate_over_conflict_inv_def I'_def by auto
+  qed
+  have
+    I_redun: \<open>is_literal_redundant_spec NU NUP a x
+       \<le> SPEC (\<lambda>red. (if \<not>red then RETURN (a, remove1_mset x b) else
+                      RETURN (remove1_mset x a, remove1_mset x b))
+              \<le> SPEC (\<lambda>s'. iterate_over_conflict_inv D s' \<and> I' s' \<and> (s', s)
+                         \<in> measure (\<lambda>(D, D'). size D')))\<close>
+    if
+      \<open>iterate_over_conflict_inv D s\<close> and
+      I': \<open>I' s\<close> and
+      \<open>case s of (D, D') \<Rightarrow> D' \<noteq> {#}\<close> and
+      \<open>s = (a, b)\<close> and
+      \<open>a \<noteq> {#}\<close> and
+      \<open>x \<in># b\<close> and
+      \<open>x \<noteq> -L\<close>
+    for s a b x
+  proof -
+    show ?thesis
+      using that
+      by (auto simp: is_literal_redundant_spec_def iterate_over_conflict_inv_def
+          I'_def size_mset_remove1_mset_le_iff)
+  qed
+  show ?thesis
+    unfolding iterate_over_conflict_def
+    apply (refine_vcg WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(D, D'). size D')\<close> and
+          I' = I'])
+    subgoal by auto
+    subgoal by (auto simp: iterate_over_conflict_inv_def)
+    subgoal by (rule init_I')
+    subgoal by auto
+    subgoal for s a b x by (rule I_L)
+    subgoal for s a b x by (rule I_L')
+    subgoal by (auto simp: size_mset_remove1_mset_le_iff)
+    subgoal for s a b x by (rule I_redun)
+    subgoal unfolding I'_def by auto
+    done
+qed
+
+term iterate_over_conflict
+term extract_shorter_conflict_wl
 
 end
