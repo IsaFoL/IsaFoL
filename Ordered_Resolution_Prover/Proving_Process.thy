@@ -28,6 +28,43 @@ lemma
   lnull_chain: "lnull xs \<Longrightarrow> \<not> chain R xs"
   by (auto elim: chain.cases)
 
+lemma chain_lappend:
+  assumes
+    r_xs: "chain R xs" and
+    r_ys: "chain R ys" and
+    mid: "R (llast xs) (lhd ys)"
+  shows "chain R (lappend xs ys)"
+proof (cases "lfinite xs")
+  case True
+  then show ?thesis
+    using r_xs mid
+  proof (induct rule: lfinite.induct)
+    case (lfinite_LConsI xs x)
+    note fin = this(1) and ih = this(2) and r_xxs = this(3) and mid = this(4)
+    show ?case
+    proof (cases "xs = LNil")
+      case True
+      then show ?thesis
+        using r_ys mid by simp (rule cons)
+    next
+      case xs_nnil: False
+      have r_xs: "chain R xs"
+        by (metis chain.simps ltl_simps(2) r_xxs xs_nnil)
+      have mid': "R (llast xs) (lhd ys)"
+        by (metis llast_LCons lnull_def mid xs_nnil)
+      have start: "R x (lhd (lappend xs ys))"
+        by (metis (no_types) chain.simps lhd_LCons lhd_lappend lnull_chain ltl_simps(2) r_xxs
+            xs_nnil)
+      show ?thesis
+        unfolding lappend_code(2) using ih[OF r_xs mid'] start by (rule cons)
+    qed
+  qed simp
+next
+  case False
+  then show ?thesis
+    by (simp add: r_xs lappend_inf)
+qed
+
 lemma chain_length_pos: "chain R xs \<Longrightarrow> llength xs > 0"
   by (cases xs) simp+
 
@@ -62,8 +99,8 @@ qed
 
 (* FIXME: split into a monotonicity lemma and a composition lemma? *)
 lemma chain_lmap:
-  assumes "\<forall>x y. R x y \<longrightarrow> T (f x) (f y)" and "chain R xs"
-  shows "chain T (lmap f xs)"
+  assumes "\<forall>x y. R x y \<longrightarrow> R' (f x) (f y)" and "chain R xs"
+  shows "chain R' (lmap f xs)"
   using assms
 proof (coinduction arbitrary: xs)
   case chain
@@ -73,13 +110,42 @@ proof (coinduction arbitrary: xs)
   proof
     assume "\<exists>ys x. xs = LCons x ys \<and> chain R ys \<and> R x (lhd ys)"
     then have "\<exists>ys x. lmap f xs = LCons x ys \<and>
-      (\<exists>xs. ys = lmap f xs \<and> (\<forall>x y. R x y \<longrightarrow> T (f x) (f y)) \<and> chain R xs) \<and> T x (lhd ys)"
+      (\<exists>xs. ys = lmap f xs \<and> (\<forall>x y. R x y \<longrightarrow> R' (f x) (f y)) \<and> chain R xs) \<and> R' x (lhd ys)"
       using chain
       by (metis (no_types) lhd_LCons llist.distinct(1) llist.exhaust_sel llist.map_sel(1)
           lmap_eq_LNil lnull_chain ltl_lmap ltl_simps(2))
     then show ?thesis
       by auto
   qed auto
+qed
+
+lemma tranclp_imp_exists_finite_chain:
+  "R\<^sup>+\<^sup>+ x y \<Longrightarrow> \<exists>xs. lfinite xs \<and> chain R xs \<and> lhd xs = x \<and> llast xs = y"
+proof (induct rule: tranclp.induct)
+  case (r_into_trancl x y)
+  note r_xy = this
+
+  define xs where
+    "xs = LCons x (LCons y LNil)"
+
+  have "lfinite xs" and "chain R xs" and "lhd xs = x" and "llast xs = y"
+    unfolding xs_def using r_xy by (auto intro: chain.intros)
+  then show ?case
+    by blast
+next
+  case (trancl_into_trancl x y z)
+  note rstar_xy = this(1) and ih = this(2) and r_yz = this(3)
+
+  obtain xs where
+    xs: "lfinite xs" "chain R xs" "lhd xs = x" "llast xs = y"
+    using ih by blast
+  define ys where
+    "ys = lappend xs (LCons z LNil)"
+
+  have "lfinite ys" and "chain R ys" and "lhd ys = x" and "llast ys = z"
+    unfolding ys_def using xs r_yz by (auto simp: lnull_chain intro: singleton chain_lappend)
+  then show ?case
+    by blast
 qed
 
 
