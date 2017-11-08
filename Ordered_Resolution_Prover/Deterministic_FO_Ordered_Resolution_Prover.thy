@@ -638,7 +638,7 @@ proof -
      \<and> N' = [] \<and> P' = [] \<and> R = map fst Q'"
     sorry
 
-  have "Liminf_llist (lmap grounding_of_gstate flat_gSts)"
+  have "Liminf_llist (lmap grounding_of_gstate flat_gSts) = grounding_of_gstate (llast flat_gSts)"
     sorry
 
   show ?satur

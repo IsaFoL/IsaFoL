@@ -84,4 +84,36 @@ definition Liminf_llist :: "'a set llist \<Rightarrow> 'a set" where
 lemma Liminf_llist_subset_Sup_llist: "Liminf_llist Xs \<subseteq> Sup_llist Xs"
   unfolding Liminf_llist_def Sup_llist_def by fast
 
+lemma Liminf_llist_LCons:
+  "Liminf_llist (LCons X Xs) = (if lnull Xs then X else Liminf_llist Xs)" (is "?lhs = ?rhs")
+proof
+  show "?lhs \<subseteq> ?rhs"
+    unfolding Liminf_llist_def
+    apply auto
+    apply (simp add: enat_0_iff(1))
+    sorry
+next
+  show "?rhs \<subseteq> ?lhs"
+    unfolding Liminf_llist_def
+    apply auto
+    apply (simp add: zero_enat_def)
+    sorry
+qed
+
+lemma lfinite_Liminf_llist: "lfinite Xs \<Longrightarrow> Liminf_llist Xs = (if lnull Xs then {} else llast Xs)"
+proof (induction rule: lfinite_induct)
+  case (LCons xs)
+  then obtain y ys where
+    xs: "xs = LCons y ys"
+    by (meson not_lnull_conv)
+
+  show ?case
+    unfolding xs
+    apply (simp add: Liminf_llist_LCons)
+    unfolding LCons.IH[unfolded xs, simplified]
+    apply auto
+    apply (simp add: llast_LCons)+
+    done
+qed (simp add: Liminf_llist_def)
+
 end
