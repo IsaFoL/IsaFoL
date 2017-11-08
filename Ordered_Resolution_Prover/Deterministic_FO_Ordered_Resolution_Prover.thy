@@ -669,7 +669,18 @@ end
 theorem deterministic_RP_complete:
   assumes unsat: "\<not> satisfiable grounded_N0"
   shows "deterministic_RP St0 \<noteq> None"
-proof -
+proof
+  assume "deterministic_RP St0 = None"
+
+  (*
+    1. Show that we have an infinite chain "chain (op \<leadsto>\<^sub>w+) ?Sts".
+    2. Show that we have an infinite chain "chain (op \<leadsto>\<^sub>w) ?Sts'".
+    3. Show "~ satisfiable (grounding_of_state (Liminf_gstate ?Sts'))" using stepwise-completeness
+    (-equivalence?) and "unsat".
+    4. Use "weighted_RP_complete" to find out that {#} is in the limit.
+    5. Since it's in the limit, obtain an index k' from which it is always in ?Sts'.
+    6. Conclude that there is an index k from which it is always in ?Sts. (E.g. take k = k'.)
+  *)
 
   thm weighted_RP_complete
 
