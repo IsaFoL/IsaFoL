@@ -44,6 +44,9 @@ fun state_of_glstate :: "'a glstate \<Rightarrow> 'a state" where
   "state_of_glstate (N, P, Q, _) =
    (set (map (mset \<circ> fst) N), set (map (mset \<circ> fst) P), set (map (mset \<circ> fst) Q))"
 
+abbreviation clss_of_glstate :: "'a glstate \<Rightarrow> 'a clause set" where 
+  "clss_of_glstate St \<equiv> clss_of_state (state_of_glstate St)"
+
 fun is_final_glstate :: "'a glstate \<Rightarrow> bool" where
   "is_final_glstate (N, P, Q, n) \<longleftrightarrow> N = [] \<and> P = []"
 
@@ -605,37 +608,37 @@ lemma deriv_gSts_trancl_weighted_RP: "chain (op \<leadsto>\<^sub>w\<^sup>+) gSts
   using deterministic_RP_SomeD[OF drp_some] deterministic_RP_step_funpow_imp_weighted_RP
   sorry
 
-definition flat_gSts :: "'a gstate llist" where
-  "flat_gSts = (SOME gSts'. lfinite gSts' \<and> chain (op \<leadsto>\<^sub>w) gSts' \<and> lhd gSts' = lhd gSts
+definition ss_gSts :: "'a gstate llist" where
+  "ss_gSts = (SOME gSts'. lfinite gSts' \<and> chain (op \<leadsto>\<^sub>w) gSts' \<and> lhd gSts' = lhd gSts
      \<and> llast gSts' = llast gSts)"
 
-lemma flat_gSts:
-  "lfinite flat_gSts \<and> chain (op \<leadsto>\<^sub>w) flat_gSts \<and> lhd flat_gSts = lhd gSts
-   \<and> llast flat_gSts = llast gSts"
-  unfolding flat_gSts_def
+lemma ss_gSts:
+  "lfinite ss_gSts \<and> chain (op \<leadsto>\<^sub>w) ss_gSts \<and> lhd ss_gSts = lhd gSts
+   \<and> llast ss_gSts = llast gSts"
+  unfolding ss_gSts_def
   by (rule someI_ex[OF lfinite_chain_tranclp_imp_exists_lfinite_chain[OF lfinite_gSts
           deriv_gSts_trancl_weighted_RP]])
 
-lemmas lfinite_flat_gSts = flat_gSts[THEN conjunct1]
-lemmas deriv_flat_gSts_weighted_RP = flat_gSts[THEN conjunct2, THEN conjunct1]
-lemmas lhd_flat_gSts = flat_gSts[THEN conjunct2, THEN conjunct2, THEN conjunct1]
-lemmas ltl_flat_gSts = flat_gSts[THEN conjunct2, THEN conjunct2, THEN conjunct2]
+lemmas lfinite_ss_gSts = ss_gSts[THEN conjunct1]
+lemmas deriv_ss_gSts_weighted_RP = ss_gSts[THEN conjunct2, THEN conjunct1]
+lemmas lhd_ss_gSts = ss_gSts[THEN conjunct2, THEN conjunct2, THEN conjunct1]
+lemmas ltl_ss_gSts = ss_gSts[THEN conjunct2, THEN conjunct2, THEN conjunct2]
 
-lemma not_lnull_fat_gSts: "\<not> lnull flat_gSts"
-  using deriv_flat_gSts_weighted_RP by (cases rule: chain.cases) auto
+lemma not_lnull_fat_gSts: "\<not> lnull ss_gSts"
+  using deriv_ss_gSts_weighted_RP by (cases rule: chain.cases) auto
 
 (* FIXME: avoid lnth 0 altogether *)
-lemma lnth_flat_gSts_0: "lnth flat_gSts 0 = lnth gSts 0"
+lemma lnth_ss_gSts_0: "lnth ss_gSts 0 = lnth gSts 0"
   sorry
 
-lemma finite_flat_gSts0: "finite (clss_of_gstate (lnth flat_gSts 0))"
-  unfolding lnth_flat_gSts_0 by (subst derivation_from.code) (simp add: clss_of_state_def)
+lemma finite_ss_gSts0: "finite (clss_of_gstate (lnth ss_gSts 0))"
+  unfolding lnth_ss_gSts_0 by (subst derivation_from.code) (simp add: clss_of_state_def)
 
-lemma empty_flat_gP0: "P_of_gstate (lnth flat_gSts 0) = {}"
-  unfolding lnth_flat_gSts_0 by (subst derivation_from.code) simp
+lemma empty_ss_gP0: "P_of_gstate (lnth ss_gSts 0) = {}"
+  unfolding lnth_ss_gSts_0 by (subst derivation_from.code) simp
 
-lemma empty_flat_gQ0: "Q_of_gstate (lnth flat_gSts 0) = {}"
-  unfolding lnth_flat_gSts_0 by (subst derivation_from.code) simp
+lemma empty_ss_gQ0: "Q_of_gstate (lnth ss_gSts 0) = {}"
+  unfolding lnth_ss_gSts_0 by (subst derivation_from.code) simp
 
 theorem
   deterministic_RP_saturated: "saturated_upto grounded_R" (is ?satur) and
@@ -647,17 +650,17 @@ proof -
      \<and> N' = [] \<and> P' = [] \<and> R = map fst Q'"
     sorry
 
-  have fin_gr_fgsts: "lfinite (lmap grounding_of_gstate flat_gSts)"
-    by (rule lfinite_lmap[THEN iffD2, OF lfinite_flat_gSts])
+  have fin_gr_fgsts: "lfinite (lmap grounding_of_gstate ss_gSts)"
+    by (rule lfinite_lmap[THEN iffD2, OF lfinite_ss_gSts])
 
-  have lim_last: "Liminf_llist (lmap grounding_of_gstate flat_gSts) =
-    grounding_of_gstate (llast flat_gSts)"
+  have lim_last: "Liminf_llist (lmap grounding_of_gstate ss_gSts) =
+    grounding_of_gstate (llast ss_gSts)"
     unfolding lfinite_Liminf_llist[OF fin_gr_fgsts]
-      llast_lmap[OF lfinite_flat_gSts not_lnull_fat_gSts]
+      llast_lmap[OF lfinite_ss_gSts not_lnull_fat_gSts]
     using not_lnull_fat_gSts by simp
 
   show ?satur
-    using weighted_RP_saturated[OF deriv_flat_gSts_weighted_RP finite_flat_gSts0 empty_flat_gP0 empty_flat_gQ0]
+    using weighted_RP_saturated[OF deriv_ss_gSts_weighted_RP finite_ss_gSts0 empty_ss_gP0 empty_ss_gQ0]
     unfolding lim_last saturated_upto_def
     sorry
   show ?sound
@@ -670,22 +673,47 @@ theorem deterministic_RP_complete:
   assumes unsat: "\<not> satisfiable grounded_N0"
   shows "deterministic_RP St0 \<noteq> None"
 proof
-  assume "deterministic_RP St0 = None"
+  assume drp_none: "deterministic_RP St0 = None"
 
-  (*
-    1. Show that we have an infinite chain "chain (op \<leadsto>\<^sub>w+) ?Sts".
-    2. Show that we have an infinite chain "chain (op \<leadsto>\<^sub>w) ?Sts'".
-    3. Show "~ satisfiable (grounding_of_state (Liminf_gstate ?Sts'))" using stepwise-completeness
-    (-equivalence?) and "unsat".
-    4. Use "weighted_RP_complete" to find out that {#} is in the limit.
-    5. Since it's in the limit, obtain an index k' from which it is always in ?Sts'.
-    6. Conclude that there is an index k from which it is always in ?Sts. (E.g. take k = k'.)
-  *)
-
-  thm weighted_RP_complete
-
-  show ?thesis
+  have chain_star: "chain (op \<leadsto>\<^sub>w\<^sup>+) gSts"
     sorry
+
+  have inf: "\<not> lfinite gSts"
+    sorry
+
+  obtain ss_gSts where
+    chain: "chain (op \<leadsto>\<^sub>w) ss_gSts" and
+    hd: "lhd ss_gSts = lhd gSts" and
+    set: "lset gSts \<subseteq> lset ss_gSts"
+    using chain_tranclp_imp_exists_chain_not_strong_enough[OF inf chain_star] by blast
+
+  have fin_s0: "finite (clss_of_gstate (lnth ss_gSts 0))"
+    sorry
+  have empty_p0: "P_of_gstate (lnth ss_gSts 0) = {}"
+    sorry
+  have empty_q0: "Q_of_gstate (lnth ss_gSts 0) = {}"
+    sorry
+
+  have unsat_lim: "\<not> satisfiable (grounding_of_state (Liminf_gstate ss_gSts))"
+    using unsat
+    sorry
+
+  have bot_in_lim_ss: "{#} \<in> clss_of_state (Liminf_gstate ss_gSts)"
+    by (rule weighted_RP_complete[OF chain fin_s0 empty_p0 empty_q0 unsat_lim])
+
+  (* Magic happens here. *)
+
+  have bot_in_lim: "{#} \<in> clss_of_state (Liminf_gstate gSts)"
+    sorry
+  then obtain k where
+    "{#} \<in> clss_of_gstate (lnth gSts k)"
+    sorry
+  then have "{#} \<in> clss_of_glstate ((deterministic_RP_step ^^ k) St0)"
+    sorry
+  then have "deterministic_RP St0 \<noteq> None"
+    sorry
+  then show False
+    using drp_none ..
 qed
 
 end

@@ -48,6 +48,7 @@ fun state_of_gstate :: "'a gstate \<Rightarrow> 'a state" where
   "state_of_gstate (N, P, Q, n) =
    (set_mset (image_mset fst N), set_mset (image_mset fst P), set_mset (image_mset fst Q))"
 
+(* FIXME: don't use \<circ> in abbreviations -- fragile w.r.t. simplifier when applied *)
 abbreviation clss_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" where 
   "clss_of_gstate \<equiv> clss_of_state \<circ> state_of_gstate"
 
