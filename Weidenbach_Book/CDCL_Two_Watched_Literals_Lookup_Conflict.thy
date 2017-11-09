@@ -1270,22 +1270,21 @@ context isasat_input_ops
 begin
 
 definition is_literal_redundant_lookup_spec where
-   \<open>is_literal_redundant_lookup_spec NU NUP D' st_unchanged L s =
+   \<open>is_literal_redundant_lookup_spec M NU NUP D' L s =
     SPEC(\<lambda>(s', b). b \<longrightarrow> (\<forall>D. (D', D) \<in> conflict_rel \<longrightarrow> NU + NUP \<Turnstile>pm remove1_mset L D))\<close>
 
 definition iterate_over_lookup_conflict
-  :: \<open>(nat, 'mark) ann_lits \<Rightarrow> nat clauses \<Rightarrow> nat clauses \<Rightarrow> conflict_rel \<Rightarrow>
-        'st_unchanged \<Rightarrow> 'state \<Rightarrow>
+  :: \<open>(nat, 'mark) ann_lits \<Rightarrow> nat clauses \<Rightarrow> nat clauses \<Rightarrow> conflict_rel \<Rightarrow> 'state \<Rightarrow>
        (conflict_rel \<times> 'state \<times> nat conflict_highest_conflict) nres\<close>
 where
-  \<open>iterate_over_lookup_conflict  = (\<lambda>M NU NUP (n, xs) st_unchanged s. do {
+  \<open>iterate_over_lookup_conflict  = (\<lambda>M NU NUP (n, xs) s. do {
     (D, _, _, s, highest) \<leftarrow>
        WHILE\<^sub>T\<^bsup>iterate_over_lookup_conflict_inv\<^esup>
          (\<lambda>((n, xs), m, i, s, _). m > 0)
          (\<lambda>((n, xs), m, i, s, highest). do {
             ASSERT(m > 0);
             x \<leftarrow> confl_find_next_index_spec (m, xs) i;
-            (s', red) \<leftarrow> is_literal_redundant_lookup_spec NU NUP (n, xs) st_unchanged
+            (s', red) \<leftarrow> is_literal_redundant_lookup_spec M NU NUP (n, xs)
                 (if the (xs ! x) then Pos x else Neg x) s;
             let L = (if the (xs ! x) then Pos x else Neg x);
             ASSERT(x < length xs);
@@ -1306,7 +1305,7 @@ lemma iterate_over_lookup_conflict_iterate_over_conflict:
   assumes
     D'_D: \<open>(D', D) \<in> conflict_rel\<close>
   shows
-    \<open>iterate_over_lookup_conflict M NU NUP D' st_unchanged s' \<le>
+    \<open>iterate_over_lookup_conflict M NU NUP D' s' \<le>
        \<Down> ({((D, s, L'), (D', L)). (D, D') \<in> conflict_rel \<and> L' = L})
            (iterate_over_conflict M NU NUP D)\<close>
     (is \<open>_ \<le> \<Down> ?R _\<close>)
@@ -1502,7 +1501,7 @@ proof -
       using xa_le_x2b H incls unfolding R_def
       by (auto intro: subset_mset.order.trans diff_subset_eq_self mset_le_subtract)
   qed
-  have redundant: \<open>is_literal_redundant_lookup_spec NU NUP (x1c, x2b) st_unchanged
+  have redundant: \<open>is_literal_redundant_lookup_spec M NU NUP (x1c, x2b)
        (if the (x2b ! xa) then Pos xa else Neg xa) xf1
       \<le> \<Down> {((s' :: 'state2, b'), b). b = b'}
           (is_literal_redundant_spec NU NUP x1 xb)\<close>
