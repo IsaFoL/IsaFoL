@@ -8,6 +8,9 @@ type_synonym trail_pol =
 type_synonym trail_pol_assn =
    \<open>uint32 list \<times> bool option array \<times> uint32 array \<times> nat option array \<times> uint32\<close>
 
+type_synonym trail_pol_uint_assn =
+   \<open>uint32 list \<times> bool option array \<times> uint32 array \<times> uint64 option array \<times> uint32\<close>
+
 definition get_level_atm where
   \<open>get_level_atm M L = get_level M (Pos L)\<close>
 
@@ -48,6 +51,12 @@ abbreviation trail_pol_assn :: \<open>trail_pol \<Rightarrow> trail_pol_assn \<R
       list_assn unat_lit_assn *a array_assn (option_assn bool_assn) *a
       array_assn uint32_nat_assn *a
       array_assn (option_assn nat_assn) *a uint32_nat_assn\<close>
+
+abbreviation trail_pol_uint_assn :: \<open>trail_pol \<Rightarrow> trail_pol_uint_assn \<Rightarrow> assn\<close> where
+  \<open>trail_pol_uint_assn \<equiv>
+      list_assn unat_lit_assn *a array_assn (option_assn bool_assn) *a
+      array_assn uint32_nat_assn *a
+      array_assn (option_assn uint64_nat_assn) *a uint32_nat_assn\<close>
 
 abbreviation phase_saver_conc where
   \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
@@ -91,6 +100,25 @@ prepare_code_thms (in -) get_level_atm_code_def
 
 lemmas get_level_atm_code_hnr[sepref_fr_rules] =
    get_level_atm_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
+
+sepref_thm get_level_atm_uint_code
+  is \<open>uncurry (RETURN oo get_level_atm_pol)\<close>
+  :: \<open>[\<lambda>((M, xs, lvls, k), L). nat_of_uint32 L < length lvls]\<^sub>a
+  trail_pol_uint_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  unfolding get_level_atm_pol_def nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
+  nth_u_def[symmetric]
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) get_level_atm_uint_code
+   uses isasat_input_bounded.get_level_atm_uint_code.refine_raw
+   is \<open>(uncurry ?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) get_level_atm_uint_code_def
+
+lemmas get_level_atm_uint_code_hnr[sepref_fr_rules] =
+   get_level_atm_uint_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma get_level_atm_hnr[sepref_fr_rules]:
   \<open>(uncurry get_level_atm_code, uncurry (RETURN oo get_level_atm)) \<in>
