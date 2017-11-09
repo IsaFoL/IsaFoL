@@ -256,7 +256,10 @@ lemma chain_prepend:
   by (induct zs; cases xs)
     (auto split: if_splits simp: lnull_def[symmetric] intro!: chain.cons elim!: chain_consE)
 
-coinductive emb where
+lemma lmap_prepend[simp]: "lmap f (prepend xs ys) = prepend (map f xs) (lmap f ys)"
+  by (induct xs) auto
+
+coinductive emb :: "'a llist \<Rightarrow> 'a llist \<Rightarrow> bool" where
   "emb LNil xs"
 | "emb xs ys \<Longrightarrow> emb (LCons x xs) (prepend zs (LCons x ys))"
 
@@ -265,7 +268,10 @@ inductive prepend_cong1 for X where
 | prepend_cong1_prepend: "prepend_cong1 X ys \<Longrightarrow> prepend_cong1 X (prepend xs ys)"
 
 lemma emb_prepend_coinduct[rotated, case_names emb]:
-  assumes "(\<And>x1 x2. X x1 x2 \<Longrightarrow> (\<exists>xs. x1 = LNil \<and> x2 = xs) \<or> (\<exists>xs ys x zs. x1 = LCons x xs \<and> x2 = prepend zs (LCons x ys) \<and> (prepend_cong1 (X xs) ys \<or> emb xs ys)))"
+  assumes "(\<And>x1 x2. X x1 x2 \<Longrightarrow>
+    (\<exists>xs. x1 = LNil \<and> x2 = xs)
+     \<or> (\<exists>xs ys x zs. x1 = LCons x xs \<and> x2 = prepend zs (LCons x ys)
+       \<and> (prepend_cong1 (X xs) ys \<or> emb xs ys)))"
   shows "X x1 x2 \<Longrightarrow> emb x1 x2"
   apply (erule emb.coinduct[OF prepend_cong1_base])
   subgoal for xs zs
@@ -375,31 +381,31 @@ private lemma wit_LCons: "wit (LCons x xs) = (case xs of LNil \<Rightarrow> LCon
 private lemma lnull_wit[simp]: "lnull (wit xs) \<longleftrightarrow> lnull xs"
   by (subst wit.code) (auto split: llist.splits simp: Let_def)
 
-private lemma lhd_wit[simp]: "chain (R\<^sup>+\<^sup>+) xs \<Longrightarrow> lhd (wit xs) = lhd xs"
+private lemma lhd_wit[simp]: "chain R\<^sup>+\<^sup>+ xs \<Longrightarrow> lhd (wit xs) = lhd xs"
   by (erule chain.cases; subst wit.code) (auto split: llist.splits simp: Let_def)
 
 private lemma butlast_alt: "butlast xs = (if tl xs = [] then [] else hd xs # butlast (tl xs))"
   by (cases xs) auto
 
 private lemma wit_alt:
-  "chain (R\<^sup>+\<^sup>+) xs \<Longrightarrow> wit xs = (case xs of LCons x (LCons y xs) \<Rightarrow>
+  "chain R\<^sup>+\<^sup>+ xs \<Longrightarrow> wit xs = (case xs of LCons x (LCons y xs) \<Rightarrow>
      prepend (pick x y) (ltl (wit (LCons y xs))) | _ \<Rightarrow> xs)"
   by (auto split: llist.splits simp: prepend_butlast[symmetric] wit_LCons2 Let_def
     prepend.simps(2)[symmetric] butlast_alt[of "pick _ _"]
     simp del: prepend.simps elim!: chain_nontrivE)
 
 private lemma wit_alt2:
-  "chain (R\<^sup>+\<^sup>+) xs \<Longrightarrow> wit xs = (case xs of LCons x (LCons y xs) \<Rightarrow>
+  "chain R\<^sup>+\<^sup>+ xs \<Longrightarrow> wit xs = (case xs of LCons x (LCons y xs) \<Rightarrow>
      prepend (butlast (pick x y)) (wit (LCons y xs)) | _ \<Rightarrow> xs)"
   by (auto split: llist.splits simp: wit_LCons2 Let_def
     prepend.simps(2)[symmetric] butlast_alt[of "pick _ _"]
     simp del: prepend.simps elim!: chain_nontrivE)
 
 theorem lfinite_less_induct[consumes 1, case_names less]:
-  assumes "lfinite xs"
+  assumes fin: "lfinite xs"
     and step: "\<And>xs. lfinite xs \<Longrightarrow> (\<And>zs. llength zs < llength xs \<Longrightarrow> P zs) \<Longrightarrow> P xs"
   shows "P xs"
-using \<open>lfinite xs\<close> proof (induct "the_enat (llength xs)" arbitrary: xs rule: less_induct)
+using fin proof (induct "the_enat (llength xs)" arbitrary: xs rule: less_induct)
   case (less xs)
   show ?case
     using less(2) by (intro step[OF less(2)] less(1))
@@ -422,7 +428,7 @@ private lemma LNil_eq_iff_lnull: "LNil = xs \<longleftrightarrow> lnull xs"
   by (cases xs) auto
 
 private lemma lfinite_wit[simp]:
-  assumes "chain (R\<^sup>+\<^sup>+) xs"
+  assumes "chain R\<^sup>+\<^sup>+ xs"
   shows "lfinite (wit xs) \<longleftrightarrow> lfinite xs"
 proof
   assume "lfinite (wit xs)"
@@ -454,7 +460,7 @@ next
 qed
 
 private lemma llast_wit[simp]:
-  assumes "chain (R\<^sup>+\<^sup>+) xs"
+  assumes "chain R\<^sup>+\<^sup>+ xs"
   shows "llast (wit xs) = llast xs"
 proof (cases "lfinite xs")
   case True
@@ -466,7 +472,7 @@ proof (cases "lfinite xs")
   qed auto
 qed (auto simp: llast_linfinite assms)
 
-lemma emb_wit[simp]: "chain (R\<^sup>+\<^sup>+) xs \<Longrightarrow> emb xs (wit xs)"
+lemma emb_wit[simp]: "chain R\<^sup>+\<^sup>+ xs \<Longrightarrow> emb xs (wit xs)"
 proof (coinduction arbitrary: xs rule: emb_prepend_coinduct)
   case (emb xs)
   then show ?case
@@ -486,7 +492,7 @@ proof (coinduction arbitrary: xs rule: emb_prepend_coinduct)
 qed
 
 lemma chain_tranclp_imp_exists_chain:
-  "chain (R\<^sup>+\<^sup>+) xs \<Longrightarrow> \<exists>ys. chain R ys \<and> emb xs ys \<and> lhd ys = lhd xs \<and> llast ys = llast xs"
+  "chain R\<^sup>+\<^sup>+ xs \<Longrightarrow> \<exists>ys. chain R ys \<and> emb xs ys \<and> lhd ys = lhd xs \<and> llast ys = llast xs"
 proof (intro exI[of _ "wit xs"] conjI, coinduction arbitrary: xs rule: chain_prepend_coinduct)
   case chain
   then show ?case
@@ -547,13 +553,41 @@ using assms proof (induct i arbitrary: Xs Ys rule: less_induct)
 qed
 
 lemma emb_Liminf_llist:
-  assumes "emb Xs Ys" "\<not> lfinite Xs" "x \<in> Liminf_llist Ys"
-  shows "x \<in> Liminf_llist Xs"
+  assumes "emb Xs Ys" and "\<not> lfinite Xs"
+  shows "Liminf_llist Ys \<subseteq> Liminf_llist Xs"
 proof -
-  from assms(1,2) have "\<not> lfinite Ys" using emb_lfinite_antimono by blast
+  from assms have "\<not> lfinite Ys"
+    using emb_lfinite_antimono by blast
   with assms show ?thesis
-    unfolding Liminf_llist_def
-    by (auto simp: not_lfinite_llength dest: emb_Liminf_llist_mono_aux)
+    unfolding Liminf_llist_def by (auto simp: not_lfinite_llength dest: emb_Liminf_llist_mono_aux)
+qed
+
+lemma emb_lmap: "emb xs ys \<Longrightarrow> emb (lmap f xs) (lmap f ys)"
+proof (coinduction arbitrary: xs ys rule: emb.coinduct)
+  case emb
+  show ?case
+  proof (cases xs)
+    case xs: (LCons x xs')
+
+    obtain ysa0 and zs0 where
+      ys: "ys = prepend zs0 (LCons x ysa0)" and
+      emb': "emb xs' ysa0"
+      using emb_LConsE[OF emb[unfolded xs]] by metis
+
+    let ?xa = "f x"
+    let ?xsa = "lmap f xs'"
+    let ?zs = "map f zs0"
+    let ?ysa = "lmap f ysa0"
+
+    have "lmap f xs = LCons ?xa ?xsa"
+      unfolding xs by simp
+    moreover have "lmap f ys = prepend ?zs (LCons ?xa ?ysa)"
+      unfolding ys by simp
+    moreover have "\<exists>xsa ysa. ?xsa = lmap f xsa \<and> ?ysa = lmap f ysa \<and> emb xsa ysa"
+      using emb' by blast
+    ultimately show ?thesis
+      by blast
+  qed simp
 qed
 
 end

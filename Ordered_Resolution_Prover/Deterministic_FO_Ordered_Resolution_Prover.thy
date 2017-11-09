@@ -683,9 +683,9 @@ proof
 
   obtain ss_gSts where
     chain: "chain (op \<leadsto>\<^sub>w) ss_gSts" and
-    hd: "lhd ss_gSts = lhd gSts" and
-    set: "lset gSts \<subseteq> lset ss_gSts"
-    using chain_tranclp_imp_exists_chain_not_strong_enough[OF inf chain_star] by blast
+    emb: "emb gSts ss_gSts" and
+    hd: "lhd ss_gSts = lhd gSts"
+    using chain_tranclp_imp_exists_chain[OF chain_star] by blast
 
   have fin_s0: "finite (clss_of_gstate (lnth ss_gSts 0))"
     sorry
@@ -704,6 +704,7 @@ proof
   (* Magic happens here. *)
 
   have bot_in_lim: "{#} \<in> clss_of_state (Liminf_gstate gSts)"
+    thm emb_Liminf_llist[OF emb]
     sorry
   then obtain k where
     "{#} \<in> clss_of_gstate (lnth gSts k)"
