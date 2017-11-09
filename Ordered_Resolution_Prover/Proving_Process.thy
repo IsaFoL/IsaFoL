@@ -256,11 +256,26 @@ lemma chain_prepend:
   by (induct zs; cases xs)
     (auto split: if_splits simp: lnull_def[symmetric] intro!: chain.cons elim!: chain_consE)
 
-(* inductive prepend_cong1 for X where
-  prepend_cong1_base: "X xs \<Longrightarrow> prepend_cong1 X xs"
-| prepend_cong1_prepend: "xs \<noteq> [] \<Longrightarrow> tl xs \<noteq> [] \<Longrightarrow> \<not> lnull ys \<Longrightarrow> last xs = lhd ys \<Longrightarrow>
-    prepend_cong1 X ys \<Longrightarrow> prepend_cong1 X (prepend xs (ltl ys))"
+coinductive emb where
+  "emb LNil xs"
+| "emb xs ys \<Longrightarrow> emb (LCons x xs) (prepend zs (LCons x ys))"
 
+inductive prepend_cong1 for X where
+  prepend_cong1_base: "X xs \<Longrightarrow> prepend_cong1 X xs"
+| prepend_cong1_prepend: "prepend_cong1 X ys \<Longrightarrow> prepend_cong1 X (prepend xs ys)"
+
+lemma emb_prepend_coinduct[rotated, case_names emb]:
+  assumes "(\<And>x1 x2. X x1 x2 \<Longrightarrow> (\<exists>xs. x1 = LNil \<and> x2 = xs) \<or> (\<exists>xs ys x zs. x1 = LCons x xs \<and> x2 = prepend zs (LCons x ys) \<and> (prepend_cong1 (X xs) ys \<or> emb xs ys)))"
+  shows "X x1 x2 \<Longrightarrow> emb x1 x2"
+  apply (erule emb.coinduct[OF prepend_cong1_base])
+  subgoal for xs zs
+    apply (induct zs rule: prepend_cong1.induct)
+     apply (erule assms)
+    apply (force simp: prepend_prepend)
+    done
+  done
+
+(*
 lemma chain_prepend_coinduct[case_names chain]:
   assumes "(\<And>xs. X xs \<Longrightarrow>
     (\<exists>z. xs = LCons z LNil) \<or>
@@ -485,27 +500,8 @@ proof (cases "lfinite xs")
   qed auto
 qed (auto simp: llast_linfinite assms)
 
-coinductive emb where
-  "emb LNil xs"
-| "emb xs ys \<Longrightarrow> emb (LCons x xs) (prepend zs (LCons x ys))"
-
-inductive prepend_cong1 for X where
-  prepend_cong1_base: "X xs \<Longrightarrow> prepend_cong1 X xs"
-| prepend_cong1_prepend: "prepend_cong1 X ys \<Longrightarrow> prepend_cong1 X (prepend xs ys)"
-
-lemma emb_prepend_coinduct:
-  assumes "(\<And>x1 x2. X x1 x2 \<Longrightarrow> (\<exists>xs. x1 = LNil \<and> x2 = xs) \<or> (\<exists>xs ys x zs. x1 = LCons x xs \<and> x2 = prepend zs (LCons x ys) \<and> (prepend_cong1 (X xs) ys \<or> emb xs ys)))"
-  shows "X x1 x2 \<Longrightarrow> emb x1 x2"
-  apply (erule emb.coinduct[OF prepend_cong1_base])
-  subgoal for xs zs
-    apply (induct zs rule: prepend_cong1.induct)
-     apply (erule assms)
-    apply (force simp: prepend_prepend)
-    done
-  done
-
 lemma emb_wit[simp]: "chain (R\<^sup>+\<^sup>+) xs \<Longrightarrow> emb xs (wit xs)"
-proof (coinduction arbitrary: xs rule: emb_prepend_coinduct[rotated, case_names emb])
+proof (coinduction arbitrary: xs rule: emb_prepend_coinduct)
   case (emb xs)
   then show ?case
     apply (rule chain.cases)
