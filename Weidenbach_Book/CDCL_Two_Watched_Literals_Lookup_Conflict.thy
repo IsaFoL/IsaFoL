@@ -1782,7 +1782,7 @@ lemma iterate_over_conflict_spec:
   fixes D :: \<open>'v clause\<close>
   assumes \<open>NU + NUP \<Turnstile>pm D\<close> and dist: \<open>distinct_mset D\<close>
   shows
-    \<open>iterate_over_conflict M NU NUP D \<le> \<Down> Id (SPEC(\<lambda>(D', K). \<exists>D'. D' \<subseteq># D \<and> NU + NUP \<Turnstile>pm D'  \<and>
+    \<open>iterate_over_conflict M NU NUP D \<le> \<Down> Id (SPEC(\<lambda>(D', K). D' \<subseteq># D \<and> NU + NUP \<Turnstile>pm D'  \<and>
          highest_lit M D' K))\<close>
 proof -
   define I' where
@@ -1845,6 +1845,8 @@ proof -
     subgoal by (rule init_I')
     subgoal by auto
     subgoal for s a b aa ba x by (rule red)
+    subgoal unfolding I'_def iterate_over_conflict_inv_def by auto
+    subgoal unfolding I'_def iterate_over_conflict_inv_def by auto
     subgoal unfolding I'_def iterate_over_conflict_inv_def by auto
     done
 qed
