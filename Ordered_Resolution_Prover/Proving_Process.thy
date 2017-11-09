@@ -8,7 +8,7 @@
 section \<open>Theorem Proving Processes\<close>
 
 theory Proving_Process
-  imports Unordered_Ground_Resolution Lazy_List_Liminf
+  imports Unordered_Ground_Resolution Lazy_List_Liminf "HOL-Library.BNF_Corec"
 begin
 
 text \<open>
@@ -187,6 +187,180 @@ proof (induction rule: lfinite_induct)
       by fast
   qed
 qed (simp add: lnull_def)
+
+lemma tranclp_imp_exists_finite_chain_list:
+  "R\<^sup>+\<^sup>+ x y \<Longrightarrow> \<exists>xs. xs \<noteq> [] \<and> tl xs \<noteq> [] \<and> chain R (llist_of xs) \<and> hd xs = x \<and> last xs = y"
+proof (induct rule: tranclp.induct)
+  case (r_into_trancl x y)
+  note r_xy = this
+
+  define xs where
+    "xs = [x, y]"
+
+  have "xs \<noteq> []" and "tl xs \<noteq> []" and "chain R (llist_of xs)" and "hd xs = x" and "last xs = y"
+    unfolding xs_def using r_xy by (auto intro: chain.intros)
+  then show ?case
+    by blast
+next
+  case (trancl_into_trancl x y z)
+  note rstar_xy = this(1) and ih = this(2) and r_yz = this(3)
+
+  obtain xs where
+    xs: "xs \<noteq> []" "tl xs \<noteq> []" "chain R (llist_of xs)" "hd xs = x" "last xs = y"
+    using ih by blast
+  define ys where
+    "ys = xs @ [z]"
+
+  have "ys \<noteq> []" and "tl ys \<noteq> []" and "chain R (llist_of ys)" and "hd ys = x" and "last ys = z"
+    unfolding ys_def using xs r_yz
+    by (auto simp: lappend_llist_of_llist_of[symmetric] intro: singleton chain_lappend)
+  then show ?case
+    by blast
+qed
+
+
+inductive_cases chain_consE: "chain R (LCons x xs)"
+inductive_cases chain_nontrivE: "chain R (LCons x (LCons y xs))"
+
+primrec prepend where
+  "prepend [] ys = ys"
+| "prepend (x # xs) ys = LCons x (prepend xs ys)"
+
+lemma prepend_butlast:
+  "xs \<noteq> [] \<Longrightarrow> \<not> lnull ys \<Longrightarrow> last xs = lhd ys \<Longrightarrow> prepend (butlast xs) ys = prepend xs (ltl ys)"
+  by (induct xs) auto
+
+lemma lnull_prepend[simp]: "lnull (prepend xs ys) = (xs = [] \<and> lnull ys)"
+  by (induct xs) auto
+
+lemma lhd_prepend[simp]: "lhd (prepend xs ys) = (if xs \<noteq> [] then hd xs else lhd ys)"
+  by (induct xs) auto
+
+lemma prepend_LNil[simp]: "prepend xs LNil = llist_of xs"
+  by (induct xs) auto
+
+lemma chain_prepend: 
+  "chain R (llist_of zs) \<Longrightarrow> zs \<noteq> [] \<Longrightarrow> \<not> lnull xs \<Longrightarrow> last zs = lhd xs \<Longrightarrow> chain R xs \<Longrightarrow> chain R (prepend zs (ltl xs))"
+  by (induct zs)
+    (auto split: if_splits simp: lnull_def[symmetric] intro!: chain.cons elim!: chain_consE)
+
+context
+begin
+
+private coinductive chain' for R where
+  "chain' R (LCons x LNil)"
+| "chain R (llist_of zs) \<Longrightarrow> zs \<noteq> [] \<Longrightarrow> tl zs \<noteq> [] \<Longrightarrow> \<not> lnull xs \<Longrightarrow> last zs = lhd xs \<Longrightarrow> chain' R xs \<Longrightarrow> ys = ltl xs \<Longrightarrow> chain' R (prepend zs ys)"
+
+private lemma chain_imp_chain': "chain R xs \<Longrightarrow> chain' R xs"
+  apply (coinduction arbitrary: xs rule: chain'.coinduct)
+  apply (erule chain.cases, simp)
+  apply (rule disjI2)
+  subgoal for xs zs z
+    apply (rule exI[of _ "[z, lhd zs]"], rule exI[of _ zs])
+    apply (auto intro: chain.intros elim: chain.cases)
+    done
+  done
+
+private inductive_cases chain'_LConsE: "chain' R (LCons x xs)"
+
+private lemma LNil_eq_iff_lnull: "LNil = xs \<longleftrightarrow> lnull xs"
+  by (cases xs) auto
+
+private lemma chain'_stepD1: "chain' R (LCons x (LCons y xs)) \<Longrightarrow> chain' R (LCons y xs)"
+  apply (cases xs)
+   apply (simp only: chain'.intros(1))
+  apply (erule chain'.cases)
+   apply (auto simp: neq_Nil_conv not_lnull_conv elim!: chain_nontrivE)
+  subgoal for z zs ys xs
+    apply (cases ys)
+     apply simp
+    unfolding prepend.simps[symmetric]
+    apply (rule chain'.intros)
+          apply auto
+    done
+  done
+
+private lemma chain'_stepD2: "chain' R (LCons x (LCons y xs)) \<Longrightarrow> R x y"
+  by (erule chain'.cases) (auto simp: neq_Nil_conv elim!: chain_nontrivE split: if_splits)
+  
+private lemma chain'_imp_chain: "chain' R xs \<Longrightarrow> chain R xs"
+  apply (coinduction arbitrary: xs rule: chain.coinduct)
+  apply (erule chain'.cases, simp)
+  unfolding neq_Nil_conv not_lnull_conv
+  apply (erule exE)+
+  subgoal for ys zs xs as Z ZZ X _ Zs Xs
+    apply (cases Xs; auto elim: chain'_stepD1 chain'_stepD2 chain_nontrivE split: if_splits)
+    unfolding prepend.simps[symmetric]
+    apply (intro chain'.intros)
+          apply (auto simp: neq_Nil_conv elim: chain_nontrivE)
+    done
+  done
+
+private lemma chain_chain': "chain = chain'"
+  unfolding fun_eq_iff by (metis chain_imp_chain' chain'_imp_chain)
+
+lemma chain_prepend_coinduct[case_names chain]:
+  "X x \<Longrightarrow> (\<And>x. X x \<Longrightarrow>
+    (\<exists>z. x = LCons z LNil) \<or>
+    (\<exists>xs zs. x = prepend zs (ltl xs) \<and> zs \<noteq> [] \<and> tl zs \<noteq> [] \<and> \<not> lnull xs \<and> last zs = lhd xs \<and>
+      (X xs \<or> chain R xs) \<and> chain R (llist_of zs))) \<Longrightarrow> chain R x"
+  by (subst chain_chain', erule chain'.coinduct) (auto simp: chain_chain')
+
+end
+
+context
+  fixes R :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
+begin
+
+private definition pick where
+  "pick x y = (SOME xs. xs \<noteq> [] \<and> tl xs \<noteq> [] \<and> chain R (llist_of xs) \<and> hd xs = x \<and> last xs = y)"
+
+private lemma pick[simp]:
+  assumes "R\<^sup>+\<^sup>+ x y"
+  shows "pick x y \<noteq> []" "tl (pick x y) \<noteq> []" "chain R (llist_of (pick x y))"
+    "hd (pick x y) = x" "last (pick x y) = y"
+  unfolding pick_def using tranclp_imp_exists_finite_chain_list[THEN someI_ex, OF assms]
+  by auto
+
+private friend_of_corec prepend where
+  "prepend xs ys = (case xs of [] \<Rightarrow> (case ys of LNil \<Rightarrow> LNil | LCons x xs \<Rightarrow> LCons x xs) | x # xs' \<Rightarrow> LCons x (prepend xs' ys))"
+  by (simp split: list.splits llist.splits) transfer_prover
+
+private corec wit where
+  "wit xs = (case xs of LCons x (LCons y xs) \<Rightarrow>
+     let zs = pick x y in LCons (hd zs) (prepend (butlast (tl zs)) (wit (LCons y xs))) | _ \<Rightarrow> xs)"
+
+private lemma
+  wit_LNil[simp]: "wit LNil = LNil" and
+  wit_lsingleton[simp]: "wit (LCons x LNil) = LCons x LNil" and
+  wit_LCons: "wit (LCons x (LCons y xs)) =
+     (let zs = pick x y in LCons (hd zs) (prepend (butlast (tl zs)) (wit (LCons y xs))))"
+  by (subst wit.code; auto)+
+
+private lemma lnull_wit[simp]: "lnull (wit xs) \<longleftrightarrow> lnull xs"
+  by (subst wit.code) (auto split: llist.splits simp: Let_def)
+
+private lemma lhd_wit[simp]: "chain (R\<^sup>+\<^sup>+) xs \<Longrightarrow> \<not> lnull xs \<Longrightarrow> lhd (wit xs) = lhd xs"
+  by (erule chain.cases; subst wit.code) (auto split: llist.splits simp: Let_def)
+
+private lemma butlast_alt: "butlast xs = (if tl xs = [] then [] else hd xs # butlast (tl xs))"
+  by (cases xs) auto
+
+private lemma wit_alt:
+  "chain (R\<^sup>+\<^sup>+) xs \<Longrightarrow> wit xs = (case xs of LCons x (LCons y xs) \<Rightarrow>
+     prepend (pick x y) (ltl (wit (LCons y xs))) | _ \<Rightarrow> xs)"
+  by (auto split: llist.splits simp: prepend_butlast[symmetric] wit_LCons Let_def
+    prepend.simps(2)[symmetric] butlast_alt[of "pick _ _"]
+    simp del: prepend.simps elim!: chain_nontrivE)
+
+lemma chain_tranclp_imp_exists_chain: "chain (R\<^sup>+\<^sup>+) xs \<Longrightarrow> \<exists>ys. chain R ys"
+proof (rule exI[of _ "wit xs"], coinduction arbitrary: xs rule: chain_prepend_coinduct)
+  case chain
+  then show ?case
+    by (subst (1 2) wit_alt; assumption?) (erule chain.cases; force split: llist.splits)
+qed
+
+end
 
 (* FIXME:
 lemma chain_tranclp_imp_exists_chain:
