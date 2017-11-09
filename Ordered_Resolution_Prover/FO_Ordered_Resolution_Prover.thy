@@ -779,7 +779,7 @@ qed
 lemma size_subst: "size (D \<cdot> \<sigma>) = size D"
   unfolding subst_cls_def by auto
 
-lemma subset_subst_strictly_subsumes:
+lemma strict_subset_subst_strictly_subsumes:
   assumes c\<eta>_sub: "C \<cdot> \<eta> \<subset># D"
   shows "strictly_subsumes C D"
 proof -
@@ -795,7 +795,7 @@ lemma subsumes_trans: "subsumes C D \<Longrightarrow> subsumes D E \<Longrightar
   unfolding subsumes_def by (metis subset_mset.order.trans subst_cls_comp_subst subst_cls_mono_mset)
 
 lemma subset_strictly_subsumes: "C \<subset># D \<Longrightarrow> strictly_subsumes C D"
-  using subset_subst_strictly_subsumes[of C id_subst] by auto
+  using strict_subset_subst_strictly_subsumes[of C id_subst] by auto
 
 lemma strictly_subsumes_neq: "strictly_subsumes D' D \<Longrightarrow> D' \<noteq> D \<cdot> \<sigma>"
   unfolding strictly_subsumes_def subsumes_def by blast
@@ -1119,7 +1119,7 @@ lemma variants_sym: "variants D D' \<longleftrightarrow> variants D' D"
 
 lemma variants_imp_exists_subtitution: "variants D D' \<Longrightarrow> \<exists>\<sigma>. D \<cdot> \<sigma> = D'"
   unfolding variants_iff_subsumes subsumes_def
-  by (meson strictly_subsumes_def subset_mset_def subset_subst_strictly_subsumes subsumes_def)
+  by (meson strictly_subsumes_def subset_mset_def strict_subset_subst_strictly_subsumes subsumes_def)
 
 lemma properly_subsume_variants:
   assumes "strictly_subsumes E D" and "variants D D'"
