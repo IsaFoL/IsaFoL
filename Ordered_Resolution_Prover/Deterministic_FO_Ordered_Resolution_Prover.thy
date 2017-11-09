@@ -685,7 +685,7 @@ proof
     chain: "chain (op \<leadsto>\<^sub>w) ss_gSts" and
     hd: "lhd ss_gSts = lhd gSts" and
     set: "lset gSts \<subseteq> lset ss_gSts"
-    using chain_tranclp_imp_exists_chain_strong[OF inf chain_star] by blast
+    using chain_tranclp_imp_exists_chain_not_strong_enough[OF inf chain_star] by blast
 
   have fin_s0: "finite (clss_of_gstate (lnth ss_gSts 0))"
     sorry
@@ -700,6 +700,8 @@ proof
 
   have bot_in_lim_ss: "{#} \<in> clss_of_state (Liminf_gstate ss_gSts)"
     by (rule weighted_RP_complete[OF chain fin_s0 empty_p0 empty_q0 unsat_lim])
+
+  (* Magic happens here. *)
 
   have bot_in_lim: "{#} \<in> clss_of_state (Liminf_gstate gSts)"
     sorry
