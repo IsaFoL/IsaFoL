@@ -275,40 +275,6 @@ lemma emb_prepend_coinduct[rotated, case_names emb]:
     done
   done
 
-(*
-lemma chain_prepend_coinduct[case_names chain]:
-  assumes "(\<And>xs. X xs \<Longrightarrow>
-    (\<exists>z. xs = LCons z LNil) \<or>
-    (\<exists>ys y. xs = LCons y ys \<and> (prepend_cong1 X ys \<or> chain R ys) \<and> R y (lhd ys)))"
-  (is "\<And>xs. X xs \<Longrightarrow> ?bisim xs")
-  shows "X xs \<Longrightarrow> chain R xs"
-proof (erule chain.coinduct[OF prepend_cong1_base])
-  fix xs
-  assume "prepend_cong1 X xs"
-  then show "?bisim xs"
-  proof (induct xs pred: prepend_cong1)
-    case (prepend_cong1_prepend ys xs)
-    then show ?case
-      unfolding neq_Nil_conv not_lnull_conv
-      apply (elim exE)
-      subgoal for y1 y2 z _ yys zs
-        apply (cases yys; cases zs; simp)
-        apply simp
-        apply (auto split: if_splits)
-      apply (elim disjE exE)
-       apply simp
-       apply (rule disjI2)
-      apply (rule exI[of _ "llist_of (tl ys)"])
-      apply (rule exI[of _ "hd ys"])
-       apply (auto simp: neq_Nil_conv) []
-       apply (auto split: if_splits) [2]
-       apply (erule prepend_cong1.cases)
-      apply auto
-      unfolding neq_Nil_conv not_lnull_conv
-      apply (auto split: if_splits)
-      apply auto sorry
-  qed (erule assms) *)
-
 context
 begin
 
@@ -548,35 +514,46 @@ lemma emb_lfinite_antimono[rotated]: "lfinite ys \<Longrightarrow> emb xs ys \<L
   by (induct ys arbitrary: xs rule: lfinite_prepend_induct)
     (force elim!: emb_LNil2E simp: LNil_eq_iff_lnull prepend_LCons elim: emb.cases)+
 
-lemma *:
-  assumes "emb Xs Ys" "\<forall>j\<ge>i. x \<in> lnth Ys j" and "\<not> lfinite Xs" and "\<not> lfinite Ys"
+lemma lnth_prepend:
+  "lnth (prepend xs ys) i = (if i < length xs then nth xs i else lnth ys (i - length xs))"
+  by (induct xs arbitrary: i) (auto simp: lnth_LCons' nth_Cons')
+
+lemma emb_Liminf_llist_mono_aux:
+  assumes "emb Xs Ys" and "\<not> lfinite Xs" and "\<not> lfinite Ys" and "\<forall>j\<ge>i. x \<in> lnth Ys j"
   shows "\<forall>j\<ge>i. x \<in> lnth Xs j"
-using assms proof (induct i arbitrary: Xs Ys)
-  case 0
-  then show ?case using emb_Ball_lset_antimono[of Xs Ys x]
-    unfolding Ball_def in_lset_conv_lnth not_lfinite_llength[OF 0(3)] not_lfinite_llength[OF 0(4)] enat_ord_code
-    by blast
-next
-  case (Suc i)
+using assms proof (induct i arbitrary: Xs Ys rule: less_induct)
+  case (less i)
   then show ?case
-    apply (auto )
-    apply (erule )
-    subgoal for j
-      apply (cases j)
-       apply auto
-      apply (drule meta_spec2[of _ "ltl Xs" "ltl Ys"])
-      apply auto sorry
-    done
+  proof (cases i)
+    case 0
+    then show ?thesis
+      using emb_Ball_lset_antimono[OF less(2), of x] less(5)
+      unfolding Ball_def in_lset_conv_lnth simp_thms
+        not_lfinite_llength[OF less(3)] not_lfinite_llength[OF less(4)] enat_ord_code subset_eq
+      by blast
+  next
+    case [simp]: (Suc nat)
+    from less(2,3) obtain xs as b bs where
+      [simp]: "Xs = LCons b xs" "Ys = prepend as (LCons b bs)" and "emb xs bs"
+      by (auto elim: emb.cases)
+    have IH: "\<forall>k\<ge>j. x \<in> lnth xs k" if "\<forall>k\<ge>j. x \<in> lnth bs k" "j < i" for j
+      using that less(1)[OF _ \<open>emb xs bs\<close>] less(3,4) by auto
+    from less(5) have "\<forall>k\<ge>i - length as - 1. x \<in> lnth xs k"
+      by (intro IH allI)
+        (drule spec[of _ "_ + length as + 1"], auto simp: lnth_prepend lnth_LCons')
+    then show ?thesis
+      by (auto simp: lnth_LCons')
+  qed
 qed
 
-lemma
+lemma emb_Liminf_llist:
   assumes "emb Xs Ys" "\<not> lfinite Xs" "x \<in> Liminf_llist Ys"
   shows "x \<in> Liminf_llist Xs"
 proof -
   from assms(1,2) have "\<not> lfinite Ys" using emb_lfinite_antimono by blast
   with assms show ?thesis
     unfolding Liminf_llist_def
-    by (auto simp: not_lfinite_llength dest: *)
+    by (auto simp: not_lfinite_llength dest: emb_Liminf_llist_mono_aux)
 qed
 
 end
