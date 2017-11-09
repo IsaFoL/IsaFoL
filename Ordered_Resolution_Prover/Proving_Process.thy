@@ -527,6 +527,58 @@ proof (intro exI[of _ "wit xs"] conjI, coinduction arbitrary: xs rule: chain_pre
     by (subst (1 2) wit_alt; assumption?) (erule chain.cases; force split: llist.splits)
 qed auto
 
+inductive_cases emb_LConsE: "emb (LCons z zs) ys"
+inductive_cases emb_LNil2E: "emb xs LNil"
+
+lemma lset_prepend[simp]: "lset (prepend xs ys) = set xs \<union> lset ys"
+  by (induct xs) auto
+
+lemma emb_lset_mono[rotated]: "x \<in> lset xs \<Longrightarrow> emb xs ys \<Longrightarrow>  x \<in> lset ys"
+  by (induct x xs arbitrary: ys rule: llist.set_induct) (auto elim!: emb_LConsE)
+
+lemma emb_Ball_lset_antimono:
+  assumes "emb Xs Ys"
+  shows "\<forall>Y \<in> lset Ys. x \<in> Y \<Longrightarrow> \<forall>X \<in> lset Xs. x \<in> X"
+  using emb_lset_mono[OF assms] by blast
+
+lemma prepend_LCons: "prepend xs (LCons y ys) = prepend (xs @ [y]) ys"
+  by (induct xs) auto
+
+lemma emb_lfinite_antimono[rotated]: "lfinite ys \<Longrightarrow> emb xs ys \<Longrightarrow> lfinite xs"
+  by (induct ys arbitrary: xs rule: lfinite_prepend_induct)
+    (force elim!: emb_LNil2E simp: LNil_eq_iff_lnull prepend_LCons elim: emb.cases)+
+
+lemma *:
+  assumes "emb Xs Ys" "\<forall>j\<ge>i. x \<in> lnth Ys j" and "\<not> lfinite Xs" and "\<not> lfinite Ys"
+  shows "\<forall>j\<ge>i. x \<in> lnth Xs j"
+using assms proof (induct i arbitrary: Xs Ys)
+  case 0
+  then show ?case using emb_Ball_lset_antimono[of Xs Ys x]
+    unfolding Ball_def in_lset_conv_lnth not_lfinite_llength[OF 0(3)] not_lfinite_llength[OF 0(4)] enat_ord_code
+    by blast
+next
+  case (Suc i)
+  then show ?case
+    apply (auto )
+    apply (erule )
+    subgoal for j
+      apply (cases j)
+       apply auto
+      apply (drule meta_spec2[of _ "ltl Xs" "ltl Ys"])
+      apply auto sorry
+    done
+qed
+
+lemma
+  assumes "emb Xs Ys" "\<not> lfinite Xs" "x \<in> Liminf_llist Ys"
+  shows "x \<in> Liminf_llist Xs"
+proof -
+  from assms(1,2) have "\<not> lfinite Ys" using emb_lfinite_antimono by blast
+  with assms show ?thesis
+    unfolding Liminf_llist_def
+    by (auto simp: not_lfinite_llength dest: *)
+qed
+
 end
 
 
