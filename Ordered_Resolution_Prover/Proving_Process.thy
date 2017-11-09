@@ -248,10 +248,51 @@ lemma llength_prepend[simp]: "llength (prepend xs ys) = length xs + llength ys"
 lemma llast_prepend[simp]: "\<not> lnull ys \<Longrightarrow> llast (prepend xs ys) = llast ys"
   by (induct xs) (auto simp: llast_LCons)
 
+lemma prepend_prepend: "prepend xs (prepend ys zs) = prepend (xs @ ys) zs"
+  by (induct xs) auto
+
 lemma chain_prepend: 
   "chain R (llist_of zs) \<Longrightarrow> zs \<noteq> [] \<Longrightarrow> \<not> lnull xs \<Longrightarrow> last zs = lhd xs \<Longrightarrow> chain R xs \<Longrightarrow> chain R (prepend zs (ltl xs))"
   by (induct zs)
     (auto split: if_splits simp: lnull_def[symmetric] intro!: chain.cons elim!: chain_consE)
+
+(* inductive prepend_cong1 for X where
+  prepend_cong1_base: "X xs \<Longrightarrow> prepend_cong1 X xs"
+| prepend_cong1_prepend: "xs \<noteq> [] \<Longrightarrow> tl xs \<noteq> [] \<Longrightarrow> \<not> lnull ys \<Longrightarrow> last xs = lhd ys \<Longrightarrow>
+    prepend_cong1 X ys \<Longrightarrow> prepend_cong1 X (prepend xs (ltl ys))"
+
+lemma chain_prepend_coinduct[case_names chain]:
+  assumes "(\<And>xs. X xs \<Longrightarrow>
+    (\<exists>z. xs = LCons z LNil) \<or>
+    (\<exists>ys y. xs = LCons y ys \<and> (prepend_cong1 X ys \<or> chain R ys) \<and> R y (lhd ys)))"
+  (is "\<And>xs. X xs \<Longrightarrow> ?bisim xs")
+  shows "X xs \<Longrightarrow> chain R xs"
+proof (erule chain.coinduct[OF prepend_cong1_base])
+  fix xs
+  assume "prepend_cong1 X xs"
+  then show "?bisim xs"
+  proof (induct xs pred: prepend_cong1)
+    case (prepend_cong1_prepend ys xs)
+    then show ?case
+      unfolding neq_Nil_conv not_lnull_conv
+      apply (elim exE)
+      subgoal for y1 y2 z _ yys zs
+        apply (cases yys; cases zs; simp)
+        apply simp
+        apply (auto split: if_splits)
+      apply (elim disjE exE)
+       apply simp
+       apply (rule disjI2)
+      apply (rule exI[of _ "llist_of (tl ys)"])
+      apply (rule exI[of _ "hd ys"])
+       apply (auto simp: neq_Nil_conv) []
+       apply (auto split: if_splits) [2]
+       apply (erule prepend_cong1.cases)
+      apply auto
+      unfolding neq_Nil_conv not_lnull_conv
+      apply (auto split: if_splits)
+      apply auto sorry
+  qed (erule assms) *)
 
 context
 begin
@@ -444,8 +485,46 @@ proof (cases "lfinite xs")
   qed auto
 qed (auto simp: llast_linfinite assms)
 
+coinductive emb where
+  "emb LNil xs"
+| "emb xs ys \<Longrightarrow> emb (LCons x xs) (prepend zs (LCons x ys))"
+
+inductive prepend_cong1 for X where
+  prepend_cong1_base: "X xs \<Longrightarrow> prepend_cong1 X xs"
+| prepend_cong1_prepend: "prepend_cong1 X ys \<Longrightarrow> prepend_cong1 X (prepend xs ys)"
+
+lemma emb_prepend_coinduct:
+  assumes "(\<And>x1 x2. X x1 x2 \<Longrightarrow> (\<exists>xs. x1 = LNil \<and> x2 = xs) \<or> (\<exists>xs ys x zs. x1 = LCons x xs \<and> x2 = prepend zs (LCons x ys) \<and> (prepend_cong1 (X xs) ys \<or> emb xs ys)))"
+  shows "X x1 x2 \<Longrightarrow> emb x1 x2"
+  apply (erule emb.coinduct[OF prepend_cong1_base])
+  subgoal for xs zs
+    apply (induct zs rule: prepend_cong1.induct)
+     apply (erule assms)
+    apply (force simp: prepend_prepend)
+    done
+  done
+
+lemma emb_wit[simp]: "chain (R\<^sup>+\<^sup>+) xs \<Longrightarrow> emb xs (wit xs)"
+proof (coinduction arbitrary: xs rule: emb_prepend_coinduct[rotated, case_names emb])
+  case (emb xs)
+  then show ?case
+    apply (rule chain.cases)
+     apply (auto intro!: exI[of _ "LNil"] exI[of _ "[]"] emb.intros) []
+    subgoal for zs z
+      apply (subst (2) wit.code)
+      apply (auto split: llist.splits)
+      apply (rule exI[of _ "[]"] exI[of _ "_ :: _ llist"] conjI)+
+      unfolding prepend.simps
+       apply (rule refl)
+      apply (rule disjI1)
+      apply (rule prepend_cong1_prepend[OF prepend_cong1_base])
+      apply (rule refl)
+      done
+    done
+qed
+
 lemma chain_tranclp_imp_exists_chain:
-  "chain (R\<^sup>+\<^sup>+) xs \<Longrightarrow> \<exists>ys. chain R ys \<and> lhd ys = lhd xs \<and> llast ys = llast xs"
+  "chain (R\<^sup>+\<^sup>+) xs \<Longrightarrow> \<exists>ys. chain R ys \<and> emb xs ys \<and> lhd ys = lhd xs \<and> llast ys = llast xs"
 proof (intro exI[of _ "wit xs"] conjI, coinduction arbitrary: xs rule: chain_prepend_coinduct)
   case chain
   then show ?case
