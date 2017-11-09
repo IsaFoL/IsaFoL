@@ -426,7 +426,8 @@ next
   then show "lfinite (wit xs)"
   proof (induct xs rule: lfinite.induct)
     case (lfinite_LConsI xs x)
-    then show ?case by (cases xs) (auto simp: wit_LCons Let_def)
+    then show ?case
+      by (cases xs) (auto simp: wit_LCons Let_def)
   qed simp
 qed
 
@@ -438,7 +439,8 @@ proof (cases "lfinite xs")
   from this assms show ?thesis
   proof (induct rule: lfinite.induct)
     case (lfinite_LConsI xs x)
-    then show ?case by (cases xs) (auto simp: wit_LCons2 llast_LCons elim: chain_nontrivE)
+    then show ?case
+      by (cases xs) (auto simp: wit_LCons2 llast_LCons elim: chain_nontrivE)
   qed auto
 qed (auto simp: llast_linfinite assms)
 
@@ -449,6 +451,8 @@ proof (intro exI[of _ "wit xs"] conjI, coinduction arbitrary: xs rule: chain_pre
   then show ?case
     by (subst (1 2) wit_alt; assumption?) (erule chain.cases; force split: llist.splits)
 qed auto
+
+find_consts name: subseq
 
 end
 
