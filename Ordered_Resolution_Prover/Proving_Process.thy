@@ -452,8 +452,6 @@ proof (intro exI[of _ "wit xs"] conjI, coinduction arbitrary: xs rule: chain_pre
     by (subst (1 2) wit_alt; assumption?) (erule chain.cases; force split: llist.splits)
 qed auto
 
-find_consts name: subseq
-
 end
 
 
