@@ -1453,7 +1453,8 @@ proof -
       L_all_x2b: \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length xs\<close>
       using x1d_x1a unfolding conflict_rel_def by auto
 
-    have 4: \<open>(replicate m'' None @ drop m'' xs)[m'' := None] = replicate (Suc m'') None @ drop (Suc m'') xs\<close>
+    have 4: \<open>(replicate m'' None @ drop m'' xs)[m'' := None] =
+        replicate (Suc m'') None @ drop (Suc m'') xs\<close>
       apply (subst Cons_nth_drop_Suc[symmetric])
       subgoal by (rule xa_le_x2b)
       subgoal by (auto simp: list_update_append replicate_Suc_conv_snoc simp del: replicate_Suc)
@@ -1567,7 +1568,9 @@ where
             else do {
                let (L, analyse) = get_literal_and_remove_of_analyse_wl C analyse;
                ASSERT(-L \<in> lits_of_l M);
-               if (get_level M L = zero_uint32_nat \<or> conflict_min_cach cach (atm_of L) = SEEN_REMOVABLE \<or> is_in_lookup_conflict D L)
+               if (get_level M L = zero_uint32_nat \<or>
+                   conflict_min_cach cach (atm_of L) = SEEN_REMOVABLE \<or>
+                   is_in_lookup_conflict D L)
                then RETURN (cach, analyse, False)
                else do {
                   C \<leftarrow> get_propagation_reason M (-L);
@@ -1631,7 +1634,8 @@ proof -
     subgoal by (auto simp: lit_redundant_rec_wl_inv_def)
     subgoal by auto
     subgoal by auto
-    subgoal by (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def elim!: neq_Nil_revE)
+    subgoal by (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
+          elim!: neq_Nil_revE)
     subgoal by (auto simp: lit_redundant_rec_wl_inv_def elim!: neq_Nil_revE)
     subgoal by auto
     subgoal by auto
@@ -1680,8 +1684,8 @@ private lemma mark_failed_lits_stack_inv_helper2: \<open>mark_failed_lits_stack_
 sepref_thm mark_failed_lits_stack_code
   is \<open>uncurry2 mark_failed_lits_stack\<close>
   :: \<open>clauses_ll_assn\<^sup>k *\<^sub>a analyse_refinement_assn\<^sup>d *\<^sub>a cach_refinement_assn\<^sup>d \<rightarrow>\<^sub>a cach_refinement_assn\<close>
-  supply [[goals_limit = 1]] neq_Nil_revE[elim!] image_image[simp] mark_failed_lits_stack_inv_helper1[dest]
-  mark_failed_lits_stack_inv_helper2[dest]
+  supply [[goals_limit = 1]] neq_Nil_revE[elim!] image_image[simp]
+    mark_failed_lits_stack_inv_helper1[dest] mark_failed_lits_stack_inv_helper2[dest]
   unfolding mark_failed_lits_stack_def
     conflict_min_cach_set_failed_def[symmetric]
     conflict_min_cach_def[symmetric]
@@ -1724,7 +1728,8 @@ lemma lit_redundant_rec_wl_lookup_helper1:
 proof -
   show ?thesis
     using inv Lj ana le
-    unfolding mark_failed_lits_stack_inv_def lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
+    unfolding mark_failed_lits_stack_inv_def lit_redundant_rec_wl_inv_def
+      lit_redundant_rec_wl_ref_def
     by (cases \<open>ana\<close> rule: rev_cases)
      (auto simp: elim!: in_set_upd_cases)
 qed
@@ -1790,7 +1795,7 @@ proof -
             E \<subseteq># D \<and> NU + NUP \<Turnstile>pm E \<and> distinct_mset E \<and> distinct_mset f \<and>
            highest_lit M (E - f) highest')\<close>
 
-  have init_I': \<open> I' (D, D, None)\<close>
+  have init_I': \<open>I' (D, D, None)\<close>
     using \<open>NU + NUP \<Turnstile>pm D\<close> dist unfolding I'_def highest_lit_def by auto
 
   have red: \<open>is_literal_redundant_spec NU NUP a x
@@ -1830,7 +1835,7 @@ proof -
     then show ?thesis
       using that
       by (auto simp: is_literal_redundant_spec_def iterate_over_conflict_inv_def
-          I'_def size_mset_remove1_mset_le_iff (* highest_lit_def merge_highest_lit_def *)
+          I'_def size_mset_remove1_mset_le_iff
           intro: mset_le_subtract)
   qed
 
