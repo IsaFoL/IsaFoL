@@ -1,4 +1,4 @@
-theory CDCL_Two_Watched_Literals_Transition_System
+theory Two_Watched_Literals_Transition_System
   imports Refine_Imperative_HOL.IICF CDCL.CDCL_W_Abstract_State
 begin
 

@@ -1,5 +1,5 @@
-theory CDCL_Two_Watched_Literals_VMTF
-imports CDCL_Two_Watched_Literals_Watch_List_Domain
+theory Two_Watched_Literals_VMTF
+imports Two_Watched_Literals_Watch_List_Domain
 begin
 
 

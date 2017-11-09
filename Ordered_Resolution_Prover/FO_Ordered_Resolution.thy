@@ -196,7 +196,7 @@ lemma ord_resolve_ground_inst_sound:
   using res_e
 proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Cs AAs As D)
-  note DA = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and 
+  note da = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and 
     aas_len = this(5) and as_len = this(6) and cas = this(8) and mgu = this(10) and
     len = this(1)
     
@@ -216,13 +216,13 @@ proof (cases rule: ord_resolve.cases)
     then have "\<not> I \<Turnstile> negs (mset As) \<cdot> \<sigma> \<cdot> \<eta>"
       unfolding true_cls_def[of I] by auto
     then have "I \<Turnstile> D \<cdot> \<sigma> \<cdot> \<eta>"
-      using d_true DA by auto
+      using d_true da by auto
     then show ?thesis
       unfolding e by auto
   next
     case False
     then obtain i where a_in_aa: "i < length CAs" and a_false: "(As ! i) \<cdot>a \<sigma> \<cdot>a \<eta> \<notin> I"
-      using DA len by (metis in_set_conv_nth)
+      using da len by (metis in_set_conv_nth)
     define C where "C \<equiv> Cs ! i"
     define BB where "BB \<equiv> AAs ! i"
     have c_cf': "C \<subseteq># \<Union># mset CAs"
@@ -257,7 +257,7 @@ proof (rule true_fo_cls, use res_e in \<open>cases rule: ord_resolve.cases\<clos
   fix \<eta>
   assume ground_subst_\<eta>: "is_ground_subst \<eta>"
   case (ord_resolve n Cs AAs As D)
-  note DA = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4)
+  note da = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4)
     and aas_len = this(5) and as_len = this(6) and cas = this(8) and mgu = this(10)
 
   have "is_ground_subst (\<sigma> \<odot> \<eta>)"
@@ -438,7 +438,7 @@ lemma ground_resolvent_subset:
   using res_e
 proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Cs AAs As D)
-  note DA = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4)
+  note da = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4)
     and aas_len = this(5) and as_len = this(6) and cas = this(8) and mgu = this(10)
   then have "\<forall>i<n.  Cs ! i \<subseteq># CAs ! i"
     by auto
@@ -449,7 +449,7 @@ proof (cases rule: ord_resolve.cases)
   then have gr_cs: "is_ground_cls_list Cs"
     using gr_cas by simp
   have d_sub_da: "D \<subseteq># DA"
-    by (simp add: DA)
+    by (simp add: da)
   then have gr_d: "is_ground_cls D"
     using gr_da is_ground_cls_mono by auto
 
@@ -489,7 +489,7 @@ lemma ord_resolve_obtain_clauses:
   using res_e
 proof (cases rule: ord_resolve.cases)
   case (ord_resolve n_twin Cs AAs As D)
-  note DA = this(1) and e = this(2) and cas = this(8) and mgu = this(10)
+  note da = this(1) and e = this(2) and cas = this(8) and mgu = this(10)
   from ord_resolve have "n_twin = n"
     using n by auto
   then have nz: "n \<noteq> 0" and cs_len: "length Cs = n" and aas_len: "length AAs = n" and as_len: "length As = n"
@@ -567,7 +567,7 @@ lemma ord_resolve_rename_lifting:
   using res_e
 proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Cs AAs As D)
-  note DA = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and
+  note da = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and
     aas_len = this(5) and as_len = this(6) and nz = this(7) and cas = this(8) and 
     aas_not_empt = this(9) and mgu = this(10) and eligibility = this(11) and str_max = this(12) and
     sel_empt = this(13)
@@ -677,7 +677,7 @@ proof (cases rule: ord_resolve.cases)
       then have "negs (mset As) = {#Neg (As ! 0)#}"
         by (simp add: \<open>mset As = {#As ! 0#}\<close>)
       then have "DA = D + {#Neg (As ! 0)#}"
-        using DA by auto
+        using da by auto
       then obtain L where "L \<in># DA' \<and> L \<cdot>l \<eta> = Neg (As ! 0)"
         using DA'_DA by (metis Melem_subst_cls mset_subset_eq_add_right single_subset_iff)
       then have "Neg (atm_of L) \<in># DA' \<and> Neg (atm_of L) \<cdot>l \<eta> = Neg (As ! 0)"
@@ -692,7 +692,7 @@ proof (cases rule: ord_resolve.cases)
     {
       assume "S_M S M (D + negs (mset As)) = negs (mset As)"
       then have "negs (mset As) = S DA' \<cdot> \<eta>"
-        using DA \<open>S DA' \<cdot> \<eta> = S_M S M DA\<close> by auto
+        using da \<open>S DA' \<cdot> \<eta> = S_M S M DA\<close> by auto
       then have "\<exists>As'. negs (mset As') = S DA' \<and> As' \<cdot>al \<eta> = As"
         using instance_list[of As "S DA'" \<eta>] S.S_selects_neg_lits by auto
       then have "\<exists>As'. As' \<cdot>al \<eta> = As \<and> negs (mset As') \<subseteq># DA'
@@ -720,7 +720,7 @@ proof (cases rule: ord_resolve.cases)
       using As'_p by auto
 
     have "D' \<cdot> \<eta> = D"
-      using DA'_DA DA DA'_u As'_p by auto
+      using DA'_DA da DA'_u As'_p by auto
 
     have "S_M S M (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As') = S DA'"
       using As'_p by blast
@@ -857,7 +857,7 @@ proof (cases rule: ord_resolve.cases)
         by auto
       then have "S (D' + negs (mset As')) = {#}"
         using \<open>D' \<cdot> \<eta> = D\<close>[symmetric] \<open>As' \<cdot>al \<eta> = As\<close>[symmetric] \<open>S (DA') \<cdot> \<eta> = S_M S M (DA)\<close>
-          DA as' subst_cls_empty_iff by metis
+          da as' subst_cls_empty_iff by metis
       moreover from asm have l: "length As = 1"
         by auto
       then have l': "length As' = 1"

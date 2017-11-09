@@ -1,5 +1,5 @@
-theory CDCL_Two_Watched_Literals_IsaSAT
-imports CDCL_Two_Watched_Literals_IsaSAT_CDCL CDCL_Two_Watched_Literals_IsaSAT_Init
+theory IsaSAT
+imports IsaSAT_CDCL IsaSAT_Initialisation
 begin
 
 lemma distinct_nat_of_uint32[iff]:

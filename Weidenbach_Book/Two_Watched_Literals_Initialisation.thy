@@ -1,5 +1,5 @@
-theory CDCL_Two_Watched_Literals_Initialisation
-  imports CDCL_Two_Watched_Literals_List "../lib/Explorer"
+theory Two_Watched_Literals_Initialisation
+  imports Two_Watched_Literals_List "../lib/Explorer"
 begin
 
 subsection \<open>Initialise Data structure\<close>

@@ -1,6 +1,6 @@
-theory CDCL_Two_Watched_Literals_IsaSAT_Setup
-  imports CDCL_Two_Watched_Literals_IsaSAT_Trail CDCL_Conflict_Minimisation
-    CDCL_Two_Watched_Literals_VMTF CDCL_Two_Watched_Literals_Lookup_Conflict
+theory IsaSAT_Setup
+  imports IsaSAT_Trail CDCL_Conflict_Minimisation
+    Two_Watched_Literals_VMTF IsaSAT_Lookup_Conflict
 begin
 
 
@@ -24,8 +24,6 @@ type_synonym twl_st_wll_trail =
   \<open>trail_pol_assn \<times> clauses_wl \<times> nat \<times> conflict_option_assn \<times>
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
     uint32\<close>
-
-
 
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
 type_synonym twl_st_wl_heur =
@@ -58,6 +56,10 @@ fun get_phase_saver_heur :: \<open>twl_st_wl_heur \<Rightarrow> bool list\<close
 
 fun get_count_max_lvls_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
   \<open>get_count_max_lvls_heur (_, _, _, _, _, _, _, _, clvls) = clvls\<close>
+
+
+abbreviation phase_saver_conc where
+  \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
 
 
 context isasat_input_ops

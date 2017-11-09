@@ -1,5 +1,5 @@
-theory CDCL_Two_Watched_Literals_Watch_List_Initialisation
-  imports CDCL_Two_Watched_Literals_Initialisation
+theory Two_Watched_Literals_Watch_List_Initialisation
+  imports Two_Watched_Literals_Initialisation
 begin
 
 section \<open>Third Refinement: Remembering watched\<close>

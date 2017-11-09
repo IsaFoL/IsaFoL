@@ -172,23 +172,25 @@ interpretation src_ext:
   using sat_preserving_gd_ord_\<Gamma>' redundancy_criterion_standard_extension gd_ord_\<Gamma>_ngd_ord_\<Gamma>
     src.redundancy_criterion_axioms by auto
 
-lemma strict_subsumption_redundant_clause:
-  assumes "D \<cdot> \<sigma> \<subset># C" and "is_ground_subst \<sigma>"
+lemma strict_subset_subsumption_redundant_clause:
+  assumes 
+    strict_subset_subsume: "D \<cdot> \<sigma> \<subset># C" and 
+    ground_\<sigma>: "is_ground_subst \<sigma>"
   shows "C \<in> src.Rf (grounding_of_cls D)"
 proof -
-  from assms(1) have "\<forall>I. I \<Turnstile> D \<cdot> \<sigma> \<longrightarrow> I \<Turnstile> C"
+  from strict_subset_subsume have "\<forall>I. I \<Turnstile> D \<cdot> \<sigma> \<longrightarrow> I \<Turnstile> C"
     unfolding true_cls_def by blast
   moreover have "C > D \<cdot> \<sigma>"
-    using assms(1) by (simp add: subset_imp_less_mset)
+    using strict_subset_subsume by (simp add: subset_imp_less_mset)
   moreover have "D \<cdot> \<sigma> \<in> grounding_of_cls D"
-    by (metis (mono_tags, lifting) assms(2) mem_Collect_eq substitution_ops.grounding_of_cls_def)
+    using ground_\<sigma> by (metis (mono_tags, lifting) mem_Collect_eq substitution_ops.grounding_of_cls_def)
   ultimately have "set_mset {#D \<cdot> \<sigma>#} \<subseteq> grounding_of_cls D \<and> (\<forall>I. I \<Turnstile>m {#D \<cdot> \<sigma>#} \<longrightarrow> I \<Turnstile> C) \<and> (\<forall>D'. D' \<in># {#D \<cdot> \<sigma>#} \<longrightarrow> D' < C)"
     by auto
   then show "C \<in> src.Rf (grounding_of_cls D)"
     using src.Rf_def[of "grounding_of_cls D"] by blast
 qed
 
-lemma strict_subsumption_redundant_state:
+lemma strict_subset_subsumption_redundant_state:
   assumes
     "D \<cdot> \<sigma> \<subset># C" and
     "is_ground_subst \<sigma>" and
@@ -201,7 +203,7 @@ proof (induction St)
     "is_ground_subst \<sigma>" 
     "D \<in> clss_of_state (N, P, Q)"
   then have "C \<in> src.Rf (grounding_of_cls D)"    
-    using strict_subsumption_redundant_clause by auto
+    using strict_subset_subsumption_redundant_clause by auto
   moreover have "D \<in> N_of_state (N, P, Q) \<union> P_of_state (N, P, Q) \<union> Q_of_state (N, P, Q)"
     using asm by (simp add: clss_of_state_def)
   ultimately have "C \<in> src.Rf (UNION (N_of_state (N, P, Q) \<union> P_of_state (N, P, Q)
@@ -281,7 +283,7 @@ next
       have D\<sigma>\<mu>C\<mu>: "D \<cdot> \<sigma> \<cdot> \<mu> \<subset># C \<cdot> \<mu>"
         using a subst_subset_mono by auto
       then show "C\<mu> \<in> src.Rf (grounding_of_state (N, P, Q))"
-        using \<mu>_p strict_subsumption_redundant_state[of D "\<sigma> \<odot> \<mu>" "C \<cdot> \<mu>" "(N, P, Q)"] D_p unfolding clss_of_state_def by auto
+        using \<mu>_p strict_subset_subsumption_redundant_state[of D "\<sigma> \<odot> \<mu>" "C \<cdot> \<mu>" "(N, P, Q)"] D_p unfolding clss_of_state_def by auto
     qed
     then show ?case
       unfolding clss_of_state_def grounding_of_clss_def by (force intro: src_ext.derive.intros)
@@ -313,7 +315,7 @@ next
       have D\<sigma>\<mu>C\<mu>: "D \<cdot> \<sigma> \<cdot> \<mu> \<subset># C \<cdot> \<mu>"
         using a subst_subset_mono by auto
       then show "C\<mu> \<in> src.Rf (grounding_of_state (N, P, Q))"
-        using \<mu>_p strict_subsumption_redundant_state[of D "\<sigma> \<odot> \<mu>" "C \<cdot> \<mu>" "(N, P, Q)"] D_p
+        using \<mu>_p strict_subset_subsumption_redundant_state[of D "\<sigma> \<odot> \<mu>" "C \<cdot> \<mu>" "(N, P, Q)"] D_p
         unfolding clss_of_state_def by auto
     qed
     then show ?case
@@ -346,7 +348,7 @@ next
       have D\<sigma>\<mu>C\<mu>: "D \<cdot> \<sigma> \<cdot> \<mu> \<subset># C \<cdot> \<mu>"
         using a subst_subset_mono by auto
       then show "C\<mu> \<in> src.Rf (grounding_of_state (N, P, Q))"
-        using \<mu>_p strict_subsumption_redundant_state[of D "\<sigma> \<odot> \<mu>" "C \<cdot> \<mu>" "(N, P, Q)"] D_p
+        using \<mu>_p strict_subset_subsumption_redundant_state[of D "\<sigma> \<odot> \<mu>" "C \<cdot> \<mu>" "(N, P, Q)"] D_p
         unfolding clss_of_state_def by auto
     qed
     then show ?case
@@ -399,7 +401,7 @@ next
     have C\<mu>_CL\<mu>: "C \<cdot> \<mu> \<subset># (C + {#L#}) \<cdot> \<mu>"
       by auto
     then have "(C + {#L#}) \<cdot> \<mu> \<in> src.Rf (grounding_of_state (N \<union> {C}, P, Q))"
-      using src.Rf_def[of "grounding_of_cls C"] using strict_subsumption_redundant_state[of C \<mu> "(C + {#L#}) \<cdot> \<mu>" "(N \<union> {C}, P, Q)"] \<mu>_def unfolding clss_of_state_def by force
+      using src.Rf_def[of "grounding_of_cls C"] using strict_subset_subsumption_redundant_state[of C \<mu> "(C + {#L#}) \<cdot> \<mu>" "(N \<union> {C}, P, Q)"] \<mu>_def unfolding clss_of_state_def by force
     then have "CL\<mu> \<in> src.Rf (grounding_of_state (N \<union> {C}, P, Q))"
       using \<mu>_def by auto
   }
@@ -455,7 +457,7 @@ next
     have C\<mu>_CL\<mu>: "C \<cdot> \<mu> \<subset># (C + {#L#}) \<cdot> \<mu>"
       by auto
     then have "(C + {#L#}) \<cdot> \<mu> \<in> src.Rf (grounding_of_state (N, P\<union> {C}, Q))"
-      using src.Rf_def[of "grounding_of_cls C"] using strict_subsumption_redundant_state[of C \<mu> "(C + {#L#}) \<cdot> \<mu>" "(N, P \<union> {C}, Q)"] \<mu>_def unfolding clss_of_state_def by force
+      using src.Rf_def[of "grounding_of_cls C"] using strict_subset_subsumption_redundant_state[of C \<mu> "(C + {#L#}) \<cdot> \<mu>" "(N, P \<union> {C}, Q)"] \<mu>_def unfolding clss_of_state_def by force
     then have "CL\<mu> \<in> src.Rf (grounding_of_state (N, P \<union> {C}, Q))"
       using \<mu>_def by auto
   }
@@ -511,7 +513,7 @@ next
     have C\<mu>_CL\<mu>: "C \<cdot> \<mu> \<subset># (C + {#L#}) \<cdot> \<mu>"
       by auto
     then have "(C + {#L#}) \<cdot> \<mu> \<in> src.Rf (grounding_of_state (N, P\<union> {C}, Q))"
-      using src.Rf_def[of "grounding_of_cls C"] using strict_subsumption_redundant_state[of C \<mu> "(C + {#L#}) \<cdot> \<mu>" "(N, P \<union> {C}, Q)"] \<mu>_def unfolding clss_of_state_def by force
+      using src.Rf_def[of "grounding_of_cls C"] using strict_subset_subsumption_redundant_state[of C \<mu> "(C + {#L#}) \<cdot> \<mu>" "(N, P \<union> {C}, Q)"] \<mu>_def unfolding clss_of_state_def by force
     then have "CL\<mu> \<in> src.Rf (grounding_of_state (N, P \<union> {C}, Q))"
       using \<mu>_def by auto
   }
@@ -777,7 +779,7 @@ qed
 lemma size_subst: "size (D \<cdot> \<sigma>) = size D"
   unfolding subst_cls_def by auto
 
-lemma subset_subst_strictly_subsumes:
+lemma strict_subset_subst_strictly_subsumes:
   assumes c\<eta>_sub: "C \<cdot> \<eta> \<subset># D"
   shows "strictly_subsumes C D"
 proof -
@@ -793,7 +795,7 @@ lemma subsumes_trans: "subsumes C D \<Longrightarrow> subsumes D E \<Longrightar
   unfolding subsumes_def by (metis subset_mset.order.trans subst_cls_comp_subst subst_cls_mono_mset)
 
 lemma subset_strictly_subsumes: "C \<subset># D \<Longrightarrow> strictly_subsumes C D"
-  using subset_subst_strictly_subsumes[of C id_subst] by auto
+  using strict_subset_subst_strictly_subsumes[of C id_subst] by auto
 
 lemma strictly_subsumes_neq: "strictly_subsumes D' D \<Longrightarrow> D' \<noteq> D \<cdot> \<sigma>"
   unfolding strictly_subsumes_def subsumes_def by blast
@@ -917,7 +919,7 @@ proof -
       moreover have "D \<in> clss_of_state (lnth Sts i)"
         using d N_of_state_subset Q_of_state_subset P_of_state_subset by blast
       ultimately have "C \<in> src.Rf (grounding_of_state (lnth Sts i))"
-        using strict_subsumption_redundant_state[of D \<tau> C "lnth Sts i"] by auto
+        using strict_subset_subsumption_redundant_state[of D \<tau> C "lnth Sts i"] by auto
       then have "C \<in> src.Rf (Sup_llist Ns)"
         using d ns by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist src.Rf_mono)
       then have "C \<in> src.Rf (Liminf_llist Ns)"
@@ -1117,7 +1119,7 @@ lemma variants_sym: "variants D D' \<longleftrightarrow> variants D' D"
 
 lemma variants_imp_exists_subtitution: "variants D D' \<Longrightarrow> \<exists>\<sigma>. D \<cdot> \<sigma> = D'"
   unfolding variants_iff_subsumes subsumes_def
-  by (meson strictly_subsumes_def subset_mset_def subset_subst_strictly_subsumes subsumes_def)
+  by (meson strictly_subsumes_def subset_mset_def strict_subset_subst_strictly_subsumes subsumes_def)
 
 lemma properly_subsume_variants:
   assumes "strictly_subsumes E D" and "variants D D'"

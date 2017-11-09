@@ -1,6 +1,6 @@
-theory CDCL_Two_Watched_Literals_Algorithm
+theory Two_Watched_Literals_Algorithm
   imports
-    CDCL_Two_Watched_Literals_Transition_System
+    Two_Watched_Literals_Transition_System
     WB_More_Refinement
 begin
 

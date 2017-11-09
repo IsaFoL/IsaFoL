@@ -1,5 +1,5 @@
-theory CDCL_Two_Watched_Literals_IsaSAT_Init
-  imports CDCL_Two_Watched_Literals_IsaSAT_Setup
+theory IsaSAT_Initialisation
+  imports IsaSAT_Setup
 begin
 
 
