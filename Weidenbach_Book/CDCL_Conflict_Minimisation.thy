@@ -1234,7 +1234,7 @@ lemma lit_redundant_rec_wl:
     \<open>M \<equiv> get_trail_wl S\<close> and
     M': \<open>M' \<equiv> trail S'''\<close> and
     NU: \<open>NU \<equiv> get_clauses_wl S\<close> and
-    NU': \<open>NU' \<equiv> cdcl\<^sub>W_restart_mset.clauses S'''\<close> and
+    NU': \<open>NU' \<equiv> mset `# mset NU\<close> and
     \<open>analyse' \<equiv> convert_analysis_list NU analyse\<close>
   assumes
     bounds_init: \<open>lit_redundant_rec_wl_ref NU analyse\<close> and
@@ -1493,7 +1493,7 @@ lemma literal_redundant_wl_literal_redundant:
     \<open>M \<equiv> get_trail_wl S\<close> and
     M': \<open>M' \<equiv> trail S'''\<close> and
     NU: \<open>NU \<equiv> get_clauses_wl S\<close> and
-    NU': \<open>NU' \<equiv> cdcl\<^sub>W_restart_mset.clauses S'''\<close>
+    NU': \<open>NU' \<equiv> mset `# mset (tl NU)\<close>
   assumes
     struct_invs: \<open>twl_struct_invs S''\<close> and
     add_inv: \<open>additional_WS_invs S'\<close> and
