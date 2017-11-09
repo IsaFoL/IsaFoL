@@ -704,7 +704,8 @@ proof
   (* Magic happens here. *)
 
   have bot_in_lim: "{#} \<in> clss_of_state (Liminf_gstate gSts)"
-    thm emb_Liminf_llist[OF emb]
+    using emb_Liminf_llist emb
+    thm emb_Liminf_llist[OF emb_lmap[OF emb], of clss_of_gstate]
     sorry
   then obtain k where
     "{#} \<in> clss_of_gstate (lnth gSts k)"
