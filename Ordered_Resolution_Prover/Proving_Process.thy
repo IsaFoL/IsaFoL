@@ -17,7 +17,7 @@ chapter.
 \<close>
 
 
-(* FIXME: move chains into their own file *)
+(* FIXME: move chains into their own file, Lazy_List_Chain.thy perhaps *)
 subsection \<open>Chains\<close>
 
 coinductive chain :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a llist \<Rightarrow> bool" for R :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
@@ -360,23 +360,11 @@ proof (rule exI[of _ "wit xs"], coinduction arbitrary: xs rule: chain_prepend_co
     by (subst (1 2) wit_alt; assumption?) (erule chain.cases; force split: llist.splits)
 qed
 
+lemma chain_tranclp_imp_exists_chain_strong:
+  "\<not> lfinite xs \<Longrightarrow> chain (R\<^sup>+\<^sup>+) xs \<Longrightarrow> \<exists>ys. chain R ys \<and> lhd ys = lhd xs \<and> lset xs \<subseteq> lset ys"
+  sorry
+
 end
-
-(* FIXME:
-lemma chain_tranclp_imp_exists_chain:
-  "chain (R\<^sup>+\<^sup>+) xs \<Longrightarrow> \<exists>ys. chain R ys \<and> lhd ys = lhd xs \<and> llast ys = llast xs"
-proof (rule exI, coinduction)
-  case chain
-
-  define ys where
-    "ys = LCons (lhd xs) (lconcat (lmap (\<lambda>(x, y). SOME ys.
-       lfinite ys \<and> chain R ys \<and> lhd ys = x \<and> llast xs = y) (lzip xs (ltl xs))))"
-
-  show "(\<exists>x. ys = LCons x LNil) \<or>
-    (\<exists>xsa x. ys = LCons x xsa \<and> (xsa = ys \<and> chain R\<^sup>+\<^sup>+ xs \<or> chain R xsa) \<and> R x (lhd xsa))"
-    sorry
-qed
-*)
 
 
 subsection \<open>Processes\<close>
