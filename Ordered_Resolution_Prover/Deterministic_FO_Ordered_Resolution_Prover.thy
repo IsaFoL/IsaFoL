@@ -678,7 +678,7 @@ proof
   have chain_star: "chain (op \<leadsto>\<^sub>w\<^sup>+) gSts"
     sorry
 
-  have inf: "\<not> lfinite gSts"
+  have inf: "\<not> lfinite Sts"
     sorry
 
   obtain ss_gSts where
@@ -698,15 +698,11 @@ proof
     using unsat
     sorry
 
-  have bot_in_lim_ss: "{#} \<in> clss_of_state (Liminf_gstate ss_gSts)"
+  have "{#} \<in> clss_of_state (Liminf_gstate ss_gSts)"
     by (rule weighted_RP_complete[OF chain fin_s0 empty_p0 empty_q0 unsat_lim])
-
-  (* Magic happens here. *)
-
-  have bot_in_lim: "{#} \<in> clss_of_state (Liminf_gstate gSts)"
-    using emb_Liminf_llist emb
-    thm emb_Liminf_llist[OF emb_lmap[OF emb], of clss_of_gstate]
-    sorry
+  then have bot_in_lim: "{#} \<in> clss_of_state (Liminf_gstate gSts)"
+    using emb_clss_of_Liminf_state[OF emb_lmap[OF emb], of state_of_gstate, simplified, OF inf]
+    by blast
   then obtain k where
     "{#} \<in> clss_of_gstate (lnth gSts k)"
     sorry
