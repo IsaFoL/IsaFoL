@@ -252,8 +252,8 @@ lemma prepend_prepend: "prepend xs (prepend ys zs) = prepend (xs @ ys) zs"
   by (induct xs) auto
 
 lemma chain_prepend: 
-  "chain R (llist_of zs) \<Longrightarrow> zs \<noteq> [] \<Longrightarrow> \<not> lnull xs \<Longrightarrow> last zs = lhd xs \<Longrightarrow> chain R xs \<Longrightarrow> chain R (prepend zs (ltl xs))"
-  by (induct zs)
+  "chain R (llist_of zs) \<Longrightarrow> last zs = lhd xs \<Longrightarrow> chain R xs \<Longrightarrow> chain R (prepend zs (ltl xs))"
+  by (induct zs; cases xs)
     (auto split: if_splits simp: lnull_def[symmetric] intro!: chain.cons elim!: chain_consE)
 
 (* inductive prepend_cong1 for X where
