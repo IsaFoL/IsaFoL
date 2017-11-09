@@ -86,19 +86,46 @@ lemma Liminf_llist_subset_Sup_llist: "Liminf_llist Xs \<subseteq> Sup_llist Xs"
 
 lemma Liminf_llist_LCons:
   "Liminf_llist (LCons X Xs) = (if lnull Xs then X else Liminf_llist Xs)" (is "?lhs = ?rhs")
-proof
-  show "?lhs \<subseteq> ?rhs"
-    unfolding Liminf_llist_def
-    apply auto
-    apply (simp add: enat_0_iff(1))
-    sorry
-next
-  show "?rhs \<subseteq> ?lhs"
-    unfolding Liminf_llist_def
-    apply auto
-    apply (simp add: zero_enat_def)
-    sorry
-qed
+proof (cases "lnull Xs")
+  case nnull: False
+  show ?thesis
+  proof
+    {
+      fix x
+      assume "\<exists>i. enat i \<le> llength Xs
+        \<and> (\<forall>j. i \<le> j \<and> enat j \<le> llength Xs \<longrightarrow> x \<in> lnth (LCons X Xs) j)"
+      then have "\<exists>i. enat (Suc i) \<le> llength Xs
+        \<and> (\<forall>j. Suc i \<le> j \<and> enat j \<le> llength Xs \<longrightarrow> x \<in> lnth (LCons X Xs) j)"
+        by (cases "llength Xs",
+            metis not_lnull_conv[THEN iffD1, OF nnull] Suc_le_D eSuc_enat eSuc_ile_mono
+              llength_LCons not_less_eq_eq zero_enat_def zero_le,
+            metis Suc_leD enat_ord_code(3))
+      then have "\<exists>i. enat i < llength Xs \<and> (\<forall>j. i \<le> j \<and> enat j < llength Xs \<longrightarrow> x \<in> lnth Xs j)"
+        by (metis Suc_ile_eq Suc_n_not_le_n lift_Suc_mono_le lnth_Suc_LCons nat_le_linear)
+    }
+    then show "?lhs \<subseteq> ?rhs"
+      by (simp add: Liminf_llist_def nnull) (rule subsetI, simp)
+
+    {
+      fix x
+      assume "\<exists>i. enat i < llength Xs \<and> (\<forall>j. i \<le> j \<and> enat j < llength Xs \<longrightarrow> x \<in> lnth Xs j)"
+      then obtain i where
+        i: "enat i < llength Xs" and
+        j: "\<forall>j. i \<le> j \<and> enat j < llength Xs \<longrightarrow> x \<in> lnth Xs j"
+        by blast
+
+      have "enat (Suc i) \<le> llength Xs"
+        using i by (simp add: Suc_ile_eq)
+      moreover have "\<forall>j. Suc i \<le> j \<and> enat j \<le> llength Xs \<longrightarrow> x \<in> lnth (LCons X Xs) j"
+        using Suc_ile_eq Suc_le_D j by force
+      ultimately have "\<exists>i. enat i \<le> llength Xs \<and> (\<forall>j. i \<le> j \<and> enat j \<le> llength Xs \<longrightarrow>
+        x \<in> lnth (LCons X Xs) j)"
+        by blast
+    }
+    then show "?rhs \<subseteq> ?lhs"
+      by (simp add: Liminf_llist_def nnull) (rule subsetI, simp)
+  qed
+qed (simp add: Liminf_llist_def enat_0_iff(1))
 
 lemma lfinite_Liminf_llist: "lfinite Xs \<Longrightarrow> Liminf_llist Xs = (if lnull Xs then {} else llast Xs)"
 proof (induction rule: lfinite_induct)
@@ -106,14 +133,8 @@ proof (induction rule: lfinite_induct)
   then obtain y ys where
     xs: "xs = LCons y ys"
     by (meson not_lnull_conv)
-
   show ?case
-    unfolding xs
-    apply (simp add: Liminf_llist_LCons)
-    unfolding LCons.IH[unfolded xs, simplified]
-    apply auto
-    apply (simp add: llast_LCons)+
-    done
+    unfolding xs by (simp add: Liminf_llist_LCons LCons.IH[unfolded xs, simplified] llast_LCons)
 qed (simp add: Liminf_llist_def)
 
 end

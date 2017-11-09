@@ -17,6 +17,7 @@ chapter.
 \<close>
 
 
+(* FIXME: move chains into their own file *)
 subsection \<open>Chains\<close>
 
 coinductive chain :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a llist \<Rightarrow> bool" for R :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
@@ -148,7 +149,6 @@ next
     by blast
 qed
 
-(* FIXME: avoid finiteness assumption, e.g. using "corec"? see commented-out code below *)
 lemma lfinite_chain_tranclp_imp_exists_lfinite_chain:
   "lfinite xs \<Longrightarrow> chain R\<^sup>+\<^sup>+ xs \<Longrightarrow>
    \<exists>ys. lfinite ys \<and> chain R ys \<and> lhd ys = lhd xs \<and> llast ys = llast xs"
