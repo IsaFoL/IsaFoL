@@ -1,5 +1,5 @@
-theory CDCL_Two_Watched_Literals_Code_Export_Test
-  imports CDCL_Two_Watched_Literals_List_Simple_Code
+theory Two_Watched_Literals_Code_Export_Test
+  imports Two_Watched_Literals_List_Simple_Code
 begin
 
 schematic_goal polarity_impl: "RETURN ?c \<le> polarity M L"

@@ -1,7 +1,7 @@
-theory CDCL_Two_Watched_Literals_Lookup_Conflict
-  imports CDCL_Two_Watched_Literals_Watch_List_Domain
-    CDCL_Two_Watched_Literals_Watch_List_Code_Common
-    CDCL_Two_Watched_Literals_IsaSAT_Trail
+theory IsaSAT_Lookup_Conflict
+  imports Two_Watched_Literals_Watch_List_Domain
+    Two_Watched_Literals_Watch_List_Code_Common
+    IsaSAT_Trail
     CDCL_Conflict_Minimisation
 begin
 

@@ -1,6 +1,6 @@
 theory CDCL_Preprocess
   imports CDCL.CDCL_W_Abstract_State Refine_Imperative_HOL.IICF 
-    Two_Watched_Literals.CDCL_Two_Watched_Literals_Watch_List "../lib/Explorer"
+    Two_Watched_Literals.Two_Watched_Literals_Watch_List "../lib/Explorer"
 begin
 
 inductive preprocess :: \<open>'v multiset \<Rightarrow> 'v clause \<Rightarrow> 'v clauses \<Rightarrow> 

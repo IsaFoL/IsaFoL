@@ -1,5 +1,5 @@
-theory CDCL_Two_Watched_Literals_Watch_List
-  imports CDCL_Two_Watched_Literals_List CDCL_Two_Watched_Literals_Watch_List_Initialisation
+theory Two_Watched_Literals_Watch_List
+  imports Two_Watched_Literals_List Two_Watched_Literals_Watch_List_Initialisation
 begin
 
 text \<open>Less ambiguities in the notations (TODO: using a bundle would probably be better):\<close>

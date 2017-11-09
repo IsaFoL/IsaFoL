@@ -1,6 +1,6 @@
-theory CDCL_Two_Watched_Literals_IsaSAT_Setup
-  imports CDCL_Two_Watched_Literals_IsaSAT_Trail CDCL_Conflict_Minimisation
-    CDCL_Two_Watched_Literals_VMTF CDCL_Two_Watched_Literals_Lookup_Conflict
+theory IsaSAT_Setup
+  imports IsaSAT_Trail CDCL_Conflict_Minimisation
+    Two_Watched_Literals_VMTF IsaSAT_Lookup_Conflict
 begin
 
 

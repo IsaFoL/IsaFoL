@@ -1,5 +1,5 @@
-theory CDCL_Two_Watched_Literals_IsaSAT_CDCL
-  imports CDCL_Two_Watched_Literals_IsaSAT_Setup
+theory IsaSAT_CDCL
+  imports IsaSAT_Setup
 begin
 
 subsubsection \<open>Refining code\<close>

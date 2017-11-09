@@ -1,5 +1,5 @@
-theory CDCL_Two_Watched_Literals_IsaSAT_Trail
-imports CDCL_Two_Watched_Literals_Watch_List_Code_Common
+theory IsaSAT_Trail
+imports Two_Watched_Literals_Watch_List_Code_Common
 begin
 
 type_synonym trail_pol =

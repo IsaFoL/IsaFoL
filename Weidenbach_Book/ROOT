@@ -159,9 +159,9 @@ session "Two_Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     WB_Word_Assn
     WB_More_Refinement
 
-    CDCL_Two_Watched_Literals_VMTF
-    CDCL_Two_Watched_Literals_IsaSAT_CDCL
-    CDCL_Two_Watched_Literals_IsaSAT
+    Two_Watched_Literals_VMTF
+    IsaSAT_CDCL
+    IsaSAT
   document_files
     "root.tex"
     "biblio.bib"

@@ -1,6 +1,6 @@
 theory CDCL_Conflict_Minimisation
-  imports CDCL_Two_Watched_Literals_Watch_List_Domain WB_More_Refinement
-  CDCL_Two_Watched_Literals_IsaSAT_Trail
+  imports Two_Watched_Literals_Watch_List_Domain WB_More_Refinement
+  IsaSAT_Trail
 begin
 
 no_notation Ref.update ("_ := _" 62)

@@ -4,8 +4,8 @@
 
 subsection \<open>Implementation for 2 Watched-Literals\<close>
 
-theory CDCL_Two_Watched_Literals_Implementation
-imports CDCL_Two_Watched_Literals
+theory Two_Watched_Literals_Implementation
+imports Two_Watched_Literals
 begin
 
 
