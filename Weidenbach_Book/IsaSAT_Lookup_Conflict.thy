@@ -1230,7 +1230,7 @@ definition iterate_over_conflict_inv where
       (highest_lit M (D - D') highest))\<close>
 
 definition is_literal_redundant_spec where
-   \<open>is_literal_redundant_spec NU UNP D L = SPEC(\<lambda>b. b \<longrightarrow> NU + UNP \<Turnstile>pm remove1_mset L D)\<close>
+   \<open>is_literal_redundant_spec K NU UNP D L = SPEC(\<lambda>b. b \<longrightarrow> NU + UNP \<Turnstile>pm remove1_mset L (add_mset K D))\<close>
 
 definition merge_highest_lit where
    \<open>merge_highest_lit M L highest =
@@ -1241,17 +1241,17 @@ definition merge_highest_lit where
         if n' > n then Some (L, get_level M L) else highest)\<close>
 
 definition iterate_over_conflict
-  :: \<open>('v, 'mark) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'v clauses \<Rightarrow>  'v clause \<Rightarrow>
+  :: \<open>'v literal \<Rightarrow> ('v, 'mark) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'v clauses \<Rightarrow>  'v clause \<Rightarrow>
        ('v clause \<times> ('v literal \<times> nat) option) nres\<close>
 where
-  \<open>iterate_over_conflict M NU UNP D\<^sub>0 = do {
+  \<open>iterate_over_conflict K M NU UNP D\<^sub>0 = do {
     (D, _, L') \<leftarrow>
        WHILE\<^sub>T\<^bsup>iterate_over_conflict_inv M D\<^sub>0\<^esup>
        (\<lambda>(D, D', highest). D' \<noteq> {#})
        (\<lambda>(D, D', highest). do{
           ASSERT(D' \<noteq> {#});
           x \<leftarrow> SPEC (\<lambda>x. x \<in># D');
-          red \<leftarrow> is_literal_redundant_spec NU UNP D x;
+          red \<leftarrow> is_literal_redundant_spec K NU UNP D x;
           if \<not>red
           then RETURN (D, remove1_mset x D', merge_highest_lit M x highest)
           else RETURN (remove1_mset x D, remove1_mset x D', highest)
@@ -1262,7 +1262,7 @@ where
 
 
 definition iterate_over_lookup_conflict_inv where
-  \<open>iterate_over_lookup_conflict_inv = (\<lambda>((n, xs), m, i, s). n \<ge> m)\<close>
+  \<open>iterate_over_lookup_conflict_inv = (\<lambda>((n, xs), m, i, s). n \<ge> m \<and> n \<le> length xs)\<close>
 
 type_synonym 'v conflict_highest_conflict = \<open>('v literal \<times> nat) option\<close>
 
@@ -1273,38 +1273,12 @@ definition is_literal_redundant_lookup_spec where
    \<open>is_literal_redundant_lookup_spec M NU NUP D' L s =
     SPEC(\<lambda>(s', b). b \<longrightarrow> (\<forall>D. (D', D) \<in> conflict_rel \<longrightarrow> (mset `# mset (tl NU)) + NUP \<Turnstile>pm remove1_mset L D))\<close>
 
-definition iterate_over_lookup_conflict_and_apply
-  :: \<open>_ \<Rightarrow> (nat, 'mark) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat clauses \<Rightarrow> conflict_rel \<Rightarrow> 'state \<Rightarrow>
-       (conflict_rel \<times> 'state \<times> nat conflict_highest_conflict) nres\<close>
-where
-  \<open>iterate_over_lookup_conflict_and_apply f = (\<lambda>M NU NUP (n, xs) s. do {
-    (D, _, _, s, highest) \<leftarrow>
-       WHILE\<^sub>T\<^bsup>iterate_over_lookup_conflict_inv\<^esup>
-         (\<lambda>((n, xs), m, i, s, _). m > 0)
-         (\<lambda>((n, xs), m, i, s, highest). do {
-            ASSERT(m > 0);
-            x \<leftarrow> confl_find_next_index_spec (m, xs) i;
-            (s', red) \<leftarrow> f M NU NUP (n, xs)
-                (if the (xs ! x) then Pos x else Neg x) s;
-            let L = (if the (xs ! x) then Pos x else Neg x);
-            ASSERT(x < length xs);
-            ASSERT(m \<ge> 1);
-            ASSERT(n \<ge> 1);
-            if \<not>red
-            then RETURN ((n, xs), m - 1, x+1, s', merge_highest_lit M L highest)
-            else RETURN ((n - 1, xs[x := None]), m - 1, x+1, s', highest)
-         })
-         ((n, xs), n, 0, s, None);
-     RETURN (D, s, highest)
-  })\<close>
-
-
 definition lit_redundant_rec_wl_lookup :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> conflict_rel \<Rightarrow>
      _ \<Rightarrow> _ \<Rightarrow>
       (_ \<times> _ \<times> bool) nres\<close>
 where
   \<open>lit_redundant_rec_wl_lookup M NU D cach analysis =
-      WHILE\<^sub>T
+      WHILE\<^sub>T\<^bsup>lit_redundant_rec_wl_inv M NU D\<^esup>
         (\<lambda>(cach, analyse, b). analyse \<noteq> [])
         (\<lambda>(cach, analyse, b). do {
             ASSERT(analyse \<noteq> []);
@@ -1360,12 +1334,11 @@ lemma lit_redundant_rec_wl_lookup_lit_redundant_rec_wl:
     n_d: \<open>no_dup M\<close> and
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close>
   shows
-   \<open>lit_redundant_rec_wl_lookup M NU D' cach analysis \<le> \<Down> Id
-      (lit_redundant_rec_wl M NU D cach analysis)\<close>
+   \<open>lit_redundant_rec_wl_lookup M NU D' cach analysis \<le> \<Down> Id (lit_redundant_rec_wl M NU D cach analysis)\<close>
 proof -
   have M: \<open>\<forall>a \<in> lits_of_l M. a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
     using isasat_input_ops.literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l lits by blast
-     
+
   have [simp]: \<open>is_in_lookup_conflict D' x \<longleftrightarrow> x \<in># D\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>) if \<open>-x \<in> lits_of_l M\<close> for x
   proof
     assume ?B
@@ -1397,15 +1370,17 @@ proof -
         (mark_failed_lits_wl NU a' b')\<close> if \<open>a = a'\<close> and \<open>b = b'\<close> for a a' b b'
     unfolding that by auto
   show ?thesis
-    unfolding lit_redundant_rec_wl_lookup_def lit_redundant_rec_wl_def
+    unfolding lit_redundant_rec_wl_lookup_def lit_redundant_rec_wl_def WHILET_def
     apply (refine_vcg)
     subgoal by auto
-    subgoal by (auto simp: lit_redundant_rec_wl_inv_def)
+    subgoal by (auto simp: lit_redundant_rec_wl_inv_def
+          lit_redundant_rec_wl_ref_def)
     subgoal by auto
     subgoal by auto
     subgoal by (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
           elim!: neq_Nil_revE)
     subgoal by (auto simp: lit_redundant_rec_wl_inv_def elim!: neq_Nil_revE)
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -1432,18 +1407,18 @@ proof -
   have H: \<open>(x, x') \<in> Id \<Longrightarrow> (x, x') \<in> \<langle>Id\<rangle>option_rel\<close> for x' x
     by auto
   have lit_redundant_rec_wl_lookup_lit_redundant_rec_wl:
-    
+
       \<open>lit_redundant_rec_wl_lookup M NU D' cach analysis \<le> \<Down> Id
       (lit_redundant_rec_wl M' NU' D cach' analysis')\<close>
-      if     
+      if
         D'_D: \<open>(D', D) \<in> conflict_rel\<close> and
         M: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close> and
         \<open>M \<Turnstile>as CNot D\<close> and
         n_d: \<open>no_dup M\<close> and
         \<open>M = M'\<close> \<open>NU = NU'\<close> \<open>cach = cach'\<close> \<open>analysis = analysis'\<close>
-      for M M' NU NU' cach cach' analysis analysis' D D' 
+      for M M' NU NU' cach cach' analysis analysis' D D'
     using lit_redundant_rec_wl_lookup_lit_redundant_rec_wl that by blast
-  
+
   show ?thesis
     unfolding literal_redundant_wl_lookup_def literal_redundant_wl_def
     apply (refine_vcg H lit_redundant_rec_wl_lookup_lit_redundant_rec_wl)
@@ -1461,20 +1436,21 @@ proof -
 qed
 
 definition iterate_over_lookup_conflict
-  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat clauses \<Rightarrow> conflict_rel \<Rightarrow> (nat \<Rightarrow> minimize_status) \<Rightarrow>
+  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> conflict_rel \<Rightarrow> (nat \<Rightarrow> minimize_status) \<Rightarrow>
        (conflict_rel \<times> (nat \<Rightarrow> minimize_status) \<times> nat conflict_highest_conflict) nres\<close>
 where
-  \<open>iterate_over_lookup_conflict  = (\<lambda>M NU NUP (n, xs) s. do {
+  \<open>iterate_over_lookup_conflict  = (\<lambda>M NU (n, xs) s. do {
     (D, _, _, s, highest) \<leftarrow>
        WHILE\<^sub>T\<^bsup>iterate_over_lookup_conflict_inv\<^esup>
          (\<lambda>((n, xs), m, i, s, _). m > 0)
          (\<lambda>((n, xs), m, i, s, highest). do {
             ASSERT(m > 0);
             x \<leftarrow> confl_find_next_index_spec (m, xs) i;
+            ASSERT(xs ! x \<noteq> None);
+            ASSERT(x < length xs);
             (s', _, red) \<leftarrow> literal_redundant_wl_lookup M NU (n, xs) s
                 (if the (xs ! x) then Pos x else Neg x);
             let L = (if the (xs ! x) then Pos x else Neg x);
-            ASSERT(x < length xs);
             ASSERT(m \<ge> 1);
             ASSERT(n \<ge> 1);
             if \<not>red
@@ -1488,6 +1464,26 @@ where
 lemma conc_fun_mono: \<open>A \<le> B \<Longrightarrow> \<Down> R A \<le> \<Down> R B\<close>
   using ref_two_step by auto
 
+lemma entails_uminus_filter_to_poslev_can_remove:
+  assumes NU_uL_E: \<open>NU \<Turnstile>p add_mset (- L) (filter_to_poslev M' L E)\<close> and
+     NU_E: \<open>NU \<Turnstile>p E\<close> and L_E: \<open>L \<in># E\<close>
+   shows \<open>NU \<Turnstile>p remove1_mset L E\<close>
+proof -
+  have \<open>filter_to_poslev M' L E \<subseteq># remove1_mset L E\<close>
+    by (induction E)
+       (auto simp add: filter_to_poslev_add_mset remove1_mset_add_mset_If subset_mset_trans_add_mset
+        intro: diff_subset_eq_self subset_mset.dual_order.trans)
+  then have \<open>NU \<Turnstile>p add_mset (- L) (remove1_mset L E)\<close>
+    using NU_uL_E
+    by (meson conflict_minimize_intermediate_step mset_subset_eqD)
+  moreover have \<open>NU \<Turnstile>p add_mset L (remove1_mset L E)\<close>
+    using NU_E L_E by auto
+  ultimately show ?thesis
+    using true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or[of NU L \<open>remove1_mset L E\<close>
+        \<open>remove1_mset L E\<close>]
+    by (auto simp: true_clss_cls_add_self)
+qed
+
 lemma iterate_over_lookup_conflict_iterate_over_conflict:
   fixes D :: \<open>nat clause\<close> and s and s' and NU :: \<open>nat clauses_l\<close> and S :: \<open>nat twl_st_wl\<close>
   defines
@@ -1496,26 +1492,59 @@ lemma iterate_over_lookup_conflict_iterate_over_conflict:
     \<open>S''' \<equiv> state\<^sub>W_of (twl_st_of_wl None S)\<close>
   defines
     \<open>M \<equiv> get_trail_wl S\<close> and
-    M': \<open>M' \<equiv> trail S'''\<close> and
     NU: \<open>NU \<equiv> get_clauses_wl S\<close> and
-    NU'_def: \<open>NU' \<equiv> mset `# mset (tl NU)\<close>
+    NU'_def: \<open>NU' \<equiv> mset `# mset (tl NU)\<close> and
+    NUP: \<open>NUP \<equiv> get_unit_learned S + get_unit_init_clss S\<close> and
+    M': \<open>M' \<equiv> trail S'''\<close>
   assumes
     D'_D: \<open>(D', D) \<in> conflict_rel\<close> and
-    n_d: \<open>no_dup M\<close> and
     M_D: \<open>M \<Turnstile>as CNot D\<close> and
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close> and
     struct_invs: \<open>twl_struct_invs S''\<close> and
-    add_inv: \<open>additional_WS_invs S'\<close>
+    add_inv: \<open>additional_WS_invs S'\<close> and
+    cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUP) D\<close> and
+    NU_P_D: \<open>NU' + NUP \<Turnstile>pm add_mset K D\<close>
   shows
-    \<open>iterate_over_lookup_conflict M NU NUP D' s' \<le>
+    \<open>iterate_over_lookup_conflict M NU D' s' \<le>
        \<Down> ({((D, s, L'), (D', L)). (D, D') \<in> conflict_rel \<and> L' = L})
-           (iterate_over_conflict M NU' NUP D)\<close>
+           (iterate_over_conflict K M NU' NUP D)\<close>
     (is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
+  let ?UP = \<open>get_unit_learned S\<close>
+  let ?NP = \<open>get_unit_init_clss S\<close>
+  define u where \<open>u = get_learned_wl S\<close>
+  define N U where
+    \<open>N \<equiv> mset `# mset (take u (tl NU))\<close> and
+    \<open>U \<equiv> mset `# mset (drop u (tl NU))\<close>
+  obtain E where
+     S''': \<open>S''' = (M', N + ?NP, U + ?UP, E)\<close>
+    using M' unfolding S''_def S'''_def N_def U_def u_def NU
+    by (cases S) (auto simp: get_unit_init_clss_def get_unit_learned_def drop_Suc
+        mset_take_mset_drop_mset')
+  then have NU_N_U: \<open>mset `# mset (tl NU) = N + U\<close>
+    unfolding NU unfolding S''_def S'''_def
+    by (cases S) (auto simp: get_unit_init_clss_def get_unit_learned_def
+        mset_take_mset_drop_mset')
+  let ?NU = \<open>N + ?NP + U + ?UP\<close>
+  have NU'_N_U: \<open>NU' = N + U\<close>
+    unfolding NU'_def N_def U_def mset_append[symmetric] image_mset_union[symmetric]
+    by auto
+  have NU'_NUP: \<open>NU' + NUP = N + get_unit_init_clss S + U + get_unit_learned S\<close>
+    unfolding NUP NU'_N_U by (auto simp: ac_simps)
+  have struct_inv_S''': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M', N + get_unit_init_clss S,
+          U + get_unit_learned S, E)\<close>
+    using struct_invs unfolding twl_struct_invs_def S''_def S'''_def[symmetric] S'''
+    by fast
+  then have n_d: \<open>no_dup M'\<close>
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+      trail.simps by fast
+  then have n_d: \<open>no_dup M\<close>
+    unfolding M_def M' S'''_def by (cases S) auto
+
   obtain n\<^sub>0 xs\<^sub>0 where D'[simp]: \<open>D' = (n\<^sub>0, xs\<^sub>0)\<close>
     by (cases D')
   define R where
-    \<open>R = {(((n, xs), m, i, s' :: nat \<Rightarrow> minimize_status, highest':: nat conflict_highest_conflict),
+    \<open>R = {(((n, xs), m, i, cach :: nat \<Rightarrow> minimize_status, highest':: nat conflict_highest_conflict),
             (F :: nat clause, E :: nat clause, highest:: nat conflict_highest_conflict)).
             ((n, xs), F) \<in> conflict_rel \<and>
             i \<le> length xs \<and>
@@ -1523,19 +1552,23 @@ proof -
             n \<ge> m \<and>
             F \<subseteq># D \<and>
             E \<subseteq># F \<and>
-            highest' = highest
+            highest' = highest \<and>
+            conflict_min_analysis_inv M' cach (?NU) F \<and>
+            NU' + NUP \<Turnstile>pm add_mset K F
         }\<close>
   have init_args_ref:
     \<open>iterate_over_conflict_inv M D (D, D, None) \<Longrightarrow> (((n\<^sub>0, xs\<^sub>0), n\<^sub>0, 0, s', None), D, D, None) \<in> R\<close>
-    using D'_D unfolding R_def by auto
+    using D'_D cach_init NU_P_D unfolding R_def NUP NU'_def NU_N_U by (auto simp: ac_simps)
 
    have init_lo_inv: \<open>iterate_over_lookup_conflict_inv s'\<close>
     if
       \<open>(s', s) \<in> R\<close> and
       \<open>iterate_over_conflict_inv M D s\<close>
     for s' s
-  proof -
-    show ?thesis
+   proof -
+     have \<open>((a, b), x) \<in> conflict_rel \<Longrightarrow> a \<le> length b\<close> for a b x
+       by (auto simp: conflict_rel_def dest!: mset_as_position_length_not_None)
+    then show ?thesis
       using that unfolding iterate_over_lookup_conflict_inv_def by (auto simp: R_def)
   qed
   have cond: \<open>(0 < m) = (D' \<noteq> {#})\<close>
@@ -1587,16 +1620,115 @@ proof -
         by (auto simp: nth_append intro!: )
       done
   qed
+  have redundant: \<open>literal_redundant_wl_lookup M NU (n, xs) cach
+          (if the (xs ! a) then Pos a else Neg a)
+      \<le> \<Down> {((s', a', b'), b). b = b' \<and>
+            (b \<longrightarrow> NU' + NUP \<Turnstile>pm remove1_mset L (add_mset K E) \<and>
+               conflict_min_analysis_inv M' s' ?NU (remove1_mset L E)) \<and>
+            (\<not>b \<longrightarrow> NU' + NUP \<Turnstile>pm add_mset K E \<and> conflict_min_analysis_inv M' s' ?NU E)}
+          (is_literal_redundant_spec K NU' NUP E L)\<close>
+    (is \<open>_ \<le> \<Down> ?red _\<close>)
+    if
+      R: \<open>(x, x') \<in> R\<close> and
+      \<open>case x of (x, xa) \<Rightarrow> (case x of (n, xs) \<Rightarrow> \<lambda>(m, i, s, _). 0 < m) xa\<close> and
+      \<open>case x' of (D, D', highest) \<Rightarrow> D' \<noteq> {#}\<close> and
+      \<open>iterate_over_lookup_conflict_inv x\<close> and
+      \<open>iterate_over_conflict_inv M D x'\<close> and
+      st:
+        \<open>x2 = (x1a, x2a)\<close>
+        \<open>x' = (E, x2)\<close>
+        \<open>nxs = (n, xs)\<close>
+        \<open>x2e = (cach, highest)\<close>
+        \<open>x2d = (x1e, x2e)\<close>
+        \<open>x2c = (x1d, x2d)\<close>
+        \<open>x = (nxs, x2c)\<close> and
+      \<open>x1a \<noteq> {#}\<close> and
+      \<open>0 < x1d\<close> and
+      xa_xb: \<open>(a, L) \<in> {(j, x). xs ! j \<noteq> None \<and>
+           x = (if the (xs ! j) then Pos j else Neg j) \<and>
+         j < length xs \<and> x1e \<le> j \<and>
+         (\<forall>k\<ge>x1e. k < j \<longrightarrow> xs ! k = None)}\<close> and
+      xb: \<open>L \<in> {x. x \<in># x1a}\<close>
+    for x x' E x2 x1a x2a nxs n xs x2c x1d x2d x1e x2e cach highest a L
+  proof -
+    let ?L = \<open>(if the (xs ! a) then Pos a else Neg a)\<close>
+    have
+      cr: \<open>((n, xs), E) \<in> conflict_rel\<close> and
+      \<open>x1e \<le> length xs\<close> and
+      \<open>((x1d, replicate x1e None @ drop x1e xs), x1a) \<in> conflict_rel\<close> and
+      \<open>x1d \<le> n\<close> and
+      \<open>E \<subseteq># D\<close> and
+      \<open>x1a \<subseteq># E\<close> and
+      \<open>highest = x2a\<close> and
+      xb_x1: \<open>L \<in># E\<close> and
+      cach: \<open>conflict_min_analysis_inv M' cach ?NU E\<close> and
+      NU_P_E: \<open>NU' + NUP \<Turnstile>pm add_mset K E\<close>
+      using R xb unfolding R_def st
+      by auto
+    have L: \<open>?L = L\<close>
+      using xa_xb  by auto
+    have M_x1: \<open>M \<Turnstile>as CNot E\<close>
+      by (metis CNot_plus M_D \<open>E \<subseteq># D\<close> subset_mset.le_iff_add true_annots_union)
+    then have M'_x1: \<open>M' \<Turnstile>as CNot E\<close>
+      unfolding M' M_def S'''_def by (cases S) auto
+    have 1:
+      \<open>literal_redundant_wl_lookup M NU (n, xs) cach ?L \<le>
+      literal_redundant_wl M NU E cach ?L\<close>
+      using literal_redundant_wl_lookup_literal_redundant_wl[OF cr n_d M_x1 lits, of NU cach
+          \<open>?L\<close>] by simp
+    have 2:
+    \<open>literal_redundant_wl M NU E cach ?L \<le> \<Down>
+       (Id \<times>\<^sub>r {(analyse, analyse'). analyse' = convert_analysis_list NU analyse \<and>
+          (\<forall>(i, j)\<in> set analyse. j \<le> length (NU!i) \<and> i < length NU \<and> j \<ge> 1 \<and> i > 0)} \<times>\<^sub>r bool_rel)
+       (literal_redundant M' NU' E cach ?L)\<close>
+      by (rule literal_redundant_wl_literal_redundant[of S,
+            unfolded M_def[symmetric] NU[symmetric] M'[symmetric] S'''_def[symmetric]
+            NU'_def[symmetric]])
+         (use M_x1 struct_invs add_inv xb_x1 L in \<open>auto simp: S'_def S''_def\<close>)
 
-  have loop_keep: \<open>(((n, xs), m - 1, m'' + 1, s,
+    have 3:
+       \<open>literal_redundant M' (N + U) E cach ?L \<le>
+         literal_redundant_spec M' (N + U + ?NP +  ?UP) E ?L\<close>
+      apply (rule literal_redundant_spec)
+         apply (rule struct_inv_S''')
+      apply (rule cach)
+       apply (subst L, rule xb_x1)
+      apply (rule M'_x1)
+      done
+
+    then have 3:
+       \<open>literal_redundant M' (NU') E cach ?L \<le> literal_redundant_spec M' ?NU E ?L\<close>
+      by (auto simp: ac_simps L NU'_N_U)
+
+    have ent: \<open>NU' + NUP \<Turnstile>pm add_mset (- L) (filter_to_poslev M' L (add_mset K E))\<close>
+      if \<open>NU' + NUP \<Turnstile>pm add_mset (- L) (filter_to_poslev M' L E)\<close>
+      using that by (auto simp: filter_to_poslev_add_mset add_mset_commute)
+    show ?thesis
+      apply (rule order.trans)
+       apply (rule 1)
+      apply (rule order.trans)
+       apply (rule 2)
+      apply (rule order.trans)
+       apply (rule conc_fun_mono[OF 3])
+      unfolding  literal_redundant_spec_def is_literal_redundant_spec_def
+          conc_fun_SPEC L NU'_NUP[symmetric]
+      apply (rule SPEC_rule)
+      apply clarify
+      using NU_P_E ent
+      by (auto simp: xb_x1 intro!: entails_uminus_filter_to_poslev_can_remove
+          filter_to_poslev_conflict_min_analysis_inv simp del: diff_union_swap2)
+  qed
+
+  have loop_keep: \<open>\<not>red \<Longrightarrow> (((n, xs), m - 1, m'' + 1, s,
            merge_highest_lit M (if the (xs ! m'') then Pos m'' else Neg m'') highest'), D',
           remove1_mset L D'', merge_highest_lit M L highest) \<in> R\<close>
-      (is ?loop_keep) and
-   loop_dont_keep: \<open>(((n - 1, xs[m'' := None]), m - 1, m'' + 1, s, highest'),
+      (is \<open>_ \<Longrightarrow> ?loop_keep\<close>) and
+   loop_dont_keep: \<open>\<not>\<not>red \<Longrightarrow> (((n - 1, xs[m'' := None]), m - 1, m'' + 1, s, highest'),
            remove1_mset L D', remove1_mset L D'', highest) \<in> R\<close>
-  (is ?loop_dont_keep)
+  (is \<open>_ \<Longrightarrow> ?loop_dont_keep\<close>)
     if
       R: \<open>(st'', st) \<in> R\<close> and
+      keep: \<open>(keep', red) \<in> ?red D' L\<close> and
       st:
         \<open>st = (D', st2)\<close>
         \<open>st2 = (D'' , highest)\<close>
@@ -1604,10 +1736,12 @@ proof -
         \<open>st''3 = (i, s_highest)\<close>
         \<open>s_highest = (s', highest')\<close>
         \<open>st''2 = (m, st''3)\<close>
-        \<open>st'' = (nxs, st''2)\<close> and
+        \<open>st'' = (nxs, st''2)\<close>
+        \<open>keep' = (s, truc)\<close> and
       xa_xb: \<open>(m'', L) \<in> ?confl xs i\<close> and
       xb_x1a: \<open>L \<in> {x. x \<in># D''}\<close>
-    for st'' st D' D'' nxs n xs st''2 m st''3 i s_highest m'' L s st2 highest s' highest'
+    for st'' st D' D'' nxs n xs st''2 m st''3 i s_highest m'' L s st2 highest s' highest' red keep'
+      truc
   proof -
     have L: \<open>L = (if the (xs ! m'') then Pos m'' else Neg m'')\<close>
       using xa_xb by auto
@@ -1617,7 +1751,8 @@ proof -
       x1d_x1a: \<open>((m, replicate i None @ drop i xs), D'') \<in> conflict_rel\<close> and
       x1d_x1c: \<open>m \<le> n\<close> and
       incls: \<open>D' \<subseteq># D\<close> \<open>D'' \<subseteq># D'\<close> and
-      [simp]: \<open>highest' = highest\<close>
+      [simp]: \<open>highest' = highest\<close> and
+      cach: \<open>conflict_min_analysis_inv M' s' ?NU D'\<close>
       using R unfolding R_def st
       by auto
     have
@@ -1676,8 +1811,8 @@ proof -
         \<in> conflict_rel\<close>
       using xb_x1a x1d L_all_x2b
       by (auto simp: size_remove1_mset_If conflict_rel_def simp del: replicate_Suc)
-    show H: ?loop_keep
-      using xa_xb x1d_x1c map' incls unfolding R_def L[symmetric]
+    show H: ?loop_keep if \<open>\<not>red\<close>
+      using xa_xb x1d_x1c map' incls cach that keep unfolding R_def L[symmetric] st
       by (auto intro: subset_mset.order.trans diff_subset_eq_self)
 
     have
@@ -1699,96 +1834,13 @@ proof -
       by (auto simp: size_remove1_mset_If)
     moreover have  \<open>m - Suc 0 \<le> n - Suc 0\<close>
       using diff_le_mono x1d_x1c by blast
-    ultimately show ?loop_dont_keep
-      using xa_le_x2b H incls unfolding R_def
-      by (auto intro: subset_mset.order.trans diff_subset_eq_self mset_le_subtract)
+    ultimately show ?loop_dont_keep if \<open>\<not>\<not>red\<close>
+      using xa_le_x2b H incls that keep map' unfolding R_def st(8)
+      by (auto intro: subset_mset.order.trans diff_subset_eq_self mset_le_subtract
+          simp del: replicate_Suc)
   qed
 
-  have redundant: \<open>literal_redundant_wl_lookup M NU (n, xs) cach
-          (if the (xs ! a) then Pos a else Neg a)
-      \<le> \<Down> {((s', a', b'), b). b = b'}
-          (is_literal_redundant_spec NU' NUP E L)\<close>
-    if 
-      R: \<open>(x, x') \<in> R\<close> and
-      \<open>case x of (x, xa) \<Rightarrow> (case x of (n, xs) \<Rightarrow> \<lambda>(m, i, s, _). 0 < m) xa\<close> and
-      \<open>case x' of
-     (D, D', highest) \<Rightarrow> D' \<noteq> {#}\<close> and
-      \<open>iterate_over_lookup_conflict_inv x\<close> and
-      \<open>iterate_over_conflict_inv M E x'\<close> and
-      st:
-        \<open>x2 = (x1a, x2a)\<close>
-        \<open>x' = (E, x2)\<close>
-        \<open>nxs = (n, xs)\<close>
-        \<open>x2e = (cach, x2f)\<close>
-        \<open>x2d = (x1e, x2e)\<close>
-        \<open>x2c = (x1d, x2d)\<close>
-        \<open>x = (nxs, x2c)\<close> and
-      \<open>x1a \<noteq> {#}\<close> and
-      \<open>0 < x1d\<close> and
-      xa_xb: \<open>(a, L) \<in> {(j, x). xs ! j \<noteq> None \<and>
-           x = (if the (xs ! j) then Pos j else Neg j) \<and>
-         j < length xs \<and> x1e \<le> j \<and>
-         (\<forall>k\<ge>x1e. k < j \<longrightarrow> xs ! k = None)}\<close> and
-      xb: \<open>L \<in> {x. x \<in># x1a}\<close>
-    for x x' E x2 x1a x2a nxs n xs x2c x1d x2d x1e x2e cach x2f a L
-  proof -
-    let ?L = \<open>(if the (xs ! a) then Pos a else Neg a)\<close>
-    have 
-      cr: \<open>((n, xs), E) \<in> conflict_rel\<close> and
-      \<open>x1e \<le> length xs\<close> and
-      \<open>((x1d, replicate x1e None @ drop x1e xs), x1a) \<in> conflict_rel\<close> and
-      \<open>x1d \<le> n\<close> and
-      \<open>E \<subseteq># D\<close> and
-      \<open>x1a \<subseteq># E\<close> and
-      \<open>x2f = x2a\<close> and
-      xb_x1: \<open>L \<in># E\<close>
-      using R xb unfolding R_def st
-      by auto
-    have L: \<open>?L = L\<close>
-      using xa_xb  by auto
-    have M_x1: \<open>M \<Turnstile>as CNot E\<close>
-      by (metis CNot_plus M_D \<open>E \<subseteq># D\<close> subset_mset.le_iff_add true_annots_union)
-    have 1:
-      \<open>literal_redundant_wl_lookup M NU (n, xs) cach ?L \<le>
-      literal_redundant_wl M NU E cach ?L\<close>
-      using literal_redundant_wl_lookup_literal_redundant_wl[OF cr n_d M_x1 lits, of NU cach
-          \<open>?L\<close>] by simp
-    have 2:
-    \<open>literal_redundant_wl M NU E cach ?L \<le> \<Down>
-       (Id \<times>\<^sub>r {(analyse, analyse'). analyse' = convert_analysis_list NU analyse \<and>
-          (\<forall>(i, j)\<in> set analyse. j \<le> length (NU!i) \<and> i < length NU \<and> j \<ge> 1 \<and> i > 0)} \<times>\<^sub>r bool_rel)
-       (literal_redundant M' NU' E cach ?L)\<close>
-      by (rule literal_redundant_wl_literal_redundant[of S, 
-            unfolded M_def[symmetric] NU[symmetric] M'[symmetric] S'''_def[symmetric]
-            NU'_def[symmetric]])
-         (use M_x1 struct_invs add_inv xb_x1 L in \<open>auto simp: S'_def S''_def\<close>)
 
-    have 3:
-       \<open>literal_redundant M' (mset `# mset N+ mset `# mset U) E cach ?L \<le>
-         literal_redundant_spec M' (mset `# mset N + mset `# mset U + mset `# mset NP + mset `# mset UP) E ?L\<close>
-      apply (rule literal_redundant_spec) (* TODO: confusion between N and N + NP and U and U+UP  *)
-      sorry
-
-    have 3:
-       \<open>literal_redundant M' (NU') E cach ?L \<le>
-         literal_redundant_spec M' (NU') E ?L\<close>
-      sorry
-      thm literal_redundant_wl_literal_redundant
-      literal_redundant_spec
-    show ?thesis
-      apply (rule order.trans)
-       apply (rule 1)
-      apply (rule order.trans)
-       apply (rule 2)
-      apply (rule order.trans)
-       apply (rule conc_fun_mono[OF 3])
-      unfolding  literal_redundant_spec_def is_literal_redundant_spec_def
-          conc_fun_SPEC L
-      apply (rule SPEC_rule)
-      apply clarify
-      apply (auto simp:)
-      sorry
-  qed
   show ?thesis
     unfolding iterate_over_lookup_conflict_def iterate_over_conflict_def D' prod.case Let_def
     apply (refine_vcg  WHILEIT_refine[where R = R])
@@ -1797,8 +1849,9 @@ proof -
     subgoal by (rule cond)
     subgoal by auto
             apply (rule confl_find_next_index_spec_le; assumption)
-           apply (rule redundant; assumption)
     subgoal by auto
+    subgoal by auto
+           apply (rule redundant; solves assumption)
     subgoal by auto
     subgoal by (auto simp: iterate_over_lookup_conflict_inv_def)
     subgoal by auto
@@ -1942,6 +1995,7 @@ prepare_code_thms (in -) lit_redundant_rec_wl_lookup_code_def
 lemmas mark_failed_lits_stack_code_hnr =
    lit_redundant_rec_wl_lookup_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
+term lit_redundant
 end
 
 (* TODO Move *)
@@ -1952,30 +2006,28 @@ lemma get_maximum_level_sinlge[simp]:
 
 lemma iterate_over_conflict_spec:
   fixes D :: \<open>'v clause\<close>
-  assumes \<open>NU + NUP \<Turnstile>pm D\<close> and dist: \<open>distinct_mset D\<close>
+  assumes \<open>NU + NUP \<Turnstile>pm add_mset K D\<close> and dist: \<open>distinct_mset D\<close>
   shows
-    \<open>iterate_over_conflict M NU NUP D \<le> \<Down> Id (SPEC(\<lambda>(D', K). D' \<subseteq># D \<and> NU + NUP \<Turnstile>pm D'  \<and>
-         highest_lit M D' K))\<close>
+    \<open>iterate_over_conflict K M NU NUP D \<le> \<Down> Id (SPEC(\<lambda>(D', highest). D' \<subseteq># D \<and> NU + NUP \<Turnstile>pm add_mset K D'  \<and>
+         highest_lit M D' highest))\<close>
 proof -
   define I' where
     \<open>I' = (\<lambda>(E:: 'v clause, f :: 'v clause, highest' :: 'v conflict_highest_conflict).
-            E \<subseteq># D \<and> NU + NUP \<Turnstile>pm E \<and> distinct_mset E \<and> distinct_mset f \<and>
+            E \<subseteq># D \<and> NU + NUP \<Turnstile>pm add_mset K E \<and> distinct_mset E \<and> distinct_mset f \<and>
            highest_lit M (E - f) highest')\<close>
 
   have init_I': \<open>I' (D, D, None)\<close>
-    using \<open>NU + NUP \<Turnstile>pm D\<close> dist unfolding I'_def highest_lit_def by auto
+    using \<open>NU + NUP \<Turnstile>pm add_mset K D\<close> dist unfolding I'_def highest_lit_def by auto
 
-  have red: \<open>is_literal_redundant_spec NU NUP a x
+  have red: \<open>is_literal_redundant_spec K NU NUP a x
       \<le> SPEC (\<lambda>red. (if \<not> red then RETURN (a, remove1_mset x aa, merge_highest_lit M x ba)
                else RETURN (remove1_mset x a, remove1_mset x aa, ba))
               \<le> SPEC (\<lambda>s'. iterate_over_conflict_inv M D s' \<and> I' s' \<and>
                  (s', s) \<in> measure (\<lambda>(D, D', highest). size D')))\<close>
     if
-      \<open>iterate_over_conflict_inv M D
-      s\<close> and
+      \<open>iterate_over_conflict_inv M D s\<close> and
       \<open>I' s\<close> and
-      \<open>case s of
-     (D, D', highest) \<Rightarrow> D' \<noteq> {#}\<close> and
+      \<open>case s of (D, D', highest) \<Rightarrow> D' \<noteq> {#}\<close> and
       \<open>s = (a, b)\<close> and
       \<open>b = (aa, ba)\<close> and
       \<open>aa \<noteq> {#}\<close> and
@@ -2002,7 +2054,7 @@ proof -
     then show ?thesis
       using that
       by (auto simp: is_literal_redundant_spec_def iterate_over_conflict_inv_def
-          I'_def size_mset_remove1_mset_le_iff
+          I'_def size_mset_remove1_mset_le_iff remove1_mset_add_mset_If
           intro: mset_le_subtract)
   qed
 
@@ -2023,128 +2075,47 @@ proof -
     done
 qed
 
-
-context isasat_input_bounded
+context isasat_input_ops
 begin
-
-definition iterate_over_lookup_conflict_mini
-  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat clauses \<Rightarrow> conflict_rel \<Rightarrow> _ \<Rightarrow>
-       (conflict_rel \<times> _ \<times> nat conflict_highest_conflict) nres\<close>
-  where
-   \<open>iterate_over_lookup_conflict_mini = 
-       iterate_over_lookup_conflict_and_apply 
-          (\<lambda>M NU _ D (cach) L. do {
-             (a, b, c) \<leftarrow> (literal_redundant_wl_lookup M NU D L cach);
-             RETURN (a, c)})\<close>
-
 lemma
+  fixes D :: \<open>nat clause\<close> and s and s' and NU :: \<open>nat clauses_l\<close> and S :: \<open>nat twl_st_wl\<close>
+  defines
+    \<open>S' \<equiv> st_l_of_wl None S\<close> and
+    \<open>S'' \<equiv> twl_st_of_wl None S\<close> and
+    \<open>S''' \<equiv> state\<^sub>W_of (twl_st_of_wl None S)\<close>
+  defines
+    \<open>M \<equiv> get_trail_wl S\<close> and
+    NU: \<open>NU \<equiv> get_clauses_wl S\<close> and
+    NU'_def: \<open>NU' \<equiv> mset `# mset (tl NU)\<close> and
+    NUP: \<open>NUP \<equiv> get_unit_learned S + get_unit_init_clss S\<close> and
+    M': \<open>M' \<equiv> trail S'''\<close>
   assumes
     D'_D: \<open>(D', D) \<in> conflict_rel\<close> and
-    n_d: \<open>no_dup M\<close> and
-    M_D: \<open>M \<Turnstile>as CNot D\<close>
-  shows
-    \<open>literal_redundant_wl_lookup M NU D' x1d L \<bind> (\<lambda>(a, b, c). RETURN (a, c)) \<le> 
-     is_literal_redundant_lookup_spec M NU NUP D' L x1d\<close>
-proof -
-  have literal_redundant_wl:
-    \<open>literal_redundant_wl M NU D cach L \<le> \<Down>
-       (Id \<times>\<^sub>r {(analyse, analyse'). analyse' = convert_analysis_list NU analyse \<and>
-          (\<forall>(i, j)\<in> set analyse. j \<le> length (NU!i) \<and> i < length NU \<and> j \<ge> 1 \<and> i > 0)} \<times>\<^sub>r bool_rel)
-       (literal_redundant M' NU' D cach L)\<close>
-(*   if
-    [simp]: \<open>S' \<equiv> st_l_of_wl None S\<close> and
-    [simp]: \<open>S'' \<equiv> twl_st_of_wl None S\<close> and
-    [simp]: \<open>S''' \<equiv> state\<^sub>W_of (twl_st_of_wl None S)\<close> and
-    \<open>M \<equiv> get_trail_wl S\<close> and
-    M': \<open>M' \<equiv> trail S'''\<close> and
-    NU: \<open>NU \<equiv> get_clauses_wl S\<close> and
-    NU': \<open>NU' \<equiv> cdcl\<^sub>W_restart_mset.clauses S'''\<close> and
+    M_D: \<open>M \<Turnstile>as CNot D\<close> and
+    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close> and
     struct_invs: \<open>twl_struct_invs S''\<close> and
     add_inv: \<open>additional_WS_invs S'\<close> and
-    L_D: \<open>L \<in># D\<close> and
-    M_D: \<open>M \<Turnstile>as CNot D\<close> *)
-  for S :: \<open>nat twl_st_wl\<close> and NU M and S' S'' S''' M' NU' and cach
-    sorry
-  show ?thesis
-    unfolding is_literal_redundant_lookup_spec_def
-    apply (refine_vcg)
-    apply (rule order.trans)
-     apply (rule literal_redundant_wl_lookup_literal_redundant_wl[OF D'_D n_d M_D])
-    apply (rule order.trans)
-     apply simp
-    thm literal_redundant_wl_literal_redundant
-     apply (rule literal_redundant_wl)
-               apply auto
-
-lemma
-  \<open>iterate_over_lookup_conflict_mini M NU NUP D cach \<le> \<Down> (Id \<times>\<^sub>f Id \<times>\<^sub>f Id)
-     (iterate_over_lookup_conflict M NU NUP D cach)\<close>
+    cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUP) D\<close> and
+    NU_P_D: \<open>NU' + NUP \<Turnstile>pm add_mset K D\<close> and
+    confl: \<open>get_conflict_wl S \<noteq> None\<close>
+  shows
+    \<open>iterate_over_lookup_conflict M NU D' s' \<le>
+       \<Down> ({((D, s, L'), (D', L)). (D, D') \<in> conflict_rel \<and> L' = L})
+            (SPEC (\<lambda>(D', highest). D' \<subseteq># D \<and> NU' + NUP \<Turnstile>pm add_mset K D' \<and> highest_lit M D' highest))\<close>
 proof -
-  have H: \<open>(((a::nat, b::bool option list), a, 0, cach, None), (a, b), a, 0, cach, None) \<in> Id\<close> for a b
-    by auto
-  have confl_find_next_index_spec: \<open>confl_find_next_index_spec (n, xs) i
-    \<le> \<Down> (Id) (confl_find_next_index_spec (n', xs') i')\<close>
-    if \<open>n = n'\<close> \<open>xs = xs'\<close> \<open>i = i'\<close>
-    for n n' xs xs' i i'
-    unfolding that by auto
-  have literal_redundant_wl_lookup: \<open>literal_redundant_wl_lookup M NU (x1f, x2e) x1i
-       (if the (x2e ! xa) then Pos xa else Neg xa) \<bind>
-      (\<lambda>(a, b, c). RETURN (a, c))
-      \<le> \<Down> Id
-          (is_literal_redundant_lookup_spec M NU NUP (x1a, x2)
-            (if the (x2 ! xb) then Pos xb else Neg xb) x1d)\<close>
-    if 
-      \<open>D = (a, b)\<close> and
-      \<open>(x, x') \<in> Id\<close> and
-      \<open>case x of
-     (x, xa) \<Rightarrow> (case x of (n, xs) \<Rightarrow> \<lambda>(m, i, s, _). 0 < m) xa\<close> and
-      \<open>case x' of
-     (x, xa) \<Rightarrow> (case x of (n, xs) \<Rightarrow> \<lambda>(m, i, s, _). 0 < m) xa\<close> and
-      \<open>iterate_over_lookup_conflict_inv x\<close> and
-      \<open>iterate_over_lookup_conflict_inv x'\<close> and
-      \<open>x1 = (x1a, x2)\<close> and
-      \<open>x2c = (x1d, x2d)\<close> and
-      \<open>x2b = (x1c, x2c)\<close> and
-      \<open>x2a = (x1b, x2b)\<close> and
-      \<open>x' = (x1, x2a)\<close> and
-      \<open>x1e = (x1f, x2e)\<close> and
-      \<open>x2h = (x1i, x2i)\<close> and
-      \<open>x2g = (x1h, x2h)\<close> and
-      \<open>x2f = (x1g, x2g)\<close> and
-      \<open>x = (x1e, x2f)\<close> and
-      \<open>0 < x1b\<close> and
-      \<open>0 < x1g\<close> and
-      \<open>(xa, xb) \<in> nat_rel\<close>
-    for a b x x' x1 x1a x2 x2a x1b x2b x1c x2c x1d x2d x1e x1f x2e x2f x1g x2g x1h x2h x1i x2i xa xb
-  proof -
-    show ?thesis
-      using that apply auto
-      sorry
-  qed
+  have dist: \<open>distinct_mset D\<close>
+    using D'_D unfolding conflict_rel_def
+    by (auto dest: mset_as_position_distinct_mset)
   show ?thesis
-    supply [[goals_limit=1]]
-    unfolding iterate_over_lookup_conflict_mini_def iterate_over_lookup_conflict_def
-      iterate_over_lookup_conflict_and_apply_def
-    apply (cases D)
-    apply (clarify)
-    apply (refine_vcg H confl_find_next_index_spec)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-      apply (rule literal_redundant_wl_lookup; assumption)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    done
+    apply (rule order.trans)
+     apply (rule iterate_over_lookup_conflict_iterate_over_conflict[OF assms(9-15)[unfolded assms(1-8)],
+          unfolded assms(1-8)[symmetric]])
+    apply (rule order.trans)
+     apply (rule conc_fun_mono[OF iterate_over_conflict_spec[OF NU_P_D dist]])
+    by auto
 qed
 
+end
 term \<open>(uncurry extract_shorter_conflict_list_removed,
           uncurry (RETURN oo extract_shorter_conflict_l_trivial)) \<in>
       [\<lambda>(M', D). literals_are_in_\<L>\<^sub>i\<^sub>n (the D) \<and> D \<noteq> None \<and> M = M']\<^sub>f Id \<times>\<^sub>f option_conflict_rel \<rightarrow>
