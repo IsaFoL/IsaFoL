@@ -100,23 +100,22 @@ context
     Sts :: "'a gstate llist"
   assumes
     deriv: "chain (op \<leadsto>\<^sub>w) Sts" and
-    finite_Sts0: "finite (clss_of_gstate (lnth Sts 0))" and
-    empty_P0: "P_of_gstate (lnth Sts 0) = {}" and
-    empty_Q0: "Q_of_gstate (lnth Sts 0) = {}"
+    finite_Sts0: "finite (clss_of_gstate (lhd Sts))" and
+    empty_P0: "P_of_gstate (lhd Sts) = {}" and
+    empty_Q0: "Q_of_gstate (lhd Sts) = {}"
 begin
 
 lemma deriv_RP: "chain (op \<leadsto>) (lmap state_of_gstate Sts)"
   using deriv weighted_RP_imp_RP by (metis chain_lmap)
 
-lemma finite_Sts0_RP: "finite (clss_of_state (lnth (lmap state_of_gstate Sts) 0))"
-  using finite_Sts0 lnth_lmap[of 0 _ state_of_gstate] chain_length_pos[OF deriv]
-  by (auto simp: enat_0)
+lemma finite_Sts0_RP: "finite (clss_of_state (lhd (lmap state_of_gstate Sts)))"
+  using finite_Sts0 chain_length_pos[OF deriv] by auto
 
-lemma empty_P0_RP: "P_of_state (lnth (lmap state_of_gstate Sts) 0) = {}"
-  using empty_P0 chain_length_pos[OF deriv] by (auto simp: enat_0)
+lemma empty_P0_RP: "P_of_state (lhd (lmap state_of_gstate Sts)) = {}"
+  using empty_P0 chain_length_pos[OF deriv] by auto
 
-lemma empty_Q0_RP: "Q_of_state (lnth (lmap state_of_gstate Sts) 0) = {}"
-  using empty_Q0 chain_length_pos[OF deriv] by (auto simp: enat_0)
+lemma empty_Q0_RP: "Q_of_state (lhd (lmap state_of_gstate Sts)) = {}"
+  using empty_Q0 chain_length_pos[OF deriv] by auto
 
 abbreviation S_gQ :: "'a clause \<Rightarrow> 'a clause" where
   "S_gQ \<equiv> S_Q (lmap state_of_gstate Sts)"

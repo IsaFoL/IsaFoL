@@ -627,18 +627,14 @@ lemmas ltl_ss_gSts = ss_gSts[THEN conjunct2, THEN conjunct2, THEN conjunct2]
 lemma not_lnull_fat_gSts: "\<not> lnull ss_gSts"
   using deriv_ss_gSts_weighted_RP by (cases rule: chain.cases) auto
 
-(* FIXME: avoid lnth 0 altogether *)
-lemma lnth_ss_gSts_0: "lnth ss_gSts 0 = lnth gSts 0"
-  sorry
+lemma finite_ss_gSts0: "finite (clss_of_gstate (lhd ss_gSts))"
+  unfolding lhd_ss_gSts by (subst derivation_from.code) (simp add: clss_of_state_def)
 
-lemma finite_ss_gSts0: "finite (clss_of_gstate (lnth ss_gSts 0))"
-  unfolding lnth_ss_gSts_0 by (subst derivation_from.code) (simp add: clss_of_state_def)
+lemma empty_ss_gP0: "P_of_gstate (lhd ss_gSts) = {}"
+  unfolding lhd_ss_gSts by (subst derivation_from.code) simp
 
-lemma empty_ss_gP0: "P_of_gstate (lnth ss_gSts 0) = {}"
-  unfolding lnth_ss_gSts_0 by (subst derivation_from.code) simp
-
-lemma empty_ss_gQ0: "Q_of_gstate (lnth ss_gSts 0) = {}"
-  unfolding lnth_ss_gSts_0 by (subst derivation_from.code) simp
+lemma empty_ss_gQ0: "Q_of_gstate (lhd ss_gSts) = {}"
+  unfolding lhd_ss_gSts by (subst derivation_from.code) simp
 
 theorem
   deterministic_RP_saturated: "saturated_upto grounded_R" (is ?satur) and
@@ -687,11 +683,11 @@ proof
     hd: "lhd ss_gSts = lhd gSts"
     using chain_tranclp_imp_exists_chain[OF chain_star] by blast
 
-  have fin_s0: "finite (clss_of_gstate (lnth ss_gSts 0))"
+  have fin_s0: "finite (clss_of_gstate (lhd ss_gSts))"
     sorry
-  have empty_p0: "P_of_gstate (lnth ss_gSts 0) = {}"
+  have empty_p0: "P_of_gstate (lhd ss_gSts) = {}"
     sorry
-  have empty_q0: "Q_of_gstate (lnth ss_gSts 0) = {}"
+  have empty_q0: "Q_of_gstate (lhd ss_gSts) = {}"
     sorry
 
   have unsat_lim: "\<not> satisfiable (grounding_of_state (Liminf_gstate ss_gSts))"

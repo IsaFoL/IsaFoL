@@ -134,9 +134,9 @@ context
     Sts :: "'a state llist"
   assumes
     deriv: "chain (op \<leadsto>) Sts" and
-    finite_Sts0: "finite (clss_of_state (lnth Sts 0))" and
-    empty_P0: "P_of_state (lnth Sts 0) = {}" and
-    empty_Q0: "Q_of_state (lnth Sts 0) = {}"
+    finite_Sts0: "finite (clss_of_state (lhd Sts))" and
+    empty_P0: "P_of_state (lhd Sts) = {}" and
+    empty_Q0: "Q_of_state (lhd Sts) = {}"
 begin
 
 definition S_Q :: "'a clause \<Rightarrow> 'a clause" where
@@ -891,10 +891,10 @@ proof (rule ccontr)
   then have "\<forall>i. strictly_generalizes_cls (c (Suc i + l)) (c (i + l))"
     unfolding strictly_generalizes_cls_def generalizes_cls_def by auto
   then have "\<exists>f. \<forall>i. strictly_generalizes_cls (f (Suc i)) (f i)"
-    by fast
+    by (rule exI[of _ "\<lambda>x. c (x + l)"])
   then show False
     using wf_strictly_generalizes_cls
-      wf_iff_no_infinite_down_chain[of "{(x,y). strictly_generalizes_cls x y}"]
+      wf_iff_no_infinite_down_chain[of "{(x, y). strictly_generalizes_cls x y}"]
     unfolding wfP_def by auto
 qed
 
@@ -1696,10 +1696,12 @@ proof -
     then have j_p': "enat j < llength Sts" "(set CAs') \<union> {DA'} \<subseteq> ?Qs j"
       unfolding is_least_def by auto
     then have jn0: "j \<noteq> 0" (* Since there are initially no clauses in Q *)
-      using empty_Q0 using insert_subset by fastforce
+      using empty_Q0 by (metis bot_eq_sup_iff gr_implies_not_zero insert_not_empty llength_lnull
+          lnth_0_conv_lhd sup.orderE)
     then have j_adds_CAs': "\<not> set CAs' \<union> {DA'} \<subseteq> ?Qs (j - 1)" "set CAs' \<union> {DA'} \<subseteq> ?Qs j"
       using j_p unfolding is_least_def
-       apply (metis (no_types, hide_lams) One_nat_def Suc_diff_Suc Suc_ile_eq diff_diff_cancel diff_zero less_imp_le less_one neq0_conv zero_less_diff)
+       apply (metis (no_types) One_nat_def Suc_diff_Suc Suc_ile_eq diff_diff_cancel diff_zero
+          less_imp_le less_one neq0_conv zero_less_diff)
       using j_p'(2) by blast
     have "lnth Sts (j - 1) \<leadsto> lnth Sts j"
       using j_p'(1) jn0  deriv chain_lnth_rel[of _ _ "j - 1"] by force
