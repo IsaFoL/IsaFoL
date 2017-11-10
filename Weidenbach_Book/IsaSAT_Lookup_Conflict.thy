@@ -1262,7 +1262,7 @@ where
 
 
 definition iterate_over_lookup_conflict_inv where
-  \<open>iterate_over_lookup_conflict_inv = (\<lambda>((n, xs), m, i, s). n \<ge> m)\<close>
+  \<open>iterate_over_lookup_conflict_inv = (\<lambda>((n, xs), m, i, s). n \<ge> m \<and> n \<le> length xs)\<close>
 
 type_synonym 'v conflict_highest_conflict = \<open>('v literal \<times> nat) option\<close>
 
@@ -1446,10 +1446,11 @@ where
          (\<lambda>((n, xs), m, i, s, highest). do {
             ASSERT(m > 0);
             x \<leftarrow> confl_find_next_index_spec (m, xs) i;
+            ASSERT(xs ! x \<noteq> None);
+            ASSERT(x < length xs);
             (s', _, red) \<leftarrow> literal_redundant_wl_lookup M NU (n, xs) s
                 (if the (xs ! x) then Pos x else Neg x);
             let L = (if the (xs ! x) then Pos x else Neg x);
-            ASSERT(x < length xs);
             ASSERT(m \<ge> 1);
             ASSERT(n \<ge> 1);
             if \<not>red
@@ -1564,8 +1565,10 @@ proof -
       \<open>(s', s) \<in> R\<close> and
       \<open>iterate_over_conflict_inv M D s\<close>
     for s' s
-  proof -
-    show ?thesis
+   proof -
+     have \<open>((a, b), x) \<in> conflict_rel \<Longrightarrow> a \<le> length b\<close> for a b x
+       by (auto simp: conflict_rel_def dest!: mset_as_position_length_not_None)
+    then show ?thesis
       using that unfolding iterate_over_lookup_conflict_inv_def by (auto simp: R_def)
   qed
   have cond: \<open>(0 < m) = (D' \<noteq> {#})\<close>
@@ -1846,8 +1849,9 @@ proof -
     subgoal by (rule cond)
     subgoal by auto
             apply (rule confl_find_next_index_spec_le; assumption)
-           apply (rule redundant; solves assumption)
     subgoal by auto
+    subgoal by auto
+           apply (rule redundant; solves assumption)
     subgoal by auto
     subgoal by (auto simp: iterate_over_lookup_conflict_inv_def)
     subgoal by auto
@@ -1991,6 +1995,7 @@ prepare_code_thms (in -) lit_redundant_rec_wl_lookup_code_def
 lemmas mark_failed_lits_stack_code_hnr =
    lit_redundant_rec_wl_lookup_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
+term lit_redundant
 end
 
 (* TODO Move *)
