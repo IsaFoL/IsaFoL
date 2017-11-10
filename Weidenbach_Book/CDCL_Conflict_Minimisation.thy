@@ -600,7 +600,7 @@ proof -
     using M_D L_D M_C init_I unfolding I'_def by (auto simp: init_analysis)
 
   have hd_M: \<open>- fst (hd analyse) \<in> lits_of_l M\<close>
-    if 
+    if
       inv_I': \<open>I' s\<close> and
       s: \<open>s = (cach, s')\<close> \<open>s' = (analyse, ba)\<close> and
       nempty: \<open>analyse \<noteq> []\<close>
@@ -1203,7 +1203,7 @@ definition (in -) lit_redundant_rec_wl :: \<open>('v, nat) ann_lits \<Rightarrow
       (_ \<times> _ \<times> bool) nres\<close>
 where
   \<open>lit_redundant_rec_wl M NU D cach analysis =
-      WHILE\<^sub>T
+      WHILE\<^sub>T\<^bsup>lit_redundant_rec_wl_inv M NU D\<^esup>
         (\<lambda>(cach, analyse, b). analyse \<noteq> [])
         (\<lambda>(cach, analyse, b). do {
             ASSERT(analyse \<noteq> []);
@@ -1459,11 +1459,14 @@ proof -
     by (cases x, cases x') auto
   show ?thesis
     supply convert_analysis_list_def[simp] hd_rev[simp] last_map[simp] rev_map[symmetric, simp]
-    unfolding lit_redundant_rec_wl_def lit_redundant_rec_def
+    unfolding lit_redundant_rec_wl_def lit_redundant_rec_def WHILET_def
     apply (rewrite at \<open>let _ = _ ! _ in _\<close> Let_def)
     apply (rewrite at \<open>let _ = snd _ in _\<close> Let_def)
-    apply (refine_rcg )
+    apply refine_rcg
     subgoal using bounds_init unfolding analyse'_def by auto
+    subgoal for x x'
+      by (cases x, cases x')
+        (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def)
     subgoal by auto
     subgoal by auto
     subgoal by (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def elim!: neq_Nil_revE)
