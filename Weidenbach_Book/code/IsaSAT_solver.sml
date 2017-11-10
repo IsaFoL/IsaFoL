@@ -2715,10 +2715,13 @@ fun init_dt_step_wl_code x =
                                (fn x_e =>
                                  (if is_None x_e
                                    then propagate_unit_cls_code x_c bi
-                                   else (if equal_option equal_bool x_e
-      (SOME true)
-  then already_propagated_unit_cls_code x_c bi
-  else conflict_propagated_unit_cls_code x_c bi)))
+                                   else (fn f_ => fn () => f_
+  ((imp_option_eq (fn va => fn vb => (fn () => (equal_boola va vb))) x_e
+     (SOME true))
+  ()) ())
+  (fn x_h =>
+    (if x_h then already_propagated_unit_cls_code x_c bi
+      else conflict_propagated_unit_cls_code x_c bi))))
                            end
                       else add_init_cls_code ai bi))
         else add_clause_to_others_code ai bi)
