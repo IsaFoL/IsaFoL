@@ -250,6 +250,39 @@ lemma chain_prepend:
 lemma lmap_prepend[simp]: "lmap f (prepend xs ys) = prepend (map f xs) (lmap f ys)"
   by (induct xs) auto
 
+lemma lset_prepend[simp]: "lset (prepend xs ys) = set xs \<union> lset ys"
+  by (induct xs) auto
+
+lemma prepend_LCons: "prepend xs (LCons y ys) = prepend (xs @ [y]) ys"
+  by (induct xs) auto
+
+lemma lnth_prepend:
+  "lnth (prepend xs ys) i = (if i < length xs then nth xs i else lnth ys (i - length xs))"
+  by (induct xs arbitrary: i) (auto simp: lnth_LCons' nth_Cons')
+
+theorem lfinite_less_induct[consumes 1, case_names less]:
+  assumes fin: "lfinite xs"
+    and step: "\<And>xs. lfinite xs \<Longrightarrow> (\<And>zs. llength zs < llength xs \<Longrightarrow> P zs) \<Longrightarrow> P xs"
+  shows "P xs"
+using fin proof (induct "the_enat (llength xs)" arbitrary: xs rule: less_induct)
+  case (less xs)
+  show ?case
+    using less(2) by (intro step[OF less(2)] less(1))
+      (auto dest!: lfinite_llength_enat simp: eSuc_enat elim!: less_enatE llength_eq_enat_lfiniteD)
+qed
+
+theorem lfinite_prepend_induct[consumes 1, case_names LNil prepend]:
+  assumes "lfinite xs"
+    and LNil: "P LNil"
+    and prepend: "\<And>xs. lfinite xs \<Longrightarrow> (\<And>zs. (\<exists>ys. xs = prepend ys zs \<and> ys \<noteq> []) \<Longrightarrow> P zs) \<Longrightarrow> P xs"
+  shows "P xs"
+using assms(1) proof (induct xs rule: lfinite_less_induct)
+  case (less xs)
+  from less(1) show ?case
+    by (cases xs)
+      (force simp: LNil neq_Nil_conv dest: lfinite_llength_enat intro!: prepend[of "LCons _ _"] intro: less)+
+qed
+
 coinductive emb :: "'a llist \<Rightarrow> 'a llist \<Rightarrow> bool" where
   "emb LNil xs"
 | "emb xs ys \<Longrightarrow> emb (LCons x xs) (prepend zs (LCons x ys))"
@@ -262,22 +295,22 @@ lemma emb_prepend_coinduct[rotated, case_names emb]:
   assumes "(\<And>x1 x2. X x1 x2 \<Longrightarrow>
     (\<exists>xs. x1 = LNil \<and> x2 = xs)
      \<or> (\<exists>xs ys x zs. x1 = LCons x xs \<and> x2 = prepend zs (LCons x ys)
-       \<and> (prepend_cong1 (X xs) ys \<or> emb xs ys)))"
+       \<and> (prepend_cong1 (X xs) ys \<or> emb xs ys)))" (is "\<And>x1 x2. X x1 x2 \<Longrightarrow> ?bisim x1 x2")
   shows "X x1 x2 \<Longrightarrow> emb x1 x2"
-  apply (erule emb.coinduct[OF prepend_cong1_base])
-  subgoal for xs zs
-    apply (induct zs rule: prepend_cong1.induct)
-     apply (erule assms)
-    apply (force simp: prepend_prepend)
-    done
-  done
+proof (erule emb.coinduct[OF prepend_cong1_base])
+  fix xs zs
+  assume "prepend_cong1 (X xs) zs"
+  then show "?bisim xs zs"
+    by (induct zs rule: prepend_cong1.induct) (erule assms, force simp: prepend_prepend)
+qed
 
 context
 begin
 
 private coinductive chain' for R where
   "chain' R (LCons x LNil)"
-| "chain R (llist_of zs) \<Longrightarrow> zs \<noteq> [] \<Longrightarrow> tl zs \<noteq> [] \<Longrightarrow> \<not> lnull xs \<Longrightarrow> last zs = lhd xs \<Longrightarrow> chain' R xs \<Longrightarrow> ys = ltl xs \<Longrightarrow> chain' R (prepend zs ys)"
+| "chain R (llist_of zs) \<Longrightarrow> zs \<noteq> [] \<Longrightarrow> tl zs \<noteq> [] \<Longrightarrow> \<not> lnull xs \<Longrightarrow> last zs = lhd xs \<Longrightarrow>
+     ys = ltl xs \<Longrightarrow> chain' R xs \<Longrightarrow> chain' R (prepend zs ys)"
 
 private lemma chain_imp_chain': "chain R xs \<Longrightarrow> chain' R xs"
   apply (coinduction arbitrary: xs rule: chain'.coinduct)
@@ -347,7 +380,7 @@ private lemma pick[simp]:
   unfolding pick_def using tranclp_imp_exists_finite_chain_list[THEN someI_ex, OF assms]
   by auto
 
-lemma butlast_pick[simp]: "R\<^sup>+\<^sup>+ x y \<Longrightarrow> butlast (pick x y) \<noteq> []"
+private lemma butlast_pick[simp]: "R\<^sup>+\<^sup>+ x y \<Longrightarrow> butlast (pick x y) \<noteq> []"
   by (cases "pick x y"; cases "tl (pick x y)") (auto dest: pick(2))
 
 private friend_of_corec prepend where
@@ -392,29 +425,6 @@ private lemma wit_alt2:
     prepend.simps(2)[symmetric] butlast_alt[of "pick _ _"]
     simp del: prepend.simps elim!: chain_nontrivE)
 
-theorem lfinite_less_induct[consumes 1, case_names less]:
-  assumes fin: "lfinite xs"
-    and step: "\<And>xs. lfinite xs \<Longrightarrow> (\<And>zs. llength zs < llength xs \<Longrightarrow> P zs) \<Longrightarrow> P xs"
-  shows "P xs"
-using fin proof (induct "the_enat (llength xs)" arbitrary: xs rule: less_induct)
-  case (less xs)
-  show ?case
-    using less(2) by (intro step[OF less(2)] less(1))
-      (auto dest!: lfinite_llength_enat simp: eSuc_enat elim!: less_enatE llength_eq_enat_lfiniteD)
-qed
-
-theorem lfinite_prepend_induct[consumes 1, case_names LNil prepend]:
-  assumes "lfinite xs"
-    and LNil: "P LNil"
-    and prepend: "\<And>xs. lfinite xs \<Longrightarrow> (\<And>zs. (\<exists>ys. xs = prepend ys zs \<and> ys \<noteq> []) \<Longrightarrow> P zs) \<Longrightarrow> P xs"
-  shows "P xs"
-using assms(1) proof (induct xs rule: lfinite_less_induct)
-  case (less xs)
-  from less(1) show ?case
-    by (cases xs)
-      (force simp: LNil neq_Nil_conv dest: lfinite_llength_enat intro!: prepend[of "LCons _ _"] intro: less)+
-qed
-
 private lemma LNil_eq_iff_lnull: "LNil = xs \<longleftrightarrow> lnull xs"
   by (cases xs) auto
 
@@ -427,18 +437,15 @@ proof
   proof (induct "wit xs" arbitrary: xs rule: lfinite_prepend_induct)
     case (prepend zs)
     then show ?case
-      apply -
-      apply (cases zs)
-       apply simp_all
-      subgoal for x xs
-        apply (cases xs)
-        apply simp_all
-        apply (subst (asm) (2) wit_alt2)
-        apply (auto split: llist.splits)
-        apply (drule meta_spec, drule meta_mp, rule exI, rule conjI, rule refl)
-        apply (auto elim!: chain_nontrivE)
-        done
-      done
+    proof (cases zs)
+      case [simp]: (LCons x xs)
+      then show ?thesis 
+      proof (cases xs)
+        case [simp]: LCons
+        with prepend show ?thesis
+          by (subst (asm) (2) wit_alt2) (force split: llist.splits elim!: chain_nontrivE)+
+      qed simp
+    qed simp
   qed (simp add: LNil_eq_iff_lnull)
 next
   assume "lfinite xs"
@@ -467,19 +474,13 @@ lemma emb_wit[simp]: "chain R\<^sup>+\<^sup>+ xs \<Longrightarrow> emb xs (wit x
 proof (coinduction arbitrary: xs rule: emb_prepend_coinduct)
   case (emb xs)
   then show ?case
-    apply (rule chain.cases)
-     apply (auto intro!: exI[of _ "LNil"] exI[of _ "[]"] emb.intros) []
-    subgoal for zs z
-      apply (subst (2) wit.code)
-      apply (auto split: llist.splits)
-      apply (rule exI[of _ "[]"] exI[of _ "_ :: _ llist"] conjI)+
-      unfolding prepend.simps
-       apply (rule refl)
-      apply (rule disjI1)
-      apply (rule prepend_cong1_prepend[OF prepend_cong1_base])
-      apply (rule refl)
-      done
-    done
+  proof (cases rule: chain.cases)
+    case (cons zs z)
+    then show ?thesis
+      by (subst (2) wit.code)
+        (auto split: llist.splits intro!: exI[of _ "[]"] exI[of _ "_ :: _ llist"]
+          prepend_cong1_prepend[OF prepend_cong1_base])
+  qed (auto intro!: exI[of _ "LNil"] exI[of _ "[]"] emb.intros)
 qed
 
 lemma chain_tranclp_imp_exists_chain:
@@ -493,9 +494,6 @@ qed auto
 inductive_cases emb_LConsE: "emb (LCons z zs) ys"
 inductive_cases emb_LNil2E: "emb xs LNil"
 
-lemma lset_prepend[simp]: "lset (prepend xs ys) = set xs \<union> lset ys"
-  by (induct xs) auto
-
 lemma emb_lset_mono[rotated]: "x \<in> lset xs \<Longrightarrow> emb xs ys \<Longrightarrow>  x \<in> lset ys"
   by (induct x xs arbitrary: ys rule: llist.set_induct) (auto elim!: emb_LConsE)
 
@@ -504,16 +502,9 @@ lemma emb_Ball_lset_antimono:
   shows "\<forall>Y \<in> lset Ys. x \<in> Y \<Longrightarrow> \<forall>X \<in> lset Xs. x \<in> X"
   using emb_lset_mono[OF assms] by blast
 
-lemma prepend_LCons: "prepend xs (LCons y ys) = prepend (xs @ [y]) ys"
-  by (induct xs) auto
-
 lemma emb_lfinite_antimono[rotated]: "lfinite ys \<Longrightarrow> emb xs ys \<Longrightarrow> lfinite xs"
   by (induct ys arbitrary: xs rule: lfinite_prepend_induct)
     (force elim!: emb_LNil2E simp: LNil_eq_iff_lnull prepend_LCons elim: emb.cases)+
-
-lemma lnth_prepend:
-  "lnth (prepend xs ys) i = (if i < length xs then nth xs i else lnth ys (i - length xs))"
-  by (induct xs arbitrary: i) (auto simp: lnth_LCons' nth_Cons')
 
 lemma emb_Liminf_llist_mono_aux:
   assumes "emb Xs Ys" and "\<not> lfinite Xs" and "\<not> lfinite Ys" and "\<forall>j\<ge>i. x \<in> lnth Ys j"
