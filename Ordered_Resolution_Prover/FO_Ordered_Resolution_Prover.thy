@@ -98,6 +98,12 @@ inductive RP :: "'a state \<Rightarrow> 'a state \<Rightarrow> bool" (infix "\<l
 lemma final_RP: "\<not> ({}, {}, Q) \<leadsto> St"
   by (auto elim: RP.cases)
 
+(* FIXME: replace fom by fos and get rid of fom? *)
+theorem RP_sound:
+  assumes "St \<leadsto> St'" and "I \<Turnstile>fom mset_set (grounding_of_state St)"
+  shows "I \<Turnstile>fom mset_set (grounding_of_state St')"
+  sorry
+
 definition Sup_state :: "'a state llist \<Rightarrow> 'a state" where
   "Sup_state Sts =
    (Sup_llist (lmap N_of_state Sts), Sup_llist (lmap P_of_state Sts),
@@ -1528,7 +1534,8 @@ proof -
   have SQinf: "clss_of_state (Liminf_state Sts) = Liminf_llist (lmap Q_of_state Sts)"
     using fair unfolding fair_state_seq_def Liminf_state_def clss_of_state_def by auto
 
-  have ground_ns_in_ground_limit_st: "Liminf_llist Ns - src.Rf (Liminf_llist Ns) \<subseteq> grounding_of_state (Liminf_state Sts)"
+  have ground_ns_in_ground_limit_st:
+    "Liminf_llist Ns - src.Rf (Liminf_llist Ns) \<subseteq> grounding_of_state (Liminf_state Sts)"
     using fair deriv fair_imp_Liminf_minus_Rf_subset_ground_Liminf_state ns by blast
 
   have derivns: "chain src_ext.derive Ns"
@@ -1558,7 +1565,8 @@ proof -
 
     have DA_CAs_in_ground_Liminf: "{?DA} \<union> set CAs \<subseteq> grounding_of_clss (Q_of_state (Liminf_state Sts))"
       using a CAs_p unfolding clss_of_state_def using fair unfolding fair_state_seq_def
-      by (metis (no_types, lifting) Un_empty_left ground_ns_in_ground_limit_st a clss_of_state_def ns set_mset_mset subset_trans sup_commute)
+      by (metis (no_types, lifting) Un_empty_left ground_ns_in_ground_limit_st a clss_of_state_def
+          ns set_mset_mset subset_trans sup_commute)
 
     then have ground_cas: "is_ground_cls_list CAs"
       using CAs_p unfolding is_ground_cls_list_def by auto
@@ -1566,7 +1574,8 @@ proof -
     have ground_e: "is_ground_cls ?E"
     proof - (* turn in to a LEMMA? *)
       have a1: "atms_of ?E \<subseteq> (\<Union>CA \<in> set CAs. atms_of CA) \<union> atms_of ?DA"
-        using \<gamma>_p ground_cc ground_da gd.ord_resolve_atms_of_concl_subset[of "CAs" "?DA" "?E"] CAs_p by auto
+        using \<gamma>_p ground_cc ground_da gd.ord_resolve_atms_of_concl_subset[of "CAs" "?DA" "?E"] CAs_p
+        by auto
       {
         fix L :: "'a literal"
         assume "L \<in># concl_of \<gamma>"

@@ -650,7 +650,8 @@ lemma empty_ss_gQ0: "Q_of_gstate (lhd ss_gSts) = {}"
 
 theorem
   deterministic_RP_saturated: "saturated_upto grounded_R" (is ?saturated) and
-  deterministic_RP_sound: "satisfiable grounded_R \<longleftrightarrow> satisfiable grounded_N0" (is ?sound)
+  deterministic_RP_model_sound:
+    "I \<Turnstile>fom mset_set grounded_R \<longleftrightarrow> I \<Turnstile>fom mset_set grounded_N0" (is ?sound)
 proof -
   obtain Q' n' k where
     k_steps: "(deterministic_RP_step ^^ k) St0 = ([], [], Q', n')" and
@@ -720,6 +721,11 @@ proof -
   show ?sound
     sorry
 qed
+
+corollary deterministic_RP_proof_sound: "{#} \<in> grounded_R \<longleftrightarrow> \<not> satisfiable grounded_N0"
+  apply auto
+
+  sorry
 
 end
 
