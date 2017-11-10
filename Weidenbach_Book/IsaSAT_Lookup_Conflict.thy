@@ -1150,7 +1150,8 @@ definition confl_find_next_index_spec where
 
 definition confl_find_next_index :: \<open>lookup_clause_rel \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
    \<open>confl_find_next_index = (\<lambda>(n, xs) i.
-      WHILE\<^sub>T\<^bsup>\<lambda>j. j < length xs \<and> (\<forall>k. k \<ge> i \<longrightarrow> k < j \<longrightarrow> xs ! k = None) \<and> j \<ge> i\<^esup>
+      WHILE\<^sub>T\<^bsup>\<lambda>j. j < length xs \<and> (\<forall>k. k \<ge> i \<longrightarrow> k < j \<longrightarrow> xs ! k = None) \<and> j \<ge> i \<and>
+              j + 1 < uint_max\<^esup>
            (\<lambda>j. xs ! j = None)
            (\<lambda>j. RETURN (j + 1))
            i
@@ -1158,19 +1159,19 @@ definition confl_find_next_index :: \<open>lookup_clause_rel \<Rightarrow> nat \
 \<close>
 
 
-context isasat_input_ops
+context isasat_input_bounded
 begin
 
 lemma confl_find_next_index_confl_find_next_index_spec:
   assumes ocr: \<open>((n, xs), D) \<in> lookup_clause_rel\<close> and \<open>n > 0\<close> and i_xs: \<open>i < length xs\<close> and
-    le_i: \<open>\<forall>k<i. xs ! k = None\<close>
+    le_i: \<open>\<forall>k<i. xs ! k = None\<close> and lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close>
   shows
     \<open>confl_find_next_index (n, xs) i \<le> confl_find_next_index_spec (n,xs) i\<close>
 proof -
   have
     n_D: \<open>n = size D\<close> and
     map: \<open>mset_as_position xs D\<close> and
-    \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length xs\<close>
+    le_xs: \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length xs\<close>
     using ocr unfolding lookup_clause_rel_def by auto
   have map_empty: \<open>mset_as_position xs {#} \<longleftrightarrow> (xs = [] \<or> set xs = {None})\<close>
     by (subst mset_as_position.simps) (auto simp add: list_eq_replicate_iff)
@@ -1187,7 +1188,7 @@ proof -
 
   have Sucj_le_xs: \<open>j + 1 < length xs\<close>
     if
-      j_xs: \<open>j < length xs \<and> (\<forall>k\<ge>i. k < j \<longrightarrow> xs ! k = None) \<and> i \<le> j\<close> and
+      j_xs: \<open>j < length xs \<and> (\<forall>k\<ge>i. k < j \<longrightarrow> xs ! k = None) \<and> i \<le> j \<and> j + 1 < uint_max\<close> and
       xs_j: \<open>xs ! j = None\<close>
     for j
   proof (rule ccontr)
@@ -1197,6 +1198,26 @@ proof -
     then show False
       using ex_not_none by fastforce
   qed
+  have H: False if \<open>\<forall>k\<ge>i. k < l \<longrightarrow> xs ! k = None\<close> and \<open>l \<ge> 1 + uint_max div 2\<close> for l
+  proof -
+    obtain L where \<open>L \<in># D\<close>
+      using n_D \<open>n > 0\<close> by  (cases D) auto
+    then have \<open>atm_of L \<le> uint_max div 2\<close>
+      using lits in_N1_less_than_uint_max by (cases L)
+        (auto dest!: multi_member_split simp: uint_max_def literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset)
+    then have \<open>atm_of L < length xs\<close>
+      using le_xs \<open>L \<in># D\<close> lits by (cases L)
+        (auto dest!: multi_member_split simp: uint_max_def literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset)
+    then have \<open>xs ! (atm_of L) \<noteq> None\<close>
+      using mset_as_position_in_iff_nth[OF map, of L] \<open>L \<in># D\<close> by auto
+    moreover have \<open>atm_of L < l\<close>
+      using that le_i \<open>atm_of L \<le> uint_max div 2\<close>
+      by (auto simp: uint_max_def)
+    ultimately show False
+      using that le_i \<open>atm_of L \<le> uint_max div 2\<close>
+      by (cases \<open>atm_of L \<ge> i\<close>) (auto simp: uint_max_def)
+  qed
+    
   show ?thesis
     unfolding confl_find_next_index_def confl_find_next_index_spec_def prod.case
     apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>i. length xs - i)\<close>])
@@ -1204,16 +1225,25 @@ proof -
     subgoal by (rule i_xs)
     subgoal by auto
     subgoal by auto
+    subgoal using H[of i] by  (cases \<open>i \<ge> 1 + uint_max div 2\<close>)(auto simp: uint_max_def)
     subgoal for j by (rule Sucj_le_xs)
     subgoal for j j'
       using nat_less_le by fastforce
     subgoal by auto
+    subgoal for k using H[of k] by (cases \<open>k \<ge> 1 + uint_max div 2\<close>) (auto simp: uint_max_def)
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
     done
 qed
+
+lemma confl_find_next_index_confl_find_next_index_spec_fref:
+  \<open>(uncurry confl_find_next_index, uncurry confl_find_next_index_spec) \<in>
+      [\<lambda>((n, xs), j). \<exists>D. ((n, xs), D) \<in> lookup_clause_rel \<and> literals_are_in_\<L>\<^sub>i\<^sub>n D \<and> 0 < n \<and>
+          j < length xs \<and> (\<forall>k<j. xs ! k = None)]\<^sub>f
+      Id \<times>\<^sub>r nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)  (auto intro!: confl_find_next_index_confl_find_next_index_spec)
 
 end
 
@@ -2114,6 +2144,34 @@ proof -
      apply (rule conc_fun_mono[OF iterate_over_conflict_spec[OF NU_P_D dist]])
     by auto
 qed
+end
+
+sepref_definition (in -) confl_find_next_index_code
+  is \<open>uncurry confl_find_next_index\<close>
+  :: \<open>lookup_clause_rel_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding confl_find_next_index_def one_uint32_nat_def[symmetric]
+  by sepref
+
+declare (in -) confl_find_next_index_code.refine[sepref_fr_rules]
+context isasat_input_bounded
+begin
+(* TODO change precondition to \<open>?j. xs !i \<noteq> None\<close> *)
+thm confl_find_next_index_code.refine[FCOMP confl_find_next_index_confl_find_next_index_spec_fref]
+sepref_thm test
+  is \<open>uncurry3 iterate_over_lookup_conflict\<close>
+  :: \<open>trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>k *\<^sub>a
+      cach_refinement_assn\<^sup>d \<rightarrow>\<^sub>a lookup_clause_rel_assn *a cach_refinement_assn *a
+        option_assn (unat_lit_assn *a uint32_nat_assn)\<close>
+  supply [[goals_limit=1]]
+  unfolding iterate_over_lookup_conflict_def zero_uint32_nat_def[symmetric]
+  apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+           apply sepref_dbg_trans_step_keep
+  text \<open>We need an \<^term>\<open>ASSN_ANNOT\<close> for type \<^typ>\<open>'a nres\<close>, but this does not exist and
+   it is not clear how to do it.\<close>
+           apply sepref_dbg_side_unfold apply (auto simp: )[] 
+
 
 end
 term \<open>(uncurry extract_shorter_conflict_list_removed,
