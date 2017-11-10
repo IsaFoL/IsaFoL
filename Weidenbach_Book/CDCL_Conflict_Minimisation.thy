@@ -67,21 +67,25 @@ proof -
   qed
 qed
 
-inductive minimize_conflict_support :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clause \<Rightarrow> 'v clause \<Rightarrow> bool\<close> for M where
-resolve_propa: \<open>Propagated L E \<in> set M \<Longrightarrow> minimize_conflict_support M (add_mset (-L) C) (C + remove1_mset L E)\<close> |
+inductive minimize_conflict_support :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clause \<Rightarrow> 'v clause \<Rightarrow> bool\<close>
+  for M where
+resolve_propa:
+  \<open>minimize_conflict_support M (add_mset (-L) C) (C + remove1_mset L E)\<close>
+  if \<open>Propagated L E \<in> set M\<close> |
 remdups: \<open>minimize_conflict_support M (add_mset L C) C\<close>
 
 
 lemma index_in_trail_uminus[simp]: \<open>index_in_trail M (-L) = index_in_trail M L\<close>
   by (auto simp: index_in_trail_def)
 
-definition minimize_conflict_support_mes :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clause \<Rightarrow> nat multiset\<close> where
-\<open>minimize_conflict_support_mes M C = index_in_trail M `# C\<close>
+definition minimize_conflict_support_mes :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clause \<Rightarrow> nat multiset\<close>
+where
+  \<open>minimize_conflict_support_mes M C = index_in_trail M `# C\<close>
 
 context
   fixes M :: \<open>('v, 'v clause) ann_lits\<close> and N U :: \<open>'v clauses\<close> and
-    D :: \<open>'v clause\<close>
-  assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N, U, Some D)\<close>
+    D :: \<open>'v clause option\<close>
+  assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N, U, D)\<close>
 begin
 
 private lemma
@@ -191,6 +195,10 @@ definition filter_to_poslev where
 
 lemma filter_to_poslev_uminus[simp]:
   \<open>filter_to_poslev M (-L) D = filter_to_poslev M L D\<close>
+  by (auto simp: filter_to_poslev_def)
+
+lemma filter_to_poslev_empty[simp]:
+  \<open>filter_to_poslev M L {#} = {#}\<close>
   by (auto simp: filter_to_poslev_def)
 
 lemma filter_to_poslev_mono:
@@ -459,7 +467,7 @@ lemma subseteq_remove1[simp]: \<open>C \<subseteq># C' \<Longrightarrow> remove1
 
 lemma lit_redundant_rec_spec:
   fixes L :: \<open>'v literal\<close>
-  assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N + NP, U + UP, Some D')\<close>
+  assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N + NP, U + UP, D')\<close>
   assumes
     init_analysis: \<open>init_analysis = [(L, C)]\<close> and
     in_trail: \<open>Propagated (-L) (add_mset (-L) C) \<in> set M\<close> and
@@ -483,8 +491,8 @@ proof -
     by (force simp: M)
   then have M_C: \<open>M \<Turnstile>as CNot C\<close>
     unfolding M by (simp add: true_annots_append_l)
-  have \<open>set (get_all_mark_of_propagated (trail (M, N + NP, U + UP, Some D')))
-    \<subseteq> set_mset (cdcl\<^sub>W_restart_mset.clauses (M, N + NP, U + UP, Some D'))\<close>
+  have \<open>set (get_all_mark_of_propagated (trail (M, N + NP, U + UP, D')))
+    \<subseteq> set_mset (cdcl\<^sub>W_restart_mset.clauses (M, N + NP, U + UP, D'))\<close>
     using invs
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
