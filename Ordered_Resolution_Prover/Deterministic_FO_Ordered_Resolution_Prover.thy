@@ -644,7 +644,7 @@ lemmas deriv_ss_gSts_weighted_RP = ss_gSts[THEN conjunct2, THEN conjunct1]
 lemmas lhd_ss_gSts = ss_gSts[THEN conjunct2, THEN conjunct2, THEN conjunct1]
 lemmas ltl_ss_gSts = ss_gSts[THEN conjunct2, THEN conjunct2, THEN conjunct2]
 
-lemma not_lnull_fat_gSts: "\<not> lnull ss_gSts"
+lemma not_lnull_ss_gSts: "\<not> lnull ss_gSts"
   using deriv_ss_gSts_weighted_RP by (cases rule: chain.cases) auto
 
 lemma finite_ss_gSts0: "finite (clss_of_gstate (lhd ss_gSts))"
@@ -657,13 +657,20 @@ lemma empty_ss_gQ0: "Q_of_gstate (lhd ss_gSts) = {}"
   unfolding lhd_ss_gSts by (subst derivation_from.code) simp
 
 theorem
-  deterministic_RP_saturated: "saturated_upto grounded_R" (is ?satur) and
-  deterministic_RP_sound: "satisfiable grounded_R \<longleftrightarrow> satisfiable grounded_N" (is ?sound)
+  deterministic_RP_saturated: "saturated_upto grounded_R" (is ?saturated) and
+  deterministic_RP_sound: "satisfiable grounded_R \<longleftrightarrow> satisfiable grounded_N0" (is ?sound)
 proof -
   obtain N' P' Q' n' where
-    "llast Sts = (N', P', Q', n')" (* FIXME *)
-    "gstate_of_glstate St0 \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate (N', P', Q', n')
-     \<and> N' = [] \<and> P' = [] \<and> R = map fst Q'"
+    k_steps: "\<exists>k. (deterministic_RP_step ^^ k) St0 = (N', P', Q', n')" and
+    n': "N' = []" and
+    p': "P' = []" and
+    r: "R = map fst Q'"
+    using deterministic_RP_SomeD[OF drp_some] by blast
+
+  have foo2: "gstate_of_glstate St0 \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate (N', P', Q', n')"
+    sorry
+
+  have last_sts: "llast Sts = (N', P', Q', n')"
     sorry
 
   have fin_gr_fgsts: "lfinite (lmap grounding_of_gstate ss_gSts)"
@@ -672,13 +679,25 @@ proof -
   have lim_last: "Liminf_llist (lmap grounding_of_gstate ss_gSts) =
     grounding_of_gstate (llast ss_gSts)"
     unfolding lfinite_Liminf_llist[OF fin_gr_fgsts]
-      llast_lmap[OF lfinite_ss_gSts not_lnull_fat_gSts]
-    using not_lnull_fat_gSts by simp
+      llast_lmap[OF lfinite_ss_gSts not_lnull_ss_gSts]
+    using not_lnull_ss_gSts by simp
 
-  show ?satur
-    using weighted_RP_saturated[OF deriv_ss_gSts_weighted_RP finite_ss_gSts0 empty_ss_gP0 empty_ss_gQ0]
-    unfolding lim_last saturated_upto_def
-    sorry
+  have gr_last: "grounding_of_gstate (llast ss_gSts) = grounded_R"
+    unfolding ltl_ss_gSts
+    apply simp
+    apply (subst llast_lmap)
+    apply (rule lfinite_Sts)
+     apply simp
+    apply (unfold last_sts n' p' r)
+    apply (simp add: clss_of_state_def)
+    apply (rule arg_cong[of _ _ grounding_of_clss])
+    by blast
+
+  show ?saturated
+    using weighted_RP_saturated[OF deriv_ss_gSts_weighted_RP finite_ss_gSts0 empty_ss_gP0
+        empty_ss_gQ0]
+    unfolding saturated_upto_def lim_last gr_last by blast
+
   show ?sound
     sorry
 qed
