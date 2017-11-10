@@ -542,14 +542,14 @@ proof (induct rule: deterministic_RP.raw_induct[OF _ assms])
   qed
 qed
 
-lemma deterministic_RP_step_weighted:
+lemma deterministic_RP_step_weighted_RP:
   "gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate (deterministic_RP_step St)"
   by (cases "is_final_glstate St")
     (simp add: final_deterministic_RP_step nonfinal_deterministic_RP_step tranclp_into_rtranclp)+
 
 lemma deterministic_RP_step_funpow_weighted_RP:
   "gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate ((deterministic_RP_step ^^ k) St)"
-  by (induct k; simp) (meson deterministic_RP_step_weighted rtranclp_trans)
+  by (induct k; simp) (meson deterministic_RP_step_weighted_RP rtranclp_trans)
 
 lemma deterministic_RP_step_funpow_imp_weighted_RP:
   "\<exists>k. (deterministic_RP_step ^^ k) St = St' \<Longrightarrow> gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate St'"
@@ -603,10 +603,30 @@ lemma lfinite_gSts: "lfinite gSts"
   by (rule lfinite_lmap[THEN iffD2, OF lfinite_Sts])
 
 lemma deriv_gSts_trancl_weighted_RP: "chain (op \<leadsto>\<^sub>w\<^sup>+) gSts"
-  using lfinite_Sts
-  apply induct
-  using deterministic_RP_SomeD[OF drp_some] deterministic_RP_step_funpow_imp_weighted_RP
-  sorry
+proof -
+  have "lfinite gSts' \<Longrightarrow> gSts' = lmap gstate_of_glstate (derivation_from St0') \<Longrightarrow>
+    chain (op \<leadsto>\<^sub>w\<^sup>+) gSts'" for St0' gSts'
+  proof (induct arbitrary: St0' rule: lfinite_induct)
+    case (LCons gSts')
+    note fin = this(1) and nnull = this(2) and ih = this(3) and gsts' = this(4)
+    show ?case
+    proof (cases "is_final_glstate St0'")
+      case True
+      then have "ltl gSts' = LNil"
+        unfolding gsts' by (simp del: is_final_glstate.simps)
+      then show ?thesis
+        using singleton by (metis lhd_LCons_ltl nnull)
+    next
+      case nonfin: False
+      then show ?thesis
+        using nonfinal_deterministic_RP_step[OF nonfin refl] ih[of "deterministic_RP_step St0'"]
+        by (smt cons derivation_from.disc_iff derivation_from.simps(2,3) gsts' lhd_LCons_ltl
+            llist.map_sel(1) ltl_lmap nnull)
+    qed
+  qed (subst (asm) derivation_from.code, simp)
+  then show ?thesis
+    using lfinite_gSts by blast
+qed
 
 definition ss_gSts :: "'a gstate llist" where
   "ss_gSts = (SOME gSts'. lfinite gSts' \<and> chain (op \<leadsto>\<^sub>w) gSts' \<and> lhd gSts' = lhd gSts
