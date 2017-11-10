@@ -3,7 +3,6 @@ theory IsaSAT_Setup
     Two_Watched_Literals_VMTF IsaSAT_Lookup_Conflict
 begin
 
-
 no_notation Ref.update ("_ := _" 62)
 
 notation prod_rel_syn (infixl "\<times>\<^sub>f" 70)
@@ -162,7 +161,9 @@ type_synonym (in -) twl_st_wl_heur_lookup_conflict =
     (bool \<times> nat \<times> bool option list) \<times> nat literal multiset \<times> nat list list \<times> vmtf_remove_int \<times>
      bool list \<times> nat\<close>
 
-definition twl_st_wl_heur_lookup_conflict_rel :: \<open>(twl_st_wl_heur_lookup_conflict \<times> twl_st_wl_heur) set\<close> where
+definition twl_st_wl_heur_lookup_conflict_rel
+  :: \<open>(twl_st_wl_heur_lookup_conflict \<times> twl_st_wl_heur) set\<close>
+where
   \<open>twl_st_wl_heur_lookup_conflict_rel =
      (Id :: ((nat,nat) ann_lits \<times> _) set) \<times>\<^sub>r
      (Id :: (nat clauses_l  \<times> _) set) \<times>\<^sub>r
@@ -262,7 +263,8 @@ lemma polarity_st_heur_code_polarity_st_refine[sepref_fr_rules]:
   \<open>(uncurry polarity_st_heur_code, uncurry (RETURN oo polarity_st)) \<in>
      [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a twl_st_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn bool_assn\<close>
 proof -
-  have [simp]: \<open>polarity_atm M (atm_of L) = (if is_pos L then polarity M L else map_option uminus (polarity M L))\<close>
+  have [simp]: \<open>polarity_atm M (atm_of L) =
+      (if is_pos L then polarity M L else map_option uminus (polarity M L))\<close>
     if \<open>no_dup M\<close>for M :: \<open>(nat, nat) ann_lits\<close> and L :: \<open>nat literal\<close>
     by (cases L) (use no_dup_consistentD[of M \<open>Neg (atm_of L)\<close>] that in
         \<open>auto simp: polarity_atm_def polarity_def Decided_Propagated_in_iff_in_lits_of_l\<close>)
@@ -307,7 +309,8 @@ lemmas get_conflict_wl_is_None_code_refine[sepref_fr_rules] =
 lemma get_conflict_wl_is_None_code_get_conflict_wl_is_None[sepref_fr_rules]:
   \<open>(get_conflict_wl_is_None_code, RETURN o get_conflict_wl_is_None) \<in>
      twl_st_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  using get_conflict_wl_is_None_code_refine[FCOMP get_conflict_wl_is_None_heur_get_conflict_wl_is_None]
+  using get_conflict_wl_is_None_code_refine[FCOMP
+      get_conflict_wl_is_None_heur_get_conflict_wl_is_None]
   unfolding twl_st_assn_def by fast
 
 
@@ -361,7 +364,8 @@ lemma literal_is_in_conflict_heur_is_in_conflict_st:
 
 sepref_thm literal_is_in_conflict_heur_code
   is \<open>uncurry (RETURN oo literal_is_in_conflict_heur)\<close>
-  :: \<open>[\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl_heur S)) \<and> get_conflict_wl_heur S \<noteq> None]\<^sub>a
+  :: \<open>[\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl_heur S)) \<and>
+        get_conflict_wl_heur S \<noteq> None]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>k  \<rightarrow> bool_assn\<close>
   supply [[goals_limit=1]]
   unfolding literal_is_in_conflict_heur_def twl_st_heur_assn_def is_in_conflict_def[symmetric]
@@ -380,8 +384,9 @@ lemmas literal_is_in_conflict_heur_code_refine[sepref_fr_rules] =
 lemma literal_is_in_conflict_heur_code_is_in_conflict_st[sepref_fr_rules]:
   \<open>(uncurry literal_is_in_conflict_heur_code,
      uncurry (RETURN oo is_in_conflict_st)) \<in>
-    [\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl S)) \<and> get_conflict_wl S \<noteq> None]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>k  \<rightarrow> bool_assn\<close>
+    [\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl S)) \<and>
+      get_conflict_wl S \<noteq> None]\<^sub>a
+    unat_lit_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>k  \<rightarrow> bool_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?c
@@ -392,7 +397,8 @@ proof -
       hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>k) (Id \<times>\<^sub>f twl_st_heur) \<rightarrow>
       hr_comp bool_assn bool_rel\<close>
       (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using  hfref_compI_PRE_aux[OF literal_is_in_conflict_heur_code_refine literal_is_in_conflict_heur_is_in_conflict_st]
+    using  hfref_compI_PRE_aux[OF literal_is_in_conflict_heur_code_refine
+        literal_is_in_conflict_heur_is_in_conflict_st]
     .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     using that unfolding comp_PRE_def option_conflict_rel_def conflict_rel_def
@@ -414,6 +420,11 @@ end
 
 abbreviation (in -) nat_lit_lit_rel where
   \<open>nat_lit_lit_rel \<equiv> Id :: (nat literal \<times> _) set\<close>
+
+datatype ('a ,'b) state = Small 'a | Big 'b
+
+definition state_ref where
+  \<open>state_ref = {(S', S). (length (get_clauses_wl S) \<le> uint64_max \<longrightarrow> S' = Small S) \<or> S' = Big S}\<close>
 
 
 end

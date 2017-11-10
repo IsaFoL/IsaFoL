@@ -344,8 +344,9 @@ sepref_thm add_init_cls_code
   unfolding add_init_cls_heur_def twl_st_heur_init_assn_def is_in_conflict_def[symmetric]
   PR_CONST_def cons_trail_Propagated_def[symmetric]
   unfolding twl_st_heur_init_assn_def Array_List_Array.swap_ll_def[symmetric]
-    nth_rll_def[symmetric] delete_index_and_swap_update_def[symmetric] delete_index_and_swap_ll_def[symmetric]
-   append_ll_def[symmetric]
+    nth_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
+    delete_index_and_swap_ll_def[symmetric]
+    append_ll_def[symmetric]
   by sepref
 
 concrete_definition (in -) add_init_cls_code
@@ -673,6 +674,7 @@ where
     phase_saving \<phi> \<and>
     no_dup M
   }\<close>
+
 definition twl_st_heur_pol_init_assn
   :: \<open>twl_st_wl_heur_init_trail_ref \<Rightarrow> _ \<Rightarrow> assn\<close>
 where
@@ -692,11 +694,7 @@ lemma (in isasat_input_ops) twl_st_trail_no_clvls_ref_alt_def:
 
 lemma twl_st_heur_init_assn_twl_st_heur_pol_init_assn:
   \<open>twl_st_heur_init_assn =
-  hr_comp twl_st_heur_pol_init_assn
-       (trail_pol \<times>\<^sub>f
-        (Id \<times>\<^sub>f
-         (nat_rel \<times>\<^sub>f
-          (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f Id)))))))\<close>
+     hr_comp twl_st_heur_pol_init_assn (trail_pol \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id)\<close>
   unfolding twl_st_heur_pol_init_assn_def twl_st_heur_init_assn_def hr_comp_prod_conv
   by simp
 
@@ -1160,7 +1158,8 @@ lemma init_dt_init_dt_l_full:
     dist: \<open>\<forall>C \<in> set CS. distinct C\<close> and
     struct: \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and
     dec:\<open>\<forall>s\<in>set (get_trail_wl S). \<not>is_decided s\<close> and
-    confl: \<open>get_conflict_wl S = None \<longrightarrow> literals_to_update_wl S = uminus `# lit_of `# mset (get_trail_wl S)\<close> and
+    confl: \<open>get_conflict_wl S = None \<longrightarrow>
+      literals_to_update_wl S = uminus `# lit_of `# mset (get_trail_wl S)\<close> and
     aff_invs: \<open>additional_WS_invs (st_l_of_wl None S)\<close> and
     learned: \<open>get_learned_wl S = length (get_clauses_wl S) - 1\<close> and
     stgy_invs: \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
@@ -1204,7 +1203,9 @@ proof -
     by blast
   have w_q: \<open>clauses_to_update_l T = {#}\<close>
     by (cases S) (simp add: T_def)
-  have tr_T_S: \<open>get_trail_l T = get_trail_wl S\<close> and p_T_S: \<open>literals_to_update_l T = literals_to_update_wl S\<close> and
+  have
+    tr_T_S: \<open>get_trail_l T = get_trail_wl S\<close> and
+    p_T_S: \<open>literals_to_update_l T = literals_to_update_wl S\<close> and
     c_T_S: \<open>get_conflict_l T = get_conflict_wl S\<close> and
     l_T_S: \<open>get_learned_l T = get_learned_wl S\<close>and
     cl_T_S: \<open>get_clauses_l T = get_clauses_wl S\<close>
@@ -1924,7 +1925,7 @@ proof -
     by (auto simp: max_def[abs_def] intro!: ext)
   have [simp]: \<open>fold max x a = Max (insert a (set x))\<close> for x and a :: \<open>'a :: linorder\<close>
     by (auto simp: Max.eq_fold comp_fun_idem.fold_set_fold)
-  have in_N0[dest]: \<open>L \<in> set \<A>\<^sub>i\<^sub>n \<Longrightarrow> nat_of_uint32 L  < Suc (nat_of_uint32 (Max (insert 0 (set \<A>\<^sub>i\<^sub>n))))\<close>
+  have in_N0: \<open>L \<in> set \<A>\<^sub>i\<^sub>n \<Longrightarrow> nat_of_uint32 L  < Suc (nat_of_uint32 (Max (insert 0 (set \<A>\<^sub>i\<^sub>n))))\<close>
     for L \<A>\<^sub>i\<^sub>n
     using Max_ge[of \<open>insert 0 (set \<A>\<^sub>i\<^sub>n)\<close> L]
     apply (auto simp del: Max_ge simp: nat_shiftr_div2 nat_of_uint32_shiftr)
@@ -1938,8 +1939,10 @@ proof -
     for \<A>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n'
     unfolding x P
     by (rule tr[unfolded conc_fun_RETURN])
-       (use that in \<open>auto simp: shiftr1_def nat_shiftr_div2 nat_of_uint32_shiftr list_rel_mset_rel_def
-      list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff' list_mset_rel_def\<close>)
+       (use that in
+         \<open>auto simp: shiftr1_def nat_shiftr_div2 nat_of_uint32_shiftr list_rel_mset_rel_def
+            list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff' list_mset_rel_def
+           dest: in_N0\<close>)
 
   have [simp]: \<open>([], {#}) \<in> list_mset_rel\<close>
     by (auto simp: list_mset_rel_def br_def)
@@ -1951,18 +1954,19 @@ proof -
     for \<A>\<^sub>i\<^sub>n x
     using that unfolding map_fun_rel_def
     by (auto simp: isasat_input_ops.empty_watched_def isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def
-      list_rel_mset_rel_def list_rel_mset_rel_def
-      list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff' list_mset_rel_def
-     intro!: nth_replicate dest!: in_N0
-     simp del: replicate.simps)
-  have initialise_VMTF: \<open>(\<forall>L\<in>#aa. L < b) \<and> distinct_mset aa \<and> (a, aa) \<in> \<langle>uint32_nat_rel\<rangle>list_rel_mset_rel \<Longrightarrow>
+        list_rel_mset_rel_def list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
+        list_mset_rel_def
+        intro!: nth_replicate dest!: in_N0
+        simp del: replicate.simps)
+  have initialise_VMTF: \<open>(\<forall>L\<in>#aa. L < b) \<and> distinct_mset aa \<and> (a, aa) \<in>
+          \<langle>uint32_nat_rel\<rangle>list_rel_mset_rel \<Longrightarrow>
         initialise_VMTF a b \<le> RES (isasat_input_ops.vmtf_init aa [])\<close>
     for aa b a
     using initialise_VMTF[unfolded fref_def nres_rel_def] by auto
   have [simp]: \<open>(x, y) \<in> \<langle>uint32_nat_rel\<rangle>list_rel_mset_rel \<Longrightarrow> L \<in># y \<Longrightarrow> L < Suc (nat_of_uint32 (Max (insert 0 (set x))))\<close>
     for x y L
     by (auto simp: list_rel_mset_rel_def br_def list_rel_def uint32_nat_rel_def
-        list_all2_op_eq_map_right_iff' list_mset_rel_def)
+        list_all2_op_eq_map_right_iff' list_mset_rel_def dest: in_N0)
 
   have initialise_VMTF: \<open>initialise_VMTF x (Suc (nat_of_uint32 (fold max x 0))) \<le>
        \<Down> Id (RES (isasat_input_ops.vmtf_init y []))\<close>
@@ -2006,18 +2010,16 @@ lemma init_state_wl_heur_hnr:
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?c
-  \<in> [\<lambda>x. x = \<A>\<^sub>i\<^sub>n \<and>
-          distinct_mset
-           \<A>\<^sub>i\<^sub>n]\<^sub>a (hr_comp (list_assn uint32_assn)
-                    (\<langle>uint32_nat_rel\<rangle>list_rel_mset_rel))\<^sup>k \<rightarrow>
-      hr_comp trail_pol_assn (isasat_input_ops.trail_pol \<A>\<^sub>i\<^sub>n) *a
-      hr_comp clauses_ll_assn (\<langle>\<langle>nat_lit_lit_rel\<rangle>list_rel\<rangle>list_rel) *a
-      nat_assn *a
-      hr_comp conflict_option_rel_assn (isasat_input_ops.option_conflict_rel \<A>\<^sub>i\<^sub>n) *a
-      hr_comp (list_assn unat_lit_assn) list_mset_rel *a
-      hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>\<langle>nat_rel\<rangle>list_rel\<rangle>list_rel) *a
-      vmtf_remove_conc_option_fst_As *a hr_comp phase_saver_conc (\<langle>bool_rel\<rangle>list_rel) *a
-      uint32_nat_assn\<close>
+       \<in> [\<lambda>x. x = \<A>\<^sub>i\<^sub>n \<and> distinct_mset \<A>\<^sub>i\<^sub>n]\<^sub>a
+         (hr_comp (list_assn uint32_assn) (\<langle>uint32_nat_rel\<rangle>list_rel_mset_rel))\<^sup>k \<rightarrow>
+         hr_comp trail_pol_assn (isasat_input_ops.trail_pol \<A>\<^sub>i\<^sub>n) *a
+         hr_comp clauses_ll_assn (\<langle>\<langle>nat_lit_lit_rel\<rangle>list_rel\<rangle>list_rel) *a
+         nat_assn *a
+         hr_comp conflict_option_rel_assn (isasat_input_ops.option_conflict_rel \<A>\<^sub>i\<^sub>n) *a
+         hr_comp (list_assn unat_lit_assn) list_mset_rel *a
+         hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>\<langle>nat_rel\<rangle>list_rel\<rangle>list_rel) *a
+         vmtf_remove_conc_option_fst_As *a hr_comp phase_saver_conc (\<langle>bool_rel\<rangle>list_rel) *a
+         uint32_nat_assn\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using  init_state_wl_D'_code.refine[FCOMP init_state_wl_D', of \<A>\<^sub>i\<^sub>n] .
   have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
@@ -2069,7 +2071,8 @@ proof -
 qed
 
 
-text \<open>It is not possible to discharge assumption of the rule directly, but here, it works. This avoids
+text \<open>
+  It is not possible to discharge assumption of the rule directly, but here, it works. This avoids
   guessing form the \<open>sepref\<close> tools:\<close>
 declare init_state_wl_D'_code_ref[to_hnr, OF refl, sepref_fr_rules]
 
