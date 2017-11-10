@@ -177,21 +177,45 @@ next
   show "\<And>\<sigma> \<tau>. (\<And>A. A \<cdot> \<sigma> = A \<cdot> \<tau>) \<Longrightarrow> \<sigma> = \<tau>"
     by (simp add: subst_term_eqI)
 next
-  fix Cs :: "('f, nat) term clause list"
+  define t :: "('f, nat) term" where "t = (Fun undefined [])"
+  define \<sigma> :: "('f, nat) subst" where "\<sigma> = (\<lambda>v. t)"
+  have ground_trm: "is_ground_atm t"
+    unfolding is_ground_atm_def t_def by auto
+
+  have all_ground_\<sigma>: "is_ground_atm (\<sigma> v)" for v
+    unfolding \<sigma>_def using ground_trm by auto
+  have "is_ground_subst \<sigma>"
+    unfolding is_ground_subst_def 
+  proof 
+    fix A
+    show "is_ground_atm (subst_atm_abbrev A \<sigma>)"
+    proof (induction A)
+      case (Var x)
+      then show ?case using all_ground_\<sigma> by auto
+    next
+      case (Fun x1a x2)
+      then show ?case using all_ground_\<sigma>
+        by (simp add: is_ground_atm_def)
+    qed
+  qed
+  then show "\<exists>\<sigma> :: ('f, nat) subst. is_ground_subst \<sigma>"
+    by metis
+next
+  fix C :: "('f, nat) term clause"
   fix \<sigma>
-  assume "is_ground_cls_list (subst_cls_list Cs \<sigma>)"
-  then have ground_atms_\<sigma>: "\<And>v. v \<in> vars_clause_list Cs \<Longrightarrow> is_ground_atm (\<sigma> v)"
-    using is_ground_cls_list_is_ground_on_var by metis
+  assume "is_ground_cls (subst_cls C \<sigma>)"
+  then have ground_atms_\<sigma>: "\<And>v. v \<in> vars_clause C \<Longrightarrow> is_ground_atm (\<sigma> v)"
+    by (meson is_ground_cls_is_ground_on_var)
 
   define some_ground_trm :: "('f, nat) term" where "some_ground_trm = (Fun undefined [])"
   have ground_trm: "is_ground_atm some_ground_trm"
     unfolding is_ground_atm_def some_ground_trm_def by auto
-  define \<tau> where "\<tau> = (\<lambda>v. if v \<in> vars_clause_list Cs then \<sigma> v else some_ground_trm)"
-  then have \<tau>_\<sigma>: "\<forall>v \<in> vars_clause_list Cs. \<sigma> v = \<tau> v"
+  define \<tau> where "\<tau> = (\<lambda>v. if v \<in> vars_clause C then \<sigma> v else some_ground_trm)"
+  then have \<tau>_\<sigma>: "\<forall>v \<in> vars_clause C. \<sigma> v = \<tau> v"
     unfolding \<tau>_def by auto
 
   have all_ground_\<tau>: "is_ground_atm (\<tau> v)" for v
-  proof (cases "v \<in> vars_clause_list Cs")
+  proof (cases "v \<in> vars_clause C")
     case True
     then show ?thesis
       using ground_atms_\<sigma> \<tau>_\<sigma> by auto
@@ -214,17 +238,12 @@ next
         by (simp add: is_ground_atm_def)
     qed
   qed
-  moreover have "\<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> subst_cls S \<sigma> = subst_cls S \<tau>"
-  proof (rule, rule, rule, rule)
-    fix i S
-    assume "i < length Cs" "S \<subseteq># Cs ! i"
-    then have "\<forall>v\<in>vars_clause S. \<sigma> v = \<tau> v"
-      using \<tau>_\<sigma> unfolding vars_clause_list_def using vars_clause_mono[of S "Cs ! i"]
-      by (meson UN_I nth_mem subsetCE) 
-    then show "subst_cls S \<sigma> = subst_cls S \<tau>"
-      using same_on_vars_clause by auto
-  qed
-  ultimately show "\<exists>\<tau>. is_ground_subst \<tau> \<and> (\<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> subst_cls S \<sigma> = subst_cls S \<tau>)"
+  moreover have "\<forall>v\<in>vars_clause C. \<sigma> v = \<tau> v"
+    using \<tau>_\<sigma> unfolding vars_clause_list_def
+    by blast 
+  then have "subst_cls C \<sigma> = subst_cls C \<tau>"
+    using same_on_vars_clause by auto
+  ultimately show "\<exists>\<tau>. is_ground_subst \<tau> \<and> subst_cls C \<tau> = subst_cls C \<sigma>"
     by auto
 next
   fix Cs :: "('f, nat) term clause list"
