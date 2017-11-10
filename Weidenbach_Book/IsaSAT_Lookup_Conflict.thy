@@ -1497,7 +1497,6 @@ lemma iterate_over_lookup_conflict_iterate_over_conflict:
     M': \<open>M' \<equiv> trail S'''\<close>
   assumes
     D'_D: \<open>(D', D) \<in> conflict_rel\<close> and
-    n_d: \<open>no_dup M\<close> and
     M_D: \<open>M \<Turnstile>as CNot D\<close> and
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close> and
     struct_invs: \<open>twl_struct_invs S''\<close> and
@@ -1535,6 +1534,11 @@ proof -
           U + get_unit_learned S, E)\<close>
     using struct_invs unfolding twl_struct_invs_def S''_def S'''_def[symmetric] S'''
     by fast
+  then have n_d: \<open>no_dup M'\<close>
+    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+      trail.simps by fast
+  then have n_d: \<open>no_dup M\<close>
+    unfolding M_def M' S'''_def by (cases S) auto
 
   obtain n\<^sub>0 xs\<^sub>0 where D'[simp]: \<open>D' = (n\<^sub>0, xs\<^sub>0)\<close>
     by (cases D')
@@ -2065,6 +2069,47 @@ proof -
     done
 qed
 
+context isasat_input_ops
+begin
+lemma
+  fixes D :: \<open>nat clause\<close> and s and s' and NU :: \<open>nat clauses_l\<close> and S :: \<open>nat twl_st_wl\<close>
+  defines
+    \<open>S' \<equiv> st_l_of_wl None S\<close> and
+    \<open>S'' \<equiv> twl_st_of_wl None S\<close> and
+    \<open>S''' \<equiv> state\<^sub>W_of (twl_st_of_wl None S)\<close>
+  defines
+    \<open>M \<equiv> get_trail_wl S\<close> and
+    NU: \<open>NU \<equiv> get_clauses_wl S\<close> and
+    NU'_def: \<open>NU' \<equiv> mset `# mset (tl NU)\<close> and
+    NUP: \<open>NUP \<equiv> get_unit_learned S + get_unit_init_clss S\<close> and
+    M': \<open>M' \<equiv> trail S'''\<close>
+  assumes
+    D'_D: \<open>(D', D) \<in> conflict_rel\<close> and
+    M_D: \<open>M \<Turnstile>as CNot D\<close> and
+    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close> and
+    struct_invs: \<open>twl_struct_invs S''\<close> and
+    add_inv: \<open>additional_WS_invs S'\<close> and
+    cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUP) D\<close> and
+    NU_P_D: \<open>NU' + NUP \<Turnstile>pm D\<close> and
+    confl: \<open>get_conflict_wl S \<noteq> None\<close>
+  shows
+    \<open>iterate_over_lookup_conflict M NU D' s' \<le>
+       \<Down> ({((D, s, L'), (D', L)). (D, D') \<in> conflict_rel \<and> L' = L})
+            (SPEC (\<lambda>(D', K). D' \<subseteq># D \<and> NU' + NUP \<Turnstile>pm D' \<and> highest_lit M D' K))\<close>
+proof -
+  have dist: \<open>distinct_mset D\<close>
+    using D'_D unfolding conflict_rel_def
+    by (auto dest: mset_as_position_distinct_mset)
+  show ?thesis
+    apply (rule order.trans)
+     apply (rule iterate_over_lookup_conflict_iterate_over_conflict[OF assms(9-15)[unfolded assms(1-8)],
+          unfolded assms(1-8)[symmetric]])
+    apply (rule order.trans)
+     apply (rule conc_fun_mono[OF iterate_over_conflict_spec[OF NU_P_D dist]])
+    by auto
+qed
+
+end
 term \<open>(uncurry extract_shorter_conflict_list_removed,
           uncurry (RETURN oo extract_shorter_conflict_l_trivial)) \<in>
       [\<lambda>(M', D). literals_are_in_\<L>\<^sub>i\<^sub>n (the D) \<and> D \<noteq> None \<and> M = M']\<^sub>f Id \<times>\<^sub>f option_conflict_rel \<rightarrow>
