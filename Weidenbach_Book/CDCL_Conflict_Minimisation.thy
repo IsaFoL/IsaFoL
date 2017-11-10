@@ -12,7 +12,7 @@ definition index_in_trail :: \<open>('v, 'a) ann_lits \<Rightarrow> 'v literal \
 
 lemma Propagated_in_trail_entailed:
   assumes
-    invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N, U, Some D)\<close> and
+    invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N, U, D)\<close> and
     in_trail: \<open>Propagated L C \<in> set M\<close>
   shows
     \<open>M \<Turnstile>as CNot (remove1_mset L C)\<close> and \<open>L \<in># C\<close> and \<open>N + U \<Turnstile>pm C\<close> and
@@ -21,7 +21,7 @@ proof -
   obtain M2 M1 where
     M: \<open>M = M2 @ Propagated L C # M1\<close>
     using split_list[OF in_trail] by metis
-  have \<open>a @ Propagated L mark # b = trail (M, N, U, Some D) \<longrightarrow>
+  have \<open>a @ Propagated L mark # b = trail (M, N, U, D) \<longrightarrow>
        b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> for L mark a b
     using invs
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -33,8 +33,8 @@ proof -
     unfolding M by (simp add: true_annots_append_l)
   show \<open>M \<Turnstile>as CNot (remove1_mset L C)\<close> and \<open>L \<in># C\<close>
     using L_E M_E by fast+
-  have \<open>set (get_all_mark_of_propagated (trail (M, N, U, Some D)))
-    \<subseteq> set_mset (cdcl\<^sub>W_restart_mset.clauses (M, N, U, Some D))\<close>
+  have \<open>set (get_all_mark_of_propagated (trail (M, N, U, D)))
+    \<subseteq> set_mset (cdcl\<^sub>W_restart_mset.clauses (M, N, U, D))\<close>
     using invs
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
@@ -125,7 +125,7 @@ proof (induction rule: minimize_conflict_support.induct)
     obtain M2 M1 where
       M: \<open>M = M2 @ Propagated L E # M1\<close>
       using split_list[OF in_trail] by metis
-    have \<open>a @ Propagated L mark # b = trail (M, N, U, Some D) \<longrightarrow>
+    have \<open>a @ Propagated L mark # b = trail (M, N, U, D) \<longrightarrow>
        b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> for L mark a b
       using invs
       unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -473,7 +473,7 @@ proof -
   obtain M2 M1 where
     M: \<open>M = M2 @ Propagated (- L) (add_mset (- L) C) # M1\<close>
     using split_list[OF in_trail] by (auto 5 5)
-  have \<open>a @ Propagated L mark # b = trail (M, N + NP, U + UP, Some D') \<longrightarrow>
+  have \<open>a @ Propagated L mark # b = trail (M, N + NP, U + UP, D') \<longrightarrow>
        b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> for L mark a b
     using invs
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -1085,7 +1085,7 @@ qed
 
 lemma literal_redundant_spec:
   fixes L :: \<open>'v literal\<close>
-  assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N + NP, U + UP, Some D')\<close>
+  assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N + NP, U + UP, D')\<close>
   assumes
     inv: \<open>conflict_min_analysis_inv M cach (N + NP + U + UP) D\<close> and
     L_D: \<open>L \<in># D\<close> and
