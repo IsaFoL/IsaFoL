@@ -509,8 +509,8 @@ lemma final_deterministic_RP_step: "is_final_glstate St \<Longrightarrow> determ
 
 lemma deterministic_RP_SomeD:
   assumes "deterministic_RP (N, P, Q, n) = Some R"
-  shows "\<exists>N' P' Q' n'. (\<exists>k. (deterministic_RP_step ^^ k) (N, P, Q, n) = (N', P', Q', n'))
-    \<and> N' = [] \<and> P' = [] \<and> R = map fst Q'"
+  shows "\<exists>Q' n'. (\<exists>k. (deterministic_RP_step ^^ k) (N, P, Q, n) = ([], [], Q', n'))
+    \<and> R = map fst Q'"
 proof (induct rule: deterministic_RP.raw_induct[OF _ assms])
   case (1 self_call St R)
   note ih = this(1) and step = this(2)
@@ -532,9 +532,9 @@ proof (induct rule: deterministic_RP.raw_induct[OF _ assms])
     case nonfinal: False
     note step = step[simplified nonfinal, simplified]
 
-    obtain k N' P' Q' n' where
-      "(deterministic_RP_step ^^ k) (deterministic_RP_step (N, P, Q, n)) = (N', P', Q', n')
-       \<and> N' = [] \<and> P' = [] \<and> R = map fst Q'"
+    obtain Q' n' k where
+      "(deterministic_RP_step ^^ k) (deterministic_RP_step (N, P, Q, n)) = ([], [], Q', n')" and
+      "R = map fst Q'"
       using ih[OF step] by blast
     then show ?thesis
       unfolding st funpow_Suc_right[symmetric, THEN fun_cong, unfolded comp_apply] by blast
@@ -659,14 +659,12 @@ theorem
   deterministic_RP_saturated: "saturated_upto grounded_R" (is ?saturated) and
   deterministic_RP_sound: "satisfiable grounded_R \<longleftrightarrow> satisfiable grounded_N0" (is ?sound)
 proof -
-  obtain N' P' Q' n' k where
-    k_steps: "(deterministic_RP_step ^^ k) St0 = (N', P', Q', n')" and
-    n': "N' = []" and
-    p': "P' = []" and
+  obtain Q' n' k where
+    k_steps: "(deterministic_RP_step ^^ k) St0 = ([], [], Q', n')" and
     r: "R = map fst Q'"
     using deterministic_RP_SomeD[OF drp_some] by blast
 
-  have last_sts: "llast Sts = (N', P', Q', n')"
+  have last_sts: "llast Sts = ([], [], Q', n')"
     using k_steps
     apply (induct k)
      apply simp
@@ -692,7 +690,7 @@ proof -
     apply (subst llast_lmap)
     apply (rule lfinite_Sts)
      apply simp
-    apply (unfold last_sts n' p' r)
+    apply (unfold last_sts r)
     apply (simp add: clss_of_state_def)
     apply (rule arg_cong[of _ _ grounding_of_clss])
     by blast
