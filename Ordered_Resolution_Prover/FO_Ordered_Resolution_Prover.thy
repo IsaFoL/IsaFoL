@@ -925,7 +925,7 @@ proof -
         by blast
       then obtain \<tau> where
         \<tau>_p: "D \<cdot> \<tau> \<subseteq># C \<and> is_ground_subst \<tau>"
-        using ground_C by (metis is_ground_cls_mono make_single_ground_subst subset_mset.order_refl)
+        using ground_C by (metis is_ground_cls_mono make_ground_subst subset_mset.order_refl)
       ultimately have subsub: "D \<cdot> \<tau> \<subset># C"
         using subset_mset.le_imp_less_or_eq by auto
       moreover have "is_ground_subst \<tau>"
@@ -943,7 +943,7 @@ proof -
     qed
     then obtain \<sigma> where
       "D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
-      using ground_C by (metis make_single_ground_subst subset_mset.order_refl)
+      using ground_C by (metis make_ground_subst order_refl)
     then show ?thesis
       by auto
   qed
@@ -1249,7 +1249,7 @@ proof -
     from v have "\<exists>\<sigma>'. D' \<cdot> \<sigma>' = C"
       using \<sigma> variants_imp_exists_subtitution variants_sym by (metis subst_cls_comp_subst)
     then have "\<exists>\<sigma>'. D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
-      using ground_C by (meson make_single_ground_subst subset_mset.dual_order.refl)
+      using ground_C by (meson make_ground_subst refl)
     then obtain \<sigma>' where
       \<sigma>'_p: "D' \<cdot> \<sigma>' = C \<and> is_ground_subst \<sigma>'"
       by metis
