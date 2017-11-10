@@ -509,9 +509,8 @@ lemma final_deterministic_RP_step: "is_final_glstate St \<Longrightarrow> determ
 
 lemma deterministic_RP_SomeD:
   assumes "deterministic_RP (N, P, Q, n) = Some R"
-  shows "\<exists>N' P' Q' n'.
-    (\<exists>k. (deterministic_RP_step ^^ k) (N, P, Q, n) = (N', P', Q', n'))
-     \<and> N' = [] \<and> P' = [] \<and> R = map fst Q'"
+  shows "\<exists>N' P' Q' n'. (\<exists>k. (deterministic_RP_step ^^ k) (N, P, Q, n) = (N', P', Q', n'))
+    \<and> N' = [] \<and> P' = [] \<and> R = map fst Q'"
 proof (induct rule: deterministic_RP.raw_induct[OF _ assms])
   case (1 self_call St R)
   note ih = this(1) and step = this(2)
@@ -552,8 +551,8 @@ lemma deterministic_RP_step_funpow_weighted_RP:
   by (induct k; simp) (meson deterministic_RP_step_weighted_RP rtranclp_trans)
 
 lemma deterministic_RP_step_funpow_imp_weighted_RP:
-  "\<exists>k. (deterministic_RP_step ^^ k) St = St' \<Longrightarrow> gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate St'"
-    using deterministic_RP_step_funpow_weighted_RP by blast
+  "(\<exists>k. (deterministic_RP_step ^^ k) St = St') \<Longrightarrow> gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate St'"
+  using deterministic_RP_step_funpow_weighted_RP by blast
 
 definition saturated_upto :: "'a clause set \<Rightarrow> bool" where
   "saturated_upto CC \<longleftrightarrow>
@@ -660,17 +659,22 @@ theorem
   deterministic_RP_saturated: "saturated_upto grounded_R" (is ?saturated) and
   deterministic_RP_sound: "satisfiable grounded_R \<longleftrightarrow> satisfiable grounded_N0" (is ?sound)
 proof -
-  obtain N' P' Q' n' where
-    k_steps: "\<exists>k. (deterministic_RP_step ^^ k) St0 = (N', P', Q', n')" and
+  obtain N' P' Q' n' k where
+    k_steps: "(deterministic_RP_step ^^ k) St0 = (N', P', Q', n')" and
     n': "N' = []" and
     p': "P' = []" and
     r: "R = map fst Q'"
     using deterministic_RP_SomeD[OF drp_some] by blast
 
-  have foo2: "gstate_of_glstate St0 \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate (N', P', Q', n')"
-    sorry
-
   have last_sts: "llast Sts = (N', P', Q', n')"
+    using k_steps
+    apply (induct k)
+     apply simp
+     apply (subst derivation_from.code)
+     apply simp
+    thm llast_LCons
+
+    apply (simp add: )
     sorry
 
   have fin_gr_fgsts: "lfinite (lmap grounding_of_gstate ss_gSts)"
