@@ -177,30 +177,6 @@ next
   show "\<And>\<sigma> \<tau>. (\<And>A. A \<cdot> \<sigma> = A \<cdot> \<tau>) \<Longrightarrow> \<sigma> = \<tau>"
     by (simp add: subst_term_eqI)
 next
-  define t :: "('f, nat) term" where "t = (Fun undefined [])"
-  define \<sigma> :: "('f, nat) subst" where "\<sigma> = (\<lambda>v. t)"
-  have ground_trm: "is_ground_atm t"
-    unfolding is_ground_atm_def t_def by auto
-
-  have all_ground_\<sigma>: "is_ground_atm (\<sigma> v)" for v
-    unfolding \<sigma>_def using ground_trm by auto
-  have "is_ground_subst \<sigma>"
-    unfolding is_ground_subst_def 
-  proof 
-    fix A
-    show "is_ground_atm (subst_atm_abbrev A \<sigma>)"
-    proof (induction A)
-      case (Var x)
-      then show ?case using all_ground_\<sigma> by auto
-    next
-      case (Fun x1a x2)
-      then show ?case using all_ground_\<sigma>
-        by (simp add: is_ground_atm_def)
-    qed
-  qed
-  then show "\<exists>\<sigma> :: ('f, nat) subst. is_ground_subst \<sigma>"
-    by metis
-next
   fix C :: "('f, nat) term clause"
   fix \<sigma>
   assume "is_ground_cls (subst_cls C \<sigma>)"

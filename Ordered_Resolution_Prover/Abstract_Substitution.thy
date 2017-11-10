@@ -183,7 +183,6 @@ locale substitution = substitution_ops subst_atm id_subst comp_subst
     subst_atm_id_subst[simp]: "A \<cdot>a id_subst = A" and
     subst_atm_comp_subst[simp]: "A \<cdot>a (\<tau> \<odot> \<sigma>) = (A \<cdot>a \<tau>) \<cdot>a \<sigma>" and
     subst_ext: "(\<And>A. A \<cdot>a \<sigma> = A \<cdot>a \<tau>) \<Longrightarrow> \<sigma> = \<tau>" and
-    ex_ground_subst: "\<exists>\<sigma>. is_ground_subst \<sigma>" and
     make_single_ground_subst: "is_ground_cls (C \<cdot> \<sigma>) \<Longrightarrow> \<exists>\<tau>. is_ground_subst \<tau> \<and>C \<cdot> \<tau> = C \<cdot> \<sigma>" and
     renames_apart: (* FIXME: break conjunction into three property *)
       "\<And>Cs. length (renamings_apart Cs) = length Cs \<and>
@@ -192,7 +191,7 @@ locale substitution = substitution_ops subst_atm id_subst comp_subst
     atm_of_atms_subst:
       "\<And>As Bs. atm_of_atms As \<cdot>a \<sigma> = atm_of_atms Bs \<longleftrightarrow> map (\<lambda>A. A \<cdot>a \<sigma>) As = Bs" and
     wf_strictly_generalizes_atm: "wfP strictly_generalizes_atm"
-begin
+begin 
 
 lemma subst_ext_iff: "\<sigma> = \<tau> \<longleftrightarrow> (\<forall>A. A \<cdot>a \<sigma> = A \<cdot>a \<tau>)"
   by (blast intro: subst_ext)
@@ -651,6 +650,10 @@ qed
 
 
 subsubsection \<open>Ground expressions and substitutions\<close>
+
+lemma ex_ground_subst: "\<exists>\<sigma>. is_ground_subst \<sigma>"
+  using make_single_ground_subst[of "{#}"]
+  by (simp add: is_ground_cls_def)
 
 lemma is_ground_cls_list_Cons[simp]:
   "is_ground_cls_list (C # Cs) = (is_ground_cls C \<and> is_ground_cls_list Cs)"
