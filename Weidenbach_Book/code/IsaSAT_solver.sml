@@ -559,13 +559,13 @@ fun ht_copy (A1_, A2_, A3_) B_ n src dst =
              ht_copy (A1_, A2_, A3_) B_ (minus_nat n one_nat) src x ()
            end));
 
-fun conflict_assn_is_None x = (fn (b, (_, _)) => b) x;
+fun lookup_clause_assn_is_None x = (fn (b, (_, _)) => b) x;
 
 fun get_conflict_wl_is_None_init_code x =
   (fn xi => (fn () => let
                         val (_, (_, (_, (a1c, (_, (_, _)))))) = xi;
                       in
-                        conflict_assn_is_None a1c
+                        lookup_clause_assn_is_None a1c
                       end))
     x;
 
@@ -924,7 +924,7 @@ fun get_conflict_wl_is_None_code x =
   (fn xi => (fn () => let
                         val (_, (_, (_, (a1c, (_, (_, _)))))) = xi;
                       in
-                        conflict_assn_is_None a1c
+                        lookup_clause_assn_is_None a1c
                       end))
     x;
 
@@ -1512,7 +1512,8 @@ fun lit_and_ann_of_propagated_st_heur_code x =
                           end)
     x;
 
-fun conflict_assn_is_empty (B1_, B2_) = (fn (_, (n, _)) => eq B2_ n (zero B1_));
+fun lookup_clause_assn_is_empty (B1_, B2_) =
+  (fn (_, (n, _)) => eq B2_ n (zero B1_));
 
 fun get_conflict_wll_is_Nil_code x =
   (fn xi =>
@@ -1520,8 +1521,8 @@ fun get_conflict_wll_is_Nil_code x =
       let
         val (_, (_, (_, (a1c, (_, (_, _)))))) = xi;
       in
-        (if conflict_assn_is_None a1c then false
-          else conflict_assn_is_empty (zero_uint32, equal_uint32) a1c)
+        (if lookup_clause_assn_is_None a1c then false
+          else lookup_clause_assn_is_empty (zero_uint32, equal_uint32) a1c)
       end))
     x;
 

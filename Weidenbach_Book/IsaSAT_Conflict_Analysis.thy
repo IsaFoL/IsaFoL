@@ -211,9 +211,9 @@ proof -
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     using that unfolding comp_PRE_def twl_st_heur_def 
       literals_to_update_wl_empty_def
-    by (auto simp: image_image map_fun_rel_def Nil_list_mset_rel_iff conflict_rel_def)
+    by (auto simp: image_image map_fun_rel_def Nil_list_mset_rel_iff lookup_clause_rel_def)
   have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def[symmetric] conflict_assn_def
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def[symmetric] lookup_clause_assn_def
     by (auto simp: hrp_comp_def hr_comp_def)
   have f: \<open>?f' = ?f\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def hr_comp_prod_conv
@@ -270,10 +270,10 @@ proof -
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     using that unfolding comp_PRE_def twl_st_heur_def
       literals_to_update_wl_empty_def
-    by (auto simp: image_image map_fun_rel_def Nil_list_mset_rel_iff conflict_rel_def)
+    by (auto simp: image_image map_fun_rel_def Nil_list_mset_rel_iff lookup_clause_rel_def)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def[symmetric]
-    conflict_assn_def
+    lookup_clause_assn_def
     by (auto simp: hrp_comp_def hr_comp_def)
   have f: \<open>?f' = ?f\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def hr_comp_prod_conv
@@ -343,7 +343,7 @@ proof -
     using  hfref_compI_PRE_aux[OF lit_and_ann_of_propagated_st_heur_code_refine lit_and_ann_of_propagated_st_heur_lit_and_ann_of_propagated_st]
     .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
-    using that unfolding comp_PRE_def option_conflict_rel_def conflict_rel_def
+    using that unfolding comp_PRE_def option_lookup_clause_rel_def lookup_clause_rel_def
     by (auto simp: image_image twl_st_heur_def)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def
@@ -578,7 +578,7 @@ proof -
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     using that literals_are_\<L>\<^sub>i\<^sub>n_hd_trail_in_D\<^sub>0[of x]
       twl_struct_invs_confl[of x]
-    unfolding comp_PRE_def option_conflict_rel_def conflict_rel_def
+    unfolding comp_PRE_def option_lookup_clause_rel_def lookup_clause_rel_def
     apply (cases \<open>get_trail_wl x\<close>)
     by (auto simp: image_image twl_st_heur_def phase_saving_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
       vmtf_def)
@@ -599,26 +599,26 @@ definition (in -) get_max_lvl_st :: \<open>nat twl_st_wl \<Rightarrow> nat liter
   \<open>get_max_lvl_st S L = get_maximum_level_remove (get_trail_wl S) (the (get_conflict_wl S)) L\<close>
 
 
-definition (in -) lookup_conflict_remove1 :: \<open>nat literal \<Rightarrow> conflict_rel \<Rightarrow> conflict_rel\<close> where
+definition (in -) lookup_conflict_remove1 :: \<open>nat literal \<Rightarrow> lookup_clause_rel \<Rightarrow> lookup_clause_rel\<close> where
   \<open>lookup_conflict_remove1 =
      (\<lambda>L (n,xs). if xs ! (atm_of L) = None then (n, xs) else (n-1, xs [atm_of L := None]))\<close>
 
 lemma lookup_conflict_remove1:
   \<open>(uncurry (RETURN oo lookup_conflict_remove1), uncurry (RETURN oo remove1_mset)) \<in>
-  [\<lambda>(L,C). L \<in># C \<and> -L \<notin># C \<and> L \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>f conflict_rel \<rightarrow> \<langle>conflict_rel\<rangle>nres_rel\<close>
+  [\<lambda>(L,C). L \<in># C \<and> -L \<notin># C \<and> L \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>f lookup_clause_rel \<rightarrow> \<langle>lookup_clause_rel\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   apply (case_tac y; case_tac x)
   subgoal for x y a b aa ab c
     using mset_as_position_remove[of c b \<open>atm_of aa\<close>]
     by (cases \<open>aa\<close>)
-       (auto simp: conflict_rel_def lookup_conflict_remove1_def  conflict_rel_atm_in_iff minus_notin_trivial2
+       (auto simp: lookup_clause_rel_def lookup_conflict_remove1_def  lookup_clause_rel_atm_in_iff minus_notin_trivial2
       size_remove1_mset_If in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff minus_notin_trivial mset_as_position_in_iff_nth)
    done
 
 sepref_thm conflict_remove1_code
   is \<open>uncurry (RETURN oo lookup_conflict_remove1)\<close>
-  :: \<open>[\<lambda>(L, (n,xs)). n > 0 \<and> atm_of L < length xs]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a conflict_rel_assn\<^sup>d \<rightarrow>
-     conflict_rel_assn\<close>
+  :: \<open>[\<lambda>(L, (n,xs)). n > 0 \<and> atm_of L < length xs]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d \<rightarrow>
+     lookup_clause_rel_assn\<close>
   supply [[goals_limit=2]] one_uint32_nat[sepref_fr_rules]
   unfolding lookup_conflict_remove1_def one_uint32_nat_def[symmetric] fast_minus_def[symmetric]
   by sepref
@@ -635,30 +635,30 @@ lemmas conflict_remove1_code_refine[sepref_fr_rules] =
 lemma conflict_remove1_code_op_nset_delete[sepref_fr_rules]:
   \<open>(uncurry conflict_remove1_code, uncurry (RETURN \<circ>\<circ> op_mset_delete))
     \<in> [\<lambda>(L, C). L \<in> snd ` D\<^sub>0 \<and> L \<in># C \<and> -L \<notin># C]\<^sub>a
-       unat_lit_assn\<^sup>k *\<^sub>a conflict_assn\<^sup>d \<rightarrow> conflict_assn\<close>
+       unat_lit_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>d \<rightarrow> lookup_clause_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?c \<in>
-    [comp_PRE (Id \<times>\<^sub>f conflict_rel) (\<lambda>(L, C). L \<in># C \<and> - L \<notin># C \<and> L \<in> snd ` D\<^sub>0)
+    [comp_PRE (Id \<times>\<^sub>f lookup_clause_rel) (\<lambda>(L, C). L \<in># C \<and> - L \<notin># C \<and> L \<in> snd ` D\<^sub>0)
               (\<lambda>_ (L, n, xs). 0 < n \<and> atm_of L < length xs)
               (\<lambda>_. True)]\<^sub>a
-    hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a conflict_rel_assn\<^sup>d) (Id \<times>\<^sub>f conflict_rel) \<rightarrow>
-    hr_comp conflict_rel_assn conflict_rel\<close>
+    hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d) (Id \<times>\<^sub>f lookup_clause_rel) \<rightarrow>
+    hr_comp lookup_clause_rel_assn lookup_clause_rel\<close>
       (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using  hfref_compI_PRE_aux[OF conflict_remove1_code_refine lookup_conflict_remove1]
     unfolding op_mset_delete_def
     .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     using that neq0_conv
-    unfolding comp_PRE_def option_conflict_rel_def conflict_rel_def
+    unfolding comp_PRE_def option_lookup_clause_rel_def lookup_clause_rel_def
     by (fastforce simp: image_image twl_st_heur_def phase_saving_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
       vmtf_def)
   have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep conflict_assn_def
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep lookup_clause_assn_def
     by (auto simp: hrp_comp_def hr_comp_def)
   have f: \<open>?f' = ?f\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def hr_comp_prod_conv
-      conflict_assn_def
+      lookup_clause_assn_def
     by (auto simp: hrp_comp_def hr_comp_def)
   show ?thesis
     apply (rule hfref_weaken_pre[OF ])
@@ -667,17 +667,17 @@ proof -
     using pre ..
 qed
 
-lemma conflict_option_assn_the[sepref_fr_rules]:
-  \<open>(return o snd, RETURN o the) \<in> [\<lambda>C. C \<noteq> None]\<^sub>a conflict_option_assn\<^sup>d \<rightarrow> conflict_assn\<close>
+lemma option_lookup_clause_assn_the[sepref_fr_rules]:
+  \<open>(return o snd, RETURN o the) \<in> [\<lambda>C. C \<noteq> None]\<^sub>a option_lookup_clause_assn\<^sup>d \<rightarrow> lookup_clause_assn\<close>
   by sepref_to_hoare
-     (sep_auto simp: conflict_assn_def conflict_option_assn_def conflict_rel_def hr_comp_def
-    option_conflict_rel_def)
+     (sep_auto simp: lookup_clause_assn_def option_lookup_clause_assn_def lookup_clause_rel_def hr_comp_def
+    option_lookup_clause_rel_def)
 
-lemma conflict_option_assn_Some[sepref_fr_rules]:
-  \<open>(return o (\<lambda>C. (False, C)), RETURN o Some) \<in> conflict_assn\<^sup>d \<rightarrow>\<^sub>a conflict_option_assn\<close>
+lemma option_lookup_clause_assn_Some[sepref_fr_rules]:
+  \<open>(return o (\<lambda>C. (False, C)), RETURN o Some) \<in> lookup_clause_assn\<^sup>d \<rightarrow>\<^sub>a option_lookup_clause_assn\<close>
   by sepref_to_hoare
-     (sep_auto simp: conflict_assn_def conflict_option_assn_def conflict_rel_def hr_comp_def
-    option_conflict_rel_def bool_assn_alt_def)
+     (sep_auto simp: lookup_clause_assn_def option_lookup_clause_assn_def lookup_clause_rel_def hr_comp_def
+    option_lookup_clause_rel_def bool_assn_alt_def)
 
 lemma resolve_cls_wl'_union_uminus_zero_index:
   assumes
@@ -867,7 +867,7 @@ lemma lookup_conflict_merge_aa_lookup_conflict_merge_abs_union_aa:
           \<not> tautology (mset (N!i)) \<and>
          literals_are_in_\<L>\<^sub>i\<^sub>n (the C) \<and> C \<noteq> None \<and>
          clvls = card_max_lvl M (the C)]\<^sub>f
-    Id \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_conflict_rel \<times>\<^sub>f nat_rel \<rightarrow> \<langle>option_conflict_rel \<times>\<^sub>r nat_rel\<rangle> nres_rel\<close>
+    Id \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_lookup_clause_rel \<times>\<^sub>f nat_rel \<rightarrow> \<langle>option_lookup_clause_rel \<times>\<^sub>r nat_rel\<rangle> nres_rel\<close>
   apply (intro frefI nres_relI)
   apply clarify
   subgoal for M N i b j xs clvls M' N' i' _ clvls' C
@@ -880,13 +880,13 @@ lemma lookup_conflict_merge_code_lookup_conflict_merge_abs_union[sepref_fr_rules
   \<open>(uncurry4 lookup_conflict_merge_code, uncurry4 lookup_conflict_merge_abs_union) \<in>
     [\<lambda>((((M, N), i), C), clvls). distinct (N!i) \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N!i)) \<and> \<not> tautology (mset (N!i)) \<and>
          literals_are_in_\<L>\<^sub>i\<^sub>n (the C) \<and> C \<noteq> None \<and> i < length N \<and> clvls = card_max_lvl M (the C)]\<^sub>a
-    trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (conflict_option_assn)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
-     conflict_option_assn *a uint32_nat_assn \<close>
+    trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (option_lookup_clause_assn)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
+     option_lookup_clause_assn *a uint32_nat_assn \<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?c
      \<in> [comp_PRE
-     (Id \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_conflict_rel \<times>\<^sub>f
+     (Id \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f option_lookup_clause_rel \<times>\<^sub>f
       nat_rel)
      (\<lambda>((((M, N), i), C), clvls).
          distinct (N ! i) \<and>
@@ -906,24 +906,24 @@ proof -
                      conflict_option_rel_assn\<^sup>d *\<^sub>a
                      uint32_nat_assn\<^sup>k)
                     (Id \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f
-                     option_conflict_rel \<times>\<^sub>f
+                     option_lookup_clause_rel \<times>\<^sub>f
                      nat_rel) \<rightarrow> hr_comp
    (conflict_option_rel_assn *a uint32_nat_assn)
-   (option_conflict_rel \<times>\<^sub>f nat_rel)\<close>
+   (option_lookup_clause_rel \<times>\<^sub>f nat_rel)\<close>
       (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF lookup_conflict_merge_aa_hnr[unfolded PR_CONST_def]
       lookup_conflict_merge_aa_lookup_conflict_merge_abs_union_aa]
     .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     using that literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l
-    unfolding comp_PRE_def option_conflict_rel_def conflict_rel_def
+    unfolding comp_PRE_def option_lookup_clause_rel_def lookup_clause_rel_def
     by (auto simp: image_image twl_st_heur_def phase_saving_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
       vmtf_def)
   have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep conflict_option_assn_def
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep option_lookup_clause_assn_def
     by (auto simp: hrp_comp_def hr_comp_def)
   have f: \<open>?f' = ?f\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep hr_comp_prod_conv conflict_option_assn_def
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep hr_comp_prod_conv option_lookup_clause_assn_def
     by (auto simp: hrp_comp_def hr_comp_def)
   show ?thesis
     apply (rule hfref_weaken_pre[OF ])
@@ -1029,11 +1029,11 @@ lemma lookup_conflict_merge_abs_union_None: \<open>lookup_conflict_merge_abs_uni
   unfolding lookup_conflict_merge_abs_union'_def by auto
 
 
-lemma conflict_assn_op_nset_is_emty[sepref_fr_rules]:
-  \<open>(return o (\<lambda>(n, _). n = 0), RETURN o op_mset_is_empty) \<in> conflict_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+lemma lookup_clause_assn_op_nset_is_emty[sepref_fr_rules]:
+  \<open>(return o (\<lambda>(n, _). n = 0), RETURN o op_mset_is_empty) \<in> lookup_clause_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   apply sepref_to_hoare
   apply (rename_tac x xi, case_tac xi)
-  by (sep_auto simp: conflict_assn_def conflict_rel_def hr_comp_def
+  by (sep_auto simp: lookup_clause_assn_def lookup_clause_rel_def hr_comp_def
     uint32_nat_assn_0_eq uint32_nat_rel_def br_def pure_def nat_of_uint32_0_iff)+
 
 
@@ -1250,7 +1250,7 @@ proof -
     by (auto simp: hrp_comp_def hr_comp_def)
   have f: \<open>?f' = ?f\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def hr_comp_prod_conv
-      conflict_assn_def
+      lookup_clause_assn_def
     by (auto simp: hrp_comp_def hr_comp_def)
   show ?thesis
     apply (rule hfref_weaken_pre[OF ])
@@ -1462,14 +1462,14 @@ definition highest_lit where
 lemma extract_shorter_conflict_list_removed_extract_shorter_conflict_l_trivial:
   shows \<open>(uncurry extract_shorter_conflict_list_removed,
           uncurry (RETURN oo extract_shorter_conflict_l_trivial)) \<in>
-      [\<lambda>(M', D). literals_are_in_\<L>\<^sub>i\<^sub>n (the D) \<and> D \<noteq> None \<and> M = M']\<^sub>f Id \<times>\<^sub>f option_conflict_rel \<rightarrow>
-         \<langle>{((D, L), C). (D, C) \<in> option_conflict_rel \<and> C \<noteq> None \<and> highest_lit M (the C) L \<and>
+      [\<lambda>(M', D). literals_are_in_\<L>\<^sub>i\<^sub>n (the D) \<and> D \<noteq> None \<and> M = M']\<^sub>f Id \<times>\<^sub>f option_lookup_clause_rel \<rightarrow>
+         \<langle>{((D, L), C). (D, C) \<in> option_lookup_clause_rel \<and> C \<noteq> None \<and> highest_lit M (the C) L \<and>
            (\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length (snd (snd D)))}\<rangle> nres_rel\<close>
   (is \<open>?C \<in> [?pre]\<^sub>f _ \<times>\<^sub>f _ \<rightarrow> \<langle>?post\<rangle> nres_rel\<close>)
 proof -
   have H: \<open>extract_shorter_conflict_list_removed M (b, n, xs)
        \<le> \<Down> ?post (RETURN (extract_shorter_conflict_l_trivial M (Some C)))\<close>
-    if lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C\<close> and ocr: \<open>((b, n, xs), Some C) \<in> option_conflict_rel\<close>
+    if lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C\<close> and ocr: \<open>((b, n, xs), Some C) \<in> option_lookup_clause_rel\<close>
     for C b n xs
   proof -
     let ?C = \<open>\<lambda>M i C. filter_mset (\<lambda>L. atm_of L < i \<longrightarrow> get_level M L \<noteq> 0) C\<close>
@@ -1477,15 +1477,15 @@ proof -
     define I' where
       \<open>I' = (\<lambda>(i, m', m, zs, L). highest_lit M (?D M i C) L \<and>
               ((False, (m, zs)), Some (?C M i C))
-        \<in> option_conflict_rel \<and> (i < length zs \<longrightarrow> zs ! i \<noteq> None \<longrightarrow> Pos i \<in> snd ` D\<^sub>0) \<and>
+        \<in> option_lookup_clause_rel \<and> (i < length zs \<longrightarrow> zs ! i \<noteq> None \<longrightarrow> Pos i \<in> snd ` D\<^sub>0) \<and>
         i + m' \<le> length zs \<and> length xs = length zs \<and>
         m' = size (filter_mset (\<lambda>L. atm_of L \<ge> i) C) \<and>
         (m' > 0 \<longrightarrow> i + m' + count_list (drop i zs) None = length xs) \<and>
         (m' > 0 \<longrightarrow> i \<le> uint_max div 2))\<close>
     have [simp]: \<open>b = False\<close>
-      using ocr unfolding option_conflict_rel_def by auto
+      using ocr unfolding option_lookup_clause_rel_def by auto
     have n: \<open>n = size C\<close> and map: \<open>mset_as_position xs C\<close>
-      using ocr by (auto simp: conflict_rel_def highest_lit_def option_conflict_rel_def)
+      using ocr by (auto simp: lookup_clause_rel_def highest_lit_def option_lookup_clause_rel_def)
     have \<open>xs ! i = None \<longleftrightarrow> Pos i \<notin># C \<and> Neg i \<notin># C\<close> if \<open>i < length xs\<close> for i
       using mset_as_position_in_iff_nth[OF map, of \<open>Pos i\<close>] that
         mset_as_position_in_iff_nth[OF map, of \<open>Neg i\<close>]
@@ -1506,7 +1506,7 @@ proof -
     have I'_mapD: \<open>I' (i, m, n, xs, L) \<Longrightarrow>
          mset_as_position xs {#L \<in># C. \<not> (atm_of L < i \<and> get_level M L = 0)#}\<close>
       for i m n xs L
-      unfolding I'_def option_conflict_rel_def conflict_rel_def by auto
+      unfolding I'_def option_lookup_clause_rel_def lookup_clause_rel_def by auto
     have n_le: \<open>n \<le> length xs\<close> and b: \<open>b = False\<close> and
        dist_C: \<open> distinct_mset C\<close> and
        tauto_C: \<open>\<not> tautology C\<close> and
@@ -1514,10 +1514,10 @@ proof -
        n_size: \<open>n = size C\<close>
       using mset_as_position_length_not_None[of xs C] that  mset_as_position_distinct_mset[of xs C]
         mset_as_position_tautology[of xs C]
-      by (auto simp: option_conflict_rel_def conflict_rel_def)
+      by (auto simp: option_lookup_clause_rel_def lookup_clause_rel_def)
     have init_I: \<open>I n (0, n, n, xs, None)\<close>
       using ocr lits unfolding I_def
-      by (auto simp: conflict_rel_def highest_lit_def option_conflict_rel_def uint_max_def
+      by (auto simp: lookup_clause_rel_def highest_lit_def option_lookup_clause_rel_def uint_max_def
           mset_as_position_length_not_None[OF map] xs_Some literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
           image_image in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
           dest!: multi_member_split[of _ C])
@@ -1525,7 +1525,7 @@ proof -
       using count_le_length[of xs None] by auto
     then have init_I': \<open>I' (0, n, n, xs, None)\<close>
       using ocr lits unfolding I'_def
-      by (auto simp: conflict_rel_def highest_lit_def option_conflict_rel_def
+      by (auto simp: lookup_clause_rel_def highest_lit_def option_lookup_clause_rel_def
           mset_as_position_length_not_None[OF map] xs_Some literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
           image_image in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff removeAll_filter_not_eq[symmetric]
           length_removeAll_count_list uint_max_def
@@ -1629,7 +1629,7 @@ proof -
         using s by auto
       have
         shl: "highest_lit M (?D M ab C) be" and
-        ocr: "((False, ad, ae), Some {#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#}) \<in> option_conflict_rel" and
+        ocr: "((False, ad, ae), Some {#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#}) \<in> option_lookup_clause_rel" and
         ab_\<L>\<^sub>a\<^sub>l\<^sub>l: "Pos ab \<in># \<L>\<^sub>a\<^sub>l\<^sub>l" and
         [simp]: "length baa = length ae" and
         ab_drop_ae: "ab + size {#L \<in># C. ab \<le> atm_of L#} + count_list (drop ab ae) None = length ae" and
@@ -1675,7 +1675,7 @@ proof -
       have ac_0: \<open>ac > 0\<close>
         using cond by auto
       have ocr': \<open>((False, ad, ae), Some {#L \<in># C. atm_of L < Suc ab \<longrightarrow> 0 < get_level M L#}) \<in>
-          option_conflict_rel\<close>
+          option_lookup_clause_rel\<close>
         using ocr unfolding ocr_e by fast
       have ab_ac_0: \<open>Suc (ab + (ac - Suc 0)) \<le> length ae\<close>
         using ac_0 ab_drop_ae ac by auto
@@ -1739,7 +1739,7 @@ proof -
         using s by auto
       have
         shl: "highest_lit M (?D M ab C) be" and
-        ocr: "((False, ad, ae), Some {#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#}) \<in> option_conflict_rel" and
+        ocr: "((False, ad, ae), Some {#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#}) \<in> option_lookup_clause_rel" and
         ab_\<L>\<^sub>a\<^sub>l\<^sub>l: "Pos ab \<in># \<L>\<^sub>a\<^sub>l\<^sub>l" and
         [simp]: "length baa = length ae" and
         ab_drop_ae: "ab + size {#L \<in># C. ab \<le> atm_of L#} + count_list (drop ab ae) None = length ae" and
@@ -1785,7 +1785,7 @@ proof -
       have ac_0: \<open>ac > 0\<close>
         using cond by auto
       have ocr': \<open>((False, ad, ae), Some {#L \<in># C. atm_of L < Suc ab \<longrightarrow> 0 < get_level M L#}) \<in>
-          option_conflict_rel\<close>
+          option_lookup_clause_rel\<close>
         using ocr unfolding ocr_e by fast
       have ab_ac_0: \<open>Suc (ab + (ac - Suc 0)) \<le> length ae\<close>
         using ac_0 ab_drop_ae ac by auto
@@ -1848,7 +1848,7 @@ proof -
         using s by auto
       have
         shl: "highest_lit M (?D M ab C) be" and
-        ocr: "((False, ad, ae), Some {#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#}) \<in> option_conflict_rel" and
+        ocr: "((False, ad, ae), Some {#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#}) \<in> option_lookup_clause_rel" and
         ab_\<L>\<^sub>a\<^sub>l\<^sub>l: "Pos ab \<in># \<L>\<^sub>a\<^sub>l\<^sub>l" and
         [simp]: "length baa = length ae" and
         ab_drop_ae: "ab + size {#L \<in># C. ab \<le> atm_of L#} + count_list (drop ab ae) None = length ae" and
@@ -1894,7 +1894,7 @@ proof -
       have ac_0: \<open>ac > 0\<close>
         using cond by auto
       have ocr': \<open>((False, ad, ae), Some {#L \<in># C. atm_of L < Suc ab \<longrightarrow> 0 < get_level M L#}) \<in>
-          option_conflict_rel\<close>
+          option_lookup_clause_rel\<close>
         using ocr unfolding ocr_e by fast
       have ab_ac_0: \<open>Suc (ab + (ac - Suc 0)) \<le> length ae\<close>
         using ac_0 ab_drop_ae ac by auto
@@ -1951,7 +1951,7 @@ proof -
         using s by auto
       have
         shl: "highest_lit M (?D M ab C) be" and
-        ocr: "((False, ad, ae), Some {#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#}) \<in> option_conflict_rel" and
+        ocr: "((False, ad, ae), Some {#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#}) \<in> option_lookup_clause_rel" and
         ab_\<L>\<^sub>a\<^sub>l\<^sub>l: "Pos ab \<in># \<L>\<^sub>a\<^sub>l\<^sub>l" and
         [simp]: "length baa = length ae" and
         ab_drop_ae: "ab + size {#L \<in># C. ab \<le> atm_of L#} + count_list (drop ab ae) None = length ae" and
@@ -2007,10 +2007,10 @@ proof -
 
       have ocr': \<open>((False, ad - Suc 0, ae[ab := None]),
            Some {#L \<in># C. atm_of L < Suc ab \<longrightarrow> 0 < get_level M L#})
-         \<in> option_conflict_rel\<close>
+         \<in> option_lookup_clause_rel\<close>
         using ocr ab_le \<open>?L \<in># C\<close> tauto_C
         mset_as_position_remove[OF I'_mapD[OF I'[unfolded s]], of \<open>atm_of ?L\<close>]
-        unfolding option_conflict_rel_def conflict_rel_def ocr_e by (cases x) auto
+        unfolding option_lookup_clause_rel_def lookup_clause_rel_def ocr_e by (cases x) auto
       have ab_ac_0: \<open>Suc (ab + (ac - Suc 0)) \<le> length ae\<close>
         using ac_0 ab_drop_ae ac by auto
       have [iff]: \<open> ab \<noteq> atm_of L \<and> Suc ab \<le> atm_of L \<longleftrightarrow> Suc ab \<le> atm_of L \<close> for L
@@ -2040,7 +2040,7 @@ proof -
     qed
     have final: "(((False, ad, ae), be), Some {#L \<in># the (Some C). 0 < get_level M L#})
       \<in> {((D, L), C).
-          (D, C) \<in> option_conflict_rel \<and>
+          (D, C) \<in> option_lookup_clause_rel \<and>
           C \<noteq> None \<and> highest_lit M (the C) L \<and> (\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length (snd (snd D)))}"
       if
         I: "I aa s" and
@@ -2069,7 +2069,7 @@ proof -
 
       have
         shl: "highest_lit M (?D M ab C) be" and
-        ocr: "((False, ad, ae), Some {#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#}) \<in> option_conflict_rel" and
+        ocr: "((False, ad, ae), Some {#L \<in># C. atm_of L < ab \<longrightarrow> 0 < get_level M L#}) \<in> option_lookup_clause_rel" and
         [simp]: "length baa = length ae" and
         ac: "ac = size {#L \<in># C. ab \<le> atm_of L#}"
         using I' unfolding I'_def
@@ -2085,7 +2085,7 @@ proof -
         subgoal by (rule refl)
         done
       have le_ae: \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length ae\<close>
-        using I I' ocr unfolding I'_def option_conflict_rel_def conflict_rel_def
+        using I I' ocr unfolding I'_def option_lookup_clause_rel_def lookup_clause_rel_def
         by auto
       show ?thesis
         using ocr shl le_ae by auto
@@ -2150,9 +2150,9 @@ definition extract_shorter_conflict_list_heur where
 
 
 lemma extract_shorter_conflict_list_extract_shorter_conflict_l_trivial_spec:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (the ba) \<and> (\<exists>y. ba = Some y) \<and> ((a, aa, b), ba) \<in> option_conflict_rel \<and> M = M' \<Longrightarrow>
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (the ba) \<and> (\<exists>y. ba = Some y) \<and> ((a, aa, b), ba) \<in> option_lookup_clause_rel \<and> M = M' \<Longrightarrow>
     extract_shorter_conflict_list_removed M (a, aa, b) \<le> \<Down> {((D, L), C).
-      (D, C) \<in> option_conflict_rel \<and> (\<exists>y. C = Some y) \<and> highest_lit M (the C) L \<and>
+      (D, C) \<in> option_lookup_clause_rel \<and> (\<exists>y. C = Some y) \<and> highest_lit M (the C) L \<and>
       (\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length (snd (snd D)))}
     (RETURN (extract_shorter_conflict_l_trivial M' ba))\<close>
   apply simp
@@ -2171,8 +2171,8 @@ lemma extract_shorter_conflict_list_heur_extract_shorter_conflict_list:
          literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M) \<and>  - lit_of (hd M) \<in># the D \<and>
          lit_of (hd M) \<notin># the D \<and> distinct_mset (the D) \<and> get_level M (lit_of (hd M)) > 0 \<and>
           \<not>tautology (the D)]\<^sub>f
-      Id \<times>\<^sub>f option_conflict_rel \<rightarrow>
-       \<langle>{((D, L), C). (D, C) \<in> option_conflict_rel \<and> C \<noteq> None \<and>
+      Id \<times>\<^sub>f option_lookup_clause_rel \<rightarrow>
+       \<langle>{((D, L), C). (D, C) \<in> option_lookup_clause_rel \<and> C \<noteq> None \<and>
           highest_lit M (remove1_mset (-lit_of (hd M)) (the C)) L \<and>
           (\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length (snd (snd D)))}\<rangle>nres_rel\<close>
   supply extract_shorter_conflict_list_removed_extract_shorter_conflict_l_trivial[refine_vcg]
@@ -2182,9 +2182,9 @@ lemma extract_shorter_conflict_list_heur_extract_shorter_conflict_list:
   apply refine_rcg
   subgoal
     by (cases M)
-      (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_sub option_conflict_rel_def conflict_rel_def
+      (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_sub option_lookup_clause_rel_def lookup_clause_rel_def
         literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-  subgoal by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_sub option_conflict_rel_def conflict_rel_def
+  subgoal by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_sub option_lookup_clause_rel_def lookup_clause_rel_def
         literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
         dest: multi_member_split)
   unfolding conc_fun_RETURN[symmetric]
@@ -2193,14 +2193,14 @@ lemma extract_shorter_conflict_list_heur_extract_shorter_conflict_list:
     using mset_as_position_remove[of b y \<open>atm_of (- lit_of (hd M))\<close>]
     apply (cases \<open>lit_of (hd M)\<close>)
     apply (auto intro!: ASSERT_refine_left
-        simp: literals_are_in_\<L>\<^sub>i\<^sub>n_sub option_conflict_rel_def conflict_rel_def
+        simp: literals_are_in_\<L>\<^sub>i\<^sub>n_sub option_lookup_clause_rel_def lookup_clause_rel_def
         size_remove1_mset_If minus_notin_trivial2 minus_notin_trivial)
     done
   subgoal for M' b n zs ac ba D x' x1 x1a x2 x1b x2a L
     apply (auto intro!: ASSERT_refine_left)
     subgoal
       apply (cases M)
-       apply (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_sub option_conflict_rel_def conflict_rel_def
+       apply (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_sub option_lookup_clause_rel_def lookup_clause_rel_def
           literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff is_pos_neg_not_is_pos
           extract_shorter_conflict_l_trivial_def
           intro!: mset_as_position.add
@@ -2209,11 +2209,11 @@ lemma extract_shorter_conflict_list_heur_extract_shorter_conflict_list:
     subgoal for D'
       using simple_clss_size_upper_div2[of D'] literals_are_in_\<L>\<^sub>i\<^sub>n_mono[of D D']
         distinct_mset_mono[of D' D] not_tautology_mono[of D' D]
-      by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_sub option_conflict_rel_def conflict_rel_def
+      by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_sub option_lookup_clause_rel_def lookup_clause_rel_def
           literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff uint_max_def
           dest!: extract_shorter_conflict_l_trivial_subset_msetD)
     subgoal
-      by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_sub option_conflict_rel_def conflict_rel_def
+      by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_sub option_lookup_clause_rel_def lookup_clause_rel_def
           literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff is_pos_neg_not_is_pos
           extract_shorter_conflict_l_trivial_def
           intro!: mset_as_position.add
@@ -2227,32 +2227,32 @@ abbreviation extract_shorter_conflict_l_trivial_pre where
 sepref_register extract_shorter_conflict_list_removed
 sepref_register extract_shorter_conflict_l_trivial
 
-type_synonym (in -) conflict_rel_with_cls_with_highest =
+type_synonym (in -) lookup_clause_rel_with_cls_with_highest =
   \<open>conflict_option_rel \<times> (nat literal \<times> nat)option\<close>
 
-definition option_conflict_rel_with_cls_with_highest2
-  :: \<open>nat literal \<Rightarrow> (nat, 'a) ann_lits \<Rightarrow> (conflict_rel_with_cls_with_highest \<times> nat clause option) set\<close> where
-  \<open>option_conflict_rel_with_cls_with_highest2 K M = {(((b, xs), L), D).
-     D \<noteq> None \<and> ((b, xs), D) \<in> option_conflict_rel \<and> highest_lit M (remove1_mset K (the D)) L \<and>
+definition option_lookup_clause_rel_with_cls_with_highest2
+  :: \<open>nat literal \<Rightarrow> (nat, 'a) ann_lits \<Rightarrow> (lookup_clause_rel_with_cls_with_highest \<times> nat clause option) set\<close> where
+  \<open>option_lookup_clause_rel_with_cls_with_highest2 K M = {(((b, xs), L), D).
+     D \<noteq> None \<and> ((b, xs), D) \<in> option_lookup_clause_rel \<and> highest_lit M (remove1_mset K (the D)) L \<and>
      (\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length (snd xs))}\<close>
 
-abbreviation option_conflict_rel_with_cls_with_highest where
-  \<open>option_conflict_rel_with_cls_with_highest M \<equiv> option_conflict_rel_with_cls_with_highest2 (-lit_of (hd M)) M\<close>
+abbreviation option_lookup_clause_rel_with_cls_with_highest where
+  \<open>option_lookup_clause_rel_with_cls_with_highest M \<equiv> option_lookup_clause_rel_with_cls_with_highest2 (-lit_of (hd M)) M\<close>
 
-lemmas option_conflict_rel_with_cls_with_highest_def = option_conflict_rel_with_cls_with_highest2_def
+lemmas option_lookup_clause_rel_with_cls_with_highest_def = option_lookup_clause_rel_with_cls_with_highest2_def
 
 type_synonym (in -) conflict_with_cls_with_highest_assn =
-   \<open>conflict_option_assn \<times> (uint32 \<times> uint32) option\<close>
+   \<open>option_lookup_clause_assn \<times> (uint32 \<times> uint32) option\<close>
 
 abbreviation conflict_with_cls_int_with_highest_assn
- :: \<open>conflict_rel_with_cls_with_highest \<Rightarrow> conflict_with_cls_with_highest_assn \<Rightarrow> assn\<close> where
+ :: \<open>lookup_clause_rel_with_cls_with_highest \<Rightarrow> conflict_with_cls_with_highest_assn \<Rightarrow> assn\<close> where
  \<open>conflict_with_cls_int_with_highest_assn \<equiv>
     (bool_assn *a uint32_nat_assn *a array_assn (option_assn bool_assn)) *a option_assn (unat_lit_assn *a uint32_nat_assn)\<close>
 
 definition conflict_with_cls_with_cls_with_highest_assn
   :: \<open>(nat, 'a) ann_lits \<Rightarrow> nat clause option \<Rightarrow> conflict_with_cls_with_highest_assn \<Rightarrow> assn\<close> where
  \<open>conflict_with_cls_with_cls_with_highest_assn M \<equiv>
-    hr_comp conflict_with_cls_int_with_highest_assn (option_conflict_rel_with_cls_with_highest M)\<close>
+    hr_comp conflict_with_cls_int_with_highest_assn (option_lookup_clause_rel_with_cls_with_highest M)\<close>
 
 lemma extract_shorter_conflict_list_extract_shorter_conflict_l_trivial:
   \<open>(uncurry extract_shorter_conflict_list, uncurry (RETURN oo extract_shorter_conflict_l_trivial)) \<in>
@@ -2264,7 +2264,7 @@ lemma extract_shorter_conflict_list_extract_shorter_conflict_l_trivial:
 
 type_synonym (in -) twl_st_wl_confl_extracted_int =
   \<open>(nat,nat)ann_lits \<times> nat clause_l list \<times> nat \<times>
-    conflict_rel_with_cls_with_highest \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int \<times>
+    lookup_clause_rel_with_cls_with_highest \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int \<times>
     bool list \<times> nat\<close>
 
 definition twl_st_heur_confl_extracted2
@@ -2272,7 +2272,7 @@ definition twl_st_heur_confl_extracted2
 \<open>twl_st_heur_confl_extracted2 L =
   {((M', N', U', D', Q', W', vm', \<phi>', clvls), (M, N, U, D, Q, W, vm, \<phi>, clvls')).
     M = M' \<and> N' = N \<and> U' = U \<and>
-     (D', D) \<in> option_conflict_rel_with_cls_with_highest2 L M \<and>
+     (D', D) \<in> option_lookup_clause_rel_with_cls_with_highest2 L M \<and>
      Q' = Q \<and>
     W' = W \<and>
     vm = vm' \<and>
@@ -2284,7 +2284,7 @@ definition twl_st_heur_confl_extracted :: \<open>(twl_st_wl_confl_extracted_int 
 \<open>twl_st_heur_confl_extracted =
   {((M', N', U', D', Q', W', vm', \<phi>', clvls'), (M, N, U, D, Q, W, vm, \<phi>, clvls)).
     M = M' \<and> N' = N \<and> U' = U \<and>
-     (D', D) \<in> option_conflict_rel_with_cls_with_highest M \<and>
+     (D', D) \<in> option_lookup_clause_rel_with_cls_with_highest M \<and>
      Q' = Q \<and>
     W' = W \<and>
     vm = vm' \<and>
@@ -2368,7 +2368,7 @@ lemma extract_shorter_conflict_list_st_int_extract_shorter_conflict_st_trivial_h
          0 < get_level (get_trail_wl_heur S) (lit_of (hd (get_trail_wl_heur S))) \<and>
          literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset (get_trail_wl_heur S)) \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl_heur S)) \<and>
          distinct_mset (the (get_conflict_wl_heur S)) \<and> \<not>tautology (the (get_conflict_wl_heur S))]\<^sub>f
-      (twl_st_wl_heur_lookup_conflict_rel) \<rightarrow> \<langle>twl_st_heur_confl_extracted\<rangle>nres_rel\<close>
+      (twl_st_wl_heur_lookup_lookup_clause_rel) \<rightarrow> \<langle>twl_st_heur_confl_extracted\<rangle>nres_rel\<close>
 proof -
   have H: \<open>a \<noteq> [] \<Longrightarrow>
    - lit_of (hd a) \<in># the ac \<Longrightarrow>
@@ -2394,10 +2394,10 @@ proof -
      distinct_mset (the ba) \<and>
      0 < get_level M (lit_of (hd M)) \<and>
      \<not> tautology (the ba) \<and>
-     ((a, aa, b), ba) \<in> option_conflict_rel \<Longrightarrow>
+     ((a, aa, b), ba) \<in> option_lookup_clause_rel \<Longrightarrow>
      extract_shorter_conflict_list_heur M (a, aa, b)
      \<le> \<Down> {((D, L), C).
-           (D, C) \<in> option_conflict_rel \<and>
+           (D, C) \<in> option_lookup_clause_rel \<and>
            (\<exists>y. C = Some y) \<and>
            highest_lit M
             (remove1_mset (- lit_of (hd M)) (the C)) L \<and>
@@ -2412,11 +2412,11 @@ proof -
     subgoal for S' S
       apply (cases S; cases S')
       apply (auto simp: extract_shorter_conflict_list_st_int_def
-          extract_shorter_conflict_st_trivial_heur_def twl_st_wl_heur_lookup_conflict_rel_def)
+          extract_shorter_conflict_st_trivial_heur_def twl_st_wl_heur_lookup_lookup_clause_rel_def)
     apply (rule intro_bind_refine[OF H', of _ \<open>get_conflict_wl_heur S\<close>])
     subgoal by auto
     subgoal
-      by (auto simp: twl_st_heur_confl_extracted_def option_conflict_rel_with_cls_with_highest_def)
+      by (auto simp: twl_st_heur_confl_extracted_def option_lookup_clause_rel_with_cls_with_highest_def)
     done
   done
 qed
@@ -2526,7 +2526,7 @@ definition find_decomp_wl_imp_pre where
       literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M) \<and> vm \<in> vmtf M)\<close>
 
 definition (in -) get_maximum_level_remove_int :: \<open>(nat, 'a) ann_lits \<Rightarrow>
-    conflict_rel_with_cls_with_highest \<Rightarrow> nat literal \<Rightarrow>  nat\<close> where
+    lookup_clause_rel_with_cls_with_highest \<Rightarrow> nat literal \<Rightarrow>  nat\<close> where
   \<open>get_maximum_level_remove_int = (\<lambda>_ (_, D) _.
     (case D of None \<Rightarrow> 0 | Some i \<Rightarrow> snd i))\<close>
 
@@ -2559,11 +2559,11 @@ lemma (in -) get_maximum_level_remove_empty[simp]: \<open>get_maximum_level_remo
 
 lemma get_maximum_level_remove_int_get_maximum_level_remove':
   \<open>(uncurry2 (RETURN ooo get_maximum_level_remove_int), uncurry2 (RETURN ooo get_maximum_level_remove')) \<in>
-     [\<lambda>((M', D), L). M' = M \<and> L = -lit_of (hd M) \<and> M' \<noteq> [] \<and> D \<noteq> None]\<^sub>f Id \<times>\<^sub>f (option_conflict_rel_with_cls_with_highest M) \<times>\<^sub>f Id \<rightarrow>
+     [\<lambda>((M', D), L). M' = M \<and> L = -lit_of (hd M) \<and> M' \<noteq> [] \<and> D \<noteq> None]\<^sub>f Id \<times>\<^sub>f (option_lookup_clause_rel_with_cls_with_highest M) \<times>\<^sub>f Id \<rightarrow>
     \<langle>Id\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: get_maximum_level_remove_int_def get_maximum_level_remove'_def
-      option_conflict_rel_with_cls_with_highest_def highest_lit_def
+      option_lookup_clause_rel_with_cls_with_highest_def highest_lit_def
       get_maximum_level_remove_def[symmetric] remove1_mset_empty_iff
       split: option.splits)
 
@@ -2917,7 +2917,7 @@ lemma twl_st_heur_confl_extracted_twl_st_heur:
      M = M' \<and>
      N' = N \<and>
      U' = U \<and>
-     (D', D) \<in> option_conflict_rel_with_cls_with_highest M \<and>
+     (D', D) \<in> option_lookup_clause_rel_with_cls_with_highest M \<and>
      Q' = Q \<and>
      (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
      clvls \<in> counts_maximum_level M D \<and>
@@ -2931,7 +2931,7 @@ lemma twl_st_heur_confl_extracted2_twl_st_heur:
      M = M' \<and>
      N' = N \<and>
      U' = U \<and>
-     (D', D) \<in> option_conflict_rel_with_cls_with_highest2 L M \<and>
+     (D', D) \<in> option_lookup_clause_rel_with_cls_with_highest2 L M \<and>
      Q' = Q \<and>
      (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
      vm \<in> vmtf M \<and> phase_saving \<phi> \<and> no_dup M}\<close>
@@ -3017,7 +3017,7 @@ proof -
     show ?thesis
       by (auto simp: hr_comp_def intro!: ext)
   qed
-  have decomp: \<open>((Id \<times>\<^sub>f (Id \<times>\<^sub>f (nat_rel \<times>\<^sub>f (option_conflict_rel_with_cls_with_highest M \<times>\<^sub>f
+  have decomp: \<open>((Id \<times>\<^sub>f (Id \<times>\<^sub>f (nat_rel \<times>\<^sub>f (option_lookup_clause_rel_with_cls_with_highest M \<times>\<^sub>f
           (Id \<times>\<^sub>f (Id \<times>\<^sub>f Id)))))) O twl_st_heur') =
      (twl_st_heur_confl_extracted O twl_st_heur')\<close>
     apply (auto simp: twl_st_heur_confl_extracted_def twl_st_heur'_def)
@@ -3070,7 +3070,7 @@ proof -
   then have 3: \<open>(uncurry find_decomp_wl_imp'_code, uncurry find_decomp_wl)
     \<in> [?pre]\<^sub>a ?im \<rightarrow>
       hr_comp twl_st_confl_extracted_int_assn
-         ((Id \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r option_conflict_rel_with_cls_with_highest M \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id) O
+         ((Id \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r option_lookup_clause_rel_with_cls_with_highest M \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id) O
           {(S', S). (S', S) \<in> twl_st_heur_no_clvls \<and>
              (\<forall>L\<in>#remove1_mset (- lit_of (hd M)) (the (get_conflict_wl S)).
                get_level (get_trail_wl S) L = get_level M L)})\<close>
@@ -3089,7 +3089,7 @@ proof -
   have incl: \<open>?ref
          \<subseteq> twl_st_heur_confl_extracted2 L O twl_st_heur_no_clvls\<close>
     unfolding twl_st_heur_confl_extracted2_twl_st_heur
-    by (auto  simp: twl_st_heur_no_clvls_def option_conflict_rel_with_cls_with_highest_def
+    by (auto  simp: twl_st_heur_no_clvls_def option_lookup_clause_rel_with_cls_with_highest_def
         highest_lit_def L get_maximum_level_eq)
 
   show ?thesis
@@ -3259,8 +3259,8 @@ lemma size_conflict_wl_heur_size_conflict_wl:
   by (intro frefI nres_relI)
     (auto simp: size_conflict_wl_heur_def size_conflict_wl_def
       twl_st_heur_confl_extracted2_twl_st_heur size_lookup_conflict_def
-      option_conflict_rel_with_cls_with_highest2_def option_conflict_rel_def
-      conflict_rel_def)
+      option_lookup_clause_rel_with_cls_with_highest2_def option_lookup_clause_rel_def
+      lookup_clause_rel_def)
 
 theorem size_conflict_wl_hnr[sepref_fr_rules]:
   \<open>(size_conflict_wl_code, RETURN o size_conflict_wl)
@@ -3298,7 +3298,7 @@ lemma backtrack_get_conglit_wl_not_NoneD:
   by (cases xd; cases xc; cases x)
      (auto simp: find_decomp_wl_def extract_shorter_conflict_wl_def)
 
-definition get_snd_highest_lit :: \<open>conflict_rel_with_cls_with_highest \<Rightarrow> nat literal\<close> where
+definition get_snd_highest_lit :: \<open>lookup_clause_rel_with_cls_with_highest \<Rightarrow> nat literal\<close> where
   \<open>get_snd_highest_lit = (\<lambda>((_, _, _), L). fst (the L))\<close>
 
 definition find_lit_of_max_level_wl_int :: \<open>twl_st_wl_confl_extracted_int \<Rightarrow> nat literal \<Rightarrow> nat literal\<close> where
@@ -3340,7 +3340,7 @@ lemma find_lit_of_max_level_wl_int_find_lit_of_max_level_wl:
   by (intro frefI nres_relI)
     (auto simp: find_lit_of_max_level_wl_int_def find_lit_of_max_level_wl_def
       twl_st_heur_confl_extracted2_twl_st_heur get_snd_highest_lit_def
-      option_conflict_rel_with_cls_with_highest2_def highest_lit_def
+      option_lookup_clause_rel_with_cls_with_highest2_def highest_lit_def
       remove1_mset_empty_iff)
 
 theorem find_lit_of_max_level_wl_hnr[sepref_fr_rules]:
@@ -3361,8 +3361,8 @@ proof -
     find_lit_of_max_level_wl_int_find_lit_of_max_level_wl] .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     using that by (auto simp: comp_PRE_def highest_lit_def remove1_mset_empty_iff
-        twl_st_heur_confl_extracted2_def option_conflict_rel_with_cls_with_highest2_def
-        option_conflict_rel_def conflict_rel_def twl_st_heur_no_clvls_def)
+        twl_st_heur_confl_extracted2_def option_lookup_clause_rel_with_cls_with_highest2_def
+        option_lookup_clause_rel_def lookup_clause_rel_def twl_st_heur_no_clvls_def)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_confl_extracted_assn2_def by simp
   have f: \<open>?f' = ?f\<close>
@@ -3398,30 +3398,30 @@ lemma extract_shorter_conflict_l_trivial_int_extract_shorter_conflict_l_trivial:
      intro!: RES_refine)
 
 
-type_synonym (in -) conflict_rel_with_cls = \<open>nat clause_l \<times> bool option list\<close>
+type_synonym (in -) lookup_clause_rel_with_cls = \<open>nat clause_l \<times> bool option list\<close>
 type_synonym (in -) conflict_with_cls_assn = \<open>uint32 array \<times> bool option array\<close>
 
 type_synonym twl_st_wll_confl_with_cls =
   \<open>trail_pol_assn \<times> clauses_wl \<times> nat \<times> conflict_with_cls_assn \<times>
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn\<close>
 
-definition option_conflict_rel_with_cls_removed
-  :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> (conflict_rel_with_cls \<times> nat clause option) set\<close>
+definition option_lookup_clause_rel_with_cls_removed
+  :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> (lookup_clause_rel_with_cls \<times> nat clause option) set\<close>
 where
-  \<open>option_conflict_rel_with_cls_removed L L' = {((C, xs), D). D \<noteq> None \<and> (drop 2 C, the D) \<in> list_mset_rel \<and>
+  \<open>option_lookup_clause_rel_with_cls_removed L L' = {((C, xs), D). D \<noteq> None \<and> (drop 2 C, the D) \<in> list_mset_rel \<and>
     mset_as_position xs {#} \<and> (\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length xs) \<and> C!0 = L \<and> C!1 = L' \<and> length C \<ge> 2}\<close>
 
 
-definition option_conflict_rel_with_cls
-  :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> (conflict_rel_with_cls \<times> nat clause option) set\<close>
+definition option_lookup_clause_rel_with_cls
+  :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> (lookup_clause_rel_with_cls \<times> nat clause option) set\<close>
 where
-  \<open>option_conflict_rel_with_cls L L' = {((C, xs), D). D \<noteq> None \<and> (C, the D) \<in> list_mset_rel \<and>
+  \<open>option_lookup_clause_rel_with_cls L L' = {((C, xs), D). D \<noteq> None \<and> (C, the D) \<in> list_mset_rel \<and>
     mset_as_position xs {#} \<and> (\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length xs) \<and> C!0 = L \<and> C!1 = L' \<and> length C \<ge> 2}\<close>
 
-definition option_conflict_rel_with_cls_removed1 :: \<open>(nat clause_l \<times> nat clause option) set\<close> where
-  \<open>option_conflict_rel_with_cls_removed1 = {(C, D). D \<noteq> None \<and> (C, the D) \<in> list_mset_rel}\<close>
+definition option_lookup_clause_rel_with_cls_removed1 :: \<open>(nat clause_l \<times> nat clause option) set\<close> where
+  \<open>option_lookup_clause_rel_with_cls_removed1 = {(C, D). D \<noteq> None \<and> (C, the D) \<in> list_mset_rel}\<close>
 
-abbreviation (in -) conflict_with_cls_int_assn :: \<open>conflict_rel_with_cls \<Rightarrow> conflict_with_cls_assn \<Rightarrow> assn\<close> where
+abbreviation (in -) conflict_with_cls_int_assn :: \<open>lookup_clause_rel_with_cls \<Rightarrow> conflict_with_cls_assn \<Rightarrow> assn\<close> where
  \<open>conflict_with_cls_int_assn \<equiv>
     (array_assn unat_lit_assn *a array_assn (option_assn bool_assn))\<close>
 
@@ -3429,21 +3429,21 @@ definition conflict_with_cls_assn_removed
  :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> nat clause option \<Rightarrow> conflict_with_cls_assn \<Rightarrow> assn\<close>
 where
  \<open>conflict_with_cls_assn_removed L L' \<equiv>
-   hr_comp conflict_with_cls_int_assn (option_conflict_rel_with_cls_removed L L')\<close>
+   hr_comp conflict_with_cls_int_assn (option_lookup_clause_rel_with_cls_removed L L')\<close>
 
 definition conflict_with_cls_assn :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> nat clause option \<Rightarrow>
    conflict_with_cls_assn \<Rightarrow> assn\<close> where
- \<open>conflict_with_cls_assn L L' \<equiv> hr_comp conflict_with_cls_int_assn (option_conflict_rel_with_cls L L')\<close>
+ \<open>conflict_with_cls_assn L L' \<equiv> hr_comp conflict_with_cls_int_assn (option_lookup_clause_rel_with_cls L L')\<close>
 
-definition option_conflict_rel_removed :: \<open>_ set\<close> where
-  \<open>option_conflict_rel_removed =
+definition option_lookup_clause_rel_removed :: \<open>_ set\<close> where
+  \<open>option_lookup_clause_rel_removed =
    {((b, n, xs), C). C \<noteq> None \<and> n \<ge> 2 \<and> n \<le> length xs \<and>
-      ((b, n - 2, xs), C) \<in> option_conflict_rel}\<close>
+      ((b, n - 2, xs), C) \<in> option_lookup_clause_rel}\<close>
 
 
 type_synonym (in -) twl_st_wl_heur_W_confl_with_cls =
   \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times> nat \<times>
-    conflict_rel_with_cls \<times> nat clause \<times> nat list list \<times> vmtf_remove_int \<times> bool list\<close>
+    lookup_clause_rel_with_cls \<times> nat clause \<times> nat list list \<times> vmtf_remove_int \<times> bool list\<close>
 
 text \<open>
   \<^item> We are filling D starting from the end (index \<^term>\<open>n\<close>)
@@ -3503,13 +3503,13 @@ lemma conflict_to_conflict_with_cls_id:
   \<open>(uncurry3 conflict_to_conflict_with_cls, uncurry3 list_of_mset2_None_droped) \<in>
     [\<lambda>(((L, L'),D), C). C \<noteq> None \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the C) \<and> length D = size (the C) + 2 \<and>
       L = D!0 \<and> L' = D!1]\<^sub>f
-      Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f option_conflict_rel_removed  \<rightarrow>
-       \<langle>Id \<times>\<^sub>f option_conflict_rel\<rangle> nres_rel\<close>
+      Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f option_lookup_clause_rel_removed  \<rightarrow>
+       \<langle>Id \<times>\<^sub>f option_lookup_clause_rel\<rangle> nres_rel\<close>
    (is \<open>_ \<in> [_]\<^sub>f _ \<rightarrow> \<langle>?R\<rangle>nres_rel\<close>)
 proof -
   have H: \<open>conflict_to_conflict_with_cls L L' D (b, n, xs) \<le> \<Down> ?R (list_of_mset2_None_droped L L' D (Some C))\<close>
     if
-      ocr: \<open>((b, n, xs), Some C) \<in> option_conflict_rel_removed\<close> and
+      ocr: \<open>((b, n, xs), Some C) \<in> option_lookup_clause_rel_removed\<close> and
       lits_\<A>\<^sub>i\<^sub>n: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C\<close> and
       len_D: \<open>length D = size C + 2\<close> and
       [simp]: \<open>D!0 = L\<close>\<open>D!Suc 0 = L'\<close>
@@ -3517,7 +3517,7 @@ proof -
   proof -
     define I' where
       [simp]: \<open>I' = (\<lambda>(i, m, D, zs).
-              ((b, m, zs), Some (filter_mset (\<lambda>L. atm_of L \<ge> i) C)) \<in> option_conflict_rel_removed \<and>
+              ((b, m, zs), Some (filter_mset (\<lambda>L. atm_of L \<ge> i) C)) \<in> option_lookup_clause_rel_removed \<and>
                m - 2 = length (filter (op \<noteq> None) zs) \<and>
                i + (m - 2) + length (filter (op = None) (drop i zs)) = length zs \<and> (\<forall>k < i. zs ! k = None) \<and>
                mset (drop m D) = filter_mset (\<lambda>L. atm_of L < i) C \<and>
@@ -3536,14 +3536,14 @@ proof -
        map: \<open>mset_as_position xs C\<close>
       using mset_as_position_length_not_None[of xs ?C] that  mset_as_position_distinct_mset[of xs ?C]
         mset_as_position_tautology[of xs ?C] len_D
-      by (auto simp: option_conflict_rel_def option_conflict_rel_removed_def conflict_rel_def
+      by (auto simp: option_lookup_clause_rel_def option_lookup_clause_rel_removed_def lookup_clause_rel_def
           tautology_add_mset)
     have size_C: \<open>size C \<le> 1 + uint_max div 2\<close>
       using simple_clss_size_upper_div2[OF lits_\<A>\<^sub>i\<^sub>n dist_C tauto_C] .
 
     have final: "\<not> (case s of (i, m, C, zs) \<Rightarrow> 2 < m) \<Longrightarrow>
     s \<in> {x. (case x of (_, _, C, zs) \<Rightarrow> RETURN (C, True, zero_uint32_nat, zs))
-              \<le> RES ((Id \<times>\<^sub>f option_conflict_rel)\<inverse> ``
+              \<le> RES ((Id \<times>\<^sub>f option_lookup_clause_rel)\<inverse> ``
                       {(E, F).
                        mset (drop 2 E) = the (Some C) \<and>
                        E ! 0 = L \<and> E ! 1 = L' \<and> F = None \<and> 2 \<le> length E})}"
@@ -3567,11 +3567,11 @@ proof -
       then have [simp]: \<open>ac = 2\<close> \<open>s = (ab, 2, ad, bd)\<close> \<open>bb = (2, ad, bd)\<close> \<open>bc = (ad, bd)\<close> \<open>ba = (aa, baa)\<close>
         \<open>n = aa\<close>\<open>xs = baa\<close>
         using s s1 by auto
-      have \<open>((b, 2, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_conflict_rel_removed\<close> and
+      have \<open>((b, 2, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_lookup_clause_rel_removed\<close> and
          le_ad: \<open>length ad \<ge> 2\<close>
         using s1 by auto
       then have [simp]: \<open>{#L \<in># C. ab \<le> atm_of L#} = {#}\<close> and map': \<open>mset_as_position bd {#}\<close>
-        unfolding option_conflict_rel_removed_def option_conflict_rel_def conflict_rel_def by auto
+        unfolding option_lookup_clause_rel_removed_def option_lookup_clause_rel_def lookup_clause_rel_def by auto
       have [simp]: \<open>length bd = length xs\<close>
         using s0 by auto
       have [iff]: \<open>\<not>x < ab \<longleftrightarrow> ab \<le> x\<close> for x
@@ -3583,8 +3583,8 @@ proof -
       have [simp]: \<open>ad ! 0 = L\<close> \<open>ad ! Suc 0 = L'\<close>
         using s0 unfolding s by auto
       show ?thesis
-        using map' atms_le_xs le_ad by (auto simp: option_conflict_rel_with_cls_removed_def
-            list_mset_rel_def br_def Image_iff option_conflict_rel_def conflict_rel_def)
+        using map' atms_le_xs le_ad by (auto simp: option_lookup_clause_rel_with_cls_removed_def
+            list_mset_rel_def br_def Image_iff option_lookup_clause_rel_def lookup_clause_rel_def)
     qed
     have init: "I' (0, aa, D, baa)"
       if
@@ -3609,11 +3609,11 @@ proof -
         bd_ab: "bd ! ab \<noteq> None"
       for a ba aa baa s ab bb ac bc ad bd
     proof -
-      have \<open>((b, ac, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_conflict_rel_removed\<close>
+      have \<open>((b, ac, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_lookup_clause_rel_removed\<close>
         using I' unfolding I'_def s by auto
       then have map: \<open>mset_as_position bd {#L \<in># C. ab \<le> atm_of L#}\<close> and
         le_bd: \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length bd\<close>
-        using b unfolding option_conflict_rel_removed_def option_conflict_rel_def conflict_rel_def
+        using b unfolding option_lookup_clause_rel_removed_def option_lookup_clause_rel_def lookup_clause_rel_def
         by auto
       have \<open>ab < length bd\<close>
         using I I' cond s unfolding I' by auto
@@ -3640,7 +3640,7 @@ proof -
     proof (rule ccontr)
       assume le: \<open>\<not> ?thesis\<close>
       have \<open>mset (drop ac ad) = {#L \<in># C. atm_of L < ab#}\<close> and
-        ocr: \<open>((b, ac, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_conflict_rel_removed\<close>
+        ocr: \<open>((b, ac, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_lookup_clause_rel_removed\<close>
         using I' s unfolding I'_def by auto
       have \<open>L \<in># C \<Longrightarrow> atm_of L \<le> uint_max div 2\<close> for L
         using lits_\<A>\<^sub>i\<^sub>n in_N1_less_than_uint_max
@@ -3648,7 +3648,7 @@ proof -
       then have \<open>{#L \<in># C. ab \<le> atm_of L#} = {#}\<close>
         using le by (force simp: filter_mset_empty_conv)
       then show False
-        using m s ocr unfolding option_conflict_rel_removed_def option_conflict_rel_def conflict_rel_def by auto
+        using m s ocr unfolding option_lookup_clause_rel_removed_def option_lookup_clause_rel_def lookup_clause_rel_def by auto
     qed
     have IH_I': "I' (ab + 1, ac, ad, bd)"
       if
@@ -3671,7 +3671,7 @@ proof -
         \<open>ba = (aa, baa)\<close> \<open>n = aa\<close> \<open>xs = baa \<close> \<open>length bd = length baa\<close>
         using s I by auto
       have
-        ocr: \<open>((b, ac, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_conflict_rel_removed\<close> and
+        ocr: \<open>((b, ac, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_lookup_clause_rel_removed\<close> and
         eq: \<open>ab + length (filter (op \<noteq> None) bd) + length (filter (op = None) (drop ab bd)) = length baa\<close> and
         le_ab_None: \<open>\<forall>k<ab. bd ! k = None\<close> and
         ac: \<open>ac - 2 = length (filter (op \<noteq> None) bd)\<close> and
@@ -3680,7 +3680,7 @@ proof -
         using I' unfolding I'_def by auto
       then have map: \<open>mset_as_position bd {#L \<in># C. ab \<le> atm_of L#}\<close> and
         le_bd: \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length bd\<close>
-        using b unfolding option_conflict_rel_removed_def option_conflict_rel_def conflict_rel_def by auto
+        using b unfolding option_lookup_clause_rel_removed_def option_lookup_clause_rel_def lookup_clause_rel_def by auto
       have \<open>ab < length bd\<close>
         using I I' m by auto
       then have ab_in_C: \<open>Pos ab \<notin># C\<close> \<open>Neg ab \<notin># C\<close>
@@ -3701,17 +3701,17 @@ proof -
         using bd_ab ocr
         mset_as_position_nth[of bd \<open>{#L \<in># C. ab \<le> atm_of L#}\<close> x]
         mset_as_position_nth[of bd \<open>{#L \<in># C. ab \<le> atm_of L#}\<close> \<open>-x\<close>]
-        unfolding option_conflict_rel_def conflict_rel_def option_conflict_rel_removed_def
+        unfolding option_lookup_clause_rel_def lookup_clause_rel_def option_lookup_clause_rel_removed_def
         by force
       then have \<open>{#L \<in># C. ab \<le> atm_of L#} = {#L \<in># C. Suc ab \<le> atm_of L#}\<close>
         using s by (force intro!: filter_mset_cong2)
-      then have ocr': \<open>((b, ac, bd), Some {#L \<in># C. Suc ab \<le> atm_of L#}) \<in> option_conflict_rel_removed\<close>
+      then have ocr': \<open>((b, ac, bd), Some {#L \<in># C. Suc ab \<le> atm_of L#}) \<in> option_lookup_clause_rel_removed\<close>
         using I' s by auto
 
       have
         x1a: \<open>ac - 2 = size {#L \<in># C. ab \<le> atm_of L#}\<close> \<open>ac \<ge> 2\<close> and
         map: \<open>mset_as_position bd {#L \<in># C. ab \<le> atm_of L#}\<close>
-        using ocr unfolding option_conflict_rel_def conflict_rel_def option_conflict_rel_removed_def
+        using ocr unfolding option_lookup_clause_rel_def lookup_clause_rel_def option_lookup_clause_rel_removed_def
         by auto
 
       have [iff]: \<open>ab + length (filter (op \<noteq> None) x2b) = length x2b \<longleftrightarrow> ab = length (filter (op = None) x2b)\<close> for x2b
@@ -3750,7 +3750,7 @@ proof -
         \<open>s = (ab, (ac, (ad, bd)))\<close>
         \<open>length baa = length bd\<close>
         using I s by auto
-      have \<open>((b, ac, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_conflict_rel_removed\<close> and
+      have \<open>((b, ac, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_lookup_clause_rel_removed\<close> and
         ac: \<open>ac - 2 = length (filter (op \<noteq> None) bd)\<close> and
         eq: \<open>ab + (ac - 2) + length (filter (op = None) (drop ab bd)) = length bd\<close> and
         ac2: \<open>ac \<ge> 2\<close> and
@@ -3758,8 +3758,8 @@ proof -
         using I' unfolding I'_def s by auto
       then have map: \<open>mset_as_position bd {#L \<in># C. ab \<le> atm_of L#}\<close> and
         le_bd: \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length bd\<close> and
-        ocr: \<open>((b, ac, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_conflict_rel_removed\<close>
-        using b unfolding option_conflict_rel_def conflict_rel_def option_conflict_rel_removed_def
+        ocr: \<open>((b, ac, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_lookup_clause_rel_removed\<close>
+        using b unfolding option_lookup_clause_rel_def lookup_clause_rel_def option_lookup_clause_rel_removed_def
         by auto
       have \<open>ab < length bd\<close>
         using I I' m by auto
@@ -3781,9 +3781,9 @@ proof -
         unfolding H2
         apply (rule mset_as_position_remove)
         using map ab_le by auto
-      have c_r: \<open>((b, ac - Suc 0, bd[ab := None]), Some {#L \<in># C. Suc ab \<le> atm_of L#}) \<in> option_conflict_rel_removed\<close>
-        using ocr b map' m ac by (cases x) (auto simp: option_conflict_rel_removed_def
-            option_conflict_rel_def conflict_rel_def H1)
+      have c_r: \<open>((b, ac - Suc 0, bd[ab := None]), Some {#L \<in># C. Suc ab \<le> atm_of L#}) \<in> option_lookup_clause_rel_removed\<close>
+        using ocr b map' m ac by (cases x) (auto simp: option_lookup_clause_rel_removed_def
+            option_lookup_clause_rel_def lookup_clause_rel_def H1)
       have H3: \<open>(if x then add_mset (Pos ab) else add_mset (Neg ab)) {#L \<in># C. atm_of L < ab#} = {#L \<in># C. atm_of L < Suc ab#}\<close>
         using ab_in_C unfolding Suc_le_eq unfolding le_eq_less_or_eq
         using dist_C tauto_C filter_mset_cong_inner_outer[of C \<open>\<lambda>L. ab = atm_of L\<close> \<open>\<lambda>L. ab = atm_of L\<close> \<open>{#Neg ab#}\<close>]
@@ -3899,11 +3899,11 @@ lemma extract_shorter_conflict_with_cls_code_conflict_to_conflict_with_cls_spec[
     \<in> [\<lambda>(((L, L'), D), C). C \<noteq> None \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the C) \<and>
            length D = size (the C) + 2 \<and> L = D ! 0 \<and> L' = D ! 1]\<^sub>a
        unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a
-     (hr_comp conflict_option_rel_assn option_conflict_rel_removed)\<^sup>d \<rightarrow>
-     clause_ll_assn *a conflict_option_assn\<close>
+     (hr_comp conflict_option_rel_assn option_lookup_clause_rel_removed)\<^sup>d \<rightarrow>
+     clause_ll_assn *a option_lookup_clause_assn\<close>
   using conflict_to_conflict_with_cls_code_refine[unfolded PR_CONST_def,
     FCOMP conflict_to_conflict_with_cls_id]
-  unfolding conflict_option_assn_def
+  unfolding option_lookup_clause_assn_def
   by simp
 
 definition remove2_from_conflict :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> nat cconflict \<Rightarrow> nat cconflict\<close> where
@@ -3917,7 +3917,7 @@ where
 lemma remove2_from_conflict_int_remove2_from_conflict:
   \<open>(uncurry2 (RETURN ooo remove2_from_conflict_int), uncurry2 (RETURN ooo remove2_from_conflict)) \<in>
    [\<lambda>((L, L'), C). L \<in># the C \<and> L' \<in># the C \<and> C \<noteq> None \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> L' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> L \<noteq> L']\<^sub>f
-    Id \<times>\<^sub>f Id \<times>\<^sub>f option_conflict_rel \<rightarrow> \<langle>option_conflict_rel_removed\<rangle>nres_rel\<close>
+    Id \<times>\<^sub>f Id \<times>\<^sub>f option_lookup_clause_rel \<rightarrow> \<langle>option_lookup_clause_rel_removed\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   apply clarify
   subgoal for K K' b n xs L L' bc C
@@ -3926,7 +3926,7 @@ lemma remove2_from_conflict_int_remove2_from_conflict:
       mset_as_position_remove[of \<open>xs[atm_of L := None]\<close> \<open>remove1_mset L C\<close> \<open>atm_of L'\<close>]
     apply (cases L; cases L')
     by (auto simp: remove2_from_conflict_int_def remove2_from_conflict_def
-      option_conflict_rel_def conflict_rel_def option_conflict_rel_removed_def
+      option_lookup_clause_rel_def lookup_clause_rel_def option_lookup_clause_rel_removed_def
       add_mset_eq_add_mset tautology_add_mset
       dest!: multi_member_split)
   done
@@ -3951,12 +3951,12 @@ lemmas remove2_from_conflict_code_hnr[sepref_fr_rules] =
 theorem remove2_from_conflict_hnr[sepref_fr_rules]:
   \<open>(uncurry2 remove2_from_conflict_code, uncurry2 (RETURN ooo remove2_from_conflict))
     \<in> [\<lambda>((L, L'), C). L \<in># the C \<and> L' \<in># the C \<and> C \<noteq> None \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> L' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> L \<noteq> L']\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a conflict_option_assn\<^sup>d \<rightarrow>
-      hr_comp conflict_option_rel_assn option_conflict_rel_removed\<close>
+      unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a option_lookup_clause_assn\<^sup>d \<rightarrow>
+      hr_comp conflict_option_rel_assn option_lookup_clause_rel_removed\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?c
-    \<in> [comp_PRE (nat_lit_lit_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f option_conflict_rel)
+    \<in> [comp_PRE (nat_lit_lit_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f option_lookup_clause_rel)
           (\<lambda>((L, L'), C).
               L \<in># the C \<and>
               L' \<in># the C \<and>
@@ -3965,16 +3965,16 @@ proof -
               atm_of L < length xs \<and> atm_of L' < length xs)
           (\<lambda>_. True)]\<^sub>a
       hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d)
-                     (nat_lit_lit_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f option_conflict_rel) \<rightarrow>
-      hr_comp conflict_option_rel_assn option_conflict_rel_removed\<close>
+                     (nat_lit_lit_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f option_lookup_clause_rel) \<rightarrow>
+      hr_comp conflict_option_rel_assn option_lookup_clause_rel_removed\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF remove2_from_conflict_code_hnr
     remove2_from_conflict_int_remove2_from_conflict] .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
-    using that by (auto simp: comp_PRE_def twl_st_heur_pol_def trail_pol_def option_conflict_rel_def
-        conflict_rel_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+    using that by (auto simp: comp_PRE_def twl_st_heur_pol_def trail_pol_def option_lookup_clause_rel_def
+        lookup_clause_rel_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
   have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep conflict_option_assn_def by auto
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep option_lookup_clause_assn_def by auto
   show ?thesis
     apply (rule hfref_weaken_pre[OF ])
      defer
@@ -4033,16 +4033,16 @@ lemmas size_conflict_code_hnr[sepref_fr_rules] =
    size_conflict_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 lemma size_conflict_int_size_conflict:
-  \<open>(RETURN o size_conflict_int, RETURN o size_conflict) \<in> [\<lambda>D. D \<noteq> None]\<^sub>f option_conflict_rel \<rightarrow>
+  \<open>(RETURN o size_conflict_int, RETURN o size_conflict) \<in> [\<lambda>D. D \<noteq> None]\<^sub>f option_lookup_clause_rel \<rightarrow>
      \<langle>Id\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-    (auto simp: size_conflict_int_def size_conflict_def option_conflict_rel_def
-      conflict_rel_def)
+    (auto simp: size_conflict_int_def size_conflict_def option_lookup_clause_rel_def
+      lookup_clause_rel_def)
 
 lemma size_conflict_hnr[sepref_fr_rules]:
-  \<open>(size_conflict_code, RETURN \<circ> size_conflict) \<in> [\<lambda>x. x \<noteq> None]\<^sub>a conflict_option_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  \<open>(size_conflict_code, RETURN \<circ> size_conflict) \<in> [\<lambda>x. x \<noteq> None]\<^sub>a option_lookup_clause_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   using size_conflict_code_hnr[FCOMP size_conflict_int_size_conflict]
-  unfolding conflict_option_assn_def[symmetric]
+  unfolding option_lookup_clause_assn_def[symmetric]
   by simp
 
 lemma two_different_multiset_sizeD:
@@ -4054,7 +4054,7 @@ sepref_thm list_of_mset2_None_code
   :: \<open>[\<lambda>((L, L'), C). C \<noteq> None \<and> L \<in># the C \<and> L' \<in># the C \<and> L \<noteq> L' \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> L' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
        literals_are_in_\<L>\<^sub>i\<^sub>n (the C)]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
-         conflict_option_assn\<^sup>d \<rightarrow> clause_ll_assn *a conflict_option_assn\<close>
+         option_lookup_clause_assn\<^sup>d \<rightarrow> clause_ll_assn *a option_lookup_clause_assn\<close>
   supply [[goals_limit=1]] size_conflict_def[simp]
   unfolding list_of_mset2_None_int_def size_conflict_def[symmetric]
     array_fold_custom_replicate PR_CONST_def
@@ -4073,8 +4073,8 @@ lemma list_of_mset2_None_hnr[sepref_fr_rules]:
   \<open>(uncurry2 list_of_mset2_None_code, uncurry2 list_of_mset2_None)
    \<in> [\<lambda>((a, b), ba). ba \<noteq> None \<and> a \<in># the ba \<and> b \<in># the ba \<and> a \<noteq> b \<and>
        literals_are_in_\<L>\<^sub>i\<^sub>n (the ba) \<and> distinct_mset (the ba) \<and> a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> b \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a conflict_option_assn\<^sup>d \<rightarrow>
-      clause_ll_assn *a conflict_option_assn\<close>
+      unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a option_lookup_clause_assn\<^sup>d \<rightarrow>
+      clause_ll_assn *a option_lookup_clause_assn\<close>
   using list_of_mset2_None_int_hnr[unfolded PR_CONST_def, FCOMP list_of_mset2_None_int_list_of_mset2_None]
   by simp
 
@@ -4136,13 +4136,13 @@ lemma extract_shorter_conflict_l_trivial_code_extract_shorter_conflict_l_trivial
          -lit_of (hd M) \<in># the D \<and>  0 < get_level M (lit_of (hd M)) \<and>
          literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M) \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the D) \<and>
          distinct_mset (the D) \<and> \<not>tautology (the D)]\<^sub>a
-       trail_assn\<^sup>k *\<^sub>a conflict_option_assn\<^sup>d \<rightarrow> (conflict_with_cls_with_cls_with_highest_assn M)\<close>
+       trail_assn\<^sup>k *\<^sub>a option_lookup_clause_assn\<^sup>d \<rightarrow> (conflict_with_cls_with_cls_with_highest_assn M)\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?c
   \<in> [comp_PRE (Id \<times>\<^sub>f \<langle>Id\<rangle>option_rel)
        (\<lambda>(M, D). M \<noteq> [] \<and> D \<noteq> None \<and> - lit_of (hd M) \<in># the D \<and> 0 < get_level M (lit_of (hd M)))
-       (\<lambda>_. comp_PRE (Id \<times>\<^sub>f option_conflict_rel)
+       (\<lambda>_. comp_PRE (Id \<times>\<^sub>f option_lookup_clause_rel)
               (\<lambda>(M', D). literals_are_in_\<L>\<^sub>i\<^sub>n (the D) \<and> D \<noteq> None \<and> M = M' \<and> M \<noteq> [] \<and>
                   literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M) \<and> - lit_of (hd M) \<in># the D \<and>
                   lit_of (hd M) \<notin># the D \<and> distinct_mset (the D) \<and>
@@ -4150,12 +4150,12 @@ proof -
               (\<lambda>_ (M, b, n, xs). M \<noteq> [])
               (\<lambda>_. True))
        (\<lambda>_. True)]\<^sub>a
-    hrp_comp (hrp_comp ((hr_comp trail_pol_assn trail_pol)\<^sup>k *\<^sub>a (bool_assn *a conflict_rel_assn)\<^sup>d)
-                       (Id \<times>\<^sub>f option_conflict_rel))
+    hrp_comp (hrp_comp ((hr_comp trail_pol_assn trail_pol)\<^sup>k *\<^sub>a (bool_assn *a lookup_clause_rel_assn)\<^sup>d)
+                       (Id \<times>\<^sub>f option_lookup_clause_rel))
               (Id \<times>\<^sub>f \<langle>Id\<rangle>option_rel) \<rightarrow>
-    hr_comp (hr_comp ((bool_assn *a conflict_rel_assn) *a
+    hr_comp (hr_comp ((bool_assn *a lookup_clause_rel_assn) *a
                         option_assn (unat_lit_assn *a uint32_nat_assn))
-                     {((D, L), C). (D, C) \<in> option_conflict_rel \<and> C \<noteq> None \<and>
+                     {((D, L), C). (D, C) \<in> option_lookup_clause_rel \<and> C \<noteq> None \<and>
                       highest_lit M (remove1_mset (- lit_of (hd M)) (the C)) L \<and>
                        (\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length (snd (snd D)))})
              Id\<close>
@@ -4166,14 +4166,14 @@ proof -
        extract_shorter_conflict_list_extract_shorter_conflict_l_trivial] .
   have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
     unfolding comp_PRE_def
-    by (auto simp: comp_PRE_def option_conflict_rel_with_cls_def list_mset_rel_def br_def
+    by (auto simp: comp_PRE_def option_lookup_clause_rel_with_cls_def list_mset_rel_def br_def
         map_fun_rel_def intro!: ext)
   have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep conflict_option_assn_def[symmetric]
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep option_lookup_clause_assn_def[symmetric]
     by (auto simp: hrp_comp_def hr_comp_def)
   have f: \<open>?f' = ?f\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep conflict_option_assn_def[symmetric]
-       conflict_with_cls_with_cls_with_highest_assn_def option_conflict_rel_with_cls_with_highest_def
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep option_lookup_clause_assn_def[symmetric]
+       conflict_with_cls_with_cls_with_highest_assn_def option_lookup_clause_rel_with_cls_with_highest_def
        hr_comp_Id2
     apply (rule arg_cong[of _ _ \<open>hr_comp _\<close>])
     by (auto simp: hrp_comp_def hr_comp_def)
@@ -4189,15 +4189,15 @@ sepref_register extract_shorter_conflict_list_heur
 sepref_thm extract_shorter_conflict_list_st_int_code
   is \<open>PR_CONST extract_shorter_conflict_list_st_int\<close>
   :: \<open>[\<lambda>(M,_). M \<noteq> []]\<^sub>a
-      twl_st_heur_lookup_conflict_assn\<^sup>d \<rightarrow>
+      twl_st_heur_lookup_lookup_clause_assn\<^sup>d \<rightarrow>
         trail_assn *a clauses_ll_assn *a
        nat_assn *a
-       ((bool_assn *a conflict_rel_assn) *a option_assn (unat_lit_assn *a uint32_nat_assn)) *a
+       ((bool_assn *a lookup_clause_rel_assn) *a option_assn (unat_lit_assn *a uint32_nat_assn)) *a
        clause_l_assn *a
        arrayO_assn (arl_assn nat_assn) *a
        vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn\<close>
   supply [[goals_limit = 1]]
-  unfolding extract_shorter_conflict_list_st_int_def twl_st_heur_lookup_conflict_assn_def
+  unfolding extract_shorter_conflict_list_st_int_def twl_st_heur_lookup_lookup_clause_assn_def
     PR_CONST_def
   by sepref
 
@@ -4214,10 +4214,10 @@ lemmas extract_shorter_conflict_list_st_int_code[sepref_fr_rules] =
 sepref_register extract_shorter_conflict_list_st_int
 sepref_thm extract_shorter_conflict_st_trivial_code
   is \<open>PR_CONST extract_shorter_conflict_list_st_int\<close>
-  :: \<open>[\<lambda>S. get_trail_wl_heur_conflict S \<noteq> []]\<^sub>a twl_st_heur_lookup_conflict_assn\<^sup>d \<rightarrow> twl_st_confl_extracted_int_assn\<close>
+  :: \<open>[\<lambda>S. get_trail_wl_heur_conflict S \<noteq> []]\<^sub>a twl_st_heur_lookup_lookup_clause_assn\<^sup>d \<rightarrow> twl_st_confl_extracted_int_assn\<close>
   supply [[goals_limit=1]]
   unfolding  twl_st_confl_extracted_int_assn_def PR_CONST_def
-    extract_shorter_conflict_list_st_int_def twl_st_heur_lookup_conflict_assn_def
+    extract_shorter_conflict_list_st_int_def twl_st_heur_lookup_lookup_clause_assn_def
   by sepref
 
 concrete_definition (in -) extract_shorter_conflict_st_trivial_code
@@ -4248,7 +4248,7 @@ lemma extract_shorter_conflict_st_trivial_hnr[sepref_fr_rules]:
 proof -
   have H: \<open>?c
        \<in> [comp_PRE twl_st_heur (\<lambda>S. get_conflict_wl S \<noteq> None)
-               (\<lambda>_. comp_PRE twl_st_wl_heur_lookup_conflict_rel
+               (\<lambda>_. comp_PRE twl_st_wl_heur_lookup_lookup_clause_rel
                   (\<lambda>S. get_conflict_wl_heur S \<noteq> None \<and>
                      get_trail_wl_heur S \<noteq> [] \<and>
                      literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl_heur S)) \<and>
@@ -4259,7 +4259,7 @@ proof -
                  (\<lambda>_ S. get_trail_wl_heur_conflict S \<noteq> [])
               (\<lambda>_. True))
        (\<lambda>_. True)]\<^sub>a
-      hrp_comp (hrp_comp (twl_st_heur_lookup_conflict_assn\<^sup>d) twl_st_wl_heur_lookup_conflict_rel) twl_st_heur \<rightarrow>
+      hrp_comp (hrp_comp (twl_st_heur_lookup_lookup_clause_assn\<^sup>d) twl_st_wl_heur_lookup_lookup_clause_rel) twl_st_heur \<rightarrow>
      hr_comp (hr_comp twl_st_confl_extracted_int_assn twl_st_heur_confl_extracted) twl_st_heur_no_clvls\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF
@@ -4267,7 +4267,7 @@ proof -
            extract_shorter_conflict_list_st_int_extract_shorter_conflict_st_trivial_heur]
          extract_shorter_conflict_l_trivial_int_extract_shorter_conflict_l_trivial] .
   have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
-    unfolding comp_PRE_def twl_st_wl_heur_lookup_conflict_rel_def extract_shorter_conflict_st_trivial_pre_def
+    unfolding comp_PRE_def twl_st_wl_heur_lookup_lookup_clause_rel_def extract_shorter_conflict_st_trivial_pre_def
       by (auto simp: comp_PRE_def twl_st_assn_def twl_st_heur_def
       map_fun_rel_def intro!: ext)
   have im: \<open>?im' = ?im\<close>
@@ -4534,14 +4534,14 @@ definition twl_st_wl_W_conflict :: \<open>(twl_st_wl_heur_lookup_conflict \<time
      M = M' \<and>
      N' = N \<and>
      U' = U \<and>
-     (D', D) \<in> option_conflict_rel \<and>
+     (D', D) \<in> option_lookup_clause_rel \<and>
      Q' = Q \<and>
      (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
      vm \<in> vmtf M \<and> phase_saving \<phi> \<and> no_dup M}\<close>
 
 lemma twl_st_wl_W_conflict_alt_def:
   \<open>twl_st_wl_W_conflict =
-     (Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r option_conflict_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id) O twl_st_heur_no_clvls\<close>
+     (Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r option_lookup_clause_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id) O twl_st_heur_no_clvls\<close>
   unfolding twl_st_wl_W_conflict_def twl_st_heur_no_clvls_def
   by force
 
@@ -4560,7 +4560,7 @@ lemma st_remove_highest_lvl_from_confl_heur_st_remove_highest_lvl_from_confl:
   by (intro frefI nres_relI)
      (auto simp: st_remove_highest_lvl_from_confl_heur_def st_remove_highest_lvl_from_confl_def
       twl_st_wl_W_conflict_def twl_st_heur_confl_extracted2_def twl_st_heur_no_clvls_def
-      option_conflict_rel_with_cls_with_highest2_def)
+      option_lookup_clause_rel_with_cls_with_highest2_def)
 
 
 sepref_thm st_remove_highest_lvl_from_confl_code
@@ -4586,7 +4586,7 @@ definition (in isasat_input_ops) twl_st_assn_no_clvls :: \<open>nat twl_st_wl \<
 lemma twl_st_assn_twl_st_wl_W_conflict:
   \<open>twl_st_assn_no_clvls = hr_comp twl_st_W_conflict_int_assn twl_st_wl_W_conflict\<close>
   unfolding twl_st_assn_no_clvls_def twl_st_wl_W_conflict_alt_def twl_st_W_conflict_int_assn_def
-    twl_st_heur_assn_def hr_comp_assoc[symmetric] conflict_option_assn_def
+    twl_st_heur_assn_def hr_comp_assoc[symmetric] option_lookup_clause_assn_def
   by simp
 
 lemma st_remove_highest_lvl_from_confl_hnr[sepref_fr_rules]:
@@ -4852,15 +4852,15 @@ definition remove_last_int :: \<open>nat literal \<Rightarrow> _ \<Rightarrow> _
 
 lemma remove_last_int_remove_last:
   \<open>(uncurry (RETURN oo remove_last_int), uncurry remove_last) \<in>
-    [\<lambda>(L, D). D \<noteq> None \<and> -L \<in># the D \<and> size (the D) = 1 \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>f Id \<times>\<^sub>r option_conflict_rel \<rightarrow>
-      \<langle>option_conflict_rel\<rangle> nres_rel\<close>
+    [\<lambda>(L, D). D \<noteq> None \<and> -L \<in># the D \<and> size (the D) = 1 \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>f Id \<times>\<^sub>r option_lookup_clause_rel \<rightarrow>
+      \<langle>option_lookup_clause_rel\<rangle> nres_rel\<close>
   apply (intro frefI nres_relI)
   apply (clarify dest!: size_1_singleton_mset)
   subgoal for a aa ab b ac ba y L
     using mset_as_position_remove[of b \<open>{#L#}\<close> \<open>atm_of L\<close>]
     by (cases L)
-     (auto simp: remove_last_int_def remove_last_def option_conflict_rel_def
-        RETURN_RES_refine_iff conflict_rel_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+     (auto simp: remove_last_int_def remove_last_def option_lookup_clause_rel_def
+        RETURN_RES_refine_iff lookup_clause_rel_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
        uminus_lit_swap)
   done
 
@@ -4884,27 +4884,27 @@ lemmas remove_last_int_hnr[sepref_fr_rules] =
 theorem remove_last_hnr[sepref_fr_rules]:
   \<open>(uncurry remove_last_code, uncurry remove_last)
     \<in> [\<lambda>(L, D). D \<noteq> None \<and> -L \<in># the D \<and> size (the D) = 1 \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a
-     unat_lit_assn\<^sup>k *\<^sub>a conflict_option_assn\<^sup>d \<rightarrow> conflict_option_assn\<close>
+     unat_lit_assn\<^sup>k *\<^sub>a option_lookup_clause_assn\<^sup>d \<rightarrow> option_lookup_clause_assn\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?c \<in>
-    [comp_PRE (nat_lit_lit_rel \<times>\<^sub>f option_conflict_rel)
+    [comp_PRE (nat_lit_lit_rel \<times>\<^sub>f option_lookup_clause_rel)
        (\<lambda>(L, D). D \<noteq> None \<and> -L \<in># the D \<and> size (the D) = 1 \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l)
        (\<lambda>_ (L, b, n, xs). atm_of L < length xs)
        (\<lambda>_. True)]\<^sub>a
      hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d)
-              (nat_lit_lit_rel \<times>\<^sub>f option_conflict_rel) \<rightarrow>
-    hr_comp conflict_option_rel_assn option_conflict_rel\<close>
+              (nat_lit_lit_rel \<times>\<^sub>f option_lookup_clause_rel) \<rightarrow>
+    hr_comp conflict_option_rel_assn option_lookup_clause_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF remove_last_int_hnr[unfolded PR_CONST_def]
     remove_last_int_remove_last] .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
-    using that by (auto simp: comp_PRE_def option_conflict_rel_def conflict_rel_def
+    using that by (auto simp: comp_PRE_def option_lookup_clause_rel_def lookup_clause_rel_def
         in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
   have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep conflict_option_assn_def by simp
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep option_lookup_clause_assn_def by simp
   have f: \<open>?f' = ?f\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep conflict_option_assn_def
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep option_lookup_clause_assn_def
     by (auto simp: hrp_comp_def hr_comp_def)
   show ?thesis
     apply (rule hfref_weaken_pre[OF ])

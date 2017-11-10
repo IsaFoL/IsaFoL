@@ -44,14 +44,14 @@ definition (in isasat_input_ops) twl_st_heur_init :: \<open>(twl_st_wl_heur_init
   }\<close>
 
 type_synonym (in -)twl_st_wll_trail_init =
-  \<open>trail_pol_assn \<times> clauses_wl \<times> nat \<times> conflict_option_assn \<times>
+  \<open>trail_pol_assn \<times> clauses_wl \<times> nat \<times> option_lookup_clause_assn \<times>
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn_option_fst_As \<times> phase_saver_assn \<times>
     uint32\<close>
 
 definition (in isasat_input_ops) twl_st_heur_init_assn :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wll_trail_init \<Rightarrow> assn\<close> where
 \<open>twl_st_heur_init_assn =
   trail_assn *a clauses_ll_assn *a nat_assn *a
-  conflict_option_assn *a
+  option_lookup_clause_assn *a
   clause_l_assn *a
   arrayO_assn (arl_assn nat_assn) *a
   vmtf_remove_conc_option_fst_As *a phase_saver_conc *a
@@ -208,11 +208,11 @@ definition (in isasat_input_ops) set_conflict_unit_heur where
 
 lemma set_conflict_unit_heur_set_conflict_unit:
   \<open>(uncurry (RETURN oo set_conflict_unit_heur), uncurry (RETURN oo set_conflict_unit)) \<in>
-    [\<lambda>(L, D). D = None \<and> L \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>f option_conflict_rel \<rightarrow>
-     \<langle>option_conflict_rel\<rangle>nres_rel\<close>
+    [\<lambda>(L, D). D = None \<and> L \<in> snd ` D\<^sub>0]\<^sub>f Id \<times>\<^sub>f option_lookup_clause_rel \<rightarrow>
+     \<langle>option_lookup_clause_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: twl_st_heur_def set_conflict_unit_heur_def set_conflict_unit_def
-      option_conflict_rel_def conflict_rel_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+      option_lookup_clause_rel_def lookup_clause_rel_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
       intro!: mset_as_position.intros)
 
 sepref_thm set_conflict_unit_code
@@ -235,30 +235,30 @@ lemmas set_conflict_unit_heur_hnr[sepref_fr_rules] =
 theorem set_conflict_unit_hnr[sepref_fr_rules]:
   \<open>(uncurry set_conflict_unit_code, uncurry (RETURN oo set_conflict_unit))
     \<in> [\<lambda>(L, D). D = None \<and> L \<in> snd ` D\<^sub>0]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a conflict_option_assn\<^sup>d  \<rightarrow> conflict_option_assn\<close>
+      unat_lit_assn\<^sup>k *\<^sub>a option_lookup_clause_assn\<^sup>d  \<rightarrow> option_lookup_clause_assn\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?c
-    \<in> [comp_PRE (nat_lit_lit_rel \<times>\<^sub>f option_conflict_rel)
+    \<in> [comp_PRE (nat_lit_lit_rel \<times>\<^sub>f option_lookup_clause_rel)
      (\<lambda>(L, D). D = None \<and> L \<in> snd ` D\<^sub>0)
      (\<lambda>_ (L, b, n, xs). atm_of L < length xs)
      (\<lambda>_. True)]\<^sub>a hrp_comp
                      (unat_lit_assn\<^sup>k *\<^sub>a
                       conflict_option_rel_assn\<^sup>d)
                      (nat_lit_lit_rel \<times>\<^sub>f
-                      option_conflict_rel) \<rightarrow> hr_comp
+                      option_lookup_clause_rel) \<rightarrow> hr_comp
                   conflict_option_rel_assn
-                  option_conflict_rel\<close>
+                  option_lookup_clause_rel\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF set_conflict_unit_heur_hnr
     set_conflict_unit_heur_set_conflict_unit] .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
-    using that by (auto simp: comp_PRE_def option_conflict_rel_def conflict_rel_def image_image
+    using that by (auto simp: comp_PRE_def option_lookup_clause_rel_def lookup_clause_rel_def image_image
         in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
   have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep conflict_option_assn_def by simp
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep option_lookup_clause_assn_def by simp
   have f: \<open>?f' = ?f\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep conflict_option_assn_def
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep option_lookup_clause_assn_def
     by (auto simp: hrp_comp_def hr_comp_def)
   show ?thesis
     apply (rule hfref_weaken_pre[OF ])
@@ -463,10 +463,10 @@ definition (in -) lookup_set_conflict_empty :: \<open>conflict_option_rel \<Righ
 
 lemma lookup_set_conflict_empty_set_conflict_empty:
   \<open>(RETURN o lookup_set_conflict_empty, RETURN o set_conflict_empty) \<in>
-     [\<lambda>D. D = None]\<^sub>f option_conflict_rel \<rightarrow> \<langle>option_conflict_rel\<rangle>nres_rel\<close>
+     [\<lambda>D. D = None]\<^sub>f option_lookup_clause_rel \<rightarrow> \<langle>option_lookup_clause_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI) (auto simp: set_conflict_empty_def
-      lookup_set_conflict_empty_def option_conflict_rel_def
-      conflict_rel_def)
+      lookup_set_conflict_empty_def option_lookup_clause_rel_def
+      lookup_clause_rel_def)
 
 sepref_definition (in -) set_conflict_empty_code
   is \<open>RETURN o lookup_set_conflict_empty\<close>
@@ -477,9 +477,9 @@ sepref_definition (in -) set_conflict_empty_code
 
 lemma set_conflict_empty_hnr[sepref_fr_rules]:
   \<open>(set_conflict_empty_code, RETURN \<circ> set_conflict_empty)
-   \<in> [\<lambda>x. x = None]\<^sub>a conflict_option_assn\<^sup>d \<rightarrow> conflict_option_assn\<close>
+   \<in> [\<lambda>x. x = None]\<^sub>a option_lookup_clause_assn\<^sup>d \<rightarrow> option_lookup_clause_assn\<close>
   using set_conflict_empty_code.refine[FCOMP lookup_set_conflict_empty_set_conflict_empty]
-  unfolding conflict_option_assn_def .
+  unfolding option_lookup_clause_assn_def .
 
 definition (in isasat_input_ops) set_empty_clause_as_conflict
    :: \<open>nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init\<close>
@@ -680,7 +680,7 @@ definition twl_st_heur_pol_init_assn
 where
   \<open>twl_st_heur_pol_init_assn =
     (trail_pol_assn *a clauses_ll_assn *a nat_assn *a
-    conflict_option_assn *a
+    option_lookup_clause_assn *a
     clause_l_assn *a
     arrayO_assn (arl_assn nat_assn) *a
     vmtf_remove_conc_option_fst_As *a phase_saver_conc *a
@@ -1769,11 +1769,11 @@ proof -
     using hfref_compI_PRE_aux[OF finalise_init_hnr
     finalise_init_finalise_init] unfolding PR_CONST_def .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
-    using that by (auto simp: comp_PRE_def twl_st_heur_init_def trail_pol_def option_conflict_rel_def
-        conflict_rel_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff vmtf_init_def twl_st_heur_init_wl_def)
+    using that by (auto simp: comp_PRE_def twl_st_heur_init_def trail_pol_def option_lookup_clause_rel_def
+        lookup_clause_rel_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff vmtf_init_def twl_st_heur_init_wl_def)
 
   have im: \<open>?im' = ?im\<close> and f: \<open>?f' = ?f\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep conflict_option_assn_def
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep option_lookup_clause_assn_def
     twl_st_assn_def twl_st_heur_init_assn_def twl_st_init_assn_def twl_st_init_wl_assn_def
     by auto
   show ?thesis
@@ -1903,7 +1903,7 @@ lemma init_state_wl_D':
   \<open>(init_state_wl_D', isasat_input_ops.init_state_wl_heur) \<in>
     [\<lambda>N. N = \<A>\<^sub>i\<^sub>n \<and> distinct_mset \<A>\<^sub>i\<^sub>n]\<^sub>f \<langle>uint32_nat_rel\<rangle>list_rel_mset_rel  \<rightarrow>
       \<langle>isasat_input_ops.trail_pol \<A>\<^sub>i\<^sub>n \<times>\<^sub>r \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>r
-         nat_rel \<times>\<^sub>r isasat_input_ops.option_conflict_rel \<A>\<^sub>i\<^sub>n \<times>\<^sub>r list_mset_rel \<times>\<^sub>r \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>r
+         nat_rel \<times>\<^sub>r isasat_input_ops.option_lookup_clause_rel \<A>\<^sub>i\<^sub>n \<times>\<^sub>r list_mset_rel \<times>\<^sub>r \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>r
            Id \<times>\<^sub>r \<langle>bool_rel\<rangle>list_rel\<times>\<^sub>r Id\<rangle>nres_rel\<close>
 proof -
   have init_state_wl_heur_alt_def: \<open>isasat_input_ops.init_state_wl_heur \<A>\<^sub>i\<^sub>n = do {
@@ -1994,8 +1994,8 @@ proof -
     apply assumption
     subgoal by simp
     subgoal unfolding isasat_input_ops.phase_saving_def by auto
-    subgoal by (auto simp: P_def init_rll_def isasat_input_ops.option_conflict_rel_def
-          isasat_input_ops.conflict_rel_def
+    subgoal by (auto simp: P_def init_rll_def isasat_input_ops.option_lookup_clause_rel_def
+          isasat_input_ops.lookup_clause_rel_def
           simp del: replicate.simps
           intro!: mset_as_position.intros)
     done
@@ -2015,7 +2015,7 @@ proof -
          hr_comp trail_pol_assn (isasat_input_ops.trail_pol \<A>\<^sub>i\<^sub>n) *a
          hr_comp clauses_ll_assn (\<langle>\<langle>nat_lit_lit_rel\<rangle>list_rel\<rangle>list_rel) *a
          nat_assn *a
-         hr_comp conflict_option_rel_assn (isasat_input_ops.option_conflict_rel \<A>\<^sub>i\<^sub>n) *a
+         hr_comp conflict_option_rel_assn (isasat_input_ops.option_lookup_clause_rel \<A>\<^sub>i\<^sub>n) *a
          hr_comp (list_assn unat_lit_assn) list_mset_rel *a
          hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>\<langle>nat_rel\<rangle>list_rel\<rangle>list_rel) *a
          vmtf_remove_conc_option_fst_As *a hr_comp phase_saver_conc (\<langle>bool_rel\<rangle>list_rel) *a
@@ -2029,7 +2029,7 @@ proof -
     by (auto simp: hrp_comp_def hr_comp_def)
   have f: \<open>?f' = ?f\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep isasat_input_ops.twl_st_heur_init_assn_def
-      isasat_input_ops.conflict_option_assn_def[symmetric]
+      isasat_input_ops.option_lookup_clause_assn_def[symmetric]
     by (auto simp: hrp_comp_def hr_comp_def list_assn_list_mset_rel_eq_list_mset_assn)
   show ?thesis
     apply (rule hfref_weaken_pre[OF ])

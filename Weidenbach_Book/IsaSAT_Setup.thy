@@ -20,7 +20,7 @@ subsection \<open>Code Generation\<close>
 subsubsection \<open>Types and Refinement Relations\<close>
 
 type_synonym twl_st_wll_trail =
-  \<open>trail_pol_assn \<times> clauses_wl \<times> nat \<times> conflict_option_assn \<times>
+  \<open>trail_pol_assn \<times> clauses_wl \<times> nat \<times> option_lookup_clause_assn \<times>
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
     uint32\<close>
 
@@ -80,7 +80,7 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
 definition twl_st_heur_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>twl_st_heur_assn =
   trail_assn *a clauses_ll_assn *a nat_assn *a
-  conflict_option_assn *a
+  option_lookup_clause_assn *a
   clause_l_assn *a
   arrayO_assn (arl_assn nat_assn) *a
   vmtf_remove_conc *a phase_saver_conc *a
@@ -90,7 +90,7 @@ definition twl_st_assn :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_trail \<
 \<open>twl_st_assn = hr_comp twl_st_heur_assn twl_st_heur\<close>
 
 type_synonym twl_st_heur_pol_no_clvls =
-  \<open>trail_pol_assn \<times> clauses_wl \<times> nat \<times> conflict_option_assn \<times>
+  \<open>trail_pol_assn \<times> clauses_wl \<times> nat \<times> option_lookup_clause_assn \<times>
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times> uint32\<close>
 
 definition twl_st_heur_pol_assn
@@ -98,7 +98,7 @@ definition twl_st_heur_pol_assn
 where
   \<open>twl_st_heur_pol_assn =
     (trail_pol_assn *a clauses_ll_assn *a nat_assn *a
-    conflict_option_assn *a
+    option_lookup_clause_assn *a
     clause_l_assn *a
     arrayO_assn (arl_assn nat_assn) *a
     vmtf_remove_conc *a phase_saver_conc *a
@@ -161,24 +161,24 @@ type_synonym (in -) twl_st_wl_heur_lookup_conflict =
     (bool \<times> nat \<times> bool option list) \<times> nat literal multiset \<times> nat list list \<times> vmtf_remove_int \<times>
      bool list \<times> nat\<close>
 
-definition twl_st_wl_heur_lookup_conflict_rel
+definition twl_st_wl_heur_lookup_lookup_clause_rel
   :: \<open>(twl_st_wl_heur_lookup_conflict \<times> twl_st_wl_heur) set\<close>
 where
-  \<open>twl_st_wl_heur_lookup_conflict_rel =
+  \<open>twl_st_wl_heur_lookup_lookup_clause_rel =
      (Id :: ((nat,nat) ann_lits \<times> _) set) \<times>\<^sub>r
      (Id :: (nat clauses_l  \<times> _) set) \<times>\<^sub>r
      nat_rel \<times>\<^sub>r
-     (option_conflict_rel :: _ set) \<times>\<^sub>r
+     (option_lookup_clause_rel :: _ set) \<times>\<^sub>r
      (Id :: (nat lit_queue_wl \<times> _) set)  \<times>\<^sub>r
      (Id :: (nat list list \<times> _)set) \<times>\<^sub>r
      Id \<times>\<^sub>r
      Id \<times>\<^sub>r
      nat_rel\<close>
 
-definition twl_st_heur_lookup_conflict_assn
+definition twl_st_heur_lookup_lookup_clause_assn
   :: \<open>twl_st_wl_heur_lookup_conflict \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close>
 where
-  \<open>twl_st_heur_lookup_conflict_assn =
+  \<open>twl_st_heur_lookup_lookup_clause_assn =
     trail_assn *a clauses_ll_assn *a nat_assn *a
     conflict_option_rel_assn *a
     clause_l_assn *a
@@ -186,18 +186,18 @@ where
     vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn
   \<close>
 
-lemma twl_st_heur_assn_int_conflict_assn:
-  \<open>twl_st_heur_assn = hr_comp twl_st_heur_lookup_conflict_assn twl_st_wl_heur_lookup_conflict_rel\<close>
-  unfolding twl_st_heur_assn_def twl_st_heur_lookup_conflict_assn_def
-    twl_st_wl_heur_lookup_conflict_rel_def
-  by (auto simp: list_assn_list_mset_rel_eq_list_mset_assn conflict_option_assn_def)
+lemma twl_st_heur_assn_int_lookup_clause_assn:
+  \<open>twl_st_heur_assn = hr_comp twl_st_heur_lookup_lookup_clause_assn twl_st_wl_heur_lookup_lookup_clause_rel\<close>
+  unfolding twl_st_heur_assn_def twl_st_heur_lookup_lookup_clause_assn_def
+    twl_st_wl_heur_lookup_lookup_clause_rel_def
+  by (auto simp: list_assn_list_mset_rel_eq_list_mset_assn option_lookup_clause_assn_def)
 
 
 lemma twl_st_assn_confl_assn:
-  \<open>twl_st_assn = hr_comp twl_st_heur_lookup_conflict_assn
-    (twl_st_wl_heur_lookup_conflict_rel O twl_st_heur)\<close>
+  \<open>twl_st_assn = hr_comp twl_st_heur_lookup_lookup_clause_assn
+    (twl_st_wl_heur_lookup_lookup_clause_rel O twl_st_heur)\<close>
   apply (subst hr_comp_assoc[symmetric])
-  apply (subst twl_st_heur_assn_int_conflict_assn[symmetric])
+  apply (subst twl_st_heur_assn_int_lookup_clause_assn[symmetric])
   unfolding twl_st_assn_def ..
 
 end
@@ -401,7 +401,7 @@ proof -
         literal_is_in_conflict_heur_is_in_conflict_st]
     .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
-    using that unfolding comp_PRE_def option_conflict_rel_def conflict_rel_def
+    using that unfolding comp_PRE_def option_lookup_clause_rel_def lookup_clause_rel_def
     by (auto simp: image_image twl_st_heur_def)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def

@@ -1121,7 +1121,7 @@ definition twl_st_wl_heur_W_list_rel :: \<open>(twl_st_wl_heur_W_list \<times> t
 definition twl_st_heur_W_list_assn :: \<open>twl_st_wl_heur_W_list \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>twl_st_heur_W_list_assn =
   (trail_assn *a clauses_ll_assn *a nat_assn *a
-  conflict_option_assn *a
+  option_lookup_clause_assn *a
   (list_assn unat_lit_assn) *a
   arrayO_assn (arl_assn nat_assn) *a
   vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn
