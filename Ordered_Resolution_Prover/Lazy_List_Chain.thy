@@ -313,46 +313,62 @@ private coinductive chain' for R where
      ys = ltl xs \<Longrightarrow> chain' R xs \<Longrightarrow> chain' R (prepend zs ys)"
 
 private lemma chain_imp_chain': "chain R xs \<Longrightarrow> chain' R xs"
-  apply (coinduction arbitrary: xs rule: chain'.coinduct)
-  apply (erule chain.cases, simp)
-  apply (rule disjI2)
-  subgoal for xs zs z
-    apply (rule exI[of _ "[z, lhd zs]"], rule exI[of _ zs])
-    apply (auto intro: chain.intros elim: chain.cases)
-    done
-  done
+proof (coinduction arbitrary: xs rule: chain'.coinduct)
+  case chain'
+  then show ?case
+  proof (cases rule: chain.cases)
+    case (cons zs z)
+    then show ?thesis
+      by (intro disjI2) (force intro: chain.intros exI[of _ "[z, lhd zs]"] exI[of _ zs] elim: chain.cases)
+  qed simp
+qed
 
 private inductive_cases chain'_LConsE: "chain' R (LCons x xs)"
 
-private lemma chain'_stepD1: "chain' R (LCons x (LCons y xs)) \<Longrightarrow> chain' R (LCons y xs)"
-  apply (cases xs)
-   apply (simp only: chain'.intros(1))
-  apply (erule chain'.cases)
-   apply (auto simp: neq_Nil_conv not_lnull_conv elim!: chain_nontrivE)
-  subgoal for z zs ys xs
-    apply (cases ys)
-     apply simp
-    unfolding prepend.simps[symmetric]
-    apply (rule chain'.intros)
-          apply auto
-    done
-  done
+private lemma chain'_stepD1:
+  assumes "chain' R (LCons x (LCons y xs))"
+  shows "chain' R (LCons y xs)"
+proof (cases xs)
+  case [simp]: (LCons z zs)
+  with assms show ?thesis
+  proof (cases rule: chain'.cases)
+    case (2 as ys xs)
+    then show ?thesis
+    proof (cases "tl (tl as)")
+      case Nil
+      with 2 show ?thesis by (auto simp: neq_Nil_conv)
+    next
+      case (Cons b bs)
+      with 2 have "chain' R (prepend (y # b # bs) xs)"
+        by (intro chain'.intros) (auto simp: cons not_lnull_conv neq_Nil_conv elim: chain_nontrivE)
+      with 2 Cons show ?thesis
+        by (auto simp: neq_Nil_conv)
+    qed
+  qed
+qed (simp only: chain'.intros(1))
 
 private lemma chain'_stepD2: "chain' R (LCons x (LCons y xs)) \<Longrightarrow> R x y"
   by (erule chain'.cases) (auto simp: neq_Nil_conv elim!: chain_nontrivE split: if_splits)
   
 private lemma chain'_imp_chain: "chain' R xs \<Longrightarrow> chain R xs"
-  apply (coinduction arbitrary: xs rule: chain.coinduct)
-  apply (erule chain'.cases, simp)
-  unfolding neq_Nil_conv not_lnull_conv
-  apply (erule exE)+
-  subgoal for ys zs xs as Z ZZ X _ Zs Xs
-    apply (cases Xs; auto elim: chain'_stepD1 chain'_stepD2 chain_nontrivE split: if_splits)
-    unfolding prepend.simps[symmetric]
-    apply (intro chain'.intros)
-          apply (auto simp: neq_Nil_conv elim: chain_nontrivE)
-    done
-  done
+proof (coinduction arbitrary: xs rule: chain.coinduct)
+  case chain
+  then show ?case
+  proof (cases rule: chain'.cases)
+    case (2 ys zs xs)
+    then show ?thesis
+    proof (cases "ltl zs")
+      case LNil
+      with chain 2 show ?thesis
+        by (auto 0 4 simp: neq_Nil_conv not_lnull_conv elim: chain'_stepD1 chain'_stepD2)
+    next
+      case (LCons b bs)
+      with chain 2 show ?thesis 
+        unfolding neq_Nil_conv not_lnull_conv
+        by (elim exE) (auto elim: chain'_stepD1 chain_nontrivE)
+    qed
+  qed simp
+qed
 
 private lemma chain_chain': "chain = chain'"
   unfolding fun_eq_iff by (metis chain_imp_chain' chain'_imp_chain)
