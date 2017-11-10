@@ -13,6 +13,10 @@ theory Deterministic_FO_Ordered_Resolution_Prover
   imports Weighted_FO_Ordered_Resolution_Prover
 begin
 
+(* TODO: Move to Isabelle. *)
+lemma funpow_fixpoint: "f x = x \<Longrightarrow> (f ^^ n) x = x"
+  by (induct n) auto
+
 type_synonym 'a lclause = "'a literal list"
 type_synonym 'a glclause = "'a lclause \<times> nat"
 type_synonym 'a glstate = "'a glclause list \<times> 'a glclause list \<times> 'a glclause list \<times> nat"
@@ -55,17 +59,6 @@ abbreviation rtrancl_weighted_RP (infix "\<leadsto>\<^sub>w\<^sup>*" 50) where
 
 abbreviation trancl_weighted_RP (infix "\<leadsto>\<^sub>w\<^sup>+" 50) where
   "op \<leadsto>\<^sub>w\<^sup>+ \<equiv> (op \<leadsto>\<^sub>w)\<^sup>+\<^sup>+"
-
-(* FIXME: prove and move to right locale/file, and prove for nonweighted version first *)
-lemma weighted_RP_sound:
-  "St \<leadsto>\<^sub>w St' \<Longrightarrow> I \<Turnstile>s grounding_of_state (state_of_gstate St) \<Longrightarrow>
-   I \<Turnstile>s grounding_of_state (state_of_gstate St')"
-  sorry
-
-lemma rtrancl_weighted_RP_sound:
-  "St \<leadsto>\<^sub>w\<^sup>* St' \<Longrightarrow> I \<Turnstile>s grounding_of_state (state_of_gstate St) \<Longrightarrow>
-   I \<Turnstile>s grounding_of_state (state_of_gstate St')"
-  by (induct rule: rtranclp.induct, assumption, metis weighted_RP_sound)
 
 definition is_tautology :: "'a lclause \<Rightarrow> bool" where
   "is_tautology C \<longleftrightarrow> (\<exists>A \<in> set (map atm_of C). Pos A \<in> set C \<and> Neg A \<in> set C)"
@@ -546,13 +539,13 @@ lemma deterministic_RP_step_weighted_RP:
   by (cases "is_final_glstate St")
     (simp add: final_deterministic_RP_step nonfinal_deterministic_RP_step tranclp_into_rtranclp)+
 
-lemma deterministic_RP_step_funpow_weighted_RP:
+lemma funpow_deterministic_RP_step_weighted_RP:
   "gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate ((deterministic_RP_step ^^ k) St)"
   by (induct k; simp) (meson deterministic_RP_step_weighted_RP rtranclp_trans)
 
-lemma deterministic_RP_step_funpow_imp_weighted_RP:
+lemma funpow_deterministic_RP_step_imp_weighted_RP:
   "(\<exists>k. (deterministic_RP_step ^^ k) St = St') \<Longrightarrow> gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate St'"
-  using deterministic_RP_step_funpow_weighted_RP by blast
+  using funpow_deterministic_RP_step_weighted_RP by blast
 
 definition saturated_upto :: "'a clause set \<Rightarrow> bool" where
   "saturated_upto CC \<longleftrightarrow>
@@ -665,15 +658,39 @@ proof -
     using deterministic_RP_SomeD[OF drp_some] by blast
 
   have last_sts: "llast Sts = ([], [], Q', n')"
-    using k_steps
-    apply (induct k)
-     apply simp
-     apply (subst derivation_from.code)
-     apply simp
-    thm llast_LCons
-
-    apply (simp add: )
-    sorry
+  proof -
+    have "(deterministic_RP_step ^^ k') St0' = ([], [], Q', n') \<Longrightarrow>
+      llast (derivation_from St0') = ([], [], Q', n')" for St0' k'
+    proof (induct k' arbitrary: St0')
+      case 0
+      then show ?case
+        apply simp
+        apply (subst derivation_from.code)
+        apply simp
+        done
+    next
+      case (Suc k')
+      note ih = this(1) and suc_k'_steps = this(2)
+      show ?case
+      proof (cases "is_final_glstate St0'")
+        case True
+        then show ?thesis
+          using ih[of "deterministic_RP_step St0'"] suc_k'_steps final_deterministic_RP_step
+            funpow_fixpoint[of deterministic_RP_step]
+          by auto
+      next
+        case nonfinal: False
+        then show ?thesis
+          using ih[of "deterministic_RP_step St0'"]
+          using suc_k'_steps
+          unfolding funpow_swap1[symmetric]
+          apply (subst derivation_from.code)
+          by (simp add: llast_LCons)
+      qed
+    qed
+    then show ?thesis
+      using k_steps by blast
+  qed
 
   have fin_gr_fgsts: "lfinite (lmap grounding_of_gstate ss_gSts)"
     by (rule lfinite_lmap[THEN iffD2, OF lfinite_ss_gSts])
