@@ -1304,7 +1304,7 @@ definition lit_redundant_rec_wl_lookup :: \<open>(nat, nat) ann_lits \<Rightarro
       (_ \<times> _ \<times> bool) nres\<close>
 where
   \<open>lit_redundant_rec_wl_lookup M NU D cach analysis =
-      WHILE\<^sub>T\<^bsup>lit_redundant_rec_wl_inv M NU D\<^esup>
+      WHILE\<^sub>T
         (\<lambda>(cach, analyse, b). analyse \<noteq> [])
         (\<lambda>(cach, analyse, b). do {
             ASSERT(analyse \<noteq> []);
@@ -1406,7 +1406,6 @@ proof -
     subgoal by (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
           elim!: neq_Nil_revE)
     subgoal by (auto simp: lit_redundant_rec_wl_inv_def elim!: neq_Nil_revE)
-    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -1705,74 +1704,74 @@ proof -
       by (auto intro: subset_mset.order.trans diff_subset_eq_self mset_le_subtract)
   qed
 
-  have redundant: \<open>literal_redundant_wl_lookup M NU (x1c, x2b) x1f
-          (if the (x2b ! xa) then Pos xa else Neg xa)
+  have redundant: \<open>literal_redundant_wl_lookup M NU (n, xs) cach
+          (if the (xs ! a) then Pos a else Neg a)
       \<le> \<Down> {((s', a', b'), b). b = b'}
-          (is_literal_redundant_spec NU' NUP x1 xb)\<close>
+          (is_literal_redundant_spec NU' NUP E L)\<close>
     if 
       R: \<open>(x, x') \<in> R\<close> and
       \<open>case x of (x, xa) \<Rightarrow> (case x of (n, xs) \<Rightarrow> \<lambda>(m, i, s, _). 0 < m) xa\<close> and
       \<open>case x' of
      (D, D', highest) \<Rightarrow> D' \<noteq> {#}\<close> and
       \<open>iterate_over_lookup_conflict_inv x\<close> and
-      \<open>iterate_over_conflict_inv M D x'\<close> and
+      \<open>iterate_over_conflict_inv M E x'\<close> and
       st:
         \<open>x2 = (x1a, x2a)\<close>
-        \<open>x' = (x1, x2)\<close>
-        \<open>x1b = (x1c, x2b)\<close>
-        \<open>x2e = (x1f, x2f)\<close>
+        \<open>x' = (E, x2)\<close>
+        \<open>nxs = (n, xs)\<close>
+        \<open>x2e = (cach, x2f)\<close>
         \<open>x2d = (x1e, x2e)\<close>
         \<open>x2c = (x1d, x2d)\<close>
-        \<open>x = (x1b, x2c)\<close> and
+        \<open>x = (nxs, x2c)\<close> and
       \<open>x1a \<noteq> {#}\<close> and
       \<open>0 < x1d\<close> and
-      xa_xb: \<open>(xa, xb) \<in> {(j, x). x2b ! j \<noteq> None \<and>
-           x = (if the (x2b ! j) then Pos j else Neg j) \<and>
-         j < length x2b \<and> x1e \<le> j \<and>
-         (\<forall>k\<ge>x1e. k < j \<longrightarrow> x2b ! k = None)}\<close> and
-      xb: \<open>xb \<in> {x. x \<in># x1a}\<close>
-    for x x' x1 x2 x1a x2a x1b x1c x2b x2c x1d x2d x1e x2e x1f x2f xa xb
+      xa_xb: \<open>(a, L) \<in> {(j, x). xs ! j \<noteq> None \<and>
+           x = (if the (xs ! j) then Pos j else Neg j) \<and>
+         j < length xs \<and> x1e \<le> j \<and>
+         (\<forall>k\<ge>x1e. k < j \<longrightarrow> xs ! k = None)}\<close> and
+      xb: \<open>L \<in> {x. x \<in># x1a}\<close>
+    for x x' E x2 x1a x2a nxs n xs x2c x1d x2d x1e x2e cach x2f a L
   proof -
-    let ?L = \<open>(if the (x2b ! xa) then Pos xa else Neg xa)\<close>
+    let ?L = \<open>(if the (xs ! a) then Pos a else Neg a)\<close>
     have 
-      cr: \<open>((x1c, x2b), x1) \<in> conflict_rel\<close> and
-      \<open>x1e \<le> length x2b\<close> and
-      \<open>((x1d, replicate x1e None @ drop x1e x2b), x1a) \<in> conflict_rel\<close> and
-      \<open>x1d \<le> x1c\<close> and
-      \<open>x1 \<subseteq># D\<close> and
-      \<open>x1a \<subseteq># x1\<close> and
+      cr: \<open>((n, xs), E) \<in> conflict_rel\<close> and
+      \<open>x1e \<le> length xs\<close> and
+      \<open>((x1d, replicate x1e None @ drop x1e xs), x1a) \<in> conflict_rel\<close> and
+      \<open>x1d \<le> n\<close> and
+      \<open>E \<subseteq># D\<close> and
+      \<open>x1a \<subseteq># E\<close> and
       \<open>x2f = x2a\<close> and
-      xb_x1: \<open>xb \<in># x1\<close>
+      xb_x1: \<open>L \<in># E\<close>
       using R xb unfolding R_def st
       by auto
-    have L: \<open>?L = xb\<close>
+    have L: \<open>?L = L\<close>
       using xa_xb  by auto
-    have M_x1: \<open>M \<Turnstile>as CNot x1\<close>
-      by (metis CNot_plus M_D \<open>x1 \<subseteq># D\<close> subset_mset.le_iff_add true_annots_union)
+    have M_x1: \<open>M \<Turnstile>as CNot E\<close>
+      by (metis CNot_plus M_D \<open>E \<subseteq># D\<close> subset_mset.le_iff_add true_annots_union)
     have 1:
-      \<open>literal_redundant_wl_lookup M NU (x1c, x2b) x1f ?L \<le>
-      literal_redundant_wl M NU x1 x1f ?L\<close>
-      using literal_redundant_wl_lookup_literal_redundant_wl[OF cr n_d M_x1 lits, of NU x1f
+      \<open>literal_redundant_wl_lookup M NU (n, xs) cach ?L \<le>
+      literal_redundant_wl M NU E cach ?L\<close>
+      using literal_redundant_wl_lookup_literal_redundant_wl[OF cr n_d M_x1 lits, of NU cach
           \<open>?L\<close>] by simp
     have 2:
-    \<open>literal_redundant_wl M NU x1 x1f ?L \<le> \<Down>
+    \<open>literal_redundant_wl M NU E cach ?L \<le> \<Down>
        (Id \<times>\<^sub>r {(analyse, analyse'). analyse' = convert_analysis_list NU analyse \<and>
           (\<forall>(i, j)\<in> set analyse. j \<le> length (NU!i) \<and> i < length NU \<and> j \<ge> 1 \<and> i > 0)} \<times>\<^sub>r bool_rel)
-       (literal_redundant M' NU' x1 x1f ?L)\<close>
+       (literal_redundant M' NU' E cach ?L)\<close>
       by (rule literal_redundant_wl_literal_redundant[of S, 
             unfolded M_def[symmetric] NU[symmetric] M'[symmetric] S'''_def[symmetric]
             NU'_def[symmetric]])
          (use M_x1 struct_invs add_inv xb_x1 L in \<open>auto simp: S'_def S''_def\<close>)
 
     have 3:
-       \<open>literal_redundant M' (mset `# mset N+ mset `# mset U) x1 x1f ?L \<le>
-         literal_redundant_spec M' (mset `# mset N + mset `# mset U) x1 ?L\<close>
+       \<open>literal_redundant M' (mset `# mset N+ mset `# mset U) E cach ?L \<le>
+         literal_redundant_spec M' (mset `# mset N + mset `# mset U + mset `# mset NP + mset `# mset UP) E ?L\<close>
       apply (rule literal_redundant_spec) (* TODO: confusion between N and N + NP and U and U+UP  *)
       sorry
 
     have 3:
-       \<open>literal_redundant M' (NU') x1 x1f ?L \<le>
-         literal_redundant_spec M' (NU') x1 ?L\<close>
+       \<open>literal_redundant M' (NU') E cach ?L \<le>
+         literal_redundant_spec M' (NU') E ?L\<close>
       sorry
       thm literal_redundant_wl_literal_redundant
       literal_redundant_spec
