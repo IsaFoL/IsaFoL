@@ -108,10 +108,7 @@ qed
 lemma Rf_imp_ex_non_Rf:
   assumes "C \<in> Rf N"
   shows "\<exists>CC. set_mset CC \<subseteq> N - Rf N \<and> (\<forall>I. I \<Turnstile>m CC \<longrightarrow> I \<Turnstile> C) \<and> (\<forall>C'. C' \<in># CC \<longrightarrow> C' < C)"
-proof (rule wlog_non_Rf[of _ "{#}", simplified])
-  show "\<exists>CC. set_mset CC \<subseteq> N \<and> (\<forall>I. I \<Turnstile>m CC \<longrightarrow> I \<Turnstile> C) \<and> (\<forall>C'. C' \<in># CC \<longrightarrow> C' < C)"
-    using assms unfolding Rf_def by blast
-qed
+  using assms by (auto simp: Rf_def intro: wlog_non_Rf[of _ "{#}", simplified])
 
 lemma Rf_subs_Rf_diff_Rf: "Rf N \<subseteq> Rf (N - Rf N)"
 proof
