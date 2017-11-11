@@ -127,8 +127,14 @@ interpretation sq: selection S_gQ
 interpretation gd: ground_resolution_with_selection S_gQ
   by unfold_locales
 
-interpretation src: standard_redundancy_criterion gd.ord_\<Gamma>
+interpretation src: standard_redundancy_criterion_reductive gd.ord_\<Gamma>
   by unfold_locales
+
+interpretation src: standard_redundancy_criterion_counterex_reducing gd.ord_\<Gamma>
+  "ground_resolution_with_selection.INTERP S_gQ"
+  by unfold_locales
+
+lemmas ord_\<Gamma>_saturated_upto_complete = src.saturated_upto_complete
 
 theorem weighted_RP_fair: "fair_state_seq (lmap state_of_gstate Sts)"
 proof (rule ccontr)

@@ -547,12 +547,6 @@ lemma funpow_deterministic_RP_step_imp_weighted_RP:
   "(\<exists>k. (deterministic_RP_step ^^ k) St = St') \<Longrightarrow> gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate St'"
   using funpow_deterministic_RP_step_weighted_RP by blast
 
-definition saturated_upto :: "'a clause set \<Rightarrow> bool" where
-  "saturated_upto CC \<longleftrightarrow>
-   (\<exists>gSts. redundancy_criterion.saturated_upto (ground_resolution_with_selection.ord_\<Gamma> (S_gQ gSts))
-      standard_redundancy_criterion.Rf
-      (standard_redundancy_criterion.Ri (ground_resolution_with_selection.ord_\<Gamma> (S_gQ gSts))) CC)"
-
 context
   fixes
     N0 :: "'a glclause list" and
@@ -648,6 +642,21 @@ lemma empty_ss_gP0: "P_of_gstate (lhd ss_gSts) = {}"
 lemma empty_ss_gQ0: "Q_of_gstate (lhd ss_gSts) = {}"
   unfolding lhd_ss_gSts by (subst derivation_from.code) simp
 
+abbreviation S_ss_gQ :: "'a clause \<Rightarrow> 'a clause" where
+  "S_ss_gQ \<equiv> S_gQ ss_gSts"
+
+abbreviation ord_\<Gamma> :: "'a inference set" where
+  "ord_\<Gamma> \<equiv> ground_resolution_with_selection.ord_\<Gamma> S_ss_gQ"
+
+abbreviation Rf :: "'a clause set \<Rightarrow> 'a clause set" where
+  "Rf \<equiv> standard_redundancy_criterion.Rf"
+
+abbreviation Ri :: "'a clause set \<Rightarrow> 'a inference set" where
+  "Ri \<equiv> standard_redundancy_criterion.Ri ord_\<Gamma>"
+
+abbreviation saturated_upto :: "'a clause set \<Rightarrow> bool" where
+  "saturated_upto \<equiv> redundancy_criterion.saturated_upto ord_\<Gamma> Rf Ri"
+
 theorem
   deterministic_RP_saturated: "saturated_upto grounded_R" (is ?saturated) and
   deterministic_RP_saturation_model: "I \<Turnstile>s grounded_R \<longleftrightarrow> I \<Turnstile>s grounded_N0" (is ?sound)
@@ -698,7 +707,7 @@ proof -
   show ?saturated
     using weighted_RP_saturated[OF deriv_ss_gSts_weighted_RP finite_ss_gSts0 empty_ss_gP0
         empty_ss_gQ0]
-    unfolding saturated_upto_def lim_last gr_last by blast
+    unfolding lim_last gr_last by blast
 
   show ?sound
     sorry
@@ -717,8 +726,8 @@ next
   then have "\<not> satisfiable grounded_R"
     using deterministic_RP_saturation_model[THEN iffD1] by blast
   then show ?lhs
-    using deterministic_RP_saturated
-    sorry
+    unfolding ord_\<Gamma>_saturated_upto_complete[OF deriv_ss_gSts_weighted_RP finite_ss_gSts0
+        empty_ss_gP0 empty_ss_gQ0 deterministic_RP_saturated] .
 qed
 
 end

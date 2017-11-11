@@ -1776,7 +1776,7 @@ proof -
   moreover have "src.saturated_upto (Liminf_llist (lmap grounding_of_state Sts))"
     by (rule RP_saturated_if_fair[OF fair, simplified])
   ultimately have "{#} \<in> Liminf_llist (lmap grounding_of_state Sts)"
-    using src.saturated_upto_complete by auto
+    using src.saturated_upto_complete_if by auto
   then show "{#} \<in> clss_of_state (Liminf_state Sts)"
     using empty_in_Liminf_state fair by auto
 qed

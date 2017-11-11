@@ -89,7 +89,6 @@ proof -
     using ys_def unfolding ys by (metis ldropn_Suc_conv_ldropn ldropn_eq_LConsD llist.inject)
 qed
 
-(* FIXME: split into a monotonicity lemma and a composition lemma? *)
 lemma chain_lmap:
   assumes "\<forall>x y. R x y \<longrightarrow> R' (f x) (f y)" and "chain R xs"
   shows "chain R' (lmap f xs)"
@@ -110,6 +109,11 @@ proof (coinduction arbitrary: xs)
       by auto
   qed auto
 qed
+
+lemma chain_mono:
+  assumes "\<forall>x y. R x y \<longrightarrow> R' x y" and "chain R xs"
+  shows "chain R' xs"
+  using assms by (rule chain_lmap[of _ _ "\<lambda>x. x", unfolded llist.map_ident])
 
 lemma tranclp_imp_exists_finite_chain:
   "R\<^sup>+\<^sup>+ x y \<Longrightarrow> \<exists>xs. lfinite xs \<and> chain R xs \<and> lhd xs = x \<and> llast xs = y"
