@@ -14,8 +14,8 @@ theory Weighted_FO_Ordered_Resolution_Prover
   imports FO_Ordered_Resolution_Prover
 begin
 
-type_synonym 'a gclause = "'a clause \<times> nat"
-type_synonym 'a gstate = "'a gclause multiset \<times> 'a gclause multiset \<times> 'a gclause multiset \<times> nat"
+type_synonym 'a wclause = "'a clause \<times> nat"
+type_synonym 'a wstate = "'a wclause multiset \<times> 'a wclause multiset \<times> 'a wclause multiset \<times> nat"
 
 locale weighted_FO_resolution_prover =
   FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu less_atm
@@ -44,27 +44,27 @@ lemma finite_ord_FO_resolution_inferences_between:
   shows "finite (ord_FO_resolution_inferences_between CC D)"
   sorry
 
-fun state_of_gstate :: "'a gstate \<Rightarrow> 'a state" where
-  "state_of_gstate (N, P, Q, n) =
+fun state_of_wstate :: "'a wstate \<Rightarrow> 'a state" where
+  "state_of_wstate (N, P, Q, n) =
    (set_mset (image_mset fst N), set_mset (image_mset fst P), set_mset (image_mset fst Q))"
 
 (* FIXME: don't use \<circ> in abbreviations -- fragile w.r.t. simplifier when applied *)
-abbreviation clss_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" where
-  "clss_of_gstate \<equiv> clss_of_state \<circ> state_of_gstate"
+abbreviation clss_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where
+  "clss_of_wstate \<equiv> clss_of_state \<circ> state_of_wstate"
 
-abbreviation P_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" where
-  "P_of_gstate \<equiv> P_of_state \<circ> state_of_gstate"
+abbreviation P_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where
+  "P_of_wstate \<equiv> P_of_state \<circ> state_of_wstate"
 
-abbreviation Q_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" where
-  "Q_of_gstate \<equiv> Q_of_state \<circ> state_of_gstate"
+abbreviation Q_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where
+  "Q_of_wstate \<equiv> Q_of_state \<circ> state_of_wstate"
 
-abbreviation grounding_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" where
-  "grounding_of_gstate \<equiv> grounding_of_state \<circ> state_of_gstate"
+abbreviation grounding_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where
+  "grounding_of_wstate \<equiv> grounding_of_state \<circ> state_of_wstate"
 
-abbreviation Liminf_gstate :: "'a gstate llist \<Rightarrow> 'a state" where
-  "Liminf_gstate Sts \<equiv> Liminf_state (lmap state_of_gstate Sts)"
+abbreviation Liminf_wstate :: "'a wstate llist \<Rightarrow> 'a state" where
+  "Liminf_wstate Sts \<equiv> Liminf_state (lmap state_of_wstate Sts)"
 
-inductive weighted_RP :: "'a gstate \<Rightarrow> 'a gstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w" 50) where
+inductive weighted_RP :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w" 50) where
   tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
 | forward_subsumption: "D \<in># image_mset fst (P + Q) \<Longrightarrow> subsumes D C \<Longrightarrow>
     (N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
@@ -84,7 +84,7 @@ inductive weighted_RP :: "'a gstate \<Rightarrow> 'a gstate \<Rightarrow> bool" 
       ` concls_of (ord_FO_resolution_inferences_between (set_mset (image_mset fst Q)) C)) \<Longrightarrow>
     ({#}, P + {#(C, i)#}, Q, n) \<leadsto>\<^sub>w (N, P, Q + {#(C, i)#}, Suc n)"
 
-lemma weighted_RP_imp_RP: "St \<leadsto>\<^sub>w St' \<Longrightarrow> state_of_gstate St \<leadsto> state_of_gstate St'"
+lemma weighted_RP_imp_RP: "St \<leadsto>\<^sub>w St' \<Longrightarrow> state_of_wstate St \<leadsto> state_of_wstate St'"
 proof (induction rule: weighted_RP.induct)
   case (inference_computation P C i N n Q)
   then show ?case
@@ -94,7 +94,7 @@ qed (use RP.intros in simp_all)
 
 lemma weighted_RP_model:
   assumes step: "St \<leadsto>\<^sub>w St'"
-  shows "I \<Turnstile>fom mset_set (grounding_of_gstate St') \<longleftrightarrow> I \<Turnstile>fom mset_set (grounding_of_gstate St)"
+  shows "I \<Turnstile>s grounding_of_wstate St' \<longleftrightarrow> I \<Turnstile>s grounding_of_wstate St"
   using RP_model[OF weighted_RP_imp_RP[OF step]] by (simp only: comp_def)
 
 lemma final_weighted_RP: "\<not> ({#}, {#}, Q, n) \<leadsto>\<^sub>w St"
@@ -102,28 +102,28 @@ lemma final_weighted_RP: "\<not> ({#}, {#}, Q, n) \<leadsto>\<^sub>w St"
 
 context
   fixes
-    Sts :: "'a gstate llist"
+    Sts :: "'a wstate llist"
   assumes
     deriv: "chain (op \<leadsto>\<^sub>w) Sts" and
-    finite_Sts0: "finite (clss_of_gstate (lhd Sts))" and
-    empty_P0: "P_of_gstate (lhd Sts) = {}" and
-    empty_Q0: "Q_of_gstate (lhd Sts) = {}"
+    finite_Sts0: "finite (clss_of_wstate (lhd Sts))" and
+    empty_P0: "P_of_wstate (lhd Sts) = {}" and
+    empty_Q0: "Q_of_wstate (lhd Sts) = {}"
 begin
 
-lemma deriv_RP: "chain (op \<leadsto>) (lmap state_of_gstate Sts)"
+lemma deriv_RP: "chain (op \<leadsto>) (lmap state_of_wstate Sts)"
   using deriv weighted_RP_imp_RP by (metis chain_lmap)
 
-lemma finite_Sts0_RP: "finite (clss_of_state (lhd (lmap state_of_gstate Sts)))"
+lemma finite_Sts0_RP: "finite (clss_of_state (lhd (lmap state_of_wstate Sts)))"
   using finite_Sts0 chain_length_pos[OF deriv] by auto
 
-lemma empty_P0_RP: "P_of_state (lhd (lmap state_of_gstate Sts)) = {}"
+lemma empty_P0_RP: "P_of_state (lhd (lmap state_of_wstate Sts)) = {}"
   using empty_P0 chain_length_pos[OF deriv] by auto
 
-lemma empty_Q0_RP: "Q_of_state (lhd (lmap state_of_gstate Sts)) = {}"
+lemma empty_Q0_RP: "Q_of_state (lhd (lmap state_of_wstate Sts)) = {}"
   using empty_Q0 chain_length_pos[OF deriv] by auto
 
 abbreviation S_gQ :: "'a clause \<Rightarrow> 'a clause" where
-  "S_gQ \<equiv> S_Q (lmap state_of_gstate Sts)"
+  "S_gQ \<equiv> S_Q (lmap state_of_wstate Sts)"
 
 interpretation sq: selection S_gQ
   unfolding S_Q_def[OF deriv_RP finite_Sts0_RP empty_P0_RP empty_Q0_RP]
@@ -141,37 +141,37 @@ interpretation src: standard_redundancy_criterion_counterex_reducing gd.ord_\<Ga
 
 lemmas ord_\<Gamma>_saturated_upto_complete = src.saturated_upto_complete
 
-theorem weighted_RP_fair: "fair_state_seq (lmap state_of_gstate Sts)"
+theorem weighted_RP_fair: "fair_state_seq (lmap state_of_wstate Sts)"
 proof (rule ccontr)
-  assume "\<not> fair_state_seq (lmap state_of_gstate Sts)"
+  assume "\<not> fair_state_seq (lmap state_of_wstate Sts)"
   then obtain C where
-    "C \<in> Liminf_llist (lmap N_of_state (lmap state_of_gstate Sts))
-       \<union> Liminf_llist (lmap P_of_state (lmap state_of_gstate Sts))"
+    "C \<in> Liminf_llist (lmap N_of_state (lmap state_of_wstate Sts))
+       \<union> Liminf_llist (lmap P_of_state (lmap state_of_wstate Sts))"
     unfolding fair_state_seq_def Liminf_state_def by auto
   then show False
   proof
-    assume "C \<in> Liminf_llist (lmap N_of_state (lmap state_of_gstate Sts))"
+    assume "C \<in> Liminf_llist (lmap N_of_state (lmap state_of_wstate Sts))"
     then obtain i where
       "enat i < llength Sts"
-      "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_gstate (lnth Sts j))"
+      "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_wstate (lnth Sts j))"
       unfolding Liminf_llist_def by auto
     then show False
       sorry (* *)
   next
-    assume "C \<in> Liminf_llist (lmap P_of_state (lmap state_of_gstate Sts))"
+    assume "C \<in> Liminf_llist (lmap P_of_state (lmap state_of_wstate Sts))"
     then show False
       sorry
   qed
 qed
 
-corollary weighted_RP_saturated: "src.saturated_upto (Liminf_llist (lmap grounding_of_gstate Sts))"
+corollary weighted_RP_saturated: "src.saturated_upto (Liminf_llist (lmap grounding_of_wstate Sts))"
   unfolding llist.map_comp[symmetric]
   by (rule RP_saturated_if_fair[OF deriv_RP finite_Sts0_RP empty_P0_RP empty_Q0_RP
         weighted_RP_fair])
 
 corollary weighted_RP_complete:
-  assumes unsat: "\<not> satisfiable (grounding_of_state (Liminf_gstate Sts))"
-  shows "{#} \<in> clss_of_state (Liminf_gstate Sts)"
+  assumes unsat: "\<not> satisfiable (grounding_of_state (Liminf_wstate Sts))"
+  shows "{#} \<in> clss_of_state (Liminf_wstate Sts)"
   by (rule RP_complete_if_fair[OF deriv_RP finite_Sts0_RP empty_P0_RP empty_Q0_RP weighted_RP_fair
         unsat])
 
@@ -198,7 +198,7 @@ locale weighted_FO_resolution_prover_with_size_generation_factors =
     generation_factor_pos: "generation_factor > 0"
 begin
 
-fun weight :: "'a gclause \<Rightarrow> nat" where
+fun weight :: "'a wclause \<Rightarrow> nat" where
   "weight (C, m) = size_factor * size_multiset (size_literal size_atm) C + generation_factor * m"
 
 lemma weight_mono: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"

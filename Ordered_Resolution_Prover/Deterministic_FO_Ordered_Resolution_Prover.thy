@@ -13,17 +13,29 @@ theory Deterministic_FO_Ordered_Resolution_Prover
   imports Weighted_FO_Ordered_Resolution_Prover
 begin
 
+
+section \<open>Library\<close>
+
 (* TODO: Move to Isabelle. *)
 lemma funpow_fixpoint: "f x = x \<Longrightarrow> (f ^^ n) x = x"
   by (induct n) auto
 
+lemma rtranclp_imp_eq_image: "(\<forall>x y. R x y \<longrightarrow> f x = f y) \<Longrightarrow> R\<^sup>*\<^sup>* x y \<Longrightarrow> f x = f y"
+  by (erule rtranclp.induct) auto
+
+lemma tranclp_imp_eq_image: "(\<forall>x y. R x y \<longrightarrow> f x = f y) \<Longrightarrow> R\<^sup>+\<^sup>+ x y \<Longrightarrow> f x = f y"
+  by (erule tranclp.induct) auto
+
+
+section \<open>Prover\<close>
+
 type_synonym 'a lclause = "'a literal list"
-type_synonym 'a glclause = "'a lclause \<times> nat"
-type_synonym 'a glstate = "'a glclause list \<times> 'a glclause list \<times> 'a glclause list \<times> nat"
+type_synonym 'a dclause = "'a lclause \<times> nat"
+type_synonym 'a dstate = "'a dclause list \<times> 'a dclause list \<times> 'a dclause list \<times> nat"
 
 locale deterministic_FO_resolution_prover =
   weighted_FO_resolution_prover_with_size_generation_factors S subst_atm id_subst comp_subst
-    renamings_apart atm_of_atms mgu less_atm size_atm generation_factor size_factor
+    renamings_apart atm_of_atms mgu lessatm size_atm generation_factor size_factor
   for
     S :: "('a :: wellorder) clause \<Rightarrow> 'a clause" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
@@ -32,7 +44,7 @@ locale deterministic_FO_resolution_prover =
     renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
     atm_of_atms :: "'a list \<Rightarrow> 'a" and
     mgu :: "'a set set \<Rightarrow> 's option" and
-    less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
+    lessatm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
     size_atm :: "'a \<Rightarrow> nat" and
     generation_factor :: nat and
     size_factor :: nat +
@@ -40,19 +52,19 @@ locale deterministic_FO_resolution_prover =
     S_empty: "S C = {#}"
 begin
 
-fun gstate_of_glstate :: "'a glstate \<Rightarrow> 'a gstate" where
-  "gstate_of_glstate (N, P, Q, n) =
+fun wstate_of_dstate :: "'a dstate \<Rightarrow> 'a wstate" where
+  "wstate_of_dstate (N, P, Q, n) =
    (mset (map (apfst mset) N), mset (map (apfst mset) P), mset (map (apfst mset) Q), n)"
 
-fun state_of_glstate :: "'a glstate \<Rightarrow> 'a state" where
-  "state_of_glstate (N, P, Q, _) =
+fun state_of_dstate :: "'a dstate \<Rightarrow> 'a state" where
+  "state_of_dstate (N, P, Q, _) =
    (set (map (mset \<circ> fst) N), set (map (mset \<circ> fst) P), set (map (mset \<circ> fst) Q))"
 
-abbreviation clss_of_glstate :: "'a glstate \<Rightarrow> 'a clause set" where
-  "clss_of_glstate St \<equiv> clss_of_state (state_of_glstate St)"
+abbreviation clss_of_dstate :: "'a dstate \<Rightarrow> 'a clause set" where
+  "clss_of_dstate St \<equiv> clss_of_state (state_of_dstate St)"
 
-fun is_final_glstate :: "'a glstate \<Rightarrow> bool" where
-  "is_final_glstate (N, P, Q, n) \<longleftrightarrow> N = [] \<and> P = []"
+fun is_final_dstate :: "'a dstate \<Rightarrow> bool" where
+  "is_final_dstate (N, P, Q, n) \<longleftrightarrow> N = [] \<and> P = []"
 
 abbreviation rtrancl_weighted_RP (infix "\<leadsto>\<^sub>w\<^sup>*" 50) where
   "op \<leadsto>\<^sub>w\<^sup>* \<equiv> (op \<leadsto>\<^sub>w)\<^sup>*\<^sup>*"
@@ -78,7 +90,7 @@ primrec reduce :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> 'a lcl
 | "reduce Ds C (L # C') =
    (if is_reducible_lit Ds (C @ C') L then reduce Ds C C' else L # reduce Ds (L # C) C')"
 
-fun reduce_all :: "'a lclause list \<Rightarrow> 'a glclause list \<Rightarrow> 'a glclause list \<times> 'a glclause list" where
+fun reduce_all :: "'a lclause list \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause list \<times> 'a dclause list" where
   "reduce_all _ [] = ([], [])"
 | "reduce_all Ds ((C, i) # Cs) =
    (let C' = reduce Ds [] C in
@@ -130,13 +142,13 @@ definition resolve_rename_either_way :: "'a lclause \<Rightarrow> 'a lclause \<R
     resolve_either_way (map (\<lambda>L. L \<cdot>l (\<sigma>s ! 0)) C) (map (\<lambda>L. L \<cdot>l (\<sigma>s ! 1)) D))"
 
 fun
-  select_min_weight_clause :: "'a glclause \<Rightarrow> 'a glclause list \<Rightarrow> 'a glclause"
+  select_min_weight_clause :: "'a dclause \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause"
 where
   "select_min_weight_clause Ci [] = Ci"
 | "select_min_weight_clause Ci (Dj # Ds) =
    select_min_weight_clause (if weight (apfst mset Dj) < weight (apfst mset Ci) then Dj else Ci) Ds"
 
-fun deterministic_RP_step :: "'a glstate \<Rightarrow> 'a glstate" where
+fun deterministic_RP_step :: "'a dstate \<Rightarrow> 'a dstate" where
   "deterministic_RP_step (N, P, Q, n) =
    (case N of
       [] \<Rightarrow>
@@ -173,9 +185,9 @@ fun deterministic_RP_step :: "'a glstate \<Rightarrow> 'a glstate" where
 
 declare deterministic_RP_step.simps [simp del]
 
-partial_function (option) deterministic_RP :: "'a glstate \<Rightarrow> 'a lclause list option" where
+partial_function (option) deterministic_RP :: "'a dstate \<Rightarrow> 'a lclause list option" where
   "deterministic_RP St =
-   (if is_final_glstate St then
+   (if is_final_dstate St then
       let (_, _, Q, _) = St in Some (map fst Q)
     else
       deterministic_RP (deterministic_RP_step St))"
@@ -214,11 +226,11 @@ qed simp
 
 lemma nonfinal_deterministic_RP_step:
   assumes
-    nonfinal: "\<not> is_final_glstate St" and
+    nonfinal: "\<not> is_final_dstate St" and
     step: "St' = deterministic_RP_step St"
-  shows "gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>+ gstate_of_glstate St'"
+  shows "wstate_of_dstate St \<leadsto>\<^sub>w\<^sup>+ wstate_of_dstate St'"
 proof -
-  obtain N P Q :: "'a glclause list" and n :: nat where
+  obtain N P Q :: "'a dclause list" and n :: nat where
     st: "St = (N, P, Q, n)"
     by (cases St) blast
   note step = step[unfolded st deterministic_RP_step.simps, simplified]
@@ -246,10 +258,10 @@ proof -
       have ci_in: "(C, i) \<in> set P"
         by (rule select_min_weight_clause_in[of P0 P', folded ci p_cons])
 
-      define N' :: "'a glclause list" where
+      define N' :: "'a dclause list" where
         "N' = map (\<lambda>D. (D, n))
            (remdups (resolve_rename C C @ concat (map (resolve_rename_either_way C \<circ> fst) Q)))"
-      define P'' :: "'a glclause list" where
+      define P'' :: "'a dclause list" where
         "P'' = remove1 (C, i) P"
 
       (* FIXME: rename and state at different level of abstraction *)
@@ -284,7 +296,7 @@ proof -
       show ?thesis
         unfolding st n_nil step
         apply (rule tranclp.r_into_trancl)
-        apply (unfold gstate_of_glstate.simps)
+        apply (unfold wstate_of_dstate.simps)
         apply (fold ci)
         apply (simp del: remove1.simps)
         apply (rule arg_cong2[of _ _ _ _ "op \<leadsto>\<^sub>w", THEN iffD1, OF _ _ trans[unfolded P''_def N'_def]])
@@ -307,8 +319,8 @@ proof -
       "C' = reduce (map fst P @ map fst Q) [] C"
     note step = step[unfolded ci C'_def[symmetric], simplified]
 
-    have "gstate_of_glstate ((E @ C, i) # N', P, Q, n)
-       \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate ((E @ reduce (map fst P @ map fst Q) E C, i) # N', P, Q, n)" for E
+    have "wstate_of_dstate ((E @ C, i) # N', P, Q, n)
+       \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((E @ reduce (map fst P @ map fst Q) E C, i) # N', P, Q, n)" for E
       unfolding C'_def
     proof (induct C arbitrary: E)
       case (Cons L C)
@@ -330,8 +342,8 @@ proof -
           "mset D' + {#L'#} \<in> set (map (mset \<circ> fst) (P @ Q))"
           "- L = L' \<cdot>l \<sigma> \<and> mset D' \<cdot> \<sigma> \<subseteq># mset (E @ C)"
           unfolding is_reducible_lit_def by (auto simp: comp_def)
-        have "gstate_of_glstate ((E @ L # C, i) # N', P, Q, n)
-          \<leadsto>\<^sub>w gstate_of_glstate ((E @ C, i) # N', P, Q, n)"
+        have "wstate_of_dstate ((E @ L # C, i) # N', P, Q, n)
+          \<leadsto>\<^sub>w wstate_of_dstate ((E @ C, i) # N', P, Q, n)"
           by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
                 forward_reduction[of "mset D'" L' "mset (map (apfst mset) P)"
                   "mset (map (apfst mset) Q)" L \<sigma> "mset (E @ C)" "mset (map (apfst mset) N')" i n]])
@@ -345,11 +357,11 @@ proof -
       qed
     qed simp
     then have red_C:
-      "gstate_of_glstate ((C, i) # N', P, Q, n) \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate ((C', i) # N', P, Q, n)"
+      "wstate_of_dstate ((C, i) # N', P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P, Q, n)"
       unfolding C'_def by (metis self_append_conv2)
 
-    have proc_C: "gstate_of_glstate ((C', i) # N', P', Q', n')
-      \<leadsto>\<^sub>w gstate_of_glstate (N', (C', i) # P', Q', n')" for P' Q' n'
+    have proc_C: "wstate_of_dstate ((C', i) # N', P', Q', n')
+      \<leadsto>\<^sub>w wstate_of_dstate (N', (C', i) # P', Q', n')" for P' Q' n'
       by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
             clause_processing[of "mset (map (apfst mset) N')" "mset C'" i
               "mset (map (apfst mset) P')" "mset (map (apfst mset) Q')" n']],
@@ -362,13 +374,13 @@ proof -
       note step = step[simplified c'_nil nil_ni_pq, simplified]
 
       have sub_P:
-        "gstate_of_glstate (([], i) # N', P, Q, n) \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate (([], i) # N', [], Q, n)"
+        "wstate_of_dstate (([], i) # N', P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (([], i) # N', [], Q, n)"
         using nil_ni_pq[THEN conjunct1]
       proof (induct P)
         case (Cons P0 P)
         note ih = this(1) and nil_ni_p = this(2)
-        have "gstate_of_glstate (([], i) # N', P0 # P, Q, n)
-          \<leadsto>\<^sub>w gstate_of_glstate (([], i) # N', P, Q, n)"
+        have "wstate_of_dstate (([], i) # N', P0 # P, Q, n)
+          \<leadsto>\<^sub>w wstate_of_dstate (([], i) # N', P, Q, n)"
           by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
                 backward_subsumption_P[of "{#}" "mset (map (apfst mset) (([], i) # N'))"
                   "mset (fst P0)" "mset (map (apfst mset) P)" "snd P0" "mset (map (apfst mset) Q)"
@@ -378,13 +390,13 @@ proof -
           using ih by (rule converse_rtranclp_into_rtranclp, use nil_ni_p in auto)
       qed simp
       have sub_Q:
-        "gstate_of_glstate (([], i) # N', [], Q, n) \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate (([], i) # N', [], [], n)"
+        "wstate_of_dstate (([], i) # N', [], Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (([], i) # N', [], [], n)"
         using nil_ni_pq[THEN conjunct2]
       proof (induct Q)
         case (Cons Q0 Q)
         note ih = this(1) and nil_ni_q = this(2)
-        have "gstate_of_glstate (([], i) # N', [], Q0 # Q, n)
-          \<leadsto>\<^sub>w gstate_of_glstate (([], i) # N', [], Q, n)"
+        have "wstate_of_dstate (([], i) # N', [], Q0 # Q, n)
+          \<leadsto>\<^sub>w wstate_of_dstate (([], i) # N', [], Q, n)"
           by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
                 backward_subsumption_Q[of "{#}" "mset (map (apfst mset) (([], i) # N'))"
                   "mset (fst Q0)" "{#}" "mset (map (apfst mset) Q)" "snd Q0" n]],
@@ -393,12 +405,12 @@ proof -
           using ih by (rule converse_rtranclp_into_rtranclp, use nil_ni_q in auto)
       qed simp
       have sub_N:
-        "gstate_of_glstate (N', [([], i)], [], n) \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate ([], [([], i)], [], n)"
+        "wstate_of_dstate (N', [([], i)], [], n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [([], i)], [], n)"
       proof (induct N')
         case (Cons N'0 N')
         note ih = this
-        have "gstate_of_glstate (N'0 # N', [([], i)], [], n)
-          \<leadsto>\<^sub>w gstate_of_glstate (N', [([], i)], [], n)"
+        have "wstate_of_dstate (N'0 # N', [([], i)], [], n)
+          \<leadsto>\<^sub>w wstate_of_dstate (N', [([], i)], [], n)"
           by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
                 forward_subsumption[of "{#}" "{#({#}, i)#}" "{#}" "mset (fst N'0)"
                   "mset (map (apfst mset) N')" "snd N'0" n]])
@@ -407,7 +419,7 @@ proof -
           using ih by (rule converse_rtranclp_into_rtranclp)
       qed simp
       have inf_C:
-        "gstate_of_glstate ([], [([], i)], [], n) \<leadsto>\<^sub>w gstate_of_glstate ([], [], [([], i)], Suc n)"
+        "wstate_of_dstate ([], [([], i)], [], n) \<leadsto>\<^sub>w wstate_of_dstate ([], [], [([], i)], Suc n)"
         by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
               inference_computation[of "{#}" "{#}" i "{#}" n "{#}"]],
             auto simp: ord_FO_resolution_inferences_between_empty_empty)
@@ -427,7 +439,7 @@ proof -
         case taut_or_subs: True
         note step = step[simplified taut_or_subs, simplified]
 
-        have "gstate_of_glstate ((C', i) # N', P, Q, n) \<leadsto>\<^sub>w gstate_of_glstate (N', P, Q, n)"
+        have "wstate_of_dstate ((C', i) # N', P, Q, n) \<leadsto>\<^sub>w wstate_of_dstate (N', P, Q, n)"
         proof (cases "is_tautology C'")
           case True
           then obtain A :: 'a where
@@ -472,17 +484,17 @@ proof -
         note step = step[unfolded P'_def[symmetric] Q''_def[symmetric] P''_def[symmetric],
             simplified]
 
-        have red_Q: "gstate_of_glstate ((C', i) # N', P, Q, n)
-          \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate ((C', i) # N', back_to_P @ P, Q', n)"
+        have red_Q: "wstate_of_dstate ((C', i) # N', P, Q, n)
+          \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', back_to_P @ P, Q', n)"
           sorry
-        have red_P: "gstate_of_glstate ((C', i) # N', back_to_P @ P, Q', n)
-          \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate ((C', i) # N', P', Q', n)"
+        have red_P: "wstate_of_dstate ((C', i) # N', back_to_P @ P, Q', n)
+          \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q', n)"
           sorry
-        have subs_Q: "gstate_of_glstate ((C', i) # N', P', Q', n)
-          \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate ((C', i) # N', P', Q'', n)"
+        have subs_Q: "wstate_of_dstate ((C', i) # N', P', Q', n)
+          \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q'', n)"
           sorry
-        have subs_P: "gstate_of_glstate ((C', i) # N', P', Q'', n)
-          \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate ((C', i) # N', P'', Q'', n)"
+        have subs_P: "wstate_of_dstate ((C', i) # N', P', Q'', n)
+          \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P'', Q'', n)"
           sorry
 
         show ?thesis
@@ -497,7 +509,7 @@ proof -
   qed
 qed
 
-lemma final_deterministic_RP_step: "is_final_glstate St \<Longrightarrow> deterministic_RP_step St = St"
+lemma final_deterministic_RP_step: "is_final_dstate St \<Longrightarrow> deterministic_RP_step St = St"
   by (cases St) (simp add: deterministic_RP_step.simps)
 
 lemma deterministic_RP_SomeD:
@@ -508,7 +520,7 @@ proof (induct rule: deterministic_RP.raw_induct[OF _ assms])
   case (1 self_call St R)
   note ih = this(1) and step = this(2)
 
-  obtain N P Q :: "'a glclause list" and n :: nat where
+  obtain N P Q :: "'a dclause list" and n :: nat where
     st: "St = (N, P, Q, n)"
     by (cases St) blast
   note step = step[unfolded st, simplified]
@@ -535,26 +547,26 @@ proof (induct rule: deterministic_RP.raw_induct[OF _ assms])
 qed
 
 lemma deterministic_RP_step_weighted_RP:
-  "gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate (deterministic_RP_step St)"
-  by (cases "is_final_glstate St")
+  "wstate_of_dstate St \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (deterministic_RP_step St)"
+  by (cases "is_final_dstate St")
     (simp add: final_deterministic_RP_step nonfinal_deterministic_RP_step tranclp_into_rtranclp)+
 
 lemma funpow_deterministic_RP_step_weighted_RP:
-  "gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate ((deterministic_RP_step ^^ k) St)"
+  "wstate_of_dstate St \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((deterministic_RP_step ^^ k) St)"
   by (induct k; simp) (meson deterministic_RP_step_weighted_RP rtranclp_trans)
 
 lemma funpow_deterministic_RP_step_imp_weighted_RP:
-  "(\<exists>k. (deterministic_RP_step ^^ k) St = St') \<Longrightarrow> gstate_of_glstate St \<leadsto>\<^sub>w\<^sup>* gstate_of_glstate St'"
+  "(\<exists>k. (deterministic_RP_step ^^ k) St = St') \<Longrightarrow> wstate_of_dstate St \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate St'"
   using funpow_deterministic_RP_step_weighted_RP by blast
 
 context
   fixes
-    N0 :: "'a glclause list" and
+    N0 :: "'a dclause list" and
     n0 :: nat and
     R :: "'a lclause list"
 begin
 
-abbreviation St0 :: "'a glstate" where
+abbreviation St0 :: "'a dstate" where
   "St0 \<equiv> (N0, [], [], n0)"
 
 abbreviation grounded_N0 where
@@ -563,15 +575,15 @@ abbreviation grounded_N0 where
 abbreviation grounded_R :: "'a clause set" where
   "grounded_R \<equiv> grounding_of_clss (set (map mset R))"
 
-primcorec derivation_from :: "'a glstate \<Rightarrow> 'a glstate llist" where
+primcorec derivation_from :: "'a dstate \<Rightarrow> 'a dstate llist" where
   "derivation_from St =
-   LCons St (if is_final_glstate St then LNil else derivation_from (deterministic_RP_step St))"
+   LCons St (if is_final_dstate St then LNil else derivation_from (deterministic_RP_step St))"
 
-abbreviation Sts :: "'a glstate llist" where
+abbreviation Sts :: "'a dstate llist" where
   "Sts \<equiv> derivation_from St0"
 
-abbreviation gSts :: "'a gstate llist" where
-  "gSts \<equiv> lmap gstate_of_glstate Sts"
+abbreviation gSts :: "'a wstate llist" where
+  "gSts \<equiv> lmap wstate_of_dstate Sts"
 
 context
   assumes drp_some: "deterministic_RP St0 = Some R"
@@ -582,7 +594,7 @@ proof (induct rule: deterministic_RP.raw_induct[OF _ drp_some])
   case (1 self_call St St')
   note ih = this(1) and step = this(2)
   show ?case
-    using step by (subst derivation_from.code, cases "is_final_glstate St", auto intro!: ih)
+    using step by (subst derivation_from.code, cases "is_final_dstate St", auto intro!: ih)
 qed
 
 lemma lfinite_gSts: "lfinite gSts"
@@ -590,16 +602,16 @@ lemma lfinite_gSts: "lfinite gSts"
 
 lemma deriv_gSts_trancl_weighted_RP: "chain (op \<leadsto>\<^sub>w\<^sup>+) gSts"
 proof -
-  have "lfinite gSts' \<Longrightarrow> gSts' = lmap gstate_of_glstate (derivation_from St0') \<Longrightarrow>
+  have "lfinite gSts' \<Longrightarrow> gSts' = lmap wstate_of_dstate (derivation_from St0') \<Longrightarrow>
     chain (op \<leadsto>\<^sub>w\<^sup>+) gSts'" for St0' gSts'
   proof (induct arbitrary: St0' rule: lfinite_induct)
     case (LCons gSts')
     note fin = this(1) and nnull = this(2) and ih = this(3) and gsts' = this(4)
     show ?case
-    proof (cases "is_final_glstate St0'")
+    proof (cases "is_final_dstate St0'")
       case True
       then have "ltl gSts' = LNil"
-        unfolding gsts' by (simp del: is_final_glstate.simps)
+        unfolding gsts' by (simp del: is_final_dstate.simps)
       then show ?thesis
         using singleton by (metis lhd_LCons_ltl nnull)
     next
@@ -614,39 +626,39 @@ proof -
     using lfinite_gSts by blast
 qed
 
-definition ss_gSts :: "'a gstate llist" where
-  "ss_gSts = (SOME gSts'. lfinite gSts' \<and> chain (op \<leadsto>\<^sub>w) gSts' \<and> lhd gSts' = lhd gSts
+definition ssgSts :: "'a wstate llist" where
+  "ssgSts = (SOME gSts'. lfinite gSts' \<and> chain (op \<leadsto>\<^sub>w) gSts' \<and> lhd gSts' = lhd gSts
      \<and> llast gSts' = llast gSts)"
 
-lemma ss_gSts:
-  "lfinite ss_gSts \<and> chain (op \<leadsto>\<^sub>w) ss_gSts \<and> lhd ss_gSts = lhd gSts
-   \<and> llast ss_gSts = llast gSts"
-  unfolding ss_gSts_def
+lemma ssgSts:
+  "lfinite ssgSts \<and> chain (op \<leadsto>\<^sub>w) ssgSts \<and> lhd ssgSts = lhd gSts
+   \<and> llast ssgSts = llast gSts"
+  unfolding ssgSts_def
   by (rule someI_ex[OF lfinite_chain_tranclp_imp_exists_lfinite_chain[OF lfinite_gSts
           deriv_gSts_trancl_weighted_RP]])
 
-lemmas lfinite_ss_gSts = ss_gSts[THEN conjunct1]
-lemmas deriv_ss_gSts_weighted_RP = ss_gSts[THEN conjunct2, THEN conjunct1]
-lemmas lhd_ss_gSts = ss_gSts[THEN conjunct2, THEN conjunct2, THEN conjunct1]
-lemmas ltl_ss_gSts = ss_gSts[THEN conjunct2, THEN conjunct2, THEN conjunct2]
+lemmas lfinite_ssgSts = ssgSts[THEN conjunct1]
+lemmas deriv_ssgSts_weighted_RP = ssgSts[THEN conjunct2, THEN conjunct1]
+lemmas lhd_ssgSts = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct1]
+lemmas ltl_ssgSts = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct2]
 
-lemma not_lnull_ss_gSts: "\<not> lnull ss_gSts"
-  using deriv_ss_gSts_weighted_RP by (cases rule: chain.cases) auto
+lemma not_lnull_ssgSts: "\<not> lnull ssgSts"
+  using deriv_ssgSts_weighted_RP by (cases rule: chain.cases) auto
 
-lemma finite_ss_gSts0: "finite (clss_of_gstate (lhd ss_gSts))"
-  unfolding lhd_ss_gSts by (subst derivation_from.code) (simp add: clss_of_state_def)
+lemma finite_ssgSts0: "finite (clss_of_wstate (lhd ssgSts))"
+  unfolding lhd_ssgSts by (subst derivation_from.code) (simp add: clss_of_state_def)
 
-lemma empty_ss_gP0: "P_of_gstate (lhd ss_gSts) = {}"
-  unfolding lhd_ss_gSts by (subst derivation_from.code) simp
+lemma empty_ssgP0: "P_of_wstate (lhd ssgSts) = {}"
+  unfolding lhd_ssgSts by (subst derivation_from.code) simp
 
-lemma empty_ss_gQ0: "Q_of_gstate (lhd ss_gSts) = {}"
-  unfolding lhd_ss_gSts by (subst derivation_from.code) simp
+lemma empty_ssgQ0: "Q_of_wstate (lhd ssgSts) = {}"
+  unfolding lhd_ssgSts by (subst derivation_from.code) simp
 
-abbreviation S_ss_gQ :: "'a clause \<Rightarrow> 'a clause" where
-  "S_ss_gQ \<equiv> S_gQ ss_gSts"
+abbreviation S_ssgQ :: "'a clause \<Rightarrow> 'a clause" where
+  "S_ssgQ \<equiv> S_gQ ssgSts"
 
 abbreviation ord_\<Gamma> :: "'a inference set" where
-  "ord_\<Gamma> \<equiv> ground_resolution_with_selection.ord_\<Gamma> S_ss_gQ"
+  "ord_\<Gamma> \<equiv> ground_resolution_with_selection.ord_\<Gamma> S_ssgQ"
 
 abbreviation Rf :: "'a clause set \<Rightarrow> 'a clause set" where
   "Rf \<equiv> standard_redundancy_criterion.Rf"
@@ -659,22 +671,27 @@ abbreviation saturated_upto :: "'a clause set \<Rightarrow> bool" where
 
 theorem
   deterministic_RP_saturated: "saturated_upto grounded_R" (is ?saturated) and
-  deterministic_RP_model: "I \<Turnstile>s grounded_R \<longleftrightarrow> I \<Turnstile>s grounded_N0" (is ?model)
+  deterministic_RP_model: "I \<Turnstile>s grounded_N0 \<longleftrightarrow> I \<Turnstile>s grounded_R" (is ?model)
 proof -
   obtain Q' n' k where
-    k_steps: "(deterministic_RP_step ^^ k) St0 = ([], [], Q', n')" and
+    k_steps: "(deterministic_RP_step ^^ k) St0 = ([], [], Q', n')" (is "_ = ?Stk") and
     r: "R = map fst Q'"
     using deterministic_RP_SomeD[OF drp_some] by blast
 
-  have last_sts: "llast Sts = ([], [], Q', n')"
+  have wrp: "wstate_of_dstate St0 \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (llast Sts)"
+    using chain_imp_rtranclp_lhd_llast
+    by (metis (no_types) derivation_from.disc_iff derivation_from.simps(2) lfinite_Sts llast_lmap
+        llist.map_sel(1) ssgSts)
+
+  have last_sts: "llast Sts = ?Stk"
   proof -
-    have "(deterministic_RP_step ^^ k') St0' = ([], [], Q', n') \<Longrightarrow>
-      llast (derivation_from St0') = ([], [], Q', n')" for St0' k'
+    have "(deterministic_RP_step ^^ k') St0' = ?Stk \<Longrightarrow> llast (derivation_from St0') = ?Stk"
+      for St0' k'
     proof (induct k' arbitrary: St0')
       case (Suc k')
       note ih = this(1) and suc_k'_steps = this(2)
       show ?case
-      proof (cases "is_final_glstate St0'")
+      proof (cases "is_final_dstate St0'")
         case True
         then show ?thesis
           using ih[of "deterministic_RP_step St0'"] suc_k'_steps final_deterministic_RP_step
@@ -691,44 +708,50 @@ proof -
       using k_steps by blast
   qed
 
-  have fin_gr_fgsts: "lfinite (lmap grounding_of_gstate ss_gSts)"
-    by (rule lfinite_lmap[THEN iffD2, OF lfinite_ss_gSts])
+  have fin_gr_fgsts: "lfinite (lmap grounding_of_wstate ssgSts)"
+    by (rule lfinite_lmap[THEN iffD2, OF lfinite_ssgSts])
 
-  have lim_last: "Liminf_llist (lmap grounding_of_gstate ss_gSts) =
-    grounding_of_gstate (llast ss_gSts)"
+  have lim_last: "Liminf_llist (lmap grounding_of_wstate ssgSts) =
+    grounding_of_wstate (llast ssgSts)"
     unfolding lfinite_Liminf_llist[OF fin_gr_fgsts]
-      llast_lmap[OF lfinite_ss_gSts not_lnull_ss_gSts]
-    using not_lnull_ss_gSts by simp
+      llast_lmap[OF lfinite_ssgSts not_lnull_ssgSts]
+    using not_lnull_ssgSts by simp
 
-  have gr_last: "grounding_of_gstate (llast ss_gSts) = grounded_R"
-    unfolding r ltl_ss_gSts
+  have gr_last: "grounding_of_wstate (llast ssgSts) = grounded_R"
+    unfolding r ltl_ssgSts
     by (simp add: last_sts llast_lmap[OF lfinite_Sts] clss_of_state_def comp_def)
 
   show ?saturated
-    using weighted_RP_saturated[OF deriv_ss_gSts_weighted_RP finite_ss_gSts0 empty_ss_gP0
-        empty_ss_gQ0]
+    using weighted_RP_saturated[OF deriv_ssgSts_weighted_RP finite_ssgSts0 empty_ssgP0
+        empty_ssgQ0]
     unfolding lim_last gr_last by blast
 
+  have gr_st0: "grounding_of_wstate (wstate_of_dstate St0) = grounded_N0"
+    by (simp add: clss_of_state_def comp_def)
+  have gr_last_st: "grounding_of_wstate (wstate_of_dstate (llast Sts)) = grounded_R"
+    using gr_last by (simp add: lfinite_Sts llast_lmap ltl_ssgSts)
+
   show ?model
-    using weighted_RP_model
-    sorry
+    by (rule rtranclp_imp_eq_image[of "op \<leadsto>\<^sub>w" "\<lambda>St. I \<Turnstile>s grounding_of_wstate St", OF _ wrp,
+          unfolded gr_st0 gr_last_st])
+      (use weighted_RP_model in blast)
 qed
 
 corollary deterministic_RP_refutation:
-  "{#} \<in> grounded_R \<longleftrightarrow> \<not> satisfiable grounded_N0" (is "?lhs \<longleftrightarrow> ?rhs")
+  "\<not> satisfiable grounded_N0 \<longleftrightarrow> {#} \<in> grounded_R" (is "?lhs \<longleftrightarrow> ?rhs")
 proof
-  assume ?lhs
-  then have "\<not> satisfiable grounded_R"
-    unfolding true_clss_def true_cls_def by force
-  then show ?rhs
-    using deterministic_RP_model[THEN iffD2] by blast
-next
   assume ?rhs
   then have "\<not> satisfiable grounded_R"
-    using deterministic_RP_model[THEN iffD1] by blast
+    unfolding true_clss_def true_cls_def by force
   then show ?lhs
-    unfolding ord_\<Gamma>_saturated_upto_complete[OF deriv_ss_gSts_weighted_RP finite_ss_gSts0
-        empty_ss_gP0 empty_ss_gQ0 deterministic_RP_saturated] .
+    using deterministic_RP_model[THEN iffD1] by blast
+next
+  assume ?lhs
+  then have "\<not> satisfiable grounded_R"
+    using deterministic_RP_model[THEN iffD2] by blast
+  then show ?rhs
+    unfolding ord_\<Gamma>_saturated_upto_complete[OF deriv_ssgSts_weighted_RP finite_ssgSts0 empty_ssgP0
+        empty_ssgQ0 deterministic_RP_saturated] .
 qed
 
 end
@@ -745,32 +768,32 @@ proof
   have inf: "\<not> lfinite Sts"
     sorry
 
-  obtain ss_gSts where
-    chain: "chain (op \<leadsto>\<^sub>w) ss_gSts" and
-    emb: "emb gSts ss_gSts" and
-    hd: "lhd ss_gSts = lhd gSts"
+  obtain ssgSts where
+    chain: "chain (op \<leadsto>\<^sub>w) ssgSts" and
+    emb: "emb gSts ssgSts" and
+    hd: "lhd ssgSts = lhd gSts"
     using chain_tranclp_imp_exists_chain[OF chain_star] by blast
 
-  have fin_s0: "finite (clss_of_gstate (lhd ss_gSts))"
+  have fin_s0: "finite (clss_of_wstate (lhd ssgSts))"
     sorry
-  have empty_p0: "P_of_gstate (lhd ss_gSts) = {}"
+  have empty_p0: "P_of_wstate (lhd ssgSts) = {}"
     sorry
-  have empty_q0: "Q_of_gstate (lhd ss_gSts) = {}"
+  have empty_q0: "Q_of_wstate (lhd ssgSts) = {}"
     sorry
 
-  have unsat_lim: "\<not> satisfiable (grounding_of_state (Liminf_gstate ss_gSts))"
+  have unsat_lim: "\<not> satisfiable (grounding_of_state (Liminf_wstate ssgSts))"
     using unsat
     sorry
 
-  have "{#} \<in> clss_of_state (Liminf_gstate ss_gSts)"
+  have "{#} \<in> clss_of_state (Liminf_wstate ssgSts)"
     by (rule weighted_RP_complete[OF chain fin_s0 empty_p0 empty_q0 unsat_lim])
-  then have bot_in_lim: "{#} \<in> clss_of_state (Liminf_gstate gSts)"
-    using emb_clss_of_Liminf_state[OF emb_lmap[OF emb], of state_of_gstate, simplified, OF inf]
+  then have bot_in_lim: "{#} \<in> clss_of_state (Liminf_wstate gSts)"
+    using emb_clss_of_Liminf_state[OF emb_lmap[OF emb], of state_of_wstate, simplified, OF inf]
     by blast
   then obtain k where
-    "{#} \<in> clss_of_gstate (lnth gSts k)"
+    "{#} \<in> clss_of_wstate (lnth gSts k)"
     sorry
-  then have "{#} \<in> clss_of_glstate ((deterministic_RP_step ^^ k) St0)"
+  then have "{#} \<in> clss_of_dstate ((deterministic_RP_step ^^ k) St0)"
     sorry
   then have "deterministic_RP St0 \<noteq> None"
     sorry

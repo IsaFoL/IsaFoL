@@ -115,6 +115,22 @@ lemma chain_mono:
   shows "chain R' xs"
   using assms by (rule chain_lmap[of _ _ "\<lambda>x. x", unfolded llist.map_ident])
 
+lemma chain_imp_rtranclp_lhd_llast: "lfinite xs \<Longrightarrow> chain R xs \<Longrightarrow> R\<^sup>*\<^sup>* (lhd xs) (llast xs)"
+proof (induct rule: lfinite.induct)
+  case (lfinite_LConsI xs x)
+  note fin_xs = this(1) and ih = this(2) and r_x_xs = this(3)
+  show ?case
+  proof (cases "xs = LNil")
+    case xs_nnil: False
+    then have r_xs: "chain R xs"
+      using r_x_xs by (blast elim: chain.cases)
+    then show ?thesis
+      using ih[OF r_xs] xs_nnil r_x_xs
+      by (metis chain.cases converse_rtranclp_into_rtranclp lhd_LCons llast_LCons lnull_chain
+          ltl_simps(2))
+  qed simp
+qed simp
+
 lemma tranclp_imp_exists_finite_chain:
   "R\<^sup>+\<^sup>+ x y \<Longrightarrow> \<exists>xs. lfinite xs \<and> chain R xs \<and> lhd xs = x \<and> llast xs = y"
 proof (induct rule: tranclp.induct)
