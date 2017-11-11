@@ -48,7 +48,7 @@ fun state_of_glstate :: "'a glstate \<Rightarrow> 'a state" where
   "state_of_glstate (N, P, Q, _) =
    (set (map (mset \<circ> fst) N), set (map (mset \<circ> fst) P), set (map (mset \<circ> fst) Q))"
 
-abbreviation clss_of_glstate :: "'a glstate \<Rightarrow> 'a clause set" where 
+abbreviation clss_of_glstate :: "'a glstate \<Rightarrow> 'a clause set" where
   "clss_of_glstate St \<equiv> clss_of_state (state_of_glstate St)"
 
 fun is_final_glstate :: "'a glstate \<Rightarrow> bool" where

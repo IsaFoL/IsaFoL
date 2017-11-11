@@ -29,7 +29,7 @@ locale weighted_FO_resolution_prover =
     mgu :: "'a set set \<Rightarrow> 's option" and
     less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" +
   fixes
-    weight :: "'a clause \<times> nat \<Rightarrow> nat" 
+    weight :: "'a clause \<times> nat \<Rightarrow> nat"
   assumes
     weight_mono: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
 begin
@@ -49,16 +49,16 @@ fun state_of_gstate :: "'a gstate \<Rightarrow> 'a state" where
    (set_mset (image_mset fst N), set_mset (image_mset fst P), set_mset (image_mset fst Q))"
 
 (* FIXME: don't use \<circ> in abbreviations -- fragile w.r.t. simplifier when applied *)
-abbreviation clss_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" where 
+abbreviation clss_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" where
   "clss_of_gstate \<equiv> clss_of_state \<circ> state_of_gstate"
 
-abbreviation P_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" where 
+abbreviation P_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" where
   "P_of_gstate \<equiv> P_of_state \<circ> state_of_gstate"
 
-abbreviation Q_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" where 
+abbreviation Q_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" where
   "Q_of_gstate \<equiv> Q_of_state \<circ> state_of_gstate"
 
-abbreviation grounding_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" where 
+abbreviation grounding_of_gstate :: "'a gstate \<Rightarrow> 'a clause set" where
   "grounding_of_gstate \<equiv> grounding_of_state \<circ> state_of_gstate"
 
 abbreviation Liminf_gstate :: "'a gstate llist \<Rightarrow> 'a state" where
@@ -87,7 +87,7 @@ inductive weighted_RP :: "'a gstate \<Rightarrow> 'a gstate \<Rightarrow> bool" 
 lemma weighted_RP_imp_RP: "St \<leadsto>\<^sub>w St' \<Longrightarrow> state_of_gstate St \<leadsto> state_of_gstate St'"
 proof (induction rule: weighted_RP.induct)
   case (inference_computation P C i N n Q)
-  then show ?case 
+  then show ?case
     using RP.inference_computation finite_ord_FO_resolution_inferences_between
     by (auto simp: comp_def image_comp ord_FO_resolution_inferences_between_def)
 qed (use RP.intros in simp_all)
@@ -96,7 +96,7 @@ lemma final_weighted_RP: "\<not> ({#}, {#}, Q, n) \<leadsto>\<^sub>w St"
   by (auto elim: weighted_RP.cases)
 
 context
-  fixes 
+  fixes
     Sts :: "'a gstate llist"
   assumes
     deriv: "chain (op \<leadsto>\<^sub>w) Sts" and
@@ -141,20 +141,20 @@ proof (rule ccontr)
   assume "\<not> fair_state_seq (lmap state_of_gstate Sts)"
   then obtain C where
     "C \<in> Liminf_llist (lmap N_of_state (lmap state_of_gstate Sts))
-       \<union> Liminf_llist (lmap P_of_state (lmap state_of_gstate Sts))" 
+       \<union> Liminf_llist (lmap P_of_state (lmap state_of_gstate Sts))"
     unfolding fair_state_seq_def Liminf_state_def by auto
   then show False
   proof
     assume "C \<in> Liminf_llist (lmap N_of_state (lmap state_of_gstate Sts))"
     then obtain i where
       "enat i < llength Sts"
-      "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_gstate (lnth Sts j))" 
+      "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_gstate (lnth Sts j))"
       unfolding Liminf_llist_def by auto
     then show False
       sorry (* *)
   next
     assume "C \<in> Liminf_llist (lmap P_of_state (lmap state_of_gstate Sts))"
-    then show False 
+    then show False
       sorry
   qed
 qed

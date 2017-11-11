@@ -32,15 +32,15 @@ definition vars_clause_list :: "('f, 'v) term clause list \<Rightarrow> 'v set" 
 
 primrec renamings_apart' :: "nat set \<Rightarrow> ('f, nat) term clause list \<Rightarrow> (('f, nat) subst) list" where
   "renamings_apart' _ [] = []"
-| "renamings_apart' X (C#Cs) = 
-    (let \<sigma> = (\<lambda>v. Var (v + Max (X \<union> {0}) + 1)) in 
+| "renamings_apart' X (C#Cs) =
+    (let \<sigma> = (\<lambda>v. Var (v + Max (X \<union> {0}) + 1)) in
       \<sigma> # renamings_apart' (X \<union> vars_clause (C \<cdot>cls \<sigma>)) Cs)
    "
 
 fun renamings_apart'_inv :: "nat set \<Rightarrow> ('f, nat) term clause list \<Rightarrow> (('f, nat) subst) list" where
   "renamings_apart'_inv _ [] = []"
-| "renamings_apart'_inv X (C#Cs) = 
-    (let \<sigma> = (\<lambda>v. Var (v - Max X - 1)) in 
+| "renamings_apart'_inv X (C#Cs) =
+    (let \<sigma> = (\<lambda>v. Var (v - Max X - 1)) in
       \<sigma> # renamings_apart'_inv (X \<union> vars_clause (C \<cdot>cls \<sigma>)) Cs)
    "
 
@@ -65,7 +65,7 @@ proof (induction Cs arbitrary: X)
   then show ?case by auto
 next
   case (Cons a Cs)
-  then show ?case 
+  then show ?case
     using is_VarI set_ConsD
     by (metis (no_types, lifting) renamings_apart'.simps(2))
 qed
@@ -76,7 +76,7 @@ proof (induction Cs arbitrary: X)
   then show ?case by auto
 next
   case (Cons a Cs)
-  then show ?case 
+  then show ?case
     by (metis (mono_tags, lifting) renamings_apart'.simps(2) inj_onI
         nat_add_right_cancel set_ConsD term.inject(1))
 qed
@@ -128,7 +128,7 @@ proof -
 qed
 
 lemma is_ground_cls_list_is_ground_on_var:
-  assumes ground_list: "is_ground_cls_list (subst_cls_list Cs \<sigma>)" 
+  assumes ground_list: "is_ground_cls_list (subst_cls_list Cs \<sigma>)"
     and v_in_Cs: "v \<in> vars_clause_list Cs"
   shows "is_ground_atm (\<sigma> v)"
 proof -
@@ -140,7 +140,7 @@ proof -
     using C_p is_ground_cls_is_ground_on_var by metis
 qed
 
-lemma same_on_vars_lit: 
+lemma same_on_vars_lit:
   assumes "\<forall>v \<in> vars_lit L. \<sigma> v = \<tau> v"
   shows "subst_lit L \<sigma> = subst_lit L \<tau>"
   using assms apply (induction L)
@@ -156,11 +156,11 @@ proof -
     by auto
   then have "list_of_mset S ! i \<in># mset (list_of_mset S)"
     by (meson in_multiset_in_set)
-  then show ?thesis 
+  then show ?thesis
     by auto
 qed
 
-lemma same_on_vars_clause: 
+lemma same_on_vars_clause:
   assumes "\<forall>v \<in> vars_clause S. \<sigma> v = \<tau> v"
   shows "subst_cls S \<sigma> = subst_cls S \<tau>"
     by (smt assms image_eqI image_mset_cong2 mem_simps(9) same_on_vars_lit set_image_mset
@@ -201,8 +201,8 @@ next
       unfolding \<tau>_def using ground_trm by auto
   qed
   have "is_ground_subst \<tau>"
-    unfolding is_ground_subst_def 
-  proof 
+    unfolding is_ground_subst_def
+  proof
     fix A
     show "is_ground_atm (subst_atm_abbrev A \<tau>)"
     proof (induction A)
@@ -216,7 +216,7 @@ next
   qed
   moreover have "\<forall>v\<in>vars_clause C. \<sigma> v = \<tau> v"
     using \<tau>_\<sigma> unfolding vars_clause_list_def
-    by blast 
+    by blast
   then have "subst_cls C \<sigma> = subst_cls C \<tau>"
     using same_on_vars_clause by auto
   ultimately show "\<exists>\<tau>. is_ground_subst \<tau> \<and> subst_cls C \<tau> = subst_cls C \<sigma>"
@@ -229,7 +229,7 @@ next
   }
   moreover
   {
-    have inj_is_renaming: 
+    have inj_is_renaming:
       "\<And>\<sigma> :: ('f, nat) subst. (\<And>x. is_Var (\<sigma> x)) \<Longrightarrow> inj \<sigma> \<Longrightarrow> is_renaming \<sigma>"
     proof -
       fix \<sigma> :: "('f, nat) subst"

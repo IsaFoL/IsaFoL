@@ -8,9 +8,9 @@
 section \<open>First-Order Ordered Resolution Calculus with Selection\<close>
 
 text \<open>
-This material is based on Section 4.3 (``A Simple Resolution Prover for First-Order Clauses) of 
+This material is based on Section 4.3 (``A Simple Resolution Prover for First-Order Clauses) of
 Bachmair and Ganzinger's chapter. Specifically, it formalizes the calculus in Figure 4 called
-Ordered Resolution for First-Order Standard Clauses and its related lemmas and theorems including 
+Ordered Resolution for First-Order Standard Clauses and its related lemmas and theorems including
 soundness and Lemma 4.12 (the lifting lemma).
 \<close>
 
@@ -196,10 +196,10 @@ lemma ord_resolve_ground_inst_sound:
   using res_e
 proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Cs AAs As D)
-  note da = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and 
+  note da = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and
     aas_len = this(5) and as_len = this(6) and cas = this(8) and mgu = this(10) and
     len = this(1)
-    
+
   have len: "length CAs = length As"
     using as_len cas_len by auto
   have "is_ground_subst (\<sigma> \<odot> \<eta>)"
@@ -569,7 +569,7 @@ lemma ord_resolve_rename_lifting:
 proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Cs AAs As D)
   note da = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and
-    aas_len = this(5) and as_len = this(6) and nz = this(7) and cas = this(8) and 
+    aas_len = this(5) and as_len = this(6) and nz = this(7) and cas = this(8) and
     aas_not_empt = this(9) and mgu = this(10) and eligibility = this(11) and str_max = this(12) and
     sel_empt = this(13)
 
@@ -703,7 +703,7 @@ proof (cases rule: ord_resolve.cases)
     ultimately have "\<exists>As'. As' \<cdot>al \<eta> = As \<and> (negs (mset As')) \<subseteq># DA'
       \<and> (S_M S M (D + negs (mset As)) \<noteq> {#} \<longrightarrow> negs (mset As') = S DA')"
       using eligibility unfolding eligible.simps[simplified] by auto
-    
+
     then obtain As' where
       As'_p: "As' \<cdot>al \<eta> = As \<and> (negs (mset As')) \<subseteq># DA'
       \<and> (S_M S M (D + negs (mset As)) \<noteq> {#} \<longrightarrow> negs (mset As') = S DA')"

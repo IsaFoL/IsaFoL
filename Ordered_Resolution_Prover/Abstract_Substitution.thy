@@ -191,7 +191,7 @@ locale substitution = substitution_ops subst_atm id_subst comp_subst
     atm_of_atms_subst:
       "\<And>As Bs. atm_of_atms As \<cdot>a \<sigma> = atm_of_atms Bs \<longleftrightarrow> map (\<lambda>A. A \<cdot>a \<sigma>) As = Bs" and
     wf_strictly_generalizes_atm: "wfP strictly_generalizes_atm"
-begin 
+begin
 
 lemma subst_ext_iff: "\<sigma> = \<tau> \<longleftrightarrow> (\<forall>A. A \<cdot>a \<sigma> = A \<cdot>a \<tau>)"
   by (blast intro: subst_ext)

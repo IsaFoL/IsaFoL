@@ -246,7 +246,7 @@ lemma llast_prepend[simp]: "\<not> lnull ys \<Longrightarrow> llast (prepend xs 
 lemma prepend_prepend: "prepend xs (prepend ys zs) = prepend (xs @ ys) zs"
   by (induct xs) auto
 
-lemma chain_prepend: 
+lemma chain_prepend:
   "chain R (llist_of zs) \<Longrightarrow> last zs = lhd xs \<Longrightarrow> chain R xs \<Longrightarrow> chain R (prepend zs (ltl xs))"
   by (induct zs; cases xs)
     (auto split: if_splits simp: lnull_def[symmetric] intro!: chain.cons elim!: chain_consE)
@@ -353,7 +353,7 @@ qed (simp only: chain'.intros(1))
 
 private lemma chain'_stepD2: "chain' R (LCons x (LCons y xs)) \<Longrightarrow> R x y"
   by (erule chain'.cases) (auto simp: neq_Nil_conv elim!: chain_nontrivE split: if_splits)
-  
+
 private lemma chain'_imp_chain: "chain' R xs \<Longrightarrow> chain R xs"
 proof (coinduction arbitrary: xs rule: chain.coinduct)
   case chain
@@ -367,7 +367,7 @@ proof (coinduction arbitrary: xs rule: chain.coinduct)
         by (auto 0 4 simp: neq_Nil_conv not_lnull_conv elim: chain'_stepD1 chain'_stepD2)
     next
       case (LCons b bs)
-      with chain 2 show ?thesis 
+      with chain 2 show ?thesis
         unfolding neq_Nil_conv not_lnull_conv
         by (elim exE) (auto elim: chain'_stepD1 chain_nontrivE)
     qed
@@ -459,7 +459,7 @@ proof
     then show ?case
     proof (cases zs)
       case [simp]: (LCons x xs)
-      then show ?thesis 
+      then show ?thesis
       proof (cases xs)
         case [simp]: LCons
         with prepend show ?thesis

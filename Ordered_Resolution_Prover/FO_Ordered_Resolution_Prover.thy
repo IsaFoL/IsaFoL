@@ -193,8 +193,8 @@ interpretation src_ext:
     src.redundancy_criterion_axioms by auto
 
 lemma strict_subset_subsumption_redundant_clause:
-  assumes 
-    strict_subset_subsume: "D \<cdot> \<sigma> \<subset># C" and 
+  assumes
+    strict_subset_subsume: "D \<cdot> \<sigma> \<subset># C" and
     ground_\<sigma>: "is_ground_subst \<sigma>"
   shows "C \<in> src.Rf (grounding_of_cls D)"
 proof -
@@ -226,7 +226,7 @@ proof (induction St)
     using strict_subset_subsumption_redundant_clause by auto
   then have "C \<in> src.Rf (\<Union>C \<in> clss_of_state (N, P, Q). grounding_of_cls C)"
     using d_in src.Rf_mono unfolding clss_of_state_def
-    by (metis (no_types) sup_ge1 SUP_absorb contra_subsetD) 
+    by (metis (no_types) sup_ge1 SUP_absorb contra_subsetD)
   then show "C \<in> src.Rf (grounding_of_state (N, P, Q))"
     unfolding clss_of_state_def grounding_of_clss_def by auto
 qed
@@ -589,9 +589,9 @@ next
         assume "i < length (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>)"
         then have a: "i < length Cl \<and> i < length \<rho>s"
           by simp
-        moreover from a have "Cl ! i \<in> {C} \<union> Q" 
+        moreover from a have "Cl ! i \<in> {C} \<union> Q"
           using \<gamma>_p2 \<gamma>_p unfolding infer_from_def
-          by (metis (no_types, lifting) Un_subset_iff inference.sel(1) set_mset_union sup_commute nth_mem_mset subsetCE) 
+          by (metis (no_types, lifting) Un_subset_iff inference.sel(1) set_mset_union sup_commute nth_mem_mset subsetCE)
         ultimately have "((Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>) ! i \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<or> ((Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>) ! i \<in> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>})) \<or> (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>) ! i \<in> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))"
           unfolding \<gamma>_ground_def using E_\<mu>_p \<gamma>_p2 \<gamma>_p unfolding infer_from_def
           unfolding clss_of_state_def grounding_of_clss_def
@@ -622,7 +622,7 @@ next
           by blast
       qed
       then have "\<forall>x \<in># mset (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>). x \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))"
-        by (metis (lifting) in_set_conv_nth set_mset_mset)     
+        by (metis (lifting) in_set_conv_nth set_mset_mset)
       then have "set_mset (mset (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>)) \<subseteq> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))"
         by auto
       then have "set_mset (mset (Cl \<cdot>\<cdot>cl \<rho>s) \<cdot>cm \<sigma> \<cdot>cm \<mu>) \<subseteq> grounding_of_cls C \<union> (grounding_of_clss P \<union> grounding_of_clss Q)"
@@ -1548,7 +1548,7 @@ proof -
     assume a: "set_mset ?CC \<union> {?DA} \<subseteq> Liminf_llist (lmap grounding_of_state Sts) - src.Rf (Liminf_llist (lmap grounding_of_state Sts))"
 
     have ground_ground_Liminf: "is_ground_clss (Liminf_llist (lmap grounding_of_state Sts))"
-      using Liminf_grounding_of_state_ground unfolding is_ground_clss_def by auto 
+      using Liminf_grounding_of_state_ground unfolding is_ground_clss_def by auto
 
     have ground_cc: "is_ground_cls_mset ?CC"
       using a ground_ground_Liminf is_ground_cls_mset_def is_ground_clss_def by auto
@@ -1593,13 +1593,13 @@ proof -
       proof (cases rule: gd.ord_resolve.cases)
         case (ord_resolve n Cs AAs As D)
         note DA = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and
-          aas_len = this(5) and as_len = this(6) and nz = this(7) and cas = this(8) and 
+          aas_len = this(5) and as_len = this(6) and nz = this(7) and cas = this(8) and
           aas_not_empt = this(9) and as_aas = this(10) and eligibility = this(11) and str_max = this(12) and
           sel_empt = this(13)
 
         have len_aas_len_as: "length AAs = length As"
           using aas_len as_len by auto
-        
+
         from as_aas have "\<forall>i<n. \<forall>A\<in>#add_mset (As ! i) (AAs ! i). A = As ! i"
           using ord_resolve by simp
         then have "\<forall>i < n. card (set_mset (add_mset (As ! i) (AAs ! i))) \<le> Suc 0"
