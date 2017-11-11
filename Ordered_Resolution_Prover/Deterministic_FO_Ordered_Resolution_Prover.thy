@@ -440,7 +440,7 @@ proof -
               (use neg_a pos_a in simp_all)
         next
           case False
-          hence "is_subsumed_by (map fst P @ map fst Q) C'"
+          then have "is_subsumed_by (map fst P @ map fst Q) C'"
             using taut_or_subs by blast
           then obtain D where d:
             "D \<in> set (map fst P @ map fst Q)"
@@ -650,8 +650,7 @@ lemma empty_ss_gQ0: "Q_of_gstate (lhd ss_gSts) = {}"
 
 theorem
   deterministic_RP_saturated: "saturated_upto grounded_R" (is ?saturated) and
-  deterministic_RP_model_sound:
-    "I \<Turnstile>fom mset_set grounded_R \<longleftrightarrow> I \<Turnstile>fom mset_set grounded_N0" (is ?sound)
+  deterministic_RP_saturation_model: "I \<Turnstile>s grounded_R \<longleftrightarrow> I \<Turnstile>s grounded_N0" (is ?sound)
 proof -
   obtain Q' n' k where
     k_steps: "(deterministic_RP_step ^^ k) St0 = ([], [], Q', n')" and
@@ -663,13 +662,6 @@ proof -
     have "(deterministic_RP_step ^^ k') St0' = ([], [], Q', n') \<Longrightarrow>
       llast (derivation_from St0') = ([], [], Q', n')" for St0' k'
     proof (induct k' arbitrary: St0')
-      case 0
-      then show ?case
-        apply simp
-        apply (subst derivation_from.code)
-        apply simp
-        done
-    next
       case (Suc k')
       note ih = this(1) and suc_k'_steps = this(2)
       show ?case
@@ -682,13 +674,10 @@ proof -
       next
         case nonfinal: False
         then show ?thesis
-          using ih[of "deterministic_RP_step St0'"]
-          using suc_k'_steps
-          unfolding funpow_swap1[symmetric]
-          apply (subst derivation_from.code)
-          by (simp add: llast_LCons)
+          using ih[of "deterministic_RP_step St0'"] suc_k'_steps
+          by (subst derivation_from.code) (simp add: llast_LCons funpow_swap1[symmetric])
       qed
-    qed
+    qed (subst derivation_from.code, simp)
     then show ?thesis
       using k_steps by blast
   qed
@@ -703,15 +692,8 @@ proof -
     using not_lnull_ss_gSts by simp
 
   have gr_last: "grounding_of_gstate (llast ss_gSts) = grounded_R"
-    unfolding ltl_ss_gSts
-    apply simp
-    apply (subst llast_lmap)
-    apply (rule lfinite_Sts)
-     apply simp
-    apply (unfold last_sts r)
-    apply (simp add: clss_of_state_def)
-    apply (rule arg_cong[of _ _ grounding_of_clss])
-    by blast
+    unfolding r ltl_ss_gSts
+    by (simp add: last_sts llast_lmap[OF lfinite_Sts] clss_of_state_def comp_def)
 
   show ?saturated
     using weighted_RP_saturated[OF deriv_ss_gSts_weighted_RP finite_ss_gSts0 empty_ss_gP0
@@ -722,10 +704,22 @@ proof -
     sorry
 qed
 
-corollary deterministic_RP_proof_sound: "{#} \<in> grounded_R \<longleftrightarrow> \<not> satisfiable grounded_N0"
-  apply auto
-
-  sorry
+corollary deterministic_RP_refutation:
+  "{#} \<in> grounded_R \<longleftrightarrow> \<not> satisfiable grounded_N0" (is "?lhs \<longleftrightarrow> ?rhs")
+proof
+  assume ?lhs
+  then have "\<not> satisfiable grounded_R"
+    unfolding true_clss_def true_cls_def by force
+  then show ?rhs
+    using deterministic_RP_saturation_model[THEN iffD2] by blast
+next
+  assume ?rhs
+  then have "\<not> satisfiable grounded_R"
+    using deterministic_RP_saturation_model[THEN iffD1] by blast
+  then show ?lhs
+    using deterministic_RP_saturated
+    sorry
+qed
 
 end
 

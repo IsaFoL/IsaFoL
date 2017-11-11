@@ -95,7 +95,7 @@ lemma true_fo_cls_mset_inst: "I \<Turnstile>fom C \<Longrightarrow> is_ground_su
   by (rule true_fo_cls_mset.induct)
 
 lemma true_fo_cls_mset_def2: "I \<Turnstile>fom CC \<longleftrightarrow> (\<forall>C \<in># CC. I \<Turnstile>fo C)"
-  unfolding true_fo_cls_mset.simps true_fo_cls.simps true_cls_mset_def by auto
+  unfolding true_fo_cls_mset.simps true_fo_cls.simps true_cls_mset_def by force
 
 context
   fixes S :: "'a clause \<Rightarrow> 'a clause"

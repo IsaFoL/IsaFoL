@@ -36,7 +36,7 @@ lemma true_lit_iff[iff]: "I \<Turnstile>l L \<longleftrightarrow> (\<exists>A. L
   by (cases L) simp+
 
 definition true_cls :: "'a interp \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<Turnstile>" 50) where
-  "I \<Turnstile> C \<longleftrightarrow> (\<exists>L. L \<in># C \<and> I \<Turnstile>l L)"
+  "I \<Turnstile> C \<longleftrightarrow> (\<exists>L \<in># C. I \<Turnstile>l L)"
 
 lemma true_cls_empty[iff]: "\<not> I \<Turnstile> {#}"
   unfolding true_cls_def by simp
@@ -94,7 +94,7 @@ abbreviation satisfiable :: "'a clause set \<Rightarrow> bool" where
   "satisfiable CC \<equiv> \<exists>I. I \<Turnstile>s CC"
 
 definition true_cls_mset :: "'a interp \<Rightarrow> 'a clause multiset \<Rightarrow> bool" (infix "\<Turnstile>m" 50) where
-  "I \<Turnstile>m CC \<longleftrightarrow> (\<forall>C. C \<in># CC \<longrightarrow> I \<Turnstile> C)"
+  "I \<Turnstile>m CC \<longleftrightarrow> (\<forall>C \<in># CC. I \<Turnstile> C)"
 
 lemma true_cls_mset_empty[iff]: "I \<Turnstile>m {#}"
   unfolding true_cls_mset_def by auto
@@ -108,7 +108,7 @@ lemma true_cls_mset_union[iff]: "I \<Turnstile>m CC + DD \<longleftrightarrow> I
 lemma true_cls_mset_add_mset[iff]: "I \<Turnstile>m add_mset C CC \<longleftrightarrow> I \<Turnstile> C \<and> I \<Turnstile>m CC"
   unfolding true_cls_mset_def by auto
 
-lemma true_cls_mset_image_mset[iff]: "I \<Turnstile>m image_mset f A \<longleftrightarrow> (\<forall>x . x \<in># A \<longrightarrow> I \<Turnstile> f x)"
+lemma true_cls_mset_image_mset[iff]: "I \<Turnstile>m image_mset f A \<longleftrightarrow> (\<forall>x \<in># A. I \<Turnstile> f x)"
   unfolding true_cls_mset_def by auto
 
 lemma true_cls_mset_mono: "set_mset DD \<subseteq> set_mset CC \<Longrightarrow> I \<Turnstile>m CC \<Longrightarrow> I \<Turnstile>m DD"
