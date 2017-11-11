@@ -491,7 +491,7 @@ lemma distinctcard_atm_of_lit_of_eq_length:
   using assms by (induct S) (auto simp add: image_image lits_of_def no_dup_def)
 
 lemma Cons_lexn_iff:
-  shows \<open>(x # xs, y # ys) \<in> lexn R n \<longleftrightarrow> (length (x # xs) = n \<and> length (y # ys) = n \<and> 
+  shows \<open>(x # xs, y # ys) \<in> lexn R n \<longleftrightarrow> (length (x # xs) = n \<and> length (y # ys) = n \<and>
          ((x,y) \<in> R \<or> (x = y \<and> (xs, ys) \<in> lexn R (n - 1))))\<close>
   unfolding lexn_conv apply (rule iffI; clarify)
   subgoal for xys xa ya xs' ys'
@@ -500,27 +500,27 @@ lemma Cons_lexn_iff:
   done
 declare append_same_lexn[simp] prepend_same_lexn[simp] Cons_lexn_iff[simp]
 declare lexn.simps(2)[simp del]
-  
+
 lemma dpll\<^sub>W_card_decrease:
-  assumes 
-    dpll: "dpll\<^sub>W S S'" and 
+  assumes
+    dpll: "dpll\<^sub>W S S'" and
     [simp]: "length (trail S') \<le> card vars" and
     "length (trail S) \<le> card vars"
-  shows 
+  shows
     "(dpll\<^sub>W_mes (trail S') (card vars), dpll\<^sub>W_mes (trail S) (card vars)) \<in> lexn less_than (card vars)"
   using assms
 proof (induct rule: dpll\<^sub>W.induct)
   case (propagate C L S)
   then have m: "card vars - length (trail S) = Suc (card vars - Suc (length (trail S)))"
     by fastforce
-  then show \<open>(dpll\<^sub>W_mes (trail (Propagated C () # trail S, clauses S)) (card vars), 
+  then show \<open>(dpll\<^sub>W_mes (trail (Propagated C () # trail S, clauses S)) (card vars),
          dpll\<^sub>W_mes (trail S) (card vars)) \<in> lexn less_than (card vars)\<close>
      unfolding dpll\<^sub>W_mes_def by auto
 next
   case (decided S L)
   have m: "card vars - length (trail S) = Suc (card vars - Suc (length (trail S)))"
     using decided.prems[simplified] using Suc_diff_le by fastforce
-  then show \<open>(dpll\<^sub>W_mes (trail (Decided L # trail S, clauses S)) (card vars), 
+  then show \<open>(dpll\<^sub>W_mes (trail (Decided L # trail S, clauses S)) (card vars),
          dpll\<^sub>W_mes (trail S) (card vars)) \<in> lexn less_than (card vars)\<close>
      unfolding dpll\<^sub>W_mes_def by auto
 next

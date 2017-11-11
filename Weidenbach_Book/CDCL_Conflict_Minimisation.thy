@@ -1703,7 +1703,7 @@ where
        (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support)}\<close>
 
 definition cach_refinement
-  :: \<open>((minimize_status list \<times> nat list) \<times> (nat conflict_min_cach)) set\<close> 
+  :: \<open>((minimize_status list \<times> nat list) \<times> (nat conflict_min_cach)) set\<close>
 where
   \<open>cach_refinement = cach_refinement_nonull O cach_refinement_list\<close>
 

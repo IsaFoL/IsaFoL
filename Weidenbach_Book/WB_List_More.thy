@@ -542,7 +542,7 @@ subsection \<open>Remove\<close>
 
 subsubsection \<open>More lemmas about remove\<close>
 
-  
+
 lemma distinct_remove1_last_butlast:
   \<open>distinct xs \<Longrightarrow> xs \<noteq> [] \<Longrightarrow> remove1 (last xs) xs = butlast xs\<close>
   by (metis append_Nil2 append_butlast_last_id distinct_butlast not_distinct_conv_prefix

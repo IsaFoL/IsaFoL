@@ -115,7 +115,7 @@ type_synonym (in -) twl_st_wl_heur_init =
     nat \<times> nat conflict_min_cach\<close>
 
 abbreviation (in -) vmtf_conc_option_fst_As where
-  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn nat_vmtf_node_assn *a nat_assn *a 
+  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn nat_vmtf_node_assn *a nat_assn *a
     option_assn uint32_nat_assn *a option_assn uint32_nat_assn *a option_assn uint32_nat_assn)\<close>
 
 type_synonym (in -)vmtf_assn_option_fst_As =
@@ -2103,7 +2103,7 @@ proof -
   have cach: \<open>RETURN (replicate (Suc (nat_of_uint32 (fold max x 0))) SEEN_UNKNOWN, [])
       \<le> \<Down> (isasat_input_ops.cach_refinement \<A>\<^sub>i\<^sub>n)
           (SPEC (isasat_input_ops.cach_refinement_empty y))\<close>
-    if 
+    if
       \<open>y = \<A>\<^sub>i\<^sub>n \<and> distinct_mset \<A>\<^sub>i\<^sub>n\<close> and
       \<open>(x, y) \<in> \<langle>uint32_nat_rel\<rangle>list_rel_mset_rel\<close>
     for M W vm vma \<phi> x y

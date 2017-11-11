@@ -1221,7 +1221,7 @@ proof -
     by (auto simp: init_state_init_state_of_def ConI_def cdcl\<^sub>W_all_struct_inv_def distinct_cdcl\<^sub>W_state_def
       distinct_mset_set_def
     intro!: state_of_inject[THEN iffD2])
-  show ?thesis unfolding 1 
+  show ?thesis unfolding 1
     apply (subst state_from_init_state_of_inverse)
     by (auto simp: cdcl\<^sub>W_all_struct_inv_def distinct_cdcl\<^sub>W_state_def
         distinct_mset_set_def)

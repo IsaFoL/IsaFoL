@@ -79,7 +79,7 @@ where
      (L \<noteq> None \<longrightarrow> Pos (the L) \<in> snd ` D\<^sub>0 \<and> undefined_atm M (the L)) \<and>
      (L = None \<longrightarrow> (\<forall>K\<in>snd ` D\<^sub>0. defined_lit M K)) \<and> M = M' \<and> vm \<in> vmtf M)\<close>
 
-definition find_unassigned_lit_wl_D_heur 
+definition find_unassigned_lit_wl_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_heur \<times> nat literal option) nres\<close>
 where
   \<open>find_unassigned_lit_wl_D_heur = (\<lambda>(M, N, U, D, WS, Q, vm, \<phi>, clvls). do {

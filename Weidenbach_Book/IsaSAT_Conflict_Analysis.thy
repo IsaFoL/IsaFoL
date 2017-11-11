@@ -209,7 +209,7 @@ proof -
       maximum_level_removed_eq_count_dec_heur_maximum_level_removed_eq_count_dec]
     .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
-    using that unfolding comp_PRE_def twl_st_heur_def 
+    using that unfolding comp_PRE_def twl_st_heur_def
       literals_to_update_wl_empty_def
     by (auto simp: image_image map_fun_rel_def Nil_list_mset_rel_iff lookup_clause_rel_def)
   have im: \<open>?im' = ?im\<close>
@@ -236,7 +236,7 @@ lemma is_decided_hd_trail_wl_heur_is_decided_hd_trail_wl:
 
 lemma get_trail_wl_heur_def: \<open>get_trail_wl_heur = (\<lambda>(M, S). M)\<close>
   by (intro ext, rename_tac S, case_tac S) auto
- 
+
 sepref_thm is_decided_hd_trail_wl_code
   is \<open>RETURN o is_decided_hd_trail_wl_heur\<close>
   :: \<open>[\<lambda>S. get_trail_wl_heur S \<noteq> []]\<^sub>a twl_st_heur_assn\<^sup>k \<rightarrow> bool_assn\<close>
@@ -949,7 +949,7 @@ where
         let L' = atm_of L;
         (D', clvls) \<leftarrow> lookup_conflict_merge_abs_union M N C D clvls;
         let D' = remove1_mset L (the D');
-        RETURN (D' = {#}, (tl M, N, U, Some D', Q, W, vmtf_mark_to_rescore_and_unset L' vmtf, 
+        RETURN (D' = {#}, (tl M, N, U, Some D', Q, W, vmtf_mark_to_rescore_and_unset L' vmtf,
            save_phase L \<phi>, fast_minus clvls one_uint32_nat, cach))
       }))\<close>
 
@@ -2163,7 +2163,7 @@ lemma extract_shorter_conflict_list_extract_shorter_conflict_l_trivial_spec:
   by fast
 
 lemma extract_shorter_conflict_l_trivial_subset_msetD:
-  \<open>extract_shorter_conflict_l_trivial M (Some (remove1_mset (- lit_of (hd M)) D)) = Some D' \<Longrightarrow> 
+  \<open>extract_shorter_conflict_l_trivial M (Some (remove1_mset (- lit_of (hd M)) D)) = Some D' \<Longrightarrow>
    D' \<subseteq># D\<close>
   by (auto simp: extract_shorter_conflict_l_trivial_def)
 
@@ -2315,7 +2315,7 @@ where
     uint32_nat_assn *a
     cach_refinement_assn\<close>
 
-definition (in isasat_input_ops) twl_st_heur_no_clvls 
+definition (in isasat_input_ops) twl_st_heur_no_clvls
   :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
 where
 \<open>twl_st_heur_no_clvls =

@@ -106,7 +106,7 @@ lemma append_el_aa_hnr'[sepref_fr_rules]:
 definition nth_u where
   \<open>nth_u xs n = nth xs (nat_of_uint32 n)\<close>
 
-definition nth_u_code where   
+definition nth_u_code where
   \<open>nth_u_code xs n = Array.nth' xs (integer_of_uint32 n)\<close>
 
 lemma nth_u_hnr[sepref_fr_rules]:
@@ -204,7 +204,7 @@ definition (in -)length_aa_u :: \<open>('a::heap array_list) array \<Rightarrow>
 lemma length_aa_u_code[code]:
   \<open>length_aa_u xs i = nth_u_code xs i \<bind> arl_length\<close>
   unfolding length_aa_u_def length_aa_def  nth_u_def[symmetric] nth_u_code_def
-   Array.nth'_def 
+   Array.nth'_def
   by (auto simp: nat_of_uint32_code)
 
 lemma length_aa_u_hnr[sepref_fr_rules]: \<open>(uncurry length_aa_u, uncurry (RETURN \<circ>\<circ> length_ll)) \<in>
@@ -253,7 +253,7 @@ definition length_rll_n_uint32 where
 
 lemma length_raa_u_hnr[sepref_fr_rules]:
   shows \<open>(uncurry length_raa_u, uncurry (RETURN \<circ>\<circ> length_rll_n_uint32)) \<in>
-     [\<lambda>(xs, i). i < length xs \<and> length (xs ! i) \<le> uint32_max]\<^sub>a 
+     [\<lambda>(xs, i). i < length xs \<and> length (xs ! i) \<le> uint32_max]\<^sub>a
        (arlO_assn (array_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   by sepref_to_hoare  (sep_auto simp: uint32_nat_rel_def br_def length_rll_def
       nat_of_uint32_uint32_of_nat_id)+

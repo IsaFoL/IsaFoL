@@ -471,22 +471,22 @@ proof -
     \<open>mset (take 2 (?C')) = mset (take 2 C')\<close>
     \<open>mset (drop 2 (?C')) = mset (drop 2 C')\<close>
     using watched_C' i two_le_length_C by (auto simp: swap_def take_2_if split: if_splits)
-  then have [simp]: \<open>mset (take 2 (if C = x then ?C' else N ! x)) = mset (take 2 (N ! x))\<close> 
+  then have [simp]: \<open>mset (take 2 (if C = x then ?C' else N ! x)) = mset (take 2 (N ! x))\<close>
      \<open>mset (drop 2 (if C = x then ?C' else N ! x)) = mset (drop 2 (N ! x))\<close>for x
-    using i two_le_length_C by (auto simp: C' S) 
+    using i two_le_length_C by (auto simp: C' S)
   have [simp]: \<open>{#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)).
-           x \<in># mset (take U (tl (N[C := ?C'])))#} = 
+           x \<in># mset (take U (tl (N[C := ?C'])))#} =
        {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)). x \<in># mset (take U (tl N))#}\<close>
        (is ?GN) and
        [simp]: \<open>{#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)).
-           x \<in># mset (drop (Suc U) (N[C := ?C']))#} = 
+           x \<in># mset (drop (Suc U) (N[C := ?C']))#} =
          {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)). x \<in># mset (drop (Suc U) N)#}\<close>
-       (is ?GU) 
+       (is ?GU)
   proof -
     {
       assume True: \<open>C - 1 < length (take U (tl N))\<close>
       then have 1: \<open>mset (take U (tl N)) = add_mset C' (remove1_mset C' (mset (take U (tl N))))\<close>
-        apply (subst insert_DiffM) 
+        apply (subst insert_DiffM)
         subgoal
           by (simp add: C' S, metis (no_types, lifting) C_le_N(2) List.nth_tl One_nat_def Suc_pred
               True in_set_conv_nth length_tl nth_take)
@@ -496,7 +496,7 @@ proof -
         using True C_le_N by (auto simp: C' S tl_update_swap nth_tl)
       have N: ?GN
         apply (subst tl_update_swap)
-        subgoal using C_le_N by auto 
+        subgoal using C_le_N by auto
         apply (subst take_update)
         apply (subst mset_update)
         subgoal using True .
@@ -506,7 +506,7 @@ proof -
       have U: ?GU
         apply (subst drop_Suc)+
         apply (subst tl_update_swap)
-        subgoal using C_le_N by auto 
+        subgoal using C_le_N by auto
         subgoal using True by auto
         done
       note N and U
@@ -514,7 +514,7 @@ proof -
     {
       assume False: \<open>\<not>C - 1 < length (take U (tl N))\<close>
       then have 1: \<open>mset (drop U (tl N)) = add_mset C' (remove1_mset C' (mset (drop U (tl N))))\<close>
-        apply (subst insert_DiffM) 
+        apply (subst insert_DiffM)
         subgoal
           by (simp add: C' S)
             (metis C_le_N Suc_le_eq Suc_less_eq Suc_pred drop_Suc in_set_drop_conv_nth
@@ -526,7 +526,7 @@ proof -
       have U: ?GU
         apply (subst drop_Suc)+
         apply (subst tl_update_swap)
-        subgoal using C_le_N by auto 
+        subgoal using C_le_N by auto
         apply (subst drop_update_swap)
         subgoal using False C_le_N by (auto simp add: not_less)
         apply (subst mset_update)
@@ -536,7 +536,7 @@ proof -
         done
       have N: ?GN
         apply (subst tl_update_swap)
-        subgoal using C_le_N by auto 
+        subgoal using C_le_N by auto
         subgoal using False by auto
         done
       note N and U
@@ -556,13 +556,13 @@ proof -
       by (cases x, auto simp: nth_list_update' C' S)
     done
   have [simp]: \<open>?C' ! 0 = ?L'\<close>
-    using i_def two_le_length_C  \<open>N ! C ! i = L\<close> 
+    using i_def two_le_length_C  \<open>N ! C ! i = L\<close>
     by (auto simp: S C' swap_def numeral_2_eq_2 Suc_le_eq)
   have [simp]: \<open>C' ! (Suc 0 - i) \<in> set (take 2 C')\<close> \<open>C' ! i \<in> set (take 2 C')\<close>
     using watched_C' i two_le_length_C C_le_N
     by (auto simp: mset_update swap_def take_2_if split: if_splits)
   have C_notin_M: \<open>Propagated La C \<notin> set M\<close>
-    if 
+    if
       \<open>polarity M (C' ! (Suc 0 - i)) \<noteq> Some True\<close> and
       \<open>polarity M (C' ! (Suc 0 - i)) \<noteq> Some False\<close> for La
   proof
@@ -840,7 +840,7 @@ proof -
     subgoal using add_inv S stgy_inv struct_invs add_mset_C'_i C_le_N  init_invs dist_WS conv C_notin_M
       by (vc_solve simp: mset_watched_C watched_C' in_set_unwatched_conv consistent
         Decided_Propagated_in_iff_in_lits_of_l additional_WS_invs_def C'[symmetric] N_C_C'
-        propagate_lit_l_def propagate_lit_def 
+        propagate_lit_l_def propagate_lit_def
         split: option.splits bool.splits if_splits)
     subgoal by auto
     subgoal by (rule update_clause_l) auto
