@@ -166,30 +166,30 @@ text \<open>
 The extension of ordered resolution mentioned in 4.10. We let it consist of all sound rules.
 \<close>
 
-definition gd_ord_\<Gamma>':: "'a inference set" where
-  "gd_ord_\<Gamma>' = {Infer CC D E | CC D E. (\<forall>I. I \<Turnstile>m CC \<longrightarrow> I \<Turnstile> D \<longrightarrow> I \<Turnstile> E)}"
+definition ground_sound_\<Gamma>:: "'a inference set" where
+  "ground_sound_\<Gamma> = {Infer CC D E | CC D E. (\<forall>I. I \<Turnstile>m CC \<longrightarrow> I \<Turnstile> D \<longrightarrow> I \<Turnstile> E)}"
 
 text \<open>
 We prove that we indeed defined an extension.
 \<close>
 
-lemma gd_ord_\<Gamma>_ngd_ord_\<Gamma>: "gd.ord_\<Gamma> \<subseteq> gd_ord_\<Gamma>'"
-  unfolding gd_ord_\<Gamma>'_def using gd.ord_\<Gamma>_def gd.ord_resolve_sound by fastforce
+lemma gd_ord_\<Gamma>_ngd_ord_\<Gamma>: "gd.ord_\<Gamma> \<subseteq> ground_sound_\<Gamma>"
+  unfolding ground_sound_\<Gamma>_def using gd.ord_\<Gamma>_def gd.ord_resolve_sound by fastforce
 
-lemma sound_gd_ord_\<Gamma>': "sound_inference_system gd_ord_\<Gamma>'"
-  unfolding sound_inference_system_def gd_ord_\<Gamma>'_def by auto
+lemma sound_ground_sound_\<Gamma>: "sound_inference_system ground_sound_\<Gamma>"
+  unfolding sound_inference_system_def ground_sound_\<Gamma>_def by auto
 
-lemma sat_preserving_gd_ord_\<Gamma>': "sat_preserving_inference_system gd_ord_\<Gamma>'"
-  using sound_gd_ord_\<Gamma>' sat_preserving_inference_system.intro
+lemma sat_preserving_ground_sound_\<Gamma>: "sat_preserving_inference_system ground_sound_\<Gamma>"
+  using sound_ground_sound_\<Gamma> sat_preserving_inference_system.intro
     sound_inference_system.\<Gamma>_sat_preserving by blast
 
 definition src_ext_Ri :: "'a clause set \<Rightarrow> 'a inference set" where
-  "src_ext_Ri N = src.Ri N \<union> (gd_ord_\<Gamma>' - gd.ord_\<Gamma>)"
+  "src_ext_Ri N = src.Ri N \<union> (ground_sound_\<Gamma> - gd.ord_\<Gamma>)"
 
 interpretation src_ext:
-  sat_preserving_redundancy_criterion "gd_ord_\<Gamma>'" "src.Rf" "src_ext_Ri"
+  sat_preserving_redundancy_criterion "ground_sound_\<Gamma>" "src.Rf" "src_ext_Ri"
   unfolding sat_preserving_redundancy_criterion_def src_ext_Ri_def
-  using sat_preserving_gd_ord_\<Gamma>' redundancy_criterion_standard_extension gd_ord_\<Gamma>_ngd_ord_\<Gamma>
+  using sat_preserving_ground_sound_\<Gamma> redundancy_criterion_standard_extension gd_ord_\<Gamma>_ngd_ord_\<Gamma>
     src.redundancy_criterion_axioms by auto
 
 lemma strict_subset_subsumption_redundant_clause:
@@ -219,16 +219,14 @@ lemma strict_subset_subsumption_redundant_state:
   using assms
 proof (induction St)
   fix N P Q :: "'a clause set"
-  assume asm: "D \<cdot> \<sigma> \<subset># C" 
-    "is_ground_subst \<sigma>" 
-    "D \<in> clss_of_state (N, P, Q)"
-  then have "C \<in> src.Rf (grounding_of_cls D)"    
+  assume
+    "D \<cdot> \<sigma> \<subset># C" and "is_ground_subst \<sigma>" and
+    d_in: "D \<in> clss_of_state (N, P, Q)"
+  then have "C \<in> src.Rf (grounding_of_cls D)"
     using strict_subset_subsumption_redundant_clause by auto
-  moreover have "D \<in> N_of_state (N, P, Q) \<union> P_of_state (N, P, Q) \<union> Q_of_state (N, P, Q)"
-    using asm by (simp add: clss_of_state_def)
-  ultimately have "C \<in> src.Rf (UNION (N_of_state (N, P, Q) \<union> P_of_state (N, P, Q)
-    \<union> Q_of_state (N, P, Q)) grounding_of_cls)"
-    using src.Rf_mono by (metis (no_types, lifting) sup_ge1 SUP_absorb contra_subsetD) 
+  then have "C \<in> src.Rf (\<Union>C \<in> clss_of_state (N, P, Q). grounding_of_cls C)"
+    using d_in src.Rf_mono unfolding clss_of_state_def
+    by (metis (no_types) sup_ge1 SUP_absorb contra_subsetD) 
   then show "C \<in> src.Rf (grounding_of_state (N, P, Q))"
     unfolding clss_of_state_def grounding_of_clss_def by auto
 qed
@@ -267,7 +265,8 @@ proof (induction rule: RP.induct)
     then have "C\<sigma> \<in> src.Rf (grounding_of_state (N, P, Q))"
       using src.tautology_redundant by auto
   }
-  then have "grounding_of_state (N \<union> {C}, P, Q) - grounding_of_state (N, P, Q) \<subseteq> src.Rf (grounding_of_state (N, P, Q))"
+  then have "grounding_of_state (N \<union> {C}, P, Q) - grounding_of_state (N, P, Q)
+    \<subseteq> src.Rf (grounding_of_state (N, P, Q))"
     unfolding clss_of_state_def grounding_of_clss_def by auto
   moreover have "grounding_of_state (N, P, Q) - grounding_of_state (N \<union> {C}, P, Q) = {}"
     unfolding clss_of_state_def grounding_of_clss_def by auto
@@ -403,7 +402,7 @@ next
     then have "\<forall>I. I \<Turnstile>m {#(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>"
       by (meson true_cls_mset_singleton)
     ultimately have "\<gamma> \<in> src_ext.inferences_from (grounding_of_state (N \<union> {C + {#L#}}, P, Q))"
-      unfolding src_ext.inferences_from_def unfolding gd_ord_\<Gamma>'_def infer_from_def \<gamma>_def by auto
+      unfolding src_ext.inferences_from_def unfolding ground_sound_\<Gamma>_def infer_from_def \<gamma>_def by auto
     then have "C \<cdot> \<mu> \<in> concls_of (src_ext.inferences_from (grounding_of_state (N \<union> {C + {#L#}}, P, Q)))"
       using image_iff unfolding \<gamma>_def by fastforce
     then have "C\<mu> \<in> concls_of (src_ext.inferences_from (grounding_of_state (N \<union> {C + {#L#}}, P, Q)))"
@@ -459,7 +458,7 @@ next
     then have "\<forall>I. I \<Turnstile>m {#(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow>  I \<Turnstile> C \<cdot> \<mu>"
       by (meson true_cls_mset_singleton)
     ultimately have "\<gamma> \<in> src_ext.inferences_from (grounding_of_state (N, P \<union> {C + {#L#}}, Q))"
-      unfolding src_ext.inferences_from_def unfolding gd_ord_\<Gamma>'_def infer_from_def \<gamma>_def by simp
+      unfolding src_ext.inferences_from_def unfolding ground_sound_\<Gamma>_def infer_from_def \<gamma>_def by simp
     then have "C \<cdot> \<mu> \<in> concls_of (src_ext.inferences_from (grounding_of_state (N, P \<union> {C + {#L#}}, Q)))"
       using image_iff unfolding \<gamma>_def by fastforce
     then have "C\<mu> \<in> concls_of (src_ext.inferences_from (grounding_of_state (N, P \<union> {C + {#L#}}, Q)))"
@@ -515,7 +514,7 @@ next
     then have "\<forall>I. I \<Turnstile>m {#(D + {#L'#}) \<cdot> \<sigma> \<cdot> \<mu>#} \<longrightarrow> I \<Turnstile> (C + {#L#}) \<cdot> \<mu> \<longrightarrow> I \<Turnstile> C \<cdot> \<mu>"
       by (meson true_cls_mset_singleton)
     ultimately have "\<gamma> \<in> src_ext.inferences_from (grounding_of_state (N, P, Q \<union> {C + {#L#}}))"
-      unfolding src_ext.inferences_from_def unfolding gd_ord_\<Gamma>'_def infer_from_def \<gamma>_def by simp
+      unfolding src_ext.inferences_from_def unfolding ground_sound_\<Gamma>_def infer_from_def \<gamma>_def by simp
     then have "C \<cdot> \<mu> \<in> concls_of (src_ext.inferences_from (grounding_of_state (N, P, Q \<union> {C + {#L#}})))"
       using image_iff unfolding \<gamma>_def by fastforce
     then have "C\<mu> \<in> concls_of (src_ext.inferences_from (grounding_of_state (N, P, Q \<union> {C + {#L#}})))"
@@ -622,20 +621,18 @@ next
         then show "(Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>) ! i \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))"
           by blast
       qed
-      then have "\<forall>x \<in># (mset (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>)). x \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))"
-        unfolding \<gamma>_ground_def using E_\<mu>_p \<gamma>_p2 \<gamma>_p unfolding infer_from_def
-        unfolding clss_of_state_def grounding_of_clss_def
-        unfolding grounding_of_cls_def
-        by (metis (no_types, lifting) in_set_conv_nth set_mset_mset)     
+      then have "\<forall>x \<in># mset (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>). x \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))"
+        by (metis (lifting) in_set_conv_nth set_mset_mset)     
       then have "set_mset (mset (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>)) \<subseteq> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))"
         by auto
-      then have "set_mset (mset (Cl \<cdot>\<cdot>cl \<rho>s) \<cdot>cm \<sigma> \<cdot>cm \<mu>) \<subseteq> grounding_of_cls C \<union> (UNION P grounding_of_cls \<union> UNION Q grounding_of_cls)"
-        unfolding grounding_of_cls_def using mset_subst_cls_list_subst_cls_mset by auto
+      then have "set_mset (mset (Cl \<cdot>\<cdot>cl \<rho>s) \<cdot>cm \<sigma> \<cdot>cm \<mu>) \<subseteq> grounding_of_cls C \<union> (grounding_of_clss P \<union> grounding_of_clss Q)"
+        unfolding grounding_of_cls_def grounding_of_clss_def
+        using mset_subst_cls_list_subst_cls_mset by auto
       ultimately show "set_mset (prems_of \<gamma>_ground) \<subseteq> grounding_of_state ({}, P \<union> {C}, Q)"
         unfolding \<gamma>_ground_def clss_of_state_def grounding_of_clss_def by simp
     qed
     ultimately have "E \<cdot> \<mu> \<in> concls_of (src_ext.inferences_from (grounding_of_state ({}, P \<union> {C}, Q)))"
-      unfolding src_ext.inferences_from_def inference_system.inferences_from_def gd_ord_\<Gamma>'_def infer_from_def
+      unfolding src_ext.inferences_from_def inference_system.inferences_from_def ground_sound_\<Gamma>_def infer_from_def
       using \<gamma>_ground_def by (metis (no_types, lifting) imageI inference.sel(3) mem_Collect_eq)
     then have "E\<mu> \<in> concls_of (src_ext.inferences_from (grounding_of_state ({}, P \<union> {C}, Q)))"
       using E_\<mu>_p by auto
@@ -812,7 +809,8 @@ proof -
 qed
 
 lemma subsumes_trans: "subsumes C D \<Longrightarrow> subsumes D E \<Longrightarrow> subsumes C E"
-  unfolding subsumes_def by (metis subset_mset.order.trans subst_cls_comp_subst subst_cls_mono_mset)
+  unfolding subsumes_def
+  by (metis (no_types) subset_mset.order.trans subst_cls_comp_subst subst_cls_mono_mset)
 
 lemma subset_strictly_subsumes: "C \<subset># D \<Longrightarrow> strictly_subsumes C D"
   using strict_subset_subst_strictly_subsumes[of C id_subst] by auto
@@ -848,7 +846,7 @@ proof (rule ccontr)
     by metis
 
   define c :: "nat \<Rightarrow> nat" where
-    "\<And>n. c n = compow n g_sm 0"
+    "\<And>n. c n = (g_sm ^^ n) 0"
 
   have "f (c i) > f (c (Suc i))" for i
     by (induction i) (auto simp: c_def g_sm_p)
@@ -875,7 +873,7 @@ proof (rule ccontr)
     by auto
 
   define c :: "nat \<Rightarrow> 'a clause" where
-    "\<And>n. c n = compow n f C"
+    "\<And>n. c n = (f ^^ n) C"
 
   have incc: "c i \<in> CC" for i
     by (induction i) (auto simp: c_def f_p C_p)

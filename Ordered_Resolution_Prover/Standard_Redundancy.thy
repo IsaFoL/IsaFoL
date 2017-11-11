@@ -172,7 +172,7 @@ lemma Rf_indep: "N' \<subseteq> Rf N \<Longrightarrow> Rf N \<subseteq> Rf (N - 
 lemma Ri_indep: "N' \<subseteq> Rf N \<Longrightarrow> Ri N \<subseteq> Ri (N - N')"
   by (metis Diff_mono Ri_eq_Ri_diff_Rf Ri_mono order_refl)
 
-lemma Rf_true:
+lemma Rf_model:
   assumes "I \<Turnstile>s N - Rf N"
   shows "I \<Turnstile>s N"
 proof -
@@ -186,7 +186,7 @@ proof -
 qed
 
 lemma Rf_sat: "satisfiable (N - Rf N) \<Longrightarrow> satisfiable N"
-  by (metis Rf_true)
+  by (metis Rf_model)
 
 text \<open>
 The following corresponds to Theorem 4.7:
@@ -309,7 +309,7 @@ proof (rule ccontr)
       using e_cex by auto
   qed
   then have "I_of M \<Turnstile>s N"
-    using M_def Rf_true by blast
+    using M_def Rf_model by blast
   then show False
     using unsat by blast
 qed
