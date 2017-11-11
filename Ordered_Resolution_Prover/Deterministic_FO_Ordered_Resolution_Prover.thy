@@ -811,6 +811,7 @@ proof (rule ccontr)
     sorry
   have "deterministic_RP St0 \<noteq> None"
     apply (rule is_final_dstate_funpow_imp_deterministic_RP_neq_None)
+    (* FIX the code so that it enters an endgame if it detects {#} anywhere in the state *)
     sorry
   then show False
     using drp_none ..

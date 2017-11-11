@@ -127,7 +127,6 @@ proof (induct rule: lfinite.induct)
   qed simp
 qed simp
 
-(* FIXME: needed? *)
 lemma tranclp_imp_exists_finite_chain:
   "R\<^sup>+\<^sup>+ x y \<Longrightarrow> \<exists>xs. lfinite xs \<and> chain R xs \<and> lhd xs = x \<and> llast xs = y"
 proof (induct rule: tranclp.induct)
@@ -156,45 +155,6 @@ next
   then show ?case
     by blast
 qed
-
-lemma lfinite_chain_tranclp_imp_exists_lfinite_chain:
-  "lfinite xs \<Longrightarrow> chain R\<^sup>+\<^sup>+ xs \<Longrightarrow>
-   \<exists>ys. lfinite ys \<and> chain R ys \<and> lhd ys = lhd xs \<and> llast ys = llast xs"
-proof (induction rule: lfinite_induct)
-  case (LCons xs)
-  show ?case
-  proof (cases "lnull (ltl xs)")
-    case True
-    then show ?thesis
-      by (metis LCons.hyps(1,2) lhd_LCons_ltl llist.collapse(1) singleton)
-  next
-    case nnul_tl_xs: False
-    then have r_tl_xs: "chain R\<^sup>+\<^sup>+ (ltl xs)"
-      by (metis LCons.prems chain.simps lnull_def ltl_simps(2))
-
-    have "R\<^sup>+\<^sup>+ (lhd xs) (lhd (ltl xs))"
-      by (metis (no_types) LCons.prems chain.simps lhd_LCons lnull_def ltl_simps(2) nnul_tl_xs)
-    then obtain ys where
-      ys: "lfinite ys" "chain R ys" "lhd ys = lhd xs" "llast ys = lhd (ltl xs)"
-      using tranclp_imp_exists_finite_chain by metis
-
-    obtain zs where
-      zs: "lfinite zs" "chain R zs" "lhd zs = lhd (ltl xs)" "llast zs = llast (ltl xs)"
-      using LCons.IH[OF r_tl_xs] by blast
-
-    define yzs where
-      "yzs = lappend ys (ltl zs)"
-
-    have "lfinite yzs" "chain R yzs" "lhd yzs = lhd xs" "llast yzs = llast xs"
-      unfolding yzs_def using ys zs LCons.hyps nnul_tl_xs
-      by (auto dest: lnull_chain,
-        metis (no_types) chain.simps chain_lappend lappend_lnull2 lhd_LCons llist.disc(1)
-          ltl_simps(2),
-        metis (no_types) llast_LCons llast_lappend llist.disc(1) llist.exhaust_sel lnull_chain)
-    then show ?thesis
-      by fast
-  qed
-qed (simp add: lnull_def)
 
 lemma tranclp_imp_exists_finite_chain_list:
   "R\<^sup>+\<^sup>+ x y \<Longrightarrow> \<exists>xs. xs \<noteq> [] \<and> tl xs \<noteq> [] \<and> chain R (llist_of xs) \<and> hd xs = x \<and> last xs = y"
