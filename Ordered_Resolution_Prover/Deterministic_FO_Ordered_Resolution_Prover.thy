@@ -710,6 +710,7 @@ proof -
     unfolding lim_last gr_last by blast
 
   show ?sound
+    using weighted_RP_model
     sorry
 qed
 

@@ -98,10 +98,9 @@ inductive RP :: "'a state \<Rightarrow> 'a state \<Rightarrow> bool" (infix "\<l
 lemma final_RP: "\<not> ({}, {}, Q) \<leadsto> St"
   by (auto elim: RP.cases)
 
-(* FIXME: replace fom by fos and get rid of fom? *)
 theorem RP_model:
   assumes "St \<leadsto> St'"
-  shows "I \<Turnstile>fom mset_set (grounding_of_state St') \<longleftrightarrow> I \<Turnstile>fom mset_set (grounding_of_state St)"
+  shows "I \<Turnstile>s grounding_of_state St' \<longleftrightarrow> I \<Turnstile>s grounding_of_state St"
   (* uses Rf_model *)
   sorry
 
