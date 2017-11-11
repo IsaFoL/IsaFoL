@@ -122,6 +122,10 @@ lemma
     emb_Q_of_Liminf_state: "Q_of_state (Liminf_state Sts') \<subseteq> Q_of_state (Liminf_state Sts)"
   using assms by (simp_all add: Liminf_state_def emb_Liminf_llist emb_lmap)
 
+text \<open>
+The theorem also holds without the infiniteness assumption.
+\<close>
+
 lemma emb_clss_of_Liminf_state:
   assumes "emb Sts Sts'" and "\<not> lfinite Sts"
   shows "clss_of_state (Liminf_state Sts') \<subseteq> clss_of_state (Liminf_state Sts)"
