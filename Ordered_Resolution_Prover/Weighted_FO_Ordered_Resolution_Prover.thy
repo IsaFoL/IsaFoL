@@ -92,6 +92,11 @@ proof (induction rule: weighted_RP.induct)
     by (auto simp: comp_def image_comp ord_FO_resolution_inferences_between_def)
 qed (use RP.intros in simp_all)
 
+lemma weighted_RP_model:
+  assumes step: "St \<leadsto>\<^sub>w St'"
+  shows "I \<Turnstile>fom mset_set (grounding_of_gstate St') \<longleftrightarrow> I \<Turnstile>fom mset_set (grounding_of_gstate St)"
+  using RP_model[OF weighted_RP_imp_RP[OF step]] by (simp only: comp_def)
+
 lemma final_weighted_RP: "\<not> ({#}, {#}, Q, n) \<leadsto>\<^sub>w St"
   by (auto elim: weighted_RP.cases)
 
