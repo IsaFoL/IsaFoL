@@ -1,5 +1,5 @@
 theory CDCL_W_Level
-imports 
+imports
   Entailment_Definition.Partial_Annotated_Clausal_Logic
 begin
 

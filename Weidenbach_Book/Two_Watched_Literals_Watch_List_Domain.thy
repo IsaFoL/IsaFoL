@@ -558,13 +558,13 @@ proof -
     unfolding card[symmetric] size .
 qed
 
-lemma literals_are_in_\<L>\<^sub>i\<^sub>n_poss_remdups_mset: 
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_poss_remdups_mset:
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (poss (remdups_mset (atm_of `# C))) \<longleftrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n C\<close>
   by (induction C)
     (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff atm_of_eq_atm_of
       dest!: multi_member_split)
 
-lemma literals_are_in_\<L>\<^sub>i\<^sub>n_negs_remdups_mset: 
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_negs_remdups_mset:
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (negs (remdups_mset (atm_of `# C))) \<longleftrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n C\<close>
   by (induction C)
     (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff atm_of_eq_atm_of
@@ -579,8 +579,8 @@ lemma clss_size_upper:
 proof -
   let ?A = \<open>remdups_mset (atm_of `# C)\<close>
   have [simp]: \<open>distinct_mset (poss ?A)\<close> \<open>distinct_mset (negs ?A)\<close>
-    by (simp_all add: distinct_image_mset_inj inj_on_def) 
-    
+    by (simp_all add: distinct_image_mset_inj inj_on_def)
+
   have \<open>C \<subseteq># poss ?A + negs ?A\<close>
     apply (rule distinct_subseteq_iff[THEN iffD1])
     subgoal by (auto simp: dist distinct_mset_add disjunct_not_in)
@@ -802,7 +802,7 @@ lemma
   \<open>(uncurry2 unit_propagation_inner_loop_body_wl_D, uncurry2 unit_propagation_inner_loop_body_wl) \<in>
     [\<lambda>((K, w), S). literals_are_\<L>\<^sub>i\<^sub>n S \<and> K \<in> snd ` D\<^sub>0 \<and> w < length (watched_by S K) \<and>
       get_conflict_wl S = None \<and> correct_watching S \<and> twl_struct_invs (twl_st_of_wl (Some (K, w)) S) \<and>
-      additional_WS_invs (st_l_of_wl (Some (K, w)) S) \<and> twl_stgy_invs (twl_st_of_wl (Some (K, w)) S)]\<^sub>f 
+      additional_WS_invs (st_l_of_wl (Some (K, w)) S) \<and> twl_stgy_invs (twl_st_of_wl (Some (K, w)) S)]\<^sub>f
     Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel \<times>\<^sub>r {(T', T).
        T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<rangle> nres_rel\<close> (is \<open>?G1\<close>) and
   unit_propagation_inner_loop_body_wl_D_unit_propagation_inner_loop_body_wl_D_weak:

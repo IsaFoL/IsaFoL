@@ -1,9 +1,9 @@
 theory CDCL_Preprocess
-  imports CDCL.CDCL_W_Abstract_State Refine_Imperative_HOL.IICF 
+  imports CDCL.CDCL_W_Abstract_State Refine_Imperative_HOL.IICF
     Two_Watched_Literals.Two_Watched_Literals_Watch_List "../lib/Explorer"
 begin
 
-inductive preprocess :: \<open>'v multiset \<Rightarrow> 'v clause \<Rightarrow> 'v clauses \<Rightarrow> 
+inductive preprocess :: \<open>'v multiset \<Rightarrow> 'v clause \<Rightarrow> 'v clauses \<Rightarrow>
    'v multiset \<Rightarrow> 'v clause \<Rightarrow>'v clauses \<Rightarrow> bool\<close>where
 rem_dups_lits:
   \<open>preprocess tauto_lits pure_lits (add_mset (add_mset L (add_mset L C)) N)
@@ -14,9 +14,9 @@ rem_dups_cls:
 rem_tautology:
   \<open>preprocess tauto_lits pure_lits (add_mset (add_mset L (add_mset (-L) C)) N)
     (add_mset (atm_of L) tauto_lits) pure_lits N\<close>  |
-pure_literal_deletion: \<open>\<forall>D \<in># add_mset (add_mset L C) N. -L \<notin># D  \<Longrightarrow> 
-    preprocess tauto_lits pure_lits (add_mset (add_mset L C) N) 
-       tauto_lits (add_mset L pure_lits)  N\<close> 
+pure_literal_deletion: \<open>\<forall>D \<in># add_mset (add_mset L C) N. -L \<notin># D  \<Longrightarrow>
+    preprocess tauto_lits pure_lits (add_mset (add_mset L C) N)
+       tauto_lits (add_mset L pure_lits)  N\<close>
 
 definition patch_model_preprocess :: \<open>'v multiset \<Rightarrow> 'v clause \<Rightarrow> 'v clause \<Rightarrow> 'v clause\<close> where
   \<open>patch_model_preprocess tauto_lits pure_lits I =
@@ -27,16 +27,16 @@ definition preprocess_inv :: \<open>'v clauses \<Rightarrow> 'v clause \<Rightar
   \<open>preprocess_inv N pure_lits \<longleftrightarrow> (\<forall>L\<in># pure_lits. \<forall>C\<in>#N. -L \<notin># C)\<close>
 
 lemma preprocess_preprocess_inv:
-  \<open>preprocess tauto_lits pure_lits C tauto_lits' pure_lits' D \<Longrightarrow> 
+  \<open>preprocess tauto_lits pure_lits C tauto_lits' pure_lits' D \<Longrightarrow>
     preprocess_inv C pure_lits \<Longrightarrow> preprocess_inv D pure_lits'\<close>
   by (induction rule: preprocess.induct) (auto simp: preprocess_inv_def)
- 
+
 lemma true_cls_mset_add_mset[simp]: \<open>I \<Turnstile>m add_mset C CC \<longleftrightarrow> I \<Turnstile> C \<and> I \<Turnstile>m CC\<close>
   by (auto simp: true_cls_mset_def)
 
 lemma patch_model_preprocess_tautology_add_mset:
-  \<open>set_mset (patch_model_preprocess (add_mset L tauto_lits) pure_lits I) = 
-    (set_mset (patch_model_preprocess tauto_lits pure_lits I)) \<union> 
+  \<open>set_mset (patch_model_preprocess (add_mset L tauto_lits) pure_lits I) =
+    (set_mset (patch_model_preprocess tauto_lits pure_lits I)) \<union>
     (if Pos L \<in># I \<or> Neg L \<in># I then {} else {Pos L})\<close>
   unfolding patch_model_preprocess_def by auto
 
@@ -51,7 +51,7 @@ lemma true_cls_mono_insert:
 
 
 lemma in_patch_model_preprocessD:
-   \<open>L \<in># I \<Longrightarrow> L \<in># patch_model_preprocess tauto_lits pure_lits I \<or> 
+   \<open>L \<in># I \<Longrightarrow> L \<in># patch_model_preprocess tauto_lits pure_lits I \<or>
     - L \<in># patch_model_preprocess tauto_lits pure_lits I\<close>
   unfolding patch_model_preprocess_def apply (cases L) apply auto
    apply (metis (no_types, lifting) in_image_uminus_uminus in_multiset_minus_notin_snd
@@ -60,9 +60,9 @@ lemma in_patch_model_preprocessD:
       multiset.set_map uminus_Neg)
   done
 
-(*   
+(*
 lemma
-  \<open>preprocess tauto_lits pure_lits C tauto_lits' pure_lits' D \<Longrightarrow> 
+  \<open>preprocess tauto_lits pure_lits C tauto_lits' pure_lits' D \<Longrightarrow>
     preprocess_inv C pure_lits \<Longrightarrow>
    set_mset (patch_model_preprocess tauto_lits pure_lits I) \<Turnstile>m C \<longleftrightarrow>
   set_mset (patch_model_preprocess tauto_lits' pure_lits' I) \<Turnstile>m D\<close>
@@ -147,7 +147,7 @@ definition condense_clause where
      (0, E, C, False)\<close>
 
 lemma
-  \<open>condense_clause C {#} \<le> SPEC(\<lambda>(i, E, C, failed). 
+  \<open>condense_clause C {#} \<le> SPEC(\<lambda>(i, E, C, failed).
     (failed \<longrightarrow> tautology (mset C) \<and>
     (\<not>failed \<longrightarrow> (C = remdups C
      ))))\<close>
@@ -156,7 +156,7 @@ proof -
     unfolding condense_clause_loop_inv_def by auto
   have step: \<open>condense_clause_loop_inv C
        (i, E, delete_index_and_swap D i, False)\<close>
-    if 
+    if
       inv: \<open>condense_clause_loop_inv C s\<close> and
       \<open>case s of (i, E, C, failed) \<Rightarrow> \<not> failed \<and> i < length C\<close> and
       s: \<open>s = (i, s')\<close> \<open>s' = (E, s'')\<close> \<open>s'' = (D, failed)\<close> and
@@ -169,7 +169,7 @@ proof -
     have C1: \<open>D = take i D @ D ! i  # drop (Suc i) D\<close>
       by (simp add: Cons_nth_drop_Suc i_C)
     have C2: \<open>delete_index_and_swap D i = take i D @ butlast (last D  # drop (Suc i) D)\<close>
-      using i_C apply (subst C1) 
+      using i_C apply (subst C1)
       apply (auto simp add: butlast_update'[symmetric])
       by (metis C1 WB_List_More.butlast_list_update butlast.simps(2) butlast_update' drop_eq_Nil i_C)
 
@@ -180,13 +180,13 @@ proof -
       apply (auto dest!: in_set_butlastD simp: last_in_set not_less)
        apply (metis List.last_in_set drop_eq_Nil last_drop not_less)
       by (smt Cons_nth_drop_Suc append_butlast_last_id butlast.simps(2) drop_eq_Nil
-          i_C in_set_conv_nth last.simps last_drop length_Cons length_butlast length_tl less_Suc_eq 
+          i_C in_set_conv_nth last.simps last_drop length_Cons length_butlast length_tl less_Suc_eq
           list.sel(3) nth_append_length nth_butlast)
     show ?thesis
       using C E i_C D_C unfolding condense_clause_loop_inv_def by (clarsimp simp: take_butlast)
   qed
   have step_tauto: \<open>condense_clause_loop_inv C (i, E, D, True)\<close>
-    if 
+    if
       inv: \<open>condense_clause_loop_inv C s\<close> and
       \<open>case s of (i, E, C, failed) \<Rightarrow> \<not> failed \<and> i < length C\<close> and
       s: \<open>s = (i, s')\<close> \<open>s' = (E, s'')\<close> \<open>s'' = (D, failed)\<close> and
@@ -206,7 +206,7 @@ proof -
   qed
   have inv_add: \<open>condense_clause_loop_inv C
        (i + 1, add_mset (D ! i) E, D, False)\<close>
-    if 
+    if
       inv: \<open>condense_clause_loop_inv C s\<close> and
       \<open>case s of (i, E, C, failed) \<Rightarrow> \<not> failed \<and> i < length C\<close> and
       s: \<open>s = (i, s')\<close> \<open>s' = (E, s'')\<close> \<open>s'' = (D, failed)\<close> and

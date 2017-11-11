@@ -497,10 +497,10 @@ lemma set_conflict_wl'_alt_def:
   by (cases S) (auto simp: set_conflict_wl'_def set_conflict_wl_def)
 
 definition set_conflict_wl'_int :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>set_conflict_wl'_int = (\<lambda>C (M, N, U, D, Q, W, vmtf, \<phi>, clvls). do {
+  \<open>set_conflict_wl'_int = (\<lambda>C (M, N, U, D, Q, W, vmtf, \<phi>, clvls, cach). do {
     let n = zero_uint32_nat;
     (D, clvls) \<leftarrow> conflict_merge M N C D n;
-    RETURN (M, N, U, D, {#}, W, vmtf, \<phi>, clvls)})\<close>
+    RETURN (M, N, U, D, {#}, W, vmtf, \<phi>, clvls, cach)})\<close>
 
 sepref_thm set_conflict_wl'_int_code
   is \<open>uncurry set_conflict_wl'_int\<close>
@@ -1099,7 +1099,8 @@ paragraph \<open>Unit propagation, Outer Loop\<close>
 
 type_synonym (in -) twl_st_wl_heur_W_list =
   \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times> nat \<times>
-    nat cconflict \<times> nat literal list \<times> nat list list \<times> vmtf_remove_int \<times> bool list \<times> nat\<close>
+    nat cconflict \<times> nat literal list \<times> nat list list \<times> vmtf_remove_int \<times> bool list \<times> nat \<times>
+    nat conflict_min_cach\<close>
 
 definition (in -) select_and_remove_from_literals_to_update_wl_heur
   :: \<open>twl_st_wl_heur_W_list \<Rightarrow> twl_st_wl_heur_W_list \<times> _\<close> where
@@ -1116,7 +1117,8 @@ definition twl_st_wl_heur_W_list_rel :: \<open>(twl_st_wl_heur_W_list \<times> t
      (Id :: (nat list list \<times> _)set) \<times>\<^sub>r
      Id \<times>\<^sub>r
      Id \<times>\<^sub>r
-     nat_rel\<close>
+     nat_rel \<times>\<^sub>r
+     Id\<close>
 
 definition twl_st_heur_W_list_assn :: \<open>twl_st_wl_heur_W_list \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>twl_st_heur_W_list_assn =
@@ -1124,18 +1126,19 @@ definition twl_st_heur_W_list_assn :: \<open>twl_st_wl_heur_W_list \<Rightarrow>
   option_lookup_clause_assn *a
   (list_assn unat_lit_assn) *a
   arrayO_assn (arl_assn nat_assn) *a
-  vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn
+  vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn *a cach_refinement_assn
   )\<close>
 
 lemma twl_st_wl_heur_W_list_rel_twl_st_rel: \<open>twl_st_wl_heur_W_list_rel O twl_st_heur =
-   {((M', N', U', D', Q', W', vm, \<phi>, clvls), M, N, U, D, NP, UP, Q, W).
+   {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach), M, N, U, D, NP, UP, Q, W).
      M = M' \<and>
      N' = N \<and>
      U' = U \<and>
      D = D' \<and>
      (Q', Q) \<in> list_mset_rel \<and>
      (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
-     vm \<in> vmtf M \<and> phase_saving \<phi> \<and> no_dup M \<and> clvls \<in> counts_maximum_level M D}\<close>
+     vm \<in> vmtf M \<and> phase_saving \<phi> \<and> no_dup M \<and> clvls \<in> counts_maximum_level M D\<and>
+     cach_refinement_empty cach}\<close>
   unfolding twl_st_heur_def twl_st_wl_heur_W_list_rel_def
   by force
 

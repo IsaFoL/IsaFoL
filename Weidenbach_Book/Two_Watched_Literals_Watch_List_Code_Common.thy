@@ -298,7 +298,7 @@ lemma last_aa_u_code[code]:
   unfolding last_aa_u_def last_aa_def nth_nat_of_uint32_nth' nth_nat_of_uint32_nth'
     arl_get_u_def[symmetric] nth_u_code_def[symmetric] ..
 
-definition update_aa_u where  
+definition update_aa_u where
   \<open>update_aa_u xs i j = update_aa xs (nat_of_uint32 i) j\<close>
 
 lemma Array_upd_upd': \<open>Array.upd i x a = Array.upd' a (of_nat i) x \<then> return a\<close>
@@ -318,7 +318,7 @@ lemma update_aa_u_code[code]:
   \<open>update_aa_u a i j y = do {
       x \<leftarrow> nth_u_code a i;
       a' \<leftarrow> arl_set x j y;
-      Array_upd_u i a' a 
+      Array_upd_u i a' a
     }\<close> -- \<open>is the Array.upd really needed?\<close>
   unfolding update_aa_u_def update_aa_def nth_nat_of_uint32_nth' nth_nat_of_uint32_nth'
     arl_get_u_def[symmetric] nth_u_code_def[symmetric]

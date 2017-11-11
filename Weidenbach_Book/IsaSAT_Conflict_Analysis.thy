@@ -157,7 +157,7 @@ lemma maximum_level_removed_eq_count_dec_heur_maximum_level_removed_eq_count_dec
   done
 
 definition (in -) get_count_max_lvls_code where
-  \<open>get_count_max_lvls_code = (\<lambda>(_, _, _, _, _, _, _, _, clvls). clvls)\<close>
+  \<open>get_count_max_lvls_code = (\<lambda>(_, _, _, _, _, _, _, _, clvls, _). clvls)\<close>
 
 
 lemma get_count_max_lvls_heur_hnr[sepref_fr_rules]:
@@ -209,7 +209,7 @@ proof -
       maximum_level_removed_eq_count_dec_heur_maximum_level_removed_eq_count_dec]
     .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
-    using that unfolding comp_PRE_def twl_st_heur_def 
+    using that unfolding comp_PRE_def twl_st_heur_def
       literals_to_update_wl_empty_def
     by (auto simp: image_image map_fun_rel_def Nil_list_mset_rel_iff lookup_clause_rel_def)
   have im: \<open>?im' = ?im\<close>
@@ -236,7 +236,7 @@ lemma is_decided_hd_trail_wl_heur_is_decided_hd_trail_wl:
 
 lemma get_trail_wl_heur_def: \<open>get_trail_wl_heur = (\<lambda>(M, S). M)\<close>
   by (intro ext, rename_tac S, case_tac S) auto
- 
+
 sepref_thm is_decided_hd_trail_wl_code
   is \<open>RETURN o is_decided_hd_trail_wl_heur\<close>
   :: \<open>[\<lambda>S. get_trail_wl_heur S \<noteq> []]\<^sub>a twl_st_heur_assn\<^sup>k \<rightarrow> bool_assn\<close>
@@ -935,20 +935,22 @@ qed
 definition update_confl_tl_wl_heur
   :: \<open>nat \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
 where
-  \<open>update_confl_tl_wl_heur = (\<lambda>C L (M, N, U, D, Q, W, vmtf, \<phi>, clvls).
+  \<open>update_confl_tl_wl_heur = (\<lambda>C L (M, N, U, D, Q, W, vmtf, \<phi>, clvls, cach).
      (if C = 0 then do {
          let D' = remove1_mset (-L) (the D);
          let L' = atm_of L;
          ASSERT (clvls \<ge> 1);
-         RETURN (D' = {#}, (tl M, N, U, Some D', Q, W, vmtf_mark_to_rescore_and_unset L' vmtf, save_phase L \<phi>,
-            fast_minus clvls one_uint32_nat))
+         RETURN (D' = {#}, (tl M, N, U, Some D', Q, W, vmtf_mark_to_rescore_and_unset L' vmtf,
+            save_phase L \<phi>,
+            fast_minus clvls one_uint32_nat,
+            cach))
          }
       else do {
         let L' = atm_of L;
         (D', clvls) \<leftarrow> lookup_conflict_merge_abs_union M N C D clvls;
         let D' = remove1_mset L (the D');
-        RETURN (D' = {#}, (tl M, N, U, Some D', Q, W, vmtf_mark_to_rescore_and_unset L' vmtf, save_phase L \<phi>,
-           fast_minus clvls one_uint32_nat))
+        RETURN (D' = {#}, (tl M, N, U, Some D', Q, W, vmtf_mark_to_rescore_and_unset L' vmtf,
+           save_phase L \<phi>, fast_minus clvls one_uint32_nat, cach))
       }))\<close>
 
 lemma card_max_lvl_remove1_mset_hd:
@@ -1039,7 +1041,7 @@ lemma lookup_clause_assn_op_nset_is_emty[sepref_fr_rules]:
 
 sepref_thm update_confl_tl_wl_code
   is \<open>uncurry2 update_confl_tl_wl_heur\<close>
-  :: \<open>[\<lambda>((i, L), (M, N, U, D, W, Q, ((A, m, fst_As, lst_As, next_search), _), \<phi>, clvls)).
+  :: \<open>[\<lambda>((i, L), (M, N, U, D, W, Q, ((A, m, fst_As, lst_As, next_search), _), \<phi>, clvls, cach)).
       (i > 0 \<longrightarrow> distinct (N ! i)) \<and>
       (i > 0 \<longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N! i))) \<and>
       (i > 0 \<longrightarrow> \<not> tautology (mset (N ! i))) \<and>
@@ -1101,7 +1103,7 @@ proof -
            twl_struct_invs (twl_st_of_wl None S) \<and>
            is_proped (hd (get_trail_wl S)))
        (\<lambda>_ ((i, L), M, N, U, D, W, Q, ((A, m, fst_As, lst_As,
-           next_search), _), \<phi>, clvls).
+           next_search), _), \<phi>, clvls, cach).
            (0 < i \<longrightarrow> distinct (N ! i)) \<and>
            (0 < i \<longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N ! i))) \<and>
            (0 < i \<longrightarrow> \<not> tautology (mset (N ! i))) \<and>
@@ -1177,8 +1179,8 @@ proof -
     then obtain S' where
       [simp]: \<open>x' = ((C, L), S')\<close>
       by (cases x') auto
-    obtain Q' A m fst_As lst_As next_search oth \<phi> clvls where
-      [simp]: \<open>S' = (M, N, U, D, W, Q', ((A, m, fst_As, lst_As, next_search), oth), \<phi>, clvls)\<close>
+    obtain Q' A m fst_As lst_As next_search oth \<phi> clvls cach where
+      [simp]: \<open>S' = (M, N, U, D, W, Q', ((A, m, fst_As, lst_As, next_search), oth), \<phi>, clvls, cach)\<close>
       using x'x by (cases S') (auto simp: twl_st_heur_def)
     have in_atms_le: \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length A\<close> and \<phi>: \<open>phase_saving \<phi>\<close> and
       vmtf: \<open>\<exists>xs' ys'. vmtf_ns (ys' @ xs') m A \<and> fst_As = hd (ys' @ xs') \<and>
@@ -2161,7 +2163,7 @@ lemma extract_shorter_conflict_list_extract_shorter_conflict_l_trivial_spec:
   by fast
 
 lemma extract_shorter_conflict_l_trivial_subset_msetD:
-  \<open>extract_shorter_conflict_l_trivial M (Some (remove1_mset (- lit_of (hd M)) D)) = Some D' \<Longrightarrow> 
+  \<open>extract_shorter_conflict_l_trivial M (Some (remove1_mset (- lit_of (hd M)) D)) = Some D' \<Longrightarrow>
    D' \<subseteq># D\<close>
   by (auto simp: extract_shorter_conflict_l_trivial_def)
 
@@ -2265,59 +2267,67 @@ lemma extract_shorter_conflict_list_extract_shorter_conflict_l_trivial:
 type_synonym (in -) twl_st_wl_confl_extracted_int =
   \<open>(nat,nat)ann_lits \<times> nat clause_l list \<times> nat \<times>
     lookup_clause_rel_with_cls_with_highest \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int \<times>
-    bool list \<times> nat\<close>
+    bool list \<times> nat \<times> nat conflict_min_cach\<close>
 
 definition twl_st_heur_confl_extracted2
   :: \<open>nat literal \<Rightarrow> (twl_st_wl_confl_extracted_int \<times> twl_st_wl_heur) set\<close> where
 \<open>twl_st_heur_confl_extracted2 L =
-  {((M', N', U', D', Q', W', vm', \<phi>', clvls), (M, N, U, D, Q, W, vm, \<phi>, clvls')).
+  {((M', N', U', D', Q', W', vm', \<phi>', clvls', cach'), (M, N, U, D, Q, W, vm, \<phi>, clvls, cach)).
     M = M' \<and> N' = N \<and> U' = U \<and>
      (D', D) \<in> option_lookup_clause_rel_with_cls_with_highest2 L M \<and>
      Q' = Q \<and>
     W' = W \<and>
     vm = vm' \<and>
     \<phi>' = \<phi> \<and>
-    clvls' = clvls
+    clvls' = clvls \<and>
+    cach' = cach
   }\<close>
 
-definition twl_st_heur_confl_extracted :: \<open>(twl_st_wl_confl_extracted_int \<times> twl_st_wl_heur) set\<close> where
+definition twl_st_heur_confl_extracted
+  :: \<open>(twl_st_wl_confl_extracted_int \<times> twl_st_wl_heur) set\<close>
+where
 \<open>twl_st_heur_confl_extracted =
-  {((M', N', U', D', Q', W', vm', \<phi>', clvls'), (M, N, U, D, Q, W, vm, \<phi>, clvls)).
+  {((M', N', U', D', Q', W', vm', \<phi>', clvls', cach'), (M, N, U, D, Q, W, vm, \<phi>, clvls, cach)).
     M = M' \<and> N' = N \<and> U' = U \<and>
      (D', D) \<in> option_lookup_clause_rel_with_cls_with_highest M \<and>
      Q' = Q \<and>
     W' = W \<and>
     vm = vm' \<and>
     \<phi>' = \<phi> \<and>
-    clvls' = clvls
+    clvls' = clvls \<and>
+    cach' = cach
   }\<close>
 
 type_synonym (in -) twl_st_wll_trail_confl_extracted =
   \<open>trail_pol_assn \<times> clauses_wl \<times> nat \<times> conflict_with_cls_with_highest_assn \<times>
-    lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times> uint32\<close>
+    lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times> uint32 \<times> minimize_assn\<close>
 
 
 definition twl_st_confl_extracted_int_assn
-  :: \<open>twl_st_wl_confl_extracted_int \<Rightarrow> twl_st_wll_trail_confl_extracted \<Rightarrow> assn\<close> where
-\<open>twl_st_confl_extracted_int_assn =
-  (trail_assn *a clauses_ll_assn *a nat_assn *a
-  conflict_with_cls_int_with_highest_assn *a
-  clause_l_assn *a
-  arrayO_assn (arl_assn nat_assn) *a
-  vmtf_remove_conc *a phase_saver_conc *a
-  uint32_nat_assn
-  )\<close>
+  :: \<open>twl_st_wl_confl_extracted_int \<Rightarrow> twl_st_wll_trail_confl_extracted \<Rightarrow> assn\<close>
+where
+  \<open>twl_st_confl_extracted_int_assn =
+    trail_assn *a clauses_ll_assn *a nat_assn *a
+    conflict_with_cls_int_with_highest_assn *a
+    clause_l_assn *a
+    arrayO_assn (arl_assn nat_assn) *a
+    vmtf_remove_conc *a phase_saver_conc *a
+    uint32_nat_assn *a
+    cach_refinement_assn\<close>
 
-definition (in isasat_input_ops) twl_st_heur_no_clvls :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
+definition (in isasat_input_ops) twl_st_heur_no_clvls
+  :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
+where
 \<open>twl_st_heur_no_clvls =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls), (M, N, U, D, NP, UP, Q, W)).
+  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach), (M, N, U, D, NP, UP, Q, W)).
     M = M' \<and> N' = N \<and> U' = U \<and>
     D' = D \<and>
      Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
     vm \<in> vmtf M \<and>
     phase_saving \<phi> \<and>
-    no_dup M
+    no_dup M \<and>
+    cach_refinement_empty cach
   }\<close>
 
 definition twl_st_confl_extracted_assn
@@ -2850,7 +2860,7 @@ lemma find_decomp_wl_st_int_find_decomp_wl_st:
      (\<forall>L \<in># remove1_mset (-lit_of (hd M)) (the (get_conflict_wl S)). get_level (get_trail_wl S) L = get_level M L)}\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   apply clarify
-  subgoal for L' M' N' U' D' K' W' Q' A' m'  _ _ _ _ \<phi> L M N U D NP UP W Q
+  subgoal for L' M' N' U' D' K' W' Q' A' m'  _ _ _ _ _ \<phi> L M N U D NP UP W Q
     apply (auto simp: find_decomp_wl_st_int_def find_decomp_wl_st_def
         list_mset_rel_def br_def twl_st_heur_def twl_st_heur_no_clvls_def
         intro!: bind_refine[where R' =
@@ -2877,7 +2887,8 @@ definition twl_st_confl_extracted_int_assn' where
       clause_l_assn *a
       arrayO_assn (arl_assn nat_assn) *a
       vmtf_remove_conc *a phase_saver_conc *a
-      uint32_nat_assn)\<close>
+      uint32_nat_assn *a
+      cach_refinement_assn)\<close>
 
 sepref_thm find_decomp_wl_imp'_code
   is \<open>uncurry (PR_CONST find_decomp_wl_st_int)\<close>
@@ -2913,7 +2924,7 @@ lemma find_decomp_wl_st_find_decomp_wl:
 
 lemma twl_st_heur_confl_extracted_twl_st_heur:
   \<open>twl_st_heur_confl_extracted O twl_st_heur =
-    {((M', N', U', D', Q', W', vm, \<phi>, clvls), M, N, U, D, NP, UP, Q, W).
+    {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach), M, N, U, D, NP, UP, Q, W).
      M = M' \<and>
      N' = N \<and>
      U' = U \<and>
@@ -2921,20 +2932,22 @@ lemma twl_st_heur_confl_extracted_twl_st_heur:
      Q' = Q \<and>
      (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
      clvls \<in> counts_maximum_level M D \<and>
-     vm \<in> vmtf M \<and> phase_saving \<phi> \<and> no_dup M}\<close>
+     vm \<in> vmtf M \<and> phase_saving \<phi> \<and> no_dup M\<and>
+     cach_refinement_empty cach}\<close>
   unfolding twl_st_heur_confl_extracted_def twl_st_heur_def
   by fast
 
 lemma twl_st_heur_confl_extracted2_twl_st_heur:
   \<open>twl_st_heur_confl_extracted2 L O twl_st_heur_no_clvls =
-    {((M', N', U', D', Q', W', vm, \<phi>, clvls), M, N, U, D, NP, UP, Q, W).
+    {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach), M, N, U, D, NP, UP, Q, W).
      M = M' \<and>
      N' = N \<and>
      U' = U \<and>
      (D', D) \<in> option_lookup_clause_rel_with_cls_with_highest2 L M \<and>
      Q' = Q \<and>
      (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
-     vm \<in> vmtf M \<and> phase_saving \<phi> \<and> no_dup M}\<close>
+     vm \<in> vmtf M \<and> phase_saving \<phi> \<and> no_dup M\<and>
+     cach_refinement_empty cach}\<close>
   unfolding twl_st_heur_confl_extracted2_def twl_st_heur_no_clvls_def
   by fast
 
@@ -2990,13 +3003,14 @@ proof -
 
   define twl_st_heur' :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
     \<open>twl_st_heur' =
-      {((M'', N', U', D', Q', W', vm, \<phi>, clvls), (M', N, U, D, NP, UP, Q, W)).
+      {((M'', N', U', D', Q', W', vm, \<phi>, clvls, cach), (M', N, U, D, NP, UP, Q, W)).
         M' = M'' \<and> M' = M \<and> N' = N \<and> U' = U \<and> D = D' \<and>
          Q' = Q \<and>
         (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
         vm \<in> vmtf M \<and>
         phase_saving \<phi> \<and>
-        no_dup M
+        no_dup M \<and>
+        cach_refinement_empty cach
       }\<close>
   have decomp_1: \<open>hr_comp (twl_st_confl_extracted_int_assn' M) twl_st_heur_no_clvls
         (M, aa, ab, ac, ad, ae, af, b) =
@@ -4195,7 +4209,7 @@ sepref_thm extract_shorter_conflict_list_st_int_code
        ((bool_assn *a lookup_clause_rel_assn) *a option_assn (unat_lit_assn *a uint32_nat_assn)) *a
        clause_l_assn *a
        arrayO_assn (arl_assn nat_assn) *a
-       vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn\<close>
+       vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn *a cach_refinement_assn\<close>
   supply [[goals_limit = 1]]
   unfolding extract_shorter_conflict_list_st_int_def twl_st_heur_lookup_lookup_clause_assn_def
     PR_CONST_def
@@ -4530,29 +4544,31 @@ type_synonym (in -) twl_st_wl_W_int =
 
 definition twl_st_wl_W_conflict :: \<open>(twl_st_wl_heur_lookup_conflict \<times> twl_st_wl_W_int) set\<close>where
   \<open>twl_st_wl_W_conflict =
-   {((M', N', U', D', Q', W', vm, \<phi>, clvls), M, N, U, D, NP, UP, Q, W).
+   {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach), M, N, U, D, NP, UP, Q, W).
      M = M' \<and>
      N' = N \<and>
      U' = U \<and>
      (D', D) \<in> option_lookup_clause_rel \<and>
      Q' = Q \<and>
      (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
-     vm \<in> vmtf M \<and> phase_saving \<phi> \<and> no_dup M}\<close>
+     vm \<in> vmtf M \<and> phase_saving \<phi> \<and> no_dup M\<and>
+     cach_refinement_empty cach}\<close>
 
 lemma twl_st_wl_W_conflict_alt_def:
   \<open>twl_st_wl_W_conflict =
-     (Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r option_lookup_clause_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id) O twl_st_heur_no_clvls\<close>
+     (Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r option_lookup_clause_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id) O twl_st_heur_no_clvls\<close>
   unfolding twl_st_wl_W_conflict_def twl_st_heur_no_clvls_def
   by force
 
 definition twl_st_W_conflict_int_assn :: \<open>twl_st_wl_heur_lookup_conflict \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>twl_st_W_conflict_int_assn =
-  (trail_assn *a clauses_ll_assn *a nat_assn *a
+  trail_assn *a clauses_ll_assn *a nat_assn *a
   conflict_option_rel_assn *a
   clause_l_assn *a
   arrayO_assn (arl_assn nat_assn) *a
-  vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn
-  )\<close>
+  vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn *a
+  cach_refinement_assn
+  \<close>
 
 lemma st_remove_highest_lvl_from_confl_heur_st_remove_highest_lvl_from_confl:
   \<open>(RETURN o st_remove_highest_lvl_from_confl_heur, RETURN o st_remove_highest_lvl_from_confl) \<in>
@@ -4598,14 +4614,15 @@ lemma st_remove_highest_lvl_from_confl_hnr[sepref_fr_rules]:
 
 definition propagate_bt_wl_D_heur
   :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>propagate_bt_wl_D_heur = (\<lambda>L L' (M, N, U, D, Q, W, vm, \<phi>, _). do {
+  \<open>propagate_bt_wl_D_heur = (\<lambda>L L' (M, N, U, D, Q, W, vm, \<phi>, _, cach). do {
       (D'', C) \<leftarrow> list_of_mset2_None (- L) L' D;
       ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n (mset D''));
       (vm, \<phi>) \<leftarrow> rescore_clause D'' M vm \<phi>;
       vm \<leftarrow> flush M vm;
       let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [length N]];
       let W = W[nat_of_lit L' := W!nat_of_lit L' @ [length N]];
-      RETURN (Propagated (- L) (length N) # M, N @ [D''], U, C, {#L#}, W, vm, \<phi>, zero_uint32_nat)
+      RETURN (Propagated (- L) (length N) # M, N @ [D''], U, C, {#L#}, W, vm, \<phi>, zero_uint32_nat,
+         cach)
     })\<close>
 
 sepref_register list_of_mset2_None rescore_clause flush
@@ -5096,6 +5113,7 @@ sepref_thm backtrack_wl_D
          apply sepref_dbg_trans_step_keep
         apply sepref_dbg_trans_step_keep
        apply sepref_dbg_trans_step_keep
+      apply sepref_dbg_trans_step_keep
       apply sepref_dbg_trans_step_keep
      apply (solves \<open>simp\<close>)
     apply sepref_dbg_trans_step_keep

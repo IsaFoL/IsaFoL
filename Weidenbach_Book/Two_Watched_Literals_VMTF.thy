@@ -1993,7 +1993,7 @@ proof -
     done
 qed
 
-definition (in isasat_input_ops) vmtf_mark_to_rescore 
+definition (in isasat_input_ops) vmtf_mark_to_rescore
   :: \<open>nat \<Rightarrow> vmtf_remove_int \<Rightarrow> vmtf_remove_int\<close>
 where
   \<open>vmtf_mark_to_rescore L = (\<lambda>((ns, m, fst_As, next_search), to_remove).
@@ -2422,8 +2422,8 @@ sepref_definition vmtf_dequeue_code
 declare vmtf_dequeue_code.refine[sepref_fr_rules]
 
 definition vmtf_enqueue_pre where
-  \<open>vmtf_enqueue_pre = 
-     (\<lambda>(L,(ns,m,fst_As,lst_As, next_search)). L < length ns \<and> 
+  \<open>vmtf_enqueue_pre =
+     (\<lambda>(L,(ns,m,fst_As,lst_As, next_search)). L < length ns \<and>
        (fst_As \<noteq> None \<longrightarrow> the fst_As < length ns) \<and>
        (fst_As \<noteq> None \<longrightarrow> lst_As \<noteq> None))\<close>
 
@@ -2479,7 +2479,7 @@ declare insert_sort_nth_code.refine[sepref_fr_rules]
 term vmtf_en_dequeue_pre
 
 lemma vmtf_en_dequeue_pre_vmtf_enqueue_pre:
-   \<open>vmtf_en_dequeue_pre (L, a, st, fst_As, lst_As, next_search) \<Longrightarrow> 
+   \<open>vmtf_en_dequeue_pre (L, a, st, fst_As, lst_As, next_search) \<Longrightarrow>
        vmtf_enqueue_pre (L, vmtf_dequeue L (a, st, fst_As, lst_As, next_search))\<close>
   unfolding vmtf_enqueue_pre_def
   apply clarify
@@ -2495,7 +2495,7 @@ lemma vmtf_en_dequeue_pre_vmtf_enqueue_pre:
         Let_def vmtf_en_dequeue_pre_def split: option.splits if_splits)[]
   done
 
-lemma vmtf_en_dequeue_preD: 
+lemma vmtf_en_dequeue_preD:
   assumes \<open>vmtf_en_dequeue_pre (ah, a, aa, ab, ac, b)\<close>
   shows \<open>ah < length a\<close> and \<open>vmtf_dequeue_pre (ah, a)\<close>
   using assms by (auto simp: vmtf_en_dequeue_pre_def)

@@ -35,12 +35,12 @@ lemma nat_of_uint32_uint32_max_uint32[simp]:
   by eval
 
 fun incr_bignat_uint where
-  \<open>incr_bignat_uint (UInt n) = 
+  \<open>incr_bignat_uint (UInt n) =
       (if n < uint32_max_uint32 then UInt (n + 1) else BigNat (nat_of_uint32 n + 1))\<close> |
   \<open>incr_bignat_uint (BigNat n) = BigNat (n + 1)\<close>
 
 lemma incr_bignat_uint_def:
-  \<open>incr_bignat_uint n = 
+  \<open>incr_bignat_uint n =
     (if is_uint n then
       (if uint_of n < uint32_max_uint32 then UInt (uint_of n + 1)
        else BigNat (nat_of_uint32 (uint_of n) + 1))
@@ -83,7 +83,7 @@ lemma  arl_get_u_arl_get: "arl_get_u = (\<lambda>a i. arl_get a (nat_of_uint32 i
 lemma arl_get_big_nat_code_rule:
   assumes p: \<open>CONSTRAINT is_pure R\<close> and \<open>b = nat_of_bignat_uint bi\<close> and \<open>b < length a\<close>
   shows
-  \<open>< arl_assn R a ai> arl_get_big_nat_code ai bi 
+  \<open>< arl_assn R a ai> arl_get_big_nat_code ai bi
       <\<lambda>r. arl_assn R a ai * (\<exists>\<^sub>Ax. R x r * \<up> (RETURN x \<le> RETURN (op_list_get a b)))>\<^sub>t\<close>
 proof -
   obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
@@ -236,7 +236,7 @@ lemma nth_aa_big_nat_u_code[code]:
   unfolding nth_aa_big_nat_u_def nth_aa_def nth_get_big_nat_code_nth[symmetric]
   arl_get_u_def arl_get'_def nat_of_uint32_code[symmetric]
   arl_get_big_nat_code_def[symmetric] Array.nth'_def comp_def
-  arl_get_big_nat_code_alt_def[symmetric] nth_u_code_def 
+  arl_get_big_nat_code_alt_def[symmetric] nth_u_code_def
   ..
 
 lemma nth_aa_big_nat_u_hnr[sepref_fr_rules]:

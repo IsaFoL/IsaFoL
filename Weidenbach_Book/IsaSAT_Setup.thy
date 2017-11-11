@@ -19,20 +19,21 @@ subsection \<open>Code Generation\<close>
 
 subsubsection \<open>Types and Refinement Relations\<close>
 
+type_synonym minimize_assn = \<open>minimize_status array \<times> uint32 array \<times> nat\<close>
 type_synonym twl_st_wll_trail =
   \<open>trail_pol_assn \<times> clauses_wl \<times> nat \<times> option_lookup_clause_assn \<times>
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
-    uint32\<close>
+    uint32 \<times> minimize_assn\<close>
 
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
 type_synonym twl_st_wl_heur =
   \<open>(nat,nat)ann_lits \<times> nat clause_l list \<times> nat \<times>
     nat clause option \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int \<times> bool list \<times>
-    nat\<close>
+    nat \<times> nat conflict_min_cach\<close>
 
 type_synonym twl_st_wl_heur_trail_ref =
-  \<open>trail_pol \<times> nat clause_l list \<times> nat \<times>
-    nat cconflict \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int \<times> bool list \<times> nat\<close>
+  \<open>trail_pol \<times> nat clause_l list \<times> nat \<times> nat cconflict \<times> nat lit_queue_wl \<times> nat list list \<times>
+   vmtf_remove_int \<times> bool list \<times> nat  \<times> nat conflict_min_cach\<close>
 
 fun get_clauses_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat clauses_l\<close> where
   \<open>get_clauses_wl_heur (M, N, U, D, _) = N\<close>
@@ -52,10 +53,11 @@ fun get_vmtf_heur :: \<open>twl_st_wl_heur \<Rightarrow> vmtf_remove_int\<close>
 fun get_phase_saver_heur :: \<open>twl_st_wl_heur \<Rightarrow> bool list\<close> where
   \<open>get_phase_saver_heur (_, _, _, _, _, _, _, \<phi>, _) = \<phi>\<close>
 
-
 fun get_count_max_lvls_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
-  \<open>get_count_max_lvls_heur (_, _, _, _, _, _, _, _, clvls) = clvls\<close>
+  \<open>get_count_max_lvls_heur (_, _, _, _, _, _, _, _, clvls, _) = clvls\<close>
 
+fun get_conflict_cach:: \<open>twl_st_wl_heur \<Rightarrow> nat conflict_min_cach\<close> where
+  \<open>get_conflict_cach (_, _, _, _, _, _, _, _, _, cach) = cach\<close>
 
 abbreviation phase_saver_conc where
   \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
@@ -64,9 +66,12 @@ abbreviation phase_saver_conc where
 context isasat_input_ops
 begin
 
+definition cach_refinement_empty where
+  \<open>cach_refinement_empty cach \<longleftrightarrow> (\<forall>L\<in>#\<A>\<^sub>i\<^sub>n. cach L = SEEN_UNKNOWN)\<close>
+
 definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls), (M, N, U, D, NP, UP, Q, W)).
+  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach), (M, N, U, D, NP, UP, Q, W)).
     M = M' \<and> N' = N \<and> U' = U \<and>
     D' = D \<and>
      Q' = Q \<and>
@@ -74,7 +79,8 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
     vm \<in> vmtf M \<and>
     phase_saving \<phi> \<and>
     no_dup M \<and>
-    clvls \<in> counts_maximum_level M D
+    clvls \<in> counts_maximum_level M D \<and>
+    cach_refinement_empty cach
   }\<close>
 
 definition twl_st_heur_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
@@ -84,37 +90,40 @@ definition twl_st_heur_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_tr
   clause_l_assn *a
   arrayO_assn (arl_assn nat_assn) *a
   vmtf_remove_conc *a phase_saver_conc *a
-  uint32_nat_assn\<close>
+  uint32_nat_assn *a
+  cach_refinement_assn\<close>
 
 definition twl_st_assn :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>twl_st_assn = hr_comp twl_st_heur_assn twl_st_heur\<close>
 
 type_synonym twl_st_heur_pol_no_clvls =
   \<open>trail_pol_assn \<times> clauses_wl \<times> nat \<times> option_lookup_clause_assn \<times>
-    lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times> uint32\<close>
+    lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times> uint32 \<times>
+    minimize_assn\<close>
 
 definition twl_st_heur_pol_assn
   :: \<open>twl_st_wl_heur_trail_ref \<Rightarrow> twl_st_heur_pol_no_clvls \<Rightarrow> assn\<close>
 where
   \<open>twl_st_heur_pol_assn =
-    (trail_pol_assn *a clauses_ll_assn *a nat_assn *a
+    trail_pol_assn *a clauses_ll_assn *a nat_assn *a
     option_lookup_clause_assn *a
     clause_l_assn *a
     arrayO_assn (arl_assn nat_assn) *a
     vmtf_remove_conc *a phase_saver_conc *a
-    uint32_nat_assn
-    )\<close>
+    uint32_nat_assn *a
+    cach_refinement_assn\<close>
 
 definition (in isasat_input_ops) twl_st_heur_pol :: \<open>(twl_st_wl_heur_trail_ref \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_pol =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls), (M, N, U, D, NP, UP, Q, W)).
+  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach), (M, N, U, D, NP, UP, Q, W)).
     (M', M) \<in> trail_pol \<and> N' = N \<and> U' = U \<and> D = D' \<and>
      Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
     vm \<in> vmtf M \<and>
     phase_saving \<phi> \<and>
     no_dup M \<and>
-   clvls \<in> counts_maximum_level M D
+    clvls \<in> counts_maximum_level M D \<and>
+    cach_refinement_empty cach
   }\<close>
 
 lemma twl_st_heur_pol_alt_def:
@@ -159,7 +168,7 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0':
 type_synonym (in -) twl_st_wl_heur_lookup_conflict =
   \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times> nat \<times>
     (bool \<times> nat \<times> bool option list) \<times> nat literal multiset \<times> nat list list \<times> vmtf_remove_int \<times>
-     bool list \<times> nat\<close>
+     bool list \<times> nat \<times> nat conflict_min_cach\<close>
 
 definition twl_st_wl_heur_lookup_lookup_clause_rel
   :: \<open>(twl_st_wl_heur_lookup_conflict \<times> twl_st_wl_heur) set\<close>
@@ -173,7 +182,8 @@ where
      (Id :: (nat list list \<times> _)set) \<times>\<^sub>r
      Id \<times>\<^sub>r
      Id \<times>\<^sub>r
-     nat_rel\<close>
+     nat_rel \<times>\<^sub>r
+     Id\<close>
 
 definition twl_st_heur_lookup_lookup_clause_assn
   :: \<open>twl_st_wl_heur_lookup_conflict \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close>
@@ -183,7 +193,7 @@ where
     conflict_option_rel_assn *a
     clause_l_assn *a
     arrayO_assn (arl_assn nat_assn) *a
-    vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn
+    vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn *a cach_refinement_assn
   \<close>
 
 lemma twl_st_heur_assn_int_lookup_clause_assn:

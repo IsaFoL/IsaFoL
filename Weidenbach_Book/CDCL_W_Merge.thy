@@ -288,9 +288,9 @@ next
     apply (rule backtrack_reduce_trail_to_state_eq)
     using V decomp by auto
   have atm_of_L'_D': "atm_of L' \<notin> atms_of D'"
-    by (metis DE LE \<open>D' \<subseteq># D\<close> \<open>L' \<notin># D\<close> atm_of_in_atm_of_set_in_uminus atms_of_def insert_iff 
+    by (metis DE LE \<open>D' \<subseteq># D\<close> \<open>L' \<notin># D\<close> atm_of_in_atm_of_set_in_uminus atms_of_def insert_iff
         mset_subset_eqD set_mset_add_mset_insert)
-        
+
   obtain M2' where
     decomp': "(Decided K # M1, M2') \<in> set (get_all_ann_decomposition (trail T))"
     using decomp V unfolding tr_M MV by (cases "hd (get_all_ann_decomposition (trail V))",
@@ -302,7 +302,7 @@ next
     unfolding get_maximum_level_add_mset
     by auto
   moreover have "i = get_maximum_level ?M D'"
-    using max_D MV atm_of_L'_D' by auto 
+    using max_D MV atm_of_L'_D' by auto
   moreover have "atm_of L' \<noteq> atm_of K"
     using inv' get_all_ann_decomposition_exists_prepend[OF decomp]
     unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def tr MV by (auto simp: defined_lit_map)
@@ -379,7 +379,7 @@ proof -
     using inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by auto
   ultimately have undef_D: "\<forall>L'\<in>#?D. undefined_lit MS L'"
     unfolding M by (auto dest: defined_lit_no_dupD)
-  then have H: "\<And>L'. L'\<in># D \<Longrightarrow> get_level (trail S) L' = get_level M\<^sub>T L'" 
+  then have H: "\<And>L'. L'\<in># D \<Longrightarrow> get_level (trail S) L' = get_level M\<^sub>T L'"
      "get_level (trail S) L = get_level M\<^sub>T L"
     unfolding M by (auto simp: lits_of_def)
   have [simp]: "get_maximum_level (trail S) D = get_maximum_level M\<^sub>T D"
