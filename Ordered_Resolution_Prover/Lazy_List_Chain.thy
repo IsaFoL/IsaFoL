@@ -51,11 +51,7 @@ proof (cases "lfinite xs")
         unfolding lappend_code(2) using ih[OF r_xs mid'] start by (rule cons)
     qed
   qed simp
-next
-  case False
-  then show ?thesis
-    by (simp add: r_xs lappend_inf)
-qed
+qed (simp add: r_xs lappend_inf)
 
 lemma chain_length_pos: "chain R xs \<Longrightarrow> llength xs > 0"
   by (cases xs) simp+
@@ -229,7 +225,6 @@ next
     by blast
 qed
 
-
 inductive_cases chain_consE: "chain R (LCons x xs)"
 inductive_cases chain_nontrivE: "chain R (LCons x (LCons y xs))"
 
@@ -339,7 +334,8 @@ proof (coinduction arbitrary: xs rule: chain'.coinduct)
   proof (cases rule: chain.cases)
     case (cons zs z)
     then show ?thesis
-      by (intro disjI2) (force intro: chain.intros exI[of _ "[z, lhd zs]"] exI[of _ zs] elim: chain.cases)
+      by (intro disjI2) (force intro: chain.intros exI[of _ "[z, lhd zs]"] exI[of _ zs]
+          elim: chain.cases)
   qed simp
 qed
 
@@ -530,7 +526,7 @@ qed auto
 inductive_cases emb_LConsE: "emb (LCons z zs) ys"
 inductive_cases emb_LNil2E: "emb xs LNil"
 
-lemma emb_lset_mono[rotated]: "x \<in> lset xs \<Longrightarrow> emb xs ys \<Longrightarrow>  x \<in> lset ys"
+lemma emb_lset_mono[rotated]: "x \<in> lset xs \<Longrightarrow> emb xs ys \<Longrightarrow> x \<in> lset ys"
   by (induct x xs arbitrary: ys rule: llist.set_induct) (auto elim!: emb_LConsE)
 
 lemma emb_Ball_lset_antimono:

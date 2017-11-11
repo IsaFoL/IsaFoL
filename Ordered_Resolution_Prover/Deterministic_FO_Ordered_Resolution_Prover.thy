@@ -585,6 +585,39 @@ abbreviation Sts :: "'a dstate llist" where
 abbreviation gSts :: "'a wstate llist" where
   "gSts \<equiv> lmap wstate_of_dstate Sts"
 
+lemma deriv_gSts_trancl_weighted_RP: "chain (op \<leadsto>\<^sub>w\<^sup>+) gSts"
+proof -
+  have "Sts' = derivation_from St0' \<Longrightarrow> chain (op \<leadsto>\<^sub>w\<^sup>+) (lmap wstate_of_dstate Sts')" for St0' Sts'
+  proof (coinduction arbitrary: St0' Sts' rule: chain.coinduct)
+    case chain
+    note sts' = this
+    show ?case
+    proof (cases "is_final_dstate St0'")
+      case True
+      then have "ltl (lmap wstate_of_dstate Sts') = LNil"
+        unfolding chain by (simp del: is_final_dstate.simps)
+      then have "\<exists>St'. lmap wstate_of_dstate Sts' = LCons St' LNil"
+        by (metis chain derivation_from.disc_iff lhd_LCons_ltl llist.map_disc_iff)
+      then show ?thesis
+        by blast
+    next
+      case nfinal: False
+      have "lmap wstate_of_dstate Sts' =
+        LCons (wstate_of_dstate St0') (lmap wstate_of_dstate (ltl Sts'))"
+        unfolding sts' by (subst derivation_from.code) simp
+      moreover have "ltl Sts' = derivation_from (deterministic_RP_step St0')"
+        unfolding sts' using nfinal by (subst derivation_from.code) simp
+      moreover have "wstate_of_dstate St0' \<leadsto>\<^sub>w\<^sup>+ wstate_of_dstate (lhd (ltl Sts'))"
+        unfolding sts' using nonfinal_deterministic_RP_step[OF nfinal refl] nfinal
+        by (subst derivation_from.code) simp
+      ultimately show ?thesis
+        by (metis (no_types) derivation_from.disc_iff derivation_from.simps(2) llist.map_sel(1))
+    qed
+  qed
+  then show ?thesis
+    by blast
+qed
+
 context
   assumes drp_some: "deterministic_RP St0 = Some R"
 begin
@@ -599,32 +632,6 @@ qed
 
 lemma lfinite_gSts: "lfinite gSts"
   by (rule lfinite_lmap[THEN iffD2, OF lfinite_Sts])
-
-lemma deriv_gSts_trancl_weighted_RP: "chain (op \<leadsto>\<^sub>w\<^sup>+) gSts"
-proof -
-  have "lfinite gSts' \<Longrightarrow> gSts' = lmap wstate_of_dstate (derivation_from St0') \<Longrightarrow>
-    chain (op \<leadsto>\<^sub>w\<^sup>+) gSts'" for St0' gSts'
-  proof (induct arbitrary: St0' rule: lfinite_induct)
-    case (LCons gSts')
-    note fin = this(1) and nnull = this(2) and ih = this(3) and gsts' = this(4)
-    show ?case
-    proof (cases "is_final_dstate St0'")
-      case True
-      then have "ltl gSts' = LNil"
-        unfolding gsts' by (simp del: is_final_dstate.simps)
-      then show ?thesis
-        using singleton by (metis lhd_LCons_ltl nnull)
-    next
-      case nonfin: False
-      then show ?thesis
-        using nonfinal_deterministic_RP_step[OF nonfin refl] ih[of "deterministic_RP_step St0'"]
-        by (smt cons derivation_from.disc_iff derivation_from.simps(2,3) gsts' lhd_LCons_ltl
-            llist.map_sel(1) ltl_lmap nnull)
-    qed
-  qed (subst (asm) derivation_from.code, simp)
-  then show ?thesis
-    using lfinite_gSts by blast
-qed
 
 definition ssgSts :: "'a wstate llist" where
   "ssgSts = (SOME gSts'. lfinite gSts' \<and> chain (op \<leadsto>\<^sub>w) gSts' \<and> lhd gSts' = lhd gSts
@@ -762,9 +769,6 @@ theorem deterministic_RP_complete:
 proof
   assume drp_none: "deterministic_RP St0 = None"
 
-  have chain_star: "chain (op \<leadsto>\<^sub>w\<^sup>+) gSts"
-    sorry
-
   have inf: "\<not> lfinite Sts"
     sorry
 
@@ -772,7 +776,7 @@ proof
     chain: "chain (op \<leadsto>\<^sub>w) ssgSts" and
     emb: "emb gSts ssgSts" and
     hd: "lhd ssgSts = lhd gSts"
-    using chain_tranclp_imp_exists_chain[OF chain_star] by blast
+    using chain_tranclp_imp_exists_chain[OF deriv_gSts_trancl_weighted_RP] by blast
 
   have fin_s0: "finite (clss_of_wstate (lhd ssgSts))"
     sorry

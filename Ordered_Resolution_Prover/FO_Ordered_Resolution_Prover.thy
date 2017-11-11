@@ -101,7 +101,7 @@ lemma final_RP: "\<not> ({}, {}, Q) \<leadsto> St"
 theorem RP_model:
   assumes "St \<leadsto> St'"
   shows "I \<Turnstile>s grounding_of_state St' \<longleftrightarrow> I \<Turnstile>s grounding_of_state St"
-  (* uses Rf_model *)
+  (* uses Rf_model? *)
   sorry
 
 definition Sup_state :: "'a state llist \<Rightarrow> 'a state" where
