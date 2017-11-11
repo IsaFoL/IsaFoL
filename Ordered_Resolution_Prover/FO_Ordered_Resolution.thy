@@ -716,15 +716,13 @@ proof (cases rule: ord_resolve.cases)
 
     define D' where
       "D' = DA' - negs (mset As')"
-    then have DA'_u: "DA' = D' + negs (mset As')"
+    then have "DA' = D' + negs (mset As')"
       using As'_p by auto
-
-    have "D' \<cdot> \<eta> = D"
-      using DA'_DA da DA'_u As'_p by auto
+    then have "D' \<cdot> \<eta> = D"
+      using DA'_DA da As'_p by auto
 
     have "S_M S M (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As') = S DA'"
       using As'_p by blast
-
     then show ?thesis
       using that \<open>As' \<cdot>al \<eta> = As\<close> \<open>D' \<cdot> \<eta> = D\<close> \<open>DA' = D' +  (negs (mset As'))\<close> \<open>length As' = n\<close>
       by metis
@@ -761,7 +759,7 @@ proof (cases rule: ord_resolve.cases)
       have na: "poss AA' = poss_AA'"
         using l unfolding AA'_def by auto
       then have "AA' \<cdot>am \<eta> = AAs ! i"
-        using nn by (metis literal.inject(1) multiset.inj_map_strong subst_cls_poss)
+        using nn by (metis (mono_tags) literal.inject(1) multiset.inj_map_strong subst_cls_poss)
       moreover have "poss AA' \<subseteq># CAs' ! i"
         using na nn by auto
       ultimately show "\<exists>AA'. AA' \<cdot>am \<eta> = AAs ! i \<and> poss AA' \<subseteq># CAs' ! i"
