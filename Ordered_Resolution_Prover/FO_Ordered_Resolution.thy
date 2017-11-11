@@ -944,7 +944,7 @@ proof (cases rule: ord_resolve.cases)
     then have "is_ground_cls E"
       using res_e ground_resolvent_ground by blast
     then obtain \<eta>2 where ground_\<eta>2: "is_ground_subst \<eta>2" "E' \<cdot> \<eta>2 = E"
-      using e'\<phi>e make_single_ground_subst by blast
+      using e'\<phi>e make_ground_subst by blast
     then show ?thesis
       using that by auto
   qed

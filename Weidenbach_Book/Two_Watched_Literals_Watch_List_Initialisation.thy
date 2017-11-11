@@ -1,19 +1,7 @@
 theory Two_Watched_Literals_Watch_List_Initialisation
-  imports Two_Watched_Literals_Initialisation
+  imports Two_Watched_Literals_Watch_List Two_Watched_Literals_Initialisation
 begin
 
-section \<open>Third Refinement: Remembering watched\<close>
-
-subsection \<open>Types\<close>
-
-type_synonym clauses_to_update_wl = "nat multiset"
-type_synonym watched = "nat list"
-type_synonym 'v lit_queue_wl = "'v literal multiset"
-
-type_synonym 'v twl_st_wl =
-  "('v, nat) ann_lits \<times> 'v clause_l list \<times> nat \<times>
-    'v cconflict \<times> 'v clauses \<times> 'v clauses \<times> 'v lit_queue_wl \<times>
-    ('v literal \<Rightarrow> watched)"
 
 subsection \<open>Initialisation\<close>
 
@@ -101,6 +89,64 @@ proof -
         using Cons by (simp add: clause_to_update_Cons Let_def)
     qed
   qed
+qed
+
+
+
+subsection \<open>Final Theorem with Initialisation\<close>
+
+fun init_wl_of :: \<open>'v twl_st_l\<Rightarrow> 'v twl_st_wl\<close> where
+  \<open>init_wl_of (M, N, U, D, NP, UP, _, Q) =
+       ((M, N, U, D, NP, UP, Q, calculate_correct_watching (tl N) (\<lambda>_. []) 1))\<close>
+
+lemma twl_struct_invs_init_twl_struct_invs:
+  \<open>snd S = {#} \<Longrightarrow> twl_struct_invs_init S \<longleftrightarrow> twl_struct_invs (fst S)\<close>
+  by (cases S) (auto simp: twl_struct_invs_def twl_struct_invs_init_def)
+
+theorem init_dt_wl:
+  fixes CS S
+  defines S\<^sub>0: \<open>S\<^sub>0 \<equiv> (([], [[]], 0, None, {#}, {#}, {#}, {#}), {#})\<close>
+  defines S: \<open>S \<equiv>  init_wl_of (fst (init_dt CS S\<^sub>0))\<close>
+  assumes
+    dist: \<open>\<forall>C \<in> set CS. distinct C\<close> and
+    no_confl: \<open>get_conflict_wl S = None\<close> and
+    snd_init: \<open>snd (init_dt CS S\<^sub>0) = {#}\<close>
+  shows
+    \<open>cdcl_twl_stgy_prog_wl S \<le> SPEC (\<lambda>T. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy
+             (state\<^sub>W_of (twl_st_of_wl None S))
+             (state\<^sub>W_of (twl_st_of_wl None T)))\<close>
+proof -
+  obtain M N U D NP UP WS Q OC where
+    init: \<open>init_dt CS S\<^sub>0 = ((M, N, U, D, NP, UP, WS, Q), OC)\<close>
+    by (cases \<open>init_dt CS S\<^sub>0\<close>) auto
+  have \<open>N \<noteq> []\<close>
+    using clauses_init_dt_not_Nil[of CS \<open>snd S\<^sub>0\<close>] init unfolding S\<^sub>0 by auto
+  then have corr_w: \<open>correct_watching S\<close>
+    unfolding S init
+    by (auto simp: correct_watching.simps
+        calculate_correct_watching[of _ _ _ M \<open>hd N\<close> U D NP UP])
+  have
+    \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None S)) = mset `# mset CS\<close> and
+    \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
+    \<open>additional_WS_invs (st_l_of_wl None S)\<close>
+    unfolding S S\<^sub>0
+    subgoal
+      using init_dt(1)[OF dist] snd_init
+        by (cases \<open>init_dt CS S\<^sub>0\<close>) (auto simp: S\<^sub>0 twl_struct_invs_init_twl_struct_invs)
+    subgoal
+      using init_dt(2)[OF dist] snd_init
+      by (cases \<open>init_dt CS S\<^sub>0\<close>) (auto simp: S\<^sub>0 clauses_def)
+    subgoal
+      using init_dt(3)[OF dist] snd_init
+      by (cases \<open>init_dt CS S\<^sub>0\<close>) (auto simp: S\<^sub>0 clauses_def)
+    subgoal
+      using init_dt(5)[OF dist]
+      by (cases \<open>init_dt CS S\<^sub>0\<close>) (auto simp: S\<^sub>0 clauses_def additional_WS_invs_def)
+    done
+  from cdcl_twl_stgy_prog_wl_spec_final2[OF this(1,3) no_confl this(4) corr_w]
+  show ?thesis
+    .
 qed
 
 end

@@ -1,5 +1,5 @@
 theory IsaSAT
-imports IsaSAT_CDCL IsaSAT_Initialisation
+imports IsaSAT_Initialisation IsaSAT_CDCL
 begin
 
 lemma distinct_nat_of_uint32[iff]:

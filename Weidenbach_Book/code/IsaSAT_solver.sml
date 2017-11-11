@@ -559,13 +559,13 @@ fun ht_copy (A1_, A2_, A3_) B_ n src dst =
              ht_copy (A1_, A2_, A3_) B_ (minus_nat n one_nat) src x ()
            end));
 
-fun conflict_assn_is_None x = (fn (b, (_, _)) => b) x;
+fun lookup_clause_assn_is_None x = (fn (b, (_, _)) => b) x;
 
 fun get_conflict_wl_is_None_init_code x =
   (fn xi => (fn () => let
                         val (_, (_, (_, (a1c, (_, (_, _)))))) = xi;
                       in
-                        conflict_assn_is_None a1c
+                        lookup_clause_assn_is_None a1c
                       end))
     x;
 
@@ -924,7 +924,7 @@ fun get_conflict_wl_is_None_code x =
   (fn xi => (fn () => let
                         val (_, (_, (_, (a1c, (_, (_, _)))))) = xi;
                       in
-                        conflict_assn_is_None a1c
+                        lookup_clause_assn_is_None a1c
                       end))
     x;
 
@@ -1028,11 +1028,6 @@ fun find_unwatched_wl_st_heur_code x =
         end)
     end)
     x;
-
-fun equal_option A_ NONE (SOME x2) = false
-  | equal_option A_ (SOME x2) NONE = false
-  | equal_option A_ (SOME x2) (SOME y2) = eq A_ x2 y2
-  | equal_option A_ NONE NONE = true;
 
 fun is_in_conflict_code x =
   (fn ai => fn bi =>
@@ -1179,13 +1174,6 @@ fun watched_by_app_heur_code x =
                                  nth_aa_u heap_nat a1e bia bi
                                end)
     x;
-
-fun polarity_st_heur_code x = (fn ai => fn bi => let
-           val (a1, _) = ai;
-         in
-           polarity_pol_code a1 bi
-         end)
-                                x;
 
 fun array_upd_u A_ i x a =
   (fn () => let
@@ -1369,6 +1357,18 @@ fun propagate_lit_wl_code x =
     end)
     x;
 
+fun equal_option A_ NONE (SOME x2) = false
+  | equal_option A_ (SOME x2) NONE = false
+  | equal_option A_ (SOME x2) (SOME y2) = eq A_ x2 y2
+  | equal_option A_ NONE NONE = true;
+
+fun polarity_st_heur_code x = (fn ai => fn bi => let
+           val (a1, _) = ai;
+         in
+           polarity_pol_code a1 bi
+         end)
+                                x;
+
 fun unit_propagation_inner_loop_body_wl_D_code x =
   (fn ai => fn bia => fn bi => fn () =>
     let
@@ -1512,27 +1512,8 @@ fun lit_and_ann_of_propagated_st_heur_code x =
                           end)
     x;
 
-fun imp_option_eq eq a b =
-  (case (a, b) of (NONE, NONE) => (fn () => true)
-    | (NONE, SOME _) => (fn () => false) | (SOME _, NONE) => (fn () => false)
-    | (SOME aa, SOME ba) => eq aa ba);
-
-fun is_in_lookup_option_conflict_code x =
-  (fn ai => fn (_, (_, a2a)) => fn () =>
-    let
-      val xa = (fn () => Array.sub (a2a, Word32.toInt (atm_of_code ai))) ();
-    in
-      imp_option_eq (fn va => fn vb => (fn () => (equal_boola va vb))) xa
-        (SOME (is_pos_code ai)) ()
-    end)
-    x;
-
-fun literal_is_in_conflict_heur_code x =
-  (fn ai => fn (_, (_, (_, (a1c, _)))) =>
-    is_in_lookup_option_conflict_code ai a1c)
-    x;
-
-fun conflict_assn_is_empty (B1_, B2_) = (fn (_, (n, _)) => eq B2_ n (zero B1_));
+fun lookup_clause_assn_is_empty (B1_, B2_) =
+  (fn (_, (n, _)) => eq B2_ n (zero B1_));
 
 fun get_conflict_wll_is_Nil_code x =
   (fn xi =>
@@ -1540,8 +1521,8 @@ fun get_conflict_wll_is_Nil_code x =
       let
         val (_, (_, (_, (a1c, (_, (_, _)))))) = xi;
       in
-        (if conflict_assn_is_None a1c then false
-          else conflict_assn_is_empty (zero_uint32, equal_uint32) a1c)
+        (if lookup_clause_assn_is_None a1c then false
+          else lookup_clause_assn_is_empty (zero_uint32, equal_uint32) a1c)
       end))
     x;
 
@@ -1737,6 +1718,26 @@ fun tl_state_wl_heur_code x =
     end)
     x;
 
+fun imp_option_eq eq a b =
+  (case (a, b) of (NONE, NONE) => (fn () => true)
+    | (NONE, SOME _) => (fn () => false) | (SOME _, NONE) => (fn () => false)
+    | (SOME aa, SOME ba) => eq aa ba);
+
+fun is_in_lookup_option_conflict_code x =
+  (fn ai => fn (_, (_, a2a)) => fn () =>
+    let
+      val xa = (fn () => Array.sub (a2a, Word32.toInt (atm_of_code ai))) ();
+    in
+      imp_option_eq (fn va => fn vb => (fn () => (equal_boola va vb))) xa
+        (SOME (is_pos_code ai)) ()
+    end)
+    x;
+
+fun literal_is_in_conflict_heur_code x =
+  (fn ai => fn (_, (_, (_, (a1c, _)))) =>
+    is_in_lookup_option_conflict_code ai a1c)
+    x;
+
 fun skip_and_resolve_loop_wl_D_code x =
   (fn xi => fn () =>
     let
@@ -1775,127 +1776,6 @@ fun skip_and_resolve_loop_wl_D_code x =
       in
         (fn () => aa)
       end
-        ()
-    end)
-    x;
-
-fun update_next_search l =
-  (fn (a, b) => let
-                  val (ns, (m, (fst_As, (lst_As, _)))) = a;
-                in
-                  (fn aa => ((ns, (m, (fst_As, (lst_As, l)))), aa))
-                end
-                  b);
-
-fun defined_atm_code x =
-  (fn ai => fn bi =>
-    let
-      val (_, (a1a, (_, _))) = ai;
-    in
-      (fn () => let
-                  val xa = (fn () => Array.sub (a1a, Word32.toInt bi)) ();
-                in
-                  not (is_None xa)
-                end)
-    end)
-    x;
-
-fun vmtf_find_next_undef_code x =
-  (fn ai => fn bi =>
-    let
-      val ((a1a, a), _) = ai;
-      val (_, aa) = a;
-      val (_, ab) = aa;
-      val (_, ac) = ab;
-    in
-      heap_WHILET
-        (fn s =>
-          (if not (is_None s) then defined_atm_code bi (the s)
-            else (fn () => false)))
-        (fn s => fn () =>
-          let
-            val x_b = (fn () => Array.sub (a1a, Word32.toInt (the s))) ();
-          in
-            get_next x_b
-          end)
-        ac
-    end)
-    x;
-
-fun vmtf_find_next_undef_upd_code x =
-  (fn ai => fn bi => fn () => let
-                                val xa = vmtf_find_next_undef_code bi ai ();
-                              in
-                                ((ai, update_next_search xa bi), xa)
-                              end)
-    x;
-
-fun lit_of_found_atm_D_code x =
-  (fn ai => fn a =>
-    (case a of NONE => (fn () => NONE)
-      | SOME xa =>
-        (fn () =>
-          let
-            val x_a = (fn () => Array.sub (ai, Word32.toInt xa)) ();
-          in
-            (if x_a then SOME (Word32.* ((Word32.fromInt 2), xa))
-              else SOME (Word32.+ (Word32.* ((Word32.fromInt 2), xa), (Word32.fromInt 1))))
-          end)))
-    x;
-
-fun find_unassigned_lit_wl_D_code x =
-  (fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f, (a1g, a2g)))))))) => fn () =>
-    let
-      val a = vmtf_find_next_undef_upd_code a1 a1f ();
-    in
-      let
-        val ((a1i, a2i), a2h) = a;
-      in
-        (fn f_ => fn () => f_ ((lit_of_found_atm_D_code a1g a2h) ()) ())
-          (fn x_a =>
-            (fn () =>
-              ((a1i, (a1a, (a1b, (a1c, (a1d, (a1e, (a2i, (a1g, a2g)))))))),
-                x_a)))
-      end
-        ()
-    end)
-    x;
-
-fun cons_trail_Decided_tr_code x =
-  (fn ai => fn (a1, (a1a, (a1b, (a1c, a2c)))) => fn () =>
-    let
-      val xa =
-        heap_array_set_u (heap_option heap_bool) a1a (atm_of_code ai)
-          (SOME (is_pos_code ai)) ();
-      val xaa =
-        heap_array_set_u heap_uint32 a1b (atm_of_code ai)
-          (Word32.+ (a2c, (Word32.fromInt 1))) ();
-      val xb =
-        heap_array_set_u (heap_option heap_nat) a1c (atm_of_code ai) NONE ();
-    in
-      (op_list_prepend ai a1,
-        (xa, (xaa, (xb, Word32.+ (a2c, (Word32.fromInt 1))))))
-    end)
-    x;
-
-fun decide_lit_wl_code x =
-  (fn ai => fn (a1, (a1a, (a1b, (a1c, (_, a2d))))) => fn () =>
-    let
-      val xa = cons_trail_Decided_tr_code ai a1 ();
-    in
-      (xa, (a1a, (a1b, (a1c, ([uminus_code ai], a2d)))))
-    end)
-    x;
-
-fun decide_wl_or_skip_D_code x =
-  (fn xi => fn () =>
-    let
-      val a = find_unassigned_lit_wl_D_code xi ();
-    in
-      (case a of (a1, NONE) => (fn () => (true, a1))
-        | (a1, SOME x_a) =>
-          (fn f_ => fn () => f_ ((decide_lit_wl_code x_a a1) ()) ())
-            (fn x_c => (fn () => (false, x_c))))
         ()
     end)
     x;
@@ -2264,6 +2144,15 @@ fun propagate_unit_bt_wl_D_code x =
     end)
     x;
 
+fun get_maximum_level_remove_code x =
+  (fn _ => fn bia => fn _ =>
+    (fn () => let
+                val (_, a) = bia;
+              in
+                (case a of NONE => (Word32.fromInt 0) | SOME aa => snd aa)
+              end))
+    x;
+
 fun vmtf_unset_code x =
   (fn ai => fn ((a1a, (a1b, (a1c, (a1d, a2d)))), a2) => fn () =>
     let
@@ -2280,15 +2169,6 @@ fun vmtf_unset_code x =
       (if xa then ((a1a, (a1b, (a1c, (a1d, SOME ai)))), a2)
         else ((a1a, (a1b, (a1c, (a1d, a2d)))), a2))
     end)
-    x;
-
-fun get_maximum_level_remove_code x =
-  (fn _ => fn bia => fn _ =>
-    (fn () => let
-                val (_, a) = bia;
-              in
-                (case a of NONE => (Word32.fromInt 0) | SOME aa => snd aa)
-              end))
     x;
 
 fun uint32_safe_minus (A1_, A2_, A3_) m n =
@@ -2568,6 +2448,127 @@ fun backtrack_wl_D_code x =
     end)
     x;
 
+fun update_next_search l =
+  (fn (a, b) => let
+                  val (ns, (m, (fst_As, (lst_As, _)))) = a;
+                in
+                  (fn aa => ((ns, (m, (fst_As, (lst_As, l)))), aa))
+                end
+                  b);
+
+fun defined_atm_code x =
+  (fn ai => fn bi =>
+    let
+      val (_, (a1a, (_, _))) = ai;
+    in
+      (fn () => let
+                  val xa = (fn () => Array.sub (a1a, Word32.toInt bi)) ();
+                in
+                  not (is_None xa)
+                end)
+    end)
+    x;
+
+fun vmtf_find_next_undef_code x =
+  (fn ai => fn bi =>
+    let
+      val ((a1a, a), _) = ai;
+      val (_, aa) = a;
+      val (_, ab) = aa;
+      val (_, ac) = ab;
+    in
+      heap_WHILET
+        (fn s =>
+          (if not (is_None s) then defined_atm_code bi (the s)
+            else (fn () => false)))
+        (fn s => fn () =>
+          let
+            val x_b = (fn () => Array.sub (a1a, Word32.toInt (the s))) ();
+          in
+            get_next x_b
+          end)
+        ac
+    end)
+    x;
+
+fun vmtf_find_next_undef_upd_code x =
+  (fn ai => fn bi => fn () => let
+                                val xa = vmtf_find_next_undef_code bi ai ();
+                              in
+                                ((ai, update_next_search xa bi), xa)
+                              end)
+    x;
+
+fun lit_of_found_atm_D_code x =
+  (fn ai => fn a =>
+    (case a of NONE => (fn () => NONE)
+      | SOME xa =>
+        (fn () =>
+          let
+            val x_a = (fn () => Array.sub (ai, Word32.toInt xa)) ();
+          in
+            (if x_a then SOME (Word32.* ((Word32.fromInt 2), xa))
+              else SOME (Word32.+ (Word32.* ((Word32.fromInt 2), xa), (Word32.fromInt 1))))
+          end)))
+    x;
+
+fun find_unassigned_lit_wl_D_code x =
+  (fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f, (a1g, a2g)))))))) => fn () =>
+    let
+      val a = vmtf_find_next_undef_upd_code a1 a1f ();
+    in
+      let
+        val ((a1i, a2i), a2h) = a;
+      in
+        (fn f_ => fn () => f_ ((lit_of_found_atm_D_code a1g a2h) ()) ())
+          (fn x_a =>
+            (fn () =>
+              ((a1i, (a1a, (a1b, (a1c, (a1d, (a1e, (a2i, (a1g, a2g)))))))),
+                x_a)))
+      end
+        ()
+    end)
+    x;
+
+fun cons_trail_Decided_tr_code x =
+  (fn ai => fn (a1, (a1a, (a1b, (a1c, a2c)))) => fn () =>
+    let
+      val xa =
+        heap_array_set_u (heap_option heap_bool) a1a (atm_of_code ai)
+          (SOME (is_pos_code ai)) ();
+      val xaa =
+        heap_array_set_u heap_uint32 a1b (atm_of_code ai)
+          (Word32.+ (a2c, (Word32.fromInt 1))) ();
+      val xb =
+        heap_array_set_u (heap_option heap_nat) a1c (atm_of_code ai) NONE ();
+    in
+      (op_list_prepend ai a1,
+        (xa, (xaa, (xb, Word32.+ (a2c, (Word32.fromInt 1))))))
+    end)
+    x;
+
+fun decide_lit_wl_code x =
+  (fn ai => fn (a1, (a1a, (a1b, (a1c, (_, a2d))))) => fn () =>
+    let
+      val xa = cons_trail_Decided_tr_code ai a1 ();
+    in
+      (xa, (a1a, (a1b, (a1c, ([uminus_code ai], a2d)))))
+    end)
+    x;
+
+fun decide_wl_or_skip_D_code x =
+  (fn xi => fn () =>
+    let
+      val a = find_unassigned_lit_wl_D_code xi ();
+    in
+      (case a of (a1, NONE) => (fn () => (true, a1))
+        | (a1, SOME x_a) =>
+          (fn f_ => fn () => f_ ((decide_lit_wl_code x_a a1) ()) ())
+            (fn x_c => (fn () => (false, x_c))))
+        ()
+    end)
+    x;
+
 fun cdcl_twl_o_prog_wl_D_code x =
   (fn xi => fn () =>
     let
@@ -2714,10 +2715,13 @@ fun init_dt_step_wl_code x =
                                (fn x_e =>
                                  (if is_None x_e
                                    then propagate_unit_cls_code x_c bi
-                                   else (if equal_option equal_bool x_e
-      (SOME true)
-  then already_propagated_unit_cls_code x_c bi
-  else conflict_propagated_unit_cls_code x_c bi)))
+                                   else (fn f_ => fn () => f_
+  ((imp_option_eq (fn va => fn vb => (fn () => (equal_boola va vb))) x_e
+     (SOME true))
+  ()) ())
+  (fn x_h =>
+    (if x_h then already_propagated_unit_cls_code x_c bi
+      else conflict_propagated_unit_cls_code x_c bi))))
                            end
                       else add_init_cls_code ai bi))
         else add_clause_to_others_code ai bi)

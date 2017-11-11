@@ -12,7 +12,7 @@ definition index_in_trail :: \<open>('v, 'a) ann_lits \<Rightarrow> 'v literal \
 
 lemma Propagated_in_trail_entailed:
   assumes
-    invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N, U, Some D)\<close> and
+    invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N, U, D)\<close> and
     in_trail: \<open>Propagated L C \<in> set M\<close>
   shows
     \<open>M \<Turnstile>as CNot (remove1_mset L C)\<close> and \<open>L \<in># C\<close> and \<open>N + U \<Turnstile>pm C\<close> and
@@ -21,7 +21,7 @@ proof -
   obtain M2 M1 where
     M: \<open>M = M2 @ Propagated L C # M1\<close>
     using split_list[OF in_trail] by metis
-  have \<open>a @ Propagated L mark # b = trail (M, N, U, Some D) \<longrightarrow>
+  have \<open>a @ Propagated L mark # b = trail (M, N, U, D) \<longrightarrow>
        b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> for L mark a b
     using invs
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -33,8 +33,8 @@ proof -
     unfolding M by (simp add: true_annots_append_l)
   show \<open>M \<Turnstile>as CNot (remove1_mset L C)\<close> and \<open>L \<in># C\<close>
     using L_E M_E by fast+
-  have \<open>set (get_all_mark_of_propagated (trail (M, N, U, Some D)))
-    \<subseteq> set_mset (cdcl\<^sub>W_restart_mset.clauses (M, N, U, Some D))\<close>
+  have \<open>set (get_all_mark_of_propagated (trail (M, N, U, D)))
+    \<subseteq> set_mset (cdcl\<^sub>W_restart_mset.clauses (M, N, U, D))\<close>
     using invs
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
@@ -67,21 +67,25 @@ proof -
   qed
 qed
 
-inductive minimize_conflict_support :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clause \<Rightarrow> 'v clause \<Rightarrow> bool\<close> for M where
-resolve_propa: \<open>Propagated L E \<in> set M \<Longrightarrow> minimize_conflict_support M (add_mset (-L) C) (C + remove1_mset L E)\<close> |
+inductive minimize_conflict_support :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clause \<Rightarrow> 'v clause \<Rightarrow> bool\<close>
+  for M where
+resolve_propa:
+  \<open>minimize_conflict_support M (add_mset (-L) C) (C + remove1_mset L E)\<close>
+  if \<open>Propagated L E \<in> set M\<close> |
 remdups: \<open>minimize_conflict_support M (add_mset L C) C\<close>
 
 
 lemma index_in_trail_uminus[simp]: \<open>index_in_trail M (-L) = index_in_trail M L\<close>
   by (auto simp: index_in_trail_def)
 
-definition minimize_conflict_support_mes :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clause \<Rightarrow> nat multiset\<close> where
-\<open>minimize_conflict_support_mes M C = index_in_trail M `# C\<close>
+definition minimize_conflict_support_mes :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clause \<Rightarrow> nat multiset\<close>
+where
+  \<open>minimize_conflict_support_mes M C = index_in_trail M `# C\<close>
 
 context
   fixes M :: \<open>('v, 'v clause) ann_lits\<close> and N U :: \<open>'v clauses\<close> and
-    D :: \<open>'v clause\<close>
-  assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N, U, Some D)\<close>
+    D :: \<open>'v clause option\<close>
+  assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N, U, D)\<close>
 begin
 
 private lemma
@@ -125,7 +129,7 @@ proof (induction rule: minimize_conflict_support.induct)
     obtain M2 M1 where
       M: \<open>M = M2 @ Propagated L E # M1\<close>
       using split_list[OF in_trail] by metis
-    have \<open>a @ Propagated L mark # b = trail (M, N, U, Some D) \<longrightarrow>
+    have \<open>a @ Propagated L mark # b = trail (M, N, U, D) \<longrightarrow>
        b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> for L mark a b
       using invs
       unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -191,6 +195,10 @@ definition filter_to_poslev where
 
 lemma filter_to_poslev_uminus[simp]:
   \<open>filter_to_poslev M (-L) D = filter_to_poslev M L D\<close>
+  by (auto simp: filter_to_poslev_def)
+
+lemma filter_to_poslev_empty[simp]:
+  \<open>filter_to_poslev M L {#} = {#}\<close>
   by (auto simp: filter_to_poslev_def)
 
 lemma filter_to_poslev_mono:
@@ -459,7 +467,7 @@ lemma subseteq_remove1[simp]: \<open>C \<subseteq># C' \<Longrightarrow> remove1
 
 lemma lit_redundant_rec_spec:
   fixes L :: \<open>'v literal\<close>
-  assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N + NP, U + UP, Some D')\<close>
+  assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N + NP, U + UP, D')\<close>
   assumes
     init_analysis: \<open>init_analysis = [(L, C)]\<close> and
     in_trail: \<open>Propagated (-L) (add_mset (-L) C) \<in> set M\<close> and
@@ -473,7 +481,7 @@ proof -
   obtain M2 M1 where
     M: \<open>M = M2 @ Propagated (- L) (add_mset (- L) C) # M1\<close>
     using split_list[OF in_trail] by (auto 5 5)
-  have \<open>a @ Propagated L mark # b = trail (M, N + NP, U + UP, Some D') \<longrightarrow>
+  have \<open>a @ Propagated L mark # b = trail (M, N + NP, U + UP, D') \<longrightarrow>
        b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> for L mark a b
     using invs
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -483,8 +491,8 @@ proof -
     by (force simp: M)
   then have M_C: \<open>M \<Turnstile>as CNot C\<close>
     unfolding M by (simp add: true_annots_append_l)
-  have \<open>set (get_all_mark_of_propagated (trail (M, N + NP, U + UP, Some D')))
-    \<subseteq> set_mset (cdcl\<^sub>W_restart_mset.clauses (M, N + NP, U + UP, Some D'))\<close>
+  have \<open>set (get_all_mark_of_propagated (trail (M, N + NP, U + UP, D')))
+    \<subseteq> set_mset (cdcl\<^sub>W_restart_mset.clauses (M, N + NP, U + UP, D'))\<close>
     using invs
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
@@ -592,7 +600,7 @@ proof -
     using M_D L_D M_C init_I unfolding I'_def by (auto simp: init_analysis)
 
   have hd_M: \<open>- fst (hd analyse) \<in> lits_of_l M\<close>
-    if 
+    if
       inv_I': \<open>I' s\<close> and
       s: \<open>s = (cach, s')\<close> \<open>s' = (analyse, ba)\<close> and
       nempty: \<open>analyse \<noteq> []\<close>
@@ -1085,7 +1093,7 @@ qed
 
 lemma literal_redundant_spec:
   fixes L :: \<open>'v literal\<close>
-  assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N + NP, U + UP, Some D')\<close>
+  assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N + NP, U + UP, D')\<close>
   assumes
     inv: \<open>conflict_min_analysis_inv M cach (N + NP + U + UP) D\<close> and
     L_D: \<open>L \<in># D\<close> and
@@ -1195,7 +1203,7 @@ definition (in -) lit_redundant_rec_wl :: \<open>('v, nat) ann_lits \<Rightarrow
       (_ \<times> _ \<times> bool) nres\<close>
 where
   \<open>lit_redundant_rec_wl M NU D cach analysis =
-      WHILE\<^sub>T
+      WHILE\<^sub>T\<^bsup>lit_redundant_rec_wl_inv M NU D\<^esup>
         (\<lambda>(cach, analyse, b). analyse \<noteq> [])
         (\<lambda>(cach, analyse, b). do {
             ASSERT(analyse \<noteq> []);
@@ -1451,11 +1459,14 @@ proof -
     by (cases x, cases x') auto
   show ?thesis
     supply convert_analysis_list_def[simp] hd_rev[simp] last_map[simp] rev_map[symmetric, simp]
-    unfolding lit_redundant_rec_wl_def lit_redundant_rec_def
+    unfolding lit_redundant_rec_wl_def lit_redundant_rec_def WHILET_def
     apply (rewrite at \<open>let _ = _ ! _ in _\<close> Let_def)
     apply (rewrite at \<open>let _ = snd _ in _\<close> Let_def)
-    apply (refine_rcg )
+    apply refine_rcg
     subgoal using bounds_init unfolding analyse'_def by auto
+    subgoal for x x'
+      by (cases x, cases x')
+        (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def)
     subgoal by auto
     subgoal by auto
     subgoal by (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def elim!: neq_Nil_revE)
