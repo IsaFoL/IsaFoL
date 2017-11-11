@@ -127,6 +127,7 @@ proof (induct rule: lfinite.induct)
   qed simp
 qed simp
 
+(* FIXME: needed? *)
 lemma tranclp_imp_exists_finite_chain:
   "R\<^sup>+\<^sup>+ x y \<Longrightarrow> \<exists>xs. lfinite xs \<and> chain R xs \<and> lhd xs = x \<and> llast xs = y"
 proof (induct rule: tranclp.induct)
@@ -409,8 +410,7 @@ private lemma pick[simp]:
   assumes "R\<^sup>+\<^sup>+ x y"
   shows "pick x y \<noteq> []" "tl (pick x y) \<noteq> []" "chain R (llist_of (pick x y))"
     "hd (pick x y) = x" "last (pick x y) = y"
-  unfolding pick_def using tranclp_imp_exists_finite_chain_list[THEN someI_ex, OF assms]
-  by auto
+  unfolding pick_def using tranclp_imp_exists_finite_chain_list[THEN someI_ex, OF assms] by auto
 
 private lemma butlast_pick[simp]: "R\<^sup>+\<^sup>+ x y \<Longrightarrow> butlast (pick x y) \<noteq> []"
   by (cases "pick x y"; cases "tl (pick x y)") (auto dest: pick(2))
@@ -516,7 +516,9 @@ proof (coinduction arbitrary: xs rule: emb_prepend_coinduct)
 qed
 
 lemma chain_tranclp_imp_exists_chain:
-  "chain R\<^sup>+\<^sup>+ xs \<Longrightarrow> \<exists>ys. chain R ys \<and> emb xs ys \<and> lhd ys = lhd xs \<and> llast ys = llast xs"
+  "chain R\<^sup>+\<^sup>+ xs \<Longrightarrow>
+   \<exists>ys. chain R ys \<and> emb xs ys \<and> (lfinite ys \<longleftrightarrow> lfinite xs) \<and> lhd ys = lhd xs
+     \<and> llast ys = llast xs"
 proof (intro exI[of _ "wit xs"] conjI, coinduction arbitrary: xs rule: chain_prepend_coinduct)
   case chain
   then show ?case

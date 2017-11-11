@@ -192,6 +192,15 @@ partial_function (option) deterministic_RP :: "'a dstate \<Rightarrow> 'a lclaus
     else
       deterministic_RP (deterministic_RP_step St))"
 
+lemma is_final_dstate_funpow_imp_deterministic_RP_neq_None:
+  "is_final_dstate ((deterministic_RP_step ^^ k) St) \<Longrightarrow> deterministic_RP St \<noteq> None"
+proof (induct k arbitrary: St)
+  case (Suc k)
+  note ih = this(1) and final_Sk = this(2)[simplified, unfolded funpow_swap1]
+  show ?case
+    using ih[OF final_Sk] by (subst deterministic_RP.simps) (simp add: prod.case_eq_if)
+qed (subst deterministic_RP.simps, simp add: prod.case_eq_if)
+
 lemma select_min_weight_clause_in: "select_min_weight_clause P0 P \<in> set (P0 # P)"
   by (induct P arbitrary: P0) auto
 
@@ -618,36 +627,22 @@ proof -
     by blast
 qed
 
-context
-  assumes drp_some: "deterministic_RP St0 = Some R"
-begin
-
-lemma lfinite_Sts: "lfinite Sts"
-proof (induct rule: deterministic_RP.raw_induct[OF _ drp_some])
-  case (1 self_call St St')
-  note ih = this(1) and step = this(2)
-  show ?case
-    using step by (subst derivation_from.code, cases "is_final_dstate St", auto intro!: ih)
-qed
-
-lemma lfinite_gSts: "lfinite gSts"
-  by (rule lfinite_lmap[THEN iffD2, OF lfinite_Sts])
-
 definition ssgSts :: "'a wstate llist" where
-  "ssgSts = (SOME gSts'. lfinite gSts' \<and> chain (op \<leadsto>\<^sub>w) gSts' \<and> lhd gSts' = lhd gSts
-     \<and> llast gSts' = llast gSts)"
+  "ssgSts = (SOME gSts'. chain (op \<leadsto>\<^sub>w) gSts' \<and> emb gSts gSts' \<and> (lfinite gSts' \<longleftrightarrow> lfinite gSts)
+     \<and> lhd gSts' = lhd gSts \<and> llast gSts' = llast gSts)"
 
 lemma ssgSts:
-  "lfinite ssgSts \<and> chain (op \<leadsto>\<^sub>w) ssgSts \<and> lhd ssgSts = lhd gSts
+  "chain (op \<leadsto>\<^sub>w) ssgSts \<and> emb gSts ssgSts \<and> (lfinite ssgSts \<longleftrightarrow> lfinite gSts)
+   \<and> lhd ssgSts = lhd gSts
    \<and> llast ssgSts = llast gSts"
   unfolding ssgSts_def
-  by (rule someI_ex[OF lfinite_chain_tranclp_imp_exists_lfinite_chain[OF lfinite_gSts
-          deriv_gSts_trancl_weighted_RP]])
+  by (rule someI_ex[OF chain_tranclp_imp_exists_chain[OF deriv_gSts_trancl_weighted_RP]])
 
-lemmas lfinite_ssgSts = ssgSts[THEN conjunct1]
-lemmas deriv_ssgSts_weighted_RP = ssgSts[THEN conjunct2, THEN conjunct1]
-lemmas lhd_ssgSts = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct1]
-lemmas ltl_ssgSts = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct2]
+lemmas deriv_ssgSts_weighted_RP = ssgSts[THEN conjunct1]
+lemmas emb_ssgSts = ssgSts[THEN conjunct2, THEN conjunct1]
+lemmas lfinite_ssgSts_iff = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct1]
+lemmas lhd_ssgSts = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct2, THEN conjunct1]
+lemmas ltl_ssgSts = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct2, THEN conjunct2]
 
 lemma not_lnull_ssgSts: "\<not> lnull ssgSts"
   using deriv_ssgSts_weighted_RP by (cases rule: chain.cases) auto
@@ -676,6 +671,23 @@ abbreviation Ri :: "'a clause set \<Rightarrow> 'a inference set" where
 abbreviation saturated_upto :: "'a clause set \<Rightarrow> bool" where
   "saturated_upto \<equiv> redundancy_criterion.saturated_upto ord_\<Gamma> Rf Ri"
 
+context
+  assumes drp_some: "deterministic_RP St0 = Some R"
+begin
+
+lemma lfinite_Sts: "lfinite Sts"
+proof (induct rule: deterministic_RP.raw_induct[OF _ drp_some])
+  case (1 self_call St St')
+  note ih = this(1) and step = this(2)
+  show ?case
+    using step by (subst derivation_from.code, cases "is_final_dstate St", auto intro!: ih)
+qed
+
+lemma lfinite_gSts: "lfinite gSts"
+  by (rule lfinite_lmap[THEN iffD2, OF lfinite_Sts])
+
+lemmas lfinite_ssgSts = lfinite_ssgSts_iff[THEN iffD2, OF lfinite_gSts]
+
 theorem
   deterministic_RP_saturated: "saturated_upto grounded_R" (is ?saturated) and
   deterministic_RP_model: "I \<Turnstile>s grounded_N0 \<longleftrightarrow> I \<Turnstile>s grounded_R" (is ?model)
@@ -687,8 +699,8 @@ proof -
 
   have wrp: "wstate_of_dstate St0 \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (llast Sts)"
     using chain_imp_rtranclp_lhd_llast
-    by (metis (no_types) derivation_from.disc_iff derivation_from.simps(2) lfinite_Sts llast_lmap
-        llist.map_sel(1) ssgSts)
+    by (metis (no_types) derivation_from.disc_iff derivation_from.simps(2) lfinite_Sts
+        lfinite_gSts llast_lmap llist.map_sel(1) ssgSts)
 
   have last_sts: "llast Sts = ?Stk"
   proof -
@@ -763,43 +775,42 @@ qed
 
 end
 
-theorem deterministic_RP_complete:
-  assumes unsat: "\<not> satisfiable grounded_N0"
-  shows "deterministic_RP St0 \<noteq> None"
-proof
-  assume drp_none: "deterministic_RP St0 = None"
+context
+  assumes drp_none: "deterministic_RP St0 = None"
+begin
 
-  have inf: "\<not> lfinite Sts"
-    sorry
+theorem deterministic_RP_complete: "satisfiable grounded_N0"
+proof (rule ccontr)
+  assume unsat: "\<not> satisfiable grounded_N0"
 
-  obtain ssgSts where
-    chain: "chain (op \<leadsto>\<^sub>w) ssgSts" and
-    emb: "emb gSts ssgSts" and
-    hd: "lhd ssgSts = lhd gSts"
-    using chain_tranclp_imp_exists_chain[OF deriv_gSts_trancl_weighted_RP] by blast
-
-  have fin_s0: "finite (clss_of_wstate (lhd ssgSts))"
-    sorry
-  have empty_p0: "P_of_wstate (lhd ssgSts) = {}"
-    sorry
-  have empty_q0: "Q_of_wstate (lhd ssgSts) = {}"
-    sorry
+  have inf_sts: "\<not> lfinite Sts"
+  proof
+    assume "lfinite Sts"
+    hence "is_final_dstate (llast Sts)"
+      sorry
+    then show False
+      using is_final_dstate_funpow_imp_deterministic_RP_neq_None
+      sorry
+  qed
 
   have unsat_lim: "\<not> satisfiable (grounding_of_state (Liminf_wstate ssgSts))"
     using unsat
     sorry
 
   have "{#} \<in> clss_of_state (Liminf_wstate ssgSts)"
-    by (rule weighted_RP_complete[OF chain fin_s0 empty_p0 empty_q0 unsat_lim])
+    by (rule weighted_RP_complete[OF deriv_ssgSts_weighted_RP finite_ssgSts0 empty_ssgP0
+          empty_ssgQ0 unsat_lim])
   then have bot_in_lim: "{#} \<in> clss_of_state (Liminf_wstate gSts)"
-    using emb_clss_of_Liminf_state[OF emb_lmap[OF emb], of state_of_wstate, simplified, OF inf]
+    using emb_clss_of_Liminf_state[OF emb_lmap[OF emb_ssgSts], of state_of_wstate, simplified,
+        OF inf_sts]
     by blast
   then obtain k where
     "{#} \<in> clss_of_wstate (lnth gSts k)"
     sorry
   then have "{#} \<in> clss_of_dstate ((deterministic_RP_step ^^ k) St0)"
     sorry
-  then have "deterministic_RP St0 \<noteq> None"
+  have "deterministic_RP St0 \<noteq> None"
+    apply (rule is_final_dstate_funpow_imp_deterministic_RP_neq_None)
     sorry
   then show False
     using drp_none ..
