@@ -659,7 +659,7 @@ abbreviation saturated_upto :: "'a clause set \<Rightarrow> bool" where
 
 theorem
   deterministic_RP_saturated: "saturated_upto grounded_R" (is ?saturated) and
-  deterministic_RP_saturation_model: "I \<Turnstile>s grounded_R \<longleftrightarrow> I \<Turnstile>s grounded_N0" (is ?sound)
+  deterministic_RP_model: "I \<Turnstile>s grounded_R \<longleftrightarrow> I \<Turnstile>s grounded_N0" (is ?model)
 proof -
   obtain Q' n' k where
     k_steps: "(deterministic_RP_step ^^ k) St0 = ([], [], Q', n')" and
@@ -709,7 +709,7 @@ proof -
         empty_ss_gQ0]
     unfolding lim_last gr_last by blast
 
-  show ?sound
+  show ?model
     using weighted_RP_model
     sorry
 qed
@@ -721,11 +721,11 @@ proof
   then have "\<not> satisfiable grounded_R"
     unfolding true_clss_def true_cls_def by force
   then show ?rhs
-    using deterministic_RP_saturation_model[THEN iffD2] by blast
+    using deterministic_RP_model[THEN iffD2] by blast
 next
   assume ?rhs
   then have "\<not> satisfiable grounded_R"
-    using deterministic_RP_saturation_model[THEN iffD1] by blast
+    using deterministic_RP_model[THEN iffD1] by blast
   then show ?lhs
     unfolding ord_\<Gamma>_saturated_upto_complete[OF deriv_ss_gSts_weighted_RP finite_ss_gSts0
         empty_ss_gP0 empty_ss_gQ0 deterministic_RP_saturated] .
