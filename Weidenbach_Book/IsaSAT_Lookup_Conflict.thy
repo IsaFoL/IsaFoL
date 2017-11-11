@@ -1310,8 +1310,8 @@ where
 }\<close>
 
 
-definition iterate_over_lookup_conflict_inv where
-  \<open>iterate_over_lookup_conflict_inv nxs = (\<lambda>((n, xs), m, i, s). n \<ge> m \<and> n \<le> length xs \<and>
+definition minimize_and_extract_highest_lookup_conflict_inv where
+  \<open>minimize_and_extract_highest_lookup_conflict_inv nxs = (\<lambda>((n, xs), m, i, s). n \<ge> m \<and> n \<le> length xs \<and>
       length xs = length (snd nxs))\<close>
 
 type_synonym 'v conflict_highest_conflict = \<open>('v literal \<times> nat) option\<close>
@@ -1495,13 +1495,13 @@ definition (in -) lookup_conflict_size where
 definition (in -) lookup_conflict_upd_None where
   [simp]: \<open>lookup_conflict_upd_None = (\<lambda>(n, xs) i. (n-1, xs [i :=None]))\<close>
 
-definition iterate_over_lookup_conflict
+definition minimize_and_extract_highest_lookup_conflict
   :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> lookup_clause_rel \<Rightarrow> (nat \<Rightarrow> minimize_status) \<Rightarrow>
        (lookup_clause_rel \<times> (nat \<Rightarrow> minimize_status) \<times> nat conflict_highest_conflict) nres\<close>
 where
-  \<open>iterate_over_lookup_conflict  = (\<lambda>M NU (nxs) s. do {
+  \<open>minimize_and_extract_highest_lookup_conflict  = (\<lambda>M NU (nxs) s. do {
     (D, _, _, s, highest) \<leftarrow>
-       WHILE\<^sub>T\<^bsup>iterate_over_lookup_conflict_inv nxs\<^esup>
+       WHILE\<^sub>T\<^bsup>minimize_and_extract_highest_lookup_conflict_inv nxs\<^esup>
          (\<lambda>((nxs), m, i, s, _). m > 0)
          (\<lambda>((nxs), m, i, s, highest). do {
             ASSERT(m > 0);
@@ -1552,7 +1552,7 @@ end
 context isasat_input_bounded
 begin
 
-lemma iterate_over_lookup_conflict_iterate_over_conflict:
+lemma minimize_and_extract_highest_lookup_conflict_iterate_over_conflict:
   fixes D :: \<open>nat clause\<close> and s and s' and NU :: \<open>nat clauses_l\<close> and S :: \<open>nat twl_st_wl\<close>
   defines
     \<open>S' \<equiv> st_l_of_wl None S\<close> and
@@ -1574,7 +1574,7 @@ lemma iterate_over_lookup_conflict_iterate_over_conflict:
     NU_P_D: \<open>NU' + NUP \<Turnstile>pm add_mset K D\<close> and
     lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close>
   shows
-    \<open>iterate_over_lookup_conflict M NU D' s' \<le>
+    \<open>minimize_and_extract_highest_lookup_conflict M NU D' s' \<le>
        \<Down> ({((D, s, L'), (D', L)). (D, D') \<in> lookup_clause_rel \<and> L' = L})
            (iterate_over_conflict K M NU' NUP D)\<close>
     (is \<open>_ \<le> \<Down> ?R _\<close>)
@@ -1630,7 +1630,7 @@ proof -
     \<open>iterate_over_conflict_inv M D (D, D, None) \<Longrightarrow> (((n\<^sub>0, xs\<^sub>0), lookup_conflict_size (n\<^sub>0, xs\<^sub>0), 0, s', None), D, D, None) \<in> R\<close>
     using D'_D cach_init NU_P_D unfolding R_def NUP NU'_def NU_N_U by (auto simp: ac_simps)
 
-   have init_lo_inv: \<open>iterate_over_lookup_conflict_inv (n\<^sub>0, xs\<^sub>0) s'\<close>
+   have init_lo_inv: \<open>minimize_and_extract_highest_lookup_conflict_inv (n\<^sub>0, xs\<^sub>0) s'\<close>
     if
       \<open>(s', s) \<in> R\<close> and
       \<open>iterate_over_conflict_inv M D s\<close>
@@ -1639,12 +1639,12 @@ proof -
      have \<open>((a, b), x) \<in> lookup_clause_rel \<Longrightarrow> a \<le> length b\<close> for a b x
        by (auto simp: lookup_clause_rel_def dest!: mset_as_position_length_not_None)
     then show ?thesis
-      using that unfolding iterate_over_lookup_conflict_inv_def by (auto simp: R_def)
+      using that unfolding minimize_and_extract_highest_lookup_conflict_inv_def by (auto simp: R_def)
   qed
   have cond: \<open>(0 < m) = (D' \<noteq> {#})\<close>
     if
       st'_st: \<open>(st', st) \<in> R\<close> and
-      \<open>iterate_over_lookup_conflict_inv (n\<^sub>0, xs\<^sub>0) st'\<close> and
+      \<open>minimize_and_extract_highest_lookup_conflict_inv (n\<^sub>0, xs\<^sub>0) st'\<close> and
       \<open>iterate_over_conflict_inv M D st\<close> and
       st:
         \<open>x2b = (j, x2c)\<close>
@@ -1703,7 +1703,7 @@ proof -
     if
       R: \<open>(x, x') \<in> R\<close> and
       \<open>case x' of (D, D', highest) \<Rightarrow> D' \<noteq> {#}\<close> and
-      \<open>iterate_over_lookup_conflict_inv (n\<^sub>0, xs\<^sub>0) x\<close> and
+      \<open>minimize_and_extract_highest_lookup_conflict_inv (n\<^sub>0, xs\<^sub>0) x\<close> and
       \<open>iterate_over_conflict_inv M D x'\<close> and
       st:
         \<open>x2 = (x1a, x2a)\<close>
@@ -1934,7 +1934,7 @@ proof -
     then show ?thesis
       using lookup_clause_rel_exists_le_uint_max[of x1e \<open>replicate x1f None @ drop x1f x2b\<close> x1a x1f] R
         cond
-      unfolding confl_find_next_index_pre_def st R_def iterate_over_lookup_conflict_inv_def
+      unfolding confl_find_next_index_pre_def st R_def minimize_and_extract_highest_lookup_conflict_inv_def
       by (auto simp: nth_append)
   qed
   have in_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>Pos xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
@@ -1955,7 +1955,7 @@ proof -
           simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
   qed
   show ?thesis
-    unfolding iterate_over_lookup_conflict_def iterate_over_conflict_def D' prod.case Let_def
+    unfolding minimize_and_extract_highest_lookup_conflict_def iterate_over_conflict_def D' prod.case Let_def
       lookup_conflict_nth_def lookup_conflict_upd_None_def
     apply (refine_vcg  WHILEIT_refine[where R = R])
     subgoal by (rule init_args_ref)
@@ -1970,7 +1970,7 @@ proof -
     subgoal by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
            apply (rule redundant; (* solves *) assumption?)
     subgoal by auto
-    subgoal by (auto simp: iterate_over_lookup_conflict_inv_def)
+    subgoal by (auto simp: minimize_and_extract_highest_lookup_conflict_inv_def)
     subgoal by auto
     subgoal for st'' st D _ D'' highest nxs x2b x2c x1d m x1e i s_highest
       s' highest' j L _ _ _ _
@@ -2218,7 +2218,7 @@ lemma
     confl: \<open>get_conflict_wl S \<noteq> None\<close> and
     lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close>
   shows
-    \<open>iterate_over_lookup_conflict M NU D' s' \<le>
+    \<open>minimize_and_extract_highest_lookup_conflict M NU D' s' \<le>
        \<Down> ({((D, s, L'), (D', L)). (D, D') \<in> lookup_clause_rel \<and> L' = L})
             (SPEC (\<lambda>(D', highest). D' \<subseteq># D \<and> NU' + NUP \<Turnstile>pm add_mset K D' \<and> highest_lit M D' highest))\<close>
 proof -
@@ -2227,7 +2227,7 @@ proof -
     by (auto dest: mset_as_position_distinct_mset)
   show ?thesis
     apply (rule order.trans)
-     apply (rule iterate_over_lookup_conflict_iterate_over_conflict[OF assms(9-15)[unfolded assms(1-8)] lits_D,
+     apply (rule minimize_and_extract_highest_lookup_conflict_iterate_over_conflict[OF assms(9-15)[unfolded assms(1-8)] lits_D,
           unfolded assms(1-8)[symmetric]])
     apply (rule order.trans)
      apply (rule conc_fun_mono[OF iterate_over_conflict_spec[OF NU_P_D dist]])
@@ -2336,9 +2336,9 @@ lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_Suc_le_uint_max: \<open>Pos xa \<in># \<L>
   using in_N1_less_than_uint_max by (auto simp: uint_max_def)
 (* End move *)
 
-sepref_register iterate_over_lookup_conflict
-sepref_thm iterate_over_lookup_conflict_code
-  is \<open>uncurry3 (PR_CONST iterate_over_lookup_conflict)\<close>
+sepref_register minimize_and_extract_highest_lookup_conflict
+sepref_thm minimize_and_extract_highest_lookup_conflict_code
+  is \<open>uncurry3 (PR_CONST minimize_and_extract_highest_lookup_conflict)\<close>
   :: \<open>[\<lambda>(((M, NU), D), cach). literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
         literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU)) \<and>
         (\<forall>a\<in>lits_of_l M. atm_of a < length (snd D))]\<^sub>a
@@ -2346,21 +2346,21 @@ sepref_thm iterate_over_lookup_conflict_code
       cach_refinement_assn\<^sup>d \<rightarrow> lookup_clause_rel_assn *a cach_refinement_assn *a
         option_assn (unat_lit_assn *a uint32_nat_assn)\<close>
   supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
-  literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro] iterate_over_lookup_conflict_inv_def[simp]
+  literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro] minimize_and_extract_highest_lookup_conflict_inv_def[simp]
   in_\<L>\<^sub>a\<^sub>l\<^sub>l_Suc_le_uint_max[intro]
-  unfolding iterate_over_lookup_conflict_def zero_uint32_nat_def[symmetric]
+  unfolding minimize_and_extract_highest_lookup_conflict_def zero_uint32_nat_def[symmetric]
     one_uint32_nat_def[symmetric] merge_highest_lit_def PR_CONST_def
   apply (rewrite at \<open>(_, _,zero_uint32_nat, _,\<hole>)\<close> annotate_assn[where A = \<open>option_assn (unat_lit_assn *a uint32_nat_assn)\<close>])
   by sepref
 
-concrete_definition (in -) iterate_over_lookup_conflict_code
-   uses isasat_input_bounded.iterate_over_lookup_conflict_code.refine_raw
+concrete_definition (in -) minimize_and_extract_highest_lookup_conflict_code
+   uses isasat_input_bounded.minimize_and_extract_highest_lookup_conflict_code.refine_raw
    is \<open>(uncurry3 ?f, _) \<in> _\<close>
 
-prepare_code_thms (in -) iterate_over_lookup_conflict_code_def
+prepare_code_thms (in -) minimize_and_extract_highest_lookup_conflict_code_def
 
-lemmas iterate_over_lookup_conflict_code_hnr[sepref_fr_rules] =
-   iterate_over_lookup_conflict_code.refine[OF isasat_input_bounded_axioms]
+lemmas minimize_and_extract_highest_lookup_conflict_code_hnr[sepref_fr_rules] =
+   minimize_and_extract_highest_lookup_conflict_code.refine[OF isasat_input_bounded_axioms]
 
 end
 
