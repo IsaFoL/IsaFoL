@@ -144,11 +144,11 @@ inductive ord_resolve_rename :: "'a clause list \<Rightarrow> 'a clause \<Righta
    ord_resolve (CAs \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) \<sigma> E \<Longrightarrow>
    ord_resolve_rename CAs DA \<sigma> E"
 
-lemma ord_resolve_nonempty_main_prem: "\<not> ord_resolve Cs {#} \<sigma> E"
+lemma ord_resolve_empty_main_prem: "\<not> ord_resolve Cs {#} \<sigma> E"
   by (simp add: ord_resolve.simps)
 
-lemma ord_resolve_rename_nonempty_prems: "\<not> ord_resolve_rename Cs {#} \<sigma> E"
-  by (simp add: ord_resolve_nonempty_main_prem ord_resolve_rename.simps)
+lemma ord_resolve_rename_empty_main_prem: "\<not> ord_resolve_rename Cs {#} \<sigma> E"
+  by (simp add: ord_resolve_empty_main_prem ord_resolve_rename.simps)
 
 
 subsection \<open>Soundness\<close>
