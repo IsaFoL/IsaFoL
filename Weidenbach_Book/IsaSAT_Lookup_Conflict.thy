@@ -3,6 +3,7 @@ theory IsaSAT_Lookup_Conflict
     Two_Watched_Literals_Watch_List_Code_Common
     IsaSAT_Trail
     CDCL_Conflict_Minimisation
+    "../lib/Explorer"
 begin
 
 no_notation Ref.update ("_ := _" 62)
@@ -1150,23 +1151,84 @@ definition confl_find_next_index_spec where
 
 definition confl_find_next_index :: \<open>lookup_clause_rel \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
    \<open>confl_find_next_index = (\<lambda>(n, xs) i.
-      WHILE\<^sub>T\<^bsup>\<lambda>j. j < length xs \<and> (\<forall>k. k \<ge> i \<longrightarrow> k < j \<longrightarrow> xs ! k = None) \<and> j \<ge> i \<and>
-              j + 1 < uint_max\<^esup>
+      WHILE\<^sub>T\<^bsup>\<lambda>j. j < length xs \<and> (\<forall>k. k \<ge> i \<longrightarrow> k < j \<longrightarrow> xs ! k = None) \<and> j \<ge> i\<^esup>
            (\<lambda>j. xs ! j = None)
-           (\<lambda>j. RETURN (j + 1))
+           (\<lambda>j. do{ASSERT(j + 1 \<le> uint_max); RETURN (j + 1)})
            i
     )
 \<close>
 
 
+context isasat_input_ops
+begin
+
+fun confl_find_next_index_pre where
+  confl_find_next_index_pre_def:
+  \<open>confl_find_next_index_pre (n, xs) i \<longleftrightarrow>  i < length xs \<and>
+     (\<exists>j. j \<ge> i \<and> j < length xs \<and> j < uint_max \<and> xs ! j \<noteq> None)\<close>
+
+declare confl_find_next_index_pre.simps[simp del]
+
+lemma confl_find_next_index_confl_find_next_index_spec:
+  assumes
+    ocr: \<open>confl_find_next_index_pre (n, xs) i\<close>
+  shows
+    \<open>confl_find_next_index (n, xs) i \<le> confl_find_next_index_spec (n,xs) i\<close>
+proof -
+  have i_xs: \<open>i < length xs\<close>
+    using ocr unfolding confl_find_next_index_pre_def by blast
+  have H: False if \<open>\<forall>k\<ge>i. k < l \<longrightarrow> xs ! k = None\<close> and \<open>l \<ge> uint_max\<close> for l
+    using ocr that unfolding confl_find_next_index_pre_def
+    by (auto simp: uint_max_def)
+
+  have Sucj_le_xs: \<open>j + 1 < length xs\<close>
+    if
+      j_xs: \<open>j < length xs \<and> (\<forall>k\<ge>i. k < j \<longrightarrow> xs ! k = None) \<and> i \<le> j\<close> and
+      xs_j: \<open>xs ! j = None\<close>
+    for j
+  proof (rule ccontr)
+    assume \<open>\<not> ?thesis\<close>
+    then have \<open>\<forall>k\<ge>i. k \<le> length xs - 1 \<longrightarrow> xs ! k = None\<close>
+      using j_xs xs_j by (auto simp: linorder_not_less le_Suc_eq)
+    then show False
+      using ocr unfolding confl_find_next_index_pre_def by fastforce
+  qed
+
+  show ?thesis
+    unfolding confl_find_next_index_def confl_find_next_index_spec_def prod.case
+    apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>i. length xs - i)\<close>])
+    subgoal by auto
+    subgoal by (rule i_xs)
+    subgoal by auto
+    subgoal by auto
+    subgoal for k using H[of k] by  (cases \<open>k \<ge> uint_max\<close>)(auto simp: uint_max_def)
+    subgoal for k using Sucj_le_xs by blast
+    subgoal for j j' using nat_less_le by fastforce
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+
+lemma confl_find_next_index_confl_find_next_index_spec_fref:
+  \<open>(uncurry confl_find_next_index, uncurry confl_find_next_index_spec) \<in>
+      [uncurry confl_find_next_index_pre]\<^sub>f
+      Id \<times>\<^sub>r nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI) (auto intro!: confl_find_next_index_confl_find_next_index_spec)
+end
+
+
 context isasat_input_bounded
 begin
 
-lemma confl_find_next_index_confl_find_next_index_spec:
-  assumes ocr: \<open>((n, xs), D) \<in> lookup_clause_rel\<close> and \<open>n > 0\<close> and i_xs: \<open>i < length xs\<close> and
+lemma lookup_clause_rel_exists_le_uint_max:
+  assumes ocr: \<open>((n, xs), D) \<in> lookup_clause_rel\<close> and \<open>n > 0\<close> and
     le_i: \<open>\<forall>k<i. xs ! k = None\<close> and lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close>
   shows
-    \<open>confl_find_next_index (n, xs) i \<le> confl_find_next_index_spec (n,xs) i\<close>
+    \<open>\<exists>j. j \<ge> i \<and> j < length xs \<and> j < uint_max \<and> xs ! j \<noteq> None\<close>
 proof -
   have
     n_D: \<open>n = size D\<close> and
@@ -1185,65 +1247,22 @@ proof -
     then show False
       using mset_as_position_right_unique[OF map] \<open>n > 0\<close> n_D by (cases D) auto
   qed
-
-  have Sucj_le_xs: \<open>j + 1 < length xs\<close>
-    if
-      j_xs: \<open>j < length xs \<and> (\<forall>k\<ge>i. k < j \<longrightarrow> xs ! k = None) \<and> i \<le> j \<and> j + 1 < uint_max\<close> and
-      xs_j: \<open>xs ! j = None\<close>
-    for j
-  proof (rule ccontr)
-    assume \<open>\<not> ?thesis\<close>
-    then have \<open>\<forall>k\<ge>i. k \<le> length xs - 1 \<longrightarrow> xs ! k = None\<close>
-      using j_xs xs_j by (auto simp: linorder_not_less le_Suc_eq)
-    then show False
-      using ex_not_none by fastforce
-  qed
-  have H: False if \<open>\<forall>k\<ge>i. k < l \<longrightarrow> xs ! k = None\<close> and \<open>l \<ge> 1 + uint_max div 2\<close> for l
-  proof -
-    obtain L where \<open>L \<in># D\<close>
-      using n_D \<open>n > 0\<close> by  (cases D) auto
-    then have \<open>atm_of L \<le> uint_max div 2\<close>
-      using lits in_N1_less_than_uint_max by (cases L)
-        (auto dest!: multi_member_split simp: uint_max_def literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset)
-    then have \<open>atm_of L < length xs\<close>
-      using le_xs \<open>L \<in># D\<close> lits by (cases L)
-        (auto dest!: multi_member_split simp: uint_max_def literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset)
-    then have \<open>xs ! (atm_of L) \<noteq> None\<close>
-      using mset_as_position_in_iff_nth[OF map, of L] \<open>L \<in># D\<close> by auto
-    moreover have \<open>atm_of L < l\<close>
-      using that le_i \<open>atm_of L \<le> uint_max div 2\<close>
-      by (auto simp: uint_max_def)
-    ultimately show False
-      using that le_i \<open>atm_of L \<le> uint_max div 2\<close>
-      by (cases \<open>atm_of L \<ge> i\<close>) (auto simp: uint_max_def)
-  qed
-    
-  show ?thesis
-    unfolding confl_find_next_index_def confl_find_next_index_spec_def prod.case
-    apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>i. length xs - i)\<close>])
-    subgoal by auto
-    subgoal by (rule i_xs)
-    subgoal by auto
-    subgoal by auto
-    subgoal using H[of i] by  (cases \<open>i \<ge> 1 + uint_max div 2\<close>)(auto simp: uint_max_def)
-    subgoal for j by (rule Sucj_le_xs)
-    subgoal for j j'
-      using nat_less_le by fastforce
-    subgoal by auto
-    subgoal for k using H[of k] by (cases \<open>k \<ge> 1 + uint_max div 2\<close>) (auto simp: uint_max_def)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    done
+  then obtain j where
+     j: \<open>j \<ge> i\<close>\<open>j < length xs\<close>\<open>xs ! j \<noteq> None\<close>
+    by blast
+  let ?L = \<open>if the (xs ! j) then Pos j else Neg j\<close>
+  have \<open>?L \<in># D\<close>
+    using j mset_as_position_in_iff_nth[OF map, of ?L] by auto
+  then have \<open>nat_of_lit ?L \<le> uint_max\<close>
+    using lits in_N1_less_than_uint_max
+    by (auto 5 5 dest!: multi_member_split[of _ D]
+        simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset split: if_splits)
+  then have \<open>j < uint_max\<close>
+    by (auto simp: uint_max_def split: if_splits)
+  then show ?thesis
+    using j by blast
 qed
 
-lemma confl_find_next_index_confl_find_next_index_spec_fref:
-  \<open>(uncurry confl_find_next_index, uncurry confl_find_next_index_spec) \<in>
-      [\<lambda>((n, xs), j). \<exists>D. ((n, xs), D) \<in> lookup_clause_rel \<and> literals_are_in_\<L>\<^sub>i\<^sub>n D \<and> 0 < n \<and>
-          j < length xs \<and> (\<forall>k<j. xs ! k = None)]\<^sub>f
-      Id \<times>\<^sub>r nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)  (auto intro!: confl_find_next_index_confl_find_next_index_spec)
 
 end
 
@@ -1465,29 +1484,39 @@ proof -
     done
 qed
 
+definition (in -) lookup_conflict_nth where
+  [simp]: \<open>lookup_conflict_nth = (\<lambda>(_, xs) i. xs ! i)\<close>
+
+definition (in -) lookup_conflict_size where
+  [simp]: \<open>lookup_conflict_size = (\<lambda>(n, xs). n)\<close>
+
+definition (in -) lookup_conflict_upd_None where
+  [simp]: \<open>lookup_conflict_upd_None = (\<lambda>(n, xs) i. (n-1, xs [i :=None]))\<close>
+
 definition iterate_over_lookup_conflict
   :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> lookup_clause_rel \<Rightarrow> (nat \<Rightarrow> minimize_status) \<Rightarrow>
        (lookup_clause_rel \<times> (nat \<Rightarrow> minimize_status) \<times> nat conflict_highest_conflict) nres\<close>
 where
-  \<open>iterate_over_lookup_conflict  = (\<lambda>M NU (n, xs) s. do {
+  \<open>iterate_over_lookup_conflict  = (\<lambda>M NU (nxs) s. do {
     (D, _, _, s, highest) \<leftarrow>
        WHILE\<^sub>T\<^bsup>iterate_over_lookup_conflict_inv\<^esup>
-         (\<lambda>((n, xs), m, i, s, _). m > 0)
-         (\<lambda>((n, xs), m, i, s, highest). do {
+         (\<lambda>((nxs), m, i, s, _). m > 0)
+         (\<lambda>((nxs), m, i, s, highest). do {
             ASSERT(m > 0);
-            x \<leftarrow> confl_find_next_index_spec (m, xs) i;
-            ASSERT(xs ! x \<noteq> None);
-            ASSERT(x < length xs);
-            (s', _, red) \<leftarrow> literal_redundant_wl_lookup M NU (n, xs) s
-                (if the (xs ! x) then Pos x else Neg x);
-            let L = (if the (xs ! x) then Pos x else Neg x);
+            ASSERT(confl_find_next_index_pre nxs i);
+            x \<leftarrow> confl_find_next_index_spec nxs i;
+            ASSERT(lookup_conflict_nth nxs x \<noteq> None);
+            ASSERT(x < length (snd nxs));
+            ASSERT(Pos x \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
+            let L = (if the (lookup_conflict_nth nxs x) then Pos x else Neg x);
+            (s', _, red) \<leftarrow> literal_redundant_wl_lookup M NU nxs s L;
             ASSERT(m \<ge> 1);
-            ASSERT(n \<ge> 1);
+            ASSERT(fst nxs \<ge> 1);
             if \<not>red
-            then RETURN ((n, xs), m - 1, x+1, s', merge_highest_lit M L highest)
-            else RETURN ((n - 1, xs[x := None]), m - 1, x+1, s', highest)
+            then RETURN (nxs, m - 1, x+1, s', merge_highest_lit M L highest)
+            else RETURN (lookup_conflict_upd_None nxs x, m - 1, x+1, s', highest)
          })
-         ((n, xs), n, 0, s, None);
+         (nxs, lookup_conflict_size nxs, 0, s, None);
      RETURN (D, s, highest)
   })\<close>
 
@@ -1514,6 +1543,12 @@ proof -
     by (auto simp: true_clss_cls_add_self)
 qed
 
+end
+
+
+context isasat_input_bounded
+begin
+
 lemma iterate_over_lookup_conflict_iterate_over_conflict:
   fixes D :: \<open>nat clause\<close> and s and s' and NU :: \<open>nat clauses_l\<close> and S :: \<open>nat twl_st_wl\<close>
   defines
@@ -1533,7 +1568,8 @@ lemma iterate_over_lookup_conflict_iterate_over_conflict:
     struct_invs: \<open>twl_struct_invs S''\<close> and
     add_inv: \<open>additional_WS_invs S'\<close> and
     cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUP) D\<close> and
-    NU_P_D: \<open>NU' + NUP \<Turnstile>pm add_mset K D\<close>
+    NU_P_D: \<open>NU' + NUP \<Turnstile>pm add_mset K D\<close> and
+    lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close>
   shows
     \<open>iterate_over_lookup_conflict M NU D' s' \<le>
        \<Down> ({((D, s, L'), (D', L)). (D, D') \<in> lookup_clause_rel \<and> L' = L})
@@ -1587,7 +1623,7 @@ proof -
             NU' + NUP \<Turnstile>pm add_mset K F
         }\<close>
   have init_args_ref:
-    \<open>iterate_over_conflict_inv M D (D, D, None) \<Longrightarrow> (((n\<^sub>0, xs\<^sub>0), n\<^sub>0, 0, s', None), D, D, None) \<in> R\<close>
+    \<open>iterate_over_conflict_inv M D (D, D, None) \<Longrightarrow> (((n\<^sub>0, xs\<^sub>0), lookup_conflict_size (n\<^sub>0, xs\<^sub>0), 0, s', None), D, D, None) \<in> R\<close>
     using D'_D cach_init NU_P_D unfolding R_def NUP NU'_def NU_N_U by (auto simp: ac_simps)
 
    have init_lo_inv: \<open>iterate_over_lookup_conflict_inv s'\<close>
@@ -1607,22 +1643,22 @@ proof -
       \<open>iterate_over_lookup_conflict_inv st'\<close> and
       \<open>iterate_over_conflict_inv M D st\<close> and
       st:
-        \<open>nxs = (n, xs)\<close>
         \<open>x2b = (j, x2c)\<close>
         \<open>x2a = (m, x2b)\<close>
         \<open>st' = (nxs, x2a)\<close>
         \<open>st2 = (D' , st3)\<close>
         \<open>st = (E, st2)\<close>
-    for st' st nxs n xs x2a m x2b j x2c D' E st2 st3
+    for st' st nxs x2a m x2b j x2c D' E st2 st3
   proof -
     show ?thesis
       using st'_st unfolding st
-      by (cases D') (auto simp: R_def lookup_clause_rel_def)
+      by (cases D'; cases nxs) (auto simp: R_def lookup_clause_rel_def)
   qed
   have confl_find_next_index_spec_le:
-    \<open>confl_find_next_index_spec (x1d, x2b) x1e
-      \<le> \<Down> {(j, x). x2b ! j \<noteq> None \<and> x = (if the (x2b!j) then Pos j else Neg j) \<and>
-             j < length x2b \<and> x1e \<le> j \<and> (\<forall>k\<ge>x1e. k < j \<longrightarrow> x2b ! k = None)}
+    \<open>confl_find_next_index_spec x1b x1e
+      \<le> \<Down> {(j, x). (snd x1b) ! j \<noteq> None \<and> x = (if the ((snd x1b)!j) then Pos j else Neg j) \<and>
+             j < length (snd x1b) \<and> x1e \<le> j \<and> (\<forall>k\<ge>x1e. k < j \<longrightarrow> (snd x1b) ! k = None) \<and>
+             x \<in># x1a}
           (SPEC (\<lambda>x. x \<in># x1a))\<close>
     (is \<open>_ \<le> \<Down> ?confl _\<close>)
     if
@@ -1630,18 +1666,20 @@ proof -
       st:
         \<open>x' = (x1, st2)\<close>
         \<open>st2 = (x1a , st3)\<close>
-        \<open>x1b = (x1c, x2b)\<close>
         \<open>x2d = (x1e, x2e)\<close>
         \<open>x2c = (x1d, x2d)\<close>
         \<open>x = (x1b, x2c)\<close> and
       x1d: \<open>0 < x1d\<close>
-    for x x' x1 x1a x1b x1c x2b x2c x1d x2d x1e x2e st2 st3
+    for x x' x1 x1a x1b x2c x1d x2d x1e x2e st2 st3
   proof -
+    obtain x1c x2b where
+       x1b[simp]: \<open>x1b = (x1c, x2b)\<close> by (cases x1b)
+
     have map: \<open>mset_as_position (replicate x1e None @ drop x1e x2b) x1a\<close>
       using R unfolding st R_def lookup_clause_rel_def
       by auto
     show ?thesis
-      unfolding confl_find_next_index_spec_def st
+      unfolding confl_find_next_index_spec_def st x1b
       apply clarify
       apply (rule RES_refine)
       subgoal for s
@@ -1650,7 +1688,7 @@ proof -
         by (auto simp: nth_append intro!: )
       done
   qed
-  have redundant: \<open>literal_redundant_wl_lookup M NU (n, xs) cach
+  have redundant: \<open>literal_redundant_wl_lookup M NU nxs cach
           (if the (xs ! a) then Pos a else Neg a)
       \<le> \<Down> {((s', a', b'), b). b = b' \<and>
             (b \<longrightarrow> NU' + NUP \<Turnstile>pm remove1_mset L (add_mset K E) \<and>
@@ -1660,7 +1698,6 @@ proof -
     (is \<open>_ \<le> \<Down> ?red _\<close>)
     if
       R: \<open>(x, x') \<in> R\<close> and
-      \<open>case x of (x, xa) \<Rightarrow> (case x of (n, xs) \<Rightarrow> \<lambda>(m, i, s, _). 0 < m) xa\<close> and
       \<open>case x' of (D, D', highest) \<Rightarrow> D' \<noteq> {#}\<close> and
       \<open>iterate_over_lookup_conflict_inv x\<close> and
       \<open>iterate_over_conflict_inv M D x'\<close> and
@@ -1674,10 +1711,7 @@ proof -
         \<open>x = (nxs, x2c)\<close> and
       \<open>x1a \<noteq> {#}\<close> and
       \<open>0 < x1d\<close> and
-      xa_xb: \<open>(a, L) \<in> {(j, x). xs ! j \<noteq> None \<and>
-           x = (if the (xs ! j) then Pos j else Neg j) \<and>
-         j < length xs \<and> x1e \<le> j \<and>
-         (\<forall>k\<ge>x1e. k < j \<longrightarrow> xs ! k = None)}\<close> and
+      xa_xb: \<open>(a, L) \<in> ?confl x1a nxs x1e\<close> and
       xb: \<open>L \<in> {x. x \<in># x1a}\<close>
     for x x' E x2 x1a x2a nxs n xs x2c x1d x2d x1e x2e cach highest a L
   proof -
@@ -1696,16 +1730,16 @@ proof -
       using R xb unfolding R_def st
       by auto
     have L: \<open>?L = L\<close>
-      using xa_xb  by auto
+      using xa_xb unfolding st  by auto
     have M_x1: \<open>M \<Turnstile>as CNot E\<close>
       by (metis CNot_plus M_D \<open>E \<subseteq># D\<close> subset_mset.le_iff_add true_annots_union)
     then have M'_x1: \<open>M' \<Turnstile>as CNot E\<close>
       unfolding M' M_def S'''_def by (cases S) auto
     have 1:
-      \<open>literal_redundant_wl_lookup M NU (n, xs) cach ?L \<le>
+      \<open>literal_redundant_wl_lookup M NU nxs cach ?L \<le>
       literal_redundant_wl M NU E cach ?L\<close>
       using literal_redundant_wl_lookup_literal_redundant_wl[OF cr n_d M_x1 lits, of NU cach
-          \<open>?L\<close>] by simp
+          \<open>?L\<close>] unfolding st by simp
     have 2:
     \<open>literal_redundant_wl M NU E cach ?L \<le> \<Down>
        (Id \<times>\<^sub>r {(analyse, analyse'). analyse' = convert_analysis_list NU analyse \<and>
@@ -1749,7 +1783,7 @@ proof -
           filter_to_poslev_conflict_min_analysis_inv simp del: diff_union_swap2)
   qed
 
-  have loop_keep: \<open>\<not>red \<Longrightarrow> (((n, xs), m - 1, m'' + 1, s,
+  have loop_keep: \<open>\<not>red \<Longrightarrow> ((nxs, m - 1, m'' + 1, s,
            merge_highest_lit M (if the (xs ! m'') then Pos m'' else Neg m'') highest'), D',
           remove1_mset L D'', merge_highest_lit M L highest) \<in> R\<close>
       (is \<open>_ \<Longrightarrow> ?loop_keep\<close>) and
@@ -1768,13 +1802,13 @@ proof -
         \<open>st''2 = (m, st''3)\<close>
         \<open>st'' = (nxs, st''2)\<close>
         \<open>keep' = (s, truc)\<close> and
-      xa_xb: \<open>(m'', L) \<in> ?confl xs i\<close> and
+      xa_xb: \<open>(m'', L) \<in> ?confl D'' nxs i\<close> and
       xb_x1a: \<open>L \<in> {x. x \<in># D''}\<close>
     for st'' st D' D'' nxs n xs st''2 m st''3 i s_highest m'' L s st2 highest s' highest' red keep'
       truc
   proof -
     have L: \<open>L = (if the (xs ! m'') then Pos m'' else Neg m'')\<close>
-      using xa_xb by auto
+      using xa_xb unfolding st by auto
     have
       x1c_x1[simp]: \<open>((n, xs), D') \<in> lookup_clause_rel\<close> and
       [simp]: \<open>i \<le> length xs\<close> and
@@ -1791,7 +1825,7 @@ proof -
       x1e_xa_None: \<open>\<forall>k\<ge>i. k < m'' \<longrightarrow> xs ! k = None\<close> and
       xb: \<open>L = (if the (xs ! m'') then Pos m'' else Neg m'')\<close> and
       no_none: \<open>xs ! m'' \<noteq> None\<close>
-      using xa_xb by auto
+      using xa_xb unfolding st by auto
     have 1: \<open>drop i xs = take (m'' - i) (drop i xs) @ drop m'' xs\<close>
       by (rule drop_take_drop_drop) (use x1e_xa in auto)
     have 2: \<open>take (m'' - i) (drop i xs) = replicate (m'' - i) None\<close>
@@ -1869,19 +1903,66 @@ proof -
       by (auto intro: subset_mset.order.trans diff_subset_eq_self mset_le_subtract
           simp del: replicate_Suc)
   qed
-
-
+  have confl_find_next_index_pre: \<open>confl_find_next_index_pre x1b x1f\<close>
+    if
+      R: \<open>(x, x') \<in> R\<close> and
+      cond: \<open>case x of (nxs, m, i, s, uu_) \<Rightarrow> 0 < m\<close> and
+      inv: \<open>iterate_over_conflict_inv M D x'\<close> and
+      st:
+        \<open>x2 = (x1a, x2a)\<close>
+        \<open>x' = (x1, x2)\<close>
+        \<open>x1b = (x1c, x2b)\<close>
+        \<open>x1b = (x1d, x2c)\<close>
+        \<open>x2f = (x1g, x2g)\<close>
+        \<open>x2e = (x1f, x2f)\<close>
+        \<open>x2d = (x1e, x2e)\<close>
+        \<open>x = (x1b, x2d)\<close> and
+      \<open>x1a \<noteq> {#}\<close> and
+      \<open>0 < x1e\<close>
+    for x x' x1 x2 x1a x2a x1b x1c x2b x1d x2c x2d x1e x2e x1f x2f
+      x1g x2g
+  proof -
+    have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n x1a\<close>
+      using literals_are_in_\<L>\<^sub>i\<^sub>n_mono[OF lits_D] inv
+      unfolding iterate_over_conflict_inv_def st
+      by auto
+    then show ?thesis
+      using lookup_clause_rel_exists_le_uint_max[of x1e \<open>replicate x1f None @ drop x1f x2b\<close> x1a x1f] R
+        cond
+      unfolding confl_find_next_index_pre_def st R_def iterate_over_lookup_conflict_inv_def
+      by (auto simp: nth_append)
+  qed
+  have in_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>Pos xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+    if
+      inv: \<open>iterate_over_conflict_inv M D x'\<close> and
+      st:
+        \<open>x2 = (x1a, x2a)\<close>
+        \<open>x' = (x1, x2)\<close> and
+      \<open>confl_find_next_index_pre x1b x1f\<close> and
+      xa_xb: \<open>(xa, xb) \<in> ?confl x1a x1b x1f\<close>
+    for x' x1 x2 x1a x2a x1b x1f xa xb
+  proof -
+    have \<open>xb \<in># D\<close>
+      using inv xa_xb unfolding iterate_over_conflict_inv_def st by auto
+    then show ?thesis
+      using lits_D xa_xb
+      by (auto dest!: multi_member_split[of _ D] split: if_splits
+          simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+  qed
   show ?thesis
     unfolding iterate_over_lookup_conflict_def iterate_over_conflict_def D' prod.case Let_def
+      lookup_conflict_nth_def lookup_conflict_upd_None_def
     apply (refine_vcg  WHILEIT_refine[where R = R])
     subgoal by (rule init_args_ref)
     subgoal for s' s by (rule init_lo_inv)
     subgoal by (rule cond)
     subgoal by auto
+    subgoal by (rule confl_find_next_index_pre)
             apply (rule confl_find_next_index_spec_le; assumption)
     subgoal by auto
     subgoal by auto
-           apply (rule redundant; solves assumption)
+    subgoal by (rule in_\<L>\<^sub>a\<^sub>l\<^sub>l)
+           apply (rule redundant; (* solves *) assumption?)
     subgoal by auto
     subgoal by (auto simp: iterate_over_lookup_conflict_inv_def)
     subgoal by auto
@@ -2105,8 +2186,9 @@ proof -
     done
 qed
 
-context isasat_input_ops
+context isasat_input_bounded
 begin
+
 lemma
   fixes D :: \<open>nat clause\<close> and s and s' and NU :: \<open>nat clauses_l\<close> and S :: \<open>nat twl_st_wl\<close>
   defines
@@ -2127,7 +2209,8 @@ lemma
     add_inv: \<open>additional_WS_invs S'\<close> and
     cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUP) D\<close> and
     NU_P_D: \<open>NU' + NUP \<Turnstile>pm add_mset K D\<close> and
-    confl: \<open>get_conflict_wl S \<noteq> None\<close>
+    confl: \<open>get_conflict_wl S \<noteq> None\<close> and
+    lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close>
   shows
     \<open>iterate_over_lookup_conflict M NU D' s' \<le>
        \<Down> ({((D, s, L'), (D', L)). (D, D') \<in> lookup_clause_rel \<and> L' = L})
@@ -2138,7 +2221,7 @@ proof -
     by (auto dest: mset_as_position_distinct_mset)
   show ?thesis
     apply (rule order.trans)
-     apply (rule iterate_over_lookup_conflict_iterate_over_conflict[OF assms(9-15)[unfolded assms(1-8)],
+     apply (rule iterate_over_lookup_conflict_iterate_over_conflict[OF assms(9-15)[unfolded assms(1-8)] lits_D,
           unfolded assms(1-8)[symmetric]])
     apply (rule order.trans)
      apply (rule conc_fun_mono[OF iterate_over_conflict_spec[OF NU_P_D dist]])
@@ -2154,23 +2237,62 @@ sepref_definition (in -) confl_find_next_index_code
   by sepref
 
 declare (in -) confl_find_next_index_code.refine[sepref_fr_rules]
+
+
 context isasat_input_bounded
 begin
+
+lemma Pos_unat_lit_assn:
+  \<open>(return o (\<lambda>n. two_uint32 * n), RETURN o Pos) \<in> [\<lambda>L. Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
+     unat_lit_assn\<close>
+  apply sepref_to_hoare
+  using in_N1_less_than_uint_max
+  by (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
+      lit_of_natP_def nat_of_uint32_distrib_mult2)
+
+lemma Neg_unat_lit_assn:
+  \<open>(return o (\<lambda>n. two_uint32 * n +1), RETURN o Neg) \<in> [\<lambda>L. Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
+      unat_lit_assn\<close>
+  apply sepref_to_hoare
+  using in_N1_less_than_uint_max
+  by (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
+      lit_of_natP_def nat_of_uint32_distrib_mult2_plus1 uint_max_def)
+
+
 (* TODO change precondition to \<open>?j. xs !i \<noteq> None\<close> *)
-thm confl_find_next_index_code.refine[FCOMP confl_find_next_index_confl_find_next_index_spec_fref]
+lemma confl_find_next_index_spec_hnr[sepref_fr_rules]:
+  \<open>(uncurry confl_find_next_index_code, uncurry confl_find_next_index_spec)
+    \<in> [uncurry confl_find_next_index_pre]\<^sub>a
+      lookup_clause_rel_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  using confl_find_next_index_code.refine[FCOMP confl_find_next_index_confl_find_next_index_spec_fref]
+  unfolding uncurry_def by simp
+
+lemma lookup_conflict_size_hnr[sepref_fr_rules]:
+  \<open>(return o fst, RETURN o lookup_conflict_size) \<in> lookup_clause_rel_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare sep_auto
+
+sepref_definition (in -)lookup_conflict_nth_code
+  is \<open>uncurry (RETURN oo lookup_conflict_nth)\<close>
+  :: \<open>[\<lambda>((n, xs), i). i < length xs]\<^sub>a lookup_clause_rel_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> option_assn bool_assn\<close>
+  unfolding lookup_conflict_nth_def
+  by sepref
+
+declare lookup_conflict_nth_code.refine[sepref_fr_rules]
+
 sepref_thm test
   is \<open>uncurry3 iterate_over_lookup_conflict\<close>
   :: \<open>trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>k *\<^sub>a
       cach_refinement_assn\<^sup>d \<rightarrow>\<^sub>a lookup_clause_rel_assn *a cach_refinement_assn *a
         option_assn (unat_lit_assn *a uint32_nat_assn)\<close>
-  supply [[goals_limit=1]]
+  supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
   unfolding iterate_over_lookup_conflict_def zero_uint32_nat_def[symmetric]
+  apply (rewrite at \<open>(_, _,zero_uint32_nat, _,\<hole>)\<close> annotate_assn[where A = \<open>option_assn (unat_lit_assn *a uint32_nat_assn)\<close>])
   apply sepref_dbg_keep
       apply sepref_dbg_trans_keep
            apply sepref_dbg_trans_step_keep
-  text \<open>We need an \<^term>\<open>ASSN_ANNOT\<close> for type \<^typ>\<open>'a nres\<close>, but this does not exist and
-   it is not clear how to do it.\<close>
-           apply sepref_dbg_side_unfold apply (auto simp: )[] 
+           apply sepref_dbg_trans_step_keep
+  oops
+          (*  apply sepref_dbg_side_unfold apply (auto simp: )[]  *)
 
 
 end
