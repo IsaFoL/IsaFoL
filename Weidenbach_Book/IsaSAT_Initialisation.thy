@@ -102,20 +102,25 @@ type_synonym (in -) 'v twl_st_wl_init = \<open>'v twl_st_wl \<times> 'v clauses\
 
 type_synonym (in -) vmtf_remove_int_option_fst_As = \<open>vmtf_option_fst_As \<times> nat list\<close>
 
-definition (in isasat_input_ops) vmtf_init :: \<open>(nat, nat) ann_lits \<Rightarrow> vmtf_remove_int_option_fst_As set\<close> where
-\<open>vmtf_init M = {((ns, m, fst_As, lst_As, next_search), to_remove).
-   \<A>\<^sub>i\<^sub>n \<noteq> {#} \<longrightarrow> (fst_As \<noteq> None \<and> lst_As \<noteq> None \<and> ((ns, m, the fst_As, the lst_As, next_search), to_remove) \<in> vmtf M)}\<close>
+definition (in isasat_input_ops) vmtf_init
+   :: \<open>(nat, nat) ann_lits \<Rightarrow> vmtf_remove_int_option_fst_As set\<close>
+where
+  \<open>vmtf_init M = {((ns, m, fst_As, lst_As, next_search), to_remove).
+   \<A>\<^sub>i\<^sub>n \<noteq> {#} \<longrightarrow> (fst_As \<noteq> None \<and> lst_As \<noteq> None \<and> ((ns, m, the fst_As, the lst_As, next_search),
+     to_remove) \<in> vmtf M)}\<close>
 
 type_synonym (in -) twl_st_wl_heur_init =
-  \<open>(nat,nat)ann_lits \<times> nat clause_l list \<times> nat \<times>
-    nat clause option \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int_option_fst_As \<times> bool list \<times>
-    nat\<close>
+  \<open>(nat,nat)ann_lits \<times> nat clause_l list \<times> nat \<times> nat clause option \<times> nat lit_queue_wl \<times>
+    nat list list \<times> vmtf_remove_int_option_fst_As \<times> bool list \<times>
+    nat \<times> nat conflict_min_cach\<close>
 
 abbreviation (in -) vmtf_conc_option_fst_As where
-  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn nat_vmtf_node_assn *a nat_assn *a option_assn uint32_nat_assn
-    *a option_assn uint32_nat_assn *a option_assn uint32_nat_assn)\<close>
+  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn nat_vmtf_node_assn *a nat_assn *a 
+    option_assn uint32_nat_assn *a option_assn uint32_nat_assn *a option_assn uint32_nat_assn)\<close>
 
-type_synonym (in -)vmtf_assn_option_fst_As = \<open>(uint32, nat) vmtf_node array \<times> nat \<times> uint32 option \<times> uint32 option \<times> uint32 option\<close>
+type_synonym (in -)vmtf_assn_option_fst_As =
+  \<open>(uint32, nat) vmtf_node array \<times> nat \<times> uint32 option \<times> uint32 option \<times> uint32 option\<close>
+
 type_synonym (in -)vmtf_remove_assn_option_fst_As = \<open>vmtf_assn_option_fst_As \<times> uint32 array_list\<close>
 
 abbreviation (in -)vmtf_remove_conc_option_fst_As
@@ -123,31 +128,37 @@ abbreviation (in -)vmtf_remove_conc_option_fst_As
 where
   \<open>vmtf_remove_conc_option_fst_As \<equiv> vmtf_conc_option_fst_As *a arl_assn uint32_nat_assn\<close>
 
-definition (in isasat_input_ops) twl_st_heur_init :: \<open>(twl_st_wl_heur_init \<times> nat twl_st_wl_init) set\<close> where
+definition (in isasat_input_ops) twl_st_heur_init
+  :: \<open>(twl_st_wl_heur_init \<times> nat twl_st_wl_init) set\<close>
+where
 \<open>twl_st_heur_init =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls), ((M, N, U, D, NP, UP, Q, W), OC)).
+  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach), ((M, N, U, D, NP, UP, Q, W), OC)).
     M' = M \<and> N' = N \<and> U' = U \<and>
     D' = D \<and>
      Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
     vm \<in> vmtf_init M \<and>
     phase_saving \<phi> \<and>
-    no_dup M
+    no_dup M \<and>
+    cach_refinement_empty cach
   }\<close>
 
 type_synonym (in -)twl_st_wll_trail_init =
   \<open>trail_pol_assn \<times> clauses_wl \<times> nat \<times> option_lookup_clause_assn \<times>
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn_option_fst_As \<times> phase_saver_assn \<times>
-    uint32\<close>
+    uint32 \<times> minimize_assn\<close>
 
-definition (in isasat_input_ops) twl_st_heur_init_assn :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wll_trail_init \<Rightarrow> assn\<close> where
+definition (in isasat_input_ops) twl_st_heur_init_assn
+  :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wll_trail_init \<Rightarrow> assn\<close>
+where
 \<open>twl_st_heur_init_assn =
   trail_assn *a clauses_ll_assn *a nat_assn *a
   option_lookup_clause_assn *a
   clause_l_assn *a
   arrayO_assn (arl_assn nat_assn) *a
   vmtf_remove_conc_option_fst_As *a phase_saver_conc *a
-  uint32_nat_assn\<close>
+  uint32_nat_assn *a
+  cach_refinement_assn\<close>
 
 definition (in isasat_input_ops) twl_st_init_assn
   :: \<open>nat twl_st_wl_init \<Rightarrow> twl_st_wll_trail_init \<Rightarrow> assn\<close>
@@ -752,19 +763,21 @@ lemma get_conflict_wl_is_None_code_get_conflict_wl_is_None_no_lvls[sepref_fr_rul
 
 type_synonym (in -) twl_st_wl_heur_init_trail_ref =
   \<open>trail_pol \<times> nat clause_l list \<times> nat \<times>
-    nat cconflict \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int_option_fst_As \<times> bool list \<times> nat\<close>
+    nat cconflict \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int_option_fst_As \<times> bool list \<times>
+    nat \<times> nat conflict_min_cach\<close>
 
 definition (in isasat_input_ops) twl_st_heur_pol_init
    :: \<open>(twl_st_wl_heur_init_trail_ref \<times> nat twl_st_wl_init) set\<close>
 where
 \<open>twl_st_heur_pol_init =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls), ((M, N, U, D, NP, UP, Q, W), OC)).
+  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach), ((M, N, U, D, NP, UP, Q, W), OC)).
     (M', M) \<in> trail_pol \<and> N' = N \<and> U' = U \<and> D = D' \<and>
      Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
     vm \<in> vmtf_init M \<and>
     phase_saving \<phi> \<and>
-    no_dup M
+    no_dup M\<and>
+    cach_refinement_empty cach
   }\<close>
 
 definition twl_st_heur_pol_init_assn
@@ -776,17 +789,19 @@ where
     clause_l_assn *a
     arrayO_assn (arl_assn nat_assn) *a
     vmtf_remove_conc_option_fst_As *a phase_saver_conc *a
-    uint32_nat_assn
+    uint32_nat_assn *a
+    cach_refinement_assn
     )\<close>
 
 lemma (in isasat_input_ops) twl_st_trail_no_clvls_ref_alt_def:
   \<open>twl_st_heur_pol_init =
-    (trail_pol \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id) O twl_st_heur_init\<close>
+    (trail_pol \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id) O twl_st_heur_init\<close>
   by (force simp: twl_st_heur_pol_init_def twl_st_heur_init_def)
 
 lemma twl_st_heur_init_assn_twl_st_heur_pol_init_assn:
   \<open>twl_st_heur_init_assn =
-     hr_comp twl_st_heur_pol_init_assn (trail_pol \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id)\<close>
+     hr_comp twl_st_heur_pol_init_assn
+        (trail_pol \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id\<times>\<^sub>r Id)\<close>
   unfolding twl_st_heur_pol_init_assn_def twl_st_heur_init_assn_def hr_comp_prod_conv
   by simp
 
@@ -1503,19 +1518,21 @@ definition (in isasat_input_ops) init_state_wl_heur :: \<open>twl_st_wl_heur_ini
     W \<leftarrow> SPEC (\<lambda>W. (W, empty_watched) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0);
     vm \<leftarrow> RES (vmtf_init []);
     \<phi> \<leftarrow> SPEC phase_saving;
-    RETURN ([], [[]], 0, None, {#}, W, vm, \<phi>, zero_uint32_nat)}\<close>
+    cach \<leftarrow> SPEC cach_refinement_empty;
+    RETURN ([], [[]], 0, None, {#}, W, vm, \<phi>, zero_uint32_nat, cach)}\<close>
 
 
 definition (in isasat_input_ops) twl_st_heur_init_wl :: \<open>(twl_st_wl_heur_init \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_init_wl =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls), (M, N, U, D, NP, UP, Q, W)).
+  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach), (M, N, U, D, NP, UP, Q, W)).
     M' = M \<and> N' = N \<and> U' = U \<and>
     D' = D \<and>
      Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
     vm \<in> vmtf_init M \<and>
     phase_saving \<phi> \<and>
-    no_dup M
+    no_dup M\<and>
+    cach_refinement_empty cach
   }\<close>
 
 lemma (in isasat_input_ops) init_state_wl_heur_init_state_wl:
@@ -1936,8 +1953,8 @@ definition init_state_wl_D' :: \<open>uint32 list \<Rightarrow>  (trail_pol \<ti
      let WS = init_lrl m;
      vm \<leftarrow> initialise_VMTF \<A>\<^sub>i\<^sub>n n;
      let \<phi> = replicate n False;
-
-     RETURN (M, N, 0, D, [], WS, vm, \<phi>, zero_uint32_nat)
+     let cach = (replicate n SEEN_UNKNOWN, []);
+     RETURN (M, N, 0, D, [], WS, vm, \<phi>, zero_uint32_nat, cach)
   }\<close>
 
 
@@ -1948,11 +1965,13 @@ sepref_definition init_state_wl_D'_code
     list_assn unat_lit_assn *a
     (arrayO_assn (arl_assn nat_assn)) *a
     vmtf_remove_conc_option_fst_As *a
-    phase_saver_conc *a uint32_nat_assn\<close>
+    phase_saver_conc *a uint32_nat_assn *a
+    cach_refinement_l_assn\<close>
   unfolding init_state_wl_D'_def
   apply (rewrite at \<open>(_, _, _, \<hole>, _, _)\<close> HOL_list.fold_custom_empty)
   apply (rewrite at \<open>(_, _, _, _, \<hole>, _)\<close> annotate_assn[where A=\<open>list_assn unat_lit_assn\<close>])
   apply (rewrite at \<open>let _ = \<hole> in _\<close> array.fold_custom_empty)
+  apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> arl.fold_custom_empty)
   apply (rewrite at "let _ = \<hole> in _" annotate_assn[where A=\<open>array_assn unat_lit_assn\<close>])
   unfolding array_fold_custom_replicate
   apply (rewrite at "let _ = _; _ = \<hole> in _" annotate_assn[where A=\<open>clauses_ll_assn\<close>])
@@ -1991,12 +2010,21 @@ proof -
       list_mset_rel_def Collect_eq_comp)
 qed
 
+(* TODO Move *)
+lemma (in isasat_input_ops) cach_refinement_alt_def:
+  \<open>cach_refinement = {((cach, support), cach').
+       (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support) \<and>
+       (\<forall>L \<in># \<A>\<^sub>i\<^sub>n. L < length cach \<and> cach ! L = cach' L)}\<close>
+  unfolding cach_refinement_def cach_refinement_nonull_def cach_refinement_list_def
+  by (auto simp: map_fun_rel_def)
+(* End Move *)
+
 lemma init_state_wl_D':
   \<open>(init_state_wl_D', isasat_input_ops.init_state_wl_heur) \<in>
     [\<lambda>N. N = \<A>\<^sub>i\<^sub>n \<and> distinct_mset \<A>\<^sub>i\<^sub>n]\<^sub>f \<langle>uint32_nat_rel\<rangle>list_rel_mset_rel  \<rightarrow>
       \<langle>isasat_input_ops.trail_pol \<A>\<^sub>i\<^sub>n \<times>\<^sub>r \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>r
          nat_rel \<times>\<^sub>r isasat_input_ops.option_lookup_clause_rel \<A>\<^sub>i\<^sub>n \<times>\<^sub>r list_mset_rel \<times>\<^sub>r \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>r
-           Id \<times>\<^sub>r \<langle>bool_rel\<rangle>list_rel\<times>\<^sub>r Id\<rangle>nres_rel\<close>
+           Id \<times>\<^sub>r \<langle>bool_rel\<rangle>list_rel \<times>\<^sub>r Id \<times>\<^sub>r isasat_input_ops.cach_refinement \<A>\<^sub>i\<^sub>n\<rangle>nres_rel\<close>
 proof -
   have init_state_wl_heur_alt_def: \<open>isasat_input_ops.init_state_wl_heur \<A>\<^sub>i\<^sub>n = do {
     let M = [];
@@ -2005,7 +2033,8 @@ proof -
     W \<leftarrow> SPEC (\<lambda>W. (W, isasat_input_ops.empty_watched \<A>\<^sub>i\<^sub>n ) \<in> \<langle>Id\<rangle>map_fun_rel (isasat_input_ops.D\<^sub>0 \<A>\<^sub>i\<^sub>n));
     vm \<leftarrow> RES (isasat_input_ops.vmtf_init \<A>\<^sub>i\<^sub>n []);
     \<phi> \<leftarrow> SPEC (isasat_input_ops.phase_saving \<A>\<^sub>i\<^sub>n);
-    RETURN (M, N, 0, D, {#}, W, vm, \<phi>, zero_uint32_nat)}\<close> for \<A>\<^sub>i\<^sub>n
+    cach \<leftarrow> SPEC (isasat_input_ops.cach_refinement_empty \<A>\<^sub>i\<^sub>n);
+    RETURN (M, N, 0, D, {#}, W, vm, \<phi>, zero_uint32_nat, cach)}\<close> for \<A>\<^sub>i\<^sub>n
     unfolding isasat_input_ops.init_state_wl_heur_def Let_def by auto
 
   have tr: \<open>distinct_mset \<A>\<^sub>i\<^sub>n \<and> (\<forall>L\<in>#\<A>\<^sub>i\<^sub>n. L < b) \<Longrightarrow> (\<A>\<^sub>i\<^sub>n', \<A>\<^sub>i\<^sub>n) \<in> \<langle>uint32_nat_rel\<rangle>list_rel_mset_rel \<Longrightarrow>
@@ -2071,7 +2100,26 @@ proof -
     unfolding isasat_input_ops.atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
     by (auto simp: list_rel_mset_rel_def br_def list_rel_def uint32_nat_rel_def
         list_all2_op_eq_map_right_iff' list_mset_rel_def)
+  have cach: \<open>RETURN (replicate (Suc (nat_of_uint32 (fold max x 0))) SEEN_UNKNOWN, [])
+      \<le> \<Down> (isasat_input_ops.cach_refinement \<A>\<^sub>i\<^sub>n)
+          (SPEC (isasat_input_ops.cach_refinement_empty y))\<close>
+    if 
+      \<open>y = \<A>\<^sub>i\<^sub>n \<and> distinct_mset \<A>\<^sub>i\<^sub>n\<close> and
+      \<open>(x, y) \<in> \<langle>uint32_nat_rel\<rangle>list_rel_mset_rel\<close>
+    for M W vm vma \<phi> x y
+  proof -
+    show ?thesis
+      unfolding isasat_input_ops.cach_refinement_empty_def RETURN_RES_refine_iff
+        isasat_input_ops.cach_refinement_alt_def Bex_def
+      by (rule exI[of _ \<open>\<lambda>_. SEEN_UNKNOWN\<close>]) (use that in
+          \<open>auto simp: map_fun_rel_def
+             isasat_input_ops.empty_watched_def isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def
+             list_rel_mset_rel_def list_rel_def uint32_nat_rel_def br_def
+             list_all2_op_eq_map_right_iff' list_mset_rel_def
+            simp del: replicate_Suc
+            dest!: in_N0\<close>)
 
+  qed
   show ?thesis
     apply (intro frefI nres_relI)
     subgoal for x y
@@ -2080,12 +2128,14 @@ proof -
     apply (rewrite in \<open>let _ = 2 * _in _\<close> Let_def)
     apply (rewrite in \<open>let _ = [] in _\<close> Let_def)
     apply (rewrite in \<open>let _ = init_rll _ in _\<close> Let_def)
-    apply (refine_vcg init[of y x] initialise_VMTF)
+    apply (refine_vcg init[of y x] initialise_VMTF cach)
     subgoal by auto
     subgoal using H by (auto simp: P_def init_rll_def init_lrl_def)
     apply assumption
     subgoal by simp
     subgoal unfolding isasat_input_ops.phase_saving_def by auto
+    subgoal by fast
+    subgoal by fast
     subgoal by (auto simp: P_def init_rll_def isasat_input_ops.option_lookup_clause_rel_def
           isasat_input_ops.lookup_clause_rel_def
           simp del: replicate.simps
@@ -2111,9 +2161,11 @@ proof -
          hr_comp (list_assn unat_lit_assn) list_mset_rel *a
          hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>\<langle>nat_rel\<rangle>list_rel\<rangle>list_rel) *a
          vmtf_remove_conc_option_fst_As *a hr_comp phase_saver_conc (\<langle>bool_rel\<rangle>list_rel) *a
-         uint32_nat_assn\<close>
+         uint32_nat_assn *a isasat_input_ops.cach_refinement_assn \<A>\<^sub>i\<^sub>n\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using  init_state_wl_D'_code.refine[FCOMP init_state_wl_D', of \<A>\<^sub>i\<^sub>n] .
+    using  init_state_wl_D'_code.refine[FCOMP init_state_wl_D', of \<A>\<^sub>i\<^sub>n]
+    unfolding isasat_input_ops.cach_refinement_assn_def
+    .
   have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
     unfolding comp_PRE_def by fast
   have im: \<open>?im' = ?im\<close>

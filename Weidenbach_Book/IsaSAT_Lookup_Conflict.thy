@@ -2407,7 +2407,10 @@ prepare_code_thms (in -) minimize_and_extract_highest_lookup_conflict_code_def
 lemmas minimize_and_extract_highest_lookup_conflict_code_hnr[sepref_fr_rules] =
    minimize_and_extract_highest_lookup_conflict_code.refine[OF isasat_input_bounded_axioms]
 
-thm minimize_and_extract_highest_lookup_conflict_iterate_over_conflict
+thm minimize_and_extract_highest_lookup_conflict_iterate_over_conflict[of D' D
+   \<open>(M, NU, u, Some (remove1_mset K D), NP, UP, WS, Q)\<close> cach K,
+   unfolded get_unit_learned_def get_unit_init_clss_def,
+   simplified]
 
 end
 

@@ -32,7 +32,8 @@ lemmas vmtf_find_next_undef_code_ref[sepref_fr_rules] =
 
 definition (in isasat_input_ops) vmtf_find_next_undef_upd
   :: \<open>(nat, nat)ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow>
-        (((nat, nat)ann_lits \<times> vmtf_remove_int) \<times> nat option)nres\<close> where
+        (((nat, nat)ann_lits \<times> vmtf_remove_int) \<times> nat option)nres\<close>
+where
   \<open>vmtf_find_next_undef_upd = (\<lambda>M vm. do{
       L \<leftarrow>  vmtf_find_next_undef vm M;
       RETURN ((M, update_next_search L vm), L)
@@ -74,10 +75,12 @@ definition (in isasat_input_ops) find_undefined_atm
   :: \<open>(nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow>
        (((nat,nat) ann_lits \<times> vmtf_remove_int) \<times> nat option) nres\<close>
 where
-  \<open>find_undefined_atm M _ = SPEC(\<lambda>((M', vm), L). (L \<noteq> None \<longrightarrow> Pos (the L) \<in>snd ` D\<^sub>0 \<and> undefined_atm M (the L)) \<and>
+  \<open>find_undefined_atm M _ = SPEC(\<lambda>((M', vm), L).
+     (L \<noteq> None \<longrightarrow> Pos (the L) \<in> snd ` D\<^sub>0 \<and> undefined_atm M (the L)) \<and>
      (L = None \<longrightarrow> (\<forall>K\<in>snd ` D\<^sub>0. defined_lit M K)) \<and> M = M' \<and> vm \<in> vmtf M)\<close>
 
-definition find_unassigned_lit_wl_D_heur :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_heur \<times> nat literal option) nres\<close>
+definition find_unassigned_lit_wl_D_heur 
+  :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_heur \<times> nat literal option) nres\<close>
 where
   \<open>find_unassigned_lit_wl_D_heur = (\<lambda>(M, N, U, D, WS, Q, vm, \<phi>, clvls). do {
       ((M, vm), L) \<leftarrow> find_undefined_atm M vm;
@@ -178,7 +181,8 @@ sepref_thm lit_of_found_atm_D_code
       (array_assn bool_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>d \<rightarrow>
           option_assn unat_lit_assn\<close>
   supply [[goals_limit=1]]
-  supply not_is_None_not_None[simp] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
+  supply not_is_None_not_None[simp] Pos_unat_lit_assn[sepref_fr_rules]
+    Neg_unat_lit_assn[sepref_fr_rules]
   unfolding lit_of_found_atm_D_def PR_CONST_def lit_of_found_atm_D_pre_def
   by sepref
 
@@ -302,7 +306,8 @@ sepref_thm decide_lit_wl_code
   :: \<open>[\<lambda>(L, (M, N, U, D, WS, Q, vm, \<phi>)). undefined_lit M L \<and> L \<in> snd ` D\<^sub>0]\<^sub>a
      unat_lit_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d \<rightarrow> twl_st_heur_assn\<close>
   supply [[goals_limit=1]] find_unassigned_lit_wl_D_code_helper[simp]
-  unfolding decide_lit_wl_heur_def twl_st_heur_assn_def PR_CONST_def cons_trail_Decided_def[symmetric]
+  unfolding decide_lit_wl_heur_def twl_st_heur_assn_def PR_CONST_def
+    cons_trail_Decided_def[symmetric]
   apply (rewrite at \<open>(_, add_mset _ \<hole>, _)\<close> lms_fold_custom_empty)+
   by sepref
 
@@ -356,8 +361,8 @@ sepref_thm decide_wl_or_skip_D_code
   is \<open>PR_CONST decide_wl_or_skip_D\<close>
   :: \<open>twl_st_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a twl_st_assn\<close>
   unfolding decide_wl_or_skip_D_def PR_CONST_def
-  supply [[goals_limit = 1]] decide_wl_or_skip_D_helper[simp, intro] find_unassigned_lit_wl_D_def[simp]
-    image_image[simp]
+  supply [[goals_limit = 1]] decide_wl_or_skip_D_helper[simp, intro]
+    find_unassigned_lit_wl_D_def[simp] image_image[simp]
   by sepref
 
 concrete_definition (in -) decide_wl_or_skip_D_code
