@@ -23,7 +23,7 @@ sepref_thm vmtf_find_next_undef_code
 
 concrete_definition (in -) vmtf_find_next_undef_code
   uses isasat_input_bounded_nempty.vmtf_find_next_undef_code.refine_raw
-  is \<open>(uncurry ?f, _)\<in>_\<close>
+  is \<open>(uncurry ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) vmtf_find_next_undef_code_def
 

@@ -64,7 +64,7 @@ definition IsaSAT :: \<open>nat clauses_l \<Rightarrow> nat literal list option 
        let T = finalise_init T;
        U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_prog_wl_D \<A>\<^sub>i\<^sub>n' T;
        RETURN (if get_conflict_wl U = None then Some (extract_model_of_state U) else None)
-   }
+    }
   }\<close>
 
 lemma (in -)id_mset_list_assn_list_mset_assn:
@@ -97,7 +97,8 @@ lemma cdcl_twl_stgy_prog_wl_D_code_ref':
       rule_format, of \<open>snd c\<close> \<open>snd a\<close>]
     apply (cases a)
     by (sep_auto
-      dest!: frame_rule_left[of \<open>isasat_input_ops.twl_st_assn _ _ _\<close> _ _\<open>list_mset_assn uint32_nat_assn \<A>\<^sub>i\<^sub>n (fst a)\<close>])
+      dest!: frame_rule_left[of \<open>isasat_input_ops.twl_st_assn _ _ _\<close> _ _
+        \<open>list_mset_assn uint32_nat_assn \<A>\<^sub>i\<^sub>n (fst a)\<close>])
   done
 
 declare cdcl_twl_stgy_prog_wl_D_code_ref'[to_hnr, OF refl, sepref_fr_rules]
@@ -233,6 +234,7 @@ lemma cdcl_twl_stgy_prog_wl_spec_final2:
         (\<forall>C \<in># CS. \<forall>L \<in># C. nat_of_lit L \<le> uint_max)]\<^sub>f
      (list_mset_rel O \<langle>list_mset_rel\<rangle> mset_rel) \<rightarrow> \<langle>TWL_to_clauses_state_conv\<rangle>nres_rel\<close>
 proof -
+  let ?init = \<open>state\<^sub>W_of (twl_st_of_wl None ([], [[]], 0, None, {#}, {#}, {#}, \<lambda>_. []))\<close>
   have in_list_mset_rel: \<open>(CS', y) \<in> list_mset_rel \<longleftrightarrow> y = mset CS'\<close> for CS' y
     by (auto simp: list_mset_rel_def br_def)
   have in_list_mset_rel_mset_rel:
@@ -244,7 +246,9 @@ proof -
     by (subst (2) append_take_drop_id[symmetric, of \<open>tl af\<close> ag], subst mset_append)
       (auto simp: drop_Suc)
 
-  have \<L>\<^sub>a\<^sub>l\<^sub>l: \<open>isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l (mset (extract_atms_clss CS' [])) (all_lits_of_mm (mset `# mset CS'))\<close>
+  have \<L>\<^sub>a\<^sub>l\<^sub>l:
+    \<open>isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l (mset (extract_atms_clss CS' []))
+       (all_lits_of_mm (mset `# mset CS'))\<close>
     for CS'
     by (auto simp add: isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l_def isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def
       all_lits_of_mm_add_mset in_extract_atms_clssD in_extract_atms_clsD
@@ -302,14 +306,13 @@ proof -
     have
       struct_invs: \<open>twl_struct_invs_init (twl_st_of_wl_init T)\<close> and
       add_invs: \<open>additional_WS_invs (st_l_of_wl None (fst T))\<close> and
-      clss: \<open>mset `# mset (rev CS') + cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None ([], [[]], 0, None, {#}, {#}, {#}, \<lambda>_. []))) =
+      clss: \<open>mset `# mset (rev CS') + cdcl\<^sub>W_restart_mset.clauses ?init =
         cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None (fst T))) + snd T\<close> and
       count_dec: \<open>(\<forall>s\<in>set (get_trail_wl (fst T)). \<not> is_decided s)\<close> and
       U: \<open>get_learned_wl (fst T) = length (get_clauses_wl (fst T)) - 1\<close>  and
       confl_in_clss:
        \<open>get_conflict_wl (fst T) \<noteq> None \<longrightarrow> the (get_conflict_wl (fst T)) \<in># mset `# mset (rev CS')\<close> and
-      learned: \<open>learned_clss (state\<^sub>W_of (twl_st_of_wl None (fst T))) =
-        learned_clss (state\<^sub>W_of (twl_st_of_wl None ([], [[]], 0, None, {#}, {#}, {#}, \<lambda>_. [])))\<close>
+      learned: \<open>learned_clss (state\<^sub>W_of (twl_st_of_wl None (fst T))) = learned_clss ?init\<close>
       using spec unfolding init_dt_wl_spec_def
       by fast+
     have count_dec: \<open>count_decided (get_trail_wl (fst T)) = 0\<close>
@@ -318,12 +321,15 @@ proof -
       using CS'_CS by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
     have le: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause
          (state\<^sub>W_of_init (twl_st_of_init (st_l_of_wl_init T)))\<close> and
-      all_struct_invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of_init (twl_st_of_init (st_l_of_wl_init T)))\<close>
-      using struct_invs unfolding twl_struct_invs_init_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-        twl_st_of_wl_init.simps twl_st_of_init.simps
+      all_struct_invs:
+        \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv
+           (state\<^sub>W_of_init (twl_st_of_init (st_l_of_wl_init T)))\<close>
+      using struct_invs unfolding twl_struct_invs_init_def
+         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def twl_st_of_wl_init.simps twl_st_of_init.simps
       by fast+
     have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of_init (twl_st_of_wl_init T))\<close>
-      using struct_invs unfolding twl_struct_invs_init_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      using struct_invs unfolding twl_struct_invs_init_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       by fast
     have [simp]: \<open>CS' \<noteq> []\<close>
       using confl_in_clss confl by (cases T) auto
@@ -338,7 +344,8 @@ proof -
       apply (rule RETURN_SPEC_refine)
       apply (rule exI[of _ \<open>state\<^sub>W_of (twl_st_of None (st_l_of_wl None (fst T)))\<close>])
       apply (intro conjI)
-      subgoal by (cases T) (clarsimp_all simp: TWL_to_clauses_state_conv_def mset_take_mset_drop_mset'
+      subgoal
+       by (cases T) (clarsimp_all simp: TWL_to_clauses_state_conv_def mset_take_mset_drop_mset'
             clauses_def get_unit_learned_def in_list_mset_rel in_list_mset_rel_mset_rel)
       subgoal
         apply (rule disjI2)
@@ -383,7 +390,7 @@ proof -
     have
       struct_invs: \<open>twl_struct_invs_init (twl_st_of_wl_init T)\<close> and
       add_invs: \<open>additional_WS_invs (st_l_of_wl None (fst T))\<close> and
-      clss: \<open>mset `# mset (rev CS') + cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None ([], [[]], 0, None, {#}, {#}, {#}, \<lambda>_. []))) =
+      clss: \<open>mset `# mset (rev CS') + cdcl\<^sub>W_restart_mset.clauses ?init =
         cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None (fst T))) + snd T\<close> and
       count_dec: \<open>(\<forall>s\<in>set (get_trail_wl (fst T)). \<not> is_decided s)\<close> and
       U: \<open>get_learned_wl (fst T) = length (get_clauses_wl (fst T)) - 1\<close>  and
@@ -410,7 +417,8 @@ proof -
     then show ?thesis
       unfolding extract_atms_clss_empty_iff by auto
   qed
-  have CDCL_steps:  \<open>isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset (extract_atms_clss CS' [])) (fst T)
+  have CDCL_steps:
+    \<open>isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset (extract_atms_clss CS' [])) (fst T)
       \<le> \<Down> TWL_to_clauses_state_conv
           (SPEC (\<lambda>U. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state CS) U \<or>
                      CS \<noteq> {#} \<and>
@@ -431,14 +439,13 @@ proof -
       struct_invs: \<open>twl_struct_invs_init (twl_st_of_wl_init T)\<close> and
       stgy_invs: \<open>twl_stgy_invs (twl_st_of_wl None (fst T))\<close> and
       add_invs: \<open>additional_WS_invs (st_l_of_wl None (fst T))\<close> and
-      clss: \<open>mset `# mset (rev CS') + cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None ([], [[]], 0, None, {#}, {#}, {#}, \<lambda>_. []))) =
+      clss: \<open>mset `# mset (rev CS') + cdcl\<^sub>W_restart_mset.clauses ?init =
         cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None (fst T))) + snd T\<close> and
       count_dec: \<open>(\<forall>s\<in>set (get_trail_wl (fst T)). \<not> is_decided s)\<close> and
       U: \<open>get_learned_wl (fst T) = length (get_clauses_wl (fst T)) - 1\<close>  and
       confl_in_clss:
        \<open>get_conflict_wl (fst T) \<noteq> None \<longrightarrow> the (get_conflict_wl (fst T)) \<in># mset `# mset (rev CS')\<close> and
-      learned: \<open>learned_clss (state\<^sub>W_of (twl_st_of_wl None (fst T))) =
-        learned_clss (state\<^sub>W_of (twl_st_of_wl None ([], [[]], 0, None, {#}, {#}, {#}, \<lambda>_. [])))\<close> and
+      learned: \<open>learned_clss (state\<^sub>W_of (twl_st_of_wl None (fst T))) = learned_clss ?init\<close> and
       snd_T_conflict: \<open>snd T \<noteq> {#} \<longrightarrow> get_conflict_wl (fst T) \<noteq> None\<close> and
       false_in_conflict: \<open>{#} \<in># mset `# mset CS' \<longrightarrow> get_conflict_wl (fst T) \<noteq> None\<close> and
       no_decided: \<open>\<forall>s\<in>set (get_trail_wl (fst T)). \<not> is_decided s\<close> and
@@ -490,11 +497,12 @@ proof -
     then have 1: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state CS)
        (state\<^sub>W_of (twl_st_of None (st_l_of_wl None (fst T))))\<close>
       using 0 by (auto simp: S\<^sub>0 CS mset_take_mset_drop_mset' N_NP init_state.simps)
-    have clss_CS': \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None (st_l_of_wl None (fst T))))
-        = (mset `# mset CS')\<close>
+    have clss_CS':
+       \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None (st_l_of_wl None (fst T)))) =
+          mset `# mset CS'\<close>
       using snd_T clss by (cases T) (auto simp: clauses_def)
-    have
-      \<L>\<^sub>a\<^sub>l\<^sub>l: \<open>isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l (mset (extract_atms_clss CS' [])) (all_lits_of_mm (mset `# mset CS'))\<close>
+    have \<L>\<^sub>a\<^sub>l\<^sub>l: \<open>isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l (mset (extract_atms_clss CS' []))
+        (all_lits_of_mm (mset `# mset CS'))\<close>
       by (auto simp add: isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l_def isasat_input_ops.\<L>\<^sub>a\<^sub>l\<^sub>l_def
         all_lits_of_mm_add_mset in_extract_atms_clssD in_extract_atms_clsD
         all_lits_of_mm_def atms_of_s_def image_image image_Un)
@@ -515,7 +523,8 @@ proof -
         using L
         by (cases L) (auto simp: CS in_extract_atms_clssD uint_max_def)
     qed
-    then have 2: \<open>isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset (extract_atms_clss CS' [])) (from_init_state T)
+    then have 2:
+      \<open>isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset (extract_atms_clss CS' [])) (from_init_state T)
        \<le> SPEC (\<lambda>U. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy
                      (state\<^sub>W_of (twl_st_of None (st_l_of_wl None (from_init_state T))))
                      (state\<^sub>W_of (twl_st_of None (st_l_of_wl None U))))\<close>
@@ -553,8 +562,8 @@ proof -
       subgoal for T by (rule conflict_during_init)
       subgoal for T by (rule empty_clss)
       subgoal by (rule extract_atms_clss_not_nil)
-      subgoal by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel isasat_input_bounded_nempty_def
-            isasat_input_bounded_nempty_axioms_def)
+      subgoal by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel
+         isasat_input_bounded_nempty_def isasat_input_bounded_nempty_axioms_def)
       subgoal by (rule CDCL_steps)
       subgoal by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
       subgoal by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
@@ -609,13 +618,15 @@ lemma list_assn_list_mset_rel_clauses_l_assn:
   \<open>(hr_comp (list_assn (list_assn unat_lit_assn)) (list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel)) xs xs'
      = clauses_l_assn xs xs'\<close>
 proof -
-  have ex_remove_xs: \<open>(\<exists>xs. mset xs = mset x \<and> {#literal_of_nat (nat_of_uint32 x). x \<in># mset xs#} = y) \<longleftrightarrow>
+  have ex_remove_xs:
+    \<open>(\<exists>xs. mset xs = mset x \<and> {#literal_of_nat (nat_of_uint32 x). x \<in># mset xs#} = y) \<longleftrightarrow>
        ({#literal_of_nat (nat_of_uint32 x). x \<in># mset x#} = y)\<close>
     for x y
     by auto
 
   show ?thesis
-    unfolding list_assn_pure_conv list_mset_assn_pure_conv list_mset_assn_pure_conv list_rel_mset_rel_internal
+    unfolding list_assn_pure_conv list_mset_assn_pure_conv list_mset_assn_pure_conv
+     list_rel_mset_rel_internal
     apply (auto simp: hr_comp_def)
     apply (auto simp: ent_ex_up_swap list_mset_assn_def pure_def)
     using ex_mset[of \<open>map (\<lambda>x. literal_of_nat (nat_of_uint32 x)) `# mset xs'\<close>]
