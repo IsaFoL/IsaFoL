@@ -874,11 +874,14 @@ proof (rule ccontr)
   then obtain k where
     "{#} \<in> Q_of_wstate (lnth gSts k)"
     sorry
-  then have "{#} \<in> Q_of_state (state_of_dstate ((deterministic_RP_step ^^ k) St0))"
+  then have emp_in: "{#} \<in> Q_of_state (state_of_dstate ((deterministic_RP_step ^^ k) St0))"
     sorry
   have "deterministic_RP St0 \<noteq> None"
-    apply (rule is_final_dstate_funpow_imp_deterministic_RP_neq_None)
-    sorry
+    apply (rule is_final_dstate_funpow_imp_deterministic_RP_neq_None[of k])
+    using emp_in
+    apply (cases "(deterministic_RP_step ^^ k) St0")
+    apply (fastforce simp: is_final_dstate.simps comp_def image_def)
+    done
   then show False
     using drp_none ..
 qed
