@@ -823,6 +823,7 @@ proof (rule ccontr)
   have "deterministic_RP St0 \<noteq> None"
     apply (rule is_final_dstate_funpow_imp_deterministic_RP_neq_None)
     (* FIX the code so that it enters an endgame if it detects {#} anywhere in the state *)
+    (* maybe avoid this by reasoning at the wRP calculus level? *)
     sorry
   then show False
     using drp_none ..
