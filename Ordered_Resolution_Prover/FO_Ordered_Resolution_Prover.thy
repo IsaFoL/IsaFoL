@@ -1458,11 +1458,11 @@ proof -
     by auto
 qed
 
-lemma empty_in_Liminf_state:
+lemma empty_clause_in_Q_of_Liminf_state:
   assumes
     empty_in: "{#} \<in> Liminf_llist (lmap grounding_of_state Sts)" and
     fair: "fair_state_seq Sts"
-  shows "{#} \<in> clss_of_state (Liminf_state Sts)"
+  shows "{#} \<in> Q_of_state (Liminf_state Sts)"
 proof -
   define Ns :: "'a clause set llist" where
     ns: "Ns = lmap grounding_of_state Sts"
@@ -1484,10 +1484,8 @@ proof -
   then have "\<exists>D' \<sigma>'. D' \<in> Q_of_state (Liminf_state Sts) \<and> D' \<cdot> \<sigma>' = {#} \<and> is_ground_subst \<sigma>'"
     using eventually_in_Qinf[of "{#}" "{#}" Ns, OF in_Sup_state _ _ fair ns in_Liminf_not_Rf]
     unfolding is_ground_cls_def strictly_subsumes_def subsumes_def by simp
-  then have "{#} \<in> Q_of_state (Liminf_state Sts)"
-    by simp
   then show ?thesis
-    unfolding Liminf_state_def clss_of_state_def by simp
+    by simp
 qed
 
 lemma grounding_of_state_Liminf_state_subseteq:
@@ -1707,7 +1705,7 @@ proof -
       unfolding Liminf_llist_def
       using subseteq_Liminf_state_eventually_always[of "{DA'} \<union> set CAs'"] by auto
     then obtain j where
-      j_p: "is_least (\<lambda>j. enat j < llength Sts \<and> (set CAs' \<union> {DA'} \<subseteq> ?Qs j)) j"
+      j_p: "is_least (\<lambda>j. enat j < llength Sts \<and> set CAs' \<union> {DA'} \<subseteq> ?Qs j) j"
       using least_exists[of "\<lambda>j. enat j < llength Sts \<and> set CAs' \<union> {DA'} \<subseteq> ?Qs j"] by force
     then have j_p': "enat j < llength Sts" "set CAs' \<union> {DA'} \<subseteq> ?Qs j"
       unfolding is_least_def by auto
@@ -1729,7 +1727,7 @@ proof -
       "C' \<in> set CAs' \<union> {DA'}"
       "C' \<notin> ?Qs (j - 1)"
       using j_adds_CAs' by (induction rule: RP.cases) auto
-    then have ihih: "(set CAs' \<union> {DA'}) - {C'} \<subseteq> ?Qs (j - 1)"
+    then have ihih: "set CAs' \<union> {DA'} - {C'} \<subseteq> ?Qs (j - 1)"
       using j_adds_CAs' by auto
     have "E' \<in> ?Ns j"
     proof -
@@ -1775,7 +1773,7 @@ corollary RP_complete_if_fair:
   assumes
     fair: "fair_state_seq Sts" and
     unsat: "\<not> satisfiable (grounding_of_state (lhd Sts))"
-  shows "{#} \<in> clss_of_state (Liminf_state Sts)"
+  shows "{#} \<in> Q_of_state (Liminf_state Sts)"
 proof -
   have "\<not> satisfiable (grounding_of_state (Liminf_state Sts))"
     using unsat RP_model
@@ -1786,8 +1784,8 @@ proof -
     by (rule RP_saturated_if_fair[OF fair, simplified])
   ultimately have "{#} \<in> Liminf_llist (lmap grounding_of_state Sts)"
     using src.saturated_upto_complete_if by auto
-  then show "{#} \<in> clss_of_state (Liminf_state Sts)"
-    using empty_in_Liminf_state fair by auto
+  then show ?thesis
+    using empty_clause_in_Q_of_Liminf_state fair by auto
 qed
 
 end

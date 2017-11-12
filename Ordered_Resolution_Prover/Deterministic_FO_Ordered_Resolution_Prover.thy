@@ -798,10 +798,10 @@ proof (rule ccontr)
     using unsat
     sorry
 
-  have bot_in_ss: "{#} \<in> clss_of_state (Liminf_wstate ssgSts)"
+  have bot_in_ss: "{#} \<in> Q_of_state (Liminf_wstate ssgSts)"
     by (rule weighted_RP_complete[OF deriv_ssgSts_weighted_RP finite_ssgSts0 empty_ssgP0
           empty_ssgQ0 unsat_gSts0[folded lhd_ssgSts]])
-  have bot_in_lim: "{#} \<in> clss_of_state (Liminf_wstate gSts)"
+  have bot_in_lim: "{#} \<in> Q_of_state (Liminf_wstate gSts)"
   proof (cases "lfinite Sts")
     case fin: True
     have "Liminf_wstate ssgSts = Liminf_wstate gSts"
@@ -813,17 +813,15 @@ proof (rule ccontr)
   next
     case False
     then show ?thesis
-      using bot_in_ss clss_of_Liminf_state_inf[OF _ emb_lmap[OF emb_ssgSts]] by auto
+      using bot_in_ss Q_of_Liminf_state_inf[OF _ emb_lmap[OF emb_ssgSts]] by auto
   qed
   then obtain k where
-    "{#} \<in> clss_of_wstate (lnth gSts k)"
+    "{#} \<in> Q_of_wstate (lnth gSts k)"
     sorry
-  then have "{#} \<in> clss_of_dstate ((deterministic_RP_step ^^ k) St0)"
+  then have "{#} \<in> Q_of_state (state_of_dstate ((deterministic_RP_step ^^ k) St0))"
     sorry
   have "deterministic_RP St0 \<noteq> None"
     apply (rule is_final_dstate_funpow_imp_deterministic_RP_neq_None)
-    (* FIX the code so that it enters an endgame if it detects {#} anywhere in the state *)
-    (* maybe avoid this by reasoning at the wRP calculus level? *)
     sorry
   then show False
     using drp_none ..

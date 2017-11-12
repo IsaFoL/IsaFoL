@@ -171,10 +171,10 @@ corollary weighted_RP_saturated: "src.saturated_upto (Liminf_llist (lmap groundi
 
 corollary weighted_RP_complete:
   assumes "\<not> satisfiable (grounding_of_wstate (lhd Sts))"
-  shows "{#} \<in> clss_of_state (Liminf_wstate Sts)"
+  shows "{#} \<in> Q_of_state (Liminf_wstate Sts)"
   using assms RP_complete_if_fair[OF deriv_RP finite_Sts0_RP empty_P0_RP empty_Q0_RP weighted_RP_fair,
       simplified llist.map_sel(1)[OF chain_not_lnull[OF deriv]]]
-  sorry
+  by blast
 
 end
 
