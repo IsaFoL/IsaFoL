@@ -794,13 +794,13 @@ theorem deterministic_RP_complete: "satisfiable grounded_N0"
 proof (rule ccontr)
   assume unsat: "\<not> satisfiable grounded_N0"
 
-  have unsat_lim: "\<not> satisfiable (grounding_of_state (Liminf_wstate ssgSts))"
+  have unsat_gSts0: "\<not> satisfiable (grounding_of_wstate (lhd gSts))"
     using unsat
     sorry
 
   have bot_in_ss: "{#} \<in> clss_of_state (Liminf_wstate ssgSts)"
     by (rule weighted_RP_complete[OF deriv_ssgSts_weighted_RP finite_ssgSts0 empty_ssgP0
-          empty_ssgQ0 unsat_lim])
+          empty_ssgQ0 unsat_gSts0[folded lhd_ssgSts]])
   have bot_in_lim: "{#} \<in> clss_of_state (Liminf_wstate gSts)"
   proof (cases "lfinite Sts")
     case fin: True

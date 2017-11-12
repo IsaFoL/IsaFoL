@@ -17,7 +17,7 @@ coinductive chain :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a 
 
 lemma
   chain_LNil[simp]: "\<not> chain R LNil" and
-  lnull_chain: "lnull xs \<Longrightarrow> \<not> chain R xs"
+  chain_not_lnull: "chain R xs \<Longrightarrow> \<not> lnull xs"
   by (auto elim: chain.cases)
 
 lemma chain_lappend:
@@ -45,7 +45,7 @@ proof (cases "lfinite xs")
       have mid': "R (llast xs) (lhd ys)"
         by (metis llast_LCons lnull_def mid xs_nnil)
       have start: "R x (lhd (lappend xs ys))"
-        by (metis (no_types) chain.simps lhd_LCons lhd_lappend lnull_chain ltl_simps(2) r_xxs
+        by (metis (no_types) chain.simps lhd_LCons lhd_lappend chain_not_lnull ltl_simps(2) r_xxs
             xs_nnil)
       show ?thesis
         unfolding lappend_code(2) using ih[OF r_xs mid'] start by (rule cons)
@@ -100,7 +100,7 @@ proof (coinduction arbitrary: xs)
       (\<exists>xs. ys = lmap f xs \<and> (\<forall>x y. R x y \<longrightarrow> R' (f x) (f y)) \<and> chain R xs) \<and> R' x (lhd ys)"
       using chain
       by (metis (no_types) lhd_LCons llist.distinct(1) llist.exhaust_sel llist.map_sel(1)
-          lmap_eq_LNil lnull_chain ltl_lmap ltl_simps(2))
+          lmap_eq_LNil chain_not_lnull ltl_lmap ltl_simps(2))
     then show ?thesis
       by auto
   qed auto
@@ -122,7 +122,7 @@ proof (induct rule: lfinite.induct)
       using r_x_xs by (blast elim: chain.cases)
     then show ?thesis
       using ih[OF r_xs] xs_nnil r_x_xs
-      by (metis chain.cases converse_rtranclp_into_rtranclp lhd_LCons llast_LCons lnull_chain
+      by (metis chain.cases converse_rtranclp_into_rtranclp lhd_LCons llast_LCons chain_not_lnull
           ltl_simps(2))
   qed simp
 qed simp
@@ -151,7 +151,7 @@ next
     "ys = lappend xs (LCons z LNil)"
 
   have "lfinite ys" and "chain R ys" and "lhd ys = x" and "llast ys = z"
-    unfolding ys_def using xs r_yz by (auto simp: lnull_chain intro: singleton chain_lappend)
+    unfolding ys_def using xs r_yz by (auto simp: chain_not_lnull intro: singleton chain_lappend)
   then show ?case
     by blast
 qed

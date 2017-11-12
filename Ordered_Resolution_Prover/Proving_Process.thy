@@ -54,7 +54,7 @@ lemma deriv_sat_preserving:
   shows "satisfiable (Sup_llist Ns)"
 proof -
   have ns0: "lnth Ns 0 = lhd Ns"
-    using deriv by (metis lnull_chain lhd_conv_lnth)
+    using deriv by (metis chain_not_lnull lhd_conv_lnth)
   have len_ns: "llength Ns > 0"
     using deriv by (case_tac Ns) simp+
   {
@@ -176,7 +176,7 @@ proof -
     then have "satisfiable (Sup_llist Ns)"
       using Rf_sat by blast
     then show "satisfiable (lhd Ns)"
-      using deriv true_clss_mono lhd_subset_Sup_llist lnull_chain by metis
+      using deriv true_clss_mono lhd_subset_Sup_llist chain_not_lnull by metis
   qed
 qed
 

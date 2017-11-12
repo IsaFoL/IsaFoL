@@ -1774,12 +1774,14 @@ qed
 corollary RP_complete_if_fair:
   assumes
     fair: "fair_state_seq Sts" and
-    unsat: "\<not> satisfiable (grounding_of_state (Liminf_state Sts))"
+    unsat: "\<not> satisfiable (grounding_of_state (lhd Sts))"
   shows "{#} \<in> clss_of_state (Liminf_state Sts)"
 proof -
-  have "\<not> satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
-    using unsat grounding_of_state_Liminf_state_subseteq unfolding true_clss_def
-    by (meson contra_subsetD)
+  have "\<not> satisfiable (grounding_of_state (Liminf_state Sts))"
+    using unsat RP_model
+    sorry
+  then have "\<not> satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
+    using grounding_of_state_Liminf_state_subseteq unfolding true_clss_def by (meson contra_subsetD)
   moreover have "src.saturated_upto (Liminf_llist (lmap grounding_of_state Sts))"
     by (rule RP_saturated_if_fair[OF fair, simplified])
   ultimately have "{#} \<in> Liminf_llist (lmap grounding_of_state Sts)"

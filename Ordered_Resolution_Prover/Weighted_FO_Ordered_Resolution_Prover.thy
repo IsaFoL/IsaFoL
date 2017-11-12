@@ -59,7 +59,7 @@ abbreviation Q_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where
   "Q_of_wstate \<equiv> Q_of_state \<circ> state_of_wstate"
 
 abbreviation grounding_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where
-  "grounding_of_wstate \<equiv> grounding_of_state \<circ> state_of_wstate"
+  "grounding_of_wstate St \<equiv> grounding_of_state (state_of_wstate St)"
 
 abbreviation Liminf_wstate :: "'a wstate llist \<Rightarrow> 'a state" where
   "Liminf_wstate Sts \<equiv> Liminf_state (lmap state_of_wstate Sts)"
@@ -165,15 +165,16 @@ proof (rule ccontr)
 qed
 
 corollary weighted_RP_saturated: "src.saturated_upto (Liminf_llist (lmap grounding_of_wstate Sts))"
-  unfolding llist.map_comp[symmetric]
-  by (rule RP_saturated_if_fair[OF deriv_RP finite_Sts0_RP empty_P0_RP empty_Q0_RP
-        weighted_RP_fair])
+  using RP_saturated_if_fair[OF deriv_RP finite_Sts0_RP empty_P0_RP empty_Q0_RP
+      weighted_RP_fair, unfolded llist.map_comp]
+  by simp
 
 corollary weighted_RP_complete:
-  assumes unsat: "\<not> satisfiable (grounding_of_state (Liminf_wstate Sts))"
+  assumes "\<not> satisfiable (grounding_of_wstate (lhd Sts))"
   shows "{#} \<in> clss_of_state (Liminf_wstate Sts)"
-  by (rule RP_complete_if_fair[OF deriv_RP finite_Sts0_RP empty_P0_RP empty_Q0_RP weighted_RP_fair
-        unsat])
+  using assms RP_complete_if_fair[OF deriv_RP finite_Sts0_RP empty_P0_RP empty_Q0_RP weighted_RP_fair,
+      simplified llist.map_sel(1)[OF chain_not_lnull[OF deriv]]]
+  sorry
 
 end
 
