@@ -528,7 +528,7 @@ using assms proof (induct i arbitrary: Xs Ys rule: less_induct)
   qed
 qed
 
-lemma emb_Liminf_llist:
+lemma emb_Liminf_llist_infinite:
   assumes "emb Xs Ys" and "\<not> lfinite Xs"
   shows "Liminf_llist Ys \<subseteq> Liminf_llist Xs"
 proof -

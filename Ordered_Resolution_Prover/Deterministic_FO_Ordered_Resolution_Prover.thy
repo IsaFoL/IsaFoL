@@ -642,7 +642,7 @@ lemmas deriv_ssgSts_weighted_RP = ssgSts[THEN conjunct1]
 lemmas emb_ssgSts = ssgSts[THEN conjunct2, THEN conjunct1]
 lemmas lfinite_ssgSts_iff = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct1]
 lemmas lhd_ssgSts = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct2, THEN conjunct1]
-lemmas ltl_ssgSts = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct2, THEN conjunct2]
+lemmas llast_ssgSts = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct2, THEN conjunct2]
 
 lemma not_lnull_ssgSts: "\<not> lnull ssgSts"
   using deriv_ssgSts_weighted_RP by (cases rule: chain.cases) auto
@@ -655,6 +655,17 @@ lemma empty_ssgP0: "P_of_wstate (lhd ssgSts) = {}"
 
 lemma empty_ssgQ0: "Q_of_wstate (lhd ssgSts) = {}"
   unfolding lhd_ssgSts by (subst derivation_from.code) simp
+
+lemma "clss_of_state (Liminf_wstate ssgSts) \<subseteq> clss_of_state (Liminf_wstate gSts)"
+proof (cases "lfinite Sts")
+  case fin: True
+  then show ?thesis
+    sorry
+next
+  case False
+  then show ?thesis
+    using clss_of_Liminf_state_inf[OF _ emb_lmap[OF emb_ssgSts], of state_of_wstate] by simp
+qed
 
 abbreviation S_ssgQ :: "'a clause \<Rightarrow> 'a clause" where
   "S_ssgQ \<equiv> S_gQ ssgSts"
@@ -737,7 +748,7 @@ proof -
     using not_lnull_ssgSts by simp
 
   have gr_last: "grounding_of_wstate (llast ssgSts) = grounded_R"
-    unfolding r ltl_ssgSts
+    unfolding r llast_ssgSts
     by (simp add: last_sts llast_lmap[OF lfinite_Sts] clss_of_state_def comp_def)
 
   show ?saturated
@@ -748,7 +759,7 @@ proof -
   have gr_st0: "grounding_of_wstate (wstate_of_dstate St0) = grounded_N0"
     by (simp add: clss_of_state_def comp_def)
   have gr_last_st: "grounding_of_wstate (wstate_of_dstate (llast Sts)) = grounded_R"
-    using gr_last by (simp add: lfinite_Sts llast_lmap ltl_ssgSts)
+    using gr_last by (simp add: lfinite_Sts llast_lmap llast_ssgSts)
 
   show ?model
     by (rule rtranclp_imp_eq_image[of "op \<leadsto>\<^sub>w" "\<lambda>St. I \<Turnstile>s grounding_of_wstate St", OF _ wrp,
@@ -783,27 +794,27 @@ theorem deterministic_RP_complete: "satisfiable grounded_N0"
 proof (rule ccontr)
   assume unsat: "\<not> satisfiable grounded_N0"
 
-  have inf_sts: "\<not> lfinite Sts"
-  proof
-    assume "lfinite Sts"
-    hence "is_final_dstate (llast Sts)"
-      sorry
-    then show False
-      using is_final_dstate_funpow_imp_deterministic_RP_neq_None
-      sorry
-  qed
-
   have unsat_lim: "\<not> satisfiable (grounding_of_state (Liminf_wstate ssgSts))"
     using unsat
     sorry
 
-  have "{#} \<in> clss_of_state (Liminf_wstate ssgSts)"
+  have bot_in_ss: "{#} \<in> clss_of_state (Liminf_wstate ssgSts)"
     by (rule weighted_RP_complete[OF deriv_ssgSts_weighted_RP finite_ssgSts0 empty_ssgP0
           empty_ssgQ0 unsat_lim])
-  then have bot_in_lim: "{#} \<in> clss_of_state (Liminf_wstate gSts)"
-    using emb_clss_of_Liminf_state[OF emb_lmap[OF emb_ssgSts], of state_of_wstate, simplified,
-        OF inf_sts]
-    by blast
+  have bot_in_lim: "{#} \<in> clss_of_state (Liminf_wstate gSts)"
+  proof (cases "lfinite Sts")
+    case fin: True
+    have "Liminf_wstate ssgSts = Liminf_wstate gSts"
+      by (rule Liminf_state_fin, simp_all add: fin lfinite_ssgSts_iff not_lnull_ssgSts,
+          subst (1 2) llast_lmap,
+          simp_all add: lfinite_ssgSts_iff fin not_lnull_ssgSts llast_ssgSts)
+    then show ?thesis
+      using bot_in_ss by simp
+  next
+    case False
+    then show ?thesis
+      using bot_in_ss clss_of_Liminf_state_inf[OF _ emb_lmap[OF emb_ssgSts]] by auto
+  qed
   then obtain k where
     "{#} \<in> clss_of_wstate (lnth gSts k)"
     sorry

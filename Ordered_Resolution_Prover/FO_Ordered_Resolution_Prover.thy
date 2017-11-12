@@ -114,19 +114,40 @@ definition Liminf_state :: "'a state llist \<Rightarrow> 'a state" where
    (Liminf_llist (lmap N_of_state Sts), Liminf_llist (lmap P_of_state Sts),
     Liminf_llist (lmap Q_of_state Sts))"
 
-lemma
-  assumes "emb Sts Sts'" and "\<not> lfinite Sts"
-  shows
-    emb_N_of_Liminf_state: "N_of_state (Liminf_state Sts') \<subseteq> N_of_state (Liminf_state Sts)" and
-    emb_P_of_Liminf_state: "P_of_state (Liminf_state Sts') \<subseteq> P_of_state (Liminf_state Sts)" and
-    emb_Q_of_Liminf_state: "Q_of_state (Liminf_state Sts') \<subseteq> Q_of_state (Liminf_state Sts)"
-  using assms by (simp_all add: Liminf_state_def emb_Liminf_llist emb_lmap)
+context
+  fixes Sts Sts' :: "'a state llist"
+  assumes Sts: "lfinite Sts" "lfinite Sts'" "\<not> lnull Sts" "\<not> lnull Sts'" "llast Sts' = llast Sts"
+begin
 
-lemma emb_clss_of_Liminf_state:
-  assumes "emb Sts Sts'" and "\<not> lfinite Sts"
-  shows "clss_of_state (Liminf_state Sts') \<subseteq> clss_of_state (Liminf_state Sts)"
+lemma
+  N_of_Liminf_state_fin: "N_of_state (Liminf_state Sts') = N_of_state (Liminf_state Sts)" and
+  P_of_Liminf_state_fin: "P_of_state (Liminf_state Sts') = P_of_state (Liminf_state Sts)" and
+  Q_of_Liminf_state_fin: "Q_of_state (Liminf_state Sts') = Q_of_state (Liminf_state Sts)"
+  using Sts by (simp_all add: Liminf_state_def lfinite_Liminf_llist llast_lmap)
+
+lemma Liminf_state_fin: "Liminf_state Sts' = Liminf_state Sts"
+  using N_of_Liminf_state_fin P_of_Liminf_state_fin Q_of_Liminf_state_fin
+  by (simp add: Liminf_state_def)
+
+end
+
+context
+  fixes Sts Sts' :: "'a state llist"
+  assumes Sts: "\<not> lfinite Sts" "emb Sts Sts'"
+begin
+
+lemma
+  N_of_Liminf_state_inf: "N_of_state (Liminf_state Sts') \<subseteq> N_of_state (Liminf_state Sts)" and
+  P_of_Liminf_state_inf: "P_of_state (Liminf_state Sts') \<subseteq> P_of_state (Liminf_state Sts)" and
+  Q_of_Liminf_state_inf: "Q_of_state (Liminf_state Sts') \<subseteq> Q_of_state (Liminf_state Sts)"
+  using Sts by (simp_all add: Liminf_state_def emb_Liminf_llist_infinite emb_lmap)
+
+lemma clss_of_Liminf_state_inf:
+  "clss_of_state (Liminf_state Sts') \<subseteq> clss_of_state (Liminf_state Sts)"
   unfolding clss_of_state_def
-  using assms emb_N_of_Liminf_state emb_P_of_Liminf_state emb_Q_of_Liminf_state by blast
+  using N_of_Liminf_state_inf P_of_Liminf_state_inf Q_of_Liminf_state_inf by blast
+
+end
 
 definition fair_state_seq :: "'a state llist \<Rightarrow> bool" where
   "fair_state_seq Sts \<longleftrightarrow> N_of_state (Liminf_state Sts) = {} \<and> P_of_state (Liminf_state Sts) = {}"
