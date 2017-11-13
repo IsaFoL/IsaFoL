@@ -283,6 +283,13 @@ proof standard
     by blast
 qed
 
+instantiation minimize_status :: default
+begin
+  definition default_minimize_status where
+    \<open>default_minimize_status = SEEN_UNKNOWN\<close>
+
+instance by standard
+end
 
 type_synonym 'v conflict_min_analyse = \<open>('v literal \<times> 'v clause) list\<close>
 type_synonym 'v conflict_min_cach = \<open>'v \<Rightarrow> minimize_status\<close>
