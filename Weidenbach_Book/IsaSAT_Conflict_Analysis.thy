@@ -1674,7 +1674,6 @@ definition extract_shorter_conflict_list_st :: \<open>'v twl_st_wl \<Rightarrow>
         D \<leftarrow> extract_shorter_conflict_remove_and_add M N D NP UP;
         RETURN (M, N, U, D, NP, UP, WS, Q)})\<close>
 
-term extract_shorter_conflict_remove_and_add
 (*
 State Function                                |  Minimisation Function
 ----------------------------------------------|---------------------------------------------
@@ -1682,7 +1681,6 @@ extract_shorter_conflict_wl                   |  extract_shorter_conflict_list_s
 extract_shorter_conflict_list_st              |  extract_shorter_conflict_remove_and_add
 extract_shorter_conflict_list_heur_st         |  extract_shorter_conflict_heur
 extract_shorter_conflict_list_lookup_heur_st  |  extract_shorter_conflict_list_lookup_heur
-
 *)
 
 lemma extract_shorter_conflict_list_st_extract_shorter_conflict_wl:
@@ -1775,6 +1773,7 @@ definition extract_shorter_conflict_list_heur_st_pre where
         literals_are_\<L>\<^sub>i\<^sub>n S \<and>
         additional_WS_invs (st_l_of_wl None S)\<close>
 
+(* TODO Move *)
 lemma (in -) clauses_twl_st_of_wl:
   \<open>cdcl\<^sub>W_restart_mset.clauses
      (state\<^sub>W_of (twl_st_of_wl None (M, N, U, y, NP, UP, Q, W))) = mset `# mset (tl N) + NP + UP\<close>
@@ -1783,6 +1782,7 @@ lemma (in -) clauses_twl_st_of_wl:
 lemma (in -) conflicting_twl_st_of_wl:
   \<open>conflicting (state\<^sub>W_of (twl_st_of_wl L S)) = get_conflict_wl S\<close>
   by (cases S; cases L) auto
+(* End Move *)
 
 lemma extract_shorter_conflict_list_lookup_heur_st_extract_shorter_conflict_st_trivial_heur:
   \<open>(extract_shorter_conflict_list_lookup_heur_st, extract_shorter_conflict_list_heur_st) \<in>
@@ -1996,22 +1996,17 @@ proof -
         extract_shorter_conflict_list_lookup_heur_def Let_def
         option_lookup_clause_rel_def lookup_clause_rel_def
     apply clarify
-    subgoal for M' N' u' b' n' D' Q' W' A ah ai aj ba bb \<phi> clvls cach M N U D NP UP Q
-       W
-      apply (refine_rcg H)
-      subgoal by (rule atm_M'_le_D')
-      subgoal by (rule n'_ge)
-          apply (rule minimize_and_extract_highest_lookup_conflict; assumption)
-      subgoal by auto
-      subgoal by (rule le_uint_max)
-       apply (rule re_add; solves assumption)
-      subgoal by (auto simp: twl_st_heur_no_clvls_confl_def cach_refinement_empty_def)
-      done
+    apply (refine_rcg H)
+    subgoal by (rule atm_M'_le_D')
+    subgoal by (rule n'_ge)
+        apply (rule minimize_and_extract_highest_lookup_conflict; assumption)
+    subgoal by auto
+    subgoal by (rule le_uint_max)
+     apply (rule re_add; solves assumption)
+    subgoal by (auto simp: twl_st_heur_no_clvls_confl_def cach_refinement_empty_def)
     done
 qed
 
-fun get_trail_wl_heur_conflict :: \<open>twl_st_wl_heur_lookup_conflict \<Rightarrow> (nat,nat) ann_lits\<close> where
-  \<open>get_trail_wl_heur_conflict (M, N, U, D, _) = M\<close>
 
 lemma extract_shorter_conflict_st_trivial_extract_shorter_conflict_wl:
   \<open>(extract_shorter_conflict_st_trivial, extract_shorter_conflict_wl) \<in>

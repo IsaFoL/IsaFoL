@@ -210,6 +210,9 @@ lemma twl_st_assn_confl_assn:
   apply (subst twl_st_heur_assn_int_lookup_clause_assn[symmetric])
   unfolding twl_st_assn_def ..
 
+fun (in -)get_trail_wl_heur_conflict :: \<open>twl_st_wl_heur_lookup_conflict \<Rightarrow> (nat,nat) ann_lits\<close> where
+  \<open>get_trail_wl_heur_conflict (M, N, U, D, _) = M\<close>
+
 end
 
 lemma Pos_unat_lit_assn':
