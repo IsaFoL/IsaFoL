@@ -1206,7 +1206,8 @@ proof -
        intro!: RES_refine)
 
   have find_decomp_wl: \<open>find_decomp_wl (lit_of (hd (get_trail_wl S))) T
-    \<le> \<Down> {(U, U'). U = U' \<and> equality_except_trail U T} (find_decomp_wl (lit_of (hd (get_trail_wl S))) T')\<close>
+    \<le> \<Down> {(U, U'). U = U' \<and> equality_except_trail U T}
+        (find_decomp_wl (lit_of (hd (get_trail_wl S))) T')\<close>
     (is \<open>_ \<le> \<Down> ?find_decomp _\<close>)
     if \<open>(T, T') \<in> ?extract_shorter\<close>
     for T T'
