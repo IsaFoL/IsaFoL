@@ -1322,12 +1322,13 @@ qed
 definition find_decomp_wl_pre
    :: "(nat literal \<times> nat conflict_highest_conflict) \<times> nat twl_st_wl \<Rightarrow> bool"
 where
-   \<open>find_decomp_wl_pre =  (\<lambda>((L, highest), S).
-       twl_struct_invs (twl_st_of_wl None S) \<and>
-       highest_lit (get_trail_wl S) (remove1_mset L (the (get_conflict_wl S))) highest \<and>
-       literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl S) \<and>
-       count_decided (get_trail_wl S) > 0 \<and>
-       (highest \<noteq> None \<longrightarrow> snd (the highest) < count_decided (get_trail_wl S)))\<close>
+   \<open>find_decomp_wl_pre =  (\<lambda>((L, highest), T).
+       \<exists>S. equality_except_conflict S T \<and> 
+         (twl_struct_invs (twl_st_of_wl None S) \<and>
+         highest_lit (get_trail_wl S) (remove1_mset L (the (get_conflict_wl T))) highest \<and>
+         literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl S) \<and>
+         count_decided (get_trail_wl S) > 0 \<and>
+         (highest \<noteq> None \<longrightarrow> snd (the highest) < count_decided (get_trail_wl S))))\<close>
 
 lemma twl_st_heur_no_clvls_confl_twl_st_heur_no_clvls:
   \<open>twl_st_heur_no_clvls_confl = twl_st_wl_heur_lookup_lookup_clause_rel O twl_st_heur_no_clvls\<close>
@@ -1366,9 +1367,9 @@ proof -
          find_decomp_wl_st_int_find_decomp_wl_nlit]
     .
   have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
-    unfolding comp_PRE_def
-    by (fastforce simp: find_decomp_wl_pre_def find_decomp_wvmtf_ns_pre_def highest_lit_def
-        twl_st_heur_no_clvls_def simp del: twl_st_of_wl.simps)
+    unfolding comp_PRE_def find_decomp_wl_pre_def find_decomp_wvmtf_ns_pre_def highest_lit_def
+        twl_st_heur_no_clvls_def 
+    by (fastforce simp:simp del: twl_st_of_wl.simps)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_no_clvls_assn_twl_st_heur_no_clvls
     by simp
@@ -2950,8 +2951,11 @@ lemma H2: \<open>backtrack_wl_D_inv x \<Longrightarrow>
        (a, lit_of_hd_trail_st x) \<in> unat_lit_rel \<Longrightarrow>
        find_decomp_wl_pre
         ((lit_of_hd_trail_st x, a2'), a1')\<close>
-  unfolding find_decomp_wl_pre_def
-  apply auto
+  unfolding find_decomp_wl_pre_def backtrack_wl_D_inv_def extract_shorter_conflict_list_heur_st_pre_def
+  backtrack_wl_inv_def backtrack_l_inv_def get_conflict_l_st_l_of_wl
+  extract_shorter_conflict_wl_nlit_st_def extract_shorter_conflict_wl_nlit_def
+  apply (cases a1', cases x)
+  apply (auto simp del: st_l_of_wl.simps simp: Let_def nres_order_simps RES_RETURN_RES2)
   sorry
 
 lemma H3:
