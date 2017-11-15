@@ -571,7 +571,7 @@ proof -
       \<open>phase_saving \<phi>\<close> and
       \<open>no_dup M'\<close> and
       empty_cach: \<open>cach_refinement_empty cach\<close>
-      using rel unfolding twl_st_heur_confl_def twl_st_wl_heur_lookup_lookup_clause_rel_def 
+      using rel unfolding twl_st_heur_confl_def twl_st_wl_heur_lookup_lookup_clause_rel_def
       twl_st_heur_def by auto
     have
       None: \<open>get_conflict_wl ?S \<noteq> None\<close> and
@@ -689,7 +689,7 @@ proof -
       lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n ?S\<close> and
       uL_D: \<open>- lit_of (hd M') \<in># the D\<close>
       using pre ref by (auto simp: option_lookup_clause_rel_def
-          extract_shorter_conflict_list_heur_st_pre_def twl_st_heur_confl_def twl_st_wl_heur_lookup_lookup_clause_rel_def 
+          extract_shorter_conflict_list_heur_st_pre_def twl_st_heur_confl_def twl_st_wl_heur_lookup_lookup_clause_rel_def
           twl_st_heur_def)
     have
       ESL: \<open>ESL = (E, SL)\<close> and
@@ -758,7 +758,7 @@ proof -
     subgoal by auto
     subgoal by (rule le_uint_max)
      apply (rule re_add; solves assumption)
-    subgoal by (auto simp: twl_st_heur_confl_def twl_st_wl_heur_lookup_lookup_clause_rel_def 
+    subgoal by (auto simp: twl_st_heur_confl_def twl_st_wl_heur_lookup_lookup_clause_rel_def
           twl_st_heur_def twl_st_heur_no_clvls_confl_def
           cach_refinement_empty_def empty_cach_def)
     done
@@ -975,8 +975,8 @@ proof -
     unfolding comp_PRE_def
     by (auto simp: comp_PRE_def list_mset_rel_def br_def extract_shorter_conflict_list_heur_st_pre_def
         map_fun_rel_def twl_st_heur_no_clvls_confl_def extract_shorter_conflict_list_lookup_heur_pre_def
-        twl_st_heur_confl_def twl_st_wl_heur_lookup_lookup_clause_rel_def 
-        twl_st_heur_def 
+        twl_st_heur_confl_def twl_st_wl_heur_lookup_lookup_clause_rel_def
+        twl_st_heur_def
         simp del: twl_st_of_wl.simps
         intro!: ext)
   have im: \<open>?im' = ?im\<close>
@@ -1000,7 +1000,7 @@ lemma (in -)target_level_alt_def:
      | Some (_, lev) \<Rightarrow> RETURN lev)\<close>
   by (auto simp: target_level_def intro!: ext split: option.splits)
 
-definition find_decomp_wl_imp 
+definition find_decomp_wl_imp
   :: \<open>(nat, nat) ann_lits \<Rightarrow> nat conflict_highest_conflict \<Rightarrow> vmtf_remove_int \<Rightarrow>
        ((nat, nat) ann_lits \<times> vmtf_remove_int) nres\<close>
 where
@@ -1044,7 +1044,7 @@ lemma (in -)the_hnr_keep:
 (* End Move *)
 
 lemma (in -) target_level_hnr[sepref_fr_rules]:
-  \<open>(return o target_level, RETURN o target_level) \<in> 
+  \<open>(return o target_level, RETURN o target_level) \<in>
      (option_assn (unat_lit_assn *a uint32_nat_assn))\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   by sepref_to_hoare
      (sep_auto simp: target_level_def uint32_nat_rel_def br_def split: option.splits)
@@ -1085,7 +1085,7 @@ definition (in -) find_decomp_wl_st :: \<open>nat literal \<Rightarrow> nat twl_
     RETURN (M', N, U, D, oth)
   })\<close>
 
-definition find_decomp_wl_st_int :: \<open>nat literal \<Rightarrow> _ \<Rightarrow> twl_st_wl_heur \<Rightarrow> 
+definition find_decomp_wl_st_int :: \<open>nat literal \<Rightarrow> _ \<Rightarrow> twl_st_wl_heur \<Rightarrow>
     twl_st_wl_heur nres\<close> where
   \<open>find_decomp_wl_st_int = (\<lambda>L highest (M, N, U, D, W, Q, vm, \<phi>) .  do{
      (M', vm) \<leftarrow> find_decomp_wvmtf_ns M highest vm;
@@ -1298,8 +1298,8 @@ lemmas find_decomp_wl_imp'_code_hnr[sepref_fr_rules] =
 
 
 lemma find_decomp_wl_st_int_find_decomp_wl_nlit:
-  \<open>(uncurry2 find_decomp_wl_st_int, uncurry2 find_decomp_wl_nlit) \<in> 
-      [\<lambda>((L, highest), S). 
+  \<open>(uncurry2 find_decomp_wl_st_int, uncurry2 find_decomp_wl_nlit) \<in>
+      [\<lambda>((L, highest), S).
         highest_lit (get_trail_wl S) (remove1_mset L (the (get_conflict_wl S))) highest]\<^sub>f
       Id \<times>\<^sub>f Id \<times>\<^sub>f twl_st_heur_no_clvls \<rightarrow> \<langle>twl_st_heur_no_clvls\<rangle> nres_rel\<close>
 proof -
@@ -1343,7 +1343,7 @@ lemma find_decomp_wl_imp'_code_find_decomp_wl[sepref_fr_rules]:
   fixes M :: \<open>(nat, nat) ann_lits\<close>
   shows \<open>(uncurry2 find_decomp_wl_imp'_code, uncurry2 find_decomp_wl_nlit) \<in>
     [find_decomp_wl_pre]\<^sub>a
-       unat_lit_assn\<^sup>k *\<^sub>a (option_assn (unat_lit_assn *a uint32_nat_assn))\<^sup>k *\<^sub>a twl_st_no_clvls_assn\<^sup>d \<rightarrow> 
+       unat_lit_assn\<^sup>k *\<^sub>a (option_assn (unat_lit_assn *a uint32_nat_assn))\<^sup>k *\<^sub>a twl_st_no_clvls_assn\<^sup>d \<rightarrow>
      twl_st_no_clvls_assn\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
@@ -1548,7 +1548,7 @@ lemma size_conflict_wl_heur_size_conflict_wl:
       lookup_clause_rel_def twl_st_heur_no_clvls_def)
 
 lemma twl_st_no_clvls_assn_alt_def:
-  \<open>twl_st_no_clvls_assn = hr_comp twl_st_heur_lookup_lookup_clause_assn 
+  \<open>twl_st_no_clvls_assn = hr_comp twl_st_heur_lookup_lookup_clause_assn
      (twl_st_wl_heur_lookup_lookup_clause_rel O twl_st_heur_no_clvls)\<close>
   unfolding twl_st_heur_lookup_lookup_clause_assn_def
     twl_st_wl_heur_lookup_lookup_clause_rel_def twl_st_heur_assn_def
@@ -2950,6 +2950,8 @@ lemma H2: \<open>backtrack_wl_D_inv x \<Longrightarrow>
        (a, lit_of_hd_trail_st x) \<in> unat_lit_rel \<Longrightarrow>
        find_decomp_wl_pre
         ((lit_of_hd_trail_st x, a2'), a1')\<close>
+  unfolding find_decomp_wl_pre_def
+  apply auto
   sorry
 
 lemma H3:
