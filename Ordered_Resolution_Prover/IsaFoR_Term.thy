@@ -354,22 +354,37 @@ proof (rule; rule)
 next
   fix x :: "'b \<Rightarrow> ('a, 'b) Term.term"
   assume asm: "x \<in> {\<sigma>. is_unifiers \<sigma> AAA}"
-  then show "x \<in> unifiers (set (Pairs AAA))" 
-   using assms apply (auto simp: Pairs_def unifiers_def is_unifiers_def is_unifier_alt unifies_all_pairs_iff)
-  subgoal for y a b
-    apply (subgoal_tac "card (y \<cdot>set x) \<le> Suc 0")
-     apply (cases "card (y \<cdot>set x) = Suc 0")
-      apply (subgoal_tac "subst_atm_abbrev a x \<in> y \<cdot>set x")
-       apply (subgoal_tac "subst_atm_abbrev b x \<in> y \<cdot>set x")
-        apply (metis (no_types, lifting) card_Suc_eq singletonD)
-       apply auto[]
-      apply auto[]
-     apply (subgoal_tac "card (y \<cdot>set x) = 0")
-      apply auto[]
-     apply arith
-    unfolding is_unifier_def subst_atms_def apply auto    
-    done
-  done
+  {
+    fix y a b
+    assume aa:
+     "y \<in> AAA" "a \<in> y" "b \<in> y"
+    from aa assms asm have asdf: "card (y \<cdot>set x) \<le> Suc 0"
+      unfolding is_unifiers_def is_unifier_def subst_atms_def by auto 
+    have "subst_atm_abbrev a x = subst_atm_abbrev b x"
+    proof (cases "card (y \<cdot>set x) = Suc 0")
+      case True
+      moreover
+      have "subst_atm_abbrev a x \<in> y \<cdot>set x"
+        using aa assms asm asdf by auto
+      moreover
+      have "subst_atm_abbrev b x \<in> y \<cdot>set x"
+        using aa assms asm asdf by auto
+      ultimately
+      show ?thesis 
+        using aa assms asm asdf by (metis (no_types, lifting) card_Suc_eq singletonD)
+    next
+      case False
+      then have "card (y \<cdot>set x) = 0"
+        using aa assms asm asdf
+        by arith
+      then show ?thesis
+        using aa assms asm asdf by auto
+    qed
+  }
+  note f = this
+  show "x \<in> unifiers (set (Pairs AAA))" 
+    using assms apply (auto simp: Pairs_def unifiers_def is_unifiers_def is_unifier_alt unifies_all_pairs_iff)
+    using f by metis
 qed
 
 definition "mgu_sets AAA = map_option subst_of (unify (Pairs AAA) [])"
