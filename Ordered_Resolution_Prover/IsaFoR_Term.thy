@@ -6,8 +6,8 @@
 section \<open>Integration of IsaFoR Terms\<close>
 
 theory IsaFoR_Term
-  imports Deriving.Derive Abstract_Substitution "AFP_IsaFoR/AFP_Subsumption" "../lib/Explorer"
-(* "$ISAFOR/Normalization_Equivalence/Encompassment" *)
+  imports Deriving.Derive Abstract_Substitution (* "AFP_IsaFoR/AFP_Subsumption" "../lib/Explorer"*)
+ "$ISAFOR/Normalization_Equivalence/Encompassment"
 begin
 
 hide_const (open) mgu
@@ -161,7 +161,7 @@ lemma same_on_vars_clause:
           subst_cls_def vars_clause_def)
 
 
-
+(*
 lemma
   assumes "var_disjoint' Cs"
   shows "var_disjoint Cs"
@@ -183,6 +183,7 @@ proof (intro allI impI)
       done
     done
 qed
+*)
 
 interpretation substitution "op \<cdot>" "Var :: _ \<Rightarrow> ('f, nat) term" "op \<circ>\<^sub>s" "Fun undefined" renamings_apart
 proof
@@ -373,23 +374,23 @@ lemma unifiers_Pairs:
     done
   done
 
-definition "mgu' AAA = map_option subst_of (unify (Pairs AAA) [])"
+definition "mgu_sets AAA = map_option subst_of (unify (Pairs AAA) [])"
 
-interpretation mgu "op \<cdot>" "Var :: _ \<Rightarrow> ('f, nat) term" "op \<circ>\<^sub>s" "Fun undefined" renamings_apart mgu'
+interpretation mgu "op \<cdot>" "Var :: _ \<Rightarrow> ('f :: linorder, nat) term" "op \<circ>\<^sub>s" "Fun undefined" renamings_apart mgu_sets
 proof
-  fix AAA :: "('a, 'b) term set set" and \<sigma> :: "('a, 'b) subst"
-  assume fin: "finite AAA" "\<forall>AA\<in>AAA. finite AA" and "mgu AAA = Some \<sigma>"
+  fix AAA :: "('a :: linorder, nat) term set set" and \<sigma> :: "('a, nat) subst"
+  assume fin: "finite AAA" "\<forall>AA\<in>AAA. finite AA" and "mgu_sets AAA = Some \<sigma>"
   then have "is_imgu \<sigma> (set (Pairs AAA))"
-    using unify_sound unfolding mgu_def by blast
+    using unify_sound unfolding mgu_sets_def by blast
   then show "is_mgu \<sigma> AAA"
     unfolding is_imgu_def is_mgu_def unifiers_Pairs[OF fin] by auto
 next
-  fix AAA :: "('a, 'b) term set set" and \<sigma> :: "('a, 'b) subst"
-  assume fin: "finite AAA" "\<forall>AA\<in>AAA. finite AA" and "is_mgu \<sigma> AAA"
+  fix AAA :: "('a :: linorder, nat) term set set" and \<sigma> :: "('a, nat) subst"
+  assume fin: "finite AAA" "\<forall>AA\<in>AAA. finite AA" and "is_unifiers \<sigma> AAA"
   then have "\<sigma> \<in> unifiers (set (Pairs AAA))"
     unfolding is_mgu_def unifiers_Pairs[OF fin] by auto
-  then show "\<exists>\<tau>. mgu AAA = Some \<tau>"
-    using unify_complete unfolding mgu_def by blast
-qed auto
+  then show "\<exists>\<tau>. mgu_sets AAA = Some \<tau>"
+    using unify_complete unfolding mgu_sets_def by blast
+qed
 
 end
