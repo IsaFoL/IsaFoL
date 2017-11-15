@@ -6,7 +6,8 @@
 section \<open>Integration of IsaFoR Terms\<close>
 
 theory IsaFoR_Term
-  imports Deriving.Derive "$ISAFOR/Normalization_Equivalence/Encompassment" Abstract_Substitution
+  imports Deriving.Derive Abstract_Substitution "AFP_IsaFoR/AFP_Subsumption" "../lib/Explorer"
+(* "$ISAFOR/Normalization_Equivalence/Encompassment" *)
 begin
 
 hide_const (open) mgu
@@ -30,59 +31,52 @@ definition vars_clause :: "('f, 'v) term clause \<Rightarrow> 'v set" where
 definition vars_clause_list :: "('f, 'v) term clause list \<Rightarrow> 'v set" where
   "vars_clause_list Cs = Union (vars_clause `set Cs) "
 
-primrec renamings_apart' :: "nat set \<Rightarrow> ('f, nat) term clause list \<Rightarrow> (('f, nat) subst) list" where
-  "renamings_apart' _ [] = []"
-| "renamings_apart' X (C#Cs) =
-    (let \<sigma> = (\<lambda>v. Var (v + Max (X \<union> {0}) + 1)) in
-      \<sigma> # renamings_apart' (X \<union> vars_clause (C \<cdot>cls \<sigma>)) Cs)
-   "
-
-fun renamings_apart'_inv :: "nat set \<Rightarrow> ('f, nat) term clause list \<Rightarrow> (('f, nat) subst) list" where
-  "renamings_apart'_inv _ [] = []"
-| "renamings_apart'_inv X (C#Cs) =
-    (let \<sigma> = (\<lambda>v. Var (v - Max X - 1)) in
-      \<sigma> # renamings_apart'_inv (X \<union> vars_clause (C \<cdot>cls \<sigma>)) Cs)
-   "
+(* Are prefixes nicer, or multiply by two? *)
+primrec renamings_apart :: "('f, nat) term clause list \<Rightarrow> (('f, nat) subst) list" where
+  "renamings_apart [] = []"
+| "renamings_apart (C#Cs) =
+    (let \<sigma>s = renamings_apart Cs in
+      (\<lambda>v. Var (v + (Max (vars_clause_list (Cs ))) + 1)) # \<sigma>s)" (* TODO: remember to apply \<sigma> to Cs ! ! !  *)
 
 definition var_map_of_subst :: "('f, nat) subst \<Rightarrow> nat \<Rightarrow> nat" where
   "var_map_of_subst \<sigma> v = the_Var (\<sigma> v)"
 
-abbreviation renamings_apart :: "('f, nat) term clause list \<Rightarrow> (('f, nat) subst) list" where
-  "renamings_apart Cs \<equiv> renamings_apart' {} Cs"
-
-lemma len_renamings_apart': "length (renamings_apart' X Cs) = length Cs"
-proof (induction Cs arbitrary: X)
+lemma len_renamings_apart': "length (renamings_apart Cs) = length Cs"
+proof (induction Cs)
   case Nil
   then show ?case by simp
 next
   case (Cons a Cs)
-  then show ?case by (metis length_Cons renamings_apart'.simps(2))
+  then show ?case by auto
 qed
 
-lemma renamings_apart'_is_Var: "\<forall>\<sigma> \<in> set (renamings_apart' X Cs). \<forall>x. is_Var (\<sigma> x)"
-proof (induction Cs arbitrary: X)
+lemma renamings_apart'_is_Var: "\<forall>\<sigma> \<in> set (renamings_apart Cs). \<forall>x. is_Var (\<sigma> x)"
+proof (induction Cs)
   case Nil
   then show ?case by auto
 next
   case (Cons a Cs)
   then show ?case
-    using is_VarI set_ConsD
-    by (metis (no_types, lifting) renamings_apart'.simps(2))
+    by auto
 qed
 
-lemma renamings_apart'_inj: "\<forall>\<sigma> \<in> set (renamings_apart' X Cs). inj \<sigma>"
-proof (induction Cs arbitrary: X)
+lemma renamings_apart'_inj: "\<forall>\<sigma> \<in> set (renamings_apart Cs). inj \<sigma>"
+proof (induction Cs)
   case Nil
   then show ?case by auto
 next
   case (Cons a Cs)
   then show ?case
-    by (metis (mono_tags, lifting) renamings_apart'.simps(2) inj_onI
-        nat_add_right_cancel set_ConsD term.inject(1))
+    apply (auto simp add: Let_def)
+    by (meson add_right_imp_eq injI nat.inject term.inject(1))
 qed
 
-definition var_disjoint' :: "('f,'v) term clause \<Rightarrow> ('f,'v) term clause \<Rightarrow> bool" where
-  "var_disjoint' C D = (vars_clause C \<inter> vars_clause D = {})"
+definition var_disjoint' :: "('f,'v) term clause list \<Rightarrow> bool" where
+  "var_disjoint' Cs = (\<forall>i < length Cs. \<forall>j < length Cs. i \<noteq> j \<longrightarrow> (vars_clause (Cs!i) \<inter> vars_clause (Cs!j)) = {})"
+
+
+
+
 
 lemma vars_clause_mono: "S \<subseteq># C \<Longrightarrow> vars_clause S \<subseteq> vars_clause C"
   unfolding vars_clause_def
@@ -166,6 +160,30 @@ lemma same_on_vars_clause:
     by (smt assms image_eqI image_mset_cong2 mem_simps(9) same_on_vars_lit set_image_mset
           subst_cls_def vars_clause_def)
 
+
+
+lemma
+  assumes "var_disjoint' Cs"
+  shows "var_disjoint Cs"
+  unfolding var_disjoint_def
+proof (intro allI impI)
+  fix \<sigma>s :: \<open>('b \<Rightarrow> ('a, 'b) term) list\<close>
+  assume \<open>length \<sigma>s = length Cs\<close>
+  with assms[unfolded var_disjoint'_def] fun_merge[of "map vars_clause Cs" "nth \<sigma>s"]
+  show \<open>\<exists>\<tau>. \<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> subst_cls S (\<sigma>s ! i) = subst_cls S \<tau>\<close>
+    apply auto
+    subgoal for \<sigma>
+      apply (rule exI[where x=\<sigma>])
+      apply auto
+      apply (rule same_on_vars_clause)
+      apply auto
+      subgoal for i S v
+        using vars_clause_mono[of S "Cs ! i"] apply auto
+        done
+      done
+    done
+qed
+
 interpretation substitution "op \<cdot>" "Var :: _ \<Rightarrow> ('f, nat) term" "op \<circ>\<^sub>s" "Fun undefined" renamings_apart
 proof
   show "\<And>A. A \<cdot> Var = A"
@@ -242,7 +260,7 @@ next
 
       from is_var_\<sigma> inj_\<sigma> have "inj \<sigma>'"
         unfolding var_renaming_def unfolding subst_domain_def inj_on_def \<sigma>'_def var_map_of_subst_def
-        by (metis term.collapse(1))
+        using term.collapse(1) sorry (* by (metis term.collapse(1)) *)
       then have "inv \<sigma>' \<circ> \<sigma>' = id"
         using inv_o_cancel[of \<sigma>'] by simp
       then have "Var \<circ> (inv \<sigma>' \<circ> \<sigma>') = Var"
@@ -261,7 +279,11 @@ next
   }
   moreover
   {
-    have "\<And>X. var_disjoint (subst_cls_lists Cs (renamings_apart' X Cs))"
+          
+    
+
+    thm var_disjoint_def
+    have "\<And>X. var_disjoint (subst_cls_lists Cs (renamings_apart Cs))"
       subgoal for X
       proof (induction Cs arbitrary: X)
         case Nil
@@ -269,7 +291,7 @@ next
       next
         case (Cons a Cs)
         then show ?case
-          unfolding var_disjoint_def
+          using var_disjoint_def
           sorry
       qed
       done
@@ -293,7 +315,7 @@ qed
 
 
 
-
+(*
 
 
   fix CC and \<sigma>::"'b \<Rightarrow> ('a, 'b) term"
@@ -309,6 +331,8 @@ qed
       unfolding is_ground_subst_def is_ground_atm_def by simp
   qed
 qed (auto intro: subst_term_eqI)
+
+*)
 
 fun pairs where
   "pairs (x # y # xs) = (x, y) # pairs (y # xs)" |
@@ -326,12 +350,32 @@ proof (induct xs rule: pairs.induct)
 qed simp_all
 
 lemma unifiers_Pairs:
-  "finite AAA \<Longrightarrow> \<forall>AA\<in>AAA. finite AA \<Longrightarrow> unifiers (set (Pairs AAA)) = {\<sigma>. is_unifier_set \<sigma> AAA}"
-  by (auto simp: Pairs_def unifiers_def is_unifier_set_def is_unifier_alt unifies_all_pairs_iff)
+  "finite AAA \<Longrightarrow> \<forall>AA\<in>AAA. finite AA \<Longrightarrow> unifiers (set (Pairs AAA)) = {\<sigma>. is_unifiers \<sigma> AAA}"
+  apply (auto simp: Pairs_def unifiers_def is_unifiers_def is_unifier_alt unifies_all_pairs_iff)
+  unfolding is_unifier_def subst_atms_def apply auto
+  subgoal for x AA'
+    apply (subgoal_tac "\<forall>a\<in>(AA' \<cdot>set x). \<forall>b\<in>(AA' \<cdot>set x). a = b")
+     apply (metis (no_types, lifting) card.empty card_Suc_eq card_mono finite.intros(1) finite_insert le_SucI singletonI subsetI)
+    apply blast
+    done
+  subgoal for x y a b
+    apply (subgoal_tac "card (y \<cdot>set x) \<le> Suc 0")
+     apply (cases "card (y \<cdot>set x) = Suc 0")
+      apply (subgoal_tac "subst_atm_abbrev a x \<in> y \<cdot>set x")
+       apply (subgoal_tac "subst_atm_abbrev b x \<in> y \<cdot>set x")
+        apply (metis (no_types, lifting) card_Suc_eq singletonD)
+       apply auto[]
+      apply auto[]
+     apply (subgoal_tac "card (y \<cdot>set x) = 0")
+      apply auto[]
+     apply arith
+    apply auto
+    done
+  done
 
-definition "mgu AAA = map_option subst_of (unify (Pairs AAA) [])"
+definition "mgu' AAA = map_option subst_of (unify (Pairs AAA) [])"
 
-interpretation unification "op \<cdot>" Var "op \<circ>\<^sub>s" mgu
+interpretation mgu "op \<cdot>" "Var :: _ \<Rightarrow> ('f, nat) term" "op \<circ>\<^sub>s" "Fun undefined" renamings_apart mgu'
 proof
   fix AAA :: "('a, 'b) term set set" and \<sigma> :: "('a, 'b) subst"
   assume fin: "finite AAA" "\<forall>AA\<in>AAA. finite AA" and "mgu AAA = Some \<sigma>"
