@@ -605,7 +605,7 @@ proof -
   then show ?thesis by (auto simp: uint_max_def)
 qed
 
-lemma twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss:
+lemma  (in isasat_input_ops) twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss:
   fixes S\<^sub>0 :: \<open>nat twl_st_wl\<close>
   defines \<open>S \<equiv> twl_st_of_wl None S\<^sub>0\<close>
   defines \<open>clss \<equiv> (all_lits_of_mm (cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of S)))\<close>
@@ -626,7 +626,7 @@ proof -
     unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def by blast
 qed
 
-lemma literals_are_\<L>\<^sub>i\<^sub>n_conflict_literals_are_in_\<L>\<^sub>i\<^sub>n:
+lemma  (in isasat_input_ops) literals_are_\<L>\<^sub>i\<^sub>n_conflict_literals_are_in_\<L>\<^sub>i\<^sub>n:
   assumes
     \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
     confl: \<open>get_conflict_wl S \<noteq> None\<close> and
@@ -648,15 +648,16 @@ proof -
     by (fastforce simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_def )
 qed
 
-lemma set_mset_set_mset_eq_iff: \<open>set_mset A = set_mset B \<longleftrightarrow> (\<forall>a\<in>#A. a \<in># B) \<and> (\<forall>a\<in>#B. a \<in># A)\<close>
+(* TODO Move *)
+lemma (in isasat_input_ops) set_mset_set_mset_eq_iff: \<open>set_mset A = set_mset B \<longleftrightarrow> (\<forall>a\<in>#A. a \<in># B) \<and> (\<forall>a\<in>#B. a \<in># A)\<close>
   by blast
 
-lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm A) \<longleftrightarrow> atms_of_mm A = atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+lemma (in isasat_input_ops) is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm A) \<longleftrightarrow> atms_of_mm A = atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
   unfolding set_mset_set_mset_eq_iff is_\<L>\<^sub>a\<^sub>l\<^sub>l_def Ball_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
     in_all_lits_of_mm_ain_atms_of_iff
   by auto (metis literal.sel(2))+
 
-lemma literals_are_\<L>\<^sub>i\<^sub>n_trail_literals_are_in_\<L>\<^sub>i\<^sub>n:
+lemma (in isasat_input_ops) literals_are_\<L>\<^sub>i\<^sub>n_trail_literals_are_in_\<L>\<^sub>i\<^sub>n:
   assumes
     \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
     struct: \<open>twl_struct_invs (twl_st_of_wl None S)\<close>
