@@ -361,13 +361,39 @@ where
     cach_refinement_empty cach
   }\<close>
 
+
+definition (in -) empty_cach where
+  \<open>empty_cach cach = (\<lambda>_. SEEN_UNKNOWN)\<close>
+
+definition (in -) empty_cach_ref where
+  \<open>empty_cach_ref cach = (replicate (length (fst cach)) SEEN_UNKNOWN, 
+     ASSN_ANNOT (arl_assn uint32_nat_assn) op_arl_empty)\<close>
+
+lemma (in isasat_input_ops) empty_cach_ref_empty_cach:
+  \<open>(RETURN o empty_cach_ref, RETURN o empty_cach) \<in> cach_refinement \<rightarrow>\<^sub>f \<langle>cach_refinement\<rangle> nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: empty_cach_def empty_cach_ref_def cach_refinement_alt_def cach_refinement_list_def
+     map_fun_rel_def)
+find_theorems op_list_replicate
+sepref_definition (in isasat_input_ops) empty_cach_code
+  is \<open>RETURN o empty_cach_ref\<close>
+  :: \<open>cach_refinement_l_assn\<^sup>d \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
+  supply array_replicate_hnr[sepref_fr_rules]
+  unfolding empty_cach_ref_def comp_def
+  by sepref
+
+lemma (in isasat_input_ops) empty_cach_hnr[sepref_fr_rules]:
+  \<open>(empty_cach_code, RETURN \<circ> empty_cach) \<in> cach_refinement_assn\<^sup>d \<rightarrow>\<^sub>a cach_refinement_assn\<close>
+  using empty_cach_code.refine[FCOMP empty_cach_ref_empty_cach, unfolded cach_refinement_assn_def[symmetric]]
+  .
+
 definition extract_shorter_conflict_list_lookup_heur_st
   :: \<open>twl_st_wl_heur_lookup_conflict \<Rightarrow>
        (twl_st_wl_heur_lookup_conflict \<times> nat conflict_highest_conflict) nres\<close>
 where
   \<open>extract_shorter_conflict_list_lookup_heur_st = (\<lambda>(M, N, U, D, Q', W', vm, \<phi>, clvls, cach). do {
      (D, cach, L) \<leftarrow> extract_shorter_conflict_list_lookup_heur M N cach D;
-     let cach = (\<lambda>_. SEEN_UNKNOWN); (* stupid stuff\<dots> *)
+     let cach = empty_cach cach; (* stupid stuff\<dots> *)
      RETURN ((M, N, U, D, Q', W', vm, \<phi>, clvls, cach), L)
   })\<close>
 
@@ -728,18 +754,22 @@ proof -
     done
 qed
 
+definition extract_shorter_conflict_list_lookup_heur_pre where
+  \<open>extract_shorter_conflict_list_lookup_heur_pre =
+     (\<lambda>(((M, NU), cach), D). literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and> M \<noteq> [] \<and>
+        literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU)) \<and>
+        (\<forall>a\<in>lits_of_l M. atm_of a < length (snd (snd D))))\<close>
+
 sepref_register extract_shorter_conflict_list_lookup_heur
 sepref_thm extract_shorter_conflict_list_lookup_heur_code
   is \<open>uncurry3 (PR_CONST extract_shorter_conflict_list_lookup_heur)\<close>
-  :: \<open>[\<lambda>(((M, NU), cach), D). literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and> M \<noteq> [] \<and>
-        literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU)) \<and>
-        (\<forall>a\<in>lits_of_l M. atm_of a < length (snd (snd D)))]\<^sub>a
+  :: \<open>[extract_shorter_conflict_list_lookup_heur_pre]\<^sub>a
       trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a
       cach_refinement_assn\<^sup>d *\<^sub>a conflict_option_rel_assn\<^sup>d  \<rightarrow>
       conflict_option_rel_assn *a cach_refinement_assn *a
         option_assn (unat_lit_assn *a uint32_nat_assn)\<close>
   unfolding extract_shorter_conflict_list_lookup_heur_def fast_minus_def[symmetric]
-    one_uint32_nat_def[symmetric] PR_CONST_def
+    one_uint32_nat_def[symmetric] PR_CONST_def extract_shorter_conflict_list_lookup_heur_pre_def
   by sepref
 
 
@@ -751,6 +781,16 @@ prepare_code_thms (in -) extract_shorter_conflict_list_lookup_heur_code_def
 
 lemmas extract_shorter_conflict_list_lookup_heur_code_hnr[sepref_fr_rules] =
    extract_shorter_conflict_list_lookup_heur_code.refine[OF isasat_input_bounded_nempty_axioms]
+
+
+sepref_thm extract_shorter_conflict_list_lookup_heur_st_code
+  is \<open>extract_shorter_conflict_list_lookup_heur_st\<close>
+  :: \<open>[\<lambda>(M, N, U, D, Q', W', vm, \<phi>, clvls, cach).
+         extract_shorter_conflict_list_lookup_heur_pre (((M, N), cach), D)]\<^sub>a 
+      twl_st_heur_lookup_lookup_clause_assn\<^sup>d \<rightarrow>
+       twl_st_heur_lookup_lookup_clause_assn *a option_assn (unat_lit_assn *a uint32_nat_assn)\<close>
+  unfolding extract_shorter_conflict_list_lookup_heur_st_def twl_st_heur_lookup_lookup_clause_assn_def
+  by sepref
 
 lemma extract_shorter_conflict_st_trivial_extract_shorter_conflict_wl:
   \<open>(extract_shorter_conflict_st_trivial, extract_shorter_conflict_wl) \<in>
