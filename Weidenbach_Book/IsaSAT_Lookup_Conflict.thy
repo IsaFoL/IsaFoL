@@ -2156,7 +2156,7 @@ term lit_redundant
 end
 
 (* TODO Move *)
-lemma get_maximum_level_sinlge[simp]:
+lemma get_maximum_level_single[simp]:
   \<open>get_maximum_level M {#x#} = get_level M x\<close>
   by (auto simp: get_maximum_level_add_mset)
 (* End Move *)
