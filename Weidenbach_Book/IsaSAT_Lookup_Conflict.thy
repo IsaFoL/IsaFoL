@@ -254,15 +254,14 @@ lemma lookup_clause_assn_is_empty_is_empty_code[sepref_fr_rules]:
   by simp
 
 definition size_lookup_conflict :: \<open>_ \<Rightarrow> nat\<close> where
-  \<open>size_lookup_conflict = (\<lambda>((_, n, _), _). n)\<close>
+  \<open>size_lookup_conflict = (\<lambda>(_, n, _). n)\<close>
 
 definition size_conflict_wl_heur :: \<open>_ \<Rightarrow> nat\<close> where
   \<open>size_conflict_wl_heur = (\<lambda>(M, N, U, D, _, _, _, _). size_lookup_conflict D)\<close>
 
 lemma size_lookup_conflict[sepref_fr_rules]:
-   \<open>(return o (\<lambda>((_, n, _), _). n), RETURN o size_lookup_conflict) \<in>
-   (((bool_assn *a lookup_clause_rel_assn) *a
-         option_assn (unat_lit_assn *a uint32_nat_assn)))\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+   \<open>(return o (\<lambda>(_, n, _). n), RETURN o size_lookup_conflict) \<in>
+   (bool_assn *a lookup_clause_rel_assn)\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   unfolding size_lookup_conflict_def
   apply sep_auto
   apply sepref_to_hoare
