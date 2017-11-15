@@ -6,8 +6,9 @@
 section \<open>Integration of IsaFoR Terms\<close>
 
 theory IsaFoR_Term
-  imports Deriving.Derive Abstract_Substitution (* "AFP_IsaFoR/AFP_Subsumption" "../lib/Explorer"*)
- "$ISAFOR/Normalization_Equivalence/Encompassment"
+  imports Deriving.Derive Abstract_Substitution  "../lib/Explorer"
+(* "AFP_IsaFoR/AFP_Unifiers" "AFP_IsaFoR/AFP_Subsumption" *)
+ "$ISAFOR/Normalization_Equivalence/Encompassment" 
 begin
 
 hide_const (open) mgu
@@ -312,29 +313,6 @@ next
       (auto simp: strictly_generalizes_atm_def generalizes_atm_def term_subsumable.subsumes_def subsumeseq_term.simps)
 qed
 
-
-
-
-
-(*
-
-
-  fix CC and \<sigma>::"'b \<Rightarrow> ('a, 'b) term"
-  assume "substitution_ops.is_ground_cls_list op \<cdot> (substitution_ops.subst_cls_list op \<cdot> CC \<sigma>) "
-  show "\<exists>\<tau>. is_ground_subst (\<tau> :: 'b \<Rightarrow> ('a, 'b) term)  \<and> substitution_ops.subst_cls_list op \<cdot> CC \<sigma> = substitution_ops.subst_cls_list op \<cdot> CC \<tau>"
-  proof
-    def \<tau> \<equiv> "(\<lambda>x. Fun undefined []) :: ('a, 'b) subst"
-    { fix t :: "('a, 'b) term" and \<tau> :: "('a, 'b) subst"
-      have "t \<cdot> \<tau> \<cdot> \<tau> = t \<cdot> \<tau>"
-        by (induct t) (auto simp add: \<tau>_def)
-    }
-    then show "substitution_ops.is_ground_subst op \<cdot> \<tau> \<and> substitution_ops.subst_cls_list op \<cdot> CC \<sigma> = substitution_ops.subst_cls_list op \<cdot> CC \<tau>"
-      unfolding is_ground_subst_def is_ground_atm_def by simp
-  qed
-qed (auto intro: subst_term_eqI)
-
-*)
-
 fun pairs where
   "pairs (x # y # xs) = (x, y) # pairs (y # xs)" |
   "pairs _ = []"
@@ -351,15 +329,34 @@ proof (induct xs rule: pairs.induct)
 qed simp_all
 
 lemma unifiers_Pairs:
-  "finite AAA \<Longrightarrow> \<forall>AA\<in>AAA. finite AA \<Longrightarrow> unifiers (set (Pairs AAA)) = {\<sigma>. is_unifiers \<sigma> AAA}"
-  apply (auto simp: Pairs_def unifiers_def is_unifiers_def is_unifier_alt unifies_all_pairs_iff)
-  unfolding is_unifier_def subst_atms_def apply auto
-  subgoal for x AA'
-    apply (subgoal_tac "\<forall>a\<in>(AA' \<cdot>set x). \<forall>b\<in>(AA' \<cdot>set x). a = b")
-     apply (metis (no_types, lifting) card.empty card_Suc_eq card_mono finite.intros(1) finite_insert le_SucI singletonI subsetI)
-    apply blast
-    done
-  subgoal for x y a b
+  assumes 
+    "finite AAA" and 
+    "\<forall>AA\<in>AAA. finite AA"
+  shows "unifiers (set (Pairs AAA)) = {\<sigma>. is_unifiers \<sigma> AAA}"
+proof (rule; rule)
+  fix x :: "'b \<Rightarrow> ('a, 'b) Term.term"
+  assume asm: "x \<in> unifiers (set (Pairs AAA))"
+  have "\<And>AA'. AA' \<in> AAA \<Longrightarrow> card (AA' \<cdot>set x) \<le> Suc 0"
+  proof -
+    fix AA' :: "('a, 'b) Term.term set"
+    assume asm': "AA' \<in> AAA"
+    then have fff: "\<forall>a\<in>AA'. \<forall>b\<in>AA'. subst_atm_abbrev a x = subst_atm_abbrev b x"
+      using assms asm unfolding Pairs_def unifiers_def
+      apply auto
+      unfolding unifies_all_pairs_iff
+      using sorted_list_of_set by blast
+    then show "card (AA' \<cdot>set x) \<le> Suc 0"
+      using card.empty card_Suc_eq card_mono finite.intros(1) finite_insert le_SucI singletonI subsetI
+      by (smt imageE)
+  qed
+  then show "x \<in> {\<sigma>. is_unifiers \<sigma> AAA}" 
+    using assms by (auto simp: is_unifiers_def is_unifier_def subst_atms_def)
+next
+  fix x :: "'b \<Rightarrow> ('a, 'b) Term.term"
+  assume asm: "x \<in> {\<sigma>. is_unifiers \<sigma> AAA}"
+  then show "x \<in> unifiers (set (Pairs AAA))" 
+   using assms apply (auto simp: Pairs_def unifiers_def is_unifiers_def is_unifier_alt unifies_all_pairs_iff)
+  subgoal for y a b
     apply (subgoal_tac "card (y \<cdot>set x) \<le> Suc 0")
      apply (cases "card (y \<cdot>set x) = Suc 0")
       apply (subgoal_tac "subst_atm_abbrev a x \<in> y \<cdot>set x")
@@ -370,9 +367,10 @@ lemma unifiers_Pairs:
      apply (subgoal_tac "card (y \<cdot>set x) = 0")
       apply auto[]
      apply arith
-    apply auto
+    unfolding is_unifier_def subst_atms_def apply auto    
     done
   done
+qed
 
 definition "mgu_sets AAA = map_option subst_of (unify (Pairs AAA) [])"
 
