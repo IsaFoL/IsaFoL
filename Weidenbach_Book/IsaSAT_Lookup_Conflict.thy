@@ -1383,6 +1383,11 @@ where
                    conflict_min_cach cach (atm_of L) = SEEN_REMOVABLE \<or>
                    is_in_lookup_conflict D L)
                then RETURN (cach, analyse, False)
+               else if conflict_min_cach cach (atm_of L) = SEEN_FAILED
+               then do {
+                  cach \<leftarrow> mark_failed_lits_wl NU analyse cach;
+                  RETURN (cach, [], False)
+               }
                else do {
                   C \<leftarrow> get_propagation_reason M (-L);
                   case C of
@@ -1467,6 +1472,10 @@ proof -
     subgoal by (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
           elim!: neq_Nil_revE)
     subgoal by (auto simp: lit_redundant_rec_wl_inv_def elim!: neq_Nil_revE)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -2138,7 +2147,7 @@ sepref_thm lit_redundant_rec_wl_lookup_code
     conflict_min_cach_set_removable_def[symmetric]
     conflict_min_cach_def[symmetric]
     get_literal_and_remove_of_analyse_wl_def
-  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
   apply (rewrite at \<open>op_arl_empty\<close> annotate_assn[where A=analyse_refinement_assn])
   by sepref (* slow *)
 
@@ -2411,17 +2420,6 @@ prepare_code_thms (in -) minimize_and_extract_highest_lookup_conflict_code_def
 lemmas minimize_and_extract_highest_lookup_conflict_code_hnr[sepref_fr_rules] =
    minimize_and_extract_highest_lookup_conflict_code.refine[OF isasat_input_bounded_axioms]
 
-thm minimize_and_extract_highest_lookup_conflict_iterate_over_conflict[of D' D
-   \<open>(M, NU, u, Some (remove1_mset K D), NP, UP, WS, Q)\<close> cach K,
-   unfolded get_unit_learned_def get_unit_init_clss_def,
-   simplified]
-
 end
 
-term \<open>(uncurry extract_shorter_conflict_list_removed,
-          uncurry (RETURN oo extract_shorter_conflict_l_trivial)) \<in>
-      [\<lambda>(M', D). literals_are_in_\<L>\<^sub>i\<^sub>n (the D) \<and> D \<noteq> None \<and> M = M']\<^sub>f
-       Id \<times>\<^sub>f option_lookup_clause_rel \<rightarrow>
-         \<langle>{((D, L), C). (D, C) \<in> option_lookup_clause_rel \<and> C \<noteq> None \<and> highest_lit M (the C) L \<and>
-           (\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length (snd (snd D)))}\<rangle> nres_rel\<close>
 end

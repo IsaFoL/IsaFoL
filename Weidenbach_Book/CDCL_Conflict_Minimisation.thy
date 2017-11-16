@@ -387,6 +387,11 @@ where
                ASSERT(-L \<in> lits_of_l M);
                if (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D)
                then RETURN (cach, analyse, False)
+               else if cach (atm_of L) = SEEN_FAILED
+               then do {
+                  cach \<leftarrow> mark_failed_lits_wl NU analyse cach;
+                  RETURN (cach, [], False)
+               }
                else do {
                   C \<leftarrow> get_propagation_reason M (-L);
                   case C of
@@ -1245,6 +1250,11 @@ where
                ASSERT(-L \<in> lits_of_l M);
                if (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D)
                then RETURN (cach, analyse, False)
+               else if  cach (atm_of L) = SEEN_FAILED
+               then do {
+                  cach \<leftarrow> mark_failed_lits_wl NU analyse cach;
+                  RETURN (cach, [], False)
+               }
                else do {
                   C \<leftarrow> get_propagation_reason M (-L);
                   case C of
