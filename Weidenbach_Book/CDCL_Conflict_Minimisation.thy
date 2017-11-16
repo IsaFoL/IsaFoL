@@ -283,6 +283,13 @@ proof standard
     by blast
 qed
 
+instantiation minimize_status :: default
+begin
+  definition default_minimize_status where
+    \<open>default_minimize_status = SEEN_UNKNOWN\<close>
+
+instance by standard
+end
 
 type_synonym 'v conflict_min_analyse = \<open>('v literal \<times> 'v clause) list\<close>
 type_synonym 'v conflict_min_cach = \<open>'v \<Rightarrow> minimize_status\<close>
@@ -1724,7 +1731,8 @@ definition cach_refinement_nonull
   :: \<open>((minimize_status list \<times> nat list) \<times> minimize_status list) set\<close>
 where
   \<open>cach_refinement_nonull = {((cach, support), cach'). cach = cach' \<and>
-       (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support)}\<close>
+       (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support) \<and>
+       (\<forall>L \<in> set support. L < length cach)}\<close>
 
 definition cach_refinement
   :: \<open>((minimize_status list \<times> nat list) \<times> (nat conflict_min_cach)) set\<close>
@@ -1740,7 +1748,8 @@ definition cach_refinement_assn where
 lemma cach_refinement_alt_def:
   \<open>((cach, support), cach') \<in> cach_refinement \<longleftrightarrow>
      (cach, cach') \<in> cach_refinement_list \<and>
-     (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support)\<close>
+     (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support) \<and>
+      (\<forall>L \<in> set support. L < length cach)\<close>
   by (auto simp: cach_refinement_def cach_refinement_nonull_def cach_refinement_list_def)
 
 type_synonym (in -) conflict_min_cach_l = \<open>minimize_status list \<times> nat list\<close>

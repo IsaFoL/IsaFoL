@@ -695,7 +695,7 @@ proof -
   qed
   have 4: \<open>ASSERT (distinct (extract_atms_clss x [])) \<le> \<Down> unit_rel (ASSERT True)\<close> for x
     by (auto simp: distinct_extract_atms_clss)
-  have IsaSAT_SAT: \<open>(IsaSAT, SAT')\<in>
+  have IsaSAT_SAT: \<open>(IsaSAT, SAT') \<in>
      [\<lambda>CS. Multiset.Ball CS distinct_mset \<and>
       (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max)]\<^sub>f
      list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel \<rightarrow> \<langle>\<langle>\<langle>Id\<rangle>list_rel\<rangle> option_rel\<rangle>nres_rel\<close>

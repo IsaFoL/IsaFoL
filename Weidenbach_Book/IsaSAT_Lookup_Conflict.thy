@@ -254,15 +254,14 @@ lemma lookup_clause_assn_is_empty_is_empty_code[sepref_fr_rules]:
   by simp
 
 definition size_lookup_conflict :: \<open>_ \<Rightarrow> nat\<close> where
-  \<open>size_lookup_conflict = (\<lambda>((_, n, _), _). n)\<close>
+  \<open>size_lookup_conflict = (\<lambda>(_, n, _). n)\<close>
 
 definition size_conflict_wl_heur :: \<open>_ \<Rightarrow> nat\<close> where
   \<open>size_conflict_wl_heur = (\<lambda>(M, N, U, D, _, _, _, _). size_lookup_conflict D)\<close>
 
 lemma size_lookup_conflict[sepref_fr_rules]:
-   \<open>(return o (\<lambda>((_, n, _), _). n), RETURN o size_lookup_conflict) \<in>
-   (((bool_assn *a lookup_clause_rel_assn) *a
-         option_assn (unat_lit_assn *a uint32_nat_assn)))\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+   \<open>(return o (\<lambda>(_, n, _). n), RETURN o size_lookup_conflict) \<in>
+   (bool_assn *a lookup_clause_rel_assn)\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   unfolding size_lookup_conflict_def
   apply sep_auto
   apply sepref_to_hoare
@@ -1612,7 +1611,8 @@ lemma minimize_and_extract_highest_lookup_conflict_iterate_over_conflict:
     lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close>
   shows
     \<open>minimize_and_extract_highest_lookup_conflict M NU D' s' \<le>
-       \<Down> ({((D, s, L'), (D', L)). (D, D') \<in> lookup_clause_rel \<and> L' = L})
+       \<Down> ({((E, s, L'), (E', L)). (E, E') \<in> lookup_clause_rel \<and> L' = L \<and> length (snd E) = length (snd D') \<and>
+               E' \<subseteq># D})
            (iterate_over_conflict K M NU' NUP D)\<close>
     (is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
@@ -2155,7 +2155,7 @@ term lit_redundant
 end
 
 (* TODO Move *)
-lemma get_maximum_level_sinlge[simp]:
+lemma get_maximum_level_single[simp]:
   \<open>get_maximum_level M {#x#} = get_level M x\<close>
   by (auto simp: get_maximum_level_add_mset)
 (* End Move *)
@@ -2258,7 +2258,8 @@ lemma
     lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close>
   shows
     \<open>minimize_and_extract_highest_lookup_conflict M NU D' s' \<le>
-       \<Down> ({((D, s, L'), (D', L)). (D, D') \<in> lookup_clause_rel \<and> L' = L})
+       \<Down> ({((E, s, L'), (E', L)). (E, E') \<in> lookup_clause_rel \<and> L' = L \<and>
+            length (snd E) = length (snd D') \<and> E' \<subseteq># D})
          (SPEC (\<lambda>(D', highest). D' \<subseteq># D \<and> NU' + NUP \<Turnstile>pm add_mset K D' \<and>
             highest_lit M D' highest))\<close>
 proof -
@@ -2335,7 +2336,7 @@ lemma (in -) lookup_conflict_upd_None_RETURN_def:
   \<open>RETURN oo lookup_conflict_upd_None = (\<lambda>(n, xs) i. RETURN (n- one_uint32_nat, xs [i :=None]))\<close>
   by (auto intro!: ext)
 
-sepref_definition lookup_conflict_upd_None_code
+sepref_definition (in -)lookup_conflict_upd_None_code
   is \<open>uncurry (RETURN oo lookup_conflict_upd_None)\<close>
   :: \<open>[\<lambda>((n, xs), i). i < length xs \<and> n > 0]\<^sub>a
      lookup_clause_rel_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> lookup_clause_rel_assn\<close>

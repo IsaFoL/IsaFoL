@@ -1,5 +1,5 @@
 theory IsaSAT_CDCL
-  imports IsaSAT_Propagate_Conflict IsaSAT_Conflict_Analysis
+  imports IsaSAT_Propagate_Conflict IsaSAT_Conflict_Analysis IsaSAT_Backtrack
 begin
 
 paragraph \<open>Decide\<close>
