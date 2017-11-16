@@ -2322,14 +2322,32 @@ fun extract_shorter_conflict_list_lookup_heur_code x =
     end)
     x;
 
+fun emptied_arl x = (fn (a, _) => (a, zero_nata)) x;
+
 fun empty_cach_code x =
-  (fn xi => fn () =>
+  (fn (a1, a2) => fn () =>
     let
-      val xa = len heap_minimize_status (fst xi) ();
-      val xb = new heap_minimize_status xa SEEN_UNKNOWN ();
-      val x_a = arl_empty (default_uint32, heap_uint32) zero_nat ();
+      val _ = arl_length heap_uint32 a2 ();
+      val a =
+        heap_WHILET
+          (fn (a1a, _) =>
+            (fn f_ => fn () => f_ ((arl_length heap_uint32 a2) ()) ())
+              (fn x_c => (fn () => (less_nat a1a x_c))))
+          (fn (a1a, a2a) =>
+            (fn f_ => fn () => f_ ((arl_get heap_uint32 a2 a1a) ()) ())
+              (fn xa =>
+                (fn f_ => fn () => f_
+                  ((heap_array_set_u heap_minimize_status a2a xa SEEN_UNKNOWN)
+                  ()) ())
+                  (fn x_d => (fn () => (plus_nat a1a one_nat, x_d)))))
+          (zero_nata, a1) ();
     in
-      (xb, x_a)
+      let
+        val (_, a2a) = a;
+      in
+        (fn () => (a2a, emptied_arl a2))
+      end
+        ()
     end)
     x;
 
@@ -2529,8 +2547,6 @@ fun insert_sort_nth_code x =
         end)
     end)
     x;
-
-fun emptied_arl x = (fn (a, _) => (a, zero_nata)) x;
 
 fun vmtf_flush_code x =
   (fn (a1, a2) => fn () =>
