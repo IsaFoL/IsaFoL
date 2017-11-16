@@ -2109,28 +2109,42 @@ fun lit_redundant_rec_wl_lookup_code x =
    (equal_minimize_status xab SEEN_REMOVABLE orelse xba)
                                        then (fn () => (a1, (a2b, false)))
                                        else (fn f_ => fn () => f_
-      ((get_propagation_reason_code ai (uminus_code a1b)) ()) ())
-      (fn a =>
-        (case a
-          of NONE =>
-            (fn f_ => fn () => f_ ((mark_failed_lits_stack_code bic a2b a1) ())
-              ())
-              (fn x_j =>
-                (fn f_ => fn () => f_
-                  ((arl_empty
-                     (default_prod default_nat default_nat,
-                       heap_prod heap_nat heap_nat)
-                     zero_nat)
-                  ()) ())
-                  (fn xe => (fn () => (x_j, (xe, false)))))
-          | SOME x_j =>
-            (fn f_ => fn () => f_
-              ((arl_append
-                 (default_prod default_nat default_nat,
-                   heap_prod heap_nat heap_nat)
-                 a2b (x_j, one_nat))
-              ()) ())
-              (fn xe => (fn () => (a1, (xe, false)))))))))))))
+      ((conflict_min_cach_l_code a1 (atm_of_code a1b)) ()) ())
+      (fn xe =>
+        (if equal_minimize_status xe SEEN_FAILED
+          then (fn f_ => fn () => f_ ((mark_failed_lits_stack_code bic a2b a1)
+                 ()) ())
+                 (fn x_j =>
+                   (fn f_ => fn () => f_
+                     ((arl_empty
+                        (default_prod default_nat default_nat,
+                          heap_prod heap_nat heap_nat)
+                        zero_nat)
+                     ()) ())
+                     (fn xf => (fn () => (x_j, (xf, false)))))
+          else (fn f_ => fn () => f_
+                 ((get_propagation_reason_code ai (uminus_code a1b)) ()) ())
+                 (fn a =>
+                   (case a
+                     of NONE =>
+                       (fn f_ => fn () => f_
+                         ((mark_failed_lits_stack_code bic a2b a1) ()) ())
+                         (fn x_k =>
+                           (fn f_ => fn () => f_
+                             ((arl_empty
+                                (default_prod default_nat default_nat,
+                                  heap_prod heap_nat heap_nat)
+                                zero_nat)
+                             ()) ())
+                             (fn xf => (fn () => (x_k, (xf, false)))))
+                     | SOME x_k =>
+                       (fn f_ => fn () => f_
+                         ((arl_append
+                            (default_prod default_nat default_nat,
+                              heap_prod heap_nat heap_nat)
+                            a2b (x_k, one_nat))
+                         ()) ())
+                         (fn xf => (fn () => (a1, (xf, false)))))))))))))))
             ()
         end)
       (bia, (bi, false)))
