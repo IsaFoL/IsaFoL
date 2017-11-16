@@ -2187,6 +2187,11 @@ next
     unfolding vmtf_def by fast
 qed
 
+lemma vmtf_append_remove_iff':
+  \<open>(vm, b @ [L]) \<in> vmtf M \<longleftrightarrow>
+     L \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l \<and> (vm, b) \<in> vmtf M\<close>
+  by (cases vm) (auto simp: vmtf_append_remove_iff)
+
 lemma vmtf_mark_to_rescore_unset:
   fixes M
   defines [simp]: \<open>L \<equiv> atm_of (lit_of (hd M))\<close>

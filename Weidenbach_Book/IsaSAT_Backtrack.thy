@@ -295,36 +295,6 @@ sepref_register extract_shorter_conflict_l_trivial
 type_synonym (in -) lookup_clause_rel_with_cls_with_highest =
   \<open>conflict_option_rel \<times> (nat literal \<times> nat)option\<close>
 
-(* TODO Kill? *)
-definition option_lookup_clause_rel_with_cls_with_highest2
-  :: \<open>nat literal \<Rightarrow> (nat, 'a) ann_lits \<Rightarrow>
-      (lookup_clause_rel_with_cls_with_highest \<times> nat clause option) set\<close> where
-  \<open>option_lookup_clause_rel_with_cls_with_highest2 K M = {(((b, xs), L), D).
-     D \<noteq> None \<and> ((b, xs), D) \<in> option_lookup_clause_rel \<and> highest_lit M (remove1_mset K (the D)) L \<and>
-     (\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length (snd xs))}\<close>
-
-abbreviation option_lookup_clause_rel_with_cls_with_highest where
-  \<open>option_lookup_clause_rel_with_cls_with_highest M \<equiv>
-    option_lookup_clause_rel_with_cls_with_highest2 (-lit_of (hd M)) M\<close>
-
-lemmas option_lookup_clause_rel_with_cls_with_highest_def =
-   option_lookup_clause_rel_with_cls_with_highest2_def
-
-type_synonym (in -) conflict_with_cls_with_highest_assn =
-   \<open>option_lookup_clause_assn \<times> (uint32 \<times> uint32) option\<close>
-
-abbreviation conflict_with_cls_int_with_highest_assn
- :: \<open>lookup_clause_rel_with_cls_with_highest \<Rightarrow> conflict_with_cls_with_highest_assn \<Rightarrow> assn\<close> where
- \<open>conflict_with_cls_int_with_highest_assn \<equiv>
-    (bool_assn *a uint32_nat_assn *a array_assn (option_assn bool_assn)) *a
-      option_assn (unat_lit_assn *a uint32_nat_assn)\<close>
-
-definition conflict_with_cls_with_cls_with_highest_assn
-  :: \<open>(nat, 'a) ann_lits \<Rightarrow> nat clause option \<Rightarrow> conflict_with_cls_with_highest_assn \<Rightarrow> assn\<close> where
- \<open>conflict_with_cls_with_cls_with_highest_assn M \<equiv>
-    hr_comp conflict_with_cls_int_with_highest_assn (option_lookup_clause_rel_with_cls_with_highest M)\<close>
-
-
 type_synonym (in -) twl_st_wl_confl_extracted_int =
   \<open>(nat,nat)ann_lits \<times> nat clause_l list \<times> nat \<times>
     lookup_clause_rel_with_cls_with_highest \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int \<times>
@@ -946,7 +916,7 @@ sepref_thm extract_shorter_conflict_list_lookup_heur_code
       trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a
       cach_refinement_assn\<^sup>d *\<^sub>a conflict_option_rel_assn\<^sup>d  \<rightarrow>
       conflict_option_rel_assn *a cach_refinement_assn *a
-        option_assn (unat_lit_assn *a uint32_nat_assn)\<close>
+        highest_lit_assn\<close>
   unfolding extract_shorter_conflict_list_lookup_heur_def fast_minus_def[symmetric]
     one_uint32_nat_def[symmetric] PR_CONST_def extract_shorter_conflict_list_lookup_heur_pre_def
   by sepref
@@ -966,7 +936,7 @@ sepref_thm extract_shorter_conflict_list_lookup_heur_st_code
   :: \<open>[\<lambda>(M, N, U, D, Q', W', vm, \<phi>, clvls, cach).
          extract_shorter_conflict_list_lookup_heur_pre (((M, N), cach), D)]\<^sub>a
       twl_st_heur_lookup_lookup_clause_assn\<^sup>d \<rightarrow>
-       twl_st_heur_lookup_lookup_clause_assn *a option_assn (unat_lit_assn *a uint32_nat_assn)\<close>
+       twl_st_heur_lookup_lookup_clause_assn *a highest_lit_assn\<close>
   unfolding extract_shorter_conflict_list_lookup_heur_st_def twl_st_heur_lookup_lookup_clause_assn_def
   PR_CONST_def
   by sepref
@@ -1078,53 +1048,22 @@ definition (in isasat_input_ops) twl_st_no_clvls_assn
 where
   \<open>twl_st_no_clvls_assn = hr_comp twl_st_heur_lookup_lookup_clause_assn twl_st_heur_no_clvls_confl\<close>
 
-(* TODO Move *)
-lemma (in isasat_input_ops) literals_are_\<L>\<^sub>i\<^sub>n_clauses_literals_are_in_\<L>\<^sub>i\<^sub>n:
-  assumes
-    \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
-    struct: \<open>twl_struct_invs (twl_st_of_wl None S)\<close>
-  shows \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl (get_clauses_wl S)))\<close>
-proof -
-  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl None S))\<close>
-    using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-    by fast
-  then have N: \<open>atms_of_mm (learned_clss (state\<^sub>W_of (twl_st_of_wl None S)))
-    \<subseteq> atms_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl None S)))\<close>
-    unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
-    by (cases S)
-       (auto simp: mset_take_mset_drop_mset')
-
-  have \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl None S))))\<close>
-    using twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[OF struct] \<A>\<^sub>i\<^sub>n by fast
-  then show ?thesis
-    apply (subst append_take_drop_id[symmetric, of _ \<open>get_learned_wl S\<close>])
-    unfolding mset_append
-    using N in_all_lits_of_m_ain_atms_of_iff in_all_lits_of_mm_ain_atms_of_iff
-    apply (cases S)
-    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def mset_take_mset_drop_mset'
-       in_all_lits_of_mm_ain_atms_of_iff in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff drop_Suc)
-qed
-(* End Move *)
-
 lemma extract_shorter_conflict_l_trivial_code_extract_shorter_conflict_l_trivial[sepref_fr_rules]:
   \<open>(extract_shorter_conflict_list_lookup_heur_st_code, extract_shorter_conflict_wl_nlit_st)
     \<in> [extract_shorter_conflict_list_heur_st_pre]\<^sub>a
-       twl_st_assn\<^sup>d \<rightarrow> (twl_st_no_clvls_assn *a option_assn (unat_lit_assn *a uint32_nat_assn))\<close>
+       twl_st_assn\<^sup>d \<rightarrow> (twl_st_no_clvls_assn *a highest_lit_assn)\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?c
-  \<in>  [comp_PRE twl_st_heur_confl
+  \<in> [comp_PRE twl_st_heur_confl
        extract_shorter_conflict_list_heur_st_pre
        (\<lambda>_ (M, N, U, D, Q', W', vm, \<phi>, clvls, cach).
            extract_shorter_conflict_list_lookup_heur_pre
             (((M, N), cach), D))
-       (\<lambda>_. True)]\<^sub>a hrp_comp
-                       (twl_st_heur_lookup_lookup_clause_assn\<^sup>d)
-                       twl_st_heur_confl \<rightarrow> hr_comp
-                  (twl_st_heur_lookup_lookup_clause_assn *a
-                   option_assn
-                    (unat_lit_assn *a
-                     uint32_nat_assn))
+       (\<lambda>_. True)]\<^sub>a 
+    hrp_comp (twl_st_heur_lookup_lookup_clause_assn\<^sup>d) twl_st_heur_confl \<rightarrow> 
+    hr_comp (twl_st_heur_lookup_lookup_clause_assn *a
+                   highest_lit_assn)
                   (twl_st_heur_no_clvls_confl \<times>\<^sub>f Id)\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF extract_shorter_conflict_list_lookup_heur_st_hnr[unfolded PR_CONST_def]
@@ -1214,14 +1153,14 @@ lemma (in -)the_hnr_keep:
 
 lemma (in -) target_level_hnr[sepref_fr_rules]:
   \<open>(return o target_level, RETURN o target_level) \<in>
-     (option_assn (unat_lit_assn *a uint32_nat_assn))\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+     highest_lit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   by sepref_to_hoare
      (sep_auto simp: target_level_def uint32_nat_rel_def br_def split: option.splits)
 
 sepref_register find_decomp_wl_imp
 sepref_thm find_decomp_wl_imp_code
   is \<open>uncurry2 (PR_CONST find_decomp_wl_imp)\<close>
-  :: \<open>trail_assn\<^sup>d *\<^sub>a (option_assn (unat_lit_assn *a uint32_nat_assn))\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d
+  :: \<open>trail_assn\<^sup>d *\<^sub>a highest_lit_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d
     \<rightarrow>\<^sub>a trail_assn *a vmtf_remove_conc\<close>
   unfolding find_decomp_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
     find_decomp_wl_imp_pre_def
@@ -1423,34 +1362,19 @@ sepref_register find_decomp_wvmtf_ns
 lemma find_decomp_wl_imp_code_find_decomp_wl'[sepref_fr_rules]:
   \<open>(uncurry2 find_decomp_wl_imp_code, uncurry2 (PR_CONST find_decomp_wvmtf_ns))
      \<in> [\<lambda>((b, a), c). find_decomp_wvmtf_ns_pre ((b, a), c)]\<^sub>a
-     trail_assn\<^sup>d *\<^sub>a (option_assn (unat_lit_assn *a uint32_nat_assn))\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>
+     trail_assn\<^sup>d *\<^sub>a highest_lit_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>
     trail_assn *a vmtf_remove_conc\<close>
   using find_decomp_wl_imp_code[unfolded PR_CONST_def, FCOMP find_decomp_wl_imp_find_decomp_wl']
   unfolding PR_CONST_def
   .
 
-fun conflict_merge_wl where
-  \<open>conflict_merge_wl D (M, N, U, _, oth) = (M, N, U, D, oth)\<close>
-
-definition twl_st_confl_extracted_int_assn' where
- \<open>twl_st_confl_extracted_int_assn' M =
-  (hr_comp trail_pol_assn trail_pol *a
-      clauses_ll_assn *a
-      nat_assn *a
-      conflict_with_cls_with_cls_with_highest_assn M *a
-      clause_l_assn *a
-      arrayO_assn (arl_assn nat_assn) *a
-      vmtf_remove_conc *a phase_saver_conc *a
-      uint32_nat_assn *a
-      cach_refinement_assn)\<close>
-
 sepref_thm find_decomp_wl_imp'_code
   is \<open>uncurry2 (PR_CONST find_decomp_wl_st_int)\<close>
   :: \<open>[\<lambda>((L, highest), (M', N, U, D, W, Q, vm, \<phi>)).
          find_decomp_wvmtf_ns_pre ((M', highest), vm)]\<^sub>a
-       unat_lit_assn\<^sup>k *\<^sub>a (option_assn (unat_lit_assn *a uint32_nat_assn))\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d  \<rightarrow>
+       unat_lit_assn\<^sup>k *\<^sub>a highest_lit_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d  \<rightarrow>
         (twl_st_heur_assn)\<close>
-  unfolding find_decomp_wl_st_int_def PR_CONST_def twl_st_heur_assn_def twl_st_confl_extracted_int_assn'_def
+  unfolding find_decomp_wl_st_int_def PR_CONST_def twl_st_heur_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
@@ -1509,7 +1433,7 @@ lemma find_decomp_wl_imp'_code_find_decomp_wl[sepref_fr_rules]:
   fixes M :: \<open>(nat, nat) ann_lits\<close>
   shows \<open>(uncurry2 find_decomp_wl_imp'_code, uncurry2 find_decomp_wl_nlit) \<in>
     [find_decomp_wl_pre]\<^sub>a
-       unat_lit_assn\<^sup>k *\<^sub>a (option_assn (unat_lit_assn *a uint32_nat_assn))\<^sup>k *\<^sub>a twl_st_no_clvls_assn\<^sup>d \<rightarrow>
+       unat_lit_assn\<^sup>k *\<^sub>a highest_lit_assn\<^sup>k *\<^sub>a twl_st_no_clvls_assn\<^sup>d \<rightarrow>
      twl_st_no_clvls_assn\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
@@ -1521,7 +1445,7 @@ proof -
          find_decomp_wvmtf_ns_pre ((M', highest), vm))
      (\<lambda>_. True)]\<^sub>a hrp_comp
                      (unat_lit_assn\<^sup>k *\<^sub>a
-                      (option_assn (unat_lit_assn *a uint32_nat_assn))\<^sup>k *\<^sub>a
+                      highest_lit_assn\<^sup>k *\<^sub>a
                       twl_st_heur_assn\<^sup>d)
                      (nat_lit_lit_rel \<times>\<^sub>f Id \<times>\<^sub>f
                       twl_st_heur_no_clvls) \<rightarrow> hr_comp twl_st_heur_assn
@@ -1605,7 +1529,7 @@ lemma size_conflict_wl_heur_size_conflict_wl:
   by (intro frefI nres_relI)
     (auto simp: size_conflict_wl_heur_def size_conflict_wl_def
       twl_st_wl_heur_lookup_lookup_clause_rel_def size_lookup_conflict_def
-      option_lookup_clause_rel_with_cls_with_highest2_def option_lookup_clause_rel_def
+      option_lookup_clause_rel_def
       lookup_clause_rel_def twl_st_heur_no_clvls_def)
 
 lemma twl_st_no_clvls_assn_alt_def:
@@ -1652,32 +1576,6 @@ proof -
     using H unfolding im f PR_CONST_def apply assumption
     using pre ..
 qed
-
-lemma backtrack_get_conglit_wl_not_NoneD:
-  \<open>RETURN xc \<le> extract_shorter_conflict_wl x \<Longrightarrow>
-   RETURN xd \<le> find_decomp_wl (lit_of_hd_trail_st x) xc \<Longrightarrow>
-   \<exists>y. get_conflict_wl xd = Some y\<close>
-  by (cases xd; cases xc; cases x)
-     (auto simp: find_decomp_wl_def extract_shorter_conflict_wl_def)
-
-definition get_snd_highest_lit :: \<open>lookup_clause_rel_with_cls_with_highest \<Rightarrow> nat literal\<close> where
-  \<open>get_snd_highest_lit = (\<lambda>((_, _, _), L). fst (the L))\<close>
-
-definition find_lit_of_max_level_wl_int :: \<open>twl_st_wl_confl_extracted_int \<Rightarrow> nat literal \<Rightarrow> nat literal\<close> where
-  \<open>find_lit_of_max_level_wl_int = (\<lambda>(M, N, U, D, _, _, _, _) _. get_snd_highest_lit D)\<close>
-
-lemma get_snd_highest_lit[sepref_fr_rules]:
-   \<open>(return o (\<lambda>((_, _, _), L). (fst (the L))), RETURN o get_snd_highest_lit) \<in>
-    [\<lambda>S. snd S \<noteq> None]\<^sub>a (conflict_option_rel_assn *a
-         option_assn (unat_lit_assn *a uint32_nat_assn))\<^sup>k \<rightarrow> unat_lit_assn\<close>
-  unfolding get_snd_highest_lit_def
-  apply sep_auto
-  apply sepref_to_hoare
-  subgoal for x xi
-    apply (cases x; cases xi; cases \<open>snd x\<close>; cases \<open>snd xi\<close>)
-    apply sep_auto+
-    done
-  done
 
 definition list_of_mset2_None where
   \<open>list_of_mset2_None L L' D = SPEC(\<lambda>(E, F). mset E = the D \<and> E!0 = L \<and> E!1 = L' \<and>
@@ -2417,12 +2315,6 @@ prepare_code_thms (in -) vmtf_rescore_code_def
 lemmas vmtf_rescore_code_refine[sepref_fr_rules] =
    vmtf_rescore_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
-(* TODO Move *)
-lemma vmtf_append_remove_iff':
-  \<open>(vm, b @ [L]) \<in> vmtf M \<longleftrightarrow>
-     L \<in> atms_of \<L>\<^sub>a\<^sub>l\<^sub>l \<and> (vm, b) \<in> vmtf M\<close>
-  by (cases vm) (auto simp: vmtf_append_remove_iff)
-(* ENd Move *)
 lemma vmtf_rescore_score_clause:
   \<open>(uncurry3 vmtf_rescore, uncurry3 rescore_clause) \<in>
      [\<lambda>(((C, M), vm), \<phi>). literals_are_in_\<L>\<^sub>i\<^sub>n (mset C) \<and> vm \<in> vmtf M \<and> phase_saving \<phi>]\<^sub>f
@@ -3146,8 +3038,6 @@ proof -
   show ?C
     using D' unfolding V by auto
 
-
-
   assume nempty: \<open>Suc 0 < size (the (get_conflict_wl V))\<close>
   then show ?D
     using highest by (auto simp: highest_lit_def V remove1_mset_empty_iff)
@@ -3173,7 +3063,7 @@ sepref_thm backtrack_wl_D_code
   is \<open>PR_CONST backtrack_wl_D_nlit\<close>
   :: \<open>twl_st_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_assn\<close>
   supply [[goals_limit=1]] backtrack_wl_D_invD[simp] H1[simp]
-  backtrack_get_conglit_wl_not_NoneD[dest] lit_of_hd_trail_st_def[symmetric, simp]
+  lit_of_hd_trail_st_def[symmetric, simp]
   size_conflict_wl_def[simp] st_remove_highest_lvl_from_confl_def[simp]
   backtrack_wl_D_helper3[simp]
   unfolding backtrack_wl_D_nlit_def PR_CONST_def

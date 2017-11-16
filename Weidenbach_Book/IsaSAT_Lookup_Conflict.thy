@@ -2380,6 +2380,9 @@ lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_Suc_le_uint_max: \<open>Pos xa \<in># \<L>
   using in_N1_less_than_uint_max by (auto simp: uint_max_def)
 (* End move *)
 
+abbreviation (in -) highest_lit_assn where
+  \<open>highest_lit_assn \<equiv> option_assn (unat_lit_assn *a uint32_nat_assn)\<close>
+
 sepref_register minimize_and_extract_highest_lookup_conflict
 sepref_thm minimize_and_extract_highest_lookup_conflict_code
   is \<open>uncurry3 (PR_CONST minimize_and_extract_highest_lookup_conflict)\<close>
@@ -2388,7 +2391,7 @@ sepref_thm minimize_and_extract_highest_lookup_conflict_code
         (\<forall>a\<in>lits_of_l M. atm_of a < length (snd D))]\<^sub>a
        trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d *\<^sub>a
       cach_refinement_assn\<^sup>d \<rightarrow> lookup_clause_rel_assn *a cach_refinement_assn *a
-        option_assn (unat_lit_assn *a uint32_nat_assn)\<close>
+        highest_lit_assn\<close>
   supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
     minimize_and_extract_highest_lookup_conflict_inv_def[simp]
@@ -2396,7 +2399,7 @@ sepref_thm minimize_and_extract_highest_lookup_conflict_code
   unfolding minimize_and_extract_highest_lookup_conflict_def zero_uint32_nat_def[symmetric]
     one_uint32_nat_def[symmetric] merge_highest_lit_def PR_CONST_def
   apply (rewrite at \<open>(_, _,zero_uint32_nat, _,\<hole>)\<close> annotate_assn[where
-     A = \<open>option_assn (unat_lit_assn *a uint32_nat_assn)\<close>])
+     A = \<open>highest_lit_assn\<close>])
   by sepref
 
 concrete_definition (in -) minimize_and_extract_highest_lookup_conflict_code
