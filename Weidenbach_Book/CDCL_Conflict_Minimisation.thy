@@ -389,7 +389,7 @@ where
                then RETURN (cach, analyse, False)
                else if cach (atm_of L) = SEEN_FAILED
                then do {
-                  cach \<leftarrow> mark_failed_lits_wl NU analyse cach;
+                  cach \<leftarrow> mark_failed_lits NU analyse cach;
                   RETURN (cach, [], False)
                }
                else do {
@@ -873,8 +873,6 @@ proof -
         ana \<noteq> [] \<and> hd ana = (fst (hd analyse), remove1_mset L (snd (hd analyse)))\<close> and
       \<open>x = (L, ana)\<close> and
       \<open>\<not> (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D)\<close> and
-      \<open>E \<noteq> None \<longrightarrow> Propagated (- L) (the E) \<in> set M\<close> and
-      \<open>E = None\<close> and
       cach_update: \<open>\<forall>L. cach' L = SEEN_REMOVABLE \<longrightarrow> cach L = SEEN_REMOVABLE\<close>
     for s cach s' analyse b x L ana E cach'
   proof -
@@ -1003,6 +1001,8 @@ proof -
     subgoal by (rule seen_removable_I')
     subgoal by (rule seen_removable_R)
         -- \<open>Failed:\<close>
+    subgoal by (rule failed_I')
+    subgoal by (rule failed_R)
     subgoal by (rule failed_I')
     subgoal by (rule failed_R)
         -- \<open>The literal was propagated:\<close>
@@ -1519,6 +1519,9 @@ proof -
     subgoal by auto
     subgoal by (auto simp add: M'_def)
     subgoal by auto
+    subgoal by (auto simp add: M'_def)
+      apply (rule mark_failed_lits_wl; assumption)
+    subgoal by (auto simp: lit_redundant_rec_wl_ref_def)
         apply (rule get_propagation_reason; assumption?)
        apply assumption
       apply (rule mark_failed_lits_wl; assumption)
