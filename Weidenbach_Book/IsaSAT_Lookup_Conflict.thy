@@ -2336,7 +2336,7 @@ lemma (in -) lookup_conflict_upd_None_RETURN_def:
   \<open>RETURN oo lookup_conflict_upd_None = (\<lambda>(n, xs) i. RETURN (n- one_uint32_nat, xs [i :=None]))\<close>
   by (auto intro!: ext)
 
-sepref_definition lookup_conflict_upd_None_code
+sepref_definition (in -)lookup_conflict_upd_None_code
   is \<open>uncurry (RETURN oo lookup_conflict_upd_None)\<close>
   :: \<open>[\<lambda>((n, xs), i). i < length xs \<and> n > 0]\<^sub>a
      lookup_clause_rel_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> lookup_clause_rel_assn\<close>
