@@ -350,8 +350,123 @@ definition (in -) empty_cach where
   \<open>empty_cach cach = (\<lambda>_. SEEN_UNKNOWN)\<close>
 
 definition (in -) empty_cach_ref where
-  \<open>empty_cach_ref cach = (replicate (length (fst cach)) SEEN_UNKNOWN,
-     ASSN_ANNOT (arl_assn uint32_nat_assn) op_arl_empty)\<close>
+  \<open>empty_cach_ref = (\<lambda>(cach, support). (replicate (length cach) SEEN_UNKNOWN, []))\<close>
+
+definition (in isasat_input_ops) empty_cach_ref_set_inv where
+  \<open>empty_cach_ref_set_inv cach0 support =
+    (\<lambda>(i, cach). length cach = length cach0 \<and>
+         (\<forall>L \<in> set (drop i support). L < length cach) \<and>
+         (\<forall>L \<in> set (take i support).  cach ! L = SEEN_UNKNOWN) \<and>
+         (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set (drop i support)))\<close>
+
+definition (in isasat_input_ops) empty_cach_ref_set where
+  \<open>empty_cach_ref_set = (\<lambda>(cach0, support). do {
+    let n = length support;
+    (_, cach) \<leftarrow> WHILE\<^sub>T\<^bsup>empty_cach_ref_set_inv cach0 support\<^esup>
+      (\<lambda>(i, cach). i < length support)
+      (\<lambda>(i, cach). do {
+         ASSERT(i < length support);
+         ASSERT(support ! i < length cach);
+         RETURN(i+1, cach[support ! i := SEEN_UNKNOWN])
+      })
+     (0, cach0);
+    RETURN (cach, emptied_list support)
+  })\<close>
+
+lemma (in isasat_input_ops) empty_cach_ref_set_empty_cach_ref:
+  \<open>(empty_cach_ref_set, RETURN o empty_cach_ref) \<in>
+    [\<lambda>(cach, supp). (\<forall>L \<in> set supp. L < length cach) \<and>
+      (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp)]\<^sub>f
+    Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
+proof -
+  have H: \<open>WHILE\<^sub>T\<^bsup>empty_cach_ref_set_inv cach0 support'\<^esup> (\<lambda>(i, cach). i < length support')
+       (\<lambda>(i, cach).
+           ASSERT (i < length support') \<bind>
+           (\<lambda>_. ASSERT (support' ! i < length cach) \<bind>
+           (\<lambda>_. RETURN (i + 1, cach[support' ! i := SEEN_UNKNOWN]))))
+       (0, cach0) \<bind>
+      (\<lambda>(_, cach). RETURN (cach, emptied_list support'))
+      \<le> \<Down> Id (RETURN (replicate (length cach0) SEEN_UNKNOWN, []))\<close>
+    if
+      \<open>\<forall>L\<in>set support'. L < length cach0\<close> and
+      \<open>\<forall>L<length cach0. cach0 ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support'\<close>
+    for cach support cach0 support'
+  proof -
+    have init: \<open>empty_cach_ref_set_inv cach0 support' (0, cach0)\<close>
+      using that unfolding empty_cach_ref_set_inv_def
+      by auto
+    have valid_length:
+       \<open>empty_cach_ref_set_inv cach0 support' s \<Longrightarrow> case s of (i, cach) \<Rightarrow> i < length support' \<Longrightarrow>
+          s = (cach', sup') \<Longrightarrow> support' ! cach' < length sup'\<close>  for s cach' sup'
+      using that unfolding empty_cach_ref_set_inv_def
+      by auto
+    have set_next: \<open>empty_cach_ref_set_inv cach0 support' (i + 1, cach'[support' ! i := SEEN_UNKNOWN])\<close>
+      if
+        inv: \<open>empty_cach_ref_set_inv cach0 support' s\<close> and
+        cond: \<open>case s of (i, cach) \<Rightarrow> i < length support'\<close> and
+        s: \<open>s = (i, cach')\<close> and
+        valid[simp]: \<open>support' ! i < length cach'\<close>
+      for s i cach'
+    proof -
+      have
+        le_cach_cach0: \<open>length cach' = length cach0\<close> and
+        le_length: \<open>\<forall>L\<in>set (drop i support'). L < length cach'\<close> and
+        UNKNOWN: \<open>\<forall>L\<in>set (take i support'). cach' ! L = SEEN_UNKNOWN\<close> and
+        support: \<open>\<forall>L<length cach'. cach' ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set (drop i support')\<close> and
+        [simp]: \<open>i < length support'\<close>
+        using inv cond unfolding empty_cach_ref_set_inv_def s prod.case
+        by auto
+
+      show ?thesis
+        unfolding empty_cach_ref_set_inv_def
+        unfolding prod.case
+        apply (intro conjI)
+        subgoal by (simp add: le_cach_cach0)
+        subgoal using le_length by (simp add: Cons_nth_drop_Suc[symmetric])
+        subgoal using UNKNOWN by (auto simp add: take_Suc_conv_app_nth)
+        subgoal using support by (auto simp add: Cons_nth_drop_Suc[symmetric])
+        done
+    qed
+    have final: \<open>((cach', emptied_list support'), replicate (length cach0) SEEN_UNKNOWN, []) \<in> Id\<close>
+      if
+        inv: \<open>empty_cach_ref_set_inv cach0 support' s\<close> and
+        cond: \<open>\<not> (case s of (i, cach) \<Rightarrow> i < length support')\<close> and
+        s: \<open>s = (i, cach')\<close>
+        for s cach' i
+    proof -
+      have
+        le_cach_cach0: \<open>length cach' = length cach0\<close> and
+        le_length: \<open>\<forall>L\<in>set (drop i support'). L < length cach'\<close> and
+        UNKNOWN: \<open>\<forall>L\<in>set (take i support'). cach' ! L = SEEN_UNKNOWN\<close> and
+        support: \<open>\<forall>L<length cach'. cach' ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set (drop i support')\<close> and
+        i: \<open>\<not>i < length support'\<close>
+        using inv cond unfolding empty_cach_ref_set_inv_def s prod.case
+        by auto
+      have \<open>\<forall>L<length cach'. cach' ! L  = SEEN_UNKNOWN\<close>
+        using support i by auto
+      then have [dest]: \<open>L \<in> set cach' \<Longrightarrow> L = SEEN_UNKNOWN\<close> for L
+        by (metis in_set_conv_nth)
+      then have [dest]: \<open>SEEN_UNKNOWN \<notin> set cach' \<Longrightarrow> cach0 = [] \<and> cach' = []\<close>
+        using le_cach_cach0 by (cases cach') auto
+      show ?thesis
+        by (auto simp: emptied_list_def list_eq_replicate_iff le_cach_cach0)
+    qed
+    show ?thesis
+      apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i, _). length support' - i)\<close>])
+      subgoal by auto
+      subgoal by (rule init)
+      subgoal by auto
+      subgoal by (rule valid_length)
+      subgoal by (rule set_next)
+      subgoal by auto
+      subgoal by (rule final)
+      done
+  qed
+  show ?thesis
+  unfolding empty_cach_ref_set_def empty_cach_ref_def Let_def comp_def
+  by (intro frefI nres_relI) (clarify intro!: H)
+qed
+
 
 lemma (in isasat_input_ops) empty_cach_ref_empty_cach:
   \<open>(RETURN o empty_cach_ref, RETURN o empty_cach) \<in> cach_refinement \<rightarrow>\<^sub>f \<langle>cach_refinement\<rangle> nres_rel\<close>
@@ -361,10 +476,10 @@ lemma (in isasat_input_ops) empty_cach_ref_empty_cach:
 find_theorems op_list_replicate
 
 sepref_thm (in isasat_input_ops) empty_cach_code
-  is \<open>RETURN o empty_cach_ref\<close>
+  is \<open>empty_cach_ref_set\<close>
   :: \<open>cach_refinement_l_assn\<^sup>d \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
   supply array_replicate_hnr[sepref_fr_rules]
-  unfolding empty_cach_ref_def comp_def
+  unfolding empty_cach_ref_set_def comp_def
   by sepref
 
 concrete_definition (in -) empty_cach_code
@@ -373,13 +488,76 @@ concrete_definition (in -) empty_cach_code
 
 prepare_code_thms (in -) empty_cach_code_def
 
-lemmas empty_cach_ref_hnr[sepref_fr_rules] =
+lemmas (in isasat_input_ops) empty_cach_ref_hnr[sepref_fr_rules] =
    empty_cach_code.refine
+
+theorem (in isasat_input_ops) empty_cach_code_empty_cach_ref:
+  \<open>(empty_cach_code,
+   RETURN \<circ> empty_cach_ref)
+    \<in> [(\<lambda>(cach :: minimize_status list, supp :: nat list).
+         (\<forall>L\<in>set supp. L < length cach) \<and>
+         (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp))]\<^sub>a
+    cach_refinement_l_assn\<^sup>d \<rightarrow> cach_refinement_l_assn\<close>
+    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c
+    \<in>[comp_PRE Id
+     (\<lambda>(cach, supp).
+         (\<forall>L\<in>set supp. L < length cach) \<and>
+         (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp))
+     (\<lambda>x y. True)
+     (\<lambda>x. nofail ((RETURN \<circ> empty_cach_ref) x))]\<^sub>a
+      hrp_comp (cach_refinement_l_assn\<^sup>d)
+                     Id \<rightarrow> hr_comp cach_refinement_l_assn Id\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE[OF empty_cach_ref_hnr[unfolded PR_CONST_def]
+    empty_cach_ref_set_empty_cach_ref] by simp
+  have pre: \<open>?pre' h x\<close> if \<open>?pre x\<close> for x h
+    using that by (auto simp: comp_PRE_def twl_st_heur_pol_def trail_pol_def
+        ann_lits_split_reasons_def)
+  have im: \<open>?im' = ?im\<close>
+    by simp
+  have f: \<open>?f' = ?f\<close>
+    by auto
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f apply assumption
+    using pre ..
+qed
 
 lemma (in isasat_input_ops) empty_cach_hnr[sepref_fr_rules]:
   \<open>(empty_cach_code, RETURN \<circ> empty_cach) \<in> cach_refinement_assn\<^sup>d \<rightarrow>\<^sub>a cach_refinement_assn\<close>
-  using empty_cach_code.refine[FCOMP empty_cach_ref_empty_cach, unfolded cach_refinement_assn_def[symmetric]]
-  .
+    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c \<in> [comp_PRE cach_refinement (\<lambda>_. True)
+     (\<lambda>x y. case y of
+            (cach, supp) \<Rightarrow>
+              (\<forall>L\<in>set supp. L < length cach) \<and>
+              (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp))
+     (\<lambda>x. nofail
+           ((RETURN \<circ> empty_cach)
+             x))]\<^sub>a hrp_comp (cach_refinement_l_assn\<^sup>d)
+                     cach_refinement \<rightarrow> hr_comp cach_refinement_l_assn cach_refinement\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE[OF empty_cach_code_empty_cach_ref[unfolded PR_CONST_def]
+    empty_cach_ref_empty_cach] by simp
+  have pre: \<open>?pre' h x\<close> if \<open>?pre x\<close> for x h
+    using that by (auto simp: comp_PRE_def twl_st_heur_pol_def trail_pol_def
+        ann_lits_split_reasons_def cach_refinement_alt_def)
+  have im: \<open>?im' = ?im\<close>
+    unfolding cach_refinement_assn_def
+     prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by simp
+  have f: \<open>?f' = ?f\<close>
+    unfolding cach_refinement_assn_def
+    by auto
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f apply assumption
+    using pre ..
+qed
 
 definition extract_shorter_conflict_list_lookup_heur_st
   :: \<open>twl_st_wl_heur_lookup_conflict \<Rightarrow>

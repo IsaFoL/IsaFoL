@@ -2011,9 +2011,11 @@ proof -
 qed
 
 (* TODO Move *)
+thm isasat_input_ops.cach_refinement_alt_def
 lemma (in isasat_input_ops) cach_refinement_alt_def:
   \<open>cach_refinement = {((cach, support), cach').
        (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support) \<and>
+       (\<forall>L \<in> set support. L < length cach) \<and>
        (\<forall>L \<in># \<A>\<^sub>i\<^sub>n. L < length cach \<and> cach ! L = cach' L)}\<close>
   unfolding cach_refinement_def cach_refinement_nonull_def cach_refinement_list_def
   by (auto simp: map_fun_rel_def)
