@@ -154,6 +154,21 @@ other': "cdcl_twl_o S S' \<Longrightarrow> cdcl_twl_stgy S S'"
 
 inductive_cases cdcl_twl_stgyE: \<open>cdcl_twl_stgy S T\<close>
 
+text \<open>
+  Unlike the basic CDCL, it does not make any sense to fully restart the trail: 
+  the part propagated at level 0 (only the part due to unit clauses) have to be kept.
+  Therefore, we allow fast restarts.
+
+\<close>
+inductive cdcl_twl_restart :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" where
+  \<open>cdcl_twl_restart (M, N, U, None, NP, UP, {#}, Q) (M', N, U', None, NP, UP, {#}, {#})\<close>
+  if 
+    \<open>(Decided K # M', M2) \<in> set (get_all_ann_decomposition M)\<close> and
+    \<open>U' \<subseteq># U\<close> and
+    \<open>\<forall>L E. Propagated L E \<in> set M' \<longrightarrow> C \<in># clause `# (N + U')\<close>
+
+inductive_cases cdcl_twl_restartE: \<open>cdcl_twl_restart S T\<close>
+
 
 subsection \<open>Definition of the Two-watched literals Invariants\<close>
 
@@ -4550,7 +4565,8 @@ qed
 
 lemma cdcl_twl_o_twl_stgy_invs:
   \<open>cdcl_twl_o S T \<Longrightarrow> twl_struct_invs S \<Longrightarrow> twl_stgy_invs S \<Longrightarrow> twl_stgy_invs T\<close>
-  using cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant cdcl_twl_stgy_cdcl\<^sub>W_stgy other'
+  using cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant cdcl_twl_stgy_cdcl\<^sub>W_stgy
+    other'
   unfolding twl_struct_invs_def twl_stgy_invs_def by blast
 
 
@@ -4570,7 +4586,8 @@ proof -
   let ?P = \<open>{(T, S). state\<^sub>W_of S = state\<^sub>W_of T \<and>
     (literals_to_update_measure T, literals_to_update_measure S) \<in> lexn less_than 2}\<close>
 
-  have wf_p_m: \<open>wf {(T, S). (literals_to_update_measure T, literals_to_update_measure S) \<in> lexn less_than 2}\<close>
+  have wf_p_m:
+    \<open>wf {(T, S). (literals_to_update_measure T, literals_to_update_measure S) \<in> lexn less_than 2}\<close>
     using wf_if_measure_f[of \<open>lexn less_than 2\<close> literals_to_update_measure] by (auto simp: wf_lexn)
   have \<open>wf ?CDCL\<close>
     by (rule wf_subset[OF wf_cdcl\<^sub>W_stgy_state\<^sub>W_of])
@@ -4592,7 +4609,8 @@ proof -
     have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)\<close>
       using twl by (auto simp: twl_struct_invs_def)
     moreover have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state\<^sub>W_of S) (state\<^sub>W_of T) \<or>
-      (state\<^sub>W_of S = state\<^sub>W_of T \<and> (literals_to_update_measure T, literals_to_update_measure S) \<in> lexn less_than 2)\<close>
+      (state\<^sub>W_of S = state\<^sub>W_of T \<and>
+        (literals_to_update_measure T, literals_to_update_measure S) \<in> lexn less_than 2)\<close>
       using cdcl cdcl_twl_cp_cdcl\<^sub>W_stgy twl by blast
     ultimately show \<open>x \<in> ?CDCL \<union> ?P\<close>
       unfolding x by blast
@@ -4604,7 +4622,8 @@ qed
 lemma tranclp_wf_cdcl_twl_cp:
   \<open>wf {(T, S). twl_struct_invs S \<and> cdcl_twl_cp\<^sup>+\<^sup>+ S T}\<close>
 proof -
-  have H: \<open>{(T, S). twl_struct_invs S \<and> cdcl_twl_cp\<^sup>+\<^sup>+ S T} \<subseteq> {(T, S). twl_struct_invs S \<and> cdcl_twl_cp S T}\<^sup>+\<close>
+  have H: \<open>{(T, S). twl_struct_invs S \<and> cdcl_twl_cp\<^sup>+\<^sup>+ S T} \<subseteq>
+     {(T, S). twl_struct_invs S \<and> cdcl_twl_cp S T}\<^sup>+\<close>
   proof -
     { fix T S :: \<open>'v twl_st\<close>
       assume \<open>cdcl_twl_cp\<^sup>+\<^sup>+ S T\<close> \<open>twl_struct_invs S\<close>
@@ -4616,7 +4635,8 @@ proof -
         case (step T U) note st = this(1) and cp = this(2) and IH = this(3)[OF this(4)] and
           twl = this(4)
         have \<open>twl_struct_invs T\<close>
-          by (metis (no_types, lifting) IH Nitpick.tranclp_unfold cdcl_twl_cp_twl_struct_invs converse_tranclpE)
+          by (metis (no_types, lifting) IH Nitpick.tranclp_unfold cdcl_twl_cp_twl_struct_invs
+           converse_tranclpE)
         then have \<open>(U, T) \<in> ?S\<^sup>+\<close>
           using cp by auto
         then show ?case using IH by auto
@@ -4635,7 +4655,8 @@ proof -
   let ?P = \<open>{(T, S). state\<^sub>W_of S = state\<^sub>W_of T \<and>
     (literals_to_update_measure T, literals_to_update_measure S) \<in> lexn less_than 2}\<close>
 
-  have wf_p_m: \<open>wf {(T, S). (literals_to_update_measure T, literals_to_update_measure S) \<in> lexn less_than 2}\<close>
+  have wf_p_m:
+    \<open>wf {(T, S). (literals_to_update_measure T, literals_to_update_measure S) \<in> lexn less_than 2}\<close>
     using wf_if_measure_f[of \<open>lexn less_than 2\<close> literals_to_update_measure] by (auto simp: wf_lexn)
   have \<open>wf ?CDCL\<close>
     by (rule wf_subset[OF wf_cdcl\<^sub>W_stgy_state\<^sub>W_of])
@@ -4657,7 +4678,8 @@ proof -
     have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)\<close>
       using twl by (auto simp: twl_struct_invs_def)
     moreover have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state\<^sub>W_of S) (state\<^sub>W_of T) \<or>
-      (state\<^sub>W_of S = state\<^sub>W_of T \<and> (literals_to_update_measure T, literals_to_update_measure S) \<in> lexn less_than 2)\<close>
+      (state\<^sub>W_of S = state\<^sub>W_of T \<and>
+         (literals_to_update_measure T, literals_to_update_measure S) \<in> lexn less_than 2)\<close>
       using cdcl cdcl_twl_stgy_cdcl\<^sub>W_stgy2 twl by blast
     ultimately show \<open>x \<in> ?CDCL \<union> ?P\<close>
       unfolding x by blast
@@ -4669,7 +4691,8 @@ qed
 lemma tranclp_wf_cdcl_twl_stgy:
   \<open>wf {(T, S). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T}\<close>
 proof -
-  have H: \<open>{(T, S). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T} \<subseteq> {(T, S). twl_struct_invs S \<and> cdcl_twl_stgy S T}\<^sup>+\<close>
+  have H: \<open>{(T, S). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T} \<subseteq> 
+     {(T, S). twl_struct_invs S \<and> cdcl_twl_stgy S T}\<^sup>+\<close>
   proof -
     { fix T S :: \<open>'v twl_st\<close>
       assume \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ S T\<close> \<open>twl_struct_invs S\<close>
@@ -4681,7 +4704,8 @@ proof -
         case (step T U) note st = this(1) and stgy = this(2) and IH = this(3)[OF this(4)] and
           twl = this(4)
         have \<open>twl_struct_invs T\<close>
-          by (metis (no_types, lifting) IH Nitpick.tranclp_unfold cdcl_twl_stgy_twl_struct_invs converse_tranclpE)
+          by (metis (no_types, lifting) IH Nitpick.tranclp_unfold cdcl_twl_stgy_twl_struct_invs
+           converse_tranclpE)
         then have \<open>(U, T) \<in> ?S\<^sup>+\<close>
           using stgy by auto
         then show ?case using IH by auto
@@ -4715,4 +4739,25 @@ lemma wf_cdcl_twl_o:
 lemma tranclp_wf_cdcl_twl_o:
   \<open>wf {(T, S::'v twl_st). twl_struct_invs S \<and> cdcl_twl_o\<^sup>+\<^sup>+ S T}\<close>
   by (rule wf_subset[OF tranclp_wf_cdcl_twl_stgy]) (auto dest: tranclp_cdcl_twl_o_stgyD)
+
+
+fun get_learned_clss :: "'v twl_st \<Rightarrow> 'v twl_clss" where
+  \<open>get_learned_clss (_, N, U, _, _, _, _) = N + U\<close>
+
+locale twl_restart =
+  fixes
+    f :: "nat \<Rightarrow> nat"
+  assumes
+    f: "unbounded f"
+begin
+
+inductive twl_restart_with_restart where
+restart_step:
+  "(cdcl_twl_stgy\<^sup>*\<^sup>*) S T
+  \<Longrightarrow> card (set_mset (get_learned_clss T)) - card (set_mset (get_learned_clss S)) > f n
+  \<Longrightarrow> cdcl_twl_restart T U \<Longrightarrow> twl_restart_with_restart (S, n) (U, Suc n)" |
+restart_full: "full1 cdcl_twl_stgy S T \<Longrightarrow> twl_restart_with_restart (S, n) (T, Suc n)"
+
+end
+
 end
