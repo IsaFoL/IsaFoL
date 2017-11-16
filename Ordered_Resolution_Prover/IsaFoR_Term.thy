@@ -32,14 +32,8 @@ definition vars_clause :: "('f, 'v) term clause \<Rightarrow> 'v set" where
 definition vars_clause_list :: "('f, 'v) term clause list \<Rightarrow> 'v set" where
   "vars_clause_list Cs = Union (vars_clause `set Cs) "
 
-
-
-definition var_disjoint' :: "('f,'v) term clause list \<Rightarrow> bool" where
-  "var_disjoint' Cs = (\<forall>i < length Cs. \<forall>j < length Cs. i \<noteq> j \<longrightarrow> (vars_clause (Cs!i) \<inter> vars_clause (Cs!j)) = {})"
-
-
-
-
+definition vars_partitioned :: "('f,'v) term clause list \<Rightarrow> bool" where
+  "vars_partitioned Cs = (\<forall>i < length Cs. \<forall>j < length Cs. i \<noteq> j \<longrightarrow> (vars_clause (Cs!i) \<inter> vars_clause (Cs!j)) = {})"
 
 lemma vars_clause_mono: "S \<subseteq># C \<Longrightarrow> vars_clause S \<subseteq> vars_clause C"
   unfolding vars_clause_def
@@ -123,14 +117,14 @@ lemma same_on_vars_clause:
     by (smt assms image_eqI image_mset_cong2 mem_simps(9) same_on_vars_lit set_image_mset
           subst_cls_def vars_clause_def)
 
-lemma var_disjoint'_var_disjoint:
-  assumes "var_disjoint' Cs"
+lemma vars_partitioned_var_disjoint:
+  assumes "vars_partitioned Cs"
   shows "var_disjoint Cs"
   unfolding var_disjoint_def
 proof (intro allI impI)
   fix \<sigma>s :: \<open>('b \<Rightarrow> ('a, 'b) term) list\<close>
   assume \<open>length \<sigma>s = length Cs\<close>
-  with assms[unfolded var_disjoint'_def] fun_merge[of "map vars_clause Cs" "nth \<sigma>s"]
+  with assms[unfolded vars_partitioned_def] fun_merge[of "map vars_clause Cs" "nth \<sigma>s"]
   show \<open>\<exists>\<tau>. \<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> subst_cls S (\<sigma>s ! i) = subst_cls S \<tau>\<close>
     apply auto
     subgoal for \<sigma>
@@ -221,19 +215,22 @@ lemma fxsvm: "finite X \<Longrightarrow> \<not>(Suc (v + Max (insert 0 X)) \<in>
   by (metis Max.boundedE Suc_n_not_le_n empty_iff finite.insertI le_add2 vimageE vimageI vimage_Suc_insert_0)
   
 
-lemma var_disjoint'_renamings_apart: "var_disjoint' (subst_cls_lists Cs (renamings_apart Cs))"
+lemma var_disjoint'_renamings_apart: "vars_partitioned (subst_cls_lists Cs (renamings_apart Cs))"
 proof (induction Cs)
   case Nil
-  then show ?case unfolding var_disjoint'_def subst_cls_lists_def by auto
+  then show ?case unfolding vars_partitioned_def subst_cls_lists_def by auto
 next
   case (Cons a Cs)
-  show ?case unfolding var_disjoint'_def
-  proof (rule, rule, rule, rule, rule)
+  have "\<forall>i<Suc (length Cs).
+       \<forall>j<i.
+          vars_clause (subst_cls_lists (a # Cs) (renamings_apart (a # Cs)) ! i) \<inter>
+          vars_clause (subst_cls_lists (a # Cs) (renamings_apart (a # Cs)) ! j) =
+          {}" unfolding vars_partitioned_def
+  proof (rule, rule, rule, rule)
     fix i :: "nat" and j :: "nat"
     assume a:
-      "i < length (subst_cls_lists (a # Cs) (renamings_apart (a # Cs)))" 
-      "j < length (subst_cls_lists (a # Cs) (renamings_apart (a # Cs)))" 
-      "i \<noteq> j"
+      "i < Suc (length Cs)" 
+      "j < i" 
     show "vars_clause (subst_cls_lists (a # Cs) (renamings_apart (a # Cs)) ! i) \<inter>
         vars_clause (subst_cls_lists (a # Cs) (renamings_apart (a # Cs)) ! j) =
         {}"
@@ -283,13 +280,7 @@ next
         subgoal
           using xx unfolding vars_clause_list_def by auto
         subgoal
-          using i'j' a apply auto 
-          subgoal for x 
-            apply (rule_tac x="(subst_cls_lists Cs (renamings_apart Cs) ! j')" in bexI)
-             apply simp
-            unfolding subst_cls_lists_def apply simp
-            by (metis (no_types, lifting) image_eqI len_renamings_apart' length_zip min_less_iff_conj nth_map nth_mem)
-          done
+          using i'j' a by auto 
         done
       moreover
       have "subst_cls_lists Cs (renamings_apart Cs) ! j' = subst_cls_lists (a # Cs) (renamings_apart (a # Cs)) ! j" 
@@ -300,13 +291,67 @@ next
         {}"
         by metis
     next
-      fix nat :: "nat"
-      assume 
-        "i = Suc nat" and
+      fix i' :: "nat"
+      assume i'j':
+        "i = Suc i'" 
         "j = 0"
+      then have xx: "vars_clause (subst_cls_lists (a # Cs) (renamings_apart (a # Cs)) ! j) \<inter>
+        vars_clause_list ((subst_cls_lists (Cs) (renamings_apart (Cs)))) =
+        {}"
+      proof -
+        define \<sigma>' :: "nat \<Rightarrow> nat" 
+          where "\<sigma>' = (\<lambda>v. (Suc (v + Max ((vars_clause_list (subst_cls_lists Cs 
+                        (renamings_apart Cs))) \<union> {0}))))"
+        define \<sigma> :: "nat \<Rightarrow> ('a, nat) term" 
+          where "\<sigma> = (\<lambda>v. Var (\<sigma>' v))"
+
+        have "vars_clause (subst_cls a \<sigma>) \<subseteq> UNION (range \<sigma>) vars_term" 
+          using hhh[of a "(renamings_apart (a # Cs)) ! j"] i'j' \<sigma>_def \<sigma>'_def by (auto simp add: Let_def)
+        moreover 
+        have "UNION (range \<sigma>) vars_term \<inter>
+                     vars_clause_list (subst_cls_lists Cs (renamings_apart Cs)) = {}"
+        proof -
+          have "range \<sigma>' \<inter>
+                     vars_clause_list (subst_cls_lists Cs (renamings_apart Cs)) = {}"
+            unfolding \<sigma>'_def using fxsvm by auto
+          then show "UNION (range \<sigma>) vars_term \<inter>
+                     vars_clause_list (subst_cls_lists Cs (renamings_apart Cs)) = {}"
+            unfolding \<sigma>_def \<sigma>'_def by auto
+        qed
+        ultimately
+        have fff: "vars_clause (subst_cls a \<sigma>) \<inter>
+                     vars_clause_list (subst_cls_lists Cs (renamings_apart Cs)) = {}"
+          by auto
+        show "vars_clause (subst_cls_lists (a # Cs) (renamings_apart (a # Cs)) ! j) \<inter>
+        vars_clause_list ((subst_cls_lists (Cs) (renamings_apart (Cs)))) =
+        {}"
+          using i'j'
+          using a(1) unfolding subst_cls_lists_def apply (simp add: Let_def)
+          using fff unfolding subst_cls_lists_def \<sigma>_def \<sigma>'_def by auto
+      qed
+      have "vars_clause (subst_cls_lists (a # Cs) (renamings_apart (a # Cs)) ! j) \<inter>
+        vars_clause (subst_cls_lists Cs (renamings_apart Cs) ! i') =
+        {}"
+        apply (subgoal_tac "vars_clause (subst_cls_lists Cs (renamings_apart Cs) ! i') \<subseteq> Union (set (map vars_clause ((subst_cls_lists (Cs) (renamings_apart (Cs))))))")
+        subgoal
+          using xx unfolding vars_clause_list_def by auto
+        subgoal
+          using i'j' a apply auto
+          subgoal for x 
+            apply (rule_tac x="(subst_cls_lists Cs (renamings_apart Cs) ! i')" in bexI)
+             apply simp
+            unfolding subst_cls_lists_def apply simp
+            by (metis (no_types, lifting) image_eqI len_renamings_apart' length_zip min_less_iff_conj nth_map nth_mem)
+          done
+        done
+      moreover
+      have "subst_cls_lists Cs (renamings_apart Cs) ! i' = subst_cls_lists (a # Cs) (renamings_apart (a # Cs)) ! i" 
+        using i'j' a unfolding subst_cls_lists_def by (simp add: Let_def)
+      ultimately
       show "vars_clause (subst_cls_lists (a # Cs) (renamings_apart (a # Cs)) ! i) \<inter>
         vars_clause (subst_cls_lists (a # Cs) (renamings_apart (a # Cs)) ! j) =
-        {}" sorry (* Same as above proof *)
+        {}"
+        by (simp add: Int_commute)
     next
       fix i' :: "nat" and j' :: "nat"
       assume Sucij:
@@ -319,19 +364,29 @@ next
         using a Sucij unfolding subst_cls_lists_def by (auto simp add: len_renamings_apart')
       moreover
       have "i' \<noteq> j'"
-        using \<open>i = Suc i'\<close> \<open>j = Suc j'\<close> a(3) by blast
+        using \<open>i = Suc i'\<close> \<open>j = Suc j'\<close> a by blast
       ultimately
       have "vars_clause (subst_cls_lists Cs (renamings_apart Cs) ! i') \<inter>
           vars_clause (subst_cls_lists Cs (renamings_apart Cs) ! j') =
           {}"
-        using Cons unfolding var_disjoint'_def by auto
+        using Cons unfolding vars_partitioned_def by auto
       then show "vars_clause (subst_cls_lists (a # Cs) (renamings_apart (a # Cs)) ! i) \<inter>
         vars_clause (subst_cls_lists (a # Cs) (renamings_apart (a # Cs)) ! j) =
         {}" 
         unfolding Sucij
         by (simp add: subst_cls_lists_def Let_def)
-    qed (metis a(3))
+    next
+      assume 
+        \<open>i = 0\<close> and
+        \<open>j = 0\<close>
+      then show \<open>vars_clause (subst_cls_lists (a # Cs) (renamings_apart (a # Cs)) ! i) \<inter>
+        vars_clause (subst_cls_lists (a # Cs) (renamings_apart (a # Cs)) ! j) =
+        {}\<close> using a by auto
+    qed
   qed
+  then show ?case
+    unfolding vars_partitioned_def
+    by (metis (no_types, lifting) Int_commute Suc_lessI len_renamings_apart' length_map length_nth_simps(2) length_zip min.idem nat.inject not_less_eq subst_cls_lists_def) 
 qed
 
 interpretation substitution "op \<cdot>" "Var :: _ \<Rightarrow> ('f, nat) term" "op \<circ>\<^sub>s" "Fun undefined" renamings_apart
@@ -429,10 +484,10 @@ next
   }
   moreover
   {
-    have "var_disjoint' (subst_cls_lists Cs (renamings_apart Cs))"
+    have "vars_partitioned (subst_cls_lists Cs (renamings_apart Cs))"
       using var_disjoint'_renamings_apart by auto
     then have "var_disjoint (subst_cls_lists Cs (renamings_apart Cs))"
-      using var_disjoint'_var_disjoint by auto
+      using vars_partitioned_var_disjoint by auto
   }
   ultimately show "length (renamings_apart Cs) = length Cs \<and>
     Ball (set (renamings_apart Cs)) is_renaming \<and> var_disjoint (subst_cls_lists Cs (renamings_apart Cs))"
@@ -468,11 +523,11 @@ lemma unifiers_Pairs:
     "\<forall>AA\<in>AAA. finite AA"
   shows "unifiers (set (Pairs AAA)) = {\<sigma>. is_unifiers \<sigma> AAA}"
 proof (rule; rule)
-  fix x :: "'b \<Rightarrow> ('a, 'b) Term.term"
+  fix x :: "'b \<Rightarrow> ('a, 'b) term"
   assume asm: "x \<in> unifiers (set (Pairs AAA))"
   have "\<And>AA'. AA' \<in> AAA \<Longrightarrow> card (AA' \<cdot>set x) \<le> Suc 0"
   proof -
-    fix AA' :: "('a, 'b) Term.term set"
+    fix AA' :: "('a, 'b) term set"
     assume asm': "AA' \<in> AAA"
     then have fff: "\<forall>a\<in>AA'. \<forall>b\<in>AA'. subst_atm_abbrev a x = subst_atm_abbrev b x"
       using assms asm unfolding Pairs_def unifiers_def
