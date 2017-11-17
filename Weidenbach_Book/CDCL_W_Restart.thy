@@ -193,7 +193,7 @@ qed
 
 inductive cdcl\<^sub>W_restart_with_restart where
 restart_step:
-  "(cdcl\<^sub>W_stgy\<^sup>*\<^sup>*) S T \<Longrightarrow>
+  "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* S T \<Longrightarrow>
      card (set_mset (learned_clss T)) - card (set_mset (learned_clss S)) > f n \<Longrightarrow>
      restart T U \<Longrightarrow>
    cdcl\<^sub>W_restart_with_restart (S, n) (U, Suc n)" |
@@ -218,7 +218,7 @@ lemma cdcl\<^sub>W_restart_with_restart_init_clss:
      init_clss (fst S) = init_clss (fst T)"
   using cdcl\<^sub>W_restart_with_restart_rtranclp_cdcl\<^sub>W_restart rtranclp_cdcl\<^sub>W_restart_init_clss by blast
 
-lemma
+theorem
   "wf {(T, S). cdcl\<^sub>W_all_struct_inv (fst S) \<and> cdcl\<^sub>W_restart_with_restart S T}"
 proof (rule ccontr)
   assume "\<not> ?thesis"
@@ -251,7 +251,6 @@ proof (rule ccontr)
     using not_bounded_nat_exists_larger[OF unbounded_f_g] by blast
   text \<open>The following does not hold anymore with the non-strict version of
     cardinality in the definition.\<close>
-
    have H: False if \<open>no_step cdcl\<^sub>W_stgy (fst (g i))\<close> for i
      using g[of i] that
    proof (induction rule: cdcl\<^sub>W_restart_with_restart.induct)
@@ -272,19 +271,22 @@ proof (rule ccontr)
   have "cdcl\<^sub>W_all_struct_inv T"
     using inv[of k] rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart
       cdcl\<^sub>W_stgy by blast
-  moreover have "card (set_mset (learned_clss T)) - card (set_mset (learned_clss (fst (g k))))
+  moreover {
+    have "card (set_mset (learned_clss T)) - card (set_mset (learned_clss (fst (g k))))
       > card (simple_clss (atms_of_mm (init_clss (fst ?S))))"
       unfolding m[symmetric] using \<open>m > f (snd (g k))\<close> f_g_k by linarith
     then have "card (set_mset (learned_clss T))
       > card (simple_clss (atms_of_mm (init_clss (fst ?S))))"
       by linarith
-  moreover
+  }
+  moreover {
     have "init_clss (fst (g k)) = init_clss T"
       using \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (fst (g k)) T\<close> rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart rtranclp_cdcl\<^sub>W_restart_init_clss
       inv unfolding cdcl\<^sub>W_all_struct_inv_def
       by blast
     then have "init_clss (fst ?S) = init_clss T"
       using init_g[of k] by auto
+  }
   ultimately show False
     using cdcl\<^sub>W_all_struct_inv_learned_clss_bound
     by (simp add: \<open>finite (atms_of_mm (init_clss (fst (g 0))))\<close> simple_clss_finite
@@ -349,7 +351,8 @@ next
     qed
 qed
 
-text \<open>Luby sequences are defined by:
+text \<open>
+  Luby sequences are defined by:
    \<^item> @{term "(2::nat)^(k::nat)- 1"}, if @{term "i = 2^k - 1"}
    \<^item> @{term "luby_sequence_core (i - (2::nat)^(k - 1) + 1)"}, if @{term "2^(k - 1) \<le> i"} and
    @{term "i \<le> 2^k - 1"}
@@ -399,13 +402,6 @@ next
         using f2 less_than_iff by presburger
     qed
 qed
-
-function natlog2 :: "nat \<Rightarrow> nat" where
-"natlog2 n = (if n = 0 then 0 else 1 + natlog2 (n div 2))"
-  using not0_implies_Suc by auto
-termination by (relation "measure (\<lambda>n. n)") auto
-
-declare natlog2.simps[simp del]
 
 declare luby_sequence_core.simps[simp del]
 
