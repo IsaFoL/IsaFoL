@@ -193,7 +193,7 @@ qed
 
 inductive cdcl\<^sub>W_restart_with_restart where
 restart_step:
-  "(cdcl\<^sub>W_stgy^^(card (set_mset (learned_clss T)) - card (set_mset (learned_clss S)))) S T \<Longrightarrow>
+  "(cdcl\<^sub>W_stgy\<^sup>*\<^sup>*) S T \<Longrightarrow>
      card (set_mset (learned_clss T)) - card (set_mset (learned_clss S)) > f n \<Longrightarrow>
      restart T U \<Longrightarrow>
    cdcl\<^sub>W_restart_with_restart (S, n) (U, Suc n)" |
@@ -214,7 +214,8 @@ lemma "full1 cdcl\<^sub>W_stgy S T \<Longrightarrow> cdcl\<^sub>W_restart_with_r
   using restart_full by blast
 
 lemma cdcl\<^sub>W_restart_with_restart_init_clss:
-  "cdcl\<^sub>W_restart_with_restart S T \<Longrightarrow>  cdcl\<^sub>W_M_level_inv (fst S) \<Longrightarrow> init_clss (fst S) = init_clss (fst T)"
+  "cdcl\<^sub>W_restart_with_restart S T \<Longrightarrow>  cdcl\<^sub>W_M_level_inv (fst S) \<Longrightarrow>
+     init_clss (fst S) = init_clss (fst T)"
   using cdcl\<^sub>W_restart_with_restart_rtranclp_cdcl\<^sub>W_restart rtranclp_cdcl\<^sub>W_restart_init_clss by blast
 
 lemma
@@ -250,30 +251,27 @@ proof (rule ccontr)
     using not_bounded_nat_exists_larger[OF unbounded_f_g] by blast
   text \<open>The following does not hold anymore with the non-strict version of
     cardinality in the definition.\<close>
-  { fix i
-    assume "no_step cdcl\<^sub>W_stgy (fst (g i))"
-    with g[of i]
-    have False
-      proof (induction rule: cdcl\<^sub>W_restart_with_restart.induct)
-        case (restart_step T S n) note H = this(1) and c = this(2) and n_s = this(4)
-        obtain S' where "cdcl\<^sub>W_stgy S S'"
-          using H c by (metis gr_implies_not0 relpowp_E2)
-        then show False using n_s by auto
-      next
-        case (restart_full S T)
-        then show False unfolding full1_def by (auto dest: tranclpD)
-      qed
-    } note H = this
+
+   have H: False if \<open>no_step cdcl\<^sub>W_stgy (fst (g i))\<close> for i
+     using g[of i] that
+   proof (induction rule: cdcl\<^sub>W_restart_with_restart.induct)
+     case (restart_step S T n) note H = this(1) and c = this(2) and n_s = this(4)
+    obtain S' where "cdcl\<^sub>W_stgy S S'"
+      using H c  by (subst (asm) rtranclp_unfold) (auto dest!: tranclpD)
+     then show False using n_s by auto
+   next
+     case (restart_full S T)
+     then show False unfolding full1_def by (auto dest: tranclpD)
+   qed
   obtain m T where
     m: "m = card (set_mset (learned_clss T)) - card (set_mset (learned_clss (fst (g k))))" and
     "m > f (snd (g k))" and
     "restart T (fst (g (k+1)))" and
-    cdcl\<^sub>W_stgy: "(cdcl\<^sub>W_stgy ^^ m) (fst (g k)) T"
+    cdcl\<^sub>W_stgy: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (fst (g k)) T"
     using g[of k] H[of "Suc k"] by (force simp: cdcl\<^sub>W_restart_with_restart.simps full1_def)
-  have "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (fst (g k)) T"
-    using cdcl\<^sub>W_stgy relpowp_imp_rtranclp by metis
-  then have "cdcl\<^sub>W_all_struct_inv T"
-    using inv[of k]  rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart by blast
+  have "cdcl\<^sub>W_all_struct_inv T"
+    using inv[of k] rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart
+      cdcl\<^sub>W_stgy by blast
   moreover have "card (set_mset (learned_clss T)) - card (set_mset (learned_clss (fst (g k))))
       > card (simple_clss (atms_of_mm (init_clss (fst ?S))))"
       unfolding m[symmetric] using \<open>m > f (snd (g k))\<close> f_g_k by linarith
@@ -305,7 +303,7 @@ proof (induction)
   then show ?case using rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses[of S T] unfolding full1_def
     by (auto dest: tranclp_into_rtranclp)
 next
-  case (restart_step T S n U)
+  case (restart_step S T n U)
   then have "distinct_mset (clauses T)" using rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses[of S T]
     unfolding full1_def by (auto dest: relpowp_imp_rtranclp)
   then show ?case using \<open>restart T U\<close> unfolding clauses_def
