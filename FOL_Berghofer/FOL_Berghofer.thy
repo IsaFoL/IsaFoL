@@ -637,7 +637,7 @@ It can be shown that a maximal consistent set is a {\em Hintikka set}
 models, where closed terms coincide with their interpretation.
 \<close>
 
-subsection \<open>Andsistent sets\<close>
+subsection \<open>Consistent sets\<close>
 
 text \<open>
 \label{sec:consistent-sets}
