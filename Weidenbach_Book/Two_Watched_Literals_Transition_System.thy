@@ -4744,43 +4744,6 @@ lemma tranclp_wf_cdcl_twl_o:
 fun get_learned_clss :: "'v twl_st \<Rightarrow> 'v twl_clss" where
   \<open>get_learned_clss (_, N, U, _, _, _, _) = N + U\<close>
 
-locale twl_restart =
-  fixes
-    f :: \<open>nat \<Rightarrow> nat\<close>
-  assumes
-    f: \<open>unbounded f\<close>
-begin
-
-text \<open>This should be moved to @{file CDCL_W_Abstract_State.thy}\<close>
-sublocale cdcl\<^sub>W_restart_mset: cdcl\<^sub>W_restart_restart where
-  state = state and
-  trail = trail and
-  init_clss = init_clss and
-  learned_clss = learned_clss and
-  conflicting = conflicting and
-
-  state_eq = state_eq and
-  cons_trail = cons_trail and
-  tl_trail = tl_trail and
-  add_learned_cls = add_learned_cls and
-  remove_cls = remove_cls and
-  update_conflicting = update_conflicting and
-  init_state = init_state and
-  f = f
-  by unfold_locales (rule f)
-
-inductive twl_restart_with_restart :: \<open>'v twl_st \<times> nat \<Rightarrow> 'v twl_st \<times> nat \<Rightarrow> bool\<close> where
-restart_step:
-  \<open>twl_restart_with_restart (S, n) (T, Suc n)\<close>
-  if
-    \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S T\<close> and
-    \<open>size (get_learned_clss T) - size (get_learned_clss S) > f n\<close> and
-    \<open>cdcl_twl_restart T U\<close> |
-restart_full:
- \<open>twl_restart_with_restart (S, n) (T, Suc n)\<close>
- if
-    \<open>full1 cdcl_twl_stgy S T\<close>
-
 lemma (in -)propa_cands_enqueued_mono:
   \<open>U' \<subseteq># U \<Longrightarrow>
      propa_cands_enqueued  (M, N, U, D, NP, UP, WS, Q) \<Longrightarrow>
@@ -4804,6 +4767,15 @@ lemma (in -)twl_st_inv_mono:
      twl_st_inv  (M, N, U, D, NP, UP, WS, Q) \<Longrightarrow>
       twl_st_inv  (M, N, U', D, NP, UP, WS, Q)\<close>
   by (cases D) (fastforce simp: twl_st_inv.simps)+
+
+lemma (in -) rtranclp_cdcl_twl_stgy_twl_stgy_invs:
+  assumes
+    \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S T\<close> and
+    \<open>twl_struct_invs S\<close> and
+    \<open>twl_stgy_invs S\<close>
+  shows \<open>twl_stgy_invs T\<close>
+  using assms cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant
+    rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy unfolding twl_stgy_invs_def twl_struct_invs_def by blast
 
 lemma after_fast_restart_replay:
   assumes
@@ -4980,6 +4952,43 @@ proof -
     qed
   qed
 qed
+
+locale twl_restart =
+  fixes
+    f :: \<open>nat \<Rightarrow> nat\<close>
+  assumes
+    f: \<open>unbounded f\<close>
+begin
+
+text \<open>This should be moved to @{file CDCL_W_Abstract_State.thy}\<close>
+sublocale cdcl\<^sub>W_restart_mset: cdcl\<^sub>W_restart_restart where
+  state = state and
+  trail = trail and
+  init_clss = init_clss and
+  learned_clss = learned_clss and
+  conflicting = conflicting and
+
+  state_eq = state_eq and
+  cons_trail = cons_trail and
+  tl_trail = tl_trail and
+  add_learned_cls = add_learned_cls and
+  remove_cls = remove_cls and
+  update_conflicting = update_conflicting and
+  init_state = init_state and
+  f = f
+  by unfold_locales (rule f)
+
+inductive twl_restart_with_restart :: \<open>'v twl_st \<times> nat \<Rightarrow> 'v twl_st \<times> nat \<Rightarrow> bool\<close> where
+restart_step:
+  \<open>twl_restart_with_restart (S, n) (T, Suc n)\<close>
+  if
+    \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S T\<close> and
+    \<open>size (get_learned_clss T) - size (get_learned_clss S) > f n\<close> and
+    \<open>cdcl_twl_restart T U\<close> |
+restart_full:
+ \<open>twl_restart_with_restart (S, n) (T, Suc n)\<close>
+ if
+    \<open>full1 cdcl_twl_stgy S T\<close>
 
 lemma cdcl_twl_restart_cdcl\<^sub>W_stgy:
   assumes
@@ -5191,13 +5200,38 @@ proof (induction rule: cdcl_twl_restart.induct)
     done
 qed
 
-lemma
+
+lemma cdcl_twl_restart_twl_stgy_invs:
   assumes
-    \<open>twl_restart_with_restart (S, n) (T, m)\<close> and
-    \<open>twl_struct_invs S\<close>
-  shows \<open>twl_struct_invs T\<close>
-  using assms apply (induction rule: twl_restart_with_restart.induct)
-  oops
+    \<open>cdcl_twl_restart S T\<close> and \<open>twl_stgy_invs S\<close>
+  shows \<open>twl_stgy_invs T\<close>
+  using assms
+  by (induction rule: cdcl_twl_restart.induct)
+   (auto simp: twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+      conflicting.simps cdcl\<^sub>W_restart_mset.no_smaller_confl_def clauses_def trail.simps
+      dest!: get_all_ann_decomposition_exists_prepend)
+
+lemma twl_restart_with_restart_twl_struct_invs:
+  assumes
+    \<open>twl_restart_with_restart S T\<close> and
+    \<open>twl_struct_invs (fst S)\<close> and
+    \<open>twl_stgy_invs (fst S)\<close>
+  shows \<open>twl_struct_invs (fst T)\<close>
+  using assms
+  by (induction rule: twl_restart_with_restart.induct)
+    (auto simp add: full1_def dest!: rtranclp_cdcl_twl_stgy_twl_struct_invs tranclp_into_rtranclp)
+
+lemma twl_restart_with_restart_twl_stgy_invs:
+  assumes
+    \<open>twl_restart_with_restart S T\<close> and
+    \<open>twl_struct_invs (fst S)\<close> and
+    \<open>twl_stgy_invs (fst S)\<close>
+  shows \<open>twl_stgy_invs (fst T)\<close>
+  using assms
+  by (induction rule: twl_restart_with_restart.induct)
+    (auto simp add: full1_def  dest!: tranclp_into_rtranclp
+      intro: rtranclp_cdcl_twl_stgy_twl_stgy_invs)
+
 end
 
 end
