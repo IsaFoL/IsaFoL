@@ -45,7 +45,10 @@ begin
 
 text \<open>The condition of the differences of cardinality has to be strict.
   Otherwise, you could be in a strange state, where nothing remains to do, but a restart is done.
-  See the proof of well-foundedness.\<close>
+  See the proof of well-foundedness. The same applies for the \<^term>\<open>full1 cdcl\<^sub>W_stgy S T\<close>:
+  With a \<^term>\<open>full cdcl\<^sub>W_stgy S T\<close>, this rules could be applied one after the other, doing
+  nothing each time.
+\<close>
 
 inductive cdcl\<^sub>W_merge_with_restart where
 restart_step:
