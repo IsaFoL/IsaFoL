@@ -274,7 +274,7 @@ next
   case (Cons C Cs)
   {
     fix i :: "nat" and j :: "nat"
-    assume a:
+    assume ij:
       "i < Suc (length Cs)" 
       "j < i" 
     have "vars_clause (subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! i) \<inter>
@@ -288,7 +288,7 @@ next
       then show "vars_clause (subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! i) \<inter>
         vars_clause (subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! j) =
         {}"
-        using a by auto
+        using ij by auto
     next
       fix i' :: "nat"
       assume i'j':
@@ -297,24 +297,27 @@ next
       have disjoin_C_Cs: "vars_clause (subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! 0) \<inter>
         vars_clause_list ((subst_cls_lists Cs (renamings_apart Cs))) = {}"
         using vars_clause_hd_partitioned_from_tl[of "C#Cs"] by (simp add: Let_def subst_cls_lists_def)
-      have "vars_clause (subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! 0) \<inter>
+      {
+        fix x
+        assume asm: "x \<in> vars_clause (subst_cls_lists Cs (renamings_apart Cs) ! i')"
+        then have "(subst_cls_lists Cs (renamings_apart Cs) ! i') \<in> set (subst_cls_lists Cs (renamings_apart Cs))"
+          using i'j' ij unfolding subst_cls_lists_def 
+          by (metis Suc_less_SucD length_map len_renamings_apart length_zip min_less_iff_conj nth_mem) 
+        moreover from asm have
+          "x \<in> vars_clause ((subst_cls_lists Cs (renamings_apart Cs) ! i'))"
+          using i'j' ij
+          unfolding subst_cls_lists_def by simp
+        ultimately have "\<exists>D\<in>set (subst_cls_lists Cs (renamings_apart Cs)). x \<in> vars_clause D"
+            by auto
+      }
+      then have "vars_clause (subst_cls_lists Cs (renamings_apart Cs) ! i') \<subseteq> Union (set (map vars_clause ((subst_cls_lists Cs (renamings_apart Cs)))))"
+        by auto
+      then have "vars_clause (subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! 0) \<inter>
         vars_clause (subst_cls_lists Cs (renamings_apart Cs) ! i') =
-        {}"
-        apply (subgoal_tac "vars_clause (subst_cls_lists Cs (renamings_apart Cs) ! i') \<subseteq> Union (set (map vars_clause ((subst_cls_lists (Cs) (renamings_apart (Cs))))))")
-        subgoal
-          using disjoin_C_Cs unfolding vars_clause_list_def by auto
-        subgoal
-          using i'j' a apply auto
-          subgoal for x 
-            apply (rule_tac x="(subst_cls_lists Cs (renamings_apart Cs) ! i')" in bexI)
-             apply simp
-            unfolding subst_cls_lists_def apply simp
-            by (metis (no_types, lifting) image_eqI len_renamings_apart length_zip min_less_iff_conj nth_map nth_mem)
-          done
-        done
+        {}" using disjoin_C_Cs unfolding vars_clause_list_def by auto
       moreover
       have "subst_cls_lists Cs (renamings_apart Cs) ! i' = subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! i"
-        using i'j' a unfolding subst_cls_lists_def by (simp add: Let_def)
+        using i'j' ij unfolding subst_cls_lists_def by (simp add: Let_def)
       ultimately
       show "vars_clause (subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! i) \<inter>
         vars_clause (subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! j) =
@@ -326,13 +329,13 @@ next
         "i = Suc i'"
         "j = Suc j'"
       have "i'<length (subst_cls_lists Cs (renamings_apart Cs))"
-        using a i'j' unfolding subst_cls_lists_def by (auto simp add: len_renamings_apart)
+        using ij i'j' unfolding subst_cls_lists_def by (auto simp add: len_renamings_apart)
       moreover
       have "j'<length (subst_cls_lists Cs (renamings_apart Cs))"
-        using a i'j' unfolding subst_cls_lists_def by (auto simp add: len_renamings_apart)
+        using ij i'j' unfolding subst_cls_lists_def by (auto simp add: len_renamings_apart)
       moreover
       have "i' \<noteq> j'"
-        using \<open>i = Suc i'\<close> \<open>j = Suc j'\<close> a by blast
+        using \<open>i = Suc i'\<close> \<open>j = Suc j'\<close> ij by blast
       ultimately
       have "vars_clause (subst_cls_lists Cs (renamings_apart Cs) ! i') \<inter>
           vars_clause (subst_cls_lists Cs (renamings_apart Cs) ! j') =
@@ -349,7 +352,7 @@ next
         \<open>j = 0\<close>
       then show \<open>vars_clause (subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! i) \<inter>
         vars_clause (subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! j) =
-        {}\<close> using a by auto
+        {}\<close> using ij by auto
     qed
   }
   then show ?case
