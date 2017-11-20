@@ -43,12 +43,16 @@ sublocale cdcl\<^sub>W_restart_mset: cdcl\<^sub>W_restart_restart where
   f = f
   by unfold_locales (rule f)
 
+
+fun get_all_init_clss :: "'v twl_st \<Rightarrow> 'v clause multiset" where
+  \<open>get_all_init_clss (M, N, U, D, NP, UP, WS, Q) = clause `# N + NP\<close>
+
 inductive cdcl_twl_stgy_restart :: \<open>'v twl_st \<times> nat \<Rightarrow> 'v twl_st \<times> nat \<Rightarrow> bool\<close> where
 restart_step:
   \<open>cdcl_twl_stgy_restart (S, n) (U, Suc n)\<close>
   if
     \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S T\<close> and
-    \<open>size (get_learned_clss T) - size (get_learned_clss S) > f n\<close> and
+    \<open>size (get_all_learned_clss T) - size (get_all_init_clss S) > f n\<close> and
     \<open>cdcl_twl_restart T U\<close> |
 restart_full:
  \<open>cdcl_twl_stgy_restart (S, n) (T, Suc n)\<close>
@@ -330,21 +334,45 @@ qed
 
 lemma
   assumes \<open>cdcl_twl_stgy_restart S T\<close> and
-    \<open>twl_struct_invs (fst S)\<close>
-  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_with_restart (state\<^sub>W_of (fst S), snd S) (state\<^sub>W_of (fst T), snd T)\<close>
+    \<open>twl_struct_invs (fst S)\<close> and
+    \<open>distinct_mset (get_all_learned_clss (fst S))\<close>
+  shows 
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_with_restart (state\<^sub>W_of (fst S), snd S)
+       (state\<^sub>W_of (fst T), snd T) \<or>
+    no_step cdcl_twl_stgy (fst T)\<close>
 proof (use assms in \<open>induction rule: cdcl_twl_stgy_restart.induct\<close>)
-  case (restart_step S T n U)
-  then show ?case
+  case (restart_step S T n U) note st = this(1) and f = this(2) and restart = this(3) and 
+    struct = this(4) and dist = this(5)
+  have 1: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
+    using st struct
+    sorry
+
+  have \<open>distinct_mset (get_all_learned_clss T)\<close>
+    sorry
+  then have \<open>card (set_mset (learned_clss (state\<^sub>W_of T))) = size (get_all_learned_clss T)\<close>
+    by (cases T) (auto simp: learned_clss.simps dest!: distinct_mset_size_eq_card)
+  moreover have \<open>size (get_all_init_clss S) \<ge> card (set_mset (learned_clss (state\<^sub>W_of S)))\<close>
+    apply (cases S)
+    apply (auto simp: learned_clss.simps intro: card_Un_le order.trans)
+    sorry
+  ultimately have 
+    2: \<open>f n < card (set_mset (learned_clss (state\<^sub>W_of T))) - card (set_mset (learned_clss (state\<^sub>W_of S)))\<close>
+    using f by linarith
+
+  have 3: \<open>cdcl\<^sub>W_restart_mset.restart (state\<^sub>W_of T) (state\<^sub>W_of U)\<close>
+    using st restart apply (auto simp: cdcl\<^sub>W_restart_mset.restart.simps cdcl_twl_restart.simps
+        cdcl\<^sub>W_restart_mset_state state_def)
+    sorry
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_with_restart (state\<^sub>W_of S, n) (state\<^sub>W_of U, Suc n)\<close>
+    apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_with_restart.intros(1))
+      apply (rule 1)
+     apply (rule 2)
+    sorry
+
+    show ?case
 
     sorry
-next
-  case (restart_full S T n)
-  then show ?case
-    using tranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy[of S T]
-    unfolding full1_def apply (auto intro!: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_with_restart.intros(2)
-        simp: full1_def)
-     sorry
-qed
+  oops
 
 term cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_with_restart
 lemma

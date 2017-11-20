@@ -4726,8 +4726,8 @@ lemma tranclp_wf_cdcl_twl_o:
   \<open>wf {(T, S::'v twl_st). twl_struct_invs S \<and> cdcl_twl_o\<^sup>+\<^sup>+ S T}\<close>
   by (rule wf_subset[OF tranclp_wf_cdcl_twl_stgy]) (auto dest: tranclp_cdcl_twl_o_stgyD)
 
-fun get_learned_clss :: "'v twl_st \<Rightarrow> 'v twl_clss" where
-  \<open>get_learned_clss (_, N, U, _, _, _, _) = N + U\<close>
+fun get_all_learned_clss :: "'v twl_st \<Rightarrow> 'v clauses" where
+  \<open>get_all_learned_clss (_, N, U, _, _, UP, _) = clause `# U + UP\<close>
 
 lemma (in -)propa_cands_enqueued_mono:
   \<open>U' \<subseteq># U \<Longrightarrow>
