@@ -227,18 +227,12 @@ lemma vars_partitioned_Nil[simp]: "vars_partitioned []"
 lemma subst_cls_lists_Nil[simp]: "subst_cls_lists Cs [] = []"
   unfolding subst_cls_lists_def by auto
 
-lemma gpggg:
-  assumes 
-    "i' < (length Cs)"
-  shows "subst_cls_lists (C # Cs) (\<sigma> # \<sigma>s) ! (Suc i') = subst_cls_lists Cs \<sigma>s ! i'"
-  unfolding subst_cls_lists_def by auto
-
 lemma vars_partitioned_renamings_apart: "vars_partitioned (subst_cls_lists Cs (renamings_apart Cs))"
 proof (induction Cs)
   case Nil
   then show ?case by auto
 next
-  case (Cons C Cs) (* Fixme: a should be C *)
+  case (Cons C Cs)
   {
     fix i :: "nat" and j :: "nat"
     assume a:
@@ -320,14 +314,14 @@ next
         by (simp add: Int_commute)
     next
       fix i' :: "nat" and j' :: "nat"
-      assume Sucij:
+      assume i'j':
         "i = Suc i'" 
         "j = Suc j'"
       have "i'<length (subst_cls_lists Cs (renamings_apart Cs))"
-        using a Sucij unfolding subst_cls_lists_def by (auto simp add: len_renamings_apart)
+        using a i'j' unfolding subst_cls_lists_def by (auto simp add: len_renamings_apart)
       moreover
       have "j'<length (subst_cls_lists Cs (renamings_apart Cs))"
-        using a Sucij unfolding subst_cls_lists_def by (auto simp add: len_renamings_apart)
+        using a i'j' unfolding subst_cls_lists_def by (auto simp add: len_renamings_apart)
       moreover
       have "i' \<noteq> j'"
         using \<open>i = Suc i'\<close> \<open>j = Suc j'\<close> a by blast
@@ -339,7 +333,7 @@ next
       then show "vars_clause (subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! i) \<inter>
         vars_clause (subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! j) =
         {}" 
-        unfolding Sucij
+        unfolding i'j'
         by (simp add: subst_cls_lists_def Let_def)
     next
       assume 
@@ -396,10 +390,10 @@ next
     fix A
     show "is_ground_atm (subst_atm_abbrev A \<tau>)"
     proof (induction A)
-      case (Var x)
+      case (Var v)
       then show ?case using all_ground_\<tau> by auto
     next
-      case (Fun x1a x2)
+      case (Fun f As)
       then show ?case using all_ground_\<tau>
         by (simp add: is_ground_atm_def)
     qed
@@ -506,11 +500,11 @@ next
   qed
 qed
 
-lemma gpgghf: (* FIXME: Better name *)
+lemma in_pairs_sorted_list_of_set_in_set:
   assumes 
     "finite AAA"
     "\<forall>AA \<in> AAA. finite AA"
-    "AB_pairs \<in> set (sorted_list_of_set ((pairs \<circ> sorted_list_of_set) ` AAA))" and
+    "AB_pairs \<in> ((pairs \<circ> sorted_list_of_set) ` AAA)" and
     "(A :: 'a :: linorder, B) \<in> set AB_pairs"
   shows "\<exists>AA. AA \<in> AAA \<and> A \<in> AA \<and> B \<in> AA"
 proof -
@@ -560,31 +554,31 @@ next
     assume "AB_pairs \<in> set (sorted_list_of_set ((pairs \<circ> sorted_list_of_set) ` AAA))"
       "(A, B) \<in> set AB_pairs"
     then have "\<exists>AA. AA \<in> AAA \<and> A \<in> AA \<and> B \<in> AA"
-      using gpgghf assms by blast
+      using assms by (simp add: in_pairs_sorted_list_of_set_in_set)
     then obtain AA where
      a: "AA \<in> AAA" "A \<in> AA" "B \<in> AA"
       by blast
-    from a assms asm have asdf: "card (AA \<cdot>set \<sigma>) \<le> Suc 0" (* FIXME: rename asdf *)
+    from a assms asm have card_AA_\<sigma>: "card (AA \<cdot>set \<sigma>) \<le> Suc 0"
       unfolding is_unifiers_def is_unifier_def subst_atms_def by auto 
     have "subst_atm_abbrev A \<sigma> = subst_atm_abbrev B \<sigma>"
     proof (cases "card (AA \<cdot>set \<sigma>) = Suc 0")
       case True
       moreover
       have "subst_atm_abbrev A \<sigma> \<in> AA \<cdot>set \<sigma>"
-        using a assms asm asdf by auto
+        using a assms asm card_AA_\<sigma> by auto
       moreover
       have "subst_atm_abbrev B \<sigma> \<in> AA \<cdot>set \<sigma>"
-        using a assms asm asdf by auto
+        using a assms asm card_AA_\<sigma> by auto
       ultimately
       show ?thesis 
-        using a assms asm asdf by (metis (no_types, lifting) card_Suc_eq singletonD)
+        using a assms asm card_AA_\<sigma> by (metis (no_types, lifting) card_Suc_eq singletonD)
     next
       case False
       then have "card (AA \<cdot>set \<sigma>) = 0"
-        using a assms asm asdf
+        using a assms asm card_AA_\<sigma>
         by arith
       then show ?thesis
-        using a assms asm asdf by auto
+        using a assms asm card_AA_\<sigma> by auto
     qed
   }
   then show "\<sigma> \<in> unifiers (set (Pairs AAA))" 
