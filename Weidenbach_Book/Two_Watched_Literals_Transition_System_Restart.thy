@@ -295,6 +295,128 @@ lemma cdcl_twl_stgy_restart_twl_stgy_invs:
     (auto simp add: full1_def  dest!: tranclp_into_rtranclp
       intro: cdcl_twl_restart_twl_stgy_invs rtranclp_cdcl_twl_stgy_twl_stgy_invs )
 
+lemma (in -) cdcl_twl_stgy_cdcl\<^sub>W_stgy3:
+  assumes \<open>cdcl_twl_stgy S T\<close> and twl: \<open>twl_struct_invs S\<close> and
+    \<open>clauses_to_update S = {#}\<close> and
+    \<open>literals_to_update S = {#}\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
+  using cdcl_twl_stgy_cdcl\<^sub>W_stgy2[OF assms(1,2)] assms(3-)
+  by (auto simp: lexn2_conv)
+
+lemma (in -) tranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy:
+  assumes ST: \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ S T\<close> and
+    twl: \<open>twl_struct_invs S\<close> and
+    \<open>clauses_to_update S = {#}\<close> and
+    \<open>literals_to_update S = {#}\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>+\<^sup>+ (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
+proof -
+  obtain S' where
+    SS': \<open>cdcl_twl_stgy S S'\<close> and
+    S'T: \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S' T\<close>
+    using ST unfolding tranclp_unfold_begin by blast
+
+  have 1: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state\<^sub>W_of S) (state\<^sub>W_of S')\<close>
+    using cdcl_twl_stgy_cdcl\<^sub>W_stgy3[OF SS' assms(2-4)]
+    by blast
+  have struct_S': \<open>twl_struct_invs S'\<close>
+    using twl SS' by (blast intro: cdcl_twl_stgy_twl_struct_invs)
+  have 2: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (state\<^sub>W_of S') (state\<^sub>W_of T)\<close>
+    apply (rule rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy)
+     apply (rule S'T)
+    by (rule struct_S')
+  show ?thesis
+    using 1 2 by auto
+qed
+
+lemma
+  assumes \<open>cdcl_twl_stgy_restart S T\<close> and
+    \<open>twl_struct_invs (fst S)\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_with_restart (state\<^sub>W_of (fst S), snd S) (state\<^sub>W_of (fst T), snd T)\<close>
+proof (use assms in \<open>induction rule: cdcl_twl_stgy_restart.induct\<close>)
+  case (restart_step S T n U)
+  then show ?case
+
+    sorry
+next
+  case (restart_full S T n)
+  then show ?case
+    using tranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy[of S T]
+    unfolding full1_def apply (auto intro!: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_with_restart.intros(2)
+        simp: full1_def)
+     sorry
+qed
+
+term cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_with_restart
+lemma
+  assumes \<open>cdcl_twl_stgy_restart S T\<close> and
+    \<open>twl_struct_invs (fst S)\<close>
+  shows \<open>(cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_with_restart\<^sup>+\<^sup>+ (state\<^sub>W_of (fst S), snd S) (state\<^sub>W_of (fst T), snd T)) \<or>
+     (cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_with_restart\<^sup>*\<^sup>* (state\<^sub>W_of (fst S), snd S) (state\<^sub>W_of (fst T), snd T)) \<and>
+       no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart (state\<^sub>W_of (fst S))\<close>
+proof (use assms in \<open>induction rule: cdcl_twl_stgy_restart.induct\<close>)
+  case (restart_step S T n U)
+  then show ?case sorry
+next
+  case (restart_full S T n)
+  then have
+    st: \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ S T\<close>  and
+    ns: \<open>no_step cdcl_twl_stgy T\<close> and
+    struct: \<open>twl_struct_invs S\<close>
+    by (auto simp: full1_def)
+  have struct_T: \<open>twl_struct_invs T\<close>
+    by (meson rtranclp_cdcl_twl_stgy_twl_struct_invs rtranclp_unfold st struct)
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart\<^sup>*\<^sup>* (state\<^sub>W_of (fst (S, n))) (state\<^sub>W_of (fst (T, Suc n)))\<close>
+    using st struct no_step_cdcl_twl_stgy_no_step_cdcl\<^sub>W_stgy[of T]
+      rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy[of S T]
+    unfolding full1_def
+    apply simp(* TODO Proof *)
+    by (meson cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart rtranclp_unfold)
+  moreover have \<open>no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state\<^sub>W_of T)\<close>
+    apply (rule no_step_cdcl_twl_stgy_no_step_cdcl\<^sub>W_stgy)
+    using restart_full unfolding full1_def apply blast
+    using struct_T .
+  then have \<open>no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart (state\<^sub>W_of T)\<close>
+    apply (auto
+        dest!: cdcl\<^sub>W_restart_mset.tranclp_cdcl\<^sub>W_stgy_tranclp_cdcl\<^sub>W_restart)
+
+    sorry
+  ultimately show ?case
+    apply simp
+    apply (auto dest: cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart
+        rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy simp: rtranclp_unfold
+        dest!: cdcl\<^sub>W_restart_mset.tranclp_cdcl\<^sub>W_stgy_tranclp_cdcl\<^sub>W_restart)
+
+    sorry
+qed
+
+lemma tranclp_wf_cdcl_twl_stgy:
+  \<open>wf {(T, S). twl_struct_invs (fst S) \<and> cdcl_twl_stgy_restart S T}\<close>
+  (is \<open>wf ?S\<close>)
+proof -
+  let ?CDCL = \<open>{(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S) \<and>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart\<^sup>+\<^sup>+ (state\<^sub>W_of S) (state\<^sub>W_of T)}\<close>
+  have \<open>?S \<subseteq> {(T, S). twl_struct_invs (fst S) \<and> cdcl_twl_stgy_restart\<^sup>+\<^sup>+ S T}\<close>
+  proof
+    fix TS
+    assume H: \<open>TS \<in> {(T, S). twl_struct_invs (fst S) \<and> cdcl_twl_stgy_restart S T}\<close>
+    obtain S T where
+      \<open>TS = (T, S)\<close> by (cases TS)
+    with H have
+      \<open>twl_struct_invs (fst S)\<close> and
+      \<open>cdcl_twl_stgy_restart S T\<close>
+      by simp_all
+
+    have \<open>cdcl_twl_stgy_restart\<^sup>+\<^sup>+ S T\<close>
+
+
+
+
+
+    show \<open>ST \<in> {(T, S). twl_struct_invs (fst S) \<and> cdcl_twl_stgy_restart\<^sup>+\<^sup>+ S T}\<close>
+      sorry
+
+
+
 end
 
 end
