@@ -8,7 +8,7 @@ section \<open>Integration of IsaFoR Terms\<close>
 theory IsaFoR_Term
   imports Deriving.Derive Abstract_Substitution  "../lib/Explorer"
 (* "AFP_IsaFoR/AFP_Unifiers" "AFP_IsaFoR/AFP_Subsumption" *)
- "$ISAFOR/Normalization_Equivalence/Encompassment" 
+ "$ISAFOR/Normalization_Equivalence/Encompassment" "./AFP_IsaFoR/Fun_More"
 begin
 
 hide_const (open) mgu
@@ -261,9 +261,8 @@ next
       assume i'j':
         "i = Suc i'" 
         "j = 0"
-      then have disjoint_C_Cs: "vars_clause (subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! j) \<inter>
-        vars_clause_list ((subst_cls_lists (Cs) (renamings_apart (Cs)))) =
-        {}"
+      then have disjoin_C_Cs: "vars_clause (subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! j) \<inter>
+        vars_clause_list ((subst_cls_lists Cs (renamings_apart Cs))) = {}"
       proof -
         define \<sigma>' :: "nat \<Rightarrow> nat" 
           where "\<sigma>' = (\<lambda>v. (Suc (v + Max ((vars_clause_list (subst_cls_lists Cs 
@@ -294,14 +293,14 @@ next
         {}"
           using i'j'
           using a(1) unfolding subst_cls_lists_def apply (simp add: Let_def)
-          using fff unfolding subst_cls_lists_def \<sigma>_def \<sigma>'_def by auto
+          using a unfolding subst_cls_lists_def \<sigma>_def \<sigma>'_def by auto
       qed
       have "vars_clause (subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! j) \<inter>
         vars_clause (subst_cls_lists Cs (renamings_apart Cs) ! i') =
         {}"
         apply (subgoal_tac "vars_clause (subst_cls_lists Cs (renamings_apart Cs) ! i') \<subseteq> Union (set (map vars_clause ((subst_cls_lists (Cs) (renamings_apart (Cs))))))")
         subgoal
-          using disjoint_a_Cs unfolding vars_clause_list_def by auto
+          using disjoin_C_Cs unfolding vars_clause_list_def by auto
         subgoal
           using i'j' a apply auto
           subgoal for x 
