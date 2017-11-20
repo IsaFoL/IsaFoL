@@ -227,6 +227,45 @@ lemma vars_partitioned_Nil[simp]: "vars_partitioned []"
 lemma subst_cls_lists_Nil[simp]: "subst_cls_lists Cs [] = []"
   unfolding subst_cls_lists_def by auto
 
+lemma vars_clause_hd_partitioned_from_tl:
+  assumes "Cs \<noteq>[]"
+  shows "vars_clause (hd (subst_cls_lists Cs (renamings_apart Cs))) \<inter>
+        vars_clause_list (tl (subst_cls_lists Cs (renamings_apart Cs))) = {}"
+using assms proof (induction Cs)
+  case Nil
+  then show ?case
+    by auto
+next
+  case (Cons C Cs)
+  define \<sigma>' :: "nat \<Rightarrow> nat" 
+    where "\<sigma>' = (\<lambda>v. (Suc (v + Max ((vars_clause_list (subst_cls_lists Cs 
+                        (renamings_apart Cs))) \<union> {0}))))"
+  define \<sigma> :: "nat \<Rightarrow> ('a, nat) term" 
+    where "\<sigma> = (\<lambda>v. Var (\<sigma>' v))"
+
+  have "vars_clause (subst_cls C \<sigma>) \<subseteq> UNION (range \<sigma>) vars_term" 
+    using vars_in_instance_in_range_cls[of C "hd (renamings_apart (C # Cs))"] 
+      \<sigma>_def \<sigma>'_def by (auto simp add: Let_def)
+  moreover 
+  have "UNION (range \<sigma>) vars_term \<inter>
+                     vars_clause_list (subst_cls_lists Cs (renamings_apart Cs)) = {}"
+  proof -
+    have "range \<sigma>' \<inter>
+                     vars_clause_list (subst_cls_lists Cs (renamings_apart Cs)) = {}"
+      unfolding \<sigma>'_def using Suc_Max_notin_set by auto
+    then show "UNION (range \<sigma>) vars_term \<inter>
+                     vars_clause_list (subst_cls_lists Cs (renamings_apart Cs)) = {}"
+      unfolding \<sigma>_def \<sigma>'_def by auto
+  qed
+  ultimately
+  have a: "vars_clause (subst_cls C \<sigma>) \<inter>
+                     vars_clause_list (subst_cls_lists Cs (renamings_apart Cs)) = {}"
+    by auto
+  then show ?case
+    unfolding \<sigma>_def \<sigma>'_def unfolding subst_cls_lists_def 
+    by (simp add: Let_def subst_cls_lists_def)
+qed
+
 lemma vars_partitioned_renamings_apart: "vars_partitioned (subst_cls_lists Cs (renamings_apart Cs))"
 proof (induction Cs)
   case Nil
@@ -255,41 +294,10 @@ next
       assume i'j':
         "i = Suc i'" 
         "j = 0"
-      then have disjoin_C_Cs: "vars_clause (subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! j) \<inter>
+      have disjoin_C_Cs: "vars_clause (subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! 0) \<inter>
         vars_clause_list ((subst_cls_lists Cs (renamings_apart Cs))) = {}"
-      proof -
-        define \<sigma>' :: "nat \<Rightarrow> nat" 
-          where "\<sigma>' = (\<lambda>v. (Suc (v + Max ((vars_clause_list (subst_cls_lists Cs 
-                        (renamings_apart Cs))) \<union> {0}))))"
-        define \<sigma> :: "nat \<Rightarrow> ('a, nat) term" 
-          where "\<sigma> = (\<lambda>v. Var (\<sigma>' v))"
-
-        have "vars_clause (subst_cls C \<sigma>) \<subseteq> UNION (range \<sigma>) vars_term" 
-          using vars_in_instance_in_range_cls[of C "(renamings_apart (C # Cs)) ! j"] i'j' 
-            \<sigma>_def \<sigma>'_def by (auto simp add: Let_def)
-        moreover 
-        have "UNION (range \<sigma>) vars_term \<inter>
-                     vars_clause_list (subst_cls_lists Cs (renamings_apart Cs)) = {}"
-        proof -
-          have "range \<sigma>' \<inter>
-                     vars_clause_list (subst_cls_lists Cs (renamings_apart Cs)) = {}"
-            unfolding \<sigma>'_def using Suc_Max_notin_set by auto
-          then show "UNION (range \<sigma>) vars_term \<inter>
-                     vars_clause_list (subst_cls_lists Cs (renamings_apart Cs)) = {}"
-            unfolding \<sigma>_def \<sigma>'_def by auto
-        qed
-        ultimately
-        have a: "vars_clause (subst_cls C \<sigma>) \<inter>
-                     vars_clause_list (subst_cls_lists Cs (renamings_apart Cs)) = {}"
-          by auto
-        show "vars_clause (subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! j) \<inter>
-        vars_clause_list ((subst_cls_lists (Cs) (renamings_apart (Cs)))) =
-        {}"
-          using i'j'
-          using a(1) unfolding subst_cls_lists_def apply (simp add: Let_def)
-          using a unfolding subst_cls_lists_def \<sigma>_def \<sigma>'_def by auto
-      qed
-      have "vars_clause (subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! j) \<inter>
+        using vars_clause_hd_partitioned_from_tl[of "C#Cs"] by (simp add: Let_def subst_cls_lists_def)
+      have "vars_clause (subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! 0) \<inter>
         vars_clause (subst_cls_lists Cs (renamings_apart Cs) ! i') =
         {}"
         apply (subgoal_tac "vars_clause (subst_cls_lists Cs (renamings_apart Cs) ! i') \<subseteq> Union (set (map vars_clause ((subst_cls_lists (Cs) (renamings_apart (Cs))))))")
@@ -311,11 +319,11 @@ next
       show "vars_clause (subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! i) \<inter>
         vars_clause (subst_cls_lists (C # Cs) (renamings_apart (C # Cs)) ! j) =
         {}"
-        by (simp add: Int_commute)
+        using i'j' by (simp add: Int_commute)
     next
       fix i' :: "nat" and j' :: "nat"
       assume i'j':
-        "i = Suc i'" 
+        "i = Suc i'"
         "j = Suc j'"
       have "i'<length (subst_cls_lists Cs (renamings_apart Cs))"
         using a i'j' unfolding subst_cls_lists_def by (auto simp add: len_renamings_apart)
