@@ -212,9 +212,6 @@ proof (induction rule: cdcl_twl_restart.induct)
      show \<open>clauses_to_update_inv (M1, N, U', None, NP, UP, {#}, {#})\<close>
        using 4 learned by (auto simp add: filter_mset_empty_conv)
    qed
-   thm cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_rf.simps
-   thm  cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_all_struct_inv_inv
-     cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart
    have clss_to_upd: \<open>clauses_to_update_inv (M', N, U', None, NP, UP, {#}, {#})\<close>
      using clss_to_upd learned by (auto simp add: filter_mset_empty_conv)
    have step':
