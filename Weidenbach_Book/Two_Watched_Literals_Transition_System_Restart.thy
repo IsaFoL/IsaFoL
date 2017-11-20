@@ -43,15 +43,15 @@ sublocale cdcl\<^sub>W_restart_mset: cdcl\<^sub>W_restart_restart where
   f = f
   by unfold_locales (rule f)
 
-inductive twl_restart_with_restart :: \<open>'v twl_st \<times> nat \<Rightarrow> 'v twl_st \<times> nat \<Rightarrow> bool\<close> where
+inductive cdcl_twl_stgy_restart :: \<open>'v twl_st \<times> nat \<Rightarrow> 'v twl_st \<times> nat \<Rightarrow> bool\<close> where
 restart_step:
-  \<open>twl_restart_with_restart (S, n) (T, Suc n)\<close>
+  \<open>cdcl_twl_stgy_restart (S, n) (U, Suc n)\<close>
   if
     \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S T\<close> and
     \<open>size (get_learned_clss T) - size (get_learned_clss S) > f n\<close> and
     \<open>cdcl_twl_restart T U\<close> |
 restart_full:
- \<open>twl_restart_with_restart (S, n) (T, Suc n)\<close>
+ \<open>cdcl_twl_stgy_restart (S, n) (T, Suc n)\<close>
  if
     \<open>full1 cdcl_twl_stgy S T\<close>
 
@@ -276,26 +276,27 @@ lemma cdcl_twl_restart_twl_stgy_invs:
       conflicting.simps cdcl\<^sub>W_restart_mset.no_smaller_confl_def clauses_def trail.simps
       dest!: get_all_ann_decomposition_exists_prepend)
 
-lemma twl_restart_with_restart_twl_struct_invs:
+lemma cdcl_twl_stgy_restart_twl_struct_invs:
   assumes
-    \<open>twl_restart_with_restart S T\<close> and
+    \<open>cdcl_twl_stgy_restart S T\<close> and
     \<open>twl_struct_invs (fst S)\<close> and
     \<open>twl_stgy_invs (fst S)\<close>
   shows \<open>twl_struct_invs (fst T)\<close>
   using assms
-  by (induction rule: twl_restart_with_restart.induct)
-    (auto simp add: full1_def dest!: rtranclp_cdcl_twl_stgy_twl_struct_invs tranclp_into_rtranclp)
+  by (induction rule: cdcl_twl_stgy_restart.induct)
+     (auto simp add: full1_def intro: rtranclp_cdcl_twl_stgy_twl_struct_invs tranclp_into_rtranclp
+      cdcl_twl_restart_twl_struct_invs rtranclp_cdcl_twl_stgy_twl_stgy_invs)
 
-lemma twl_restart_with_restart_twl_stgy_invs:
+lemma cdcl_twl_stgy_restart_twl_stgy_invs:
   assumes
-    \<open>twl_restart_with_restart S T\<close> and
+    \<open>cdcl_twl_stgy_restart S T\<close> and
     \<open>twl_struct_invs (fst S)\<close> and
     \<open>twl_stgy_invs (fst S)\<close>
   shows \<open>twl_stgy_invs (fst T)\<close>
   using assms
-  by (induction rule: twl_restart_with_restart.induct)
+  by (induction rule: cdcl_twl_stgy_restart.induct)
     (auto simp add: full1_def  dest!: tranclp_into_rtranclp
-      intro: rtranclp_cdcl_twl_stgy_twl_stgy_invs)
+      intro: cdcl_twl_restart_twl_stgy_invs rtranclp_cdcl_twl_stgy_twl_stgy_invs )
 
 end
 
