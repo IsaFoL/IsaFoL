@@ -469,7 +469,7 @@ next
       (auto simp: strictly_generalizes_atm_def generalizes_atm_def term_subsumable.subsumes_def subsumeseq_term.simps)
 qed
 
-fun pairs where
+fun pairs :: "'a list \<Rightarrow> ('a \<times> 'a) list" where
   "pairs (x # y # xs) = (x, y) # pairs (y # xs)" |
   "pairs _ = []"
 
@@ -484,6 +484,50 @@ proof (induct xs rule: pairs.induct)
     unfolding pairs.simps list.set ball_Un ball_simps simp_thms fst_conv snd_conv by metis
 qed simp_all
 
+
+lemma in_pair_in_set:
+  assumes "(A,B) \<in> set ((pairs As))"
+  shows "A \<in> set As \<and> B \<in> set As"
+using assms proof (induction As)
+  case Nil
+  then show ?case 
+    by auto
+next
+  case (Cons A As)
+  note Cons_outer = this
+  show ?case
+  proof (cases As)
+    case Nil
+    then show ?thesis 
+      using Cons_outer by auto
+  next
+    case (Cons B As')
+    then show ?thesis using Cons_outer by auto
+  qed
+qed
+
+lemma gpgghf: (* FIXME: Better name *)
+  assumes 
+    "finite AAA"
+    "\<forall>AA \<in> AAA. finite AA"
+    "AB_pairs \<in> set (sorted_list_of_set ((pairs \<circ> sorted_list_of_set) ` AAA))" and
+    "(A :: 'a :: linorder, B) \<in> set AB_pairs"
+  shows "\<exists>AA. AA \<in> AAA \<and> A \<in> AA \<and> B \<in> AA"
+proof -
+  from assms have "AB_pairs \<in> (pairs \<circ> sorted_list_of_set) ` AAA"
+    by auto
+  then obtain AA where AA_p: "AA \<in> AAA \<and> ((pairs \<circ> sorted_list_of_set) AA) = AB_pairs" 
+    by auto
+  have "(A, B) \<in> set (pairs (sorted_list_of_set AA))"
+    using AA_p[] assms(4) by auto
+  then have "A \<in> set (sorted_list_of_set AA)" "B \<in> set (sorted_list_of_set AA)"
+    using in_pair_in_set[of A] by auto
+  then have "A \<in> AA" "B \<in> AA"
+    using assms(2) AA_p by auto
+  then show ?thesis 
+    using AA_p by auto
+qed
+
 lemma unifiers_Pairs:
   assumes 
     "finite AAA" and 
@@ -496,25 +540,31 @@ proof (rule; rule)
   proof -
     fix AA :: "('a, 'b) term set"
     assume asm': "AA \<in> AAA"
-    then have fff: "\<forall>A \<in> AA. \<forall>B \<in> AA. subst_atm_abbrev A \<sigma> = subst_atm_abbrev B \<sigma>"
-      using assms asm unfolding Pairs_def unifiers_def
-      apply auto
-      unfolding unifies_all_pairs_iff
+    then have "\<forall>p\<in>set (pairs (sorted_list_of_set AA)). subst_atm_abbrev (fst p) \<sigma> = subst_atm_abbrev (snd p) \<sigma>"
+      using assms asm unfolding Pairs_def by auto
+    then have "\<forall>A \<in> AA. \<forall>B \<in> AA. subst_atm_abbrev A \<sigma> = subst_atm_abbrev B \<sigma>"
+      using assms asm' unfolding unifies_all_pairs_iff
       using sorted_list_of_set by blast
     then show "card (AA \<cdot>set \<sigma>) \<le> Suc 0"
-      using card.empty card_Suc_eq card_mono finite.intros(1) finite_insert le_SucI singletonI subsetI
-      by (smt imageE)
+      by (smt imageE card.empty card_Suc_eq card_mono finite.intros(1) finite_insert le_SucI 
+           singletonI subsetI)
   qed
   then show "\<sigma> \<in> {\<sigma>. is_unifiers \<sigma> AAA}" 
     using assms by (auto simp: is_unifiers_def is_unifier_def subst_atms_def)
 next
   fix \<sigma> :: "('a, 'b) subst"
   assume asm: "\<sigma> \<in> {\<sigma>. is_unifiers \<sigma> AAA}"
-  {
-    fix AA A B
-    assume a:
-     "AA \<in> AAA" "A \<in> AA" "B \<in> AA"
-    from a assms asm have asdf: "card (AA \<cdot>set \<sigma>) \<le> Suc 0"
+
+  { 
+    fix AB_pairs A B
+    assume "AB_pairs \<in> set (sorted_list_of_set ((pairs \<circ> sorted_list_of_set) ` AAA))"
+      "(A, B) \<in> set AB_pairs"
+    then have "\<exists>AA. AA \<in> AAA \<and> A \<in> AA \<and> B \<in> AA"
+      using gpgghf assms by blast
+    then obtain AA where
+     a: "AA \<in> AAA" "A \<in> AA" "B \<in> AA"
+      by blast
+    from a assms asm have asdf: "card (AA \<cdot>set \<sigma>) \<le> Suc 0" (* FIXME: rename asdf *)
       unfolding is_unifiers_def is_unifier_def subst_atms_def by auto 
     have "subst_atm_abbrev A \<sigma> = subst_atm_abbrev B \<sigma>"
     proof (cases "card (AA \<cdot>set \<sigma>) = Suc 0")
@@ -537,10 +587,8 @@ next
         using a assms asm asdf by auto
     qed
   }
-  note f = this
-  show "\<sigma> \<in> unifiers (set (Pairs AAA))" 
-    using assms apply (auto simp: Pairs_def unifiers_def is_unifiers_def is_unifier_alt unifies_all_pairs_iff)
-    using f by metis
+  then show "\<sigma> \<in> unifiers (set (Pairs AAA))" 
+    unfolding Pairs_def unifiers_def by auto
 qed
 
 definition "mgu_sets AAA = map_option subst_of (unify (Pairs AAA) [])"
