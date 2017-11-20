@@ -254,15 +254,14 @@ lemma lookup_clause_assn_is_empty_is_empty_code[sepref_fr_rules]:
   by simp
 
 definition size_lookup_conflict :: \<open>_ \<Rightarrow> nat\<close> where
-  \<open>size_lookup_conflict = (\<lambda>((_, n, _), _). n)\<close>
+  \<open>size_lookup_conflict = (\<lambda>(_, n, _). n)\<close>
 
 definition size_conflict_wl_heur :: \<open>_ \<Rightarrow> nat\<close> where
   \<open>size_conflict_wl_heur = (\<lambda>(M, N, U, D, _, _, _, _). size_lookup_conflict D)\<close>
 
 lemma size_lookup_conflict[sepref_fr_rules]:
-   \<open>(return o (\<lambda>((_, n, _), _). n), RETURN o size_lookup_conflict) \<in>
-   (((bool_assn *a lookup_clause_rel_assn) *a
-         option_assn (unat_lit_assn *a uint32_nat_assn)))\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+   \<open>(return o (\<lambda>(_, n, _). n), RETURN o size_lookup_conflict) \<in>
+   (bool_assn *a lookup_clause_rel_assn)\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   unfolding size_lookup_conflict_def
   apply sep_auto
   apply sepref_to_hoare
@@ -1384,6 +1383,11 @@ where
                    conflict_min_cach cach (atm_of L) = SEEN_REMOVABLE \<or>
                    is_in_lookup_conflict D L)
                then RETURN (cach, analyse, False)
+               else if conflict_min_cach cach (atm_of L) = SEEN_FAILED
+               then do {
+                  cach \<leftarrow> mark_failed_lits_wl NU analyse cach;
+                  RETURN (cach, [], False)
+               }
                else do {
                   C \<leftarrow> get_propagation_reason M (-L);
                   case C of
@@ -1468,6 +1472,10 @@ proof -
     subgoal by (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
           elim!: neq_Nil_revE)
     subgoal by (auto simp: lit_redundant_rec_wl_inv_def elim!: neq_Nil_revE)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -1612,7 +1620,8 @@ lemma minimize_and_extract_highest_lookup_conflict_iterate_over_conflict:
     lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close>
   shows
     \<open>minimize_and_extract_highest_lookup_conflict M NU D' s' \<le>
-       \<Down> ({((D, s, L'), (D', L)). (D, D') \<in> lookup_clause_rel \<and> L' = L})
+       \<Down> ({((E, s, L'), (E', L)). (E, E') \<in> lookup_clause_rel \<and> L' = L \<and> length (snd E) = length (snd D') \<and>
+               E' \<subseteq># D})
            (iterate_over_conflict K M NU' NUP D)\<close>
     (is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
@@ -2138,7 +2147,7 @@ sepref_thm lit_redundant_rec_wl_lookup_code
     conflict_min_cach_set_removable_def[symmetric]
     conflict_min_cach_def[symmetric]
     get_literal_and_remove_of_analyse_wl_def
-  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
   apply (rewrite at \<open>op_arl_empty\<close> annotate_assn[where A=analyse_refinement_assn])
   by sepref (* slow *)
 
@@ -2155,7 +2164,7 @@ term lit_redundant
 end
 
 (* TODO Move *)
-lemma get_maximum_level_sinlge[simp]:
+lemma get_maximum_level_single[simp]:
   \<open>get_maximum_level M {#x#} = get_level M x\<close>
   by (auto simp: get_maximum_level_add_mset)
 (* End Move *)
@@ -2258,7 +2267,8 @@ lemma
     lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close>
   shows
     \<open>minimize_and_extract_highest_lookup_conflict M NU D' s' \<le>
-       \<Down> ({((D, s, L'), (D', L)). (D, D') \<in> lookup_clause_rel \<and> L' = L})
+       \<Down> ({((E, s, L'), (E', L)). (E, E') \<in> lookup_clause_rel \<and> L' = L \<and>
+            length (snd E) = length (snd D') \<and> E' \<subseteq># D})
          (SPEC (\<lambda>(D', highest). D' \<subseteq># D \<and> NU' + NUP \<Turnstile>pm add_mset K D' \<and>
             highest_lit M D' highest))\<close>
 proof -
@@ -2335,7 +2345,7 @@ lemma (in -) lookup_conflict_upd_None_RETURN_def:
   \<open>RETURN oo lookup_conflict_upd_None = (\<lambda>(n, xs) i. RETURN (n- one_uint32_nat, xs [i :=None]))\<close>
   by (auto intro!: ext)
 
-sepref_definition lookup_conflict_upd_None_code
+sepref_definition (in -)lookup_conflict_upd_None_code
   is \<open>uncurry (RETURN oo lookup_conflict_upd_None)\<close>
   :: \<open>[\<lambda>((n, xs), i). i < length xs \<and> n > 0]\<^sub>a
      lookup_clause_rel_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> lookup_clause_rel_assn\<close>
@@ -2379,6 +2389,9 @@ lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_Suc_le_uint_max: \<open>Pos xa \<in># \<L>
   using in_N1_less_than_uint_max by (auto simp: uint_max_def)
 (* End move *)
 
+abbreviation (in -) highest_lit_assn where
+  \<open>highest_lit_assn \<equiv> option_assn (unat_lit_assn *a uint32_nat_assn)\<close>
+
 sepref_register minimize_and_extract_highest_lookup_conflict
 sepref_thm minimize_and_extract_highest_lookup_conflict_code
   is \<open>uncurry3 (PR_CONST minimize_and_extract_highest_lookup_conflict)\<close>
@@ -2387,7 +2400,7 @@ sepref_thm minimize_and_extract_highest_lookup_conflict_code
         (\<forall>a\<in>lits_of_l M. atm_of a < length (snd D))]\<^sub>a
        trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d *\<^sub>a
       cach_refinement_assn\<^sup>d \<rightarrow> lookup_clause_rel_assn *a cach_refinement_assn *a
-        option_assn (unat_lit_assn *a uint32_nat_assn)\<close>
+        highest_lit_assn\<close>
   supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
     minimize_and_extract_highest_lookup_conflict_inv_def[simp]
@@ -2395,7 +2408,7 @@ sepref_thm minimize_and_extract_highest_lookup_conflict_code
   unfolding minimize_and_extract_highest_lookup_conflict_def zero_uint32_nat_def[symmetric]
     one_uint32_nat_def[symmetric] merge_highest_lit_def PR_CONST_def
   apply (rewrite at \<open>(_, _,zero_uint32_nat, _,\<hole>)\<close> annotate_assn[where
-     A = \<open>option_assn (unat_lit_assn *a uint32_nat_assn)\<close>])
+     A = \<open>highest_lit_assn\<close>])
   by sepref
 
 concrete_definition (in -) minimize_and_extract_highest_lookup_conflict_code
@@ -2407,17 +2420,6 @@ prepare_code_thms (in -) minimize_and_extract_highest_lookup_conflict_code_def
 lemmas minimize_and_extract_highest_lookup_conflict_code_hnr[sepref_fr_rules] =
    minimize_and_extract_highest_lookup_conflict_code.refine[OF isasat_input_bounded_axioms]
 
-thm minimize_and_extract_highest_lookup_conflict_iterate_over_conflict[of D' D
-   \<open>(M, NU, u, Some (remove1_mset K D), NP, UP, WS, Q)\<close> cach K,
-   unfolded get_unit_learned_def get_unit_init_clss_def,
-   simplified]
-
 end
 
-term \<open>(uncurry extract_shorter_conflict_list_removed,
-          uncurry (RETURN oo extract_shorter_conflict_l_trivial)) \<in>
-      [\<lambda>(M', D). literals_are_in_\<L>\<^sub>i\<^sub>n (the D) \<and> D \<noteq> None \<and> M = M']\<^sub>f
-       Id \<times>\<^sub>f option_lookup_clause_rel \<rightarrow>
-         \<langle>{((D, L), C). (D, C) \<in> option_lookup_clause_rel \<and> C \<noteq> None \<and> highest_lit M (the C) L \<and>
-           (\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length (snd (snd D)))}\<rangle> nres_rel\<close>
 end

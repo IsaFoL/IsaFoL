@@ -1,6 +1,6 @@
 chapter FOL_Berghofer
 
 session "FOL_Berghofer" = "HOL" +
-  options [document = false, quick_and_dirty]
+  options [document = false]
   theories
     FOL_Berghofer

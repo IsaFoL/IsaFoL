@@ -410,6 +410,21 @@ lemma Pair_hnr: \<open>(uncurry (return oo (\<lambda>a b. Pair a b)), uncurry (R
     A\<^sup>d *\<^sub>a B\<^sup>d \<rightarrow>\<^sub>a prod_assn A B\<close>
   by sepref_to_hoare sep_auto
 
+lemma (in -) fref_weaken_pre_weaken:
+  assumes "\<And>x. P x \<longrightarrow> P' x"
+  assumes "(f,h) \<in> fref P' R S"
+  assumes \<open>S \<subseteq> S'\<close>
+  shows "(f,h) \<in> fref P R S'"
+  using fref_weaken_pre[OF assms(1,2)]
+  using assms(3) fref_cons by blast
+
+text \<open>This version works only for \<^emph>\<open>pure\<close> refinement relations:\<close>
+lemma the_hnr_keep:
+  \<open>CONSTRAINT is_pure A \<Longrightarrow> (return o the, RETURN o the) \<in> [\<lambda>D. D \<noteq> None]\<^sub>a (option_assn A)\<^sup>k \<rightarrow> A\<close>
+  using pure_option[of A]
+  by sepref_to_hoare
+   (sep_auto simp: option_assn_alt_def is_pure_def split: option.splits)
+
 
 subsubsection \<open>More Simplification Theorems\<close>
 

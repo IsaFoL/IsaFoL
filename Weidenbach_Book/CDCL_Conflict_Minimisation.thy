@@ -283,6 +283,13 @@ proof standard
     by blast
 qed
 
+instantiation minimize_status :: default
+begin
+  definition default_minimize_status where
+    \<open>default_minimize_status = SEEN_UNKNOWN\<close>
+
+instance by standard
+end
 
 type_synonym 'v conflict_min_analyse = \<open>('v literal \<times> 'v clause) list\<close>
 type_synonym 'v conflict_min_cach = \<open>'v \<Rightarrow> minimize_status\<close>
@@ -380,6 +387,11 @@ where
                ASSERT(-L \<in> lits_of_l M);
                if (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D)
                then RETURN (cach, analyse, False)
+               else if cach (atm_of L) = SEEN_FAILED
+               then do {
+                  cach \<leftarrow> mark_failed_lits NU analyse cach;
+                  RETURN (cach, [], False)
+               }
                else do {
                   C \<leftarrow> get_propagation_reason M (-L);
                   case C of
@@ -861,8 +873,6 @@ proof -
         ana \<noteq> [] \<and> hd ana = (fst (hd analyse), remove1_mset L (snd (hd analyse)))\<close> and
       \<open>x = (L, ana)\<close> and
       \<open>\<not> (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D)\<close> and
-      \<open>E \<noteq> None \<longrightarrow> Propagated (- L) (the E) \<in> set M\<close> and
-      \<open>E = None\<close> and
       cach_update: \<open>\<forall>L. cach' L = SEEN_REMOVABLE \<longrightarrow> cach L = SEEN_REMOVABLE\<close>
     for s cach s' analyse b x L ana E cach'
   proof -
@@ -991,6 +1001,8 @@ proof -
     subgoal by (rule seen_removable_I')
     subgoal by (rule seen_removable_R)
         -- \<open>Failed:\<close>
+    subgoal by (rule failed_I')
+    subgoal by (rule failed_R)
     subgoal by (rule failed_I')
     subgoal by (rule failed_R)
         -- \<open>The literal was propagated:\<close>
@@ -1238,6 +1250,11 @@ where
                ASSERT(-L \<in> lits_of_l M);
                if (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D)
                then RETURN (cach, analyse, False)
+               else if  cach (atm_of L) = SEEN_FAILED
+               then do {
+                  cach \<leftarrow> mark_failed_lits_wl NU analyse cach;
+                  RETURN (cach, [], False)
+               }
                else do {
                   C \<leftarrow> get_propagation_reason M (-L);
                   case C of
@@ -1502,6 +1519,9 @@ proof -
     subgoal by auto
     subgoal by (auto simp add: M'_def)
     subgoal by auto
+    subgoal by (auto simp add: M'_def)
+      apply (rule mark_failed_lits_wl; assumption)
+    subgoal by (auto simp: lit_redundant_rec_wl_ref_def)
         apply (rule get_propagation_reason; assumption?)
        apply assumption
       apply (rule mark_failed_lits_wl; assumption)
@@ -1724,7 +1744,8 @@ definition cach_refinement_nonull
   :: \<open>((minimize_status list \<times> nat list) \<times> minimize_status list) set\<close>
 where
   \<open>cach_refinement_nonull = {((cach, support), cach'). cach = cach' \<and>
-       (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support)}\<close>
+       (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support) \<and>
+       (\<forall>L \<in> set support. L < length cach)}\<close>
 
 definition cach_refinement
   :: \<open>((minimize_status list \<times> nat list) \<times> (nat conflict_min_cach)) set\<close>
@@ -1740,7 +1761,8 @@ definition cach_refinement_assn where
 lemma cach_refinement_alt_def:
   \<open>((cach, support), cach') \<in> cach_refinement \<longleftrightarrow>
      (cach, cach') \<in> cach_refinement_list \<and>
-     (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support)\<close>
+     (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support) \<and>
+      (\<forall>L \<in> set support. L < length cach)\<close>
   by (auto simp: cach_refinement_def cach_refinement_nonull_def cach_refinement_list_def)
 
 type_synonym (in -) conflict_min_cach_l = \<open>minimize_status list \<times> nat list\<close>

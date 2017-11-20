@@ -641,9 +641,12 @@ resolve_rule: "trail S \<noteq> [] \<Longrightarrow>
 
 inductive_cases resolveE: "resolve S T"
 
+text \<open>
+  Christoph's version restricts restarts to the the case where \<open>\<not>M\<Turnstile> N+U\<close>. While it is possible to 
+  implement this (by watching a clause), This is an unnecessary restriction.
+\<close>
 inductive restart :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
 restart: "state S = (M, N, U, None, S') \<Longrightarrow>
-  \<not>M \<Turnstile>asm clauses S \<Longrightarrow>
   U' \<subseteq># U \<Longrightarrow>
   state T = ([], N, U', None, S') \<Longrightarrow>
   restart S T"
@@ -764,8 +767,7 @@ lemma cdcl\<^sub>W_restart_all_induct[consumes 1, case_names propagate conflict 
       removeAll_mset C (clauses S) \<Turnstile>pm C \<Longrightarrow>
       T \<sim> remove_cls C S \<Longrightarrow>
       P S T" and
-    restartH: "\<And>T U. \<not>trail S \<Turnstile>asm clauses S \<Longrightarrow>
-      conflicting S = None \<Longrightarrow>
+    restartH: "\<And>T U. conflicting S = None \<Longrightarrow>
       state T = ([], init_clss S, U, None, additional_info S) \<Longrightarrow>
       U \<subseteq># learned_clss S \<Longrightarrow>
       P S T" and
@@ -798,7 +800,6 @@ lemma cdcl\<^sub>W_restart_all_induct[consumes 1, case_names propagate conflict 
       get_maximum_level (trail S) D' \<equiv> i \<Longrightarrow>
       get_level (trail S) K = i+1 \<Longrightarrow>
       D' \<subseteq># D \<Longrightarrow>
-(*       M1 \<Turnstile>as CNot D' \<Longrightarrow> *)
       clauses S \<Turnstile>pm add_mset L D' \<Longrightarrow>
       T \<sim> cons_trail (Propagated L (add_mset L D'))
             (reduce_trail_to M1

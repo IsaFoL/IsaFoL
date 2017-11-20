@@ -212,6 +212,10 @@ lemma twl_st_assn_confl_assn:
 
 end
 
+
+fun get_trail_wl_heur_conflict :: \<open>twl_st_wl_heur_lookup_conflict \<Rightarrow> (nat,nat) ann_lits\<close> where
+  \<open>get_trail_wl_heur_conflict (M, N, U, D, _) = M\<close>
+
 lemma Pos_unat_lit_assn':
   \<open>(return o (\<lambda>n. two_uint32 * n), RETURN o Pos) \<in> [\<lambda>L. L \<le> uint_max div 2]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
      unat_lit_assn\<close>
@@ -430,11 +434,5 @@ end
 
 abbreviation (in -) nat_lit_lit_rel where
   \<open>nat_lit_lit_rel \<equiv> Id :: (nat literal \<times> _) set\<close>
-
-datatype ('a ,'b) state = Small 'a | Big 'b
-
-definition state_ref where
-  \<open>state_ref = {(S', S). (length (get_clauses_wl S) \<le> uint64_max \<longrightarrow> S' = Small S) \<or> S' = Big S}\<close>
-
 
 end
