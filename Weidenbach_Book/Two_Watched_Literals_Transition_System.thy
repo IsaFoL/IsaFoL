@@ -51,11 +51,17 @@ fun get_clauses :: "'v twl_st \<Rightarrow> 'v twl_clss" where
 fun unit_clss :: "'v twl_st \<Rightarrow> 'v clause multiset" where
   \<open>unit_clss (M, N, U, D, NP, UP, WS, Q) = NP + UP\<close>
 
-fun get_all_learned_clss :: "'v twl_st \<Rightarrow> 'v clauses" where
-  \<open>get_all_learned_clss (_, N, U, _, _, UP, _) = clause `# U + UP\<close>
+fun get_all_init_clss :: "'v twl_st \<Rightarrow> 'v clause multiset" where
+  \<open>get_all_init_clss (M, N, U, D, NP, UP, WS, Q) = clause `# N + NP\<close>
+
+fun get_learned_clss :: "'v twl_st \<Rightarrow> 'v twl_clss" where
+  \<open>get_learned_clss (M, N, U, D, NP, UP, WS, Q) = U\<close>
 
 fun get_init_learned_clss :: "'v twl_st \<Rightarrow> 'v clauses" where
   \<open>get_init_learned_clss (_, N, U, _, _, UP, _) = UP\<close>
+
+fun get_all_learned_clss :: "'v twl_st \<Rightarrow> 'v clauses" where
+  \<open>get_all_learned_clss (_, N, U, _, _, UP, _) = clause `# U + UP\<close>
 
 
 fun update_clause where

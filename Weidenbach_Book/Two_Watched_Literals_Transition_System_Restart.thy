@@ -61,7 +61,8 @@ lemma cdcl_twl_cp_all_learned_diff_learned:
   assumes \<open>cdcl_twl_cp S T\<close>
   shows
     \<open>clause `# get_learned_clss S = clause `# get_learned_clss T \<and>
-       get_init_learned_clss S = get_init_learned_clss T\<close>
+     get_init_learned_clss S = get_init_learned_clss T \<and>
+     get_all_init_clss S = get_all_init_clss T\<close>
   apply (use assms in \<open>induction rule: cdcl_twl_cp.induct\<close>)
   subgoal by auto
   subgoal by auto
@@ -76,7 +77,8 @@ lemma cdcl_twl_o_all_learned_diff_learned:
   assumes \<open>cdcl_twl_o S T\<close>
   shows
     \<open>clause `# get_learned_clss S \<subseteq># clause `# get_learned_clss T \<and>
-     get_init_learned_clss S \<subseteq># get_init_learned_clss T\<close>
+     get_init_learned_clss S \<subseteq># get_init_learned_clss T\<and>
+     get_all_init_clss S = get_all_init_clss T\<close>
   by (use assms in \<open>induction rule: cdcl_twl_o.induct\<close>)
    (auto simp: update_clauses.simps size_Suc_Diff1)
 
@@ -84,7 +86,8 @@ lemma cdcl_twl_stgy_all_learned_diff_learned:
   assumes \<open>cdcl_twl_stgy S T\<close>
   shows
     \<open>clause `# get_learned_clss S \<subseteq># clause `# get_learned_clss T \<and>
-     get_init_learned_clss S \<subseteq># get_init_learned_clss T\<close>
+     get_init_learned_clss S \<subseteq># get_init_learned_clss T\<and>
+     get_all_init_clss S = get_all_init_clss T\<close>
   by (use assms in \<open>induction rule: cdcl_twl_stgy.induct\<close>)
     (auto simp: cdcl_twl_cp_all_learned_diff_learned cdcl_twl_o_all_learned_diff_learned)
 
@@ -92,7 +95,8 @@ lemma rtranclp_cdcl_twl_stgy_all_learned_diff_learned:
   assumes \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S T\<close>
   shows
     \<open>clause `# get_learned_clss S \<subseteq># clause `# get_learned_clss T \<and>
-     get_init_learned_clss S \<subseteq># get_init_learned_clss T\<close>
+     get_init_learned_clss S \<subseteq># get_init_learned_clss T \<and>
+     get_all_init_clss S = get_all_init_clss T\<close>
   by (use assms in \<open>induction rule: rtranclp_induct\<close>)
    (auto dest: cdcl_twl_stgy_all_learned_diff_learned)
 
@@ -105,6 +109,20 @@ lemma rtranclp_cdcl_twl_stgy_all_learned_diff_learned_size:
   apply (cases S, cases T)
   using size_mset_mono by force+
 
+lemma cdcl_twl_stgy_restart_init_clss:
+  assumes \<open>cdcl_twl_stgy_restart S T\<close>
+  shows
+    \<open>get_all_init_clss (fst S) = get_all_init_clss (fst T)\<close>
+  by (use assms in \<open>induction rule: cdcl_twl_stgy_restart.induct\<close>)
+     (auto simp: full1_def cdcl_twl_restart.simps
+     dest: rtranclp_cdcl_twl_stgy_all_learned_diff_learned tranclp_into_rtranclp)
+
+lemma rtranclp_cdcl_twl_stgy_restart_init_clss:
+  assumes \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T\<close>
+  shows
+    \<open>get_all_init_clss (fst S) = get_all_init_clss (fst T)\<close>
+  by (use assms in \<open>induction rule: rtranclp_induct\<close>)
+   (auto simp: full1_def dest: cdcl_twl_stgy_restart_init_clss)
 
 lemma cdcl_twl_restart_cdcl\<^sub>W_stgy:
   assumes
@@ -378,6 +396,128 @@ proof -
   show ?thesis
     using 1 2 by auto
 qed
+
+
+lemma no_step_cdcl_twl_stgy_restart_cdcl_twl_stgy:
+  assumes 
+    ns: \<open>no_step cdcl_twl_stgy_restart S\<close> and
+    \<open>twl_struct_invs (fst S)\<close>
+  shows
+    \<open>no_step cdcl_twl_stgy (fst S)\<close>
+proof (rule ccontr)
+  assume \<open>\<not> ?thesis\<close>
+  then obtain T where T: \<open>cdcl_twl_stgy (fst S) T\<close> by blast
+  then have \<open>twl_struct_invs T\<close>
+    using assms(2) cdcl_twl_stgy_twl_struct_invs by blast
+  obtain U where U: \<open>full (\<lambda>S T. twl_struct_invs S \<and> cdcl_twl_stgy S T) T U\<close>
+   using wf_exists_normal_form_full[OF wf_cdcl_twl_stgy] by blast
+  have \<open>full cdcl_twl_stgy T U\<close>
+  proof -
+    have
+      st: \<open>(\<lambda>S T. twl_struct_invs S \<and> cdcl_twl_stgy S T)\<^sup>*\<^sup>* T U\<close> and
+      ns: \<open>no_step (\<lambda>U V. twl_struct_invs U \<and> cdcl_twl_stgy U V) U\<close>
+      using U unfolding full_def by blast+
+    have \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close>
+      using st by (induction rule: rtranclp_induct) auto
+    moreover have \<open>no_step cdcl_twl_stgy U\<close>
+      using ns \<open>twl_struct_invs T\<close> calculation rtranclp_cdcl_twl_stgy_twl_struct_invs by blast
+    ultimately show ?thesis
+      unfolding full_def by blast
+  qed
+  then have \<open>full1 cdcl_twl_stgy (fst S) U\<close>
+    using T by (auto intro: full_fullI)
+  then show False
+    using ns cdcl_twl_stgy_restart.intros(2)[of \<open>fst S\<close> U \<open>snd S\<close>]
+    by fastforce
+qed
+
+lemma (in -) substract_left_le: \<open>(a :: nat) + b < c ==> a <= c - b\<close>
+  by auto
+
+theorem 
+  \<open>wf {(T, S :: 'v twl_st \<times> nat). twl_struct_invs (fst S) \<and> cdcl_twl_stgy_restart S T}\<close>
+proof (rule ccontr)
+  assume \<open>\<not> ?thesis\<close>
+    then obtain g :: \<open>nat \<Rightarrow> 'v twl_st \<times> nat\<close> where
+    g: \<open>\<And>i. cdcl_twl_stgy_restart (g i) (g (Suc i))\<close> and
+    inv: \<open>\<And>i. twl_struct_invs (fst (g i))\<close>
+    unfolding wf_iff_no_infinite_down_chain by fast
+  have init_g: \<open>get_all_init_clss (fst (g i)) = get_all_init_clss (fst (g 0))\<close> for i
+    apply (induction i)
+    subgoal by simp
+    subgoal for i using g[of i] inv by (auto dest!: cdcl_twl_stgy_restart_init_clss)
+    done
+  let ?U0 = \<open>get_all_learned_clss (fst (g 0))\<close>
+  let ?Ui = \<open>\<lambda>i. get_all_learned_clss (fst (g i)) - ?U0\<close>
+  have dist: \<open>distinct_mset (?Ui i)\<close> for i
+    sorry
+  let ?S = \<open>g 0\<close>
+  have \<open>finite (atms_of_mm (get_all_init_clss (fst ?S)))\<close>
+    using inv by auto
+  have snd_g: \<open>snd (g i) = i + snd (g 0)\<close> for i
+    apply (induction i)
+    subgoal by auto
+    subgoal for i
+      using g[of i] by (auto simp: cdcl_twl_stgy_restart.simps)
+    done
+  then have snd_g_0: \<open>\<And>i. i > 0 \<Longrightarrow> snd (g i) = i + snd (g 0)\<close>
+    by blast
+  have unbounded_f_g: \<open>unbounded (\<lambda>i. f (snd (g i)))\<close>
+    using f unfolding bounded_def by (metis add.commute f less_or_eq_imp_le snd_g
+      not_bounded_nat_exists_larger not_le le_iff_add)
+
+  obtain k where
+    f_g_k: \<open>f (snd (g k)) > card (simple_clss (atms_of_mm (get_all_init_clss (fst ?S)))) + size ?U0\<close> and
+    k_ge: \<open>k > card (simple_clss (atms_of_mm (get_all_init_clss (fst ?S)))) + size ?U0\<close>
+    using not_bounded_nat_exists_larger[OF unbounded_f_g] by blast
+  text \<open>The following does not hold anymore with the non-strict version of
+    cardinality in the definition.\<close>
+
+   have H: False if \<open>no_step cdcl_twl_stgy (fst (g i))\<close> for i
+     using g[of i] that
+   proof (induction rule: cdcl_twl_stgy_restart.induct)
+     case (restart_step S T n) note H = this(1) and c = this(2) and n_s = this(4)
+    obtain S' where \<open>cdcl_twl_stgy S S'\<close>
+      using H c  by (subst (asm) rtranclp_unfold) (auto dest!: tranclpD)
+     then show False using n_s by fastforce
+   next
+     case (restart_full S T)
+     then show False unfolding full1_def by (auto dest: tranclpD)
+   qed
+  obtain m T where
+    m: \<open>m = size (get_all_learned_clss T) - size (get_all_learned_clss (fst (g k)))\<close> and
+    \<open>m > f (snd (g k))\<close> and
+    \<open>cdcl_twl_restart T (fst (g (k+1)))\<close> and
+    cdcl\<^sub>W_stgy: \<open>cdcl_twl_stgy\<^sup>*\<^sup>* (fst (g k)) T\<close>
+    using g[of k] H[of \<open>Suc k\<close>] by (force simp: cdcl_twl_stgy_restart.simps full1_def)
+  have \<open>twl_struct_invs T\<close>
+    using inv[of k] cdcl\<^sub>W_stgy rtranclp_cdcl_twl_stgy_twl_struct_invs by blast
+  moreover {
+    have [simp]: \<open>get_all_init_clss (fst (g k)) = get_all_init_clss T\<close>
+      using cdcl\<^sub>W_stgy rtranclp_cdcl_twl_stgy_all_learned_diff_learned by blast
+    then have [simp]: \<open>get_all_init_clss (fst ?S) = get_all_init_clss T\<close>
+      using init_g[of k] by auto
+  }
+  moreover {
+    have 3:\<open>size (get_all_learned_clss T) - size (get_all_learned_clss (fst (g k)))
+      > card (simple_clss (atms_of_mm (get_all_init_clss (fst ?S)))) + size ?U0\<close>
+      unfolding m[symmetric] using \<open>m > f (snd (g k))\<close> f_g_k by linarith
+    then have  \<open>size (get_all_learned_clss T)
+      > card (simple_clss (atms_of_mm (get_all_init_clss (fst ?S)))) + size ?U0\<close>
+      by linarith
+    have \<open>size (get_all_learned_clss T - ?U0) > card (simple_clss (atms_of_mm (get_all_init_clss (fst ?S))))\<close>
+      apply (rule order.strict_trans2)
+      defer
+      apply (rule diff_size_le_size_Diff)
+      using 3 by auto
+  }
+
+  ultimately show False
+    using cdcl\<^sub>W_all_struct_inv_learned_clss_bound
+    by (simp add: \<open>finite (atms_of_mm (init_clss (fst (g 0))))\<close> simple_clss_finite
+      card_mono leD)
+qed
+
 
 lemma
   assumes \<open>cdcl_twl_stgy_restart S U\<close> and
