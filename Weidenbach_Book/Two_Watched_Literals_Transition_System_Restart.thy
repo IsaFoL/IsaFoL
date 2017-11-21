@@ -44,8 +44,6 @@ sublocale cdcl\<^sub>W_restart_mset: cdcl\<^sub>W_restart_restart where
   by unfold_locales (rule f)
 
 
-fun get_all_init_clss :: "'v twl_st \<Rightarrow> 'v clause multiset" where
-  \<open>get_all_init_clss (M, N, U, D, NP, UP, WS, Q) = clause `# N + NP\<close>
 
 inductive cdcl_twl_stgy_restart :: \<open>'v twl_st \<times> nat \<Rightarrow> 'v twl_st \<times> nat \<Rightarrow> bool\<close> where
 restart_step:

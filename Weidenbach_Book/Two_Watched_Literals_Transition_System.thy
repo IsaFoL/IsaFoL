@@ -51,6 +51,13 @@ fun get_clauses :: "'v twl_st \<Rightarrow> 'v twl_clss" where
 fun unit_clss :: "'v twl_st \<Rightarrow> 'v clause multiset" where
   \<open>unit_clss (M, N, U, D, NP, UP, WS, Q) = NP + UP\<close>
 
+fun get_all_learned_clss :: "'v twl_st \<Rightarrow> 'v clauses" where
+  \<open>get_all_learned_clss (_, N, U, _, _, UP, _) = clause `# U + UP\<close>
+
+fun get_init_learned_clss :: "'v twl_st \<Rightarrow> 'v clauses" where
+  \<open>get_init_learned_clss (_, N, U, _, _, UP, _) = UP\<close>
+
+
 fun update_clause where
 "update_clause (TWL_Clause W UW) L L' =
   TWL_Clause (add_mset L' (remove1_mset L W)) (add_mset L (remove1_mset L' UW))"
@@ -4725,9 +4732,6 @@ lemma wf_cdcl_twl_o:
 lemma tranclp_wf_cdcl_twl_o:
   \<open>wf {(T, S::'v twl_st). twl_struct_invs S \<and> cdcl_twl_o\<^sup>+\<^sup>+ S T}\<close>
   by (rule wf_subset[OF tranclp_wf_cdcl_twl_stgy]) (auto dest: tranclp_cdcl_twl_o_stgyD)
-
-fun get_all_learned_clss :: "'v twl_st \<Rightarrow> 'v clauses" where
-  \<open>get_all_learned_clss (_, N, U, _, _, UP, _) = clause `# U + UP\<close>
 
 lemma (in -)propa_cands_enqueued_mono:
   \<open>U' \<subseteq># U \<Longrightarrow>
