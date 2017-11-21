@@ -380,15 +380,16 @@ proof -
 qed
 
 lemma
-  assumes \<open>cdcl_twl_stgy_restart S T\<close> and
+  assumes \<open>cdcl_twl_stgy_restart S U\<close> and
     \<open>twl_struct_invs (fst S)\<close> and
     \<open>distinct_mset (get_all_learned_clss (fst S))\<close>
-  shows 
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_with_restart (state\<^sub>W_of (fst S), snd S)
-       (state\<^sub>W_of (fst T), snd T) \<or>
-    no_step cdcl_twl_stgy (fst T)\<close>
+  shows
+    \<open>\<exists>T. cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_with_restart (state\<^sub>W_of (fst S), snd S)
+           (state\<^sub>W_of (fst T), snd T) \<and>
+         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (state\<^sub>W_of (fst T)) (state\<^sub>W_of (fst U)) \<or>
+    no_step cdcl_twl_stgy (fst U)\<close>
 proof (use assms in \<open>induction rule: cdcl_twl_stgy_restart.induct\<close>)
-  case (restart_step S T n U) note st = this(1) and f = this(2) and restart = this(3) and 
+  case (restart_step S T n U) note st = this(1) and f = this(2) and restart = this(3) and
     struct = this(4) and dist = this(5)
   have 1: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
     using st struct
@@ -402,7 +403,7 @@ proof (use assms in \<open>induction rule: cdcl_twl_stgy_restart.induct\<close>)
     apply (cases S)
     apply (auto simp: learned_clss.simps intro: card_Un_le order.trans)
     sorry
-  ultimately have 
+  ultimately have
     2: \<open>f n < card (set_mset (learned_clss (state\<^sub>W_of T))) - card (set_mset (learned_clss (state\<^sub>W_of S)))\<close>
     using f by linarith
 
