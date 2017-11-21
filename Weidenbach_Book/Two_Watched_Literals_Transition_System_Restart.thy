@@ -13,6 +13,7 @@ inductive cdcl_twl_restart :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> b
   if
     \<open>(Decided K # M', M2) \<in> set (get_all_ann_decomposition M)\<close> and
     \<open>U' \<subseteq># U\<close> and
+
     \<open>\<forall>L E. Propagated L E \<in> set M' \<longrightarrow> E \<in># clause `# (N + U') + NP + UP\<close>
 
 inductive_cases cdcl_twl_restartE: \<open>cdcl_twl_restart S T\<close>
@@ -449,8 +450,11 @@ proof (rule ccontr)
     done
   let ?U0 = \<open>get_all_learned_clss (fst (g 0))\<close>
   let ?Ui = \<open>\<lambda>i. get_all_learned_clss (fst (g i)) - ?U0\<close>
-  have dist: \<open>distinct_mset (?Ui i)\<close> for i
-    sorry
+  thm cdcl_twl_restart_cdcl\<^sub>W_stgy
+
+
+  (* have dist: \<open>distinct_mset (?Ui i)\<close> for i
+    sorry *)
   let ?S = \<open>g 0\<close>
   have \<open>finite (atms_of_mm (get_all_init_clss (fst ?S)))\<close>
     using inv by auto
@@ -465,7 +469,31 @@ proof (rule ccontr)
   have unbounded_f_g: \<open>unbounded (\<lambda>i. f (snd (g i)))\<close>
     using f unfolding bounded_def by (metis add.commute f less_or_eq_imp_le snd_g
       not_bounded_nat_exists_larger not_le le_iff_add)
-
+  
+  define j where
+    \<open>j \<equiv> (\<lambda>i. case g i of ((M, N, U, D, NP, UP, WS, Q), n) \<Rightarrow> (state\<^sub>W_of ([], N, U, D, NP, UP, WS, Q), n))\<close>
+  
+  have H: False if \<open>no_step cdcl_twl_stgy (fst (g i))\<close> for i
+     using g[of i] that
+  proof (induction rule: cdcl_twl_stgy_restart.induct)
+     case (restart_step S T n) note H = this(1) and c = this(2) and n_s = this(4)
+    obtain S' where \<open>cdcl_twl_stgy S S'\<close>
+      using H c  by (subst (asm) rtranclp_unfold) (auto dest!: tranclpD)
+    then show False using n_s by fastforce
+  next
+     case (restart_full S T)
+     then show False unfolding full1_def by (auto dest: tranclpD)
+  qed
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_with_restart (j i) (j (Suc i))\<close> for i :: nat
+  proof (cases i)
+    case [simp]: 0
+    show ?thesis
+      sorry
+  next
+    case (Suc i')
+    show ?thesis
+      sorry
+  qed
   obtain k where
     f_g_k: \<open>f (snd (g k)) > card (simple_clss (atms_of_mm (get_all_init_clss (fst ?S)))) + size ?U0\<close> and
     k_ge: \<open>k > card (simple_clss (atms_of_mm (get_all_init_clss (fst ?S)))) + size ?U0\<close>
@@ -473,17 +501,7 @@ proof (rule ccontr)
   text \<open>The following does not hold anymore with the non-strict version of
     cardinality in the definition.\<close>
 
-   have H: False if \<open>no_step cdcl_twl_stgy (fst (g i))\<close> for i
-     using g[of i] that
-   proof (induction rule: cdcl_twl_stgy_restart.induct)
-     case (restart_step S T n) note H = this(1) and c = this(2) and n_s = this(4)
-    obtain S' where \<open>cdcl_twl_stgy S S'\<close>
-      using H c  by (subst (asm) rtranclp_unfold) (auto dest!: tranclpD)
-     then show False using n_s by fastforce
-   next
-     case (restart_full S T)
-     then show False unfolding full1_def by (auto dest: tranclpD)
-   qed
+   
   obtain m T where
     m: \<open>m = size (get_all_learned_clss T) - size (get_all_learned_clss (fst (g k)))\<close> and
     \<open>m > f (snd (g k))\<close> and
