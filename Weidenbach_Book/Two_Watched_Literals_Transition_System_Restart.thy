@@ -57,6 +57,55 @@ restart_full:
  if
     \<open>full1 cdcl_twl_stgy S T\<close>
 
+lemma cdcl_twl_cp_all_learned_diff_learned:
+  assumes \<open>cdcl_twl_cp S T\<close>
+  shows
+    \<open>clause `# get_learned_clss S = clause `# get_learned_clss T \<and>
+       get_init_learned_clss S = get_init_learned_clss T\<close>
+  apply (use assms in \<open>induction rule: cdcl_twl_cp.induct\<close>)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal for D
+    by (cases D)
+      (auto simp: update_clauses.simps size_Suc_Diff1 dest!: multi_member_split)
+  done
+
+lemma cdcl_twl_o_all_learned_diff_learned:
+  assumes \<open>cdcl_twl_o S T\<close>
+  shows
+    \<open>clause `# get_learned_clss S \<subseteq># clause `# get_learned_clss T \<and>
+     get_init_learned_clss S \<subseteq># get_init_learned_clss T\<close>
+  by (use assms in \<open>induction rule: cdcl_twl_o.induct\<close>)
+   (auto simp: update_clauses.simps size_Suc_Diff1)
+
+lemma cdcl_twl_stgy_all_learned_diff_learned:
+  assumes \<open>cdcl_twl_stgy S T\<close>
+  shows
+    \<open>clause `# get_learned_clss S \<subseteq># clause `# get_learned_clss T \<and>
+     get_init_learned_clss S \<subseteq># get_init_learned_clss T\<close>
+  by (use assms in \<open>induction rule: cdcl_twl_stgy.induct\<close>)
+    (auto simp: cdcl_twl_cp_all_learned_diff_learned cdcl_twl_o_all_learned_diff_learned)
+
+lemma rtranclp_cdcl_twl_stgy_all_learned_diff_learned:
+  assumes \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S T\<close>
+  shows
+    \<open>clause `# get_learned_clss S \<subseteq># clause `# get_learned_clss T \<and>
+     get_init_learned_clss S \<subseteq># get_init_learned_clss T\<close>
+  by (use assms in \<open>induction rule: rtranclp_induct\<close>)
+   (auto dest: cdcl_twl_stgy_all_learned_diff_learned)
+
+lemma rtranclp_cdcl_twl_stgy_all_learned_diff_learned_size:
+  assumes \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S T\<close>
+  shows
+    \<open>size (get_all_learned_clss T) - size (get_all_learned_clss S) \<ge>
+         size (get_learned_clss T) - size (get_learned_clss S)\<close>
+  using rtranclp_cdcl_twl_stgy_all_learned_diff_learned[OF assms]
+  apply (cases S, cases T)
+  using size_mset_mono by force+
+
+
 lemma cdcl_twl_restart_cdcl\<^sub>W_stgy:
   assumes
     \<open>cdcl_twl_restart S V\<close> and
