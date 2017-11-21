@@ -1,5 +1,12 @@
-theory AFP_Subsumption 
-  imports 
+(*
+Author:  Christian Sternagel <c.sternagel@gmail.com> (2017)
+License: LGPL (see file COPYING.LESSER)
+*)
+
+section \<open>Subsumption\<close>
+
+theory AFP_Subsumption
+  imports
     AFP_Term
     AFP_Seq_More
     "~~/src/Tools/Adhoc_Overloading"
@@ -19,9 +26,25 @@ abbreviation (input) INSTANCE (infix "\<cdot>>" 50)
   where
     "x \<cdot>> y \<equiv> y <\<cdot> x"
 
+abbreviation INSTANCEEQ_SET ("{\<cdot>\<ge>}")
+  where
+    "{\<cdot>\<ge>} \<equiv> {(x, y). y \<le>\<cdot> x}"
+
+abbreviation INSTANCE_SET ("{\<cdot>>}")
+  where
+    "{\<cdot>>} \<equiv> {(x, y). y <\<cdot> x}"
+
+abbreviation SUBSUMESEQ_SET ("{\<le>\<cdot>}")
+  where
+    "{\<le>\<cdot>} \<equiv> {(x, y). x \<le>\<cdot> y}"
+
 abbreviation SUBSUMES_SET ("{<\<cdot>}")
   where
     "{<\<cdot>} \<equiv> {(x, y). x <\<cdot> y}"
+
+abbreviation LITSIM_SET ("{\<doteq>}")
+  where
+    "{\<doteq>} \<equiv> {(x, y). x \<doteq> y}"
 
 locale subsumable =
   fixes subsumeseq :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
@@ -64,15 +87,15 @@ inductive subsumeseq_term :: "('a, 'b) term \<Rightarrow> ('a, 'b) term \<Righta
 adhoc_overloading
   SUBSUMESEQ subsumeseq_term
 
-lemma subsumeseq_term_refl:
-  fixes t :: "('a, 'b) term"
-  shows "t \<le>\<cdot> t"
-  by (rule subsumeseq_term.intros [of t t Var]) simp
-
 lemma subsumeseq_termE [elim]:
   assumes "s \<le>\<cdot> t"
   obtains \<sigma> where "t = s \<cdot> \<sigma>"
   using assms by (cases)
+
+lemma subsumeseq_term_refl:
+  fixes t :: "('a, 'b) term"
+  shows "t \<le>\<cdot> t"
+  by (rule subsumeseq_term.intros [of t t Var]) simp
 
 lemma subsumeseq_term_trans:
   fixes s t u :: "('a, 'b) term"
@@ -101,20 +124,14 @@ fun num_syms :: "('f, 'v) term \<Rightarrow> nat"
     "num_syms (Var x) = 1" |
     "num_syms (Fun f ts) = Suc (sum_list (map num_syms ts))"
 
-fun num_funs :: "('f, 'v) term \<Rightarrow> nat"
-  where
-    "num_funs (Var x) = 0" |
-    "num_funs (Fun f ts) = Suc (sum_list (map num_funs ts))"
-
 fun num_vars :: "('f, 'v) term \<Rightarrow> nat"
   where
     "num_vars (Var x) = 1" |
     "num_vars (Fun f ts) = sum_list (map num_vars ts)"
 
-lemma num_funs_0:
-  assumes "num_funs t = 0"
-  obtains x where "t = Var x"
-  using assms by (induct t) auto
+definition num_unique_vars :: "('f, 'v) term \<Rightarrow> nat"
+  where
+    "num_unique_vars t = card (vars_term t)"
 
 lemma num_syms_1: "num_syms t \<ge> 1"
   by (induct t) auto
@@ -123,10 +140,6 @@ lemma num_syms_subst:
   "num_syms (t \<cdot> \<sigma>) \<ge> num_syms t"
   using num_syms_1
   by (induct t) (auto, metis comp_apply sum_list_mono)
-
-lemma num_funs_subst:
-  "num_funs (t \<cdot> \<sigma>) \<ge> num_funs t"
-  by (induct t) (simp_all, metis comp_apply sum_list_mono)
 
 
 subsection \<open>Equality of terms modulo variables\<close>
@@ -147,20 +160,6 @@ proof (induct ts)
   moreover have "num_syms (t \<cdot> \<sigma>) \<ge> num_syms t" by (metis num_syms_subst)
   moreover have "sum_list (map (num_syms \<circ> (\<lambda>t. t \<cdot> \<sigma>)) ts) \<ge> sum_list (map num_syms ts)"
     using num_syms_subst [of _ \<sigma>] by (induct ts) (auto intro: add_mono)
-  ultimately show ?case using Cons by (auto) (case_tac i, auto)
-qed simp
-
-lemma sum_list_map_num_funs_subst:
-  assumes "sum_list (map (num_funs \<circ> (\<lambda>t. t \<cdot> \<sigma>)) ts) = sum_list (map num_funs ts)"
-  shows "\<forall>i < length ts. num_funs (ts ! i \<cdot> \<sigma>) = num_funs (ts ! i)"
-  using assms
-proof (induct ts)
-  case (Cons t ts)
-  then have "num_funs (t \<cdot> \<sigma>) + sum_list (map (num_funs \<circ> (\<lambda>t. t \<cdot> \<sigma>)) ts)
-    = num_funs t + sum_list (map num_funs ts)" by (simp add: o_def)
-  moreover have "num_funs (t \<cdot> \<sigma>) \<ge> num_funs t" by (metis num_funs_subst)
-  moreover have "sum_list (map (num_funs \<circ> (\<lambda>t. t \<cdot> \<sigma>)) ts) \<ge> sum_list (map num_funs ts)"
-    using num_funs_subst [of _ \<sigma>] by (induct ts) (auto intro: add_mono)
   ultimately show ?case using Cons by (auto) (case_tac i, auto)
 qed simp
 
@@ -194,10 +193,6 @@ lemma subsumeseq_term_size_emv:
   assumes "s \<cdot>\<ge> t" and "num_syms s = num_syms t" and "num_funs s = num_funs t"
   shows "emv s t"
   using assms(1) and subst_size_emv [OF _ assms(2-)] by (cases) simp
-
-definition num_unique_vars :: "('f, 'v) term \<Rightarrow> nat"
-  where
-    "num_unique_vars t = card (vars_term t)"
 
 lemma emv_subst_vars_term:
   assumes "emv s t"

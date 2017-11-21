@@ -6,9 +6,13 @@
 section \<open>Integration of IsaFoR Terms\<close>
 
 theory IsaFoR_Term
-  imports Deriving.Derive Abstract_Substitution  "../lib/Explorer"
-(* "AFP_IsaFoR/AFP_Unifiers" "AFP_IsaFoR/AFP_Subsumption" *)
- "$ISAFOR/Normalization_Equivalence/Encompassment" "./AFP_IsaFoR/Fun_More"
+  imports
+    Deriving.Derive
+    Abstract_Substitution
+    "../lib/Explorer"
+    "AFP_IsaFoR/AFP_Unifiers"
+    "AFP_IsaFoR/AFP_Subsumption"
+    "AFP_IsaFoR/AFP_Unification"
 begin
 
 hide_const (open) mgu
@@ -133,7 +137,7 @@ lemma vars_partitioned_var_disjoint:
 proof (intro allI impI)
   fix \<sigma>s :: \<open>('b \<Rightarrow> ('a, 'b) term) list\<close>
   assume "length \<sigma>s = length Cs"
-  with assms[unfolded vars_partitioned_def] fun_merge[of "map vars_clause Cs" "nth \<sigma>s"]
+  with assms[unfolded vars_partitioned_def] Fun_More.fun_merge[of "map vars_clause Cs" "nth \<sigma>s"]
   obtain \<sigma> where \<sigma>_p: "\<forall>i<length (map vars_clause Cs). \<forall>x\<in>map vars_clause Cs ! i. \<sigma> x = (\<sigma>s ! i) x"
     by auto
   have "\<forall>i<length Cs. \<forall>S. S \<subseteq># Cs ! i \<longrightarrow> subst_cls S (\<sigma>s ! i) = subst_cls S \<sigma>"
@@ -436,7 +440,7 @@ next
         unfolding \<sigma>'_def var_map_of_subst_def using is_var_\<sigma> by auto
 
       from is_var_\<sigma> inj_\<sigma> have "inj \<sigma>'"
-        unfolding var_renaming_def unfolding subst_domain_def inj_on_def \<sigma>'_def var_map_of_subst_def
+        unfolding is_renaming_def unfolding subst_domain_def inj_on_def \<sigma>'_def var_map_of_subst_def
          by (metis term.collapse(1)) 
       then have "inv \<sigma>' \<circ> \<sigma>' = id"
         using inv_o_cancel[of \<sigma>'] by simp
@@ -541,7 +545,7 @@ lemma unifiers_Pairs:
 proof (rule; rule)
   fix \<sigma> :: "('a, 'b) subst"
   assume asm: "\<sigma> \<in> unifiers (set (Pairs AAA))"
-  have "\<And>AA. AA \<in> AAA \<Longrightarrow> card (AA \<cdot>set \<sigma>) \<le> Suc 0"
+  have "\<And>AA. AA \<in> AAA \<Longrightarrow> card (AA \<cdot>\<^sub>s\<^sub>e\<^sub>t \<sigma>) \<le> Suc 0"
   proof -
     fix AA :: "('a, 'b) term set"
     assume asm': "AA \<in> AAA"
@@ -550,7 +554,7 @@ proof (rule; rule)
     then have "\<forall>A \<in> AA. \<forall>B \<in> AA. subst_atm_abbrev A \<sigma> = subst_atm_abbrev B \<sigma>"
       using assms asm' unfolding unifies_all_pairs_iff
       using sorted_list_of_set by blast
-    then show "card (AA \<cdot>set \<sigma>) \<le> Suc 0"
+    then show "card (AA \<cdot>\<^sub>s\<^sub>e\<^sub>t \<sigma>) \<le> Suc 0"
       by (smt imageE card.empty card_Suc_eq card_mono finite.intros(1) finite_insert le_SucI 
            singletonI subsetI)
   qed
@@ -569,23 +573,23 @@ next
     then obtain AA where
      a: "AA \<in> AAA" "A \<in> AA" "B \<in> AA"
       by blast
-    from a assms asm have card_AA_\<sigma>: "card (AA \<cdot>set \<sigma>) \<le> Suc 0"
+    from a assms asm have card_AA_\<sigma>: "card (AA \<cdot>\<^sub>s\<^sub>e\<^sub>t \<sigma>) \<le> Suc 0"
       unfolding is_unifiers_def is_unifier_def subst_atms_def by auto 
     have "subst_atm_abbrev A \<sigma> = subst_atm_abbrev B \<sigma>"
-    proof (cases "card (AA \<cdot>set \<sigma>) = Suc 0")
+    proof (cases "card (AA \<cdot>\<^sub>s\<^sub>e\<^sub>t \<sigma>) = Suc 0")
       case True
       moreover
-      have "subst_atm_abbrev A \<sigma> \<in> AA \<cdot>set \<sigma>"
+      have "subst_atm_abbrev A \<sigma> \<in> AA \<cdot>\<^sub>s\<^sub>e\<^sub>t \<sigma>"
         using a assms asm card_AA_\<sigma> by auto
       moreover
-      have "subst_atm_abbrev B \<sigma> \<in> AA \<cdot>set \<sigma>"
+      have "subst_atm_abbrev B \<sigma> \<in> AA \<cdot>\<^sub>s\<^sub>e\<^sub>t \<sigma>"
         using a assms asm card_AA_\<sigma> by auto
       ultimately
       show ?thesis 
         using a assms asm card_AA_\<sigma> by (metis (no_types, lifting) card_Suc_eq singletonD)
     next
       case False
-      then have "card (AA \<cdot>set \<sigma>) = 0"
+      then have "card (AA \<cdot>\<^sub>s\<^sub>e\<^sub>t \<sigma>) = 0"
         using a assms asm card_AA_\<sigma>
         by arith
       then show ?thesis
