@@ -50,7 +50,7 @@ restart_step:
   \<open>cdcl_twl_stgy_restart (S, n) (U, Suc n)\<close>
   if
     \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S T\<close> and
-    \<open>size (get_all_learned_clss T) - size (get_all_init_clss S) > f n\<close> and
+    \<open>size (get_all_learned_clss T) - size (get_all_learned_clss S) > f n\<close> and
     \<open>cdcl_twl_restart T U\<close> |
 restart_full:
  \<open>cdcl_twl_stgy_restart (S, n) (T, Suc n)\<close>
