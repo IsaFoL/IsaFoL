@@ -796,12 +796,26 @@ proof -
     then have emp_in: "{#} \<in> grounded_R"
       unfolding grounding_of_clss_def grounding_of_cls_def by (auto intro: ex_ground_subst)
 
+    have gr_last: "grounded_R \<subseteq> grounding_of_wstate (llast ssgSts)"
+      unfolding r llast_ssgSts
+      by (simp add: last_sts llast_lmap[OF lfinite_Sts] clss_of_state_def grounding_of_clss_def)
+    then have gr_last_st: "grounded_R \<subseteq> grounding_of_wstate (wstate_of_dstate (llast Sts))"
+      by (simp add: lfinite_Sts llast_lmap llast_ssgSts)
+
+    have gr_r_fls: "\<not> I \<Turnstile>s grounded_R"
+      using emp_in unfolding true_clss_def by force
+    hence gr_last_fls: "\<not> I \<Turnstile>s grounding_of_wstate (wstate_of_dstate (llast Sts))"
+      using gr_last_st unfolding true_clss_def by auto
+
     have ?saturated
       unfolding ord_\<Gamma>_saturated_upto_def[OF ssgSts_thms]
         ord_\<Gamma>_contradiction_Rf[OF ssgSts_thms emp_in] inference_system.inferences_from_def
       by auto
     moreover have ?model
-      sorry
+      unfolding gr_r_fls[THEN eq_False[THEN iffD2]]
+      by (rule rtranclp_imp_eq_image[of "op \<leadsto>\<^sub>w" "\<lambda>St. I \<Turnstile>s grounding_of_wstate St", OF _ wrp,
+            unfolded gr_st0 gr_last_fls[THEN eq_False[THEN iffD2]]])
+        (use weighted_RP_model in blast)
     ultimately show ?thesis
       by blast
   next
