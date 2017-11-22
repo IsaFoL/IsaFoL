@@ -20,10 +20,11 @@ locale standard_redundancy_criterion =
   inference_system \<Gamma> for \<Gamma> :: "('a :: wellorder) inference set"
 begin
 
+(* FIXME: Make a definition *)
 abbreviation redundant_infer :: "'a clause set \<Rightarrow> 'a inference \<Rightarrow> bool" where
   "redundant_infer N \<gamma> \<equiv>
-   \<exists>DD. set_mset DD \<subseteq> N \<and> (\<forall>I. I \<Turnstile>m DD + side_prems_of \<gamma> \<longrightarrow> I \<Turnstile> concl_of \<gamma>) \<and>
-     (\<forall>D. D \<in># DD \<longrightarrow> D < main_prem_of \<gamma>)"
+   \<exists>DD. set_mset DD \<subseteq> N \<and> (\<forall>I. I \<Turnstile>m DD + side_prems_of \<gamma> \<longrightarrow> I \<Turnstile> concl_of \<gamma>)
+      \<and> (\<forall>D. D \<in># DD \<longrightarrow> D < main_prem_of \<gamma>)"
 
 definition Rf :: "'a clause set \<Rightarrow> 'a clause set" where
   "Rf N = {C. \<exists>DD. set_mset DD \<subseteq> N \<and> (\<forall>I. I \<Turnstile>m DD \<longrightarrow> I \<Turnstile> C) \<and> (\<forall>D. D \<in># DD \<longrightarrow> D < C)}"
@@ -41,6 +42,13 @@ proof -
   then show "C \<in> Rf N"
     unfolding Rf_def by blast
 qed
+
+lemma
+  assumes "{#} \<in> N"
+  shows
+    contradiction_Rf: "Rf N = UNIV - {{#}}" and
+    contradiction_Ri: "{\<gamma> \<in> \<Gamma>. main_prem_of \<gamma> \<noteq> {#}} \<subseteq> Ri N"
+  unfolding Rf_def Ri_def using assms by force+
 
 text \<open>
 The following results correspond to Lemma 4.5. The lemma @{text wlog_non_Rf} generalizes the core of

@@ -801,10 +801,9 @@ proof -
     ultimately show ?thesis
       by blast
   next
-    case nil_ni_r: False
-
-    have gr_last: "grounding_of_wstate (llast ssgSts) = grounded_R"
-      using nil_ni_r final unfolding r llast_ssgSts
+    case False
+    then have gr_last: "grounding_of_wstate (llast ssgSts) = grounded_R"
+      using final unfolding r llast_ssgSts
       by (simp add: last_sts llast_lmap[OF lfinite_Sts] clss_of_state_def comp_def
           is_final_dstate.simps)
     then have gr_last_st: "grounding_of_wstate (wstate_of_dstate (llast Sts)) = grounded_R"
