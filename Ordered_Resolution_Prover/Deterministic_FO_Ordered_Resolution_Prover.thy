@@ -793,8 +793,8 @@ proof -
   have "?saturated \<and> ?model"
   proof (cases "[] \<in> set R")
     case True
-    have emp_in: "{#} \<in> grounded_R"
-      sorry
+    then have emp_in: "{#} \<in> grounded_R"
+      unfolding grounding_of_clss_def grounding_of_cls_def by (auto intro: ex_ground_subst)
 
     have ?saturated
       unfolding ord_\<Gamma>_saturated_upto_def[OF ssgSts_thms]
