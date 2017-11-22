@@ -63,7 +63,7 @@ lemma finite_Sup_llist_imp_Sup_upto_llist:
   using assms
 proof induct
   case (insert x X)
-  hence x: "x \<in> Sup_llist Xs" and X: "X \<subseteq> Sup_llist Xs"
+  then have x: "x \<in> Sup_llist Xs" and X: "X \<subseteq> Sup_llist Xs"
     by simp+
   from x obtain k where k: "x \<in> Sup_upto_llist Xs k"
     using elem_Sup_llist_imp_Sup_upto_llist by fast

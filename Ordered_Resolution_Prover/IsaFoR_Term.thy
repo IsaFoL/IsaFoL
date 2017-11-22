@@ -222,7 +222,7 @@ lemma finite_vars_clause_list[simp]: "finite (vars_clause_list Cs)"
   unfolding vars_clause_list_def
   by (induction Cs) auto
 
-lemma Suc_Max_notin_set: "finite X \<Longrightarrow> \<not>(Suc (v + Max (insert 0 X)) \<in> X)"
+lemma Suc_Max_notin_set: "finite X \<Longrightarrow> \<not> Suc (v + Max (insert 0 X)) \<in> X"
   by (metis Max.boundedE Suc_n_not_le_n empty_iff finite.insertI le_add2 vimageE vimageI vimage_Suc_insert_0)
 
 lemma vars_partitioned_Nil[simp]: "vars_partitioned []"

@@ -34,15 +34,8 @@ locale weighted_FO_resolution_prover =
     weight_mono: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
 begin
 
-(* FIXME: generalize and add to Isabelle? *)
 lemma generation_le_weight: "n \<le> weight (C, n)"
   by (induct n, simp, metis weight_mono[of k "Suc k" for k] Suc_le_eq le_less le_trans)
-
-(* FIXME: move to FO_Ordered_Resolution_Prover *)
-lemma finite_ord_FO_resolution_inferences_between:
-  assumes "finite CC"
-  shows "finite (ord_FO_resolution_inferences_between CC D)"
-  sorry
 
 fun state_of_wstate :: "'a wstate \<Rightarrow> 'a state" where
   "state_of_wstate (N, P, Q, n) =
@@ -81,7 +74,7 @@ inductive weighted_RP :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" 
 | clause_processing: "(N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>w (N, P + {#(C, i)#}, Q, n)"
 | inference_computation: "(\<forall>(D, j) \<in># P. weight (C, i) \<le> weight (D, j)) \<Longrightarrow>
     N = mset_set ((\<lambda>D. (D, n))
-      ` concls_of (ord_FO_resolution_inferences_between (set_mset (image_mset fst Q)) C)) \<Longrightarrow>
+      ` concls_of (inference_system.inferences_between ord_FO_\<Gamma> (set_mset (image_mset fst Q)) C)) \<Longrightarrow>
     ({#}, P + {#(C, i)#}, Q, n) \<leadsto>\<^sub>w (N, P, Q + {#(C, i)#}, Suc n)"
 
 lemma weighted_RP_imp_RP: "St \<leadsto>\<^sub>w St' \<Longrightarrow> state_of_wstate St \<leadsto> state_of_wstate St'"
@@ -89,7 +82,7 @@ proof (induction rule: weighted_RP.induct)
   case (inference_computation P C i N n Q)
   then show ?case
     using RP.inference_computation finite_ord_FO_resolution_inferences_between
-    by (auto simp: comp_def image_comp ord_FO_resolution_inferences_between_def)
+    by (auto simp: comp_def image_comp inference_system.inferences_between_def)
 qed (use RP.intros in simp_all)
 
 lemma weighted_RP_model:

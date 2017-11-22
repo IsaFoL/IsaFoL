@@ -65,14 +65,14 @@ definition ord_FO_\<Gamma> :: "'a inference set" where
 
 interpretation ord_FO_resolution: inference_system ord_FO_\<Gamma> .
 
-definition
-  ord_FO_resolution_inferences_between :: "'a clause set \<Rightarrow> 'a clause \<Rightarrow> 'a inference set"
-where
-  "ord_FO_resolution_inferences_between = ord_FO_resolution.inferences_between"
+lemma finite_ord_FO_resolution_inferences_between:
+  assumes "finite CC"
+  shows "finite (ord_FO_resolution.inferences_between CC D)"
+  sorry
 
 lemma ord_FO_resolution_inferences_between_empty_empty:
-  "ord_FO_resolution_inferences_between {} {#} = {}"
-  unfolding ord_FO_resolution_inferences_between_def inference_system.inferences_between_def
+  "ord_FO_resolution.inferences_between {} {#} = {}"
+  unfolding ord_FO_resolution.inferences_between_def inference_system.inferences_between_def
     infer_from_def ord_FO_\<Gamma>_def
   using ord_resolve_rename_empty_main_prem by auto
 
