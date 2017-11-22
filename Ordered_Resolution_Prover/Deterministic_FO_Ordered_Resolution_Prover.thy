@@ -686,6 +686,8 @@ lemma empty_ssgP0: "P_of_wstate (lhd ssgSts) = {}"
 lemma empty_ssgQ0: "Q_of_wstate (lhd ssgSts) = {}"
   unfolding lhd_ssgSts by (subst derivation_from.code) simp
 
+lemmas ssgSts_thms = deriv_ssgSts_weighted_RP finite_ssgSts0 empty_ssgP0 empty_ssgQ0
+
 lemma "clss_of_state (Liminf_wstate ssgSts) \<subseteq> clss_of_state (Liminf_wstate gSts)"
 proof (cases "lfinite Sts")
   case fin: True
@@ -791,11 +793,13 @@ proof -
   have "?saturated \<and> ?model"
   proof (cases "[] \<in> set R")
     case True
-    have "{#} \<in> grounded_R"
+    have emp_in: "{#} \<in> grounded_R"
       sorry
 
     have ?saturated
-      sorry
+      unfolding ord_\<Gamma>_saturated_upto_def[OF ssgSts_thms]
+        ord_\<Gamma>_contradiction_Rf[OF ssgSts_thms emp_in] inference_system.inferences_from_def
+      by auto
     moreover have ?model
       sorry
     ultimately show ?thesis
@@ -810,8 +814,7 @@ proof -
       by (simp add: lfinite_Sts llast_lmap llast_ssgSts)
     
     have ?saturated
-      using weighted_RP_saturated[OF deriv_ssgSts_weighted_RP finite_ssgSts0 empty_ssgP0
-          empty_ssgQ0, unfolded gr_last lim_last] by auto
+      using weighted_RP_saturated[OF ssgSts_thms, unfolded gr_last lim_last] by auto
     moreover have ?model
       by (rule rtranclp_imp_eq_image[of "op \<leadsto>\<^sub>w" "\<lambda>St. I \<Turnstile>s grounding_of_wstate St", OF _ wrp,
             unfolded gr_st0 gr_last_st])
@@ -836,8 +839,7 @@ next
   then have "\<not> satisfiable grounded_R"
     using deterministic_RP_model[THEN iffD2] by blast
   then show ?rhs
-    unfolding ord_\<Gamma>_saturated_upto_complete[OF deriv_ssgSts_weighted_RP finite_ssgSts0 empty_ssgP0
-        empty_ssgQ0 deterministic_RP_saturated] .
+    unfolding ord_\<Gamma>_saturated_upto_complete[OF ssgSts_thms deterministic_RP_saturated] .
 qed
 
 end
@@ -855,8 +857,7 @@ proof (rule ccontr)
     sorry
 
   have bot_in_ss: "{#} \<in> Q_of_state (Liminf_wstate ssgSts)"
-    by (rule weighted_RP_complete[OF deriv_ssgSts_weighted_RP finite_ssgSts0 empty_ssgP0
-          empty_ssgQ0 unsat_gSts0[folded lhd_ssgSts]])
+    by (rule weighted_RP_complete[OF ssgSts_thms unsat_gSts0[folded lhd_ssgSts]])
   have bot_in_lim: "{#} \<in> Q_of_state (Liminf_wstate gSts)"
   proof (cases "lfinite Sts")
     case fin: True

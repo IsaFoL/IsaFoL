@@ -43,12 +43,8 @@ proof -
     unfolding Rf_def by blast
 qed
 
-lemma
-  assumes "{#} \<in> N"
-  shows
-    contradiction_Rf: "Rf N = UNIV - {{#}}" and
-    contradiction_Ri: "{\<gamma> \<in> \<Gamma>. main_prem_of \<gamma> \<noteq> {#}} \<subseteq> Ri N"
-  unfolding Rf_def Ri_def using assms by force+
+lemma contradiction_Rf: "{#} \<in> N \<Longrightarrow> Rf N = UNIV - {{#}}"
+  unfolding Rf_def by force
 
 text \<open>
 The following results correspond to Lemma 4.5. The lemma @{text wlog_non_Rf} generalizes the core of
@@ -256,6 +252,10 @@ qed
 sublocale effective_redundancy_criterion \<Gamma> Rf Ri
   unfolding effective_redundancy_criterion_def
   by (intro conjI redundancy_criterion_axioms, unfold_locales, rule Ri_effective)
+
+lemma contradiction_Rf: "{#} \<in> N \<Longrightarrow> Ri N = \<Gamma>"
+  unfolding Ri_def using \<Gamma>_reductive le_multiset_empty_right
+  by (force intro: exI[of _ "{#{#}#}"] le_multiset_empty_left)
 
 end
 

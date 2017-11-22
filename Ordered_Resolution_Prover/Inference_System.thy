@@ -28,7 +28,7 @@ datatype 'a inference =
   Infer (side_prems_of: "'a clause multiset") (main_prem_of: "'a clause") (concl_of: "'a clause")
 
 abbreviation prems_of :: "'a inference \<Rightarrow> 'a clause multiset" where
-  "prems_of \<gamma> \<equiv> side_prems_of \<gamma> + {# main_prem_of \<gamma> #}"
+  "prems_of \<gamma> \<equiv> side_prems_of \<gamma> + {#main_prem_of \<gamma>#}"
 
 abbreviation concls_of :: "'a inference set \<Rightarrow> 'a clause set" where
   "concls_of \<Gamma> \<equiv> concl_of ` \<Gamma>"
