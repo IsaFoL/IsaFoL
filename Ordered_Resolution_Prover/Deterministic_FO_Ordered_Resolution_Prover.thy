@@ -886,16 +886,38 @@ proof (rule ccontr)
       using bot_in_ss Q_of_Liminf_state_inf[OF _ emb_lmap[OF emb_ssgSts]] by auto
   qed
   then obtain k where
-    "{#} \<in> Q_of_wstate (lnth gSts k)"
-    sorry
-  then have emp_in: "{#} \<in> Q_of_state (state_of_dstate ((deterministic_RP_step ^^ k) St0))"
-    sorry
+    k_lt: "enat k < llength Sts" and
+    emp_in: "{#} \<in> Q_of_wstate (lnth gSts k)"
+    unfolding Liminf_state_def Liminf_llist_def by auto
+  have emp_in: "{#} \<in> Q_of_state (state_of_dstate ((deterministic_RP_step ^^ k) St0))"
+  proof -
+    have "enat k < llength Sts' \<Longrightarrow> Sts' = derivation_from St0' \<Longrightarrow>
+      {#} \<in> Q_of_wstate (lnth (lmap wstate_of_dstate Sts') k) \<Longrightarrow>
+      {#} \<in> Q_of_state (state_of_dstate ((deterministic_RP_step ^^ k) St0'))" for St0' Sts' k
+    proof (induction k arbitrary: St0' Sts')
+      case 0
+      then show ?case
+        by (subst (asm) derivation_from.code, cases St0', auto simp: comp_def)
+    next
+      case (Suc k)
+      note ih = this(1) and sk_lt = this(2) and sts' = this(3) and emp_in_sk = this(4)
+
+      have k_lt: "enat k < llength (ltl Sts')"
+        using sk_lt by (cases Sts') (auto simp: Suc_ile_eq)
+      moreover have "ltl Sts' = derivation_from (deterministic_RP_step St0')"
+        using sts' k_lt by (cases Sts') auto
+      moreover have "{#} \<in> Q_of_wstate (lnth (lmap wstate_of_dstate (ltl Sts')) k)"
+        using emp_in_sk k_lt by (cases Sts') auto
+      ultimately show ?case
+        using ih[of "ltl Sts'" "deterministic_RP_step St0'"] by (simp add: funpow_swap1)
+    qed
+    then show ?thesis
+      using k_lt emp_in by blast
+  qed
   have "deterministic_RP St0 \<noteq> None"
-    apply (rule is_final_dstate_funpow_imp_deterministic_RP_neq_None[of k])
-    using emp_in
-    apply (cases "(deterministic_RP_step ^^ k) St0")
-    apply (fastforce simp: is_final_dstate.simps comp_def image_def)
-    done
+    by (rule is_final_dstate_funpow_imp_deterministic_RP_neq_None[of k],
+        cases "(deterministic_RP_step ^^ k) St0",
+        use emp_in in \<open>force simp: is_final_dstate.simps comp_def image_def\<close>)
   then show False
     using drp_none ..
 qed
