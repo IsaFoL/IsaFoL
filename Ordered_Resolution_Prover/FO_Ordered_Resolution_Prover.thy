@@ -753,81 +753,47 @@ lemma Q_of_state_subset:
   shows "Q_of_state (lnth Sts l) \<subseteq> clss_of_state (lnth Sts l)"
   using assms unfolding clss_of_state_def by auto
 
-lemma eventually_deleted:
-  assumes "D \<in> N_of_state (lnth Sts i)"
-  assumes fair: "fair_state_seq Sts"
-  assumes i_Sts: "enat i < llength Sts"
+lemma eventually_deleted_N:
+  assumes
+    d_in: "D \<in> N_of_state (lnth Sts i)" and
+    fair: "fair_state_seq Sts" and
+    i_Sts: "enat i < llength Sts"
   shows "\<exists>l. D \<in> N_of_state (lnth Sts l) \<and> D \<notin> N_of_state (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
 proof (rule ccontr)
   assume a: "\<nexists>l. D \<in> N_of_state (lnth Sts l) \<and> D \<notin> N_of_state (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
-  have "\<forall>l. i \<le> l \<longrightarrow> enat l < llength Sts \<longrightarrow> D \<in> N_of_state (lnth Sts l)"
-  proof (rule; rule; rule)
-    fix l :: "nat"
-    assume
-      "i \<le> l" and
-      "enat l < llength Sts"
-    then show "D \<in> N_of_state (lnth Sts l)"
-    proof (induction l)
-      case 0
-      then show ?case using assms(1) by blast
-    next
-      case (Suc l)
-      then show ?case using a by (metis Suc_ile_eq assms(1) le_SucE less_imp_le)
-    qed
-  qed
-  then have "\<forall>l. i \<le> l \<longrightarrow> enat l < llength Sts \<longrightarrow> D \<in> (lnth (lmap N_of_state Sts) l)"
-    by auto
-  then have "D \<in> Liminf_llist (lmap N_of_state Sts) "
+  have "i \<le> l \<Longrightarrow> enat l < llength Sts \<Longrightarrow> D \<in> N_of_state (lnth Sts l)" for l
+    using d_in by (induction l, blast, metis a Suc_ile_eq le_SucE less_imp_le)
+  then have "D \<in> Liminf_llist (lmap N_of_state Sts)"
     unfolding Liminf_llist_def using i_Sts by auto
   then show False
     using fair unfolding fair_state_seq_def by (simp add: N_of_state_Liminf)
 qed
 
-(* FIXME: avoid duplication somehow *)
 lemma eventually_deleted_P:
-  assumes "D \<in> P_of_state (lnth Sts i)"
-  assumes fair: "fair_state_seq Sts"
-  assumes i_Sts: "enat i < llength Sts"
+  assumes
+    d_in: "D \<in> P_of_state (lnth Sts i)" and
+    fair: "fair_state_seq Sts" and
+    i_Sts: "enat i < llength Sts"
   shows "\<exists>l. D \<in> P_of_state (lnth Sts l) \<and> D \<notin> P_of_state (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
 proof (rule ccontr)
   assume a: "\<nexists>l. D \<in> P_of_state (lnth Sts l) \<and> D \<notin> P_of_state (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
-  have "\<forall>l. i \<le> l \<longrightarrow> enat l < llength Sts \<longrightarrow> D \<in> P_of_state (lnth Sts l)"
-    proof (rule; rule; rule)
-    fix l :: "nat"
-    assume
-      "i \<le> l" and
-      "enat l < llength Sts"
-    then show "D \<in> P_of_state (lnth Sts l)"
-    proof (induction l)
-      case 0
-      then show ?case using assms(1) by blast
-    next
-      case (Suc l)
-      then show ?case using a by (metis Suc_ile_eq assms(1) le_SucE less_imp_le)
-    qed
-  qed
-  then have "\<forall>l. i \<le> l \<longrightarrow> enat l < llength Sts \<longrightarrow> D \<in> (lnth (lmap P_of_state Sts) l)"
-    by auto
-  then have "D \<in> Liminf_llist (lmap P_of_state Sts) "
+  have "i \<le> l \<Longrightarrow> enat l < llength Sts \<Longrightarrow> D \<in> P_of_state (lnth Sts l)" for l
+    using d_in by (induction l, blast, metis a Suc_ile_eq le_SucE less_imp_le)
+  then have "D \<in> Liminf_llist (lmap P_of_state Sts)"
     unfolding Liminf_llist_def using i_Sts by auto
   then show False
     using fair unfolding fair_state_seq_def by (simp add: P_of_state_Liminf)
 qed
 
+(* FIXME: move this and following lemmas to Abstract_Substitution *)
 lemma size_subst: "size (D \<cdot> \<sigma>) = size D"
   unfolding subst_cls_def by auto
 
 lemma strict_subset_subst_strictly_subsumes:
   assumes c\<eta>_sub: "C \<cdot> \<eta> \<subset># D"
   shows "strictly_subsumes C D"
-proof -
-  have "\<nexists>\<sigma>. D \<cdot> \<sigma> \<subseteq># C"
-    by (metis c\<eta>_sub leD mset_subset_size size_mset_mono size_subst)
-  moreover have "C \<cdot> \<eta> \<subseteq># D"
-    using c\<eta>_sub by auto
-  ultimately show ?thesis
-    unfolding strictly_subsumes_def subsumes_def by auto
-qed
+  by (metis c\<eta>_sub leD mset_subset_size size_mset_mono size_subst strictly_subsumes_def
+      subset_mset.dual_order.strict_implies_order substitution_ops.subsumes_def)
 
 lemma subsumes_trans: "subsumes C D \<Longrightarrow> subsumes D E \<Longrightarrow> subsumes C E"
   unfolding subsumes_def
@@ -1226,7 +1192,7 @@ proof -
     using resolution_prover_ground_derivation ns by auto
 
   have "\<exists>l. D \<in> N_of_state (lnth Sts l) \<and> D \<notin> N_of_state (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
-    using fair using eventually_deleted d unfolding ns by auto
+    using fair using eventually_deleted_N d unfolding ns by auto
   then obtain l where
     l_p: "D \<in> N_of_state (lnth Sts l) \<and> D \<notin> N_of_state (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
     by auto
@@ -1447,7 +1413,7 @@ proof -
     by (metis (mono_tags) Max_in assms(2) finite_imageI imageE image_is_empty)
   moreover have "\<forall>C j'. C \<in> CC \<longrightarrow> enat j \<le> j' \<longrightarrow> j' < llength Sts \<longrightarrow> C \<in> Q_of_state (lnth Sts j')"
   proof (intro allI impI)
-    fix C :: "'a clause" and j' :: "nat"
+    fix C :: "'a clause" and j' :: nat
     assume a: "C \<in> CC" "enat j \<le> enat j'" "enat j' < llength Sts"
     then have "f C \<le> j'"
       unfolding j_def using assms(1) Max.bounded_iff by auto

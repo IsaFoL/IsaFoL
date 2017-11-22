@@ -826,7 +826,7 @@ proof -
           is_final_dstate.simps)
     then have gr_last_st: "grounding_of_wstate (wstate_of_dstate (llast Sts)) = grounded_R"
       by (simp add: lfinite_Sts llast_lmap llast_ssgSts)
-    
+
     have ?saturated
       using weighted_RP_saturated[OF ssgSts_thms, unfolded gr_last lim_last] by auto
     moreover have ?model
