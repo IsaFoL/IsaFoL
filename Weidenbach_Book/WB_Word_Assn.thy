@@ -486,6 +486,11 @@ lemma (in -) sum_mod_uint32_max: \<open>(uncurry (return oo op +), uncurry (RETU
   by sepref_to_hoare
      (sep_auto simp: sum_mod_uint32_max_def uint32_nat_rel_def br_def nat_of_uint32_plus)
 
+lemma le_uint32_nat_rel_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo (op \<le>)), uncurry (RETURN oo (op \<le>))) \<in> 
+   uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_le_iff)
+
 
 subsubsection \<open>64-bits\<close>
 

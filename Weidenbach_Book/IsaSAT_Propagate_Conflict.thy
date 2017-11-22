@@ -1097,62 +1097,10 @@ lemmas unit_propagation_inner_loop_wl_D_code_refine[sepref_fr_rules] =
 
 paragraph \<open>Unit propagation, Outer Loop\<close>
 
-type_synonym (in -) twl_st_wl_heur_W_list =
-  \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times> nat \<times>
-    nat cconflict \<times> nat literal list \<times> nat list list \<times> vmtf_remove_int \<times> bool list \<times> nat \<times>
-    nat conflict_min_cach\<close>
-
 definition (in -) select_and_remove_from_literals_to_update_wl_heur
   :: \<open>twl_st_wl_heur_W_list \<Rightarrow> twl_st_wl_heur_W_list \<times> _\<close> where
   \<open>select_and_remove_from_literals_to_update_wl_heur =
      (\<lambda>(M, N, U, D, Q, W, other).  ((M, N, U, D, tl Q, W, other), hd Q))\<close>
-
-definition twl_st_wl_heur_W_list_rel :: \<open>(twl_st_wl_heur_W_list \<times> twl_st_wl_heur) set\<close> where
-  \<open>twl_st_wl_heur_W_list_rel =
-     (Id :: ((nat,nat) ann_lits \<times> _) set) \<times>\<^sub>r
-     (Id :: (nat clauses_l  \<times> _) set) \<times>\<^sub>r
-     nat_rel \<times>\<^sub>r
-     (Id :: (nat cconflict \<times> _)set) \<times>\<^sub>r
-     (list_mset_rel :: (nat literal list \<times> nat lit_queue_wl) set)  \<times>\<^sub>r
-     (Id :: (nat list list \<times> _)set) \<times>\<^sub>r
-     Id \<times>\<^sub>r
-     Id \<times>\<^sub>r
-     nat_rel \<times>\<^sub>r
-     Id\<close>
-
-definition twl_st_heur_W_list_assn :: \<open>twl_st_wl_heur_W_list \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
-\<open>twl_st_heur_W_list_assn =
-  (trail_assn *a clauses_ll_assn *a nat_assn *a
-  option_lookup_clause_assn *a
-  (list_assn unat_lit_assn) *a
-  arrayO_assn (arl_assn nat_assn) *a
-  vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn *a cach_refinement_assn
-  )\<close>
-
-lemma twl_st_wl_heur_W_list_rel_twl_st_rel: \<open>twl_st_wl_heur_W_list_rel O twl_st_heur =
-   {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach), M, N, U, D, NP, UP, Q, W).
-     M = M' \<and>
-     N' = N \<and>
-     U' = U \<and>
-     D = D' \<and>
-     (Q', Q) \<in> list_mset_rel \<and>
-     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
-     vm \<in> vmtf M \<and> phase_saving \<phi> \<and> no_dup M \<and> clvls \<in> counts_maximum_level M D\<and>
-     cach_refinement_empty cach}\<close>
-  unfolding twl_st_heur_def twl_st_wl_heur_W_list_rel_def
-  by force
-
-lemma twl_st_heur_assn_W_list:
-  \<open>twl_st_heur_assn = hr_comp twl_st_heur_W_list_assn twl_st_wl_heur_W_list_rel\<close>
-  unfolding twl_st_heur_assn_def twl_st_heur_W_list_assn_def twl_st_wl_heur_W_list_rel_def
-  by (auto simp: list_assn_list_mset_rel_eq_list_mset_assn)
-
-lemma twl_st_assn_W_list:
-  \<open>twl_st_assn = hr_comp twl_st_heur_W_list_assn (twl_st_wl_heur_W_list_rel O twl_st_heur)\<close>
-  apply (subst hr_comp_assoc[symmetric])
-  apply (subst twl_st_heur_assn_W_list[symmetric])
-  unfolding twl_st_assn_def ..
-
 
 definition get_literals_to_update_wl where
    \<open>get_literals_to_update_wl = (\<lambda>(M, N, U, D, NP, UP, Q, W). Q)\<close>

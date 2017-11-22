@@ -555,6 +555,15 @@ locale isasat_input_bounded_nempty =
 context isasat_input_bounded
 begin
 
+lemma in_N1_less_than_uint_max': \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> nat_of_lit L \<le> uint_max\<close>
+  using in_N1_less_than_uint_max by auto
+
+lemma in_\<A>\<^sub>i\<^sub>n_less_than_uint_max_div_2:
+  \<open>L \<in># \<A>\<^sub>i\<^sub>n \<Longrightarrow> L \<le> uint_max div 2\<close>
+  using in_N1_less_than_uint_max'[of \<open>Neg L\<close>]
+  unfolding Ball_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+  by (auto simp: uint_max_def)
+  
 lemma simple_clss_size_upper_div2':
   assumes
    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C\<close> and
