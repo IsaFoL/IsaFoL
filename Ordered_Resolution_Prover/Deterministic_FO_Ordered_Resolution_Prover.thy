@@ -867,8 +867,7 @@ proof (rule ccontr)
   assume unsat: "\<not> satisfiable grounded_N0"
 
   have unsat_gSts0: "\<not> satisfiable (grounding_of_wstate (lhd gSts))"
-    using unsat
-    sorry
+    using unsat by (subst derivation_from.code) (simp add: clss_of_state_def comp_def)
 
   have bot_in_ss: "{#} \<in> Q_of_state (Liminf_wstate ssgSts)"
     by (rule weighted_RP_complete[OF ssgSts_thms unsat_gSts0[folded lhd_ssgSts]])
