@@ -796,7 +796,7 @@ proof -
     then have emp_in: "{#} \<in> grounded_R"
       unfolding grounding_of_clss_def grounding_of_cls_def by (auto intro: ex_ground_subst)
 
-    have gr_last: "grounded_R \<subseteq> grounding_of_wstate (llast ssgSts)"
+    have "grounded_R \<subseteq> grounding_of_wstate (llast ssgSts)"
       unfolding r llast_ssgSts
       by (simp add: last_sts llast_lmap[OF lfinite_Sts] clss_of_state_def grounding_of_clss_def)
     then have gr_last_st: "grounded_R \<subseteq> grounding_of_wstate (wstate_of_dstate (llast Sts))"
