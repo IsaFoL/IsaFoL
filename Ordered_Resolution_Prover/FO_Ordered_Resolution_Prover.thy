@@ -1734,9 +1734,6 @@ proof -
       redundancy_criterion_standard_extension_saturated_upto_iff[of gd.ord_\<Gamma>]
     unfolding src_ext_Ri_def by auto
 qed
-find_theorems chain
-
-thm src_ext.deriv_sat_preserving
 
 lemma unsat_Liminf_if_unsat_lhd:
   assumes
@@ -1760,13 +1757,6 @@ corollary RP_complete_if_fair:
     unsat: "\<not> satisfiable (grounding_of_state (lhd Sts))"
   shows "{#} \<in> Q_of_state (Liminf_state Sts)"
 proof -
-  (*
-  have "\<not> satisfiable (grounding_of_state (Liminf_state Sts))"
-    using unsat RP_model
-    sorry
-  then have "\<not> satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
-    using grounding_of_state_Liminf_state_subseteq unfolding true_clss_def by (meson contra_subsetD)
-  *)
   have "\<not> satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
     using unsat_Liminf_if_unsat_lhd unsat by auto
   moreover have "src.saturated_upto (Liminf_llist (lmap grounding_of_state Sts))"
