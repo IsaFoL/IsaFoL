@@ -1734,6 +1734,25 @@ proof -
       redundancy_criterion_standard_extension_saturated_upto_iff[of gd.ord_\<Gamma>]
     unfolding src_ext_Ri_def by auto
 qed
+find_theorems chain
+
+thm src_ext.deriv_sat_preserving
+
+lemma unsat_Liminf_if_unsat_lhd:
+  assumes
+    unsat: "\<not> satisfiable (grounding_of_state (lhd Sts))"
+  shows "\<not>satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
+proof -
+  have "enat 0 < llength Sts"
+    using deriv chain_length_pos zero_enat_def by auto
+  then have "grounding_of_state (lhd Sts) = lhd (lmap grounding_of_state Sts)"
+    using gr_implies_not_zero by fastforce 
+  with unsat have "\<not>satisfiable (lhd (lmap grounding_of_state Sts))"
+    by auto
+  with src_ext.sat_deriv_Liminf_iff[of "lmap grounding_of_state Sts"] 
+  show "\<not>satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
+    using deriv resolution_prover_ground_derivation by auto
+qed
 
 corollary RP_complete_if_fair:
   assumes
@@ -1741,11 +1760,15 @@ corollary RP_complete_if_fair:
     unsat: "\<not> satisfiable (grounding_of_state (lhd Sts))"
   shows "{#} \<in> Q_of_state (Liminf_state Sts)"
 proof -
+  (*
   have "\<not> satisfiable (grounding_of_state (Liminf_state Sts))"
     using unsat RP_model
     sorry
   then have "\<not> satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
     using grounding_of_state_Liminf_state_subseteq unfolding true_clss_def by (meson contra_subsetD)
+  *)
+  have "\<not> satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
+    using unsat_Liminf_if_unsat_lhd unsat by auto
   moreover have "src.saturated_upto (Liminf_llist (lmap grounding_of_state Sts))"
     by (rule RP_saturated_if_fair[OF fair, simplified])
   ultimately have "{#} \<in> Liminf_llist (lmap grounding_of_state Sts)"
