@@ -1738,7 +1738,7 @@ qed
 lemma unsat_Liminf_if_unsat_lhd:
   assumes
     unsat: "\<not> satisfiable (grounding_of_state (lhd Sts))"
-  shows "\<not>satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
+  shows "\<not> satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
 proof -
   have "enat 0 < llength Sts"
     using deriv chain_length_pos zero_enat_def by auto
