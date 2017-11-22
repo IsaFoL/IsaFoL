@@ -234,8 +234,7 @@ proof (induct P arbitrary: P0 Ci)
       by (rule arg_cong[of _ _ Min]) auto
     then have min: "Min ((weight \<circ> apfst mset) ` set (P0 # P1 # P)) =
       Min ((weight \<circ> apfst mset) ` set (P0 # P))"
-      by (simp add: min_def) (smt False finite_set Min_insert2 Suc_le_eq antisym finite_imageI
-          imageE not_less_eq_eq comp_def)
+      by (simp add: min_def) (use False eq_iff in fastforce)
     show ?thesis
       unfolding min by (rule ih[of Ci P0]) (simp add: ih[of Ci P1] ci False)
   qed
@@ -548,9 +547,8 @@ proof -
 qed
 
 lemma final_deterministic_RP_step: "is_final_dstate St \<Longrightarrow> deterministic_RP_step St = St"
-  apply (cases St)
-  apply (simp add: deterministic_RP_step.simps split: option.splits)
-  sorry
+  by (cases St) (auto simp: deterministic_RP_step.simps is_final_dstate.simps find_None_iff
+      split: option.splits)
 
 lemma deterministic_RP_SomeD:
   assumes "deterministic_RP (N, P, Q, n) = Some R"
