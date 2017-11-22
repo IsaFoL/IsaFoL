@@ -689,8 +689,11 @@ lemma empty_ssgQ0: "Q_of_wstate (lhd ssgSts) = {}"
 lemma "clss_of_state (Liminf_wstate ssgSts) \<subseteq> clss_of_state (Liminf_wstate gSts)"
 proof (cases "lfinite Sts")
   case fin: True
-  then show ?thesis
-    sorry
+  show ?thesis
+    by (rule equalityD1)
+      (smt fin Liminf_state_fin chain_not_lnull[OF deriv_gSts_trancl_weighted_RP]
+        lfinite_lmap[THEN iffD2] lfinite_ssgSts_iff[THEN iffD2] llast_lmap llast_ssgSts
+        llist.map_disc_iff not_lnull_ssgSts)
 next
   case False
   then show ?thesis
