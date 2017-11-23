@@ -35,7 +35,7 @@ lemma set_map2_ex:
 proof (rule; rule)
   fix x
   assume "x \<in> set (map2 f s t)"
-  then obtain i where i_p: "i < length (map2 f s t) \<and> x = ((map2 f s t) ! i)"
+  then obtain i where i_p: "i < length (map2 f s t) \<and> x = map2 f s t ! i"
     by (metis in_set_conv_nth)
   from i_p have "i < length t"
     by auto
