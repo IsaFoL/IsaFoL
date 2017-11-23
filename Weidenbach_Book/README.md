@@ -1,7 +1,7 @@
 # Formalization of Weidenbach's _Automated Reasoning―The Art of Generic Problem Solving_ #
 
 [This directory](https://bitbucket.org/isafol/isafol/src/master/Weidenbach_Book/) contains an ongoing Isabelle formalization of Christoph Weidenbach's forthcoming book _Automated Reasoning―The Art of Generic Problem Solving_.
-The relevant part of the book can be found [here](http://people.mpi-inf.mpg.de/~mfleury/paper/Weidenback_Book_CDCL.pdf)
+The relevant part of the book can be found [online](http://people.mpi-inf.mpg.de/~mfleury/paper/Weidenback_Book_CDCL.pdf).
 
 ## Organisation of the Development ##
 
@@ -10,7 +10,7 @@ The relevant part of the book can be found [here](http://people.mpi-inf.mpg.de/~
 
 ## Documentation ##
 
-A recent version of the documentation the theory files is also available [here](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/current/Weidenbach_Book).
+A recent version of the documentation the theory files is also available [online](http://people.mpi-inf.mpg.de/~mfleury/IsaFoL/current/Weidenbach_Book).
 
 ## Authors ##
 
@@ -25,11 +25,15 @@ A recent version of the documentation the theory files is also available [here](
 
 ## Publications ##
 
+* [A verified SAT solver with watched literals using Imperative HOL](http://matryoshka.gforge.inria.fr/pubs/sat_2wl_paper.pdf).
+  M. Fleury, J. C. Blanchette, and P. Lammich.
+  In Andronick, J., Felty, A. (eds.) 7th ACM SIGPLAN International Conference on Certified Programs and Proofs (CPP 2018).
+
 * [A verified SAT solver framework with learn, forget, restart, and incrementality](http://matryoshka.gforge.inria.fr/pubs/sat_sister.pdf)
   J. C. Blanchette, M. Fleury, and C. Weidenbach.
   In Sierra, C. (ed.) 26th International Joint Conference on Artificial Intelligence (IJCAI-17), pp. 4786–4790, ijcai.org, 2017.
 
-* [A Verified SAT Solver Framework with Learn, Forget, Restart, and Incrementality](http://people.mpi-inf.mpg.de/~jblanche/sat.pdf).
+* [A verified SAT solver framework with learn, forget, restart, and incrementality](http://people.mpi-inf.mpg.de/~jblanche/sat.pdf).
   J. C. Blanchette, M. Fleury, and C. Weidenbach.
   In Olivetti, N., Tiwari, A. (eds.) 8th International Joint Conference on Automated Reasoning (IJCAR 2016), LNCS, Springer, 2016.
 
@@ -40,18 +44,18 @@ A recent version of the documentation the theory files is also available [here](
 ## Execution of the Formalisation ##
 
 * Please install [Isabelle2017](http://isabelle.in.tum.de).
-* Install the [Archive of Formal proofs](https://www.isa-afp.org/using.html) as mentionned
-* To process all the theory files, clone the repository and load ``IsaSAT.thy``, using:
+* Install the [Archive of Formal proofs](https://www.isa-afp.org/using.html) as mentioned.
+* To process all the theory files, clone the repository and load ``IsaSAT.thy``, using
    ``/path/to/isabelle jedit -d . -l CDCL IsaSAT.thy``
-   (``-d .`` ensures that Isabelle knows about the sessions of this formalisation, and ``-l CDCL`` means that we build the formalisation on top of CDCL)
-  (The whole compilation will take around 30 min).
+   (``-d .`` ensures that Isabelle knows about the sessions of this formalisation, and ``-l CDCL`` means that we build the formalisation on top of CDCL).
+  The whole compilation will take around 30 minutes.
 
 ## The SAT solver IsaSAT ##
 
 The code of the SAT solver is in the ``code`` folder. To run it:
   * download [MLton](http://mlton.org);
   * compile IsaSAT with ``make`` or ``make MLTON=/path/to/mlton`` (if MLton is not in the $PATH);
-  * run the solver with ``./IsaSAT <cnf-file>`` or ``./IsaSAT --verbose <cnf-file>`` (to print the model)
+  * run the solver with ``./IsaSAT <cnf-file>`` or ``./IsaSAT --verbose <cnf-file>`` (to print the model).
 
 ## Names Correspondance and Publications
 
