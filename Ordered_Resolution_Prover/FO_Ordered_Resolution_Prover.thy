@@ -925,6 +925,7 @@ lemma instance_if_subsumed_and_in_limit:
   assumes
     ns: "Ns = lmap grounding_of_state Sts" and
     c: "C \<in> Liminf_llist Ns - src.Rf (Liminf_llist Ns)" and
+    (* FIXME: use clss_of_state below *)
     d: "D \<in> N_of_state (lnth Sts i) \<union> P_of_state (lnth Sts i) \<union> Q_of_state (lnth Sts i)" "enat i < llength Sts" "subsumes D C"
   shows "\<exists>\<sigma>. D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
 proof -
