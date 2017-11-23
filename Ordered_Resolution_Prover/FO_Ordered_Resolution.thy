@@ -76,7 +76,7 @@ proof -
   then have "As' \<cdot>al \<eta> = As"
     using eql_map_neg_lit_eql_atm by auto
   ultimately show ?thesis
-    by auto
+    by blast
 qed
 
 
@@ -282,22 +282,17 @@ lemma subst_sound_scl:
 proof -
   from true_cas have "\<forall>CA. CA\<in># mset CAs \<longrightarrow> I \<Turnstile>fo CA"
     using true_fo_cls_mset_true_fo_cls by auto
-  then have "\<forall>CA. CA \<in> set CAs \<longrightarrow> I \<Turnstile>fo CA"
-    by auto
-  then have "\<forall>i < length CAs. I \<Turnstile>fo  (CAs ! i)"
-    using in_set_conv_nth[of _ CAs] by blast
-  then have "\<forall>i < length CAs. I \<Turnstile>fo  (CAs ! i) \<cdot> P ! i"
-    using subst_sound len by auto
+  then have "\<forall>i < length CAs. I \<Turnstile>fo CAs ! i"
+    using in_set_conv_nth by auto
   then have true_cp: "\<forall>i < length CAs. I \<Turnstile>fo CAs ! i \<cdot> P ! i"
-    by auto
+    using subst_sound len by auto
+
   {
     fix CA
     assume "CA \<in># mset (CAs \<cdot>\<cdot>cl P)"
-    then have "CA \<in> set (CAs \<cdot>\<cdot>cl P)"
-      by auto
     then obtain i where
       i_x: "i < length (CAs \<cdot>\<cdot>cl P)" "CA = (CAs \<cdot>\<cdot>cl P) ! i"
-      using in_set_conv_nth by metis
+      by (metis in_mset_conv_nth)
     then have "I \<Turnstile>fo CA"
       using true_cp unfolding subst_cls_lists_def by (simp add: len)
   }
@@ -441,8 +436,6 @@ proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Cs AAs As D)
   note da = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4)
     and aas_len = this(5) and as_len = this(6) and cas = this(8) and mgu = this(10)
-  then have "\<forall>i < n.  Cs ! i \<subseteq># CAs ! i"
-    by auto
   then have cs_sub_cas: "\<Union># mset Cs \<subseteq># \<Union># mset CAs"
     using subseteq_list_Union_mset cas_len cs_len by force
   then have cs_sub_cas: "\<Union># mset Cs \<subseteq># \<Union># mset CAs"
@@ -456,19 +449,17 @@ proof (cases rule: ord_resolve.cases)
 
   have "is_ground_cls (\<Union># mset Cs + D)"
     using gr_cs gr_d by auto
-  then have Cs_D_\<sigma>: "(\<Union># mset Cs + D) = (\<Union># mset Cs + D) \<cdot> \<sigma>"
+  with e have "E = (\<Union># mset Cs + D)"
     by auto
-  from e have "E = (\<Union># mset Cs + D)"
-    using Cs_D_\<sigma> by auto
   then show ?thesis
-    using cs_sub_cas d_sub_da by (auto simp add: subset_mset.add_mono)
+    using cs_sub_cas d_sub_da by (auto simp: subset_mset.add_mono)
 qed
 
 lemma ord_resolve_obtain_clauses:
   assumes
     res_e: "ord_resolve (S_M S M) CAs DA \<sigma> E" and
     select: "selection S" and
-    grounding: "{DA} \<union> (set CAs) \<subseteq> grounding_of_clss M" and
+    grounding: "{DA} \<union> set CAs \<subseteq> grounding_of_clss M" and
     n: "length CAs = n"
   obtains DA'' \<eta>'' CAs'' \<eta>s'' where
     "length CAs'' = n"
@@ -543,7 +534,7 @@ proof (cases rule: ord_resolve.cases)
     using DA''_\<eta>''_p by auto
   show ?thesis
     using that[OF n(2) n(1) DA''_in_M  DA''_to_DA SDA''_to_SMDA CAs''_in_M CAs''_to_CAs SCAs''_to_SMCAs \<open>is_ground_subst \<eta>''\<close> \<open>is_ground_subst_list \<eta>s''\<close>]
-      by auto
+    by auto
 qed
 
 lemma ord_resolve_rename_lifting:
@@ -822,8 +813,8 @@ proof (cases rule: ord_resolve.cases)
     moreover then obtain \<phi> where \<phi>_p: "\<tau> \<odot> \<phi> = \<eta> \<odot> \<sigma>"
       by (metis (mono_tags, hide_lams) finite_set \<eta>\<sigma>uni finite_imageI finite_set_mset image_iff
           mgu_sound set_mset_mset substitution_ops.is_mgu_def) (* should be simpler *)
-    ultimately show ?thesis using that
-      by auto
+    ultimately show thesis
+      using that by auto
   qed
 
   -- \<open>Lifting eligibility\<close>
@@ -849,9 +840,7 @@ proof (cases rule: ord_resolve.cases)
           da as' subst_cls_empty_iff by metis
       moreover from asm have l: "length As' = 1"
         using \<open>As' \<cdot>al \<eta> = As\<close> by auto
-      moreover from asm have "maximal_in (As ! 0 \<cdot>a \<sigma>) ((D + negs (mset As)) \<cdot> \<sigma>)"
-        by auto
-      then have "maximal_in (As' ! 0 \<cdot>a (\<tau> \<odot> \<phi>)) ((D' + negs (mset As')) \<cdot> (\<tau> \<odot> \<phi>))"
+      moreover from asm have "maximal_in (As' ! 0 \<cdot>a (\<tau> \<odot> \<phi>)) ((D' + negs (mset As')) \<cdot> (\<tau> \<odot> \<phi>))"
         using \<open>As' \<cdot>al \<eta> = As\<close> \<open>D' \<cdot> \<eta> = D\<close> using l \<tau>\<phi> by auto
       then have "maximal_in (As' ! 0 \<cdot>a \<tau> \<cdot>a \<phi>) ((D' + negs (mset As')) \<cdot> \<tau> \<cdot> \<phi>)"
         by auto
