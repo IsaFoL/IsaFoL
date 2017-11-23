@@ -160,9 +160,7 @@ context
     empty_Q0: "Q_of_state (lhd Sts) = {}"
 begin
 
-lemma grounding_lhd_eq_lhd_grounding:
-  "grounding_of_state (lhd Sts) = lhd (lmap grounding_of_state Sts)"
-  using deriv chain_length_pos by fastforce
+lemmas lhd_lmap_Sts = llist.map_sel(1)[OF chain_not_lnull[OF deriv]]
 
 definition S_Q :: "'a clause \<Rightarrow> 'a clause" where
   "S_Q = S_M S (Q_of_state (Liminf_state Sts))"
@@ -703,6 +701,7 @@ text \<open>
 Another formulation of the part of Lemma 4.10 that states we have a theorem proving process:
 \<close>
 
+(* FIXME: rename *)
 lemma resolution_prover_ground_derivation:
   "chain (op \<leadsto>) Sts \<Longrightarrow> chain src_ext.derive (lmap grounding_of_state Sts)"
   using resolution_prover_ground_derive by (simp add: chain_lmap[of "op \<leadsto>"])
@@ -1534,7 +1533,7 @@ proof -
     using src_ext.sat_deriv_Liminf_iff[of "lmap grounding_of_state Sts"]
     by (metis deriv resolution_prover_ground_derivation)
   then show ?thesis
-    unfolding grounding_lhd_eq_lhd_grounding .
+    unfolding lhd_lmap_Sts .
 qed
 
 theorem RP_saturated_if_fair:
@@ -1790,8 +1789,8 @@ corollary RP_complete_if_fair:
   shows "{#} \<in> Q_of_state (Liminf_state Sts)"
 proof -
   have "\<not> satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
-    using unsat[unfolded grounding_lhd_eq_lhd_grounding] deriv
-      resolution_prover_ground_derivation src_ext.sat_deriv_Liminf_iff by blast
+    unfolding src_ext.sat_deriv_Liminf_iff[OF resolution_prover_ground_derivation[OF deriv]]
+    by (rule unsat[folded lhd_lmap_Sts[of grounding_of_state]])
   moreover have "src.saturated_upto (Liminf_llist (lmap grounding_of_state Sts))"
     by (rule RP_saturated_if_fair[OF fair, simplified])
   ultimately have "{#} \<in> Liminf_llist (lmap grounding_of_state Sts)"
