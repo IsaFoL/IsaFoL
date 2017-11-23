@@ -65,29 +65,44 @@ definition ord_FO_\<Gamma> :: "'a inference set" where
 
 interpretation ord_FO_resolution: inference_system ord_FO_\<Gamma> .
 
+(* FIXME: move me *)
+lemma
+  assumes
+    e: "ord_resolve_rename S Cl D \<sigma> E" and
+    e': "ord_resolve_rename S Cl D \<sigma>' E'"
+  shows
+    ord_resolve_rename_unique_subst: "\<sigma> = \<sigma>'" and
+    ord_resolve_rename_unique_concl: "E = E'"
+proof -
+  show "\<sigma> = \<sigma>'"
+    using e e'
+    unfolding ord_resolve_rename.simps ord_resolve.simps
+
+    sorry
+  show "E = E'"
+    sorry
+qed
+
 lemma finite_ord_FO_resolution_inferences_between:
   assumes fin_cc: "finite CC"
   shows "finite (ord_FO_resolution.inferences_between CC C)"
 proof -
   let ?CCC = "insert C CC"
-  let ?max_len = "Max (size ` ?CCC)"
-  let ?CL = "{Cl. Cl \<in> lists ?CCC \<and> length Cl \<le> ?max_len}"
+  let ?max_ary = "Max (size ` ?CCC)"
+  let ?CL = "{Cl. Cl \<in> lists ?CCC \<and> length Cl \<le> ?max_ary}"
 
-  let ?V = "?CL \<times> ?CCC"
+  let ?W = "?CL \<times> ?CCC"
 
   have fin_ccc: "finite ?CCC"
     using fin_cc by simp
   moreover have "finite ?CL"
-    using fin_ccc
-    sorry
-  ultimately have fin_v: "finite ?V"
+    using fin_ccc by (simp add: finite_lists_length_le lists_eq_set)
+  ultimately have fin_w: "finite ?W"
     using finite_cartesian_product by blast
-
-  let ?W = "{(Cl, D). set Cl \<union> {D} \<subseteq> ?CCC}"
 
   let ?X =
     "{\<gamma>. \<exists>Cl D. \<gamma> = Infer (mset Cl) D (SOME E. \<exists>\<sigma>. ord_resolve_rename S Cl D \<sigma> E) \<and>
-        set Cl \<union> {D} \<subseteq> ?CCC}"
+        set Cl \<union> {D} \<subseteq> ?CCC \<and> length Cl \<le> ?max_ary}"
 
   let ?Y =
     "{\<gamma>. \<exists>Cl D \<sigma> E. \<gamma> = Infer (mset Cl) D E \<and> ord_resolve_rename S Cl D \<sigma> E \<and>
@@ -100,17 +115,16 @@ proof -
   let ?infer_of = "\<lambda>(Cl, D). Infer (mset Cl) D (SOME E. \<exists>\<sigma>. ord_resolve_rename S Cl D \<sigma> E)"
 
   have "?Z \<subseteq> ?Y"
-    sorry
+    by (force simp: infer_from_def)
   also have "\<dots> \<subseteq> ?X"
+    apply clarsimp
+    using ord_resolve_rename_unique_concl some_equality
     sorry
   also have "\<dots> \<subseteq> ?infer_of ` ?W"
-    sorry
-  also have "\<dots> \<subseteq> ?infer_of ` ?V"
-    apply (rule image_mono)
-    sorry
+    by auto
   finally show ?thesis
     unfolding inference_system.inferences_between_def ord_FO_\<Gamma>_def mem_Collect_eq
-    by (fast intro: rev_finite_subset[OF finite_imageI[OF fin_v]])
+    by (fast intro: rev_finite_subset[OF finite_imageI[OF fin_w]])
 qed
 
 lemma ord_FO_resolution_inferences_between_empty_empty:
