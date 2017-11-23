@@ -740,13 +740,6 @@ lemma Liminf_grounding_of_state_ground:
     Sup_llist_grounding_of_state_ground
   by blast
 
-lemma in_lnth_grounding_in_lnth:
-  assumes
-    "C \<in> lnth (lmap grounding_of_state Sts) i" and
-    "enat i < llength (lmap grounding_of_state Sts)"
-  shows "\<exists>D \<sigma>. D \<in> clss_of_state (lnth Sts i) \<and> D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
-  using assms clss_of_state_def grounding_of_clss_def grounding_of_cls_def by auto
-
 lemma in_Sup_llist_in_Sup_state:
   assumes "C \<in> Sup_llist (lmap grounding_of_state Sts)"
   shows "\<exists>D \<sigma>. D \<in> clss_of_state (Sup_state Sts) \<and> D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
@@ -756,7 +749,7 @@ proof -
     using in_Sup_llist_in_nth by fastforce
   then obtain D \<sigma> where
     "D \<in> clss_of_state (lnth Sts i) \<and> D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
-    using in_lnth_grounding_in_lnth by force
+    using assms unfolding grounding_of_clss_def grounding_of_cls_def by fastforce
   then have "D \<in> clss_of_state (Sup_state Sts) \<and> D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
     using i_p unfolding Sup_state_def clss_of_state_def
     by (metis (no_types, lifting) UnCI UnE contra_subsetD N_of_state.simps P_of_state.simps
@@ -769,21 +762,6 @@ lemma
   N_of_state_Liminf: "N_of_state (Liminf_state Sts) = Liminf_llist (lmap N_of_state Sts)" and
   P_of_state_Liminf: "P_of_state (Liminf_state Sts) = Liminf_llist (lmap P_of_state Sts)"
   unfolding Liminf_state_def by auto
-
-lemma N_of_state_subset:
-  assumes "enat l < llength Sts"
-  shows "N_of_state (lnth Sts l) \<subseteq> clss_of_state (lnth Sts l)"
-  using assms unfolding clss_of_state_def by auto
-
-lemma P_of_state_subset:
-  assumes "enat l < llength Sts"
-  shows "P_of_state (lnth Sts l) \<subseteq> clss_of_state (lnth Sts l)"
-  using assms unfolding clss_of_state_def by auto
-
-lemma Q_of_state_subset:
-  assumes "enat l < llength Sts"
-  shows "Q_of_state (lnth Sts l) \<subseteq> clss_of_state (lnth Sts l)"
-  using assms unfolding clss_of_state_def by auto
 
 lemma eventually_deleted_N:
   assumes
@@ -952,7 +930,7 @@ proof -
     moreover have "is_ground_subst \<tau>"
       using \<tau>_p by auto
     moreover have "D \<in> clss_of_state (lnth Sts i)"
-      using d N_of_state_subset Q_of_state_subset P_of_state_subset by blast
+      using d unfolding clss_of_state_def by auto
     ultimately have "C \<in> src.Rf (grounding_of_state (lnth Sts i))"
       using strict_subset_subsumption_redundant_state[of D \<tau> C "lnth Sts i"] by auto
     then have "C \<in> src.Rf (Sup_llist Ns)"
@@ -1761,7 +1739,7 @@ proof -
         using C'_p(4) by auto
     qed
     then have "E' \<in> clss_of_state (lnth Sts j)"
-      using N_of_state_subset j_p' by auto
+      using j_p' unfolding clss_of_state_def by auto
     then have "?E \<in> grounding_of_state (lnth Sts j)"
       using s_p(7) s_p(3) unfolding grounding_of_clss_def grounding_of_cls_def by force
     then have "\<gamma> \<in> src.Ri (grounding_of_state (lnth Sts j))"
