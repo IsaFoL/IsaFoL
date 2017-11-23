@@ -135,7 +135,7 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
    eligible \<sigma> As (D + negs (mset As)) \<Longrightarrow>
    \<forall>i < n. strictly_maximal_in (As ! i \<cdot>a \<sigma>) ((Cs ! i) \<cdot> \<sigma>) \<Longrightarrow>
    \<forall>i < n. S (CAs ! i) = {#} \<Longrightarrow>
-   ord_resolve CAs (D + negs (mset As)) \<sigma> (((\<Union># (mset Cs)) + D) \<cdot> \<sigma>)"
+   ord_resolve CAs (D + negs (mset As)) \<sigma> (((\<Union># mset Cs) + D) \<cdot> \<sigma>)"
 
 inductive ord_resolve_rename :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 's \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve_rename:
