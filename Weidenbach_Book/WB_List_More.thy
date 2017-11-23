@@ -300,45 +300,11 @@ lemma length_list_2: \<open>length S = 2 \<longleftrightarrow> (\<exists>a b. S 
 lemma finite_bounded_list:
   fixes b :: nat
   shows \<open>finite {xs. length xs < s \<and> (\<forall>i< length xs. xs ! i < b)}\<close> (is \<open>finite (?S s)\<close>)
-proof (induction s)
-  case 0
-  then show ?case by auto
-next
-  case (Suc s) note IH = this(1)
-  have H: \<open>?S (Suc s) \<subseteq> ?S s \<union> {x # xs| x xs. x < b \<and> length xs < s \<and> (\<forall>i< length xs. xs ! i < b)}
-    \<union> {[]}\<close>
-    (is \<open>_ \<subseteq> _ \<union> ?C \<union> _\<close>)
-    proof
-      fix xs
-      assume \<open>xs \<in> ?S (Suc s)\<close>
-      then have B: \<open>\<forall>i<length xs. xs ! i < b\<close> and len: \<open>length xs < Suc s\<close>
-        by auto
-      consider
-        (st) \<open>length xs < s\<close> |
-        (s) \<open>length xs = 0\<close> and \<open>s = 0\<close> |
-        (s') s' where \<open>length xs = Suc s'\<close>
-        using len by (cases s) (auto simp add: Nat.less_Suc_eq)
-      then show \<open>xs \<in> ?S s \<union> ?C \<union> {[]}\<close>
-        proof cases
-          case st
-          then show ?thesis using B by auto
-        next
-          case s
-          then show ?thesis using B by auto
-        next
-          case s' note len_xs = this(1)
-          then obtain x xs' where xs: \<open>xs = x # xs'\<close> by (cases xs) auto
-          then show ?thesis using len_xs B len s' unfolding xs by auto
-        qed
-    qed
-  have \<open>?C \<subseteq> (case_prod Cons) ` ({x. x < b} \<times> ?S s)\<close>
-    by auto
-  moreover have \<open>finite ({x. x < b} \<times> ?S s)\<close>
-    using IH by (auto simp: finite_cartesian_product_iff)
-  ultimately have \<open>finite ?C\<close> by (simp add: finite_surj)
-  then have \<open>finite (?S s \<union> ?C \<union> {[]})\<close>
-    using IH by auto
-  then show ?case using H by (auto intro: finite_subset)
+proof -
+  have H: \<open>finite {xs. set xs \<subseteq> {0..<b} \<and> length xs \<le> s}\<close>
+    by (rule finite_lists_length_le[of \<open>{0..<b}\<close> \<open>s\<close>]) auto
+  show ?thesis
+    by (rule finite_subset[OF _ H]) (auto simp: in_set_conv_nth)
 qed
 
 lemma last_in_set_dropWhile:
