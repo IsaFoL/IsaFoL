@@ -83,14 +83,30 @@ proof -
     sorry
 qed
 
+(* FIXME: move *)
+lemma ord_resolve_max_side_prems: "ord_resolve S Cl D \<sigma> E \<Longrightarrow> length Cl \<le> size D"
+  by (auto elim!: ord_resolve.cases)
+
+(* FIXME: move *)
+lemma ord_resolve_rename_max_side_prems: "ord_resolve_rename S Cl D \<sigma> E \<Longrightarrow> length Cl \<le> size D"
+  by (elim ord_resolve_rename.cases, drule ord_resolve_max_side_prems, simp add: renames_apart)
+
 lemma finite_ord_FO_resolution_inferences_between:
   assumes fin_cc: "finite CC"
   shows "finite (ord_FO_resolution.inferences_between CC C)"
 proof -
-  let ?CCC = "insert C CC"
+  let ?CCC = "CC \<union> {C}"
+
   let ?max_ary = "Max (size ` ?CCC)"
   let ?CL = "{Cl. Cl \<in> lists ?CCC \<and> length Cl \<le> ?max_ary}"
 
+  let ?infer_of = "\<lambda>Cl D. Infer (mset Cl) D (SOME E. \<exists>\<sigma>. ord_resolve_rename S Cl D \<sigma> E)"
+
+  let ?Z = "{\<gamma>. (\<exists>Cl D \<sigma> E. \<gamma> = Infer (mset Cl) D E \<and> ord_resolve_rename S Cl D \<sigma> E) \<and>
+    infer_from ?CCC \<gamma> \<and> C \<in># prems_of \<gamma>}"
+  let ?Y = "{\<gamma>. \<exists>Cl D \<sigma> E. \<gamma> = Infer (mset Cl) D E \<and> ord_resolve_rename S Cl D \<sigma> E \<and>
+    set Cl \<union> {D} \<subseteq> ?CCC}"
+  let ?X = "{\<gamma>. \<exists>Cl D. \<gamma> = ?infer_of Cl D \<and> set Cl \<union> {D} \<subseteq> ?CCC \<and> length Cl \<le> ?max_ary}"
   let ?W = "?CL \<times> ?CCC"
 
   have fin_ccc: "finite ?CCC"
@@ -100,27 +116,20 @@ proof -
   ultimately have fin_w: "finite ?W"
     using finite_cartesian_product by blast
 
-  let ?X =
-    "{\<gamma>. \<exists>Cl D. \<gamma> = Infer (mset Cl) D (SOME E. \<exists>\<sigma>. ord_resolve_rename S Cl D \<sigma> E) \<and>
-        set Cl \<union> {D} \<subseteq> ?CCC \<and> length Cl \<le> ?max_ary}"
-
-  let ?Y =
-    "{\<gamma>. \<exists>Cl D \<sigma> E. \<gamma> = Infer (mset Cl) D E \<and> ord_resolve_rename S Cl D \<sigma> E \<and>
-        set Cl \<union> {D} \<subseteq> ?CCC}"
-
-  let ?Z =
-    "{\<gamma>. (\<exists>Cl D \<sigma> E. \<gamma> = Infer (mset Cl) D E \<and> ord_resolve_rename S Cl D \<sigma> E) \<and>
-       infer_from (CC \<union> {C}) \<gamma> \<and> C \<in># prems_of \<gamma>}"
-
-  let ?infer_of = "\<lambda>(Cl, D). Infer (mset Cl) D (SOME E. \<exists>\<sigma>. ord_resolve_rename S Cl D \<sigma> E)"
-
   have "?Z \<subseteq> ?Y"
     by (force simp: infer_from_def)
   also have "\<dots> \<subseteq> ?X"
     apply clarsimp
-    using ord_resolve_rename_unique_concl some_equality
-    sorry
-  also have "\<dots> \<subseteq> ?infer_of ` ?W"
+    apply (rule_tac x = Cl in exI) (* FIXME *)
+    apply auto
+    using ord_resolve_rename_unique_concl apply (smt some_equality)
+    using ord_resolve_rename_max_side_prems
+    apply (meson Max.coboundedI fin_cc finite_imageI finite_insert insertI1 le_trans)
+    using ord_resolve_rename_unique_concl apply (smt some_equality)
+    using ord_resolve_rename_max_side_prems
+    by (smt Max.coboundedI fin_cc finite_imageI finite_insert image_insert insert_subset
+        le_trans mk_disjoint_insert subset_insertI)
+  also have "\<dots> \<subseteq> case_prod ?infer_of ` ?W"
     by auto
   finally show ?thesis
     unfolding inference_system.inferences_between_def ord_FO_\<Gamma>_def mem_Collect_eq

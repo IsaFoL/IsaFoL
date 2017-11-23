@@ -651,7 +651,10 @@ lemma subst_subset_mono: "D \<subset># C \<Longrightarrow> D \<cdot> \<sigma> \<
   unfolding subst_cls_def by (simp add: image_mset_subset_mono)
 
 
-subsubsection \<open>Length after substitution\<close>
+subsubsection \<open>Size after substitution\<close>
+
+lemma size_subst[simp]: "size (D \<cdot> \<sigma>) = size D"
+  unfolding subst_cls_def by auto
 
 lemma subst_atm_list_length[simp]: "length (As \<cdot>al \<sigma>) = length As"
   unfolding subst_atm_list_def by auto
@@ -888,16 +891,15 @@ lemma variants_iff_subsumes: "variants C D \<longleftrightarrow> subsumes C D \<
 proof
   assume "variants C D"
   then show "subsumes C D \<and> subsumes D C"
-    unfolding variants_def generalizes_cls_def subsumes_def by (metis subset_mset.dual_order.refl)
+    unfolding variants_def generalizes_cls_def subsumes_def by (metis subset_mset.order.refl)
 next
   assume sub: "subsumes C D \<and> subsumes D C"
   then have "size C = size D"
-    unfolding subsumes_def
-    by (metis antisym size_image_mset size_mset_mono substitution_ops.subst_cls_def)
+    unfolding subsumes_def by (metis antisym size_mset_mono size_subst)
   then show "variants C D"
     using sub unfolding subsumes_def variants_def generalizes_cls_def
-    by (smt add.right_neutral cancel_comm_monoid_add_class.diff_cancel size_Diff_submset
-        size_eq_0_iff_empty size_image_mset subset_mset.add_diff_inverse subst_cls_def)
+    by (metis leD mset_subset_size size_mset_mono size_subst
+        subset_mset.order.not_eq_order_implies_strict)
 qed
 
 lemma wf_strictly_generalizes_cls: "wfP strictly_generalizes_cls"
@@ -992,10 +994,6 @@ proof -
   then show "wfP (strictly_generalizes_cls :: 'a clause \<Rightarrow> _ \<Rightarrow> _)"
     unfolding wfP_def by (blast intro: wf_iff_no_infinite_down_chain[THEN iffD2])
 qed
-
-(* FIXME: move this and following lemmas to Abstract_Substitution *)
-lemma size_subst: "size (D \<cdot> \<sigma>) = size D"
-  unfolding subst_cls_def by auto
 
 lemma strict_subset_subst_strictly_subsumes:
   assumes c\<eta>_sub: "C \<cdot> \<eta> \<subset># D"
