@@ -138,9 +138,6 @@ definition is_ground_clss :: "'a clause set \<Rightarrow> bool" where
 definition is_ground_cls_list :: "'a clause list \<Rightarrow> bool" where
   "is_ground_cls_list CC \<longleftrightarrow> (\<forall>C \<in> set CC. is_ground_cls C)"
 
-definition is_ground_cls_mset :: "'a clause multiset \<Rightarrow> bool" where
-  "is_ground_cls_mset CC \<longleftrightarrow> (\<forall>C. C \<in># CC \<longrightarrow> is_ground_cls C)"
-
 definition is_ground_subst :: "'s \<Rightarrow> bool" where
   "is_ground_subst \<sigma> \<longleftrightarrow> (\<forall>A. is_ground_atm (A \<cdot>a \<sigma>))"
 
@@ -676,13 +673,6 @@ lemma is_ground_clss_union[simp]:
   "is_ground_clss (CC \<union> DD) \<longleftrightarrow> is_ground_clss CC \<and> is_ground_clss DD"
   unfolding is_ground_clss_def by auto
 
-lemma is_ground_cls_mset_union[simp]:
-  "is_ground_cls_mset (CC + DD) \<longleftrightarrow> is_ground_cls_mset CC \<and> is_ground_cls_mset DD"
-  unfolding is_ground_cls_mset_def by auto
-
-lemma is_ground_cls_Union_mset[iff]: "is_ground_cls (\<Union># CC) \<longleftrightarrow> is_ground_cls_mset CC"
-  unfolding is_ground_cls_mset_def is_ground_cls_def by blast
-
 lemma is_ground_cls_list_is_ground_cls_sum_list[simp]:
   "is_ground_cls_list Cs \<Longrightarrow> is_ground_cls (sum_list Cs)"
   by (meson in_mset_sum_list2 is_ground_cls_def is_ground_cls_list_def)
@@ -696,16 +686,13 @@ lemma is_ground_cls_mono: "C \<subseteq># D \<Longrightarrow> is_ground_cls D \<
 lemma is_ground_clss_mono: "CC \<subseteq> DD \<Longrightarrow> is_ground_clss DD \<Longrightarrow> is_ground_clss CC"
   unfolding is_ground_clss_def by blast
 
-lemma is_ground_cls_mset_mono: "CC \<subseteq># DD \<Longrightarrow> is_ground_cls_mset DD \<Longrightarrow> is_ground_cls_mset CC"
-  unfolding is_ground_cls_mset_def by (metis mset_subset_eqD)
-
 lemma grounding_of_clss_mono: "CC \<subseteq> DD \<Longrightarrow> grounding_of_clss CC \<subseteq> grounding_of_clss DD"
   using grounding_of_clss_def by auto
 
 lemma sum_list_subseteq_mset_is_ground_cls_list[simp]:
   "sum_list Cs \<subseteq># sum_list Ds \<Longrightarrow> is_ground_cls_list Ds \<Longrightarrow> is_ground_cls_list Cs"
-  by (metis is_ground_cls_Union_mset is_ground_cls_list_def is_ground_cls_mono
-      is_ground_cls_mset_def set_mset_mset sum_mset_sum_list)
+  by (meson in_mset_sum_list is_ground_cls_def is_ground_cls_list_is_ground_cls_sum_list
+      is_ground_cls_mono is_ground_cls_list_def)
 
 
 paragraph \<open>Substituting on ground expression preserves ground\<close>
@@ -731,9 +718,6 @@ lemma ground_subst_ground_cls_list[simp]: "is_ground_subst \<sigma> \<Longrighta
 lemma ground_subst_ground_cls_lists[simp]:
   "\<forall>\<sigma> \<in> set \<sigma>s. is_ground_subst \<sigma> \<Longrightarrow> is_ground_cls_list (Cs \<cdot>\<cdot>cl \<sigma>s)"
   unfolding is_ground_cls_list_def subst_cls_lists_def by (auto simp: set_zip)
-
-lemma ground_subst_ground_cls_mset[simp]: "is_ground_subst \<sigma> \<Longrightarrow> is_ground_cls_mset (CC \<cdot>cm \<sigma>)"
-  unfolding is_ground_cls_mset_def subst_cls_mset_def by auto
 
 
 paragraph \<open>Substituting on ground expression has no effect\<close>
@@ -762,9 +746,6 @@ lemma is_ground_subst_cls[simp]: "is_ground_cls C \<Longrightarrow> C \<cdot> \<
 
 lemma is_ground_subst_clss[simp]: "is_ground_clss CC \<Longrightarrow> CC \<cdot>cs \<sigma> = CC"
   unfolding is_ground_clss_def subst_clss_def image_def by auto
-
-lemma is_ground_subst_cls_mset[simp]: "is_ground_cls_mset CC \<Longrightarrow> CC \<cdot>cm \<sigma> = CC"
-  unfolding is_ground_cls_mset_def subst_cls_mset_def by auto
 
 lemma is_ground_subst_cls_list[simp]:
   assumes "length P = length Cs" and "is_ground_cls_list Cs"

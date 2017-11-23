@@ -467,8 +467,7 @@ qed
 lemma ground_resolvent_ground:
   assumes "is_ground_cls_list CAs" and "is_ground_cls DA" and "ord_resolve S CAs DA \<sigma> E"
   shows "is_ground_cls E"
-  by (metis (no_types) assms ground_resolvent_subset is_ground_cls_Union_mset is_ground_cls_list_def
-      is_ground_cls_mono is_ground_cls_mset_def is_ground_cls_union set_mset_mset)
+  using assms ground_resolvent_subset by (force intro: is_ground_cls_mono)
 
 lemma ord_resolve_obtain_clauses:
   assumes

@@ -1549,8 +1549,8 @@ proof -
     have ground_ground_Liminf: "is_ground_clss (Liminf_llist (lmap grounding_of_state Sts))"
       using Liminf_grounding_of_state_ground unfolding is_ground_clss_def by auto
 
-    have ground_cc: "is_ground_cls_mset ?CC"
-      using a ground_ground_Liminf is_ground_cls_mset_def is_ground_clss_def by auto
+    have ground_cc: "is_ground_clss (set_mset ?CC)"
+      using a ground_ground_Liminf is_ground_clss_def by auto
 
     have ground_da: "is_ground_cls ?DA"
       using a grounding_ground singletonI ground_ground_Liminf
