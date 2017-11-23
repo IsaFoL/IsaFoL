@@ -1745,8 +1745,7 @@ proof -
 qed
 
 lemma unsat_Liminf_if_unsat_lhd:
-  assumes
-    unsat: "\<not> satisfiable (grounding_of_state (lhd Sts))"
+  assumes unsat: "\<not> satisfiable (grounding_of_state (lhd Sts))"
   shows "\<not> satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
 proof -
   from unsat have "\<not>satisfiable (lhd (lmap grounding_of_state Sts))"
@@ -1772,34 +1771,21 @@ proof -
     using empty_clause_in_Q_of_Liminf_state fair by auto
 qed
 
-lemma empty_in_grounding_iff_empty_in_set: "{#} \<in> grounding_of_clss CC \<longleftrightarrow> {#} \<in> CC"
-proof
-  assume "{#} \<in> CC"
-  moreover have "{#} \<in> grounding_of_cls {#}"
-    by simp
-  ultimately show "{#} \<in> grounding_of_clss CC"
-    unfolding grounding_of_clss_def by blast
-next
-  assume "{#} \<in> grounding_of_clss CC"
-  then show "{#} \<in> CC"
-    unfolding grounding_of_clss_def grounding_of_cls_def by auto
-qed
-
 lemma RP_unsat_lhd_if_empty_in_Liminf:
   assumes "{#} \<in> clss_of_state (Liminf_state Sts)"
   shows "\<not> satisfiable (grounding_of_state (lhd Sts))"
 proof -
   from assms have "{#} \<in> grounding_of_state (Liminf_state Sts)"
-    using empty_in_grounding_iff_empty_in_set by auto
+    unfolding grounding_of_clss_def by (force intro: ex_ground_subst)
   then have "\<not> satisfiable (grounding_of_state (Liminf_state Sts))"
     unfolding true_clss_def by auto
   then have "\<not> satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
     using grounding_of_state_Liminf_state_subseteq true_clss_mono by blast 
   then have "\<not> satisfiable (lhd (lmap grounding_of_state Sts))"
     using src_ext.sat_deriv_Liminf_iff[of "lmap grounding_of_state Sts"]
-    deriv resolution_prover_ground_derivation by metis
+    by (metis deriv resolution_prover_ground_derivation)
   then show ?thesis
-    using grounding_lhd_equals_lhd_grounding by auto
+    unfolding grounding_lhd_equals_lhd_grounding .
 qed
 
 end
