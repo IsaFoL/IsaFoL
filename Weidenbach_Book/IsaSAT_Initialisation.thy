@@ -1517,11 +1517,6 @@ lemma (in isasat_input_ops) empty_watched_alt_def:
 definition (in isasat_input_ops) init_state_wl :: \<open>nat twl_st_wl\<close> where
   \<open>init_state_wl = ([], [[]], 0, None, {#}, {#}, {#}, empty_watched)\<close>
 
-(* TODO Move *)
-definition (in -)empty_lbd :: \<open>lbd\<close> where
-   \<open>empty_lbd = (replicate 32 False)\<close>
-(* Env Move *)
-
 definition (in isasat_input_ops) init_state_wl_heur :: \<open>twl_st_wl_heur_init nres\<close> where
   \<open>init_state_wl_heur = do {
     W \<leftarrow> SPEC (\<lambda>W. (W, empty_watched) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0);
@@ -1576,27 +1571,6 @@ lemma get_conflict_wl_is_None_init_wl_hnr[sepref_fr_rules]:
 
 end
 
-
-(* TODO Move *)
-definition empty_lbd_ref :: \<open>lbd_ref\<close> where
-   \<open>empty_lbd_ref = (replicate 32 False, zero_uint32_nat)\<close>
-
-lemma empty_lbd_ref_empty_lbd:
-  \<open>(uncurry0 (RETURN empty_lbd_ref), uncurry0 (RETURN empty_lbd)) \<in> unit_rel \<rightarrow>\<^sub>f \<langle>lbd_ref\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI) (auto simp: empty_lbd_def lbd_ref_def empty_lbd_ref_def
-      uint_max_def nth_Cons split: nat.splits)
-
-sepref_definition empty_lbd_code
-  is \<open>uncurry0 (RETURN empty_lbd_ref)\<close>
-  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a lbd_int_assn\<close>
-  unfolding empty_lbd_ref_def array_fold_custom_replicate
-  by sepref
-
-lemma empty_lbd_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 empty_lbd_code, uncurry0 (RETURN empty_lbd)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a lbd_assn\<close>
-  using empty_lbd_code.refine[FCOMP empty_lbd_ref_empty_lbd]
-  unfolding lbd_assn_def .
-(* End Move *)
 
 definition (in -)to_init_state :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl_init\<close> where
   \<open>to_init_state S = (S, {#})\<close>
@@ -2042,16 +2016,6 @@ proof -
       list_mset_rel_def Collect_eq_comp)
 qed
 
-(* TODO Move *)
-thm isasat_input_ops.cach_refinement_alt_def
-lemma (in isasat_input_ops) cach_refinement_alt_def:
-  \<open>cach_refinement = {((cach, support), cach').
-       (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support) \<and>
-       (\<forall>L \<in> set support. L < length cach) \<and>
-       (\<forall>L \<in># \<A>\<^sub>i\<^sub>n. L < length cach \<and> cach ! L = cach' L)}\<close>
-  unfolding cach_refinement_def cach_refinement_nonull_def cach_refinement_list_def
-  by (auto simp: map_fun_rel_def)
-(* End Move *)
 
 lemma init_state_wl_D':
   \<open>(init_state_wl_D', isasat_input_ops.init_state_wl_heur) \<in>

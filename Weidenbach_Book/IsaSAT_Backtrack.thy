@@ -666,16 +666,6 @@ definition extract_shorter_conflict_list_heur_st_pre where
         literals_are_\<L>\<^sub>i\<^sub>n S \<and>
         additional_WS_invs (st_l_of_wl None S)\<close>
 
-(* TODO Move *)
-lemma (in -) clauses_twl_st_of_wl:
-  \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None (M, N, U, y, NP, UP, Q, W))) =
-     mset `# mset (tl N) + NP + UP\<close>
-  by (auto simp del: append_take_drop_id simp: mset_take_mset_drop_mset' clauses_def)
-
-lemma (in -) conflicting_twl_st_of_wl:
-  \<open>conflicting (state\<^sub>W_of (twl_st_of_wl L S)) = get_conflict_wl S\<close>
-  by (cases S; cases L) auto
-(* End Move *)
 
 lemma extract_shorter_conflict_list_lookup_heur_st_extract_shorter_conflict_st_trivial_heur:
   \<open>(extract_shorter_conflict_list_lookup_heur_st, extract_shorter_conflict_list_heur_st) \<in>
@@ -728,8 +718,8 @@ proof -
     have
       lits_M: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl ?S)\<close> and
       lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl ?S))\<close>
-      using literals_are_\<L>\<^sub>i\<^sub>n_trail_literals_are_in_\<L>\<^sub>i\<^sub>n[OF lits, of None]
-        literals_are_\<L>\<^sub>i\<^sub>n_conflict_literals_are_in_\<L>\<^sub>i\<^sub>n[OF lits] invs None by auto
+      using literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_trail[OF lits, of None]
+        literals_are_\<L>\<^sub>i\<^sub>n_conflict_literals_are_in_\<L>\<^sub>i\<^sub>n[OF lits, of None] invs None by auto
     show ?A
       using olr uL_D None lits_M lits_D
       by (auto simp: option_lookup_clause_rel_def literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
@@ -874,8 +864,8 @@ proof -
       by auto
     have
       lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl ?S))\<close>
-      using literals_are_\<L>\<^sub>i\<^sub>n_trail_literals_are_in_\<L>\<^sub>i\<^sub>n[OF lits]
-        literals_are_\<L>\<^sub>i\<^sub>n_conflict_literals_are_in_\<L>\<^sub>i\<^sub>n[OF lits] invs None by auto
+      using literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_trail[OF lits, of None]
+        literals_are_\<L>\<^sub>i\<^sub>n_conflict_literals_are_in_\<L>\<^sub>i\<^sub>n[OF lits, of None] invs None by auto
     have \<open>E \<subseteq># the D\<close>
       using E by (auto intro: subset_mset.order_trans)
     then show ?le
@@ -1070,7 +1060,7 @@ proof -
         dest!: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l_atms )
 
   have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
-    using literals_are_\<L>\<^sub>i\<^sub>n_trail_literals_are_in_\<L>\<^sub>i\<^sub>n[of x, of None]
+    using literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_trail[of x, of None]
       literals_are_\<L>\<^sub>i\<^sub>n_conflict_literals_are_in_\<L>\<^sub>i\<^sub>n[of x]
       literals_are_\<L>\<^sub>i\<^sub>n_clauses_literals_are_in_\<L>\<^sub>i\<^sub>n[of x]
     unfolding comp_PRE_def
@@ -1789,7 +1779,7 @@ proof -
         ocr: \<open>((b, ac, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_lookup_clause_rel_removed\<close>
         using I' s unfolding I'_def by auto
       have \<open>L \<in># C \<Longrightarrow> atm_of L \<le> uint_max div 2\<close> for L
-        using lits_\<A>\<^sub>i\<^sub>n in_N1_less_than_uint_max
+        using lits_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max
         by (cases L)  (auto dest!: multi_member_split simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset uint_max_def)
       then have \<open>{#L \<in># C. ab \<le> atm_of L#} = {#}\<close>
         using le by (force simp: filter_mset_empty_conv)
@@ -2676,7 +2666,7 @@ begin
 
 lemma backtrack_wl_D_nlit_invariants:
   assumes inv: \<open>backtrack_wl_D_inv S\<close>
-  shows 
+  shows
    \<open>get_trail_wl S \<noteq> []\<close> (is ?Trail) and
   \<open>extract_shorter_conflict_wl_pre S\<close> (is ?extract_shorter) and
    \<open>extract_shorter_conflict_list_heur_st_pre S\<close> (is ?A) and
@@ -2747,8 +2737,8 @@ proof -
     by simp
   have lits_M: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close> and
     lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (the D)\<close>
-    using literals_are_\<L>\<^sub>i\<^sub>n_trail_literals_are_in_\<L>\<^sub>i\<^sub>n[of S, of None] struct_invs lits S
-      literals_are_\<L>\<^sub>i\<^sub>n_conflict_literals_are_in_\<L>\<^sub>i\<^sub>n[of S] D
+    using literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_trail[of S None] struct_invs lits S
+      literals_are_\<L>\<^sub>i\<^sub>n_conflict_literals_are_in_\<L>\<^sub>i\<^sub>n[of S None] D
     by auto
   have
     lev: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of (twl_st_of_wl None S))\<close> and

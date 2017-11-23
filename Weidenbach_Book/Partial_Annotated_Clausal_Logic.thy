@@ -98,6 +98,9 @@ lemma lits_of_l_empty_is_empty[iff]:
   \<open>lits_of_l M = {} \<longleftrightarrow> M = []\<close>
   by (induct M) (auto simp: lits_of_def)
 
+lemma in_unmark_l_in_lits_of_l_iff: \<open>{#L#} \<in> unmark_l M \<longleftrightarrow> L \<in> lits_of_l M\<close>
+  by (induction M) auto
+
 
 subsubsection \<open>Entailment\<close>
 

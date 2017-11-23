@@ -244,7 +244,7 @@ where
      Id \<times>\<^sub>r
      Id \<times>\<^sub>r
      nat_rel \<times>\<^sub>r
-     Id \<times>\<^sub>r 
+     Id \<times>\<^sub>r
      Id\<close>
 
 definition twl_st_heur_lookup_lookup_clause_assn

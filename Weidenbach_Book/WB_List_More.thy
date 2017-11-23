@@ -121,6 +121,9 @@ lemma tl_update_swap:
   \<open>i \<ge> 1 \<Longrightarrow> tl (N[i := C]) = tl N[i-1 := C]\<close>
   by (auto simp:  drop_Suc[of 0, symmetric, simplified] drop_update_swap)
 
+lemma tl_update_0[simp]: \<open>tl (N[0 := x]) = tl N\<close>
+  by (cases N) auto
+
 declare nth_list_update[simp]
 text \<open>
   This a version of @{thm nth_list_update} with a different condition (\<^term>\<open>j\<close>
@@ -637,6 +640,33 @@ lemma (in -) length_filter_update_falte:
   unfolding filter_append length_append
   by simp
 
+lemma mset_set_mset_set_minus_id_iff:
+  assumes \<open>finite A\<close>
+  shows \<open>mset_set A = mset_set (A - B) \<longleftrightarrow> (\<forall>b \<in> B. b \<notin> A)\<close>
+proof -
+ have f1: "mset_set A = mset_set (A - B) \<longleftrightarrow> A - B = A"
+    using assms by (metis (no_types) finite_Diff finite_set_mset_mset_set)
+  then show ?thesis
+    by blast
+qed
+
+lemma mset_set_eq_mset_set_more_conds:
+  \<open>finite {x. P x} \<Longrightarrow> mset_set {x. P x} = mset_set {x. Q x \<and> P x} \<longleftrightarrow> (\<forall>x. P x \<longrightarrow> Q x)\<close>
+  (is \<open>?F \<Longrightarrow> ?A \<longleftrightarrow> ?B\<close>)
+proof -
+  assume ?F
+  then have \<open>?A \<longleftrightarrow> (\<forall>x \<in> {x. P x}. x \<in> {x. Q x \<and> P x})\<close>
+    by (subst mset_set_eq_iff) auto
+  also have \<open>\<dots> \<longleftrightarrow> (\<forall>x. P x \<longrightarrow> Q x)\<close>
+    by blast
+  finally show ?thesis .
+qed
+
+lemma count_list_filter: \<open>count_list xs x = length (filter (op = x) xs)\<close>
+  by (induction xs) auto
+
+lemma sum_length_filter_compl': \<open>length [x\<leftarrow>xs . \<not> P x] + length (filter P xs) = length xs\<close>
+  using sum_length_filter_compl[of P xs] by auto
 
 subsection \<open>Multisets\<close>
 
@@ -674,9 +704,6 @@ lemma mset_eq_size_2:
   \<open>mset xs = {#a, b#} \<longleftrightarrow> xs = [a, b] \<or> xs = [b, a]\<close>
   by (cases xs) (auto simp: add_mset_eq_add_mset Diff_eq_empty_iff_mset subset_eq_mset_single_iff)
 
-lemma mset_set_eq_mset_set_iff:
-  \<open>finite A \<Longrightarrow> finite B \<Longrightarrow> mset_set A = mset_set B \<longleftrightarrow> A = B\<close>
-  using finite_set_mset_mset_set by fastforce
 
 lemma butlast_list_update:
   \<open>w < length xs \<Longrightarrow> butlast (xs[w := last xs]) = take w xs @ butlast (last xs # drop (Suc w) xs)\<close>
@@ -780,6 +807,9 @@ lemma diff_le_mono2_mset: \<open>A \<subseteq># B \<Longrightarrow> C - B \<subs
   apply (auto simp: subseteq_mset_def ac_simps)
   by (simp add: diff_le_mono2)
 
+lemma subseteq_remove1[simp]: \<open>C \<subseteq># C' \<Longrightarrow> remove1_mset L C \<subseteq># C'\<close>
+  by (meson diff_subset_eq_self subset_mset.dual_order.trans)
+
 lemma filter_mset_cong2:
   "(\<And>x. x \<in># M \<Longrightarrow> f x = g x) \<Longrightarrow> M = N \<Longrightarrow> filter_mset f M = filter_mset g N"
   by (hypsubst, rule filter_mset_cong, simp)
@@ -829,6 +859,9 @@ next
       using IH LC by auto
   qed
 qed
+
+lemma set_mset_set_mset_eq_iff: \<open>set_mset A = set_mset B \<longleftrightarrow> (\<forall>a\<in>#A. a \<in># B) \<and> (\<forall>a\<in>#B. a \<in># A)\<close>
+  by blast
 
 
 subsection \<open>Sorting\<close>

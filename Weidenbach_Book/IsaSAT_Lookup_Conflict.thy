@@ -310,15 +310,6 @@ next
 qed
 
 
-(* TODO Move *)
-lemma (in -) count_list_filter: \<open>count_list xs x = length (filter (op = x) xs)\<close>
-  by (induction xs) auto
-lemma sum_length_filter_compl': \<open>length [x\<leftarrow>xs . \<not> P x] + length (filter P xs) = length xs\<close>
-  using sum_length_filter_compl[of P xs] by auto
-(* End Move *)
-
-
-
 context isasat_input_bounded
 begin
 
@@ -1329,7 +1320,7 @@ proof -
   have \<open>?L \<in># D\<close>
     using j mset_as_position_in_iff_nth[OF map, of ?L] by auto
   then have \<open>nat_of_lit ?L \<le> uint_max\<close>
-    using lits in_N1_less_than_uint_max
+    using lits in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max
     by (auto 5 5 dest!: multi_member_split[of _ D]
         simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset split: if_splits)
   then have \<open>j < uint_max\<close>
@@ -2346,7 +2337,7 @@ lemma Pos_unat_lit_assn:
   \<open>(return o (\<lambda>n. two_uint32 * n), RETURN o Pos) \<in> [\<lambda>L. Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
      unat_lit_assn\<close>
   apply sepref_to_hoare
-  using in_N1_less_than_uint_max
+  using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max
   by (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
       lit_of_natP_def nat_of_uint32_distrib_mult2)
 
@@ -2354,12 +2345,11 @@ lemma Neg_unat_lit_assn:
   \<open>(return o (\<lambda>n. two_uint32 * n +1), RETURN o Neg) \<in> [\<lambda>L. Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
       unat_lit_assn\<close>
   apply sepref_to_hoare
-  using in_N1_less_than_uint_max
+  using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max
   by (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
       lit_of_natP_def nat_of_uint32_distrib_mult2_plus1 uint_max_def)
 
 
-(* TODO change precondition to \<open>?j. xs !i \<noteq> None\<close> *)
 lemma confl_find_next_index_spec_hnr[sepref_fr_rules]:
   \<open>(uncurry confl_find_next_index_code, uncurry confl_find_next_index_spec)
     \<in> [uncurry confl_find_next_index_pre]\<^sub>a
@@ -2428,8 +2418,8 @@ lemmas literal_redundant_wl_lookup_code_hnr[sepref_fr_rules] =
 
 
 (* TODO move *)
-lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_Suc_le_uint_max: \<open>Pos xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow>  Suc xa \<le> uint_max\<close>
-  using in_N1_less_than_uint_max by (auto simp: uint_max_def)
+lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_Suc_le_uint_max: \<open>Pos xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> Suc xa \<le> uint_max\<close>
+  using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max by (auto simp: uint_max_def)
 (* End move *)
 
 abbreviation (in -) highest_lit_assn where

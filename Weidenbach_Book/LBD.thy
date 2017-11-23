@@ -258,4 +258,26 @@ lemma lbd_empty_hnr[sepref_fr_rules]:
   using lbd_empty_code.refine[FCOMP lbd_empty_ref_lbd_empty]
   unfolding lbd_assn_def .
 
+definition (in -)empty_lbd :: \<open>lbd\<close> where
+   \<open>empty_lbd = (replicate 32 False)\<close>
+
+definition empty_lbd_ref :: \<open>lbd_ref\<close> where
+   \<open>empty_lbd_ref = (replicate 32 False, zero_uint32_nat)\<close>
+
+lemma empty_lbd_ref_empty_lbd:
+  \<open>(uncurry0 (RETURN empty_lbd_ref), uncurry0 (RETURN empty_lbd)) \<in> unit_rel \<rightarrow>\<^sub>f \<langle>lbd_ref\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI) (auto simp: empty_lbd_def lbd_ref_def empty_lbd_ref_def
+      uint_max_def nth_Cons split: nat.splits)
+
+sepref_definition empty_lbd_code
+  is \<open>uncurry0 (RETURN empty_lbd_ref)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a lbd_int_assn\<close>
+  unfolding empty_lbd_ref_def array_fold_custom_replicate
+  by sepref
+
+lemma empty_lbd_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 empty_lbd_code, uncurry0 (RETURN empty_lbd)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a lbd_assn\<close>
+  using empty_lbd_code.refine[FCOMP empty_lbd_ref_empty_lbd]
+  unfolding lbd_assn_def .
+
 end

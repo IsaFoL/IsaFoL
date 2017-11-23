@@ -1187,7 +1187,7 @@ proof -
       L_confl: \<open>-L \<in># the(get_conflict_wl S)\<close>
       using that by (auto simp: lit_and_ann_of_propagated_st_def)
     have lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl S))\<close>
-      by (rule literals_are_\<L>\<^sub>i\<^sub>n_conflict_literals_are_in_\<L>\<^sub>i\<^sub>n)
+      by (rule literals_are_\<L>\<^sub>i\<^sub>n_conflict_literals_are_in_\<L>\<^sub>i\<^sub>n[of _ None])
        (use lits_\<A>\<^sub>i\<^sub>n confl struct_invs in auto)
     have C_le: \<open>C < length (get_clauses_wl S)\<close>
       using trail_nempty LC proped add_invs trail_nempty unfolding additional_WS_invs_def
@@ -1201,7 +1201,7 @@ proof -
       using that by (auto simp: lit_and_ann_of_propagated_st_def)
     have
       trail: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail( get_trail_wl S)\<close>
-      using literals_are_\<L>\<^sub>i\<^sub>n_trail_literals_are_in_\<L>\<^sub>i\<^sub>n[OF lits_\<A>\<^sub>i\<^sub>n, of None ] struct_invs
+      using literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_trail[OF lits_\<A>\<^sub>i\<^sub>n, of None ] struct_invs
       by auto
 
     fix x'
@@ -1293,38 +1293,6 @@ proof -
     using pre ..
 qed
 
-(* TODO rename to literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_trail + Move *)
-lemma literals_are_\<L>\<^sub>i\<^sub>n_trail_literals_are_in_\<L>\<^sub>i\<^sub>n:
-  assumes
-    \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
-    struct: \<open>twl_struct_invs (twl_st_of_wl None S)\<close>
-  shows \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl S)\<close> (is \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail ?M\<close>)
-proof -
-  let ?M = \<open>lit_of `# mset ?M\<close>
-  have [simp]: \<open>lit_of ` set (convert_lits_l b a) =  lit_of ` set a\<close> for a b
-    by (induction a) auto
-  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl None S))\<close>
-    using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-    by fast
-  then have N: \<open>atms_of ?M \<subseteq> atms_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl None S)))\<close>
-    unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def lits_of_def atms_of_def
-    by (cases S)
-      (auto simp: mset_take_mset_drop_mset')
-
-  have \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl None S))))\<close>
-    using twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[OF struct] \<A>\<^sub>i\<^sub>n by fast
-  then show ?thesis
-    using N
-    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def
-        in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n atms_of_def image_image)
-qed
-
-(* TODO Move *)
-lemma (in isasat_input_ops) literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (L # M) \<longleftrightarrow>
-      literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and> lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def)
-(* End Move *)
 
 lemma skip_and_resolde_hd_D\<^sub>0:
   assumes
@@ -1332,7 +1300,7 @@ lemma skip_and_resolde_hd_D\<^sub>0:
     \<open>get_trail_wl S = Propagated x21 x22 # xs\<close> and
     \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close>
   shows \<open>- x21 \<in> snd ` D\<^sub>0\<close>
-  using literals_are_\<L>\<^sub>i\<^sub>n_trail_literals_are_in_\<L>\<^sub>i\<^sub>n[of S] assms
+  using literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_trail[of S None] assms
   by (cases S)
      (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons image_image
       uminus_\<A>\<^sub>i\<^sub>n_iff)
@@ -1349,9 +1317,10 @@ sepref_register skip_and_resolve_loop_wl_D is_in_conflict_st
 sepref_thm skip_and_resolve_loop_wl_D
   is \<open>PR_CONST skip_and_resolve_loop_wl_D\<close>
   :: \<open>twl_st_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_assn\<close>
-  supply [[goals_limit=1]] get_trail_twl_st_of_wl_get_trail_wl_empty_iff[simp] is_decided_hd_trail_wl_def[simp]
+  supply [[goals_limit=1]] get_trail_twl_st_of_wl_get_trail_wl_empty_iff[simp]
+    is_decided_hd_trail_wl_def[simp]
     is_decided_no_proped_iff[simp] skip_and_resolve_hd_in_D\<^sub>0[intro]
-    literals_are_\<L>\<^sub>i\<^sub>n_conflict_literals_are_in_\<L>\<^sub>i\<^sub>n[intro]
+    literals_are_\<L>\<^sub>i\<^sub>n_conflict_literals_are_in_\<L>\<^sub>i\<^sub>n[of _ None, intro]
     get_conflict_l_st_l_of_wl[simp] is_in_conflict_st_def[simp]  neq_NilE[elim!]
     annotated_lit.splits[split] lit_and_ann_of_propagated_st_def[simp]
     annotated_lit.disc_eq_case(2)[simp]

@@ -983,9 +983,9 @@ begin
 lemma unit_propagation_inner_loop_body_wl_D_helper:
   \<open>unit_prop_body_wl_D_inv b ba a \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl b)\<close>
   unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
-  by (rule literals_are_\<L>\<^sub>i\<^sub>n_trail_literals_are_in_\<L>\<^sub>i\<^sub>n[of _ \<open>Some (a, ba)\<close>])
+  by (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_trail[of _ \<open>Some (a, ba)\<close>])
     auto
- 
+
 
 sepref_thm unit_propagation_inner_loop_body_wl_D
   is \<open>uncurry2 ((PR_CONST unit_propagation_inner_loop_body_wl_D) :: nat literal \<Rightarrow> nat \<Rightarrow>

@@ -291,7 +291,7 @@ proof -
   have inj_on: \<open>inj_on nat_of_lit (set_mset (remdups_mset \<L>\<^sub>a\<^sub>l\<^sub>l))\<close>
     by (auto simp: inj_on_def)
   have H: \<open>xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> atm_of xa \<le> uint_max div 2\<close> for xa
-    using in_N1_less_than_uint_max
+    using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max
     by (cases xa) (auto simp: uint_max_def)
   have \<open>remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l) \<subseteq># mset [0..< 1 + (uint_max div 2)]\<close>
     apply (subst distinct_subseteq_iff[THEN iffD1])
