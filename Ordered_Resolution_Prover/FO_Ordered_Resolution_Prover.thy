@@ -672,26 +672,29 @@ proof (drule resolution_prover_ground_derive, erule src_ext.derive.cases, hypsub
     ?gSt' = "grounding_of_state St'"
 
   assume
-    deduct: "?gSt' - ?gSt \<subseteq> concls_of (src_ext.inferences_from ?gSt)" and
+    deduct: "?gSt' - ?gSt \<subseteq> concls_of (src_ext.inferences_from ?gSt)" (is "_ \<subseteq> ?concls") and
     delete: "?gSt - ?gSt' \<subseteq> src.Rf ?gSt'"
-
-(*
-FIXME
-   apply (rule src.Rf_model)
-   apply (unfold true_clss_def)
-   apply auto
-  defer
-*)
 
   show "I \<Turnstile>s ?gSt' \<longleftrightarrow> I \<Turnstile>s ?gSt"
   proof
-    assume "I \<Turnstile>s ?gSt'"
-    show "I \<Turnstile>s ?gSt"
+    assume bef: "I \<Turnstile>s ?gSt"
+    have "I \<Turnstile>s ?concls"
       sorry
+    then have diff: "I \<Turnstile>s ?gSt' - ?gSt"
+      using deduct by (blast intro: true_clss_mono)
+    then show "I \<Turnstile>s ?gSt'"
+      using bef unfolding true_clss_def by blast
   next
-    assume "I \<Turnstile>s ?gSt"
-    show "I \<Turnstile>s ?gSt'"
-      sorry
+    assume aft: "I \<Turnstile>s ?gSt'"
+    have "I \<Turnstile>s ?gSt' \<union> src.Rf ?gSt'"
+      by (rule src.Rf_model) (metis aft src.Rf_mono[OF Un_upper1] Diff_eq_empty_iff Diff_subset
+          Un_Diff true_clss_mono true_clss_union)
+    then have "I \<Turnstile>s src.Rf ?gSt'"
+      using true_clss_union by blast
+    then have diff: "I \<Turnstile>s ?gSt - ?gSt'"
+      using delete by (blast intro: true_clss_mono)
+    then show "I \<Turnstile>s ?gSt"
+      using aft unfolding true_clss_def by blast
   qed
 qed
 

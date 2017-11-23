@@ -182,7 +182,7 @@ lemma Rf_model:
 proof -
   have "I \<Turnstile>s Rf (N - Rf N)"
     unfolding true_clss_def
-    by (subst Rf_def) (auto, metis assms subset_eq true_cls_mset_def true_clss_def)
+    by (subst Rf_def, simp add: true_cls_mset_def, metis assms subset_eq true_clss_def)
   then have "I \<Turnstile>s Rf N"
     using Rf_subs_Rf_diff_Rf true_clss_mono by blast
   then show ?thesis
