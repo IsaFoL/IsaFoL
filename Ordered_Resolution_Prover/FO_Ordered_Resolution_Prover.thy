@@ -1503,11 +1503,9 @@ proof -
         then have "\<forall>i<length AAs. card (set_mset (add_mset (As ! i) (AAs ! i))) \<le> Suc 0"
           using aas_len by auto
         then have "\<forall>AA \<in> set (map2 add_mset As AAs). card (set_mset AA) \<le> Suc 0"
-          using set_map2_ex[of AAs As add_mset, OF len_aas_len_as]
-          by auto
+          using set_map2_ex[of AAs As add_mset, OF len_aas_len_as] by auto
         then have "is_unifiers id_subst (set_mset ` set (map2 add_mset As AAs))"
-          unfolding is_unifiers_def is_unifier_def
-          by auto
+          unfolding is_unifiers_def is_unifier_def by auto
         moreover have "finite (set_mset ` set (map2 add_mset As AAs))"
           by auto
         moreover have "\<forall>AA \<in> set_mset ` set (map2 add_mset As AAs). finite AA"
