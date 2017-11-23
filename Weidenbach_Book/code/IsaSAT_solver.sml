@@ -851,14 +851,6 @@ fun init_trail_D_code x =
     end)
     x;
 
-val empty_lbd_code : (unit -> (bool array * Word32.word)) =
-  (fn () =>
-    let
-      val x = new heap_bool (nat_of_integer (32 : IntInf.int)) false ();
-    in
-      (x, (Word32.fromInt 0))
-    end);
-
 val minimum_capacity : nat = nat_of_integer (16 : IntInf.int);
 
 fun arrayO_raa_empty_sz (A1_, A2_) B_ init_cap =
@@ -910,6 +902,14 @@ fun arrayO_raa_append (A1_, A2_) =
                          (fn ab => (fn () => (ab, plus_nat n one_nat)))))
              end)
         ()
+    end);
+
+val empty_lbd_code : (unit -> (bool array * Word32.word)) =
+  (fn () =>
+    let
+      val x = new heap_bool (nat_of_integer (32 : IntInf.int)) false ();
+    in
+      (x, (Word32.fromInt 0))
     end);
 
 fun init_state_wl_D_code x =
