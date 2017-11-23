@@ -66,6 +66,7 @@ definition ord_FO_\<Gamma> :: "'a inference set" where
 interpretation ord_FO_resolution: inference_system ord_FO_\<Gamma> .
 
 (* FIXME: this doesn't even hold -- there could be several conclusions E (and several \<sigma>'s) *)
+(* Solution: Add As etc. arguments to ord_resolve etc. *)
 (* FIXME: move me *)
 lemma
   assumes
