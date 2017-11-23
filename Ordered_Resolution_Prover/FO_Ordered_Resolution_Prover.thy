@@ -166,6 +166,10 @@ context
     empty_Q0: "Q_of_state (lhd Sts) = {}"
 begin
 
+lemma grounding_lhd_eq_lhd_grounding:
+  "grounding_of_state (lhd Sts) = lhd (lmap grounding_of_state Sts)"
+  using deriv chain_length_pos by fastforce
+
 definition S_Q :: "'a clause \<Rightarrow> 'a clause" where
   "S_Q = S_M S (Q_of_state (Liminf_state Sts))"
 
@@ -215,20 +219,20 @@ interpretation src_ext:
 
 lemma strict_subset_subsumption_redundant_clause:
   assumes
-    strict_subset_subsume: "D \<cdot> \<sigma> \<subset># C" and
+    sub: "D \<cdot> \<sigma> \<subset># C" and
     ground_\<sigma>: "is_ground_subst \<sigma>"
   shows "C \<in> src.Rf (grounding_of_cls D)"
 proof -
-  from strict_subset_subsume have "\<forall>I. I \<Turnstile> D \<cdot> \<sigma> \<longrightarrow> I \<Turnstile> C"
+  from sub have "\<forall>I. I \<Turnstile> D \<cdot> \<sigma> \<longrightarrow> I \<Turnstile> C"
     unfolding true_cls_def by blast
   moreover have "C > D \<cdot> \<sigma>"
-    using strict_subset_subsume by (simp add: subset_imp_less_mset)
+    using sub by (simp add: subset_imp_less_mset)
   moreover have "D \<cdot> \<sigma> \<in> grounding_of_cls D"
     using ground_\<sigma> by (metis (mono_tags, lifting) mem_Collect_eq substitution_ops.grounding_of_cls_def)
   ultimately have "set_mset {#D \<cdot> \<sigma>#} \<subseteq> grounding_of_cls D \<and> (\<forall>I. I \<Turnstile>m {#D \<cdot> \<sigma>#} \<longrightarrow> I \<Turnstile> C) \<and> (\<forall>D'. D' \<in># {#D \<cdot> \<sigma>#} \<longrightarrow> D' < C)"
     by auto
-  then show "C \<in> src.Rf (grounding_of_cls D)"
-    using src.Rf_def[of "grounding_of_cls D"] by blast
+  then show ?thesis
+    using src.Rf_def by blast
 qed
 
 lemma strict_subset_subsumption_redundant_state:
@@ -239,23 +243,20 @@ lemma strict_subset_subsumption_redundant_state:
   shows "C \<in> src.Rf (grounding_of_state St)"
   using assms
 proof (induction St)
-  fix N P Q :: "'a clause set"
-  assume
-    "D \<cdot> \<sigma> \<subset># C" and "is_ground_subst \<sigma>" and
-    d_in: "D \<in> clss_of_state (N, P, Q)"
-  then have "C \<in> src.Rf (grounding_of_cls D)"
-    using strict_subset_subsumption_redundant_clause by auto
-  then have "C \<in> src.Rf (\<Union>C \<in> clss_of_state (N, P, Q). grounding_of_cls C)"
-    using d_in src.Rf_mono unfolding clss_of_state_def
-    by (metis (no_types) sup_ge1 SUP_absorb contra_subsetD)
-  then show "C \<in> src.Rf (grounding_of_state (N, P, Q))"
-    unfolding clss_of_state_def grounding_of_clss_def by auto
+  case (fields N P Q)
+  note sub = this(1) and gr = this(2) and d_in = this(3)
+
+  have "C \<in> src.Rf (grounding_of_cls D)"
+    by (rule strict_subset_subsumption_redundant_clause[OF sub gr])
+  then show ?case
+    using d_in unfolding clss_of_state_def grounding_of_clss_def
+    by (metis (no_types) src.Rf_mono sup_ge1 SUP_absorb contra_subsetD)
 qed
 
 lemma subst_cls_eq_grounding_of_cls_subset_eq:
   assumes "D \<cdot> \<sigma> = C"
   shows "grounding_of_cls C \<subseteq> grounding_of_cls D"
-proof (rule)
+proof
   fix C\<sigma>'
   assume "C\<sigma>' \<in> grounding_of_cls C"
   then obtain \<sigma>' where
@@ -649,7 +650,7 @@ next
       then have "set_mset (mset (Cl \<cdot>\<cdot>cl \<rho>s) \<cdot>cm \<sigma> \<cdot>cm \<mu>) \<subseteq> grounding_of_cls C \<union> (grounding_of_clss P \<union> grounding_of_clss Q)"
         unfolding grounding_of_cls_def grounding_of_clss_def
         using mset_subst_cls_list_subst_cls_mset by auto
-      ultimately show "set_mset (prems_of \<gamma>_ground) \<subseteq> grounding_of_state ({}, P \<union> {C}, Q)"
+      ultimately show ?thesis
         unfolding \<gamma>_ground_def clss_of_state_def grounding_of_clss_def by simp
     qed
     ultimately have "E \<cdot> \<mu> \<in> concls_of (src_ext.inferences_from (grounding_of_state ({}, P \<union> {C}, Q)))"
@@ -905,38 +906,35 @@ proof -
   have derivns: "chain src_ext.derive Ns"
     using resolution_prover_ground_derivation deriv ns by auto
 
-  show "\<exists>\<sigma>. D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
-  proof -
-    have "\<exists>\<sigma>. D \<cdot> \<sigma> = C"
-    proof (rule ccontr)
-      assume "\<nexists>\<sigma>. D \<cdot> \<sigma> = C"
-      moreover from d(3) obtain \<tau>_proto where
-        "D \<cdot> \<tau>_proto \<subseteq># C" unfolding subsumes_def
-        by blast
-      then obtain \<tau> where
-        \<tau>_p: "D \<cdot> \<tau> \<subseteq># C \<and> is_ground_subst \<tau>"
-        using ground_C by (metis is_ground_cls_mono make_ground_subst subset_mset.order_refl)
-      ultimately have subsub: "D \<cdot> \<tau> \<subset># C"
-        using subset_mset.le_imp_less_or_eq by auto
-      moreover have "is_ground_subst \<tau>"
-        using \<tau>_p by auto
-      moreover have "D \<in> clss_of_state (lnth Sts i)"
-        using d N_of_state_subset Q_of_state_subset P_of_state_subset by blast
-      ultimately have "C \<in> src.Rf (grounding_of_state (lnth Sts i))"
-        using strict_subset_subsumption_redundant_state[of D \<tau> C "lnth Sts i"] by auto
-      then have "C \<in> src.Rf (Sup_llist Ns)"
-        using d ns by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist src.Rf_mono)
-      then have "C \<in> src.Rf (Liminf_llist Ns)"
-        unfolding ns using local.src_ext.Rf_Sup_subset_Rf_Liminf derivns ns by auto
-      then show False
-        using c by auto
-    qed
-    then obtain \<sigma> where
-      "D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
-      using ground_C by (metis make_ground_subst)
-    then show ?thesis
-      by auto
+  have "\<exists>\<sigma>. D \<cdot> \<sigma> = C"
+  proof (rule ccontr)
+    assume "\<nexists>\<sigma>. D \<cdot> \<sigma> = C"
+    moreover from d(3) obtain \<tau>_proto where
+      "D \<cdot> \<tau>_proto \<subseteq># C" unfolding subsumes_def
+      by blast
+    then obtain \<tau> where
+      \<tau>_p: "D \<cdot> \<tau> \<subseteq># C \<and> is_ground_subst \<tau>"
+      using ground_C by (metis is_ground_cls_mono make_ground_subst subset_mset.order_refl)
+    ultimately have subsub: "D \<cdot> \<tau> \<subset># C"
+      using subset_mset.le_imp_less_or_eq by auto
+    moreover have "is_ground_subst \<tau>"
+      using \<tau>_p by auto
+    moreover have "D \<in> clss_of_state (lnth Sts i)"
+      using d N_of_state_subset Q_of_state_subset P_of_state_subset by blast
+    ultimately have "C \<in> src.Rf (grounding_of_state (lnth Sts i))"
+      using strict_subset_subsumption_redundant_state[of D \<tau> C "lnth Sts i"] by auto
+    then have "C \<in> src.Rf (Sup_llist Ns)"
+      using d ns by (metis contra_subsetD llength_lmap lnth_lmap lnth_subset_Sup_llist src.Rf_mono)
+    then have "C \<in> src.Rf (Liminf_llist Ns)"
+      unfolding ns using local.src_ext.Rf_Sup_subset_Rf_Liminf derivns ns by auto
+    then show False
+      using c by auto
   qed
+  then obtain \<sigma> where
+    "D \<cdot> \<sigma> = C \<and> is_ground_subst \<sigma>"
+    using ground_C by (metis make_ground_subst)
+  then show ?thesis
+    by auto
 qed
 
 lemma from_Q_to_Q_inf:
@@ -970,9 +968,10 @@ proof -
     "\<forall>l \<ge> i. enat (Suc l) < llength Sts \<longrightarrow> D \<in> Q_of_state (lnth Sts l) \<longrightarrow> D \<in> Q_of_state (lnth Sts (Suc l))"
   proof (rule, rule, rule, rule)
     fix l
-    assume len: "i \<le> l"
-    assume llen: "enat (Suc l) < llength Sts"
-    assume d_in_q: "D \<in> Q_of_state (lnth Sts l)"
+    assume
+      len: "i \<le> l" and
+      llen: "enat (Suc l) < llength Sts" and
+      d_in_q: "D \<in> Q_of_state (lnth Sts l)"
 
     have "lnth Sts l \<leadsto> lnth Sts (Suc l)"
       using llen deriv chain_lnth_rel by blast
@@ -1489,6 +1488,23 @@ proof
     unfolding Liminf_llist_def clss_of_state_def grounding_of_clss_def by auto
 qed
 
+theorem RP_sound:
+  assumes "{#} \<in> clss_of_state (Liminf_state Sts)"
+  shows "\<not> satisfiable (grounding_of_state (lhd Sts))"
+proof -
+  from assms have "{#} \<in> grounding_of_state (Liminf_state Sts)"
+    unfolding grounding_of_clss_def by (force intro: ex_ground_subst)
+  then have "\<not> satisfiable (grounding_of_state (Liminf_state Sts))"
+    unfolding true_clss_def by auto
+  then have "\<not> satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
+    using grounding_of_state_Liminf_state_subseteq true_clss_mono by blast
+  then have "\<not> satisfiable (lhd (lmap grounding_of_state Sts))"
+    using src_ext.sat_deriv_Liminf_iff[of "lmap grounding_of_state Sts"]
+    by (metis deriv resolution_prover_ground_derivation)
+  then show ?thesis
+    unfolding grounding_lhd_eq_lhd_grounding .
+qed
+
 theorem RP_saturated_if_fair:
   assumes fair: "fair_state_seq Sts"
   shows "src.saturated_upto (Liminf_llist (lmap grounding_of_state Sts))"
@@ -1709,7 +1725,7 @@ proof -
           using C'_p(3) C'_p(5) j_p'(2) apply force
           done
         done
-      then show "E' \<in> ?Ns j"
+      then show ?thesis
         using C'_p(4) by auto
     qed
     then have "E' \<in> clss_of_state (lnth Sts j)"
@@ -1735,26 +1751,6 @@ proof -
     unfolding src_ext_Ri_def by auto
 qed
 
-lemma grounding_lhd_equals_lhd_grounding: 
-  "grounding_of_state (lhd Sts) = lhd (lmap grounding_of_state Sts)"
-proof -
-  have "enat 0 < llength Sts"
-    using deriv chain_length_pos zero_enat_def by auto
-  then show "grounding_of_state (lhd Sts) = lhd (lmap grounding_of_state Sts)"
-    using gr_implies_not_zero by fastforce 
-qed
-
-lemma unsat_Liminf_if_unsat_lhd:
-  assumes unsat: "\<not> satisfiable (grounding_of_state (lhd Sts))"
-  shows "\<not> satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
-proof -
-  from unsat have "\<not>satisfiable (lhd (lmap grounding_of_state Sts))"
-    using grounding_lhd_equals_lhd_grounding by auto
-  then show "\<not>satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
-    using deriv resolution_prover_ground_derivation
-      src_ext.sat_deriv_Liminf_iff[of "lmap grounding_of_state Sts"] by auto
-qed
-
 corollary RP_complete_if_fair:
   assumes
     fair: "fair_state_seq Sts" and
@@ -1762,30 +1758,14 @@ corollary RP_complete_if_fair:
   shows "{#} \<in> Q_of_state (Liminf_state Sts)"
 proof -
   have "\<not> satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
-    using unsat_Liminf_if_unsat_lhd unsat by auto
+    using unsat[unfolded grounding_lhd_eq_lhd_grounding] deriv
+      resolution_prover_ground_derivation src_ext.sat_deriv_Liminf_iff by blast
   moreover have "src.saturated_upto (Liminf_llist (lmap grounding_of_state Sts))"
     by (rule RP_saturated_if_fair[OF fair, simplified])
   ultimately have "{#} \<in> Liminf_llist (lmap grounding_of_state Sts)"
     using src.saturated_upto_complete_if by auto
   then show ?thesis
     using empty_clause_in_Q_of_Liminf_state fair by auto
-qed
-
-lemma RP_unsat_lhd_if_empty_in_Liminf:
-  assumes "{#} \<in> clss_of_state (Liminf_state Sts)"
-  shows "\<not> satisfiable (grounding_of_state (lhd Sts))"
-proof -
-  from assms have "{#} \<in> grounding_of_state (Liminf_state Sts)"
-    unfolding grounding_of_clss_def by (force intro: ex_ground_subst)
-  then have "\<not> satisfiable (grounding_of_state (Liminf_state Sts))"
-    unfolding true_clss_def by auto
-  then have "\<not> satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
-    using grounding_of_state_Liminf_state_subseteq true_clss_mono by blast 
-  then have "\<not> satisfiable (lhd (lmap grounding_of_state Sts))"
-    using src_ext.sat_deriv_Liminf_iff[of "lmap grounding_of_state Sts"]
-    by (metis deriv resolution_prover_ground_derivation)
-  then show ?thesis
-    unfolding grounding_lhd_equals_lhd_grounding .
 qed
 
 end
