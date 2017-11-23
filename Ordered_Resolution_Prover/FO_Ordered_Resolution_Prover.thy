@@ -65,23 +65,36 @@ definition ord_FO_\<Gamma> :: "'a inference set" where
 
 interpretation ord_FO_resolution: inference_system ord_FO_\<Gamma> .
 
+(* FIXME: this doesn't even hold -- there could be several conclusions E (and several \<sigma>'s) *)
 (* FIXME: move me *)
 lemma
   assumes
-    e: "ord_resolve_rename S Cl D \<sigma> E" and
-    e': "ord_resolve_rename S Cl D \<sigma>' E'"
+    e: "ord_resolve S Cl D \<sigma> E" and
+    e': "ord_resolve S Cl D \<sigma>' E'"
   shows
-    ord_resolve_rename_unique_subst: "\<sigma> = \<sigma>'" and
-    ord_resolve_rename_unique_concl: "E = E'"
+    ord_resolve_unique_subst: "\<sigma> = \<sigma>'" and
+    ord_resolve_unique_concl: "E = E'"
 proof -
   show "\<sigma> = \<sigma>'"
     using e e'
-    unfolding ord_resolve_rename.simps ord_resolve.simps
+    unfolding ord_resolve.simps
+    apply clarify
 
     sorry
   show "E = E'"
     sorry
 qed
+
+(* FIXME: move me *)
+lemma
+  assumes
+    "ord_resolve_rename S Cl D \<sigma> E" and
+    "ord_resolve_rename S Cl D \<sigma>' E'"
+  shows
+    ord_resolve_rename_unique_subst: "\<sigma> = \<sigma>'" and
+    ord_resolve_rename_unique_concl: "E = E'"
+  using assms unfolding ord_resolve_rename.simps
+  by (auto intro: ord_resolve_unique_subst ord_resolve_unique_concl)
 
 (* FIXME: move *)
 lemma ord_resolve_max_side_prems: "ord_resolve S Cl D \<sigma> E \<Longrightarrow> length Cl \<le> size D"
