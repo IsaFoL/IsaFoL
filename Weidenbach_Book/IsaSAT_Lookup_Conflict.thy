@@ -2197,12 +2197,6 @@ lemmas lit_redundant_rec_wl_lookup_hnr[sepref_fr_rules] =
 
 end
 
-(* TODO Move *)
-lemma get_maximum_level_single[simp]:
-  \<open>get_maximum_level M {#x#} = get_level M x\<close>
-  by (auto simp: get_maximum_level_add_mset)
-(* End Move *)
-
 lemma iterate_over_conflict_spec:
   fixes D :: \<open>'v clause\<close>
   assumes \<open>NU + NUP \<Turnstile>pm add_mset K D\<close> and dist: \<open>distinct_mset D\<close>
@@ -2416,11 +2410,6 @@ prepare_code_thms (in -) literal_redundant_wl_lookup_code_def
 lemmas literal_redundant_wl_lookup_code_hnr[sepref_fr_rules] =
    literal_redundant_wl_lookup_code.refine[OF isasat_input_bounded_axioms]
 
-
-(* TODO move *)
-lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_Suc_le_uint_max: \<open>Pos xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> Suc xa \<le> uint_max\<close>
-  using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max by (auto simp: uint_max_def)
-(* End move *)
 
 abbreviation (in -) highest_lit_assn where
   \<open>highest_lit_assn \<equiv> option_assn (unat_lit_assn *a uint32_nat_assn)\<close>

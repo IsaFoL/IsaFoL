@@ -725,6 +725,10 @@ proof -
   then show ?thesis by (auto simp: uint_max_def)
 qed
 
+lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_Suc_le_uint_max: \<open>Pos xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> Suc xa \<le> uint_max\<close>
+  using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max by (auto simp: uint_max_def)
+
+
 definition (in isasat_input_ops) unit_prop_body_wl_D_inv where
 \<open>unit_prop_body_wl_D_inv T' i L \<longleftrightarrow>
     unit_prop_body_wl_inv T' i L \<and> literals_are_\<L>\<^sub>i\<^sub>n T' \<and> L \<in> snd ` D\<^sub>0

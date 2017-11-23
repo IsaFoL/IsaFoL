@@ -950,10 +950,12 @@ proof -
   have [simp]: \<open>nths xs {j. Suc j \<in> A} = a # xs \<longleftrightarrow> False\<close>
     for a :: 'a and xs :: \<open>'a list\<close> and A :: \<open>nat set\<close>
     using mset_nths_subset_mset[of xs \<open>{j. Suc j \<in> A}\<close>] by auto
-  show ?thesis -- \<open>TODO tune proof\<close>
+  show ?thesis
     apply (induction xs arbitrary: A)
-     apply (auto simp: nths_Cons less_Suc_eq)
-    by (fastforce simp: less_Suc_eq)+
+    subgoal by auto
+    subgoal
+      by (auto 5 5 simp: nths_Cons) fastforce
+    done
 qed
 
 lemma nts_upt_length[simp]: \<open>nths xs {0..<length xs} = xs\<close>

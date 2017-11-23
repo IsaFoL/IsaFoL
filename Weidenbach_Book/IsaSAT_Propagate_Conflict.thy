@@ -524,18 +524,6 @@ prepare_code_thms (in -) set_conflict_wl'_int_code_def
 lemmas set_conflict_wl'_int_code[sepref_fr_rules] =
   set_conflict_wl'_int_code.refine[OF isasat_input_bounded_nempty_axioms]
 
-(* TODO Move *)
-lemma (in -) RES_RETURN_RES3:
-   \<open>SPEC \<Phi> \<bind> (\<lambda>(T, T', T''). RETURN (f T T' T'')) = RES ((\<lambda>(a, b, c). f a b c) ` {T. \<Phi> T})\<close>
-  using RES_RETURN_RES[of \<open>Collect \<Phi>\<close> \<open>\<lambda>(a, b, c). f a b c\<close>]
-  apply (subst (asm)(2) split_prod_bound)
-  apply (subst (asm)(3) split_prod_bound)
-  by auto
-
-lemma (in -) RES_RES3_RETURN_RES:
-   \<open>RES A \<bind> (\<lambda>(T, T', T''). RES (f T T' T'')) = RES (\<Union>((\<lambda>(a, b, c). f a b c) ` A))\<close>
-  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def)
-(* End Move *)
 
 lemma set_conflict_wl'_int_set_conflict_wl':
   \<open>(uncurry set_conflict_wl'_int, uncurry (RETURN oo set_conflict_wl')) \<in>

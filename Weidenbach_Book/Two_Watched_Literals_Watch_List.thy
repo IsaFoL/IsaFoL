@@ -3,7 +3,6 @@ theory Two_Watched_Literals_Watch_List
 begin
 
 text \<open>Less ambiguities in the notations (TODO: using a bundle would probably be better):\<close>
-no_notation Ref.update ("_ := _" 62)
 
 (* TODO Move somewhere *)
 lemma in_atms_of_mset_takeD:
@@ -167,6 +166,10 @@ lemma (in -) clauses_twl_st_of_wl:
 lemma (in -) conflicting_twl_st_of_wl:
   \<open>conflicting (state\<^sub>W_of (twl_st_of_wl L S)) = get_conflict_wl S\<close>
   by (cases S; cases L) (auto simp: conflicting.simps)
+
+lemma get_trail_l_st_l_of_wl: \<open>get_trail_l (st_l_of_wl None S) = get_trail_wl S\<close>
+  by (cases S) auto
+
 
 text \<open>We here also update the list of watched clauses \<^term>\<open>WL\<close>.\<close>
 definition unit_prop_body_wl_inv where
@@ -1066,10 +1069,7 @@ definition skip_and_resolve_loop_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl 
     }
   \<close>
 
-(* TODO Move, mark as simp? *)
-lemma get_trail_l_st_l_of_wl: \<open>get_trail_l (st_l_of_wl None S) = get_trail_wl S\<close>
-  by (cases S) auto
-(* End Move *)
+
 
 lemma skip_and_resolve_loop_wl_spec:
   \<open>(skip_and_resolve_loop_wl, skip_and_resolve_loop_l)
