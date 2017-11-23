@@ -61,7 +61,7 @@ abbreviation grounding_of_state :: "'a state \<Rightarrow> 'a clause set" where
   "grounding_of_state St \<equiv> grounding_of_clss (clss_of_state St)"
 
 definition ord_FO_\<Gamma> :: "'a inference set" where
-  "ord_FO_\<Gamma> = {Infer CC D E | CC D E Cl \<sigma>. ord_resolve_rename S Cl D \<sigma> E \<and> mset Cl = CC}"
+  "ord_FO_\<Gamma> = {Infer (mset Cl) D E | D E Cl \<sigma>. ord_resolve_rename S Cl D \<sigma> E}"
 
 interpretation ord_FO_resolution: inference_system ord_FO_\<Gamma> .
 
