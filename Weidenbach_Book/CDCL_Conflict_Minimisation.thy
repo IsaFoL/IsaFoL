@@ -385,9 +385,10 @@ where
             else do {
                (L, analyse) \<leftarrow> get_literal_and_remove_of_analyse analyse;
                ASSERT(-L \<in> lits_of_l M);
+               b \<leftarrow> RES UNIV;
                if (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D)
                then RETURN (cach, analyse, False)
-               else if cach (atm_of L) = SEEN_FAILED
+               else if b \<or> cach (atm_of L) = SEEN_FAILED
                then do {
                   cach \<leftarrow> mark_failed_lits NU analyse cach;
                   RETURN (cach, [], False)
@@ -1229,10 +1230,10 @@ context isasat_input_ops
 begin
 
 definition (in -) lit_redundant_rec_wl :: \<open>('v, nat) ann_lits \<Rightarrow> 'v clauses_l \<Rightarrow> 'v clause \<Rightarrow>
-     _ \<Rightarrow> _ \<Rightarrow>
+     _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow>
       (_ \<times> _ \<times> bool) nres\<close>
 where
-  \<open>lit_redundant_rec_wl M NU D cach analysis =
+  \<open>lit_redundant_rec_wl M NU D cach analysis _ =
       WHILE\<^sub>T\<^bsup>lit_redundant_rec_wl_inv M NU D\<^esup>
         (\<lambda>(cach, analyse, b). analyse \<noteq> [])
         (\<lambda>(cach, analyse, b). do {
@@ -1248,9 +1249,10 @@ where
             else do {
                let (L, analyse) = get_literal_and_remove_of_analyse_wl C analyse;
                ASSERT(-L \<in> lits_of_l M);
+               b \<leftarrow> RES (UNIV);
                if (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D)
                then RETURN (cach, analyse, False)
-               else if  cach (atm_of L) = SEEN_FAILED
+               else if b \<or> cach (atm_of L) = SEEN_FAILED
                then do {
                   cach \<leftarrow> mark_failed_lits_wl NU analyse cach;
                   RETURN (cach, [], False)
@@ -1296,7 +1298,7 @@ lemma lit_redundant_rec_wl:
     struct_invs: \<open>twl_struct_invs S''\<close> and
     add_inv: \<open>additional_WS_invs S'\<close>
   shows
-    \<open>lit_redundant_rec_wl M NU D cach analyse \<le> \<Down>
+    \<open>lit_redundant_rec_wl M NU D cach analyse lbv \<le> \<Down>
        (Id \<times>\<^sub>r {(analyse, analyse'). analyse' = convert_analysis_list NU analyse \<and>
           lit_redundant_rec_wl_ref NU analyse} \<times>\<^sub>r bool_rel)
        (lit_redundant_rec M' NU' D cach analyse')\<close>
@@ -1532,7 +1534,7 @@ qed
 
 
 definition literal_redundant_wl where
-  \<open>literal_redundant_wl M NU D cach L = do {
+  \<open>literal_redundant_wl M NU D cach L lbd = do {
      ASSERT(-L \<in> lits_of_l M);
      if get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE
      then RETURN (cach, [], True)
@@ -1541,7 +1543,7 @@ definition literal_redundant_wl where
      else do {
        C \<leftarrow> get_propagation_reason M (-L);
        case C of
-         Some C \<Rightarrow> lit_redundant_rec_wl M NU D cach [(C, 1)]
+         Some C \<Rightarrow> lit_redundant_rec_wl M NU D cach [(C, 1)] lbd
        | None \<Rightarrow> do {
            RETURN (cach, [], False)
        }
@@ -1565,7 +1567,7 @@ lemma literal_redundant_wl_literal_redundant:
     L_D: \<open>L \<in># D\<close> and
     M_D: \<open>M \<Turnstile>as CNot D\<close>
   shows
-    \<open>literal_redundant_wl M NU D cach L \<le> \<Down>
+    \<open>literal_redundant_wl M NU D cach L lbd \<le> \<Down>
        (Id \<times>\<^sub>r {(analyse, analyse'). analyse' = convert_analysis_list NU analyse \<and>
           (\<forall>(i, j)\<in> set analyse. j \<le> length (NU!i) \<and> i < length NU \<and> j \<ge> 1 \<and> i > 0)} \<times>\<^sub>r bool_rel)
        (literal_redundant M' NU' D cach L)\<close>
@@ -1597,7 +1599,7 @@ proof -
     unfolding M'_def by (auto simp: S)
   have uL_M: \<open>-L \<in> lits_of_l M\<close>
     using L_D M_D by (auto dest!: multi_member_split)
-  have H: \<open>lit_redundant_rec_wl M NU D cach analyse
+  have H: \<open>lit_redundant_rec_wl M NU D cach analyse lbd
   \<le> \<Down> ?R (lit_redundant_rec M' NU' D cach analyse')\<close>
     if \<open>analyse' = convert_analysis_list NU analyse\<close> and
        \<open>\<forall>(i, j)\<in>set analyse. j \<le> length (NU ! i) \<and> i < length NU \<and> j \<ge> 1 \<and> i > 0\<close>

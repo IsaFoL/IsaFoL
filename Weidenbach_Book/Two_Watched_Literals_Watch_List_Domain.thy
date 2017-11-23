@@ -443,11 +443,11 @@ lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def: \<open>is_\<L>\<^sub>a\<^sub>l\<^
   by auto (metis literal.sel(2))+
 
 lemma twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss:
-  fixes S\<^sub>0 :: \<open>nat twl_st_wl\<close>
-  defines \<open>S \<equiv> twl_st_of_wl None S\<^sub>0\<close>
+  fixes S\<^sub>0 :: \<open>nat twl_st_wl\<close> and b
+  defines \<open>S \<equiv> twl_st_of_wl b S\<^sub>0\<close>
   defines \<open>clss \<equiv> (all_lits_of_mm (cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of S)))\<close>
   defines \<open>init \<equiv> (all_lits_of_mm (init_clss (state\<^sub>W_of S)))\<close>
-  assumes invs: \<open>twl_struct_invs (twl_st_of_wl None S\<^sub>0)\<close>
+  assumes invs: \<open>twl_struct_invs (twl_st_of_wl b S\<^sub>0)\<close>
   shows \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l clss \<longleftrightarrow> is_\<L>\<^sub>a\<^sub>l\<^sub>l init\<close>
 proof -
 
@@ -457,7 +457,8 @@ proof -
   then have
     \<open>set_mset clss = set_mset init\<close>
     unfolding clss_def init_def S_def
-    by (cases S\<^sub>0) (auto simp: clauses_def mset_take_mset_drop_mset' cdcl\<^sub>W_restart_mset_state
+    by (cases S\<^sub>0; cases b)
+      (auto simp: clauses_def mset_take_mset_drop_mset' cdcl\<^sub>W_restart_mset_state
         cdcl\<^sub>W_restart_mset.no_strange_atm_def in_all_lits_of_mm_ain_atms_of_iff)
   then show \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l clss \<longleftrightarrow> is_\<L>\<^sub>a\<^sub>l\<^sub>l init\<close>
     unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def by blast
@@ -488,27 +489,28 @@ qed
 lemma literals_are_\<L>\<^sub>i\<^sub>n_trail_literals_are_in_\<L>\<^sub>i\<^sub>n:
   assumes
     \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
-    struct: \<open>twl_struct_invs (twl_st_of_wl None S)\<close>
+    struct: \<open>twl_struct_invs (twl_st_of_wl b S)\<close>
   shows \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl S)\<close>
 proof -
-  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl None S))\<close>
+  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl b S))\<close>
     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by fast
-  then have N: \<open>atm_of ` lits_of_l (trail (state\<^sub>W_of (twl_st_of_wl None S)))
-    \<subseteq> atms_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl None S)))\<close>
+  then have N: \<open>atm_of ` lits_of_l (trail (state\<^sub>W_of (twl_st_of_wl b S)))
+    \<subseteq> atms_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl b S)))\<close>
     unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
     by (cases S)
        (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset')
 
-  have \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl None S))))\<close>
-    using twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[OF struct] \<A>\<^sub>i\<^sub>n by fast
+  have \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl b S))))\<close>
+    using twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[OF struct] \<A>\<^sub>i\<^sub>n by (cases S; cases b) auto
   then show ?thesis
     using N in_all_lits_of_m_ain_atms_of_iff in_all_lits_of_mm_ain_atms_of_iff
-    by (cases S)
-       (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def trail.simps
+    by (cases S; cases b)
+       (force simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def trail.simps
       lits_of_def image_image init_clss.simps mset_take_mset_drop_mset'
-      atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff convert_lits_l_def)
+      atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff convert_lits_l_def)+
 qed
+
 lemma literals_are_\<L>\<^sub>i\<^sub>n_clauses_literals_are_in_\<L>\<^sub>i\<^sub>n:
   assumes
     \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
@@ -1119,8 +1121,8 @@ proof -
     using cdcl invs rtranclp_cdcl_twl_o_stgyD rtranclp_cdcl_twl_stgy_twl_struct_invs by blast
   show ?thesis
     using \<A>\<^sub>i\<^sub>n
-    unfolding twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[of S\<^sub>0, OF invs]
-      twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[of T, OF invs_T] init[symmetric]
+    unfolding twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[of None S\<^sub>0, OF invs]
+      twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[of None T, OF invs_T] init[symmetric]
     .
 qed
 

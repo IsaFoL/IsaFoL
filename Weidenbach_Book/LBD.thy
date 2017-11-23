@@ -238,11 +238,24 @@ proof -
     done
 qed
 
+lemma lbd_empty_ref_lbd_empty:
+  \<open>(lbd_empty_ref, lbd_empty) \<in> lbd_ref \<rightarrow>\<^sub>f \<langle>lbd_ref\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  apply clarify
+  subgoal for lbd m lbd'
+    using lbd_empty_ref[of lbd m]
+    by (auto simp: lbd_empty_def lbd_ref_def)
+  done
+
 sepref_definition lbd_empty_code
   is \<open>lbd_empty_ref\<close>
   :: \<open>lbd_int_assn\<^sup>d  \<rightarrow>\<^sub>a lbd_int_assn\<close>
   unfolding lbd_empty_ref_def
   by sepref
 
+lemma lbd_empty_hnr[sepref_fr_rules]:
+  \<open>(lbd_empty_code, lbd_empty) \<in> lbd_assn\<^sup>d \<rightarrow>\<^sub>a lbd_assn\<close>
+  using lbd_empty_code.refine[FCOMP lbd_empty_ref_lbd_empty]
+  unfolding lbd_assn_def .
 
 end
