@@ -98,6 +98,8 @@ context
     empty_Q0: "Q_of_wstate (lhd Sts) = {}"
 begin
 
+lemmas lhd_lmap_Sts = llist.map_sel(1)[OF chain_not_lnull[OF deriv]]
+
 lemma deriv_RP: "chain (op \<leadsto>) (lmap state_of_wstate Sts)"
   using deriv weighted_RP_imp_RP by (metis chain_lmap)
 
@@ -138,6 +140,11 @@ lemmas ord_\<Gamma>_saturated_upto_def = src.saturated_upto_def
 lemmas ord_\<Gamma>_saturated_upto_complete = src.saturated_upto_complete
 lemmas ord_\<Gamma>_contradiction_Rf = src.contradiction_Rf
 
+lemma weighted_RP_sound:
+  assumes "{#} \<in> clss_of_state (Liminf_wstate Sts)"
+  shows "\<not> satisfiable (grounding_of_wstate (lhd Sts))"
+  by (rule RP_sound[OF Sts_thms assms, unfolded lhd_lmap_Sts])
+
 theorem weighted_RP_fair: "fair_state_seq (lmap state_of_wstate Sts)"
 proof (rule ccontr)
   assume "\<not> fair_state_seq (lmap state_of_wstate Sts)"
@@ -167,9 +174,7 @@ corollary weighted_RP_saturated: "src.saturated_upto (Liminf_llist (lmap groundi
 corollary weighted_RP_complete:
   assumes "\<not> satisfiable (grounding_of_wstate (lhd Sts))"
   shows "{#} \<in> Q_of_state (Liminf_wstate Sts)"
-  using assms RP_complete_if_fair[OF Sts_thms weighted_RP_fair,
-      simplified llist.map_sel(1)[OF chain_not_lnull[OF deriv]]]
-  by blast
+  using assms RP_complete_if_fair[OF Sts_thms weighted_RP_fair, simplified lhd_lmap_Sts] by blast
 
 end
 
