@@ -1751,9 +1751,9 @@ lemma unsat_Liminf_if_unsat_lhd:
 proof -
   from unsat have "\<not>satisfiable (lhd (lmap grounding_of_state Sts))"
     using grounding_lhd_equals_lhd_grounding by auto
-  with src_ext.sat_deriv_Liminf_iff[of "lmap grounding_of_state Sts"] 
-  show "\<not>satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
-    using deriv resolution_prover_ground_derivation by auto
+  then show "\<not>satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
+    using deriv resolution_prover_ground_derivation
+      src_ext.sat_deriv_Liminf_iff[of "lmap grounding_of_state Sts"] by auto
 qed
 
 corollary RP_complete_if_fair:
@@ -1796,8 +1796,8 @@ proof -
   then have "\<not> satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
     using grounding_of_state_Liminf_state_subseteq true_clss_mono by blast 
   then have "\<not> satisfiable (lhd (lmap grounding_of_state Sts))"
-    using src_ext.sat_deriv_Liminf_iff[of "lmap grounding_of_state Sts", OF resolution_prover_ground_derivation[OF deriv]]
-    by metis
+    using src_ext.sat_deriv_Liminf_iff[of "lmap grounding_of_state Sts"]
+    deriv resolution_prover_ground_derivation by metis
   then show ?thesis
     using grounding_lhd_equals_lhd_grounding by auto
 qed
