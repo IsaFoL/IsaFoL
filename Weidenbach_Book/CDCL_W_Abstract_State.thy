@@ -146,75 +146,15 @@ proof (induction F S rule: cdcl\<^sub>W_restart_mset.reduce_trail_to.induct)
 qed
 
 
-text \<open>TODO: Move to \<^file>\<open>CDCL_W.thy\<close>. Probably needs to of the form
-  \<^term>\<open>\<exists>T'. cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* init T' \<and> T' \<sim>m T\<close> where
-  \<^term>\<open>init'\<close> is the init state with the initial and learned clauses of \<^term>\<open>T\<close>.
-
-  This lemma is useful to do restarts: After restarts we can use a prefix of the trail instead of
-  restarting form scratch.
-\<close>
-lemma cdcl\<^sub>W_stgy_restart_restart_prune:
-  assumes
-    smaller_propa: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, N, U, None)\<close> and
-    smaller_confl: \<open>cdcl\<^sub>W_restart_mset.no_smaller_confl (M, N, U, None)\<close> and
-    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N, U, None)\<close> and
-    M: \<open>\<exists>M2. M = M2 @ M'\<close>
-  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>*
-          ([], N, U, None)
-          (M', N, U, None)\<close>
-  using M
-proof (induction M')
-  case Nil
-  then show ?case by simp
-next
-  case (Cons L M')
-  have IH: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* ([], N, U, None) (M', N, U, None)\<close>
-    using Cons by (auto simp del: append_assoc)
-  obtain M2 where M: \<open>M = M2 @ L # M'\<close>
-    using Cons by auto
-  have
-    lev: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (M, N, U, None)\<close> and
-    alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (M, N, U, None)\<close> and
-    conflicting: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (M, N, U, None)\<close> and
-    learned: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause (M, N, U, None)\<close>
-    using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
-
-  show ?case
-  proof (cases L)
-    case (Decided K) note K = this(1)
-    have confl: \<open>no_step cdcl\<^sub>W_restart_mset.conflict (M', N, U, None)\<close>
-      using smaller_confl
-      by (auto simp: cdcl\<^sub>W_restart_mset.no_smaller_confl_def cdcl\<^sub>W_restart_mset_state
-          clauses_def state_eq_def state_def M K
-          elim!: cdcl\<^sub>W_restart_mset.conflictE)
-    moreover have propa: \<open>no_step cdcl\<^sub>W_restart_mset.propagate (M', N, U, None)\<close>
-      using smaller_propa -- \<open>TODO tune proof\<close>
-      apply (auto simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def cdcl\<^sub>W_restart_mset_state
-          clauses_def state_eq_def state_def M K
-          elim!: cdcl\<^sub>W_restart_mset.propagateE)
-       apply (metis add_mset_remove_trivial diff_union_swap2)+
-      done
-    moreover have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o (M', N, U, None) (L # M', N, U, None)\<close>
-      by (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.decide, rule cdcl\<^sub>W_restart_mset.decide_rule)
-        (use lev alien in \<open>auto simp: cdcl\<^sub>W_restart_mset_state
-          clauses_def state_eq_def state_def M K cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-          cdcl\<^sub>W_restart_mset.no_strange_atm_def\<close>)
-    ultimately have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (M', N, U, None) (L # M', N, U, None)\<close>
-      by (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.other')
-    then show ?thesis
-      using IH by auto
-  next
-    case (Propagated K C) note K = this
-    have \<open>cdcl\<^sub>W_restart_mset.propagate (M', N, U, None) (L # M', N, U, None)\<close>
-      by (rule cdcl\<^sub>W_restart_mset.propagate_rule)
-        (use conflicting lev learned in \<open>auto simp: cdcl\<^sub>W_restart_mset_state
-          clauses_def state_eq_def state_def M K cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def\<close>)
-    then have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (M', N, U, None) (L # M', N, U, None)\<close>
-      by (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.propagate')
-    then show ?thesis
-      using IH by auto
-  qed
-qed
+lemma full_cdcl\<^sub>W_init_state:
+  \<open>full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state {#}) S \<longleftrightarrow> S = init_state {#}\<close>
+  unfolding full_def rtranclp_unfold
+  by (subst tranclp_unfold_begin)
+     (auto simp:  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.simps
+      cdcl\<^sub>W_restart_mset.conflict.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.simps
+       cdcl\<^sub>W_restart_mset.propagate.simps cdcl\<^sub>W_restart_mset.decide.simps
+       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.simps cdcl\<^sub>W_restart_mset.backtrack.simps
+      cdcl\<^sub>W_restart_mset.skip.simps cdcl\<^sub>W_restart_mset.resolve.simps
+      cdcl\<^sub>W_restart_mset_state clauses_def)
 
 end

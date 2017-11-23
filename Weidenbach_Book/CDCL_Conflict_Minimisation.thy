@@ -385,9 +385,10 @@ where
             else do {
                (L, analyse) \<leftarrow> get_literal_and_remove_of_analyse analyse;
                ASSERT(-L \<in> lits_of_l M);
+               b \<leftarrow> RES UNIV;
                if (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D)
                then RETURN (cach, analyse, False)
-               else if cach (atm_of L) = SEEN_FAILED
+               else if b \<or> cach (atm_of L) = SEEN_FAILED
                then do {
                   cach \<leftarrow> mark_failed_lits NU analyse cach;
                   RETURN (cach, [], False)
@@ -409,79 +410,6 @@ definition lit_redundant_rec_spec where
   \<open>lit_redundant_rec_spec M NU D L =
     SPEC(\<lambda>(cach, analysis, b). (b \<longrightarrow> NU \<Turnstile>pm add_mset (-L) (filter_to_poslev M L D)) \<and>
      conflict_min_analysis_inv M cach NU D)\<close>
-
-(* TODO Move *)
-context conflict_driven_clause_learning\<^sub>W
-begin
-
-lemma in_unmark_l_in_lits_of_l_iff: \<open>{#L#} \<in> unmark_l M \<longleftrightarrow> L \<in> lits_of_l M\<close>
-  by (induction M) auto
-
-lemma literals_of_level0_entailed:
-  assumes
-    struct_invs: \<open>cdcl\<^sub>W_all_struct_inv S\<close> and
-    in_trail: \<open>L \<in> lits_of_l (trail S)\<close> and
-    lev: \<open>get_level (trail S) L = 0\<close>
-  shows
-    \<open>clauses S \<Turnstile>pm {#L#}\<close>
-proof -
-  have decomp: \<open>all_decomposition_implies_m (clauses S) (get_all_ann_decomposition (trail S))\<close>
-    using struct_invs unfolding cdcl\<^sub>W_all_struct_inv_def
-    by fast
-  have L_trail: \<open>{#L#} \<in> unmark_l (trail S)\<close>
-    using in_trail by (auto simp: in_unmark_l_in_lits_of_l_iff)
-  have n_d: \<open>no_dup (trail S)\<close>
-    using struct_invs unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
-    by fast
-
-  show ?thesis
-  proof (cases \<open>count_decided (trail S) = 0\<close>)
-    case True
-    have \<open>get_all_ann_decomposition (trail S) = [([], trail S)]\<close>
-      apply (rule no_decision_get_all_ann_decomposition)
-      using True by (auto simp: count_decided_0_iff)
-    then show ?thesis
-      using decomp L_trail
-      unfolding all_decomposition_implies_def
-      by (auto intro: true_clss_clss_in_imp_true_clss_cls)
-  next
-    case False
-    then obtain K M1 M2 M3 where
-      decomp': \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))\<close> and
-      lev_K: \<open>get_level (trail S) K = Suc 0\<close> and
-      M3: \<open>trail S = M3 @ M2 @ Decided K # M1\<close>
-      using struct_invs backtrack_ex_decomp[of S 0] unfolding cdcl\<^sub>W_all_struct_inv_def by blast
-    then have dec_M1: \<open>count_decided M1 = 0\<close>
-      using n_d by auto
-    define M2' where \<open>M2' = M3 @ M2\<close>
-    then have M3: \<open>trail S = M2' @ Decided K # M1\<close> using M3 by auto
-    have \<open>get_all_ann_decomposition M1 = [([], M1)]\<close>
-      apply (rule no_decision_get_all_ann_decomposition)
-      using dec_M1 by (auto simp: count_decided_0_iff)
-    then have \<open>([], M1) \<in> set (get_all_ann_decomposition (trail S))\<close>
-      using hd_get_all_ann_decomposition_skip_some[of Nil M1 M1 \<open>_ @ _\<close>] decomp'
-      by auto
-    then have \<open>set_mset (clauses S) \<Turnstile>ps unmark_l M1\<close>
-      using decomp
-      unfolding all_decomposition_implies_def by auto
-    moreover {
-      have \<open>L \<in> lits_of_l M1\<close>
-        using n_d lev M3 in_trail
-        by (cases \<open>undefined_lit (M2' @ Decided K # []) L\<close>) (auto dest: in_lits_of_l_defined_litD)
-      then have \<open>{#L#} \<in> unmark_l M1\<close>
-        using in_trail by (auto simp: in_unmark_l_in_lits_of_l_iff)
-    }
-    ultimately show ?thesis
-      unfolding all_decomposition_implies_def
-      by (auto intro: true_clss_clss_in_imp_true_clss_cls)
-  qed
-qed
-end
-
-(* TODO Move *)
-lemma subseteq_remove1[simp]: \<open>C \<subseteq># C' \<Longrightarrow> remove1_mset L C \<subseteq># C'\<close>
-  by (meson diff_subset_eq_self subset_mset.dual_order.trans)
-(* End Move *)
 
 lemma lit_redundant_rec_spec:
   fixes L :: \<open>'v literal\<close>
@@ -1229,10 +1157,10 @@ context isasat_input_ops
 begin
 
 definition (in -) lit_redundant_rec_wl :: \<open>('v, nat) ann_lits \<Rightarrow> 'v clauses_l \<Rightarrow> 'v clause \<Rightarrow>
-     _ \<Rightarrow> _ \<Rightarrow>
+     _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow>
       (_ \<times> _ \<times> bool) nres\<close>
 where
-  \<open>lit_redundant_rec_wl M NU D cach analysis =
+  \<open>lit_redundant_rec_wl M NU D cach analysis _ =
       WHILE\<^sub>T\<^bsup>lit_redundant_rec_wl_inv M NU D\<^esup>
         (\<lambda>(cach, analyse, b). analyse \<noteq> [])
         (\<lambda>(cach, analyse, b). do {
@@ -1248,9 +1176,10 @@ where
             else do {
                let (L, analyse) = get_literal_and_remove_of_analyse_wl C analyse;
                ASSERT(-L \<in> lits_of_l M);
+               b \<leftarrow> RES (UNIV);
                if (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D)
                then RETURN (cach, analyse, False)
-               else if  cach (atm_of L) = SEEN_FAILED
+               else if b \<or> cach (atm_of L) = SEEN_FAILED
                then do {
                   cach \<leftarrow> mark_failed_lits_wl NU analyse cach;
                   RETURN (cach, [], False)
@@ -1296,7 +1225,7 @@ lemma lit_redundant_rec_wl:
     struct_invs: \<open>twl_struct_invs S''\<close> and
     add_inv: \<open>additional_WS_invs S'\<close>
   shows
-    \<open>lit_redundant_rec_wl M NU D cach analyse \<le> \<Down>
+    \<open>lit_redundant_rec_wl M NU D cach analyse lbv \<le> \<Down>
        (Id \<times>\<^sub>r {(analyse, analyse'). analyse' = convert_analysis_list NU analyse \<and>
           lit_redundant_rec_wl_ref NU analyse} \<times>\<^sub>r bool_rel)
        (lit_redundant_rec M' NU' D cach analyse')\<close>
@@ -1532,7 +1461,7 @@ qed
 
 
 definition literal_redundant_wl where
-  \<open>literal_redundant_wl M NU D cach L = do {
+  \<open>literal_redundant_wl M NU D cach L lbd = do {
      ASSERT(-L \<in> lits_of_l M);
      if get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE
      then RETURN (cach, [], True)
@@ -1541,7 +1470,7 @@ definition literal_redundant_wl where
      else do {
        C \<leftarrow> get_propagation_reason M (-L);
        case C of
-         Some C \<Rightarrow> lit_redundant_rec_wl M NU D cach [(C, 1)]
+         Some C \<Rightarrow> lit_redundant_rec_wl M NU D cach [(C, 1)] lbd
        | None \<Rightarrow> do {
            RETURN (cach, [], False)
        }
@@ -1565,7 +1494,7 @@ lemma literal_redundant_wl_literal_redundant:
     L_D: \<open>L \<in># D\<close> and
     M_D: \<open>M \<Turnstile>as CNot D\<close>
   shows
-    \<open>literal_redundant_wl M NU D cach L \<le> \<Down>
+    \<open>literal_redundant_wl M NU D cach L lbd \<le> \<Down>
        (Id \<times>\<^sub>r {(analyse, analyse'). analyse' = convert_analysis_list NU analyse \<and>
           (\<forall>(i, j)\<in> set analyse. j \<le> length (NU!i) \<and> i < length NU \<and> j \<ge> 1 \<and> i > 0)} \<times>\<^sub>r bool_rel)
        (literal_redundant M' NU' D cach L)\<close>
@@ -1597,7 +1526,7 @@ proof -
     unfolding M'_def by (auto simp: S)
   have uL_M: \<open>-L \<in> lits_of_l M\<close>
     using L_D M_D by (auto dest!: multi_member_split)
-  have H: \<open>lit_redundant_rec_wl M NU D cach analyse
+  have H: \<open>lit_redundant_rec_wl M NU D cach analyse lbd
   \<le> \<Down> ?R (lit_redundant_rec M' NU' D cach analyse')\<close>
     if \<open>analyse' = convert_analysis_list NU analyse\<close> and
        \<open>\<forall>(i, j)\<in>set analyse. j \<le> length (NU ! i) \<and> i < length NU \<and> j \<ge> 1 \<and> i > 0\<close>
@@ -1752,13 +1681,21 @@ definition cach_refinement
 where
   \<open>cach_refinement = cach_refinement_nonull O cach_refinement_list\<close>
 
+lemma cach_refinement_alt_def:
+  \<open>cach_refinement = {((cach, support), cach').
+       (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support) \<and>
+       (\<forall>L \<in> set support. L < length cach) \<and>
+       (\<forall>L \<in># \<A>\<^sub>i\<^sub>n. L < length cach \<and> cach ! L = cach' L)}\<close>
+  unfolding cach_refinement_def cach_refinement_nonull_def cach_refinement_list_def
+  by (auto simp: map_fun_rel_def)
+
 abbreviation (in -) cach_refinement_l_assn where
   \<open>cach_refinement_l_assn \<equiv> array_assn minimize_status_assn *a arl_assn uint32_nat_assn\<close>
 
 definition cach_refinement_assn where
   \<open>cach_refinement_assn = hr_comp cach_refinement_l_assn cach_refinement\<close>
 
-lemma cach_refinement_alt_def:
+lemma in_cach_refinement_alt_def:
   \<open>((cach, support), cach') \<in> cach_refinement \<longleftrightarrow>
      (cach, cach') \<in> cach_refinement_list \<and>
      (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support) \<and>

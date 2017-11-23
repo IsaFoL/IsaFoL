@@ -4922,7 +4922,8 @@ proof -
         have [simp]: \<open>k - min (length M') k = 0\<close>
           unfolding k_def by auto
         have C_N_U: \<open>C \<in># N + U'\<close>
-          using learned kept unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def Sk k_def[symmetric]
+          using learned kept unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def Sk
+            k_def[symmetric]
           apply (subst (asm)(4)M')
           apply (subst (asm)(10)M')
           unfolding K

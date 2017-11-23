@@ -642,7 +642,7 @@ resolve_rule: "trail S \<noteq> [] \<Longrightarrow>
 inductive_cases resolveE: "resolve S T"
 
 text \<open>
-  Christoph's version restricts restarts to the the case where \<open>\<not>M\<Turnstile> N+U\<close>. While it is possible to 
+  Christoph's version restricts restarts to the the case where \<open>\<not>M\<Turnstile> N+U\<close>. While it is possible to
   implement this (by watching a clause), This is an unnecessary restriction.
 \<close>
 inductive restart :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
@@ -4694,6 +4694,66 @@ proof -
     using M_nempty count_dec_ge_0 by auto
   then show \<open>- lit_of (hd M) \<in># D'\<close>
     using uhd_D unfolding D'_def by auto
+qed
+
+lemma literals_of_level0_entailed:
+  assumes
+    struct_invs: \<open>cdcl\<^sub>W_all_struct_inv S\<close> and
+    in_trail: \<open>L \<in> lits_of_l (trail S)\<close> and
+    lev: \<open>get_level (trail S) L = 0\<close>
+  shows
+    \<open>clauses S \<Turnstile>pm {#L#}\<close>
+proof -
+  have decomp: \<open>all_decomposition_implies_m (clauses S) (get_all_ann_decomposition (trail S))\<close>
+    using struct_invs unfolding cdcl\<^sub>W_all_struct_inv_def
+    by fast
+  have L_trail: \<open>{#L#} \<in> unmark_l (trail S)\<close>
+    using in_trail by (auto simp: in_unmark_l_in_lits_of_l_iff)
+  have n_d: \<open>no_dup (trail S)\<close>
+    using struct_invs unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
+    by fast
+
+  show ?thesis
+  proof (cases \<open>count_decided (trail S) = 0\<close>)
+    case True
+    have \<open>get_all_ann_decomposition (trail S) = [([], trail S)]\<close>
+      apply (rule no_decision_get_all_ann_decomposition)
+      using True by (auto simp: count_decided_0_iff)
+    then show ?thesis
+      using decomp L_trail
+      unfolding all_decomposition_implies_def
+      by (auto intro: true_clss_clss_in_imp_true_clss_cls)
+  next
+    case False
+    then obtain K M1 M2 M3 where
+      decomp': \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))\<close> and
+      lev_K: \<open>get_level (trail S) K = Suc 0\<close> and
+      M3: \<open>trail S = M3 @ M2 @ Decided K # M1\<close>
+      using struct_invs backtrack_ex_decomp[of S 0] unfolding cdcl\<^sub>W_all_struct_inv_def by blast
+    then have dec_M1: \<open>count_decided M1 = 0\<close>
+      using n_d by auto
+    define M2' where \<open>M2' = M3 @ M2\<close>
+    then have M3: \<open>trail S = M2' @ Decided K # M1\<close> using M3 by auto
+    have \<open>get_all_ann_decomposition M1 = [([], M1)]\<close>
+      apply (rule no_decision_get_all_ann_decomposition)
+      using dec_M1 by (auto simp: count_decided_0_iff)
+    then have \<open>([], M1) \<in> set (get_all_ann_decomposition (trail S))\<close>
+      using hd_get_all_ann_decomposition_skip_some[of Nil M1 M1 \<open>_ @ _\<close>] decomp'
+      by auto
+    then have \<open>set_mset (clauses S) \<Turnstile>ps unmark_l M1\<close>
+      using decomp
+      unfolding all_decomposition_implies_def by auto
+    moreover {
+      have \<open>L \<in> lits_of_l M1\<close>
+        using n_d lev M3 in_trail
+        by (cases \<open>undefined_lit (M2' @ Decided K # []) L\<close>) (auto dest: in_lits_of_l_defined_litD)
+      then have \<open>{#L#} \<in> unmark_l M1\<close>
+        using in_trail by (auto simp: in_unmark_l_in_lits_of_l_iff)
+    }
+    ultimately show ?thesis
+      unfolding all_decomposition_implies_def
+      by (auto intro: true_clss_clss_in_imp_true_clss_cls)
+  qed
 qed
 
 end

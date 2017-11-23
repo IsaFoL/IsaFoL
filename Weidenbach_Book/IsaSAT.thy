@@ -162,18 +162,6 @@ definition TWL_to_clauses_state_conv :: \<open>(nat twl_st_wl \<times> nat cdcl\
   \<open>TWL_to_clauses_state_conv = {(S', S). S = state\<^sub>W_of (twl_st_of_wl None S')}\<close>
 
 
-lemma full_cdcl\<^sub>W_init_state:
-  \<open>full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state {#}) S \<longleftrightarrow> S = init_state {#}\<close>
-  unfolding full_def rtranclp_unfold
-  by (subst tranclp_unfold_begin)
-     (auto simp:  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.simps
-      cdcl\<^sub>W_restart_mset.conflict.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.simps
-       cdcl\<^sub>W_restart_mset.propagate.simps cdcl\<^sub>W_restart_mset.decide.simps
-       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.simps cdcl\<^sub>W_restart_mset.backtrack.simps
-      cdcl\<^sub>W_restart_mset.skip.simps cdcl\<^sub>W_restart_mset.resolve.simps
-      cdcl\<^sub>W_restart_mset_state clauses_def)
-
-(* End Move *)
 lemma extract_atms_cls_empty_iff: \<open>extract_atms_cls Cs C0 = [] \<longleftrightarrow> (C0 = [] \<and> Cs = [])\<close>
   unfolding extract_atms_cls_def
   by (induction Cs arbitrary: C0) force+

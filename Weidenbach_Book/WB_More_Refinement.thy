@@ -6,6 +6,9 @@ theory WB_More_Refinement
     "HOL-Eisbach.Eisbach_Tools"
 begin
 
+no_notation Ref.update ("_ := _" 62)
+
+
 subsection \<open>Some Tooling for Refinement\<close>
 
 text \<open>
@@ -519,22 +522,17 @@ proof -
     \<open>mset N''' = remove1_mset n (mset N'')\<close> and
     \<open>list_all2 (rel2p (the_pure R)) list N'''\<close>
     by (auto dest: mset_eq_setD simp: eq_commute[of \<open>add_mset _ _\<close>])
-  show ?thesis -- \<open>TODO tune proof\<close>
+  show ?thesis
     unfolding list_mset_assn_def mset_rel_def p2rel_def rel_mset_def
       list.rel_eq list_mset_rel_def
-      br_def
-    apply (simp add: Collect_eq_comp n[symmetric] N_N')
-    using assn
-    apply (cases A)
-    apply (auto simp: list_mset_assn_def mset_rel_def p2rel_def rel_mset_def
-        add_mset_eq_add_mset list.rel_eq)
-    apply (drule list_all2_reorder_left_invariance[of \<open>rel2p (the_pure R)\<close> _ _
-          \<open>ab # list\<close>, unfolded eq_commute[of \<open>mset (ab # list)\<close>]])
-     apply simp
-    apply (auto simp: list_all2_Cons1 list_mset_rel_def br_def Collect_eq_comp
+      br_def N_N'
+    using assn \<open>(ab, n) \<in> the_pure R\<close>  \<open>n \<in> set N''\<close>  \<open>mset N'' = mset N'\<close>
+      \<open>list_all2 (rel2p (the_pure R)) list N'''\<close>
+        \<open>mset N'' = mset N'\<close> \<open>mset N''' = remove1_mset n (mset N'')\<close>
+    by (cases A) (auto simp: list_mset_assn_def mset_rel_def p2rel_def rel_mset_def
+        add_mset_eq_add_mset list.rel_eq
+        intro!: exI[of _ n]
         dest: mset_eq_setD)
-    by (metis \<open>(ab, n) \<in> the_pure R\<close> \<open>list_all2 (rel2p (the_pure R)) list N'''\<close>
-        \<open>mset N'' = mset N'\<close> \<open>mset N''' = remove1_mset n (mset N'')\<close> \<open>n \<in> set N''\<close> set_mset_mset)
 qed
 
 lemma list_mset_assn_empty_nil: \<open>list_mset_assn R {#} [] = emp\<close>
@@ -929,6 +927,18 @@ lemma RES_RES_RETURN_RES: \<open>RES A \<bind> (\<lambda>T. RES (f T)) = RES (\<
 
 lemma RES_RES2_RETURN_RES: \<open>RES A \<bind> (\<lambda>(T, T'). RES (f T T')) = RES (\<Union>(uncurry f ` A))\<close>
   by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def)
+
+lemma RES_RETURN_RES3:
+   \<open>SPEC \<Phi> \<bind> (\<lambda>(T, T', T''). RETURN (f T T' T'')) = RES ((\<lambda>(a, b, c). f a b c) ` {T. \<Phi> T})\<close>
+  using RES_RETURN_RES[of \<open>Collect \<Phi>\<close> \<open>\<lambda>(a, b, c). f a b c\<close>]
+  apply (subst (asm)(2) split_prod_bound)
+  apply (subst (asm)(3) split_prod_bound)
+  by auto
+
+lemma RES_RES3_RETURN_RES:
+   \<open>RES A \<bind> (\<lambda>(T, T', T''). RES (f T T' T'')) = RES (\<Union>((\<lambda>(a, b, c). f a b c) ` A))\<close>
+  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def)
+
 
 subsection \<open>Sorting\<close>
 

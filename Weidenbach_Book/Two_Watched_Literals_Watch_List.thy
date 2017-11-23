@@ -3,7 +3,6 @@ theory Two_Watched_Literals_Watch_List
 begin
 
 text \<open>Less ambiguities in the notations (TODO: using a bundle would probably be better):\<close>
-no_notation Ref.update ("_ := _" 62)
 
 (* TODO Move somewhere *)
 lemma in_atms_of_mset_takeD:
@@ -89,7 +88,7 @@ lemma all_lits_of_mm_union:
   unfolding all_lits_of_mm_def by auto
 
 definition all_lits_of_m :: \<open>'a clause \<Rightarrow> 'a literal multiset\<close> where
-\<open>all_lits_of_m Ls = Pos `# (atm_of `# Ls) + Neg `# (atm_of `# Ls)\<close>
+  \<open>all_lits_of_m Ls = Pos `# (atm_of `# Ls) + Neg `# (atm_of `# Ls)\<close>
 
 lemma all_lits_of_m_empty[simp]: \<open>all_lits_of_m {#} = {#}\<close>
   by (auto simp: all_lits_of_m_def)
@@ -128,38 +127,12 @@ fun st_l_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> 'v twl_s
 fun twl_st_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st\<close> where
   \<open>twl_st_of_wl L S = twl_st_of (map_option fst L) (st_l_of_wl L S)\<close>
 
-fun twl_st_of_wl2 :: \<open>('v literal) option \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st\<close> where
-  \<open>twl_st_of_wl2 L S = twl_st_of L (st_l_of_wl None S)\<close>
-
 fun remove_one_lit_from_wq :: "nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l" where
   \<open>remove_one_lit_from_wq L (M, N, C, D, NP, UP, WS, Q) = (M, N, C, D, NP, UP, remove1_mset L WS, Q)\<close>
 
 lemma remove_one_lit_from_wq_def:
   \<open>remove_one_lit_from_wq L S = set_clauses_to_update_l (clauses_to_update_l S - {#L#}) S\<close>
   by (cases S) auto
-
-lemma mset_set_mset_set_minus_id_iff:
-  assumes \<open>finite A\<close>
-  shows \<open>mset_set A = mset_set (A - B) \<longleftrightarrow> (\<forall>b \<in> B. b \<notin> A)\<close>
-proof -
- have f1: "mset_set A = mset_set (A - B) \<longleftrightarrow> A - B = A"
-    using assms by (metis (no_types) finite_Diff finite_set_mset_mset_set)
-  then show ?thesis
-    by blast
-qed
-
-lemma mset_set_eq_mset_set_more_conds:
-  \<open>finite {x. P x} \<Longrightarrow> mset_set {x. P x} = mset_set {x. Q x \<and> P x} \<longleftrightarrow> (\<forall>x. P x \<longrightarrow> Q x)\<close>
-  (is \<open>?F \<Longrightarrow> ?A \<longleftrightarrow> ?B\<close>)
-proof -
-  assume ?F
-  then have \<open>?A \<longleftrightarrow> (\<forall>x \<in> {x. P x}. x \<in> {x. Q x \<and> P x})\<close>
-    by (subst mset_set_eq_mset_set_iff) auto
-  also have \<open>\<dots> \<longleftrightarrow> (\<forall>x. P x \<longrightarrow> Q x)\<close>
-    by blast
-  finally show ?thesis .
-qed
-(* End Move  *)
 
 lemma literals_to_update_wl_literals_to_update_l_iff:
   \<open>literals_to_update_l (st_l_of_wl L S) = literals_to_update_wl S\<close>
@@ -184,6 +157,19 @@ lemma literals_to_update_twl_st_of_st_l_of_wl:
 lemma get_conflict_l_st_l_of_wl:
   \<open>get_conflict_l (st_l_of_wl L S) = get_conflict_wl S\<close>
   by (cases S; cases L) auto
+
+lemma (in -) clauses_twl_st_of_wl:
+  \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None (M, N, U, y, NP, UP, Q, W))) =
+     mset `# mset (tl N) + NP + UP\<close>
+  by (auto simp del: append_take_drop_id simp: mset_take_mset_drop_mset' clauses_def)
+
+lemma (in -) conflicting_twl_st_of_wl:
+  \<open>conflicting (state\<^sub>W_of (twl_st_of_wl L S)) = get_conflict_wl S\<close>
+  by (cases S; cases L) (auto simp: conflicting.simps)
+
+lemma get_trail_l_st_l_of_wl: \<open>get_trail_l (st_l_of_wl None S) = get_trail_wl S\<close>
+  by (cases S) auto
+
 
 text \<open>We here also update the list of watched clauses \<^term>\<open>WL\<close>.\<close>
 definition unit_prop_body_wl_inv where
@@ -669,10 +655,15 @@ lemma unit_propagation_inner_loop_wl_spec:
   shows \<open>(uncurry unit_propagation_inner_loop_wl, uncurry unit_propagation_inner_loop_l) \<in>
     {((L', T'::'v twl_st_wl), (L, T::'v twl_st_l)). L = L' \<and> st_l_of_wl (Some (L, 0)) T' = T \<and>
       correct_watching T' \<and>
-      twl_struct_invs (twl_st_of_wl2 (Some L) (set_literals_to_update_wl (add_mset L (literals_to_update_wl T')) T')) \<and>
-      twl_stgy_invs (twl_st_of_wl2 None (set_literals_to_update_wl (add_mset L (literals_to_update_wl T')) T')) \<and>
+      twl_struct_invs
+         (twl_st_of (Some L) (st_l_of_wl None
+            (set_literals_to_update_wl (add_mset L (literals_to_update_wl T')) T'))) \<and>
+      twl_stgy_invs
+        (twl_st_of (Some L) (st_l_of_wl None
+          (set_literals_to_update_wl (add_mset L (literals_to_update_wl T')) T'))) \<and>
       get_conflict_wl T' = None \<and>
-      additional_WS_invs (st_l_of_wl None (set_literals_to_update_wl (add_mset L (literals_to_update_wl T')) T'))} \<rightarrow>
+      additional_WS_invs
+       (st_l_of_wl None (set_literals_to_update_wl (add_mset L (literals_to_update_wl T')) T'))} \<rightarrow>
     \<langle>{(T', T). st_l_of_wl None T' = T \<and>
         twl_struct_invs (twl_st_of_wl None T') \<and>
         twl_stgy_invs (twl_st_of_wl None T') \<and>
@@ -682,7 +673,8 @@ lemma unit_propagation_inner_loop_wl_spec:
 proof -
   {
     fix L :: \<open>'v literal\<close> and S :: \<open>'v twl_st_wl\<close>
-    let ?S = \<open>twl_st_of_wl2 (Some L) (set_literals_to_update_wl (add_mset L (literals_to_update_wl S)) S)\<close>
+    let ?S = \<open>twl_st_of (Some L) (st_l_of_wl None
+        (set_literals_to_update_wl (add_mset L (literals_to_update_wl S)) S))\<close>
     assume corr_w: \<open>correct_watching S\<close> and
       struct_invs: \<open>twl_struct_invs ?S\<close> and
       stgy_invs: \<open>twl_stgy_invs ?S\<close> and
@@ -780,7 +772,6 @@ proof -
     apply (refine_rcg H)
     subgoal by force
     subgoal by auto
-    subgoal by force
     subgoal by force
     done
   moreover have \<open>unit_propagation_inner_loop_l_fantom = unit_propagation_inner_loop_l\<close>
@@ -1078,10 +1069,7 @@ definition skip_and_resolve_loop_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl 
     }
   \<close>
 
-(* TODO Move, mark as simp? *)
-lemma get_trail_l_st_l_of_wl: \<open>get_trail_l (st_l_of_wl None S) = get_trail_wl S\<close>
-  by (cases S) auto
-(* End Move *)
+
 
 lemma skip_and_resolve_loop_wl_spec:
   \<open>(skip_and_resolve_loop_wl, skip_and_resolve_loop_l)

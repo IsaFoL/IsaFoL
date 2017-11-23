@@ -497,16 +497,18 @@ lemma set_conflict_wl'_alt_def:
   by (cases S) (auto simp: set_conflict_wl'_def set_conflict_wl_def)
 
 definition set_conflict_wl'_int :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>set_conflict_wl'_int = (\<lambda>C (M, N, U, D, Q, W, vmtf, \<phi>, clvls, cach). do {
+  \<open>set_conflict_wl'_int = (\<lambda>C (M, N, U, D, Q, W, vmtf, \<phi>, clvls, cach, lbd). do {
     let n = zero_uint32_nat;
-    (D, clvls) \<leftarrow> conflict_merge M N C D n;
-    RETURN (M, N, U, D, {#}, W, vmtf, \<phi>, clvls, cach)})\<close>
+    (D, clvls, lbd) \<leftarrow> conflict_merge M N C D n lbd;
+    RETURN (M, N, U, D, {#}, W, vmtf, \<phi>, clvls, cach, lbd)})\<close>
 
 sepref_thm set_conflict_wl'_int_code
   is \<open>uncurry set_conflict_wl'_int\<close>
   :: \<open>[\<lambda>(C, S). get_conflict_wl_heur S = None \<and> C < length (get_clauses_wl_heur S) \<and>
       distinct (get_clauses_wl_heur S ! C) \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (mset (get_clauses_wl_heur S ! C)) \<and>
-      \<not> tautology (mset (get_clauses_wl_heur S ! C))]\<^sub>a
+      \<not> tautology (mset (get_clauses_wl_heur S ! C)) \<and>
+      literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl_heur S) \<and>
+      no_dup (get_trail_wl_heur S)]\<^sub>a
     nat_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d \<rightarrow> twl_st_heur_assn\<close>
   supply [[goals_limit=1]]
     lookup_conflict_merge_code_set_conflict[unfolded twl_st_heur_assn_def, sepref_fr_rules]
@@ -522,30 +524,42 @@ prepare_code_thms (in -) set_conflict_wl'_int_code_def
 lemmas set_conflict_wl'_int_code[sepref_fr_rules] =
   set_conflict_wl'_int_code.refine[OF isasat_input_bounded_nempty_axioms]
 
+
 lemma set_conflict_wl'_int_set_conflict_wl':
   \<open>(uncurry set_conflict_wl'_int, uncurry (RETURN oo set_conflict_wl')) \<in>
     nat_rel \<times>\<^sub>r twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
   by (intro nres_relI frefI)
-     (auto simp: twl_st_heur_def set_conflict_wl'_int_def set_conflict_wl'_def
-        conflict_merge_def bind_RES_RETURN2_eq RETURN_def[symmetric]
-        counts_maximum_level_def)
+    (auto simp: twl_st_heur_def set_conflict_wl'_int_def set_conflict_wl'_def
+        conflict_merge_def bind_RES_RETURN2_eq RETURN_def RES_RES2_RETURN_RES
+        counts_maximum_level_def RES_RETURN_RES3 RES_RES_RETURN_RES RES_RES3_RETURN_RES
+      intro!: RES_refine)
 
 lemma set_conflict_wl'_int_code_set_conflict_wl'[sepref_fr_rules]:
   \<open>(uncurry set_conflict_wl'_int_code, uncurry (RETURN oo set_conflict_wl')) \<in>
     [\<lambda>(C, S). get_conflict_wl S = None \<and> C < length (get_clauses_wl S) \<and>
       distinct (get_clauses_wl S ! C) \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (mset (get_clauses_wl S ! C)) \<and>
-      \<not> tautology (mset (get_clauses_wl S ! C))]\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>d \<rightarrow>
+      \<not> tautology (mset (get_clauses_wl S ! C)) \<and>
+      literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl S)]\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>d \<rightarrow>
     twl_st_assn\<close>
     (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>(uncurry set_conflict_wl'_int_code, uncurry (RETURN \<circ>\<circ> set_conflict_wl'))
   \<in> [comp_PRE (nat_rel \<times>\<^sub>f twl_st_heur) (\<lambda>_. True)
-       (\<lambda>_ (C, S). get_conflict_wl_heur S = None \<and> C < length (get_clauses_wl_heur S) \<and>
-           distinct (get_clauses_wl_heur S ! C) \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (mset (get_clauses_wl_heur S ! C)) \<and>
-           \<not> tautology (mset (get_clauses_wl_heur S ! C)))
-       (\<lambda>_. True)]\<^sub>a
-     hrp_comp (nat_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d) (nat_rel \<times>\<^sub>f twl_st_heur) \<rightarrow>
-     hr_comp twl_st_heur_assn twl_st_heur\<close>
+       (\<lambda>_ (C, S).
+           get_conflict_wl_heur S = None \<and>
+           C < length (get_clauses_wl_heur S) \<and>
+           distinct (get_clauses_wl_heur S ! C) \<and>
+           literals_are_in_\<L>\<^sub>i\<^sub>n
+            (mset (get_clauses_wl_heur S ! C)) \<and>
+           \<not> tautology (mset (get_clauses_wl_heur S ! C)) \<and>
+           literals_are_in_\<L>\<^sub>i\<^sub>n_trail
+            (get_trail_wl_heur S) \<and>
+           no_dup (get_trail_wl_heur S))
+       (\<lambda>_. True)]\<^sub>a hrp_comp
+                       (nat_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d)
+                       (nat_rel \<times>\<^sub>f
+                        twl_st_heur) \<rightarrow> hr_comp
+           twl_st_heur_assn twl_st_heur\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF set_conflict_wl'_int_code set_conflict_wl'_int_set_conflict_wl']
     .
@@ -951,6 +965,16 @@ setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper "split_all_tac")\<cl
 context isasat_input_bounded_nempty
 begin
 
+context
+begin
+
+lemma unit_propagation_inner_loop_body_wl_D_helper:
+  \<open>unit_prop_body_wl_D_inv b ba a \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl b)\<close>
+  unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
+  by (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_trail[of _ \<open>Some (a, ba)\<close>])
+    auto
+
+
 sepref_thm unit_propagation_inner_loop_body_wl_D
   is \<open>uncurry2 ((PR_CONST unit_propagation_inner_loop_body_wl_D) :: nat literal \<Rightarrow> nat \<Rightarrow>
            nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres)\<close>
@@ -960,6 +984,7 @@ sepref_thm unit_propagation_inner_loop_body_wl_D
     watched_by_app_def[symmetric,simp]
     access_lit_in_clauses_def[simp] unit_prop_body_wl_D_invD'[intro]
     length_rll_def[simp] find_unwatched_not_tauto[dest]
+    unit_propagation_inner_loop_body_wl_D_helper[intro]
   supply undefined_lit_polarity_st_iff[iff]
   unfolding unit_propagation_inner_loop_body_wl_D_def length_rll_def[symmetric] PR_CONST_def
   unfolding watched_by_app_def[symmetric] access_lit_in_clauses_def[symmetric]
@@ -971,6 +996,8 @@ sepref_thm unit_propagation_inner_loop_body_wl_D
   set_conflict_wl'_alt_def[symmetric] fast_minus_def[symmetric]
   supply [[goals_limit=1]]
   by sepref
+
+end
 
 concrete_definition (in -) unit_propagation_inner_loop_body_wl_D_code
    uses isasat_input_bounded_nempty.unit_propagation_inner_loop_body_wl_D.refine_raw
@@ -1097,62 +1124,10 @@ lemmas unit_propagation_inner_loop_wl_D_code_refine[sepref_fr_rules] =
 
 paragraph \<open>Unit propagation, Outer Loop\<close>
 
-type_synonym (in -) twl_st_wl_heur_W_list =
-  \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times> nat \<times>
-    nat cconflict \<times> nat literal list \<times> nat list list \<times> vmtf_remove_int \<times> bool list \<times> nat \<times>
-    nat conflict_min_cach\<close>
-
 definition (in -) select_and_remove_from_literals_to_update_wl_heur
   :: \<open>twl_st_wl_heur_W_list \<Rightarrow> twl_st_wl_heur_W_list \<times> _\<close> where
   \<open>select_and_remove_from_literals_to_update_wl_heur =
      (\<lambda>(M, N, U, D, Q, W, other).  ((M, N, U, D, tl Q, W, other), hd Q))\<close>
-
-definition twl_st_wl_heur_W_list_rel :: \<open>(twl_st_wl_heur_W_list \<times> twl_st_wl_heur) set\<close> where
-  \<open>twl_st_wl_heur_W_list_rel =
-     (Id :: ((nat,nat) ann_lits \<times> _) set) \<times>\<^sub>r
-     (Id :: (nat clauses_l  \<times> _) set) \<times>\<^sub>r
-     nat_rel \<times>\<^sub>r
-     (Id :: (nat cconflict \<times> _)set) \<times>\<^sub>r
-     (list_mset_rel :: (nat literal list \<times> nat lit_queue_wl) set)  \<times>\<^sub>r
-     (Id :: (nat list list \<times> _)set) \<times>\<^sub>r
-     Id \<times>\<^sub>r
-     Id \<times>\<^sub>r
-     nat_rel \<times>\<^sub>r
-     Id\<close>
-
-definition twl_st_heur_W_list_assn :: \<open>twl_st_wl_heur_W_list \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
-\<open>twl_st_heur_W_list_assn =
-  (trail_assn *a clauses_ll_assn *a nat_assn *a
-  option_lookup_clause_assn *a
-  (list_assn unat_lit_assn) *a
-  arrayO_assn (arl_assn nat_assn) *a
-  vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn *a cach_refinement_assn
-  )\<close>
-
-lemma twl_st_wl_heur_W_list_rel_twl_st_rel: \<open>twl_st_wl_heur_W_list_rel O twl_st_heur =
-   {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach), M, N, U, D, NP, UP, Q, W).
-     M = M' \<and>
-     N' = N \<and>
-     U' = U \<and>
-     D = D' \<and>
-     (Q', Q) \<in> list_mset_rel \<and>
-     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
-     vm \<in> vmtf M \<and> phase_saving \<phi> \<and> no_dup M \<and> clvls \<in> counts_maximum_level M D\<and>
-     cach_refinement_empty cach}\<close>
-  unfolding twl_st_heur_def twl_st_wl_heur_W_list_rel_def
-  by force
-
-lemma twl_st_heur_assn_W_list:
-  \<open>twl_st_heur_assn = hr_comp twl_st_heur_W_list_assn twl_st_wl_heur_W_list_rel\<close>
-  unfolding twl_st_heur_assn_def twl_st_heur_W_list_assn_def twl_st_wl_heur_W_list_rel_def
-  by (auto simp: list_assn_list_mset_rel_eq_list_mset_assn)
-
-lemma twl_st_assn_W_list:
-  \<open>twl_st_assn = hr_comp twl_st_heur_W_list_assn (twl_st_wl_heur_W_list_rel O twl_st_heur)\<close>
-  apply (subst hr_comp_assoc[symmetric])
-  apply (subst twl_st_heur_assn_W_list[symmetric])
-  unfolding twl_st_assn_def ..
-
 
 definition get_literals_to_update_wl where
    \<open>get_literals_to_update_wl = (\<lambda>(M, N, U, D, NP, UP, Q, W). Q)\<close>
@@ -1267,7 +1242,8 @@ lemma literals_to_update_wl_empty_heur_literals_to_update_wl_empty:
 lemma literals_to_update_wl_empty_heur_code_literals_to_update_wl_empty[sepref_fr_rules]:
   \<open>(literals_to_update_wl_empty_heur_code, RETURN \<circ> literals_to_update_wl_empty)
      \<in> twl_st_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  using literals_to_update_wl_empty_heur_code_refine[FCOMP literals_to_update_wl_empty_heur_literals_to_update_wl_empty]
+  using literals_to_update_wl_empty_heur_code_refine[FCOMP
+      literals_to_update_wl_empty_heur_literals_to_update_wl_empty]
   unfolding twl_st_assn_W_list[symmetric]
   .
 

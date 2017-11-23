@@ -400,7 +400,7 @@ qed
 
 
 lemma no_step_cdcl_twl_stgy_restart_cdcl_twl_stgy:
-  assumes 
+  assumes
     ns: \<open>no_step cdcl_twl_stgy_restart S\<close> and
     \<open>twl_struct_invs (fst S)\<close>
   shows
@@ -435,7 +435,7 @@ qed
 lemma (in -) substract_left_le: \<open>(a :: nat) + b < c ==> a <= c - b\<close>
   by auto
 
-theorem 
+theorem
   \<open>wf {(T, S :: 'v twl_st \<times> nat). twl_struct_invs (fst S) \<and> cdcl_twl_stgy_restart S T}\<close>
 proof (rule ccontr)
   assume \<open>\<not> ?thesis\<close>
@@ -469,10 +469,10 @@ proof (rule ccontr)
   have unbounded_f_g: \<open>unbounded (\<lambda>i. f (snd (g i)))\<close>
     using f unfolding bounded_def by (metis add.commute f less_or_eq_imp_le snd_g
       not_bounded_nat_exists_larger not_le le_iff_add)
-  
+
   define j where
     \<open>j \<equiv> (\<lambda>i. case g i of ((M, N, U, D, NP, UP, WS, Q), n) \<Rightarrow> (state\<^sub>W_of ([], N, U, D, NP, UP, WS, Q), n))\<close>
-  
+
   have H: False if \<open>no_step cdcl_twl_stgy (fst (g i))\<close> for i
      using g[of i] that
   proof (induction rule: cdcl_twl_stgy_restart.induct)
@@ -501,7 +501,7 @@ proof (rule ccontr)
   text \<open>The following does not hold anymore with the non-strict version of
     cardinality in the definition.\<close>
 
-   
+
   obtain m T where
     m: \<open>m = size (get_all_learned_clss T) - size (get_all_learned_clss (fst (g k)))\<close> and
     \<open>m > f (snd (g k))\<close> and

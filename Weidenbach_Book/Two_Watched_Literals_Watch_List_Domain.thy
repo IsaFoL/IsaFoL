@@ -315,6 +315,11 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l_atms:
   unfolding in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n[symmetric]
   .
 
+lemma (in isasat_input_ops) literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (L # M) \<longleftrightarrow>
+      literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and> lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def)
+
 abbreviation D\<^sub>0 :: \<open>(nat \<times> nat literal) set\<close> where
   \<open>D\<^sub>0 \<equiv> (\<lambda>L. (nat_of_lit L, L)) ` set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
 
@@ -433,21 +438,17 @@ lemma in_literals_are_in_\<L>\<^sub>i\<^sub>n_in_D\<^sub>0:
   shows \<open>L \<in> snd ` D\<^sub>0\<close>
   using assms by (cases L) (auto simp: image_image literals_are_in_\<L>\<^sub>i\<^sub>n_def all_lits_of_m_def)
 
-(* TODO Move *)
-lemma (in -) set_mset_set_mset_eq_iff: \<open>set_mset A = set_mset B \<longleftrightarrow> (\<forall>a\<in>#A. a \<in># B) \<and> (\<forall>a\<in>#B. a \<in># A)\<close>
-  by blast
-
 lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm A) \<longleftrightarrow> atms_of_mm A = atms_of \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
   unfolding set_mset_set_mset_eq_iff is_\<L>\<^sub>a\<^sub>l\<^sub>l_def Ball_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
     in_all_lits_of_mm_ain_atms_of_iff
   by auto (metis literal.sel(2))+
 
 lemma twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss:
-  fixes S\<^sub>0 :: \<open>nat twl_st_wl\<close>
-  defines \<open>S \<equiv> twl_st_of_wl None S\<^sub>0\<close>
+  fixes S\<^sub>0 :: \<open>nat twl_st_wl\<close> and b
+  defines \<open>S \<equiv> twl_st_of_wl b S\<^sub>0\<close>
   defines \<open>clss \<equiv> (all_lits_of_mm (cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of S)))\<close>
   defines \<open>init \<equiv> (all_lits_of_mm (init_clss (state\<^sub>W_of S)))\<close>
-  assumes invs: \<open>twl_struct_invs (twl_st_of_wl None S\<^sub>0)\<close>
+  assumes invs: \<open>twl_struct_invs (twl_st_of_wl b S\<^sub>0)\<close>
   shows \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l clss \<longleftrightarrow> is_\<L>\<^sub>a\<^sub>l\<^sub>l init\<close>
 proof -
 
@@ -457,7 +458,8 @@ proof -
   then have
     \<open>set_mset clss = set_mset init\<close>
     unfolding clss_def init_def S_def
-    by (cases S\<^sub>0) (auto simp: clauses_def mset_take_mset_drop_mset' cdcl\<^sub>W_restart_mset_state
+    by (cases S\<^sub>0; cases b)
+      (auto simp: clauses_def mset_take_mset_drop_mset' cdcl\<^sub>W_restart_mset_state
         cdcl\<^sub>W_restart_mset.no_strange_atm_def in_all_lits_of_mm_ain_atms_of_iff)
   then show \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l clss \<longleftrightarrow> is_\<L>\<^sub>a\<^sub>l\<^sub>l init\<close>
     unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def by blast
@@ -467,70 +469,72 @@ lemma literals_are_\<L>\<^sub>i\<^sub>n_conflict_literals_are_in_\<L>\<^sub>i\<^
   assumes
     \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
     confl: \<open>get_conflict_wl S \<noteq> None\<close> and
-    struct: \<open>twl_struct_invs (twl_st_of_wl None S)\<close>
+    struct: \<open>twl_struct_invs (twl_st_of_wl b S)\<close>
   shows \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl S))\<close>
 proof -
-  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl None S))\<close>
+  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl b S))\<close>
     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by fast
-  then have N: \<open>atms_of (the (get_conflict_wl S)) \<subseteq> atms_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl None S)))\<close>
+  then have N: \<open>atms_of (the (get_conflict_wl S)) \<subseteq>
+      atms_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl b S)))\<close>
     using confl unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
-    by (cases S; cases \<open>get_conflict_wl S\<close>)
+    by (cases S; cases \<open>get_conflict_wl S\<close>; cases b)
        (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset')
 
-  have \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl None S))))\<close>
-    using twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[OF struct] \<A>\<^sub>i\<^sub>n by fast
+  have \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl b S))))\<close>
+    using twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[OF struct] \<A>\<^sub>i\<^sub>n by (cases S; cases b) auto
   then show ?thesis
     using N in_all_lits_of_m_ain_atms_of_iff in_all_lits_of_mm_ain_atms_of_iff
     by (fastforce simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_def )
 qed
 
-lemma literals_are_\<L>\<^sub>i\<^sub>n_trail_literals_are_in_\<L>\<^sub>i\<^sub>n:
+lemma literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_trail:
   assumes
     \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
-    struct: \<open>twl_struct_invs (twl_st_of_wl None S)\<close>
+    struct: \<open>twl_struct_invs (twl_st_of_wl b S)\<close>
   shows \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl S)\<close>
 proof -
-  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl None S))\<close>
+  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl b S))\<close>
     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by fast
-  then have N: \<open>atm_of ` lits_of_l (trail (state\<^sub>W_of (twl_st_of_wl None S)))
-    \<subseteq> atms_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl None S)))\<close>
+  then have N: \<open>atm_of ` lits_of_l (trail (state\<^sub>W_of (twl_st_of_wl b S)))
+    \<subseteq> atms_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl b S)))\<close>
     unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
     by (cases S)
        (auto simp: cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset')
 
-  have \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl None S))))\<close>
-    using twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[OF struct] \<A>\<^sub>i\<^sub>n by fast
+  have \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl b S))))\<close>
+    using twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[OF struct] \<A>\<^sub>i\<^sub>n by (cases S; cases b) auto
   then show ?thesis
     using N in_all_lits_of_m_ain_atms_of_iff in_all_lits_of_mm_ain_atms_of_iff
-    by (cases S)
-       (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def trail.simps
+    by (cases S; cases b)
+       (force simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def trail.simps
       lits_of_def image_image init_clss.simps mset_take_mset_drop_mset'
-      atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff convert_lits_l_def)
+      atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff convert_lits_l_def)+
 qed
+
 lemma literals_are_\<L>\<^sub>i\<^sub>n_clauses_literals_are_in_\<L>\<^sub>i\<^sub>n:
   assumes
     \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
-    struct: \<open>twl_struct_invs (twl_st_of_wl None S)\<close>
+    struct: \<open>twl_struct_invs (twl_st_of_wl b S)\<close>
   shows \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl (get_clauses_wl S)))\<close>
 proof -
-  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl None S))\<close>
+  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of_wl b S))\<close>
     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by fast
-  then have N: \<open>atms_of_mm (learned_clss (state\<^sub>W_of (twl_st_of_wl None S)))
-    \<subseteq> atms_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl None S)))\<close>
+  then have N: \<open>atms_of_mm (learned_clss (state\<^sub>W_of (twl_st_of_wl b S)))
+    \<subseteq> atms_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl b S)))\<close>
     unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
     by (cases S)
        (auto simp: mset_take_mset_drop_mset')
 
-  have \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl None S))))\<close>
-    using twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[OF struct] \<A>\<^sub>i\<^sub>n by fast
+  have \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (init_clss (state\<^sub>W_of (twl_st_of_wl b S))))\<close>
+    using twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[OF struct] \<A>\<^sub>i\<^sub>n by (cases S; cases b) auto
   then show ?thesis
     apply (subst append_take_drop_id[symmetric, of _ \<open>get_learned_wl S\<close>])
     unfolding mset_append
     using N in_all_lits_of_m_ain_atms_of_iff in_all_lits_of_mm_ain_atms_of_iff
-    apply (cases S)
+    apply (cases S; cases b)
     by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def mset_take_mset_drop_mset'
        in_all_lits_of_mm_ain_atms_of_iff in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff drop_Suc
        learned_clss.simps init_clss.simps)
@@ -543,7 +547,7 @@ locale isasat_input_bounded =
   isasat_input_ops \<A>\<^sub>i\<^sub>n
   for \<A>\<^sub>i\<^sub>n :: \<open>nat multiset\<close> +
   assumes
-    in_N1_less_than_uint_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L \<le> uint_max\<close>
+    in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L \<le> uint_max\<close>
 
 locale isasat_input_bounded_nempty =
   isasat_input_bounded \<A>\<^sub>i\<^sub>n
@@ -555,12 +559,21 @@ locale isasat_input_bounded_nempty =
 context isasat_input_bounded
 begin
 
+lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max': \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> nat_of_lit L \<le> uint_max\<close>
+  using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max by auto
+
+lemma in_\<A>\<^sub>i\<^sub>n_less_than_uint_max_div_2:
+  \<open>L \<in># \<A>\<^sub>i\<^sub>n \<Longrightarrow> L \<le> uint_max div 2\<close>
+  using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max'[of \<open>Neg L\<close>]
+  unfolding Ball_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+  by (auto simp: uint_max_def)
+
 lemma simple_clss_size_upper_div2':
   assumes
    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C\<close> and
    dist: \<open>distinct_mset C\<close> and
    tauto: \<open>\<not>tautology C\<close> and
-    in_N1_less_than_uint_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < uint_max - 1\<close>
+    in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < uint_max - 1\<close>
   shows \<open>size C \<le> uint_max div 2\<close>
 proof -
   let ?C = \<open>atm_of `# C\<close>
@@ -593,7 +606,7 @@ proof -
     then have \<open>Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
       using lits by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
     then have \<open>nat_of_lit (Pos L) < uint_max - 1\<close>
-      using in_N1_less_than_uint_max by (auto simp: atm_of_lit_in_atms_of
+      using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max by (auto simp: atm_of_lit_in_atms_of
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
     then have \<open>L < uint_max div 2\<close>
        by (auto simp: atm_of_lit_in_atms_of
@@ -648,7 +661,7 @@ proof -
     then have \<open>Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
       using lits by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
     then have \<open>nat_of_lit (Pos L) \<le> uint_max\<close>
-      using in_N1_less_than_uint_max by (auto simp: atm_of_lit_in_atms_of
+      using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max by (auto simp: atm_of_lit_in_atms_of
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
     then have \<open>L \<le> uint_max div 2\<close>
        by (auto simp: atm_of_lit_in_atms_of
@@ -681,7 +694,7 @@ lemma clss_size_upper:
   assumes
    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C\<close> and
    dist: \<open>distinct_mset C\<close> and
-   in_N1_less_than_uint_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < uint_max - 1\<close>
+   in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l. nat_of_lit L < uint_max - 1\<close>
  shows \<open>size C \<le> uint_max\<close>
 proof -
   let ?A = \<open>remdups_mset (atm_of `# C)\<close>
@@ -704,7 +717,7 @@ proof -
     by (auto simp: tautology_decomp)
   then have \<open>size (poss ?A) \<le> uint_max div 2\<close> and \<open>size (negs ?A) \<le> uint_max div 2\<close>
     using simple_clss_size_upper_div2'[of \<open>poss ?A\<close>]
-      simple_clss_size_upper_div2'[of \<open>negs ?A\<close>] in_N1_less_than_uint_max
+      simple_clss_size_upper_div2'[of \<open>negs ?A\<close>] in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max
     by auto
   then have \<open>size C \<le> uint_max div 2 + uint_max div 2\<close>
     using \<open>C \<subseteq># poss (remdups_mset (atm_of `# C)) + negs (remdups_mset (atm_of `# C))\<close>
@@ -712,12 +725,16 @@ proof -
   then show ?thesis by (auto simp: uint_max_def)
 qed
 
+lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_Suc_le_uint_max: \<open>Pos xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> Suc xa \<le> uint_max\<close>
+  using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max by (auto simp: uint_max_def)
+
+
 definition (in isasat_input_ops) unit_prop_body_wl_D_inv where
 \<open>unit_prop_body_wl_D_inv T' i L \<longleftrightarrow>
     unit_prop_body_wl_inv T' i L \<and> literals_are_\<L>\<^sub>i\<^sub>n T' \<and> L \<in> snd ` D\<^sub>0
   \<close>
 
-text \<open>TODO:
+text \<open>:
   \<^item> should be the definition of \<^term>\<open>unit_prop_body_wl_find_unwatched_inv\<close>.
   \<^item> the distinctiveness should probably be only a property, not a part of the definition.
 \<close>
@@ -804,11 +821,6 @@ next
   assume ?y
   then show ?eq by blast
 qed
-
-(* TODO Move *)
-lemma tl_update_0[simp]: \<open>tl (N[0 := x]) = tl N\<close>
-  by (cases N) auto
-(* End Move *)
 
 lemma unit_propagation_inner_loop_body_wl_D_spec:
   fixes S :: \<open>nat twl_st_wl\<close> and K :: \<open>nat literal\<close> and w :: nat
@@ -1110,8 +1122,8 @@ proof -
     using cdcl invs rtranclp_cdcl_twl_o_stgyD rtranclp_cdcl_twl_stgy_twl_struct_invs by blast
   show ?thesis
     using \<A>\<^sub>i\<^sub>n
-    unfolding twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[of S\<^sub>0, OF invs]
-      twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[of T, OF invs_T] init[symmetric]
+    unfolding twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[of None S\<^sub>0, OF invs]
+      twl_struct_invs_is_\<L>\<^sub>a\<^sub>l\<^sub>l_clauses_init_clss[of None T, OF invs_T] init[symmetric]
     .
 qed
 

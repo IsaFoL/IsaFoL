@@ -1478,11 +1478,8 @@ proof -
     let ?ys' = \<open>y_ys\<close>
     let ?xs' = \<open>x_ys @ xs'\<close>
     have x_ys_take_ys': \<open>y_ys = take (length y_ys) ys'\<close>
-        unfolding y_ys_def (* TODO: proof *)
-        apply (subst take_length_takeWhile_eq_takeWhile[of \<open>op \<noteq> L\<close> \<open>ys'\<close>, symmetric])
-        by (smt L_ys hd_drop_conv_nth le_neq_implies_less length_append_singleton
-          length_takeWhile_le nth_length_takeWhile set_takeWhileD take_all take_hd_drop
-          take_length_takeWhile_eq_takeWhile)
+        unfolding y_ys_def
+        by (subst take_length_takeWhile_eq_takeWhile[of \<open>op \<noteq> L\<close> \<open>ys'\<close>, symmetric]) standard
     have ys'_y_x: \<open>ys' = y_ys @ x_ys\<close>
       by (subst x_ys_take_ys') (auto simp: x_ys_def)
     have y_ys_le_ys': \<open>length y_ys < length ys'\<close>
@@ -2083,11 +2080,8 @@ proof -
     let ?ys' = \<open>y_ys\<close>
     let ?xs' = \<open>x_ys @ xs'\<close>
     have x_ys_take_ys': \<open>y_ys = take (length y_ys) ys'\<close>
-        unfolding y_ys_def (* TODO: proof *)
-        apply (subst take_length_takeWhile_eq_takeWhile[of \<open>op \<noteq> L\<close> \<open>ys'\<close>, symmetric])
-        by (smt L_ys hd_drop_conv_nth le_neq_implies_less length_append_singleton
-          length_takeWhile_le nth_length_takeWhile set_takeWhileD take_all take_hd_drop
-          take_length_takeWhile_eq_takeWhile)
+        unfolding y_ys_def
+        by (subst take_length_takeWhile_eq_takeWhile[of \<open>op \<noteq> L\<close> \<open>ys'\<close>, symmetric]) standard
     have ys'_y_x: \<open>ys' = y_ys @ x_ys\<close>
       by (subst x_ys_take_ys') (auto simp: x_ys_def)
     have y_ys_le_ys': \<open>length y_ys < length ys'\<close>
