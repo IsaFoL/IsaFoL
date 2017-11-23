@@ -8,10 +8,9 @@
 section \<open>An Ordered Resolution Prover for First-Order Clauses\<close>
 
 text \<open>
-This material is based on Section 4.3 (``A Simple Resolution Prover for First-Order Clauses) of
-Bachmair and Ganzinger's chapter. Specifically, it formalizes the prover in Figure 5 called
-The Resolution Prover RP and its related lemmas and theorems including
-4.10, 4.11 and 4.13 (completeness of the prover).
+This material is based on Section 4.3 (``A Simple Resolution Prover for First-Order Clauses'') of
+Bachmair and Ganzinger's chapter. Specifically, it formalizes the RP prover defined in Figure 5 and
+its related lemmas and theorems, including Lemmas 4.10 and 4.11 and Theorem 4.13 (completeness).
 \<close>
 
 theory FO_Ordered_Resolution_Prover
@@ -19,7 +18,8 @@ theory FO_Ordered_Resolution_Prover
 begin
 
 text \<open>
-The following corresponds to page 42 and 43 of Section 4.3 from the explanation RP to Lemma 4.10.
+The following corresponds to page 42 and 43 of Section 4.3, from the explanation of RP to
+Lemma 4.10.
 \<close>
 
 type_synonym 'a state = "'a clause set \<times> 'a clause set \<times> 'a clause set"
@@ -97,12 +97,6 @@ inductive RP :: "'a state \<Rightarrow> 'a state \<Rightarrow> bool" (infix "\<l
 
 lemma final_RP: "\<not> ({}, {}, Q) \<leadsto> St"
   by (auto elim: RP.cases)
-
-theorem RP_model:
-  assumes "St \<leadsto> St'"
-  shows "I \<Turnstile>s grounding_of_state St' \<longleftrightarrow> I \<Turnstile>s grounding_of_state St"
-  (* uses Rf_model? *)
-  sorry
 
 definition Sup_state :: "'a state llist \<Rightarrow> 'a state" where
   "Sup_state Sts =
@@ -668,7 +662,41 @@ next
 qed
 
 text \<open>
-Another formulation of the part of Lemma 4.10, that states we have a theorem proving process:
+A useful consequence:
+\<close>
+
+lemma RP_model: "St \<leadsto> St' \<Longrightarrow> I \<Turnstile>s grounding_of_state St' \<longleftrightarrow> I \<Turnstile>s grounding_of_state St"
+proof (drule resolution_prover_ground_derive, erule src_ext.derive.cases, hypsubst)
+  let
+    ?gSt = "grounding_of_state St" and
+    ?gSt' = "grounding_of_state St'"
+
+  assume
+    deduct: "?gSt' - ?gSt \<subseteq> concls_of (src_ext.inferences_from ?gSt)" and
+    delete: "?gSt - ?gSt' \<subseteq> src.Rf ?gSt'"
+
+(*
+FIXME
+   apply (rule src.Rf_model)
+   apply (unfold true_clss_def)
+   apply auto
+  defer
+*)
+
+  show "I \<Turnstile>s ?gSt' \<longleftrightarrow> I \<Turnstile>s ?gSt"
+  proof
+    assume "I \<Turnstile>s ?gSt'"
+    show "I \<Turnstile>s ?gSt"
+      sorry
+  next
+    assume "I \<Turnstile>s ?gSt"
+    show "I \<Turnstile>s ?gSt'"
+      sorry
+  qed
+qed
+
+text \<open>
+Another formulation of the part of Lemma 4.10 that states we have a theorem proving process:
 \<close>
 
 lemma resolution_prover_ground_derivation:
