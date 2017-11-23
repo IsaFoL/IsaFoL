@@ -207,7 +207,7 @@ proof (cases rule: ord_resolve.cases)
   then have cc_true: "I \<Turnstile>m (mset CAs) \<cdot>cm \<sigma> \<cdot>cm \<eta>" and d_true: "I \<Turnstile> DA \<cdot> \<sigma> \<cdot> \<eta>"
     using cc_inst_true d_inst_true by auto
 
-  from mgu have unif: "\<forall>i<n. \<forall>A\<in>#AAs ! i. A \<cdot>a \<sigma> = As ! i \<cdot>a \<sigma>"
+  from mgu have unif: "\<forall>i < n. \<forall>A\<in>#AAs ! i. A \<cdot>a \<sigma> = As ! i \<cdot>a \<sigma>"
     using mgu_unifier as_len aas_len by blast
 
   show "I \<Turnstile> E \<cdot> \<eta>"
@@ -341,7 +341,7 @@ qed
 subsection \<open>Lifting\<close>
 
 text \<open>
-The following corresponds to the section between lemmas 4.11 and 4.12.
+The following corresponds to the passage between Lemmas 4.11 and 4.12.
 \<close>
 
 context
@@ -441,7 +441,7 @@ proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Cs AAs As D)
   note da = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4)
     and aas_len = this(5) and as_len = this(6) and cas = this(8) and mgu = this(10)
-  then have "\<forall>i<n.  Cs ! i \<subseteq># CAs ! i"
+  then have "\<forall>i < n.  Cs ! i \<subseteq># CAs ! i"
     by auto
   then have cs_sub_cas: "\<Union># mset Cs \<subseteq># \<Union># mset CAs"
     using subseteq_list_Union_mset cas_len cs_len by force
@@ -463,11 +463,6 @@ proof (cases rule: ord_resolve.cases)
   then show ?thesis
     using cs_sub_cas d_sub_da by (auto simp add: subset_mset.add_mono)
 qed
-
-lemma ground_resolvent_ground:
-  assumes "is_ground_cls_list CAs" and "is_ground_cls DA" and "ord_resolve S CAs DA \<sigma> E"
-  shows "is_ground_cls E"
-  using assms ground_resolvent_subset by (force intro: is_ground_cls_mono)
 
 lemma ord_resolve_obtain_clauses:
   assumes
@@ -556,7 +551,7 @@ lemma ord_resolve_rename_lifting:
     sel_stable: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
     res_e: "ord_resolve (S_M S M) CAs DA \<sigma> E" and
     select: "selection S" and
-    grounding: "{DA} \<union> (set CAs) \<subseteq> grounding_of_clss M"
+    grounding: "{DA} \<union> set CAs \<subseteq> grounding_of_clss M"
   obtains \<eta>s \<eta> \<eta>2 CAs'' DA'' E'' \<tau> where
     "is_ground_subst \<eta>"
     "is_ground_subst_list \<eta>s"
@@ -569,7 +564,7 @@ proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Cs AAs As D)
   note da = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and
     aas_len = this(5) and as_len = this(6) and nz = this(7) and cas = this(8) and
-    aas_not_empt = this(9) and mgu = this(10) and eligibility = this(11) and str_max = this(12) and
+    aas_not_empt = this(9) and mgu = this(10) and eligible = this(11) and str_max = this(12) and
     sel_empt = this(13)
 
   have sel_ren_list_inv:
@@ -701,7 +696,7 @@ proof (cases rule: ord_resolve.cases)
     }
     ultimately have "\<exists>As'. As' \<cdot>al \<eta> = As \<and> (negs (mset As')) \<subseteq># DA'
       \<and> (S_M S M (D + negs (mset As)) \<noteq> {#} \<longrightarrow> negs (mset As') = S DA')"
-      using eligibility unfolding eligible.simps[simplified] by auto
+      using eligible unfolding eligible.simps by auto
 
     then obtain As' where
       As'_p: "As' \<cdot>al \<eta> = As \<and> (negs (mset As')) \<subseteq># DA'
@@ -745,7 +740,7 @@ proof (cases rule: ord_resolve.cases)
       have "CAs' ! i \<cdot> \<eta> = CAs ! i"
         using \<open>i < n\<close> \<open>CAs' \<cdot>cl \<eta> = CAs\<close> n by force
       moreover have "poss (AAs ! i) \<subseteq># CAs !i"
-        using \<open>i<n\<close> cas by auto
+        using \<open>i < n\<close> cas by auto
       ultimately obtain poss_AA' where
         nn: "poss_AA' \<cdot> \<eta> = poss (AAs ! i) \<and> poss_AA' \<subseteq># CAs' ! i"
         using cas image_mset_of_subset unfolding subst_cls_def by metis
@@ -765,7 +760,7 @@ proof (cases rule: ord_resolve.cases)
       ultimately show "\<exists>AA'. AA' \<cdot>am \<eta> = AAs ! i \<and> poss AA' \<subseteq># CAs' ! i"
         by blast
     qed
-    then obtain AAs'f where AAs'f_p: "\<forall>i<n. AAs'f i \<cdot>am \<eta> = AAs ! i \<and> (poss (AAs'f i)) \<subseteq># CAs' ! i"
+    then obtain AAs'f where AAs'f_p: "\<forall>i < n. AAs'f i \<cdot>am \<eta> = AAs ! i \<and> (poss (AAs'f i)) \<subseteq># CAs' ! i"
       by metis
 
     define AAs' where "AAs' = map AAs'f [0 ..<n]"
@@ -774,7 +769,7 @@ proof (cases rule: ord_resolve.cases)
       by auto
     note n = n \<open>length AAs' = n\<close>
 
-    from AAs'_def have "\<forall>i<n. AAs' ! i \<cdot>am \<eta> = AAs ! i"
+    from AAs'_def have "\<forall>i < n. AAs' ! i \<cdot>am \<eta> = AAs ! i"
       using AAs'f_p by auto
     then have AAs'_AAs: "AAs' \<cdot>aml \<eta> = AAs"
       using n by (auto intro: nth_equalityI)
@@ -832,14 +827,12 @@ proof (cases rule: ord_resolve.cases)
   qed
 
   -- \<open>Lifting eligibility\<close>
-  have eligibility: "eligible S \<tau> As' (D' + negs (mset As'))"
+  have eligible': "eligible S \<tau> As' (D' + negs (mset As'))"
   proof -
-    have "eligible (S_M S M) \<sigma> As (D + negs (mset As))"
-      using eligibility unfolding eligible.simps[simplified] by -
-    then have "S_M S M (D + negs (mset As)) = negs (mset As) \<or> S_M S M (D + negs (mset As)) = {#} \<and>
+    have "S_M S M (D + negs (mset As)) = negs (mset As) \<or> S_M S M (D + negs (mset As)) = {#} \<and>
       length As = 1 \<and> maximal_in (As ! 0 \<cdot>a \<sigma>) ((D + negs (mset As)) \<cdot> \<sigma>)"
-      unfolding eligible.simps[simplified] by auto
-    then show "eligible S \<tau> As' (D' + negs (mset As'))"
+      using eligible unfolding eligible.simps by auto
+    then show ?thesis
     proof
       assume "S_M S M (D + negs (mset As)) = negs (mset As)"
       then have "S_M S M (D + negs (mset As)) \<noteq> {#}"
@@ -851,19 +844,15 @@ proof (cases rule: ord_resolve.cases)
     next
       assume asm: "S_M S M (D + negs (mset As)) = {#} \<and> length As = 1 \<and>
         maximal_in (As ! 0 \<cdot>a \<sigma>) ((D + negs (mset As)) \<cdot> \<sigma>)"
-      from asm have "S_M S M (D + negs (mset As)) = {#}"
-        by auto
       then have "S (D' + negs (mset As')) = {#}"
         using \<open>D' \<cdot> \<eta> = D\<close>[symmetric] \<open>As' \<cdot>al \<eta> = As\<close>[symmetric] \<open>S (DA') \<cdot> \<eta> = S_M S M (DA)\<close>
           da as' subst_cls_empty_iff by metis
-      moreover from asm have l: "length As = 1"
-        by auto
-      then have l': "length As' = 1"
+      moreover from asm have l: "length As' = 1"
         using \<open>As' \<cdot>al \<eta> = As\<close> by auto
       moreover from asm have "maximal_in (As ! 0 \<cdot>a \<sigma>) ((D + negs (mset As)) \<cdot> \<sigma>)"
         by auto
       then have "maximal_in (As' ! 0 \<cdot>a (\<tau> \<odot> \<phi>)) ((D' + negs (mset As')) \<cdot> (\<tau> \<odot> \<phi>))"
-        using \<open>As' \<cdot>al \<eta> = As\<close> \<open>D' \<cdot> \<eta> = D\<close> using l' \<tau>\<phi> by auto
+        using \<open>As' \<cdot>al \<eta> = As\<close> \<open>D' \<cdot> \<eta> = D\<close> using l \<tau>\<phi> by auto
       then have "maximal_in (As' ! 0 \<cdot>a \<tau> \<cdot>a \<phi>) ((D' + negs (mset As')) \<cdot> \<tau> \<cdot> \<phi>)"
         by auto
       then have "maximal_in (As' ! 0 \<cdot>a \<tau>) ((D' + negs (mset As')) \<cdot> \<tau>)"
@@ -874,27 +863,25 @@ proof (cases rule: ord_resolve.cases)
   qed
 
   -- \<open>Lifting maximality\<close>
-  have maximality: "\<forall>i<n. strictly_maximal_in (As' ! i \<cdot>a \<tau>) (Cs' ! i \<cdot> \<tau>)"
+  have maximality: "\<forall>i < n. strictly_maximal_in (As' ! i \<cdot>a \<tau>) (Cs' ! i \<cdot> \<tau>)"
     (* Reformulate in list notation? *)
   proof -
-    from str_max have "\<forall>i<n. strictly_maximal_in (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
-      by -
-    then have "\<forall>i<n. strictly_maximal_in ((As' \<cdot>al \<eta>) ! i \<cdot>a \<sigma>) ((Cs' \<cdot>cl \<eta>) ! i \<cdot> \<sigma>)"
+    from str_max have "\<forall>i < n. strictly_maximal_in ((As' \<cdot>al \<eta>) ! i \<cdot>a \<sigma>) ((Cs' \<cdot>cl \<eta>) ! i \<cdot> \<sigma>)"
       using \<open>As' \<cdot>al \<eta> = As\<close>  \<open>Cs' \<cdot>cl \<eta> = Cs\<close> by simp
-    then have "\<forall>i<n. strictly_maximal_in ((As' ! i) \<cdot>a (\<eta> \<odot> \<sigma>)) ((Cs' ! i) \<cdot> (\<eta> \<odot> \<sigma>))"
+    then have "\<forall>i < n. strictly_maximal_in ((As' ! i) \<cdot>a (\<eta> \<odot> \<sigma>)) ((Cs' ! i) \<cdot> (\<eta> \<odot> \<sigma>))"
       using n by auto
-    then have "\<forall>i<n. strictly_maximal_in ((As' ! i) \<cdot>a (\<tau> \<odot> \<phi>)) ((Cs' ! i) \<cdot> (\<tau> \<odot> \<phi>))"
+    then have "\<forall>i < n. strictly_maximal_in ((As' ! i) \<cdot>a (\<tau> \<odot> \<phi>)) ((Cs' ! i) \<cdot> (\<tau> \<odot> \<phi>))"
       using \<tau>\<phi> by auto
-    then have "\<forall>i<n. strictly_maximal_in ((As' ! i \<cdot>a \<tau>) \<cdot>a \<phi>) ((Cs' ! i \<cdot> \<tau>) \<cdot> \<phi>)"
+    then have "\<forall>i < n. strictly_maximal_in ((As' ! i \<cdot>a \<tau>) \<cdot>a \<phi>) ((Cs' ! i \<cdot> \<tau>) \<cdot> \<phi>)"
       by auto
-    then show e: "\<forall>i<n. strictly_maximal_in (As' ! i \<cdot>a \<tau>) (Cs' ! i \<cdot> \<tau>)"
+    then show "\<forall>i < n. strictly_maximal_in (As' ! i \<cdot>a \<tau>) (Cs' ! i \<cdot> \<tau>)"
       using strictly_maximal_in_gen \<tau>\<phi> by blast
   qed
 
   -- \<open>Lifting nothing being selected\<close>
   have nothing_selected: "\<forall>i < n. S (CAs' ! i) = {#}"
   proof -
-    have "\<forall>i < n. (map S CAs' \<cdot>cl \<eta>) ! i = (map (S_M S M) CAs) ! i"
+    have "\<forall>i < n. (map S CAs' \<cdot>cl \<eta>) ! i = map (S_M S M) CAs ! i"
       by (simp add: \<open>map S CAs' \<cdot>cl \<eta> = map (S_M S M) CAs\<close>)
     then have "\<forall>i < n. S (CAs' ! i) \<cdot> \<eta> = S_M S M (CAs ! i)"
       using n by auto
@@ -905,16 +892,16 @@ proof (cases rule: ord_resolve.cases)
   qed
 
   -- \<open>Lifting AAs's being non-empty\<close>
-  have "\<forall>i<n. AAs' ! i \<noteq> {#}"
+  have "\<forall>i < n. AAs' ! i \<noteq> {#}"
     using n aas_not_empt \<open>AAs' \<cdot>aml \<eta> = AAs\<close> by auto
 
- -- \<open>Resolve the lifted clauses\<close>
+  -- \<open>Resolve the lifted clauses\<close>
   define E' where "E' = ((\<Union># (mset Cs')) + D') \<cdot> \<tau>"
 
   have res_e': "ord_resolve S CAs' DA' \<tau> E'"
     using ord_resolve.intros[of CAs' n Cs' AAs' As' \<tau> S D',
-      OF _ _ _ _ _ _ \<open>\<forall>i<n. AAs' ! i \<noteq> {#}\<close> \<tau>\<phi>(1) eligibility
-        \<open>\<forall>i<n. strictly_maximal_in (As' ! i \<cdot>a \<tau>) (Cs' ! i \<cdot> \<tau>)\<close> \<open>\<forall>i<n. S (CAs' ! i) = {#}\<close>]
+      OF _ _ _ _ _ _ \<open>\<forall>i < n. AAs' ! i \<noteq> {#}\<close> \<tau>\<phi>(1) eligible'
+        \<open>\<forall>i < n. strictly_maximal_in (As' ! i \<cdot>a \<tau>) (Cs' ! i \<cdot> \<tau>)\<close> \<open>\<forall>i < n. S (CAs' ! i) = {#}\<close>]
     unfolding E'_def using as' n AAs'_Cs'_p by blast
 
   -- \<open>Prove resolvent instantiates to ground resolvent\<close>
@@ -935,22 +922,21 @@ proof (cases rule: ord_resolve.cases)
   qed
 
   -- \<open>Replace @{term \<eta>} with a true ground substitution\<close>
-  obtain \<eta>2 where ground_\<eta>2: "is_ground_subst \<eta>2" "E' \<cdot> \<eta>2 = E"
+  obtain \<eta>2 where
+    ground_\<eta>2: "is_ground_subst \<eta>2" "E' \<cdot> \<eta>2 = E"
   proof -
     have "is_ground_cls_list CAs" "is_ground_cls DA"
       using grounding grounding_ground unfolding is_ground_cls_list_def by auto
     then have "is_ground_cls E"
-      using res_e ground_resolvent_ground by blast
-    then obtain \<eta>2 where ground_\<eta>2: "is_ground_subst \<eta>2" "E' \<cdot> \<eta>2 = E"
-      using e'\<phi>e make_ground_subst by blast
-    then show ?thesis
-      using that by auto
+      using res_e ground_resolvent_subset by (force intro: is_ground_cls_mono)
+    then show thesis
+      using that e'\<phi>e make_ground_subst by auto
   qed
 
   have res_r_e: "ord_resolve_rename S CAs'' DA'' \<tau> E'"
     using ord_resolve_rename res_e' unfolding CAs'_def DA'_def by auto
 
-  show ?thesis
+  show thesis
     using that[of \<eta>'' \<eta>s'' \<eta>2 CAs'' DA''] \<open>is_ground_subst \<eta>''\<close> \<open>is_ground_subst_list \<eta>s''\<close>
       \<open>is_ground_subst \<eta>2\<close> res_r_e \<open>CAs'' \<cdot>\<cdot>cl \<eta>s'' = CAs\<close> \<open>DA'' \<cdot> \<eta>'' = DA\<close> \<open>E' \<cdot> \<eta>2 = E\<close> \<open>DA'' \<in> M\<close>
       \<open>\<forall>CA \<in> set CAs''. CA \<in> M\<close>

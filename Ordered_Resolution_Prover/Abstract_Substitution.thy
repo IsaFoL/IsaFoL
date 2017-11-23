@@ -978,21 +978,20 @@ lemma mgu_unifier:
   assumes
     aslen: "length As = n" and
     aaslen: "length AAs = n" and
-    mgu: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset As AAs))"
-  shows "\<forall>i < n. \<forall>A \<in># AAs ! i. A \<cdot>a \<sigma> = As ! i \<cdot>a \<sigma>"
-proof (intro allI impI)
-  fix i
-  assume i: "i < n"
-
+    mgu: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset As AAs))" and
+    i_lt: "i < n" and
+    a_in: "A \<in># AAs ! i"
+  shows "A \<cdot>a \<sigma> = As ! i \<cdot>a \<sigma>"
+proof -
   from mgu have "is_mgu \<sigma> (set_mset ` set (map2 add_mset As AAs))"
     using mgu_sound by auto
   then have "is_unifiers \<sigma> (set_mset ` set (map2 add_mset As AAs))"
     using is_mgu_is_unifiers by auto
   then have "is_unifier \<sigma> (set_mset (add_mset (As ! i) (AAs ! i)))"
-    using i aslen aaslen unfolding is_unifiers_def is_unifier_def
-    by simp (metis length_zip min.idem nth_mem nth_zip old.prod.case set_mset_add_mset_insert)
-  then show "\<forall>A \<in># AAs ! i. A \<cdot>a \<sigma> = As ! i \<cdot>a \<sigma>"
-    using aslen aaslen is_unifier_subst_atm_eqI
+    using i_lt aslen aaslen unfolding is_unifiers_def is_unifier_def
+    by simp (metis length_zip min.idem nth_mem nth_zip prod.case set_mset_add_mset_insert)
+  then show ?thesis
+    using aslen aaslen a_in is_unifier_subst_atm_eqI
     by (metis finite_set_mset insertCI set_mset_add_mset_insert)
 qed
 
