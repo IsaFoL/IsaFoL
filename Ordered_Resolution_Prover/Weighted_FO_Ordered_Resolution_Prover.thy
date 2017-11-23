@@ -85,11 +85,6 @@ proof (induction rule: weighted_RP.induct)
     by (auto simp: comp_def image_comp inference_system.inferences_between_def)
 qed (use RP.intros in simp_all)
 
-lemma weighted_RP_model:
-  assumes step: "St \<leadsto>\<^sub>w St'"
-  shows "I \<Turnstile>s grounding_of_wstate St' \<longleftrightarrow> I \<Turnstile>s grounding_of_wstate St"
-  using RP_model[OF weighted_RP_imp_RP[OF step]] by (simp only: comp_def)
-
 lemma final_weighted_RP: "\<not> ({#}, {#}, Q, n) \<leadsto>\<^sub>w St"
   by (auto elim: weighted_RP.cases)
 
@@ -115,12 +110,19 @@ lemma empty_P0_RP: "P_of_state (lhd (lmap state_of_wstate Sts)) = {}"
 lemma empty_Q0_RP: "Q_of_state (lhd (lmap state_of_wstate Sts)) = {}"
   using empty_Q0 chain_length_pos[OF deriv] by auto
 
+lemmas Sts_thms = deriv_RP finite_Sts0_RP empty_P0_RP empty_Q0_RP
+
+lemma weighted_RP_model:
+  assumes step: "St \<leadsto>\<^sub>w St'"
+  shows "I \<Turnstile>s grounding_of_wstate St' \<longleftrightarrow> I \<Turnstile>s grounding_of_wstate St"
+  using RP_model[OF Sts_thms weighted_RP_imp_RP[OF step]] by (simp only: comp_def)
+
 abbreviation S_gQ :: "'a clause \<Rightarrow> 'a clause" where
   "S_gQ \<equiv> S_Q (lmap state_of_wstate Sts)"
 
 interpretation sq: selection S_gQ
-  unfolding S_Q_def[OF deriv_RP finite_Sts0_RP empty_P0_RP empty_Q0_RP]
-  using S_M_selects_subseteq S_M_selects_neg_lits selection_axioms by unfold_locales blast
+  unfolding S_Q_def[OF Sts_thms] using S_M_selects_subseteq S_M_selects_neg_lits selection_axioms
+  by unfold_locales blast
 
 interpretation gd: ground_resolution_with_selection S_gQ
   by unfold_locales
@@ -160,14 +162,12 @@ proof (rule ccontr)
 qed
 
 corollary weighted_RP_saturated: "src.saturated_upto (Liminf_llist (lmap grounding_of_wstate Sts))"
-  using RP_saturated_if_fair[OF deriv_RP finite_Sts0_RP empty_P0_RP empty_Q0_RP
-      weighted_RP_fair, unfolded llist.map_comp]
-  by simp
+  using RP_saturated_if_fair[OF Sts_thms weighted_RP_fair, unfolded llist.map_comp] by simp
 
 corollary weighted_RP_complete:
   assumes "\<not> satisfiable (grounding_of_wstate (lhd Sts))"
   shows "{#} \<in> Q_of_state (Liminf_wstate Sts)"
-  using assms RP_complete_if_fair[OF deriv_RP finite_Sts0_RP empty_P0_RP empty_Q0_RP weighted_RP_fair,
+  using assms RP_complete_if_fair[OF Sts_thms weighted_RP_fair,
       simplified llist.map_sel(1)[OF chain_not_lnull[OF deriv]]]
   by blast
 

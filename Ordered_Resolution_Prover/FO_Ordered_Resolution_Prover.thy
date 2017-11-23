@@ -679,6 +679,7 @@ proof (drule resolution_prover_ground_derive, erule src_ext.derive.cases, hypsub
   proof
     assume bef: "I \<Turnstile>s ?gSt"
     have "I \<Turnstile>s ?concls"
+      (* by soundness of the extended calculus *)
       sorry
     then have diff: "I \<Turnstile>s ?gSt' - ?gSt"
       using deduct by (blast intro: true_clss_mono)

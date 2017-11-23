@@ -815,7 +815,7 @@ proof -
       unfolding gr_r_fls[THEN eq_False[THEN iffD2]]
       by (rule rtranclp_imp_eq_image[of "op \<leadsto>\<^sub>w" "\<lambda>St. I \<Turnstile>s grounding_of_wstate St", OF _ wrp,
             unfolded gr_st0 gr_last_fls[THEN eq_False[THEN iffD2]]])
-        (use weighted_RP_model in blast)
+        (use weighted_RP_model[OF ssgSts_thms] in blast)
     ultimately show ?thesis
       by blast
   next
@@ -832,7 +832,7 @@ proof -
     moreover have ?model
       by (rule rtranclp_imp_eq_image[of "op \<leadsto>\<^sub>w" "\<lambda>St. I \<Turnstile>s grounding_of_wstate St", OF _ wrp,
             unfolded gr_st0 gr_last_st])
-        (use weighted_RP_model in blast)
+        (use weighted_RP_model[OF ssgSts_thms] in blast)
     ultimately show ?thesis
       by blast
   qed
