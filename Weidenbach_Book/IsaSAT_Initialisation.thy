@@ -11,7 +11,7 @@ definition init_dt_step_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \
    (let ((M, N, U, D, NP, UP, WS, Q), OC) = S in
    (case D of
       None \<Rightarrow>
-        if length C = 0
+        if is_Nil C
         then RETURN ((M, N, U, Some {#}, NP, UP, {#}, {#}), add_mset {#} OC)
         else if length C = 1
         then do {
@@ -694,15 +694,36 @@ lemma add_clause_to_others_hnr[sepref_fr_rules]:
   using add_clause_to_others_heur_hnr[FCOMP add_clause_to_others_heur_add_clause_to_others,
   unfolded twl_st_init_assn_def[symmetric]] .
 
+definition (in -)list_length_1 where
+  [simp]: \<open>list_length_1 C \<longleftrightarrow> length C = 1\<close>
+
+definition (in -)list_length_1_code where
+  \<open>list_length_1_code C \<longleftrightarrow> (case C of [_] \<Rightarrow> True | _ \<Rightarrow> False)\<close>
+
+lemma (in -)list_length_1_hnr[sepref_fr_rules]:
+  assumes \<open>CONSTRAINT is_pure R \<close>
+  shows \<open>(return o list_length_1_code, RETURN o list_length_1) \<in> (list_assn R)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+proof -
+  obtain R' where
+     \<open>R' = the_pure R\<close> and
+     R_R': \<open>R = pure R'\<close>
+    using assms by fastforce
+  show ?thesis
+    unfolding R_R' list_assn_pure_conv
+    by (sepref_to_hoare)
+       (sep_auto simp: list_length_1_code_def list_rel_def list_all2_lengthD[symmetric] 
+        split: list.splits)
+qed
+
 definition (in isasat_input_ops) init_dt_step_wl
   :: \<open>nat clause_l \<Rightarrow> nat twl_st_wl_init \<Rightarrow> (nat twl_st_wl_init) nres\<close>
 where
   \<open>init_dt_step_wl C S = do {
      if get_conflict_wl (fst S) = None
      then do {
-         if length C = 0
+         if is_Nil C
          then RETURN (set_empty_clause_as_conflict S)
-         else if length C = 1
+         else if list_length_1 C
          then do {
            ASSERT (C \<noteq> []);
            let L = hd C;
@@ -857,6 +878,10 @@ qed
 lemma get_conflict_wl_is_None_init:
    \<open>get_conflict_wl (fst S) = None \<longleftrightarrow> get_conflict_wl_is_None_init S\<close>
   by (cases S) (auto simp: get_conflict_wl_is_None_init_def split: option.splits)
+
+lemma is_Nil_hnr[sepref_fr_rules]:
+ \<open>(return o is_Nil, RETURN o is_Nil) \<in> (list_assn R)\<^sup>k\<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare (sep_auto split: list.splits)
 
 sepref_register (in isasat_input_ops) init_dt_step_wl
 sepref_thm init_dt_step_wl_code
@@ -1215,9 +1240,9 @@ proof -
       add_clause_to_others_def
     apply (refine_rcg val)
     subgoal using S'S by (auto simp: HH_def)
-    subgoal by fast
+    subgoal by (auto split: list.splits)
     subgoal by (rule length1)
-    subgoal by fast
+    subgoal by (auto split: list.splits)
     subgoal by (rule hd_C) assumption
     subgoal using H by (auto simp: HH_def)
     subgoal by (rule le1_propa_no_confl)
@@ -1228,7 +1253,7 @@ proof -
         (auto simp: HH_def all_lits_of_mm_add_mset all_lits_of_m_add_mset)
     subgoal unfolding C_ge_2_iff by fast
     subgoal using lits_C .
-    subgoal by (rule le2_no_confl)
+    subgoal unfolding list_length_1_def by (rule le2_no_confl)
     subgoal by (rule conflict_already_found)
     done
 qed
