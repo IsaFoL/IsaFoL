@@ -62,9 +62,18 @@ fun print_clauses id a [] = ()
       print_clauses (id+1) a xs
     )
 
-fun checker print_modelb cnf_name = let
+fun print_stat (propa, (confl, dec)) =
+  let
+     val _ = print ("s propagations: " ^ IntInf.toString (Uint64.toInt propa) ^ "\n")
+     val _ = print ("s conflicts: " ^ IntInf.toString (Uint64.toInt confl) ^ "\n")
+     val _ = print ("s decisions: " ^ IntInf.toString (Uint64.toInt dec) ^ "\n")
+  in
+   ()
+  end
+fun checker print_modelb print_stats cnf_name = let
   val problem = Dimacs_Parser.parse_dimacs_file_map_to_list cnf_name nat_of_lit;
-  val SAT = SAT_Solver.isaSAT_code problem ();
+  val (SAT, stat) = SAT_Solver.isaSAT_code problem ();
+  val _ = (if print_stats then print_stat stat else ());
   val _ =
         (case SAT of
              NONE => print "UNSAT"
@@ -74,14 +83,16 @@ fun checker print_modelb cnf_name = let
   end
 
 fun print_help () = (
-  println("Usage: [--verbose] " ^ CommandLine.name() ^ " cnf-file");
+  println("Usage: [--verbose] [--stat]" ^ CommandLine.name() ^ " cnf-file");
   println("  where <cnf-file> is a non-compressed file in dimacs format");
   println("  The result (SAT or UNSAT) is printed");
   println("  Use option --verbose to print the model if one exists")
 )
 
-fun process_args [cnf_name] = checker false cnf_name
-  | process_args ["--verbose", cnf_name] = checker true cnf_name
+fun process_args [cnf_name] = checker false false cnf_name
+  | process_args ["--verbose", cnf_name] = checker true false cnf_name
+  | process_args ["--stat", cnf_name] = checker false true cnf_name
+  | process_args ["--verbose", "--stat", cnf_name] = checker true true cnf_name
   | process_args _ = print_help() 
 
 fun main () = let

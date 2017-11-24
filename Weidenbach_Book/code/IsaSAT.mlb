@@ -9,6 +9,7 @@ local
     end
 in
     structure SAT_Solver
+    structure Uint64
 end
 
 dimacs_parser.sml
