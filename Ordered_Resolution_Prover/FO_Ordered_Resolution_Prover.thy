@@ -125,8 +125,8 @@ proof -
   let ?infer_of =
     "\<lambda>Cl D AAs As. Infer (mset Cl) D (THE E. \<exists>\<sigma>. ord_resolve_rename S Cl D AAs As \<sigma> E)"
 
-  let ?Z = "{\<gamma>. (\<exists>Cl D AAs As \<sigma> E. \<gamma> = Infer (mset Cl) D E \<and> ord_resolve_rename S Cl D AAs As \<sigma> E)
-    \<and> infer_from ?CCC \<gamma> \<and> C \<in># prems_of \<gamma>}"
+  let ?Z = "{\<gamma> | Cl D AAs As \<sigma> E \<gamma>. \<gamma> = Infer (mset Cl) D E
+    \<and> ord_resolve_rename S Cl D AAs As \<sigma> E \<and> infer_from ?CCC \<gamma> \<and> C \<in># prems_of \<gamma>}"
   let ?Y = "{Infer (mset Cl) D E | Cl D AAs As \<sigma> E.
     ord_resolve_rename S Cl D AAs As \<sigma> E \<and> set Cl \<union> {D} \<subseteq> ?CCC}"
   let ?X = "{?infer_of Cl D AAs As | Cl D AAs As. Cl \<in> CL \<and> D \<in> ?CCC \<and> AAs \<in> AAS \<and> As \<in> AS}"
