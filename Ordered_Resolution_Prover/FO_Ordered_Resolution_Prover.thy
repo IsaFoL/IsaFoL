@@ -65,8 +65,6 @@ definition ord_FO_\<Gamma> :: "'a inference set" where
 
 interpretation ord_FO_resolution: inference_system ord_FO_\<Gamma> .
 
-(* FIXME: this doesn't even hold -- there could be several conclusions E (and several \<sigma>'s) *)
-(* Solution: Add As etc. arguments to ord_resolve etc. *)
 (* FIXME: move me *)
 lemma
   assumes
@@ -130,16 +128,8 @@ proof -
     \<and> length Cl \<le> ?max_ary}"
   let ?W = "?CL \<times> ?CCC \<times> ?AAS \<times> ?AS"
 
-  have fin_ccc: "finite ?CCC"
-    using fin_cc by simp
-  moreover have "finite ?CL"
-    using fin_ccc by (simp add: finite_lists_length_le lists_eq_set)
-  moreover have "finite ?AAS"
-    sorry
-  moreover have "finite ?AS"
-    sorry
-  ultimately have fin_w: "finite ?W"
-    by auto
+  have fin_w: "finite ?W"
+    using fin_cc by (simp add: finite_lists_length_le lists_eq_set)
 
   have "?Z \<subseteq> ?Y"
     by (force simp: infer_from_def)
