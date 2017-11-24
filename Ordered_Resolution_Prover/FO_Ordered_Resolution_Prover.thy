@@ -153,9 +153,7 @@ proof -
         le_trans mk_disjoint_insert subset_insertI)
 *)
   also have "\<dots> \<subseteq> (\<lambda>(Cl, D, AAs, As). ?infer_of Cl D AAs As) ` ?W"
-    apply (unfold image_def Bex_cartesian_product)
-    apply (unfold Bex_def mem_Collect_eq prod.case)
-    by fast
+    unfolding image_def Bex_cartesian_product by fast
   finally show ?thesis
     unfolding inference_system.inferences_between_def ord_FO_\<Gamma>_def mem_Collect_eq
     by (fast intro: rev_finite_subset[OF finite_imageI[OF fin_w]])
