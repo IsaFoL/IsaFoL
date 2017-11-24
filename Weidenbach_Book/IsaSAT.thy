@@ -149,6 +149,8 @@ code_printing constant heap_array_set'_u \<rightharpoonup> (SML) "(fn/ ()/ =>/ A
 
 code_printing constant two_uint32 \<rightharpoonup> (SML) "(Word32.fromInt 2)"
 
+code_printing constant length_u_code \<rightharpoonup> (SML_imp) "(fn/ ()/ =>/ Word32.fromInt (Array.length (_)))"
+
 export_code IsaSAT_code checking SML_imp
 export_code IsaSAT_code
     int_of_integer
