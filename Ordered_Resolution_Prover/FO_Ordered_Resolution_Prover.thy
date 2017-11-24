@@ -66,34 +66,34 @@ definition ord_FO_\<Gamma> :: "'a inference set" where
 interpretation ord_FO_resolution: inference_system ord_FO_\<Gamma> .
 
 (* FIXME: move me *)
-lemma
+lemma ord_resolve_unique:
   assumes
-    e: "ord_resolve S Cl D AAs As \<sigma> E" and
-    e': "ord_resolve S Cl D AAs As \<sigma>' E'"
-  shows
-    ord_resolve_unique_subst: "\<sigma> = \<sigma>'" and
-    ord_resolve_unique_concl: "E = E'"
-proof -
-  show "\<sigma> = \<sigma>'"
-    using e e'
-    unfolding ord_resolve.simps
-    apply clarify
+    "ord_resolve S Cl DA AAs As \<sigma> E" and
+    "ord_resolve S Cl DA AAs As \<sigma>' E'"
+  shows "\<sigma> = \<sigma>' \<and> E = E'"
+  using assms
+proof (cases rule: ord_resolve.cases[case_product ord_resolve.cases], intro conjI)
+  case (ord_resolve_ord_resolve CAs n Cs AAs As \<sigma>'' D CAs' n' Cs' AAs' As' \<sigma>''' D')
+  note res = this(1-17) and res' = this(18-34)
 
-    sorry
-  show "E = E'"
-    sorry
+  show \<sigma>: "\<sigma> = \<sigma>'"
+    using res(3-5,14) res'(3-5,14) by (metis option.inject)
+
+  have "Cs = Cs'"
+    using res(1,3,7,8,12) res'(1,3,7,8,12) by (metis add_right_imp_eq nth_equalityI)
+  moreover have "D = D'"
+    using res(2,4) res'(2,4) by fastforce
+  ultimately show "E = E'"
+    using res(5,6) res'(5,6) \<sigma> by blast
 qed
 
 (* FIXME: move me *)
-lemma
+lemma ord_resolve_rename_unique:
   assumes
-    "ord_resolve_rename S Cl D AAs As \<sigma> E" and
-    "ord_resolve_rename S Cl D AAs As \<sigma>' E'"
-  shows
-    ord_resolve_rename_unique_subst: "\<sigma> = \<sigma>'" and
-    ord_resolve_rename_unique_concl: "E = E'"
-  using assms unfolding ord_resolve_rename.simps
-  by (auto intro: ord_resolve_unique_subst ord_resolve_unique_concl)
+    "ord_resolve_rename S Cl DA AAs As \<sigma> E" and
+    "ord_resolve_rename S Cl DA AAs As \<sigma>' E'"
+  shows "\<sigma> = \<sigma>' \<and> E = E'"
+  using assms unfolding ord_resolve_rename.simps using ord_resolve_unique by blast
 
 (* FIXME: move *)
 lemma ord_resolve_max_side_prems: "ord_resolve S Cl D AAs As \<sigma> E \<Longrightarrow> length Cl \<le> size D"
