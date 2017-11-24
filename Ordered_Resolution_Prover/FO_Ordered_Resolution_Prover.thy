@@ -138,20 +138,23 @@ proof -
   have "?Z \<subseteq> ?Y"
     by (force simp: infer_from_def)
   also have "\<dots> \<subseteq> ?X"
-    sorry
-(*
-    unfolding max_ary_def
     apply clarsimp
-    apply (rule_tac x = Cl in exI) (* FIXME *)
-    apply auto
-    using ord_resolve_rename_unique_concl apply (smt the_equality)
-    using ord_resolve_rename_max_side_prems
-    apply (meson Max.coboundedI fin_cc finite_imageI finite_insert insertI1 le_trans)
-    using ord_resolve_rename_unique_concl apply (smt the_equality)
-    using ord_resolve_rename_max_side_prems
-    by (smt Max.coboundedI fin_cc finite_imageI finite_insert image_insert insert_subset
-        le_trans mk_disjoint_insert subset_insertI)
-*)
+    apply (rule_tac x = Cl in exI)
+    apply clarsimp
+    apply (rule_tac x = AAs in exI)
+    apply (rule_tac x = As in exI)
+    apply (intro conjI)
+    using ord_resolve_rename_unique apply (smt the_equality)
+    unfolding CL_def max_ary_def
+    apply clarsimp
+    apply (drule ord_resolve_rename_max_side_prems)
+    apply (smt Max.bounded_iff dual_order.antisym empty_iff fin_cc finite_imageI finite_insert image_subset_iff in_listsI insertI1 le_cases subset_iff subset_insertI)
+    unfolding AAS_def AS_def
+     apply clarsimp
+     defer
+    apply (unfold all_AA_def)
+    apply clarsimp
+    sorry
   also have "\<dots> \<subseteq> (\<lambda>(Cl, D, AAs, As). ?infer_of Cl D AAs As) ` ?W"
     unfolding image_def Bex_cartesian_product by fast
   finally show ?thesis
