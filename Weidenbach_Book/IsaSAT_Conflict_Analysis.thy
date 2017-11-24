@@ -957,7 +957,7 @@ qed
 definition update_confl_tl_wl_heur
   :: \<open>nat \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
 where
-  \<open>update_confl_tl_wl_heur = (\<lambda>C L (M, N, U, D, Q, W, vmtf, \<phi>, clvls, cach, lbd).
+  \<open>update_confl_tl_wl_heur = (\<lambda>C L (M, N, U, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, stats).
      (if C = 0 then do {
          let D' = remove1_mset (-L) (the D);
          let L' = atm_of L;
@@ -965,14 +965,14 @@ where
          RETURN (D' = {#}, (tl M, N, U, Some D', Q, W, vmtf_mark_to_rescore_and_unset L' vmtf,
             save_phase L \<phi>,
             fast_minus clvls one_uint32_nat,
-            cach, lbd))
+            cach, lbd, stats))
          }
       else do {
         let L' = atm_of L;
         (D', clvls, lbd) \<leftarrow> lookup_conflict_merge_abs_union M N C D clvls lbd;
         let D' = remove1_mset L (the D');
         RETURN (D' = {#}, (tl M, N, U, Some D', Q, W, vmtf_mark_to_rescore_and_unset L' vmtf,
-           save_phase L \<phi>, fast_minus clvls one_uint32_nat, cach, lbd))
+           save_phase L \<phi>, fast_minus clvls one_uint32_nat, cach, lbd, stats))
       }))\<close>
 
 lemma card_max_lvl_remove1_mset_hd:

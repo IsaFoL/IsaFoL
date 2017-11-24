@@ -745,8 +745,9 @@ definition (in -) unit_prop_body_wl_D_find_unwatched_inv where
    get_clauses_wl S ! C ! (the f) \<noteq> get_clauses_wl S ! C ! 0  \<and>
    get_clauses_wl S ! C ! (the f) \<noteq> get_clauses_wl S ! C ! 1)\<close>
 
-definition (in isasat_input_ops) unit_propagation_inner_loop_body_wl_D :: "nat literal \<Rightarrow> nat \<Rightarrow> nat twl_st_wl \<Rightarrow>
-    (nat \<times> nat twl_st_wl) nres" where
+definition (in isasat_input_ops) unit_propagation_inner_loop_body_wl_D
+   :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres\<close>
+where
   \<open>unit_propagation_inner_loop_body_wl_D L w S = do {
       ASSERT(unit_prop_body_wl_D_inv S w L);
       let C = (watched_by S L) ! w;
@@ -944,7 +945,9 @@ proof -
     by fastforce+
 qed
 
-definition (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D :: "nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres" where
+definition (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D
+  :: "nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres"
+where
   \<open>unit_propagation_inner_loop_wl_loop_D L S\<^sub>0 = do {
     WHILE\<^sub>T\<^bsup>\<lambda>(w, S). twl_struct_invs (twl_st_of_wl (Some (L, w)) S) \<and>
         twl_stgy_invs (twl_st_of_wl (Some (L, w)) S) \<and>

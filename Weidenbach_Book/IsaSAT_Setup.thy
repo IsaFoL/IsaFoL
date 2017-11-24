@@ -17,25 +17,65 @@ declare option_assn_eq[sepref_comb_rules del]
 
 subsection \<open>Code Generation\<close>
 
+
 subsubsection \<open>Types and Refinement Relations\<close>
 
-type_synonym minimize_assn = \<open>minimize_status array \<times> uint32 array \<times> nat\<close>
+paragraph \<open>Statistics\<close>
 
+type_synonym stats = \<open>uint64 \<times> uint64 \<times> uint64\<close>
+
+abbreviation uint64_rel :: \<open>(uint64 \<times> uint64) set\<close> where
+  \<open>uint64_rel \<equiv> Id\<close>
+
+abbreviation uint64_assn :: \<open>uint64 \<Rightarrow> uint64 \<Rightarrow> assn\<close>where
+  \<open>uint64_assn \<equiv> id_assn\<close>
+
+abbreviation stats_assn where
+  \<open>stats_assn \<equiv> uint64_assn *a uint64_assn *a uint64_assn\<close>
+
+definition incr_propagation :: \<open>stats \<Rightarrow> stats\<close> where
+  \<open>incr_propagation = (\<lambda>(propa, confl, dec). (propa + 1, confl, dec))\<close>
+
+definition incr_conflict :: \<open>stats \<Rightarrow> stats\<close> where
+  \<open>incr_conflict = (\<lambda>(propa, confl, dec). (propa, confl + 1, dec))\<close>
+
+definition incr_decision :: \<open>stats \<Rightarrow> stats\<close> where
+  \<open>incr_decision = (\<lambda>(propa, confl, dec). (propa, confl, dec + 1))\<close>
+
+lemma one_uint64_hnr: \<open>(uncurry0 (return 1), uncurry0 (RETURN 1)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare sep_auto
+
+lemma incr_propagation_hnr[sepref_fr_rules]:
+    \<open>(return o incr_propagation, RETURN o incr_propagation) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
+  by sepref_to_hoare (sep_auto simp: incr_propagation_def)
+
+lemma incr_conflict_hnr[sepref_fr_rules]:
+    \<open>(return o incr_conflict, RETURN o incr_conflict) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
+  by sepref_to_hoare (sep_auto simp: incr_conflict_def)
+
+lemma incr_decision_hnr[sepref_fr_rules]:
+    \<open>(return o incr_decision, RETURN o incr_decision) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
+  by sepref_to_hoare (sep_auto simp: incr_decision_def)
+
+
+paragraph \<open>Base state\<close>
+
+type_synonym minimize_assn = \<open>minimize_status array \<times> uint32 array \<times> nat\<close>
 
 type_synonym twl_st_wll_trail =
   \<open>trail_pol_assn \<times> clauses_wl \<times> nat \<times> option_lookup_clause_assn \<times>
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
-    uint32 \<times> minimize_assn \<times> lbd_assn\<close>
+    uint32 \<times> minimize_assn \<times> lbd_assn \<times> stats\<close>
 
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
 type_synonym twl_st_wl_heur =
   \<open>(nat,nat)ann_lits \<times> nat clause_l list \<times> nat \<times>
     nat clause option \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int \<times> bool list \<times>
-    nat \<times> nat conflict_min_cach \<times> lbd\<close>
+    nat \<times> nat conflict_min_cach \<times> lbd \<times> stats\<close>
 
 type_synonym twl_st_wl_heur_trail_ref =
   \<open>trail_pol \<times> nat clause_l list \<times> nat \<times> nat cconflict \<times> nat lit_queue_wl \<times> nat list list \<times>
-   vmtf_remove_int \<times> bool list \<times> nat  \<times> nat conflict_min_cach \<times> lbd\<close>
+   vmtf_remove_int \<times> bool list \<times> nat \<times> nat conflict_min_cach \<times> lbd \<times> stats\<close>
 
 fun get_clauses_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat clauses_l\<close> where
   \<open>get_clauses_wl_heur (M, N, U, D, _) = N\<close>
@@ -62,7 +102,7 @@ fun get_conflict_cach:: \<open>twl_st_wl_heur \<Rightarrow> nat conflict_min_cac
   \<open>get_conflict_cach (_, _, _, _, _, _, _, _, _, cach, _) = cach\<close>
 
 fun get_lbd :: \<open>twl_st_wl_heur \<Rightarrow> lbd\<close> where
-  \<open>get_lbd (_, _, _, _, _, _, _, _, _, _, lbd) = lbd\<close>
+  \<open>get_lbd (_, _, _, _, _, _, _, _, _, _, lbd, _) = lbd\<close>
 
 abbreviation phase_saver_conc where
   \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
@@ -76,7 +116,7 @@ definition cach_refinement_empty where
 
 definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd), (M, N, U, D, NP, UP, Q, W)).
+  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd, stats), (M, N, U, D, NP, UP, Q, W)).
     M = M' \<and> N' = N \<and> U' = U \<and>
     D' = D \<and>
      Q' = Q \<and>
@@ -97,7 +137,8 @@ definition twl_st_heur_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_tr
   vmtf_remove_conc *a phase_saver_conc *a
   uint32_nat_assn *a
   cach_refinement_assn *a
-  lbd_assn\<close>
+  lbd_assn *a
+  stats_assn\<close>
 
 definition twl_st_assn :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>twl_st_assn = hr_comp twl_st_heur_assn twl_st_heur\<close>
@@ -105,7 +146,7 @@ definition twl_st_assn :: \<open>nat twl_st_wl \<Rightarrow> twl_st_wll_trail \<
 type_synonym twl_st_heur_pol_no_clvls =
   \<open>trail_pol_assn \<times> clauses_wl \<times> nat \<times> option_lookup_clause_assn \<times>
     lit_queue_l \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times> uint32 \<times>
-    minimize_assn \<times> lbd_assn\<close>
+    minimize_assn \<times> lbd_assn \<times> stats\<close>
 
 definition twl_st_heur_pol_assn
   :: \<open>twl_st_wl_heur_trail_ref \<Rightarrow> twl_st_heur_pol_no_clvls \<Rightarrow> assn\<close>
@@ -118,7 +159,8 @@ where
     vmtf_remove_conc *a phase_saver_conc *a
     uint32_nat_assn *a
     cach_refinement_assn *a
-    lbd_assn\<close>
+    lbd_assn *a
+    stats_assn\<close>
 
 definition (in isasat_input_ops) twl_st_heur_pol :: \<open>(twl_st_wl_heur_trail_ref \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_pol =
@@ -135,12 +177,12 @@ definition (in isasat_input_ops) twl_st_heur_pol :: \<open>(twl_st_wl_heur_trail
 
 lemma twl_st_heur_pol_alt_def:
   \<open>twl_st_heur_pol =
-    (trail_pol \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id) O twl_st_heur\<close>
+    (trail_pol \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id) O twl_st_heur\<close>
   by (force simp: twl_st_heur_pol_def twl_st_heur_def)
 
 lemma twl_st_heur_pol_assn_twl_st_heur_assn:
   \<open>hr_comp twl_st_heur_pol_assn
-    (trail_pol \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id) =
+    (trail_pol \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id) =
      twl_st_heur_assn\<close>
   unfolding twl_st_heur_pol_assn_def twl_st_heur_assn_def
   by simp
@@ -154,7 +196,7 @@ lemma twl_st_heur_assn_assn:
 type_synonym (in -) twl_st_wl_heur_W_list =
   \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times> nat \<times>
     nat cconflict \<times> nat literal list \<times> nat list list \<times> vmtf_remove_int \<times> bool list \<times> nat \<times>
-    nat conflict_min_cach \<times> lbd\<close>
+    nat conflict_min_cach \<times> lbd \<times> stats\<close>
 
 
 definition twl_st_wl_heur_W_list_rel :: \<open>(twl_st_wl_heur_W_list \<times> twl_st_wl_heur) set\<close> where
@@ -169,6 +211,7 @@ definition twl_st_wl_heur_W_list_rel :: \<open>(twl_st_wl_heur_W_list \<times> t
      Id \<times>\<^sub>r
      nat_rel \<times>\<^sub>r
      Id \<times>\<^sub>r
+     Id \<times>\<^sub>r
      Id\<close>
 
 definition twl_st_heur_W_list_assn :: \<open>twl_st_wl_heur_W_list \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
@@ -178,11 +221,11 @@ definition twl_st_heur_W_list_assn :: \<open>twl_st_wl_heur_W_list \<Rightarrow>
   (list_assn unat_lit_assn) *a
   arrayO_assn (arl_assn nat_assn) *a
   vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn *a cach_refinement_assn *a
-  lbd_assn
+  lbd_assn *a stats_assn
   )\<close>
 
 lemma twl_st_wl_heur_W_list_rel_twl_st_rel: \<open>twl_st_wl_heur_W_list_rel O twl_st_heur =
-   {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd), M, N, U, D, NP, UP, Q, W).
+   {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd, stats), M, N, U, D, NP, UP, Q, W).
      M = M' \<and>
      N' = N \<and>
      U' = U \<and>
@@ -229,7 +272,7 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_heur_in_D\<^sub>0':
 type_synonym (in -) twl_st_wl_heur_lookup_conflict =
   \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times> nat \<times>
     (bool \<times> nat \<times> bool option list) \<times> nat literal multiset \<times> nat list list \<times> vmtf_remove_int \<times>
-     bool list \<times> nat \<times> nat conflict_min_cach \<times> lbd\<close>
+     bool list \<times> nat \<times> nat conflict_min_cach \<times> lbd \<times> stats\<close>
 
 definition twl_st_wl_heur_lookup_lookup_clause_rel
   :: \<open>(twl_st_wl_heur_lookup_conflict \<times> twl_st_wl_heur) set\<close>
@@ -245,6 +288,7 @@ where
      Id \<times>\<^sub>r
      nat_rel \<times>\<^sub>r
      Id \<times>\<^sub>r
+     Id \<times>\<^sub>r
      Id\<close>
 
 definition twl_st_heur_lookup_lookup_clause_assn
@@ -256,7 +300,8 @@ where
     clause_l_assn *a
     arrayO_assn (arl_assn nat_assn) *a
     vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn *a cach_refinement_assn *a
-    lbd_assn
+    lbd_assn *a
+    stats_assn
   \<close>
 
 lemma twl_st_heur_assn_int_lookup_clause_assn:

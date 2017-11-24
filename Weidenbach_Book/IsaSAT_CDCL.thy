@@ -290,8 +290,8 @@ lemma decide_wl_or_skip_D_helper:
   by auto
 
 definition decide_lit_wl_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
-  \<open>decide_lit_wl_heur = (\<lambda>L' (M, N, U, D, Q, W).
-      (Decided L' # M, N, U, D, {#- L'#}, W))\<close>
+  \<open>decide_lit_wl_heur = (\<lambda>L' (M, N, U, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, stats).
+      (Decided L' # M, N, U, D, {#- L'#}, W, vmtf, \<phi>, clvls, cach, lbd, incr_decision stats))\<close>
 
 lemma decide_lit_wl_heur_decide_lit_wl:
   \<open>(uncurry (RETURN oo decide_lit_wl_heur), uncurry (RETURN oo decide_lit_wl)) \<in>

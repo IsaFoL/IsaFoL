@@ -298,13 +298,13 @@ type_synonym (in -) lookup_clause_rel_with_cls_with_highest =
 type_synonym (in -) twl_st_wl_confl_extracted_int =
   \<open>(nat,nat)ann_lits \<times> nat clause_l list \<times> nat \<times>
     lookup_clause_rel_with_cls_with_highest \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int \<times>
-    bool list \<times> nat \<times> nat conflict_min_cach \<times> lbd\<close>
+    bool list \<times> nat \<times> nat conflict_min_cach \<times> lbd \<times> stats\<close>
 
 definition (in isasat_input_ops) twl_st_heur_no_clvls
   :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
 where
 \<open>twl_st_heur_no_clvls =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd), (M, N, U, D, NP, UP, Q, W)).
+  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd, stats), (M, N, U, D, NP, UP, Q, W)).
     M = M' \<and> N' = N \<and> U' = U \<and>
     D' = D \<and>
      Q' = Q \<and>
@@ -533,10 +533,11 @@ definition extract_shorter_conflict_list_lookup_heur_st
   :: \<open>twl_st_wl_heur_lookup_conflict \<Rightarrow>
        (twl_st_wl_heur_lookup_conflict \<times> nat conflict_highest_conflict) nres\<close>
 where
-  \<open>extract_shorter_conflict_list_lookup_heur_st = (\<lambda>(M, N, U, D, Q', W', vm, \<phi>, clvls, cach, lbd). do {
+  \<open>extract_shorter_conflict_list_lookup_heur_st = (\<lambda>(M, N, U, D, Q', W', vm, \<phi>, clvls, cach, lbd,
+       stats). do {
      (D, cach, L) \<leftarrow> extract_shorter_conflict_list_lookup_heur M N cach D lbd;
      let cach = empty_cach cach; (* stupid stuff\<dots> *)
-     RETURN ((M, N, U, D, Q', W', vm, \<phi>, clvls, cach, lbd), L)
+     RETURN ((M, N, U, D, Q', W', vm, \<phi>, clvls, cach, lbd, stats), L)
   })\<close>
 
 
@@ -646,7 +647,7 @@ definition (in isasat_input_ops) twl_st_heur_no_clvls_confl
   :: \<open>(twl_st_wl_heur_lookup_conflict \<times> nat twl_st_wl) set\<close>
 where
 \<open>twl_st_heur_no_clvls_confl =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd), (M, N, U, D, NP, UP, Q, W)).
+  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd, stats), (M, N, U, D, NP, UP, Q, W)).
     M = M' \<and> N' = N \<and> U' = U \<and>
     (D', D) \<in> option_lookup_clause_rel \<and>
      Q' = Q \<and>
@@ -687,8 +688,8 @@ proof -
     if
       pre: \<open>extract_shorter_conflict_list_heur_st_pre (M, N, U, D, NP, UP, Q, W)\<close> and
       rel: \<open>((M', N', u', (b', n', D'), Q', W', vm, \<phi>,
-       clvls, cach, lbd), M, N, U, D, NP, UP, Q, W) \<in> twl_st_heur_confl\<close>
-    for M' N' u' b' n' D' Q' W' vm \<phi> clvls cach M N U D NP UP Q W lbd
+       clvls, cach, lbd, stats), M, N, U, D, NP, UP, Q, W) \<in> twl_st_heur_confl\<close>
+    for M' N' u' b' n' D' Q' W' vm \<phi> clvls cach M N U D NP UP Q W lbd stats
   proof -
     let ?S = \<open>(M, N, U, D, NP, UP, Q, W)\<close>
     have
@@ -923,7 +924,7 @@ lemmas extract_shorter_conflict_list_lookup_heur_code_hnr[sepref_fr_rules] =
 sepref_register extract_shorter_conflict_list_lookup_heur_st
 sepref_thm extract_shorter_conflict_list_lookup_heur_st_code
   is \<open>PR_CONST extract_shorter_conflict_list_lookup_heur_st\<close>
-  :: \<open>[\<lambda>(M, N, U, D, Q', W', vm, \<phi>, clvls, cach, lbd).
+  :: \<open>[\<lambda>(M, N, U, D, Q', W', vm, \<phi>, clvls, cach, lbd, stats).
          extract_shorter_conflict_list_lookup_heur_pre ((((M, N), cach), D), lbd)]\<^sub>a
       twl_st_heur_lookup_lookup_clause_assn\<^sup>d \<rightarrow>
        twl_st_heur_lookup_lookup_clause_assn *a highest_lit_assn\<close>
@@ -1038,7 +1039,7 @@ proof -
   \<in> [comp_PRE twl_st_heur_confl
      extract_shorter_conflict_list_heur_st_pre
      (\<lambda>_ (M, N, U, D, Q', W', vm, \<phi>, clvls, cach,
-         lbd).
+         lbd, stats).
          extract_shorter_conflict_list_lookup_heur_pre
           ((((M, N), cach), D), lbd))
      (\<lambda>_. True)]\<^sub>a hrp_comp
@@ -1163,10 +1164,10 @@ definition (in -) find_decomp_wl_st :: \<open>nat literal \<Rightarrow> nat twl_
 
 definition find_decomp_wl_st_int :: \<open>nat literal \<Rightarrow> _ \<Rightarrow> twl_st_wl_heur \<Rightarrow>
     twl_st_wl_heur nres\<close> where
-  \<open>find_decomp_wl_st_int = (\<lambda>L highest (M, N, U, D, W, Q, vm, \<phi>, clvls, cach, lbd). do{
+  \<open>find_decomp_wl_st_int = (\<lambda>L highest (M, N, U, D, W, Q, vm, \<phi>, clvls, cach, lbd, stats). do{
      (M', vm) \<leftarrow> find_decomp_wvmtf_ns M highest vm;
      lbd \<leftarrow> lbd_empty lbd;
-     RETURN (M', N, U, D, W, Q, vm, \<phi>, clvls, cach, lbd)
+     RETURN (M', N, U, D, W, Q, vm, \<phi>, clvls, cach, lbd, stats)
   })\<close>
 
 
@@ -2381,7 +2382,8 @@ where
   arrayO_assn (arl_assn nat_assn) *a
   vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn *a
   cach_refinement_assn *a
-  lbd_assn
+  lbd_assn *a
+  stats_assn
   \<close>
 
 definition propagate_bt_wl_D_heur

@@ -497,10 +497,10 @@ lemma set_conflict_wl'_alt_def:
   by (cases S) (auto simp: set_conflict_wl'_def set_conflict_wl_def)
 
 definition set_conflict_wl'_int :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>set_conflict_wl'_int = (\<lambda>C (M, N, U, D, Q, W, vmtf, \<phi>, clvls, cach, lbd). do {
+  \<open>set_conflict_wl'_int = (\<lambda>C (M, N, U, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, stats). do {
     let n = zero_uint32_nat;
     (D, clvls, lbd) \<leftarrow> conflict_merge M N C D n lbd;
-    RETURN (M, N, U, D, {#}, W, vmtf, \<phi>, clvls, cach, lbd)})\<close>
+    RETURN (M, N, U, D, {#}, W, vmtf, \<phi>, clvls, cach, lbd, incr_conflict stats)})\<close>
 
 sepref_thm set_conflict_wl'_int_code
   is \<open>uncurry set_conflict_wl'_int\<close>
@@ -845,10 +845,13 @@ proof -
 qed
 
 
-definition propagate_lit_wl_heur :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
-  \<open>propagate_lit_wl_heur = (\<lambda>L' C i (M, N, U, D, Q, W).
+definition propagate_lit_wl_heur
+  :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close>
+where
+  \<open>propagate_lit_wl_heur = (\<lambda>L' C i (M, N, U, D, Q, W, vm, \<phi>, clvls, cach, lbd, stats).
       let N' = list_update N C (swap (N!C) 0 (fast_minus 1 i)) in
-      (Propagated L' C # M, N', U, D, add_mset (-L') Q, W))\<close>
+      (Propagated L' C # M, N', U, D, add_mset (-L') Q, W, vm, \<phi>, clvls, cach, lbd,
+         incr_propagation stats))\<close>
 
 lemma propagate_lit_wl_heur_propagate_lit_wl:
   \<open>(uncurry3 (RETURN oooo propagate_lit_wl_heur), uncurry3 (RETURN oooo propagate_lit_wl)) \<in>

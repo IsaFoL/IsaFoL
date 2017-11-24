@@ -1860,10 +1860,12 @@ qed
 definition finalise_init where
   \<open>finalise_init = id\<close>
 
-definition finalise_init_code where
+definition finalise_init_code :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur\<close> where
   \<open>finalise_init_code =
-    (\<lambda>(M', N', U', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls, lbd).
-     (M', N', U', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove), \<phi>, clvls, lbd))\<close>
+    (\<lambda>(M', N', U', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls, cach,
+       lbd).
+     (M', N', U', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove), \<phi>, clvls,
+       cach, lbd, (0::uint64, 0::uint64, 0::uint64)))\<close>
 
 lemma (in isasat_input_ops)finalise_init_finalise_init:
   \<open>(RETURN o finalise_init_code, RETURN o finalise_init) \<in>
@@ -1872,11 +1874,17 @@ lemma (in isasat_input_ops)finalise_init_finalise_init:
     (auto simp: finalise_init_def twl_st_heur_def twl_st_heur_init_def twl_st_heur_init_wl_def
       finalise_init_code_def vmtf_init_def)
 
+(* TODO Move *)
+lemma zero_uin64_hnr: \<open>(uncurry0 (return 0), uncurry0 (RETURN 0)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare sep_auto
+(* End Move *)
+
 sepref_thm (in isasat_input_ops) finalise_init_code'
   is \<open>RETURN o finalise_init_code\<close>
   :: \<open> [\<lambda>(M', N', U', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
          lst_As \<noteq> None]\<^sub>a
      twl_st_heur_init_assn\<^sup>d \<rightarrow> twl_st_heur_assn\<close>
+  supply zero_uin64_hnr[sepref_fr_rules]
   unfolding finalise_init_code_def twl_st_heur_init_assn_def twl_st_heur_assn_def
   by sepref
 
