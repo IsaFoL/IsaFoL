@@ -119,30 +119,30 @@ lemma strictly_maximal_in_maximal_in: "strictly_maximal_in A C \<Longrightarrow>
 
 inductive eligible :: "'s \<Rightarrow> 'a list \<Rightarrow> 'a clause \<Rightarrow> bool" where
   eligible:
-    "S DA = negs (mset As) \<or> S DA = {#} \<and> length As = 1 \<and> maximal_in ((As ! 0) \<cdot>a \<sigma>) (DA \<cdot> \<sigma>) \<Longrightarrow>
+    "S DA = negs (mset As) \<or> S DA = {#} \<and> length As = 1 \<and> maximal_in (As ! 0 \<cdot>a \<sigma>) (DA \<cdot> \<sigma>) \<Longrightarrow>
      eligible \<sigma> As DA"
 
 inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 's \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve:
-  "length CAs = n \<Longrightarrow>
-   length Cs = n \<Longrightarrow>
-   length AAs = n \<Longrightarrow>
-   length As = n \<Longrightarrow>
-   n \<noteq> 0 \<Longrightarrow>
-   \<forall>i < n. CAs ! i = Cs ! i + poss (AAs ! i) \<Longrightarrow>
-   \<forall>i < n. AAs ! i \<noteq> {#} \<Longrightarrow>
-   Some \<sigma> = mgu (set_mset ` set (map2 add_mset As AAs)) \<Longrightarrow>
-   eligible \<sigma> As (D + negs (mset As)) \<Longrightarrow>
-   \<forall>i < n. strictly_maximal_in (As ! i \<cdot>a \<sigma>) ((Cs ! i) \<cdot> \<sigma>) \<Longrightarrow>
-   \<forall>i < n. S (CAs ! i) = {#} \<Longrightarrow>
-   ord_resolve CAs (D + negs (mset As)) \<sigma> (((\<Union># mset Cs) + D) \<cdot> \<sigma>)"
+    "length CAs = n \<Longrightarrow>
+     length Cs = n \<Longrightarrow>
+     length AAs = n \<Longrightarrow>
+     length As = n \<Longrightarrow>
+     n \<noteq> 0 \<Longrightarrow>
+     (\<forall>i < n. CAs ! i = Cs ! i + poss (AAs ! i)) \<Longrightarrow>
+     (\<forall>i < n. AAs ! i \<noteq> {#}) \<Longrightarrow>
+     Some \<sigma> = mgu (set_mset ` set (map2 add_mset As AAs)) \<Longrightarrow>
+     eligible \<sigma> As (D + negs (mset As)) \<Longrightarrow>
+     (\<forall>i < n. strictly_maximal_in (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)) \<Longrightarrow>
+     (\<forall>i < n. S (CAs ! i) = {#}) \<Longrightarrow>
+     ord_resolve CAs (D + negs (mset As)) \<sigma> (((\<Union># mset Cs) + D) \<cdot> \<sigma>)"
 
 inductive ord_resolve_rename :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 's \<Rightarrow> 'a clause \<Rightarrow> bool" where
   ord_resolve_rename:
-  "\<rho> = hd (renamings_apart (DA # CAs)) \<Longrightarrow>
-   \<rho>s = tl (renamings_apart (DA # CAs)) \<Longrightarrow>
-   ord_resolve (CAs \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) \<sigma> E \<Longrightarrow>
-   ord_resolve_rename CAs DA \<sigma> E"
+    "\<rho> = hd (renamings_apart (DA # CAs)) \<Longrightarrow>
+     \<rho>s = tl (renamings_apart (DA # CAs)) \<Longrightarrow>
+     ord_resolve (CAs \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) \<sigma> E \<Longrightarrow>
+     ord_resolve_rename CAs DA \<sigma> E"
 
 lemma ord_resolve_empty_main_prem: "\<not> ord_resolve Cs {#} \<sigma> E"
   by (simp add: ord_resolve.simps)
