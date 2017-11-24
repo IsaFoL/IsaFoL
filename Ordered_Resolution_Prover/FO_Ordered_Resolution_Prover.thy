@@ -104,17 +104,23 @@ lemma ord_resolve_rename_max_side_prems:
   "ord_resolve_rename S Cl D AAs As \<sigma> E \<Longrightarrow> length Cl \<le> size D"
   by (elim ord_resolve_rename.cases, drule ord_resolve_max_side_prems, simp add: renames_apart)
 
+(* FIXME: move *)
+lemma Bex_cartesian_product: "(\<exists>xy \<in> A \<times> B. P xy) \<equiv> (\<exists>x \<in> A. \<exists>y \<in> B. P (x, y))"
+  by simp
+
 lemma finite_ord_FO_resolution_inferences_between:
   assumes fin_cc: "finite CC"
   shows "finite (ord_FO_resolution.inferences_between CC C)"
 proof -
   let ?CCC = "CC \<union> {C}"
-  let ?all_AA = "\<Union>D \<in> ?CCC. atms_of D"
 
-  let ?max_ary = "Max (size ` ?CCC)"
-  let ?CL = "{Cl. Cl \<in> lists ?CCC \<and> length Cl \<le> ?max_ary}"
-  let ?AS = "{As. As \<in> lists ?all_AA \<and> length As \<le> ?max_ary}"
-  let ?AAS = "{AAs. AAs \<in> lists (mset ` ?AS) \<and> length AAs \<le> ?max_ary}"
+  define all_AA where "all_AA = (\<Union>D \<in> ?CCC. atms_of D)"
+  define max_ary where "max_ary = Max (size ` ?CCC)"
+  define CL where "CL = {Cl. Cl \<in> lists ?CCC \<and> length Cl \<le> max_ary}"
+  define AS where "AS = {As. As \<in> lists all_AA \<and> length As \<le> max_ary}"
+  define AAS where "AAS = {AAs. AAs \<in> lists (mset ` AS) \<and> length AAs \<le> max_ary}"
+
+  note defs = all_AA_def max_ary_def CL_def AS_def AAS_def
 
   let ?infer_of =
     "\<lambda>Cl D AAs As. Infer (mset Cl) D (THE E. \<exists>\<sigma>. ord_resolve_rename S Cl D AAs As \<sigma> E)"
@@ -125,15 +131,16 @@ proof -
   let ?Y = "{\<gamma>. \<exists>Cl D AAs As \<sigma> E. \<gamma> = Infer (mset Cl) D E \<and> ord_resolve_rename S Cl D AAs As \<sigma> E
     \<and> set Cl \<union> {D} \<subseteq> ?CCC}"
   let ?X = "{\<gamma>. \<exists>Cl D AAs As. \<gamma> = ?infer_of Cl D AAs As \<and> set Cl \<union> {D} \<subseteq> ?CCC
-    \<and> length Cl \<le> ?max_ary}"
-  let ?W = "?CL \<times> ?CCC \<times> ?AAS \<times> ?AS"
+    \<and> length Cl \<le> max_ary}"
+  let ?W = "CL \<times> ?CCC \<times> AAS \<times> AS"
 
   have fin_w: "finite ?W"
-    using fin_cc by (simp add: finite_lists_length_le lists_eq_set)
+    unfolding defs using fin_cc by (simp add: finite_lists_length_le lists_eq_set)
 
   have "?Z \<subseteq> ?Y"
     by (force simp: infer_from_def)
   also have "\<dots> \<subseteq> ?X"
+    unfolding max_ary_def
     apply clarsimp
     apply (rule_tac x = Cl in exI) (* FIXME *)
     apply auto
@@ -145,6 +152,21 @@ proof -
     by (smt Max.coboundedI fin_cc finite_imageI finite_insert image_insert insert_subset
         le_trans mk_disjoint_insert subset_insertI)
   also have "\<dots> \<subseteq> (\<lambda>(Cl, D, AAs, As). ?infer_of Cl D AAs As) ` ?W"
+    apply (unfold image_def Bex_cartesian_product)
+    apply (unfold Bex_def mem_Collect_eq prod.case)
+    apply clarsimp
+    apply (rule_tac x = Cl in exI)
+    apply clarsimp
+    apply (intro conjI)
+     defer
+     apply (rule_tac x = D in exI)
+     apply (intro conjI)
+      defer
+      apply (rule_tac x = AAs in exI)
+      apply (intro conjI)
+       defer
+       apply (rule_tac x = As in exI)
+       apply (intro conjI)
     sorry
   finally show ?thesis
     unfolding inference_system.inferences_between_def ord_FO_\<Gamma>_def mem_Collect_eq
