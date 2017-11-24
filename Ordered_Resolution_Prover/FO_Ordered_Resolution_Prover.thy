@@ -1545,11 +1545,12 @@ proof -
       using a grounding_ground singletonI ground_ground_Liminf
       by (simp add: Liminf_grounding_of_state_ground)
 
-    from \<gamma>_p obtain CAs where
-      CAs_p: "gd.ord_resolve CAs ?DA ?E \<and> mset CAs = ?CC"
+    from \<gamma>_p obtain CAs AAs As where
+      CAs_p: "gd.ord_resolve CAs ?DA AAs As ?E \<and> mset CAs = ?CC"
       unfolding gd.ord_\<Gamma>_def by auto
 
-    have DA_CAs_in_ground_Liminf: "{?DA} \<union> set CAs \<subseteq> grounding_of_clss (Q_of_state (Liminf_state Sts))"
+    have DA_CAs_in_ground_Liminf:
+      "{?DA} \<union> set CAs \<subseteq> grounding_of_clss (Q_of_state (Liminf_state Sts))"
       using a CAs_p unfolding clss_of_state_def using fair unfolding fair_state_seq_def
       by (metis (no_types, lifting) Un_empty_left ground_ns_in_ground_limit_st a clss_of_state_def
           ns set_mset_mset subset_trans sup_commute)
@@ -1560,7 +1561,7 @@ proof -
     have ground_e: "is_ground_cls ?E"
     proof - (* turn in to a LEMMA? *)
       have a1: "atms_of ?E \<subseteq> (\<Union>CA \<in> set CAs. atms_of CA) \<union> atms_of ?DA"
-        using \<gamma>_p ground_cc ground_da gd.ord_resolve_atms_of_concl_subset[of "CAs" "?DA" "?E"] CAs_p
+        using \<gamma>_p ground_cc ground_da gd.ord_resolve_atms_of_concl_subset[of CAs ?DA _ _ ?E] CAs_p
         by auto
       {
         fix L :: "'a literal"
@@ -1568,7 +1569,8 @@ proof -
         then have "atm_of L \<in> atms_of (concl_of \<gamma>)"
           by (meson atm_of_lit_in_atms_of)
         then have "is_ground_atm (atm_of L)"
-          using a1 ground_cas ground_da is_ground_cls_imp_is_ground_atm is_ground_cls_list_def by auto
+          using a1 ground_cas ground_da is_ground_cls_imp_is_ground_atm is_ground_cls_list_def
+          by auto
       }
       then show ?thesis
         unfolding is_ground_cls_def is_ground_lit_def by simp
@@ -1577,7 +1579,7 @@ proof -
     have "\<exists>AAs As \<sigma>. ord_resolve (S_M S (Q_of_state (Liminf_state Sts))) CAs ?DA AAs As \<sigma> ?E"
       using CAs_p[THEN conjunct1]
     proof (cases rule: gd.ord_resolve.cases)
-      case (ord_resolve n Cs AAs As D)
+      case (ord_resolve n Cs D)
       note DA = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and
         aas_len = this(5) and as_len = this(6) and nz = this(7) and cas = this(8) and
         aas_not_empt = this(9) and as_aas = this(10) and eligibility = this(11) and
@@ -1586,7 +1588,7 @@ proof -
       have len_aas_len_as: "length AAs = length As"
         using aas_len as_len by auto
 
-      from as_aas have "\<forall>i<n. \<forall>A\<in>#add_mset (As ! i) (AAs ! i). A = As ! i"
+      from as_aas have "\<forall>i<n. \<forall>A \<in># add_mset (As ! i) (AAs ! i). A = As ! i"
         using ord_resolve by simp
       then have "\<forall>i < n. card (set_mset (add_mset (As ! i) (AAs ! i))) \<le> Suc 0"
         using all_the_same by metis
@@ -1624,7 +1626,8 @@ proof -
       then have "Max (atms_of D \<union> set As) \<in> atms_of D \<union> set As"
         using Max_in by metis
       then have is_ground_Max: "is_ground_atm (Max (atms_of D \<union> set As))"
-        using ground_d ground_mset_as is_ground_cls_imp_is_ground_atm unfolding is_ground_atm_mset_def by auto
+        using ground_d ground_mset_as is_ground_cls_imp_is_ground_atm
+        unfolding is_ground_atm_mset_def by auto
       then have Max\<sigma>_is_Max: "\<forall>\<sigma>. Max (atms_of D \<union> set As) \<cdot>a \<sigma> = Max (atms_of D \<union> set As)"
         by auto
 

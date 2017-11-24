@@ -46,7 +46,9 @@ lemma "(S DA = negs (mset As) \<or> S DA = {#} \<and> length As = 1 \<and> maxim
   using eligible.intros ground_resolution_with_selection.eligible.cases ground_resolution_with_selection_axioms by blast
 
 
-inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+inductive
+  ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a multiset list \<Rightarrow> 'a list \<Rightarrow> 'a clause \<Rightarrow> bool"
+where
   ord_resolve:
     "length CAs = n \<Longrightarrow>
      length Cs = n \<Longrightarrow>
@@ -59,17 +61,17 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
      eligible As (D + negs (mset As)) \<Longrightarrow>
      (\<forall>i < n. strictly_maximal_in (As ! i) (Cs ! i)) \<Longrightarrow>
      (\<forall>i < n. S (CAs ! i) = {#}) \<Longrightarrow>
-     ord_resolve CAs (D + negs (mset As)) (\<Union># mset Cs + D)"
+     ord_resolve CAs (D + negs (mset As)) AAs As (\<Union># mset Cs + D)"
 
 lemma ord_resolve_sound:
   assumes
-    res_e: "ord_resolve CAs DA E" and
+    res_e: "ord_resolve CAs DA AAs As E" and
     cc_true: "I \<Turnstile>m mset CAs" and
     d_true: "I \<Turnstile> DA"
   shows "I \<Turnstile> E"
   using res_e
 proof (cases rule: ord_resolve.cases)
-  case (ord_resolve n Cs AAs As D)
+  case (ord_resolve n Cs D)
   note DA = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and
     as_len = this(6) and cas = this(8) and aas_ne = this(9) and a_eq = this(10)
 
@@ -108,11 +110,11 @@ This corresponds to Lemma 3.13:
 \<close>
 
 lemma ord_resolve_reductive:
-  assumes "ord_resolve CAs DA E"
+  assumes "ord_resolve CAs DA AAs As E"
   shows "E < DA"
   using assms
 proof (cases rule: ord_resolve.cases)
-  case (ord_resolve n Cs AAs As D)
+  case (ord_resolve n Cs D)
   note DA = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and
     ai_len = this(6) and nz = this(7) and cas = this(8) and maxim = this(12)
 
@@ -176,11 +178,11 @@ theorem ord_resolve_counterex_reducing:
     d_in_n: "DA \<in> N" and
     d_cex: "\<not> INTERP N \<Turnstile> DA" and
     d_min: "\<And>C. C \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> C \<Longrightarrow> DA \<le> C"
-  obtains CAs E where
+  obtains CAs AAs As E where
     "set CAs \<subseteq> N"
     "INTERP N \<Turnstile>m mset CAs"
     "\<And>CA. CA \<in> set CAs \<Longrightarrow> productive N CA"
-    "ord_resolve CAs DA E"
+    "ord_resolve CAs DA AAs As E"
     "\<not> INTERP N \<Turnstile> E"
     "E < DA"
 proof -
@@ -281,7 +283,6 @@ proof -
   proof -
     obtain i where i_p: "i < length CAs" "CAs ! i = CA"
       using ca_in by (meson in_set_conv_nth)
-
     have "production N (CA_of (As ! i)) = {As ! i}"
       using i_p CAs_def prod_c0 by auto
     then show "productive N CA"
@@ -353,7 +354,7 @@ proof -
     using \<open>\<forall>CA\<in>set CAs. S CA = {#}\<close> by simp
   then have "\<forall>i < n. S (CAs ! i) = {#}"
     using \<open>length CAs = n\<close> nth_mem by blast
-  ultimately have res_e: "ord_resolve CAs (D + negs (mset As)) (\<Union># mset Cs + D)"
+  ultimately have res_e: "ord_resolve CAs (D + negs (mset As)) AAs As (\<Union># mset Cs + D)"
     using ord_resolve by auto
 
   have "\<And>A. A \<in> set As \<Longrightarrow> \<not> interp N (CA_of A) \<Turnstile> CA_of A"
@@ -379,22 +380,22 @@ proof -
     by (simp add: cs_true)
   moreover have "\<And>CA. CA \<in> set CAs \<Longrightarrow> productive N CA"
     by (simp add: prod_c)
-  moreover have "ord_resolve CAs DA (\<Union># mset Cs + D)"
+  moreover have "ord_resolve CAs DA AAs As (\<Union># mset Cs + D)"
     using D_def negs_as_le_d res_e by auto
   moreover have "\<not> INTERP N \<Turnstile> \<Union># mset Cs + D"
     using e_cex by simp
   moreover have "(\<Union># mset Cs + D) < DA"
     using calculation(4) ord_resolve_reductive by auto
-  ultimately show ?thesis
+  ultimately show thesis
     ..
 qed
 
 lemma ord_resolve_atms_of_concl_subset:
-  assumes "ord_resolve CAs DA E"
+  assumes "ord_resolve CAs DA AAs As E"
   shows "atms_of E \<subseteq> (\<Union>C \<in> set CAs. atms_of C) \<union> atms_of DA"
   using assms
 proof (cases rule: ord_resolve.cases)
-  case (ord_resolve n Cs AAs As D)
+  case (ord_resolve n Cs D)
   note DA = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and cas = this(8)
 
   have "\<forall>i < n. set_mset (Cs ! i) \<subseteq> set_mset (CAs ! i)"
@@ -429,7 +430,7 @@ inference system.
 \<close>
 
 definition ord_\<Gamma> :: "'a inference set" where
-  "ord_\<Gamma> = {Infer (mset CAs) DA E | CAs DA E. ord_resolve CAs DA E}"
+  "ord_\<Gamma> = {Infer (mset CAs) DA E | CAs DA AAs As E. ord_resolve CAs DA AAs As E}"
 
 sublocale ord_\<Gamma>_sound_counterex_reducing?:
   sound_counterex_reducing_inference_system "ground_resolution_with_selection.ord_\<Gamma> S"
@@ -438,36 +439,20 @@ sublocale ord_\<Gamma>_sound_counterex_reducing?:
 proof unfold_locales
   fix DA :: "'a clause" and N :: "'a clause set"
   assume "{#} \<notin> N" and "DA \<in> N" and "\<not> INTERP N \<Turnstile> DA" and "\<And>C. C \<in> N \<Longrightarrow> \<not> INTERP N \<Turnstile> C \<Longrightarrow> DA \<le> C"
-  then obtain CAs E where
+  then obtain CAs AAs As E where
     dd_sset_n: "set CAs \<subseteq> N" and
     dd_true: "INTERP N \<Turnstile>m mset CAs" and
-    res_e: "ord_resolve CAs DA E" and
+    res_e: "ord_resolve CAs DA AAs As E" and
     e_cex: "\<not> INTERP N \<Turnstile> E" and
     e_lt_c: "E < DA"
     using ord_resolve_counterex_reducing[of N DA thesis] by auto
 
-  have "ord_resolve CAs DA E"
-    by (simp add: res_e)
-  then have "Infer (mset CAs) DA E \<in> ord_\<Gamma>"
-    unfolding ord_\<Gamma>_def by (metis (mono_tags, lifting) mem_Collect_eq)
+  have "Infer (mset CAs) DA E \<in> ord_\<Gamma>"
+    using res_e unfolding ord_\<Gamma>_def by (metis (mono_tags, lifting) mem_Collect_eq)
   then show "\<exists>CC E. set_mset CC \<subseteq> N \<and> INTERP N \<Turnstile>m CC \<and> Infer CC DA E \<in> ord_\<Gamma>
     \<and> \<not> INTERP N \<Turnstile> E \<and> E < DA"
     using dd_sset_n dd_true e_cex e_lt_c by (metis set_mset_mset)
-next
-  fix CC DA E and I
-  assume "Infer CC DA E \<in> ord_\<Gamma>" and icc: "I \<Turnstile>m CC" and id: "I \<Turnstile> DA"
-  then obtain CAs where
-    "mset CAs = CC" and
-    "ord_resolve CAs DA E"
-    using ord_\<Gamma>_def by auto
-  then show "I \<Turnstile> E"
-    using id icc ord_resolve_sound[of CAs DA E I] by auto
-next
-  fix \<gamma>
-  assume "\<gamma> \<in> ord_\<Gamma>"
-  then show "concl_of \<gamma> < main_prem_of \<gamma>"
-    unfolding ord_\<Gamma>_def using ord_resolve_reductive by auto
-qed
+qed (auto simp: ord_\<Gamma>_def intro: ord_resolve_sound ord_resolve_reductive)
 
 lemmas clausal_logic_compact = ord_\<Gamma>_sound_counterex_reducing.clausal_logic_compact
 
