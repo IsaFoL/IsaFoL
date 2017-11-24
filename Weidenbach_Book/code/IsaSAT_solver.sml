@@ -2725,9 +2725,6 @@ fun vmtf_unset_code x =
     end)
     x;
 
-fun uint32_safe_minus (A1_, A2_, A3_) m n =
-  (if less A3_ m n then zero A2_ else minus A1_ m n);
-
 fun target_level B_ highest =
   (case highest of NONE => zero B_ | SOME (_, lev) => lev);
 
@@ -2755,9 +2752,7 @@ a2a)
                                      ()) ())
                                      (fn xc =>
                                        (fn () =>
- (uint32_safe_minus (minus_uint32, zero_uint32, ord_uint32) a1
-    (Word32.fromInt 1),
-   (xaa, xc))))))
+ (fast_minus_uint32 a1 (Word32.fromInt 1), (xaa, xc))))))
                       else (fn f_ => fn () => f_ ((hd_trail_code a1a) ()) ())
                              (fn xb =>
                                (fn f_ => fn () => f_ ((tl_trail_tr_code a1a) ())
