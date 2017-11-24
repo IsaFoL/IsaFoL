@@ -125,13 +125,11 @@ proof -
   let ?infer_of =
     "\<lambda>Cl D AAs As. Infer (mset Cl) D (THE E. \<exists>\<sigma>. ord_resolve_rename S Cl D AAs As \<sigma> E)"
 
-  (* FIXME: use ternary {} syntax? *)
   let ?Z = "{\<gamma>. (\<exists>Cl D AAs As \<sigma> E. \<gamma> = Infer (mset Cl) D E \<and> ord_resolve_rename S Cl D AAs As \<sigma> E)
     \<and> infer_from ?CCC \<gamma> \<and> C \<in># prems_of \<gamma>}"
-  let ?Y = "{\<gamma>. \<exists>Cl D AAs As \<sigma> E. \<gamma> = Infer (mset Cl) D E \<and> ord_resolve_rename S Cl D AAs As \<sigma> E
-    \<and> set Cl \<union> {D} \<subseteq> ?CCC}"
-  let ?X = "{\<gamma>. \<exists>Cl D AAs As. \<gamma> = ?infer_of Cl D AAs As \<and> set Cl \<union> {D} \<subseteq> ?CCC
-    \<and> length Cl \<le> max_ary}"
+  let ?Y = "{Infer (mset Cl) D E | Cl D AAs As \<sigma> E.
+    ord_resolve_rename S Cl D AAs As \<sigma> E \<and> set Cl \<union> {D} \<subseteq> ?CCC}"
+  let ?X = "{?infer_of Cl D AAs As | Cl D AAs As. Cl \<in> CL \<and> D \<in> ?CCC \<and> AAs \<in> AAS \<and> As \<in> AS}"
   let ?W = "CL \<times> ?CCC \<times> AAS \<times> AS"
 
   have fin_w: "finite ?W"
@@ -140,6 +138,8 @@ proof -
   have "?Z \<subseteq> ?Y"
     by (force simp: infer_from_def)
   also have "\<dots> \<subseteq> ?X"
+    sorry
+(*
     unfolding max_ary_def
     apply clarsimp
     apply (rule_tac x = Cl in exI) (* FIXME *)
@@ -151,23 +151,11 @@ proof -
     using ord_resolve_rename_max_side_prems
     by (smt Max.coboundedI fin_cc finite_imageI finite_insert image_insert insert_subset
         le_trans mk_disjoint_insert subset_insertI)
+*)
   also have "\<dots> \<subseteq> (\<lambda>(Cl, D, AAs, As). ?infer_of Cl D AAs As) ` ?W"
     apply (unfold image_def Bex_cartesian_product)
     apply (unfold Bex_def mem_Collect_eq prod.case)
-    apply clarsimp
-    apply (rule_tac x = Cl in exI)
-    apply clarsimp
-    apply (intro conjI)
-     defer
-     apply (rule_tac x = D in exI)
-     apply (intro conjI)
-      defer
-      apply (rule_tac x = AAs in exI)
-      apply (intro conjI)
-       defer
-       apply (rule_tac x = As in exI)
-       apply (intro conjI)
-    sorry
+    by fast
   finally show ?thesis
     unfolding inference_system.inferences_between_def ord_FO_\<Gamma>_def mem_Collect_eq
     by (fast intro: rev_finite_subset[OF finite_imageI[OF fin_w]])
