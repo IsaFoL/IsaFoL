@@ -183,10 +183,10 @@ structure SAT_Solver : sig
   type minimize_status
   datatype int = Int_of_integer of IntInf.int
   type ('a, 'b) hashtable
-  val integer_of_int : int -> IntInf.int
-  val uint32_of_nat : nat -> Word32.word
   val isaSAT_code :
     (Word32.word list) list -> (unit -> ((Word32.word list) option))
+  val integer_of_int : int -> IntInf.int
+  val uint32_of_nat : nat -> Word32.word
 end = struct
 
 datatype typerepa = Typerep of string * typerepa list;
@@ -460,9 +460,6 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-fun gen_length n (x :: xs) = gen_length (suc n) xs
-  | gen_length n [] = n;
-
 fun ht_new_sz (A1_, A2_) B_ n =
   let
     val l = replicate n [];
@@ -556,20 +553,6 @@ fun ht_upd (A1_, A2_, A3_) B_ k v ht =
       end
         ()
     end);
-
-fun int_of_nat n = Int_of_integer (integer_of_nat n);
-
-fun integer_of_int (Int_of_integer k) = k;
-
-fun uint32_of_int i = Word32.fromLargeInt (IntInf.toLarge (integer_of_int i));
-
-fun uint32_of_nat x = (uint32_of_int o int_of_nat) x;
-
-fun length_u_code A_ xs = (fn () => let
-                                      val n = len A_ xs ();
-                                    in
-                                      uint32_of_nat n
-                                    end);
 
 fun the (SOME x2) = x2;
 
@@ -1113,7 +1096,7 @@ fun lbd_write_code x =
     in
       (fn () =>
         let
-          val xa = length_u_code heap_bool a1 ();
+          val xa = (fn () => Word32.fromInt (Array.length a1)) ();
         in
           (if Word32.< (bia, xa)
             then (fn f_ => fn () => f_ ((heap_array_set_u heap_bool a1 bia bi)
@@ -2119,7 +2102,7 @@ fun arl_is_empty A_ = (fn (_, n) => (fn () => (equal_nat n zero_nata)));
 fun level_in_lbd_code x =
   (fn ai => fn (a1, _) => fn () =>
     let
-      val xa = length_u_code heap_bool a1 ();
+      val xa = (fn () => Word32.fromInt (Array.length a1)) ();
     in
       (if Word32.< (ai, xa) then (fn () => Array.sub (a1, Word32.toInt ai))
         else (fn () => false))
@@ -3127,6 +3110,9 @@ fun propagate_unit_cls_code x =
     end)
     x;
 
+fun list_length_1_code c =
+  (case c of [] => false | [_] => true | _ :: _ :: _ => false);
+
 fun add_init_cls_code x =
   (fn ai => fn (a1, (a1a, (_, (a1c, (a1d, (a1e, a2e)))))) => fn () =>
     let
@@ -3143,9 +3129,7 @@ fun add_init_cls_code x =
     end)
     x;
 
-fun size_list x = gen_length zero_nata x;
-
-fun op_list_length x = size_list x;
+fun is_Nil a = (case a of [] => true | _ :: _ => false);
 
 fun init_dt_step_wl_code x =
   (fn ai => fn bi => fn () =>
@@ -3153,9 +3137,8 @@ fun init_dt_step_wl_code x =
       val xa = get_conflict_wl_is_None_init_code bi ();
     in
       (if xa
-        then (if equal_nat (op_list_length ai) zero_nata
-               then set_empty_clause_as_conflict_code bi
-               else (if equal_nat (op_list_length ai) one_nat
+        then (if is_Nil ai then set_empty_clause_as_conflict_code bi
+               else (if list_length_1_code ai
                       then let
                              val x_c = op_list_hd ai;
                            in
@@ -3219,5 +3202,13 @@ fun isaSAT_code x =
         ()
     end)
     x;
+
+fun integer_of_int (Int_of_integer k) = k;
+
+fun uint32_of_int i = Word32.fromLargeInt (IntInf.toLarge (integer_of_int i));
+
+fun int_of_nat n = Int_of_integer (integer_of_nat n);
+
+fun uint32_of_nat x = (uint32_of_int o int_of_nat) x;
 
 end; (*struct SAT_Solver*)
