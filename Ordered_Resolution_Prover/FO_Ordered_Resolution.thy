@@ -122,7 +122,10 @@ inductive eligible :: "'s \<Rightarrow> 'a list \<Rightarrow> 'a clause \<Righta
     "S DA = negs (mset As) \<or> S DA = {#} \<and> length As = 1 \<and> maximal_in (As ! 0 \<cdot>a \<sigma>) (DA \<cdot> \<sigma>) \<Longrightarrow>
      eligible \<sigma> As DA"
 
-inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 's \<Rightarrow> 'a clause \<Rightarrow> bool" where
+inductive
+  ord_resolve
+  :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a multiset list \<Rightarrow> 'a list \<Rightarrow> 's \<Rightarrow> 'a clause \<Rightarrow> bool"
+where
   ord_resolve:
     "length CAs = n \<Longrightarrow>
      length Cs = n \<Longrightarrow>
@@ -135,19 +138,22 @@ inductive ord_resolve :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> '
      eligible \<sigma> As (D + negs (mset As)) \<Longrightarrow>
      (\<forall>i < n. strictly_maximal_in (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)) \<Longrightarrow>
      (\<forall>i < n. S (CAs ! i) = {#}) \<Longrightarrow>
-     ord_resolve CAs (D + negs (mset As)) \<sigma> (((\<Union># mset Cs) + D) \<cdot> \<sigma>)"
+     ord_resolve CAs (D + negs (mset As)) AAs As \<sigma> (((\<Union># mset Cs) + D) \<cdot> \<sigma>)"
 
-inductive ord_resolve_rename :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 's \<Rightarrow> 'a clause \<Rightarrow> bool" where
+inductive
+  ord_resolve_rename
+  :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a multiset list \<Rightarrow> 'a list \<Rightarrow> 's \<Rightarrow> 'a clause \<Rightarrow> bool"
+where
   ord_resolve_rename:
     "\<rho> = hd (renamings_apart (DA # CAs)) \<Longrightarrow>
      \<rho>s = tl (renamings_apart (DA # CAs)) \<Longrightarrow>
-     ord_resolve (CAs \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) \<sigma> E \<Longrightarrow>
-     ord_resolve_rename CAs DA \<sigma> E"
+     ord_resolve (CAs \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) AAs As \<sigma> E \<Longrightarrow>
+     ord_resolve_rename CAs DA AAs As \<sigma> E"
 
-lemma ord_resolve_empty_main_prem: "\<not> ord_resolve Cs {#} \<sigma> E"
+lemma ord_resolve_empty_main_prem: "\<not> ord_resolve Cs {#} AAs As \<sigma> E"
   by (simp add: ord_resolve.simps)
 
-lemma ord_resolve_rename_empty_main_prem: "\<not> ord_resolve_rename Cs {#} \<sigma> E"
+lemma ord_resolve_rename_empty_main_prem: "\<not> ord_resolve_rename Cs {#} AAs As \<sigma> E"
   by (simp add: ord_resolve_empty_main_prem ord_resolve_rename.simps)
 
 
@@ -161,8 +167,8 @@ lemma ground_prems_ord_resolve_rename_imp_ord_resolve:
   assumes
     gr_cc: "is_ground_cls_list CAs" and
     gr_d: "is_ground_cls DA" and
-    res_e_re: "ord_resolve_rename CAs DA \<sigma> E"
-  shows "ord_resolve CAs DA \<sigma> E"
+    res_e_re: "ord_resolve_rename CAs DA AAs As \<sigma> E"
+  shows "ord_resolve CAs DA AAs As \<sigma> E"
   using res_e_re
 proof (cases rule: ord_resolve_rename.cases)
   case (ord_resolve_rename \<rho> P)
@@ -171,7 +177,7 @@ proof (cases rule: ord_resolve_rename.cases)
     using renames_apart by (metis list.sel(2) list.set_sel(2))
   from P have len: "length P = length CAs"
     using renames_apart by auto
-  have res_e: "ord_resolve (CAs \<cdot>\<cdot>cl P) (DA \<cdot> \<rho>) \<sigma> E"
+  have res_e: "ord_resolve (CAs \<cdot>\<cdot>cl P) (DA \<cdot> \<rho>) AAs As \<sigma> E"
     using res by auto
   have "CAs \<cdot>\<cdot>cl P = CAs"
     using len gr_cc by auto
@@ -188,14 +194,14 @@ which is used to prove completeness.
 
 lemma ord_resolve_ground_inst_sound:
   assumes
-    res_e: "ord_resolve CAs DA \<sigma> E" and
+    res_e: "ord_resolve CAs DA AAs As \<sigma> E" and
     cc_inst_true: "I \<Turnstile>m mset CAs \<cdot>cm \<sigma> \<cdot>cm \<eta>" and
     d_inst_true: "I \<Turnstile> DA \<cdot> \<sigma> \<cdot> \<eta>" and
     ground_subst_\<eta>: "is_ground_subst \<eta>"
   shows "I \<Turnstile> E \<cdot> \<eta>"
   using res_e
 proof (cases rule: ord_resolve.cases)
-  case (ord_resolve n Cs AAs As D)
+  case (ord_resolve n Cs D)
   note da = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and
     aas_len = this(5) and as_len = this(6) and cas = this(8) and mgu = this(10) and
     len = this(1)
@@ -250,13 +256,13 @@ qed
 
 lemma ord_resolve_sound:
   assumes
-    res_e: "ord_resolve CAs DA \<sigma> E" and
+    res_e: "ord_resolve CAs DA AAs As \<sigma> E" and
     cc_d_true: "I \<Turnstile>fom mset CAs + {#DA#}"
   shows "I \<Turnstile>fo E"
 proof (rule true_fo_cls, use res_e in \<open>cases rule: ord_resolve.cases\<close>)
   fix \<eta>
   assume ground_subst_\<eta>: "is_ground_subst \<eta>"
-  case (ord_resolve n Cs AAs As D)
+  case (ord_resolve n Cs D)
   note da = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4)
     and aas_len = this(5) and as_len = this(6) and cas = this(8) and mgu = this(10)
 
@@ -306,7 +312,7 @@ This is a lemma needed to prove Lemma 4.11.
 
 lemma ord_resolve_rename_ground_inst_sound:
   assumes
-    "ord_resolve_rename CAs DA \<sigma> E" and
+    "ord_resolve_rename CAs DA AAs As \<sigma> E" and
     "\<rho>s = tl (renamings_apart (DA # CAs))" and
     "\<rho> = hd (renamings_apart (DA # CAs))" and
     "I \<Turnstile>m (mset (CAs \<cdot>\<cdot>cl \<rho>s)) \<cdot>cm \<sigma> \<cdot>cm \<eta>" and
@@ -317,7 +323,7 @@ lemma ord_resolve_rename_ground_inst_sound:
 
 lemma ord_resolve_rename_sound:
   assumes
-    res_e: "ord_resolve_rename CAs DA \<sigma> E" and
+    res_e: "ord_resolve_rename CAs DA AAs As \<sigma> E" and
     cc_d_true: "I \<Turnstile>fom (mset CAs) + {#DA#}"
   shows "I \<Turnstile>fo E"
   using res_e
@@ -429,11 +435,11 @@ lemma ground_resolvent_subset:
   assumes
     gr_cas: "is_ground_cls_list CAs" and
     gr_da: "is_ground_cls DA" and
-    res_e: "ord_resolve S CAs DA \<sigma> E"
+    res_e: "ord_resolve S CAs DA AAs As \<sigma> E"
   shows "E \<subseteq># (\<Union># mset CAs) + DA"
   using res_e
 proof (cases rule: ord_resolve.cases)
-  case (ord_resolve n Cs AAs As D)
+  case (ord_resolve n Cs D)
   note da = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4)
     and aas_len = this(5) and as_len = this(6) and cas = this(8) and mgu = this(10)
   then have cs_sub_cas: "\<Union># mset Cs \<subseteq># \<Union># mset CAs"
@@ -457,7 +463,7 @@ qed
 
 lemma ord_resolve_obtain_clauses:
   assumes
-    res_e: "ord_resolve (S_M S M) CAs DA \<sigma> E" and
+    res_e: "ord_resolve (S_M S M) CAs DA AAs As \<sigma> E" and
     select: "selection S" and
     grounding: "{DA} \<union> set CAs \<subseteq> grounding_of_clss M" and
     n: "length CAs = n"
@@ -469,12 +475,12 @@ lemma ord_resolve_obtain_clauses:
     "S DA'' \<cdot> \<eta>'' = S_M S M DA"
     "\<forall>CA'' \<in> set CAs''. CA'' \<in> M"
     "CAs'' \<cdot>\<cdot>cl \<eta>s'' = CAs"
-    "(map S CAs'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAs"
+    "map S CAs'' \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAs"
     "is_ground_subst \<eta>''"
     "is_ground_subst_list \<eta>s''"
   using res_e
 proof (cases rule: ord_resolve.cases)
-  case (ord_resolve n_twin Cs AAs As D)
+  case (ord_resolve n_twin Cs D)
   note da = this(1) and e = this(2) and cas = this(8) and mgu = this(10)
   from ord_resolve have "n_twin = n"
     using n by auto
@@ -487,7 +493,7 @@ proof (cases rule: ord_resolve.cases)
 
   -- \<open>Obtain FO side premises\<close>
   have "\<forall>CA \<in> set CAs. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> CA'' \<cdot> \<eta>c'' = CA \<and> S CA'' \<cdot> \<eta>c'' = S_M S M CA \<and> is_ground_subst \<eta>c''"
-    using grounding S_M_grounding_of_clss select by (metis le_supE subset_iff)
+    using grounding S_M_grounding_of_clss select by (metis (no_types) le_supE subset_iff)
   then have "\<forall>i < n. \<exists>CA'' \<eta>c''. CA'' \<in> M \<and> CA'' \<cdot> \<eta>c'' = (CAs ! i) \<and> S CA'' \<cdot> \<eta>c'' = S_M S M (CAs ! i) \<and> is_ground_subst \<eta>c''"
     using n by force
   then obtain \<eta>s''f CAs''f where f_p:
@@ -495,7 +501,7 @@ proof (cases rule: ord_resolve.cases)
     "\<forall>i < n. (CAs''f i) \<cdot> (\<eta>s''f i) = (CAs ! i)"
     "\<forall>i < n. S (CAs''f i)  \<cdot> (\<eta>s''f i) = S_M S M (CAs ! i)"
     "\<forall>i < n. is_ground_subst (\<eta>s''f i)"
-    using n by metis
+    using n by (metis (no_types))
 
   define \<eta>s'' where
     "\<eta>s'' = map \<eta>s''f [0 ..<n]"
@@ -514,7 +520,7 @@ proof (cases rule: ord_resolve.cases)
   have SCAs''_to_SMCAs: "(map S CAs'') \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAs"
     unfolding CAs''_def \<eta>s''_def using f_p(3) n by (force intro: nth_equalityI)
   have sub_ground: "\<forall>\<eta>c'' \<in> set \<eta>s''. is_ground_subst \<eta>c''"
-    unfolding \<eta>s''_def using f_p n by auto
+    unfolding \<eta>s''_def using f_p n by force
   then have "is_ground_subst_list \<eta>s''"
     using n unfolding is_ground_subst_list_def by auto
 
@@ -533,26 +539,27 @@ proof (cases rule: ord_resolve.cases)
   have "is_ground_subst \<eta>''"
     using DA''_\<eta>''_p by auto
   show ?thesis
-    using that[OF n(2) n(1) DA''_in_M  DA''_to_DA SDA''_to_SMDA CAs''_in_M CAs''_to_CAs SCAs''_to_SMCAs \<open>is_ground_subst \<eta>''\<close> \<open>is_ground_subst_list \<eta>s''\<close>]
+    using that[OF n(2,1) DA''_in_M  DA''_to_DA SDA''_to_SMDA CAs''_in_M CAs''_to_CAs SCAs''_to_SMCAs
+        \<open>is_ground_subst \<eta>''\<close> \<open>is_ground_subst_list \<eta>s''\<close>]
     by auto
 qed
 
 lemma ord_resolve_rename_lifting:
   assumes
     sel_stable: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
-    res_e: "ord_resolve (S_M S M) CAs DA \<sigma> E" and
+    res_e: "ord_resolve (S_M S M) CAs DA AAs As \<sigma> E" and
     select: "selection S" and
     grounding: "{DA} \<union> set CAs \<subseteq> grounding_of_clss M"
-  obtains \<eta>s \<eta> \<eta>2 CAs'' DA'' E'' \<tau> where
+  obtains \<eta>s \<eta> \<eta>2 CAs'' DA'' AAs'' As'' E'' \<tau> where
     "is_ground_subst \<eta>"
     "is_ground_subst_list \<eta>s"
     "is_ground_subst \<eta>2"
-    "ord_resolve_rename S CAs'' DA'' \<tau> E''"
+    "ord_resolve_rename S CAs'' DA'' AAs'' As'' \<tau> E''"
     "CAs'' \<cdot>\<cdot>cl \<eta>s = CAs" "DA'' \<cdot> \<eta> = DA" "E'' \<cdot> \<eta>2 = E" (* In the previous proofs I have CAs and DA on lfs of equality *)
     "{DA''} \<union> set CAs'' \<subseteq> M"
   using res_e
 proof (cases rule: ord_resolve.cases)
-  case (ord_resolve n Cs AAs As D)
+  case (ord_resolve n Cs D)
   note da = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and
     aas_len = this(5) and as_len = this(6) and nz = this(7) and cas = this(8) and
     aas_not_empt = this(9) and mgu = this(10) and eligible = this(11) and str_max = this(12) and
@@ -581,25 +588,25 @@ proof (cases rule: ord_resolve.cases)
 
   note n = \<open>length CAs'' = n\<close> \<open>length \<eta>s'' = n\<close> n
 
-  have "length (renamings_apart (DA''#CAs'')) = Suc n"
+  have "length (renamings_apart (DA'' # CAs'')) = Suc n"
     using n renames_apart by auto
 
   note n = this n
 
   define DA' where
-    "DA' = DA'' \<cdot> hd (renamings_apart (DA''#CAs''))"
+    "DA' = DA'' \<cdot> hd (renamings_apart (DA'' # CAs''))"
   define CAs' where
-    "CAs' = CAs'' \<cdot>\<cdot>cl tl (renamings_apart (DA''#CAs''))"
+    "CAs' = CAs'' \<cdot>\<cdot>cl tl (renamings_apart (DA'' # CAs''))"
   define \<eta>' where
-    "\<eta>' = inv_renaming (hd (renamings_apart (DA''#CAs''))) \<odot> \<eta>''"
+    "\<eta>' = inv_renaming (hd (renamings_apart (DA'' # CAs''))) \<odot> \<eta>''"
   define \<eta>s' where
-    "\<eta>s' = map inv_renaming (tl (renamings_apart (DA''#CAs''))) \<odot>s \<eta>s''"
+    "\<eta>s' = map inv_renaming (tl (renamings_apart (DA'' # CAs''))) \<odot>s \<eta>s''"
 
-  have renames_DA'': "is_renaming (hd (renamings_apart (DA''#CAs'')))"
+  have renames_DA'': "is_renaming (hd (renamings_apart (DA'' # CAs'')))"
     using renames_apart
     by (metis length_greater_0_conv list.exhaust_sel list.set_intros(1) list.simps(3))
 
-  have renames_CAs'': "is_renaming_list (tl (renamings_apart (DA''#CAs'')))"
+  have renames_CAs'': "is_renaming_list (tl (renamings_apart (DA'' # CAs'')))"
     using renames_apart
     by (metis is_renaming_list_def length_greater_0_conv list.set_sel(2) list.simps(3))
 
@@ -623,9 +630,9 @@ proof (cases rule: ord_resolve.cases)
         substitution_axioms zero_less_Suc)
 
   -- \<open>Introduce ground substitution\<close>
-  from vd DA'_DA CAs'_CAs have "\<exists>\<eta>. \<forall>i<Suc n. \<forall>S. S \<subseteq># (DA' # CAs') ! i \<longrightarrow> S \<cdot> (\<eta>'#\<eta>s') ! i = S \<cdot> \<eta>"
+  from vd DA'_DA CAs'_CAs have "\<exists>\<eta>. \<forall>i < Suc n. \<forall>S. S \<subseteq># (DA' # CAs') ! i \<longrightarrow> S \<cdot> (\<eta>'#\<eta>s') ! i = S \<cdot> \<eta>"
     unfolding var_disjoint_def using n by auto
-  then obtain \<eta> where \<eta>_p: "\<forall>i<Suc n. \<forall>S. S \<subseteq># (DA' # CAs') ! i \<longrightarrow> S \<cdot> (\<eta>'#\<eta>s') ! i = S \<cdot> \<eta>"
+  then obtain \<eta> where \<eta>_p: "\<forall>i < Suc n. \<forall>S. S \<subseteq># (DA' # CAs') ! i \<longrightarrow> S \<cdot> (\<eta>'#\<eta>s') ! i = S \<cdot> \<eta>"
     by auto
 
   have DA'_DA: "DA' \<cdot> \<eta> = DA"
@@ -885,9 +892,10 @@ proof (cases rule: ord_resolve.cases)
     using n aas_not_empt \<open>AAs' \<cdot>aml \<eta> = AAs\<close> by auto
 
   -- \<open>Resolve the lifted clauses\<close>
-  define E' where "E' = ((\<Union># (mset Cs')) + D') \<cdot> \<tau>"
+  define E' where
+    "E' = ((\<Union># mset Cs') + D') \<cdot> \<tau>"
 
-  have res_e': "ord_resolve S CAs' DA' \<tau> E'"
+  have res_e': "ord_resolve S CAs' DA' AAs' As' \<tau> E'"
     using ord_resolve.intros[of CAs' n Cs' AAs' As' \<tau> S D',
       OF _ _ _ _ _ _ \<open>\<forall>i < n. AAs' ! i \<noteq> {#}\<close> \<tau>\<phi>(1) eligible'
         \<open>\<forall>i < n. strictly_maximal_in (As' ! i \<cdot>a \<tau>) (Cs' ! i \<cdot> \<tau>)\<close> \<open>\<forall>i < n. S (CAs' ! i) = {#}\<close>]
@@ -896,13 +904,11 @@ proof (cases rule: ord_resolve.cases)
   -- \<open>Prove resolvent instantiates to ground resolvent\<close>
   have e'\<phi>e: "E' \<cdot> \<phi> = E"
   proof -
-    have "E' \<cdot> \<phi> = ((\<Union># (mset Cs')) + D') \<cdot> (\<tau> \<odot> \<phi>)"
+    have "E' \<cdot> \<phi> = ((\<Union># mset Cs') + D') \<cdot> (\<tau> \<odot> \<phi>)"
       unfolding E'_def by auto
-    also have "\<dots> = ((\<Union># (mset Cs')) + D') \<cdot> (\<eta> \<odot> \<sigma>)"
+    also have "\<dots> = (\<Union># mset Cs' + D') \<cdot> (\<eta> \<odot> \<sigma>)"
       using \<tau>\<phi> by auto
-    also have "\<dots> = ((\<Union># (mset (Cs' \<cdot>cl \<eta>))) + (D' \<cdot> \<eta>)) \<cdot> \<sigma>"
-      by simp
-    also have "\<dots> = ((\<Union># (mset Cs)) + D) \<cdot> \<sigma>"
+    also have "\<dots> = (\<Union># mset Cs + D) \<cdot> \<sigma>"
       using \<open>Cs' \<cdot>cl \<eta> = Cs\<close> \<open>D' \<cdot> \<eta> = D\<close> by auto
     also have "\<dots> = E"
       using e by auto
@@ -922,12 +928,12 @@ proof (cases rule: ord_resolve.cases)
       using that e'\<phi>e make_ground_subst by auto
   qed
 
-  have res_r_e: "ord_resolve_rename S CAs'' DA'' \<tau> E'"
-    using ord_resolve_rename res_e' unfolding CAs'_def DA'_def by auto
-
-  show thesis
+  obtain AAs'' As'' where
+    "ord_resolve_rename S CAs'' DA'' AAs'' As'' \<tau> E'"
+    using ord_resolve_rename res_e' unfolding CAs'_def DA'_def by blast
+  then show thesis
     using that[of \<eta>'' \<eta>s'' \<eta>2 CAs'' DA''] \<open>is_ground_subst \<eta>''\<close> \<open>is_ground_subst_list \<eta>s''\<close>
-      \<open>is_ground_subst \<eta>2\<close> res_r_e \<open>CAs'' \<cdot>\<cdot>cl \<eta>s'' = CAs\<close> \<open>DA'' \<cdot> \<eta>'' = DA\<close> \<open>E' \<cdot> \<eta>2 = E\<close> \<open>DA'' \<in> M\<close>
+      \<open>is_ground_subst \<eta>2\<close> \<open>CAs'' \<cdot>\<cdot>cl \<eta>s'' = CAs\<close> \<open>DA'' \<cdot> \<eta>'' = DA\<close> \<open>E' \<cdot> \<eta>2 = E\<close> \<open>DA'' \<in> M\<close>
       \<open>\<forall>CA \<in> set CAs''. CA \<in> M\<close>
     by blast
 qed
