@@ -1101,8 +1101,9 @@ where
          (\<lambda>(j, M, vm). j > lev)
          (\<lambda>(j, M, vm). do {
             ASSERT(M \<noteq> []);
+            ASSERT(j \<ge> 1);
             if is_decided (hd M)
-            then let L = atm_of (lit_of (hd M)) in RETURN (j-1, tl M, vmtf_unset L vm)
+            then let L = atm_of (lit_of (hd M)) in RETURN (fast_minus j 1, tl M, vmtf_unset L vm)
             else let L = atm_of (lit_of (hd M)) in RETURN (j, tl M, vmtf_unset L vm)}
          )
          (k, M\<^sub>0, vm);
@@ -1260,6 +1261,7 @@ proof -
           intro: butlast)
     subgoal using vm by auto
     subgoal using lits unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_trail_lit_of_mset by auto
+    subgoal using lits by auto
     subgoal using lits by auto
     subgoal for s a b aa ba x1 x2 x1a x2a
       using lits by (cases aa) (auto intro: butlast count_decided_tl_if)
