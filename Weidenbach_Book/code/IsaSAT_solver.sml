@@ -232,16 +232,6 @@ fun less_nat m n = IntInf.< (integer_of_nat m, integer_of_nat n);
 
 val ord_nat = {less_eq = less_eq_nat, less = less_nat} : nat ord;
 
-fun equal_boola p true = p
-  | equal_boola p false = not p
-  | equal_boola true p = p
-  | equal_boola false p = not p;
-
-type 'a equal = {equal : 'a -> 'a -> bool};
-val equal = #equal : 'a equal -> 'a -> 'a -> bool;
-
-val equal_bool = {equal = equal_boola} : bool equal;
-
 fun typerep_boola t = Typerep ("HOL.bool", []);
 
 val countable_bool = {} : bool countable;
@@ -283,6 +273,23 @@ fun heap_option A_ =
     typerep_heap = typerep_option (typerep_heap A_)}
   : ('a option) heap;
 
+type 'a bit =
+  {bitNOT : 'a -> 'a, bitAND : 'a -> 'a -> 'a, bitOR : 'a -> 'a -> 'a,
+    bitXOR : 'a -> 'a -> 'a};
+val bitNOT = #bitNOT : 'a bit -> 'a -> 'a;
+val bitAND = #bitAND : 'a bit -> 'a -> 'a -> 'a;
+val bitOR = #bitOR : 'a bit -> 'a -> 'a -> 'a;
+val bitXOR = #bitXOR : 'a bit -> 'a -> 'a -> 'a;
+
+val bit_uint32 =
+  {bitNOT = Word32.notb, bitAND = (fn a => fn b => Word32.andb (a, b)),
+    bitOR = (fn a => fn b => Word32.orb (a, b)),
+    bitXOR = (fn a => fn b => Word32.xorb (a, b))}
+  : Word32.word bit;
+
+type 'a equal = {equal : 'a -> 'a -> bool};
+val equal = #equal : 'a equal -> 'a -> 'a -> bool;
+
 val equal_uint32 = {equal = (fn a => fn b => ((a : Word32.word) = b))} :
   Word32.word equal;
 
@@ -296,11 +303,37 @@ val heap_uint32 =
   {countable_heap = countable_uint32, typerep_heap = typerep_uint32} :
   Word32.word heap;
 
+type 'a one = {one : 'a};
+val one = #one : 'a one -> 'a;
+
+val one_uint32 = {one = (Word32.fromInt 1)} : Word32.word one;
+
+type 'a plus = {plus : 'a -> 'a -> 'a};
+val plus = #plus : 'a plus -> 'a -> 'a -> 'a;
+
+val plus_uint32 = {plus = (fn a => fn b => Word32.+ (a, b))} : Word32.word plus;
+
 val zero_uint32 = {zero = (Word32.fromInt 0)} : Word32.word zero;
 
 val default_uint32a : Word32.word = (Word32.fromInt 0);
 
 val default_uint32 = {default = default_uint32a} : Word32.word default;
+
+type 'a semigroup_add = {plus_semigroup_add : 'a plus};
+val plus_semigroup_add = #plus_semigroup_add : 'a semigroup_add -> 'a plus;
+
+type 'a numeral =
+  {one_numeral : 'a one, semigroup_add_numeral : 'a semigroup_add};
+val one_numeral = #one_numeral : 'a numeral -> 'a one;
+val semigroup_add_numeral = #semigroup_add_numeral :
+  'a numeral -> 'a semigroup_add;
+
+val semigroup_add_uint32 = {plus_semigroup_add = plus_uint32} :
+  Word32.word semigroup_add;
+
+val numeral_uint32 =
+  {one_numeral = one_uint32, semigroup_add_numeral = semigroup_add_uint32} :
+  Word32.word numeral;
 
 type 'a minus = {minus : 'a -> 'a -> 'a};
 val minus = #minus : 'a minus -> 'a -> 'a -> 'a;
@@ -815,7 +848,7 @@ fun arrayO_ara_empty_sz_code (A1_, A2_) =
 fun init_trail_D_code x =
   (fn _ => fn bi => fn () =>
     let
-      val xa = new (heap_option heap_bool) bi NONE ();
+      val xa = new heap_uint32 bi (Word32.fromInt 0) ();
       val x_b = new heap_uint32 bi (Word32.fromInt 0) ();
       val x_d = new (heap_option heap_nat) bi NONE ();
     in
@@ -997,8 +1030,9 @@ fun access_lit_in_clauses_heur_code x =
                                end)
     x;
 
-fun is_pos_code l =
-  (((Word32.andb (l, (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0));
+fun invert_pol_code (A1_, A2_, A3_, A4_) b l =
+  (if eq A4_ b (zero A3_) then zero A3_
+    else bitXOR A1_ b (bitAND A1_ l (one A2_)));
 
 fun polarity_pol_code x =
   (fn ai => fn bi =>
@@ -1009,8 +1043,8 @@ fun polarity_pol_code x =
         let
           val xa = (fn () => Array.sub (a1a, Word32.toInt (atm_of_code bi))) ();
         in
-          (case xa of NONE => NONE
-            | SOME x_a => (if is_pos_code bi then SOME x_a else SOME (not x_a)))
+          invert_pol_code (bit_uint32, one_uint32, zero_uint32, equal_uint32) xa
+            bi
         end)
     end)
     x;
@@ -1042,15 +1076,20 @@ fun find_unwatched_wl_st_heur_code x =
                     (fn f_ => fn () => f_ ((polarity_pol_code a1 xa) ()) ())
                       (fn x_a =>
                         (fn () =>
-                          (case x_a of NONE => (SOME a2g, a2g)
-                            | SOME true => (SOME a2g, a2g)
-                            | SOME false => (NONE, plus_nat a2g one_nat))))))
+                          (if ((x_a : Word32.word) = (Word32.fromInt 0))
+                            then (SOME a2g, a2g)
+                            else (if ((x_a : Word32.word) = (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int))))
+                                   then (SOME a2g, a2g)
+                                   else (NONE, plus_nat a2g one_nat)))))))
               (NONE, nat_of_integer (2 : IntInf.int)) ();
         in
           fst xa
         end)
     end)
     x;
+
+fun is_pos_code l =
+  (((Word32.andb (l, (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0));
 
 fun is_in_conflict_code x =
   (fn ai => fn bi =>
@@ -1402,12 +1441,31 @@ fun update_clause_wl_code x =
 
 fun uminus_code l = Word32.xorb (l, (Word32.fromInt 1));
 
+fun numeral A_ (Bit1 n) =
+  let
+    val m = numeral A_ n;
+  in
+    plus ((plus_semigroup_add o semigroup_add_numeral) A_)
+      (plus ((plus_semigroup_add o semigroup_add_numeral) A_) m m)
+      (one (one_numeral A_))
+  end
+  | numeral A_ (Bit0 n) =
+    let
+      val m = numeral A_ n;
+    in
+      plus ((plus_semigroup_add o semigroup_add_numeral) A_) m m
+    end
+  | numeral A_ One = one (one_numeral A_);
+
+fun get_pol_code (A1_, A2_) l =
+  bitXOR A1_ (numeral A2_ (Bit0 One)) (bitAND A1_ l (one (one_numeral A2_)));
+
 fun cons_trail_Propagated_tr_code x =
   (fn ai => fn bia => fn (a1, (a1a, (a1b, (a1c, a2c)))) => fn () =>
     let
       val xa =
-        heap_array_set_u (heap_option heap_bool) a1a (atm_of_code ai)
-          (SOME (is_pos_code ai)) ();
+        heap_array_set_u heap_uint32 a1a (atm_of_code ai)
+          (get_pol_code (bit_uint32, numeral_uint32) ai) ();
       val xaa = heap_array_set_u heap_uint32 a1b (atm_of_code ai) a2c ();
       val xb =
         heap_array_set_u (heap_option heap_nat) a1c (atm_of_code ai) (SOME bia)
@@ -1440,11 +1498,6 @@ fun propagate_lit_wl_code x =
     end)
     x;
 
-fun equal_option A_ NONE (SOME x2) = false
-  | equal_option A_ (SOME x2) NONE = false
-  | equal_option A_ (SOME x2) (SOME y2) = eq A_ x2 y2
-  | equal_option A_ NONE NONE = true;
-
 fun polarity_st_heur_code x = (fn ai => fn bi => let
            val (a1, _) = ai;
          in
@@ -1467,14 +1520,14 @@ fun unit_propagation_inner_loop_body_wl_D_code x =
           (fn x_d =>
             (fn f_ => fn () => f_ ((polarity_st_heur_code bi x_d) ()) ())
               (fn x_f =>
-                (if equal_option equal_bool x_f (SOME true)
+                (if ((x_f : Word32.word) = (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int))))
                   then (fn () => (plus_nat bia one_nat, bi))
                   else (fn f_ => fn () => f_
                          ((find_unwatched_wl_st_heur_code bi xa) ()) ())
                          (fn a =>
                            (case a
                              of NONE =>
-                               (if equal_option equal_bool x_f (SOME false)
+                               (if ((x_f : Word32.word) = (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
                                  then (fn f_ => fn () => f_
 ((set_conflict_wl_int_code xa bi) ()) ())
 (fn x_l => (fn () => (plus_nat bia one_nat, x_l)))
@@ -1679,8 +1732,8 @@ fun tl_trail_tr_code x =
   (fn (a1, (a1a, (a1b, (a1c, a2c)))) => fn () =>
     let
       val xa =
-        heap_array_set_u (heap_option heap_bool) a1a
-          (atm_of_code (op_list_hd a1)) NONE ();
+        heap_array_set_u heap_uint32 a1a (atm_of_code (op_list_hd a1))
+          (Word32.fromInt 0) ();
       val xaa =
         heap_array_set_u heap_uint32 a1b (atm_of_code (op_list_hd a1))
           (Word32.fromInt 0) ();
@@ -1804,6 +1857,11 @@ fun tl_state_wl_heur_code x =
     end)
     x;
 
+fun equal_bool p true = p
+  | equal_bool p false = not p
+  | equal_bool true p = p
+  | equal_bool false p = not p;
+
 fun imp_option_eq eq a b =
   (case (a, b) of (NONE, NONE) => (fn () => true)
     | (NONE, SOME _) => (fn () => false) | (SOME _, NONE) => (fn () => false)
@@ -1814,7 +1872,7 @@ fun is_in_lookup_option_conflict_code x =
     let
       val xa = (fn () => Array.sub (a2a, Word32.toInt (atm_of_code ai))) ();
     in
-      imp_option_eq (fn va => fn vb => (fn () => (equal_boola va vb))) xa
+      imp_option_eq (fn va => fn vb => (fn () => (equal_bool va vb))) xa
         (SOME (is_pos_code ai)) ()
     end)
     x;
@@ -1882,7 +1940,7 @@ fun defined_atm_code x =
       (fn () => let
                   val xa = (fn () => Array.sub (a1a, Word32.toInt bi)) ();
                 in
-                  not (is_None xa)
+                  not ((xa : Word32.word) = (Word32.fromInt 0))
                 end)
     end)
     x;
@@ -1952,8 +2010,8 @@ fun cons_trail_Decided_tr_code x =
   (fn ai => fn (a1, (a1a, (a1b, (a1c, a2c)))) => fn () =>
     let
       val xa =
-        heap_array_set_u (heap_option heap_bool) a1a (atm_of_code ai)
-          (SOME (is_pos_code ai)) ();
+        heap_array_set_u heap_uint32 a1a (atm_of_code ai)
+          (get_pol_code (bit_uint32, numeral_uint32) ai) ();
       val xaa =
         heap_array_set_u heap_uint32 a1b (atm_of_code ai)
           (Word32.+ (a2c, (Word32.fromInt 1))) ();
@@ -3161,15 +3219,11 @@ fun init_dt_step_wl_code x =
                              (fn f_ => fn () => f_
                                ((polarity_st_heur_init_code bi x_c) ()) ())
                                (fn x_e =>
-                                 (if is_None x_e
+                                 (if ((x_e : Word32.word) = (Word32.fromInt 0))
                                    then propagate_unit_cls_code x_c bi
-                                   else (fn f_ => fn () => f_
-  ((imp_option_eq (fn va => fn vb => (fn () => (equal_boola va vb))) x_e
-     (SOME true))
-  ()) ())
-  (fn x_h =>
-    (if x_h then already_propagated_unit_cls_code x_c bi
-      else conflict_propagated_unit_cls_code x_c bi))))
+                                   else (if ((x_e : Word32.word) = (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int))))
+  then already_propagated_unit_cls_code x_c bi
+  else conflict_propagated_unit_cls_code x_c bi)))
                            end
                       else add_init_cls_code ai bi))
         else add_clause_to_others_code ai bi)
