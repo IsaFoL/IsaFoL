@@ -335,6 +335,15 @@ definition find_unwatched_wl_st_heur  :: \<open>twl_st_wl_heur \<Rightarrow> nat
 
 end
 
+lemma case_tri_bool_If:
+  \<open>(case a of
+       None \<Rightarrow> f1
+     | Some v \<Rightarrow>
+        (if v then f2 else f3)) =
+   (let b = a in if b = UNSET
+    then f1
+    else if b = SET_TRUE then f2 else f3)\<close>
+  by (auto split: option.splits)
 
 context isasat_input_bounded_nempty
 begin
@@ -347,6 +356,7 @@ sepref_thm find_unwatched_wl_st_heur_code
     length_rll_def[simp]
   unfolding find_unwatched_wl_st_heur_def twl_st_heur_assn_def PR_CONST_def
   find_unwatched_def nth_rll_def[symmetric] length_rll_def[symmetric]
+  case_tri_bool_If
   by sepref
 
 concrete_definition (in -) find_unwatched_wl_st_heur_code
@@ -995,8 +1005,9 @@ sepref_thm unit_propagation_inner_loop_body_wl_D
   unfolding nth_rll_def[symmetric]
   unfolding lms_fold_custom_empty swap_ll_def[symmetric]
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
-  find_unwatched_wl_st_heur_def[symmetric] polarity_st_def[symmetric]
-  set_conflict_wl'_alt_def[symmetric] fast_minus_def[symmetric]
+    find_unwatched_wl_st_heur_def[symmetric] polarity_st_def[symmetric]
+    set_conflict_wl'_alt_def[symmetric] fast_minus_def[symmetric]
+    SET_FALSE_def[symmetric] SET_TRUE_def[symmetric]
   supply [[goals_limit=1]]
   by sepref
 

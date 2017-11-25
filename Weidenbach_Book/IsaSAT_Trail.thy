@@ -2,14 +2,64 @@ theory IsaSAT_Trail
 imports Two_Watched_Literals_Watch_List_Code_Common
 begin
 
+type_synonym tri_bool = \<open>bool option\<close>
+type_synonym tri_bool_assn = \<open>uint32\<close>
+
+definition tri_bool_ref :: \<open>(tri_bool_assn \<times> tri_bool) set\<close> where
+  \<open>tri_bool_ref = {(2 :: uint32, Some True), (0 :: uint32, None), (3 :: uint32, Some False)}\<close>
+
+definition tri_bool_assn :: \<open>tri_bool \<Rightarrow> tri_bool_assn \<Rightarrow> assn\<close> where
+  \<open>tri_bool_assn = hr_comp uint32_assn tri_bool_ref\<close>
+
+definition UNSET :: \<open>tri_bool\<close> where
+  [simp]: \<open>UNSET = None\<close>
+
+lemma UNSET_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return 0), uncurry0 (RETURN UNSET)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a tri_bool_assn\<close>
+  by sepref_to_hoare (sep_auto simp: tri_bool_assn_def tri_bool_ref_def pure_def hr_comp_def)
+
+lemma nat_of_uint32_3: \<open>nat_of_uint32 3 = 3\<close>
+  by (transfer, auto)+
+
+lemma equality_tri_bool_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo (op =)), uncurry(RETURN oo (op =))) \<in>
+      tri_bool_assn\<^sup>k *\<^sub>a tri_bool_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  apply sepref_to_hoare 
+  using nat_of_uint32_012 nat_of_uint32_3 
+  by (sep_auto simp: tri_bool_assn_def tri_bool_ref_def pure_def hr_comp_def)+
+
+
+definition (in -) tri_bool_eq :: \<open>tri_bool \<Rightarrow> tri_bool \<Rightarrow> bool\<close> where
+  \<open>tri_bool_eq = (op =)\<close>
+
+lemma equality_tri_bool_eq_hnr[sepref_fr_rules]:
+  \<open>(uncurry (return oo (op =)), uncurry(RETURN oo (tri_bool_eq))) \<in>
+      tri_bool_assn\<^sup>k *\<^sub>a tri_bool_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  apply sepref_to_hoare 
+  using nat_of_uint32_012 nat_of_uint32_3 unfolding tri_bool_eq_def
+  by (sep_auto simp: tri_bool_assn_def tri_bool_ref_def pure_def hr_comp_def)+
+
+definition SET_TRUE :: \<open>tri_bool\<close> where
+  [simp]: \<open>SET_TRUE = Some True\<close>
+
+lemma SET_TRUE_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return 2), uncurry0 (RETURN SET_TRUE)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a tri_bool_assn\<close>
+  by sepref_to_hoare (sep_auto simp: tri_bool_assn_def tri_bool_ref_def pure_def hr_comp_def)
+
+definition SET_FALSE :: \<open>tri_bool\<close> where
+  [simp]: \<open>SET_FALSE = Some False\<close>
+
+lemma SET_FALSE_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return 3), uncurry0 (RETURN SET_FALSE)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a tri_bool_assn\<close>
+  using nat_of_uint32_012 nat_of_uint32_3 
+  by sepref_to_hoare (sep_auto simp: tri_bool_assn_def tri_bool_ref_def pure_def hr_comp_def)+
+
+
 type_synonym trail_pol =
-   \<open>nat literal list \<times> bool option list \<times> nat list \<times> nat option list \<times> nat\<close>
+   \<open>nat literal list \<times> tri_bool list \<times> nat list \<times> nat option list \<times> nat\<close>
 
 type_synonym trail_pol_assn =
-   \<open>uint32 list \<times> bool option array \<times> uint32 array \<times> nat option array \<times> uint32\<close>
-
-type_synonym trail_pol_uint_assn =
-   \<open>uint32 list \<times> bool option array \<times> uint32 array \<times> uint64 option array \<times> uint32\<close>
+   \<open>uint32 list \<times> tri_bool_assn array \<times> uint32 array \<times> nat option array \<times> uint32\<close>
 
 definition get_level_atm where
   \<open>get_level_atm M L = get_level M (Pos L)\<close>
@@ -48,15 +98,9 @@ end
 
 abbreviation trail_pol_assn :: \<open>trail_pol \<Rightarrow> trail_pol_assn \<Rightarrow> assn\<close> where
   \<open>trail_pol_assn \<equiv>
-      list_assn unat_lit_assn *a array_assn (option_assn bool_assn) *a
+      list_assn unat_lit_assn *a array_assn (tri_bool_assn) *a
       array_assn uint32_nat_assn *a
       array_assn (option_assn nat_assn) *a uint32_nat_assn\<close>
-
-abbreviation trail_pol_uint_assn :: \<open>trail_pol \<Rightarrow> trail_pol_uint_assn \<Rightarrow> assn\<close> where
-  \<open>trail_pol_uint_assn \<equiv>
-      list_assn unat_lit_assn *a array_assn (option_assn bool_assn) *a
-      array_assn uint32_nat_assn *a
-      array_assn (option_assn uint64_nat_assn) *a uint32_nat_assn\<close>
 
 abbreviation phase_saver_conc where
   \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
@@ -100,25 +144,6 @@ prepare_code_thms (in -) get_level_atm_code_def
 
 lemmas get_level_atm_code_hnr[sepref_fr_rules] =
    get_level_atm_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
-
-
-sepref_thm get_level_atm_uint_code
-  is \<open>uncurry (RETURN oo get_level_atm_pol)\<close>
-  :: \<open>[\<lambda>((M, xs, lvls, k), L). nat_of_uint32 L < length lvls]\<^sub>a
-  trail_pol_uint_assn\<^sup>k *\<^sub>a uint32_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  unfolding get_level_atm_pol_def nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
-  nth_u_def[symmetric]
-  supply [[goals_limit = 1]]
-  by sepref
-
-concrete_definition (in -) get_level_atm_uint_code
-   uses isasat_input_bounded.get_level_atm_uint_code.refine_raw
-   is \<open>(uncurry ?f, _)\<in>_\<close>
-
-prepare_code_thms (in -) get_level_atm_uint_code_def
-
-lemmas get_level_atm_uint_code_hnr[sepref_fr_rules] =
-   get_level_atm_uint_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma get_level_atm_hnr[sepref_fr_rules]:
   \<open>(uncurry get_level_atm_code, uncurry (RETURN oo get_level_atm)) \<in>
@@ -199,19 +224,84 @@ lemmas count_decided_trail_code[sepref_fr_rules] =
 
 paragraph \<open>Value of a literal\<close>
 
+definition (in -) invert_pol where
+  \<open>invert_pol b L = 
+    (case b of
+       None \<Rightarrow> UNSET
+     | Some v \<Rightarrow> if is_pos L then (Some v)
+       else (Some (\<not>v)))\<close>
+
 definition (in -) polarity_pol :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close> where
   \<open>polarity_pol = (\<lambda>(M, xs, lvls, k) L. do {
      ASSERT(atm_of L < length xs);
-     (case xs ! (atm_of L) of
-       None \<Rightarrow> RETURN None
-     | Some v \<Rightarrow> if is_pos L then RETURN (Some v)
-       else RETURN (Some (\<not>v)))
+     RETURN (invert_pol (xs ! (atm_of L)) L)
   })\<close>
+
+definition (in -)invert_pol_code where
+  \<open>invert_pol_code b L = 
+    (if b = 0 then 0 else b XOR (L AND 1))\<close>
+
+(* TODO Move *)
+lemma (in -) nat_of_uint32_mod:
+  \<open>nat_of_uint32 L mod 2 = nat_of_uint32 (L mod 2)\<close>
+  by transfer (auto simp: uint_mod unat_def transfer_nat_int_functions[symmetric])
+
+lemma (in -) bitAND_1_mod_2_uint32: \<open>bitAND L 1 = L mod 2\<close> for L :: uint32
+proof -
+  have H: \<open>unat L mod 2 = 1 \<or> unat L mod 2 = 0\<close> for L
+    by auto
+    
+  show ?thesis
+    apply (subst word_nat_of_uint32_Rep_inject[symmetric])
+    apply (subst nat_of_uint32_ao[symmetric])
+    apply (subst nat_of_uint32_012)
+    unfolding bitAND_1_mod_2
+    by (rule nat_of_uint32_mod)
+qed
+
+
+lemma (in -)invert_pol_hnr[sepref_fr_rules]:
+  \<open>(uncurry(return oo invert_pol_code), uncurry (RETURN oo invert_pol)) \<in>
+      tri_bool_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a tri_bool_assn\<close>
+proof -
+  have [simp]: \<open>even (nat_of_uint32 bi) \<Longrightarrow> (bi AND 1) = 0\<close> for bi :: uint32
+    unfolding bitAND_1_mod_2_uint32 even_iff_mod_2_eq_zero
+    apply (cases \<open>bi mod 2 = 0\<close>; cases \<open>bi mod 2 = 1\<close>)
+       apply (auto simp: nat_of_uint32_mod)
+    using word_nat_of_uint32_Rep_inject by fastforce
+  have [simp]: \<open>odd (nat_of_uint32 bi) \<Longrightarrow> (bi AND 1) = 1\<close> for bi :: uint32
+    unfolding bitAND_1_mod_2_uint32 even_iff_mod_2_eq_zero
+    apply (cases \<open>bi mod 2 = 0\<close>; cases \<open>bi mod 2 = 1\<close>)
+       apply (auto simp: nat_of_uint32_mod)
+    by (metis mod2_gr_0 nat_of_uint32_012(3) nat_of_uint32_mod word_nat_of_uint32_Rep_inject)
+
+  have [simp]: \<open>0 = (2 :: uint32) \<longleftrightarrow> False\<close> \<open>0 = (3 :: uint32) \<longleftrightarrow> False\<close>
+    using nat_of_uint32_012(2) nat_of_uint32_3 by fastforce+
+
+  have [simp]: \<open>2 XOR 0 = (2 :: uint32)\<close> \<open>3 XOR 0 = (3 :: uint32)\<close> \<open>2 XOR 1 = (3 :: uint32)\<close>
+      \<open>3 XOR 1 = (2 :: uint32)\<close>
+    by (auto simp: bitXOR_uint32_def zero_uint32.rep_eq Abs_uint32_numeral
+        one_uint32.rep_eq)
+
+  show ?thesis
+    by (sepref_to_hoare)
+      (sep_auto simp: invert_pol_code_def invert_pol_def
+      tri_bool_ref_def unat_lit_rel_def uint32_nat_rel_def
+      br_def nat_lit_rel_def lit_of_natP_def
+      tri_bool_assn_def pure_app_eq
+      Collect_eq_comp 
+      split: option.splits if_splits)
+qed
+
+lemma (in -)[safe_constraint_rules]:
+  \<open>is_pure tri_bool_assn\<close>
+  unfolding tri_bool_assn_def
+  by auto
 
 sepref_thm polarity_pol_code
   is \<open>uncurry polarity_pol\<close>
-  :: \<open>trail_pol_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn\<close>
-  unfolding polarity_pol_def
+  :: \<open>trail_pol_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a tri_bool_assn\<close>
+  unfolding polarity_pol_def option.case_eq_if
   supply [[goals_limit = 1]]
   by sepref
 
@@ -226,7 +316,7 @@ lemmas polarity_pol_code_polarity_refine_code[sepref_fr_rules] =
 
 lemma polarity_pol_code_polarity_refine[sepref_fr_rules]:
   \<open>(uncurry polarity_pol_code, uncurry (RETURN oo polarity)) \<in>
-     [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a trail_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn bool_assn\<close>
+     [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a trail_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
 proof -
   have [simp]: \<open>polarity_atm M (atm_of L) = (if is_pos L then polarity M L else map_option uminus (polarity M L))\<close>
     if \<open>no_dup M\<close>for M :: \<open>(nat, nat) ann_lits\<close> and L :: \<open>nat literal\<close>
@@ -235,10 +325,10 @@ proof -
   have 2: \<open>(uncurry polarity_pol, uncurry (RETURN oo polarity)) \<in>
      [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>f trail_pol \<times>\<^sub>f Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
     by (intro nres_relI frefI)
-      (auto simp: trail_pol_def polarity_def polarity_pol_def
+      (auto simp: trail_pol_def polarity_def polarity_pol_def invert_pol_def
         split: if_splits option.splits)
   show ?thesis
-    using polarity_pol_code.refine[FCOMP 2, OF isasat_input_bounded_axioms] .
+    using polarity_pol_code.refine[FCOMP 2, OF isasat_input_bounded_axioms] by simp
 qed
 
 end
@@ -308,12 +398,54 @@ proof -
     using 1 2 by (auto simp: uint_max_def)
 qed
 
+definition (in -) get_pol where
+  \<open>get_pol L = Some (is_pos L)\<close>
+
+
+definition (in -) get_pol_code where
+  \<open>get_pol_code L = 2 XOR (L AND 1)\<close>
+
+lemma (in -) get_pol_hnr[sepref_fr_rules]:
+  \<open>(return o get_pol_code, RETURN o get_pol) \<in>
+     unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a tri_bool_assn\<close>
+proof -
+  have [simp]: \<open>even (nat_of_uint32 bi) \<Longrightarrow> (bi AND 1) = 0\<close> for bi :: uint32
+    unfolding bitAND_1_mod_2_uint32 even_iff_mod_2_eq_zero
+    apply (cases \<open>bi mod 2 = 0\<close>; cases \<open>bi mod 2 = 1\<close>)
+       apply (auto simp: nat_of_uint32_mod)
+    using word_nat_of_uint32_Rep_inject by fastforce
+  have [simp]: \<open>odd (nat_of_uint32 bi) \<Longrightarrow> (bi AND 1) = 1\<close> for bi :: uint32
+    unfolding bitAND_1_mod_2_uint32 even_iff_mod_2_eq_zero
+    apply (cases \<open>bi mod 2 = 0\<close>; cases \<open>bi mod 2 = 1\<close>)
+       apply (auto simp: nat_of_uint32_mod)
+    by (metis mod2_gr_0 nat_of_uint32_012(3) nat_of_uint32_mod word_nat_of_uint32_Rep_inject)
+
+  have [simp]: \<open>0 = (2 :: uint32) \<longleftrightarrow> False\<close> \<open>0 = (3 :: uint32) \<longleftrightarrow> False\<close>
+    using nat_of_uint32_012(2) nat_of_uint32_3 by fastforce+
+
+  have [simp]: \<open>2 XOR 0 = (2 :: uint32)\<close> \<open>3 XOR 0 = (3 :: uint32)\<close> \<open>2 XOR 1 = (3 :: uint32)\<close>
+    \<open>3 XOR 1 = (2 :: uint32)\<close>
+    by (auto simp: bitXOR_uint32_def zero_uint32.rep_eq Abs_uint32_numeral
+        one_uint32.rep_eq)
+
+  show ?thesis
+    unfolding get_pol_code_def get_pol_def
+    by sepref_to_hoare
+     (sep_auto simp: invert_pol_code_def invert_pol_def
+        tri_bool_ref_def unat_lit_rel_def uint32_nat_rel_def
+        br_def nat_lit_rel_def lit_of_natP_def
+        tri_bool_assn_def pure_app_eq
+        Collect_eq_comp 
+        split: option.splits if_splits)
+qed
+
 sepref_thm cons_trail_Propagated_tr_code
   is \<open>uncurry2 (RETURN ooo cons_trail_Propagated_tr)\<close>
   :: \<open>[\<lambda>((L, C), (M, xs, lvls, reasons, k)). atm_of L < length xs \<and> atm_of L < length lvls \<and>
      atm_of L < length reasons]\<^sub>a
        unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
   unfolding cons_trail_Propagated_tr_def cons_trail_Propagated_tr_def
+    get_pol_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -439,7 +571,7 @@ sepref_thm tl_trail_tr_code
     (reason ! atm_of (hd M) = None \<longrightarrow> k \<ge> 1)]\<^sub>a
         trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
   supply if_splits[split] option.splits[split]
-  unfolding tl_trailt_tr_def
+  unfolding tl_trailt_tr_def UNSET_def[symmetric]
   apply (rewrite at \<open>_ - one_uint32_nat\<close> fast_minus_def[symmetric])
   supply [[goals_limit = 1]]
   by sepref
@@ -601,6 +733,7 @@ sepref_thm cons_trail_Decided_tr_code
       Suc k \<le> uint_max]\<^sub>a
        unat_lit_assn\<^sup>k *\<^sub>a trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
   unfolding cons_trail_Decided_tr_def cons_trail_Decided_tr_def one_uint32_nat_def[symmetric]
+    get_pol_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -645,16 +778,18 @@ proof -
     using H unfolding im pre .
 qed
 
+
 definition (in -) defined_atm_pol where
   \<open>defined_atm_pol = (\<lambda>(M, xs, lvls, k) L. do {
       ASSERT(L < length xs);
-      RETURN (xs!L \<noteq> None)
+      RETURN (\<not>((xs!L) = None))
     })\<close>
 
 sepref_thm defined_atm_code
   is \<open>uncurry defined_atm_pol\<close>
   :: \<open>(trail_pol_assn)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding defined_atm_pol_def
+  unfolding defined_atm_pol_def UNSET_def[symmetric] tri_bool_eq_def[symmetric]
+  supply UNSET_def[simp del] [[goals_limit=15]]
   by sepref
 
 concrete_definition (in -) defined_atm_code

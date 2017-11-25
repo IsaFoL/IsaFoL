@@ -580,7 +580,8 @@ proof -
       twl_struct_invs_confl[of x]
     unfolding comp_PRE_def option_lookup_clause_rel_def lookup_clause_rel_def
     apply (cases \<open>get_trail_wl x\<close>)
-    by (auto simp: image_image twl_st_heur_def phase_saving_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+     apply (solves simp)
+    by simp (auto simp:  twl_st_heur_def phase_saving_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
       vmtf_def)
   have im: \<open>?im' = ?im\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def

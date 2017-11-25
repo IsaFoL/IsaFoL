@@ -840,7 +840,7 @@ definition polarity_st_heur_init :: \<open>twl_st_wl_heur_init_trail_ref \<Right
 
 sepref_thm polarity_st_heur_init_code
   is \<open>uncurry polarity_st_heur_init\<close>
-  :: \<open>twl_st_heur_pol_init_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn\<close>
+  :: \<open>twl_st_heur_pol_init_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a tri_bool_assn\<close>
   unfolding polarity_st_heur_init_def twl_st_heur_pol_init_assn_def
   supply [[goals_limit = 1]]
   by sepref
@@ -856,7 +856,7 @@ definition polarity_st_init :: \<open>'v twl_st_wl_init \<Rightarrow> 'v literal
 
 lemma polarity_st_heur_code_polarity_st_refine[sepref_fr_rules]:
   \<open>(uncurry polarity_st_heur_init_code, uncurry (RETURN oo polarity_st_init)) \<in>
-     [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a twl_st_init_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn bool_assn\<close>
+     [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a twl_st_init_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
 proof -
   have [simp]:
      \<open>polarity_atm M (atm_of L) = (if is_pos L then polarity M L
@@ -867,12 +867,12 @@ proof -
   have 2: \<open>(uncurry polarity_st_heur_init, uncurry (RETURN oo polarity_st_init)) \<in>
      [\<lambda>(_, L). L \<in> snd ` D\<^sub>0]\<^sub>f twl_st_heur_pol_init \<times>\<^sub>f Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
     by (intro nres_relI frefI)
-       (auto simp: trail_pol_def polarity_st_init_def (* polarity_def *)
+       (auto simp: trail_pol_def polarity_st_init_def invert_pol_def
         twl_st_heur_pol_init_def polarity_pol_def polarity_st_heur_init_def
         split: if_splits option.splits)
   show ?thesis
     using polarity_st_heur_init_code.refine[FCOMP 2, OF isasat_input_bounded_axioms,
-      unfolded twl_st_heur_init_assn_assn] .
+      unfolded twl_st_heur_init_assn_assn] by simp
 qed
 
 lemma get_conflict_wl_is_None_init:
@@ -890,6 +890,7 @@ sepref_thm init_dt_step_wl_code
        twl_st_init_assn\<close>
   supply polarity_None_undefined_lit[simp] polarity_st_init_def[simp]
   option.splits[split] get_conflict_wl_is_None_init_def[simp]
+  tri_bool_eq_def[simp]
   unfolding init_dt_step_wl_def lms_fold_custom_empty PR_CONST_def
   unfolding watched_app_def[symmetric]
   unfolding nth_rll_def[symmetric]
@@ -898,6 +899,8 @@ sepref_thm init_dt_step_wl_code
     cons_trail_Propagated_def[symmetric] get_conflict_wl_is_None_init
     polarity_st_init_def[symmetric]
     get_conflict_wl_is_None_init_def[symmetric]
+    SET_TRUE_def[symmetric] SET_FALSE_def[symmetric] UNSET_def[symmetric]
+    tri_bool_eq_def[symmetric]
   by sepref
 
 concrete_definition (in -) init_dt_step_wl_code
@@ -1952,7 +1955,7 @@ lemma (in -)arrayO_raa_empty_sz_init_lrl[sepref_fr_rules]:
 
 definition init_trail_D :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> trail_pol nres\<close> where
   \<open>init_trail_D \<A>\<^sub>i\<^sub>n n = do {
-     let M = replicate n None;
+     let M = replicate n UNSET;
      let M' = replicate n zero_uint32_nat;
      let M'' = replicate n None;
      RETURN (([], M, M', M'', zero_uint32_nat))
@@ -1968,7 +1971,7 @@ sepref_definition init_trail_D_code
   apply (rewrite in "((\<hole>, _, _, _))" HOL_list.fold_custom_empty)
   apply (rewrite in "((\<hole>, _, _, _))" annotate_assn[where A=\<open>list_assn unat_lit_assn\<close>])
 
-  apply (rewrite in "let _ = \<hole> in _" annotate_assn[where A=\<open>array_assn (option_assn bool_assn)\<close>])
+  apply (rewrite in "let _ = \<hole> in _" annotate_assn[where A=\<open>array_assn (tri_bool_assn)\<close>])
   apply (rewrite in "let _ = \<hole> in _" annotate_assn[where A=\<open>array_assn uint32_nat_assn\<close>])
   apply (rewrite in "let _ = _ in _" array_fold_custom_replicate)
   apply (rewrite in "let _ = _ in _" array_fold_custom_replicate)

@@ -345,7 +345,7 @@ definition polarity_st_heur :: \<open>twl_st_wl_heur_trail_ref \<Rightarrow> _ \
 
 sepref_thm polarity_st_heur_code
   is \<open>uncurry polarity_st_heur\<close>
-  :: \<open>twl_st_heur_pol_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn bool_assn\<close>
+  :: \<open>twl_st_heur_pol_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a tri_bool_assn\<close>
   unfolding polarity_st_heur_def twl_st_heur_pol_assn_def
   supply [[goals_limit = 1]]
   by sepref
@@ -361,7 +361,7 @@ lemmas polarity_st_heur_code_polarity_refine_code[sepref_fr_rules] =
 
 lemma polarity_st_heur_code_polarity_st_refine[sepref_fr_rules]:
   \<open>(uncurry polarity_st_heur_code, uncurry (RETURN oo polarity_st)) \<in>
-     [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a twl_st_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> option_assn bool_assn\<close>
+     [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a twl_st_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
 proof -
   have [simp]: \<open>polarity_atm M (atm_of L) =
       (if is_pos L then polarity M L else map_option uminus (polarity M L))\<close>
@@ -371,11 +371,11 @@ proof -
   have 2: \<open>(uncurry polarity_st_heur, uncurry (RETURN oo polarity_st)) \<in>
      [\<lambda>(_, L). L \<in> snd ` D\<^sub>0]\<^sub>f twl_st_heur_pol \<times>\<^sub>f Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
     by (intro nres_relI frefI)
-       (auto simp: trail_pol_def polarity_st_def polarity_pol_def
+       (auto simp: trail_pol_def polarity_st_def polarity_pol_def invert_pol_def
         polarity_def polarity_st_heur_def twl_st_heur_pol_def)
   show ?thesis
     using polarity_st_heur_code.refine[FCOMP 2, OF isasat_input_bounded_axioms,
-      unfolded twl_st_heur_assn_assn] .
+      unfolded twl_st_heur_assn_assn] by simp
 qed
 
 
