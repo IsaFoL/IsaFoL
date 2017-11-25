@@ -575,4 +575,99 @@ lemma uint64_nat_assn_less[sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def max_def
       nat_of_uint64_less_iff)
 
+text \<open>
+  Taken from theory @{theory Uint64}. We use real Word64 instead of the unbounded integer as
+  done by default.
+
+  Remark that all this setup is taken from @{theory Uint64}.
+\<close>
+code_printing code_module "Uint64" \<rightharpoonup> (SML) \<open>(* Test that words can handle numbers between 0 and 63 *)
+val _ = if 6 <= Word.wordSize then () else raise (Fail ("wordSize less than 6"));
+
+structure Uint64 : sig
+  eqtype uint64;
+  val zero : uint64;
+  val one : uint64;
+  val fromInt : IntInf.int -> uint64;
+  val toInt : uint64 -> IntInf.int;
+  val toLarge : uint64 -> LargeWord.word;
+  val fromLarge : LargeWord.word -> uint64
+  val plus : uint64 -> uint64 -> uint64;
+  val minus : uint64 -> uint64 -> uint64;
+  val times : uint64 -> uint64 -> uint64;
+  val divide : uint64 -> uint64 -> uint64;
+  val modulus : uint64 -> uint64 -> uint64;
+  val negate : uint64 -> uint64;
+  val less_eq : uint64 -> uint64 -> bool;
+  val less : uint64 -> uint64 -> bool;
+  val notb : uint64 -> uint64;
+  val andb : uint64 -> uint64 -> uint64;
+  val orb : uint64 -> uint64 -> uint64;
+  val xorb : uint64 -> uint64 -> uint64;
+  val shiftl : uint64 -> IntInf.int -> uint64;
+  val shiftr : uint64 -> IntInf.int -> uint64;
+  val shiftr_signed : uint64 -> IntInf.int -> uint64;
+  val set_bit : uint64 -> IntInf.int -> bool -> uint64;
+  val test_bit : uint64 -> IntInf.int -> bool;
+end = struct
+
+type uint64 = Word64.word;
+
+val zero = (0wx0 : uint64);
+
+val one = (0wx1 : uint64);
+
+fun fromInt x = Word64.fromLargeInt (IntInf.toLarge x);
+
+fun toInt x = IntInf.fromLarge (Word64.toLargeInt x);
+
+fun fromLarge x = Word64.fromLarge x;
+
+fun toLarge x = Word64.toLarge x;
+
+fun plus x y = Word64.+(x, y);
+
+fun minus x y = Word64.-(x, y);
+
+fun negate x = Word64.~(x);
+
+fun times x y = Word64.*(x, y);
+
+fun divide x y = Word64.div(x, y);
+
+fun modulus x y = Word64.mod(x, y);
+
+fun less_eq x y = Word64.<=(x, y);
+
+fun less x y = Word64.<(x, y);
+
+fun set_bit x n b =
+  let val mask = Word64.<< (0wx1, Word.fromLargeInt (IntInf.toLarge n))
+  in if b then Word64.orb (x, mask)
+     else Word64.andb (x, Word64.notb mask)
+  end
+
+fun shiftl x n =
+  Word64.<< (x, Word.fromLargeInt (IntInf.toLarge n))
+
+fun shiftr x n =
+  Word64.>> (x, Word.fromLargeInt (IntInf.toLarge n))
+
+fun shiftr_signed x n =
+  Word64.~>> (x, Word.fromLargeInt (IntInf.toLarge n))
+
+fun test_bit x n =
+  Word64.andb (x, Word64.<< (0wx1, Word.fromLargeInt (IntInf.toLarge n))) <> Word64.fromInt 0
+
+val notb = Word64.notb
+
+fun andb x y = Word64.andb(x, y);
+
+fun orb x y = Word64.orb(x, y);
+
+fun xorb x y = Word64.xorb(x, y);
+
+end (*struct Uint64*)
+\<close>
+
 end
