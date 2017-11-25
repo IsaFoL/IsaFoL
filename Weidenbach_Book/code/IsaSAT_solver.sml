@@ -59,77 +59,63 @@ structure Uint64 : sig
   val test_bit : uint64 -> IntInf.int -> bool;
 end = struct
 
-type uint64 = IntInf.int;
+type uint64 = Word64.word;
 
-val mask = 0xFFFFFFFFFFFFFFFF : IntInf.int;
+val zero = (0wx0 : uint64);
 
-val zero = 0 : IntInf.int;
+val one = (0wx1 : uint64);
 
-val one = 1 : IntInf.int;
+fun fromInt x = Word64.fromLargeInt (IntInf.toLarge x);
 
-fun fromInt x = IntInf.andb(x, mask);
+fun toInt x = IntInf.fromLarge (Word64.toLargeInt x);
 
-fun toInt x = x
+fun fromLarge x = Word64.fromLarge x;
 
-fun toLarge x = LargeWord.fromLargeInt (IntInf.toLarge x);
+fun toLarge x = Word64.toLarge x;
 
-fun fromLarge x = IntInf.fromLarge (LargeWord.toLargeInt x);
+fun plus x y = Word64.+(x, y);
 
-fun plus x y = IntInf.andb(IntInf.+(x, y), mask);
+fun minus x y = Word64.-(x, y);
 
-fun minus x y = IntInf.andb(IntInf.-(x, y), mask);
+fun negate x = Word64.~(x);
 
-fun negate x = IntInf.andb(IntInf.~(x), mask);
+fun times x y = Word64.*(x, y);
 
-fun times x y = IntInf.andb(IntInf.*(x, y), mask);
+fun divide x y = Word64.div(x, y);
 
-fun divide x y = IntInf.div(x, y);
+fun modulus x y = Word64.mod(x, y);
 
-fun modulus x y = IntInf.mod(x, y);
+fun less_eq x y = Word64.<=(x, y);
 
-fun less_eq x y = IntInf.<=(x, y);
-
-fun less x y = IntInf.<(x, y);
-
-fun notb x = IntInf.andb(IntInf.notb(x), mask);
-
-fun orb x y = IntInf.orb(x, y);
-
-fun andb x y = IntInf.andb(x, y);
-
-fun xorb x y = IntInf.xorb(x, y);
-
-val maxWord = IntInf.pow (2, Word.wordSize);
-
-fun shiftl x n = 
-  if n < maxWord then IntInf.andb(IntInf.<< (x, Word.fromLargeInt (IntInf.toLarge n)), mask)
-  else 0;
-
-fun shiftr x n =
-  if n < maxWord then IntInf.~>> (x, Word.fromLargeInt (IntInf.toLarge n))
-  else 0;
-
-val msb_mask = 0x8000000000000000 : IntInf.int;
-
-fun shiftr_signed x i =
-  if IntInf.andb(x, msb_mask) = 0 then shiftr x i
-  else if i >= 64 then 0xFFFFFFFFFFFFFFFF
-  else let
-    val x' = shiftr x i
-    val m' = IntInf.andb(IntInf.<<(mask, Word.max(0w64 - Word.fromLargeInt (IntInf.toLarge i), 0w0)), mask)
-  in IntInf.orb(x', m') end;
-
-fun test_bit x n =
-  if n < maxWord then IntInf.andb (x, IntInf.<< (1, Word.fromLargeInt (IntInf.toLarge n))) <> 0
-  else false;
+fun less x y = Word64.<(x, y);
 
 fun set_bit x n b =
-  if n < 64 then
-    if b then IntInf.orb (x, IntInf.<< (1, Word.fromLargeInt (IntInf.toLarge n)))
-    else IntInf.andb (x, IntInf.notb (IntInf.<< (1, Word.fromLargeInt (IntInf.toLarge n))))
-  else x;
+  let val mask = Word64.<< (0wx1, Word.fromLargeInt (IntInf.toLarge n))
+  in if b then Word64.orb (x, mask)
+     else Word64.andb (x, Word64.notb mask)
+  end
 
-end
+fun shiftl x n =
+  Word64.<< (x, Word.fromLargeInt (IntInf.toLarge n))
+
+fun shiftr x n =
+  Word64.>> (x, Word.fromLargeInt (IntInf.toLarge n))
+
+fun shiftr_signed x n =
+  Word64.~>> (x, Word.fromLargeInt (IntInf.toLarge n))
+
+fun test_bit x n =
+  Word64.andb (x, Word64.<< (0wx1, Word.fromLargeInt (IntInf.toLarge n))) <> Word64.fromInt 0
+
+val notb = Word64.notb
+
+fun andb x y = Word64.andb(x, y);
+
+fun orb x y = Word64.orb(x, y);
+
+fun xorb x y = Word64.xorb(x, y);
+
+end (*struct Uint64*)
 
 
 
