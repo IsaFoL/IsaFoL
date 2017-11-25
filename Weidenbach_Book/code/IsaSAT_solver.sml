@@ -845,10 +845,12 @@ fun arrayO_ara_empty_sz_code (A1_, A2_) =
       (fn () => Array.fromList x) ()
     end);
 
+val uNSET_code : Word32.word = (Word32.fromInt 0);
+
 fun init_trail_D_code x =
   (fn _ => fn bi => fn () =>
     let
-      val xa = new heap_uint32 bi (Word32.fromInt 0) ();
+      val xa = new heap_uint32 bi uNSET_code ();
       val x_b = new heap_uint32 bi (Word32.fromInt 0) ();
       val x_d = new (heap_option heap_nat) bi NONE ();
     in
@@ -1031,8 +1033,7 @@ fun access_lit_in_clauses_heur_code x =
     x;
 
 fun invert_pol_code (A1_, A2_, A3_, A4_) b l =
-  (if eq A4_ b (zero A3_) then zero A3_
-    else bitXOR A1_ b (bitAND A1_ l (one A2_)));
+  (if eq A4_ b (zero A3_) then b else bitXOR A1_ b (bitAND A1_ l (one A2_)));
 
 fun polarity_pol_code x =
   (fn ai => fn bi =>
@@ -1058,6 +1059,9 @@ fun length_raa A_ xs i =
               len A_ x ()
             end);
 
+val sET_TRUE_code : Word32.word =
+  Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int));
+
 fun find_unwatched_wl_st_heur_code x =
   (fn ai => fn bi =>
     let
@@ -1076,9 +1080,9 @@ fun find_unwatched_wl_st_heur_code x =
                     (fn f_ => fn () => f_ ((polarity_pol_code a1 xa) ()) ())
                       (fn x_a =>
                         (fn () =>
-                          (if ((x_a : Word32.word) = (Word32.fromInt 0))
+                          (if ((x_a : Word32.word) = uNSET_code)
                             then (SOME a2g, a2g)
-                            else (if ((x_a : Word32.word) = (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int))))
+                            else (if ((x_a : Word32.word) = sET_TRUE_code)
                                    then (SOME a2g, a2g)
                                    else (NONE, plus_nat a2g one_nat)))))))
               (NONE, nat_of_integer (2 : IntInf.int)) ();
@@ -1505,6 +1509,9 @@ fun polarity_st_heur_code x = (fn ai => fn bi => let
          end)
                                 x;
 
+val sET_FALSE_code : Word32.word =
+  Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int));
+
 fun unit_propagation_inner_loop_body_wl_D_code x =
   (fn ai => fn bia => fn bi => fn () =>
     let
@@ -1520,14 +1527,14 @@ fun unit_propagation_inner_loop_body_wl_D_code x =
           (fn x_d =>
             (fn f_ => fn () => f_ ((polarity_st_heur_code bi x_d) ()) ())
               (fn x_f =>
-                (if ((x_f : Word32.word) = (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int))))
+                (if ((x_f : Word32.word) = sET_TRUE_code)
                   then (fn () => (plus_nat bia one_nat, bi))
                   else (fn f_ => fn () => f_
                          ((find_unwatched_wl_st_heur_code bi xa) ()) ())
                          (fn a =>
                            (case a
                              of NONE =>
-                               (if ((x_f : Word32.word) = (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
+                               (if ((x_f : Word32.word) = sET_FALSE_code)
                                  then (fn f_ => fn () => f_
 ((set_conflict_wl_int_code xa bi) ()) ())
 (fn x_l => (fn () => (plus_nat bia one_nat, x_l)))
@@ -1733,7 +1740,7 @@ fun tl_trail_tr_code x =
     let
       val xa =
         heap_array_set_u heap_uint32 a1a (atm_of_code (op_list_hd a1))
-          (Word32.fromInt 0) ();
+          uNSET_code ();
       val xaa =
         heap_array_set_u heap_uint32 a1b (atm_of_code (op_list_hd a1))
           (Word32.fromInt 0) ();
@@ -1940,7 +1947,7 @@ fun defined_atm_code x =
       (fn () => let
                   val xa = (fn () => Array.sub (a1a, Word32.toInt bi)) ();
                 in
-                  not ((xa : Word32.word) = (Word32.fromInt 0))
+                  not ((xa : Word32.word) = uNSET_code)
                 end)
     end)
     x;
@@ -3219,9 +3226,9 @@ fun init_dt_step_wl_code x =
                              (fn f_ => fn () => f_
                                ((polarity_st_heur_init_code bi x_c) ()) ())
                                (fn x_e =>
-                                 (if ((x_e : Word32.word) = (Word32.fromInt 0))
+                                 (if ((x_e : Word32.word) = uNSET_code)
                                    then propagate_unit_cls_code x_c bi
-                                   else (if ((x_e : Word32.word) = (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int))))
+                                   else (if ((x_e : Word32.word) = sET_TRUE_code)
   then already_propagated_unit_cls_code x_c bi
   else conflict_propagated_unit_cls_code x_c bi)))
                            end
