@@ -86,14 +86,21 @@ fun print_help () = (
   println("Usage: [--verbose] [--stat]" ^ CommandLine.name() ^ " cnf-file");
   println("  where <cnf-file> is a non-compressed file in dimacs format");
   println("  The result (SAT or UNSAT) is printed");
-  println("  Use option --verbose to print the model if one exists")
+  println("  Use option --stat to print the number of propagations,");
+  println("   conflicts, and decisions. ");
+  println("  Use option --model to print a model if one exists.")
 )
 
-fun process_args [cnf_name] = checker false false cnf_name
-  | process_args ["--verbose", cnf_name] = checker true false cnf_name
-  | process_args ["--stat", cnf_name] = checker false true cnf_name
-  | process_args ["--verbose", "--stat", cnf_name] = checker true true cnf_name
-  | process_args _ = print_help() 
+fun contains x xs =
+  case List.find (fn y => y = x) xs of
+      NONE => false
+    | SOME _ => true
+
+fun process_args [] = print_help() 
+  | process_args args =
+    checker (contains "--model" args)
+            (contains "--stat" args)
+            (List.last args)
 
 fun main () = let
   val args = CommandLine.arguments ();
