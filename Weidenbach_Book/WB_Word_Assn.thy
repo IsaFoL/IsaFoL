@@ -118,6 +118,26 @@ lemma nat_of_uint32_ao:
 lemma nat_of_uint32_012[simp]: \<open>nat_of_uint32 0 = 0\<close> \<open>nat_of_uint32 2 = 2\<close> \<open>nat_of_uint32 1 = 1\<close>
   by (transfer, auto)+
 
+lemma nat_of_uint32_3: \<open>nat_of_uint32 3 = 3\<close>
+  by (transfer, auto)+
+
+lemma nat_of_uint32_mod_2:
+  \<open>nat_of_uint32 L mod 2 = nat_of_uint32 (L mod 2)\<close>
+  by transfer (auto simp: uint_mod unat_def transfer_nat_int_functions[symmetric])
+
+lemma bitAND_1_mod_2_uint32: \<open>bitAND L 1 = L mod 2\<close> for L :: uint32
+proof -
+  have H: \<open>unat L mod 2 = 1 \<or> unat L mod 2 = 0\<close> for L
+    by auto
+
+  show ?thesis
+    apply (subst word_nat_of_uint32_Rep_inject[symmetric])
+    apply (subst nat_of_uint32_ao[symmetric])
+    apply (subst nat_of_uint32_012)
+    unfolding bitAND_1_mod_2
+    by (rule nat_of_uint32_mod_2)
+qed
+
 lemma nat_uint_XOR: \<open>nat (uint (a XOR b)) = nat (uint a) XOR nat (uint b)\<close>
   if len: \<open>LENGTH('a) > 0\<close>
   for a b :: \<open>'a ::len0 Word.word\<close>
