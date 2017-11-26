@@ -79,7 +79,8 @@ qed
 
 text \<open>
   This is a more restrictive version of the previous theorem, but is a better bound for an
-  implementation that does not do duplication removal (esp. as part of preprocessing).\<close>
+  implementation that does not do duplication removal (esp. as part of preprocessing).
+\<close>
 lemma cdcl\<^sub>W_stgy_learned_distinct_mset:
   assumes
     cdcl: \<open>cdcl\<^sub>W_stgy S T\<close> and
@@ -129,6 +130,55 @@ lemma cdcl\<^sub>W_stgy_distinct_mset_clauses:
   shows "distinct_mset (clauses S)"
   using rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses[OF st] assms
   by (auto simp: cdcl\<^sub>W_all_struct_inv_def distinct_cdcl\<^sub>W_state_def no_smaller_propa_def)
+
+lemma cdcl\<^sub>W_stgy_learned_distinct_mset_new:
+  assumes
+    cdcl: \<open>cdcl\<^sub>W_stgy S T\<close> and
+    inv: "cdcl\<^sub>W_all_struct_inv S" and
+    smaller: \<open>no_smaller_propa S\<close> and
+    dist: \<open>distinct_mset (learned_clss S - A)\<close>
+  shows \<open>distinct_mset (learned_clss T - A)\<close>
+proof (rule ccontr)
+  have [iff]: \<open>distinct_mset (add_mset C (learned_clss S) - A) \<longleftrightarrow>
+     C \<notin># (learned_clss S) - A\<close> for C
+    using dist distinct_mset_add_mset[of C \<open>learned_clss S - A\<close>]
+  proof -
+    have f1: "learned_clss S - A = remove1_mset C (add_mset C (learned_clss S) - A)"
+      by (metis Multiset.diff_right_commute add_mset_remove_trivial)
+    have "remove1_mset C (add_mset C (learned_clss S) - A) = add_mset C (learned_clss S) - A \<longrightarrow>
+        distinct_mset (add_mset C (learned_clss S) - A)"
+      by (metis (no_types) Multiset.diff_right_commute add_mset_remove_trivial dist)
+    then have "\<not> distinct_mset (add_mset C (learned_clss S - A)) \<or>
+        distinct_mset (add_mset C (learned_clss S) - A) \<noteq> (C \<in># learned_clss S - A)"
+      by (metis (full_types) Multiset.diff_right_commute
+          distinct_mset_add_mset[of C \<open>learned_clss S - A\<close>] add_mset_remove_trivial
+          diff_single_trivial insert_DiffM)
+    then show ?thesis
+      using f1 by (metis (full_types) distinct_mset_add_mset[of C \<open>learned_clss S - A\<close>]
+          diff_single_trivial dist insert_DiffM)
+  qed
+
+  assume n_dist: \<open>\<not> ?thesis\<close>
+  then have \<open>backtrack S T\<close>
+    using cdcl dist by (auto simp: cdcl\<^sub>W_stgy.simps cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps
+        elim: propagateE conflictE decideE skipE resolveE)
+  then show False
+    using n_dist cdcl\<^sub>W_stgy_no_relearned_clause[of S T \<open>add_mset _ _\<close>]
+    apply (auto simp: inv smaller clauses_def elim!: rulesE
+        dest!: in_diffD)
+    by blast
+qed
+
+lemma rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses_new:
+  assumes
+    st: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* R S" and
+    invR: "cdcl\<^sub>W_all_struct_inv R" and
+    no_smaller: \<open>no_smaller_propa R\<close>
+  shows "distinct_mset (learned_clss S - learned_clss R)"
+  using assms by (induction rule: rtranclp_induct)
+     (auto simp: cdcl\<^sub>W_stgy_distinct_mset rtranclp_cdcl\<^sub>W_stgy_no_smaller_propa
+      rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv
+      cdcl\<^sub>W_stgy_learned_distinct_mset_new)
 
 
 subsubsection \<open>Decrease of a Measure\<close>

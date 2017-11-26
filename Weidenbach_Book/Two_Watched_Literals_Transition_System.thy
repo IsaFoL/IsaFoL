@@ -4949,4 +4949,152 @@ proof -
   qed
 qed
 
+lemma after_fast_restart_replay_no_stgy:
+  assumes
+    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M', N, U, None)\<close> and
+    kept: \<open>\<forall>L E. Propagated L E \<in> set (drop (length M' - n) M') \<longrightarrow> E \<in># N + U'\<close> and
+    U'_U: \<open>U' \<subseteq># U\<close>
+  shows
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* ([], N, U', None) (drop (length M' - n) M', N, U', None)\<close>
+proof -
+  let ?S = \<open>\<lambda>n. (drop (length M' - n) M', N, U', None)\<close>
+  note cdcl\<^sub>W_restart_mset_state[simp]
+  have
+    M_lev: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (M', N, U, None)\<close> and
+    alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (M', N, U, None)\<close> and
+    confl: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (M', N, U, None)\<close> and
+    learned: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause (M', N, U, None)\<close>
+    using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
+
+  have n_d: \<open>no_dup M'\<close>
+    using M_lev unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by simp
+  let ?L = \<open>\<lambda>m. M' ! (length M' - Suc m)\<close>
+  have undef_nth_Suc:
+     \<open>undefined_lit (drop (length M' - m) M') (lit_of (?L m))\<close>
+     if \<open>m < length M'\<close>
+     for m
+  proof -
+    define k where
+      \<open>k = length M' - Suc m\<close>
+    then have Sk: \<open>length M' - m = Suc k\<close>
+      using that by linarith
+    have k_le_M': \<open>k < length M'\<close>
+      using that unfolding k_def by linarith
+    have n_d': \<open>no_dup (take k M' @ ?L m # drop (Suc k) M')\<close>
+      using n_d
+      apply (subst (asm) append_take_drop_id[symmetric, of _ \<open>Suc k\<close>])
+      apply (subst (asm) take_Suc_conv_app_nth)
+       apply (rule k_le_M')
+      apply (subst k_def[symmetric])
+      by simp
+
+    show ?thesis
+      using n_d'
+      apply (subst (asm) no_dup_append_cons)
+      apply (subst (asm) k_def[symmetric])+
+      apply (subst k_def[symmetric])+
+      apply (subst Sk)+
+      by blast
+  qed
+
+  have atm_in:
+    \<open>atm_of (lit_of (M' ! m)) \<in> atms_of_mm N\<close>
+    if \<open>m < length M'\<close>
+    for m
+    using alien that
+    by (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def lits_of_def)
+
+  show ?thesis
+    using kept
+  proof (induction n)
+    case 0
+    then show ?case by simp
+  next
+    case (Suc m) note IH = this(1) and kept = this(2)
+    consider
+      (le) \<open>m < length M'\<close> |
+      (ge) \<open>m \<ge> length M'\<close>
+      by linarith
+    then show ?case
+    proof cases
+      case ge
+      then show ?thesis
+        using Suc by auto
+    next
+      case le
+      define k where
+        \<open>k = length M' - Suc m\<close>
+      then have Sk: \<open>length M' - m = Suc k\<close>
+        using le by linarith
+      have k_le_M': \<open>k < length M'\<close>
+        using le unfolding k_def by linarith
+      have kept': \<open>\<forall>L E. Propagated L E \<in> set (drop (length M' - m) M') \<longrightarrow> E \<in># N + U'\<close>
+        using kept k_le_M' unfolding k_def[symmetric] Sk
+        by (subst (asm) Cons_nth_drop_Suc[symmetric]) auto
+      have M': \<open>M' = take (length M' - Suc m) M' @ ?L m # trail (?S m)\<close>
+        apply (subst append_take_drop_id[symmetric, of _ \<open>Suc k\<close>])
+        apply (subst take_Suc_conv_app_nth)
+         apply (rule k_le_M')
+        apply (subst k_def[symmetric])
+        unfolding k_def[symmetric] Sk
+        by auto
+
+      have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (?S m) (?S (Suc m))\<close>
+      proof (cases \<open>?L (m)\<close>)
+        case (Decided K) note K = this
+        have dec: \<open>cdcl\<^sub>W_restart_mset.decide (?S m) (?S (Suc m))\<close>
+          apply (rule cdcl\<^sub>W_restart_mset.decide_rule[of _ \<open>lit_of (?L m)\<close>])
+          subgoal by simp
+          subgoal using undef_nth_Suc[of m] le by simp
+          subgoal using le by (auto simp: atm_in)
+          subgoal using le k_le_M' K unfolding k_def[symmetric] Sk
+            by (auto simp: state_eq_def state_def Cons_nth_drop_Suc[symmetric])
+          done
+        have Dec: \<open>M' ! k = Decided K\<close>
+          using K unfolding k_def[symmetric] Sk .
+
+        show ?thesis
+          apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W.intros(3))
+          apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.decide)
+          apply (rule dec)
+          done
+      next
+        case K: (Propagated K C)
+        have Propa: \<open>M' ! k = Propagated K C\<close>
+          using K unfolding k_def[symmetric] Sk .
+        have
+          M_C: \<open>trail (?S m) \<Turnstile>as CNot (remove1_mset K C)\<close> and
+          K_C: \<open>K \<in># C\<close>
+          using confl unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def trail.simps
+          by (subst (asm)(3) M'; auto simp: k_def[symmetric] Sk Propa)+
+        have [simp]: \<open>k - min (length M') k = 0\<close>
+          unfolding k_def by auto
+        have C_N_U: \<open>C \<in># N + U'\<close>
+          using learned kept unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def Sk
+            k_def[symmetric]
+          apply (subst (asm)(4)M')
+          apply (subst (asm)(10)M')
+          unfolding K
+          by (auto simp: K k_def[symmetric] Sk Propa clauses_def)
+        have \<open>cdcl\<^sub>W_restart_mset.propagate (?S m) (?S (Suc m))\<close>
+          apply (rule cdcl\<^sub>W_restart_mset.propagate_rule[of _ C K])
+          subgoal by simp
+          subgoal using C_N_U by (simp add: clauses_def)
+          subgoal using K_C .
+          subgoal using M_C .
+          subgoal using undef_nth_Suc[of m] le K by (simp add: k_def[symmetric] Sk)
+          subgoal
+            using le k_le_M' K unfolding k_def[symmetric] Sk
+            by (auto simp: state_eq_def
+                state_def Cons_nth_drop_Suc[symmetric])
+          done
+        then show ?thesis
+          by (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W.intros)
+      qed
+      then show ?thesis
+        using IH[OF kept'] by simp
+    qed
+  qed
+qed
+
 end
