@@ -1,0 +1,7 @@
+session "CeTA_SAT" (ceta) = "CeTA" +
+  options [document = false]
+  sessions
+     Two_Watched_Literals
+  theories
+    Ceta_SAT
+    
