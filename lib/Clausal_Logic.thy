@@ -267,7 +267,7 @@ lemma atms_empty_iff_empty[iff]: "atms_of C = {} \<longleftrightarrow> C = {#}"
 
 lemma
   atms_of_poss[simp]: "atms_of (poss AA) = set_mset AA" and
-  atms_of_negg[simp]: "atms_of (negs AA) = set_mset AA"
+  atms_of_negs[simp]: "atms_of (negs AA) = set_mset AA"
   unfolding atms_of_def image_def by auto
 
 lemma less_eq_Max_atms_of: "C \<noteq> {#} \<Longrightarrow> C \<le> D \<Longrightarrow> Max (atms_of C) \<le> Max (atms_of D)"

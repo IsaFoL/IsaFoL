@@ -55,11 +55,15 @@ A recent version of the documentation the theory files is also available [online
 The code of the SAT solver is in the ``code`` folder. To run it:
   * download [MLton](http://mlton.org);
   * compile IsaSAT with ``make`` or ``make MLTON=/path/to/mlton`` (if MLton is not in the $PATH);
-  * run the solver with ``./IsaSAT <cnf-file>`` or ``./IsaSAT --verbose <cnf-file>`` (to print the model).
+  * run the solver with ``./IsaSAT <cnf-file>``. Use the options "--model" to output the model (if the clauses are statifiable)
+    and "--stat" to print some statistics on the run.
 
 ## Names Correspondance and Publications
 
-### A Verified SAT Solver with Watched Literals Using Imperative HOL ###
+### A Verified SAT Solver with Watched Literals Using Imperative HOL, Accepted at CPP 18 ###
+
+Version: commit 678b79ae5e865b9cc21081adb091e5baaa802c0b
+
 
 |Paper                       |  Theory file                                |   Isabelle name
 |----------------------------|---------------------------------------------|---------------------------------------------------------------------
@@ -79,7 +83,9 @@ The code of the SAT solver is in the ``code`` folder. To run it:
 |``conflict_is_empty_lookup``| ``IsaSAT_Lookup_Conflict``                  | ``conflict_assn_is_empty``
 
 
-### A Verified SAT Solver Framework with Learn, Forget, Restart, and Incrementality, submitted to JAR ###
+### A Verified SAT Solver Framework with Learn, Forget, Restart, and Incrementality, submitted ###
+
+Version: commit 678b79ae5e865b9cc21081adb091e5baaa802c0b
 
 |Paper                                |  Theory file                                |   Isabelle name
 |-------------------------------------|---------------------------------------------|---------------------------------------------------------------------

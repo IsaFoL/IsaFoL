@@ -310,7 +310,7 @@ proof -
               by fast
           next
             show "mset (map (apfst mset) N') = mset_set ((\<lambda>D. (D, n)) `
-              concls_of (inference_system.inferences_between ord_FO_\<Gamma> (set_mset (image_mset fst
+              concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) (set_mset (image_mset fst
                 (mset (map (apfst mset) Q)))) (mset C)))"
               unfolding N'_def inference_system.inferences_between_def
                 inference_system.inferences_between_def ord_FO_\<Gamma>_def infer_from_def
@@ -922,6 +922,8 @@ proof (rule ccontr)
   then show False
     using drp_none ..
 qed
+
+end
 
 end
 
