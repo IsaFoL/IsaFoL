@@ -108,6 +108,9 @@ lemma ord_resolve_rename_max_side_prems:
 lemma Bex_cartesian_product: "(\<exists>xy \<in> A \<times> B. P xy) \<equiv> (\<exists>x \<in> A. \<exists>y \<in> B. P (x, y))"
   by simp
 
+lemma exists_compose: "\<exists>x. P (f x) \<Longrightarrow> \<exists>y. P y"
+  by meson
+
 lemma finite_ord_FO_resolution_inferences_between:
   assumes fin_cc: "finite CC"
   shows "finite (ord_FO_resolution.inferences_between CC C)"
@@ -138,23 +141,71 @@ proof -
   have "?Z \<subseteq> ?Y"
     by (force simp: infer_from_def)
   also have "\<dots> \<subseteq> ?X"
-    apply clarsimp
-    apply (rule_tac x = Cl in exI)
-    apply clarsimp
-    apply (rule_tac x = AAs in exI)
-    apply (rule_tac x = As in exI)
-    apply (intro conjI)
-    using ord_resolve_rename_unique apply (smt the_equality)
-    unfolding CL_def max_ary_def
-    apply clarsimp
-    apply (drule ord_resolve_rename_max_side_prems)
-    apply (smt Max.bounded_iff dual_order.antisym empty_iff fin_cc finite_imageI finite_insert image_subset_iff in_listsI insertI1 le_cases subset_iff subset_insertI)
-    unfolding AAS_def AS_def
-     apply clarsimp
-     defer
-    apply (unfold all_AA_def)
-    apply clarsimp
-    sorry
+  proof -
+    {
+      fix Cl D AAs As \<sigma> E
+      assume
+        res_e: "ord_resolve_rename S Cl D AAs As \<sigma> E" and
+        d: "D = C \<or> D \<in> CC" and
+        cl: "set Cl \<subseteq> insert C CC"
+
+      have "E = (THE E. \<exists>\<sigma>. ord_resolve_rename S Cl D AAs As \<sigma> E)" (is ?e)
+        "Cl \<in> CL" (is ?cl)
+        "AAs \<in> AAS" (is ?aas)
+        "As \<in> AS" (is ?as)
+      proof -
+        show ?e
+          using res_e by (smt ord_resolve_rename_unique the_equality)
+      next
+        show ?cl
+          unfolding CL_def max_ary_def apply auto
+          using cl
+          apply blast
+          by (smt Max.bounded_iff Max_insert2 Un_insert_right Un_upper1 Un_upper2 antisym d empty_iff eq_iff fin_cc finite_imageI finite_insert image_eqI image_insert image_is_empty insert_absorb2 le_trans nat_le_linear ord_resolve_rename_max_side_prems order_refl res_e singletonI subsetCE sup_bot.right_neutral)
+      next
+        show ?aas
+          using res_e
+        proof (cases rule: ord_resolve_rename.cases)
+          case (ord_resolve_rename \<rho> \<rho>s)
+          note \<rho> = this(1) and \<rho>s = this(2) and res_e' = this(3)
+          show ?thesis
+            using res_e'
+          proof (cases rule: ord_resolve.cases)
+            case res: (ord_resolve n Cs D')
+            show ?thesis
+              unfolding AAS_def
+            proof (clarify, intro conjI)
+              show "AAs \<in> lists (mset ` AS)"
+                unfolding AS_def image_def
+              proof clarsimp
+                fix AA
+                assume "AA \<in> set AAs"
+                let ?As' = "sorted_list_of_multiset AA"
+                have "?As' \<in> lists all_AA"
+                  unfolding all_AA_def
+                  using res d cl
+                  sorry
+                moreover have "length ?As' \<le> max_ary"
+                  sorry
+                moreover have "AA = mset ?As'"
+                  sorry
+                ultimately show "\<exists>xa. xa \<in> lists all_AA \<and> length xa \<le> max_ary \<and> AA = mset xa"
+                  by blast
+              qed
+            next
+              show "length AAs \<le> max_ary"
+                sorry
+            qed
+          qed
+        qed
+      next
+        show ?as
+          sorry
+      qed
+    }
+    then show ?thesis
+      by simp fast
+  qed
   also have "\<dots> \<subseteq> (\<lambda>(Cl, D, AAs, As). ?infer_of Cl D AAs As) ` ?W"
     unfolding image_def Bex_cartesian_product by fast
   finally show ?thesis
