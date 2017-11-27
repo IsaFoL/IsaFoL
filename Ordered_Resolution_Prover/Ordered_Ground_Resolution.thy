@@ -152,7 +152,7 @@ proof (cases rule: ord_resolve.cases)
 
     then have ucas_ne_neg_aa: "(\<Union># mset Cs) \<noteq> negs (mset As)"
       using mc_in mc_max mc_lt_ma cm_in_cas cas_len ai_len unfolding A_max_def
-      by (metis atms_of_negg nth_mem set_mset_mset leD)
+      by (metis atms_of_negs nth_mem set_mset_mset leD)
     moreover have ucas_lt_ma: "\<forall>B \<in> atms_of (\<Union># mset Cs). B < A_max"
       using mc_max mc_lt_ma by fastforce
     moreover have "\<not> Neg A_max \<in># (\<Union># mset Cs)"

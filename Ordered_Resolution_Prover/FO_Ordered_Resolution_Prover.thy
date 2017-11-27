@@ -240,15 +240,31 @@ proof -
         show ?as
           unfolding AS_def
         proof (clarify, intro conjI)
-
-          show "As \<in> lists all_AA"
-            unfolding all_AA_def
+          have "set As \<subseteq> atms_of DA"
             using res_e[simplified ord_resolve_rename.simps]
-
-            sorry
+            by (metis atms_of_negg lits_subseteq_imp_atms_subseteq set_mset_mono set_mset_mset)
+          also have "\<dots> \<subseteq> all_AA"
+            unfolding all_AA_def using da_in by blast
+          finally show "As \<in> lists all_AA"
+            unfolding lists_eq_set by simp
         next
-          show "length As \<le> max_ary"
+          have "length As \<le> size DA"
+            using res_e[simplified ord_resolve_rename.simps]
             sorry
+          also have "size DA \<le> max_ary"
+(*
+
+            unfolding max_ary_def
+            apply (rule Max_ge)
+            using fin_cc
+             apply simp
+            using imageI[of _ ?CCC size]
+            using res_e[simplified ord_resolve_rename.simps]
+*)
+            
+            sorry
+          finally show "length As \<le> max_ary"
+            .
         qed
       qed
     }
