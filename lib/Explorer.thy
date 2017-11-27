@@ -9,12 +9,65 @@
 
 theory Explorer
 imports Main
-keywords "explore" "explore_have" "explore_lemma" "explore_quotes" :: diag
+keywords "explore" "explore_have" "explore_lemma" :: diag
 begin
 
 subsection {* Explore command *}
+ML \<open>
+signature EXPLORER_LIB =
+sig
+  datatype explorer_quote = QUOTES | GUILLEMOTS
+  val set_default_raw_param: theory -> theory
+  val default_raw_params: theory -> string * explorer_quote
+  val switch_to_cartouches: theory -> theory
+  val switch_to_quotes: theory -> theory
+end
+
+structure Explorer_Lib : EXPLORER_LIB =
+struct
+  datatype explorer_quote = QUOTES | GUILLEMOTS
+  type raw_param = string * explorer_quote
+  val default_params = ("explorer_quotes", QUOTES)
+
+structure Data = Theory_Data
+(
+  type T = raw_param list
+  val empty = single default_params
+  val extend = I
+  fun merge data : T = AList.merge (op =) (K true) data
+)
+
+fun set_default_raw_param thy =
+    thy |> Data.map (AList.update (op =) default_params)
+
+fun switch_to_quotes thy =
+   thy |> Data.map (AList.update (op =) ("explorer_quotes", QUOTES))
+
+fun switch_to_cartouches thy =
+   thy |> Data.map (AList.update (op =) ("explorer_quotes", GUILLEMOTS))
+
+fun default_raw_params thy =
+  Data.get thy |> hd
+
+end
+\<close>
+
+setup Explorer_Lib.set_default_raw_param
+
+ML \<open>
+  Explorer_Lib.default_raw_params @{theory}
+\<close>
 
 ML {*
+
+signature EXPLORER =
+sig
+  datatype explore = HAVE_IF | ASSUME_SHOW | ASSUMES_SHOWS
+  val explore: explore -> Toplevel.state -> Proof.state
+end
+
+structure Explorer: EXPLORER =
+struct
 datatype explore = HAVE_IF | ASSUME_SHOW | ASSUMES_SHOWS
 
 fun split_clause t =
@@ -97,8 +150,15 @@ fun generate_text ASSUME_SHOW context enclosure clauses =
       separate "\n" raw_lines_with_lemma_and_proof_body
     end;
 
-fun explore aim enclosure st  =
+fun explore aim st  =
   let
+    val thy = Toplevel.theory_of st
+    val quote_type = Explorer_Lib.default_raw_params thy |> snd
+    val enclosure = 
+      (case quote_type of
+         Explorer_Lib.GUILLEMOTS => cartouche
+       | Explorer_Lib.QUOTES => quote)
+    val st = Toplevel.proof_of st
     val { context, facts = _, goal } = Proof.goal st;
     val goal_props = Logic.strip_imp_prems (Thm.prop_of goal);
     val clauses = map split_clause goal_props;
@@ -108,16 +168,18 @@ fun explore aim enclosure st  =
     (st |> tap (fn _ => Output.information message))
   end
 
-fun explore_cmd enclosure =
-  Toplevel.keep_proof (K () o explore ASSUME_SHOW enclosure o Toplevel.proof_of)
+end
+
+val explore_cmd =
+  Toplevel.keep_proof (K () o Explorer.explore Explorer.ASSUME_SHOW)
 
 val _ =
   Outer_Syntax.command @{command_keyword "explore"}
     "explore current goal state as Isar proof"
-    (Scan.succeed (explore_cmd cartouche))
+    (Scan.succeed (explore_cmd))
 
 val explore_have_cmd =
-  Toplevel.keep_proof (K () o explore HAVE_IF cartouche o Toplevel.proof_of)
+  Toplevel.keep_proof (K () o Explorer.explore Explorer.HAVE_IF)
 
 val _ =
   Outer_Syntax.command @{command_keyword "explore_have"}
@@ -125,24 +187,19 @@ val _ =
     (Scan.succeed explore_have_cmd)
 
 val explore_lemma_cmd =
-  Toplevel.keep_proof (K () o explore ASSUMES_SHOWS cartouche o Toplevel.proof_of)
+  Toplevel.keep_proof (K () o Explorer.explore Explorer.ASSUMES_SHOWS)
 
 val _ =
   Outer_Syntax.command @{command_keyword "explore_lemma"}
     "explore current goal state as Isar proof with have, if and for"
     (Scan.succeed explore_lemma_cmd)
 
-fun explore_quotes_cmd enclosure =
-  Toplevel.keep_proof (K () o explore ASSUMES_SHOWS enclosure o Toplevel.proof_of)
-
-val _ =
-  Outer_Syntax.command @{command_keyword "explore_quotes"}
-    "explore current goal state as Isar proof with have, if and for"
-    (Scan.succeed (explore_quotes_cmd quote))
-
 *}
 
 subsection {* Examples *}
+
+text \<open>You can choose cartouches\<close>
+setup Explorer_Lib.switch_to_cartouches
 
 lemma
   "distinct xs \<Longrightarrow> P xs \<Longrightarrow> length (filter (\<lambda>x. x = y) xs) \<le> 1" for xs
@@ -150,7 +207,34 @@ lemma
 (*   apply simp_all
   apply auto *)
   explore
-  explore_quotes
+  explore_have
+  explore_lemma
+  oops
+
+text \<open>You can also choose quotes\<close>
+
+setup Explorer_Lib.switch_to_quotes
+
+lemma
+  "distinct xs \<Longrightarrow> P xs \<Longrightarrow> length (filter (\<lambda>x. x = y) xs) \<le> 1" for xs
+  apply (induct xs)
+(*   apply simp_all
+  apply auto *)
+  explore
+  explore_have
+  explore_lemma
+  oops
+
+
+text \<open>And switch back\<close>
+setup Explorer_Lib.switch_to_cartouches
+
+lemma
+  "distinct xs \<Longrightarrow> P xs \<Longrightarrow> length (filter (\<lambda>x. x = y) xs) \<le> 1" for xs
+  apply (induct xs)
+(*   apply simp_all
+  apply auto *)
+  explore
   explore_have
   explore_lemma
   oops
