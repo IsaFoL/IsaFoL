@@ -160,40 +160,8 @@ lemma ord_resolve_rename_empty_main_prem: "\<not> ord_resolve_rename Cs {#} AAs 
 subsection \<open>Soundness\<close>
 
 text \<open>
-The following is the soundness of the calculus. This is not discussed in the chapter.
-\<close>
-
-lemma ground_prems_ord_resolve_rename_imp_ord_resolve:
-  assumes
-    gr_cc: "is_ground_cls_list CAs" and
-    gr_d: "is_ground_cls DA" and
-    res_e_re: "ord_resolve_rename CAs DA AAs As \<sigma> E"
-  shows "ord_resolve CAs DA AAs As \<sigma> E"
-  using res_e_re
-proof (cases rule: ord_resolve_rename.cases)
-  case (ord_resolve_rename \<rho> \<rho>s)
-  note \<rho> = this(1) and \<rho>s = this(2) and res = this(3)
-
-  from \<rho>s have len: "length \<rho>s = length CAs"
-    using renames_apart by auto
-
-  have "CAs \<cdot>\<cdot>cl \<rho>s = CAs"
-    using len gr_cc by auto
-  moreover have "DA \<cdot> \<rho> = DA"
-    using gr_d by auto
-  moreover have "map2 (op \<cdot>am) AAs \<rho>s = AAs"
-    using len gr_cc
-    sorry
-  moreover have "As \<cdot>al \<rho> = As"
-    using gr_d
-    sorry
-  ultimately show ?thesis
-    using res by auto
-qed
-
-text \<open>
-The following lemma is used to prove first-order soundness. It is also used to prove Lemma 4.10,
-which is used to prove completeness.
+Soundness is not discussed in the chapter, but it is an important property. The following lemma is
+used to prove soundness. It is also used to prove Lemma 4.10, which is used to prove completeness.
 \<close>
 
 lemma ord_resolve_ground_inst_sound:
