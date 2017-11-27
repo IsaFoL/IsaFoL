@@ -15,8 +15,10 @@ soundness and Lemma 4.12 (the lifting lemma).
 \<close>
 
 theory FO_Ordered_Resolution
-  imports Abstract_Substitution Ordered_Ground_Resolution Standard_Redundancy
+  imports Abstract_Substitution Ordered_Ground_Resolution Standard_Redundancy "../lib/Explorer"
 begin
+
+setup Explorer_Lib.switch_to_quotes
 
 text \<open>
 The following corresponds to to pages 41 and 42 of Section 4.3, until Figure 5 and its explanation.
@@ -625,13 +627,14 @@ proof (cases rule: ord_resolve.cases)
   have "S DA' \<cdot> \<eta>' = S_M S M DA"
     using as''(5) unfolding \<eta>'_def DA'_def using renames_DA'' sel_stable by auto
   have CAs'_CAs: "CAs' \<cdot>\<cdot>cl \<eta>s' = CAs"
-    using as''(7) unfolding CAs'_def \<eta>s'_def using n(3) renames_apart renames_CAs'' by auto
+    using as''(7) unfolding CAs'_def \<eta>s'_def using n(1) renames_apart renames_CAs'' by auto
   have "map S CAs' \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAs"
-    unfolding CAs'_def \<eta>s'_def using as''(8) n(3,4) renames_CAs'' sel_ren_list_inv by auto
+    unfolding CAs'_def \<eta>s'_def using as''(8) n renames_CAs'' sel_ren_list_inv by auto
   have vd: "var_disjoint (DA' # CAs')"
     unfolding DA'_def CAs'_def using renames_apart[of "DA'' # CAs''"]
     by (metis length_greater_0_conv list.exhaust_sel n(3) substitution.subst_cls_lists_Cons
         substitution_axioms zero_less_Suc)
+
 
   -- \<open>Introduce ground substitution\<close>
   from vd DA'_DA CAs'_CAs have "\<exists>\<eta>. \<forall>i < Suc n. \<forall>S. S \<subseteq># (DA' # CAs') ! i \<longrightarrow> S \<cdot> (\<eta>'#\<eta>s') ! i = S \<cdot> \<eta>"
@@ -699,7 +702,6 @@ proof (cases rule: ord_resolve.cases)
     ultimately have "\<exists>As'. As' \<cdot>al \<eta> = As \<and> (negs (mset As')) \<subseteq># DA'
       \<and> (S_M S M (D + negs (mset As)) \<noteq> {#} \<longrightarrow> negs (mset As') = S DA')"
       using eligible unfolding eligible.simps by auto
-
     then obtain As' where
       As'_p: "As' \<cdot>al \<eta> = As \<and> negs (mset As') \<subseteq># DA'
       \<and> (S_M S M (D + negs (mset As)) \<noteq> {#} \<longrightarrow> negs (mset As') = S DA')"
@@ -799,7 +801,7 @@ proof (cases rule: ord_resolve.cases)
 
   note n = n \<open>length AAs' = n\<close> \<open>length Cs' = n\<close>
 
-  -- \<open>Obtain MGU and subsitution\<close>
+  -- \<open>Obtain MGU and substitution\<close>
   obtain \<tau> \<phi> where \<tau>\<phi>:
     "Some \<tau> = mgu (set_mset ` set (map2 add_mset As' AAs'))"
     "\<tau> \<odot> \<phi> = \<eta> \<odot> \<sigma>"
@@ -932,16 +934,60 @@ proof (cases rule: ord_resolve.cases)
       using that e'\<phi>e make_ground_subst by auto
   qed
 
-  obtain AAs'' As'' where
-    "ord_resolve_rename S CAs'' DA'' AAs'' As'' \<tau> E'"
-    apply atomize_elim
-    apply (intro exI)
-    apply (rule ord_resolve_rename)
-    prefer 3
-    using res_e'[unfolded CAs'_def DA'_def]
-    using ord_resolve_rename res_e' unfolding CAs'_def DA'_def
-    (* FIXME *)
+  (* New *)
+  define As'' :: "'a list" where
+    "As'' = undefined"
+  have as''_new_1: "As''  \<cdot>al \<eta>'' = As"
     sorry
+  define AAs'' :: "'a multiset list" where
+    "AAs'' = undefined"
+  have as''_new_2: "map2 op \<cdot>am AAs'' \<eta>s'' = AAs "
+    sorry
+  (* End new *)
+
+  (* New *)
+  have As'_def2: "As' = As'' \<cdot>al hd (renamings_apart (DA'' # CAs''))"
+    sorry
+  have AAs'_def2: "AAs' = map2 op \<cdot>am AAs'' (tl (renamings_apart (DA'' # CAs'')))"
+    sorry
+  (* End new *)
+
+  (* New *)
+  have "length As' = n"
+    sorry
+  have "length AAs' = n"
+    sorry
+  note n = \<open>length As' = n\<close> \<open>length AAs' = n\<close> n
+  (* End new *)  
+
+  (* New *)
+  have As'_As: "As' \<cdot>al \<eta>' = As"
+    using as''_new_1 unfolding \<eta>'_def As'_def2 using renames_DA'' using n sorry
+  have AAs'_AAs: "map2 op \<cdot>am AAs' \<eta>s' = AAs"
+    using as''_new_2 unfolding \<eta>s'_def AAs'_def2 using renames_CAs'' using n sorry 
+  (* End new *)
+
+  (* New *)
+  have As'_As: "As' \<cdot>al \<eta> = As"
+    using As'_As \<eta>_p sorry
+  have AAs'_AAs: "AAs' \<cdot>aml \<eta> = AAs"
+    using AAs'_AAs \<eta>_p sorry 
+  (* End new *)
+
+  define \<rho>4 where "\<rho>4 = hd (renamings_apart (DA'' # CAs''))"
+  moreover define \<rho>s4 where "\<rho>s4 = tl (renamings_apart (DA'' # CAs''))"
+  moreover have "ord_resolve S (CAs'' \<cdot>\<cdot>cl \<rho>s4) (DA'' \<cdot> \<rho>4) (map2 op \<cdot>am AAs'' \<rho>s4) (As'' \<cdot>al \<rho>4) \<tau> E'"
+    using res_e' 
+    apply (subgoal_tac "CAs' = (CAs'' \<cdot>\<cdot>cl \<rho>s4)" "DA' = DA'' \<cdot> \<rho>4" "AAs' = map2 op \<cdot>am AAs'' \<rho>s4" "As' = As'' \<cdot>al \<rho>4")
+        apply simp
+    using As'_def2 \<rho>4_def apply simp
+    using AAs'_def2 \<rho>s4_def apply simp
+    using DA'_def \<rho>4_def apply simp
+    using CAs'_def \<rho>s4_def apply simp
+    done
+  ultimately have
+    "ord_resolve_rename S CAs'' DA'' AAs'' As'' \<tau> E'"
+    by (rule ord_resolve_rename)
   then show thesis
     using that[of \<eta>'' \<eta>s'' \<eta>2 CAs'' DA''] \<open>is_ground_subst \<eta>''\<close> \<open>is_ground_subst_list \<eta>s''\<close>
       \<open>is_ground_subst \<eta>2\<close> \<open>CAs'' \<cdot>\<cdot>cl \<eta>s'' = CAs\<close> \<open>DA'' \<cdot> \<eta>'' = DA\<close> \<open>E' \<cdot> \<eta>2 = E\<close> \<open>DA'' \<in> M\<close>
