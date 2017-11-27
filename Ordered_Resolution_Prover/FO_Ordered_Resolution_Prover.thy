@@ -61,7 +61,7 @@ abbreviation grounding_of_state :: "'a state \<Rightarrow> 'a clause set" where
   "grounding_of_state St \<equiv> grounding_of_clss (clss_of_state St)"
 
 definition ord_FO_\<Gamma> :: "'a inference set" where
-  "ord_FO_\<Gamma> = {Infer (mset CAs) D E | CAs D AAs As \<sigma> E. ord_resolve_rename S CAs D AAs As \<sigma> E}"
+  "ord_FO_\<Gamma> = {Infer (mset CAs) DA E | CAs DA AAs As \<sigma> E. ord_resolve_rename S CAs DA AAs As \<sigma> E}"
 
 interpretation ord_FO_resolution: inference_system ord_FO_\<Gamma> .
 
@@ -77,7 +77,7 @@ lemma ord_resolve_unique:
   shows "\<sigma> = \<sigma>' \<and> E = E'"
   using assms
 proof (cases rule: ord_resolve.cases[case_product ord_resolve.cases], intro conjI)
-  case (ord_resolve_ord_resolve CAs n Cs AAs As \<sigma>'' D CAs' n' Cs' AAs' As' \<sigma>''' D')
+  case (ord_resolve_ord_resolve CAs n Cs AAs As \<sigma>'' DA CAs' n' Cs' AAs' As' \<sigma>''' DA')
   note res = this(1-17) and res' = this(18-34)
 
   show \<sigma>: "\<sigma> = \<sigma>'"
@@ -85,7 +85,7 @@ proof (cases rule: ord_resolve.cases[case_product ord_resolve.cases], intro conj
 
   have "Cs = Cs'"
     using res(1,3,7,8,12) res'(1,3,7,8,12) by (metis add_right_imp_eq nth_equalityI)
-  moreover have "D = D'"
+  moreover have "DA = DA'"
     using res(2,4) res'(2,4) by fastforce
   ultimately show "E = E'"
     using res(5,6) res'(5,6) \<sigma> by blast
@@ -100,12 +100,12 @@ lemma ord_resolve_rename_unique:
   using assms unfolding ord_resolve_rename.simps using ord_resolve_unique by meson
 
 (* FIXME: move *)
-lemma ord_resolve_max_side_prems: "ord_resolve S CAs D AAs As \<sigma> E \<Longrightarrow> length CAs \<le> size D"
+lemma ord_resolve_max_side_prems: "ord_resolve S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs \<le> size DA"
   by (auto elim!: ord_resolve.cases)
 
 (* FIXME: move *)
 lemma ord_resolve_rename_max_side_prems:
-  "ord_resolve_rename S CAs D AAs As \<sigma> E \<Longrightarrow> length CAs \<le> size D"
+  "ord_resolve_rename S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs \<le> size DA"
   by (elim ord_resolve_rename.cases, drule ord_resolve_max_side_prems, simp add: renames_apart)
 
 (* FIXME: move *)
@@ -130,13 +130,13 @@ proof -
   note defs = all_AA_def max_ary_def CAS_def AS_def AAS_def
 
   let ?infer_of =
-    "\<lambda>CAs D AAs As. Infer (mset CAs) D (THE E. \<exists>\<sigma>. ord_resolve_rename S CAs D AAs As \<sigma> E)"
+    "\<lambda>CAs DA AAs As. Infer (mset CAs) DA (THE E. \<exists>\<sigma>. ord_resolve_rename S CAs DA AAs As \<sigma> E)"
 
-  let ?Z = "{\<gamma> | CAs D AAs As \<sigma> E \<gamma>. \<gamma> = Infer (mset CAs) D E
-    \<and> ord_resolve_rename S CAs D AAs As \<sigma> E \<and> infer_from ?CCC \<gamma> \<and> C \<in># prems_of \<gamma>}"
-  let ?Y = "{Infer (mset CAs) D E | CAs D AAs As \<sigma> E.
-    ord_resolve_rename S CAs D AAs As \<sigma> E \<and> set CAs \<union> {D} \<subseteq> ?CCC}"
-  let ?X = "{?infer_of CAs D AAs As | CAs D AAs As. CAs \<in> CAS \<and> D \<in> ?CCC \<and> AAs \<in> AAS \<and> As \<in> AS}"
+  let ?Z = "{\<gamma> | CAs DA AAs As \<sigma> E \<gamma>. \<gamma> = Infer (mset CAs) DA E
+    \<and> ord_resolve_rename S CAs DA AAs As \<sigma> E \<and> infer_from ?CCC \<gamma> \<and> C \<in># prems_of \<gamma>}"
+  let ?Y = "{Infer (mset CAs) DA E | CAs DA AAs As \<sigma> E.
+    ord_resolve_rename S CAs DA AAs As \<sigma> E \<and> set CAs \<union> {DA} \<subseteq> ?CCC}"
+  let ?X = "{?infer_of CAs DA AAs As | CAs DA AAs As. CAs \<in> CAS \<and> DA \<in> ?CCC \<and> AAs \<in> AAS \<and> As \<in> AS}"
   let ?W = "CAS \<times> ?CCC \<times> AAS \<times> AS"
 
   have fin_w: "finite ?W"
@@ -147,13 +147,13 @@ proof -
   also have "\<dots> \<subseteq> ?X"
   proof -
     {
-      fix CAs D AAs As \<sigma> E
+      fix CAs DA AAs As \<sigma> E
       assume
-        res_e: "ord_resolve_rename S CAs D AAs As \<sigma> E" and
-        d_in: "D \<in> ?CCC" and
+        res_e: "ord_resolve_rename S CAs DA AAs As \<sigma> E" and
+        da_in: "DA \<in> ?CCC" and
         cas_sub: "set CAs \<subseteq> ?CCC"
 
-      have "E = (THE E. \<exists>\<sigma>. ord_resolve_rename S CAs D AAs As \<sigma> E)
+      have "E = (THE E. \<exists>\<sigma>. ord_resolve_rename S CAs DA AAs As \<sigma> E)
         \<and> CAs \<in> CAS \<and> AAs \<in> AAS \<and> As \<in> AS" (is "?e \<and> ?cas \<and> ?aas \<and> ?as")
       proof (intro conjI)
         show ?e
@@ -163,7 +163,7 @@ proof -
           unfolding CAS_def max_ary_def apply auto
           using cas_sub
            apply blast
-          using d_in res_e
+          using da_in res_e
           by (smt Max.bounded_iff Max_insert2 Un_insert_right Un_upper1 Un_upper2 antisym empty_iff eq_iff fin_cc finite_imageI finite_insert image_eqI image_insert image_is_empty insert_absorb2 le_trans nat_le_linear ord_resolve_rename_max_side_prems order_refl singletonI subsetCE sup_bot.right_neutral)
       next
         show ?aas
@@ -227,10 +227,10 @@ proof -
             next
               have "length AAs = length As"
                 unfolding len_aas len_as ..
-              also have "\<dots> \<le> size D"
+              also have "\<dots> \<le> size DA"
                 using as_sub size_mset_mono by fastforce
               also have "\<dots> \<le> max_ary"
-                unfolding max_ary_def using fin_cc d_in by auto
+                unfolding max_ary_def using fin_cc da_in by auto
               finally show "length AAs \<le> max_ary"
                 .
             qed
@@ -240,8 +240,11 @@ proof -
         show ?as
           unfolding AS_def
         proof (clarify, intro conjI)
+
           show "As \<in> lists all_AA"
             unfolding all_AA_def
+            using res_e[simplified ord_resolve_rename.simps]
+
             sorry
         next
           show "length As \<le> max_ary"
@@ -252,7 +255,7 @@ proof -
     then show ?thesis
       by simp fast
   qed
-  also have "\<dots> \<subseteq> (\<lambda>(CAs, D, AAs, As). ?infer_of CAs D AAs As) ` ?W"
+  also have "\<dots> \<subseteq> (\<lambda>(CAs, DA, AAs, As). ?infer_of CAs DA AAs As) ` ?W"
     unfolding image_def Bex_cartesian_product by fast
   finally show ?thesis
     unfolding inference_system.inferences_between_def ord_FO_\<Gamma>_def mem_Collect_eq
