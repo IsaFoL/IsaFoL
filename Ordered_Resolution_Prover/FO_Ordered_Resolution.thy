@@ -145,7 +145,11 @@ inductive
   :: "'a clause list \<Rightarrow> 'a clause \<Rightarrow> 'a multiset list \<Rightarrow> 'a list \<Rightarrow> 's \<Rightarrow> 'a clause \<Rightarrow> bool"
 where
   ord_resolve_rename:
-    "\<rho> = hd (renamings_apart (DA # CAs)) \<Longrightarrow>
+    "length CAs = n \<Longrightarrow>
+     length AAs = n \<Longrightarrow>
+     (\<forall>i < n. poss (AAs ! i) \<subseteq># CAs ! i) \<Longrightarrow>
+     negs (mset As) \<subseteq># DA \<Longrightarrow> 
+     \<rho> = hd (renamings_apart (DA # CAs)) \<Longrightarrow>
      \<rho>s = tl (renamings_apart (DA # CAs)) \<Longrightarrow>
      ord_resolve (CAs \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) (map2 (op \<cdot>am) AAs \<rho>s) (As \<cdot>al \<rho>) \<sigma> E \<Longrightarrow>
      ord_resolve_rename CAs DA AAs As \<sigma> E"
@@ -300,11 +304,11 @@ lemma ord_resolve_rename_sound:
   shows "I \<Turnstile>fo E"
   using res_e
 proof (cases rule: ord_resolve_rename.cases)
-  case (ord_resolve_rename \<rho> P)
-  note \<rho> = this(1) and P = this(2) and res = this(3)
-  then have len: "length P = length CAs"
-    using renames_apart by auto
-  have "I \<Turnstile>fom (mset (CAs \<cdot>\<cdot>cl P)) + {#DA \<cdot> \<rho>#}"
+  case (ord_resolve_rename n \<rho> \<rho>s)
+  note \<rho>s = this(6) and res = this(7)
+  have len: "length \<rho>s = length CAs"
+    using \<rho>s renames_apart by auto
+  have "I \<Turnstile>fom mset (CAs \<cdot>\<cdot>cl \<rho>s) + {#DA \<cdot> \<rho>#}"
     using subst_sound_scl[OF len, of I] subst_sound cc_d_true by (simp add: true_fo_cls_mset_def2)
   then show "I \<Turnstile>fo E"
     using ord_resolve_sound[OF res] by simp

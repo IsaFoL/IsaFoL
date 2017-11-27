@@ -93,7 +93,7 @@ lemma ord_resolve_rename_unique:
     "ord_resolve_rename S Cl DA AAs As \<sigma> E" and
     "ord_resolve_rename S Cl DA AAs As \<sigma>' E'"
   shows "\<sigma> = \<sigma>' \<and> E = E'"
-  using assms unfolding ord_resolve_rename.simps using ord_resolve_unique by blast
+  using assms unfolding ord_resolve_rename.simps using ord_resolve_unique by meson
 
 (* FIXME: move *)
 lemma ord_resolve_max_side_prems: "ord_resolve S Cl D AAs As \<sigma> E \<Longrightarrow> length Cl \<le> size D"
@@ -165,7 +165,7 @@ proof -
           using res_e
         proof (cases rule: ord_resolve_rename.cases)
           case (ord_resolve_rename \<rho> \<rho>s)
-          note \<rho> = this(1) and \<rho>s = this(2) and res_e' = this(3)
+          note \<rho> = this(5) and \<rho>s = this(6) and res_e' = this(7)
           show ?thesis
             using res_e'
           proof (cases rule: ord_resolve.cases)
@@ -186,12 +186,13 @@ proof -
                 moreover have "length ?As' \<le> max_ary"
                   sorry
                 moreover have "AA = mset ?As'"
-                  sorry
+                  by simp
                 ultimately show "\<exists>xa. xa \<in> lists all_AA \<and> length xa \<le> max_ary \<and> AA = mset xa"
                   by blast
               qed
             next
               show "length AAs \<le> max_ary"
+                using res unfolding max_ary_def
                 sorry
             qed
           qed
