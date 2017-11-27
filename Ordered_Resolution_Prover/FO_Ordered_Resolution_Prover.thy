@@ -123,11 +123,11 @@ proof -
 
   define all_AA where "all_AA = (\<Union>D \<in> ?CCC. atms_of D)"
   define max_ary where "max_ary = Max (size ` ?CCC)"
-  define CL where "CL = {CAs. CAs \<in> lists ?CCC \<and> length CAs \<le> max_ary}"
+  define CAS where "CAS = {CAs. CAs \<in> lists ?CCC \<and> length CAs \<le> max_ary}"
   define AS where "AS = {As. As \<in> lists all_AA \<and> length As \<le> max_ary}"
   define AAS where "AAS = {AAs. AAs \<in> lists (mset ` AS) \<and> length AAs \<le> max_ary}"
 
-  note defs = all_AA_def max_ary_def CL_def AS_def AAS_def
+  note defs = all_AA_def max_ary_def CAS_def AS_def AAS_def
 
   let ?infer_of =
     "\<lambda>CAs D AAs As. Infer (mset CAs) D (THE E. \<exists>\<sigma>. ord_resolve_rename S CAs D AAs As \<sigma> E)"
@@ -136,8 +136,8 @@ proof -
     \<and> ord_resolve_rename S CAs D AAs As \<sigma> E \<and> infer_from ?CCC \<gamma> \<and> C \<in># prems_of \<gamma>}"
   let ?Y = "{Infer (mset CAs) D E | CAs D AAs As \<sigma> E.
     ord_resolve_rename S CAs D AAs As \<sigma> E \<and> set CAs \<union> {D} \<subseteq> ?CCC}"
-  let ?X = "{?infer_of CAs D AAs As | CAs D AAs As. CAs \<in> CL \<and> D \<in> ?CCC \<and> AAs \<in> AAS \<and> As \<in> AS}"
-  let ?W = "CL \<times> ?CCC \<times> AAS \<times> AS"
+  let ?X = "{?infer_of CAs D AAs As | CAs D AAs As. CAs \<in> CAS \<and> D \<in> ?CCC \<and> AAs \<in> AAS \<and> As \<in> AS}"
+  let ?W = "CAS \<times> ?CCC \<times> AAS \<times> AS"
 
   have fin_w: "finite ?W"
     unfolding defs using fin_cc by (simp add: finite_lists_length_le lists_eq_set)
@@ -154,13 +154,13 @@ proof -
         cas: "set CAs \<subseteq> ?CCC"
 
       have "E = (THE E. \<exists>\<sigma>. ord_resolve_rename S CAs D AAs As \<sigma> E)
-        \<and> CAs \<in> CL \<and> AAs \<in> AAS \<and> As \<in> AS" (is "?e \<and> ?cas \<and> ?aas \<and> ?as")
+        \<and> CAs \<in> CAS \<and> AAs \<in> AAS \<and> As \<in> AS" (is "?e \<and> ?cas \<and> ?aas \<and> ?as")
       proof (intro conjI)
         show ?e
           using res_e by (smt ord_resolve_rename_unique the_equality)
       next
         show ?cas
-          unfolding CL_def max_ary_def apply auto
+          unfolding CAS_def max_ary_def apply auto
           using cas
           apply blast
           by (smt Max.bounded_iff Max_insert2 Un_insert_right Un_upper1 Un_upper2 antisym d empty_iff eq_iff fin_cc finite_imageI finite_insert image_eqI image_insert image_is_empty insert_absorb2 le_trans nat_le_linear ord_resolve_rename_max_side_prems order_refl res_e singletonI subsetCE sup_bot.right_neutral)
