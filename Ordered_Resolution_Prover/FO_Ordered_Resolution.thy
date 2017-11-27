@@ -701,7 +701,7 @@ proof (cases rule: ord_resolve.cases)
       using eligible unfolding eligible.simps by auto
 
     then obtain As' where
-      As'_p: "As' \<cdot>al \<eta> = As \<and> (negs (mset As')) \<subseteq># DA'
+      As'_p: "As' \<cdot>al \<eta> = As \<and> negs (mset As') \<subseteq># DA'
       \<and> (S_M S M (D + negs (mset As)) \<noteq> {#} \<longrightarrow> negs (mset As') = S DA')"
       by blast
     then have "length As' = n"
@@ -891,7 +891,7 @@ proof (cases rule: ord_resolve.cases)
       using subst_cls_empty_iff by blast
   qed
 
-  -- \<open>Lifting AAs's being non-empty\<close>
+  -- \<open>Lifting AAs's nonemptiness\<close>
   have "\<forall>i < n. AAs' ! i \<noteq> {#}"
     using n aas_not_empt \<open>AAs' \<cdot>aml \<eta> = AAs\<close> by auto
 
@@ -934,6 +934,11 @@ proof (cases rule: ord_resolve.cases)
 
   obtain AAs'' As'' where
     "ord_resolve_rename S CAs'' DA'' AAs'' As'' \<tau> E'"
+    apply atomize_elim
+    apply (intro exI)
+    apply (rule ord_resolve_rename)
+    prefer 3
+    using res_e'[unfolded CAs'_def DA'_def]
     using ord_resolve_rename res_e' unfolding CAs'_def DA'_def
     (* FIXME *)
     sorry
