@@ -151,7 +151,7 @@ proof -
       assume
         res_e: "ord_resolve_rename S CAs D AAs As \<sigma> E" and
         d: "D \<in> ?CCC" and
-        cas: "set CAs \<subseteq> ?CCC"
+        cas_sub: "set CAs \<subseteq> ?CCC"
 
       have "E = (THE E. \<exists>\<sigma>. ord_resolve_rename S CAs D AAs As \<sigma> E)
         \<and> CAs \<in> CAS \<and> AAs \<in> AAS \<and> As \<in> AS" (is "?e \<and> ?cas \<and> ?aas \<and> ?as")
@@ -161,7 +161,7 @@ proof -
       next
         show ?cas
           unfolding CAS_def max_ary_def apply auto
-          using cas
+          using cas_sub
           apply blast
           by (smt Max.bounded_iff Max_insert2 Un_insert_right Un_upper1 Un_upper2 antisym d empty_iff eq_iff fin_cc finite_imageI finite_insert image_eqI image_insert image_is_empty insert_absorb2 le_trans nat_le_linear ord_resolve_rename_max_side_prems order_refl res_e singletonI subsetCE sup_bot.right_neutral)
       next
@@ -169,7 +169,7 @@ proof -
           using res_e
         proof (cases rule: ord_resolve_rename.cases)
           case xxx: (ord_resolve_rename n \<rho> \<rho>s)
-          note len_cl = this(1) and len_aas = this(2) and len_as = this(3) and aas_sub = this(4) and
+          note len_cas = this(1) and len_aas = this(2) and len_as = this(3) and aas_sub = this(4) and
             as_sub = this(5) and \<rho> = this(6) and \<rho>s = this(7) and res_e' = this(8)
           show ?thesis
             using res_e'
@@ -186,28 +186,38 @@ proof -
               proof clarsimp
                 fix AA
                 assume "AA \<in> set AAs"
-
-                obtain i where
+                then obtain i where
                   i_lt: "i < n" and
                   aa: "AA = AAs ! i"
-                  sorry
+                  by (metis in_set_conv_nth len_aas)
 
-                have "poss AA \<subseteq># CAs ! i"
-                  sorry
+                have casi_in: "CAs ! i \<in> ?CCC"
+                  using i_lt len_cas cas_sub nth_mem by blast
+
+                have pos_aa_sub: "poss AA \<subseteq># CAs ! i"
+                  using aa aas_sub i_lt by blast
+                then have "set_mset AA \<subseteq> atms_of (CAs ! i)"
+                  by (metis atms_of_poss lits_subseteq_imp_atms_subseteq set_mset_mono)
+                also have aa_sub: "\<dots> \<subseteq> all_AA"
+                  unfolding all_AA_def using casi_in by force
+                finally have aa_sub: "set_mset AA \<subseteq> all_AA"
+                  .
+
+                have "size AA = size (poss AA)"
+                  by simp
+                also have "\<dots> \<le> size (CAs ! i)"
+                  by (rule size_mset_mono[OF pos_aa_sub])
+                also have "\<dots> \<le> max_ary"
+                  unfolding max_ary_def using fin_cc casi_in by auto
+                finally have sz_aa: "size AA \<le> max_ary"
+                  .
 
                 let ?As' = "sorted_list_of_multiset AA"
 
                 have "?As' \<in> lists all_AA"
-                  unfolding all_AA_def
-                  using cas aas_sub i_lt
-                  unfolding aa
-                  apply auto
-                  sorry
+                  using aa_sub by auto
                 moreover have "length ?As' \<le> max_ary"
-                  unfolding max_ary_def
-                  apply simp
-                  using aas_sub i_lt unfolding aa
-                  sorry
+                  using sz_aa by simp
                 moreover have "AA = mset ?As'"
                   by simp
                 ultimately show "\<exists>xa. xa \<in> lists all_AA \<and> length xa \<le> max_ary \<and> AA = mset xa"
