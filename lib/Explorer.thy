@@ -9,7 +9,7 @@
 
 theory Explorer
 imports Main
-keywords "explore" "explore_have" "explore_lemma" :: diag
+keywords "explore" "explore_have" "explore_lemma" "explore_quotes" :: diag
 begin
 
 subsection {* Explore command *}
@@ -42,19 +42,19 @@ fun keyword_goal HAVE_IF =        ""
   | keyword_goal ASSUME_SHOW =    "  show "
   | keyword_goal ASSUMES_SHOWS =  "  shows "
 
-fun isar_skeleton ctxt aim (fixes, assms, shows) =
+fun isar_skeleton ctxt aim enclosure (fixes, assms, shows) =
   let
     val kw_fix = keyword_fix aim
     val kw_assume = keyword_assume aim
     val kw_goal = keyword_goal aim
     val fixes_s = if null fixes then NONE
       else SOME (kw_fix ^ space_implode " and "
-        (map (fn (v, T) => v ^ " :: " ^ cartouche (Syntax.string_of_typ ctxt T)) fixes));
+        (map (fn (v, T) => v ^ " :: " ^ enclosure (Syntax.string_of_typ ctxt T)) fixes));
     val (_, ctxt') = Variable.add_fixes (map fst fixes) ctxt; 
     val assumes_s = if null assms then NONE
       else SOME (kw_assume ^ space_implode_with_line_break
-        (map (cartouche o Syntax.string_of_term ctxt') assms))
-    val shows_s = (kw_goal ^ (cartouche o Syntax.string_of_term ctxt') shows)
+        (map (enclosure o Syntax.string_of_term ctxt') assms))
+    val shows_s = (kw_goal ^ (enclosure o Syntax.string_of_term ctxt') shows)
     val s = 
       (case aim of
         HAVE_IF =>  (map_filter I [fixes_s], map_filter I [assumes_s], shows_s)
@@ -64,17 +64,17 @@ fun isar_skeleton ctxt aim (fixes, assms, shows) =
     s
   end;
 
-fun generate_text ASSUME_SHOW context clauses =
+fun generate_text ASSUME_SHOW context enclosure clauses =
   let val lines = clauses
-      |> map (isar_skeleton context ASSUME_SHOW)
+      |> map (isar_skeleton context ASSUME_SHOW enclosure)
       |> map (fn (a, b, c) => a @ b @ [c])
       |> map cat_lines
   in
   ("proof -" :: separate "next" lines @ ["qed"])
  end
- | generate_text HAVE_IF context clauses =
+ | generate_text HAVE_IF context enclosure clauses =
     let
-      val raw_lines = map (isar_skeleton context HAVE_IF) clauses
+      val raw_lines = map (isar_skeleton context HAVE_IF enclosure) clauses
       fun treat_line (fixes_s, assumes_s, shows_s) =
         let val combined_line = [shows_s] @ assumes_s @ fixes_s |> cat_lines
         in
@@ -84,9 +84,9 @@ fun generate_text ASSUME_SHOW context clauses =
     in
       separate "\n" raw_lines_with_proof_body
     end
- | generate_text ASSUMES_SHOWS context clauses =
+ | generate_text ASSUMES_SHOWS context enclosure clauses =
     let
-      val raw_lines = map (isar_skeleton context ASSUMES_SHOWS) clauses
+      val raw_lines = map (isar_skeleton context ASSUMES_SHOWS enclosure) clauses
       fun treat_line (fixes_s, assumes_s, shows_s) =
         let val combined_line = fixes_s @ assumes_s @ [shows_s] |> cat_lines
         in
@@ -97,27 +97,27 @@ fun generate_text ASSUME_SHOW context clauses =
       separate "\n" raw_lines_with_lemma_and_proof_body
     end;
 
-fun explore aim st =
+fun explore aim enclosure st  =
   let
     val { context, facts = _, goal } = Proof.goal st;
     val goal_props = Logic.strip_imp_prems (Thm.prop_of goal);
     val clauses = map split_clause goal_props;
-    val text = cat_lines (generate_text aim context clauses);
+    val text = cat_lines (generate_text aim context enclosure clauses);
     val message = Active.sendback_markup_properties [] text;
   in
     (st |> tap (fn _ => Output.information message))
   end
 
-val explore_cmd =
-  Toplevel.keep_proof (K () o explore ASSUME_SHOW o Toplevel.proof_of)
+fun explore_cmd enclosure =
+  Toplevel.keep_proof (K () o explore ASSUME_SHOW enclosure o Toplevel.proof_of)
 
 val _ =
   Outer_Syntax.command @{command_keyword "explore"}
     "explore current goal state as Isar proof"
-    (Scan.succeed explore_cmd)
+    (Scan.succeed (explore_cmd cartouche))
 
 val explore_have_cmd =
-  Toplevel.keep_proof (K () o explore HAVE_IF o Toplevel.proof_of)
+  Toplevel.keep_proof (K () o explore HAVE_IF cartouche o Toplevel.proof_of)
 
 val _ =
   Outer_Syntax.command @{command_keyword "explore_have"}
@@ -125,12 +125,21 @@ val _ =
     (Scan.succeed explore_have_cmd)
 
 val explore_lemma_cmd =
-  Toplevel.keep_proof (K () o explore ASSUMES_SHOWS o Toplevel.proof_of)
+  Toplevel.keep_proof (K () o explore ASSUMES_SHOWS cartouche o Toplevel.proof_of)
 
 val _ =
   Outer_Syntax.command @{command_keyword "explore_lemma"}
     "explore current goal state as Isar proof with have, if and for"
     (Scan.succeed explore_lemma_cmd)
+
+fun explore_quotes_cmd enclosure =
+  Toplevel.keep_proof (K () o explore ASSUMES_SHOWS enclosure o Toplevel.proof_of)
+
+val _ =
+  Outer_Syntax.command @{command_keyword "explore_quotes"}
+    "explore current goal state as Isar proof with have, if and for"
+    (Scan.succeed (explore_quotes_cmd quote))
+
 *}
 
 subsection {* Examples *}
@@ -141,6 +150,7 @@ lemma
 (*   apply simp_all
   apply auto *)
   explore
+  explore_quotes
   explore_have
   explore_lemma
   oops
