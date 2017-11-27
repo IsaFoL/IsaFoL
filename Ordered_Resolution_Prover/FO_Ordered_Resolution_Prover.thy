@@ -250,19 +250,9 @@ proof -
         next
           have "length As \<le> size DA"
             using res_e[simplified ord_resolve_rename.simps]
-            sorry
+              ord_resolve_rename_max_side_prems[OF res_e] by auto
           also have "size DA \<le> max_ary"
-(*
-
-            unfolding max_ary_def
-            apply (rule Max_ge)
-            using fin_cc
-             apply simp
-            using imageI[of _ ?CCC size]
-            using res_e[simplified ord_resolve_rename.simps]
-*)
-            
-            sorry
+            unfolding max_ary_def using fin_cc da_in by auto
           finally show "length As \<le> max_ary"
             .
         qed
