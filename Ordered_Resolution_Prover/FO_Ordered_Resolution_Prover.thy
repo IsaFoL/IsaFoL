@@ -66,6 +66,10 @@ definition ord_FO_\<Gamma> :: "'a inference set" where
 interpretation ord_FO_resolution: inference_system ord_FO_\<Gamma> .
 
 (* FIXME: move me *)
+lemma length_sorted_list_of_multiset[simp]: "length (sorted_list_of_multiset A) = size A"
+  by (metis multiset_mset_sorted_list_of_multiset size_mset)
+
+(* FIXME: move me *)
 lemma ord_resolve_unique:
   assumes
     "ord_resolve S Cl DA AAs As \<sigma> E" and
@@ -164,12 +168,16 @@ proof -
         show ?aas
           using res_e
         proof (cases rule: ord_resolve_rename.cases)
-          case (ord_resolve_rename \<rho> \<rho>s)
-          note \<rho> = this(5) and \<rho>s = this(6) and res_e' = this(7)
+          case xxx: (ord_resolve_rename n \<rho> \<rho>s)
+          note len_cl = this(1) and len_aas = this(2) and len_as = this(3) and aas_sub = this(4) and
+            as_sub = this(5) and \<rho> = this(6) and \<rho>s = this(7) and res_e' = this(8)
           show ?thesis
             using res_e'
           proof (cases rule: ord_resolve.cases)
-            case res: (ord_resolve n Cs D')
+            case res_conds: (ord_resolve n' Cs D')
+            have n': "n' = n"
+              using len_as res_conds(6) subst_atm_list_length by blast
+
             show ?thesis
               unfolding AAS_def
             proof (clarify, intro conjI)
@@ -178,12 +186,22 @@ proof -
               proof clarsimp
                 fix AA
                 assume "AA \<in> set AAs"
+
+                obtain i where
+                  i_lt: "i < n" and
+                  aa: "AA = AAs ! i"
+                  sorry
+
                 let ?As' = "sorted_list_of_multiset AA"
+
                 have "?As' \<in> lists all_AA"
                   unfolding all_AA_def
-                  using res d cl
+                  using d cl aas_sub
                   sorry
                 moreover have "length ?As' \<le> max_ary"
+                  unfolding max_ary_def
+                  apply simp
+                  using aas_sub
                   sorry
                 moreover have "AA = mset ?As'"
                   by simp
@@ -192,7 +210,7 @@ proof -
               qed
             next
               show "length AAs \<le> max_ary"
-                using res unfolding max_ary_def
+                using res_conds unfolding max_ary_def
                 sorry
             qed
           qed

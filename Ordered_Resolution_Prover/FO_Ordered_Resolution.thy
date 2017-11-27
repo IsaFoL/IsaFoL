@@ -147,6 +147,7 @@ where
   ord_resolve_rename:
     "length CAs = n \<Longrightarrow>
      length AAs = n \<Longrightarrow>
+     length As = n \<Longrightarrow>
      (\<forall>i < n. poss (AAs ! i) \<subseteq># CAs ! i) \<Longrightarrow>
      negs (mset As) \<subseteq># DA \<Longrightarrow> 
      \<rho> = hd (renamings_apart (DA # CAs)) \<Longrightarrow>
@@ -305,7 +306,7 @@ lemma ord_resolve_rename_sound:
   using res_e
 proof (cases rule: ord_resolve_rename.cases)
   case (ord_resolve_rename n \<rho> \<rho>s)
-  note \<rho>s = this(6) and res = this(7)
+  note \<rho>s = this(7) and res = this(8)
   have len: "length \<rho>s = length CAs"
     using \<rho>s renames_apart by auto
   have "I \<Turnstile>fom mset (CAs \<cdot>\<cdot>cl \<rho>s) + {#DA \<cdot> \<rho>#}"
