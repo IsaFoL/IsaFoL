@@ -242,7 +242,7 @@ proof -
         proof (clarify, intro conjI)
           have "set As \<subseteq> atms_of DA"
             using res_e[simplified ord_resolve_rename.simps]
-            by (metis atms_of_negg lits_subseteq_imp_atms_subseteq set_mset_mono set_mset_mset)
+            by (metis atms_of_negs lits_subseteq_imp_atms_subseteq set_mset_mono set_mset_mset)
           also have "\<dots> \<subseteq> all_AA"
             unfolding all_AA_def using da_in by blast
           finally show "As \<in> lists all_AA"
@@ -1728,7 +1728,7 @@ proof -
         using ground_subclauses[of CAs Cs AAs] unfolding is_ground_cls_list_def by auto
       have ground_set_as: "is_ground_atms (set As)"
         using ord_resolve(1) ground_da
-        by (metis atms_of_negg is_ground_cls_union set_mset_mset is_ground_cls_is_ground_atms_atms_of)
+        by (metis atms_of_negs is_ground_cls_union set_mset_mset is_ground_cls_is_ground_atms_atms_of)
       then have ground_mset_as: "is_ground_atm_mset (mset As)"
         unfolding is_ground_atm_mset_def is_ground_atms_def by auto
       have ground_as: "is_ground_atm_list As"
