@@ -3,16 +3,21 @@
     Maintainer:  Jasmin Blanchette <j.c.blanchette at vu.nl>, 2014, 2017
 *)
 
-section \<open>Integration of IsaFoR Terms -- The upcoming AFP version\<close>
+section \<open>Integration of IsaFoR Terms\<close>
 
-theory AFP_IsaFoR_Term
+theory IsaFoR_IsaFoR_Term
   imports
     Deriving.Derive
     Abstract_Substitution
-    "AFP_IsaFoR/AFP_Unifiers"
-    "AFP_IsaFoR/AFP_Subsumption"
-    "AFP_IsaFoR/AFP_Unification"
+    "../lib/Explorer"
+    "$ISAFOR/Normalization_Equivalence/Encompassment" (* Version 7a339721b8c2 *)
+    "./AFP_IsaFoR/Fun_More"
 begin
+
+abbreviation
+  subst_apply_set :: "('f, 'v) terms \<Rightarrow> ('f, 'v, 'w) gsubst \<Rightarrow> ('f, 'w) terms" (infixl "\<cdot>\<^sub>s\<^sub>e\<^sub>t" 60)
+  where
+    "T \<cdot>\<^sub>s\<^sub>e\<^sub>t \<sigma> \<equiv> (\<lambda>t. t \<cdot> \<sigma>) ` T"
 
 hide_const (open) mgu
 
