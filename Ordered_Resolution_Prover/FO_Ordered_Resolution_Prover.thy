@@ -146,8 +146,8 @@ proof -
       fix Cl D AAs As \<sigma> E
       assume
         res_e: "ord_resolve_rename S Cl D AAs As \<sigma> E" and
-        d: "D = C \<or> D \<in> CC" and
-        cl: "set Cl \<subseteq> insert C CC"
+        d: "D \<in> ?CCC" and
+        cl: "set Cl \<subseteq> ?CCC"
 
       have "E = (THE E. \<exists>\<sigma>. ord_resolve_rename S Cl D AAs As \<sigma> E) \<and> Cl \<in> CL \<and> AAs \<in> AAS \<and> As \<in> AS"
         (is "?e \<and> ?cl \<and> ?aas \<and> ?as")
