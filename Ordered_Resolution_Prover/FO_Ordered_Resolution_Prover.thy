@@ -150,7 +150,7 @@ proof -
       fix CAs D AAs As \<sigma> E
       assume
         res_e: "ord_resolve_rename S CAs D AAs As \<sigma> E" and
-        d: "D \<in> ?CCC" and
+        d_in: "D \<in> ?CCC" and
         cas_sub: "set CAs \<subseteq> ?CCC"
 
       have "E = (THE E. \<exists>\<sigma>. ord_resolve_rename S CAs D AAs As \<sigma> E)
@@ -162,13 +162,14 @@ proof -
         show ?cas
           unfolding CAS_def max_ary_def apply auto
           using cas_sub
-          apply blast
-          by (smt Max.bounded_iff Max_insert2 Un_insert_right Un_upper1 Un_upper2 antisym d empty_iff eq_iff fin_cc finite_imageI finite_insert image_eqI image_insert image_is_empty insert_absorb2 le_trans nat_le_linear ord_resolve_rename_max_side_prems order_refl res_e singletonI subsetCE sup_bot.right_neutral)
+           apply blast
+          using d_in res_e
+          by (smt Max.bounded_iff Max_insert2 Un_insert_right Un_upper1 Un_upper2 antisym empty_iff eq_iff fin_cc finite_imageI finite_insert image_eqI image_insert image_is_empty insert_absorb2 le_trans nat_le_linear ord_resolve_rename_max_side_prems order_refl singletonI subsetCE sup_bot.right_neutral)
       next
         show ?aas
           using res_e
         proof (cases rule: ord_resolve_rename.cases)
-          case xxx: (ord_resolve_rename n \<rho> \<rho>s)
+          case (ord_resolve_rename n \<rho> \<rho>s)
           note len_cas = this(1) and len_aas = this(2) and len_as = this(3) and aas_sub = this(4) and
             as_sub = this(5) and \<rho> = this(6) and \<rho>s = this(7) and res_e' = this(8)
           show ?thesis
@@ -224,15 +225,28 @@ proof -
                   by blast
               qed
             next
-              show "length AAs \<le> max_ary"
-                using res_conds unfolding max_ary_def
-                sorry
+              have "length AAs = length As"
+                unfolding len_aas len_as ..
+              also have "\<dots> \<le> size D"
+                using as_sub size_mset_mono by fastforce
+              also have "\<dots> \<le> max_ary"
+                unfolding max_ary_def using fin_cc d_in by auto
+              finally show "length AAs \<le> max_ary"
+                .
             qed
           qed
         qed
       next
         show ?as
-          sorry
+          unfolding AS_def
+        proof (clarify, intro conjI)
+          show "As \<in> lists all_AA"
+            unfolding all_AA_def
+            sorry
+        next
+          show "length As \<le> max_ary"
+            sorry
+        qed
       qed
     }
     then show ?thesis
