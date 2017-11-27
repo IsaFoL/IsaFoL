@@ -61,7 +61,7 @@ abbreviation grounding_of_state :: "'a state \<Rightarrow> 'a clause set" where
   "grounding_of_state St \<equiv> grounding_of_clss (clss_of_state St)"
 
 definition ord_FO_\<Gamma> :: "'a inference set" where
-  "ord_FO_\<Gamma> = {Infer (mset Cl) D E | AAs As D E Cl \<sigma>. ord_resolve_rename S Cl D AAs As \<sigma> E}"
+  "ord_FO_\<Gamma> = {Infer (mset CAs) D E | CAs D AAs As \<sigma> E. ord_resolve_rename S CAs D AAs As \<sigma> E}"
 
 interpretation ord_FO_resolution: inference_system ord_FO_\<Gamma> .
 
@@ -72,8 +72,8 @@ lemma length_sorted_list_of_multiset[simp]: "length (sorted_list_of_multiset A) 
 (* FIXME: move me *)
 lemma ord_resolve_unique:
   assumes
-    "ord_resolve S Cl DA AAs As \<sigma> E" and
-    "ord_resolve S Cl DA AAs As \<sigma>' E'"
+    "ord_resolve S CAs DA AAs As \<sigma> E" and
+    "ord_resolve S CAs DA AAs As \<sigma>' E'"
   shows "\<sigma> = \<sigma>' \<and> E = E'"
   using assms
 proof (cases rule: ord_resolve.cases[case_product ord_resolve.cases], intro conjI)
@@ -94,18 +94,18 @@ qed
 (* FIXME: move me *)
 lemma ord_resolve_rename_unique:
   assumes
-    "ord_resolve_rename S Cl DA AAs As \<sigma> E" and
-    "ord_resolve_rename S Cl DA AAs As \<sigma>' E'"
+    "ord_resolve_rename S CAs DA AAs As \<sigma> E" and
+    "ord_resolve_rename S CAs DA AAs As \<sigma>' E'"
   shows "\<sigma> = \<sigma>' \<and> E = E'"
   using assms unfolding ord_resolve_rename.simps using ord_resolve_unique by meson
 
 (* FIXME: move *)
-lemma ord_resolve_max_side_prems: "ord_resolve S Cl D AAs As \<sigma> E \<Longrightarrow> length Cl \<le> size D"
+lemma ord_resolve_max_side_prems: "ord_resolve S CAs D AAs As \<sigma> E \<Longrightarrow> length CAs \<le> size D"
   by (auto elim!: ord_resolve.cases)
 
 (* FIXME: move *)
 lemma ord_resolve_rename_max_side_prems:
-  "ord_resolve_rename S Cl D AAs As \<sigma> E \<Longrightarrow> length Cl \<le> size D"
+  "ord_resolve_rename S CAs D AAs As \<sigma> E \<Longrightarrow> length CAs \<le> size D"
   by (elim ord_resolve_rename.cases, drule ord_resolve_max_side_prems, simp add: renames_apart)
 
 (* FIXME: move *)
@@ -123,20 +123,20 @@ proof -
 
   define all_AA where "all_AA = (\<Union>D \<in> ?CCC. atms_of D)"
   define max_ary where "max_ary = Max (size ` ?CCC)"
-  define CL where "CL = {Cl. Cl \<in> lists ?CCC \<and> length Cl \<le> max_ary}"
+  define CL where "CL = {CAs. CAs \<in> lists ?CCC \<and> length CAs \<le> max_ary}"
   define AS where "AS = {As. As \<in> lists all_AA \<and> length As \<le> max_ary}"
   define AAS where "AAS = {AAs. AAs \<in> lists (mset ` AS) \<and> length AAs \<le> max_ary}"
 
   note defs = all_AA_def max_ary_def CL_def AS_def AAS_def
 
   let ?infer_of =
-    "\<lambda>Cl D AAs As. Infer (mset Cl) D (THE E. \<exists>\<sigma>. ord_resolve_rename S Cl D AAs As \<sigma> E)"
+    "\<lambda>CAs D AAs As. Infer (mset CAs) D (THE E. \<exists>\<sigma>. ord_resolve_rename S CAs D AAs As \<sigma> E)"
 
-  let ?Z = "{\<gamma> | Cl D AAs As \<sigma> E \<gamma>. \<gamma> = Infer (mset Cl) D E
-    \<and> ord_resolve_rename S Cl D AAs As \<sigma> E \<and> infer_from ?CCC \<gamma> \<and> C \<in># prems_of \<gamma>}"
-  let ?Y = "{Infer (mset Cl) D E | Cl D AAs As \<sigma> E.
-    ord_resolve_rename S Cl D AAs As \<sigma> E \<and> set Cl \<union> {D} \<subseteq> ?CCC}"
-  let ?X = "{?infer_of Cl D AAs As | Cl D AAs As. Cl \<in> CL \<and> D \<in> ?CCC \<and> AAs \<in> AAS \<and> As \<in> AS}"
+  let ?Z = "{\<gamma> | CAs D AAs As \<sigma> E \<gamma>. \<gamma> = Infer (mset CAs) D E
+    \<and> ord_resolve_rename S CAs D AAs As \<sigma> E \<and> infer_from ?CCC \<gamma> \<and> C \<in># prems_of \<gamma>}"
+  let ?Y = "{Infer (mset CAs) D E | CAs D AAs As \<sigma> E.
+    ord_resolve_rename S CAs D AAs As \<sigma> E \<and> set CAs \<union> {D} \<subseteq> ?CCC}"
+  let ?X = "{?infer_of CAs D AAs As | CAs D AAs As. CAs \<in> CL \<and> D \<in> ?CCC \<and> AAs \<in> AAS \<and> As \<in> AS}"
   let ?W = "CL \<times> ?CCC \<times> AAS \<times> AS"
 
   have fin_w: "finite ?W"
@@ -147,21 +147,21 @@ proof -
   also have "\<dots> \<subseteq> ?X"
   proof -
     {
-      fix Cl D AAs As \<sigma> E
+      fix CAs D AAs As \<sigma> E
       assume
-        res_e: "ord_resolve_rename S Cl D AAs As \<sigma> E" and
+        res_e: "ord_resolve_rename S CAs D AAs As \<sigma> E" and
         d: "D \<in> ?CCC" and
-        cl: "set Cl \<subseteq> ?CCC"
+        cas: "set CAs \<subseteq> ?CCC"
 
-      have "E = (THE E. \<exists>\<sigma>. ord_resolve_rename S Cl D AAs As \<sigma> E) \<and> Cl \<in> CL \<and> AAs \<in> AAS \<and> As \<in> AS"
-        (is "?e \<and> ?cl \<and> ?aas \<and> ?as")
+      have "E = (THE E. \<exists>\<sigma>. ord_resolve_rename S CAs D AAs As \<sigma> E)
+        \<and> CAs \<in> CL \<and> AAs \<in> AAS \<and> As \<in> AS" (is "?e \<and> ?cas \<and> ?aas \<and> ?as")
       proof (intro conjI)
         show ?e
           using res_e by (smt ord_resolve_rename_unique the_equality)
       next
-        show ?cl
+        show ?cas
           unfolding CL_def max_ary_def apply auto
-          using cl
+          using cas
           apply blast
           by (smt Max.bounded_iff Max_insert2 Un_insert_right Un_upper1 Un_upper2 antisym d empty_iff eq_iff fin_cc finite_imageI finite_insert image_eqI image_insert image_is_empty insert_absorb2 le_trans nat_le_linear ord_resolve_rename_max_side_prems order_refl res_e singletonI subsetCE sup_bot.right_neutral)
       next
@@ -192,16 +192,21 @@ proof -
                   aa: "AA = AAs ! i"
                   sorry
 
+                have "poss AA \<subseteq># CAs ! i"
+                  sorry
+
                 let ?As' = "sorted_list_of_multiset AA"
 
                 have "?As' \<in> lists all_AA"
                   unfolding all_AA_def
-                  using d cl aas_sub
+                  using cas aas_sub i_lt
+                  unfolding aa
+                  apply auto
                   sorry
                 moreover have "length ?As' \<le> max_ary"
                   unfolding max_ary_def
                   apply simp
-                  using aas_sub
+                  using aas_sub i_lt unfolding aa
                   sorry
                 moreover have "AA = mset ?As'"
                   by simp
@@ -223,7 +228,7 @@ proof -
     then show ?thesis
       by simp fast
   qed
-  also have "\<dots> \<subseteq> (\<lambda>(Cl, D, AAs, As). ?infer_of Cl D AAs As) ` ?W"
+  also have "\<dots> \<subseteq> (\<lambda>(CAs, D, AAs, As). ?infer_of CAs D AAs As) ` ?W"
     unfolding image_def Bex_cartesian_product by fast
   finally show ?thesis
     unfolding inference_system.inferences_between_def ord_FO_\<Gamma>_def mem_Collect_eq
@@ -732,16 +737,16 @@ next
     then obtain \<gamma> where
       \<gamma>_p: "\<gamma> \<in> ord_FO_\<Gamma> \<and> infer_from (Q \<union> {C}) \<gamma> \<and> C \<in># prems_of \<gamma> \<and> concl_of \<gamma> = E"
       unfolding ord_FO_resolution.inferences_between_def by auto
-    then obtain CC D Cl AAs As \<sigma> where
-      \<gamma>_p2: "\<gamma> = Infer CC D E \<and> ord_resolve_rename S Cl D AAs As \<sigma> E \<and> mset Cl = CC"
+    then obtain CC CAs D AAs As \<sigma> where
+      \<gamma>_p2: "\<gamma> = Infer CC D E \<and> ord_resolve_rename S CAs D AAs As \<sigma> E \<and> mset CAs = CC"
       unfolding ord_FO_\<Gamma>_def by auto
     define \<rho> where
-      "\<rho> = hd (renamings_apart (D # Cl))"
+      "\<rho> = hd (renamings_apart (D # CAs))"
     define \<rho>s where
-      "\<rho>s = tl (renamings_apart (D # Cl))"
+      "\<rho>s = tl (renamings_apart (D # CAs))"
     define \<gamma>_ground where
-      "\<gamma>_ground = Infer (mset (Cl \<cdot>\<cdot>cl \<rho>s) \<cdot>cm \<sigma> \<cdot>cm \<mu>) (D \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<mu>) (E \<cdot> \<mu>)"
-    have "\<forall>I. I \<Turnstile>m mset (Cl \<cdot>\<cdot>cl \<rho>s) \<cdot>cm \<sigma> \<cdot>cm \<mu> \<longrightarrow> I \<Turnstile> D \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> E \<cdot> \<mu>"
+      "\<gamma>_ground = Infer (mset (CAs \<cdot>\<cdot>cl \<rho>s) \<cdot>cm \<sigma> \<cdot>cm \<mu>) (D \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<mu>) (E \<cdot> \<mu>)"
+    have "\<forall>I. I \<Turnstile>m mset (CAs \<cdot>\<cdot>cl \<rho>s) \<cdot>cm \<sigma> \<cdot>cm \<mu> \<longrightarrow> I \<Turnstile> D \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<mu> \<longrightarrow> I \<Turnstile> E \<cdot> \<mu>"
       using ord_resolve_rename_ground_inst_sound[of _ _ _ _ _ _ _ _ _ _ \<mu>] \<rho>_def \<rho>s_def E_\<mu>_p \<gamma>_p2
       by auto
     then have "\<gamma>_ground \<in> {Infer cc d e | cc d e. \<forall>I. I \<Turnstile>m cc \<longrightarrow> I \<Turnstile> d \<longrightarrow> I \<Turnstile> e}"
@@ -753,26 +758,26 @@ next
         unfolding clss_of_state_def grounding_of_clss_def
         unfolding grounding_of_cls_def
         by simp
-      then have "D \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<mu> \<in> grounding_of_cls C \<or> (\<exists>x\<in>Q. D \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<mu> \<in> grounding_of_cls x)"
+      then have "D \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<mu> \<in> grounding_of_cls C \<or> (\<exists>x \<in> Q. D \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<mu> \<in> grounding_of_cls x)"
         using E_\<mu>_p
         unfolding grounding_of_cls_def by (metis (mono_tags, lifting) is_ground_comp_subst mem_Collect_eq subst_cls_comp_subst)
       then have "(D \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<mu> \<in> grounding_of_cls C \<or> (\<exists>x \<in> P. D \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<mu> \<in> grounding_of_cls x) \<or> (\<exists>x \<in> Q. D \<cdot> \<rho> \<cdot> \<sigma> \<cdot> \<mu> \<in> grounding_of_cls x))"
         by metis
-      moreover have "\<forall>i < length (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>). ((Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>) ! i) \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C \<in> P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))"
+      moreover have "\<forall>i < length (CAs \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>). ((CAs \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>) ! i) \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C \<in> P. {C \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>}))"
       proof (rule, rule)
         fix i
-        assume "i < length (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>)"
-        then have a: "i < length Cl \<and> i < length \<rho>s"
+        assume "i < length (CAs \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>)"
+        then have a: "i < length CAs \<and> i < length \<rho>s"
           by simp
-        moreover from a have "Cl ! i \<in> {C} \<union> Q"
+        moreover from a have "CAs ! i \<in> {C} \<union> Q"
           using \<gamma>_p2 \<gamma>_p unfolding infer_from_def
           by (metis (no_types, lifting) Un_subset_iff inference.sel(1) set_mset_union sup_commute nth_mem_mset subsetCE)
-        ultimately have "((Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>) ! i \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<or> ((Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>) ! i \<in> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>})) \<or> (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>) ! i \<in> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))"
+        ultimately have "(CAs \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>) ! i \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<or> ((CAs \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>) ! i \<in> (\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<or> (CAs \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>) ! i \<in> (\<Union>C \<in> Q. {C \<cdot> \<sigma> | \<sigma>. is_ground_subst \<sigma>}))"
           unfolding \<gamma>_ground_def using E_\<mu>_p \<gamma>_p2 \<gamma>_p unfolding infer_from_def
           unfolding clss_of_state_def grounding_of_clss_def
           unfolding grounding_of_cls_def
           apply -
-          apply (cases "Cl ! i = C")
+          apply (cases "CAs ! i = C")
           subgoal
             apply (rule disjI1)
             apply (rule Set.CollectI)
@@ -782,7 +787,7 @@ next
           subgoal
             apply (rule disjI2)
             apply (rule disjI2)
-            apply (rule_tac a="Cl ! i" in UN_I)
+            apply (rule_tac a="CAs ! i" in UN_I)
             subgoal
               apply blast
               done
@@ -793,18 +798,16 @@ next
               done
             done
           done
-        then show "(Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>) ! i \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))"
+        then show "(CAs \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>) ! i \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C \<in> P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C \<in> Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))"
           by blast
       qed
-      then have "\<forall>x \<in># mset (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>). x \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))"
+      then have "\<forall>x \<in># mset (CAs \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>). x \<in> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C \<in> P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C \<in> Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))"
         by (metis (lifting) in_set_conv_nth set_mset_mset)
-      then have "set_mset (mset (Cl \<cdot>\<cdot>cl \<rho>s \<cdot>cl \<sigma> \<cdot>cl \<mu>)) \<subseteq> {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>} \<union> ((\<Union>C\<in>P. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<union> (\<Union>C\<in>Q. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}))"
-        by auto
-      then have "set_mset (mset (Cl \<cdot>\<cdot>cl \<rho>s) \<cdot>cm \<sigma> \<cdot>cm \<mu>) \<subseteq> grounding_of_cls C \<union> (grounding_of_clss P \<union> grounding_of_clss Q)"
+      then have "set_mset (mset (CAs \<cdot>\<cdot>cl \<rho>s) \<cdot>cm \<sigma> \<cdot>cm \<mu>) \<subseteq> grounding_of_cls C \<union> grounding_of_clss P \<union> grounding_of_clss Q"
         unfolding grounding_of_cls_def grounding_of_clss_def
         using mset_subst_cls_list_subst_cls_mset by auto
       ultimately show ?thesis
-        unfolding \<gamma>_ground_def clss_of_state_def grounding_of_clss_def by simp
+        unfolding \<gamma>_ground_def clss_of_state_def grounding_of_clss_def by auto
     qed
     ultimately have "E \<cdot> \<mu> \<in> concls_of (src_ext.inferences_from (grounding_of_state ({}, P \<union> {C}, Q)))"
       unfolding src_ext.inferences_from_def inference_system.inferences_from_def ground_sound_\<Gamma>_def infer_from_def
