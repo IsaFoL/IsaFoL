@@ -149,11 +149,9 @@ proof -
         d: "D = C \<or> D \<in> CC" and
         cl: "set Cl \<subseteq> insert C CC"
 
-      have "E = (THE E. \<exists>\<sigma>. ord_resolve_rename S Cl D AAs As \<sigma> E)" (is ?e)
-        "Cl \<in> CL" (is ?cl)
-        "AAs \<in> AAS" (is ?aas)
-        "As \<in> AS" (is ?as)
-      proof -
+      have "E = (THE E. \<exists>\<sigma>. ord_resolve_rename S Cl D AAs As \<sigma> E) \<and> Cl \<in> CL \<and> AAs \<in> AAS \<and> As \<in> AS"
+        (is "?e \<and> ?cl \<and> ?aas \<and> ?as")
+      proof (intro conjI)
         show ?e
           using res_e by (smt ord_resolve_rename_unique the_equality)
       next
