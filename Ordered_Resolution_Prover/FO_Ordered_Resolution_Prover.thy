@@ -661,9 +661,10 @@ proof (drule resolution_prover_ground_derive, erule src_ext.derive.cases, hypsub
   show "I \<Turnstile>s ?gSt' \<longleftrightarrow> I \<Turnstile>s ?gSt"
   proof
     assume bef: "I \<Turnstile>s ?gSt"
-    have "I \<Turnstile>s ?concls"
-      (* by soundness of the extended calculus *)
-      sorry
+    then have "I \<Turnstile>s ?concls"
+      unfolding ground_sound_\<Gamma>_def inference_system.inferences_from_def
+      by (simp add: image_def infer_from_def)
+        (smt inference.sel mem_Collect_eq true_clss_def true_clss_mono true_clss_set_mset)
     then have diff: "I \<Turnstile>s ?gSt' - ?gSt"
       using deduct by (blast intro: true_clss_mono)
     then show "I \<Turnstile>s ?gSt'"
