@@ -185,7 +185,7 @@ proof (cases rule: ord_resolve.cases)
     using as_len cas_len by auto
   have "is_ground_subst (\<sigma> \<odot> \<eta>)"
     using ground_subst_\<eta> by (rule is_ground_comp_subst)
-  then have cc_true: "I \<Turnstile>m (mset CAs) \<cdot>cm \<sigma> \<cdot>cm \<eta>" and d_true: "I \<Turnstile> DA \<cdot> \<sigma> \<cdot> \<eta>"
+  then have cc_true: "I \<Turnstile>m mset CAs \<cdot>cm \<sigma> \<cdot>cm \<eta>" and d_true: "I \<Turnstile> DA \<cdot> \<sigma> \<cdot> \<eta>"
     using cc_inst_true d_inst_true by auto
 
   from mgu have unif: "\<forall>i < n. \<forall>A\<in>#AAs ! i. A \<cdot>a \<sigma> = As ! i \<cdot>a \<sigma>"
@@ -243,7 +243,7 @@ proof (rule true_fo_cls, use res_e in \<open>cases rule: ord_resolve.cases\<clos
 
   have "is_ground_subst (\<sigma> \<odot> \<eta>)"
     using ground_subst_\<eta> by (rule is_ground_comp_subst)
-  then have cas_true: "I \<Turnstile>m (mset CAs) \<cdot>cm \<sigma> \<cdot>cm \<eta>" and da_true: "I \<Turnstile> DA \<cdot> \<sigma> \<cdot> \<eta>"
+  then have cas_true: "I \<Turnstile>m mset CAs \<cdot>cm \<sigma> \<cdot>cm \<eta>" and da_true: "I \<Turnstile> DA \<cdot> \<sigma> \<cdot> \<eta>"
     using true_fo_cls_mset_inst[OF cc_d_true, of "\<sigma> \<odot> \<eta>"] by auto
   show "I \<Turnstile> E \<cdot> \<eta>"
     using ord_resolve_ground_inst_sound[OF res_e cas_true da_true] ground_subst_\<eta> by auto
@@ -407,81 +407,73 @@ proof -
           using res_e by (smt ord_resolve_rename_unique the_equality)
       next
         show ?cas
-          unfolding CAS_def max_ary_def apply auto
-          using cas_sub
-           apply blast
-          using da_in res_e
-          by (smt Max.bounded_iff Max_insert2 Un_insert_right Un_upper1 Un_upper2 antisym empty_iff eq_iff fin_cc finite_imageI finite_insert image_eqI image_insert image_is_empty insert_absorb2 le_trans nat_le_linear ord_resolve_rename_max_side_prems order_refl singletonI subsetCE sup_bot.right_neutral)
+          unfolding CAS_def max_ary_def using cas_sub
+          by (simp add: lists_eq_set)
+            (smt da_in res_e Max.bounded_iff Max_ge Un_insert_right antisym empty_iff fin_cc
+              finite_imageI finite_insert image_eqI image_iff image_insert nat_le_linear
+              ord_resolve_rename_max_side_prems sup_bot.right_neutral)
       next
         show ?aas
           using res_e
         proof (cases rule: ord_resolve_rename.cases)
           case (ord_resolve_rename n \<rho> \<rho>s)
           note len_cas = this(1) and len_aas = this(2) and len_as = this(3) and
-            aas_sub = this(4) and as_sub = this(5) and \<rho> = this(6) and \<rho>s = this(7) and
-            res_e' = this(8)
+            aas_sub = this(4) and as_sub = this(5) and res_e' = this(8)
+
           show ?thesis
-            using res_e'
-          proof (cases rule: ord_resolve.cases)
-            case res_conds: (ord_resolve n' Cs D')
-            have n': "n' = n"
-              using len_as res_conds(6) subst_atm_list_length by blast
+            unfolding AAS_def
+          proof (clarify, intro conjI)
+            show "AAs \<in> lists (mset ` AS)"
+              unfolding AS_def image_def
+            proof clarsimp
+              fix AA
+              assume "AA \<in> set AAs"
+              then obtain i where
+                i_lt: "i < n" and
+                aa: "AA = AAs ! i"
+                by (metis in_set_conv_nth len_aas)
 
-            show ?thesis
-              unfolding AAS_def
-            proof (clarify, intro conjI)
-              show "AAs \<in> lists (mset ` AS)"
-                unfolding AS_def image_def
-              proof clarsimp
-                fix AA
-                assume "AA \<in> set AAs"
-                then obtain i where
-                  i_lt: "i < n" and
-                  aa: "AA = AAs ! i"
-                  by (metis in_set_conv_nth len_aas)
+              have casi_in: "CAs ! i \<in> ?CCC"
+                using i_lt len_cas cas_sub nth_mem by blast
 
-                have casi_in: "CAs ! i \<in> ?CCC"
-                  using i_lt len_cas cas_sub nth_mem by blast
-
-                have pos_aa_sub: "poss AA \<subseteq># CAs ! i"
-                  using aa aas_sub i_lt by blast
-                then have "set_mset AA \<subseteq> atms_of (CAs ! i)"
-                  by (metis atms_of_poss lits_subseteq_imp_atms_subseteq set_mset_mono)
-                also have aa_sub: "\<dots> \<subseteq> all_AA"
-                  unfolding all_AA_def using casi_in by force
-                finally have aa_sub: "set_mset AA \<subseteq> all_AA"
-                  .
-
-                have "size AA = size (poss AA)"
-                  by simp
-                also have "\<dots> \<le> size (CAs ! i)"
-                  by (rule size_mset_mono[OF pos_aa_sub])
-                also have "\<dots> \<le> max_ary"
-                  unfolding max_ary_def using fin_cc casi_in by auto
-                finally have sz_aa: "size AA \<le> max_ary"
-                  .
-
-                let ?As' = "sorted_list_of_multiset AA"
-
-                have "?As' \<in> lists all_AA"
-                  using aa_sub by auto
-                moreover have "length ?As' \<le> max_ary"
-                  using sz_aa by simp
-                moreover have "AA = mset ?As'"
-                  by simp
-                ultimately show "\<exists>xa. xa \<in> lists all_AA \<and> length xa \<le> max_ary \<and> AA = mset xa"
-                  by blast
-              qed
-            next
-              have "length AAs = length As"
-                unfolding len_aas len_as ..
-              also have "\<dots> \<le> size DA"
-                using as_sub size_mset_mono by fastforce
-              also have "\<dots> \<le> max_ary"
-                unfolding max_ary_def using fin_cc da_in by auto
-              finally show "length AAs \<le> max_ary"
+              have pos_aa_sub: "poss AA \<subseteq># CAs ! i"
+                using aa aas_sub i_lt by blast
+              then have "set_mset AA \<subseteq> atms_of (CAs ! i)"
+                by (metis atms_of_poss lits_subseteq_imp_atms_subseteq set_mset_mono)
+              also have aa_sub: "\<dots> \<subseteq> all_AA"
+                unfolding all_AA_def using casi_in by force
+              finally have aa_sub: "set_mset AA \<subseteq> all_AA"
                 .
+
+              have "size AA = size (poss AA)"
+                by simp
+              also have "\<dots> \<le> size (CAs ! i)"
+                by (rule size_mset_mono[OF pos_aa_sub])
+              also have "\<dots> \<le> max_ary"
+                unfolding max_ary_def using fin_cc casi_in by auto
+              finally have sz_aa: "size AA \<le> max_ary"
+                .
+
+              let ?As' = "sorted_list_of_multiset AA"
+
+              have "?As' \<in> lists all_AA"
+                using aa_sub by auto
+              moreover have "length ?As' \<le> max_ary"
+                using sz_aa by simp
+              moreover have "AA = mset ?As'"
+                by simp
+              ultimately show "\<exists>xa. xa \<in> lists all_AA \<and> length xa \<le> max_ary \<and> AA = mset xa"
+                by blast
             qed
+          next
+            have "length AAs = length As"
+              unfolding len_aas len_as ..
+            also have "\<dots> \<le> size DA"
+              using as_sub size_mset_mono by fastforce
+            also have "\<dots> \<le> max_ary"
+              unfolding max_ary_def using fin_cc da_in by auto
+            finally show "length AAs \<le> max_ary"
+              .
           qed
         qed
       next
