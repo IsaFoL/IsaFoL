@@ -147,7 +147,7 @@ where
   ord_resolve_rename:
     "\<rho> = hd (renamings_apart (DA # CAs)) \<Longrightarrow>
      \<rho>s = tl (renamings_apart (DA # CAs)) \<Longrightarrow>
-     ord_resolve (CAs \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) AAs As \<sigma> E \<Longrightarrow>
+     ord_resolve (CAs \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) (map2 (op \<cdot>am) AAs \<rho>s) (As \<cdot>al \<rho>) \<sigma> E \<Longrightarrow>
      ord_resolve_rename CAs DA AAs As \<sigma> E"
 
 lemma ord_resolve_empty_main_prem: "\<not> ord_resolve Cs {#} AAs As \<sigma> E"
@@ -171,20 +171,24 @@ lemma ground_prems_ord_resolve_rename_imp_ord_resolve:
   shows "ord_resolve CAs DA AAs As \<sigma> E"
   using res_e_re
 proof (cases rule: ord_resolve_rename.cases)
-  case (ord_resolve_rename \<rho> P)
-  note \<rho> = this(1) and P = this(2) and res = this(3)
-  then have rename_P: "\<forall>\<rho> \<in> set P. is_renaming \<rho>"
-    using renames_apart by (metis list.sel(2) list.set_sel(2))
-  from P have len: "length P = length CAs"
+  case (ord_resolve_rename \<rho> \<rho>s)
+  note \<rho> = this(1) and \<rho>s = this(2) and res = this(3)
+
+  from \<rho>s have len: "length \<rho>s = length CAs"
     using renames_apart by auto
-  have res_e: "ord_resolve (CAs \<cdot>\<cdot>cl P) (DA \<cdot> \<rho>) AAs As \<sigma> E"
-    using res by auto
-  have "CAs \<cdot>\<cdot>cl P = CAs"
+
+  have "CAs \<cdot>\<cdot>cl \<rho>s = CAs"
     using len gr_cc by auto
   moreover have "DA \<cdot> \<rho> = DA"
     using gr_d by auto
+  moreover have "map2 (op \<cdot>am) AAs \<rho>s = AAs"
+    using len gr_cc
+    sorry
+  moreover have "As \<cdot>al \<rho> = As"
+    using gr_d
+    sorry
   ultimately show ?thesis
-    using res_e by auto
+    using res by auto
 qed
 
 text \<open>
@@ -930,7 +934,9 @@ proof (cases rule: ord_resolve.cases)
 
   obtain AAs'' As'' where
     "ord_resolve_rename S CAs'' DA'' AAs'' As'' \<tau> E'"
-    using ord_resolve_rename res_e' unfolding CAs'_def DA'_def by blast
+    using ord_resolve_rename res_e' unfolding CAs'_def DA'_def
+    (* FIXME *)
+    sorry
   then show thesis
     using that[of \<eta>'' \<eta>s'' \<eta>2 CAs'' DA''] \<open>is_ground_subst \<eta>''\<close> \<open>is_ground_subst_list \<eta>s''\<close>
       \<open>is_ground_subst \<eta>2\<close> \<open>CAs'' \<cdot>\<cdot>cl \<eta>s'' = CAs\<close> \<open>DA'' \<cdot> \<eta>'' = DA\<close> \<open>E' \<cdot> \<eta>2 = E\<close> \<open>DA'' \<in> M\<close>

@@ -106,10 +106,10 @@ definition subst_clss :: "'a clause set \<Rightarrow> 's \<Rightarrow> 'a clause
   "AA \<cdot>cs \<sigma> = (\<lambda>A. A \<cdot> \<sigma>) ` AA"
 
 definition subst_cls_list :: "'a clause list \<Rightarrow> 's \<Rightarrow> 'a clause list" (infixl "\<cdot>cl" 67) where
-  "CC \<cdot>cl \<sigma> = map (\<lambda>A. A \<cdot> \<sigma>) CC"
+  "Cs \<cdot>cl \<sigma> = map (\<lambda>A. A \<cdot> \<sigma>) Cs"
 
 definition subst_cls_lists :: "'a clause list \<Rightarrow> 's list \<Rightarrow> 'a clause list" (infixl "\<cdot>\<cdot>cl" 67) where
-  "CC \<cdot>\<cdot>cl \<sigma>s = map2 (op \<cdot>) CC \<sigma>s"
+  "Cs \<cdot>\<cdot>cl \<sigma>s = map2 (op \<cdot>) Cs \<sigma>s"
 
 definition subst_cls_mset :: "'a clause multiset \<Rightarrow> 's \<Rightarrow> 'a clause multiset" (infixl "\<cdot>cm" 67) where
   "CC \<cdot>cm \<sigma> = image_mset (\<lambda>A. A \<cdot> \<sigma>) CC"
@@ -351,7 +351,7 @@ lemma subst_minus[simp]: "(- L) \<cdot>l \<mu> = - (L  \<cdot>l \<mu>)"
   by (simp add: literal.map_sel subst_lit_def uminus_literal_def)
 
 
-subsubsection \<open>Substitute on literal or literals\<close>
+subsubsection \<open>Substitution on literal or literals\<close>
 
 lemma eql_neg_lit_eql_atm[simp]: "(Neg A' \<cdot>l \<eta>) = Neg A \<longleftrightarrow> A' \<cdot>a \<eta> = A"
   by (simp add: subst_lit_def)
@@ -385,7 +385,7 @@ lemma subst_lit_in_negs_is_neg: "L \<cdot>l \<sigma> \<in># negs AA \<Longrighta
   by simp
 
 
-subsubsection \<open>Substitute on empty\<close>
+subsubsection \<open>Substitution on empty\<close>
 
 lemma subst_atms_empty[simp]: "{} \<cdot>as \<sigma> = {}"
   unfolding subst_atms_def by auto
@@ -451,7 +451,7 @@ lemma subst_cls_mset_empty_iff[simp]: "CC \<cdot>cm \<eta> = {#} \<longleftright
   unfolding subst_cls_mset_def by auto
 
 
-subsubsection \<open>Substitute on a union\<close>
+subsubsection \<open>Substitution on a union\<close>
 
 lemma subst_atms_union[simp]: "(AA \<union> BB) \<cdot>as \<sigma> = AA \<cdot>as \<sigma> \<union> BB \<cdot>as \<sigma>"
   unfolding subst_atms_def by auto
@@ -481,7 +481,7 @@ lemma subst_cls_mset_union[simp]: "(CC + DD) \<cdot>cm \<sigma> = CC \<cdot>cm \
   unfolding subst_cls_mset_def by auto
 
 
-subsubsection \<open>Substitute on a singleton\<close>
+subsubsection \<open>Substitution on a singleton\<close>
 
 lemma subst_atms_single[simp]: "{A} \<cdot>as \<sigma> = {A \<cdot>a \<sigma>}"
   unfolding subst_atms_def by auto
@@ -511,7 +511,7 @@ lemma subst_cls_mset_single[simp]: "{#C#} \<cdot>cm \<sigma> = {#C \<cdot> \<sig
   by simp
 
 
-subsubsection \<open>Substitute on Cons\<close>
+subsubsection \<open>Substitution on Cons\<close>
 
 lemma subst_atm_list_Cons[simp]: "(A # As) \<cdot>al \<sigma> = A \<cdot>a \<sigma> # As \<cdot>al \<sigma>"
   unfolding subst_atm_list_def by auto
@@ -528,14 +528,14 @@ lemma subst_cls_lists_Cons[simp]: "(C # Cs) \<cdot>\<cdot>cl (\<sigma> # \<sigma
 
 subsubsection \<open>Substitution on tl\<close>
 
-lemma subst_atm_list_tl[simp]: "(tl (As \<cdot>al \<eta>)) = (tl As \<cdot>al \<eta>)"
+lemma subst_atm_list_tl[simp]: "tl (As \<cdot>al \<eta>) = tl As \<cdot>al \<eta>"
   by (induction As) auto
 
-lemma subst_atm_mset_list_tl[simp]:"(tl (AAs \<cdot>aml \<eta>)) = (tl AAs \<cdot>aml \<eta>)"
+lemma subst_atm_mset_list_tl[simp]: "tl (AAs \<cdot>aml \<eta>) = tl AAs \<cdot>aml \<eta>"
   by (induction AAs) auto
 
 
-subsubsection \<open>Substitute on nth\<close>
+subsubsection \<open>Substitution on nth\<close>
 
 lemma comp_substs_nth[simp]:
   "length \<tau>s = length \<sigma>s \<Longrightarrow> i < length \<tau>s \<Longrightarrow> (\<tau>s \<odot>s \<sigma>s) ! i = (\<tau>s ! i) \<odot> (\<sigma>s ! i)"
@@ -547,7 +547,7 @@ lemma subst_atm_list_nth[simp]: "i < length As \<Longrightarrow> (As \<cdot>al \
 lemma subst_atm_mset_list_nth[simp]: "i < length AAs \<Longrightarrow> (AAs \<cdot>aml \<eta>) ! i = (AAs ! i) \<cdot>am \<eta>"
   unfolding subst_atm_mset_list_def by auto
 
-lemma subst_cls_list_nth[simp]: "i < length Cs \<Longrightarrow> ((Cs \<cdot>cl \<tau>) ! i) = (Cs ! i) \<cdot> \<tau>"
+lemma subst_cls_list_nth[simp]: "i < length Cs \<Longrightarrow> (Cs \<cdot>cl \<tau>) ! i = (Cs ! i) \<cdot> \<tau>"
   unfolding subst_cls_list_def using less_Suc_eq_0_disj nth_map by (induction Cs) auto
 
 lemma subst_cls_lists_nth[simp]:
@@ -555,7 +555,7 @@ lemma subst_cls_lists_nth[simp]:
   unfolding subst_cls_lists_def by auto
 
 
-subsubsection \<open>Substitute on an image\<close>
+subsubsection \<open>Substitution on an image\<close>
 
 lemma subst_clss_image[simp]: "image f X \<cdot>cs \<sigma> = {f x \<cdot> \<sigma> | x. x \<in> X}"
   unfolding subst_clss_def by auto
@@ -564,7 +564,7 @@ lemma subst_cls_mset_image_mset[simp]: "image_mset f X \<cdot>cm \<sigma> = {# f
   unfolding subst_cls_mset_def by auto
 
 
-subsubsection \<open>Substitute on the mset function\<close>
+subsubsection \<open>Substitution on the mset function\<close>
 
 lemma mset_subst_atm_list_subst_atm_mset[simp]: "mset (As \<cdot>al \<sigma>) = mset (As) \<cdot>am \<sigma>"
   unfolding subst_atm_list_def subst_atm_mset_def by auto
@@ -573,19 +573,19 @@ lemma mset_subst_cls_list_subst_cls_mset: "mset (Cs \<cdot>cl \<sigma>) = (mset 
   unfolding subst_cls_mset_def subst_cls_list_def by auto
 
 
-subsubsection \<open>Substitute on @{term sum_list}\<close>
+subsubsection \<open>Substitution on @{term sum_list}\<close>
 
 lemma sum_list_subst_cls_list_subst_cls[simp]: "sum_list (Cs \<cdot>cl \<eta>) = sum_list Cs \<cdot> \<eta>"
   unfolding subst_cls_list_def by (induction Cs) auto
 
 
-subsubsection \<open>Substitute on @{term set_mset}\<close>
+subsubsection \<open>Substitution on @{term set_mset}\<close>
 
 lemma set_mset_subst_cls_mset_subst_clss: "set_mset (CC \<cdot>cm \<mu>) = (set_mset CC) \<cdot>cs \<mu>"
   by (simp add: subst_cls_mset_def subst_clss_def)
 
 
-subsubsection \<open>Substitute on an mset and its member\<close>
+subsubsection \<open>Substitution on an mset and its member\<close>
 
 lemma Neg_Melem_subst_atm_subst_cls[simp]: "Neg A \<in># C \<Longrightarrow> Neg (A \<cdot>a \<sigma>) \<in># C \<cdot> \<sigma> "
   by (metis Melem_subst_cls eql_neg_lit_eql_atm)
@@ -594,7 +594,7 @@ lemma Pos_Melem_subst_atm_subst_cls[simp]: "Pos A \<in># C \<Longrightarrow> Pos
   by (metis Melem_subst_cls eql_pos_lit_eql_atm)
 
 
-subsubsection \<open>Substitute on a set and its member\<close>
+subsubsection \<open>Substitution on a set and its member\<close>
 
 lemma in_atms_of_subst[simp]: "B \<in> atms_of C \<Longrightarrow> B \<cdot>a \<sigma> \<in> atms_of (C \<cdot> \<sigma>)"
   by (metis atms_of_subst_atms image_iff subst_atms_def)
