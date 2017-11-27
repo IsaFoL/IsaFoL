@@ -9,7 +9,7 @@ chapter \<open>Multisets of Pairs of Terms\<close>
 theory AFP_Term_Pair_Multiset
   imports
     AFP_Term
-    "~/src/HOL/Library/Multiset"
+    "HOL-Library.Multiset"
 begin
 
 text \<open>
