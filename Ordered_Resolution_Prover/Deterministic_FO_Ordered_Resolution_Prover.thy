@@ -254,9 +254,17 @@ proof -
 
   show ?thesis
   proof (cases "List.find (\<lambda>(C, _). C = []) Q")
-    case (Some Ci)
-    show ?thesis
-      sorry
+    case ci: (Some Ci)
+    note step = step[unfolded ci, simplified]
+    then have st_st': "St = St'"
+      using st by simp
+    have "is_final_dstate St"
+      unfolding st_st' step is_final_dstate.simps
+      using option.discI[OF ci, unfolded find_None_iff, simplified] by force
+    then have False
+      using nonfinal by satx
+    then show ?thesis
+      ..
   next
     case nil_ni_q: None
     note step = step[unfolded nil_ni_q, simplified]
