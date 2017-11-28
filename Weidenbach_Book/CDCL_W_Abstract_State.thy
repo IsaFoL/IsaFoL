@@ -1,5 +1,5 @@
 theory CDCL_W_Abstract_State
-imports CDCL_W_Full CDCL.CDCL_W_Restart
+imports CDCL_W_Full CDCL_W_Restart
 
 begin
 
