@@ -315,13 +315,14 @@ proof (induct Q' arbitrary: Q)
 qed simp
 
 lemma reduce_clauses_in_P:
-  "wstate_of_dstate ((C', i) # N', P, Q', n)
-   \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', reduce_all [C'] P, Q', n)"
+  assumes c_in: "C \<in> fst ` set N"
+  shows "wstate_of_dstate (N, P @ P', Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ reduce_all [C] P', Q, n)"
   sorry
 
 lemma reduce_clauses_in_Q:
-  "wstate_of_dstate ((C', i) # N', P, Q, n)
-   \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', fst (reduce_all2 [C'] Q) @ P, snd (reduce_all2 [C'] Q), n)"
+  assumes c_in: "C \<in> fst ` set N"
+  shows "wstate_of_dstate (N, P, Q @ Q', n)
+     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, fst (reduce_all2 [C] Q') @ P, Q @ snd (reduce_all2 [C] Q'), n)"
   sorry
 
 lemma compute_inferences:
@@ -612,7 +613,7 @@ proof -
               \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', back_to_P @ P, Q', n)"
               using reduce_clauses_in_Q[of C' _ _ _ Q, folded red_Q] by force
             also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q', n)"
-              unfolding P'_def by (rule reduce_clauses_in_P)
+              unfolding P'_def by (rule reduce_clauses_in_P[of _ _ "[]", unfolded append_Nil]) simp
             also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q'', n)"
               unfolding Q''_def
               by (rule remove_strictly_subsumed_clauses_in_Q[of _ _ _ "[]", unfolded append_Nil])
