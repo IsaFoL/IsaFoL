@@ -19,6 +19,9 @@ datatype 'v twl_clause =
 fun clause :: "'a twl_clause \<Rightarrow> 'a :: {plus}" where
 "clause (TWL_Clause W UW) = W + UW"
 
+abbreviation clauses where
+  \<open>clauses C \<equiv> clause `# C\<close>
+
 type_synonym 'v twl_cls = "'v clause twl_clause"
 type_synonym 'v twl_clss = "'v twl_cls multiset"
 type_synonym 'v clauses_to_update = "('v literal \<times> 'v twl_cls) multiset"
