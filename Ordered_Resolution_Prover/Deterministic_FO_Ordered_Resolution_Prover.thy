@@ -311,6 +311,16 @@ proof (induct Q' arbitrary: Q)
     using ih[of "Q @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [Q0']"] by force
 qed simp
 
+lemma reduce_clauses_in_P:
+  "wstate_of_dstate ((C', i) # N', P, Q', n)
+   \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', case_prod (op @) (reduce_all [C'] P), Q', n)"
+  sorry
+
+lemma reduce_clauses_in_Q:
+  "wstate_of_dstate ((C', i) # N', P, Q, n)
+   \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', fst (reduce_all [C'] Q) @ P, snd (reduce_all [C'] Q), n)"
+  sorry
+
 lemma nonfinal_deterministic_RP_step:
   assumes
     nonfinal: "\<not> is_final_dstate St" and
@@ -626,9 +636,9 @@ proof -
             note red_C
             also have "wstate_of_dstate ((C', i) # N', P, Q, n)
               \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', back_to_P @ P, Q', n)"
-              sorry
+              using reduce_clauses_in_Q[of C' _ _ _ Q, folded red_Q] by force
             also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q', n)"
-              sorry
+              unfolding P'_def by (rule reduce_clauses_in_P)
             also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q'', n)"
               unfolding Q''_def
               by (rule filter_strictly_subsumed_clauses_in_Q[of _ _ _ "[]", unfolded append_Nil])
