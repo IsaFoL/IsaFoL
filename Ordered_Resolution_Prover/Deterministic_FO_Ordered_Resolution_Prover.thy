@@ -307,31 +307,35 @@ FIXME
 
       have "[] \<in> fst ` set (P @ Q) \<Longrightarrow>
         wstate_of_dstate (N, P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], P @ Q, n + length P)"
-      proof (induct P)
-        case Nil
-        show ?case
-          apply simp
-          sorry
+      proof (induct "length P" arbitrary: N P Q n)
+        case 0
+        note len_p = this(1) and nil_in = this(2)
+
+        have p: "P = []"
+          using len_p by simp
+        have "wstate_of_dstate (N, [], Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], Q, n)"
+          by (rule empty_N_if_Nil_in_P_or_Q[OF nil_in[unfolded p]])
+        then show ?case
+          unfolding p by simp
       next
-        case (Cons P0 P)
-        note ih = this(1) and nil_in = this(2)
-        show ?case
-        proof (cases "fst P0 = []")
-          case True
-          then show ?thesis sorry
-        next
-          case False
-          have nil_in': "[] \<in> fst ` set (P @ Q)"
-            sorry
+        case (Suc k)
+        note ih = this(1) and len_p = this(2) and nil_in = this(3)
 
-          have sub_N: "wstate_of_dstate (N, P0 # P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], P0 # P, Q, n)"
-            by (rule empty_N_if_Nil_in_P_or_Q[OF nil_in])
+        obtain C and i where
+          ci_in: "(C, i) \<in> set P" and
+          ci_min: "\<forall>(D, j) \<in> set P. weight (mset C, i) \<le> weight (mset D, j)"
+          sorry
 
-          show ?thesis
-            using ih[OF nil_in']
-            using rtranclp_trans
-            sorry
-        qed
+        have "wstate_of_dstate (N, P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], P, Q, n)"
+          by (rule empty_N_if_Nil_in_P_or_Q[OF nil_in])
+        also obtain N' where
+          "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N', remove1 Ci P, Ci # Q, Suc n)"
+          sorry
+        also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], P @ Q, n + length P)"
+          using ih[of "remove1 Ci P" "Ci # Q" N' "Suc n"]
+          sorry
+        finally show ?case
+          .
       qed
       then show ?thesis
         unfolding st step using option.discI[OF ci, unfolded find_None_iff]
