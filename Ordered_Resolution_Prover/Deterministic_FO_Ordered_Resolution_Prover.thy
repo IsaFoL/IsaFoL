@@ -548,34 +548,28 @@ proof -
           have filter_q: "filter (Not \<circ> strictly_subsume [[]] \<circ> fst) Q = []"
             using nil_ni_q unfolding strictly_subsume_def filter_empty_conv find_None_iff by force
 
-          have subs_P:
-            "wstate_of_dstate (([], i) # N', P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (([], i) # N', [], Q, n)"
+          note red_C[unfolded c'_nil]
+          also have "wstate_of_dstate (([], i) # N', P, Q, n)
+            \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (([], i) # N', [], Q, n)"
             by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
                     filter_strictly_subsumed_clauses_in_P[of "[]" _ "[]", unfolded append_Nil],
                   OF refl])
               (auto simp: filter_p)
-          have subs_Q: "wstate_of_dstate (([], i) # N', [], Q, n)
-            \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (([], i) # N', [], [], n)"
+          also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (([], i) # N', [], [], n)"
             by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
                     filter_strictly_subsumed_clauses_in_Q[of "[]" _ _ "[]", unfolded append_Nil],
                   OF refl])
               (auto simp: filter_q)
-          have subs_N:
-            "wstate_of_dstate (N', [([], i)], [], n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [([], i)], [], n)"
+          also note proc_C[unfolded c'_nil, THEN tranclp.r_into_trancl[of "op \<leadsto>\<^sub>w"]]
+          also have "wstate_of_dstate (N', [([], i)], [], n)
+            \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [([], i)], [], n)"
             by (rule empty_N_if_Nil_in_P_or_Q) simp
-          have inf:
-            "wstate_of_dstate ([], [([], i)], [], n) \<leadsto>\<^sub>w wstate_of_dstate ([], [], [([], i)], Suc n)"
+          also have "\<dots> \<leadsto>\<^sub>w wstate_of_dstate ([], [], [([], i)], Suc n)"
             by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
                   inference_computation[of "{#}" "{#}" i "{#}" n "{#}"]])
               (auto simp: ord_FO_resolution_inferences_between_empty_empty)
-
-          show ?thesis
-            unfolding step st n_cons ci
-            using red_C[unfolded c'_nil, THEN rtranclp_trans, OF subs_P,
-              THEN rtranclp_trans, OF subs_Q,
-              THEN rtranclp_into_tranclp1, OF proc_C[unfolded c'_nil],
-              THEN tranclp_rtranclp_tranclp, OF subs_N,
-              THEN tranclp.trancl_into_trancl, OF inf] .
+          finally show ?thesis
+            unfolding step st n_cons ci .
         next
           case c'_nnil: False
           note step = step[simplified c'_nnil, simplified]
@@ -629,26 +623,19 @@ proof -
             note step = step[unfolded P'_def[symmetric] Q''_def[symmetric] P''_def[symmetric],
                 simplified]
 
-            have red_Q: "wstate_of_dstate ((C', i) # N', P, Q, n)
+            note red_C
+            also have "wstate_of_dstate ((C', i) # N', P, Q, n)
               \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', back_to_P @ P, Q', n)"
               sorry
-            have red_P: "wstate_of_dstate ((C', i) # N', back_to_P @ P, Q', n)
-              \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q', n)"
+            also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q', n)"
               sorry
-            have subs_Q: "wstate_of_dstate ((C', i) # N', P', Q', n)
-              \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q'', n)"
+            also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q'', n)"
               sorry
-            have subs_P: "wstate_of_dstate ((C', i) # N', P', Q'', n)
-              \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P'', Q'', n)"
+            also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P'', Q'', n)"
               sorry
-
-            show ?thesis
-              unfolding step st n_cons ci
-              by (rule red_C[THEN rtranclp_trans, OF red_Q,
-                  THEN rtranclp_trans, OF red_P,
-                  THEN rtranclp_trans, OF subs_Q,
-                  THEN rtranclp_trans, OF subs_P,
-                  THEN rtranclp_into_tranclp1, OF proc_C])
+            also note proc_C[THEN tranclp.r_into_trancl[of "op \<leadsto>\<^sub>w"]]
+            finally show ?thesis
+              unfolding step st n_cons ci .
           qed
         qed
       qed
