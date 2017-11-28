@@ -241,7 +241,7 @@ proof (induct P arbitrary: P0 Ci)
   qed
 qed simp
 
-lemma empty_subsumed_N:
+lemma empty_N_if_Nil_in_P_or_Q:
   assumes nil_in: "[] \<in> fst ` set (P @ Q)"
   shows "wstate_of_dstate (N, P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], P, Q, n)"
 proof (induct N)
@@ -325,7 +325,7 @@ FIXME
             sorry
 
           have sub_N: "wstate_of_dstate (N, P0 # P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], P0 # P, Q, n)"
-            by (rule empty_subsumed_N[OF nil_in])
+            by (rule empty_N_if_Nil_in_P_or_Q[OF nil_in])
 
           show ?thesis
             using ih[OF nil_in']
@@ -513,7 +513,7 @@ FIXME
           qed simp
           have sub_N:
             "wstate_of_dstate (N', [([], i)], [], n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [([], i)], [], n)"
-            by (rule empty_subsumed_N) simp
+            by (rule empty_N_if_Nil_in_P_or_Q) simp
           have inf:
             "wstate_of_dstate ([], [([], i)], [], n) \<leadsto>\<^sub>w wstate_of_dstate ([], [], [([], i)], Suc n)"
             by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
