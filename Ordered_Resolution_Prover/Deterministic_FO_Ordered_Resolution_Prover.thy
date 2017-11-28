@@ -289,14 +289,31 @@ FIXME
         unfolding st step by (rule rtranclp_into_tranclp1[OF proc inf])
 *)
 
-      have "[] \<in> fst ` set (P @ Q) \<Longrightarrow> P \<noteq> [] \<Longrightarrow> wstate_of_dstate (N, P, Q, n) \<leadsto>\<^sub>w\<^sup>+ wstate_of_dstate ([], [], P @ Q, n + length P)"
-      proof (induct P arbitrary: Q)
-        case (Cons P0 P)
-        then show ?case
+      have "[] \<in> fst ` set (P @ Q) \<Longrightarrow>
+        wstate_of_dstate (N, P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], P @ Q, n + length P)"
+      proof (induct P)
+        case Nil
+        show ?case
+          apply simp
           sorry
-      qed simp
+      next
+        case (Cons P0 P)
+        note ih = this(1) and nil_in = this(2)
+        show ?case
+        proof (cases "fst P0 = []")
+          case True
+          then show ?thesis sorry
+        next
+          case False
+          have "[] \<in> fst ` set (P @ Q)"
+            sorry
+          thm ih
+          show ?thesis sorry
+        qed
+      qed
       then show ?thesis
-        unfolding st step using option.discI[OF ci, unfolded find_None_iff] by force
+        unfolding st step using option.discI[OF ci, unfolded find_None_iff]
+        by (force dest!: rtranclpD)
     next
       case nil_ni_p: None
       note step = step[unfolded nil_ni_p, simplified]
