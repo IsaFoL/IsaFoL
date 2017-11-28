@@ -832,13 +832,13 @@ proof (cases rule: ord_resolve.cases)
 
   (* New *)
   have As'_As: "As' \<cdot>al \<eta>' = As"
-    using as''(11) unfolding \<eta>'_def As'_def using renames_DA'' sorry
+    using as''(11) unfolding \<eta>'_def As'_def using renames_DA'' sorry (* Looks reasonable. *)
   have AAs'_AAs: "map2 op \<cdot>am AAs' \<eta>s' = AAs"
-    using as''(12) unfolding \<eta>s'_def AAs'_def using renames_CAs'' using n sorry 
+    using as''(12) unfolding \<eta>s'_def AAs'_def using renames_CAs'' using n sorry (* Looks reasonable. *)
   have D'_D: "D' \<cdot> \<eta>' = D"
     using as''(14) unfolding \<eta>'_def D'_def using renames_DA'' by simp
   have Cs'_Cs: "Cs' \<cdot>\<cdot>cl \<eta>s' = Cs"
-    using as''(18) unfolding Cs'_def \<eta>s'_def using renames_apart renames_CAs'' sorry
+    using as''(18) unfolding Cs'_def \<eta>s'_def using renames_apart renames_CAs'' sorry (* Looks reasonable. *)
   (* End new *)
 
   have "map S CAs' \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAs"
@@ -884,11 +884,11 @@ proof (cases rule: ord_resolve.cases)
   proof -
     show "length As' = n" using n by auto
   next
-    show "As' \<cdot>al \<eta> = As" sorry
+    show "As' \<cdot>al \<eta> = As" using \<eta>_p As'_As sorry (* Looks reasonable *)
   next
-    show "D' \<cdot> \<eta> = D" sorry
+    show "D' \<cdot> \<eta> = D" using \<eta>_p D'_D sorry
   next
-    show "DA' = D' + negs (mset As')" sorry
+    show "DA' = D' + negs (mset As')" sorry 
   next
     assume "S_M S M (D + negs (mset As)) \<noteq> {#}"
     show "negs (mset As') = S DA'" sorry
