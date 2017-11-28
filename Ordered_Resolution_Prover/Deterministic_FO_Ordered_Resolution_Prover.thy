@@ -279,7 +279,9 @@ proof -
       have inf: "wstate_of_dstate ([], N @ P, Q, n)
         \<leadsto>\<^sub>w wstate_of_dstate ([], N @ remove1 Ci P, Ci # Q, Suc n)"
         apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
-              inference_computation[of "mset (map (apfst mset) N)"]])
+              inference_computation[of "mset (map (apfst mset) (N @ remove1 Ci P))" "mset (fst Ci)"
+                "snd Ci" "{#}" n "mset (map (apfst mset) Q)"]])
+        apply auto
         sorry
 
       show ?thesis
