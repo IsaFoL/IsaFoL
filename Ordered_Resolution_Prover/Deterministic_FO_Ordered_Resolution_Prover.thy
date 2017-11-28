@@ -337,14 +337,6 @@ lemma compute_inferences:
       remove1 (C, i) P, (C, i) # Q, Suc n)"
   sorry
 
-(* FIXME
-          define N' :: "'a dclause list" where
-            "N' = map (\<lambda>D. (D, n))
-               (remdups (resolve_rename C C @ concat (map (resolve_rename_either_way C \<circ> fst) Q)))"
-          define P'' :: "'a dclause list" where
-            "P'' = remove1 (C, i) P"
-*)
-
 lemma nonfinal_deterministic_RP_step:
   assumes
     nonfinal: "\<not> is_final_dstate St" and
@@ -611,7 +603,9 @@ proof -
             note red_C
             also have "wstate_of_dstate ((C', i) # N', P, Q, n)
               \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', back_to_P @ P, Q', n)"
-              using reduce_clauses_in_Q[of C' _ _ _ Q, folded red_Q] by force
+              by (rule reduce_clauses_in_Q[of C' _ _ "[]" Q, folded red_Q,
+                    unfolded append_Nil prod.sel])
+                simp
             also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q', n)"
               unfolding P'_def by (rule reduce_clauses_in_P[of _ _ "[]", unfolded append_Nil]) simp
             also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q'', n)"
