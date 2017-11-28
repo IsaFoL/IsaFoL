@@ -287,26 +287,29 @@ proof (induct P' arbitrary: P)
     using ih[of "P @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [P0']"] by force
 qed simp
 
-(*
-FIXME
-          have subs_Q: "wstate_of_dstate (([], i) # N', [], Q, n)
-            \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (([], i) # N', [], [], n)"
-            using nil_ni_q
-          proof (induct Q)
-            case (Cons Q0 Q)
-            note ih = this(1) and nil_ni_q0q = this(2)
-            have nil_ni_q: "find (\<lambda>(C, _). C = []) Q = None"
-              using nil_ni_q0q by (auto split: if_splits)
-            have "wstate_of_dstate (([], i) # N', [], Q0 # Q, n)
-              \<leadsto>\<^sub>w wstate_of_dstate (([], i) # N', [], Q, n)"
-              by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
-                    backward_subsumption_Q[of "{#}" "mset (map (apfst mset) (([], i) # N'))"
-                      "mset (fst Q0)" "{#}" "mset (map (apfst mset) Q)" "snd Q0" n]],
-                  cases Q0, use nil_ni_q0q in \<open>auto split: if_splits\<close>)
-            then show ?case
-              using ih[OF nil_ni_q] by (rule converse_rtranclp_into_rtranclp)
-          qed simp
-*)
+lemma filter_strictly_subsumed_clauses_in_Q:
+  assumes c_in: "C \<in> fst ` set N"
+  shows "wstate_of_dstate (N, P, Q @ Q', n)
+    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P, Q @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) Q', n)"
+proof (induct Q' arbitrary: Q)
+  case (Cons Q0' Q')
+  note ih = this(1)
+
+  have "wstate_of_dstate (N, P, Q @ Q0' # Q', n) \<leadsto>\<^sub>w\<^sup>*
+    wstate_of_dstate (N, P, Q @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [Q0'] @ Q', n)"
+  proof (cases "strictly_subsume [C] (fst Q0')")
+    case subs: True
+    have "wstate_of_dstate (N, P, Q @ Q0' # Q', n) \<leadsto>\<^sub>w wstate_of_dstate (N, P, Q @ Q', n)"
+      by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+            backward_subsumption_Q[of "mset C" "mset (map (apfst mset) N)" "mset (fst Q0')"
+              "mset (map (apfst mset) P)" "mset (map (apfst mset) (Q @ Q'))" "snd Q0'" n]])
+        (use c_in subs in \<open>auto simp: apfst_fst_snd strictly_subsume_def\<close>)
+    then show ?thesis
+      by auto
+  qed simp
+  then show ?case
+    using ih[of "Q @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [Q0']"] by force
+qed simp
 
 lemma nonfinal_deterministic_RP_step:
   assumes
@@ -542,31 +545,21 @@ proof -
 
           have filter_p: "filter (Not \<circ> strictly_subsume [[]] \<circ> fst) P = []"
             using nil_ni_p unfolding strictly_subsume_def filter_empty_conv find_None_iff by force
+          have filter_q: "filter (Not \<circ> strictly_subsume [[]] \<circ> fst) Q = []"
+            using nil_ni_q unfolding strictly_subsume_def filter_empty_conv find_None_iff by force
 
           have subs_P:
             "wstate_of_dstate (([], i) # N', P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (([], i) # N', [], Q, n)"
-            by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*",
-                  OF _ _ filter_strictly_subsumed_clauses_in_P[of "[]" _ "[]", unfolded append_Nil],
+            by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
+                    filter_strictly_subsumed_clauses_in_P[of "[]" _ "[]", unfolded append_Nil],
                   OF refl])
               (auto simp: filter_p)
-
           have subs_Q: "wstate_of_dstate (([], i) # N', [], Q, n)
             \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (([], i) # N', [], [], n)"
-            using nil_ni_q
-          proof (induct Q)
-            case (Cons Q0 Q)
-            note ih = this(1) and nil_ni_q0q = this(2)
-            have nil_ni_q: "find (\<lambda>(C, _). C = []) Q = None"
-              using nil_ni_q0q by (auto split: if_splits)
-            have "wstate_of_dstate (([], i) # N', [], Q0 # Q, n)
-              \<leadsto>\<^sub>w wstate_of_dstate (([], i) # N', [], Q, n)"
-              by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
-                    backward_subsumption_Q[of "{#}" "mset (map (apfst mset) (([], i) # N'))"
-                      "mset (fst Q0)" "{#}" "mset (map (apfst mset) Q)" "snd Q0" n]],
-                  cases Q0, use nil_ni_q0q in \<open>auto split: if_splits\<close>)
-            then show ?case
-              using ih[OF nil_ni_q] by (rule converse_rtranclp_into_rtranclp)
-          qed simp
+            by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
+                    filter_strictly_subsumed_clauses_in_Q[of "[]" _ _ "[]", unfolded append_Nil],
+                  OF refl])
+              (auto simp: filter_q)
           have subs_N:
             "wstate_of_dstate (N', [([], i)], [], n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [([], i)], [], n)"
             by (rule empty_N_if_Nil_in_P_or_Q) simp
