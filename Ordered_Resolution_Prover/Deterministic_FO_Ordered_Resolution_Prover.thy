@@ -335,6 +335,8 @@ lemma compute_inferences:
       (map (\<lambda>D. (D, n))
         (remdups (resolve_rename C C @ concat (map (resolve_rename_either_way C \<circ> fst) Q))),
       remove1 (C, i) P, (C, i) # Q, Suc n)"
+  apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+        inference_computation[of X]])
   sorry
 
 lemma nonfinal_deterministic_RP_step:
