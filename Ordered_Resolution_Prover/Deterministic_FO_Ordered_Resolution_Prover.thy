@@ -157,7 +157,7 @@ fun deterministic_RP_step :: "'a dstate \<Rightarrow> 'a dstate" where
       Some _ \<Rightarrow> (N, P, Q, n)
     | None \<Rightarrow>
       (case List.find (\<lambda>(C, _). C = []) P of
-         Some Ci \<Rightarrow> (N, P, Ci # Q, Suc n)
+         Some Ci \<Rightarrow> ([], N @ remove1 Ci P, Ci # Q, Suc n)
        | None \<Rightarrow>
          (case N of
            [] \<Rightarrow>
@@ -270,8 +270,20 @@ proof -
     note step = step[unfolded nil_ni_q, simplified]
     show ?thesis
     proof (cases "List.find (\<lambda>(C, _). C = []) P")
-      case (Some Ci)
-      then show ?thesis sorry
+      case ci: (Some Ci)
+      note step = step[unfolded ci, simplified]
+
+      have proc: "wstate_of_dstate (N, P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], N @ P, Q, n)"
+        sorry
+
+      have inf: "wstate_of_dstate ([], N @ P, Q, n)
+        \<leadsto>\<^sub>w wstate_of_dstate ([], N @ remove1 Ci P, Ci # Q, Suc n)"
+        apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+              inference_computation[of "mset (map (apfst mset) N)"]])
+        sorry
+
+      show ?thesis
+        unfolding st step by (rule rtranclp_into_tranclp1[OF proc inf])
     next
       case nil_ni_p: None
       note step = step[unfolded nil_ni_p, simplified]
@@ -304,8 +316,7 @@ proof -
           define P'' :: "'a dclause list" where
             "P'' = remove1 (C, i) P"
 
-          (* FIXME: rename and state at different level of abstraction *)
-          have trans:
+          have inf:
             "({#}, mset (map (apfst mset) P'') + {#(mset C, i)#}, mset (map (apfst mset) Q), n)
              \<leadsto>\<^sub>w (mset (map (apfst mset) N'), mset (map (apfst mset) P''),
                   mset (map (apfst mset) Q) + {#(mset C, i)#}, Suc n)"
@@ -339,7 +350,7 @@ proof -
             apply (unfold wstate_of_dstate.simps)
             apply (fold ci)
             apply (simp del: remove1.simps)
-            apply (rule arg_cong2[of _ _ _ _ "op \<leadsto>\<^sub>w", THEN iffD1, OF _ _ trans[unfolded P''_def N'_def]])
+            apply (rule arg_cong2[of _ _ _ _ "op \<leadsto>\<^sub>w", THEN iffD1, OF _ _ inf[unfolded P''_def N'_def]])
              apply simp
             using ci_in
              apply (metis (no_types) apfst_conv image_mset_add_mset insert_DiffM set_mset_mset)
@@ -462,11 +473,11 @@ proof -
             then show ?case
               using ih by (rule converse_rtranclp_into_rtranclp)
           qed simp
-          have inf_C:
+          have inf:
             "wstate_of_dstate ([], [([], i)], [], n) \<leadsto>\<^sub>w wstate_of_dstate ([], [], [([], i)], Suc n)"
             by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
-                  inference_computation[of "{#}" "{#}" i "{#}" n "{#}"]],
-                auto simp: ord_FO_resolution_inferences_between_empty_empty)
+                  inference_computation[of "{#}" "{#}" i "{#}" n "{#}"]])
+              (auto simp: ord_FO_resolution_inferences_between_empty_empty)
 
           show ?thesis
             unfolding step st n_cons ci
@@ -474,7 +485,7 @@ proof -
               THEN rtranclp_trans, OF sub_Q,
               THEN rtranclp_into_tranclp1, OF proc_C[unfolded c'_nil],
               THEN tranclp_rtranclp_tranclp, OF sub_N,
-              THEN tranclp.trancl_into_trancl, OF inf_C] .
+              THEN tranclp.trancl_into_trancl, OF inf] .
         next
           case c'_nnil: False
           note step = step[simplified c'_nnil, simplified]
