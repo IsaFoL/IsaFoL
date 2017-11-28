@@ -157,7 +157,7 @@ fun deterministic_RP_step :: "'a dstate \<Rightarrow> 'a dstate" where
       Some _ \<Rightarrow> (N, P, Q, n)
     | None \<Rightarrow>
       (case List.find (\<lambda>(C, _). C = []) P of
-         Some Ci \<Rightarrow> ([], N @ remove1 Ci P, Ci # Q, Suc n)
+         Some Ci \<Rightarrow> ([], [], P @ Q, n + length P)
        | None \<Rightarrow>
          (case N of
            [] \<Rightarrow>
@@ -272,7 +272,8 @@ proof -
     proof (cases "List.find (\<lambda>(C, _). C = []) P")
       case ci: (Some Ci)
       note step = step[unfolded ci, simplified]
-
+(*
+FIXME
       have proc: "wstate_of_dstate (N, P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], N @ P, Q, n)"
         sorry
 
@@ -286,6 +287,16 @@ proof -
 
       show ?thesis
         unfolding st step by (rule rtranclp_into_tranclp1[OF proc inf])
+*)
+
+      have "[] \<in> fst ` set (P @ Q) \<Longrightarrow> P \<noteq> [] \<Longrightarrow> wstate_of_dstate (N, P, Q, n) \<leadsto>\<^sub>w\<^sup>+ wstate_of_dstate ([], [], P @ Q, n + length P)"
+      proof (induct P arbitrary: Q)
+        case (Cons P0 P)
+        then show ?case
+          sorry
+      qed simp
+      then show ?thesis
+        unfolding st step using option.discI[OF ci, unfolded find_None_iff] by force
     next
       case nil_ni_p: None
       note step = step[unfolded nil_ni_p, simplified]
