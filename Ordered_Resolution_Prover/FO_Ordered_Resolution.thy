@@ -15,7 +15,7 @@ soundness and Lemma 4.12 (the lifting lemma).
 \<close>
 
 theory FO_Ordered_Resolution
-  imports Abstract_Substitution Ordered_Ground_Resolution Standard_Redundancy "../lib/Explorer"
+  imports Abstract_Substitution Ordered_Ground_Resolution Standard_Redundancy "../lib/Explorer" (* FIXME: remove Explorer when done *)
 begin
 
 setup Explorer_Lib.switch_to_quotes

@@ -1,9 +1,10 @@
-(*  Title:       Integration of IsaFoR Terms
+(*  Title:       Integration of IsaFoR Terms, the upcoming AFP version
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
-    Maintainer:  Jasmin Blanchette <j.c.blanchette at vu.nl>, 2014, 2017
+    Author:      Anders Schlichtkrull <andschl at dtu.dk>, 2017
+    Maintainer:  Anders Schlichtkrull <andschl at dtu.dk>
 *)
 
-section \<open>Integration of IsaFoR Terms -- The upcoming AFP version\<close>
+section \<open>Integration of IsaFoR Terms, the upcoming AFP version\<close>
 
 theory AFP_IsaFoR_Term
   imports

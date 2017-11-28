@@ -1,6 +1,7 @@
 (*  Title:       Integration of IsaFoR Terms
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
-    Maintainer:  Jasmin Blanchette <j.c.blanchette at vu.nl>, 2014, 2017
+    Author:      Anders Schlichtkrull <andschl at dtu.dk>, 2017
+    Maintainer:  Anders Schlichtkrull <andschl at dtu.dk>
 *)
 
 section \<open>Integration of IsaFoR Terms\<close>
@@ -9,7 +10,7 @@ theory IsaFoR_IsaFoR_Term
   imports
     Deriving.Derive
     Abstract_Substitution
-    "../lib/Explorer"
+    "../lib/Explorer" (* FIXME: remove explorer when done *)
     "$ISAFOR/Normalization_Equivalence/Encompassment" (* Version 7a339721b8c2 *)
     "./AFP_IsaFoR/Fun_More"
 begin
