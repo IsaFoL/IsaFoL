@@ -428,10 +428,10 @@ proof -
 
           have sub_P:
             "wstate_of_dstate (([], i) # N', P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (([], i) # N', [], Q, n)"
-            using nil_ni_q nil_ni_p
+            using nil_ni_p
           proof (induct P)
             case (Cons P0 P)
-            note ih = this(1) and nil_ni_q = this(2) and nil_ni_p0p = this(3)
+            note ih = this(1) and nil_ni_p0p = this(2)
             have nil_ni_p: "find (\<lambda>(C, _). C = []) P = None"
               using nil_ni_p0p by (auto split: if_splits)
             have "wstate_of_dstate (([], i) # N', P0 # P, Q, n)
@@ -440,12 +440,12 @@ proof -
                     backward_subsumption_P[of "{#}" "mset (map (apfst mset) (([], i) # N'))"
                       "mset (fst P0)" "mset (map (apfst mset) P)" "snd P0" "mset (map (apfst mset) Q)"
                       n]],
-                  cases P0, use nil_ni_q nil_ni_p0p in \<open>auto split: if_splits\<close>)
+                  cases P0, use nil_ni_p0p in \<open>auto split: if_splits\<close>)
             then show ?case
-              using ih[OF nil_ni_q nil_ni_p] by (rule converse_rtranclp_into_rtranclp)
+              using ih[OF nil_ni_p] by (rule converse_rtranclp_into_rtranclp)
           qed simp
-          have sub_Q:
-            "wstate_of_dstate (([], i) # N', [], Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (([], i) # N', [], [], n)"
+          have sub_Q: "wstate_of_dstate (([], i) # N', [], Q, n)
+            \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (([], i) # N', [], [], n)"
             using nil_ni_q
           proof (induct Q)
             case (Cons Q0 Q)
