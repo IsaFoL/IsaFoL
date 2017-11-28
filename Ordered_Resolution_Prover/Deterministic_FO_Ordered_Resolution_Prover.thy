@@ -241,6 +241,22 @@ proof (induct P arbitrary: P0 Ci)
   qed
 qed simp
 
+lemma empty_subsumed_N:
+  assumes nil_in: "[] \<in> fst ` set (P @ Q)"
+  shows "wstate_of_dstate (N, P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], P, Q, n)"
+proof (induct N)
+  case (Cons N0 N)
+  note ih = this
+  have "wstate_of_dstate (N0 # N, P, Q, n) \<leadsto>\<^sub>w wstate_of_dstate (N, P, Q, n)"
+    by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+          forward_subsumption[of "{#}" "mset (map (apfst mset) P)" "mset (map (apfst mset) Q)"
+            "mset (fst N0)" "mset (map (apfst mset) N)" "snd N0" n]])
+      (use nil_in in \<open>force simp: image_def apfst_conv[of _ "fst x" "snd x" for x,
+         unfolded prod.collapse]\<close>)+
+  then show ?case
+    using ih by (rule converse_rtranclp_into_rtranclp)
+qed simp
+
 lemma nonfinal_deterministic_RP_step:
   assumes
     nonfinal: "\<not> is_final_dstate St" and
@@ -305,10 +321,16 @@ FIXME
           then show ?thesis sorry
         next
           case False
-          have "[] \<in> fst ` set (P @ Q)"
+          have nil_in': "[] \<in> fst ` set (P @ Q)"
             sorry
-          thm ih
-          show ?thesis sorry
+
+          have sub_N: "wstate_of_dstate (N, P0 # P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], P0 # P, Q, n)"
+            by (rule empty_subsumed_N[OF nil_in])
+
+          show ?thesis
+            using ih[OF nil_in']
+            using rtranclp_trans
+            sorry
         qed
       qed
       then show ?thesis
@@ -491,18 +513,7 @@ FIXME
           qed simp
           have sub_N:
             "wstate_of_dstate (N', [([], i)], [], n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [([], i)], [], n)"
-          proof (induct N')
-            case (Cons N'0 N')
-            note ih = this
-            have "wstate_of_dstate (N'0 # N', [([], i)], [], n)
-              \<leadsto>\<^sub>w wstate_of_dstate (N', [([], i)], [], n)"
-              by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
-                    forward_subsumption[of "{#}" "{#({#}, i)#}" "{#}" "mset (fst N'0)"
-                      "mset (map (apfst mset) N')" "snd N'0" n]])
-                (cases N'0, auto)
-            then show ?case
-              using ih by (rule converse_rtranclp_into_rtranclp)
-          qed simp
+            by (rule empty_subsumed_N) simp
           have inf:
             "wstate_of_dstate ([], [([], i)], [], n) \<leadsto>\<^sub>w wstate_of_dstate ([], [], [([], i)], Suc n)"
             by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
