@@ -1159,7 +1159,7 @@ proof (cases rule: ord_resolve.cases)
     done
   ultimately have
     "ord_resolve_rename S CAs'' DA'' AAs'' As'' \<tau> E'"
-    by (rule ord_resolve_rename)
+    using ord_resolve_rename sorry
   then show thesis
     using that[of \<eta>'' \<eta>s'' \<eta>2 CAs'' DA''] \<open>is_ground_subst \<eta>''\<close> \<open>is_ground_subst_list \<eta>s''\<close>
       \<open>is_ground_subst \<eta>2\<close> \<open>CAs'' \<cdot>\<cdot>cl \<eta>s'' = CAs\<close> \<open>DA'' \<cdot> \<eta>'' = DA\<close> \<open>E' \<cdot> \<eta>2 = E\<close> \<open>DA'' \<in> M\<close>
