@@ -903,6 +903,20 @@ proof (rule ccontr)
    have \<open>get_all_learned_clss (fst (g (Suc i))) \<subseteq># get_all_learned_clss (h i)\<close> for i
      using res[of i] by (auto simp: cdcl_twl_restart.simps image_mset_subseteq_mono)
 
+   have \<open>distinct_mset (get_all_learned_clss (h i) - get_all_learned_clss (fst (g i)))\<close>
+     (is \<open>distinct_mset (?U i)\<close>)
+     for i
+     unfolding learned_clss_get_all_learned_clss[symmetric]
+     apply (rule cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses_new)
+     subgoal by (rule W_g_h)
+     subgoal using inv[of i] unfolding twl_struct_invs_def by fast
+     subgoal using inv[of i] unfolding twl_struct_invs_def by fast
+     done
+   then have H: \<open>size (?U i) = card (set_mset (?U i))\<close> for i
+     using distinct_mset_size_eq_card by blast
+   have \<open>get_all_learned_clss (fst (g (Suc i))) \<subseteq># get_all_learned_clss (h i)\<close> for i
+     using res[of i] by (auto simp: cdcl_twl_restart.simps image_mset_subseteq_mono)
+
   have h_g: \<open>init_clss (state\<^sub>W_of (h i)) = init_clss (state\<^sub>W_of (fst (g i)))\<close> for i
      using cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_no_more_init_clss[OF W_g_h[of i]] ..
 
@@ -917,7 +931,7 @@ proof (rule ccontr)
    then have K: \<open>init_clss (state\<^sub>W_of (h i)) = init_clss (state\<^sub>W_of (fst (g 0)))\<close> for i
      using h_g[of i] by simp
 
-   have \<open>card (set_mset (?U i)) > f (i + snd (g 0))\<close> for i
+  (*)have \<open>card (set_mset (get_all_learned_clss (fst (g i)) - get_all_learned_clss ((h i)))) > f (i + snd (g 0))\<close> for i
      unfolding snd_g[symmetric]
      apply (rule order.strict_trans2)
       apply (rule size_h_g[of i])
@@ -925,19 +939,25 @@ proof (rule ccontr)
      apply (cases \<open>h i\<close>; cases \<open>g i\<close>)
      by (auto simp: cdcl\<^sub>W_restart_mset_state)
    thm  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_new_learned_in_all_simple_clss
-   moreover have \<open>set_mset (?U i) \<subseteq> all_simple_clss (atms_of_mm (init_clss (state\<^sub>W_of (h i))))\<close> for i
-     unfolding learned_clss_get_all_learned_clss[symmetric] h_g
+   thm rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy[OF cdcl_twl]
+   moreover *) have \<open>set_mset (get_all_learned_clss (h i) - get_all_learned_clss (fst (g i))) \<subseteq> 
+         all_simple_clss (atms_of_mm (init_clss (state\<^sub>W_of (h i))))\<close> for i
+     unfolding learned_clss_get_all_learned_clss[symmetric]
+       supply [[unify_trace_failure]]
      apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_new_learned_in_all_simple_clss)
      subgoal by (rule rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy[OF cdcl_twl]) (rule inv)
      subgoal using inv[of i]  unfolding twl_struct_invs_def by fast
      done
-   ultimately have H: \<open>card (all_simple_clss (atms_of_mm (init_clss (state\<^sub>W_of (h i))))) > f (i + snd (g 0))\<close> for i
+
+   have H: \<open>card (all_simple_clss (atms_of_mm (init_clss (state\<^sub>W_of (h k))))) > f (k + snd (g 0))\<close> 
+     
+     sorry
      by (meson Suc_le_eq atms_of_ms_finite card_mono finite_all_simple_clss finite_set_mset le_trans)
 
 
 
   show False
-     using H[of k] f_g_k unfolding snd_g[symmetric]
+     using H[of ] f_g_k unfolding snd_g[symmetric]
      unfolding K
      by linarith
 qed
