@@ -99,11 +99,14 @@ primrec reduce :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> 'a lcl
 | "reduce Ds C (L # C') =
    (if is_reducible_lit Ds (C @ C') L then reduce Ds C C' else L # reduce Ds (L # C) C')"
 
-fun reduce_all :: "'a lclause list \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause list \<times> 'a dclause list" where
-  "reduce_all _ [] = ([], [])"
-| "reduce_all Ds ((C, i) # Cs) =
+definition reduce_all :: "'a lclause list \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause list" where
+  "reduce_all Ds = map (apfst (reduce Ds []))"
+
+fun reduce_all2 :: "'a lclause list \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause list \<times> 'a dclause list" where
+  "reduce_all2 _ [] = ([], [])"
+| "reduce_all2 Ds ((C, i) # Cs) =
    (let C' = reduce Ds [] C in
-      (if length C' = length C then apsnd else apfst) (Cons (C', i)) (reduce_all Ds Cs))"
+      (if C' = C then apsnd else apfst) (Cons (C', i)) (reduce_all2 Ds Cs))"
 
 (* FIXME: check if this really gives all possibilities *)
 fun resolve_on :: "'a lclause \<Rightarrow> 'a \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
@@ -190,9 +193,9 @@ fun deterministic_RP_step :: "'a dstate \<Rightarrow> 'a dstate" where
                (N, P, Q, n)
              else
                let
-                 (back_to_P, Q) = reduce_all [C] Q;
+                 (back_to_P, Q) = reduce_all2 [C] Q;
                  P = back_to_P @ P;
-                 P = case_prod (op @) (reduce_all [C] P);
+                 P = reduce_all [C] P;
                  Q = filter (Not \<circ> strictly_subsume [C] \<circ> fst) Q;
                  P = filter (Not \<circ> strictly_subsume [C] \<circ> fst) P;
                  P = (C, i) # P
@@ -313,12 +316,12 @@ qed simp
 
 lemma reduce_clauses_in_P:
   "wstate_of_dstate ((C', i) # N', P, Q', n)
-   \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', case_prod (op @) (reduce_all [C'] P), Q', n)"
+   \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', reduce_all [C'] P, Q', n)"
   sorry
 
 lemma reduce_clauses_in_Q:
   "wstate_of_dstate ((C', i) # N', P, Q, n)
-   \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', fst (reduce_all [C'] Q) @ P, snd (reduce_all [C'] Q), n)"
+   \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', fst (reduce_all2 [C'] Q) @ P, snd (reduce_all2 [C'] Q), n)"
   sorry
 
 lemma compute_inferences:
@@ -591,12 +594,12 @@ proof -
             note step = step[simplified not_taut_or_subs, simplified]
 
             obtain back_to_P Q' :: "('a literal list \<times> nat) list" where
-              red_Q: "(back_to_P, Q') = reduce_all [C'] Q"
+              red_Q: "(back_to_P, Q') = reduce_all2 [C'] Q"
               by (metis prod.exhaust)
             note step = step[unfolded red_Q[symmetric], simplified]
 
             define P' :: "('a literal list \<times> nat) list" where
-              "P' = case_prod (op @) (reduce_all [C'] (back_to_P @ P))"
+              "P' = reduce_all [C'] (back_to_P @ P)"
             define Q'' :: "('a literal list \<times> nat) list" where
               "Q'' = filter (Not \<circ> strictly_subsume [C'] \<circ> fst) Q'"
             define P'' :: "('a literal list \<times> nat) list" where
