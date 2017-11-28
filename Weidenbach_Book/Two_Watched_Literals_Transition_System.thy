@@ -5100,4 +5100,104 @@ proof -
   qed
 qed
 
+lemma (in -)cdcl_twl_stgy_get_init_learned_clss_mono:
+  assumes
+    \<open>cdcl_twl_stgy S T\<close>
+  shows \<open>get_init_learned_clss S \<subseteq># get_init_learned_clss T\<close>
+  using assms
+  by induction (auto simp: cdcl_twl_cp.simps cdcl_twl_o.simps)
+
+lemma (in -)rtranclp_cdcl_twl_stgy_get_init_learned_clss_mono:
+  assumes
+    \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S T\<close>
+  shows \<open>get_init_learned_clss S \<subseteq># get_init_learned_clss T\<close>
+  using assms
+  by induction (auto dest!: cdcl_twl_stgy_get_init_learned_clss_mono)
+
+lemma cdcl_twl_o_all_learned_diff_learned:
+  assumes \<open>cdcl_twl_o S T\<close>
+  shows
+    \<open>clause `# get_learned_clss S \<subseteq># clause `# get_learned_clss T \<and>
+     get_init_learned_clss S \<subseteq># get_init_learned_clss T\<and>
+     get_all_init_clss S = get_all_init_clss T\<close>
+  by (use assms in \<open>induction rule: cdcl_twl_o.induct\<close>)
+   (auto simp: update_clauses.simps size_Suc_Diff1)
+
+lemma cdcl_twl_cp_all_learned_diff_learned:
+  assumes \<open>cdcl_twl_cp S T\<close>
+  shows
+    \<open>clause `# get_learned_clss S = clause `# get_learned_clss T \<and>
+     get_init_learned_clss S = get_init_learned_clss T \<and>
+     get_all_init_clss S = get_all_init_clss T\<close>
+  apply (use assms in \<open>induction rule: cdcl_twl_cp.induct\<close>)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal for D
+    by (cases D)
+      (auto simp: update_clauses.simps size_Suc_Diff1 dest!: multi_member_split)
+  done
+
+lemma cdcl_twl_stgy_all_learned_diff_learned:
+  assumes \<open>cdcl_twl_stgy S T\<close>
+  shows
+    \<open>clause `# get_learned_clss S \<subseteq># clause `# get_learned_clss T \<and>
+     get_init_learned_clss S \<subseteq># get_init_learned_clss T\<and>
+     get_all_init_clss S = get_all_init_clss T\<close>
+  by (use assms in \<open>induction rule: cdcl_twl_stgy.induct\<close>)
+    (auto simp: cdcl_twl_cp_all_learned_diff_learned cdcl_twl_o_all_learned_diff_learned)
+
+lemma rtranclp_cdcl_twl_stgy_all_learned_diff_learned:
+  assumes \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S T\<close>
+  shows
+    \<open>clause `# get_learned_clss S \<subseteq># clause `# get_learned_clss T \<and>
+     get_init_learned_clss S \<subseteq># get_init_learned_clss T \<and>
+     get_all_init_clss S = get_all_init_clss T\<close>
+  by (use assms in \<open>induction rule: rtranclp_induct\<close>)
+   (auto dest: cdcl_twl_stgy_all_learned_diff_learned)
+
+lemma rtranclp_cdcl_twl_stgy_all_learned_diff_learned_size:
+  assumes \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S T\<close>
+  shows
+    \<open>size (get_all_learned_clss T) - size (get_all_learned_clss S) \<ge>
+         size (get_learned_clss T) - size (get_learned_clss S)\<close>
+  using rtranclp_cdcl_twl_stgy_all_learned_diff_learned[OF assms]
+  apply (cases S, cases T)
+  using size_mset_mono by force+
+
+
+lemma cdcl_twl_stgy_cdcl\<^sub>W_stgy3:
+  assumes \<open>cdcl_twl_stgy S T\<close> and twl: \<open>twl_struct_invs S\<close> and
+    \<open>clauses_to_update S = {#}\<close> and
+    \<open>literals_to_update S = {#}\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
+  using cdcl_twl_stgy_cdcl\<^sub>W_stgy2[OF assms(1,2)] assms(3-)
+  by (auto simp: lexn2_conv)
+
+lemma tranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy:
+  assumes ST: \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ S T\<close> and
+    twl: \<open>twl_struct_invs S\<close> and
+    \<open>clauses_to_update S = {#}\<close> and
+    \<open>literals_to_update S = {#}\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>+\<^sup>+ (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
+proof -
+  obtain S' where
+    SS': \<open>cdcl_twl_stgy S S'\<close> and
+    S'T: \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S' T\<close>
+    using ST unfolding tranclp_unfold_begin by blast
+
+  have 1: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state\<^sub>W_of S) (state\<^sub>W_of S')\<close>
+    using cdcl_twl_stgy_cdcl\<^sub>W_stgy3[OF SS' assms(2-4)]
+    by blast
+  have struct_S': \<open>twl_struct_invs S'\<close>
+    using twl SS' by (blast intro: cdcl_twl_stgy_twl_struct_invs)
+  have 2: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (state\<^sub>W_of S') (state\<^sub>W_of T)\<close>
+    apply (rule rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy)
+     apply (rule S'T)
+    by (rule struct_S')
+  show ?thesis
+    using 1 2 by auto
+qed
+
 end
