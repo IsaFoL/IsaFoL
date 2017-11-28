@@ -630,9 +630,12 @@ proof -
             also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q', n)"
               sorry
             also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q'', n)"
-              sorry
+              unfolding Q''_def
+              by (rule filter_strictly_subsumed_clauses_in_Q[of _ _ _ "[]", unfolded append_Nil])
+                simp
             also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P'', Q'', n)"
-              sorry
+              unfolding P''_def
+              by (rule filter_strictly_subsumed_clauses_in_P[of _ _ "[]", unfolded append_Nil]) simp
             also note proc_C[THEN tranclp.r_into_trancl[of "op \<leadsto>\<^sub>w"]]
             finally show ?thesis
               unfolding step st n_cons ci .
