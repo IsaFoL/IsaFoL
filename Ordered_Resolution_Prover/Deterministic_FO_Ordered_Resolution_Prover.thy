@@ -287,21 +287,21 @@ lemma remove_strictly_subsumed_clauses_in_P:
   shows "wstate_of_dstate (N, P @ P', Q, n)
     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) P', Q, n)"
 proof (induct P' arbitrary: P)
-  case ih: (Cons D P')
-  have "wstate_of_dstate (N, P @ D # P', Q, n) \<leadsto>\<^sub>w\<^sup>*
-    wstate_of_dstate (N, P @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [D] @ P', Q, n)"
-  proof (cases "strictly_subsume [C] (fst D)")
+  case ih: (Cons Dk P')
+  have "wstate_of_dstate (N, P @ Dk # P', Q, n) \<leadsto>\<^sub>w\<^sup>*
+    wstate_of_dstate (N, P @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [Dk] @ P', Q, n)"
+  proof (cases "strictly_subsume [C] (fst Dk)")
     case subs: True
-    have "wstate_of_dstate (N, P @ D # P', Q, n) \<leadsto>\<^sub>w wstate_of_dstate (N, P @ P', Q, n)"
+    have "wstate_of_dstate (N, P @ Dk # P', Q, n) \<leadsto>\<^sub>w wstate_of_dstate (N, P @ P', Q, n)"
       by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
-            backward_subsumption_P[of "mset C" "mset (map (apfst mset) N)" "mset (fst D)"
-              "mset (map (apfst mset) (P @ P'))" "snd D" "mset (map (apfst mset) Q)" n]])
+            backward_subsumption_P[of "mset C" "mset (map (apfst mset) N)" "mset (fst Dk)"
+              "mset (map (apfst mset) (P @ P'))" "snd Dk" "mset (map (apfst mset) Q)" n]])
         (use c_in subs in \<open>auto simp: apfst_fst_snd strictly_subsume_def\<close>)
     then show ?thesis
       by auto
   qed simp
   then show ?case
-    using ih[of "P @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [D]"] by force
+    using ih[of "P @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [Dk]"] by force
 qed simp
 
 lemma remove_strictly_subsumed_clauses_in_Q:
@@ -309,21 +309,21 @@ lemma remove_strictly_subsumed_clauses_in_Q:
   shows "wstate_of_dstate (N, P, Q @ Q', n)
     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P, Q @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) Q', n)"
 proof (induct Q' arbitrary: Q)
-  case ih: (Cons D Q')
-  have "wstate_of_dstate (N, P, Q @ D # Q', n) \<leadsto>\<^sub>w\<^sup>*
-    wstate_of_dstate (N, P, Q @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [D] @ Q', n)"
-  proof (cases "strictly_subsume [C] (fst D)")
+  case ih: (Cons Dk Q')
+  have "wstate_of_dstate (N, P, Q @ Dk # Q', n) \<leadsto>\<^sub>w\<^sup>*
+    wstate_of_dstate (N, P, Q @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [Dk] @ Q', n)"
+  proof (cases "strictly_subsume [C] (fst Dk)")
     case subs: True
-    have "wstate_of_dstate (N, P, Q @ D # Q', n) \<leadsto>\<^sub>w wstate_of_dstate (N, P, Q @ Q', n)"
+    have "wstate_of_dstate (N, P, Q @ Dk # Q', n) \<leadsto>\<^sub>w wstate_of_dstate (N, P, Q @ Q', n)"
       by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
-            backward_subsumption_Q[of "mset C" "mset (map (apfst mset) N)" "mset (fst D)"
-              "mset (map (apfst mset) P)" "mset (map (apfst mset) (Q @ Q'))" "snd D" n]])
+            backward_subsumption_Q[of "mset C" "mset (map (apfst mset) N)" "mset (fst Dk)"
+              "mset (map (apfst mset) P)" "mset (map (apfst mset) (Q @ Q'))" "snd Dk" n]])
         (use c_in subs in \<open>auto simp: apfst_fst_snd strictly_subsume_def\<close>)
     then show ?thesis
       by auto
   qed simp
   then show ?case
-    using ih[of "Q @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [D]"] by force
+    using ih[of "Q @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [Dk]"] by force
 qed simp
 
 lemma reduce_clause_in_P:
@@ -397,13 +397,13 @@ lemma reduce_clauses_in_P:
   shows "wstate_of_dstate (N, P @ P', Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ reduce_all [C] P', Q, n)"
   unfolding reduce_all_def
 proof (induct P' arbitrary: P)
-  case ih: (Cons D P')
-  have "wstate_of_dstate (N, P @ D # P', Q, n)
-     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ apfst (reduce [C] []) D # P', Q, n)"
-    by (cases D, simp only: apfst_conv,
+  case ih: (Cons Dk P')
+  have "wstate_of_dstate (N, P @ Dk # P', Q, n)
+     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ apfst (reduce [C] []) Dk # P', Q, n)"
+    by (cases Dk, simp only: apfst_conv,
         rule reduce_clause_in_P[of _ _  _"[]", unfolded append_Nil, OF c_in])
   then show ?case
-    using ih[of "P @ [apfst (reduce [C] []) D]"] by force
+    using ih[of "P @ [apfst (reduce [C] []) Dk]"] by force
 qed simp
 
 lemma reduce_clauses_in_Q:
@@ -411,19 +411,19 @@ lemma reduce_clauses_in_Q:
   shows "wstate_of_dstate (N, P, Q @ Q', n)
     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, fst (reduce_all2 [C] Q') @ P, Q @ snd (reduce_all2 [C] Q'), n)"
 proof (induct Q' arbitrary: P Q)
-  case ih: (Cons D Q')
+  case ih: (Cons Dk Q')
   show ?case
-  proof (cases "reduce [C] [] (fst D) = fst D")
+  proof (cases "reduce [C] [] (fst Dk) = fst Dk")
     case True
     then show ?thesis
-      using ih[of _ "Q @ [D]"] by (simp add: case_prod_beta)
+      using ih[of _ "Q @ [Dk]"] by (simp add: case_prod_beta)
   next
     case red: False
-    have "wstate_of_dstate (N, P, Q @ D # Q', n)
-      \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, (reduce [C] [] (fst D), snd D) # P, Q @ Q', n)"
-      using reduce_clause_in_Q[of _ _ _ _ _ "[]" _ "Q @ Q'", OF c_in red] by (cases D) force
+    have "wstate_of_dstate (N, P, Q @ Dk # Q', n)
+      \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, (reduce [C] [] (fst Dk), snd Dk) # P, Q @ Q', n)"
+      using reduce_clause_in_Q[of _ _ _ _ _ "[]" _ "Q @ Q'", OF c_in red] by (cases Dk) force
     then show ?thesis
-      using red ih[of "(reduce [C] [] (fst D), snd D) # P" Q]
+      using red ih[of "(reduce [C] [] (fst Dk), snd Dk) # P" Q]
       by (fastforce simp: case_prod_beta)
   qed
 qed simp
