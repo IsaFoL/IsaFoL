@@ -169,13 +169,13 @@ definition resolve :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lcla
         else
           [])) D)"
 
-definition resolve_either_way :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
-  "resolve_either_way C D = resolve C D @ resolve D C"
+definition resolve_rename :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
+  "resolve_rename C D =
+   (let \<sigma>s = renamings_apart [mset C, mset D] in
+      resolve (map (\<lambda>L. L \<cdot>l \<sigma>s ! 0) C) (map (\<lambda>L. L \<cdot>l \<sigma>s ! 1) D))"
 
 definition resolve_rename_either_way :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
-  "resolve_rename_either_way C D =
-   (let \<sigma>s = renamings_apart [mset C, mset D] in
-      resolve_either_way (map (\<lambda>L. L \<cdot>l (\<sigma>s ! 0)) C) (map (\<lambda>L. L \<cdot>l \<sigma>s ! 1) D))"
+  "resolve_rename_either_way C D = resolve_rename C D @ resolve_rename D C"
 
 fun
   select_min_weight_clause :: "'a dclause \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause"
@@ -449,10 +449,23 @@ proof (induct Q' arbitrary: P Q)
   qed
 qed simp
 
-lemma resolve_rename_either_way_vs_inferences_between:
+thm ord_FO_\<Gamma>_def
+
+lemma resolve_rename_either_way_eq_ord_resolve_rename:
+  "mset ` set (resolve_rename_either_way C D) =
+   {E | E AAs As \<sigma>. ord_resolve_rename S [mset C] (mset D) AAs As \<sigma> E}"
+  sorry
+
+lemma concls_of_inference_between_eq_ord_resolve_rename:
+  "concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) {mset D} (mset C)) =
+   {E | E AAs As \<sigma>. ord_resolve_rename S [mset C] (mset D) AAs As \<sigma> E}"
+  sorry
+
+lemma resolve_rename_either_way_eq_inferences_between:
   "(\<Union>D \<in> Q. mset ` set (resolve_rename_either_way C D)) =
    concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) (mset ` Q) (mset C))"
-  unfolding image_def inference_system.inferences_between_def Bex_def mem_Collect_eq
+  unfolding resolve_rename_either_way_eq_ord_resolve_rename
+    concls_of_inference_between_eq_ord_resolve_rename .
   sorry
 
 lemma compute_inferences:
@@ -490,7 +503,7 @@ proof -
     apply (rule arg_cong[of _ _ "\<lambda>N. (\<lambda>D. (D, n)) ` N"])
 
     apply (simp only: map_concat list.map_comp image_comp)
-    using resolve_rename_either_way_vs_inferences_between[of C "fst ` set Q"]
+    using resolve_rename_either_way_eq_inferences_between[of C "fst ` set Q"]
     apply (simp only: image_comp comp_def)
     apply simp
     done
