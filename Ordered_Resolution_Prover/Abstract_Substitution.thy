@@ -89,7 +89,7 @@ definition subst_atm_mset :: "'a multiset \<Rightarrow> 's \<Rightarrow> 'a mult
   "AA \<cdot>am \<sigma> = image_mset (\<lambda>A. A \<cdot>a \<sigma>) AA"
 
 definition
-  subst_atm_mset_list :: "'a multiset list \<Rightarrow> 's \<Rightarrow> 'a multiset list" (infix "\<cdot>aml" 67)
+  subst_atm_mset_list :: "'a multiset list \<Rightarrow> 's \<Rightarrow> 'a multiset list" (infixl "\<cdot>aml" 67)
 where
   "AAA \<cdot>aml \<sigma> = map (\<lambda>AA. AA \<cdot>am \<sigma>) AAA"
 
@@ -631,12 +631,42 @@ lemma is_renaming_left_id_subst_right_id_subst:
 lemma is_renaming_closure: "is_renaming r1 \<Longrightarrow> is_renaming r2 \<Longrightarrow> is_renaming (r1 \<odot> r2)"
   unfolding is_renaming_def by (metis comp_subst_assoc comp_subst_id_subst)
 
-lemma is_renaming_inv_renaming_cancel[simp]: "is_renaming \<rho> \<Longrightarrow> C  \<cdot> \<rho> \<cdot> inv_renaming \<rho> = C"
+lemma is_renaming_inv_renaming_cancel_atm[simp]: "is_renaming \<rho> \<Longrightarrow> C \<cdot>a \<rho> \<cdot>a inv_renaming \<rho> = C"
+  by (metis inv_renaming_cancel_r subst_atm_comp_subst subst_atm_id_subst)
+  
+lemma is_renaming_inv_renaming_cancel_atms[simp]: "is_renaming \<rho> \<Longrightarrow> C \<cdot>as \<rho> \<cdot>as inv_renaming \<rho> = C"
+  by (metis inv_renaming_cancel_r subst_atms_comp_subst subst_atms_id_subst)
+ 
+lemma is_renaming_inv_renaming_cancel_atmss[simp]: "is_renaming \<rho> \<Longrightarrow> C \<cdot>ass \<rho> \<cdot>ass inv_renaming \<rho> = C"
+  by (metis inv_renaming_cancel_r subst_atmss_comp_subst subst_atmss_id_subst)
+  
+lemma is_renaming_inv_renaming_cancel_atm_list[simp]: "is_renaming \<rho> \<Longrightarrow> C \<cdot>al \<rho> \<cdot>al inv_renaming \<rho> = C"
+  by (metis inv_renaming_cancel_r subst_atm_list_comp_subst subst_atm_list_id_subst)
+  
+lemma is_renaming_inv_renaming_cancel_atm_mset[simp]: "is_renaming \<rho> \<Longrightarrow> C \<cdot>am \<rho> \<cdot>am inv_renaming \<rho> = C"
+  by (metis inv_renaming_cancel_r subst_atm_mset_comp_subst subst_atm_mset_id_subst)
+  
+lemma is_renaming_inv_renaming_cancel_atm_mset_list[simp]: "is_renaming \<rho> \<Longrightarrow> (C \<cdot>aml \<rho>) \<cdot>aml inv_renaming \<rho> = C"
+  by (metis inv_renaming_cancel_r subst_atm_mset_list_comp_subst subst_atm_mset_list_id_subst)
+  
+lemma is_renaming_inv_renaming_cancel_lit[simp]: "is_renaming \<rho> \<Longrightarrow> (C \<cdot>l \<rho>) \<cdot>l inv_renaming \<rho> = C"
+  by (metis inv_renaming_cancel_r subst_lit_comp_subst subst_lit_id_subst)
+  
+lemma is_renaming_inv_renaming_cancel_cls[simp]: "is_renaming \<rho> \<Longrightarrow> C  \<cdot> \<rho> \<cdot> inv_renaming \<rho> = C"
   by (metis inv_renaming_cancel_r subst_cls_comp_subst subst_cls_id_subst)
 
-lemma is_renaming_list_inv_renaming_cancel[simp]:
+lemma is_renaming_inv_renaming_cancel_clss[simp]: "is_renaming \<rho> \<Longrightarrow> C \<cdot>cs \<rho> \<cdot>cs inv_renaming \<rho> = C"
+  by (metis inv_renaming_cancel_r subst_clss_id_subst subst_clsscomp_subst)
+  
+lemma is_renaming_inv_renaming_cancel_cls_list[simp]: "is_renaming \<rho> \<Longrightarrow> C \<cdot>cl \<rho> \<cdot>cl inv_renaming \<rho> = C"
+  by (metis inv_renaming_cancel_r subst_cls_list_comp_subst subst_cls_list_id_subst)
+  
+lemma is_renaming_list_inv_renaming_cancel_cls_list[simp]:
   "length Cs = length \<rho>s \<Longrightarrow> is_renaming_list \<rho>s \<Longrightarrow> Cs \<cdot>\<cdot>cl \<rho>s \<cdot>\<cdot>cl map inv_renaming \<rho>s = Cs"
   by (metis inv_renaming_cancel_r_list subst_cls_lists_comp_substs subst_cls_lists_id_subst)
+
+lemma is_renaming_inv_renaming_cancel_cls_mset[simp]: "is_renaming \<rho> \<Longrightarrow> C \<cdot>cm \<rho> \<cdot>cm inv_renaming \<rho> = C"
+  by (metis inv_renaming_cancel_r subst_cls_mset_comp_subst subst_cls_mset_id_subst)
 
 
 subsubsection \<open>Monotonicity\<close>
