@@ -170,9 +170,8 @@ qed
 
 (* export_code certify_proof_code in Haskell module_name Ceta *)
 
-text \<open>Function that shoul be replaced @{term trivial_clause_checker}
-  @{term trivial_clause_checker} called by
-  @{term pre_logic_checker.check_valid_formula} called by
+text \<open>Function that shoul be replaced @{term pre_logic_checker.check_valid_formula} 
+  @{term pre_logic_checker.check_valid_formula} is called by
   @{term pre_logic_checker.check_valid_formula} called by
   @{term pre_logic_checker.check_formula} called by
   @{term pre_art_checker.check_simulation_cond} and @{term pre_logic_checker.safe_by_assertion_checker}
@@ -189,10 +188,10 @@ text \<open>Function that shoul be replaced @{term trivial_clause_checker}
        @{term check_cert}
 
 
-   for @{term pre_logic_checker.safe_by_assertion_checker}, calls by
-    @{term pre_art_checker.check_safety_proof} called by
-    @{term pre_art_checker.check_safety} called by
-    @{term check_cert}
+     for @{term pre_logic_checker.safe_by_assertion_checker}, calls by
+     @{term pre_art_checker.check_safety_proof} called by
+     @{term pre_art_checker.check_safety} called by
+     @{term check_cert}
   \<close>
 
 end
