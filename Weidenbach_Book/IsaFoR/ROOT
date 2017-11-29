@@ -1,7 +1,11 @@
-session "CeTA_SAT" (ceta) = "CeTA" +
+session "CeTA_SAT_Import" (ceta) = "CeTA" +
   options [document = false]
   sessions
      Two_Watched_Literals
   theories
     Ceta_SAT
-    
+
+session "CeTA_SAT" (ceta) = "CeTA_SAT_Import" +
+  options [document = false]
+  theories
+    Ceta_SAT_Code
