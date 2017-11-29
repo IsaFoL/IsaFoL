@@ -108,7 +108,6 @@ fun reduce_all2 :: "'a lclause list \<Rightarrow> 'a dclause list \<Rightarrow> 
    (let C' = reduce Ds [] C in
       (if C' = C then apsnd else apfst) (Cons (C', i)) (reduce_all2 Ds Cs))"
 
-(* FIXME: check if this really gives all possibilities *)
 fun resolve_on :: "'a lclause \<Rightarrow> 'a \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve_on C B D =
    concat (map (\<lambda>L.
