@@ -680,7 +680,7 @@ proof (cases rule: ord_resolve.cases)
   from ord_resolve have "n_twin = n" "D_twin = D" 
     using n d by auto
   moreover have "Cs_twins = Cs"
-    using c cas n sorry (* looks reasonable *)
+    using c cas n calculation(1) \<open>length Cs_twins = n_twin\<close> by (auto simp add: nth_equalityI)
   ultimately
   have nz: "n \<noteq> 0" and cs_len: "length Cs = n" and aas_len: "length AAs = n" and as_len: "length As = n"
     and da: "DA = D + negs (mset As)" and eligible: "eligible (S_M S M) \<sigma> As (D + negs (mset As))"
@@ -934,7 +934,8 @@ proof (cases rule: ord_resolve.cases)
     "Cs'' \<cdot>\<cdot>cl \<eta>s'' = Cs"
     "\<forall>i < n. CAs'' ! i = Cs'' ! i + poss (AAs'' ! i)"
     "length AAs'' = n"
-    using res_e grounding select ord_resolve_obtain_clauses[of S M CAs DA] n sorry
+    using ord_resolve_obtain_clauses[of S M CAs DA, OF res_e select grounding n(2) \<open>DA = D + negs (mset As)\<close>
+      \<open>\<forall>i<n. CAs ! i = Cs ! i + poss (AAs ! i)\<close> \<open>length Cs = n\<close> \<open>length AAs = n\<close>] by smt
 
   note n = \<open>length CAs'' = n\<close> \<open>length \<eta>s'' = n\<close> \<open>length As'' = n\<close> \<open>length AAs'' = n\<close> \<open>length Cs'' = n\<close> n
 
