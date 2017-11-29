@@ -127,7 +127,6 @@ sepref_definition certify_proof_code
   by sepref
 
 
-export_code certify_proof_code in Haskell module_name Ceta
 
 theorem certify_proof_code_sound:
   assumes ret: "certify_proof_code False (Some input_str) (Inr claim_str) proof_str = return Certified"
@@ -178,5 +177,7 @@ qed
            apply sepref_dbg_trans_step_keep
            apply sepref_dbg_side_unfold apply (auto simp: )[]
  *)
+
+export_code certify_proof_code in Haskell module_name Ceta
 
 end
