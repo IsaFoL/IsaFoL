@@ -451,7 +451,9 @@ proof -
     using ms_ci_in
       apply (simp add: ci_in image_mset_remove1_mset_if)
     using ci_min
+     apply (meson in_diffD)
     apply auto
+
     sorry
 qed
 
