@@ -220,6 +220,18 @@ proof (induct k arbitrary: St)
     using ih[OF final_Sk] by (subst deterministic_RP.simps) (simp add: prod.case_eq_if)
 qed (subst deterministic_RP.simps, simp add: prod.case_eq_if)
 
+lemma reduce_mset_eq: "mset C = mset C' \<Longrightarrow> reduce Ds C E = reduce Ds C' E"
+proof (induct E arbitrary: C C')
+  case (Cons L E)
+  note ih = this(1) and mset_eq = this(2)
+  have mset_eq': "mset (L # C) = mset (L # C')"
+    using mset_eq by simp
+  have red_iff: "is_reducible_lit Ds (C @ E) L \<longleftrightarrow> is_reducible_lit Ds (C' @ E) L"
+    by (simp add: mset_eq is_reducible_lit_def)
+  show ?case
+    using ih[OF mset_eq] ih[OF mset_eq'] by (simp add: red_iff)
+qed simp
+
 lemma select_min_weight_clause_in: "select_min_weight_clause P0 P \<in> set (P0 # P)"
   by (induct P arbitrary: P0) auto
 
@@ -316,9 +328,15 @@ lemma reduce_clause_in_P:
 proof (induct D' arbitrary: D)
   case ih: (Cons L D')
   show ?case
-    apply (auto simp del: wstate_of_dstate.simps)
-    using ih
-    sorry
+  proof (cases "is_reducible_lit [C] (D @ D') L")
+    case True
+    then show ?thesis
+      sorry
+  next
+    case False
+    then show ?thesis
+      using ih[of "D @ [L]"] by (simp add: reduce_mset_eq[of "D @ [L]" "L # D"])
+  qed
 qed simp
 
 lemma reduce_clauses_in_P:
