@@ -99,11 +99,14 @@ primrec reduce :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> 'a lcl
 | "reduce Ds C (L # C') =
    (if is_reducible_lit Ds (C @ C') L then reduce Ds C C' else L # reduce Ds (L # C) C')"
 
-fun reduce_all :: "'a lclause list \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause list \<times> 'a dclause list" where
-  "reduce_all _ [] = ([], [])"
-| "reduce_all Ds ((C, i) # Cs) =
+definition reduce_all :: "'a lclause list \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause list" where
+  "reduce_all Ds = map (apfst (reduce Ds []))"
+
+fun reduce_all2 :: "'a lclause list \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause list \<times> 'a dclause list" where
+  "reduce_all2 _ [] = ([], [])"
+| "reduce_all2 Ds ((C, i) # Cs) =
    (let C' = reduce Ds [] C in
-      (if length C' = length C then apsnd else apfst) (Cons (C', i)) (reduce_all Ds Cs))"
+      (if C' = C then apsnd else apfst) (Cons (C', i)) (reduce_all2 Ds Cs))"
 
 (* FIXME: check if this really gives all possibilities *)
 fun resolve_on :: "'a lclause \<Rightarrow> 'a \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
@@ -190,9 +193,9 @@ fun deterministic_RP_step :: "'a dstate \<Rightarrow> 'a dstate" where
                (N, P, Q, n)
              else
                let
-                 (back_to_P, Q) = reduce_all [C] Q;
+                 (back_to_P, Q) = reduce_all2 [C] Q;
                  P = back_to_P @ P;
-                 P = case_prod (op @) (reduce_all [C] P);
+                 P = reduce_all [C] P;
                  Q = filter (Not \<circ> strictly_subsume [C] \<circ> fst) Q;
                  P = filter (Not \<circ> strictly_subsume [C] \<circ> fst) P;
                  P = (C, i) # P
@@ -263,11 +266,11 @@ proof (induct N)
     using ih by (rule converse_rtranclp_into_rtranclp)
 qed simp
 
-lemma filter_strictly_subsumed_clauses_in_P:
+lemma remove_strictly_subsumed_clauses_in_P:
   assumes c_in: "C \<in> fst ` set N"
   shows "wstate_of_dstate (N, P @ P', Q, n)
     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) P', Q, n)"
-proof (induct P')
+proof (induct P' arbitrary: P)
   case (Cons P0' P')
   note ih = this(1)
 
@@ -275,55 +278,66 @@ proof (induct P')
     wstate_of_dstate (N, P @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [P0'] @ P', Q, n)"
   proof (cases "strictly_subsume [C] (fst P0')")
     case subs: True
-
     have "wstate_of_dstate (N, P @ P0' # P', Q, n) \<leadsto>\<^sub>w wstate_of_dstate (N, P @ P', Q, n)"
-      apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+      by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
             backward_subsumption_P[of "mset C" "mset (map (apfst mset) N)" "mset (fst P0')"
               "mset (map (apfst mset) (P @ P'))" "snd P0'" "mset (map (apfst mset) Q)" n]])
-      using c_in 
-         apply (auto simp: apfst_fst_snd)
-      using subs
-
-      sorry
+        (use c_in subs in \<open>auto simp: apfst_fst_snd strictly_subsume_def\<close>)
     then show ?thesis
-      using ih by auto
+      by auto
   qed simp
-
-
-
-
-  have nil_ni_p: "find (\<lambda>(C, _). C = []) P = None"
-    using nil_ni_p0p by (auto split: if_splits)
-  have "wstate_of_dstate (([], i) # N', P0 # P, Q, n)
-              \<leadsto>\<^sub>w wstate_of_dstate (([], i) # N', P, Q, n)"
-    by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
-          backward_subsumption_P[of "{#}" "mset (map (apfst mset) (([], i) # N'))"
-            "mset (fst P0)" "mset (map (apfst mset) P)" "snd P0" "mset (map (apfst mset) Q)"
-            n]],
-        cases P0, use nil_ni_p0p in \<open>auto split: if_splits\<close>)
   then show ?case
-    using ih[OF nil_ni_p] by (rule converse_rtranclp_into_rtranclp)
+    using ih[of "P @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [P0']"] by force
 qed simp
 
-  sorry
-          have subs_Q: "wstate_of_dstate (([], i) # N', [], Q, n)
-            \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (([], i) # N', [], [], n)"
-            using nil_ni_q
-          proof (induct Q)
-            case (Cons Q0 Q)
-            note ih = this(1) and nil_ni_q0q = this(2)
-            have nil_ni_q: "find (\<lambda>(C, _). C = []) Q = None"
-              using nil_ni_q0q by (auto split: if_splits)
-            have "wstate_of_dstate (([], i) # N', [], Q0 # Q, n)
-              \<leadsto>\<^sub>w wstate_of_dstate (([], i) # N', [], Q, n)"
-              by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
-                    backward_subsumption_Q[of "{#}" "mset (map (apfst mset) (([], i) # N'))"
-                      "mset (fst Q0)" "{#}" "mset (map (apfst mset) Q)" "snd Q0" n]],
-                  cases Q0, use nil_ni_q0q in \<open>auto split: if_splits\<close>)
-            then show ?case
-              using ih[OF nil_ni_q] by (rule converse_rtranclp_into_rtranclp)
-          qed simp
+lemma remove_strictly_subsumed_clauses_in_Q:
+  assumes c_in: "C \<in> fst ` set N"
+  shows "wstate_of_dstate (N, P, Q @ Q', n)
+    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P, Q @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) Q', n)"
+proof (induct Q' arbitrary: Q)
+  case (Cons Q0' Q')
+  note ih = this(1)
 
+  have "wstate_of_dstate (N, P, Q @ Q0' # Q', n) \<leadsto>\<^sub>w\<^sup>*
+    wstate_of_dstate (N, P, Q @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [Q0'] @ Q', n)"
+  proof (cases "strictly_subsume [C] (fst Q0')")
+    case subs: True
+    have "wstate_of_dstate (N, P, Q @ Q0' # Q', n) \<leadsto>\<^sub>w wstate_of_dstate (N, P, Q @ Q', n)"
+      by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+            backward_subsumption_Q[of "mset C" "mset (map (apfst mset) N)" "mset (fst Q0')"
+              "mset (map (apfst mset) P)" "mset (map (apfst mset) (Q @ Q'))" "snd Q0'" n]])
+        (use c_in subs in \<open>auto simp: apfst_fst_snd strictly_subsume_def\<close>)
+    then show ?thesis
+      by auto
+  qed simp
+  then show ?case
+    using ih[of "Q @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [Q0']"] by force
+qed simp
+
+lemma reduce_clauses_in_P:
+  assumes c_in: "C \<in> fst ` set N"
+  shows "wstate_of_dstate (N, P @ P', Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ reduce_all [C] P', Q, n)"
+  sorry
+
+lemma reduce_clauses_in_Q:
+  assumes c_in: "C \<in> fst ` set N"
+  shows "wstate_of_dstate (N, P, Q @ Q', n)
+     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, fst (reduce_all2 [C] Q') @ P, Q @ snd (reduce_all2 [C] Q'), n)"
+  sorry
+
+lemma compute_inferences:
+  assumes
+    ci_in: "(C, i) \<in> set P" and
+    ci_min: "\<forall>(D, j) \<in># mset (map (apfst mset) P). weight (mset C, i) \<le> weight (D, j)"
+  shows
+    "wstate_of_dstate ([], P, Q, n) \<leadsto>\<^sub>w
+     wstate_of_dstate
+      (map (\<lambda>D. (D, n))
+        (remdups (resolve_rename C C @ concat (map (resolve_rename_either_way C \<circ> fst) Q))),
+      remove1 (C, i) P, (C, i) # Q, Suc n)"
+  apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+        inference_computation[of X]])
+  sorry
 
 lemma nonfinal_deterministic_RP_step:
   assumes
@@ -390,15 +404,8 @@ proof -
           by (rule empty_N_if_Nil_in_P_or_Q[OF nil_in])
         also obtain N' where
           "\<dots> \<leadsto>\<^sub>w wstate_of_dstate (N', remove1 (C, i) P, (C, i) # Q, Suc n)"
-          apply atomize_elim
-          apply (rule exI)
-          apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
-                inference_computation[of "mset (map (apfst mset) (remove1 (C, i) P))" "mset C" i
-                  _ n "mset (map (apfst mset) Q)"]])
-             prefer 4
-             apply (rule refl)
-          apply auto
-          sorry
+          by (atomize_elim, rule exI, rule compute_inferences[OF ci_in],
+              use ci_min in fastforce)
         also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], remove1 (C, i) P @ (C, i) # Q, n + length P)"
         proof -
           have k: "k = length (remove1 (C, i) P)"
@@ -443,52 +450,10 @@ proof -
           have ci_in: "(C, i) \<in> set P"
             by (rule select_min_weight_clause_in[of P0 P', folded ci p_cons])
 
-          define N' :: "'a dclause list" where
-            "N' = map (\<lambda>D. (D, n))
-               (remdups (resolve_rename C C @ concat (map (resolve_rename_either_way C \<circ> fst) Q)))"
-          define P'' :: "'a dclause list" where
-            "P'' = remove1 (C, i) P"
-
-          have inf:
-            "({#}, mset (map (apfst mset) P'') + {#(mset C, i)#}, mset (map (apfst mset) Q), n)
-             \<leadsto>\<^sub>w (mset (map (apfst mset) N'), mset (map (apfst mset) P''),
-                  mset (map (apfst mset) Q) + {#(mset C, i)#}, Suc n)"
-          proof (rule inference_computation)
-            have "\<forall>(D, j) \<in># mset (map (apfst mset) P). weight (mset C, i) \<le> weight (D, j)"
-              unfolding select_min_weight_clause_min_weight[OF ci, simplified] p_cons by simp
-            moreover have "mset (map (apfst mset) P'') \<subseteq># mset (map (apfst mset) P)"
-              unfolding P''_def by (simp add: image_mset_subseteq_mono)
-            ultimately show "\<forall>(D, j) \<in># mset (map (apfst mset) P''). weight (mset C, i) \<le> weight (D, j)"
-              by fast
-          next
-            show "mset (map (apfst mset) N') = mset_set ((\<lambda>D. (D, n)) `
-              concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) (set_mset (image_mset fst
-                (mset (map (apfst mset) Q)))) (mset C)))"
-              unfolding N'_def inference_system.inferences_between_def
-                inference_system.inferences_between_def ord_FO_\<Gamma>_def infer_from_def
-            proof (induct Q)
-              case Nil
-              then show ?case
-                apply simp
-                sorry
-            next
-              case (Cons a Q)
-              then show ?case sorry
-            qed
-          qed
-
           show ?thesis
-            unfolding st n_nil step
-            apply (rule tranclp.r_into_trancl)
-            apply (unfold wstate_of_dstate.simps)
-            apply (fold ci)
-            apply (simp del: remove1.simps)
-            apply (rule arg_cong2[of _ _ _ _ "op \<leadsto>\<^sub>w", THEN iffD1, OF _ _ inf[unfolded P''_def N'_def]])
-             apply simp
-            using ci_in
-             apply (metis (no_types) apfst_conv image_mset_add_mset insert_DiffM set_mset_mset)
-            apply (simp add: p_cons)
-            done
+            unfolding st n_nil step p_cons[symmetric] ci[symmetric] prod.case
+            by (rule tranclp.r_into_trancl, rule compute_inferences[OF ci_in])
+              (simp add: select_min_weight_clause_min_weight[OF ci, simplified] p_cons)
         qed
       next
         case n_cons: (Cons Ci N')
@@ -557,57 +522,33 @@ proof -
           note c'_nil = this
           note step = step[simplified c'_nil, simplified]
 
-          have subs_P:
-            "wstate_of_dstate (([], i) # N', P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (([], i) # N', [], Q, n)"
-            using nil_ni_p
-          proof (induct P)
-            case (Cons P0 P)
-            note ih = this(1) and nil_ni_p0p = this(2)
-            have nil_ni_p: "find (\<lambda>(C, _). C = []) P = None"
-              using nil_ni_p0p by (auto split: if_splits)
-            have "wstate_of_dstate (([], i) # N', P0 # P, Q, n)
-              \<leadsto>\<^sub>w wstate_of_dstate (([], i) # N', P, Q, n)"
-              by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
-                    backward_subsumption_P[of "{#}" "mset (map (apfst mset) (([], i) # N'))"
-                      "mset (fst P0)" "mset (map (apfst mset) P)" "snd P0" "mset (map (apfst mset) Q)"
-                      n]],
-                  cases P0, use nil_ni_p0p in \<open>auto split: if_splits\<close>)
-            then show ?case
-              using ih[OF nil_ni_p] by (rule converse_rtranclp_into_rtranclp)
-          qed simp
-          have subs_Q: "wstate_of_dstate (([], i) # N', [], Q, n)
-            \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (([], i) # N', [], [], n)"
-            using nil_ni_q
-          proof (induct Q)
-            case (Cons Q0 Q)
-            note ih = this(1) and nil_ni_q0q = this(2)
-            have nil_ni_q: "find (\<lambda>(C, _). C = []) Q = None"
-              using nil_ni_q0q by (auto split: if_splits)
-            have "wstate_of_dstate (([], i) # N', [], Q0 # Q, n)
-              \<leadsto>\<^sub>w wstate_of_dstate (([], i) # N', [], Q, n)"
-              by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
-                    backward_subsumption_Q[of "{#}" "mset (map (apfst mset) (([], i) # N'))"
-                      "mset (fst Q0)" "{#}" "mset (map (apfst mset) Q)" "snd Q0" n]],
-                  cases Q0, use nil_ni_q0q in \<open>auto split: if_splits\<close>)
-            then show ?case
-              using ih[OF nil_ni_q] by (rule converse_rtranclp_into_rtranclp)
-          qed simp
-          have subs_N:
-            "wstate_of_dstate (N', [([], i)], [], n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [([], i)], [], n)"
+          have filter_p: "filter (Not \<circ> strictly_subsume [[]] \<circ> fst) P = []"
+            using nil_ni_p unfolding strictly_subsume_def filter_empty_conv find_None_iff by force
+          have filter_q: "filter (Not \<circ> strictly_subsume [[]] \<circ> fst) Q = []"
+            using nil_ni_q unfolding strictly_subsume_def filter_empty_conv find_None_iff by force
+
+          note red_C[unfolded c'_nil]
+          also have "wstate_of_dstate (([], i) # N', P, Q, n)
+            \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (([], i) # N', [], Q, n)"
+            by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
+                    remove_strictly_subsumed_clauses_in_P[of "[]" _ "[]", unfolded append_Nil],
+                  OF refl])
+              (auto simp: filter_p)
+          also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (([], i) # N', [], [], n)"
+            by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
+                    remove_strictly_subsumed_clauses_in_Q[of "[]" _ _ "[]", unfolded append_Nil],
+                  OF refl])
+              (auto simp: filter_q)
+          also note proc_C[unfolded c'_nil, THEN tranclp.r_into_trancl[of "op \<leadsto>\<^sub>w"]]
+          also have "wstate_of_dstate (N', [([], i)], [], n)
+            \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [([], i)], [], n)"
             by (rule empty_N_if_Nil_in_P_or_Q) simp
-          have inf:
-            "wstate_of_dstate ([], [([], i)], [], n) \<leadsto>\<^sub>w wstate_of_dstate ([], [], [([], i)], Suc n)"
+          also have "\<dots> \<leadsto>\<^sub>w wstate_of_dstate ([], [], [([], i)], Suc n)"
             by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
                   inference_computation[of "{#}" "{#}" i "{#}" n "{#}"]])
               (auto simp: ord_FO_resolution_inferences_between_empty_empty)
-
-          show ?thesis
-            unfolding step st n_cons ci
-            using red_C[unfolded c'_nil, THEN rtranclp_trans, OF subs_P,
-              THEN rtranclp_trans, OF subs_Q,
-              THEN rtranclp_into_tranclp1, OF proc_C[unfolded c'_nil],
-              THEN tranclp_rtranclp_tranclp, OF subs_N,
-              THEN tranclp.trancl_into_trancl, OF inf] .
+          finally show ?thesis
+            unfolding step st n_cons ci .
         next
           case c'_nnil: False
           note step = step[simplified c'_nnil, simplified]
@@ -648,12 +589,12 @@ proof -
             note step = step[simplified not_taut_or_subs, simplified]
 
             obtain back_to_P Q' :: "('a literal list \<times> nat) list" where
-              red_Q: "(back_to_P, Q') = reduce_all [C'] Q"
+              red_Q: "(back_to_P, Q') = reduce_all2 [C'] Q"
               by (metis prod.exhaust)
             note step = step[unfolded red_Q[symmetric], simplified]
 
             define P' :: "('a literal list \<times> nat) list" where
-              "P' = case_prod (op @) (reduce_all [C'] (back_to_P @ P))"
+              "P' = reduce_all [C'] (back_to_P @ P)"
             define Q'' :: "('a literal list \<times> nat) list" where
               "Q'' = filter (Not \<circ> strictly_subsume [C'] \<circ> fst) Q'"
             define P'' :: "('a literal list \<times> nat) list" where
@@ -661,26 +602,24 @@ proof -
             note step = step[unfolded P'_def[symmetric] Q''_def[symmetric] P''_def[symmetric],
                 simplified]
 
-            have red_Q: "wstate_of_dstate ((C', i) # N', P, Q, n)
+            note red_C
+            also have "wstate_of_dstate ((C', i) # N', P, Q, n)
               \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', back_to_P @ P, Q', n)"
-              sorry
-            have red_P: "wstate_of_dstate ((C', i) # N', back_to_P @ P, Q', n)
-              \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q', n)"
-              sorry
-            have subs_Q: "wstate_of_dstate ((C', i) # N', P', Q', n)
-              \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q'', n)"
-              sorry
-            have subs_P: "wstate_of_dstate ((C', i) # N', P', Q'', n)
-              \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P'', Q'', n)"
-              sorry
-
-            show ?thesis
-              unfolding step st n_cons ci
-              by (rule red_C[THEN rtranclp_trans, OF red_Q,
-                  THEN rtranclp_trans, OF red_P,
-                  THEN rtranclp_trans, OF subs_Q,
-                  THEN rtranclp_trans, OF subs_P,
-                  THEN rtranclp_into_tranclp1, OF proc_C])
+              by (rule reduce_clauses_in_Q[of C' _ _ "[]" Q, folded red_Q,
+                    unfolded append_Nil prod.sel])
+                simp
+            also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q', n)"
+              unfolding P'_def by (rule reduce_clauses_in_P[of _ _ "[]", unfolded append_Nil]) simp
+            also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q'', n)"
+              unfolding Q''_def
+              by (rule remove_strictly_subsumed_clauses_in_Q[of _ _ _ "[]", unfolded append_Nil])
+                simp
+            also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P'', Q'', n)"
+              unfolding P''_def
+              by (rule remove_strictly_subsumed_clauses_in_P[of _ _ "[]", unfolded append_Nil]) simp
+            also note proc_C[THEN tranclp.r_into_trancl[of "op \<leadsto>\<^sub>w"]]
+            finally show ?thesis
+              unfolding step st n_cons ci .
           qed
         qed
       qed

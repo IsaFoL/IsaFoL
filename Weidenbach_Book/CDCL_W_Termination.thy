@@ -169,16 +169,25 @@ proof (rule ccontr)
     by blast
 qed
 
+lemma rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses_new_abs:
+  assumes
+    st: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* R S" and
+    invR: "cdcl\<^sub>W_all_struct_inv R" and
+    no_smaller: \<open>no_smaller_propa R\<close> and
+    \<open>distinct_mset (learned_clss R - A)\<close>
+  shows "distinct_mset (learned_clss S - A)"
+  using assms by (induction rule: rtranclp_induct)
+    (auto simp: cdcl\<^sub>W_stgy_distinct_mset rtranclp_cdcl\<^sub>W_stgy_no_smaller_propa
+      rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv
+      cdcl\<^sub>W_stgy_learned_distinct_mset_new)
+
 lemma rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses_new:
   assumes
     st: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* R S" and
     invR: "cdcl\<^sub>W_all_struct_inv R" and
     no_smaller: \<open>no_smaller_propa R\<close>
   shows "distinct_mset (learned_clss S - learned_clss R)"
-  using assms by (induction rule: rtranclp_induct)
-     (auto simp: cdcl\<^sub>W_stgy_distinct_mset rtranclp_cdcl\<^sub>W_stgy_no_smaller_propa
-      rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv
-      cdcl\<^sub>W_stgy_learned_distinct_mset_new)
+  using assms by (rule rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses_new_abs) auto
 
 
 subsubsection \<open>Decrease of a Measure\<close>

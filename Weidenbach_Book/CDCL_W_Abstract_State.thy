@@ -1,5 +1,5 @@
 theory CDCL_W_Abstract_State
-imports CDCL_W_Full
+imports CDCL_W_Full CDCL_W_Restart
 
 begin
 
@@ -156,5 +156,32 @@ lemma full_cdcl\<^sub>W_init_state:
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.simps cdcl\<^sub>W_restart_mset.backtrack.simps
       cdcl\<^sub>W_restart_mset.skip.simps cdcl\<^sub>W_restart_mset.resolve.simps
       cdcl\<^sub>W_restart_mset_state clauses_def)
+
+locale twl_restart =
+  fixes
+    f :: \<open>nat \<Rightarrow> nat\<close>
+  assumes
+    f: \<open>unbounded f\<close>
+begin
+
+text \<open>This should be moved to @{file CDCL_W_Abstract_State.thy}\<close>
+sublocale cdcl\<^sub>W_restart_mset: cdcl\<^sub>W_restart_restart where
+  state = state and
+  trail = trail and
+  init_clss = init_clss and
+  learned_clss = learned_clss and
+  conflicting = conflicting and
+
+  state_eq = state_eq and
+  cons_trail = cons_trail and
+  tl_trail = tl_trail and
+  add_learned_cls = add_learned_cls and
+  remove_cls = remove_cls and
+  update_conflicting = update_conflicting and
+  init_state = init_state and
+  f = f
+  by unfold_locales (rule f)
+end
+
 
 end
