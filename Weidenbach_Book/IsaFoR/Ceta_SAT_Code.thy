@@ -6,21 +6,11 @@ lemma [code del]: "mset xs - mset ys = mset (fold remove1 ys xs)"
   by (rule sym, induct ys arbitrary: xs) (simp_all add: diff_add diff_right_commute diff_diff_add)
 
 (* export_code certify_proof
-Certified Unsupported Error Inl Inr sumbot
+(* Certified Unsupported Error Inl Inr sumbot
 (* remove, after defining an XML format: *)
   Yes No Terminating Upperbound Nonterminating Confluent Nonconfluent Completed Anything
-  nat_of_integer
-  in SML module_name Ceta *)
-
-term certify_proof
-
-(* export_code certify_proof
-  in SML module_name Ceta
- *)
-thm certify_proof_def ac_tp_list_impl_def
-
-(* function plain_name :: "lsymbol xmlt2" *)
-term plain_name
+  nat_of_integer *)
+  in SML module_name Ceta file "code/test.sml" *)
 
 lemma plain_name_hnr[sepref_fr_rules]:
   \<open>(return o plain_name, RETURN o plain_name) \<in> id_assn\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
@@ -68,7 +58,6 @@ lemma Error_hnr[sepref_fr_rules]:
 definition parse_claim_plain_name :: "string \<Rightarrow> string + ('a, 'b) claim" where
   \<open>parse_claim_plain_name = parse_claim plain_name\<close>
 
-
 lemma id_assn_id_assn_sum_rel[simp]:
    \<open>id_assn +\<^sub>a (\<lambda>a c. \<up> (c = a)) = id_assn\<close>
   unfolding pure_def[symmetric] pair_in_Id_conv[symmetric]
@@ -111,6 +100,8 @@ definition certify_prob where
                Ceta_Verifier.dpp_impl ac_tp_impl
                Ceta_Verifier.ac_dpp_impl\<close>
 
+term check_cert
+
 lemma certify_prob_hnr[sepref_fr_rules]:
   \<open>(uncurry3 (return oooo certify_prob), uncurry3 (RETURN oooo certify_prob)) \<in>
         bool_assn\<^sup>k *\<^sub>a input_assn\<^sup>k  *\<^sub>a id_assn\<^sup>k  *\<^sub>a id_assn\<^sup>k \<rightarrow>\<^sub>a cert_result_assn\<close>
@@ -122,10 +113,9 @@ sepref_definition certify_proof_code
   :: \<open>bool_assn\<^sup>k *\<^sub>a (option_assn string_assn)\<^sup>k *\<^sub>a (sum_assn id_assn string_assn)\<^sup>k *\<^sub>a string_assn\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
   supply[[goals_limit=1]]
   unfolding certify_proof_def parse_xtc_plain_name_def[symmetric]
-  parse_claim_plain_name_def[symmetric] certify_prob_def[symmetric]
-  no_input_pb_def[symmetric]
+    parse_claim_plain_name_def[symmetric] certify_prob_def[symmetric]
+    no_input_pb_def[symmetric]
   by sepref
-
 
 
 theorem certify_proof_code_sound:
@@ -179,5 +169,30 @@ qed
  *)
 
 (* export_code certify_proof_code in Haskell module_name Ceta *)
+
+text \<open>Function that shoul be replaced @{term trivial_clause_checker}
+  @{term trivial_clause_checker} called by
+  @{term pre_logic_checker.check_valid_formula} called by
+  @{term pre_logic_checker.check_valid_formula} called by
+  @{term pre_logic_checker.check_formula} called by
+  @{term pre_art_checker.check_simulation_cond} and @{term pre_logic_checker.safe_by_assertion_checker}
+
+    for @{term pre_art_checker.check_simulation_cond}
+    @{term pre_art_checker.check_art_invariants}  called by
+    @{term pre_art_checker.check_art_invariants_impl} called by
+    @{term pre_art_checker.invariant_proof_checker}  called by
+      @{term pre_art_checker.check_safety} (in the other call too)
+      @{term pre_termination_checker.check_cooperation_proof} called by
+       @{term pre_termination_checker.check_termination_proof} called by
+       @{term pre_termination_checker.check} called by
+       @{term IA_locale.check_termination} called by
+       @{term check_cert}
+
+
+   for @{term pre_logic_checker.safe_by_assertion_checker}, calls by
+    @{term pre_art_checker.check_safety_proof} called by
+    @{term pre_art_checker.check_safety} called by
+    @{term check_cert}
+  \<close>
 
 end
