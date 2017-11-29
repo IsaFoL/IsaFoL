@@ -45,6 +45,9 @@ fun state_of_wstate :: "'a wstate \<Rightarrow> 'a state" where
 abbreviation clss_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where
   "clss_of_wstate \<equiv> clss_of_state \<circ> state_of_wstate"
 
+abbreviation N_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where
+  "N_of_wstate \<equiv> N_of_state \<circ> state_of_wstate"
+
 abbreviation P_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where
   "P_of_wstate \<equiv> P_of_state \<circ> state_of_wstate"
 
@@ -76,6 +79,15 @@ inductive weighted_RP :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" 
     N = mset_set ((\<lambda>D. (D, n)) ` concls_of
       (inference_system.inferences_between (ord_FO_\<Gamma> S) (set_mset (image_mset fst Q)) C)) \<Longrightarrow>
     ({#}, P + {#(C, i)#}, Q, n) \<leadsto>\<^sub>w (N, P, Q + {#(C, i)#}, Suc n)"
+
+definition weighted_RP_Non_Inference :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w\<^sub>n\<^sub>i" 50) where
+  "St \<leadsto>\<^sub>w\<^sub>n\<^sub>i St' \<longleftrightarrow> St \<leadsto>\<^sub>w St' \<and> N_of_wstate St \<noteq> {}"
+
+definition weighted_RP_Inference :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w\<^sub>i" 50) where
+  "St \<leadsto>\<^sub>w\<^sub>i St' \<longleftrightarrow> St \<leadsto>\<^sub>w St' \<and> N_of_wstate St = {}"
+
+lemma "St \<leadsto>\<^sub>w St' \<longleftrightarrow> St \<leadsto>\<^sub>w\<^sub>i St' \<or> St \<leadsto>\<^sub>w\<^sub>n\<^sub>i St'"
+  unfolding weighted_RP_Non_Inference_def weighted_RP_Inference_def by auto
 
 lemma weighted_RP_imp_RP: "St \<leadsto>\<^sub>w St' \<Longrightarrow> state_of_wstate St \<leadsto> state_of_wstate St'"
 proof (induction rule: weighted_RP.induct)
@@ -145,6 +157,11 @@ lemma weighted_RP_sound:
   shows "\<not> satisfiable (grounding_of_wstate (lhd Sts))"
   by (rule RP_sound[OF Sts_thms assms, unfolded lhd_lmap_Sts])
 
+lemma llength_infinite_if_Ns_non_empty:
+  assumes "\<forall>i<llength Sts. N_of_state (state_of_wstate (lnth Sts i)) \<noteq> {}"
+  shows "llength Sts = \<infinity>"
+  sorry
+
 theorem weighted_RP_fair: "fair_state_seq (lmap state_of_wstate Sts)"
 proof (rule ccontr)
   assume "\<not> fair_state_seq (lmap state_of_wstate Sts)"
@@ -154,12 +171,19 @@ proof (rule ccontr)
     unfolding fair_state_seq_def Liminf_state_def by auto
   then show False
   proof
-    assume "C \<in> Liminf_llist (lmap N_of_state (lmap state_of_wstate Sts))"
-    then obtain i where
+   assume "C \<in> Liminf_llist (lmap N_of_state (lmap state_of_wstate Sts))"
+    then obtain i where i_p:
       "enat i < llength Sts"
       "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_wstate (lnth Sts j))"
       unfolding Liminf_llist_def by auto
-    then show False
+    then have "chain op \<leadsto>\<^sub>w\<^sub>n\<^sub>i (ldrop i Sts)"
+      using deriv unfolding weighted_RP_Non_Inference_def sorry (* I can believe this (+-1) *)
+    moreover
+    from i_p have "llength Sts = \<infinity>"
+      using llength_infinite_if_Ns_non_empty sorry
+    then have "llength (ldrop i Sts) = \<infinity>"
+      sorry
+    ultimately show False
       sorry (* *)
   next
     assume "C \<in> Liminf_llist (lmap P_of_state (lmap state_of_wstate Sts))"
