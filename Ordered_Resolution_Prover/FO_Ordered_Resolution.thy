@@ -639,12 +639,19 @@ proof (cases rule: ord_resolve.cases)
     using cs_sub_cas d_sub_da by (auto simp: subset_mset.add_mono)
 qed
 
+(* FIXME: move to abstract substitution, make a definition, prove properties. Make sure to acutally use
+   the constant. *)
+abbreviation subst_atm_mset_lists :: "'a multiset list \<Rightarrow> 's list \<Rightarrow> 'a multiset list" (infixl "\<cdot>\<cdot>aml" 67) where
+  "AAs \<cdot>\<cdot>aml \<sigma>s == map2 (op \<cdot>am) AAs \<sigma>s"
+
 lemma ord_resolve_obtain_clauses:
   assumes
     res_e: "ord_resolve (S_M S M) CAs DA AAs As \<sigma> E" and
     select: "selection S" and
     grounding: "{DA} \<union> set CAs \<subseteq> grounding_of_clss M" and
-    n: "length CAs = n"
+    n: "length CAs = n" and
+    d: "DA = D + negs (mset As)" and
+    c: "(\<forall>i < n. CAs ! i = Cs ! i + poss (AAs ! i))" "length Cs = n" "length AAs = n"
   obtains DA'' \<eta>'' CAs'' \<eta>s'' As'' AAs'' D'' Cs'' where
     "length CAs'' = n"
     "length \<eta>s'' = n"
@@ -668,11 +675,16 @@ lemma ord_resolve_obtain_clauses:
     "length AAs'' = n"
   using res_e
 proof (cases rule: ord_resolve.cases)
-  case (ord_resolve n_twin Cs D)
-  note da = this(1) and e = this(2) and cas = this(8) and mgu = this(10)
-  from ord_resolve have "n_twin = n"
-    using n by auto
-  then have nz: "n \<noteq> 0" and cs_len: "length Cs = n" and aas_len: "length AAs = n" and as_len: "length As = n"
+  case (ord_resolve n_twin Cs_twins D_twin)
+  note da = this(1) and e = this(2) and cas = this(8) and mgu = this(10) and eligible = this(11)
+  from ord_resolve have "n_twin = n" "D_twin = D" 
+    using n d by auto
+  moreover have "Cs_twins = Cs"
+    using c cas n sorry (* looks reasonable *)
+  ultimately
+  have nz: "n \<noteq> 0" and cs_len: "length Cs = n" and aas_len: "length AAs = n" and as_len: "length As = n"
+    and da: "DA = D + negs (mset As)" and eligible: "eligible (S_M S M) \<sigma> As (D + negs (mset As))"
+    and cas: "\<forall>i<n. CAs ! i = Cs ! i + poss (AAs ! i)"
     using ord_resolve by force+
 
   note n = \<open>n \<noteq> 0\<close> \<open>length CAs = n\<close> \<open>length Cs = n\<close> \<open>length AAs = n\<close> \<open>length As = n\<close>
@@ -712,6 +724,73 @@ proof (cases rule: ord_resolve.cases)
   then have "is_ground_subst_list \<eta>s''"
     using n unfolding is_ground_subst_list_def by auto
 
+  -- \<open>Split side premise in to C's and A's\<close>
+  obtain AAs'' Cs'' where AAs''_Cs''_p:
+   "map2 op \<cdot>am AAs'' \<eta>s'' = AAs" "length Cs'' = n" "Cs'' \<cdot>\<cdot>cl \<eta>s'' = Cs"
+   "\<forall>i < n. CAs'' ! i = Cs'' ! i + poss (AAs'' ! i)" "length AAs'' = n"
+  proof -
+    have "\<forall>i < n. \<exists>AA''. AA'' \<cdot>am \<eta>s'' ! i = AAs ! i \<and> poss AA'' \<subseteq># CAs'' ! i"
+    proof (rule, rule)
+      fix i
+      assume "i < n"
+      have "CAs'' ! i \<cdot> \<eta>s'' ! i = CAs ! i"
+        using \<open>i < n\<close> \<open>CAs'' \<cdot>\<cdot>cl \<eta>s'' = CAs\<close> n by force
+      moreover have "poss (AAs ! i) \<subseteq># CAs !i"
+        using \<open>i < n\<close> cas by auto
+      ultimately obtain poss_AA'' where
+        nn: "poss_AA'' \<cdot> \<eta>s'' ! i = poss (AAs ! i) \<and> poss_AA'' \<subseteq># CAs'' ! i"
+        using cas image_mset_of_subset unfolding subst_cls_def by metis
+      then have l: "\<forall>L \<in># poss_AA''. is_pos L"
+        unfolding subst_cls_def by (metis Melem_subst_cls imageE literal.disc(1)
+            literal.map_disc_iff set_image_mset subst_cls_def subst_lit_def)
+
+      define AA'' where
+        "AA'' = image_mset atm_of poss_AA''"
+
+      have na: "poss AA'' = poss_AA''"
+        using l unfolding AA''_def by auto
+      then have "AA'' \<cdot>am \<eta>s'' ! i = AAs ! i"
+        using nn by (metis (mono_tags) literal.inject(1) multiset.inj_map_strong subst_cls_poss)
+      moreover have "poss AA'' \<subseteq># CAs'' ! i"
+        using na nn by auto
+      ultimately show "\<exists>AA'. AA' \<cdot>am \<eta>s'' ! i = AAs ! i \<and> poss AA' \<subseteq># CAs'' ! i"
+        by blast
+    qed
+    then obtain AAs''f where AAs''f_p: "\<forall>i < n. AAs''f i \<cdot>am \<eta>s'' ! i = AAs ! i \<and> (poss (AAs''f i)) \<subseteq># CAs'' ! i"
+      by metis
+
+    define AAs'' where "AAs'' = map AAs''f [0 ..<n]"
+
+    then have "length AAs'' = n"
+      by auto
+    note n = n \<open>length AAs'' = n\<close>
+
+    from AAs''_def have "\<forall>i < n. AAs'' ! i \<cdot>am \<eta>s'' ! i = AAs ! i"
+      using AAs''f_p by auto
+    then have AAs'_AAs: "AAs'' \<cdot>\<cdot>aml \<eta>s'' = AAs"
+      using n by (auto intro: nth_equalityI)
+
+    from AAs''_def have AAs''_in_CAs'': "\<forall>i < n. poss (AAs'' ! i) \<subseteq># CAs'' ! i"
+      using AAs''f_p by auto
+
+    define Cs'' where
+      "Cs'' = map2 (op -) CAs'' (map poss AAs'')"
+
+    have "length Cs'' = n"
+      using Cs''_def n by auto
+    note n = n \<open>length Cs'' = n\<close>
+
+    have "\<forall>i < n. CAs'' ! i = Cs'' ! i + poss (AAs'' ! i)"
+      using AAs''_in_CAs'' Cs''_def n by auto
+    then have "Cs'' \<cdot>\<cdot>cl \<eta>s'' = Cs"
+      using \<open>CAs'' \<cdot>\<cdot>cl \<eta>s'' = CAs\<close> AAs'_AAs cas n by (auto intro: nth_equalityI)
+
+    show ?thesis
+      using that \<open>AAs'' \<cdot>\<cdot>aml \<eta>s'' = AAs\<close> \<open>Cs'' \<cdot>\<cdot>cl \<eta>s'' = Cs\<close> \<open>\<forall>i < n. CAs'' ! i = Cs'' ! i + poss (AAs'' ! i)\<close>
+        \<open>length AAs'' = n\<close> \<open>length Cs'' = n\<close>
+      by blast
+  qed
+
   -- \<open>Obtain FO main premise\<close>
   have "\<exists>DA'' \<eta>''. DA'' \<in> M \<and> DA = DA'' \<cdot> \<eta>'' \<and> S DA'' \<cdot> \<eta>'' = S_M S M DA \<and> is_ground_subst \<eta>''"
     using grounding S_M_grounding_of_clss select by (metis le_supE singletonI subsetCE)
@@ -727,26 +806,82 @@ proof (cases rule: ord_resolve.cases)
   have "is_ground_subst \<eta>''"
     using DA''_\<eta>''_p by auto
 
-  define As'' :: "'a list" where "As'' = undefined"
-  define AAs'' :: "'a multiset list" where "AAs'' = undefined"
-  define D'' :: "'a clause" where "D'' = undefined"
-  define Cs'' :: "'a clause list" where "Cs'' = undefined"
-
-  have missing: "As''  \<cdot>al \<eta>'' = As"
-    "map2 op \<cdot>am AAs'' \<eta>s'' = AAs"
-    "length As'' = n"
-    "D'' \<cdot> \<eta>'' = D"
-    "DA'' = D'' + (negs (mset As''))"
+  -- \<open>Split main premise in to D'' and A''s\<close>
+  obtain D'' As'' where D''As''_p:
+     "As''  \<cdot>al \<eta>'' = As" "length As'' = n" "D'' \<cdot> \<eta>'' = D" "DA'' = D'' + (negs (mset As''))"
     "S_M S M (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As'') = S DA''"
-    "length Cs'' = n"
-    "Cs'' \<cdot>\<cdot>cl \<eta>s'' = Cs"
-    "\<forall>i < n. CAs'' ! i = Cs'' ! i + poss (AAs'' ! i)"
-    "length AAs'' = n"
-    sorry
+  proof -
+    {
+      assume a: "S_M S M (D + negs (mset As)) = {#} \<and> length As = (Suc 0)
+        \<and> maximal_in (As ! 0 \<cdot>a \<sigma>) ((D + negs (mset As)) \<cdot> \<sigma>)"
+      then have as: "mset As = {#As ! 0#}"
+        by (auto intro: nth_equalityI)
+      then have "negs (mset As) = {#Neg (As ! 0)#}"
+        by (simp add: \<open>mset As = {#As ! 0#}\<close>)
+      then have "DA = D + {#Neg (As ! 0)#}"
+        using da by auto
+      then obtain L where "L \<in># DA'' \<and> L \<cdot>l \<eta>'' = Neg (As ! 0)"
+        using DA''_to_DA by (metis Melem_subst_cls mset_subset_eq_add_right single_subset_iff)
+      then have "Neg (atm_of L) \<in># DA'' \<and> Neg (atm_of L) \<cdot>l \<eta>'' = Neg (As ! 0)"
+        by (metis Neg_atm_of_iff literal.sel(2) subst_lit_is_pos)
+      then have "[atm_of L] \<cdot>al \<eta>'' = As \<and> negs (mset [atm_of L]) \<subseteq># DA''"
+        using as subst_lit_def by auto
+      then have "\<exists>As'. As' \<cdot>al \<eta>'' = As \<and> negs (mset As') \<subseteq># DA''
+        \<and> (S_M S M (D + negs (mset As)) \<noteq> {#} \<longrightarrow> negs (mset As') = S DA'')"
+        using a by blast
+    }
+    moreover
+    {
+      assume "S_M S M (D + negs (mset As)) = negs (mset As)"
+      then have "negs (mset As) = S DA'' \<cdot> \<eta>''"
+        using da \<open>S DA'' \<cdot> \<eta>'' = S_M S M DA\<close> by auto
+      then have "\<exists>As'. negs (mset As') = S DA'' \<and> As' \<cdot>al \<eta>'' = As"
+        using instance_list[of As "S DA''" \<eta>''] S.S_selects_neg_lits by auto
+      then have "\<exists>As'. As' \<cdot>al \<eta>'' = As \<and> negs (mset As') \<subseteq># DA''
+        \<and> (S_M S M (D + negs (mset As)) \<noteq> {#} \<longrightarrow> negs (mset As') = S DA'')"
+        using S.S_selects_subseteq by auto
+    }
+    ultimately have "\<exists>As''. As'' \<cdot>al \<eta>'' = As \<and> (negs (mset As'')) \<subseteq># DA''
+      \<and> (S_M S M (D + negs (mset As)) \<noteq> {#} \<longrightarrow> negs (mset As'') = S DA'')"
+      using eligible unfolding eligible.simps by auto
+    then obtain As'' where
+      As'_p: "As'' \<cdot>al \<eta>'' = As \<and> negs (mset As'') \<subseteq># DA''
+      \<and> (S_M S M (D + negs (mset As)) \<noteq> {#} \<longrightarrow> negs (mset As'') = S DA'')"
+      by blast
+    then have "length As'' = n"
+      using as_len by auto
+    note n = n this
+
+    have "As'' \<cdot>al \<eta>'' = As"
+      using As'_p by auto
+
+    define D'' where
+      "D'' = DA'' - negs (mset As'')"
+    then have "DA'' = D'' + negs (mset As'')"
+      using As'_p by auto
+    then have "D'' \<cdot> \<eta>'' = D"
+      using DA''_to_DA da As'_p by auto
+
+    have "S_M S M (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As'') = S DA''"
+      using As'_p by blast
+    then show ?thesis
+      using that \<open>As'' \<cdot>al \<eta>'' = As\<close> \<open>D'' \<cdot> \<eta>''= D\<close> \<open>DA'' = D'' +  (negs (mset As''))\<close> \<open>length As'' = n\<close>
+      by metis
+  qed
+
   show ?thesis
     using that[OF n(2,1) DA''_in_M  DA''_to_DA SDA''_to_SMDA CAs''_in_M CAs''_to_CAs SCAs''_to_SMCAs
-        \<open>is_ground_subst \<eta>''\<close> \<open>is_ground_subst_list \<eta>s''\<close> missing(1-3)] missing(4)
-    sorry
+        \<open>is_ground_subst \<eta>''\<close> \<open>is_ground_subst_list \<eta>s''\<close> \<open>As''  \<cdot>al \<eta>'' = As\<close>
+        \<open>map2 op \<cdot>am AAs'' \<eta>s'' = AAs\<close>
+        \<open>length As'' = n\<close>
+        \<open>D'' \<cdot> \<eta>'' = D\<close>
+        \<open>DA'' = D'' + (negs (mset As''))\<close>
+        \<open>S_M S M (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As'') = S DA''\<close>
+        \<open>length Cs'' = n\<close>
+        \<open>Cs'' \<cdot>\<cdot>cl \<eta>s'' = Cs\<close>
+        \<open>\<forall>i < n. CAs'' ! i = Cs'' ! i + poss (AAs'' ! i)\<close>
+        \<open>length AAs'' = n\<close>]
+    by auto
 qed
 
 lemma ord_resolve_rename_lifting:
@@ -926,65 +1061,6 @@ proof (cases rule: ord_resolve.cases)
     then show "negs (mset As') = S DA'"
       using as''(16) As'_def DA'_def using sel_stable sorry (*Looks reasonable *)
   qed
-  have True
-  proof -
-    {
-      assume a: "S_M S M (D + negs (mset As)) = {#} \<and> length As = (Suc 0)
-        \<and> maximal_in (As ! 0 \<cdot>a \<sigma>) ((D + negs (mset As)) \<cdot> \<sigma>)"
-      then have as: "mset As = {#As ! 0#}"
-        by (auto intro: nth_equalityI)
-      then have "negs (mset As) = {#Neg (As ! 0)#}"
-        by (simp add: \<open>mset As = {#As ! 0#}\<close>)
-      then have "DA = D + {#Neg (As ! 0)#}"
-        using da by auto
-      then obtain L where "L \<in># DA' \<and> L \<cdot>l \<eta> = Neg (As ! 0)"
-        using DA'_DA by (metis Melem_subst_cls mset_subset_eq_add_right single_subset_iff)
-      then have "Neg (atm_of L) \<in># DA' \<and> Neg (atm_of L) \<cdot>l \<eta> = Neg (As ! 0)"
-        by (metis Neg_atm_of_iff literal.sel(2) subst_lit_is_pos)
-      then have "[atm_of L] \<cdot>al \<eta> = As \<and> negs (mset [atm_of L]) \<subseteq># DA'"
-        using as subst_lit_def by auto
-      then have "\<exists>As'. As' \<cdot>al \<eta> = As \<and> negs (mset As') \<subseteq># DA'
-        \<and> (S_M S M (D + negs (mset As)) \<noteq> {#} \<longrightarrow> negs (mset As') = S DA')"
-        using a by blast
-    }
-    moreover
-    {
-      assume "S_M S M (D + negs (mset As)) = negs (mset As)"
-      then have "negs (mset As) = S DA' \<cdot> \<eta>"
-        using da \<open>S DA' \<cdot> \<eta> = S_M S M DA\<close> by auto
-      then have "\<exists>As'. negs (mset As') = S DA' \<and> As' \<cdot>al \<eta> = As"
-        using instance_list[of As "S DA'" \<eta>] S.S_selects_neg_lits by auto
-      then have "\<exists>As'. As' \<cdot>al \<eta> = As \<and> negs (mset As') \<subseteq># DA'
-        \<and> (S_M S M (D + negs (mset As)) \<noteq> {#} \<longrightarrow> negs (mset As') = S DA')"
-        using S.S_selects_subseteq by auto
-    }
-    ultimately have "\<exists>As'. As' \<cdot>al \<eta> = As \<and> (negs (mset As')) \<subseteq># DA'
-      \<and> (S_M S M (D + negs (mset As)) \<noteq> {#} \<longrightarrow> negs (mset As') = S DA')"
-      using eligible unfolding eligible.simps by auto
-    then obtain As' where
-      As'_p: "As' \<cdot>al \<eta> = As \<and> negs (mset As') \<subseteq># DA'
-      \<and> (S_M S M (D + negs (mset As)) \<noteq> {#} \<longrightarrow> negs (mset As') = S DA')"
-      by blast
-    then have "length As' = n"
-      using as_len by auto
-    note n = n this
-
-    have "As' \<cdot>al \<eta> = As"
-      using As'_p by auto
-
-    define D' where
-      "D' = DA' - negs (mset As')"
-    then have "DA' = D' + negs (mset As')"
-      using As'_p by auto
-    then have "D' \<cdot> \<eta> = D"
-      using DA'_DA da As'_p by auto
-
-    have "S_M S M (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As') = S DA'"
-      using As'_p by blast
-    then show ?thesis
-      using that \<open>As' \<cdot>al \<eta> = As\<close> \<open>D' \<cdot> \<eta> = D\<close> \<open>DA' = D' +  (negs (mset As'))\<close> \<open>length As' = n\<close>
-      by metis
-  qed
 
   note n = n \<open>length As' = n\<close>
 
@@ -1006,69 +1082,6 @@ proof (cases rule: ord_resolve.cases)
   next
     show "\<forall>i<n. CAs' ! i = Cs' ! i + poss (AAs' ! i)" 
       using as''(19) CAs'_def Cs'_def AAs'_def sorry (* Looks reasonable *)
-  qed
-  have True
-  proof -
-    have "\<forall>i < n. \<exists>AA'. AA' \<cdot>am \<eta> = AAs ! i \<and> poss AA' \<subseteq># CAs' ! i"
-    proof (rule, rule)
-      fix i
-      assume "i < n"
-      have "CAs' ! i \<cdot> \<eta> = CAs ! i"
-        using \<open>i < n\<close> \<open>CAs' \<cdot>cl \<eta> = CAs\<close> n by force
-      moreover have "poss (AAs ! i) \<subseteq># CAs !i"
-        using \<open>i < n\<close> cas by auto
-      ultimately obtain poss_AA' where
-        nn: "poss_AA' \<cdot> \<eta> = poss (AAs ! i) \<and> poss_AA' \<subseteq># CAs' ! i"
-        using cas image_mset_of_subset unfolding subst_cls_def by metis
-      then have l: "\<forall>L \<in># poss_AA'. is_pos L"
-        unfolding subst_cls_def by (metis Melem_subst_cls imageE literal.disc(1)
-            literal.map_disc_iff set_image_mset subst_cls_def subst_lit_def)
-
-      define AA' where
-        "AA' = image_mset atm_of poss_AA'"
-
-      have na: "poss AA' = poss_AA'"
-        using l unfolding AA'_def by auto
-      then have "AA' \<cdot>am \<eta> = AAs ! i"
-        using nn by (metis (mono_tags) literal.inject(1) multiset.inj_map_strong subst_cls_poss)
-      moreover have "poss AA' \<subseteq># CAs' ! i"
-        using na nn by auto
-      ultimately show "\<exists>AA'. AA' \<cdot>am \<eta> = AAs ! i \<and> poss AA' \<subseteq># CAs' ! i"
-        by blast
-    qed
-    then obtain AAs'f where AAs'f_p: "\<forall>i < n. AAs'f i \<cdot>am \<eta> = AAs ! i \<and> (poss (AAs'f i)) \<subseteq># CAs' ! i"
-      by metis
-
-    define AAs' where "AAs' = map AAs'f [0 ..<n]"
-
-    then have "length AAs' = n"
-      by auto
-    note n = n \<open>length AAs' = n\<close>
-
-    from AAs'_def have "\<forall>i < n. AAs' ! i \<cdot>am \<eta> = AAs ! i"
-      using AAs'f_p by auto
-    then have AAs'_AAs: "AAs' \<cdot>aml \<eta> = AAs"
-      using n by (auto intro: nth_equalityI)
-
-    from AAs'_def have AAs'_in_CAs': "\<forall>i < n. poss (AAs' ! i) \<subseteq># CAs' ! i"
-      using AAs'f_p by auto
-
-    define Cs' where
-      "Cs' = map2 (op -) CAs' (map poss AAs')"
-
-    have "length Cs' = n"
-      using Cs'_def n by auto
-    note n = n \<open>length Cs' = n\<close>
-
-    have "\<forall>i < n. CAs' ! i = Cs' ! i + poss (AAs' ! i)"
-      using AAs'_in_CAs' Cs'_def n by auto
-    then have "Cs' \<cdot>cl \<eta> = Cs"
-      using \<open>CAs' \<cdot>cl \<eta> = CAs\<close> AAs'_AAs cas n by (auto intro: nth_equalityI)
-
-    show ?thesis
-      using that \<open>AAs' \<cdot>aml \<eta> = AAs\<close> \<open>Cs' \<cdot>cl \<eta> = Cs\<close> \<open>\<forall>i < n. CAs' ! i = Cs' ! i + poss (AAs' ! i)\<close>
-        \<open>length AAs' = n\<close> \<open>length Cs' = n\<close>
-      by blast
   qed
 
   (* New *)
