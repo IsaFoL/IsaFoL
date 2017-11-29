@@ -645,7 +645,7 @@ lemma ord_resolve_obtain_clauses:
     select: "selection S" and
     grounding: "{DA} \<union> set CAs \<subseteq> grounding_of_clss M" and
     n: "length CAs = n"
-  obtains DA'' \<eta>'' CAs'' \<eta>s'' where
+  obtains DA'' \<eta>'' CAs'' \<eta>s'' As'' AAs'' D'' Cs'' where
     "length CAs'' = n"
     "length \<eta>s'' = n"
     "DA'' \<in> M"
@@ -656,6 +656,16 @@ lemma ord_resolve_obtain_clauses:
     "map S CAs'' \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAs"
     "is_ground_subst \<eta>''"
     "is_ground_subst_list \<eta>s''"
+    "As''  \<cdot>al \<eta>'' = As"
+    "map2 op \<cdot>am AAs'' \<eta>s'' = AAs"
+    "length As'' = n"
+    "D'' \<cdot> \<eta>'' = D"
+    "DA'' = D'' + (negs (mset As''))"
+    "S_M S M (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As'') = S DA''"
+    "length Cs'' = n"
+    "Cs'' \<cdot>\<cdot>cl \<eta>s'' = Cs"
+    "\<forall>i < n. CAs'' ! i = Cs'' ! i + poss (AAs'' ! i)"
+    "length AAs'' = n"
   using res_e
 proof (cases rule: ord_resolve.cases)
   case (ord_resolve n_twin Cs D)
@@ -716,10 +726,27 @@ proof (cases rule: ord_resolve.cases)
     using DA''_\<eta>''_p by auto
   have "is_ground_subst \<eta>''"
     using DA''_\<eta>''_p by auto
+
+  define As'' :: "'a list" where "As'' = undefined"
+  define AAs'' :: "'a multiset list" where "AAs'' = undefined"
+  define D'' :: "'a clause" where "D'' = undefined"
+  define Cs'' :: "'a clause list" where "Cs'' = undefined"
+
+  have missing: "As''  \<cdot>al \<eta>'' = As"
+    "map2 op \<cdot>am AAs'' \<eta>s'' = AAs"
+    "length As'' = n"
+    "D'' \<cdot> \<eta>'' = D"
+    "DA'' = D'' + (negs (mset As''))"
+    "S_M S M (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As'') = S DA''"
+    "length Cs'' = n"
+    "Cs'' \<cdot>\<cdot>cl \<eta>s'' = Cs"
+    "\<forall>i < n. CAs'' ! i = Cs'' ! i + poss (AAs'' ! i)"
+    "length AAs'' = n"
+    sorry
   show ?thesis
     using that[OF n(2,1) DA''_in_M  DA''_to_DA SDA''_to_SMDA CAs''_in_M CAs''_to_CAs SCAs''_to_SMCAs
-        \<open>is_ground_subst \<eta>''\<close> \<open>is_ground_subst_list \<eta>s''\<close>]
-    by auto
+        \<open>is_ground_subst \<eta>''\<close> \<open>is_ground_subst_list \<eta>s''\<close> missing(1-3)] missing(4)
+    sorry
 qed
 
 lemma ord_resolve_rename_lifting:
