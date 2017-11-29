@@ -39,7 +39,6 @@ locale FO_resolution = mgu subst_atm id_subst comp_subst atm_of_atms renamings_a
 begin
 
 
-
 subsection \<open>Library\<close>
 
 lemma Bex_cartesian_product: "(\<exists>xy \<in> A \<times> B. P xy) \<equiv> (\<exists>x \<in> A. \<exists>y \<in> B. P (x, y))"
@@ -995,13 +994,13 @@ proof (cases rule: ord_resolve.cases)
 
   (* New *)
   have As'_As: "As' \<cdot>al \<eta>' = As"
-    using as''(11) unfolding \<eta>'_def As'_def using renames_DA'' sorry (* Looks reasonable. *)
+    using as''(11) unfolding \<eta>'_def As'_def using renames_DA'' by auto
   have AAs'_AAs: "AAs' \<cdot>\<cdot>aml \<eta>s' = AAs"
-    using as''(12) unfolding \<eta>s'_def AAs'_def using renames_CAs'' using n sorry (* Looks reasonable. *)
+    using as''(12) unfolding \<eta>s'_def AAs'_def using renames_CAs'' using n by auto
   have D'_D: "D' \<cdot> \<eta>' = D"
     using as''(14) unfolding \<eta>'_def D'_def using renames_DA'' by simp
   have Cs'_Cs: "Cs' \<cdot>\<cdot>cl \<eta>s' = Cs"
-    using as''(18) unfolding Cs'_def \<eta>s'_def using renames_apart renames_CAs'' sorry (* Looks reasonable. *)
+    using as''(18) unfolding Cs'_def \<eta>s'_def using renames_apart renames_CAs'' n by auto
   (* End new *)
 
   have "map S CAs' \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAs"
@@ -1038,6 +1037,13 @@ proof (cases rule: ord_resolve.cases)
     using \<open>map S CAs' \<cdot>\<cdot>cl \<eta>s' = map (S_M S M) CAs\<close> by auto
 
   -- \<open>Split main premise in to D' and A's\<close>
+  have DA'_split: "DA' = D' + negs (mset As')"
+      using DA'_def D'_def As'_def as''(15) sorry
+  then have D'_subset_DA': "D' \<subseteq># DA'"
+    by auto
+  from DA'_split have negs_As'_subset_DA': "negs (mset As') \<subseteq># DA'"
+    sorry
+
   have as':
     "length As' = n"
     "As' \<cdot>al \<eta> = As"
@@ -1047,16 +1053,19 @@ proof (cases rule: ord_resolve.cases)
   proof -
     show "length As' = n" using n by auto
   next
-    show "As' \<cdot>al \<eta> = As" using \<eta>_p As'_As sorry (* Looks reasonable *)
+    show "As' \<cdot>al \<eta> = As" 
+      using \<eta>_p As'_As negs_As'_subset_DA' sorry (* Looks reasonable *)
   next
-    show "D' \<cdot> \<eta> = D" using \<eta>_p D'_D sorry (* Looks reasonable *)
+    show "D' \<cdot> \<eta> = D" using \<eta>_p D'_D n D'_subset_DA' by auto
   next
     show "DA' = D' + negs (mset As')"
-      using DA'_def D'_def As'_def as''(15) sorry (* Looks reasonable *)
+      using DA'_split .
   next
-    assume "S_M S M (D + negs (mset As)) \<noteq> {#}"
+    assume a: "S_M S M (D + negs (mset As)) \<noteq> {#}"
+    then have "negs (mset As'') \<cdot> hd (renamings_apart (DA'' # CAs'')) = S DA'' \<cdot> hd (renamings_apart (DA'' # CAs''))"
+      using as''(16) by metis
     then show "negs (mset As') = S DA'"
-      using as''(16) As'_def DA'_def using sel_stable sorry (*Looks reasonable *)
+      using  As'_def DA'_def using sel_stable[of "hd (renamings_apart (DA'' # CAs''))" DA''] renames_DA'' by auto
   qed
 
   note n = n \<open>length As' = n\<close>
