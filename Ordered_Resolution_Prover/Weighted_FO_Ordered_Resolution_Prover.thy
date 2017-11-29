@@ -164,7 +164,7 @@ find_theorems chain lfinite
 lemma llength_infinite_if_Ns_non_empty: (* This is only true for full derivations. *)
   assumes "\<forall>i<llength Sts. N_of_state (state_of_wstate (lnth Sts i)) \<noteq> {}"
   shows "llength Sts = \<infinity>"
-  using assms 
+  using assms deriv
   oops
 
 theorem weighted_RP_fair: "fair_state_seq (lmap state_of_wstate Sts)"

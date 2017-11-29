@@ -774,7 +774,7 @@ proof (cases rule: ord_resolve.cases)
     "length AAs'' = n"
     using res_e grounding select ord_resolve_obtain_clauses[of S M CAs DA] n sorry
 
-  note n = \<open>length CAs'' = n\<close> \<open>length \<eta>s'' = n\<close> \<open>length As'' = n\<close> \<open>length AAs'' = n\<close> n
+  note n = \<open>length CAs'' = n\<close> \<open>length \<eta>s'' = n\<close> \<open>length As'' = n\<close> \<open>length AAs'' = n\<close> \<open>length Cs'' = n\<close> n
 
   have "length (renamings_apart (DA'' # CAs'')) = Suc n"
     using n renames_apart by auto
@@ -820,8 +820,12 @@ proof (cases rule: ord_resolve.cases)
     unfolding As'_def using n by auto
   have "length AAs' = n"
     unfolding AAs'_def using n by auto
-  note n = \<open>length As' = n\<close> \<open>length AAs' = n\<close> n
+  have "length Cs' = n"
+    unfolding Cs'_def using n by auto
+  term Cs''
+  note n = \<open>length As' = n\<close> \<open>length AAs' = n\<close> \<open>length Cs' = n\<close> n
   (* End new *)  
+  find_theorems length subst_cls_lists
 
   have DA'_DA: "DA' \<cdot> \<eta>' = DA"
     using as''(4) unfolding \<eta>'_def DA'_def using renames_DA'' by simp
@@ -886,12 +890,14 @@ proof (cases rule: ord_resolve.cases)
   next
     show "As' \<cdot>al \<eta> = As" using \<eta>_p As'_As sorry (* Looks reasonable *)
   next
-    show "D' \<cdot> \<eta> = D" using \<eta>_p D'_D sorry
+    show "D' \<cdot> \<eta> = D" using \<eta>_p D'_D sorry (* Looks reasonable *)
   next
-    show "DA' = D' + negs (mset As')" sorry 
+    show "DA' = D' + negs (mset As')"
+      using DA'_def D'_def As'_def as''(15) sorry (* Looks reasonable *)
   next
     assume "S_M S M (D + negs (mset As)) \<noteq> {#}"
-    show "negs (mset As') = S DA'" sorry
+    then show "negs (mset As') = S DA'"
+      using as''(16) As'_def DA'_def using sel_stable sorry (*Looks reasonable *)
   qed
   have True
   proof -
@@ -962,7 +968,18 @@ proof (cases rule: ord_resolve.cases)
     "AAs' \<cdot>aml \<eta> = AAs"
     "Cs' \<cdot>cl \<eta> = Cs"
     "\<forall>i < n. CAs' ! i = Cs' ! i + poss (AAs' ! i)"
-    sorry
+  proof -
+    show "length AAs' = n" using n by auto
+  next
+    show "length Cs' = n" using n by auto
+  next
+    show "AAs' \<cdot>aml \<eta> = AAs" using AAs'_AAs \<eta>_p sorry (* Looks reasonable *)
+  next
+    show "Cs' \<cdot>cl \<eta> = Cs" using Cs'_Cs \<eta>_p sorry (* Looks reasonable *)
+  next
+    show "\<forall>i<n. CAs' ! i = Cs' ! i + poss (AAs' ! i)" 
+      using as''(19) CAs'_def Cs'_def AAs'_def sorry (* Looks reasonable *)
+  qed
   have True
   proof -
     have "\<forall>i < n. \<exists>AA'. AA' \<cdot>am \<eta> = AAs ! i \<and> poss AA' \<subseteq># CAs' ! i"
@@ -1029,7 +1046,7 @@ proof (cases rule: ord_resolve.cases)
 
   (* New *)
   have AAs'_AAs: "AAs' \<cdot>aml \<eta> = AAs"
-    using AAs'_AAs \<eta>_p sorry 
+    using \<open>AAs' \<cdot>aml \<eta> = AAs\<close> .
   (* End new *)
 
   note n = n \<open>length AAs' = n\<close> \<open>length Cs' = n\<close>
@@ -1174,14 +1191,17 @@ proof (cases rule: ord_resolve.cases)
     using res_e' 
     apply (subgoal_tac "CAs' = (CAs'' \<cdot>\<cdot>cl \<rho>s4)" "DA' = DA'' \<cdot> \<rho>4" "AAs' = map2 op \<cdot>am AAs'' \<rho>s4" "As' = As'' \<cdot>al \<rho>4")
         apply simp
-    using As'_def \<rho>4_def apply simp
-    using AAs'_def \<rho>s4_def apply simp
-    using DA'_def \<rho>4_def apply simp
+       using As'_def \<rho>4_def apply simp
+      using AAs'_def \<rho>s4_def apply simp
+     using DA'_def \<rho>4_def apply simp
     using CAs'_def \<rho>s4_def apply simp
     done
-  ultimately have
-    "ord_resolve_rename S CAs'' DA'' AAs'' As'' \<tau> E'"
-    using ord_resolve_rename sorry
+  moreover have "\<forall>i<n. poss (AAs'' ! i) \<subseteq># CAs'' ! i"
+    using as''(19) sorry (* Looks reasonable *)
+  moreover have "negs (mset As'') \<subseteq># DA''"
+    using local.as''(15) sorry (* Looks reasonable *)
+  ultimately have "ord_resolve_rename S CAs'' DA'' AAs'' As'' \<tau> E'"
+    using ord_resolve_rename[of CAs'' n AAs'' As'' DA'' \<rho>4 \<rho>s4 S \<tau> E'] n by auto
   then show thesis
     using that[of \<eta>'' \<eta>s'' \<eta>2 CAs'' DA''] \<open>is_ground_subst \<eta>''\<close> \<open>is_ground_subst_list \<eta>s''\<close>
       \<open>is_ground_subst \<eta>2\<close> \<open>CAs'' \<cdot>\<cdot>cl \<eta>s'' = CAs\<close> \<open>DA'' \<cdot> \<eta>'' = DA\<close> \<open>E' \<cdot> \<eta>2 = E\<close> \<open>DA'' \<in> M\<close>
