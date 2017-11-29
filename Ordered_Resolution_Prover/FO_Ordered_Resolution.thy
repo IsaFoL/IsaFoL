@@ -725,7 +725,7 @@ proof (cases rule: ord_resolve.cases)
     using n unfolding is_ground_subst_list_def by auto
 
   -- \<open>Split side premise in to C's and A's\<close>
-  obtain AAs'' Cs'' where
+  obtain AAs'' Cs'' where AAs''_Cs''_p:
    "map2 op \<cdot>am AAs'' \<eta>s'' = AAs" "length Cs'' = n" "Cs'' \<cdot>\<cdot>cl \<eta>s'' = Cs"
    "\<forall>i < n. CAs'' ! i = Cs'' ! i + poss (AAs'' ! i)" "length AAs'' = n"
   proof -
@@ -807,7 +807,8 @@ proof (cases rule: ord_resolve.cases)
     using DA''_\<eta>''_p by auto
 
   -- \<open>Split main premise in to D'' and A''s\<close>
-  obtain D'' As'' where "As''  \<cdot>al \<eta>'' = As" "length As'' = n" "D'' \<cdot> \<eta>'' = D" "DA'' = D'' + (negs (mset As''))"
+  obtain D'' As'' where D''As''_p:
+     "As''  \<cdot>al \<eta>'' = As" "length As'' = n" "D'' \<cdot> \<eta>'' = D" "DA'' = D'' + (negs (mset As''))"
     "S_M S M (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As'') = S DA''"
   proof -
     {
@@ -868,20 +869,18 @@ proof (cases rule: ord_resolve.cases)
       by metis
   qed
 
-  note missing =
-    \<open>As''  \<cdot>al \<eta>'' = As\<close>
-    \<open>map2 op \<cdot>am AAs'' \<eta>s'' = AAs\<close>
-    \<open>length As'' = n\<close>
-    \<open>D'' \<cdot> \<eta>'' = D\<close>
-    \<open>DA'' = D'' + (negs (mset As''))\<close>
-    \<open>S_M S M (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As'') = S DA''\<close>
-    \<open>length Cs'' = n\<close>
-    \<open>Cs'' \<cdot>\<cdot>cl \<eta>s'' = Cs\<close>
-    \<open>\<forall>i < n. CAs'' ! i = Cs'' ! i + poss (AAs'' ! i)\<close>
-    \<open>length AAs'' = n\<close>
   show ?thesis
     using that[OF n(2,1) DA''_in_M  DA''_to_DA SDA''_to_SMDA CAs''_in_M CAs''_to_CAs SCAs''_to_SMCAs
-        \<open>is_ground_subst \<eta>''\<close> \<open>is_ground_subst_list \<eta>s''\<close> missing]
+        \<open>is_ground_subst \<eta>''\<close> \<open>is_ground_subst_list \<eta>s''\<close> \<open>As''  \<cdot>al \<eta>'' = As\<close>
+        \<open>map2 op \<cdot>am AAs'' \<eta>s'' = AAs\<close>
+        \<open>length As'' = n\<close>
+        \<open>D'' \<cdot> \<eta>'' = D\<close>
+        \<open>DA'' = D'' + (negs (mset As''))\<close>
+        \<open>S_M S M (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As'') = S DA''\<close>
+        \<open>length Cs'' = n\<close>
+        \<open>Cs'' \<cdot>\<cdot>cl \<eta>s'' = Cs\<close>
+        \<open>\<forall>i < n. CAs'' ! i = Cs'' ! i + poss (AAs'' ! i)\<close>
+        \<open>length AAs'' = n\<close>]
     by auto
 qed
 
