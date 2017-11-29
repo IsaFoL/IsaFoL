@@ -234,6 +234,9 @@ proof (induct E arbitrary: C C')
     using ih[OF mset_eq] ih[OF mset_eq'] by (simp add: red_iff)
 qed simp
 
+lemma reduce_rotate[simp]: "reduce Ds (C @ [L]) E = reduce Ds (L # C) E"
+  by (rule reduce_mset_eq) simp
+
 lemma select_min_weight_clause_in: "select_min_weight_clause P0 P \<in> set (P0 # P)"
   by (induct P arbitrary: P0) auto
 
@@ -349,15 +352,34 @@ proof (induct D' arbitrary: D)
   next
     case False
     then show ?thesis
-      using ih[of "D @ [L]"] by (simp add: reduce_mset_eq[of "D @ [L]" "L # D"])
+      using ih[of "D @ [L]"] by simp
   qed
 qed simp
 
 lemma reduce_clause_in_Q:
-  assumes c_in: "C \<in> fst ` set N"
+  assumes
+    c_in: "C \<in> fst ` set N" and
+    d'_red: "reduce [C] D D' \<noteq> D'"
   shows "wstate_of_dstate (N, P, Q @ (D @ D', k) # Q', n)
     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, (D @ reduce [C] D D', k) # P, Q @ Q', n)"
-  sorry
+  using d'_red
+proof (induct D' arbitrary: D)
+  case (Cons L D')
+  note ih = this(1) and ld'_red = this(2)
+  then show ?case
+  proof (cases "is_reducible_lit [C] (D @ D') L")
+    case red: True
+    then show ?thesis
+
+      sorry
+  next
+    case l_nred: False
+    then have d'_red: "reduce [C] (D @ [L]) D' \<noteq> D'"
+      using ld'_red by simp
+    show ?thesis
+      using ih[OF d'_red] l_nred by simp
+  qed
+qed simp
 
 lemma reduce_clauses_in_P:
   assumes c_in: "C \<in> fst ` set N"
@@ -388,7 +410,8 @@ proof (induct Q' arbitrary: P Q)
     case red: False
     have "wstate_of_dstate (N, P, Q @ Q0' # Q', n)
       \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, (reduce [C] [] (fst Q0'), snd Q0') # P, Q @ Q', n)"
-      using reduce_clause_in_Q[of _ _ _ _ "[]", unfolded append_Nil, OF c_in] by (cases Q0') simp
+      using reduce_clause_in_Q[of _ _ _ _ "[]", unfolded append_Nil, OF c_in red]
+      by (cases Q0') simp
     then show ?thesis
       using red ih[of "(reduce [C] [] (fst Q0'), snd Q0') # P" Q]
       by (fastforce simp: case_prod_beta)
