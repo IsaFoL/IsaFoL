@@ -465,7 +465,7 @@ lemma resolve_rename_either_way_eq_inferences_between:
   "(\<Union>D \<in> Q. mset ` set (resolve_rename_either_way C D)) =
    concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) (mset ` Q) (mset C))"
   unfolding resolve_rename_either_way_eq_ord_resolve_rename
-    concls_of_inference_between_eq_ord_resolve_rename .
+    concls_of_inference_between_eq_ord_resolve_rename
   sorry
 
 lemma compute_inferences:
