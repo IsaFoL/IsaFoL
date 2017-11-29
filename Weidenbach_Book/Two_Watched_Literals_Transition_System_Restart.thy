@@ -54,7 +54,7 @@ restart_step:
     \<open>size (get_learned_clss T) > f n\<close> and
     \<open>cdcl_twl_restart T U\<close> |
 restart_full:
- \<open>cdcl_twl_stgy_restart (S, n) (T, Suc n)\<close>
+ \<open>cdcl_twl_stgy_restart (S, n) (T, n)\<close>
  if
     \<open>full1 cdcl_twl_stgy S T\<close>
 
@@ -729,22 +729,22 @@ proof (rule ccontr)
     inv: \<open>\<And>i. twl_struct_invs (fst (g i))\<close>
     unfolding wf_iff_no_infinite_down_chain by fast
 
+  have H: False if \<open>no_step cdcl_twl_stgy (fst (g i))\<close> for i
+    using g[of i] that
+    unfolding cdcl_twl_stgy_restart.simps
+    by (auto simp: full1_def tranclp_unfold_begin)
+
   have snd_g: \<open>snd (g i) = i + snd (g 0)\<close> for i
     apply (induction i)
     subgoal by auto
     subgoal for i
-      using g[of i] by (auto simp: cdcl_twl_stgy_restart.simps)
+      using g[of i] H[of \<open>Suc i\<close>] by (auto simp: cdcl_twl_stgy_restart.simps full1_def)
     done
   then have snd_g_0: \<open>\<And>i. i > 0 \<Longrightarrow> snd (g i) = i + snd (g 0)\<close>
     by blast
   have unbounded_f_g: \<open>unbounded (\<lambda>i. f (snd (g i)))\<close>
     using f unfolding bounded_def by (metis add.commute f less_or_eq_imp_le snd_g
         not_bounded_nat_exists_larger not_le le_iff_add)
-
-  have H: False if \<open>no_step cdcl_twl_stgy (fst (g i))\<close> for i
-    using g[of i] that
-    unfolding cdcl_twl_stgy_restart.simps
-    by (auto simp: full1_def tranclp_unfold_begin)
 
   have \<open>\<exists>h. cdcl_twl_stgy\<^sup>+\<^sup>+ (fst (g i)) (h) \<and>
          size (get_learned_clss (h)) > f (snd (g i)) \<and>
