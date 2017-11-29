@@ -19,6 +19,32 @@ section \<open>Library\<close>
 lemma apfst_fst_snd: "apfst f x = (f (fst x), snd x)"
   by (rule apfst_conv[of _ "fst x" "snd x" for x, unfolded prod.collapse])
 
+lemma apfst_comp_rpair_const: "apfst f \<circ> (\<lambda>x. (x, y)) = (\<lambda>x. (x, y)) \<circ> f"
+  by (simp add: comp_def)
+
+lemma "mset (map f (remdups_gen f xs)) = mset (remdups (map f xs))"
+proof (induct "length xs" arbitrary: xs rule: less_induct)
+  case ih: less
+  show ?case
+  proof (cases xs)
+    case xs: (Cons x xs')
+    show ?thesis
+      unfolding xs
+      apply (simp only: remdups_gen.simps list.map mset.simps)
+      apply (subst ih)
+      unfolding xs
+       apply auto[1]
+      using le_imp_less_Suc length_filter_le apply blast
+      apply auto
+
+      sorry
+  qed simp
+    
+    sorry
+qed
+
+qed
+
 (* FIXME: clone of Lambda_Free_RPOs *)
 lemma wf_app: "wf r \<Longrightarrow> wf {(x, y). (f x, f y) \<in> r}"
   unfolding wf_eq_minimal by (intro allI, drule spec[of _ "f ` Q" for Q]) auto
@@ -452,7 +478,10 @@ proof -
       apply (simp add: ci_in image_mset_remove1_mset_if)
     using ci_min
      apply (meson in_diffD)
-    apply auto
+    apply (simp only: list.map_comp apfst_comp_rpair_const)
+    apply (simp only: list.map_comp[symmetric])
+
+
 
     sorry
 qed
