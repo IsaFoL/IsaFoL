@@ -22,27 +22,27 @@ lemma apfst_fst_snd: "apfst f x = (f (fst x), snd x)"
 lemma apfst_comp_rpair_const: "apfst f \<circ> (\<lambda>x. (x, y)) = (\<lambda>x. (x, y)) \<circ> f"
   by (simp add: comp_def)
 
-lemma "mset (map f (remdups_gen f xs)) = mset (remdups (map f xs))"
-proof (induct "length xs" arbitrary: xs rule: less_induct)
-  case ih: less
-  show ?case
-  proof (cases xs)
-    case xs: (Cons x xs')
-    show ?thesis
-      unfolding xs
-      apply (simp only: remdups_gen.simps list.map mset.simps)
-      apply (subst ih)
-      unfolding xs
-       apply auto[1]
-      using le_imp_less_Suc length_filter_le apply blast
-      apply auto
+lemma map_filter_neq_eq_filter_map:
+  "map f (filter (\<lambda>y. f x \<noteq> f y) xs) = filter (\<lambda>z. f x \<noteq> z) (map f xs)"
+  by (induct xs) auto
 
-      sorry
+lemma mset_map_remdups_gen:
+  "mset (map f (remdups_gen f xs)) = mset (remdups_gen (\<lambda>x. x) (map f xs))"
+  by (induct f xs rule: remdups_gen.induct) (auto simp: map_filter_neq_eq_filter_map)
+
+lemma mset_remdups_gen_ident: "mset (remdups_gen (\<lambda>x. x) xs) = mset_set (set xs)"
+proof -
+  have "f = (\<lambda>x. x) \<Longrightarrow> mset (remdups_gen f xs) = mset_set (set xs)" for f
+  proof (induct f xs rule: remdups_gen.induct)
+    case (2 f x xs)
+    note ih = this(1) and f = this(2)
+    show ?case
+      unfolding f remdups_gen.simps ih[OF f, unfolded f] mset.simps
+      by (metis finite_set list.simps(15) mset_set.insert_remove removeAll_filter_not_eq
+          remove_code(1) remove_def)
   qed simp
-    
-    sorry
-qed
-
+  then show ?thesis
+    by simp
 qed
 
 (* FIXME: clone of Lambda_Free_RPOs *)
@@ -480,7 +480,8 @@ proof -
      apply (meson in_diffD)
     apply (simp only: list.map_comp apfst_comp_rpair_const)
     apply (simp only: list.map_comp[symmetric])
-
+    apply (subst mset_map)
+    apply (unfold mset_map_remdups_gen mset_remdups_gen_ident)
 
 
     sorry
