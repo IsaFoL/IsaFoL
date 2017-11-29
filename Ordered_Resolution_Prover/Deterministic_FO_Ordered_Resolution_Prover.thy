@@ -329,9 +329,21 @@ proof (induct D' arbitrary: D)
   case ih: (Cons L D')
   show ?case
   proof (cases "is_reducible_lit [C] (D @ D') L")
-    case True
+    case red: True
+    then obtain L' and \<sigma> where
+      l'_in: "L' \<in> set C" and
+      not_l: "- L = L' \<cdot>l \<sigma>" and
+      subs: "mset (remove1 L' C) \<cdot> \<sigma> \<subseteq># mset (D @ D')"
+      unfolding is_reducible_lit_def by force
+
+    have "wstate_of_dstate (N, P @ (D @ L # D', k) # P', Q, n)
+      \<leadsto>\<^sub>w wstate_of_dstate (N, P @ (D @ D', k) # P', Q, n)"
+      by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+            backward_reduction_P[of "mset C - {#L'#}" L' "mset (map (apfst mset) N)" L \<sigma>
+              "mset (D @ D')" "mset (map (apfst mset) (P @ P'))" k "mset (map (apfst mset) Q)" n]],
+          use l'_in not_l subs c_in in auto)
     then show ?thesis
-      sorry
+      using ih[of D] red by simp
   next
     case False
     then show ?thesis
