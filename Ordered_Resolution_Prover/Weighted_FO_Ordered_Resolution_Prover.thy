@@ -157,10 +157,15 @@ lemma weighted_RP_sound:
   shows "\<not> satisfiable (grounding_of_wstate (lhd Sts))"
   by (rule RP_sound[OF Sts_thms assms, unfolded lhd_lmap_Sts])
 
-lemma llength_infinite_if_Ns_non_empty:
+find_theorems \<infinity> llength
+find_theorems lfinite llength
+find_theorems chain lfinite
+
+lemma llength_infinite_if_Ns_non_empty: (* This is only true for full derivations. *)
   assumes "\<forall>i<llength Sts. N_of_state (state_of_wstate (lnth Sts i)) \<noteq> {}"
   shows "llength Sts = \<infinity>"
-  sorry
+  using assms deriv
+  oops
 
 theorem weighted_RP_fair: "fair_state_seq (lmap state_of_wstate Sts)"
 proof (rule ccontr)
@@ -180,7 +185,7 @@ proof (rule ccontr)
       using deriv unfolding weighted_RP_Non_Inference_def sorry (* I can believe this (+-1) *)
     moreover
     from i_p have "llength Sts = \<infinity>"
-      using llength_infinite_if_Ns_non_empty sorry
+      (* using llength_infinite_if_Ns_non_empty *) sorry
     then have "llength (ldrop i Sts) = \<infinity>"
       sorry
     ultimately show False
