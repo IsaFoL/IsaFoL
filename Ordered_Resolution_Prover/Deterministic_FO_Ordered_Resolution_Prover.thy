@@ -104,8 +104,11 @@ definition reduce_all :: "'a lclause list \<Rightarrow> 'a dclause list \<Righta
 
 fun reduce_all2 :: "'a lclause list \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause list \<times> 'a dclause list" where
   "reduce_all2 _ [] = ([], [])"
-| "reduce_all2 Ds ((C, i) # Cs) =
-   (let C' = reduce Ds [] C in
+| "reduce_all2 Ds (Ci # Cs) =
+   (let
+      (C, i) = Ci;
+      C' = reduce Ds [] C
+    in
       (if C' = C then apsnd else apfst) (Cons (C', i)) (reduce_all2 Ds Cs))"
 
 fun resolve_on :: "'a lclause \<Rightarrow> 'a \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
@@ -350,6 +353,12 @@ proof (induct D' arbitrary: D)
   qed
 qed simp
 
+lemma reduce_clause_in_Q:
+  assumes c_in: "C \<in> fst ` set N"
+  shows "wstate_of_dstate (N, P, Q @ (D @ D', k) # Q', n)
+    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, (D @ reduce [C] D D', k) # P, Q @ Q', n)"
+  sorry
+
 lemma reduce_clauses_in_P:
   assumes c_in: "C \<in> fst ` set N"
   shows "wstate_of_dstate (N, P @ P', Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ reduce_all [C] P', Q, n)"
@@ -367,8 +376,24 @@ qed simp
 lemma reduce_clauses_in_Q:
   assumes c_in: "C \<in> fst ` set N"
   shows "wstate_of_dstate (N, P, Q @ Q', n)
-     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, fst (reduce_all2 [C] Q') @ P, Q @ snd (reduce_all2 [C] Q'), n)"
-  sorry
+    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, fst (reduce_all2 [C] Q') @ P, Q @ snd (reduce_all2 [C] Q'), n)"
+proof (induct Q' arbitrary: P Q)
+  case ih: (Cons Q0' Q')
+  show ?case
+  proof (cases "reduce [C] [] (fst Q0') = fst Q0'")
+    case True
+    then show ?thesis
+      using ih[of _ "Q @ [Q0']"] by (simp add: case_prod_beta)
+  next
+    case red: False
+    have "wstate_of_dstate (N, P, Q @ Q0' # Q', n)
+      \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, (reduce [C] [] (fst Q0'), snd Q0') # P, Q @ Q', n)"
+      using reduce_clause_in_Q[of _ _ _ _ "[]", unfolded append_Nil, OF c_in] by (cases Q0') simp
+    then show ?thesis
+      using red ih[of "(reduce [C] [] (fst Q0'), snd Q0') # P" Q]
+      by (fastforce simp: case_prod_beta)
+  qed
+qed simp
 
 lemma compute_inferences:
   assumes
