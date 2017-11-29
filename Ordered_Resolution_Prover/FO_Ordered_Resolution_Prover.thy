@@ -749,7 +749,7 @@ lemma
   P_of_state_Liminf: "P_of_state (Liminf_state Sts) = Liminf_llist (lmap P_of_state Sts)"
   unfolding Liminf_state_def by auto
 
-lemma eventually_deleted_N:
+lemma eventually_removed_from_N:
   assumes
     d_in: "D \<in> N_of_state (lnth Sts i)" and
     fair: "fair_state_seq Sts" and
@@ -765,7 +765,7 @@ proof (rule ccontr)
     using fair unfolding fair_state_seq_def by (simp add: N_of_state_Liminf)
 qed
 
-lemma eventually_deleted_P:
+lemma eventually_removed_from_P:
   assumes
     d_in: "D \<in> P_of_state (lnth Sts i)" and
     fair: "fair_state_seq Sts" and
@@ -961,7 +961,7 @@ proof -
 
   obtain l where
     l_p: "D \<in> P_of_state (lnth Sts l) \<and> D \<notin> P_of_state (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
-    using fair using eventually_deleted_P d unfolding ns by auto
+    using fair using eventually_removed_from_P d unfolding ns by auto
   then have l_Ns: "enat (Suc l) < llength Ns"
     using ns by auto
   from l_p have "lnth Sts l \<leadsto> lnth Sts (Suc l)"
@@ -1084,7 +1084,7 @@ proof -
     using resolution_prover_ground_derivation ns by auto
 
   have "\<exists>l. D \<in> N_of_state (lnth Sts l) \<and> D \<notin> N_of_state (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
-    using fair using eventually_deleted_N d unfolding ns by auto
+    using fair using eventually_removed_from_N d unfolding ns by auto
   then obtain l where
     l_p: "D \<in> N_of_state (lnth Sts l) \<and> D \<notin> N_of_state (lnth Sts (Suc l)) \<and> i \<le> l \<and> enat (Suc l) < llength Sts"
     by auto
