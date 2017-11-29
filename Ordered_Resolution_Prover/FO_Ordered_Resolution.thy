@@ -39,6 +39,7 @@ locale FO_resolution = mgu subst_atm id_subst comp_subst atm_of_atms renamings_a
 begin
 
 
+
 subsection \<open>Library\<close>
 
 lemma Bex_cartesian_product: "(\<exists>xy \<in> A \<times> B. P xy) \<equiv> (\<exists>x \<in> A. \<exists>y \<in> B. P (x, y))"
@@ -152,7 +153,7 @@ where
      negs (mset As) \<subseteq># DA \<Longrightarrow> 
      \<rho> = hd (renamings_apart (DA # CAs)) \<Longrightarrow>
      \<rho>s = tl (renamings_apart (DA # CAs)) \<Longrightarrow>
-     ord_resolve (CAs \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) (map2 (op \<cdot>am) AAs \<rho>s) (As \<cdot>al \<rho>) \<sigma> E \<Longrightarrow>
+     ord_resolve (CAs \<cdot>\<cdot>cl \<rho>s) (DA \<cdot> \<rho>) (AAs \<cdot>\<cdot>aml \<rho>s) (As \<cdot>al \<rho>) \<sigma> E \<Longrightarrow>
      ord_resolve_rename CAs DA AAs As \<sigma> E"
 
 lemma ord_resolve_empty_main_prem: "\<not> ord_resolve Cs {#} AAs As \<sigma> E"
@@ -639,11 +640,6 @@ proof (cases rule: ord_resolve.cases)
     using cs_sub_cas d_sub_da by (auto simp: subset_mset.add_mono)
 qed
 
-(* FIXME: move to abstract substitution, make a definition, prove properties. Make sure to acutally use
-   the constant. *)
-abbreviation subst_atm_mset_lists :: "'a multiset list \<Rightarrow> 's list \<Rightarrow> 'a multiset list" (infixl "\<cdot>\<cdot>aml" 67) where
-  "AAs \<cdot>\<cdot>aml \<sigma>s == map2 (op \<cdot>am) AAs \<sigma>s"
-
 lemma ord_resolve_obtain_clauses:
   assumes
     res_e: "ord_resolve (S_M S M) CAs DA AAs As \<sigma> E" and
@@ -664,7 +660,7 @@ lemma ord_resolve_obtain_clauses:
     "is_ground_subst \<eta>''"
     "is_ground_subst_list \<eta>s''"
     "As''  \<cdot>al \<eta>'' = As"
-    "map2 op \<cdot>am AAs'' \<eta>s'' = AAs"
+    "AAs'' \<cdot>\<cdot>aml \<eta>s'' = AAs"
     "length As'' = n"
     "D'' \<cdot> \<eta>'' = D"
     "DA'' = D'' + (negs (mset As''))"
@@ -726,7 +722,7 @@ proof (cases rule: ord_resolve.cases)
 
   -- \<open>Split side premise in to C's and A's\<close>
   obtain AAs'' Cs'' where AAs''_Cs''_p:
-   "map2 op \<cdot>am AAs'' \<eta>s'' = AAs" "length Cs'' = n" "Cs'' \<cdot>\<cdot>cl \<eta>s'' = Cs"
+   "AAs'' \<cdot>\<cdot>aml \<eta>s'' = AAs" "length Cs'' = n" "Cs'' \<cdot>\<cdot>cl \<eta>s'' = Cs"
    "\<forall>i < n. CAs'' ! i = Cs'' ! i + poss (AAs'' ! i)" "length AAs'' = n"
   proof -
     have "\<forall>i < n. \<exists>AA''. AA'' \<cdot>am \<eta>s'' ! i = AAs ! i \<and> poss AA'' \<subseteq># CAs'' ! i"
@@ -872,7 +868,7 @@ proof (cases rule: ord_resolve.cases)
   show ?thesis
     using that[OF n(2,1) DA''_in_M  DA''_to_DA SDA''_to_SMDA CAs''_in_M CAs''_to_CAs SCAs''_to_SMCAs
         \<open>is_ground_subst \<eta>''\<close> \<open>is_ground_subst_list \<eta>s''\<close> \<open>As''  \<cdot>al \<eta>'' = As\<close>
-        \<open>map2 op \<cdot>am AAs'' \<eta>s'' = AAs\<close>
+        \<open>AAs'' \<cdot>\<cdot>aml \<eta>s'' = AAs\<close>
         \<open>length As'' = n\<close>
         \<open>D'' \<cdot> \<eta>'' = D\<close>
         \<open>DA'' = D'' + (negs (mset As''))\<close>
@@ -924,8 +920,8 @@ proof (cases rule: ord_resolve.cases)
     "map S CAs'' \<cdot>\<cdot>cl \<eta>s'' = map (S_M S M) CAs"
     "is_ground_subst \<eta>''"
     "is_ground_subst_list \<eta>s''"
-    "As''  \<cdot>al \<eta>'' = As"
-    "map2 op \<cdot>am AAs'' \<eta>s'' = AAs"
+    "As'' \<cdot>al \<eta>'' = As"
+    "AAs'' \<cdot>\<cdot>aml \<eta>s'' = AAs"
     "length As'' = n"
     "D'' \<cdot> \<eta>'' = D"
     "DA'' = D'' + (negs (mset As''))"
@@ -960,7 +956,7 @@ proof (cases rule: ord_resolve.cases)
   define Cs' where
     "Cs' = Cs'' \<cdot>\<cdot>cl (tl (renamings_apart (DA'' # CAs'')))"
   define AAs' where
-    "AAs' = map2 op \<cdot>am AAs'' (tl (renamings_apart (DA'' # CAs'')))"
+    "AAs' = AAs'' \<cdot>\<cdot>aml (tl (renamings_apart (DA'' # CAs'')))"
 
 
 
@@ -1000,7 +996,7 @@ proof (cases rule: ord_resolve.cases)
   (* New *)
   have As'_As: "As' \<cdot>al \<eta>' = As"
     using as''(11) unfolding \<eta>'_def As'_def using renames_DA'' sorry (* Looks reasonable. *)
-  have AAs'_AAs: "map2 op \<cdot>am AAs' \<eta>s' = AAs"
+  have AAs'_AAs: "AAs' \<cdot>\<cdot>aml \<eta>s' = AAs"
     using as''(12) unfolding \<eta>s'_def AAs'_def using renames_CAs'' using n sorry (* Looks reasonable. *)
   have D'_D: "D' \<cdot> \<eta>' = D"
     using as''(14) unfolding \<eta>'_def D'_def using renames_DA'' by simp
@@ -1228,9 +1224,9 @@ proof (cases rule: ord_resolve.cases)
 
   define \<rho>4 where "\<rho>4 = hd (renamings_apart (DA'' # CAs''))"
   moreover define \<rho>s4 where "\<rho>s4 = tl (renamings_apart (DA'' # CAs''))"
-  moreover have "ord_resolve S (CAs'' \<cdot>\<cdot>cl \<rho>s4) (DA'' \<cdot> \<rho>4) (map2 op \<cdot>am AAs'' \<rho>s4) (As'' \<cdot>al \<rho>4) \<tau> E'"
+  moreover have "ord_resolve S (CAs'' \<cdot>\<cdot>cl \<rho>s4) (DA'' \<cdot> \<rho>4) (AAs'' \<cdot>\<cdot>aml \<rho>s4) (As'' \<cdot>al \<rho>4) \<tau> E'"
     using res_e' 
-    apply (subgoal_tac "CAs' = (CAs'' \<cdot>\<cdot>cl \<rho>s4)" "DA' = DA'' \<cdot> \<rho>4" "AAs' = map2 op \<cdot>am AAs'' \<rho>s4" "As' = As'' \<cdot>al \<rho>4")
+    apply (subgoal_tac "CAs' = (CAs'' \<cdot>\<cdot>cl \<rho>s4)" "DA' = DA'' \<cdot> \<rho>4" "AAs' = AAs'' \<cdot>\<cdot>aml \<rho>s4" "As' = As'' \<cdot>al \<rho>4")
         apply simp
        using As'_def \<rho>4_def apply simp
       using AAs'_def \<rho>s4_def apply simp
