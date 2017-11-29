@@ -114,6 +114,9 @@ lemma leq_term_minus_Id: "leq_term - Id = {(x,y). x < y}"
   unfolding well_order_on_def linear_order_on_def partial_order_on_def antisym_def less_term_def less_eq_term_def
   by auto
 
+lemma less_term_alt: "op < = in_rel (leq_term - Id)"
+  by (simp add: in_rel_Collect_case_prod_eq leq_term_minus_Id)
+
 instance
 proof (standard, goal_cases less_less_eq refl trans antisym total)
   case (less_less_eq x y)
@@ -154,6 +157,10 @@ end
 lemma ground_less_less_kbo: "ground s \<Longrightarrow> ground t \<Longrightarrow> s < t \<Longrightarrow> less_kbo s t"
   using less_kbo_gtotal[of s t] less_trm_extension
   by (auto simp: less_term_def less_eq_term_def)
+
+lemma less_kbo_less: "less_kbo s t \<Longrightarrow> s < t"
+  using less_trm_extension
+  by (auto simp: less_term_alt less_kbo_def KBO.S_irrefl)
 
 abbreviation
   subst_apply_set :: "('f, 'v) terms \<Rightarrow> ('f, 'v, 'w) gsubst \<Rightarrow> ('f, 'w) terms" (infixl "\<cdot>\<^sub>s\<^sub>e\<^sub>t" 60)
@@ -759,5 +766,9 @@ next
   then show "\<exists>\<tau>. mgu_sets AAA = Some \<tau>"
     using unify_complete unfolding mgu_sets_def by blast
 qed
+
+lemma is_ground_atm_ground: "is_ground_atm t \<longleftrightarrow> ground t"
+  unfolding is_ground_atm_def
+  by (induct t) (fastforce simp: in_set_conv_nth list_eq_iff_nth_eq)+
 
 end

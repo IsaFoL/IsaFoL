@@ -236,10 +236,10 @@ lemma weight_mono: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
 
 declare weight.simps [simp del]
 
-sublocale weighted_FO_resolution_prover _ _ _ _ _ _ _ _ weight
+sublocale foo: weighted_FO_resolution_prover _ _ _ _ _ _ _ _ weight
   by unfold_locales (rule weight_mono)
 
-notation weighted_RP (infix "\<leadsto>\<^sub>w" 50)
+notation foo.weighted_RP (infix "\<leadsto>\<^sub>w" 50)
 
 end
 

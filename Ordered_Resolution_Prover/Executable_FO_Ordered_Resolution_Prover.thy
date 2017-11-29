@@ -12,9 +12,22 @@ TODO.
 theory Executable_FO_Ordered_Resolution_Prover
   imports Deterministic_FO_Ordered_Resolution_Prover IsaFoR_IsaFoR_Term
 begin
-thm deterministic_FO_resolution_prover
-global_interpretation deterministic_FO_resolution_prover "\<lambda>_. {#}"
-  "op \<cdot>" "Var :: _ \<Rightarrow> ('f :: wellorder, nat) term" "op \<circ>\<^sub>s" renamings_apart "Fun undefined" mgu_sets
-  apply (intro_locales)
+
+global_interpretation deterministic_FO_resolution_prover where
+  S = "\<lambda>_. {#}" and
+  subst_atm = "op \<cdot>" and
+  id_subst = "Var :: _ \<Rightarrow> ('f :: weighted, nat) term" and
+  comp_subst = "op \<circ>\<^sub>s" and
+  renamings_apart = renamings_apart and
+  atm_of_atms = "Fun undefined" and
+  mgu = mgu_sets and
+  lessatm = less_kbo and
+  size_atm = size and
+  generation_factor = 1 and
+  size_factor = 1
+  by (unfold_locales)
+    (auto simp: less_kbo_subst is_ground_atm_ground less_kbo_less intro: ground_less_less_kbo)
+
+print_theorems
 
 end
