@@ -482,8 +482,12 @@ proof -
     apply (simp only: list.map_comp[symmetric])
     apply (subst mset_map)
     apply (unfold mset_map_remdups_gen mset_remdups_gen_ident)
-
-
+    apply (subst image_mset_mset_set)
+     apply (simp add: inj_on_def)
+    apply (subst mset_set_eq_iff)
+      apply simp
+    apply (simp add: finite_ord_FO_resolution_inferences_between)
+    apply (rule arg_cong[of _ _ "\<lambda>N. (\<lambda>D. (D, n)) ` N"])
     sorry
 qed
 
