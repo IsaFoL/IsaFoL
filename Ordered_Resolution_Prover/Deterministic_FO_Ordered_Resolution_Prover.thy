@@ -172,11 +172,6 @@ definition resolve :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lcla
 definition resolve_either_way :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve_either_way C D = resolve C D @ resolve D C"
 
-definition resolve_rename :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
-  "resolve_rename C D =
-   (let \<sigma>s = renamings_apart [mset C, mset D] in
-      resolve (map (\<lambda>L. L \<cdot>l (\<sigma>s ! 0)) C) (map (\<lambda>L. L \<cdot>l (\<sigma>s ! 1)) D))"
-
 definition resolve_rename_either_way :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve_rename_either_way C D =
    (let \<sigma>s = renamings_apart [mset C, mset D] in
@@ -204,8 +199,8 @@ fun deterministic_RP_step :: "'a dstate \<Rightarrow> 'a dstate" where
             | P0 # P' \<Rightarrow>
               let
                 (C, i) = select_min_weight_clause P0 P';
-                N = map (\<lambda>D. (D, n)) (remdups_gen mset (resolve_rename C C
-                  @ concat (map (resolve_rename_either_way C \<circ> fst) Q)));
+                N = map (\<lambda>D. (D, n))
+                  (remdups_gen mset (concat (map (resolve_rename_either_way C \<circ> fst) Q)));
                 P = remove1 (C, i) P;
                 Q = (C, i) # Q;
                 n = Suc n
@@ -454,6 +449,11 @@ proof (induct Q' arbitrary: P Q)
   qed
 qed simp
 
+lemma resolve_rename_either_way_vs_inferences_between:
+  "(\<Union>D \<in> Q. mset ` set (resolve_rename_either_way C D)) =
+   concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) (mset ` Q) (mset C))"
+  sorry
+
 lemma compute_inferences:
   assumes
     ci_in: "(C, i) \<in> set P" and
@@ -461,8 +461,7 @@ lemma compute_inferences:
   shows
     "wstate_of_dstate ([], P, Q, n) \<leadsto>\<^sub>w
      wstate_of_dstate
-      (map (\<lambda>D. (D, n)) (remdups_gen mset (resolve_rename C C
-         @ concat (map (resolve_rename_either_way C \<circ> fst) Q))),
+      (map (\<lambda>D. (D, n)) (remdups_gen mset (concat (map (resolve_rename_either_way C \<circ> fst) Q))),
        remove1 (C, i) P, (C, i) # Q, Suc n)" (is "_ \<leadsto>\<^sub>w wstate_of_dstate (?N, _)")
 proof -
   have ms_ci_in: "(mset C, i) \<in># image_mset (apfst mset) (mset P)"
@@ -488,7 +487,12 @@ proof -
       apply simp
     apply (simp add: finite_ord_FO_resolution_inferences_between)
     apply (rule arg_cong[of _ _ "\<lambda>N. (\<lambda>D. (D, n)) ` N"])
-    sorry
+
+    apply (simp only: map_concat list.map_comp image_comp)
+    using resolve_rename_either_way_vs_inferences_between[of C "fst ` set Q"]
+    apply (simp only: image_comp comp_def)
+    apply simp
+    done
 qed
 
 lemma nonfinal_deterministic_RP_step:
@@ -556,8 +560,7 @@ proof -
           by (rule empty_N_if_Nil_in_P_or_Q[OF nil_in])
         also obtain N' :: "'a dclause list" where
           "\<dots> \<leadsto>\<^sub>w wstate_of_dstate (N', remove1 (C, i) P, (C, i) # Q, Suc n)"
-          by (atomize_elim, rule exI, rule compute_inferences[OF ci_in],
-              use ci_min in fastforce)
+          by (atomize_elim, rule exI, rule compute_inferences[OF ci_in], use ci_min in fastforce)
         also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], remove1 (C, i) P @ (C, i) # Q, n + length P)"
         proof -
           have k: "k = length (remove1 (C, i) P)"
