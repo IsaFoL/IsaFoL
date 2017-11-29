@@ -130,34 +130,58 @@ typ "('f, 'l, 'v) trs_termination_proof"
 
 typ "('f, 'l) lab projL"
 
-(* 
+(*
 datatype ('f,'l) lab =
   Lab "('f, 'l) lab" 'l
 | FunLab "('f, 'l) lab" "('f, 'l) lab list"
 | UnLab 'f
 | Sharp "('f, 'l) lab" *)
+lemma list_assn_cong:
+  \<open>\<lbrakk>\<And>x y. x \<in> set xs \<Longrightarrow> y \<in> set ys \<Longrightarrow> f x y = g x y\<rbrakk> \<Longrightarrow>
+      list_assn f xs ys = list_assn g xs ys\<close>
+  by (induction f xs ys rule: list_assn.induct) auto
+lemma list_assn_fundef_cong[fundef_cong]:
+  \<open>\<lbrakk>xs = xs'; ys = ys'; \<And>x y. x \<in> set xs \<Longrightarrow> y \<in> set ys \<Longrightarrow> f x y = g x y\<rbrakk> \<Longrightarrow>
+      list_assn f xs ys = list_assn g xs' ys'\<close>
+  by (auto intro: list_assn_cong)
 
-(* function lab_assn where
+fun lab_assn :: \<open>('f \<Rightarrow> 'g \<Rightarrow> assn) \<Rightarrow> ('l \<Rightarrow> 'm \<Rightarrow> assn) \<Rightarrow> ('f,'l) lab \<Rightarrow> ('g, 'm) lab \<Rightarrow> assn\<close> where
   \<open>lab_assn A B (Lab xs l) (Lab xs' l') = lab_assn A B xs xs' * B l l'\<close> |
   \<open>lab_assn A B (FunLab xs ys) (FunLab xs' ys') = lab_assn A B xs xs' * list_assn (lab_assn A B) ys ys'\<close>|
-  \<open>lab_assn A B (UnLab x) (UnLab x') = B x x'\<close> |
+  \<open>lab_assn A B (UnLab x) (UnLab x') = A x x'\<close> |
   \<open>lab_assn A B (lab.Sharp xs) (lab.Sharp xs') = lab_assn A B xs xs'\<close> |
   \<open>lab_assn _ _ _ _ = false\<close>
-                 apply auto
 
-termination *)
-  
+(* type_synonym 'f status_impl = "(('f \<times> nat) \<times> nat list)list" *)
+definition status_impl_assn where
+  \<open>status_impl_assn R = list_assn ((R *a nat_assn) *a list_assn nat_assn)\<close>
 
+fun projL_assn :: \<open>('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> 'a projL \<Rightarrow> 'b projL \<Rightarrow> assn\<close> where
+  \<open>projL_assn R (Projection f) (Projection g) = list_assn ((R *a nat_assn) *a nat_assn) f g\<close>
 
-(* fun dp_termination_proof_assn where
- \<open>dp_termination_proof_assn f l d v P_is_Empty P_is_Empty = emp\<close> |
- \<open>dp_termination_proof_assn f l d v
+typ rseqL
+typ rule
+typ "term"
+(*
+type_synonym ('f, 'l, 'v) ruleLL  = "(('f, 'l) lab, 'v) rule"
+type_synonym ('f, 'l, 'v) trsLL   = "(('f, 'l) lab, 'v) rules"
+type_synonym ('f, 'l, 'v) termsLL = "(('f, 'l) lab, 'v) term list"
+type_synonym ('f, 'l, 'v) rseqL   = "((('f, 'l) lab, 'v) rule \<times> (('f, 'l) lab, 'v) rseq) list"
+ *)
+fun dp_termination_proof_assn  ::
+    "('e \<Rightarrow> 'e' \<Rightarrow> assn) \<Rightarrow> ('f \<Rightarrow> 'f' \<Rightarrow> assn) \<Rightarrow> ('g \<Rightarrow> 'g' \<Rightarrow> assn) \<Rightarrow>
+     ('e, 'f, 'g) dp_termination_proof \<Rightarrow> ('e', 'f', 'g') dp_termination_proof \<Rightarrow> assn"
+    where
+ \<open>dp_termination_proof_assn e f g P_is_Empty P_is_Empty = emp\<close> |
+ \<open>dp_termination_proof_assn e f g
       (Subterm_Criterion_Proc projL rseqL trsLL term)
-      (Subterm_Criterion_Proc projL' rseqL' trsLL' term') = 
-    dp_termination_proof_assn f l d v term term'\<close> |
- \<open>dp_termination_proof_assn f l d v _ _ = false\<close> *)
+      (Subterm_Criterion_Proc projL' rseqL' trsLL' term') =
+    projL_assn (lab_assn e f) projL projL' *
+    dp_termination_proof_assn e f g term term'\<close> |
+ \<open>dp_termination_proof_assn _ _ _ _ _ = false\<close>
 
-(* 
+
+(*
 datatype (dead 'f, dead 'l, dead 'v) dp_termination_proof =
   P_is_Empty
 | Subterm_Criterion_Proc "('f, 'l) lab projL" "('f, 'l, 'v) rseqL"
@@ -166,13 +190,13 @@ datatype (dead 'f, dead 'l, dead 'v) dp_termination_proof =
     "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
 | Redpair_Proc "('f,'l)lab root_redtriple_impl + ('f, 'l) lab redtriple_impl" "('f, 'l, 'v) trsLL"  "('f, 'l, 'v) dp_termination_proof"
 | Redpair_UR_Proc "('f, 'l) lab root_redtriple_impl + ('f, 'l) lab redtriple_impl"
-    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof" 
-| Usable_Rules_Proc "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof" 
+    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
+| Usable_Rules_Proc "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
 | Dep_Graph_Proc "(('f, 'l, 'v) dp_termination_proof option \<times> ('f, 'l, 'v) trsLL) list"
 | Mono_Redpair_Proc "('f, 'l) lab redtriple_impl"
-    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof" 
+    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
 | Mono_URM_Redpair_Proc "('f, 'l) lab redtriple_impl"
-    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof" 
+    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
 | Mono_Redpair_UR_Proc "('f, 'l) lab redtriple_impl"
     "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
 | Size_Change_Subterm_Proc "((('f, 'l) lab, 'v) rule \<times> ((nat \<times> nat) list \<times> (nat \<times> nat) list)) list"
@@ -183,7 +207,7 @@ datatype (dead 'f, dead 'l, dead 'v) dp_termination_proof =
 | Fcc_Proc "('f, 'l) lab" "(('f, 'l) lab, 'v) ctxt list"
     "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
 | Split_Proc
-    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" 
+    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL"
     "('f, 'l, 'v) dp_termination_proof" "('f, 'l, 'v) dp_termination_proof"
 | Semlab_Proc
     "(('f, 'l) lab, 'v) sl_variant" "('f, 'l, 'v) trsLL"
@@ -204,7 +228,7 @@ datatype (dead 'f, dead 'l, dead 'v) dp_termination_proof =
 | Complex_Constant_Removal_Proc "(('f,'l)lab,'v)complex_constant_removal_prf" "('f, 'l, 'v) dp_termination_proof"
 | General_Redpair_Proc
     "('f, 'l) lab redtriple_impl" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL"
-    "(('f, 'l) lab, 'v) cond_red_pair_prf" "('f, 'l, 'v) dp_termination_proof list" 
+    "(('f, 'l) lab, 'v) cond_red_pair_prf" "('f, 'l, 'v) dp_termination_proof list"
 | To_Trs_Proc "('f, 'l, 'v) trs_termination_proof"
 and ('f, 'l, 'v) trs_termination_proof =
   DP_Trans bool bool "(('f, 'l) lab, 'v) rules" "('f, 'l, 'v) dp_termination_proof"
@@ -219,7 +243,7 @@ and ('f, 'l, 'v) trs_termination_proof =
 | R_is_Empty
 | Fcc "(('f, 'l) lab, 'v) ctxt list" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trs_termination_proof"
 | Split "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trs_termination_proof" "('f, 'l, 'v) trs_termination_proof"
-| Switch_Innermost "('f, 'l) lab join_info" "('f, 'l, 'v) trs_termination_proof" 
+| Switch_Innermost "('f, 'l) lab join_info" "('f, 'l, 'v) trs_termination_proof"
 | Drop_Equality "('f, 'l, 'v) trs_termination_proof"
 | Remove_Nonapplicable_Rules "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trs_termination_proof"
 | Permuting_AFS "('f,'l)lab afs_list" "('f, 'l, 'v) trs_termination_proof"
@@ -236,9 +260,9 @@ abbreviation claim_assn :: \<open>('f, 'l) claim \<Rightarrow> _ \<Rightarrow> _
 
 abbreviation proof_assn :: \<open>('f, 'l, 'v) proof \<Rightarrow> _ \<Rightarrow> _\<close> where
   \<open>proof_assn \<equiv> id_assn\<close>
-(* 
+(*
 
-datatype (dead 'f, dead 'l, dead 'v) "proof" = 
+datatype (dead 'f, dead 'l, dead 'v) "proof" =
   TRS_Termination_Proof "('f, 'l, 'v) trs_termination_proof"
 | Complexity_Proof "('f,'l,'v) complexity_proof"
 | DP_Termination_Proof "('f, 'l, 'v) dp_termination_proof"
@@ -270,8 +294,8 @@ definition string_eq_of where
 declare string_eq_of_def[symmetric, isafor_string_names]
 
 lemma string_eq_of_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return string_eq_of), uncurry0 (RETURN string_eq_of)) \<in> 
-    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close> 
+  \<open>(uncurry0 (return string_eq_of), uncurry0 (RETURN string_eq_of)) \<in>
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close>
   by sepref_to_hoare (sep_auto simp: list_assn_pure_conv' id_assn_eq_iff)
 
 
@@ -281,8 +305,8 @@ definition string_eq_by where
 declare string_eq_by_def[symmetric, isafor_string_names]
 
 lemma string_eq_by_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return string_eq_by), uncurry0 (RETURN string_eq_by)) \<in> 
-    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close> 
+  \<open>(uncurry0 (return string_eq_by), uncurry0 (RETURN string_eq_by)) \<in>
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close>
   by sepref_to_hoare (sep_auto simp: list_assn_pure_conv' id_assn_eq_iff)
 
 definition string_eq_mes3 where
@@ -291,8 +315,8 @@ definition string_eq_mes3 where
 declare string_eq_mes3_def[symmetric, isafor_string_names]
 
 lemma string_eq_mes3_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return string_eq_mes3), uncurry0 (RETURN string_eq_mes3)) \<in> 
-    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close> 
+  \<open>(uncurry0 (return string_eq_mes3), uncurry0 (RETURN string_eq_mes3)) \<in>
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close>
   by sepref_to_hoare (sep_auto simp: list_assn_pure_conv' id_assn_eq_iff)
 
 definition string_eq_mes4 where
@@ -301,8 +325,8 @@ definition string_eq_mes4 where
 declare string_eq_mes4_def[symmetric, isafor_string_names]
 
 lemma string_eq_mes4_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return string_eq_mes4), uncurry0 (RETURN string_eq_mes4)) \<in> 
-    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close> 
+  \<open>(uncurry0 (return string_eq_mes4), uncurry0 (RETURN string_eq_mes4)) \<in>
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close>
   by sepref_to_hoare (sep_auto simp: list_assn_pure_conv' id_assn_eq_iff)
 
 definition string_eq_mes5 where
@@ -311,8 +335,8 @@ definition string_eq_mes5 where
 declare string_eq_mes5_def[symmetric, isafor_string_names]
 
 lemma string_eq_mes5_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return string_eq_mes5), uncurry0 (RETURN string_eq_mes5)) \<in> 
-    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close> 
+  \<open>(uncurry0 (return string_eq_mes5), uncurry0 (RETURN string_eq_mes5)) \<in>
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close>
   by sepref_to_hoare (sep_auto simp: list_assn_pure_conv' id_assn_eq_iff)
 
 definition string_eq_mes6 where
@@ -321,8 +345,8 @@ definition string_eq_mes6 where
 declare string_eq_mes6_def[symmetric, isafor_string_names]
 
 lemma string_eq_mes6_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return string_eq_mes6), uncurry0 (RETURN string_eq_mes6)) \<in> 
-    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close> 
+  \<open>(uncurry0 (return string_eq_mes6), uncurry0 (RETURN string_eq_mes6)) \<in>
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close>
   by sepref_to_hoare (sep_auto simp: list_assn_pure_conv' id_assn_eq_iff)
 
 definition string_eq_mes7 where
@@ -331,8 +355,8 @@ definition string_eq_mes7 where
 declare string_eq_mes7_def[symmetric, isafor_string_names]
 
 lemma string_eq_mes7_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return string_eq_mes7), uncurry0 (RETURN string_eq_mes7)) \<in> 
-    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close> 
+  \<open>(uncurry0 (return string_eq_mes7), uncurry0 (RETURN string_eq_mes7)) \<in>
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close>
   by sepref_to_hoare (sep_auto simp: list_assn_pure_conv' id_assn_eq_iff)
 
 thm ac_simps
@@ -343,8 +367,8 @@ definition string_eq_mes8 where
 declare string_eq_mes8_def[symmetric, isafor_string_names]
 
 lemma string_eq_mes8_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return string_eq_mes8), uncurry0 (RETURN string_eq_mes8)) \<in> 
-    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close> 
+  \<open>(uncurry0 (return string_eq_mes8), uncurry0 (RETURN string_eq_mes8)) \<in>
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close>
   by sepref_to_hoare (sep_auto simp: list_assn_pure_conv' id_assn_eq_iff)
 
 
@@ -354,8 +378,8 @@ definition string_eq_mes9 where
 declare string_eq_mes9_def[symmetric, isafor_string_names]
 
 lemma string_eq_mes9_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return string_eq_mes9), uncurry0 (RETURN string_eq_mes9)) \<in> 
-    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close> 
+  \<open>(uncurry0 (return string_eq_mes9), uncurry0 (RETURN string_eq_mes9)) \<in>
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close>
   by sepref_to_hoare (sep_auto simp: list_assn_pure_conv' id_assn_eq_iff)
 
 
@@ -365,17 +389,17 @@ definition string_eq_mes10 where
 declare string_eq_mes10_def[symmetric, isafor_string_names]
 
 lemma string_eq_mes10_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return string_eq_mes10), uncurry0 (RETURN string_eq_mes10)) \<in> 
-    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close> 
+  \<open>(uncurry0 (return string_eq_mes10), uncurry0 (RETURN string_eq_mes10)) \<in>
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close>
   by sepref_to_hoare (sep_auto simp: list_assn_pure_conv' id_assn_eq_iff)
 
-(* 
+(*
 ''complexity class mismatch''
 ''Relative nonconfluence not supported''
 
  *)
 lemma case_input_swap:
-  \<open>f (case x of 
+  \<open>f (case x of
         DP_input x xa xb xc \<Rightarrow> f10 x xa xb xc
       | Inn_TRS_input x xa xb xc \<Rightarrow> f20 x xa xb xc
       | CPX_input x xa xb xc xd \<Rightarrow> f30 x xa xb xc xd
@@ -384,12 +408,12 @@ lemma case_input_swap:
       | EQ_input x xa \<Rightarrow> f60 x xa
       | FP_TRS_input x xa \<Rightarrow> f70 x xa
       | CTRS_input x \<Rightarrow> f80 x
-      | TA_input x xa \<Rightarrow> f90 x xa 
+      | TA_input x xa \<Rightarrow> f90 x xa
       | AC_input x xa xb \<Rightarrow> f100 x xa xb
       | LTS_input x \<Rightarrow> f110 x
       | LTS_safety_input x xa \<Rightarrow> f120 x xa
       | Unknown_input x \<Rightarrow> f130 x) =
-   (case x of 
+   (case x of
         DP_input x xa xb xc \<Rightarrow> f (f10 x xa xb xc)
       | Inn_TRS_input x xa xb xc \<Rightarrow> f (f20 x xa xb xc)
       | CPX_input x xa xb xc xd \<Rightarrow> f (f30 x xa xb xc xd)
@@ -406,13 +430,13 @@ lemma case_input_swap:
   by (cases x) auto
 
 lemma case_proof_swap:
-  \<open>P (case proof of 
-       TRS_Termination_Proof x \<Rightarrow> f10 x 
-     | Complexity_Proof x \<Rightarrow> f20 x 
+  \<open>P (case proof of
+       TRS_Termination_Proof x \<Rightarrow> f10 x
+     | Complexity_Proof x \<Rightarrow> f20 x
      | DP_Termination_Proof x \<Rightarrow> f30 x
      | DP_Nontermination_Proof x \<Rightarrow> f40 x
-     | TRS_Nontermination_Proof x \<Rightarrow> f50 x 
-     | FP_Termination_Proof x \<Rightarrow> f60 x 
+     | TRS_Nontermination_Proof x \<Rightarrow> f50 x
+     | FP_Termination_Proof x \<Rightarrow> f60 x
      | Relative_TRS_Nontermination_Proof x \<Rightarrow> f70 x
      | TRS_Confluence_Proof x \<Rightarrow> f80 x
      | TRS_Non_Confluence_Proof x \<Rightarrow> f90 x
@@ -425,11 +449,11 @@ lemma case_proof_swap:
      | Conditional_Non_CR_Proof x \<Rightarrow> f160 x
      | Tree_Automata_Closed_Proof x \<Rightarrow> f170 x
      | AC_Termination_Proof x \<Rightarrow> f180 x
-     | LTS_Termination_Proof x \<Rightarrow> f190 x 
+     | LTS_Termination_Proof x \<Rightarrow> f190 x
      | LTS_Safety_Proof x \<Rightarrow> f200 x
      | Unknown_Proof x \<Rightarrow> f210 x
      | Unknown_Disproof x \<Rightarrow> f220 x) =
-  (case proof of 
+  (case proof of
       TRS_Termination_Proof x \<Rightarrow> P (f10 x )
     | Complexity_Proof x \<Rightarrow> P (f20 x )
     | DP_Termination_Proof x \<Rightarrow> P (f30 x)
@@ -455,7 +479,7 @@ lemma case_proof_swap:
   by (cases "proof") auto
 
 definition check_cert_args_mismatch where
-   \<open>check_cert_args_mismatch input claim proof = 
+   \<open>check_cert_args_mismatch input claim proof =
       (shows (''Claiming '' @ claim_to_string claim @ '' of '' @ input_to_string input @ '' by '' @ proof_to_string proof))\<close>
 
 lemma [sepref_fr_rules]:
@@ -478,8 +502,8 @@ sepref_definition  certify_prob_code
       apply sepref_dbg_trans_keep
   apply sepref_dbg_trans_step_keep
   oops
-           apply sepref_dbg_side_unfold apply (auto simp: )[]
-  
+          (*  apply sepref_dbg_side_unfold apply (auto simp: )[] *)
+
 term sum_assn
 lemma certify_prob_hnr[sepref_fr_rules]:
   \<open>(uncurry3 (return oooo check_cert_args), uncurry3 (RETURN oooo check_cert_args)) \<in>
