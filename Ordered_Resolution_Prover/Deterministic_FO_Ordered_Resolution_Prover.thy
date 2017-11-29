@@ -369,9 +369,20 @@ proof (induct D' arbitrary: D)
   then show ?case
   proof (cases "is_reducible_lit [C] (D @ D') L")
     case red: True
-    then show ?thesis
+    then obtain L' and \<sigma> where
+      l'_in: "L' \<in> set C" and
+      not_l: "- L = L' \<cdot>l \<sigma>" and
+      subs: "mset (remove1 L' C) \<cdot> \<sigma> \<subseteq># mset (D @ D')"
+      unfolding is_reducible_lit_def by force
 
-      sorry
+    have "wstate_of_dstate (N, P, Q @ (D @ L # D', k) # Q', n)
+      \<leadsto>\<^sub>w wstate_of_dstate (N, (D @ D', k) # P, Q @ Q', n)"
+      by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+            backward_reduction_Q[of "mset C - {#L'#}" L' "mset (map (apfst mset) N)" L \<sigma>
+              "mset (D @ D')" "mset (map (apfst mset) P)" "mset (map (apfst mset) (Q @ Q'))" k n]],
+          use l'_in not_l subs c_in in auto)
+    then show ?thesis
+      using red reduce_clause_in_P[OF c_in, of "[]" D D' k P "Q @ Q'" n] by simp
   next
     case l_nred: False
     then have d'_red: "reduce [C] (D @ [L]) D' \<noteq> D'"
@@ -410,8 +421,7 @@ proof (induct Q' arbitrary: P Q)
     case red: False
     have "wstate_of_dstate (N, P, Q @ Q0' # Q', n)
       \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, (reduce [C] [] (fst Q0'), snd Q0') # P, Q @ Q', n)"
-      using reduce_clause_in_Q[of _ _ _ _ "[]", unfolded append_Nil, OF c_in red]
-      by (cases Q0') simp
+      using reduce_clause_in_Q[of _ _ _ _ _ "[]" _ "Q @ Q'", OF c_in red] by (cases Q0') force
     then show ?thesis
       using red ih[of "(reduce [C] [] (fst Q0'), snd Q0') # P" Q]
       by (fastforce simp: case_prod_beta)
