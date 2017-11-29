@@ -1,5 +1,5 @@
 theory Ceta_SAT_Code
-  imports CeTA_SAT.Ceta_SAT
+  imports CeTA_SAT_Import.Ceta_SAT
 begin
 
 lemma [code del]: "mset xs - mset ys = mset (fold remove1 ys xs)"
