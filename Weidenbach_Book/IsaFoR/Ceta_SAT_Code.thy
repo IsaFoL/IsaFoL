@@ -125,6 +125,362 @@ definition check_cert_args where
   \<open>check_cert_args = check_cert tp_impl Ceta_Verifier.dpp_impl ac_tp_impl
                       Ceta_Verifier.ac_dpp_impl\<close>
 
+term sum_assn
+typ "('f, 'l, 'v) trs_termination_proof"
+
+typ "('f, 'l) lab projL"
+
+(* 
+datatype ('f,'l) lab =
+  Lab "('f, 'l) lab" 'l
+| FunLab "('f, 'l) lab" "('f, 'l) lab list"
+| UnLab 'f
+| Sharp "('f, 'l) lab" *)
+
+(* function lab_assn where
+  \<open>lab_assn A B (Lab xs l) (Lab xs' l') = lab_assn A B xs xs' * B l l'\<close> |
+  \<open>lab_assn A B (FunLab xs ys) (FunLab xs' ys') = lab_assn A B xs xs' * list_assn (lab_assn A B) ys ys'\<close>|
+  \<open>lab_assn A B (UnLab x) (UnLab x') = B x x'\<close> |
+  \<open>lab_assn A B (lab.Sharp xs) (lab.Sharp xs') = lab_assn A B xs xs'\<close> |
+  \<open>lab_assn _ _ _ _ = false\<close>
+                 apply auto
+
+termination *)
+  
+
+
+(* fun dp_termination_proof_assn where
+ \<open>dp_termination_proof_assn f l d v P_is_Empty P_is_Empty = emp\<close> |
+ \<open>dp_termination_proof_assn f l d v
+      (Subterm_Criterion_Proc projL rseqL trsLL term)
+      (Subterm_Criterion_Proc projL' rseqL' trsLL' term') = 
+    dp_termination_proof_assn f l d v term term'\<close> |
+ \<open>dp_termination_proof_assn f l d v _ _ = false\<close> *)
+
+(* 
+datatype (dead 'f, dead 'l, dead 'v) dp_termination_proof =
+  P_is_Empty
+| Subterm_Criterion_Proc "('f, 'l) lab projL" "('f, 'l, 'v) rseqL"
+    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
+| Gen_Subterm_Criterion_Proc "('f, 'l) lab status_impl"
+    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
+| Redpair_Proc "('f,'l)lab root_redtriple_impl + ('f, 'l) lab redtriple_impl" "('f, 'l, 'v) trsLL"  "('f, 'l, 'v) dp_termination_proof"
+| Redpair_UR_Proc "('f, 'l) lab root_redtriple_impl + ('f, 'l) lab redtriple_impl"
+    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof" 
+| Usable_Rules_Proc "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof" 
+| Dep_Graph_Proc "(('f, 'l, 'v) dp_termination_proof option \<times> ('f, 'l, 'v) trsLL) list"
+| Mono_Redpair_Proc "('f, 'l) lab redtriple_impl"
+    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof" 
+| Mono_URM_Redpair_Proc "('f, 'l) lab redtriple_impl"
+    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof" 
+| Mono_Redpair_UR_Proc "('f, 'l) lab redtriple_impl"
+    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
+| Size_Change_Subterm_Proc "((('f, 'l) lab, 'v) rule \<times> ((nat \<times> nat) list \<times> (nat \<times> nat) list)) list"
+| Size_Change_Redpair_Proc "('f, 'l) lab redtriple_impl" "('f, 'l, 'v) trsLL option"
+    "((('f, 'l) lab, 'v) rule \<times> ((nat \<times> nat) list \<times> (nat \<times> nat) list)) list"
+| Uncurry_Proc "nat option" "(('f, 'l) lab, 'v) uncurry_info"
+    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
+| Fcc_Proc "('f, 'l) lab" "(('f, 'l) lab, 'v) ctxt list"
+    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
+| Split_Proc
+    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" 
+    "('f, 'l, 'v) dp_termination_proof" "('f, 'l, 'v) dp_termination_proof"
+| Semlab_Proc
+    "(('f, 'l) lab, 'v) sl_variant" "('f, 'l, 'v) trsLL"
+    "(('f, 'l) lab, 'v) term list" "('f, 'l, 'v) trsLL"
+    "('f, 'l, 'v) dp_termination_proof"
+| Switch_Innermost_Proc "('f, 'l) lab join_info" "('f, 'l, 'v) dp_termination_proof"
+| Rewriting_Proc
+    "('f, 'l, 'v) trsLL option" "('f, 'l, 'v) ruleLL" "('f, 'l, 'v) ruleLL"
+    "('f, 'l, 'v) ruleLL" "('f, 'l, 'v) ruleLL" pos "('f, 'l, 'v) dp_termination_proof"
+| Instantiation_Proc "('f, 'l, 'v) ruleLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
+| Forward_Instantiation_Proc
+    "('f, 'l, 'v) ruleLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL option" "('f, 'l, 'v) dp_termination_proof"
+| Narrowing_Proc "('f, 'l, 'v) ruleLL" pos "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
+| Assume_Finite
+    "('f, 'l, 'v) dppLL" "('f,'l,'v,('f, 'l, 'v) trs_termination_proof,('f, 'l, 'v) dp_termination_proof,('f, 'l, 'v) fptrs_termination_proof,('f, 'l, 'v) unknown_proof) assm_proof list"
+| Unlab_Proc "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
+| Q_Reduction_Proc "('f, 'l, 'v) termsLL" "('f, 'l, 'v) dp_termination_proof"
+| Complex_Constant_Removal_Proc "(('f,'l)lab,'v)complex_constant_removal_prf" "('f, 'l, 'v) dp_termination_proof"
+| General_Redpair_Proc
+    "('f, 'l) lab redtriple_impl" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL"
+    "(('f, 'l) lab, 'v) cond_red_pair_prf" "('f, 'l, 'v) dp_termination_proof list" 
+| To_Trs_Proc "('f, 'l, 'v) trs_termination_proof"
+and ('f, 'l, 'v) trs_termination_proof =
+  DP_Trans bool bool "(('f, 'l) lab, 'v) rules" "('f, 'l, 'v) dp_termination_proof"
+| Rule_Removal "('f, 'l) lab redtriple_impl" "('f, 'l, 'v) trsLL" "('f, 'l, 'v)trs_termination_proof"
+| String_Reversal "('f, 'l, 'v) trs_termination_proof"
+| Constant_String "(('f,'l)lab,'v)const_string_sound_proof" "('f,'l,'v) trs_termination_proof"
+| Bounds "(('f, 'l) lab, 'v) bounds_info"
+| Uncurry "(('f, 'l) lab, 'v) uncurry_info" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trs_termination_proof"
+| Semlab
+    "(('f, 'l) lab, 'v) sl_variant" "(('f, 'l) lab, 'v) term list"
+    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trs_termination_proof"
+| R_is_Empty
+| Fcc "(('f, 'l) lab, 'v) ctxt list" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trs_termination_proof"
+| Split "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trs_termination_proof" "('f, 'l, 'v) trs_termination_proof"
+| Switch_Innermost "('f, 'l) lab join_info" "('f, 'l, 'v) trs_termination_proof" 
+| Drop_Equality "('f, 'l, 'v) trs_termination_proof"
+| Remove_Nonapplicable_Rules "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trs_termination_proof"
+| Permuting_AFS "('f,'l)lab afs_list" "('f, 'l, 'v) trs_termination_proof"
+| Assume_SN "('f, 'l, 'v) qreltrsLL" "('f,'l,'v,('f, 'l, 'v) trs_termination_proof,('f, 'l, 'v) dp_termination_proof,('f, 'l, 'v) fptrs_termination_proof,('f, 'l, 'v) unknown_proof) assm_proof list"
+and ('f, 'l, 'v) unknown_proof =
+  Assume_Unknown unknown_info "('f,'l,'v,('f, 'l, 'v) trs_termination_proof,('f, 'l, 'v) dp_termination_proof,('f, 'l, 'v) fptrs_termination_proof,('f, 'l, 'v) unknown_proof) assm_proof list"
+and ('f, 'l, 'v) fptrs_termination_proof =
+  Assume_FP_SN "('f,'l,'v)fptrsLL" "('f,'l,'v,('f, 'l, 'v) trs_termination_proof,('f, 'l, 'v) dp_termination_proof,('f, 'l, 'v) fptrs_termination_proof,('f, 'l, 'v) unknown_proof) assm_proof list"
+
+ *)
+
+abbreviation claim_assn :: \<open>('f, 'l) claim \<Rightarrow> _ \<Rightarrow> _\<close> where
+  \<open>claim_assn \<equiv> id_assn\<close>
+
+abbreviation proof_assn :: \<open>('f, 'l, 'v) proof \<Rightarrow> _ \<Rightarrow> _\<close> where
+  \<open>proof_assn \<equiv> id_assn\<close>
+(* 
+
+datatype (dead 'f, dead 'l, dead 'v) "proof" = 
+  TRS_Termination_Proof "('f, 'l, 'v) trs_termination_proof"
+| Complexity_Proof "('f,'l,'v) complexity_proof"
+| DP_Termination_Proof "('f, 'l, 'v) dp_termination_proof"
+| DP_Nontermination_Proof "('f, 'l, 'v) dp_nontermination_proof"
+| TRS_Nontermination_Proof "('f, 'l, 'v) trs_nontermination_proof"
+| FP_Termination_Proof "('f,'l,'v) fptrs_termination_proof"
+| Relative_TRS_Nontermination_Proof "('f, 'l, 'v) reltrs_nontermination_proof"
+| TRS_Confluence_Proof "('f, 'l, 'v) cr_proof"
+| TRS_Non_Confluence_Proof "('f, 'l, 'v, 'v) ncr_proof"
+| Completion_Proof "('f, 'l, 'v) completion_proof"
+| Ordered_Completion_Proof "('f, 'l, 'v) ordered_completion_proof"
+| Equational_Proof "('f, 'l, 'v) equational_proof"
+| Equational_Disproof "('f, 'l, 'v) equational_disproof"
+| Quasi_Reductive_Proof "('f, 'l, 'v) quasi_reductive_proof"
+| Conditional_CR_Proof "('f, 'l, 'v) conditional_cr_proof"
+| Conditional_Non_CR_Proof "('f, 'l, 'v, 'v) conditional_ncr_proof"
+| Tree_Automata_Closed_Proof "string ta_relation"
+| AC_Termination_Proof "('f,'l,'v) ac_termination_proof"
+| LTS_Termination_Proof "(IA.sig, 'v, IA.ty, string, string, hints) termination_proof"
+| LTS_Safety_Proof "(IA.sig, 'v, IA.ty, string, string, string, hints) safety_proof"
+| Unknown_Proof "('f,'l,'v) unknown_proof"
+| Unknown_Disproof "('f,'l,'v) neg_unknown_proof"
+ *)
+named_theorems isafor_string_names "various strings for code generation"
+
+definition string_eq_of where
+  \<open>string_eq_of = '' of ''\<close>
+
+declare string_eq_of_def[symmetric, isafor_string_names]
+
+lemma string_eq_of_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return string_eq_of), uncurry0 (RETURN string_eq_of)) \<in> 
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close> 
+  by sepref_to_hoare (sep_auto simp: list_assn_pure_conv' id_assn_eq_iff)
+
+
+definition string_eq_by where
+  \<open>string_eq_by = '' by ''\<close>
+
+declare string_eq_by_def[symmetric, isafor_string_names]
+
+lemma string_eq_by_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return string_eq_by), uncurry0 (RETURN string_eq_by)) \<in> 
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close> 
+  by sepref_to_hoare (sep_auto simp: list_assn_pure_conv' id_assn_eq_iff)
+
+definition string_eq_mes3 where
+  \<open>string_eq_mes3 = ''Confluence with start term not supported''\<close>
+
+declare string_eq_mes3_def[symmetric, isafor_string_names]
+
+lemma string_eq_mes3_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return string_eq_mes3), uncurry0 (RETURN string_eq_mes3)) \<in> 
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close> 
+  by sepref_to_hoare (sep_auto simp: list_assn_pure_conv' id_assn_eq_iff)
+
+definition string_eq_mes4 where
+  \<open>string_eq_mes4 = ''Claiming ''\<close>
+
+declare string_eq_mes4_def[symmetric, isafor_string_names]
+
+lemma string_eq_mes4_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return string_eq_mes4), uncurry0 (RETURN string_eq_mes4)) \<in> 
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close> 
+  by sepref_to_hoare (sep_auto simp: list_assn_pure_conv' id_assn_eq_iff)
+
+definition string_eq_mes5 where
+  \<open>string_eq_mes5 = ''1''\<close>
+
+declare string_eq_mes5_def[symmetric, isafor_string_names]
+
+lemma string_eq_mes5_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return string_eq_mes5), uncurry0 (RETURN string_eq_mes5)) \<in> 
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close> 
+  by sepref_to_hoare (sep_auto simp: list_assn_pure_conv' id_assn_eq_iff)
+
+definition string_eq_mes6 where
+  \<open>string_eq_mes6 =  ''Confluence under strategy not supported''\<close>
+
+declare string_eq_mes6_def[symmetric, isafor_string_names]
+
+lemma string_eq_mes6_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return string_eq_mes6), uncurry0 (RETURN string_eq_mes6)) \<in> 
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close> 
+  by sepref_to_hoare (sep_auto simp: list_assn_pure_conv' id_assn_eq_iff)
+
+definition string_eq_mes7 where
+  \<open>string_eq_mes7 =  ''Relative confluence not supported''\<close>
+
+declare string_eq_mes7_def[symmetric, isafor_string_names]
+
+lemma string_eq_mes7_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return string_eq_mes7), uncurry0 (RETURN string_eq_mes7)) \<in> 
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close> 
+  by sepref_to_hoare (sep_auto simp: list_assn_pure_conv' id_assn_eq_iff)
+
+thm ac_simps
+
+definition string_eq_mes8 where
+  \<open>string_eq_mes8 =  ''complexity class mismatch''\<close>
+
+declare string_eq_mes8_def[symmetric, isafor_string_names]
+
+lemma string_eq_mes8_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return string_eq_mes8), uncurry0 (RETURN string_eq_mes8)) \<in> 
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close> 
+  by sepref_to_hoare (sep_auto simp: list_assn_pure_conv' id_assn_eq_iff)
+
+
+definition string_eq_mes9 where
+  \<open>string_eq_mes9 =  ''Nonconfluence with start term not supported''\<close>
+
+declare string_eq_mes9_def[symmetric, isafor_string_names]
+
+lemma string_eq_mes9_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return string_eq_mes9), uncurry0 (RETURN string_eq_mes9)) \<in> 
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close> 
+  by sepref_to_hoare (sep_auto simp: list_assn_pure_conv' id_assn_eq_iff)
+
+
+definition string_eq_mes10 where
+  \<open>string_eq_mes10 =  ''Relative nonconfluence not supported''\<close>
+
+declare string_eq_mes10_def[symmetric, isafor_string_names]
+
+lemma string_eq_mes10_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return string_eq_mes10), uncurry0 (RETURN string_eq_mes10)) \<in> 
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close> 
+  by sepref_to_hoare (sep_auto simp: list_assn_pure_conv' id_assn_eq_iff)
+
+(* 
+''complexity class mismatch''
+''Relative nonconfluence not supported''
+
+ *)
+lemma case_input_swap:
+  \<open>f (case x of 
+        DP_input x xa xb xc \<Rightarrow> f10 x xa xb xc
+      | Inn_TRS_input x xa xb xc \<Rightarrow> f20 x xa xb xc
+      | CPX_input x xa xb xc xd \<Rightarrow> f30 x xa xb xc xd
+      | COMP_input x xa \<Rightarrow> f40 x xa
+      | OCOMP_input x xa xb xc \<Rightarrow> f50 x xa xb xc
+      | EQ_input x xa \<Rightarrow> f60 x xa
+      | FP_TRS_input x xa \<Rightarrow> f70 x xa
+      | CTRS_input x \<Rightarrow> f80 x
+      | TA_input x xa \<Rightarrow> f90 x xa 
+      | AC_input x xa xb \<Rightarrow> f100 x xa xb
+      | LTS_input x \<Rightarrow> f110 x
+      | LTS_safety_input x xa \<Rightarrow> f120 x xa
+      | Unknown_input x \<Rightarrow> f130 x) =
+   (case x of 
+        DP_input x xa xb xc \<Rightarrow> f (f10 x xa xb xc)
+      | Inn_TRS_input x xa xb xc \<Rightarrow> f (f20 x xa xb xc)
+      | CPX_input x xa xb xc xd \<Rightarrow> f (f30 x xa xb xc xd)
+      | COMP_input x xa \<Rightarrow> f (f40 x xa)
+      | OCOMP_input x xa xb xc \<Rightarrow> f (f50 x xa xb xc)
+      | EQ_input x xa \<Rightarrow> f (f60 x xa)
+      | FP_TRS_input x xa \<Rightarrow> f (f70 x xa)
+      | CTRS_input x \<Rightarrow> f (f80 x)
+      | TA_input x xa \<Rightarrow> f (f90 x xa )
+      | AC_input x xa xb \<Rightarrow> f (f100 x xa xb)
+      | LTS_input x \<Rightarrow> f (f110 x)
+      | LTS_safety_input x xa \<Rightarrow> f (f120 x xa)
+      | Unknown_input x \<Rightarrow> f (f130 x))\<close>
+  by (cases x) auto
+
+lemma case_proof_swap:
+  \<open>P (case proof of 
+       TRS_Termination_Proof x \<Rightarrow> f10 x 
+     | Complexity_Proof x \<Rightarrow> f20 x 
+     | DP_Termination_Proof x \<Rightarrow> f30 x
+     | DP_Nontermination_Proof x \<Rightarrow> f40 x
+     | TRS_Nontermination_Proof x \<Rightarrow> f50 x 
+     | FP_Termination_Proof x \<Rightarrow> f60 x 
+     | Relative_TRS_Nontermination_Proof x \<Rightarrow> f70 x
+     | TRS_Confluence_Proof x \<Rightarrow> f80 x
+     | TRS_Non_Confluence_Proof x \<Rightarrow> f90 x
+     | Completion_Proof x \<Rightarrow> f100 x
+     | Ordered_Completion_Proof x \<Rightarrow> f110 x
+     | Equational_Proof x \<Rightarrow> f120 x
+     | Equational_Disproof x \<Rightarrow> f130 x
+     | Quasi_Reductive_Proof x \<Rightarrow> f140 x
+     | Conditional_CR_Proof x \<Rightarrow> f150 x
+     | Conditional_Non_CR_Proof x \<Rightarrow> f160 x
+     | Tree_Automata_Closed_Proof x \<Rightarrow> f170 x
+     | AC_Termination_Proof x \<Rightarrow> f180 x
+     | LTS_Termination_Proof x \<Rightarrow> f190 x 
+     | LTS_Safety_Proof x \<Rightarrow> f200 x
+     | Unknown_Proof x \<Rightarrow> f210 x
+     | Unknown_Disproof x \<Rightarrow> f220 x) =
+  (case proof of 
+      TRS_Termination_Proof x \<Rightarrow> P (f10 x )
+    | Complexity_Proof x \<Rightarrow> P (f20 x )
+    | DP_Termination_Proof x \<Rightarrow> P (f30 x)
+    | DP_Nontermination_Proof x \<Rightarrow> P (f40 x)
+    | TRS_Nontermination_Proof x \<Rightarrow> P (f50 x )
+    | FP_Termination_Proof x \<Rightarrow> P (f60 x )
+    | Relative_TRS_Nontermination_Proof x \<Rightarrow> P (f70 x)
+    | TRS_Confluence_Proof x \<Rightarrow> P (f80 x)
+    | TRS_Non_Confluence_Proof x \<Rightarrow> P (f90 x)
+    | Completion_Proof x \<Rightarrow> P (f100 x)
+    | Ordered_Completion_Proof x \<Rightarrow> P (f110 x)
+    | Equational_Proof x \<Rightarrow> P (f120 x)
+    | Equational_Disproof x \<Rightarrow> P (f130 x)
+    | Quasi_Reductive_Proof x \<Rightarrow> P (f140 x)
+    | Conditional_CR_Proof x \<Rightarrow> P (f150 x)
+    | Conditional_Non_CR_Proof x \<Rightarrow> P (f160 x)
+    | Tree_Automata_Closed_Proof x \<Rightarrow> P (f170 x)
+    | AC_Termination_Proof x \<Rightarrow> P (f180 x)
+    | LTS_Termination_Proof x \<Rightarrow> P (f190 x )
+    | LTS_Safety_Proof x \<Rightarrow> P (f200 x)
+    | Unknown_Proof x \<Rightarrow> P (f210 x)
+    | Unknown_Disproof x \<Rightarrow> P (f220 x))\<close>
+  by (cases "proof") auto
+
+definition check_cert_args_mismatch where
+   \<open>check_cert_args_mismatch input claim proof = 
+      (shows (''Claiming '' @ claim_to_string claim @ '' of '' @ input_to_string input @ '' by '' @ proof_to_string proof))\<close>
+
+lemma [sepref_fr_rules]:
+ \<open>(uncurry3 (return oooo check_cert_args_mismatch), uncurry3 (RETURN oooo check_cert_args_mismatch)) \<in>
+   input_assn\<^sup>k  *\<^sub>a claim_assn\<^sup>k  *\<^sub>a proof_assn\<^sup>k *\<^sub>a string_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close>
+  unfolding unfold_to_id_assn input_assn_def
+  by sepref_to_hoare (sep_auto)
+
+lemma 1:
+  \<open>RETURN o (\<lambda>x. f x) = (\<lambda>x. RETURN (f x))\<close>
+  by auto
+sepref_definition  certify_prob_code
+  is \<open>uncurry3 (RETURN oooo check_cert_args)\<close>
+  :: \<open>bool_assn\<^sup>k *\<^sub>a input_assn\<^sup>k  *\<^sub>a claim_assn\<^sup>k  *\<^sub>a proof_assn\<^sup>k \<rightarrow>\<^sub>a pure_fun_assn +\<^sub>a unit_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding check_cert_args_def check_cert_def  pull_out_let_conv check_cert_args_mismatch_def[symmetric]
+    case_input_swap 1 case_proof_swap Let_def
+  unfolding isafor_string_names
+  apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  oops
+           apply sepref_dbg_side_unfold apply (auto simp: )[]
+  
+term sum_assn
 lemma certify_prob_hnr[sepref_fr_rules]:
   \<open>(uncurry3 (return oooo check_cert_args), uncurry3 (RETURN oooo check_cert_args)) \<in>
         bool_assn\<^sup>k *\<^sub>a input_assn\<^sup>k  *\<^sub>a id_assn\<^sup>k  *\<^sub>a id_assn\<^sup>k \<rightarrow>\<^sub>a pure_fun_assn +\<^sub>a unit_assn\<close>
