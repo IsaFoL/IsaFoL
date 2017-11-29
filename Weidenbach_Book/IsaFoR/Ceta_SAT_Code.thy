@@ -178,6 +178,6 @@ qed
            apply sepref_dbg_side_unfold apply (auto simp: )[]
  *)
 
-export_code certify_proof_code in Haskell module_name Ceta
+(* export_code certify_proof_code in Haskell module_name Ceta *)
 
 end
