@@ -8,7 +8,7 @@ lemma [code del]: "mset xs - mset ys = mset (fold remove1 ys xs)"
 (* export_code certify_proof
 Certified Unsupported Error Inl Inr sumbot
 (* remove, after defining an XML format: *)
-  Yes No Terminating Upperbound Nonterminating Confluent Nonconfluent Completed Anything 
+  Yes No Terminating Upperbound Nonterminating Confluent Nonconfluent Completed Anything
   nat_of_integer
   in SML module_name Ceta *)
 
@@ -48,7 +48,7 @@ lemma id_assn_sting_pure[simp]:
   unfolding pure_def by auto
 
 definition input_assn
-  :: \<open>((string, nat list) lab, string) input \<Rightarrow> ((string, nat list) lab, string) input \<Rightarrow> assn\<close> 
+  :: \<open>((string, nat list) lab, string) input \<Rightarrow> ((string, nat list) lab, string) input \<Rightarrow> assn\<close>
 where
   \<open>input_assn = id_assn\<close>
 
@@ -56,7 +56,7 @@ lemma id_assn_eq_iff: \<open>id_assn a b = (\<up> (a = b))\<close>
   unfolding pure_def by auto
 
 lemma parse_xtc_plain_name_hnr[sepref_fr_rules]:
-  \<open>(return o parse_xtc_plain_name, RETURN o (parse_xtc_plain_name)) \<in> 
+  \<open>(return o parse_xtc_plain_name, RETURN o (parse_xtc_plain_name)) \<in>
     string_assn\<^sup>k \<rightarrow>\<^sub>a (sum_assn string_assn input_assn)\<close>
   by (sepref_to_hoare) (sep_auto elim!: sum_assn.elims simp: input_assn_def id_assn_eq_iff)
 
@@ -75,7 +75,7 @@ lemma id_assn_id_assn_sum_rel[simp]:
   by auto
 
 lemma parse_claim_plain_name_hnr[sepref_fr_rules]:
-  \<open>(return o parse_claim_plain_name, RETURN o (parse_claim_plain_name)) \<in> 
+  \<open>(return o parse_claim_plain_name, RETURN o (parse_claim_plain_name)) \<in>
     string_assn\<^sup>k \<rightarrow>\<^sub>a (sum_assn string_assn id_assn)\<close>
   by (sepref_to_hoare) (sep_auto elim!: sum_assn.elims simp: input_assn_def id_assn_eq_iff)
 
@@ -94,7 +94,7 @@ lemma unfold_to_id_assn:
   done
 
 lemma parse_cert_problem_hnr[sepref_fr_rules]:
-  \<open>(return o parse_cert_problem, RETURN o (parse_cert_problem)) \<in> 
+  \<open>(return o parse_cert_problem, RETURN o (parse_cert_problem)) \<in>
     string_assn\<^sup>k \<rightarrow>\<^sub>a (sum_assn string_assn (option_assn input_assn *a id_assn))\<close>
   by (sepref_to_hoare) (sep_auto elim!: sum_assn.elims simp: input_assn_def id_assn_eq_iff id_assn_alt'
       unfold_to_id_assn)
@@ -126,9 +126,6 @@ sepref_definition certify_proof_code
   no_input_pb_def[symmetric]
   by sepref
 
-export_code parse_claim_plain_name certify_prob parse_xtc_plain_name
-   certify_prob
-   in SML module_name Ceta
 
 export_code certify_proof_code in Haskell module_name Ceta
 
@@ -168,14 +165,14 @@ proof -
     using ret H[of False \<open>Some input_str\<close> \<open>Inr claim_str\<close> \<open>proof_str\<close>]
     by (auto simp: unfold_to_id_assn hn_refine_def hoare_triple_def)
 
-  
+
   show ?thesis
     apply (rule certify_proof_sound[where proof_str = \<open>proof_str\<close>])
     using ret H[of \<open>_\<close> \<open>{}\<close>]
     by (auto simp: run.simps return_def Heap_Monad.heap_def)
 qed
 
-(* 
+(*
   apply sepref_dbg_keep
       apply sepref_dbg_trans_keep
            apply sepref_dbg_trans_step_keep
