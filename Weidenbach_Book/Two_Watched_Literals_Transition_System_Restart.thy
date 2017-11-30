@@ -14,7 +14,7 @@ text \<open>
 
   This ensures that \<^emph>\<open>something\<close> changes to prove termination.
 \<close>
-inductive cdcl_twl_restart :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" where
+inductive cdcl_twl_restart :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
 restart_trail:
    \<open>cdcl_twl_restart (M, N, U, None, NP, UP, {#}, Q) (M', N, U', None, NP, UP, {#}, {#})\<close>
   if
@@ -230,7 +230,7 @@ proof (induction rule: cdcl_twl_restart.induct)
     kept = this(3) and invs = this(4)
   then have
     twl_st_inv: \<open>twl_st_inv (M, N, U, None, NP, UP, {#}, Q)\<close> and
-    \<open>valid_annotation (M, N, U, None, NP, UP, {#}, Q)\<close> and
+    \<open>valid_enqueued (M, N, U, None, NP, UP, {#}, Q)\<close> and
     struct_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv
       (state\<^sub>W_of (M, N, U, None, NP, UP, {#}, Q))\<close> and
     smaller: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa
@@ -377,7 +377,7 @@ next
     kept = this(2) and invs = this(3)
   then have
     twl_st_inv: \<open>twl_st_inv (M, N, U, None, NP, UP, {#}, Q)\<close> and
-    valid: \<open>valid_annotation (M, N, U, None, NP, UP, {#}, Q)\<close> and
+    valid: \<open>valid_enqueued (M, N, U, None, NP, UP, {#}, Q)\<close> and
     struct_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv
       (state\<^sub>W_of (M, N, U, None, NP, UP, {#}, Q))\<close> and
     smaller: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa
@@ -399,7 +399,7 @@ next
    have n_d: \<open>no_dup M\<close>
      using struct_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail.simps)
-   have valid': \<open>valid_annotation (M, N, U', None, NP, UP, {#}, Q)\<close>
+   have valid': \<open>valid_enqueued (M, N, U', None, NP, UP, {#}, Q)\<close>
      using valid by auto
    have unit_clss_inv: \<open>unit_clss_inv (M, N, U', None, NP, UP, {#}, Q)\<close>
      unfolding unit_clss_inv.simps
@@ -571,8 +571,8 @@ lemma (in -) substract_left_le: \<open>(a :: nat) + b < c ==> a <= c - b\<close>
 
 lemma (in conflict_driven_clause_learning\<^sub>W) cdcl\<^sub>W_stgy_new_learned_in_all_simple_clss:
   assumes
-    st: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* R S" and
-    invR: "cdcl\<^sub>W_all_struct_inv R"
+    st: \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* R S\<close> and
+    invR: \<open>cdcl\<^sub>W_all_struct_inv R\<close>
   shows \<open>set_mset (learned_clss S) \<subseteq> simple_clss (atms_of_mm (init_clss S))\<close>
 proof
   fix C
@@ -601,8 +601,8 @@ lemma (in -) learned_clss_get_all_learned_clss[simp]:
 
 lemma cdcl_twl_stgy_restart_new_learned_in_all_simple_clss:
   assumes
-    st: "cdcl_twl_stgy_restart\<^sup>*\<^sup>* R S" and
-    invR: "twl_struct_invs (fst R)"
+    st: \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* R S\<close> and
+    invR: \<open>twl_struct_invs (fst R)\<close>
   shows \<open>set_mset (clauses (get_learned_clss (fst S))) \<subseteq>
      simple_clss (atms_of_mm (get_all_init_clss (fst S)))\<close>
 proof

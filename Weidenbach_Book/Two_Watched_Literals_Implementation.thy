@@ -489,7 +489,7 @@ definition wf_prop_queue_abs :: "'st \<Rightarrow> bool" where
 
 definition all_annotation_valid where
 "all_annotation_valid S \<longleftrightarrow>
-  (\<forall>L \<in> set (raw_full_trail_abs S). valid_annotation S L)"
+  (\<forall>L \<in> set (raw_full_trail_abs S). valid_enqueued S L)"
 
 definition wf_twl_state :: "'st \<Rightarrow> bool" where
   "wf_twl_state S \<longleftrightarrow>
@@ -594,7 +594,7 @@ locale abs_state\<^sub>W_twl =
   assumes
     prop_state_cons_prop_queue_abs:
       "\<And>T'. undefined_lit (full_trail_abs T) (lit_of L) \<Longrightarrow>
-        prop_state T = (P, T') \<Longrightarrow> valid_annotation T L \<Longrightarrow>
+        prop_state T = (P, T') \<Longrightarrow> valid_enqueued T L \<Longrightarrow>
         prop_state (cons_prop_queue_abs L T) = (abs_mlit (raw_clauses_abs T) L # P,  T')" and
 
     last_prop_queue_to_trail_abs_prop_state:
@@ -770,7 +770,7 @@ lemma state_cons_prop_queue_abs:
   assumes
     undef: "undefined_lit (full_trail_abs st) (lit_of L)" and
     st: "state st = (M, S')" and
-    "valid_annotation st L"
+    "valid_enqueued st L"
   shows "state (cons_prop_queue_abs L st) = (mmset_of_mlit (raw_clauses_abs st) L # M, S')"
   using assms prop_state_cons_prop_queue_abs[of st L "prop_queue_abs st" "(trail_abs st, S')"]
   unfolding prop_state_def state_def full_trail_abs_def by auto
@@ -1447,7 +1447,7 @@ proof -
     apply (auto intro: H simp: full_trail_abs_def
         raw_conflicting_abs_reduce_trail_to_abs)
     done
-  ultimately have \<open>valid_annotation (fst ?T) (Propagated L (snd ?T))\<close>
+  ultimately have \<open>valid_enqueued (fst ?T) (Propagated L (snd ?T))\<close>
     using add_confl_to_learned_cls_abs_valid[of "?T_confl"] unfolding T'
     by (fastforce simp: in_clss_def M1' M1[symmetric] prop_state_def simp del: M1)
 

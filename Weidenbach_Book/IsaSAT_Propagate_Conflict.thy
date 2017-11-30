@@ -20,7 +20,7 @@ proof -
     by (cases S)
   have
      struct_invs: \<open>twl_struct_invs (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S))\<close> and
-     \<open>additional_WS_invs (st_l_of_wl (Some (K, w)) S)\<close> and
+     \<open>twl_list_invs (st_l_of_wl (Some (K, w)) S)\<close> and
      corr: \<open>correct_watching S\<close> and
      \<open>w < length (watched_by S K)\<close> and
      confl: \<open>get_conflict_wl S = None\<close> and
@@ -177,14 +177,14 @@ proof -
   show \<open>get_clauses_wl S ! watched_by_app S L w \<noteq> []\<close>
     using assms twl_struct_invs_length_clause_ge_2[of L w S \<open>watched_by S L ! w\<close>]
     unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def watched_by_app_def
-      additional_WS_invs_def by force
+      twl_list_invs_def by force
   show le: \<open>Suc 0 < length (get_clauses_wl S ! watched_by_app S L w)\<close>
     using assms twl_struct_invs_length_clause_ge_2[of L w S \<open>watched_by S L ! w\<close>]
     unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def watched_by_app_def
-      additional_WS_invs_def by force
+      twl_list_invs_def by force
   have nempty: \<open>get_clauses_wl S \<noteq> []\<close> and S_L_w_ge_0: \<open>0 < watched_by_app S L w\<close>
     using assms unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
-    additional_WS_invs_def watched_by_app_def by auto
+    twl_list_invs_def watched_by_app_def by auto
   obtain M N U D NP UP W Q where
     S: \<open>S = (M, N, U, D, NP, UP, Q, W)\<close>
     by (cases S)
@@ -311,7 +311,7 @@ lemma find_unwatched_l_find_unwatched_wl_s:
   \<open>find_unwatched_l (get_trail_wl S) (get_clauses_wl S ! C) = find_unwatched_wl_st S C\<close>
   by (cases S) (auto simp: find_unwatched_wl_st_def)
 
-definition (in -) find_unwatched :: "('a, 'b) ann_lits \<Rightarrow> 'a clause_l \<Rightarrow> (nat option) nres" where
+definition (in -) find_unwatched :: \<open>('a, 'b) ann_lits \<Rightarrow> 'a clause_l \<Rightarrow> (nat option) nres\<close> where
 \<open>find_unwatched M C = do {
    S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> 2 \<and> i \<le> length C \<and> (\<forall>j\<in>{2..<i}. -(C!j) \<in> lits_of_l M) \<and>
     (\<forall>j. found = Some j \<longrightarrow> (i = j \<and> (undefined_lit M (C!j) \<or> C!j \<in> lits_of_l M) \<and> j < length C \<and> j \<ge> 2))\<^esup>
@@ -657,14 +657,14 @@ proof  -
 
   have \<open>consistent_interp (lits_of_l (trail (state\<^sub>W_of (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S)))))\<close>
     \<open>no_dup (trail (state\<^sub>W_of (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S))))\<close> and
-    valid: \<open>valid_annotation (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S))\<close>
+    valid: \<open>valid_enqueued (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S))\<close>
     using inv unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def twl_struct_invs_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
     by blast+
   then have cons: \<open>consistent_interp (lits_of_l (get_trail_wl S))\<close>
     by (cases S) (auto)
 
-  have \<open>additional_WS_invs (st_l_of_wl (Some (L, C)) S)\<close> and C_le: \<open>C < length (watched_by S L)\<close> and
+  have \<open>twl_list_invs (st_l_of_wl (Some (L, C)) S)\<close> and C_le: \<open>C < length (watched_by S L)\<close> and
     confl: \<open>get_conflict_wl S = None\<close> and \<open>no_duplicate_queued (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S))\<close>
       using inv unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
         unit_propagation_inner_loop_body_l_inv_def twl_struct_invs_def by fast+
@@ -674,7 +674,7 @@ proof  -
       unit_prop_body_wl_find_unwatched_inv_def watched_by_app_def
     by auto
   moreover {
-    have \<open>additional_WS_invs (st_l_of_wl (Some (L, C)) S)\<close> and \<open>C < length (watched_by S L)\<close> and
+    have \<open>twl_list_invs (st_l_of_wl (Some (L, C)) S)\<close> and \<open>C < length (watched_by S L)\<close> and
       \<open>get_conflict_wl S = None\<close> and \<open>no_duplicate_queued (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S))\<close>
       using inv unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
         unit_propagation_inner_loop_body_l_inv_def twl_struct_invs_def by fast+

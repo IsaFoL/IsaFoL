@@ -19,7 +19,7 @@ fun twl_st_of_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v twl_st_init\<clos
 definition twl_struct_invs_init :: \<open>'v twl_st_init \<Rightarrow> bool\<close> where
   \<open>twl_struct_invs_init S \<longleftrightarrow>
     (twl_st_inv (fst S) \<and>
-    valid_annotation (fst S) \<and>
+    valid_enqueued (fst S) \<and>
     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of_init S) \<and>
     cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of_init S) \<and>
     twl_st_exception_inv (fst S) \<and>
@@ -40,7 +40,7 @@ lemma twl_struct_invs_init_add_mset:
 proof -
   have
     st_inv: \<open>twl_st_inv S\<close> and
-    valid: \<open>valid_annotation S\<close> and
+    valid: \<open>valid_enqueued S\<close> and
     struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of_init (S, QC))\<close> and
     smaller: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of_init (S, QC))\<close> and
     excep: \<open>twl_st_exception_inv S\<close> and
@@ -60,8 +60,9 @@ proof -
     apply (intro conjI)
     subgoal by (rule st_inv)
     subgoal by (rule valid)
-    subgoal using struct count_dec dist
-      by (cases S)(auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def clauses_def
+    subgoal using struct count_dec no_dup
+      by (cases S)
+        (auto 5 5 simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def clauses_def
           cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.no_strange_atm_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
@@ -117,7 +118,7 @@ lemma init_dt_full:
     \<open>clauses_to_update_l S = {#}\<close> and
     \<open>\<forall>s\<in>set (get_trail_l S). \<not>is_decided s\<close> and
     \<open>get_conflict_l S = None \<longrightarrow> literals_to_update_l S = uminus `# lit_of `# mset (get_trail_l S)\<close> and
-    \<open>additional_WS_invs S\<close> and
+    \<open>twl_list_invs S\<close> and
     \<open>get_learned_l S = length (get_clauses_l S) - 1\<close> and
     \<open>twl_stgy_invs (twl_st_of None S)\<close> and
     \<open>OC \<noteq> {#} \<longrightarrow> get_conflict_l S \<noteq> None\<close>
@@ -129,7 +130,7 @@ lemma init_dt_full:
     \<open>mset `# mset CS + cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None S)) + OC =
       cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None S')) + OC'\<close> and
     \<open>learned_clss (state\<^sub>W_of (twl_st_of None S')) = learned_clss (state\<^sub>W_of (twl_st_of None S))\<close> and
-    \<open>additional_WS_invs S'\<close> and
+    \<open>twl_list_invs S'\<close> and
     \<open>get_learned_l S' = length (get_clauses_l S') - 1\<close> and
     \<open>twl_stgy_invs (twl_st_of None S')\<close> and
     \<open>OC' \<noteq> {#} \<longrightarrow> get_conflict_l S' \<noteq> None\<close> and
@@ -169,7 +170,7 @@ next
       and
     learned': \<open>learned_clss (state\<^sub>W_of (twl_st_of None ?S')) = learned_clss (state\<^sub>W_of (twl_st_of None S))\<close>
       and
-    add_inv': \<open>additional_WS_invs ?S'\<close> and
+    add_inv': \<open>twl_list_invs ?S'\<close> and
     U': \<open>get_learned_l ?S' = length (get_clauses_l ?S') - 1\<close> and
     OC'_empty: \<open>snd ?SOC' \<noteq> {#} \<longrightarrow> get_conflict_l ?S' \<noteq> None\<close>and
     OC'_empty_conflict: \<open>{#} \<in># mset `# mset CS \<longrightarrow> get_conflict_l ?S' \<noteq> None\<close>
@@ -187,7 +188,7 @@ next
   have dec_M: \<open>\<forall>s\<in>set M. \<not> is_decided s\<close>
     using dec' S by auto
   have N_not_empty: \<open>N \<noteq> []\<close>
-    using add_inv' unfolding additional_WS_invs_def S by auto
+    using add_inv' unfolding twl_list_invs_def S by auto
   have U_len_N: \<open>U = length N - 1\<close>
     using U' unfolding S by auto
   then have [simp]: \<open>take U (tl N) = tl N\<close> \<open>drop (Suc U) N = []\<close> \<open>drop U (tl N) = []\<close>
@@ -220,11 +221,11 @@ next
   case 7
   show ?case
     using add_inv' N_not_empty
-    by (cases D) (fastforce simp add: U_len_N S clauses_def additional_WS_invs_def Let_def nth_append
+    by (cases D) (fastforce simp add: U_len_N S clauses_def twl_list_invs_def Let_def nth_append
         cdcl\<^sub>W_restart_mset_state)+
   case 8
   show ?case
-    by (cases D) (auto simp add: U_len_N S clauses_def additional_WS_invs_def Let_def nth_append
+    by (cases D) (auto simp add: U_len_N S clauses_def twl_list_invs_def Let_def nth_append
         cdcl\<^sub>W_restart_mset_state)
 
   let ?S' = \<open>(convert_lits_l N M, twl_clause_of `# mset (take U (tl N)),
@@ -238,7 +239,7 @@ next
       \<not> twl_is_an_exception C Q ({#} :: ('v literal \<times> 'v twl_cls) multiset ) \<longrightarrow>
       (twl_lazy_update (convert_lits_l N M) C \<and> twl_inv (convert_lits_l N M) C)\<close> and
     lev: \<open>\<forall>C\<in>#twl_clause_of `# mset (tl N). D = None \<longrightarrow> watched_literals_false_of_max_level (convert_lits_l N M) C\<close> and
-    valid: \<open>valid_annotation (fst ?S')\<close> and
+    valid: \<open>valid_enqueued (fst ?S')\<close> and
     all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv ?T'\<close> and
     no_smaller: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa ?T'\<close> and
     excep: \<open>twl_st_exception_inv (fst ?S')\<close> and
@@ -295,7 +296,7 @@ next
     using S literals_to_update' that by (auto simp: lits_of_def uminus_lit_swap)
 
   have \<open>x \<in> set M \<Longrightarrow> convert_lit (N @ N') x = convert_lit N x\<close> for x N'
-    using add_inv' by (cases x) (auto simp: nth_append additional_WS_invs_def S)
+    using add_inv' by (cases x) (auto simp: nth_append twl_list_invs_def S)
   then have [simp]: \<open>convert_lits_l (N @ N') M = convert_lits_l N M\<close> for N'
     unfolding convert_lits_l_def by auto
   consider
@@ -658,7 +659,7 @@ theorem init_dt:
          mset `# mset CS\<close> and
     \<open>twl_stgy_invs (twl_st_of None (fst (init_dt CS S)))\<close> and
     \<open>clauses_to_update_l (fst (init_dt CS S)) = {#}\<close> and
-    \<open>additional_WS_invs (fst (init_dt CS S))\<close> and
+    \<open>twl_list_invs (fst (init_dt CS S))\<close> and
     \<open>get_conflict_l (fst (init_dt CS S)) \<noteq> None \<longrightarrow>
          the (get_conflict_l (fst (init_dt CS S))) \<in># mset `# mset CS\<close> and
    \<open>snd (init_dt CS S) \<noteq> {#} \<longrightarrow> get_conflict_l (fst (init_dt CS S)) \<noteq> None\<close> and
@@ -685,8 +686,8 @@ proof -
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
         past_invs.simps clauses_def
         cdcl\<^sub>W_restart_mset_state)
-  have [simp]: \<open>additional_WS_invs (fst S)\<close>
-    unfolding S by (auto simp: additional_WS_invs_def)
+  have [simp]: \<open>twl_list_invs (fst S)\<close>
+    unfolding S by (auto simp: twl_list_invs_def)
   have [simp]: \<open>get_learned_l (fst S) = length (get_clauses_l (fst S)) - 1\<close>
     unfolding S by auto
   have [simp]: \<open>twl_stgy_invs (twl_st_of None (fst S))\<close>
@@ -706,7 +707,7 @@ proof -
       mset `# mset CS\<close> and
     \<open>twl_stgy_invs (twl_st_of None (fst (init_dt CS S)))\<close> and
     \<open>clauses_to_update_l (fst (init_dt CS S)) = {#}\<close> and
-    \<open>additional_WS_invs (fst (init_dt CS S))\<close> and
+    \<open>twl_list_invs (fst (init_dt CS S))\<close> and
     \<open>get_conflict_l (fst (init_dt CS S)) \<noteq> None \<longrightarrow>
       the (get_conflict_l (fst (init_dt CS S))) \<in># mset `# mset CS\<close>
     using init_dt_full(1-9)[of CS \<open>fst S\<close> \<open>snd S\<close>, OF assms(2)]

@@ -2436,10 +2436,10 @@ sepref_definition vmtf_enqueue_code
 
 declare vmtf_enqueue_code.refine[sepref_fr_rules]
 
-definition insert_sort_inner_nth :: "nat_vmtf_node list \<Rightarrow> nat list \<Rightarrow> nat \<Rightarrow> nat list nres" where
+definition insert_sort_inner_nth :: \<open>nat_vmtf_node list \<Rightarrow> nat list \<Rightarrow> nat \<Rightarrow> nat list nres\<close> where
   \<open>insert_sort_inner_nth ns = insert_sort_inner (\<lambda>remove n. stamp (ns ! (remove ! n)))\<close>
 
-definition insert_sort_nth :: "nat_vmtf_node list \<times> 'c \<Rightarrow> nat list \<Rightarrow> nat list nres" where
+definition insert_sort_nth :: \<open>nat_vmtf_node list \<times> 'c \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
   \<open>insert_sort_nth = (\<lambda>(ns, _). insert_sort (\<lambda>remove n. stamp (ns ! (remove ! n))))\<close>
 
 
