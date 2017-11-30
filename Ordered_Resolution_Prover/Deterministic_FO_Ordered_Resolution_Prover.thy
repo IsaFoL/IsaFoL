@@ -169,13 +169,13 @@ definition resolve :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lcla
         else
           [])) D)"
 
-definition resolve_either_way :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
-  "resolve_either_way C D = resolve C D @ resolve D C"
+definition resolve_rename :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
+  "resolve_rename C D =
+   (let \<sigma>s = renamings_apart [mset C, mset D] in
+      resolve (map (\<lambda>L. L \<cdot>l \<sigma>s ! 1) C) (map (\<lambda>L. L \<cdot>l \<sigma>s ! 0) D))"
 
 definition resolve_rename_either_way :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
-  "resolve_rename_either_way C D =
-   (let \<sigma>s = renamings_apart [mset C, mset D] in
-      resolve_either_way (map (\<lambda>L. L \<cdot>l (\<sigma>s ! 0)) C) (map (\<lambda>L. L \<cdot>l \<sigma>s ! 1) D))"
+  "resolve_rename_either_way C D = resolve_rename C D @ resolve_rename D C"
 
 fun
   select_min_weight_clause :: "'a dclause \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause"
@@ -199,8 +199,8 @@ fun deterministic_RP_step :: "'a dstate \<Rightarrow> 'a dstate" where
             | P0 # P' \<Rightarrow>
               let
                 (C, i) = select_min_weight_clause P0 P';
-                N = map (\<lambda>D. (D, n))
-                  (remdups_gen mset (concat (map (resolve_rename_either_way C \<circ> fst) Q)));
+                N = map (\<lambda>D. (D, n)) (remdups_gen mset (resolve_rename C C @
+                  concat (map (resolve_rename_either_way C \<circ> fst) Q)));
                 P = remove1 (C, i) P;
                 Q = (C, i) # Q;
                 n = Suc n
@@ -449,12 +449,76 @@ proof (induct Q' arbitrary: P Q)
   qed
 qed simp
 
-lemma resolve_rename_either_way_vs_inferences_between:
-  "(\<Union>D \<in> Q. mset ` set (resolve_rename_either_way C D)) =
+abbreviation Bin_ord_resolve_rename :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause set" where
+  "Bin_ord_resolve_rename C D \<equiv> {E. \<exists>AAs As \<sigma>. ord_resolve_rename S [C] D AAs As \<sigma> E}"
+
+lemma resolve_rename_eq_Bin_ord_resolve_rename:
+  "mset ` set (resolve_rename C D) = Bin_ord_resolve_rename (mset C) (mset D)"
+  unfolding resolve_rename_def
+  sorry (* maybe a bit hard *)
+
+lemma ord_resolve_one_side_prem: "ord_resolve S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1"
+  apply (erule ord_resolve.cases)
+  unfolding eligible.simps S_empty by force
+
+lemma ord_resolve_rename_one_side_prem: "ord_resolve_rename S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1"
+  apply (erule ord_resolve_rename.cases)
+  apply (drule ord_resolve_one_side_prem)
+  apply (hypsubst)
+  apply simp
+  apply (unfold renames_apart[THEN conjunct1])
+  apply simp
+  done
+
+lemma ord_FO_\<Gamma>_SD:
+  assumes \<gamma>_in: "\<gamma> \<in> ord_FO_\<Gamma> S"
+  obtains C D where
+    "prems_of \<gamma> = {#C, D#}"
+proof -
+  have "\<exists>C D. prems_of \<gamma> = {#C, D#}"
+    using \<gamma>_in unfolding ord_FO_\<Gamma>_def
+    apply clarsimp
+    apply (drule ord_resolve_rename_one_side_prem)
+    using size_1_singleton_mset by force
+  then show thesis
+    using that by blast
+qed
+
+lemma ord_FO_\<Gamma>_infer_from_Collect_eq:
+  "{\<gamma> \<in> ord_FO_\<Gamma> S. infer_from (DD \<union> {C}) \<gamma> \<and> C \<in># prems_of \<gamma>} =
+   {\<gamma> \<in> ord_FO_\<Gamma> S. \<exists>D \<in> DD \<union> {C}. prems_of \<gamma> = {#C, D#}}"
+  sorry (* easy *)
+
+lemma inferences_between_eq_UNION: "inference_system.inferences_between (ord_FO_\<Gamma> S) Q C =
+  inference_system.inferences_between (ord_FO_\<Gamma> S) {C} C
+  \<union> (\<Union>D \<in> Q. inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C)"
+  unfolding ord_FO_\<Gamma>_infer_from_Collect_eq inference_system.inferences_between_def by auto
+
+lemma concls_of_inferences_between_singleton_eq_Bin_ord_resolve_rename:
+  "concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C) =
+   Bin_ord_resolve_rename C C \<union> Bin_ord_resolve_rename C D \<union> Bin_ord_resolve_rename D C"
+  unfolding inference_system.inferences_between_def ord_FO_\<Gamma>_infer_from_Collect_eq
+  unfolding ord_FO_\<Gamma>_def infer_from_def
+  apply auto
+
+
+  sorry (* easy *)
+
+lemma concls_of_inferences_between_eq_Bin_ord_resolve_rename:
+  "concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) Q C) =
+   Bin_ord_resolve_rename C C \<union> (\<Union>D \<in> Q. Bin_ord_resolve_rename C D \<union> Bin_ord_resolve_rename D C)"
+  by (subst inferences_between_eq_UNION)
+    (auto simp: image_Un image_UN concls_of_inferences_between_singleton_eq_Bin_ord_resolve_rename)
+
+lemma resolve_rename_either_way_eq_congls_of_inferences_between:
+  "mset ` set (resolve_rename C C) \<union> (\<Union>D \<in> Q. mset ` set (resolve_rename_either_way C D)) =
    concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) (mset ` Q) (mset C))"
-  unfolding image_def inference_system.inferences_between_def Bex_def mem_Collect_eq
-    infer_from_def 
-  sorry
+  unfolding resolve_rename_either_way_def
+  apply (simp add: image_Un UN_Un_distrib)
+  unfolding resolve_rename_eq_Bin_ord_resolve_rename
+    concls_of_inferences_between_eq_Bin_ord_resolve_rename
+  apply (simp add: UN_Un_distrib)
+  done
 
 lemma compute_inferences:
   assumes
@@ -462,8 +526,8 @@ lemma compute_inferences:
     ci_min: "\<forall>(D, j) \<in># mset (map (apfst mset) P). weight (mset C, i) \<le> weight (D, j)"
   shows
     "wstate_of_dstate ([], P, Q, n) \<leadsto>\<^sub>w
-     wstate_of_dstate
-      (map (\<lambda>D. (D, n)) (remdups_gen mset (concat (map (resolve_rename_either_way C \<circ> fst) Q))),
+     wstate_of_dstate (map (\<lambda>D. (D, n)) (remdups_gen mset (resolve_rename C C @
+         concat (map (resolve_rename_either_way C \<circ> fst) Q))),
        remove1 (C, i) P, (C, i) # Q, Suc n)" (is "_ \<leadsto>\<^sub>w wstate_of_dstate (?N, _)")
 proof -
   have ms_ci_in: "(mset C, i) \<in># image_mset (apfst mset) (mset P)"
@@ -491,9 +555,9 @@ proof -
     apply (rule arg_cong[of _ _ "\<lambda>N. (\<lambda>D. (D, n)) ` N"])
 
     apply (simp only: map_concat list.map_comp image_comp)
-    using resolve_rename_either_way_vs_inferences_between[of C "fst ` set Q"]
+    using resolve_rename_either_way_eq_congls_of_inferences_between[of C "fst ` set Q", symmetric]
     apply (simp only: image_comp comp_def)
-    apply simp
+    apply (simp add: image_UN)
     done
 qed
 
@@ -915,18 +979,18 @@ lemmas llast_ssgSts = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct2, THE
 lemma not_lnull_ssgSts: "\<not> lnull ssgSts"
   using deriv_ssgSts_weighted_RP by (cases rule: chain.cases) auto
 
-lemma finite_ssgSts0: "finite (clss_of_wstate (lhd ssgSts))"
+lemma finite_ssgSts0: "finite (wrp.clss_of_wstate (lhd ssgSts))"
   unfolding lhd_ssgSts by (subst derivation_from.code) (simp add: clss_of_state_def)
 
-lemma empty_ssgP0: "P_of_wstate (lhd ssgSts) = {}"
+lemma empty_ssgP0: "wrp.P_of_wstate (lhd ssgSts) = {}"
   unfolding lhd_ssgSts by (subst derivation_from.code) simp
 
-lemma empty_ssgQ0: "Q_of_wstate (lhd ssgSts) = {}"
+lemma empty_ssgQ0: "wrp.Q_of_wstate (lhd ssgSts) = {}"
   unfolding lhd_ssgSts by (subst derivation_from.code) simp
 
 lemmas ssgSts_thms = deriv_ssgSts_weighted_RP finite_ssgSts0 empty_ssgP0 empty_ssgQ0
 
-lemma "clss_of_state (Liminf_wstate ssgSts) \<subseteq> clss_of_state (Liminf_wstate gSts)"
+lemma "clss_of_state (wrp.Liminf_wstate ssgSts) \<subseteq> clss_of_state (wrp.Liminf_wstate gSts)"
 proof (cases "lfinite Sts")
   case fin: True
   show ?thesis
@@ -1016,16 +1080,16 @@ proof -
       using k_steps by blast
   qed
 
-  have fin_gr_fgsts: "lfinite (lmap grounding_of_wstate ssgSts)"
+  have fin_gr_fgsts: "lfinite (lmap wrp.grounding_of_wstate ssgSts)"
     by (rule lfinite_lmap[THEN iffD2, OF lfinite_ssgSts])
 
-  have lim_last: "Liminf_llist (lmap grounding_of_wstate ssgSts) =
-    grounding_of_wstate (llast ssgSts)"
+  have lim_last: "Liminf_llist (lmap wrp.grounding_of_wstate ssgSts) =
+    wrp.grounding_of_wstate (llast ssgSts)"
     unfolding lfinite_Liminf_llist[OF fin_gr_fgsts]
       llast_lmap[OF lfinite_ssgSts not_lnull_ssgSts]
     using not_lnull_ssgSts by simp
 
-  have gr_st0: "grounding_of_wstate (wstate_of_dstate St0) = grounded_N0"
+  have gr_st0: "wrp.grounding_of_wstate (wstate_of_dstate St0) = grounded_N0"
     by (simp add: clss_of_state_def comp_def)
 
   have "?saturated \<and> ?model"
@@ -1034,15 +1098,15 @@ proof -
     then have emp_in: "{#} \<in> grounded_R"
       unfolding grounding_of_clss_def grounding_of_cls_def by (auto intro: ex_ground_subst)
 
-    have "grounded_R \<subseteq> grounding_of_wstate (llast ssgSts)"
+    have "grounded_R \<subseteq> wrp.grounding_of_wstate (llast ssgSts)"
       unfolding r llast_ssgSts
       by (simp add: last_sts llast_lmap[OF lfinite_Sts] clss_of_state_def grounding_of_clss_def)
-    then have gr_last_st: "grounded_R \<subseteq> grounding_of_wstate (wstate_of_dstate (llast Sts))"
+    then have gr_last_st: "grounded_R \<subseteq> wrp.grounding_of_wstate (wstate_of_dstate (llast Sts))"
       by (simp add: lfinite_Sts llast_lmap llast_ssgSts)
 
     have gr_r_fls: "\<not> I \<Turnstile>s grounded_R"
       using emp_in unfolding true_clss_def by force
-    then have gr_last_fls: "\<not> I \<Turnstile>s grounding_of_wstate (wstate_of_dstate (llast Sts))"
+    then have gr_last_fls: "\<not> I \<Turnstile>s wrp.grounding_of_wstate (wstate_of_dstate (llast Sts))"
       using gr_last_st unfolding true_clss_def by auto
 
     have ?saturated
@@ -1051,24 +1115,24 @@ proof -
       by auto
     moreover have ?model
       unfolding gr_r_fls[THEN eq_False[THEN iffD2]]
-      by (rule rtranclp_imp_eq_image[of "op \<leadsto>\<^sub>w" "\<lambda>St. I \<Turnstile>s grounding_of_wstate St", OF _ wrp,
+      by (rule rtranclp_imp_eq_image[of "op \<leadsto>\<^sub>w" "\<lambda>St. I \<Turnstile>s wrp.grounding_of_wstate St", OF _ wrp,
             unfolded gr_st0 gr_last_fls[THEN eq_False[THEN iffD2]]])
         (use wrp.weighted_RP_model[OF ssgSts_thms] in blast)
     ultimately show ?thesis
       by blast
   next
     case False
-    then have gr_last: "grounding_of_wstate (llast ssgSts) = grounded_R"
+    then have gr_last: "wrp.grounding_of_wstate (llast ssgSts) = grounded_R"
       using final unfolding r llast_ssgSts
       by (simp add: last_sts llast_lmap[OF lfinite_Sts] clss_of_state_def comp_def
           is_final_dstate.simps)
-    then have gr_last_st: "grounding_of_wstate (wstate_of_dstate (llast Sts)) = grounded_R"
+    then have gr_last_st: "wrp.grounding_of_wstate (wstate_of_dstate (llast Sts)) = grounded_R"
       by (simp add: lfinite_Sts llast_lmap llast_ssgSts)
 
     have ?saturated
       using wrp.weighted_RP_saturated[OF ssgSts_thms, unfolded gr_last lim_last] by auto
     moreover have ?model
-      by (rule rtranclp_imp_eq_image[of "op \<leadsto>\<^sub>w" "\<lambda>St. I \<Turnstile>s grounding_of_wstate St", OF _ wrp,
+      by (rule rtranclp_imp_eq_image[of "op \<leadsto>\<^sub>w" "\<lambda>St. I \<Turnstile>s wrp.grounding_of_wstate St", OF _ wrp,
             unfolded gr_st0 gr_last_st])
         (use wrp.weighted_RP_model[OF ssgSts_thms] in blast)
     ultimately show ?thesis
@@ -1104,15 +1168,15 @@ theorem deterministic_RP_complete: "satisfiable grounded_N0"
 proof (rule ccontr)
   assume unsat: "\<not> satisfiable grounded_N0"
 
-  have unsat_gSts0: "\<not> satisfiable (grounding_of_wstate (lhd gSts))"
+  have unsat_gSts0: "\<not> satisfiable (wrp.grounding_of_wstate (lhd gSts))"
     using unsat by (subst derivation_from.code) (simp add: clss_of_state_def comp_def)
 
-  have bot_in_ss: "{#} \<in> Q_of_state (Liminf_wstate ssgSts)"
+  have bot_in_ss: "{#} \<in> Q_of_state (wrp.Liminf_wstate ssgSts)"
     by (rule wrp.weighted_RP_complete[OF ssgSts_thms unsat_gSts0[folded lhd_ssgSts]])
-  have bot_in_lim: "{#} \<in> Q_of_state (Liminf_wstate gSts)"
+  have bot_in_lim: "{#} \<in> Q_of_state (wrp.Liminf_wstate gSts)"
   proof (cases "lfinite Sts")
     case fin: True
-    have "Liminf_wstate ssgSts = Liminf_wstate gSts"
+    have "wrp.Liminf_wstate ssgSts = wrp.Liminf_wstate gSts"
       by (rule Liminf_state_fin, simp_all add: fin lfinite_ssgSts_iff not_lnull_ssgSts,
           subst (1 2) llast_lmap,
           simp_all add: lfinite_ssgSts_iff fin not_lnull_ssgSts llast_ssgSts)
@@ -1125,12 +1189,12 @@ proof (rule ccontr)
   qed
   then obtain k :: nat where
     k_lt: "enat k < llength Sts" and
-    emp_in: "{#} \<in> Q_of_wstate (lnth gSts k)"
+    emp_in: "{#} \<in> wrp.Q_of_wstate (lnth gSts k)"
     unfolding Liminf_state_def Liminf_llist_def by auto
   have emp_in: "{#} \<in> Q_of_state (state_of_dstate ((deterministic_RP_step ^^ k) St0))"
   proof -
     have "enat k < llength Sts' \<Longrightarrow> Sts' = derivation_from St0' \<Longrightarrow>
-      {#} \<in> Q_of_wstate (lnth (lmap wstate_of_dstate Sts') k) \<Longrightarrow>
+      {#} \<in> wrp.Q_of_wstate (lnth (lmap wstate_of_dstate Sts') k) \<Longrightarrow>
       {#} \<in> Q_of_state (state_of_dstate ((deterministic_RP_step ^^ k) St0'))" for St0' Sts' k
     proof (induction k arbitrary: St0' Sts')
       case 0
@@ -1144,7 +1208,7 @@ proof (rule ccontr)
         using sk_lt by (cases Sts') (auto simp: Suc_ile_eq)
       moreover have "ltl Sts' = derivation_from (deterministic_RP_step St0')"
         using sts' k_lt by (cases Sts') auto
-      moreover have "{#} \<in> Q_of_wstate (lnth (lmap wstate_of_dstate (ltl Sts')) k)"
+      moreover have "{#} \<in> wrp.Q_of_wstate (lnth (lmap wstate_of_dstate (ltl Sts')) k)"
         using emp_in_sk k_lt by (cases Sts') auto
       ultimately show ?case
         using ih[of "ltl Sts'" "deterministic_RP_step St0'"] by (simp add: funpow_swap1)

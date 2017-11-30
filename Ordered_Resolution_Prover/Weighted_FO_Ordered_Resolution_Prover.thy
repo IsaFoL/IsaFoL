@@ -242,13 +242,6 @@ sublocale wrp: weighted_FO_resolution_prover _ _ _ _ _ _ _ _ weight
 
 notation wrp.weighted_RP (infix "\<leadsto>\<^sub>w" 50)
 
-abbreviation "clss_of_wstate \<equiv> wrp.clss_of_wstate"
-abbreviation "N_of_wstate \<equiv> wrp.N_of_wstate"
-abbreviation "P_of_wstate \<equiv> wrp.P_of_wstate"
-abbreviation "Q_of_wstate \<equiv> wrp.Q_of_wstate"
-abbreviation "grounding_of_wstate \<equiv> wrp.grounding_of_wstate"
-abbreviation "Liminf_wstate \<equiv> wrp.Liminf_wstate"
-
 end
 
 end

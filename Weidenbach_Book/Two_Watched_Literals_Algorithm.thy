@@ -22,8 +22,8 @@ definition update_clauseS :: \<open>'v literal \<Rightarrow> 'v twl_cls \<Righta
         RETURN (M, N', U', D, NP, UP, WS, Q)
   })\<close>
 
-definition unit_propagation_inner_loop_body :: "'v literal \<times> 'v twl_cls \<Rightarrow>
-  'v twl_st \<Rightarrow> 'v twl_st nres" where
+definition unit_propagation_inner_loop_body :: \<open>'v literal \<times> 'v twl_cls \<Rightarrow>
+  'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
   \<open>unit_propagation_inner_loop_body = (\<lambda>(L, C) (S::'v twl_st). do {
     L' \<leftarrow> SPEC (\<lambda>K. K \<in># watched C - {#L#});
     ASSERT (watched C = {#L, L'#});
@@ -41,7 +41,7 @@ definition unit_propagation_inner_loop_body :: "'v literal \<times> 'v twl_cls \
   })
 \<close>
 
-definition unit_propagation_inner_loop :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
+definition unit_propagation_inner_loop :: \<open>'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
   \<open>unit_propagation_inner_loop S\<^sub>0 =
     WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs S \<and> twl_stgy_invs S \<and> cdcl_twl_cp\<^sup>*\<^sup>* S\<^sub>0 S\<^esup>
       (\<lambda>S. clauses_to_update S \<noteq> {#})
@@ -237,7 +237,7 @@ lemma unit_propagation_inner_loop:
 
 declare unit_propagation_inner_loop[THEN order_trans, refine_vcg]
 
-definition unit_propagation_outer_loop :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
+definition unit_propagation_outer_loop :: \<open>'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
   \<open>unit_propagation_outer_loop S\<^sub>0 =
     WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs S \<and> twl_stgy_invs S \<and> cdcl_twl_cp\<^sup>*\<^sup>* S\<^sub>0 S \<and> clauses_to_update S = {#}\<^esup>
       (\<lambda>S. literals_to_update S \<noteq> {#})
@@ -391,7 +391,7 @@ definition find_unassigned_lit :: \<open>'v twl_st \<Rightarrow> 'v literal opti
 definition propagate_dec where
   \<open>propagate_dec = (\<lambda>L (M, N, U, D, NP, UP, WS, Q). (Decided L # M, N, U, D, NP, UP, WS, {#-L#}))\<close>
 
-definition decide_or_skip :: "'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres" where
+definition decide_or_skip :: \<open>'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres\<close> where
   \<open>decide_or_skip S = do {
      L \<leftarrow> find_unassigned_lit S;
      case L of
@@ -490,7 +490,7 @@ definition tl_state :: \<open>'v twl_st \<Rightarrow> 'v twl_st\<close> where
 definition update_confl_tl :: \<open>'v clause option \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
   \<open>update_confl_tl = (\<lambda>D (M, N, U, _, NP, UP, WS, Q). (tl M, N, U, D, NP, UP, WS, Q))\<close>
 
-definition skip_and_resolve_loop :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
+definition skip_and_resolve_loop :: \<open>'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
   \<open>skip_and_resolve_loop S\<^sub>0 =
     do {
       (_, S) \<leftarrow>
@@ -703,7 +703,7 @@ definition propagate_unit_bt :: \<open>'v literal \<Rightarrow> 'v twl_st \<Righ
 definition backtrack_inv where
   \<open>backtrack_inv S \<longleftrightarrow> get_trail S \<noteq> [] \<and> get_conflict S \<noteq> Some {#}\<close>
 
-definition backtrack :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
+definition backtrack :: \<open>'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
   \<open>backtrack S =
     do {
       ASSERT(backtrack_inv S);
@@ -729,8 +729,8 @@ begin
 
 lemma no_step_skip_hd_in_conflicting:
   assumes
-    inv_s: "cdcl\<^sub>W_stgy_invariant S" and
-    inv: "cdcl\<^sub>W_all_struct_inv S" and
+    inv_s: \<open>cdcl\<^sub>W_stgy_invariant S\<close> and
+    inv: \<open>cdcl\<^sub>W_all_struct_inv S\<close> and
     ns: \<open>no_step skip S\<close> and
     confl: \<open>conflicting S \<noteq> None\<close> \<open>conflicting S \<noteq> Some {#}\<close>
   shows \<open>-lit_of (hd (trail S)) \<in># the (conflicting S)\<close>
@@ -1069,7 +1069,7 @@ declare backtrack_spec[THEN order_trans, refine_vcg]
 
 subsubsection \<open>Full loop\<close>
 
-definition cdcl_twl_o_prog :: "'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres" where
+definition cdcl_twl_o_prog :: \<open>'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres\<close> where
   \<open>cdcl_twl_o_prog S =
     do {
       if get_conflict S = None
@@ -1133,7 +1133,7 @@ declare cdcl_twl_o_prog_spec[THEN order_trans, refine_vcg]
 
 subsection \<open>Full Strategy\<close>
 
-definition cdcl_twl_stgy_prog :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
+definition cdcl_twl_stgy_prog :: \<open>'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
   \<open>cdcl_twl_stgy_prog S\<^sub>0 =
   do {
     do {
@@ -1203,22 +1203,22 @@ lemma cdcl_twl_stgy_prog_spec:
   subgoal by blast
   subgoal for brk S' T brk' U
   proof -
-    assume a1: "cdcl_twl_cp\<^sup>*\<^sup>* S' T"
-    assume a2: "case (brk', U) of (brk, S') \<Rightarrow> cdcl_twl_o\<^sup>*\<^sup>* T S' \<and>
+    assume a1: \<open>cdcl_twl_cp\<^sup>*\<^sup>* S' T\<close>
+    assume a2: \<open>case (brk', U) of (brk, S') \<Rightarrow> cdcl_twl_o\<^sup>*\<^sup>* T S' \<and>
       (get_conflict S' \<noteq> None \<longrightarrow> get_conflict S' = Some {#}) \<and> no_step cdcl_twl_o S' \<and>
       (brk \<longrightarrow> no_step cdcl_twl_stgy S') \<and> twl_struct_invs S' \<and> twl_stgy_invs S' \<and>
       clauses_to_update S' = {#} \<and> (\<not> brk \<longrightarrow> literals_to_update S' \<noteq> {#}) \<and>
-      (\<not> no_step cdcl_twl_o T \<longrightarrow> cdcl_twl_o\<^sup>+\<^sup>+ T S')"
-    assume a3: "case (brk, S') of (brk, S') \<Rightarrow> twl_struct_invs S' \<and> twl_stgy_invs S' \<and>
+      (\<not> no_step cdcl_twl_o T \<longrightarrow> cdcl_twl_o\<^sup>+\<^sup>+ T S')\<close>
+    assume a3: \<open>case (brk, S') of (brk, S') \<Rightarrow> twl_struct_invs S' \<and> twl_stgy_invs S' \<and>
       (brk \<longrightarrow> no_step cdcl_twl_stgy S') \<and> cdcl_twl_stgy\<^sup>*\<^sup>* S S' \<and> clauses_to_update S' = {#} \<and>
-      (\<not> brk \<longrightarrow> get_conflict S' = None)"
-    have f4: "cdcl_twl_o\<^sup>*\<^sup>* T U \<and> (get_conflict U \<noteq> None \<longrightarrow> get_conflict U = Some {#}) \<and>
+      (\<not> brk \<longrightarrow> get_conflict S' = None)\<close>
+    have f4: \<open>cdcl_twl_o\<^sup>*\<^sup>* T U \<and> (get_conflict U \<noteq> None \<longrightarrow> get_conflict U = Some {#}) \<and>
       no_step cdcl_twl_o U \<and> (brk' \<longrightarrow> no_step cdcl_twl_stgy U) \<and> twl_struct_invs U \<and>
-      twl_stgy_invs U \<and> clauses_to_update U = {#} \<and> (\<not> brk' \<longrightarrow> literals_to_update U \<noteq> {#})"
+      twl_stgy_invs U \<and> clauses_to_update U = {#} \<and> (\<not> brk' \<longrightarrow> literals_to_update U \<noteq> {#})\<close>
       using a2 by fastforce
-    have f5: "cdcl_twl_stgy\<^sup>*\<^sup>* S' T"
+    have f5: \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S' T\<close>
       using a1 by (metis cp mono_rtranclp)
-    have "cdcl_twl_stgy\<^sup>*\<^sup>* T U"
+    have \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close>
       using f4 rtranclp_cdcl_twl_o_stgyD by blast
     then show ?thesis
       using f5 a3 by force

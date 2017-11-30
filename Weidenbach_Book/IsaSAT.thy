@@ -127,14 +127,14 @@ definition (in -) model_assn where
   \<open>model_assn = hr_comp model_stat_assn model_stat_rel\<close>
 
 definition extract_model_of_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> nat literal list option \<times> stats\<close> where
-  \<open>extract_model_of_state_stat U = 
-     (Some (map lit_of (get_trail_wl_heur U)), 
+  \<open>extract_model_of_state_stat U =
+     (Some (map lit_of (get_trail_wl_heur U)),
        (\<lambda>(M, _, _, _, _, _ ,_ ,_ ,_, _, _, stat). stat) U)\<close>
 
 
 definition extract_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> nat literal list option \<times> stats\<close> where
-  \<open>extract_state_stat U = 
-     (None, 
+  \<open>extract_state_stat U =
+     (None,
        (\<lambda>(M, _, _, _, _, _ ,_ ,_ ,_, _, _, stat). stat) U)\<close>
 
 definition empty_conflict :: \<open>nat literal list option\<close> where
@@ -187,7 +187,7 @@ lemma extract_stats_init_hnr[sepref_fr_rules]:
 context isasat_input_ops
 begin
 
-lemma get_trail_wl[sepref_fr_rules]:                               
+lemma get_trail_wl[sepref_fr_rules]:
   \<open>(return o get_trail_wl_code, RETURN o extract_model_of_state_stat) \<in> twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a
        model_stat_assn\<close>
 proof -
@@ -219,7 +219,7 @@ lemma extract_model_of_state_hnr[sepref_fr_rules]:
 
 
 
-lemma get_stats_code[sepref_fr_rules]:                               
+lemma get_stats_code[sepref_fr_rules]:
   \<open>(return o get_stats_code, RETURN o extract_state_stat) \<in> twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a
        model_stat_assn\<close>
 proof -
@@ -252,12 +252,11 @@ lemma extract_stats_hnr[sepref_fr_rules]:
 
 end
 
-declare isasat_input_ops.get_trail_wl[sepref_fr_rules] isasat_input_ops.extract_stats_hnr[sepref_fr_rules]
+declare isasat_input_ops.get_trail_wl[sepref_fr_rules]
+  isasat_input_ops.extract_stats_hnr[sepref_fr_rules]
   isasat_input_ops.extract_model_of_state_hnr[sepref_fr_rules]
 declare isasat_input_ops.finalise_init_code_hnr[unfolded PR_CONST_def, sepref_fr_rules]
 sepref_register to_init_state from_init_state get_conflict_wl_is_None_init extract_stats
-
-thm  isasat_input_ops.extract_stats_hnr[sepref_fr_rules]
 
 sepref_definition IsaSAT_code
   is \<open>IsaSAT\<close>
@@ -282,7 +281,8 @@ sepref_definition IsaSAT_code
 
 code_printing constant nth_u_code \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((_),/ Word32.toInt _))"
 
-code_printing constant heap_array_set'_u \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.update/ ((_),/ (Word32.toInt (_)),/ (_)))"
+code_printing constant heap_array_set'_u \<rightharpoonup>
+   (SML) "(fn/ ()/ =>/ Array.update/ ((_),/ (Word32.toInt (_)),/ (_)))"
 
 code_printing constant two_uint32 \<rightharpoonup> (SML) "(Word32.fromInt 2)"
 
@@ -421,8 +421,9 @@ proof -
   have conflict_during_init: \<open>RETURN (fst T)
       \<le> \<Down> TWL_to_clauses_state_conv
            (SPEC (\<lambda>U. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state CS) U \<or>
-                     CS \<noteq> {#} \<and> learned_clss U = {#} \<and> conflicting U \<noteq> None \<and> backtrack_lvl U = 0 \<and>
-                    unsatisfiable (set_mset CS)))\<close>
+                     CS \<noteq> {#} \<and> learned_clss U = {#} \<and> conflicting U \<noteq> None \<and>
+                     backtrack_lvl U = 0 \<and>
+                     unsatisfiable (set_mset CS)))\<close>
     if
       \<open>Multiset.Ball CS distinct_mset \<and> (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max)\<close> and
       CS'_CS: \<open>(CS', CS) \<in> list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel\<close> and
@@ -432,13 +433,14 @@ proof -
   proof -
     have
       struct_invs: \<open>twl_struct_invs_init (twl_st_of_wl_init T)\<close> and
-      add_invs: \<open>additional_WS_invs (st_l_of_wl None (fst T))\<close> and
+      add_invs: \<open>twl_list_invs (st_l_of_wl None (fst T))\<close> and
       clss: \<open>mset `# mset (rev CS') + cdcl\<^sub>W_restart_mset.clauses ?init =
         cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None (fst T))) + snd T\<close> and
       count_dec: \<open>(\<forall>s\<in>set (get_trail_wl (fst T)). \<not> is_decided s)\<close> and
       U: \<open>get_learned_wl (fst T) = length (get_clauses_wl (fst T)) - 1\<close>  and
       confl_in_clss:
-       \<open>get_conflict_wl (fst T) \<noteq> None \<longrightarrow> the (get_conflict_wl (fst T)) \<in># mset `# mset (rev CS')\<close> and
+        \<open>get_conflict_wl (fst T) \<noteq> None \<longrightarrow>
+            the (get_conflict_wl (fst T)) \<in># mset `# mset (rev CS')\<close> and
       learned: \<open>learned_clss (state\<^sub>W_of (twl_st_of_wl None (fst T))) = learned_clss ?init\<close>
       using spec unfolding init_dt_wl_spec_def
       by fast+
@@ -516,15 +518,16 @@ proof -
   proof -
     have
       struct_invs: \<open>twl_struct_invs_init (twl_st_of_wl_init T)\<close> and
-      add_invs: \<open>additional_WS_invs (st_l_of_wl None (fst T))\<close> and
+      add_invs: \<open>twl_list_invs (st_l_of_wl None (fst T))\<close> and
       clss: \<open>mset `# mset (rev CS') + cdcl\<^sub>W_restart_mset.clauses ?init =
         cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None (fst T))) + snd T\<close> and
       count_dec: \<open>(\<forall>s\<in>set (get_trail_wl (fst T)). \<not> is_decided s)\<close> and
       U: \<open>get_learned_wl (fst T) = length (get_clauses_wl (fst T)) - 1\<close>  and
       confl_in_clss:
-       \<open>get_conflict_wl (fst T) \<noteq> None \<longrightarrow> the (get_conflict_wl (fst T)) \<in># mset `# mset (rev CS')\<close> and
+       \<open>get_conflict_wl (fst T) \<noteq> None \<longrightarrow>
+          the (get_conflict_wl (fst T)) \<in># mset `# mset (rev CS')\<close> and
       learned: \<open>learned_clss (state\<^sub>W_of (twl_st_of_wl None (fst T))) =
-        learned_clss (state\<^sub>W_of (twl_st_of_wl None ([], [[]], 0, None, {#}, {#}, {#}, \<lambda>_. [])))\<close> and
+        learned_clss (state\<^sub>W_of (twl_st_of_wl None ([], [[]], 0, None, {#}, {#}, {#}, \<lambda>_. [])))\<close>and
       snd_T_conflict: \<open>snd T \<noteq> {#} \<longrightarrow> get_conflict_wl (fst T) \<noteq> None\<close> and
       false_in_conflict: \<open>{#} \<in># mset `# mset CS' \<longrightarrow> get_conflict_wl (fst T) \<noteq> None\<close>
       using spec unfolding init_dt_wl_spec_def
@@ -539,7 +542,7 @@ proof -
       then have E: \<open>\<forall>C\<in>set CS'. C = []\<close>
         by blast
       show False
-        by (cases CS'; cases T) (use E false_in_conflict clss  confl in \<open>auto simp: clauses_def CS\<close>)
+        by (cases CS'; cases T) (use E false_in_conflict clss confl in \<open>auto simp: clauses_def CS\<close>)
     qed
     then show ?thesis
       unfolding extract_atms_clss_empty_iff by auto
@@ -565,13 +568,14 @@ proof -
     have
       struct_invs: \<open>twl_struct_invs_init (twl_st_of_wl_init T)\<close> and
       stgy_invs: \<open>twl_stgy_invs (twl_st_of_wl None (fst T))\<close> and
-      add_invs: \<open>additional_WS_invs (st_l_of_wl None (fst T))\<close> and
+      add_invs: \<open>twl_list_invs (st_l_of_wl None (fst T))\<close> and
       clss: \<open>mset `# mset (rev CS') + cdcl\<^sub>W_restart_mset.clauses ?init =
         cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None (fst T))) + snd T\<close> and
       count_dec: \<open>(\<forall>s\<in>set (get_trail_wl (fst T)). \<not> is_decided s)\<close> and
       U: \<open>get_learned_wl (fst T) = length (get_clauses_wl (fst T)) - 1\<close>  and
       confl_in_clss:
-       \<open>get_conflict_wl (fst T) \<noteq> None \<longrightarrow> the (get_conflict_wl (fst T)) \<in># mset `# mset (rev CS')\<close> and
+       \<open>get_conflict_wl (fst T) \<noteq> None \<longrightarrow>
+          the (get_conflict_wl (fst T)) \<in># mset `# mset (rev CS')\<close> and
       learned: \<open>learned_clss (state\<^sub>W_of (twl_st_of_wl None (fst T))) = learned_clss ?init\<close> and
       snd_T_conflict: \<open>snd T \<noteq> {#} \<longrightarrow> get_conflict_wl (fst T) \<noteq> None\<close> and
       false_in_conflict: \<open>{#} \<in># mset `# mset CS' \<longrightarrow> get_conflict_wl (fst T) \<noteq> None\<close> and
@@ -651,7 +655,8 @@ proof -
         by (cases L) (auto simp: CS in_extract_atms_clssD uint_max_def)
     qed
     then have 2:
-      \<open>isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset (extract_atms_clss CS' [])) (from_init_state T)
+      \<open>isasat_input_ops.cdcl_twl_stgy_prog_wl_D (mset (extract_atms_clss CS' []))
+         (from_init_state T)
        \<le> SPEC (\<lambda>U. full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy
                      (state\<^sub>W_of (twl_st_of None (st_l_of_wl None (from_init_state T))))
                      (state\<^sub>W_of (twl_st_of None (st_l_of_wl None U))))\<close>
@@ -724,7 +729,7 @@ proof -
         cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
         cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
-        past_invs.simps clauses_def additional_WS_invs_def twl_stgy_invs_def clause_to_update_def
+        past_invs.simps clauses_def twl_list_invs_def twl_stgy_invs_def clause_to_update_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
         cdcl\<^sub>W_restart_mset.no_smaller_confl_def get_unit_learned_def
         distinct_mset_set_def)
@@ -798,7 +803,8 @@ proof -
           RETURN(if conflicting U = None then Some (map lit_of (trail U)) else None)
       }\<close> for CS
     unfolding SAT'_def SAT_def empty_trail_def by (auto simp: RES_RETURN_RES)
-  have 3: \<open>ASSERT (isasat_input_bounded (mset (extract_atms_clss x []))) \<le> \<Down> unit_rel (ASSERT True)\<close>
+  have 3:
+    \<open>ASSERT (isasat_input_bounded (mset (extract_atms_clss x []))) \<le> \<Down> unit_rel (ASSERT True)\<close>
     if CS_p: \<open>(\<forall>C\<in>#y. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max)\<close> and
        CS: \<open>(x, y) \<in> list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel\<close>
        for x y

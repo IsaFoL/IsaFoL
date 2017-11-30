@@ -110,9 +110,9 @@ qed
 context isasat_input_ops
 begin
 
-type_synonym (in -) lookup_clause_rel = "nat \<times> bool option list"
+type_synonym (in -) lookup_clause_rel = \<open>nat \<times> bool option list\<close>
 
-definition lookup_clause_rel :: "(lookup_clause_rel \<times> nat literal multiset) set" where
+definition lookup_clause_rel :: \<open>(lookup_clause_rel \<times> nat literal multiset) set\<close> where
 \<open>lookup_clause_rel = {((n, xs), C). n = size C \<and> mset_as_position xs C \<and>
    (\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length xs)}\<close>
 
@@ -167,9 +167,9 @@ proof -
     using simple_clss_size_upper_div2[of \<open>C\<close>] \<open>\<not>tautology C\<close> by auto
 qed
 
-type_synonym (in -) lookup_clause_assn = "uint32 \<times> bool option array"
+type_synonym (in -) lookup_clause_assn = \<open>uint32 \<times> bool option array\<close>
 
-definition lookup_clause_assn :: "nat clause \<Rightarrow> lookup_clause_assn \<Rightarrow> assn" where
+definition lookup_clause_assn :: \<open>nat clause \<Rightarrow> lookup_clause_assn \<Rightarrow> assn\<close> where
 \<open>lookup_clause_assn =
    hr_comp (uint32_nat_assn *a array_assn (option_assn bool_assn)) lookup_clause_rel\<close>
 
@@ -185,7 +185,7 @@ lemma option_lookup_clause_rel_lookup_clause_rel_iff:
    unfolding option_lookup_clause_rel_def by auto
 
 
-type_synonym (in -) option_lookup_clause_assn = "bool \<times> uint32 \<times> bool option array"
+type_synonym (in -) option_lookup_clause_assn = \<open>bool \<times> uint32 \<times> bool option array\<close>
 
 abbreviation (in -) lookup_clause_rel_assn
   :: \<open>lookup_clause_rel \<Rightarrow> lookup_clause_assn \<Rightarrow> assn\<close>
@@ -284,17 +284,17 @@ next
   case (add xs P L xs') note m_as_p = this(1) and atm_L = this(2)
   have xs_L: \<open>xs ! (atm_of L) = None\<close>
   proof -
-    obtain bb :: "bool option \<Rightarrow> bool" where
-      f1: "\<forall>z. z = None \<or> z = Some (bb z)"
+    obtain bb :: \<open>bool option \<Rightarrow> bool\<close> where
+      f1: \<open>\<forall>z. z = None \<or> z = Some (bb z)\<close>
       by (metis option.exhaust)
-    have f2: "xs ! atm_of L \<noteq> Some (is_pos L)"
+    have f2: \<open>xs ! atm_of L \<noteq> Some (is_pos L)\<close>
       using add.hyps(1) add.hyps(2) add.hyps(3) mset_as_position_in_iff_nth by blast
-    have f3: "\<forall>z b. ((Some b = z \<or> z = None) \<or> bb z) \<or> b"
+    have f3: \<open>\<forall>z b. ((Some b = z \<or> z = None) \<or> bb z) \<or> b\<close>
       using f1 by blast
-    have f4: "\<forall>zs. (zs ! atm_of L \<noteq> Some (is_pos (- L)) \<or> \<not> atm_of L < length zs)
-           \<or> \<not> mset_as_position zs P"
+    have f4: \<open>\<forall>zs. (zs ! atm_of L \<noteq> Some (is_pos (- L)) \<or> \<not> atm_of L < length zs)
+           \<or> \<not> mset_as_position zs P\<close>
       by (metis add.hyps(4) atm_of_uminus mset_as_position_in_iff_nth)
-    have "\<forall>z b. ((Some b = z \<or> z = None) \<or> \<not> bb z) \<or> \<not> b"
+    have \<open>\<forall>z b. ((Some b = z \<or> z = None) \<or> \<not> bb z) \<or> \<not> b\<close>
       using f1 by blast
     then show ?thesis
       using f4 f3 f2 by (metis add.hyps(1) add.hyps(2) is_pos_neg_not_is_pos)
@@ -390,14 +390,14 @@ lemma option_lookup_clause_rel_update_None:
   shows \<open>((False, (if xs!L = None then n else n - 1, xs[L := None])),
       Some (D - {# Pos L, Neg L #})) \<in> option_lookup_clause_rel\<close>
 proof -
-  have [simp]: "L \<notin># A \<Longrightarrow> A - add_mset L' (add_mset L B) = A - add_mset L' B"
+  have [simp]: \<open>L \<notin># A \<Longrightarrow> A - add_mset L' (add_mset L B) = A - add_mset L' B\<close>
     for A B :: \<open>'a multiset\<close> and L L'
     by (metis add_mset_commute minus_notin_trivial)
-  have "n = size D" and map: "mset_as_position xs D"
+  have \<open>n = size D\<close> and map: \<open>mset_as_position xs D\<close>
     using assms by (auto simp: option_lookup_clause_rel_def lookup_clause_rel_def)
-  have xs_None_iff: "xs ! L = None \<longleftrightarrow> Pos L \<notin># D \<and> Neg L \<notin># D"
-    using map L_xs mset_as_position_in_iff_nth[of xs D "Pos L"]
-      mset_as_position_in_iff_nth[of xs D "Neg L"]
+  have xs_None_iff: \<open>xs ! L = None \<longleftrightarrow> Pos L \<notin># D \<and> Neg L \<notin># D\<close>
+    using map L_xs mset_as_position_in_iff_nth[of xs D \<open>Pos L\<close>]
+      mset_as_position_in_iff_nth[of xs D \<open>Neg L\<close>]
     by (cases \<open>xs ! L\<close>) auto
 
   have 1: \<open>xs ! L = None \<Longrightarrow> D - {#Pos L, Neg L#} = D\<close>
@@ -406,8 +406,8 @@ proof -
    using map list_update_id[of xs L] by (auto simp: 1)
   have 3: \<open>xs ! L = Some y \<longleftrightarrow> (y \<and> Pos L \<in># D \<and> Neg L \<notin># D) \<or> (\<not>y \<and> Pos L \<notin># D \<and> Neg L \<in># D)\<close>
     for y
-    using map L_xs mset_as_position_in_iff_nth[of xs D "Pos L"]
-      mset_as_position_in_iff_nth[of xs D "Neg L"]
+    using map L_xs mset_as_position_in_iff_nth[of xs D \<open>Pos L\<close>]
+      mset_as_position_in_iff_nth[of xs D \<open>Neg L\<close>]
     by (cases \<open>xs ! L\<close>) auto
 
   show ?thesis
@@ -1649,7 +1649,7 @@ lemma minimize_and_extract_highest_lookup_conflict_iterate_over_conflict:
     M_D: \<open>M \<Turnstile>as CNot D\<close> and
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close> and
     struct_invs: \<open>twl_struct_invs S''\<close> and
-    add_inv: \<open>additional_WS_invs S'\<close> and
+    add_inv: \<open>twl_list_invs S'\<close> and
     cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUP) D\<close> and
     NU_P_D: \<open>NU' + NUP \<Turnstile>pm add_mset K D\<close> and
     lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close>
@@ -2288,7 +2288,7 @@ lemma
     M_D: \<open>M \<Turnstile>as CNot D\<close> and
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close> and
     struct_invs: \<open>twl_struct_invs S''\<close> and
-    add_inv: \<open>additional_WS_invs S'\<close> and
+    add_inv: \<open>twl_list_invs S'\<close> and
     cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUP) D\<close> and
     NU_P_D: \<open>NU' + NUP \<Turnstile>pm add_mset K D\<close> and
     confl: \<open>get_conflict_wl S \<noteq> None\<close> and

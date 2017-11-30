@@ -20,7 +20,7 @@ proof -
     by (cases S)
   have
      struct_invs: \<open>twl_struct_invs (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S))\<close> and
-     \<open>additional_WS_invs (st_l_of_wl (Some (K, w)) S)\<close> and
+     \<open>twl_list_invs (st_l_of_wl (Some (K, w)) S)\<close> and
      corr: \<open>correct_watching S\<close> and
      \<open>w < length (watched_by S K)\<close> and
      confl: \<open>get_conflict_wl S = None\<close> and
@@ -56,7 +56,8 @@ proof -
      unfolding distinct_mset_set_def S by simp
 qed
 
-lemma (in -)[sepref_fr_rules]: \<open>(return o id, RETURN o nat_of_lit) \<in> unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+lemma (in -)[sepref_fr_rules]:
+  \<open>(return o id, RETURN o nat_of_lit) \<in> unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   by sepref_to_hoare
      (sep_auto simp: uint32_nat_rel_def br_def unat_lit_rel_def nat_lit_rel_def
       lit_of_natP_def)
@@ -85,7 +86,8 @@ lemma watched_by_app_watched_by_app_heur:
 
 sepref_thm watched_by_app_heur_code
   is \<open>uncurry2 (RETURN ooo watched_by_app_heur)\<close>
-  :: \<open>[\<lambda>((S, L), K). nat_of_lit L < length (get_watched_wl_heur S) \<and> K < length (watched_by_int S L)]\<^sub>a
+  :: \<open>[\<lambda>((S, L), K). nat_of_lit L < length (get_watched_wl_heur S) \<and>
+          K < length (watched_by_int S L)]\<^sub>a
         twl_st_heur_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
   supply [[goals_limit=1]]
   unfolding watched_by_app_heur_def twl_st_heur_assn_def nth_rll_def[symmetric]
@@ -177,14 +179,14 @@ proof -
   show \<open>get_clauses_wl S ! watched_by_app S L w \<noteq> []\<close>
     using assms twl_struct_invs_length_clause_ge_2[of L w S \<open>watched_by S L ! w\<close>]
     unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def watched_by_app_def
-      additional_WS_invs_def by force
+      twl_list_invs_def by force
   show le: \<open>Suc 0 < length (get_clauses_wl S ! watched_by_app S L w)\<close>
     using assms twl_struct_invs_length_clause_ge_2[of L w S \<open>watched_by S L ! w\<close>]
     unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def watched_by_app_def
-      additional_WS_invs_def by force
+      twl_list_invs_def by force
   have nempty: \<open>get_clauses_wl S \<noteq> []\<close> and S_L_w_ge_0: \<open>0 < watched_by_app S L w\<close>
     using assms unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
-    additional_WS_invs_def watched_by_app_def by auto
+    twl_list_invs_def watched_by_app_def by auto
   obtain M N U D NP UP W Q where
     S: \<open>S = (M, N, U, D, NP, UP, Q, W)\<close>
     by (cases S)
@@ -205,7 +207,9 @@ proof -
         cases \<open>tl (tl (get_clauses_wl S ! watched_by_app S L w))\<close>)
     by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def all_lits_of_m_add_mset)
 
-  show S_L_W_ge_0: \<open>watched_by_app S L w > 0\<close> and \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and \<open>get_conflict_wl S = None\<close>
+  show S_L_W_ge_0: \<open>watched_by_app S L w > 0\<close> and
+    \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
+    \<open>get_conflict_wl S = None\<close>
     using assms unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def watched_by_app_def
     by fast+
   have
@@ -219,7 +223,8 @@ proof -
     using struct unfolding twl_struct_invs_def by fast+
   then have
      learned_tauto:
-       \<open>\<forall>s\<in>#learned_clss (state\<^sub>W_of (twl_st_of (Some L) (st_l_of_wl (Some (L, w)) S))). \<not> tautology s\<close> and
+       \<open>\<forall>s\<in>#learned_clss (state\<^sub>W_of (twl_st_of (Some L) (st_l_of_wl (Some (L, w)) S))).
+           \<not> tautology s\<close> and
      dist:
         \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of (twl_st_of (Some L)
             (st_l_of_wl (Some (L, w)) S)))\<close>
@@ -264,7 +269,8 @@ lemmas access_lit_in_clauses_heur_code_refine[sepref_fr_rules] =
    access_lit_in_clauses_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
 lemma access_lit_in_clauses_heur_access_lit_in_clauses:
-  \<open>(uncurry2 (RETURN ooo access_lit_in_clauses_heur), uncurry2 (RETURN ooo access_lit_in_clauses)) \<in>
+  \<open>(uncurry2 (RETURN ooo access_lit_in_clauses_heur),
+      uncurry2 (RETURN ooo access_lit_in_clauses)) \<in>
    twl_st_heur \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
      (auto simp: access_lit_in_clauses_heur_def twl_st_heur_def access_lit_in_clauses_def)
@@ -311,10 +317,11 @@ lemma find_unwatched_l_find_unwatched_wl_s:
   \<open>find_unwatched_l (get_trail_wl S) (get_clauses_wl S ! C) = find_unwatched_wl_st S C\<close>
   by (cases S) (auto simp: find_unwatched_wl_st_def)
 
-definition (in -) find_unwatched :: "('a, 'b) ann_lits \<Rightarrow> 'a clause_l \<Rightarrow> (nat option) nres" where
+definition (in -) find_unwatched :: \<open>('a, 'b) ann_lits \<Rightarrow> 'a clause_l \<Rightarrow> (nat option) nres\<close> where
 \<open>find_unwatched M C = do {
    S \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> 2 \<and> i \<le> length C \<and> (\<forall>j\<in>{2..<i}. -(C!j) \<in> lits_of_l M) \<and>
-    (\<forall>j. found = Some j \<longrightarrow> (i = j \<and> (undefined_lit M (C!j) \<or> C!j \<in> lits_of_l M) \<and> j < length C \<and> j \<ge> 2))\<^esup>
+      (\<forall>j. found = Some j \<longrightarrow> (i = j \<and> (undefined_lit M (C!j) \<or> C!j \<in> lits_of_l M) \<and>
+       j < length C \<and> j \<ge> 2))\<^esup>
     (\<lambda>(found, i). found = None \<and> i < length C)
     (\<lambda>(_, i). do {
       ASSERT(i < length C);
@@ -450,8 +457,9 @@ proof -
                    (twl_st_heur \<times>\<^sub>f nat_rel) \<rightarrow>
        hr_comp (option_assn nat_assn) Id\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF find_unwatched_wl_st_heur_code_find_unwatched_wl_st_heur[unfolded PR_CONST_def]
-    find_unwatched_wl_st_heur_find_unwatched_wl_s] .
+    using hfref_compI_PRE_aux[OF
+        find_unwatched_wl_st_heur_code_find_unwatched_wl_st_heur[unfolded PR_CONST_def]
+        find_unwatched_wl_st_heur_find_unwatched_wl_s] .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
   proof -
     have [simp]: \<open>mset `# mset (take ai (tl ah)) + ak + (mset `# mset (drop (Suc ai) ah) + al) =
@@ -459,8 +467,10 @@ proof -
       apply (subst (6) append_take_drop_id[of ai, symmetric])
       unfolding mset_append drop_Suc
       by auto
-    have [intro]: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur T\<close> and \<open>get_clauses_wl_heur T = get_clauses_wl S\<close> if
-       \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None (st_l_of_wl None S)))))\<close> and
+    have [intro]: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur T\<close> and
+       \<open>get_clauses_wl_heur T = get_clauses_wl S\<close> if
+       \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (cdcl\<^sub>W_restart_mset.clauses
+           (state\<^sub>W_of (twl_st_of None (st_l_of_wl None S)))))\<close> and
        \<open>(T, S) \<in> twl_st_heur\<close>
       for S and T
       using that apply (auto simp: twl_st_heur_def mset_take_mset_drop_mset
@@ -515,10 +525,11 @@ definition set_conflict_wl'_int :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rig
 sepref_thm set_conflict_wl'_int_code
   is \<open>uncurry set_conflict_wl'_int\<close>
   :: \<open>[\<lambda>(C, S). get_conflict_wl_heur S = None \<and> C < length (get_clauses_wl_heur S) \<and>
-      distinct (get_clauses_wl_heur S ! C) \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (mset (get_clauses_wl_heur S ! C)) \<and>
-      \<not> tautology (mset (get_clauses_wl_heur S ! C)) \<and>
-      literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl_heur S) \<and>
-      no_dup (get_trail_wl_heur S)]\<^sub>a
+        distinct (get_clauses_wl_heur S ! C) \<and>
+        literals_are_in_\<L>\<^sub>i\<^sub>n (mset (get_clauses_wl_heur S ! C)) \<and>
+        \<not> tautology (mset (get_clauses_wl_heur S ! C)) \<and>
+        literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl_heur S) \<and>
+        no_dup (get_trail_wl_heur S)]\<^sub>a
     nat_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d \<rightarrow> twl_st_heur_assn\<close>
   supply [[goals_limit=1]]
     lookup_conflict_merge_code_set_conflict[unfolded twl_st_heur_assn_def, sepref_fr_rules]
@@ -603,7 +614,8 @@ definition update_clause_wl_heur :: \<open>nat literal \<Rightarrow> nat \<Right
 lemma update_clause_wl_heur_update_clause_wl:
   \<open>(uncurry5 update_clause_wl_heur, uncurry5 (update_clause_wl)) \<in>
    [\<lambda>(((((L, C), w), i), f), S). (get_clauses_wl S ! C) ! f \<noteq> L]\<^sub>f
-   Id \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur \<rightarrow> \<langle>nat_rel \<times>\<^sub>r twl_st_heur\<rangle>nres_rel\<close>
+   Id \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur \<rightarrow>
+  \<langle>nat_rel \<times>\<^sub>r twl_st_heur\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: update_clause_wl_heur_def update_clause_wl_def twl_st_heur_def Let_def
       map_fun_rel_def)
@@ -621,12 +633,13 @@ sepref_thm update_clause_wl_code
       nat_of_lit L < length (get_watched_wl_heur S) \<and>
       nat_of_lit ((get_clauses_wl_heur S ! C) ! f)  < length (get_watched_wl_heur S) \<and>
       w < length (get_watched_wl_heur S ! nat_of_lit L)]\<^sub>a
-     unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a  nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d \<rightarrow>
+     unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d \<rightarrow>
        nat_assn *a twl_st_heur_assn\<close>
   supply [[goals_limit=1]] length_rll_def[simp] length_ll_def[simp]
   unfolding update_clause_wl_heur_def twl_st_heur_assn_def Array_List_Array.swap_ll_def[symmetric]
-    nth_rll_def[symmetric] delete_index_and_swap_update_def[symmetric] delete_index_and_swap_ll_def[symmetric]
-   append_ll_def[symmetric]
+    nth_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
+    delete_index_and_swap_ll_def[symmetric]
+    append_ll_def[symmetric]
   by sepref
 
 
@@ -647,7 +660,8 @@ lemma
     find_unw: \<open>unit_prop_body_wl_D_find_unwatched_inv None (watched_by_app S L C) S\<close> and
     inv: \<open>unit_prop_body_wl_D_inv S C L\<close> and
     val: \<open>polarity_st S (get_clauses_wl S ! watched_by_app S L C !
-         (1 - (if access_lit_in_clauses S (watched_by_app S L C) 0 = L then 0 else 1))) = Some False\<close>
+         (1 - (if access_lit_in_clauses S (watched_by_app S L C) 0 = L then 0 else 1))) =
+          Some False\<close>
       (is \<open>polarity_st _ (_ ! _ ! ?i) = Some False\<close>)
   for S C xj L
 proof  -
@@ -655,17 +669,21 @@ proof  -
     S: \<open>S = (M, N, U, D, NP, UP, WS, Q)\<close>
     by (cases S)
 
-  have \<open>consistent_interp (lits_of_l (trail (state\<^sub>W_of (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S)))))\<close>
+  have \<open>consistent_interp
+       (lits_of_l (trail (state\<^sub>W_of (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S)))))\<close>
     \<open>no_dup (trail (state\<^sub>W_of (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S))))\<close> and
-    valid: \<open>valid_annotation (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S))\<close>
+    valid: \<open>valid_enqueued (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S))\<close>
     using inv unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def twl_struct_invs_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
     by blast+
   then have cons: \<open>consistent_interp (lits_of_l (get_trail_wl S))\<close>
     by (cases S) (auto)
 
-  have \<open>additional_WS_invs (st_l_of_wl (Some (L, C)) S)\<close> and C_le: \<open>C < length (watched_by S L)\<close> and
-    confl: \<open>get_conflict_wl S = None\<close> and \<open>no_duplicate_queued (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S))\<close>
+  have
+    \<open>twl_list_invs (st_l_of_wl (Some (L, C)) S)\<close> and
+    C_le: \<open>C < length (watched_by S L)\<close> and
+    confl: \<open>get_conflict_wl S = None\<close> and
+    \<open>no_duplicate_queued (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S))\<close>
       using inv unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
         unit_propagation_inner_loop_body_l_inv_def twl_struct_invs_def by fast+
   have \<open>\<forall>L\<in>#mset (unwatched_l (get_clauses_wl S ! (watched_by S L ! C))).
@@ -674,8 +692,11 @@ proof  -
       unit_prop_body_wl_find_unwatched_inv_def watched_by_app_def
     by auto
   moreover {
-    have \<open>additional_WS_invs (st_l_of_wl (Some (L, C)) S)\<close> and \<open>C < length (watched_by S L)\<close> and
-      \<open>get_conflict_wl S = None\<close> and \<open>no_duplicate_queued (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S))\<close>
+    have
+      \<open>twl_list_invs (st_l_of_wl (Some (L, C)) S)\<close> and
+      \<open>C < length (watched_by S L)\<close> and
+      \<open>get_conflict_wl S = None\<close> and
+      \<open>no_duplicate_queued (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S))\<close>
       using inv unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
         unit_propagation_inner_loop_body_l_inv_def twl_struct_invs_def by fast+
     then have \<open>add_mset L WS \<subseteq># {#- lit_of x. x \<in># mset (convert_lits_l N M)#}\<close>
@@ -692,7 +713,8 @@ proof  -
         access_lit_in_clauses_def Decided_Propagated_in_iff_in_lits_of_l split: if_splits)
   moreover have length_C: \<open>length ?C \<ge> 2\<close>
     apply (rule twl_struct_invs_length_clause_ge_2)
-    using inv unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def by (auto simp: watched_by_app_def)
+    using inv unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
+    by (auto simp: watched_by_app_def)
   moreover {
     have QL: \<open>Q L ! C = hd (drop C (Q L))\<close>
       using confl C_le length_C by (auto simp: S hd_drop_conv_nth split: )
@@ -724,10 +746,12 @@ proof (rule ccontr)
   let ?C = \<open>get_clauses_wl S ! watched_by_app S L C\<close>
   let ?L = \<open>get_clauses_wl S ! watched_by_app S L C ! xj\<close>
   have corr: \<open>correct_watching S\<close> and
-    alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S)))\<close> and
-    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S)))\<close>
+    alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm
+      (state\<^sub>W_of (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S)))\<close> and
+    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state
+       (state\<^sub>W_of (twl_st_of (Some L) (st_l_of_wl (Some (L, C)) S)))\<close>
     using inv unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
-    unfolding correct_watching.simps twl_struct_invs_def  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    unfolding correct_watching.simps twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       by fast+
   moreover have \<open>watched_by_app S L C < length (get_clauses_wl S)\<close>
     using inv by (blast intro: unit_prop_body_wl_D_invD)
@@ -740,7 +764,8 @@ proof (rule ccontr)
     using inv by (blast intro: unit_prop_body_wl_D_invD)
   moreover have \<open>L \<in> snd ` D\<^sub>0\<close>
     using inv by (auto intro: unit_prop_body_wl_D_invD)
-  ultimately have \<open>L \<in># all_lits_of_mm (mset `# mset (tl (get_clauses_wl S)) + get_unit_init_clss S)\<close>
+  ultimately have
+    \<open>L \<in># all_lits_of_mm (mset `# mset (tl (get_clauses_wl S)) + get_unit_init_clss S)\<close>
     using alien
     by (cases S)
         (auto 5 5 simp: get_unit_init_clss_def clauses_def mset_take_mset_drop_mset drop_Suc
@@ -748,7 +773,8 @@ proof (rule ccontr)
         is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def_sym in_all_lits_of_mm_ain_atms_of_iff in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
         dest: in_atms_of_mset_takeD)
     then have H: \<open>mset (watched_by S L) =
-      mset_set {x. Suc 0 \<le> x \<and> x < length (get_clauses_wl S) \<and> L \<in> set (watched_l (get_clauses_wl S ! x))}\<close>
+      mset_set {x. Suc 0 \<le> x \<and> x < length (get_clauses_wl S) \<and>
+         L \<in> set (watched_l (get_clauses_wl S ! x))}\<close>
       using corr by (cases S)
           (auto simp: correct_watching.simps watched_by_app_def clause_to_update_def
           get_unit_init_clss_def)
@@ -758,14 +784,15 @@ proof (rule ccontr)
         (auto simp: correct_watching.simps watched_by_app_def clause_to_update_def
         get_unit_init_clss_def)
   have \<open>xj \<ge> 2\<close> and \<open>xj < length (get_clauses_wl S ! watched_by_app S L C)\<close>
-    using find_unw unfolding unit_prop_body_wl_D_find_unwatched_inv_def unit_prop_body_wl_find_unwatched_inv_def
+    using find_unw unfolding unit_prop_body_wl_D_find_unwatched_inv_def
+      unit_prop_body_wl_find_unwatched_inv_def
     by (cases S; auto simp: watched_by_app_def)+
 
   then have L_in_unwatched: \<open>L \<in> set (unwatched_l ?C)\<close>
     by (auto simp: in_set_drop_conv_nth intro!: exI[of _ xj])
   have \<open>distinct_mset_set (mset ` set (tl (get_clauses_wl S)))\<close>
     apply (subst append_take_drop_id[of \<open>get_learned_wl S\<close>, symmetric])
-    using dist unfolding  cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def set_append
+    using dist unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def set_append
     by (cases S)
         (auto simp: mset_take_mset_drop_mset image_Un drop_Suc)
   then have dist_C: \<open>distinct ?C\<close>
@@ -781,7 +808,7 @@ lemma update_clause_wl_code_update_clause_wl[sepref_fr_rules]:
       unit_prop_body_wl_D_find_unwatched_inv (Some f) C S \<and>
       C = watched_by S L ! w \<and>
       i = (if get_clauses_wl S ! C ! 0 = L then 0 else 1)]\<^sub>a
-     unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a  nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>d \<rightarrow>
+     unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>d \<rightarrow>
        nat_assn *a twl_st_assn\<close>
     (is \<open>_ \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
@@ -808,10 +835,12 @@ proof -
     for S w L
   proof -
     have \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close>
-      using that unfolding twl_st_heur_def  map_fun_rel_def unit_prop_body_wl_D_find_unwatched_inv_def
-        unit_prop_body_wl_find_unwatched_inv_def unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
+      using that unfolding twl_st_heur_def map_fun_rel_def
+        unit_prop_body_wl_D_find_unwatched_inv_def
+        unit_prop_body_wl_find_unwatched_inv_def unit_prop_body_wl_D_inv_def
+        unit_prop_body_wl_inv_def
         unit_propagation_inner_loop_body_l_inv_def by fast
-    then  have \<open> set_mset (all_lits_of_mm (mset `# mset (tl (get_clauses_wl S)))) \<subseteq>
+    then have \<open> set_mset (all_lits_of_mm (mset `# mset (tl (get_clauses_wl S)))) \<subseteq>
        set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
       apply (subst append_take_drop_id[symmetric, of _ \<open>get_learned_wl S\<close>])
       unfolding mset_append all_lits_of_mm_union
@@ -833,9 +862,11 @@ proof -
       apply (subgoal_tac \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl N))\<close>)
       subgoal
         using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<open>tl N\<close> \<open>(W L ! w - 1)\<close> f]
-        using that unfolding comp_PRE_def twl_st_heur_def  map_fun_rel_def unit_prop_body_wl_D_find_unwatched_inv_def
-        unit_prop_body_wl_find_unwatched_inv_def unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
-        unit_propagation_inner_loop_body_l_inv_def
+        using that unfolding comp_PRE_def twl_st_heur_def map_fun_rel_def
+          unit_prop_body_wl_D_find_unwatched_inv_def
+          unit_prop_body_wl_find_unwatched_inv_def unit_prop_body_wl_D_inv_def
+          unit_prop_body_wl_inv_def
+          unit_propagation_inner_loop_body_l_inv_def
         by (auto dest: simp: nth_tl)[]
       subgoal
         using that by auto
@@ -895,8 +926,9 @@ lemmas propagate_lit_wl_code[sepref_fr_rules] =
 
 lemma propagate_lit_wl_code_propagate_lit_wl[sepref_fr_rules]:
   \<open>(uncurry3 propagate_lit_wl_code, uncurry3 (RETURN oooo propagate_lit_wl)) \<in>
-    [\<lambda>(((L, C), i), S). undefined_lit (get_trail_wl S) L \<and> L \<in> snd ` D\<^sub>0 \<and> get_conflict_wl S = None \<and>
-          1 - i < length (get_clauses_wl S ! C) \<and> i \<le> 1 \<and> C < length (get_clauses_wl S)]\<^sub>a
+    [\<lambda>(((L, C), i), S). undefined_lit (get_trail_wl S) L \<and> L \<in> snd ` D\<^sub>0 \<and>
+          get_conflict_wl S = None \<and> 1 - i < length (get_clauses_wl S ! C) \<and> i \<le> 1 \<and>
+          C < length (get_clauses_wl S)]\<^sub>a
      unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>d \<rightarrow> twl_st_assn\<close>
     (is \<open>?fun \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
@@ -905,8 +937,10 @@ proof -
        (\<lambda>(((L, C), i), S). undefined_lit (get_trail_wl S) L \<and> get_conflict_wl S = None)
        (\<lambda>_ (((L, C), i), S). undefined_lit (get_trail_wl_heur S) L \<and> L \<in> snd ` D\<^sub>0 \<and>
           1 - i < length (get_clauses_wl_heur S ! C) \<and> i \<le> 1 \<and> C < length (get_clauses_wl_heur S))
-       (\<lambda>_. True)]\<^sub>a hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d)
-                      (Id \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur) \<rightarrow> hr_comp twl_st_heur_assn twl_st_heur\<close>
+       (\<lambda>_. True)]\<^sub>a
+     hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d)
+                      (Id \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur) \<rightarrow>
+     hr_comp twl_st_heur_assn twl_st_heur\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF propagate_lit_wl_code[unfolded PR_CONST_def]
        propagate_lit_wl_heur_propagate_lit_wl]
@@ -928,7 +962,8 @@ proof -
 qed
 
 lemma undefined_lit_polarity_st_iff:
-   \<open>undefined_lit (get_trail_wl S) L \<longleftrightarrow> polarity_st S L \<noteq> Some True \<and> polarity_st S L \<noteq> Some False\<close>
+   \<open>undefined_lit (get_trail_wl S) L \<longleftrightarrow>
+      polarity_st S L \<noteq> Some True \<and> polarity_st S L \<noteq> Some False\<close>
   by (auto simp: polarity_st_def polarity_def)
 
 lemma find_unwatched_le_length:
@@ -1045,8 +1080,10 @@ lemma (in -) get_watched_wl_heur_def: \<open>get_watched_wl_heur = (\<lambda>(M,
 
 sepref_thm length_ll_fs_heur_code
   is \<open>uncurry (RETURN oo length_ll_fs_heur)\<close>
-  :: \<open>[\<lambda>(S, L). nat_of_lit L < length (get_watched_wl_heur S)]\<^sub>a twl_st_heur_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
-  unfolding length_ll_fs_heur_def get_watched_wl_heur_def twl_st_heur_assn_def length_ll_def[symmetric]
+  :: \<open>[\<lambda>(S, L). nat_of_lit L < length (get_watched_wl_heur S)]\<^sub>a
+      twl_st_heur_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  unfolding length_ll_fs_heur_def get_watched_wl_heur_def twl_st_heur_assn_def
+    length_ll_def[symmetric]
   supply [[goals_limit=1]]
   by sepref
 
@@ -1152,7 +1189,8 @@ definition get_literals_to_update_wl_heur_W_list where
 definition literals_to_update_wl_empty_heur :: \<open>twl_st_wl_heur_W_list \<Rightarrow> bool\<close>  where
   \<open>literals_to_update_wl_empty_heur = (\<lambda>(M, N, U, D, Q, W, oth). Q = [])\<close>
 
-lemma select_and_remove_from_literals_to_update_wl_heur_select_and_remove_from_literals_to_update_wl:
+lemma
+  select_and_remove_from_literals_to_update_wl_heur_select_and_remove_from_literals_to_update_wl:
   \<open>(RETURN o select_and_remove_from_literals_to_update_wl_heur,
     select_and_remove_from_literals_to_update_wl) \<in>
     [\<lambda>S. \<not>literals_to_update_wl_empty S]\<^sub>f
@@ -1170,7 +1208,8 @@ lemma select_and_remove_from_literals_to_update_wl_heur_select_and_remove_from_l
 
 sepref_thm select_and_remove_from_literals_to_update_wl_code
   is \<open>RETURN o select_and_remove_from_literals_to_update_wl_heur\<close>
-  :: \<open>[\<lambda>S. \<not>literals_to_update_wl_empty_heur S]\<^sub>a twl_st_heur_W_list_assn\<^sup>d \<rightarrow> twl_st_heur_W_list_assn *a unat_lit_assn\<close>
+  :: \<open>[\<lambda>S. \<not>literals_to_update_wl_empty_heur S]\<^sub>a
+      twl_st_heur_W_list_assn\<^sup>d \<rightarrow> twl_st_heur_W_list_assn *a unat_lit_assn\<close>
   supply [[goals_limit=1]]
   unfolding select_and_remove_from_literals_to_update_wl_heur_def twl_st_heur_W_list_assn_def
     literals_to_update_wl_empty_heur_def
@@ -1185,9 +1224,11 @@ concrete_definition (in -) select_and_remove_from_literals_to_update_wl_code
 prepare_code_thms (in -) select_and_remove_from_literals_to_update_wl_code_def
 
 lemmas select_and_remove_from_literals_to_update_wl_code_refine[sepref_fr_rules] =
-   select_and_remove_from_literals_to_update_wl_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+   select_and_remove_from_literals_to_update_wl_code.refine[of \<A>\<^sub>i\<^sub>n,
+     OF isasat_input_bounded_nempty_axioms]
 
-theorem select_and_remove_from_literals_to_update_wl_code_select_and_remove_from_literals_to_update_wl
+theorem
+  select_and_remove_from_literals_to_update_wl_code_select_and_remove_from_literals_to_update_wl
   [sepref_fr_rules]:
   \<open>(select_and_remove_from_literals_to_update_wl_code,
      select_and_remove_from_literals_to_update_wl)
@@ -1205,7 +1246,7 @@ proof -
            ((twl_st_wl_heur_W_list_rel O twl_st_heur) \<times>\<^sub>f Id)\<close>
      (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF select_and_remove_from_literals_to_update_wl_code_refine
-      select_and_remove_from_literals_to_update_wl_heur_select_and_remove_from_literals_to_update_wl]
+     select_and_remove_from_literals_to_update_wl_heur_select_and_remove_from_literals_to_update_wl]
     .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     using that unfolding comp_PRE_def twl_st_heur_def literals_to_update_wl_empty_heur_def

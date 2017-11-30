@@ -51,7 +51,7 @@ proof -
     by (cases S) (auto simp add: cdcl\<^sub>W_restart_mset_state)
 
   show ?thesis
-    using n_d  unfolding init_dt_step_def init_dt_step_l_def Let_def
+    using n_d unfolding init_dt_step_def init_dt_step_l_def Let_def
     by (cases S; cases C; cases \<open>tl C\<close>)
       (auto simp: polarity_def length_ge_Suc_0_tl_not_nil split: option.splits cong: bind_cong)
 qed
@@ -69,7 +69,7 @@ lemma init_dt_init_dt_l:
     \<open>\<forall>s\<in>set (get_trail_l (fst S)). \<not>is_decided s\<close> and
     \<open>get_conflict_l (fst S) = None \<longrightarrow>
         literals_to_update_l (fst S) = uminus `# lit_of `# mset (get_trail_l (fst S))\<close> and
-    \<open>additional_WS_invs (fst S)\<close> and
+    \<open>twl_list_invs (fst S)\<close> and
     \<open>get_learned_l (fst S) = length (get_clauses_l (fst S)) - 1\<close> and
     \<open>twl_stgy_invs (twl_st_of None (fst S))\<close> and
     \<open>snd S \<noteq> {#} \<longrightarrow> get_conflict_l (fst S) \<noteq> None\<close>
@@ -711,7 +711,7 @@ proof -
   show ?thesis
     unfolding R_R' list_assn_pure_conv
     by (sepref_to_hoare)
-       (sep_auto simp: list_length_1_code_def list_rel_def list_all2_lengthD[symmetric] 
+       (sep_auto simp: list_length_1_code_def list_rel_def list_all2_lengthD[symmetric]
         split: list.splits)
 qed
 
@@ -929,13 +929,13 @@ sepref_thm init_dt_wl_code
 
 concrete_definition (in -) init_dt_wl_code
   uses "isasat_input_bounded.init_dt_wl_code.refine_raw"
-  is "(uncurry ?f,_)\<in>_"
+  is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) init_dt_wl_code_def
 
 end
 
-definition nat_lit_list_hm_ref_rel :: "(('a set \<times> 'a list) \<times> 'a list) set" where
+definition nat_lit_list_hm_ref_rel :: \<open>(('a set \<times> 'a list) \<times> 'a list) set\<close> where
   \<open>nat_lit_list_hm_ref_rel = {((s, xs), l). l = xs \<and> s = set l}\<close>
 
 abbreviation nat_lit_lits_init_ref_assn where
@@ -944,7 +944,7 @@ abbreviation nat_lit_lits_init_ref_assn where
 abbreviation nat_lit_list_hm_assn where
   \<open>nat_lit_list_hm_assn \<equiv> hr_comp nat_lit_lits_init_ref_assn nat_lit_list_hm_ref_rel\<close>
 
-definition in_map_atm_of :: "'a \<Rightarrow> 'a list \<Rightarrow> bool" where
+definition in_map_atm_of :: \<open>'a \<Rightarrow> 'a list \<Rightarrow> bool\<close> where
   \<open>in_map_atm_of L N \<longleftrightarrow> L \<in> set N\<close>
 
 sepref_definition nat_lit_lits_init_assn_assn_in
@@ -1299,7 +1299,7 @@ lemma init_dt_init_dt_l_full:
     dec:\<open>\<forall>s\<in>set (get_trail_wl S). \<not>is_decided s\<close> and
     confl: \<open>get_conflict_wl S = None \<longrightarrow>
       literals_to_update_wl S = uminus `# lit_of `# mset (get_trail_wl S)\<close> and
-    aff_invs: \<open>additional_WS_invs (st_l_of_wl None S)\<close> and
+    aff_invs: \<open>twl_list_invs (st_l_of_wl None S)\<close> and
     learned: \<open>get_learned_wl S = length (get_clauses_wl S) - 1\<close> and
     stgy_invs: \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
     watch: \<open>correct_watching_init S\<close> and
@@ -1324,7 +1324,7 @@ lemma init_dt_init_dt_l_full:
          cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None (fst TOC))) + snd TOC \<and>
        learned_clss (state\<^sub>W_of (twl_st_of_wl None (fst TOC))) =
           learned_clss (state\<^sub>W_of (twl_st_of_wl None S)) \<and>
-       additional_WS_invs (fst (st_l_of_wl_init TOC)) \<and>
+       twl_list_invs (fst (st_l_of_wl_init TOC)) \<and>
        get_learned_wl (fst TOC) =
        length (get_clauses_wl (fst TOC)) - 1 \<and>
        twl_stgy_invs (twl_st_of_wl None (fst TOC)) \<and>
@@ -1356,7 +1356,7 @@ proof -
     w_q_T: \<open>clauses_to_update_l T = {#}\<close> and
     tr_T: \<open>\<forall>s\<in>set (get_trail_l T). \<not> is_decided s\<close> and
     c_T: \<open>get_conflict_l T = None \<longrightarrow> literals_to_update_l T = uminus `# lit_of `# mset (get_trail_l T)\<close> and
-    add_invs_T: \<open>additional_WS_invs T\<close> and
+    add_invs_T: \<open>twl_list_invs T\<close> and
     le_T: \<open>get_learned_l T = length (get_clauses_l T) - 1\<close> and
     confl_in_clss_T: \<open>get_conflict_l T \<noteq> None \<longrightarrow> the (get_conflict_l T) \<in># mset `# mset (rev CS)\<close>
     by (use assms in \<open>simp add: T_def[symmetric]  w_q tr_T_S p_T_S c_T_S l_T_S cl_T_S; fail\<close>)+
@@ -1385,7 +1385,7 @@ proof -
       snd TOC \<and>
       learned_clss (state\<^sub>W_of (twl_st_of None (fst TOC))) =
       learned_clss (state\<^sub>W_of (twl_st_of None T)) \<and>
-      additional_WS_invs (fst TOC) \<and>
+      twl_list_invs (fst TOC) \<and>
       get_learned_l (fst TOC) =
       length (get_clauses_l (fst TOC)) - 1 \<and>
       twl_stgy_invs (twl_st_of None (fst TOC)) \<and>
@@ -1452,7 +1452,7 @@ where
          cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None T)) =
          cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None (fst TOC))) + snd TOC \<and>
          learned_clss (state\<^sub>W_of (twl_st_of_wl None (fst TOC))) = learned_clss (state\<^sub>W_of (twl_st_of_wl None T)) \<and>
-         additional_WS_invs (st_l_of_wl None (fst TOC)) \<and>
+         twl_list_invs (st_l_of_wl None (fst TOC)) \<and>
          get_learned_wl (fst TOC) = length (get_clauses_wl (fst TOC)) - 1 \<and>
          twl_stgy_invs (twl_st_of_wl None (fst TOC)) \<and>
          (snd TOC \<noteq> {#} \<longrightarrow> get_conflict_wl (fst TOC) \<noteq> None) \<and>
@@ -1479,7 +1479,7 @@ proof -
     struct: \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and
     dec:\<open>\<forall>s\<in>set (get_trail_wl S). \<not>is_decided s\<close> and
     confl: \<open>get_conflict_wl S = None \<longrightarrow> literals_to_update_wl S = uminus `# lit_of `# mset (get_trail_wl S)\<close> and
-    aff_invs: \<open>additional_WS_invs (st_l_of_wl None S)\<close> and
+    aff_invs: \<open>twl_list_invs (st_l_of_wl None S)\<close> and
     learned: \<open>get_learned_wl S = length (get_clauses_wl S) - 1\<close> and
     stgy_invs: \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
     watch: \<open>correct_watching_init S\<close> and
@@ -1496,7 +1496,7 @@ proof -
         cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
         cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
-        past_invs.simps clauses_def additional_WS_invs_def twl_stgy_invs_def clause_to_update_def
+        past_invs.simps clauses_def twl_list_invs_def twl_stgy_invs_def clause_to_update_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
         cdcl\<^sub>W_restart_mset.no_smaller_confl_def get_unit_learned_def)
   note HH = init_dt_init_dt_l_full[of CS S, unfolded clss_empty,
@@ -1670,14 +1670,14 @@ sepref_definition initialise_VMTF_code
   :: \<open>(list_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a vmtf_remove_conc_option_fst_As\<close>
   supply nat_of_uint32_int32_assn[sepref_fr_rules]
   unfolding initialise_VMTF_def vmtf_cons_def
-  apply (rewrite in "((_, _, _, _), \<hole>)" annotate_assn[where A=\<open>arl_assn uint32_nat_assn\<close>])
-  apply (rewrite in "(_, _, _, Some \<hole>)" annotate_assn[where A=\<open>uint32_nat_assn\<close>])
-  apply (rewrite in "WHILE\<^sub>T _ _ (_, _, _, \<hole>)" annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
-  apply (rewrite in "do {ASSERT _; let _ = \<hole>; _}" annotate_assn[where A=\<open>uint32_nat_assn\<close>])
+  apply (rewrite in \<open>((_, _, _, _), \<hole>)\<close> annotate_assn[where A=\<open>arl_assn uint32_nat_assn\<close>])
+  apply (rewrite in \<open>(_, _, _, Some \<hole>)\<close> annotate_assn[where A=\<open>uint32_nat_assn\<close>])
+  apply (rewrite in \<open>WHILE\<^sub>T _ _ (_, _, _, \<hole>)\<close> annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
+  apply (rewrite in \<open>do {ASSERT _; let _ = \<hole>; _}\<close> annotate_assn[where A=\<open>uint32_nat_assn\<close>])
   apply (rewrite in \<open>((_, _, _, _), ASSN_ANNOT _ \<hole>)\<close> arl.fold_custom_empty)
   apply (rewrite in \<open>let _ = \<hole> in _ \<close> array_fold_custom_replicate op_list_replicate_def[symmetric])
-  apply (rewrite in "VMTF_Node 0 \<hole> _" annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
-  apply (rewrite in "VMTF_Node 0 _ \<hole>" annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
+  apply (rewrite in \<open>VMTF_Node 0 \<hole> _\<close> annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
+  apply (rewrite in \<open>VMTF_Node 0 _ \<hole>\<close> annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
   supply [[goals_limit = 1]]
   by sepref
 
@@ -1968,14 +1968,14 @@ sepref_definition init_trail_D_code
   is \<open>uncurry init_trail_D\<close>
   :: \<open>(list_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_pol_assn\<close>
   unfolding init_trail_D_def PR_CONST_def
-  apply (rewrite in "((\<hole>, _, _, _))" HOL_list.fold_custom_empty)
-  apply (rewrite in "((\<hole>, _, _, _))" annotate_assn[where A=\<open>list_assn unat_lit_assn\<close>])
+  apply (rewrite in \<open>((\<hole>, _, _, _))\<close> HOL_list.fold_custom_empty)
+  apply (rewrite in \<open>((\<hole>, _, _, _))\<close> annotate_assn[where A=\<open>list_assn unat_lit_assn\<close>])
 
-  apply (rewrite in "let _ = \<hole> in _" annotate_assn[where A=\<open>array_assn (tri_bool_assn)\<close>])
-  apply (rewrite in "let _ = \<hole> in _" annotate_assn[where A=\<open>array_assn uint32_nat_assn\<close>])
-  apply (rewrite in "let _ = _ in _" array_fold_custom_replicate)
-  apply (rewrite in "let _ = _ in _" array_fold_custom_replicate)
-  apply (rewrite in "let _ = _ in _" array_fold_custom_replicate)
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn (tri_bool_assn)\<close>])
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn uint32_nat_assn\<close>])
+  apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
+  apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
+  apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
   supply [[goals_limit = 1]]
   by sepref
 
@@ -2014,10 +2014,10 @@ sepref_definition init_state_wl_D'_code
   apply (rewrite at \<open>(_, _, _, _, \<hole>, _)\<close> annotate_assn[where A=\<open>list_assn unat_lit_assn\<close>])
   apply (rewrite at \<open>let _ = \<hole> in _\<close> array.fold_custom_empty)
   apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> arl.fold_custom_empty)
-  apply (rewrite at "let _ = \<hole> in _" annotate_assn[where A=\<open>array_assn unat_lit_assn\<close>])
+  apply (rewrite at \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn unat_lit_assn\<close>])
   unfolding array_fold_custom_replicate
-  apply (rewrite at "let _ = _; _ = \<hole> in _" annotate_assn[where A=\<open>clauses_ll_assn\<close>])
-  apply (rewrite at "let _ = _ @ _; _= _; _= \<hole> in _" annotate_assn[where A=\<open>(arrayO_assn (arl_assn nat_assn))\<close>])
+  apply (rewrite at \<open>let _ = _; _ = \<hole> in _\<close> annotate_assn[where A=\<open>clauses_ll_assn\<close>])
+  apply (rewrite at \<open>let _ = _ @ _; _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>(arrayO_assn (arl_assn nat_assn))\<close>])
   supply [[goals_limit = 1]]
   by sepref
 
@@ -2198,7 +2198,7 @@ proof -
          vmtf_remove_conc_option_fst_As *a hr_comp phase_saver_conc (\<langle>bool_rel\<rangle>list_rel) *a
          uint32_nat_assn *a isasat_input_ops.cach_refinement_assn \<A>\<^sub>i\<^sub>n *a lbd_assn\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using  init_state_wl_D'_code.refine[FCOMP init_state_wl_D', of \<A>\<^sub>i\<^sub>n]
+    using init_state_wl_D'_code.refine[FCOMP init_state_wl_D', of \<A>\<^sub>i\<^sub>n]
     unfolding isasat_input_ops.cach_refinement_assn_def
     .
   have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x

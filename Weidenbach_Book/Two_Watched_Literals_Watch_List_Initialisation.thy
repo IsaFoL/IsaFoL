@@ -129,7 +129,7 @@ proof -
     \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and
     \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None S)) = mset `# mset CS\<close> and
     \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
-    \<open>additional_WS_invs (st_l_of_wl None S)\<close>
+    \<open>twl_list_invs (st_l_of_wl None S)\<close>
     unfolding S S\<^sub>0
     subgoal
       using init_dt(1)[OF dist] snd_init
@@ -142,7 +142,7 @@ proof -
       by (cases \<open>init_dt CS S\<^sub>0\<close>) (auto simp: S\<^sub>0 clauses_def)
     subgoal
       using init_dt(5)[OF dist]
-      by (cases \<open>init_dt CS S\<^sub>0\<close>) (auto simp: S\<^sub>0 clauses_def additional_WS_invs_def)
+      by (cases \<open>init_dt CS S\<^sub>0\<close>) (auto simp: S\<^sub>0 clauses_def twl_list_invs_def)
     done
   from cdcl_twl_stgy_prog_wl_spec_final2[OF this(1,3) no_confl this(4) corr_w]
   show ?thesis
