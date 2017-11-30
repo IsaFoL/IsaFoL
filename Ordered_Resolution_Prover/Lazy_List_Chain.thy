@@ -127,35 +127,6 @@ proof (induct rule: lfinite.induct)
   qed simp
 qed simp
 
-lemma tranclp_imp_exists_finite_chain:
-  "R\<^sup>+\<^sup>+ x y \<Longrightarrow> \<exists>xs. lfinite xs \<and> chain R xs \<and> lhd xs = x \<and> llast xs = y"
-proof (induct rule: tranclp.induct)
-  case (r_into_trancl x y)
-  note r_xy = this
-
-  define xs where
-    "xs = LCons x (LCons y LNil)"
-
-  have "lfinite xs" and "chain R xs" and "lhd xs = x" and "llast xs = y"
-    unfolding xs_def using r_xy by (auto intro: chain.intros)
-  then show ?case
-    by blast
-next
-  case (trancl_into_trancl x y z)
-  note rstar_xy = this(1) and ih = this(2) and r_yz = this(3)
-
-  obtain xs where
-    xs: "lfinite xs" "chain R xs" "lhd xs = x" "llast xs = y"
-    using ih by blast
-  define ys where
-    "ys = lappend xs (LCons z LNil)"
-
-  have "lfinite ys" and "chain R ys" and "lhd ys = x" and "llast ys = z"
-    unfolding ys_def using xs r_yz by (auto simp: chain_not_lnull intro: singleton chain_lappend)
-  then show ?case
-    by blast
-qed
-
 lemma tranclp_imp_exists_finite_chain_list:
   "R\<^sup>+\<^sup>+ x y \<Longrightarrow> \<exists>xs. xs \<noteq> [] \<and> tl xs \<noteq> [] \<and> chain R (llist_of xs) \<and> hd xs = x \<and> last xs = y"
 proof (induct rule: tranclp.induct)
