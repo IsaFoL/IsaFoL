@@ -449,8 +449,6 @@ proof (induct Q' arbitrary: P Q)
   qed
 qed simp
 
-thm ord_FO_\<Gamma>_def
-
 lemma resolve_rename_either_way_eq_ord_resolve_rename:
   "mset ` set (resolve_rename_either_way C D) =
    {E | E AAs As \<sigma>. ord_resolve_rename S [mset C] (mset D) AAs As \<sigma> E}"
@@ -464,8 +462,12 @@ lemma concls_of_inference_between_eq_ord_resolve_rename:
 lemma resolve_rename_either_way_eq_inferences_between:
   "(\<Union>D \<in> Q. mset ` set (resolve_rename_either_way C D)) =
    concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) (mset ` Q) (mset C))"
+(*
+  unfolding image_def inference_system.inferences_between_def Bex_def mem_Collect_eq
+    infer_from_def
   unfolding resolve_rename_either_way_eq_ord_resolve_rename
     concls_of_inference_between_eq_ord_resolve_rename
+*)
   sorry
 
 lemma compute_inferences:
