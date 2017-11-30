@@ -76,7 +76,8 @@ fun update_clause where
 
 text \<open>
   When updating clause, we do it non-deterministically: in case of duplicate clause in the two
-  sets, one of the two can be updated (and it does not matter), contrary to an if-condition. \<close>
+  sets, one of the two can be updated (and it does not matter), contrary to an if-condition.
+\<close>
 inductive update_clauses ::
   "'a multiset twl_clause multiset \<times> 'a multiset twl_clause multiset \<Rightarrow>
   'a multiset twl_clause \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow>
@@ -241,8 +242,7 @@ fun distinct_queued :: "'v twl_st \<Rightarrow> bool" where
 text \<open>These are the conditions to indicate that the 2-WL invariant does not hold and is not \<^term>\<open>literals_to_update\<close>.\<close>
 fun clauses_to_update_prop where
   \<open>clauses_to_update_prop Q M (L, C) \<longleftrightarrow>
-    (\<exists>L'. watched C = {#L, L'#} \<and>
-    -L \<in> lits_of_l M \<and> L \<notin># Q \<and> L' \<notin> lits_of_l M)\<close>
+    (\<exists>L'. watched C = {#L, L'#} \<and> -L \<in> lits_of_l M \<and> L \<notin># Q \<and> L' \<notin> lits_of_l M)\<close>
 declare clauses_to_update_prop.simps[simp del]
 
 text \<open>
@@ -260,7 +260,10 @@ fun clauses_to_update_inv :: "'v twl_st \<Rightarrow> bool" where
      (\<forall>L L' C. C \<in># N + U \<longrightarrow> watched C = {#L, L'#} \<longrightarrow> -L \<in> lits_of_l M \<longrightarrow> L' \<notin> lits_of_l M \<longrightarrow>
        (L, C) \<notin># WS \<longrightarrow> L \<in># Q)\<close>
 | \<open>clauses_to_update_inv (M, N, U, D, NP, UP, WS, Q) \<longleftrightarrow> True\<close>
+(* TODO:
+   do we rally need them? maybe the confl candidates invariant are suffisant.
 
+ *)
 
 text \<open>This is the invariant of the 2WL structure: if one watched literal is false, then all unwatched
   are false.\<close>
