@@ -1649,7 +1649,7 @@ lemma minimize_and_extract_highest_lookup_conflict_iterate_over_conflict:
     M_D: \<open>M \<Turnstile>as CNot D\<close> and
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close> and
     struct_invs: \<open>twl_struct_invs S''\<close> and
-    add_inv: \<open>additional_WS_invs S'\<close> and
+    add_inv: \<open>twl_list_invs S'\<close> and
     cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUP) D\<close> and
     NU_P_D: \<open>NU' + NUP \<Turnstile>pm add_mset K D\<close> and
     lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close>
@@ -2288,7 +2288,7 @@ lemma
     M_D: \<open>M \<Turnstile>as CNot D\<close> and
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close> and
     struct_invs: \<open>twl_struct_invs S''\<close> and
-    add_inv: \<open>additional_WS_invs S'\<close> and
+    add_inv: \<open>twl_list_invs S'\<close> and
     cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUP) D\<close> and
     NU_P_D: \<open>NU' + NUP \<Turnstile>pm add_mset K D\<close> and
     confl: \<open>get_conflict_wl S \<noteq> None\<close> and

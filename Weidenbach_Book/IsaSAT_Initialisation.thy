@@ -69,7 +69,7 @@ lemma init_dt_init_dt_l:
     \<open>\<forall>s\<in>set (get_trail_l (fst S)). \<not>is_decided s\<close> and
     \<open>get_conflict_l (fst S) = None \<longrightarrow>
         literals_to_update_l (fst S) = uminus `# lit_of `# mset (get_trail_l (fst S))\<close> and
-    \<open>additional_WS_invs (fst S)\<close> and
+    \<open>twl_list_invs (fst S)\<close> and
     \<open>get_learned_l (fst S) = length (get_clauses_l (fst S)) - 1\<close> and
     \<open>twl_stgy_invs (twl_st_of None (fst S))\<close> and
     \<open>snd S \<noteq> {#} \<longrightarrow> get_conflict_l (fst S) \<noteq> None\<close>
@@ -1299,7 +1299,7 @@ lemma init_dt_init_dt_l_full:
     dec:\<open>\<forall>s\<in>set (get_trail_wl S). \<not>is_decided s\<close> and
     confl: \<open>get_conflict_wl S = None \<longrightarrow>
       literals_to_update_wl S = uminus `# lit_of `# mset (get_trail_wl S)\<close> and
-    aff_invs: \<open>additional_WS_invs (st_l_of_wl None S)\<close> and
+    aff_invs: \<open>twl_list_invs (st_l_of_wl None S)\<close> and
     learned: \<open>get_learned_wl S = length (get_clauses_wl S) - 1\<close> and
     stgy_invs: \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
     watch: \<open>correct_watching_init S\<close> and
@@ -1324,7 +1324,7 @@ lemma init_dt_init_dt_l_full:
          cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None (fst TOC))) + snd TOC \<and>
        learned_clss (state\<^sub>W_of (twl_st_of_wl None (fst TOC))) =
           learned_clss (state\<^sub>W_of (twl_st_of_wl None S)) \<and>
-       additional_WS_invs (fst (st_l_of_wl_init TOC)) \<and>
+       twl_list_invs (fst (st_l_of_wl_init TOC)) \<and>
        get_learned_wl (fst TOC) =
        length (get_clauses_wl (fst TOC)) - 1 \<and>
        twl_stgy_invs (twl_st_of_wl None (fst TOC)) \<and>
@@ -1356,7 +1356,7 @@ proof -
     w_q_T: \<open>clauses_to_update_l T = {#}\<close> and
     tr_T: \<open>\<forall>s\<in>set (get_trail_l T). \<not> is_decided s\<close> and
     c_T: \<open>get_conflict_l T = None \<longrightarrow> literals_to_update_l T = uminus `# lit_of `# mset (get_trail_l T)\<close> and
-    add_invs_T: \<open>additional_WS_invs T\<close> and
+    add_invs_T: \<open>twl_list_invs T\<close> and
     le_T: \<open>get_learned_l T = length (get_clauses_l T) - 1\<close> and
     confl_in_clss_T: \<open>get_conflict_l T \<noteq> None \<longrightarrow> the (get_conflict_l T) \<in># mset `# mset (rev CS)\<close>
     by (use assms in \<open>simp add: T_def[symmetric]  w_q tr_T_S p_T_S c_T_S l_T_S cl_T_S; fail\<close>)+
@@ -1385,7 +1385,7 @@ proof -
       snd TOC \<and>
       learned_clss (state\<^sub>W_of (twl_st_of None (fst TOC))) =
       learned_clss (state\<^sub>W_of (twl_st_of None T)) \<and>
-      additional_WS_invs (fst TOC) \<and>
+      twl_list_invs (fst TOC) \<and>
       get_learned_l (fst TOC) =
       length (get_clauses_l (fst TOC)) - 1 \<and>
       twl_stgy_invs (twl_st_of None (fst TOC)) \<and>
@@ -1452,7 +1452,7 @@ where
          cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None T)) =
          cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None (fst TOC))) + snd TOC \<and>
          learned_clss (state\<^sub>W_of (twl_st_of_wl None (fst TOC))) = learned_clss (state\<^sub>W_of (twl_st_of_wl None T)) \<and>
-         additional_WS_invs (st_l_of_wl None (fst TOC)) \<and>
+         twl_list_invs (st_l_of_wl None (fst TOC)) \<and>
          get_learned_wl (fst TOC) = length (get_clauses_wl (fst TOC)) - 1 \<and>
          twl_stgy_invs (twl_st_of_wl None (fst TOC)) \<and>
          (snd TOC \<noteq> {#} \<longrightarrow> get_conflict_wl (fst TOC) \<noteq> None) \<and>
@@ -1479,7 +1479,7 @@ proof -
     struct: \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and
     dec:\<open>\<forall>s\<in>set (get_trail_wl S). \<not>is_decided s\<close> and
     confl: \<open>get_conflict_wl S = None \<longrightarrow> literals_to_update_wl S = uminus `# lit_of `# mset (get_trail_wl S)\<close> and
-    aff_invs: \<open>additional_WS_invs (st_l_of_wl None S)\<close> and
+    aff_invs: \<open>twl_list_invs (st_l_of_wl None S)\<close> and
     learned: \<open>get_learned_wl S = length (get_clauses_wl S) - 1\<close> and
     stgy_invs: \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
     watch: \<open>correct_watching_init S\<close> and
@@ -1496,7 +1496,7 @@ proof -
         cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
         cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
-        past_invs.simps clauses_def additional_WS_invs_def twl_stgy_invs_def clause_to_update_def
+        past_invs.simps clauses_def twl_list_invs_def twl_stgy_invs_def clause_to_update_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
         cdcl\<^sub>W_restart_mset.no_smaller_confl_def get_unit_learned_def)
   note HH = init_dt_init_dt_l_full[of CS S, unfolded clss_empty,

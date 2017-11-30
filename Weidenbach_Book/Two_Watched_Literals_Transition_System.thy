@@ -150,7 +150,8 @@ inductive cdcl_twl_o :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" w
     \<open>clause `# (N + U) + NP + UP \<Turnstile>pm D'\<close>
 | backtrack_nonunit_clause:
   \<open>cdcl_twl_o (M, N, U, Some D, NP, UP, {#}, {#})
-  (Propagated L D' # M1, N, add_mset (TWL_Clause {#L, L'#} (D' - {#L, L'#})) U, None, NP, UP, {#}, {#-L#})\<close>
+     (Propagated L D' # M1, N, add_mset (TWL_Clause {#L, L'#} (D' - {#L, L'#})) U, None, NP, UP,
+       {#}, {#-L#})\<close>
   if
     \<open>L \<in># D\<close> and
     \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
@@ -214,9 +215,11 @@ fun twl_lazy_update :: "('a, 'b) ann_lits \<Rightarrow> 'a twl_cls \<Rightarrow>
   (\<forall>L L'. W = {#L, L'#} \<longrightarrow> -L \<in> lits_of_l M \<longrightarrow> L' \<notin> lits_of_l M \<longrightarrow>
     (\<forall>K \<in># UW. get_level M L \<ge> get_level M K))\<close>
 
-text \<open>If one watched literals has been assigned to false (\<^term>\<open>-L \<in> lits_of_l M\<close>) and the clause
+text \<open>
+  If one watched literals has been assigned to false (\<^term>\<open>-L \<in> lits_of_l M\<close>) and the clause
   has not yet been updated (\<^term>\<open>L' \<notin> lits_of_l M\<close>: it should be removed either by updating \<open>L\<close>,
-  propagating \<open>L'\<close>, or marking the conflict), then the literals \<^term>\<open>L\<close> is of maximal level.\<close>
+  propagating \<open>L'\<close>, or marking the conflict), then the literals \<^term>\<open>L\<close> is of maximal level.
+\<close>
 fun watched_literals_false_of_max_level :: "('a, 'b) ann_lits \<Rightarrow> 'a twl_cls \<Rightarrow> bool" where
 "watched_literals_false_of_max_level M (TWL_Clause W UW) \<longleftrightarrow>
   (\<forall>L L'. W = {#L, L'#} \<longrightarrow> -L \<in> lits_of_l M \<longrightarrow> L' \<notin> lits_of_l M \<longrightarrow>
@@ -239,7 +242,10 @@ fun distinct_queued :: "'v twl_st \<Rightarrow> bool" where
   distinct_mset Q \<and>
   (\<forall>L C. count WS (L, C) \<le> count (N + U) C)\<close>
 
-text \<open>These are the conditions to indicate that the 2-WL invariant does not hold and is not \<^term>\<open>literals_to_update\<close>.\<close>
+text \<open>
+  These are the conditions to indicate that the 2-WL invariant does not hold and is not 
+  \<^term>\<open>literals_to_update\<close>.
+\<close>
 fun clauses_to_update_prop where
   \<open>clauses_to_update_prop Q M (L, C) \<longleftrightarrow>
     (\<exists>L'. watched C = {#L, L'#} \<and> -L \<in> lits_of_l M \<and> L \<notin># Q \<and> L' \<notin> lits_of_l M)\<close>
@@ -285,9 +291,9 @@ text \<open>Candidats for propagation (i.e., the clause where only one literals 
   assigned) are enqueued.\<close>
 fun propa_cands_enqueued :: "'v twl_st \<Rightarrow> bool" where
   \<open>propa_cands_enqueued (M, N, U, None, NP, UP, WS, Q) \<longleftrightarrow>
-  (\<forall>L C. C \<in># N+U \<longrightarrow> L \<in># clause C \<longrightarrow> M \<Turnstile>as CNot (remove1_mset L (clause C)) \<longrightarrow>
-    undefined_lit M L \<longrightarrow>
-    (\<exists>L'. L' \<in># watched C \<and> L' \<in># Q) \<or> (\<exists>L. (L, C) \<in># WS))\<close>
+    (\<forall>L C. C \<in># N+U \<longrightarrow> L \<in># clause C \<longrightarrow> M \<Turnstile>as CNot (remove1_mset L (clause C)) \<longrightarrow>
+      undefined_lit M L \<longrightarrow>
+      (\<exists>L'. L' \<in># watched C \<and> L' \<in># Q) \<or> (\<exists>L. (L, C) \<in># WS))\<close>
   | \<open>propa_cands_enqueued (M, N, U, D, NP, UP, WS, Q) \<longleftrightarrow> True\<close>
 
 fun confl_cands_enqueued :: "'v twl_st \<Rightarrow> bool" where
@@ -323,8 +329,8 @@ fun unit_clss_inv :: "'v twl_st \<Rightarrow> bool" where
       (\<exists>L. C = {#L#} \<and> (D = None \<or> count_decided M > 0 \<longrightarrow> get_level M L = 0 \<and> L \<in> lits_of_l M)))\<close>
 
 text \<open>\<^term>\<open>literals_to_update\<close> literals are of maximum level and their negation is in the trail.\<close>
-fun valid_annotation :: "'v twl_st \<Rightarrow> bool" where
-"valid_annotation (M, N, U, C, NP, UP, WS, Q) \<longleftrightarrow>
+fun valid_enqueued :: "'v twl_st \<Rightarrow> bool" where
+"valid_enqueued (M, N, U, C, NP, UP, WS, Q) \<longleftrightarrow>
   (\<forall>(L, C) \<in># WS. L \<in># watched C \<and> C \<in># N + U \<and> -L \<in> lits_of_l M \<and>
      get_level M L = count_decided M) \<and>
   (\<forall>L \<in># Q. -L \<in> lits_of_l M \<and> get_level M L = count_decided M)"
@@ -333,7 +339,7 @@ text \<open>Putting invariants together:\<close>
 definition twl_struct_invs :: \<open>'v twl_st \<Rightarrow> bool\<close> where
   \<open>twl_struct_invs S \<longleftrightarrow>
     (twl_st_inv S \<and>
-    valid_annotation S \<and>
+    valid_enqueued S \<and>
     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S) \<and>
     cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of S) \<and>
     twl_st_exception_inv S \<and>
@@ -612,7 +618,7 @@ lemma
     cdcl: "cdcl_twl_cp S T" and
     twl: "twl_st_inv S" and
     twl_excep: \<open>twl_st_exception_inv S\<close> and
-    valid: "valid_annotation S" and
+    valid: "valid_enqueued S" and
     inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)" and
     no_dup: \<open>no_duplicate_queued S\<close> and
     dist_q: \<open>distinct_queued S\<close> and
@@ -1090,7 +1096,7 @@ lemma twl_cp_twl_inv:
   assumes
     cdcl: "cdcl_twl_cp S T" and
     twl: "twl_st_inv S" and
-    valid: "valid_annotation S" and
+    valid: "valid_enqueued S" and
     inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)" and
     twl_excep: \<open>twl_st_exception_inv S\<close> and
     no_dup: \<open>no_duplicate_queued S\<close>
@@ -1363,7 +1369,7 @@ lemma twl_cp_distinct_queued:
   assumes
     cdcl: "cdcl_twl_cp S T" and
     twl: "twl_st_inv S" and
-    valid: "valid_annotation S" and
+    valid: "valid_enqueued S" and
     inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)" and
     no_dup: \<open>no_duplicate_queued S\<close> and
     dist: \<open>distinct_queued S\<close>
@@ -1427,11 +1433,11 @@ lemma twl_cp_valid:
   assumes
     cdcl: "cdcl_twl_cp S T" and
     twl: "twl_st_inv S" and
-    valid: "valid_annotation S" and
+    valid: "valid_enqueued S" and
     inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)" and
     no_dup: \<open>no_duplicate_queued S\<close> and
     dist: \<open>distinct_queued S\<close>
-  shows "valid_annotation T"
+  shows "valid_enqueued T"
   using cdcl twl valid inv no_dup dist
 proof (induction rule: cdcl_twl_cp.induct)
   case (pop M N U NP UP L Q) note valid = this(2)
@@ -1456,7 +1462,7 @@ next
     L' = this(3) and K = this(4) and undef = this(5) and N'U' = this(6) and twl = this(7) and
     valid = this(8) and inv = this(9) and no_dup = this(10) and dist = this(11)
   show ?case
-    unfolding valid_annotation.simps Ball_def
+    unfolding valid_enqueued.simps Ball_def
   proof (intro allI impI conjI)
     fix L :: \<open>'a literal\<close>
     assume L:  \<open>L \<in># Q\<close>
@@ -1514,7 +1520,7 @@ lemma twl_cp_propa_cands_enqueued:
   assumes
     cdcl: "cdcl_twl_cp S T" and
     twl: "twl_st_inv S" and
-    valid: "valid_annotation S" and
+    valid: "valid_enqueued S" and
     inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)" and
     twl_excep: \<open>twl_st_exception_inv S\<close> and
     no_dup: \<open>no_duplicate_queued S\<close> and
@@ -1825,7 +1831,7 @@ lemma twl_cp_confl_cands_enqueued:
   assumes
     cdcl: "cdcl_twl_cp S T" and
     twl: "twl_st_inv S" and
-    valid: "valid_annotation S" and
+    valid: "valid_enqueued S" and
     inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)" and
     excep: \<open>twl_st_exception_inv S\<close> and
     no_dup: \<open>no_duplicate_queued S\<close> and
@@ -2076,7 +2082,7 @@ lemma twl_cp_past_invs:
   assumes
     cdcl: "cdcl_twl_cp S T" and
     twl: "twl_st_inv S" and
-    valid: "valid_annotation S" and
+    valid: "valid_enqueued S" and
     inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)" and
     twl_excep: \<open>twl_st_exception_inv S\<close> and
     no_dup: \<open>no_duplicate_queued S\<close> and
@@ -2332,7 +2338,7 @@ lemma twl_cp_propagate_or_conflict:
   assumes
     cdcl: "cdcl_twl_cp S T" and
     twl: "twl_st_inv S" and
-    valid: "valid_annotation S" and
+    valid: "valid_enqueued S" and
     inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)"
   shows "cdcl\<^sub>W_restart_mset.propagate (state\<^sub>W_of S) (state\<^sub>W_of T) \<or>
     cdcl\<^sub>W_restart_mset.conflict (state\<^sub>W_of S) (state\<^sub>W_of T) \<or>
@@ -2410,7 +2416,7 @@ lemma cdcl_twl_o_cdcl\<^sub>W_o:
   assumes
     cdcl: "cdcl_twl_o S T" and
     twl: "twl_st_inv S" and
-    valid: "valid_annotation S" and
+    valid: "valid_enqueued S" and
     inv: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)"
   shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
   using cdcl twl valid inv
@@ -3301,7 +3307,7 @@ lemma
   assumes
     cdcl: "cdcl_twl_o S T"
   shows
-    cdcl_twl_o_valid: \<open>valid_annotation T\<close> and
+    cdcl_twl_o_valid: \<open>valid_enqueued T\<close> and
     cdcl_twl_o_conflict_None_queue:
       \<open>get_conflict T \<noteq> None \<Longrightarrow> clauses_to_update T = {#} \<and> literals_to_update T = {#}\<close> and
       cdcl_twl_o_no_duplicate_queued: \<open>no_duplicate_queued T\<close> and
@@ -4353,7 +4359,7 @@ next
   case None note confl = this(1)
   then obtain M N U UP NP WS Q where S: \<open>S = (M, N, U, None, NP, UP, WS, Q)\<close>
     by (cases S) auto
-  have valid: \<open>valid_annotation S\<close> and twl: \<open>twl_st_inv S\<close>
+  have valid: \<open>valid_enqueued S\<close> and twl: \<open>twl_st_inv S\<close>
     using twl unfolding twl_struct_invs_def by fast+
   have wq: \<open>clauses_to_update S = {#}\<close>
   proof (rule ccontr)

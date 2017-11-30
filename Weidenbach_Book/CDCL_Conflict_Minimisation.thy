@@ -1223,7 +1223,7 @@ lemma lit_redundant_rec_wl:
   assumes
     bounds_init: \<open>lit_redundant_rec_wl_ref NU analyse\<close> and
     struct_invs: \<open>twl_struct_invs S''\<close> and
-    add_inv: \<open>additional_WS_invs S'\<close>
+    add_inv: \<open>twl_list_invs S'\<close>
   shows
     \<open>lit_redundant_rec_wl M NU D cach analyse lbv \<le> \<Down>
        (Id \<times>\<^sub>r {(analyse, analyse'). analyse' = convert_analysis_list NU analyse \<and>
@@ -1380,7 +1380,7 @@ proof -
       show ?propa and ?a
         using that by (auto simp: M'_def dest!: split_list)
       show ?L
-        using that add_inv unfolding additional_WS_invs_def
+        using that add_inv unfolding twl_list_invs_def
         by (auto simp: S)
     qed
     then show ?thesis
@@ -1408,7 +1408,7 @@ proof -
       unfolding get_lit convert_analysis_list_def
       by auto
     then have [simp]: \<open>x1d = -NU ! xb ! 0\<close> \<open>NU ! xb \<noteq> []\<close>
-      using add_inv xb_x'c unfolding additional_WS_invs_def by (fastforce simp: S)+
+      using add_inv xb_x'c unfolding twl_list_invs_def by (fastforce simp: S)+
     show ?thesis
       using s xx' get_literal_and_remove_of_analyse_wl xb_x'c
       unfolding get_lit convert_analysis_list_def lit_redundant_rec_wl_ref_def
@@ -1490,7 +1490,7 @@ lemma literal_redundant_wl_literal_redundant:
     NU': \<open>NU' \<equiv> mset `# mset (tl NU)\<close>
   assumes
     struct_invs: \<open>twl_struct_invs S''\<close> and
-    add_inv: \<open>additional_WS_invs S'\<close> and
+    add_inv: \<open>twl_list_invs S'\<close> and
     L_D: \<open>L \<in># D\<close> and
     M_D: \<open>M \<Turnstile>as CNot D\<close>
   shows
@@ -1616,7 +1616,7 @@ proof -
     lev: \<open>\<not> (get_level M' L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE)\<close>
   for C
     using add_inv that propagated_L[OF lev _ in_trail] uL_M
-    by (auto simp: S additional_WS_invs_def)
+    by (auto simp: S twl_list_invs_def)
   have [dest]: \<open>C \<noteq> {#}\<close> if \<open>Propagated (- L) C \<in> set M'\<close> for C
   proof -
     have \<open>a @ Propagated L mark # b = trail S''' \<Longrightarrow> b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close>
@@ -1628,7 +1628,7 @@ proof -
       using that by (fastforce simp: S M'_def[symmetric] dest!: split_list)
   qed
   have [simp]: \<open>Propagated (- L) C \<in> set M \<Longrightarrow> C < length NU\<close> for C
-    using add_inv by (auto simp: S additional_WS_invs_def)
+    using add_inv by (auto simp: S twl_list_invs_def)
 
   show ?thesis
     unfolding literal_redundant_wl_def literal_redundant_def

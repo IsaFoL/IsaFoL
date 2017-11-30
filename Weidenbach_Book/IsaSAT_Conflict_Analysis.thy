@@ -1110,7 +1110,7 @@ lemma update_confl_tl_wl_code_update_confl_tl_wl[sepref_fr_rules]:
         (L, C) = lit_and_ann_of_propagated_st S \<and>
         literals_are_\<L>\<^sub>i\<^sub>n S \<and>
         is_proped (hd (get_trail_wl S)) \<and>
-        additional_WS_invs (st_l_of_wl None S)]\<^sub>a
+        twl_list_invs (st_l_of_wl None S)]\<^sub>a
        nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a twl_st_assn\<^sup>d \<rightarrow> bool_assn *a twl_st_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
@@ -1182,7 +1182,7 @@ proof -
       lits_\<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
       struct_invs: \<open>twl_struct_invs (twl_st_of None (st_l_of_wl None S))\<close> and
       trail_nempty: \<open>get_trail_wl S \<noteq> []\<close> and
-      add_invs: \<open>additional_WS_invs (st_l_of_wl None S)\<close> and
+      add_invs: \<open>twl_list_invs (st_l_of_wl None S)\<close> and
       proped: \<open>is_proped (hd (get_trail_wl S))\<close> and
       confl: \<open>get_conflict_wl S \<noteq> None\<close> and
       L_confl: \<open>-L \<in># the(get_conflict_wl S)\<close>
@@ -1191,7 +1191,7 @@ proof -
       by (rule literals_are_\<L>\<^sub>i\<^sub>n_conflict_literals_are_in_\<L>\<^sub>i\<^sub>n[of _ None])
        (use lits_\<A>\<^sub>i\<^sub>n confl struct_invs in auto)
     have C_le: \<open>C < length (get_clauses_wl S)\<close>
-      using trail_nempty LC proped add_invs trail_nempty unfolding additional_WS_invs_def
+      using trail_nempty LC proped add_invs trail_nempty unfolding twl_list_invs_def
       by (cases M; cases \<open>hd M\<close>) auto
     moreover have L_D\<^sub>0: \<open>L \<in> snd ` D\<^sub>0\<close>
       using L_confl confl lits_D

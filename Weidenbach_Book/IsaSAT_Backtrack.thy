@@ -665,7 +665,7 @@ definition extract_shorter_conflict_list_heur_st_pre where
         twl_struct_invs (twl_st_of_wl None S) \<and>
         twl_stgy_invs (twl_st_of_wl None S) \<and>
         literals_are_\<L>\<^sub>i\<^sub>n S \<and>
-        additional_WS_invs (st_l_of_wl None S)\<close>
+        twl_list_invs (st_l_of_wl None S)\<close>
 
 
 lemma extract_shorter_conflict_list_lookup_heur_st_extract_shorter_conflict_st_trivial_heur:
@@ -712,7 +712,7 @@ proof -
       uL_D: \<open>- lit_of (hd (get_trail_wl ?S))
        \<in># the (get_conflict_wl ?S)\<close> and
       invs: \<open>twl_struct_invs (twl_st_of_wl None ?S)\<close> and
-      add_invs: \<open>additional_WS_invs (st_l_of_wl None ?S)\<close>
+      add_invs: \<open>twl_list_invs (st_l_of_wl None ?S)\<close>
       using pre unfolding extract_shorter_conflict_list_heur_st_pre_def
       by clarify+
 
@@ -2706,7 +2706,7 @@ proof -
     nsr: \<open>no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of None (st_l_of_wl None S)))\<close> and
     struct_invs: \<open>twl_struct_invs (twl_st_of None (st_l_of_wl None S))\<close> and
     stgy_invs: \<open>twl_stgy_invs (twl_st_of None (st_l_of_wl None S))\<close> and
-    add_invs: \<open>additional_WS_invs (st_l_of_wl None S)\<close> and
+    add_invs: \<open>twl_list_invs (st_l_of_wl None S)\<close> and
     D: \<open>D \<noteq> None\<close> \<open>the D \<noteq> {#}\<close> and
     confl_S: \<open>get_conflict_wl S \<noteq> None\<close> \<open>get_conflict_wl S \<noteq> Some {#}\<close> and
     \<open>correct_watching S\<close> and

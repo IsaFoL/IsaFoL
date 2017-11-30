@@ -24,7 +24,8 @@ type_synonym watched_wl = \<open>(nat array_list) array\<close>
 subsubsection \<open>Refinement of the Watched Function\<close>
 
 definition map_fun_rel :: "(nat \<times> 'key) set \<Rightarrow> ('b \<times> 'a) set \<Rightarrow> ('b list \<times> ('key \<Rightarrow> 'a)) set" where
-  map_fun_rel_def_internal: \<open>map_fun_rel D R = {(m, f). \<forall>(i, j)\<in>D. i < length m \<and> (m ! i, f j) \<in> R}\<close>
+  map_fun_rel_def_internal:
+    \<open>map_fun_rel D R = {(m, f). \<forall>(i, j)\<in>D. i < length m \<and> (m ! i, f j) \<in> R}\<close>
 
 lemma map_fun_rel_def:
   \<open>\<langle>R\<rangle>map_fun_rel D = {(m, f). \<forall>(i, j)\<in>D. i < length m \<and> (m ! i, f j) \<in> R}\<close>
@@ -835,7 +836,7 @@ lemma unit_propagation_inner_loop_body_wl_D_spec:
     confl: \<open>get_conflict_wl S = None\<close> and
     corr_w: \<open>correct_watching S\<close> and
     struct_invs: \<open>twl_struct_invs S''\<close> and
-    add_inv: \<open>additional_WS_invs S'\<close> and
+    add_inv: \<open>twl_list_invs S'\<close> and
     stgy_inv: \<open>twl_stgy_invs S''\<close>
   shows \<open>unit_propagation_inner_loop_body_wl_D K w S \<le>
       \<Down> {((n', T'), (n, T)). n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T'}
@@ -922,14 +923,14 @@ lemma
   \<open>(uncurry2 unit_propagation_inner_loop_body_wl_D, uncurry2 unit_propagation_inner_loop_body_wl) \<in>
     [\<lambda>((K, w), S). literals_are_\<L>\<^sub>i\<^sub>n S \<and> K \<in> snd ` D\<^sub>0 \<and> w < length (watched_by S K) \<and>
       get_conflict_wl S = None \<and> correct_watching S \<and> twl_struct_invs (twl_st_of_wl (Some (K, w)) S) \<and>
-      additional_WS_invs (st_l_of_wl (Some (K, w)) S) \<and> twl_stgy_invs (twl_st_of_wl (Some (K, w)) S)]\<^sub>f
+      twl_list_invs (st_l_of_wl (Some (K, w)) S) \<and> twl_stgy_invs (twl_st_of_wl (Some (K, w)) S)]\<^sub>f
     Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel \<times>\<^sub>r {(T', T).
        T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<rangle> nres_rel\<close> (is \<open>?G1\<close>) and
   unit_propagation_inner_loop_body_wl_D_unit_propagation_inner_loop_body_wl_D_weak:
    \<open>(uncurry2 unit_propagation_inner_loop_body_wl_D, uncurry2 unit_propagation_inner_loop_body_wl) \<in>
     [\<lambda>((K, w), S). literals_are_\<L>\<^sub>i\<^sub>n S \<and> K \<in> snd ` D\<^sub>0 \<and> w < length (watched_by S K) \<and>
       get_conflict_wl S = None \<and> correct_watching S \<and> twl_struct_invs (twl_st_of_wl (Some (K, w)) S) \<and>
-      additional_WS_invs (st_l_of_wl (Some (K, w)) S) \<and> twl_stgy_invs (twl_st_of_wl (Some (K, w)) S)]\<^sub>f Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel \<times>\<^sub>r Id\<rangle> nres_rel\<close>
+      twl_list_invs (st_l_of_wl (Some (K, w)) S) \<and> twl_stgy_invs (twl_st_of_wl (Some (K, w)) S)]\<^sub>f Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<rightarrow> \<langle>nat_rel \<times>\<^sub>r Id\<rangle> nres_rel\<close>
    (is \<open>?G2\<close>)
 proof -
   have 1: \<open>nat_rel \<times>\<^sub>r {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T} =
@@ -951,7 +952,7 @@ where
   \<open>unit_propagation_inner_loop_wl_loop_D L S\<^sub>0 = do {
     WHILE\<^sub>T\<^bsup>\<lambda>(w, S). twl_struct_invs (twl_st_of_wl (Some (L, w)) S) \<and>
         twl_stgy_invs (twl_st_of_wl (Some (L, w)) S) \<and>
-         additional_WS_invs (st_l_of_wl (Some (L, w)) S) \<and>
+         twl_list_invs (st_l_of_wl (Some (L, w)) S) \<and>
         correct_watching S \<and> w \<le> length (watched_by S L) \<and>
         literals_are_\<L>\<^sub>i\<^sub>n S \<and> L \<in> snd ` D\<^sub>0\<^esup>
       (\<lambda>(w, S). w < length (watched_by S L) \<and> get_conflict_wl S = None)
@@ -975,7 +976,7 @@ proof -
     \<open>K = K'\<close> and \<open>w = w'\<close> and \<open>S = S'\<close> and \<open>w < length (watched_by S K)\<close> and
     \<open>get_conflict_wl S = None \<and> correct_watching S\<close> and
     \<open>twl_struct_invs (twl_st_of_wl (Some (K, w)) S)\<close> and
-    \<open>additional_WS_invs (st_l_of_wl (Some (K, w)) S)\<close> and
+    \<open>twl_list_invs (st_l_of_wl (Some (K, w)) S)\<close> and
     \<open>twl_stgy_invs (twl_st_of_wl (Some (K, w)) S)\<close>
   for S S' and w w' and K K'
     using unit_propagation_inner_loop_body_wl_D_spec[of K S w] that by auto
@@ -1030,7 +1031,7 @@ qed
 definition (in isasat_input_ops) unit_propagation_outer_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
   \<open>unit_propagation_outer_loop_wl_D S\<^sub>0 =
     WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs (twl_st_of_wl None S) \<and> twl_stgy_invs (twl_st_of_wl None S) \<and>
-      correct_watching S \<and> additional_WS_invs (st_l_of_wl None S)\<^esup>
+      correct_watching S \<and> twl_list_invs (st_l_of_wl None S)\<^esup>
       (\<lambda>S. literals_to_update_wl S \<noteq> {#})
       (\<lambda>S. do {
         ASSERT(literals_to_update_wl S \<noteq> {#});
@@ -1083,7 +1084,7 @@ definition (in isasat_input_ops) skip_and_resolve_loop_wl_D :: "nat twl_st_wl \<
       ASSERT(get_conflict_wl S\<^sub>0 \<noteq> None);
       (_, S) \<leftarrow>
         WHILE\<^sub>T\<^bsup>\<lambda>(brk, S). skip_and_resolve_loop_inv (twl_st_of_wl None S\<^sub>0) (brk, twl_st_of_wl None S) \<and>
-         additional_WS_invs (st_l_of_wl None S) \<and> correct_watching S \<and> literals_are_\<L>\<^sub>i\<^sub>n S\<^esup>
+         twl_list_invs (st_l_of_wl None S) \<and> correct_watching S \<and> literals_are_\<L>\<^sub>i\<^sub>n S\<^esup>
         (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided (hd (get_trail_wl S)))
         (\<lambda>(brk, S).
           do {
@@ -1139,11 +1140,11 @@ lemma skip_and_resolve_loop_wl_D_spec:
 proof -
   define invar where
    \<open>invar = (\<lambda>(brk, T). skip_and_resolve_loop_inv (twl_st_of_wl None S) (brk, twl_st_of_wl None T) \<and>
-         additional_WS_invs (st_l_of_wl None T) \<and> correct_watching T \<and> literals_are_\<L>\<^sub>i\<^sub>n T)\<close>
+         twl_list_invs (st_l_of_wl None T) \<and> correct_watching T \<and> literals_are_\<L>\<^sub>i\<^sub>n T)\<close>
   have 1: \<open>((get_conflict_wl S = Some {#}, S), get_conflict_wl S = Some {#}, S) \<in> Id\<close>
     by auto
   have H: \<open>(\<lambda>(brk, T). skip_and_resolve_loop_inv (twl_st_of_wl None S) (brk, twl_st_of_wl None T) \<and>
-         additional_WS_invs (st_l_of_wl None T) \<and> correct_watching T) =
+         twl_list_invs (st_l_of_wl None T) \<and> correct_watching T) =
        invar\<close>
     apply (intro ext, rename_tac brkT)
     subgoal for brkT
@@ -1341,7 +1342,7 @@ proof -
     have dist:
      \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of (twl_st_of None (st_l_of_wl None S)))\<close>
       and
-      add_invs: \<open>additional_WS_invs (st_l_of_wl None S)\<close> and
+      add_invs: \<open>twl_list_invs (st_l_of_wl None S)\<close> and
       \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
       struct: \<open>twl_struct_invs (twl_st_of None (st_l_of_wl None S))\<close>
       using bt unfolding backtrack_wl_D_inv_def backtrack_wl_inv_def backtrack_l_inv_def
@@ -1376,7 +1377,7 @@ proof -
 
 
       have [simp]: \<open>US < length NS\<close> \<open>NS \<noteq> []\<close>
-        using add_invs unfolding S additional_WS_invs_def by auto
+        using add_invs unfolding S twl_list_invs_def by auto
       have [simp]: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm
         (mset `# mset (take US (tl NS)) + NPS + (mset `# mset (drop (Suc US) NS) + UPS)))\<close>
         apply (rule subst[of _ _ \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l\<close>, OF _ \<A>\<^sub>i\<^sub>n])
@@ -1444,7 +1445,7 @@ proof -
     have dist:
       \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of (twl_st_of None (st_l_of_wl None S)))\<close>
       and
-      add_invs: \<open>additional_WS_invs (st_l_of_wl None S)\<close> and
+      add_invs: \<open>twl_list_invs (st_l_of_wl None S)\<close> and
       \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and
       struct: \<open>twl_struct_invs (twl_st_of None (st_l_of_wl None S))\<close>
       using bt unfolding backtrack_wl_D_inv_def backtrack_wl_inv_def backtrack_l_inv_def
@@ -1587,7 +1588,7 @@ where
     do {
       ASSERT(twl_struct_invs (twl_st_of_wl None S));
       ASSERT(twl_stgy_invs (twl_st_of_wl None S));
-      ASSERT(additional_WS_invs (st_l_of_wl None S));
+      ASSERT(twl_list_invs (st_l_of_wl None S));
       if get_conflict_wl S = None
       then decide_wl_or_skip_D S
       else do {
@@ -1646,7 +1647,7 @@ where
           (brk \<longrightarrow> no_step cdcl_twl_stgy (twl_st_of_wl None T)) \<and>
           cdcl_twl_stgy\<^sup>*\<^sup>* (twl_st_of_wl None S\<^sub>0) (twl_st_of_wl None T) \<and>
           (\<not>brk \<longrightarrow> get_conflict_wl T = None) \<and>
-          additional_WS_invs (st_l_of_wl None T) \<and>
+          twl_list_invs (st_l_of_wl None T) \<and>
           correct_watching T \<and>
           literals_are_\<L>\<^sub>i\<^sub>n T\<^esup>
         (\<lambda>(brk, _). \<not>brk)
@@ -1697,7 +1698,7 @@ qed
 
 lemma cdcl_twl_stgy_prog_wl_D_spec_final2_Down:
   assumes \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
-    \<open>get_conflict_wl S = None\<close> and \<open>additional_WS_invs (st_l_of_wl None S)\<close> and
+    \<open>get_conflict_wl S = None\<close> and \<open>twl_list_invs (st_l_of_wl None S)\<close> and
     \<open>correct_watching S\<close> and \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close>
   shows
     \<open>cdcl_twl_stgy_prog_wl_D S \<le>
@@ -1717,7 +1718,7 @@ lemma cdcl_twl_stgy_prog_wl_D_spec_final2_Down:
 
 theorem cdcl_twl_stgy_prog_wl_spec_final2:
   assumes \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and \<open>twl_stgy_invs (twl_st_of_wl None S)\<close> and
-    \<open>get_conflict_wl S = None\<close> and \<open>additional_WS_invs (st_l_of_wl None S)\<close> and
+    \<open>get_conflict_wl S = None\<close> and \<open>twl_list_invs (st_l_of_wl None S)\<close> and
     \<open>correct_watching S\<close> and \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close>
   shows
     \<open>cdcl_twl_stgy_prog_wl_D S \<le>

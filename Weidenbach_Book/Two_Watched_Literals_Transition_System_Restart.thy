@@ -230,7 +230,7 @@ proof (induction rule: cdcl_twl_restart.induct)
     kept = this(3) and invs = this(4)
   then have
     twl_st_inv: \<open>twl_st_inv (M, N, U, None, NP, UP, {#}, Q)\<close> and
-    \<open>valid_annotation (M, N, U, None, NP, UP, {#}, Q)\<close> and
+    \<open>valid_enqueued (M, N, U, None, NP, UP, {#}, Q)\<close> and
     struct_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv
       (state\<^sub>W_of (M, N, U, None, NP, UP, {#}, Q))\<close> and
     smaller: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa
@@ -377,7 +377,7 @@ next
     kept = this(2) and invs = this(3)
   then have
     twl_st_inv: \<open>twl_st_inv (M, N, U, None, NP, UP, {#}, Q)\<close> and
-    valid: \<open>valid_annotation (M, N, U, None, NP, UP, {#}, Q)\<close> and
+    valid: \<open>valid_enqueued (M, N, U, None, NP, UP, {#}, Q)\<close> and
     struct_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv
       (state\<^sub>W_of (M, N, U, None, NP, UP, {#}, Q))\<close> and
     smaller: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa
@@ -399,7 +399,7 @@ next
    have n_d: \<open>no_dup M\<close>
      using struct_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail.simps)
-   have valid': \<open>valid_annotation (M, N, U', None, NP, UP, {#}, Q)\<close>
+   have valid': \<open>valid_enqueued (M, N, U', None, NP, UP, {#}, Q)\<close>
      using valid by auto
    have unit_clss_inv: \<open>unit_clss_inv (M, N, U', None, NP, UP, {#}, Q)\<close>
      unfolding unit_clss_inv.simps

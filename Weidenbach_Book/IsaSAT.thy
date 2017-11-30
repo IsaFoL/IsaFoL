@@ -432,7 +432,7 @@ proof -
   proof -
     have
       struct_invs: \<open>twl_struct_invs_init (twl_st_of_wl_init T)\<close> and
-      add_invs: \<open>additional_WS_invs (st_l_of_wl None (fst T))\<close> and
+      add_invs: \<open>twl_list_invs (st_l_of_wl None (fst T))\<close> and
       clss: \<open>mset `# mset (rev CS') + cdcl\<^sub>W_restart_mset.clauses ?init =
         cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None (fst T))) + snd T\<close> and
       count_dec: \<open>(\<forall>s\<in>set (get_trail_wl (fst T)). \<not> is_decided s)\<close> and
@@ -516,7 +516,7 @@ proof -
   proof -
     have
       struct_invs: \<open>twl_struct_invs_init (twl_st_of_wl_init T)\<close> and
-      add_invs: \<open>additional_WS_invs (st_l_of_wl None (fst T))\<close> and
+      add_invs: \<open>twl_list_invs (st_l_of_wl None (fst T))\<close> and
       clss: \<open>mset `# mset (rev CS') + cdcl\<^sub>W_restart_mset.clauses ?init =
         cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None (fst T))) + snd T\<close> and
       count_dec: \<open>(\<forall>s\<in>set (get_trail_wl (fst T)). \<not> is_decided s)\<close> and
@@ -565,7 +565,7 @@ proof -
     have
       struct_invs: \<open>twl_struct_invs_init (twl_st_of_wl_init T)\<close> and
       stgy_invs: \<open>twl_stgy_invs (twl_st_of_wl None (fst T))\<close> and
-      add_invs: \<open>additional_WS_invs (st_l_of_wl None (fst T))\<close> and
+      add_invs: \<open>twl_list_invs (st_l_of_wl None (fst T))\<close> and
       clss: \<open>mset `# mset (rev CS') + cdcl\<^sub>W_restart_mset.clauses ?init =
         cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None (fst T))) + snd T\<close> and
       count_dec: \<open>(\<forall>s\<in>set (get_trail_wl (fst T)). \<not> is_decided s)\<close> and
@@ -724,7 +724,7 @@ proof -
         cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
         cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
-        past_invs.simps clauses_def additional_WS_invs_def twl_stgy_invs_def clause_to_update_def
+        past_invs.simps clauses_def twl_list_invs_def twl_stgy_invs_def clause_to_update_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
         cdcl\<^sub>W_restart_mset.no_smaller_confl_def get_unit_learned_def
         distinct_mset_set_def)
