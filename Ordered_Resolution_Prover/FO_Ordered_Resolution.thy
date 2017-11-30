@@ -1022,7 +1022,7 @@ proof (cases rule: ord_resolve.cases)
   have "S DA' \<cdot> \<eta> = S_M S M DA"
     using \<open>S DA' \<cdot> \<eta>' = S_M S M DA\<close> \<eta>_p S.S_selects_subseteq by auto
 
-  from \<eta>_p have "\<forall>i < n. (CAs' ! i) \<cdot> (\<eta>s' ! i) = (CAs'! i) \<cdot> \<eta>"
+  from \<eta>_p have \<eta>_p_CAs': "\<forall>i < n. (CAs' ! i) \<cdot> (\<eta>s' ! i) = (CAs'! i) \<cdot> \<eta>"
     using n by auto
   then have "CAs' \<cdot>\<cdot>cl \<eta>s' = CAs' \<cdot>cl \<eta>"
     using n by (auto intro: nth_equalityI)
@@ -1038,11 +1038,12 @@ proof (cases rule: ord_resolve.cases)
 
   -- \<open>Split main premise in to D' and A's\<close>
   have DA'_split: "DA' = D' + negs (mset As')"
-      using DA'_def D'_def As'_def as''(15) sorry
+    using as''(15) DA'_def D'_def As'_def by auto
+  
   then have D'_subset_DA': "D' \<subseteq># DA'"
     by auto
   from DA'_split have negs_As'_subset_DA': "negs (mset As') \<subseteq># DA'"
-    sorry
+    by auto
 
   have as':
     "length As' = n"
@@ -1054,7 +1055,7 @@ proof (cases rule: ord_resolve.cases)
     show "length As' = n" using n by auto
   next
     show "As' \<cdot>al \<eta> = As" 
-      using \<eta>_p As'_As negs_As'_subset_DA' sorry (* Looks reasonable *)
+      using \<eta>_p As'_As negs_As'_subset_DA' sorry (* Looks reasonable, but a bit tricky to prove *)
   next
     show "D' \<cdot> \<eta> = D" using \<eta>_p D'_D n D'_subset_DA' by auto
   next
@@ -1070,6 +1071,8 @@ proof (cases rule: ord_resolve.cases)
 
   note n = n \<open>length As' = n\<close>
 
+  have "length Cs' = n" using n by auto
+
   -- \<open>Split side premise in to C's and A's\<close>
   have AAs'_Cs'_p:
     "length AAs' = n"
@@ -1079,15 +1082,37 @@ proof (cases rule: ord_resolve.cases)
     "\<forall>i < n. CAs' ! i = Cs' ! i + poss (AAs' ! i)"
   proof -
     show "length AAs' = n" using n by auto
-  next
     show "length Cs' = n" using n by auto
-  next
-    show "AAs' \<cdot>aml \<eta> = AAs" using AAs'_AAs \<eta>_p sorry (* Looks reasonable *)
-  next
-    show "Cs' \<cdot>cl \<eta> = Cs" using Cs'_Cs \<eta>_p sorry (* Looks reasonable *)
-  next
+    show "AAs' \<cdot>aml \<eta> = AAs" using AAs'_AAs \<eta>_p sorry (* Looks reasonable, but a bit tricky to prove *)
     show "\<forall>i<n. CAs' ! i = Cs' ! i + poss (AAs' ! i)" 
-      using as''(19) CAs'_def Cs'_def AAs'_def sorry (* Looks reasonable *)
+      using as''(19) CAs'_def Cs'_def AAs'_def n by auto
+    then have "\<forall>i<n. Cs' ! i \<subseteq># CAs' ! i"
+      by auto
+    show "Cs' \<cdot>cl \<eta> = Cs"
+    proof (rule nth_equalityI)
+      show "length (Cs' \<cdot>cl \<eta>) = length Cs" 
+        using n by auto
+    next
+      show "\<forall>i<length (Cs' \<cdot>cl \<eta>). (Cs' \<cdot>cl \<eta>) ! i = Cs ! i"
+      proof (rule, rule) (* FIXME: Clean up this mess. *)
+        fix i :: "nat"
+        assume "i < length (Cs' \<cdot>cl \<eta>)"
+        then have a: "i < n"
+          using n by force
+        have "(Cs' \<cdot>\<cdot>cl \<eta>s') ! i = Cs ! i"
+          using Cs'_Cs a n by force
+        moreover 
+        have \<eta>_p_CAs': "\<forall>S. S \<subseteq># CAs' ! i \<longrightarrow> S \<cdot> \<eta>s' ! i = S \<cdot> \<eta>"
+          using \<eta>_p a by force
+        have "Cs' ! i \<cdot> \<eta>s' ! i = (Cs' \<cdot>cl \<eta>) ! i"
+          using \<eta>_p_CAs' \<open>\<forall>i<n. Cs' ! i \<subseteq># CAs' ! i\<close> a n by force
+        then have "(Cs' \<cdot>\<cdot>cl \<eta>s') ! i = (Cs' \<cdot>cl \<eta>) ! i "
+          using a n by force
+        ultimately show "(Cs' \<cdot>cl \<eta>) ! i = Cs ! i" 
+          by auto
+        thm Cs'_Cs \<eta>_p \<open>\<forall>i<n. Cs' ! i \<subseteq># CAs' ! i\<close> a 
+      qed
+    qed
   qed
 
   (* New *)
@@ -1243,9 +1268,9 @@ proof (cases rule: ord_resolve.cases)
     using CAs'_def \<rho>s4_def apply simp
     done
   moreover have "\<forall>i<n. poss (AAs'' ! i) \<subseteq># CAs'' ! i"
-    using as''(19) sorry (* Looks reasonable *)
+    using as''(19) by auto
   moreover have "negs (mset As'') \<subseteq># DA''"
-    using local.as''(15) sorry (* Looks reasonable *)
+    using local.as''(15) by auto
   ultimately have "ord_resolve_rename S CAs'' DA'' AAs'' As'' \<tau> E'"
     using ord_resolve_rename[of CAs'' n AAs'' As'' DA'' \<rho>4 \<rho>s4 S \<tau> E'] n by auto
   then show thesis
