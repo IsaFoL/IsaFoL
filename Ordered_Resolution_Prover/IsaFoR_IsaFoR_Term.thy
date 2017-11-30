@@ -630,8 +630,25 @@ fun pairs :: "'a list \<Rightarrow> ('a \<times> 'a) list" where
   "pairs (x # y # xs) = (x, y) # pairs (y # xs)" |
   "pairs _ = []"
 
+derive compare "term"
+
+lemma class_linorder_compare: "class.linorder (le_of_comp compare) (lt_of_comp compare)"
+  apply standard
+     apply (auto simp: lt_of_comp_def le_of_comp_def split: order.splits)
+  using comparator.Gt_lt_conv comparator.Lt_lt_conv comparator_compare apply force
+  apply (metis comparator_compare comparator_def order.distinct(5))
+  using comparator.Gt_lt_conv comparator.Lt_lt_conv comparator_compare apply force
+  using comparator.Gt_lt_conv comparator.Lt_lt_conv comparator_compare apply force
+  done
+
+context begin
+interpretation compare_linorder: linorder
+  "le_of_comp compare"
+  "lt_of_comp compare"
+  by (rule class_linorder_compare)
+
 definition Pairs where
-  "Pairs AAA = concat (sorted_list_of_set ((pairs o sorted_list_of_set) ` AAA))"
+  "Pairs AAA = concat (compare_linorder.sorted_list_of_set ((pairs o compare_linorder.sorted_list_of_set) ` AAA))"
 
 lemma unifies_all_pairs_iff:
   "(\<forall>p \<in> set (pairs xs). fst p \<cdot> \<sigma> = snd p \<cdot> \<sigma>) \<longleftrightarrow> (\<forall>a \<in> set xs. \<forall>b \<in> set xs. a \<cdot> \<sigma> = b \<cdot> \<sigma>)"
@@ -640,7 +657,6 @@ proof (induct xs rule: pairs.induct)
   then show ?case
     unfolding pairs.simps list.set ball_Un ball_simps simp_thms fst_conv snd_conv by metis
 qed simp_all
-
 
 lemma in_pair_in_set:
   assumes "(A,B) \<in> set ((pairs As))"
@@ -667,17 +683,17 @@ lemma in_pairs_sorted_list_of_set_in_set:
   assumes 
     "finite AAA"
     "\<forall>AA \<in> AAA. finite AA"
-    "AB_pairs \<in> ((pairs \<circ> sorted_list_of_set) ` AAA)" and
-    "(A :: 'a :: linorder, B) \<in> set AB_pairs"
+    "AB_pairs \<in> ((pairs \<circ> compare_linorder.sorted_list_of_set) ` AAA)" and
+    "(A :: 'a :: compare, B) \<in> set AB_pairs"
   shows "\<exists>AA. AA \<in> AAA \<and> A \<in> AA \<and> B \<in> AA"
 proof -
-  from assms have "AB_pairs \<in> (pairs \<circ> sorted_list_of_set) ` AAA"
+  from assms have "AB_pairs \<in> (pairs \<circ> compare_linorder.sorted_list_of_set) ` AAA"
     by auto
-  then obtain AA where AA_p: "AA \<in> AAA \<and> ((pairs \<circ> sorted_list_of_set) AA) = AB_pairs" 
+  then obtain AA where AA_p: "AA \<in> AAA \<and> ((pairs \<circ> compare_linorder.sorted_list_of_set) AA) = AB_pairs" 
     by auto
-  have "(A, B) \<in> set (pairs (sorted_list_of_set AA))"
+  have "(A, B) \<in> set (pairs (compare_linorder.sorted_list_of_set AA))"
     using AA_p[] assms(4) by auto
-  then have "A \<in> set (sorted_list_of_set AA)" "B \<in> set (sorted_list_of_set AA)"
+  then have "A \<in> set (compare_linorder.sorted_list_of_set AA)" "B \<in> set (compare_linorder.sorted_list_of_set AA)"
     using in_pair_in_set[of A] by auto
   then have "A \<in> AA" "B \<in> AA"
     using assms(2) AA_p by auto
@@ -697,11 +713,11 @@ proof (rule; rule)
   proof -
     fix AA :: "('a, 'b) term set"
     assume asm': "AA \<in> AAA"
-    then have "\<forall>p\<in>set (pairs (sorted_list_of_set AA)). subst_atm_abbrev (fst p) \<sigma> = subst_atm_abbrev (snd p) \<sigma>"
+    then have "\<forall>p\<in>set (pairs (compare_linorder.sorted_list_of_set AA)). subst_atm_abbrev (fst p) \<sigma> = subst_atm_abbrev (snd p) \<sigma>"
       using assms asm unfolding Pairs_def by auto
     then have "\<forall>A \<in> AA. \<forall>B \<in> AA. subst_atm_abbrev A \<sigma> = subst_atm_abbrev B \<sigma>"
       using assms asm' unfolding unifies_all_pairs_iff
-      using sorted_list_of_set by blast
+      using compare_linorder.sorted_list_of_set by blast
     then show "card (AA \<cdot>\<^sub>s\<^sub>e\<^sub>t \<sigma>) \<le> Suc 0"
       by (smt imageE card.empty card_Suc_eq card_mono finite.intros(1) finite_insert le_SucI 
            singletonI subsetI)
@@ -714,7 +730,7 @@ next
 
   { 
     fix AB_pairs A B
-    assume "AB_pairs \<in> set (sorted_list_of_set ((pairs \<circ> sorted_list_of_set) ` AAA))"
+    assume "AB_pairs \<in> set (compare_linorder.sorted_list_of_set ((pairs \<circ> compare_linorder.sorted_list_of_set) ` AAA))"
       "(A, B) \<in> set AB_pairs"
     then have "\<exists>AA. AA \<in> AAA \<and> A \<in> AA \<and> B \<in> AA"
       using assms by (simp add: in_pairs_sorted_list_of_set_in_set)
@@ -748,18 +764,20 @@ next
     unfolding Pairs_def unifiers_def by auto
 qed
 
+end
+
 definition "mgu_sets AAA = map_option subst_of (unify (Pairs AAA) [])"
 
-interpretation mgu "op \<cdot>" "Var :: _ \<Rightarrow> ('f :: weighted, nat) term" "op \<circ>\<^sub>s" "Fun undefined" renamings_apart mgu_sets
+interpretation mgu "op \<cdot>" "Var :: _ \<Rightarrow> ('f :: {weighted, compare}, nat) term" "op \<circ>\<^sub>s" "Fun undefined" renamings_apart mgu_sets
 proof
-  fix AAA :: "('a :: weighted, nat) term set set" and \<sigma> :: "('a, nat) subst"
+  fix AAA :: "('a :: {weighted, compare}, nat) term set set" and \<sigma> :: "('a, nat) subst"
   assume fin: "finite AAA" "\<forall>AA\<in>AAA. finite AA" and "mgu_sets AAA = Some \<sigma>"
   then have "is_imgu \<sigma> (set (Pairs AAA))"
     using unify_sound unfolding mgu_sets_def by blast
   then show "is_mgu \<sigma> AAA"
     unfolding is_imgu_def is_mgu_def unifiers_Pairs[OF fin] by auto
 next
-  fix AAA :: "('a :: weighted, nat) term set set" and \<sigma> :: "('a, nat) subst"
+  fix AAA :: "('a :: {weighted, compare}, nat) term set set" and \<sigma> :: "('a, nat) subst"
   assume fin: "finite AAA" "\<forall>AA\<in>AAA. finite AA" and "is_unifiers \<sigma> AAA"
   then have "\<sigma> \<in> unifiers (set (Pairs AAA))"
     unfolding is_mgu_def unifiers_Pairs[OF fin] by auto
