@@ -478,24 +478,26 @@ lemma ord_resolve_rename_one_side_prem: "ord_resolve_rename S CAs DA AAs As \<si
   apply simp
   done
 
-lemma ord_FO_\<Gamma>_SD:
+lemma ord_FO_\<Gamma>_side_prem: 
   assumes \<gamma>_in: "\<gamma> \<in> ord_FO_\<Gamma> S"
-  obtains C D where
-    "prems_of \<gamma> = {#C, D#}"
-proof -
-  have "\<exists>C D. prems_of \<gamma> = {#C, D#}"
-    using \<gamma>_in unfolding ord_FO_\<Gamma>_def
-    apply clarsimp
-    apply (drule ord_resolve_rename_one_side_prem)
-    using size_1_singleton_mset by force
-  then show thesis
-    using that by blast
-qed
+  shows "side_prems_of \<gamma> = {#THE D. D \<in># side_prems_of \<gamma>#}"
+  sorry
 
 lemma ord_FO_\<Gamma>_infer_from_Collect_eq:
   "{\<gamma> \<in> ord_FO_\<Gamma> S. infer_from (DD \<union> {C}) \<gamma> \<and> C \<in># prems_of \<gamma>} =
    {\<gamma> \<in> ord_FO_\<Gamma> S. \<exists>D \<in> DD \<union> {C}. prems_of \<gamma> = {#C, D#}}"
-  sorry (* easy *)
+  unfolding infer_from_def
+  apply (rule set_eq_subset[THEN iffD2])
+  apply (rule conjI)
+   apply clarify
+   apply (subst (asm) (1 2) ord_FO_\<Gamma>_side_prem, assumption, assumption)
+   apply (subst (1) ord_FO_\<Gamma>_side_prem, assumption)
+   apply auto[1]
+  apply clarify
+  apply (subst (asm) (1) ord_FO_\<Gamma>_side_prem, assumption)
+  apply (subst (1 2) ord_FO_\<Gamma>_side_prem, assumption)
+  apply auto
+  done
 
 lemma inferences_between_eq_UNION: "inference_system.inferences_between (ord_FO_\<Gamma> S) Q C =
   inference_system.inferences_between (ord_FO_\<Gamma> S) {C} C
