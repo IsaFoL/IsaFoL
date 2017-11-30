@@ -236,8 +236,7 @@ fun no_duplicate_queued :: "'v twl_st \<Rightarrow> bool" where
 fun distinct_queued :: "'v twl_st \<Rightarrow> bool" where
 \<open>distinct_queued (M, N, U, D, NP, UP, WS, Q) \<longleftrightarrow>
   distinct_mset Q \<and>
-  (\<forall>L C. count WS (L, C) \<le> count (N + U) C) \<and>
-  (\<forall>L L' C C'. (L, C) \<in># WS \<longrightarrow> (L', C') \<in># WS \<longrightarrow> L = L')\<close>
+  (\<forall>L C. count WS (L, C) \<le> count (N + U) C)\<close>
 
 text \<open>These are the conditions to indicate that the 2-WL invariant does not hold and is not \<^term>\<open>literals_to_update\<close>.\<close>
 fun clauses_to_update_prop where
@@ -1418,10 +1417,6 @@ next
         using LD N'U' apply (auto simp: all_conj_distrib elim!: update_clausesE intro: le_SucI; fail)[]
         using LC[of L C] N'U' by (auto simp: all_conj_distrib elim!: update_clausesE intro: le_SucI)[]
     qed
-  next
-    fix L L' C C'
-    show \<open>(L, C) \<in># WS \<longrightarrow> (L', C') \<in># WS \<longrightarrow> L = L'\<close>
-      using dist by auto
   qed
 qed
 
