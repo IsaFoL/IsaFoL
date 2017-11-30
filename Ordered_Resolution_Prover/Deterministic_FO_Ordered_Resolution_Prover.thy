@@ -449,26 +449,27 @@ proof (induct Q' arbitrary: P Q)
   qed
 qed simp
 
-lemma resolve_rename_either_way_eq_ord_resolve_rename:
-  "mset ` set (resolve_rename_either_way C D) =
-   {E | E AAs As \<sigma>. ord_resolve_rename S [mset C] (mset D) AAs As \<sigma> E}"
+abbreviation Bin_ord_resolve_rename :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause set" where
+  "Bin_ord_resolve_rename C D \<equiv> {E. \<exists>AAs As \<sigma>. ord_resolve_rename S [C] D AAs As \<sigma> E}"
+
+lemma resolve_rename_eq_Bin_ord_resolve_rename:
+  "mset ` set (resolve_rename C D) = Bin_ord_resolve_rename (mset C) (mset D)"
   sorry
 
-lemma concls_of_inference_between_eq_ord_resolve_rename:
-  "concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) {mset D} (mset C)) =
-   {E | E AAs As \<sigma>. ord_resolve_rename S [mset C] (mset D) AAs As \<sigma> E}"
+lemma concls_of_inferences_between_eq_Bin_ord_resolve_rename:
+  "concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) Q C) =
+   Bin_ord_resolve_rename C C \<union> (\<Union>D \<in> Q. Bin_ord_resolve_rename C D \<union> Bin_ord_resolve_rename D C)"
   sorry
 
-lemma resolve_rename_either_way_eq_inferences_between:
+lemma resolve_rename_either_way_eq_congls_of_inferences_between:
   "mset ` set (resolve_rename C C) \<union> (\<Union>D \<in> Q. mset ` set (resolve_rename_either_way C D)) =
    concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) (mset ` Q) (mset C))"
-(*
-  unfolding image_def inference_system.inferences_between_def Bex_def mem_Collect_eq
-    infer_from_def
-  unfolding resolve_rename_either_way_eq_ord_resolve_rename
-    concls_of_inference_between_eq_ord_resolve_rename
-*)
-  sorry
+  unfolding resolve_rename_either_way_def
+  apply (simp add: image_Un UN_Un_distrib)
+  unfolding resolve_rename_eq_Bin_ord_resolve_rename
+    concls_of_inferences_between_eq_Bin_ord_resolve_rename
+  apply (simp add: UN_Un_distrib)
+  done
 
 lemma compute_inferences:
   assumes
@@ -505,7 +506,7 @@ proof -
     apply (rule arg_cong[of _ _ "\<lambda>N. (\<lambda>D. (D, n)) ` N"])
 
     apply (simp only: map_concat list.map_comp image_comp)
-    using resolve_rename_either_way_eq_inferences_between[of C "fst ` set Q", symmetric]
+    using resolve_rename_either_way_eq_congls_of_inferences_between[of C "fst ` set Q", symmetric]
     apply (simp only: image_comp comp_def)
     apply (simp add: image_UN)
     done

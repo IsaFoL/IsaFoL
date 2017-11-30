@@ -33,6 +33,7 @@ abbreviation prems_of :: "'a inference \<Rightarrow> 'a clause multiset" where
 abbreviation concls_of :: "'a inference set \<Rightarrow> 'a clause set" where
   "concls_of \<Gamma> \<equiv> concl_of ` \<Gamma>"
 
+(* FIXME: make an abbreviation *)
 definition infer_from :: "'a clause set \<Rightarrow> 'a inference \<Rightarrow> bool" where
   "infer_from CC \<gamma> \<longleftrightarrow> set_mset (prems_of \<gamma>) \<subseteq> CC"
 
