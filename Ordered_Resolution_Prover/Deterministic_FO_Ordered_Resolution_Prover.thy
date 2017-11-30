@@ -460,7 +460,7 @@ lemma concls_of_inference_between_eq_ord_resolve_rename:
   sorry
 
 lemma resolve_rename_either_way_eq_inferences_between:
-  "mset ` set (resolve_rename C C) \<union> mset ` (\<Union>D \<in> Q. set (resolve_rename_either_way C D)) =
+  "mset ` set (resolve_rename C C) \<union> (\<Union>D \<in> Q. mset ` set (resolve_rename_either_way C D)) =
    concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) (mset ` Q) (mset C))"
 (*
   unfolding image_def inference_system.inferences_between_def Bex_def mem_Collect_eq
@@ -505,9 +505,9 @@ proof -
     apply (rule arg_cong[of _ _ "\<lambda>N. (\<lambda>D. (D, n)) ` N"])
 
     apply (simp only: map_concat list.map_comp image_comp)
-    using resolve_rename_either_way_eq_inferences_between[of C "fst ` set Q"]
+    using resolve_rename_either_way_eq_inferences_between[of C "fst ` set Q", symmetric]
     apply (simp only: image_comp comp_def)
-    apply simp
+    apply (simp add: image_UN)
     done
 qed
 
