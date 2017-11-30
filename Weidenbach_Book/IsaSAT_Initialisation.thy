@@ -711,7 +711,7 @@ proof -
   show ?thesis
     unfolding R_R' list_assn_pure_conv
     by (sepref_to_hoare)
-       (sep_auto simp: list_length_1_code_def list_rel_def list_all2_lengthD[symmetric] 
+       (sep_auto simp: list_length_1_code_def list_rel_def list_all2_lengthD[symmetric]
         split: list.splits)
 qed
 
@@ -929,13 +929,13 @@ sepref_thm init_dt_wl_code
 
 concrete_definition (in -) init_dt_wl_code
   uses "isasat_input_bounded.init_dt_wl_code.refine_raw"
-  is "(uncurry ?f,_)\<in>_"
+  is \<open>(uncurry ?f,_)\<in>_\<close>
 
 prepare_code_thms (in -) init_dt_wl_code_def
 
 end
 
-definition nat_lit_list_hm_ref_rel :: "(('a set \<times> 'a list) \<times> 'a list) set" where
+definition nat_lit_list_hm_ref_rel :: \<open>(('a set \<times> 'a list) \<times> 'a list) set\<close> where
   \<open>nat_lit_list_hm_ref_rel = {((s, xs), l). l = xs \<and> s = set l}\<close>
 
 abbreviation nat_lit_lits_init_ref_assn where
@@ -944,7 +944,7 @@ abbreviation nat_lit_lits_init_ref_assn where
 abbreviation nat_lit_list_hm_assn where
   \<open>nat_lit_list_hm_assn \<equiv> hr_comp nat_lit_lits_init_ref_assn nat_lit_list_hm_ref_rel\<close>
 
-definition in_map_atm_of :: "'a \<Rightarrow> 'a list \<Rightarrow> bool" where
+definition in_map_atm_of :: \<open>'a \<Rightarrow> 'a list \<Rightarrow> bool\<close> where
   \<open>in_map_atm_of L N \<longleftrightarrow> L \<in> set N\<close>
 
 sepref_definition nat_lit_lits_init_assn_assn_in
@@ -1670,14 +1670,14 @@ sepref_definition initialise_VMTF_code
   :: \<open>(list_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a vmtf_remove_conc_option_fst_As\<close>
   supply nat_of_uint32_int32_assn[sepref_fr_rules]
   unfolding initialise_VMTF_def vmtf_cons_def
-  apply (rewrite in "((_, _, _, _), \<hole>)" annotate_assn[where A=\<open>arl_assn uint32_nat_assn\<close>])
-  apply (rewrite in "(_, _, _, Some \<hole>)" annotate_assn[where A=\<open>uint32_nat_assn\<close>])
-  apply (rewrite in "WHILE\<^sub>T _ _ (_, _, _, \<hole>)" annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
-  apply (rewrite in "do {ASSERT _; let _ = \<hole>; _}" annotate_assn[where A=\<open>uint32_nat_assn\<close>])
+  apply (rewrite in \<open>((_, _, _, _), \<hole>)\<close> annotate_assn[where A=\<open>arl_assn uint32_nat_assn\<close>])
+  apply (rewrite in \<open>(_, _, _, Some \<hole>)\<close> annotate_assn[where A=\<open>uint32_nat_assn\<close>])
+  apply (rewrite in \<open>WHILE\<^sub>T _ _ (_, _, _, \<hole>)\<close> annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
+  apply (rewrite in \<open>do {ASSERT _; let _ = \<hole>; _}\<close> annotate_assn[where A=\<open>uint32_nat_assn\<close>])
   apply (rewrite in \<open>((_, _, _, _), ASSN_ANNOT _ \<hole>)\<close> arl.fold_custom_empty)
   apply (rewrite in \<open>let _ = \<hole> in _ \<close> array_fold_custom_replicate op_list_replicate_def[symmetric])
-  apply (rewrite in "VMTF_Node 0 \<hole> _" annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
-  apply (rewrite in "VMTF_Node 0 _ \<hole>" annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
+  apply (rewrite in \<open>VMTF_Node 0 \<hole> _\<close> annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
+  apply (rewrite in \<open>VMTF_Node 0 _ \<hole>\<close> annotate_assn[where A=\<open>option_assn uint32_nat_assn\<close>])
   supply [[goals_limit = 1]]
   by sepref
 
@@ -1968,14 +1968,14 @@ sepref_definition init_trail_D_code
   is \<open>uncurry init_trail_D\<close>
   :: \<open>(list_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_pol_assn\<close>
   unfolding init_trail_D_def PR_CONST_def
-  apply (rewrite in "((\<hole>, _, _, _))" HOL_list.fold_custom_empty)
-  apply (rewrite in "((\<hole>, _, _, _))" annotate_assn[where A=\<open>list_assn unat_lit_assn\<close>])
+  apply (rewrite in \<open>((\<hole>, _, _, _))\<close> HOL_list.fold_custom_empty)
+  apply (rewrite in \<open>((\<hole>, _, _, _))\<close> annotate_assn[where A=\<open>list_assn unat_lit_assn\<close>])
 
-  apply (rewrite in "let _ = \<hole> in _" annotate_assn[where A=\<open>array_assn (tri_bool_assn)\<close>])
-  apply (rewrite in "let _ = \<hole> in _" annotate_assn[where A=\<open>array_assn uint32_nat_assn\<close>])
-  apply (rewrite in "let _ = _ in _" array_fold_custom_replicate)
-  apply (rewrite in "let _ = _ in _" array_fold_custom_replicate)
-  apply (rewrite in "let _ = _ in _" array_fold_custom_replicate)
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn (tri_bool_assn)\<close>])
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn uint32_nat_assn\<close>])
+  apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
+  apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
+  apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
   supply [[goals_limit = 1]]
   by sepref
 
@@ -2014,10 +2014,10 @@ sepref_definition init_state_wl_D'_code
   apply (rewrite at \<open>(_, _, _, _, \<hole>, _)\<close> annotate_assn[where A=\<open>list_assn unat_lit_assn\<close>])
   apply (rewrite at \<open>let _ = \<hole> in _\<close> array.fold_custom_empty)
   apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> arl.fold_custom_empty)
-  apply (rewrite at "let _ = \<hole> in _" annotate_assn[where A=\<open>array_assn unat_lit_assn\<close>])
+  apply (rewrite at \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn unat_lit_assn\<close>])
   unfolding array_fold_custom_replicate
-  apply (rewrite at "let _ = _; _ = \<hole> in _" annotate_assn[where A=\<open>clauses_ll_assn\<close>])
-  apply (rewrite at "let _ = _ @ _; _= _; _= \<hole> in _" annotate_assn[where A=\<open>(arrayO_assn (arl_assn nat_assn))\<close>])
+  apply (rewrite at \<open>let _ = _; _ = \<hole> in _\<close> annotate_assn[where A=\<open>clauses_ll_assn\<close>])
+  apply (rewrite at \<open>let _ = _ @ _; _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>(arrayO_assn (arl_assn nat_assn))\<close>])
   supply [[goals_limit = 1]]
   by sepref
 

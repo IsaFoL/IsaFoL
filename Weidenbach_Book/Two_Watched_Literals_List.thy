@@ -11,37 +11,37 @@ lemma mset_take_mset_drop_mset': \<open>mset (take 2 x) + mset (drop 2 x) = mset
 section \<open>Second Refinement: Lists as Clause\<close>
 
 subsection \<open>Types\<close>
-type_synonym 'v clauses_to_update_l = "nat multiset"
+type_synonym 'v clauses_to_update_l = \<open>nat multiset\<close>
 
-type_synonym 'v clause_l = "'v literal list"
-type_synonym 'v clauses_l = "'v clause_l list"
-type_synonym 'v cconflict = "'v clause option"
+type_synonym 'v clause_l = \<open>'v literal list\<close>
+type_synonym 'v clauses_l = \<open>'v clause_l list\<close>
+type_synonym 'v cconflict = \<open>'v clause option\<close>
 type_synonym 'v cconflict_l = \<open>'v literal list option\<close>
 
 type_synonym 'v twl_st_l =
-  "('v, nat) ann_lits \<times> 'v clauses_l \<times> nat \<times>
-    'v cconflict \<times> 'v clauses \<times> 'v clauses \<times> 'v clauses_to_update_l \<times> 'v lit_queue"
+  \<open>('v, nat) ann_lits \<times> 'v clauses_l \<times> nat \<times>
+    'v cconflict \<times> 'v clauses \<times> 'v clauses \<times> 'v clauses_to_update_l \<times> 'v lit_queue\<close>
 
-fun clauses_to_update_l :: "'v twl_st_l \<Rightarrow> 'v clauses_to_update_l" where
+fun clauses_to_update_l :: \<open>'v twl_st_l \<Rightarrow> 'v clauses_to_update_l\<close> where
   \<open>clauses_to_update_l (_, _, _, _, _, _, WS, _) = WS\<close>
 
-fun get_trail_l :: "'v twl_st_l \<Rightarrow> ('v, nat) ann_lit list" where
+fun get_trail_l :: \<open>'v twl_st_l \<Rightarrow> ('v, nat) ann_lit list\<close> where
   \<open>get_trail_l (M, _, _, _, _, _, _, _) = M\<close>
 
-fun set_clauses_to_update_l :: "'v clauses_to_update_l \<Rightarrow> 'v twl_st_l \<Rightarrow>
-  'v twl_st_l" where
+fun set_clauses_to_update_l :: \<open>'v clauses_to_update_l \<Rightarrow> 'v twl_st_l \<Rightarrow>
+  'v twl_st_l\<close> where
   \<open>set_clauses_to_update_l WS (M, N, U, D, NP, UP, _, Q) = (M, N, U, D, NP, UP, WS, Q)\<close>
 
-fun literals_to_update_l :: "'v twl_st_l \<Rightarrow> 'v clause" where
+fun literals_to_update_l :: \<open>'v twl_st_l \<Rightarrow> 'v clause\<close> where
   \<open>literals_to_update_l (_, _, _, _, _, _, _, Q) = Q\<close>
 
-fun set_literals_to_update_l :: "'v clause \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l" where
+fun set_literals_to_update_l :: \<open>'v clause \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
   \<open>set_literals_to_update_l Q (M, N, U, D, NP, UP, WS, _) = (M, N, U, D, NP, UP, WS, Q)\<close>
 
-fun get_conflict_l :: "'v twl_st_l \<Rightarrow> 'v cconflict" where
+fun get_conflict_l :: \<open>'v twl_st_l \<Rightarrow> 'v cconflict\<close> where
   \<open>get_conflict_l (_, _, _, D, _, _, _, _) = D\<close>
 
-definition get_clauses_ll :: "nat twl_st_l \<Rightarrow> nat clauses_l" where
+definition get_clauses_ll :: \<open>nat twl_st_l \<Rightarrow> nat clauses_l\<close> where
   \<open>get_clauses_ll = (\<lambda>(M, N, U, D, NP, UP, WS, Q). N)\<close>
 
 fun watched_l where
@@ -50,18 +50,18 @@ fun watched_l where
 fun unwatched_l where
   \<open>unwatched_l l = drop 2 l\<close>
 
-fun twl_clause_of :: "'a list \<Rightarrow> 'a multiset twl_clause" where
+fun twl_clause_of :: \<open>'a list \<Rightarrow> 'a multiset twl_clause\<close> where
   \<open>twl_clause_of l = TWL_Clause (mset (watched_l l)) (mset (unwatched_l l))\<close>
 
-fun clause_of :: "'a::plus twl_clause \<Rightarrow> 'a" where
+fun clause_of :: \<open>'a::plus twl_clause \<Rightarrow> 'a\<close> where
   \<open>clause_of (TWL_Clause W UW) = W + UW\<close>
 
-fun convert_lit :: "'v clauses_l \<Rightarrow> ('v, nat) ann_lit \<Rightarrow> ('v, 'v clause) ann_lit" where
+fun convert_lit :: \<open>'v clauses_l \<Rightarrow> ('v, nat) ann_lit \<Rightarrow> ('v, 'v clause) ann_lit\<close> where
   \<open>convert_lit N (Decided K) = Decided K\<close>
 | \<open>convert_lit N (Propagated K j) =
   (if j = 0 then Propagated K {#K#} else Propagated K (mset (N ! j)))\<close>
 
-definition convert_lits_l :: "'v clauses_l \<Rightarrow> ('v, nat) ann_lits \<Rightarrow> ('v, 'v clause) ann_lits" where
+definition convert_lits_l :: \<open>'v clauses_l \<Rightarrow> ('v, nat) ann_lits \<Rightarrow> ('v, 'v clause) ann_lits\<close> where
   \<open>convert_lits_l N M = map (convert_lit N) M\<close>
 
 lemma convert_lits_l_nil[simp]: \<open>convert_lits_l N [] = []\<close>
@@ -74,7 +74,7 @@ lemma convert_lits_l_append[simp]: \<open>convert_lits_l N (M @ M') = convert_li
   by (auto simp: convert_lits_l_def)
 
 
-fun get_learned_l :: "'v twl_st_l \<Rightarrow> nat" where
+fun get_learned_l :: \<open>'v twl_st_l \<Rightarrow> nat\<close> where
   \<open>get_learned_l (_, _, U, _, _, _, _, _) = U\<close>
 
 abbreviation resolve_cls_l where
@@ -98,7 +98,7 @@ fun twl_st_of :: \<open>'v literal option \<Rightarrow> 'v twl_st_l \<Rightarrow
     twl_clause_of `# mset (drop (Suc U) N), C, NP, UP, {#}, Q)
 \<close>
 
-fun get_clauses_l :: "'v twl_st_l \<Rightarrow> 'v clauses_l" where
+fun get_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v clauses_l\<close> where
   \<open>get_clauses_l (M, N, U, D, NP, UP, WS, Q) = N\<close>
 
 lemma get_conflict_l_Some_nil_iff:
@@ -274,8 +274,8 @@ definition unit_propagation_inner_loop_body_l_inv where
     1 - (if (get_clauses_l S!C) ! 0 = L then 0 else 1) < length (get_clauses_l S!C)
   \<close>
 
-definition unit_propagation_inner_loop_body_l :: "'v literal \<Rightarrow> nat \<Rightarrow>
-  'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
+definition unit_propagation_inner_loop_body_l :: \<open>'v literal \<Rightarrow> nat \<Rightarrow>
+  'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>unit_propagation_inner_loop_body_l L C S = do {
       ASSERT(unit_propagation_inner_loop_body_l_inv L C S);
       let i = (if (get_clauses_l S!C) ! 0 = L then 0 else 1);
@@ -900,7 +900,7 @@ definition select_from_clauses_to_update :: \<open>'v twl_st_l \<Rightarrow> ('v
   \<open>select_from_clauses_to_update S = SPEC (\<lambda>(S', C). C \<in># clauses_to_update_l S \<and>
      S' = set_clauses_to_update_l (clauses_to_update_l S - {#C#}) S)\<close>
 
-definition unit_propagation_inner_loop_l :: "'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
+definition unit_propagation_inner_loop_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>unit_propagation_inner_loop_l L S\<^sub>0 =
     WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs (twl_st_of (Some L) S) \<and> twl_stgy_invs (twl_st_of (Some L) S) \<and>
     cdcl_twl_cp\<^sup>*\<^sup>* (twl_st_of (Some L) S\<^sub>0) (twl_st_of (Some L) S) \<and>
@@ -1052,13 +1052,13 @@ lemma distinct_mset_clause_to_update: \<open>distinct_mset (clause_to_update L C
 lemma in_clause_to_updateD: \<open>b \<in># clause_to_update L' T \<Longrightarrow> b < length (get_clauses_l T) \<and> 0 < b\<close>
   by (auto simp: clause_to_update_def)
 
-definition select_and_remove_from_literals_to_update :: "'v twl_st_l \<Rightarrow>
-    ('v twl_st_l \<times> 'v literal) nres" where
+definition select_and_remove_from_literals_to_update :: \<open>'v twl_st_l \<Rightarrow>
+    ('v twl_st_l \<times> 'v literal) nres\<close> where
   \<open>select_and_remove_from_literals_to_update S = SPEC(\<lambda>(S', L). L \<in># literals_to_update_l S \<and>
     S' = set_clauses_to_update_l (clause_to_update L S)
           (set_literals_to_update_l (literals_to_update_l S - {#L#}) S))\<close>
 
-definition unit_propagation_outer_loop_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
+definition unit_propagation_outer_loop_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>unit_propagation_outer_loop_l S\<^sub>0 =
     WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs (twl_st_of None S) \<and> twl_stgy_invs (twl_st_of None S) \<and>
       clauses_to_update_l S = {#}\<^esup>
@@ -1259,7 +1259,7 @@ text \<open>
   if the level is 0, we should directly return \<^term>\<open>{#}\<close>. This would also avoid the
   \<^term>\<open>If (C = 0)\<close> condition.
   \<close>
-definition skip_and_resolve_loop_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
+definition skip_and_resolve_loop_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>skip_and_resolve_loop_l S\<^sub>0 =
     do {
       ASSERT(get_conflict_l S\<^sub>0 \<noteq> None);
@@ -1426,22 +1426,22 @@ qed
 end
 
 
-definition find_decomp :: "'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l  nres" where
+definition find_decomp :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l  nres\<close> where
   \<open>find_decomp =  (\<lambda>L (M, N, U, D, NP, UP, WS, Q).
     SPEC(\<lambda>S. \<exists>K M2 M1. S = (M1, N, U, D, NP, UP, WS, Q) \<and>
        (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
           get_level M K = get_maximum_level M (the D - {#-L#}) + 1))\<close>
 
-definition find_lit_of_max_level :: "'v twl_st_l \<Rightarrow> 'v literal \<Rightarrow> 'v literal nres" where
+definition find_lit_of_max_level :: \<open>'v twl_st_l \<Rightarrow> 'v literal \<Rightarrow> 'v literal nres\<close> where
   \<open>find_lit_of_max_level =  (\<lambda>(M, N, U, D, NP, UP, WS, Q) L.
     SPEC(\<lambda>L'. L' \<in># the D - {#-L#} \<and> get_level M L' = get_maximum_level M (the D - {#-L#})))\<close>
 
-definition ex_decomp_of_max_lvl :: "('v, nat) ann_lits \<Rightarrow> 'v cconflict \<Rightarrow> 'v literal \<Rightarrow> bool" where
+definition ex_decomp_of_max_lvl :: \<open>('v, nat) ann_lits \<Rightarrow> 'v cconflict \<Rightarrow> 'v literal \<Rightarrow> bool\<close> where
   \<open>ex_decomp_of_max_lvl M D L \<longleftrightarrow>
        (\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
           get_level M K = get_maximum_level M (remove1_mset (-L) (the D)) + 1)\<close>
 
-fun add_mset_list :: "'a list \<Rightarrow> 'a multiset multiset \<Rightarrow> 'a multiset multiset"  where
+fun add_mset_list :: \<open>'a list \<Rightarrow> 'a multiset multiset \<Rightarrow> 'a multiset multiset\<close>  where
   \<open>add_mset_list L UP = add_mset (mset L) UP\<close>
 
 definition (in -)list_of_mset :: \<open>'v clause \<Rightarrow> 'v clause_l nres\<close> where
@@ -1480,7 +1480,7 @@ definition propagate_unit_bt_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<
   \<open>propagate_unit_bt_l = (\<lambda>L (M, N, U, D, NP, UP, WS, Q).
     (Propagated (-L) 0 # M, N, U, None, NP, add_mset (the D) UP, WS, {#L#}))\<close>
 
-definition backtrack_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
+definition backtrack_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>backtrack_l S =
     do {
       ASSERT(backtrack_l_inv S);
@@ -1602,8 +1602,8 @@ proof -
 
   have uhd_in_D: \<open>L \<in># the D\<close>
     if
-      inv_s: "twl_stgy_invs (twl_st_of None S)" and
-      inv: "twl_struct_invs (twl_st_of None S)" and
+      inv_s: \<open>twl_stgy_invs (twl_st_of None S)\<close> and
+      inv: \<open>twl_struct_invs (twl_st_of None S)\<close> and
       ns: \<open>no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of (twl_st_of None S))\<close> and
       confl:
          \<open>conflicting (state\<^sub>W_of (twl_st_of None S)) \<noteq> None\<close>
@@ -1852,7 +1852,7 @@ definition decide_lit_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightar
   \<open>decide_lit_l = (\<lambda>L' (M, N, U, D, NP, UP, WS, Q).
       (Decided (L') # M, N, U, D, NP, UP, WS, {#- L'#}))\<close>
 
-definition decide_l_or_skip :: "'v twl_st_l \<Rightarrow> (bool \<times> 'v twl_st_l) nres" where
+definition decide_l_or_skip :: \<open>'v twl_st_l \<Rightarrow> (bool \<times> 'v twl_st_l) nres\<close> where
   \<open>decide_l_or_skip S = (do {
     ASSERT(decide_l_or_skip_pre S);
     L \<leftarrow> find_unassigned_lit_l S;
@@ -1969,13 +1969,11 @@ proof -
     done
 qed
 
-thm refinement_trans_long
-
 lemma refinement_trans_eq:
   \<open>A = A' \<Longrightarrow> B = B' \<Longrightarrow> R' = R \<Longrightarrow> A \<le> \<Down> R B \<Longrightarrow> A' \<le> \<Down> R' B'\<close>
   by (auto simp: pw_ref_iff)
 
-definition cdcl_twl_o_prog_l :: "'v twl_st_l \<Rightarrow> (bool \<times> 'v twl_st_l) nres" where
+definition cdcl_twl_o_prog_l :: \<open>'v twl_st_l \<Rightarrow> (bool \<times> 'v twl_st_l) nres\<close> where
   \<open>cdcl_twl_o_prog_l S =
     do {
       ASSERT(twl_struct_invs (twl_st_of None S));
@@ -1995,17 +1993,12 @@ definition cdcl_twl_o_prog_l :: "'v twl_st_l \<Rightarrow> (bool \<times> 'v twl
     }
   \<close>
 
-thm decide_l_or_skip_spec[unfolded nres_rel_def, unfolded fun_rel_def, simplified, rule_format,
-     THEN order_trans]
-
-thm decide[to_pred]
-thm decide_l_or_skip_spec["to_\<Down>"]
 
 lemma twl_st_lE:
   \<open>(\<And>M N U D NP UP WS Q. T = (M, N, U, D, NP, UP, WS, Q) \<Longrightarrow> P (M, N, U, D, NP, UP, WS, Q)) \<Longrightarrow> P T\<close>
   for T :: \<open>'a twl_st_l\<close>
   by (cases T) auto
-thm decide_l_or_skip_spec refine_pair_to_SPEC
+
 lemma cdcl_twl_o_prog_l_spec:
   \<open>(cdcl_twl_o_prog_l, cdcl_twl_o_prog) \<in>
     {(S, S'). S' = twl_st_of None S \<and>
@@ -2105,7 +2098,7 @@ qed
 
 subsection \<open>Full Strategy\<close>
 
-definition cdcl_twl_stgy_prog_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
+definition cdcl_twl_stgy_prog_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>cdcl_twl_stgy_prog_l S\<^sub>0 =
   do {
     do {
@@ -2148,7 +2141,7 @@ proof -
     \<open>literals_to_update_l T = {#} \<longleftrightarrow> literals_to_update (twl_st_of None T) = {#}\<close>
     for T :: \<open>'v twl_st_l\<close>
     by (cases T; auto)+
-  (* TODO move to "to_\<Down>" *)
+  (* TODO move to \<open>to_\<Down>\<close> *)
   show ?thesis
     unfolding cdcl_twl_stgy_prog_l_def cdcl_twl_stgy_prog_def cdcl_twl_o_prog_l_spec
     apply (refine_rcg R cdcl_twl_o_prog_l_spec[THEN refine_pair_to_SPEC_fst_pair2, THEN order_trans]

@@ -23,7 +23,7 @@ type_synonym watched_wl = \<open>(nat array_list) array\<close>
 
 subsubsection \<open>Refinement of the Watched Function\<close>
 
-definition map_fun_rel :: "(nat \<times> 'key) set \<Rightarrow> ('b \<times> 'a) set \<Rightarrow> ('b list \<times> ('key \<Rightarrow> 'a)) set" where
+definition map_fun_rel :: \<open>(nat \<times> 'key) set \<Rightarrow> ('b \<times> 'a) set \<Rightarrow> ('b list \<times> ('key \<Rightarrow> 'a)) set\<close> where
   map_fun_rel_def_internal:
     \<open>map_fun_rel D R = {(m, f). \<forall>(i, j)\<in>D. i < length m \<and> (m ! i, f j) \<in> R}\<close>
 
@@ -32,7 +32,7 @@ lemma map_fun_rel_def:
   unfolding relAPP_def map_fun_rel_def_internal by auto
 
 definition map_fun_rel_assn
-   :: "(nat \<times> nat literal) set \<Rightarrow> ('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> (nat literal \<Rightarrow> 'a) \<Rightarrow> 'b list \<Rightarrow> assn"
+   :: \<open>(nat \<times> nat literal) set \<Rightarrow> ('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> (nat literal \<Rightarrow> 'a) \<Rightarrow> 'b list \<Rightarrow> assn\<close>
 where
   \<open>map_fun_rel_assn D R = pure (\<langle>the_pure R\<rangle>map_fun_rel D)\<close>
 
@@ -85,16 +85,16 @@ lemma literal_of_nat_literal_of_nat_eq[iff]: \<open>literal_of_nat x = literal_o
 definition lit_of_natP where
   \<open>lit_of_natP L L' \<longleftrightarrow> literal_of_nat L = L'\<close>
 
-definition nat_lit_rel :: "(nat \<times> nat literal) set" where
+definition nat_lit_rel :: \<open>(nat \<times> nat literal) set\<close> where
   \<open>nat_lit_rel \<equiv> {(n, L). lit_of_natP n L}\<close>
 
-abbreviation nat_lit_assn :: "nat literal \<Rightarrow> nat \<Rightarrow> assn" where
+abbreviation nat_lit_assn :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> assn\<close> where
   \<open>nat_lit_assn \<equiv> pure nat_lit_rel\<close>
 
-definition unat_lit_rel :: "(uint32 \<times> nat literal) set" where
+definition unat_lit_rel :: \<open>(uint32 \<times> nat literal) set\<close> where
   \<open>unat_lit_rel \<equiv> uint32_nat_rel O nat_lit_rel\<close>
 
-abbreviation unat_lit_assn :: "nat literal \<Rightarrow> uint32 \<Rightarrow> assn" where
+abbreviation unat_lit_assn :: \<open>nat literal \<Rightarrow> uint32 \<Rightarrow> assn\<close> where
   \<open>unat_lit_assn \<equiv> pure unat_lit_rel\<close>
 
 lemma hr_comp_uint32_nat_assn_nat_lit_rel[simp]:
@@ -102,11 +102,11 @@ lemma hr_comp_uint32_nat_assn_nat_lit_rel[simp]:
   by (auto simp: hrp_comp_def hr_comp_def uint32_nat_rel_def
         lit_of_natP_def hr_comp_pure br_def unat_lit_rel_def)
 
-fun pair_of_ann_lit :: "('a, 'b) ann_lit \<Rightarrow> 'a literal \<times> 'b option" where
+fun pair_of_ann_lit :: \<open>('a, 'b) ann_lit \<Rightarrow> 'a literal \<times> 'b option\<close> where
   \<open>pair_of_ann_lit (Propagated L D) = (L, Some D)\<close>
 | \<open>pair_of_ann_lit (Decided L) = (L, None)\<close>
 
-fun ann_lit_of_pair :: "'a literal \<times> 'b option \<Rightarrow> ('a, 'b) ann_lit" where
+fun ann_lit_of_pair :: \<open>'a literal \<times> 'b option \<Rightarrow> ('a, 'b) ann_lit\<close> where
   \<open>ann_lit_of_pair (L, Some D) = Propagated L D\<close>
 | \<open>ann_lit_of_pair (L, None) = Decided L\<close>
 
@@ -138,8 +138,8 @@ lemma
 term \<open>\<lambda>R R'. {(a, b). \<exists>c d. (fst a, c) \<in> R \<and> (snd a, d) \<in> R' \<and>
       b = ann_lit_of_pair (literal_of_nat c, d)}\<close>
 
-definition ann_lit_rel:: "('a \<times> nat) set \<Rightarrow> ('b \<times> nat option) set \<Rightarrow>
-    (('a \<times> 'b) \<times> (nat, nat) ann_lit) set" where
+definition ann_lit_rel:: \<open>('a \<times> nat) set \<Rightarrow> ('b \<times> nat option) set \<Rightarrow>
+    (('a \<times> 'b) \<times> (nat, nat) ann_lit) set\<close> where
   ann_lit_rel_internal_def:
   \<open>ann_lit_rel R R' = {(a, b). \<exists>c d. (fst a, c) \<in> R \<and> (snd a, d) \<in> R' \<and>
       b = ann_lit_of_pair (literal_of_nat c, d)}\<close>
@@ -148,7 +148,7 @@ type_synonym ann_lit_wl = \<open>uint32 \<times> nat option\<close>
 type_synonym ann_lits_wl = \<open>ann_lit_wl list\<close>
 term \<open> \<langle>uint32_nat_rel\<rangle>option_rel\<close>
 
-definition nat_ann_lit_rel :: "(ann_lit_wl \<times> (nat, nat) ann_lit) set" where
+definition nat_ann_lit_rel :: \<open>(ann_lit_wl \<times> (nat, nat) ann_lit) set\<close> where
   nat_ann_lit_rel_internal_def: \<open>nat_ann_lit_rel = \<langle>uint32_nat_rel, \<langle>nat_rel\<rangle>option_rel\<rangle>ann_lit_rel\<close>
 
 lemma ann_lit_rel_def:
@@ -166,13 +166,13 @@ lemma nat_ann_lit_rel_def:
    apply auto
   done
 
-definition nat_ann_lits_rel :: "(ann_lits_wl \<times> (nat, nat) ann_lits) set" where
+definition nat_ann_lits_rel :: \<open>(ann_lits_wl \<times> (nat, nat) ann_lits) set\<close> where
   \<open>nat_ann_lits_rel = \<langle>nat_ann_lit_rel\<rangle>list_rel\<close>
 
-abbreviation pair_nat_ann_lit_assn :: "(nat, nat) ann_lit \<Rightarrow> ann_lit_wl \<Rightarrow> assn" where
+abbreviation pair_nat_ann_lit_assn :: \<open>(nat, nat) ann_lit \<Rightarrow> ann_lit_wl \<Rightarrow> assn\<close> where
   \<open>pair_nat_ann_lit_assn \<equiv> pure nat_ann_lit_rel\<close>
 
-abbreviation pair_nat_ann_lits_assn :: "(nat, nat) ann_lits \<Rightarrow> ann_lits_wl \<Rightarrow> assn" where
+abbreviation pair_nat_ann_lits_assn :: \<open>(nat, nat) ann_lits \<Rightarrow> ann_lits_wl \<Rightarrow> assn\<close> where
   \<open>pair_nat_ann_lits_assn \<equiv> list_assn pair_nat_ann_lit_assn\<close>
 
 lemma nat_ann_lits_rel_Cons[iff]:
@@ -220,7 +220,7 @@ definition \<L>\<^sub>a\<^sub>l\<^sub>l where \<open>\<L>\<^sub>a\<^sub>l\<^sub>
 lemma atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n: \<open>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l = set_mset \<A>\<^sub>i\<^sub>n\<close>
   unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_def by (auto simp: atms_of_def image_Un image_image)
 
-definition is_\<L>\<^sub>a\<^sub>l\<^sub>l :: "nat literal multiset \<Rightarrow> bool" where
+definition is_\<L>\<^sub>a\<^sub>l\<^sub>l :: \<open>nat literal multiset \<Rightarrow> bool\<close> where
   \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l S \<longleftrightarrow> set_mset S = set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
 
 abbreviation literals_are_\<L>\<^sub>i\<^sub>n where
@@ -335,7 +335,7 @@ lemma length_ll_length_ll_f:
   by (fastforce simp: fref_def map_fun_rel_def prod_rel_def nres_rel_def p2rel_def lit_of_natP_def
       nat_lit_rel_def)
 
-abbreviation array_watched_assn :: "(nat literal \<Rightarrow> nat list) \<Rightarrow> (nat array_list) array \<Rightarrow> assn" where
+abbreviation array_watched_assn :: \<open>(nat literal \<Rightarrow> nat list) \<Rightarrow> (nat array_list) array \<Rightarrow> assn\<close> where
   \<open>array_watched_assn \<equiv> hr_comp (arrayO_assn (arl_assn nat_assn)) (\<langle>Id\<rangle>map_fun_rel D\<^sub>0)\<close>
 
 lemma ex_list_watched:
@@ -947,7 +947,7 @@ proof -
 qed
 
 definition (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D
-  :: "nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres"
+  :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> (nat \<times> nat twl_st_wl) nres\<close>
 where
   \<open>unit_propagation_inner_loop_wl_loop_D L S\<^sub>0 = do {
     WHILE\<^sub>T\<^bsup>\<lambda>(w, S). twl_struct_invs (twl_st_of_wl (Some (L, w)) S) \<and>
@@ -1007,7 +1007,7 @@ proof -
     done
 qed
 
-definition (in isasat_input_ops) unit_propagation_inner_loop_wl_D :: "nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+definition (in isasat_input_ops) unit_propagation_inner_loop_wl_D :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>unit_propagation_inner_loop_wl_D L S\<^sub>0 = do {
      wS \<leftarrow> unit_propagation_inner_loop_wl_loop_D L S\<^sub>0;
      RETURN (snd wS)
@@ -1028,7 +1028,7 @@ proof -
     done
 qed
 
-definition (in isasat_input_ops) unit_propagation_outer_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+definition (in isasat_input_ops) unit_propagation_outer_loop_wl_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>unit_propagation_outer_loop_wl_D S\<^sub>0 =
     WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs (twl_st_of_wl None S) \<and> twl_stgy_invs (twl_st_of_wl None S) \<and>
       correct_watching S \<and> twl_list_invs (st_l_of_wl None S)\<^esup>
@@ -1078,7 +1078,7 @@ proof -
     done
 qed
 
-definition (in isasat_input_ops) skip_and_resolve_loop_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+definition (in isasat_input_ops) skip_and_resolve_loop_wl_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>skip_and_resolve_loop_wl_D S\<^sub>0 =
     do {
       ASSERT(get_conflict_wl S\<^sub>0 \<noteq> None);
@@ -1177,12 +1177,12 @@ proof -
     done
 qed
 
-definition find_lit_of_max_level_wl' :: "_ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow>
-   nat literal nres" where
+definition find_lit_of_max_level_wl' :: \<open>_ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow>
+   nat literal nres\<close> where
   \<open>find_lit_of_max_level_wl' M N U D NP UP Q W L =
      find_lit_of_max_level_wl (M, N, U, Some D, NP, UP, Q, W) L\<close>
 
-definition (in -) list_of_mset2 :: "nat literal \<Rightarrow> nat literal \<Rightarrow> nat clause \<Rightarrow> nat clause_l nres" where
+definition (in -) list_of_mset2 :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> nat clause \<Rightarrow> nat clause_l nres\<close> where
   \<open>list_of_mset2 L L' D =
     SPEC (\<lambda>E. mset E = D \<and> E!0 = L \<and> E!1 = L' \<and> length E \<ge> 2)\<close>
 
@@ -1206,7 +1206,7 @@ definition (in isasat_input_ops) propagate_unit_bt_wl_D :: \<open>nat literal \<
         RETURN (Propagated (-L) 0 # M, N, U, None, NP, add_mset {#D'#} UP, {#L#}, W)
     })\<close>
 
-definition (in isasat_input_ops) backtrack_wl_D :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres" where
+definition (in isasat_input_ops) backtrack_wl_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>backtrack_wl_D S =
     do {
       ASSERT(backtrack_wl_D_inv S);
@@ -1301,11 +1301,11 @@ proof -
            (find_lit_of_max_level_wl U' (lit_of (hd (get_trail_wl S))))\<close>
       (is \<open>_ \<le> \<Down> ?find_lit _\<close>)
     if
-      "backtrack_wl_inv S" and
-      "backtrack_wl_D_inv S" and
-      "(U, U') \<in> ?find_decomp T" and
-      "1 < size (the (get_conflict_wl U))" and
-      "1 < size (the (get_conflict_wl U'))"
+      \<open>backtrack_wl_inv S\<close> and
+      \<open>backtrack_wl_D_inv S\<close> and
+      \<open>(U, U') \<in> ?find_decomp T\<close> and
+      \<open>1 < size (the (get_conflict_wl U))\<close> and
+      \<open>1 < size (the (get_conflict_wl U'))\<close>
     for U U' T
     using that unfolding find_lit_of_max_level_wl'_def find_lit_of_max_level_wl_def
     by (cases U) (auto 5 5 intro!: RES_refine)
@@ -1313,17 +1313,17 @@ proof -
   have is_\<L>\<^sub>a\<^sub>l\<^sub>l_add: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (A + B) \<longleftrightarrow> set_mset A \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close> if \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l B\<close> for A B
     using that unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def by auto
 
-  have propagate_bt_wl_D: "propagate_bt_wl_D (lit_of (hd (get_trail_wl S))) L U
+  have propagate_bt_wl_D: \<open>propagate_bt_wl_D (lit_of (hd (get_trail_wl S))) L U
         \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}
-           (propagate_bt_wl (lit_of (hd (get_trail_wl S))) L' U')"
+           (propagate_bt_wl (lit_of (hd (get_trail_wl S))) L' U')\<close>
     if
-      "backtrack_wl_inv S" and
-      bt: "backtrack_wl_D_inv S" and
-      TT': "(T, T') \<in> ?extract_shorter" and
-      UU': "(U, U') \<in> ?find_decomp T" and
-      "1 < size (the (get_conflict_wl U))" and
-      "1 < size (the (get_conflict_wl U'))" and
-      LL': "(L, L') \<in> ?find_lit U"
+      \<open>backtrack_wl_inv S\<close> and
+      bt: \<open>backtrack_wl_D_inv S\<close> and
+      TT': \<open>(T, T') \<in> ?extract_shorter\<close> and
+      UU': \<open>(U, U') \<in> ?find_decomp T\<close> and
+      \<open>1 < size (the (get_conflict_wl U))\<close> and
+      \<open>1 < size (the (get_conflict_wl U'))\<close> and
+      LL': \<open>(L, L') \<in> ?find_lit U\<close>
     for L L' T T' U U'
   proof -
     obtain MS NS US DS NPS UPS W Q where
@@ -1372,7 +1372,7 @@ proof -
         using LL' by fast
       have DD'_eq[simp]: \<open>D' = D\<close> and D_DT: \<open>mset D = DT\<close>
         using DD' unfolding list_of_mset_def by force+
-      have [simp]: "- lit_of (hd MS) # L' # remove1 (- lit_of (hd MS)) (remove1 L' D) = D"
+      have [simp]: \<open>- lit_of (hd MS) # L' # remove1 (- lit_of (hd MS)) (remove1 L' D) = D\<close>
         using DD' that LL' unfolding list_of_mset_def by (cases D; cases \<open>tl D\<close>) (auto simp: S)
 
 
@@ -1419,16 +1419,16 @@ proof -
       done
   qed
 
-  have propagate_unit_bt_wl_D: "propagate_unit_bt_wl_D (lit_of (hd (get_trail_wl S))) U
+  have propagate_unit_bt_wl_D: \<open>propagate_unit_bt_wl_D (lit_of (hd (get_trail_wl S))) U
     \<le> SPEC (\<lambda>c. (c, propagate_unit_bt_wl (lit_of (hd (get_trail_wl S))) U')
-                 \<in> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T})"
+                 \<in> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T})\<close>
     if
-      "backtrack_wl_inv S" and
-      bt: "backtrack_wl_D_inv S" and
-      TT': "(T, T') \<in> ?extract_shorter" and
-      UU': "(U, U') \<in> ?find_decomp T" and
-      "\<not>1 < size (the (get_conflict_wl U))" and
-      "\<not>1 < size (the (get_conflict_wl U'))"
+      \<open>backtrack_wl_inv S\<close> and
+      bt: \<open>backtrack_wl_D_inv S\<close> and
+      TT': \<open>(T, T') \<in> ?extract_shorter\<close> and
+      UU': \<open>(U, U') \<in> ?find_decomp T\<close> and
+      \<open>\<not>1 < size (the (get_conflict_wl U))\<close> and
+      \<open>\<not>1 < size (the (get_conflict_wl U'))\<close>
     for L L' T T' U U'
   proof -
     obtain MS NS US DS NPS UPS W Q where
@@ -1506,7 +1506,7 @@ definition (in isasat_input_ops) decide_wl_or_skip_D_pre :: \<open>nat twl_st_wl
    decide_wl_or_skip_pre S \<and> literals_are_\<L>\<^sub>i\<^sub>n S\<close>
 
 definition(in isasat_input_ops)  decide_wl_or_skip_D
-  :: "nat twl_st_wl \<Rightarrow> (bool \<times> nat twl_st_wl) nres"
+  :: \<open>nat twl_st_wl \<Rightarrow> (bool \<times> nat twl_st_wl) nres\<close>
 where
   \<open>decide_wl_or_skip_D S = (do {
     ASSERT(decide_wl_or_skip_D_pre S);
@@ -1538,18 +1538,18 @@ proof -
         intro!: RES_refine)
   have [refine]: \<open>x = x' \<Longrightarrow> (x, x') \<in> \<langle>Id\<rangle> option_rel\<close>
     for x x' by auto
-  have decide_lit_wl: "((False, decide_lit_wl L T), False, decide_lit_wl L' S')
+  have decide_lit_wl: \<open>((False, decide_lit_wl L T), False, decide_lit_wl L' S')
         \<in> {((b', T'), b, T).
-            b = b' \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}"
+            b = b' \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<close>
     if
-      SS': "(S, S') \<in> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}" and
-      "decide_wl_or_skip_pre S'" and
-      pre: "decide_wl_or_skip_D_pre S" and
-      LT_L': "(LT, bL') \<in> ?find S" and
-      LT: "LT = (T, bL)" and
-      "bL' = Some L'" and
-      "bL = Some L" and
-      LL': "(L, L') \<in> Id"
+      SS': \<open>(S, S') \<in> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n T}\<close> and
+      \<open>decide_wl_or_skip_pre S'\<close> and
+      pre: \<open>decide_wl_or_skip_D_pre S\<close> and
+      LT_L': \<open>(LT, bL') \<in> ?find S\<close> and
+      LT: \<open>LT = (T, bL)\<close> and
+      \<open>bL' = Some L'\<close> and
+      \<open>bL = Some L\<close> and
+      LL': \<open>(L, L') \<in> Id\<close>
     for S S' L L' LT bL bL' T
   proof -
     have \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n T\<close> and [simp]: \<open>T = S\<close>
@@ -1582,7 +1582,7 @@ qed
 subsubsection \<open>Backtrack, Skip, Resolve or Decide\<close>
 
 definition (in isasat_input_ops) cdcl_twl_o_prog_wl_D
- :: "nat twl_st_wl \<Rightarrow> (bool \<times> nat twl_st_wl) nres"
+ :: \<open>nat twl_st_wl \<Rightarrow> (bool \<times> nat twl_st_wl) nres\<close>
 where
   \<open>cdcl_twl_o_prog_wl_D S =
     do {
@@ -1637,7 +1637,7 @@ qed
 subsubsection \<open>Full Strategy\<close>
 
 definition (in isasat_input_ops) cdcl_twl_stgy_prog_wl_D
-   :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres"
+   :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close>
 where
   \<open>cdcl_twl_stgy_prog_wl_D S\<^sub>0 =
   do {

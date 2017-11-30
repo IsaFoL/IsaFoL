@@ -116,7 +116,7 @@ next
       unfolding MD_def by auto
     moreover have \<open>L' \<in># remove1_mset L D\<close>
     proof -
-      have "{#L, L'#} \<subseteq># D"
+      have \<open>{#L, L'#} \<subseteq># D\<close>
         using LL' unfolding MD_def
         by (meson multiset_filter_subset subset_mset.dual_order.trans)
       then show ?thesis
@@ -360,15 +360,15 @@ qed
 
 lemma skip_and_resolve_hd_in_D\<^sub>0:
   assumes
-    L: "(L, a2'a) = lit_and_ann_of_propagated_st a2'" and
-    is_proped: "is_proped (hd (get_trail_wl a2'))" and
-    struct: "twl_struct_invs (twl_st_of None (st_l_of_wl None a2'))" and
-    nempty: "get_trail_wl a2' \<noteq> []" and
-    \<L>\<^sub>a\<^sub>l\<^sub>l: "is_\<L>\<^sub>a\<^sub>l\<^sub>l
+    L: \<open>(L, a2'a) = lit_and_ann_of_propagated_st a2'\<close> and
+    is_proped: \<open>is_proped (hd (get_trail_wl a2'))\<close> and
+    struct: \<open>twl_struct_invs (twl_st_of None (st_l_of_wl None a2'))\<close> and
+    nempty: \<open>get_trail_wl a2' \<noteq> []\<close> and
+    \<L>\<^sub>a\<^sub>l\<^sub>l: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l
       (all_lits_of_mm
         (cdcl\<^sub>W_restart_mset.clauses
-          (state\<^sub>W_of (twl_st_of None (st_l_of_wl None a2')))))"
-   shows "- L \<in> snd ` D\<^sub>0"
+          (state\<^sub>W_of (twl_st_of None (st_l_of_wl None a2')))))\<close>
+   shows \<open>- L \<in> snd ` D\<^sub>0\<close>
 proof -
   obtain M' where
     M': \<open>get_trail_wl a2' = Propagated L a2'a # M'\<close>

@@ -65,18 +65,18 @@ end
 
 subsection \<open>Declaration of some Operators and Implementation\<close>
 
-sepref_decl_op atm_of: "atm_of :: nat literal \<Rightarrow> nat" ::
-  "(Id :: (nat literal \<times> _) set) \<rightarrow> (Id :: (nat \<times> _) set)" .
+sepref_decl_op atm_of: \<open>atm_of :: nat literal \<Rightarrow> nat\<close> ::
+  \<open>(Id :: (nat literal \<times> _) set) \<rightarrow> (Id :: (nat \<times> _) set)\<close> .
 
 lemma [def_pat_rules]:
-  "atm_of \<equiv> op_atm_of"
+  \<open>atm_of \<equiv> op_atm_of\<close>
   by auto
 
-sepref_decl_op lit_of: "lit_of :: (nat, nat) ann_lit \<Rightarrow> nat literal" ::
-  "(Id :: ((nat, nat) ann_lit \<times> _) set) \<rightarrow> (Id :: (nat literal \<times> _) set)" .
+sepref_decl_op lit_of: \<open>lit_of :: (nat, nat) ann_lit \<Rightarrow> nat literal\<close> ::
+  \<open>(Id :: ((nat, nat) ann_lit \<times> _) set) \<rightarrow> (Id :: (nat literal \<times> _) set)\<close> .
 
 lemma [def_pat_rules]:
-  "lit_of \<equiv> op_lit_of"
+  \<open>lit_of \<equiv> op_lit_of\<close>
   by auto
 
 
@@ -171,32 +171,32 @@ abbreviation ann_lit_wl_assn :: \<open>ann_lit_wl \<Rightarrow> ann_lit_wl \<Rig
 abbreviation ann_lits_wl_assn :: \<open>ann_lits_wl \<Rightarrow> ann_lits_wl \<Rightarrow> assn\<close> where
   \<open>ann_lits_wl_assn \<equiv> list_assn ann_lit_wl_assn\<close>
 
-abbreviation clause_ll_assn :: "nat clause_l \<Rightarrow> clause_wl \<Rightarrow> assn" where
+abbreviation clause_ll_assn :: \<open>nat clause_l \<Rightarrow> clause_wl \<Rightarrow> assn\<close> where
   \<open>clause_ll_assn \<equiv> array_assn unat_lit_assn\<close>
 
-abbreviation clauses_ll_assn :: "nat clauses_l \<Rightarrow> clauses_wl \<Rightarrow> assn" where
+abbreviation clauses_ll_assn :: \<open>nat clauses_l \<Rightarrow> clauses_wl \<Rightarrow> assn\<close> where
   \<open>clauses_ll_assn \<equiv> arlO_assn clause_ll_assn\<close>
 
-abbreviation clause_l_assn :: "nat clause \<Rightarrow> uint32 list \<Rightarrow> assn" where
+abbreviation clause_l_assn :: \<open>nat clause \<Rightarrow> uint32 list \<Rightarrow> assn\<close> where
   \<open>clause_l_assn \<equiv> list_mset_assn unat_lit_assn\<close>
 
-abbreviation clauses_l_assn :: "nat clauses \<Rightarrow> uint32 list list \<Rightarrow> assn" where
+abbreviation clauses_l_assn :: \<open>nat clauses \<Rightarrow> uint32 list list \<Rightarrow> assn\<close> where
   \<open>clauses_l_assn \<equiv> list_mset_assn clause_l_assn\<close>
 
-abbreviation clauses_to_update_l_assn :: "nat multiset \<Rightarrow> nat list \<Rightarrow> assn" where
+abbreviation clauses_to_update_l_assn :: \<open>nat multiset \<Rightarrow> nat list \<Rightarrow> assn\<close> where
   \<open>clauses_to_update_l_assn \<equiv> list_mset_assn nat_assn\<close>
 
-abbreviation clauses_to_update_ll_assn :: "nat list \<Rightarrow> nat list \<Rightarrow> assn" where
+abbreviation clauses_to_update_ll_assn :: \<open>nat list \<Rightarrow> nat list \<Rightarrow> assn\<close> where
   \<open>clauses_to_update_ll_assn \<equiv> list_assn nat_assn\<close>
 
-abbreviation unit_lits_assn :: "nat clauses \<Rightarrow> unit_lits_wl \<Rightarrow> assn" where
+abbreviation unit_lits_assn :: \<open>nat clauses \<Rightarrow> unit_lits_wl \<Rightarrow> assn\<close> where
   \<open>unit_lits_assn \<equiv> list_mset_assn (list_mset_assn unat_lit_assn)\<close>
 
 type_synonym nat_clauses_l = \<open>nat list list\<close>
 
 type_synonym twl_st_wll =
-  "nat_trail \<times> clauses_wl \<times> nat \<times> uint32 array_list option \<times>  unit_lits_wl \<times> unit_lits_wl \<times>
-    lit_queue_l \<times> watched_wl"
+  \<open>nat_trail \<times> clauses_wl \<times> nat \<times> uint32 array_list option \<times>  unit_lits_wl \<times> unit_lits_wl \<times>
+    lit_queue_l \<times> watched_wl\<close>
 
 
 subsubsection \<open>Refinement of the Watched Function\<close>
@@ -443,7 +443,7 @@ lemma
    by (auto simp: IS_PURE_def single_valued_def p2rel_def IS_LEFT_UNIQUE_def nat_lit_rel_def
       dest: lit_of_natP_same_rightD lit_of_natP_same_leftD)
 
-definition find_decomp_wl_imp :: "(nat, nat) ann_lits \<Rightarrow> nat clause \<Rightarrow> nat literal \<Rightarrow> (nat, nat) ann_lits nres" where
+definition find_decomp_wl_imp :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clause \<Rightarrow> nat literal \<Rightarrow> (nat, nat) ann_lits nres\<close> where
   \<open>find_decomp_wl_imp = (\<lambda>M\<^sub>0 D L. do {
     let lev = get_maximum_level M\<^sub>0 (remove1_mset (-L) D);
     let k = count_decided M\<^sub>0;
@@ -588,7 +588,7 @@ qed
 
 subsubsection \<open>Unit Propagation: Step\<close>
 
-definition delete_index_and_swap_update :: "('a \<Rightarrow> 'b list) \<Rightarrow> 'a \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'b list" where
+definition delete_index_and_swap_update :: \<open>('a \<Rightarrow> 'b list) \<Rightarrow> 'a \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'b list\<close> where
   \<open>delete_index_and_swap_update W K w = W(K := delete_index_and_swap (W K) w)\<close>
 
 text \<open>The precondition is not necessary.\<close>
@@ -659,7 +659,7 @@ proof -
     using H unfolding pre init .
 qed
 
-definition (in isasat_input_ops) append_update :: "('a \<Rightarrow> 'b list) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> 'a \<Rightarrow> 'b list" where
+definition (in isasat_input_ops) append_update :: \<open>('a \<Rightarrow> 'b list) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> 'a \<Rightarrow> 'b list\<close> where
   \<open>append_update W L a = W(L:= W (L) @ [a])\<close>
 
 lemma append_ll_append_update:

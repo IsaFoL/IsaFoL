@@ -15,42 +15,42 @@ section \<open>Third Refinement: Remembering watched\<close>
 
 subsection \<open>Types\<close>
 
-type_synonym clauses_to_update_wl = "nat multiset"
-type_synonym watched = "nat list"
-type_synonym 'v lit_queue_wl = "'v literal multiset"
+type_synonym clauses_to_update_wl = \<open>nat multiset\<close>
+type_synonym watched = \<open>nat list\<close>
+type_synonym 'v lit_queue_wl = \<open>'v literal multiset\<close>
 
 type_synonym 'v twl_st_wl =
-  "('v, nat) ann_lits \<times> 'v clause_l list \<times> nat \<times>
+  \<open>('v, nat) ann_lits \<times> 'v clause_l list \<times> nat \<times>
     'v cconflict \<times> 'v clauses \<times> 'v clauses \<times> 'v lit_queue_wl \<times>
-    ('v literal \<Rightarrow> watched)"
+    ('v literal \<Rightarrow> watched)\<close>
 
 subsection \<open>Access Functions\<close>
 
-fun clauses_to_update_wl :: "'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> nat \<Rightarrow> clauses_to_update_wl" where
+fun clauses_to_update_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> nat \<Rightarrow> clauses_to_update_wl\<close> where
   \<open>clauses_to_update_wl (_, _, _, _, _, _, _, W) L i = mset (drop i (W L))\<close>
 
-fun get_trail_wl :: "'v twl_st_wl \<Rightarrow> ('v, nat) ann_lit list" where
+fun get_trail_wl :: \<open>'v twl_st_wl \<Rightarrow> ('v, nat) ann_lit list\<close> where
   \<open>get_trail_wl (M, _, _, _, _, _, _, _) = M\<close>
 
-fun literals_to_update_wl :: "'v twl_st_wl \<Rightarrow> 'v lit_queue_wl" where
+fun literals_to_update_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v lit_queue_wl\<close> where
   \<open>literals_to_update_wl (_, _, _, _, _, _, Q, _) = Q\<close>
 
-fun set_literals_to_update_wl :: "'v lit_queue_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl" where
+fun set_literals_to_update_wl :: \<open>'v lit_queue_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
   \<open>set_literals_to_update_wl Q (M, N, U, D, NP, UP, _, W) = (M, N, U, D, NP, UP, Q, W)\<close>
 
-fun get_conflict_wl :: "'v twl_st_wl \<Rightarrow> 'v cconflict" where
+fun get_conflict_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v cconflict\<close> where
   \<open>get_conflict_wl (_, _, _, D, _, _, _, _) = D\<close>
 
-fun get_clauses_wl :: "'v twl_st_wl \<Rightarrow> 'v clauses_l" where
+fun get_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses_l\<close> where
   \<open>get_clauses_wl (M, N, U, D, NP, UP, WS, Q) = N\<close>
 
-fun get_learned_wl :: "'v twl_st_wl \<Rightarrow> nat" where
+fun get_learned_wl :: \<open>'v twl_st_wl \<Rightarrow> nat\<close> where
   \<open>get_learned_wl (M, N, U, D, NP, UP, WS, Q) = U\<close>
 
-definition get_unit_learned :: "'v twl_st_wl \<Rightarrow> 'v clauses" where
+definition get_unit_learned :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
   \<open>get_unit_learned = (\<lambda>(M, N, U, D, NP, UP, Q, W). UP)\<close>
 
-definition get_unit_init_clss :: "'v twl_st_wl \<Rightarrow> 'v clauses" where
+definition get_unit_init_clss :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
   \<open>get_unit_init_clss = (\<lambda>(M, N, U, D, NP, UP, Q, W). NP)\<close>
 
 definition all_lits_of_mm :: \<open>'a clauses \<Rightarrow> 'a literal multiset\<close> where
@@ -115,7 +115,7 @@ lemma all_lits_of_m_union:
   by (auto simp: all_lits_of_m_def)
 
 lemma all_lits_of_m_mono:
-  "D \<subseteq># D' \<Longrightarrow> all_lits_of_m D \<subseteq># all_lits_of_m D'"
+  \<open>D \<subseteq># D' \<Longrightarrow> all_lits_of_m D \<subseteq># all_lits_of_m D'\<close>
   by (auto elim!: mset_le_addE simp: all_lits_of_m_union)
 
 fun st_l_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_l\<close> where
@@ -127,7 +127,7 @@ fun st_l_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> 'v twl_s
 fun twl_st_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st\<close> where
   \<open>twl_st_of_wl L S = twl_st_of (map_option fst L) (st_l_of_wl L S)\<close>
 
-fun remove_one_lit_from_wq :: "nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l" where
+fun remove_one_lit_from_wq :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
   \<open>remove_one_lit_from_wq L (M, N, C, D, NP, UP, WS, Q) = (M, N, C, D, NP, UP, remove1_mset L WS, Q)\<close>
 
 lemma remove_one_lit_from_wq_def:
@@ -211,8 +211,8 @@ definition unit_prop_body_wl_find_unwatched_inv where
    (get_clauses_wl S)!C \<noteq> [] \<and>
    (f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l ((get_clauses_wl S)!C)). - L \<in> lits_of_l (get_trail_wl S)))\<close>
 
-definition unit_propagation_inner_loop_body_wl :: "'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
-    (nat \<times> 'v twl_st_wl) nres" where
+definition unit_propagation_inner_loop_body_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
+    (nat \<times> 'v twl_st_wl) nres\<close> where
   \<open>unit_propagation_inner_loop_body_wl L w S = do {
       ASSERT(unit_prop_body_wl_inv S w L);
       let C = (watched_by S L) ! w;
@@ -630,7 +630,7 @@ proof -
 qed
 
 
-definition unit_propagation_inner_loop_wl_loop :: "'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> (nat \<times> 'v twl_st_wl) nres" where
+definition unit_propagation_inner_loop_wl_loop :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> (nat \<times> 'v twl_st_wl) nres\<close> where
   \<open>unit_propagation_inner_loop_wl_loop L S\<^sub>0 = do {
     WHILE\<^sub>T\<^bsup>\<lambda>(w, S). twl_struct_invs (twl_st_of_wl (Some (L, w)) S) \<and>
         twl_stgy_invs (twl_st_of_wl (Some (L, w)) S) \<and>
@@ -644,7 +644,7 @@ definition unit_propagation_inner_loop_wl_loop :: "'v literal \<Rightarrow> 'v t
   }
   \<close>
 
-definition unit_propagation_inner_loop_wl :: "'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
+definition unit_propagation_inner_loop_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>unit_propagation_inner_loop_wl L S\<^sub>0 = do {
      wS \<leftarrow> unit_propagation_inner_loop_wl_loop L S\<^sub>0;
      RETURN (snd wS)
@@ -783,11 +783,11 @@ qed
 
 subsubsection \<open>Outer loop\<close>
 
-definition select_and_remove_from_literals_to_update_wl :: "'v twl_st_wl \<Rightarrow> ('v twl_st_wl \<times> 'v literal) nres" where
+definition select_and_remove_from_literals_to_update_wl :: \<open>'v twl_st_wl \<Rightarrow> ('v twl_st_wl \<times> 'v literal) nres\<close> where
   \<open>select_and_remove_from_literals_to_update_wl S = SPEC(\<lambda>(S', L). L \<in># literals_to_update_wl S \<and>
      S' = set_literals_to_update_wl (literals_to_update_wl S - {#L#}) S)\<close>
 
-definition unit_propagation_outer_loop_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
+definition unit_propagation_outer_loop_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>unit_propagation_outer_loop_wl S\<^sub>0 =
     WHILE\<^sub>T\<^bsup>\<lambda>S. twl_struct_invs (twl_st_of_wl None S) \<and> twl_stgy_invs (twl_st_of_wl None S) \<and>
       correct_watching S \<and> twl_list_invs (st_l_of_wl None S)\<^esup>
@@ -981,7 +981,7 @@ definition decide_lit_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Right
       (Decided L' # M, N, U, D, NP, UP, {#- L'#}, W))\<close>
 
 
-definition decide_wl_or_skip :: "'v twl_st_wl \<Rightarrow> (bool \<times> 'v twl_st_wl) nres" where
+definition decide_wl_or_skip :: \<open>'v twl_st_wl \<Rightarrow> (bool \<times> 'v twl_st_wl) nres\<close> where
   \<open>decide_wl_or_skip S = (do {
     ASSERT(decide_wl_or_skip_pre S);
     L \<leftarrow> find_unassigned_lit_wl S;
@@ -1042,7 +1042,7 @@ definition update_confl_tl_wl :: \<open>nat \<Rightarrow> 'v literal \<Rightarro
      let D = resolve_cls_wl' (M, N, U, D, NP, UP, WS, Q) C L in
         (D = {#}, (tl M, N, U, Some D, NP, UP, WS, Q)))\<close>
 
-definition skip_and_resolve_loop_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
+definition skip_and_resolve_loop_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>skip_and_resolve_loop_wl S\<^sub>0 =
     do {
       ASSERT(get_conflict_wl S\<^sub>0 \<noteq> None);
@@ -1174,12 +1174,12 @@ qed
 
 subsubsection \<open>Backtrack\<close>
 
-definition find_decomp_wl :: "'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl  nres" where
+definition find_decomp_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl  nres\<close> where
   \<open>find_decomp_wl =  (\<lambda>L (M, N, U, D, NP, UP, Q, W).
     SPEC(\<lambda>S. \<exists>K M2 M1. S = (M1, N, U, D, NP, UP, Q, W) \<and> (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
           get_level M K = get_maximum_level M (the D - {#-L#}) + 1))\<close>
 
-definition find_lit_of_max_level_wl :: "'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> 'v literal nres" where
+definition find_lit_of_max_level_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> 'v literal nres\<close> where
   \<open>find_lit_of_max_level_wl =  (\<lambda>(M, N, U, D, NP, UP, Q, W) L.
     SPEC(\<lambda>L'. L' \<in># remove1_mset (-L) (the D) \<and> get_level M L' = get_maximum_level M (the D - {#-L#})))\<close>
 
@@ -1209,7 +1209,7 @@ definition propagate_unit_bt_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl 
   \<open>propagate_unit_bt_wl = (\<lambda>L (M, N, U, D, NP, UP, Q, W).
     (Propagated (-L) 0 # M, N, U, None, NP, add_mset (the D) UP, {#L#}, W))\<close>
 
-definition backtrack_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
+definition backtrack_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>backtrack_wl S =
     do {
       ASSERT(backtrack_wl_inv S);
@@ -1603,7 +1603,7 @@ qed
 
 subsubsection \<open>Backtrack, Skip, Resolve or Decide\<close>
 
-definition cdcl_twl_o_prog_wl :: "'v twl_st_wl \<Rightarrow> (bool \<times> 'v twl_st_wl) nres" where
+definition cdcl_twl_o_prog_wl :: \<open>'v twl_st_wl \<Rightarrow> (bool \<times> 'v twl_st_wl) nres\<close> where
   \<open>cdcl_twl_o_prog_wl S =
     do {
       ASSERT(twl_struct_invs (twl_st_of_wl None S));
@@ -1716,7 +1716,7 @@ qed
 
 subsubsection \<open>Full Strategy\<close>
 
-definition cdcl_twl_stgy_prog_wl :: "'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres" where
+definition cdcl_twl_stgy_prog_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>cdcl_twl_stgy_prog_wl S\<^sub>0 =
   do {
     do {

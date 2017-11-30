@@ -26,7 +26,7 @@ where
         RETURN ((M, N, U, D, NP, UP, WS, Q), L)})\<close>
 
 definition (in isasat_input_ops) find_decomp_wl_nlit
-:: "'v literal \<Rightarrow> 'v conflict_highest_conflict \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl  nres" where
+:: \<open>'v literal \<Rightarrow> 'v conflict_highest_conflict \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl  nres\<close> where
   \<open>find_decomp_wl_nlit = (\<lambda>L highest (M, N, U, D, NP, UP, Q, W).
     SPEC(\<lambda>S. \<exists>K M2 M1. S = (M1, N, U, D, NP, UP, Q, W) \<and>
         (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
@@ -1383,7 +1383,7 @@ proof -
 qed
 
 definition find_decomp_wl_pre
-   :: "(nat literal \<times> nat conflict_highest_conflict) \<times> nat twl_st_wl \<Rightarrow> bool"
+   :: \<open>(nat literal \<times> nat conflict_highest_conflict) \<times> nat twl_st_wl \<Rightarrow> bool\<close>
 where
    \<open>find_decomp_wl_pre =  (\<lambda>((L, highest), T).
        \<exists>S. equality_except_conflict S T \<and>
@@ -1680,28 +1680,25 @@ proof -
     have size_C: \<open>size C \<le> 1 + uint_max div 2\<close>
       using simple_clss_size_upper_div2[OF lits_\<A>\<^sub>i\<^sub>n dist_C tauto_C] .
 
-    have final: "\<not> (case s of (i, m, C, zs) \<Rightarrow> 2 < m) \<Longrightarrow>
+    have final: \<open>\<not> (case s of (i, m, C, zs) \<Rightarrow> 2 < m) \<Longrightarrow>
     s \<in> {x. (case x of (_, _, C, zs) \<Rightarrow> RETURN (C, True, zero_uint32_nat, zs))
               \<le> RES ((Id \<times>\<^sub>f option_lookup_clause_rel)\<inverse> ``
                       {(E, F).
                        mset (drop 2 E) = the (Some C) \<and>
-                       E ! 0 = L \<and> E ! 1 = L' \<and> F = None \<and> 2 \<le> length E})}"
+                       E ! 0 = L \<and> E ! 1 = L' \<and> F = None \<and> 2 \<le> length E})}\<close>
       if
-        s0: "?I baa aa s" and
-        s1: "?I' s" and
+        s0: \<open>?I baa aa s\<close> and
+        s1: \<open>?I' s\<close> and
         s:
-          "\<not> ?cond s"
-(*           "s = (ab, bb)"
-          "bb = (ac, bc)"
-          "bc = (ad, bd)" *)
-          "(b, n, xs) = (a, ba)"
-          "ba = (aa, baa)"
+          \<open>\<not> ?cond s\<close>
+          \<open>(b, n, xs) = (a, ba)\<close>
+          \<open>ba = (aa, baa)\<close>
       for a ba aa baa s
     proof -
       obtain ab bb ac bc ad bd where
-        s': "s = (ab, bb)"
-          "bb = (ac, bc)"
-          "bc = (ad, bd)"
+        s': \<open>s = (ab, bb)\<close>
+          \<open>bb = (ac, bc)\<close>
+          \<open>bc = (ad, bd)\<close>
         by (cases s) auto
       then have [simp]: \<open>ac = 2\<close> \<open>s = (ab, 2, ad, bd)\<close> \<open>bb = (2, ad, bd)\<close> \<open>bc = (ad, bd)\<close> \<open>ba = (aa, baa)\<close>
         \<open>n = aa\<close>\<open>xs = baa\<close>
@@ -1725,27 +1722,27 @@ proof -
         using map' atms_le_xs le_ad by (auto simp: option_lookup_clause_rel_with_cls_removed_def
             list_mset_rel_def br_def Image_iff option_lookup_clause_rel_def lookup_clause_rel_def)
     qed
-    have init: "I' (0, aa, D, baa)"
+    have init: \<open>I' (0, aa, D, baa)\<close>
       if
-        "(b, n, xs) = (a, ba)" and
-        "ba = (aa, baa)"
+        \<open>(b, n, xs) = (a, ba)\<close> and
+        \<open>ba = (aa, baa)\<close>
       for a ba aa baa
       using ocr that n_le n_size size_C len_D mset_as_position_length_not_None[OF map]
       sum_length_filter_compl[of \<open>op = None\<close> xs]
       by auto
 
-    have in_\<L>\<^sub>a\<^sub>l\<^sub>l: "Pos ab \<in># \<L>\<^sub>a\<^sub>l\<^sub>l"
+    have in_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>Pos ab \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
       if
-        I: "?I baa aa s" and
-        I': "I' s" and
-        cond: "?cond s" and
-        s: "s = (ab, bb)"
-          "bb = (ac, bc)"
-          "bc = (ad, bd)"
-          "(b, n, xs) = (a, ba)"
-          "ba = (aa, baa)" and
-        ab_baa: "ab < length baa" and
-        bd_ab: "bd ! ab \<noteq> None"
+        I: \<open>?I baa aa s\<close> and
+        I': \<open>I' s\<close> and
+        cond: \<open>?cond s\<close> and
+        s: \<open>s = (ab, bb)\<close>
+          \<open>bb = (ac, bc)\<close>
+          \<open>bc = (ad, bd)\<close>
+          \<open>(b, n, xs) = (a, ba)\<close>
+          \<open>ba = (aa, baa)\<close> and
+        ab_baa: \<open>ab < length baa\<close> and
+        bd_ab: \<open>bd ! ab \<noteq> None\<close>
       for a ba aa baa s ab bb ac bc ad bd
     proof -
       have \<open>((b, ac, bd), Some {#L \<in># C. ab \<le> atm_of L#}) \<in> option_lookup_clause_rel_removed\<close>
@@ -1763,18 +1760,18 @@ proof -
         using lits_\<A>\<^sub>i\<^sub>n
         by (auto dest!: multi_member_split simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
     qed
-    have le_uint_max_div2: "ab \<le> uint_max div 2"
+    have le_uint_max_div2: \<open>ab \<le> uint_max div 2\<close>
       if
-        "(b, n, xs) = (a, ba)" and
-        "ba = (aa, baa)" and
-        "?I baa aa s" and
-        I': "I' s" and
-        m: "?cond s" and
+        \<open>(b, n, xs) = (a, ba)\<close> and
+        \<open>ba = (aa, baa)\<close> and
+        \<open>?I baa aa s\<close> and
+        I': \<open>I' s\<close> and
+        m: \<open>?cond s\<close> and
         s:
-          "s = (ab, bb)"
-          "bb = (ac, bc)"
-          "bc = (ad, bd)" and
-        "ab < length baa"
+          \<open>s = (ab, bb)\<close>
+          \<open>bb = (ac, bc)\<close>
+          \<open>bc = (ad, bd)\<close> and
+        \<open>ab < length baa\<close>
       for a ba aa baa s ab bb ac bc ad bd
     proof (rule ccontr)
       assume le: \<open>\<not> ?thesis\<close>
@@ -1789,21 +1786,21 @@ proof -
       then show False
         using m s ocr unfolding option_lookup_clause_rel_removed_def option_lookup_clause_rel_def lookup_clause_rel_def by auto
     qed
-    have IH_I': "I' (ab + 1, ac, ad, bd)"
+    have IH_I': \<open>I' (ab + 1, ac, ad, bd)\<close>
       if
-        I: "?I baa aa s" and
-        I': "I' s" and
-        m: "?cond s" and
-        s: "s = (ab, bb)"
-          "bb = (ac, bc)"
-          "bc = (ad, bd)"
-          "(b, n, xs) = (a, ba)"
-          "ba = (aa, baa)" and
-        ab_le: "ab < length baa" and
-        "ab \<le> uint_max div 2" and
-        "2 < ac" and
-        "bd ! ab \<noteq> None \<longrightarrow> Pos ab \<in># \<L>\<^sub>a\<^sub>l\<^sub>l" and
-        bd_ab: "bd ! ab = None"
+        I: \<open>?I baa aa s\<close> and
+        I': \<open>I' s\<close> and
+        m: \<open>?cond s\<close> and
+        s: \<open>s = (ab, bb)\<close>
+          \<open>bb = (ac, bc)\<close>
+          \<open>bc = (ad, bd)\<close>
+          \<open>(b, n, xs) = (a, ba)\<close>
+          \<open>ba = (aa, baa)\<close> and
+        ab_le: \<open>ab < length baa\<close> and
+        \<open>ab \<le> uint_max div 2\<close> and
+        \<open>2 < ac\<close> and
+        \<open>bd ! ab \<noteq> None \<longrightarrow> Pos ab \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
+        bd_ab: \<open>bd ! ab = None\<close>
       for a ba aa baa s ab bb ac bc ad bd
     proof -
       have [simp]: \<open>s = (ab, ac, ad, bd)\<close> \<open>bb = (ac, ad, bd)\<close> \<open>bc = (ad, bd)\<close>
@@ -1866,23 +1863,23 @@ proof -
 
       show ?thesis using le_ad mset_drop ocr' Suc_le_bd le_Suc_None ac ac2 unfolding I'_def by auto
     qed
-    have IH_I'_notin: "I' (ab + 1, ac - 1, ad[ac - 1 := if x then Pos ab else Neg ab],
-          bd[ab := None])"
+    have IH_I'_notin: \<open>I' (ab + 1, ac - 1, ad[ac - 1 := if x then Pos ab else Neg ab],
+          bd[ab := None])\<close>
       if
-        I: "?I baa aa s" and
-        I': "I' s" and
-        m: "?cond s" and
+        I: \<open>?I baa aa s\<close> and
+        I': \<open>I' s\<close> and
+        m: \<open>?cond s\<close> and
         s:
-          "s = (ab, bb)"
-          "bb = (ac, bc)"
-          "bc = (ad, bd)"
-          "(b, n, xs) = (a, ba)"
-          "ba = (aa, baa)" and
-        ab_le: "ab < length baa" and
-        "ab \<le> uint_max div 2" and
-        "2 < ac" and
-        "bd ! ab \<noteq> None \<longrightarrow> Pos ab \<in># \<L>\<^sub>a\<^sub>l\<^sub>l" and
-        bd_ab_x: "bd ! ab = Some x"
+          \<open>s = (ab, bb)\<close>
+          \<open>bb = (ac, bc)\<close>
+          \<open>bc = (ad, bd)\<close>
+          \<open>(b, n, xs) = (a, ba)\<close>
+          \<open>ba = (aa, baa)\<close> and
+        ab_le: \<open>ab < length baa\<close> and
+        \<open>ab \<le> uint_max div 2\<close> and
+        \<open>2 < ac\<close> and
+        \<open>bd ! ab \<noteq> None \<longrightarrow> Pos ab \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
+        bd_ab_x: \<open>bd ! ab = Some x\<close>
       for a ba aa baa s ab bb ac bc ad bd x
     proof -
       have [simp]: \<open>bb = (ac, ad, bd)\<close> \<open>bc = (ad, bd)\<close> \<open>ba = (aa, baa)\<close> \<open>n = aa\<close> \<open>xs = baa\<close>
@@ -2014,12 +2011,12 @@ sepref_thm conflict_to_conflict_with_cls_code
    conflict_to_conflict_with_cls_code_helper[simp] uint32_2_hnr[sepref_fr_rules]
   unfolding conflict_to_conflict_with_cls_def array_fold_custom_replicate
     fast_minus_def[of \<open>_ :: nat\<close>, symmetric] PR_CONST_def
-  apply (rewrite at "\<hole> < length _" annotate_assn[where A=uint32_nat_assn])
-  apply (rewrite at "_ ! \<hole> \<noteq> None" annotate_assn[where A=uint32_nat_assn])
-  apply (rewrite at "\<hole> < _" two_uint32_nat_def[symmetric])
-  apply (rewrite at "\<hole> < _" annotate_assn[where A=uint32_nat_assn])
+  apply (rewrite at \<open>\<hole> < length _\<close> annotate_assn[where A=uint32_nat_assn])
+  apply (rewrite at \<open>_ ! \<hole> \<noteq> None\<close> annotate_assn[where A=uint32_nat_assn])
+  apply (rewrite at \<open>\<hole> < _\<close> two_uint32_nat_def[symmetric])
+  apply (rewrite at \<open>\<hole> < _\<close> annotate_assn[where A=uint32_nat_assn])
   apply (rewrite at \<open>(\<hole>, _, _, _)\<close> zero_uint32_nat_def[symmetric])
-  apply (rewrite at "(zero_uint32_nat, \<hole>, _, _)" annotate_assn[where A=uint32_nat_assn])
+  apply (rewrite at \<open>(zero_uint32_nat, \<hole>, _, _)\<close> annotate_assn[where A=uint32_nat_assn])
   apply (rewrite at \<open>_ + \<hole>\<close> one_uint32_nat_def[symmetric])+
   apply (rewrite at \<open>fast_minus _ \<hole>\<close> one_uint32_nat_def[symmetric])+
   by sepref

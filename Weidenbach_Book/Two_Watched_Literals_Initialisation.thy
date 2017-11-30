@@ -60,8 +60,9 @@ proof -
     apply (intro conjI)
     subgoal by (rule st_inv)
     subgoal by (rule valid)
-    subgoal using struct count_dec dist
-      by (cases S)(auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def clauses_def
+    subgoal using struct count_dec no_dup
+      by (cases S)
+        (auto 5 5 simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def clauses_def
           cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.no_strange_atm_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def

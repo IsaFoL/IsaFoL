@@ -14,7 +14,7 @@ text \<open>
 
   This ensures that \<^emph>\<open>something\<close> changes to prove termination.
 \<close>
-inductive cdcl_twl_restart :: "'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool" where
+inductive cdcl_twl_restart :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
 restart_trail:
    \<open>cdcl_twl_restart (M, N, U, None, NP, UP, {#}, Q) (M', N, U', None, NP, UP, {#}, {#})\<close>
   if
@@ -571,8 +571,8 @@ lemma (in -) substract_left_le: \<open>(a :: nat) + b < c ==> a <= c - b\<close>
 
 lemma (in conflict_driven_clause_learning\<^sub>W) cdcl\<^sub>W_stgy_new_learned_in_all_simple_clss:
   assumes
-    st: "cdcl\<^sub>W_stgy\<^sup>*\<^sup>* R S" and
-    invR: "cdcl\<^sub>W_all_struct_inv R"
+    st: \<open>cdcl\<^sub>W_stgy\<^sup>*\<^sup>* R S\<close> and
+    invR: \<open>cdcl\<^sub>W_all_struct_inv R\<close>
   shows \<open>set_mset (learned_clss S) \<subseteq> simple_clss (atms_of_mm (init_clss S))\<close>
 proof
   fix C
@@ -601,8 +601,8 @@ lemma (in -) learned_clss_get_all_learned_clss[simp]:
 
 lemma cdcl_twl_stgy_restart_new_learned_in_all_simple_clss:
   assumes
-    st: "cdcl_twl_stgy_restart\<^sup>*\<^sup>* R S" and
-    invR: "twl_struct_invs (fst R)"
+    st: \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* R S\<close> and
+    invR: \<open>twl_struct_invs (fst R)\<close>
   shows \<open>set_mset (clauses (get_learned_clss (fst S))) \<subseteq>
      simple_clss (atms_of_mm (get_all_init_clss (fst S)))\<close>
 proof
