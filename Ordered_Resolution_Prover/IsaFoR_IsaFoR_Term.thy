@@ -13,7 +13,7 @@ theory IsaFoR_IsaFoR_Term
     "../lib/Explorer" (* FIXME: remove explorer when done *)
     "$ISAFOR/Normalization_Equivalence/Encompassment" (* Version 7a339721b8c2 *)
     "./AFP_IsaFoR/Fun_More"
-    "$ISAFOR/Orderings/KBO" (*_Impl*)
+    "$ISAFOR/Orderings/KBO"
 begin
 
 record 'f weights =
@@ -631,6 +631,7 @@ fun pairs :: "'a list \<Rightarrow> ('a \<times> 'a) list" where
   "pairs _ = []"
 
 derive compare "term"
+derive compare "literal"
 
 lemma class_linorder_compare: "class.linorder (le_of_comp compare) (lt_of_comp compare)"
   apply standard

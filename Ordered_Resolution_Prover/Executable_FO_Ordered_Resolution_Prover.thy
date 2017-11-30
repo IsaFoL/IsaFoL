@@ -10,7 +10,7 @@ TODO.
 \<close>
 
 theory Executable_FO_Ordered_Resolution_Prover
-  imports Deterministic_FO_Ordered_Resolution_Prover IsaFoR_IsaFoR_Term
+  imports Deterministic_FO_Ordered_Resolution_Prover Executable_Subsumption
 begin
 
 global_interpretation RP: deterministic_FO_resolution_prover where
@@ -68,15 +68,28 @@ declare
   substitution_ops.subst_lit_def[code]
   substitution_ops.subst_cls_def[code]
 
-lemma [code]: "is_reducible_lit = is_reducible_lit"
-  by simp
+lemma remove1_mset_subset_eq: "remove1_mset a A \<subseteq># B \<longleftrightarrow> A \<subseteq># add_mset a B"
+  by (metis add_mset_add_single subset_eq_diff_conv)
 
-lemma [code]: "substitution_ops.subsumes = substitution_ops.subsumes"
-  by simp
-
-find_theorems substitution_ops.subsumes
-thm RP.subsume_def
-thm RP.strictly_subsume_def
+lemma is_reducible_lit_code[code]: "RP.is_reducible_lit Ds C L =
+  (\<exists>D \<in> set Ds. (\<exists>L' \<in> set D. 
+     case subsumes_list [L'] [- L] of
+       None \<Rightarrow> False
+     | Some \<sigma> \<Rightarrow> subsumes (mset (map (\<lambda>L. subst_lit L \<sigma>) (remove1 L' D))) (mset C)))"
+  unfolding RP.is_reducible_lit_def 
+  apply (auto simp: subsumes_list_subsumes subsumes_def
+    subst_cls_def subst_lit_def image_mset_remove1_mset_if dest!: subsumes_list_sound
+    elim!: bexI[rotated] sym split: option.splits)
+   prefer 2
+    apply (drule spec)
+    apply (drule mp)
+     prefer 2
+    apply (erule exE)
+    apply (unfold literal.map_comp o_def subst_subst_compose[symmetric])
+    apply (rule exI conjI[rotated])+
+     apply assumption
+    apply (erule trans[OF sym])
+  sorry
 
 declare
   Pairs_def[folded sorted_list_of_set_def, code]
@@ -96,6 +109,30 @@ lemma "prover N = None \<Longrightarrow> satisfiable (RP.grounded_N0 N)"
 
 export_code prover in SML module_name RP
 
-value "prover ([] :: ((unit, nat) Term.term literal list \<times> nat) list)"
+
+(*kind of random*)
+instantiation nat :: weighted begin
+definition weights_nat :: "nat weights" where "weights_nat =
+  \<lparr>w = Suc o prod_encode, w0 = 1, pr_strict = \<lambda>(f, n) (g, m). f > g \<or> f = g \<and> n > m, least = \<lambda>n. n = 0, scf = \<lambda>_ _. 1\<rparr>"
+
+instance
+  by (intro_classes, unfold_locales)
+    (auto simp: weights_nat_def SN_iff_wf asymp.simps irreflp_def prod_encode_def
+      intro!: wf_subset[OF wf_lex_prod])
+end
+
+abbreviation "\<pp> \<equiv> Fun 42"
+abbreviation "\<aa> \<equiv> Fun 0 []"
+abbreviation "\<bb> \<equiv> Fun 1 []"
+abbreviation "\<cc> \<equiv> Fun 2 []"
+abbreviation "\<X> \<equiv> Var 0"
+abbreviation "\<Y> \<equiv> Var 1"
+abbreviation "\<Z> \<equiv> Var 2"
+
+value "prover
+  ([([Neg (\<pp>[\<X>,\<Y>,\<Z>]), Pos (\<pp>[\<Y>,\<Z>,\<X>])], 1), 
+    ([Pos (\<pp>[\<cc>,\<aa>,\<bb>])], 1), 
+    ([Neg (\<pp>[\<bb>,\<cc>,\<aa>])], 1)]
+  :: ((nat, nat) Term.term literal list \<times> nat) list)"
 
 end
