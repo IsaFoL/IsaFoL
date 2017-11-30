@@ -486,8 +486,16 @@ qed
 lemma inferences_between_eq_UNION: "inference_system.inferences_between (ord_FO_\<Gamma> S) Q C =
   inference_system.inferences_between (ord_FO_\<Gamma> S) {C} C
   \<union> (\<Union>D \<in> Q. inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C)"
-  unfolding inference_system.inferences_between_def infer_from_def
-  sorry
+proof -
+  have prems1: "\<And>\<gamma> C D. set_mset (prems_of \<gamma>) \<subseteq> {D} \<union> {C} \<and> C \<in># prems_of \<gamma> \<longleftrightarrow>
+    prems_of \<gamma> = {#C, C#} \<or> prems_of \<gamma> = {#C, D#}"
+    apply auto
+    sorry
+  have prems2: "\<And>\<gamma> C. set_mset (prems_of \<gamma>) \<subseteq> Q \<union> {C} \<and> C \<in># prems_of \<gamma> \<longleftrightarrow> (\<exists>D \<in> Q \<union> {C}. prems_of \<gamma> = {#C, D#})"
+    sorry
+  show ?thesis
+    unfolding inference_system.inferences_between_def infer_from_def prems1 prems2 by auto
+qed
 
 lemma concls_of_inferences_between_singleton_eq_Bin_ord_resolve_rename:
   "concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C) =
