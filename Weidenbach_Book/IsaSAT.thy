@@ -252,12 +252,11 @@ lemma extract_stats_hnr[sepref_fr_rules]:
 
 end
 
-declare isasat_input_ops.get_trail_wl[sepref_fr_rules] isasat_input_ops.extract_stats_hnr[sepref_fr_rules]
+declare isasat_input_ops.get_trail_wl[sepref_fr_rules]
+  isasat_input_ops.extract_stats_hnr[sepref_fr_rules]
   isasat_input_ops.extract_model_of_state_hnr[sepref_fr_rules]
 declare isasat_input_ops.finalise_init_code_hnr[unfolded PR_CONST_def, sepref_fr_rules]
 sepref_register to_init_state from_init_state get_conflict_wl_is_None_init extract_stats
-
-thm  isasat_input_ops.extract_stats_hnr[sepref_fr_rules]
 
 sepref_definition IsaSAT_code
   is \<open>IsaSAT\<close>
@@ -543,7 +542,7 @@ proof -
       then have E: \<open>\<forall>C\<in>set CS'. C = []\<close>
         by blast
       show False
-        by (cases CS'; cases T) (use E false_in_conflict clss  confl in \<open>auto simp: clauses_def CS\<close>)
+        by (cases CS'; cases T) (use E false_in_conflict clss confl in \<open>auto simp: clauses_def CS\<close>)
     qed
     then show ?thesis
       unfolding extract_atms_clss_empty_iff by auto

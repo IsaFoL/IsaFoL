@@ -127,7 +127,8 @@ proof -
     ultimately show ?thesis
       using \<A>\<^sub>i\<^sub>n unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def
       by (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def
-        mset_take_mset_drop_mset mset_take_mset_drop_mset' clauses_def simp del: unit_clss_inv.simps)
+          mset_take_mset_drop_mset mset_take_mset_drop_mset'
+          clauses_def simp del: unit_clss_inv.simps)
   qed
   show ?thesis
    unfolding find_unassigned_lit_wl_D_heur_def find_unassigned_lit_wl_D_def find_undefined_atm_def
@@ -212,7 +213,8 @@ lemma lit_of_found_atm_hnr[sepref_fr_rules]:
 
 lemma find_unassigned_lit_wl_D_code_helper:
   assumes
-    \<open>RETURN ((a1'h, (db, dc, dd, de), df), a2'g) \<le> find_undefined_atm a1' ((cj, ck, cl, cm), cn)\<close> and
+    \<open>RETURN ((a1'h, (db, dc, dd, de), df), a2'g) \<le> find_undefined_atm a1' ((cj, ck, cl, cm), cn)\<close>
+      and
     \<open>phase_saving a2'f\<close>
   shows \<open>lit_of_found_atm_D_pre (a2'f, a2'g)\<close>
   using assms by (auto simp: find_undefined_atm_def lit_of_found_atm_D_pre_def phase_saving_def
@@ -295,7 +297,8 @@ definition decide_lit_wl_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur
 
 lemma decide_lit_wl_heur_decide_lit_wl:
   \<open>(uncurry (RETURN oo decide_lit_wl_heur), uncurry (RETURN oo decide_lit_wl)) \<in>
-     [\<lambda>(L, S). undefined_lit (get_trail_wl S) L \<and> get_conflict_wl S = None]\<^sub>f nat_lit_lit_rel \<times>\<^sub>r twl_st_heur \<rightarrow> \<langle>twl_st_heur\<rangle>nres_rel\<close>
+     [\<lambda>(L, S). undefined_lit (get_trail_wl S) L \<and> get_conflict_wl S = None]\<^sub>f
+     nat_lit_lit_rel \<times>\<^sub>r twl_st_heur \<rightarrow> \<langle>twl_st_heur\<rangle>nres_rel\<close>
   unfolding decide_lit_wl_heur_def decide_lit_wl_def
   by (intro frefI nres_relI)
     (auto simp: twl_st_heur_def intro: vmtf_consD)
