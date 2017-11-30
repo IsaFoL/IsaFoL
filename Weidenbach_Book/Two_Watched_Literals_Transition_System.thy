@@ -30,6 +30,9 @@ type_synonym 'v twl_st =
   "('v, 'v clause) ann_lits \<times> 'v twl_clss \<times> 'v twl_clss \<times>
     'v clause option \<times> 'v clauses \<times> 'v clauses \<times>  'v clauses_to_update \<times> 'v lit_queue"
 
+fun get_trail :: "'v twl_st \<Rightarrow> ('v, 'v clause) ann_lit list" where
+  \<open>get_trail (M, _, _, _, _, _, _, _) = M\<close>
+
 fun clauses_to_update :: "'v twl_st \<Rightarrow> ('v literal \<times> 'v twl_cls) multiset" where
   \<open>clauses_to_update (_, _, _, _, _, _, WS, _) = WS\<close>
 
@@ -83,8 +86,6 @@ inductive update_clauses ::
 
 inductive_cases update_clausesE: \<open>update_clauses (N, U) D L L' (N', U')\<close>
 
-fun get_trail :: "'v twl_st \<Rightarrow> ('v, 'v clause) ann_lit list" where
-  \<open>get_trail (M, _, _, _, _, _, _, _) = M\<close>
 
 
 subsubsection \<open>The Transition System\<close>
