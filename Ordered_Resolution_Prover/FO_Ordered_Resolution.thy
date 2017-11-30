@@ -1026,12 +1026,58 @@ proof (cases rule: ord_resolve.cases)
     unfolding var_disjoint_def using n by auto
   then obtain \<eta> where \<eta>_p: "\<forall>i < Suc n. \<forall>S. S \<subseteq># (DA' # CAs') ! i \<longrightarrow> S \<cdot> (\<eta>'#\<eta>s') ! i = S \<cdot> \<eta>"
     by auto
+  have \<eta>_p_lit: "\<forall>i < Suc n. \<forall>L. L \<in># (DA' # CAs') ! i \<longrightarrow> L \<cdot>l (\<eta>'#\<eta>s') ! i = L \<cdot>l \<eta>"
+  proof (rule, rule, rule, rule)
+    fix i :: "nat" and L :: "'a literal"
+    assume a:
+      "i < Suc n"
+      "L \<in># (DA' # CAs') ! i"
+    then have "\<forall>S. S \<subseteq># (DA' # CAs') ! i \<longrightarrow> S \<cdot> (\<eta>' # \<eta>s') ! i = S \<cdot> \<eta>"
+      using \<eta>_p by auto
+    then have "{# L #} \<cdot> (\<eta>' # \<eta>s') ! i = {# L #} \<cdot> \<eta>"
+      using a by (meson single_subset_iff) 
+    then show "L \<cdot>l (\<eta>' # \<eta>s') ! i = L \<cdot>l \<eta>" by auto
+  qed
+  have \<eta>_p_atm: "\<forall>i < Suc n. \<forall>A. A \<in> atms_of ((DA' # CAs') ! i) \<longrightarrow> A \<cdot>a (\<eta>'#\<eta>s') ! i = A \<cdot>a \<eta>"
+  proof (rule, rule, rule, rule)
+    fix i :: "nat" and A :: "'a"
+    assume a:
+      "i < Suc n" 
+      "A \<in> atms_of ((DA' # CAs') ! i)"
+    then obtain L where L_p: "atm_of L = A \<and> L \<in># (DA' # CAs') ! i"
+      unfolding atms_of_def by auto
+    then have "L \<cdot>l (\<eta>'#\<eta>s') ! i = L \<cdot>l \<eta>"
+      using \<eta>_p_lit a by auto
+    then show "A \<cdot>a (\<eta>' # \<eta>s') ! i = A \<cdot>a \<eta>"
+      using L_p unfolding subst_lit_def by (cases L) auto
+  qed 
 
   have DA'_DA: "DA' \<cdot> \<eta> = DA"
     using DA'_DA \<eta>_p by auto
   have "D' \<cdot> \<eta> = D" using \<eta>_p D'_D n D'_subset_DA' by auto
   have "As' \<cdot>al \<eta> = As" 
-      using \<eta>_p As'_As negs_As'_subset_DA' sorry (* Looks reasonable, but a bit tricky to prove *)
+  proof (rule nth_equalityI)
+    show "length (As' \<cdot>al \<eta>) = length As" 
+      using n by auto
+  next
+    show "\<forall>i<length (As' \<cdot>al \<eta>). (As' \<cdot>al \<eta>) ! i = As ! i"
+    proof (rule, rule)
+      fix i :: "nat"
+      assume a: "i < length (As' \<cdot>al \<eta>)"
+      then have "\<forall>A. A \<in> atms_of ((DA' # CAs') ! Suc i) \<longrightarrow> A \<cdot>a (\<eta>' # \<eta>s') ! Suc i = A \<cdot>a \<eta>"
+        using \<eta>_p_atm n by force
+      then have A_eq: "\<forall>A. A \<in> atms_of DA' \<longrightarrow> A \<cdot>a \<eta>' = A \<cdot>a \<eta>"
+        using \<eta>_p_atm n by force
+      have "As' ! i \<in> atms_of DA'"
+        using negs_As'_subset_DA' unfolding atms_of_def 
+        using a n by force
+      then have "As' ! i \<cdot>a \<eta>' = As' ! i \<cdot>a \<eta>"
+         using A_eq by simp
+      then show "(As' \<cdot>al \<eta>) ! i = As ! i" 
+        using As'_As \<open>length As' = n\<close> a by auto
+    qed
+  qed
+    
   have "S DA' \<cdot> \<eta> = S_M S M DA"
     using \<open>S DA' \<cdot> \<eta>' = S_M S M DA\<close> \<eta>_p S.S_selects_subseteq by auto
 
