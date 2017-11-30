@@ -505,14 +505,8 @@ lemma concls_of_inferences_between_singleton_eq_Bin_ord_resolve_rename:
 lemma concls_of_inferences_between_eq_Bin_ord_resolve_rename:
   "concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) Q C) =
    Bin_ord_resolve_rename C C \<union> (\<Union>D \<in> Q. Bin_ord_resolve_rename C D \<union> Bin_ord_resolve_rename D C)"
-  apply (subst inferences_between_eq_UNION)
-  apply (simp only: image_Un)
-  apply (simp only: image_UN)
-  apply (unfold concls_of_inferences_between_singleton_eq_Bin_ord_resolve_rename)
-  apply (subst (3) sup_assoc)
-  apply (simp only: UN_simps(3))
-  apply auto
-  done
+  by (subst inferences_between_eq_UNION)
+    (auto simp: image_Un image_UN concls_of_inferences_between_singleton_eq_Bin_ord_resolve_rename)
 
 lemma resolve_rename_either_way_eq_congls_of_inferences_between:
   "mset ` set (resolve_rename C C) \<union> (\<Union>D \<in> Q. mset ` set (resolve_rename_either_way C D)) =
