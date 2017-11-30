@@ -483,23 +483,44 @@ proof -
     using that by blast
 qed
 
+lemma ord_FO_\<Gamma>_infer_from_Collect_eq:
+  "{\<gamma> \<in> ord_FO_\<Gamma> S. infer_from (DD \<union> {C}) \<gamma> \<and> C \<in># prems_of \<gamma>} =
+   {\<gamma> \<in> ord_FO_\<Gamma> S. \<exists>D \<in> DD \<union> {C}. prems_of \<gamma> = {#C, D#}}"
+  sorry
+
 lemma inferences_between_eq_UNION: "inference_system.inferences_between (ord_FO_\<Gamma> S) Q C =
   inference_system.inferences_between (ord_FO_\<Gamma> S) {C} C
   \<union> (\<Union>D \<in> Q. inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C)"
-proof -
-  have "\<And>DD. {\<gamma> \<in> ord_FO_\<Gamma> S. infer_from (DD \<union> {C}) \<gamma> \<and> C \<in># prems_of \<gamma>} =
-    {\<gamma> \<in> ord_FO_\<Gamma> S. \<exists>D \<in> DD \<union> {C}. prems_of \<gamma> = {#C, D#}}"
-    sorry
-  moreover have "{\<gamma> \<in> ord_FO_\<Gamma> S. infer_from {C} \<gamma> \<and> C \<in># prems_of \<gamma>} =
-    {\<gamma> \<in> ord_FO_\<Gamma> S. prems_of \<gamma> = {#C, C#}}"
-    sorry
-  ultimately show ?thesis
-    unfolding inference_system.inferences_between_def Un_absorb by auto
-qed
+  unfolding ord_FO_\<Gamma>_infer_from_Collect_eq inference_system.inferences_between_def by auto
+
+lemma foo:
+  "set xs \<subseteq> A \<Longrightarrow> length xs = 1 \<Longrightarrow> (\<And>x. x \<in> A \<Longrightarrow> xs = [x] \<Longrightarrow> P) \<Longrightarrow> P"
+sorry
+
+lemma bar:
+  "set xs \<subseteq> {x} \<Longrightarrow> length xs = 1 \<Longrightarrow> (xs = [x] \<Longrightarrow> P) \<Longrightarrow> (xs = [y] \<Longrightarrow> P) \<Longrightarrow> P"
+sorry
 
 lemma concls_of_inferences_between_singleton_eq_Bin_ord_resolve_rename:
   "concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C) =
    Bin_ord_resolve_rename C C \<union> Bin_ord_resolve_rename C D \<union> Bin_ord_resolve_rename D C"
+  unfolding inference_system.inferences_between_def ord_FO_\<Gamma>_infer_from_Collect_eq ord_FO_\<Gamma>_def
+    infer_from_def
+  apply auto
+        apply (frule ord_resolve_rename_one_side_prem)
+        apply (erule foo, assumption)
+         apply auto[1]
+       apply (frule ord_resolve_rename_one_side_prem)
+       apply (erule foo, assumption)
+       apply auto[1]
+      apply (frule ord_resolve_rename_one_side_prem)
+      apply (erule foo, assumption)
+      apply auto[1]
+     apply (frule ord_resolve_rename_one_side_prem)
+     apply (erule foo, assumption)
+     apply auto[1]
+
+
   sorry
 
 lemma concls_of_inferences_between_eq_Bin_ord_resolve_rename:
