@@ -456,10 +456,37 @@ lemma resolve_rename_eq_Bin_ord_resolve_rename:
   "mset ` set (resolve_rename C D) = Bin_ord_resolve_rename (mset C) (mset D)"
   sorry
 
+lemma ord_resolve_one_side_prem: "ord_resolve S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1"
+  apply (erule ord_resolve.cases)
+  unfolding eligible.simps S_empty by force
+
+lemma ord_resolve_rename_one_side_prem: "ord_resolve_rename S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1"
+  apply (erule ord_resolve_rename.cases)
+  apply (drule ord_resolve_one_side_prem)
+  apply (hypsubst)
+  apply simp
+  apply (unfold renames_apart[THEN conjunct1])
+  apply simp
+  done
+
+lemma ord_FO_\<Gamma>_SD:
+  assumes \<gamma>_in: "\<gamma> \<in> ord_FO_\<Gamma> S"
+  obtains C D where
+    "prems_of \<gamma> = {#C, D#}"
+proof -
+  have "\<exists>C D. prems_of \<gamma> = {#C, D#}"
+    using \<gamma>_in unfolding ord_FO_\<Gamma>_def
+    apply clarsimp
+    apply (drule ord_resolve_rename_one_side_prem)
+    using size_1_singleton_mset by force
+  then show thesis
+    using that by blast
+qed
+
 lemma inferences_between_eq_UNION: "inference_system.inferences_between (ord_FO_\<Gamma> S) Q C =
   inference_system.inferences_between (ord_FO_\<Gamma> S) {C} C
   \<union> (\<Union>D \<in> Q. inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C)"
-  unfolding inference_system.inferences_between_def
+  unfolding inference_system.inferences_between_def infer_from_def
   sorry
 
 lemma concls_of_inferences_between_singleton_eq_Bin_ord_resolve_rename:
