@@ -556,7 +556,7 @@ next
     then have E_concl: "E \<in> concls_of (ord_FO_resolution.inferences_between Q C)"
       using inference_computation by auto
     then obtain \<gamma> where
-      \<gamma>_p: "\<gamma> \<in> ord_FO_\<Gamma> S \<and> infer_from (Q \<union> {C}) \<gamma> \<and> count (prems_of \<gamma>) C = 1 \<and> concl_of \<gamma> = E"
+      \<gamma>_p: "\<gamma> \<in> ord_FO_\<Gamma> S \<and> infer_from (Q \<union> {C}) \<gamma> \<and> C \<in># prems_of \<gamma> \<and> concl_of \<gamma> = E"
       unfolding ord_FO_resolution.inferences_between_def by auto
     then obtain CC CAs D AAs As \<sigma> where
       \<gamma>_p2: "\<gamma> = Infer CC D E \<and> ord_resolve_rename S CAs D AAs As \<sigma> E \<and> mset CAs = CC"
@@ -1613,10 +1613,8 @@ proof -
           unfolding infer_from_def
           apply (rule ord_resolve_rename.cases)
           using s_p(4)
-          using C'_p(3) C'_p(5) j_p'(2)
-          sorry
-          (* apply force
-          done *)
+          using C'_p(3) C'_p(5) j_p'(2) apply force
+          done
         done
       then show ?thesis
         using C'_p(4) by auto

@@ -382,7 +382,7 @@ proof -
     "\<lambda>CAs DA AAs As. Infer (mset CAs) DA (THE E. \<exists>\<sigma>. ord_resolve_rename CAs DA AAs As \<sigma> E)"
 
   let ?Z = "{\<gamma> | CAs DA AAs As \<sigma> E \<gamma>. \<gamma> = Infer (mset CAs) DA E
-    \<and> ord_resolve_rename CAs DA AAs As \<sigma> E \<and> infer_from ?CCC \<gamma> \<and> count (prems_of \<gamma>) C = 1}"
+    \<and> ord_resolve_rename CAs DA AAs As \<sigma> E \<and> infer_from ?CCC \<gamma> \<and> C \<in># prems_of \<gamma>}"
   let ?Y = "{Infer (mset CAs) DA E | CAs DA AAs As \<sigma> E.
     ord_resolve_rename CAs DA AAs As \<sigma> E \<and> set CAs \<union> {DA} \<subseteq> ?CCC}"
   let ?X = "{?infer_of CAs DA AAs As | CAs DA AAs As. CAs \<in> CAS \<and> DA \<in> ?CCC \<and> AAs \<in> AAS \<and> As \<in> AS}"

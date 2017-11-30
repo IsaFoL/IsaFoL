@@ -44,7 +44,7 @@ definition inferences_from :: "'a clause set \<Rightarrow> 'a inference set" whe
   "inferences_from CC = {\<gamma>. \<gamma> \<in> \<Gamma> \<and> infer_from CC \<gamma>}"
 
 definition inferences_between :: "'a clause set \<Rightarrow> 'a clause \<Rightarrow> 'a inference set" where
-  "inferences_between CC C = {\<gamma>. \<gamma> \<in> \<Gamma> \<and> infer_from (CC \<union> {C}) \<gamma> \<and> count (prems_of \<gamma>) C = 1}"
+  "inferences_between CC C = {\<gamma>. \<gamma> \<in> \<Gamma> \<and> infer_from (CC \<union> {C}) \<gamma> \<and> C \<in># prems_of \<gamma>}"
 
 lemma inferences_from_mono: "CC \<subseteq> DD \<Longrightarrow> inferences_from CC \<subseteq> inferences_from DD"
   unfolding inferences_from_def infer_from_def by fast
