@@ -171,8 +171,8 @@ definition resolve :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lcla
 
 definition resolve_rename :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve_rename C D =
-   (let \<sigma>s = renamings_apart [mset C, mset D] in
-      resolve (map (\<lambda>L. L \<cdot>l \<sigma>s ! 1) C) (map (\<lambda>L. L \<cdot>l \<sigma>s ! 0) D))"
+   (let \<sigma>s = renamings_apart [mset D, mset C] in
+      resolve (map (\<lambda>L. L \<cdot>l last \<sigma>s) C) (map (\<lambda>L. L \<cdot>l hd \<sigma>s) D))"
 
 definition resolve_rename_either_way :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve_rename_either_way C D = resolve_rename C D @ resolve_rename D C"
@@ -449,13 +449,21 @@ proof (induct Q' arbitrary: P Q)
   qed
 qed simp
 
+abbreviation Bin_ord_resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause set" where
+  "Bin_ord_resolve C D \<equiv> {E. \<exists>AAs As \<sigma>. ord_resolve S [C] D AAs As \<sigma> E}"
+
 abbreviation Bin_ord_resolve_rename :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause set" where
   "Bin_ord_resolve_rename C D \<equiv> {E. \<exists>AAs As \<sigma>. ord_resolve_rename S [C] D AAs As \<sigma> E}"
 
+lemma resolve_eq_Bin_ord_resolve:
+  "mset ` set (resolve C D) = Bin_ord_resolve (mset C) (mset D)"
+  sorry (* hard *)
+
 lemma resolve_rename_eq_Bin_ord_resolve_rename:
   "mset ` set (resolve_rename C D) = Bin_ord_resolve_rename (mset C) (mset D)"
-  unfolding resolve_rename_def
-  sorry (* maybe a bit hard *)
+  unfolding resolve_rename_def ord_resolve_rename.simps Let_def resolve_eq_Bin_ord_resolve
+  apply auto
+  sorry (* not too bad *)
 
 lemma ord_resolve_one_side_prem: "ord_resolve S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1"
   apply (erule ord_resolve.cases)
@@ -500,8 +508,6 @@ lemma concls_of_inferences_between_singleton_eq_Bin_ord_resolve_rename:
   unfolding inference_system.inferences_between_def ord_FO_\<Gamma>_infer_from_Collect_eq
   unfolding ord_FO_\<Gamma>_def infer_from_def
   apply auto
-
-
   sorry (* easy *)
 
 lemma concls_of_inferences_between_eq_Bin_ord_resolve_rename:
