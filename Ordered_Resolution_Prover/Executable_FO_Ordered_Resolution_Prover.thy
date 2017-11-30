@@ -125,12 +125,12 @@ abbreviation "\<pp> \<equiv> Fun 42"
 abbreviation "\<aa> \<equiv> Fun 0 []"
 abbreviation "\<bb> \<equiv> Fun 1 []"
 abbreviation "\<cc> \<equiv> Fun 2 []"
-abbreviation "\<X> \<equiv> Var 0"
-abbreviation "\<Y> \<equiv> Var 1"
-abbreviation "\<Z> \<equiv> Var 2"
+abbreviation "X \<equiv> Var 0"
+abbreviation "Y \<equiv> Var 1"
+abbreviation "Z \<equiv> Var 2"
 
 value "prover
-  ([([Neg (\<pp>[\<X>,\<Y>,\<Z>]), Pos (\<pp>[\<Y>,\<Z>,\<X>])], 1), 
+  ([([Neg (\<pp>[X,Y,Z]), Pos (\<pp>[Y,Z,X])], 1), 
     ([Pos (\<pp>[\<cc>,\<aa>,\<bb>])], 1),
     ([Neg (\<pp>[\<bb>,\<cc>,\<aa>])], 1)]
   :: ((nat, nat) Term.term literal list \<times> nat) list)"
