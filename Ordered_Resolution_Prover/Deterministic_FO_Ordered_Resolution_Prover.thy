@@ -456,10 +456,28 @@ lemma resolve_rename_eq_Bin_ord_resolve_rename:
   "mset ` set (resolve_rename C D) = Bin_ord_resolve_rename (mset C) (mset D)"
   sorry
 
+lemma inferences_between_eq_UNION: "inference_system.inferences_between (ord_FO_\<Gamma> S) Q C =
+  inference_system.inferences_between (ord_FO_\<Gamma> S) {C} C
+  \<union> (\<Union>D \<in> Q. inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C)"
+  unfolding inference_system.inferences_between_def
+  sorry
+
+lemma concls_of_inferences_between_singleton_eq_Bin_ord_resolve_rename:
+  "concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C) =
+   Bin_ord_resolve_rename C C \<union> Bin_ord_resolve_rename C D \<union> Bin_ord_resolve_rename D C"
+  sorry
+
 lemma concls_of_inferences_between_eq_Bin_ord_resolve_rename:
   "concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) Q C) =
    Bin_ord_resolve_rename C C \<union> (\<Union>D \<in> Q. Bin_ord_resolve_rename C D \<union> Bin_ord_resolve_rename D C)"
-  sorry
+  apply (subst inferences_between_eq_UNION)
+  apply (simp only: image_Un)
+  apply (simp only: image_UN)
+  apply (unfold concls_of_inferences_between_singleton_eq_Bin_ord_resolve_rename)
+  apply (subst (3) sup_assoc)
+  apply (simp only: UN_simps(3))
+  apply auto
+  done
 
 lemma resolve_rename_either_way_eq_congls_of_inferences_between:
   "mset ` set (resolve_rename C C) \<union> (\<Union>D \<in> Q. mset ` set (resolve_rename_either_way C D)) =
