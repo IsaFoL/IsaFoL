@@ -172,7 +172,7 @@ definition resolve :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lcla
 definition resolve_rename :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve_rename C D =
    (let \<sigma>s = renamings_apart [mset C, mset D] in
-      resolve (map (\<lambda>L. L \<cdot>l \<sigma>s ! 0) C) (map (\<lambda>L. L \<cdot>l \<sigma>s ! 1) D))"
+      resolve (map (\<lambda>L. L \<cdot>l \<sigma>s ! 1) C) (map (\<lambda>L. L \<cdot>l \<sigma>s ! 0) D))"
 
 definition resolve_rename_either_way :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve_rename_either_way C D = resolve_rename C D @ resolve_rename D C"
@@ -454,7 +454,8 @@ abbreviation Bin_ord_resolve_rename :: "'a clause \<Rightarrow> 'a clause \<Righ
 
 lemma resolve_rename_eq_Bin_ord_resolve_rename:
   "mset ` set (resolve_rename C D) = Bin_ord_resolve_rename (mset C) (mset D)"
-  sorry
+  unfolding resolve_rename_def
+  sorry (* maybe a bit hard *)
 
 lemma ord_resolve_one_side_prem: "ord_resolve S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1"
   apply (erule ord_resolve.cases)
@@ -486,7 +487,7 @@ qed
 lemma ord_FO_\<Gamma>_infer_from_Collect_eq:
   "{\<gamma> \<in> ord_FO_\<Gamma> S. infer_from (DD \<union> {C}) \<gamma> \<and> C \<in># prems_of \<gamma>} =
    {\<gamma> \<in> ord_FO_\<Gamma> S. \<exists>D \<in> DD \<union> {C}. prems_of \<gamma> = {#C, D#}}"
-  sorry
+  sorry (* easy *)
 
 lemma inferences_between_eq_UNION: "inference_system.inferences_between (ord_FO_\<Gamma> S) Q C =
   inference_system.inferences_between (ord_FO_\<Gamma> S) {C} C
@@ -501,7 +502,7 @@ lemma concls_of_inferences_between_singleton_eq_Bin_ord_resolve_rename:
   apply auto
 
 
-  sorry
+  sorry (* easy *)
 
 lemma concls_of_inferences_between_eq_Bin_ord_resolve_rename:
   "concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) Q C) =
