@@ -209,6 +209,7 @@ end
 
 end
 
+(* FIXME: inherit "weighted_FO_resolution_prover" directly? *)
 locale weighted_FO_resolution_prover_with_size_generation_factors =
   FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu less_atm
   for
@@ -236,10 +237,10 @@ lemma weight_mono: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
 
 declare weight.simps [simp del]
 
-sublocale foo: weighted_FO_resolution_prover _ _ _ _ _ _ _ _ weight
+sublocale wrp: weighted_FO_resolution_prover _ _ _ _ _ _ _ _ weight
   by unfold_locales (rule weight_mono)
 
-notation foo.weighted_RP (infix "\<leadsto>\<^sub>w" 50)
+notation wrp.weighted_RP (infix "\<leadsto>\<^sub>w" 50)
 
 end
 
