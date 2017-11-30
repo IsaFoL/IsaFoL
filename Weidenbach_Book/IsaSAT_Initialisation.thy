@@ -51,7 +51,7 @@ proof -
     by (cases S) (auto simp add: cdcl\<^sub>W_restart_mset_state)
 
   show ?thesis
-    using n_d  unfolding init_dt_step_def init_dt_step_l_def Let_def
+    using n_d unfolding init_dt_step_def init_dt_step_l_def Let_def
     by (cases S; cases C; cases \<open>tl C\<close>)
       (auto simp: polarity_def length_ge_Suc_0_tl_not_nil split: option.splits cong: bind_cong)
 qed
@@ -2198,7 +2198,7 @@ proof -
          vmtf_remove_conc_option_fst_As *a hr_comp phase_saver_conc (\<langle>bool_rel\<rangle>list_rel) *a
          uint32_nat_assn *a isasat_input_ops.cach_refinement_assn \<A>\<^sub>i\<^sub>n *a lbd_assn\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using  init_state_wl_D'_code.refine[FCOMP init_state_wl_D', of \<A>\<^sub>i\<^sub>n]
+    using init_state_wl_D'_code.refine[FCOMP init_state_wl_D', of \<A>\<^sub>i\<^sub>n]
     unfolding isasat_input_ops.cach_refinement_assn_def
     .
   have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
