@@ -460,7 +460,7 @@ lemma concls_of_inference_between_eq_ord_resolve_rename:
   sorry
 
 lemma resolve_rename_either_way_eq_inferences_between:
-  "(\<Union>D \<in> Q. mset ` set (resolve_rename_either_way C D)) =
+  "mset ` set (resolve_rename C C) \<union> mset ` (\<Union>D \<in> Q. set (resolve_rename_either_way C D)) =
    concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) (mset ` Q) (mset C))"
 (*
   unfolding image_def inference_system.inferences_between_def Bex_def mem_Collect_eq
@@ -508,7 +508,7 @@ proof -
     using resolve_rename_either_way_eq_inferences_between[of C "fst ` set Q"]
     apply (simp only: image_comp comp_def)
     apply simp
-    sorry
+    done
 qed
 
 lemma nonfinal_deterministic_RP_step:
