@@ -36,7 +36,7 @@ global_interpretation RP: deterministic_FO_resolution_prover where
   and reduce_all2 = RP.reduce_all2
   and resolve = RP.resolve
   and resolve_on = RP.resolve_on
-  and resolve_either_way = RP.resolve_either_way
+  and resolve_rename = RP.resolve_rename
   and resolve_rename_either_way = RP.resolve_rename_either_way
   and select_min_weight_clause = RP.select_min_weight_clause
   and strictly_maximal_in = RP.strictly_maximal_in
@@ -58,7 +58,7 @@ declare
   RP.reduce.simps[code]
   RP.reduce_all_def[code]
   RP.reduce_all2.simps[code]
-  RP.resolve_either_way_def[code]
+  RP.resolve_rename_def[code]
   RP.resolve_rename_either_way_def[code]
   RP.select_min_weight_clause.simps[code]
   RP.weight.simps[code]
@@ -73,6 +73,10 @@ lemma [code]: "is_reducible_lit = is_reducible_lit"
 
 lemma [code]: "substitution_ops.subsumes = substitution_ops.subsumes"
   by simp
+
+thm substitution_ops.subsumes_def
+
+term mset
 
 declare
   Pairs_def[folded sorted_list_of_set_def, code]
