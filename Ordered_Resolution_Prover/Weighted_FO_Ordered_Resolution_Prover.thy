@@ -17,6 +17,10 @@ begin
 type_synonym 'a wclause = "'a clause \<times> nat"
 type_synonym 'a wstate = "'a wclause multiset \<times> 'a wclause multiset \<times> 'a wclause multiset \<times> nat"
 
+fun state_of_wstate :: "'a wstate \<Rightarrow> 'a state" where
+  "state_of_wstate (N, P, Q, n) =
+   (set_mset (image_mset fst N), set_mset (image_mset fst P), set_mset (image_mset fst Q))"
+
 locale weighted_FO_resolution_prover =
   FO_resolution_prover S subst_atm id_subst comp_subst renamings_apart atm_of_atms mgu less_atm
   for
@@ -33,13 +37,6 @@ locale weighted_FO_resolution_prover =
   assumes
     weight_mono: "m < n \<Longrightarrow> weight (C, m) < weight (C, n)"
 begin
-
-lemma generation_le_weight: "n \<le> weight (C, n)"
-  by (induct n, simp, metis weight_mono[of k "Suc k" for k] Suc_le_eq le_less le_trans)
-
-fun state_of_wstate :: "'a wstate \<Rightarrow> 'a state" where
-  "state_of_wstate (N, P, Q, n) =
-   (set_mset (image_mset fst N), set_mset (image_mset fst P), set_mset (image_mset fst Q))"
 
 (* FIXME: don't use \<circ> in abbreviations -- fragile w.r.t. simplifier when applied *)
 abbreviation clss_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where
@@ -59,6 +56,9 @@ abbreviation grounding_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" wher
 
 abbreviation Liminf_wstate :: "'a wstate llist \<Rightarrow> 'a state" where
   "Liminf_wstate Sts \<equiv> Liminf_state (lmap state_of_wstate Sts)"
+
+lemma generation_le_weight: "n \<le> weight (C, n)"
+  by (induct n, simp, metis weight_mono[of k "Suc k" for k] Suc_le_eq le_less le_trans)
 
 inductive weighted_RP :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w" 50) where
   tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
@@ -241,6 +241,13 @@ sublocale wrp: weighted_FO_resolution_prover _ _ _ _ _ _ _ _ weight
   by unfold_locales (rule weight_mono)
 
 notation wrp.weighted_RP (infix "\<leadsto>\<^sub>w" 50)
+
+abbreviation "clss_of_wstate \<equiv> wrp.clss_of_wstate"
+abbreviation "N_of_wstate \<equiv> wrp.N_of_wstate"
+abbreviation "P_of_wstate \<equiv> wrp.P_of_wstate"
+abbreviation "Q_of_wstate \<equiv> wrp.Q_of_wstate"
+abbreviation "grounding_of_wstate \<equiv> wrp.grounding_of_wstate"
+abbreviation "Liminf_wstate \<equiv> wrp.Liminf_wstate"
 
 end
 
