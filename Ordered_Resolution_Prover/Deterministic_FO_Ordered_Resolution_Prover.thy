@@ -199,8 +199,8 @@ fun deterministic_RP_step :: "'a dstate \<Rightarrow> 'a dstate" where
             | P0 # P' \<Rightarrow>
               let
                 (C, i) = select_min_weight_clause P0 P';
-                N = map (\<lambda>D. (D, n))
-                  (remdups_gen mset (concat (map (resolve_rename_either_way C \<circ> fst) Q)));
+                N = map (\<lambda>D. (D, n)) (remdups_gen mset (resolve_rename C C @
+                  concat (map (resolve_rename_either_way C \<circ> fst) Q)));
                 P = remove1 (C, i) P;
                 Q = (C, i) # Q;
                 n = Suc n
@@ -474,8 +474,8 @@ lemma compute_inferences:
     ci_min: "\<forall>(D, j) \<in># mset (map (apfst mset) P). weight (mset C, i) \<le> weight (D, j)"
   shows
     "wstate_of_dstate ([], P, Q, n) \<leadsto>\<^sub>w
-     wstate_of_dstate
-      (map (\<lambda>D. (D, n)) (remdups_gen mset (concat (map (resolve_rename_either_way C \<circ> fst) Q))),
+     wstate_of_dstate (map (\<lambda>D. (D, n)) (remdups_gen mset (resolve_rename C C @
+         concat (map (resolve_rename_either_way C \<circ> fst) Q))),
        remove1 (C, i) P, (C, i) # Q, Suc n)" (is "_ \<leadsto>\<^sub>w wstate_of_dstate (?N, _)")
 proof -
   have ms_ci_in: "(mset C, i) \<in># image_mset (apfst mset) (mset P)"
@@ -506,7 +506,7 @@ proof -
     using resolve_rename_either_way_eq_inferences_between[of C "fst ` set Q"]
     apply (simp only: image_comp comp_def)
     apply simp
-    done
+    sorry
 qed
 
 lemma nonfinal_deterministic_RP_step:
