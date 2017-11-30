@@ -481,7 +481,14 @@ lemma ord_resolve_rename_one_side_prem: "ord_resolve_rename S CAs DA AAs As \<si
 lemma ord_FO_\<Gamma>_side_prem: 
   assumes \<gamma>_in: "\<gamma> \<in> ord_FO_\<Gamma> S"
   shows "side_prems_of \<gamma> = {#THE D. D \<in># side_prems_of \<gamma>#}"
-  sorry
+  using \<gamma>_in unfolding ord_FO_\<Gamma>_def
+  apply clarsimp
+  apply (drule ord_resolve_rename_one_side_prem)
+  apply (case_tac CAs)
+   apply simp
+  apply (case_tac list)
+  apply simp+
+  done
 
 lemma ord_FO_\<Gamma>_infer_from_Collect_eq:
   "{\<gamma> \<in> ord_FO_\<Gamma> S. infer_from (DD \<union> {C}) \<gamma> \<and> C \<in># prems_of \<gamma>} =
