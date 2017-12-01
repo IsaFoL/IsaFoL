@@ -679,7 +679,7 @@ lemma inferences_between_eq_UNION: "inference_system.inferences_between (ord_FO_
 lemma concls_of_inferences_between_singleton_eq_Bin_ord_resolve_rename:
   "concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C) =
    Bin_ord_resolve_rename C C \<union> Bin_ord_resolve_rename C D \<union> Bin_ord_resolve_rename D C"
-proof (intro order_antisym subsetI; (elim UnE)?)
+proof (intro order_antisym subsetI)
   fix E
   assume "E \<in> concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C)"
   show "E \<in> Bin_ord_resolve_rename C C \<union> Bin_ord_resolve_rename C D \<union> Bin_ord_resolve_rename D C"
