@@ -464,6 +464,12 @@ abbreviation Bin_ord_resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow>
 abbreviation Bin_ord_resolve_rename :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause set" where
   "Bin_ord_resolve_rename C D \<equiv> {E. \<exists>AA A \<sigma>. ord_resolve_rename S [C] D [AA] [A] \<sigma> E}"
 
+(* FIXME: not quite right *)
+lemma resolve_on_eq_UNION_Bin_ord_resolve:
+  "mset ` set (resolve_on C A D) =
+   {E. \<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}"
+  sorry
+
 lemma resolve_eq_Bin_ord_resolve:
   "mset ` set (resolve C D) = Bin_ord_resolve (mset C) (mset D)"
 proof (intro order_antisym subsetI)
