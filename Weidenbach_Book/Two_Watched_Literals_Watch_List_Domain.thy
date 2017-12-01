@@ -867,17 +867,17 @@ proof -
     for a b and xs :: \<open>'a list list\<close> and n :: nat
     by auto
 
-  have [simp]: \<open>{#mset (take 2 x) + mset (drop 2 x)
+  have [simp]: \<open>{#mset (watched_l x) + mset (unwatched_l x)
         . x \<in># mset (take U
                        (tl (N[W K ! w := swap (N ! (W K ! w)) 0 (Suc 0)])))#} +
         NP +
-        ({#mset (take 2 x) + mset (drop 2 x)
+        ({#mset (watched_l x) + mset (unwatched_l x)
          . x \<in># mset (drop (Suc U)
                         (N[W K ! w := swap (N ! (W K ! w)) 0 (Suc 0)]))#} +
          UP) =
-     {#mset (take 2 x) + mset (drop 2 x)
+     {#mset (watched_l x) + mset (unwatched_l x)
         . x \<in># mset (take U (tl N))#} +
-        NP + ({#mset (take 2 x) + mset (drop 2 x) . x \<in># mset (drop (Suc U) N)#} + UP)\<close>
+        NP + ({#mset (watched_l x) + mset (unwatched_l x) . x \<in># mset (drop (Suc U) N)#} + UP)\<close>
     if \<open>N ! (W K ! w) ! 0 = K\<close>
     using unit_propagation_inner_loop_body_wl_update[of w S K, OF assms(5-10)[unfolded assms(1-3)]]
       that
