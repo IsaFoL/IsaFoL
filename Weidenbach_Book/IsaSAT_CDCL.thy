@@ -101,7 +101,7 @@ proof -
   have ID_R: \<open>Id \<times>\<^sub>r \<langle>Id\<rangle>option_rel = Id\<close>
     by auto
   have atms: \<open>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l =
-         atms_of_ms ((\<lambda>x. mset (take 2 x) + mset (drop 2 x)) ` set (take U (tl N))) \<union>
+         atms_of_ms ((\<lambda>x. mset (watched_l x) + mset (unwatched_l x)) ` set (take U (tl N))) \<union>
          atms_of_mm NP \<and> (\<forall>y. atm_of y \<in> atms_of_mm NP \<longrightarrow> defined_lit M y)\<close>
       if inv: \<open>twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q))\<close> and
         \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n (M, N, U, D, NP, UP, WS, Q)\<close> and

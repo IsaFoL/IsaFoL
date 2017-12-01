@@ -1547,7 +1547,7 @@ type_synonym twl_st_wll_confl_with_cls =
 definition option_lookup_clause_rel_with_cls_removed
   :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> (lookup_clause_rel_with_cls \<times> nat clause option) set\<close>
 where
-  \<open>option_lookup_clause_rel_with_cls_removed L L' = {((C, xs), D). D \<noteq> None \<and> (drop 2 C, the D) \<in> list_mset_rel \<and>
+  \<open>option_lookup_clause_rel_with_cls_removed L L' = {((C, xs), D). D \<noteq> None \<and> (unwatched_l C, the D) \<in> list_mset_rel \<and>
     mset_as_position xs {#} \<and> (\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length xs) \<and> C!0 = L \<and> C!1 = L' \<and> length C \<ge> 2}\<close>
 
 
@@ -1613,7 +1613,7 @@ definition conflict_to_conflict_with_cls_spec where
   \<open>conflict_to_conflict_with_cls_spec _ D = D\<close>
 
 definition list_of_mset2_None_droped where
-  \<open>list_of_mset2_None_droped L L' _ D = SPEC(\<lambda>(E, F). mset (drop 2 E) = the D \<and> E!0 = L \<and> E!1 = L' \<and>
+  \<open>list_of_mset2_None_droped L L' _ D = SPEC(\<lambda>(E, F). mset (unwatched_l E) = the D \<and> E!0 = L \<and> E!1 = L' \<and>
      F = None \<and> length E \<ge> 2)\<close>
 
 lemma (in -) bind_rule_complete_RES: \<open>(M \<bind> f \<le> RES \<Phi>) = (M \<le> SPEC (\<lambda>x. f x \<le> RES \<Phi>))\<close>
@@ -1684,7 +1684,7 @@ proof -
     s \<in> {x. (case x of (_, _, C, zs) \<Rightarrow> RETURN (C, True, zero_uint32_nat, zs))
               \<le> RES ((Id \<times>\<^sub>f option_lookup_clause_rel)\<inverse> ``
                       {(E, F).
-                       mset (drop 2 E) = the (Some C) \<and>
+                       mset (unwatched_l E) = the (Some C) \<and>
                        E ! 0 = L \<and> E ! 1 = L' \<and> F = None \<and> 2 \<le> length E})}\<close>
       if
         s0: \<open>?I baa aa s\<close> and
@@ -1714,7 +1714,7 @@ proof -
         by auto
       have \<open>{#L \<in># C. atm_of L < ab#} = C\<close>
         using multiset_partition[of C \<open>\<lambda>L. atm_of L < ab\<close>] by auto
-      then have [simp]: \<open>mset (drop 2 ad) = C\<close>
+      then have [simp]: \<open>mset (unwatched_l ad) = C\<close>
         using s1 by auto
       have [simp]: \<open>ad ! 0 = L\<close> \<open>ad ! Suc 0 = L'\<close>
         using s0 unfolding s by auto

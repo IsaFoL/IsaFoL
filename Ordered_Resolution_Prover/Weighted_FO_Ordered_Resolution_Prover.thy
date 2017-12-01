@@ -92,11 +92,14 @@ lemma "St \<leadsto>\<^sub>w St' \<longleftrightarrow> St \<leadsto>\<^sub>w\<^s
 lemma weighted_RP_imp_RP: "St \<leadsto>\<^sub>w St' \<Longrightarrow> state_of_wstate St \<leadsto> state_of_wstate St'"
 proof (induction rule: weighted_RP.induct)
   case (inference_computation P C i N n Q)
-  then show ?case
-    using RP.inference_computation finite_ord_FO_resolution_inferences_between
-    by (auto simp: comp_def image_comp inference_system.inferences_between_def)
+  show ?case
+    by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>", OF _ _
+          RP.inference_computation[of "fst ` set_mset N" "fst ` set_mset Q" C "fst ` set_mset P"]],
+        use inference_computation(2) finite_ord_FO_resolution_inferences_between
+          in \<open>auto simp: comp_def image_comp inference_system.inferences_between_def\<close>)
 qed (use RP.intros in simp_all)
 
+(* FIXME: turn into "if and only iff" *)
 lemma final_weighted_RP: "\<not> ({#}, {#}, Q, n) \<leadsto>\<^sub>w St"
   by (auto elim: weighted_RP.cases)
 
