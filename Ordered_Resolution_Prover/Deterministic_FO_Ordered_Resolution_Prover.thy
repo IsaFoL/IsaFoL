@@ -484,7 +484,7 @@ next
   show "E \<in> mset ` set (resolve_on C A D)"
 qed
 *)
-  sorry (* hard *)
+  sorry
 
 lemma set_resolve_eq_UNION_set_resolve_on:
   "set (resolve C D) =
