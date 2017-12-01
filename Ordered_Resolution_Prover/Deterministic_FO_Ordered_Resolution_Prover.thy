@@ -480,19 +480,39 @@ next
     sorry
 qed
 
+(* FIXME: rename *)
+lemma foo_poss: "poss AA \<subseteq># map_clause f C \<Longrightarrow> \<exists>AA0. poss AA0 \<subseteq># C \<and> AA = {#f A. A \<in># AA0#}"
+  sorry
+
+lemma bar_poss: "poss AA \<subseteq># {#L \<cdot>l \<rho>. L \<in># mset C#} \<Longrightarrow> \<exists>AA0. poss AA0 \<subseteq># mset C \<and> AA = AA0 \<cdot>am \<rho>"
+  unfolding subst_atm_mset_def subst_lit_def by (rule foo_poss)
+
+lemma foo_Neg: "Neg A \<in> map_literal f ` D \<Longrightarrow> \<exists>A0. Neg A0 \<in> D \<and> A = f A0"
+  unfolding image_def by (clarify, case_tac x, auto)
+
+lemma bar_Neg: "Neg A \<in># {#L \<cdot>l \<rho>'. L \<in># mset D#} \<Longrightarrow> \<exists>A0. Neg A0 \<in># mset D \<and> A = A0 \<cdot>a \<rho>'"
+  unfolding subst_lit_def apply (rule foo_Neg) by simp
+
 lemma resolve_rename_eq_Bin_ord_resolve_rename:
   "mset ` set (resolve_rename C D) = Bin_ord_resolve_rename (mset C) (mset D)"
 proof (intro order_antisym subsetI)
   fix E
   assume e_in: "E \<in> mset ` set (resolve_rename C D)"
 
+  let ?\<rho>s = "renamings_apart [mset D, mset C]"
   define \<rho>' :: 's where
-    "\<rho>' = hd (renamings_apart [mset D, mset C])"
+    "\<rho>' = hd ?\<rho>s"
   define \<rho> :: 's where
-    "\<rho> = last (renamings_apart [mset D, mset C])"
+    "\<rho> = last ?\<rho>s"
+
+  have tl_\<rho>s: "tl ?\<rho>s = [\<rho>]"
+    unfolding \<rho>_def
+    using renames_apart[THEN conjunct1, of "[mset D, mset C]"]
+    apply auto
+    by (smt Nitpick.size_list_simp(2) Suc_length_conv last.simps last_tl nat.distinct(1) old.nat.inject)
 
   from e_in obtain AA :: "'a multiset" and A :: 'a and \<sigma> :: 's where
-    aa_sub: "poss AA \<subseteq># {#L \<cdot>l \<rho>. L \<in># mset C#}" and
+    aa_sub: "poss AA \<subseteq># mset C \<cdot> \<rho>" and
     a_in: "Neg A \<in># mset D \<cdot> \<rho>'" and
     res_e: "ord_resolve S [mset C \<cdot> \<rho>] {#L \<cdot>l \<rho>'. L \<in># mset D#} [AA] [A] \<sigma> E"
     unfolding \<rho>'_def \<rho>_def
@@ -506,27 +526,26 @@ proof (intro order_antisym subsetI)
     apply (case_tac As)
      apply auto
     apply (rule_tac x = a in exI)
-    apply auto
+    apply (auto simp: subst_cls_def)
     apply (rule_tac x = aa in exI)
     apply auto
-     apply (metis Melem_subst_cls set_mset_mset subst_cls_def union_single_eq_member)
-    apply (rule_tac x = \<sigma> in exI)
-    apply (auto simp: subst_cls_def)
+    apply (metis Melem_subst_cls set_mset_mset subst_cls_def union_single_eq_member)
     done
 
   obtain AA0 :: "'a multiset" where
     aa0_sub: "poss AA0 \<subseteq># mset C" and
-    aa: "AA = AA0 \<cdot>am last (renamings_apart [mset D, mset C])"
+    aa: "AA = AA0 \<cdot>am \<rho>"
+    using aa_sub
     apply atomize_elim
     apply (rule ord_resolve.cases[OF res_e])
-    sorry
+    by (rule bar_poss[OF aa_sub[unfolded subst_cls_def]])
 
   obtain A0 :: 'a where
     a0_in: "Neg A0 \<in># mset D" and
-    a: "A = A0 \<cdot>a hd (renamings_apart [mset D, mset C])"
+    a: "A = A0 \<cdot>a \<rho>'"
     apply atomize_elim
     apply (rule ord_resolve.cases[OF res_e])
-    sorry
+    by (rule bar_Neg[OF a_in[unfolded subst_cls_def]])
 
   show "E \<in> Bin_ord_resolve_rename (mset C) (mset D)"
     unfolding ord_resolve_rename.simps
@@ -541,8 +560,9 @@ proof (intro order_antisym subsetI)
     using aa0_sub apply simp
     using a0_in apply simp
     apply (rule_tac x = \<sigma> in exI)
-    apply simp
-    sorry
+    unfolding aa a \<rho>'_def[symmetric] \<rho>_def[symmetric] tl_\<rho>s
+    apply (simp add: subst_cls_def)
+    done
 next
   fix E
   assume e_in: "E \<in> Bin_ord_resolve_rename (mset C) (mset D)"
