@@ -78,10 +78,18 @@ lemma is_reducible_lit_code[code]: "RP.is_reducible_lit Ds C L =
          None \<Rightarrow> False
        | Some \<sigma> \<Rightarrow> subsumes_list (remove1 L' D) C \<sigma>)
      else False))"
-  unfolding RP.is_reducible_lit_def 
-  apply (auto simp: subsumes_list_subsumes subsumes_def
-    subst_cls_def subst_lit_def image_mset_remove1_mset_if dest!: subsumes_list_sound
-    elim!: bexI[rotated] sym split: option.splits)
+  unfolding RP.is_reducible_lit_def subsumes_list_alt subsumes_modulo_def
+  apply (auto simp: 
+    subst_cls_def subst_lit_def image_mset_remove1_mset_if dest!: match_term_list_sound
+    elim!: bexI[rotated] split: option.splits)
+    apply (case_tac L; case_tac L'; auto simp: subst_of_map_def[abs_def]
+      dest!: match_term_list_complete intro: extends_subst_empty) []
+    apply (case_tac L; case_tac L'; auto simp: subst_of_map_def[abs_def]
+      dest!: match_term_list_complete intro: extends_subst_empty) []
+    apply (case_tac L; case_tac L'; auto simp: subst_of_map_def[abs_def]
+      dest!: match_term_list_complete intro: extends_subst_empty) []
+    apply (case_tac L; case_tac L'; auto simp: subst_of_map_def[abs_def]
+      dest!: match_term_list_complete intro: extends_subst_empty) []
    prefer 2
     apply (drule spec)
     apply (drule mp)
