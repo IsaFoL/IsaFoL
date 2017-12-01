@@ -459,10 +459,10 @@ lemma ord_resolve_rename_one_side_prem:
   by (force elim!: ord_resolve_rename.cases dest: ord_resolve_one_side_prem)
 
 abbreviation Bin_ord_resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause set" where
-  "Bin_ord_resolve C D \<equiv> {E. \<exists>AAs As \<sigma>. ord_resolve S [C] D AAs As \<sigma> E}"
+  "Bin_ord_resolve C D \<equiv> {E. \<exists>AA A \<sigma>. ord_resolve S [C] D [AA] [A] \<sigma> E}"
 
 abbreviation Bin_ord_resolve_rename :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause set" where
-  "Bin_ord_resolve_rename C D \<equiv> {E. \<exists>AAs As \<sigma>. ord_resolve_rename S [C] D AAs As \<sigma> E}"
+  "Bin_ord_resolve_rename C D \<equiv> {E. \<exists>AA A \<sigma>. ord_resolve_rename S [C] D [AA] [A] \<sigma> E}"
 
 lemma resolve_eq_Bin_ord_resolve:
   "mset ` set (resolve C D) = Bin_ord_resolve (mset C) (mset D)"
@@ -537,14 +537,10 @@ proof (intro order_antisym subsetI)
       apply auto
       apply (frule ord_resolve_one_side_prem)
       apply (frule ord_resolve.simps[THEN iffD1])
-      apply (case_tac AAs)
-       apply auto
-      apply (case_tac As)
-       apply auto
-      apply (rule_tac x = a in exI)
+      apply (rule_tac x = AA in exI)
       apply (auto simp: subst_cls_def)
-      apply (rule_tac x = aa in exI)
-      apply auto
+      apply (rule_tac x = A in exI)
+       apply auto
       apply (metis Melem_subst_cls set_mset_mset subst_cls_def union_single_eq_member)
       done
 
@@ -557,24 +553,22 @@ proof (intro order_antisym subsetI)
       by (rule bar_poss[OF aa_sub[unfolded subst_cls_def]])
 
     obtain A0 :: 'a where
-      a0_in: "Neg A0 \<in># mset D" and
+      a0_in: "Neg A0 \<in> set D" and
       a: "A = A0 \<cdot>a \<rho>'"
       apply atomize_elim
       apply (rule ord_resolve.cases[OF res_e])
-      by (rule bar_Neg[OF a_in[unfolded subst_cls_def]])
+      using bar_Neg[OF a_in[unfolded subst_cls_def]] by simp
 
     show "E \<in> Bin_ord_resolve_rename (mset C) (mset D)"
       unfolding ord_resolve_rename.simps
       using res_e
       apply auto
-      apply (rule_tac x = "[AA0]" in exI)
+      apply (rule_tac x = AA0 in exI)
       apply (intro conjI)
-       apply simp
-      apply (rule_tac x = "[A0]" in exI)
+       apply (rule aa0_sub)
+      apply (rule_tac x = A0 in exI)
       apply (intro conjI)
-         apply simp
-      using aa0_sub apply simp
-      using a0_in apply simp
+      apply (rule a0_in)
       apply (rule_tac x = \<sigma> in exI)
       unfolding aa a \<rho>'_def[symmetric] \<rho>_def[symmetric] tl_\<rho>s
       apply (simp add: subst_cls_def)
@@ -588,8 +582,8 @@ proof (intro order_antisym subsetI)
       using e_in
       unfolding ord_resolve_rename.simps
       apply auto
-      apply (rule_tac x = "AAs \<cdot>\<cdot>aml tl ?\<rho>s" in exI)
-      apply (rule_tac x = "As \<cdot>al \<rho>'" in exI)
+      apply (rule_tac x = "AA \<cdot>am \<rho>" in exI)
+      apply (rule_tac x = "A \<cdot>a \<rho>'" in exI)
       apply (rule_tac x = \<sigma> in exI)
       unfolding tl_\<rho>s \<rho>'_def \<rho>_def
       apply (simp add: subst_cls_def subst_cls_lists_def)
