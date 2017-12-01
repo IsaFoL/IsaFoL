@@ -28,8 +28,7 @@ fun clauses_to_update_l :: \<open>'v twl_st_l \<Rightarrow> 'v clauses_to_update
 fun get_trail_l :: \<open>'v twl_st_l \<Rightarrow> ('v, nat) ann_lit list\<close> where
   \<open>get_trail_l (M, _, _, _, _, _, _, _) = M\<close>
 
-fun set_clauses_to_update_l :: \<open>'v clauses_to_update_l \<Rightarrow> 'v twl_st_l \<Rightarrow>
-  'v twl_st_l\<close> where
+fun set_clauses_to_update_l :: \<open>'v clauses_to_update_l \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
   \<open>set_clauses_to_update_l WS (M, N, U, D, NP, UP, _, Q) = (M, N, U, D, NP, UP, WS, Q)\<close>
 
 fun literals_to_update_l :: \<open>'v twl_st_l \<Rightarrow> 'v clause\<close> where
@@ -44,13 +43,13 @@ fun get_conflict_l :: \<open>'v twl_st_l \<Rightarrow> 'v cconflict\<close> wher
 definition get_clauses_ll :: \<open>nat twl_st_l \<Rightarrow> nat clauses_l\<close> where
   \<open>get_clauses_ll = (\<lambda>(M, N, U, D, NP, UP, WS, Q). N)\<close>
 
-fun watched_l where
-  \<open>watched_l l = take 2 l\<close>
+abbreviation watched_l :: \<open>'a clause_l \<Rightarrow> 'a clause_l\<close> where
+  \<open>watched_l l \<equiv> take 2 l\<close>
 
-fun unwatched_l where
-  \<open>unwatched_l l = drop 2 l\<close>
+abbreviation unwatched_l :: \<open>'a clause_l \<Rightarrow> 'a clause_l\<close>  where
+  \<open>unwatched_l l \<equiv> drop 2 l\<close>
 
-fun twl_clause_of :: \<open>'a list \<Rightarrow> 'a multiset twl_clause\<close> where
+fun twl_clause_of :: \<open>'a clause_l \<Rightarrow> 'a clause twl_clause\<close> where
   \<open>twl_clause_of l = TWL_Clause (mset (watched_l l)) (mset (unwatched_l l))\<close>
 
 fun clause_of :: \<open>'a::plus twl_clause \<Rightarrow> 'a\<close> where
@@ -364,7 +363,7 @@ proof -
     using i_def by (cases \<open>twl_clause_of (get_clauses_l S ! C)\<close>) (auto simp: take_2_if)
   have two_le_length_C: \<open>2 \<le> length C'\<close>
     by (metis length_take linorder_not_le min_less_iff_conj numeral_2_eq_2 order_less_irrefl
-        size_add_mset size_eq_0_iff_empty size_mset watched_C' watched_l.simps)
+        size_add_mset size_eq_0_iff_empty size_mset watched_C')
   have C_N_U: \<open>C < length (get_clauses_l S)\<close>
     using WS add_inv by (auto simp: S twl_list_invs_def)
   obtain WS' where WS'_def: \<open>WS = add_mset C WS'\<close>
@@ -377,10 +376,10 @@ proof -
     by (auto simp: S)
 
   have S'_S: \<open>twl_st_of (Some L) S =  (convert_lits_l N M,
-     {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)). x \<in># mset (take U (tl N))#},
-     {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)). x \<in># mset (drop (Suc U) N)#},
+     {#TWL_Clause (mset (watched_l x)) (mset (unwatched_l x)). x \<in># mset (take U (tl N))#},
+     {#TWL_Clause (mset (watched_l x)) (mset (unwatched_l x)). x \<in># mset (drop (Suc U) N)#},
      D, NP, UP,
-     {#(L, TWL_Clause (mset (take 2 (N ! x))) (mset (drop 2 (N ! x)))).
+     {#(L, TWL_Clause (mset (watched_l (N ! x))) (mset (unwatched_l (N ! x)))).
         x \<in># WS#},
      Q)\<close>
     unfolding S by auto
@@ -396,7 +395,7 @@ proof -
   let ?U = \<open>{#TWL_Clause (mset (watched_l x)) (mset (unwatched_l x)). x \<in># mset (drop (Suc U) N)#}\<close>
   have st_of_S': \<open>twl_st_of (Some L)
      (M, N, U, D, NP, UP, remove1_mset C WS, Q) = (convert_lits_l N M, ?N, ?U, D, NP,
-       UP, {#(L, TWL_Clause (mset (take 2 (N ! j))) (mset (drop 2 (N ! j)))).
+       UP, {#(L, TWL_Clause (mset (watched_l (N ! j))) (mset (unwatched_l (N ! j)))).
           j \<in># remove1_mset C WS#}, Q)\<close>
     by simp
 
@@ -435,7 +434,7 @@ proof -
   have \<open>length (watched_l C') = 2\<close>
     unfolding length_list_2
     using watched_C' i by (auto simp: mset_eq_size_2 take_2_if)
-  then have set_take_2_watched: \<open>set (take 2 C') = {?L, ?L'}\<close>
+  then have set_take_2_watched: \<open>set (watched_l C') = {?L, ?L'}\<close>
     using watched_C' i by (auto simp: mset_eq_size_2 take_2_if)
   note C'[simp del]
   have N_C_C': \<open>N!C = C'\<close>
@@ -451,7 +450,7 @@ proof -
   have \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of S')\<close>
     using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by fast
-  then have \<open>distinct_mset (mset (take 2 (N!C)) + mset (drop 2 (N!C)))\<close>
+  then have \<open>distinct_mset (mset (watched_l (N!C)) + mset (unwatched_l (N!C)))\<close>
     using C'_N_U_or unfolding cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def S
     by (auto simp add: cdcl\<^sub>W_restart_mset_state C' S distinct_mset_set_def)
   then have distinct_C': \<open>distinct C'\<close>
@@ -474,22 +473,22 @@ proof -
               = L then 0 else 1)\<close>
     unfolding i_def S by auto
   let ?C' = \<open>swap C' 0 (Suc 0 - i)\<close>
-  have [simp]: \<open>set (take 2 (?C')) = set (take 2 C')\<close>
+  have [simp]: \<open>set (watched_l (?C')) = set (watched_l C')\<close>
     using watched_C' i two_le_length_C by (auto simp: swap_def take_2_if)
   have [simp]:
-    \<open>mset (take 2 (?C')) = mset (take 2 C')\<close>
-    \<open>mset (drop 2 (?C')) = mset (drop 2 C')\<close>
+    \<open>mset (watched_l (?C')) = mset (watched_l C')\<close>
+    \<open>mset (unwatched_l (?C')) = mset (unwatched_l C')\<close>
     using watched_C' i two_le_length_C by (auto simp: swap_def take_2_if split: if_splits)
-  then have [simp]: \<open>mset (take 2 (if C = x then ?C' else N ! x)) = mset (take 2 (N ! x))\<close>
-     \<open>mset (drop 2 (if C = x then ?C' else N ! x)) = mset (drop 2 (N ! x))\<close>for x
+  then have [simp]: \<open>mset (watched_l (if C = x then ?C' else N ! x)) = mset (watched_l (N ! x))\<close>
+     \<open>mset (unwatched_l (if C = x then ?C' else N ! x)) = mset (unwatched_l (N ! x))\<close>for x
     using i two_le_length_C by (auto simp: C' S)
-  have [simp]: \<open>{#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)).
+  have [simp]: \<open>{#TWL_Clause (mset (watched_l x)) (mset (unwatched_l x)).
            x \<in># mset (take U (tl (N[C := ?C'])))#} =
-       {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)). x \<in># mset (take U (tl N))#}\<close>
+       {#TWL_Clause (mset (watched_l x)) (mset (unwatched_l x)). x \<in># mset (take U (tl N))#}\<close>
        (is ?GN) and
-       [simp]: \<open>{#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)).
+       [simp]: \<open>{#TWL_Clause (mset (watched_l x)) (mset (unwatched_l x)).
            x \<in># mset (drop (Suc U) (N[C := ?C']))#} =
-         {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)). x \<in># mset (drop (Suc U) N)#}\<close>
+         {#TWL_Clause (mset (watched_l x)) (mset (unwatched_l x)). x \<in># mset (drop (Suc U) N)#}\<close>
        (is ?GU)
   proof -
     {
@@ -567,7 +566,7 @@ proof -
   have [simp]: \<open>?C' ! 0 = ?L'\<close>
     using i_def two_le_length_C  \<open>N ! C ! i = L\<close>
     by (auto simp: S C' swap_def numeral_2_eq_2 Suc_le_eq)
-  have [simp]: \<open>C' ! (Suc 0 - i) \<in> set (take 2 C')\<close> \<open>C' ! i \<in> set (take 2 C')\<close>
+  have [simp]: \<open>C' ! (Suc 0 - i) \<in> set (watched_l C')\<close> \<open>C' ! i \<in> set (watched_l C')\<close>
     using watched_C' i two_le_length_C C_le_N
     by (auto simp: mset_update swap_def take_2_if split: if_splits)
   have C_notin_M: \<open>Propagated La C \<notin> set M\<close>
@@ -640,14 +639,14 @@ proof -
       have \<open>convert_lits_l N M \<Turnstile>as CNot (remove1_mset K (mset C'))\<close>
         unfolding M1 by simp
       moreover {
-        have \<open>K \<in> set (take 2 C')\<close>
+        have \<open>K \<in> set (watched_l C')\<close>
           using add_inv propa \<open>C > 0\<close> by (auto simp: S twl_list_invs_def C')
-        with distinct_C' have \<open>K \<notin> set (drop 2 C')\<close>
+        with distinct_C' have \<open>K \<notin> set (unwatched_l C')\<close>
           by (subst (asm)(1) append_take_drop_id[of 2, symmetric], subst (asm) distinct_append)
             auto }
       ultimately have \<open>\<forall>L\<in>#unwatched (twl_clause_of C'). - L \<in> lits_of_l (convert_lits_l N M)\<close>
         unfolding true_annots_true_cls_def_iff_negation_in_model
-        by (metis in_remove1_mset_neq in_set_dropD set_mset_mset unwatched_l.elims
+        by (metis in_remove1_mset_neq in_set_dropD set_mset_mset
             unwatched_twl_clause_of)
       then show False
         using not_forall_unwatched_in_trail by (auto simp: N_C_C' S)
@@ -663,23 +662,23 @@ proof -
           mset_update simp del: C'_i)
     then have [simp]: \<open>convert_lits_l N M = convert_lits_l (N[C := swap (N ! C) i (the x)]) M\<close>
       unfolding convert_lits_l_def by auto
-    have [simp]: \<open>{#(L, TWL_Clause (mset (take 2 (N ! j))) (mset (drop 2 (N ! j)))).
+    have [simp]: \<open>{#(L, TWL_Clause (mset (watched_l (N ! j))) (mset (unwatched_l (N ! j)))).
           j \<in># remove1_mset C WS#} =
         {#(L,
           TWL_Clause
-           (mset (take 2 (N[C := swap (N ! C) i (the x)] ! j)))
-           (mset (drop 2 (N[C := swap (N ! C) i (the x)] ! j)))).
+           (mset (watched_l (N[C := swap (N ! C) i (the x)] ! j)))
+           (mset (unwatched_l (N[C := swap (N ! C) i (the x)] ! j)))).
           j \<in># remove1_mset C WS#}\<close>
       by (rule image_mset_cong) (use jC_notin_WS in \<open>auto simp: nth_list_update' swap_def\<close>)
     have [simp]: \<open>C - Suc 0 < length N - Suc 0\<close>\<open>C - Suc 0 < U\<close> if \<open>C < Suc U\<close>
       using that C_le_N by auto
     have upd: \<open>update_clauses
-     ({#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)). x \<in># mset (take U (tl N))#},
-      {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)). x \<in># mset (drop (Suc U) N)#})
-     (TWL_Clause (mset (take 2 C')) (mset (drop 2 C'))) L (N ! C ! the x)
-     ({#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)).
+     ({#TWL_Clause (mset (watched_l x)) (mset (unwatched_l x)). x \<in># mset (take U (tl N))#},
+      {#TWL_Clause (mset (watched_l x)) (mset (unwatched_l x)). x \<in># mset (drop (Suc U) N)#})
+     (TWL_Clause (mset (watched_l C')) (mset (unwatched_l C'))) L (N ! C ! the x)
+     ({#TWL_Clause (mset (watched_l x)) (mset (unwatched_l x)).
          x \<in># mset (take U (tl (N[C := swap (N ! C) i (the x)])))#},
-      {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)).
+      {#TWL_Clause (mset (watched_l x)) (mset (unwatched_l x)).
          x \<in># mset (drop U (tl (N[C := swap (N ! C) i (the x)])))#})\<close>
     proof cases
       assume J_NP: \<open>C \<le> U\<close>
@@ -691,7 +690,7 @@ proof -
       have C_le_U: \<open>C - Suc 0 < length (take U (tl N))\<close>
         using \<open>C < length N\<close> \<open>C > 0\<close> J_NP by auto
       let ?k' = \<open>the x - 2\<close>
-      have \<open>?k' < length (drop 2 C')\<close>
+      have \<open>?k' < length (unwatched_l C')\<close>
         using N_C_C' x by auto
       then have H0: \<open>TWL_Clause {#?UW ! ?k', ?L'#} (mset (list_update ?UW ?k' ?L)) =
         update_clause (TWL_Clause {#?L, ?L'#} (mset ?UW)) ?L (?UW ! ?k')\<close>
@@ -738,9 +737,7 @@ proof -
         using J_NP C_le_U x C_le_N by (auto simp: mset_update
             image_mset_remove1_mset_if H1 H2 H3[symmetric] H4[symmetric] H3' H5
             L_L'_UW_N H0 TWL_L_L'_UW_N C'[symmetric] N_C_C' mset_watched_C watched_C' nth_tl
-            tl_update_swap swap_def add_mset_remove_trivial_If drop_Suc
-            watched_l.simps[symmetric] unwatched_l.simps[symmetric]
-            simp del: watched_l.simps unwatched_l.simps)
+            tl_update_swap swap_def add_mset_remove_trivial_If drop_Suc)
     next
       assume J_NP: \<open>\<not>C \<le> U\<close>
       then have L_L'_UW_N: \<open>C' \<in> set (drop (Suc U) N)\<close>
@@ -748,7 +745,7 @@ proof -
       have TWL_L_L'_UW_N: \<open>TWL_Clause {#?L, ?L'#} (mset ?UW) \<in># twl_clause_of `# mset (drop (Suc U) N)\<close>
         using imageI[OF L_L'_UW_N, of twl_clause_of] watched_C' by auto
       let ?k' = \<open>the x - 2\<close>
-      have \<open>the x - 2 < length (drop 2 C')\<close>
+      have \<open>the x - 2 < length (unwatched_l C')\<close>
         using N_C_C' x by auto
       then have H0: \<open>TWL_Clause {#?UW ! ?k', ?L'#} (mset (list_update ?UW ?k' ?L)) =
       update_clause (TWL_Clause {#?L, ?L'#} (mset ?UW)) ?L (?UW ! ?k')\<close>
@@ -794,8 +791,7 @@ proof -
             image_mset_remove1_mset_if H1 H2 H3[symmetric] H4[symmetric] H5 H3' drop_Suc
             H6[symmetric] add_mset_remove_trivial_If
             L_L'_UW_N TWL_L_L'_UW_N C'[symmetric] N_C_C' mset_watched_C watched_C' nth_tl
-            watched_l.simps[symmetric] unwatched_l.simps[symmetric] drop_update_swap
-            tl_update_swap swap_def simp del: watched_l.simps unwatched_l.simps)
+            drop_update_swap tl_update_swap swap_def)
     qed
 
     show ?thesis
@@ -830,8 +826,7 @@ proof -
       by (auto simp add: N_C_C' S)
     subgoal
       by (auto simp: mset_watched_C watched_C' in_set_unwatched_conv N_C_C' i_def S
-          consistent split: option.splits bool.splits simp del: watched_l.simps unwatched_l.simps)
-          (simp add: i_def)+
+          consistent split: option.splits bool.splits)
     subgoal by (vc_solve simp: mset_watched_C watched_C' in_set_unwatched_conv C'[symmetric] N_C_C'
           consistent polarity_spec' n_d S split: option.splits bool.splits)
     subgoal using init_invs S C_le_N add_mset_C'_i dist_WS by (vc_solve simp: mset_watched_C
@@ -1130,12 +1125,12 @@ proof -
   qed
   have
     \<open>{#(L',
-        TWL_Clause (mset (take 2 (N ! x)))
-          (mset (drop 2 (N ! x)))).
-      x \<in># mset_set {x. Suc 0 \<le> x \<and> x < length N \<and> L' \<in> set (take 2 (N ! x))}#} =
+        TWL_Clause (mset (watched_l (N ! x)))
+          (mset (unwatched_l (N ! x)))).
+      x \<in># mset_set {x. Suc 0 \<le> x \<and> x < length N \<and> L' \<in> set (watched_l (N ! x))}#} =
     Pair L' `#
-      {#C \<in># {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)). x \<in># mset (take U (tl N))#} +
-            {#TWL_Clause (mset (take 2 x)) (mset (drop 2 x)). x \<in># mset (drop (Suc U) N)#}.
+      {#C \<in># {#TWL_Clause (mset (watched_l x)) (mset (unwatched_l x)). x \<in># mset (take U (tl N))#} +
+            {#TWL_Clause (mset (watched_l x)) (mset (unwatched_l x)). x \<in># mset (drop (Suc U) N)#}.
       L' \<in># watched C#}\<close>
     (is \<open>{#(L', ?C x). x \<in># mset_set ?S#} = Pair L' `# ?C'\<close>)
   proof -

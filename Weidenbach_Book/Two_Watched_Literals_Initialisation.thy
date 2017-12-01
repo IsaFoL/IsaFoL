@@ -205,8 +205,8 @@ next
     apply (case_tac a, (use that in simp; fail))
     apply (rename_tac aa list, case_tac list; use that in simp)
     done
-  have mset_tl_N: \<open>{#mset (take 2 x) + mset (drop 2 x). x \<in># mset (take U (tl N))#} + {#mset (take 2 x) + mset (drop 2 x). x \<in># mset (drop (Suc U) N)#} =
-         {#mset (take 2 x) + mset (drop 2 x). x \<in># mset (tl N)#}\<close>
+  have mset_tl_N: \<open>{#mset (watched_l x) + mset (unwatched_l x). x \<in># mset (take U (tl N))#} + {#mset (watched_l x) + mset (unwatched_l x). x \<in># mset (drop (Suc U) N)#} =
+         {#mset (watched_l x) + mset (unwatched_l x). x \<in># mset (tl N)#}\<close>
     unfolding image_mset_union[symmetric] mset_append[symmetric] append_take_drop_id drop_Suc ..
   case 5
   show ?case
@@ -319,7 +319,7 @@ next
   have all_inv':
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_lits_l N M,
       add_mset {#}
-       ({#mset (take 2 x) + mset (drop 2 x). x \<in># mset (tl N)#} + NP' + OCS),
+       ({#mset (watched_l x) + mset (unwatched_l x). x \<in># mset (tl N)#} + NP' + OCS),
       UP', Some {#})\<close>
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S'[symmetric]
     apply (intro conjI)

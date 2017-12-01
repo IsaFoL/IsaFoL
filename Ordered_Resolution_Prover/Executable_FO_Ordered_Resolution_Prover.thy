@@ -39,7 +39,7 @@ global_interpretation RP: deterministic_FO_resolution_prover where
   and resolve_rename = RP.resolve_rename
   and resolve_rename_either_way = RP.resolve_rename_either_way
   and select_min_weight_clause = RP.select_min_weight_clause
-  and strictly_maximal_in = RP.strictly_maximal_in
+  and strictly_maximal_wrt = RP.strictly_maximal_wrt
   and strictly_subsume = RP.strictly_subsume
   and subsume = RP.subsume
   and weight = RP.weight
@@ -72,14 +72,24 @@ lemma remove1_mset_subset_eq: "remove1_mset a A \<subseteq># B \<longleftrightar
   by (metis add_mset_add_single subset_eq_diff_conv)
 
 lemma is_reducible_lit_code[code]: "RP.is_reducible_lit Ds C L =
-  (\<exists>D \<in> set Ds. (\<exists>L' \<in> set D. 
-     case subsumes_list [L'] [- L] of
-       None \<Rightarrow> False
-     | Some \<sigma> \<Rightarrow> subsumes (mset (map (\<lambda>L. subst_lit L \<sigma>) (remove1 L' D))) (mset C)))"
-  unfolding RP.is_reducible_lit_def 
-  apply (auto simp: subsumes_list_subsumes subsumes_def
-    subst_cls_def subst_lit_def image_mset_remove1_mset_if dest!: subsumes_list_sound
-    elim!: bexI[rotated] sym split: option.splits)
+  (\<exists>D \<in> set Ds. (\<exists>L' \<in> set D.
+     if is_pos L' = is_neg L then
+       (case match_term_list [(atm_of L', atm_of L)] Map.empty of
+         None \<Rightarrow> False
+       | Some \<sigma> \<Rightarrow> subsumes_list (remove1 L' D) C \<sigma>)
+     else False))"
+  unfolding RP.is_reducible_lit_def subsumes_list_alt subsumes_modulo_def
+  apply (auto simp: 
+    subst_cls_def subst_lit_def image_mset_remove1_mset_if dest!: match_term_list_sound
+    elim!: bexI[rotated] split: option.splits)
+    apply (case_tac L; case_tac L'; auto simp: subst_of_map_def[abs_def]
+      dest!: match_term_list_complete intro: extends_subst_empty) []
+    apply (case_tac L; case_tac L'; auto simp: subst_of_map_def[abs_def]
+      dest!: match_term_list_complete intro: extends_subst_empty) []
+    apply (case_tac L; case_tac L'; auto simp: subst_of_map_def[abs_def]
+      dest!: match_term_list_complete intro: extends_subst_empty) []
+    apply (case_tac L; case_tac L'; auto simp: subst_of_map_def[abs_def]
+      dest!: match_term_list_complete intro: extends_subst_empty) []
    prefer 2
     apply (drule spec)
     apply (drule mp)

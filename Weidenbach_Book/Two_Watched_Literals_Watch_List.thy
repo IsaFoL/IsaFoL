@@ -343,12 +343,12 @@ proof -
     using struct i_def by (auto simp: length_list_2 take_2_if S)+
   have dist_C'': \<open>distinct C''\<close>
     using struct by (simp only: twl_clause_of.simps struct_wf_twl_cls.simps distinct_mset_mset_distinct
-        mset_append[symmetric] watched_l.simps unwatched_l.simps append_take_drop_id)
+        mset_append[symmetric] append_take_drop_id)
   have mset_watched_C: \<open>mset (watched_l C'') = {#watched_l C'' ! i, watched_l C'' ! (Suc 0 - i)#}\<close>
     using i_def watched_C' by (cases \<open>twl_clause_of (get_clauses_l S' ! C')\<close>) (auto simp: take_2_if)
   have two_le_length_C: \<open>2 \<le> length C''\<close>
     by (metis length_take linorder_not_le min_less_iff_conj numeral_2_eq_2 order_less_irrefl
-        size_add_mset size_eq_0_iff_empty size_mset watched_C' watched_l.simps)
+        size_add_mset size_eq_0_iff_empty size_mset watched_C')
   have C_N_U: \<open>C' < length (get_clauses_l S')\<close>
     using WS add_inv by (auto simp: S twl_list_invs_def)
   obtain WS' where WS'_def: \<open>clauses_to_update_l S' = add_mset C' WS'\<close>
@@ -371,7 +371,7 @@ proof -
   then have L_in_N_NP: \<open>L \<in># all_lits_of_mm (mset `# mset (tl N) + NP)\<close>
     by (auto simp: in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def
         dest: in_set_takeD)
-  then have \<open>mset (W L) = mset_set {x. Suc 0 \<le> x \<and> x < length N \<and> L \<in> set (take 2 (N ! x))}\<close>
+  then have \<open>mset (W L) = mset_set {x. Suc 0 \<le> x \<and> x < length N \<and> L \<in> set (watched_l (N ! x))}\<close>
     using corr_w by (auto simp: S correct_watching.simps clause_to_update_def)
   moreover have \<open>W L ! w \<in># mset (W L)\<close>
     using WL_w_in_drop by (auto dest: in_set_dropD)
@@ -424,7 +424,7 @@ proof -
       apply (subst (asm) append_take_drop_id[of 2 \<open>C''\<close>, symmetric])
       apply (subst (asm) distinct_append)
       by (auto simp: S take_2_if split: if_splits)
-    then have [simp]: \<open>L \<notin> set (take 2 (swap (N ! x) i f'))\<close> if \<open>W L ! w = x\<close> for x
+    then have [simp]: \<open>L \<notin> set (watched_l (swap (N ! x) i f'))\<close> if \<open>W L ! w = x\<close> for x
       using f'_f C''_snd_f_unwatched snd_f'_ge_2  that f'_f
       by (auto simp: take_2_if i_def take_set S)
     have C'_N: \<open>W L ! w < length N\<close> \<open>0 < W L ! w\<close>
@@ -433,15 +433,15 @@ proof -
       using that add_inv WL_w_in_drop by (auto simp: S twl_list_invs_def)
     have KK: \<open>Suc 0 \<le> W L ! w\<close>
       using add_inv WL_w_in_drop by (auto simp: S twl_list_invs_def)
-    have [simp]: \<open>L \<in> set (take 2 (N ! (W L ! w)))\<close>
+    have [simp]: \<open>L \<in> set (watched_l (N ! (W L ! w)))\<close>
       using struct_invs valid WL_w_in_drop by (auto simp: S)
-    have [simp]: \<open>N ! (W L ! w) ! f' \<in> set (take 2 (swap (N ! (W L ! w)) i f))\<close>
+    have [simp]: \<open>N ! (W L ! w) ! f' \<in> set (watched_l (swap (N ! (W L ! w)) i f))\<close>
       using w_le snd_f'_ge_2 f'_f K_notin_watched
       by (auto simp: i_def swap_def take_2_if S split: nat.splits)
     have i_le_length_C'': \<open>i < length C''\<close>
       using two_le_length_C i_def S by auto
 
-    have [simp]: \<open>set (take 2 (N ! (W L ! w))) = {?L, ?L'}\<close>
+    have [simp]: \<open>set (watched_l (N ! (W L ! w))) = {?L, ?L'}\<close>
       using snd_f'_ge_2 two_le_length_C by (auto simp: take_2_if S i_def)
     have [simp]: \<open>N ! (W L ! w) ! j = N ! (W L ! w) ! k \<longleftrightarrow> j = k\<close>
       if \<open>j < length (N ! (W L ! w))\<close> and \<open>k < length (N ! (W L ! w))\<close>
@@ -465,7 +465,7 @@ proof -
       {x. Q x \<and> P x \<and> R x} - {y}\<close> for P Q R y
       by auto
     have take_2_swap_i_f':
-      \<open>set (take 2 (swap (N ! (W L ! w)) i f')) = {N ! (W L ! w) ! f', N ! (W L ! w) ! (1-i)}\<close>
+      \<open>set (watched_l (swap (N ! (W L ! w)) i f')) = {N ! (W L ! w) ! f', N ! (W L ! w) ! (1-i)}\<close>
       using two_le_length_C N_W_w_i_L snd_f'_ge_2 by (auto simp: take_2_if S i_def)
     let ?W = \<open>W
       (L := delete_index_and_swap (watched_by (M, N, U, None, NP, UP, Q, W) L) w,
@@ -502,8 +502,8 @@ proof -
       proof (cases \<open>x = L\<close>)
         case True
         moreover have
-          \<open>remove1_mset (W L ! w) (mset_set {x. Suc 0 \<le> x \<and> x < length N \<and> L \<in> set (take 2 (N ! x))}) =
-          mset_set ({x. Suc 0 \<le> x \<and> x < length N \<and> L \<in> set (take 2 (N ! x))} - {W L ! w})\<close>
+          \<open>remove1_mset (W L ! w) (mset_set {x. Suc 0 \<le> x \<and> x < length N \<and> L \<in> set (watched_l (N ! x))}) =
+          mset_set ({x. Suc 0 \<le> x \<and> x < length N \<and> L \<in> set (watched_l (N ! x))} - {W L ! w})\<close>
           using C'_N_indirect[OF refl] KK  by (auto simp: S mset_set_Diff)
         ultimately show ?thesis
           using Wx
@@ -538,7 +538,7 @@ proof -
   have i_alt_def: \<open>i = (if get_clauses_l T ! C' ! 0 = L then 0 else 1)\<close>
     by (cases S, cases T) (auto simp: i_def)
 
-  have [simp]: \<open>set (take 2 (N[W L ! w := swap (N ! (W L ! w)) 0 (Suc 0 - i)] ! x)) = set (take 2 (N ! x))\<close> for x
+  have [simp]: \<open>set (watched_l (N[W L ! w := swap (N ! (W L ! w)) 0 (Suc 0 - i)] ! x)) = set (watched_l (N ! x))\<close> for x
     using i_alt_def C''_def two_le_length_C
     by (auto simp: nth_list_update' swap_def take_2_if S split: if_splits)
   have \<open>mset (swap (N ! (W L ! w)) 0 (Suc 0 - i)) = mset (N ! (W L ! w))\<close>
@@ -848,8 +848,8 @@ proof -
       then have \<open>atm_of L \<in> atm_of ` lits_of_l M\<close>
         by (auto simp: convert_lits_l_def lits_of_def)
       moreover {
-        have \<open>atm_of ` lits_of_l M \<subseteq> (\<Union>x\<in>set (take U (tl N)). atm_of ` set (take 2 x) \<union>
-           atm_of ` set (drop 2 x)) \<union> (\<Union>x\<in>set_mset NP. atms_of x)\<close>
+        have \<open>atm_of ` lits_of_l M \<subseteq> (\<Union>x\<in>set (take U (tl N)). atm_of ` set (watched_l x) \<union>
+           atm_of ` set (unwatched_l x)) \<union> (\<Union>x\<in>set_mset NP. atms_of x)\<close>
           using that alien unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
           by (auto simp: S' cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
               all_lits_of_mm_def atms_of_ms_def)
