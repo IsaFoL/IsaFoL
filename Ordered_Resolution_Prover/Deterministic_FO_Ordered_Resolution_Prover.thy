@@ -150,11 +150,11 @@ fun resolve_on :: "'a lclause \<Rightarrow> 'a \<Rightarrow> 'a lclause \<Righta
              D' = map (\<lambda>M. M \<cdot>l \<sigma>) D;
              B' = B \<cdot>a \<sigma>
            in
-             if maximal_in B' (mset D') then
+             if maximal_wrt B' (mset D') then
                let
                  C' = map (\<lambda>L. L \<cdot>l \<sigma>) (removeAll L C)
                in
-                 (if strictly_maximal_in B' (mset C') then [C' @ D'] else []) @ resolve_on C' B' D'
+                 (if strictly_maximal_wrt B' (mset C') then [C' @ D'] else []) @ resolve_on C' B' D'
              else
                []))) C)"
 
@@ -164,7 +164,7 @@ definition resolve :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lcla
      (case M of
         Pos A \<Rightarrow> []
       | Neg A \<Rightarrow>
-        if maximal_in A (mset D) then
+        if maximal_wrt A (mset D) then
           resolve_on C A (remove1 M D)
         else
           [])) D)"

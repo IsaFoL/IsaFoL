@@ -30,7 +30,7 @@ global_interpretation RP: deterministic_FO_resolution_prover where
   and is_final_dstate = RP.is_final_dstate
   and is_reducible_lit = RP.is_reducible_lit
   and is_tautology = RP.is_tautology
-  and maximal_in = RP.maximal_in
+  and maximal_wrt = RP.maximal_wrt
   and reduce = RP.reduce
   and reduce_all = RP.reduce_all
   and reduce_all2 = RP.reduce_all2
