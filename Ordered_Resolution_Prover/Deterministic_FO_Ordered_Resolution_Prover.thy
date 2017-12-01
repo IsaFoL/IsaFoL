@@ -457,11 +457,24 @@ abbreviation Bin_ord_resolve_rename :: "'a clause \<Rightarrow> 'a clause \<Righ
 
 lemma resolve_eq_Bin_ord_resolve:
   "mset ` set (resolve C D) = Bin_ord_resolve (mset C) (mset D)"
-  sorry (* hard *)
+proof (intro order_antisym subsetI)
+  fix E
+  assume e_in: "E \<in> mset ` set (resolve C D)"
+  show "E \<in> Bin_ord_resolve (mset C) (mset D)"
+    using e_in
+    unfolding resolve_def
+
+    sorry
+next
+  fix E
+  assume e_in: "E \<in> Bin_ord_resolve (mset C) (mset D)"
+  show "E \<in> mset ` set (resolve C D)"
+    sorry
+qed
 
 lemma resolve_rename_eq_Bin_ord_resolve_rename:
   "mset ` set (resolve_rename C D) = Bin_ord_resolve_rename (mset C) (mset D)"
-proof (intro set_eq_subset[THEN iffD2] conjI subsetI)
+proof (intro order_antisym subsetI)
   fix E
   assume e_in: "E \<in> mset ` set (resolve_rename C D)"
   show "E \<in> Bin_ord_resolve_rename (mset C) (mset D)"
