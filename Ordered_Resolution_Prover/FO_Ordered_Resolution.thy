@@ -945,31 +945,38 @@ proof (cases rule: ord_resolve.cases)
 
   note n = this n
 
+  define \<rho> where 
+    "\<rho> = hd (renamings_apart (DA'' # CAs''))"
+  define \<rho>s where
+    "\<rho>s = tl (renamings_apart (DA'' # CAs''))"
   define DA' where
-    "DA' = DA'' \<cdot> hd (renamings_apart (DA'' # CAs''))"
+    "DA' = DA'' \<cdot> \<rho>"
   define D' where
-    "D' = D'' \<cdot> hd (renamings_apart (DA'' # CAs''))"
+    "D' = D'' \<cdot> \<rho>"
   define As' where
-    "As' = As'' \<cdot>al hd (renamings_apart (DA'' # CAs''))"
+    "As' = As'' \<cdot>al \<rho>"
   define CAs' where
-    "CAs' = CAs'' \<cdot>\<cdot>cl tl (renamings_apart (DA'' # CAs''))"
+    "CAs' = CAs'' \<cdot>\<cdot>cl \<rho>s"
   define Cs' where
-    "Cs' = Cs'' \<cdot>\<cdot>cl (tl (renamings_apart (DA'' # CAs'')))"
+    "Cs' = Cs'' \<cdot>\<cdot>cl \<rho>s"
   define AAs' where
-    "AAs' = AAs'' \<cdot>\<cdot>aml (tl (renamings_apart (DA'' # CAs'')))"
+    "AAs' = AAs'' \<cdot>\<cdot>aml \<rho>s"
   define \<eta>' where
-    "\<eta>' = inv_renaming (hd (renamings_apart (DA'' # CAs''))) \<odot> \<eta>''"
+    "\<eta>' = inv_renaming \<rho> \<odot> \<eta>''"
   define \<eta>s' where
-    "\<eta>s' = map inv_renaming (tl (renamings_apart (DA'' # CAs''))) \<odot>s \<eta>s''"
+    "\<eta>s' = map inv_renaming \<rho>s \<odot>s \<eta>s''"
 
-  have renames_DA'': "is_renaming (hd (renamings_apart (DA'' # CAs'')))"
-    using renames_apart
+  have renames_DA'': "is_renaming \<rho>"
+    using renames_apart unfolding \<rho>_def
     by (metis length_greater_0_conv list.exhaust_sel list.set_intros(1) list.simps(3))
 
-  have renames_CAs'': "is_renaming_list (tl (renamings_apart (DA'' # CAs'')))"
-    using renames_apart
+  have renames_CAs'': "is_renaming_list \<rho>s"
+    using renames_apart unfolding \<rho>s_def
     by (metis is_renaming_list_def length_greater_0_conv list.set_sel(2) list.simps(3))
 
+  have "length \<rho>s = n"
+    unfolding \<rho>s_def using n by auto
+  note n = n \<open>length \<rho>s = n\<close>
   have "length As' = n"
     unfolding As'_def using n by auto
   have "length CAs' = n"
@@ -991,7 +998,7 @@ proof (cases rule: ord_resolve.cases)
   have "S DA' \<cdot> \<eta>' = S_M S M DA"
     using as''(5) unfolding \<eta>'_def DA'_def using renames_DA'' sel_stable by auto
   have CAs'_CAs: "CAs' \<cdot>\<cdot>cl \<eta>s' = CAs"
-    using as''(7) unfolding CAs'_def \<eta>s'_def using renames_apart renames_CAs'' by auto
+    using as''(7) unfolding CAs'_def \<eta>s'_def using renames_apart renames_CAs'' n by auto
   have Cs'_Cs: "Cs' \<cdot>\<cdot>cl \<eta>s' = Cs"
     using as''(18) unfolding Cs'_def \<eta>s'_def using renames_apart renames_CAs'' n by auto
   have AAs'_AAs: "AAs' \<cdot>\<cdot>aml \<eta>s' = AAs"
@@ -1019,14 +1026,15 @@ proof (cases rule: ord_resolve.cases)
     "S_M S M (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As') = S DA'"
   proof -
     assume a: "S_M S M (D + negs (mset As)) \<noteq> {#}"
-    then have "negs (mset As'') \<cdot> hd (renamings_apart (DA'' # CAs'')) = S DA'' \<cdot> hd (renamings_apart (DA'' # CAs''))"
-      using as''(16) by metis
+    then have "negs (mset As'') \<cdot> \<rho> = S DA'' \<cdot> \<rho>"
+      using as''(16) unfolding \<rho>_def by metis
     then show "negs (mset As') = S DA'"
-      using  As'_def DA'_def using sel_stable[of "hd (renamings_apart (DA'' # CAs''))" DA''] renames_DA'' by auto
+      using  As'_def DA'_def using sel_stable[of \<rho> DA''] renames_DA'' by auto
   qed
 
   have vd: "var_disjoint (DA' # CAs')"
     unfolding DA'_def CAs'_def using renames_apart[of "DA'' # CAs''"]
+    unfolding \<rho>_def \<rho>s_def
     by (metis length_greater_0_conv list.exhaust_sel n(6) substitution.subst_cls_lists_Cons
         substitution_axioms zero_less_Suc)
 
@@ -1288,24 +1296,21 @@ proof (cases rule: ord_resolve.cases)
       using that e'\<phi>e make_ground_subst by auto
   qed
 
-
-  define \<rho>4 where "\<rho>4 = hd (renamings_apart (DA'' # CAs''))"
-  moreover define \<rho>s4 where "\<rho>s4 = tl (renamings_apart (DA'' # CAs''))"
-  moreover have "ord_resolve S (CAs'' \<cdot>\<cdot>cl \<rho>s4) (DA'' \<cdot> \<rho>4) (AAs'' \<cdot>\<cdot>aml \<rho>s4) (As'' \<cdot>al \<rho>4) \<tau> E'"
+  have "ord_resolve S (CAs'' \<cdot>\<cdot>cl \<rho>s) (DA'' \<cdot> \<rho>) (AAs'' \<cdot>\<cdot>aml \<rho>s) (As'' \<cdot>al \<rho>) \<tau> E'"
     using res_e' 
-    apply (subgoal_tac "CAs' = (CAs'' \<cdot>\<cdot>cl \<rho>s4)" "DA' = DA'' \<cdot> \<rho>4" "AAs' = AAs'' \<cdot>\<cdot>aml \<rho>s4" "As' = As'' \<cdot>al \<rho>4")
+    apply (subgoal_tac "CAs' = (CAs'' \<cdot>\<cdot>cl \<rho>s)" "DA' = DA'' \<cdot> \<rho>" "AAs' = AAs'' \<cdot>\<cdot>aml \<rho>s" "As' = As'' \<cdot>al \<rho>")
         apply simp
-       using As'_def \<rho>4_def apply simp
-      using AAs'_def \<rho>s4_def apply simp
-     using DA'_def \<rho>4_def apply simp
-    using CAs'_def \<rho>s4_def apply simp
+       using As'_def \<rho>_def apply simp
+      using AAs'_def \<rho>s_def apply simp
+     using DA'_def \<rho>_def apply simp
+    using CAs'_def \<rho>s_def apply simp
     done
   moreover have "\<forall>i<n. poss (AAs'' ! i) \<subseteq># CAs'' ! i"
     using as''(19) by auto
   moreover have "negs (mset As'') \<subseteq># DA''"
     using local.as''(15) by auto
   ultimately have "ord_resolve_rename S CAs'' DA'' AAs'' As'' \<tau> E'"
-    using ord_resolve_rename[of CAs'' n AAs'' As'' DA'' \<rho>4 \<rho>s4 S \<tau> E'] n by auto
+    using ord_resolve_rename[of CAs'' n AAs'' As'' DA'' \<rho> \<rho>s S \<tau> E'] \<rho>_def \<rho>s_def n by auto
   then show thesis
     using that[of \<eta>'' \<eta>s'' \<eta>2 CAs'' DA''] \<open>is_ground_subst \<eta>''\<close> \<open>is_ground_subst_list \<eta>s''\<close>
       \<open>is_ground_subst \<eta>2\<close> \<open>CAs'' \<cdot>\<cdot>cl \<eta>s'' = CAs\<close> \<open>DA'' \<cdot> \<eta>'' = DA\<close> \<open>E' \<cdot> \<eta>2 = E\<close> \<open>DA'' \<in> M\<close>
