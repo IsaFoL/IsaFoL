@@ -511,9 +511,6 @@ lemma bar_Neg: "Neg A \<in># {#L \<cdot>l \<rho>'. L \<in># mset D#} \<Longright
 lemma resolve_rename_eq_Bin_ord_resolve_rename:
   "mset ` set (resolve_rename C D) = Bin_ord_resolve_rename (mset C) (mset D)"
 proof (intro order_antisym subsetI)
-  fix E
-  assume e_in: "E \<in> mset ` set (resolve_rename C D)"
-
   let ?\<rho>s = "renamings_apart [mset D, mset C]"
   define \<rho>' :: 's where
     "\<rho>' = hd ?\<rho>s"
@@ -526,70 +523,78 @@ proof (intro order_antisym subsetI)
     apply auto
     by (smt Nitpick.size_list_simp(2) Suc_length_conv last.simps last_tl nat.distinct(1) old.nat.inject)
 
-  from e_in obtain AA :: "'a multiset" and A :: 'a and \<sigma> :: 's where
-    aa_sub: "poss AA \<subseteq># mset C \<cdot> \<rho>" and
-    a_in: "Neg A \<in># mset D \<cdot> \<rho>'" and
-    res_e: "ord_resolve S [mset C \<cdot> \<rho>] {#L \<cdot>l \<rho>'. L \<in># mset D#} [AA] [A] \<sigma> E"
-    unfolding \<rho>'_def \<rho>_def
-    apply atomize_elim
-    using e_in unfolding resolve_rename_def Let_def resolve_eq_Bin_ord_resolve
-    apply auto
-    apply (frule ord_resolve_one_side_prem)
-    apply (frule ord_resolve.simps[THEN iffD1])
-     apply (case_tac AAs)
-     apply auto
-    apply (case_tac As)
-     apply auto
-    apply (rule_tac x = a in exI)
-    apply (auto simp: subst_cls_def)
-    apply (rule_tac x = aa in exI)
-    apply auto
-    apply (metis Melem_subst_cls set_mset_mset subst_cls_def union_single_eq_member)
-    done
+  {
+    fix E
+    assume e_in: "E \<in> mset ` set (resolve_rename C D)"
 
-  obtain AA0 :: "'a multiset" where
-    aa0_sub: "poss AA0 \<subseteq># mset C" and
-    aa: "AA = AA0 \<cdot>am \<rho>"
-    using aa_sub
-    apply atomize_elim
-    apply (rule ord_resolve.cases[OF res_e])
-    by (rule bar_poss[OF aa_sub[unfolded subst_cls_def]])
+    from e_in obtain AA :: "'a multiset" and A :: 'a and \<sigma> :: 's where
+      aa_sub: "poss AA \<subseteq># mset C \<cdot> \<rho>" and
+      a_in: "Neg A \<in># mset D \<cdot> \<rho>'" and
+      res_e: "ord_resolve S [mset C \<cdot> \<rho>] {#L \<cdot>l \<rho>'. L \<in># mset D#} [AA] [A] \<sigma> E"
+      unfolding \<rho>'_def \<rho>_def
+      apply atomize_elim
+      using e_in unfolding resolve_rename_def Let_def resolve_eq_Bin_ord_resolve
+      apply auto
+      apply (frule ord_resolve_one_side_prem)
+      apply (frule ord_resolve.simps[THEN iffD1])
+      apply (case_tac AAs)
+       apply auto
+      apply (case_tac As)
+       apply auto
+      apply (rule_tac x = a in exI)
+      apply (auto simp: subst_cls_def)
+      apply (rule_tac x = aa in exI)
+      apply auto
+      apply (metis Melem_subst_cls set_mset_mset subst_cls_def union_single_eq_member)
+      done
 
-  obtain A0 :: 'a where
-    a0_in: "Neg A0 \<in># mset D" and
-    a: "A = A0 \<cdot>a \<rho>'"
-    apply atomize_elim
-    apply (rule ord_resolve.cases[OF res_e])
-    by (rule bar_Neg[OF a_in[unfolded subst_cls_def]])
+    obtain AA0 :: "'a multiset" where
+      aa0_sub: "poss AA0 \<subseteq># mset C" and
+      aa: "AA = AA0 \<cdot>am \<rho>"
+      using aa_sub
+      apply atomize_elim
+      apply (rule ord_resolve.cases[OF res_e])
+      by (rule bar_poss[OF aa_sub[unfolded subst_cls_def]])
 
-  show "E \<in> Bin_ord_resolve_rename (mset C) (mset D)"
-    unfolding ord_resolve_rename.simps
-    using res_e
-    apply auto
-    apply (rule_tac x = "[AA0]" in exI)
-    apply (intro conjI)
-     apply simp
-    apply (rule_tac x = "[A0]" in exI)
-    apply (intro conjI)
+    obtain A0 :: 'a where
+      a0_in: "Neg A0 \<in># mset D" and
+      a: "A = A0 \<cdot>a \<rho>'"
+      apply atomize_elim
+      apply (rule ord_resolve.cases[OF res_e])
+      by (rule bar_Neg[OF a_in[unfolded subst_cls_def]])
+
+    show "E \<in> Bin_ord_resolve_rename (mset C) (mset D)"
+      unfolding ord_resolve_rename.simps
+      using res_e
+      apply auto
+      apply (rule_tac x = "[AA0]" in exI)
+      apply (intro conjI)
        apply simp
-    using aa0_sub apply simp
-    using a0_in apply simp
-    apply (rule_tac x = \<sigma> in exI)
-    unfolding aa a \<rho>'_def[symmetric] \<rho>_def[symmetric] tl_\<rho>s
-    apply (simp add: subst_cls_def)
-    done
-next
-  fix E
-  assume e_in: "E \<in> Bin_ord_resolve_rename (mset C) (mset D)"
-  show "E \<in> mset ` set (resolve_rename C D)"
-    unfolding resolve_rename_def Let_def resolve_eq_Bin_ord_resolve
-    using e_in
-    unfolding ord_resolve_rename.simps
-    apply auto
-    apply (rule_tac x = "AAs \<cdot>\<cdot>aml tl (renamings_apart [mset D, mset C])" in exI)
-    apply (rule_tac x = "As \<cdot>al hd (renamings_apart [mset D, mset C])" in exI)
-    apply (rule_tac x = \<sigma> in exI)
-    sorry
+      apply (rule_tac x = "[A0]" in exI)
+      apply (intro conjI)
+         apply simp
+      using aa0_sub apply simp
+      using a0_in apply simp
+      apply (rule_tac x = \<sigma> in exI)
+      unfolding aa a \<rho>'_def[symmetric] \<rho>_def[symmetric] tl_\<rho>s
+      apply (simp add: subst_cls_def)
+      done
+  }
+  {
+    fix E
+    assume e_in: "E \<in> Bin_ord_resolve_rename (mset C) (mset D)"
+    show "E \<in> mset ` set (resolve_rename C D)"
+      unfolding resolve_rename_def Let_def resolve_eq_Bin_ord_resolve
+      using e_in
+      unfolding ord_resolve_rename.simps
+      apply auto
+      apply (rule_tac x = "AAs \<cdot>\<cdot>aml tl ?\<rho>s" in exI)
+      apply (rule_tac x = "As \<cdot>al \<rho>'" in exI)
+      apply (rule_tac x = \<sigma> in exI)
+      unfolding tl_\<rho>s \<rho>'_def \<rho>_def
+      apply (simp add: subst_cls_def subst_cls_lists_def)
+      done
+  }
 qed
 
 lemma ord_FO_\<Gamma>_side_prem: 
