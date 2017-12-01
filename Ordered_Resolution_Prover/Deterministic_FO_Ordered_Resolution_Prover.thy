@@ -461,9 +461,35 @@ lemma resolve_eq_Bin_ord_resolve:
 
 lemma resolve_rename_eq_Bin_ord_resolve_rename:
   "mset ` set (resolve_rename C D) = Bin_ord_resolve_rename (mset C) (mset D)"
-  unfolding resolve_rename_def ord_resolve_rename.simps Let_def resolve_eq_Bin_ord_resolve
-  apply auto
-  sorry (* not too bad *)
+proof (intro set_eq_subset[THEN iffD2] conjI subsetI)
+  fix E
+  assume e_in: "E \<in> mset ` set (resolve_rename C D)"
+  show "E \<in> Bin_ord_resolve_rename (mset C) (mset D)"
+    unfolding ord_resolve_rename.simps
+    using e_in
+    unfolding resolve_rename_def Let_def resolve_eq_Bin_ord_resolve
+    apply auto
+    apply (rule_tac x = "AAs \<cdot>\<cdot>aml map inv_renaming (tl (renamings_apart [mset D, mset C]))" in exI)
+    apply (intro conjI)
+     apply (erule ord_resolve.cases)
+    subgoal sorry
+    apply (rule_tac x = "As \<cdot>al inv_renaming (hd (renamings_apart [mset D, mset C]))" in exI)
+    apply (intro conjI)
+       apply (erule ord_resolve.cases)
+       apply fastforce
+      apply (erule ord_resolve.cases)
+    subgoal sorry
+     apply (erule ord_resolve.cases)
+    subgoal sorry
+    apply (rule_tac x = \<sigma> in exI)
+    subgoal sorry
+    done
+next
+  fix E
+  assume e_in: "E \<in> Bin_ord_resolve_rename (mset C) (mset D)"
+  show "E \<in> mset ` set (resolve_rename C D)"
+    sorry
+qed
 
 lemma ord_resolve_one_side_prem: "ord_resolve S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1"
   apply (erule ord_resolve.cases)
@@ -568,7 +594,6 @@ proof -
       apply simp
     apply (simp add: finite_ord_FO_resolution_inferences_between)
     apply (rule arg_cong[of _ _ "\<lambda>N. (\<lambda>D. (D, n)) ` N"])
-
     apply (simp only: map_concat list.map_comp image_comp)
     using resolve_rename_either_way_eq_congls_of_inferences_between[of C "fst ` set Q", symmetric]
     apply (simp only: image_comp comp_def)
