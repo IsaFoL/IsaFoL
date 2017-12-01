@@ -1255,7 +1255,7 @@ proof (cases rule: ord_resolve.cases)
       using subst_cls_empty_iff by blast
   qed
 
-  -- \<open>Lifting AAs's nonemptiness\<close>
+  -- \<open>Lifting AAs's non-emptiness\<close>
   have "\<forall>i < n. AAs' ! i \<noteq> {#}"
     using n aas_not_empt \<open>AAs' \<cdot>aml \<eta> = AAs\<close> by auto
 
@@ -1284,7 +1284,7 @@ proof (cases rule: ord_resolve.cases)
       .
   qed
 
-  -- \<open>Replace @{term \<eta>} with a true ground substitution\<close>
+  -- \<open>Replace @{term \<phi>} with a true ground substitution\<close>
   obtain \<eta>2 where
     ground_\<eta>2: "is_ground_subst \<eta>2" "E' \<cdot> \<eta>2 = E"
   proof -
@@ -1296,15 +1296,9 @@ proof (cases rule: ord_resolve.cases)
       using that e'\<phi>e make_ground_subst by auto
   qed
 
+  -- \<open>Wrap up the proof\<close>
   have "ord_resolve S (CAs'' \<cdot>\<cdot>cl \<rho>s) (DA'' \<cdot> \<rho>) (AAs'' \<cdot>\<cdot>aml \<rho>s) (As'' \<cdot>al \<rho>) \<tau> E'"
-    using res_e' 
-    apply (subgoal_tac "CAs' = (CAs'' \<cdot>\<cdot>cl \<rho>s)" "DA' = DA'' \<cdot> \<rho>" "AAs' = AAs'' \<cdot>\<cdot>aml \<rho>s" "As' = As'' \<cdot>al \<rho>")
-        apply simp
-       using As'_def \<rho>_def apply simp
-      using AAs'_def \<rho>s_def apply simp
-     using DA'_def \<rho>_def apply simp
-    using CAs'_def \<rho>s_def apply simp
-    done
+    using res_e' As'_def \<rho>_def AAs'_def \<rho>s_def DA'_def \<rho>_def CAs'_def \<rho>s_def by simp
   moreover have "\<forall>i<n. poss (AAs'' ! i) \<subseteq># CAs'' ! i"
     using as''(19) by auto
   moreover have "negs (mset As'') \<subseteq># DA''"
