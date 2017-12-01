@@ -138,34 +138,36 @@ fun reduce_all2 :: "'a lclause list \<Rightarrow> 'a dclause list \<Rightarrow> 
       (if C' = C then apsnd else apfst) (Cons (C', i)) (reduce_all2 Ds Cs))"
 
 fun resolve_on :: "'a lclause \<Rightarrow> 'a \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
-  "resolve_on C B D =
+  "resolve_on C A D =
    concat (map (\<lambda>L.
      (case L of
         Neg _ \<Rightarrow> []
-      | Pos A \<Rightarrow>
-        (case mgu {{A, B}} of
+      | Pos B \<Rightarrow>
+        (case mgu {{B, A}} of
            None \<Rightarrow> []
          | Some \<sigma> \<Rightarrow>
            let
              D' = map (\<lambda>M. M \<cdot>l \<sigma>) D;
-             B' = B \<cdot>a \<sigma>
+             A' = A \<cdot>a \<sigma>
            in
-             if maximal_wrt B' (mset D') then
+             if maximal_wrt A' (mset D') then
                let
                  C' = map (\<lambda>L. L \<cdot>l \<sigma>) (removeAll L C)
                in
-                 (if strictly_maximal_wrt B' (mset C') then [C' @ D'] else []) @ resolve_on C' B' D'
+                 (if strictly_maximal_wrt A' (mset C') then [C' @ D'] else []) @ resolve_on C' A' D'
              else
                []))) C)"
 
+declare resolve_on.simps [simp del]
+
 definition resolve :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve C D =
-   concat (map (\<lambda>M.
-     (case M of
+   concat (map (\<lambda>L.
+     (case L of
         Pos A \<Rightarrow> []
       | Neg A \<Rightarrow>
         if maximal_wrt A (mset D) then
-          resolve_on C A (remove1 M D)
+          resolve_on C A (remove1 L D)
         else
           [])) D)"
 
@@ -464,27 +466,23 @@ abbreviation Bin_ord_resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow>
 abbreviation Bin_ord_resolve_rename :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause set" where
   "Bin_ord_resolve_rename C D \<equiv> {E. \<exists>AA A \<sigma>. ord_resolve_rename S [C] D [AA] [A] \<sigma> E}"
 
-(* FIXME: not quite right *)
 lemma resolve_on_eq_UNION_Bin_ord_resolve:
   "mset ` set (resolve_on C A D) =
-   {E. \<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}"
+   {E. \<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg B#} + mset D) [AA] [A] \<sigma> E}"
+  sorry
+
+lemma set_resolve_eq_UNION_set_resolve_on:
+  "set (resolve C D) =
+   (\<Union>L \<in> set D. case L of Pos _ \<Rightarrow> {} | Neg A \<Rightarrow> set (resolve_on C A (remove1 L D)))"
+  unfolding resolve_def
   sorry
 
 lemma resolve_eq_Bin_ord_resolve:
   "mset ` set (resolve C D) = Bin_ord_resolve (mset C) (mset D)"
-proof (intro order_antisym subsetI)
-  fix E
-  assume e_in: "E \<in> mset ` set (resolve C D)"
-  show "E \<in> Bin_ord_resolve (mset C) (mset D)"
-    using e_in
-    unfolding resolve_def
-    sorry
-next
-  fix E
-  assume e_in: "E \<in> Bin_ord_resolve (mset C) (mset D)"
-  show "E \<in> mset ` set (resolve C D)"
-    sorry
-qed
+  unfolding set_resolve_eq_UNION_set_resolve_on
+  apply (unfold image_UN literal.case_distrib)
+  apply (subst resolve_on_eq_UNION_Bin_ord_resolve)
+  sorry
 
 (* FIXME: rename *)
 lemma foo_poss: "poss AA \<subseteq># map_clause f C \<Longrightarrow> \<exists>AA0. poss AA0 \<subseteq># C \<and> AA = {#f A. A \<in># AA0#}"
