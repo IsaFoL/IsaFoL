@@ -71,6 +71,9 @@ declare
 lemma remove1_mset_subset_eq: "remove1_mset a A \<subseteq># B \<longleftrightarrow> A \<subseteq># add_mset a B"
   by (metis add_mset_add_single subset_eq_diff_conv)
 
+lemma Bex_cong: "(\<And>b. b \<in> B \<Longrightarrow> P b = Q b) \<Longrightarrow> Bex B P = Bex B Q"
+  by auto
+
 lemma is_reducible_lit_code[code]: "RP.is_reducible_lit Ds C L =
   (\<exists>D \<in> set Ds. (\<exists>L' \<in> set D.
      if is_pos L' = is_neg L then
@@ -79,17 +82,15 @@ lemma is_reducible_lit_code[code]: "RP.is_reducible_lit Ds C L =
        | Some \<sigma> \<Rightarrow> subsumes_list (remove1 L' D) C \<sigma>)
      else False))"
   unfolding RP.is_reducible_lit_def subsumes_list_alt subsumes_modulo_def
+  apply (rule Bex_cong)+
+  subgoal for D L'
+  apply (cases L; cases L')
   apply (auto simp: 
     subst_cls_def subst_lit_def image_mset_remove1_mset_if dest!: match_term_list_sound
     elim!: bexI[rotated] split: option.splits)
-    apply (case_tac L; case_tac L'; auto simp: subst_of_map_def[abs_def]
-      dest!: match_term_list_complete intro: extends_subst_empty) []
-    apply (case_tac L; case_tac L'; auto simp: subst_of_map_def[abs_def]
-      dest!: match_term_list_complete intro: extends_subst_empty) []
-    apply (case_tac L; case_tac L'; auto simp: subst_of_map_def[abs_def]
-      dest!: match_term_list_complete intro: extends_subst_empty) []
-    apply (case_tac L; case_tac L'; auto simp: subst_of_map_def[abs_def]
-      dest!: match_term_list_complete intro: extends_subst_empty) []
+  subgoal for \<sigma> \<tau>
+    apply (rule exI[of _ "Some o \<sigma>"])
+    
    prefer 2
     apply (drule spec)
     apply (drule mp)
