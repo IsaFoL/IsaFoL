@@ -643,17 +643,16 @@ proof (intro order_antisym subsetI)
   }
 qed
 
-lemma ord_FO_\<Gamma>_side_prem: 
-  assumes \<gamma>_in: "\<gamma> \<in> ord_FO_\<Gamma> S"
-  shows "side_prems_of \<gamma> = {#THE D. D \<in># side_prems_of \<gamma>#}"
-  using \<gamma>_in unfolding ord_FO_\<Gamma>_def
-  apply clarsimp
-  apply (drule ord_resolve_rename_one_side_prem)
-  apply (case_tac CAs)
-   apply simp
-  apply (case_tac list)
-  apply simp+
-  done
+lemma bin_ord_FO_\<Gamma>_def:
+  "ord_FO_\<Gamma> S = {Infer {#CA#} DA E | CA DA AA A \<sigma> E. ord_resolve_rename S [CA] DA [AA] [A] \<sigma> E}"
+  unfolding ord_FO_\<Gamma>_def
+  apply auto
+   apply (frule ord_resolve_rename_one_side_prem)
+   apply auto
+  by (metis Suc_length_conv length_0_conv)
+
+lemma ord_FO_\<Gamma>_side_prem: "\<gamma> \<in> ord_FO_\<Gamma> S \<Longrightarrow> side_prems_of \<gamma> = {#THE D. D \<in># side_prems_of \<gamma>#}"
+  unfolding bin_ord_FO_\<Gamma>_def by clarsimp
 
 lemma ord_FO_\<Gamma>_infer_from_Collect_eq:
   "{\<gamma> \<in> ord_FO_\<Gamma> S. infer_from (DD \<union> {C}) \<gamma> \<and> C \<in># prems_of \<gamma>} =
@@ -676,22 +675,21 @@ lemma inferences_between_eq_UNION: "inference_system.inferences_between (ord_FO_
   \<union> (\<Union>D \<in> Q. inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C)"
   unfolding ord_FO_\<Gamma>_infer_from_Collect_eq inference_system.inferences_between_def by auto
 
+(* FIXME: rename *)
+lemma fooo: "add_mset x A = add_mset y B \<longleftrightarrow> x = y \<and> A = B \<or> x \<in># B \<and> y \<in># A \<and> A - {#y#} = B - {#x#}"
+  by (smt add_eq_conv_diff remove_1_mset_id_iff_notin single_remove1_mset_eq)
+
 lemma concls_of_inferences_between_singleton_eq_Bin_ord_resolve_rename:
   "concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C) =
    Bin_ord_resolve_rename C C \<union> Bin_ord_resolve_rename C D \<union> Bin_ord_resolve_rename D C"
+(* FIXME: compress proof *)
 proof (intro order_antisym subsetI)
   fix E
-  assume "E \<in> concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C)"
-  show "E \<in> Bin_ord_resolve_rename C C \<union> Bin_ord_resolve_rename C D \<union> Bin_ord_resolve_rename D C"
-    sorry
-qed (force simp: inference_system.inferences_between_def infer_from_def ord_FO_\<Gamma>_def)+
-
-(* FIXME
-  unfolding inference_system.inferences_between_def ord_FO_\<Gamma>_infer_from_Collect_eq
-  unfolding ord_FO_\<Gamma>_def infer_from_def
-  apply auto
-  sorry (* easy *)
-*)
+  assume e_in: "E \<in> concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C)"
+  then show "E \<in> Bin_ord_resolve_rename C C \<union> Bin_ord_resolve_rename C D \<union> Bin_ord_resolve_rename D C"
+    unfolding inference_system.inferences_between_def ord_FO_\<Gamma>_infer_from_Collect_eq
+      bin_ord_FO_\<Gamma>_def infer_from_def  by (fastforce simp: fooo)
+qed (force simp: inference_system.inferences_between_def infer_from_def ord_FO_\<Gamma>_def)
 
 lemma concls_of_inferences_between_eq_Bin_ord_resolve_rename:
   "concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) Q C) =
