@@ -150,11 +150,11 @@ fun resolve_on :: "'a lclause \<Rightarrow> 'a \<Rightarrow> 'a lclause \<Righta
              D' = map (\<lambda>M. M \<cdot>l \<sigma>) D;
              B' = B \<cdot>a \<sigma>
            in
-             if maximal_in B' (mset D') then
+             if maximal_wrt B' (mset D') then
                let
                  C' = map (\<lambda>L. L \<cdot>l \<sigma>) (removeAll L C)
                in
-                 (if strictly_maximal_in B' (mset C') then [C' @ D'] else []) @ resolve_on C' B' D'
+                 (if strictly_maximal_wrt B' (mset C') then [C' @ D'] else []) @ resolve_on C' B' D'
              else
                []))) C)"
 
@@ -164,15 +164,15 @@ definition resolve :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lcla
      (case M of
         Pos A \<Rightarrow> []
       | Neg A \<Rightarrow>
-        if maximal_in A (mset D) then
+        if maximal_wrt A (mset D) then
           resolve_on C A (remove1 M D)
         else
           [])) D)"
 
 definition resolve_rename :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve_rename C D =
-   (let \<sigma>s = renamings_apart [mset C, mset D] in
-      resolve (map (\<lambda>L. L \<cdot>l \<sigma>s ! 1) C) (map (\<lambda>L. L \<cdot>l \<sigma>s ! 0) D))"
+   (let \<sigma>s = renamings_apart [mset D, mset C] in
+      resolve (map (\<lambda>L. L \<cdot>l last \<sigma>s) C) (map (\<lambda>L. L \<cdot>l hd \<sigma>s) D))"
 
 definition resolve_rename_either_way :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve_rename_either_way C D = resolve_rename C D @ resolve_rename D C"
@@ -449,45 +449,181 @@ proof (induct Q' arbitrary: P Q)
   qed
 qed simp
 
-abbreviation Bin_ord_resolve_rename :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause set" where
-  "Bin_ord_resolve_rename C D \<equiv> {E. \<exists>AAs As \<sigma>. ord_resolve_rename S [C] D AAs As \<sigma> E}"
-
-lemma resolve_rename_eq_Bin_ord_resolve_rename:
-  "mset ` set (resolve_rename C D) = Bin_ord_resolve_rename (mset C) (mset D)"
-  unfolding resolve_rename_def
-  sorry (* maybe a bit hard *)
-
-lemma ord_resolve_one_side_prem: "ord_resolve S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1"
+lemma ord_resolve_one_side_prem:
+  "ord_resolve S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1 \<and> length AAs = 1 \<and> length As = 1"
   apply (erule ord_resolve.cases)
   unfolding eligible.simps S_empty by force
 
-lemma ord_resolve_rename_one_side_prem: "ord_resolve_rename S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1"
-  apply (erule ord_resolve_rename.cases)
-  apply (drule ord_resolve_one_side_prem)
-  apply (hypsubst)
-  apply simp
-  apply (unfold renames_apart[THEN conjunct1])
-  apply simp
+lemma ord_resolve_rename_one_side_prem:
+  "ord_resolve_rename S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1 \<and> length AAs = 1 \<and> length As = 1"
+  by (force elim!: ord_resolve_rename.cases dest: ord_resolve_one_side_prem)
+
+abbreviation Bin_ord_resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause set" where
+  "Bin_ord_resolve C D \<equiv> {E. \<exists>AA A \<sigma>. ord_resolve S [C] D [AA] [A] \<sigma> E}"
+
+abbreviation Bin_ord_resolve_rename :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause set" where
+  "Bin_ord_resolve_rename C D \<equiv> {E. \<exists>AA A \<sigma>. ord_resolve_rename S [C] D [AA] [A] \<sigma> E}"
+
+(* FIXME: not quite right *)
+lemma resolve_on_eq_UNION_Bin_ord_resolve:
+  "mset ` set (resolve_on C A D) =
+   {E. \<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}"
+  sorry
+
+lemma resolve_eq_Bin_ord_resolve:
+  "mset ` set (resolve C D) = Bin_ord_resolve (mset C) (mset D)"
+proof (intro order_antisym subsetI)
+  fix E
+  assume e_in: "E \<in> mset ` set (resolve C D)"
+  show "E \<in> Bin_ord_resolve (mset C) (mset D)"
+    using e_in
+    unfolding resolve_def
+    sorry
+next
+  fix E
+  assume e_in: "E \<in> Bin_ord_resolve (mset C) (mset D)"
+  show "E \<in> mset ` set (resolve C D)"
+    sorry
+qed
+
+(* FIXME: rename *)
+lemma foo_poss: "poss AA \<subseteq># map_clause f C \<Longrightarrow> \<exists>AA0. poss AA0 \<subseteq># C \<and> AA = {#f A. A \<in># AA0#}"
+  apply (drule image_mset_of_subset)
+  apply clarify
+  subgoal for C0
+    apply (induct C0 arbitrary: AA)
+     apply auto
+    apply (case_tac x)
+     apply auto
+    defer
+     apply (metis literal.distinct(1) msed_map_invR)
+    apply (rule_tac x = "add_mset x1 (image_mset atm_of C0)" in exI)
+    apply auto
+    sorry
   done
 
-lemma ord_FO_\<Gamma>_SD:
-  assumes \<gamma>_in: "\<gamma> \<in> ord_FO_\<Gamma> S"
-  obtains C D where
-    "prems_of \<gamma> = {#C, D#}"
-proof -
-  have "\<exists>C D. prems_of \<gamma> = {#C, D#}"
-    using \<gamma>_in unfolding ord_FO_\<Gamma>_def
-    apply clarsimp
-    apply (drule ord_resolve_rename_one_side_prem)
-    using size_1_singleton_mset by force
-  then show thesis
-    using that by blast
+(* FIXME: rename *)
+lemma bar_poss: "poss AA \<subseteq># {#L \<cdot>l \<rho>. L \<in># mset C#} \<Longrightarrow> \<exists>AA0. poss AA0 \<subseteq># mset C \<and> AA = AA0 \<cdot>am \<rho>"
+  unfolding subst_atm_mset_def subst_lit_def by (rule foo_poss)
+
+(* FIXME: rename *)
+lemma foo_Neg: "Neg A \<in> map_literal f ` D \<Longrightarrow> \<exists>A0. Neg A0 \<in> D \<and> A = f A0"
+  unfolding image_def by (clarify, case_tac x, auto)
+
+(* FIXME: rename *)
+lemma bar_Neg: "Neg A \<in># {#L \<cdot>l \<rho>'. L \<in># mset D#} \<Longrightarrow> \<exists>A0. Neg A0 \<in># mset D \<and> A = A0 \<cdot>a \<rho>'"
+  unfolding subst_lit_def apply (rule foo_Neg) by simp
+
+lemma resolve_rename_eq_Bin_ord_resolve_rename:
+  "mset ` set (resolve_rename C D) = Bin_ord_resolve_rename (mset C) (mset D)"
+proof (intro order_antisym subsetI)
+  let ?\<rho>s = "renamings_apart [mset D, mset C]"
+  define \<rho>' :: 's where
+    "\<rho>' = hd ?\<rho>s"
+  define \<rho> :: 's where
+    "\<rho> = last ?\<rho>s"
+
+  have tl_\<rho>s: "tl ?\<rho>s = [\<rho>]"
+    unfolding \<rho>_def
+    using renames_apart[THEN conjunct1, of "[mset D, mset C]"]
+    apply auto
+    by (smt Nitpick.size_list_simp(2) Suc_length_conv last.simps last_tl nat.distinct(1) old.nat.inject)
+
+  {
+    fix E
+    assume e_in: "E \<in> mset ` set (resolve_rename C D)"
+
+    from e_in obtain AA :: "'a multiset" and A :: 'a and \<sigma> :: 's where
+      aa_sub: "poss AA \<subseteq># mset C \<cdot> \<rho>" and
+      a_in: "Neg A \<in># mset D \<cdot> \<rho>'" and
+      res_e: "ord_resolve S [mset C \<cdot> \<rho>] {#L \<cdot>l \<rho>'. L \<in># mset D#} [AA] [A] \<sigma> E"
+      unfolding \<rho>'_def \<rho>_def
+      apply atomize_elim
+      using e_in unfolding resolve_rename_def Let_def resolve_eq_Bin_ord_resolve
+      apply auto
+      apply (frule ord_resolve_one_side_prem)
+      apply (frule ord_resolve.simps[THEN iffD1])
+      apply (rule_tac x = AA in exI)
+      apply (auto simp: subst_cls_def)
+      apply (rule_tac x = A in exI)
+       apply auto
+      apply (metis Melem_subst_cls set_mset_mset subst_cls_def union_single_eq_member)
+      done
+
+    obtain AA0 :: "'a multiset" where
+      aa0_sub: "poss AA0 \<subseteq># mset C" and
+      aa: "AA = AA0 \<cdot>am \<rho>"
+      using aa_sub
+      apply atomize_elim
+      apply (rule ord_resolve.cases[OF res_e])
+      by (rule bar_poss[OF aa_sub[unfolded subst_cls_def]])
+
+    obtain A0 :: 'a where
+      a0_in: "Neg A0 \<in> set D" and
+      a: "A = A0 \<cdot>a \<rho>'"
+      apply atomize_elim
+      apply (rule ord_resolve.cases[OF res_e])
+      using bar_Neg[OF a_in[unfolded subst_cls_def]] by simp
+
+    show "E \<in> Bin_ord_resolve_rename (mset C) (mset D)"
+      unfolding ord_resolve_rename.simps
+      using res_e
+      apply auto
+      apply (rule_tac x = AA0 in exI)
+      apply (intro conjI)
+       apply (rule aa0_sub)
+      apply (rule_tac x = A0 in exI)
+      apply (intro conjI)
+      apply (rule a0_in)
+      apply (rule_tac x = \<sigma> in exI)
+      unfolding aa a \<rho>'_def[symmetric] \<rho>_def[symmetric] tl_\<rho>s
+      apply (simp add: subst_cls_def)
+      done
+  }
+  {
+    fix E
+    assume e_in: "E \<in> Bin_ord_resolve_rename (mset C) (mset D)"
+    show "E \<in> mset ` set (resolve_rename C D)"
+      unfolding resolve_rename_def Let_def resolve_eq_Bin_ord_resolve
+      using e_in
+      unfolding ord_resolve_rename.simps
+      apply auto
+      apply (rule_tac x = "AA \<cdot>am \<rho>" in exI)
+      apply (rule_tac x = "A \<cdot>a \<rho>'" in exI)
+      apply (rule_tac x = \<sigma> in exI)
+      unfolding tl_\<rho>s \<rho>'_def \<rho>_def
+      apply (simp add: subst_cls_def subst_cls_lists_def)
+      done
+  }
 qed
+
+lemma ord_FO_\<Gamma>_side_prem: 
+  assumes \<gamma>_in: "\<gamma> \<in> ord_FO_\<Gamma> S"
+  shows "side_prems_of \<gamma> = {#THE D. D \<in># side_prems_of \<gamma>#}"
+  using \<gamma>_in unfolding ord_FO_\<Gamma>_def
+  apply clarsimp
+  apply (drule ord_resolve_rename_one_side_prem)
+  apply (case_tac CAs)
+   apply simp
+  apply (case_tac list)
+  apply simp+
+  done
 
 lemma ord_FO_\<Gamma>_infer_from_Collect_eq:
   "{\<gamma> \<in> ord_FO_\<Gamma> S. infer_from (DD \<union> {C}) \<gamma> \<and> C \<in># prems_of \<gamma>} =
    {\<gamma> \<in> ord_FO_\<Gamma> S. \<exists>D \<in> DD \<union> {C}. prems_of \<gamma> = {#C, D#}}"
-  sorry (* easy *)
+  unfolding infer_from_def
+  apply (rule set_eq_subset[THEN iffD2])
+  apply (rule conjI)
+   apply clarify
+   apply (subst (asm) (1 2) ord_FO_\<Gamma>_side_prem, assumption, assumption)
+   apply (subst (1) ord_FO_\<Gamma>_side_prem, assumption)
+   apply auto[1]
+  apply clarify
+  apply (subst (asm) (1) ord_FO_\<Gamma>_side_prem, assumption)
+  apply (subst (1 2) ord_FO_\<Gamma>_side_prem, assumption)
+  apply auto
+  done
 
 lemma inferences_between_eq_UNION: "inference_system.inferences_between (ord_FO_\<Gamma> S) Q C =
   inference_system.inferences_between (ord_FO_\<Gamma> S) {C} C
@@ -500,8 +636,6 @@ lemma concls_of_inferences_between_singleton_eq_Bin_ord_resolve_rename:
   unfolding inference_system.inferences_between_def ord_FO_\<Gamma>_infer_from_Collect_eq
   unfolding ord_FO_\<Gamma>_def infer_from_def
   apply auto
-
-
   sorry (* easy *)
 
 lemma concls_of_inferences_between_eq_Bin_ord_resolve_rename:
@@ -553,7 +687,6 @@ proof -
       apply simp
     apply (simp add: finite_ord_FO_resolution_inferences_between)
     apply (rule arg_cong[of _ _ "\<lambda>N. (\<lambda>D. (D, n)) ` N"])
-
     apply (simp only: map_concat list.map_comp image_comp)
     using resolve_rename_either_way_eq_congls_of_inferences_between[of C "fst ` set Q", symmetric]
     apply (simp only: image_comp comp_def)

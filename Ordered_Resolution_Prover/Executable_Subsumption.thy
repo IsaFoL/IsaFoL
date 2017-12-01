@@ -3,7 +3,6 @@
     Maintainer:  Anders Schlichtkrull <andschl at dtu.dk>
 *)
 
-
 section \<open>An Executable Algorithm for Clause Subsumption\<close>
 
 theory Executable_Subsumption
