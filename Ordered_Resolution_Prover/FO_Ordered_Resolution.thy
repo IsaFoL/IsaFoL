@@ -879,6 +879,12 @@ proof (cases rule: ord_resolve.cases)
     by auto
 qed
 
+lemma
+  assumes "Pos A \<in># C"
+  shows "A \<in> atms_of C"
+  using assms
+  by (simp add: atm_iff_pos_or_neg_lit) 
+
 lemma ord_resolve_rename_lifting:
   assumes
     sel_stable: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
@@ -1000,10 +1006,14 @@ proof (cases rule: ord_resolve.cases)
   from DA'_split have negs_As'_subset_DA': "negs (mset As') \<subseteq># DA'"
     by auto
 
-  have "\<forall>i<n. CAs' ! i = Cs' ! i + poss (AAs' ! i)" 
+  have CAs'_split: "\<forall>i<n. CAs' ! i = Cs' ! i + poss (AAs' ! i)" 
     using as''(19) CAs'_def Cs'_def AAs'_def n by auto
   then have "\<forall>i<n. Cs' ! i \<subseteq># CAs' ! i"
     by auto
+  from CAs'_split have poss_AAs'_subset_CAs': "\<forall>i<n. poss (AAs' ! i) \<subseteq># CAs' ! i"
+    by auto
+  then have AAs'_in_atms_of_CAs': "\<forall>i < n. \<forall>A\<in>#AAs' ! i. A \<in> atms_of (CAs' ! i)"
+    by (auto simp add: atm_iff_pos_or_neg_lit)
 
   have as':
     "S_M S M (D + negs (mset As)) \<noteq> {#} \<Longrightarrow> negs (mset As') = S DA'"
@@ -1064,9 +1074,7 @@ proof (cases rule: ord_resolve.cases)
     proof (rule, rule)
       fix i :: "nat"
       assume a: "i < length (As' \<cdot>al \<eta>)"
-      then have "\<forall>A. A \<in> atms_of ((DA' # CAs') ! Suc i) \<longrightarrow> A \<cdot>a (\<eta>' # \<eta>s') ! Suc i = A \<cdot>a \<eta>"
-        using \<eta>_p_atm n by force
-      then have A_eq: "\<forall>A. A \<in> atms_of DA' \<longrightarrow> A \<cdot>a \<eta>' = A \<cdot>a \<eta>"
+      have A_eq: "\<forall>A. A \<in> atms_of DA' \<longrightarrow> A \<cdot>a \<eta>' = A \<cdot>a \<eta>"
         using \<eta>_p_atm n by force
       have "As' ! i \<in> atms_of DA'"
         using negs_As'_subset_DA' unfolding atms_of_def 
@@ -1122,7 +1130,30 @@ proof (cases rule: ord_resolve.cases)
   qed
 
   have AAs'_AAs: "AAs' \<cdot>aml \<eta> = AAs"
-    using AAs'_AAs \<eta>_p sorry (* Looks reasonable, but a bit tricky to prove *)
+  proof (rule nth_equalityI)
+    show "length (AAs' \<cdot>aml \<eta>) = length AAs" 
+      using n by auto
+  next
+    show "\<forall>i<length (AAs' \<cdot>aml \<eta>). (AAs' \<cdot>aml \<eta>) ! i = AAs ! i"
+    proof (rule, rule)
+      fix i :: "nat"
+      assume a: "i < length (AAs' \<cdot>aml \<eta>)"
+      then have "i < n"
+        using n by force
+      then have "\<forall>A. A \<in> atms_of ((DA' # CAs') ! Suc i) \<longrightarrow> A \<cdot>a (\<eta>' # \<eta>s') ! Suc i = A \<cdot>a \<eta>"
+        using \<eta>_p_atm n by force
+      then have A_eq: "\<forall>A. A \<in> atms_of (CAs' ! i) \<longrightarrow> A \<cdot>a \<eta>s' ! i = A \<cdot>a \<eta>"
+        by auto
+      have AAs_CAs': "\<forall>A \<in># AAs' ! i. A \<in> atms_of (CAs' ! i)"
+        using AAs'_in_atms_of_CAs' unfolding atms_of_def 
+        using a n by force
+      then have "AAs' ! i \<cdot>am  \<eta>s' ! i = AAs' ! i \<cdot>am \<eta>"
+        unfolding subst_atm_mset_def using A_eq unfolding subst_atm_mset_def by auto
+      then show "(AAs' \<cdot>aml \<eta>) ! i = AAs ! i" 
+         using AAs'_AAs \<open>length AAs' = n\<close> \<open>length \<eta>s' = n\<close> a by auto
+    qed
+  qed
+
 
   -- \<open>Obtain MGU and substitution\<close>
   obtain \<tau> \<phi> where \<tau>\<phi>:
