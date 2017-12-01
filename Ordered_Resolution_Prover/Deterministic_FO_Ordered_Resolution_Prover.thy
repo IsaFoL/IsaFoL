@@ -478,15 +478,13 @@ proof (intro order_antisym subsetI, unfold mem_Collect_eq)
   fix E
   assume e_in: "E \<in> mset ` set (resolve_on C A D)"
   show "\<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E"
-    sorry
 next
   fix E
   assume e_in: "\<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E"
   show "E \<in> mset ` set (resolve_on C A D)"
-    sorry
 qed
 *)
-  sorry
+  sorry (* hard *)
 
 lemma set_resolve_eq_UNION_set_resolve_on:
   "set (resolve C D) =
@@ -520,19 +518,35 @@ lemma resolve_eq_Bin_ord_resolve: "mset ` set (resolve C D) = Bin_ord_resolve (m
 
 (* FIXME: rename *)
 lemma foo_poss: "poss AA \<subseteq># map_clause f C \<Longrightarrow> \<exists>AA0. poss AA0 \<subseteq># C \<and> AA = {#f A. A \<in># AA0#}"
-  apply (drule image_mset_of_subset)
-  apply clarify
-  subgoal for C0
-    apply (induct C0 arbitrary: AA)
-     apply auto
+proof (induct AA arbitrary: C)
+  case (add A AA)
+  note ih = this(1) and aaa_sub = this(2)
+
+  have "Pos A \<in># map_clause f C"
+    using aaa_sub by auto
+  then obtain A0 where
+    pa0_in: "Pos A0 \<in># C" and
+    a: "A = f A0"
+    apply atomize_elim
+    apply clarify
     apply (case_tac x)
-     apply auto
-    defer
-     apply (metis literal.distinct(1) msed_map_invR)
-    apply (rule_tac x = "add_mset x1 (image_mset atm_of C0)" in exI)
     apply auto
-    sorry (* should be easy *)
-  done
+    done
+
+  have "poss AA \<subseteq># map_clause f (C - {#Pos A0#})"
+    using pa0_in aaa_sub[unfolded a] by (simp add: image_mset_remove1_mset_if insert_subset_eq_iff)
+  then obtain AA0 where
+    paa0_sub: "poss AA0 \<subseteq># C - {#Pos A0#}" and
+    aa: "AA = image_mset f AA0"
+    using ih by meson
+
+  have "poss (add_mset A0 AA0) \<subseteq># C"
+    using pa0_in paa0_sub by (simp add: insert_subset_eq_iff)
+  moreover have "add_mset A AA = image_mset f (add_mset A0 AA0)"
+    unfolding a aa by simp
+  ultimately show ?case
+    by blast
+qed simp
 
 (* FIXME: rename *)
 lemma bar_poss: "poss AA \<subseteq># {#L \<cdot>l \<rho>. L \<in># mset C#} \<Longrightarrow> \<exists>AA0. poss AA0 \<subseteq># mset C \<and> AA = AA0 \<cdot>am \<rho>"
