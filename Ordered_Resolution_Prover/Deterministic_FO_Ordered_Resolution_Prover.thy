@@ -482,14 +482,29 @@ qed
 
 (* FIXME: rename *)
 lemma foo_poss: "poss AA \<subseteq># map_clause f C \<Longrightarrow> \<exists>AA0. poss AA0 \<subseteq># C \<and> AA = {#f A. A \<in># AA0#}"
-  sorry
+  apply (drule image_mset_of_subset)
+  apply clarify
+  subgoal for C0
+    apply (induct C0 arbitrary: AA)
+     apply auto
+    apply (case_tac x)
+     apply auto
+    defer
+     apply (metis literal.distinct(1) msed_map_invR)
+    apply (rule_tac x = "add_mset x1 (image_mset atm_of C0)" in exI)
+    apply auto
+    sorry
+  done
 
+(* FIXME: rename *)
 lemma bar_poss: "poss AA \<subseteq># {#L \<cdot>l \<rho>. L \<in># mset C#} \<Longrightarrow> \<exists>AA0. poss AA0 \<subseteq># mset C \<and> AA = AA0 \<cdot>am \<rho>"
   unfolding subst_atm_mset_def subst_lit_def by (rule foo_poss)
 
+(* FIXME: rename *)
 lemma foo_Neg: "Neg A \<in> map_literal f ` D \<Longrightarrow> \<exists>A0. Neg A0 \<in> D \<and> A = f A0"
   unfolding image_def by (clarify, case_tac x, auto)
 
+(* FIXME: rename *)
 lemma bar_Neg: "Neg A \<in># {#L \<cdot>l \<rho>'. L \<in># mset D#} \<Longrightarrow> \<exists>A0. Neg A0 \<in># mset D \<and> A = A0 \<cdot>a \<rho>'"
   unfolding subst_lit_def apply (rule foo_Neg) by simp
 
