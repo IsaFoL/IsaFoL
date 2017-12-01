@@ -485,11 +485,17 @@ lemma resolve_rename_eq_Bin_ord_resolve_rename:
 proof (intro order_antisym subsetI)
   fix E
   assume e_in: "E \<in> mset ` set (resolve_rename C D)"
-  then obtain AA :: "'a multiset" and A :: 'a and \<sigma> :: 's where
-    aa_sub: "poss AA \<subseteq># {#L \<cdot>l last (renamings_apart [mset D, mset C]). L \<in># mset C#}" and
-    a_in: "Neg A \<in># {#L \<cdot>l hd (renamings_apart [mset D, mset C]). L \<in># mset D#}" and
-    res_e: "ord_resolve S [{#L \<cdot>l last (renamings_apart [mset D, mset C]). L \<in># mset C#}]
-       {#L \<cdot>l hd (renamings_apart [mset D, mset C]). L \<in># mset D#} [AA] [A] \<sigma> E"
+
+  define \<rho>' :: 's where
+    "\<rho>' = hd (renamings_apart [mset D, mset C])"
+  define \<rho> :: 's where
+    "\<rho> = last (renamings_apart [mset D, mset C])"
+
+  from e_in obtain AA :: "'a multiset" and A :: 'a and \<sigma> :: 's where
+    aa_sub: "poss AA \<subseteq># {#L \<cdot>l \<rho>. L \<in># mset C#}" and
+    a_in: "Neg A \<in># mset D \<cdot> \<rho>'" and
+    res_e: "ord_resolve S [mset C \<cdot> \<rho>] {#L \<cdot>l \<rho>'. L \<in># mset D#} [AA] [A] \<sigma> E"
+    unfolding \<rho>'_def \<rho>_def
     apply atomize_elim
     using e_in unfolding resolve_rename_def Let_def resolve_eq_Bin_ord_resolve
     apply auto
@@ -503,17 +509,22 @@ proof (intro order_antisym subsetI)
     apply auto
     apply (rule_tac x = aa in exI)
     apply auto
-    by (metis multiset.set_map set_mset_mset union_single_eq_member)
+     apply (metis Melem_subst_cls set_mset_mset subst_cls_def union_single_eq_member)
+    apply (rule_tac x = \<sigma> in exI)
+    apply (auto simp: subst_cls_def)
+    done
 
   obtain AA0 :: "'a multiset" where
     aa0_sub: "poss AA0 \<subseteq># mset C" and
     aa: "AA = AA0 \<cdot>am last (renamings_apart [mset D, mset C])"
+    apply atomize_elim
     apply (rule ord_resolve.cases[OF res_e])
     sorry
 
   obtain A0 :: 'a where
     a0_in: "Neg A0 \<in># mset D" and
     a: "A = A0 \<cdot>a hd (renamings_apart [mset D, mset C])"
+    apply atomize_elim
     apply (rule ord_resolve.cases[OF res_e])
     sorry
 
