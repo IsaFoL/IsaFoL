@@ -679,10 +679,42 @@ lemma inferences_between_eq_UNION: "inference_system.inferences_between (ord_FO_
 lemma concls_of_inferences_between_singleton_eq_Bin_ord_resolve_rename:
   "concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C) =
    Bin_ord_resolve_rename C C \<union> Bin_ord_resolve_rename C D \<union> Bin_ord_resolve_rename D C"
+proof (intro order_antisym subsetI; (elim UnE)?)
+  fix E
+  assume "E \<in> concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C)"
+  show "E \<in> Bin_ord_resolve_rename C C \<union> Bin_ord_resolve_rename C D \<union> Bin_ord_resolve_rename D C"
+    sorry
+next
+  fix E
+  assume "E \<in> Bin_ord_resolve_rename C C"
+  then show "E \<in> concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C)"
+    unfolding inference_system.inferences_between_def ord_FO_\<Gamma>_infer_from_Collect_eq
+    unfolding ord_FO_\<Gamma>_def infer_from_def
+    apply (auto simp: image_def)
+    apply (unfold ex_simps(1)[symmetric])
+    apply auto
+    apply (rule_tac x = "[C]" in exI)
+    apply (rule_tac x = C in exI)
+    apply auto
+    done
+next
+  fix E
+  assume "E \<in> Bin_ord_resolve_rename C D"
+  show "E \<in> concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C)"
+    sorry
+next
+  fix E
+  assume "E \<in> Bin_ord_resolve_rename D C"
+  show "E \<in> concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) {D} C)"
+    sorry
+qed
+
+(* FIXME
   unfolding inference_system.inferences_between_def ord_FO_\<Gamma>_infer_from_Collect_eq
   unfolding ord_FO_\<Gamma>_def infer_from_def
   apply auto
   sorry (* easy *)
+*)
 
 lemma concls_of_inferences_between_eq_Bin_ord_resolve_rename:
   "concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) Q C) =
