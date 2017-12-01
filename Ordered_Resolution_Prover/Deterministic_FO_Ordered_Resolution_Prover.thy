@@ -488,6 +488,13 @@ next
   fix E
   assume e_in: "E \<in> Bin_ord_resolve_rename (mset C) (mset D)"
   show "E \<in> mset ` set (resolve_rename C D)"
+    unfolding resolve_rename_def Let_def resolve_eq_Bin_ord_resolve
+    using e_in
+    unfolding ord_resolve_rename.simps
+    apply auto
+    apply (rule_tac x = "AAs \<cdot>\<cdot>aml tl (renamings_apart [mset D, mset C])" in exI)
+    apply (rule_tac x = "As \<cdot>al hd (renamings_apart [mset D, mset C])" in exI)
+    apply (rule_tac x = \<sigma> in exI)
     sorry
 qed
 
