@@ -451,10 +451,14 @@ proof (induct Q' arbitrary: P Q)
   qed
 qed simp
 
+lemma bin_eligible:
+  "eligible S \<sigma> As DA \<longleftrightarrow> As = [] \<or> length As = 1 \<and> maximal_wrt (hd As \<cdot>a \<sigma>) (DA \<cdot> \<sigma>)"
+  unfolding eligible.simps S_empty by (fastforce dest: hd_conv_nth)
+
 lemma ord_resolve_one_side_prem:
   "ord_resolve S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1 \<and> length AAs = 1 \<and> length As = 1"
   apply (erule ord_resolve.cases)
-  unfolding eligible.simps S_empty by force
+  unfolding bin_eligible by force
 
 lemma ord_resolve_rename_one_side_prem:
   "ord_resolve_rename S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1 \<and> length AAs = 1 \<and> length As = 1"
@@ -468,7 +472,7 @@ abbreviation Bin_ord_resolve_rename :: "'a clause \<Rightarrow> 'a clause \<Righ
 
 lemma resolve_on_eq_UNION_Bin_ord_resolve:
   "mset ` set (resolve_on C A D) =
-   {E. \<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg B#} + mset D) [AA] [A] \<sigma> E}"
+   {E. \<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}"
   sorry
 
 lemma set_resolve_eq_UNION_set_resolve_on:
@@ -479,13 +483,27 @@ lemma set_resolve_eq_UNION_set_resolve_on:
        | Neg A \<Rightarrow> if maximal_wrt A (mset D) then set (resolve_on C A (remove1 L D)) else {}))"
   unfolding resolve_def by (fastforce split: literal.splits if_splits)
 
-lemma resolve_eq_Bin_ord_resolve:
-  "mset ` set (resolve C D) = Bin_ord_resolve (mset C) (mset D)"
+lemma resolve_eq_Bin_ord_resolve: "mset ` set (resolve C D) = Bin_ord_resolve (mset C) (mset D)"
   unfolding set_resolve_eq_UNION_set_resolve_on
   apply (unfold image_UN literal.case_distrib if_distrib)
   apply (subst resolve_on_eq_UNION_Bin_ord_resolve)
   apply (auto split: literal.splits if_splits)
-  sorry
+   apply force
+  apply (rule_tac x = "Neg A" in bexI)
+   apply auto
+    apply (rule_tac x = AA in exI)
+    apply (rule_tac x = \<sigma> in exI)
+    apply (frule ord_resolve.simps[THEN iffD1])
+    apply auto[1]
+   apply (drule ord_resolve.simps[THEN iffD1])
+   apply (unfold bin_eligible)
+   apply (clarsimp simp del: subst_cls_add_mset subst_cls_union)
+   apply (drule maximal_wrt_subst)
+   apply satx
+   apply (drule ord_resolve.simps[THEN iffD1])
+   apply auto[1]
+  using set_mset_mset apply fastforce
+  done
 
 (* FIXME: rename *)
 lemma foo_poss: "poss AA \<subseteq># map_clause f C \<Longrightarrow> \<exists>AA0. poss AA0 \<subseteq># C \<and> AA = {#f A. A \<in># AA0#}"
