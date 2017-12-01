@@ -473,6 +473,7 @@ abbreviation Bin_ord_resolve_rename :: "'a clause \<Rightarrow> 'a clause \<Righ
 lemma resolve_on_eq_UNION_Bin_ord_resolve:
   "mset ` set (resolve_on C A D) =
    {E. \<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}"
+(* FIXME: not yet -- express resolve on as the union of all literals of C
 proof (intro order_antisym subsetI, unfold mem_Collect_eq)
   fix E
   assume e_in: "E \<in> mset ` set (resolve_on C A D)"
@@ -484,6 +485,8 @@ next
   show "E \<in> mset ` set (resolve_on C A D)"
     sorry
 qed
+*)
+  sorry
 
 lemma set_resolve_eq_UNION_set_resolve_on:
   "set (resolve C D) =
