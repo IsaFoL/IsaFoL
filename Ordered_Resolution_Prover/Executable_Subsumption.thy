@@ -11,18 +11,13 @@ theory Executable_Subsumption
     "$ISAFOR/Rewriting/Matching"
 begin
 
-context notes find_Some_iff[termination_simp] begin
 fun subsumes_list where
   "subsumes_list [] Ks \<sigma> = True"
 | "subsumes_list (L # Ls) Ks \<sigma> =
-     (case List.find (\<lambda>K. is_pos K = is_pos L \<and> match_term_list [(atm_of L, atm_of K)] \<sigma> \<noteq> None) Ks of
-       None \<Rightarrow> False
-     | Some K \<Rightarrow>
-         subsumes_list Ls (remove1 K Ks) (the (match_term_list [(atm_of L, atm_of K)] \<sigma>)) \<or>
-         subsumes_list (L # Ls) (removeAll K Ks) \<sigma>)"
-end
-
-declare subsumes_list.simps(2)[simp del]
+     (\<exists>K \<in> set Ks. is_pos K = is_pos L \<and>
+       (case match_term_list [(atm_of L, atm_of K)] \<sigma> of
+         None \<Rightarrow> False
+       | Some \<rho> \<Rightarrow> subsumes_list Ls (remove1 K Ks) \<rho>))"
 
 lemma atm_of_map_literal[simp]: "atm_of (map_literal f l) = f (atm_of l)"
   by (cases l; simp)
@@ -60,7 +55,7 @@ lemma extends_subst_cong_lit:
   by (cases L) (auto simp: extends_subst_cong_term)
 
 definition "subsumes_modulo C D \<sigma> =
-   (\<exists>\<tau>. vars_clause C \<subseteq> dom \<tau> \<and> extends_subst \<sigma> \<tau> \<and> subst_cls C (subst_of_map Var \<tau>) \<subseteq># D)"
+   (\<exists>\<tau>. dom \<tau> = vars_clause C \<union> dom \<sigma> \<and> extends_subst \<sigma> \<tau> \<and> subst_cls C (subst_of_map Var \<tau>) \<subseteq># D)"
 
 abbreviation subsumes_list_modulo where
   "subsumes_list_modulo Ls Ks \<sigma> \<equiv> subsumes_modulo (mset Ls) (mset Ks) \<sigma>"
@@ -69,48 +64,55 @@ lemma vars_clause_add_mset[simp]: "vars_clause (add_mset L C) = vars_lit L \<uni
   unfolding vars_clause_def by auto
 
 lemma subsumes_list_modulo_Cons: "subsumes_list_modulo (L # Ls) Ks \<sigma> \<longleftrightarrow>
-  (\<exists>K \<in> set Ks. \<exists>\<tau>. extends_subst \<sigma> \<tau> \<and> vars_lit L \<subseteq> dom \<tau> \<and> L \<cdot>lit (subst_of_map Var \<tau>) = K
+  (\<exists>K \<in> set Ks. \<exists>\<tau>. extends_subst \<sigma> \<tau> \<and> dom \<tau> = vars_lit L \<union> dom \<sigma> \<and> L \<cdot>lit (subst_of_map Var \<tau>) = K
      \<and> subsumes_list_modulo Ls (remove1 K Ks) \<tau>)"
   unfolding subsumes_modulo_def
   apply safe
    apply (auto simp: insert_subset_eq_iff subst_lit_def subst_cls_def literal.map_ident
      intro: extends_subst_refl extends_subst_trans)
-  apply (intro exI conjI)
-      prefer 3
-      apply (rule extends_subst_trans; assumption)
-     apply (erule (1) order_trans[OF _ extends_subst_dom])
-    apply assumption
-  apply (auto simp: extends_subst_cong_lit)
+   apply (erule bexI[rotated])
+  subgoal for \<tau>
+    apply (rule exI[of _ "\<lambda>x. if x \<in> vars_lit L \<union> dom \<sigma> then \<tau> x else None"], intro conjI)
+         apply (auto 0 3 simp: extends_subst_def dom_def split: if_splits
+        intro!: extends_subst_cong_lit exI[of _ \<tau>])
+    done
+  subgoal for \<tau> \<tau>'
+    apply (rule exI[of _ \<tau>'])
+    apply (auto simp: extends_subst_cong_lit elim!: extends_subst_trans)
+    done
   done
 
 lemma match_term_list_sound: "match_term_list tus \<sigma> = Some \<tau> \<Longrightarrow>
-  extends_subst \<sigma> \<tau> \<and> (\<Union>(t, u)\<in>set tus. vars_term t) \<subseteq> dom \<tau> \<and> (\<forall>(t,u)\<in>set tus. t \<cdot> subst_of_map Var \<tau> = u)"
+  extends_subst \<sigma> \<tau> \<and> dom \<tau> = (\<Union>(t, u)\<in>set tus. vars_term t) \<union> dom \<sigma> \<and>
+  (\<forall>(t,u)\<in>set tus. t \<cdot> subst_of_map Var \<tau> = u)"
   apply (induct tus \<sigma> arbitrary: \<tau> rule: match_term_list.induct)
      apply (auto simp: exteinds_subst_fun_upd_new exteinds_subst_fun_upd_matching
       subst_of_map_def split: if_splits option.splits
       cong: list.map_cong)
-         apply fastforce
-        apply fastforce
-       apply fastforce
-    apply (metis domIff extends_subst_def option.simps(3))
-    apply (metis domIff extends_subst_def option.simps(3))
-    apply (metis domIff extends_subst_def option.inject option.simps(3))
+      apply fastforce
+     apply (metis domI extends_subst_def option.inject)
+    apply (drule meta_spec2)
+    apply (drule meta_mp)
+     apply (rule refl)
+    apply (drule meta_mp)
+     apply assumption
+    apply (fastforce simp: list_eq_iff_nth_eq Ball_def UN_subset_iff in_set_zip in_set_conv_nth)
+   apply (drule meta_spec2)
+   apply (drule meta_mp)
+    apply (rule refl)
+   apply (drule meta_mp)
+    apply assumption
+   apply (fastforce simp: list_eq_iff_nth_eq Ball_def in_set_zip in_set_conv_nth)
   apply (drule meta_spec2)
   apply (drule meta_mp)
-   apply (rule refl)
+  apply (rule refl)
   apply (drule meta_mp)
-   apply assumption
-   apply (fastforce simp: list_eq_iff_nth_eq Ball_def UN_subset_iff in_set_zip in_set_conv_nth)
-  apply (drule meta_spec2)
-  apply (drule meta_mp)
-   apply (rule refl)
-  apply (drule meta_mp)
-   apply assumption
+  apply assumption
   apply (fastforce simp: list_eq_iff_nth_eq Ball_def in_set_zip in_set_conv_nth)
   done
 
 lemma match_term_list_complete: "match_term_list tus \<sigma> = None \<Longrightarrow>
-   extends_subst \<sigma> \<tau> \<Longrightarrow> (\<Union>(t, u)\<in>set tus. vars_term t) \<subseteq> dom \<tau> \<Longrightarrow>
+   extends_subst \<sigma> \<tau> \<Longrightarrow> dom \<tau> = (\<Union>(t, u)\<in>set tus. vars_term t) \<union> dom \<sigma> \<Longrightarrow>
     (\<exists>(t,u)\<in>set tus. t \<cdot> subst_of_map Var \<tau> \<noteq> u)"
   apply (induct tus \<sigma> arbitrary: \<tau> rule: match_term_list.induct)
      apply (auto simp: exteinds_subst_fun_upd_new exteinds_subst_fun_upd_matching
@@ -125,72 +127,62 @@ lemma match_term_list_complete: "match_term_list tus \<sigma> = None \<Longright
   apply (drule meta_mp)
     apply assumption
   apply (drule meta_mp)
-  apply (drule decompose_Some; auto simp: dom_def Ball_def UN_subset_iff in_set_zip)
-  apply (drule spec)
-  apply (drule mp)
-   prefer 2
-   apply (drule set_mp, assumption)
-   apply auto [2]
-   apply (drule decompose_Some; auto)
+   apply (drule decompose_Some; auto simp: dom_def Ball_def UN_subset_iff in_set_zip)
+   apply (drule spec)
+   apply (drule mp)
+    prefer 2
+    apply auto [2]
    apply (fastforce simp: list_eq_iff_nth_eq Ball_def in_set_zip in_set_conv_nth)
+  apply (drule decompose_Some; auto)
+  apply (fastforce simp: list_eq_iff_nth_eq Ball_def in_set_zip in_set_conv_nth)
   done
 
-lemma subsumes_modulo_mono: "A \<subseteq># B \<Longrightarrow> subsumes_modulo C A \<sigma> \<Longrightarrow> subsumes_modulo C B \<sigma>"
-  unfolding subsumes_modulo_def by (force elim: subset_mset.order_trans)
+lemma unique_extends_subst:
+  assumes extends: "extends_subst \<sigma> \<tau>" "extends_subst \<sigma> \<rho>"
+      and dom: "dom \<tau> = vars_term t \<union> dom \<sigma>" "dom \<rho> = vars_term t \<union> dom \<sigma>"
+      and eq: "t \<cdot> subst_of_map Var \<rho> = t \<cdot> subst_of_map Var \<tau>"
+  shows "\<rho> = \<tau>"
+proof
+  fix x
+  consider (a) "x \<in> dom \<sigma>" | (b) "x \<in> vars_term t" | (c) "x \<notin> dom \<tau>" using assms by auto
+  then show"\<rho> x = \<tau> x"
+  proof cases
+    case a
+    then show ?thesis using extends unfolding extends_subst_def by auto
+  next
+    case b
+    with eq show ?thesis
+    proof (induct t)
+      case (Var x)
+      with trans[OF dom(1) dom(2)[symmetric]] show ?case
+        by (auto simp: subst_of_map_def split: option.splits)
+    qed auto
+  next
+    case c
+    then have "\<rho> x = None" "\<tau> x = None" using dom by auto
+    then show ?thesis by simp
+  qed
+qed
 
 lemma subsumes_list_alt:
   "subsumes_list Ls Ks \<sigma> \<longleftrightarrow> subsumes_list_modulo Ls Ks \<sigma>"
 proof (induction Ls Ks \<sigma> rule: subsumes_list.induct[case_names Nil Cons])
   case (Cons L Ls Ks \<sigma>)
   show ?case
-  proof (cases "find (\<lambda>K. is_pos K = is_pos L \<and> match_term_list [(atm_of L, atm_of K)] \<sigma> \<noteq> None) Ks")
-    case None
-    show ?thesis
-      unfolding subsumes_list_modulo_Cons subsumes_list.simps(2)[of L Ls Ks] None using None
-      by (force simp: find_None_iff dest: match_term_list_complete split: option.splits)
-  next
-    case (Some K)
-    then obtain \<tau> where
-      "K \<in> set Ks" "is_pos K = is_pos L" "match_term_list [(atm_of L, atm_of K)] \<sigma> = Some \<tau>"
-      unfolding find_Some_iff by auto
-    then show ?thesis
-      unfolding subsumes_list_modulo_Cons subsumes_list.simps(2)[of L Ls Ks] Some Let_def
-        option.simps Cons.IH[OF Some]
-      apply safe
-      subgoal
-        apply (erule bexI[rotated]; rule exI[of _ \<tau>]; simp; cases L; cases K; simp)
-        by (auto dest!: match_term_list_sound)
-      subgoal for _ \<tau>'
-        apply (rule bexI[of _ "L \<cdot>lit subst_of_map Var \<tau>'"])
-         apply (rule exI[of _ \<tau>'])
-         apply (auto elim!: subsumes_modulo_mono[rotated]
-           simp: subset_eq_diff_conv mset_removeAll[symmetric] simp del: mset_removeAll)
-        done
-      subgoal for _ \<tau>'
-        apply (cases "K \<noteq> L \<cdot>lit subst_of_map Var \<tau>'")
-        subgoal
-          apply (erule notE)
-          apply (rule bexI[of _ "L \<cdot>lit subst_of_map Var \<tau>'"])
-          apply (rule exI[of _ \<tau>'])
-           apply (auto dest!: match_term_list_sound)
-          apply (auto simp: subsumes_modulo_def)
-          subgoal for \<tau>'' apply (rule exI[of _ \<tau>'']) apply auto
-        sorry
-      subgoal
-        apply (erule bexI[rotated]; rule exI[of _ \<tau>]; simp; cases L; cases K; simp)
-        by (auto dest!: match_term_list_sound)
-      subgoal for _ \<tau>'
-        apply (rule bexI[of _ "L \<cdot>lit subst_of_map Var \<tau>'"])
-         apply (rule exI[of _ \<tau>'])
-         apply (auto elim!: subsumes_modulo_mono[rotated]
-           simp: subset_eq_diff_conv mset_removeAll[symmetric] simp del: mset_removeAll)
-        done
-      subgoal for _ \<tau>'
-        apply (cases "K =  L \<cdot>lit subst_of_map Var \<tau>'")
-         apply (auto dest!: match_term_list_sound) []
-        sorry
+    unfolding subsumes_list_modulo_Cons subsumes_list.simps
+    apply (auto simp: Cons.IH split: option.splits elim!: bexI[rotated] dest!: match_term_list_sound)
+    subgoal for K \<tau>
+      apply (cases "match_term_list [(atm_of L, atm_of K)] \<sigma>")
+      subgoal by (auto dest!: match_term_list_complete)
+      subgoal for \<tau>' by (cases K; cases L; auto dest!: match_term_list_sound)
       done
-  qed
+    subgoal for \<tau>
+      using match_term_list_complete[of "[(atm_of L, atm_of L \<cdot> subst_of_map Var \<tau>)]" \<sigma> \<tau>]
+      by auto
+    subgoal for \<tau> \<rho>
+      using unique_extends_subst[of \<sigma> \<tau> \<rho> "atm_of L"]
+      by auto
+    done
 qed (auto simp: subsumes_modulo_def subst_cls_def vars_clause_def intro: extends_subst_refl) 
 
 lemma subsumes_subsumes_list[code_unfold]:
@@ -199,10 +191,11 @@ unfolding subsumes_list_alt[of Ls Ks Map.empty]
 proof
   assume "subsumes (mset Ls) (mset Ks)"
   then obtain \<sigma> where "subst_cls (mset Ls) \<sigma> \<subseteq># mset Ks" unfolding subsumes_def by blast
-  moreover define \<tau> where "\<tau> = Some o \<sigma>"
+  moreover define \<tau> where "\<tau> = (\<lambda>x. if x \<in> vars_clause (mset Ls) then Some (\<sigma> x) else None)"
   ultimately show "subsumes_list_modulo Ls Ks Map.empty"
     unfolding subsumes_modulo_def
-    by (auto intro!: exI[of _ \<tau>] simp: subst_of_map_def[abs_def])
+    by (subst (asm) same_on_vars_clause[of _ \<sigma> "subst_of_map Var \<tau>"])
+      (auto intro!: exI[of _ \<tau>] simp: subst_of_map_def[abs_def] split: if_splits)
 qed (auto simp: subsumes_modulo_def subst_lit_def subsumes_def)
 
 lemma strictly_subsumes_subsumes_list[code_unfold]:
