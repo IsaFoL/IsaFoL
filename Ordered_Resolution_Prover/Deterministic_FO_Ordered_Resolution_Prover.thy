@@ -729,7 +729,6 @@ proof -
     using ms_ci_in
       apply (simp add: ci_in image_mset_remove1_mset_if)
     using ci_min
-(*
      apply (meson in_diffD)
     apply (simp only: list.map_comp apfst_comp_rpair_const)
     apply (simp only: list.map_comp[symmetric])
@@ -746,8 +745,6 @@ proof -
     apply (simp only: image_comp comp_def)
     apply (simp add: image_UN)
     done
-*)
-    sorry
 qed
 
 lemma nonfinal_deterministic_RP_step:

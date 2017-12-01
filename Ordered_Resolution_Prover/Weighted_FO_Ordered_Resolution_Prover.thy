@@ -78,7 +78,7 @@ inductive weighted_RP :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" 
 | inference_computation: "(\<forall>(D, j) \<in># P. weight (C, i) \<le> weight (D, j)) \<Longrightarrow>
     N = mset_set ((\<lambda>D. (D, n)) ` concls_of
       (inference_system.inferences_between (ord_FO_\<Gamma> S) (set_mset (image_mset fst Q)) C)) \<Longrightarrow>
-    ({#}, P + {#(C, i)#}, Q, n) \<leadsto>\<^sub>w (N, {#(D, j) \<in># P. D \<noteq> C#}, Q + {#(C, i)#}, Suc n)"
+    ({#}, P + {#(C, i)#}, Q, n) \<leadsto>\<^sub>w (N, P, Q + {#(C, i)#}, Suc n)"
 
 definition weighted_RP_Non_Inference :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w\<^sub>n\<^sub>i" 50) where
   "St \<leadsto>\<^sub>w\<^sub>n\<^sub>i St' \<longleftrightarrow> St \<leadsto>\<^sub>w St' \<and> N_of_wstate St \<noteq> {}"
@@ -94,8 +94,7 @@ proof (induction rule: weighted_RP.induct)
   case (inference_computation P C i N n Q)
   show ?case
     by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>", OF _ _
-          RP.inference_computation[of "fst ` set_mset N" "fst ` set_mset Q" C
-            "fst ` set_mset P - {C}"]],
+          RP.inference_computation[of "fst ` set_mset N" "fst ` set_mset Q" C "fst ` set_mset P"]],
         use inference_computation(2) finite_ord_FO_resolution_inferences_between
           in \<open>auto simp: comp_def image_comp inference_system.inferences_between_def\<close>)
 qed (use RP.intros in simp_all)
