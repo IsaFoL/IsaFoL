@@ -449,6 +449,15 @@ proof (induct Q' arbitrary: P Q)
   qed
 qed simp
 
+lemma ord_resolve_one_side_prem:
+  "ord_resolve S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1 \<and> length AAs = 1 \<and> length As = 1"
+  apply (erule ord_resolve.cases)
+  unfolding eligible.simps S_empty by force
+
+lemma ord_resolve_rename_one_side_prem:
+  "ord_resolve_rename S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1 \<and> length AAs = 1 \<and> length As = 1"
+  by (force elim!: ord_resolve_rename.cases dest: ord_resolve_one_side_prem)
+
 abbreviation Bin_ord_resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause set" where
   "Bin_ord_resolve C D \<equiv> {E. \<exists>AAs As \<sigma>. ord_resolve S [C] D AAs As \<sigma> E}"
 
@@ -463,7 +472,6 @@ proof (intro order_antisym subsetI)
   show "E \<in> Bin_ord_resolve (mset C) (mset D)"
     using e_in
     unfolding resolve_def
-
     sorry
 next
   fix E
@@ -477,26 +485,53 @@ lemma resolve_rename_eq_Bin_ord_resolve_rename:
 proof (intro order_antisym subsetI)
   fix E
   assume e_in: "E \<in> mset ` set (resolve_rename C D)"
+  then obtain AA :: "'a multiset" and A :: 'a and \<sigma> :: 's where
+    aa_sub: "poss AA \<subseteq># {#L \<cdot>l last (renamings_apart [mset D, mset C]). L \<in># mset C#}" and
+    a_in: "Neg A \<in># {#L \<cdot>l hd (renamings_apart [mset D, mset C]). L \<in># mset D#}" and
+    res_e: "ord_resolve S [{#L \<cdot>l last (renamings_apart [mset D, mset C]). L \<in># mset C#}]
+       {#L \<cdot>l hd (renamings_apart [mset D, mset C]). L \<in># mset D#} [AA] [A] \<sigma> E"
+    apply atomize_elim
+    using e_in unfolding resolve_rename_def Let_def resolve_eq_Bin_ord_resolve
+    apply auto
+    apply (frule ord_resolve_one_side_prem)
+    apply (frule ord_resolve.simps[THEN iffD1])
+     apply (case_tac AAs)
+     apply auto
+    apply (case_tac As)
+     apply auto
+    apply (rule_tac x = a in exI)
+    apply auto
+    apply (rule_tac x = aa in exI)
+    apply auto
+    by (metis multiset.set_map set_mset_mset union_single_eq_member)
+
+  obtain AA0 :: "'a multiset" where
+    aa0_sub: "poss AA0 \<subseteq># mset C" and
+    aa: "AA = AA0 \<cdot>am last (renamings_apart [mset D, mset C])"
+    apply (rule ord_resolve.cases[OF res_e])
+    sorry
+
+  obtain A0 :: 'a where
+    a0_in: "Neg A0 \<in># mset D" and
+    a: "A = A0 \<cdot>a hd (renamings_apart [mset D, mset C])"
+    apply (rule ord_resolve.cases[OF res_e])
+    sorry
+
   show "E \<in> Bin_ord_resolve_rename (mset C) (mset D)"
     unfolding ord_resolve_rename.simps
-    using e_in
-    unfolding resolve_rename_def Let_def resolve_eq_Bin_ord_resolve
+    using res_e
     apply auto
-    apply (rule_tac x = "AAs \<cdot>\<cdot>aml map inv_renaming (tl (renamings_apart [mset D, mset C]))" in exI)
+    apply (rule_tac x = "[AA0]" in exI)
     apply (intro conjI)
-     apply (erule ord_resolve.cases)
-    subgoal sorry
-    apply (rule_tac x = "As \<cdot>al inv_renaming (hd (renamings_apart [mset D, mset C]))" in exI)
+     apply simp
+    apply (rule_tac x = "[A0]" in exI)
     apply (intro conjI)
-       apply (erule ord_resolve.cases)
-       apply fastforce
-      apply (erule ord_resolve.cases)
-    subgoal sorry
-     apply (erule ord_resolve.cases)
-    subgoal sorry
+       apply simp
+    using aa0_sub apply simp
+    using a0_in apply simp
     apply (rule_tac x = \<sigma> in exI)
-    subgoal sorry
-    done
+    apply simp
+    sorry
 next
   fix E
   assume e_in: "E \<in> Bin_ord_resolve_rename (mset C) (mset D)"
@@ -510,19 +545,6 @@ next
     apply (rule_tac x = \<sigma> in exI)
     sorry
 qed
-
-lemma ord_resolve_one_side_prem: "ord_resolve S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1"
-  apply (erule ord_resolve.cases)
-  unfolding eligible.simps S_empty by force
-
-lemma ord_resolve_rename_one_side_prem: "ord_resolve_rename S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1"
-  apply (erule ord_resolve_rename.cases)
-  apply (drule ord_resolve_one_side_prem)
-  apply (hypsubst)
-  apply simp
-  apply (unfold renames_apart[THEN conjunct1])
-  apply simp
-  done
 
 lemma ord_FO_\<Gamma>_side_prem: 
   assumes \<gamma>_in: "\<gamma> \<in> ord_FO_\<Gamma> S"
