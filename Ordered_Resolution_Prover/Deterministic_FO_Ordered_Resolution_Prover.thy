@@ -473,15 +473,18 @@ lemma resolve_on_eq_UNION_Bin_ord_resolve:
 
 lemma set_resolve_eq_UNION_set_resolve_on:
   "set (resolve C D) =
-   (\<Union>L \<in> set D. case L of Pos _ \<Rightarrow> {} | Neg A \<Rightarrow> set (resolve_on C A (remove1 L D)))"
-  unfolding resolve_def
-  sorry
+   (\<Union>L \<in> set D.
+      (case L of
+         Pos _ \<Rightarrow> {}
+       | Neg A \<Rightarrow> if maximal_wrt A (mset D) then set (resolve_on C A (remove1 L D)) else {}))"
+  unfolding resolve_def by (fastforce split: literal.splits if_splits)
 
 lemma resolve_eq_Bin_ord_resolve:
   "mset ` set (resolve C D) = Bin_ord_resolve (mset C) (mset D)"
   unfolding set_resolve_eq_UNION_set_resolve_on
-  apply (unfold image_UN literal.case_distrib)
+  apply (unfold image_UN literal.case_distrib if_distrib)
   apply (subst resolve_on_eq_UNION_Bin_ord_resolve)
+  apply (auto split: literal.splits if_splits)
   sorry
 
 (* FIXME: rename *)
