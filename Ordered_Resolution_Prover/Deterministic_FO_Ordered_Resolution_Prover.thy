@@ -473,7 +473,17 @@ abbreviation Bin_ord_resolve_rename :: "'a clause \<Rightarrow> 'a clause \<Righ
 lemma resolve_on_eq_UNION_Bin_ord_resolve:
   "mset ` set (resolve_on C A D) =
    {E. \<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}"
-  sorry
+proof (intro order_antisym subsetI, unfold mem_Collect_eq)
+  fix E
+  assume e_in: "E \<in> mset ` set (resolve_on C A D)"
+  show "\<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E"
+    sorry
+next
+  fix E
+  assume e_in: "\<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E"
+  show "E \<in> mset ` set (resolve_on C A D)"
+    sorry
+qed
 
 lemma set_resolve_eq_UNION_set_resolve_on:
   "set (resolve C D) =
@@ -518,7 +528,7 @@ lemma foo_poss: "poss AA \<subseteq># map_clause f C \<Longrightarrow> \<exists>
      apply (metis literal.distinct(1) msed_map_invR)
     apply (rule_tac x = "add_mset x1 (image_mset atm_of C0)" in exI)
     apply auto
-    sorry
+    sorry (* should be easy *)
   done
 
 (* FIXME: rename *)
