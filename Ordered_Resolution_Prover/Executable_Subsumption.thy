@@ -145,7 +145,7 @@ lemma unique_extends_subst:
 proof
   fix x
   consider (a) "x \<in> dom \<sigma>" | (b) "x \<in> vars_term t" | (c) "x \<notin> dom \<tau>" using assms by auto
-  then show"\<rho> x = \<tau> x"
+  then show "\<rho> x = \<tau> x"
   proof cases
     case a
     then show ?thesis using extends unfolding extends_subst_def by auto
