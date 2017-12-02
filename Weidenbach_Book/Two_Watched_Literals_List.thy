@@ -69,7 +69,8 @@ lemma convert_lits_l_nil[simp]: \<open>convert_lits_l N [] = []\<close>
 lemma convert_lits_l_cons[simp]: \<open>convert_lits_l N (L # M) = convert_lit N L # convert_lits_l N M\<close>
   by (auto simp: convert_lits_l_def)
 
-lemma convert_lits_l_append[simp]: \<open>convert_lits_l N (M @ M') = convert_lits_l N M @ convert_lits_l N M'\<close>
+lemma convert_lits_l_append[simp]:
+  \<open>convert_lits_l N (M @ M') = convert_lits_l N M @ convert_lits_l N M'\<close>
   by (auto simp: convert_lits_l_def)
 
 
@@ -1827,9 +1828,9 @@ definition find_unassigned_lit_l :: \<open>'v twl_st_l \<Rightarrow> 'v literal 
      SPEC (\<lambda>L.
          (L \<noteq> None \<longrightarrow>
             undefined_lit M (the L) \<and>
-            atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N)))) \<and>
+            atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N)) + NP)) \<and>
          (L = None \<longrightarrow> (\<nexists>L'. undefined_lit M L' \<and>
-            atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N))))))
+            atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N)) + NP))))
      )\<close>
 
 definition decide_l_or_skip_pre where
@@ -1885,26 +1886,16 @@ proof -
     obtain M N U D NP UP WS Q where S: \<open>S = (M, N, U, None, NP, UP, WS, Q)\<close>
       using SS' by (cases S) auto
     have [dest!]:
-      \<open>atm_of L \<in> atms_of_ms (mset ` set (take U (tl N)))\<close>
+      \<open>atm_of L \<in> atms_of_mm (mset `# mset (take U (tl N)) + NP)\<close>
       if U: \<open>atm_of L \<in> atms_of_ms (mset ` set (drop U (tl N)))\<close> and
         undef: \<open>undefined_lit M L\<close>
       for L
     proof -
       have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of None S))\<close> and
-        unit: \<open>unit_clss_inv (twl_st_of None S)\<close>
+        unit: \<open>entailed_clss_inv (twl_st_of None S)\<close>
         using SS' unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
         by fast+
-      moreover have \<open>atm_of L \<notin> atms_of_mm NP\<close>
-      proof (rule ccontr)
-        assume \<open>\<not> ?thesis\<close>
-        then obtain C where C: \<open>C \<in># NP\<close> and LC: \<open>atm_of L \<in> atms_of C\<close>
-          by (auto  simp: S atms_of_ms_def atms_of_def)
-        then obtain L' where \<open>C = {#L'#}\<close> and \<open>defined_lit M L'\<close>
-          using unit by (auto simp: S Decided_Propagated_in_iff_in_lits_of_l)
-        then show False
-          using LC undef by (auto simp: atm_of_eq_atm_of)
-      qed
-      ultimately show ?thesis
+      then show ?thesis
         using that
         by (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def S cdcl\<^sub>W_restart_mset_state image_Un
             mset_take_mset_drop_mset' drop_Suc)

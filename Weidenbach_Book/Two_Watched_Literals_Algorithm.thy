@@ -384,9 +384,9 @@ definition find_unassigned_lit :: \<open>'v twl_st \<Rightarrow> 'v literal opti
   \<open>find_unassigned_lit = (\<lambda>S.
       SPEC (\<lambda>L.
         (L \<noteq> None \<longrightarrow> undefined_lit (get_trail S) (the L) \<and>
-          atm_of (the L) \<in> atms_of_mm (clause `# get_clauses S)) \<and>
+          atm_of (the L) \<in> atms_of_mm (get_all_init_clss S)) \<and>
         (L = None \<longrightarrow> (\<nexists>L. undefined_lit (get_trail S) L \<and>
-         atm_of L \<in> atms_of_mm (clause `# get_clauses S)))))\<close>
+         atm_of L \<in> atms_of_mm (get_all_init_clss S)))))\<close>
 
 definition propagate_dec where
   \<open>propagate_dec = (\<lambda>L (M, N, U, D, NP, UP, WS, Q). (Decided L # M, N, U, D, NP, UP, WS, {#-L#}))\<close>
@@ -413,7 +413,7 @@ proof -
   obtain M N U NP UP where S: \<open>S = (M, N, U, None, NP, UP, {#}, {#})\<close>
     using assms by (cases S) auto
   have atm_N_U:
-    \<open>atm_of L \<in> atms_of_ms (clause ` set_mset N)\<close>
+    \<open>atm_of L \<in> atms_of_mm (clauses N + NP)\<close>
     if U: \<open>atm_of L \<in> atms_of_ms (clause ` set_mset U)\<close> and
        undef: \<open>undefined_lit M L\<close>
     for L
@@ -421,26 +421,16 @@ proof -
     have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of S)\<close> and unit: \<open>unit_clss_inv S\<close>
       using twl unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       by fast+
-    moreover have \<open>atm_of L \<notin> atms_of_mm NP\<close>
-    proof (rule ccontr)
-      assume \<open>\<not> ?thesis\<close>
-      then obtain C where C: \<open>C \<in># NP\<close> and LC: \<open>atm_of L \<in> atms_of C\<close>
-        by (auto  simp: S atms_of_ms_def atms_of_def)
-      then obtain L' where \<open>C = {#L'#}\<close> and \<open>defined_lit M L'\<close>
-        using unit by (auto simp: S Decided_Propagated_in_iff_in_lits_of_l)
-      then show False
-        using LC undef by (auto simp: atm_of_eq_atm_of)
-    qed
-    ultimately show ?thesis
+    then show ?thesis
       using that
       by (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def S cdcl\<^sub>W_restart_mset_state image_Un)
   qed
   {
     fix L
-    assume undef: \<open>undefined_lit M L\<close> and L: \<open>atm_of L \<in> atms_of_mm (clause `# N)\<close>
+    assume undef: \<open>undefined_lit M L\<close> and L: \<open>atm_of L \<in> atms_of_mm (clauses N + NP)\<close>
     let ?T = \<open>(Decided L # M, N, U, None, NP, UP, {#}, {#- L#})\<close>
     have o: \<open>cdcl_twl_o (M, N, U, None, NP, UP, {#}, {#}) ?T\<close>
-      by (rule cdcl_twl_o.decide) (use undef L in \<open>auto\<close>)
+      by (rule cdcl_twl_o.decide) (use undef L in auto)
     have twl': \<open>twl_struct_invs ?T\<close>
       using S cdcl_twl_o_twl_struct_invs o twl by blast
     have twl_s': \<open>twl_stgy_invs ?T\<close>
@@ -1277,9 +1267,11 @@ lemma cdcl_twl_stgy_prog_spec:
         by (metis (no_types, hide_lams) TU UV ns_TV rtranclp_cdcl_twl_cp_stgyD
             rtranclp_cdcl_twl_o_stgyD rtranclp_tranclp_tranclp rtranclp_unfold)
       then show brkV
-        using T V' \<open>literals_to_update U = {#}\<close>  unfolding V'_V that[symmetric] by (auto simp: ns_U_U)
+        using T V' \<open>literals_to_update U = {#}\<close> unfolding V'_V that[symmetric]
+        by (auto simp: ns_U_U)
     qed
-    then show \<open>(V', (brkT, T)) \<in> {((brkT, T), (brkS, S)). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T} \<union>
+    then show
+      \<open>(V', (brkT, T)) \<in> {((brkT, T), (brkS, S)). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T} \<union>
       {((brkT, T), brkS, S). S = T \<and> brkT \<and> \<not> brkS}\<close>
       using TV_or_tranclp_TV unfolding V'_V by auto
   qed

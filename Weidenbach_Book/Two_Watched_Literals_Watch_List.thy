@@ -966,9 +966,9 @@ definition find_unassigned_lit_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v litera
      SPEC (\<lambda>L.
          (L \<noteq> None \<longrightarrow>
             undefined_lit M (the L) \<and>
-            atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N)))) \<and>
+            atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N)) + NP)) \<and>
          (L = None \<longrightarrow> (\<nexists>L'. undefined_lit M L' \<and>
-            atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N))))))
+            atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N)) + NP))))
      )\<close>
 
 definition decide_wl_or_skip_pre where
@@ -1010,7 +1010,8 @@ proof -
     if \<open>S = st_l_of_wl None S'\<close>
     for S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st_wl\<close>
     using that
-    by (cases S') (auto simp: find_unassigned_lit_wl_def find_unassigned_lit_l_def)
+    by (cases S') (auto simp: find_unassigned_lit_wl_def find_unassigned_lit_l_def
+        mset_take_mset_drop_mset')
   have option: \<open>(x, x') \<in> \<langle>Id\<rangle>option_rel\<close> if \<open>x = x'\<close> for x x'
     using that by (auto)
   show ?thesis
@@ -1544,8 +1545,8 @@ proof -
        unfolding S' correct_watching.simps clause_to_update_def get_clauses_l.simps .
 
     show ?thesis
-      unfolding propagate_unit_bt_wl_def propagate_unit_bt_l_def S' T' U U' st_l_of_wl.simps get_trail_wl.simps
-      list_of_mset_def
+      unfolding propagate_unit_bt_wl_def propagate_unit_bt_l_def S' T' U U'
+        st_l_of_wl.simps get_trail_wl.simps list_of_mset_def
       apply clarify
       apply (refine_rcg)
       subgoal using SS' by (auto simp: S')
@@ -1555,7 +1556,8 @@ proof -
 
   have H: \<open>?bt \<in> ?A \<rightarrow> \<langle>{(T', T). st_l_of_wl None T' = T \<and> correct_watching T'}\<rangle>nres_rel\<close>
     unfolding backtrack_wl_def backtrack_l_def
-    apply (refine_vcg find_decomp_wl find_lit_of_max_level_wl extract_shorter_conflict_wl; remove_dummy_vars)
+    apply (refine_vcg find_decomp_wl find_lit_of_max_level_wl extract_shorter_conflict_wl;
+        remove_dummy_vars)
     subgoal unfolding backtrack_wl_inv_def by auto
     subgoal by (auto simp: get_trail_l_st_l_of_wl)
     subgoal by (auto simp: get_conflict_l_st_l_of_wl)

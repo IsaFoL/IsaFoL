@@ -125,7 +125,7 @@ text \<open>We do not care about the \<^term>\<open>literals_to_update\<close> l
 inductive cdcl_twl_o :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
   decide:
   \<open>cdcl_twl_o (M, N, U, None, NP, UP, {#}, {#}) (Decided L # M, N, U, None, NP, UP, {#}, {#-L#})\<close>
-  if \<open>undefined_lit M L\<close> and \<open>atm_of L \<in> atms_of_mm (clause `# N)\<close>
+  if \<open>undefined_lit M L\<close> and \<open>atm_of L \<in> atms_of_mm (clause `# N + NP)\<close>
 | skip:
   \<open>cdcl_twl_o (Propagated L C' # M, N, U, Some D, NP, UP, {#}, {#})
   (M, N, U, Some D, NP, UP, {#}, {#})\<close>
@@ -331,7 +331,7 @@ text \<open>All the unit clauses are all propagated initially except when we hav
 fun unit_clss_inv :: \<open>'v twl_st \<Rightarrow> bool\<close> where
   \<open>unit_clss_inv (M, N, U, D, NP, UP, WS, Q) \<longleftrightarrow>
     (\<forall>C \<in># NP + UP.
-      (\<exists>L. C = {#L#} \<and> (D = None \<or> count_decided M > 0 \<longrightarrow> get_level M L = 0 \<and> L \<in> lits_of_l M)))\<close>
+      (\<exists>L. L \<in># C \<and> (D = None \<or> count_decided M > 0 \<longrightarrow> get_level M L = 0 \<and> L \<in> lits_of_l M)))\<close>
 
 text \<open>
   \<^term>\<open>literals_to_update\<close> literals are of maximum level and their negation is in the trail.
@@ -2459,7 +2459,7 @@ lemma cdcl_twl_o_cdcl\<^sub>W_o:
   shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
   using cdcl twl valid inv
 proof (induction rule: cdcl_twl_o.induct)
-  case (decide M L N U NP UP) note undef = this(1) and atm = this(2)
+  case (decide M L N NP U UP) note undef = this(1) and atm = this(2)
   have \<open>cdcl\<^sub>W_restart_mset.decide (state\<^sub>W_of (M, N, U, None, NP, UP, {#}, {#}))
     (state\<^sub>W_of (Decided L # M, N, U, None, NP, UP, {#}, {#-L#}))\<close>
     apply (rule cdcl\<^sub>W_restart_mset.decide_rule)
@@ -2633,14 +2633,14 @@ next
     fix C
     assume \<open>C \<in># NP + UP\<close>
     then obtain L where
-      C: \<open>C ={#L#}\<close> and lev_L: \<open>get_level M L = 0\<close> and L_M: \<open>L \<in> lits_of_l M\<close>
+      C: \<open>L \<in># C\<close> and lev_L: \<open>get_level M L = 0\<close> and L_M: \<open>L \<in> lits_of_l M\<close>
       using unit by auto
     have \<open>atm_of L' \<noteq> atm_of L\<close>
       using undef L_M by (auto simp: defined_lit_map lits_of_def)
-    then show \<open>\<exists>L. C = {#L#} \<and> (None = None \<or> 0 < count_decided (Propagated L' (clause D) # M) \<longrightarrow>
+    then show \<open>\<exists>L. L \<in># C \<and> (None = None \<or> 0 < count_decided (Propagated L' (clause D) # M) \<longrightarrow>
       get_level (Propagated L' (clause D) # M) L = 0 \<and>
       L \<in> lits_of_l (Propagated L' (clause D) # M))\<close>
-      using lev_L L_M unfolding C by auto
+      using lev_L L_M C by auto
   qed
 next
   case (conflict D L L' M N U NP UP WS Q)
@@ -2696,7 +2696,7 @@ lemma
     cdcl_twl_o_past_invs: \<open>past_invs T\<close>
   using cdcl twl
 proof (induction rule: cdcl_twl_o.induct)
-  case (decide M K N U NP UP) note undef = this(1) and atm = this(2)
+  case (decide M K N NP U UP) note undef = this(1) and atm = this(2)
 
   case 1 note invs = this(1)
   let ?S = \<open>(M, N, U, None, NP, UP, {#}, {#})\<close>
@@ -3458,7 +3458,7 @@ lemma
     twl_o_clauses_to_update: \<open>clauses_to_update_inv T\<close>
   using cdcl twl
 proof (induction rule: cdcl_twl_o.induct)
-  case (decide M L N U NP UP)
+  case (decide M L N NP U UP)
   let ?S = \<open>(M, N, U, None, NP, UP, {#}, {#})\<close>
   let ?T = \<open>(Decided L # M, N, U, None, NP, UP, {#}, {#-L#})\<close>
   case 1
@@ -4044,7 +4044,7 @@ lemma cdcl_twl_o_unit_clss_inv:
   shows \<open>unit_clss_inv T\<close>
   using cdcl unit
 proof (induction rule: cdcl_twl_o.induct)
-  case (decide M L N U NP UP) note undef = this(1) and twl = this(3)
+  case (decide M L N NP U UP) note undef = this(1) and twl = this(3)
   then have unit: \<open>unit_clss_inv (M, N, U, None, NP, UP, {#}, {#})\<close>
     unfolding twl_struct_invs_def by fast
   show ?case
@@ -4052,11 +4052,11 @@ proof (induction rule: cdcl_twl_o.induct)
   proof (intro allI impI)
     fix C
     assume \<open>C \<in># NP + UP\<close>
-    then obtain K where \<open>C = {#K#}\<close> and K: \<open>K \<in> lits_of_l M\<close> and \<open>get_level M K = 0\<close>
+    then obtain K where \<open>K \<in># C\<close> and K: \<open>K \<in> lits_of_l M\<close> and \<open>get_level M K = 0\<close>
       using unit by auto
     moreover have \<open>atm_of L \<noteq> atm_of K\<close>
       using undef K by (auto simp: defined_lit_map lits_of_def)
-    ultimately show \<open>\<exists>La. C = {#La#} \<and> (None = None \<or> 0 < count_decided (Decided L # M) \<longrightarrow>
+    ultimately show \<open>\<exists>La. La \<in># C \<and> (None = None \<or> 0 < count_decided (Decided L # M) \<longrightarrow>
       get_level (Decided L # M) La = 0 \<and> La \<in> lits_of_l (Decided L # M))\<close>
       by auto
   qed
@@ -4071,23 +4071,23 @@ next
     case True note [simp] = this
     fix C
     assume \<open>C \<in># NP + UP\<close>
-    then obtain K where \<open>C = {#K#}\<close>
+    then obtain K where \<open>K \<in># C\<close>
       using unit by auto
-    then show \<open>\<exists>L. C = {#L#} \<and> (Some D = None \<or> 0 < count_decided M \<longrightarrow>
+    then show \<open>\<exists>L. L \<in># C \<and> (Some D = None \<or> 0 < count_decided M \<longrightarrow>
         get_level M L = 0 \<and> L \<in> lits_of_l M)\<close>
       by auto
   next
     case False
     fix C
     assume \<open>C \<in># NP + UP\<close>
-    then obtain K where \<open>C = {#K#}\<close> and K: \<open>K \<in> lits_of_l ?M\<close> and lev_K: \<open>get_level ?M K = 0\<close>
+    then obtain K where \<open>K \<in># C\<close> and K: \<open>K \<in> lits_of_l ?M\<close> and lev_K: \<open>get_level ?M K = 0\<close>
       using unit False by auto
     moreover {
       have \<open>get_level ?M L > 0\<close>
         using False by auto
       then have \<open>atm_of L \<noteq> atm_of K\<close>
         using lev_K by fastforce }
-    ultimately show \<open>\<exists>L. C = {#L#} \<and> (Some D = None \<or> 0 < count_decided M \<longrightarrow>
+    ultimately show \<open>\<exists>L. L \<in># C \<and> (Some D = None \<or> 0 < count_decided M \<longrightarrow>
         get_level M L = 0 \<and> L \<in> lits_of_l M)\<close>
       using False by auto
   qed
@@ -4103,23 +4103,23 @@ next
     case True note [simp] = this
     fix E
     assume \<open>E \<in># NP + UP\<close>
-    then obtain K where \<open>E = {#K#}\<close>
+    then obtain K where \<open>K \<in># E\<close>
       using unit by auto
-    then show \<open>\<exists>La. E = {#La#} \<and> (?D = None \<or> 0 < count_decided M \<longrightarrow>
+    then show \<open>\<exists>La. La \<in># E \<and> (?D = None \<or> 0 < count_decided M \<longrightarrow>
         get_level M La = 0 \<and> La \<in> lits_of_l M)\<close>
       by auto
   next
     case False
     fix E
     assume \<open>E \<in># NP + UP\<close>
-    then obtain K where \<open>E = {#K#}\<close> and K: \<open>K \<in> lits_of_l ?M\<close> and lev_K: \<open>get_level ?M K = 0\<close>
+    then obtain K where \<open>K \<in># E\<close> and K: \<open>K \<in> lits_of_l ?M\<close> and lev_K: \<open>get_level ?M K = 0\<close>
       using unit False by auto
     moreover {
       have \<open>get_level ?M L > 0\<close>
         using False by auto
       then have \<open>atm_of L \<noteq> atm_of K\<close>
         using lev_K by fastforce }
-    ultimately show \<open>\<exists>La. E = {#La#} \<and> (?D = None \<or> 0 < count_decided M \<longrightarrow>
+    ultimately show \<open>\<exists>La. La \<in># E \<and> (?D = None \<or> 0 < count_decided M \<longrightarrow>
          get_level M La = 0 \<and> La \<in> lits_of_l M)\<close>
       using False by auto
   qed
@@ -4152,11 +4152,11 @@ next
   proof (intro allI impI)
     fix C
     assume C: \<open>C \<in># NP +  add_mset {#L#} UP\<close>
-    show \<open>\<exists>La. C = {#La#} \<and> (None = None \<or> 0 < count_decided ?M \<longrightarrow> get_level ?M La = 0 \<and>
+    show \<open>\<exists>La. La \<in># C\<and> (None = None \<or> 0 < count_decided ?M \<longrightarrow> get_level ?M La = 0 \<and>
         La \<in> lits_of_l ?M)\<close>
     proof (cases \<open>C \<in># NP + UP\<close>)
       case True
-      then obtain K'' where C_K: \<open>C = {#K''#}\<close> and K: \<open>K'' \<in> lits_of_l M\<close> and
+      then obtain K'' where C_K: \<open>K'' \<in># C\<close> and K: \<open>K'' \<in> lits_of_l M\<close> and
         lev_K'': \<open>get_level M K'' = 0\<close>
         using unit lev_M by auto
       have \<open>K'' \<in> lits_of_l M1\<close>
@@ -4223,7 +4223,7 @@ next
   proof (intro allI impI)
     fix C
     assume C: \<open>C \<in># NP + UP\<close>
-    then obtain K'' where C_K: \<open>C = {#K''#}\<close> and K: \<open>K'' \<in> lits_of_l M\<close> and
+    then obtain K'' where C_K: \<open>K'' \<in># C\<close> and K: \<open>K'' \<in> lits_of_l M\<close> and
       lev_K'': \<open>get_level M K'' = 0\<close>
       using unit lev_M by auto
     have K''_M1: \<open>K'' \<in> lits_of_l M1\<close>
@@ -4256,7 +4256,7 @@ next
         using lev_K'' lev_M lev_L_M by (metis atm_of_eq_atm_of get_level_uminus not_gr_zero)
       ultimately have \<open>get_level ?M K'' = 0\<close>
         by auto }
-    ultimately show \<open>\<exists>La. C = {#La#} \<and> (None = None \<or> 0 < count_decided ?M \<longrightarrow>
+    ultimately show \<open>\<exists>La. La \<in># C \<and> (None = None \<or> 0 < count_decided ?M \<longrightarrow>
         get_level ?M La = 0 \<and> La \<in> lits_of_l ?M)\<close>
       using C_K by auto
   qed
@@ -4298,12 +4298,13 @@ proof -
       using confl_cands unfolding S by auto
     moreover have \<open>\<not>M\<Turnstile>as CNot C\<close> if C: \<open>C \<in># NP + UP\<close> for C
     proof -
-      obtain L where L: \<open>C = {#L#}\<close> and \<open>L \<in> lits_of_l M\<close>
+      obtain L where L: \<open>L \<in># C\<close> and \<open>L \<in> lits_of_l M\<close>
         using unit C unfolding S by auto
       then have \<open>M \<Turnstile>a C\<close>
-        by auto
+        by (auto simp: true_annot_def dest!: multi_member_split)
       then show ?thesis
-        unfolding L by (auto simp: true_annots_true_cls_def_iff_negation_in_model dest: L_uL)
+        using L \<open>L \<in> lits_of_l M\<close> by (auto simp: true_annots_true_cls_def_iff_negation_in_model
+            dest: L_uL multi_member_split)
     qed
     ultimately have ns_confl: \<open>no_step cdcl\<^sub>W_restart_mset.conflict (state\<^sub>W_of S)\<close>
       by (auto elim!: cdcl\<^sub>W_restart_mset.conflictE simp: S trail.simps clauses_def)
@@ -4326,14 +4327,15 @@ proof -
         case False
         then have \<open>C \<in># NP + UP\<close>
           using C by auto
-        then obtain L'' where L'': \<open>C = {#L''#}\<close> and L''_def: \<open>L'' \<in> lits_of_l M\<close>
+        then obtain L'' where L'': \<open>L'' \<in># C\<close> and L''_def: \<open>L'' \<in> lits_of_l M\<close>
           using unit unfolding S by auto
-        then have [simp]: \<open>L'' = L\<close>
-          using L by auto
-        show ?thesis
-          using undef L'' L''_def
+(*         then have  \<open>L'' = L\<close>
+          using L by auto *)
+        then show ?thesis
+          using undef L'' L''_def L M L_uL
           by (auto simp: S true_annots_true_cls_def_iff_negation_in_model
-              Decided_Propagated_in_iff_in_lits_of_l dest: L_uL)
+              add_mset_eq_add_mset
+              Decided_Propagated_in_iff_in_lits_of_l dest!: multi_member_split)
       qed
     qed
     note ns_confl ns_propa
@@ -4520,19 +4522,8 @@ proof (rule ccontr)
     using T
   proof (cases rule: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o_induct)
     case (decide L T) note confl = this(1) and undef = this(2) and atm = this(3) and T = this(4)
-    have \<open>atm_of L \<notin> atms_of_mm NP\<close>
-    proof (rule ccontr)
-      assume \<open>\<not> ?thesis\<close>
-      then obtain C where C_NP: \<open>C \<in># NP\<close> and L_uL_C: \<open>L \<in># C \<or> -L \<in># C\<close>
-        by (auto simp: atms_of_ms_def atms_of_def atm_of_eq_atm_of)
-      obtain L' where \<open>C = {#L'#}\<close> and \<open>L' \<in> lits_of_l M\<close>
-        using unit S confl C_NP by (auto simp: cdcl\<^sub>W_restart_mset_state)
-      then show False
-        using L_uL_C undef unfolding S
-        by (auto simp: cdcl\<^sub>W_restart_mset_state Decided_Propagated_in_iff_in_lits_of_l)
-    qed
-    then show ?thesis
-      using cdcl_twl_o.decide[of M L N U NP UP] confl undef atm ns_o unfolding S
+   show ?thesis
+      using cdcl_twl_o.decide[of M L N NP U UP] confl undef atm ns_o unfolding S
       by (auto simp: cdcl\<^sub>W_restart_mset_state)
   next
     case (skip L C' M' E T) note M = this and confl = this(2) and uL_E = this(3) and E = this(4) and

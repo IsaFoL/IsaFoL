@@ -1495,9 +1495,9 @@ where
          S = (M, N, U, D, NP, UP, WS, Q) \<and>
          (L \<noteq> None \<longrightarrow>
             undefined_lit M (the L) \<and> the L \<in> snd ` D\<^sub>0 \<and>
-            atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N)))) \<and>
+            atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N)) + NP)) \<and>
          (L = None \<longrightarrow> (\<nexists>L'. undefined_lit M L' \<and>
-            atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N)))))))
+            atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# mset (take U (tl N)) + NP)))))
 \<close>
 
 
@@ -1526,16 +1526,16 @@ proof -
          (L \<noteq> None \<longrightarrow>
             undefined_lit (get_trail_wl S) (the L) \<and>
             atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# mset
-              (take (get_learned_wl S) (tl (get_clauses_wl S))))) \<and>
+              (take (get_learned_wl S) (tl (get_clauses_wl S))) + get_unit_init_clss S)) \<and>
          (L = None \<longrightarrow> (\<nexists>L'. undefined_lit (get_trail_wl S) L' \<and>
             atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# mset
-              (take (get_learned_wl S) (tl (get_clauses_wl S))))))}
+              (take (get_learned_wl S) (tl (get_clauses_wl S))) + get_unit_init_clss S)))}
      (find_unassigned_lit_wl S')\<close>
     (is \<open>_ \<le> \<Down> ?find _\<close>)
     if \<open>S = S'\<close>
     for S S' :: \<open>nat twl_st_wl\<close>
-    by (cases S') (auto simp: find_unassigned_lit_wl_def find_unassigned_lit_wl_D_def that
-        intro!: RES_refine)
+    unfolding find_unassigned_lit_wl_def find_unassigned_lit_wl_D_def that
+    by (cases S') (auto intro!: RES_refine simp: mset_take_mset_drop_mset' get_unit_init_clss_def)
   have [refine]: \<open>x = x' \<Longrightarrow> (x, x') \<in> \<langle>Id\<rangle> option_rel\<close>
     for x x' by auto
   have decide_lit_wl: \<open>((False, decide_lit_wl L T), False, decide_lit_wl L' S')
