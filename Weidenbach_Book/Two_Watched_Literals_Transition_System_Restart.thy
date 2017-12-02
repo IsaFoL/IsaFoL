@@ -243,7 +243,7 @@ proof (induction rule: cdcl_twl_restart.induct)
     \<open>get_conflict (M, N, U, None, NE, UE, {#}, Q) \<noteq> None \<longrightarrow>
      clauses_to_update (M, N, U, None, NE, UE, {#}, Q) = {#} \<and>
      literals_to_update (M, N, U, None, NE, UE, {#}, Q) = {#}\<close> and
-    unit: \<open>unit_clss_inv (M, N, U, None, NE, UE, {#}, Q)\<close> and
+    unit: \<open>entailed_clss_inv (M, N, U, None, NE, UE, {#}, Q)\<close> and
     to_upd: \<open>clauses_to_update_inv (M, N, U, None, NE, UE, {#}, Q)\<close> and
     past: \<open>past_invs (M, N, U, None, NE, UE, {#}, Q)\<close>
     unfolding twl_struct_invs_def by clarify+
@@ -273,8 +273,8 @@ proof (induction rule: cdcl_twl_restart.induct)
    define M3' where \<open>M3' = M3 @ M2\<close>
    then have M3': \<open>M = M3' @ Decided K # M'\<close>
      unfolding M by auto
-   have unit_clss_inv: \<open>unit_clss_inv (M', N, U', None, NE, UE, {#}, {#})\<close>
-     unfolding unit_clss_inv.simps
+   have entailed_clss_inv: \<open>entailed_clss_inv (M', N, U', None, NE, UE, {#}, {#})\<close>
+     unfolding entailed_clss_inv.simps
    proof
      fix C
      assume \<open>C \<in># NE + UE\<close>
@@ -368,7 +368,7 @@ proof (induction rule: cdcl_twl_restart.induct)
     subgoal using confl_cands_enqueued_mono[OF learned conf_cands] .
     subgoal using propa_cands_enqueued_mono[OF learned propa_cands] .
     subgoal by simp
-    subgoal by (rule unit_clss_inv)
+    subgoal by (rule entailed_clss_inv)
     subgoal by (rule clss_to_upd)
     subgoal by (rule past_invs)
     done
@@ -390,7 +390,7 @@ next
     \<open>get_conflict (M, N, U, None, NE, UE, {#}, Q) \<noteq> None \<longrightarrow>
      clauses_to_update (M, N, U, None, NE, UE, {#}, Q) = {#} \<and>
      literals_to_update (M, N, U, None, NE, UE, {#}, Q) = {#}\<close> and
-    unit: \<open>unit_clss_inv (M, N, U, None, NE, UE, {#}, Q)\<close> and
+    unit: \<open>entailed_clss_inv (M, N, U, None, NE, UE, {#}, Q)\<close> and
     to_upd: \<open>clauses_to_update_inv (M, N, U, None, NE, UE, {#}, Q)\<close> and
     past: \<open>past_invs (M, N, U, None, NE, UE, {#}, Q)\<close>
     unfolding twl_struct_invs_def by clarify+
@@ -401,8 +401,8 @@ next
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail.simps)
    have valid': \<open>valid_enqueued (M, N, U', None, NE, UE, {#}, Q)\<close>
      using valid by auto
-   have unit_clss_inv: \<open>unit_clss_inv (M, N, U', None, NE, UE, {#}, Q)\<close>
-     unfolding unit_clss_inv.simps
+   have entailed_clss_inv: \<open>entailed_clss_inv (M, N, U', None, NE, UE, {#}, Q)\<close>
+     unfolding entailed_clss_inv.simps
    proof
      fix C
      assume \<open>C \<in># NE + UE\<close>
@@ -486,7 +486,7 @@ next
     subgoal using confl_cands_enqueued_mono[OF learned confl_cands] .
     subgoal using propa_cands_enqueued_mono[OF learned propa_cands] .
     subgoal by simp
-    subgoal by (rule unit_clss_inv)
+    subgoal by (rule entailed_clss_inv)
     subgoal by (rule clss_to_upd)
     subgoal by (rule past_invs)
     done

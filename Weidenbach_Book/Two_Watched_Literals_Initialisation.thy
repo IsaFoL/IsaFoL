@@ -28,7 +28,7 @@ definition twl_struct_invs_init :: \<open>'v twl_st_init \<Rightarrow> bool\<clo
     confl_cands_enqueued (fst S) \<and>
     propa_cands_enqueued (fst S) \<and>
     (get_conflict (fst S) \<noteq> None \<longrightarrow> clauses_to_update (fst S) = {#} \<and> literals_to_update (fst S) = {#}) \<and>
-    unit_clss_inv (fst S) \<and>
+    entailed_clss_inv (fst S) \<and>
     clauses_to_update_inv (fst S) \<and>
     past_invs (fst S))
   \<close>
@@ -49,7 +49,7 @@ proof -
     cands_confl: \<open>confl_cands_enqueued S\<close> and
     cands_propa: \<open>propa_cands_enqueued S\<close> and
     confl: \<open>get_conflict S \<noteq> None \<longrightarrow> clauses_to_update S = {#} \<and> literals_to_update S = {#}\<close> and
-    unit: \<open>unit_clss_inv S\<close> and
+    unit: \<open>entailed_clss_inv S\<close> and
     to_upd: \<open>clauses_to_update_inv S\<close> and
     past: \<open>past_invs S\<close>
     using assms unfolding twl_struct_invs_init_def fst_conv
@@ -249,7 +249,7 @@ next
     propa_cands: \<open>propa_cands_enqueued (fst ?S')\<close> and
     get_confl: \<open>get_conflict (fst ?S') \<noteq> None \<longrightarrow> clauses_to_update (fst ?S') = {#} \<and>
     literals_to_update (fst ?S') = {#}\<close> and
-    unit_clss: \<open>unit_clss_inv (fst ?S')\<close> and
+    unit_clss: \<open>entailed_clss_inv (fst ?S')\<close> and
     w_q: \<open>clauses_to_update_inv (fst ?S')\<close> and
     past_invs: \<open>past_invs (fst ?S')\<close>
     using twl unfolding twl_st_inv.simps twl_struct_invs_init_def S twl_st_of.simps

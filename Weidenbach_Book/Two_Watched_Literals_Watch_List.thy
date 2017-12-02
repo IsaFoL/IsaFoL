@@ -745,7 +745,7 @@ proof -
       subgoal for i'T' T i' T' by auto
       subgoal for i'T' T i' T'
         by (cases T')
-          (solves \<open>auto simp del: unit_clss_inv.simps valid_enqueued.simps split: if_splits\<close>)+
+          (solves \<open>auto simp del: entailed_clss_inv.simps valid_enqueued.simps split: if_splits\<close>)+
       subgoal for i'T' T i' T'
         apply (rule order_trans)
         by (rule unit_propagation_body_wl_loop_fantom; simp; fail) (auto intro!: H)
@@ -906,7 +906,7 @@ proof -
       subgoal by (cases T'; cases S') auto
       subgoal by (simp add: twl_struct_invs_def del: propa_cands_enqueued.simps
             confl_cands_enqueued.simps valid_enqueued.simps no_duplicate_queued.simps
-            twl_st_exception_inv.simps unit_clss_inv.simps
+            twl_st_exception_inv.simps entailed_clss_inv.simps
             clauses_to_update_inv.simps)
       done
     subgoal by auto

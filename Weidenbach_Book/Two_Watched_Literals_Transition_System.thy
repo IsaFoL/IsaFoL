@@ -328,8 +328,8 @@ fun twl_st_inv :: \<open>'v twl_st \<Rightarrow> bool\<close> where
 
 text \<open>All the unit clauses are all propagated initially except when we have found a conflict of
   level \<^term>\<open>0::nat\<close>.\<close>
-fun unit_clss_inv :: \<open>'v twl_st \<Rightarrow> bool\<close> where
-  \<open>unit_clss_inv (M, N, U, D, NE, UE, WS, Q) \<longleftrightarrow>
+fun entailed_clss_inv :: \<open>'v twl_st \<Rightarrow> bool\<close> where
+  \<open>entailed_clss_inv (M, N, U, D, NE, UE, WS, Q) \<longleftrightarrow>
     (\<forall>C \<in># NE + UE.
       (\<exists>L. L \<in># C \<and> (D = None \<or> count_decided M > 0 \<longrightarrow> get_level M L = 0 \<and> L \<in> lits_of_l M)))\<close>
 
@@ -355,7 +355,7 @@ definition twl_struct_invs :: \<open>'v twl_st \<Rightarrow> bool\<close> where
     confl_cands_enqueued S \<and>
     propa_cands_enqueued S \<and>
     (get_conflict S \<noteq> None \<longrightarrow> clauses_to_update S = {#} \<and> literals_to_update S = {#}) \<and>
-    unit_clss_inv S \<and>
+    entailed_clss_inv S \<and>
     clauses_to_update_inv S \<and>
     past_invs S)
   \<close>
@@ -2618,17 +2618,17 @@ lemma cdcl_twl_cp_conflict:
      clauses_to_update T = {#} \<and> literals_to_update T = {#}\<close>
   by (induction rule: cdcl_twl_cp.induct) auto
 
-lemma cdcl_twl_cp_unit_clss_inv:
-  \<open>cdcl_twl_cp S T \<Longrightarrow> unit_clss_inv S \<Longrightarrow> unit_clss_inv T\<close>
+lemma cdcl_twl_cp_entailed_clss_inv:
+  \<open>cdcl_twl_cp S T \<Longrightarrow> entailed_clss_inv S \<Longrightarrow> entailed_clss_inv T\<close>
 proof (induction rule: cdcl_twl_cp.induct)
   case (pop M N U NE UE L Q)
   then show ?case by auto
 next
   case (propagate D L L' M N U NE UE WS Q) note undef = this(2) and _ = this
-  then have unit: \<open>unit_clss_inv (M, N, U, None, NE, UE, add_mset (L, D) WS, Q)\<close>
+  then have unit: \<open>entailed_clss_inv (M, N, U, None, NE, UE, add_mset (L, D) WS, Q)\<close>
     by auto
   show ?case
-    unfolding unit_clss_inv.simps Ball_def
+    unfolding entailed_clss_inv.simps Ball_def
   proof (intro allI impI conjI)
     fix C
     assume \<open>C \<in># NE + UE\<close>
@@ -2674,7 +2674,7 @@ lemma cdcl_twl_cp_twl_struct_invs:
   subgoal by (rule twl_cp_confl_cands_enqueued; auto simp add: twl_struct_invs_def; fail)
   subgoal by (rule twl_cp_propa_cands_enqueued; auto simp add: twl_struct_invs_def; fail)
   subgoal by (simp add: cdcl_twl_cp_conflict; fail)
-  subgoal by (simp add: cdcl_twl_cp_unit_clss_inv twl_struct_invs_def; fail)
+  subgoal by (simp add: cdcl_twl_cp_entailed_clss_inv twl_struct_invs_def; fail)
   subgoal by (simp add: twl_struct_invs_def twl_cp_clauses_to_update; fail)
   subgoal by (simp add: twl_cp_past_invs twl_struct_invs_def; fail)
   done
@@ -4037,18 +4037,18 @@ proof -
     by (auto)
 qed
 
-lemma cdcl_twl_o_unit_clss_inv:
+lemma cdcl_twl_o_entailed_clss_inv:
   assumes
     cdcl: \<open>cdcl_twl_o S T\<close> and
     unit: \<open>twl_struct_invs S\<close>
-  shows \<open>unit_clss_inv T\<close>
+  shows \<open>entailed_clss_inv T\<close>
   using cdcl unit
 proof (induction rule: cdcl_twl_o.induct)
   case (decide M L N NE U UE) note undef = this(1) and twl = this(3)
-  then have unit: \<open>unit_clss_inv (M, N, U, None, NE, UE, {#}, {#})\<close>
+  then have unit: \<open>entailed_clss_inv (M, N, U, None, NE, UE, {#}, {#})\<close>
     unfolding twl_struct_invs_def by fast
   show ?case
-    unfolding unit_clss_inv.simps Ball_def
+    unfolding entailed_clss_inv.simps Ball_def
   proof (intro allI impI)
     fix C
     assume \<open>C \<in># NE + UE\<close>
@@ -4063,10 +4063,10 @@ proof (induction rule: cdcl_twl_o.induct)
 next
   case (skip L D C' M N U NE UE) note twl = this(3)
   let ?M = \<open>Propagated L C' # M\<close>
-  have unit: \<open>unit_clss_inv (?M, N, U, Some D, NE, UE, {#}, {#})\<close>
+  have unit: \<open>entailed_clss_inv (?M, N, U, Some D, NE, UE, {#}, {#})\<close>
     using twl unfolding twl_struct_invs_def by fast
   show ?case
-    unfolding unit_clss_inv.simps Ball_def
+    unfolding entailed_clss_inv.simps Ball_def
   proof (intro allI impI, cases \<open>count_decided M = 0\<close>)
     case True note [simp] = this
     fix C
@@ -4095,10 +4095,10 @@ next
   case (resolve L D C M N U NE UE) note twl = this(3)
   let ?M = \<open>Propagated L C # M\<close>
   let ?D = \<open>Some (remove1_mset (- L) D \<union># remove1_mset L C)\<close>
-  have unit: \<open>unit_clss_inv (?M, N, U, Some D, NE, UE, {#}, {#})\<close>
+  have unit: \<open>entailed_clss_inv (?M, N, U, Some D, NE, UE, {#}, {#})\<close>
     using twl unfolding twl_struct_invs_def by fast
   show ?case
-    unfolding unit_clss_inv.simps Ball_def
+    unfolding entailed_clss_inv.simps Ball_def
   proof (intro allI impI, cases \<open>count_decided M = 0\<close>)
     case True note [simp] = this
     fix E
@@ -4129,7 +4129,7 @@ next
   let ?S = \<open>(M, N, U, Some D, NE, UE, {#}, {#})\<close>
   let ?T = \<open>(Propagated L {#L#} # M1, N, U, None, NE, add_mset {#L#} UE, {#}, {#- L#})\<close>
   let ?M = \<open>Propagated L {#L#} # M1\<close>
-  have unit: \<open>unit_clss_inv ?S\<close>
+  have unit: \<open>entailed_clss_inv ?S\<close>
     using twl unfolding twl_struct_invs_def by fast
   obtain M3 where M: \<open>M = M3 @ M2 @ Decided K # M1\<close>
     using decomp by auto
@@ -4148,7 +4148,7 @@ next
       lev_K n_d i unfolding M by simp
 
   show ?case
-    unfolding unit_clss_inv.simps Ball_def
+    unfolding entailed_clss_inv.simps Ball_def
   proof (intro allI impI)
     fix C
     assume C: \<open>C \<in># NE +  add_mset {#L#} UE\<close>
@@ -4200,7 +4200,7 @@ next
   let ?T = \<open>(Propagated L D' # M1, N, add_mset (TWL_Clause {#L, L'#} (D' - {#L, L'#})) U, None,
     NE, UE, {#}, {#-L#})\<close>
   let ?M = \<open>Propagated L D' # M1\<close>
-  have unit: \<open>unit_clss_inv ?S\<close>
+  have unit: \<open>entailed_clss_inv ?S\<close>
     using twl unfolding twl_struct_invs_def by fast
   obtain M3 where M: \<open>M = M3 @ M2 @ Decided K # M1\<close>
     using decomp by auto
@@ -4219,7 +4219,7 @@ next
       lev_K n_d unfolding M by simp
 
   show ?case
-    unfolding unit_clss_inv.simps Ball_def
+    unfolding entailed_clss_inv.simps Ball_def
   proof (intro allI impI)
     fix C
     assume C: \<open>C \<in># NE + UE\<close>
@@ -4287,7 +4287,7 @@ proof -
       excep: \<open>twl_st_exception_inv S\<close> and
       confl_cands: \<open>confl_cands_enqueued S\<close> and
       propa_cands: \<open>propa_cands_enqueued S\<close> and
-      unit: \<open>unit_clss_inv S\<close>
+      unit: \<open>entailed_clss_inv S\<close>
       using twl unfolding twl_struct_invs_def by fast+
     have n_d: \<open>no_dup M\<close>
       using struct_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -4421,7 +4421,7 @@ proof -
     subgoal by (use cdcl cdcl_twl_o_confl_cands_enqueued twl twl_struct_invs_def in \<open>blast; fail\<close>)
     subgoal by (use cdcl cdcl_twl_o_propa_cands_enqueued twl twl_struct_invs_def in \<open>blast; fail\<close>)
     subgoal by (use cdcl twl cdcl_twl_o_conflict_None_queue in \<open>blast; fail\<close>)
-    subgoal by (use cdcl cdcl_twl_o_unit_clss_inv twl twl_struct_invs_def in blast)
+    subgoal by (use cdcl cdcl_twl_o_entailed_clss_inv twl twl_struct_invs_def in blast)
     subgoal by (use cdcl twl_o_clauses_to_update twl in blast)
     subgoal by (use cdcl cdcl_twl_o_past_invs twl twl_struct_invs_def in blast)
     done
@@ -4516,7 +4516,7 @@ proof (rule ccontr)
     by blast
   obtain M N U D NE UE where S: \<open>S = (M, N, U, D, NE, UE, {#}, {#})\<close>
     using p w_q by (cases S) auto
-  have unit: \<open>unit_clss_inv S\<close>
+  have unit: \<open>entailed_clss_inv S\<close>
     using twl unfolding twl_struct_invs_def by fast+
   show False
     using T

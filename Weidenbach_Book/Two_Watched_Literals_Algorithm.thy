@@ -418,7 +418,7 @@ proof -
        undef: \<open>undefined_lit M L\<close>
     for L
   proof -
-    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of S)\<close> and unit: \<open>unit_clss_inv S\<close>
+    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of S)\<close> and unit: \<open>entailed_clss_inv S\<close>
       using twl unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       by fast+
     then show ?thesis
