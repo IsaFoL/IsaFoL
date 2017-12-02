@@ -205,7 +205,7 @@ sepref_register \<open>watched_by :: nat twl_st_wl \<Rightarrow> nat literal \<R
    :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> watched\<close>
 
 definition watched_by_nth :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat\<close> where
-  \<open>watched_by_nth = (\<lambda>(M, N, U, D, NP, UP, Q, W) L i. W L ! i)\<close>
+  \<open>watched_by_nth = (\<lambda>(M, N, U, D, NE, UE, Q, W) L i. W L ! i)\<close>
 
 definition watched_app :: \<open>(nat literal \<Rightarrow> nat list) \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>watched_app M L i \<equiv> M L ! i\<close>
@@ -368,17 +368,17 @@ subsection \<open>Code Generation\<close>
 subsubsection \<open>More Operations\<close>
 
 fun literals_to_update_wll :: \<open>twl_st_wll \<Rightarrow> lit_queue_l\<close> where
-  \<open>literals_to_update_wll (M, N, U, D, NP, UP, Q, W) = Q\<close>
+  \<open>literals_to_update_wll (M, N, U, D, NE, UE, Q, W) = Q\<close>
 
 definition literals_to_update_wll_empty :: \<open>twl_st_wll \<Rightarrow> bool\<close> where
-  \<open>literals_to_update_wll_empty = (\<lambda>(M, N, U, D, NP, UP, Q, W). is_Nil Q)\<close>
+  \<open>literals_to_update_wll_empty = (\<lambda>(M, N, U, D, NE, UE, Q, W). is_Nil Q)\<close>
 
 definition literals_to_update_wl_empty :: \<open>nat twl_st_wl \<Rightarrow> bool\<close>  where
-  \<open>literals_to_update_wl_empty = (\<lambda>(M, N, U, D, NP, UP, Q, W). Q = {#})\<close>
+  \<open>literals_to_update_wl_empty = (\<lambda>(M, N, U, D, NE, UE, Q, W). Q = {#})\<close>
 
 definition select_and_remove_from_literals_to_update_wl' :: \<open>twl_st_wll \<Rightarrow> twl_st_wll \<times> uint32\<close> where
   \<open>select_and_remove_from_literals_to_update_wl' =
-    (\<lambda>(M, N, U, D, NP, UP, Q, W).  ((M, N, U, D, NP, UP, tl Q, W), hd Q))\<close>
+    (\<lambda>(M, N, U, D, NE, UE, Q, W).  ((M, N, U, D, NE, UE, tl Q, W), hd Q))\<close>
 
 lemma in_nat_list_rel_list_all2_in_set_iff:
     \<open>(a, aa) \<in> nat_lit_rel \<Longrightarrow>
@@ -488,7 +488,7 @@ definition no_resolve where
   \<open>no_resolve S = (no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of (twl_st_of_wl None S)))\<close>
 
 definition get_conflict_wl_is_None :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>get_conflict_wl_is_None = (\<lambda>(M, N, U, D, NP, UP, Q, W). is_None D)\<close>
+  \<open>get_conflict_wl_is_None = (\<lambda>(M, N, U, D, NE, UE, Q, W). is_None D)\<close>
 
 lemma get_conflict_wl_is_None: \<open>get_conflict_wl S = None \<longleftrightarrow> get_conflict_wl_is_None S\<close>
   by (cases S) (auto simp: get_conflict_wl_is_None_def split: option.splits)
@@ -515,7 +515,7 @@ lemma (in -) hd_decided_count_decided_ge_1:
 definition (in -) find_decomp_wl_imp' :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clause_l list \<Rightarrow> nat \<Rightarrow>
     nat clause \<Rightarrow> nat clauses \<Rightarrow> nat clauses \<Rightarrow> nat lit_queue_wl \<Rightarrow>
     (nat literal \<Rightarrow> watched) \<Rightarrow> _ \<Rightarrow> (nat, nat) ann_lits nres\<close> where
-  \<open>find_decomp_wl_imp' = (\<lambda>M N U D NP UP W Q L. find_decomp_wl_imp M D L)\<close>
+  \<open>find_decomp_wl_imp' = (\<lambda>M N U D NE UE W Q L. find_decomp_wl_imp M D L)\<close>
 
 lemma nth_ll_watched_app:
   \<open>(uncurry2 (RETURN ooo nth_rll), uncurry2 (RETURN ooo watched_app)) \<in>
@@ -716,10 +716,10 @@ lemma literals_to_update_wl_literals_to_update_wl_empty:
   by (cases S) (auto simp: literals_to_update_wl_empty_def)
 
 definition get_conflict_wl_is_Nil :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>get_conflict_wl_is_Nil = (\<lambda>(M, N, U, D, NP, UP, Q, W). D \<noteq> None \<and> Multiset.is_empty (the D))\<close>
+  \<open>get_conflict_wl_is_Nil = (\<lambda>(M, N, U, D, NE, UE, Q, W). D \<noteq> None \<and> Multiset.is_empty (the D))\<close>
 
 definition get_conflict_wll_is_Nil :: \<open>nat twl_st_wl \<Rightarrow> bool nres\<close> where
-  \<open>get_conflict_wll_is_Nil = (\<lambda>(M, N, U, D, NP, UP, Q, W).
+  \<open>get_conflict_wll_is_Nil = (\<lambda>(M, N, U, D, NE, UE, Q, W).
    do {
      if is_None D
      then RETURN False
@@ -740,7 +740,7 @@ definition is_decided_hd_trail_wl where
   \<open>is_decided_hd_trail_wl S = is_decided (hd (get_trail_wl S))\<close>
 
 definition is_decided_hd_trail_wll :: \<open>nat twl_st_wl \<Rightarrow> bool nres\<close> where
-  \<open>is_decided_hd_trail_wll = (\<lambda>(M, N, U, D, NP, UP, Q, W).
+  \<open>is_decided_hd_trail_wll = (\<lambda>(M, N, U, D, NE, UE, Q, W).
      RETURN (is_decided (hd M))
    )\<close>
 

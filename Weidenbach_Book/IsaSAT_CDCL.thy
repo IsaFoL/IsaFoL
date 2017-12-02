@@ -102,15 +102,15 @@ proof -
     by auto
   have atms: \<open>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l =
          atms_of_ms ((\<lambda>x. mset (watched_l x) + mset (unwatched_l x)) ` set (take U (tl N))) \<union>
-         atms_of_mm NP\<close>
-      if inv: \<open>twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q))\<close> and
-        \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n (M, N, U, D, NP, UP, WS, Q)\<close> and
-        confl: \<open>get_conflict_wl (M, N, U, D, NP, UP, WS, Q) = None\<close>
-      for M N U D NP UP WS Q
+         atms_of_mm NE\<close>
+      if inv: \<open>twl_struct_invs (twl_st_of_wl None (M, N, U, D, NE, UE, WS, Q))\<close> and
+        \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n (M, N, U, D, NE, UE, WS, Q)\<close> and
+        confl: \<open>get_conflict_wl (M, N, U, D, NE, UE, WS, Q) = None\<close>
+      for M N U D NE UE WS Q
   proof -
     have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm
-            (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q)))\<close> and
-        unit: \<open>entailed_clss_inv (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q))\<close>
+            (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NE, UE, WS, Q)))\<close> and
+        unit: \<open>entailed_clss_inv (twl_st_of_wl None (M, N, U, D, NE, UE, WS, Q))\<close>
       using inv unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       by fast+
     then show ?thesis

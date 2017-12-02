@@ -116,7 +116,7 @@ definition cach_refinement_empty where
 
 definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd, stats), (M, N, U, D, NP, UP, Q, W)).
+  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd, stats), (M, N, U, D, NE, UE, Q, W)).
     M = M' \<and> N' = N \<and> U' = U \<and>
     D' = D \<and>
      Q' = Q \<and>
@@ -164,7 +164,7 @@ where
 
 definition (in isasat_input_ops) twl_st_heur_pol :: \<open>(twl_st_wl_heur_trail_ref \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_pol =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd), (M, N, U, D, NP, UP, Q, W)).
+  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd), (M, N, U, D, NE, UE, Q, W)).
     (M', M) \<in> trail_pol \<and> N' = N \<and> U' = U \<and> D = D' \<and>
      Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
@@ -225,7 +225,7 @@ definition twl_st_heur_W_list_assn :: \<open>twl_st_wl_heur_W_list \<Rightarrow>
   )\<close>
 
 lemma twl_st_wl_heur_W_list_rel_twl_st_rel: \<open>twl_st_wl_heur_W_list_rel O twl_st_heur =
-   {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd, stats), M, N, U, D, NP, UP, Q, W).
+   {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd, stats), M, N, U, D, NE, UE, Q, W).
      M = M' \<and>
      N' = N \<and>
      U' = U \<and>

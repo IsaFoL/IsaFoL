@@ -502,8 +502,8 @@ lemma twl_struct_invs_confl:
      \<open>\<And>L. L \<in># the (get_conflict_wl S) \<Longrightarrow> -L \<in> lits_of_l (get_trail_wl S)\<close>
      \<open>\<And>L. L \<in># the (get_conflict_wl S) \<Longrightarrow> L \<notin> lits_of_l (get_trail_wl S)\<close>
 proof -
-  obtain M N U D NP UP Q W where
-    S: \<open>S = (M, N, U, Some D, NP, UP, W, Q)\<close>
+  obtain M N U D NE UE Q W where
+    S: \<open>S = (M, N, U, Some D, NE, UE, W, Q)\<close>
     using confl by (cases S; cases \<open>get_conflict_wl S\<close>; cases \<open>hd (get_trail_wl S)\<close>;
         cases \<open>get_trail_wl S\<close>) auto
   have
@@ -741,8 +741,8 @@ lemma
        \<open>C > 0 \<Longrightarrow> card_max_lvl (get_trail_wl S) E = card_max_lvl (tl (get_trail_wl S))
          (E - unmark (hd (get_trail_wl S))) + 1\<close>(is \<open>_ \<Longrightarrow> ?Max\<close>)
 proof -
-  obtain M N U D NP UP Q W where
-    S: \<open>S = (Propagated L C # M, N, U, Some D, NP, UP, W, Q)\<close>
+  obtain M N U D NE UE Q W where
+    S: \<open>S = (Propagated L C # M, N, U, Some D, NE, UE, W, Q)\<close>
     using confl tr by (cases S; cases \<open>get_conflict_wl S\<close>; cases \<open>hd (get_trail_wl S)\<close>;
         cases \<open>get_trail_wl S\<close>) auto
   obtain D' where
@@ -1175,8 +1175,8 @@ proof -
     obtain C L S where
       [simp]: \<open>x = ((C,L), S)\<close>
       by (cases x) auto
-    obtain M N U D W Q NP UP where
-      [simp]: \<open>S = (M, N, U, D, NP, UP, W, Q)\<close>
+    obtain M N U D W Q NE UE where
+      [simp]: \<open>S = (M, N, U, D, NE, UE, W, Q)\<close>
       by (cases S) auto
     have LC: \<open>(L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S))\<close> and
       lits_\<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n S\<close> and

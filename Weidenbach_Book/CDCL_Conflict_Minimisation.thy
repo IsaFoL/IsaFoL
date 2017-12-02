@@ -413,22 +413,22 @@ definition lit_redundant_rec_spec where
 
 lemma lit_redundant_rec_spec:
   fixes L :: \<open>'v literal\<close>
-  assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N + NP, U + UP, D')\<close>
+  assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N + NE, U + UE, D')\<close>
   assumes
     init_analysis: \<open>init_analysis = [(L, C)]\<close> and
     in_trail: \<open>Propagated (-L) (add_mset (-L) C) \<in> set M\<close> and
-    \<open>conflict_min_analysis_inv M cach (N + NP + U + UP) D\<close> and
+    \<open>conflict_min_analysis_inv M cach (N + NE + U + UE) D\<close> and
     L_D: \<open>L \<in># D\<close> and
     M_D: \<open>M \<Turnstile>as CNot D\<close>
   shows
     \<open>lit_redundant_rec M (N + U) D cach init_analysis \<le>
-      lit_redundant_rec_spec M (N + U + NP + UP) D L\<close>
+      lit_redundant_rec_spec M (N + U + NE + UE) D L\<close>
 proof -
-  let ?N = \<open>N + NP + U + UP\<close>
+  let ?N = \<open>N + NE + U + UE\<close>
   obtain M2 M1 where
     M: \<open>M = M2 @ Propagated (- L) (add_mset (- L) C) # M1\<close>
     using split_list[OF in_trail] by (auto 5 5)
-  have \<open>a @ Propagated L mark # b = trail (M, N + NP, U + UP, D') \<longrightarrow>
+  have \<open>a @ Propagated L mark # b = trail (M, N + NE, U + UE, D') \<longrightarrow>
        b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> for L mark a b
     using invs
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -438,8 +438,8 @@ proof -
     by (force simp: M)
   then have M_C: \<open>M \<Turnstile>as CNot C\<close>
     unfolding M by (simp add: true_annots_append_l)
-  have \<open>set (get_all_mark_of_propagated (trail (M, N + NP, U + UP, D')))
-    \<subseteq> set_mset (cdcl\<^sub>W_restart_mset.clauses (M, N + NP, U + UP, D'))\<close>
+  have \<open>set (get_all_mark_of_propagated (trail (M, N + NE, U + UE, D')))
+    \<subseteq> set_mset (cdcl\<^sub>W_restart_mset.clauses (M, N + NE, U + UE, D'))\<close>
     using invs
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
@@ -1050,16 +1050,16 @@ qed
 
 lemma literal_redundant_spec:
   fixes L :: \<open>'v literal\<close>
-  assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N + NP, U + UP, D')\<close>
+  assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N + NE, U + UE, D')\<close>
   assumes
-    inv: \<open>conflict_min_analysis_inv M cach (N + NP + U + UP) D\<close> and
+    inv: \<open>conflict_min_analysis_inv M cach (N + NE + U + UE) D\<close> and
     L_D: \<open>L \<in># D\<close> and
     M_D: \<open>M \<Turnstile>as CNot D\<close>
   shows
-    \<open>literal_redundant M (N + U) D cach L \<le> literal_redundant_spec M (N + U + NP + UP) D L\<close>
+    \<open>literal_redundant M (N + U) D cach L \<le> literal_redundant_spec M (N + U + NE + UE) D L\<close>
 proof -
   have lit_redundant_rec: \<open>lit_redundant_rec M (N + U) D cach [(L, remove1_mset (- L) E')]
-      \<le> literal_redundant_spec M (N + U + NP + UP) D L\<close>
+      \<le> literal_redundant_spec M (N + U + NE + UE) D L\<close>
     if
       E: \<open>E \<noteq> None \<longrightarrow> Propagated (- L) (the E) \<in> set M\<close> and
       E': \<open>E = Some E'\<close>
@@ -1070,8 +1070,8 @@ proof -
       in_trail: \<open>Propagated (- L) (add_mset (-L) (remove1_mset (-L) E')) \<in> set M\<close>
       using Propagated_in_trail_entailed[OF invs, of \<open>-L\<close> E'] E E'
       by auto
-    have H: \<open>lit_redundant_rec_spec M (N + U + NP + UP) D L \<le>
-       literal_redundant_spec M (N + U + NP + UP) D L\<close>
+    have H: \<open>lit_redundant_rec_spec M (N + U + NE + UE) D L \<le>
+       literal_redundant_spec M (N + U + NE + UE) D L\<close>
       by (auto simp: lit_redundant_rec_spec_def literal_redundant_spec_def ac_simps)
     show ?thesis
       apply (rule order.trans)
@@ -1231,8 +1231,8 @@ lemma lit_redundant_rec_wl:
        (lit_redundant_rec M' NU' D cach analyse')\<close>
    (is \<open>_ \<le> \<Down> (_ \<times>\<^sub>r ?A \<times>\<^sub>r _) _\<close> is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
-  obtain u D' NP UP Q W where
-    S: \<open>S = (M, NU, u, D', NP, UP, Q, W)\<close>
+  obtain u D' NE UE Q W where
+    S: \<open>S = (M, NU, u, D', NE, UE, Q, W)\<close>
     using M_def NU by (cases S) auto
   have M'_def: \<open>M' = convert_lits_l NU M\<close>
     using NU unfolding M' by (auto simp: S)
@@ -1500,8 +1500,8 @@ lemma literal_redundant_wl_literal_redundant:
        (literal_redundant M' NU' D cach L)\<close>
    (is \<open>_ \<le> \<Down> (_ \<times>\<^sub>r ?A \<times>\<^sub>r _) _\<close> is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
-  obtain u D' NP UP Q W where
-    S: \<open>S = (M, NU, u, D', NP, UP, Q, W)\<close>
+  obtain u D' NE UE Q W where
+    S: \<open>S = (M, NU, u, D', NE, UE, Q, W)\<close>
     using M_def NU by (cases S) auto
   have M'_def: \<open>M' = convert_lits_l NU M\<close>
     using NU unfolding M' by (auto simp: S)

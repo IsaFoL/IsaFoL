@@ -1345,8 +1345,8 @@ definition iterate_over_conflict_inv where
       (highest_lit M (D - D') highest))\<close>
 
 definition is_literal_redundant_spec where
-   \<open>is_literal_redundant_spec K NU UNP D L = SPEC(\<lambda>b. b \<longrightarrow>
-      NU + UNP \<Turnstile>pm remove1_mset L (add_mset K D))\<close>
+   \<open>is_literal_redundant_spec K NU UNE D L = SPEC(\<lambda>b. b \<longrightarrow>
+      NU + UNE \<Turnstile>pm remove1_mset L (add_mset K D))\<close>
 
 definition merge_highest_lit where
    \<open>merge_highest_lit M L highest =
@@ -1360,14 +1360,14 @@ definition iterate_over_conflict
   :: \<open>'v literal \<Rightarrow> ('v, 'mark) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'v clauses \<Rightarrow>  'v clause \<Rightarrow>
        ('v clause \<times> ('v literal \<times> nat) option) nres\<close>
 where
-  \<open>iterate_over_conflict K M NU UNP D\<^sub>0 = do {
+  \<open>iterate_over_conflict K M NU UNE D\<^sub>0 = do {
     (D, _, L') \<leftarrow>
        WHILE\<^sub>T\<^bsup>iterate_over_conflict_inv M D\<^sub>0\<^esup>
        (\<lambda>(D, D', highest). D' \<noteq> {#})
        (\<lambda>(D, D', highest). do{
           ASSERT(D' \<noteq> {#});
           x \<leftarrow> SPEC (\<lambda>x. x \<in># D');
-          red \<leftarrow> is_literal_redundant_spec K NU UNP D x;
+          red \<leftarrow> is_literal_redundant_spec K NU UNE D x;
           if \<not>red
           then RETURN (D, remove1_mset x D', merge_highest_lit M x highest)
           else RETURN (remove1_mset x D, remove1_mset x D', highest)
@@ -1387,9 +1387,9 @@ context isasat_input_ops
 begin
 
 definition is_literal_redundant_lookup_spec where
-   \<open>is_literal_redundant_lookup_spec M NU NUP D' L s =
+   \<open>is_literal_redundant_lookup_spec M NU NUE D' L s =
     SPEC(\<lambda>(s', b). b \<longrightarrow> (\<forall>D. (D', D) \<in> lookup_clause_rel \<longrightarrow>
-       (mset `# mset (tl NU)) + NUP \<Turnstile>pm remove1_mset L D))\<close>
+       (mset `# mset (tl NU)) + NUE \<Turnstile>pm remove1_mset L D))\<close>
 
 definition lit_redundant_rec_wl_lookup
   :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> lookup_clause_rel \<Rightarrow>
@@ -1642,7 +1642,7 @@ lemma minimize_and_extract_highest_lookup_conflict_iterate_over_conflict:
     \<open>M \<equiv> get_trail_wl S\<close> and
     NU: \<open>NU \<equiv> get_clauses_wl S\<close> and
     NU'_def: \<open>NU' \<equiv> mset `# mset (tl NU)\<close> and
-    NUP: \<open>NUP \<equiv> get_unit_learned S + get_unit_init_clss S\<close> and
+    NUE: \<open>NUE \<equiv> get_unit_learned S + get_unit_init_clss S\<close> and
     M': \<open>M' \<equiv> trail S'''\<close>
   assumes
     D'_D: \<open>(D', D) \<in> lookup_clause_rel\<close> and
@@ -1650,24 +1650,24 @@ lemma minimize_and_extract_highest_lookup_conflict_iterate_over_conflict:
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close> and
     struct_invs: \<open>twl_struct_invs S''\<close> and
     add_inv: \<open>twl_list_invs S'\<close> and
-    cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUP) D\<close> and
-    NU_P_D: \<open>NU' + NUP \<Turnstile>pm add_mset K D\<close> and
+    cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUE) D\<close> and
+    NU_P_D: \<open>NU' + NUE \<Turnstile>pm add_mset K D\<close> and
     lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close>
   shows
     \<open>minimize_and_extract_highest_lookup_conflict M NU D' s' lbd \<le>
        \<Down> ({((E, s, L'), (E', L)). (E, E') \<in> lookup_clause_rel \<and> L' = L \<and> length (snd E) = length (snd D') \<and>
                E' \<subseteq># D})
-           (iterate_over_conflict K M NU' NUP D)\<close>
+           (iterate_over_conflict K M NU' NUE D)\<close>
     (is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
-  let ?UP = \<open>get_unit_learned S\<close>
-  let ?NP = \<open>get_unit_init_clss S\<close>
+  let ?UE = \<open>get_unit_learned S\<close>
+  let ?NE = \<open>get_unit_init_clss S\<close>
   define u where \<open>u = get_learned_wl S\<close>
   define N U where
     \<open>N \<equiv> mset `# mset (take u (tl NU))\<close> and
     \<open>U \<equiv> mset `# mset (drop u (tl NU))\<close>
   obtain E where
-     S''': \<open>S''' = (M', N + ?NP, U + ?UP, E)\<close>
+     S''': \<open>S''' = (M', N + ?NE, U + ?UE, E)\<close>
     using M' unfolding S''_def S'''_def N_def U_def u_def NU
     by (cases S) (auto simp: get_unit_init_clss_def get_unit_learned_def drop_Suc
         mset_take_mset_drop_mset')
@@ -1675,12 +1675,12 @@ proof -
     unfolding NU unfolding S''_def S'''_def
     by (cases S) (auto simp: get_unit_init_clss_def get_unit_learned_def
         mset_take_mset_drop_mset')
-  let ?NU = \<open>N + ?NP + U + ?UP\<close>
+  let ?NU = \<open>N + ?NE + U + ?UE\<close>
   have NU'_N_U: \<open>NU' = N + U\<close>
     unfolding NU'_def N_def U_def mset_append[symmetric] image_mset_union[symmetric]
     by auto
-  have NU'_NUP: \<open>NU' + NUP = N + get_unit_init_clss S + U + get_unit_learned S\<close>
-    unfolding NUP NU'_N_U by (auto simp: ac_simps)
+  have NU'_NUE: \<open>NU' + NUE = N + get_unit_init_clss S + U + get_unit_learned S\<close>
+    unfolding NUE NU'_N_U by (auto simp: ac_simps)
   have struct_inv_S''': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M', N + get_unit_init_clss S,
           U + get_unit_learned S, E)\<close>
     using struct_invs unfolding twl_struct_invs_def S''_def S'''_def[symmetric] S'''
@@ -1704,11 +1704,11 @@ proof -
             E \<subseteq># F \<and>
             highest' = highest \<and>
             conflict_min_analysis_inv M' cach (?NU) F \<and>
-            NU' + NUP \<Turnstile>pm add_mset K F \<and>
+            NU' + NUE \<Turnstile>pm add_mset K F \<and>
             length xs = length xs\<^sub>0
         }\<close>
   have init_args_ref: \<open>(((n\<^sub>0, xs\<^sub>0), lookup_conflict_size (n\<^sub>0, xs\<^sub>0), 0, s', None), D, D, None) \<in> R\<close>
-    using D'_D cach_init NU_P_D unfolding R_def NUP NU'_def NU_N_U by (auto simp: ac_simps)
+    using D'_D cach_init NU_P_D unfolding R_def NUE NU'_def NU_N_U by (auto simp: ac_simps)
 
    have init_lo_inv: \<open>minimize_and_extract_highest_lookup_conflict_inv (n\<^sub>0, xs\<^sub>0) s'\<close>
     if
@@ -1776,10 +1776,10 @@ proof -
   have redundant: \<open>literal_redundant_wl_lookup M NU nxs cach
           (if the (xs ! a) then Pos a else Neg a) lbd
       \<le> \<Down> {((s', a', b'), b). b = b' \<and>
-            (b \<longrightarrow> NU' + NUP \<Turnstile>pm remove1_mset L (add_mset K E) \<and>
+            (b \<longrightarrow> NU' + NUE \<Turnstile>pm remove1_mset L (add_mset K E) \<and>
                conflict_min_analysis_inv M' s' ?NU (remove1_mset L E)) \<and>
-            (\<not>b \<longrightarrow> NU' + NUP \<Turnstile>pm add_mset K E \<and> conflict_min_analysis_inv M' s' ?NU E)}
-          (is_literal_redundant_spec K NU' NUP E L)\<close>
+            (\<not>b \<longrightarrow> NU' + NUE \<Turnstile>pm add_mset K E \<and> conflict_min_analysis_inv M' s' ?NU E)}
+          (is_literal_redundant_spec K NU' NUE E L)\<close>
     (is \<open>_ \<le> \<Down> ?red _\<close>)
     if
       R: \<open>(x, x') \<in> R\<close> and
@@ -1811,7 +1811,7 @@ proof -
       \<open>highest = x2a\<close> and
       xb_x1: \<open>L \<in># E\<close> and
       cach: \<open>conflict_min_analysis_inv M' cach ?NU E\<close> and
-      NU_P_E: \<open>NU' + NUP \<Turnstile>pm add_mset K E\<close>
+      NU_P_E: \<open>NU' + NUE \<Turnstile>pm add_mset K E\<close>
       using R xb unfolding R_def st
       by auto
     have L: \<open>?L = L\<close>
@@ -1837,7 +1837,7 @@ proof -
 
     have 3:
        \<open>literal_redundant M' (N + U) E cach ?L \<le>
-         literal_redundant_spec M' (N + U + ?NP +  ?UP) E ?L\<close>
+         literal_redundant_spec M' (N + U + ?NE +  ?UE) E ?L\<close>
       apply (rule literal_redundant_spec)
          apply (rule struct_inv_S''')
       apply (rule cach)
@@ -1849,8 +1849,8 @@ proof -
        \<open>literal_redundant M' (NU') E cach ?L \<le> literal_redundant_spec M' ?NU E ?L\<close>
       by (auto simp: ac_simps L NU'_N_U)
 
-    have ent: \<open>NU' + NUP \<Turnstile>pm add_mset (- L) (filter_to_poslev M' L (add_mset K E))\<close>
-      if \<open>NU' + NUP \<Turnstile>pm add_mset (- L) (filter_to_poslev M' L E)\<close>
+    have ent: \<open>NU' + NUE \<Turnstile>pm add_mset (- L) (filter_to_poslev M' L (add_mset K E))\<close>
+      if \<open>NU' + NUE \<Turnstile>pm add_mset (- L) (filter_to_poslev M' L E)\<close>
       using that by (auto simp: filter_to_poslev_add_mset add_mset_commute)
     show ?thesis
       apply (rule order.trans)
@@ -1860,7 +1860,7 @@ proof -
       apply (rule order.trans)
        apply (rule conc_fun_mono[OF 3])
       unfolding  literal_redundant_spec_def is_literal_redundant_spec_def
-          conc_fun_SPEC L NU'_NUP[symmetric]
+          conc_fun_SPEC L NU'_NUE[symmetric]
       apply (rule SPEC_rule)
       apply clarify
       using NU_P_E ent
@@ -2199,20 +2199,20 @@ end
 
 lemma iterate_over_conflict_spec:
   fixes D :: \<open>'v clause\<close>
-  assumes \<open>NU + NUP \<Turnstile>pm add_mset K D\<close> and dist: \<open>distinct_mset D\<close>
+  assumes \<open>NU + NUE \<Turnstile>pm add_mset K D\<close> and dist: \<open>distinct_mset D\<close>
   shows
-    \<open>iterate_over_conflict K M NU NUP D \<le> \<Down> Id (SPEC(\<lambda>(D', highest). D' \<subseteq># D \<and>
-       NU + NUP \<Turnstile>pm add_mset K D' \<and> highest_lit M D' highest))\<close>
+    \<open>iterate_over_conflict K M NU NUE D \<le> \<Down> Id (SPEC(\<lambda>(D', highest). D' \<subseteq># D \<and>
+       NU + NUE \<Turnstile>pm add_mset K D' \<and> highest_lit M D' highest))\<close>
 proof -
   define I' where
     \<open>I' = (\<lambda>(E:: 'v clause, f :: 'v clause, highest' :: 'v conflict_highest_conflict).
-            E \<subseteq># D \<and> NU + NUP \<Turnstile>pm add_mset K E \<and> distinct_mset E \<and> distinct_mset f \<and>
+            E \<subseteq># D \<and> NU + NUE \<Turnstile>pm add_mset K E \<and> distinct_mset E \<and> distinct_mset f \<and>
            highest_lit M (E - f) highest')\<close>
 
   have init_I': \<open>I' (D, D, None)\<close>
-    using \<open>NU + NUP \<Turnstile>pm add_mset K D\<close> dist unfolding I'_def highest_lit_def by auto
+    using \<open>NU + NUE \<Turnstile>pm add_mset K D\<close> dist unfolding I'_def highest_lit_def by auto
 
-  have red: \<open>is_literal_redundant_spec K NU NUP a x
+  have red: \<open>is_literal_redundant_spec K NU NUE a x
       \<le> SPEC (\<lambda>red. (if \<not> red then RETURN (a, remove1_mset x aa, merge_highest_lit M x ba)
                else RETURN (remove1_mset x a, remove1_mset x aa, ba))
               \<le> SPEC (\<lambda>s'. iterate_over_conflict_inv M D s' \<and> I' s' \<and>
@@ -2281,7 +2281,7 @@ lemma
     \<open>M \<equiv> get_trail_wl S\<close> and
     NU: \<open>NU \<equiv> get_clauses_wl S\<close> and
     NU'_def: \<open>NU' \<equiv> mset `# mset (tl NU)\<close> and
-    NUP: \<open>NUP \<equiv> get_unit_learned S + get_unit_init_clss S\<close> and
+    NUE: \<open>NUE \<equiv> get_unit_learned S + get_unit_init_clss S\<close> and
     M': \<open>M' \<equiv> trail S'''\<close>
   assumes
     D'_D: \<open>(D', D) \<in> lookup_clause_rel\<close> and
@@ -2289,15 +2289,15 @@ lemma
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close> and
     struct_invs: \<open>twl_struct_invs S''\<close> and
     add_inv: \<open>twl_list_invs S'\<close> and
-    cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUP) D\<close> and
-    NU_P_D: \<open>NU' + NUP \<Turnstile>pm add_mset K D\<close> and
+    cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUE) D\<close> and
+    NU_P_D: \<open>NU' + NUE \<Turnstile>pm add_mset K D\<close> and
     confl: \<open>get_conflict_wl S \<noteq> None\<close> and
     lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close>
   shows
     \<open>minimize_and_extract_highest_lookup_conflict M NU D' s' lbd \<le>
        \<Down> ({((E, s, L'), (E', L)). (E, E') \<in> lookup_clause_rel \<and> L' = L \<and>
             length (snd E) = length (snd D') \<and> E' \<subseteq># D})
-         (SPEC (\<lambda>(D', highest). D' \<subseteq># D \<and> NU' + NUP \<Turnstile>pm add_mset K D' \<and>
+         (SPEC (\<lambda>(D', highest). D' \<subseteq># D \<and> NU' + NUE \<Turnstile>pm add_mset K D' \<and>
             highest_lit M D' highest))\<close>
 proof -
   have dist: \<open>distinct_mset D\<close>

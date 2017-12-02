@@ -18,10 +18,10 @@ definition (in -) derive_literals_and_clauses where
     (\<forall>i. new_pos i = Some 0 \<longleftrightarrow> i = 0)\<close>
 
 definition restart_prog_clss_list :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
-  \<open>restart_prog_clss_list = (\<lambda>(M, N, U, D, NP, UP, WS, Q). do {
+  \<open>restart_prog_clss_list = (\<lambda>(M, N, U, D, NE, UE, WS, Q). do {
      (N', new_pos) \<leftarrow> SPEC(\<lambda>(N', new_pos).
              derive_literals_and_clauses M N U N' new_pos);
-     RETURN ((map_proped_lits (the o new_pos) M, N', U, D, NP, UP, WS, Q))
+     RETURN ((map_proped_lits (the o new_pos) M, N', U, D, NE, UE, WS, Q))
   })\<close>
 
 definition cdcl_twl_restart_only:: \<open>'v twl_st \<Rightarrow> ('v twl_st) nres\<close>  where
@@ -36,7 +36,7 @@ lemma cdcl_twl_o_prog_l_spec:
   (is \<open> _ \<in> ?R \<rightarrow> ?I\<close> is \<open> _ \<in> ?R \<rightarrow> \<langle>?J\<rangle>nres_rel\<close>)
 proof -
   have corr:
-    \<open>RETURN (map_proped_lits (the \<circ> new_pos) M, N', u, D, NP, UP, WS, Q)
+    \<open>RETURN (map_proped_lits (the \<circ> new_pos) M, N', u, D, NE, UE, WS, Q)
       \<le> \<Down> {(T, T').
             T' = twl_st_of None T \<and>
             twl_list_invs T \<and>
@@ -45,23 +45,23 @@ proof -
             twl_stgy_invs (twl_st_of None T)}
           (SPEC (cdcl_twl_restart S))\<close>
     if
-      \<open>((M, N, u, D, NP, UP, WS, Q), S) \<in> {(S, S').
+      \<open>((M, N, u, D, NE, UE, WS, Q), S) \<in> {(S, S').
          S' = twl_st_of None S \<and>
          literals_to_update_l S = {#} \<and>
          twl_struct_invs (twl_st_of None S) \<and>
          twl_stgy_invs (twl_st_of None S) \<and> twl_list_invs S}\<close> and
       \<open>(N', new_pos) \<in> {(x, y). derive_literals_and_clauses M N u x y}\<close>
-    for S M N u D NP UP WS Q N' new_pos
+    for S M N u D NE UE WS Q N' new_pos
   proof -
-    obtain M' N'' U' D' NP' UP' WS' Q' where
-      S: \<open>S = (M', N'', U', D', NP', UP', WS', Q')\<close>
+    obtain M' N'' U' D' NE' UE' WS' Q' where
+      S: \<open>S = (M', N'', U', D', NE', UE', WS', Q')\<close>
       by (cases S)
     have
-      S_twl: \<open>S = twl_st_of None (M, N, u, D, NP, UP, WS, Q)\<close> and
-      \<open>literals_to_update_l (M, N, u, D, NP, UP, WS, Q) = {#}\<close> and
-      \<open>twl_struct_invs (twl_st_of None (M, N, u, D, NP, UP, WS, Q))\<close> and
-      \<open>twl_stgy_invs (twl_st_of None (M, N, u, D, NP, UP, WS, Q))\<close> and
-      list_invs: \<open>twl_list_invs (M, N, u, D, NP, UP, WS, Q)\<close> and
+      S_twl: \<open>S = twl_st_of None (M, N, u, D, NE, UE, WS, Q)\<close> and
+      \<open>literals_to_update_l (M, N, u, D, NE, UE, WS, Q) = {#}\<close> and
+      \<open>twl_struct_invs (twl_st_of None (M, N, u, D, NE, UE, WS, Q))\<close> and
+      \<open>twl_stgy_invs (twl_st_of None (M, N, u, D, NE, UE, WS, Q))\<close> and
+      list_invs: \<open>twl_list_invs (M, N, u, D, NE, UE, WS, Q)\<close> and
       derive: \<open>derive_literals_and_clauses M N u N' new_pos\<close>
       using that by fast+
     have 
@@ -81,8 +81,8 @@ proof -
       \<open>U' = {#TWL_Clause (mset (watched_l x)) (mset (unwatched_l x)).
           x \<in># mset (drop (Suc u) N)#}\<close> and
       [simp]: \<open>D' = D\<close> and
-      [simp]: \<open>NP' = NP\<close> and
-      [simp]: \<open>UP' = UP\<close> and
+      [simp]: \<open>NE' = NE\<close> and
+      [simp]: \<open>UE' = UE\<close> and
       [simp]: \<open>WS' = {#}\<close> and
       [simp]: \<open>Q' = Q\<close>
       using S_twl unfolding S

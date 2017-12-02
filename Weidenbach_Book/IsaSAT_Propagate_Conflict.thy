@@ -15,8 +15,8 @@ lemma unit_prop_body_wl_invD:
   assumes inv: \<open>unit_prop_body_wl_inv S w K\<close>
   shows \<open>distinct((get_clauses_wl S)!C)\<close> and \<open>get_conflict_wl S = None\<close>
 proof -
-  obtain M N U D' NP UP Q W where
-     S: \<open>S = (M, N, U, D', NP, UP, Q, W)\<close>
+  obtain M N U D' NE UE Q W where
+     S: \<open>S = (M, N, U, D', NE, UE, Q, W)\<close>
     by (cases S)
   have
      struct_invs: \<open>twl_struct_invs (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S))\<close> and
@@ -140,10 +140,10 @@ lemma (in -) twl_struct_invs_length_clause_ge_2:
     i: \<open>i > 0\<close> \<open>i < length (get_clauses_wl S)\<close>
  shows \<open>length (get_clauses_wl S ! i) \<ge> 2\<close>
 proof -
-  obtain M N U D NP UP WS Q where
-    S: \<open>S = (M, N, U, D, NP, UP, WS, Q)\<close>
+  obtain M N U D NE UE WS Q where
+    S: \<open>S = (M, N, U, D, NE, UE, WS, Q)\<close>
     by (cases S)
-  have \<open>twl_st_inv (twl_st_of (Some L) (st_l_of_wl (Some (L, w)) (M, N, U, D, NP, UP, WS, Q)))\<close>
+  have \<open>twl_st_inv (twl_st_of (Some L) (st_l_of_wl (Some (L, w)) (M, N, U, D, NE, UE, WS, Q)))\<close>
     using struct unfolding S twl_struct_invs_def by fast
   then have \<open>\<forall>x\<in>set (tl N). 2 \<le> length x \<and> distinct x\<close>
     by (auto simp: twl_st_inv.simps mset_take_mset_drop_mset')
@@ -187,12 +187,12 @@ proof -
   have nempty: \<open>get_clauses_wl S \<noteq> []\<close> and S_L_w_ge_0: \<open>0 < watched_by_app S L w\<close>
     using assms unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
     twl_list_invs_def watched_by_app_def by auto
-  obtain M N U D NP UP W Q where
-    S: \<open>S = (M, N, U, D, NP, UP, Q, W)\<close>
+  obtain M N U D NE UE W Q where
+    S: \<open>S = (M, N, U, D, NE, UE, Q, W)\<close>
     by (cases S)
   show lits_N: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (get_clauses_wl S ! watched_by_app S L w))\<close>
     using assms unfolding unit_prop_body_wl_D_inv_def apply -
-    apply (rule literals_are_in_\<L>\<^sub>i\<^sub>n_nth[of _ _ M U D NP UP Q W])
+    apply (rule literals_are_in_\<L>\<^sub>i\<^sub>n_nth[of _ _ M U D NE UE Q W])
     apply (rule S_L_W_le_S)
     apply (rule S_L_w_ge_0)
     using S by (auto simp del: twl_st_of.simps)
@@ -309,7 +309,7 @@ proof -
 qed
 
 definition (in -) find_unwatched_wl_st  :: \<open>nat twl_st_wl \<Rightarrow> nat \<Rightarrow> nat option nres\<close> where
-\<open>find_unwatched_wl_st = (\<lambda>(M, N, U, D, NP, UP, Q, W) i. do {
+\<open>find_unwatched_wl_st = (\<lambda>(M, N, U, D, NE, UE, Q, W) i. do {
     find_unwatched_l M (N ! i)
   })\<close>
 
@@ -505,12 +505,12 @@ proof -
 qed
 
 lemmas unit_prop_body_wl_D_invD' =
-  unit_prop_body_wl_D_invD[of \<open>(M, N, U, D, NP, UP, WS, Q)\<close> for M N U D NP UP WS Q,
+  unit_prop_body_wl_D_invD[of \<open>(M, N, U, D, NE, UE, WS, Q)\<close> for M N U D NE UE WS Q,
    unfolded watched_by_app_def,
     simplified] unit_prop_body_wl_D_invD(7)
 
 definition set_conflict_wl' :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-  \<open>set_conflict_wl' = (\<lambda>C (M, N, U, D, NP, UP, Q, W). (M, N, U, Some (mset (N!C)), NP, UP, {#}, W))\<close>
+  \<open>set_conflict_wl' = (\<lambda>C (M, N, U, D, NE, UE, Q, W). (M, N, U, Some (mset (N!C)), NE, UE, {#}, W))\<close>
 
 lemma set_conflict_wl'_alt_def:
   \<open>set_conflict_wl' i S = set_conflict_wl (get_clauses_wl S ! i) S\<close>
@@ -665,8 +665,8 @@ lemma
       (is \<open>polarity_st _ (_ ! _ ! ?i) = Some False\<close>)
   for S C xj L
 proof  -
-  obtain M N U D NP UP WS Q where
-    S: \<open>S = (M, N, U, D, NP, UP, WS, Q)\<close>
+  obtain M N U D NE UE WS Q where
+    S: \<open>S = (M, N, U, D, NE, UE, WS, Q)\<close>
     by (cases S)
 
   have \<open>consistent_interp
@@ -855,10 +855,10 @@ proof -
     apply (cases x)
     apply (clarify)
     apply (intro conjI impI allI)
-    subgoal for L C w i f M N U D NP UP Q W
-      using that find_unwatched_get_clause_neq_L[of f \<open>(M, N, U, D, NP, UP, Q, W)\<close> L w]
+    subgoal for L C w i f M N U D NE UE Q W
+      using that find_unwatched_get_clause_neq_L[of f \<open>(M, N, U, D, NE, UE, Q, W)\<close> L w]
       by (auto simp add: watched_by_app_def)
-    subgoal for L C w i f M N U D NP UP Q W y
+    subgoal for L C w i f M N U D NE UE Q W y
       apply (subgoal_tac \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl N))\<close>)
       subgoal
         using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<open>tl N\<close> \<open>(W L ! w - 1)\<close> f]
@@ -1181,7 +1181,7 @@ definition (in -) select_and_remove_from_literals_to_update_wl_heur
      (\<lambda>(M, N, U, D, Q, W, other).  ((M, N, U, D, tl Q, W, other), hd Q))\<close>
 
 definition get_literals_to_update_wl where
-   \<open>get_literals_to_update_wl = (\<lambda>(M, N, U, D, NP, UP, Q, W). Q)\<close>
+   \<open>get_literals_to_update_wl = (\<lambda>(M, N, U, D, NE, UE, Q, W). Q)\<close>
 
 definition get_literals_to_update_wl_heur_W_list where
    \<open>get_literals_to_update_wl_heur_W_list = (\<lambda>(M, N, U, D, Q, W, _). Q)\<close>

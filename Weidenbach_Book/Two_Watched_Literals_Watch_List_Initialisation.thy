@@ -24,7 +24,7 @@ lemma image_mset_Suc: \<open>Suc `# {#C \<in># M. P C#} = {#C \<in># Suc `# M. P
   by (induction M) auto
 
 lemma clause_to_update_def2:
-  \<open>clause_to_update L (M, C # N, U, D, NP, UP, {#}, {#}) =
+  \<open>clause_to_update L (M, C # N, U, D, NE, UE, {#}, {#}) =
     image_mset Suc (filter_mset
       (\<lambda>C::nat. L \<in> set (watched_l (N!C)))
       (mset [0..<length N]))\<close>
@@ -37,9 +37,9 @@ proof -
     by (rule filter_mset_cong) (auto split: if_splits)
 qed
 
-lemma clause_to_update_Cons: \<open>clause_to_update L (M, C # C' # N, U, D, NP, UP, {#}, {#}) =
+lemma clause_to_update_Cons: \<open>clause_to_update L (M, C # C' # N, U, D, NE, UE, {#}, {#}) =
          (if L \<in> set (watched_l C') then {#1#} else {#}) +
-         Suc `# clause_to_update L (M, C # N, U, D, NP, UP, {#}, {#})\<close> for L C
+         Suc `# clause_to_update L (M, C # N, U, D, NE, UE, {#}, {#})\<close> for L C
 proof -
   define dont_be_silly where
     \<open>dont_be_silly L = {#C \<in># mset [0..<length N]. L \<in> set (watched_l (N ! C))#}\<close> for L
@@ -60,7 +60,7 @@ qed
 
 lemma calculate_correct_watching:
    \<open>mset ((calculate_correct_watching N (\<lambda>_. []) i) L) =
-           image_mset (\<lambda>n. n+i-1) (clause_to_update L (M, C # N, U, D, NP, UP, {#}, {#}))\<close>
+           image_mset (\<lambda>n. n+i-1) (clause_to_update L (M, C # N, U, D, NE, UE, {#}, {#}))\<close>
 proof -
   show ?thesis
   proof (induction N arbitrary: i L)
@@ -96,8 +96,8 @@ qed
 subsection \<open>Final Theorem with Initialisation\<close>
 
 fun init_wl_of :: \<open>'v twl_st_l\<Rightarrow> 'v twl_st_wl\<close> where
-  \<open>init_wl_of (M, N, U, D, NP, UP, _, Q) =
-       ((M, N, U, D, NP, UP, Q, calculate_correct_watching (tl N) (\<lambda>_. []) 1))\<close>
+  \<open>init_wl_of (M, N, U, D, NE, UE, _, Q) =
+       ((M, N, U, D, NE, UE, Q, calculate_correct_watching (tl N) (\<lambda>_. []) 1))\<close>
 
 lemma twl_struct_invs_init_twl_struct_invs:
   \<open>snd S = {#} \<Longrightarrow> twl_struct_invs_init S \<longleftrightarrow> twl_struct_invs (fst S)\<close>
@@ -116,15 +116,15 @@ theorem init_dt_wl:
              (state\<^sub>W_of (twl_st_of_wl None S))
              (state\<^sub>W_of (twl_st_of_wl None T)))\<close>
 proof -
-  obtain M N U D NP UP WS Q OC where
-    init: \<open>init_dt CS S\<^sub>0 = ((M, N, U, D, NP, UP, WS, Q), OC)\<close>
+  obtain M N U D NE UE WS Q OC where
+    init: \<open>init_dt CS S\<^sub>0 = ((M, N, U, D, NE, UE, WS, Q), OC)\<close>
     by (cases \<open>init_dt CS S\<^sub>0\<close>) auto
   have \<open>N \<noteq> []\<close>
     using clauses_init_dt_not_Nil[of CS \<open>snd S\<^sub>0\<close>] init unfolding S\<^sub>0 by auto
   then have corr_w: \<open>correct_watching S\<close>
     unfolding S init
     by (auto simp: correct_watching.simps
-        calculate_correct_watching[of _ _ _ M \<open>hd N\<close> U D NP UP])
+        calculate_correct_watching[of _ _ _ M \<open>hd N\<close> U D NE UE])
   have
     \<open>twl_struct_invs (twl_st_of_wl None S)\<close> and
     \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of_wl None S)) = mset `# mset CS\<close> and
