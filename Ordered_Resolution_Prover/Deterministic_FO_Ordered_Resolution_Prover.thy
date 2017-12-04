@@ -306,10 +306,31 @@ proof (induct N)
 qed simp
 
 lemma remove_strictly_subsumed_clauses_in_P:
-  assumes c_in: "C \<in> fst ` set N"
+  assumes
+    c_in: "C \<in> fst ` set N" and
+    p_nsub: "\<forall>(D, j) \<in> set P. \<not> strictly_subsume [C] D"
   shows "wstate_of_dstate (N, P @ P', Q, n)
     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) P', Q, n)"
-proof (induct P' arbitrary: P)
+proof (induct "length P'" arbitrary: P P' rule: less_induct)
+  case less
+  note ih = this(1)
+
+  show ?case
+  proof (cases "length P'")
+    case Suc
+
+    let ?Dk = "hd P'"
+    let ?P'' = "tl P'"
+    have p': "P' = hd P' # tl P'"
+      using Suc by (metis length_Suc_conv list.distinct(1) list.exhaust_sel)
+
+    have "wstate_of_dstate (N, P @ P', Q, n)
+      \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P
+          @ (if strictly_subsume [C] (fst ?Dk) then filter (\<lambda>(E, l). E \<noteq> fst ?Dk) ?P'' else P'),
+        Q, n)"
+      sorry
+
+(*
   case ih: (Cons Dk P')
   have "wstate_of_dstate (N, P @ Dk # P', Q, n) \<leadsto>\<^sub>w\<^sup>*
     wstate_of_dstate (N, P @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [Dk] @ P', Q, n)"
@@ -333,6 +354,26 @@ especially not D).
   then show ?case
     using ih[of "P @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [Dk]"] by force
 qed simp
+*)
+    then show ?thesis
+      apply (rule rtranclp_trans)
+      apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
+            ih[of "if strictly_subsume [C] (fst ?Dk) then filter (\<lambda>(E, l). E \<noteq> fst ?Dk) ?P''
+                 else ?P''"
+              "P @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [?Dk]"]])
+        apply auto
+          apply (subst (3) p')
+          apply simp
+         apply (subst (3) p')
+         apply simp
+      defer
+        apply (subst (3) p')
+      apply (metis (no_types, lifting) filter_True length_Suc_conv length_filter_less less_SucI not_less_less_Suc_eq)
+       apply (subst (2) p')
+       apply simp
+      sorry
+  qed simp
+qed
 
 lemma remove_strictly_subsumed_clauses_in_Q:
   assumes c_in: "C \<in> fst ` set N"
