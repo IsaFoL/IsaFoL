@@ -188,10 +188,10 @@ where
 
 fun deterministic_RP_step :: "'a dstate \<Rightarrow> 'a dstate" where
   "deterministic_RP_step (N, P, Q, n) =
-   (case List.find (\<lambda>(C, _). C = []) Q of
+   (case find (\<lambda>(C, _). C = []) Q of
       Some _ \<Rightarrow> (N, P, Q, n)
     | None \<Rightarrow>
-      (case List.find (\<lambda>(C, _). C = []) P of
+      (case find (\<lambda>(C, _). C = []) P of
          Some Ci \<Rightarrow> ([], [], P @ Q, n + length P)
        | None \<Rightarrow>
          (case N of
@@ -203,7 +203,7 @@ fun deterministic_RP_step :: "'a dstate \<Rightarrow> 'a dstate" where
                 (C, i) = select_min_weight_clause P0 P';
                 N = map (\<lambda>D. (D, n)) (remdups_gen mset (resolve_rename C C @
                   concat (map (resolve_rename_either_way C \<circ> fst) Q)));
-                P = remove1 (C, i) P;
+                P = filter (\<lambda>(D, j). D \<noteq> C) P;
                 Q = (C, i) # Q;
                 n = Suc n
               in
@@ -726,7 +726,7 @@ lemma compute_inferences:
     "wstate_of_dstate ([], P, Q, n) \<leadsto>\<^sub>w
      wstate_of_dstate (map (\<lambda>D. (D, n)) (remdups_gen mset (resolve_rename C C @
          concat (map (resolve_rename_either_way C \<circ> fst) Q))),
-       remove1 (C, i) P, (C, i) # Q, Suc n)" (is "_ \<leadsto>\<^sub>w wstate_of_dstate (?N, _)")
+       filter (\<lambda>(D, j). D \<noteq> C) P, (C, i) # Q, Suc n)" (is "_ \<leadsto>\<^sub>w wstate_of_dstate (?N, _)")
 proof -
   have ms_ci_in: "(mset C, i) \<in># image_mset (apfst mset) (mset P)"
     using ci_in by force
@@ -758,7 +758,6 @@ proof -
     apply (simp add: image_UN)
     done
 *)
-    (* BASIC IDEA: Change the code to remove any duplicates. *)
     sorry
 qed
 
@@ -774,7 +773,7 @@ proof -
   note step = step[unfolded st deterministic_RP_step.simps, simplified]
 
   show ?thesis
-  proof (cases "List.find (\<lambda>(C, _). C = []) Q")
+  proof (cases "find (\<lambda>(C, _). C = []) Q")
     case ci: (Some Ci)
     note step = step[unfolded ci, simplified]
     then have st_st': "St = St'"
@@ -790,7 +789,7 @@ proof -
     case nil_ni_q: None
     note step = step[unfolded nil_ni_q, simplified]
     show ?thesis
-    proof (cases "List.find (\<lambda>(C, _). C = []) P")
+    proof (cases "find (\<lambda>(C, _). C = []) P")
       case ci: (Some Ci)
       note step = step[unfolded ci, simplified]
 
@@ -826,7 +825,7 @@ proof -
         have "wstate_of_dstate (N, P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], P, Q, n)"
           by (rule empty_N_if_Nil_in_P_or_Q[OF nil_in])
         also obtain N' :: "'a dclause list" where
-          "\<dots> \<leadsto>\<^sub>w wstate_of_dstate (N', remove1 (C, i) P, (C, i) # Q, Suc n)"
+          "\<dots> \<leadsto>\<^sub>w wstate_of_dstate (N', filter (\<lambda>(D, j). D \<noteq> C) P, (C, i) # Q, Suc n)"
           by (atomize_elim, rule exI, rule compute_inferences[OF ci_in], use ci_min in fastforce)
         also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], remove1 (C, i) P @ (C, i) # Q, n + length P)"
         proof -
@@ -835,8 +834,9 @@ proof -
           moreover have "Suc n + length (remove1 (C, i) P) = n + length P"
             using ci_in k len_p by simp
           ultimately show ?thesis
-            using ih[of "remove1 (C, i) P" "(C, i) # Q" N' "Suc n"] mset[THEN mset_eq_setD] nil_in
-            by presburger
+            using ih[of "filter (\<lambda>(D, j). D \<noteq> C) P" "(C, i) # Q" N' "Suc n"]
+              mset[THEN mset_eq_setD] nil_in
+            sorry
         qed
         also have "\<dots> = wstate_of_dstate ([], [], P @ Q, n + length P)"
           unfolding wstate_of_dstate.simps mset_map mset ..
@@ -862,12 +862,12 @@ proof -
             using step by simp
         next
           case p_cons: (Cons P0 P')
-          note step = step[unfolded p_cons, simplified]
+          note step = step[unfolded p_cons list.case, folded p_cons]
 
           obtain C :: "'a lclause" and i :: nat where
             ci: "(C, i) = select_min_weight_clause P0 P'"
             by (cases "select_min_weight_clause P0 P'") simp
-          note step = step[unfolded select, simplified, folded remove1.simps(2)]
+          note step = step[unfolded select, simplified]
 
           have ci_in: "(C, i) \<in> set P"
             by (rule select_min_weight_clause_in[of P0 P', folded ci p_cons])
