@@ -317,6 +317,10 @@ proof (induct P' arbitrary: P)
     case subs: True
     have "wstate_of_dstate (N, P @ Dk # P', Q, n) \<leadsto>\<^sub>w wstate_of_dstate (N, P @ P', Q, n)"
       sorry
+(* BASIC IDEA:
+remove copies of D in P' as well, and assume that P contains no strictly subsumed formulas (and
+especially not D).
+*)
 (*
       by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
             wrp.backward_subsumption_P[of "mset C" "mset (map (apfst mset) N)" "mset (fst Dk)"
@@ -370,6 +374,7 @@ proof (induct D' arbitrary: D)
     have "wstate_of_dstate (N, P @ (D @ L # D', k) # P', Q, n)
       \<leadsto>\<^sub>w wstate_of_dstate (N, P @ (D @ D', k) # P', Q, n)"
       sorry
+(* BASIC IDEA: remove copies of L in D' and make sure P hs been reduced already *)
 (*
       by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
             wrp.backward_reduction_P[of "mset C - {#L'#}" L' "mset (map (apfst mset) N)" L \<sigma>
@@ -753,6 +758,7 @@ proof -
     apply (simp add: image_UN)
     done
 *)
+    (* BASIC IDEA: Change the code to remove any duplicates. *)
     sorry
 qed
 
