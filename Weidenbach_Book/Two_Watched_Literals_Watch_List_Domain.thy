@@ -1078,7 +1078,9 @@ proof -
     done
 qed
 
-definition (in isasat_input_ops) skip_and_resolve_loop_wl_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
+definition (in isasat_input_ops) skip_and_resolve_loop_wl_D 
+  :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close>
+where
   \<open>skip_and_resolve_loop_wl_D S\<^sub>0 =
     do {
       ASSERT(get_conflict_wl S\<^sub>0 \<noteq> None);
@@ -1094,7 +1096,8 @@ definition (in isasat_input_ops) skip_and_resolve_loop_wl_D :: \<open>nat twl_st
             if -L \<notin># D' then
               do {RETURN (False, tl_state_wl S)}
             else
-              if get_maximum_level (get_trail_wl S) (remove1_mset (-L) D') = count_decided (get_trail_wl S)
+              if get_maximum_level (get_trail_wl S) (remove1_mset (-L) D') =
+                count_decided (get_trail_wl S)
               then
                 do {RETURN (update_confl_tl_wl C L S)}
               else

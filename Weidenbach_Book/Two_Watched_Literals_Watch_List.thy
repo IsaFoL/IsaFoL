@@ -1036,7 +1036,7 @@ definition tl_state_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close>
 definition resolve_cls_wl' :: \<open>'v twl_st_wl \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> 'v clause\<close> where
 \<open>resolve_cls_wl' S C L  =
    remove1_mset (-L) (the (get_conflict_wl S)) \<union>#
-      (if C = 0 then {#} else mset (remove1 L (get_clauses_wl S!C)))\<close>
+      (if C = 0 then {#} else mset (tl (get_clauses_wl S!C)))\<close>
 
 definition update_confl_tl_wl :: \<open>nat \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool \<times> 'v twl_st_wl\<close> where
   \<open>update_confl_tl_wl = (\<lambda>C L (M, N, U, D, NE, UE, WS, Q).

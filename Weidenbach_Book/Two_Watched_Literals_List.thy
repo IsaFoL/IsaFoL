@@ -1243,7 +1243,7 @@ definition tl_state_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> wh
 definition resolve_cls_l' :: \<open>'v twl_st_l \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> 'v clause\<close> where
 \<open>resolve_cls_l' S C L  =
    remove1_mset (-L) (the (get_conflict_l S)) \<union>#
-      (if C = 0 then {#} else mset (remove1 L (get_clauses_l S!C)))\<close>
+      (if C = 0 then {#} else mset (tl (get_clauses_l S!C)))\<close>
 
 definition update_confl_tl_l :: \<open>nat \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> bool \<times> 'v twl_st_l\<close> where
   \<open>update_confl_tl_l = (\<lambda>C L (M, N, U, D, NE, UE, WS, Q).
@@ -1295,19 +1295,71 @@ private lemma skip_and_resolve_l_refines:
       resolve_cls_l_nil_iff tl_state_l_def tl_state_def)
 
 private lemma skip_and_resolve_skip_refine:
-  \<open>((nrk, S), brk', S') \<in> {((brk, S), brk', S'). brk = brk' \<and>
-       S' = twl_st_of None S \<and> twl_list_invs S \<and> clauses_to_update_l S = {#}} \<Longrightarrow>
-    ((L, C), L', C') \<in> {((L, C), L', C'). L = L' \<and>
-        C' = (if C = 0 then {#L#} else mset (get_clauses_l S ! C))} \<Longrightarrow>
-    lit_and_ann_of_propagated (hd (get_trail_l S)) = (L, C) \<Longrightarrow>
-    (update_confl_tl_l C L S,
-     remove1_mset (- L') (the (get_conflict S')) \<union># remove1_mset L' C' = {#},
+  assumes
+    rel: \<open>((nrk, S), brk', S') \<in> {((brk, S), brk', S'). brk = brk' \<and>
+         S' = twl_st_of None S \<and> twl_list_invs S \<and> clauses_to_update_l S = {#}}\<close> and
+    dec: \<open>\<not> is_decided (hd (get_trail (twl_st_of None S)))\<close> and
+    rel': \<open>((L, C), L', C') \<in> {((L, C), L', C'). L = L' \<and>
+        C' = (if C = 0 then {#L#} else mset (get_clauses_l S ! C))}\<close> and
+    LC: \<open>lit_and_ann_of_propagated (hd (get_trail_l S)) = (L, C)\<close> and
+    tr: \<open>get_trail_l S \<noteq> []\<close> and
+    struct_invs: \<open>twl_struct_invs (twl_st_of None S)\<close>
+  shows
+   \<open>(update_confl_tl_l C L S, remove1_mset (- L') (the (get_conflict S')) \<union># remove1_mset L' C' =
+          {#},
      update_confl_tl (Some (remove1_mset (- L') (the (get_conflict S')) \<union># remove1_mset L' C')) S')
-    \<in> {((brk, S), brk', S'). brk = brk' \<and> S' = twl_st_of None S \<and>
-       twl_list_invs S \<and> clauses_to_update_l S = {#}}\<close>
-  by (cases S; cases \<open>get_trail_l S\<close>)
-     (auto simp: skip_and_resolve_loop_inv_def twl_list_invs_def resolve_cls_l'_def
-          resolve_cls_l_nil_iff update_confl_tl_l_def update_confl_tl_def)
+         \<in> {((brk, S), brk', S').
+             brk = brk' \<and>
+             S' = twl_st_of None S \<and>
+             twl_list_invs S \<and>
+             clauses_to_update_l S = {#}}\<close>
+proof -
+  obtain M N U D NE UE Q where S: \<open>S = (Propagated L C # M, N, U, D, NE, UE, {#}, Q)\<close>
+    using dec LC tr rel
+    by (cases S; cases \<open>get_trail_l S\<close>; cases \<open>hd (get_trail_l S)\<close>)
+      auto
+  have S': \<open>S' = twl_st_of None S\<close> and [simp]: \<open>L = L'\<close> and
+    C': \<open>C' = (if C = 0 then {#L#} else mset (get_clauses_l S ! C))\<close> and
+    invs_S: \<open>twl_list_invs S\<close>
+    using rel rel' unfolding S by auto
+  show ?thesis
+  proof (cases \<open>C = 0\<close>)
+    case True
+    then show ?thesis
+    using invs_S
+    by (auto simp: skip_and_resolve_loop_inv_def twl_list_invs_def resolve_cls_l'_def
+        resolve_cls_l_nil_iff update_confl_tl_l_def update_confl_tl_def
+         S S' C')
+  next
+    case False
+    then have \<open>L = N ! C ! 0\<close> and \<open>C < length N\<close>
+      using invs_S
+      unfolding S C' by (auto simp: twl_list_invs_def)
+    moreover {
+      have \<open>twl_st_inv (twl_st_of None (Propagated L C # M, N, U, D, NE, UE, {#}, Q))\<close>
+        using struct_invs unfolding S twl_struct_invs_def
+        by fast
+      then have
+        \<open>Multiset.Ball (twl_clause_of `# mset (take U (tl N)) + twl_clause_of `# mset (drop (Suc U) N))
+        struct_wf_twl_cls\<close>
+        unfolding twl_st_of.simps twl_st_inv.simps by fast
+      then have
+        \<open>Multiset.Ball (mset (tl N)) (\<lambda>C. size C \<ge> 2)\<close>
+        unfolding Ball_def mset_append[symmetric] image_mset_union[symmetric] drop_Suc
+        by auto
+      moreover have \<open>N ! C \<in> set (tl N)\<close>
+        using False \<open>C < length N\<close> nth_in_set_tl unfolding S by blast
+      ultimately have \<open>length (N ! C) \<ge> 2\<close>
+        using False \<open>C < length N\<close> unfolding S by (auto simp: twl_list_invs_def)
+    }
+    ultimately show ?thesis
+      using invs_S
+      by (cases \<open>N ! C\<close>)
+        (auto simp: skip_and_resolve_loop_inv_def twl_list_invs_def resolve_cls_l'_def
+          resolve_cls_l_nil_iff update_confl_tl_l_def update_confl_tl_def
+          S S' C')
+  qed
+qed
 
 lemma skip_and_resolve_loop_l_spec:
   \<open>(skip_and_resolve_loop_l, skip_and_resolve_loop) \<in>
@@ -1392,7 +1444,8 @@ proof -
     subgoal by simp
     subgoal by (rule skip_and_resolve_l_refines) assumption+
     subgoal by auto
-    subgoal by (rule skip_and_resolve_skip_refine) assumption
+    subgoal by (rule skip_and_resolve_skip_refine)
+        (auto simp: skip_and_resolve_loop_inv_def get_trail_twl_st_of_nil_iff)
       \<comment> \<open>annotations are valid\<close>
     subgoal by auto
     subgoal by auto
