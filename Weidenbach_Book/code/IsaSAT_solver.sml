@@ -169,13 +169,13 @@ structure SAT_Solver : sig
   type minimize_status
   datatype int = Int_of_integer of IntInf.int
   type ('a, 'b) hashtable
+  val integer_of_int : int -> IntInf.int
+  val uint32_of_nat : nat -> Word32.word
   val isaSAT_code :
     (Word32.word list) list ->
       (unit ->
         ((Word32.word list) option *
           (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64))))
-  val integer_of_int : int -> IntInf.int
-  val uint32_of_nat : nat -> Word32.word
 end = struct
 
 datatype typerepa = Typerep of string * typerepa list;
@@ -1122,30 +1122,21 @@ fun get_level_atm_code x =
 fun get_level_code x =
   (fn ai => fn bi => get_level_atm_code ai (atm_of_code bi)) x;
 
-fun array_copy A_ a =
-  (fn () =>
-    let
-      val l = len A_ a ();
-    in
-      (if equal_nat l zero_nata then (fn () => Array.fromList [])
-        else (fn f_ => fn () => f_ ((nth A_ a zero_nata) ()) ())
-               (fn s =>
-                 (fn f_ => fn () => f_ ((new A_ l s) ()) ())
-                   (fn aa =>
-                     (fn f_ => fn () => f_ ((blit A_ a zero_nata aa zero_nata l)
-                       ()) ())
-                       (fn _ => (fn () => aa)))))
-        ()
-    end);
-
-fun nth_rl A_ xs n =
-  (fn () => let
-              val x = arl_get (heap_array (typerep_heap A_)) xs n ();
-            in
-              array_copy A_ x ()
-            end);
-
 fun nth_raa_u A_ xs x l = nth_raa A_ xs x (nat_of_uint32 l);
+
+fun int_of_nat n = Int_of_integer (integer_of_nat n);
+
+fun integer_of_int (Int_of_integer k) = k;
+
+fun uint32_of_int i = Word32.fromLargeInt (IntInf.toLarge (integer_of_int i));
+
+fun uint32_of_nat x = (uint32_of_int o int_of_nat) x;
+
+fun length_aa_u_code A_ xs i = (fn () => let
+   val n = length_raa A_ xs i ();
+ in
+   uint32_of_nat n
+ end);
 
 fun lbd_write_code x =
   (fn ai => fn bia => fn bi =>
@@ -1184,11 +1175,9 @@ fun set_lookup_conflict_aa_code x =
           val a =
             heap_WHILET
               (fn (a1a, (_, (_, _))) =>
-                (fn f_ => fn () => f_ ((nth_rl heap_uint32 bid bic) ()) ())
-                  (fn xa =>
-                    (fn f_ => fn () => f_
-                      (((fn () => Word32.fromInt (Array.length xa))) ()) ())
-                      (fn x_a => (fn () => (Word32.< (a1a, x_a))))))
+                (fn f_ => fn () => f_ ((length_aa_u_code heap_uint32 bid bic)
+                  ()) ())
+                  (fn x_a => (fn () => (Word32.< (a1a, x_a)))))
               (fn (a1a, (a1b, (a1c, a2c))) =>
                 (fn f_ => fn () => f_ ((nth_raa_u heap_uint32 bid bic a1a) ())
                   ())
@@ -1761,11 +1750,9 @@ fun resolve_lookup_conflict_merge_code x =
           val a =
             heap_WHILET
               (fn (a1a, (_, (_, _))) =>
-                (fn f_ => fn () => f_ ((nth_rl heap_uint32 bid bic) ()) ())
-                  (fn xa =>
-                    (fn f_ => fn () => f_
-                      (((fn () => Word32.fromInt (Array.length xa))) ()) ())
-                      (fn x_a => (fn () => (Word32.< (a1a, x_a))))))
+                (fn f_ => fn () => f_ ((length_aa_u_code heap_uint32 bid bic)
+                  ()) ())
+                  (fn x_a => (fn () => (Word32.< (a1a, x_a)))))
               (fn (a1a, (a1b, (a1c, a2c))) =>
                 (fn f_ => fn () => f_ ((nth_raa_u heap_uint32 bid bic a1a) ())
                   ())
@@ -2275,16 +2262,13 @@ fun mark_failed_lits_stack_code x =
             (fn f_ => fn () => f_
               ((arl_get (heap_prod heap_nat heap_nat) bia a1) ()) ())
               (fn (a1a, a2a) =>
-                (fn f_ => fn () => f_ ((nth_rl heap_uint32 ai a1a) ()) ())
+                (fn f_ => fn () => f_
+                  ((nth_raa heap_uint32 ai a1a (minus_nat a2a one_nat)) ()) ())
                   (fn xa =>
                     (fn f_ => fn () => f_
-                      ((nth heap_uint32 xa (minus_nat a2a one_nat)) ()) ())
-                      (fn xb =>
-                        (fn f_ => fn () => f_
-                          ((conflict_min_cach_set_failed_l_code a2
-                             (atm_of_code xb))
-                          ()) ())
-                          (fn x_d => (fn () => (plus_nat a1 one_nat, x_d)))))))
+                      ((conflict_min_cach_set_failed_l_code a2 (atm_of_code xa))
+                      ()) ())
+                      (fn x_d => (fn () => (plus_nat a1 one_nat, x_d))))))
           (zero_nata, bi) ();
     in
       let
@@ -2306,6 +2290,29 @@ fun get_propagation_reason_code x =
     x;
 
 fun arl_is_empty A_ = (fn (_, n) => (fn () => (equal_nat n zero_nata)));
+
+fun array_copy A_ a =
+  (fn () =>
+    let
+      val l = len A_ a ();
+    in
+      (if equal_nat l zero_nata then (fn () => Array.fromList [])
+        else (fn f_ => fn () => f_ ((nth A_ a zero_nata) ()) ())
+               (fn s =>
+                 (fn f_ => fn () => f_ ((new A_ l s) ()) ())
+                   (fn aa =>
+                     (fn f_ => fn () => f_ ((blit A_ a zero_nata aa zero_nata l)
+                       ()) ())
+                       (fn _ => (fn () => aa)))))
+        ()
+    end);
+
+fun nth_rl A_ xs n =
+  (fn () => let
+              val x = arl_get (heap_array (typerep_heap A_)) xs n ();
+            in
+              array_copy A_ x ()
+            end);
 
 fun level_in_lbd_code x =
   (fn ai => fn (a1, _) => fn () =>
@@ -3449,13 +3456,5 @@ fun isaSAT_code x =
         ()
     end)
     x;
-
-fun integer_of_int (Int_of_integer k) = k;
-
-fun uint32_of_int i = Word32.fromLargeInt (IntInf.toLarge (integer_of_int i));
-
-fun int_of_nat n = Int_of_integer (integer_of_nat n);
-
-fun uint32_of_nat x = (uint32_of_int o int_of_nat) x;
 
 end; (*struct SAT_Solver*)
