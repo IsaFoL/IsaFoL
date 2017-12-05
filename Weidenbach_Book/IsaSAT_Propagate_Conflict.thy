@@ -133,25 +133,6 @@ proof -
     using H unfolding im pre f .
 qed
 
-(* TODO Move *)
-lemma (in -) twl_struct_invs_length_clause_ge_2:
-  assumes
-    struct: \<open>twl_struct_invs (twl_st_of (Some L) (st_l_of_wl (Some (L, w)) S))\<close> and
-    i: \<open>i > 0\<close> \<open>i < length (get_clauses_wl S)\<close>
- shows \<open>length (get_clauses_wl S ! i) \<ge> 2\<close>
-proof -
-  obtain M N U D NE UE WS Q where
-    S: \<open>S = (M, N, U, D, NE, UE, WS, Q)\<close>
-    by (cases S)
-  have \<open>twl_st_inv (twl_st_of (Some L) (st_l_of_wl (Some (L, w)) (M, N, U, D, NE, UE, WS, Q)))\<close>
-    using struct unfolding S twl_struct_invs_def by fast
-  then have \<open>\<forall>x\<in>set (tl N). 2 \<le> length x \<and> distinct x\<close>
-    by (auto simp: twl_st_inv.simps mset_take_mset_drop_mset')
-  then show ?thesis
-    using i by (auto simp: nth_in_set_tl S)
-qed
-(* End Move *)
-
 
 lemma unit_prop_body_wl_D_invD:
   assumes \<open>unit_prop_body_wl_D_inv S w L\<close>
@@ -519,7 +500,7 @@ lemma set_conflict_wl'_alt_def:
 definition set_conflict_wl'_int :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>set_conflict_wl'_int = (\<lambda>C (M, N, U, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, stats). do {
     let n = zero_uint32_nat;
-    (D, clvls, lbd) \<leftarrow> conflict_merge M N C D n lbd;
+    (D, clvls, lbd) \<leftarrow> set_conflict_m M N C D n lbd;
     RETURN (M, N, U, D, {#}, W, vmtf, \<phi>, clvls, cach, lbd, incr_conflict stats)})\<close>
 
 sepref_thm set_conflict_wl'_int_code
@@ -532,7 +513,6 @@ sepref_thm set_conflict_wl'_int_code
         no_dup (get_trail_wl_heur S)]\<^sub>a
     nat_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d \<rightarrow> twl_st_heur_assn\<close>
   supply [[goals_limit=1]]
-    lookup_conflict_merge_code_set_conflict[unfolded twl_st_heur_assn_def, sepref_fr_rules]
   unfolding set_conflict_wl'_int_def twl_st_heur_assn_def IICF_List_Mset.lms_fold_custom_empty
   by sepref
 
@@ -551,8 +531,9 @@ lemma set_conflict_wl'_int_set_conflict_wl':
     nat_rel \<times>\<^sub>r twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
   by (intro nres_relI frefI)
     (auto simp: twl_st_heur_def set_conflict_wl'_int_def set_conflict_wl'_def
-        conflict_merge_def bind_RES_RETURN2_eq RETURN_def RES_RES2_RETURN_RES
+        bind_RES_RETURN2_eq RETURN_def RES_RES2_RETURN_RES
         counts_maximum_level_def RES_RETURN_RES3 RES_RES_RETURN_RES RES_RES3_RETURN_RES
+        set_conflict_m_def
       intro!: RES_refine)
 
 lemma set_conflict_wl'_int_code_set_conflict_wl'[sepref_fr_rules]:
