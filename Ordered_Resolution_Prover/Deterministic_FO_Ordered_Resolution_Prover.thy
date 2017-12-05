@@ -407,7 +407,9 @@ proof (induct Q' arbitrary: Q)
 qed simp
 
 lemma reduce_clause_in_P:
-  assumes c_in: "C \<in> fst ` set N"
+  assumes
+    c_in: "C \<in> fst ` set N" and
+    p_reded: "\<forall>D \<in> fst ` set P. \<exists>D0. D = reduce [C] [] D0"
   shows "wstate_of_dstate (N, P @ (D @ D', k) # P', Q, n)
     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ (D @ reduce [C] D D', k) # P', Q, n)"
 proof (induct D' arbitrary: D)
@@ -423,6 +425,7 @@ proof (induct D' arbitrary: D)
 
     have "wstate_of_dstate (N, P @ (D @ L # D', k) # P', Q, n)
       \<leadsto>\<^sub>w wstate_of_dstate (N, P @ (D @ D', k) # P', Q, n)"
+      using ih
       sorry
 (* BASIC IDEA: remove copies of L in D' and make sure P hs been reduced already *)
 (*
@@ -477,17 +480,22 @@ proof (induct D' arbitrary: D)
 qed simp
 
 lemma reduce_clauses_in_P:
-  assumes c_in: "C \<in> fst ` set N"
+  assumes
+    c_in: "C \<in> fst ` set N" and
+    p_reded: "\<forall>D \<in> fst ` set P. \<exists>D0. D = reduce [C] [] D0"
   shows "wstate_of_dstate (N, P @ P', Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ reduce_all [C] P', Q, n)"
   unfolding reduce_all_def
+  using p_reded
 proof (induct P' arbitrary: P)
-  case ih: (Cons Dk P')
+  case (Cons Dk P')
+  note ih = this(1) and p_reded = this(2)
   have "wstate_of_dstate (N, P @ Dk # P', Q, n)
      \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ apfst (reduce [C] []) Dk # P', Q, n)"
     by (cases Dk, simp only: apfst_conv,
-        rule reduce_clause_in_P[of _ _  _"[]", unfolded append_Nil, OF c_in])
+        rule reduce_clause_in_P[of _ _ _"[]", unfolded append_Nil, OF c_in p_reded])
   then show ?case
-    using ih[of "P @ [apfst (reduce [C] []) Dk]"] by force
+    using ih[of "P @ [apfst (reduce [C] []) Dk]"]
+    sorry
 qed simp
 
 lemma reduce_clauses_in_Q:
@@ -1081,7 +1089,7 @@ proof -
                     unfolded append_Nil prod.sel])
                 simp
             also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q', n)"
-              unfolding P'_def by (rule reduce_clauses_in_P[of _ _ "[]", unfolded append_Nil]) simp
+              unfolding P'_def by (rule reduce_clauses_in_P[of _ _ "[]", unfolded append_Nil]) auto
             also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q'', n)"
               unfolding Q''_def
               by (rule remove_strictly_subsumed_clauses_in_Q[of _ _ _ "[]", unfolded append_Nil])
