@@ -245,20 +245,41 @@ proof (induct k arbitrary: St)
     using ih[OF final_Sk] by (subst deterministic_RP.simps) (simp add: prod.case_eq_if)
 qed (subst deterministic_RP.simps, simp add: prod.case_eq_if)
 
+lemma is_reducible_lit_mono_cls:
+  "mset C \<subseteq># mset C' \<Longrightarrow> is_reducible_lit Ds C L \<Longrightarrow> is_reducible_lit Ds C' L"
+  sorry
+
+lemma is_reducible_lit_cong_cls:
+  "mset C = mset C' \<Longrightarrow> is_reducible_lit Ds C' L \<longleftrightarrow> is_reducible_lit Ds C L"
+  by (metis is_reducible_lit_mono_cls subset_mset.order_refl)
+
 lemma reduce_mset_eq: "mset C = mset C' \<Longrightarrow> reduce Ds C E = reduce Ds C' E"
 proof (induct E arbitrary: C C')
   case (Cons L E)
   note ih = this(1) and mset_eq = this(2)
-  have mset_eq': "mset (L # C) = mset (L # C')"
-    using mset_eq by simp
-  have red_iff: "is_reducible_lit Ds (C @ E) L \<longleftrightarrow> is_reducible_lit Ds (C' @ E) L"
-    by (simp add: mset_eq is_reducible_lit_def)
+  have
+    mset_lc_eq: "mset (L # C) = mset (L # C')" and
+    mset_ce_eq: "mset (C @ E) = mset (C' @ E)"
+    using mset_eq by simp+
   show ?case
-    using ih[OF mset_eq] ih[OF mset_eq'] by (simp add: red_iff)
+    using ih[OF mset_eq] ih[OF mset_lc_eq] by (simp add: is_reducible_lit_cong_cls[OF mset_ce_eq])
 qed simp
 
 lemma reduce_rotate[simp]: "reduce Ds (C @ [L]) E = reduce Ds (L # C) E"
   by (rule reduce_mset_eq) simp
+
+lemma subset_mset_imp_subset_add_mset: "A \<subseteq># B \<Longrightarrow> A \<subseteq># add_mset x B"
+  by (metis add_mset_diff_bothsides diff_subset_eq_self multiset_inter_def subset_mset.inf.absorb2)
+
+lemma mset_reduce_subset: "mset (reduce Ds C E) \<subseteq># mset E"
+  by (induct E arbitrary: C) (auto intro: subset_mset_imp_subset_add_mset)
+
+lemma reduce_idem: "reduce Ds C (reduce Ds C E) = reduce Ds C E"
+  apply (induct E arbitrary: C)
+   apply auto
+  apply (drule is_reducible_lit_mono_cls[of "C @ reduce Ds (L # C) E" "C @ E" Ds L for L E C, rotated])
+  apply (auto intro: mset_reduce_subset)
+  done
 
 lemma reduce_all_empty[simp]: "reduce_all Ds [] = []"
   unfolding reduce_all_def by simp
