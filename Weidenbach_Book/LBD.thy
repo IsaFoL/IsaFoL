@@ -24,6 +24,9 @@ definition level_in_lbd :: \<open>nat \<Rightarrow> lbd \<Rightarrow> bool\<clos
 definition length_u where
   [simp]: \<open>length_u xs = length xs\<close>
 
+definition length_aa_u where
+  [simp]: \<open>length_aa_u xs i = length_u (xs ! i)\<close>
+
 definition level_in_lbd_ref :: \<open>nat \<Rightarrow> lbd_ref \<Rightarrow> bool\<close> where
   \<open>level_in_lbd_ref = (\<lambda>i (lbd, _). i < length_u lbd \<and> lbd!i)\<close>
 
@@ -35,6 +38,12 @@ lemma level_in_lbd_ref_level_in_lbd:
 definition length_u_code where
   \<open>length_u_code xs = do { n \<leftarrow> Array.len xs; return (uint32_of_nat n)}\<close>
 
+text \<open>TODO: proper fix to avoid the conversion to uint32\<close>
+definition length_aa_u_code :: \<open>('a::heap array) array_list \<Rightarrow> nat \<Rightarrow> uint32 Heap\<close> where
+  \<open>length_aa_u_code xs i = do {
+   n \<leftarrow> length_raa xs i;
+   return (uint32_of_nat n)}\<close>
+
 lemma length_u_hnr[sepref_fr_rules]:
   \<open>(length_u_code, RETURN o length_u) \<in>
      [\<lambda>xs. length xs \<le> uint_max]\<^sub>a (array_assn R)\<^sup>k \<rightarrow> uint32_nat_assn\<close>
@@ -43,6 +52,16 @@ lemma length_u_hnr[sepref_fr_rules]:
         hr_comp_def list_rel_def length_u_def
         uint32_nat_rel_def br_def  list_rel_pres_length
         dest!: nat_of_uint32_uint32_of_nat_id)
+
+lemma length_aa_u_hnr[sepref_fr_rules]:
+  \<open>(uncurry length_aa_u_code, uncurry (RETURN oo length_aa_u)) \<in>
+     [\<lambda>(xs, i). length (xs ! i) \<le> uint_max \<and> i < length xs]\<^sub>a
+     clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  by sepref_to_hoare
+   (sep_auto simp: length_u_code_def nth_u_code_def nat_of_uint32_uint32_of_nat_id
+        length_u_def length_aa_u_code_def length_rll_def
+        nth_nat_of_uint32_nth'[symmetric] nat_of_uint32_le_iff
+        uint32_nat_rel_def br_def list_rel_pres_length)
 
 sepref_definition level_in_lbd_code
   is \<open>uncurry (RETURN oo level_in_lbd_ref)\<close>

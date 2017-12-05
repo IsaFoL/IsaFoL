@@ -601,12 +601,6 @@ sepref_thm set_lookup_conflict_aa_code
     length_aa_u_def[symmetric]
   apply (rewrite at \<open>_ + \<hole>\<close> annotate_assn[where A = \<open>uint32_nat_assn\<close>])
   supply [[goals_limit = 1]]
-  apply sepref_dbg_keep
-      apply sepref_dbg_trans_keep
-           apply sepref_dbg_trans_step_keep
-  text \<open>We need an \<^term>\<open>ASSN_ANNOT\<close> for type \<^typ>\<open>'a nres\<close>, but this does not exist and
-   it is not clear how to do it.\<close>
-           apply sepref_dbg_side_unfold apply (auto simp: )[]
   by sepref
 
 concrete_definition (in -) set_lookup_conflict_aa_code
@@ -2193,13 +2187,15 @@ sepref_thm mark_failed_lits_stack_code
   is \<open>uncurry2 mark_failed_lits_stack\<close>
   :: \<open>clauses_ll_assn\<^sup>k *\<^sub>a analyse_refinement_assn\<^sup>d *\<^sub>a cach_refinement_assn\<^sup>d \<rightarrow>\<^sub>a
       cach_refinement_assn\<close>
-  supply [[goals_limit = 1]] neq_Nil_revE[elim!] image_image[simp]
+  supply [[goals_limit = 1]] neq_Nil_revE[elim!] image_image[simp] length_rll_def[simp]
     mark_failed_lits_stack_inv_helper1[dest] mark_failed_lits_stack_inv_helper2[dest]
   unfolding mark_failed_lits_stack_def
     conflict_min_cach_set_failed_def[symmetric]
     conflict_min_cach_def[symmetric]
     get_literal_and_remove_of_analyse_wl_def
+    nth_rll_def[symmetric]
   by sepref
+
 end
 
 sepref_register mark_failed_lits_stack
@@ -2265,12 +2261,13 @@ sepref_thm lit_redundant_rec_wl_lookup_code
       cach_refinement_assn *a analyse_refinement_assn *a bool_assn\<close>
   supply [[goals_limit = 1]] neq_Nil_revE[elim] image_image[simp]
     lit_redundant_rec_wl_lookup_helper1[intro] literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
-    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l_atms[intro]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l_atms[intro] length_rll_def[simp]
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms[intro]
   unfolding lit_redundant_rec_wl_lookup_def
     conflict_min_cach_set_removable_def[symmetric]
     conflict_min_cach_def[symmetric]
     get_literal_and_remove_of_analyse_wl_def
+    nth_rll_def[symmetric]
   apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
   apply (rewrite at \<open>op_arl_empty\<close> annotate_assn[where A=analyse_refinement_assn])
   by sepref (* slow *)
