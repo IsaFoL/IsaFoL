@@ -328,33 +328,20 @@ proof (induct "length P'" arbitrary: P P' rule: less_induct)
       \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P
           @ (if strictly_subsume [C] (fst ?Dk) then filter (\<lambda>(E, l). E \<noteq> fst ?Dk) ?P'' else P'),
         Q, n)"
-      sorry
-
-(*
-  case ih: (Cons Dk P')
-  have "wstate_of_dstate (N, P @ Dk # P', Q, n) \<leadsto>\<^sub>w\<^sup>*
-    wstate_of_dstate (N, P @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [Dk] @ P', Q, n)"
-  proof (cases "strictly_subsume [C] (fst Dk)")
-    case subs: True
-    have "wstate_of_dstate (N, P @ Dk # P', Q, n) \<leadsto>\<^sub>w wstate_of_dstate (N, P @ P', Q, n)"
-      sorry
-(* BASIC IDEA:
-remove copies of D in P' as well, and assume that P contains no strictly subsumed formulas (and
-especially not D).
-*)
-(*
+    proof (cases "strictly_subsume [C] (fst ?Dk)")
+      case subs: True
+      have "wstate_of_dstate (N, P @ P', Q, n)
+        \<leadsto>\<^sub>w wstate_of_dstate (N, P @ filter (\<lambda>(E, l). E \<noteq> fst ?Dk) ?P'', Q, n)"
+        sorry
+          (*
       by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
             wrp.backward_subsumption_P[of "mset C" "mset (map (apfst mset) N)" "mset (fst Dk)"
               "mset (map (apfst mset) (P @ P'))" "snd Dk" "mset (map (apfst mset) Q)" n]])
         (use c_in subs in \<open>auto simp: apfst_fst_snd strictly_subsume_def\<close>)
 *)
-    then show ?thesis
-      by auto
-  qed simp
-  then show ?case
-    using ih[of "P @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [Dk]"] by force
-qed simp
-*)
+      then show ?thesis
+        by auto
+    qed simp
     then show ?thesis
       apply (rule rtranclp_trans)
       apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
