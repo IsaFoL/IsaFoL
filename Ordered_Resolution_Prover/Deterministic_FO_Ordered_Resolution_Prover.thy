@@ -332,13 +332,18 @@ proof (induct "length P'" arbitrary: P P' rule: less_induct)
       case subs: True
       have "wstate_of_dstate (N, P @ P', Q, n)
         \<leadsto>\<^sub>w wstate_of_dstate (N, P @ filter (\<lambda>(E, l). E \<noteq> fst ?Dk) ?P'', Q, n)"
-        sorry
-          (*
-      by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
-            wrp.backward_subsumption_P[of "mset C" "mset (map (apfst mset) N)" "mset (fst Dk)"
-              "mset (map (apfst mset) (P @ P'))" "snd Dk" "mset (map (apfst mset) Q)" n]])
-        (use c_in subs in \<open>auto simp: apfst_fst_snd strictly_subsume_def\<close>)
-*)
+        apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+              wrp.backward_subsumption_P[of "mset C" "mset (map (apfst mset) N)" "mset (fst ?Dk)"
+                "mset (map (apfst mset) (P @ P'))" "mset (map (apfst mset) Q)" n]])
+            apply simp
+        subgoal sorry
+        using c_in
+          apply (auto simp: strictly_subsume_def)[1]
+        apply (subst (2) p')
+         apply auto[1]
+        using subs
+        apply (simp add: strictly_subsume_def)
+        done
       then show ?thesis
         by auto
     qed simp
