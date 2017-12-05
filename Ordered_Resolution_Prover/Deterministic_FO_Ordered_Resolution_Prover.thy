@@ -247,7 +247,7 @@ qed (subst deterministic_RP.simps, simp add: prod.case_eq_if)
 
 lemma is_reducible_lit_mono_cls:
   "mset C \<subseteq># mset C' \<Longrightarrow> is_reducible_lit Ds C L \<Longrightarrow> is_reducible_lit Ds C' L"
-  sorry
+  unfolding is_reducible_lit_def by (blast intro: subset_mset.order.trans)
 
 lemma is_reducible_lit_cong_cls:
   "mset C = mset C' \<Longrightarrow> is_reducible_lit Ds C' L \<longleftrightarrow> is_reducible_lit Ds C L"
