@@ -448,14 +448,12 @@ proof (induct D' arbitrary: D)
     have "wstate_of_dstate (N, reduce_all [C] P @ (D @ L # D', k) # P', Q, n)
       \<leadsto>\<^sub>w wstate_of_dstate (N, reduce_all [C] P @ (D @ D', k) # P', Q, n)"
       apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
-            wrp.backward_reduction_P[of "mset (D @ D')" L "mset (map (apfst mset) N)"
-              "mset C - {#L'#}" L' "mset (map (apfst mset) (reduce_all [C] P @ P'))" \<sigma>
+            wrp.backward_reduction_P[of "mset C - {#L'#}" L' "mset (map (apfst mset) N)"
+              "mset (D @ D')" L _
+              "mset (map (apfst mset) (reduce_all [C] P @ (D @ L # D', k) # P'))" \<sigma>
               "mset (map (apfst mset) Q)" n]])
-      apply simp
+      apply (use l'_in not_l subs c_in in auto)
       sorry
-(* FIXME
-          apply (use l'_in not_l subs c_in in auto)
-*)
     then show ?thesis
       using ih[of D] red by simp
   next
