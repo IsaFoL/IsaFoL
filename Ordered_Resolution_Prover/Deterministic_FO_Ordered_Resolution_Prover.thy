@@ -330,20 +330,23 @@ proof (induct "length P'" arbitrary: P P' rule: less_induct)
         Q, n)"
     proof (cases "strictly_subsume [C] (fst ?Dk)")
       case subs: True
+
+      have p_filtered: "{#(E, k) \<in># image_mset (apfst mset) (mset P). E \<noteq> mset (fst ?Dk)#} =
+        image_mset (apfst mset) (mset P)"
+        using p_nsub
+        sorry
+      have p'_filtered: "{#(E, k) \<in># image_mset (apfst mset) (mset P'). E \<noteq> mset (fst ?Dk)#} =
+        image_mset (apfst mset) (mset (filter (\<lambda>(E, l). E \<noteq> fst ?Dk) ?P''))"
+        using subs
+        sorry
+
       have "wstate_of_dstate (N, P @ P', Q, n)
         \<leadsto>\<^sub>w wstate_of_dstate (N, P @ filter (\<lambda>(E, l). E \<noteq> fst ?Dk) ?P'', Q, n)"
-        apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+        by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
               wrp.backward_subsumption_P[of "mset C" "mset (map (apfst mset) N)" "mset (fst ?Dk)"
-                "mset (map (apfst mset) (P @ P'))" "mset (map (apfst mset) Q)" n]])
-            apply simp
-        subgoal sorry
-        using c_in
-          apply (auto simp: strictly_subsume_def)[1]
-        apply (subst (2) p')
-         apply auto[1]
-        using subs
-        apply (simp add: strictly_subsume_def)
-        done
+                "mset (map (apfst mset) (P @ P'))" "mset (map (apfst mset) Q)" n]],
+          use c_in subs in \<open>auto simp add: p_filtered p'_filtered arg_cong[OF p', of set]
+            strictly_subsume_def\<close>)
       then show ?thesis
         by auto
     qed simp
