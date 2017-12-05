@@ -1078,7 +1078,7 @@ proof -
     done
 qed
 
-definition (in isasat_input_ops) skip_and_resolve_loop_wl_D 
+definition (in isasat_input_ops) skip_and_resolve_loop_wl_D
   :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close>
 where
   \<open>skip_and_resolve_loop_wl_D S\<^sub>0 =

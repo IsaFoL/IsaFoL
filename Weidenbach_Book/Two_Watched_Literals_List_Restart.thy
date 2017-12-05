@@ -64,7 +64,7 @@ proof -
       list_invs: \<open>twl_list_invs (M, N, u, D, NE, UE, WS, Q)\<close> and
       derive: \<open>derive_literals_and_clauses M N u N' new_pos\<close>
       using that by fast+
-    have 
+    have
       H: \<open>\<And>i. i\<in>{1..<length N} \<Longrightarrow> new_pos i \<noteq> None \<Longrightarrow>
         the (new_pos i) < length N' \<and> N' ! the (new_pos i) = N ! i\<close> and
       \<open>mset (tl N') \<subseteq># mset (tl N)\<close> and
