@@ -2271,7 +2271,7 @@ sepref_thm lit_redundant_rec_wl_lookup_code
   apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
   apply (rewrite at \<open>op_arl_empty\<close> annotate_assn[where A=analyse_refinement_assn])
   apply (rewrite at \<open>let _ = _ ! _ in _\<close> Let_def)
-  unfolding nth_rll_def[symmetric]
+  unfolding nth_rll_def[symmetric] length_rll_def[symmetric]
   by sepref (* slow *)
 
 concrete_definition (in -) lit_redundant_rec_wl_lookup_code
