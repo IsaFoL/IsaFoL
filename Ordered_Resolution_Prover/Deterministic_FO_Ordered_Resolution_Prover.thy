@@ -337,12 +337,26 @@ proof (induct "length P'" arbitrary: P P' rule: less_induct)
         image_mset (apfst mset) (mset P)"
         by (rule filter_mset_cong[OF refl, of _ _ "\<lambda>_. True", simplified],
             use p_nsub subs in \<open>auto simp: strictly_subsume_def\<close>)
-      have p'_filtered: "{#(E, k) \<in># image_mset (apfst mset) (mset P'). E \<noteq> mset (fst ?Dj)#} =
+      have "{#(E, k) \<in># image_mset (apfst mset) (mset P'). E \<noteq> mset (fst ?Dj)#} =
+        {#(E, k) \<in># image_mset (apfst mset) (mset ?P''). E \<noteq> mset (fst ?Dj)#}"
+        by (subst (2) p') (simp add: case_prod_beta)
+      also have "\<dots> =
         image_mset (apfst mset) (mset (filter (\<lambda>(E, l). mset E \<noteq> mset (fst ?Dj)) ?P''))"
+        apply (unfold image_mset_filter_swap[symmetric])
+        apply (rule arg_cong[of _ _ "image_mset (apfst mset)"])
+        apply (unfold mset_filter)
+        apply (unfold case_prod_beta)
         apply auto
+        done
+      finally have "{#(E, k) \<in># image_mset (apfst mset) (mset P'). E \<noteq> mset (fst ?Dj)#} =
+        image_mset (apfst mset) (mset (filter (\<lambda>(E, l). mset E \<noteq> mset (fst ?Dj)) ?P''))"
+        .
+(*
+       
+       apply auto
         apply (unfold mset_map[symmetric])
-        using  filter_map[symmetric]
-        sorry
+        using filter_map[of "\<lambda>(E, l). E \<noteq> mset (fst ?Dj)" "apfst mset", symmetric, unfolded comp_def]
+*)
 
       have "wstate_of_dstate (N, P @ P', Q, n)
         \<leadsto>\<^sub>w wstate_of_dstate (N, P @ filter (\<lambda>(E, l). mset E \<noteq> mset (fst ?Dj)) ?P'', Q, n)"
