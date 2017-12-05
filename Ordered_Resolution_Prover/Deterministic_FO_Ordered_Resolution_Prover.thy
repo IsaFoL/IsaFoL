@@ -274,6 +274,7 @@ lemma subset_mset_imp_subset_add_mset: "A \<subseteq># B \<Longrightarrow> A \<s
 lemma mset_reduce_subset: "mset (reduce Ds C E) \<subseteq># mset E"
   by (induct E arbitrary: C) (auto intro: subset_mset_imp_subset_add_mset)
 
+(* FIXME: needed? *)
 lemma reduce_idem: "reduce Ds C (reduce Ds C E) = reduce Ds C E"
   apply (induct E arbitrary: C)
    apply auto
@@ -432,17 +433,8 @@ qed simp
 
 lemma reduce_clause_in_P:
   assumes c_in: "C \<in> fst ` set N"
-  shows "wstate_of_dstate (N, reduce_all [C] P @ (D @ D', k) # P', Q, n)
-    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, reduce_all [C] P @ (D @ reduce [C] D D', k) # P', Q, n)"
-(* FIXME:
-proof (induct "length P'" arbitrary: P P' rule: less_induct)
-  case less
-  note ih = this(1) and p_nsubs = this(2)
-
-  show ?case
-  proof (cases "length P'")
-    case Suc
-*)
+  shows "wstate_of_dstate (N, P @ (D @ D', k) # P', Q, n)
+    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ (D @ reduce [C] D D', k) # P', Q, n)"
 proof (induct D' arbitrary: D)
   case ih: (Cons L D')
   show ?case
@@ -454,16 +446,16 @@ proof (induct D' arbitrary: D)
       subs: "mset (remove1 L' C) \<cdot> \<sigma> \<subseteq># mset (D @ D')"
       unfolding is_reducible_lit_def by force
 
-    have "wstate_of_dstate (N, reduce_all [C] P @ (D @ L # D', k) # P', Q, n)
-      \<leadsto>\<^sub>w wstate_of_dstate (N,
-        reduce_all [C] P @ (D @ D', k) # filter (\<lambda>(E, k). mset E \<noteq> mset (D @ L # D')) P', Q, n)"
-      apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
-            wrp.backward_reduction_P[of "mset C - {#L'#}" L' "mset (map (apfst mset) N)"
-              "mset (D @ D')" L _
-              "mset (map (apfst mset) (reduce_all [C] P @ (D @ L # D', k) # P'))" \<sigma>
-              "mset (map (apfst mset) Q)" n]])
-      apply (use l'_in not_l subs c_in in auto)
+    have "wstate_of_dstate (N, P @ (D @ L # D', k) # P', Q, n)
+      \<leadsto>\<^sub>w wstate_of_dstate (N, P @ (D @ D', k) # P', Q, n)"
       sorry
+(* BASIC IDEA: remove copies of L in D' and make sure P hs been reduced already *)
+(*
+      by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+            wrp.backward_reduction_P[of "mset C - {#L'#}" L' "mset (map (apfst mset) N)" L \<sigma>
+              "mset (D @ D')" "mset (map (apfst mset) (P @ P'))" k "mset (map (apfst mset) Q)" n]],
+          use l'_in not_l subs c_in in auto)
+*)
     then show ?thesis
       using ih[of D] red by simp
   next
@@ -513,17 +505,14 @@ lemma reduce_clauses_in_P:
   assumes c_in: "C \<in> fst ` set N"
   shows "wstate_of_dstate (N, reduce_all [C] P @ P', Q, n)
     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, reduce_all [C] P @ reduce_all [C] P', Q, n)"
-proof (subst (3) reduce_all_def, induct P' arbitrary: P)
+proof (induct P' arbitrary: P)
   case ih: (Cons Dk P')
   have "wstate_of_dstate (N, reduce_all [C] P @ Dk # P', Q, n)
-     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, reduce_all [C] P @ apfst (reduce [C] []) Dk # P', Q, n)"
+    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, reduce_all [C] P @ apfst (reduce [C] []) Dk # P', Q, n)"
     by (cases Dk, simp only: apfst_conv,
-        rule reduce_clause_in_P[of _ _ _"[]", unfolded append_Nil, OF c_in])
+        rule reduce_clause_in_P[of _ _  _"[]", unfolded append_Nil, OF c_in])
   then show ?case
-    apply (rule rtranclp_trans)
-    using ih[of "P @ [apfst (reduce [C] []) Dk]"]
-    apply (auto simp del: wstate_of_dstate.simps)
-    sorry
+    using ih[of "P @ [Dk]"] by (simp add: reduce_all_def)
 qed simp
 
 lemma reduce_clauses_in_Q:
