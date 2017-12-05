@@ -308,42 +308,46 @@ qed simp
 lemma remove_strictly_subsumed_clauses_in_P:
   assumes
     c_in: "C \<in> fst ` set N" and
-    p_nsub: "\<forall>(D, j) \<in> set P. \<not> strictly_subsume [C] D"
+    p_nsub: "\<forall>D \<in> fst ` set P. \<not> strictly_subsume [C] D"
   shows "wstate_of_dstate (N, P @ P', Q, n)
     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) P', Q, n)"
+  using p_nsub
 proof (induct "length P'" arbitrary: P P' rule: less_induct)
   case less
-  note ih = this(1)
+  note ih = this(1) and p_nsub = this(2)
 
   show ?case
   proof (cases "length P'")
     case Suc
 
-    let ?Dk = "hd P'"
+    let ?Dj = "hd P'"
     let ?P'' = "tl P'"
     have p': "P' = hd P' # tl P'"
       using Suc by (metis length_Suc_conv list.distinct(1) list.exhaust_sel)
 
     have "wstate_of_dstate (N, P @ P', Q, n)
       \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P
-          @ (if strictly_subsume [C] (fst ?Dk) then filter (\<lambda>(E, l). E \<noteq> fst ?Dk) ?P'' else P'),
+          @ (if strictly_subsume [C] (fst ?Dj) then filter (\<lambda>(E, l). mset E \<noteq> mset (fst ?Dj)) ?P''
+             else P'),
         Q, n)"
-    proof (cases "strictly_subsume [C] (fst ?Dk)")
+    proof (cases "strictly_subsume [C] (fst ?Dj)")
       case subs: True
 
-      have p_filtered: "{#(E, k) \<in># image_mset (apfst mset) (mset P). E \<noteq> mset (fst ?Dk)#} =
+      have p_filtered: "{#(E, k) \<in># image_mset (apfst mset) (mset P). E \<noteq> mset (fst ?Dj)#} =
         image_mset (apfst mset) (mset P)"
-        using p_nsub
-        sorry
-      have p'_filtered: "{#(E, k) \<in># image_mset (apfst mset) (mset P'). E \<noteq> mset (fst ?Dk)#} =
-        image_mset (apfst mset) (mset (filter (\<lambda>(E, l). E \<noteq> fst ?Dk) ?P''))"
-        using subs
+        by (rule filter_mset_cong[OF refl, of _ _ "\<lambda>_. True", simplified],
+            use p_nsub subs in \<open>auto simp: strictly_subsume_def\<close>)
+      have p'_filtered: "{#(E, k) \<in># image_mset (apfst mset) (mset P'). E \<noteq> mset (fst ?Dj)#} =
+        image_mset (apfst mset) (mset (filter (\<lambda>(E, l). mset E \<noteq> mset (fst ?Dj)) ?P''))"
+        apply auto
+        apply (unfold mset_map[symmetric])
+        using  filter_map[symmetric]
         sorry
 
       have "wstate_of_dstate (N, P @ P', Q, n)
-        \<leadsto>\<^sub>w wstate_of_dstate (N, P @ filter (\<lambda>(E, l). E \<noteq> fst ?Dk) ?P'', Q, n)"
+        \<leadsto>\<^sub>w wstate_of_dstate (N, P @ filter (\<lambda>(E, l). mset E \<noteq> mset (fst ?Dj)) ?P'', Q, n)"
         by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
-              wrp.backward_subsumption_P[of "mset C" "mset (map (apfst mset) N)" "mset (fst ?Dk)"
+              wrp.backward_subsumption_P[of "mset C" "mset (map (apfst mset) N)" "mset (fst ?Dj)"
                 "mset (map (apfst mset) (P @ P'))" "mset (map (apfst mset) Q)" n]],
           use c_in subs in \<open>auto simp add: p_filtered p'_filtered arg_cong[OF p', of set]
             strictly_subsume_def\<close>)
@@ -353,9 +357,9 @@ proof (induct "length P'" arbitrary: P P' rule: less_induct)
     then show ?thesis
       apply (rule rtranclp_trans)
       apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
-            ih[of "if strictly_subsume [C] (fst ?Dk) then filter (\<lambda>(E, l). E \<noteq> fst ?Dk) ?P''
-                 else ?P''"
-              "P @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [?Dk]"]])
+            ih[of "if strictly_subsume [C] (fst ?Dj) then
+                 filter (\<lambda>(E, l). mset E \<noteq> mset (fst ?Dj)) ?P'' else ?P''"
+              "P @ filter (Not \<circ> strictly_subsume [C] \<circ> fst) [?Dj]"]])
         apply auto
           apply (subst (3) p')
           apply simp
@@ -1074,7 +1078,7 @@ proof -
                 simp
             also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P'', Q'', n)"
               unfolding P''_def
-              by (rule remove_strictly_subsumed_clauses_in_P[of _ _ "[]", unfolded append_Nil]) simp
+              by (rule remove_strictly_subsumed_clauses_in_P[of _ _ "[]", unfolded append_Nil]) auto
             also note proc_C[THEN tranclp.r_into_trancl[of "op \<leadsto>\<^sub>w"]]
             finally show ?thesis
               unfolding step st n_cons ci .
