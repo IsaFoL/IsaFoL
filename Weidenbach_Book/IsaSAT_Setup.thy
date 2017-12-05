@@ -13,6 +13,41 @@ lemma [sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: option_assn_alt_def split:option.splits)
 
 declare option_assn_eq[sepref_comb_rules del]
+
+lemma (in -) twl_struct_invs_length_clause_ge_2:
+  assumes
+    struct: \<open>twl_struct_invs (twl_st_of (Some L) (st_l_of_wl (Some (L, w)) S))\<close> and
+    i: \<open>i > 0\<close> \<open>i < length (get_clauses_wl S)\<close>
+ shows \<open>length (get_clauses_wl S ! i) \<ge> 2\<close>
+proof -
+  obtain M N U D NE UE WS Q where
+    S: \<open>S = (M, N, U, D, NE, UE, WS, Q)\<close>
+    by (cases S)
+  have \<open>twl_st_inv (twl_st_of (Some L) (st_l_of_wl (Some (L, w)) (M, N, U, D, NE, UE, WS, Q)))\<close>
+    using struct unfolding S twl_struct_invs_def by fast
+  then have \<open>\<forall>x\<in>set (tl N). 2 \<le> length x \<and> distinct x\<close>
+    by (auto simp: twl_st_inv.simps mset_take_mset_drop_mset')
+  then show ?thesis
+    using i by (auto simp: nth_in_set_tl S)
+qed
+
+lemma (in -) twl_struct_invs_length_clause_ge_2':
+  assumes
+    struct: \<open>twl_struct_invs (twl_st_of_wl LL S)\<close> and
+    i: \<open>i > 0\<close> \<open>i < length (get_clauses_wl S)\<close>
+ shows \<open>length (get_clauses_wl S ! i) \<ge> 2\<close>
+proof -
+  obtain M N U D NE UE WS Q where
+    S: \<open>S = (M, N, U, D, NE, UE, WS, Q)\<close>
+    by (cases S)
+  have \<open>twl_st_inv (twl_st_of_wl LL (M, N, U, D, NE, UE, WS, Q))\<close>
+    using struct unfolding S twl_struct_invs_def by fast
+  then have \<open>\<forall>x\<in>set (tl N). 2 \<le> length x \<and> distinct x\<close>
+    by (cases LL) (auto simp: twl_st_inv.simps mset_take_mset_drop_mset')
+  then show ?thesis
+    using i by (auto simp: nth_in_set_tl S)
+qed
+
 (* End Move *)
 
 subsection \<open>Code Generation\<close>
