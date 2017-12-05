@@ -260,6 +260,9 @@ qed simp
 lemma reduce_rotate[simp]: "reduce Ds (C @ [L]) E = reduce Ds (L # C) E"
   by (rule reduce_mset_eq) simp
 
+lemma reduce_all_empty[simp]: "reduce_all Ds [] = []"
+  unfolding reduce_all_def by simp
+
 lemma select_min_weight_clause_in: "select_min_weight_clause P0 P \<in> set (P0 # P)"
   by (induct P arbitrary: P0) auto
 
@@ -407,11 +410,9 @@ proof (induct Q' arbitrary: Q)
 qed simp
 
 lemma reduce_clause_in_P:
-  assumes
-    c_in: "C \<in> fst ` set N" and
-    p_reded: "\<forall>D \<in> fst ` set P. \<exists>D0. D = reduce [C] [] D0"
-  shows "wstate_of_dstate (N, P @ (D @ D', k) # P', Q, n)
-    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ (D @ reduce [C] D D', k) # P', Q, n)"
+  assumes c_in: "C \<in> fst ` set N"
+  shows "wstate_of_dstate (N, reduce_all [C] P @ (D @ D', k) # P', Q, n)
+    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, reduce_all [C] P @ (D @ reduce [C] D D', k) # P', Q, n)"
 proof (induct D' arbitrary: D)
   case ih: (Cons L D')
   show ?case
@@ -423,9 +424,8 @@ proof (induct D' arbitrary: D)
       subs: "mset (remove1 L' C) \<cdot> \<sigma> \<subseteq># mset (D @ D')"
       unfolding is_reducible_lit_def by force
 
-    have "wstate_of_dstate (N, P @ (D @ L # D', k) # P', Q, n)
-      \<leadsto>\<^sub>w wstate_of_dstate (N, P @ (D @ D', k) # P', Q, n)"
-      using ih
+    have "wstate_of_dstate (N, reduce_all [C] P @ (D @ L # D', k) # P', Q, n)
+      \<leadsto>\<^sub>w wstate_of_dstate (N, reduce_all [C] P @ (D @ D', k) # P', Q, n)"
       sorry
 (* BASIC IDEA: remove copies of L in D' and make sure P hs been reduced already *)
 (*
@@ -480,21 +480,19 @@ proof (induct D' arbitrary: D)
 qed simp
 
 lemma reduce_clauses_in_P:
-  assumes
-    c_in: "C \<in> fst ` set N" and
-    p_reded: "\<forall>D \<in> fst ` set P. \<exists>D0. D = reduce [C] [] D0"
-  shows "wstate_of_dstate (N, P @ P', Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ reduce_all [C] P', Q, n)"
-  unfolding reduce_all_def
-  using p_reded
-proof (induct P' arbitrary: P)
-  case (Cons Dk P')
-  note ih = this(1) and p_reded = this(2)
-  have "wstate_of_dstate (N, P @ Dk # P', Q, n)
-     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ apfst (reduce [C] []) Dk # P', Q, n)"
+  assumes c_in: "C \<in> fst ` set N"
+  shows "wstate_of_dstate (N, reduce_all [C] P @ P', Q, n)
+    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, reduce_all [C] P @ reduce_all [C] P', Q, n)"
+proof (subst (3) reduce_all_def, induct P' arbitrary: P)
+  case ih: (Cons Dk P')
+  have "wstate_of_dstate (N, reduce_all [C] P @ Dk # P', Q, n)
+     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, reduce_all [C] P @ apfst (reduce [C] []) Dk # P', Q, n)"
     by (cases Dk, simp only: apfst_conv,
-        rule reduce_clause_in_P[of _ _ _"[]", unfolded append_Nil, OF c_in p_reded])
+        rule reduce_clause_in_P[of _ _ _"[]", unfolded append_Nil, OF c_in])
   then show ?case
+    apply (rule rtranclp_trans)
     using ih[of "P @ [apfst (reduce [C] []) Dk]"]
+    apply (auto simp del: wstate_of_dstate.simps)
     sorry
 qed simp
 
@@ -1089,7 +1087,8 @@ proof -
                     unfolded append_Nil prod.sel])
                 simp
             also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q', n)"
-              unfolding P'_def by (rule reduce_clauses_in_P[of _ _ "[]", unfolded append_Nil]) auto
+              unfolding P'_def
+              by (rule reduce_clauses_in_P[of _ _ "[]", unfolded append_Nil reduce_all_empty]) auto
             also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q'', n)"
               unfolding Q''_def
               by (rule remove_strictly_subsumed_clauses_in_Q[of _ _ _ "[]", unfolded append_Nil])
