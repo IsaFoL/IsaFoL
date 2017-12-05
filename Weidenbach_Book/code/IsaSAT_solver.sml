@@ -2291,29 +2291,6 @@ fun get_propagation_reason_code x =
 
 fun arl_is_empty A_ = (fn (_, n) => (fn () => (equal_nat n zero_nata)));
 
-fun array_copy A_ a =
-  (fn () =>
-    let
-      val l = len A_ a ();
-    in
-      (if equal_nat l zero_nata then (fn () => Array.fromList [])
-        else (fn f_ => fn () => f_ ((nth A_ a zero_nata) ()) ())
-               (fn s =>
-                 (fn f_ => fn () => f_ ((new A_ l s) ()) ())
-                   (fn aa =>
-                     (fn f_ => fn () => f_ ((blit A_ a zero_nata aa zero_nata l)
-                       ()) ())
-                       (fn _ => (fn () => aa)))))
-        ()
-    end);
-
-fun nth_rl A_ xs n =
-  (fn () => let
-              val x = arl_get (heap_array (typerep_heap A_)) xs n ();
-            in
-              array_copy A_ x ()
-            end);
-
 fun level_in_lbd_code x =
   (fn ai => fn (a1, _) => fn () =>
     let
@@ -2337,53 +2314,60 @@ fun lit_redundant_rec_wl_lookup_code x =
       (fn (a1, (a1a, _)) => fn () =>
         let
           val xa = arl_last (heap_prod heap_nat heap_nat) a1a ();
-          val x_a = nth_rl heap_uint32 bid (fst xa) ();
-          val xb = arl_last (heap_prod heap_nat heap_nat) a1a ();
-          val xaa = len heap_uint32 x_a ();
+          val xaa = arl_last (heap_prod heap_nat heap_nat) a1a ();
+          val xab = length_raa heap_uint32 bid (fst xaa) ();
         in
-          (if less_eq_nat xaa (snd xb)
-            then (fn f_ => fn () => f_ ((nth heap_uint32 x_a zero_nata) ()) ())
-                   (fn xc =>
+          (if less_eq_nat xab (snd xa)
+            then (fn f_ => fn () => f_
+                   ((arl_last (heap_prod heap_nat heap_nat) a1a) ()) ())
+                   (fn xb =>
                      (fn f_ => fn () => f_
-                       ((conflict_min_cach_set_removable_l_code a1
-                          (atm_of_code xc))
-                       ()) ())
-                       (fn x_f =>
+                       ((nth_raa heap_uint32 bid (fst xb) zero_nata) ()) ())
+                       (fn xc =>
                          (fn f_ => fn () => f_
-                           ((arl_butlast (heap_prod heap_nat heap_nat) a1a) ())
-                           ())
-                           (fn xd => (fn () => (x_f, (xd, true))))))
+                           ((conflict_min_cach_set_removable_l_code a1
+                              (atm_of_code xc))
+                           ()) ())
+                           (fn x_d =>
+                             (fn f_ => fn () => f_
+                               ((arl_butlast (heap_prod heap_nat heap_nat) a1a)
+                               ()) ())
+                               (fn xd => (fn () => (x_d, (xd, true)))))))
             else (fn f_ => fn () => f_
                    ((arl_last (heap_prod heap_nat heap_nat) a1a) ()) ())
-                   (fn xc =>
+                   (fn xb =>
                      (fn f_ => fn () => f_
                        (let
-                          val (a1b, a2b) = xc;
+                          val (a1b, a2b) = xb;
                         in
-                          (fn f_ => fn () => f_ ((nth heap_uint32 x_a a2b) ())
+                          (fn f_ => fn () => f_
+                            ((arl_last (heap_prod heap_nat heap_nat) a1a) ())
                             ())
-                            (fn x_g =>
+                            (fn xc =>
                               (fn f_ => fn () => f_
-                                ((arl_length (heap_prod heap_nat heap_nat) a1a)
-                                ()) ())
-                                (fn xd =>
+                                ((nth_raa heap_uint32 bid (fst xc) a2b) ()) ())
+                                (fn x_e =>
                                   (fn f_ => fn () => f_
-                                    ((arl_set (heap_prod heap_nat heap_nat) a1a
-                                       (minus_nat xd one_nat)
-                                       (a1b, plus_nat a2b one_nat))
+                                    ((arl_length (heap_prod heap_nat heap_nat)
+                                       a1a)
                                     ()) ())
-                                    (fn x_h => (fn () => (x_g, x_h)))))
+                                    (fn xd =>
+                                      (fn f_ => fn () => f_
+((arl_set (heap_prod heap_nat heap_nat) a1a (minus_nat xd one_nat)
+   (a1b, plus_nat a2b one_nat))
+()) ())
+(fn x_f => (fn () => (x_e, x_f))))))
                         end
                        ()) ())
                        (fn (a1b, a2b) =>
                          (fn f_ => fn () => f_ ((get_level_code ai a1b) ()) ())
-                           (fn xd =>
-                             (fn f_ => fn () => f_ ((level_in_lbd_code xd bi)
+                           (fn xc =>
+                             (fn f_ => fn () => f_ ((level_in_lbd_code xc bi)
                                ()) ())
-                               (fn xe =>
+                               (fn xd =>
                                  (fn f_ => fn () => f_ ((get_level_code ai a1b)
                                    ()) ())
-                                   (fn xab =>
+                                   (fn xac =>
                                      (fn f_ => fn () => f_
                                        ((conflict_min_cach_l_code a1
   (atm_of_code a1b))
@@ -2391,23 +2375,23 @@ fun lit_redundant_rec_wl_lookup_code x =
                                        (fn xba =>
  (fn f_ => fn () => f_ ((is_in_conflict_code bic a1b) ()) ())
    (fn xca =>
-     (if ((xab : Word32.word) = (Word32.fromInt 0)) orelse
+     (if ((xac : Word32.word) = (Word32.fromInt 0)) orelse
            (equal_minimize_status xba SEEN_REMOVABLE orelse xca)
        then (fn () => (a1, (a2b, false)))
        else (fn f_ => fn () => f_
               ((conflict_min_cach_l_code a1 (atm_of_code a1b)) ()) ())
-              (fn xac =>
-                (if not xe orelse equal_minimize_status xac SEEN_FAILED
+              (fn xad =>
+                (if not xd orelse equal_minimize_status xad SEEN_FAILED
                   then (fn f_ => fn () => f_
                          ((mark_failed_lits_stack_code bid a2b a1) ()) ())
-                         (fn x_l =>
+                         (fn x_j =>
                            (fn f_ => fn () => f_
                              ((arl_empty
                                 (default_prod default_nat default_nat,
                                   heap_prod heap_nat heap_nat)
                                 zero_nat)
                              ()) ())
-                             (fn xf => (fn () => (x_l, (xf, false)))))
+                             (fn xe => (fn () => (x_j, (xe, false)))))
                   else (fn f_ => fn () => f_
                          ((get_propagation_reason_code ai (uminus_code a1b)) ())
                          ())
@@ -2417,21 +2401,21 @@ fun lit_redundant_rec_wl_lookup_code x =
                                (fn f_ => fn () => f_
                                  ((mark_failed_lits_stack_code bid a2b a1) ())
                                  ())
-                                 (fn x_m =>
+                                 (fn x_k =>
                                    (fn f_ => fn () => f_
                                      ((arl_empty
 (default_prod default_nat default_nat, heap_prod heap_nat heap_nat) zero_nat)
                                      ()) ())
-                                     (fn xf => (fn () => (x_m, (xf, false)))))
-                             | SOME x_m =>
+                                     (fn xe => (fn () => (x_k, (xe, false)))))
+                             | SOME x_k =>
                                (fn f_ => fn () => f_
                                  ((arl_append
                                     (default_prod default_nat default_nat,
                                       heap_prod heap_nat heap_nat)
-                                    a2b (x_m, one_nat))
+                                    a2b (x_k, one_nat))
                                  ()) ())
-                                 (fn xf =>
-                                   (fn () => (a1, (xf, false)))))))))))))))))
+                                 (fn xe =>
+                                   (fn () => (a1, (xe, false)))))))))))))))))
             ()
         end)
       (bib, (bia, false)))
