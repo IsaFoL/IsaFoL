@@ -434,6 +434,15 @@ lemma reduce_clause_in_P:
   assumes c_in: "C \<in> fst ` set N"
   shows "wstate_of_dstate (N, reduce_all [C] P @ (D @ D', k) # P', Q, n)
     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, reduce_all [C] P @ (D @ reduce [C] D D', k) # P', Q, n)"
+(* FIXME:
+proof (induct "length P'" arbitrary: P P' rule: less_induct)
+  case less
+  note ih = this(1) and p_nsubs = this(2)
+
+  show ?case
+  proof (cases "length P'")
+    case Suc
+*)
 proof (induct D' arbitrary: D)
   case ih: (Cons L D')
   show ?case
@@ -446,7 +455,8 @@ proof (induct D' arbitrary: D)
       unfolding is_reducible_lit_def by force
 
     have "wstate_of_dstate (N, reduce_all [C] P @ (D @ L # D', k) # P', Q, n)
-      \<leadsto>\<^sub>w wstate_of_dstate (N, reduce_all [C] P @ (D @ D', k) # P', Q, n)"
+      \<leadsto>\<^sub>w wstate_of_dstate (N,
+        reduce_all [C] P @ (D @ D', k) # filter (\<lambda>(E, k). mset E \<noteq> mset (D @ L # D')) P', Q, n)"
       apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
             wrp.backward_reduction_P[of "mset C - {#L'#}" L' "mset (map (apfst mset) N)"
               "mset (D @ D')" L _

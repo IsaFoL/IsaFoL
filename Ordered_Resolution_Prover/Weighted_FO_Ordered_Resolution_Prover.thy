@@ -70,9 +70,9 @@ inductive weighted_RP :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" 
     (N, P, Q + {#(C, i)#}, n) \<leadsto>\<^sub>w (N, P, Q, n)"
 | forward_reduction: "D + {#L'#} \<in># image_mset fst (P + Q) \<Longrightarrow> - L = L' \<cdot>l \<sigma> \<Longrightarrow> D \<cdot> \<sigma> \<subseteq># C \<Longrightarrow>
     (N + {#(C + {#L#}, i)#}, P, Q, n) \<leadsto>\<^sub>w (N + {#(C, i)#}, P, Q, n)"
-| backward_reduction_P: "D + {#L'#} \<in># image_mset fst N \<Longrightarrow> (C + {#L#}, i) \<in># P \<Longrightarrow>
+| backward_reduction_P: "D + {#L'#} \<in># image_mset fst N \<Longrightarrow> C + {#L#} \<in># image_mset fst P \<Longrightarrow>
     - L = L' \<cdot>l \<sigma> \<Longrightarrow> D \<cdot> \<sigma> \<subseteq># C \<Longrightarrow>
-    (N, P, Q, n) \<leadsto>\<^sub>w (N, {#(E, k) \<in># P. E \<noteq> C + {#L#}#} + {#(C, i)#}, Q, n)"
+    (N, P, Q, n) \<leadsto>\<^sub>w (N, image_mset (apfst (\<lambda>E. if E = C + {#L#} then C else E)) P, Q, n)"
 | backward_reduction_Q: "D + {#L'#} \<in># image_mset fst N \<Longrightarrow> - L = L' \<cdot>l \<sigma> \<Longrightarrow> D \<cdot> \<sigma> \<subseteq># C \<Longrightarrow>
     (N, P, Q + {#(C + {#L#}, i)#}, n) \<leadsto>\<^sub>w (N, P + {#(C, i)#}, Q, n)"
 | clause_processing: "(N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>w (N, P + {#(C, i)#}, Q, n)"
@@ -99,12 +99,12 @@ proof (induction rule: weighted_RP.induct)
             "fst ` set_mset Q"]])
       (use backward_subsumption_P in auto)
 next
-  case (backward_reduction_P D L' N C L i P \<sigma> Q n)
+  case (backward_reduction_P D L' N C L P \<sigma> Q n)
   show ?case
     by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>", OF _ _
           RP.backward_reduction_P[of D L' "fst ` set_mset N" L \<sigma> C "fst ` set_mset P - {C + {#L#}}"
-            "fst ` set_mset Q"]])
-      (use backward_reduction_P in \<open>force simp: image_def\<close>)+
+            "fst ` set_mset Q"]],
+        use backward_reduction_P in auto)
 next
   case (inference_computation P C i N n Q)
   show ?case
