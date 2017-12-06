@@ -64,21 +64,22 @@ inductive weighted_RP :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" 
   tautology_deletion: "Neg A \<in># C \<Longrightarrow> Pos A \<in># C \<Longrightarrow> (N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
 | forward_subsumption: "D \<in># image_mset fst (P + Q) \<Longrightarrow> subsumes D C \<Longrightarrow>
     (N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
-| backward_subsumption_P: "D \<in># image_mset fst N \<Longrightarrow> strictly_subsumes D C \<Longrightarrow>
-    (N, P + {#(C, i)#}, Q, n) \<leadsto>\<^sub>w (N, P, Q, n)"
+| backward_subsumption_P: "D \<in># image_mset fst N \<Longrightarrow> C \<in># image_mset fst P \<Longrightarrow>
+    strictly_subsumes D C \<Longrightarrow> (N, P, Q, n) \<leadsto>\<^sub>w (N, {#(E, k) \<in># P. E \<noteq> C#}, Q, n)"
 | backward_subsumption_Q: "D \<in># image_mset fst N \<Longrightarrow> strictly_subsumes D C \<Longrightarrow>
     (N, P, Q + {#(C, i)#}, n) \<leadsto>\<^sub>w (N, P, Q, n)"
 | forward_reduction: "D + {#L'#} \<in># image_mset fst (P + Q) \<Longrightarrow> - L = L' \<cdot>l \<sigma> \<Longrightarrow> D \<cdot> \<sigma> \<subseteq># C \<Longrightarrow>
     (N + {#(C + {#L#}, i)#}, P, Q, n) \<leadsto>\<^sub>w (N + {#(C, i)#}, P, Q, n)"
-| backward_reduction_P: "D + {#L'#} \<in># image_mset fst N \<Longrightarrow> - L = L' \<cdot>l \<sigma> \<Longrightarrow> D \<cdot> \<sigma> \<subseteq># C \<Longrightarrow>
-    (N, P + {#(C + {#L#}, i)#}, Q, n) \<leadsto>\<^sub>w (N, P + {#(C, i)#}, Q, n)"
+| backward_reduction_P: "D + {#L'#} \<in># image_mset fst N \<Longrightarrow> C + {#L#} \<in># image_mset fst P \<Longrightarrow>
+    - L = L' \<cdot>l \<sigma> \<Longrightarrow> D \<cdot> \<sigma> \<subseteq># C \<Longrightarrow>
+    (N, P, Q, n) \<leadsto>\<^sub>w (N, image_mset (apfst (\<lambda>E. if E = C + {#L#} then C else E)) P, Q, n)"
 | backward_reduction_Q: "D + {#L'#} \<in># image_mset fst N \<Longrightarrow> - L = L' \<cdot>l \<sigma> \<Longrightarrow> D \<cdot> \<sigma> \<subseteq># C \<Longrightarrow>
     (N, P, Q + {#(C + {#L#}, i)#}, n) \<leadsto>\<^sub>w (N, P + {#(C, i)#}, Q, n)"
 | clause_processing: "(N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>w (N, P + {#(C, i)#}, Q, n)"
 | inference_computation: "(\<forall>(D, j) \<in># P. weight (C, i) \<le> weight (D, j)) \<Longrightarrow>
     N = mset_set ((\<lambda>D. (D, n)) ` concls_of
       (inference_system.inferences_between (ord_FO_\<Gamma> S) (set_mset (image_mset fst Q)) C)) \<Longrightarrow>
-    ({#}, P + {#(C, i)#}, Q, n) \<leadsto>\<^sub>w (N, P, Q + {#(C, i)#}, Suc n)"
+    ({#}, P + {#(C, i)#}, Q, n) \<leadsto>\<^sub>w (N, {#(D, j) \<in># P. D \<noteq> C#}, Q + {#(C, i)#}, Suc n)"
 
 definition weighted_RP_Non_Inference :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w\<^sub>n\<^sub>i" 50) where
   "St \<leadsto>\<^sub>w\<^sub>n\<^sub>i St' \<longleftrightarrow> St \<leadsto>\<^sub>w St' \<and> N_of_wstate St \<noteq> {}"
@@ -91,12 +92,30 @@ lemma "St \<leadsto>\<^sub>w St' \<longleftrightarrow> St \<leadsto>\<^sub>w\<^s
 
 lemma weighted_RP_imp_RP: "St \<leadsto>\<^sub>w St' \<Longrightarrow> state_of_wstate St \<leadsto> state_of_wstate St'"
 proof (induction rule: weighted_RP.induct)
+  case (backward_subsumption_P D N C P Q n)
+  show ?case
+    by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>", OF _ _
+          RP.backward_subsumption_P[of D "fst ` set_mset N" C "fst ` set_mset P - {C}"
+            "fst ` set_mset Q"]])
+      (use backward_subsumption_P in auto)
+next
+  case (backward_reduction_P D L' N C L P \<sigma> Q n)
+  show ?case
+    by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>", OF _ _
+          RP.backward_reduction_P[of D L' "fst ` set_mset N" L \<sigma> C "fst ` set_mset P - {C + {#L#}}"
+            "fst ` set_mset Q"]],
+        use backward_reduction_P in auto)
+next
   case (inference_computation P C i N n Q)
-  then show ?case
-    using RP.inference_computation finite_ord_FO_resolution_inferences_between
-    by (auto simp: comp_def image_comp inference_system.inferences_between_def)
+  show ?case
+     by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>", OF _ _
+           RP.inference_computation[of "fst ` set_mset N" "fst ` set_mset Q" C
+             "fst ` set_mset P - {C}"]],
+         use inference_computation(2) finite_ord_FO_resolution_inferences_between
+           in \<open>auto simp: comp_def image_comp inference_system.inferences_between_def\<close>)
 qed (use RP.intros in simp_all)
 
+(* FIXME: turn into "if and only iff" *)
 lemma final_weighted_RP: "\<not> ({#}, {#}, Q, n) \<leadsto>\<^sub>w St"
   by (auto elim: weighted_RP.cases)
 

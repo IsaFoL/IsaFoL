@@ -6,7 +6,7 @@
 
 section \<open>Integration of IsaFoR Terms\<close>
 
-theory IsaFoR_IsaFoR_Term
+theory IsaFoR_Term
   imports
     Deriving.Derive
     Abstract_Substitution
@@ -15,6 +15,12 @@ theory IsaFoR_IsaFoR_Term
     "./AFP_IsaFoR/Fun_More"
     "$ISAFOR/Orderings/KBO"
 begin
+
+(* FIXME: Use these once they are moved to AFP:
+    "AFP_IsaFoR/AFP_Unifiers"
+    "AFP_IsaFoR/AFP_Subsumption"
+    "AFP_IsaFoR/AFP_Unification"
+*)
 
 record 'f weights =
   w :: "'f \<times> nat \<Rightarrow> nat"

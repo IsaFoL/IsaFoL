@@ -1,5 +1,5 @@
 theory Ceta_SAT_Code
-  imports CeTA_SAT_Import.Ceta_SAT
+  imports CeTA_SAT_Slow.Ceta_SAT
 begin
 
 lemma [code del]: "mset xs - mset ys = mset (fold remove1 ys xs)"
@@ -125,62 +125,8 @@ definition check_cert_args where
   \<open>check_cert_args = check_cert tp_impl Ceta_Verifier.dpp_impl ac_tp_impl
                       Ceta_Verifier.ac_dpp_impl\<close>
 
-term sum_assn
-typ "('f, 'l, 'v) trs_termination_proof"
-
-typ "('f, 'l) lab projL"
-
-(*
-datatype ('f,'l) lab =
-  Lab "('f, 'l) lab" 'l
-| FunLab "('f, 'l) lab" "('f, 'l) lab list"
-| UnLab 'f
-| Sharp "('f, 'l) lab" *)
-lemma list_assn_cong:
-  \<open>\<lbrakk>\<And>x y. x \<in> set xs \<Longrightarrow> y \<in> set ys \<Longrightarrow> f x y = g x y\<rbrakk> \<Longrightarrow>
-      list_assn f xs ys = list_assn g xs ys\<close>
-  by (induction f xs ys rule: list_assn.induct) auto
-lemma list_assn_fundef_cong[fundef_cong]:
-  \<open>\<lbrakk>xs = xs'; ys = ys'; \<And>x y. x \<in> set xs \<Longrightarrow> y \<in> set ys \<Longrightarrow> f x y = g x y\<rbrakk> \<Longrightarrow>
-      list_assn f xs ys = list_assn g xs' ys'\<close>
-  by (auto intro: list_assn_cong)
-
-fun lab_assn :: \<open>('f \<Rightarrow> 'g \<Rightarrow> assn) \<Rightarrow> ('l \<Rightarrow> 'm \<Rightarrow> assn) \<Rightarrow> ('f,'l) lab \<Rightarrow> ('g, 'm) lab \<Rightarrow> assn\<close> where
-  \<open>lab_assn A B (Lab xs l) (Lab xs' l') = lab_assn A B xs xs' * B l l'\<close> |
-  \<open>lab_assn A B (FunLab xs ys) (FunLab xs' ys') = lab_assn A B xs xs' * list_assn (lab_assn A B) ys ys'\<close>|
-  \<open>lab_assn A B (UnLab x) (UnLab x') = A x x'\<close> |
-  \<open>lab_assn A B (lab.Sharp xs) (lab.Sharp xs') = lab_assn A B xs xs'\<close> |
-  \<open>lab_assn _ _ _ _ = false\<close>
-
-(* type_synonym 'f status_impl = "(('f \<times> nat) \<times> nat list)list" *)
-definition status_impl_assn where
-  \<open>status_impl_assn R = list_assn ((R *a nat_assn) *a list_assn nat_assn)\<close>
-
-fun projL_assn :: \<open>('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> 'a projL \<Rightarrow> 'b projL \<Rightarrow> assn\<close> where
-  \<open>projL_assn R (Projection f) (Projection g) = list_assn ((R *a nat_assn) *a nat_assn) f g\<close>
-
-typ rseqL
-typ rule
-typ "term"
-(*
-type_synonym ('f, 'l, 'v) ruleLL  = "(('f, 'l) lab, 'v) rule"
-type_synonym ('f, 'l, 'v) trsLL   = "(('f, 'l) lab, 'v) rules"
-type_synonym ('f, 'l, 'v) termsLL = "(('f, 'l) lab, 'v) term list"
-type_synonym ('f, 'l, 'v) rseqL   = "((('f, 'l) lab, 'v) rule \<times> (('f, 'l) lab, 'v) rseq) list"
- *)
-fun dp_termination_proof_assn  ::
-    "('e \<Rightarrow> 'e' \<Rightarrow> assn) \<Rightarrow> ('f \<Rightarrow> 'f' \<Rightarrow> assn) \<Rightarrow> ('g \<Rightarrow> 'g' \<Rightarrow> assn) \<Rightarrow>
-     ('e, 'f, 'g) dp_termination_proof \<Rightarrow> ('e', 'f', 'g') dp_termination_proof \<Rightarrow> assn"
-    where
- \<open>dp_termination_proof_assn e f g P_is_Empty P_is_Empty = emp\<close> |
- \<open>dp_termination_proof_assn e f g
-      (Subterm_Criterion_Proc projL rseqL trsLL term)
-      (Subterm_Criterion_Proc projL' rseqL' trsLL' term') =
-    projL_assn (lab_assn e f) projL projL' *
-    dp_termination_proof_assn e f g term term'\<close> |
- \<open>dp_termination_proof_assn _ _ _ _ _ = false\<close>
-
-
+lemma
+  \<open>dp_termination_proof_assn = id_assn \<and> trs_termination_proof_assn = id_assn\<close>
 (*
 datatype (dead 'f, dead 'l, dead 'v) dp_termination_proof =
   P_is_Empty
@@ -188,7 +134,8 @@ datatype (dead 'f, dead 'l, dead 'v) dp_termination_proof =
     "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
 | Gen_Subterm_Criterion_Proc "('f, 'l) lab status_impl"
     "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
-| Redpair_Proc "('f,'l)lab root_redtriple_impl + ('f, 'l) lab redtriple_impl" "('f, 'l, 'v) trsLL"  "('f, 'l, 'v) dp_termination_proof"
+| Redpair_Proc "('f,'l)lab root_redtriple_impl + ('f, 'l) lab redtriple_impl"
+    "('f, 'l, 'v) trsLL"  "('f, 'l, 'v) dp_termination_proof"
 | Redpair_UR_Proc "('f, 'l) lab root_redtriple_impl + ('f, 'l) lab redtriple_impl"
     "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
 | Usable_Rules_Proc "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"

@@ -593,16 +593,16 @@ proof -
     have
       struct_invs: \<open>twl_struct_invs (twl_st_of_wl None (fst T))\<close>
       using snd_T struct_invs by (subst (asm) twl_struct_invs_init_twl_struct_invs) (cases T; auto)+
-    obtain M N NP Q W UP where
-      S\<^sub>0: \<open>T = ((M, N, length N - 1, None, NP, UP, Q, W), {#})\<close>
+    obtain M N NE Q W UE where
+      S\<^sub>0: \<open>T = ((M, N, length N - 1, None, NE, UE, Q, W), {#})\<close>
       using U confl snd_T_conflict
       by (cases T) (auto simp: clauses_def mset_take_mset_drop_mset' get_unit_learned_def)
-    have [simp]: \<open>UP = {#}\<close>
+    have [simp]: \<open>UE = {#}\<close>
       using no_learned_unit unfolding S\<^sub>0 by (auto simp: get_unit_learned_def)
 
-    have N_NP: \<open>mset `# mset (tl N) + NP = mset `# mset CS'\<close>
+    have N_NE: \<open>mset `# mset (tl N) + NE = mset `# mset CS'\<close>
       using clss by (auto simp: clauses_def mset_take_mset_drop_mset' S\<^sub>0)
-    have trail_in_NP: \<open>\<forall>L\<in>lits_of_l M. {#L#} \<in># NP\<close>
+    have trail_in_NE: \<open>\<forall>L\<in>lits_of_l M. {#L#} \<in># NE\<close>
       using trail unfolding S\<^sub>0 by (auto simp: get_unit_init_clss_def)
     have n_d: \<open>no_dup M\<close>
       using struct_invs by (auto simp: twl_struct_invs_def S\<^sub>0 twl_struct_invs_init_def
@@ -614,7 +614,7 @@ proof -
       using CS'_CS by (auto simp: in_list_mset_rel in_list_mset_rel_mset_rel)
     have 0: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* ([], CS, {#}, None)
        (convert_lits_l N M, mset `# mset CS', {#}, None)\<close>
-      using trail_in_NP prop_M n_d
+      using trail_in_NE prop_M n_d
       apply (induction M)
       subgoal by (auto simp: CS)
       subgoal for L M
@@ -622,12 +622,12 @@ proof -
          apply (simp; fail)
         apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.propagate')
          apply (auto simp: cdcl\<^sub>W_restart_mset.propagate.simps clauses_def CS
-            N_NP[symmetric])
+            N_NE[symmetric])
         done
       done
     then have 1: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state CS)
        (state\<^sub>W_of (twl_st_of None (st_l_of_wl None (fst T))))\<close>
-      using 0 by (auto simp: S\<^sub>0 CS mset_take_mset_drop_mset' N_NP init_state.simps)
+      using 0 by (auto simp: S\<^sub>0 CS mset_take_mset_drop_mset' N_NE init_state.simps)
     have clss_CS':
        \<open>cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None (st_l_of_wl None (fst T)))) =
           mset `# mset CS'\<close>

@@ -5,7 +5,7 @@ begin
 section \<open>More red-black trees\<close>
 
 text \<open>The file @{file "~~/src/HOL/Library/RBT.thy"} contains the lifting from a red-black tree to
-  the version with invariants (sorted keys for example). However, some properties are missing\<close>
+  the version with invariants (sorted keys for example). However, some properties are missing.\<close>
 
 subsection \<open>Keys and Entries\<close>
 

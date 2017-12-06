@@ -8,13 +8,13 @@ type_synonym 'v twl_st_init = \<open>'v twl_st  \<times> 'v clauses\<close>
 type_synonym 'v twl_st_l_init = \<open>'v twl_st_l \<times> 'v clauses\<close>
 
 fun state\<^sub>W_of_init :: "'v twl_st_init \<Rightarrow> 'v cdcl\<^sub>W_restart_mset" where
-"state\<^sub>W_of_init ((M, N, U, C, NP, UP, Q), OC) =
-  (M, clause `# N + NP + OC, clause `# U + UP,  C)"
+"state\<^sub>W_of_init ((M, N, U, C, NE, UE, Q), OC) =
+  (M, clause `# N + NE + OC, clause `# U + UE,  C)"
 
 fun twl_st_of_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v twl_st_init\<close> where
-  \<open>twl_st_of_init ((M, N, U, C, NP, UP, WS, Q), OC) =
+  \<open>twl_st_of_init ((M, N, U, C, NE, UE, WS, Q), OC) =
     ((convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop (Suc U) N),
-       C, NP, UP, {#}, Q), OC)\<close>
+       C, NE, UE, {#}, Q), OC)\<close>
 
 definition twl_struct_invs_init :: \<open>'v twl_st_init \<Rightarrow> bool\<close> where
   \<open>twl_struct_invs_init S \<longleftrightarrow>
@@ -28,7 +28,7 @@ definition twl_struct_invs_init :: \<open>'v twl_st_init \<Rightarrow> bool\<clo
     confl_cands_enqueued (fst S) \<and>
     propa_cands_enqueued (fst S) \<and>
     (get_conflict (fst S) \<noteq> None \<longrightarrow> clauses_to_update (fst S) = {#} \<and> literals_to_update (fst S) = {#}) \<and>
-    unit_clss_inv (fst S) \<and>
+    entailed_clss_inv (fst S) \<and>
     clauses_to_update_inv (fst S) \<and>
     past_invs (fst S))
   \<close>
@@ -49,7 +49,7 @@ proof -
     cands_confl: \<open>confl_cands_enqueued S\<close> and
     cands_propa: \<open>propa_cands_enqueued S\<close> and
     confl: \<open>get_conflict S \<noteq> None \<longrightarrow> clauses_to_update S = {#} \<and> literals_to_update S = {#}\<close> and
-    unit: \<open>unit_clss_inv S\<close> and
+    unit: \<open>entailed_clss_inv S\<close> and
     to_upd: \<open>clauses_to_update_inv S\<close> and
     past: \<open>past_invs S\<close>
     using assms unfolding twl_struct_invs_init_def fst_conv
@@ -84,24 +84,24 @@ qed
 
 definition init_dt_step :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \<Rightarrow> 'v twl_st_l_init\<close> where
   \<open>init_dt_step C S =
-  (let ((M, N, U, D, NP, UP, WS, Q), OC) = S in
+  (let ((M, N, U, D, NE, UE, WS, Q), OC) = S in
   (case D of
     None \<Rightarrow>
     if length C = 0
-    then ((M, N, U, Some {#}, NP, UP, {#}, {#}), add_mset {#} OC)
+    then ((M, N, U, Some {#}, NE, UE, {#}, {#}), add_mset {#} OC)
     else if length C = 1
     then
       let L = hd C in
       if undefined_lit M L
-      then ((Propagated L 0 # M, N, U, None, add_mset {#L#} NP, UP, WS, add_mset (-L) Q), OC)
+      then ((Propagated L 0 # M, N, U, None, add_mset {#L#} NE, UE, WS, add_mset (-L) Q), OC)
       else if L \<in> lits_of_l M
-      then ((M, N, U, None, add_mset {#L#} NP, UP, WS, Q), OC)
-      else ((M, N, U, Some (mset C), add_mset {#L#} NP, UP, {#}, {#}), OC)
+      then ((M, N, U, None, add_mset {#L#} NE, UE, WS, Q), OC)
+      else ((M, N, U, Some (mset C), add_mset {#L#} NE, UE, {#}, {#}), OC)
     else
       let L = hd C; L' = hd (tl C); C' = tl (tl C) in
-      ((M, N @ [[L, L'] @ C'], length N, None, NP, UP, WS, Q), OC)
+      ((M, N @ [[L, L'] @ C'], length N, None, NE, UE, WS, Q), OC)
   | Some D \<Rightarrow>
-      ((M, N, U, Some D, NP, UP, WS, Q), add_mset (mset C) OC)))\<close>
+      ((M, N, U, Some D, NE, UE, WS, Q), add_mset (mset C) OC)))\<close>
 
 fun init_dt :: \<open>'v clauses_l \<Rightarrow> 'v twl_st_l \<times> 'v clauses \<Rightarrow> 'v twl_st_l \<times> 'v clauses\<close> where
   \<open>init_dt [] S = S\<close>
@@ -176,13 +176,13 @@ next
     OC'_empty_conflict: \<open>{#} \<in># mset `# mset CS \<longrightarrow> get_conflict_l ?S' \<noteq> None\<close>
     using IH[OF _ inv WS dec in_literals_to_update add_inv len stgy_inv OC'_empty] dist by auto
 
-  obtain M N U D NP UP Q OCS where
-    S: \<open>init_dt CS (S, OC) = ((M, N, U, D, NP, UP, {#}, Q), OCS)\<close>
+  obtain M N U D NE UE Q OCS where
+    S: \<open>init_dt CS (S, OC) = ((M, N, U, D, NE, UE, {#}, Q), OCS)\<close>
     using w_q by (cases \<open>init_dt CS (S, OC)\<close>) auto
-  obtain M' N' U' D' NP' WS' UP' Q' where
-    S': \<open>twl_st_of None (fst (init_dt (a # CS) (S, OC))) = (M', N', U', D', NP', UP', WS', Q')\<close>
+  obtain M' N' U' D' NE' WS' UE' Q' where
+    S': \<open>twl_st_of None (fst (init_dt (a # CS) (S, OC))) = (M', N', U', D', NE', UE', WS', Q')\<close>
     by (cases \<open>twl_st_of None (fst (init_dt (a # CS) (S, OC)))\<close>) auto
-  then have [simp]: \<open>UP' = UP\<close>
+  then have [simp]: \<open>UE' = UE\<close>
     by (cases a; cases D) (auto simp: S split: if_splits)
 
   have dec_M: \<open>\<forall>s\<in>set M. \<not> is_decided s\<close>
@@ -205,8 +205,8 @@ next
     apply (case_tac a, (use that in simp; fail))
     apply (rename_tac aa list, case_tac list; use that in simp)
     done
-  have mset_tl_N: \<open>{#mset (take 2 x) + mset (drop 2 x). x \<in># mset (take U (tl N))#} + {#mset (take 2 x) + mset (drop 2 x). x \<in># mset (drop (Suc U) N)#} =
-         {#mset (take 2 x) + mset (drop 2 x). x \<in># mset (tl N)#}\<close>
+  have mset_tl_N: \<open>{#mset (watched_l x) + mset (unwatched_l x). x \<in># mset (take U (tl N))#} + {#mset (watched_l x) + mset (unwatched_l x). x \<in># mset (drop (Suc U) N)#} =
+         {#mset (watched_l x) + mset (unwatched_l x). x \<in># mset (tl N)#}\<close>
     unfolding image_mset_union[symmetric] mset_append[symmetric] append_take_drop_id drop_Suc ..
   case 5
   show ?case
@@ -229,9 +229,9 @@ next
         cdcl\<^sub>W_restart_mset_state)
 
   let ?S' = \<open>(convert_lits_l N M, twl_clause_of `# mset (take U (tl N)),
-       twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#}, Q)\<close>
+       twl_clause_of `# mset (drop U (tl N)), D, NE, UE, {#}, Q)\<close>
   case 1
-  let ?S' = \<open>((convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NP, UP, {#}, Q), OCS)\<close>
+  let ?S' = \<open>((convert_lits_l N M, twl_clause_of `# mset (take U (tl N)), twl_clause_of `# mset (drop U (tl N)), D, NE, UE, {#}, Q), OCS)\<close>
   let ?T' = \<open>state\<^sub>W_of_init ?S'\<close>
   have
     struct: \<open>Multiset.Ball (twl_clause_of `# mset (tl N)) struct_wf_twl_cls\<close> and
@@ -249,7 +249,7 @@ next
     propa_cands: \<open>propa_cands_enqueued (fst ?S')\<close> and
     get_confl: \<open>get_conflict (fst ?S') \<noteq> None \<longrightarrow> clauses_to_update (fst ?S') = {#} \<and>
     literals_to_update (fst ?S') = {#}\<close> and
-    unit_clss: \<open>unit_clss_inv (fst ?S')\<close> and
+    unit_clss: \<open>entailed_clss_inv (fst ?S')\<close> and
     w_q: \<open>clauses_to_update_inv (fst ?S')\<close> and
     past_invs: \<open>past_invs (fst ?S')\<close>
     using twl unfolding twl_st_inv.simps twl_struct_invs_init_def S twl_st_of.simps
@@ -313,14 +313,14 @@ next
           intro!: twl_struct_invs_init_add_mset)
   next
     case a: empty
-    have [simp]: \<open>NP' = NP\<close>
+    have [simp]: \<open>NE' = NE\<close>
     using S' by (cases D) (auto simp: a S split: if_splits)
   note in_M_IN_QD = in_M_IN_QD[OF a(1)]
   have all_inv':
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (convert_lits_l N M,
       add_mset {#}
-       ({#mset (take 2 x) + mset (drop 2 x). x \<in># mset (tl N)#} + NP' + OCS),
-      UP', Some {#})\<close>
+       ({#mset (watched_l x) + mset (unwatched_l x). x \<in># mset (tl N)#} + NE' + OCS),
+      UE', Some {#})\<close>
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def S'[symmetric]
     apply (intro conjI)
     subgoal

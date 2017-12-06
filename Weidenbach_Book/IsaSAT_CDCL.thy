@@ -101,34 +101,23 @@ proof -
   have ID_R: \<open>Id \<times>\<^sub>r \<langle>Id\<rangle>option_rel = Id\<close>
     by auto
   have atms: \<open>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l =
-         atms_of_ms ((\<lambda>x. mset (take 2 x) + mset (drop 2 x)) ` set (take U (tl N))) \<union>
-         atms_of_mm NP \<and> (\<forall>y. atm_of y \<in> atms_of_mm NP \<longrightarrow> defined_lit M y)\<close>
-      if inv: \<open>twl_struct_invs (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q))\<close> and
-        \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n (M, N, U, D, NP, UP, WS, Q)\<close> and
-        confl: \<open>get_conflict_wl (M, N, U, D, NP, UP, WS, Q) = None\<close>
-      for M N U D NP UP WS Q
+         atms_of_ms ((\<lambda>x. mset (watched_l x) + mset (unwatched_l x)) ` set (take U (tl N))) \<union>
+         atms_of_mm NE\<close>
+      if inv: \<open>twl_struct_invs (twl_st_of_wl None (M, N, U, D, NE, UE, WS, Q))\<close> and
+        \<A>\<^sub>i\<^sub>n: \<open>literals_are_\<L>\<^sub>i\<^sub>n (M, N, U, D, NE, UE, WS, Q)\<close> and
+        confl: \<open>get_conflict_wl (M, N, U, D, NE, UE, WS, Q) = None\<close>
+      for M N U D NE UE WS Q
   proof -
     have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm
-            (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q)))\<close> and
-        unit: \<open>unit_clss_inv (twl_st_of_wl None (M, N, U, D, NP, UP, WS, Q))\<close>
+            (state\<^sub>W_of (twl_st_of_wl None (M, N, U, D, NE, UE, WS, Q)))\<close> and
+        unit: \<open>entailed_clss_inv (twl_st_of_wl None (M, N, U, D, NE, UE, WS, Q))\<close>
       using inv unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       by fast+
-    moreover have \<open>defined_lit M L\<close> if NP: \<open>atm_of L\<in> atms_of_mm NP\<close> for L
-    proof -
-      obtain C where C_NP: \<open>C \<in># NP\<close> and L_C: \<open>atm_of L \<in> atms_of C\<close>
-         using NP unfolding atms_of_ms_def by auto
-      have \<open>C\<in>set_mset NP \<Longrightarrow> \<exists>L. C = {#L#} \<and> get_level M L = 0 \<and> L \<in> lits_of_l M\<close> for C
-         using unit confl by auto
-      from this[of C] obtain L' where \<open>C = {#L'#}\<close> and \<open>L' \<in> lits_of_l M\<close>
-         using C_NP by auto
-      then show ?thesis
-        using L_C by (auto simp: Decided_Propagated_in_iff_in_lits_of_l atm_of_eq_atm_of)
-    qed
-    ultimately show ?thesis
+    then show ?thesis
       using \<A>\<^sub>i\<^sub>n unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def
       by (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def
           mset_take_mset_drop_mset mset_take_mset_drop_mset'
-          clauses_def simp del: unit_clss_inv.simps)
+          clauses_def simp del: entailed_clss_inv.simps)
   qed
   show ?thesis
    unfolding find_unassigned_lit_wl_D_heur_def find_unassigned_lit_wl_D_def find_undefined_atm_def
@@ -137,8 +126,9 @@ proof -
    apply clarify
    apply refine_vcg
    unfolding RETURN_RES_refine_iff
-   by (auto simp: twl_st_heur_def atms in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff Ball_def image_image
-       simp del: twl_st_of_wl.simps dest!: atms)
+   by (fastforce simp add: twl_st_heur_def atms in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff Ball_def image_image
+       mset_take_mset_drop_mset'
+        simp del: twl_st_of_wl.simps dest!: atms)
 qed
 
 

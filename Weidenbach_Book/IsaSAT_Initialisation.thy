@@ -8,11 +8,11 @@ section \<open>Code for the initialisation of the Data Structure\<close>
 
 definition init_dt_step_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \<Rightarrow> ('v twl_st_l_init) nres\<close> where
   \<open>init_dt_step_l C S = do {
-   (let ((M, N, U, D, NP, UP, WS, Q), OC) = S in
+   (let ((M, N, U, D, NE, UE, WS, Q), OC) = S in
    (case D of
       None \<Rightarrow>
         if is_Nil C
-        then RETURN ((M, N, U, Some {#}, NP, UP, {#}, {#}), add_mset {#} OC)
+        then RETURN ((M, N, U, Some {#}, NE, UE, {#}, {#}), add_mset {#} OC)
         else if length C = 1
         then do {
           ASSERT (no_dup M);
@@ -20,19 +20,19 @@ definition init_dt_step_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \
           let L = hd C;
           let val_L = polarity M L;
           if val_L = None
-          then RETURN ((Propagated L 0 # M, N, U, None, add_mset {#L#} NP, UP, WS, add_mset (-L) Q),
+          then RETURN ((Propagated L 0 # M, N, U, None, add_mset {#L#} NE, UE, WS, add_mset (-L) Q),
              OC)
           else
             if val_L = Some True
-            then RETURN ((M, N, U, None, add_mset {#L#} NP, UP, WS, Q), OC)
-            else RETURN ((M, N, U, Some (mset C), add_mset {#L#} NP, UP, {#}, {#}), OC)
+            then RETURN ((M, N, U, None, add_mset {#L#} NE, UE, WS, Q), OC)
+            else RETURN ((M, N, U, Some (mset C), add_mset {#L#} NE, UE, {#}, {#}), OC)
           }
         else do {
           ASSERT(C \<noteq> []);
           ASSERT(tl C \<noteq> []);
-          RETURN ((M, N @ [C], length N, None, NP, UP, WS, Q), OC)}
+          RETURN ((M, N @ [C], length N, None, NE, UE, WS, Q), OC)}
   | Some D \<Rightarrow>
-      RETURN ((M, N, U, Some D, NP, UP, WS, Q), add_mset (mset C) OC)))
+      RETURN ((M, N, U, Some D, NE, UE, WS, Q), add_mset (mset C) OC)))
   }\<close>
 
 lemma length_ge_Suc_0_tl_not_nil: \<open>length C > Suc 0 \<Longrightarrow> tl C \<noteq> []\<close>
@@ -132,7 +132,7 @@ definition (in isasat_input_ops) twl_st_heur_init
   :: \<open>(twl_st_wl_heur_init \<times> nat twl_st_wl_init) set\<close>
 where
 \<open>twl_st_heur_init =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd), ((M, N, U, D, NP, UP, Q, W), OC)).
+  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd), ((M, N, U, D, NE, UE, Q, W), OC)).
     M' = M \<and> N' = N \<and> U' = U \<and>
     D' = D \<and>
      Q' = Q \<and>
@@ -175,8 +175,8 @@ fun get_watched_list_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> nat l
 definition (in isasat_input_ops) propagate_unit_cls
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init\<close>
 where
-  \<open>propagate_unit_cls = (\<lambda>L ((M, N, U, D, NP, UP, Q, WS), OC).
-     ((Propagated L 0 # M, N, U, D, add_mset {#L#} NP, UP, add_mset (-L) Q, WS), OC))\<close>
+  \<open>propagate_unit_cls = (\<lambda>L ((M, N, U, D, NE, UE, Q, WS), OC).
+     ((Propagated L 0 # M, N, U, D, add_mset {#L#} NE, UE, add_mset (-L) Q, WS), OC))\<close>
 
 definition (in isasat_input_ops) propagate_unit_cls_heur
  :: \<open>nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init\<close>
@@ -245,8 +245,8 @@ qed
 definition (in isasat_input_ops) already_propagated_unit_cls
    :: \<open>nat literal \<Rightarrow> nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init\<close>
 where
-  \<open>already_propagated_unit_cls = (\<lambda>L ((M, N, U, D, NP, UP, Q, WS), OC).
-     ((M, N, U, D, add_mset {#L#} NP, UP, Q, WS), OC))\<close>
+  \<open>already_propagated_unit_cls = (\<lambda>L ((M, N, U, D, NE, UE, Q, WS), OC).
+     ((M, N, U, D, add_mset {#L#} NE, UE, Q, WS), OC))\<close>
 
 definition (in isasat_input_ops) already_propagated_unit_cls_heur
    :: \<open>nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init\<close>
@@ -291,8 +291,8 @@ definition (in -) set_conflict_unit :: \<open>nat literal \<Rightarrow> nat clau
 definition (in isasat_input_ops) conflict_propagated_unit_cls
  :: \<open>nat literal \<Rightarrow> nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init\<close>
 where
-  \<open>conflict_propagated_unit_cls = (\<lambda>L ((M, N, U, D, NP, UP, Q, WS), OC).
-     ((M, N, U, set_conflict_unit L D, add_mset {#L#} NP, UP, {#}, WS), OC))\<close>
+  \<open>conflict_propagated_unit_cls = (\<lambda>L ((M, N, U, D, NE, UE, Q, WS), OC).
+     ((M, N, U, set_conflict_unit L D, add_mset {#L#} NE, UE, {#}, WS), OC))\<close>
 
 definition conflict_propagated_unit_cls_heur
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init\<close>
@@ -425,11 +425,11 @@ qed
 
 definition (in isasat_input_ops) add_init_cls
   :: \<open>nat clause_l \<Rightarrow> nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init nres\<close>  where
-  \<open>add_init_cls = (\<lambda>C ((M, N, U, D, NP, UP, Q, WS), OC). do {
+  \<open>add_init_cls = (\<lambda>C ((M, N, U, D, NE, UE, Q, WS), OC). do {
            let U = length N;
            let WS = WS((hd C) := WS (hd C) @ [U]);
            let WS = WS((hd (tl C)) := WS (hd (tl C)) @ [U]);
-           RETURN ((M, N @ [op_array_of_list C], U, D, NP, UP, Q, WS), OC)})\<close>
+           RETURN ((M, N @ [op_array_of_list C], U, D, NE, UE, Q, WS), OC)})\<close>
 
 definition (in isasat_input_ops) add_init_cls_heur
   :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>  where
@@ -515,8 +515,8 @@ qed
 definition (in isasat_input_ops) already_propagated_unit_cls_conflict
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init\<close>
 where
-  \<open>already_propagated_unit_cls_conflict = (\<lambda>L ((M, N, U, D, NP, UP, Q, WS), OC).
-     ((M, N, U, D, add_mset {#L#} NP, UP, {#}, WS), OC))\<close>
+  \<open>already_propagated_unit_cls_conflict = (\<lambda>L ((M, N, U, D, NE, UE, Q, WS), OC).
+     ((M, N, U, D, add_mset {#L#} NE, UE, {#}, WS), OC))\<close>
 
 definition (in isasat_input_ops) already_propagated_unit_cls_conflict_heur
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init\<close>
@@ -588,8 +588,8 @@ lemma set_conflict_empty_hnr[sepref_fr_rules]:
 definition (in isasat_input_ops) set_empty_clause_as_conflict
    :: \<open>nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init\<close>
 where
-  \<open>set_empty_clause_as_conflict = (\<lambda> ((M, N, U, D, NP, UP, Q, WS), OC).
-     ((M, N, U, set_conflict_empty D, NP, UP, {#}, WS), add_mset {#} OC))\<close>
+  \<open>set_empty_clause_as_conflict = (\<lambda> ((M, N, U, D, NE, UE, Q, WS), OC).
+     ((M, N, U, set_conflict_empty D, NE, UE, {#}, WS), add_mset {#} OC))\<close>
 
 definition (in isasat_input_ops) set_empty_clause_as_conflict_heur
    :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
@@ -656,8 +656,8 @@ qed
 definition (in isasat_input_ops) add_clause_to_others
    :: \<open>nat clause_l \<Rightarrow> nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init\<close>
 where
-  \<open>add_clause_to_others = (\<lambda>C ((M, N, U, D, NP, UP, Q, WS), OC).
-     ((M, N, U, D, NP, UP, {#}, WS), add_mset (mset C) OC))\<close>
+  \<open>add_clause_to_others = (\<lambda>C ((M, N, U, D, NE, UE, Q, WS), OC).
+     ((M, N, U, D, NE, UE, {#}, WS), add_mset (mset C) OC))\<close>
 
 definition (in -) add_clause_to_others_heur
    :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
@@ -744,7 +744,7 @@ where
   }\<close>
 
 definition get_conflict_wl_is_None_init :: \<open>nat twl_st_wl_init \<Rightarrow> bool\<close> where
-  \<open>get_conflict_wl_is_None_init = (\<lambda>((M, N, U, D, NP, UP, Q, W), OC). is_None D)\<close>
+  \<open>get_conflict_wl_is_None_init = (\<lambda>((M, N, U, D, NE, UE, Q, W), OC). is_None D)\<close>
 
 definition (in -) get_conflict_wl_is_None_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<close> where
   \<open>get_conflict_wl_is_None_heur_init = (\<lambda>(M, N, U, D, Q, W, _). is_None D)\<close>
@@ -792,7 +792,7 @@ definition (in isasat_input_ops) twl_st_heur_pol_init
    :: \<open>(twl_st_wl_heur_init_trail_ref \<times> nat twl_st_wl_init) set\<close>
 where
 \<open>twl_st_heur_pol_init =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd), ((M, N, U, D, NP, UP, Q, W), OC)).
+  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd), ((M, N, U, D, NE, UE, Q, W), OC)).
     (M', M) \<in> trail_pol \<and> N' = N \<and> U' = U \<and> D = D' \<and>
      Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
@@ -1100,23 +1100,23 @@ context isasat_input_bounded
 begin
 
 fun (in isasat_input_ops) correct_watching_init :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>correct_watching_init (M, N, U, D, NP, UP, Q, W) \<longleftrightarrow>
-    (\<forall>L \<in># all_lits_of_atms_m \<A>\<^sub>i\<^sub>n. mset (W L) = clause_to_update L (M, N, U, D, NP, UP, {#}, {#}))\<close>
+  \<open>correct_watching_init (M, N, U, D, NE, UE, Q, W) \<longleftrightarrow>
+    (\<forall>L \<in># all_lits_of_atms_m \<A>\<^sub>i\<^sub>n. mset (W L) = clause_to_update L (M, N, U, D, NE, UE, {#}, {#}))\<close>
 
 
-lemma clause_to_update_append: \<open>N \<noteq> [] \<Longrightarrow> clause_to_update La (M, N @ [C], U, D, NP, UP, WS, Q) =
-     clause_to_update La (M, N, U, D, NP, UP, WS, Q) +
+lemma clause_to_update_append: \<open>N \<noteq> [] \<Longrightarrow> clause_to_update La (M, N @ [C], U, D, NE, UE, WS, Q) =
+     clause_to_update La (M, N, U, D, NE, UE, WS, Q) +
     (if La \<in> set (watched_l C) then {#length N#} else {#})\<close>
   unfolding clause_to_update_def get_clauses_l.simps
   by (auto simp: clause_to_update_def nth_append)
 
 definition HH :: \<open>(nat twl_st_wl_init \<times> nat twl_st_l_init) set\<close> where
-  \<open>HH = {(((M', N', U', D', NP', UP', Q', WS'), OC'), ((M, N, U, D, NP, UP, WS, Q), OC)).
-               M = M' \<and> N = N' \<and> U = U' \<and> D = D' \<and> NP = NP' \<and> UP = UP' \<and> Q = Q' \<and> WS = {#} \<and>
-               (* U = length N - 1 \<and> *) UP = {#} \<and> N \<noteq> [] \<and>
-               correct_watching_init (M', N', U', D', NP', UP', Q', WS') \<and>
-               set_mset (all_lits_of_mm (mset `# mset (tl N) + NP)) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
-               (\<forall>L \<in> lits_of_l M. {#L#} \<in># NP) \<and>
+  \<open>HH = {(((M', N', U', D', NE', UE', Q', WS'), OC'), ((M, N, U, D, NE, UE, WS, Q), OC)).
+               M = M' \<and> N = N' \<and> U = U' \<and> D = D' \<and> NE = NE' \<and> UE = UE' \<and> Q = Q' \<and> WS = {#} \<and>
+               (* U = length N - 1 \<and> *) UE = {#} \<and> N \<noteq> [] \<and>
+               correct_watching_init (M', N', U', D', NE', UE', Q', WS') \<and>
+               set_mset (all_lits_of_mm (mset `# mset (tl N) + NE)) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
+               (\<forall>L \<in> lits_of_l M. {#L#} \<in># NE) \<and>
                (\<forall>L \<in> set M. \<exists>K. L = Propagated K 0) \<and>
                (D \<noteq> None \<longrightarrow> Q = {#}) \<and>
                (OC' = OC)}\<close>
@@ -1137,10 +1137,10 @@ lemma init_dt_step_wl_init_dt_step_l:
 proof -
   have val: \<open>(val, val') \<in> \<langle>Id\<rangle>option_rel\<close> if \<open>val = val'\<close> for val val'
     using that by auto
-  have [simp]: \<open>clause_to_update L (M, N, U, D, NP, UP, WS, Q) =
-       clause_to_update L (M', N', U', D', NP', UP', WS', Q')\<close>
+  have [simp]: \<open>clause_to_update L (M, N, U, D, NE, UE, WS, Q) =
+       clause_to_update L (M', N', U', D', NE', UE', WS', Q')\<close>
     if \<open>N = N'\<close>
-    for M N U D NP UP WS Q M' N' U' D' NP' UP' WS' Q' and L :: \<open>nat literal\<close>
+    for M N U D NE UE WS Q M' N' U' D' NE' UE' WS' Q' and L :: \<open>nat literal\<close>
     by (auto simp: clause_to_update_def that)
   note literal_of_nat.simps[simp del] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n[simp]
   have hd_C: \<open>hd C \<in> snd ` (\<lambda>L. (nat_of_lit L, L)) ` set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
@@ -1159,12 +1159,12 @@ proof -
         clauses_def mset_take_mset_drop_mset' image_image all_lits_of_m_add_mset
         isasat_input_ops.literals_are_in_\<L>\<^sub>i\<^sub>n_def)
 
-  obtain M N U D NP Q WS OC where
-    S': \<open>S' = ((M, N, U, D, NP, {#}, Q, WS), OC)\<close> and
-    S: \<open>S = ((M, N, U, D, NP, {#}, {#}, Q), OC)\<close> and
-    H: \<open>correct_watching_init (M, N, U, D, NP, {#}, Q, WS)\<close>
-     \<open>set_mset (all_lits_of_mm (mset `# mset (tl N) + NP)) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-     \<open>\<forall>L\<in>lits_of_l M. {#L#} \<in># NP\<close>
+  obtain M N U D NE Q WS OC where
+    S': \<open>S' = ((M, N, U, D, NE, {#}, Q, WS), OC)\<close> and
+    S: \<open>S = ((M, N, U, D, NE, {#}, {#}, Q), OC)\<close> and
+    H: \<open>correct_watching_init (M, N, U, D, NE, {#}, Q, WS)\<close>
+     \<open>set_mset (all_lits_of_mm (mset `# mset (tl N) + NE)) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+     \<open>\<forall>L\<in>lits_of_l M. {#L#} \<in># NE\<close>
      \<open>\<forall>L\<in>set M. \<exists>K. L = Propagated K 0\<close>
      \<open>N \<noteq> []\<close>
      \<open>D \<noteq> None \<longrightarrow> Q = {#}\<close>
@@ -1172,14 +1172,14 @@ proof -
     by (cases S'; cases S) (auto simp: HH_def)
 
   have le2_no_confl:
-    \<open>(((M, N @ [op_array_of_list C], length N, D, NP, {#},
+    \<open>(((M, N @ [op_array_of_list C], length N, D, NE, {#},
         Q, WS
         (hd C := WS (hd C) @ [length N],
          hd (tl C) :=
            (WS(hd C := WS (hd C) @ [length N]))
             (hd (tl C)) @
            [length N])), OC),
-       (M, N @ [C], length N, None, NP, {#}, {#}, Q), OC)
+       (M, N @ [C], length N, None, NE, {#}, {#}, Q), OC)
       \<in> HH\<close>
     if
       dist: \<open>distinct C\<close> and
@@ -1195,7 +1195,7 @@ proof -
       using C_ge2 by (cases C; cases \<open>tl C\<close>) auto
     have [simp]: \<open>L2 \<noteq> L1\<close>
       using dist unfolding C by auto
-    have \<open>set_mset (all_lits_of_mm (mset `# mset (tl (N @ [L1 # L2 # C'])) + NP)) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+    have \<open>set_mset (all_lits_of_mm (mset `# mset (tl (N @ [L1 # L2 # C'])) + NE)) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
       using lits_C H unfolding C
       by (auto simp add: all_lits_of_mm_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
           all_lits_of_m_add_mset literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
@@ -1208,10 +1208,10 @@ proof -
   qed
 
   have le1_propa_no_confl:
-    \<open>(((Propagated (hd C) 0 # M, N, U, D, add_mset {#hd C#} NP,
+    \<open>(((Propagated (hd C) 0 # M, N, U, D, add_mset {#hd C#} NE,
         {#}, add_mset (- hd C) Q, WS), OC),
        (Propagated (hd C) 0 # M, N, U, None,
-       add_mset {#hd C#} NP, {#}, {#}, add_mset (- hd C) Q), OC)
+       add_mset {#hd C#} NE, {#}, {#}, add_mset (- hd C) Q), OC)
       \<in> HH\<close>
     if
       [simp]: \<open>D = None\<close> and
@@ -1222,13 +1222,13 @@ proof -
   have C_ge_2_iff: \<open>2 \<le> length C \<longleftrightarrow> C \<noteq> [] \<and> tl C \<noteq> []\<close>
     by (cases C; cases \<open>tl C\<close>) auto
   have length1:
-  \<open>(((M, N, U, set_conflict_empty D, NP, {#}, {#}, WS), add_mset {#} OC),
-     (M, N, U, Some {#}, NP, {#}, {#}, {#}), add_mset {#} OC)
+  \<open>(((M, N, U, set_conflict_empty D, NE, {#}, {#}, WS), add_mset {#} OC),
+     (M, N, U, Some {#}, NE, {#}, {#}, {#}), add_mset {#} OC)
     \<in> HH\<close>
     using H
     by (auto simp: HH_def set_conflict_empty_def)
-  have conflict_already_found: \<open>(((M, N, U, D, NP, {#}, {#}, WS), add_mset (mset C) OC),
-     (M, N, U, Some (the D), NP, {#}, {#}, Q),
+  have conflict_already_found: \<open>(((M, N, U, D, NE, {#}, {#}, WS), add_mset (mset C) OC),
+     (M, N, U, Some (the D), NE, {#}, {#}, Q),
      add_mset (mset C) OC)
     \<in> HH\<close> if \<open>D \<noteq> None\<close>
     using H that
@@ -1286,7 +1286,7 @@ lemma all_lits_of_mm_in_all_lits_of_m_in_iff:
   by (auto simp: all_lits_of_mm_def all_lits_of_m_def)
 
 fun (in -) st_l_of_wl_init :: \<open>'v twl_st_wl_init \<Rightarrow> 'v twl_st_l_init\<close> where
-  \<open>st_l_of_wl_init ((M, N, C, D, NP, UP, Q, W), OC) = ((M, N, C, D, NP, UP, {#}, Q), OC)\<close>
+  \<open>st_l_of_wl_init ((M, N, C, D, NE, UE, Q, W), OC) = ((M, N, C, D, NE, UE, {#}, Q), OC)\<close>
 
 fun  (in -) twl_st_of_wl_init :: \<open>'v twl_st_wl_init \<Rightarrow> 'v twl_st_init\<close> where
   \<open>twl_st_of_wl_init S = twl_st_of_init (st_l_of_wl_init S)\<close>
@@ -1308,8 +1308,8 @@ lemma init_dt_init_dt_l_full:
       (state\<^sub>W_of (twl_st_of None (st_l_of_wl None S))))) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
     no_learned: \<open>get_unit_learned S = {#}\<close> and
     confl_in_clss: \<open>get_conflict_wl S \<noteq> None \<longrightarrow> the (get_conflict_wl S) \<in># mset `# mset CS\<close> and
-    trail_in_NP: \<open>\<forall>L \<in> lits_of_l (get_trail_wl S). {#L#} \<in># get_unit_init_clss S\<close> and
-    prop_NP: \<open>\<forall>L \<in> set (get_trail_wl S). \<exists>K. L = Propagated K 0\<close> and
+    trail_in_NE: \<open>\<forall>L \<in> lits_of_l (get_trail_wl S). {#L#} \<in># get_unit_init_clss S\<close> and
+    prop_NE: \<open>\<forall>L \<in> set (get_trail_wl S). \<exists>K. L = Propagated K 0\<close> and
     upper: \<open>\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max\<close> and
     is_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm (mset `# mset CS))\<close> and
     lits_upd_confl: \<open>get_conflict_wl S \<noteq> None \<longrightarrow> literals_to_update_wl S = {#}\<close>
@@ -1420,7 +1420,7 @@ proof -
       (auto simp: drop_Suc)
 
   have S_T_HH: \<open>((S, {#}), T, {#}) \<in> HH\<close>
-    using clss watch S_\<L>\<^sub>a\<^sub>l\<^sub>l no_learned trail_in_NP prop_NP lits_upd_confl
+    using clss watch S_\<L>\<^sub>a\<^sub>l\<^sub>l no_learned trail_in_NE prop_NE lits_upd_confl
     by (cases S)
       (auto simp: HH_def T_def clauses_def mset_take_mset_drop_mset' get_unit_learned_def
             get_unit_init_clss_def \<L>\<^sub>a\<^sub>l\<^sub>l_def
@@ -1486,11 +1486,11 @@ proof -
     clss: \<open>get_clauses_wl S \<noteq> []\<close> and
     S_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>set_mset (all_lits_of_mm (cdcl\<^sub>W_restart_mset.clauses
       (state\<^sub>W_of (twl_st_of None (st_l_of_wl None S))))) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
-    no_learned: \<open>(\<lambda>(M, N, U, D, NP, UP, Q, W). UP) S = {#}\<close> and
+    no_learned: \<open>(\<lambda>(M, N, U, D, NE, UE, Q, W). UE) S = {#}\<close> and
     learned_nil: \<open>get_unit_learned S = {#}\<close> and
     confl_nil: \<open>get_conflict_wl S = None\<close> and
-    trail_in_NP: \<open>\<forall>L\<in>lits_of_l (get_trail_wl S). {#L#} \<in># get_unit_init_clss S\<close> and
-    prop_NP: \<open>\<forall>L \<in> set (get_trail_wl S). \<exists>K. L = Propagated K 0\<close>
+    trail_in_NE: \<open>\<forall>L\<in>lits_of_l (get_trail_wl S). {#L#} \<in># get_unit_init_clss S\<close> and
+    prop_NE: \<open>\<forall>L \<in> set (get_trail_wl S). \<exists>K. L = Propagated K 0\<close>
     unfolding S_def by (auto simp:
         twl_struct_invs_def twl_st_inv.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
         cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
@@ -1501,7 +1501,7 @@ proof -
         cdcl\<^sub>W_restart_mset.no_smaller_confl_def get_unit_learned_def)
   note HH = init_dt_init_dt_l_full[of CS S, unfolded clss_empty,
         OF dist struct dec confl aff_invs learned stgy_invs watch clss _ learned_nil,
-        unfolded empty_neutral trail_in_NP]
+        unfolded empty_neutral trail_in_NE]
   have [simp]: \<open>mset `# mset (take ag (tl af)) + ai + (mset `# mset (drop (Suc ag) af)) =
      mset `# mset (tl af) + ai\<close> for ag af aj ai
     by (subst (2) append_take_drop_id[symmetric, of \<open>tl af\<close> ag], subst mset_append)
@@ -1518,7 +1518,7 @@ proof -
      apply (rule HH)
     using upper is_\<L>\<^sub>a\<^sub>l\<^sub>l
     apply (clarsimp_all simp: correct_watching.simps isasat_input_ops.is_\<L>\<^sub>a\<^sub>l\<^sub>l_def clauses_def clss_empty
-        mset_take_mset_drop_mset' get_unit_learned_def confl_nil trail_in_NP prop_NP
+        mset_take_mset_drop_mset' get_unit_learned_def confl_nil trail_in_NE prop_NE
         init_dt_wl_spec_def)
     apply (intro conjI)
     apply (metis (no_types, hide_lams) set_image_mset set_mset_mset union_iff)
@@ -1557,7 +1557,7 @@ definition (in isasat_input_ops) init_state_wl_heur :: \<open>twl_st_wl_heur_ini
 
 definition (in isasat_input_ops) twl_st_heur_init_wl :: \<open>(twl_st_wl_heur_init \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_init_wl =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd), (M, N, U, D, NP, UP, Q, W)).
+  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd), (M, N, U, D, NE, UE, Q, W)).
     M' = M \<and> N' = N \<and> U' = U \<and>
     D' = D \<and>
      Q' = Q \<and>

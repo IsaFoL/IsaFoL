@@ -39,7 +39,7 @@ global_interpretation RP: deterministic_FO_resolution_prover where
   and resolve_rename = RP.resolve_rename
   and resolve_rename_either_way = RP.resolve_rename_either_way
   and select_min_weight_clause = RP.select_min_weight_clause
-  and strictly_maximal_in = RP.strictly_maximal_in
+  and strictly_maximal_wrt = RP.strictly_maximal_wrt
   and strictly_subsume = RP.strictly_subsume
   and subsume = RP.subsume
   and weight = RP.weight
@@ -71,25 +71,61 @@ declare
 lemma remove1_mset_subset_eq: "remove1_mset a A \<subseteq># B \<longleftrightarrow> A \<subseteq># add_mset a B"
   by (metis add_mset_add_single subset_eq_diff_conv)
 
+lemma Bex_cong: "(\<And>b. b \<in> B \<Longrightarrow> P b = Q b) \<Longrightarrow> Bex B P = Bex B Q"
+  by auto
+
 lemma is_reducible_lit_code[code]: "RP.is_reducible_lit Ds C L =
-  (\<exists>D \<in> set Ds. (\<exists>L' \<in> set D. 
-     case subsumes_list [L'] [- L] of
-       None \<Rightarrow> False
-     | Some \<sigma> \<Rightarrow> subsumes (mset (map (\<lambda>L. subst_lit L \<sigma>) (remove1 L' D))) (mset C)))"
-  unfolding RP.is_reducible_lit_def 
-  apply (auto simp: subsumes_list_subsumes subsumes_def
-    subst_cls_def subst_lit_def image_mset_remove1_mset_if dest!: subsumes_list_sound
-    elim!: bexI[rotated] sym split: option.splits)
-   prefer 2
-    apply (drule spec)
-    apply (drule mp)
-     prefer 2
-    apply (erule exE)
-    apply (unfold literal.map_comp o_def subst_subst_compose[symmetric])
-    apply (rule exI conjI[rotated])+
-     apply assumption
-    apply (erule trans[OF sym])
-  sorry
+  (\<exists>D \<in> set Ds. (\<exists>L' \<in> set D.
+     if is_pos L' = is_neg L then
+       (case match_term_list [(atm_of L', atm_of L)] Map.empty of
+         None \<Rightarrow> False
+       | Some \<sigma> \<Rightarrow> subsumes_list (remove1 L' D) C \<sigma>)
+     else False))"
+  unfolding RP.is_reducible_lit_def subsumes_list_alt subsumes_modulo_def
+  apply (rule Bex_cong)+
+  subgoal for D L'
+    apply (split if_splits option.splits)+
+    apply safe
+    subgoal for \<sigma>
+      using term_subst_eq[of _ "subst_of_map Var (\<lambda>x. if x \<in> vars_lit L' then Some (\<sigma> x) else None)" \<sigma>]
+      by (cases L; cases L';
+        auto simp add: subst_lit_def subst_of_map_def
+          dest!:  match_term_list_complete[of _ _ "\<lambda>x. if x \<in> vars_lit L' then Some (\<sigma> x) else None"])
+    subgoal for \<sigma>
+      using term_subst_eq[of _ "subst_of_map Var (\<lambda>x. if x \<in> vars_lit L' then Some (\<sigma> x) else None)" \<sigma>]
+      by (cases L; cases L';
+        auto simp add: subst_lit_def subst_of_map_def
+          dest!:  match_term_list_complete[of _ _ "\<lambda>x. if x \<in> vars_lit L' then Some (\<sigma> x) else None"])
+    subgoal for \<sigma>
+      by (cases L; cases L'; simp add: subst_lit_def)
+    subgoal for \<sigma>
+      by (cases L; cases L'; simp add: subst_lit_def)
+    subgoal for \<sigma> \<tau>
+      using same_on_vars_clause[of "mset (remove1 L' D)" "subst_of_map Var
+        (\<lambda>x. if x \<in> vars_clause (remove1_mset L' (mset D)) \<union> dom \<sigma> then Some (\<tau> x) else None)" \<tau>]
+      apply (cases L; cases L'; auto simp add: subst_lit_def dom_def subst_of_map_def
+        dest!: match_term_list_sound split: option.splits if_splits
+        intro!: exI[of _ "\<lambda>x. if x \<in> vars_clause (remove1_mset L' (mset D)) \<union> dom \<sigma> then Some (\<tau> x) else None"])
+      by (auto 0 4 simp: extends_subst_def subst_of_map_def split: option.splits dest!: term_subst_eq_rev)
+    subgoal for \<sigma> \<tau>
+      by (cases L; cases L'; auto simp add: subst_lit_def subst_of_map_def extends_subst_def
+        dest!: match_term_list_sound intro!: exI[of _ "subst_of_map Var \<tau>"] term_subst_eq)
+    subgoal for \<sigma> \<tau>
+      using same_on_vars_clause[of "mset (remove1 L' D)" "subst_of_map Var
+        (\<lambda>x. if x \<in> vars_clause (remove1_mset L' (mset D)) \<union> dom \<sigma> then Some (\<tau> x) else None)" \<tau>]
+      apply (cases L; cases L'; auto simp add: subst_lit_def dom_def subst_of_map_def
+        dest!: match_term_list_sound split: option.splits if_splits
+        intro!: exI[of _ "\<lambda>x. if x \<in> vars_clause (remove1_mset L' (mset D)) \<union> dom \<sigma> then Some (\<tau> x) else None"])
+      by (auto 0 4 simp: extends_subst_def subst_of_map_def split: option.splits dest!: term_subst_eq_rev)
+    subgoal for \<sigma> \<tau>
+      by (cases L; cases L'; auto simp add: subst_lit_def subst_of_map_def extends_subst_def
+        dest!: match_term_list_sound intro!: exI[of _ "subst_of_map Var \<tau>"] term_subst_eq)
+    subgoal for \<sigma> \<tau>
+      by (cases L; cases L'; simp add: subst_lit_def)
+    subgoal for \<sigma> \<tau>
+      by (cases L; cases L'; simp add: subst_lit_def)
+    done
+  done
 
 declare
   Pairs_def[folded sorted_list_of_set_def, code]

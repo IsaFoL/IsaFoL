@@ -117,6 +117,7 @@ definition strictly_maximal_wrt :: "'a \<Rightarrow> 'a literal multiset \<Right
 lemma strictly_maximal_wrt_maximal_wrt: "strictly_maximal_wrt A C \<Longrightarrow> maximal_wrt A C"
   unfolding maximal_wrt_def strictly_maximal_wrt_def by auto
 
+(* FIXME: use hd instead of ! 0 *)
 inductive eligible :: "'s \<Rightarrow> 'a list \<Rightarrow> 'a clause \<Rightarrow> bool" where
   eligible:
     "S DA = negs (mset As) \<or> S DA = {#} \<and> length As = 1 \<and> maximal_wrt (As ! 0 \<cdot>a \<sigma>) (DA \<cdot> \<sigma>) \<Longrightarrow>
@@ -603,10 +604,10 @@ proof (induction n arbitrary: AAs' As')
     using nn list_eq_iff_nth_eq by metis
 qed auto
 
-lemma maximal_wrt_gen: "maximal_wrt (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>) \<Longrightarrow> maximal_wrt A C"
+lemma maximal_wrt_subst: "maximal_wrt (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>) \<Longrightarrow> maximal_wrt A C"
   unfolding maximal_wrt_def using in_atms_of_subst less_atm_stable by blast
 
-lemma strictly_maximal_wrt_gen: "strictly_maximal_wrt (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>) \<Longrightarrow> strictly_maximal_wrt A C"
+lemma strictly_maximal_wrt_subst: "strictly_maximal_wrt (A \<cdot>a \<sigma>) (C \<cdot> \<sigma>) \<Longrightarrow> strictly_maximal_wrt A C"
   unfolding strictly_maximal_wrt_def using in_atms_of_subst less_atm_stable by blast
 
 lemma ground_resolvent_subset:
@@ -1218,7 +1219,7 @@ proof (cases rule: ord_resolve.cases)
       then have "maximal_wrt (As' ! 0 \<cdot>a \<tau> \<cdot>a \<phi>) ((D' + negs (mset As')) \<cdot> \<tau> \<cdot> \<phi>)"
         by auto
       then have "maximal_wrt (As' ! 0 \<cdot>a \<tau>) ((D' + negs (mset As')) \<cdot> \<tau>)"
-        using maximal_wrt_gen by blast
+        using maximal_wrt_subst by blast
       ultimately show ?thesis
         unfolding eligible.simps[simplified] by auto
     qed
@@ -1230,14 +1231,12 @@ proof (cases rule: ord_resolve.cases)
   proof -
     from str_max have "\<forall>i < n. strictly_maximal_wrt ((As' \<cdot>al \<eta>) ! i \<cdot>a \<sigma>) ((Cs' \<cdot>cl \<eta>) ! i \<cdot> \<sigma>)"
       using \<open>As' \<cdot>al \<eta> = As\<close>  \<open>Cs' \<cdot>cl \<eta> = Cs\<close> by simp
-    then have "\<forall>i < n. strictly_maximal_wrt ((As' ! i) \<cdot>a (\<eta> \<odot> \<sigma>)) ((Cs' ! i) \<cdot> (\<eta> \<odot> \<sigma>))"
-      using n by auto
-    then have "\<forall>i < n. strictly_maximal_wrt ((As' ! i) \<cdot>a (\<tau> \<odot> \<phi>)) ((Cs' ! i) \<cdot> (\<tau> \<odot> \<phi>))"
-      using \<tau>\<phi> by auto
-    then have "\<forall>i < n. strictly_maximal_wrt ((As' ! i \<cdot>a \<tau>) \<cdot>a \<phi>) ((Cs' ! i \<cdot> \<tau>) \<cdot> \<phi>)"
+    then have "\<forall>i < n. strictly_maximal_wrt (As' ! i \<cdot>a (\<tau> \<odot> \<phi>)) (Cs' ! i \<cdot> (\<tau> \<odot> \<phi>))"
+      using n \<tau>\<phi> by simp
+    then have "\<forall>i < n. strictly_maximal_wrt (As' ! i \<cdot>a \<tau> \<cdot>a \<phi>) (Cs' ! i \<cdot> \<tau> \<cdot> \<phi>)"
       by auto
     then show "\<forall>i < n. strictly_maximal_wrt (As' ! i \<cdot>a \<tau>) (Cs' ! i \<cdot> \<tau>)"
-      using strictly_maximal_wrt_gen \<tau>\<phi> by blast
+      using strictly_maximal_wrt_subst \<tau>\<phi> by blast
   qed
 
   -- \<open>Lifting nothing being selected\<close>
@@ -1293,6 +1292,7 @@ proof (cases rule: ord_resolve.cases)
     then show thesis
       using that e'\<phi>e make_ground_subst by auto
   qed
+
 
   -- \<open>Wrap up the proof\<close>
   have "ord_resolve S (CAs'' \<cdot>\<cdot>cl \<rho>s) (DA'' \<cdot> \<rho>) (AAs'' \<cdot>\<cdot>aml \<rho>s) (As'' \<cdot>al \<rho>) \<tau> E'"

@@ -13,6 +13,41 @@ lemma [sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: option_assn_alt_def split:option.splits)
 
 declare option_assn_eq[sepref_comb_rules del]
+
+lemma (in -) twl_struct_invs_length_clause_ge_2:
+  assumes
+    struct: \<open>twl_struct_invs (twl_st_of (Some L) (st_l_of_wl (Some (L, w)) S))\<close> and
+    i: \<open>i > 0\<close> \<open>i < length (get_clauses_wl S)\<close>
+ shows \<open>length (get_clauses_wl S ! i) \<ge> 2\<close>
+proof -
+  obtain M N U D NE UE WS Q where
+    S: \<open>S = (M, N, U, D, NE, UE, WS, Q)\<close>
+    by (cases S)
+  have \<open>twl_st_inv (twl_st_of (Some L) (st_l_of_wl (Some (L, w)) (M, N, U, D, NE, UE, WS, Q)))\<close>
+    using struct unfolding S twl_struct_invs_def by fast
+  then have \<open>\<forall>x\<in>set (tl N). 2 \<le> length x \<and> distinct x\<close>
+    by (auto simp: twl_st_inv.simps mset_take_mset_drop_mset')
+  then show ?thesis
+    using i by (auto simp: nth_in_set_tl S)
+qed
+
+lemma (in -) twl_struct_invs_length_clause_ge_2':
+  assumes
+    struct: \<open>twl_struct_invs (twl_st_of_wl LL S)\<close> and
+    i: \<open>i > 0\<close> \<open>i < length (get_clauses_wl S)\<close>
+ shows \<open>length (get_clauses_wl S ! i) \<ge> 2\<close>
+proof -
+  obtain M N U D NE UE WS Q where
+    S: \<open>S = (M, N, U, D, NE, UE, WS, Q)\<close>
+    by (cases S)
+  have \<open>twl_st_inv (twl_st_of_wl LL (M, N, U, D, NE, UE, WS, Q))\<close>
+    using struct unfolding S twl_struct_invs_def by fast
+  then have \<open>\<forall>x\<in>set (tl N). 2 \<le> length x \<and> distinct x\<close>
+    by (cases LL) (auto simp: twl_st_inv.simps mset_take_mset_drop_mset')
+  then show ?thesis
+    using i by (auto simp: nth_in_set_tl S)
+qed
+
 (* End Move *)
 
 subsection \<open>Code Generation\<close>
@@ -116,7 +151,7 @@ definition cach_refinement_empty where
 
 definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd, stats), (M, N, U, D, NP, UP, Q, W)).
+  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd, stats), (M, N, U, D, NE, UE, Q, W)).
     M = M' \<and> N' = N \<and> U' = U \<and>
     D' = D \<and>
      Q' = Q \<and>
@@ -164,7 +199,7 @@ where
 
 definition (in isasat_input_ops) twl_st_heur_pol :: \<open>(twl_st_wl_heur_trail_ref \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_pol =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd), (M, N, U, D, NP, UP, Q, W)).
+  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd), (M, N, U, D, NE, UE, Q, W)).
     (M', M) \<in> trail_pol \<and> N' = N \<and> U' = U \<and> D = D' \<and>
      Q' = Q \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
@@ -225,7 +260,7 @@ definition twl_st_heur_W_list_assn :: \<open>twl_st_wl_heur_W_list \<Rightarrow>
   )\<close>
 
 lemma twl_st_wl_heur_W_list_rel_twl_st_rel: \<open>twl_st_wl_heur_W_list_rel O twl_st_heur =
-   {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd, stats), M, N, U, D, NP, UP, Q, W).
+   {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd, stats), M, N, U, D, NE, UE, Q, W).
      M = M' \<and>
      N' = N \<and>
      U' = U \<and>
