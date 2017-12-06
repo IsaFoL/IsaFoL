@@ -1038,7 +1038,6 @@ proof (cases rule: ord_resolve.cases)
     by (metis length_greater_0_conv list.exhaust_sel n(6) substitution.subst_cls_lists_Cons
         substitution_axioms zero_less_Suc)
 
-
   -- \<open>Introduce ground substitution\<close>
   from vd DA'_DA CAs'_CAs have "\<exists>\<eta>. \<forall>i < Suc n. \<forall>S. S \<subseteq># (DA' # CAs') ! i \<longrightarrow> S \<cdot> (\<eta>'#\<eta>s') ! i = S \<cdot> \<eta>"
     unfolding var_disjoint_def using n by auto
@@ -1161,7 +1160,6 @@ proof (cases rule: ord_resolve.cases)
          using AAs'_AAs \<open>length AAs' = n\<close> \<open>length \<eta>s' = n\<close> a by auto
     qed
   qed
-
 
   -- \<open>Obtain MGU and substitution\<close>
   obtain \<tau> \<phi> where \<tau>\<phi>:
@@ -1308,8 +1306,7 @@ proof (cases rule: ord_resolve.cases)
   then show thesis
     using that[of \<eta>'' \<eta>s'' \<eta>2 CAs'' DA''] \<open>is_ground_subst \<eta>''\<close> \<open>is_ground_subst_list \<eta>s''\<close>
       \<open>is_ground_subst \<eta>2\<close> \<open>CAs'' \<cdot>\<cdot>cl \<eta>s'' = CAs\<close> \<open>DA'' \<cdot> \<eta>'' = DA\<close> \<open>E' \<cdot> \<eta>2 = E\<close> \<open>DA'' \<in> M\<close>
-      \<open>\<forall>CA \<in> set CAs''. CA \<in> M\<close>
-    by blast
+      \<open>\<forall>CA \<in> set CAs''. CA \<in> M\<close> by blast
 qed
 
 end
