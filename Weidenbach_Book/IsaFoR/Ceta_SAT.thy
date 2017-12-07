@@ -12,10 +12,29 @@ lemma list_assn_cong:
   \<open>\<lbrakk>\<And>x y. x \<in> set xs \<Longrightarrow> y \<in> set ys \<Longrightarrow> f x y = g x y\<rbrakk> \<Longrightarrow>
       list_assn f xs ys = list_assn g xs ys\<close>
   by (induction f xs ys rule: list_assn.induct) auto
+
 lemma list_assn_fundef_cong[fundef_cong]:
   \<open>\<lbrakk>xs = xs'; ys = ys'; \<And>x y. x \<in> set xs \<Longrightarrow> y \<in> set ys \<Longrightarrow> f x y = g x y\<rbrakk> \<Longrightarrow>
       list_assn f xs ys = list_assn g xs' ys'\<close>
   by (auto intro: list_assn_cong)
+
+lemma option_assn_assn_fundef_cong[fundef_cong]:
+  \<open>\<lbrakk>xs = xs'; ys = ys'; \<And>x y. x \<in> set_option xs \<Longrightarrow> y \<in> set_option ys \<Longrightarrow> f x y = g x y\<rbrakk> \<Longrightarrow>
+      option_assn f xs ys = option_assn g xs' ys'\<close>
+  by (auto simp: option_assn_alt_def split: option.splits)
+
+lemma sum_assn_assn_fundef_cong[fundef_cong]:
+  \<open>\<lbrakk>xs = xs'; ys = ys';
+      \<And>x y. x \<in> Basic_BNFs.setl xs \<Longrightarrow> y \<in> Basic_BNFs.setl ys \<Longrightarrow> f x y = f' x y; 
+      \<And>x y. x \<in> Basic_BNFs.setr xs \<Longrightarrow> y \<in> Basic_BNFs.setr ys \<Longrightarrow> g x y = g' x y\<rbrakk> \<Longrightarrow> 
+     (f +\<^sub>a g) xs ys = (f' +\<^sub>a g') xs' ys'\<close>
+  by (cases xs; cases ys; cases ys'; cases ys') (auto simp:)
+
+lemma prod_assn_assn_fundef_cong[fundef_cong]:
+  \<open>\<lbrakk>xs = xs'; ys = ys'; f (fst xs) (fst ys) = f' (fst xs) (fst ys);
+     g (snd xs) (snd ys) = g' (snd xs) (snd ys)\<rbrakk> \<Longrightarrow> 
+     (f *a g) xs ys = (f' *a g') xs' ys'\<close>
+  by (cases xs; cases ys; cases ys'; cases ys') auto
 
 fun lab_assn :: \<open>('f \<Rightarrow> 'g \<Rightarrow> assn) \<Rightarrow> ('l \<Rightarrow> 'm \<Rightarrow> assn) \<Rightarrow> ('f,'l) lab \<Rightarrow> ('g, 'm) lab \<Rightarrow> assn\<close> where
   \<open>lab_assn A B (Lab xs l) (Lab xs' l') = lab_assn A B xs xs' * B l l'\<close> |
