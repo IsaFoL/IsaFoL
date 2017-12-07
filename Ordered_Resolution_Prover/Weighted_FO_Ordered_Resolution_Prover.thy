@@ -186,43 +186,13 @@ lemma llength_infinite_if_Ns_non_empty: (* This is only true for full derivation
   using assms deriv
   oops
 
-  find_consts "(nat \<times> nat) set"
-
 abbreviation RP_measure :: "nat \<Rightarrow> 'a wstate \<Rightarrow> _" where
-  "RP_measure max_gen \<equiv> (\<lambda>(N, P, Q, n). (image_mset (\<lambda>(_, i). max_gen - i) (N + P), sum_mset (image_mset (\<lambda>(C, i). Suc (size C)) (N + P + Q)), size N))"
+  "RP_measure max_gen \<equiv> (\<lambda>(N, P, Q, n). (image_mset (\<lambda>(_, i). max_gen - i) (N + P), 
+                                          sum_mset (image_mset (\<lambda>(C, i). Suc (size C)) (N + P + Q)),
+                                          size N))"
 
-abbreviation RP_relation :: "_" where
+abbreviation RP_relation where
   "RP_relation \<equiv> (mult natLess) <*lex*> natLess <*lex*> natLess"
-
-term "(RP_measure max_gen St, RP_measure max_gen St') \<in> RP_relation"
-
-abbreviation max_gen_measure :: "nat \<Rightarrow> 'a wstate \<Rightarrow> nat multiset" where
-  "max_gen_measure max_gen \<equiv> (\<lambda>(N, P, Q, n). image_mset (\<lambda>(_, i). max_gen - i) (N + P))"
-
-abbreviation max_gen_relation :: "nat \<Rightarrow> ('a wstate \<times> 'a wstate) set" where
-  "max_gen_relation max_gen \<equiv> {(St, St'). max_gen_measure max_gen St < max_gen_measure max_gen St'}"
-
-abbreviation size_sum_measure :: "'a wstate \<Rightarrow> nat" where
-  "size_sum_measure \<equiv> \<lambda>(N, P, Q, n). sum_mset (image_mset (\<lambda>(C, i). Suc (size C)) (N + P + Q))"
-
-abbreviation size_sum_relation :: "('a wstate \<times> 'a wstate) set" where
-  "size_sum_relation \<equiv> measure size_sum_measure"
-
-abbreviation size_N_measure :: "'a wstate \<Rightarrow> nat" where
-  "size_N_measure \<equiv> \<lambda>(N, P, Q, n). size N"
-
-abbreviation size_N_relation :: "('a wstate \<times> 'a wstate) set" where
-  "size_N_relation \<equiv> measure size_N_measure"
-
-abbreviation raw_measure_RP :: "nat \<Rightarrow> _" where
-  "raw_measure_RP max_gen \<equiv> (max_gen_relation max_gen) <*lex*> size_sum_relation <*lex*> size_N_relation"
-
-definition measure_RP :: "nat \<Rightarrow> ('a wstate \<times> 'a wstate) set" where
-  "measure_RP max_gen = {(St, St'). ((St, St, St), (St', St', St')) \<in> raw_measure_RP max_gen}"
-
-definition lex_prod_anders :: " ('b \<times> 'b) set \<Rightarrow> ('c \<times> 'c) set \<Rightarrow> ('b \<times> 'c) set"
-    (infixr "<*lex-anders*>" 80)
-  where "ra <*lex-anders*> rb = {(x,y). ((x,y),(x,y)) \<in> ra <*lex*> rb}"
 
 theorem weighted_RP_fair: "fair_state_seq (lmap state_of_wstate Sts)"
 proof (rule ccontr)
