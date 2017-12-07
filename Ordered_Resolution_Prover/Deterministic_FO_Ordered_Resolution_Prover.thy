@@ -192,7 +192,7 @@ fun deterministic_RP_step :: "'a dstate \<Rightarrow> 'a dstate" where
       Some _ \<Rightarrow> (N, P, Q, n)
     | None \<Rightarrow>
       (case find (\<lambda>(C, _). C = []) P of
-         Some Ci \<Rightarrow> ([], [], P @ Q, n + length P)
+         Some Ci \<Rightarrow> ([], [], remdups P @ Q, n + length (remdups P))
        | None \<Rightarrow>
          (case N of
            [] \<Rightarrow>
@@ -450,7 +450,7 @@ proof (induct D' arbitrary: D)
 
     have "wstate_of_dstate (N, P @ (D @ L # D', k) # P', Q, n)
       \<leadsto>\<^sub>w wstate_of_dstate (N, P @ (D @ D', k) # P', Q, n)"
-      sorry
+      sxrry
 (* BASIC IDEA: remove copies of L in D' and make sure P hs been reduced already *)
 (*
       by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
@@ -848,7 +848,7 @@ proof -
     apply (simp add: image_UN)
     done
 *)
-    sorry
+    sorry (* DO SECOND *)
 qed
 
 lemma nonfinal_deterministic_RP_step:
@@ -884,7 +884,8 @@ proof -
       note step = step[unfolded ci, simplified]
 
       have "[] \<in> fst ` set (P @ Q) \<Longrightarrow>
-        wstate_of_dstate (N, P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], P @ Q, n + length P)"
+        wstate_of_dstate (N, P, Q, n)
+        \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], remdups P @ Q, n + length (remdups P))"
       proof (induct "length P" arbitrary: N P Q n)
         case 0
         note len_p = this(1) and nil_in = this(2)
@@ -917,7 +918,10 @@ proof -
         also obtain N' :: "'a dclause list" where
           "\<dots> \<leadsto>\<^sub>w wstate_of_dstate (N', filter (\<lambda>(D, j). D \<noteq> C) P, (C, i) # Q, Suc n)"
           by (atomize_elim, rule exI, rule compute_inferences[OF ci_in], use ci_min in fastforce)
-        also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], remove1 (C, i) P @ (C, i) # Q, n + length P)"
+        also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [],
+          remdups (filter (\<lambda>(D, j). D \<noteq> C) P) @ (C, i) # Q, n + length (remdups P))"
+          sorry (* DO FIRST *)
+(* FIXME
         proof -
           have k: "k = length (remove1 (C, i) P)"
             using ci_in len_p by (metis One_nat_def diff_Suc_Suc length_remove1 minus_nat.diff_0)
@@ -926,10 +930,12 @@ proof -
           ultimately show ?thesis
             using ih[of "filter (\<lambda>(D, j). D \<noteq> C) P" "(C, i) # Q" N' "Suc n"]
               mset[THEN mset_eq_setD] nil_in
-            sorry
+            sxrry
         qed
-        also have "\<dots> = wstate_of_dstate ([], [], P @ Q, n + length P)"
-          unfolding wstate_of_dstate.simps mset_map mset ..
+*)
+        also have "\<dots> = wstate_of_dstate ([], [], remdups P @ Q, n + length (remdups P))"
+          unfolding wstate_of_dstate.simps mset_map mset
+          sorry (* DO VERY FIRST *)
         finally show ?case
           .
       qed
