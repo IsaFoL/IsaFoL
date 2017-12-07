@@ -206,49 +206,67 @@ lemma stay_or_delete_completely: (* This is only true for full derivations. *)
   sorry
 
 lemma
+  assumes llength_infty: "llength Sts = \<infinity>"
   assumes "C \<in> Liminf_llist (lmap P_of_state (lmap state_of_wstate Sts))"
   shows "\<exists>C i. (C,i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
 proof -
   from assms obtain x where x_p:
     "enat x < llength Sts"
-    "\<forall>xa. x \<le> xa \<and> enat xa < llength Sts \<longrightarrow> C \<in> P_of_state (state_of_wstate (lnth Sts xa))"
+    "\<And>xa. x \<le> xa \<Longrightarrow> enat xa < llength Sts \<Longrightarrow> C \<in> P_of_state (state_of_wstate (lnth Sts xa))"
     unfolding Liminf_llist_def by auto
   then obtain i where i_p:
     "(C,i) \<in># wP_of_wstate (lnth Sts x)"
     sorry
-  have "(\<And>xa. x \<le> xa \<Longrightarrow> enat xa < llength Sts \<Longrightarrow> (C, i) \<in># wP_of_wstate (lnth Sts xa))"
-    subgoal for xa
-    proof (induction xa arbitrary: x) (* better idea -- induction might be easier if I drop the first x elements *)
+  have "\<forall>xa. enat xa < llength (ldrop x Sts) \<longrightarrow> C \<in> P_of_state (state_of_wstate (lnth (ldrop x Sts) xa))"
+  proof (rule, rule) (* FIXME: should this be a lemma? *)
+    fix xa :: "nat"
+    assume "enat xa < llength (ldrop (enat x) Sts)"
+    then have llen: "enat x + enat xa < llength  Sts"
+      using llength_infty by auto
+    then have "enat (x + xa) < llength  Sts"
+      by auto
+    then have "C \<in> P_of_state (state_of_wstate (lnth Sts (xa + x)))"
+      using x_p(2)[of "x + xa"] by (simp add: add.commute) 
+    then show "C \<in> P_of_state (state_of_wstate (lnth (ldrop (enat x) Sts) xa))"
+      using lnth_ldrop[of "enat x" xa Sts] using llen by auto
+  qed
+  have Ci_stays: "(\<And>xa. enat xa < llength Sts \<Longrightarrow> (C, i) \<in># wP_of_wstate (lnth (ldrop x Sts) xa))"
+  subgoal for xa
+    proof (induction xa)
       case 0
-      then show ?case sorry
+      then show ?case 
+        using i_p lnth_ldrop[of 0 x Sts] llength_infty by auto
     next
       case (Suc xa)
-      note Suc_outer = Suc
+      then have "(C, i) \<in># wP_of_wstate (lnth (ldrop (enat x) Sts) xa)"
+        by (simp add: llength_infty)
+      then have "(C, i) \<in># wP_of_wstate (lnth Sts (x + xa))"
+        by (simp add: add.commute llength_infty)
+      moreover have "\<exists>j. (C,j) \<in># lnth (lmap wP_of_wstate Sts) (Suc (x + xa))"
+        using x_p sorry
+      ultimately have "(C, i) \<in># lnth (lmap wP_of_wstate Sts) (Suc (x + xa))"
+        using stay_or_delete_completely[of C i "x + xa"]
+        using llength_infty by auto 
       then show ?case
-      proof (cases x)
-        case 0
-        then have "x \<le> xa"
-          by auto
-        with Suc_outer have "(C, i) \<in># wP_of_wstate (lnth Sts xa)"
-          using Suc_ile_eq less_imp_le by blast
-        then show ?thesis
-          using Suc_outer stay_or_delete_completely sorry
-      next
-        case (Suc Pre_x)
-        then have "Pre_x \<le> xa"
-          using Suc_outer by auto
-        then have "enat xa < llength Sts \<Longrightarrow> (C, i) \<in># wP_of_wstate (lnth Sts xa)"
-          using Suc_outer by auto
-        then have "(C, i) \<in># wP_of_wstate (lnth Sts xa)"
-          using Suc_outer using Suc_ile_eq less_imp_le by blast
-        then show ?thesis
-          using Suc_outer stay_or_delete_completely sorry
-      qed
+        by (simp add: add.commute llength_infty)
     qed
-  done
+    done
+  have "(\<And>xa. x \<le> xa \<Longrightarrow> enat xa < llength Sts \<Longrightarrow> (C, i) \<in># wP_of_wstate (lnth Sts xa))"
+  proof -
+    fix xa :: "nat"
+    assume a:
+      "x \<le> xa" 
+      "enat xa < llength Sts"
+    then have "enat (xa - x) < llength Sts"
+      by (simp add: llength_infty)
+    then have "(C, i) \<in># wP_of_wstate (lnth (ldrop x Sts) (xa - x))"
+      using Ci_stays[of "xa - x"] by auto
+    then show "(C, i) \<in># wP_of_wstate (lnth Sts xa)"
+      using lnth_ldrop[of x "xa - x" Sts] a by auto
+  qed
   then have "(C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
     unfolding Liminf_llist_def using x_p by auto
-  then show "\<exists>C i. (C,i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
+  then show "\<exists>C i. (C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
     by auto
 qed
 
