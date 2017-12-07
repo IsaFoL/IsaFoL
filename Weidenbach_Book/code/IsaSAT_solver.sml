@@ -397,7 +397,7 @@ datatype ('a, 'b) vmtf_node = VMTF_Node of 'b * 'a option * 'a option;
 
 fun typerep_vmtf_nodea A_ B_ t =
   Typerep
-    ("Two_Watched_Literals_VMTF.vmtf_node", [typerep A_ Type, typerep B_ Type]);
+    ("Watched_Literals_VMTF.vmtf_node", [typerep A_ Type, typerep B_ Type]);
 
 fun countable_vmtf_node A_ B_ = {} : ('a, 'b) vmtf_node countable;
 
@@ -659,12 +659,6 @@ fun nat_lit_lits_init_assn_assn_prepend x =
     end)
     x;
 
-fun shiftr_uint32 x n =
-  (if less_nat n (nat_of_integer (32 : IntInf.int))
-    then Uint32.shiftr x (integer_of_nat n) else (Word32.fromInt 0));
-
-fun atm_of_code l = shiftr_uint32 l one_nat;
-
 fun ls_lookup A_ x [] = NONE
   | ls_lookup A_ x ((k, v) :: l) =
     (if eq A_ x k then SOME v else ls_lookup A_ x l);
@@ -695,6 +689,12 @@ fun nat_lit_lits_init_assn_assn_in x =
   (fn ai => fn (a1, _) =>
     hs_memb (equal_uint32, hashable_uint32, heap_uint32) ai a1)
     x;
+
+fun shiftr_uint32 x n =
+  (if less_nat n (nat_of_integer (32 : IntInf.int))
+    then Uint32.shiftr x (integer_of_nat n) else (Word32.fromInt 0));
+
+fun atm_of_code l = shiftr_uint32 l one_nat;
 
 fun imp_nfoldli (x :: ls) c f s =
   (fn () =>

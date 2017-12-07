@@ -1,5 +1,5 @@
-theory Two_Watched_Literals_Transition_System_Restart
-  imports Two_Watched_Literals_Transition_System
+theory Watched_Literals_Transition_System_Restart
+  imports Watched_Literals_Transition_System
 begin
 
 

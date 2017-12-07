@@ -1,5 +1,5 @@
-theory Two_Watched_Literals_Watch_List_Initialisation
-  imports Two_Watched_Literals_Watch_List Two_Watched_Literals_Initialisation
+theory Watched_Literals_Watch_List_Initialisation
+  imports Watched_Literals_Watch_List Watched_Literals_Initialisation
 begin
 
 

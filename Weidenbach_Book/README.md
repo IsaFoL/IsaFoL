@@ -71,15 +71,15 @@ Version: commit 678b79ae5e865b9cc21081adb091e5baaa802c0b
 |``CDCL_W``                  |  ``CDCL_W``                                 |   ``CDCL\<^sub>W``
 |``cdcl_W+stgy``             |  ``CDCL_W``                                 |   ``cdcl<^sub>W_s``
 |Theorem 2.1                 |  ``CDCL_W``                                 | ``full_cdcl\<^sub>W_stgy_final_state_conclusive_from_init_state``
-|Theorem 3.1                 |  ``Two_Watched_Literals_Transition_System`` | ``cdcl_twl_stgy_twl_struct_invs``
-|Theorem 3.2                 | ``Two_Watched_Literals_Transition_System``  | ``full_cdcl_twl_stgy_cdclW_stgy``
-|``PCUI_algo``               | ``Two_Watched_Literals_Algorithm``          | ``unit_propagation_inner_loop_body``
-|Theorem 4.2                 | ``Two_Watched_Literals_Transition_System``  | ``cdcl_twl_stgy_prog_spec``
-|``PCUI_list``               | ``Two_Watched_Literals_List``               |  ``unit_propagation_inner_loop_body_l``
-|``PCUI_wlist``              | ``Two_Watched_Literals_Watch_List``         | ``unit_propagation_inner_loop_body_wl``
+|Theorem 3.1                 |  ``Watched_Literals_Transition_System`` | ``cdcl_twl_stgy_twl_struct_invs``
+|Theorem 3.2                 | ``Watched_Literals_Transition_System``  | ``full_cdcl_twl_stgy_cdclW_stgy``
+|``PCUI_algo``               | ``Watched_Literals_Algorithm``          | ``unit_propagation_inner_loop_body``
+|Theorem 4.2                 | ``Watched_Literals_Transition_System``  | ``cdcl_twl_stgy_prog_spec``
+|``PCUI_list``               | ``Watched_Literals_List``               |  ``unit_propagation_inner_loop_body_l``
+|``PCUI_wlist``              | ``Watched_Literals_Watch_List``         | ``unit_propagation_inner_loop_body_wl``
 |Theorem 7.1                 | ``IsaSAT``                                  | ``IsaSAT_code_full_correctness``
-| VMTF                       | ``Two_Watched_Literals_VMTF``               |  ``l_vmtf``
-|``find_next_undef``         | ``Two_Watched_Literals_VMTF``               |  ``find_next_undef``
+| VMTF                       | ``Watched_Literals_VMTF``               |  ``l_vmtf``
+|``find_next_undef``         | ``Watched_Literals_VMTF``               |  ``find_next_undef``
 |``conflict_is_empty_lookup``| ``IsaSAT_Lookup_Conflict``                  | ``conflict_assn_is_empty``
 
 
@@ -114,14 +114,14 @@ Version: commit 678b79ae5e865b9cc21081adb091e5baaa802c0b
 |``CDCL_W+stgy+incr``                 |  ``CDCL_W_Incremental``                     |   ``incremental_cdcl\<^sub>W``
 |Theorem 11                           |  ``CDCL_W_Incremental``                     |   ``incremental_conclusive_state``
 | Naive implementation                |  ``CDCL_W_Implementation``                  |
-| Theorem 12                          |  ``Two_Watched_Literals_Transition_System`` |  ``cdcl_twl_stgy_twl_struct_invs``
-|Theorem 13                           |  ``Two_Watched_Literals_Transition_System`` | ``full_cdcl_twl_stgy_cdclW_stgy``
-|``propagate_conflict_update_ignore`` |  ``Two_Watched_Literals_Algorithm``         | ``unit_propagation_inner_loop_body``
-|Theorem 14                           |  ``Two_Watched_Literals_Transition_System`` | ``cdcl_twl_stgy_prog_spec``
+| Theorem 12                          |  ``Watched_Literals_Transition_System`` |  ``cdcl_twl_stgy_twl_struct_invs``
+|Theorem 13                           |  ``Watched_Literals_Transition_System`` | ``full_cdcl_twl_stgy_cdclW_stgy``
+|``propagate_conflict_update_ignore`` |  ``Watched_Literals_Algorithm``         | ``unit_propagation_inner_loop_body``
+|Theorem 14                           |  ``Watched_Literals_Transition_System`` | ``cdcl_twl_stgy_prog_spec``
 |Theorem 15                           |  ``IsaSAT``                                 | ``IsaSAT_code_full_correctness``
 |``polarity_list_pair``               |  ``IsaSAT_Trail``                           | `` polarity_pol``
 |``trail_list_pair_trail_ref``        |  ``IsaSAT_Trail``                           | ``trail_pol``
-|``lit_assn``                         |  ``Two_Watched_Literals_Watch_List_Domain`` |``unat_lit_assn``
+|``lit_assn``                         |  ``Watched_Literals_Watch_List_Domain`` |``unat_lit_assn``
 |``trail_list_pair_assn``             |  ``IsaSAT_Trail``                           | ``trail_pol_assn``
 |``polarity_code`` correctness        |  ``IsaSAT_Trail``                           | ``polarity_pol_code_polarity_refine_code`` [4]
 

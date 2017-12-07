@@ -24,7 +24,7 @@ imports
   CDCL.CDCL_W_Implementation
   CDCL.CDCL_W_Optimal_Model
 
-  Two_Watched_Literals.IsaSAT
+  Watched_Literals.IsaSAT
 begin
 text \<open>This theory imports all the other theories (and is not needed in the documentation).\<close>
 

@@ -1,5 +1,5 @@
-theory Two_Watched_Literals_Watch_List_Code_Common
-  imports Two_Watched_Literals_Watch_List_Domain
+theory Watched_Literals_Watch_List_Code_Common
+  imports Watched_Literals_Watch_List_Domain
     Bits_Natural WB_Word_Assn
 begin
 text \<open>

@@ -1,7 +1,7 @@
 session "CeTA_SAT_Imports" (ceta) = "CeTA" +
   options [document = false]
   sessions
-     Two_Watched_Literals
+     Watched_Literals
   theories
     Ceta_SAT_Imports
 
