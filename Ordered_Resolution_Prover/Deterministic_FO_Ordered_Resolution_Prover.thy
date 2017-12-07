@@ -218,9 +218,9 @@ fun deterministic_RP_step :: "'a dstate \<Rightarrow> 'a dstate" where
                (N, P, Q, n)
              else
                let
+                 P = reduce_all [C] P;
                  (back_to_P, Q) = reduce_all2 [C] Q;
                  P = back_to_P @ P;
-                 P = reduce_all [C] P;
                  Q = filter (Not \<circ> strictly_subsume [C] \<circ> fst) Q;
                  P = filter (Not \<circ> strictly_subsume [C] \<circ> fst) P;
                  P = (C, i) # P
@@ -1085,30 +1085,31 @@ proof -
             case not_taut_or_subs: False
             note step = step[simplified not_taut_or_subs, simplified]
 
+            define P' :: "('a literal list \<times> nat) list" where
+              "P' = reduce_all [C'] P"
+
             obtain back_to_P Q' :: "'a dclause list" where
               red_Q: "(back_to_P, Q') = reduce_all2 [C'] Q"
               by (metis prod.exhaust)
             note step = step[unfolded red_Q[symmetric], simplified]
 
-            define P' :: "('a literal list \<times> nat) list" where
-              "P' = reduce_all [C'] (back_to_P @ P)"
             define Q'' :: "('a literal list \<times> nat) list" where
               "Q'' = filter (Not \<circ> strictly_subsume [C'] \<circ> fst) Q'"
             define P'' :: "('a literal list \<times> nat) list" where
-              "P'' = filter (Not \<circ> strictly_subsume [C'] \<circ> fst) P'"
+              "P'' = filter (Not \<circ> strictly_subsume [C'] \<circ> fst) (back_to_P @ P')"
             note step = step[unfolded P'_def[symmetric] Q''_def[symmetric] P''_def[symmetric],
                 simplified]
 
             note red_C
             also have "wstate_of_dstate ((C', i) # N', P, Q, n)
-              \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', back_to_P @ P, Q', n)"
+              \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q, n)"
+              unfolding P'_def
+              by (rule reduce_clauses_in_P[of _ _ "[]", unfolded append_Nil reduce_all_empty]) auto
+            also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', back_to_P @ P', Q', n)"
               by (rule reduce_clauses_in_Q[of C' _ _ "[]" Q, folded red_Q,
                     unfolded append_Nil prod.sel])
                 simp
-            also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q', n)"
-              unfolding P'_def
-              by (rule reduce_clauses_in_P[of _ _ "[]", unfolded append_Nil reduce_all_empty]) auto
-            also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q'', n)"
+            also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', back_to_P @ P', Q'', n)"
               unfolding Q''_def
               by (rule remove_strictly_subsumed_clauses_in_Q[of _ _ _ "[]", unfolded append_Nil])
                 simp
@@ -1117,7 +1118,7 @@ proof -
               by (rule remove_strictly_subsumed_clauses_in_P[of _ _ "[]", unfolded append_Nil]) auto
             also note proc_C[THEN tranclp.r_into_trancl[of "op \<leadsto>\<^sub>w"]]
             finally show ?thesis
-              unfolding step st n_cons ci .
+              unfolding step st n_cons ci P''_def by simp
           qed
         qed
       qed
