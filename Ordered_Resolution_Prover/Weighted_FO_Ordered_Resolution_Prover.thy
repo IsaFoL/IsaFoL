@@ -194,6 +194,64 @@ abbreviation RP_measure :: "nat \<Rightarrow> 'a wstate \<Rightarrow> _" where
 abbreviation RP_relation where
   "RP_relation \<equiv> (mult natLess) <*lex*> natLess <*lex*> natLess"
 
+(* FIXME: Move this. *)
+fun wP_of_wstate :: "'a wstate \<Rightarrow> 'a wclause multiset" where
+  "wP_of_wstate (N, P, Q, n) = P"
+
+(* FIXME: Come up with a better name. *)
+lemma stay_or_delete_completely: (* This is only true for full derivations. *)
+  assumes "(C,i) \<in># lnth (lmap wP_of_wstate Sts) k"
+  shows "(C,i) \<in># lnth (lmap wP_of_wstate Sts) (Suc k) 
+           \<or> (\<forall>j. (C,j) \<notin># lnth (lmap wP_of_wstate Sts) (Suc k))"
+  sorry
+
+lemma
+  assumes "C \<in> Liminf_llist (lmap P_of_state (lmap state_of_wstate Sts))"
+  shows "\<exists>C i. (C,i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
+proof -
+  from assms obtain x where x_p:
+    "enat x < llength Sts"
+    "\<forall>xa. x \<le> xa \<and> enat xa < llength Sts \<longrightarrow> C \<in> P_of_state (state_of_wstate (lnth Sts xa))"
+    unfolding Liminf_llist_def by auto
+  then obtain i where i_p:
+    "(C,i) \<in># wP_of_wstate (lnth Sts x)"
+    sorry
+  have "(\<And>xa. x \<le> xa \<Longrightarrow> enat xa < llength Sts \<Longrightarrow> (C, i) \<in># wP_of_wstate (lnth Sts xa))"
+    subgoal for xa
+    proof (induction xa arbitrary: x) (* better idea -- induction might be easier if I drop the first x elements *)
+      case 0
+      then show ?case sorry
+    next
+      case (Suc xa)
+      note Suc_outer = Suc
+      then show ?case
+      proof (cases x)
+        case 0
+        then have "x \<le> xa"
+          by auto
+        with Suc_outer have "(C, i) \<in># wP_of_wstate (lnth Sts xa)"
+          using Suc_ile_eq less_imp_le by blast
+        then show ?thesis
+          using Suc_outer stay_or_delete_completely sorry
+      next
+        case (Suc Pre_x)
+        then have "Pre_x \<le> xa"
+          using Suc_outer by auto
+        then have "enat xa < llength Sts \<Longrightarrow> (C, i) \<in># wP_of_wstate (lnth Sts xa)"
+          using Suc_outer by auto
+        then have "(C, i) \<in># wP_of_wstate (lnth Sts xa)"
+          using Suc_outer using Suc_ile_eq less_imp_le by blast
+        then show ?thesis
+          using Suc_outer stay_or_delete_completely sorry
+      qed
+    qed
+  done
+  then have "(C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
+    unfolding Liminf_llist_def using x_p by auto
+  then show "\<exists>C i. (C,i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
+    by auto
+qed
+
 theorem weighted_RP_fair: "fair_state_seq (lmap state_of_wstate Sts)"
 proof (rule ccontr)
   assume "\<not> fair_state_seq (lmap state_of_wstate Sts)"
