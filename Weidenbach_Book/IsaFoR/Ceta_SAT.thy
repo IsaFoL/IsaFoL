@@ -25,14 +25,14 @@ lemma option_assn_assn_fundef_cong[fundef_cong]:
 
 lemma sum_assn_assn_fundef_cong[fundef_cong]:
   \<open>\<lbrakk>xs = xs'; ys = ys';
-      \<And>x y. x \<in> Basic_BNFs.setl xs \<Longrightarrow> y \<in> Basic_BNFs.setl ys \<Longrightarrow> f x y = f' x y; 
-      \<And>x y. x \<in> Basic_BNFs.setr xs \<Longrightarrow> y \<in> Basic_BNFs.setr ys \<Longrightarrow> g x y = g' x y\<rbrakk> \<Longrightarrow> 
+      \<And>x y. x \<in> Basic_BNFs.setl xs \<Longrightarrow> y \<in> Basic_BNFs.setl ys \<Longrightarrow> f x y = f' x y;
+      \<And>x y. x \<in> Basic_BNFs.setr xs \<Longrightarrow> y \<in> Basic_BNFs.setr ys \<Longrightarrow> g x y = g' x y\<rbrakk> \<Longrightarrow>
      (f +\<^sub>a g) xs ys = (f' +\<^sub>a g') xs' ys'\<close>
   by (cases xs; cases ys; cases ys'; cases ys') (auto simp:)
 
 lemma prod_assn_assn_fundef_cong[fundef_cong]:
   \<open>\<lbrakk>xs = xs'; ys = ys'; f (fst xs) (fst ys) = f' (fst xs) (fst ys);
-     g (snd xs) (snd ys) = g' (snd xs) (snd ys)\<rbrakk> \<Longrightarrow> 
+     g (snd xs) (snd ys) = g' (snd xs) (snd ys)\<rbrakk> \<Longrightarrow>
      (f *a g) xs ys = (f' *a g') xs' ys'\<close>
   by (cases xs; cases ys; cases ys'; cases ys') auto
 
@@ -130,7 +130,7 @@ abbreviation scnp_af_assn :: \<open>('f \<Rightarrow> 'f' \<Rightarrow> assn) \<
 fun root_redtriple_impl_assn :: \<open>'f root_redtriple_impl \<Rightarrow> 'f root_redtriple_impl \<Rightarrow> assn\<close> where
   \<open>root_redtriple_impl_assn (SCNP a b c) (SCNP a' b' c') =
        list_order_type_assn a a' * scnp_af_assn id_assn b b' * redtriple_impl_assn c c'\<close>
-(* 
+(*
 type_synonym 'f scnp_af = "(('f \<times> nat) \<times> (nat \<times> nat) list) list"
 datatype ('f) root_redtriple_impl = SCNP list_order_type "'f scnp_af" "'f redtriple_impl"
  *)
@@ -144,7 +144,7 @@ function
      \<open>dp_termination_proof_assn a b =
     (case (a, b) of
      (P_is_Empty, P_is_Empty) \<Rightarrow> true
-   | (Subterm_Criterion_Proc projL rseqL trsLL term, 
+   | (Subterm_Criterion_Proc projL rseqL trsLL term,
        Subterm_Criterion_Proc projL' rseqL' trsLL' term') \<Rightarrow>
     projL_assn (lab_assn id_assn id_assn) projL projL' *
     rseqL_assn id_assn id_assn id_assn  rseqL rseqL' *
@@ -273,13 +273,13 @@ function
     dp_termination_proof_assn term term'
  | (General_Redpair_Proc red trsLL trsLL2 p term,
       General_Redpair_Proc red' trsLL' trsLL2' p' term') \<Rightarrow>
-    redtriple_impl_assn red red' * 
+    redtriple_impl_assn red red' *
     trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
     trsLL_assn id_assn id_assn id_assn trsLL2 trsLL2' *
     id_assn p p' *
     list_assn dp_termination_proof_assn term term'
  | (To_Trs_Proc red, To_Trs_Proc red') \<Rightarrow>
-    trs_termination_proof_assn red red' 
+    trs_termination_proof_assn red red'
 | (_, _) \<Rightarrow> false)\<close> |
 \<open>trs_termination_proof_assn a b =
    (case (a, b) of
@@ -328,7 +328,7 @@ function
      trs_termination_proof_assn ts1 ts1'
  | (Assume_SN trsLL ts1, Assume_SN trsLL' ts1') \<Rightarrow>
      id_assn trsLL trsLL' *
-     id_assn ts1 ts1' 
+     id_assn ts1 ts1'
  | (_, _) \<Rightarrow> false)\<close>
   by pat_completeness (auto; fail)+
 termination
