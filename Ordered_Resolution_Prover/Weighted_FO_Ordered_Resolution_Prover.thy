@@ -208,15 +208,22 @@ lemma stay_or_delete_completely: (* This is only true for full derivations. *)
 lemma
   assumes llength_infty: "llength Sts = \<infinity>"
   assumes "C \<in> Liminf_llist (lmap P_of_state (lmap state_of_wstate Sts))"
-  shows "\<exists>C i. (C,i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
+  shows "\<exists>C i. (C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
 proof -
   from assms obtain x where x_p:
     "enat x < llength Sts"
     "\<And>xa. x \<le> xa \<Longrightarrow> enat xa < llength Sts \<Longrightarrow> C \<in> P_of_state (state_of_wstate (lnth Sts xa))"
     unfolding Liminf_llist_def by auto
+  have "\<exists>i. (C,i) \<in># wP_of_wstate (lnth Sts x)"
+  proof -
+    from x_p have "C \<in> P_of_state (state_of_wstate (lnth Sts x))"
+      by auto
+    then show ?thesis
+      by (cases "(lnth Sts x)") auto
+  qed
   then obtain i where i_p:
     "(C,i) \<in># wP_of_wstate (lnth Sts x)"
-    sorry
+    by auto
   have "\<forall>xa. enat xa < llength (ldrop x Sts) \<longrightarrow> C \<in> P_of_state (state_of_wstate (lnth (ldrop x Sts) xa))"
   proof (rule, rule) (* FIXME: should this be a lemma? *)
     fix xa :: "nat"
@@ -243,7 +250,15 @@ proof -
       then have "(C, i) \<in># wP_of_wstate (lnth Sts (x + xa))"
         by (simp add: add.commute llength_infty)
       moreover have "\<exists>j. (C,j) \<in># lnth (lmap wP_of_wstate Sts) (Suc (x + xa))"
-        using x_p sorry
+      proof -
+        from x_p(1) x_p(2) have "C \<in> P_of_state (state_of_wstate (lnth Sts (Suc (x + xa))))"
+          using llength_infty by auto
+        then have "\<exists>j. (C, j) \<in># wP_of_wstate (lnth Sts (Suc (x + xa)))"
+          by (cases "(lnth Sts (Suc (x + xa)))") auto
+        then show ?thesis
+          by (simp add: llength_infty)
+          
+      qed
       ultimately have "(C, i) \<in># lnth (lmap wP_of_wstate Sts) (Suc (x + xa))"
         using stay_or_delete_completely[of C i "x + xa"]
         using llength_infty by auto 
