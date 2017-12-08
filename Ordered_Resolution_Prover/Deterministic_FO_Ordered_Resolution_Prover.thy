@@ -1234,7 +1234,12 @@ proof (unfold full_chain_def, intro conjI impI allI notI)
     by (rule deriv_gSts_trancl_weighted_RP)
 next
   fix gSt'
-  assume "lfinite gSts" and "llast gSts \<leadsto>\<^sub>w\<^sup>+ gSt'"
+  assume
+    fin: "lfinite gSts" and
+    plus: "llast gSts \<leadsto>\<^sub>w\<^sup>+ gSt'"
+  obtain gSt'' where
+    "llast gSts \<leadsto>\<^sub>w gSt''"
+    using plus by (meson tranclpD)
   show False
     sorry
 qed
