@@ -9,13 +9,6 @@ paragraph \<open>Propagation, Inner Loop\<close>
 context isasat_input_bounded
 begin
 
-lemma (in -)[sepref_fr_rules]:
-  \<open>(return o id, RETURN o nat_of_lit) \<in> unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  by sepref_to_hoare
-     (sep_auto simp: uint32_nat_rel_def br_def unat_lit_rel_def nat_lit_rel_def
-      lit_of_natP_def)
-
-
 lemma watched_by_app_watched_by_app_heur:
   \<open>(uncurry2 (RETURN ooo watched_by_app_heur), uncurry2 (RETURN ooo watched_by_app)) \<in>
     [\<lambda>((S, L), K). L \<in> snd ` D\<^sub>0 \<and> K < length (get_watched_wl S L)]\<^sub>f
@@ -441,6 +434,7 @@ lemma literals_to_update_wl_literals_to_update_wl_empty:
 
 sepref_register unit_propagation_inner_loop_wl_D_heur
   select_and_remove_from_literals_to_update_wl_heur
+
 sepref_thm unit_propagation_outer_loop_wl_D
   is \<open>PR_CONST unit_propagation_outer_loop_wl_D_heur\<close>
   :: \<open>twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_heur_assn\<close>
