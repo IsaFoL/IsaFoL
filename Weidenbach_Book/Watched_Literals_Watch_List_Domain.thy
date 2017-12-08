@@ -1,5 +1,5 @@
-theory Two_Watched_Literals_Watch_List_Domain
-  imports Two_Watched_Literals_Watch_List
+theory Watched_Literals_Watch_List_Domain
+  imports Watched_Literals_Watch_List
     Array_UInt
 begin
 

@@ -1,6 +1,6 @@
 theory IsaSAT_Lookup_Conflict
-  imports Two_Watched_Literals_Watch_List_Domain
-    Two_Watched_Literals_Watch_List_Code_Common
+  imports Watched_Literals_Watch_List_Domain
+    Watched_Literals_Watch_List_Code_Common
     IsaSAT_Trail
     CDCL_Conflict_Minimisation
     "../lib/Explorer"

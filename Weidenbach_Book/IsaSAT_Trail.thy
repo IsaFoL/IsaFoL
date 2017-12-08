@@ -1,5 +1,5 @@
 theory IsaSAT_Trail
-imports Two_Watched_Literals_Watch_List_Code_Common
+imports Watched_Literals_Watch_List_Code_Common
 begin
 
 type_synonym tri_bool = \<open>bool option\<close>

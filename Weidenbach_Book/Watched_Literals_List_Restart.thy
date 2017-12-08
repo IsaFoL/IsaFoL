@@ -1,5 +1,5 @@
-theory Two_Watched_Literals_List_Restart
-  imports Two_Watched_Literals_List Two_Watched_Literals_Algorithm_Restart
+theory Watched_Literals_List_Restart
+  imports Watched_Literals_List Watched_Literals_Algorithm_Restart
 begin
 
 abbreviation map_proped_lits :: \<open>(nat \<Rightarrow> nat) \<Rightarrow> ('v, nat) ann_lits \<Rightarrow> ('v, nat) ann_lits\<close> where

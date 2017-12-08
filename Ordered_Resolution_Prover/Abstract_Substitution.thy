@@ -147,6 +147,7 @@ definition subsumes :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" wh
 definition strictly_subsumes :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   "strictly_subsumes C D \<longleftrightarrow> subsumes C D \<and> \<not> subsumes D C"
 
+(* FIXME: define as exists renaming from one to the other? *)
 definition variants :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   "variants C D \<longleftrightarrow> generalizes_cls C D \<and> generalizes_cls D C"
 

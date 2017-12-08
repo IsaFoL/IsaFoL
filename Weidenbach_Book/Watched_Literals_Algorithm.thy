@@ -1,6 +1,6 @@
-theory Two_Watched_Literals_Algorithm
+theory Watched_Literals_Algorithm
   imports
-    Two_Watched_Literals_Transition_System
+    Watched_Literals_Transition_System
     WB_More_Refinement
 begin
 

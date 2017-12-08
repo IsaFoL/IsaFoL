@@ -1,5 +1,5 @@
-theory Two_Watched_Literals_Watch_List
-  imports Two_Watched_Literals_List
+theory Watched_Literals_Watch_List
+  imports Watched_Literals_List
 begin
 
 text \<open>Less ambiguities in the notations (TODO: using a bundle would probably be better):\<close>

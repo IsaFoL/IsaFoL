@@ -1,6 +1,6 @@
 theory IsaSAT_Setup
   imports IsaSAT_Trail CDCL_Conflict_Minimisation
-    Two_Watched_Literals_VMTF IsaSAT_Lookup_Conflict LBD
+    Watched_Literals_VMTF IsaSAT_Lookup_Conflict LBD
 begin
 
 no_notation Ref.update ("_ := _" 62)
