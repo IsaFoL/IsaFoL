@@ -857,27 +857,30 @@ proof -
       case 0
       note len_p = this(1) and nil_in' = this(2)
 
-      have p: "P = []"
+      have p_nil: "P = []"
         using len_p
         sorry
       have "wstate_of_dstate (N, [], Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], Q, n)"
-        by (rule empty_N_if_Nil_in_P_or_Q[OF nil_in'[unfolded p]])
+        by (rule empty_N_if_Nil_in_P_or_Q[OF nil_in'[unfolded p_nil]])
       then show ?case
-        unfolding p by simp
+        unfolding p_nil by simp
     next
       case (Suc k)
       note ih = this(1) and suc_k = this(2) and nil_in' = this(3)
 
-      (* FIXME: use our favorite function to select the same clause as "remdups_clss" *)
-      obtain Ci0 :: "'a dclause" where
-        ci0: "Ci0 \<in> set P"
-        using suc_k sorry
+      have p_ne_nil: "P \<noteq> []"
+        sorry
+      hence p_cons: "P = hd P # tl P"
+        sorry
+
       obtain C :: "'a lclause" and i :: nat where
-        ci_in: "(C, i) \<in> set P" and
-        ci_min: "\<forall>(D, j) \<in> set P. weight (mset C, i) \<le> weight (mset D, j)"
-        using wf_eq_minimal[THEN iffD1, OF wf_app[OF wf, simplified],
-            of "\<lambda>(C, i). weight (mset C, i)", rule_format, OF ci0]
-        by force
+        ci: "(C, i) = select_min_weight_clause (hd P) (tl P)"
+        by (metis prod.exhaust)
+
+      have ci_in: "(C, i) \<in> set P"
+        unfolding ci using p_cons select_min_weight_clause_in[of "hd P" "tl P"] by simp
+      have ci_min: "\<forall>(D, j) \<in># mset (map (apfst mset) P). weight (mset C, i) \<le> weight (D, j)"
+        by (subst p_cons) (simp add: select_min_weight_clause_min_weight[OF ci, simplified])
 
       let ?P' = "filter (\<lambda>(D, j). mset D \<noteq> mset C) P"
 
@@ -935,7 +938,7 @@ proof -
 
         obtain C :: "'a lclause" and i :: nat where
           ci: "(C, i) = select_min_weight_clause P0 P'"
-          by (cases "select_min_weight_clause P0 P'") simp
+          by (metis prod.exhaust)
         note step = step[unfolded select, simplified]
 
         have ci_in: "(C, i) \<in> set P"
