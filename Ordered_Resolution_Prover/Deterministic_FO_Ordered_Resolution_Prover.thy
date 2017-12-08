@@ -1229,7 +1229,15 @@ proof -
 qed
 
 lemma full_deriv_gSts_trancl_weighted_RP: "full_chain (op \<leadsto>\<^sub>w\<^sup>+) gSts"
-  sorry
+proof (unfold full_chain_def, intro conjI impI allI notI)
+  show "chain op \<leadsto>\<^sub>w\<^sup>+ gSts"
+    by (rule deriv_gSts_trancl_weighted_RP)
+next
+  fix gSt'
+  assume "lfinite gSts" and "llast gSts \<leadsto>\<^sub>w\<^sup>+ gSt'"
+  show False
+    sorry
+qed
 
 definition ssgSts :: "'a wstate llist" where
   "ssgSts = (SOME gSts'. full_chain (op \<leadsto>\<^sub>w) gSts' \<and> emb gSts gSts'
