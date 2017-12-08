@@ -910,9 +910,6 @@ proof -
       then have len_p: "length (remdups_clss P) = length (remdups_clss ?P') + 1"
         by (smt Suc_eq_plus1_left add.assoc add_right_cancel length_Cons length_append
             mset_eq_length)
-      have set_pq: "fst ` set (P @ Q) = fst ` set (?P' @ (C, i) # Q)"
-        sorry
-        (* FIXME: by (metis (no_types, lifting) ms_p'_ci_q_eq mset_eq_setD set_append set_remdups) *)
 
       have "wstate_of_dstate (N, P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], P, Q, n)"
         by (rule empty_N_if_Nil_in_P_or_Q[OF nil_in'])
@@ -927,8 +924,8 @@ proof -
         apply (metis (no_types, lifting) apfst_conv image_mset_add_mset)
         using suc_k
          apply (auto simp: len_p)[1]
-        using nil_in' set_pq
-        apply simp
+        using nil_in' ci_in
+        apply auto
         done
       finally show ?case
         .
