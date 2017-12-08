@@ -1228,22 +1228,28 @@ proof -
     by blast
 qed
 
+lemma full_deriv_gSts_trancl_weighted_RP: "full_chain (op \<leadsto>\<^sub>w\<^sup>+) gSts"
+  sorry
+
 definition ssgSts :: "'a wstate llist" where
-  "ssgSts = (SOME gSts'. chain (op \<leadsto>\<^sub>w) gSts' \<and> emb gSts gSts' \<and> (lfinite gSts' \<longleftrightarrow> lfinite gSts)
-     \<and> lhd gSts' = lhd gSts \<and> llast gSts' = llast gSts)"
+  "ssgSts = (SOME gSts'. full_chain (op \<leadsto>\<^sub>w) gSts' \<and> emb gSts gSts'
+     \<and> (lfinite gSts' \<longleftrightarrow> lfinite gSts) \<and> lhd gSts' = lhd gSts \<and> llast gSts' = llast gSts)"
 
 lemma ssgSts:
-  "chain (op \<leadsto>\<^sub>w) ssgSts \<and> emb gSts ssgSts \<and> (lfinite ssgSts \<longleftrightarrow> lfinite gSts)
+  "full_chain (op \<leadsto>\<^sub>w) ssgSts \<and> emb gSts ssgSts \<and> (lfinite ssgSts \<longleftrightarrow> lfinite gSts)
    \<and> lhd ssgSts = lhd gSts
    \<and> llast ssgSts = llast gSts"
   unfolding ssgSts_def
-  by (rule someI_ex[OF chain_tranclp_imp_exists_chain[OF deriv_gSts_trancl_weighted_RP]])
+  by (rule someI_ex[OF full_chain_tranclp_imp_exists_full_chain[OF full_deriv_gSts_trancl_weighted_RP]])
 
-lemmas deriv_ssgSts_weighted_RP = ssgSts[THEN conjunct1]
+lemmas full_deriv_ssgSts_weighted_RP = ssgSts[THEN conjunct1]
 lemmas emb_ssgSts = ssgSts[THEN conjunct2, THEN conjunct1]
 lemmas lfinite_ssgSts_iff = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct1]
 lemmas lhd_ssgSts = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct2, THEN conjunct1]
 lemmas llast_ssgSts = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct2, THEN conjunct2]
+
+lemma deriv_ssgSts_weighted_RP: "chain (op \<leadsto>\<^sub>w) ssgSts"
+  using full_deriv_ssgSts_weighted_RP unfolding full_chain_def by blast
 
 lemma not_lnull_ssgSts: "\<not> lnull ssgSts"
   using deriv_ssgSts_weighted_RP by (cases rule: chain.cases) auto
@@ -1257,7 +1263,7 @@ lemma empty_ssgP0: "wrp.P_of_wstate (lhd ssgSts) = {}"
 lemma empty_ssgQ0: "wrp.Q_of_wstate (lhd ssgSts) = {}"
   unfolding lhd_ssgSts by (subst derivation_from.code) simp
 
-lemmas ssgSts_thms = deriv_ssgSts_weighted_RP finite_ssgSts0 empty_ssgP0 empty_ssgQ0
+lemmas ssgSts_thms = full_deriv_ssgSts_weighted_RP finite_ssgSts0 empty_ssgP0 empty_ssgQ0
 
 lemma "clss_of_state (wrp.Liminf_wstate ssgSts) \<subseteq> clss_of_state (wrp.Liminf_wstate gSts)"
 proof (cases "lfinite Sts")
@@ -1317,8 +1323,9 @@ proof -
 
   have wrp: "wstate_of_dstate St0 \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (llast Sts)"
     using chain_imp_rtranclp_lhd_llast
-    by (metis (no_types) derivation_from.disc_iff derivation_from.simps(2) lfinite_Sts
-        lfinite_gSts llast_lmap llist.map_sel(1) ssgSts)
+    by (metis (no_types) deriv_ssgSts_weighted_RP derivation_from.disc_iff
+        derivation_from.simps(2) lfinite_Sts lfinite_ssgSts lhd_ssgSts llast_lmap llast_ssgSts
+        llist.map_sel(1))
 
   have last_sts: "llast Sts = ?Stk"
   proof -
