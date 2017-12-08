@@ -1057,7 +1057,7 @@ proof -
 *)
         have red_C:
           "wstate_of_dstate ((C, i) # N', P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P, Q, n)"
-          unfolding C'_def using reduce_clause_in_N[of _ _ _ P Q _ "length (P @ Q)"] by simp
+          unfolding C'_def using reduce_clause_in_N[of "P @ Q" P Q] by simp
 
         have proc_C: "wstate_of_dstate ((C', i) # N', P', Q', n')
           \<leadsto>\<^sub>w wstate_of_dstate (N', (C', i) # P', Q', n')" for P' Q' n'
