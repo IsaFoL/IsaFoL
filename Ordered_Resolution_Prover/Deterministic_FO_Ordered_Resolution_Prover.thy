@@ -553,6 +553,12 @@ proof (induct Q' arbitrary: P Q)
 qed simp
 *)
 
+lemma reduce_clause_in_N_from_single_clause:
+  assumes "D \<in> set (P @ Q)"
+  shows "wstate_of_dstate ((C, i) # N', P, Q, n)
+    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((reduce (fst D) C, i) # N', P, Q, n)"
+  sorry
+
 lemma reduce_clause_in_N:
   assumes "set Ds \<subseteq> set (P @ Q)"
   shows "wstate_of_dstate ((C, i) # N', P, Q, n)
@@ -567,7 +573,9 @@ proof (induct Ds arbitrary: C)
     defer
     apply (rule ih)
     using dds_sub apply simp
-    sorry
+    apply (rule reduce_clause_in_N_from_single_clause)
+    using dds_sub apply simp
+    done
 qed simp
 
 lemma reduce_clauses_in_P:
