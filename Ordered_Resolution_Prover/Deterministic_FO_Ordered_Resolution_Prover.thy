@@ -124,23 +124,23 @@ primrec reduce_on :: "'a literal \<Rightarrow> 'a lclause \<Rightarrow> 'a lclau
 | "reduce_on M D C' (L # C) =
    (if is_reducible_on M D L (C' @ C) then reduce_on M D C' C else L # reduce_on M D (L # C') C)"
 
-primrec reduce :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause" where
-  "reduce [] C = C"
-| "reduce (M # D) C = reduce_on M D [] C"
+primrec reduce :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause" where
+  "reduce _ [] C = C"
+| "reduce D' (M # D) C = reduce (M # D') D (reduce_on M (D' @ D) [] C)"
 
 primrec reduce_from :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause" where
   "reduce_from [] C = C"
-| "reduce_from (D # Ds) C = reduce_from Ds (reduce D C)"
+| "reduce_from (D # Ds) C = reduce_from Ds (reduce [] D C)"
 
 definition reduce_all :: "'a lclause \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause list" where
-  "reduce_all D = map (apfst (reduce D))"
+  "reduce_all D = map (apfst (reduce D []))"
 
 fun reduce_all2 :: "'a lclause \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause list \<times> 'a dclause list" where
   "reduce_all2 _ [] = ([], [])"
 | "reduce_all2 D (Ci # Cs) =
    (let
       (C, i) = Ci;
-      C' = reduce D C
+      C' = reduce D [] C
     in
       (if C' = C then apsnd else apfst) (Cons (C', i)) (reduce_all2 D Cs))"
 
@@ -553,6 +553,18 @@ proof (induct Q' arbitrary: P Q)
 qed simp
 *)
 
+lemma reduce_clause_in_N_from_single_clause:
+  assumes "D \<in> fst ` set (P @ Q)"
+  shows "wstate_of_dstate ((C, i) # N', P, Q, n)
+    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((reduce [] D C, i) # N', P, Q, n)"
+  using assms
+proof (induct D)
+  case (Cons M D)
+  note ih = this(1) and ld_in = this(2)
+  show ?case
+    sorry
+qed simp
+
 lemma reduce_clause_in_N:
   assumes "set Ds \<subseteq> set (P @ Q)"
   shows "wstate_of_dstate ((C, i) # N', P, Q, n)
@@ -567,7 +579,9 @@ proof (induct Ds arbitrary: C)
     defer
     apply (rule ih)
     using dds_sub apply simp
-    sorry
+    apply (rule reduce_clause_in_N_from_single_clause)
+    using dds_sub apply simp
+    done
 qed simp
 
 lemma reduce_clauses_in_P:
@@ -1057,7 +1071,7 @@ proof -
 *)
         have red_C:
           "wstate_of_dstate ((C, i) # N', P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P, Q, n)"
-          unfolding C'_def using reduce_clause_in_N[of _ _ _ P Q _ "length (P @ Q)"] by simp
+          unfolding C'_def using reduce_clause_in_N[of "P @ Q" P Q] by simp
 
         have proc_C: "wstate_of_dstate ((C', i) # N', P', Q', n')
           \<leadsto>\<^sub>w wstate_of_dstate (N', (C', i) # P', Q', n')" for P' Q' n'

@@ -70,9 +70,9 @@ inductive weighted_RP :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" 
     (N, P, Q + {#(C, i)#}, n) \<leadsto>\<^sub>w (N, P, Q, n)"
 | forward_reduction: "D + {#L'#} \<in># image_mset fst (P + Q) \<Longrightarrow> - L = L' \<cdot>l \<sigma> \<Longrightarrow> D \<cdot> \<sigma> \<subseteq># C \<Longrightarrow>
     (N + {#(C + {#L#}, i)#}, P, Q, n) \<leadsto>\<^sub>w (N + {#(C, i)#}, P, Q, n)"
-| backward_reduction_P: "D + {#L'#} \<in># image_mset fst N \<Longrightarrow> C + {#L#} \<in># image_mset fst P \<Longrightarrow>
-    - L = L' \<cdot>l \<sigma> \<Longrightarrow> D \<cdot> \<sigma> \<subseteq># C \<Longrightarrow>
-    (N, P, Q, n) \<leadsto>\<^sub>w (N, image_mset (apfst (\<lambda>E. if E = C + {#L#} then C else E)) P, Q, n)"
+| backward_reduction_P: "D + {#L'#} \<in># image_mset fst N \<Longrightarrow> - L = L' \<cdot>l \<sigma> \<Longrightarrow> D \<cdot> \<sigma> \<subseteq># C \<Longrightarrow>
+    (\<forall>j. (C + {#L#}, j) \<in># P \<longrightarrow> j \<le> i) \<Longrightarrow>
+    (N, P + {#(C + {#L#}, i)#}, Q, n) \<leadsto>\<^sub>w (N, P + {#(C, i)#}, Q, n)"
 | backward_reduction_Q: "D + {#L'#} \<in># image_mset fst N \<Longrightarrow> - L = L' \<cdot>l \<sigma> \<Longrightarrow> D \<cdot> \<sigma> \<subseteq># C \<Longrightarrow>
     (N, P, Q + {#(C + {#L#}, i)#}, n) \<leadsto>\<^sub>w (N, P + {#(C, i)#}, Q, n)"
 | clause_processing: "(N + {#(C, i)#}, P, Q, n) \<leadsto>\<^sub>w (N, P + {#(C, i)#}, Q, n)"
@@ -89,13 +89,6 @@ proof (induction rule: weighted_RP.induct)
           RP.backward_subsumption_P[of D "fst ` set_mset N" C "fst ` set_mset P - {C}"
             "fst ` set_mset Q"]])
       (use backward_subsumption_P in auto)
-next
-  case (backward_reduction_P D L' N C L P \<sigma> Q n)
-  show ?case
-    by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>", OF _ _
-          RP.backward_reduction_P[of D L' "fst ` set_mset N" L \<sigma> C "fst ` set_mset P - {C + {#L#}}"
-            "fst ` set_mset Q"]],
-        use backward_reduction_P in auto)
 next
   case (inference_computation P C i N n Q)
   show ?case
@@ -196,10 +189,9 @@ lemma fst_image_apfst:
   "fst ` apfst f ` P = f ` fst ` P"
   by force
 
-(* FIXME: Come up with a better name. *)
 lemma stay_or_delete_completely':
   assumes "St \<leadsto>\<^sub>w St'" "(C,i) \<in># wP_of_wstate St"
-  shows "(C,i) \<in># wP_of_wstate St' \<or> (\<forall>j. (C,j) \<notin># wP_of_wstate St')"
+  shows "(C, i) \<in># wP_of_wstate St' \<or> (\<forall>j. (C, j) \<notin># wP_of_wstate St')"
 using assms proof (induction rule: weighted_RP.induct)
   case (tautology_deletion A C N i P Q n)
   then show ?case by auto
@@ -216,6 +208,9 @@ next
   case (forward_reduction D L' P Q L \<sigma> C N i n)
   then show ?case by auto
 next
+  case (backward_reduction_P D L' N L \<sigma> C P i Q n)
+  then show ?case sorry
+(* FIXME:
   case (backward_reduction_P D L' N C' L P \<sigma> Q n)
   then show ?case
   proof (cases "C = C' + {#L#}")
@@ -249,6 +244,7 @@ next
     then show ?thesis 
       by auto
   qed
+*)
 next
   case (backward_reduction_Q D L' N L \<sigma> C P Q i n)
   then show ?case by auto
