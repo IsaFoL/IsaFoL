@@ -81,15 +81,6 @@ inductive weighted_RP :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" 
       (inference_system.inferences_between (ord_FO_\<Gamma> S) (set_mset (image_mset fst Q)) C)) \<Longrightarrow>
     ({#}, P + {#(C, i)#}, Q, n) \<leadsto>\<^sub>w (N, {#(D, j) \<in># P. D \<noteq> C#}, Q + {#(C, i)#}, Suc n)"
 
-definition weighted_RP_Non_Inference :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w\<^sub>n\<^sub>i" 50) where
-  "St \<leadsto>\<^sub>w\<^sub>n\<^sub>i St' \<longleftrightarrow> St \<leadsto>\<^sub>w St' \<and> N_of_wstate St \<noteq> {}"
-
-definition weighted_RP_Inference :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w\<^sub>i" 50) where
-  "St \<leadsto>\<^sub>w\<^sub>i St' \<longleftrightarrow> St \<leadsto>\<^sub>w St' \<and> N_of_wstate St = {}"
-
-lemma "St \<leadsto>\<^sub>w St' \<longleftrightarrow> St \<leadsto>\<^sub>w\<^sub>i St' \<or> St \<leadsto>\<^sub>w\<^sub>n\<^sub>i St'"
-  unfolding weighted_RP_Non_Inference_def weighted_RP_Inference_def by auto
-
 lemma weighted_RP_imp_RP: "St \<leadsto>\<^sub>w St' \<Longrightarrow> state_of_wstate St \<leadsto> state_of_wstate St'"
 proof (induction rule: weighted_RP.induct)
   case (backward_subsumption_P D N C P Q n)
@@ -205,14 +196,7 @@ lemma fst_image_apfst:
   "fst ` apfst f ` P = f ` fst ` P"
   by force
 
-lemma
-  assumes 
-    "f (C, i) = (C, i)" and
-    "(C, i) \<in> P"
-  shows "(C, i) \<in> f ` P"
-  using assms apply force
-  done
-
+(* FIXME: Come up with a better name. *)
 lemma stay_or_delete_completely':
   assumes "St \<leadsto>\<^sub>w St'" "(C,i) \<in># wP_of_wstate St"
   shows "(C,i) \<in># wP_of_wstate St' \<or> (\<forall>j. (C,j) \<notin># wP_of_wstate St')"
@@ -279,42 +263,14 @@ qed
 (* FIXME: Come up with a better name. *)
 lemma stay_or_delete_completely: (* This is only true for full derivations. *)
   assumes "enat (Suc k) < llength Sts"
-  assumes a: "(C,i) \<in># lnth (lmap wP_of_wstate Sts) k"
-  shows "(C,i) \<in># lnth (lmap wP_of_wstate Sts) (Suc k) 
-           \<or> (\<forall>j. (C,j) \<notin># lnth (lmap wP_of_wstate Sts) (Suc k))"
+  assumes a: "(C, i) \<in># wP_of_wstate (lnth Sts k)"
+  shows "(C,i) \<in># wP_of_wstate (lnth Sts (Suc k)) 
+           \<or> (\<forall>j. (C, j) \<notin># wP_of_wstate (lnth Sts (Suc k)))"
 proof -
   from deriv have "lnth Sts k \<leadsto>\<^sub>w lnth Sts (Suc k)"
-    using assms sorry
+    using assms chain_lnth_rel by auto
   then show ?thesis
-    using a proof (cases rule: weighted_RP.induct)
-    case (tautology_deletion A C N i P Q n)
-    then show ?thesis sorry
-  next
-    case (forward_subsumption D P Q C N i n)
-    then show ?thesis sorry
-  next
-    case (backward_subsumption_P D N C P Q n)
-    then show ?thesis sorry
-  next
-    case (backward_subsumption_Q D N C P Q i n)
-    then show ?thesis sorry
-  next
-    case (forward_reduction D L' P Q L \<sigma> C N i n)
-    then show ?thesis sorry
-  next
-    case (backward_reduction_P D L' N C L P \<sigma> Q n)
-    then show ?thesis sorry
-  next
-    case (backward_reduction_Q D L' N L \<sigma> C P Q i n)
-    then show ?thesis sorry
-  next
-    case (clause_processing N C i P Q n)
-    then show ?thesis sorry
-  next
-    case (inference_computation P C i N n Q)
-    then show ?thesis sorry
-  qed
-
+    using stay_or_delete_completely'[of "lnth Sts k" "lnth Sts (Suc k)" C i] a by blast
 qed
 
 lemma
@@ -410,14 +366,11 @@ proof (rule ccontr)
       "enat i < llength Sts"
       "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_wstate (lnth Sts j))"
       unfolding Liminf_llist_def by auto
-    then have "chain op \<leadsto>\<^sub>w\<^sub>n\<^sub>i (ldrop i Sts)"
-      using deriv unfolding weighted_RP_Non_Inference_def sorry (* I can believe this (+-1) *)
-    moreover
     from i_p have "llength Sts = \<infinity>"
       (* using llength_infinite_if_Ns_non_empty *) sorry
     then have "llength (ldrop i Sts) = \<infinity>"
       sorry
-    ultimately show False
+    then show False
       sorry (* *)
   next
     assume "C \<in> Liminf_llist (lmap P_of_state (lmap state_of_wstate Sts))"
