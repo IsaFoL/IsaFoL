@@ -212,6 +212,8 @@ function remdups_clss :: "'a dclause list \<Rightarrow> 'a dclause list" where
     using le_imp_less_Suc length_filter_le apply blast
     done
 
+declare remdups_clss.simps(2) [simp del]
+
 fun deterministic_RP_step :: "'a dstate \<Rightarrow> 'a dstate" where
   "deterministic_RP_step (N, P, Q, n) =
    (if \<exists>Ci \<in> set (P @ Q). fst Ci = [] then
@@ -899,8 +901,12 @@ proof -
 
       have ms_p'_ci_q_eq: "mset (remdups_clss ?P' @ (C, i) # Q) = mset (remdups_clss P @ Q)"
         apply (subst (2) p_cons)
+        apply (subst remdups_clss.simps(2))
+        apply (fold p_cons)
         apply (auto simp: Let_def case_prod_beta)
-        sorry
+        apply (fold ci)
+        apply simp
+        done
       then have len_p: "length (remdups_clss P) = length (remdups_clss ?P') + 1"
         by (smt Suc_eq_plus1_left add.assoc add_right_cancel length_Cons length_append
             mset_eq_length)
