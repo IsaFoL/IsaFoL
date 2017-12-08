@@ -325,6 +325,9 @@ proof (induct P arbitrary: P0 Ci)
   qed
 qed simp
 
+lemma remdups_clss_Nil_iff: "remdups_clss Cs = [] \<longleftrightarrow> Cs = []"
+  by (cases Cs, simp, hypsubst, subst remdups_clss.simps(2), simp add: Let_def)
+
 lemma empty_N_if_Nil_in_P_or_Q:
   assumes nil_in: "[] \<in> fst ` set (P @ Q)"
   shows "wstate_of_dstate (N, P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], P, Q, n)"
@@ -873,8 +876,7 @@ proof -
       note len_p = this(1) and nil_in' = this(2)
 
       have p_nil: "P = []"
-        using len_p
-        sorry
+        using len_p remdups_clss_Nil_iff by simp
       have "wstate_of_dstate (N, [], Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], Q, n)"
         by (rule empty_N_if_Nil_in_P_or_Q[OF nil_in'[unfolded p_nil]])
       then show ?case
@@ -883,10 +885,10 @@ proof -
       case (Suc k)
       note ih = this(1) and suc_k = this(2) and nil_in' = this(3)
 
-      have p_ne_nil: "P \<noteq> []"
-        sorry
+      have "P \<noteq> []"
+        using suc_k remdups_clss_Nil_iff by force
       hence p_cons: "P = hd P # tl P"
-        sorry
+        by simp
 
       obtain C :: "'a lclause" and i :: nat where
         ci: "(C, i) = select_min_weight_clause (hd P) (tl P)"
