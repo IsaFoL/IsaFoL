@@ -553,6 +553,11 @@ proof (induct Q' arbitrary: P Q)
 qed simp
 *)
 
+lemma reduce_clause_in_N:
+  "wstate_of_dstate ((C, i) # N', P, Q, n)
+   \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((reduce (map fst (P @ Q)) C, i) # N', P, Q, n)"
+  sorry
+
 lemma reduce_clauses_in_P:
   assumes c_in: "C \<in> fst ` set N"
   shows "wstate_of_dstate (N, P', Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, reduce_all [C] P', Q, n)"
@@ -861,7 +866,7 @@ proof -
     apply (simp add: image_UN)
     done
 *)
-    sorry (* DO SECOND *)
+    sorry
 qed
 
 lemma nonfinal_deterministic_RP_step:
@@ -933,7 +938,7 @@ proof -
           by (atomize_elim, rule exI, rule compute_inferences[OF ci_in], use ci_min in fastforce)
         also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [],
           remdups (filter (\<lambda>(D, j). D \<noteq> C) P) @ (C, i) # Q, n + length (remdups P))"
-          sorry (* DO FIRST *)
+          sorry
 (* FIXME
         proof -
           have k: "k = length (remove1 (C, i) P)"
@@ -948,7 +953,7 @@ proof -
 *)
         also have "\<dots> = wstate_of_dstate ([], [], remdups P @ Q, n + length (remdups P))"
           unfolding wstate_of_dstate.simps mset_map mset
-          sorry (* DO VERY FIRST *)
+          sorry
         finally show ?case
           .
       qed
@@ -1041,7 +1046,7 @@ proof -
 *)
         have red_C:
           "wstate_of_dstate ((C, i) # N', P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P, Q, n)"
-          unfolding C'_def sorry
+          unfolding C'_def using reduce_clause_in_N by simp
 
         have proc_C: "wstate_of_dstate ((C', i) # N', P', Q', n')
           \<leadsto>\<^sub>w wstate_of_dstate (N', (C', i) # P', Q', n')" for P' Q' n'
