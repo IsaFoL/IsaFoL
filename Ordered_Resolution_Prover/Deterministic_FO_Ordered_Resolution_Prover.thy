@@ -124,25 +124,25 @@ primrec reduce_on :: "'a literal \<Rightarrow> 'a lclause \<Rightarrow> 'a lclau
 | "reduce_on M D C' (L # C) =
    (if is_reducible_on M D L (C' @ C) then reduce_on M D C' C else L # reduce_on M D (L # C') C)"
 
-primrec reduce_from :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause" where
-  "reduce_from [] C = C"
-| "reduce_from (M # D) C = reduce_on M D [] C"
-
-primrec reduce :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause" where
+primrec reduce :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause" where
   "reduce [] C = C"
-| "reduce (D # Ds) C = reduce Ds (reduce_from D C)"
+| "reduce (M # D) C = reduce_on M D [] C"
 
-definition reduce_all :: "'a lclause list \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause list" where
-  "reduce_all Ds = map (apfst (reduce Ds))"
+primrec reduce_from :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause" where
+  "reduce_from [] C = C"
+| "reduce_from (D # Ds) C = reduce_from Ds (reduce D C)"
 
-fun reduce_all2 :: "'a lclause list \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause list \<times> 'a dclause list" where
+definition reduce_all :: "'a lclause \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause list" where
+  "reduce_all D = map (apfst (reduce D))"
+
+fun reduce_all2 :: "'a lclause \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause list \<times> 'a dclause list" where
   "reduce_all2 _ [] = ([], [])"
-| "reduce_all2 Ds (Ci # Cs) =
+| "reduce_all2 D (Ci # Cs) =
    (let
       (C, i) = Ci;
-      C' = reduce Ds C
+      C' = reduce D C
     in
-      (if C' = C then apsnd else apfst) (Cons (C', i)) (reduce_all2 Ds Cs))"
+      (if C' = C then apsnd else apfst) (Cons (C', i)) (reduce_all2 D Cs))"
 
 fun resolve_on :: "'a lclause \<Rightarrow> 'a \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve_on C A D =
@@ -217,7 +217,7 @@ fun deterministic_RP_step :: "'a dstate \<Rightarrow> 'a dstate" where
                 (N, P, Q, n))
          | (C, i) # N \<Rightarrow>
            let
-             C = reduce (map fst (P @ Q)) C
+             C = reduce_from (map fst (P @ Q)) C
            in
              if C = [] then
                ([], [], [([], i)], Suc n)
@@ -225,8 +225,8 @@ fun deterministic_RP_step :: "'a dstate \<Rightarrow> 'a dstate" where
                (N, P, Q, n)
              else
                let
-                 P = reduce_all [C] P;
-                 (back_to_P, Q) = reduce_all2 [C] Q;
+                 P = reduce_all C P;
+                 (back_to_P, Q) = reduce_all2 C Q;
                  P = back_to_P @ P;
                  Q = filter (Not \<circ> strictly_subsume [C] \<circ> fst) Q;
                  P = filter (Not \<circ> strictly_subsume [C] \<circ> fst) P;
@@ -556,19 +556,18 @@ qed simp
 lemma reduce_clause_in_N:
   assumes "set Ds \<subseteq> set (P @ Q)"
   shows "wstate_of_dstate ((C, i) # N', P, Q, n)
-    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((reduce (map fst Ds) C, i) # N', P, Q, n)"
+    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((reduce_from (map fst Ds) C, i) # N', P, Q, n)"
   sorry
 
 lemma reduce_clauses_in_P:
   assumes c_in: "C \<in> fst ` set N"
-  shows "wstate_of_dstate (N, P', Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, reduce_all [C] P', Q, n)"
+  shows "wstate_of_dstate (N, P', Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, reduce_all C P', Q, n)"
   sorry
 
 lemma reduce_clauses_in_Q:
   assumes c_in: "C \<in> fst ` set N"
-  shows "wstate_of_dstate (N, reduce_all [C] P, Q, n)
-    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, fst (reduce_all2 [C] Q) @ reduce_all [C] P,
-      snd (reduce_all2 [C] Q), n)"
+  shows "wstate_of_dstate (N, reduce_all C P, Q, n)
+    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, fst (reduce_all2 C Q) @ reduce_all C P, snd (reduce_all2 C Q), n)"
   sorry
 
 lemma bin_eligible:
@@ -1002,7 +1001,7 @@ proof -
         note step = step[unfolded ci, simplified]
 
         define C' :: "'a lclause" where
-          "C' = reduce (map fst P @ map fst Q) C"
+          "C' = reduce_from (map fst P @ map fst Q) C"
         note step = step[unfolded ci C'_def[symmetric], simplified]
 
 (* FIXME: dead
@@ -1129,10 +1128,10 @@ proof -
             note step = step[simplified not_taut_or_subs, simplified]
 
             define P' :: "('a literal list \<times> nat) list" where
-              "P' = reduce_all [C'] P"
+              "P' = reduce_all C' P"
 
             obtain back_to_P Q' :: "'a dclause list" where
-              red_Q: "(back_to_P, Q') = reduce_all2 [C'] Q"
+              red_Q: "(back_to_P, Q') = reduce_all2 C' Q"
               by (metis prod.exhaust)
             note step = step[unfolded red_Q[symmetric], simplified]
 
