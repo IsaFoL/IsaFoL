@@ -371,7 +371,7 @@ proof -
           by (simp add: llength_infty)
       qed
       ultimately have "(C, i) \<in># lnth (lmap wP_of_wstate Sts) (Suc (x + xa))"
-        using stay_or_delete_completely[of C i "x + xa"]
+        using stay_or_delete_completely
         using llength_infty by auto 
       then show ?case
         by (simp add: add.commute llength_infty)
