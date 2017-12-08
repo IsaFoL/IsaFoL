@@ -126,7 +126,7 @@ primrec reduce_on :: "'a literal \<Rightarrow> 'a lclause \<Rightarrow> 'a lclau
 
 primrec reduce :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause" where
   "reduce [] C = C"
-| "reduce (M # D) C = reduce_on M D [] C"
+| "reduce (M # D) C = reduce D (reduce_on M D [] C)"
 
 primrec reduce_from :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause" where
   "reduce_from [] C = C"
