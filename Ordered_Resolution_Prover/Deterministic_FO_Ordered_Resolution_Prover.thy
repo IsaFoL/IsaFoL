@@ -889,7 +889,7 @@ proof -
             ih[of ?P' "(C, i) # Q" N' "Suc n"], OF refl])
         using ms_p'_ci_q_eq
           apply (auto simp: len_p)[1]
-        subgoal sorry
+        apply (metis (no_types, lifting) apfst_conv image_mset_add_mset)
         using suc_k
          apply (auto simp: len_p)[1]
         using nil_in' set_pq
