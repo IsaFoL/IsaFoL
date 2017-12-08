@@ -146,10 +146,10 @@ lemma "prover N = None \<Longrightarrow> satisfiable (RP.grounded_N0 N)"
 export_code prover in SML module_name RP
 
 
-(*kind of random*)
+(*arbitrary*)
 instantiation nat :: weighted begin
 definition weights_nat :: "nat weights" where "weights_nat =
-  \<lparr>w = Suc o prod_encode, w0 = 1, pr_strict = \<lambda>(f, n) (g, m). f > g \<or> f = g \<and> n > m, least = \<lambda>n. n = 0, scf = \<lambda>_ _. 1\<rparr>"
+  \<lparr>w = Suc \<circ> prod_encode, w0 = 1, pr_strict = \<lambda>(f, n) (g, m). f > g \<or> f = g \<and> n > m, least = \<lambda>n. n = 0, scf = \<lambda>_ _. 1\<rparr>"
 
 instance
   by (intro_classes, unfold_locales)

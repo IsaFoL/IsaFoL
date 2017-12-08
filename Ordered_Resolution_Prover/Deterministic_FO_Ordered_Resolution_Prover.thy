@@ -116,24 +116,31 @@ definition subsume :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> bo
 definition strictly_subsume :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> bool" where
   "strictly_subsume Ds C \<longleftrightarrow> (\<exists>D \<in> set Ds. strictly_subsumes (mset D) (mset C))"
 
-definition is_reducible_lit :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> 'a literal \<Rightarrow> bool" where
-  "is_reducible_lit Ds C L \<longleftrightarrow>
-   (\<exists>D \<in> set Ds. \<exists>L' \<in> set D. \<exists>\<sigma>. - L = L' \<cdot>l \<sigma> \<and> mset (remove1 L' D) \<cdot> \<sigma> \<subseteq># mset C)"
+definition is_reducible_on :: "'a literal \<Rightarrow> 'a lclause \<Rightarrow> 'a literal \<Rightarrow> 'a lclause \<Rightarrow> bool" where
+  "is_reducible_on M D L C \<longleftrightarrow> subsumes (mset D + {#- M#}) (mset C + {#L#})"
 
-primrec reduce :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause" where
-  "reduce _ _ [] = []"
-| "reduce Ds C (L # C') =
-   (if is_reducible_lit Ds (C @ C') L then reduce Ds C C' else L # reduce Ds (L # C) C')"
+primrec reduce_on :: "'a literal \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause" where
+  "reduce_on M D C' [] = []"
+| "reduce_on M D C' (L # C) =
+   (if is_reducible_on M D L (C' @ C) then reduce_on M D C' C else L # reduce_on M D (L # C') C)"
+
+primrec reduce_from :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause" where
+  "reduce_from [] C = C"
+| "reduce_from (M # D) C = reduce_on M D [] C"
+
+primrec reduce :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause" where
+  "reduce [] C = C"
+| "reduce (D # Ds) C = reduce Ds (reduce_from D C)"
 
 definition reduce_all :: "'a lclause list \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause list" where
-  "reduce_all Ds = map (apfst (reduce Ds []))"
+  "reduce_all Ds = map (apfst (reduce Ds))"
 
 fun reduce_all2 :: "'a lclause list \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause list \<times> 'a dclause list" where
   "reduce_all2 _ [] = ([], [])"
 | "reduce_all2 Ds (Ci # Cs) =
    (let
       (C, i) = Ci;
-      C' = reduce Ds [] C
+      C' = reduce Ds C
     in
       (if C' = C then apsnd else apfst) (Cons (C', i)) (reduce_all2 Ds Cs))"
 
@@ -210,7 +217,7 @@ fun deterministic_RP_step :: "'a dstate \<Rightarrow> 'a dstate" where
                 (N, P, Q, n))
          | (C, i) # N \<Rightarrow>
            let
-             C = reduce (map fst (P @ Q)) [] C
+             C = reduce (map fst (P @ Q)) C
            in
              if C = [] then
                ([], [], [([], i)], Suc n)
@@ -245,6 +252,7 @@ proof (induct k arbitrary: St)
     using ih[OF final_Sk] by (subst deterministic_RP.simps) (simp add: prod.case_eq_if)
 qed (subst deterministic_RP.simps, simp add: prod.case_eq_if)
 
+(* FIXME: dead
 lemma is_reducible_lit_mono_cls:
   "mset C \<subseteq># mset C' \<Longrightarrow> is_reducible_lit Ds C L \<Longrightarrow> is_reducible_lit Ds C' L"
   unfolding is_reducible_lit_def by (blast intro: subset_mset.order.trans)
@@ -267,10 +275,14 @@ qed simp
 
 lemma reduce_rotate[simp]: "reduce Ds (C @ [L]) E = reduce Ds (L # C) E"
   by (rule reduce_mset_eq) simp
+*)
 
+(* FIXME: move to Multiset_More
 lemma subset_mset_imp_subset_add_mset: "A \<subseteq># B \<Longrightarrow> A \<subseteq># add_mset x B"
   by (metis add_mset_diff_bothsides diff_subset_eq_self multiset_inter_def subset_mset.inf.absorb2)
+*)
 
+(* FIXME: dead
 lemma mset_reduce_subset: "mset (reduce Ds C E) \<subseteq># mset E"
   by (induct E arbitrary: C) (auto intro: subset_mset_imp_subset_add_mset)
 
@@ -283,6 +295,7 @@ lemma reduce_idem: "reduce Ds C (reduce Ds C E) = reduce Ds C E"
 
 lemma reduce_all_empty[simp]: "reduce_all Ds [] = []"
   unfolding reduce_all_def by simp
+*)
 
 lemma select_min_weight_clause_in: "select_min_weight_clause P0 P \<in> set (P0 # P)"
   by (induct P arbitrary: P0) auto
@@ -983,9 +996,10 @@ proof -
         note step = step[unfolded ci, simplified]
 
         define C' :: "'a lclause" where
-          "C' = reduce (map fst P @ map fst Q) [] C"
+          "C' = reduce (map fst P @ map fst Q) C"
         note step = step[unfolded ci C'_def[symmetric], simplified]
 
+(* FIXME: dead
         have "wstate_of_dstate ((E @ C, i) # N', P, Q, n)
            \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((E @ reduce (map fst P @ map fst Q) E C, i) # N', P, Q, n)" for E
           unfolding C'_def
@@ -1023,9 +1037,11 @@ proof -
               using ih[of "L # E"] by simp
           qed
         qed simp
-        then have red_C:
+        then
+*)
+        have red_C:
           "wstate_of_dstate ((C, i) # N', P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P, Q, n)"
-          unfolding C'_def by (metis self_append_conv2)
+          unfolding C'_def sorry
 
         have proc_C: "wstate_of_dstate ((C', i) # N', P', Q', n')
           \<leadsto>\<^sub>w wstate_of_dstate (N', (C', i) # P', Q', n')" for P' Q' n'

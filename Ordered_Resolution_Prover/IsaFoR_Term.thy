@@ -41,7 +41,7 @@ class weighted =
 instantiation unit :: weighted begin
 
 definition weights_unit :: "unit weights" where "weights_unit =
-  \<lparr>w = Suc o snd, w0 = 1, pr_strict = \<lambda>(_, n) (_, m). n > m, least = \<lambda>_. True, scf = \<lambda>_ _. 1\<rparr>"
+  \<lparr>w = Suc \<circ> snd, w0 = 1, pr_strict = \<lambda>(_, n) (_, m). n > m, least = \<lambda>_. True, scf = \<lambda>_ _. 1\<rparr>"
 
 instance
   by (intro_classes, unfold_locales)
@@ -655,7 +655,7 @@ interpretation compare_linorder: linorder
   by (rule class_linorder_compare)
 
 definition Pairs where
-  "Pairs AAA = concat (compare_linorder.sorted_list_of_set ((pairs o compare_linorder.sorted_list_of_set) ` AAA))"
+  "Pairs AAA = concat (compare_linorder.sorted_list_of_set ((pairs \<circ> compare_linorder.sorted_list_of_set) ` AAA))"
 
 lemma unifies_all_pairs_iff:
   "(\<forall>p \<in> set (pairs xs). fst p \<cdot> \<sigma> = snd p \<cdot> \<sigma>) \<longleftrightarrow> (\<forall>a \<in> set xs. \<forall>b \<in> set xs. a \<cdot> \<sigma> = b \<cdot> \<sigma>)"
