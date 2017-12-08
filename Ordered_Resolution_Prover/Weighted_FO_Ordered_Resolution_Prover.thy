@@ -225,6 +225,9 @@ next
   case (forward_reduction D L' P Q L \<sigma> C N i n)
   then show ?case by auto
 next
+  case (backward_reduction_P D L' N L \<sigma> C P i Q n)
+  then show ?case sorry
+(* FIXME:
   case (backward_reduction_P D L' N C' L P \<sigma> Q n)
   then show ?case
   proof (cases "C = C' + {#L#}")
@@ -258,6 +261,7 @@ next
     then show ?thesis 
       by auto
   qed
+*)
 next
   case (backward_reduction_Q D L' N L \<sigma> C P Q i n)
   then show ?case by auto
