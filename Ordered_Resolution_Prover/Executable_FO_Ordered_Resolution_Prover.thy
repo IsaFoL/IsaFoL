@@ -70,12 +70,6 @@ declare
   substitution_ops.subst_lit_def[code]
   substitution_ops.subst_cls_def[code]
 
-lemma remove1_mset_subset_eq: "remove1_mset a A \<subseteq># B \<longleftrightarrow> A \<subseteq># add_mset a B"
-  by (metis add_mset_add_single subset_eq_diff_conv)
-
-lemma Bex_cong: "(\<And>b. b \<in> B \<Longrightarrow> P b = Q b) \<Longrightarrow> Bex B P = Bex B Q"
-  by auto
-
 lemma is_reducible_on_code[code]: "RP.is_reducible_on M D L C =
   subsumes (mset (- M # D)) (mset (L # C))"
   unfolding RP.is_reducible_on_def by simp
