@@ -550,42 +550,10 @@ coinductive full_chain :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow
 	full_chain_singleton: "(\<forall>y. \<not> R x y) \<Longrightarrow> full_chain R (LCons x LNil)"
 | full_chain_cons: "full_chain R xs \<Longrightarrow> R x (lhd xs) \<Longrightarrow> full_chain R (LCons x xs)"
 
-lemma full_chain_iff_chain:
-  "full_chain R xs \<longleftrightarrow> chain R xs \<and> (lfinite xs \<longrightarrow> (\<forall>y. \<not> R (llast xs) y))"
-proof (intro iffI conjI impI allI; (elim conjE)?)
-  assume full: "full_chain R xs"
-
-  show "chain R xs"
-    apply coinduction
-    using full
-    apply cases
-     apply auto
-    by (smt chain.coinduct full_chain.cases) (* FIXME: odd proof *)
-  {
-    fix y
-    assume "lfinite xs"
-    show "\<not> R (llast xs) y"
-      sorry
-  }
-next
-  assume
-    "chain R xs" and
-    "lfinite xs \<longrightarrow> (\<forall>y. \<not> R (llast xs) y)"
-  show "full_chain R xs"
-    apply coinduction
-    sorry
-qed
-
-lemma full_chain_imp_chain: "full_chain R xs \<Longrightarrow> chain R xs"
-  using full_chain_iff_chain by blast
-
 lemma
   full_chain_LNil[simp]: "\<not> full_chain R LNil" and
   full_chain_not_lnull: "full_chain R xs \<Longrightarrow> \<not> lnull xs"
   by (auto elim: full_chain.cases)
-
-lemma full_chain_length_pos: "full_chain R xs \<Longrightarrow> llength xs > 0"
-  by (fact chain_length_pos[OF full_chain_imp_chain])
 
 lemma full_chain_ldropn:
   assumes full: "full_chain R xs" and "enat n < llength xs"
@@ -593,6 +561,43 @@ lemma full_chain_ldropn:
   using assms
   by (induct n arbitrary: xs, simp,
       metis full_chain.cases ldrop_eSuc_ltl ldropn_LNil ldropn_eq_LNil ltl_simps(2) not_less)
+
+lemma full_chain_iff_chain:
+  "full_chain R xs \<longleftrightarrow> chain R xs \<and> (lfinite xs \<longrightarrow> (\<forall>y. \<not> R (llast xs) y))"
+proof (intro iffI conjI impI allI; (elim conjE)?)
+  assume full: "full_chain R xs"
+
+  show chain: "chain R xs"
+    using full by (coinduction arbitrary: xs) (auto elim: full_chain.cases)
+
+  {
+    fix y
+    assume "lfinite xs"
+    then obtain n where
+      suc_n: "Suc n = llength xs"
+      by (metis chain chain_length_pos lessE less_enatE lfinite_conv_llength_enat)
+
+    have "full_chain R (ldropn n xs)"
+      by (rule full_chain_ldropn[OF full]) (use suc_n Suc_ile_eq in force)
+    moreover have "ldropn n xs = LCons (llast xs) LNil"
+      using suc_n by (metis enat_le_plus_same(2) enat_ord_simps(2) gen_llength_def
+          ldropn_Suc_conv_ldropn ldropn_all lessI llast_ldropn llast_singleton llength_code)
+    ultimately show "\<not> R (llast xs) y"
+      by (auto elim: full_chain.cases)
+  }
+next
+  assume
+    "chain R xs" and
+    "lfinite xs \<longrightarrow> (\<forall>y. \<not> R (llast xs) y)"
+  then show "full_chain R xs"
+    by (coinduction arbitrary: xs) (erule chain.cases, simp, metis lfinite_LConsI llast_LCons)
+qed
+
+lemma full_chain_imp_chain: "full_chain R xs \<Longrightarrow> chain R xs"
+  using full_chain_iff_chain by blast
+
+lemma full_chain_length_pos: "full_chain R xs \<Longrightarrow> llength xs > 0"
+  by (fact chain_length_pos[OF full_chain_imp_chain])
 
 lemma full_chain_lnth_rel:
   "full_chain R xs \<Longrightarrow> enat (Suc j) < llength xs \<Longrightarrow> R (lnth xs j) (lnth xs (Suc j))"
