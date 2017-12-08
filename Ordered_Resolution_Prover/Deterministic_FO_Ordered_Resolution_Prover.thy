@@ -554,14 +554,19 @@ qed simp
 *)
 
 lemma reduce_clause_in_N:
+  assumes "set Ds \<subseteq> set (P @ Q)"
   shows "wstate_of_dstate ((C, i) # N', P, Q, n)
-    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((reduce_from (map fst (take k (P @ Q))) C, i) # N', P, Q, n)"
-proof (induct k arbitrary: C)
-  case ih: (Suc k)
-
-  
+    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((reduce_from (map fst Ds) C, i) # N', P, Q, n)"
+  using assms
+proof (induct Ds arbitrary: C)
+  case (Cons D Ds)
+  note ih = this(1) and dds_sub = this(2)
   show ?case
-    using ih
+    apply (simp only: list.map reduce_from.simps)
+    apply (rule rtranclp_trans)
+    defer
+    apply (rule ih)
+    using dds_sub apply simp
     sorry
 qed simp
 
