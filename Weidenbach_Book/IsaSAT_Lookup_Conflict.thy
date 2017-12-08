@@ -341,7 +341,7 @@ where
 \<open>set_conflict_m M N i _ _ _ =
     SPEC (\<lambda>c. fst c = Some (mset (N!i)) \<and> fst (snd c) = card_max_lvl M (mset (N!i)))\<close>
 
-definition merge_conflict_m
+definition (in isasat_input_ops) merge_conflict_m
   :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> nat clause option \<Rightarrow> nat \<Rightarrow> lbd \<Rightarrow>
   (nat clause option \<times> nat \<times> lbd) nres\<close>
 where
