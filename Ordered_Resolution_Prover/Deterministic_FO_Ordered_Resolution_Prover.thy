@@ -188,13 +188,29 @@ fun select_min_weight_clause :: "'a dclause \<Rightarrow> 'a dclause list \<Righ
    select_min_weight_clause (if weight (apfst mset Dj) < weight (apfst mset Ci) then Dj else Ci)
      Djs"
 
-fun remdups_clss :: "'a dclause list \<Rightarrow> 'a dclause list" where
+lemma select_min_weight_clause_in: "select_min_weight_clause P0 P \<in> set (P0 # P)"
+  by (induct P arbitrary: P0) auto
+
+function remdups_clss :: "'a dclause list \<Rightarrow> 'a dclause list" where
   "remdups_clss [] = []"
 | "remdups_clss (Ci # Cis) =
    (let
       Ci' = select_min_weight_clause Ci Cis
     in
-      Ci' # remdups_clss (filter (\<lambda>(D, _). mset D = mset (fst Ci')) Cis))"
+      Ci' # remdups_clss (filter (\<lambda>(D, _). mset D \<noteq> mset (fst Ci')) (Ci # Cis)))"
+  by pat_completeness auto
+  termination
+    apply (relation "measure length")
+     apply (rule wf_measure)
+    apply auto
+    subgoal for a b Cis aa ba
+      apply (rule length_filter_less)
+       apply (simp_all add: case_prod_beta)
+      using select_min_weight_clause_in[of "(a, b)" Cis]
+      apply auto
+      done
+    using le_imp_less_Suc length_filter_le apply blast
+    done
 
 fun deterministic_RP_step :: "'a dstate \<Rightarrow> 'a dstate" where
   "deterministic_RP_step (N, P, Q, n) =
@@ -278,9 +294,6 @@ qed simp
 
 lemma reduce_rotate[simp]: "reduce Ds (C @ [L]) E = reduce Ds (L # C) E"
   by (rule reduce_mset_eq) simp
-
-lemma select_min_weight_clause_in: "select_min_weight_clause P0 P \<in> set (P0 # P)"
-  by (induct P arbitrary: P0) auto
 
 lemma select_min_weight_clause_min_weight:
   assumes "Ci = select_min_weight_clause P0 P"
@@ -885,10 +898,12 @@ proof -
       let ?P' = "filter (\<lambda>(D, j). mset D \<noteq> mset C) P"
 
       have ms_p'_ci_q_eq: "mset (remdups_clss ?P' @ (C, i) # Q) = mset (remdups_clss P @ Q)"
+        apply (subst (2) p_cons)
+        apply (auto simp: Let_def case_prod_beta)
         sorry
-      have len_p: "length (remdups_clss P) = length (remdups_clss ?P') + 1"
+      then have len_p: "length (remdups_clss P) = length (remdups_clss ?P') + 1"
         by (smt Suc_eq_plus1_left add.assoc add_right_cancel length_Cons length_append
-            ms_p'_ci_q_eq mset_eq_length)
+            mset_eq_length)
       have set_pq: "fst ` set (P @ Q) = fst ` set (?P' @ (C, i) # Q)"
         sorry
         (* FIXME: by (metis (no_types, lifting) ms_p'_ci_q_eq mset_eq_setD set_append set_remdups) *)
