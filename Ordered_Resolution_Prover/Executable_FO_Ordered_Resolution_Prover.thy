@@ -1,9 +1,9 @@
 (*  Title:       An Executable Simple Ordered Resolution Prover for First-Order Clauses
-    Author:      Dmitriy Traytel <TODO>, 2017
+    Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2017
     Maintainer:  Anders Schlichtkrull <andschl at dtu.dk>
 *)
 
-section \<open>An Executable Simple Ordered Resolution Prover for First-Order Clauses\<close>
+section \<open>An Executable Siple Ordered Resolution Prover for First-Order Clauses\<close>
 
 text \<open>
 TODO.
@@ -28,10 +28,12 @@ global_interpretation RP: deterministic_FO_resolution_prover where
   defines deterministic_RP = RP.deterministic_RP
   and deterministic_RP_step = RP.deterministic_RP_step
   and is_final_dstate = RP.is_final_dstate
-  and is_reducible_lit = RP.is_reducible_lit
+  and is_reducible_on = RP.is_reducible_on
   and is_tautology = RP.is_tautology
   and maximal_wrt = RP.maximal_wrt
   and reduce = RP.reduce
+  and reduce_from = RP.reduce_from
+  and reduce_on = RP.reduce_on
   and reduce_all = RP.reduce_all
   and reduce_all2 = RP.reduce_all2
   and resolve = RP.resolve
@@ -74,6 +76,11 @@ lemma remove1_mset_subset_eq: "remove1_mset a A \<subseteq># B \<longleftrightar
 lemma Bex_cong: "(\<And>b. b \<in> B \<Longrightarrow> P b = Q b) \<Longrightarrow> Bex B P = Bex B Q"
   by auto
 
+lemma is_reducible_on_code[code]: "RP.is_reducible_on M D L C =
+  subsumes (mset (- M # D)) (mset (L # C))"
+  unfolding RP.is_reducible_on_def by simp
+
+(*
 lemma is_reducible_lit_code[code]: "RP.is_reducible_lit Ds C L =
   (\<exists>D \<in> set Ds. (\<exists>L' \<in> set D.
      if is_pos L' = is_neg L then
@@ -126,6 +133,7 @@ lemma is_reducible_lit_code[code]: "RP.is_reducible_lit Ds C L =
       by (cases L; cases L'; simp add: subst_lit_def)
     done
   done
+*)
 
 declare
   Pairs_def[folded sorted_list_of_set_def, code]

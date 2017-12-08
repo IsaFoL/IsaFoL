@@ -11,9 +11,9 @@ theory IsaFoR_Term
     Deriving.Derive
     Abstract_Substitution
     "../lib/Explorer" (* FIXME: remove explorer when done *)
-    "$ISAFOR/Normalization_Equivalence/Encompassment" (* Version 7a339721b8c2 *)
+    "QTRS.Encompassment" (* Version 7a339721b8c2 *)
     "./AFP_IsaFoR/Fun_More"
-    "$ISAFOR/Orderings/KBO"
+    "Processors.KBO"
 begin
 
 (* FIXME: Use these once they are moved to AFP:
