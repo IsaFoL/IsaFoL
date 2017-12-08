@@ -531,7 +531,7 @@ lemma literal_is_in_conflict_heur_is_in_conflict_st:
   by (auto simp: literal_is_in_conflict_heur_def is_in_conflict_st_def twl_st_heur_def)
 
 definition (in isasat_input_ops) literal_is_in_conflict_heur_pre where
-  \<open>literal_is_in_conflict_heur_pre = 
+  \<open>literal_is_in_conflict_heur_pre =
     (\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl_heur S)) \<and>
         get_conflict_wl_heur S \<noteq> None)\<close>
 

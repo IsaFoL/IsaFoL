@@ -248,7 +248,7 @@ thm length_ll_fs_heur_def[symmetric]
 lemma unit_propagation_inner_loop_wl_loop_D_heur_cond:
   \<open>unit_propagation_inner_loop_wl_loop_D_heur_inv a s' \<Longrightarrow>  s' = (a1', a2') \<Longrightarrow>
        nat_of_lit a < length (get_watched_wl_heur a2')\<close>
-  by (auto simp: unit_propagation_inner_loop_wl_loop_D_heur_inv_def 
+  by (auto simp: unit_propagation_inner_loop_wl_loop_D_heur_inv_def
       twl_st_heur_def map_fun_rel_def)
 
 sepref_thm unit_propagation_inner_loop_wl_loop_D

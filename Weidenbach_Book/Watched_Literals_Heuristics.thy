@@ -1396,7 +1396,7 @@ lemma lit_and_ann_of_propagated_st_heur_lit_and_ann_of_propagated_st:
 lemma twl_st_heur_lit_and_ann_of_propagated_st_heur_lit_and_ann_of_propagated_st:
   \<open>(x, y) \<in> twl_st_heur \<Longrightarrow> is_proped (hd (get_trail_wl y)) \<Longrightarrow>
     lit_and_ann_of_propagated_st_heur x = lit_and_ann_of_propagated_st y\<close>
-  by (cases \<open>hd (get_trail_wl y)\<close>) 
+  by (cases \<open>hd (get_trail_wl y)\<close>)
     (auto simp: twl_st_heur_def lit_and_ann_of_propagated_st_heur_def
       lit_and_ann_of_propagated_st_def)
 
@@ -1406,7 +1406,7 @@ lemma skip_and_resolve_hd_in_D\<^sub>0:
     is_proped: \<open>is_proped (hd (get_trail_wl a2'))\<close> and
     struct: \<open>twl_struct_invs (twl_st_of None (st_l_of_wl None a2'))\<close> and
     nempty: \<open>get_trail_wl a2' \<noteq> []\<close> and
-    \<L>\<^sub>a\<^sub>l\<^sub>l: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm 
+    \<L>\<^sub>a\<^sub>l\<^sub>l: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm
        (cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None (st_l_of_wl None a2')))))\<close>
    shows \<open>- L \<in> snd ` D\<^sub>0\<close>
 proof -
@@ -1426,7 +1426,7 @@ qed
 
 
 definition (in isasat_input_ops) tl_state_wl_heur_pre where
-  \<open>tl_state_wl_heur_pre = 
+  \<open>tl_state_wl_heur_pre =
       (\<lambda>(M, N, U, D, WS, Q, ((A, m, fst_As, lst_As, next_search), _), \<phi>, _). M \<noteq> [] \<and>
          atm_of (lit_of (hd M)) < length \<phi> \<and>
          atm_of (lit_of (hd M)) < length A \<and> (next_search \<noteq> None \<longrightarrow>  the next_search < length A))\<close>
@@ -1499,7 +1499,7 @@ definition (in isasat_input_ops) tl_state_wl_pre where
     distinct_mset (the (get_conflict_wl S)) \<and>
     \<not>is_decided (hd (get_trail_wl S)))\<close>
 
-lemma tl_state_wl_heur_tl_state_wl: 
+lemma tl_state_wl_heur_tl_state_wl:
   \<open>(RETURN o tl_state_wl_heur, RETURN o tl_state_wl) \<in>
   [tl_state_wl_pre]\<^sub>f twl_st_heur \<rightarrow> \<langle>twl_st_heur\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
@@ -2002,11 +2002,11 @@ definition (in isasat_input_ops) skip_and_resolve_loop_wl_D_inv where
 
 definition (in isasat_input_ops) skip_and_resolve_loop_wl_D_heur_inv where
  \<open>skip_and_resolve_loop_wl_D_heur_inv S\<^sub>0' =
-    (\<lambda>(brk, S'). \<exists>S S\<^sub>0. (S', S) \<in> twl_st_heur \<and> (S\<^sub>0', S\<^sub>0) \<in> twl_st_heur \<and> 
+    (\<lambda>(brk, S'). \<exists>S S\<^sub>0. (S', S) \<in> twl_st_heur \<and> (S\<^sub>0', S\<^sub>0) \<in> twl_st_heur \<and>
       skip_and_resolve_loop_wl_D_inv S\<^sub>0 (brk, S))\<close>
 
 definition  (in isasat_input_ops) update_confl_tl_wl_heur_pre where
-\<open>update_confl_tl_wl_heur_pre = 
+\<open>update_confl_tl_wl_heur_pre =
   (\<lambda>((i, L), (M, N, U, D, W, Q, ((A, m, fst_As, lst_As, next_search), _), \<phi>, clvls, cach)).
       (i > 0 \<longrightarrow> distinct (N ! i)) \<and>
       (i > 0 \<longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N! i))) \<and>
@@ -2093,7 +2093,7 @@ lemma skip_and_resolve_loop_wl_D_heur_skip_and_resolve_loop_wl_D:
   \<open>(skip_and_resolve_loop_wl_D_heur, skip_and_resolve_loop_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
 proof -
   have tl_state_wl_pre: \<open>tl_state_wl_pre x2\<close>
-    if 
+    if
       \<open>skip_and_resolve_loop_wl_D_inv y (False, x2)\<close> and
       hd_trail: \<open>lit_and_ann_of_propagated (hd (get_trail_wl x2)) = (x1c, x2c)\<close> and
       notin: \<open>- x1c \<notin># the (get_conflict_wl x2)\<close> and
@@ -2154,14 +2154,14 @@ proof -
       by (cases \<open>get_trail_wl x2\<close>; cases \<open>hd (get_trail_wl x2)\<close>) auto
   qed
   have update_confl_tl_wl_pre: \<open>update_confl_tl_wl_pre ((x2a, x1a), x2)\<close>
-    if 
+    if
       \<open>(x, y) \<in> twl_st_heur\<close> and
       \<open>skip_and_resolve_loop_wl_D_inv y x'\<close> and
       hd_tr: \<open>lit_and_ann_of_propagated (hd (get_trail_wl x2)) = (x1a, x2a)\<close> and
       \<open>x' = (x1, x2)\<close> and
       dec: \<open>\<not> x1 \<and> \<not> is_decided (hd (get_trail_wl x2))\<close> and
       in_confl: \<open>\<not> - x1a \<notin># the (get_conflict_wl x2)\<close>
-    for x y x' x1 x2 x1a x2a  
+    for x y x' x1 x2 x1a x2a
   proof -
     have
       lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n x2\<close> and
@@ -2183,7 +2183,7 @@ proof -
       using nempty by (cases \<open>get_trail_wl x2\<close>) (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons)
     then have [simp]: \<open>x1a \<in> snd ` D\<^sub>0\<close> \<open>is_proped (hd (get_trail_wl x2))\<close>
       using nempty hd_tr dec
-      by (cases \<open>get_trail_wl x2\<close>; cases \<open>hd (get_trail_wl x2)\<close>; 
+      by (cases \<open>get_trail_wl x2\<close>; cases \<open>hd (get_trail_wl x2)\<close>;
           auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons; fail)+
     have [simp]: \<open>x2a < length (get_clauses_wl x2)\<close>
       using invs(3) nempty hd_tr dec unfolding twl_list_invs_def
@@ -2224,8 +2224,8 @@ proof -
       by (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_trail)
     then have lit_hd: \<open>lit_of (hd (get_trail_wl x2)) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
       using nempty by (cases \<open>get_trail_wl x2\<close>) (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons)
-    have 
-      vmtf: \<open>((A, m, fst_As, lst_As, next_search), q) \<in> vmtf M\<close> and 
+    have
+      vmtf: \<open>((A, m, fst_As, lst_As, next_search), q) \<in> vmtf M\<close> and
       \<phi>: \<open>phase_saving \<phi>\<close> and
       [simp]: \<open>get_trail_wl x2 = M\<close>
       using rel unfolding x2b st twl_st_heur_def
@@ -2278,14 +2278,14 @@ proof -
       by (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_trail)
     then have lit_hd: \<open>lit_of (hd (get_trail_wl x2)) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
       using nempty by (cases \<open>get_trail_wl x2\<close>) (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons)
-    then have [simp]: \<open>-x1a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> 
+    then have [simp]: \<open>-x1a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
       using nempty hd_tr dec
-      by (cases \<open>get_trail_wl x2\<close>; cases \<open>hd (get_trail_wl x2)\<close>; 
+      by (cases \<open>get_trail_wl x2\<close>; cases \<open>hd (get_trail_wl x2)\<close>;
           auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons image_image
           lit_and_ann_of_propagated_st_heur_def uminus_\<A>\<^sub>i\<^sub>n_iff; fail)+
     then have \<open>x1c = x1a\<close>
       using nempty hd_tr dec hd_tr' heur
-      by (cases \<open>get_trail_wl x2\<close>; cases \<open>hd (get_trail_wl x2)\<close>; 
+      by (cases \<open>get_trail_wl x2\<close>; cases \<open>hd (get_trail_wl x2)\<close>;
           auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons image_image
           lit_and_ann_of_propagated_st_heur_def twl_st_heur_def)
     then show ?thesis
@@ -2336,18 +2336,18 @@ proof -
       by (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_trail)
     then have lit_hd: \<open>lit_of (hd (get_trail_wl x2)) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
       using nempty by (cases \<open>get_trail_wl x2\<close>) (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons)
-    then have [simp]: \<open>-x1a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> \<open>x1a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> 
+    then have [simp]: \<open>-x1a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> \<open>x1a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
       using nempty hd_tr dec
-      by (cases \<open>get_trail_wl x2\<close>; cases \<open>hd (get_trail_wl x2)\<close>; 
+      by (cases \<open>get_trail_wl x2\<close>; cases \<open>hd (get_trail_wl x2)\<close>;
           auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons image_image
           lit_and_ann_of_propagated_st_heur_def uminus_\<A>\<^sub>i\<^sub>n_iff; fail)+
     have [simp]: \<open>x1c = x1a\<close> \<open>x2c = x2a\<close>
       using nempty hd_tr dec hd_tr' heur
-      by (cases \<open>get_trail_wl x2\<close>; cases \<open>hd (get_trail_wl x2)\<close>; 
+      by (cases \<open>get_trail_wl x2\<close>; cases \<open>hd (get_trail_wl x2)\<close>;
           auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons image_image
           lit_and_ann_of_propagated_st_heur_def twl_st_heur_def; fail)+
-    have 
-      vmtf: \<open>((A, m, fst_As, lst_As, next_search), q) \<in> vmtf M\<close> and 
+    have
+      vmtf: \<open>((A, m, fst_As, lst_As, next_search), q) \<in> vmtf M\<close> and
       \<phi>: \<open>phase_saving \<phi>\<close> and
       [simp]: \<open>get_trail_wl x2 = M\<close> and
       [simp]: \<open>M \<noteq> []\<close>
@@ -2357,7 +2357,7 @@ proof -
     have [simp]: \<open>get_conflict_wl x2 = D\<close> \<open>get_clauses_wl x2 = N\<close> \<open>get_trail_wl x2 = M\<close>
       using heur unfolding twl_list_invs_def
       by (auto simp: twl_st_heur_def x2b; fail)+
-         
+
     have C_le: \<open>x2a < length N\<close>
       using nempty hd_tr dec invs(3) heur unfolding twl_list_invs_def
       by (cases M; cases \<open>hd M\<close>; auto simp: twl_st_heur_def x2b; fail)+
