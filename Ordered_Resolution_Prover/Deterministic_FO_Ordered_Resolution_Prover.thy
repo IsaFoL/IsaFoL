@@ -1485,12 +1485,9 @@ proof (rule ccontr)
       using k_lt emp_in by blast
   qed
   have "deterministic_RP St0 \<noteq> None"
-    sorry
-(* FIXME:
-    by (rule is_final_dstate_funpow_imp_deterministic_RP_neq_None[of k],
+    by (rule is_final_dstate_funpow_imp_deterministic_RP_neq_None[of "Suc k"],
         cases "(deterministic_RP_step ^^ k) St0",
-        use emp_in in \<open>force simp: is_final_dstate.simps comp_def image_def\<close>)
-*)
+        use emp_in in \<open>force simp: deterministic_RP_step.simps is_final_dstate.simps\<close>)
   then show False
     using drp_none ..
 qed
