@@ -1185,6 +1185,7 @@ abbreviation grounded_N0 where
 abbreviation grounded_R :: "'a clause set" where
   "grounded_R \<equiv> grounding_of_clss (set (map mset R))"
 
+(* FIXME: generalize *)
 primcorec derivation_from :: "'a dstate \<Rightarrow> 'a dstate llist" where
   "derivation_from St =
    LCons St (if is_final_dstate St then LNil else derivation_from (deterministic_RP_step St))"
@@ -1197,19 +1198,21 @@ abbreviation gSts :: "'a wstate llist" where
 
 lemma full_deriv_gSts_trancl_weighted_RP: "full_chain (op \<leadsto>\<^sub>w\<^sup>+) gSts"
 proof -
-  have "Sts' = derivation_from St0' \<Longrightarrow> chain (op \<leadsto>\<^sub>w\<^sup>+) (lmap wstate_of_dstate Sts')" for St0' Sts'
-  proof (coinduction arbitrary: St0' Sts' rule: chain.coinduct)
-    case chain
-    note sts' = this
+  have "Sts' = derivation_from St0' \<Longrightarrow> full_chain (op \<leadsto>\<^sub>w\<^sup>+) (lmap wstate_of_dstate Sts')"
+    for St0' Sts'
+  proof (coinduction arbitrary: St0' Sts' rule: full_chain.coinduct)
+    case sts': full_chain
     show ?case
     proof (cases "is_final_dstate St0'")
       case True
       then have "ltl (lmap wstate_of_dstate Sts') = LNil"
-        unfolding chain by simp
-      then have "\<exists>St'. lmap wstate_of_dstate Sts' = LCons St' LNil"
-        by (metis chain derivation_from.disc_iff lhd_LCons_ltl llist.map_disc_iff)
-      then show ?thesis
-        by blast
+        unfolding sts' by simp
+      then have "lmap wstate_of_dstate Sts' = LCons (wstate_of_dstate St0') LNil"
+        unfolding sts' by (subst derivation_from.code, subst (asm) derivation_from.code, auto)
+      moreover have "\<And>St''. \<not> wstate_of_dstate St0' \<leadsto>\<^sub>w St''"
+        sorry
+      ultimately show ?thesis
+        by (meson tranclpD)
     next
       case nfinal: False
       have "lmap wstate_of_dstate Sts' =
@@ -1225,8 +1228,7 @@ proof -
     qed
   qed
   then show ?thesis
-    sorry
-(* FIXME:    by blast *)
+    by blast
 qed
 
 lemmas deriv_gSts_trancl_weighted_RP = full_chain_imp_chain[OF full_deriv_gSts_trancl_weighted_RP]
