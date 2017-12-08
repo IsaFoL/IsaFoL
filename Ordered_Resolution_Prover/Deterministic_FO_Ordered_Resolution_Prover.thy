@@ -875,9 +875,9 @@ proof -
       have ms_p'_ci_q_eq: "mset (remdups ?P' @ (C, i) # Q) = mset (remdups P @ Q)"
         sorry
       have len_p: "length (remdups P) = length (remdups ?P') + 1"
-        sorry
+        by (smt Suc_eq_plus1_left add.assoc add_right_cancel length_Cons length_append ms_p'_ci_q_eq mset_eq_length)
       have set_pq: "fst ` set (P @ Q) = fst ` set (?P' @ (C, i) # Q)"
-        sorry
+        by (metis (no_types, lifting) ms_p'_ci_q_eq mset_eq_setD set_append set_remdups)
 
       have "wstate_of_dstate (N, P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], P, Q, n)"
         by (rule empty_N_if_Nil_in_P_or_Q[OF nil_in'])
