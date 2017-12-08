@@ -11,6 +11,11 @@ fun (in -) get_watched_wl :: \<open>nat twl_st_wl \<Rightarrow> (nat literal \<R
 fun (in -) get_watched_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat list list\<close> where
   \<open>get_watched_wl_heur (_, _, _, _, _, W, _) = W\<close>
 
+fun literals_to_update_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat lit_queue_wl\<close> where
+  \<open>literals_to_update_wl_heur (M, N, U, D, Q, W, _, _)  = Q\<close>
+
+fun set_literals_to_update_wl_heur :: \<open>nat lit_queue_wl \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
+  \<open>set_literals_to_update_wl_heur Q (M, N, U, D, _, W') = (M, N, U, D, Q, W')\<close>
 
 definition watched_by_app_heur_pre where
   \<open>watched_by_app_heur_pre = (\<lambda>((S, L), K). nat_of_lit L < length (get_watched_wl_heur S) \<and>
@@ -646,12 +651,23 @@ lemma twl_st_heur_state_simp:
   assumes \<open>(S, S') \<in> twl_st_heur\<close>
   shows
      \<open>get_clauses_wl_heur S = get_clauses_wl S'\<close>
-     \<open>get_trail_wl_heur S = get_trail_wl S'\<close>
-     \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> watched_by_int S C = watched_by S' C\<close>
+     \<open>get_trail_wl_heur S = get_trail_wl S'\<close> and
+     twl_st_heur_state_simp_watched: \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> watched_by_int S C = watched_by S' C\<close> and
+     \<open>get_conflict_wl_heur S = get_conflict_wl S'\<close> and
+     \<open>literals_to_update_wl_heur S = literals_to_update_wl S'\<close>
   using assms unfolding twl_st_heur_def by (auto simp: map_fun_rel_def)
 
+lemma twl_st_heur_literals_are_in_\<L>\<^sub>i\<^sub>n_heur:
+  assumes \<open>literals_are_\<L>\<^sub>i\<^sub>n S'\<close> and \<open>(S, S') \<in> twl_st_heur\<close> and
+  \<open>twl_struct_invs (twl_st_of_wl b S')\<close>
+  shows
+    \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur S\<close>
+  using assms
+  using literals_are_\<L>\<^sub>i\<^sub>n_clauses_literals_are_in_\<L>\<^sub>i\<^sub>n[of S' b]
+  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_heur_def clauses_twl_st_of_wl twl_st_heur_state_simp
+    simp del: twl_st_of_wl.simps)
 
-
+  find_theorems is_\<L>\<^sub>a\<^sub>l\<^sub>l  literals_are_in_\<L>\<^sub>i\<^sub>n_mm
 ML \<open>
 signature MORE_REFINEMENT = sig
   val down_converse: Proof.context -> thm -> thm
@@ -687,21 +703,34 @@ lemma set_conflict_wl_heur_set_conflict_wl':
         set_conflict_m_def
       intro!: RES_refine)
 
-lemma (in -)split_in_curry:
+lemma (in -)fref_to_Down:
+  \<open>(f, g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x'. P x' \<Longrightarrow> (x, x') \<in> A \<Longrightarrow> f x \<le> \<Down> B (g x'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma (in -)fref_to_Down_curry:
   \<open>(uncurry f, uncurry g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x' y y'. P (x', y') \<Longrightarrow> ((x, y), (x', y')) \<in> A \<Longrightarrow> f x y \<le> \<Down> B (g x' y'))\<close>
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
-lemma (in -)split_in_curry2:
+lemma (in -)fref_to_Down_curry2:
   \<open>(uncurry2 f, uncurry2 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x' y y' z z'. P ((x', y'), z') \<Longrightarrow> (((x, y), z), ((x', y'), z')) \<in> A\<Longrightarrow>
          f x y z \<le> \<Down> B (g x' y' z'))\<close>
-  for f g :: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c \<Rightarrow> 'd nres\<close>
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
-lemma (in -)split_in_curry3:
+lemma (in -)fref_to_Down_curry2':
+  \<open>(uncurry2 f, uncurry2 g) \<in> A \<rightarrow>\<^sub>f \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y' z z'. (((x, y), z), ((x', y'), z')) \<in> A \<Longrightarrow>
+         f x y z \<le> \<Down> B (g x' y' z'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+
+lemma (in -)fref_to_Down_curry3:
   \<open>(uncurry3 f, uncurry3 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x' y y' z z' a a'. P (((x', y'), z'), a') \<Longrightarrow>
         ((((x, y), z), a), (((x', y'), z'), a')) \<in> A \<Longrightarrow>
@@ -709,7 +738,7 @@ lemma (in -)split_in_curry3:
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
-lemma (in -)split_in_curry4:
+lemma (in -)fref_to_Down_curry4:
   \<open>(uncurry4 f, uncurry4 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x' y y' z z' a a' b b'. P ((((x', y'), z'), a'), b') \<Longrightarrow>
         (((((x, y), z), a), b), ((((x', y'), z'), a'), b')) \<in> A \<Longrightarrow>
@@ -717,7 +746,7 @@ lemma (in -)split_in_curry4:
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
-lemma (in -)split_in_curry5:
+lemma (in -)fref_to_Down_curry5:
   \<open>(uncurry5 f, uncurry5 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x' y y' z z' a a' b b' c c'. P (((((x', y'), z'), a'), b'), c') \<Longrightarrow>
         ((((((x, y), z), a), b), c), (((((x', y'), z'), a'), b'), c')) \<in> A \<Longrightarrow>
@@ -770,24 +799,227 @@ proof -
     x1b = (x1c, x2b) \<Longrightarrow>
     x = (x1b, x2c) \<Longrightarrow>
     unit_prop_body_wl_D_inv x2a x2 x1a \<Longrightarrow>
-    access_lit_in_clauses_heur_pre
-     ((x2c, watched_by_int x2c x1c ! x2b),
-      1 -
-      (if get_clauses_wl_heur x2c !
-          (watched_by_int x2c x1c ! x2b) !
-          0 =
-          x1c
-       then 0 else 1))\<close>
-    for x y x1 x1a x2 x2a x1b x1c x2b x2c 
+    access_lit_in_clauses_heur_pre ((x2c, watched_by_int x2c x1c ! x2b),
+      1 - (if get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) ! 0 = x1c then 0 else 1))\<close>
+    for x y x1 x1a x2 x2a x1b x1c x2b x2c
     using twl_struct_invs_length_clause_ge_2'[of \<open>(Some (x1c, x2))\<close> x2a \<open>(watched_by x2a x1c ! x2)\<close>]
     by (auto simp: access_lit_in_clauses_heur_pre_def
         unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
         twl_st_heur_state_simp twl_list_invs_def length_rll_def
         simp del: twl_st_of_wl.simps get_clauses_wl.simps)
-  note find_unw = find_unwatched_wl_st_heur_find_unwatched_wl_s[THEN split_in_curry]
-      set_conflict_wl_heur_set_conflict_wl'[THEN split_in_curry, unfolded comp_def]
-      propagate_lit_wl_heur_propagate_lit_wl[THEN split_in_curry3, unfolded comp_def]
-      update_clause_wl_heur_update_clause_wl[THEN split_in_curry5, unfolded comp_def]
+  have in_D0: \<open>x2d \<in> snd ` D\<^sub>0\<close>
+  if
+    \<open>(x, y) \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur\<close> and
+    \<open>x1 = (x1a, x2)\<close> and
+    \<open>y = (x1, x2a)\<close> and
+    \<open>x1b = (x1c, x2b)\<close> and
+    \<open>x = (x1b, x2c)\<close> and
+    inv': \<open>unit_prop_body_wl_D_inv x2a x2 x1a\<close> and
+    \<open>unit_prop_body_wl_heur_inv x2c x2b x1c\<close> and
+    \<open>(x2c,
+      get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) !
+      (1 - (if get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) ! 0 =
+               x1c
+            then 0 else 1))) =
+     (x1d, x2d)\<close>
+    for x y x1 x1a x2 x2a x1b x1c x2b x2c x1d x2d
+  proof -
+    show ?thesis
+     using unit_prop_body_wl_D_invD(5-6)[OF inv'] that
+     by (auto simp: image_image twl_st_heur_def map_fun_rel_def watched_by_app_def)
+  qed
+  have find_unwatched_wl_st_heur_pre:
+    \<open>find_unwatched_wl_st_heur_pre (x2c, watched_by_int x2c x1c ! x2b)\<close>
+  if
+    xy: \<open>(x, y) \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur\<close> and
+    st:
+      \<open>x1 = (x1a, x2)\<close>
+      \<open>y = (x1, x2a)\<close>
+      \<open>x1b = (x1c, x2b)\<close>
+      \<open>x = (x1b, x2c)\<close> and
+    inv': \<open>unit_prop_body_wl_D_inv x2a x2 x1a\<close>
+  for x y x1 x1a x2 x2a x1b x1c x2b x2c
+  proof -
+    have [simp]: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur x2c\<close> and
+       heur: \<open>(x2c, x2a) \<in> twl_st_heur\<close>
+      apply (rule twl_st_heur_literals_are_in_\<L>\<^sub>i\<^sub>n_heur[of x2a _ \<open>Some (x1c, x2)\<close>])
+      using inv' xy unfolding st
+      by (auto simp: unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
+        simp del: twl_st_of_wl.simps)
+
+    show ?thesis
+      using unit_prop_body_wl_D_invD[OF inv'] that heur
+      unfolding find_unwatched_wl_st_heur_pre_def watched_by_app_def
+      by (simp add: twl_st_heur_state_simp image_image
+          twl_st_heur_state_simp_watched[OF heur])
+  qed
+  have set_conflict_wl_heur_pre: \<open>set_conflict_wl_heur_pre (watched_by_int x2c x1c ! x2b, x2c)\<close>
+    if
+      xy: \<open>(x, y) \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur\<close> and
+      st:
+      \<open>x1 = (x1a, x2)\<close>
+      \<open>y = (x1, x2a)\<close>
+      \<open>x1b = (x1c, x2b)\<close>
+      \<open>x = (x1b, x2c)\<close> and
+      inv': \<open>unit_prop_body_wl_D_inv x2a x2 x1a\<close> and
+      \<open>unit_prop_body_wl_heur_inv x2c x2b x1c\<close> and
+      find_unw: \<open>find_unwatched_wl_st_heur_pre (x2c, watched_by_int x2c x1c ! x2b)\<close> and
+      \<open>(f, fa) \<in> Id\<close> and
+      find_unw': \<open>unit_prop_body_wl_D_find_unwatched_inv fa (watched_by x2a x1a ! x2)
+      x2a\<close> and
+      f: \<open>f = None\<close> \<open>fa = None\<close> and
+      pol: \<open>polarity (get_trail_wl_heur x2c)
+      (get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) !
+       (1 - (if get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) ! 0 =
+                x1c
+             then 0 else 1))) =
+     Some False\<close>
+      \<open>polarity (get_trail_wl x2a)
+      (get_clauses_wl x2a ! (watched_by x2a x1a ! x2) !
+       (1 - (if get_clauses_wl x2a ! (watched_by x2a x1a ! x2) ! 0 = x1a then 0
+             else 1))) =
+     Some False\<close>
+    for x y x1 x1a x2 x2a x1b x1c x2b x2c f fa
+  proof -
+    have [simp]: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur x2c\<close> and
+       heur: \<open>(x2c, x2a) \<in> twl_st_heur\<close> and
+       lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n x2a\<close> and
+       struct_invs: \<open>twl_struct_invs (twl_st_of_wl (Some (x1c, x2)) x2a)\<close>
+      apply (rule twl_st_heur_literals_are_in_\<L>\<^sub>i\<^sub>n_heur[of x2a _ \<open>Some (x1c, x2)\<close>])
+      using inv' xy unfolding st
+      by (auto simp: unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
+        simp del: twl_st_of_wl.simps)
+    have [simp]: \<open>x1c \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> \<open>get_conflict_wl x2a = None\<close>
+      using inv' xy unfolding st
+      by (auto simp: unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
+        simp del: twl_st_of_wl.simps)
+    have \<open>\<not> tautology (mset (get_clauses_wl x2a ! watched_by_app x2a x1a x2))\<close>
+      apply (rule find_unwatched_not_tauto[OF _ inv'])
+      using that by (auto simp: twl_st_heur_state_simp_watched[OF heur]
+        watched_by_app_def access_lit_in_clauses_def polarity_st_def split: if_splits)
+    moreover have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl x2a)\<close>
+      by (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_trail[OF lits struct_invs])
+    moreover have \<open>no_dup (get_trail_wl x2a)\<close>
+      using xy by (auto simp: st twl_st_heur_def)
+    ultimately  show ?thesis
+      using heur unit_prop_body_wl_D_invD[OF inv']  that
+      unfolding set_conflict_wl_heur_pre_def find_unwatched_wl_st_heur_pre_def
+      by (auto simp: twl_st_heur_state_simp twl_st_heur_state_simp_watched[OF heur]
+        watched_by_app_def)
+  qed
+  have propagate_lit_wl_heur_pre: \<open>propagate_lit_wl_heur_pre
+       (((get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) !
+          (1 -
+           (if get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) !
+               0 =
+               x1c
+            then 0 else 1)),
+          watched_by_int x2c x1c ! x2b),
+         if get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) !
+            0 =
+            x1c
+         then 0 else 1),
+        x2c)\<close>
+    if
+      xy: \<open>(x, y) \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur\<close> and
+      st: \<open>x1 = (x1a, x2)\<close>
+        \<open>y = (x1, x2a)\<close>
+        \<open>x1b = (x1c, x2b)\<close>
+        \<open>x = (x1b, x2c)\<close> and
+      inv': \<open>unit_prop_body_wl_D_inv x2a x2 x1a\<close> and
+      \<open>polarity_st_pre
+      (x2c,
+       get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) !
+       (1 -
+        (if get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) !
+            0 =
+            x1c
+         then 0 else 1)))\<close> and
+      \<open>polarity (get_trail_wl_heur x2c)
+      (get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) !
+       (1 -
+        (if get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) !
+            0 =
+            x1c
+         then 0 else 1))) \<noteq>
+     Some True\<close> and
+    \<open>polarity (get_trail_wl_heur x2c)
+      (get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) !
+       (1 -
+        (if get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) !
+            0 =
+            x1c
+         then 0 else 1))) \<noteq>
+     Some False\<close>
+    for x y x1 x1a x2 x2a x1b x1c x2b x2c
+  proof -
+    have [simp]: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur x2c\<close> and
+       heur: \<open>(x2c, x2a) \<in> twl_st_heur\<close> and
+       lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n x2a\<close> and
+       struct_invs: \<open>twl_struct_invs (twl_st_of_wl (Some (x1c, x2)) x2a)\<close>
+      apply (rule twl_st_heur_literals_are_in_\<L>\<^sub>i\<^sub>n_heur[of x2a _ \<open>Some (x1c, x2)\<close>])
+      using inv' xy unfolding st
+      by (auto simp: unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
+        simp del: twl_st_of_wl.simps)
+    show ?thesis
+      using heur unit_prop_body_wl_D_invD[OF inv'] that
+      unfolding propagate_lit_wl_heur_pre_def
+      by (auto simp: twl_st_heur_state_simp twl_st_heur_state_simp_watched[OF heur]
+        watched_by_app_def polarity_def split: if_splits)
+  qed
+  have update_clause_wl_code_pre:
+     \<open>update_clause_wl_code_pre (((((x1c, watched_by_int x2c x1c ! x2b), x2b),
+        if get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) ! 0 = x1c
+          then 0 else 1), k), x2c)\<close>
+    if
+      xy: \<open>(x, y) \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur\<close> and
+      st:
+        \<open>x1 = (x1a, x2)\<close>
+        \<open>y = (x1, x2a)\<close>
+        \<open>x1b = (x1c, x2b)\<close>
+        \<open>x = (x1b, x2c)\<close> and
+      inv': \<open>unit_prop_body_wl_D_inv x2a x2 x1a\<close> and
+      \<open>(f, fa) \<in> Id\<close> and
+      unw: \<open>unit_prop_body_wl_D_find_unwatched_inv fa (watched_by x2a x1a ! x2) x2a\<close> and
+      f: \<open>f = Some k\<close> \<open>fa = Some k'\<close>
+    for x y x1 x1a x2 x2a x1b x1c x2b x2c f fa k k'
+  proof -
+   have [simp]: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_heur x2c\<close> and
+       heur: \<open>(x2c, x2a) \<in> twl_st_heur\<close> and
+       lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n x2a\<close> and
+       struct_invs: \<open>twl_struct_invs (twl_st_of_wl (Some (x1c, x2)) x2a)\<close>
+      apply (rule twl_st_heur_literals_are_in_\<L>\<^sub>i\<^sub>n_heur[of x2a _ \<open>Some (x1c, x2)\<close>])
+      using inv' xy unfolding st
+      by (auto simp: unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
+        simp del: twl_st_of_wl.simps)
+    have \<open>x1a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+      using heur unit_prop_body_wl_D_invD[OF inv']
+      by (auto simp: twl_st_heur_state_simp twl_st_heur_state_simp_watched[OF heur]
+        watched_by_app_def)
+    have [intro!]: \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<Longrightarrow> nat_of_lit L < length (get_watched_wl_heur x2c)\<close> for L
+      using heur
+      by (auto simp: twl_st_heur_def map_fun_rel_def)
+    have [simp]: \<open>x2 < length (get_watched_wl_heur x2c ! nat_of_lit x1a)\<close>
+      using heur unit_prop_body_wl_D_invD(1,7)[OF inv']
+      by (auto simp: twl_st_heur_def map_fun_rel_def)
+    have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset (get_clauses_wl x2a ! (watched_by x2a x1a ! x2)))\<close>
+      using unit_prop_body_wl_D_invD(11)[OF inv'] unfolding watched_by_app_def .
+    then have [simp]: \<open>get_clauses_wl x2a ! (watched_by x2a x1a ! x2) ! k' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+      apply (rule literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l)
+      using heur unw f
+      unfolding update_clause_wl_code_pre_def unit_prop_body_wl_D_find_unwatched_inv_def
+      by (auto simp: twl_st_heur_state_simp twl_st_heur_state_simp_watched[OF heur]
+        watched_by_app_def)
+    show ?thesis
+      using heur unit_prop_body_wl_D_invD[OF inv'] that
+      unfolding update_clause_wl_code_pre_def unit_prop_body_wl_D_find_unwatched_inv_def
+      by (auto simp: twl_st_heur_state_simp twl_st_heur_state_simp_watched[OF heur]
+        watched_by_app_def)
+  qed
+  note find_unw = find_unwatched_wl_st_heur_find_unwatched_wl_s[THEN fref_to_Down_curry]
+      set_conflict_wl_heur_set_conflict_wl'[THEN fref_to_Down_curry, unfolded comp_def]
+      propagate_lit_wl_heur_propagate_lit_wl[THEN fref_to_Down_curry3, unfolded comp_def]
+      update_clause_wl_heur_update_clause_wl[THEN fref_to_Down_curry5, unfolded comp_def]
   show ?thesis
     supply [[goals_limit=1]]
     apply (intro frefI nres_relI)
@@ -796,15 +1028,14 @@ proof -
       watched_by_app_heur_def access_lit_in_clauses_heur_def
     unfolding set_conflict_wl'_alt_def[symmetric]
     apply (refine_rcg find_unw)
-    subgoal
-      unfolding unit_prop_body_wl_heur_inv_def by fastforce
+    subgoal unfolding unit_prop_body_wl_heur_inv_def by fastforce
     subgoal by (rule watched_by_app_heur_pre)
     subgoal by (rule access_lit_in_clauses_heur_pre)
     subgoal by (rule access_lit_in_clauses_heur_pre2)
-    subgoal sorry
+    subgoal by (rule in_D0)
     subgoal by (auto simp: twl_st_heur_state_simp)
     subgoal by auto
-    subgoal sorry
+    subgoal by (rule find_unwatched_wl_st_heur_pre)
     subgoal by (auto simp: twl_st_heur_state_simp unit_prop_body_wl_D_inv_def
           unit_prop_body_wl_inv_def)
     subgoal by (auto simp: twl_st_heur_state_simp unit_prop_body_wl_D_inv_def
@@ -822,21 +1053,164 @@ proof -
       by (rule exI[of _ x2a])
          (auto simp: twl_st_heur_state_simp)
     subgoal by (auto simp: twl_st_heur_state_simp)
-    subgoal sorry
+    subgoal by (rule set_conflict_wl_heur_pre)
     subgoal by (auto simp: twl_st_heur_state_simp)
     subgoal by (auto simp: twl_st_heur_state_simp)
-    subgoal sorry
+    subgoal by (rule propagate_lit_wl_heur_pre)
     subgoal by (auto simp: twl_st_heur_state_simp split: if_splits dest!: pol_undef)
     subgoal by (auto simp: twl_st_heur_state_simp unit_prop_body_wl_D_inv_def
           unit_prop_body_wl_inv_def)
     subgoal by (auto simp: twl_st_heur_state_simp)
     subgoal by (auto simp: twl_st_heur_state_simp)
-    subgoal sorry
+    subgoal by (rule update_clause_wl_code_pre)
     subgoal by (auto simp: twl_st_heur_state_simp watched_by_app_def
           intro!: find_unwatched_get_clause_neq_L)
     subgoal by (auto simp: twl_st_heur_state_simp)
     done
 qed
+
+definition (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D_heur_inv where
+  \<open>unit_propagation_inner_loop_wl_loop_D_heur_inv L =
+   (\<lambda>(w, S'). \<exists>S. (S', S) \<in> twl_st_heur \<and> twl_struct_invs (twl_st_of_wl (Some (L, w)) S) \<and>
+        twl_stgy_invs (twl_st_of_wl (Some (L, w)) S) \<and>
+         twl_list_invs (st_l_of_wl (Some (L, w)) S) \<and>
+        correct_watching S \<and> w \<le> length (watched_by S L) \<and>
+        literals_are_\<L>\<^sub>i\<^sub>n S \<and> L \<in> snd ` D\<^sub>0)\<close>
+
+definition (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D_inv where
+  \<open>unit_propagation_inner_loop_wl_loop_D_inv L =
+   (\<lambda>(w, S). twl_struct_invs (twl_st_of_wl (Some (L, w)) S) \<and>
+        twl_stgy_invs (twl_st_of_wl (Some (L, w)) S) \<and>
+         twl_list_invs (st_l_of_wl (Some (L, w)) S) \<and>
+        correct_watching S \<and> w \<le> length (watched_by S L) \<and>
+        literals_are_\<L>\<^sub>i\<^sub>n S \<and> L \<in> snd ` D\<^sub>0)\<close>
+
+definition (in isasat_input_ops) unit_propagation_inner_loop_wl_loop_D_heur
+  :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> (nat \<times> twl_st_wl_heur) nres\<close>
+where
+  \<open>unit_propagation_inner_loop_wl_loop_D_heur L S\<^sub>0 = do {
+    WHILE\<^sub>T\<^bsup>unit_propagation_inner_loop_wl_loop_D_heur_inv L\<^esup>
+      (\<lambda>(w, S). w < length (watched_by_int S L) \<and> get_conflict_wl_is_None_heur S)
+      (\<lambda>(w, S). do {
+        unit_propagation_inner_loop_body_wl_heur L w S
+      })
+      (0, S\<^sub>0)
+  }\<close>
+
+(* TODO Move *)
+lemma get_conflict_wl_is_None_heur_alt_def:
+   \<open>get_conflict_wl_is_None_heur S = (get_conflict_wl_heur S = None)\<close>
+  by (auto simp: get_conflict_wl_is_None_heur_def split: option.splits)
+(* End Move *)
+
+lemma unit_propagation_inner_loop_wl_loop_D_heur_unit_propagation_inner_loop_wl_loop_D:
+  \<open>(uncurry unit_propagation_inner_loop_wl_loop_D_heur,
+       uncurry unit_propagation_inner_loop_wl_loop_D)
+   \<in> Id \<times>\<^sub>f twl_st_heur \<rightarrow>\<^sub>f \<langle>nat_rel \<times>\<^sub>f twl_st_heur\<rangle>nres_rel\<close>
+proof -
+  have unit_propagation_inner_loop_wl_loop_D_heur_inv:
+   \<open>unit_propagation_inner_loop_wl_loop_D_heur_inv x1a xa\<close>
+    if
+      \<open>(x, y) \<in> nat_lit_lit_rel \<times>\<^sub>f twl_st_heur\<close> and
+      \<open>y = (x1, x2)\<close> and
+      \<open>x = (x1a, x2a)\<close> and
+      \<open>(xa, x') \<in> nat_rel \<times>\<^sub>f twl_st_heur\<close> and
+      \<open>unit_propagation_inner_loop_wl_loop_D_inv x1 x'\<close>
+    for x y x1 x2 x1a x2a xa x'
+  proof -
+    obtain w S w' S' where
+      xa: \<open>xa = (w, S)\<close> and x': \<open>x' = (w', S')\<close>
+      by (cases xa; cases x') auto
+    show ?thesis
+      unfolding xa unit_propagation_inner_loop_wl_loop_D_heur_inv_def prod.case
+      apply (rule exI[of _ S'])
+      using that xa x'
+      unfolding unit_propagation_inner_loop_wl_loop_D_inv_def
+      by auto
+  qed
+  note H[refine] = unit_propagation_inner_loop_body_wl_heur_unit_propagation_inner_loop_body_wl_D
+     [THEN fref_to_Down_curry2']
+  show ?thesis
+    unfolding unit_propagation_inner_loop_wl_loop_D_heur_def
+      unit_propagation_inner_loop_wl_loop_D_def uncurry_def
+      unit_propagation_inner_loop_wl_loop_D_inv_def[symmetric]
+    apply (intro frefI nres_relI)
+    apply (refine_vcg)
+    subgoal by auto
+    subgoal by (rule unit_propagation_inner_loop_wl_loop_D_heur_inv)
+    subgoal by (auto simp: get_conflict_wl_is_None_heur_alt_def
+          twl_st_heur_state_simp unit_propagation_inner_loop_wl_loop_D_inv_def
+          split: option.splits)
+    subgoal by auto
+    done
+qed
+
+definition (in isasat_input_ops) unit_propagation_inner_loop_wl_D_heur
+  :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+  \<open>unit_propagation_inner_loop_wl_D_heur L S\<^sub>0 = do {
+     wS \<leftarrow> unit_propagation_inner_loop_wl_loop_D_heur L S\<^sub>0;
+     RETURN (snd wS)
+  }\<close>
+
+lemma unit_propagation_inner_loop_wl_D_heur_unit_propagation_inner_loop_wl_D:
+  \<open>(uncurry unit_propagation_inner_loop_wl_D_heur, uncurry unit_propagation_inner_loop_wl_D) \<in>
+    nat_lit_lit_rel \<times>\<^sub>f twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle> nres_rel\<close>
+  unfolding unit_propagation_inner_loop_wl_D_heur_def
+    unit_propagation_inner_loop_wl_D_def uncurry_def
+    apply (intro frefI nres_relI)
+  apply (refine_vcg
+      unit_propagation_inner_loop_wl_loop_D_heur_unit_propagation_inner_loop_wl_loop_D[THEN fref_to_Down_curry])
+  by auto
+
+definition (in isasat_input_ops)  select_and_remove_from_literals_to_update_wl_heur
+   :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_heur \<times> nat literal) nres\<close>
+where
+  \<open>select_and_remove_from_literals_to_update_wl_heur S = SPEC(\<lambda>(S', L).
+        L \<in># literals_to_update_wl_heur S \<and>
+     S' = set_literals_to_update_wl_heur (literals_to_update_wl_heur S - {#L#}) S)\<close>
+
+definition (in isasat_input_ops) unit_propagation_outer_loop_wl_D_heur_inv
+ :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close>
+where
+  \<open>unit_propagation_outer_loop_wl_D_heur_inv S' \<longleftrightarrow>
+     (\<exists>S. (S', S) \<in> twl_st_heur \<and> twl_struct_invs (twl_st_of_wl None S) \<and>
+       twl_stgy_invs (twl_st_of_wl None S) \<and>
+      correct_watching S \<and> twl_list_invs (st_l_of_wl None S))\<close>
+
+definition (in isasat_input_ops) unit_propagation_outer_loop_wl_D_heur
+   :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+  \<open>unit_propagation_outer_loop_wl_D_heur S\<^sub>0 =
+    WHILE\<^sub>T\<^bsup>unit_propagation_outer_loop_wl_D_heur_inv\<^esup>
+      (\<lambda>S. literals_to_update_wl_heur S \<noteq> {#})
+      (\<lambda>S. do {
+        ASSERT(literals_to_update_wl_heur S \<noteq> {#});
+        (S', L) \<leftarrow> select_and_remove_from_literals_to_update_wl_heur S;
+        unit_propagation_inner_loop_wl_D_heur L S'
+      })
+      S\<^sub>0\<close>
+
+lemma select_and_remove_from_literals_to_update_wl_heur_select_and_remove_from_literals_to_update_wl:
+  \<open>(select_and_remove_from_literals_to_update_wl_heur, select_and_remove_from_literals_to_update_wl) \<in>
+   twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur \<times>\<^sub>f nat_lit_lit_rel\<rangle> nres_rel\<close>
+  unfolding select_and_remove_from_literals_to_update_wl_heur_def
+    select_and_remove_from_literals_to_update_wl_def
+  by (intro frefI nres_relI)
+    (auto intro!: RES_refine simp: twl_st_heur_def)
+
+lemma unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D:
+  \<open>(unit_propagation_outer_loop_wl_D_heur, unit_propagation_outer_loop_wl_D) \<in>
+    twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle> nres_rel\<close>
+  unfolding unit_propagation_outer_loop_wl_D_heur_def
+    unit_propagation_outer_loop_wl_D_def
+  apply (intro frefI nres_relI)
+  apply (refine_vcg
+      unit_propagation_inner_loop_wl_D_heur_unit_propagation_inner_loop_wl_D[THEN fref_to_Down_curry]
+      select_and_remove_from_literals_to_update_wl_heur_select_and_remove_from_literals_to_update_wl
+          [THEN fref_to_Down])
+  subgoal unfolding unit_propagation_outer_loop_wl_D_heur_inv_def by blast
+  subgoal by (auto simp: twl_st_heur_state_simp)
+  subgoal by auto
+  done
 
 end
 
