@@ -557,7 +557,21 @@ lemma reduce_clause_in_N:
   assumes "set Ds \<subseteq> set (P @ Q)"
   shows "wstate_of_dstate ((C, i) # N', P, Q, n)
     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((reduce_from (map fst Ds) C, i) # N', P, Q, n)"
-  sorry
+  using finite_set assms
+proof (induct "set Ds" arbitrary: C Ds rule: finite_induct)
+  case (insert D DD)
+  note fin_dd = this(1) and d_ni_dd = this(2) and ih = this(3) and ddd_ds = this(4) and
+    ds_sub = this(5)
+
+  have "wstate_of_dstate ((C, i) # N', P, Q, n)
+    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((reduce (fst D) C, i) # N', P, Q, n)"
+    sorry
+  then show ?case
+    apply (rule rtranclp_trans)
+    using ih[of "remove1 D Ds" "reduce (fst D) C"]
+
+    sorry
+qed simp
 
 lemma reduce_clauses_in_P:
   assumes c_in: "C \<in> fst ` set N"
