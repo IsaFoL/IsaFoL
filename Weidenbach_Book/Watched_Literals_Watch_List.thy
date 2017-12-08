@@ -174,8 +174,8 @@ lemma get_trail_l_st_l_of_wl: \<open>get_trail_l (st_l_of_wl None S) = get_trail
 text \<open>We here also update the list of watched clauses \<^term>\<open>WL\<close>.\<close>
 definition unit_prop_body_wl_inv where
 \<open>unit_prop_body_wl_inv T' i L \<longleftrightarrow>
-    twl_struct_invs (twl_st_of (Some L) (st_l_of_wl (Some (L, i)) T')) \<and>
-    twl_stgy_invs (twl_st_of (Some L) (st_l_of_wl (Some (L, i)) T')) \<and>
+    twl_struct_invs (twl_st_of_wl (Some (L, i)) T') \<and>
+    twl_stgy_invs (twl_st_of_wl (Some (L, i)) T') \<and>
     twl_list_invs (st_l_of_wl (Some (L, i)) T') \<and>
     correct_watching T' \<and>
     i < length (watched_by T' L) \<and>
@@ -262,8 +262,8 @@ lemma
   shows  unit_propagation_inner_loop_body_wl_spec: \<open>unit_propagation_inner_loop_body_wl L w S \<le>
    \<Down> {((i, T'), T).
         T = st_l_of_wl (Some (L, i)) T' \<and>
-        twl_struct_invs (twl_st_of (Some L) (st_l_of_wl (Some (L, i)) T')) \<and>
-        twl_stgy_invs (twl_st_of (Some L) (st_l_of_wl (Some (L, i)) T')) \<and>
+        twl_struct_invs (twl_st_of_wl (Some (L, i)) T') \<and>
+        twl_stgy_invs (twl_st_of_wl (Some (L, i)) T') \<and>
         twl_list_invs T \<and>
         correct_watching T' \<and>
         i \<le> length (watched_by T' L)}
@@ -626,7 +626,7 @@ proof -
    then show ?propa
      apply -
      apply match_Down
-     by blast
+     by force
 qed
 
 
@@ -704,8 +704,8 @@ proof -
     have H: \<open>unit_propagation_body_wl_loop_fantom L i T'
     \<le> \<Down> {((i, T'), T).
           T = st_l_of_wl (Some (L, i)) T' \<and>
-          twl_struct_invs (twl_st_of (Some L) (st_l_of_wl (Some (L, i)) T')) \<and>
-          twl_stgy_invs (twl_st_of (Some L) (st_l_of_wl (Some (L, i)) T')) \<and>
+          twl_struct_invs (twl_st_of_wl (Some (L, i)) T') \<and>
+          twl_stgy_invs (twl_st_of_wl (Some (L, i)) T') \<and>
           twl_list_invs T \<and>
           correct_watching T' \<and> i \<le> length (watched_by T' L)}
         (do {
@@ -723,7 +723,8 @@ proof -
       unfolding unit_propagation_body_wl_loop_fantom_def
       apply (refine_rcg watched_by_select_from_clauses_to_update)
       using that
-        apply (auto intro!: unit_propagation_inner_loop_body_wl_spec)
+        apply (auto intro!: unit_propagation_inner_loop_body_wl_spec
+          simp del: twl_st_of_wl.simps)
       done
 
     have \<open>unit_propagation_inner_loop_wl_loop L S \<le>
@@ -748,7 +749,8 @@ proof -
           (solves \<open>auto simp del: entailed_clss_inv.simps valid_enqueued.simps split: if_splits\<close>)+
       subgoal for i'T' T i' T'
         apply (rule order_trans)
-        by (rule unit_propagation_body_wl_loop_fantom; simp; fail) (auto intro!: H)
+        by (rule unit_propagation_body_wl_loop_fantom; simp; fail) (auto intro!: H
+          simp del: twl_st_of_wl.simps)
       subgoal by force
       done
     then have \<open>unit_propagation_inner_loop_wl_loop L S \<le> \<Down> {((i, T'), T).  T = st_l_of_wl None T' \<and>

@@ -16,14 +16,14 @@ declare option_assn_eq[sepref_comb_rules del]
 
 lemma (in -) twl_struct_invs_length_clause_ge_2:
   assumes
-    struct: \<open>twl_struct_invs (twl_st_of (Some L) (st_l_of_wl (Some (L, w)) S))\<close> and
+    struct: \<open>twl_struct_invs (twl_st_of_wl (Some (L, w)) S)\<close> and
     i: \<open>i > 0\<close> \<open>i < length (get_clauses_wl S)\<close>
  shows \<open>length (get_clauses_wl S ! i) \<ge> 2\<close>
 proof -
   obtain M N U D NE UE WS Q where
     S: \<open>S = (M, N, U, D, NE, UE, WS, Q)\<close>
     by (cases S)
-  have \<open>twl_st_inv (twl_st_of (Some L) (st_l_of_wl (Some (L, w)) (M, N, U, D, NE, UE, WS, Q)))\<close>
+  have \<open>twl_st_inv (twl_st_of_wl (Some (L, w)) (M, N, U, D, NE, UE, WS, Q))\<close>
     using struct unfolding S twl_struct_invs_def by fast
   then have \<open>\<forall>x\<in>set (tl N). 2 \<le> length x \<and> distinct x\<close>
     by (auto simp: twl_st_inv.simps mset_take_mset_drop_mset')
@@ -375,27 +375,27 @@ begin
 definition polarity_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> bool option\<close> where
   \<open>polarity_st S = polarity (get_trail_wl S)\<close>
 
-definition polarity_st_heur :: \<open>twl_st_wl_heur_trail_ref \<Rightarrow> _ \<Rightarrow> bool option nres\<close> where
-  \<open>polarity_st_heur = (\<lambda>(M, _) L. polarity_pol M L)\<close>
+definition polarity_st_heur_pol :: \<open>twl_st_wl_heur_trail_ref \<Rightarrow> _ \<Rightarrow> bool option nres\<close> where
+  \<open>polarity_st_heur_pol = (\<lambda>(M, _) L. polarity_pol M L)\<close>
 
-sepref_thm polarity_st_heur_code
-  is \<open>uncurry polarity_st_heur\<close>
+sepref_thm polarity_st_heur_pol
+  is \<open>uncurry polarity_st_heur_pol\<close>
   :: \<open>twl_st_heur_pol_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a tri_bool_assn\<close>
-  unfolding polarity_st_heur_def twl_st_heur_pol_assn_def
+  unfolding polarity_st_heur_pol_def twl_st_heur_pol_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
-concrete_definition (in -) polarity_st_heur_code
-   uses isasat_input_bounded.polarity_st_heur_code.refine_raw
+concrete_definition (in -) polarity_st_heur_pol_code
+   uses isasat_input_bounded.polarity_st_heur_pol.refine_raw
    is \<open>(uncurry ?f, _)\<in>_\<close>
 
-prepare_code_thms (in -) polarity_st_heur_code_def
+prepare_code_thms (in -) polarity_st_heur_pol_code_def
 
-lemmas polarity_st_heur_code_polarity_refine_code[sepref_fr_rules] =
-   polarity_st_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+lemmas polarity_st_heur_pol_polarity_refine_code[sepref_fr_rules] =
+   polarity_st_heur_pol_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
-lemma polarity_st_heur_code_polarity_st_refine[sepref_fr_rules]:
-  \<open>(uncurry polarity_st_heur_code, uncurry (RETURN oo polarity_st)) \<in>
+lemma polarity_st_heur_pol_polarity_st_refine[sepref_fr_rules]:
+  \<open>(uncurry polarity_st_heur_pol_code, uncurry (RETURN oo polarity_st)) \<in>
      [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a twl_st_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
 proof -
   have [simp]: \<open>polarity_atm M (atm_of L) =
@@ -403,13 +403,13 @@ proof -
     if \<open>no_dup M\<close>for M :: \<open>(nat, nat) ann_lits\<close> and L :: \<open>nat literal\<close>
     by (cases L) (use no_dup_consistentD[of M \<open>Neg (atm_of L)\<close>] that in
         \<open>auto simp: polarity_atm_def polarity_def Decided_Propagated_in_iff_in_lits_of_l\<close>)
-  have 2: \<open>(uncurry polarity_st_heur, uncurry (RETURN oo polarity_st)) \<in>
+  have 2: \<open>(uncurry polarity_st_heur_pol, uncurry (RETURN oo polarity_st)) \<in>
      [\<lambda>(_, L). L \<in> snd ` D\<^sub>0]\<^sub>f twl_st_heur_pol \<times>\<^sub>f Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
     by (intro nres_relI frefI)
        (auto simp: trail_pol_def polarity_st_def polarity_pol_def invert_pol_def
-        polarity_def polarity_st_heur_def twl_st_heur_pol_def)
+        polarity_def polarity_st_heur_pol_def twl_st_heur_pol_def)
   show ?thesis
-    using polarity_st_heur_code.refine[FCOMP 2, OF isasat_input_bounded_axioms,
+    using polarity_st_heur_pol_code.refine[FCOMP 2, OF isasat_input_bounded_axioms,
       unfolded twl_st_heur_assn_assn] by simp
 qed
 
