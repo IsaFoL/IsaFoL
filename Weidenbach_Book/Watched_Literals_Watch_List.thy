@@ -146,9 +146,9 @@ lemma get_conflict_wl_set_literals_to_update_wl:
   \<open>get_conflict_wl (set_literals_to_update_wl P S) = get_conflict_wl S\<close>
   by (cases S) auto
 
-lemma get_conflict_twl_st_of_st_l_of_wl:
-  \<open>get_conflict (twl_st_of L (st_l_of_wl L' T')) = get_conflict_wl T'\<close>
-  by (cases T'; cases L; cases L') auto
+lemma get_conflict_twl_st_of_wl:
+  \<open>get_conflict (twl_st_of_wl L' T') = get_conflict_wl T'\<close>
+  by (cases T'; cases L') auto
 
 lemma literals_to_update_twl_st_of_st_l_of_wl:
   \<open>literals_to_update (twl_st_of L (st_l_of_wl L' T')) = literals_to_update_wl T'\<close>
@@ -923,7 +923,7 @@ proof -
          clauses_to_update (twl_st_of None (st_l_of_wl None T')) = {#} \<and> literals_to_update (twl_st_of None (st_l_of_wl None T')) = {#})\<close>)
           \<comment> \<open>this goal is extracted from the invariant\<close>
        apply (auto simp: correct_watching_set_literals_to_update set_literals_to_update_add_remove get_conflict_wl_set_literals_to_update_wl
-          get_conflict_twl_st_of_st_l_of_wl literals_to_update_twl_st_of_st_l_of_wl get_conflict_l_st_l_of_wl; fail)
+          get_conflict_twl_st_of_wl literals_to_update_twl_st_of_st_l_of_wl get_conflict_l_st_l_of_wl; fail)
       apply (simp add: twl_struct_invs_def)
       done
     done

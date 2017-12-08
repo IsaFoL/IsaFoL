@@ -449,7 +449,36 @@ lemma get_conflict_wl_is_None_code_get_conflict_wl_is_None[sepref_fr_rules]:
   unfolding twl_st_assn_def by fast
 
 
-definition count_decided_st where
+definition (in isasat_input_ops) get_conflict_wl_is_Nil_heur :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+  \<open>get_conflict_wl_is_Nil_heur S \<longleftrightarrow> get_conflict_wl_heur S = Some {#}\<close>
+
+lemma  (in isasat_input_ops) get_conflict_wll_is_Nil_heur_alt_def:
+  \<open>RETURN o get_conflict_wl_is_Nil_heur = (\<lambda>(M, N, U, D, NE, UE, Q, W).
+   do {
+     if is_None D
+     then RETURN False
+     else do{ ASSERT(D \<noteq> None); RETURN (the_is_empty D)}
+   })\<close>
+  unfolding get_conflict_wl_is_Nil_heur_def the_is_empty_def
+  by (auto intro!: ext split: option.splits simp: Multiset.is_empty_def)
+
+sepref_thm get_conflict_wl_is_Nil_code
+  is \<open>RETURN o get_conflict_wl_is_Nil_heur\<close>
+  :: \<open>twl_st_heur_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding get_conflict_wll_is_Nil_heur_alt_def twl_st_heur_assn_def
+  supply [[goals_limit=1]]
+  by sepref
+
+concrete_definition (in -) get_conflict_wl_is_Nil_code
+   uses isasat_input_bounded.get_conflict_wl_is_Nil_code.refine_raw
+   is \<open>(?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) get_conflict_wl_is_Nil_code_def
+
+lemmas get_conflict_wl_is_Nil_code_refine[sepref_fr_rules] =
+   get_conflict_wl_is_Nil_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
+
+definition (in isasat_input_ops) count_decided_st where
   \<open>count_decided_st = (\<lambda>(M, _). count_decided M)\<close>
 
 sepref_thm count_decided_st_code
@@ -487,8 +516,12 @@ lemma count_decided_st_alt_def: \<open>count_decided_st S = count_decided (get_t
 definition (in -) is_in_conflict_st :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> bool\<close> where
   \<open>is_in_conflict_st L S \<longleftrightarrow> is_in_conflict L (get_conflict_wl S)\<close>
 
-definition literal_is_in_conflict_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> bool\<close> where
+definition (in isasat_input_ops) literal_is_in_conflict_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> bool\<close> where
+  \<open>literal_is_in_conflict_heur L S \<longleftrightarrow> L \<in># the (get_conflict_wl_heur S)\<close>
+
+lemma literal_is_in_conflict_heur_alt_def:
   \<open>literal_is_in_conflict_heur = (\<lambda>L (M, N, U, D, _). L \<in># the D)\<close>
+  unfolding literal_is_in_conflict_heur_def by (auto intro!: ext)
 
 lemma literal_is_in_conflict_heur_is_in_conflict_st:
   \<open>(uncurry (RETURN oo literal_is_in_conflict_heur), uncurry (RETURN oo is_in_conflict_st)) \<in>
@@ -497,14 +530,18 @@ lemma literal_is_in_conflict_heur_is_in_conflict_st:
   apply (case_tac x, case_tac y)
   by (auto simp: literal_is_in_conflict_heur_def is_in_conflict_st_def twl_st_heur_def)
 
+definition (in isasat_input_ops) literal_is_in_conflict_heur_pre where
+  \<open>literal_is_in_conflict_heur_pre = 
+    (\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl_heur S)) \<and>
+        get_conflict_wl_heur S \<noteq> None)\<close>
+
 sepref_thm literal_is_in_conflict_heur_code
   is \<open>uncurry (RETURN oo literal_is_in_conflict_heur)\<close>
-  :: \<open>[\<lambda>(L, S). L \<in> snd ` D\<^sub>0 \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl_heur S)) \<and>
-        get_conflict_wl_heur S \<noteq> None]\<^sub>a
+  :: \<open>[literal_is_in_conflict_heur_pre]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>k  \<rightarrow> bool_assn\<close>
   supply [[goals_limit=1]]
-  unfolding literal_is_in_conflict_heur_def twl_st_heur_assn_def is_in_conflict_def[symmetric]
-  PR_CONST_def
+  unfolding literal_is_in_conflict_heur_alt_def twl_st_heur_assn_def is_in_conflict_def[symmetric]
+  PR_CONST_def literal_is_in_conflict_heur_pre_def
   by sepref
 
 concrete_definition (in -) literal_is_in_conflict_heur_code
@@ -534,6 +571,7 @@ proof -
       (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using  hfref_compI_PRE_aux[OF literal_is_in_conflict_heur_code_refine
         literal_is_in_conflict_heur_is_in_conflict_st]
+    unfolding literal_is_in_conflict_heur_pre_def
     .
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     using that unfolding comp_PRE_def option_lookup_clause_rel_def lookup_clause_rel_def
