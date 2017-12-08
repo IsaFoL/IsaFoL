@@ -539,4 +539,7 @@ qed
 
 end
 
+definition full_chain where
+   "full_chain R xs \<longleftrightarrow> chain R xs \<and> (lfinite xs \<longrightarrow> (\<forall>y. \<not>R (llast xs) y))"
+
 end

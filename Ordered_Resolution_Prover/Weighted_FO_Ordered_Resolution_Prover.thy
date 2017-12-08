@@ -123,11 +123,14 @@ context
   fixes
     Sts :: "'a wstate llist"
   assumes
-    deriv: "chain (op \<leadsto>\<^sub>w) Sts" and
+    full_deriv: "full_chain (op \<leadsto>\<^sub>w) Sts" and
     finite_Sts0: "finite (clss_of_wstate (lhd Sts))" and
     empty_P0: "P_of_wstate (lhd Sts) = {}" and
     empty_Q0: "Q_of_wstate (lhd Sts) = {}"
 begin
+
+lemma deriv: "chain (op \<leadsto>\<^sub>w) Sts"
+  using full_deriv unfolding full_chain_def by auto
 
 lemmas lhd_lmap_Sts = llist.map_sel(1)[OF chain_not_lnull[OF deriv]]
 
@@ -198,12 +201,121 @@ abbreviation RP_relation where
 fun wP_of_wstate :: "'a wstate \<Rightarrow> 'a wclause multiset" where
   "wP_of_wstate (N, P, Q, n) = P"
 
+lemma fst_image_apfst:
+  "fst ` apfst f ` P = f ` fst ` P"
+  by force
+
+lemma
+  assumes 
+    "f (C, i) = (C, i)" and
+    "(C, i) \<in> P"
+  shows "(C, i) \<in> f ` P"
+  using assms apply force
+  done
+
+lemma stay_or_delete_completely':
+  assumes "St \<leadsto>\<^sub>w St'" "(C,i) \<in># wP_of_wstate St"
+  shows "(C,i) \<in># wP_of_wstate St' \<or> (\<forall>j. (C,j) \<notin># wP_of_wstate St')"
+using assms proof (induction rule: weighted_RP.induct)
+  case (tautology_deletion A C N i P Q n)
+  then show ?case by auto
+next
+  case (forward_subsumption D P Q C N i n)
+  then show ?case by auto
+next
+  case (backward_subsumption_P D N C P Q n)
+  then show ?case by auto
+next
+  case (backward_subsumption_Q D N C P Q i n)
+  then show ?case by auto
+next
+  case (forward_reduction D L' P Q L \<sigma> C N i n)
+  then show ?case by auto
+next
+  case (backward_reduction_P D L' N C' L P \<sigma> Q n)
+  then show ?case
+  proof (cases "C = C' + {#L#}")
+    case True
+    have "\<forall>j. (C' + {#L#}, j) \<notin># wP_of_wstate (N, image_mset (apfst (\<lambda>E. if E = C' + {#L#} then C' else E)) P, Q, n)"
+      unfolding True proof
+      fix j :: "nat"
+      have "(C' + {#L#}, j) \<in># wP_of_wstate (N, image_mset (apfst (\<lambda>E. if E = C' + {#L#} then C' else E)) P, Q, n) \<Longrightarrow> False"
+      proof -
+        assume "(C' + {#L#}, j) \<in># wP_of_wstate (N, image_mset (apfst (\<lambda>E. if E = C' + {#L#} then C' else E)) P, Q, n)"
+        then have "(C' + {#L#}, j) \<in> (apfst (\<lambda>E. if E = C' + {#L#} then C' else E)) ` set_mset P"
+          by auto
+        then have "fst (C' + {#L#}, j) \<in> fst ` ((apfst (\<lambda>E. if E = C' + {#L#} then C' else E)) ` set_mset P)"
+          by (rule imageI)
+        then have "C' + {#L#} \<in> fst ` ((apfst (\<lambda>E. if E = C' + {#L#} then C' else E)) ` set_mset P)"
+          by auto
+        then have "C' + {#L#} \<in> (\<lambda>E. if E = C' + {#L#} then C' else E) ` fst ` set_mset P "
+          using fst_image_apfst by metis
+        then show ?thesis 
+          by auto
+      qed
+      then show "(C' + {#L#}, j) \<notin># wP_of_wstate (N, image_mset (apfst (\<lambda>E. if E = C' + {#L#} then C' else E)) P, Q, n)"
+        by auto
+    qed
+    then show ?thesis 
+      unfolding True by auto
+  next
+    case False
+    then have "(C, i) \<in> (apfst (\<lambda>E. if E = C' + {#L#} then C' else E)) ` set_mset P"
+      using backward_reduction_P(5) by force
+    then show ?thesis 
+      by auto
+  qed
+next
+  case (backward_reduction_Q D L' N L \<sigma> C P Q i n)
+  then show ?case by auto
+next
+  case (clause_processing N C i P Q n)
+  then show ?case by auto
+next
+  case (inference_computation P C i N n Q)
+  then show ?case by auto
+qed
+
 (* FIXME: Come up with a better name. *)
 lemma stay_or_delete_completely: (* This is only true for full derivations. *)
-  assumes "(C,i) \<in># lnth (lmap wP_of_wstate Sts) k"
+  assumes "enat (Suc k) < llength Sts"
+  assumes a: "(C,i) \<in># lnth (lmap wP_of_wstate Sts) k"
   shows "(C,i) \<in># lnth (lmap wP_of_wstate Sts) (Suc k) 
            \<or> (\<forall>j. (C,j) \<notin># lnth (lmap wP_of_wstate Sts) (Suc k))"
-  sorry
+proof -
+  from deriv have "lnth Sts k \<leadsto>\<^sub>w lnth Sts (Suc k)"
+    using assms sorry
+  then show ?thesis
+    using a proof (cases rule: weighted_RP.induct)
+    case (tautology_deletion A C N i P Q n)
+    then show ?thesis sorry
+  next
+    case (forward_subsumption D P Q C N i n)
+    then show ?thesis sorry
+  next
+    case (backward_subsumption_P D N C P Q n)
+    then show ?thesis sorry
+  next
+    case (backward_subsumption_Q D N C P Q i n)
+    then show ?thesis sorry
+  next
+    case (forward_reduction D L' P Q L \<sigma> C N i n)
+    then show ?thesis sorry
+  next
+    case (backward_reduction_P D L' N C L P \<sigma> Q n)
+    then show ?thesis sorry
+  next
+    case (backward_reduction_Q D L' N L \<sigma> C P Q i n)
+    then show ?thesis sorry
+  next
+    case (clause_processing N C i P Q n)
+    then show ?thesis sorry
+  next
+    case (inference_computation P C i N n Q)
+    then show ?thesis sorry
+  qed
+
+qed
 
 lemma
   assumes llength_infty: "llength Sts = \<infinity>"
@@ -257,7 +369,6 @@ proof -
           by (cases "(lnth Sts (Suc (x + xa)))") auto
         then show ?thesis
           by (simp add: llength_infty)
-          
       qed
       ultimately have "(C, i) \<in># lnth (lmap wP_of_wstate Sts) (Suc (x + xa))"
         using stay_or_delete_completely[of C i "x + xa"]
