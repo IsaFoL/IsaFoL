@@ -182,17 +182,24 @@ definition resolve_rename :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 
 definition resolve_rename_either_way :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause list" where
   "resolve_rename_either_way C D = resolve_rename C D @ resolve_rename D C"
 
-fun
-  select_min_weight_clause :: "'a dclause \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause"
-where
+fun select_min_weight_clause :: "'a dclause \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause" where
   "select_min_weight_clause Ci [] = Ci"
-| "select_min_weight_clause Ci (Dj # Ds) =
-   select_min_weight_clause (if weight (apfst mset Dj) < weight (apfst mset Ci) then Dj else Ci) Ds"
+| "select_min_weight_clause Ci (Dj # Djs) =
+   select_min_weight_clause (if weight (apfst mset Dj) < weight (apfst mset Ci) then Dj else Ci)
+     Djs"
+
+fun remdups_clss :: "'a dclause list \<Rightarrow> 'a dclause list" where
+  "remdups_clss [] = []"
+| "remdups_clss (Ci # Cis) =
+   (let
+      Ci' = select_min_weight_clause Ci Cis
+    in
+      Ci' # remdups_clss (filter (\<lambda>(D, _). mset D = mset (fst Ci')) Cis))"
 
 fun deterministic_RP_step :: "'a dstate \<Rightarrow> 'a dstate" where
   "deterministic_RP_step (N, P, Q, n) =
    (if \<exists>Ci \<in> set (P @ Q). fst Ci = [] then
-      ([], [], remdups P @ Q, n + length (remdups P))
+      ([], [], remdups_clss P @ Q, n + length (remdups_clss P))
     else
       (case N of
         [] \<Rightarrow>
@@ -845,13 +852,14 @@ proof -
     (* FIXME: factor out as lemma *)
     have star: "[] \<in> fst ` set (P @ Q) \<Longrightarrow>
       wstate_of_dstate (N, P, Q, n)
-      \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], remdups P @ Q, n + length (remdups P))"
-    proof (induct "length (remdups P)" arbitrary: N P Q n)
+      \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], remdups_clss P @ Q, n + length (remdups_clss P))"
+    proof (induct "length (remdups_clss P)" arbitrary: N P Q n)
       case 0
       note len_p = this(1) and nil_in' = this(2)
 
       have p: "P = []"
-        using len_p by simp
+        using len_p
+        sorry
       have "wstate_of_dstate (N, [], Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], Q, n)"
         by (rule empty_N_if_Nil_in_P_or_Q[OF nil_in'[unfolded p]])
       then show ?case
@@ -862,7 +870,7 @@ proof -
 
       obtain Ci0 :: "'a dclause" where
         ci0: "Ci0 \<in> set P"
-        using suc_k by (metis length_Suc_conv list.set_intros(1) set_remdups)
+        using suc_k sorry
       obtain C :: "'a lclause" and i :: nat where
         ci_in: "(C, i) \<in> set P" and
         ci_min: "\<forall>(D, j) \<in> set P. weight (mset C, i) \<le> weight (mset D, j)"
@@ -872,19 +880,21 @@ proof -
 
       let ?P' = "filter (\<lambda>(D, j). mset D \<noteq> mset C) P"
 
-      have ms_p'_ci_q_eq: "mset (remdups ?P' @ (C, i) # Q) = mset (remdups P @ Q)"
+      have ms_p'_ci_q_eq: "mset (remdups_clss ?P' @ (C, i) # Q) = mset (remdups_clss P @ Q)"
         sorry
-      have len_p: "length (remdups P) = length (remdups ?P') + 1"
-        by (smt Suc_eq_plus1_left add.assoc add_right_cancel length_Cons length_append ms_p'_ci_q_eq mset_eq_length)
+      have len_p: "length (remdups_clss P) = length (remdups_clss ?P') + 1"
+        by (smt Suc_eq_plus1_left add.assoc add_right_cancel length_Cons length_append
+            ms_p'_ci_q_eq mset_eq_length)
       have set_pq: "fst ` set (P @ Q) = fst ` set (?P' @ (C, i) # Q)"
-        by (metis (no_types, lifting) ms_p'_ci_q_eq mset_eq_setD set_append set_remdups)
+        sorry
+        (* FIXME: by (metis (no_types, lifting) ms_p'_ci_q_eq mset_eq_setD set_append set_remdups) *)
 
       have "wstate_of_dstate (N, P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], P, Q, n)"
         by (rule empty_N_if_Nil_in_P_or_Q[OF nil_in'])
       also obtain N' :: "'a dclause list" where
         "\<dots> \<leadsto>\<^sub>w wstate_of_dstate (N', ?P', (C, i) # Q, Suc n)"
         by (atomize_elim, rule exI, rule compute_inferences[OF ci_in], use ci_min in fastforce)
-      also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], remdups P @ Q, n + length (remdups P))"
+      also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], remdups_clss P @ Q, n + length (remdups_clss P))"
         apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
             ih[of ?P' "(C, i) # Q" N' "Suc n"], OF refl])
         using ms_p'_ci_q_eq
