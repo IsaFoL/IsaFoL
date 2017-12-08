@@ -872,7 +872,7 @@ proof -
 
       let ?P' = "filter (\<lambda>(D, j). mset D \<noteq> mset C) P"
 
-      have p'_ci_q_eq: "remdups ?P' @ (C, i) # Q = remdups P @ Q"
+      have ms_p'_ci_q_eq: "mset (remdups ?P' @ (C, i) # Q) = mset (remdups P @ Q)"
         sorry
       have len_p: "length (remdups P) = length (remdups ?P') + 1"
         sorry
@@ -887,9 +887,11 @@ proof -
       also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], remdups P @ Q, n + length (remdups P))"
         apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
             ih[of ?P' "(C, i) # Q" N' "Suc n"], OF refl])
-          apply (auto simp: p'_ci_q_eq len_p)[1]
+        using ms_p'_ci_q_eq
+          apply (auto simp: len_p)[1]
+        subgoal sorry
         using suc_k
-         apply (auto simp: p'_ci_q_eq len_p)[1]
+         apply (auto simp: len_p)[1]
         using nil_in' set_pq
         apply simp
         done
