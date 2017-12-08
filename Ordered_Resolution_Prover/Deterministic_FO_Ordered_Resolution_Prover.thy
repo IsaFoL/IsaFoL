@@ -203,7 +203,7 @@ fun deterministic_RP_step :: "'a dstate \<Rightarrow> 'a dstate" where
              (C, i) = select_min_weight_clause P0 P';
              N = map (\<lambda>D. (D, n)) (remdups_gen mset (resolve_rename C C @
                concat (map (resolve_rename_either_way C \<circ> fst) Q)));
-             P = filter (\<lambda>(D, j). D \<noteq> C) P;
+             P = filter (\<lambda>(D, j). mset D \<noteq> mset C) P;
              Q = (C, i) # Q;
              n = Suc n
            in
@@ -787,7 +787,8 @@ lemma compute_inferences:
     "wstate_of_dstate ([], P, Q, n) \<leadsto>\<^sub>w
      wstate_of_dstate (map (\<lambda>D. (D, n)) (remdups_gen mset (resolve_rename C C @
          concat (map (resolve_rename_either_way C \<circ> fst) Q))),
-       filter (\<lambda>(D, j). D \<noteq> C) P, (C, i) # Q, Suc n)" (is "_ \<leadsto>\<^sub>w wstate_of_dstate (?N, _)")
+       filter (\<lambda>(D, j). mset D \<noteq> mset C) P, (C, i) # Q, Suc n)"
+    (is "_ \<leadsto>\<^sub>w wstate_of_dstate (?N, _)")
 proof -
   have ms_ci_in: "(mset C, i) \<in># image_mset (apfst mset) (mset P)"
     using ci_in by force
@@ -875,7 +876,7 @@ proof -
       have "wstate_of_dstate (N, P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], P, Q, n)"
         by (rule empty_N_if_Nil_in_P_or_Q[OF nil_in'])
       also obtain N' :: "'a dclause list" where
-        "\<dots> \<leadsto>\<^sub>w wstate_of_dstate (N', filter (\<lambda>(D, j). D \<noteq> C) P, (C, i) # Q, Suc n)"
+        "\<dots> \<leadsto>\<^sub>w wstate_of_dstate (N', filter (\<lambda>(D, j). mset D \<noteq> mset C) P, (C, i) # Q, Suc n)"
         by (atomize_elim, rule exI, rule compute_inferences[OF ci_in], use ci_min in fastforce)
       also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], remove1 (C, i) P @ (C, i) # Q, n + length P)"
         sorry
