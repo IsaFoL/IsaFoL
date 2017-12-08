@@ -11,9 +11,12 @@ theory Lazy_List_Chain
   imports "HOL-Library.BNF_Corec" Lazy_List_Liminf
 begin
 
+
+subsection \<open>Potentially Incomplete Chains\<close>
+
 coinductive chain :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a llist \<Rightarrow> bool" for R :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
-	singleton: "chain R (LCons x LNil)"
-| cons: "chain R xs \<Longrightarrow> R x (lhd xs) \<Longrightarrow> chain R (LCons x xs)"
+	chain_singleton: "chain R (LCons x LNil)"
+| chain_cons: "chain R xs \<Longrightarrow> R x (lhd xs) \<Longrightarrow> chain R (LCons x xs)"
 
 lemma
   chain_LNil[simp]: "\<not> chain R LNil" and
@@ -37,7 +40,7 @@ proof (cases "lfinite xs")
     proof (cases "xs = LNil")
       case True
       then show ?thesis
-        using r_ys mid by simp (rule cons)
+        using r_ys mid by simp (rule chain_cons)
     next
       case xs_nnil: False
       have r_xs: "chain R xs"
@@ -48,7 +51,7 @@ proof (cases "lfinite xs")
         by (metis (no_types) chain.simps lhd_LCons lhd_lappend chain_not_lnull ltl_simps(2) r_xxs
             xs_nnil)
       show ?thesis
-        unfolding lappend_code(2) using ih[OF r_xs mid'] start by (rule cons)
+        unfolding lappend_code(2) using ih[OF r_xs mid'] start by (rule chain_cons)
     qed
   qed simp
 qed (simp add: r_xs lappend_inf)
@@ -65,7 +68,7 @@ lemma chain_ldropn:
 
 lemma chain_lnth_rel:
   assumes
-    deriv: "chain R xs" and
+    chain: "chain R xs" and
     len: "enat (Suc j) < llength xs"
   shows "R (lnth xs j) (lnth xs (Suc j))"
 proof -
@@ -78,7 +81,7 @@ proof -
     ys: "ys = LCons y0 (LCons y1 ys')"
     unfolding ys_def by (metis Suc_ile_eq ldropn_Suc_conv_ldropn len less_imp_not_less not_less)
   have "chain R ys"
-    unfolding ys_def using Suc_ile_eq deriv chain_ldropn len less_imp_le by blast
+    unfolding ys_def using Suc_ile_eq chain chain_ldropn len less_imp_le by blast
   then have "R y0 y1"
     unfolding ys by (auto elim: chain.cases)
   then show ?thesis
@@ -111,7 +114,7 @@ lemma chain_mono:
   shows "chain R' xs"
   using assms by (rule chain_lmap[of _ _ "\<lambda>x. x", unfolded llist.map_ident])
 
-lemma chain_imp_rtranclp_lhd_llast: "lfinite xs \<Longrightarrow> chain R xs \<Longrightarrow> R\<^sup>*\<^sup>* (lhd xs) (llast xs)"
+lemma lfinite_chain_imp_rtranclp_lhd_llast: "lfinite xs \<Longrightarrow> chain R xs \<Longrightarrow> R\<^sup>*\<^sup>* (lhd xs) (llast xs)"
 proof (induct rule: lfinite.induct)
   case (lfinite_LConsI xs x)
   note fin_xs = this(1) and ih = this(2) and r_x_xs = this(3)
@@ -152,7 +155,7 @@ next
 
   have "ys \<noteq> []" and "tl ys \<noteq> []" and "chain R (llist_of ys)" and "hd ys = x" and "last ys = z"
     unfolding ys_def using xs r_yz
-    by (auto simp: lappend_llist_of_llist_of[symmetric] intro: singleton chain_lappend)
+    by (auto simp: lappend_llist_of_llist_of[symmetric] intro: chain_singleton chain_lappend)
   then show ?case
     by blast
 qed
@@ -192,7 +195,7 @@ lemma prepend_prepend: "prepend xs (prepend ys zs) = prepend (xs @ ys) zs"
 lemma chain_prepend:
   "chain R (llist_of zs) \<Longrightarrow> last zs = lhd xs \<Longrightarrow> chain R xs \<Longrightarrow> chain R (prepend zs (ltl xs))"
   by (induct zs; cases xs)
-    (auto split: if_splits simp: lnull_def[symmetric] intro!: chain.cons elim!: chain_consE)
+    (auto split: if_splits simp: lnull_def[symmetric] intro!: chain_cons elim!: chain_consE)
 
 lemma lmap_prepend[simp]: "lmap f (prepend xs ys) = prepend (map f xs) (lmap f ys)"
   by (induct xs) auto
@@ -264,7 +267,7 @@ proof (coinduction arbitrary: xs rule: chain'.coinduct)
   case chain'
   then show ?case
   proof (cases rule: chain.cases)
-    case (cons zs z)
+    case (chain_cons zs z)
     then show ?thesis
       by (intro disjI2) (force intro: chain.intros exI[of _ "[z, lhd zs]"] exI[of _ zs]
           elim: chain.cases)
@@ -288,7 +291,8 @@ proof (cases xs)
     next
       case (Cons b bs)
       with 2 have "chain' R (prepend (y # b # bs) xs)"
-        by (intro chain'.intros) (auto simp: cons not_lnull_conv neq_Nil_conv elim: chain_nontrivE)
+        by (intro chain'.intros)
+          (auto simp: chain_cons not_lnull_conv neq_Nil_conv elim: chain_nontrivE)
       with 2 Cons show ?thesis
         by (auto simp: neq_Nil_conv)
     qed
@@ -438,12 +442,12 @@ proof (coinduction arbitrary: xs rule: emb_prepend_coinduct)
   case (emb xs)
   then show ?case
   proof (cases rule: chain.cases)
-    case (cons zs z)
+    case (chain_cons zs z)
     then show ?thesis
       by (subst (2) wit.code)
         (auto split: llist.splits intro!: exI[of _ "[]"] exI[of _ "_ :: _ llist"]
           prepend_cong1_prepend[OF prepend_cong1_base])
-  qed (auto intro!: exI[of _ "LNil"] exI[of _ "[]"] emb.intros)
+  qed (auto intro!: exI[of _ LNil] exI[of _ "[]"] emb.intros)
 qed
 
 lemma chain_tranclp_imp_exists_chain:
@@ -539,19 +543,74 @@ qed
 
 end
 
-definition full_chain :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a llist \<Rightarrow> bool" where
+
+subsection \<open>Complete Chains\<close>
+
+coinductive full_chain :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a llist \<Rightarrow> bool" for R :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
+	full_chain_singleton: "(\<forall>y. \<not> R x y) \<Longrightarrow> full_chain R (LCons x LNil)"
+| full_chain_cons: "full_chain R xs \<Longrightarrow> R x (lhd xs) \<Longrightarrow> full_chain R (LCons x xs)"
+
+lemma full_chain_iff_chain:
   "full_chain R xs \<longleftrightarrow> chain R xs \<and> (lfinite xs \<longrightarrow> (\<forall>y. \<not> R (llast xs) y))"
+proof (intro iffI conjI impI allI; (elim conjE)?)
+  assume full: "full_chain R xs"
+
+  show "chain R xs"
+    apply coinduction
+    using full
+    apply cases
+     apply auto
+    by (smt chain.coinduct full_chain.cases) (* FIXME: odd proof *)
+  {
+    fix y
+    assume "lfinite xs"
+    show "\<not> R (llast xs) y"
+      sorry
+  }
+next
+  assume
+    "chain R xs" and
+    "lfinite xs \<longrightarrow> (\<forall>y. \<not> R (llast xs) y)"
+  show "full_chain R xs"
+    apply coinduction
+    sorry
+qed
+
+lemma full_chain_imp_chain: "full_chain R xs \<Longrightarrow> chain R xs"
+  using full_chain_iff_chain by blast
+
+lemma
+  full_chain_LNil[simp]: "\<not> full_chain R LNil" and
+  full_chain_not_lnull: "full_chain R xs \<Longrightarrow> \<not> lnull xs"
+  by (auto elim: full_chain.cases)
+
+lemma full_chain_length_pos: "full_chain R xs \<Longrightarrow> llength xs > 0"
+  by (fact chain_length_pos[OF full_chain_imp_chain])
+
+lemma full_chain_ldropn:
+  assumes full: "full_chain R xs" and "enat n < llength xs"
+  shows "full_chain R (ldropn n xs)"
+  using assms
+  by (induct n arbitrary: xs, simp,
+      metis full_chain.cases ldrop_eSuc_ltl ldropn_LNil ldropn_eq_LNil ltl_simps(2) not_less)
+
+lemma full_chain_lnth_rel:
+  "full_chain R xs \<Longrightarrow> enat (Suc j) < llength xs \<Longrightarrow> R (lnth xs j) (lnth xs (Suc j))"
+  by (fact chain_lnth_rel[OF full_chain_imp_chain])
+
+inductive_cases full_chain_consE: "full_chain R (LCons x xs)"
+inductive_cases full_chain_nontrivE: "full_chain R (LCons x (LCons y xs))"
 
 lemma full_chain_tranclp_imp_exists_full_chain:
-  assumes deriv: "full_chain R\<^sup>+\<^sup>+ xs"
+  assumes full: "full_chain R\<^sup>+\<^sup>+ xs"
   shows "\<exists>ys. full_chain R ys \<and> emb xs ys \<and> lfinite ys = lfinite xs \<and> lhd ys = lhd xs
     \<and> llast ys = llast xs"
 proof -
   obtain ys where ys:
     "chain R ys" "emb xs ys" "lfinite ys = lfinite xs" "lhd ys = lhd xs" "llast ys = llast xs"
-    using deriv unfolding full_chain_def using chain_tranclp_imp_exists_chain by blast
+    using full_chain_imp_chain[OF full] chain_tranclp_imp_exists_chain by blast
   have "full_chain R ys"
-    using ys(1,3,5) deriv unfolding full_chain_def by auto
+    using ys(1,3,5) full unfolding full_chain_iff_chain by auto
   then show ?thesis
     using ys(2-5) by auto
 qed

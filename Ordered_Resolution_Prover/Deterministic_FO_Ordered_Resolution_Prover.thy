@@ -1195,7 +1195,7 @@ abbreviation Sts :: "'a dstate llist" where
 abbreviation gSts :: "'a wstate llist" where
   "gSts \<equiv> lmap wstate_of_dstate Sts"
 
-lemma deriv_gSts_trancl_weighted_RP: "chain (op \<leadsto>\<^sub>w\<^sup>+) gSts"
+lemma full_deriv_gSts_trancl_weighted_RP: "full_chain (op \<leadsto>\<^sub>w\<^sup>+) gSts"
 proof -
   have "Sts' = derivation_from St0' \<Longrightarrow> chain (op \<leadsto>\<^sub>w\<^sup>+) (lmap wstate_of_dstate Sts')" for St0' Sts'
   proof (coinduction arbitrary: St0' Sts' rule: chain.coinduct)
@@ -1225,24 +1225,11 @@ proof -
     qed
   qed
   then show ?thesis
-    by blast
+    sorry
+(* FIXME:    by blast *)
 qed
 
-lemma full_deriv_gSts_trancl_weighted_RP: "full_chain (op \<leadsto>\<^sub>w\<^sup>+) gSts"
-proof (unfold full_chain_def, intro conjI impI allI notI)
-  show "chain op \<leadsto>\<^sub>w\<^sup>+ gSts"
-    by (rule deriv_gSts_trancl_weighted_RP)
-next
-  fix gSt'
-  assume
-    fin: "lfinite gSts" and
-    plus: "llast gSts \<leadsto>\<^sub>w\<^sup>+ gSt'"
-  obtain gSt'' where
-    "llast gSts \<leadsto>\<^sub>w gSt''"
-    using plus by (meson tranclpD)
-  show False
-    sorry
-qed
+lemmas deriv_gSts_trancl_weighted_RP = full_chain_imp_chain[OF full_deriv_gSts_trancl_weighted_RP]
 
 definition ssgSts :: "'a wstate llist" where
   "ssgSts = (SOME gSts'. full_chain (op \<leadsto>\<^sub>w) gSts' \<and> emb gSts gSts'
@@ -1261,8 +1248,7 @@ lemmas lfinite_ssgSts_iff = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct
 lemmas lhd_ssgSts = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct2, THEN conjunct1]
 lemmas llast_ssgSts = ssgSts[THEN conjunct2, THEN conjunct2, THEN conjunct2, THEN conjunct2]
 
-lemma deriv_ssgSts_weighted_RP: "chain (op \<leadsto>\<^sub>w) ssgSts"
-  using full_deriv_ssgSts_weighted_RP unfolding full_chain_def by blast
+lemmas deriv_ssgSts_weighted_RP = full_chain_imp_chain[OF full_deriv_ssgSts_weighted_RP]
 
 lemma not_lnull_ssgSts: "\<not> lnull ssgSts"
   using deriv_ssgSts_weighted_RP by (cases rule: chain.cases) auto
@@ -1335,7 +1321,7 @@ proof -
     using deterministic_RP_SomeD[OF drp_some] by blast
 
   have wrp: "wstate_of_dstate St0 \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (llast Sts)"
-    using chain_imp_rtranclp_lhd_llast
+    using lfinite_chain_imp_rtranclp_lhd_llast
     by (metis (no_types) deriv_ssgSts_weighted_RP derivation_from.disc_iff
         derivation_from.simps(2) lfinite_Sts lfinite_ssgSts lhd_ssgSts llast_lmap llast_ssgSts
         llist.map_sel(1))

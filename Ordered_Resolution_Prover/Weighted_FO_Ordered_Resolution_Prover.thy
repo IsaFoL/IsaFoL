@@ -113,9 +113,7 @@ context
     empty_Q0: "Q_of_wstate (lhd Sts) = {}"
 begin
 
-lemma deriv: "chain (op \<leadsto>\<^sub>w) Sts"
-  using full_deriv unfolding full_chain_def by auto
-
+lemmas deriv = full_chain_imp_chain[OF full_deriv]
 lemmas lhd_lmap_Sts = llist.map_sel(1)[OF chain_not_lnull[OF deriv]]
 
 lemma deriv_RP: "chain (op \<leadsto>) (lmap state_of_wstate Sts)"
