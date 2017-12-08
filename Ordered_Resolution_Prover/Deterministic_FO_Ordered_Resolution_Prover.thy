@@ -124,23 +124,23 @@ primrec reduce_on :: "'a literal \<Rightarrow> 'a lclause \<Rightarrow> 'a lclau
 | "reduce_on M D C' (L # C) =
    (if is_reducible_on M D L (C' @ C) then reduce_on M D C' C else L # reduce_on M D (L # C') C)"
 
-primrec reduce :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause" where
-  "reduce [] C = C"
-| "reduce (M # D) C = reduce D (reduce_on M D [] C)"
+primrec reduce :: "'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause" where
+  "reduce _ [] C = C"
+| "reduce D' (M # D) C = reduce (M # D') D (reduce_on M (D' @ D) [] C)"
 
 primrec reduce_from :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> 'a lclause" where
   "reduce_from [] C = C"
-| "reduce_from (D # Ds) C = reduce_from Ds (reduce D C)"
+| "reduce_from (D # Ds) C = reduce_from Ds (reduce [] D C)"
 
 definition reduce_all :: "'a lclause \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause list" where
-  "reduce_all D = map (apfst (reduce D))"
+  "reduce_all D = map (apfst (reduce D []))"
 
 fun reduce_all2 :: "'a lclause \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause list \<times> 'a dclause list" where
   "reduce_all2 _ [] = ([], [])"
 | "reduce_all2 D (Ci # Cs) =
    (let
       (C, i) = Ci;
-      C' = reduce D C
+      C' = reduce D [] C
     in
       (if C' = C then apsnd else apfst) (Cons (C', i)) (reduce_all2 D Cs))"
 
@@ -554,10 +554,16 @@ qed simp
 *)
 
 lemma reduce_clause_in_N_from_single_clause:
-  assumes "D \<in> set (P @ Q)"
+  assumes "D \<in> fst ` set (P @ Q)"
   shows "wstate_of_dstate ((C, i) # N', P, Q, n)
-    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((reduce (fst D) C, i) # N', P, Q, n)"
-  sorry
+    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((reduce [] D C, i) # N', P, Q, n)"
+  using assms
+proof (induct D)
+  case (Cons M D)
+  note ih = this(1) and ld_in = this(2)
+  show ?case
+    sorry
+qed simp
 
 lemma reduce_clause_in_N:
   assumes "set Ds \<subseteq> set (P @ Q)"
