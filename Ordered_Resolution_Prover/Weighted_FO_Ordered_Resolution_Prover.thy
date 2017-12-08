@@ -71,7 +71,7 @@ inductive weighted_RP :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" 
 | forward_reduction: "D + {#L'#} \<in># image_mset fst (P + Q) \<Longrightarrow> - L = L' \<cdot>l \<sigma> \<Longrightarrow> D \<cdot> \<sigma> \<subseteq># C \<Longrightarrow>
     (N + {#(C + {#L#}, i)#}, P, Q, n) \<leadsto>\<^sub>w (N + {#(C, i)#}, P, Q, n)"
 | backward_reduction_P: "D + {#L'#} \<in># image_mset fst N \<Longrightarrow> - L = L' \<cdot>l \<sigma> \<Longrightarrow> D \<cdot> \<sigma> \<subseteq># C \<Longrightarrow>
-    (\<forall>j. (C + {#L#}, j) \<in># P \<longrightarrow> j \<ge> i) \<Longrightarrow>
+    (\<forall>j. (C + {#L#}, j) \<in># P \<longrightarrow> j \<le> i) \<Longrightarrow>
     (N, P + {#(C + {#L#}, i)#}, Q, n) \<leadsto>\<^sub>w (N, P + {#(C, i)#}, Q, n)"
 | backward_reduction_Q: "D + {#L'#} \<in># image_mset fst N \<Longrightarrow> - L = L' \<cdot>l \<sigma> \<Longrightarrow> D \<cdot> \<sigma> \<subseteq># C \<Longrightarrow>
     (N, P, Q + {#(C + {#L#}, i)#}, n) \<leadsto>\<^sub>w (N, P + {#(C, i)#}, Q, n)"
@@ -198,6 +198,7 @@ lemma fst_image_apfst:
   "fst ` apfst f ` P = f ` fst ` P"
   by force
 
+(* FIXME: nameless lemma *)
 lemma
   assumes 
     "f (C, i) = (C, i)" and
@@ -208,7 +209,7 @@ lemma
 
 lemma stay_or_delete_completely':
   assumes "St \<leadsto>\<^sub>w St'" "(C,i) \<in># wP_of_wstate St"
-  shows "(C,i) \<in># wP_of_wstate St' \<or> (\<forall>j. (C,j) \<notin># wP_of_wstate St')"
+  shows "(C, i) \<in># wP_of_wstate St' \<or> (\<forall>j. (C, j) \<notin># wP_of_wstate St')"
 using assms proof (induction rule: weighted_RP.induct)
   case (tautology_deletion A C N i P Q n)
   then show ?case by auto
