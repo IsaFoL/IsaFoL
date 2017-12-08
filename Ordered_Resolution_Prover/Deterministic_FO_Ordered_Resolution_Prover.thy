@@ -554,22 +554,14 @@ qed simp
 *)
 
 lemma reduce_clause_in_N:
-  assumes "set Ds \<subseteq> set (P @ Q)"
   shows "wstate_of_dstate ((C, i) # N', P, Q, n)
-    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((reduce_from (map fst Ds) C, i) # N', P, Q, n)"
-  using finite_set assms
-proof (induct "set Ds" arbitrary: C Ds rule: finite_induct)
-  case (insert D DD)
-  note fin_dd = this(1) and d_ni_dd = this(2) and ih = this(3) and ddd_ds = this(4) and
-    ds_sub = this(5)
+    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((reduce_from (map fst (take k (P @ Q))) C, i) # N', P, Q, n)"
+proof (induct k arbitrary: C)
+  case ih: (Suc k)
 
-  have "wstate_of_dstate ((C, i) # N', P, Q, n)
-    \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((reduce (fst D) C, i) # N', P, Q, n)"
-    sorry
-  then show ?case
-    apply (rule rtranclp_trans)
-    using ih[of "remove1 D Ds" "reduce (fst D) C"]
-
+  
+  show ?case
+    using ih
     sorry
 qed simp
 
@@ -1060,7 +1052,7 @@ proof -
 *)
         have red_C:
           "wstate_of_dstate ((C, i) # N', P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P, Q, n)"
-          unfolding C'_def using reduce_clause_in_N[of "P @ Q"] by simp
+          unfolding C'_def using reduce_clause_in_N[of _ _ _ P Q _ "length (P @ Q)"] by simp
 
         have proc_C: "wstate_of_dstate ((C', i) # N', P', Q', n')
           \<leadsto>\<^sub>w wstate_of_dstate (N', (C', i) # P', Q', n')" for P' Q' n'
