@@ -539,7 +539,21 @@ qed
 
 end
 
-definition full_chain where
-   "full_chain R xs \<longleftrightarrow> chain R xs \<and> (lfinite xs \<longrightarrow> (\<forall>y. \<not>R (llast xs) y))"
+definition full_chain :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a llist \<Rightarrow> bool" where
+  "full_chain R xs \<longleftrightarrow> chain R xs \<and> (lfinite xs \<longrightarrow> (\<forall>y. \<not> R (llast xs) y))"
+
+lemma full_chain_tranclp_imp_exists_full_chain:
+  assumes deriv: "full_chain R\<^sup>+\<^sup>+ xs"
+  shows "\<exists>ys. full_chain R ys \<and> emb xs ys \<and> lfinite ys = lfinite xs \<and> lhd ys = lhd xs
+    \<and> llast ys = llast xs"
+proof -
+  obtain ys where ys:
+    "chain R ys" "emb xs ys" "lfinite ys = lfinite xs" "lhd ys = lhd xs" "llast ys = llast xs"
+    using deriv unfolding full_chain_def using chain_tranclp_imp_exists_chain by blast
+  have "full_chain R ys"
+    using ys(1,3,5) deriv unfolding full_chain_def by auto
+  then show ?thesis
+    using ys(2-5) by auto
+qed
 
 end
