@@ -208,8 +208,8 @@ fun deterministic_RP_step :: "'a dstate \<Rightarrow> 'a dstate" where
          | P0 # P' \<Rightarrow>
            let
              (C, i) = select_min_weight_clause P0 P';
-             N = map (\<lambda>D. (D, n)) (remdups_gen mset (resolve_rename C C @
-               concat (map (resolve_rename_either_way C \<circ> fst) Q)));
+             N = map (\<lambda>D. (D, n)) (remdups_gen mset (resolve_rename C C
+               @ concat (map (resolve_rename_either_way C \<circ> fst) Q)));
              P = filter (\<lambda>(D, j). mset D \<noteq> mset C) P;
              Q = (C, i) # Q;
              n = Suc n
@@ -868,6 +868,7 @@ proof -
       case (Suc k)
       note ih = this(1) and suc_k = this(2) and nil_in' = this(3)
 
+      (* FIXME: use our favorite function to select the same clause as "remdups_clss" *)
       obtain Ci0 :: "'a dclause" where
         ci0: "Ci0 \<in> set P"
         using suc_k sorry
