@@ -846,7 +846,7 @@ proof -
     have star: "[] \<in> fst ` set (P @ Q) \<Longrightarrow>
       wstate_of_dstate (N, P, Q, n)
       \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], remdups P @ Q, n + length (remdups P))"
-    proof (induct "length P" arbitrary: N P Q n)
+    proof (induct "length (remdups P)" arbitrary: N P Q n)
       case 0
       note len_p = this(1) and nil_in' = this(2)
 
@@ -858,11 +858,11 @@ proof -
         unfolding p by simp
     next
       case (Suc k)
-      note ih = this(1) and len_p = this(2) and nil_in' = this(3)
+      note ih = this(1) and suc_k = this(2) and nil_in' = this(3)
 
       obtain Ci0 :: "'a dclause" where
         ci0: "Ci0 \<in> set P"
-        using len_p by (metis Suc_length_conv list.set_intros(1))
+        using suc_k by (metis length_Suc_conv list.set_intros(1) set_remdups)
       obtain C :: "'a lclause" and i :: nat where
         ci_in: "(C, i) \<in> set P" and
         ci_min: "\<forall>(D, j) \<in> set P. weight (mset C, i) \<le> weight (mset D, j)"
@@ -870,31 +870,29 @@ proof -
             of "\<lambda>(C, i). weight (mset C, i)", rule_format, OF ci0]
         by force
 
-      have mset: "mset (remove1 (C, i) P @ (C, i) # Q) = mset (P @ Q)"
-        using ci_in by simp
+      let ?P' = "filter (\<lambda>(D, j). mset D \<noteq> mset C) P"
+
+      have p'_ci_q_eq: "remdups ?P' @ (C, i) # Q = remdups P @ Q"
+        sorry
+      have len_p: "length (remdups P) = length (remdups ?P') + 1"
+        sorry
+      have set_pq: "fst ` set (P @ Q) = fst ` set (?P' @ (C, i) # Q)"
+        sorry
 
       have "wstate_of_dstate (N, P, Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], P, Q, n)"
         by (rule empty_N_if_Nil_in_P_or_Q[OF nil_in'])
       also obtain N' :: "'a dclause list" where
-        "\<dots> \<leadsto>\<^sub>w wstate_of_dstate (N', filter (\<lambda>(D, j). mset D \<noteq> mset C) P, (C, i) # Q, Suc n)"
+        "\<dots> \<leadsto>\<^sub>w wstate_of_dstate (N', ?P', (C, i) # Q, Suc n)"
         by (atomize_elim, rule exI, rule compute_inferences[OF ci_in], use ci_min in fastforce)
-      also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], remove1 (C, i) P @ (C, i) # Q, n + length P)"
-        sorry
-          (* FIXME
-        proof -
-          have k: "k = length (remove1 (C, i) P)"
-            using ci_in len_p by (metis One_nat_def diff_Suc_Suc length_remove1 minus_nat.diff_0)
-          moreover have "Suc n + length (remove1 (C, i) P) = n + length P"
-            using ci_in k len_p by simp
-          ultimately show ?thesis
-            using ih[of "filter (\<lambda>(D, j). D \<noteq> C) P" "(C, i) # Q" N' "Suc n"]
-              mset[THEN mset_eq_setD] nil_in
-            sxrry
-        qed
-*)
-      also have "\<dots> = wstate_of_dstate ([], [], remdups P @ Q, n + length (remdups P))"
-        unfolding wstate_of_dstate.simps mset_map mset
-        sorry
+      also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ([], [], remdups P @ Q, n + length (remdups P))"
+        apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
+            ih[of ?P' "(C, i) # Q" N' "Suc n"], OF refl])
+          apply (auto simp: p'_ci_q_eq len_p)[1]
+        using suc_k
+         apply (auto simp: p'_ci_q_eq len_p)[1]
+        using nil_in' set_pq
+        apply simp
+        done
       finally show ?case
         .
     qed
