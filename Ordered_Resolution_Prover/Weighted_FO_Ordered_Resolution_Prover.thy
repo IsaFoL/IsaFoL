@@ -176,16 +176,84 @@ abbreviation RP_measure :: "nat \<Rightarrow> 'a wstate \<Rightarrow> _" where
                                           sum_mset (image_mset (\<lambda>(C, i). Suc (size C)) (N + P + Q)),
                                           size N))"
 
+abbreviation RP_measure2 :: "nat \<Rightarrow> 'a wstate \<Rightarrow> _" where
+  "RP_measure2 max_gen \<equiv> (\<lambda>(N, P, Q, n). (image_mset (\<lambda>(C, i). (max_gen - i, size C)) (N + P), 
+                                          size N))"
+
 abbreviation RP_relation where
-  "RP_relation \<equiv> (mult natLess) <*lex*> natLess <*lex*> natLess"
+  "RP_relation \<equiv> mult natLess <*lex*> natLess <*lex*> natLess"
+
+abbreviation RP_relation2 where
+  "RP_relation2 \<equiv> mult (natLess <*lex*> natLess) <*lex*> natLess"
+
+term "((RP_measure max_gen St),(RP_measure max_gen St2)) \<in> RP_relation"
+term "((RP_measure2 max_gen St),(RP_measure2 max_gen St)) \<in> RP_relation2"
 
 (* FIXME: Move this. *)
 fun wP_of_wstate :: "'a wstate \<Rightarrow> 'a wclause multiset" where
   "wP_of_wstate (N, P, Q, n) = P"
 
-lemma fst_image_apfst:
-  "fst ` apfst f ` P = f ` fst ` P"
-  by force
+term "fst (a,b)"
+
+lemma 
+  assumes "St \<leadsto>\<^sub>w St'"
+  assumes "(C,i) \<in># wP_of_wstate St"
+  shows "(RP_measure (weight (C,i) + 1) St', RP_measure (weight (C,i) + 1) St) \<in> RP_relation"
+  using assms proof (induction rule: weighted_RP.induct)
+  case (tautology_deletion A C' N i' P Q n)
+  have "(fst (RP_measure (weight (C, i) + 1) (N, P, Q, n)), fst (RP_measure (weight (C, i) + 1) (N + {#(C', i')#}, P, Q, n))) \<in> mult natLess"
+    by (rule subset_implies_mult) auto
+  then show ?case
+    unfolding lex_prod_def by auto
+next
+  case (forward_subsumption D P Q C' N i' n)
+  have "(fst (RP_measure (weight (C, i) + 1) (N, P, Q, n)), fst (RP_measure (weight (C, i) + 1) (N + {#(C', i')#}, P, Q, n))) \<in> mult natLess"
+    by (rule subset_implies_mult) auto
+  then show ?case
+    unfolding lex_prod_def by auto
+next
+  case (backward_subsumption_P D N C' P Q n)
+  then show ?case sorry
+next
+  case (backward_subsumption_Q D N C' P Q i' n)
+  have "(fst (RP_measure (weight (C, i) + 1) (N, P, Q, n))) = fst (RP_measure (weight (C, i) + 1) (N, P, Q  + {#(C', i')#}, n))"
+    by auto
+  moreover have "(fst (snd (RP_measure (weight (C, i) + 1) (N, P, Q, n))), fst (snd (RP_measure (weight (C, i) + 1) (N + {#(C', i')#}, P, Q, n)))) \<in> natLess"
+    by (simp add: natLess_def)
+  ultimately show ?case
+    unfolding lex_prod_def by force
+next
+  case (forward_reduction D L' P Q L \<sigma> C' N i' n)
+  have "(fst (RP_measure (weight (C, i) + 1) (N + {#(C', i')#}, P, Q, n))) = fst (RP_measure (weight (C, i) + 1) (N + {#(C' + {#L#}, i')#}, P, Q, n))"
+    by auto
+  moreover have "(fst (snd (RP_measure (weight (C, i) + 1) (N + {#(C', i')#}, P, Q, n))), fst (snd (RP_measure (weight (C, i) + 1) (N + {#(C' + {#L#}, i')#}, P, Q, n)))) \<in> natLess"
+     by (simp add: natLess_def)
+  ultimately show ?case
+    unfolding lex_prod_def by force
+next
+  case (backward_reduction_P D L' N L \<sigma> C' P i' Q n)
+  have "(fst (RP_measure (weight (C, i) + 1) (N, P + {#(C', i')#}, Q, n))) = fst (RP_measure (weight (C, i) + 1) (N, P + {#(C' + {#L#}, i')#}, Q, n))"
+    by auto
+  moreover have "(fst (snd (RP_measure (weight (C, i) + 1) (N, P + {#(C', i')#}, Q, n))), fst (snd (RP_measure (weight (C, i) + 1) (N, P  + {#(C' + {#L#}, i')#}, Q, n)))) \<in> natLess"
+     by (simp add: natLess_def)
+  ultimately show ?case
+    unfolding lex_prod_def by force
+next
+  case (backward_reduction_Q D L' N L \<sigma> C' P Q i' n)
+  have "(fst (RP_measure (weight (C, i) + 1) (N, P + {#(C', i')#}, Q , n))) = fst (RP_measure (weight (C, i) + 1) (N, P, Q  + {#(C' + {#L#}, i')#}, n))"
+    sorry (* Problem is... here the measure actually grows *)
+  moreover have "(fst (snd (RP_measure (weight (C, i) + 1) (N, P + {#(C', i')#}, Q, n))), fst (snd (RP_measure (weight (C, i) + 1) (N, P  + {#(C' + {#L#}, i')#}, Q, n)))) \<in> natLess"
+     by (simp add: natLess_def)
+  ultimately show ?case
+    unfolding lex_prod_def by force
+next
+  case (clause_processing N C i P Q n)
+  then show ?case sorry
+next
+  case (inference_computation P C i N n Q)
+  then show ?case sorry
+qed
+
 
 lemma stay_or_delete_completely':
   assumes "St \<leadsto>\<^sub>w St'" "(C,i) \<in># wP_of_wstate St"
@@ -314,8 +382,7 @@ proof -
           by (simp add: llength_infty)
       qed
       ultimately have "(C, i) \<in># lnth (lmap wP_of_wstate Sts) (Suc (x + xa))"
-        using stay_or_delete_completely
-        using llength_infty sorry (* FIXME: The whole proof needs a substantial change -- or maybe I can change the lemma! *)
+        using stay_or_delete_completely llength_infty sorry (* FIXME: The whole proof needs a substantial change -- or maybe I can change the lemma! *)
       then show ?case
         by (simp add: add.commute llength_infty)
     qed
@@ -354,11 +421,19 @@ proof (rule ccontr)
       "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_wstate (lnth Sts j))"
       unfolding Liminf_llist_def by auto
     then have "\<exists>i. (C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)" 
-      using persistent_wclause_if_persistent_clause[of] sorry
+      using persistent_wclause_if_persistent_clause[of C] sorry
     then show False
       sorry (* *)
   next
-    assume "C \<in> Liminf_llist (lmap P_of_state (lmap state_of_wstate Sts))"
+    assume asm: "C \<in> Liminf_llist (lmap P_of_state (lmap state_of_wstate Sts))"
+    have inf: "llength Sts = \<infinity>"
+      sorry
+    from asm obtain i where i_p:
+      "enat i < llength Sts"
+      "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> P_of_state (state_of_wstate (lnth Sts j))"
+      unfolding Liminf_llist_def by auto
+    then obtain i where "(C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
+      using persistent_wclause_if_persistent_clause[of C] using asm inf by auto
     then show False
       sorry
   qed
