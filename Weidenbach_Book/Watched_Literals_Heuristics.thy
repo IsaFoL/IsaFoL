@@ -333,7 +333,8 @@ definition (in isasat_input_ops) set_conflict_wl_heur_pre where
         literals_are_in_\<L>\<^sub>i\<^sub>n (mset (get_clauses_wl_heur S ! C)) \<and>
         \<not> tautology (mset (get_clauses_wl_heur S ! C)) \<and>
         literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl_heur S) \<and>
-        no_dup (get_trail_wl_heur S))\<close>
+        no_dup (get_trail_wl_heur S) \<and>
+       out_learned (get_trail_wl_heur S) (get_conflict_wl_heur S) (get_outlearned_heur S))\<close>
 
 definition (in isasat_input_ops) set_conflict_wl_heur
   :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
@@ -904,7 +905,7 @@ proof -
       using inv' xy unfolding st
       by (auto simp: unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
         simp del: twl_st_of_wl.simps)
-    have [simp]: \<open>x1c \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> \<open>get_conflict_wl x2a = None\<close>
+    have [simp]: \<open>x1c \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and \<open>get_conflict_wl x2a = None\<close>
       using inv' xy unfolding st
       by (auto simp: unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
         simp del: twl_st_of_wl.simps)
@@ -916,6 +917,8 @@ proof -
       by (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_in_\<L>\<^sub>i\<^sub>n_trail[OF lits struct_invs])
     moreover have \<open>no_dup (get_trail_wl x2a)\<close>
       using xy by (auto simp: st twl_st_heur_def)
+    moreover have \<open>out_learned (get_trail_wl x2a) None (get_outlearned_heur x2c)\<close>
+      using heur \<open>get_conflict_wl x2a = None\<close> unfolding twl_st_heur_def by auto
     ultimately  show ?thesis
       using heur unit_prop_body_wl_D_invD[OF inv']  that
       unfolding set_conflict_wl_heur_pre_def find_unwatched_wl_st_heur_pre_def
@@ -2090,7 +2093,8 @@ definition (in isasat_input_ops) skip_and_resolve_loop_wl_D_heur_inv where
 
 definition  (in isasat_input_ops) update_confl_tl_wl_heur_pre where
 \<open>update_confl_tl_wl_heur_pre =
-  (\<lambda>((i, L), (M, N, U, D, W, Q, ((A, m, fst_As, lst_As, next_search), _), \<phi>, clvls, cach)).
+  (\<lambda>((i, L), (M, N, U, D, W, Q, ((A, m, fst_As, lst_As, next_search), _), \<phi>, clvls, cach, lbd,
+        outl, _)).
       (i > 0 \<longrightarrow> distinct (N ! i)) \<and>
       (i > 0 \<longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N! i))) \<and>
       (i > 0 \<longrightarrow> \<not> tautology (mset (N ! i))) \<and>
@@ -2106,7 +2110,8 @@ definition  (in isasat_input_ops) update_confl_tl_wl_heur_pre where
       L = lit_of (hd M) \<and>
       clvls = card_max_lvl M (the D) \<and>
       literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
-      no_dup M)\<close>
+      no_dup M \<and>
+      out_learned M D outl)\<close>
 
 definition (in isasat_input_ops) skip_and_resolve_loop_wl_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
@@ -2389,8 +2394,9 @@ proof -
       in_confl: \<open>\<not> - x1a \<notin># the (get_conflict_wl x2)\<close>
     for x y xa x' x1 x2 x1a x2a x1b x2b x1c x2c
   proof -
-    obtain M N U D WS Q A m fst_As lst_As next_search \<phi> q g clvls where
-      x2b: \<open>x2b = (M, N, U, D, WS, Q, ((A, m, fst_As, lst_As, next_search), q), \<phi>, clvls, g)\<close>
+    obtain M N U D WS Q A m fst_As lst_As next_search \<phi> q clvls cach lbd outl stats where
+      x2b: \<open>x2b = (M, N, U, D, WS, Q, ((A, m, fst_As, lst_As, next_search), q), \<phi>, clvls, cach,
+         lbd, outl, stats)\<close>
       by (cases x2b) auto
     have
       lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n x2\<close> and
@@ -2513,6 +2519,8 @@ proof -
     moreover have \<open>clvls = card_max_lvl M (the D)\<close>
       using heur confl unfolding twl_st_heur_def x2b counts_maximum_level_def
       by auto
+    moreover have \<open>out_learned M D outl\<close>
+      using heur unfolding twl_st_heur_def x2b by blast
     ultimately show ?thesis
       unfolding update_confl_tl_wl_heur_pre_def x2b
       by (auto simp: image_image)
