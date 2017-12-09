@@ -191,60 +191,53 @@ lemma fst_image_apfst:
 
 lemma stay_or_delete_completely':
   assumes "St \<leadsto>\<^sub>w St'" "(C,i) \<in># wP_of_wstate St"
-  shows "(C, i) \<in># wP_of_wstate St' \<or> (\<forall>j. (C, j) \<notin># wP_of_wstate St')"
+  shows "(\<exists>j\<le>i.(C, j) \<in># wP_of_wstate St') \<or> (\<forall>j. (C, j) \<notin># wP_of_wstate St')"
 using assms proof (induction rule: weighted_RP.induct)
   case (tautology_deletion A C N i P Q n)
-  then show ?case by auto
+  then show ?case 
+    by auto
 next
-  case (forward_subsumption D P Q C N i n)
-  then show ?case by auto
+  case (forward_subsumption D P Q C N i' n)
+  then show ?case 
+    by auto
 next
   case (backward_subsumption_P D N C P Q n)
-  then show ?case by auto
+  then show ?case 
+    by auto
 next
-  case (backward_subsumption_Q D N C P Q i n)
-  then show ?case by auto
+  case (backward_subsumption_Q D N C P Q i' n)
+  then show ?case 
+    by auto
 next
-  case (forward_reduction D L' P Q L \<sigma> C N i n)
-  then show ?case by auto
+  case (forward_reduction D L' P Q L \<sigma> C N i' n)
+  then show ?case 
+    by auto
 next
-  case (backward_reduction_P D L' N L \<sigma> C P i Q n)
-  then show ?case sorry
-(* FIXME:
-  case (backward_reduction_P D L' N C' L P \<sigma> Q n)
-  then show ?case
+  case (backward_reduction_P D L' N L \<sigma> C' P i' Q n)
+  then show ?case 
   proof (cases "C = C' + {#L#}")
     case True
-    have "\<forall>j. (C' + {#L#}, j) \<notin># wP_of_wstate (N, image_mset (apfst (\<lambda>E. if E = C' + {#L#} then C' else E)) P, Q, n)"
-      unfolding True proof
-      fix j :: "nat"
-      have "(C' + {#L#}, j) \<in># wP_of_wstate (N, image_mset (apfst (\<lambda>E. if E = C' + {#L#} then C' else E)) P, Q, n) \<Longrightarrow> False"
-      proof -
-        assume "(C' + {#L#}, j) \<in># wP_of_wstate (N, image_mset (apfst (\<lambda>E. if E = C' + {#L#} then C' else E)) P, Q, n)"
-        then have "(C' + {#L#}, j) \<in> (apfst (\<lambda>E. if E = C' + {#L#} then C' else E)) ` set_mset P"
-          by auto
-        then have "fst (C' + {#L#}, j) \<in> fst ` ((apfst (\<lambda>E. if E = C' + {#L#} then C' else E)) ` set_mset P)"
-          by (rule imageI)
-        then have "C' + {#L#} \<in> fst ` ((apfst (\<lambda>E. if E = C' + {#L#} then C' else E)) ` set_mset P)"
-          by auto
-        then have "C' + {#L#} \<in> (\<lambda>E. if E = C' + {#L#} then C' else E) ` fst ` set_mset P "
-          using fst_image_apfst by metis
-        then show ?thesis 
-          by auto
-      qed
-      then show "(C' + {#L#}, j) \<notin># wP_of_wstate (N, image_mset (apfst (\<lambda>E. if E = C' + {#L#} then C' else E)) P, Q, n)"
+    then show ?thesis
+    proof (cases "count (image_mset fst P) C = 0")
+      case True
+      then have "\<forall>j. (C, j) \<notin># wP_of_wstate (N, P + {#(C', i')#}, Q, n)"
+        sorry
+      then show ?thesis 
+        by auto
+    next
+      case False
+      then have "\<exists>j\<le>i. (C, j) \<in># wP_of_wstate (N, P + {#(C', i')#}, Q, n)"
+        sorry
+      then show ?thesis
         by auto
     qed
-    then show ?thesis 
-      unfolding True by auto
   next
     case False
-    then have "(C, i) \<in> (apfst (\<lambda>E. if E = C' + {#L#} then C' else E)) ` set_mset P"
-      using backward_reduction_P(5) by force
-    then show ?thesis 
+    then have "(C, i) \<in># P"
+      using backward_reduction_P by auto
+    then show ?thesis
       by auto
   qed
-*)
 next
   case (backward_reduction_Q D L' N L \<sigma> C P Q i n)
   then show ?case by auto
@@ -260,8 +253,7 @@ qed
 lemma stay_or_delete_completely: (* This is only true for full derivations. *)
   assumes "enat (Suc k) < llength Sts"
   assumes a: "(C, i) \<in># wP_of_wstate (lnth Sts k)"
-  shows "(C,i) \<in># wP_of_wstate (lnth Sts (Suc k)) 
-           \<or> (\<forall>j. (C, j) \<notin># wP_of_wstate (lnth Sts (Suc k)))"
+  shows "(\<exists>j\<le>i. (C, j) \<in># wP_of_wstate (lnth Sts (Suc k))) \<or> (\<forall>j. (C, j) \<notin># wP_of_wstate (lnth Sts (Suc k)))"
 proof -
   from deriv have "lnth Sts k \<leadsto>\<^sub>w lnth Sts (Suc k)"
     using assms chain_lnth_rel by auto
@@ -269,10 +261,11 @@ proof -
     using stay_or_delete_completely'[of "lnth Sts k" "lnth Sts (Suc k)" C i] a by blast
 qed
 
-lemma
+(* FIXME: come up with better name *)
+lemma persistent_wclause_if_persistent_clause:
   assumes llength_infty: "llength Sts = \<infinity>"
   assumes "C \<in> Liminf_llist (lmap P_of_state (lmap state_of_wstate Sts))"
-  shows "\<exists>C i. (C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
+  shows "\<exists>i. (C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
 proof -
   from assms obtain x where x_p:
     "enat x < llength Sts"
@@ -324,7 +317,7 @@ proof -
       qed
       ultimately have "(C, i) \<in># lnth (lmap wP_of_wstate Sts) (Suc (x + xa))"
         using stay_or_delete_completely
-        using llength_infty by auto 
+        using llength_infty sorry (* FIXME: The whole proof needs a substantial change -- or maybe I can change the lemma! *)
       then show ?case
         by (simp add: add.commute llength_infty)
     qed
@@ -344,7 +337,7 @@ proof -
   qed
   then have "(C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
     unfolding Liminf_llist_def using x_p by auto
-  then show "\<exists>C i. (C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
+  then show "\<exists>i. (C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
     by auto
 qed
 
@@ -357,15 +350,13 @@ proof (rule ccontr)
     unfolding fair_state_seq_def Liminf_state_def by auto
   then show False
   proof
-   assume "C \<in> Liminf_llist (lmap N_of_state (lmap state_of_wstate Sts))"
+    assume "C \<in> Liminf_llist (lmap N_of_state (lmap state_of_wstate Sts))"
     then obtain i where i_p:
       "enat i < llength Sts"
       "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_wstate (lnth Sts j))"
       unfolding Liminf_llist_def by auto
-    from i_p have "llength Sts = \<infinity>"
-      (* using llength_infinite_if_Ns_non_empty *) sorry
-    then have "llength (ldrop i Sts) = \<infinity>"
-      sorry
+    then have "\<exists>i. (C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)" 
+      using persistent_wclause_if_persistent_clause[of] sorry
     then show False
       sorry (* *)
   next
