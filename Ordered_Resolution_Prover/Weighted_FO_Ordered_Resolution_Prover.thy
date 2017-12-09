@@ -195,6 +195,12 @@ fun wP_of_wstate :: "'a wstate \<Rightarrow> 'a wclause multiset" where
 
 term "fst (a,b)"
 
+lemma wf_natLess: "wf natLess"
+  unfolding natLess_def using wf_less by auto
+
+lemma wf_RP_relation: "wf RP_relation"
+  using wf_natLess wf_mult by auto
+
 lemma 
   assumes "St \<leadsto>\<^sub>w St'"
   assumes "(C,i) \<in># wP_of_wstate St"
@@ -420,19 +426,41 @@ proof (rule ccontr)
       "enat i < llength Sts"
       "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_wstate (lnth Sts j))"
       unfolding Liminf_llist_def by auto
+ (* have "drop i" is a derivation
+    moreover
+    have "drop i" always has something in N
+    ultimately
+    have neighbours in "map RP_measure (drop i)" are related by RP_relation  //by an appropriate lemma 
+    then have FALSE since the relation is well founded. *)
     then have "\<exists>i. (C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)" 
       using persistent_wclause_if_persistent_clause[of C] sorry
     then show False
       sorry (* *)
   next
     assume asm: "C \<in> Liminf_llist (lmap P_of_state (lmap state_of_wstate Sts))"
-    have inf: "llength Sts = \<infinity>"
-      sorry
     from asm obtain i where i_p:
       "enat i < llength Sts"
       "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> P_of_state (state_of_wstate (lnth Sts j))"
       unfolding Liminf_llist_def by auto
-    then obtain i where "(C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
+    have "\<not>lfinite Sts" (* FIXME: make a lemma? *)
+    proof (rule ccontr)
+      assume "\<not> \<not> lfinite Sts"
+      then have "lfinite Sts"
+        by auto
+      then have "\<forall>y. \<not> llast Sts \<leadsto>\<^sub>w y" 
+        using full_chain_iff_chain[of "op \<leadsto>\<^sub>w" Sts] full_deriv by auto
+      moreover
+      define Sts' where "(Sts' :: 'a wstate) = undefined"
+      have "C \<in> P_of_state (state_of_wstate (llast Sts))"
+        using i_p sorry
+      then have "llast Sts \<leadsto>\<^sub>w Sts'"
+        (*clause processing or inference computation *) sorry
+      ultimately show "False" 
+        by metis
+    qed
+    then have inf: "llength Sts = \<infinity>"
+      using llength_eq_infty_conv_lfinite by auto
+    from i_p obtain i where "(C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
       using persistent_wclause_if_persistent_clause[of C] using asm inf by auto
     then show False
       sorry
