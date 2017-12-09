@@ -7,6 +7,23 @@ no_notation Ref.update ("_ := _" 62)
 
 declare cdcl\<^sub>W_restart_mset_state[simp]
 
+type_synonym out_learned = \<open>nat clause_l\<close>
+
+type_synonym out_learned_assn = \<open>uint32 array_list\<close>
+
+abbreviation out_learned_assn :: \<open>out_learned \<Rightarrow> out_learned_assn \<Rightarrow> assn\<close> where
+  \<open>out_learned_assn \<equiv> arl_assn unat_lit_assn\<close>
+
+definition out_learned :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clause option \<Rightarrow> out_learned \<Rightarrow> bool\<close> where
+  \<open>out_learned M D out \<longleftrightarrow>
+     out \<noteq> [] \<and>
+     (D = None \<longrightarrow> length out = 1) \<and>
+     (D \<noteq> None \<longrightarrow> mset (tl out) = filter_mset (\<lambda>L. get_level M L < count_decided M) (the D))\<close>
+
+definition out_learned_confl :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clause option \<Rightarrow> out_learned \<Rightarrow> bool\<close> where
+  \<open>out_learned_confl M D out \<longleftrightarrow>
+     out \<noteq> [] \<and> (D \<noteq> None \<and> mset out = the D)\<close>
+
 definition index_in_trail :: \<open>('v, 'a) ann_lits \<Rightarrow> 'v literal \<Rightarrow> nat\<close> where
   \<open>index_in_trail M L = index (map (atm_of o lit_of) (rev M)) (atm_of L)\<close>
 

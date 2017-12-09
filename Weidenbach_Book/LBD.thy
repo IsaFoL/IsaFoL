@@ -115,6 +115,7 @@ definition lbd_write :: \<open>lbd \<Rightarrow> nat \<Rightarrow> bool \<Righta
     (if i < length_u lbd then (lbd[i := b])
      else (list_grow lbd (i + 1) False[i := b])))\<close>
 
+
 definition lbd_ref_write :: \<open>lbd_ref \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> lbd_ref nres\<close>  where
   \<open>lbd_ref_write = (\<lambda>(lbd, m) i b. do {
     ASSERT(length lbd \<le> uint_max);
