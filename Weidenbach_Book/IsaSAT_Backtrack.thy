@@ -254,30 +254,6 @@ abbreviation extract_shorter_conflict_l_trivial_pre where
 
 sepref_register extract_shorter_conflict_l_trivial
 
-type_synonym (in -) lookup_clause_rel_with_cls_with_highest =
-  \<open>conflict_option_rel \<times> (nat literal \<times> nat)option\<close>
-
-type_synonym (in -) twl_st_wl_confl_extracted_int =
-  \<open>(nat,nat)ann_lits \<times> nat clause_l list \<times> nat \<times>
-    lookup_clause_rel_with_cls_with_highest \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int \<times>
-    bool list \<times> nat \<times> nat conflict_min_cach \<times> lbd \<times> stats\<close>
-
-definition (in isasat_input_ops) twl_st_heur_no_clvls
-  :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
-where
-\<open>twl_st_heur_no_clvls =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd, stats), (M, N, U, D, NE, UE, Q, W)).
-    M = M' \<and> N' = N \<and> U' = U \<and>
-    D' = D \<and>
-     Q' = Q \<and>
-    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
-    vm \<in> vmtf M \<and>
-    phase_saving \<phi> \<and>
-    no_dup M \<and>
-    cach_refinement_empty cach
-  }\<close>
-
-
 definition (in -) empty_cach where
   \<open>empty_cach cach = (\<lambda>_. SEEN_UNKNOWN)\<close>
 
