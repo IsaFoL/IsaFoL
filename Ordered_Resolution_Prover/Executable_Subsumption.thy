@@ -197,7 +197,145 @@ proof
 qed (auto simp: subsumes_modulo_def subst_lit_def subsumes_def)
 
 lemma strictly_subsumes_subsumes_list[code_unfold]:
-  "strictly_subsumes (mset Ls) (mset Ks) = (subsumes_list Ls Ks Map.empty \<and> \<not> subsumes_list Ks Ls Map.empty)"
+  "strictly_subsumes (mset Ls) (mset Ks) =
+    (subsumes_list Ls Ks Map.empty \<and> \<not> subsumes_list Ks Ls Map.empty)"
   unfolding strictly_subsumes_def subsumes_subsumes_list by simp
+
+lemma subsumes_list_filterD: "subsumes_list Ls (filter P Ks) \<sigma> \<Longrightarrow> subsumes_list Ls Ks \<sigma>"
+proof (induction Ls arbitrary: Ks \<sigma>)
+  case (Cons L Ls)
+  from Cons.prems show ?case
+    by (auto dest!: Cons.IH simp: filter_remove1[symmetric] split: option.splits)
+qed simp
+
+lemma subsumes_list_filterI:
+  assumes match: "(\<And>L K \<sigma> \<tau>. L \<in> set Ls \<Longrightarrow>
+    match_term_list [(atm_of L, atm_of K)] \<sigma> = Some \<tau> \<Longrightarrow> is_pos L = is_pos K \<Longrightarrow> P K)"
+  shows "subsumes_list Ls Ks \<sigma> \<Longrightarrow> subsumes_list Ls (filter P Ks) \<sigma>"
+using assms proof (induction Ls Ks \<sigma> rule: subsumes_list.induct[case_names Nil Cons])
+  case (Cons L Ls Ks \<sigma>)
+  from Cons.prems show ?case
+    unfolding subsumes_list.simps set_filter bex_simps conj_assoc
+    by (elim bexE conjE)
+      (rule exI, rule conjI, assumption,
+        auto split: option.splits simp: filter_remove1[symmetric] intro!: Cons.IH)
+qed simp
+
+lemma subsumes_list_Cons_filter_iff:
+  assumes sorted_wrt: "sorted_wrt leq (L # Ls)" and trans: "transp leq"
+  and match: "(\<And>L K \<sigma> \<tau>.
+    match_term_list [(atm_of L, atm_of K)] \<sigma> = Some \<tau> \<Longrightarrow> is_pos L = is_pos K \<Longrightarrow> leq L K)"
+shows "subsumes_list (L # Ls) (filter (leq L) Ks) \<sigma> \<longleftrightarrow> subsumes_list (L # Ls) Ks \<sigma>"
+  apply (rule iffI[OF subsumes_list_filterD subsumes_list_filterI]; assumption?)
+  unfolding list.set insert_iff
+  apply (elim disjE)
+  subgoal by (auto split: option.splits elim!: match)
+  subgoal for L K \<sigma> \<tau>
+    using sorted_wrt unfolding sorted_wrt_Cons[OF trans]
+    apply (elim conjE)
+    apply (drule bspec, assumption)
+    apply (erule transpD[OF trans])
+    apply (erule match)
+    apply auto
+    done
+  done
+
+definition leq_head  :: "('f::linorder, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" where
+  "leq_head t u = (case (root t, root u) of
+    (None, _) \<Rightarrow> True
+  | (_, None) \<Rightarrow> False
+  | (Some f, Some g) \<Rightarrow> f \<le> g)"
+definition "leq_lit L K = (case (K, L) of
+    (Neg _, Pos _) \<Rightarrow> True
+  | (Pos _, Neg _) \<Rightarrow> False
+  | _ \<Rightarrow> leq_head (atm_of L) (atm_of K))"
+
+lemma transp_leq_lit[simp]: "transp leq_lit"
+  unfolding transp_def leq_lit_def leq_head_def by (force split: option.splits literal.splits)
+
+lemma reflp_leq_lit[simp]: "reflp_on leq_lit A"
+  unfolding reflp_on_def leq_lit_def leq_head_def by (auto split: option.splits literal.splits)
+
+lemma total_leq_lit[simp]: "total_on leq_lit A"
+  unfolding total_on_def leq_lit_def leq_head_def by (auto split: option.splits literal.splits)
+
+lemma leq_head_subst[simp]: "leq_head t (t \<cdot> \<sigma>)"
+  by (induct t) (auto simp: leq_head_def)
+
+lemma leq_lit_match:
+  fixes L K :: "('f :: linorder, 'v) term literal"
+  shows "match_term_list [(atm_of L, atm_of K)] \<sigma> = Some \<tau> \<Longrightarrow> is_pos L = is_pos K \<Longrightarrow> leq_lit L K"
+  by (cases L; cases K)
+    (auto simp: leq_lit_def dest!: match_term_list_sound split: option.splits)
+
+fun subsumes_list_filter where
+  "subsumes_list_filter [] Ks \<sigma> = True"
+| "subsumes_list_filter (L # Ls) Ks \<sigma> =
+     (let Ks = filter (leq_lit L) Ks in
+     (\<exists>K \<in> set Ks. is_pos K = is_pos L \<and>
+       (case match_term_list [(atm_of L, atm_of K)] \<sigma> of
+         None \<Rightarrow> False
+       | Some \<rho> \<Rightarrow> subsumes_list_filter Ls (remove1 K Ks) \<rho>)))"
+
+lemma sorted_wrt_subsumes_list_subsumes_list_filter:
+  "sorted_wrt leq_lit Ls \<Longrightarrow> subsumes_list Ls Ks \<sigma> = subsumes_list_filter Ls Ks \<sigma>"
+proof (induction Ls arbitrary: Ks \<sigma>)
+  case (Cons L Ls)
+  from Cons.prems have "subsumes_list (L # Ls) Ks \<sigma> = subsumes_list (L # Ls) (filter (leq_lit L) Ks) \<sigma>"
+    by (intro subsumes_list_Cons_filter_iff[symmetric]) (auto dest: leq_lit_match)
+  also have "subsumes_list (L # Ls) (filter (leq_lit L) Ks) \<sigma> = subsumes_list_filter (L # Ls) Ks \<sigma>"
+    using Cons.prems by (auto simp: sorted_wrt_Cons Cons.IH split: option.splits)
+  finally show ?case .
+qed simp
+
+subsection \<open>Definition of deterministic QuickSort\<close>
+
+(*stolen from Manuel Eberls Quick_Sort_Cost AFP entry,
+   but without invoking probability theory and using a predicate instead of a set*)
+  
+text \<open>
+  This is the functional description of the standard variant of deterministic QuickSort that 
+  always chooses the first list element as the pivot as given by Hoare in 1962~\cite{hoare}. 
+  For a list that is already sorted, this leads to $n(n-1)$ 
+  comparisons, but as is well known, the average case is not that bad.
+\<close>
+fun quicksort :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> 'a list" where
+  "quicksort _ [] = []"
+| "quicksort R (x # xs) = 
+     quicksort R (filter (\<lambda>y. R y x) xs) @ [x] @ quicksort R (filter (\<lambda>y. \<not> R y x) xs)"
+
+text \<open>
+  We can easily show that this QuickSort is correct:
+\<close>
+theorem mset_quicksort [simp]: "mset (quicksort R xs) = mset xs"
+  by (induction R xs rule: quicksort.induct) simp_all
+    
+corollary set_quicksort [simp]: "set (quicksort R xs) = set xs"
+  by (induction R xs rule: quicksort.induct) auto
+
+theorem sorted_wrt_quicksort: 
+  assumes "transp R" and "total_on R (set xs)" and "reflp_on R (set xs)"
+  shows   "sorted_wrt R (quicksort R xs)"
+using assms
+proof (induction R xs rule: quicksort.induct)
+  case (2 R x xs)
+  have total: "R a b" if "\<not> R b a" "a \<in> set (x#xs)" "b \<in> set (x#xs)" for a b
+    using "2.prems" that unfolding total_on_def reflp_on_def by (cases "a = b") auto
+    
+  have "sorted_wrt R (quicksort R (filter (\<lambda>y. R y x) xs))"
+          "sorted_wrt R (quicksort R (filter (\<lambda>y. \<not> R y x) xs))"
+    using "2.prems" by (intro "2.IH"; auto simp: total_on_def reflp_on_def)+
+  then show ?case
+    by (auto simp: sorted_wrt_append sorted_wrt_Cons \<open>transp R\<close>
+     intro: transpD[OF \<open>transp R\<close>] dest!: total)
+qed auto
+
+(* end of stealing *)
+
+lemma subsumes_list_subsumes_list_filter[abs_def, code_unfold]:
+  "subsumes_list Ls Ks \<sigma> = subsumes_list_filter (quicksort leq_lit Ls) Ks \<sigma>"
+  by (rule trans[OF box_equals[OF _ subsumes_list_alt[symmetric] subsumes_list_alt[symmetric]]
+    sorted_wrt_subsumes_list_subsumes_list_filter])
+    (auto simp: sorted_wrt_quicksort)
 
 end
