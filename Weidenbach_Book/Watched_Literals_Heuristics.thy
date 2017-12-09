@@ -340,8 +340,8 @@ definition (in isasat_input_ops) set_conflict_wl_heur
 where
   \<open>set_conflict_wl_heur = (\<lambda>C (M, N, U, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, outl, stats). do {
     let n = zero_uint32_nat;
-    (D, clvls, lbd) \<leftarrow> set_conflict_m M N C D n outl lbd;
-    RETURN (M, N, U, D, {#}, W, vmtf, \<phi>, clvls, cach, lbd, incr_conflict stats)})\<close>
+    (D, clvls, lbd, outl) \<leftarrow> set_conflict_m M N C D n lbd outl;
+    RETURN (M, N, U, D, {#}, W, vmtf, \<phi>, clvls, cach, lbd, outl, incr_conflict stats)})\<close>
 
 
 definition (in isasat_input_ops) update_clause_wl_code_pre where
@@ -552,9 +552,9 @@ definition (in isasat_input_ops) propagate_lit_wl_heur_pre where
 definition (in isasat_input_ops) propagate_lit_wl_heur
   :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close>
 where
-  \<open>propagate_lit_wl_heur = (\<lambda>L' C i (M, N, U, D, Q, W, vm, \<phi>, clvls, cach, lbd, stats).
+  \<open>propagate_lit_wl_heur = (\<lambda>L' C i (M, N, U, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats).
       let N' = list_update N C (swap (N!C) 0 (fast_minus 1 i)) in
-      (Propagated L' C # M, N', U, D, add_mset (-L') Q, W, vm, \<phi>, clvls, cach, lbd,
+      (Propagated L' C # M, N', U, D, add_mset (-L') Q, W, vm, \<phi>, clvls, cach, lbd, outl,
          incr_propagation stats))\<close>
 
 lemma propagate_lit_wl_heur_propagate_lit_wl:

@@ -24,6 +24,10 @@ definition out_learned_confl :: \<open>(nat, nat) ann_lits \<Rightarrow> nat cla
   \<open>out_learned_confl M D out \<longleftrightarrow>
      out \<noteq> [] \<and> (D \<noteq> None \<and> mset out = the D)\<close>
 
+lemma out_learned_Cons_None[simp]:
+  \<open>out_learned (L # aa) None ao \<longleftrightarrow> out_learned aa None ao\<close>
+  by (auto simp: out_learned_def)
+
 definition index_in_trail :: \<open>('v, 'a) ann_lits \<Rightarrow> 'v literal \<Rightarrow> nat\<close> where
   \<open>index_in_trail M L = index (map (atm_of o lit_of) (rev M)) (atm_of L)\<close>
 
