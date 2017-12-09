@@ -140,8 +140,8 @@ fun get_conflict_cach:: \<open>twl_st_wl_heur \<Rightarrow> nat conflict_min_cac
 fun get_lbd :: \<open>twl_st_wl_heur \<Rightarrow> lbd\<close> where
   \<open>get_lbd (_, _, _, _, _, _, _, _, _, _, lbd, _) = lbd\<close>
 
-fun get_outlearned :: \<open>twl_st_wl_heur \<Rightarrow> out_learned\<close> where
-  \<open>get_outlearned (_, _, _, _, _, _, _, _, _, _, _, out, _) = out\<close>
+fun get_outlearned_heur :: \<open>twl_st_wl_heur \<Rightarrow> out_learned\<close> where
+  \<open>get_outlearned_heur (_, _, _, _, _, _, _, _, _, _, _, out, _) = out\<close>
 
 abbreviation phase_saver_conc where
   \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
