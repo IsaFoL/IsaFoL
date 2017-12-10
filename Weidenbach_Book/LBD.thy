@@ -50,7 +50,7 @@ lemma length_u_hnr[sepref_fr_rules]:
   by sepref_to_hoare
     (sep_auto simp: length_u_code_def array_assn_def is_array_def
         hr_comp_def list_rel_def length_u_def
-        uint32_nat_rel_def br_def  list_rel_pres_length
+        uint32_nat_rel_def br_def list_rel_pres_length
         dest!: nat_of_uint32_uint32_of_nat_id)
 
 lemma length_aa_u_hnr[sepref_fr_rules]:
@@ -62,6 +62,22 @@ lemma length_aa_u_hnr[sepref_fr_rules]:
         length_u_def length_aa_u_code_def length_rll_def
         nth_nat_of_uint32_nth'[symmetric] nat_of_uint32_le_iff
         uint32_nat_rel_def br_def list_rel_pres_length)
+
+
+definition length_arl_u_code :: \<open>('a::heap) array_list \<Rightarrow> uint32 Heap\<close> where
+  \<open>length_arl_u_code xs = do {
+   n \<leftarrow> arl_length xs;
+   return (uint32_of_nat n)}\<close>
+
+lemma length_arl_u_hnr[sepref_fr_rules]:
+  \<open>(length_arl_u_code, RETURN o length_u) \<in>
+     [\<lambda>xs. length xs \<le> uint_max]\<^sub>a (arl_assn R)\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: length_u_code_def  nat_of_uint32_uint32_of_nat_id
+      length_arl_u_code_def arl_assn_def
+      arl_length_def hr_comp_def is_array_list_def list_rel_pres_length[symmetric]
+      uint32_nat_rel_def br_def)
+
 
 sepref_definition level_in_lbd_code
   is \<open>uncurry (RETURN oo level_in_lbd_ref)\<close>

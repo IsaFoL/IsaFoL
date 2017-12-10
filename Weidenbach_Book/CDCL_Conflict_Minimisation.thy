@@ -1827,13 +1827,13 @@ lemma conflict_min_cach_set_removable_hnr[sepref_fr_rules]:
     unfolded cach_refinement_assn_def[symmetric]] .
 
 definition mark_failed_lits_stack_inv where
-  \<open>mark_failed_lits_stack_inv NU analyse = (\<lambda>(j, cach).
+  \<open>mark_failed_lits_stack_inv NU analyse = (\<lambda>cach.
        (\<forall>(i, j) \<in> set analyse. j \<le> length (NU ! i) \<and> i < length NU \<and> j \<ge> 1 \<and> i > 0))\<close>
 
 
 definition (in isasat_input_ops) mark_failed_lits_stack where
   \<open>mark_failed_lits_stack NU analyse cach = do {
-    ( _, cach) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_failed_lits_stack_inv NU analyse\<^esup>
+    ( _, cach) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(_, cach). mark_failed_lits_stack_inv NU analyse cach\<^esup>
       (\<lambda>(i, cach). i < length analyse)
       (\<lambda>(i, cach). do {
         ASSERT(i < length analyse);
@@ -1857,22 +1857,22 @@ lemma mark_failed_lits_stack_mark_failed_lits_wl:
   shows
     \<open>(uncurry2 mark_failed_lits_stack, uncurry2 mark_failed_lits_wl) \<in>
        [\<lambda>((NU, analyse), cach). literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU)) \<and>
-          mark_failed_lits_stack_inv NU analyse (0::nat, cach)]\<^sub>f
+          mark_failed_lits_stack_inv NU analyse cach]\<^sub>f
        Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
 proof -
   have \<open>mark_failed_lits_stack NU analyse cach \<le> (mark_failed_lits_wl NU analyse cach)\<close>
     if
       NU_\<L>\<^sub>i\<^sub>n: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU))\<close> and
-      init: \<open>mark_failed_lits_stack_inv NU analyse (0::nat, cach)\<close>
+      init: \<open>mark_failed_lits_stack_inv NU analyse cach\<close>
     for NU analyse cach
   proof -
     define I where
       \<open>I = (\<lambda>(i :: nat, cach'). (\<forall>L. cach' L = SEEN_REMOVABLE \<longrightarrow> cach L = SEEN_REMOVABLE))\<close>
     have valid_atm: \<open>atm_of (NU ! cls_idx ! (idx - 1)) \<in># \<A>\<^sub>i\<^sub>n\<close>
       if
-        \<open>mark_failed_lits_stack_inv NU analyse s\<close> and
         \<open>I s\<close> and
         \<open>case s of (i, cach) \<Rightarrow> i < length analyse\<close> and
+        \<open>case s of (i, cach) \<Rightarrow> mark_failed_lits_stack_inv NU analyse cach\<close> and
         \<open>s = (i, cach)\<close> and
         i: \<open>i < length analyse\<close> and
         \<open>analyse ! i = (cls_idx, idx)\<close>
@@ -1891,7 +1891,7 @@ proof -
       apply (refine_vcg WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(i, _). length analyse -i)\<close>
          and I' = I])
       subgoal by auto
-      subgoal by (rule init)
+      subgoal using init by simp
       subgoal unfolding I_def by auto
       subgoal by auto
       subgoal for s i cach cls_idx idx
