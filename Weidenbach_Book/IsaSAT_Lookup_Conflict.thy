@@ -352,7 +352,7 @@ where
        out_learned M C outl)\<close>
 
 definition (in isasat_input_ops) merge_conflict_m_g
-  :: \<open>nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> nat clause_l \<Rightarrow> nat clause option \<Rightarrow> 
+  :: \<open>nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> nat clause_l \<Rightarrow> nat clause option \<Rightarrow>
   (nat clause option \<times> nat \<times> lbd \<times> out_learned) nres\<close>
 where
 \<open>merge_conflict_m_g init M Ni D =
@@ -474,13 +474,13 @@ proof -
 qed
 
 
-definition outlearned_add 
+definition outlearned_add
   :: \<open>(nat, nat) ann_lits \<Rightarrow> nat literal \<Rightarrow> nat \<times> bool option list \<Rightarrow> out_learned \<Rightarrow> out_learned\<close> where
   \<open>outlearned_add = (\<lambda>M L zs outl.
     (if get_level M L < count_decided M \<and> \<not>is_in_lookup_conflict zs L then outl @ [L]
            else outl))\<close>
 
-definition clvls_add 
+definition clvls_add
   :: \<open>(nat, nat) ann_lits \<Rightarrow> nat literal \<Rightarrow> nat \<times> bool option list \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>clvls_add = (\<lambda>M L zs clvls.
     (if get_level M L = count_decided M \<and> \<not>is_in_lookup_conflict zs L then clvls + 1
@@ -509,7 +509,7 @@ where
    })\<close>
 
 definition resolve_lookup_conflict_aa
-  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow> lbd \<Rightarrow> 
+  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow> lbd \<Rightarrow>
      out_learned \<Rightarrow> (conflict_option_rel \<times> nat \<times> lbd \<times> out_learned) nres\<close>
 where
   \<open>resolve_lookup_conflict_aa M C i xs clvls lbd outl =
@@ -962,7 +962,7 @@ proof -
           (auto simp: is_in_lookup_conflict_def dist_C distinct_mset_in_diff
             split: option.splits bool.splits
             dest: in_diffD)
-      moreover have \<open>out_learned M (Some (remdups_mset (?C' (Suc a)))) 
+      moreover have \<open>out_learned M (Some (remdups_mset (?C' (Suc a))))
          (outlearned_add M (D ! a) (ab, b) outl)\<close>
         using D_a_notin uD_a_notin ocr lits if_cond a_init outl in_lo_in_C notin_lo_in_C
         unfolding outlearned_add_def out_learned_def
@@ -976,7 +976,7 @@ proof -
   qed
   have uL_C_if_L_C: \<open>-L \<notin># C\<close> if \<open>L \<in># C\<close> for L
     using tauto_C that unfolding tautology_decomp' by blast
- 
+
   show confl: \<open>lookup_conflict_merge init M D (b, n, xs) clvls lbd outl
     \<le> \<Down> ?Ref (merge_conflict_m_g init M D (Some C))\<close>
     unfolding resolve_lookup_conflict_aa_def lookup_conflict_merge_def PR_CONST_def
@@ -1063,7 +1063,7 @@ proof -
      (\<lambda>_ ((((((M, N), i), _, xs), _), _), _). i < length N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
          (\<forall>j<length (N ! i). atm_of (N ! i ! j) < length (snd xs)) \<and> no_dup M \<and>
          literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N ! i)) \<and> length (N ! i) \<le> uint_max)
-     (\<lambda>_. True)]\<^sub>a 
+     (\<lambda>_. True)]\<^sub>a
    hrp_comp ((hr_comp trail_pol_assn trail_pol)\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
        conflict_option_rel_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d)
      (\<langle>Id\<rangle>list_rel \<times>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f option_lookup_clause_rel \<times>\<^sub>f
@@ -1152,7 +1152,7 @@ proof -
      (\<lambda>_ ((((((M, N), i), _, xs), _), _), out). i < length N \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
          (\<forall>j<length (N ! i). atm_of (N ! i ! j) < length (snd xs)) \<and> no_dup M \<and>
          literals_are_in_\<L>\<^sub>i\<^sub>n (mset (N ! i)) \<and> length (N ! i) \<le> uint_max)
-     (\<lambda>_. True)]\<^sub>a 
+     (\<lambda>_. True)]\<^sub>a
    hrp_comp ((hr_comp trail_pol_assn trail_pol)\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
                conflict_option_rel_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d)
       (\<langle>Id\<rangle>list_rel \<times>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f option_lookup_clause_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f
@@ -1450,7 +1450,6 @@ where
        WHILE\<^sub>T\<^bsup>iterate_over_conflict_inv M D\<^sub>0\<^esup>
        (\<lambda>(D, D', highest). D' \<noteq> {#})
        (\<lambda>(D, D', highest). do{
-          ASSERT(D' \<noteq> {#});
           x \<leftarrow> SPEC (\<lambda>x. x \<in># D');
           red \<leftarrow> is_literal_redundant_spec K NU UNE D x;
           if \<not>red
@@ -1463,8 +1462,8 @@ where
 
 
 definition minimize_and_extract_highest_lookup_conflict_inv where
-  \<open>minimize_and_extract_highest_lookup_conflict_inv nxs = (\<lambda>((n, xs), m, i, s). n \<ge> m \<and>
-     n \<le> length xs \<and> length xs = length (snd nxs))\<close>
+  \<open>minimize_and_extract_highest_lookup_conflict_inv = (\<lambda>(D, i, s, highest, outl).
+    True)\<close>
 
 type_synonym 'v conflict_highest_conflict = \<open>('v literal \<times> nat) option\<close>
 
@@ -1477,7 +1476,7 @@ definition is_literal_redundant_lookup_spec where
        (mset `# mset (tl NU)) + NUE \<Turnstile>pm remove1_mset L D))\<close>
 
 definition lit_redundant_rec_wl_lookup
-  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> lookup_clause_rel \<Rightarrow>
+  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat clause \<Rightarrow>
      _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> (_ \<times> _ \<times> bool) nres\<close>
 where
   \<open>lit_redundant_rec_wl_lookup M NU D cach analysis lbd =
@@ -1499,7 +1498,7 @@ where
                let b = \<not>level_in_lbd (get_level M L) lbd;
                if (get_level M L = zero_uint32_nat \<or>
                    conflict_min_cach cach (atm_of L) = SEEN_REMOVABLE \<or>
-                   is_in_lookup_conflict D L)
+                   L \<in># D)
                then RETURN (cach, analyse, False)
                else if b \<or> conflict_min_cach cach (atm_of L) = SEEN_FAILED
                then do {
@@ -1519,57 +1518,18 @@ where
         })
        (cach, analysis, False)\<close>
 
-definition literal_redundant_wl_lookup where
-  \<open>literal_redundant_wl_lookup M NU D cach L lbd = do {
-     ASSERT(-L \<in> lits_of_l M);
-     if get_level M L = 0 \<or> conflict_min_cach cach (atm_of L) = SEEN_REMOVABLE
-     then RETURN (cach, [], True)
-     else if conflict_min_cach cach (atm_of L) = SEEN_FAILED
-     then RETURN (cach, [], False)
-     else do {
-       C \<leftarrow> get_propagation_reason M (-L);
-       case C of
-         Some C \<Rightarrow> lit_redundant_rec_wl_lookup M NU D cach [(C, 1)] lbd
-       | None \<Rightarrow> do {
-           RETURN (cach, [], False)
-       }
-     }
-  }\<close>
-
 
 lemma lit_redundant_rec_wl_lookup_lit_redundant_rec_wl:
-  assumes D'_D: \<open>(D', D) \<in> lookup_clause_rel\<close> and
+  assumes
     \<open>M \<Turnstile>as CNot D\<close> and
     n_d: \<open>no_dup M\<close> and
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close>
   shows
-   \<open>lit_redundant_rec_wl_lookup M NU D' cach analysis lbd \<le>
+   \<open>lit_redundant_rec_wl_lookup M NU D cach analysis lbd \<le>
       \<Down> Id (lit_redundant_rec_wl M NU D cach analysis lbd)\<close>
 proof -
   have M: \<open>\<forall>a \<in> lits_of_l M. a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
     using isasat_input_ops.literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l lits by blast
-
-  have [simp]: \<open>is_in_lookup_conflict D' x \<longleftrightarrow> x \<in># D\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>) if \<open>-x \<in> lits_of_l M\<close> for x
-  proof
-    assume ?B
-    then show ?A
-      using D'_D mset_as_position_nth[of \<open>snd D'\<close> D x] M that
-      unfolding lookup_clause_rel_def
-      by (auto simp: is_in_lookup_conflict_def split: option.splits)
-  next
-    assume ?A
-    moreover have \<open>atm_of x < length (snd D')\<close>
-      using M that D'_D
-      unfolding lookup_clause_rel_def
-      by (cases D') (auto simp: atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-    moreover have \<open>-x \<notin># D\<close>
-      using \<open>M \<Turnstile>as CNot D\<close> n_d in_CNot_implies_uminus(2) no_dup_consistentD that by blast
-    ultimately show ?B
-      using D'_D mset_as_position_in_iff_nth[of \<open>snd D'\<close> D x] M that
-        mset_as_position_in_iff_nth[of \<open>snd D'\<close> D \<open>-x\<close>]
-      unfolding lookup_clause_rel_def
-      by (cases x) (auto simp: is_in_lookup_conflict_def split: option.splits)
-  qed
 
   have [refine_vcg]: \<open>(a, b) \<in> Id \<Longrightarrow> (a, b) \<in> \<langle>Id\<rangle>option_rel\<close> for a b by auto
   have [refine_vcg]: \<open>get_propagation_reason M x
@@ -1611,46 +1571,6 @@ proof -
 qed
 
 
-lemma literal_redundant_wl_lookup_literal_redundant_wl:
-  assumes
-    D'_D:  \<open>(D', D) \<in> lookup_clause_rel\<close> and
-    n_d: \<open>no_dup M\<close> and
-    M_D: \<open>M \<Turnstile>as CNot D\<close> and
-    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close>
-  shows
-    \<open>literal_redundant_wl_lookup M NU D' cach L lbd \<le> \<Down> Id (literal_redundant_wl M NU D cach L lbd)\<close>
-proof -
-  have H: \<open>(x, x') \<in> Id \<Longrightarrow> (x, x') \<in> \<langle>Id\<rangle>option_rel\<close> for x' x
-    by auto
-  have lit_redundant_rec_wl_lookup_lit_redundant_rec_wl:
-
-      \<open>lit_redundant_rec_wl_lookup M NU D' cach analysis lbd \<le> \<Down> Id
-      (lit_redundant_rec_wl M' NU' D cach' analysis' lbd)\<close>
-      if
-        D'_D: \<open>(D', D) \<in> lookup_clause_rel\<close> and
-        M: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close> and
-        \<open>M \<Turnstile>as CNot D\<close> and
-        n_d: \<open>no_dup M\<close> and
-        \<open>M = M'\<close> \<open>NU = NU'\<close> \<open>cach = cach'\<close> \<open>analysis = analysis'\<close>
-      for M M' NU NU' cach cach' analysis analysis' D D' lbd
-    using lit_redundant_rec_wl_lookup_lit_redundant_rec_wl that by blast
-
-  show ?thesis
-    unfolding literal_redundant_wl_lookup_def literal_redundant_wl_def
-    apply (refine_vcg H lit_redundant_rec_wl_lookup_lit_redundant_rec_wl)
-    subgoal by auto
-    subgoal by auto
-    subgoal by (rule D'_D)
-    subgoal by (rule lits)
-    subgoal by (rule M_D)
-    subgoal by (rule n_d)
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    done
-qed
-
 definition (in -) lookup_conflict_nth where
   [simp]: \<open>lookup_conflict_nth = (\<lambda>(_, xs) i. xs ! i)\<close>
 
@@ -1660,32 +1580,27 @@ definition (in -) lookup_conflict_size where
 definition (in -) lookup_conflict_upd_None where
   [simp]: \<open>lookup_conflict_upd_None = (\<lambda>(n, xs) i. (n-1, xs [i :=None]))\<close>
 
+term minimize_and_extract_highest_lookup_conflict_inv
 definition minimize_and_extract_highest_lookup_conflict
-  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> lookup_clause_rel \<Rightarrow> (nat \<Rightarrow> minimize_status) \<Rightarrow> lbd \<Rightarrow>
-       (lookup_clause_rel \<times> (nat \<Rightarrow> minimize_status) \<times> nat conflict_highest_conflict) nres\<close>
+  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat clause \<Rightarrow> (nat \<Rightarrow> minimize_status) \<Rightarrow> lbd \<Rightarrow>
+     out_learned \<Rightarrow> (nat clause \<times> (nat \<Rightarrow> minimize_status) \<times> nat conflict_highest_conflict
+        \<times> out_learned) nres\<close>
 where
-  \<open>minimize_and_extract_highest_lookup_conflict  = (\<lambda>M NU nxs s lbd. do {
-    (D, _, _, s, highest) \<leftarrow>
-       WHILE\<^sub>T\<^bsup>minimize_and_extract_highest_lookup_conflict_inv nxs\<^esup>
-         (\<lambda>((nxs), m, i, s, _). m > 0)
-         (\<lambda>((nxs), m, i, s, highest). do {
-            ASSERT(m > 0);
-            ASSERT(confl_find_next_index_pre nxs i);
-            x \<leftarrow> confl_find_next_index_spec nxs i;
-            ASSERT(lookup_conflict_nth nxs x \<noteq> None);
-            ASSERT(x < length (snd nxs));
-            ASSERT(Pos x \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
-            let L = (if the (lookup_conflict_nth nxs x) then Pos x else Neg x);
+  \<open>minimize_and_extract_highest_lookup_conflict  = (\<lambda>M NU nxs s lbd outl. do {
+    (D, _, s, highest, outl) \<leftarrow>
+       WHILE\<^sub>T\<^bsup>minimize_and_extract_highest_lookup_conflict_inv\<^esup>
+         (\<lambda>(nxs, i, s, highest, outl). i < length outl)
+         (\<lambda>(nxs, x, s, highest, outl). do {
+            ASSERT(x < length outl);
+            let L = outl ! x;
             ASSERT(L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
-            (s', _, red) \<leftarrow> literal_redundant_wl_lookup M NU nxs s L lbd;
-            ASSERT(m \<ge> 1);
-            ASSERT(fst nxs \<ge> 1);
+            (s', _, red) \<leftarrow> literal_redundant_wl M NU nxs s L lbd;
             if \<not>red
-            then RETURN (nxs, fast_minus m 1, x+1, s', merge_highest_lit M L highest)
-            else RETURN (lookup_conflict_upd_None nxs x, fast_minus m 1, x+1, s', highest)
+            then RETURN (nxs, x+1, s', merge_highest_lit M L highest, outl)
+            else RETURN (remove1_mset L nxs, x, s', highest, delete_index_and_swap outl x)
          })
-         (nxs, lookup_conflict_size nxs, 0, s, None);
-     RETURN (D, s, highest)
+         (nxs, 0, s, None, outl);
+     RETURN (D, s, highest, outl)
   })\<close>
 
 lemma conc_fun_mono: \<open>A \<le> B \<Longrightarrow> \<Down> R A \<le> \<Down> R B\<close>
@@ -1730,8 +1645,10 @@ lemma minimize_and_extract_highest_lookup_conflict_iterate_over_conflict:
     NUE: \<open>NUE \<equiv> get_unit_learned S + get_unit_init_clss S\<close> and
     M': \<open>M' \<equiv> trail S'''\<close>
   assumes
-    D'_D: \<open>(D', D) \<in> lookup_clause_rel\<close> and
+    D'_D: \<open>mset outl = D\<close> and
     M_D: \<open>M \<Turnstile>as CNot D\<close> and
+    dist_D: \<open>distinct_mset D\<close> and
+    tauto: \<open>\<not>tautology D\<close> and
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close> and
     struct_invs: \<open>twl_struct_invs S''\<close> and
     add_inv: \<open>twl_list_invs S'\<close> and
@@ -1739,8 +1656,8 @@ lemma minimize_and_extract_highest_lookup_conflict_iterate_over_conflict:
     NU_P_D: \<open>NU' + NUE \<Turnstile>pm add_mset K D\<close> and
     lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close>
   shows
-    \<open>minimize_and_extract_highest_lookup_conflict M NU D' s' lbd \<le>
-       \<Down> ({((E, s, L'), (E', L)). (E, E') \<in> lookup_clause_rel \<and> L' = L \<and> length (snd E) = length (snd D') \<and>
+    \<open>minimize_and_extract_highest_lookup_conflict M NU D s' lbd outl \<le>
+       \<Down> ({((E, s, L', outl), (E', L)). E = E' \<and> L' = L \<and> mset outl = E \<and>
                E' \<subseteq># D})
            (iterate_over_conflict K M NU' NUE D)\<close>
     (is \<open>_ \<le> \<Down> ?R _\<close>)
@@ -1776,26 +1693,26 @@ proof -
   then have n_d: \<open>no_dup M\<close>
     unfolding M_def M' S'''_def by (cases S) auto
 
-  obtain n\<^sub>0 xs\<^sub>0 where D'[simp]: \<open>D' = (n\<^sub>0, xs\<^sub>0)\<close>
-    by (cases D')
   define R where
-    \<open>R = {(((n, xs), m, i, cach :: nat \<Rightarrow> minimize_status,highest':: nat conflict_highest_conflict),
+    \<open>R = {((D', i, cach :: nat \<Rightarrow> minimize_status,highest':: nat conflict_highest_conflict,
+              outl' :: out_learned),
             (F :: nat clause, E :: nat clause, highest:: nat conflict_highest_conflict)).
-            ((n, xs), F) \<in> lookup_clause_rel \<and>
-            i \<le> length xs \<and>
-            ((m, replicate i None @ drop i xs), E) \<in> lookup_clause_rel \<and>
-            n \<ge> m \<and>
+            D' = F \<and>
+            i \<le> length outl' \<and>
             F \<subseteq># D \<and>
             E \<subseteq># F \<and>
+            mset (drop i outl') = E \<and>
+            mset outl' = F \<and>
             highest' = highest \<and>
             conflict_min_analysis_inv M' cach (?NU) F \<and>
             NU' + NUE \<Turnstile>pm add_mset K F \<and>
-            length xs = length xs\<^sub>0
+            mset outl' = D'
         }\<close>
-  have init_args_ref: \<open>(((n\<^sub>0, xs\<^sub>0), lookup_conflict_size (n\<^sub>0, xs\<^sub>0), 0, s', None), D, D, None) \<in> R\<close>
-    using D'_D cach_init NU_P_D unfolding R_def NUE NU'_def NU_N_U by (auto simp: ac_simps)
+  have init_args_ref: \<open>((D, 0, s', None, outl), D, D, None) \<in> R\<close>
+    using D'_D cach_init NU_P_D dist_D tauto
+    unfolding R_def NUE NU'_def NU_N_U by (auto simp: ac_simps)
 
-   have init_lo_inv: \<open>minimize_and_extract_highest_lookup_conflict_inv (n\<^sub>0, xs\<^sub>0) s'\<close>
+   have init_lo_inv: \<open>minimize_and_extract_highest_lookup_conflict_inv s'\<close>
     if
       \<open>(s', s) \<in> R\<close> and
       \<open>iterate_over_conflict_inv M D s\<close>
@@ -1807,59 +1724,27 @@ proof -
       using that unfolding minimize_and_extract_highest_lookup_conflict_inv_def
       by (auto simp: R_def)
   qed
-  have cond: \<open>(0 < m) = (D' \<noteq> {#})\<close>
+  have cond: \<open>(m < length outl') = (D' \<noteq> {#})\<close>
     if
       st'_st: \<open>(st', st) \<in> R\<close> and
-      \<open>minimize_and_extract_highest_lookup_conflict_inv (n\<^sub>0, xs\<^sub>0) st'\<close> and
+      \<open>minimize_and_extract_highest_lookup_conflict_inv st'\<close> and
       \<open>iterate_over_conflict_inv M D st\<close> and
       st:
+        \<open>x2c = (hh, outl')\<close>
         \<open>x2b = (j, x2c)\<close>
         \<open>x2a = (m, x2b)\<close>
         \<open>st' = (nxs, x2a)\<close>
         \<open>st2 = (D' , st3)\<close>
         \<open>st = (E, st2)\<close>
-    for st' st nxs x2a m x2b j x2c D' E st2 st3
+    for st' st nxs x2a m x2b j x2c D' E st2 st3 hh outl'
   proof -
     show ?thesis
-      using st'_st unfolding st
-      by (cases D'; cases nxs) (auto simp: R_def lookup_clause_rel_def)
-  qed
-  have confl_find_next_index_spec_le:
-    \<open>confl_find_next_index_spec x1b x1e
-      \<le> \<Down> {(j, x). (snd x1b) ! j \<noteq> None \<and> x = (if the ((snd x1b)!j) then Pos j else Neg j) \<and>
-             j < length (snd x1b) \<and> x1e \<le> j \<and> (\<forall>k\<ge>x1e. k < j \<longrightarrow> (snd x1b) ! k = None) \<and>
-             x \<in># x1a}
-          (SPEC (\<lambda>x. x \<in># x1a))\<close>
-    (is \<open>_ \<le> \<Down> ?confl _\<close>)
-    if
-      R: \<open>(x, x') \<in> R\<close> and
-      st:
-        \<open>x' = (x1, st2)\<close>
-        \<open>st2 = (x1a , st3)\<close>
-        \<open>x2d = (x1e, x2e)\<close>
-        \<open>x2c = (x1d, x2d)\<close>
-        \<open>x = (x1b, x2c)\<close> and
-      x1d: \<open>0 < x1d\<close>
-    for x x' x1 x1a x1b x2c x1d x2d x1e x2e st2 st3
-  proof -
-    obtain x1c x2b where
-       x1b[simp]: \<open>x1b = (x1c, x2b)\<close> by (cases x1b)
-
-    have map: \<open>mset_as_position (replicate x1e None @ drop x1e x2b) x1a\<close>
-      using R unfolding st R_def lookup_clause_rel_def
+      using st'_st unfolding st R_def
       by auto
-    show ?thesis
-      unfolding confl_find_next_index_spec_def st x1b
-      apply clarify
-      apply (rule RES_refine)
-      subgoal for s
-        using x1d mset_as_position_in_iff_nth[OF map, of \<open>Pos s\<close>]
-          x1d mset_as_position_in_iff_nth[OF map, of \<open>Neg s\<close>]
-        by (auto simp: nth_append intro!: )
-      done
   qed
-  have redundant: \<open>literal_redundant_wl_lookup M NU nxs cach
-          (if the (xs ! a) then Pos a else Neg a) lbd
+
+  have redundant: \<open>literal_redundant_wl M NU nxs cach
+          (outl' ! a) lbd
       \<le> \<Down> {((s', a', b'), b). b = b' \<and>
             (b \<longrightarrow> NU' + NUE \<Turnstile>pm remove1_mset L (add_mset K E) \<and>
                conflict_min_analysis_inv M' s' ?NU (remove1_mset L E)) \<and>
@@ -1869,47 +1754,43 @@ proof -
     if
       R: \<open>(x, x') \<in> R\<close> and
       \<open>case x' of (D, D', highest) \<Rightarrow> D' \<noteq> {#}\<close> and
-      \<open>minimize_and_extract_highest_lookup_conflict_inv (n\<^sub>0, xs\<^sub>0) x\<close> and
+      \<open>minimize_and_extract_highest_lookup_conflict_inv x\<close> and
       \<open>iterate_over_conflict_inv M D x'\<close> and
       st:
         \<open>x2 = (x1a, x2a)\<close>
         \<open>x' = (E, x2)\<close>
-        \<open>nxs = (n, xs)\<close>
-        \<open>x2e = (cach, highest)\<close>
-        \<open>x2d = (x1e, x2e)\<close>
+        \<open>st3 = (highest, outl')\<close>
+        \<open>x2d = (cach, st3)\<close>
         \<open>x2c = (x1d, x2d)\<close>
         \<open>x = (nxs, x2c)\<close> and
-      \<open>x1a \<noteq> {#}\<close> and
-      \<open>0 < x1d\<close> and
-      xa_xb: \<open>(a, L) \<in> ?confl x1a nxs x1e\<close> and
-      xb: \<open>L \<in> {x. x \<in># x1a}\<close>
-    for x x' E x2 x1a x2a nxs n xs x2c x1d x2d x1e x2e cach highest a L
+      L: \<open>(outl'!a, L) \<in> Id\<close>
+      \<open>a < length outl'\<close>
+    for x x' E x2 x1a x2a nxs x2c x1d x2d x1e x2e cach highest a L outl' st3
   proof -
-    let ?L = \<open>(if the (xs ! a) then Pos a else Neg a)\<close>
+    let ?L = \<open>(outl' ! a)\<close>
     have
-      cr: \<open>((n, xs), E) \<in> lookup_clause_rel\<close> and
-      \<open>x1e \<le> length xs\<close> and
-      \<open>((x1d, replicate x1e None @ drop x1e xs), x1a) \<in> lookup_clause_rel\<close> and
-      \<open>x1d \<le> n\<close> and
-      \<open>E \<subseteq># D\<close> and
-      \<open>x1a \<subseteq># E\<close> and
+      \<open>nxs = mset outl'\<close> and
+      \<open>x1d \<le> length outl'\<close> and
+      \<open>mset outl' \<subseteq># D\<close> and
+      \<open>mset (drop x1d outl') \<subseteq># mset outl'\<close> and
+      \<open>x1a = mset (drop x1d outl')\<close> and
       \<open>highest = x2a\<close> and
-      xb_x1: \<open>L \<in># E\<close> and
+      \<open>E = mset outl'\<close> and
       cach: \<open>conflict_min_analysis_inv M' cach ?NU E\<close> and
-      NU_P_E: \<open>NU' + NUE \<Turnstile>pm add_mset K E\<close>
-      using R xb unfolding R_def st
+      NU_P_E: \<open>NU' + NUE \<Turnstile>pm add_mset K E\<close> and
+      \<open>E \<subseteq># D\<close> and
+      \<open>x1a = mset (drop x1d outl')\<close> and
+      \<open>E = nxs\<close> and
+      [simp]: \<open>L = outl'!a\<close>
+      using R L unfolding R_def st
       by auto
-    have L: \<open>?L = L\<close>
-      using xa_xb unfolding st  by auto
     have M_x1: \<open>M \<Turnstile>as CNot E\<close>
       by (metis CNot_plus M_D \<open>E \<subseteq># D\<close> subset_mset.le_iff_add true_annots_union)
     then have M'_x1: \<open>M' \<Turnstile>as CNot E\<close>
       unfolding M' M_def S'''_def by (cases S) auto
-    have 1:
-      \<open>literal_redundant_wl_lookup M NU nxs cach ?L lbd \<le>
-      literal_redundant_wl M NU E cach ?L lbd\<close>
-      using literal_redundant_wl_lookup_literal_redundant_wl[OF cr n_d M_x1 lits, of NU cach
-          \<open>?L\<close>] unfolding st by simp
+    have \<open>outl' ! a \<in># E\<close>
+      using \<open>E = mset outl'\<close> \<open>a < length outl'\<close>
+      by auto
     have 2:
     \<open>literal_redundant_wl M NU E cach ?L lbd \<le> \<Down>
        (Id \<times>\<^sub>r {(analyse, analyse'). analyse' = convert_analysis_list NU analyse \<and>
@@ -1918,7 +1799,7 @@ proof -
       by (rule literal_redundant_wl_literal_redundant[of S,
             unfolded M_def[symmetric] NU[symmetric] M'[symmetric] S'''_def[symmetric]
             NU'_def[symmetric]])
-         (use M_x1 struct_invs add_inv xb_x1 L in \<open>auto simp: S'_def S''_def\<close>)
+         (use M_x1 struct_invs add_inv \<open>outl' ! a \<in># E\<close> in \<open>auto simp: S'_def S''_def\<close>)
 
     have 3:
        \<open>literal_redundant M' (N + U) E cach ?L \<le>
@@ -1926,224 +1807,163 @@ proof -
       apply (rule literal_redundant_spec)
          apply (rule struct_inv_S''')
       apply (rule cach)
-       apply (subst L, rule xb_x1)
+       apply (rule \<open>outl' ! a \<in># E\<close>)
       apply (rule M'_x1)
       done
 
     then have 3:
        \<open>literal_redundant M' (NU') E cach ?L \<le> literal_redundant_spec M' ?NU E ?L\<close>
-      by (auto simp: ac_simps L NU'_N_U)
+      by (auto simp: ac_simps NU'_N_U)
 
     have ent: \<open>NU' + NUE \<Turnstile>pm add_mset (- L) (filter_to_poslev M' L (add_mset K E))\<close>
       if \<open>NU' + NUE \<Turnstile>pm add_mset (- L) (filter_to_poslev M' L E)\<close>
       using that by (auto simp: filter_to_poslev_add_mset add_mset_commute)
     show ?thesis
-      apply (rule order.trans)
-       apply (rule 1)
+      unfolding \<open>E = nxs\<close>[symmetric]
       apply (rule order.trans)
        apply (rule 2)
       apply (rule order.trans)
        apply (rule conc_fun_mono[OF 3])
       unfolding  literal_redundant_spec_def is_literal_redundant_spec_def
-          conc_fun_SPEC L NU'_NUE[symmetric]
+          conc_fun_SPEC NU'_NUE[symmetric]
       apply (rule SPEC_rule)
       apply clarify
       using NU_P_E ent
-      by (auto simp: xb_x1 intro!: entails_uminus_filter_to_poslev_can_remove
+      by (auto simp: \<open>outl' ! a \<in># E\<close> intro!: entails_uminus_filter_to_poslev_can_remove[of _ _ M']
           filter_to_poslev_conflict_min_analysis_inv simp del: diff_union_swap2)
   qed
 
-  have loop_keep: \<open>\<not>red \<Longrightarrow> ((nxs, fast_minus m 1, m'' + 1, s,
-           merge_highest_lit M (if the (xs ! m'') then Pos m'' else Neg m'') highest'), D',
-          remove1_mset L D'', merge_highest_lit M L highest) \<in> R\<close>
-      (is \<open>_ \<Longrightarrow> ?loop_keep\<close>) and
-   loop_dont_keep: \<open>\<not>\<not>red \<Longrightarrow> (((n - 1, xs[m'' := None]), fast_minus m 1, m'' + 1, s, highest'),
-           remove1_mset L D', remove1_mset L D'', highest) \<in> R\<close>
-  (is \<open>_ \<Longrightarrow> ?loop_dont_keep\<close>)
+  have
+    outl'_F: \<open>outl' ! i \<in># F\<close> (is ?out) and
+    outl'_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>outl' ! i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> (is ?out_L)
     if
-      R: \<open>(st'', st) \<in> R\<close> and
-      keep: \<open>(keep', red) \<in> ?red D' L\<close> and
+      R: \<open>(S, T) \<in> R\<close> and
+      \<open>case S of (nxs, i, s, highest, outl) \<Rightarrow> i < length outl\<close> and
+      \<open>case T of (D, D', highest) \<Rightarrow> D' \<noteq> {#}\<close> and
+      \<open>minimize_and_extract_highest_lookup_conflict_inv S\<close> and
+      \<open>iterate_over_conflict_inv M D T\<close> and
       st:
-        \<open>st = (D', st2)\<close>
-        \<open>st2 = (D'' , highest)\<close>
-        \<open>nxs = (n, xs)\<close>
-        \<open>st''3 = (i, s_highest)\<close>
-        \<open>s_highest = (s', highest')\<close>
-        \<open>st''2 = (m, st''3)\<close>
-        \<open>st'' = (nxs, st''2)\<close>
-        \<open>keep' = (s, truc)\<close> and
-      xa_xb: \<open>(m'', L) \<in> ?confl D'' nxs i\<close> and
-      xb_x1a: \<open>L \<in> {x. x \<in># D''}\<close>
-    for st'' st D' D'' nxs n xs st''2 m st''3 i s_highest m'' L s st2 highest s' highest' red keep'
-      truc
+        \<open>T1 = (F, highest')\<close>
+        \<open>T = (F', T1)\<close>
+        \<open>S3 = (highest, outl')\<close>
+        \<open>S2 = (cach, S3)\<close>
+        \<open>S1 = (i, S2)\<close>
+        \<open>S = (D', S1)\<close>
+      \<open>i < length outl'\<close>
+    for S T F' T1 F highest' D' S1 i S2 cach S3 highest outl'
   proof -
-    have L: \<open>L = (if the (xs ! m'') then Pos m'' else Neg m'')\<close>
-      using xa_xb unfolding st by auto
+    have ?out and \<open>F \<subseteq># D\<close>
+      using R \<open>i < length outl'\<close> unfolding R_def st
+      by (auto simp: set_drop_conv)
+    show ?out
+      using \<open>?out\<close> .
+    then have \<open>outl' ! i \<in># D\<close>
+      using \<open>F \<subseteq># D\<close> by auto
+    then show ?out_L
+      using lits_D by (auto dest!: multi_member_split simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset)
+  qed
+
+  have
+    not_red: \<open>\<not> red \<Longrightarrow> ((D', i + 1, cachr, merge_highest_lit M (outl' ! i) highest, outl'), F',
+        remove1_mset L F, merge_highest_lit M L highest') \<in> R\<close> (is \<open>_ \<Longrightarrow> ?not_red\<close>) and
+    red: \<open>\<not> \<not> red \<Longrightarrow>
+       ((remove1_mset (outl' ! i) D', i, cachr, highest, delete_index_and_swap outl' i),
+       remove1_mset L F', remove1_mset L F, highest') \<in> R\<close> (is \<open>_ \<Longrightarrow> ?red\<close>)
+    if
+      R: \<open>(S, T) \<in> R\<close> and
+      \<open>case S of (nxs, i, s, highest, outl) \<Rightarrow> i < length outl\<close> and
+      \<open>case T of (D, D', highest) \<Rightarrow> D' \<noteq> {#}\<close> and
+      \<open>minimize_and_extract_highest_lookup_conflict_inv S\<close> and
+      \<open>iterate_over_conflict_inv M D T\<close> and
+      st:
+         \<open>T1 = (F, highest')\<close>
+         \<open>T = (F', T1)\<close>
+         \<open>S3 = (highest, outl')\<close>
+         \<open>S2 = (cach, S3)\<close>
+         \<open>S1 = (i, S2)\<close>
+         \<open>S = (D', S1)\<close>
+         \<open>cachred1 = (stack, red)\<close>
+         \<open>cachred = (cachr, cachred1)\<close> and
+      \<open>i < length outl'\<close> and
+      L: \<open>(outl' ! i, L) \<in> Id\<close> and
+      \<open>outl' ! i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close> and
+      cach: \<open>(cachred, red') \<in> (?red F' L)\<close>
+    for S T F' T1 F highest' D' S1 i S2 cach S3 highest outl' L  cachred red' cachr
+      cachred1 stack red
+  proof -
     have
-      x1c_x1[simp]: \<open>((n, xs), D') \<in> lookup_clause_rel\<close> and
-      [simp]: \<open>i \<le> length xs\<close> and
-      x1d_x1a: \<open>((m, replicate i None @ drop i xs), D'') \<in> lookup_clause_rel\<close> and
-      x1d_x1c: \<open>m \<le> n\<close> and
-      incls: \<open>D' \<subseteq># D\<close> \<open>D'' \<subseteq># D'\<close> and
-      [simp]: \<open>highest' = highest\<close> and
-      cach: \<open>conflict_min_analysis_inv M' s' ?NU D'\<close> and
-      legnth_xs_xs0: \<open>length xs = length xs\<^sub>0\<close>
+      \<open>D' = mset outl'\<close> and
+      \<open>i \<le> length outl'\<close> and
+      \<open>mset outl' \<subseteq># D\<close> and
+      \<open>mset (drop i outl') \<subseteq># mset outl'\<close> and
+      F: \<open>F = mset (drop i outl')\<close> and
+      F': \<open>F' = mset outl'\<close> and
+      [simp]: \<open>highest = highest'\<close> and
+      \<open>conflict_min_analysis_inv M' cach ?NU (mset outl')\<close> and
+      \<open>set_mset NU' \<union> set_mset NUE \<Turnstile>p add_mset K (mset outl')\<close> and
+      [simp]: \<open>D' = F'\<close> and
+      F'_D: \<open>F' \<subseteq># D\<close> and
+      F'_F: \<open>F \<subseteq># F'\<close>
       using R unfolding R_def st
       by auto
-    have
-      xa_le_x2b: \<open>m'' < length xs\<close> and
-      x1e_xa: \<open>i \<le> m''\<close> and
-      x1e_xa_None: \<open>\<forall>k\<ge>i. k < m'' \<longrightarrow> xs ! k = None\<close> and
-      xb: \<open>L = (if the (xs ! m'') then Pos m'' else Neg m'')\<close> and
-      no_none: \<open>xs ! m'' \<noteq> None\<close>
-      using xa_xb unfolding st by auto
-    have 1: \<open>drop i xs = take (m'' - i) (drop i xs) @ drop m'' xs\<close>
-      by (rule drop_take_drop_drop) (use x1e_xa in auto)
-    have 2: \<open>take (m'' - i) (drop i xs) = replicate (m'' - i) None\<close>
-    proof (cases \<open>0 < m'' - i\<close>)
-      case True
-      show ?thesis
-        apply (rule list_eq_replicate_iff_nempty[THEN iffD2])
-        subgoal using True by auto
-        subgoal using x1e_xa x1e_xa_None xa_le_x2b True
-          apply (auto simp: in_set_take_conv_nth Bex_def)
-          by (metis \<open>0 < m'' - i\<close> \<open>i \<le> length xs\<close> add.right_neutral nth_drop order_mono_setup.refl)
-        done
-    next
-      case False
-      then show ?thesis by auto
-    qed
-
-    have 3: \<open>replicate i None @ drop i xs = replicate m'' None @ drop m'' xs\<close>
-      apply (subst 1)
-      apply (subst 2)
-      using x1e_xa by (auto simp: replicate_add[symmetric])
-    have
-      x1d: \<open>m = size D''\<close> and
-      map: \<open>mset_as_position (replicate i None @ drop i xs) D''\<close> and
-      L_all_x2b: \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length xs\<close>
-      using x1d_x1a unfolding lookup_clause_rel_def by auto
-
-    have 4: \<open>(replicate m'' None @ drop m'' xs)[m'' := None] =
-        replicate (Suc m'') None @ drop (Suc m'') xs\<close>
-      apply (subst Cons_nth_drop_Suc[symmetric])
-      subgoal by (rule xa_le_x2b)
-      subgoal by (auto simp: list_update_append replicate_Suc_conv_snoc simp del: replicate_Suc)
-      done
-    have [simp]: \<open>D'' - {#Pos m'', Neg m''#} = remove1_mset L D''\<close>
-      using mset_as_position_in_iff_nth[OF map, of \<open>Pos m''\<close>]
-        mset_as_position_in_iff_nth[OF map, of \<open>Neg m''\<close>] xa_le_x2b no_none
-      unfolding 3 4 xb
-      by (auto simp: nth_append dest!: multi_member_split)
-
-    have \<open>mset_as_position (replicate (Suc m'') None @ drop (Suc m'') xs)
-        (remove1_mset L D'')\<close>
-      using mset_as_position_remove[OF map, of \<open>m''\<close>] xa_le_x2b
-      by (auto simp del: replicate_Suc simp: 3 4)
-
-    then have map':
-      \<open>((m - Suc 0, replicate (Suc m'') None @ drop (Suc m'') xs), remove1_mset L D'')
-        \<in> lookup_clause_rel\<close>
-      using xb_x1a x1d L_all_x2b
-      by (auto simp: size_remove1_mset_If lookup_clause_rel_def simp del: replicate_Suc)
-    show H: ?loop_keep if \<open>\<not>red\<close>
-      using xa_xb x1d_x1c map' incls cach that keep unfolding R_def L[symmetric] st
-      by (auto intro: subset_mset.order.trans diff_subset_eq_self simp: legnth_xs_xs0)
-
-    have
-      \<open>n = size D'\<close> and
-      map: \<open>mset_as_position xs D'\<close> and
-      \<open>\<forall>L\<in>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l. L < length xs\<close>
-      using x1c_x1 unfolding lookup_clause_rel_def by auto
-    have [simp]: \<open>D' - {#Pos m'', Neg m''#} = remove1_mset L D'\<close> \<open>L \<in># D'\<close>
-      using mset_as_position_in_iff_nth[OF map, of \<open>Pos m''\<close>]
-        mset_as_position_in_iff_nth[OF map, of \<open>Neg m''\<close>] xa_le_x2b no_none
-      unfolding 3 4 xb
-      by (auto simp: nth_append dest!: multi_member_split)
-    have \<open>mset_as_position (xs[m'' := None]) (remove1_mset L D')\<close>
-      using mset_as_position_remove[OF map, of \<open>m''\<close>] xa_le_x2b
-      by (auto simp del: replicate_Suc simp: 3 4)
-
-    then have \<open>((n - Suc 0, xs[m'' := None]), remove1_mset L D') \<in> lookup_clause_rel\<close>
-      using x1c_x1 unfolding lookup_clause_rel_def
-      by (auto simp: size_remove1_mset_If)
-    moreover have  \<open>m - Suc 0 \<le> n - Suc 0\<close>
-      using diff_le_mono x1d_x1c by blast
-    ultimately show ?loop_dont_keep if \<open>\<not>\<not>red\<close>
-      using xa_le_x2b H incls that keep map' unfolding R_def st(8)
-      by (auto intro: subset_mset.order.trans diff_subset_eq_self mset_le_subtract
-          simp del: replicate_Suc simp: legnth_xs_xs0)
-  qed
-  have confl_find_next_index_pre: \<open>confl_find_next_index_pre x1b x1f\<close>
-    if
-      R: \<open>(x, x') \<in> R\<close> and
-      cond: \<open>case x of (nxs, m, i, s, uu_) \<Rightarrow> 0 < m\<close> and
-      inv: \<open>iterate_over_conflict_inv M D x'\<close> and
-      st:
-        \<open>x2 = (x1a, x2a)\<close>
-        \<open>x' = (x1, x2)\<close>
-        \<open>x1b = (x1c, x2b)\<close>
-        \<open>x1b = (x1d, x2c)\<close>
-        \<open>x2f = (x1g, x2g)\<close>
-        \<open>x2e = (x1f, x2f)\<close>
-        \<open>x2d = (x1e, x2e)\<close>
-        \<open>x = (x1b, x2d)\<close> and
-      \<open>x1a \<noteq> {#}\<close> and
-      \<open>0 < x1e\<close>
-    for x x' x1 x2 x1a x2a x1b x1c x2b x1d x2c x2d x1e x2e x1f x2f
-      x1g x2g
-  proof -
-    have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n x1a\<close>
-      using literals_are_in_\<L>\<^sub>i\<^sub>n_mono[OF lits_D] inv
-      unfolding iterate_over_conflict_inv_def st
+    have [simp]: \<open>L = outl' ! i\<close>
+      using L by fast
+    have L_F: \<open>mset (drop (Suc i) outl') = remove1_mset L F\<close>
+      unfolding F
+      apply (subst (2) Cons_nth_drop_Suc[symmetric])
+      using \<open>i < length outl'\<close> F'_D
+      by (auto)
+    have \<open>remove1_mset (outl' ! i) F \<subseteq># F'\<close>
+      using \<open>F \<subseteq># F'\<close>
       by auto
-    then show ?thesis
-      using lookup_clause_rel_exists_le_uint_max[of x1e \<open>replicate x1f None @ drop x1f x2b\<close> x1a x1f] R
-        cond
-      unfolding confl_find_next_index_pre_def st R_def
-        minimize_and_extract_highest_lookup_conflict_inv_def
-      by (auto simp: nth_append)
-  qed
-  have in_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>Pos xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-    if
-      inv: \<open>iterate_over_conflict_inv M D x'\<close> and
-      st:
-        \<open>x2 = (x1a, x2a)\<close>
-        \<open>x' = (x1, x2)\<close> and
-      \<open>confl_find_next_index_pre x1b x1f\<close> and
-      xa_xb: \<open>(xa, xb) \<in> ?confl x1a x1b x1f\<close>
-    for x' x1 x2 x1a x2a x1b x1f xa xb
-  proof -
-    have \<open>xb \<in># D\<close>
-      using inv xa_xb unfolding iterate_over_conflict_inv_def st by auto
-    then show ?thesis
-      using lits_D xa_xb
-      by (auto dest!: multi_member_split[of _ D] split: if_splits
-          simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+    have \<open>red' = red\<close> and
+      red: \<open>red \<longrightarrow> NU' + NUE \<Turnstile>pm remove1_mset L (add_mset K F') \<and>
+       conflict_min_analysis_inv M' cachr ?NU (remove1_mset L F')\<close> and
+      not_red: \<open>\<not> red \<longrightarrow> NU' + NUE \<Turnstile>pm add_mset K F' \<and> conflict_min_analysis_inv M' cachr ?NU F'\<close>
+      using cach
+      unfolding st
+      by auto
+    show ?not_red if \<open>\<not>red\<close>
+      using \<open>i < length outl'\<close> F'_D L_F \<open>remove1_mset (outl' ! i) F \<subseteq># F'\<close> not_red that
+      by (auto simp: R_def F[symmetric] F'[symmetric])
+
+    have [simp]: \<open>length (delete_index_and_swap outl' i) = length outl' - 1\<close>
+      by auto
+    have last: \<open>\<not> length outl' \<le> Suc i \<Longrightarrow>last outl' \<in> set (drop (Suc i) outl')\<close>
+      by (metis List.last_in_set drop_eq_Nil last_drop not_le_imp_less)
+    then have H: \<open>mset (drop i (delete_index_and_swap outl' i)) = mset (drop (Suc i) outl')\<close>
+      using \<open>i < length outl'\<close>
+      by (cases \<open>drop (Suc i) outl' = []\<close>)
+        (auto simp: butlast_list_update mset_butlast_remove1_mset single_remove1_mset_eq)
+    have H': \<open>mset (delete_index_and_swap outl' i) = remove1_mset (outl' ! i) (mset outl')\<close>
+      apply (subst (3) append_take_drop_id[symmetric, of _ i])
+      apply (subst Cons_nth_drop_Suc[symmetric])
+      using \<open>i < length outl'\<close> last unfolding mset_append
+      by (auto simp: butlast_list_update mset_butlast_remove1_mset single_remove1_mset_eq)
+    have \<open>remove1_mset (outl' ! i) F \<subseteq># remove1_mset (outl' ! i) F'\<close>
+      using \<open>F \<subseteq># F'\<close>
+      using mset_le_subtract by blast
+    have \<open>(outl' ! i) \<in># F'\<close>
+      using \<open>i < length outl'\<close> unfolding F' by auto
+    then show ?red if \<open>\<not>\<not>red\<close>
+      using \<open>i < length outl'\<close> F'_D L_F \<open>remove1_mset (outl' ! i) F \<subseteq># remove1_mset (outl' ! i) F'\<close>
+        red that
+      by (auto simp: R_def F[symmetric] F'[symmetric] H H'
+          simp del: delete_index_and_swap.simps)
   qed
   show ?thesis
-    unfolding minimize_and_extract_highest_lookup_conflict_def iterate_over_conflict_def D'
-      prod.case Let_def lookup_conflict_nth_def lookup_conflict_upd_None_def
+    unfolding minimize_and_extract_highest_lookup_conflict_def iterate_over_conflict_def
     apply (refine_vcg  WHILEIT_refine[where R = R])
     subgoal by (rule init_args_ref)
     subgoal for s' s by (rule init_lo_inv)
     subgoal by (rule cond)
     subgoal by auto
-    subgoal by (rule confl_find_next_index_pre)
-            apply (rule confl_find_next_index_spec_le; assumption)
+    subgoal by (rule outl'_F)
+    subgoal by (rule outl'_\<L>\<^sub>a\<^sub>l\<^sub>l)
+    apply (rule redundant; assumption?)
     subgoal by auto
-    subgoal by auto
-    subgoal by (rule in_\<L>\<^sub>a\<^sub>l\<^sub>l)
-    subgoal by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-           apply (rule redundant; (* solves *) assumption?)
-    subgoal by auto
-    subgoal by (auto simp: minimize_and_extract_highest_lookup_conflict_inv_def)
-    subgoal by auto
-    subgoal for st'' st D _ D'' highest nxs x2b x2c x1d m x1e i s_highest
-      s' highest' j L _ _ _ _
-      by (rule loop_keep)
-    subgoal for x x' x1 x2 x1a x2a x1b x1c x2b x2c x1d x2d x1e x2e
-      by (rule loop_dont_keep)
+    subgoal by (rule not_red)
+    subgoal by (rule red)
     subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c
       unfolding R_def by (cases x1b) auto
     done
@@ -2250,15 +2070,14 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms:
   using literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[of M a]
   unfolding in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n[symmetric]
   .
-
+thm lit_redundant_rec_wl_lookup_def
+(* TODO rename lit_redundant_rec_wl_lookup_def *)
 sepref_thm lit_redundant_rec_wl_lookup_code
   is \<open>uncurry5 lit_redundant_rec_wl_lookup\<close>
   :: \<open>[\<lambda>(((((M, NU), D), cach), analysis), lbd).
          literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU)) \<and>
-         literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
-         (\<forall>a \<in> lits_of_l M. atm_of a < length (snd D))
-      ]\<^sub>a
-      trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>k *\<^sub>a
+         literals_are_in_\<L>\<^sub>i\<^sub>n_trail M]\<^sub>a
+      trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>k *\<^sub>a
         cach_refinement_assn\<^sup>d *\<^sub>a analyse_refinement_assn\<^sup>d *\<^sub>a lbd_assn\<^sup>k \<rightarrow>
       cach_refinement_assn *a analyse_refinement_assn *a bool_assn\<close>
   supply [[goals_limit = 1]] neq_Nil_revE[elim] image_image[simp]
@@ -2274,6 +2093,12 @@ sepref_thm lit_redundant_rec_wl_lookup_code
   apply (rewrite at \<open>op_arl_empty\<close> annotate_assn[where A=analyse_refinement_assn])
   apply (rewrite at \<open>let _ = _ ! _ in _\<close> Let_def)
   unfolding nth_rll_def[symmetric] length_rll_def[symmetric]
+  apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+           apply sepref_dbg_trans_step_keep
+  text \<open>We need an \<^term>\<open>ASSN_ANNOT\<close> for type \<^typ>\<open>'a nres\<close>, but this does not exist and
+   it is not clear how to do it.\<close>
+           apply sepref_dbg_side_unfold apply (auto simp: )[]
   by sepref (* slow *)
 
 concrete_definition (in -) lit_redundant_rec_wl_lookup_code
@@ -2313,7 +2138,6 @@ proof -
       \<open>case s of (D, D', highest) \<Rightarrow> D' \<noteq> {#}\<close> and
       \<open>s = (a, b)\<close> and
       \<open>b = (aa, ba)\<close> and
-      \<open>aa \<noteq> {#}\<close> and
       \<open>x \<in># aa\<close>
     for s a b aa ba x
   proof -
@@ -2350,7 +2174,6 @@ proof -
     subgoal by auto
     subgoal by (auto simp: iterate_over_conflict_inv_def highest_lit_def)
     subgoal by (rule init_I')
-    subgoal by auto
     subgoal for s a b aa ba x by (rule red)
     subgoal unfolding I'_def iterate_over_conflict_inv_def by auto
     subgoal unfolding I'_def iterate_over_conflict_inv_def by auto
@@ -2404,6 +2227,7 @@ proof -
 qed
 end
 
+(* TODO Kill *)
 sepref_definition (in -) confl_find_next_index_code
   is \<open>uncurry confl_find_next_index\<close>
   :: \<open>lookup_clause_rel_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
@@ -2472,23 +2296,49 @@ sepref_definition (in -)lookup_conflict_upd_None_code
 declare lookup_conflict_upd_None_code.refine[sepref_fr_rules]
 
 declare lit_redundant_rec_wl_lookup_hnr[sepref_fr_rules]
-sepref_register lit_redundant_rec_wl_lookup
+sepref_register lit_redundant_rec_wl
 sepref_thm literal_redundant_wl_lookup_code
-  is \<open>uncurry5 literal_redundant_wl_lookup\<close>
+  is \<open>uncurry5 lit_redundant_rec_wl\<close>
   :: \<open>[\<lambda>(((((M, NU), D), cach), L), lbd). literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
-        literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU)) \<and>
-        (\<forall>a\<in>lits_of_l M. atm_of a < length (snd D))]\<^sub>a
-      trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>k *\<^sub>a
+        literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU))]\<^sub>a
+      trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>k *\<^sub>a
       cach_refinement_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>k \<rightarrow>
       cach_refinement_assn *a analyse_refinement_assn *a bool_assn\<close>
   supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
   literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
   literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms[intro]
-  unfolding literal_redundant_wl_lookup_def zero_uint32_nat_def[symmetric]
-    conflict_min_cach_def[symmetric]
+  unfolding literal_redundant_wl_def zero_uint32_nat_def[symmetric]
+  apply (subst conflict_min_cach_def[symmetric])
+  apply (subst (3) conflict_min_cach_def[symmetric])
   apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
   unfolding single_replicate
   unfolding arl.fold_custom_empty
+  apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+           apply sepref_dbg_trans_step_keep
+           apply sepref_dbg_side_unfold apply (auto simp: )[]
+  by sepref
+
+sepref_thm literal_redundant_wl_lookup_code
+  is \<open>uncurry5 literal_redundant_wl\<close>
+  :: \<open>[\<lambda>(((((M, NU), D), cach), L), lbd). literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
+        literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU))]\<^sub>a
+      trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>k *\<^sub>a
+      cach_refinement_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>k \<rightarrow>
+      cach_refinement_assn *a analyse_refinement_assn *a bool_assn\<close>
+  supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
+  literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
+  literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms[intro]
+  unfolding literal_redundant_wl_def zero_uint32_nat_def[symmetric]
+  apply (subst conflict_min_cach_def[symmetric])
+  apply (subst (3) conflict_min_cach_def[symmetric])
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
+  unfolding single_replicate
+  unfolding arl.fold_custom_empty
+  apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+           apply sepref_dbg_trans_step_keep
+           apply sepref_dbg_side_unfold apply (auto simp: )[]
   by sepref
 
 concrete_definition (in -) literal_redundant_wl_lookup_code
