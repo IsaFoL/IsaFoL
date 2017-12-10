@@ -380,6 +380,11 @@ proof -
     then show "C \<in> P_of_state (state_of_wstate (lnth (ldrop (enat x) Sts) xa))"
       using lnth_ldrop[of "enat x" xa Sts] using llen by auto
   qed
+
+  thm stay_or_delete_completely
+  have "\<exists>f. \<forall>i. f i \<in># wP_of_wstate ((lnth (ldrop x Sts) i)) \<and> fst (f i) \<ge> fst (f (Suc i)) \<and> fst (f i) = fst (f (Suc i))"
+    sorry
+
   have Ci_stays: "(\<And>xa. enat xa < llength Sts \<Longrightarrow> (C, i) \<in># wP_of_wstate (lnth (ldrop x Sts) xa))"
   subgoal for xa
     proof (induction xa)
@@ -426,7 +431,43 @@ proof -
     by auto
 qed
 
-lemma 
+lemma lfinite_not_LNil_nth_llast:
+  assumes "lfinite Sts" "Sts \<noteq> LNil"
+  shows "\<exists>i < llength Sts. lnth Sts i = llast Sts"
+using assms proof (induction rule: lfinite.induct)
+  case lfinite_LNil
+  then show ?case by auto
+next
+  case (lfinite_LConsI xs x)
+  then show ?case
+  proof (cases "xs = LNil")
+    case True
+    then have "lnth (LCons x xs) 0 = llast (LCons x xs)"
+      using lfinite_LConsI by auto
+    moreover 
+    from True have "enat 0 < llength (LCons x xs)"
+      using lfinite_LConsI enat_0 by auto 
+    ultimately show ?thesis
+      using lfinite_LConsI by auto
+  next
+    case False
+    then obtain i where i_p: "enat i < llength xs \<and> lnth xs i = llast xs"
+      using lfinite_LConsI by auto
+    then have "enat (Suc i) < llength (LCons x xs)"
+      by (simp add: Suc_ile_eq)
+    moreover from i_p have "lnth (LCons x xs) (Suc i) = llast (LCons x xs)"
+      by (metis gr_implies_not_zero llast_LCons llength_lnull lnth_Suc_LCons)
+    ultimately show ?thesis
+      by auto
+  qed
+qed  
+
+lemma llast_max:
+  assumes "lfinite Sts" "lnth Sts i = llast Sts"
+  shows "\<forall>j < llength Sts. j \<le> i"
+  sorry
+
+lemma infinite_if_not_fair:
   assumes "\<not> fair_state_seq (lmap state_of_wstate Sts)"
   shows "\<not> lfinite Sts"
 proof (rule ccontr)
@@ -442,12 +483,23 @@ proof (rule ccontr)
     unfolding fair_state_seq_def Liminf_state_def by auto
   then obtain i where i_p:
     "enat i < llength Sts"
-    "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_wstate (lnth Sts j)) \<union> P_of_state (state_of_wstate (lnth Sts j))"
+    "\<And>j. i \<le> j \<Longrightarrow> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_wstate (lnth Sts j)) \<union> P_of_state (state_of_wstate (lnth Sts j))"
     unfolding Liminf_llist_def by auto
-
  
   have C_in_llast: "C \<in> N_of_state (state_of_wstate (llast Sts)) \<union> P_of_state (state_of_wstate (llast Sts))"
-    using i_p sorry
+  proof -
+    obtain l where l_p: "enat l < llength Sts \<and> lnth Sts l = llast Sts"
+      using \<open>lfinite Sts\<close> lfinite_not_LNil_nth_llast
+      using i_p(1) by fastforce 
+    moreover
+    then have "i \<le> l" 
+      using llast_max[of l] i_p(1) \<open>lfinite Sts\<close> by auto
+    ultimately have
+      "C \<in> N_of_state (state_of_wstate (lnth Sts l)) \<union> P_of_state (state_of_wstate (lnth Sts l))"
+      using i_p(2)[of l] by auto
+    then show "?thesis"
+      using l_p by auto
+  qed
 
   define N where "N = wN_of_wstate (llast Sts)"
   define P where "P = wP_of_wstate (llast Sts)"
@@ -457,7 +509,7 @@ proof (rule ccontr)
   {
     assume "N_of_state (state_of_wstate (llast Sts)) \<noteq> {}"
     then obtain D j where "(D, j) \<in># N"
-      sorry
+      unfolding N_def by (cases "llast Sts") auto
     then have "llast Sts \<leadsto>\<^sub>w (N - {#(D, j)#}, P + {#(D, j)#}, Q, n)"
       using weighted_RP.clause_processing[of "N - {#(D, j)#}" D j P Q n]
       unfolding N_def P_def Q_def n_def by auto
@@ -468,11 +520,11 @@ proof (rule ccontr)
   {
     assume a: "N_of_state (state_of_wstate (llast Sts)) = {}"
     then have b: "N = {#}"
-      sorry
+      unfolding N_def by (cases "llast Sts") auto
     from a have "C \<in> P_of_state (state_of_wstate (llast Sts))"
       using C_in_llast by auto
     then obtain D j where "(D, j) \<in># P"
-      sorry
+      unfolding P_def by  (cases "llast Sts") auto
     then obtain D j where min: "(\<forall>(D', j') \<in># P - {#(D, j)#}. weight (D, j) \<le> weight (D', j'))"
       and Dj_in_p:"(D, j) \<in># P"
       sorry
@@ -494,8 +546,12 @@ qed
 
 theorem weighted_RP_fair: "fair_state_seq (lmap state_of_wstate Sts)"
 proof (rule ccontr)
-  assume "\<not> fair_state_seq (lmap state_of_wstate Sts)"
-  then obtain C where
+  assume asm: "\<not> fair_state_seq (lmap state_of_wstate Sts)"
+  then have "\<not> lfinite Sts" using infinite_if_not_fair
+    by auto
+  then have inf: "llength Sts = \<infinity>"
+    using llength_eq_infty_conv_lfinite by auto
+  from asm obtain C where
     "C \<in> Liminf_llist (lmap N_of_state (lmap state_of_wstate Sts))
        \<union> Liminf_llist (lmap P_of_state (lmap state_of_wstate Sts))"
     unfolding fair_state_seq_def Liminf_state_def by auto
@@ -522,25 +578,7 @@ proof (rule ccontr)
       "enat i < llength Sts"
       "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> P_of_state (state_of_wstate (lnth Sts j))"
       unfolding Liminf_llist_def by auto
-    have "\<not> lfinite Sts" (* FIXME: make a lemma? *)
-    proof (rule ccontr)
-      assume "\<not> \<not> lfinite Sts"
-      then have "lfinite Sts"
-        by auto
-      then have "\<forall>y. \<not> llast Sts \<leadsto>\<^sub>w y" 
-        using full_chain_iff_chain[of "op \<leadsto>\<^sub>w" Sts] full_deriv by auto
-      moreover
-      define Sts' where "(Sts' :: 'a wstate) = undefined"
-      have "C \<in> P_of_state (state_of_wstate (llast Sts))"
-        using i_p sorry
-      then have "llast Sts \<leadsto>\<^sub>w Sts'"
-        (*clause processing or inference computation *) sorry
-      ultimately show "False" 
-        by metis
-    qed
-    then have inf: "llength Sts = \<infinity>"
-      using llength_eq_infty_conv_lfinite by auto
-    from i_p obtain i where "(C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
+    then obtain i where "(C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
       using persistent_wclause_if_persistent_clause[of C] using asm inf by auto
     then show False
       sorry
