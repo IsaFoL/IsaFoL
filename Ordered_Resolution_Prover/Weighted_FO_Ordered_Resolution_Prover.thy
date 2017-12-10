@@ -190,8 +190,22 @@ term "((RP_measure max_gen St),(RP_measure max_gen St2)) \<in> RP_relation"
 term "((RP_measure2 max_gen St),(RP_measure2 max_gen St)) \<in> RP_relation2"
 
 (* FIXME: Move this. *)
+fun wN_of_wstate :: "'a wstate \<Rightarrow> 'a wclause multiset" where
+  "wN_of_wstate (N, P, Q, n) = N"
+
 fun wP_of_wstate :: "'a wstate \<Rightarrow> 'a wclause multiset" where
   "wP_of_wstate (N, P, Q, n) = P"
+
+fun wQ_of_wstate :: "'a wstate \<Rightarrow> 'a wclause multiset" where
+  "wQ_of_wstate (N, P, Q, n) = Q"
+
+fun n_of_wstate :: "'a wstate \<Rightarrow> nat" where
+  "n_of_wstate (N, P, Q, n) = n"
+
+lemma of_wstate_split[simp]: "(wN_of_wstate St, wP_of_wstate St, wQ_of_wstate St, n_of_wstate St) = St"
+  by (cases St) auto
+
+find_consts "_ wstate \<Rightarrow> nat"
 
 term "fst (a,b)"
 
@@ -412,6 +426,72 @@ proof -
     by auto
 qed
 
+lemma 
+  assumes "\<not> fair_state_seq (lmap state_of_wstate Sts)"
+  shows "\<not> lfinite Sts"
+proof (rule ccontr)
+  assume "\<not> \<not> lfinite Sts"
+  then have "lfinite Sts"
+    by auto
+  then have no_inf_from_last: "\<forall>y. \<not> llast Sts \<leadsto>\<^sub>w y" 
+    using full_chain_iff_chain[of "op \<leadsto>\<^sub>w" Sts] full_deriv by auto
+  
+  from assms obtain C where
+    "C \<in> Liminf_llist (lmap N_of_state (lmap state_of_wstate Sts))
+       \<union> Liminf_llist (lmap P_of_state (lmap state_of_wstate Sts))"
+    unfolding fair_state_seq_def Liminf_state_def by auto
+  then obtain i where i_p:
+    "enat i < llength Sts"
+    "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_wstate (lnth Sts j)) \<union> P_of_state (state_of_wstate (lnth Sts j))"
+    unfolding Liminf_llist_def by auto
+
+ 
+  have C_in_llast: "C \<in> N_of_state (state_of_wstate (llast Sts)) \<union> P_of_state (state_of_wstate (llast Sts))"
+    using i_p sorry
+
+  define N where "N = wN_of_wstate (llast Sts)"
+  define P where "P = wP_of_wstate (llast Sts)"
+  define Q where "Q = wQ_of_wstate (llast Sts)"
+  define n where "n = n_of_wstate (llast Sts)"
+
+  {
+    assume "N_of_state (state_of_wstate (llast Sts)) \<noteq> {}"
+    then obtain D j where "(D, j) \<in># N"
+      sorry
+    then have "llast Sts \<leadsto>\<^sub>w (N - {#(D, j)#}, P + {#(D, j)#}, Q, n)"
+      using weighted_RP.clause_processing[of "N - {#(D, j)#}" D j P Q n]
+      unfolding N_def P_def Q_def n_def by auto
+    then have "\<exists>St'. llast Sts \<leadsto>\<^sub>w St'"
+      by auto
+  }
+  moreover
+  {
+    assume a: "N_of_state (state_of_wstate (llast Sts)) = {}"
+    then have b: "N = {#}"
+      sorry
+    from a have "C \<in> P_of_state (state_of_wstate (llast Sts))"
+      using C_in_llast by auto
+    then obtain D j where "(D, j) \<in># P"
+      sorry
+    then obtain D j where min: "(\<forall>(D', j') \<in># P - {#(D, j)#}. weight (D, j) \<le> weight (D', j'))"
+      and Dj_in_p:"(D, j) \<in># P"
+      sorry
+    define N' where "N' = mset_set ((\<lambda>D'. (D', n)) ` concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) (set_mset (image_mset fst Q)) D))"
+    have "llast Sts \<leadsto>\<^sub>w (N', {#(D', j') \<in># P - {# (D, j) #}. D' \<noteq> D#}, Q + {#(D,j)#}, Suc n)"
+      using weighted_RP.inference_computation[of "P - {#(D, j)#}" D j N' n Q, OF min N'_def]
+      using of_wstate_split[symmetric, of "llast Sts"]
+      unfolding N_def[symmetric] P_def[symmetric]  Q_def[symmetric]  n_def[symmetric] 
+      unfolding b
+      using Dj_in_p by auto
+    then have "\<exists>St'. llast Sts \<leadsto>\<^sub>w St'"
+      by auto
+  }
+  ultimately have "\<exists>St'. llast Sts \<leadsto>\<^sub>w St'"
+     by auto
+   then show "False"
+     using no_inf_from_last by metis
+qed
+
 theorem weighted_RP_fair: "fair_state_seq (lmap state_of_wstate Sts)"
 proof (rule ccontr)
   assume "\<not> fair_state_seq (lmap state_of_wstate Sts)"
@@ -442,7 +522,7 @@ proof (rule ccontr)
       "enat i < llength Sts"
       "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> P_of_state (state_of_wstate (lnth Sts j))"
       unfolding Liminf_llist_def by auto
-    have "\<not>lfinite Sts" (* FIXME: make a lemma? *)
+    have "\<not> lfinite Sts" (* FIXME: make a lemma? *)
     proof (rule ccontr)
       assume "\<not> \<not> lfinite Sts"
       then have "lfinite Sts"
