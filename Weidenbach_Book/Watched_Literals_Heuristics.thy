@@ -927,17 +927,9 @@ proof -
   qed
   have propagate_lit_wl_heur_pre: \<open>propagate_lit_wl_heur_pre
        (((get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) !
-          (1 -
-           (if get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) !
-               0 =
-               x1c
-            then 0 else 1)),
-          watched_by_int x2c x1c ! x2b),
-         if get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) !
-            0 =
-            x1c
-         then 0 else 1),
-        x2c)\<close>
+          (1 - (if get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) ! 0 = x1c
+             then 0 else 1)), watched_by_int x2c x1c ! x2b),
+         if get_clauses_wl_heur x2c ! (watched_by_int x2c x1c ! x2b) ! 0 = x1c then 0 else 1), x2c)\<close>
     if
       xy: \<open>(x, y) \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur\<close> and
       st: \<open>x1 = (x1a, x2)\<close>
