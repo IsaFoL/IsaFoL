@@ -13,38 +13,58 @@ subsubsection \<open>Backtrack with direct extraction of literal if highest leve
 
 definition (in isasat_input_ops) extract_shorter_conflict_wl_nlit where
 \<open>extract_shorter_conflict_wl_nlit K M NU D NE UE =
-    SPEC(\<lambda>(D', highest). D' \<noteq> None \<and> the D' \<subseteq># the D \<and> K \<in># the D' \<and>
-      clause `# twl_clause_of `# mset (tl NU) + NE + UE \<Turnstile>pm the D' \<and>
-      highest_lit M (remove1_mset K (the D')) highest)\<close>
+    SPEC(\<lambda>D'. D' \<noteq> None \<and> the D' \<subseteq># the D \<and> K \<in># the D' \<and>
+      clause `# twl_clause_of `# mset (tl NU) + NE + UE \<Turnstile>pm the D')\<close>
 
 definition (in isasat_input_ops) extract_shorter_conflict_wl_nlit_st
-  :: \<open>'v twl_st_wl \<Rightarrow> ('v twl_st_wl \<times> 'v conflict_highest_conflict) nres\<close>
+  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close>
 where
   \<open>extract_shorter_conflict_wl_nlit_st =
      (\<lambda>(M, N, U, D, NE, UE, WS, Q). do {
         let K = -lit_of (hd M);
-        (D, L) \<leftarrow> extract_shorter_conflict_wl_nlit K M N D NE UE;
-        RETURN ((M, N, U, D, NE, UE, WS, Q), L)})\<close>
+        D \<leftarrow> extract_shorter_conflict_wl_nlit K M N D NE UE;
+        RETURN (M, N, U, D, NE, UE, WS, Q)})\<close>
+
+definition (in isasat_input_ops) empty_lookup_conflict_and_highest
+  :: \<open>'v twl_st_wl \<Rightarrow> ('v twl_st_wl \<times> nat) nres\<close>
+where
+  \<open>empty_lookup_conflict_and_highest  =
+     (\<lambda>(M, N, U, D, NE, UE, WS, Q). do {
+        let K = -lit_of (hd M);
+        let n = get_maximum_level M (remove1_mset K (the D));
+        RETURN ((M, N, U, D, NE, UE, WS, Q), n)})\<close>
 
 definition (in isasat_input_ops) find_decomp_wl_nlit
-:: \<open>'v literal \<Rightarrow> 'v conflict_highest_conflict \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl  nres\<close> where
+:: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl  nres\<close> where
   \<open>find_decomp_wl_nlit = (\<lambda>L highest (M, N, U, D, NE, UE, Q, W).
     SPEC(\<lambda>S. \<exists>K M2 M1. S = (M1, N, U, D, NE, UE, Q, W) \<and>
         (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
-          get_level M K = (if highest = None then 1 else 1 + snd (the highest))))\<close>
+          get_level M K = highest))\<close>
 
+definition (in isasat_input_ops) propagate_bt_wl_D_ext
+  :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close>
+where
+  \<open>propagate_bt_wl_D_ext = (\<lambda>L highest (M, N, U, D, NE, UE, Q, W). do {
+    L' \<leftarrow> find_lit_of_max_level_wl (M, N, U, D, NE, UE, Q, W) L;
+    D'' \<leftarrow> list_of_mset2 (-L) L' (the D);
+    RETURN (Propagated (-L) (length N) # M,
+        N @ [D''], U,
+          None, NE, UE, {#L#}, W(-L:= W (-L) @ [length N], L':= W L' @ [length N]))
+      })\<close>
+
+(* TODO: not needed, we can refine directly from backtrack_wl_D to the level with heuristics. *)
 definition (in isasat_input_ops) backtrack_wl_D_nlit :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
   \<open>backtrack_wl_D_nlit S =
     do {
       ASSERT(backtrack_wl_D_inv S);
       let L = lit_of (hd (get_trail_wl S));
-      (S , highest) \<leftarrow> extract_shorter_conflict_wl_nlit_st S;
+      S \<leftarrow> extract_shorter_conflict_wl_nlit_st S;
+      (S, highest) \<leftarrow> empty_lookup_conflict_and_highest S;
       S \<leftarrow> find_decomp_wl_nlit L highest S;
 
       if size (the (get_conflict_wl S)) > 1
       then do {
-        let L' = fst (the highest);
-        propagate_bt_wl_D L L' S
+        propagate_bt_wl_D_ext L highest S
       }
       else do {
         propagate_unit_bt_wl_D L S
