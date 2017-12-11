@@ -433,7 +433,7 @@ qed
 
 lemma lfinite_not_LNil_nth_llast:
   assumes "lfinite Sts" "Sts \<noteq> LNil"
-  shows "\<exists>i < llength Sts. lnth Sts i = llast Sts"
+  shows "\<exists>i < llength Sts. lnth Sts i = llast Sts \<and> (\<forall>j < llength Sts. j \<le> i)"
 using assms proof (induction rule: lfinite.induct)
   case lfinite_LNil
   then show ?case by auto
@@ -447,25 +447,25 @@ next
     moreover 
     from True have "enat 0 < llength (LCons x xs)"
       using lfinite_LConsI enat_0 by auto 
+    moreover
+    from True have "\<forall>j<llength (LCons x xs). j \<le> enat 0"
+      using lfinite_LConsI enat_0 by auto
     ultimately show ?thesis
       using lfinite_LConsI by auto
   next
     case False
-    then obtain i where i_p: "enat i < llength xs \<and> lnth xs i = llast xs"
+    then obtain i where i_p: "enat i < llength xs \<and> lnth xs i = llast xs \<and> (\<forall>j<llength xs. j \<le> enat i)"
       using lfinite_LConsI by auto
     then have "enat (Suc i) < llength (LCons x xs)"
       by (simp add: Suc_ile_eq)
     moreover from i_p have "lnth (LCons x xs) (Suc i) = llast (LCons x xs)"
       by (metis gr_implies_not_zero llast_LCons llength_lnull lnth_Suc_LCons)
+    moreover from i_p have "\<forall>j<llength (LCons x xs). j \<le> enat (Suc i)"
+      by (metis antisym_conv2 eSuc_enat eSuc_ile_mono ileI1 iless_Suc_eq llength_LCons)
     ultimately show ?thesis
       by auto
   qed
 qed  
-
-lemma llast_max:
-  assumes "lfinite Sts" "lnth Sts i = llast Sts"
-  shows "\<forall>j < llength Sts. j \<le> i"
-  sorry
 
 lemma infinite_if_not_fair:
   assumes "\<not> fair_state_seq (lmap state_of_wstate Sts)"
@@ -488,12 +488,12 @@ proof (rule ccontr)
  
   have C_in_llast: "C \<in> N_of_state (state_of_wstate (llast Sts)) \<union> P_of_state (state_of_wstate (llast Sts))"
   proof -
-    obtain l where l_p: "enat l < llength Sts \<and> lnth Sts l = llast Sts"
+    obtain l where l_p: "enat l < llength Sts \<and> lnth Sts l = llast Sts \<and> (\<forall>j<llength Sts. j \<le> enat l)"
       using \<open>lfinite Sts\<close> lfinite_not_LNil_nth_llast
-      using i_p(1) by fastforce 
+      using i_p(1) by fastforce
     moreover
     then have "i \<le> l" 
-      using llast_max[of l] i_p(1) \<open>lfinite Sts\<close> by auto
+      using i_p(1) by auto
     ultimately have
       "C \<in> N_of_state (state_of_wstate (lnth Sts l)) \<union> P_of_state (state_of_wstate (lnth Sts l))"
       using i_p(2)[of l] by auto
@@ -558,18 +558,20 @@ proof (rule ccontr)
   then show False
   proof
     assume "C \<in> Liminf_llist (lmap N_of_state (lmap state_of_wstate Sts))"
-    then obtain i where i_p:
-      "enat i < llength Sts"
-      "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> N_of_state (state_of_wstate (lnth Sts j))"
+    then obtain i where "(C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wN_of_wstate) Sts)" 
+      using persistent_wclause_if_persistent_clause[of C] inf sorry (* You need a persistent_wclause_if_persistent_clause for N *)
+    then obtain k where k_p: "enat k < llength Sts"
+      "\<And>j. k \<le> j \<Longrightarrow> enat j < llength Sts \<Longrightarrow> (C, i) \<in># wN_of_wstate (lnth Sts j)"
       unfolding Liminf_llist_def by auto
- (* have "drop i" is a derivation
+    from this(1) have "chain op \<leadsto>\<^sub>w (ldrop k Sts)"
+      using deriv sorry
     moreover
-    have "drop i" always has something in N
+    from k_p have "\<And>j. enat j < llength (ldrop k Sts) \<Longrightarrow> (C, i) \<in># wN_of_wstate (lnth (ldrop k Sts) j)"
+      sorry
+ (* 
     ultimately
-    have neighbours in "map RP_measure (drop i)" are related by RP_relation  //by an appropriate lemma 
+    have neighbours in "map RP_measure (drop j)" are related by RP_relation  //by an appropriate lemma 
     then have FALSE since the relation is well founded. *)
-    then have "\<exists>i. (C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)" 
-      using persistent_wclause_if_persistent_clause[of C] sorry
     then show False
       sorry (* *)
   next
