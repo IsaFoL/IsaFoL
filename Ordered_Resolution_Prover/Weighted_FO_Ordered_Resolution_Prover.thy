@@ -303,17 +303,37 @@ next
   then show ?case 
   proof (cases "C = C' + {#L#}")
     case True
+    note True_outer = this
     then show ?thesis
     proof (cases "count (image_mset fst P) C = 0")
       case True
-      then have "\<forall>j. (C, j) \<notin># wP_of_wstate (N, P + {#(C', i')#}, Q, n)"
+      then have "C \<notin># image_mset fst P"
+        using not_in_iff by metis
+      then have "\<forall>j. (C, j) \<notin># P"
         sorry
+      then have "\<forall>j. (C, j) \<notin># P + {#(C', i')#}"
+        using True_outer by auto
+      then have "\<forall>j. (C, j) \<notin># wP_of_wstate (N, P + {#(C', i')#}, Q, n)"
+        by auto
       then show ?thesis 
         by auto
     next
       case False
-      then have "\<exists>j\<le>i. (C, j) \<in># wP_of_wstate (N, P + {#(C', i')#}, Q, n)"
+      then have "C \<in># image_mset fst P"
+        using not_in_iff by metis
+      then obtain k where k_p: "(C, k) \<in># P + {#(C', i')#}"
         sorry
+      then have k_i': "k \<le> i'"
+        using backward_reduction_P unfolding True_outer by auto
+
+      have "(C, i) \<in># P + {#(C' + {#L#}, i')#}"
+        using backward_reduction_P True_outer by auto
+
+      then have "\<exists>j\<le>i. (C, j) \<in># P + {#(C', i')#}"
+        using k_p k_i' by auto 
+         (* I remove the biggest, but know that there is one smaller *)
+      then have "\<exists>j\<le>i. (C, j) \<in># wP_of_wstate (N, P + {#(C', i')#}, Q, n)"
+        by auto
       then show ?thesis
         by auto
     qed
