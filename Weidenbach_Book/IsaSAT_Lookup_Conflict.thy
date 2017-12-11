@@ -1878,7 +1878,7 @@ lemma minimize_and_extract_highest_lookup_conflict_iterate_over_conflict:
     outl_nempty: \<open>outl \<noteq> []\<close>
   shows
     \<open>minimize_and_extract_highest_lookup_conflict M NU D s' lbd outl \<le>
-       \<Down> ({((E, s, outl), E'). E = E' \<and> mset (tl outl) = E \<and>
+       \<Down> ({((E, s, outl), E'). E = E' \<and> mset (tl outl) = E \<and> outl ! 0 = K \<and>
                E' \<subseteq># D})
            (iterate_over_conflict K M NU' NUE D)\<close>
     (is \<open>_ \<le> \<Down> ?R _\<close>)
@@ -1925,7 +1925,8 @@ proof -
             conflict_min_analysis_inv M' cach (?NU) F \<and>
             NU' + NUE \<Turnstile>pm add_mset K F \<and>
             mset (tl outl') = D' \<and>
-            i > 0 \<and> outl' \<noteq> []
+            i > 0 \<and> outl' \<noteq> [] \<and>
+            outl' ! 0 = K
         }\<close>
   have [simp]: \<open>add_mset K (mset (tl outl)) = mset outl\<close>
     using D'_D K
@@ -1936,7 +1937,7 @@ proof -
     using outl_nempty
     by (cases outl; cases \<open>tl outl\<close>)  (auto simp: highest_lit_def get_maximum_level_add_mset)
    then have init_args_ref: \<open>((D, one_uint32_nat, s', outl), D, D) \<in> R\<close>
-    using D'_D cach_init NU_P_D dist_D tauto
+    using D'_D cach_init NU_P_D dist_D tauto K
     unfolding R_def NUE NU'_def NU_N_U
     by (auto simp: ac_simps drop_Suc outl_nempty)
 
@@ -2138,7 +2139,7 @@ proof -
       [simp]: \<open>D' = F'\<close> and
       F'_D: \<open>F' \<subseteq># D\<close> and
       F'_F: \<open>F \<subseteq># F'\<close> and
-      \<open>outl' \<noteq> []\<close>
+      \<open>outl' \<noteq> []\<close> \<open>outl' ! 0 = K\<close>
       using R L unfolding R_def st
       by clarify+
 
@@ -2178,7 +2179,7 @@ proof -
       by auto
      show ?not_red if \<open>\<not>red\<close>
       using \<open>i < length outl'\<close> F'_D L_F \<open>remove1_mset (outl' ! i) F \<subseteq># F'\<close> not_red that
-         \<open>i > 0\<close>
+         \<open>i > 0\<close> \<open>outl' ! 0 = K\<close>
       by (auto simp: R_def F[symmetric] F'[symmetric]  drop_swap_irrelevant)
 
     have [simp]: \<open>length (delete_index_and_swap outl' i) = length outl' - 1\<close>
@@ -2201,12 +2202,14 @@ proof -
     have [simp]: \<open>delete_index_and_swap outl' i \<noteq> []\<close>
       using \<open>outl' \<noteq> []\<close> \<open>i > 0\<close> \<open>i < length outl'\<close>
       by (cases outl') (auto simp: butlast_update'[symmetric] split: nat.splits)
-
+    have [simp]: \<open>delete_index_and_swap outl' i ! 0 = outl' ! 0\<close>
+      using  \<open>outl' ! 0 = K\<close> \<open>i < length outl'\<close> \<open>i > 0\<close>
+      by (auto simp: butlast_update'[symmetric] nth_butlast)
     have \<open>(outl' ! i) \<in># F'\<close>
       using \<open>i < length outl'\<close> \<open>i > 0\<close> unfolding F' by (auto simp: nth_in_set_tl)
     then show ?red if \<open>\<not>\<not>red\<close>
       using \<open>i < length outl'\<close> F'_D L_F \<open>remove1_mset (outl' ! i) F \<subseteq># remove1_mset (outl' ! i) F'\<close>
-        red that \<open>i > 0\<close> unfolding R_def
+        red that \<open>i > 0\<close> \<open>outl' ! 0 = K\<close> unfolding R_def
       by (auto simp: R_def F[symmetric] F'[symmetric] H H' drop_swap_irrelevant
           simp del: delete_index_and_swap.simps)
 
@@ -2363,48 +2366,35 @@ lemma iterate_over_conflict_spec:
   fixes D :: \<open>'v clause\<close>
   assumes \<open>NU + NUE \<Turnstile>pm add_mset K D\<close> and dist: \<open>distinct_mset D\<close>
   shows
-    \<open>iterate_over_conflict K M NU NUE D \<le> \<Down> Id (SPEC(\<lambda>(D', highest). D' \<subseteq># D \<and>
-       NU + NUE \<Turnstile>pm add_mset K D' \<and> highest_lit M D' highest))\<close>
+    \<open>iterate_over_conflict K M NU NUE D \<le> \<Down> Id (SPEC(\<lambda>D'. D' \<subseteq># D \<and>
+       NU + NUE \<Turnstile>pm add_mset K D'))\<close>
 proof -
   define I' where
-    \<open>I' = (\<lambda>(E:: 'v clause, f :: 'v clause, highest' :: 'v conflict_highest_conflict).
-            E \<subseteq># D \<and> NU + NUE \<Turnstile>pm add_mset K E \<and> distinct_mset E \<and> distinct_mset f \<and>
-           highest_lit M (E - f) highest')\<close>
+    \<open>I' = (\<lambda>(E:: 'v clause, f :: 'v clause).
+            E \<subseteq># D \<and> NU + NUE \<Turnstile>pm add_mset K E \<and> distinct_mset E \<and> distinct_mset f)\<close>
 
-  have init_I': \<open>I' (D, D, None)\<close>
+  have init_I': \<open>I' (D, D)\<close>
     using \<open>NU + NUE \<Turnstile>pm add_mset K D\<close> dist unfolding I'_def highest_lit_def by auto
 
   have red: \<open>is_literal_redundant_spec K NU NUE a x
-      \<le> SPEC (\<lambda>red. (if \<not> red then RETURN (a, remove1_mset x aa, merge_highest_lit M x ba)
-               else RETURN (remove1_mset x a, remove1_mset x aa, ba))
+      \<le> SPEC (\<lambda>red. (if \<not> red then RETURN (a, remove1_mset x aa)
+               else RETURN (remove1_mset x a, remove1_mset x aa))
               \<le> SPEC (\<lambda>s'. iterate_over_conflict_inv M D s' \<and> I' s' \<and>
-                 (s', s) \<in> measure (\<lambda>(D, D', highest). size D')))\<close>
+                 (s', s) \<in> measure (\<lambda>(D, D'). size D')))\<close>
     if
       \<open>iterate_over_conflict_inv M D s\<close> and
       \<open>I' s\<close> and
-      \<open>case s of (D, D', highest) \<Rightarrow> D' \<noteq> {#}\<close> and
-      \<open>s = (a, b)\<close> and
-      \<open>b = (aa, ba)\<close> and
+      \<open>case s of (D, D') \<Rightarrow> D' \<noteq> {#}\<close> and
+      \<open>s = (a, aa)\<close> and
       \<open>x \<in># aa\<close>
-    for s a b aa ba x
+    for s a b aa x
   proof -
     have \<open>x \<in># a\<close> \<open>distinct_mset aa\<close>
       using that
-      by (cases ba; auto simp: I'_def highest_lit_def merge_highest_lit_def
+      by (auto simp: I'_def highest_lit_def
           eq_commute[of \<open>get_level _ _\<close>] iterate_over_conflict_inv_def
           get_maximum_level_add_mset add_mset_eq_add_mset
-          dest!:  split: option.splits if_splits)+
-    then have \<open>highest_lit M (a - aa) ba \<Longrightarrow>
-          highest_lit M (a - remove1_mset x aa) (merge_highest_lit M x ba)\<close>
-      using that
-      apply (cases ba)
-       apply (clarsimp_all simp: I'_def highest_lit_def merge_highest_lit_def
-          eq_commute[of \<open>get_level _ _\<close>] iterate_over_conflict_inv_def
-          get_maximum_level_add_mset add_mset_eq_add_mset
-          dest!: multi_member_split split: option.splits if_splits)
-      apply (clarsimp_all simp add: get_maximum_level_add_mset max_def add_mset_eq_add_mset
-          split: if_splits)
-      done
+          dest!:  split: option.splits if_splits)
     then show ?thesis
       using that
       by (auto simp: is_literal_redundant_spec_def iterate_over_conflict_inv_def
@@ -2415,14 +2405,13 @@ proof -
   show ?thesis
     unfolding iterate_over_conflict_def
     apply (refine_vcg WHILEIT_rule_stronger_inv[where
-       R = \<open>measure (\<lambda>(D :: 'v clause, D':: 'v clause, highest :: 'v conflict_highest_conflict).
+       R = \<open>measure (\<lambda>(D :: 'v clause, D':: 'v clause).
               size D')\<close> and
           I' = I'])
     subgoal by auto
     subgoal by (auto simp: iterate_over_conflict_inv_def highest_lit_def)
     subgoal by (rule init_I')
-    subgoal for s a b aa ba x by (rule red)
-    subgoal unfolding I'_def iterate_over_conflict_inv_def by auto
+    subgoal by (rule red)
     subgoal unfolding I'_def iterate_over_conflict_inv_def by auto
     subgoal unfolding I'_def iterate_over_conflict_inv_def by auto
     done
@@ -2444,32 +2433,32 @@ lemma
     NUE: \<open>NUE \<equiv> get_unit_learned S + get_unit_init_clss S\<close> and
     M': \<open>M' \<equiv> trail S'''\<close>
   assumes
-    \<open>mset outl = D\<close> and
+    D'_D: \<open>mset (tl outl) = D\<close> and
     M_D: \<open>M \<Turnstile>as CNot D\<close> and
-    dist: \<open>distinct_mset D\<close> and
-    \<open>\<not>tautology D\<close> and
+    dist_D: \<open>distinct_mset D\<close> and
+    tauto: \<open>\<not>tautology D\<close> and
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<close> and
     struct_invs: \<open>twl_struct_invs S''\<close> and
     add_inv: \<open>twl_list_invs S'\<close> and
     cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUE) D\<close> and
     NU_P_D: \<open>NU' + NUE \<Turnstile>pm add_mset K D\<close> and
-    confl: \<open>get_conflict_wl S \<noteq> None\<close> and
-    lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close>
+    lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n D\<close> and
+    K: \<open>K = outl ! 0\<close> and
+    outl_nempty: \<open>outl \<noteq> []\<close>
   shows
     \<open>minimize_and_extract_highest_lookup_conflict M NU D s' lbd outl \<le>
-       \<Down> ({((E, s, L', outl), (E', L)). E = E' \<and> L' = L \<and> mset outl = E \<and>
+       \<Down> ({((E, s, outl), E'). E = E' \<and> mset (tl outl) = E \<and> outl!0 = K \<and>
                E' \<subseteq># D})
-         (SPEC (\<lambda>(D', highest). D' \<subseteq># D \<and> NU' + NUE \<Turnstile>pm add_mset K D' \<and>
-            highest_lit M D' highest))\<close>
+         (SPEC (\<lambda>D'. D' \<subseteq># D \<and> NU' + NUE \<Turnstile>pm add_mset K D'))\<close>
 proof -
   show ?thesis
     apply (rule order.trans)
      apply (rule minimize_and_extract_highest_lookup_conflict_iterate_over_conflict[OF
-          assms(9-17)[unfolded assms(1-8)] lits_D,
+          assms(9-20)[unfolded assms(1-8)],
           unfolded assms(1-8)[symmetric]])
     apply (rule order.trans)
-     apply (rule conc_fun_mono[OF iterate_over_conflict_spec[OF NU_P_D dist]])
-    by auto
+     apply (rule conc_fun_mono[OF iterate_over_conflict_spec[OF NU_P_D dist_D]])
+    by (auto simp: conc_fun_RES)
 qed
 end
 
@@ -2483,6 +2472,23 @@ sepref_definition (in -) confl_find_next_index_code
 
 declare (in -) confl_find_next_index_code.refine[sepref_fr_rules]
 
+(* TODO Move + setup for efficient array accesses *)
+definition arl_set'_u where
+  \<open>arl_set'_u a i x = arl_set a (nat_of_uint32 i) x\<close>
+
+definition arl_set_u :: \<open>'a::heap array_list \<Rightarrow> uint32 \<Rightarrow> 'a \<Rightarrow> 'a array_list Heap\<close>where
+  \<open>arl_set_u a i x = arl_set'_u a i x\<close>
+
+lemma arl_set_hnr_u[sepref_fr_rules]:
+  \<open>CONSTRAINT is_pure A \<Longrightarrow>
+    (uncurry2 arl_set_u, uncurry2 (RETURN \<circ>\<circ>\<circ> op_list_set)) \<in>
+     [pre_list_set]\<^sub>a (arl_assn A)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a A\<^sup>k \<rightarrow> arl_assn A\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint32_nat_rel_def br_def ex_assn_up_eq2 array_assn_def is_array_def
+      hr_comp_def list_rel_pres_length list_rel_update heap_array_set'_u_def
+      heap_array_set_u_def Array.upd'_def arl_set_u_def arl_set'_u_def arl_assn_def
+     nat_of_uint32_code[symmetric])
+(* End Move *)
 
 context isasat_input_bounded
 begin
@@ -2583,28 +2589,20 @@ sepref_thm minimize_and_extract_highest_lookup_conflict_code
         literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU))]\<^sub>a
        trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>d *\<^sub>a
         cach_refinement_assn\<^sup>d *\<^sub>a lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
-      lookup_clause_assn *a cach_refinement_assn *a
-        highest_lit_assn *a out_learned_assn\<close>
+      lookup_clause_assn *a cach_refinement_assn *a out_learned_assn\<close>
   supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
     minimize_and_extract_highest_lookup_conflict_inv_def[simp]
     in_\<L>\<^sub>a\<^sub>l\<^sub>l_Suc_le_uint_max[intro] length_u_hnr[sepref_fr_rules]
+    array_set_hnr_u[sepref_fr_rules]
   unfolding minimize_and_extract_highest_lookup_conflict_def zero_uint32_nat_def[symmetric]
-    one_uint32_nat_def[symmetric] merge_highest_lit_def PR_CONST_def delete_index_and_swap.simps
+    one_uint32_nat_def[symmetric] PR_CONST_def delete_index_and_swap.simps
     length_u_def[symmetric] minimize_and_extract_highest_lookup_conflict_inv_def
-  apply (rewrite at \<open>(_, zero_uint32_nat, _, \<hole>, _)\<close> annotate_assn[where
-     A = \<open>highest_lit_assn\<close>])
-
-  apply sepref_dbg_keep
-      apply sepref_dbg_trans_keep
-           apply sepref_dbg_trans_step_keep
-                      apply sepref_dbg_side_unfold apply (auto simp: )[]
-  sorry
   by sepref
 
 concrete_definition (in -) minimize_and_extract_highest_lookup_conflict_code
    uses isasat_input_bounded.minimize_and_extract_highest_lookup_conflict_code.refine_raw
-   is \<open>(uncurry4 ?f, _) \<in> _\<close>
+   is \<open>(uncurry5 ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) minimize_and_extract_highest_lookup_conflict_code_def
 
