@@ -1,5 +1,5 @@
 theory IsaSAT_Backtrack
-  imports IsaSAT_Setup Watched_Literals_Heuristics
+  imports IsaSAT_Setup
 begin
 
 subsection \<open>Backtrack\<close>
@@ -9,7 +9,6 @@ begin
 
 
 subsubsection \<open>Backtrack with direct extraction of literal if highest level\<close>
-
 
 definition (in isasat_input_ops) extract_shorter_conflict_wl_nlit where
 \<open>extract_shorter_conflict_wl_nlit K M NU D NE UE =
@@ -194,20 +193,59 @@ qed
 definition (in -) lit_of_hd_trail_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal\<close> where
   \<open>lit_of_hd_trail_st S = lit_of (hd (get_trail_wl S))\<close>
 
-definition (in -)lit_of_hd_trail_st_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal\<close> where
-  \<open>lit_of_hd_trail_st_heur S = lit_of (hd (get_trail_wl_heur S))\<close>
+definition lit_of_hd_trail_st_heur :: \<open>twl_st_wl_heur_trail_ref \<Rightarrow> nat literal\<close> where
+  \<open>lit_of_hd_trail_st_heur = (\<lambda>((M, _), _). hd M)\<close>
 
-definition (in -)lit_of_hd_trail_st_heur' :: \<open>twl_st_wl_heur_trail_ref \<Rightarrow> nat literal\<close> where
-  \<open>lit_of_hd_trail_st_heur' = (\<lambda>((M, _), _). hd M)\<close>
-
-lemma lit_of_hd_trail_st_heur'_lit_of_hd_trail_st:
-   \<open>(RETURN o lit_of_hd_trail_st_heur', RETURN o lit_of_hd_trail_st) \<in>
+lemma lit_of_hd_trail_st_heur_lit_of_hd_trail_st:
+   \<open>(RETURN o lit_of_hd_trail_st_heur, RETURN o lit_of_hd_trail_st) \<in>
        [\<lambda>S. get_trail_wl S \<noteq> []]\<^sub>f twl_st_heur_pol \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
   by (auto simp: lit_of_hd_trail_st_def twl_st_heur_pol_def trail_pol_def
-       lit_of_hd_trail_st_heur'_def ann_lits_split_reasons_def hd_map
+       lit_of_hd_trail_st_heur_def ann_lits_split_reasons_def hd_map
       intro!: frefI nres_relI)
 
+sepref_thm lit_of_hd_trail_st_code
+  is \<open>RETURN o lit_of_hd_trail_st_heur\<close>
+  :: \<open>[\<lambda>((M, _), _). M \<noteq> []]\<^sub>a twl_st_heur_pol_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  unfolding lit_of_hd_trail_st_heur_def twl_st_heur_pol_assn_def
+  by sepref
 
+concrete_definition (in -) lit_of_hd_trail_st_code
+   uses isasat_input_bounded_nempty.lit_of_hd_trail_st_code.refine_raw
+   is \<open>(?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) lit_of_hd_trail_st_code_def
+
+lemmas lit_of_hd_trail_st_code_refine_code[sepref_fr_rules] =
+   lit_of_hd_trail_st_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
+theorem lit_of_hd_trail_st_code_lit_of_hd_trail_st[sepref_fr_rules]:
+  \<open>(lit_of_hd_trail_st_code, RETURN o lit_of_hd_trail_st)
+    \<in> [\<lambda>S. get_trail_wl S \<noteq> []]\<^sub>a
+      twl_st_assn\<^sup>k  \<rightarrow> unat_lit_assn\<close>
+    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c
+    \<in> [comp_PRE twl_st_heur_pol (\<lambda>S. get_trail_wl S \<noteq> [])
+        (\<lambda>_ ((M, _), _). M \<noteq> []) (\<lambda>_. True)]\<^sub>a
+      hrp_comp (twl_st_heur_pol_assn\<^sup>k) twl_st_heur_pol \<rightarrow>
+      hr_comp unat_lit_assn Id\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE_aux[OF lit_of_hd_trail_st_code_refine_code
+    lit_of_hd_trail_st_heur_lit_of_hd_trail_st] .
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
+    using that by (auto simp: comp_PRE_def twl_st_heur_pol_def trail_pol_def
+        ann_lits_split_reasons_def)
+  have im: \<open>?im' = ?im\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_heur_assn_assn ..
+  have f: \<open>?f' = ?f\<close>
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by (auto simp: hrp_comp_def hr_comp_def)
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f PR_CONST_def apply assumption
+    using pre ..
+qed
 
 definition (in -) extract_shorter_conflict_l_trivial
   :: \<open>'v literal \<Rightarrow> ('v, 'a) ann_lits \<Rightarrow> 'v clauses_l \<Rightarrow> 'v clauses \<Rightarrow> 'v clauses \<Rightarrow>  'v cconflict \<Rightarrow>
@@ -254,8 +292,242 @@ abbreviation extract_shorter_conflict_l_trivial_pre where
 
 sepref_register extract_shorter_conflict_l_trivial
 
+type_synonym (in -) lookup_clause_rel_with_cls_with_highest =
+  \<open>conflict_option_rel \<times> (nat literal \<times> nat)option\<close>
+
+type_synonym (in -) twl_st_wl_confl_extracted_int =
+  \<open>(nat,nat)ann_lits \<times> nat clause_l list \<times> nat \<times>
+    lookup_clause_rel_with_cls_with_highest \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int \<times>
+    bool list \<times> nat \<times> nat conflict_min_cach \<times> lbd \<times> stats\<close>
+
+definition (in isasat_input_ops) twl_st_heur_no_clvls
+  :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
+where
+\<open>twl_st_heur_no_clvls =
+  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd, stats), (M, N, U, D, NE, UE, Q, W)).
+    M = M' \<and> N' = N \<and> U' = U \<and>
+    D' = D \<and>
+     Q' = Q \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
+    vm \<in> vmtf M \<and>
+    phase_saving \<phi> \<and>
+    no_dup M \<and>
+    cach_refinement_empty cach
+  }\<close>
+
+
 definition (in -) empty_cach where
   \<open>empty_cach cach = (\<lambda>_. SEEN_UNKNOWN)\<close>
+
+definition (in -) empty_cach_ref where
+  \<open>empty_cach_ref = (\<lambda>(cach, support). (replicate (length cach) SEEN_UNKNOWN, []))\<close>
+
+definition (in isasat_input_ops) empty_cach_ref_set_inv where
+  \<open>empty_cach_ref_set_inv cach0 support =
+    (\<lambda>(i, cach). length cach = length cach0 \<and>
+         (\<forall>L \<in> set (drop i support). L < length cach) \<and>
+         (\<forall>L \<in> set (take i support).  cach ! L = SEEN_UNKNOWN) \<and>
+         (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set (drop i support)))\<close>
+
+definition (in isasat_input_ops) empty_cach_ref_set where
+  \<open>empty_cach_ref_set = (\<lambda>(cach0, support). do {
+    let n = length support;
+    (_, cach) \<leftarrow> WHILE\<^sub>T\<^bsup>empty_cach_ref_set_inv cach0 support\<^esup>
+      (\<lambda>(i, cach). i < length support)
+      (\<lambda>(i, cach). do {
+         ASSERT(i < length support);
+         ASSERT(support ! i < length cach);
+         RETURN(i+1, cach[support ! i := SEEN_UNKNOWN])
+      })
+     (0, cach0);
+    RETURN (cach, emptied_list support)
+  })\<close>
+
+lemma (in isasat_input_ops) empty_cach_ref_set_empty_cach_ref:
+  \<open>(empty_cach_ref_set, RETURN o empty_cach_ref) \<in>
+    [\<lambda>(cach, supp). (\<forall>L \<in> set supp. L < length cach) \<and>
+      (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp)]\<^sub>f
+    Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
+proof -
+  have H: \<open>WHILE\<^sub>T\<^bsup>empty_cach_ref_set_inv cach0 support'\<^esup> (\<lambda>(i, cach). i < length support')
+       (\<lambda>(i, cach).
+           ASSERT (i < length support') \<bind>
+           (\<lambda>_. ASSERT (support' ! i < length cach) \<bind>
+           (\<lambda>_. RETURN (i + 1, cach[support' ! i := SEEN_UNKNOWN]))))
+       (0, cach0) \<bind>
+      (\<lambda>(_, cach). RETURN (cach, emptied_list support'))
+      \<le> \<Down> Id (RETURN (replicate (length cach0) SEEN_UNKNOWN, []))\<close>
+    if
+      \<open>\<forall>L\<in>set support'. L < length cach0\<close> and
+      \<open>\<forall>L<length cach0. cach0 ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support'\<close>
+    for cach support cach0 support'
+  proof -
+    have init: \<open>empty_cach_ref_set_inv cach0 support' (0, cach0)\<close>
+      using that unfolding empty_cach_ref_set_inv_def
+      by auto
+    have valid_length:
+       \<open>empty_cach_ref_set_inv cach0 support' s \<Longrightarrow> case s of (i, cach) \<Rightarrow> i < length support' \<Longrightarrow>
+          s = (cach', sup') \<Longrightarrow> support' ! cach' < length sup'\<close>  for s cach' sup'
+      using that unfolding empty_cach_ref_set_inv_def
+      by auto
+    have set_next: \<open>empty_cach_ref_set_inv cach0 support' (i + 1, cach'[support' ! i := SEEN_UNKNOWN])\<close>
+      if
+        inv: \<open>empty_cach_ref_set_inv cach0 support' s\<close> and
+        cond: \<open>case s of (i, cach) \<Rightarrow> i < length support'\<close> and
+        s: \<open>s = (i, cach')\<close> and
+        valid[simp]: \<open>support' ! i < length cach'\<close>
+      for s i cach'
+    proof -
+      have
+        le_cach_cach0: \<open>length cach' = length cach0\<close> and
+        le_length: \<open>\<forall>L\<in>set (drop i support'). L < length cach'\<close> and
+        UNKNOWN: \<open>\<forall>L\<in>set (take i support'). cach' ! L = SEEN_UNKNOWN\<close> and
+        support: \<open>\<forall>L<length cach'. cach' ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set (drop i support')\<close> and
+        [simp]: \<open>i < length support'\<close>
+        using inv cond unfolding empty_cach_ref_set_inv_def s prod.case
+        by auto
+
+      show ?thesis
+        unfolding empty_cach_ref_set_inv_def
+        unfolding prod.case
+        apply (intro conjI)
+        subgoal by (simp add: le_cach_cach0)
+        subgoal using le_length by (simp add: Cons_nth_drop_Suc[symmetric])
+        subgoal using UNKNOWN by (auto simp add: take_Suc_conv_app_nth)
+        subgoal using support by (auto simp add: Cons_nth_drop_Suc[symmetric])
+        done
+    qed
+    have final: \<open>((cach', emptied_list support'), replicate (length cach0) SEEN_UNKNOWN, []) \<in> Id\<close>
+      if
+        inv: \<open>empty_cach_ref_set_inv cach0 support' s\<close> and
+        cond: \<open>\<not> (case s of (i, cach) \<Rightarrow> i < length support')\<close> and
+        s: \<open>s = (i, cach')\<close>
+        for s cach' i
+    proof -
+      have
+        le_cach_cach0: \<open>length cach' = length cach0\<close> and
+        le_length: \<open>\<forall>L\<in>set (drop i support'). L < length cach'\<close> and
+        UNKNOWN: \<open>\<forall>L\<in>set (take i support'). cach' ! L = SEEN_UNKNOWN\<close> and
+        support: \<open>\<forall>L<length cach'. cach' ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set (drop i support')\<close> and
+        i: \<open>\<not>i < length support'\<close>
+        using inv cond unfolding empty_cach_ref_set_inv_def s prod.case
+        by auto
+      have \<open>\<forall>L<length cach'. cach' ! L  = SEEN_UNKNOWN\<close>
+        using support i by auto
+      then have [dest]: \<open>L \<in> set cach' \<Longrightarrow> L = SEEN_UNKNOWN\<close> for L
+        by (metis in_set_conv_nth)
+      then have [dest]: \<open>SEEN_UNKNOWN \<notin> set cach' \<Longrightarrow> cach0 = [] \<and> cach' = []\<close>
+        using le_cach_cach0 by (cases cach') auto
+      show ?thesis
+        by (auto simp: emptied_list_def list_eq_replicate_iff le_cach_cach0)
+    qed
+    show ?thesis
+      apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i, _). length support' - i)\<close>])
+      subgoal by auto
+      subgoal by (rule init)
+      subgoal by auto
+      subgoal by (rule valid_length)
+      subgoal by (rule set_next)
+      subgoal by auto
+      subgoal by (rule final)
+      done
+  qed
+  show ?thesis
+  unfolding empty_cach_ref_set_def empty_cach_ref_def Let_def comp_def
+  by (intro frefI nres_relI) (clarify intro!: H)
+qed
+
+
+lemma (in isasat_input_ops) empty_cach_ref_empty_cach:
+  \<open>(RETURN o empty_cach_ref, RETURN o empty_cach) \<in> cach_refinement \<rightarrow>\<^sub>f \<langle>cach_refinement\<rangle> nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: empty_cach_def empty_cach_ref_def cach_refinement_alt_def cach_refinement_list_def
+     map_fun_rel_def)
+find_theorems op_list_replicate
+
+sepref_thm (in isasat_input_ops) empty_cach_code
+  is \<open>empty_cach_ref_set\<close>
+  :: \<open>cach_refinement_l_assn\<^sup>d \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
+  supply array_replicate_hnr[sepref_fr_rules]
+  unfolding empty_cach_ref_set_def comp_def
+  by sepref
+
+concrete_definition (in -) empty_cach_code
+   uses isasat_input_ops.empty_cach_code.refine_raw
+   is \<open>(?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) empty_cach_code_def
+
+lemmas (in isasat_input_ops) empty_cach_ref_hnr[sepref_fr_rules] =
+   empty_cach_code.refine
+
+theorem (in isasat_input_ops) empty_cach_code_empty_cach_ref:
+  \<open>(empty_cach_code,
+   RETURN \<circ> empty_cach_ref)
+    \<in> [(\<lambda>(cach :: minimize_status list, supp :: nat list).
+         (\<forall>L\<in>set supp. L < length cach) \<and>
+         (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp))]\<^sub>a
+    cach_refinement_l_assn\<^sup>d \<rightarrow> cach_refinement_l_assn\<close>
+    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c
+    \<in>[comp_PRE Id
+     (\<lambda>(cach, supp).
+         (\<forall>L\<in>set supp. L < length cach) \<and>
+         (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp))
+     (\<lambda>x y. True)
+     (\<lambda>x. nofail ((RETURN \<circ> empty_cach_ref) x))]\<^sub>a
+      hrp_comp (cach_refinement_l_assn\<^sup>d)
+                     Id \<rightarrow> hr_comp cach_refinement_l_assn Id\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE[OF empty_cach_ref_hnr[unfolded PR_CONST_def]
+    empty_cach_ref_set_empty_cach_ref] by simp
+  have pre: \<open>?pre' h x\<close> if \<open>?pre x\<close> for x h
+    using that by (auto simp: comp_PRE_def twl_st_heur_pol_def trail_pol_def
+        ann_lits_split_reasons_def)
+  have im: \<open>?im' = ?im\<close>
+    by simp
+  have f: \<open>?f' = ?f\<close>
+    by auto
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f apply assumption
+    using pre ..
+qed
+
+lemma (in isasat_input_ops) empty_cach_hnr[sepref_fr_rules]:
+  \<open>(empty_cach_code, RETURN \<circ> empty_cach) \<in> cach_refinement_assn\<^sup>d \<rightarrow>\<^sub>a cach_refinement_assn\<close>
+    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c \<in> [comp_PRE cach_refinement (\<lambda>_. True)
+     (\<lambda>x y. case y of
+            (cach, supp) \<Rightarrow>
+              (\<forall>L\<in>set supp. L < length cach) \<and>
+              (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp))
+     (\<lambda>x. nofail
+           ((RETURN \<circ> empty_cach)
+             x))]\<^sub>a hrp_comp (cach_refinement_l_assn\<^sup>d)
+                     cach_refinement \<rightarrow> hr_comp cach_refinement_l_assn cach_refinement\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE[OF empty_cach_code_empty_cach_ref[unfolded PR_CONST_def]
+    empty_cach_ref_empty_cach] by simp
+  have pre: \<open>?pre' h x\<close> if \<open>?pre x\<close> for x h
+    using that by (auto simp: comp_PRE_def twl_st_heur_pol_def trail_pol_def
+        ann_lits_split_reasons_def cach_refinement_alt_def)
+  have im: \<open>?im' = ?im\<close>
+    unfolding cach_refinement_assn_def
+     prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by simp
+  have f: \<open>?f' = ?f\<close>
+    unfolding cach_refinement_assn_def
+    by auto
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f apply assumption
+    using pre ..
+qed
 
 definition extract_shorter_conflict_list_lookup_heur_st
   :: \<open>twl_st_wl_heur_lookup_conflict \<Rightarrow>
@@ -264,7 +536,7 @@ where
   \<open>extract_shorter_conflict_list_lookup_heur_st = (\<lambda>(M, N, U, D, Q', W', vm, \<phi>, clvls, cach, lbd,
        stats). do {
      (D, cach, L) \<leftarrow> extract_shorter_conflict_list_lookup_heur M N cach D lbd;
-     let cach = empty_cach cach;
+     let cach = empty_cach cach; (* stupid stuff\<dots> *)
      RETURN ((M, N, U, D, Q', W', vm, \<phi>, clvls, cach, lbd, stats), L)
   })\<close>
 
@@ -278,15 +550,6 @@ where
      RETURN ((M, N, U, D, NE, UE, WS, Q), L)
   })\<close>
 
-definition extract_shorter_conflict_list_heur_st'
-  :: \<open>twl_st_wl_heur \<Rightarrow>
-       (twl_st_wl_heur \<times> nat conflict_highest_conflict) nres\<close>
-where
-  \<open>extract_shorter_conflict_list_heur_st' = (\<lambda>(M, N, U, D, WS, Q). do {
-     (D, L) \<leftarrow> extract_shorter_conflict_heur M (mset `# mset (tl N)) (NE + UE) D;
-     RETURN ((M, N, U, D, NE, UE, WS, Q), L)
-  })\<close>
-
 definition extract_shorter_conflict_remove_and_add_st
   :: \<open>nat twl_st_wl \<Rightarrow> (nat twl_st_wl \<times> nat conflict_highest_conflict) nres\<close>
 where
@@ -295,6 +558,14 @@ where
      RETURN ((M, N, U, D, NE, UE, WS, Q), L)
   })\<close>
 
+(*
+State Function                                |  Minimisation Function
+----------------------------------------------|---------------------------------------------
+extract_shorter_conflict_wl                   |  extract_shorter_conflict_list_st
+extract_shorter_conflict_list_st              |  extract_shorter_conflict_remove_and_add
+extract_shorter_conflict_list_heur_st         |  extract_shorter_conflict_heur
+extract_shorter_conflict_list_lookup_heur_st  |  extract_shorter_conflict_list_lookup_heur
+*)
 
 lemma iterate_over_conflict_extract_shorter_conflict_l_trivial:
   assumes
@@ -629,6 +900,46 @@ definition extract_shorter_conflict_list_lookup_heur_pre where
         literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU)) \<and>
         (\<forall>a\<in>lits_of_l M. atm_of a < length (snd (snd D))))\<close>
 
+sepref_register extract_shorter_conflict_list_lookup_heur
+sepref_thm extract_shorter_conflict_list_lookup_heur_code
+  is \<open>uncurry4 (PR_CONST extract_shorter_conflict_list_lookup_heur)\<close>
+  :: \<open>[extract_shorter_conflict_list_lookup_heur_pre]\<^sub>a
+      trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a
+      cach_refinement_assn\<^sup>d *\<^sub>a conflict_option_rel_assn\<^sup>d  *\<^sub>a lbd_assn\<^sup>k \<rightarrow>
+      conflict_option_rel_assn *a cach_refinement_assn *a
+        highest_lit_assn\<close>
+  unfolding extract_shorter_conflict_list_lookup_heur_def fast_minus_def[symmetric]
+    one_uint32_nat_def[symmetric] PR_CONST_def extract_shorter_conflict_list_lookup_heur_pre_def
+  by sepref
+
+concrete_definition (in -) extract_shorter_conflict_list_lookup_heur_code
+   uses isasat_input_bounded_nempty.extract_shorter_conflict_list_lookup_heur_code.refine_raw
+   is \<open>(uncurry4 ?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) extract_shorter_conflict_list_lookup_heur_code_def
+
+lemmas extract_shorter_conflict_list_lookup_heur_code_hnr[sepref_fr_rules] =
+   extract_shorter_conflict_list_lookup_heur_code.refine[OF isasat_input_bounded_nempty_axioms]
+
+sepref_register extract_shorter_conflict_list_lookup_heur_st
+sepref_thm extract_shorter_conflict_list_lookup_heur_st_code
+  is \<open>PR_CONST extract_shorter_conflict_list_lookup_heur_st\<close>
+  :: \<open>[\<lambda>(M, N, U, D, Q', W', vm, \<phi>, clvls, cach, lbd, stats).
+         extract_shorter_conflict_list_lookup_heur_pre ((((M, N), cach), D), lbd)]\<^sub>a
+      twl_st_heur_lookup_lookup_clause_assn\<^sup>d \<rightarrow>
+       twl_st_heur_lookup_lookup_clause_assn *a highest_lit_assn\<close>
+  unfolding extract_shorter_conflict_list_lookup_heur_st_def twl_st_heur_lookup_lookup_clause_assn_def
+  PR_CONST_def
+  by sepref
+
+concrete_definition (in -) extract_shorter_conflict_list_lookup_heur_st_code
+   uses isasat_input_bounded_nempty.extract_shorter_conflict_list_lookup_heur_st_code.refine_raw
+   is \<open>(?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) extract_shorter_conflict_list_lookup_heur_st_code_def
+
+lemmas extract_shorter_conflict_list_lookup_heur_st_hnr[sepref_fr_rules] =
+   extract_shorter_conflict_list_lookup_heur_st_code.refine[OF isasat_input_bounded_nempty_axioms]
 
 theorem extract_shorter_conflict_list_heur_st_extract_shorter_conflict_wl_nlit_st:
   \<open>(extract_shorter_conflict_list_heur_st,
@@ -718,315 +1029,6 @@ definition (in isasat_input_ops) twl_st_no_clvls_assn
 where
   \<open>twl_st_no_clvls_assn = hr_comp twl_st_heur_lookup_lookup_clause_assn twl_st_heur_no_clvls_confl\<close>
 
-
-definition (in -) target_level (* :: \<open>nat conflict_highest_conflict \<Rightarrow> nat\<close> *) where
-  \<open>target_level highest = (case highest of None \<Rightarrow> 0 | Some (_, lev) \<Rightarrow> lev)\<close>
-
-
-
-
-subsubsection \<open>Backtrack with direct extraction of literal if highest level\<close>
-
-sepref_thm lit_of_hd_trail_st_code
-  is \<open>RETURN o lit_of_hd_trail_st_heur'\<close>
-  :: \<open>[\<lambda>((M, _), _). M \<noteq> []]\<^sub>a twl_st_heur_pol_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-  unfolding lit_of_hd_trail_st_heur'_def twl_st_heur_pol_assn_def
-  by sepref
-
-concrete_definition (in -) lit_of_hd_trail_st_code
-   uses isasat_input_bounded_nempty.lit_of_hd_trail_st_code.refine_raw
-   is \<open>(?f, _)\<in>_\<close>
-
-prepare_code_thms (in -) lit_of_hd_trail_st_code_def
-
-lemmas lit_of_hd_trail_st_code_refine_code[sepref_fr_rules] =
-   lit_of_hd_trail_st_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
-definition (in -) empty_cach_ref where
-  \<open>empty_cach_ref = (\<lambda>(cach, support). (replicate (length cach) SEEN_UNKNOWN, []))\<close>
-
-definition (in isasat_input_ops) empty_cach_ref_set_inv where
-  \<open>empty_cach_ref_set_inv cach0 support =
-    (\<lambda>(i, cach). length cach = length cach0 \<and>
-         (\<forall>L \<in> set (drop i support). L < length cach) \<and>
-         (\<forall>L \<in> set (take i support).  cach ! L = SEEN_UNKNOWN) \<and>
-         (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set (drop i support)))\<close>
-
-definition (in isasat_input_ops) empty_cach_ref_set where
-  \<open>empty_cach_ref_set = (\<lambda>(cach0, support). do {
-    let n = length support;
-    (_, cach) \<leftarrow> WHILE\<^sub>T\<^bsup>empty_cach_ref_set_inv cach0 support\<^esup>
-      (\<lambda>(i, cach). i < length support)
-      (\<lambda>(i, cach). do {
-         ASSERT(i < length support);
-         ASSERT(support ! i < length cach);
-         RETURN(i+1, cach[support ! i := SEEN_UNKNOWN])
-      })
-     (0, cach0);
-    RETURN (cach, emptied_list support)
-  })\<close>
-
-lemma (in isasat_input_ops) empty_cach_ref_set_empty_cach_ref:
-  \<open>(empty_cach_ref_set, RETURN o empty_cach_ref) \<in>
-    [\<lambda>(cach, supp). (\<forall>L \<in> set supp. L < length cach) \<and>
-      (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp)]\<^sub>f
-    Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
-proof -
-  have H: \<open>WHILE\<^sub>T\<^bsup>empty_cach_ref_set_inv cach0 support'\<^esup> (\<lambda>(i, cach). i < length support')
-       (\<lambda>(i, cach).
-           ASSERT (i < length support') \<bind>
-           (\<lambda>_. ASSERT (support' ! i < length cach) \<bind>
-           (\<lambda>_. RETURN (i + 1, cach[support' ! i := SEEN_UNKNOWN]))))
-       (0, cach0) \<bind>
-      (\<lambda>(_, cach). RETURN (cach, emptied_list support'))
-      \<le> \<Down> Id (RETURN (replicate (length cach0) SEEN_UNKNOWN, []))\<close>
-    if
-      \<open>\<forall>L\<in>set support'. L < length cach0\<close> and
-      \<open>\<forall>L<length cach0. cach0 ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support'\<close>
-    for cach support cach0 support'
-  proof -
-    have init: \<open>empty_cach_ref_set_inv cach0 support' (0, cach0)\<close>
-      using that unfolding empty_cach_ref_set_inv_def
-      by auto
-    have valid_length:
-       \<open>empty_cach_ref_set_inv cach0 support' s \<Longrightarrow> case s of (i, cach) \<Rightarrow> i < length support' \<Longrightarrow>
-          s = (cach', sup') \<Longrightarrow> support' ! cach' < length sup'\<close>  for s cach' sup'
-      using that unfolding empty_cach_ref_set_inv_def
-      by auto
-    have set_next: \<open>empty_cach_ref_set_inv cach0 support' (i + 1, cach'[support' ! i := SEEN_UNKNOWN])\<close>
-      if
-        inv: \<open>empty_cach_ref_set_inv cach0 support' s\<close> and
-        cond: \<open>case s of (i, cach) \<Rightarrow> i < length support'\<close> and
-        s: \<open>s = (i, cach')\<close> and
-        valid[simp]: \<open>support' ! i < length cach'\<close>
-      for s i cach'
-    proof -
-      have
-        le_cach_cach0: \<open>length cach' = length cach0\<close> and
-        le_length: \<open>\<forall>L\<in>set (drop i support'). L < length cach'\<close> and
-        UNKNOWN: \<open>\<forall>L\<in>set (take i support'). cach' ! L = SEEN_UNKNOWN\<close> and
-        support: \<open>\<forall>L<length cach'. cach' ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set (drop i support')\<close> and
-        [simp]: \<open>i < length support'\<close>
-        using inv cond unfolding empty_cach_ref_set_inv_def s prod.case
-        by auto
-
-      show ?thesis
-        unfolding empty_cach_ref_set_inv_def
-        unfolding prod.case
-        apply (intro conjI)
-        subgoal by (simp add: le_cach_cach0)
-        subgoal using le_length by (simp add: Cons_nth_drop_Suc[symmetric])
-        subgoal using UNKNOWN by (auto simp add: take_Suc_conv_app_nth)
-        subgoal using support by (auto simp add: Cons_nth_drop_Suc[symmetric])
-        done
-    qed
-    have final: \<open>((cach', emptied_list support'), replicate (length cach0) SEEN_UNKNOWN, []) \<in> Id\<close>
-      if
-        inv: \<open>empty_cach_ref_set_inv cach0 support' s\<close> and
-        cond: \<open>\<not> (case s of (i, cach) \<Rightarrow> i < length support')\<close> and
-        s: \<open>s = (i, cach')\<close>
-        for s cach' i
-    proof -
-      have
-        le_cach_cach0: \<open>length cach' = length cach0\<close> and
-        le_length: \<open>\<forall>L\<in>set (drop i support'). L < length cach'\<close> and
-        UNKNOWN: \<open>\<forall>L\<in>set (take i support'). cach' ! L = SEEN_UNKNOWN\<close> and
-        support: \<open>\<forall>L<length cach'. cach' ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set (drop i support')\<close> and
-        i: \<open>\<not>i < length support'\<close>
-        using inv cond unfolding empty_cach_ref_set_inv_def s prod.case
-        by auto
-      have \<open>\<forall>L<length cach'. cach' ! L  = SEEN_UNKNOWN\<close>
-        using support i by auto
-      then have [dest]: \<open>L \<in> set cach' \<Longrightarrow> L = SEEN_UNKNOWN\<close> for L
-        by (metis in_set_conv_nth)
-      then have [dest]: \<open>SEEN_UNKNOWN \<notin> set cach' \<Longrightarrow> cach0 = [] \<and> cach' = []\<close>
-        using le_cach_cach0 by (cases cach') auto
-      show ?thesis
-        by (auto simp: emptied_list_def list_eq_replicate_iff le_cach_cach0)
-    qed
-    show ?thesis
-      apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i, _). length support' - i)\<close>])
-      subgoal by auto
-      subgoal by (rule init)
-      subgoal by auto
-      subgoal by (rule valid_length)
-      subgoal by (rule set_next)
-      subgoal by auto
-      subgoal by (rule final)
-      done
-  qed
-  show ?thesis
-  unfolding empty_cach_ref_set_def empty_cach_ref_def Let_def comp_def
-  by (intro frefI nres_relI) (clarify intro!: H)
-qed
-
-
-lemma (in isasat_input_ops) empty_cach_ref_empty_cach:
-  \<open>(RETURN o empty_cach_ref, RETURN o empty_cach) \<in> cach_refinement \<rightarrow>\<^sub>f \<langle>cach_refinement\<rangle> nres_rel\<close>
-  by (intro frefI nres_relI)
-    (auto simp: empty_cach_def empty_cach_ref_def cach_refinement_alt_def cach_refinement_list_def
-     map_fun_rel_def)
-find_theorems op_list_replicate
-
-sepref_thm (in isasat_input_ops) empty_cach_code
-  is \<open>empty_cach_ref_set\<close>
-  :: \<open>cach_refinement_l_assn\<^sup>d \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
-  supply array_replicate_hnr[sepref_fr_rules]
-  unfolding empty_cach_ref_set_def comp_def
-  by sepref
-
-concrete_definition (in -) empty_cach_code
-   uses isasat_input_ops.empty_cach_code.refine_raw
-   is \<open>(?f, _)\<in>_\<close>
-
-prepare_code_thms (in -) empty_cach_code_def
-
-lemmas (in isasat_input_ops) empty_cach_ref_hnr[sepref_fr_rules] =
-   empty_cach_code.refine
-
-theorem (in isasat_input_ops) empty_cach_code_empty_cach_ref:
-  \<open>(empty_cach_code,
-   RETURN \<circ> empty_cach_ref)
-    \<in> [(\<lambda>(cach :: minimize_status list, supp :: nat list).
-         (\<forall>L\<in>set supp. L < length cach) \<and>
-         (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp))]\<^sub>a
-    cach_refinement_l_assn\<^sup>d \<rightarrow> cach_refinement_l_assn\<close>
-    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
-proof -
-  have H: \<open>?c
-    \<in>[comp_PRE Id
-     (\<lambda>(cach, supp).
-         (\<forall>L\<in>set supp. L < length cach) \<and>
-         (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp))
-     (\<lambda>x y. True)
-     (\<lambda>x. nofail ((RETURN \<circ> empty_cach_ref) x))]\<^sub>a
-      hrp_comp (cach_refinement_l_assn\<^sup>d)
-                     Id \<rightarrow> hr_comp cach_refinement_l_assn Id\<close>
-    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE[OF empty_cach_ref_hnr[unfolded PR_CONST_def]
-    empty_cach_ref_set_empty_cach_ref] by simp
-  have pre: \<open>?pre' h x\<close> if \<open>?pre x\<close> for x h
-    using that by (auto simp: comp_PRE_def twl_st_heur_pol_def trail_pol_def
-        ann_lits_split_reasons_def)
-  have im: \<open>?im' = ?im\<close>
-    by simp
-  have f: \<open>?f' = ?f\<close>
-    by auto
-  show ?thesis
-    apply (rule hfref_weaken_pre[OF ])
-     defer
-    using H unfolding im f apply assumption
-    using pre ..
-qed
-
-lemma (in isasat_input_ops) empty_cach_hnr[sepref_fr_rules]:
-  \<open>(empty_cach_code, RETURN \<circ> empty_cach) \<in> cach_refinement_assn\<^sup>d \<rightarrow>\<^sub>a cach_refinement_assn\<close>
-    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
-proof -
-  have H: \<open>?c \<in> [comp_PRE cach_refinement (\<lambda>_. True)
-     (\<lambda>x y. case y of
-            (cach, supp) \<Rightarrow>
-              (\<forall>L\<in>set supp. L < length cach) \<and>
-              (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp))
-     (\<lambda>x. nofail
-           ((RETURN \<circ> empty_cach)
-             x))]\<^sub>a hrp_comp (cach_refinement_l_assn\<^sup>d)
-                     cach_refinement \<rightarrow> hr_comp cach_refinement_l_assn cach_refinement\<close>
-    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE[OF empty_cach_code_empty_cach_ref[unfolded PR_CONST_def]
-    empty_cach_ref_empty_cach] by simp
-  have pre: \<open>?pre' h x\<close> if \<open>?pre x\<close> for x h
-    using that by (auto simp: comp_PRE_def twl_st_heur_pol_def trail_pol_def
-        ann_lits_split_reasons_def cach_refinement_alt_def)
-  have im: \<open>?im' = ?im\<close>
-    unfolding cach_refinement_assn_def
-     prod_hrp_comp hrp_comp_dest hrp_comp_keep
-    by simp
-  have f: \<open>?f' = ?f\<close>
-    unfolding cach_refinement_assn_def
-    by auto
-  show ?thesis
-    apply (rule hfref_weaken_pre[OF ])
-     defer
-    using H unfolding im f apply assumption
-    using pre ..
-qed
-
-(*
-State Function                                |  Minimisation Function
-----------------------------------------------|---------------------------------------------
-extract_shorter_conflict_wl                   |  extract_shorter_conflict_list_st
-extract_shorter_conflict_list_st              |  extract_shorter_conflict_remove_and_add
-extract_shorter_conflict_list_heur_st         |  extract_shorter_conflict_heur
-extract_shorter_conflict_list_lookup_heur_st  |  extract_shorter_conflict_list_lookup_heur
-*)
-
-sepref_register extract_shorter_conflict_list_lookup_heur
-sepref_thm extract_shorter_conflict_list_lookup_heur_code
-  is \<open>uncurry4 (PR_CONST extract_shorter_conflict_list_lookup_heur)\<close>
-  :: \<open>[extract_shorter_conflict_list_lookup_heur_pre]\<^sub>a
-      trail_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a
-      cach_refinement_assn\<^sup>d *\<^sub>a conflict_option_rel_assn\<^sup>d  *\<^sub>a lbd_assn\<^sup>k \<rightarrow>
-      conflict_option_rel_assn *a cach_refinement_assn *a
-        highest_lit_assn\<close>
-  unfolding extract_shorter_conflict_list_lookup_heur_def fast_minus_def[symmetric]
-    one_uint32_nat_def[symmetric] PR_CONST_def extract_shorter_conflict_list_lookup_heur_pre_def
-  by sepref
-
-concrete_definition (in -) extract_shorter_conflict_list_lookup_heur_code
-   uses isasat_input_bounded_nempty.extract_shorter_conflict_list_lookup_heur_code.refine_raw
-   is \<open>(uncurry4 ?f, _) \<in> _\<close>
-
-prepare_code_thms (in -) extract_shorter_conflict_list_lookup_heur_code_def
-
-lemmas extract_shorter_conflict_list_lookup_heur_code_hnr[sepref_fr_rules] =
-   extract_shorter_conflict_list_lookup_heur_code.refine[OF isasat_input_bounded_nempty_axioms]
-
-sepref_register extract_shorter_conflict_list_lookup_heur_st
-sepref_thm extract_shorter_conflict_list_lookup_heur_st_code
-  is \<open>PR_CONST extract_shorter_conflict_list_lookup_heur_st\<close>
-  :: \<open>[\<lambda>(M, N, U, D, Q', W', vm, \<phi>, clvls, cach, lbd, stats).
-         extract_shorter_conflict_list_lookup_heur_pre ((((M, N), cach), D), lbd)]\<^sub>a
-      twl_st_heur_lookup_lookup_clause_assn\<^sup>d \<rightarrow>
-       twl_st_heur_lookup_lookup_clause_assn *a highest_lit_assn\<close>
-  unfolding extract_shorter_conflict_list_lookup_heur_st_def twl_st_heur_lookup_lookup_clause_assn_def
-  PR_CONST_def
-  by sepref
-
-concrete_definition (in -) extract_shorter_conflict_list_lookup_heur_st_code
-   uses isasat_input_bounded_nempty.extract_shorter_conflict_list_lookup_heur_st_code.refine_raw
-   is \<open>(?f, _) \<in> _\<close>
-
-prepare_code_thms (in -) extract_shorter_conflict_list_lookup_heur_st_code_def
-
-lemmas extract_shorter_conflict_list_lookup_heur_st_hnr[sepref_fr_rules] =
-   extract_shorter_conflict_list_lookup_heur_st_code.refine[OF isasat_input_bounded_nempty_axioms]
-
-definition find_decomp_wl_imp
-  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat conflict_highest_conflict \<Rightarrow> vmtf_remove_int \<Rightarrow>
-       ((nat, nat) ann_lits \<times> vmtf_remove_int) nres\<close>
-where
-  \<open>find_decomp_wl_imp = (\<lambda>M\<^sub>0 highest vm. do {
-    let lev = target_level highest;
-    let k = count_decided M\<^sub>0;
-    (_, M, vm') \<leftarrow>
-       WHILE\<^sub>T\<^bsup>\<lambda>(j, M, vm'). j = count_decided M \<and> j \<ge> lev \<and>
-           (M = [] \<longrightarrow> j = lev) \<and>
-           (\<exists>M'. M\<^sub>0 = M' @ M \<and> (j = lev \<longrightarrow> M' \<noteq> [] \<and> is_decided (last M'))) \<and>
-           vm' \<in> vmtf M \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M)\<^esup>
-         (\<lambda>(j, M, vm). j > lev)
-         (\<lambda>(j, M, vm). do {
-            ASSERT(M \<noteq> []);
-            ASSERT(j \<ge> 1);
-            if is_decided (hd M)
-            then let L = atm_of (lit_of (hd M)) in RETURN (fast_minus j 1, tl M, vmtf_unset L vm)
-            else let L = atm_of (lit_of (hd M)) in RETURN (j, tl M, vmtf_unset L vm)}
-         )
-         (k, M\<^sub>0, vm);
-    RETURN (M, vm')
-  })\<close>
-
-
 lemma extract_shorter_conflict_l_trivial_code_extract_shorter_conflict_l_trivial[sepref_fr_rules]:
   \<open>(extract_shorter_conflict_list_lookup_heur_st_code, extract_shorter_conflict_wl_nlit_st)
     \<in> [extract_shorter_conflict_list_heur_st_pre]\<^sub>a
@@ -1081,6 +1083,34 @@ proof -
     using H unfolding im f apply assumption
     using pre ..
 qed
+
+definition (in -) target_level (* :: \<open>nat conflict_highest_conflict \<Rightarrow> nat\<close> *) where
+  \<open>target_level highest = (case highest of None \<Rightarrow> 0 | Some (_, lev) \<Rightarrow> lev)\<close>
+
+definition find_decomp_wl_imp
+  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat conflict_highest_conflict \<Rightarrow> vmtf_remove_int \<Rightarrow>
+       ((nat, nat) ann_lits \<times> vmtf_remove_int) nres\<close>
+where
+  \<open>find_decomp_wl_imp = (\<lambda>M\<^sub>0 highest vm. do {
+    let lev = target_level highest;
+    let k = count_decided M\<^sub>0;
+    (_, M, vm') \<leftarrow>
+       WHILE\<^sub>T\<^bsup>\<lambda>(j, M, vm'). j = count_decided M \<and> j \<ge> lev \<and>
+           (M = [] \<longrightarrow> j = lev) \<and>
+           (\<exists>M'. M\<^sub>0 = M' @ M \<and> (j = lev \<longrightarrow> M' \<noteq> [] \<and> is_decided (last M'))) \<and>
+           vm' \<in> vmtf M \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M)\<^esup>
+         (\<lambda>(j, M, vm). j > lev)
+         (\<lambda>(j, M, vm). do {
+            ASSERT(M \<noteq> []);
+            ASSERT(j \<ge> 1);
+            if is_decided (hd M)
+            then let L = atm_of (lit_of (hd M)) in RETURN (fast_minus j 1, tl M, vmtf_unset L vm)
+            else let L = atm_of (lit_of (hd M)) in RETURN (j, tl M, vmtf_unset L vm)}
+         )
+         (k, M\<^sub>0, vm);
+    RETURN (M, vm')
+  })\<close>
+
 
 definition find_decomp_wl_imp_pre where
   \<open>find_decomp_wl_imp_pre = (\<lambda>(((M, D), L), vm). M \<noteq> [] \<and> D \<noteq> None \<and>
@@ -1585,6 +1615,28 @@ definition conflict_to_conflict_with_cls_spec where
 definition list_of_mset2_None_droped where
   \<open>list_of_mset2_None_droped L L' _ D = SPEC(\<lambda>(E, F). mset (unwatched_l E) = the D \<and> E!0 = L \<and> E!1 = L' \<and>
      F = None \<and> length E \<ge> 2)\<close>
+
+lemma (in -) bind_rule_complete_RES: \<open>(M \<bind> f \<le> RES \<Phi>) = (M \<le> SPEC (\<lambda>x. f x \<le> RES \<Phi>))\<close>
+  by (auto simp: pw_le_iff refine_pw_simps)
+
+lemma WHILEIT_rule_stronger_inv_RES:
+  assumes
+    \<open>wf R\<close> and
+    \<open>I s\<close> and
+    \<open>I' s\<close>
+    \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> b s \<Longrightarrow> f s \<le> SPEC (\<lambda>s'. I s' \<and>  I' s' \<and> (s', s) \<in> R)\<close> and
+   \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> \<not> b s \<Longrightarrow> s \<in> \<Phi>\<close>
+ shows \<open>WHILE\<^sub>T\<^bsup>I\<^esup> b f s \<le> RES \<Phi>\<close>
+proof -
+  have RES_SPEC: \<open>RES \<Phi> = SPEC(\<lambda>s. s \<in> \<Phi>)\<close>
+    by auto
+  have \<open>WHILE\<^sub>T\<^bsup>I\<^esup> b f s \<le> WHILE\<^sub>T\<^bsup>\<lambda>s. I s \<and> I' s\<^esup> b f s\<close>
+    by (metis (mono_tags, lifting) WHILEIT_weaken)
+  also have \<open>WHILE\<^sub>T\<^bsup>\<lambda>s. I s \<and> I' s\<^esup> b f s \<le> RES \<Phi>\<close>
+    unfolding RES_SPEC
+    by (rule WHILEIT_rule) (use assms in \<open>auto simp: \<close>)
+  finally show ?thesis .
+qed
 
 lemma conflict_to_conflict_with_cls_id:
   \<open>(uncurry3 conflict_to_conflict_with_cls, uncurry3 list_of_mset2_None_droped) \<in>
@@ -2387,7 +2439,6 @@ lemma propagate_bt_wl_D_heur_propagate_bt_wl_D:
   apply refine_vcg
   apply
     (auto simp: propagate_bt_wl_D_heur_def propagate_bt_wl_D_def Let_def
-      RES_RES2_RETURN_RES RETURN_def RES_RES_RETURN_RES
       list_of_mset2_def list_of_mset2_None_def RES_RETURN_RES2 RES_RETURN_RES twl_st_heur_def
       map_fun_rel_def rescore_clause_def flush_def
       intro!: RES_refine vmtf_consD)
@@ -2806,26 +2857,6 @@ proof -
     by (auto dest: in_diffD)
 qed
 
-definition (in isasat_input_ops) backtrack_wl_D_heur_inv where
-  \<open>backtrack_wl_D_heur_inv S \<longleftrightarrow> (\<exists>S'. (S, S') \<in> twl_st_heur \<and> backtrack_wl_D_inv S')\<close>
-
- definition (in isasat_input_ops) backtrack_wl_D_nlit_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>backtrack_wl_D_nlit_heur S =
-    do {
-      ASSERT(backtrack_wl_D_heur_inv S);
-      let L = lit_of_hd_trail_st_heur S;
-      (S , highest) \<leftarrow> extract_shorter_conflict_list_heur_st S;
-      S \<leftarrow> find_decomp_wl_nlit L highest S;
-
-      if size (the (get_conflict_wl S)) > 1
-      then do {
-        let L' = fst (the highest);
-        propagate_bt_wl_D L L' S
-      }
-      else do {
-        propagate_unit_bt_wl_D L S
-     }
-  }\<close>
 
 sepref_register find_lit_of_max_level_wl propagate_bt_wl_D propagate_unit_bt_wl_D
 sepref_register backtrack_wl_D

@@ -793,10 +793,11 @@ proof
   assume eq: ?eq
   let ?C = \<open>watched_by S K ! w\<close>
 
-  have \<open>twl_struct_invs (twl_st_of_wl (Some (K, w)) S)\<close>
+  have \<open>twl_struct_invs (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S))\<close>
     using inv unfolding unit_prop_body_wl_inv_def unit_prop_body_wl_D_inv_def
     by fast
-  then have \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of (twl_st_of_wl (Some (K, w)) S))\<close>
+  then have \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state
+    (state\<^sub>W_of (twl_st_of (Some K) (st_l_of_wl (Some (K, w)) S)))\<close>
     unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by fast
   then have \<open>distinct_mset_set (mset ` set (tl (get_clauses_wl S)))\<close>
