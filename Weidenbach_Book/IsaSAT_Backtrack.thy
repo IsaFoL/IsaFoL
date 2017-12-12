@@ -35,8 +35,8 @@ where
         RETURN ((M, N, U, D, NE, UE, WS, Q), n)})\<close>
 
 definition (in isasat_input_ops) find_decomp_wl_nlit
-:: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl  nres\<close> where
-  \<open>find_decomp_wl_nlit = (\<lambda>L highest (M, N, U, D, NE, UE, Q, W).
+:: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur  nres\<close> where
+  \<open>find_decomp_wl_nlit = (\<lambda>highest (M, N, U, D, NE, UE, Q, W).
     SPEC(\<lambda>S. \<exists>K M2 M1. S = (M1, N, U, D, NE, UE, Q, W) \<and>
         (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
           get_level M K = highest))\<close>
@@ -52,25 +52,100 @@ where
           None, NE, UE, {#L#}, W(-L:= W (-L) @ [length N], L':= W L' @ [length N]))
       })\<close>
 
-(* TODO: not needed, we can refine directly from backtrack_wl_D to the level with heuristics. *)
-definition (in isasat_input_ops) backtrack_wl_D_nlit :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
-  \<open>backtrack_wl_D_nlit S =
-    do {
-      ASSERT(backtrack_wl_D_inv S);
-      let L = lit_of (hd (get_trail_wl S));
-      S \<leftarrow> extract_shorter_conflict_wl_nlit_st S;
-      (S, highest) \<leftarrow> empty_lookup_conflict_and_highest S;
-      S \<leftarrow> find_decomp_wl_nlit L highest S;
+definition (in isasat_input_ops) backtrack_wl_D_heur_inv where
+  \<open>backtrack_wl_D_heur_inv S \<longleftrightarrow> (\<exists>S'. (S, S') \<in> twl_st_heur \<and> backtrack_wl_D_inv S')\<close>
 
-      if size (the (get_conflict_wl S)) > 1
+definition extract_shorter_conflict_heur where
+  \<open>extract_shorter_conflict_heur = (\<lambda>M NU NUE C outl. do {
+     let K = lit_of (hd M);
+     let C = Some (remove1_mset (-K) (the C));
+     C \<leftarrow> iterate_over_conflict (-K) M NU NUE (the C); 
+     RETURN (Some (add_mset (-K) C))
+  })\<close>
+
+definition (in -) empty_cach where
+  \<open>empty_cach cach = (\<lambda>_. SEEN_UNKNOWN)\<close>
+
+definition (in -) empty_conflict_and_extract_clause where
+  \<open>empty_conflict_and_extract_clause M D outl = 
+     SPEC(\<lambda>(D, C, n). D = None \<and> mset C = mset outl \<and> C!0 = outl!0 \<and>
+       (length outl > 1 \<longrightarrow> highest_lit M (mset (tl outl)) (Some (outl!1, get_level M (outl!1)))) \<and>
+       (length outl > 1 \<longrightarrow> n = get_level M (outl!1)) \<and>
+       (length outl = 1 \<longrightarrow> n = 0)
+      )\<close>
+
+definition (in isasat_input_ops) extract_shorter_conflict_list_heur_st
+  :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_heur \<times> nat \<times> nat clause_l) nres\<close>
+where
+  \<open>extract_shorter_conflict_list_heur_st = (\<lambda>(M, N, U, D, Q', W', vm, \<phi>, clvls, cach, lbd, outl,
+       stats). do {
+     let K = lit_of (hd M);
+     let D = remove1_mset (-K) (the D);
+     (D, cach, outl) \<leftarrow> minimize_and_extract_highest_lookup_conflict M N D cach lbd outl;
+     let cach = empty_cach cach;
+     (D, C, n) \<leftarrow> empty_conflict_and_extract_clause M D outl;
+     RETURN ((M, N, U, D, Q', W', vm, \<phi>, clvls, cach, lbd, take 1 outl, stats), n, C)
+  })\<close>
+
+
+definition (in isasat_input_ops)  rescore_clause 
+  :: \<open>nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> phase_saver \<Rightarrow>
+    (vmtf_remove_int \<times> phase_saver) nres\<close>
+where
+  \<open>rescore_clause C M vm \<phi> = SPEC (\<lambda>(vm', \<phi>' :: bool list). vm' \<in> vmtf M \<and> phase_saving \<phi>')\<close>
+
+
+definition (in isasat_input_ops) flush
+  :: \<open>(nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> vmtf_remove_int nres\<close>
+where
+  \<open>flush M _ = SPEC (\<lambda>vm'. vm' \<in> vmtf M)\<close>
+
+definition (in isasat_input_ops) propagate_bt_wl_D_heur
+  :: \<open>nat literal \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N, U, D, Q, W, vm, \<phi>, _, cach). do {
+      let L' = C!1;
+      ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n (mset C));
+      (vm, \<phi>) \<leftarrow> rescore_clause C M vm \<phi>;
+      vm \<leftarrow> flush M vm;
+      let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [length N]];
+      let W = W[nat_of_lit L' := W!nat_of_lit L' @ [length N]];
+      RETURN (Propagated (- L) (length N) # M, N @ [C], U, D, {#L#}, W, vm, \<phi>, zero_uint32_nat,
+         cach)
+    })\<close>
+
+definition (in -) lit_of_hd_trail_st_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal\<close> where
+  \<open>lit_of_hd_trail_st_heur S = lit_of (hd (get_trail_wl_heur S))\<close>
+
+definition (in isasat_input_ops) remove_last
+   :: \<open>nat literal \<Rightarrow> nat clause option \<Rightarrow> nat clause option nres\<close>
+where
+  \<open>remove_last _ _  = SPEC(op = None)\<close>
+
+definition (in isasat_input_ops) propagate_unit_bt_wl_D_int
+  :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
+where
+  \<open>propagate_unit_bt_wl_D_int = (\<lambda>L (M, N, U, D, Q, W, vm, \<phi>). do {
+      vm \<leftarrow> flush M vm;
+      RETURN (Propagated (- L) 0 # M, N, U, D, {#L#}, W, vm, \<phi>)})\<close>
+
+definition (in isasat_input_ops) backtrack_wl_D_nlit_heur
+  :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
+where
+  \<open>backtrack_wl_D_nlit_heur S =
+    do {
+      ASSERT(backtrack_wl_D_heur_inv S);
+      let L = lit_of_hd_trail_st_heur S;
+      (S, n, C) \<leftarrow> extract_shorter_conflict_list_heur_st S;
+      S \<leftarrow> find_decomp_wl_nlit n S;
+
+      if size (the (get_conflict_wl_heur S)) > 1
       then do {
-        propagate_bt_wl_D_ext L highest S
+        propagate_bt_wl_D_heur L C S
       }
       else do {
-        propagate_unit_bt_wl_D L S
+        propagate_unit_bt_wl_D_int L S
      }
   }\<close>
-
 
 lemma get_all_ann_decomposition_get_level:
   assumes
@@ -97,7 +172,7 @@ proof -
 qed
 
 lemma backtrack_wl_D_nlit_backtrack_wl_D:
-  \<open>(backtrack_wl_D_nlit, backtrack_wl_D) \<in> Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  \<open>(backtrack_wl_D_nlit_heur, backtrack_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
 proof -
   have shorter: \<open>extract_shorter_conflict_wl_nlit_st (M, NU, u, D, NE, UE, WS, Q)
       \<le> \<Down> {((T', highest), T). T = T' \<and> equality_except_conflict T (M, NU, u, D, NE, UE, WS, Q) \<and>
@@ -214,8 +289,6 @@ qed
 definition (in -) lit_of_hd_trail_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal\<close> where
   \<open>lit_of_hd_trail_st S = lit_of (hd (get_trail_wl S))\<close>
 
-definition (in -)lit_of_hd_trail_st_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal\<close> where
-  \<open>lit_of_hd_trail_st_heur S = lit_of (hd (get_trail_wl_heur S))\<close>
 
 definition (in -)lit_of_hd_trail_st_heur' :: \<open>twl_st_wl_heur_trail_ref \<Rightarrow> nat literal\<close> where
   \<open>lit_of_hd_trail_st_heur' = (\<lambda>((M, _), _). hd M)\<close>
@@ -247,13 +320,6 @@ definition extract_shorter_conflict_remove_and_add where
   })\<close>
 
 
-definition extract_shorter_conflict_heur where
-  \<open>extract_shorter_conflict_heur = (\<lambda>M NU NUE C. do {
-     let K = lit_of (hd M);
-     let C = Some (remove1_mset (-K) (the C));
-     (C, L) \<leftarrow> iterate_over_conflict (-K) M NU NUE (the C);
-     RETURN (Some (add_mset (-K) C), L)
-  })\<close>
 
 
 definition extract_shorter_conflict_list_lookup_heur where
@@ -273,30 +339,6 @@ abbreviation extract_shorter_conflict_l_trivial_pre where
 \<open>extract_shorter_conflict_l_trivial_pre \<equiv> \<lambda>(M, D). literals_are_in_\<L>\<^sub>i\<^sub>n (mset (fst D))\<close>
 
 sepref_register extract_shorter_conflict_l_trivial
-
-definition (in -) empty_cach where
-  \<open>empty_cach cach = (\<lambda>_. SEEN_UNKNOWN)\<close>
-
-definition extract_shorter_conflict_list_lookup_heur_st
-  :: \<open>twl_st_wl_heur_lookup_conflict \<Rightarrow>
-       (twl_st_wl_heur_lookup_conflict \<times> nat conflict_highest_conflict) nres\<close>
-where
-  \<open>extract_shorter_conflict_list_lookup_heur_st = (\<lambda>(M, N, U, D, Q', W', vm, \<phi>, clvls, cach, lbd,
-       stats). do {
-     (D, cach, L) \<leftarrow> extract_shorter_conflict_list_lookup_heur M N cach D lbd;
-     let cach = empty_cach cach;
-     RETURN ((M, N, U, D, Q', W', vm, \<phi>, clvls, cach, lbd, stats), L)
-  })\<close>
-
-
-definition extract_shorter_conflict_list_heur_st
-  :: \<open>nat twl_st_wl \<Rightarrow>
-       (nat twl_st_wl \<times> nat conflict_highest_conflict) nres\<close>
-where
-  \<open>extract_shorter_conflict_list_heur_st = (\<lambda>(M, N, U, D, NE, UE, WS, Q). do {
-     (D, L) \<leftarrow> extract_shorter_conflict_heur M (mset `# mset (tl N)) (NE + UE) D;
-     RETURN ((M, N, U, D, NE, UE, WS, Q), L)
-  })\<close>
 
 definition extract_shorter_conflict_list_heur_st'
   :: \<open>twl_st_wl_heur \<Rightarrow>
@@ -2174,11 +2216,6 @@ lemma list_of_mset2_None_hnr[sepref_fr_rules]:
   using list_of_mset2_None_int_hnr[unfolded PR_CONST_def, FCOMP list_of_mset2_None_int_list_of_mset2_None]
   by simp
 
-
-definition rescore_clause :: \<open>nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> phase_saver \<Rightarrow>
-    (vmtf_remove_int \<times> phase_saver) nres\<close> where
-\<open>rescore_clause C M vm \<phi> = SPEC (\<lambda>(vm', \<phi>' :: bool list). vm' \<in> vmtf M \<and> phase_saving \<phi>')\<close>
-
 definition (in isasat_input_ops) vmtf_rescore_body
  :: \<open>nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> phase_saver \<Rightarrow>
     (nat \<times> vmtf_remove_int \<times> phase_saver) nres\<close>
@@ -2293,9 +2330,6 @@ lemmas vmtf_flush_all_code_hnr[sepref_fr_rules] =
    vmtf_flush_all_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 
-definition flush :: \<open>(nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> vmtf_remove_int nres\<close> where
-\<open>flush M _ = SPEC (\<lambda>vm'. vm' \<in> vmtf M)\<close>
-
 lemma trail_bump_rescore:
   \<open>(uncurry vmtf_flush', uncurry flush) \<in> [\<lambda>(M, vm). vm \<in> vmtf M]\<^sub>f Id \<times>\<^sub>r Id  \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
   unfolding vmtf_flush'_def flush_def
@@ -2351,18 +2385,6 @@ where
   stats_assn
   \<close>
 
-definition propagate_bt_wl_D_heur
-  :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>propagate_bt_wl_D_heur = (\<lambda>L L' (M, N, U, D, Q, W, vm, \<phi>, _, cach). do {
-      (D'', C) \<leftarrow> list_of_mset2_None (- L) L' D;
-      ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n (mset D''));
-      (vm, \<phi>) \<leftarrow> rescore_clause D'' M vm \<phi>;
-      vm \<leftarrow> flush M vm;
-      let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [length N]];
-      let W = W[nat_of_lit L' := W!nat_of_lit L' @ [length N]];
-      RETURN (Propagated (- L) (length N) # M, N @ [D''], U, C, {#L#}, W, vm, \<phi>, zero_uint32_nat,
-         cach)
-    })\<close>
 
 sepref_register list_of_mset2_None rescore_clause flush
 sepref_thm propagate_bt_wl_D_code
@@ -2478,14 +2500,6 @@ proof -
     using pre ..
 qed
 
-definition remove_last :: \<open>nat literal \<Rightarrow> nat clause option \<Rightarrow> nat clause option nres\<close> where
-  \<open>remove_last _ _  = SPEC(op = None)\<close>
-
-definition propagate_unit_bt_wl_D_int :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>propagate_unit_bt_wl_D_int = (\<lambda>L (M, N, U, D, Q, W, vm, \<phi>). do {
-      D \<leftarrow> remove_last L D;
-      vm \<leftarrow> flush M vm;
-      RETURN (Propagated (- L) 0 # M, N, U, D, {#L#}, W, vm, \<phi>)})\<close>
 
 lemma propagate_unit_bt_wl_D_int_propagate_unit_bt_wl_D:
   \<open>(uncurry propagate_unit_bt_wl_D_int, uncurry propagate_unit_bt_wl_D) \<in>
@@ -2826,26 +2840,7 @@ proof -
     by (auto dest: in_diffD)
 qed
 
-definition (in isasat_input_ops) backtrack_wl_D_heur_inv where
-  \<open>backtrack_wl_D_heur_inv S \<longleftrightarrow> (\<exists>S'. (S, S') \<in> twl_st_heur \<and> backtrack_wl_D_inv S')\<close>
 
- definition (in isasat_input_ops) backtrack_wl_D_nlit_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>backtrack_wl_D_nlit_heur S =
-    do {
-      ASSERT(backtrack_wl_D_heur_inv S);
-      let L = lit_of_hd_trail_st_heur S;
-      (S , highest) \<leftarrow> extract_shorter_conflict_list_heur_st S;
-      S \<leftarrow> find_decomp_wl_nlit L highest S;
-
-      if size (the (get_conflict_wl S)) > 1
-      then do {
-        let L' = fst (the highest);
-        propagate_bt_wl_D L L' S
-      }
-      else do {
-        propagate_unit_bt_wl_D L S
-     }
-  }\<close>
 
 sepref_register find_lit_of_max_level_wl propagate_bt_wl_D propagate_unit_bt_wl_D
 sepref_register backtrack_wl_D
