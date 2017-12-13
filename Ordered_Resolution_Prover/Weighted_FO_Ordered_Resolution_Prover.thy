@@ -305,36 +305,29 @@ next
     case True
     note True_outer = this
     then show ?thesis
-    proof (cases "count (image_mset fst P) C = 0")
+    proof (cases "C \<in># image_mset fst P")
       case True
-      then have "C \<notin># image_mset fst P"
-        using not_in_iff by metis
+      then obtain k where k_p: "(C, k) \<in># P"
+        using image_iff by auto
+      then have k_i': "k \<le> i'"
+        using backward_reduction_P unfolding True_outer by auto
+      have "(C, i) \<in># P + {#(C' + {#L#}, i')#}"
+        using backward_reduction_P True_outer by auto
+      then have "\<exists>j\<le>i. (C, j) \<in># P + {#(C', i')#}"
+        using k_p k_i' by auto 
+      then have "\<exists>j\<le>i. (C, j) \<in># wP_of_wstate (N, P + {#(C', i')#}, Q, n)"
+        by auto
+      then show ?thesis
+        by auto
+    next
+      case False
       then have "\<forall>j. (C, j) \<notin># P"
-        sorry
+        using image_iff by fastforce
       then have "\<forall>j. (C, j) \<notin># P + {#(C', i')#}"
         using True_outer by auto
       then have "\<forall>j. (C, j) \<notin># wP_of_wstate (N, P + {#(C', i')#}, Q, n)"
         by auto
       then show ?thesis 
-        by auto
-    next
-      case False
-      then have "C \<in># image_mset fst P"
-        using not_in_iff by metis
-      then obtain k where k_p: "(C, k) \<in># P + {#(C', i')#}"
-        sorry
-      then have k_i': "k \<le> i'"
-        using backward_reduction_P unfolding True_outer by auto
-
-      have "(C, i) \<in># P + {#(C' + {#L#}, i')#}"
-        using backward_reduction_P True_outer by auto
-
-      then have "\<exists>j\<le>i. (C, j) \<in># P + {#(C', i')#}"
-        using k_p k_i' by auto 
-         (* I remove the biggest, but know that there is one smaller *)
-      then have "\<exists>j\<le>i. (C, j) \<in># wP_of_wstate (N, P + {#(C', i')#}, Q, n)"
-        by auto
-      then show ?thesis
         by auto
     qed
   next
@@ -552,7 +545,7 @@ proof (rule ccontr)
     have "llast Sts \<leadsto>\<^sub>w (N', {#(D', j') \<in># P - {# (D, j) #}. D' \<noteq> D#}, Q + {#(D,j)#}, Suc n)"
       using weighted_RP.inference_computation[of "P - {#(D, j)#}" D j N' n Q, OF min N'_def]
       using of_wstate_split[symmetric, of "llast Sts"]
-      unfolding N_def[symmetric] P_def[symmetric]  Q_def[symmetric]  n_def[symmetric] 
+      unfolding N_def[symmetric] P_def[symmetric] Q_def[symmetric] n_def[symmetric]
       unfolding b
       using Dj_in_p by auto
     then have "\<exists>St'. llast Sts \<leadsto>\<^sub>w St'"
