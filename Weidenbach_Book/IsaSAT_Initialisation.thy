@@ -854,7 +854,7 @@ prepare_code_thms (in -) polarity_st_heur_init_code_def
 definition polarity_st_init :: \<open>'v twl_st_wl_init \<Rightarrow> 'v literal \<Rightarrow> bool option\<close> where
   \<open>polarity_st_init S = polarity (get_trail_wl (fst S))\<close>
 
-lemma polarity_st_heur_pol_polarity_st_refine[sepref_fr_rules]:
+lemma polarity_st_heur_code_polarity_st_refine[sepref_fr_rules]:
   \<open>(uncurry polarity_st_heur_init_code, uncurry (RETURN oo polarity_st_init)) \<in>
      [\<lambda>(M, L). L \<in> snd ` D\<^sub>0]\<^sub>a twl_st_init_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
 proof -

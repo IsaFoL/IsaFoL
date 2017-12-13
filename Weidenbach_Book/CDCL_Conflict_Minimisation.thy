@@ -7,31 +7,6 @@ no_notation Ref.update ("_ := _" 62)
 
 declare cdcl\<^sub>W_restart_mset_state[simp]
 
-type_synonym out_learned = \<open>nat clause_l\<close>
-
-type_synonym out_learned_assn = \<open>uint32 array_list\<close>
-
-abbreviation out_learned_assn :: \<open>out_learned \<Rightarrow> out_learned_assn \<Rightarrow> assn\<close> where
-  \<open>out_learned_assn \<equiv> arl_assn unat_lit_assn\<close>
-
-definition out_learned :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clause option \<Rightarrow> out_learned \<Rightarrow> bool\<close> where
-  \<open>out_learned M D out \<longleftrightarrow>
-     out \<noteq> [] \<and>
-     (D = None \<longrightarrow> length out = 1) \<and>
-     (D \<noteq> None \<longrightarrow> mset (tl out) = filter_mset (\<lambda>L. get_level M L < count_decided M) (the D))\<close>
-
-definition out_learned_confl :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clause option \<Rightarrow> out_learned \<Rightarrow> bool\<close> where
-  \<open>out_learned_confl M D out \<longleftrightarrow>
-     out \<noteq> [] \<and> (D \<noteq> None \<and> mset out = the D)\<close>
-
-lemma out_learned_Cons_None[simp]:
-  \<open>out_learned (L # aa) None ao \<longleftrightarrow> out_learned aa None ao\<close>
-  by (auto simp: out_learned_def)
-
-lemma out_learned_tl_None[simp]:
-  \<open>out_learned (tl aa) None ao \<longleftrightarrow> out_learned aa None ao\<close>
-  by (auto simp: out_learned_def)
-
 definition index_in_trail :: \<open>('v, 'a) ann_lits \<Rightarrow> 'v literal \<Rightarrow> nat\<close> where
   \<open>index_in_trail M L = index (map (atm_of o lit_of) (rev M)) (atm_of L)\<close>
 
@@ -1827,13 +1802,13 @@ lemma conflict_min_cach_set_removable_hnr[sepref_fr_rules]:
     unfolded cach_refinement_assn_def[symmetric]] .
 
 definition mark_failed_lits_stack_inv where
-  \<open>mark_failed_lits_stack_inv NU analyse = (\<lambda>cach.
+  \<open>mark_failed_lits_stack_inv NU analyse = (\<lambda>(j, cach).
        (\<forall>(i, j) \<in> set analyse. j \<le> length (NU ! i) \<and> i < length NU \<and> j \<ge> 1 \<and> i > 0))\<close>
 
 
 definition (in isasat_input_ops) mark_failed_lits_stack where
   \<open>mark_failed_lits_stack NU analyse cach = do {
-    ( _, cach) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(_, cach). mark_failed_lits_stack_inv NU analyse cach\<^esup>
+    ( _, cach) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_failed_lits_stack_inv NU analyse\<^esup>
       (\<lambda>(i, cach). i < length analyse)
       (\<lambda>(i, cach). do {
         ASSERT(i < length analyse);
@@ -1857,22 +1832,22 @@ lemma mark_failed_lits_stack_mark_failed_lits_wl:
   shows
     \<open>(uncurry2 mark_failed_lits_stack, uncurry2 mark_failed_lits_wl) \<in>
        [\<lambda>((NU, analyse), cach). literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU)) \<and>
-          mark_failed_lits_stack_inv NU analyse cach]\<^sub>f
+          mark_failed_lits_stack_inv NU analyse (0::nat, cach)]\<^sub>f
        Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
 proof -
   have \<open>mark_failed_lits_stack NU analyse cach \<le> (mark_failed_lits_wl NU analyse cach)\<close>
     if
       NU_\<L>\<^sub>i\<^sub>n: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl NU))\<close> and
-      init: \<open>mark_failed_lits_stack_inv NU analyse cach\<close>
+      init: \<open>mark_failed_lits_stack_inv NU analyse (0::nat, cach)\<close>
     for NU analyse cach
   proof -
     define I where
       \<open>I = (\<lambda>(i :: nat, cach'). (\<forall>L. cach' L = SEEN_REMOVABLE \<longrightarrow> cach L = SEEN_REMOVABLE))\<close>
     have valid_atm: \<open>atm_of (NU ! cls_idx ! (idx - 1)) \<in># \<A>\<^sub>i\<^sub>n\<close>
       if
+        \<open>mark_failed_lits_stack_inv NU analyse s\<close> and
         \<open>I s\<close> and
         \<open>case s of (i, cach) \<Rightarrow> i < length analyse\<close> and
-        \<open>case s of (i, cach) \<Rightarrow> mark_failed_lits_stack_inv NU analyse cach\<close> and
         \<open>s = (i, cach)\<close> and
         i: \<open>i < length analyse\<close> and
         \<open>analyse ! i = (cls_idx, idx)\<close>
@@ -1891,7 +1866,7 @@ proof -
       apply (refine_vcg WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(i, _). length analyse -i)\<close>
          and I' = I])
       subgoal by auto
-      subgoal using init by simp
+      subgoal by (rule init)
       subgoal unfolding I_def by auto
       subgoal by auto
       subgoal for s i cach cls_idx idx

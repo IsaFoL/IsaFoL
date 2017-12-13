@@ -141,10 +141,9 @@ function
    trs_termination_proof_assn ::
      "('e, 'f, 'g) trs_termination_proof \<Rightarrow> ('e, 'f, 'g) trs_termination_proof \<Rightarrow> assn"
    where
-     \<open>dp_termination_proof_assn a b =
-    (case (a, b) of
+     \<open>dp_termination_proof_assn a b = (case (a, b) of
      (P_is_Empty, P_is_Empty) \<Rightarrow> true
-   | (Subterm_Criterion_Proc projL rseqL trsLL term,
+  | (Subterm_Criterion_Proc projL rseqL trsLL term,
        Subterm_Criterion_Proc projL' rseqL' trsLL' term') \<Rightarrow>
     projL_assn (lab_assn id_assn id_assn) projL projL' *
     rseqL_assn id_assn id_assn id_assn  rseqL rseqL' *
@@ -159,7 +158,7 @@ function
     (root_redtriple_impl_assn +\<^sub>a redtriple_impl_assn) projL projL' *
     trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
     dp_termination_proof_assn term term'
- | (Redpair_UR_Proc projL trsLL trsLL2 term, Redpair_UR_Proc projL' trsLL' trsLL2' term') \<Rightarrow>
+  | (Redpair_UR_Proc projL trsLL trsLL2 term, Redpair_UR_Proc projL' trsLL' trsLL2' term') \<Rightarrow>
     (root_redtriple_impl_assn +\<^sub>a redtriple_impl_assn) projL projL' *
     trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
     trsLL_assn id_assn id_assn id_assn trsLL2 trsLL2' *
@@ -167,10 +166,10 @@ function
   | (Usable_Rules_Proc trsLL term, Usable_Rules_Proc trsLL' term') \<Rightarrow>
     trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
     dp_termination_proof_assn term term'
- | (Dep_Graph_Proc term, Dep_Graph_Proc term') \<Rightarrow>
+  | (Dep_Graph_Proc term, Dep_Graph_Proc term') \<Rightarrow>
     list_assn (option_assn dp_termination_proof_assn *a
       trsLL_assn id_assn id_assn id_assn) term term'
- | (Mono_Redpair_Proc projL trsLL trsLL2 term,
+  | (Mono_Redpair_Proc projL trsLL trsLL2 term,
       Mono_Redpair_Proc projL' trsLL' trsLL2' term') \<Rightarrow>
     redtriple_impl_assn projL projL' *
     trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
@@ -182,54 +181,54 @@ function
     trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
     trsLL_assn id_assn id_assn id_assn trsLL2 trsLL2' *
     dp_termination_proof_assn term term'
- | (Mono_Redpair_UR_Proc projL trsLL trsLL2 trsLL3 term,
+  | (Mono_Redpair_UR_Proc projL trsLL trsLL2 trsLL3 term,
       Mono_Redpair_UR_Proc projL' trsLL' trsLL2' trsLL3' term') \<Rightarrow>
     id_assn projL projL' *
     trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
     trsLL_assn id_assn id_assn id_assn trsLL2 trsLL2' *
     trsLL_assn id_assn id_assn id_assn trsLL3 trsLL3' *
     dp_termination_proof_assn term term'
- | (Size_Change_Subterm_Proc term,
+  | (Size_Change_Subterm_Proc term,
       Size_Change_Subterm_Proc term') \<Rightarrow>
     list_assn (rule_assn (lab_assn id_assn id_assn) id_assn *a
        list_assn (nat_assn *a nat_assn) *a list_assn (nat_assn *a nat_assn)) term term'
- | (Size_Change_Redpair_Proc red trsLL term,
+  | (Size_Change_Redpair_Proc red trsLL term,
       Size_Change_Redpair_Proc red' trsLL' term') \<Rightarrow>
     redtriple_impl_assn red red' * option_assn (trsLL_assn id_assn id_assn id_assn) trsLL trsLL' *
     list_assn (rule_assn (lab_assn id_assn id_assn) id_assn *a
        list_assn (nat_assn *a nat_assn) *a list_assn (nat_assn *a nat_assn)) term term'
- | (Uncurry_Proc n unc trsLL2 trsLL3 term,
+  | (Uncurry_Proc n unc trsLL2 trsLL3 term,
       Uncurry_Proc n' unc' trsLL2' trsLL3' term') \<Rightarrow>
     option_assn nat_assn n n' *
     id_assn unc unc' *
     trsLL_assn id_assn id_assn id_assn trsLL2 trsLL2' *
     trsLL_assn id_assn id_assn id_assn trsLL3 trsLL3' *
     dp_termination_proof_assn term term'
- | (Fcc_Proc n unc trsLL2 trsLL3 term,
+  | (Fcc_Proc n unc trsLL2 trsLL3 term,
       Fcc_Proc n' unc' trsLL2' trsLL3' term') \<Rightarrow>
     lab_assn id_assn id_assn n n' *
     id_assn unc unc' *
     trsLL_assn id_assn id_assn id_assn trsLL2 trsLL2' *
     trsLL_assn id_assn id_assn id_assn trsLL3 trsLL3' *
     dp_termination_proof_assn term term'
- | (Split_Proc trsLL trsLL2 term term2,
+  | (Split_Proc trsLL trsLL2 term term2,
       Split_Proc trsLL' trsLL2' term' term2') \<Rightarrow>
     trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
     trsLL_assn id_assn id_assn id_assn trsLL2 trsLL2' *
     dp_termination_proof_assn term term' *
     dp_termination_proof_assn term2 term2'
- | (Semlab_Proc sl  trsLL2 unc trsLL3 term,
+  | (Semlab_Proc sl  trsLL2 unc trsLL3 term,
       Semlab_Proc sl' trsLL2' unc' trsLL3' term') \<Rightarrow>
     id_assn sl sl' *
     list_assn (term_assn id_assn id_assn) unc unc' *
     trsLL_assn id_assn id_assn id_assn trsLL2 trsLL2' *
     trsLL_assn id_assn id_assn id_assn trsLL3 trsLL3' *
     dp_termination_proof_assn term term'
- | (Switch_Innermost_Proc sl term,
+  | (Switch_Innermost_Proc sl term,
       Switch_Innermost_Proc sl' term') \<Rightarrow>
     id_assn sl sl' *
     dp_termination_proof_assn term term'
-| (Rewriting_Proc n r1 r2 r3 r4 apos term,
+  | (Rewriting_Proc n r1 r2 r3 r4 apos term,
       Rewriting_Proc n' r1' r2' r3' r4' apos' term') \<Rightarrow>
     option_assn (trsLL_assn id_assn id_assn id_assn) n n' *
     ruleLL_assn id_assn id_assn id_assn r1 r1' *
@@ -237,99 +236,99 @@ function
     ruleLL_assn id_assn id_assn id_assn r3 r3' *
     ruleLL_assn id_assn id_assn id_assn r4 r4' *
     dp_termination_proof_assn term term'
- | (Instantiation_Proc r1 trsLL term,
+  | (Instantiation_Proc r1 trsLL term,
       Instantiation_Proc r1' trsLL' term') \<Rightarrow>
     ruleLL_assn id_assn id_assn id_assn r1 r1' *
     trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
     dp_termination_proof_assn term term'
- | (Forward_Instantiation_Proc r1 trsLL trsLL2 term,
+  | (Forward_Instantiation_Proc r1 trsLL trsLL2 term,
       Forward_Instantiation_Proc r1' trsLL' trsLL2' term') \<Rightarrow>
     ruleLL_assn id_assn id_assn id_assn r1 r1' *
     trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
     option_assn (trsLL_assn id_assn id_assn id_assn) trsLL2 trsLL2' *
     dp_termination_proof_assn term term'
- | (Narrowing_Proc r1 apos trsLL term,
+  | (Narrowing_Proc r1 apos trsLL term,
       Narrowing_Proc r1' apos' trsLL' term') \<Rightarrow>
     ruleLL_assn id_assn id_assn id_assn r1 r1' *
     pos_assn apos apos' *
     trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
     dp_termination_proof_assn term term'
- | (Assume_Finite r1 term,
+  | (Assume_Finite r1 term,
       Assume_Finite r1' term') \<Rightarrow>
     id_assn r1 r1' *
     id_assn term term'  (* cheating *)
- | (Unlab_Proc trsLL trsLL2 term,
+  | (Unlab_Proc trsLL trsLL2 term,
       Unlab_Proc trsLL' trsLL2' term') \<Rightarrow>
     trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
     trsLL_assn id_assn id_assn id_assn trsLL2 trsLL2' *
     dp_termination_proof_assn term term'
- | (Q_Reduction_Proc trsLL term,
+  | (Q_Reduction_Proc trsLL term,
       Q_Reduction_Proc trsLL' term') \<Rightarrow>
     termsLL_assn id_assn id_assn id_assn trsLL trsLL' *
     dp_termination_proof_assn term term'
-| (Complex_Constant_Removal_Proc trsLL term,
+  | (Complex_Constant_Removal_Proc trsLL term,
       Complex_Constant_Removal_Proc trsLL' term') \<Rightarrow>
     id_assn trsLL trsLL' *
     dp_termination_proof_assn term term'
- | (General_Redpair_Proc red trsLL trsLL2 p term,
+  | (General_Redpair_Proc red trsLL trsLL2 p term,
       General_Redpair_Proc red' trsLL' trsLL2' p' term') \<Rightarrow>
     redtriple_impl_assn red red' *
     trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
     trsLL_assn id_assn id_assn id_assn trsLL2 trsLL2' *
     id_assn p p' *
     list_assn dp_termination_proof_assn term term'
- | (To_Trs_Proc red, To_Trs_Proc red') \<Rightarrow>
+  | (To_Trs_Proc red, To_Trs_Proc red') \<Rightarrow>
     trs_termination_proof_assn red red'
-| (_, _) \<Rightarrow> false)\<close> |
+  | (_, _) \<Rightarrow> false)\<close> |
 \<open>trs_termination_proof_assn a b =
    (case (a, b) of
    (DP_Trans b1 b2 r dp, DP_Trans b1' b2' r' dp') \<Rightarrow>
      bool_assn b1 b1' * bool_assn b2 b2' *
      rules_assn id_assn id_assn r r' *
      dp_termination_proof_assn dp dp'
- | (Rule_Removal r trsLL ts, Rule_Removal r' trsLL' ts') \<Rightarrow>
+  | (Rule_Removal r trsLL ts, Rule_Removal r' trsLL' ts') \<Rightarrow>
      redtriple_impl_assn r r' *
      trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
      trs_termination_proof_assn ts ts'
- | (String_Reversal ts, String_Reversal ts') \<Rightarrow>
+  | (String_Reversal ts, String_Reversal ts') \<Rightarrow>
      trs_termination_proof_assn ts ts'
- | (Constant_String a ts, Constant_String a' ts') \<Rightarrow>
+  | (Constant_String a ts, Constant_String a' ts') \<Rightarrow>
      id_assn a a' *
      trs_termination_proof_assn ts ts'
- | (Bounds a, Bounds a') \<Rightarrow>  id_assn a a'
- | (Uncurry unc trsLL2  ts, Uncurry unc' trsLL2' ts') \<Rightarrow>
+  | (Bounds a, Bounds a') \<Rightarrow>  id_assn a a'
+  | (Uncurry unc trsLL2  ts, Uncurry unc' trsLL2' ts') \<Rightarrow>
      id_assn unc unc' *
      trsLL_assn id_assn id_assn id_assn trsLL2 trsLL2' *
      trs_termination_proof_assn ts ts'
- | (Semlab sl term trsLL ts, Semlab sl' term' trsLL' ts') \<Rightarrow>
+  | (Semlab sl term trsLL ts, Semlab sl' term' trsLL' ts') \<Rightarrow>
      id_assn sl sl' *
      list_assn (term_assn id_assn id_assn) term term' *
      trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
      trs_termination_proof_assn ts ts'
- | (R_is_Empty, R_is_Empty) \<Rightarrow> true
- | (Fcc sl trsLL ts, Fcc sl' trsLL' ts') \<Rightarrow>
+  | (R_is_Empty, R_is_Empty) \<Rightarrow> true
+  | (Fcc sl trsLL ts, Fcc sl' trsLL' ts') \<Rightarrow>
      id_assn sl sl' *
      trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
      trs_termination_proof_assn ts ts'
- | (Split trsLL ts1 ts2, Split trsLL' ts1' ts2') \<Rightarrow>
+  | (Split trsLL ts1 ts2, Split trsLL' ts1' ts2') \<Rightarrow>
      trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
      trs_termination_proof_assn ts1 ts1' *
      trs_termination_proof_assn ts2 ts2'
- | (Switch_Innermost sl ts, Switch_Innermost sl' ts') \<Rightarrow>
+  | (Switch_Innermost sl ts, Switch_Innermost sl' ts') \<Rightarrow>
      id_assn sl sl' *
      trs_termination_proof_assn ts ts'
- | (Drop_Equality ts, Drop_Equality ts') \<Rightarrow>
+  | (Drop_Equality ts, Drop_Equality ts') \<Rightarrow>
      trs_termination_proof_assn ts ts'
- | (Remove_Nonapplicable_Rules trsLL ts1, Remove_Nonapplicable_Rules trsLL' ts1') \<Rightarrow>
+  | (Remove_Nonapplicable_Rules trsLL ts1, Remove_Nonapplicable_Rules trsLL' ts1') \<Rightarrow>
      trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
      trs_termination_proof_assn ts1 ts1'
- | (Permuting_AFS trsLL ts1, Permuting_AFS trsLL' ts1') \<Rightarrow>
+  | (Permuting_AFS trsLL ts1, Permuting_AFS trsLL' ts1') \<Rightarrow>
      id_assn trsLL trsLL' *
      trs_termination_proof_assn ts1 ts1'
- | (Assume_SN trsLL ts1, Assume_SN trsLL' ts1') \<Rightarrow>
+  | (Assume_SN trsLL ts1, Assume_SN trsLL' ts1') \<Rightarrow>
      id_assn trsLL trsLL' *
      id_assn ts1 ts1'
- | (_, _) \<Rightarrow> false)\<close>
+  | (_, _) \<Rightarrow> false)\<close>
   by pat_completeness (auto; fail)+
 termination
   by (lexicographic_order)
