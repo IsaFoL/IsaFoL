@@ -136,11 +136,11 @@ datatype ('f) root_redtriple_impl = SCNP list_order_type "'f scnp_af" "'f redtri
  *)
 
 function
-   dp_termination_proof_assn  ::
-      "('e, 'f, 'g) dp_termination_proof \<Rightarrow> ('e, 'f, 'g) dp_termination_proof \<Rightarrow> assn" and
-   trs_termination_proof_assn ::
-     "('e, 'f, 'g) trs_termination_proof \<Rightarrow> ('e, 'f, 'g) trs_termination_proof \<Rightarrow> assn"
-   where
+  dp_termination_proof_assn  ::
+     "('e, 'f, 'g) dp_termination_proof \<Rightarrow> ('e, 'f, 'g) dp_termination_proof \<Rightarrow> assn" and
+  trs_termination_proof_assn ::
+    "('e, 'f, 'g) trs_termination_proof \<Rightarrow> ('e, 'f, 'g) trs_termination_proof \<Rightarrow> assn"
+where
      \<open>dp_termination_proof_assn a b = (case (a, b) of
      (P_is_Empty, P_is_Empty) \<Rightarrow> true
   | (Subterm_Criterion_Proc projL rseqL trsLL term,
@@ -332,5 +332,263 @@ function
   by pat_completeness (auto; fail)+
 termination
   by (lexicographic_order)
+
+no_notation vec_nth (infixl "$" 90)
+no_notation vec_index (infixl "$" 100)
+
+term \<open>\<lambda>\<^sub>2x. f \<close>
+
+abbreviation (input)ABS3 :: "('a\<Rightarrow>'b\<Rightarrow>'c)\<Rightarrow>'a\<Rightarrow>'b\<Rightarrow>'c" (binder "\<lambda>\<^sub>3" 10)
+  where "ABS3 f \<equiv> (\<lambda>x y. PROTECT2 (f x y) DUMMY)"
+
+abbreviation (input)ABS4 :: "('a\<Rightarrow>'b\<Rightarrow>'c\<Rightarrow>'d)\<Rightarrow>'a\<Rightarrow>'b\<Rightarrow>'c\<Rightarrow>'d" (binder "\<lambda>\<^sub>4" 10)
+  where "ABS4 f \<equiv> (\<lambda>x y z. PROTECT2 (f x y z) DUMMY)"
+abbreviation (input)ABS5 :: "('a\<Rightarrow>'b\<Rightarrow>'c\<Rightarrow>'d\<Rightarrow>'e)\<Rightarrow>'a\<Rightarrow>'b\<Rightarrow>'c\<Rightarrow>'d\<Rightarrow>'e" (binder "\<lambda>\<^sub>5" 10)
+  where "ABS5 f \<equiv> (\<lambda>x y z a. PROTECT2 (f x y z a) DUMMY)"
+
+lemma
+  fixes f0 :: \<open>bool\<Rightarrow> bool
+               \<Rightarrow> ((('a, 'b) lab, 'c) Term.term \<times>
+                   (('a, 'b) lab, 'c) Term.term) list
+                  \<Rightarrow> ('a, 'b, 'c) dp_termination_proof \<Rightarrow> 'd\<close>
+  shows
+   \<open>A = case_trs_termination_proof$ABS5 f0$ABS4 f1$ABS2 f2$ABS3 f3$ABS2 f4$ABS4 f5$ABS5 f6$f7$
+       ABS4 f8$ABS4 f9$ABS3 f10$ABS2 f11$ABS3 f12$ABS3 f13$ABS3 f14$p
+(* $(\<lambda>\<^sub>2x. f2 x)$(\<lambda>\<^sub>2x. f3 x)$(\<lambda>\<^sub>2x. f4 x)$(\<lambda>\<^sub>2x. f5 x)$
+       (\<lambda>\<^sub>2x. f6 x)$(\<lambda>\<^sub>2x. f8 x)$(\<lambda>\<^sub>2x. f9 x)$(\<lambda>\<^sub>2x. f10 x)$(\<lambda>\<^sub>2x. f11 x)$(\<lambda>\<^sub>2x. f12 x)$
+       (\<lambda>\<^sub>2x. f13 x)$(\<lambda>\<^sub>2x. f14 x)$(\<lambda>\<^sub>2x. f15 x)$p *)\<close>
+  oops
+
+declare trs_termination_proof_assn.simps[simp del] dp_termination_proof_assn.simps[simp del]
+
+lemma hn_trs_termination_proof_assn:
+    "trs_termination_proof_assn x y = z \<Longrightarrow> hn_ctxt (trs_termination_proof_assn) x y = z"
+  by (simp add: hn_ctxt_def)
+
+lemma entt_fr_drop': \<open>F \<Longrightarrow>\<^sub>t F' \<Longrightarrow> A * F \<Longrightarrow>\<^sub>t F'\<close>
+  using assn_times_comm entt_fr_drop by fastforce
+
+lemma hn_case_trs_termination_proof_assn[sepref_prep_comb_rule, sepref_comb_rules]:
+  fixes p p' P
+  defines [simp]: "INVE \<equiv> hn_invalid (trs_termination_proof_assn) p p'"
+  assumes FR: "\<Gamma> \<Longrightarrow>\<^sub>t hn_ctxt (trs_termination_proof_assn) p p' * F"
+  assumes DP_Trans:
+    "\<And>b1 b2 r dp b1' b2' r' dp'. \<lbrakk> p=DP_Trans b1 b2 r dp; p'=DP_Trans b1' b2' r' dp'\<rbrakk> \<Longrightarrow>
+    hn_refine (INVE * F) (f1' b1' b2' r' dp')
+       (bool_assn b1 b1' * bool_assn b2 b2' *
+         rules_assn id_assn id_assn r r' *
+         dp_termination_proof_assn dp dp' * hn_ctxt XX2 p p' * \<Gamma>2') R (f1 b1 b2 r dp)"
+  assumes Rule_Removal:
+    "\<And>r trsLL ts r' trsLL' ts'. \<lbrakk> p=Rule_Removal r trsLL ts; p'=Rule_Removal r' trsLL' ts'\<rbrakk> \<Longrightarrow>
+    hn_refine (INVE * F) (f2' r' trsLL' ts')
+       (redtriple_impl_assn r r' *  trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
+        trs_termination_proof_assn ts ts' * hn_ctxt XX2 p p' * \<Gamma>2') R (f2 r trsLL ts)"
+  assumes String_Reversal:
+    "\<And>ts ts'. \<lbrakk> p=String_Reversal ts; p'=String_Reversal ts'\<rbrakk> \<Longrightarrow>
+    hn_refine (INVE * F) (f3' ts')
+       (trs_termination_proof_assn ts ts' * hn_ctxt XX2 p p' * \<Gamma>3') R (f3 ts)"
+  assumes Constant_String:
+    "\<And>a ts a' ts'. \<lbrakk> p=Constant_String a ts; p'=Constant_String a' ts'\<rbrakk> \<Longrightarrow>
+    hn_refine (INVE * F) (f4' a' ts')
+       (id_assn a a' * trs_termination_proof_assn ts ts' * hn_ctxt XX2 p p' * \<Gamma>4') R (f4 a ts)"
+  assumes Bounds:
+    "\<And>ts ts'. \<lbrakk> p=Bounds ts; p'=Bounds ts'\<rbrakk> \<Longrightarrow>
+    hn_refine (INVE * F) (f5' ts')
+       (id_assn ts ts' * hn_ctxt XX2 p p' * \<Gamma>5') R (f5 ts)"
+  assumes Uncurry:
+    "\<And>unc trsLL2 ts unc' trsLL2' ts'. \<lbrakk> p=Uncurry unc trsLL2 ts; p'=Uncurry unc' trsLL2' ts'\<rbrakk> \<Longrightarrow>
+    hn_refine (INVE * F) (f6' unc' trsLL2' ts')
+       (id_assn unc unc' * trsLL_assn id_assn id_assn id_assn trsLL2 trsLL2' *
+       trs_termination_proof_assn ts ts' * hn_ctxt XX2 p p' * \<Gamma>6') R (f6 unc trsLL2 ts)"
+  assumes Semlab:
+    "\<And>sl term trsLL ts sl' term' trsLL' ts'. \<lbrakk> p=Semlab sl term trsLL ts; p'=Semlab sl' term' trsLL' ts'\<rbrakk> \<Longrightarrow>
+    hn_refine (INVE * F) (f7' sl' term' trsLL' ts')
+       (id_assn sl sl' *
+       list_assn (term_assn id_assn id_assn) term term' *
+       trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
+     trs_termination_proof_assn ts ts' * hn_ctxt XX2 p p' * \<Gamma>7') R (f7 sl term trsLL ts)"
+  assumes R_is_Empty: "p=R_is_Empty \<Longrightarrow> hn_refine (hn_ctxt (trs_termination_proof_assn) p p' * F) f8'
+        (hn_ctxt XX1 p p' * \<Gamma>8') R f8"
+  assumes Fcc:
+    "\<And>sl trsLL ts sl' trsLL' ts'. \<lbrakk> p=Fcc sl trsLL ts; p'=Fcc sl' trsLL' ts'\<rbrakk> \<Longrightarrow>
+    hn_refine (INVE * F) (f9' sl' trsLL' ts')
+       (id_assn sl sl' *
+       trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
+     trs_termination_proof_assn ts ts' * hn_ctxt XX2 p p' * \<Gamma>9') R (f9 sl trsLL ts)"
+  assumes Split:
+    "\<And>trsLL ts1 ts2 sl' trsLL' ts1' ts2'. \<lbrakk> p=Split trsLL ts1 ts2; p'=Split trsLL' ts1' ts2'\<rbrakk> \<Longrightarrow>
+    hn_refine (INVE * F) (f10' trsLL' ts1' ts2')
+       (trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
+     trs_termination_proof_assn ts1 ts1' *
+     trs_termination_proof_assn ts2 ts2' * hn_ctxt XX2 p p' * \<Gamma>10') R (f10 trsLL ts1 ts2)"
+  assumes Switch_Innermost:
+    "\<And>sl ts sl' ts'. \<lbrakk> p=Switch_Innermost sl ts; p'=Switch_Innermost sl' ts'\<rbrakk> \<Longrightarrow>
+    hn_refine (INVE * F) (f11' sl' ts')
+       (id_assn sl sl' * trs_termination_proof_assn ts ts' * hn_ctxt XX2 p p' * \<Gamma>11') R (f11 sl ts)"
+  assumes Drop_Equality:
+    "\<And>ts ts'. \<lbrakk> p=Drop_Equality ts; p'=Drop_Equality ts'\<rbrakk> \<Longrightarrow>
+    hn_refine (INVE * F) (f12' ts')
+       (trs_termination_proof_assn ts ts' * hn_ctxt XX2 p p' * \<Gamma>12') R (f12 ts)"
+  assumes Remove_Nonapplicable_Rules:
+    "\<And>trsLL ts1 trsLL' ts1'. \<lbrakk> p=Remove_Nonapplicable_Rules trsLL ts1; p'=Remove_Nonapplicable_Rules trsLL' ts1'\<rbrakk> \<Longrightarrow>
+    hn_refine (INVE * F) (f13' trsLL' ts1')
+       (trsLL_assn id_assn id_assn id_assn trsLL trsLL' *
+     trs_termination_proof_assn ts1 ts1' * hn_ctxt XX2 p p' * \<Gamma>13') R (f13 trsLL ts1)"
+  assumes Permuting_AFS:
+    "\<And>trsLL ts1 trsLL' ts1'. \<lbrakk> p=Permuting_AFS trsLL ts1; p'=Permuting_AFS trsLL' ts1'\<rbrakk> \<Longrightarrow>
+    hn_refine (INVE * F) (f14' trsLL' ts1')
+       (id_assn trsLL trsLL' * trs_termination_proof_assn ts1 ts1' * hn_ctxt XX2 p p' * \<Gamma>14') R (f14 trsLL ts1)"
+  assumes Assume_SN:
+    "\<And>trsLL ts1 trsLL' ts1'. \<lbrakk> p=Assume_SN trsLL ts1; p'=Assume_SN trsLL' ts1'\<rbrakk> \<Longrightarrow>
+    hn_refine (INVE * F) (f15' trsLL' ts1')
+       (id_assn trsLL trsLL' * id_assn ts1 ts1' * hn_ctxt XX2 p p' * \<Gamma>15') R (f15 trsLL ts1)"
+  assumes MERGE1: "\<Gamma>1' \<or>\<^sub>A \<Gamma>2' \<or>\<^sub>A \<Gamma>3' \<or>\<^sub>A \<Gamma>4'  \<or>\<^sub>A \<Gamma>5' \<or>\<^sub>A \<Gamma>6' \<or>\<^sub>A \<Gamma>7' \<or>\<^sub>A \<Gamma>8' \<or>\<^sub>A \<Gamma>9' \<or>\<^sub>A \<Gamma>10' \<or>\<^sub>A
+         \<Gamma>11' \<or>\<^sub>A \<Gamma>12' \<or>\<^sub>A \<Gamma>13' \<or>\<^sub>A \<Gamma>14' \<or>\<^sub>A \<Gamma>15' \<Longrightarrow>\<^sub>t \<Gamma>'"
+  shows
+    "hn_refine \<Gamma>
+      (case_trs_termination_proof f1' f2' f3' f4' f5' f6' f7' f8' f9' f10' f11' f12' f13' f14' f15' p')
+      (hn_ctxt (trs_termination_proof_assn) p p' * \<Gamma>') R
+      (case_trs_termination_proof$ABS5 f1$ABS4 f2$ABS2 f3$ABS3 f4$ABS2 f5$ABS4 f6$ABS5 f7$f8$
+       ABS4 f9$ABS4 f10$ABS3 f11$ABS2 f12$ABS3 f13$ABS3 f14$ABS3 f15$p)"
+  supply [[goals_limit=1]]
+  apply (rule hn_refine_cons_pre[OF FR])
+  apply1 extract_hnr_invalids
+  apply (subst trs_termination_proof_assn.simps[THEN hn_trs_termination_proof_assn])
+  apply (cases p; cases p'; simp add: (* trs_termination_proof_assn.simps[THEN hn_trs_termination_proof_assn] *))
+  subgoal
+    apply (rule hn_refine_cons[OF _ DP_Trans _ entt_refl]; assumption?)
+     applyS (simp add: assn_times_comm entt_fr_drop)
+    apply (rule entt_star_mono)
+     apply1 (rule entt_fr_drop)
+     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
+    apply1 (rule entt_trans[OF _ MERGE1])
+    applyS (simp add: entt_disjI2')
+    done
+  subgoal
+    apply (rule hn_refine_cons[OF _ Rule_Removal _ entt_refl]; assumption?)
+     applyS (simp add: assn_times_comm entt_fr_drop)
+    apply (rule entt_star_mono)
+     apply1 (rule entt_fr_drop)
+     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
+    apply1 (rule entt_trans[OF _ MERGE1])
+    applyS (simp add: entt_disjI1' entt_disjI2')
+    done
+  subgoal
+    apply (rule hn_refine_cons[OF _ String_Reversal _ entt_refl]; assumption?)
+     applyS (simp add: assn_times_comm entt_fr_drop)
+    apply (rule entt_star_mono)
+     apply1 (rule entt_fr_drop)
+     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
+    apply1 (rule entt_trans[OF _ MERGE1])
+    applyS (simp add: entt_disjI1' entt_disjI2')
+    done
+  subgoal
+    apply (rule hn_refine_cons[OF _ Constant_String _ entt_refl]; assumption?)
+     applyS (simp add: assn_times_comm entt_fr_drop)
+    apply (rule entt_star_mono)
+     apply1 (rule entt_fr_drop)
+     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
+    apply1 (rule entt_trans[OF _ MERGE1])
+    applyS (simp add: entt_disjI1' entt_disjI2')
+    done
+  subgoal
+    apply (rule hn_refine_cons[OF _ Bounds _ entt_refl]; assumption?)
+     applyS (simp add: assn_times_comm entt_fr_drop)
+    apply (rule entt_star_mono)
+     apply1 (rule entt_fr_drop)
+     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
+    apply1 (rule entt_trans[OF _ MERGE1])
+    applyS (simp add: entt_disjI1' entt_disjI2')
+    done
+  subgoal
+    apply (rule hn_refine_cons[OF _ Uncurry _ entt_refl]; assumption?)
+     applyS (simp add: assn_times_comm entt_fr_drop)
+    apply (rule entt_star_mono)
+     apply1 (rule entt_fr_drop)
+     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
+    apply1 (rule entt_trans[OF _ MERGE1])
+    applyS (simp add: entt_disjI1' entt_disjI2')
+    done
+  subgoal
+    apply (rule hn_refine_cons[OF _ Semlab _ entt_refl]; assumption?)
+     applyS (simp add: assn_times_comm entt_fr_drop)
+    apply (rule entt_star_mono)
+     apply1 (rule entt_fr_drop)
+     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
+    apply1 (rule entt_trans[OF _ MERGE1])
+    applyS (simp add: entt_disjI1' entt_disjI2')
+    done
+  subgoal
+    apply (rule hn_refine_cons[OF _ R_is_Empty _ entt_refl]; assumption?)
+     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
+    apply (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
+    apply1 (rule entt_trans[OF _ MERGE1])
+    applyS (simp add: entt_disjI1' entt_disjI2' entt_fr_drop')
+    done
+  subgoal
+    apply (rule hn_refine_cons[OF _ Fcc _ entt_refl]; assumption?)
+     applyS (simp add: assn_times_comm entt_fr_drop)
+    apply (rule entt_star_mono)
+     apply1 (rule entt_fr_drop)
+     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
+    apply1 (rule entt_trans[OF _ MERGE1])
+    applyS (simp add: entt_disjI1' entt_disjI2')
+    done
+  subgoal
+    apply (rule hn_refine_cons[OF _ Split _ entt_refl]; assumption?)
+     applyS (simp add: assn_times_comm entt_fr_drop)
+    apply (rule entt_star_mono)
+     apply1 (rule entt_fr_drop)
+     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
+    apply1 (rule entt_trans[OF _ MERGE1])
+    applyS (simp add: entt_disjI1' entt_disjI2')
+    done
+  subgoal
+    apply (rule hn_refine_cons[OF _ Switch_Innermost _ entt_refl]; assumption?)
+     applyS (simp add: assn_times_comm entt_fr_drop)
+    apply (rule entt_star_mono)
+     apply1 (rule entt_fr_drop)
+     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
+    apply1 (rule entt_trans[OF _ MERGE1])
+    applyS (simp add: entt_disjI1' entt_disjI2')
+    done
+  subgoal
+    apply (rule hn_refine_cons[OF _ Drop_Equality _ entt_refl]; assumption?)
+     applyS (simp add: assn_times_comm entt_fr_drop)
+    apply (rule entt_star_mono)
+     apply1 (rule entt_fr_drop)
+     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
+    apply1 (rule entt_trans[OF _ MERGE1])
+    applyS (simp add: entt_disjI1' entt_disjI2')
+    done
+  subgoal
+    apply (rule hn_refine_cons[OF _ Remove_Nonapplicable_Rules _ entt_refl]; assumption?)
+     applyS (simp add: assn_times_comm entt_fr_drop)
+    apply (rule entt_star_mono)
+     apply1 (rule entt_fr_drop)
+     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
+    apply1 (rule entt_trans[OF _ MERGE1])
+    applyS (simp add: entt_disjI1' entt_disjI2')
+    done
+  subgoal
+    apply (rule hn_refine_cons[OF _ Permuting_AFS _ entt_refl]; assumption?)
+     applyS (simp add: assn_times_comm entt_fr_drop)
+    apply (rule entt_star_mono)
+     apply1 (rule entt_fr_drop)
+     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
+    apply1 (rule entt_trans[OF _ MERGE1])
+    applyS (simp add: entt_disjI1' entt_disjI2')
+    done
+  subgoal
+    apply (rule hn_refine_cons[OF _ Assume_SN _ entt_refl]; assumption?)
+     applyS (simp add: assn_times_comm entt_fr_drop)
+    apply (rule entt_star_mono)
+     apply1 (rule entt_fr_drop)
+     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
+    apply1 (rule entt_trans[OF _ MERGE1])
+    applyS (simp add: entt_disjI1' entt_disjI2')
+    done
+  done
+
 
 end
