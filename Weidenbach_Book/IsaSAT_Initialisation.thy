@@ -1868,14 +1868,14 @@ definition finalise_init_code :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st
     (\<lambda>(M', N', U', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls, cach,
        lbd).
      (M', N', U', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove), \<phi>, clvls,
-       cach, lbd, (0::uint64, 0::uint64, 0::uint64)))\<close>
+       cach, lbd, op_list_append [] (Pos zero_uint32_nat), (0::uint64, 0::uint64, 0::uint64)))\<close>
 
 lemma (in isasat_input_ops)finalise_init_finalise_init:
   \<open>(RETURN o finalise_init_code, RETURN o finalise_init) \<in>
    [\<lambda>S. get_conflict_wl S = None \<and> \<A>\<^sub>i\<^sub>n \<noteq> {#}]\<^sub>f twl_st_heur_init_wl \<rightarrow> \<langle>twl_st_heur\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: finalise_init_def twl_st_heur_def twl_st_heur_init_def twl_st_heur_init_wl_def
-      finalise_init_code_def vmtf_init_def)
+      finalise_init_code_def vmtf_init_def out_learned_def)
 
 (* TODO Move *)
 lemma zero_uin64_hnr: \<open>(uncurry0 (return 0), uncurry0 (RETURN 0)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
@@ -1887,8 +1887,10 @@ sepref_thm (in isasat_input_ops) finalise_init_code'
   :: \<open> [\<lambda>(M', N', U', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
          lst_As \<noteq> None]\<^sub>a
      twl_st_heur_init_assn\<^sup>d \<rightarrow> twl_st_heur_assn\<close>
-  supply zero_uin64_hnr[sepref_fr_rules]
+  supply zero_uin64_hnr[sepref_fr_rules] [[goals_limit=1]]
+    Pos_unat_lit_assn'[sepref_fr_rules] uint_max_def[simp]
   unfolding finalise_init_code_def twl_st_heur_init_assn_def twl_st_heur_assn_def
+    arl.fold_custom_empty
   by sepref
 
 
