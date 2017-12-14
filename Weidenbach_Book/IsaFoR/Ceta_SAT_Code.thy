@@ -422,112 +422,12 @@ definition check_cert_args where
   \<open>check_cert_args = check_cert tp_impl Ceta_Verifier.dpp_impl ac_tp_impl
                       Ceta_Verifier.ac_dpp_impl\<close>
 
-(*
-datatype (dead 'f, dead 'l, dead 'v) dp_termination_proof =
-  P_is_Empty
-| Subterm_Criterion_Proc "('f, 'l) lab projL" "('f, 'l, 'v) rseqL"
-    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
-| Gen_Subterm_Criterion_Proc "('f, 'l) lab status_impl"
-    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
-| Redpair_Proc "('f,'l)lab root_redtriple_impl + ('f, 'l) lab redtriple_impl"
-    "('f, 'l, 'v) trsLL"  "('f, 'l, 'v) dp_termination_proof"
-| Redpair_UR_Proc "('f, 'l) lab root_redtriple_impl + ('f, 'l) lab redtriple_impl"
-    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
-| Usable_Rules_Proc "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
-| Dep_Graph_Proc "(('f, 'l, 'v) dp_termination_proof option \<times> ('f, 'l, 'v) trsLL) list"
-| Mono_Redpair_Proc "('f, 'l) lab redtriple_impl"
-    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
-| Mono_URM_Redpair_Proc "('f, 'l) lab redtriple_impl"
-    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
-| Mono_Redpair_UR_Proc "('f, 'l) lab redtriple_impl"
-    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
-| Size_Change_Subterm_Proc "((('f, 'l) lab, 'v) rule \<times> ((nat \<times> nat) list \<times> (nat \<times> nat) list)) list"
-| Size_Change_Redpair_Proc "('f, 'l) lab redtriple_impl" "('f, 'l, 'v) trsLL option"
-    "((('f, 'l) lab, 'v) rule \<times> ((nat \<times> nat) list \<times> (nat \<times> nat) list)) list"
-| Uncurry_Proc "nat option" "(('f, 'l) lab, 'v) uncurry_info"
-    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
-| Fcc_Proc "('f, 'l) lab" "(('f, 'l) lab, 'v) ctxt list"
-    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
-| Split_Proc
-    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL"
-    "('f, 'l, 'v) dp_termination_proof" "('f, 'l, 'v) dp_termination_proof"
-| Semlab_Proc
-    "(('f, 'l) lab, 'v) sl_variant" "('f, 'l, 'v) trsLL"
-    "(('f, 'l) lab, 'v) term list" "('f, 'l, 'v) trsLL"
-    "('f, 'l, 'v) dp_termination_proof"
-| Switch_Innermost_Proc "('f, 'l) lab join_info" "('f, 'l, 'v) dp_termination_proof"
-| Rewriting_Proc
-    "('f, 'l, 'v) trsLL option" "('f, 'l, 'v) ruleLL" "('f, 'l, 'v) ruleLL"
-    "('f, 'l, 'v) ruleLL" "('f, 'l, 'v) ruleLL" pos "('f, 'l, 'v) dp_termination_proof"
-| Instantiation_Proc "('f, 'l, 'v) ruleLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
-| Forward_Instantiation_Proc
-    "('f, 'l, 'v) ruleLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL option" "('f, 'l, 'v) dp_termination_proof"
-| Narrowing_Proc "('f, 'l, 'v) ruleLL" pos "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
-| Assume_Finite
-    "('f, 'l, 'v) dppLL" "('f,'l,'v,('f, 'l, 'v) trs_termination_proof,('f, 'l, 'v) dp_termination_proof,('f, 'l, 'v) fptrs_termination_proof,('f, 'l, 'v) unknown_proof) assm_proof list"
-| Unlab_Proc "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) dp_termination_proof"
-| Q_Reduction_Proc "('f, 'l, 'v) termsLL" "('f, 'l, 'v) dp_termination_proof"
-| Complex_Constant_Removal_Proc "(('f,'l)lab,'v)complex_constant_removal_prf" "('f, 'l, 'v) dp_termination_proof"
-| General_Redpair_Proc
-    "('f, 'l) lab redtriple_impl" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trsLL"
-    "(('f, 'l) lab, 'v) cond_red_pair_prf" "('f, 'l, 'v) dp_termination_proof list"
-| To_Trs_Proc "('f, 'l, 'v) trs_termination_proof"
-and ('f, 'l, 'v) trs_termination_proof =
-  DP_Trans bool bool "(('f, 'l) lab, 'v) rules" "('f, 'l, 'v) dp_termination_proof"
-| Rule_Removal "('f, 'l) lab redtriple_impl" "('f, 'l, 'v) trsLL" "('f, 'l, 'v)trs_termination_proof"
-| String_Reversal "('f, 'l, 'v) trs_termination_proof"
-| Constant_String "(('f,'l)lab,'v)const_string_sound_proof" "('f,'l,'v) trs_termination_proof"
-| Bounds "(('f, 'l) lab, 'v) bounds_info"
-| Uncurry "(('f, 'l) lab, 'v) uncurry_info" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trs_termination_proof"
-| Semlab
-    "(('f, 'l) lab, 'v) sl_variant" "(('f, 'l) lab, 'v) term list"
-    "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trs_termination_proof"
-| R_is_Empty
-| Fcc "(('f, 'l) lab, 'v) ctxt list" "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trs_termination_proof"
-| Split "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trs_termination_proof" "('f, 'l, 'v) trs_termination_proof"
-| Switch_Innermost "('f, 'l) lab join_info" "('f, 'l, 'v) trs_termination_proof"
-| Drop_Equality "('f, 'l, 'v) trs_termination_proof"
-| Remove_Nonapplicable_Rules "('f, 'l, 'v) trsLL" "('f, 'l, 'v) trs_termination_proof"
-| Permuting_AFS "('f,'l)lab afs_list" "('f, 'l, 'v) trs_termination_proof"
-| Assume_SN "('f, 'l, 'v) qreltrsLL" "('f,'l,'v,('f, 'l, 'v) trs_termination_proof,('f, 'l, 'v) dp_termination_proof,('f, 'l, 'v) fptrs_termination_proof,('f, 'l, 'v) unknown_proof) assm_proof list"
-and ('f, 'l, 'v) unknown_proof =
-  Assume_Unknown unknown_info "('f,'l,'v,('f, 'l, 'v) trs_termination_proof,('f, 'l, 'v) dp_termination_proof,('f, 'l, 'v) fptrs_termination_proof,('f, 'l, 'v) unknown_proof) assm_proof list"
-and ('f, 'l, 'v) fptrs_termination_proof =
-  Assume_FP_SN "('f,'l,'v)fptrsLL" "('f,'l,'v,('f, 'l, 'v) trs_termination_proof,('f, 'l, 'v) dp_termination_proof,('f, 'l, 'v) fptrs_termination_proof,('f, 'l, 'v) unknown_proof) assm_proof list"
-
- *)
-
 abbreviation claim_assn :: \<open>('f, 'l) claim \<Rightarrow> _ \<Rightarrow> _\<close> where
   \<open>claim_assn \<equiv> id_assn\<close>
 
 abbreviation proof_assn :: \<open>('f, 'l, 'v) proof \<Rightarrow> _ \<Rightarrow> _\<close> where
   \<open>proof_assn \<equiv> id_assn\<close>
-(*
 
-datatype (dead 'f, dead 'l, dead 'v) "proof" =
-  TRS_Termination_Proof "('f, 'l, 'v) trs_termination_proof"
-| Complexity_Proof "('f,'l,'v) complexity_proof"
-| DP_Termination_Proof "('f, 'l, 'v) dp_termination_proof"
-| DP_Nontermination_Proof "('f, 'l, 'v) dp_nontermination_proof"
-| TRS_Nontermination_Proof "('f, 'l, 'v) trs_nontermination_proof"
-| FP_Termination_Proof "('f,'l,'v) fptrs_termination_proof"
-| Relative_TRS_Nontermination_Proof "('f, 'l, 'v) reltrs_nontermination_proof"
-| TRS_Confluence_Proof "('f, 'l, 'v) cr_proof"
-| TRS_Non_Confluence_Proof "('f, 'l, 'v, 'v) ncr_proof"
-| Completion_Proof "('f, 'l, 'v) completion_proof"
-| Ordered_Completion_Proof "('f, 'l, 'v) ordered_completion_proof"
-| Equational_Proof "('f, 'l, 'v) equational_proof"
-| Equational_Disproof "('f, 'l, 'v) equational_disproof"
-| Quasi_Reductive_Proof "('f, 'l, 'v) quasi_reductive_proof"
-| Conditional_CR_Proof "('f, 'l, 'v) conditional_cr_proof"
-| Conditional_Non_CR_Proof "('f, 'l, 'v, 'v) conditional_ncr_proof"
-| Tree_Automata_Closed_Proof "string ta_relation"
-| AC_Termination_Proof "('f,'l,'v) ac_termination_proof"
-| LTS_Termination_Proof "(IA.sig, 'v, IA.ty, string, string, hints) termination_proof"
-| LTS_Safety_Proof "(IA.sig, 'v, IA.ty, string, string, string, hints) safety_proof"
-| Unknown_Proof "('f,'l,'v) unknown_proof"
-| Unknown_Disproof "('f,'l,'v) neg_unknown_proof"
- *)
 named_theorems isafor_string_names "various strings for code generation"
 
 definition string_eq_of where
