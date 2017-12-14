@@ -2,6 +2,10 @@ theory Ceta_SAT
   imports CeTA_SAT_Imports.Ceta_SAT_Imports
 begin
 
+(* to avoid ambiguities and exponentially many parse trees *)
+no_notation vec_nth (infixl "$" 90)
+no_notation vec_index (infixl "$" 100)
+
 (*
 datatype ('f,'l) lab =
   Lab "('f, 'l) lab" 'l
@@ -134,6 +138,25 @@ fun root_redtriple_impl_assn :: \<open>'f root_redtriple_impl \<Rightarrow> 'f r
 type_synonym 'f scnp_af = "(('f \<times> nat) \<times> (nat \<times> nat) list) list"
 datatype ('f) root_redtriple_impl = SCNP list_order_type "'f scnp_af" "'f redtriple_impl"
  *)
+
+abbreviation qreltrsLL_assn:: \<open>('f, 'l, 'v) qreltrsLL \<Rightarrow> ('f, 'l, 'v) qreltrsLL \<Rightarrow> assn\<close> where
+\<open>qreltrsLL_assn \<equiv> id_assn\<close>
+
+abbreviation assm_proof_assn 
+  :: \<open>('f,'l,'v,('f, 'l, 'v) trs_termination_proof,('f, 'l, 'v) dp_termination_proof,
+       ('f, 'l, 'v) fptrs_termination_proof,('f, 'l, 'v) unknown_proof) assm_proof \<Rightarrow> 
+     ('f,'l,'v,('f, 'l, 'v) trs_termination_proof,('f, 'l, 'v) dp_termination_proof,
+       ('f, 'l, 'v) fptrs_termination_proof,('f, 'l, 'v) unknown_proof) assm_proof \<Rightarrow> assn\<close>
+where
+  \<open>assm_proof_assn \<equiv> id_assn\<close>
+
+abbreviation list_assm_proof_assn
+  :: \<open>('f,'l,'v,('f, 'l, 'v) trs_termination_proof,('f, 'l, 'v) dp_termination_proof,
+       ('f, 'l, 'v) fptrs_termination_proof,('f, 'l, 'v) unknown_proof) assm_proof list \<Rightarrow> 
+     ('f,'l,'v,('f, 'l, 'v) trs_termination_proof,('f, 'l, 'v) dp_termination_proof,
+       ('f, 'l, 'v) fptrs_termination_proof,('f, 'l, 'v) unknown_proof) assm_proof list \<Rightarrow> assn\<close>
+where
+  \<open>list_assm_proof_assn \<equiv> list_assn assm_proof_assn\<close>
 
 function
   dp_termination_proof_assn  ::
@@ -326,17 +349,12 @@ where
      id_assn trsLL trsLL' *
      trs_termination_proof_assn ts1 ts1'
   | (Assume_SN trsLL ts1, Assume_SN trsLL' ts1') \<Rightarrow>
-     id_assn trsLL trsLL' *
-     id_assn ts1 ts1'
+     qreltrsLL_assn trsLL trsLL' *
+     list_assm_proof_assn ts1 ts1'
   | (_, _) \<Rightarrow> false)\<close>
   by pat_completeness (auto; fail)+
 termination
   by (lexicographic_order)
-
-no_notation vec_nth (infixl "$" 90)
-no_notation vec_index (infixl "$" 100)
-
-term \<open>\<lambda>\<^sub>2x. f \<close>
 
 abbreviation (input)ABS3 :: "('a\<Rightarrow>'b\<Rightarrow>'c)\<Rightarrow>'a\<Rightarrow>'b\<Rightarrow>'c" (binder "\<lambda>\<^sub>3" 10)
   where "ABS3 f \<equiv> (\<lambda>x y. PROTECT2 (f x y) DUMMY)"
@@ -346,18 +364,6 @@ abbreviation (input)ABS4 :: "('a\<Rightarrow>'b\<Rightarrow>'c\<Rightarrow>'d)\<
 abbreviation (input)ABS5 :: "('a\<Rightarrow>'b\<Rightarrow>'c\<Rightarrow>'d\<Rightarrow>'e)\<Rightarrow>'a\<Rightarrow>'b\<Rightarrow>'c\<Rightarrow>'d\<Rightarrow>'e" (binder "\<lambda>\<^sub>5" 10)
   where "ABS5 f \<equiv> (\<lambda>x y z a. PROTECT2 (f x y z a) DUMMY)"
 
-lemma
-  fixes f0 :: \<open>bool\<Rightarrow> bool
-               \<Rightarrow> ((('a, 'b) lab, 'c) Term.term \<times>
-                   (('a, 'b) lab, 'c) Term.term) list
-                  \<Rightarrow> ('a, 'b, 'c) dp_termination_proof \<Rightarrow> 'd\<close>
-  shows
-   \<open>A = case_trs_termination_proof$ABS5 f0$ABS4 f1$ABS2 f2$ABS3 f3$ABS2 f4$ABS4 f5$ABS5 f6$f7$
-       ABS4 f8$ABS4 f9$ABS3 f10$ABS2 f11$ABS3 f12$ABS3 f13$ABS3 f14$p
-(* $(\<lambda>\<^sub>2x. f2 x)$(\<lambda>\<^sub>2x. f3 x)$(\<lambda>\<^sub>2x. f4 x)$(\<lambda>\<^sub>2x. f5 x)$
-       (\<lambda>\<^sub>2x. f6 x)$(\<lambda>\<^sub>2x. f8 x)$(\<lambda>\<^sub>2x. f9 x)$(\<lambda>\<^sub>2x. f10 x)$(\<lambda>\<^sub>2x. f11 x)$(\<lambda>\<^sub>2x. f12 x)$
-       (\<lambda>\<^sub>2x. f13 x)$(\<lambda>\<^sub>2x. f14 x)$(\<lambda>\<^sub>2x. f15 x)$p *)\<close>
-  oops
 
 declare trs_termination_proof_assn.simps[simp del] dp_termination_proof_assn.simps[simp del]
 
@@ -367,6 +373,18 @@ lemma hn_trs_termination_proof_assn:
 
 lemma entt_fr_drop': \<open>F \<Longrightarrow>\<^sub>t F' \<Longrightarrow> A * F \<Longrightarrow>\<^sub>t F'\<close>
   using assn_times_comm entt_fr_drop by fastforce
+
+method hn_case_proof uses ccase merge =
+  (rule hn_refine_cons[OF _ ccase _ entt_refl],
+   solves \<open>simp add: assn_times_comm entt_fr_drop\<close>,
+   assumption,
+   assumption,
+   rule entt_star_mono,
+     rule entt_fr_drop,
+     solves \<open>simp add: hn_ctxt_def trs_termination_proof_assn.simps\<close>,
+  rule entt_trans[OF _ merge],
+  solves \<open>simp add: entt_disjI1' entt_disjI2'\<close>)
+
 
 lemma hn_case_trs_termination_proof_assn[sepref_prep_comb_rule, sepref_comb_rules]:
   fixes p p' P
@@ -454,140 +472,28 @@ lemma hn_case_trs_termination_proof_assn[sepref_prep_comb_rule, sepref_comb_rule
   apply (rule hn_refine_cons_pre[OF FR])
   apply1 extract_hnr_invalids
   apply (subst trs_termination_proof_assn.simps[THEN hn_trs_termination_proof_assn])
-  apply (cases p; cases p'; simp add: (* trs_termination_proof_assn.simps[THEN hn_trs_termination_proof_assn] *))
-  subgoal
-    apply (rule hn_refine_cons[OF _ DP_Trans _ entt_refl]; assumption?)
-     applyS (simp add: assn_times_comm entt_fr_drop)
-    apply (rule entt_star_mono)
-     apply1 (rule entt_fr_drop)
-     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
-    apply1 (rule entt_trans[OF _ MERGE1])
-    applyS (simp add: entt_disjI2')
-    done
-  subgoal
-    apply (rule hn_refine_cons[OF _ Rule_Removal _ entt_refl]; assumption?)
-     applyS (simp add: assn_times_comm entt_fr_drop)
-    apply (rule entt_star_mono)
-     apply1 (rule entt_fr_drop)
-     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
-    apply1 (rule entt_trans[OF _ MERGE1])
-    applyS (simp add: entt_disjI1' entt_disjI2')
-    done
-  subgoal
-    apply (rule hn_refine_cons[OF _ String_Reversal _ entt_refl]; assumption?)
-     applyS (simp add: assn_times_comm entt_fr_drop)
-    apply (rule entt_star_mono)
-     apply1 (rule entt_fr_drop)
-     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
-    apply1 (rule entt_trans[OF _ MERGE1])
-    applyS (simp add: entt_disjI1' entt_disjI2')
-    done
-  subgoal
-    apply (rule hn_refine_cons[OF _ Constant_String _ entt_refl]; assumption?)
-     applyS (simp add: assn_times_comm entt_fr_drop)
-    apply (rule entt_star_mono)
-     apply1 (rule entt_fr_drop)
-     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
-    apply1 (rule entt_trans[OF _ MERGE1])
-    applyS (simp add: entt_disjI1' entt_disjI2')
-    done
-  subgoal
-    apply (rule hn_refine_cons[OF _ Bounds _ entt_refl]; assumption?)
-     applyS (simp add: assn_times_comm entt_fr_drop)
-    apply (rule entt_star_mono)
-     apply1 (rule entt_fr_drop)
-     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
-    apply1 (rule entt_trans[OF _ MERGE1])
-    applyS (simp add: entt_disjI1' entt_disjI2')
-    done
-  subgoal
-    apply (rule hn_refine_cons[OF _ Uncurry _ entt_refl]; assumption?)
-     applyS (simp add: assn_times_comm entt_fr_drop)
-    apply (rule entt_star_mono)
-     apply1 (rule entt_fr_drop)
-     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
-    apply1 (rule entt_trans[OF _ MERGE1])
-    applyS (simp add: entt_disjI1' entt_disjI2')
-    done
-  subgoal
-    apply (rule hn_refine_cons[OF _ Semlab _ entt_refl]; assumption?)
-     applyS (simp add: assn_times_comm entt_fr_drop)
-    apply (rule entt_star_mono)
-     apply1 (rule entt_fr_drop)
-     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
-    apply1 (rule entt_trans[OF _ MERGE1])
-    applyS (simp add: entt_disjI1' entt_disjI2')
-    done
+  apply (cases p; cases p'; simp add:)
+  subgoal by (hn_case_proof ccase:DP_Trans merge:MERGE1)
+  subgoal by (hn_case_proof ccase:Rule_Removal merge:MERGE1)
+  subgoal by (hn_case_proof ccase:String_Reversal merge:MERGE1)
+  subgoal by (hn_case_proof ccase:Constant_String merge:MERGE1)
+  subgoal by (hn_case_proof ccase:Bounds merge:MERGE1)
+  subgoal by (hn_case_proof ccase:Uncurry merge:MERGE1)
+  subgoal by (hn_case_proof ccase:Semlab merge:MERGE1)
   subgoal
     apply (rule hn_refine_cons[OF _ R_is_Empty _ entt_refl]; assumption?)
-     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
-    apply (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
+     applyS (simp add: hn_ctxt_def trs_termination_proof_assn.simps)
+    apply (simp add: hn_ctxt_def trs_termination_proof_assn.simps)
     apply1 (rule entt_trans[OF _ MERGE1])
     applyS (simp add: entt_disjI1' entt_disjI2' entt_fr_drop')
     done
-  subgoal
-    apply (rule hn_refine_cons[OF _ Fcc _ entt_refl]; assumption?)
-     applyS (simp add: assn_times_comm entt_fr_drop)
-    apply (rule entt_star_mono)
-     apply1 (rule entt_fr_drop)
-     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
-    apply1 (rule entt_trans[OF _ MERGE1])
-    applyS (simp add: entt_disjI1' entt_disjI2')
-    done
-  subgoal
-    apply (rule hn_refine_cons[OF _ Split _ entt_refl]; assumption?)
-     applyS (simp add: assn_times_comm entt_fr_drop)
-    apply (rule entt_star_mono)
-     apply1 (rule entt_fr_drop)
-     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
-    apply1 (rule entt_trans[OF _ MERGE1])
-    applyS (simp add: entt_disjI1' entt_disjI2')
-    done
-  subgoal
-    apply (rule hn_refine_cons[OF _ Switch_Innermost _ entt_refl]; assumption?)
-     applyS (simp add: assn_times_comm entt_fr_drop)
-    apply (rule entt_star_mono)
-     apply1 (rule entt_fr_drop)
-     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
-    apply1 (rule entt_trans[OF _ MERGE1])
-    applyS (simp add: entt_disjI1' entt_disjI2')
-    done
-  subgoal
-    apply (rule hn_refine_cons[OF _ Drop_Equality _ entt_refl]; assumption?)
-     applyS (simp add: assn_times_comm entt_fr_drop)
-    apply (rule entt_star_mono)
-     apply1 (rule entt_fr_drop)
-     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
-    apply1 (rule entt_trans[OF _ MERGE1])
-    applyS (simp add: entt_disjI1' entt_disjI2')
-    done
-  subgoal
-    apply (rule hn_refine_cons[OF _ Remove_Nonapplicable_Rules _ entt_refl]; assumption?)
-     applyS (simp add: assn_times_comm entt_fr_drop)
-    apply (rule entt_star_mono)
-     apply1 (rule entt_fr_drop)
-     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
-    apply1 (rule entt_trans[OF _ MERGE1])
-    applyS (simp add: entt_disjI1' entt_disjI2')
-    done
-  subgoal
-    apply (rule hn_refine_cons[OF _ Permuting_AFS _ entt_refl]; assumption?)
-     applyS (simp add: assn_times_comm entt_fr_drop)
-    apply (rule entt_star_mono)
-     apply1 (rule entt_fr_drop)
-     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
-    apply1 (rule entt_trans[OF _ MERGE1])
-    applyS (simp add: entt_disjI1' entt_disjI2')
-    done
-  subgoal
-    apply (rule hn_refine_cons[OF _ Assume_SN _ entt_refl]; assumption?)
-     applyS (simp add: assn_times_comm entt_fr_drop)
-    apply (rule entt_star_mono)
-     apply1 (rule entt_fr_drop)
-     applyS (simp add: hn_ctxt_def  trs_termination_proof_assn.simps)
-    apply1 (rule entt_trans[OF _ MERGE1])
-    applyS (simp add: entt_disjI1' entt_disjI2')
-    done
+  subgoal by (hn_case_proof ccase:Fcc merge:MERGE1)
+  subgoal by (hn_case_proof ccase:Split merge:MERGE1)
+  subgoal by (hn_case_proof ccase:Switch_Innermost merge:MERGE1)
+  subgoal by (hn_case_proof ccase:Drop_Equality merge:MERGE1)
+  subgoal by (hn_case_proof ccase:Remove_Nonapplicable_Rules merge:MERGE1)
+  subgoal by (hn_case_proof ccase:Permuting_AFS merge:MERGE1)
+  subgoal by (hn_case_proof ccase:Assume_SN merge:MERGE1)
   done
 
 
