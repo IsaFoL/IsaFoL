@@ -459,7 +459,7 @@ lemma hn_case_trs_termination_proof_assn[sepref_prep_comb_rule, sepref_comb_rule
   assumes Assume_SN:
     "\<And>trsLL ts1 trsLL' ts1'. \<lbrakk> p=Assume_SN trsLL ts1; p'=Assume_SN trsLL' ts1'\<rbrakk> \<Longrightarrow>
     hn_refine (INVE * F) (f15' trsLL' ts1')
-       (id_assn trsLL trsLL' * id_assn ts1 ts1' * hn_ctxt XX2 p p' * \<Gamma>15') R (f15 trsLL ts1)"
+       (qreltrsLL_assn trsLL trsLL' * list_assm_proof_assn ts1 ts1' * hn_ctxt XX2 p p' * \<Gamma>15') R (f15 trsLL ts1)"
   assumes MERGE1: "\<Gamma>1' \<or>\<^sub>A \<Gamma>2' \<or>\<^sub>A \<Gamma>3' \<or>\<^sub>A \<Gamma>4'  \<or>\<^sub>A \<Gamma>5' \<or>\<^sub>A \<Gamma>6' \<or>\<^sub>A \<Gamma>7' \<or>\<^sub>A \<Gamma>8' \<or>\<^sub>A \<Gamma>9' \<or>\<^sub>A \<Gamma>10' \<or>\<^sub>A
          \<Gamma>11' \<or>\<^sub>A \<Gamma>12' \<or>\<^sub>A \<Gamma>13' \<or>\<^sub>A \<Gamma>14' \<or>\<^sub>A \<Gamma>15' \<Longrightarrow>\<^sub>t \<Gamma>'"
   shows
