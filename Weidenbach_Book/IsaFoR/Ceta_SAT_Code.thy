@@ -299,6 +299,62 @@ assumes Mono_Redpair_UR_Proc:
   subgoal by (hn_case_proof ccase:To_Trs_Proc merge:MERGE1)
   done
 
+
+ML \<open>@{term pre_logic_checker.check_valid_formula}\<close>
+term pre_logic_checker.check_valid_formula
+thm pre_logic_checker.check_valid_formula_def
+ pre_logic_checker.check_valid_formula_def
+thm IA.check_valid_formula[unfolded IA.valid_def]
+term IA.check_clause
+
+text \<open>Function that should be replaced @{term pre_logic_checker.check_valid_formula}
+  @{term pre_logic_checker.check_valid_formula} is called by
+  @{term pre_logic_checker.check_valid_formula} called by
+  @{term pre_logic_checker.check_formula} called by
+  @{term pre_art_checker.check_simulation_cond} and @{term pre_logic_checker.safe_by_assertion_checker}
+
+    for @{term pre_art_checker.check_simulation_cond}
+    @{term pre_art_checker.check_art_invariants}  called by
+    @{term pre_art_checker.check_art_invariants_impl} called by
+    @{term pre_art_checker.invariant_proof_checker}  called by
+      @{term pre_art_checker.check_safety} (in the other call too)
+      @{term pre_termination_checker.check_cooperation_proof} called by
+       @{term pre_termination_checker.check_termination_proof} called by
+       @{term pre_termination_checker.check} called by
+       @{term IA_locale.check_termination} called by
+       @{term check_cert} called by
+       @{term certify_cert_problem}
+\<close>
+term IA_locale.check_clause
+term IA_locale.unsat_checker
+term IA_locale.unsat_via_simplex
+thm IA_locale.unsat_via_simplex_def
+term check_valid_formula
+thm IA.to_simplex_constraint_def
+term simplex
+thm simplex_def
+lemma \<open>simplex A = None\<close>
+  unfolding
+    simplex_def
+    solve_exec_code_def
+    [unfolded SolveExec'.solve_exec_def[OF SolveExec'Default.SolveExec'_axioms]]
+    solve_exec_ns_code_def
+    Solve_exec_ns'.solve_exec_ns_def[OF Solve_exec_ns'Default.Solve_exec_ns'_axioms]
+  unfolding
+    (* assert_all_code_def *) AssertAllState.assert_all_def[OF AssertAllStateDefault.AssertAllState_axioms]
+  apply simp
+  thm 
+AssertAllState.assert_all_def[OF AssertAllStateDefault.AssertAllState_axioms]
+    Solve_exec_ns'.solve_exec_ns_def
+    Solve_exec_ns'.solve_exec_ns_def[OF Solve_exec_ns'Default.Solve_exec_ns'_axioms]
+
+ML \<open>
+  BNF_FP_Def_Sugar.fp_sugar_of @{context} @{type_name dp_termination_proof}
+  |> the 
+  |> #fp_ctr_sugar
+  |> #ctr_sugar
+  |> #ctrs
+\<close>
 lemma [code del]: "mset xs - mset ys = mset (fold remove1 ys xs)"
   by (rule sym, induct ys arbitrary: xs) (simp_all add: diff_add diff_right_commute diff_diff_add)
 
@@ -629,11 +685,26 @@ lemma [sepref_fr_rules]:
    input_assn\<^sup>k  *\<^sub>a claim_assn\<^sup>k  *\<^sub>a proof_assn\<^sup>k *\<^sub>a string_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close>
   unfolding unfold_to_id_assn input_assn_def
   by sepref_to_hoare (sep_auto)
-
+(* 
+datatype (dead 'f, dead 'v) input =
+  DP_input "bool" "('f, 'v) rules" "('f, 'v) strategy" "('f, 'v) rules"
+| Inn_TRS_input "('f, 'v) strategy" "('f, 'v) rules" "('f, 'v) rules" "start_term"
+| CPX_input  "('f, 'v) strategy" "('f, 'v) rules" "('f, 'v) rules" "('f,'v) complexity_measure" complexity_class (* TODO: improve CPF and remove*)
+| COMP_input "('f, 'v) equation list" "('f, 'v) rules"
+| OCOMP_input "('f, 'v) equation list" "('f, 'v) equation list" "('f, 'v) rules" "'f reduction_order_input"
+| EQ_input "('f, 'v) equation list" "('f, 'v) equation_literal"
+| FP_TRS_input "('f, 'v) fp_strategy" "('f, 'v) rules"
+| CTRS_input "('f, 'v) crules"
+| TA_input "(string,'f)tree_automaton" "('f,'v)rules"
+| AC_input "('f,'v) rules" "'f list" "'f list"
+| LTS_input "(IA.sig, 'v, IA.ty, string, string) lts_impl"
+| LTS_safety_input "(IA.sig, 'v, IA.ty, string, string) lts_impl" "string list"
+| Unknown_input unknown_info
+ *)
 lemma 1:
   \<open>RETURN o (\<lambda>x. f x) = (\<lambda>x. RETURN (f x))\<close>
   by auto
-sepref_definition  certify_prob_code
+(* sepref_definition  certify_prob_code
   is \<open>uncurry3 (RETURN oooo check_cert_args)\<close>
   :: \<open>bool_assn\<^sup>k *\<^sub>a input_assn\<^sup>k  *\<^sub>a claim_assn\<^sup>k  *\<^sub>a proof_assn\<^sup>k \<rightarrow>\<^sub>a pure_fun_assn +\<^sub>a unit_assn\<close>
   supply [[goals_limit=1]]
@@ -643,7 +714,7 @@ sepref_definition  certify_prob_code
   apply sepref_dbg_keep
       apply sepref_dbg_trans_keep
   apply sepref_dbg_trans_step_keep
-  oops
+  oops *)
           (*  apply sepref_dbg_side_unfold apply (auto simp: )[] *)
 
 term sum_assn
@@ -742,8 +813,9 @@ thm certify_proof_def
            apply sepref_dbg_side_unfold apply (auto simp: )[]
  *)
 
-(* export_code certify_proof_code in Haskell module_name Ceta *)
-
+(* export_code certify_proof_code in Haskell module_name Ceta file "code/ceta.hs"
+export_code certify_proof in Haskell module_name Ceta file "code/ceta_normal.hs" *)
+export_code certify_proof_code in SML module_name Ceta file "code/ceta.sml"
 text \<open>Function that shoul be replaced @{term pre_logic_checker.check_valid_formula}
   @{term pre_logic_checker.check_valid_formula} is called by
   @{term pre_logic_checker.check_valid_formula} called by
@@ -769,5 +841,7 @@ text \<open>Function that shoul be replaced @{term pre_logic_checker.check_valid
      @{term check_cert} called by
      @{term certify_cert_problem}
   \<close>
+
+
 
 end
