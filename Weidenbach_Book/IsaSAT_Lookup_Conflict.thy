@@ -1879,7 +1879,7 @@ lemma minimize_and_extract_highest_lookup_conflict_iterate_over_conflict:
   shows
     \<open>minimize_and_extract_highest_lookup_conflict M NU D s' lbd outl \<le>
        \<Down> ({((E, s, outl), E'). E = E' \<and> mset (tl outl) = E \<and> outl ! 0 = K \<and>
-               E' \<subseteq># D})
+               E' \<subseteq># D \<and> outl \<noteq> []})
            (iterate_over_conflict K M NU' NUE D)\<close>
     (is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
