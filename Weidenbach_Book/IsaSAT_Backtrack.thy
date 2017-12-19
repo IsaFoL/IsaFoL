@@ -440,8 +440,8 @@ where
 
 abbreviation (in isasat_input_ops) find_decomp_wl_nlit_prop where
   \<open>find_decomp_wl_nlit_prop \<equiv>
-    (\<lambda>highest (M, N, U, D, Q', W', _, \<phi>, clvls, cach, lbd, outl, stats) S.
-    (\<exists>K M2 M1 vm. S = (M1, N, U, D, Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats) \<and> vm \<in> vmtf M1 \<and>
+    (\<lambda>highest (M, N, U, D, Q', W', _, \<phi>, clvls, cach, _, outl, stats) S.
+    (\<exists>K M2 M1 vm lbd. S = (M1, N, U, D, Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats) \<and> vm \<in> vmtf M1 \<and>
         (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
           get_level M K = Suc highest))\<close>
 
@@ -1136,8 +1136,8 @@ proof -
       if s: \<open>s \<in> Collect (find_decomp_wl_nlit_prop n (M, N, U, None, Q, W', vm, \<phi>, clvls, cach, lbd, outl, stats))\<close>
       for s :: \<open>twl_st_wl_heur\<close>
     proof -
-      obtain K M2 M1 vm' where
-        s: \<open>s = (M1, N, U, None,  Q, W', vm', \<phi>, clvls, cach, lbd, outl, stats)\<close> and
+      obtain K M2 M1 vm' lbd' where
+        s: \<open>s = (M1, N, U, None,  Q, W', vm', \<phi>, clvls, cach, lbd', outl, stats)\<close> and
         decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
         n_M_K: \<open>get_level M K = Suc n\<close> and
         vm': \<open>vm' \<in> vmtf M1\<close>
@@ -1150,7 +1150,7 @@ proof -
       have \<open>no_dup M1\<close>
         using \<open>no_dup M\<close> decomp by (auto dest!: get_all_ann_decomposition_exists_prepend
             dest: no_dup_appendD)
-      have twl: \<open>((M1, N, U, None, Q, W', vm', \<phi>, clvls, cach, lbd, outl, stats),
+      have twl: \<open>((M1, N, U, None, Q, W', vm', \<phi>, clvls, cach, lbd', outl, stats),
            M1, N, U, D, NE, UE, Q, W) \<in> twl_st_heur_bt\<close>
         using TT' vm' \<open>no_dup M1\<close> by (auto simp: T T' twl_st_heur_bt_def twl_st_heur_def
             del_conflict_wl_def)
@@ -2171,7 +2171,7 @@ extract_shorter_conflict_list_heur_st         |  extract_shorter_conflict_heur
 extract_shorter_conflict_list_lookup_heur_st  |  extract_shorter_conflict_list_lookup_heur
 *)
 
-sepref_register extract_shorter_conflict_list_lookup_heur
+(* sepref_register extract_shorter_conflict_list_lookup_heur
 sepref_thm extract_shorter_conflict_list_lookup_heur_code
   is \<open>uncurry4 (PR_CONST extract_shorter_conflict_list_lookup_heur)\<close>
   :: \<open>[extract_shorter_conflict_list_lookup_heur_pre]\<^sub>a
@@ -2191,8 +2191,8 @@ prepare_code_thms (in -) extract_shorter_conflict_list_lookup_heur_code_def
 
 lemmas extract_shorter_conflict_list_lookup_heur_code_hnr[sepref_fr_rules] =
    extract_shorter_conflict_list_lookup_heur_code.refine[OF isasat_input_bounded_nempty_axioms]
-
-sepref_register extract_shorter_conflict_list_lookup_heur_st
+ *)
+(* sepref_register extract_shorter_conflict_list_lookup_heur_st
 sepref_thm extract_shorter_conflict_list_lookup_heur_st_code
   is \<open>PR_CONST extract_shorter_conflict_list_lookup_heur_st\<close>
   :: \<open>[\<lambda>(M, N, U, D, Q', W', vm, \<phi>, clvls, cach, lbd, stats).
@@ -2211,13 +2211,12 @@ prepare_code_thms (in -) extract_shorter_conflict_list_lookup_heur_st_code_def
 
 lemmas extract_shorter_conflict_list_lookup_heur_st_hnr[sepref_fr_rules] =
    extract_shorter_conflict_list_lookup_heur_st_code.refine[OF isasat_input_bounded_nempty_axioms]
-
+ *)
 definition find_decomp_wl_imp
-  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat conflict_highest_conflict \<Rightarrow> vmtf_remove_int \<Rightarrow>
+  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat \<Rightarrow> vmtf_remove_int \<Rightarrow>
        ((nat, nat) ann_lits \<times> vmtf_remove_int) nres\<close>
 where
-  \<open>find_decomp_wl_imp = (\<lambda>M\<^sub>0 highest vm. do {
-    let lev = target_level highest;
+  \<open>find_decomp_wl_imp = (\<lambda>M\<^sub>0 lev vm. do {
     let k = count_decided M\<^sub>0;
     (_, M, vm') \<leftarrow>
        WHILE\<^sub>T\<^bsup>\<lambda>(j, M, vm'). j = count_decided M \<and> j \<ge> lev \<and>
@@ -2236,7 +2235,7 @@ where
     RETURN (M, vm')
   })\<close>
 
-
+(* 
 lemma extract_shorter_conflict_l_trivial_code_extract_shorter_conflict_l_trivial[sepref_fr_rules]:
   \<open>(extract_shorter_conflict_list_lookup_heur_st_code, extract_shorter_conflict_wl_nlit_st)
     \<in> [extract_shorter_conflict_list_heur_st_pre]\<^sub>a
@@ -2291,13 +2290,13 @@ proof -
     using H unfolding im f apply assumption
     using pre ..
 qed
-
+ *)
 definition find_decomp_wl_imp_pre where
   \<open>find_decomp_wl_imp_pre = (\<lambda>(((M, D), L), vm). M \<noteq> [] \<and> D \<noteq> None \<and>
       literals_are_in_\<L>\<^sub>i\<^sub>n (the D) \<and> -L \<in># the D \<and>
       literals_are_in_\<L>\<^sub>i\<^sub>n (lit_of `# mset M) \<and> vm \<in> vmtf M)\<close>
 
-definition (in -) get_maximum_level_remove_int :: \<open>(nat, 'a) ann_lits \<Rightarrow>
+(* definition (in -) get_maximum_level_remove_int :: \<open>(nat, 'a) ann_lits \<Rightarrow>
     lookup_clause_rel_with_cls_with_highest \<Rightarrow> nat literal \<Rightarrow>  nat\<close> where
   \<open>get_maximum_level_remove_int = (\<lambda>_ (_, D) _.
     (if D = None then 0 else snd (the D)))\<close>
@@ -2307,11 +2306,11 @@ lemma (in -) target_level_hnr[sepref_fr_rules]:
      highest_lit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   by sepref_to_hoare
      (sep_auto simp: target_level_def uint32_nat_rel_def br_def split: option.splits)
-
+ *)
 sepref_register find_decomp_wl_imp
 sepref_thm find_decomp_wl_imp_code
   is \<open>uncurry2 (PR_CONST find_decomp_wl_imp)\<close>
-  :: \<open>trail_assn\<^sup>d *\<^sub>a highest_lit_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d
+  :: \<open>trail_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d
     \<rightarrow>\<^sub>a trail_assn *a vmtf_remove_conc\<close>
   unfolding find_decomp_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
     find_decomp_wl_imp_pre_def
@@ -2333,7 +2332,7 @@ definition find_decomp_wvmtf_ns  where
   \<open>find_decomp_wvmtf_ns =
      (\<lambda>(M::(nat, nat) ann_lits) highest _.
         SPEC(\<lambda>(M1, vm). \<exists>K M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
-          get_level M K = target_level highest + 1 \<and> vm \<in> vmtf M1))\<close>
+          get_level M K = Suc highest \<and> vm \<in> vmtf M1))\<close>
 
 
 definition (in -) find_decomp_wl_st :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
@@ -2342,9 +2341,9 @@ definition (in -) find_decomp_wl_st :: \<open>nat literal \<Rightarrow> nat twl_
     RETURN (M', N, U, D, oth)
   })\<close>
 
-definition find_decomp_wl_st_int :: \<open>nat literal \<Rightarrow> _ \<Rightarrow> twl_st_wl_heur \<Rightarrow>
+definition find_decomp_wl_st_int :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow>
     twl_st_wl_heur nres\<close> where
-  \<open>find_decomp_wl_st_int = (\<lambda>L highest (M, N, U, D, W, Q, vm, \<phi>, clvls, cach, lbd, stats). do{
+  \<open>find_decomp_wl_st_int = (\<lambda>highest (M, N, U, D, W, Q, vm, \<phi>, clvls, cach, lbd, stats). do{
      (M', vm) \<leftarrow> find_decomp_wvmtf_ns M highest vm;
      lbd \<leftarrow> lbd_empty lbd;
      RETURN (M', N, U, D, W, Q, vm, \<phi>, clvls, cach, lbd, stats)
@@ -2368,14 +2367,12 @@ lemma
     struct: \<open>twl_struct_invs (twl_st_of_wl None (M\<^sub>0, N, U, D, NE, UE, Q, W))\<close> and
     vm: \<open>vm \<in> vmtf M\<^sub>0\<close> and
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M\<^sub>0\<close> and
-    high: \<open>(if highest = None then 0 else snd (the highest)) < count_decided M\<^sub>0\<close>
+    target: \<open>highest < count_decided M\<^sub>0\<close>
   shows
     find_decomp_wl_imp_le_find_decomp_wl':
       \<open>find_decomp_wl_imp M\<^sub>0 highest vm \<le> find_decomp_wvmtf_ns M\<^sub>0 highest vm\<close>
      (is ?decomp)
 proof -
-  have target: \<open>target_level highest < count_decided M\<^sub>0\<close>
-    using high by (auto simp: target_level_def split: option.splits)
   have 1: \<open>((count_decided x1g, x1g), count_decided x1, x1) \<in> Id\<close>
     if \<open>x1g = x1\<close> for x1g x1 :: \<open>(nat, nat) ann_lits\<close>
     using that by auto
@@ -2491,7 +2488,7 @@ qed
 definition find_decomp_wvmtf_ns_pre where
   \<open>find_decomp_wvmtf_ns_pre = (\<lambda>((M, highest), vm).
       \<exists>N U D NE UE Q W. twl_struct_invs (twl_st_of_wl None (M, N, U, D, NE, UE, Q, W)) \<and>
-       (if highest = None then 0 else snd (the highest)) < count_decided M \<and>
+       highest < count_decided M \<and>
        literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
        vm \<in> vmtf M)\<close>
 
@@ -2515,17 +2512,17 @@ sepref_register find_decomp_wvmtf_ns
 lemma find_decomp_wl_imp_code_find_decomp_wl'[sepref_fr_rules]:
   \<open>(uncurry2 find_decomp_wl_imp_code, uncurry2 (PR_CONST find_decomp_wvmtf_ns))
      \<in> [\<lambda>((b, a), c). find_decomp_wvmtf_ns_pre ((b, a), c)]\<^sub>a
-     trail_assn\<^sup>d *\<^sub>a highest_lit_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>
+     trail_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>
     trail_assn *a vmtf_remove_conc\<close>
   using find_decomp_wl_imp_code[unfolded PR_CONST_def, FCOMP find_decomp_wl_imp_find_decomp_wl']
   unfolding PR_CONST_def
   .
 
 sepref_thm find_decomp_wl_imp'_code
-  is \<open>uncurry2 (PR_CONST find_decomp_wl_st_int)\<close>
-  :: \<open>[\<lambda>((L, highest), (M', N, U, D, W, Q, vm, \<phi>)).
+  is \<open>uncurry (PR_CONST find_decomp_wl_st_int)\<close>
+  :: \<open>[\<lambda>(highest, (M', N, U, D, W, Q, vm, \<phi>)).
          find_decomp_wvmtf_ns_pre ((M', highest), vm)]\<^sub>a
-       unat_lit_assn\<^sup>k *\<^sub>a highest_lit_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d  \<rightarrow>
+       uint32_nat_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d  \<rightarrow>
         (twl_st_heur_assn)\<close>
   unfolding find_decomp_wl_st_int_def PR_CONST_def twl_st_heur_assn_def
   supply [[goals_limit = 1]]
@@ -2533,7 +2530,7 @@ sepref_thm find_decomp_wl_imp'_code
 
 concrete_definition (in -) find_decomp_wl_imp'_code
    uses isasat_input_bounded_nempty.find_decomp_wl_imp'_code.refine_raw
-   is \<open>(uncurry2 ?f, _) \<in> _\<close>
+   is \<open>(uncurry ?f, _) \<in> _\<close>
 
 prepare_code_thms (in -) find_decomp_wl_imp'_code_def
 
@@ -2542,9 +2539,9 @@ lemmas find_decomp_wl_imp'_code_hnr[sepref_fr_rules] =
 
 
 lemma find_decomp_wl_st_int_find_decomp_wl_nlit:
-  \<open>(uncurry2 find_decomp_wl_st_int, uncurry2 find_decomp_wl_nlit) \<in>
-      [\<lambda>((L, highest), S). True]\<^sub>f
-      Id \<times>\<^sub>f Id \<times>\<^sub>f twl_st_heur_no_clvls \<rightarrow> \<langle>twl_st_heur_no_clvls\<rangle> nres_rel\<close>
+  \<open>(uncurry find_decomp_wl_st_int, uncurry find_decomp_wl_nlit) \<in>
+      [\<lambda>(highest, S). True]\<^sub>f
+      Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
 proof -
   have [simp]: \<open>(Decided K # aq, M2) \<in> set (get_all_ann_decomposition ba) \<Longrightarrow> no_dup ba \<Longrightarrow>
        no_dup aq\<close> for ba K aq M2
@@ -2558,7 +2555,7 @@ proof -
     by (cases S, cases S')
       (auto 5 5 intro!: SPEC_rule
         simp: find_decomp_wl_st_def find_decomp_wl'_def find_decomp_wl_def lbd_empty_def
-        RES_RETURN_RES2 conc_fun_SPEC twl_st_heur_no_clvls_def target_level_def)
+        RES_RETURN_RES2 conc_fun_SPEC)
   done
 qed
 
