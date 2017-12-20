@@ -54,7 +54,10 @@ begin
 subsubsection \<open>Backtrack with direct extraction of literal if highest level\<close>
 
 
-definition (in -) empty_conflict_and_extract_clause where
+definition (in -) empty_conflict_and_extract_clause
+  :: \<open>(nat,nat) ann_lits \<Rightarrow> nat clause \<Rightarrow> nat clause_l \<Rightarrow>
+        (nat clause option \<times> nat clause_l \<times> nat) nres\<close>
+where
   \<open>empty_conflict_and_extract_clause M D outl =
      SPEC(\<lambda>(D, C, n). D = None \<and> mset C = mset outl \<and> C!0 = outl!0 \<and>
        (length C > 1 \<longrightarrow> highest_lit M (mset (tl C)) (Some (C!1, get_level M (C!1)))) \<and>
@@ -476,6 +479,12 @@ definition (in -) empty_cach where
   \<open>empty_cach cach = (\<lambda>_. SEEN_UNKNOWN)\<close>
 
 
+definition (in isasat_input_ops) empty_conflict_and_extract_clause_pre
+   :: \<open>(((nat,nat) ann_lits \<times> nat clause) \<times> nat clause_l) \<Rightarrow> bool\<close> where
+  \<open>empty_conflict_and_extract_clause_pre =
+    (\<lambda>((M, D), outl). D = mset (tl outl)  \<and> outl \<noteq> [] \<and> distinct outl \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (mset outl) \<and>
+    \<not>tautology (mset outl) \<and> length outl \<le> uint_max)\<close>
+
 definition (in isasat_input_ops) extract_shorter_conflict_list_heur_st
   :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_heur \<times> nat \<times> nat clause_l) nres\<close>
 where
@@ -484,16 +493,245 @@ where
      ASSERT(M \<noteq> []);
      let K = lit_of (hd M);
      ASSERT(-K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l);
+     ASSERT(D \<noteq> None \<and> delete_from_lookup_conflict_pre (-K, the D));
      let D = remove1_mset (-K) (the D);
      ASSERT(0 < length outl);
      let outl = outl[0 := -K];
+     ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl N)));
      (D, cach, outl) \<leftarrow> minimize_and_extract_highest_lookup_conflict M N D cach lbd outl;
      let cach = empty_cach cach;
+     ASSERT(empty_conflict_and_extract_clause_pre ((M, D), outl));
      (D, C, n) \<leftarrow> empty_conflict_and_extract_clause M D outl;
      RETURN ((M, N, U, D, Q', W', vm, \<phi>, clvls, cach, lbd, take 1 outl, stats), n, C)
   })\<close>
 
-term minimize_and_extract_highest_lookup_conflict
+lemma the_option_lookup_clause_assn[sepref_fr_rules]:
+  \<open>(return o snd, RETURN o the) \<in> [\<lambda>D. D \<noteq> None]\<^sub>a option_lookup_clause_assn\<^sup>d \<rightarrow> lookup_clause_assn\<close>
+  by (sepref_to_hoare)
+    (sep_auto simp: option_lookup_clause_assn_def option_lookup_clause_rel_def 
+      lookup_clause_assn_def hr_comp_def)
+
+
+definition (in -) empty_cach_ref where
+  \<open>empty_cach_ref = (\<lambda>(cach, support). (replicate (length cach) SEEN_UNKNOWN, []))\<close>
+
+definition (in isasat_input_ops) empty_cach_ref_set_inv where
+  \<open>empty_cach_ref_set_inv cach0 support =
+    (\<lambda>(i, cach). length cach = length cach0 \<and>
+         (\<forall>L \<in> set (drop i support). L < length cach) \<and>
+         (\<forall>L \<in> set (take i support).  cach ! L = SEEN_UNKNOWN) \<and>
+         (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set (drop i support)))\<close>
+
+definition (in isasat_input_ops) empty_cach_ref_set where
+  \<open>empty_cach_ref_set = (\<lambda>(cach0, support). do {
+    let n = length support;
+    (_, cach) \<leftarrow> WHILE\<^sub>T\<^bsup>empty_cach_ref_set_inv cach0 support\<^esup>
+      (\<lambda>(i, cach). i < length support)
+      (\<lambda>(i, cach). do {
+         ASSERT(i < length support);
+         ASSERT(support ! i < length cach);
+         RETURN(i+1, cach[support ! i := SEEN_UNKNOWN])
+      })
+     (0, cach0);
+    RETURN (cach, emptied_list support)
+  })\<close>
+
+lemma (in isasat_input_ops) empty_cach_ref_set_empty_cach_ref:
+  \<open>(empty_cach_ref_set, RETURN o empty_cach_ref) \<in>
+    [\<lambda>(cach, supp). (\<forall>L \<in> set supp. L < length cach) \<and>
+      (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp)]\<^sub>f
+    Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
+proof -
+  have H: \<open>WHILE\<^sub>T\<^bsup>empty_cach_ref_set_inv cach0 support'\<^esup> (\<lambda>(i, cach). i < length support')
+       (\<lambda>(i, cach).
+           ASSERT (i < length support') \<bind>
+           (\<lambda>_. ASSERT (support' ! i < length cach) \<bind>
+           (\<lambda>_. RETURN (i + 1, cach[support' ! i := SEEN_UNKNOWN]))))
+       (0, cach0) \<bind>
+      (\<lambda>(_, cach). RETURN (cach, emptied_list support'))
+      \<le> \<Down> Id (RETURN (replicate (length cach0) SEEN_UNKNOWN, []))\<close>
+    if
+      \<open>\<forall>L\<in>set support'. L < length cach0\<close> and
+      \<open>\<forall>L<length cach0. cach0 ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support'\<close>
+    for cach support cach0 support'
+  proof -
+    have init: \<open>empty_cach_ref_set_inv cach0 support' (0, cach0)\<close>
+      using that unfolding empty_cach_ref_set_inv_def
+      by auto
+    have valid_length:
+       \<open>empty_cach_ref_set_inv cach0 support' s \<Longrightarrow> case s of (i, cach) \<Rightarrow> i < length support' \<Longrightarrow>
+          s = (cach', sup') \<Longrightarrow> support' ! cach' < length sup'\<close>  for s cach' sup'
+      using that unfolding empty_cach_ref_set_inv_def
+      by auto
+    have set_next: \<open>empty_cach_ref_set_inv cach0 support' (i + 1, cach'[support' ! i := SEEN_UNKNOWN])\<close>
+      if
+        inv: \<open>empty_cach_ref_set_inv cach0 support' s\<close> and
+        cond: \<open>case s of (i, cach) \<Rightarrow> i < length support'\<close> and
+        s: \<open>s = (i, cach')\<close> and
+        valid[simp]: \<open>support' ! i < length cach'\<close>
+      for s i cach'
+    proof -
+      have
+        le_cach_cach0: \<open>length cach' = length cach0\<close> and
+        le_length: \<open>\<forall>L\<in>set (drop i support'). L < length cach'\<close> and
+        UNKNOWN: \<open>\<forall>L\<in>set (take i support'). cach' ! L = SEEN_UNKNOWN\<close> and
+        support: \<open>\<forall>L<length cach'. cach' ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set (drop i support')\<close> and
+        [simp]: \<open>i < length support'\<close>
+        using inv cond unfolding empty_cach_ref_set_inv_def s prod.case
+        by auto
+
+      show ?thesis
+        unfolding empty_cach_ref_set_inv_def
+        unfolding prod.case
+        apply (intro conjI)
+        subgoal by (simp add: le_cach_cach0)
+        subgoal using le_length by (simp add: Cons_nth_drop_Suc[symmetric])
+        subgoal using UNKNOWN by (auto simp add: take_Suc_conv_app_nth)
+        subgoal using support by (auto simp add: Cons_nth_drop_Suc[symmetric])
+        done
+    qed
+    have final: \<open>((cach', emptied_list support'), replicate (length cach0) SEEN_UNKNOWN, []) \<in> Id\<close>
+      if
+        inv: \<open>empty_cach_ref_set_inv cach0 support' s\<close> and
+        cond: \<open>\<not> (case s of (i, cach) \<Rightarrow> i < length support')\<close> and
+        s: \<open>s = (i, cach')\<close>
+        for s cach' i
+    proof -
+      have
+        le_cach_cach0: \<open>length cach' = length cach0\<close> and
+        le_length: \<open>\<forall>L\<in>set (drop i support'). L < length cach'\<close> and
+        UNKNOWN: \<open>\<forall>L\<in>set (take i support'). cach' ! L = SEEN_UNKNOWN\<close> and
+        support: \<open>\<forall>L<length cach'. cach' ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set (drop i support')\<close> and
+        i: \<open>\<not>i < length support'\<close>
+        using inv cond unfolding empty_cach_ref_set_inv_def s prod.case
+        by auto
+      have \<open>\<forall>L<length cach'. cach' ! L  = SEEN_UNKNOWN\<close>
+        using support i by auto
+      then have [dest]: \<open>L \<in> set cach' \<Longrightarrow> L = SEEN_UNKNOWN\<close> for L
+        by (metis in_set_conv_nth)
+      then have [dest]: \<open>SEEN_UNKNOWN \<notin> set cach' \<Longrightarrow> cach0 = [] \<and> cach' = []\<close>
+        using le_cach_cach0 by (cases cach') auto
+      show ?thesis
+        by (auto simp: emptied_list_def list_eq_replicate_iff le_cach_cach0)
+    qed
+    show ?thesis
+      apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i, _). length support' - i)\<close>])
+      subgoal by auto
+      subgoal by (rule init)
+      subgoal by auto
+      subgoal by (rule valid_length)
+      subgoal by (rule set_next)
+      subgoal by auto
+      subgoal by (rule final)
+      done
+  qed
+  show ?thesis
+  unfolding empty_cach_ref_set_def empty_cach_ref_def Let_def comp_def
+  by (intro frefI nres_relI) (clarify intro!: H)
+qed
+
+
+lemma (in isasat_input_ops) empty_cach_ref_empty_cach:
+  \<open>(RETURN o empty_cach_ref, RETURN o empty_cach) \<in> cach_refinement \<rightarrow>\<^sub>f \<langle>cach_refinement\<rangle> nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: empty_cach_def empty_cach_ref_def cach_refinement_alt_def cach_refinement_list_def
+     map_fun_rel_def)
+
+sepref_thm (in isasat_input_ops) empty_cach_code
+  is \<open>empty_cach_ref_set\<close>
+  :: \<open>cach_refinement_l_assn\<^sup>d \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
+  supply array_replicate_hnr[sepref_fr_rules]
+  unfolding empty_cach_ref_set_def comp_def
+  by sepref
+
+concrete_definition (in -) empty_cach_code
+   uses isasat_input_ops.empty_cach_code.refine_raw
+   is \<open>(?f, _)\<in>_\<close>
+
+prepare_code_thms (in -) empty_cach_code_def
+
+lemmas (in isasat_input_ops) empty_cach_ref_hnr[sepref_fr_rules] =
+   empty_cach_code.refine
+
+theorem (in isasat_input_ops) empty_cach_code_empty_cach_ref:
+  \<open>(empty_cach_code,
+   RETURN \<circ> empty_cach_ref)
+    \<in> [(\<lambda>(cach :: minimize_status list, supp :: nat list).
+         (\<forall>L\<in>set supp. L < length cach) \<and>
+         (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp))]\<^sub>a
+    cach_refinement_l_assn\<^sup>d \<rightarrow> cach_refinement_l_assn\<close>
+    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c
+    \<in>[comp_PRE Id
+     (\<lambda>(cach, supp).
+         (\<forall>L\<in>set supp. L < length cach) \<and>
+         (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp))
+     (\<lambda>x y. True)
+     (\<lambda>x. nofail ((RETURN \<circ> empty_cach_ref) x))]\<^sub>a
+      hrp_comp (cach_refinement_l_assn\<^sup>d)
+                     Id \<rightarrow> hr_comp cach_refinement_l_assn Id\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE[OF empty_cach_ref_hnr[unfolded PR_CONST_def]
+    empty_cach_ref_set_empty_cach_ref] by simp
+  have pre: \<open>?pre' h x\<close> if \<open>?pre x\<close> for x h
+    using that by (auto simp: comp_PRE_def twl_st_heur_pol_def trail_pol_def
+        ann_lits_split_reasons_def)
+  have im: \<open>?im' = ?im\<close>
+    by simp
+  have f: \<open>?f' = ?f\<close>
+    by auto
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f apply assumption
+    using pre ..
+qed
+
+lemma (in isasat_input_ops) empty_cach_hnr[sepref_fr_rules]:
+  \<open>(empty_cach_code, RETURN \<circ> empty_cach) \<in> cach_refinement_assn\<^sup>d \<rightarrow>\<^sub>a cach_refinement_assn\<close>
+    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c \<in> [comp_PRE cach_refinement (\<lambda>_. True)
+     (\<lambda>x y. case y of
+            (cach, supp) \<Rightarrow>
+              (\<forall>L\<in>set supp. L < length cach) \<and>
+              (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp))
+     (\<lambda>x. nofail
+           ((RETURN \<circ> empty_cach)
+             x))]\<^sub>a hrp_comp (cach_refinement_l_assn\<^sup>d)
+                     cach_refinement \<rightarrow> hr_comp cach_refinement_l_assn cach_refinement\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE[OF empty_cach_code_empty_cach_ref[unfolded PR_CONST_def]
+    empty_cach_ref_empty_cach] by simp
+  have pre: \<open>?pre' h x\<close> if \<open>?pre x\<close> for x h
+    using that by (auto simp: comp_PRE_def twl_st_heur_pol_def trail_pol_def
+        ann_lits_split_reasons_def cach_refinement_alt_def)
+  have im: \<open>?im' = ?im\<close>
+    unfolding cach_refinement_assn_def
+     prod_hrp_comp hrp_comp_dest hrp_comp_keep
+    by simp
+  have f: \<open>?f' = ?f\<close>
+    unfolding cach_refinement_assn_def
+    by auto
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f apply assumption
+    using pre ..
+qed
+
+sepref_thm backtrack_wl_D_code
+  is \<open>PR_CONST extract_shorter_conflict_list_heur_st\<close>
+  :: \<open>twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_heur_assn *a uint32_nat_assn *a clause_ll_assn\<close>
+  supply [[goals_limit=1]](*  backtrack_wl_D_nlit_invariants[simp] *)
+  unfolding extract_shorter_conflict_list_heur_st_def PR_CONST_def twl_st_heur_assn_def
+  unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
+  apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+                      apply sepref_dbg_trans_step_keep
+  oops
+
 definition (in isasat_input_ops)  rescore_clause
   :: \<open>nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> phase_saver \<Rightarrow>
     (vmtf_remove_int \<times> phase_saver) nres\<close>
@@ -509,6 +747,9 @@ where
 definition (in isasat_input_ops) propagate_bt_wl_D_heur
   :: \<open>nat literal \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N, U, D, Q, W, vm, \<phi>, _, cach). do {
+      ASSERT(phase_saving \<phi> \<and> vm \<in> vmtf M \<and> undefined_lit M (-L) \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
+         nat_of_lit (C!1) < length W \<and> nat_of_lit (-L) < length W);
+      ASSERT(length C > 1);
       let L' = C!1;
       ASSERT(literals_are_in_\<L>\<^sub>i\<^sub>n (mset C));
       (vm, \<phi>) \<leftarrow> rescore_clause C M vm \<phi>;
@@ -531,8 +772,23 @@ definition (in isasat_input_ops) propagate_unit_bt_wl_D_int
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
   \<open>propagate_unit_bt_wl_D_int = (\<lambda>L (M, N, U, D, Q, W, vm, \<phi>). do {
+      ASSERT(undefined_lit M L \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> vm \<in> vmtf M);
       vm \<leftarrow> flush M vm;
       RETURN (Propagated (- L) 0 # M, N, U, D, {#L#}, W, vm, \<phi>)})\<close>
+
+(* TODO ded-uplicate definitions *)
+definition (in isasat_input_ops) find_decomp_wvmtf_ns_pre where
+  \<open>find_decomp_wvmtf_ns_pre = (\<lambda>((M, highest), vm).
+      \<exists>N U D NE UE Q W. twl_struct_invs (twl_st_of_wl None (M, N, U, D, NE, UE, Q, W)) \<and>
+       highest < count_decided M \<and>
+       literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
+       vm \<in> vmtf M)\<close>
+
+definition  (in isasat_input_ops) find_decomp_wl_pre
+   :: \<open>nat \<times> twl_st_wl_heur \<Rightarrow> bool\<close>
+where
+   \<open>find_decomp_wl_pre =  (\<lambda>(highest, T).
+       find_decomp_wvmtf_ns_pre ((get_trail_wl_heur T, highest), get_vmtf_heur T))\<close>
 
 definition (in isasat_input_ops) backtrack_wl_D_nlit_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
@@ -540,8 +796,11 @@ where
   \<open>backtrack_wl_D_nlit_heur S =
     do {
       ASSERT(backtrack_wl_D_heur_inv S);
+      ASSERT(get_trail_wl_heur S \<noteq> []);
       let L = lit_of_hd_trail_st_heur S;
       (S, n, C) \<leftarrow> extract_shorter_conflict_list_heur_st S;
+
+      ASSERT(find_decomp_wl_pre (n, S));
       S \<leftarrow> find_decomp_wl_nlit n S;
 
       if size C > 1
@@ -584,7 +843,7 @@ definition (in -)del_conflict_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_
 context conflict_driven_clause_learning\<^sub>W
 begin
 
-lemma no_skip_no_resolve_single_highest_level:
+lemma 
   fixes S
   assumes
      nss: \<open>no_step skip S\<close> and
@@ -593,9 +852,15 @@ lemma no_skip_no_resolve_single_highest_level:
      stgy: \<open>cdcl\<^sub>W_stgy_invariant S\<close> and
      confl: \<open>conflicting S \<noteq> None\<close> and
      confl': \<open>conflicting S \<noteq> Some {#}\<close>
-   shows \<open>the (conflicting S) =
-     add_mset (-(lit_of (hd (trail S)))) {#L \<in># the (conflicting S).
-    get_level (trail S) L < local.backtrack_lvl S#}\<close>
+   shows no_skip_no_resolve_single_highest_level:
+    \<open>the (conflicting S) =
+       add_mset (-(lit_of (hd (trail S)))) {#L \<in># the (conflicting S).
+         get_level (trail S) L < local.backtrack_lvl S#}\<close> (is ?A) and
+      no_skip_no_resolve_level_lvl_nonzero:
+    \<open>0 < backtrack_lvl S\<close> (is ?B) and
+      no_skip_no_resolve_level_get_maximum_lvl_le:
+    \<open>get_maximum_level (trail S) (remove1_mset (-(lit_of (hd (trail S)))) (the (conflicting S)))
+        < backtrack_lvl S\<close> (is ?C)
 proof -
   define K where \<open>K \<equiv> lit_of (hd (trail S))\<close>
   have K: \<open>-K \<in># the (conflicting S)\<close>
@@ -634,6 +899,74 @@ proof -
     using nd K_def tr CNot unfolding true_annots_true_cls_def_iff_negation_in_model
     by (cases \<open>trail S\<close>)
        (auto simp: uminus_lit_swap Decided_Propagated_in_iff_in_lits_of_l dest!: multi_member_split)
+  have H1:
+    \<open>0 < backtrack_lvl S\<close>
+  proof (cases \<open>is_proped (hd (trail S))\<close>)
+    case proped: True
+    obtain C M where
+      [simp]: \<open>trail S = Propagated K C # M\<close>
+      using tr proped K_def
+      by (cases \<open>trail S\<close>; cases \<open>hd (trail S)\<close>)
+        (auto simp: K_def)
+    have \<open>a @ Propagated L mark # b = Propagated K C # M \<longrightarrow>
+       b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> for L mark a b
+      using conf unfolding cdcl\<^sub>W_conflicting_def
+      by fastforce
+    from this[of \<open>[]\<close>] have [simp]: \<open>K \<in># C\<close> \<open>M \<Turnstile>as CNot (remove1_mset K C)\<close>
+      by auto
+    have [simp]: \<open>get_maximum_level (Propagated K C # M) D = get_maximum_level M D\<close>
+      by (rule get_maximum_level_skip_first)
+        (auto simp: atms_of_def atm_of_eq_atm_of uminus_lit_swap[symmetric])
+
+    have \<open>get_maximum_level M D < count_decided M\<close>
+      using nsr tr confl K proped count_decided_ge_get_maximum_level[of M D]
+      by (auto simp: resolve.simps get_level_cons_if atm_of_eq_atm_of)
+    then show ?thesis by simp
+  next
+    case proped: False
+    have \<open>get_maximum_level (tl (trail S)) D < count_decided (trail S)\<close>
+      using tr confl K proped count_decided_ge_get_maximum_level[of \<open>tl (trail S)\<close> D]
+      by (cases \<open>trail S\<close>; cases \<open>hd (trail S)\<close>)
+         (auto simp: resolve.simps get_level_cons_if atm_of_eq_atm_of)
+    then show ?thesis
+      by simp
+  qed
+  show H2: ?C
+  proof (cases \<open>is_proped (hd (trail S))\<close>)
+    case proped: True
+    obtain C M where
+      [simp]: \<open>trail S = Propagated K C # M\<close>
+      using tr proped K_def
+      by (cases \<open>trail S\<close>; cases \<open>hd (trail S)\<close>)
+        (auto simp: K_def)
+    have \<open>a @ Propagated L mark # b = Propagated K C # M \<longrightarrow>
+       b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close> for L mark a b
+      using conf unfolding cdcl\<^sub>W_conflicting_def
+      by fastforce
+    from this[of \<open>[]\<close>] have [simp]: \<open>K \<in># C\<close> \<open>M \<Turnstile>as CNot (remove1_mset K C)\<close>
+      by auto
+    have [simp]: \<open>get_maximum_level (Propagated K C # M) D = get_maximum_level M D\<close>
+      by (rule get_maximum_level_skip_first)
+        (auto simp: atms_of_def atm_of_eq_atm_of uminus_lit_swap[symmetric])
+
+    have \<open>get_maximum_level M D < count_decided M\<close>
+      using nsr tr confl K proped count_decided_ge_get_maximum_level[of M D]
+      by (auto simp: resolve.simps get_level_cons_if atm_of_eq_atm_of)
+    then show ?thesis by simp
+  next
+    case proped: False
+    have \<open>get_maximum_level (tl (trail S)) D = get_maximum_level (trail S) D\<close>
+      apply (rule get_maximum_level_cong)
+      using K_def \<open>- K \<notin># D\<close> \<open>K \<notin># D\<close> 
+      apply (cases \<open>trail S\<close>)
+      by (auto simp: get_level_cons_if atm_of_eq_atm_of)
+    moreover have \<open>get_maximum_level (tl (trail S)) D < count_decided (trail S)\<close>
+      using tr confl K proped count_decided_ge_get_maximum_level[of \<open>tl (trail S)\<close> D]
+      by (cases \<open>trail S\<close>; cases \<open>hd (trail S)\<close>)
+         (auto simp: resolve.simps get_level_cons_if atm_of_eq_atm_of)
+    ultimately show ?thesis
+      by (simp add: K_def)
+  qed
 
   have H:
     \<open>get_level (trail S) L < local.backtrack_lvl S\<close>
@@ -685,12 +1018,14 @@ proof -
     using tr K_def
     by (cases \<open>trail S\<close>; cases \<open>hd (trail S)\<close>)
       (auto simp: resolve.simps get_level_cons_if atm_of_eq_atm_of)
-  show ?thesis
+  show ?A
     apply (rule distinct_set_mset_eq)
     subgoal using dist by auto
     subgoal using dist by (auto simp: distinct_mset_filter K_def[symmetric])
     subgoal using H by (auto simp: K_def[symmetric])
     done
+  show ?B
+    using H1 .
 qed
 
 end
@@ -761,8 +1096,10 @@ proof -
   have backtrack_wl_D_nlit_heur_alt_def: \<open>backtrack_wl_D_nlit_heur S =
     do {
       ASSERT(backtrack_wl_D_heur_inv S);
+      ASSERT(get_trail_wl_heur S \<noteq> []);
       let L = lit_of_hd_trail_st_heur S;
       (S, n, C) \<leftarrow> extract_shorter_conflict_list_heur_st S;
+      ASSERT(find_decomp_wl_pre (n, S));
       S \<leftarrow> find_decomp_wl_nlit n S;
 
       if size C > 1
@@ -788,17 +1125,19 @@ proof -
        \<le> \<Down> {((T', n, C), T). (T', del_conflict_wl T) \<in> twl_st_heur \<and>
               n = get_maximum_level (get_trail_wl T)
                   (remove1_mset (-lit_of(hd (get_trail_wl T))) (the (get_conflict_wl T))) \<and>
-             mset C = the (get_conflict_wl T) \<and>
-             get_conflict_wl T \<noteq> None \<and>
-             equality_except_conflict T S \<and>
-            (1 < length C \<longrightarrow>
+              mset C = the (get_conflict_wl T) \<and>
+              get_conflict_wl T \<noteq> None \<and>
+              equality_except_conflict T S \<and>
+              (1 < length C \<longrightarrow>
                 highest_lit (get_trail_wl T) (mset (tl C))
                 (Some (C ! 1, get_level (get_trail_wl T) (C ! 1)))) \<and>
-           C \<noteq> [] \<and> hd C = -lit_of(hd (get_trail_wl T)) \<and>
-           mset C \<subseteq># the (get_conflict_wl S) \<and>
-           distinct_mset (the (get_conflict_wl S)) \<and>
-           literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl S)) \<and>
-           get_conflict_wl S \<noteq> None}
+              C \<noteq> [] \<and> hd C = -lit_of(hd (get_trail_wl T)) \<and>
+              mset C \<subseteq># the (get_conflict_wl S) \<and>
+              distinct_mset (the (get_conflict_wl S)) \<and>
+              literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl S)) \<and>
+              get_conflict_wl S \<noteq> None \<and>
+              - lit_of (hd (get_trail_wl S)) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
+              find_decomp_wl_pre (n, T')}
            (extract_shorter_conflict_wl S)\<close>
      (is \<open>_ \<le> \<Down> ?shorter _\<close>)
     if
@@ -814,7 +1153,7 @@ proof -
       using S'_S by (cases S') (auto simp: twl_st_heur_def S)
     have
       \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0\<close> and
-      \<open>vm \<in> vmtf M\<close> and
+      vm: \<open>vm \<in> vmtf M\<close> and
       \<open>phase_saving \<phi>\<close> and
       \<open>no_dup M\<close> and
       \<open>clvls \<in> counts_maximum_level M D\<close> and
@@ -834,8 +1173,8 @@ proof -
       \<open>correct_watching (M, N, U, D, NE, UE, Q, W)\<close> and
       not_empty: \<open>the D \<noteq> {#}\<close> and
       \<L>\<^sub>i\<^sub>n : \<open>literals_are_\<L>\<^sub>i\<^sub>n (M, N, U, D, NE, UE, Q, W)\<close>
-      using inv unfolding S backtrack_wl_D_inv_def
-      by (auto simp: backtrack_wl_inv_def backtrack_l_inv_def
+      using inv unfolding S backtrack_wl_D_inv_def backtrack_wl_inv_def backtrack_l_inv_def
+      by (auto simp: 
           simp del: twl_st_of.simps)
     then have all_struct:
       \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of (twl_st_of None (M, N, U, D, NE, UE, {#}, Q)))\<close>
@@ -966,6 +1305,10 @@ proof -
         by auto
       subgoal by auto
       done
+    have uM_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>- lit_of (hd M) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+      using M_\<L>\<^sub>i\<^sub>n trail_nempty by (cases M)
+        (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons uminus_\<A>\<^sub>i\<^sub>n_iff)
+ 
     have ref: \<open>RES (\<Union>(a, C,
               n)\<in>{(D, C, n).
                    D = None \<and>
@@ -1032,7 +1375,13 @@ proof -
           unfolding s \<open>mset (tl outl') = mset (tl c)\<close> \<open>c ! 0 = outl' ! 0\<close>[symmetric]
           by (auto simp: mset_take_mset_drop_mset S
               get_unit_learned_def get_unit_init_clss_def insert_subset_eq_iff uL_D)
-        have [simp]: \<open>n = get_maximum_level M
+        have mset_tl_c_remove:
+          \<open>(remove1_mset (- lit_of (hd M)) (add_mset (c ! 0) (mset (tl c)))) = mset (tl c)\<close>
+          using C \<open>outl' \<noteq> []\<close> outl0 \<open>c \<noteq> []\<close>
+          unfolding \<open>c ! 0 = outl' ! 0\<close>[symmetric] \<open>length outl' = length c\<close>
+          apply (cases c)
+          by (auto simp: highest_lit_def)
+        have n: \<open>n = get_maximum_level M
          (remove1_mset (- lit_of (hd M)) (add_mset (c ! 0) (mset (tl c))))\<close>
           using C \<open>outl' \<noteq> []\<close> outl0 \<open>c \<noteq> []\<close>
           unfolding \<open>c ! 0 = outl' ! 0\<close>[symmetric] \<open>length outl' = length c\<close>
@@ -1060,9 +1409,32 @@ proof -
           have \<open>add_mset (- lit_of (hd M)) (mset (tl c)) \<subseteq># the D\<close>
           using subset_mset.add_left_mono[OF incl, of \<open>{#- lit_of (hd M)#}\<close>, unfolded 1] \<open>outl' \<noteq> []\<close>
           by auto
-        }
-        ultimately show ?TR
-          using \<open>c \<noteq> []\<close> outl0 not_none \<L>\<^sub>i\<^sub>n_S dist_D
+      } note incl_c_d = this
+      moreover {
+        have H: \<open>twl_struct_invs (twl_st_of None (M, N, U, D, NE, UE, {#}, Q))\<close>
+          using M_\<L>\<^sub>i\<^sub>n struct_invs
+          by (auto 5 5 simp: S' simp del: twl_st_of.simps)
+        have K: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant 
+              (state\<^sub>W_of (twl_st_of None (M, N, U, D, NE, UE, {#}, Q)))\<close>
+          using stgy_invs not_none not_empty confl unfolding twl_stgy_invs_def
+          by auto
+        have \<open>get_maximum_level M (mset (tl c)) \<le> get_maximum_level M (remove1_mset (-lit_of (hd M)) (the D))\<close>
+          apply (rule get_maximum_level_mono)
+          using incl by auto
+        also have K: \<open>get_maximum_level M (remove1_mset (-lit_of (hd M)) (the D)) < count_decided M\<close>
+          using cdcl\<^sub>W_restart_mset.no_skip_no_resolve_level_get_maximum_lvl_le[OF nss nsr all_struct K]
+            not_none not_empty confl trail_nempty
+          by auto
+        finally have \<open>get_maximum_level M (mset (tl c)) < count_decided M\<close> .
+        then  have \<open>n < count_decided M\<close>
+          by (auto simp: n mset_tl_c_remove)
+        then have \<open>find_decomp_wl_pre (n, S')\<close>
+          using M_\<L>\<^sub>i\<^sub>n struct_invs vm
+          unfolding find_decomp_wl_pre_def find_decomp_wvmtf_ns_pre_def
+          by (fastforce simp: S' simp del: twl_st_of.simps)
+      }
+      ultimately show ?TR
+          using \<open>c \<noteq> []\<close> outl0 not_none \<L>\<^sub>i\<^sub>n_S dist_D uM_\<L>\<^sub>a\<^sub>l\<^sub>l 
           unfolding s \<open>c ! 0 = outl' ! 0\<close>[symmetric] by (auto simp: S' S hd_conv_nth)
       qed
       show ?thesis
@@ -1074,12 +1446,49 @@ proof -
         apply (rule H'; assumption)
         done
     qed
-    have uM_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>- lit_of (hd M) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-      using M_\<L>\<^sub>i\<^sub>n trail_nempty by (cases M)
-        (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons uminus_\<A>\<^sub>i\<^sub>n_iff)
     have \<open>0 < length outl\<close>
       using \<open>out_learned M D outl\<close>
       by (auto simp: out_learned_def)
+    have True_and_True: \<open>True \<and> True \<equiv> True\<close>
+      by auto
+    have \<open>lit_of (hd M) \<notin># the D\<close>
+      using uL_D tauto_confl
+      by (auto dest!: multi_member_split simp: S add_mset_eq_add_mset tautology_add_mset)
+    then have pre1: \<open>D \<noteq> None \<and> delete_from_lookup_conflict_pre (- lit_of (hd M), the D)\<close>
+      using not_none uL_D uM_\<L>\<^sub>a\<^sub>l\<^sub>l unfolding delete_from_lookup_conflict_pre_def
+      by auto
+    have pre2: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and> literals_are_in_\<L>\<^sub>i\<^sub>n_mm (mset `# mset (tl N)) \<equiv> True\<close>
+      using M_\<L>\<^sub>i\<^sub>n literals_are_\<L>\<^sub>i\<^sub>n_clauses_literals_are_in_\<L>\<^sub>i\<^sub>n[OF \<L>\<^sub>i\<^sub>n, of None]
+        struct_invs
+      by (auto simp: S)
+    have empty_conflict_and_extract_clause_pre:
+        \<open>empty_conflict_and_extract_clause_pre ((M, mset (tl E)), E)\<close>
+      if
+        E0: \<open>E ! 0 = - lit_of (hd M)\<close> and
+        incl: \<open>mset (tl E) \<subseteq># remove1_mset (- lit_of (hd M)) (the D)\<close> and
+        [simp]: \<open>E \<noteq> []\<close>
+      for E
+    proof -
+      have E: \<open>mset E = {#- lit_of (hd M)#} + mset (tl E)\<close>
+        using E0 by (cases E) auto
+      have incl: \<open>mset E \<subseteq># the D\<close>
+        using E0 subset_mset.add_left_mono[OF incl, of \<open>{#-lit_of (hd M)#}\<close>, unfolded E[symmetric]]
+        uL_D by (cases E) auto
+      have \<open>\<not>tautology (mset E)\<close>
+        using not_tautology_mono[OF incl] tauto_confl by (auto simp: S)
+      have \<open>distinct_mset (mset E)\<close>
+        using distinct_mset_mono[OF incl] dist_D by (auto simp: S)
+      have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset E)\<close>
+        using literals_are_in_\<L>\<^sub>i\<^sub>n_mono[OF _ incl] \<L>\<^sub>i\<^sub>n_S by (auto simp: S)
+      have \<open>length E \<le> uint_max\<close>
+        using simple_clss_size_upper_div2[OF \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset E)\<close> 
+            \<open>distinct_mset (mset E)\<close> \<open>\<not>tautology (mset E)\<close>]
+        by (auto simp: uint_max_def)
+      then show ?thesis
+        using \<open>\<not>tautology (mset E)\<close> \<open>distinct_mset (mset E)\<close> \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset E)\<close>
+        unfolding empty_conflict_and_extract_clause_pre_def
+        by auto
+    qed
     show ?thesis
       unfolding extract_shorter_conflict_list_heur_st_def extract_shorter_conflict_wl_def
         empty_conflict_and_extract_clause_def S S' Let_def
@@ -1087,14 +1496,22 @@ proof -
       apply (subst trail_nempty)
       apply (subst uM_\<L>\<^sub>a\<^sub>l\<^sub>l)
       apply (subst \<open>0 < length outl\<close>)
+      apply (subst pre1)+
+      apply (subst not_False_eq_True)+
+      apply (subst True_and_True)
+      apply (subst pre2)
       unfolding assert_true_bind_conv not_False_eq_True
       apply (rule bind_refine_res)
        prefer 2
        apply (rule mini[unfolded conc_fun_RES])
       apply clarify
-      unfolding RES_RES3_RETURN_RES RETURN_def S'[symmetric] S[symmetric]
-      supply [[unify_trace_failure]]
-      apply (rule ref; assumption)
+      apply (rule ASSERT_refine_left)
+      subgoal by (rule empty_conflict_and_extract_clause_pre)
+      subgoal
+        unfolding RES_RES3_RETURN_RES RETURN_def S'[symmetric] S[symmetric]
+        supply [[unify_trace_failure]]
+        apply (rule ref; assumption)
+        done
       done
   qed
 
@@ -1266,9 +1683,10 @@ proof -
       incl: \<open>mset C \<subseteq># the (get_conflict_wl S')\<close> and
       dist_S': \<open>distinct_mset (the (get_conflict_wl S'))\<close> and
       list_confl_S': \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl S'))\<close> and
-      \<open>get_conflict_wl S' \<noteq> None\<close>
+      \<open>get_conflict_wl S' \<noteq> None\<close> and
+      uM_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>-lit_of (hd (get_trail_wl S')) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
       using \<open>(TnC, T') \<in> ?shorter S'\<close>  \<open>1 < length C\<close>
-      by (auto)
+      by auto
     obtain K M2 where
       UU': \<open>(U, U') \<in> twl_st_heur_bt\<close> and
       U'U': \<open>equality_except_trail U' T'\<close> and
@@ -1298,7 +1716,8 @@ proof -
       by (auto simp: find_lit_of_max_level_wl_def T')
     obtain vm' W' \<phi> clvls cach lbd outl stats where
         U: \<open>U = (M1, N, u, None, Q, W', vm', \<phi>, clvls, cach, lbd, outl, stats)\<close> and
-        vm': \<open>vm' \<in> vmtf M1\<close>
+        vm': \<open>vm' \<in> vmtf M1\<close> and
+        \<phi>: \<open>phase_saving \<phi>\<close>
       using UU' find_decomp by (cases U) (auto simp: U' T' twl_st_heur_bt_def)
     have
       W'W: \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0\<close> and
@@ -1316,17 +1735,22 @@ proof -
       using decomp n_d
       by (auto dest!: get_all_ann_decomposition_exists_prepend simp: T' hd_append U' neq_Nil_conv
           split: if_splits)
-    have [simp]: \<open>- lit_of (hd M) \<noteq> C ! Suc 0\<close>
+    have [simp]: \<open>C ! Suc 0 \<noteq> - lit_of (hd M)\<close>
       using distinct_mset_mono[OF incl dist_S'] C_L' \<open>1 < length C\<close>  \<open>C ! 0 = - lit_of (hd M)\<close>
       by (cases C; cases \<open>tl C\<close>) (auto simp del: \<open>C ! 0 = - lit_of (hd M)\<close>)
 
     have [simp]: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset C)\<close>
       using literals_are_in_\<L>\<^sub>i\<^sub>n_mono[OF list_confl_S' incl] .
-    show ?thesis
-      using empty_cach n_d_M1 C_L' W'W outl vmtf undef \<open>1 < length C\<close> unfolding U U'
+    then have \<open>C ! Suc 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
+      using \<open>1 < length C\<close>
+      by (cases C; cases \<open>tl C\<close>) (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset)
+    then have \<open>nat_of_lit (C ! Suc 0) < length W'\<close>
+      using W'W unfolding map_fun_rel_def by (auto simp: image_image)
+    then show ?thesis
+      using empty_cach n_d_M1 C_L' W'W outl vmtf undef \<open>1 < length C\<close> uM_\<L>\<^sub>a\<^sub>l\<^sub>l unfolding U U'
       by (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def lit_of_hd_trail_st_heur_def
           propagate_bt_wl_D_def Let_def T' U' U rescore_clause_def S' map_fun_rel_def
-          list_of_mset2_def flush_def RES_RES2_RETURN_RES RES_RETURN_RES
+          list_of_mset2_def flush_def RES_RES2_RETURN_RES RES_RETURN_RES \<phi> uminus_\<A>\<^sub>i\<^sub>n_iff
           intro!: ASSERT_refine_left RES_refine exI[of _ C]
           intro!: vmtf_consD)
   qed
@@ -1359,7 +1783,8 @@ proof -
       dist_S': \<open>distinct_mset (the (get_conflict_wl S'))\<close> and
       list_confl_S': \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl S'))\<close> and
       \<open>get_conflict_wl S' \<noteq> None\<close> and
-      \<open>C \<noteq> []\<close>
+      \<open>C \<noteq> []\<close> and
+      uL_M: \<open>- lit_of (hd (get_trail_wl S')) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
       using \<open>(TnC, T') \<in> ?shorter S'\<close>  \<open>~1 < length C\<close>
       by (auto)
     obtain K M2 where
@@ -1412,13 +1837,24 @@ proof -
       using \<open>C \<noteq> []\<close> \<open>C ! 0 = - lit_of (hd M)\<close> \<open>\<not>1 < length C\<close>
       by (cases C) (auto simp del: \<open>C ! 0 = - lit_of (hd M)\<close>)
     show ?thesis
-      using empty_cach n_d_M1  W'W outl vmtf C \<phi> undef unfolding U U'
+      using empty_cach n_d_M1  W'W outl vmtf C \<phi> undef uL_M unfolding U U'
       by (auto simp: propagate_unit_bt_wl_D_int_def
           propagate_unit_bt_wl_D_def U U' lit_of_hd_trail_st_heur_def
           single_of_mset_def flush_def twl_st_heur_def
-          RES_RES2_RETURN_RES RES_RETURN_RES S'
+          RES_RES2_RETURN_RES RES_RETURN_RES S' uminus_\<A>\<^sub>i\<^sub>n_iff
           intro!: ASSERT_refine_left RES_refine exI[of _ \<open>-lit_of (hd M)\<close>]
           intro!: vmtf_consD)
+  qed
+  have trail_nempty: \<open>get_trail_wl_heur S \<noteq> []\<close>
+    if
+      \<open>(S, S') \<in> twl_st_heur\<close> and
+      \<open>backtrack_wl_D_inv S'\<close>
+    for S S'
+  proof -
+    show ?thesis 
+      using that unfolding backtrack_wl_D_inv_def backtrack_wl_D_heur_inv_def backtrack_wl_inv_def
+        backtrack_l_inv_def
+      by (auto simp: twl_st_heur_def)
   qed
   show ?thesis
     supply [[goals_limit=1]]
@@ -1426,6 +1862,10 @@ proof -
     unfolding backtrack_wl_D_nlit_heur_alt_def backtrack_wl_D_def
     apply (refine_rcg shorter)
     subgoal by (rule inv)
+    subgoal by (rule trail_nempty)
+    subgoal
+      
+      sorry
        apply (rule find_decomp_wl_nlit; solves assumption)
     subgoal for x y xa S x1 x2 x1a x2a Sa Sb
       by (cases Sb; cases S) (auto simp: twl_st_heur_state_simp)
@@ -1438,18 +1878,26 @@ qed
 definition (in -) lit_of_hd_trail_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal\<close> where
   \<open>lit_of_hd_trail_st S = lit_of (hd (get_trail_wl S))\<close>
 
+term lit_of_hd_trail_st_heur
+term lit_of_hd_trail
+lemma (in -) lit_of_hd_trail_st_heur_alt_def:
+  \<open>lit_of_hd_trail_st_heur = (\<lambda>(M, N, U, D, Q, W, vm, \<phi>). lit_of_hd_trail M)\<close>
+  by (auto simp: lit_of_hd_trail_st_heur_def lit_of_hd_trail_def intro!: ext)
 
-definition (in -)lit_of_hd_trail_st_heur' :: \<open>twl_st_wl_heur_trail_ref \<Rightarrow> nat literal\<close> where
-  \<open>lit_of_hd_trail_st_heur' = (\<lambda>((M, _), _). hd M)\<close>
+sepref_thm lit_of_hd_trail_st_heur
+  is \<open>RETURN o lit_of_hd_trail_st_heur\<close>
+  :: \<open>[\<lambda>S. get_trail_wl_heur S \<noteq> []]\<^sub>a twl_st_heur_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  unfolding lit_of_hd_trail_st_heur_alt_def twl_st_heur_assn_def
+  by sepref
 
-lemma lit_of_hd_trail_st_heur'_lit_of_hd_trail_st:
-   \<open>(RETURN o lit_of_hd_trail_st_heur', RETURN o lit_of_hd_trail_st) \<in>
-       [\<lambda>S. get_trail_wl S \<noteq> []]\<^sub>f twl_st_heur_pol \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
-  by (auto simp: lit_of_hd_trail_st_def twl_st_heur_pol_def trail_pol_def
-       lit_of_hd_trail_st_heur'_def ann_lits_split_reasons_def hd_map
-      intro!: frefI nres_relI)
+ concrete_definition (in -) lit_of_hd_trail_st_heur_code
+   uses isasat_input_bounded_nempty.lit_of_hd_trail_st_heur.refine_raw
+   is \<open>(?f,_)\<in>_\<close>
 
+prepare_code_thms (in -) lit_of_hd_trail_st_heur_code_def
 
+lemmas lit_of_hd_trail_st_heur_code_refine[sepref_fr_rules] =
+   lit_of_hd_trail_st_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 definition (in -) extract_shorter_conflict_l_trivial
   :: \<open>'v literal \<Rightarrow> ('v, 'a) ann_lits \<Rightarrow> 'v clauses_l \<Rightarrow> 'v clauses \<Rightarrow> 'v clauses \<Rightarrow>  'v cconflict \<Rightarrow>
@@ -1938,230 +2386,6 @@ where
 
 subsubsection \<open>Backtrack with direct extraction of literal if highest level\<close>
 
-sepref_thm lit_of_hd_trail_st_code
-  is \<open>RETURN o lit_of_hd_trail_st_heur'\<close>
-  :: \<open>[\<lambda>((M, _), _). M \<noteq> []]\<^sub>a twl_st_heur_pol_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-  unfolding lit_of_hd_trail_st_heur'_def twl_st_heur_pol_assn_def
-  by sepref
-
-concrete_definition (in -) lit_of_hd_trail_st_code
-   uses isasat_input_bounded_nempty.lit_of_hd_trail_st_code.refine_raw
-   is \<open>(?f, _)\<in>_\<close>
-
-prepare_code_thms (in -) lit_of_hd_trail_st_code_def
-
-lemmas lit_of_hd_trail_st_code_refine_code[sepref_fr_rules] =
-   lit_of_hd_trail_st_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
-definition (in -) empty_cach_ref where
-  \<open>empty_cach_ref = (\<lambda>(cach, support). (replicate (length cach) SEEN_UNKNOWN, []))\<close>
-
-definition (in isasat_input_ops) empty_cach_ref_set_inv where
-  \<open>empty_cach_ref_set_inv cach0 support =
-    (\<lambda>(i, cach). length cach = length cach0 \<and>
-         (\<forall>L \<in> set (drop i support). L < length cach) \<and>
-         (\<forall>L \<in> set (take i support).  cach ! L = SEEN_UNKNOWN) \<and>
-         (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set (drop i support)))\<close>
-
-definition (in isasat_input_ops) empty_cach_ref_set where
-  \<open>empty_cach_ref_set = (\<lambda>(cach0, support). do {
-    let n = length support;
-    (_, cach) \<leftarrow> WHILE\<^sub>T\<^bsup>empty_cach_ref_set_inv cach0 support\<^esup>
-      (\<lambda>(i, cach). i < length support)
-      (\<lambda>(i, cach). do {
-         ASSERT(i < length support);
-         ASSERT(support ! i < length cach);
-         RETURN(i+1, cach[support ! i := SEEN_UNKNOWN])
-      })
-     (0, cach0);
-    RETURN (cach, emptied_list support)
-  })\<close>
-
-lemma (in isasat_input_ops) empty_cach_ref_set_empty_cach_ref:
-  \<open>(empty_cach_ref_set, RETURN o empty_cach_ref) \<in>
-    [\<lambda>(cach, supp). (\<forall>L \<in> set supp. L < length cach) \<and>
-      (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp)]\<^sub>f
-    Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
-proof -
-  have H: \<open>WHILE\<^sub>T\<^bsup>empty_cach_ref_set_inv cach0 support'\<^esup> (\<lambda>(i, cach). i < length support')
-       (\<lambda>(i, cach).
-           ASSERT (i < length support') \<bind>
-           (\<lambda>_. ASSERT (support' ! i < length cach) \<bind>
-           (\<lambda>_. RETURN (i + 1, cach[support' ! i := SEEN_UNKNOWN]))))
-       (0, cach0) \<bind>
-      (\<lambda>(_, cach). RETURN (cach, emptied_list support'))
-      \<le> \<Down> Id (RETURN (replicate (length cach0) SEEN_UNKNOWN, []))\<close>
-    if
-      \<open>\<forall>L\<in>set support'. L < length cach0\<close> and
-      \<open>\<forall>L<length cach0. cach0 ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support'\<close>
-    for cach support cach0 support'
-  proof -
-    have init: \<open>empty_cach_ref_set_inv cach0 support' (0, cach0)\<close>
-      using that unfolding empty_cach_ref_set_inv_def
-      by auto
-    have valid_length:
-       \<open>empty_cach_ref_set_inv cach0 support' s \<Longrightarrow> case s of (i, cach) \<Rightarrow> i < length support' \<Longrightarrow>
-          s = (cach', sup') \<Longrightarrow> support' ! cach' < length sup'\<close>  for s cach' sup'
-      using that unfolding empty_cach_ref_set_inv_def
-      by auto
-    have set_next: \<open>empty_cach_ref_set_inv cach0 support' (i + 1, cach'[support' ! i := SEEN_UNKNOWN])\<close>
-      if
-        inv: \<open>empty_cach_ref_set_inv cach0 support' s\<close> and
-        cond: \<open>case s of (i, cach) \<Rightarrow> i < length support'\<close> and
-        s: \<open>s = (i, cach')\<close> and
-        valid[simp]: \<open>support' ! i < length cach'\<close>
-      for s i cach'
-    proof -
-      have
-        le_cach_cach0: \<open>length cach' = length cach0\<close> and
-        le_length: \<open>\<forall>L\<in>set (drop i support'). L < length cach'\<close> and
-        UNKNOWN: \<open>\<forall>L\<in>set (take i support'). cach' ! L = SEEN_UNKNOWN\<close> and
-        support: \<open>\<forall>L<length cach'. cach' ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set (drop i support')\<close> and
-        [simp]: \<open>i < length support'\<close>
-        using inv cond unfolding empty_cach_ref_set_inv_def s prod.case
-        by auto
-
-      show ?thesis
-        unfolding empty_cach_ref_set_inv_def
-        unfolding prod.case
-        apply (intro conjI)
-        subgoal by (simp add: le_cach_cach0)
-        subgoal using le_length by (simp add: Cons_nth_drop_Suc[symmetric])
-        subgoal using UNKNOWN by (auto simp add: take_Suc_conv_app_nth)
-        subgoal using support by (auto simp add: Cons_nth_drop_Suc[symmetric])
-        done
-    qed
-    have final: \<open>((cach', emptied_list support'), replicate (length cach0) SEEN_UNKNOWN, []) \<in> Id\<close>
-      if
-        inv: \<open>empty_cach_ref_set_inv cach0 support' s\<close> and
-        cond: \<open>\<not> (case s of (i, cach) \<Rightarrow> i < length support')\<close> and
-        s: \<open>s = (i, cach')\<close>
-        for s cach' i
-    proof -
-      have
-        le_cach_cach0: \<open>length cach' = length cach0\<close> and
-        le_length: \<open>\<forall>L\<in>set (drop i support'). L < length cach'\<close> and
-        UNKNOWN: \<open>\<forall>L\<in>set (take i support'). cach' ! L = SEEN_UNKNOWN\<close> and
-        support: \<open>\<forall>L<length cach'. cach' ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set (drop i support')\<close> and
-        i: \<open>\<not>i < length support'\<close>
-        using inv cond unfolding empty_cach_ref_set_inv_def s prod.case
-        by auto
-      have \<open>\<forall>L<length cach'. cach' ! L  = SEEN_UNKNOWN\<close>
-        using support i by auto
-      then have [dest]: \<open>L \<in> set cach' \<Longrightarrow> L = SEEN_UNKNOWN\<close> for L
-        by (metis in_set_conv_nth)
-      then have [dest]: \<open>SEEN_UNKNOWN \<notin> set cach' \<Longrightarrow> cach0 = [] \<and> cach' = []\<close>
-        using le_cach_cach0 by (cases cach') auto
-      show ?thesis
-        by (auto simp: emptied_list_def list_eq_replicate_iff le_cach_cach0)
-    qed
-    show ?thesis
-      apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i, _). length support' - i)\<close>])
-      subgoal by auto
-      subgoal by (rule init)
-      subgoal by auto
-      subgoal by (rule valid_length)
-      subgoal by (rule set_next)
-      subgoal by auto
-      subgoal by (rule final)
-      done
-  qed
-  show ?thesis
-  unfolding empty_cach_ref_set_def empty_cach_ref_def Let_def comp_def
-  by (intro frefI nres_relI) (clarify intro!: H)
-qed
-
-
-lemma (in isasat_input_ops) empty_cach_ref_empty_cach:
-  \<open>(RETURN o empty_cach_ref, RETURN o empty_cach) \<in> cach_refinement \<rightarrow>\<^sub>f \<langle>cach_refinement\<rangle> nres_rel\<close>
-  by (intro frefI nres_relI)
-    (auto simp: empty_cach_def empty_cach_ref_def cach_refinement_alt_def cach_refinement_list_def
-     map_fun_rel_def)
-
-sepref_thm (in isasat_input_ops) empty_cach_code
-  is \<open>empty_cach_ref_set\<close>
-  :: \<open>cach_refinement_l_assn\<^sup>d \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
-  supply array_replicate_hnr[sepref_fr_rules]
-  unfolding empty_cach_ref_set_def comp_def
-  by sepref
-
-concrete_definition (in -) empty_cach_code
-   uses isasat_input_ops.empty_cach_code.refine_raw
-   is \<open>(?f, _)\<in>_\<close>
-
-prepare_code_thms (in -) empty_cach_code_def
-
-lemmas (in isasat_input_ops) empty_cach_ref_hnr[sepref_fr_rules] =
-   empty_cach_code.refine
-
-theorem (in isasat_input_ops) empty_cach_code_empty_cach_ref:
-  \<open>(empty_cach_code,
-   RETURN \<circ> empty_cach_ref)
-    \<in> [(\<lambda>(cach :: minimize_status list, supp :: nat list).
-         (\<forall>L\<in>set supp. L < length cach) \<and>
-         (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp))]\<^sub>a
-    cach_refinement_l_assn\<^sup>d \<rightarrow> cach_refinement_l_assn\<close>
-    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
-proof -
-  have H: \<open>?c
-    \<in>[comp_PRE Id
-     (\<lambda>(cach, supp).
-         (\<forall>L\<in>set supp. L < length cach) \<and>
-         (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp))
-     (\<lambda>x y. True)
-     (\<lambda>x. nofail ((RETURN \<circ> empty_cach_ref) x))]\<^sub>a
-      hrp_comp (cach_refinement_l_assn\<^sup>d)
-                     Id \<rightarrow> hr_comp cach_refinement_l_assn Id\<close>
-    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE[OF empty_cach_ref_hnr[unfolded PR_CONST_def]
-    empty_cach_ref_set_empty_cach_ref] by simp
-  have pre: \<open>?pre' h x\<close> if \<open>?pre x\<close> for x h
-    using that by (auto simp: comp_PRE_def twl_st_heur_pol_def trail_pol_def
-        ann_lits_split_reasons_def)
-  have im: \<open>?im' = ?im\<close>
-    by simp
-  have f: \<open>?f' = ?f\<close>
-    by auto
-  show ?thesis
-    apply (rule hfref_weaken_pre[OF ])
-     defer
-    using H unfolding im f apply assumption
-    using pre ..
-qed
-
-lemma (in isasat_input_ops) empty_cach_hnr[sepref_fr_rules]:
-  \<open>(empty_cach_code, RETURN \<circ> empty_cach) \<in> cach_refinement_assn\<^sup>d \<rightarrow>\<^sub>a cach_refinement_assn\<close>
-    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
-proof -
-  have H: \<open>?c \<in> [comp_PRE cach_refinement (\<lambda>_. True)
-     (\<lambda>x y. case y of
-            (cach, supp) \<Rightarrow>
-              (\<forall>L\<in>set supp. L < length cach) \<and>
-              (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp))
-     (\<lambda>x. nofail
-           ((RETURN \<circ> empty_cach)
-             x))]\<^sub>a hrp_comp (cach_refinement_l_assn\<^sup>d)
-                     cach_refinement \<rightarrow> hr_comp cach_refinement_l_assn cach_refinement\<close>
-    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE[OF empty_cach_code_empty_cach_ref[unfolded PR_CONST_def]
-    empty_cach_ref_empty_cach] by simp
-  have pre: \<open>?pre' h x\<close> if \<open>?pre x\<close> for x h
-    using that by (auto simp: comp_PRE_def twl_st_heur_pol_def trail_pol_def
-        ann_lits_split_reasons_def cach_refinement_alt_def)
-  have im: \<open>?im' = ?im\<close>
-    unfolding cach_refinement_assn_def
-     prod_hrp_comp hrp_comp_dest hrp_comp_keep
-    by simp
-  have f: \<open>?f' = ?f\<close>
-    unfolding cach_refinement_assn_def
-    by auto
-  show ?thesis
-    apply (rule hfref_weaken_pre[OF ])
-     defer
-    using H unfolding im f apply assumption
-    using pre ..
-qed
-
 (*
 State Function                                |  Minimisation Function
 ----------------------------------------------|---------------------------------------------
@@ -2485,13 +2709,6 @@ proof -
 qed
 
 
-definition find_decomp_wvmtf_ns_pre where
-  \<open>find_decomp_wvmtf_ns_pre = (\<lambda>((M, highest), vm).
-      \<exists>N U D NE UE Q W. twl_struct_invs (twl_st_of_wl None (M, N, U, D, NE, UE, Q, W)) \<and>
-       highest < count_decided M \<and>
-       literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<and>
-       vm \<in> vmtf M)\<close>
-
 lemma find_decomp_wl_imp_find_decomp_wl':
   \<open>(uncurry2 find_decomp_wl_imp, uncurry2 find_decomp_wvmtf_ns) \<in>
     [find_decomp_wvmtf_ns_pre]\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id \<times>\<^sub>f Id\<rangle>nres_rel\<close>
@@ -2559,61 +2776,37 @@ proof -
   done
 qed
 
-definition find_decomp_wl_pre
-   :: \<open>(nat literal \<times> nat conflict_highest_conflict) \<times> nat twl_st_wl \<Rightarrow> bool\<close>
-where
-   \<open>find_decomp_wl_pre =  (\<lambda>((L, highest), T).
-       \<exists>S. equality_except_conflict S T \<and>
-         (twl_struct_invs (twl_st_of_wl None S) \<and>
-         literals_are_in_\<L>\<^sub>i\<^sub>n_trail (get_trail_wl S) \<and>
-         count_decided (get_trail_wl S) > 0 \<and>
-         (highest \<noteq> None \<longrightarrow> snd (the highest) < count_decided (get_trail_wl S))))\<close>
-
-lemma twl_st_heur_no_clvls_confl_twl_st_heur_no_clvls:
-  \<open>twl_st_heur_no_clvls_confl = twl_st_wl_heur_lookup_lookup_clause_rel O twl_st_heur_no_clvls\<close>
-  by (force simp: twl_st_heur_no_clvls_confl_def twl_st_wl_heur_lookup_lookup_clause_rel_def
-      twl_st_heur_no_clvls_def)
-
-lemma twl_st_no_clvls_assn_twl_st_heur_no_clvls:
-  \<open>twl_st_no_clvls_assn = hr_comp twl_st_heur_assn twl_st_heur_no_clvls\<close>
-  by (auto simp: twl_st_no_clvls_assn_def twl_st_heur_assn_int_lookup_clause_assn
-      hr_comp_assoc twl_st_heur_no_clvls_confl_twl_st_heur_no_clvls)
-
+sepref_register find_decomp_wl_nlit
 lemma find_decomp_wl_imp'_code_find_decomp_wl[sepref_fr_rules]:
   fixes M :: \<open>(nat, nat) ann_lits\<close>
-  shows \<open>(uncurry2 find_decomp_wl_imp'_code, uncurry2 find_decomp_wl_nlit) \<in>
+  shows \<open>(uncurry find_decomp_wl_imp'_code, uncurry (PR_CONST find_decomp_wl_nlit)) \<in>
     [find_decomp_wl_pre]\<^sub>a
-       unat_lit_assn\<^sup>k *\<^sub>a highest_lit_assn\<^sup>k *\<^sub>a twl_st_no_clvls_assn\<^sup>d \<rightarrow>
-     twl_st_no_clvls_assn\<close>
+       uint32_nat_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d \<rightarrow>
+     twl_st_heur_assn\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   define L where L: \<open>L \<equiv> -lit_of (hd M)\<close>
   have H: \<open>?c
-       \<in> [comp_PRE (nat_lit_lit_rel \<times>\<^sub>f Id \<times>\<^sub>f twl_st_heur_no_clvls)
-     (\<lambda>((L, highest), S). True)
-     (\<lambda>_ ((L, highest), M', N, U, D, W, Q, vm, \<phi>).
+       \<in> [comp_PRE (nat_rel \<times>\<^sub>f Id) (\<lambda>(highest, S). True)
+     (\<lambda>_ (highest, M', N, U, D, W, Q, vm, \<phi>).
          find_decomp_wvmtf_ns_pre ((M', highest), vm))
-     (\<lambda>_. True)]\<^sub>a hrp_comp
-                     (unat_lit_assn\<^sup>k *\<^sub>a
-                      highest_lit_assn\<^sup>k *\<^sub>a
-                      twl_st_heur_assn\<^sup>d)
-                     (nat_lit_lit_rel \<times>\<^sub>f Id \<times>\<^sub>f
-                      twl_st_heur_no_clvls) \<rightarrow> hr_comp twl_st_heur_assn
-   twl_st_heur_no_clvls\<close>
+     (\<lambda>_. True)]\<^sub>a hrp_comp (uint32_nat_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d)
+                    (nat_rel \<times>\<^sub>f Id) \<rightarrow> hr_comp twl_st_heur_assn Id\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF find_decomp_wl_imp'_code_hnr[unfolded PR_CONST_def]
          find_decomp_wl_st_int_find_decomp_wl_nlit]
+    unfolding PR_CONST_def
     .
   have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
     unfolding comp_PRE_def find_decomp_wl_pre_def find_decomp_wvmtf_ns_pre_def highest_lit_def
         twl_st_heur_no_clvls_def
     by (fastforce simp del: twl_st_of_wl.simps)
   have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_no_clvls_assn_twl_st_heur_no_clvls
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
     by simp
   have f: \<open>?f' = ?f\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_no_clvls_assn_def[symmetric]
-       hr_comp_prod_conv hr_comp_Id2 twl_st_no_clvls_assn_twl_st_heur_no_clvls ..
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
+       hr_comp_prod_conv hr_comp_Id2 ..
   show ?thesis
     apply (rule hfref_weaken_pre[OF ])
      defer
@@ -2646,6 +2839,7 @@ prepare_code_thms (in -) size_conflict_wl_code_def
 lemmas size_conflict_wl_code_hnr[sepref_fr_rules] =
    size_conflict_wl_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
+(* TODO Kill *)
 lemma size_conflict_wl_heur_size_conflict_wl:
   \<open>(RETURN o size_conflict_wl_heur, RETURN o size_conflict_wl) \<in>
    [\<lambda>S. get_conflict_wl S \<noteq> None]\<^sub>f twl_st_wl_heur_lookup_lookup_clause_rel O twl_st_heur_no_clvls \<rightarrow>
@@ -2656,17 +2850,7 @@ lemma size_conflict_wl_heur_size_conflict_wl:
       option_lookup_clause_rel_def
       lookup_clause_rel_def twl_st_heur_no_clvls_def)
 
-lemma twl_st_no_clvls_assn_alt_def:
-  \<open>twl_st_no_clvls_assn = hr_comp twl_st_heur_lookup_lookup_clause_assn
-     (twl_st_wl_heur_lookup_lookup_clause_rel O twl_st_heur_no_clvls)\<close>
-  unfolding twl_st_heur_lookup_lookup_clause_assn_def
-    twl_st_wl_heur_lookup_lookup_clause_rel_def twl_st_heur_assn_def
-    prod_hrp_comp hrp_comp_dest hrp_comp_keep hr_comp_prod_conv
-    hr_comp_assoc[symmetric] option_lookup_clause_assn_def
-    twl_st_no_clvls_assn_twl_st_heur_no_clvls
-  by auto
-
-
+(* 
 theorem size_conflict_wl_hnr[sepref_fr_rules]:
   \<open>(size_conflict_wl_code, RETURN o size_conflict_wl)
     \<in> [\<lambda>S. get_conflict_wl S \<noteq> None]\<^sub>a
@@ -2700,21 +2884,9 @@ proof -
     using H unfolding im f PR_CONST_def apply assumption
     using pre ..
 qed
+ *)
 
-definition list_of_mset2_None where
-  \<open>list_of_mset2_None L L' D = SPEC(\<lambda>(E, F). mset E = the D \<and> E!0 = L \<and> E!1 = L' \<and>
-     F = None \<and> length E \<ge> 2)\<close>
-
-lemma propagate_bt_wl_D_alt_def:
-  \<open>propagate_bt_wl_D = (\<lambda>L L' (M, N, U, D, NE, UE, Q, W).
-    list_of_mset2_None (- L) L' D \<bind>
-    (\<lambda>(D'', E). RETURN
-             (Propagated (- L) (length N) # M, N @ [D''], U, E, NE, UE, {#L#},
-              W(- L := W (- L) @ [length N], L' := W L' @ [length N]))))\<close>
-  unfolding propagate_bt_wl_D_def list_of_mset2_def list_of_mset2_None_def
-  by (auto simp: RES_RETURN_RES RES_RETURN_RES2 uncurry_def intro!: ext)
-
-type_synonym (in -) lookup_clause_rel_with_cls = \<open>nat clause_l \<times> bool option list\<close>
+(* type_synonym (in -) lookup_clause_rel_with_cls = \<open>nat clause_l \<times> bool option list\<close>
 type_synonym (in -) conflict_with_cls_assn = \<open>uint32 array \<times> bool option array\<close>
 
 type_synonym twl_st_wll_confl_with_cls =
@@ -2792,8 +2964,9 @@ definition conflict_to_conflict_with_cls_spec where
 definition list_of_mset2_None_droped where
   \<open>list_of_mset2_None_droped L L' _ D = SPEC(\<lambda>(E, F). mset (unwatched_l E) = the D \<and> E!0 = L \<and> E!1 = L' \<and>
      F = None \<and> length E \<ge> 2)\<close>
+ *)
 
-lemma conflict_to_conflict_with_cls_id:
+(* lemma conflict_to_conflict_with_cls_id:
   \<open>(uncurry3 conflict_to_conflict_with_cls, uncurry3 list_of_mset2_None_droped) \<in>
     [\<lambda>(((L, L'),D), C). C \<noteq> None \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the C) \<and> length D = size (the C) + 2 \<and>
       L = D!0 \<and> L' = D!1]\<^sub>f
@@ -3148,7 +3321,7 @@ proof -
       using H by (auto simp: conflict_to_conflict_with_cls_spec_def)
     done
 qed
-
+ *)
 
 lemma conflict_to_conflict_with_cls_code_helper:
   \<open>a1'b \<le> uint_max div 2 \<Longrightarrow> Suc a1'b \<le> uint_max\<close>
@@ -3156,7 +3329,7 @@ lemma conflict_to_conflict_with_cls_code_helper:
   \<open>fast_minus a1'c one_uint32_nat  = a1'c - 1\<close>
   by (auto simp: uint_max_def)
 
-sepref_register conflict_to_conflict_with_cls
+(* sepref_register conflict_to_conflict_with_cls
 sepref_thm conflict_to_conflict_with_cls_code
   is \<open>uncurry3 (PR_CONST conflict_to_conflict_with_cls)\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a(array_assn unat_lit_assn)\<^sup>d *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow>\<^sub>a
@@ -3184,8 +3357,9 @@ prepare_code_thms (in -) conflict_to_conflict_with_cls_code_def
 
 lemmas conflict_to_conflict_with_cls_code_refine[sepref_fr_rules] =
    conflict_to_conflict_with_cls_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+ *)
 
-lemma extract_shorter_conflict_with_cls_code_conflict_to_conflict_with_cls_spec[sepref_fr_rules]:
+(* lemma extract_shorter_conflict_with_cls_code_conflict_to_conflict_with_cls_spec[sepref_fr_rules]:
   \<open>(uncurry3 conflict_to_conflict_with_cls_code, uncurry3 list_of_mset2_None_droped)
     \<in> [\<lambda>(((L, L'), D), C). C \<noteq> None \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (the C) \<and>
            length D = size (the C) + 2 \<and> L = D ! 0 \<and> L' = D ! 1]\<^sub>a
@@ -3196,8 +3370,8 @@ lemma extract_shorter_conflict_with_cls_code_conflict_to_conflict_with_cls_spec[
     FCOMP conflict_to_conflict_with_cls_id]
   unfolding option_lookup_clause_assn_def
   by simp
-
-definition remove2_from_conflict :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> nat cconflict \<Rightarrow> nat cconflict\<close> where
+ *)
+(* definition remove2_from_conflict :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> nat cconflict \<Rightarrow> nat cconflict\<close> where
   \<open>remove2_from_conflict L L' C = Some (remove1_mset L (remove1_mset L' (the C)))\<close>
 
 definition remove2_from_conflict_int
@@ -3272,8 +3446,8 @@ proof -
     using H unfolding im PR_CONST_def apply assumption
     using pre ..
 qed
-
-definition list_of_mset2_None_int where
+ *)
+(* definition list_of_mset2_None_int where
   \<open>list_of_mset2_None_int L L' C\<^sub>0 =  do {
      let n = size (the C\<^sub>0);
      ASSERT(n \<ge> 2);
@@ -3299,7 +3473,7 @@ lemma list_of_mset2_None_int_list_of_mset2_None:
       literals_are_in_\<L>\<^sub>i\<^sub>n_sub literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset list_of_mset2_None_droped_def
       dest!: multi_member_split
       elim!: list_length2E)
-
+ *)
 definition size_conflict :: \<open>nat clause option \<Rightarrow> nat\<close> where
   \<open>size_conflict D = size (the D)\<close>
 
@@ -3332,7 +3506,7 @@ lemma size_conflict_hnr[sepref_fr_rules]:
   unfolding option_lookup_clause_assn_def[symmetric]
   by simp
 
-sepref_thm list_of_mset2_None_code
+(* sepref_thm list_of_mset2_None_code
   is \<open>uncurry2 (PR_CONST list_of_mset2_None_int)\<close>
   :: \<open>[\<lambda>((L, L'), C). C \<noteq> None \<and> L \<in># the C \<and> L' \<in># the C \<and> L \<noteq> L' \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> L' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
        literals_are_in_\<L>\<^sub>i\<^sub>n (the C)]\<^sub>a
@@ -3341,9 +3515,9 @@ sepref_thm list_of_mset2_None_code
   supply [[goals_limit=1]] size_conflict_def[simp]
   unfolding list_of_mset2_None_int_def size_conflict_def[symmetric]
     array_fold_custom_replicate PR_CONST_def
-  by sepref
+  by sepref *)
 
-concrete_definition (in -) list_of_mset2_None_code
+(* concrete_definition (in -) list_of_mset2_None_code
    uses isasat_input_bounded_nempty.list_of_mset2_None_code.refine_raw
    is \<open>(uncurry2 ?f, _) \<in> _\<close>
 
@@ -3360,7 +3534,7 @@ lemma list_of_mset2_None_hnr[sepref_fr_rules]:
       clause_ll_assn *a option_lookup_clause_assn\<close>
   using list_of_mset2_None_int_hnr[unfolded PR_CONST_def, FCOMP list_of_mset2_None_int_list_of_mset2_None]
   by simp
-
+ *)
 definition (in isasat_input_ops) vmtf_rescore_body
  :: \<open>nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> phase_saver \<Rightarrow>
     (nat \<times> vmtf_remove_int \<times> phase_saver) nres\<close>
@@ -3393,7 +3567,7 @@ sepref_thm vmtf_rescore_code
        vmtf_remove_conc *a phase_saver_conc\<close>
   unfolding vmtf_rescore_def vmtf_mark_to_rescore_and_unset_def save_phase_inv_def vmtf_mark_to_rescore_def vmtf_unset_def
   vmtf_rescore_body_def
-  supply [[goals_limit = 1]] is_None_def[simp] fold_is_None[simp]
+  supply [[goals_limit = 1]] fold_is_None[simp]
   by sepref
 
 concrete_definition (in -) vmtf_rescore_code
@@ -3494,56 +3668,12 @@ lemma trail_dump_code_rescore[sepref_fr_rules]:
 definition st_remove_highest_lvl_from_confl :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl\<close> where
    \<open>st_remove_highest_lvl_from_confl S = S\<close>
 
-definition st_remove_highest_lvl_from_confl_heur :: \<open>twl_st_wl_confl_extracted_int \<Rightarrow> twl_st_wl_heur_lookup_conflict\<close> where
-  \<open>st_remove_highest_lvl_from_confl_heur = (\<lambda>(M, N, U, (D, _), oth). (M, N, U, D, oth))\<close>
 
+sepref_register rescore_clause flush
 
-type_synonym (in -) twl_st_wl_W_int =
-  \<open>(nat,nat) ann_lits \<times> nat clause_l list \<times> nat \<times>
-    nat clause option \<times> nat clauses \<times> nat clauses \<times> nat clause \<times> (nat literal \<Rightarrow> nat list)\<close>
-
-definition twl_st_wl_W_conflict
-  :: \<open>(twl_st_wl_heur_lookup_conflict \<times> twl_st_wl_W_int) set\<close>
-where
-  \<open>twl_st_wl_W_conflict =
-   {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lvls), M, N, U, D, NE, UE, Q, W).
-     M = M' \<and>
-     N' = N \<and>
-     U' = U \<and>
-     (D', D) \<in> option_lookup_clause_rel \<and>
-     Q' = Q \<and>
-     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
-     vm \<in> vmtf M \<and> phase_saving \<phi> \<and> no_dup M\<and>
-     cach_refinement_empty cach}\<close>
-
-definition twl_st_W_conflict_int_assn
-  :: \<open>twl_st_wl_heur_lookup_conflict \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close>
-where
-\<open>twl_st_W_conflict_int_assn =
-  trail_assn *a clauses_ll_assn *a nat_assn *a
-  conflict_option_rel_assn *a
-  clause_l_assn *a
-  arrayO_assn (arl_assn nat_assn) *a
-  vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn *a
-  cach_refinement_assn *a
-  lbd_assn *a
-  stats_assn
-  \<close>
-
-
-sepref_register list_of_mset2_None rescore_clause flush
 sepref_thm propagate_bt_wl_D_code
   is \<open>uncurry2 (PR_CONST propagate_bt_wl_D_heur)\<close>
-  :: \<open>[\<lambda>((L, L'), S). get_conflict_wl_heur S \<noteq> None \<and> -L \<in># the (get_conflict_wl_heur S) \<and>
-         L' \<in># the (get_conflict_wl_heur S) \<and> -L \<noteq> L' \<and>
-       literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl_heur S)) \<and>
-       distinct_mset (the (get_conflict_wl_heur S)) \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> L' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
-       undefined_lit (get_trail_wl_heur S) L \<and>
-     nat_of_lit (-L) < length (get_watched_list_heur S) \<and>
-     nat_of_lit L' < length (get_watched_list_heur S) \<and>
-     get_vmtf_heur S \<in> vmtf (get_trail_wl_heur S) \<and>
-     phase_saving (get_phase_saver_heur S)]\<^sub>a
-   unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d \<rightarrow> twl_st_heur_assn\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_heur_assn\<close>
   supply [[goals_limit = 1]] uminus_\<A>\<^sub>i\<^sub>n_iff[simp] image_image[simp] append_ll_def[simp]
   rescore_clause_def[simp] flush_def[simp]
   unfolding propagate_bt_wl_D_heur_def twl_st_heur_assn_def cons_trail_Propagated_def[symmetric]
@@ -3561,101 +3691,6 @@ prepare_code_thms (in -) propagate_bt_wl_D_code_def
 
 lemmas propagate_bt_wl_D_heur_hnr[sepref_fr_rules] =
   propagate_bt_wl_D_code.refine[OF isasat_input_bounded_nempty_axioms]
-
-lemma propagate_bt_wl_D_heur_propagate_bt_wl_D:
-  \<open>(uncurry2 propagate_bt_wl_D_heur, uncurry2 propagate_bt_wl_D) \<in>
-     [\<lambda>((L, L'), S). get_conflict_wl S \<noteq> None \<and> -L \<noteq> L' \<and> undefined_lit (get_trail_wl S) L \<and>
-    literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl S))]\<^sub>f
-     Id \<times>\<^sub>f Id \<times>\<^sub>f twl_st_heur_no_clvls \<rightarrow> \<langle>twl_st_heur\<rangle>nres_rel\<close>
-  apply (intro frefI nres_relI)
-  unfolding propagate_bt_wl_D_heur_def propagate_bt_wl_D_alt_def twl_st_heur_def list_of_mset2_None_def
-    twl_st_heur_no_clvls_def uncurry_def
-  apply clarify
-  apply refine_vcg
-  apply
-    (auto simp: propagate_bt_wl_D_heur_def propagate_bt_wl_D_def Let_def
-      RES_RES2_RETURN_RES RETURN_def RES_RES_RETURN_RES
-      list_of_mset2_def list_of_mset2_None_def RES_RETURN_RES2 RES_RETURN_RES twl_st_heur_def
-      map_fun_rel_def rescore_clause_def flush_def
-      intro!: RES_refine vmtf_consD)
-  done
-
-definition propagate_bt_wl_D_pre :: \<open>(nat literal \<times> nat literal) \<times> nat twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>propagate_bt_wl_D_pre = (\<lambda>((L, L'), S).
-         get_conflict_wl S \<noteq> None \<and>
-         - L \<in># the (get_conflict_wl S) \<and>
-         L' \<in># the (get_conflict_wl S) \<and>
-         - L \<noteq> L' \<and>
-         literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl S)) \<and>
-         distinct_mset (the (get_conflict_wl S)) \<and>
-         undefined_lit (get_trail_wl S) L)\<close>
-
-lemma propagate_bt_wl_D_hnr[sepref_fr_rules]:
-  \<open>(uncurry2 propagate_bt_wl_D_code, uncurry2 propagate_bt_wl_D) \<in>
-    [propagate_bt_wl_D_pre]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a twl_st_no_clvls_assn\<^sup>d \<rightarrow>
-        twl_st_assn\<close>
-    (is \<open>?fun \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
-proof -
-  have H: \<open>?fun \<in>
-     [comp_PRE (nat_lit_lit_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur_no_clvls)
-     (\<lambda>((L, L'), S).
-         get_conflict_wl S \<noteq> None \<and>
-         - L \<noteq> L' \<and>
-         undefined_lit (get_trail_wl S) L \<and>
-         literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl S)))
-     (\<lambda>_ ((L, L'), S).
-         get_conflict_wl_heur S \<noteq> None \<and>
-         - L \<in># the (get_conflict_wl_heur S) \<and>
-         L' \<in># the (get_conflict_wl_heur S) \<and>
-         - L \<noteq> L' \<and>
-         literals_are_in_\<L>\<^sub>i\<^sub>n (the (get_conflict_wl_heur S)) \<and>
-         distinct_mset (the (get_conflict_wl_heur S)) \<and>
-         L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
-         L' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and>
-         undefined_lit (get_trail_wl_heur S) L \<and>
-         nat_of_lit (- L) < length (get_watched_list_heur S) \<and>
-         nat_of_lit L' < length (get_watched_list_heur S) \<and>
-         get_vmtf_heur S \<in> vmtf (get_trail_wl_heur S) \<and>
-         phase_saving (get_phase_saver_heur S))
-     (\<lambda>_. True)]\<^sub>a hrp_comp
-                     (unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
-                      twl_st_heur_assn\<^sup>d)
-                     (nat_lit_lit_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f
-                      twl_st_heur_no_clvls) \<rightarrow> hr_comp twl_st_heur_assn twl_st_heur
-\<close>
-    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF propagate_bt_wl_D_heur_hnr[unfolded PR_CONST_def]
-       propagate_bt_wl_D_heur_propagate_bt_wl_D]
-    .
-  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
-    using that unfolding comp_PRE_def twl_st_heur_def map_fun_rel_def propagate_bt_wl_D_pre_def
-    twl_st_heur_no_clvls_def
-    by (fastforce simp: image_image uminus_\<A>\<^sub>i\<^sub>n_iff dest: in_literals_are_in_\<L>\<^sub>i\<^sub>n_in_D\<^sub>0)
-  have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def[symmetric]
-    twl_st_no_clvls_assn_def[symmetric] twl_st_no_clvls_assn_twl_st_heur_no_clvls
-    by (auto simp: hrp_comp_def hr_comp_def)
-  have f: \<open>?f' = ?f\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def
-    by (auto simp: hrp_comp_def hr_comp_def)
-  show ?thesis
-    apply (rule hfref_weaken_pre[OF ])
-     defer
-    using H unfolding im f PR_CONST_def apply assumption
-    using pre ..
-qed
-
-
-lemma propagate_unit_bt_wl_D_int_propagate_unit_bt_wl_D:
-  \<open>(uncurry propagate_unit_bt_wl_D_int, uncurry propagate_unit_bt_wl_D) \<in>
-     [\<lambda>(L, S). get_conflict_wl S \<noteq> None \<and> undefined_lit (get_trail_wl S) L \<and>
-        size(the (get_conflict_wl S)) = 1]\<^sub>f
-     Id \<times>\<^sub>f twl_st_heur_no_clvls \<rightarrow> \<langle>twl_st_heur\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-     (auto simp: propagate_unit_bt_wl_D_int_def propagate_unit_bt_wl_D_def RES_RETURN_RES
-      twl_st_heur_def flush_def RES_RES_RETURN_RES single_of_mset_def remove_last_def
-      twl_st_heur_no_clvls_def
-      intro!: RES_refine vmtf_consD size_1_singleton_mset)
 
 definition remove_last_int :: \<open>nat literal \<Rightarrow> _ \<Rightarrow> _\<close> where
   \<open>remove_last_int = (\<lambda>L (b, n, xs). (True, 0, xs[atm_of L := None]))\<close>
@@ -3691,6 +3726,7 @@ prepare_code_thms (in -) remove_last_code_def
 lemmas remove_last_int_hnr[sepref_fr_rules] =
    remove_last_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
+(* TODO Kill *)
 theorem remove_last_hnr[sepref_fr_rules]:
   \<open>(uncurry remove_last_code, uncurry remove_last)
     \<in> [\<lambda>(L, D). D \<noteq> None \<and> -L \<in># the D \<and> size (the D) = 1 \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l]\<^sub>a
@@ -3725,10 +3761,7 @@ qed
 
 sepref_thm propagate_unit_bt_wl_D_code
   is \<open>uncurry (PR_CONST propagate_unit_bt_wl_D_int)\<close>
-  :: \<open>[\<lambda>(L, S). get_conflict_wl_heur S \<noteq> None \<and> size (the (get_conflict_wl_heur S)) = 1 \<and>
-        undefined_lit (get_trail_wl_heur S) L \<and>
-         -L \<in># the (get_conflict_wl_heur S) \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> get_vmtf_heur S \<in> vmtf (get_trail_wl_heur S)]\<^sub>a
-   unat_lit_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d \<rightarrow> twl_st_heur_assn\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_heur_assn\<close>
   supply [[goals_limit = 1]] flush_def[simp] image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[simp]
   unfolding propagate_unit_bt_wl_D_int_def cons_trail_Propagated_def[symmetric] twl_st_heur_assn_def
   PR_CONST_def
@@ -3744,48 +3777,6 @@ prepare_code_thms (in -) propagate_unit_bt_wl_D_code_def
 lemmas propagate_unit_bt_wl_D_int_hnr[sepref_fr_rules] =
   propagate_unit_bt_wl_D_code.refine[OF isasat_input_bounded_nempty_axioms]
 
-definition propagate_unit_bt_wl_D_pre :: \<open>nat literal \<times> nat twl_st_wl \<Rightarrow> bool\<close> where
-   \<open>propagate_unit_bt_wl_D_pre =
-      (\<lambda>(L, S). get_conflict_wl S \<noteq> None \<and> undefined_lit (get_trail_wl S) L \<and>
-        size(the (get_conflict_wl S)) = 1 \<and> -L \<in># the (get_conflict_wl S) \<and>
-        L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l)\<close>
-
-theorem propagate_unit_bt_wl_D_hnr[sepref_fr_rules]:
-  \<open>(uncurry propagate_unit_bt_wl_D_code, uncurry propagate_unit_bt_wl_D)
-    \<in> [propagate_unit_bt_wl_D_pre]\<^sub>a
-     unat_lit_assn\<^sup>k *\<^sub>a twl_st_no_clvls_assn\<^sup>d \<rightarrow> twl_st_assn\<close>
-    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
-proof -
-  have H: \<open>?c \<in>
-    [comp_PRE (nat_lit_lit_rel \<times>\<^sub>f twl_st_heur_no_clvls)
-       (\<lambda>(L, S). get_conflict_wl S \<noteq> None \<and> undefined_lit (get_trail_wl S) L \<and>
-           size (the (get_conflict_wl S)) = 1)
-       (\<lambda>_ (L, S). get_conflict_wl_heur S \<noteq> None \<and> size (the (get_conflict_wl_heur S)) = 1 \<and>
-           undefined_lit (get_trail_wl_heur S) L \<and> -L \<in># the (get_conflict_wl_heur S) \<and>
-           L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<and> get_vmtf_heur S \<in> vmtf (get_trail_wl_heur S))
-       (\<lambda>_. True)]\<^sub>a
-   hrp_comp (unat_lit_assn\<^sup>k *\<^sub>a twl_st_heur_assn\<^sup>d) (nat_lit_lit_rel \<times>\<^sub>f twl_st_heur_no_clvls) \<rightarrow>
-   hr_comp twl_st_heur_assn twl_st_heur\<close>
-    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF propagate_unit_bt_wl_D_int_hnr[unfolded PR_CONST_def]
-    propagate_unit_bt_wl_D_int_propagate_unit_bt_wl_D]  .
-  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
-    using that by (auto simp: comp_PRE_def twl_st_heur_def  twl_st_heur_no_clvls_def
-        in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff propagate_unit_bt_wl_D_pre_def)
-  have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def
-      twl_st_no_clvls_assn_twl_st_heur_no_clvls
-    by simp
-  have f: \<open>?f' = ?f\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def
-    by (auto simp: hrp_comp_def hr_comp_def)
-  show ?thesis
-    apply (rule hfref_weaken_pre[OF ])
-     defer
-    using H unfolding im f PR_CONST_def apply assumption
-    using pre ..
-qed
-
 end
 
 setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close>
@@ -3793,7 +3784,7 @@ setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<
 context isasat_input_bounded_nempty
 begin
 
-lemma backtrack_wl_D_nlit_invariants:
+(* lemma backtrack_wl_D_nlit_invariants:
   assumes inv: \<open>backtrack_wl_D_inv S\<close>
   shows
    \<open>get_trail_wl S \<noteq> []\<close> (is ?Trail) and
@@ -3984,22 +3975,100 @@ proof -
     unfolding propagate_bt_wl_D_pre_def V S lit_of_hd_trail_st_def highest_lit_def highest_Some
     by (auto dest: in_diffD)
 qed
+ *)
 
+lemma empty_conflict_and_extract_clause_heur_empty_conflict_and_extract_clause':
+  \<open>(uncurry2 (empty_conflict_and_extract_clause_heur), uncurry2 empty_conflict_and_extract_clause) \<in>
+    [empty_conflict_and_extract_clause_pre]\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto intro!: empty_conflict_and_extract_clause_heur_empty_conflict_and_extract_clause
+      simp: empty_conflict_and_extract_clause_pre_def)
 
+theorem empty_conflict_and_extract_clause_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 (empty_conflict_and_extract_clause_heur_code),
+      uncurry2 empty_conflict_and_extract_clause) \<in>
+    [empty_conflict_and_extract_clause_pre]\<^sub>a trail_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>d *\<^sub>a
+                        out_learned_assn\<^sup>k \<rightarrow> option_lookup_clause_assn *a
+     clause_ll_assn *a uint32_nat_assn\<close>
+    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c
+    \<in> [comp_PRE (Id \<times>\<^sub>f Id \<times>\<^sub>f Id) empty_conflict_and_extract_clause_pre
+       (\<lambda>x y. case y of (x, xa) \<Rightarrow> (case x of (M, D) \<Rightarrow> \<lambda>outl. outl \<noteq> [] \<and> length outl \<le> uint_max)
+                 xa)
+       (\<lambda>x. nofail
+             (uncurry2 empty_conflict_and_extract_clause
+               x))]\<^sub>a
+    hrp_comp ((hr_comp trail_pol_assn trail_pol)\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>k)
+      (Id \<times>\<^sub>f Id \<times>\<^sub>f Id) \<rightarrow>
+    hr_comp (option_lookup_clause_assn *a clause_ll_assn *a uint32_nat_assn) Id\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
+    using hfref_compI_PRE[OF empty_conflict_and_extract_clause_heur_code.refine[unfolded PR_CONST_def]
+    empty_conflict_and_extract_clause_heur_empty_conflict_and_extract_clause']
+    .
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x h
+    using that by (auto simp: comp_PRE_def empty_conflict_and_extract_clause_pre_def)
+  have im: \<open>?im' = ?im\<close>
+    by simp
+  have f: \<open>?f' = ?f\<close>
+    by auto
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H unfolding im f apply assumption
+    using pre ..
+qed
 
-sepref_register find_lit_of_max_level_wl propagate_bt_wl_D propagate_unit_bt_wl_D
+definition (in -) take1 where
+  \<open>take1 xs = take 1 xs\<close>
+
+lemma (in -) take1_hnr[sepref_fr_rules]:
+  \<open>(return o (\<lambda>(a, _). (a, 1::nat)), RETURN o take1) \<in> [\<lambda>xs. xs \<noteq> []]\<^sub>a (arl_assn R)\<^sup>d \<rightarrow> arl_assn R\<close>
+  apply sepref_to_hoare
+  apply (sep_auto simp: arl_assn_def hr_comp_def take1_def list_rel_def
+      is_array_list_def
+      intro!: list_all2_takeI)
+  apply (case_tac xi; case_tac x)
+   apply (auto simp: entails_def)
+  apply (rule_tac x=l' in exI)
+  apply (auto dest!: list_all2_lengthD intro: mod_star_trueI)
+  done
+
+sepref_thm extract_shorter_conflict_list_heur_st
+  is \<open>PR_CONST extract_shorter_conflict_list_heur_st\<close>
+  :: \<open>twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_heur_assn *a uint32_nat_assn *a clause_ll_assn\<close>
+  supply [[goals_limit=1]]
+empty_conflict_and_extract_clause_pre_def[simp](* TODO: cheating *)
+  unfolding extract_shorter_conflict_list_heur_st_def PR_CONST_def twl_st_heur_assn_def
+  unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
+    take1_def[symmetric]
+  by sepref
+
+concrete_definition (in -) extract_shorter_conflict_list_heur_st_code
+   uses isasat_input_bounded_nempty.extract_shorter_conflict_list_heur_st.refine_raw
+   is \<open>(?f, _) \<in> _\<close>
+
+prepare_code_thms (in -) extract_shorter_conflict_list_heur_st_code_def
+
+lemmas extract_shorter_conflict_list_heur_st_hnr[sepref_fr_rules] =
+   extract_shorter_conflict_list_heur_st_code.refine[OF isasat_input_bounded_nempty_axioms]
+
+sepref_register find_lit_of_max_level_wl
+   extract_shorter_conflict_list_heur_st lit_of_hd_trail_st_heur propagate_bt_wl_D_heur
+   propagate_unit_bt_wl_D_int
 sepref_register backtrack_wl_D
+
 sepref_thm backtrack_wl_D_code
-  is \<open>PR_CONST backtrack_wl_D_nlit\<close>
-  :: \<open>twl_st_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_assn\<close>
-  supply [[goals_limit=1]] backtrack_wl_D_nlit_invariants[simp]
+  is \<open>PR_CONST backtrack_wl_D_nlit_heur\<close>
+  :: \<open>twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_heur_assn\<close>
+  supply [[goals_limit=1]]
   lit_of_hd_trail_st_def[symmetric, simp]
   size_conflict_wl_def[simp] st_remove_highest_lvl_from_confl_def[simp]
-  unfolding backtrack_wl_D_nlit_def PR_CONST_def
+  unfolding backtrack_wl_D_nlit_heur_def PR_CONST_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] lit_of_hd_trail_st_def[symmetric]
     cons_trail_Propagated_def[symmetric]
-    size_conflict_wl_def[symmetric] one_uint32_nat_def[symmetric]
+    size_conflict_wl_def[symmetric]
   by sepref
 
 concrete_definition (in -) backtrack_wl_D_code
@@ -4010,13 +4079,6 @@ prepare_code_thms (in -) backtrack_wl_D_code_def
 
 lemmas backtrack_wl_D_nlit_code_refine[sepref_fr_rules] =
    backtrack_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
-
-lemma backtrack_wl_D_code_refine[sepref_fr_rules]:
-  \<open>(backtrack_wl_D_code, PR_CONST backtrack_wl_D) \<in> twl_st_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_assn\<close>
-  unfolding PR_CONST_def
-  using backtrack_wl_D_nlit_code_refine[unfolded PR_CONST_def,
-      FCOMP backtrack_wl_D_nlit_backtrack_wl_D]
-  .
 
 end
 
