@@ -626,6 +626,7 @@ proof -
         by (auto simp: emptied_list_def list_eq_replicate_iff le_cach_cach0)
     qed
     show ?thesis
+      unfolding conc_Id id_def
       apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i, _). length support' - i)\<close>])
       subgoal by auto
       subgoal by (rule init)
@@ -633,7 +634,7 @@ proof -
       subgoal by (rule valid_length)
       subgoal by (rule set_next)
       subgoal by auto
-      subgoal by (rule final)
+      subgoal using final by simp
       done
   qed
   show ?thesis
