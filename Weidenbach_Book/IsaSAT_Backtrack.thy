@@ -2609,21 +2609,6 @@ proof -
     using pre ..
 qed
 
-definition (in -) take1 where
-  \<open>take1 xs = take 1 xs\<close>
-
-lemma (in -) take1_hnr[sepref_fr_rules]:
-  \<open>(return o (\<lambda>(a, _). (a, 1::nat)), RETURN o take1) \<in> [\<lambda>xs. xs \<noteq> []]\<^sub>a (arl_assn R)\<^sup>d \<rightarrow> arl_assn R\<close>
-  apply sepref_to_hoare
-  apply (sep_auto simp: arl_assn_def hr_comp_def take1_def list_rel_def
-      is_array_list_def
-      intro!: list_all2_takeI)
-  apply (case_tac xi; case_tac x)
-   apply (auto simp: entails_def)
-  apply (rule_tac x=l' in exI)
-  apply (auto dest!: list_all2_lengthD intro: mod_star_trueI)
-  done
-
 sepref_thm extract_shorter_conflict_list_heur_st
   is \<open>PR_CONST extract_shorter_conflict_list_heur_st\<close>
   :: \<open>twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_heur_assn *a uint32_nat_assn *a clause_ll_assn\<close>

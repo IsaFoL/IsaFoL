@@ -719,58 +719,6 @@ lemma set_conflict_wl_heur_set_conflict_wl':
         RETURN_def counts_maximum_level_def
       intro!: RES_refine)
 
-lemma (in -)fref_to_Down:
-  \<open>(f, g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
-     (\<And>x x'. P x' \<Longrightarrow> (x, x') \<in> A \<Longrightarrow> f x \<le> \<Down> B (g x'))\<close>
-  unfolding fref_def uncurry_def nres_rel_def
-  by auto
-
-lemma (in -)fref_to_Down_curry:
-  \<open>(uncurry f, uncurry g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
-     (\<And>x x' y y'. P (x', y') \<Longrightarrow> ((x, y), (x', y')) \<in> A \<Longrightarrow> f x y \<le> \<Down> B (g x' y'))\<close>
-  unfolding fref_def uncurry_def nres_rel_def
-  by auto
-
-lemma (in -)fref_to_Down_curry2:
-  \<open>(uncurry2 f, uncurry2 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
-     (\<And>x x' y y' z z'. P ((x', y'), z') \<Longrightarrow> (((x, y), z), ((x', y'), z')) \<in> A\<Longrightarrow>
-         f x y z \<le> \<Down> B (g x' y' z'))\<close>
-  unfolding fref_def uncurry_def nres_rel_def
-  by auto
-
-lemma (in -)fref_to_Down_curry2':
-  \<open>(uncurry2 f, uncurry2 g) \<in> A \<rightarrow>\<^sub>f \<langle>B\<rangle>nres_rel \<Longrightarrow>
-     (\<And>x x' y y' z z'. (((x, y), z), ((x', y'), z')) \<in> A \<Longrightarrow>
-         f x y z \<le> \<Down> B (g x' y' z'))\<close>
-  unfolding fref_def uncurry_def nres_rel_def
-  by auto
-
-
-lemma (in -)fref_to_Down_curry3:
-  \<open>(uncurry3 f, uncurry3 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
-     (\<And>x x' y y' z z' a a'. P (((x', y'), z'), a') \<Longrightarrow>
-        ((((x, y), z), a), (((x', y'), z'), a')) \<in> A \<Longrightarrow>
-         f x y z a \<le> \<Down> B (g x' y' z' a'))\<close>
-  unfolding fref_def uncurry_def nres_rel_def
-  by auto
-
-lemma (in -)fref_to_Down_curry4:
-  \<open>(uncurry4 f, uncurry4 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
-     (\<And>x x' y y' z z' a a' b b'. P ((((x', y'), z'), a'), b') \<Longrightarrow>
-        (((((x, y), z), a), b), ((((x', y'), z'), a'), b')) \<in> A \<Longrightarrow>
-         f x y z a b \<le> \<Down> B (g x' y' z' a' b'))\<close>
-  unfolding fref_def uncurry_def nres_rel_def
-  by auto
-
-lemma (in -)fref_to_Down_curry5:
-  \<open>(uncurry5 f, uncurry5 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
-     (\<And>x x' y y' z z' a a' b b' c c'. P (((((x', y'), z'), a'), b'), c') \<Longrightarrow>
-        ((((((x, y), z), a), b), c), (((((x', y'), z'), a'), b'), c')) \<in> A \<Longrightarrow>
-         f x y z a b c \<le> \<Down> B (g x' y' z' a' b' c'))\<close>
-  unfolding fref_def uncurry_def nres_rel_def
-  by auto
-
-declare RETURN_as_SPEC_refine[refine2 del]
 lemma in_Id_in_Id_option_rel[refine]:
   \<open>(f, f') \<in> Id \<Longrightarrow> (f, f') \<in> \<langle>Id\<rangle> option_rel\<close>
   by auto
