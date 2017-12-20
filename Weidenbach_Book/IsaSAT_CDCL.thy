@@ -124,7 +124,7 @@ proof -
   qed
   have [dest]: \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> \<phi> = get_phase_saver_heur S \<Longrightarrow> phase_saving \<phi>\<close> for S T \<phi>
     by (auto simp: twl_st_heur_def)
-    
+
   show ?thesis
    unfolding find_unassigned_lit_wl_D_heur_def find_unassigned_lit_wl_D_def find_undefined_atm_def
     ID_R lit_of_found_atm_def
@@ -275,7 +275,7 @@ where
       None \<Rightarrow> RETURN (True, S)
     | Some L \<Rightarrow>
        do {ASSERT(undefined_lit (get_trail_wl_heur S) L \<and> get_conflict_wl_heur S = None \<and>
-             L \<in> snd ` D\<^sub>0); 
+             L \<in> snd ` D\<^sub>0);
          RETURN (False, decide_lit_wl_heur L S) }
   })
 \<close>
@@ -355,7 +355,7 @@ lemma get_conflict_wl_heur_is_Nil_get_conflict_wll_is_Nil_heur:
 
 lemma [sepref_fr_rules]: \<open>(get_conflict_wll_is_Nil_code, RETURN \<circ> get_conflict_wl_heur_is_Nil)
 \<in> twl_st_heur_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  using get_conflict_wll_is_Nil_code[unfolded PR_CONST_def 
+  using get_conflict_wll_is_Nil_code[unfolded PR_CONST_def
     get_conflict_wl_heur_is_Nil_get_conflict_wll_is_Nil_heur[symmetric]]
   .
 
@@ -382,12 +382,19 @@ prepare_code_thms (in -) cdcl_twl_o_prog_wl_D_code_def
 lemmas cdcl_twl_o_prog_wl_D_code[sepref_fr_rules] =
    cdcl_twl_o_prog_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
-lemma
+lemma cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D:
   \<open>(cdcl_twl_o_prog_wl_D_heur, cdcl_twl_o_prog_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>bool_rel \<times>\<^sub>f twl_st_heur\<rangle>nres_rel\<close>
   unfolding cdcl_twl_o_prog_wl_D_heur_def cdcl_twl_o_prog_wl_D_def
   apply (intro frefI nres_relI)
-  apply (refine_vcg)
-  sorry
+  apply (refine_vcg
+      decide_wl_or_skip_D_heur_decide_wl_or_skip_D[THEN fref_to_Down]
+      skip_and_resolve_loop_wl_D_heur_skip_and_resolve_loop_wl_D[THEN fref_to_Down]
+      backtrack_wl_D_nlit_backtrack_wl_D[THEN fref_to_Down])
+  subgoal by (auto simp: twl_st_heur_state_simp)
+  subgoal by (auto simp: twl_st_heur_state_simp)
+  subgoal by (auto simp: twl_st_heur_state_simp)
+  subgoal by (auto simp: twl_st_heur_state_simp)
+  done
 
 paragraph \<open>Combining Together: Full Strategy\<close>
 
@@ -411,14 +418,23 @@ where
   \<close>
 
 
-lemma
+lemma cdcl_twl_stgy_prog_wl_D_heur_cdcl_twl_stgy_prog_wl_D:
   \<open>(cdcl_twl_stgy_prog_wl_D_heur, cdcl_twl_stgy_prog_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
-  sorry
+  unfolding cdcl_twl_stgy_prog_wl_D_heur_def cdcl_twl_stgy_prog_wl_D_def
+  apply (intro frefI nres_relI)
+  apply (refine_vcg
+      unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D[THEN fref_to_Down]
+      cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D[THEN fref_to_Down])
+  subgoal by (auto simp: twl_st_heur_state_simp)
+  subgoal by (auto simp: twl_st_heur_state_simp)
+  subgoal by (auto simp: twl_st_heur_state_simp)
+  subgoal by (auto simp: twl_st_heur_state_simp)
+  done
 
 sepref_register cdcl_twl_stgy_prog_wl_D unit_propagation_outer_loop_wl_D_heur
   cdcl_twl_o_prog_wl_D_heur
 
-sepref_thm cdcl_twl_stgy_prog_wl_D_code 
+sepref_thm cdcl_twl_stgy_prog_wl_D_code
   is \<open>PR_CONST cdcl_twl_stgy_prog_wl_D_heur\<close>
   :: \<open>twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_heur_assn\<close>
   unfolding cdcl_twl_stgy_prog_wl_D_heur_def PR_CONST_def
