@@ -17,7 +17,7 @@ definition swap_u_code :: "'a ::heap array \<Rightarrow> uint32 \<Rightarrow> ui
 
 lemma op_list_swap_u_hnr[sepref_fr_rules]:
   assumes p: \<open>CONSTRAINT is_pure R\<close>
-  shows \<open>(uncurry2 swap_u_code, uncurry2 (RETURN ooo op_list_swap)) \<in> 
+  shows \<open>(uncurry2 swap_u_code, uncurry2 (RETURN ooo op_list_swap)) \<in>
        [\<lambda>((xs, i), j).  i < length xs \<and> j < length xs]\<^sub>a
       (array_assn R)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k  *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> array_assn R\<close>
 proof -
@@ -120,7 +120,7 @@ proof -
             < get_level M (C[i := outl ! i] ! i)
          then swap (C[i := outl ! i]) one_uint32_nat i else C[i := outl ! i],
          i + one_uint32_nat)\<close>
-    if 
+    if
       I: \<open>I ECi\<close> and
       DCi: \<open>ECi = (E, Ci)\<close> and
       Ci: \<open>Ci = (C, i)\<close> and
@@ -128,7 +128,7 @@ proof -
       \<open>i < length C\<close>
     for ECi E Ci C i
   proof -
-    have 
+    have
       mset_C_outl: \<open>mset (take i C) = mset (take i outl)\<close> and
       E: \<open>E = D - mset (take i outl)\<close> and
       \<open>length C = length outl\<close> and
@@ -214,7 +214,7 @@ proof -
         using \<open>i < length C\<close> \<open>length C = length outl\<close> \<open>1 \<le> i\<close>
         by (subst diff_union_swap2[symmetric])
           (auto simp: in_set_take_conv_nth intro!: exI[of _ 0])
-      then have [simp]: \<open>mset (tl (take (Suc i) (swap (C[i := outl ! i]) (Suc 0) i))) = 
+      then have [simp]: \<open>mset (tl (take (Suc i) (swap (C[i := outl ! i]) (Suc 0) i))) =
              add_mset (outl ! i) (mset (tl (take i C)))\<close>
         using mset_C_outl \<open>1 \<le> i\<close> \<open>i < length C\<close> \<open>length C = length outl\<close> C_outl_0
         by (auto simp: take_swap_relevant mset_tl hd_conv_nth take_Suc_conv_app_nth
@@ -254,7 +254,7 @@ proof -
       unfolding I_def one_uint32_nat_def by blast
   qed
   have delete: \<open>delete_from_lookup_conflict_pre (outl ! i, E)\<close>
-    if 
+    if
       I: \<open>I ECi\<close> and
       \<open>case ECi of (D, C, i) \<Rightarrow> i < length_u outl\<close> and
       DCi: \<open>ECi = (E, Ci)\<close> and
@@ -263,7 +263,7 @@ proof -
       \<open>i < length C\<close>
     for ECi E Ci C i
   proof -
-    have 
+    have
       mset_C_outl: \<open>mset (take i C) = mset (take i outl)\<close> and
       E: \<open>E = D - mset (take i outl)\<close> and
       \<open>length C = length outl\<close> and
@@ -296,14 +296,14 @@ proof -
       by auto
   qed
   have C_1: \<open>C[i := outl ! i] ! 1 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-    if 
+    if
       I: \<open>I ECi\<close> and
       DCi: \<open>ECi = (E, Ci)\<close> and
       Ci: \<open>Ci = (C, i)\<close> and
       \<open>i < length outl\<close>
     for ECi E Ci C i
   proof -
-   have 
+   have
       mset_C_outl: \<open>mset (take i C) = mset (take i outl)\<close> and
       E: \<open>E = D - mset (take i outl)\<close> and
       \<open>length C = length outl\<close> and
@@ -321,7 +321,7 @@ proof -
           intro!: exI[of _ 1])
     have outl_1: \<open>outl ! 1 \<in># mset outl\<close>
       unfolding mset_C_outl[symmetric] mset_append
-      using \<open>i < length outl\<close> \<open>1 \<le> i\<close> 
+      using \<open>i < length outl\<close> \<open>1 \<le> i\<close>
       by (auto simp: in_set_take_conv_nth)
     show ?thesis
       apply (cases \<open>i = 1\<close>)
@@ -335,7 +335,7 @@ proof -
       done
   qed
   have C_1': \<open>C ! 1 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
-    if 
+    if
       I: \<open>I ECi\<close> and
       DCi: \<open>ECi = (E, Ci)\<close> and
       Ci: \<open>Ci = (C, i)\<close> and
@@ -408,7 +408,7 @@ lemma set_empty_conflict_to_none_hnr[sepref_fr_rules]:
       hr_comp_def set_empty_conflict_to_none_def pure_def)
 (* End Move *)
 
-sepref_definition empty_conflict_and_extract_clause_heur_code
+sepref_thm empty_conflict_and_extract_clause_heur_code
   is \<open>uncurry2 (PR_CONST empty_conflict_and_extract_clause_heur)\<close>
   :: \<open>[\<lambda>((M, D), outl). outl \<noteq> [] \<and> length outl \<le> uint_max]\<^sub>a
       trail_assn\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>k \<rightarrow>
@@ -417,6 +417,17 @@ sepref_definition empty_conflict_and_extract_clause_heur_code
   unfolding empty_conflict_and_extract_clause_heur_def PR_CONST_def
   array_fold_custom_replicate
   by sepref
+
+
+concrete_definition (in -) empty_conflict_and_extract_clause_heur_code
+   uses isasat_input_bounded_nempty.empty_conflict_and_extract_clause_heur_code.refine_raw
+   is \<open>(uncurry2 ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) empty_conflict_and_extract_clause_heur_code_def
+
+lemmas empty_conflict_and_extract_clause_heur_hnr[sepref_fr_rules] =
+   empty_conflict_and_extract_clause_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+
 
 definition (in isasat_input_ops) extract_shorter_conflict_wl_nlit where
 \<open>extract_shorter_conflict_wl_nlit K M NU D NE UE =
@@ -508,7 +519,7 @@ where
 lemma the_option_lookup_clause_assn[sepref_fr_rules]:
   \<open>(return o snd, RETURN o the) \<in> [\<lambda>D. D \<noteq> None]\<^sub>a option_lookup_clause_assn\<^sup>d \<rightarrow> lookup_clause_assn\<close>
   by (sepref_to_hoare)
-    (sep_auto simp: option_lookup_clause_assn_def option_lookup_clause_rel_def 
+    (sep_auto simp: option_lookup_clause_assn_def option_lookup_clause_rel_def
       lookup_clause_assn_def hr_comp_def)
 
 
@@ -832,7 +843,7 @@ definition (in -)del_conflict_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_
 context conflict_driven_clause_learning\<^sub>W
 begin
 
-lemma 
+lemma
   fixes S
   assumes
      nss: \<open>no_step skip S\<close> and
@@ -946,7 +957,7 @@ proof -
     case proped: False
     have \<open>get_maximum_level (tl (trail S)) D = get_maximum_level (trail S) D\<close>
       apply (rule get_maximum_level_cong)
-      using K_def \<open>- K \<notin># D\<close> \<open>K \<notin># D\<close> 
+      using K_def \<open>- K \<notin># D\<close> \<open>K \<notin># D\<close>
       apply (cases \<open>trail S\<close>)
       by (auto simp: get_level_cons_if atm_of_eq_atm_of)
     moreover have \<open>get_maximum_level (tl (trail S)) D < count_decided (trail S)\<close>
@@ -1163,7 +1174,7 @@ proof -
       not_empty: \<open>the D \<noteq> {#}\<close> and
       \<L>\<^sub>i\<^sub>n : \<open>literals_are_\<L>\<^sub>i\<^sub>n (M, N, U, D, NE, UE, Q, W)\<close>
       using inv unfolding S backtrack_wl_D_inv_def backtrack_wl_inv_def backtrack_l_inv_def
-      by (auto simp: 
+      by (auto simp:
           simp del: twl_st_of.simps)
     then have all_struct:
       \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of (twl_st_of None (M, N, U, D, NE, UE, {#}, Q)))\<close>
@@ -1297,7 +1308,7 @@ proof -
     have uM_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>- lit_of (hd M) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
       using M_\<L>\<^sub>i\<^sub>n trail_nempty by (cases M)
         (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons uminus_\<A>\<^sub>i\<^sub>n_iff)
- 
+
     have ref: \<open>RES (\<Union>(a, C,
               n)\<in>{(D, C, n).
                    D = None \<and>
@@ -1403,7 +1414,7 @@ proof -
         have H: \<open>twl_struct_invs (twl_st_of None (M, N, U, D, NE, UE, {#}, Q))\<close>
           using M_\<L>\<^sub>i\<^sub>n struct_invs
           by (auto 5 5 simp: S' simp del: twl_st_of.simps)
-        have K: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant 
+        have K: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant
               (state\<^sub>W_of (twl_st_of None (M, N, U, D, NE, UE, {#}, Q)))\<close>
           using stgy_invs not_none not_empty confl unfolding twl_stgy_invs_def
           by auto
@@ -1423,7 +1434,7 @@ proof -
           by (fastforce simp: S' simp del: twl_st_of.simps)
       }
       ultimately show ?TR
-          using \<open>c \<noteq> []\<close> outl0 not_none \<L>\<^sub>i\<^sub>n_S dist_D uM_\<L>\<^sub>a\<^sub>l\<^sub>l 
+          using \<open>c \<noteq> []\<close> outl0 not_none \<L>\<^sub>i\<^sub>n_S dist_D uM_\<L>\<^sub>a\<^sub>l\<^sub>l
           unfolding s \<open>c ! 0 = outl' ! 0\<close>[symmetric] by (auto simp: S' S hd_conv_nth)
       qed
       show ?thesis
@@ -1470,7 +1481,7 @@ proof -
       have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset E)\<close>
         using literals_are_in_\<L>\<^sub>i\<^sub>n_mono[OF _ incl] \<L>\<^sub>i\<^sub>n_S by (auto simp: S)
       have \<open>length E \<le> uint_max\<close>
-        using simple_clss_size_upper_div2[OF \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset E)\<close> 
+        using simple_clss_size_upper_div2[OF \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset E)\<close>
             \<open>distinct_mset (mset E)\<close> \<open>\<not>tautology (mset E)\<close>]
         by (auto simp: uint_max_def)
       then show ?thesis
@@ -1840,7 +1851,7 @@ proof -
       \<open>backtrack_wl_D_inv S'\<close>
     for S S'
   proof -
-    show ?thesis 
+    show ?thesis
       using that unfolding backtrack_wl_D_inv_def backtrack_wl_D_heur_inv_def backtrack_wl_inv_def
         backtrack_l_inv_def
       by (auto simp: twl_st_heur_def)
@@ -1853,7 +1864,7 @@ proof -
     subgoal by (rule inv)
     subgoal by (rule trail_nempty)
     subgoal
-      
+
       sorry
        apply (rule find_decomp_wl_nlit; solves assumption)
     subgoal for x y xa S x1 x2 x1a x2a Sa Sb
@@ -1958,7 +1969,7 @@ where
     RETURN (M, vm')
   })\<close>
 
-(* 
+(*
 lemma extract_shorter_conflict_l_trivial_code_extract_shorter_conflict_l_trivial[sepref_fr_rules]:
   \<open>(extract_shorter_conflict_list_lookup_heur_st_code, extract_shorter_conflict_wl_nlit_st)
     \<in> [extract_shorter_conflict_list_heur_st_pre]\<^sub>a
@@ -2576,18 +2587,16 @@ proof -
   have H: \<open>?c
     \<in> [comp_PRE (Id \<times>\<^sub>f Id \<times>\<^sub>f Id) empty_conflict_and_extract_clause_pre
        (\<lambda>x y. case y of (x, xa) \<Rightarrow> (case x of (M, D) \<Rightarrow> \<lambda>outl. outl \<noteq> [] \<and> length outl \<le> uint_max)
-                 xa)
-       (\<lambda>x. nofail
-             (uncurry2 empty_conflict_and_extract_clause
-               x))]\<^sub>a
-    hrp_comp ((hr_comp trail_pol_assn trail_pol)\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>k)
-      (Id \<times>\<^sub>f Id \<times>\<^sub>f Id) \<rightarrow>
+              xa)
+       (\<lambda>x. nofail (uncurry2 empty_conflict_and_extract_clause x))]\<^sub>a 
+     hrp_comp ((hr_comp trail_pol_assn trail_pol)\<^sup>k *\<^sub>a lookup_clause_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>k)
+       (Id \<times>\<^sub>f Id \<times>\<^sub>f Id) \<rightarrow> 
     hr_comp (option_lookup_clause_assn *a clause_ll_assn *a uint32_nat_assn) Id\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE[OF empty_conflict_and_extract_clause_heur_code.refine[unfolded PR_CONST_def]
+    using hfref_compI_PRE[OF empty_conflict_and_extract_clause_heur_hnr[unfolded PR_CONST_def]
     empty_conflict_and_extract_clause_heur_empty_conflict_and_extract_clause']
     .
-  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x h
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     using that by (auto simp: comp_PRE_def empty_conflict_and_extract_clause_pre_def)
   have im: \<open>?im' = ?im\<close>
     by simp
@@ -2652,14 +2661,15 @@ sepref_thm backtrack_wl_D_code
     size_conflict_wl_def[symmetric]
   by sepref
 
-concrete_definition (in -) backtrack_wl_D_code
+
+concrete_definition (in -) backtrack_wl_D_nlit_heur_code
    uses isasat_input_bounded_nempty.backtrack_wl_D_code.refine_raw
    is \<open>(?f,_)\<in>_\<close>
 
-prepare_code_thms (in -) backtrack_wl_D_code_def
+prepare_code_thms (in -) backtrack_wl_D_nlit_heur_code_def
 
-lemmas backtrack_wl_D_nlit_code_refine[sepref_fr_rules] =
-   backtrack_wl_D_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
+lemmas backtrack_wl_D_nlit_heur_hnr[sepref_fr_rules] =
+   backtrack_wl_D_nlit_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
 end
 
