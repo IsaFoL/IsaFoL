@@ -2386,7 +2386,7 @@ fun minimize_and_extract_highest_lookup_conflict_code x =
               (fn x_a => (fn () => (Word32.< (a1a, x_a)))))
           (fn (a1, (a1a, (a1b, a2b))) =>
             (fn f_ => fn () => f_
-              (((fn () => Array.sub (a2b, Word32.toInt a1a))) ()) ())
+              (((fn () => Array.sub (fst a2b, Word32.toInt a1a))) ()) ())
               (fn x_a =>
                 (fn f_ => fn () => f_
                   ((literal_redundant_wl_lookup_code ai bid a1 a1b x_a bia) ())
@@ -2441,14 +2441,14 @@ fun empty_conflict_and_extract_clause_heur_code x =
             (fn f_ => fn () => f_ ((length_arl_u_code heap_uint32 bi) ()) ())
               (fn x_c => (fn () => (Word32.< (a2a, x_c)))))
           (fn (a1, (a1a, a2a)) =>
-            (fn f_ => fn () => f_ (((fn () => Array.sub (bi, Word32.toInt a2a)))
-              ()) ())
+            (fn f_ => fn () => f_
+              (((fn () => Array.sub (fst bi, Word32.toInt a2a))) ()) ())
               (fn xc =>
                 (fn f_ => fn () => f_ ((delete_from_lookup_conflict_code xc a1)
                   ()) ())
                   (fn x_c =>
                     (fn f_ => fn () => f_
-                      (((fn () => Array.sub (bi, Word32.toInt a2a))) ()) ())
+                      (((fn () => Array.sub (fst bi, Word32.toInt a2a))) ()) ())
                       (fn xd =>
                         (fn f_ => fn () => f_
                           ((heap_array_set_u heap_uint32 a1a a2a xd) ()) ())
@@ -3370,13 +3370,13 @@ fun isaSAT_code x =
                       (fn x_f =>
                         (fn f_ => fn () => f_
                           ((cdcl_twl_stgy_prog_wl_D_code x_f) ()) ())
-                          (fn x_h =>
+                          (fn x_g =>
                             (fn f_ => fn () => f_
-                              ((get_conflict_wl_is_None_code x_h) ()) ())
-                              (fn x_i =>
+                              ((get_conflict_wl_is_None_code x_g) ()) ())
+                              (fn x_h =>
                                 (fn () =>
-                                  (if x_i then get_trail_wl_code x_h
-                                    else get_stats_code x_h)))))))
+                                  (if x_h then get_trail_wl_code x_g
+                                    else get_stats_code x_g)))))))
         ()
     end)
     x;
