@@ -1871,6 +1871,25 @@ proof -
         intro!: list_all2_replicate)
 qed
 (* End Move *)
+context isasat_input_bounded
+begin
+
+sepref_register init_dt_step_wl_heur
+sepref_thm init_dt_wl_code
+  is \<open>uncurry (PR_CONST init_dt_wl_heur)\<close>
+  :: \<open>(list_assn (list_assn unat_lit_assn))\<^sup>d *\<^sub>a twl_st_heur_init_assn\<^sup>d \<rightarrow>\<^sub>a
+       twl_st_heur_init_assn\<close>
+  unfolding init_dt_wl_heur_def PR_CONST_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+concrete_definition (in -) init_dt_wl_code
+  uses "isasat_input_bounded.init_dt_wl_code.refine_raw"
+  is \<open>(uncurry ?f,_)\<in>_\<close>
+
+prepare_code_thms (in -) init_dt_wl_code_def
+
+end
 
 text \<open>The value 160 is random (but larger than the default 16 for array lists).\<close>
 definition finalise_init_code :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur\<close> where
@@ -2191,10 +2210,22 @@ proof -
   done
 qed
 
+(* TODO replace list_mset_assn_pure_conv by this: *)
+lemma (in -)list_mset_assn_pure_conv':
+  \<open>list_mset_assn (pure R) = pure (\<langle>R\<rangle>list_rel_mset_rel)\<close>
+  apply (intro ext)
+  using list_all2_reorder_left_invariance
+  by (fastforce
+    simp: list_rel_mset_rel_def list_mset_assn_def
+      mset_rel_def rel2p_def[abs_def] rel_mset_def p2rel_def
+      list_mset_rel_def[abs_def] Collect_eq_comp br_def
+      list_rel_mset_rel_def list_rel_def Collect_eq_comp_right
+    intro!: arg_cong[of _ _ \<open>\<lambda>b. pure b _ _\<close>])
+
 lemma init_state_wl_heur_hnr:
   \<open>(init_state_wl_D'_code, isasat_input_ops.init_state_wl_heur)
     \<in> [\<lambda>x. x = \<A>\<^sub>i\<^sub>n \<and> distinct_mset \<A>\<^sub>i\<^sub>n]\<^sub>a
-      (hr_comp (list_assn uint32_assn) (\<langle>uint32_nat_rel\<rangle>list_rel_mset_rel))\<^sup>k \<rightarrow>
+      (list_mset_assn uint32_nat_assn)\<^sup>k \<rightarrow>
       isasat_input_ops.twl_st_heur_init_assn \<A>\<^sub>i\<^sub>n\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
@@ -2216,8 +2247,8 @@ proof -
   have pre: \<open>?pre x \<Longrightarrow> ?pre' x\<close> for x
     unfolding comp_PRE_def by fast
   have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
-    by (auto simp: hrp_comp_def hr_comp_def)
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep list_assn_pure_conv
+    by (auto simp: hrp_comp_def hr_comp_def list_mset_assn_pure_conv')
   have f: \<open>?f' = ?f\<close>
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep isasat_input_ops.twl_st_heur_init_assn_def
       isasat_input_ops.option_lookup_clause_assn_def[symmetric]
@@ -2225,7 +2256,7 @@ proof -
   show ?thesis
     apply (rule hfref_weaken_pre[OF ])
      defer
-    using H unfolding f apply assumption
+    using H unfolding f im apply assumption
     using pre ..
 qed
 
@@ -2236,54 +2267,23 @@ lemma init_state_wl_heur_init_state_wl:
   unfolding fref_def nres_rel_def
   by auto
 
-lemma init_state_wl_D'_code_ref[sepref_fr_rules]:
-  \<open>(init_state_wl_D'_code, RETURN o isasat_input_ops.init_state_wl) \<in>
-    [\<lambda>N. N = \<A>\<^sub>i\<^sub>n \<and> distinct_mset \<A>\<^sub>i\<^sub>n]\<^sub>a (list_mset_assn uint32_nat_assn)\<^sup>k \<rightarrow>
-      isasat_input_ops.twl_st_init_wl_assn \<A>\<^sub>i\<^sub>n\<close>
-    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
-proof -
-  have H: \<open>?c \<in> [\<lambda>x. x = \<A>\<^sub>i\<^sub>n \<and> distinct_mset
-         \<A>\<^sub>i\<^sub>n]\<^sub>a (hr_comp
-                  (list_assn uint32_assn)
-                  (\<langle>uint32_nat_rel\<rangle>list_rel_mset_rel),
-                 hr_comp
-                  (list_assn uint32_assn)
-                  (\<langle>uint32_nat_rel\<rangle>list_rel_mset_rel)) \<rightarrow> hr_comp
-          (isasat_input_ops.twl_st_heur_init_assn
-            \<A>\<^sub>i\<^sub>n)
-          (isasat_input_ops.twl_st_heur_init_wl \<A>\<^sub>i\<^sub>n)\<close>
-    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using init_state_wl_heur_hnr[FCOMP init_state_wl_heur_init_state_wl, of \<A>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n, simplified] .
-  have im: \<open>?im' = ?im\<close>
-    by (auto simp: list_mset_assn_def list_rel_mset_rel_def hr_comp_assoc[symmetric]
-        list_assn_comp list_assn_list_mset_rel_eq_list_mset_assn)
-  show ?thesis
-    using H unfolding im isasat_input_ops.twl_st_init_wl_assn_def[symmetric] .
-qed
-
-
-text \<open>
-  It is not possible to discharge assumption of the rule directly, but here, it works. This avoids
-  guessing form the \<open>sepref\<close> tools:\<close>
-declare init_state_wl_D'_code_ref[to_hnr, OF refl, sepref_fr_rules]
-
 
 lemma init_dt_wl_code_refine[sepref_fr_rules]:
-  \<open>(uncurry2 (\<lambda>_. init_dt_wl_heur_code), uncurry2 (isasat_input_ops.init_dt_wl))
+  \<open>(uncurry2 (\<lambda>_. init_dt_wl_code), uncurry2 (isasat_input_ops.init_dt_wl_heur))
   \<in> [\<lambda>((N, S), S'). isasat_input_bounded N \<and> N = \<A>\<^sub>i\<^sub>n]\<^sub>a
     (list_mset_assn uint32_nat_assn)\<^sup>k *\<^sub>a (list_assn (list_assn unat_lit_assn))\<^sup>d *\<^sub>a
-      (isasat_input_ops.twl_st_init_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow>
-    isasat_input_ops.twl_st_init_assn \<A>\<^sub>i\<^sub>n\<close>
+      (isasat_input_ops.twl_st_heur_init_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow>
+    isasat_input_ops.twl_st_heur_init_assn \<A>\<^sub>i\<^sub>n\<close>
   unfolding PR_CONST_def
   unfolding hfref_def hn_refine_def
   apply (subst in_pair_collect_simp)
   apply (intro allI impI)
   subgoal for a c
-    using init_dt_wl_heur_code.refine[of \<A>\<^sub>i\<^sub>n,
+    using init_dt_wl_code.refine[of \<A>\<^sub>i\<^sub>n,
       unfolded in_pair_collect_simp hfref_def hn_refine_def PR_CONST_def,
       rule_format, of \<open>(snd (fst c), snd c)\<close> \<open>(snd (fst a), snd a)\<close>]
     by (cases a)
-       (sep_auto dest!: frame_rule_left[of \<open>_ * isasat_input_ops.twl_st_init_assn _ _ _\<close> _ _
+       (sep_auto dest!: frame_rule_left[of \<open>_ * isasat_input_ops.twl_st_heur_init_assn _ _ _\<close> _ _
             \<open>list_mset_assn uint32_nat_assn \<A>\<^sub>i\<^sub>n (fst (fst a))\<close>])
   done
 

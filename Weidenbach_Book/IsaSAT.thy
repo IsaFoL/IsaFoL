@@ -46,6 +46,8 @@ definition (in -) SAT_wl :: \<open>nat clauses_l \<Rightarrow> nat twl_st_wl nre
 definition extract_model_of_state where
   \<open>extract_model_of_state U = Some (map lit_of (get_trail_wl U))\<close>
 
+definition extract_model_of_state_heur where
+  \<open>extract_model_of_state_heur U = Some (map lit_of (get_trail_wl_heur U))\<close>
 
 definition extract_stats where
   [simp]: \<open>extract_stats U = None\<close>
@@ -53,7 +55,7 @@ definition extract_stats where
 definition extract_stats_init where
   [simp]: \<open>extract_stats_init = None\<close>
 
-
+(* TODO Kill *)
 definition IsaSAT :: \<open>nat clauses_l \<Rightarrow> nat literal list option nres\<close> where
   \<open>IsaSAT CS = do{
     let \<A>\<^sub>i\<^sub>n' = mset (extract_atms_clss CS []);
@@ -64,7 +66,7 @@ definition IsaSAT :: \<open>nat clauses_l \<Rightarrow> nat literal list option 
     T \<leftarrow> isasat_input_ops.init_dt_wl \<A>\<^sub>i\<^sub>n' CS S;
     let T = from_init_state T;
     if \<not>get_conflict_wl_is_None_init T
-    then RETURN (extract_stats_init)
+    then RETURN (None)
     else if CS = [] then RETURN (Some [])
     else do {
        ASSERT(\<A>\<^sub>i\<^sub>n' \<noteq> {#});
@@ -73,6 +75,65 @@ definition IsaSAT :: \<open>nat clauses_l \<Rightarrow> nat literal list option 
        U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_prog_wl_D \<A>\<^sub>i\<^sub>n' T;
        RETURN (if get_conflict_wl U = None then extract_model_of_state U else extract_stats U)
     }
+  }\<close>
+
+
+definition extract_model_of_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> nat literal list option \<times> stats\<close> where
+  \<open>extract_model_of_state_stat U =
+     (Some (map lit_of (get_trail_wl_heur U)),
+       (\<lambda>(M, _, _, _, _, _ ,_ ,_ ,_, _, _, _, stat). stat) U)\<close>
+  
+definition extract_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> nat literal list option \<times> stats\<close> where
+  \<open>extract_state_stat U =
+     (None,
+       (\<lambda>(M, _, _, _, _, _ ,_ ,_ ,_, _, _, _, stat). stat) U)\<close>
+
+definition empty_conflict :: \<open>nat literal list option\<close> where
+  \<open>empty_conflict = Some []\<close>
+
+definition empty_conflict_code :: \<open>_ list option \<times> stats\<close> where
+  \<open>empty_conflict_code = (Some [], (0, 0, 0))\<close>
+
+definition empty_init_code :: \<open>_ list option \<times> stats\<close> where
+  \<open>empty_init_code = (None, (0, 0, 0))\<close>
+
+
+abbreviation (in -) model_stat_assn where
+  \<open>model_stat_assn \<equiv> option_assn (list_assn unat_lit_assn) *a stats_assn\<close>
+
+lemma empty_conflict_code_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return empty_conflict_code), uncurry0 (RETURN empty_conflict_code)) \<in>
+     unit_assn\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: empty_conflict_code_def empty_conflict_def
+       hr_comp_def)
+
+lemma empty_init_code_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return empty_init_code), uncurry0 (RETURN empty_init_code)) \<in>
+     unit_assn\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: empty_conflict_code_def empty_conflict_def
+       hr_comp_def empty_init_code_def)
+
+
+definition IsaSAT_heur :: \<open>nat clauses_l \<Rightarrow> (nat literal list option \<times> stats) nres\<close> where
+  \<open>IsaSAT_heur CS = do{
+    let \<A>\<^sub>i\<^sub>n' = mset (extract_atms_clss CS []);
+    ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
+    ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
+    S \<leftarrow> isasat_input_ops.init_state_wl_heur \<A>\<^sub>i\<^sub>n';
+    (T::twl_st_wl_heur_init) \<leftarrow> isasat_input_ops.init_dt_wl_heur \<A>\<^sub>i\<^sub>n' CS S;
+    if \<not>get_conflict_wl_is_None_heur_init T
+    then RETURN (empty_init_code)
+    else if CS = [] then RETURN (empty_conflict_code)
+    else do {
+       ASSERT(\<A>\<^sub>i\<^sub>n' \<noteq> {#});
+       ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n');
+       ASSERT((\<lambda>(M', N', U', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
+         lst_As \<noteq> None) T);
+       let T = finalise_init_code (T::twl_st_wl_heur_init);
+       U \<leftarrow> isasat_input_ops.cdcl_twl_stgy_prog_wl_D_heur \<A>\<^sub>i\<^sub>n' T;
+       RETURN (if get_conflict_wl_is_None_heur U then extract_model_of_state_stat U
+         else extract_state_stat U)
+     }
   }\<close>
 
 lemma (in -)id_mset_list_assn_list_mset_assn:
@@ -91,11 +152,12 @@ proof -
        p2rel_def rel2p_def[abs_def] rel_mset_def br_def Collect_eq_comp list_rel_def)
 qed
 
+(* TODO rename twl_st_heur_assn to isasat_assn*)
 lemma cdcl_twl_stgy_prog_wl_D_code_ref':
-  \<open>(uncurry (\<lambda>_. cdcl_twl_stgy_prog_wl_D_code), uncurry isasat_input_ops.cdcl_twl_stgy_prog_wl_D)
+  \<open>(uncurry (\<lambda>_. cdcl_twl_stgy_prog_wl_D_code), uncurry isasat_input_ops.cdcl_twl_stgy_prog_wl_D_heur)
   \<in> [\<lambda>(N, _). N = \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n]\<^sub>a
      (list_mset_assn uint32_nat_assn)\<^sup>k *\<^sub>a
-    (isasat_input_ops.twl_st_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow> isasat_input_ops.twl_st_assn \<A>\<^sub>i\<^sub>n\<close>
+    (isasat_input_ops.twl_st_heur_assn \<A>\<^sub>i\<^sub>n)\<^sup>d \<rightarrow> isasat_input_ops.twl_st_heur_assn \<A>\<^sub>i\<^sub>n\<close>
   unfolding hfref_def hn_refine_def
   apply (subst in_pair_collect_simp)
   apply (intro allI impI)
@@ -104,90 +166,31 @@ lemma cdcl_twl_stgy_prog_wl_D_code_ref':
       unfolded in_pair_collect_simp hfref_def hn_refine_def PR_CONST_def,
       rule_format, of \<open>snd c\<close> \<open>snd a\<close>]
     apply (cases a)
-    by (sep_auto
-      dest!: frame_rule_left[of \<open>isasat_input_ops.twl_st_assn _ _ _\<close> _ _
+    by (sep_auto simp:
+      dest!: frame_rule_left[of \<open>isasat_input_ops.twl_st_heur_assn _ _ _\<close> _ _
         \<open>list_mset_assn uint32_nat_assn \<A>\<^sub>i\<^sub>n (fst a)\<close>])
   done
 
 declare cdcl_twl_stgy_prog_wl_D_code_ref'[to_hnr, OF refl, sepref_fr_rules]
 
 definition get_trail_wl_code :: \<open>twl_st_wll_trail \<Rightarrow> uint32 list option \<times> stats\<close> where
-  \<open>get_trail_wl_code = (\<lambda>((M, _), _, _, _, _, _ ,_ ,_ ,_, _, _, stat). (Some M, stat))\<close>
+  \<open>get_trail_wl_code = (\<lambda>((M, _), _, _, _, _, _ ,_ ,_ ,_, _, _, _, stat). (Some M, stat))\<close>
 
 definition get_stats_code :: \<open>twl_st_wll_trail \<Rightarrow> uint32 list option \<times> stats\<close> where
-  \<open>get_stats_code = (\<lambda>((M, _), _, _, _, _, _ ,_ ,_ ,_, _, _, stat). (None, stat))\<close>
+  \<open>get_stats_code = (\<lambda>((M, _), _, _, _, _, _ ,_ ,_ ,_, _, _, _, stat). (None, stat))\<close>
 
-abbreviation (in -) model_stat_assn where
-  \<open>model_stat_assn \<equiv> option_assn (list_assn unat_lit_assn) *a stats_assn\<close>
 
 definition (in -) model_stat_rel where
   \<open>model_stat_rel = {((M', s), M). M = M'}\<close>
 
+(* TODO Kill *)
 definition (in -) model_assn where
   \<open>model_assn = hr_comp model_stat_assn model_stat_rel\<close>
-
-definition extract_model_of_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> nat literal list option \<times> stats\<close> where
-  \<open>extract_model_of_state_stat U =
-     (Some (map lit_of (get_trail_wl_heur U)),
-       (\<lambda>(M, _, _, _, _, _ ,_ ,_ ,_, _, _, stat). stat) U)\<close>
-
-
-definition extract_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> nat literal list option \<times> stats\<close> where
-  \<open>extract_state_stat U =
-     (None,
-       (\<lambda>(M, _, _, _, _, _ ,_ ,_ ,_, _, _, stat). stat) U)\<close>
-
-definition empty_conflict :: \<open>nat literal list option\<close> where
-  \<open>empty_conflict = Some []\<close>
-
-definition empty_conflict_code :: \<open>_ list option \<times> stats\<close> where
-  \<open>empty_conflict_code = (Some [], (0, 0, 0))\<close>
-
-definition empty_init_code :: \<open>_ list option \<times> stats\<close> where
-  \<open>empty_init_code = (None, (0, 0, 0))\<close>
-
-lemma empty_conflict_code_empty_conflict:
-  \<open>(uncurry0 (RETURN empty_conflict_code), uncurry0 (RETURN empty_conflict)) \<in>
-     unit_rel \<rightarrow>\<^sub>f \<langle>model_stat_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI) (auto simp: empty_conflict_code_def empty_conflict_def
-      model_assn_def empty_conflict_code_def hr_comp_def model_stat_rel_def)
-
-lemma empty_conflict_code_hnr:
-  \<open>(uncurry0 (return empty_conflict_code), uncurry0 (RETURN empty_conflict_code)) \<in>
-     unit_assn\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: empty_conflict_code_def empty_conflict_def
-      model_assn_def empty_conflict_code_def hr_comp_def model_stat_rel_def)
-
-lemma empty_conflict_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return empty_conflict_code), uncurry0 (RETURN empty_conflict))
-  \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a model_assn\<close>
-  using empty_conflict_code_hnr[FCOMP empty_conflict_code_empty_conflict]
-  unfolding model_assn_def .
-
-term extract_stats_init
-lemma extract_stats_init:
-  \<open>(uncurry0 (RETURN empty_init_code), uncurry0 (RETURN extract_stats_init)) \<in>
-     unit_rel \<rightarrow>\<^sub>f \<langle>model_stat_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI) (auto simp: empty_init_code_def extract_stats_init_def
-      model_assn_def empty_conflict_code_def hr_comp_def model_stat_rel_def)
-
-lemma empty_init_code_hnr:
-  \<open>(uncurry0 (return empty_init_code), uncurry0 (RETURN empty_init_code)) \<in>
-     unit_assn\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: empty_conflict_code_def empty_conflict_def
-      model_assn_def empty_conflict_code_def hr_comp_def model_stat_rel_def
-     empty_init_code_def)
-
-lemma extract_stats_init_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return empty_init_code), uncurry0 (RETURN extract_stats_init))
-  \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a model_assn\<close>
-  using empty_init_code_hnr[FCOMP extract_stats_init]
-  unfolding model_assn_def .
 
 context isasat_input_ops
 begin
 
-lemma get_trail_wl[sepref_fr_rules]:
+lemma extract_model_of_state_stat_hnr[sepref_fr_rules]:
   \<open>(return o get_trail_wl_code, RETURN o extract_model_of_state_stat) \<in> twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a
        model_stat_assn\<close>
 proof -
@@ -211,14 +214,6 @@ lemma extract_model_of_state_stat_extract_model_of_state:
   by (intro frefI nres_relI) (auto simp: extract_model_of_state_def extract_model_of_state_stat_def
       model_stat_rel_def twl_st_heur_def)
 
-lemma extract_model_of_state_hnr[sepref_fr_rules]:
-  \<open>(return \<circ> get_trail_wl_code, RETURN \<circ> extract_model_of_state)
-     \<in> twl_st_assn\<^sup>d \<rightarrow>\<^sub>a model_assn\<close>
-  using get_trail_wl[FCOMP extract_model_of_state_stat_extract_model_of_state]
-  unfolding twl_st_assn_def model_assn_def.
-
-
-
 lemma get_stats_code[sepref_fr_rules]:
   \<open>(return o get_stats_code, RETURN o extract_state_stat) \<in> twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a
        model_stat_assn\<close>
@@ -238,35 +233,31 @@ proof -
 qed
 
 
-lemma extract_state_stat_extract_state:
-  \<open>(RETURN o extract_state_stat, RETURN o extract_stats) \<in>
-      twl_st_heur \<rightarrow>\<^sub>f \<langle>model_stat_rel\<rangle> nres_rel \<close>
-  by (intro frefI nres_relI) (auto simp: extract_model_of_state_def extract_model_of_state_stat_def
-      model_stat_rel_def twl_st_heur_def extract_state_stat_def)
-
-lemma extract_stats_hnr[sepref_fr_rules]:
-  \<open>(return \<circ> get_stats_code, RETURN \<circ> extract_stats)
-     \<in> twl_st_assn\<^sup>d \<rightarrow>\<^sub>a model_assn\<close>
-  using get_stats_code[FCOMP extract_state_stat_extract_state]
-  unfolding twl_st_assn_def model_assn_def .
-
 end
 
-declare isasat_input_ops.get_trail_wl[sepref_fr_rules]
-  isasat_input_ops.extract_stats_hnr[sepref_fr_rules]
-  isasat_input_ops.extract_model_of_state_hnr[sepref_fr_rules]
-declare isasat_input_ops.finalise_init_code_hnr[unfolded PR_CONST_def, sepref_fr_rules]
+declare isasat_input_ops.extract_model_of_state_stat_hnr[sepref_fr_rules]
+declare isasat_input_ops.finalise_init_hnr[unfolded PR_CONST_def, sepref_fr_rules]
 sepref_register to_init_state from_init_state get_conflict_wl_is_None_init extract_stats
+  isasat_input_ops.init_dt_wl_heur
+declare init_state_wl_heur_hnr[to_hnr, OF refl, sepref_fr_rules]
+  init_dt_wl_code.refine[sepref_fr_rules]
+ isasat_input_ops.get_stats_code[sepref_fr_rules]
+thm init_dt_wl_code.refine[to_hnr]
+
+
+lemma get_conflict_wl_is_None_heur_alt_def:
+   \<open>get_conflict_wl_is_None_heur S = (get_conflict_wl_heur S = None)\<close>
+  by (auto simp: get_conflict_wl_is_None_heur_def split: option.splits)
 
 sepref_definition IsaSAT_code
-  is \<open>IsaSAT\<close>
-  :: \<open>(list_assn (list_assn unat_lit_assn))\<^sup>k \<rightarrow>\<^sub>a model_assn\<close>
-  unfolding IsaSAT_def empty_conflict_def[symmetric]
+  is \<open>IsaSAT_heur\<close>
+  :: \<open>(list_assn (list_assn unat_lit_assn))\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
+  unfolding IsaSAT_heur_def empty_conflict_def[symmetric]
     get_conflict_wl_is_None extract_model_of_state_def[symmetric]
     extract_stats_def[symmetric]
-  supply get_conflict_wl_is_None_init_def[simp]
-  isasat_input_bounded.get_conflict_wl_is_None_code_get_conflict_wl_is_None[sepref_fr_rules]
-  isasat_input_bounded.get_conflict_wl_is_None_code_get_conflict_wl_is_None_no_lvls[sepref_fr_rules]
+  supply get_conflict_wl_is_None_heur_init_def[simp]
+  isasat_input_bounded.get_conflict_wl_is_None_code_refine[sepref_fr_rules]
+  isasat_input_bounded.get_conflict_wl_is_None_init_code_hnr[sepref_fr_rules]
   isasat_input_ops.to_init_state_hnr[sepref_fr_rules]
   isasat_input_ops.from_init_state_hnr[sepref_fr_rules]
   isasat_input_bounded.get_conflict_wl_is_None_init_wl_hnr[
@@ -275,8 +266,6 @@ sepref_definition IsaSAT_code
    option.splits[split]
    extract_stats_def[simp del]
   apply (rewrite at \<open>extract_atms_clss _ \<hole>\<close> op_extract_list_empty_def[symmetric])
-  apply (rewrite at \<open>empty_conflict\<close> annotate_assn[where A=model_assn])
-  supply [[goals_limit = 1]]
   by sepref
 
 code_printing constant nth_u_code \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((_),/ Word32.toInt _))"
