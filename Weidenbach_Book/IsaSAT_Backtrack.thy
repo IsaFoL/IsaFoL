@@ -1864,9 +1864,7 @@ proof -
     apply (refine_rcg shorter)
     subgoal by (rule inv)
     subgoal by (rule trail_nempty)
-    subgoal
-
-      sorry
+    subgoal by auto
        apply (rule find_decomp_wl_nlit; solves assumption)
     subgoal for x y xa S x1 x2 x1a x2a Sa Sb
       by (cases Sb; cases S) (auto simp: twl_st_heur_state_simp)
