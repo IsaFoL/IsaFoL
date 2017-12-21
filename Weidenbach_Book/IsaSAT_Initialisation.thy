@@ -1085,7 +1085,7 @@ lemma clause_to_update_append: \<open>N \<noteq> [] \<Longrightarrow> clause_to_
   unfolding clause_to_update_def get_clauses_l.simps
   by (auto simp: clause_to_update_def nth_append)
 
-definition HH :: \<open>(nat twl_st_wl_init \<times> nat twl_st_l_init) set\<close> where
+definition (in isasat_input_ops) HH :: \<open>(nat twl_st_wl_init \<times> nat twl_st_l_init) set\<close> where
   \<open>HH = {(((M', N', U', D', NE', UE', Q', WS'), OC'), ((M, N, U, D, NE, UE, WS, Q), OC)).
                M = M' \<and> N = N' \<and> U = U' \<and> D = D' \<and> NE = NE' \<and> UE = UE' \<and> Q = Q' \<and> WS = {#} \<and>
                (* U = length N - 1 \<and> *) UE = {#} \<and> N \<noteq> [] \<and>
@@ -1892,15 +1892,19 @@ prepare_code_thms (in -) init_dt_wl_code_def
 end
 
 text \<open>The value 160 is random (but larger than the default 16 for array lists).\<close>
-definition finalise_init_code :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur\<close> where
+definition finalise_init_code :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>finalise_init_code =
     (\<lambda>(M', N', U', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls, cach,
-       lbd).
-     (M', N', U', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove), \<phi>, clvls,
-       cach, lbd, take1(replicate 160 (Pos zero_uint32_nat)), (0::uint64, 0::uint64, 0::uint64)))\<close>
+       lbd). do {
+     ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
+     RETURN (M', N', U', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove), \<phi>, 
+       clvls, cach, lbd, take1(replicate 160 (Pos zero_uint32_nat)),
+         (0::uint64, 0::uint64, 0::uint64))
+     })\<close>
+
 term arl_empty_sz
 lemma (in isasat_input_ops)finalise_init_finalise_init:
-  \<open>(RETURN o finalise_init_code, RETURN o finalise_init) \<in>
+  \<open>(finalise_init_code, RETURN o finalise_init) \<in>
    [\<lambda>S. get_conflict_wl S = None \<and> \<A>\<^sub>i\<^sub>n \<noteq> {#}]\<^sub>f twl_st_heur_init_wl \<rightarrow> \<langle>twl_st_heur\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: finalise_init_def twl_st_heur_def twl_st_heur_init_def twl_st_heur_init_wl_def
@@ -1912,10 +1916,8 @@ lemma zero_uin64_hnr: \<open>(uncurry0 (return 0), uncurry0 (RETURN 0)) \<in> un
 (* End Move *)
 
 sepref_thm (in isasat_input_ops) finalise_init_code'
-  is \<open>RETURN o finalise_init_code\<close>
-  :: \<open> [\<lambda>(M', N', U', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
-         lst_As \<noteq> None]\<^sub>a
-     twl_st_heur_init_assn\<^sup>d \<rightarrow> twl_st_heur_assn\<close>
+  is \<open>finalise_init_code\<close>
+  :: \<open>twl_st_heur_init_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_heur_assn\<close>
   supply zero_uin64_hnr[sepref_fr_rules] [[goals_limit=1]]
     Pos_unat_lit_assn'[sepref_fr_rules] uint_max_def[simp] op_arl_replicate_def[simp]
   unfolding finalise_init_code_def twl_st_heur_init_assn_def twl_st_heur_assn_def
@@ -1931,39 +1933,6 @@ prepare_code_thms (in -) finalise_init_code'_def
 
 lemmas (in isasat_input_ops)finalise_init_hnr[sepref_fr_rules] =
    finalise_init_code'.refine[of \<A>\<^sub>i\<^sub>n]
-
-
-lemma (in isasat_input_ops)finalise_init_code_hnr[sepref_fr_rules]:
-  \<open>(finalise_init_code', RETURN o (PR_CONST finalise_init)) \<in>
-   [\<lambda>S. get_conflict_wl S = None \<and> \<A>\<^sub>i\<^sub>n \<noteq> {#}]\<^sub>a twl_st_init_wl_assn\<^sup>d \<rightarrow> twl_st_assn\<close>
-    (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
-proof -
-  have H: \<open>?c
-    \<in> [comp_PRE twl_st_heur_init_wl
-     (\<lambda>S. get_conflict_wl S = None \<and> \<A>\<^sub>i\<^sub>n \<noteq> {#})
-     (\<lambda>_ (M', N', U', D', Q', W', ((ns, m, fst_As, lst_As, next_search),
-         to_remove), \<phi>, clvls). fst_As \<noteq> None \<and> lst_As \<noteq> None)
-     (\<lambda>_. True)]\<^sub>a hrp_comp (twl_st_heur_init_assn\<^sup>d)
-                    twl_st_heur_init_wl \<rightarrow> hr_comp twl_st_heur_assn
-       twl_st_heur\<close>
-    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
-    using hfref_compI_PRE_aux[OF finalise_init_hnr
-    finalise_init_finalise_init] unfolding PR_CONST_def .
-  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
-    using that by (auto simp: comp_PRE_def twl_st_heur_init_def trail_pol_def option_lookup_clause_rel_def
-        lookup_clause_rel_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff vmtf_init_def twl_st_heur_init_wl_def)
-
-  have im: \<open>?im' = ?im\<close> and f: \<open>?f' = ?f\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep option_lookup_clause_assn_def
-    twl_st_assn_def twl_st_heur_init_assn_def twl_st_init_assn_def twl_st_init_wl_assn_def
-    by auto
-  show ?thesis
-    apply (rule hfref_weaken_pre[OF ])
-     defer
-    using H unfolding im PR_CONST_def f apply assumption
-    using pre ..
-qed
-
 
 definition (in -) init_rll :: \<open>nat \<Rightarrow> 'a list list\<close> where
   \<open>init_rll n = []\<close>
