@@ -277,6 +277,16 @@ code_printing constant two_uint32 \<rightharpoonup> (SML) "(Word32.fromInt 2)"
 
 code_printing constant length_u_code \<rightharpoonup> (SML_imp) "(fn/ ()/ =>/ Word32.fromInt (Array.length (_)))"
 
+definition length_aa_u_code' where
+  [symmetric, code]: \<open>length_aa_u_code' = length_aa_u_code\<close>
+code_printing constant length_aa_u_code' \<rightharpoonup> (SML_imp)
+   "(fn/ ()/ =>/ Word32.fromInt (Array.length (Array.sub/ (fst (_),/ IntInf.toInt (integer'_of'_nat (_))))))"
+
+definition length_arl_u_code' where
+  [symmetric, code]: \<open>length_arl_u_code' = length_arl_u_code\<close>
+code_printing constant length_arl_u_code' \<rightharpoonup> (SML_imp)
+   "(fn/ ()/ =>/ Word32.fromInt (Array.length (fst (_))))"
+
 export_code IsaSAT_code checking SML_imp
 export_code IsaSAT_code
     int_of_integer
