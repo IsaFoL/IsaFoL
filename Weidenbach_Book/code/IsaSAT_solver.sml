@@ -169,13 +169,13 @@ structure SAT_Solver : sig
   type minimize_status
   datatype int = Int_of_integer of IntInf.int
   type ('a, 'b) hashtable
+  val integer_of_int : int -> IntInf.int
+  val uint32_of_nat : nat -> Word32.word
   val isaSAT_code :
     (Word32.word list) list ->
       (unit ->
         ((Word32.word list) option *
           (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64))))
-  val integer_of_int : int -> IntInf.int
-  val uint32_of_nat : nat -> Word32.word
 end = struct
 
 datatype typerepa = Typerep of string * typerepa list;
@@ -2361,8 +2361,19 @@ fun arl_set_ua A_ a i x = arl_set A_ a (nat_of_uint32 i) x;
 
 fun arl_set_u A_ a i x = arl_set_ua A_ a i x;
 
-fun length_arl_u_code A_ =
-  (fn a => (fn () => Word32.fromInt (Array.length (fst a))));
+fun int_of_nat n = Int_of_integer (integer_of_nat n);
+
+fun integer_of_int (Int_of_integer k) = k;
+
+fun uint32_of_int i = Word32.fromLargeInt (IntInf.toLarge (integer_of_int i));
+
+fun uint32_of_nat x = (uint32_of_int o int_of_nat) x;
+
+fun length_arl_u_code A_ xs = (fn () => let
+  val n = arl_length A_ xs ();
+in
+  uint32_of_nat n
+end);
 
 fun minimize_and_extract_highest_lookup_conflict_code x =
   (fn ai => fn bid => fn bic => fn bib => fn bia => fn bi => fn () =>
@@ -3368,13 +3379,5 @@ fun isaSAT_code x =
         ()
     end)
     x;
-
-fun integer_of_int (Int_of_integer k) = k;
-
-fun uint32_of_int i = Word32.fromLargeInt (IntInf.toLarge (integer_of_int i));
-
-fun int_of_nat n = Int_of_integer (integer_of_nat n);
-
-fun uint32_of_nat x = (uint32_of_int o int_of_nat) x;
 
 end; (*struct SAT_Solver*)

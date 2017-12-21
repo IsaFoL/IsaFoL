@@ -282,10 +282,11 @@ definition length_aa_u_code' where
 code_printing constant length_aa_u_code' \<rightharpoonup> (SML_imp)
    "(fn/ ()/ =>/ Word32.fromInt (Array.length (Array.sub/ (fst (_),/ IntInf.toInt (integer'_of'_nat (_))))))"
 
-definition length_arl_u_code' where
-  [symmetric, code]: \<open>length_arl_u_code' = length_arl_u_code\<close>
+(* 
+This equation makes no sense since a resizable array is represent by an array and an infinite
+ integer: There is no obvious shortcut.
 code_printing constant length_arl_u_code' \<rightharpoonup> (SML_imp)
-   "(fn/ ()/ =>/ Word32.fromInt (Array.length (fst (_))))"
+   "(fn/ ()/ =>/ Word32.fromLargeInt (snd (_)))"  *)
 
 export_code IsaSAT_code checking SML_imp
 export_code IsaSAT_code
