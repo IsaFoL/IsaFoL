@@ -201,18 +201,12 @@ proof -
     by (auto simp: pure_def)
   show ?thesis
     by sepref_to_hoare
-      (sep_auto simp: twl_st_assn_def twl_st_heur_def hr_comp_def trail_pol_def twl_st_heur_assn_def
+      (sep_auto simp: twl_st_heur_def hr_comp_def trail_pol_def twl_st_heur_assn_def
         twl_st_heur_init_assn_def get_trail_wl_code_def
         extract_model_of_state_def extract_model_of_state_stat_def
         dest!: ann_lits_split_reasons_map_lit_of
         elim!: mod_starE)
 qed
-
-lemma extract_model_of_state_stat_extract_model_of_state:
-  \<open>(RETURN o extract_model_of_state_stat, RETURN o extract_model_of_state) \<in>
-      twl_st_heur \<rightarrow>\<^sub>f \<langle>model_stat_rel\<rangle> nres_rel \<close>
-  by (intro frefI nres_relI) (auto simp: extract_model_of_state_def extract_model_of_state_stat_def
-      model_stat_rel_def twl_st_heur_def)
 
 lemma get_stats_code[sepref_fr_rules]:
   \<open>(return o get_stats_code, RETURN o extract_state_stat) \<in> twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a
@@ -225,7 +219,7 @@ proof -
     by (auto simp: pure_def)
   show ?thesis
     by sepref_to_hoare
-      (sep_auto simp: twl_st_assn_def twl_st_heur_def hr_comp_def trail_pol_def twl_st_heur_assn_def
+      (sep_auto simp: twl_st_heur_def hr_comp_def trail_pol_def twl_st_heur_assn_def
         twl_st_heur_init_assn_def get_trail_wl_code_def get_stats_code_def
         extract_model_of_state_def extract_model_of_state_stat_def extract_state_stat_def
         dest!: ann_lits_split_reasons_map_lit_of
@@ -242,12 +236,6 @@ sepref_register to_init_state from_init_state get_conflict_wl_is_None_init extra
 declare init_state_wl_heur_hnr[to_hnr, OF refl, sepref_fr_rules]
   init_dt_wl_code.refine[sepref_fr_rules]
  isasat_input_ops.get_stats_code[sepref_fr_rules]
-thm init_dt_wl_code.refine[to_hnr]
-
-
-lemma get_conflict_wl_is_None_heur_alt_def:
-   \<open>get_conflict_wl_is_None_heur S = (get_conflict_wl_heur S = None)\<close>
-  by (auto simp: get_conflict_wl_is_None_heur_def split: option.splits)
 
 sepref_definition IsaSAT_code
   is \<open>IsaSAT_heur\<close>
@@ -282,7 +270,7 @@ definition length_aa_u_code' where
 code_printing constant length_aa_u_code' \<rightharpoonup> (SML_imp)
    "(fn/ ()/ =>/ Word32.fromInt (Array.length (Array.sub/ (fst (_),/ IntInf.toInt (integer'_of'_nat (_))))))"
 
-(* 
+(*
 This equation makes no sense since a resizable array is represent by an array and an infinite
  integer: There is no obvious shortcut.
 code_printing constant length_arl_u_code' \<rightharpoonup> (SML_imp)

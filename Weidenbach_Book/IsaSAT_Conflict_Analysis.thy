@@ -184,31 +184,6 @@ lemma twl_st_heur_lit_and_ann_of_propagated_st_heur_lit_and_ann_of_propagated_st
     (auto simp: twl_st_heur_def lit_and_ann_of_propagated_st_heur_def
       lit_and_ann_of_propagated_st_def)
 
-lemma skip_and_resolve_hd_in_D\<^sub>0:
-  assumes
-    L: \<open>(L, a2'a) = lit_and_ann_of_propagated_st a2'\<close> and
-    is_proped: \<open>is_proped (hd (get_trail_wl a2'))\<close> and
-    struct: \<open>twl_struct_invs (twl_st_of None (st_l_of_wl None a2'))\<close> and
-    nempty: \<open>get_trail_wl a2' \<noteq> []\<close> and
-    \<L>\<^sub>a\<^sub>l\<^sub>l: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_lits_of_mm
-       (cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of (twl_st_of None (st_l_of_wl None a2')))))\<close>
-   shows \<open>- L \<in> snd ` D\<^sub>0\<close>
-proof -
-  obtain M' where
-    M': \<open>get_trail_wl a2' = Propagated L a2'a # M'\<close>
-    using is_proped L nempty by (cases \<open>get_trail_wl a2'\<close>; cases \<open>hd (get_trail_wl a2')\<close>)
-      (auto simp: lit_and_ann_of_propagated_st_def)
-  have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of (twl_st_of None (st_l_of_wl None a2')))\<close>
-    using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-    by fast
-  then show ?thesis
-    using \<L>\<^sub>a\<^sub>l\<^sub>l M' unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
-    by (cases a2')
-     (auto simp: image_image mset_take_mset_drop_mset'
-        in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff clauses_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def)
-qed
-
-
 definition (in isasat_input_ops) tl_state_wl_heur_pre where
   \<open>tl_state_wl_heur_pre =
       (\<lambda>(M, N, U, D, WS, Q, ((A, m, fst_As, lst_As, next_search), _), \<phi>, _). M \<noteq> [] \<and>
@@ -841,7 +816,7 @@ proof -
     done
 qed
 
-lemma skip_and_resolde_hd_D\<^sub>0:
+lemma skip_and_resolve_hd_D\<^sub>0:
   assumes
     \<open>twl_struct_invs (twl_st_of None (st_l_of_wl None S))\<close> and
     \<open>get_trail_wl S = Propagated x21 x22 # xs\<close> and
@@ -1358,17 +1333,6 @@ prepare_code_thms (in -) get_conflict_wll_is_Nil_code_def
 lemmas get_conflict_wll_is_Nil_code[sepref_fr_rules] =
   get_conflict_wll_is_Nil_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_nempty_axioms]
 
-lemma get_conflict_wll_is_Nil_code_get_conflict_wll_is_Nil[sepref_fr_rules]:
-  \<open>(get_conflict_wll_is_Nil_code, get_conflict_wll_is_Nil) \<in> twl_st_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  using get_conflict_wll_is_Nil_code[FCOMP get_conflict_wll_is_Nil_heur_get_conflict_wll_is_Nil]
-  unfolding twl_st_assn_def[symmetric] .
-
-lemma get_conflict_wll_is_Nil_code_get_conflict_wl_is_Nil[sepref_fr_rules]:
-  \<open>(get_conflict_wll_is_Nil_code, RETURN \<circ> get_conflict_wl_is_Nil) \<in> twl_st_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  using get_conflict_wll_is_Nil_code_get_conflict_wll_is_Nil[FCOMP
-   get_conflict_wll_is_Nil_get_conflict_wl_is_Nil[unfolded PR_CONST_def]]
-  by auto
-
 definition (in -) get_count_max_lvls_code where
   \<open>get_count_max_lvls_code = (\<lambda>(_, _, _, _, _, _, _, _, clvls, _). clvls)\<close>
 
@@ -1506,7 +1470,7 @@ proof -
     unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep lookup_clause_assn_def
     by (auto simp: hrp_comp_def hr_comp_def)
   have f: \<open>?f' = ?f\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def hr_comp_prod_conv
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep hr_comp_prod_conv
       lookup_clause_assn_def
     by (auto simp: hrp_comp_def hr_comp_def)
   show ?thesis
@@ -1535,7 +1499,6 @@ lemma lookup_clause_assn_op_nset_is_emty[sepref_fr_rules]:
   apply (rename_tac x xi, case_tac xi)
   by (sep_auto simp: lookup_clause_assn_def lookup_clause_rel_def hr_comp_def
     uint32_nat_assn_0_eq uint32_nat_rel_def br_def pure_def nat_of_uint32_0_iff)+
-
 
 sepref_thm update_confl_tl_wl_code
   is \<open>uncurry2 update_confl_tl_wl_heur\<close>
@@ -1577,12 +1540,12 @@ sepref_thm skip_and_resolve_loop_wl_D
   :: \<open>twl_st_heur_assn\<^sup>d \<rightarrow>\<^sub>a twl_st_heur_assn\<close>
   supply [[goals_limit=1]] get_trail_twl_st_of_wl_get_trail_wl_empty_iff[simp]
     is_decided_hd_trail_wl_def[simp]
-    is_decided_no_proped_iff[simp] skip_and_resolve_hd_in_D\<^sub>0[intro]
+    is_decided_no_proped_iff[simp]
     literals_are_\<L>\<^sub>i\<^sub>n_conflict_literals_are_in_\<L>\<^sub>i\<^sub>n[of _ None, intro]
     get_conflict_l_st_l_of_wl[simp] is_in_conflict_st_def[simp]  neq_NilE[elim!]
     annotated_lit.splits[split] lit_and_ann_of_propagated_st_def[simp]
     annotated_lit.disc_eq_case(2)[simp]
-    skip_and_resolde_hd_D\<^sub>0[simp]
+    skip_and_resolve_hd_D\<^sub>0[simp]
     not_None_eq[simp del] maximum_level_removed_eq_count_dec_def[simp]
     skip_and_resolve_loop_wl_D_heur_inv_nempty[simp]
     is_decided_hd_trail_wl_heur_def[simp]

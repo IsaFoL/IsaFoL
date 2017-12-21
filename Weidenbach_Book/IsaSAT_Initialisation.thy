@@ -35,9 +35,6 @@ definition init_dt_step_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \
       RETURN ((M, N, U, Some D, NE, UE, WS, Q), add_mset (mset C) OC)))
   }\<close>
 
-lemma length_ge_Suc_0_tl_not_nil: \<open>length C > Suc 0 \<Longrightarrow> tl C \<noteq> []\<close>
-  by (cases C) auto
-
 lemma init_dt_step_init_dt_step_l:
   assumes
     struct_invs: \<open>twl_struct_invs_init (twl_st_of_init S)\<close>
@@ -53,7 +50,7 @@ proof -
   show ?thesis
     using n_d unfolding init_dt_step_def init_dt_step_l_def Let_def
     by (cases S; cases C; cases \<open>tl C\<close>)
-      (auto simp: polarity_def length_ge_Suc_0_tl_not_nil split: option.splits cong: bind_cong)
+      (auto simp: polarity_def split: option.splits cong: bind_cong)
 qed
 
 
@@ -767,61 +764,8 @@ lemma get_conflict_wl_is_None_code_get_conflict_wl_is_None_no_lvls[sepref_fr_rul
   unfolding twl_st_init_assn_def get_conflict_wl_is_None_init_def
   by fast
 
-type_synonym (in -) twl_st_wl_heur_init_trail_ref =
-  \<open>trail_pol \<times> nat clause_l list \<times> nat \<times>
-    nat cconflict \<times> nat lit_queue_wl \<times> nat list list \<times> vmtf_remove_int_option_fst_As \<times> bool list \<times>
-    nat \<times> nat conflict_min_cach \<times> lbd\<close>
-
-(* TODO Kill *)
-definition (in isasat_input_ops) twl_st_heur_pol_init
-   :: \<open>(twl_st_wl_heur_init_trail_ref \<times> nat twl_st_wl_init) set\<close>
-where
-\<open>twl_st_heur_pol_init =
-  {((M', N', U', D', Q', W', vm, \<phi>, clvls, cach, lbd), ((M, N, U, D, NE, UE, Q, W), OC)).
-    (M', M) \<in> trail_pol \<and> N' = N \<and> U' = U \<and> D = D' \<and>
-     Q' = Q \<and>
-    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel D\<^sub>0 \<and>
-    vm \<in> vmtf_init M \<and>
-    phase_saving \<phi> \<and>
-    no_dup M\<and>
-    cach_refinement_empty cach
-  }\<close>
-
-definition twl_st_heur_pol_init_assn
-  :: \<open>twl_st_wl_heur_init_trail_ref \<Rightarrow> _ \<Rightarrow> assn\<close>
-where
-  \<open>twl_st_heur_pol_init_assn =
-    (trail_pol_assn *a clauses_ll_assn *a nat_assn *a
-    option_lookup_clause_assn *a
-    clause_l_assn *a
-    arrayO_assn (arl_assn nat_assn) *a
-    vmtf_remove_conc_option_fst_As *a phase_saver_conc *a
-    uint32_nat_assn *a
-    cach_refinement_assn *a
-    lbd_assn
-    )\<close>
-
-lemma (in isasat_input_ops) twl_st_trail_no_clvls_ref_alt_def:
-  \<open>twl_st_heur_pol_init =
-    (trail_pol \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id) O twl_st_heur_init\<close>
-  by (force simp: twl_st_heur_pol_init_def twl_st_heur_init_def)
-
-lemma twl_st_heur_init_assn_twl_st_heur_pol_init_assn:
-  \<open>twl_st_heur_init_assn =
-     hr_comp twl_st_heur_pol_init_assn
-        (trail_pol \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id)\<close>
-  unfolding twl_st_heur_pol_init_assn_def twl_st_heur_init_assn_def hr_comp_prod_conv
-  by simp
-
-lemma twl_st_heur_init_assn_assn:
-  \<open>hr_comp twl_st_heur_pol_init_assn twl_st_heur_pol_init = twl_st_init_assn\<close>
-  unfolding twl_st_init_assn_def twl_st_trail_no_clvls_ref_alt_def
-  hr_comp_assoc[symmetric] twl_st_heur_init_assn_twl_st_heur_pol_init_assn
-  ..
-
 definition polarity_st_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> _ \<Rightarrow> bool option\<close> where
   \<open>polarity_st_heur_init = (\<lambda>(M, _) L. polarity M L)\<close>
-
 
 sepref_thm polarity_st_heur_init_code
   is \<open>uncurry (RETURN oo polarity_st_heur_init)\<close>
@@ -1863,7 +1807,7 @@ proof -
     by (auto simp: pure_def)
   have [simp]: \<open>min a (max a 16) = a\<close> for a :: nat
     by auto
-  show ?thesis 
+  show ?thesis
     using assms unfolding op_arl_replicate_def
     by sepref_to_hoare
       (sep_auto simp: arl_replicate_def arl_assn_def hr_comp_def R' R_R' list_rel_def
@@ -1897,12 +1841,12 @@ definition finalise_init_code :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st
     (\<lambda>(M', N', U', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls, cach,
        lbd). do {
      ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
-     RETURN (M', N', U', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove), \<phi>, 
+     RETURN (M', N', U', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove), \<phi>,
        clvls, cach, lbd, take1(replicate 160 (Pos zero_uint32_nat)),
          (0::uint64, 0::uint64, 0::uint64))
      })\<close>
 
-term arl_empty_sz
+
 lemma (in isasat_input_ops)finalise_init_finalise_init:
   \<open>(finalise_init_code, RETURN o finalise_init) \<in>
    [\<lambda>S. get_conflict_wl S = None \<and> \<A>\<^sub>i\<^sub>n \<noteq> {#}]\<^sub>f twl_st_heur_init_wl \<rightarrow> \<langle>twl_st_heur\<rangle>nres_rel\<close>

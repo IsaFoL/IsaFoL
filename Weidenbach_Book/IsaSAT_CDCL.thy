@@ -238,14 +238,6 @@ definition (in isasat_input_ops) decide_lit_wl_heur :: \<open>nat literal \<Righ
   \<open>decide_lit_wl_heur = (\<lambda>L' (M, N, U, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, outl, stats).
       (Decided L' # M, N, U, D, {#- L'#}, W, vmtf, \<phi>, clvls, cach, lbd, outl, incr_decision stats))\<close>
 
-lemma decide_lit_wl_heur_decide_lit_wl:
-  \<open>(uncurry (RETURN oo decide_lit_wl_heur), uncurry (RETURN oo decide_lit_wl)) \<in>
-     [\<lambda>(L, S). undefined_lit (get_trail_wl S) L \<and> get_conflict_wl S = None]\<^sub>f
-     nat_lit_lit_rel \<times>\<^sub>r twl_st_heur \<rightarrow> \<langle>twl_st_heur\<rangle>nres_rel\<close>
-  unfolding decide_lit_wl_heur_def decide_lit_wl_def
-  by (intro frefI nres_relI)
-    (auto simp: twl_st_heur_def intro: vmtf_consD)
-
 sepref_thm decide_lit_wl_code
   is \<open>uncurry (RETURN oo decide_lit_wl_heur)\<close>
   :: \<open>[\<lambda>(L, S). undefined_lit (get_trail_wl_heur S) L \<and> get_conflict_wl_heur S = None \<and>
@@ -266,7 +258,7 @@ prepare_code_thms (in -) decide_lit_wl_code_def
 lemmas decide_lit_wl_heur_hnr[sepref_fr_rules] =
   decide_lit_wl_code.refine[OF isasat_input_bounded_nempty_axioms]
 
-definition(in isasat_input_ops)  decide_wl_or_skip_D_heur
+definition(in isasat_input_ops) decide_wl_or_skip_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
 where
   \<open>decide_wl_or_skip_D_heur S = (do {

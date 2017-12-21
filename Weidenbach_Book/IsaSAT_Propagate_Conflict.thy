@@ -52,13 +52,6 @@ prepare_code_thms (in -) access_lit_in_clauses_heur_code_def
 lemmas access_lit_in_clauses_heur_code_refine[sepref_fr_rules] =
    access_lit_in_clauses_heur_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms]
 
-lemma access_lit_in_clauses_heur_access_lit_in_clauses:
-  \<open>(uncurry2 (RETURN ooo access_lit_in_clauses_heur),
-      uncurry2 (RETURN ooo access_lit_in_clauses)) \<in>
-   twl_st_heur \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
-  by (intro frefI nres_relI)
-     (auto simp: access_lit_in_clauses_heur_def twl_st_heur_def access_lit_in_clauses_def)
-
 end
 
 lemma case_tri_bool_If:
@@ -214,15 +207,8 @@ lemma length_ll_fs_heur_alt_def:
   apply (case_tac S)
   by auto
 
-lemma length_ll_fs_heur_length_ll_fs:
-    \<open>(uncurry (RETURN oo length_ll_fs_heur), uncurry (RETURN oo length_ll_fs)) \<in>
-    [\<lambda>(S, L). L \<in> snd ` D\<^sub>0]\<^sub>f twl_st_heur \<times>\<^sub>r Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
-  apply (intro frefI nres_relI)
-  apply (rename_tac x y, case_tac x, case_tac y)
-  by (auto simp: length_ll_fs_def length_ll_fs_heur_def twl_st_heur_def map_fun_rel_def)
-
 lemma (in -) get_watched_wl_heur_def: \<open>get_watched_wl_heur = (\<lambda>(M, N, U, D, Q, W, _). W)\<close>
-  by (intro ext, rename_tac x, case_tac x) (auto intro!: ext)
+  by (intro ext, rename_tac x, case_tac x) auto
 
 sepref_thm length_ll_fs_heur_code
   is \<open>uncurry (RETURN oo length_ll_fs_heur)\<close>
@@ -309,6 +295,41 @@ definition get_literals_to_update_wl_heur_W_list where
 definition literals_to_update_wl_empty_heur' :: \<open>twl_st_wl_heur_W_list \<Rightarrow> bool\<close>  where
   \<open>literals_to_update_wl_empty_heur' = (\<lambda>(M, N, U, D, Q, W, oth). Q = [])\<close>
 
+definition (in isasat_input_ops) twl_st_wl_heur_W_list_rel
+  :: \<open>(twl_st_wl_heur_W_list \<times> twl_st_wl_heur) set\<close>
+where
+  \<open>twl_st_wl_heur_W_list_rel =
+     (Id :: ((nat,nat) ann_lits \<times> _) set) \<times>\<^sub>r
+     (Id :: (nat clauses_l  \<times> _) set) \<times>\<^sub>r
+     nat_rel \<times>\<^sub>r
+     (Id :: (nat cconflict \<times> _)set) \<times>\<^sub>r
+     (list_mset_rel :: (nat literal list \<times> nat lit_queue_wl) set)  \<times>\<^sub>r
+     (Id :: (nat list list \<times> _)set) \<times>\<^sub>r
+     Id \<times>\<^sub>r
+     Id \<times>\<^sub>r
+     nat_rel \<times>\<^sub>r
+     Id \<times>\<^sub>r
+     Id \<times>\<^sub>r
+     Id \<times>\<^sub>r
+     Id\<close>
+
+definition (in isasat_input_ops) twl_st_heur_W_list_assn
+  :: \<open>twl_st_wl_heur_W_list \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close>
+where
+\<open>twl_st_heur_W_list_assn =
+  (trail_assn *a clauses_ll_assn *a nat_assn *a
+  option_lookup_clause_assn *a
+  (list_assn unat_lit_assn) *a
+  arrayO_assn (arl_assn nat_assn) *a
+  vmtf_remove_conc *a phase_saver_conc *a uint32_nat_assn *a cach_refinement_assn *a
+  lbd_assn *a out_learned_assn *a stats_assn
+  )\<close>
+
+lemma (in isasat_input_ops) twl_st_heur_assn_W_list:
+  \<open>twl_st_heur_assn = hr_comp twl_st_heur_W_list_assn twl_st_wl_heur_W_list_rel\<close>
+  unfolding twl_st_heur_assn_def twl_st_heur_W_list_assn_def twl_st_wl_heur_W_list_rel_def
+  by (auto simp: list_assn_list_mset_rel_eq_list_mset_assn)
+
 sepref_thm select_and_remove_from_literals_to_update_wl_code
   is \<open>RETURN o select_and_remove_from_literals_to_update_wl_heur'\<close>
   :: \<open>[\<lambda>S. \<not>literals_to_update_wl_empty_heur' S]\<^sub>a
@@ -342,7 +363,7 @@ lemma
        \<langle>(twl_st_wl_heur_W_list_rel) \<times>\<^sub>r Id\<rangle>nres_rel\<close>
   unfolding select_and_remove_from_literals_to_update_wl_heur_def
     get_literals_to_update_wl_heur_W_list_def
-    twl_st_wl_heur_W_list_rel_twl_st_rel get_literals_to_update_wl_def
+    get_literals_to_update_wl_def
     literals_to_update_wl_empty_heur_def literals_to_update_wl_empty_heur_def
     select_and_remove_from_literals_to_update_wl_heur'_def literals_to_update_wl_empty_heur_def
   apply (intro frefI nres_relI)
@@ -351,7 +372,7 @@ lemma
   unfolding get_literals_to_update_wl_def get_literals_to_update_wl_heur_W_list_def
   by (auto intro!: RETURN_SPEC_refine simp: nempty_list_mset_rel_iff
       twl_st_wl_heur_W_list_rel_def
-      literals_to_update_wl_empty_heur_def nempty_list_mset_rel_iff)
+      literals_to_update_wl_empty_heur_def)
 
 theorem
   select_and_remove_from_literals_to_update_wl_code_select_and_remove_from_literals_to_update_wl
@@ -378,11 +399,11 @@ proof -
       literals_to_update_wl_empty_def twl_st_wl_heur_W_list_rel_def literals_to_update_wl_empty_heur'_def
     by (auto simp: image_image map_fun_rel_def Nil_list_mset_rel_iff)
   have im: \<open>?im' = ?im\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def[symmetric]
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
     twl_st_heur_assn_W_list[symmetric]
     by (auto simp: hrp_comp_def hr_comp_def)
   have f: \<open>?f' = ?f\<close>
-    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep twl_st_assn_def
+    unfolding prod_hrp_comp hrp_comp_dest hrp_comp_keep
     twl_st_heur_assn_W_list[symmetric] hr_comp_prod_conv
     by (auto simp: hrp_comp_def hr_comp_def)
   show ?thesis
@@ -414,7 +435,7 @@ lemma literals_to_update_wl_empty_heur_literals_to_update_wl_empty:
   \<open>(RETURN o literals_to_update_wl_empty_heur', RETURN o literals_to_update_wl_empty_heur) \<in>
     twl_st_wl_heur_W_list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
   unfolding literals_to_update_wl_empty_heur_def literals_to_update_wl_empty_heur_def
-    twl_st_wl_heur_W_list_rel_twl_st_rel literals_to_update_wl_empty_heur'_def
+    literals_to_update_wl_empty_heur'_def
   apply (intro frefI nres_relI)
   apply (rename_tac x y, case_tac x, case_tac y)
   by (auto simp: Nil_list_mset_rel_iff empty_list_mset_rel_iff

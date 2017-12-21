@@ -40,82 +40,9 @@ fun get_vmtf_heur :: \<open>twl_st_wl_heur \<Rightarrow> _\<close> where
 subsection \<open>Propagations\<close>
 
 (* TODO Move *)
-definition polarity_st_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> bool option\<close> where
-  \<open>polarity_st_heur S = polarity (get_trail_wl_heur S)\<close>
-
-abbreviation (in isasat_input_ops) polarity_st_pre where
-\<open>polarity_st_pre \<equiv> \<lambda>(M, L). L \<in> snd ` D\<^sub>0\<close>
 
 context isasat_input_bounded
 begin
-(* TODO Move *)
-lemma polarity_st_heur_pol_polarity_st_refine[sepref_fr_rules]:
-  \<open>(uncurry polarity_st_heur_pol_code, uncurry (RETURN oo polarity_st_heur)) \<in>
-     [polarity_st_pre]\<^sub>a twl_st_heur_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
-proof -
-  have [simp]: \<open>polarity_atm M (atm_of L) =
-      (if is_pos L then polarity M L else map_option uminus (polarity M L))\<close>
-    if \<open>no_dup M\<close>for M :: \<open>(nat, nat) ann_lits\<close> and L :: \<open>nat literal\<close>
-    by (cases L) (use no_dup_consistentD[of M \<open>Neg (atm_of L)\<close>] that in
-        \<open>auto simp: polarity_atm_def polarity_def Decided_Propagated_in_iff_in_lits_of_l\<close>)
-  have 2: \<open>(uncurry polarity_st_heur_pol, uncurry (RETURN oo polarity_st_heur)) \<in>
-     [\<lambda>(_, L). L \<in> snd ` D\<^sub>0]\<^sub>f
-     (trail_pol \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id) \<times>\<^sub>f Id \<rightarrow>
-     \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
-    by (intro nres_relI frefI)
-       (auto simp: trail_pol_def polarity_st_def polarity_pol_def invert_pol_def
-        polarity_def polarity_st_heur_def polarity_st_heur_pol_def)
-  show ?thesis
-    using polarity_st_heur_pol_code.refine[FCOMP 2, OF isasat_input_bounded_axioms,
-      unfolded twl_st_heur_pol_assn_twl_st_heur_assn] by simp
-qed
-(* End Move *)
-
-lemma unit_prop_body_wl_invD:
-  fixes S w K
-  defines \<open>C \<equiv> (watched_by S K) ! w\<close>
-  assumes inv: \<open>unit_prop_body_wl_inv S w K\<close>
-  shows \<open>distinct((get_clauses_wl S)!C)\<close> and \<open>get_conflict_wl S = None\<close>
-proof -
-  obtain M N U D' NE UE Q W where
-     S: \<open>S = (M, N, U, D', NE, UE, Q, W)\<close>
-    by (cases S)
-  have
-     struct_invs: \<open>twl_struct_invs (twl_st_of_wl (Some (K, w)) S)\<close> and
-     \<open>twl_list_invs (st_l_of_wl (Some (K, w)) S)\<close> and
-     corr: \<open>correct_watching S\<close> and
-     \<open>w < length (watched_by S K)\<close> and
-     confl: \<open>get_conflict_wl S = None\<close> and
-     w_ge_0: \<open>0 < watched_by S K ! w\<close> and
-     w_le_length: \<open>w < length (watched_by S K)\<close> and
-     w_le_length_S: \<open>watched_by S K ! w < length (get_clauses_wl S)\<close>
-    using inv unfolding unit_prop_body_wl_inv_def by fast+
-
-  show \<open>get_conflict_wl S = None\<close>
-    using confl .
-  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of (twl_st_of_wl (Some (K, w)) S))\<close> and
-      \<open>\<forall>D\<in>#learned_clss (state\<^sub>W_of (twl_st_of_wl (Some (K, w)) S)).
-      \<not> tautology D\<close>
-      and
-    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of (twl_st_of_wl (Some (K, w)) S))\<close>
-    using struct_invs unfolding twl_struct_invs_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-    by fast+
-  have \<open>distinct_mset_set (mset ` set (tl N))\<close>
-    apply (subst append_take_drop_id[of \<open>U\<close> \<open>tl N\<close>, symmetric])
-    apply (subst set_append)
-    apply (subst image_Un)
-    apply (subst distinct_mset_set_union)
-    using dist
-    by (auto simp: C_def S cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
-        mset_take_mset_drop_mset drop_Suc)
-  moreover have NC: \<open>N!C \<in> set (tl N)\<close>
-     using w_ge_0 w_le_length_S unfolding C_def S
-     by (auto intro!: nth_in_set_tl)
-  ultimately show \<open>distinct((get_clauses_wl S)!C)\<close>
-     unfolding distinct_mset_set_def S by simp
-qed
-
 
 lemma unit_prop_body_wl_D_invD:
   assumes \<open>unit_prop_body_wl_D_inv S w L\<close>
@@ -1155,7 +1082,7 @@ lemma select_and_remove_from_literals_to_update_wl_heur_select_and_remove_from_l
   by (intro frefI nres_relI)
     (auto intro!: RES_refine simp: twl_st_heur_def)
 
-lemma unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D:
+theorem unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D:
   \<open>(unit_propagation_outer_loop_wl_D_heur, unit_propagation_outer_loop_wl_D) \<in>
     twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle> nres_rel\<close>
   unfolding unit_propagation_outer_loop_wl_D_heur_def
@@ -1171,5 +1098,5 @@ lemma unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D:
   done
 
 end
-
+unused_thms
 end
