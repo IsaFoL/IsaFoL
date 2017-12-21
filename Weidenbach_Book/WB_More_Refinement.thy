@@ -405,6 +405,25 @@ lemma RES_RETURN_RES2:
   apply (subst (asm)(2) split_prod_bound)
   by auto
 
+lemma WHILEIT_rule_stronger_inv_RES:
+  assumes
+    \<open>wf R\<close> and
+    \<open>I s\<close> and
+    \<open>I' s\<close>
+    \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> b s \<Longrightarrow> f s \<le> SPEC (\<lambda>s'. I s' \<and>  I' s' \<and> (s', s) \<in> R)\<close> and
+   \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> \<not> b s \<Longrightarrow> s \<in> \<Phi>\<close>
+ shows \<open>WHILE\<^sub>T\<^bsup>I\<^esup> b f s \<le> RES \<Phi>\<close>
+proof -
+  have RES_SPEC: \<open>RES \<Phi> = SPEC(\<lambda>s. s \<in> \<Phi>)\<close>
+    by auto
+  have \<open>WHILE\<^sub>T\<^bsup>I\<^esup> b f s \<le> WHILE\<^sub>T\<^bsup>\<lambda>s. I s \<and> I' s\<^esup> b f s\<close>
+    by (metis (mono_tags, lifting) WHILEIT_weaken)
+  also have \<open>WHILE\<^sub>T\<^bsup>\<lambda>s. I s \<and> I' s\<^esup> b f s \<le> RES \<Phi>\<close>
+    unfolding RES_SPEC
+    by (rule WHILEIT_rule) (use assms in \<open>auto simp: \<close>)
+  finally show ?thesis .
+qed
+
 text \<open>
   This theorem is useful to debug situation where sepref is not able to synthesize a program (with
   the ``[[unify\_trace\_failure]]'' for rule and the \<^text>\<open>to_hnr\<close>).
@@ -413,13 +432,16 @@ lemma Pair_hnr: \<open>(uncurry (return oo (\<lambda>a b. Pair a b)), uncurry (R
     A\<^sup>d *\<^sub>a B\<^sup>d \<rightarrow>\<^sub>a prod_assn A B\<close>
   by sepref_to_hoare sep_auto
 
-lemma (in -) fref_weaken_pre_weaken:
+lemma fref_weaken_pre_weaken:
   assumes "\<And>x. P x \<longrightarrow> P' x"
   assumes "(f,h) \<in> fref P' R S"
   assumes \<open>S \<subseteq> S'\<close>
   shows "(f,h) \<in> fref P R S'"
   using fref_weaken_pre[OF assms(1,2)]
   using assms(3) fref_cons by blast
+
+lemma bind_rule_complete_RES: \<open>(M \<bind> f \<le> RES \<Phi>) = (M \<le> SPEC (\<lambda>x. f x \<le> RES \<Phi>))\<close>
+  by (auto simp: pw_le_iff refine_pw_simps)
 
 text \<open>This version works only for \<^emph>\<open>pure\<close> refinement relations:\<close>
 lemma the_hnr_keep:

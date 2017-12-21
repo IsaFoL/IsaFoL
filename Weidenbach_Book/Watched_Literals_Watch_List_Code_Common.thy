@@ -711,9 +711,6 @@ proof -
     using H unfolding pre init by blast
 qed
 
-lemma literals_to_update_wl_literals_to_update_wl_empty:
-  \<open>literals_to_update_wl S = {#} \<longleftrightarrow> literals_to_update_wl_empty S\<close>
-  by (cases S) (auto simp: literals_to_update_wl_empty_def)
 
 definition get_conflict_wl_is_Nil :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
   \<open>get_conflict_wl_is_Nil = (\<lambda>(M, N, U, D, NE, UE, Q, W). D \<noteq> None \<and> Multiset.is_empty (the D))\<close>
