@@ -281,7 +281,7 @@ proof (induction rule: cdcl_twl_restart.induct)
      then obtain L where
        lev_L: \<open>get_level M L = 0\<close>
        \<open>L \<in> lits_of_l M\<close> and
-       C: \<open>C = {#L#}\<close>
+       C: \<open>L \<in># C\<close>
        using unit by auto
      then have \<open>L \<in> lits_of_l M'\<close>
        apply (cases \<open>defined_lit M3' L\<close>)
@@ -291,7 +291,7 @@ proof (induction rule: cdcl_twl_restart.induct)
        apply (cases \<open>defined_lit M3' L\<close>)
        using n_d lev_L unfolding M3' by (auto simp: get_level_cons_if split: if_splits
            dest: in_lits_of_l_defined_litD)
-     ultimately show \<open>\<exists>L. C = {#L#} \<and>
+     ultimately show \<open>\<exists>L. L \<in># C \<and>
              (None = None \<or> 0 < count_decided M' \<longrightarrow>
               get_level M' L = 0 \<and> L \<in> lits_of_l M')\<close>
        using C by blast
@@ -409,9 +409,9 @@ next
      then obtain L where
        lev_L: \<open>get_level M L = 0\<close>
        \<open>L \<in> lits_of_l M\<close> and
-       C: \<open>C = {#L#}\<close>
+       C: \<open>L \<in># C\<close>
        using unit by auto
-     then show \<open>\<exists>L. C = {#L#} \<and>
+     then show \<open>\<exists>L. L \<in># C \<and>
              (None = None \<or> 0 < count_decided M \<longrightarrow>
               get_level M L = 0 \<and> L \<in> lits_of_l M)\<close>
        using C by blast

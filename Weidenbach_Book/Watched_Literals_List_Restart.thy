@@ -8,6 +8,11 @@ abbreviation map_proped_lits :: \<open>(nat \<Rightarrow> nat) \<Rightarrow> ('v
 context twl_restart
 begin
 
+inductive forget_clauses where
+  \<open>length N' = 1 \<Longrightarrow> forget_clauses N (replicate (length N) None) N'\<close> |
+  \<open>forget_clauses N new_pos N' \<Longrightarrow> i < length N \<Longrightarrow> new_pos!i = None \<Longrightarrow> i > 0 \<Longrightarrow>
+     forget_clauses N (new_pos[i:=Some (length N')]) (N' @ [N!i])\<close>
+
 definition (in -) derive_literals_and_clauses where
  \<open>derive_literals_and_clauses M N u N' new_pos \<longleftrightarrow>
     (\<forall>i\<in>{1..<length N}. new_pos i \<noteq> None \<longrightarrow> the (new_pos i) < length N' \<and>
