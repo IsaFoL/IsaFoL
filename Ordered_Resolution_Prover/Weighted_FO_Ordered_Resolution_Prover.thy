@@ -549,6 +549,108 @@ proof -
     using stay_or_delete_completely'[of "lnth Sts k" "lnth Sts (Suc k)" C i] a by blast
 qed
 
+(* FIXME: Horrible name *)
+lemma stay_or_delete_completely_STRONGER':
+  assumes "St \<leadsto>\<^sub>w St'" "(C,i) \<in># wP_of_wstate St" 
+    "\<And>k. (C, k) \<in># wP_of_wstate St \<Longrightarrow> i \<le> k"
+  shows "((C, i) \<in># wP_of_wstate St') \<or> (\<forall>j. (C, j) \<notin># wP_of_wstate St')"
+using assms proof (induction rule: weighted_RP.induct)
+  case (tautology_deletion A C' N i' P Q n)
+  then show ?case by auto
+next
+  case (forward_subsumption D P Q C' N i' n)
+  then show ?case by auto
+next
+  case (backward_subsumption_P D N C' P Q n)
+  then show ?case by auto
+next
+  case (backward_subsumption_Q D N C' P Q i' n)
+  then show ?case by auto
+next
+  case (forward_reduction D L' P Q L \<sigma> C' N i' n)
+then show ?case by auto
+next
+  case (backward_reduction_P D L' N L \<sigma> C' P i' Q n)
+  show ?case
+  proof (cases "C = C' + {#L#}")
+    case True
+    note True_outer = this
+    then have C_i_in: "(C, i) \<in># P + {#(C, i')#}"
+      using backward_reduction_P by auto
+    then have max:
+      "\<And>k. (C, k) \<in># P + {#(C, i')#} \<Longrightarrow> k \<le> i'"
+      using backward_reduction_P unfolding True[symmetric] by auto
+    then have "count (P + {#(C, i')#}) (C, i') \<ge> 1"
+      by auto
+    moreover
+    {
+      assume asm: "count (P + {#(C, i')#}) (C, i') = 1"
+      then have nin_P: "(C, i') \<notin># P"
+        using not_in_iff by force       
+      have ?thesis
+      proof (cases "(C, i) = (C, i')")
+        case True
+        then have "i = i'"
+          by auto
+        then have "\<forall>j. (C, j) \<in># P + {#(C, i')#} \<longrightarrow> j = i'"
+          using max backward_reduction_P(6) unfolding True_outer[symmetric] by force
+        then have "\<forall>j. (C, j) \<notin># P"
+          using nin_P by auto
+        then have "\<forall>j. (C, j) \<notin># P + {#(C', i')#}"
+          using True_outer[symmetric] by auto
+        then show ?thesis 
+          by auto
+      next
+        case False
+        then have "i \<noteq> i'"
+          by auto
+        then have "(C, i) \<in># P"
+          using C_i_in by auto
+        then have "(C, i) \<in># P + {#(C', i')#}"
+          by auto
+        then show ?thesis
+          by auto
+      qed
+    }
+    moreover
+    {
+      assume "count (P + {#(C, i')#}) (C, i') > 1"
+      then have "set_mset (P + {#(C, i')#}) = set_mset P"
+        by auto
+      then have ?thesis
+        using C_i_in by auto
+    }
+    ultimately show ?thesis
+      by (cases "count (P + {#(C, i')#}) (C, i') = 1") auto
+  next
+    case False
+    then show ?thesis
+      using backward_reduction_P by auto
+  qed
+next
+  case (backward_reduction_Q D L' N L \<sigma> C' P Q i' n)
+  then show ?case by auto
+next
+  case (clause_processing N C' i' P Q n)
+  then show ?case by auto
+next
+  case (inference_computation P C' i' N n Q)
+  then show ?case by auto
+qed
+
+(* FIXME: Horrible name *)
+lemma stay_or_delete_completely_STRONGER: (* This is only true for full derivations. *)
+  assumes "enat (Suc k) < llength Sts"
+  assumes a: "(C, i) \<in># wP_of_wstate (lnth Sts k)"
+  assumes b: "\<And>k. (C, j) \<in># wP_of_wstate (lnth Sts k) \<Longrightarrow> i \<le> j"
+  shows "(C, j) \<in># wP_of_wstate (lnth Sts (Suc k)) \<or> (\<forall>j. (C, j) \<notin># wP_of_wstate (lnth Sts (Suc k)))"
+proof -
+  from deriv have "lnth Sts k \<leadsto>\<^sub>w lnth Sts (Suc k)"
+    using assms chain_lnth_rel by auto
+  then show ?thesis
+    using stay_or_delete_completely_STRONGER'[of "lnth Sts k" "lnth Sts (Suc k)" C i] a by blast
+qed
+
 (* FIXME: come up with better name *)
 lemma persistent_wclause_if_persistent_clause:
   assumes llength_infty: "llength Sts = \<infinity>"
@@ -569,10 +671,13 @@ proof -
   then obtain i where i_p:
     "(C,i) \<in># wP_of_wstate (lnth Sts x)"
     by auto
-  have "\<forall>xa. enat xa < llength (ldrop x Sts) \<longrightarrow> C \<in> P_of_state (state_of_wstate (lnth (ldrop x Sts) xa))"
-  proof (rule, rule) (* FIXME: should this be a lemma? *)
+  (* FIXME: change name of ggg *)
+  have ggg: "\<And>xa. C \<in> P_of_state (state_of_wstate (lnth (ldrop x Sts) xa))"
+  proof - (* FIXME: should this be a lemma? *)
     fix xa :: "nat"
-    assume "enat xa < llength (ldrop (enat x) Sts)"
+    have "enat xa < llength (ldrop (enat x) Sts)"
+      using llength_infty
+      by (simp add: ldrop_enat) 
     then have llen: "enat x + enat xa < llength  Sts"
       using llength_infty by auto
     then have "enat (x + xa) < llength  Sts"
@@ -582,11 +687,41 @@ proof -
     then show "C \<in> P_of_state (state_of_wstate (lnth (ldrop (enat x) Sts) xa))"
       using lnth_ldrop[of "enat x" xa Sts] using llen by auto
   qed
-
-  thm stay_or_delete_completely
-  have "\<exists>f. \<forall>i. f i \<in># wP_of_wstate ((lnth (ldrop x Sts) i)) \<and> fst (f i) \<ge> fst (f (Suc i)) \<and> fst (f i) = fst (f (Suc i))"
+  have "\<forall>xa. \<exists>i. (C,i) \<in># wP_of_wstate (lnth (ldrop x Sts) xa)"
+    apply auto
+    subgoal for xa
+      using ggg[of xa]
+      apply (cases "(lnth (ldrop (enat x) Sts)) xa")
+      apply auto
+      done
+    done
+  (* There is a smallest (C,i) on the (dropped) sequence.
+     Obtain that. Look at where it occurs.
+     That should never get deleted. *)
+  obtain j xb where j_p:
+    "\<forall>k xa. (C,k) \<in># wP_of_wstate (lnth (ldrop x Sts) xa) \<longrightarrow> j \<le> k"
+    "(C,j) \<in># wP_of_wstate (lnth (ldrop x Sts) xb)"
     sorry
-
+  have "\<And>xc. (C,j) \<in># wP_of_wstate (lnth (ldrop (x+xb) Sts) xc)"
+    subgoal for xc
+    proof (induction xc)
+      case 0
+      then show ?case
+        using j_p lnth_ldrop[of 0 _ Sts] llength_infty
+        by (simp add: add.commute) 
+    next
+      case (Suc xc)
+      then have "(C, j) \<in># wP_of_wstate (lnth (ldrop (x+xb) Sts) xc)"
+        sorry
+      then have "(C, j) \<in># wP_of_wstate (lnth Sts ((x+xb) + xc))"
+        by (simp add: add.commute llength_infty)
+      moreover have "\<exists>k. (C,k) \<in># lnth (lmap wP_of_wstate Sts) (Suc ((x+xb) + xc))"
+        sorry
+      ultimately have "(C, j) \<in># lnth (lmap wP_of_wstate Sts) (Suc ((x+xb) + xc))"
+        using stay_or_delete_completely sorry
+      then show ?case sorry
+    qed
+    done
   have Ci_stays: "(\<And>xa. enat xa < llength Sts \<Longrightarrow> (C, i) \<in># wP_of_wstate (lnth (ldrop x Sts) xa))"
   subgoal for xa
     proof (induction xa)
