@@ -851,6 +851,27 @@ next
   qed
 qed  
 
+(* FIXME: terrible name *)
+lemma is_least_reformulation_two:
+  assumes "is_least (\<lambda>w. w \<in> weight ` set_mset P) w"
+  shows "\<exists>D j. (\<forall>(D', j')\<in>#P. weight (D, j) \<le> weight (D', j')) \<and> (D, j) \<in># P"
+proof -
+  from assms have w_in_weight_P: "w \<in> weight ` set_mset P" 
+    unfolding is_least_def by auto
+  then obtain D j where Dj_p: "(D, j) \<in># P \<and> weight (D, j) = w"
+    by auto
+  then have "(\<forall>n'< weight (D, j). n' \<notin> weight ` set_mset P)"
+    using assms unfolding is_least_def by auto
+  then have "\<forall>n'. n' \<in> weight ` set_mset P \<longrightarrow> \<not> n'< weight (D, j)"
+    by auto
+  then have "\<forall>n'. n' \<in> weight ` set_mset P \<longrightarrow> weight (D, j) \<le> n'"
+    by auto
+  then have "(\<forall>(D', j')\<in>#P. weight (D, j) \<le> weight (D', j'))"
+    by auto
+  then show ?thesis 
+    using Dj_p w_in_weight_P by auto
+qed
+
 lemma infinite_if_not_fair:
   assumes "\<not> fair_state_seq (lmap state_of_wstate Sts)"
   shows "\<not> lfinite Sts"
@@ -902,16 +923,26 @@ proof (rule ccontr)
   }
   moreover
   {
+    define magic where "magic = (\<lambda>w. w \<in> (weight ` set_mset P))"
     assume a: "N_of_state (state_of_wstate (llast Sts)) = {}"
     then have b: "N = {#}"
       unfolding N_def by (cases "llast Sts") auto
     from a have "C \<in> P_of_state (state_of_wstate (llast Sts))"
       using C_in_llast by auto
     then obtain D j where "(D, j) \<in># P"
-      unfolding P_def by  (cases "llast Sts") auto
-    then obtain D j where min: "(\<forall>(D', j') \<in># P - {#(D, j)#}. weight (D, j) \<le> weight (D', j'))"
-      and Dj_in_p:"(D, j) \<in># P"
-      sorry (* easily believable *)
+      unfolding P_def by (cases "llast Sts") auto
+    then have "magic (weight (D, j))"
+      unfolding magic_def by auto
+    then have "\<exists>w. is_least magic w"
+      using least_exists by auto
+    then have "\<exists>D j. (\<forall>(D', j') \<in># P. weight (D, j) \<le> weight (D', j')) \<and> (D, j) \<in># P"
+      unfolding magic_def
+      using is_least_reformulation_two by auto
+    then obtain D j where min: "(\<forall>(D', j') \<in># P. weight (D, j) \<le> weight (D', j'))"
+      and Dj_in_p: "(D, j) \<in># P"
+      by auto
+    from min have min: "(\<forall>(D', j') \<in># P - {#(D, j)#}. weight (D, j) \<le> weight (D', j'))"
+        using mset_subset_diff_self[OF Dj_in_p] by auto
     define N' where "N' = mset_set ((\<lambda>D'. (D', n)) ` concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) (set_mset (image_mset fst Q)) D))"
     have "llast Sts \<leadsto>\<^sub>w (N', {#(D', j') \<in># P - {# (D, j) #}. D' \<noteq> D#}, Q + {#(D,j)#}, Suc n)"
       using weighted_RP.inference_computation[of "P - {#(D, j)#}" D j N' n Q, OF min N'_def]
@@ -972,7 +1003,36 @@ next
     using ldrop_Suc_conv_ltl[of k xs] by auto
 qed
 
+lemma N_of_state_state_of_wstate_wN_of_wstate:
+  assumes "C \<in> N_of_state (state_of_wstate St)"
+  shows "\<exists>i. (C, i) \<in># wN_of_wstate St"
+  by (smt N_of_state.elims assms eq_fst_iff fstI fst_conv image_iff of_wstate_split set_image_mset 
+       state_of_wstate.simps)
 
+(* FIXME: move to Lazy_List_Chain *)
+lemma lnth_rel_chain:
+  assumes "\<not> LNil = xs"
+  assumes "(\<forall>j. enat (j + 1) < llength xs \<longrightarrow> R (lnth xs j) (lnth xs (j + 1)))"
+  shows "chain R xs"
+  sorry
+
+lemma in_wN_of_wstate_in_N_of_wstate:
+  assumes "(C, i) \<in># wN_of_wstate St"
+  shows "C \<in> N_of_wstate St"
+  using assms by (metis (mono_tags, lifting) N_of_state.simps comp_apply fst_conv image_eqI 
+                   of_wstate_split set_image_mset state_of_wstate.simps)
+
+lemma in_wP_of_wstate_in_P_of_wstate:
+  assumes "(C, i) \<in># wP_of_wstate St"
+  shows "C \<in> P_of_wstate St"
+  using assms by (metis (mono_tags, lifting) P_of_state.simps comp_apply fst_conv image_eqI 
+                   of_wstate_split set_image_mset state_of_wstate.simps)
+
+lemma in_wQ_of_wstate_in_Q_of_wstate:
+  assumes "(C, i) \<in># wQ_of_wstate St"
+  shows "C \<in> Q_of_wstate St"
+  using assms by (metis (mono_tags, lifting) Q_of_state.simps comp_apply fst_conv image_eqI 
+                   of_wstate_split set_image_mset state_of_wstate.simps)
 
 theorem weighted_RP_fair: "fair_state_seq (lmap state_of_wstate Sts)"
 proof (rule ccontr)
@@ -988,20 +1048,48 @@ proof (rule ccontr)
   then show False
   proof
     assume "C \<in> Liminf_llist (lmap N_of_state (lmap state_of_wstate Sts))"
-    then obtain i where "(C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wN_of_wstate) Sts)" 
-      using persistent_wclause_if_persistent_clause_P[of C] inf sorry 
       (* You need a persistent_wclause_if_persistent_clause for N.
          No. You don't need that. The following arguments should work even when the
          numbers change! *)
-    then obtain k where k_p: "enat k < llength Sts"
-      "\<And>j. k \<le> j \<Longrightarrow> enat j < llength Sts \<Longrightarrow> (C, i) \<in># wN_of_wstate (lnth Sts j)"
-      unfolding Liminf_llist_def by auto
-    have "chain op \<leadsto>\<^sub>w (ldrop k Sts)"
+    then have "\<exists>k. \<forall>j. k \<le> j \<longrightarrow> (\<exists>i. (C, i) \<in># wN_of_wstate (lnth Sts j))"
+      unfolding Liminf_llist_def
+      apply -
+      apply auto (* FIXME: auto should leave no subgoals in our proofs. *)
+      subgoal for x
+        apply (rule_tac x=x in exI)
+         apply (force simp add: inf N_of_state_state_of_wstate_wN_of_wstate)
+        done
+      done
+    then obtain k where k_p: 
+      "\<And>j. k \<le> j \<Longrightarrow> \<exists>i. (C, i) \<in># wN_of_wstate (lnth Sts j)"
+      unfolding Liminf_llist_def 
+      by auto
+    have chain_drop_Sts: "chain op \<leadsto>\<^sub>w (ldrop k Sts)"
       using deriv inf inff inf_chain_ldrop_chain by auto
-    moreover have "\<And>j. (C, i) \<in># wN_of_wstate (lnth (ldrop k Sts) j)"
-      using k_p(2) by (simp add: add.commute inf)
-    ultimately have "chain op \<leadsto>\<^sub>w\<^sub>n\<^sub>i (ldrop k Sts)"
-      using inf inff sorry
+    have in_N_j: "\<And>j. \<exists>i. (C, i) \<in># wN_of_wstate (lnth (ldrop k Sts) j)"
+      using k_p by (simp add: add.commute inf)
+    (* ultimately *)
+    have "chain op \<leadsto>\<^sub>w\<^sub>n\<^sub>i (ldrop k Sts)"
+    proof (rule lnth_rel_chain)
+      show "LNil \<noteq> ldrop (enat k) Sts"
+        by (metis inff ldrop_enat lfinite_code(1) lfinite_ldropn)
+    next
+      show "\<forall>j. enat (j + 1) < llength (ldrop (enat k) Sts) \<longrightarrow>
+            lnth (ldrop (enat k) Sts) j \<leadsto>\<^sub>w\<^sub>n\<^sub>i lnth (ldrop (enat k) Sts) (j + 1)"
+      proof (rule, rule)
+        fix j :: "nat"
+        assume "enat (j + 1) < llength (ldrop (enat k) Sts)"
+        then have "lnth (ldrop (enat k) Sts) j \<leadsto>\<^sub>w lnth (ldrop (enat k) Sts) (j + 1)"
+          using chain_lnth_rel[OF chain_drop_Sts, of j] by auto
+        moreover
+        have "N_of_wstate (lnth (ldrop (enat k) Sts) j) \<noteq> {}"
+          using in_N_j[of j] in_wN_of_wstate_in_N_of_wstate[of C _ "(lnth (ldrop (enat k) Sts) j)"] 
+          by auto
+        ultimately
+        show "lnth (ldrop (enat k) Sts) j \<leadsto>\<^sub>w\<^sub>n\<^sub>i lnth (ldrop (enat k) Sts) (j + 1)"
+          unfolding weighted_RP_Non_Inference_def by auto
+      qed
+    qed
     then have "chain (\<lambda>x y. (x, y) \<in> RP_Non_Inference_relation)\<inverse>\<inverse> (lmap RP_Non_Inference_measure (ldrop k Sts))"
       using inff inf
     proof (coinduction arbitrary: k rule: chain.coinduct)
