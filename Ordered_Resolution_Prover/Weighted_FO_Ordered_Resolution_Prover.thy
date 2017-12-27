@@ -552,7 +552,7 @@ qed
 (* FIXME: Horrible name *)
 lemma stay_or_delete_completely_STRONGER':
   assumes "St \<leadsto>\<^sub>w St'" "(C,i) \<in># wP_of_wstate St" 
-    "\<And>k. (C, k) \<in># wP_of_wstate St \<Longrightarrow> i \<le> k"
+    "\<forall>k. (C, k) \<in># wP_of_wstate St \<longrightarrow> i \<le> k"
   shows "((C, i) \<in># wP_of_wstate St') \<or> (\<forall>j. (C, j) \<notin># wP_of_wstate St')"
 using assms proof (induction rule: weighted_RP.induct)
   case (tautology_deletion A C' N i' P Q n)
@@ -642,17 +642,71 @@ qed
 lemma stay_or_delete_completely_STRONGER: (* This is only true for full derivations. *)
   assumes "enat (Suc k) < llength Sts"
   assumes a: "(C, i) \<in># wP_of_wstate (lnth Sts k)"
-  assumes b: "\<And>k. (C, j) \<in># wP_of_wstate (lnth Sts k) \<Longrightarrow> i \<le> j"
-  shows "(C, j) \<in># wP_of_wstate (lnth Sts (Suc k)) \<or> (\<forall>j. (C, j) \<notin># wP_of_wstate (lnth Sts (Suc k)))"
+  assumes b: "\<forall>j. (C, j) \<in># wP_of_wstate (lnth Sts k) \<longrightarrow> i \<le> j"
+  shows "(C, i) \<in># wP_of_wstate (lnth Sts (Suc k)) \<or> (\<forall>j. (C, j) \<notin># wP_of_wstate (lnth Sts (Suc k)))"
 proof -
-  from deriv have "lnth Sts k \<leadsto>\<^sub>w lnth Sts (Suc k)"
+  from deriv have gg: "lnth Sts k \<leadsto>\<^sub>w lnth Sts (Suc k)"
     using assms chain_lnth_rel by auto
-  then show ?thesis
-    using stay_or_delete_completely_STRONGER'[of "lnth Sts k" "lnth Sts (Suc k)" C i] a by blast
+  show ?thesis
+    using stay_or_delete_completely_STRONGER'[of "lnth Sts k" "lnth Sts (Suc k)" C i, OF gg a b] by metis
 qed
 
 (* FIXME: come up with better name *)
-lemma persistent_wclause_if_persistent_clause:
+lemma Supremum_drop_and_more:
+  assumes llength_infty: "llength Sts = \<infinity>"
+  assumes "(C, i) \<in># wP_of_wstate (lnth Sts x)"
+  shows "(C, i) \<in> Sup_llist (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts))"
+proof -
+  from assms have "(C, i) \<in># (wP_of_wstate (lnth ((ldrop (enat x) Sts)) 0))"
+    by auto
+  then have "(C, i) \<in> (set_mset \<circ> wP_of_wstate) (lnth ((ldrop (enat x) Sts)) 0)"
+    by auto
+  then have "(C, i) \<in> lnth (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts)) 0"
+    by (metis enat.distinct(2) enat_ord_code(4) lfinite_ldrop llength_eq_infty_conv_lfinite llength_infty lnth_lmap)
+  moreover
+  have "0 < llength (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts))"
+    using llength_infty
+    by simp
+  ultimately show ?thesis
+    unfolding Sup_llist_def
+    by (metis (no_types, lifting) UN_iff mem_Collect_eq zero_enat_def) 
+qed
+
+(* FIXME: come up with better name *)
+lemma is_least_reformulation:
+  assumes 
+    "is_least (\<lambda>i. (C, i) \<in> Sup_llist (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts))) j" and
+    "llength Sts = \<infinity>"
+  shows "\<exists>xb. (\<forall>k xa. (C, k) \<in># wP_of_wstate (lnth (ldrop (enat x) Sts) xa) \<longrightarrow> j \<le> k) \<and>
+              (C, j) \<in># wP_of_wstate (lnth (ldrop (enat x) Sts) xb)"
+proof -
+  from assms have "(C, j) \<in> Sup_llist (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts))" 
+    unfolding is_least_def by auto
+  then have "\<exists>xb. (C, j) \<in> lnth (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts)) xb"
+    unfolding Sup_llist_def using assms(2) by blast
+  then obtain xb where "(C, j) \<in> lnth (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts)) xb"
+    by auto
+  then have "(C, j) \<in># wP_of_wstate (lnth (ldrop (enat x) Sts) xb)"
+    using assms(2)
+    by (metis (no_types, lifting) comp_apply enat.distinct(2) enat_ord_code(4) lfinite_ldrop llength_eq_infty_conv_lfinite lnth_lmap)
+  moreover
+  from assms have "\<forall>n'<j. (C, n') \<notin> Sup_llist (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts))" 
+    unfolding is_least_def by auto
+  then have "\<forall>n'. (C, n') \<in> Sup_llist (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts)) \<longrightarrow> \<not>n'<j" 
+    by auto
+  then have "\<forall>n'. (C, n') \<in> Sup_llist (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts)) \<longrightarrow> n' \<ge> j" 
+    by auto
+  then have "\<forall>n'. (C, n') \<in> Sup_llist (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts)) \<longrightarrow> j \<le> n'" 
+    by auto
+  then have "\<forall>n' xa. (C, n') \<in># wP_of_wstate (lnth (ldrop (enat x) Sts) xa) \<longrightarrow> j \<le> n'"
+    by (smt assms(2) enat.distinct(2) enat_ord_code(4) lfinite_ldrop llength_eq_infty_conv_lfinite 
+         llength_lmap llist.map_comp lnth_lmap lnth_subset_Sup_llist subsetCE)
+  ultimately show ?thesis
+    by auto
+qed
+
+(* FIXME: come up with better name *)
+lemma persistent_wclause_if_persistent_clause_P:
   assumes llength_infty: "llength Sts = \<infinity>"
   assumes "C \<in> Liminf_llist (lmap P_of_state (lmap state_of_wstate Sts))"
   shows "\<exists>i. (C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
@@ -687,7 +741,8 @@ proof -
     then show "C \<in> P_of_state (state_of_wstate (lnth (ldrop (enat x) Sts) xa))"
       using lnth_ldrop[of "enat x" xa Sts] using llen by auto
   qed
-  have "\<forall>xa. \<exists>i. (C,i) \<in># wP_of_wstate (lnth (ldrop x Sts) xa)"
+  (* FIXME: give this a better name *)
+  have stuff: "\<forall>xa. \<exists>i. (C,i) \<in># wP_of_wstate (lnth (ldrop x Sts) xa)"
     apply auto
     subgoal for xa
       using ggg[of xa]
@@ -695,14 +750,20 @@ proof -
       apply auto
       done
     done
-  (* There is a smallest (C,i) on the (dropped) sequence.
-     Obtain that. Look at where it occurs.
-     That should never get deleted. *)
-  obtain j xb where j_p:
-    "\<forall>k xa. (C,k) \<in># wP_of_wstate (lnth (ldrop x Sts) xa) \<longrightarrow> j \<le> k"
+  (* FIXME: come up with a better name or inline *)
+  define magic where "magic = (\<lambda>i. (C, i) \<in> Sup_llist (lmap (set_mset \<circ> wP_of_wstate) (ldrop x Sts)))"
+  have "magic i"
+    unfolding magic_def using i_p assms(1) Supremum_drop_and_more by auto
+  then obtain j where "is_least magic j"
+    unfolding magic_def[symmetric] using least_exists by metis
+  then have "\<exists>xb. (\<forall>k xa. (C, k) \<in># wP_of_wstate (lnth (ldrop x Sts) xa) \<longrightarrow> j \<le> k)
+     \<and> (C,j) \<in># wP_of_wstate (lnth (ldrop x Sts) xb)"
+    using assms(1) unfolding magic_def using is_least_reformulation by auto
+  then obtain j xb where j_p:
+    "\<forall>k xa. (C, k) \<in># wP_of_wstate (lnth (ldrop x Sts) xa) \<longrightarrow> j \<le> k"
     "(C,j) \<in># wP_of_wstate (lnth (ldrop x Sts) xb)"
-    sorry
-  have "\<And>xc. (C,j) \<in># wP_of_wstate (lnth (ldrop (x+xb) Sts) xc)"
+    by auto
+  have Ci_stays: "\<And>xc. (C,j) \<in># wP_of_wstate (lnth (ldrop (x+xb) Sts) xc)"
     subgoal for xc
     proof (induction xc)
       case 0
@@ -711,59 +772,45 @@ proof -
         by (simp add: add.commute) 
     next
       case (Suc xc)
-      then have "(C, j) \<in># wP_of_wstate (lnth (ldrop (x+xb) Sts) xc)"
-        sorry
-      then have "(C, j) \<in># wP_of_wstate (lnth Sts ((x+xb) + xc))"
-        by (simp add: add.commute llength_infty)
-      moreover have "\<exists>k. (C,k) \<in># lnth (lmap wP_of_wstate Sts) (Suc ((x+xb) + xc))"
-        sorry
-      ultimately have "(C, j) \<in># lnth (lmap wP_of_wstate Sts) (Suc ((x+xb) + xc))"
-        using stay_or_delete_completely sorry
-      then show ?case sorry
-    qed
-    done
-  have Ci_stays: "(\<And>xa. enat xa < llength Sts \<Longrightarrow> (C, i) \<in># wP_of_wstate (lnth (ldrop x Sts) xa))"
-  subgoal for xa
-    proof (induction xa)
-      case 0
-      then show ?case 
-        using i_p lnth_ldrop[of 0 x Sts] llength_infty by auto
-    next
-      case (Suc xa)
-      then have "(C, i) \<in># wP_of_wstate (lnth (ldrop (enat x) Sts) xa)"
+      have ttt: "enat (Suc (x + xb + xc)) < llength Sts"
         by (simp add: llength_infty)
-      then have "(C, i) \<in># wP_of_wstate (lnth Sts (x + xa))"
-        by (simp add: add.commute llength_infty)
-      moreover have "\<exists>j. (C,j) \<in># lnth (lmap wP_of_wstate Sts) (Suc (x + xa))"
-      proof -
-        from x_p(1) x_p(2) have "C \<in> P_of_state (state_of_wstate (lnth Sts (Suc (x + xa))))"
-          using llength_infty by auto
-        then have "\<exists>j. (C, j) \<in># wP_of_wstate (lnth Sts (Suc (x + xa)))"
-          by (cases "(lnth Sts (Suc (x + xa)))") auto
-        then show ?thesis
-          by (simp add: llength_infty)
+      have ttttt: "\<forall>ja. (C, ja) \<in># wP_of_wstate (lnth Sts (x + xb + xc)) \<longrightarrow> j \<le> ja"
+      proof (rule, rule)
+        fix ja :: "nat"
+        assume "(C, ja) \<in># wP_of_wstate (lnth Sts (x + xb + xc))"
+        then have "(C, ja) \<in># wP_of_wstate (lnth (ldrop (enat x) Sts) (xb + xc))"
+          by (simp add: add.commute add.left_commute llength_infty)
+        then show "j \<le> ja" 
+          using j_p(1) by auto
       qed
-      ultimately have "(C, i) \<in># lnth (lmap wP_of_wstate Sts) (Suc (x + xa))"
-        using stay_or_delete_completely llength_infty sorry (* FIXME: The whole proof needs a substantial change -- or maybe I can change the lemma! *)
-      then show ?case
+      from Suc have "(C, j) \<in># wP_of_wstate (lnth (ldrop (x+xb) Sts) xc)"
+        by blast
+      then have tt: "(C, j) \<in># wP_of_wstate (lnth Sts ((x+xb) + xc))"
         by (simp add: add.commute llength_infty)
+      moreover have "C \<in> P_of_state (state_of_wstate (lnth Sts (Suc (x + xb + xc))))"
+        using ttt x_p(2) by auto
+      then have "\<exists>k. (C, k) \<in># wP_of_wstate (lnth Sts (Suc (x + xb + xc)))"
+        by (smt stuff add.commute add.left_commute add_Suc_right enat_ord_code(4) ldrop_enat llength_infty lnth_ldropn)
+      ultimately have "(C, j) \<in># wP_of_wstate (lnth Sts (Suc (x + xb + xc)))"
+        using stay_or_delete_completely_STRONGER[of "x + xb + xc" C j, OF ttt tt ttttt] by auto
+      then have "(C, j) \<in># lnth (lmap wP_of_wstate Sts) (Suc ((x+xb) + xc))"
+        by (simp add: llength_infty)
+      then show ?case
+        by (smt add.commute add_Suc_right lnth_ldrop lnth_lmap plus_enat_simps(1) the_enat.simps ttt)
     qed
     done
-  have "(\<And>xa. x \<le> xa \<Longrightarrow> enat xa < llength Sts \<Longrightarrow> (C, i) \<in># wP_of_wstate (lnth Sts xa))"
+  have "(\<And>xa. x+xb \<le> xa \<Longrightarrow> (C, j) \<in># wP_of_wstate (lnth Sts xa))"
   proof -
     fix xa :: "nat"
     assume a:
-      "x \<le> xa" 
-      "enat xa < llength Sts"
-    then have "enat (xa - x) < llength Sts"
-      by (simp add: llength_infty)
-    then have "(C, i) \<in># wP_of_wstate (lnth (ldrop x Sts) (xa - x))"
-      using Ci_stays[of "xa - x"] by auto
-    then show "(C, i) \<in># wP_of_wstate (lnth Sts xa)"
-      using lnth_ldrop[of x "xa - x" Sts] a by auto
+      "x+xb \<le> xa"
+    have "(C, j) \<in># wP_of_wstate (lnth (ldrop (enat (x + xb)) Sts) (xa - (x+xb)))"
+      using Ci_stays[of "xa - (x+xb)"] by auto
+    then show "(C, j) \<in># wP_of_wstate (lnth Sts xa)"
+      using lnth_ldrop[of "x + xb" "xa - x" Sts] a by (simp add: llength_infty) 
   qed
-  then have "(C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
-    unfolding Liminf_llist_def using x_p by auto
+  then have "(C, j) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
+    unfolding Liminf_llist_def by (auto simp add: llength_infty)
   then show "\<exists>i. (C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
     by auto
 qed
@@ -942,7 +989,10 @@ proof (rule ccontr)
   proof
     assume "C \<in> Liminf_llist (lmap N_of_state (lmap state_of_wstate Sts))"
     then obtain i where "(C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wN_of_wstate) Sts)" 
-      using persistent_wclause_if_persistent_clause[of C] inf sorry (* You need a persistent_wclause_if_persistent_clause for N *)
+      using persistent_wclause_if_persistent_clause_P[of C] inf sorry 
+      (* You need a persistent_wclause_if_persistent_clause for N.
+         No. You don't need that. The following arguments should work even when the
+         numbers change! *)
     then obtain k where k_p: "enat k < llength Sts"
       "\<And>j. k \<le> j \<Longrightarrow> enat j < llength Sts \<Longrightarrow> (C, i) \<in># wN_of_wstate (lnth Sts j)"
       unfolding Liminf_llist_def by auto
@@ -1004,7 +1054,7 @@ proof (rule ccontr)
       "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> P_of_state (state_of_wstate (lnth Sts j))"
       unfolding Liminf_llist_def by auto
     then obtain i where "(C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
-      using persistent_wclause_if_persistent_clause[of C] using asm inf by auto
+      using persistent_wclause_if_persistent_clause_P[of C] using asm inf by auto
     then show False
       sorry
   qed
