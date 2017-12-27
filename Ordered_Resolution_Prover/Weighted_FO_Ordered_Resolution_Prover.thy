@@ -51,6 +51,21 @@ abbreviation P_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where
 abbreviation Q_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where
   "Q_of_wstate \<equiv> Q_of_state \<circ> state_of_wstate"
 
+fun wN_of_wstate :: "'a wstate \<Rightarrow> 'a wclause multiset" where
+  "wN_of_wstate (N, P, Q, n) = N"
+
+fun wP_of_wstate :: "'a wstate \<Rightarrow> 'a wclause multiset" where
+  "wP_of_wstate (N, P, Q, n) = P"
+
+fun wQ_of_wstate :: "'a wstate \<Rightarrow> 'a wclause multiset" where
+  "wQ_of_wstate (N, P, Q, n) = Q"
+
+fun n_of_wstate :: "'a wstate \<Rightarrow> nat" where
+  "n_of_wstate (N, P, Q, n) = n"
+
+lemma of_wstate_split[simp]: "(wN_of_wstate St, wP_of_wstate St, wQ_of_wstate St, n_of_wstate St) = St"
+  by (cases St) auto
+
 abbreviation grounding_of_wstate :: "'a wstate \<Rightarrow> 'a clause set" where
   "grounding_of_wstate St \<equiv> grounding_of_state (state_of_wstate St)"
 
@@ -109,15 +124,41 @@ definition weighted_RP_Non_Inference :: "'a wstate \<Rightarrow> 'a wstate \<Rig
 definition weighted_RP_Inference :: "'a wstate \<Rightarrow> 'a wstate \<Rightarrow> bool" (infix "\<leadsto>\<^sub>w\<^sub>i" 50) where
   "St \<leadsto>\<^sub>w\<^sub>i St' \<longleftrightarrow> St \<leadsto>\<^sub>w St' \<and> N_of_wstate St = {}"
 
-(* FIXME: Come up with a better name *)
-lemma weighted_RP_split: "St \<leadsto>\<^sub>w St' \<longleftrightarrow> St \<leadsto>\<^sub>w\<^sub>i St' \<or> St \<leadsto>\<^sub>w\<^sub>n\<^sub>i St'"
+lemma weighted_RP_iff_inference_or_non_inference: "St \<leadsto>\<^sub>w St' \<longleftrightarrow> St \<leadsto>\<^sub>w\<^sub>i St' \<or> St \<leadsto>\<^sub>w\<^sub>n\<^sub>i St'"
   unfolding weighted_RP_Non_Inference_def weighted_RP_Inference_def by auto
 
 find_theorems inf_llist LCons
 
-(* FIXME: better name *)
-lemma a:
-  assumes "\<forall>i. (f (Suc i), f i) \<in> {(x, y). r x y}"
+(* FIXME: move to Lazy_List_Chain *)
+lemma lnth_rel_chain:
+  assumes "\<not> LNil = xs"
+  assumes "(\<forall>j. enat (j + 1) < llength xs \<longrightarrow> R (lnth xs j) (lnth xs (j + 1)))"
+  shows "chain R xs"
+  proof (coinduction rule: chain.coinduct)
+    case chain
+    then show ?case sorry
+  qed
+
+lemma infinite_chain_if_infinite_chain:
+  assumes "\<forall>i. r (f (Suc i)) (f i)"
+  shows "\<not> lfinite (inf_llist f) \<and> chain r\<inverse>\<inverse> (inf_llist f)"
+proof -
+  from assms have "\<forall>j. enat (j + 1) < llength (inf_llist f) \<longrightarrow> 
+                     r\<inverse>\<inverse> (lnth (inf_llist f) j) (lnth (inf_llist f) (j + 1))"
+    using assms by auto
+  then have "chain r\<inverse>\<inverse> (inf_llist f)" 
+    using lnth_rel_chain by (metis inf_llist_neq_LNil)
+  moreover
+  have inf: "\<not> lfinite (inf_llist f)"
+    using assms by auto
+  ultimately show ?thesis
+    by auto
+qed
+
+(* FIXME: remove this alternate proof of infinite_chain_if_infinite_chain when lnth_rel_chain has 
+          been proved. *)
+lemma
+  assumes "\<forall>i. r (f (Suc i)) (f i)"
   shows "\<not> lfinite (inf_llist f) \<and> chain r\<inverse>\<inverse> (inf_llist f)"
 proof
   show inf: "\<not> lfinite (inf_llist f)"
@@ -140,26 +181,26 @@ proof
   qed
 qed
 
-(* FIXME: better name *)
-lemma b: 
+lemma infinite_chain_lnth_rel:
   assumes "\<not> lfinite c"
-  assumes "chain r\<inverse>\<inverse> c"
-  shows "(lnth c (Suc i), lnth c i) \<in> {(x, y). r x y}"
-  using assms chain_lnth_rel[of "r\<inverse>\<inverse>" c i]
-  by (simp add: lfinite_conv_llength_enat)
+  assumes "chain r c"
+  shows "r (lnth c i) (lnth c (Suc i))"
+  using assms chain_lnth_rel lfinite_conv_llength_enat by force
 
-(* FIXME: better name *)
-lemma c: "(\<exists>f. \<forall>i. (f (Suc i), f i) \<in> {(x, y). r x y}) \<longleftrightarrow> (\<exists>c. \<not> lfinite c \<and> chain r\<inverse>\<inverse> c)"
-  using a b by blast
+lemma infinite_down_chain_iff_infinite_down_chain: 
+  "(\<exists>f. \<forall>i. r (f (Suc i)) (f i)) \<longleftrightarrow> (\<exists>c. \<not> lfinite c \<and> chain r\<inverse>\<inverse> c)"
+  using infinite_chain_if_infinite_chain infinite_chain_lnth_rel by blast
 
 lemma wfP_iff_no_infinite_down_chain: "wfP r \<longleftrightarrow> (\<nexists>c. \<not>lfinite c \<and> chain r\<inverse>\<inverse> c)"
 proof -
   have "wfP r \<longleftrightarrow>  wf {(x, y). r x y}"
     unfolding wfP_def by auto
   also have "... \<longleftrightarrow> (\<nexists>f. \<forall>i. (f (Suc i), f i) \<in> {(x, y). r x y})"
-    unfolding wf_iff_no_infinite_down_chain by auto
+    using wf_iff_no_infinite_down_chain by blast
+  also have "... \<longleftrightarrow> (\<nexists>f. \<forall>i. r (f (Suc i)) (f i))"
+    by auto
   also have "... \<longleftrightarrow> (\<nexists>c. \<not>lfinite c \<and> chain r\<inverse>\<inverse> c)"
-    using c by metis
+    using infinite_down_chain_iff_infinite_down_chain by blast
   finally show ?thesis 
     by auto
 qed
@@ -258,26 +299,6 @@ term "((RP_measure max_gen St),(RP_measure max_gen St2)) \<in> RP_relation"
 term "((RP_measure2 max_gen St),(RP_measure2 max_gen St)) \<in> RP_relation2"
 term "((RP_Non_Inference_measure St),(RP_Non_Inference_measure St)) \<in> RP_Non_Inference_relation"
 
-(* FIXME: Move this. *)
-fun wN_of_wstate :: "'a wstate \<Rightarrow> 'a wclause multiset" where
-  "wN_of_wstate (N, P, Q, n) = N"
-
-fun wP_of_wstate :: "'a wstate \<Rightarrow> 'a wclause multiset" where
-  "wP_of_wstate (N, P, Q, n) = P"
-
-fun wQ_of_wstate :: "'a wstate \<Rightarrow> 'a wclause multiset" where
-  "wQ_of_wstate (N, P, Q, n) = Q"
-
-fun n_of_wstate :: "'a wstate \<Rightarrow> nat" where
-  "n_of_wstate (N, P, Q, n) = n"
-
-lemma of_wstate_split[simp]: "(wN_of_wstate St, wP_of_wstate St, wQ_of_wstate St, n_of_wstate St) = St"
-  by (cases St) auto
-
-find_consts "_ wstate \<Rightarrow> nat"
-
-term "fst (a,b)"
-
 lemma wf_natLess: "wf natLess"
   unfolding natLess_def using wf_less by auto
 
@@ -290,35 +311,28 @@ lemma wf_RP_Non_Inference_relation: "wf RP_Non_Inference_relation"
 lemma weighted_RP_if_weighted_RP_Non_Inference: "St \<leadsto>\<^sub>w\<^sub>n\<^sub>i St' \<Longrightarrow> St \<leadsto>\<^sub>w St'"
   unfolding weighted_RP_Non_Inference_def by auto
 
-(* FIXME: better name *)
-lemma multiset_sum_monotone_f:
-  assumes "CC \<subset># DD"
-  shows "(\<Sum>C\<in>#CC. Suc (f C)) < (\<Sum>C\<in>#DD. Suc (f C))"
+lemma multiset_sum_of_Suc_f_monotone:
+  assumes "N \<subset># M"
+  shows "(\<Sum>x\<in>#N. Suc (f x)) < (\<Sum>x\<in>#M. Suc (f x))"
   using assms
-proof (induction CC arbitrary: DD)
+proof (induction N arbitrary: M)
   case empty
-  then obtain D where "D\<in>#DD"
+  then obtain y where "y\<in>#M"
     by force
-  then have "DD = DD - {# D #} + {# D #}"
+  then have "(\<Sum>x\<in>#M. 1) = (\<Sum>x\<in>#M - {# y #} + {# y #}. 1)"
     by auto
-  then have "(\<Sum>C\<in>#DD. 1) = (\<Sum>C\<in>#DD - {# D #} + {# D #}. 1)"
-    by auto
-  also have "... = (\<Sum>C\<in>#DD - {# D #}. 1) + (\<Sum>C\<in>#{# D #}. 1)"
+  also have "... = (\<Sum>x\<in>#M - {# y #}. 1) + (\<Sum>x\<in>#{# y #}. 1)"
     by (metis image_mset_union sum_mset.union)
-  also have "... = (\<Sum>C\<in>#DD - {# D #}. 1) + 1"
-    by auto
   also have "... > (0 :: nat)"
     by auto
-  finally have "(0 :: nat) < (\<Sum>C\<in>#DD. 1)"
-    by auto
-  then have "0 < (\<Sum>C\<in>#DD. Suc (f C))"
+  finally have "0 < (\<Sum>x\<in>#M. Suc (f x))"
     using gr_zeroI by fastforce
   then show ?case 
     using empty by auto
 next
-  case (add D CC)
-  from this(2) have "(\<Sum>C\<in>#CC. Suc (f C)) < (\<Sum>C\<in>#DD - {#D#}. Suc (f C))"
-    using add(1)[of "DD - {#D#}"]
+  case (add x N)
+  from this(2) have "(\<Sum>y\<in>#N. Suc (f y)) < (\<Sum>y\<in>#M - {#x#}. Suc (f y))"
+    using add(1)[of "M - {#x#}"]
     by (simp add: insert_union_subset_iff)
   then show ?case
     by (smt Suc_le_eq add.prems add_Suc_right add_le_cancel_left insert_DiffM mset_subset_insertD sum_mset.insert)
@@ -327,29 +341,25 @@ qed
 lemma multiset_sum_monotone_f':
   assumes "CC \<subset># DD"
   shows "(\<Sum>(C,i)\<in>#CC. Suc (f C)) < (\<Sum>(C,i)\<in>#DD. Suc (f C))"
-  using assms
-multiset_sum_monotone_f[OF assms, of "f o fst"]
+  using multiset_sum_of_Suc_f_monotone[OF assms, of "f o fst"]
   by (metis (mono_tags, lifting) comp_apply image_mset_cong2 split_beta)
 
-(* FIXME: better name *)
-lemma remove_strict_subset:
-  assumes "C' \<in># CC"
-  assumes "p C'"
-  shows "{#E \<in># CC. \<not>p E#} \<subset># CC"
+lemma filter_mset_strict_subset:
+  assumes "x \<in># M"
+  assumes "\<not>p x"
+  shows "{#y \<in># M. p y#} \<subset># M"
 proof -
-  have subseteq: "{#E \<in># CC. \<not>p E#} \<subseteq># CC"
+  have subseteq: "{#E \<in># M. p E#} \<subseteq># M"
     by auto
-
-  have "count {#E \<in># CC. \<not>p E#} C' = 0"
+  have "count {#E \<in># M. p E#} x = 0"
     using assms by auto
   moreover
-  have "0 < count CC C'"
+  have "0 < count M x"
     using assms by auto
-  ultimately have lt_count: "count {#E \<in># CC. \<not>p E#} C' < count CC C'"
+  ultimately have lt_count: "count {#y \<in># M. p y#} x < count M x"
     by auto
-  
-  from subseteq lt_count show ?thesis
-    by (metis less_not_refl2 subset_mset.le_neq_trans)  
+  then show ?thesis
+    using subseteq by (metis less_not_refl2 subset_mset.le_neq_trans)  
 qed
 
 (* FIXME: better name *)
@@ -369,7 +379,7 @@ next
   then obtain i' where  "(C',i') \<in># P"
     by auto
   then have "{#(E, k) \<in># P. E \<noteq> C'#} \<subset># P"
-    using remove_strict_subset[of "(C', i')" P "\<lambda>X. fst X =  C'"]
+    using filter_mset_strict_subset[of "(C', i')" P "\<lambda>X. \<not>fst X =  C'"]
     by (metis (mono_tags, lifting) filter_mset_cong fst_conv prod.case_eq_if)
   then have "(\<Sum>(C, i)\<in>#{#(E, k) \<in># P. E \<noteq> C'#}. Suc (size C)) < (\<Sum>(C, i)\<in>#P. Suc (size C))"
     using multiset_sum_monotone_f'[of "{#(E, k) \<in># P. E \<noteq> C'#}" P size] by metis
@@ -463,97 +473,11 @@ next
   then show ?case sorry
 qed
 
-
-lemma stay_or_delete_completely':
-  assumes "St \<leadsto>\<^sub>w St'" "(C,i) \<in># wP_of_wstate St"
-  shows "(\<exists>j\<le>i.(C, j) \<in># wP_of_wstate St') \<or> (\<forall>j. (C, j) \<notin># wP_of_wstate St')"
-using assms proof (induction rule: weighted_RP.induct)
-  case (tautology_deletion A C N i P Q n)
-  then show ?case 
-    by auto
-next
-  case (forward_subsumption D P Q C N i' n)
-  then show ?case 
-    by auto
-next
-  case (backward_subsumption_P D N C P Q n)
-  then show ?case 
-    by auto
-next
-  case (backward_subsumption_Q D N C P Q i' n)
-  then show ?case 
-    by auto
-next
-  case (forward_reduction D L' P Q L \<sigma> C N i' n)
-  then show ?case 
-    by auto
-next
-  case (backward_reduction_P D L' N L \<sigma> C' P i' Q n)
-  then show ?case 
-  proof (cases "C = C' + {#L#}")
-    case True
-    note True_outer = this
-    then show ?thesis
-    proof (cases "C \<in># image_mset fst P")
-      case True
-      then obtain k where k_p: "(C, k) \<in># P"
-        using image_iff by auto
-      then have k_i': "k \<le> i'"
-        using backward_reduction_P unfolding True_outer by auto
-      have "(C, i) \<in># P + {#(C' + {#L#}, i')#}"
-        using backward_reduction_P True_outer by auto
-      then have "\<exists>j\<le>i. (C, j) \<in># P + {#(C', i')#}"
-        using k_p k_i' by auto 
-      then have "\<exists>j\<le>i. (C, j) \<in># wP_of_wstate (N, P + {#(C', i')#}, Q, n)"
-        by auto
-      then show ?thesis
-        by auto
-    next
-      case False
-      then have "\<forall>j. (C, j) \<notin># P"
-        using image_iff by fastforce
-      then have "\<forall>j. (C, j) \<notin># P + {#(C', i')#}"
-        using True_outer by auto
-      then have "\<forall>j. (C, j) \<notin># wP_of_wstate (N, P + {#(C', i')#}, Q, n)"
-        by auto
-      then show ?thesis 
-        by auto
-    qed
-  next
-    case False
-    then have "(C, i) \<in># P"
-      using backward_reduction_P by auto
-    then show ?thesis
-      by auto
-  qed
-next
-  case (backward_reduction_Q D L' N L \<sigma> C P Q i n)
-  then show ?case by auto
-next
-  case (clause_processing N C i P Q n)
-  then show ?case by auto
-next
-  case (inference_computation P C i N n Q)
-  then show ?case by auto
-qed
-
-(* FIXME: Come up with a better name. *)
-lemma stay_or_delete_completely: (* This is only true for full derivations. *)
-  assumes "enat (Suc k) < llength Sts"
-  assumes a: "(C, i) \<in># wP_of_wstate (lnth Sts k)"
-  shows "(\<exists>j\<le>i. (C, j) \<in># wP_of_wstate (lnth Sts (Suc k))) \<or> (\<forall>j. (C, j) \<notin># wP_of_wstate (lnth Sts (Suc k)))"
-proof -
-  from deriv have "lnth Sts k \<leadsto>\<^sub>w lnth Sts (Suc k)"
-    using assms chain_lnth_rel by auto
-  then show ?thesis
-    using stay_or_delete_completely'[of "lnth Sts k" "lnth Sts (Suc k)" C i] a by blast
-qed
-
-(* FIXME: Horrible name *)
-lemma stay_or_delete_completely_STRONGER':
+(* FIXME: come up with better name *)
+lemma stay_or_delete_completely:
   assumes "St \<leadsto>\<^sub>w St'" "(C,i) \<in># wP_of_wstate St" 
     "\<forall>k. (C, k) \<in># wP_of_wstate St \<longrightarrow> i \<le> k"
-  shows "((C, i) \<in># wP_of_wstate St') \<or> (\<forall>j. (C, j) \<notin># wP_of_wstate St')"
+  shows "(C, i) \<in># wP_of_wstate St' \<or> (\<forall>j. (C, j) \<notin># wP_of_wstate St')"
 using assms proof (induction rule: weighted_RP.induct)
   case (tautology_deletion A C' N i' P Q n)
   then show ?case by auto
@@ -638,39 +562,26 @@ next
   then show ?case by auto
 qed
 
-(* FIXME: Horrible name *)
-lemma stay_or_delete_completely_STRONGER: (* This is only true for full derivations. *)
+(* FIXME: come up with better name *)
+lemma stay_or_delete_completely_Sts:
   assumes "enat (Suc k) < llength Sts"
-  assumes a: "(C, i) \<in># wP_of_wstate (lnth Sts k)"
-  assumes b: "\<forall>j. (C, j) \<in># wP_of_wstate (lnth Sts k) \<longrightarrow> i \<le> j"
+  assumes "(C, i) \<in># wP_of_wstate (lnth Sts k)"
+  assumes "\<forall>j. (C, j) \<in># wP_of_wstate (lnth Sts k) \<longrightarrow> i \<le> j"
   shows "(C, i) \<in># wP_of_wstate (lnth Sts (Suc k)) \<or> (\<forall>j. (C, j) \<notin># wP_of_wstate (lnth Sts (Suc k)))"
 proof -
-  from deriv have gg: "lnth Sts k \<leadsto>\<^sub>w lnth Sts (Suc k)"
+  from deriv have "lnth Sts k \<leadsto>\<^sub>w lnth Sts (Suc k)"
     using assms chain_lnth_rel by auto
-  show ?thesis
-    using stay_or_delete_completely_STRONGER'[of "lnth Sts k" "lnth Sts (Suc k)" C i, OF gg a b] by metis
+  then show ?thesis
+    using stay_or_delete_completely[of "lnth Sts k" "lnth Sts (Suc k)" C i] assms by metis
 qed
 
-(* FIXME: come up with better name *)
-lemma Supremum_drop_and_more:
-  assumes llength_infty: "llength Sts = \<infinity>"
-  assumes "(C, i) \<in># wP_of_wstate (lnth Sts x)"
-  shows "(C, i) \<in> Sup_llist (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts))"
-proof -
-  from assms have "(C, i) \<in># (wP_of_wstate (lnth ((ldrop (enat x) Sts)) 0))"
-    by auto
-  then have "(C, i) \<in> (set_mset \<circ> wP_of_wstate) (lnth ((ldrop (enat x) Sts)) 0)"
-    by auto
-  then have "(C, i) \<in> lnth (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts)) 0"
-    by (metis enat.distinct(2) enat_ord_code(4) lfinite_ldrop llength_eq_infty_conv_lfinite llength_infty lnth_lmap)
-  moreover
-  have "0 < llength (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts))"
-    using llength_infty
-    by simp
-  ultimately show ?thesis
-    unfolding Sup_llist_def
-    by (metis (no_types, lifting) UN_iff mem_Collect_eq zero_enat_def) 
-qed
+lemma in_lnth_in_Supremum_ldrop:
+  assumes llength_infty: "llength xs = \<infinity>"
+  assumes "x \<in># (lnth xs i)"
+  shows "x \<in> Sup_llist (lmap set_mset (ldrop (enat i) xs))"
+  by (metis (no_types, lifting) assms(2) contra_subsetD enat.distinct(1) enat_ord_code(4) ldrop_enat 
+       ldropn_Suc_conv_ldropn lfinite_ldrop lfinite_lmap llength_eq_infty_conv_lfinite llength_infty 
+       lnth_0 lnth_lmap lnth_subset_Sup_llist)
 
 (* FIXME: come up with better name *)
 lemma is_least_reformulation:
@@ -680,24 +591,14 @@ lemma is_least_reformulation:
   shows "\<exists>xb. (\<forall>k xa. (C, k) \<in># wP_of_wstate (lnth (ldrop (enat x) Sts) xa) \<longrightarrow> j \<le> k) \<and>
               (C, j) \<in># wP_of_wstate (lnth (ldrop (enat x) Sts) xb)"
 proof -
-  from assms have "(C, j) \<in> Sup_llist (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts))" 
-    unfolding is_least_def by auto
-  then have "\<exists>xb. (C, j) \<in> lnth (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts)) xb"
-    unfolding Sup_llist_def using assms(2) by blast
-  then obtain xb where "(C, j) \<in> lnth (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts)) xb"
-    by auto
+  from assms obtain xb where "(C, j) \<in> lnth (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts)) xb"
+    unfolding is_least_def unfolding Sup_llist_def using assms(2) by blast
   then have "(C, j) \<in># wP_of_wstate (lnth (ldrop (enat x) Sts) xb)"
     using assms(2)
     by (metis (no_types, lifting) comp_apply enat.distinct(2) enat_ord_code(4) lfinite_ldrop llength_eq_infty_conv_lfinite lnth_lmap)
   moreover
-  from assms have "\<forall>n'<j. (C, n') \<notin> Sup_llist (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts))" 
-    unfolding is_least_def by auto
-  then have "\<forall>n'. (C, n') \<in> Sup_llist (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts)) \<longrightarrow> \<not>n'<j" 
-    by auto
-  then have "\<forall>n'. (C, n') \<in> Sup_llist (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts)) \<longrightarrow> n' \<ge> j" 
-    by auto
-  then have "\<forall>n'. (C, n') \<in> Sup_llist (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts)) \<longrightarrow> j \<le> n'" 
-    by auto
+  from assms have "\<forall>n'. (C, n') \<in> Sup_llist (lmap (set_mset \<circ> wP_of_wstate) (ldrop (enat x) Sts)) \<longrightarrow> j \<le> n'" 
+    using linorder_not_less unfolding is_least_def by auto
   then have "\<forall>n' xa. (C, n') \<in># wP_of_wstate (lnth (ldrop (enat x) Sts) xa) \<longrightarrow> j \<le> n'"
     by (smt assms(2) enat.distinct(2) enat_ord_code(4) lfinite_ldrop llength_eq_infty_conv_lfinite 
          llength_lmap llist.map_comp lnth_lmap lnth_subset_Sup_llist subsetCE)
@@ -705,8 +606,7 @@ proof -
     by auto
 qed
 
-(* FIXME: come up with better name *)
-lemma persistent_wclause_if_persistent_clause_P:
+lemma persistent_wclause_in_P_if_persistent_clause_in_P:
   assumes llength_infty: "llength Sts = \<infinity>"
   assumes "C \<in> Liminf_llist (lmap P_of_state (lmap state_of_wstate Sts))"
   shows "\<exists>i. (C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
@@ -725,27 +625,12 @@ proof -
   then obtain i where i_p:
     "(C,i) \<in># wP_of_wstate (lnth Sts x)"
     by auto
-  (* FIXME: change name of ggg *)
-  have ggg: "\<And>xa. C \<in> P_of_state (state_of_wstate (lnth (ldrop x Sts) xa))"
-  proof - (* FIXME: should this be a lemma? *)
-    fix xa :: "nat"
-    have "enat xa < llength (ldrop (enat x) Sts)"
-      using llength_infty
-      by (simp add: ldrop_enat) 
-    then have llen: "enat x + enat xa < llength  Sts"
-      using llength_infty by auto
-    then have "enat (x + xa) < llength  Sts"
-      by auto
-    then have "C \<in> P_of_state (state_of_wstate (lnth Sts (xa + x)))"
-      using x_p(2)[of "x + xa"] by (simp add: add.commute) 
-    then show "C \<in> P_of_state (state_of_wstate (lnth (ldrop (enat x) Sts) xa))"
-      using lnth_ldrop[of "enat x" xa Sts] using llen by auto
-  qed
-  (* FIXME: give this a better name *)
-  have stuff: "\<forall>xa. \<exists>i. (C,i) \<in># wP_of_wstate (lnth (ldrop x Sts) xa)"
-    apply auto
+  have C_in_nth_P: "\<And>xa. C \<in> P_of_state (state_of_wstate (lnth (ldrop x Sts) xa))"
+    using x_p(2)[of "x + _"] llength_infty llength_infty by (force simp add: add.commute) 
+  have Ci_in_nth_wP: "\<forall>xa. \<exists>i. (C,i) \<in># wP_of_wstate (lnth (ldrop x Sts) xa)"
+    apply rule
     subgoal for xa
-      using ggg[of xa]
+      using C_in_nth_P[of xa]
       apply (cases "(lnth (ldrop (enat x) Sts)) xa")
       apply auto
       done
@@ -753,7 +638,8 @@ proof -
   (* FIXME: come up with a better name or inline *)
   define magic where "magic = (\<lambda>i. (C, i) \<in> Sup_llist (lmap (set_mset \<circ> wP_of_wstate) (ldrop x Sts)))"
   have "magic i"
-    unfolding magic_def using i_p assms(1) Supremum_drop_and_more by auto
+    unfolding magic_def using i_p assms(1) in_lnth_in_Supremum_ldrop[of "lmap wP_of_wstate Sts" "(C, i)" x]
+    by (simp add: llist.map_comp)
   then obtain j where "is_least magic j"
     unfolding magic_def[symmetric] using least_exists by metis
   then have "\<exists>xb. (\<forall>k xa. (C, k) \<in># wP_of_wstate (lnth (ldrop x Sts) xa) \<longrightarrow> j \<le> k)
@@ -772,31 +658,29 @@ proof -
         by (simp add: add.commute) 
     next
       case (Suc xc)
-      have ttt: "enat (Suc (x + xb + xc)) < llength Sts"
-        by (simp add: llength_infty)
-      have ttttt: "\<forall>ja. (C, ja) \<in># wP_of_wstate (lnth Sts (x + xb + xc)) \<longrightarrow> j \<le> ja"
+      have any_Ck_in_wP: "\<forall>k. (C, k) \<in># wP_of_wstate (lnth Sts (x + xb + xc)) \<longrightarrow> j \<le> k"
       proof (rule, rule)
-        fix ja :: "nat"
-        assume "(C, ja) \<in># wP_of_wstate (lnth Sts (x + xb + xc))"
-        then have "(C, ja) \<in># wP_of_wstate (lnth (ldrop (enat x) Sts) (xb + xc))"
+        fix k :: "nat"
+        assume "(C, k) \<in># wP_of_wstate (lnth Sts (x + xb + xc))"
+        then have "(C, k) \<in># wP_of_wstate (lnth (ldrop (enat x) Sts) (xb + xc))"
           by (simp add: add.commute add.left_commute llength_infty)
-        then show "j \<le> ja" 
+        then show "j \<le> k" 
           using j_p(1) by auto
       qed
       from Suc have "(C, j) \<in># wP_of_wstate (lnth (ldrop (x+xb) Sts) xc)"
         by blast
-      then have tt: "(C, j) \<in># wP_of_wstate (lnth Sts ((x+xb) + xc))"
+      then have Cj_in_wP: "(C, j) \<in># wP_of_wstate (lnth Sts ((x+xb) + xc))"
         by (simp add: add.commute llength_infty)
       moreover have "C \<in> P_of_state (state_of_wstate (lnth Sts (Suc (x + xb + xc))))"
-        using ttt x_p(2) by auto
+        using x_p(2) by (auto simp add: llength_infty)
       then have "\<exists>k. (C, k) \<in># wP_of_wstate (lnth Sts (Suc (x + xb + xc)))"
-        by (smt stuff add.commute add.left_commute add_Suc_right enat_ord_code(4) ldrop_enat llength_infty lnth_ldropn)
+        by (smt Ci_in_nth_wP add.commute add.left_commute add_Suc_right enat_ord_code(4) ldrop_enat llength_infty lnth_ldropn)
       ultimately have "(C, j) \<in># wP_of_wstate (lnth Sts (Suc (x + xb + xc)))"
-        using stay_or_delete_completely_STRONGER[of "x + xb + xc" C j, OF ttt tt ttttt] by auto
+        using stay_or_delete_completely_Sts[of "x + xb + xc" C j, OF _ Cj_in_wP any_Ck_in_wP] 
+        by (auto simp add: llength_infty)
       then have "(C, j) \<in># lnth (lmap wP_of_wstate Sts) (Suc ((x+xb) + xc))"
         by (simp add: llength_infty)
-      then show ?case
-        by (smt add.commute add_Suc_right lnth_ldrop lnth_lmap plus_enat_simps(1) the_enat.simps ttt)
+      then show ?case using llength_infty by (simp add: add.commute)
     qed
     done
   have "(\<And>xa. x+xb \<le> xa \<Longrightarrow> (C, j) \<in># wP_of_wstate (lnth Sts xa))"
@@ -849,27 +733,6 @@ next
     ultimately show ?thesis
       by auto
   qed
-qed  
-
-(* FIXME: terrible name *)
-lemma is_least_reformulation_two:
-  assumes "is_least (\<lambda>w. w \<in> weight ` set_mset P) w"
-  shows "\<exists>D j. (\<forall>(D', j')\<in>#P. weight (D, j) \<le> weight (D', j')) \<and> (D, j) \<in># P"
-proof -
-  from assms have w_in_weight_P: "w \<in> weight ` set_mset P" 
-    unfolding is_least_def by auto
-  then obtain D j where Dj_p: "(D, j) \<in># P \<and> weight (D, j) = w"
-    by auto
-  then have "(\<forall>n'< weight (D, j). n' \<notin> weight ` set_mset P)"
-    using assms unfolding is_least_def by auto
-  then have "\<forall>n'. n' \<in> weight ` set_mset P \<longrightarrow> \<not> n'< weight (D, j)"
-    by auto
-  then have "\<forall>n'. n' \<in> weight ` set_mset P \<longrightarrow> weight (D, j) \<le> n'"
-    by auto
-  then have "(\<forall>(D', j')\<in>#P. weight (D, j) \<le> weight (D', j'))"
-    by auto
-  then show ?thesis 
-    using Dj_p w_in_weight_P by auto
 qed
 
 lemma infinite_if_not_fair:
@@ -923,6 +786,7 @@ proof (rule ccontr)
   }
   moreover
   {
+    (* FIXME: come up with a better name or inline *)
     define magic where "magic = (\<lambda>w. w \<in> (weight ` set_mset P))"
     assume a: "N_of_state (state_of_wstate (llast Sts)) = {}"
     then have b: "N = {#}"
@@ -937,7 +801,7 @@ proof (rule ccontr)
       using least_exists by auto
     then have "\<exists>D j. (\<forall>(D', j') \<in># P. weight (D, j) \<le> weight (D', j')) \<and> (D, j) \<in># P"
       unfolding magic_def
-      using is_least_reformulation_two by auto
+      using assms linorder_not_less unfolding is_least_def by (auto 6 0)
     then obtain D j where min: "(\<forall>(D', j') \<in># P. weight (D, j) \<le> weight (D', j'))"
       and Dj_in_p: "(D, j) \<in># P"
       by auto
@@ -1008,13 +872,6 @@ lemma N_of_state_state_of_wstate_wN_of_wstate:
   shows "\<exists>i. (C, i) \<in># wN_of_wstate St"
   by (smt N_of_state.elims assms eq_fst_iff fstI fst_conv image_iff of_wstate_split set_image_mset 
        state_of_wstate.simps)
-
-(* FIXME: move to Lazy_List_Chain *)
-lemma lnth_rel_chain:
-  assumes "\<not> LNil = xs"
-  assumes "(\<forall>j. enat (j + 1) < llength xs \<longrightarrow> R (lnth xs j) (lnth xs (j + 1)))"
-  shows "chain R xs"
-  sorry
 
 lemma in_wN_of_wstate_in_N_of_wstate:
   assumes "(C, i) \<in># wN_of_wstate St"
@@ -1142,9 +999,25 @@ proof (rule ccontr)
       "\<And>j. i \<le> j \<and> enat j < llength Sts \<Longrightarrow> C \<in> P_of_state (state_of_wstate (lnth Sts j))"
       unfolding Liminf_llist_def by auto
     then obtain i where "(C, i) \<in> Liminf_llist (lmap (set_mset \<circ> wP_of_wstate) Sts)"
-      using persistent_wclause_if_persistent_clause_P[of C] using asm inf by auto
+      using persistent_wclause_in_P_if_persistent_clause_in_P[of C] using asm inf by auto
     then show False
       sorry
+    (* 
+    lemma A: 
+      I can always fast forward to an inference computation.
+    lemma B: 
+      I can fast forward to an upper bound on any n.
+      All the inference computations beyond this produce clauses of larger index and weight than n.
+
+    Proof:
+      Fast forward to an upper bound on "weight (C, i)".
+      Drop anything before that. Lets call the new sequence Sts'.
+      Consider the set LC of all clauses in Sts' ! 0 with lower weight than (C,i).
+      Extend LC with the set of all subclauses of clauses in LC.
+      This set is finite.
+      Any future inference computation will be on a clause in this set.
+      
+    *)
   qed
 qed
 
