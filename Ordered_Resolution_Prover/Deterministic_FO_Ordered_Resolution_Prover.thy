@@ -375,8 +375,14 @@ lemma is_irreducible_iff_nexists_is_reducible_lit:
 lemma is_irreducible_mset_iff: "mset E = mset E' \<Longrightarrow> reduce Ds C E = E \<longleftrightarrow> reduce Ds C E' = E'"
   unfolding is_irreducible_iff_nexists_is_reducible_lit
   apply auto
-  using is_reducible_lit_mset_iff
-  sorry
+  using is_reducible_lit_mset_iff[of "C @ remove1 L E" "C @ remove1 L E'" for L]
+   apply auto
+   apply (cases E)
+    apply auto
+   apply (metis (mono_tags, lifting) mset.simps(2) set_ConsD set_mset_mset)
+   apply (cases E)
+   apply auto[1]
+  by (metis set_mset_mset)
 
 lemma select_min_weight_clause_min_weight:
   assumes "Ci = select_min_weight_clause P0 P"
