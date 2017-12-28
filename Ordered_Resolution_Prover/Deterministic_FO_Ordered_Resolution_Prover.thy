@@ -616,18 +616,37 @@ lemma reduce_clauses_in_P:
     p_irred: "\<forall>(E, k) \<in> set P. is_irreducible [C] E"
   shows "wstate_of_dstate (N, P @ P', Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ reduce_all C P', Q, n)"
   unfolding reduce_all_def
-proof (induct P' arbitrary: P)
-  case ih: (Cons Dj P')
-  have "wstate_of_dstate (N, P @ Dj # P', Q, n)
-     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ apfst (reduce [C] []) Dj # P', Q, n)"
-    sorry
+  using p_irred
+  sorry
 (*
-    by (cases Dj, simp only: apfst_conv,
-        rule reduce_clause_in_P[of _ _  _"[]", unfolded append_Nil, OF c_in])
-*)
-  then show ?case
-    using ih[of "P @ [apfst (reduce [C] []) Dj]"] by force
+proof (induct P' arbitrary: P)
+  case (Cons Dj P')
+  note ih = this(1) and p_irred = this(2)
+
+  have "\<forall>(E, k) \<in> set (map (apfst (reduce [C] [])) P'). is_irreducible [C] E"
+    sorry
+  then have p_red_p'_irred:
+    "\<forall>(E, k) \<in> set (P @ map (apfst (reduce [C] [])) P'). is_irreducible [C] E"
+    using p_irred by auto
+
+  have "wstate_of_dstate (N, P @ Dj # map (apfst (reduce [C] [])) P', Q, n)
+     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ apfst (reduce [C] []) Dj # map (apfst (reduce [C] [])) P', Q, n)"
+    apply (cases Dj)
+    apply (simp only: apfst_conv)
+    apply (rule reduce_clause_in_P[of _ _ _ _ _ "[]", unfolded append_Nil, OF c_in])
+    using p_red_p'_irred
+    apply auto
+    done
+
+  thm ih[of "P @ Dj]"]
+
+  show ?case
+
+
+    using ih[of "P @ [apfst (reduce [C] []) Dj]"] foo
+    sorry by force
 qed simp
+*)
 
 lemma reduce_clauses_in_Q:
   assumes
@@ -1229,9 +1248,7 @@ proof -
           note red_C
           also have "wstate_of_dstate ((C', i) # N', P, Q, n)
               \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', P', Q, n)"
-            unfolding P'_def
-              sorry
-            (* FIXME by (rule reduce_clauses_in_P[of _ _ "[]", unfolded append_Nil]) simp *)
+            unfolding P'_def by (rule reduce_clauses_in_P[of _ _ "[]", unfolded append_Nil]) simp+
           also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', back_to_P @ P', Q', n)"
             unfolding P'_def
             sorry
