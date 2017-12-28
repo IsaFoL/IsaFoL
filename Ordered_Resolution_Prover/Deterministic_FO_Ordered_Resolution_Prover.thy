@@ -368,6 +368,16 @@ proof (induct C' arbitrary: C)
   qed simp
 qed simp
 
+lemma is_irreducible_iff_nexists_is_reducible_lit:
+  "reduce Ds C C' = C' \<longleftrightarrow> \<not> (\<exists>L \<in> set C'. is_reducible_lit Ds (C @ remove1 L C') L)"
+  using is_reducible_imp_is_reducible_lit is_reducible_lit_imp_is_reducible by blast
+
+lemma is_irreducible_mset_iff: "mset E = mset E' \<Longrightarrow> reduce Ds C E = E \<longleftrightarrow> reduce Ds C E' = E'"
+  unfolding is_irreducible_iff_nexists_is_reducible_lit
+  apply auto
+  using is_reducible_lit_mset_iff
+  sorry
+
 lemma select_min_weight_clause_min_weight:
   assumes "Ci = select_min_weight_clause P0 P"
   shows "weight (apfst mset Ci) = Min ((weight \<circ> apfst mset) ` set (P0 # P))"
@@ -536,9 +546,7 @@ proof (induct D' arbitrary: D)
       using l_red by auto
 
     have foo: "\<forall>(E, k) \<in> set (P @ P'). j < k \<longrightarrow> mset E \<noteq> mset (L # D @ D')"
-      using p_irred
-      using ldd'_red
-      sorry
+      using p_irred ldd'_red is_irreducible_mset_iff by fast
 
     have "wstate_of_dstate (N, P @ (D @ L # D', j) # P', Q, n)
       \<leadsto>\<^sub>w wstate_of_dstate (N, P @ (D @ D', j) # P', Q, n)"
