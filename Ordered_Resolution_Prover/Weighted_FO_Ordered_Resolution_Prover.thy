@@ -273,48 +273,48 @@ lemma llength_infinite_if_Ns_non_empty: (* This is only true for full derivation
   using assms deriv
   oops
 
-abbreviation RP_measure :: "nat \<Rightarrow> 'a wstate \<Rightarrow> _" where
-  "RP_measure max_gen \<equiv> (\<lambda>(N, P, Q, n). (image_mset (\<lambda>(_, i). max_gen - i) (N + P), 
+abbreviation RP_measure_proto :: "nat \<Rightarrow> 'a wstate \<Rightarrow> _" where
+  "RP_measure_proto max_gen \<equiv> (\<lambda>(N, P, Q, n). (image_mset (\<lambda>(_, i). max_gen - i) (N + P), 
                                           sum_mset (image_mset (\<lambda>(C, i). Suc (size C)) (N + P + Q)),
                                           size N))"
 
-abbreviation RP_measure2 :: "nat \<Rightarrow> 'a wstate \<Rightarrow> _" where
-  "RP_measure2 max_gen \<equiv> (\<lambda>(N, P, Q, n). (image_mset (\<lambda>(C, i). (max_gen - i, size C)) (N + P), 
+abbreviation RP_measure_proto2 :: "nat \<Rightarrow> 'a wstate \<Rightarrow> _" where
+  "RP_measure_proto2 max_gen \<equiv> (\<lambda>(N, P, Q, n). (image_mset (\<lambda>(C, i). (max_gen - i, size C)) (N + P), 
                                           size N))"
 
-abbreviation RP_Non_Inference_measure :: "'a wstate \<Rightarrow> _" where
+abbreviation RP_Non_Inference_measure :: "'a wstate \<Rightarrow> nat \<times> nat" where
   "RP_Non_Inference_measure \<equiv> (\<lambda>(N, P, Q, n). 
                               (sum_mset (image_mset (\<lambda>(C, i). Suc (size C)) (N + P + Q)), size N))"
 
-definition RP_measure3 :: "nat \<Rightarrow> 'a wstate \<Rightarrow> _" where
-  "RP_measure3 \<equiv> 
+definition RP_measure :: "nat \<Rightarrow> 'a wstate \<Rightarrow> nat" where
+  "RP_measure \<equiv> 
      (\<lambda>w (N,P,Q,n). sum_mset (image_mset (\<lambda>(C, i). Suc (Suc (size C))) ({#(D,i) \<in># N + P. i \<le> w#}))
                   + sum_mset (image_mset (\<lambda>(C, i). Suc (size C)) ({#(D,i) \<in># Q. i \<le> w#})))"
 
-abbreviation(input) RP_relation where
-  "RP_relation \<equiv> mult natLess <*lex*> natLess <*lex*> natLess"
+abbreviation(input) RP_relation_proto where
+  "RP_relation_proto \<equiv> mult natLess <*lex*> natLess <*lex*> natLess"
 
-abbreviation(input) RP_relation2 where
-  "RP_relation2 \<equiv> mult (natLess <*lex*> natLess) <*lex*> natLess"
+abbreviation(input) RP_relation_proto2 where
+  "RP_relation_proto2 \<equiv> mult (natLess <*lex*> natLess) <*lex*> natLess"
 
 abbreviation RP_Non_Inference_relation where
   "RP_Non_Inference_relation \<equiv> natLess <*lex*> natLess"
 
-abbreviation(input) RP_relation3 where
-  "RP_relation3 \<equiv> natLess"
+abbreviation(input) RP_relation where
+  "RP_relation \<equiv> natLess"
 
-abbreviation(input) RP_relation3_eq where
-  "RP_relation3_eq \<equiv> natLeq"
+abbreviation(input) RP_relation_eq where
+  "RP_relation_eq \<equiv> natLeq"
 
-term "(RP_measure max_gen St, RP_measure max_gen St2) \<in> RP_relation"
-term "(RP_measure2 max_gen St, RP_measure2 max_gen St2) \<in> RP_relation2"
+term "(RP_measure_proto max_gen St, RP_measure_proto max_gen St2) \<in> RP_relation_proto"
+term "(RP_measure_proto2 max_gen St, RP_measure2 max_gen St2) \<in> RP_relation_proto2"
 term "(RP_Non_Inference_measure St , RP_Non_Inference_measure St2) \<in> RP_Non_Inference_relation"
-term "(RP_measure3 w St, RP_measure3 w St2) \<in> RP_relation3"
+term "(RP_measure w St, RP_measure w St2) \<in> RP_relation"
 
 lemma wf_natLess: "wf natLess"
   unfolding natLess_def using wf_less by auto
 
-lemma wf_RP_relation: "wf RP_relation"
+lemma wf_RP_relation: "wf RP_relation_proto"
   using wf_natLess wf_mult by auto
 
 lemma wf_RP_Non_Inference_relation: "wf RP_Non_Inference_relation"
@@ -448,7 +448,7 @@ lemma weighted_RP_Inference_has_measure:
   assumes "St \<leadsto>\<^sub>w\<^sub>i St'"
   assumes "(C, i) \<in># wP_of_wstate St"
   assumes "n_of_wstate St > weight (C, i)"
-  shows "(RP_measure3 (weight (C, i)) St', RP_measure3 (weight (C, i)) St) \<in> RP_relation3"
+  shows "(RP_measure (weight (C, i)) St', RP_measure (weight (C, i)) St) \<in> RP_relation"
 using weighted_RP_if_weighted_RP_Inference[OF assms(1)] using assms proof (induction rule: weighted_RP.induct)
   case (inference_computation P C' i' N n Q)
   define concls where "concls = ((\<lambda>D. (D, n)) ` concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) (fst ` set_mset Q) C'))"
@@ -510,9 +510,9 @@ using weighted_RP_if_weighted_RP_Inference[OF assms(1)] using assms proof (induc
     (\<Sum>(C, i)\<in>#{#(D, ia) \<in># {#} + add_mset (C', i') P. ia \<le> weight (C, i)#}. Suc (Suc (size C))) +
     (\<Sum>(C, i)\<in>#{#(D, ia) \<in># Q. ia \<le> weight (C, i)#}. Suc (size C))"
     by auto
-  finally have "RP_measure3 (weight (C, i)) (N, {#(D, j) \<in># P. D \<noteq> C'#}, add_mset (C', i') Q, Suc n) < 
-         RP_measure3 (weight (C, i)) ({#}, add_mset (C', i') P, Q, n)"
-    unfolding RP_measure3_def by auto
+  finally have "RP_measure (weight (C, i)) (N, {#(D, j) \<in># P. D \<noteq> C'#}, add_mset (C', i') Q, Suc n) < 
+         RP_measure (weight (C, i)) ({#}, add_mset (C', i') P, Q, n)"
+    unfolding RP_measure_def by auto
   then show ?case 
     unfolding natLess_def by simp
 qed (unfold weighted_RP_Inference_def, auto)
@@ -521,15 +521,15 @@ lemma weighted_RP_has_measure_eq:
   assumes "St \<leadsto>\<^sub>w St'"
   assumes "(C, i) \<in># wP_of_wstate St"
   assumes "n_of_wstate St > weight (C, i)"
-  shows "(RP_measure3 (weight (C, i)) St', RP_measure3 (weight (C, i)) St) \<in> RP_relation3_eq"
+  shows "(RP_measure (weight (C, i)) St', RP_measure (weight (C, i)) St) \<in> RP_relation_eq"
   using assms assms(1) proof (induction rule: weighted_RP.induct)
 case (tautology_deletion A C' N i' P Q n)
   then show ?case 
-    unfolding natLeq_def RP_measure3_def by auto
+    unfolding natLeq_def RP_measure_def by auto
 next
   case (forward_subsumption D P Q C' N i' n)
   then show ?case
-    unfolding natLeq_def RP_measure3_def by auto
+    unfolding natLeq_def RP_measure_def by auto
 next
   case (backward_subsumption_P D N C' P Q n)
   then obtain i' where  "(C',i') \<in># P"
@@ -542,71 +542,30 @@ next
     apply (rule sum_image_mset_mono)
     apply (rule multiset_filter_mono)
     using P_filter_sub by auto
-  then have "RP_measure3 (weight (C, i)) (N, {#(E, k) \<in># P. E \<noteq> C'#}, Q, n) \<le> RP_measure3 (weight (C, i)) (N, P, Q, n)"
-    unfolding RP_measure3_def by auto
+  then have "RP_measure (weight (C, i)) (N, {#(E, k) \<in># P. E \<noteq> C'#}, Q, n) \<le> RP_measure (weight (C, i)) (N, P, Q, n)"
+    unfolding RP_measure_def by auto
   then show ?case
     unfolding natLeq_def by clarify
 next
   case (backward_subsumption_Q D N C' P Q i' n)
   then show ?case
-    unfolding natLeq_def RP_measure3_def by auto
+    unfolding natLeq_def RP_measure_def by auto
 next
   case (forward_reduction D L' P Q L \<sigma> C' N i' n)
   then show ?case
-    apply (subgoal_tac "\<And>m C D. size C < size D  \<Longrightarrow> weight (C,m) < weight (D,m)")
-    subgoal
-      unfolding natLeq_def
-      apply (cases "weight (C', i') \<le> weight (C, i)")
-       apply simp
-       apply (unfold RP_measure3_def)[]
-       apply simp
-      apply (unfold RP_measure3_def)[]
-      apply simp
-      done
-    subgoal for m Da Ca
-      unfolding linorder_not_le 
-         (* The subgoal should be assumed actually. I could probably change the proof to get rid of it by fast forwarding
-            to a state where all the clauses with weight lower than w will not be reduced anymore *)
-      sorry
-    done
+    unfolding natLeq_def RP_measure_def by simp
 next
   case (backward_reduction_P D L' N L \<sigma> C' P i' Q n)
   then show ?case 
-    apply (subgoal_tac "\<And>m C D. size C < size D  \<Longrightarrow> weight (C,m) < weight (D,m)") (* copy paste *)
-    subgoal
-      unfolding natLeq_def
-      apply (cases "weight (C', i') \<le> weight (C, i)")
-       apply simp
-       apply (unfold RP_measure3_def)[]
-       apply simp
-      apply (unfold RP_measure3_def)[]
-      apply simp
-      done
-    subgoal for m Da Ca
-      unfolding linorder_not_le (* The subgoal should be assumed actually. *)
-      sorry
-    done
+    unfolding natLeq_def RP_measure_def by simp
 next
   case (backward_reduction_Q D L' N L \<sigma> C' P Q i' n)
   then show ?case
-    apply (subgoal_tac "\<And>m C D. size C < size D  \<Longrightarrow> weight (C,m) < weight (D,m)") (* copy paste *)
-    subgoal
-      unfolding natLeq_def
-      apply (cases "weight (C', i') \<le> weight (C, i)")
-       apply simp
-       apply (unfold RP_measure3_def)[]
-       apply simp
-      apply (unfold RP_measure3_def)[]
-      apply simp
-      done
-    subgoal for m Da Ca
-      unfolding linorder_not_le (* The subgoal should be assumed actually. *)
-      sorry
-    done
+    unfolding natLeq_def RP_measure_def by simp
 next
   case (clause_processing N C' i' P Q n)
   then show ?case 
-    unfolding natLeq_def RP_measure3_def by auto
+    unfolding natLeq_def RP_measure_def by auto
 next
   case (inference_computation P C' i' N n Q)
   then have "({#}, P + {#(C', i')#}, Q, n) \<leadsto>\<^sub>w\<^sub>i  (N, {#(D, j) \<in># P. D \<noteq> C'#}, Q + {#(C', i')#}, Suc n)"
@@ -619,16 +578,16 @@ qed
 lemma 
   assumes "St \<leadsto>\<^sub>w St'"
   assumes "(C,i) \<in># wP_of_wstate St"
-  shows "(RP_measure (weight (C,i) + 1) St', RP_measure (weight (C,i) + 1) St) \<in> RP_relation"
+  shows "(RP_measure_proto (weight (C,i) + 1) St', RP_measure_proto (weight (C,i) + 1) St) \<in> RP_relation_proto"
   using assms proof (induction rule: weighted_RP.induct)
   case (tautology_deletion A C' N i' P Q n)
-  have "(fst (RP_measure (weight (C, i) + 1) (N, P, Q, n)), fst (RP_measure (weight (C, i) + 1) (N + {#(C', i')#}, P, Q, n))) \<in> mult natLess"
+  have "(fst (RP_measure_proto (weight (C, i) + 1) (N, P, Q, n)), fst (RP_measure_proto (weight (C, i) + 1) (N + {#(C', i')#}, P, Q, n))) \<in> mult natLess"
     by (rule subset_implies_mult) auto
   then show ?case
     unfolding lex_prod_def by auto
 next
   case (forward_subsumption D P Q C' N i' n)
-  have "(fst (RP_measure (weight (C, i) + 1) (N, P, Q, n)), fst (RP_measure (weight (C, i) + 1) (N + {#(C', i')#}, P, Q, n))) \<in> mult natLess"
+  have "(fst (RP_measure_proto (weight (C, i) + 1) (N, P, Q, n)), fst (RP_measure_proto (weight (C, i) + 1) (N + {#(C', i')#}, P, Q, n))) \<in> mult natLess"
     by (rule subset_implies_mult) auto
   then show ?case
     unfolding lex_prod_def by auto
@@ -637,33 +596,33 @@ next
   then show ?case sorry
 next
   case (backward_subsumption_Q D N C' P Q i' n)
-  have "(fst (RP_measure (weight (C, i) + 1) (N, P, Q, n))) = fst (RP_measure (weight (C, i) + 1) (N, P, Q  + {#(C', i')#}, n))"
+  have "(fst (RP_measure_proto (weight (C, i) + 1) (N, P, Q, n))) = fst (RP_measure_proto (weight (C, i) + 1) (N, P, Q  + {#(C', i')#}, n))"
     by auto
-  moreover have "(fst (snd (RP_measure (weight (C, i) + 1) (N, P, Q, n))), fst (snd (RP_measure (weight (C, i) + 1) (N + {#(C', i')#}, P, Q, n)))) \<in> natLess"
+  moreover have "(fst (snd (RP_measure_proto (weight (C, i) + 1) (N, P, Q, n))), fst (snd (RP_measure_proto (weight (C, i) + 1) (N + {#(C', i')#}, P, Q, n)))) \<in> natLess"
     by (simp add: natLess_def)
   ultimately show ?case
     unfolding lex_prod_def by force
 next
   case (forward_reduction D L' P Q L \<sigma> C' N i' n)
-  have "(fst (RP_measure (weight (C, i) + 1) (N + {#(C', i')#}, P, Q, n))) = fst (RP_measure (weight (C, i) + 1) (N + {#(C' + {#L#}, i')#}, P, Q, n))"
+  have "(fst (RP_measure_proto (weight (C, i) + 1) (N + {#(C', i')#}, P, Q, n))) = fst (RP_measure_proto (weight (C, i) + 1) (N + {#(C' + {#L#}, i')#}, P, Q, n))"
     by auto
-  moreover have "(fst (snd (RP_measure (weight (C, i) + 1) (N + {#(C', i')#}, P, Q, n))), fst (snd (RP_measure (weight (C, i) + 1) (N + {#(C' + {#L#}, i')#}, P, Q, n)))) \<in> natLess"
+  moreover have "(fst (snd (RP_measure_proto (weight (C, i) + 1) (N + {#(C', i')#}, P, Q, n))), fst (snd (RP_measure_proto (weight (C, i) + 1) (N + {#(C' + {#L#}, i')#}, P, Q, n)))) \<in> natLess"
      by (simp add: natLess_def)
   ultimately show ?case
     unfolding lex_prod_def by force
 next
   case (backward_reduction_P D L' N L \<sigma> C' P i' Q n)
-  have "(fst (RP_measure (weight (C, i) + 1) (N, P + {#(C', i')#}, Q, n))) = fst (RP_measure (weight (C, i) + 1) (N, P + {#(C' + {#L#}, i')#}, Q, n))"
+  have "(fst (RP_measure_proto (weight (C, i) + 1) (N, P + {#(C', i')#}, Q, n))) = fst (RP_measure_proto (weight (C, i) + 1) (N, P + {#(C' + {#L#}, i')#}, Q, n))"
     by auto
-  moreover have "(fst (snd (RP_measure (weight (C, i) + 1) (N, P + {#(C', i')#}, Q, n))), fst (snd (RP_measure (weight (C, i) + 1) (N, P  + {#(C' + {#L#}, i')#}, Q, n)))) \<in> natLess"
+  moreover have "(fst (snd (RP_measure_proto (weight (C, i) + 1) (N, P + {#(C', i')#}, Q, n))), fst (snd (RP_measure_proto (weight (C, i) + 1) (N, P  + {#(C' + {#L#}, i')#}, Q, n)))) \<in> natLess"
      by (simp add: natLess_def)
   ultimately show ?case
     unfolding lex_prod_def by force
 next
   case (backward_reduction_Q D L' N L \<sigma> C' P Q i' n)
-  have "(fst (RP_measure (weight (C, i) + 1) (N, P + {#(C', i')#}, Q , n))) = fst (RP_measure (weight (C, i) + 1) (N, P, Q  + {#(C' + {#L#}, i')#}, n))"
+  have "(fst (RP_measure_proto (weight (C, i) + 1) (N, P + {#(C', i')#}, Q , n))) = fst (RP_measure_proto (weight (C, i) + 1) (N, P, Q  + {#(C' + {#L#}, i')#}, n))"
     sorry (* Problem is... here the measure actually grows *)
-  moreover have "(fst (snd (RP_measure (weight (C, i) + 1) (N, P + {#(C', i')#}, Q, n))), fst (snd (RP_measure (weight (C, i) + 1) (N, P  + {#(C' + {#L#}, i')#}, Q, n)))) \<in> natLess"
+  moreover have "(fst (snd (RP_measure_proto (weight (C, i) + 1) (N, P + {#(C', i')#}, Q, n))), fst (snd (RP_measure_proto (weight (C, i) + 1) (N, P  + {#(C' + {#L#}, i')#}, Q, n)))) \<in> natLess"
      by (simp add: natLess_def)
   ultimately show ?case
     unfolding lex_prod_def by force
