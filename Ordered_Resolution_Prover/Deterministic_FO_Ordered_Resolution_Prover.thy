@@ -646,50 +646,27 @@ proof (induct "length P'" arbitrary: P P')
     p': "P' = P1' @ Dj # P2'"
     using split_list[OF dj_in] by blast
 
-  have "wstate_of_dstate (N, (P @ P1') @ Dj # P2', Q, n)
-     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, (P @ P1') @ apfst (reduce [C] []) Dj # P2', Q, n)"
+  have "wstate_of_dstate (N, P @ P1' @ Dj # P2', Q, n)
+     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ P1' @ apfst (reduce [C] []) Dj # P2', Q, n)"
+    unfolding append_assoc[symmetric]
     apply (subst (1 2) surjective_pairing[of Dj, unfolded snd_dj])
     apply (simp only: apfst_conv)
     apply (rule reduce_clause_in_P[of _ _ _ _ _ "[]", unfolded append_Nil, OF c_in])
     using p_irred j_max[unfolded p']
     apply (force simp: case_prod_beta)
     done
-
-  show ?case
-    
-    sorry
-qed simp
-
-  sorry
-(*
-proof (induct P' arbitrary: P)
-  case (Cons Dj P')
-  note ih = this(1) and p_irred = this(2)
-
-  have "\<forall>(E, k) \<in> set (map (apfst (reduce [C] [])) P'). is_irreducible [C] E"
-    sorrx
-  then have p_red_p'_irred:
-    "\<forall>(E, k) \<in> set (P @ map (apfst (reduce [C] [])) P'). is_irreducible [C] E"
+  moreover have "wstate_of_dstate (N, P @ P1' @ apfst (reduce [C] []) Dj # P2', Q, n)
+     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ map (apfst (reduce [C] [])) (P1' @ Dj # P2'), Q, n)"
+    apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w\<^sup>*", OF _ _
+          ih[of "P1' @ P2'" "apfst (reduce [C] []) Dj # P"]])
+       apply auto
+    using suc_l unfolding p'
+      apply simp
+    using reduce_idem apply (metis Pair_inject apfst_conv old.prod.exhaust)
     using p_irred by auto
-
-  have "wstate_of_dstate (N, P @ Dj # map (apfst (reduce [C] [])) P', Q, n)
-     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ apfst (reduce [C] []) Dj # map (apfst (reduce [C] [])) P', Q, n)"
-    apply (cases Dj)
-    apply (simp only: apfst_conv)
-    apply (rule reduce_clause_in_P[of _ _ _ _ _ "[]", unfolded append_Nil, OF c_in])
-    using p_red_p'_irred
-    apply auto
-    done
-
-  thm ih[of "P @ Dj]"]
-
-  show ?case
-
-
-    using ih[of "P @ [apfst (reduce [C] []) Dj]"] foo
-    sorrx by force
+  ultimately show ?case
+    unfolding p' by simp
 qed simp
-*)
 
 lemma reduce_clauses_in_Q:
   assumes
