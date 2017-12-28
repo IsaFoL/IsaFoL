@@ -286,18 +286,30 @@ abbreviation RP_Non_Inference_measure :: "'a wstate \<Rightarrow> _" where
   "RP_Non_Inference_measure \<equiv> (\<lambda>(N, P, Q, n). 
                               (sum_mset (image_mset (\<lambda>(C, i). Suc (size C)) (N + P + Q)), size N))"
 
-abbreviation RP_relation where
+definition RP_measure3 :: "nat \<Rightarrow> 'a wstate \<Rightarrow> _" where
+  "RP_measure3 \<equiv> 
+     (\<lambda>w (N,P,Q,n). sum_mset (image_mset (\<lambda>(C, i). Suc (Suc (size C))) ({#(D,i) \<in># N + P. i \<le> w#}))
+                  + sum_mset (image_mset (\<lambda>(C, i). Suc (size C)) ({#(D,i) \<in># Q. i \<le> w#})))"
+
+abbreviation(input) RP_relation where
   "RP_relation \<equiv> mult natLess <*lex*> natLess <*lex*> natLess"
 
-abbreviation RP_relation2 where
+abbreviation(input) RP_relation2 where
   "RP_relation2 \<equiv> mult (natLess <*lex*> natLess) <*lex*> natLess"
 
 abbreviation RP_Non_Inference_relation where
   "RP_Non_Inference_relation \<equiv> natLess <*lex*> natLess"
 
-term "((RP_measure max_gen St),(RP_measure max_gen St2)) \<in> RP_relation"
-term "((RP_measure2 max_gen St),(RP_measure2 max_gen St)) \<in> RP_relation2"
-term "((RP_Non_Inference_measure St),(RP_Non_Inference_measure St)) \<in> RP_Non_Inference_relation"
+abbreviation(input) RP_relation3 where
+  "RP_relation3 \<equiv> natLess"
+
+abbreviation(input) RP_relation3_eq where
+  "RP_relation3_eq \<equiv> natLeq"
+
+term "(RP_measure max_gen St, RP_measure max_gen St2) \<in> RP_relation"
+term "(RP_measure2 max_gen St, RP_measure2 max_gen St2) \<in> RP_relation2"
+term "(RP_Non_Inference_measure St , RP_Non_Inference_measure St2) \<in> RP_Non_Inference_relation"
+term "(RP_measure3 w St, RP_measure3 w St2) \<in> RP_relation3"
 
 lemma wf_natLess: "wf natLess"
   unfolding natLess_def using wf_less by auto
@@ -308,8 +320,13 @@ lemma wf_RP_relation: "wf RP_relation"
 lemma wf_RP_Non_Inference_relation: "wf RP_Non_Inference_relation"
   using wf_natLess wf_mult by auto
 
+lemmas wf_RP_relation3 = wf_natLess
+
 lemma weighted_RP_if_weighted_RP_Non_Inference: "St \<leadsto>\<^sub>w\<^sub>n\<^sub>i St' \<Longrightarrow> St \<leadsto>\<^sub>w St'"
   unfolding weighted_RP_Non_Inference_def by auto
+
+lemma weighted_RP_if_weighted_RP_Inference: "St \<leadsto>\<^sub>w\<^sub>i St' \<Longrightarrow> St \<leadsto>\<^sub>w St'"
+  unfolding weighted_RP_Inference_def by auto
 
 lemma multiset_sum_of_Suc_f_monotone:
   assumes "N \<subset># M"
@@ -413,6 +430,191 @@ next
     unfolding weighted_RP_Non_Inference_def by auto
 qed
 
+lemma filter_mset_empty_if_finite_and_filter_set_empty:
+  assumes 
+    "{x \<in> X. P x} = {}" and
+    "finite X"
+  shows "{#x \<in># mset_set X. P x#} = {#}"
+proof -
+  have empty_empty: "\<And>Y. set_mset Y = {} \<Longrightarrow> Y = {#}"
+    by auto
+  from assms have "set_mset {#x \<in># mset_set X. P x#} = {}"
+    by auto
+  then show ?thesis
+    by (rule empty_empty)
+qed
+
+lemma weighted_RP_Inference_has_measure:
+  assumes "St \<leadsto>\<^sub>w\<^sub>i St'"
+  assumes "(C, i) \<in># wP_of_wstate St"
+  assumes "n_of_wstate St > weight (C, i)"
+  shows "(RP_measure3 (weight (C, i)) St', RP_measure3 (weight (C, i)) St) \<in> RP_relation3"
+using weighted_RP_if_weighted_RP_Inference[OF assms(1)] using assms proof (induction rule: weighted_RP.induct)
+  case (inference_computation P C' i' N n Q)
+  define concls where "concls = ((\<lambda>D. (D, n)) ` concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) (fst ` set_mset Q) C'))"
+
+  have "finite (inference_system.inferences_between (ord_FO_\<Gamma> S) (fst ` set_mset Q) C')"
+    using finite_ord_FO_resolution_inferences_between by auto
+  then have fin: "finite concls"
+    unfolding concls_def by auto
+  thm finite_ord_FO_resolution_inferences_between[of "(fst ` set_mset Q)" S C']
+
+  from inference_computation have "\<not> n \<le> weight (C, i)"
+    by auto
+  then have "{(D, ia) \<in> concls. ia \<le> weight (C, i)} = {}"
+    unfolding concls_def by auto
+  then have "{#(D, ia) \<in># mset_set concls. ia \<le> weight (C, i)#} = {#}"
+    using fin filter_mset_empty_if_finite_and_filter_set_empty[of concls] by auto
+  then have N_low_weight_empty: "{#(D, ia) \<in># N. ia \<le> weight (C, i)#} = {#}"
+    unfolding inference_computation unfolding concls_def by auto 
+  have "weight (C', i') \<le> weight (C, i)"
+    using inference_computation by auto
+  then have i'_le_w_Ci: "i' \<le> weight (C, i)"
+    using generation_le_weight[of i' C'] by auto
+
+  have "
+     (\<Sum>(C, i)\<in>#{#(D, ia) \<in># N + {#(D, j) \<in># P. D \<noteq> C'#}. ia \<le> weight (C, i)#}. Suc (Suc (size C))) +
+     (\<Sum>(C, i)\<in>#{#(D, ia) \<in># add_mset (C', i') Q. ia \<le> weight (C, i)#}. Suc (size C)) 
+      \<le>
+     (\<Sum>(C, i)\<in>#{#(D, ia) \<in># {#(D, j) \<in># P. D \<noteq> C'#}. ia \<le> weight (C, i)#}. Suc (Suc (size C))) +
+     (\<Sum>(C, i)\<in>#{#(D, ia) \<in># add_mset (C', i') Q. ia \<le> weight (C, i)#}. Suc (size C))"
+    using N_low_weight_empty by auto
+  also have 
+    "...
+     \<le>
+     (\<Sum>(C, i)\<in>#{#(D, ia) \<in># P. ia \<le> weight (C, i)#}. Suc (Suc (size C))) +
+     (\<Sum>(C, i)\<in>#{#(D, ia) \<in># add_mset (C', i') Q. ia \<le> weight (C, i)#}. Suc (size C))"
+    apply (rule add_le_mono1) apply (rule sum_image_mset_mono) apply (rule multiset_filter_mono) using multiset_filter_subset[of "\<lambda>(D, j). D \<noteq> C'" P] 
+    apply auto done
+  also have 
+    "...
+     \<le>
+     (\<Sum>(C, i)\<in>#{#(D, ia) \<in># P. ia \<le> weight (C, i)#}. Suc (Suc (size C))) +
+     (\<Sum>(C, i)\<in>#{#(D, ia) \<in># Q. ia \<le> weight (C, i)#}. Suc (size C)) + Suc (size C')"
+    using i'_le_w_Ci by auto
+  also have 
+    "...
+     <
+     (\<Sum>(C, i)\<in>#{#(D, ia) \<in># P. ia \<le> weight (C, i)#}. Suc (Suc (size C))) +
+     (\<Sum>(C, i)\<in>#{#(D, ia) \<in># Q. ia \<le> weight (C, i)#}. Suc (size C)) + Suc (Suc (size C'))"
+    by auto
+  also have 
+    "...
+    \<le>
+    (\<Sum>(C, i)\<in>#{#(D, ia) \<in># add_mset (C', i') P. ia \<le> weight (C, i)#}. Suc (Suc (size C))) +
+    (\<Sum>(C, i)\<in>#{#(D, ia) \<in># Q. ia \<le> weight (C, i)#}. Suc (size C))"
+    using i'_le_w_Ci by auto
+  also have 
+    "...
+    = 
+    (\<Sum>(C, i)\<in>#{#(D, ia) \<in># {#} + add_mset (C', i') P. ia \<le> weight (C, i)#}. Suc (Suc (size C))) +
+    (\<Sum>(C, i)\<in>#{#(D, ia) \<in># Q. ia \<le> weight (C, i)#}. Suc (size C))"
+    by auto
+  finally have "RP_measure3 (weight (C, i)) (N, {#(D, j) \<in># P. D \<noteq> C'#}, add_mset (C', i') Q, Suc n) < 
+         RP_measure3 (weight (C, i)) ({#}, add_mset (C', i') P, Q, n)"
+    unfolding RP_measure3_def by auto
+  then show ?case 
+    unfolding natLess_def by simp
+qed (unfold weighted_RP_Inference_def, auto)
+
+lemma weighted_RP_has_measure_eq:
+  assumes "St \<leadsto>\<^sub>w St'"
+  assumes "(C, i) \<in># wP_of_wstate St"
+  assumes "n_of_wstate St > weight (C, i)"
+  shows "(RP_measure3 (weight (C, i)) St', RP_measure3 (weight (C, i)) St) \<in> RP_relation3_eq"
+  using assms assms(1) proof (induction rule: weighted_RP.induct)
+case (tautology_deletion A C' N i' P Q n)
+  then show ?case 
+    unfolding natLeq_def RP_measure3_def by auto
+next
+  case (forward_subsumption D P Q C' N i' n)
+  then show ?case
+    unfolding natLeq_def RP_measure3_def by auto
+next
+  case (backward_subsumption_P D N C' P Q n)
+  then obtain i' where  "(C',i') \<in># P"
+    by auto
+  then have P_filter_sub: "{#(E, k) \<in># P. E \<noteq> C'#} \<subset># P"
+    using filter_mset_strict_subset[of "(C', i')" P "\<lambda>X. \<not>fst X =  C'"]
+    by (metis (mono_tags, lifting) filter_mset_cong fst_conv prod.case_eq_if)
+  have "(\<Sum>(C, i)\<in>#{#(D, ia) \<in># N + {#(E, k) \<in># P. E \<noteq> C'#}. ia \<le> weight (C, i)#}. Suc (Suc (size C)))
+    \<le> (\<Sum>(C, i)\<in>#{#(D, ia) \<in># N + P. ia \<le> weight (C, i)#}. Suc (Suc (size C)))"
+    apply (rule sum_image_mset_mono)
+    apply (rule multiset_filter_mono)
+    using P_filter_sub by auto
+  then have "RP_measure3 (weight (C, i)) (N, {#(E, k) \<in># P. E \<noteq> C'#}, Q, n) \<le> RP_measure3 (weight (C, i)) (N, P, Q, n)"
+    unfolding RP_measure3_def by auto
+  then show ?case
+    unfolding natLeq_def by clarify
+next
+  case (backward_subsumption_Q D N C' P Q i' n)
+  then show ?case
+    unfolding natLeq_def RP_measure3_def by auto
+next
+  case (forward_reduction D L' P Q L \<sigma> C' N i' n)
+  then show ?case
+    apply (subgoal_tac "\<And>m C D. size C < size D  \<Longrightarrow> weight (C,m) < weight (D,m)")
+    subgoal
+      unfolding natLeq_def
+      apply (cases "weight (C', i') \<le> weight (C, i)")
+       apply simp
+       apply (unfold RP_measure3_def)[]
+       apply simp
+      apply (unfold RP_measure3_def)[]
+      apply simp
+      done
+    subgoal for m Da Ca
+      unfolding linorder_not_le 
+         (* The subgoal should be assumed actually. I could probably change the proof to get rid of it by fast forwarding
+            to a state where all the clauses with weight lower than w will not be reduced anymore *)
+      sorry
+    done
+next
+  case (backward_reduction_P D L' N L \<sigma> C' P i' Q n)
+  then show ?case 
+    apply (subgoal_tac "\<And>m C D. size C < size D  \<Longrightarrow> weight (C,m) < weight (D,m)") (* copy paste *)
+    subgoal
+      unfolding natLeq_def
+      apply (cases "weight (C', i') \<le> weight (C, i)")
+       apply simp
+       apply (unfold RP_measure3_def)[]
+       apply simp
+      apply (unfold RP_measure3_def)[]
+      apply simp
+      done
+    subgoal for m Da Ca
+      unfolding linorder_not_le (* The subgoal should be assumed actually. *)
+      sorry
+    done
+next
+  case (backward_reduction_Q D L' N L \<sigma> C' P Q i' n)
+  then show ?case
+    apply (subgoal_tac "\<And>m C D. size C < size D  \<Longrightarrow> weight (C,m) < weight (D,m)") (* copy paste *)
+    subgoal
+      unfolding natLeq_def
+      apply (cases "weight (C', i') \<le> weight (C, i)")
+       apply simp
+       apply (unfold RP_measure3_def)[]
+       apply simp
+      apply (unfold RP_measure3_def)[]
+      apply simp
+      done
+    subgoal for m Da Ca
+      unfolding linorder_not_le (* The subgoal should be assumed actually. *)
+      sorry
+    done
+next
+  case (clause_processing N C' i' P Q n)
+  then show ?case 
+    unfolding natLeq_def RP_measure3_def by auto
+next
+  case (inference_computation P C' i' N n Q)
+  then have "({#}, P + {#(C', i')#}, Q, n) \<leadsto>\<^sub>w\<^sub>i  (N, {#(D, j) \<in># P. D \<noteq> C'#}, Q + {#(C', i')#}, Suc n)"
+    unfolding weighted_RP_Inference_def by auto
+  then show ?case 
+    using inference_computation weighted_RP_Inference_has_measure 
+    unfolding natLess_def natLeq_def by fastforce
+qed
 
 lemma 
   assumes "St \<leadsto>\<^sub>w St'"
@@ -963,7 +1165,6 @@ proof (rule ccontr)
       then have "lmap RP_Non_Inference_measure (ldrop (enat k) Sts) = LCons x xs"        
         unfolding x_def xs_def using chain
         by (metis (no_types, lifting) k_lt_len ldrop_Suc_conv_ltl lhd_ldrop' llist.simps(13)) 
-      find_theorems ldrop Suc ltl
       moreover
       have "chain op \<leadsto>\<^sub>w\<^sub>n\<^sub>i (ldrop (enat (Suc k)) Sts)"
         using chain
@@ -1016,7 +1217,26 @@ proof (rule ccontr)
       Extend LC with the set of all subclauses of clauses in LC.
       This set is finite.
       Any future inference computation will be on a clause in this set.
-      
+
+      Jeg skal sørge for at når en vilkårlig (D, j) bliver kørt gennem inference computation
+        -- så dukker den aldrig op igen. Derfor skal jeg sørge for at inference computation
+           sletter alle kopier i P. Nej... det er ikke nok for en super clause af C med det samme
+           nummer kan komme ud af Q.
+
+Måske kan jeg lave et measure.
+A =   den samlede størelse (+2) af alle clauses i N og P med vægt under eller lig (C, i)
+    + den samlede størelse (+1) af alle clauses i Q med vægt under eller lig (C, i)
+Alle simplifikationerne i N og P gør det mindre eller uændret.
+Simplifikationen der flytter fra Q til P sletter et literal (-1), men går fra (+1) til (+2). I alt uændret.
+Inference computation gør det mindre fordi den flytter en clause from P til Q (dvs den går fra (+2) til (+1))
+og introducerer en masse med større vægt. (Antaget at vi er spolet frem til en tid større end vægt af (C,i))
+
+
+
+For something completely different:
+  It would probably be nice to have a lemma saying that \<leadsto>\<^sub>n\<^sub>i is wellfounded.
+  And then change the proof for N to use that.
+  In the proof of P I could also use it.
     *)
   qed
 qed
