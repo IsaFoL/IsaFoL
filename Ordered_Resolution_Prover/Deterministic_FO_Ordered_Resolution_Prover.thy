@@ -624,7 +624,7 @@ proof (induct P' arbitrary: P)
   note ih = this(1) and p_irred = this(2)
 
   have "\<forall>(E, k) \<in> set (map (apfst (reduce [C] [])) P'). is_irreducible [C] E"
-    sorry
+    sorrx
   then have p_red_p'_irred:
     "\<forall>(E, k) \<in> set (P @ map (apfst (reduce [C] [])) P'). is_irreducible [C] E"
     using p_irred by auto
@@ -644,7 +644,7 @@ proof (induct P' arbitrary: P)
 
 
     using ih[of "P @ [apfst (reduce [C] []) Dj]"] foo
-    sorry by force
+    sorrx by force
 qed simp
 *)
 
@@ -1251,12 +1251,12 @@ proof -
             unfolding P'_def by (rule reduce_clauses_in_P[of _ _ "[]", unfolded append_Nil]) simp+
           also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', back_to_P @ P', Q', n)"
             unfolding P'_def
-            sorry
-(* FIXME
-            by (rule reduce_clauses_in_Q[of C' _ _ "[]" Q, folded red_Q,
+            apply (rule reduce_clauses_in_Q[of C' _ _ "[]" Q, folded red_Q,
                   unfolded append_Nil prod.sel])
-              simp
-*)
+             apply simp
+            unfolding reduce_all_def
+            apply (auto intro: reduce_idem)
+            done
           also have "\<dots> \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate ((C', i) # N', back_to_P @ P', Q'', n)"
             unfolding Q''_def
             by (rule remove_strictly_subsumed_clauses_in_Q[of _ _ _ "[]", unfolded append_Nil])
