@@ -49,6 +49,10 @@ qed
 lemma wf_app: "wf r \<Longrightarrow> wf {(x, y). (f x, f y) \<in> r}"
   unfolding wf_eq_minimal by (intro allI, drule spec[of _ "f ` Q" for Q]) auto
 
+(* FIXME: clone of Lambda_Free_RPOs *)
+lemma wfP_app: "wfP p \<Longrightarrow> wfP (\<lambda>x y. p (f x) (f y))"
+  unfolding wfP_def by (rule wf_app[of "{(x, y). p x y}" f, simplified])
+
 (* TODO: Move to Isabelle. *)
 lemma funpow_fixpoint: "f x = x \<Longrightarrow> (f ^^ n) x = x"
   by (induct n) auto
@@ -617,6 +621,45 @@ lemma reduce_clauses_in_P:
   shows "wstate_of_dstate (N, P @ P', Q, n) \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, P @ reduce_all C P', Q, n)"
   unfolding reduce_all_def
   using p_irred
+proof (induct "length P'" arbitrary: P P')
+  case (Suc l)
+  note ih = this(1) and suc_l = this(2) and p_irred = this(3)
+
+  have p'_nnil: "P' \<noteq> []"
+    using suc_l by auto
+
+  define j where
+    "j = Max (snd ` set P')"
+
+  obtain Dj where
+    dj_in: "Dj \<in> set P'" and
+    snd_dj: "snd Dj = j"
+    using Max_in[of "snd ` set P'", unfolded image_def, simplified]
+    by (metis image_def j_def length_Suc_conv list.set_intros(1) suc_l)
+
+  have "\<forall>k \<in> snd ` set P'. k \<le> j"
+    unfolding j_def using p'_nnil by simp
+  then have j_max: "\<forall>(E, k) \<in> set P'. j \<ge> k"
+    unfolding image_def by fastforce
+
+  obtain P1' P2' :: "'a dclause list"  where
+    p': "P' = P1' @ Dj # P2'"
+    using split_list[OF dj_in] by blast
+
+  have "wstate_of_dstate (N, (P @ P1') @ Dj # P2', Q, n)
+     \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, (P @ P1') @ apfst (reduce [C] []) Dj # P2', Q, n)"
+    apply (subst (1 2) surjective_pairing[of Dj, unfolded snd_dj])
+    apply (simp only: apfst_conv)
+    apply (rule reduce_clause_in_P[of _ _ _ _ _ "[]", unfolded append_Nil, OF c_in])
+    using p_irred j_max[unfolded p']
+    apply (force simp: case_prod_beta)
+    done
+
+  show ?case
+    
+    sorry
+qed simp
+
   sorry
 (*
 proof (induct P' arbitrary: P)
