@@ -128,8 +128,11 @@ primrec reduce :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> 'a lcl
 | "reduce Ds C (L # C') =
    (if is_reducible_lit Ds (C @ C') L then reduce Ds C C' else L # reduce Ds (L # C) C')"
 
-abbreviation is_irreducible where
+abbreviation is_irreducible :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> bool" where
   "is_irreducible Ds C \<equiv> reduce Ds [] C = C"
+
+abbreviation is_reducible :: "'a lclause list \<Rightarrow> 'a lclause \<Rightarrow> bool" where
+  "is_reducible Ds C \<equiv> reduce Ds [] C \<noteq> C"
 
 definition reduce_all :: "'a lclause \<Rightarrow> 'a dclause list \<Rightarrow> 'a dclause list" where
   "reduce_all D = map (apfst (reduce [D] []))"
@@ -281,9 +284,15 @@ lemma is_reducible_lit_mono_cls:
   "mset C \<subseteq># mset C' \<Longrightarrow> is_reducible_lit Ds C L \<Longrightarrow> is_reducible_lit Ds C' L"
   unfolding is_reducible_lit_def by (blast intro: subset_mset.order.trans)
 
-lemma is_reducible_lit_cong_cls:
+lemma is_reducible_lit_mset_iff:
   "mset C = mset C' \<Longrightarrow> is_reducible_lit Ds C' L \<longleftrightarrow> is_reducible_lit Ds C L"
   by (metis is_reducible_lit_mono_cls subset_mset.order_refl)
+
+lemma is_reducible_lit_remove1_Cons_iff:
+  assumes "L \<in> set C'"
+  shows "is_reducible_lit Ds (C @ remove1 L (M # C')) L \<longleftrightarrow>
+    is_reducible_lit Ds (M # C @ remove1 L C') L"
+  using assms by (subst is_reducible_lit_mset_iff, auto)
 
 lemma reduce_mset_eq: "mset C = mset C' \<Longrightarrow> reduce Ds C E = reduce Ds C' E"
 proof (induct E arbitrary: C C')
@@ -294,7 +303,7 @@ proof (induct E arbitrary: C C')
     mset_ce_eq: "mset (C @ E) = mset (C' @ E)"
     using mset_eq by simp+
   show ?case
-    using ih[OF mset_eq] ih[OF mset_lc_eq] by (simp add: is_reducible_lit_cong_cls[OF mset_ce_eq])
+    using ih[OF mset_eq] ih[OF mset_lc_eq] by (simp add: is_reducible_lit_mset_iff[OF mset_ce_eq])
 qed simp
 
 lemma reduce_rotate[simp]: "reduce Ds (C @ [L]) E = reduce Ds (L # C) E"
@@ -313,6 +322,51 @@ lemma reduce_idem: "reduce Ds C (reduce Ds C E) = reduce Ds C E"
   apply (drule is_reducible_lit_mono_cls[of "C @ reduce Ds (L # C) E" "C @ E" Ds L for L E C, rotated])
   apply (auto intro: mset_reduce_subset)
   done
+
+lemma is_reducible_lit_imp_is_reducible:
+  "L \<in> set C' \<Longrightarrow> is_reducible_lit Ds (C @ remove1 L C') L \<Longrightarrow> reduce Ds C C' \<noteq> C'"
+proof (induct C' arbitrary: C)
+  case (Cons M C')
+  note ih = this(1) and l_in = this(2) and l_red = this(3)
+
+  show ?case
+  proof (cases "is_reducible_lit Ds (C @ C') M")
+    case True
+    then show ?thesis
+      by simp (metis mset.simps(2) mset_reduce_subset multi_self_add_other_not_self
+          subset_mset.eq_iff subset_mset_imp_subset_add_mset)
+  next
+    case m_irred: False
+
+    have
+      l_in': "L \<in> set C'" and
+      l_red': "is_reducible_lit Ds (M # C @ remove1 L C') L"
+      using l_in l_red m_irred is_reducible_lit_remove1_Cons_iff by auto
+
+    show ?thesis
+      apply (simp add: m_irred)
+      apply (rule ih[of "M # C"])
+      using l_in' l_red'
+      apply auto
+      done
+  qed
+qed simp
+
+lemma is_reducible_imp_is_reducible_lit:
+  "reduce Ds C C' \<noteq> C' \<Longrightarrow> \<exists>L \<in> set C'. is_reducible_lit Ds (C @ remove1 L C') L"
+proof (induct C' arbitrary: C)
+  case (Cons M C')
+  note ih = this(1) and mc'_red = this(2)
+
+  show ?case
+  proof (cases "is_reducible_lit Ds (C @ C') M")
+    case m_irred: False
+    show ?thesis
+      using ih[of "M # C"] mc'_red[simplified, simplified m_irred, simplified] m_irred
+        is_reducible_lit_remove1_Cons_iff
+      by auto
+  qed simp
+qed simp
 
 lemma select_min_weight_clause_min_weight:
   assumes "Ci = select_min_weight_clause P0 P"
@@ -470,24 +524,34 @@ proof (induct D' arbitrary: D)
   case ih: (Cons L D')
   show ?case
   proof (cases "is_reducible_lit [C] (D @ D') L")
-    case red: True
+    case l_red: True
     then obtain L' :: "'a literal" and \<sigma> :: 's where
       l'_in: "L' \<in> set C" and
       not_l: "- L = L' \<cdot>l \<sigma>" and
       subs: "mset (remove1 L' C) \<cdot> \<sigma> \<subseteq># mset (D @ D')"
       unfolding is_reducible_lit_def by force
 
+    have ldd'_red: "is_reducible [C] (L # D @ D')"
+      apply (rule is_reducible_lit_imp_is_reducible)
+      using l_red by auto
+
+    have foo: "\<forall>(E, k) \<in> set (P @ P'). j < k \<longrightarrow> mset E \<noteq> mset (L # D @ D')"
+      using p_irred
+      using ldd'_red
+      sorry
+
     have "wstate_of_dstate (N, P @ (D @ L # D', j) # P', Q, n)
       \<leadsto>\<^sub>w wstate_of_dstate (N, P @ (D @ D', j) # P', Q, n)"
-      sorry
-(* FIXME
-      by (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
+      apply (rule arg_cong2[THEN iffD1, of _ _ _ _ "op \<leadsto>\<^sub>w", OF _ _
             wrp.backward_reduction_P[of "mset C - {#L'#}" L' "mset (map (apfst mset) N)" L \<sigma>
-              "mset (D @ D')" "mset (map (apfst mset) (P @ P'))" k "mset (map (apfst mset) Q)" n]],
-          use l'_in not_l subs c_in in auto)
-*)
+              "mset (D @ D')" "mset (map (apfst mset) (P @ P'))" j "mset (map (apfst mset) Q)" n]])
+      using l'_in not_l subs c_in apply auto[5]
+      using foo
+      apply (auto simp: case_prod_beta)
+      apply force+
+      done
     then show ?thesis
-      using ih[of D] red by simp
+      using ih[of D] l_red by simp
   next
     case False
     then show ?thesis
@@ -508,7 +572,7 @@ proof (induct D' arbitrary: D)
   note ih = this(1) and ld'_red = this(2)
   then show ?case
   proof (cases "is_reducible_lit [C] (D @ D') L")
-    case red: True
+    case l_red: True
     then obtain L' :: "'a literal" and \<sigma> :: 's where
       l'_in: "L' \<in> set C" and
       not_l: "- L = L' \<cdot>l \<sigma>" and
@@ -522,7 +586,7 @@ proof (induct D' arbitrary: D)
               "mset (D @ D')" "mset (map (apfst mset) P)" "mset (map (apfst mset) (Q @ Q'))" j n]],
           use l'_in not_l subs c_in in auto)
     then show ?thesis
-      using red p_irred reduce_clause_in_P[OF c_in, of "[]" P j D D' "Q @ Q'" n] by simp
+      using l_red p_irred reduce_clause_in_P[OF c_in, of "[]" P j D D' "Q @ Q'" n] by simp
   next
     case l_nred: False
     then have d'_red: "reduce [C] (D @ [L]) D' \<noteq> D'"
@@ -567,13 +631,13 @@ proof (induct Q' arbitrary: P Q)
     then show ?thesis
       using ih[of _ "Q @ [Dj]"] p_irred by (simp add: case_prod_beta)
   next
-    case red: False
+    case d_red: False
     have "wstate_of_dstate (N, P, Q @ Dj # Q', n)
       \<leadsto>\<^sub>w\<^sup>* wstate_of_dstate (N, (reduce [C] [] (fst Dj), snd Dj) # P, Q @ Q', n)"
-      using p_irred reduce_clause_in_Q[of _ _ P "snd Dj" "[]" _ Q Q' n, OF c_in _ red]
+      using p_irred reduce_clause_in_Q[of _ _ P "snd Dj" "[]" _ Q Q' n, OF c_in _ d_red]
       by (cases Dj) force
     then show ?thesis
-      using ih[of "(reduce [C] [] (fst Dj), snd Dj) # P" Q] red p_irred reduce_idem
+      using ih[of "(reduce [C] [] (fst Dj), snd Dj) # P" Q] d_red p_irred reduce_idem
       by (force simp: case_prod_beta)
   qed
 qed simp
