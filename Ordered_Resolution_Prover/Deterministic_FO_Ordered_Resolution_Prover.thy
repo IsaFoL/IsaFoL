@@ -747,15 +747,14 @@ proof
       case (Suc l)
       note ih = this(1) and suc_l = this(2) and e_in = this(3)
 
-      obtain L B \<sigma> where
-        "L \<in> set C
-         \<and> Pos B = L
-         \<and> Some \<sigma> = mgu {{B, A}}
-         \<and> maximal_wrt (A \<cdot>a \<sigma>) {#M \<cdot>l \<sigma>. M \<in># mset D#}
-         \<and> (E = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 L C) @ map (\<lambda>M. M \<cdot>l \<sigma>) D
-              \<and> strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># remove1_mset L (mset C)#}
-            \<or> E \<in> set (resolve_on (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 L C)) (A \<cdot>a \<sigma>) (map (\<lambda>M. M \<cdot>l \<sigma>) D)))"
-        using e_in[unfolded resolve_on.simps[of C A D] Let_def, simplified] by meson
+      obtain B \<sigma> where
+        "Pos B \<in> set C" and
+        "Some \<sigma> = mgu {{B, A}}" and
+        "maximal_wrt (A \<cdot>a \<sigma>) {#M \<cdot>l \<sigma>. M \<in># mset D#}" and
+        "E = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C) @ map (\<lambda>M. M \<cdot>l \<sigma>) D
+           \<and> strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># remove1_mset (Pos B) (mset C)#}
+         \<or> E \<in> set (resolve_on (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C)) (A \<cdot>a \<sigma>) (map (\<lambda>M. M \<cdot>l \<sigma>) D))"
+        using e_in[unfolded resolve_on.simps[of C A D] Let_def, simplified] by metis
 
       show ?case
         sorry
