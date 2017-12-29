@@ -988,8 +988,10 @@ proof -
     using resolve_rename_either_way_eq_congls_of_inferences_between[of C "fst ` set Q", symmetric]
     apply (simp only: image_comp comp_def)
       apply (simp add: image_UN)
-
-    sorry
+     apply auto[1]
+     apply (smt apfst_conv case_prodD case_prodE case_prodI case_prodI2 filter_cong image_mset_filter_swap mset_filter)
+    using ci_min
+    by (meson in_diffD)
 qed
 
 lemma nonfinal_deterministic_RP_step:
