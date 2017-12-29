@@ -718,21 +718,42 @@ abbreviation Bin_ord_resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow>
 abbreviation Bin_ord_resolve_rename :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause set" where
   "Bin_ord_resolve_rename C D \<equiv> {E. \<exists>AA A \<sigma>. ord_resolve_rename S [C] D [AA] [A] \<sigma> E}"
 
+lemma bin_factor_ord_resolveI:
+  assumes
+    "ord_resolve S [C + poss AA] D [AA] [A] \<sigma> E" and
+    "ord_resolve S [C \<cdot> \<sigma>] (D \<cdot> \<sigma>) [AA' \<cdot>am \<sigma>] [A \<cdot>a \<sigma>] \<sigma>' E'"
+  shows "ord_resolve S [C + poss AA] D [AA + AA'] [A] \<sigma>'' E'"
+  sorry
+
+lemma bin_factor_ord_resolveD:
+  assumes
+    "AA \<noteq> {#}" and
+    "AA' \<noteq> {#}" and
+    "ord_resolve S [C + poss AA] D [AA + AA'] [A] \<sigma>'' E'"
+  shows "\<exists>\<sigma> \<sigma>' E. ord_resolve S [C + poss AA] D [AA] [A] \<sigma> E
+    \<and> ord_resolve S [C \<cdot> \<sigma>] (D \<cdot> \<sigma>) [AA' \<cdot>am \<sigma>] [A \<cdot>a \<sigma>] \<sigma>' E'"
+  sorry
+
 lemma resolve_on_eq_UNION_Bin_ord_resolve:
   "mset ` set (resolve_on C A D) =
-   {E. \<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}"
-(* FIXME: not yet -- express resolve on as the union of all literals of C
-proof (intro order_antisym subsetI, unfold mem_Collect_eq)
-  fix E
-  assume e_in: "E \<in> mset ` set (resolve_on C A D)"
-  show "\<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E"
+   {E. \<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}" (is "?lhs = ?rhs")
+proof
+  show "?lhs \<subseteq> ?rhs"
+  proof clarify
+    fix E
+    assume "E \<in> set (resolve_on C A D)"
+    show "\<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> (mset E)"
+      sorry
+  qed
 next
-  fix E
-  assume e_in: "\<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E"
-  show "E \<in> mset ` set (resolve_on C A D)"
+  show "?rhs \<subseteq> ?lhs"
+  proof clarify
+    fix E AA \<sigma>
+    assume "ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E"
+    show "E \<in> mset ` set (resolve_on C A D)"
+      sorry
+  qed
 qed
-*)
-  sorry
 
 lemma set_resolve_eq_UNION_set_resolve_on:
   "set (resolve C D) =
