@@ -742,8 +742,24 @@ proof
   proof clarify
     fix E
     assume "E \<in> set (resolve_on C A D)"
-    show "\<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> (mset E)"
-      sorry
+    then show "\<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> (mset E)"
+    proof (induct "length C" arbitrary: C A D)
+      case (Suc l)
+      note ih = this(1) and suc_l = this(2) and e_in = this(3)
+
+      obtain L B \<sigma> where
+        "L \<in> set C
+         \<and> Pos B = L
+         \<and> Some \<sigma> = mgu {{B, A}}
+         \<and> maximal_wrt (A \<cdot>a \<sigma>) {#M \<cdot>l \<sigma>. M \<in># mset D#}
+         \<and> (E = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 L C) @ map (\<lambda>M. M \<cdot>l \<sigma>) D
+              \<and> strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># remove1_mset L (mset C)#}
+            \<or> E \<in> set (resolve_on (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 L C)) (A \<cdot>a \<sigma>) (map (\<lambda>M. M \<cdot>l \<sigma>) D)))"
+        using e_in[unfolded resolve_on.simps[of C A D] Let_def, simplified] by meson
+
+      show ?case
+        sorry
+    qed (simp add: resolve_on.simps)
   qed
 next
   show "?rhs \<subseteq> ?lhs"
