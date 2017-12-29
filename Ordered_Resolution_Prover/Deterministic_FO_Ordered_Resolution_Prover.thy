@@ -22,6 +22,10 @@ lemma apfst_fst_snd: "apfst f x = (f (fst x), snd x)"
 lemma apfst_comp_rpair_const: "apfst f \<circ> (\<lambda>x. (x, y)) = (\<lambda>x. (x, y)) \<circ> f"
   by (simp add: comp_def)
 
+(* TODO: Move to Isabelle's List.thy *)
+lemma length_remove1_less[termination_simp]: "x \<in> set xs \<Longrightarrow> length (remove1 x xs) < length xs"
+  by (induct xs) auto
+
 lemma map_filter_neq_eq_filter_map:
   "map f (filter (\<lambda>y. f x \<noteq> f y) xs) = filter (\<lambda>z. f x \<noteq> z) (map f xs)"
   by (induct xs) auto
@@ -165,7 +169,7 @@ fun resolve_on :: "'a lclause \<Rightarrow> 'a \<Rightarrow> 'a lclause \<Righta
            in
              if maximal_wrt A' (mset D') then
                let
-                 C' = map (\<lambda>L. L \<cdot>l \<sigma>) (removeAll L C)
+                 C' = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 L C)
                in
                  (if strictly_maximal_wrt A' (mset C') then [C' @ D'] else []) @ resolve_on C' A' D'
              else
