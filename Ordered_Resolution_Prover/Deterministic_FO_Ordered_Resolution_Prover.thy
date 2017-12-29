@@ -171,7 +171,10 @@ fun resolve_on :: "'a lclause \<Rightarrow> 'a \<Rightarrow> 'a lclause \<Righta
                let
                  C' = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 L C)
                in
-                 (if strictly_maximal_wrt A' (mset C') then [C' @ D'] else []) @ resolve_on C' A' D'
+                 if strictly_maximal_wrt A' (mset C') then
+                   [C' @ D']
+                 else
+                   resolve_on C' A' D'
              else
                []))) C)"
 
@@ -718,22 +721,6 @@ abbreviation Bin_ord_resolve :: "'a clause \<Rightarrow> 'a clause \<Rightarrow>
 abbreviation Bin_ord_resolve_rename :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause set" where
   "Bin_ord_resolve_rename C D \<equiv> {E. \<exists>AA A \<sigma>. ord_resolve_rename S [C] D [AA] [A] \<sigma> E}"
 
-lemma bin_factor_ord_resolveI:
-  assumes
-    "ord_resolve S [C + poss AA] D [AA] [A] \<sigma> E" and
-    "ord_resolve S [C \<cdot> \<sigma>] (D \<cdot> \<sigma>) [AA' \<cdot>am \<sigma>] [A \<cdot>a \<sigma>] \<sigma>' E'"
-  shows "ord_resolve S [C + poss AA] D [AA + AA'] [A] \<sigma>'' E'"
-  sorry
-
-lemma bin_factor_ord_resolveD:
-  assumes
-    "AA \<noteq> {#}" and
-    "AA' \<noteq> {#}" and
-    "ord_resolve S [C + poss AA] D [AA + AA'] [A] \<sigma>'' E'"
-  shows "\<exists>\<sigma> \<sigma>' E. ord_resolve S [C + poss AA] D [AA] [A] \<sigma> E
-    \<and> ord_resolve S [C \<cdot> \<sigma>] (D \<cdot> \<sigma>) [AA' \<cdot>am \<sigma>] [A \<cdot>a \<sigma>] \<sigma>' E'"
-  sorry
-
 lemma resolve_on_eq_UNION_Bin_ord_resolve:
   "mset ` set (resolve_on C A D) =
    {E. \<exists>AA \<sigma>. ord_resolve S [mset C] ({#Neg A#} + mset D) [AA] [A] \<sigma> E}" (is "?lhs = ?rhs")
@@ -748,16 +735,48 @@ proof
       note ih = this(1) and suc_l = this(2) and e_in = this(3)
 
       obtain B \<sigma> where
-        "Pos B \<in> set C" and
-        "Some \<sigma> = mgu {{B, A}}" and
-        "maximal_wrt (A \<cdot>a \<sigma>) {#M \<cdot>l \<sigma>. M \<in># mset D#}" and
-        "E = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C) @ map (\<lambda>M. M \<cdot>l \<sigma>) D
-           \<and> strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># remove1_mset (Pos B) (mset C)#}
-         \<or> E \<in> set (resolve_on (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C)) (A \<cdot>a \<sigma>) (map (\<lambda>M. M \<cdot>l \<sigma>) D))"
-        using e_in[unfolded resolve_on.simps[of C A D] Let_def, simplified] by metis
+        b_in: "Pos B \<in> set C" and
+        \<sigma>_mgu: "Some \<sigma> = mgu {{B, A}}" and
+        a_max_d: "maximal_wrt (A \<cdot>a \<sigma>) {#M \<cdot>l \<sigma>. M \<in># mset D#}" and
+        e_disj: "strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># remove1_mset (Pos B) (mset C)#}
+           \<and> E = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C) @ map (\<lambda>M. M \<cdot>l \<sigma>) D
+         \<or> \<not> strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># remove1_mset (Pos B) (mset C)#}
+           \<and> E \<in> set (resolve_on (map (\<lambda>L. L \<cdot>l \<sigma>)
+             (remove1 (Pos B) C)) (A \<cdot>a \<sigma>) (map (\<lambda>M. M \<cdot>l \<sigma>) D))"
+        using e_in[unfolded resolve_on.simps[of C A D]]
+        by (simp add: Let_def if_distrib[of "\<lambda>A. E \<in> set A"] if_bool_eq_disj) metis
 
       show ?case
-        sorry
+      proof (cases "strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># remove1_mset (Pos B) (mset C)#}")
+        case max: True
+        then have e: "E = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C) @ map (\<lambda>M. M \<cdot>l \<sigma>) D"
+          using e_disj by sat
+
+        have "ord_resolve S [mset C] ({#Neg A#} + mset D) [{#B#}] [A] \<sigma> (mset E)"
+          using ord_resolve[of "[mset C]" 1 "[mset (remove1 (Pos B) C)]" "[{#B#}]" "[A]" \<sigma> S]
+          sorry
+        then show ?thesis
+          by blast
+      next
+        case nmax: False
+        then have e_in:
+          "E \<in> set (resolve_on (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C)) (A \<cdot>a \<sigma>) (map (\<lambda>M. M \<cdot>l \<sigma>) D))"
+          sorry
+        have l: "l = length (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C))"
+          using suc_l b_in by (auto simp: length_remove1)
+
+        show ?thesis
+          using ih[OF l e_in]
+
+          sorry
+      qed
+
+      next
+        assume "E \<in> set (resolve_on (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C)) (A \<cdot>a \<sigma>)
+          (map (\<lambda>M. M \<cdot>l \<sigma>) D))"
+        show ?thesis
+          sorry
+      qed
     qed (simp add: resolve_on.simps)
   qed
 next
