@@ -76,7 +76,7 @@ type_synonym 'a dstate = "'a dclause list \<times> 'a dclause list \<times> 'a d
 
 locale deterministic_FO_resolution_prover =
   weighted_FO_resolution_prover_with_size_generation_factors S subst_atm id_subst comp_subst
-    renamings_apart atm_of_atms mgu lessatm size_atm generation_factor size_factor
+    renamings_apart atm_of_atms mgu less_atm size_atm generation_factor size_factor
   for
     S :: "('a :: wellorder) clause \<Rightarrow> 'a clause" and
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
@@ -85,13 +85,16 @@ locale deterministic_FO_resolution_prover =
     renamings_apart :: "'a literal multiset list \<Rightarrow> 's list" and
     atm_of_atms :: "'a list \<Rightarrow> 'a" and
     mgu :: "'a set set \<Rightarrow> 's option" and
-    lessatm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
+    less_atm :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
     size_atm :: "'a \<Rightarrow> nat" and
     generation_factor :: nat and
     size_factor :: nat +
   assumes
     S_empty: "S C = {#}"
 begin
+
+lemma less_atm_irrefl: "\<not> less_atm A A"
+  using ex_ground_subst less_atm_ground less_atm_stable unfolding is_ground_subst_def by blast
 
 fun wstate_of_dstate :: "'a dstate \<Rightarrow> 'a wstate" where
   "wstate_of_dstate (N, P, Q, n) =
@@ -160,7 +163,7 @@ fun resolve_on :: "'a lclause \<Rightarrow> 'a \<Rightarrow> 'a lclause \<Righta
      (case L of
         Neg _ \<Rightarrow> []
       | Pos B \<Rightarrow>
-        (case mgu {{B, A}} of
+        (case mgu {{A, B}} of
            None \<Rightarrow> []
          | Some \<sigma> \<Rightarrow>
            let
@@ -702,14 +705,14 @@ proof (induct Q' arbitrary: P Q)
   qed
 qed simp
 
-lemma bin_eligible:
+lemma eligible_iff:
   "eligible S \<sigma> As DA \<longleftrightarrow> As = [] \<or> length As = 1 \<and> maximal_wrt (hd As \<cdot>a \<sigma>) (DA \<cdot> \<sigma>)"
   unfolding eligible.simps S_empty by (fastforce dest: hd_conv_nth)
 
 lemma ord_resolve_one_side_prem:
   "ord_resolve S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1 \<and> length AAs = 1 \<and> length As = 1"
   apply (erule ord_resolve.cases)
-  unfolding bin_eligible by force
+  unfolding eligible_iff by force
 
 lemma ord_resolve_rename_one_side_prem:
   "ord_resolve_rename S CAs DA AAs As \<sigma> E \<Longrightarrow> length CAs = 1 \<and> length AAs = 1 \<and> length As = 1"
@@ -736,8 +739,8 @@ proof
 
       obtain B \<sigma> where
         b_in: "Pos B \<in> set C" and
-        \<sigma>_mgu: "Some \<sigma> = mgu {{B, A}}" and
-        a_max_d: "maximal_wrt (A \<cdot>a \<sigma>) {#M \<cdot>l \<sigma>. M \<in># mset D#}" and
+        \<sigma>_mgu: "Some \<sigma> = mgu {{A, B}}" and
+        max: "maximal_wrt (A \<cdot>a \<sigma>) {#M \<cdot>l \<sigma>. M \<in># mset D#}" and
         e_disj: "strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># remove1_mset (Pos B) (mset C)#}
            \<and> E = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C) @ map (\<lambda>M. M \<cdot>l \<sigma>) D
          \<or> \<not> strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># remove1_mset (Pos B) (mset C)#}
@@ -748,17 +751,31 @@ proof
 
       show ?case
       proof (cases "strictly_maximal_wrt (A \<cdot>a \<sigma>) {#L \<cdot>l \<sigma>. L \<in># remove1_mset (Pos B) (mset C)#}")
-        case max: True
+        case smax: True
         then have e: "E = map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C) @ map (\<lambda>M. M \<cdot>l \<sigma>) D"
           using e_disj by sat
 
+        have c_eq_bbc: "mset C = add_mset (Pos B) (remove1_mset (Pos B) (mset C))"
+          using b_in by simp
+
+        have elig: "eligible S \<sigma> [A] (add_mset (Neg A) (mset D))"
+          unfolding eligible_iff
+          using max
+          apply (auto simp: maximal_wrt_def subst_cls_def less_atm_irrefl)
+          done
+
+        have smax': "strictly_maximal_wrt (A \<cdot>a \<sigma>) (remove1_mset (Pos B) (mset C) \<cdot> \<sigma>)"
+          using smax by (auto simp: subst_cls_def)
+
         have "ord_resolve S [mset C] ({#Neg A#} + mset D) [{#B#}] [A] \<sigma> (mset E)"
-          using ord_resolve[of "[mset C]" 1 "[mset (remove1 (Pos B) C)]" "[{#B#}]" "[A]" \<sigma> S]
-          sorry
+          unfolding e
+          using ord_resolve[of "[mset C]" 1 "[mset (remove1 (Pos B) C)]" "[{#B#}]" "[A]" \<sigma> S "mset D", simplified, OF c_eq_bbc \<sigma>_mgu elig smax' S_empty]
+          apply (auto simp: subst_cls_def)
+          done
         then show ?thesis
           by blast
       next
-        case nmax: False
+        case nsmax: False
         then have e_in:
           "E \<in> set (resolve_on (map (\<lambda>L. L \<cdot>l \<sigma>) (remove1 (Pos B) C)) (A \<cdot>a \<sigma>) (map (\<lambda>M. M \<cdot>l \<sigma>) D))"
           sorry
@@ -807,7 +824,7 @@ lemma resolve_eq_Bin_ord_resolve: "mset ` set (resolve C D) = Bin_ord_resolve (m
     apply (frule ord_resolve.simps[THEN iffD1])
     apply auto[1]
    apply (drule ord_resolve.simps[THEN iffD1])
-   apply (unfold bin_eligible)
+   apply (unfold eligible_iff)
    apply (clarsimp simp del: subst_cls_add_mset subst_cls_union)
    apply (drule maximal_wrt_subst)
    apply satx
